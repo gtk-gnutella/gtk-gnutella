@@ -30,6 +30,11 @@
 #include "filter_gui.h"
 
 /*
+ * Private variables
+ */
+rule_t *rule_clipboard = NULL;
+
+/*
  * on_checkbutton_filter_enabled_toggled:
  *
  * Change the active stats of the current work_filter to what
@@ -169,6 +174,9 @@ void on_button_filter_ok_clicked(GtkButton *button, gpointer user_data)
 
     gint page = gtk_notebook_get_current_page
         (GTK_NOTEBOOK(notebook_filter_detail));
+
+    if (work_filter == NULL)
+        return;
 
     if (page == nb_filt_page_buttons) {
         filter_close_dialog(TRUE);
@@ -329,4 +337,64 @@ void on_button_filter_reset_all_rules_clicked
 
         filter_rule_reset_stats(rule);
     }
+}
+
+gboolean on_clist_filter_rules_button_press_event
+    (GtkWidget * widget, GdkEventButton * event, gpointer user_data)
+{
+    gboolean sensitive;
+
+    if (event->button != 3)
+		return FALSE;
+
+    sensitive = (GTK_CLIST(clist_filter_rules)->selection != NULL) &&
+        (work_filter != NULL);
+
+    gtk_widget_set_sensitive(popup_filter_rule_copy, sensitive);
+    gtk_widget_set_sensitive(popup_filter_rule_paste, rule_clipboard != NULL);
+
+    gtk_menu_popup
+        (GTK_MENU(popup_filter_rule), NULL, NULL, NULL, NULL, 
+        event->button, event->time);
+
+	return TRUE;
+}
+
+void on_popup_filter_rule_copy_activate
+    (GtkMenuItem *menuitem, gpointer user_data)
+{
+    if (rule_clipboard != NULL)
+        filter_free_rule(rule_clipboard);
+
+    if (GTK_CLIST(clist_filter_rules)->selection != NULL) {
+        rule_t *r;
+        gint row;
+
+        row = (gint) GTK_CLIST(clist_filter_rules)->selection->data;
+
+        r = (rule_t *) gtk_clist_get_row_data
+            (GTK_CLIST(clist_filter_rules), row);
+        g_assert(r != NULL);
+   
+        rule_clipboard = filter_duplicate_rule(r);
+    }
+}
+
+void on_popup_filter_rule_paste_activate
+    (GtkMenuItem *menuitem, gpointer user_data)
+{
+    rule_t *r;
+
+    if (work_filter == NULL)
+        return;
+
+    /*
+     * Since a rule may not be added to two filters, we copy again here.
+     * We want to keep the original copy in the clipboard since we may
+     * want to paste it elsewhere.
+     * The filter takes ownership of the added rule.
+     */
+    r = filter_duplicate_rule(rule_clipboard);
+
+    filter_append_rule_to_session(work_filter, r);
 }

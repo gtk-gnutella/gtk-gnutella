@@ -24,6 +24,9 @@
 #ifndef __filter_cb_h__
 #define __filter_cb_h__
 
+/*
+ * Filter dialog
+ */
 gboolean on_dlg_filters_delete_event(GtkWidget *widget, gpointer user_data);
 void on_clist_filter_rules_resize_column(GtkCList * clist, gint column, gint width, gpointer user_data);
 void on_ctree_filter_filters_resize_column(GtkCList * clist, gint column, gint width, gpointer user_data);
@@ -48,5 +51,13 @@ void on_button_filter_reset_all_clicked(GtkButton *button, gpointer user_data);
 void on_button_filter_reset_rule_clicked(GtkButton *button, gpointer user_data);
 void on_ctree_filter_filters_tree_select_row(GtkCTree * ctree, GList *node, gint column, gpointer user_data);
 void on_checkbutton_filter_enabled_toggled(GtkToggleButton * togglebutton, gpointer user_data);
+gboolean on_clist_filter_rules_button_press_event(GtkWidget * widget, GdkEventButton * event, gpointer user_data);
+
+/*
+ * Filter popup for rule list
+ */
+void on_popup_filter_rule_copy_activate(GtkMenuItem *menuitem, gpointer user_data);
+void on_popup_filter_rule_paste_activate(GtkMenuItem *menuitem, gpointer user_data); 
+
 
 #endif /* __filter_cb_h__ */

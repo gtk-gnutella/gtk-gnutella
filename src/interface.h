@@ -12,7 +12,7 @@ GtkWidget* create_popup_uploads (void);
 GtkWidget* create_dlg_filters (void);
 GtkWidget* create_shutdown_window (void);
 GtkWidget* create_dlg_about (void);
-GtkWidget* create_window1 (void);
+GtkWidget* create_popup_filter_rule (void);
 
 /* Global Widgets (added by extern.tcl) */
 
@@ -170,6 +170,9 @@ extern GtkWidget *popup_nodes;
 extern GtkWidget *popup_nodes_remove;
 extern GtkWidget *popup_uploads;
 extern GtkWidget *popup_uploads_title;
+extern GtkWidget *popup_filter_rule;
+extern GtkWidget *popup_filter_rule_copy;
+extern GtkWidget *popup_filter_rule_paste;
 extern GtkWidget *button_ul_stats_clear_all;
 extern GtkWidget *button_ul_stats_clear_deleted;
 extern GtkWidget *checkbutton_autodownload;

@@ -8802,6 +8802,11 @@ settings</label>
 	      <handler>on_clist_filter_rules_select_row</handler>
 	      <last_modification_time>Sun, 02 Jun 2002 16:34:37 GMT</last_modification_time>
 	    </signal>
+	    <signal>
+	      <name>button_press_event</name>
+	      <handler>on_clist_filter_rules_button_press_event</handler>
+	      <last_modification_time>Thu, 20 Jun 2002 17:23:49 GMT</last_modification_time>
+	    </signal>
 	    <columns>4</columns>
 	    <column_widths>15,211,80,80</column_widths>
 	    <selection_mode>GTK_SELECTION_SINGLE</selection_mode>
@@ -11518,18 +11523,31 @@ Grace time remaining:</label>
 </widget>
 
 <widget>
-  <class>GtkWindow</class>
-  <name>window1</name>
-  <title>window1</title>
-  <type>GTK_WINDOW_TOPLEVEL</type>
-  <position>GTK_WIN_POS_NONE</position>
-  <modal>False</modal>
-  <allow_shrink>False</allow_shrink>
-  <allow_grow>True</allow_grow>
-  <auto_shrink>False</auto_shrink>
+  <class>GtkMenu</class>
+  <name>popup_filter_rule</name>
 
   <widget>
-    <class>Placeholder</class>
+    <class>GtkMenuItem</class>
+    <name>popup_filter_rule_copy</name>
+    <signal>
+      <name>activate</name>
+      <handler>on_popup_filter_rule_copy_activate</handler>
+      <last_modification_time>Thu, 20 Jun 2002 11:18:17 GMT</last_modification_time>
+    </signal>
+    <label>Copy rule</label>
+    <right_justify>False</right_justify>
+  </widget>
+
+  <widget>
+    <class>GtkMenuItem</class>
+    <name>popup_filter_rule_paste</name>
+    <signal>
+      <name>activate</name>
+      <handler>on_popup_filter_rule_paste_activate</handler>
+      <last_modification_time>Thu, 20 Jun 2002 11:18:17 GMT</last_modification_time>
+    </signal>
+    <label>Paste rule</label>
+    <right_justify>False</right_justify>
   </widget>
 </widget>
 

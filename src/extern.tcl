@@ -179,6 +179,10 @@ set w_main_list {
     popup_uploads 
     popup_uploads_title
 
+    popup_filter_rule
+    popup_filter_rule_copy
+    popup_filter_rule_paste
+
     button_ul_stats_clear_all
     button_ul_stats_clear_deleted 
     checkbutton_autodownload

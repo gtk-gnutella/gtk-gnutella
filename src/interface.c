@@ -174,6 +174,9 @@ GtkWidget *popup_nodes;
 GtkWidget *popup_nodes_remove;
 GtkWidget *popup_uploads;
 GtkWidget *popup_uploads_title;
+GtkWidget *popup_filter_rule;
+GtkWidget *popup_filter_rule_copy;
+GtkWidget *popup_filter_rule_paste;
 GtkWidget *button_ul_stats_clear_all;
 GtkWidget *button_ul_stats_clear_deleted;
 GtkWidget *checkbutton_autodownload;
@@ -7090,6 +7093,9 @@ create_dlg_filters (void)
   gtk_signal_connect (GTK_OBJECT (clist_filter_rules), "select_row",
                       GTK_SIGNAL_FUNC (on_clist_filter_rules_select_row),
                       NULL);
+  gtk_signal_connect (GTK_OBJECT (clist_filter_rules), "button_press_event",
+                      GTK_SIGNAL_FUNC (on_clist_filter_rules_button_press_event),
+                      NULL);
   gtk_signal_connect (GTK_OBJECT (button_filter_clear), "clicked",
                       GTK_SIGNAL_FUNC (on_button_filter_clear_clicked),
                       NULL);
@@ -7257,15 +7263,36 @@ create_dlg_about (void)
 }
 
 GtkWidget*
-create_window1 (void)
+create_popup_filter_rule (void)
 {
-  GtkWidget *window1;
+  GtkAccelGroup *popup_filter_rule_accels;
 
-  window1 = gtk_window_new (GTK_WINDOW_TOPLEVEL);
-  gtk_object_set_data (GTK_OBJECT (window1), "window1", window1);
-  gtk_window_set_title (GTK_WINDOW (window1), "window1");
+  popup_filter_rule = gtk_menu_new ();
+  gtk_object_set_data (GTK_OBJECT (popup_filter_rule), "popup_filter_rule", popup_filter_rule);
+  popup_filter_rule_accels = gtk_menu_ensure_uline_accel_group (GTK_MENU (popup_filter_rule));
 
-  return window1;
+  popup_filter_rule_copy = gtk_menu_item_new_with_label ("Copy rule");
+  gtk_widget_ref (popup_filter_rule_copy);
+  gtk_object_set_data_full (GTK_OBJECT (popup_filter_rule), "popup_filter_rule_copy", popup_filter_rule_copy,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (popup_filter_rule_copy);
+  gtk_container_add (GTK_CONTAINER (popup_filter_rule), popup_filter_rule_copy);
+
+  popup_filter_rule_paste = gtk_menu_item_new_with_label ("Paste rule");
+  gtk_widget_ref (popup_filter_rule_paste);
+  gtk_object_set_data_full (GTK_OBJECT (popup_filter_rule), "popup_filter_rule_paste", popup_filter_rule_paste,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (popup_filter_rule_paste);
+  gtk_container_add (GTK_CONTAINER (popup_filter_rule), popup_filter_rule_paste);
+
+  gtk_signal_connect (GTK_OBJECT (popup_filter_rule_copy), "activate",
+                      GTK_SIGNAL_FUNC (on_popup_filter_rule_copy_activate),
+                      NULL);
+  gtk_signal_connect (GTK_OBJECT (popup_filter_rule_paste), "activate",
+                      GTK_SIGNAL_FUNC (on_popup_filter_rule_paste_activate),
+                      NULL);
+
+  return popup_filter_rule;
 }
 
 
