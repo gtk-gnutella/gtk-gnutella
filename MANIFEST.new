@@ -134,6 +134,7 @@ po/boldquot.sed
 po/es.po
 po/fr.po
 po/gtk-gnutella.pot
+po/hu.po
 po/insert-header.sin
 po/nl.po
 po/quot.sed
@@ -175,6 +176,7 @@ src/downloads.h
 src/downloads_cb.c
 src/downloads_cb.h
 src/downloads_cb2.c
+src/downloads_cb2.h
 src/downloads_gui.c
 src/downloads_gui.h
 src/downloads_gui2.c
