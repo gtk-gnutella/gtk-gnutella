@@ -158,10 +158,15 @@ struct tokkey {
 		{ 0, 93, 1, '\0', 0, 1072566000 },			/* 28/12/2003 */
 		keys_093_1, G_N_ELEMENTS(keys_093_1),
 	},
+// XXX Keep this out because a bug in 0.94 and 0.93 prevents them from
+// XXX validating our level if there are more entries in the level we
+// XXX generate compared to the level they can validate.
+#if 0	// Until we decide to release 0.95
 	{
 		{ 0, 95, 0, 'u', 0, 1089756000 },			/* 14/07/2004 */
 		keys_095u, G_N_ELEMENTS(keys_095u),
 	},
+#endif
 };
 
 /*
@@ -528,12 +533,12 @@ tok_error_t tok_version_valid(
 
 	stamp32 = htonl(stamp32);
 
-	lvllen--;								/* Move to 0-based offset */
+	lvlsize--;								/* Move to 0-based offset */
 
-	if (lvldigest[2*lvllen] != (c[0] ^ c[1]))
+	if (lvldigest[2*lvlsize] != (c[0] ^ c[1]))
 		return TOK_INVALID_LEVEL;
 
-	if (lvldigest[2*lvllen+1] != (c[2] ^ c[3]))
+	if (lvldigest[2*lvlsize+1] != (c[2] ^ c[3]))
 		return TOK_INVALID_LEVEL;
 
 	for (i = 0; i < G_N_ELEMENTS(token_keys); i++) {
@@ -544,7 +549,7 @@ tok_error_t tok_version_valid(
 		}
 	}
 
-	if (lvllen < rtk - tk)
+	if (lvlsize < rtk - tk)
 		return TOK_SHORT_LEVEL;
 
 	return TOK_OK;
