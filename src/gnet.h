@@ -517,6 +517,10 @@ typedef struct gnet_upload_status {
     guint32 bps;         /* Current transfer rate */
     guint32 avg_bps;     /* Average transfer rate */
     time_t  last_update;
+	
+	guint	parq_position;
+	guint	parq_size;
+	guint	parq_ETA;
 } gnet_upload_status_t;
 
 typedef struct gnet_upload_info {
@@ -547,6 +551,7 @@ typedef struct gnet_upload_info {
 #define GTA_UL_WAITING			5	/* Waiting new HTTP request */
 #define GTA_UL_ABORTED          6   /* Upload removed during operation */
 #define GTA_UL_CLOSED           7   /* Upload removed while waiting */
+#define GTA_UL_QUEUED			8	/* Upload is queued */
 
 /*
  * State inspection macros.

@@ -32,7 +32,7 @@
 #include "bsched.h"
 
 struct gnutella_node;
-
+	
 typedef struct upload {
     gnet_upload_t upload_handle;
 
@@ -71,7 +71,19 @@ typedef struct upload {
 	gboolean keep_alive;			/* Keep HTTP connection? */
 	gboolean push;
 	gboolean accounted;				/* True when upload was accounted for */
+	
+	gboolean parq_status;
 } gnutella_upload_t;
+
+/*
+ * This structure is used for HTTP status printing callbacks.
+ */
+struct upload_http_cb {
+	gnutella_upload_t *u;			/* Upload being ACK'ed */
+	time_t now;						/* Current time */
+	time_t mtime;					/* File modification time */
+	struct shared_file *sf;
+};
 
 /* 
  * Global Data

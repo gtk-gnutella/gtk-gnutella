@@ -49,6 +49,7 @@
 #include "nodes.h"
 #include "ioheader.h"
 #include "ban.h"
+#include "parq.h"
 
 #include "settings.h"
 
@@ -73,16 +74,6 @@ gint running_uploads = 0;
 gint registered_uploads = 0;
 
 guint32 count_uploads = 0;
-
-/*
- * This structure is used for HTTP status printing callbacks.
- */
-struct upload_http_cb {
-	gnutella_upload_t *u;			/* Upload being ACK'ed */
-	time_t now;						/* Current time */
-	time_t mtime;					/* File modification time */
-	struct shared_file *sf;
-};
 
 /*
  * This structure is the key used in the mesh_info hash table to record
@@ -199,7 +190,6 @@ void upload_timer(time_t now)
 		if (UPLOAD_IS_COMPLETE(u))
 			continue;					/* Complete, no timeout possible */
 
-
 		/*
 		 * Check for timeouts.
 		 */
@@ -249,7 +239,7 @@ static gnutella_upload_t *upload_create(struct gnutella_socket *s, gboolean push
 	u->status = push ? GTA_UL_PUSH_RECEIVED : GTA_UL_HEADERS;
 	u->last_update = time((time_t *) 0);
 	u->file_desc = -1;
-
+	
 	/*
 	 * Record pending upload in the GUI.
 	 */
@@ -267,6 +257,8 @@ static gnutella_upload_t *upload_create(struct gnutella_socket *s, gboolean push
 	 * Add upload to the GUI
 	 */
     upload_fire_upload_added(u);
+	
+	u->parq_status = 0;
 
 	return u;
 }
@@ -538,6 +530,19 @@ static void send_upload_error_v(
 	}
 
 	/*
+	 * If the download got queued, also add the queueing information
+	 *		--JA, 07/02/2003
+	 */
+	if (parq_upload_queued(u)) {
+		cb_arg.u = u;
+		cb_arg.sf = sf;
+		
+		hev[hevcnt].he_type = HTTP_EXTRA_CALLBACK;
+		hev[hevcnt].he_cb = parq_upload_add_header;
+		hev[hevcnt++].he_arg = &cb_arg;
+	}	
+
+	/*
 	 * If this is a pushed upload, and we are not firewalled, then tell
 	 * them they can reach us directly by outputting an X-Host line.
 	 */
@@ -552,7 +557,6 @@ static void send_upload_error_v(
 	 * If `sf' is not null, propagate the SHA1 for the file if we have it,
 	 * as well as the download mesh.
 	 */
-
 	if (sf && sha1_hash_available(sf)) {
 		cb_arg.u = u;
 		cb_arg.sf = sf;
@@ -596,6 +600,12 @@ static void upload_remove_v(
 {
 	gchar *logreason;
 	gchar errbuf[1024];
+
+	/*
+	 * Signal PARQ about a upload which is possibly ready.
+	 * 		-- JA, 06/03/'03
+	 */
+	gint previous_running = running_uploads;
 
 	if (reason) {
 		gm_vsnprintf(errbuf, sizeof(errbuf), reason, ap);
@@ -658,11 +668,12 @@ static void upload_remove_v(
 	if (!UPLOAD_IS_COMPLETE(u))
 		registered_uploads--;
 
-	if (!UPLOAD_IS_COMPLETE(u) && !UPLOAD_IS_CONNECTING(u))
+	if (!UPLOAD_IS_COMPLETE(u) && !UPLOAD_IS_CONNECTING(u)) {
 		running_uploads--;
-	else if (u->keep_alive && UPLOAD_IS_CONNECTING(u))
+	} else if (u->keep_alive && UPLOAD_IS_CONNECTING(u)) {
 		running_uploads--;
-
+	}
+	
 	/*
 	 * If we were sending data, and we have not accounted the download yet,
 	 * then update the stats, not marking the upload as completed.
@@ -679,6 +690,10 @@ static void upload_remove_v(
         upload_fire_upload_info_changed(u);
     }
 
+
+	if (previous_running != running_uploads)
+		parq_upload_remove(u);
+	
     upload_fire_upload_removed(u, reason ? errbuf : NULL);
 
 	upload_free_resources(u);
@@ -2002,24 +2017,29 @@ static void upload_request(gnutella_upload_t *u, header_t *header)
 		 * wait for a download slot.  It would be a pity for them to get
 		 * a slot and be told about the mismatch only then.
 		 *		--RAM, 15/12/2001
-		 */
-
-		if (running_uploads > max_uploads) {
-
+		 *
+ 		 * Althought the uploads slots are full, we could try to queue
+		 * the download in PARQ. If this also fails, than the requesting client
+		 * is out of luck.
+		 *		--JA, 05/02/2003
+		 *
+		 */		
+		if (!parq_upload_request(u, header, running_uploads - 1)) {
 			/*
-			 * Support for bandwith-dependent number of upload slots.
-			 * The upload bandwith limitation has to be enabled, otherwise
-			 * we can not be sure that we have reasonable values for the
-			 * outgoing bandwith set.
-			 *		--TF 30/05/2002
-			 *
-			 * NB: if max_uploads is 0, then we disable sharing, period.
-			 *
-			 * Require that BOTH the average and "instantaneous" usage be
-			 * lower than the minimum to trigger the override.  This will
-			 * make it more robust when bandwidth stealing is enabled.
-			 *		--RAM, 27/01/2003
-			 */
+		 	* Support for bandwith-dependent number of upload slots.
+		 	* The upload bandwith limitation has to be enabled, otherwise
+		 	* we can not be sure that we have reasonable values for the
+		 	* outgoing bandwith set.
+		 	*		--TF 30/05/2002
+		 	*
+		 	* NB: if max_uploads is 0, then we disable sharing, period.
+		 	*
+		 	* Require that BOTH the average and "instantaneous" usage be
+		 	* lower than the minimum to trigger the override.  This will
+		 	* make it more robust when bandwidth stealing is enabled.
+		 	*		--RAM, 27/01/2003
+		 	*
+		 	*/
 
 			if (
 				max_uploads &&
@@ -2028,17 +2048,33 @@ static void upload_request(gnutella_upload_t *u, header_t *header)
 				bsched_pct(bws.out) < ul_usage_min_percentage &&
 				bsched_avg_pct(bws.out) < ul_usage_min_percentage
 			) {
+				/*
+				 * XXX Will this give problems with PARQ?
+				 *		-- JA 5/03/2003
+				 */
 				if (dbg > 4)
-					printf("Overriden slot limit because u/l b/w used at %d%% "
-						"(minimum set to %d%%)\n",
+					printf("Overriden slot limit because u/l b/w used at "
+						"%d%% (minimum set to %d%%)\n",
 						bsched_avg_pct(bws.out), ul_usage_min_percentage);
-			} else {
-				upload_error_remove(u, reqfile,
-					503, "Too many uploads (%d max)", max_uploads);
+			} else {	
+				if (parq_upload_queue_full(u)) {
+					upload_error_remove(u, reqfile,
+						503, "Too many uploads (%d max) Queue full", 
+						max_uploads);
+				} else {
+					upload_error_remove(u, reqfile,	503, 
+						"Too many uploads (%d max) Queued at: %d, ETA: %s", 
+						max_uploads,
+						parq_upload_lookup_position(u), 
+						short_time(parq_upload_lookup_ETA(u)));
+				}
 				return;
 			}
 		}
 	}
+
+	if (!head_only)
+		parq_upload_busy(u);
 
 	/*
 	 * Do we have to keep the connection after this request?
@@ -2316,6 +2352,7 @@ static void upload_write(gpointer up, gint source, inputevt_cond_t cond)
 		} else {
 			registered_uploads--;
 			running_uploads--;
+			parq_upload_remove(u);
 		}
 
 		upload_remove(u, NULL);
@@ -2425,5 +2462,8 @@ void upload_get_status(gnet_upload_t uh, gnet_upload_status_t *si)
         si->avg_bps = (u->pos - u->skip) / (u->last_update - u->start_date);
 	if (si->avg_bps == 0)
         si->avg_bps++;
+	
+	
+	
 }
 

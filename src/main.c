@@ -54,6 +54,7 @@
 #include "move.h"
 #include "extensions.h"
 #include "inet.h"
+#include "parq.h"
 #include "adns.h"
 #include "crc.h"
 #include "icon.h"
@@ -108,6 +109,7 @@ void gtk_gnutella_exit(gint n)
 	node_bye_all();
 	upload_close();		/* Done before upload_stats_close() for stats update */
 	upload_stats_close();
+	parq_upload_save_queue();
 	download_close();
 	http_close();
 	gwc_close();
@@ -248,6 +250,7 @@ static gboolean main_timer(gpointer p)
         shell_timer(now);
 #endif
 		download_timer(now);  	    /* Download timeouts */
+		parq_upload_timer(now);		/* PARQ upload timeouts/removal */
 		upload_timer(now);			/* Upload timeouts */
         file_info_timer();          /* Notify about changes */
 	}
@@ -407,6 +410,7 @@ gint main(gint argc, gchar **argv, gchar **env)
 	share_init();
 	dmesh_init();			/* Muse be done BEFORE download_init() */
 	download_init();
+	parq_upload_queue_init();
 	upload_init();
 #ifdef USE_REMOTE_SHELL
     shell_init();

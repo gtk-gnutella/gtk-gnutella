@@ -30,8 +30,6 @@
 #include "fileinfo.h"
 #include "header.h"
 
-#define PARQ_MAX_ID_LENGTH 40
-
 /*
  * We keep a list of all the downloads queued per GUID+IP:port (host).  Indeed
  * some broken clients (e.g. Morpheus) share the same GUID, so we cannot
@@ -75,8 +73,18 @@ struct dl_server {
 	guint32 attrs;
 };
 
+/*
+ * PARQ Version information
+ */
+ 
+#define PARQ_VERSION_MAJOR	1
+#define	PARQ_VERSION_MINOR	0
+
+#define PARQ_MAX_ID_LENGTH 40
+
+
 /* 
- * Download dependent queuing status.
+ * Download dependent queuing status. This will be moved to parq.c eventually
  */
 struct dl_queued {	
 	guint position;			/* Current position in the queue */
@@ -86,6 +94,11 @@ struct dl_queued {
 	guint retry_delay;		/* Interval between new attempt */
 	gchar ID[PARQ_MAX_ID_LENGTH+1];	/* PARQ Queue ID, +1 for trailing NUL */
 };
+
+/*
+ * End of PARQ declaration
+ */
+
 
 struct download {
 	gchar error_str[256];	/* Used to sprintf() error strings with vars */

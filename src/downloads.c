@@ -3145,6 +3145,13 @@ static void err_header_read_eof(gpointer o)
 		 */
 
 		d->server->attrs |= DLS_A_MINIMAL_HTTP;
+	} else {
+		/*
+		 * As some header lines were read, we could at least try to get the
+		 * server's name so we can display it.
+		 *		-- JA, 22/03/2003
+		 */
+		download_get_server_name(d, header);
 	}
 
 	if (d->retries++ < download_max_retries)
@@ -4248,7 +4255,7 @@ static void download_request(struct download *d, header_t *header, gboolean ok)
 		 * The download could be remotely queued. Check this now before
 		 * continuing at all.
 		 *   --JA, 31 jan 2003
-		 */			
+		 */
 		if (ack_code == 503) {			/* Check for queued status */
 			
 			if (parq_download_parse_queue_status(d, header)) {
@@ -4464,10 +4471,24 @@ static void download_request(struct download *d, header_t *header, gboolean ok)
 			if (!d->always_push && d->sha1)
 				dmesh_add(d->sha1, ip, port, d->record_index, d->file_name, 0);
 
-			/* No hammering */
-			download_queue_delay(d,
-				delay ? delay : download_retry_busy_delay,
-				"%sHTTP %d %s", short_read, ack_code, ack_message);
+			/* 
+			 * We did a fall through on a 503, however, the download could be
+			 * queued remotely. We might want to display this.
+			 *		-- JA, 21/03/2003 (it is spring!)
+			 */
+			if (parq_download_is_passive_queued(d))
+				download_queue_delay(d,
+					delay ? delay : download_retry_busy_delay,
+						"Queued (slot %d/%d) ETA: %s",
+							d->queue_status.position,
+							d->queue_status.length,
+							short_time(d->queue_status.ETA)
+				);
+			else 
+				/* No hammering */
+				download_queue_delay(d,
+					delay ? delay : download_retry_busy_delay,
+					"%sHTTP %d %s", short_read, ack_code, ack_message);
 			return;
 		case 550:				/* Banned */
 			download_queue_delay(d,

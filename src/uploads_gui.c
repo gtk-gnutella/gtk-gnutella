@@ -24,6 +24,7 @@
  */
 
 #include "uploads_gui.h"
+#include "parq.h"
 
 RCSID("$Id$");
 
@@ -178,6 +179,19 @@ static gchar *uploads_gui_status_str(
 		return "No output yet..."; /* Never wrote anything yet */
 
     switch(u->status) {
+		/*
+		 * Status: GTA_UL_QUEUED. When PARQ is enabled, and all upload slots are
+		 * full an upload is placed into the PARQ-upload. We probably want to
+		 * display this information
+		 *		-- JA, 06/02/2003
+		 */
+	case GTA_UL_QUEUED:
+		gm_snprintf(tmpstr, sizeof(tmpstr),
+			"Queued (slot %d / %d) ETA: %ds", 
+			u->parq_position,
+			u->parq_size,
+			u->parq_ETA);
+        break;
     case GTA_UL_ABORTED:
         return "Transmission aborted";
     case GTA_UL_CLOSED:
