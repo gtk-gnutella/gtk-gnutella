@@ -2614,27 +2614,32 @@ static gboolean qrt_handle_patch(
 		rt->fill_ratio = (gint) (100.0 * rt->set_count / rt->slots);
 
 		/*
-		 * If table is more than 1% full, each query will go through a
+		 * If table is more than 5% full, each query will go through a
 		 * random d100 throw, and will pass only if the score is below
 		 * the value of the pass throw threshold.
 		 *
 		 * The function below quickly drops and then flattens:
 		 *
-		 *   x =  2%  -> throw = 61
-		 *   x =  3%  -> throw = 55
-		 *   x =  5%  -> throw = 48
-		 *   x = 10%  -> throw = 39
-		 *   x = 20%  -> throw = 29
-		 *   x = 50%  -> throw = 14
-		 *   x = 90%  -> throw = 3
-		 *   x = 99%  -> throw = 1
+		 *   x =  6%  -> throw = 84
+		 *   x =  7%  -> throw = 79
+		 *   x =  8%  -> throw = 75
+		 *   x = 10%  -> throw = 69
+		 *   x = 20%  -> throw = 53
+		 *   x = 50%  -> throw = 27
+		 *   x = 90%  -> throw = 6
+		 *   x = 99%  -> throw = 2
 		 *
-		 * throw = 100 * (1 - (x - 0.01)^1/5 + 0.01) 
+		 * throw = 100 * (1 - (x - 0.05)^1/2.5) 
+		 *
+		 * Function was adjusted to cut at 5% now instead of 1% since we
+		 * now filter SHA1 queries via the QRP, so leaf traffic is far
+		 * diminished.
+		 *		--RAM, 03/01/2004
 		 */
 
-		if (rt->fill_ratio > 1)
+		if (rt->fill_ratio > 5)
 			rt->pass_throw = (gint)
-				(100.0 * (1 - pow((rt->fill_ratio - 1) / 100.0, 1/5.0) + 0.01));
+				(100.0 * (1 - pow((rt->fill_ratio - 5) / 100.0, 1/2.5)));
 		else
 			rt->pass_throw = 100;		/* Always forward if QRT says so */
 
