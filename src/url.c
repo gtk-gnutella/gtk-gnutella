@@ -39,14 +39,12 @@ RCSID("$Id$");
  * Unsafe chars  : " ", '"', "<", ">", "#", and "%"
  * Misc chars    : "{", "}", "|", "\", "^", "~", "[", "]" and "`"
  *
- * We let "/" pass through though: cannot be used in filenames.
- *
- * Bit 0 encodes regular transparent set.
- * Bir 1 encodes regular transparent set minus '+' and '/' for query args.
+ * Bit 0 encodes regular transparent set (pathnames, '/' is transparent).
+ * Bit 1 encodes regular transparent set minus '+' (query string).
  */
 static guint8 is_transparent[96] = {
 /*  0 1 2 3 4 5 6 7 8 9 a b c d e f */	/* 0123456789abcdef -            */
-    0,3,0,0,3,0,0,3,3,3,3,1,3,3,3,1,	/*  !"#$%&'()*+,-./ -  32 -> 47  */
+    0,3,0,0,3,0,0,3,3,3,3,1,3,3,3,3,	/*  !"#$%&'()*+,-./ -  32 -> 47  */
     3,3,3,3,3,3,3,3,3,3,0,0,0,0,0,0,	/* 0123456789:;<=>? -  48 -> 63  */
     0,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,	/* @ABCDEFGHIJKLMNO -  64 -> 79  */
     3,3,3,3,3,3,3,3,3,3,3,0,0,0,0,3,	/* PQRSTUVWXYZ[\]^_ -  80 -> 95  */
@@ -151,7 +149,7 @@ guchar *url_escape(guchar *url)
 /*
  * url_escape_query
  *
- * Same as url_escape(), but '+' and '/' are also escaped for the query string.
+ * Same as url_escape(), but '+' are also escaped for the query string.
  * Returns argument if no escaping is necessary, or a new string otherwise.
  */
 guchar *url_escape_query(guchar *url)
