@@ -138,10 +138,15 @@ void search_gui_restart_search(search_t *sch)
 	search_reissue(sch->search_handle);
 }
 
-static gboolean always_true(gpointer key, gpointer value, gpointer x)
+
+/*
+ *	always_true
+ */
+gboolean always_true(gpointer key, gpointer value, gpointer x)
 {
 	return TRUE;
 }
+
 
 /*
  * dec_records_refcount
@@ -235,10 +240,15 @@ gboolean search_gui_new_search(
 		flags | SEARCH_ENABLED, search);
 }
 
+
+/*
+ *	do_atom_sha1_free
+ */
 void do_atom_sha1_free(gpointer sha1)
 {
 	atom_sha1_free(sha1);
 }
+
 
 /* 
  * search_gui_new_search_full:
