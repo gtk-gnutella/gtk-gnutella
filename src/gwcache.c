@@ -99,6 +99,7 @@ static gint current_reused = 0;				/* Amount of times we reused it */
 #define HOUR_MS			(3600 * 1000)		/* Callout queue time in ms */
 #define URL_RETRY_MS	(20 * 1000)			/* Retry timer for urlfile, in ms */
 #define REFRESH_MS		(8 * HOUR_MS)		/* Refresh every 8 hours */
+#define REUSE_PERIOD	3600				/* Period between GET hostfile */
 
 #define CLIENT_INFO "client=GTKG&version=" GTA_VERSION_NUMBER
 
@@ -911,6 +912,8 @@ static void gwc_host_error_ind(gpointer handle, http_errtype_t type, gpointer v)
 void gwc_get_hosts(void)
 {
 	gpointer handle;
+	static time_t last_called = 0;
+	time_t now = time(NULL);
 
 	/*
 	 * Make sure we don't probe more than one webcache at a time.
@@ -918,6 +921,25 @@ void gwc_get_hosts(void)
 
 	if (hostfile_running)
 		return;
+
+	/*
+	 * This routine is called each time we run out of hosts to try in our
+	 * cache, so we have absolutely no guarantee about the frequency at which
+	 * it will be called.
+	 *
+	 * Force picking up a new cache (well, randomly) if we were called less
+	 * than an hour ago.  Note that we don't remember whether it was THIS
+	 * particular current cache that was accessed last time we were called.
+	 * We only care about the calling frequency, and bet on the high number
+	 * of available web caches and the random selection process to behave.
+	 * properly.
+	 *		--RAM, 24/11/2003
+	 */
+
+	if (now - last_called < REUSE_PERIOD)
+		clear_current_url(FALSE);
+
+	last_called = now;
 
 	if (!check_current_url())
 		return;
