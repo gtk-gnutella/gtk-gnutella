@@ -236,52 +236,88 @@ void shared_dir_add(gchar * path)
 	gui_update_shared_dirs();
 }
 
-/* recurse_scan();
+/*
+ * recurse_scan
  *
  * The directories that are given as shared will be completly transversed
  * including all files and directories. An entry of "/" would search the
  * the whole file system.
  */
-
-void recurse_scan(gchar * dir, gchar * basedir)
+static void recurse_scan(gchar *dir, gchar *basedir)
 {
 	GSList *exts = NULL;
 	DIR *directory;			/* Dir stream used by opendir, readdir etc.. */
 	struct dirent *dir_entry;
 	gchar *full = NULL, *sl = "/";
 	gchar *file_directory = NULL;
-	gchar *file_directory_path = NULL;
+	GSList *files = NULL;
+	gchar *dir_slash = NULL;
+	GSList *l;
 
 	struct shared_file *found = NULL;
 	struct stat file_stat;
 	gchar *entry_end;
 
-	if (!(directory = opendir(dir)))
+	if (*dir == '\0')
 		return;
+
+	if (!(directory = opendir(dir))) {
+		g_warning("can't open directory %s: %s", dir, g_strerror(errno));
+		return;
+	}
+	
+	if (dir[strlen(dir) - 1] == '/')
+		dir_slash = dir;
+	else
+		dir_slash = g_strconcat(dir, sl, NULL);
+
+	/*
+	 * Because we wish to optimize memory and only allocate the directory
+	 * name once for all the files in the directory, we also need to have
+	 * all the files for that same directory consecutively listed in the
+	 * `shared_files' list, so that we can properly free the string in
+	 * share_free() later on.
+	 *
+	 * In other words, we must process the sub-directories first, and then
+	 * only the files.  To avoid traversing the directory twice and build
+	 * all those full-name strings twice, we put files away in the `files'
+	 * list and traverse directories first.
+	 *
+	 *		--RAM, 12/03/2002, with the help of Michael Tesch
+	 */
 
 	while ((dir_entry = readdir(directory))) {
 
 		if (dir_entry->d_name[0] == '.')
 			continue;
 
-		if (dir[strlen(dir) - 1] == '/')
-			full = g_strconcat(dir, dir_entry->d_name, NULL);
-		else
-			full = g_strconcat(dir, sl, dir_entry->d_name, NULL);
+		full = g_strconcat(dir_slash, dir_entry->d_name, NULL);
 
-		if (is_directory(full)) {
-			g_free(full);
-			if (dir[strlen(dir) - 1] == '/')
-				full = g_strconcat(dir, dir_entry->d_name, sl, NULL);
-			else
-				full = g_strconcat(dir, sl, dir_entry->d_name, sl, NULL);
-
-			recurse_scan(full, basedir);
-			g_free(full);
+		if (!is_directory(full)) {
+			files = g_slist_prepend(files, full);
 			continue;
 		}
 
-		entry_end = dir_entry->d_name + strlen(dir_entry->d_name);
+		/*
+		 * Depth first traversal of directories.
+		 */
+
+		recurse_scan(full, basedir);
+		g_free(full);
+	}
+
+	for (l = files; l; l = l->next) {
+		gchar *name;
+		gint name_len;
+
+		full = (gchar *) l->data;
+
+		name = strrchr(full, '/');
+		g_assert(name);
+		name++;						/* Start of file name */
+
+		name_len = strlen(name);
+		entry_end = name + name_len;
 
 		for (exts = extensions; exts; exts = exts->next) {
 			struct extension *e = (struct extension *) exts->data;
@@ -295,29 +331,24 @@ void recurse_scan(gchar * dir, gchar * basedir)
 			if (*start == '.' && 0 == g_strcasecmp(start+1, e->str)) {
 
 				if (stat(full, &file_stat) == -1) {
-					g_warning("Can't stat %s: %s", full,
-							  g_strerror(errno));
+					g_warning("can't stat %s: %s", full, g_strerror(errno));
 					break;
 				}
 
-				found =
-					(struct shared_file *)
+				found = (struct shared_file *)
 					g_malloc0(sizeof(struct shared_file));
 
-				/* As long as we've got one file in this directory (so it'll be
+				/*
+				 * As long as we've got one file in this directory (so it'll be
 				 * freed in share_free()), allocate these strings.
 				 */
+
 				if (!file_directory)
 					file_directory = g_strdup(dir);
-				if (!file_directory_path) {
-					file_directory_path = g_strdup(dir + strlen(basedir));
-					g_strdown(file_directory_path);
-				}
 
-				found->file_name = g_strdup(dir_entry->d_name);
-				found->file_name_len = strlen(dir_entry->d_name);
+				found->file_name = g_strdup(name);
+				found->file_name_len = name_len;
 				found->file_directory = file_directory;
-				found->file_directory_path = file_directory_path;
 				found->file_size = file_stat.st_size;
 				found->file_index = ++files_scanned;
 
@@ -331,14 +362,27 @@ void recurse_scan(gchar * dir, gchar * basedir)
 			}
 		}
 		g_free(full);
+
+		if (!(files_scanned & 0x1f)) {
+			gui_update_files_scanned();		/* Interim view */
+			gtk_main_iteration_do(FALSE);
+		}
 	}
+
 	closedir(directory);
+	g_slist_free(files);
+
+	if (dir_slash != dir)
+		g_free(dir_slash);
+
+	gui_update_files_scanned();		/* Interim view */
+	gtk_main_iteration_do(FALSE);
 }
 
 static void share_free(void)
 {
 	GSList *l;
-	gchar *last_dir = NULL, *last_lower_dir = NULL;
+	gchar *last_dir = NULL;
 
 	st_destroy(&search_table);
 
@@ -350,26 +394,18 @@ static void share_free(void)
 	if (shared_files) {
 		struct shared_file *sf = shared_files->data;
 		last_dir = sf->file_directory;
-		last_lower_dir = sf->file_directory_path;
 	}
 
 	for (l = shared_files; l; l = l->next) {
 		struct shared_file *sf = l->data;
 		g_free(sf->file_name);
-		if (last_dir && strcmp(last_dir, sf->file_directory)) {
+		if (last_dir && last_dir != sf->file_directory) {
 			g_free(last_dir);
 			last_dir = sf->file_directory;
 		}
-		if (last_lower_dir
-			&& strcmp(last_lower_dir, sf->file_directory_path)) {
-			g_free(last_lower_dir);
-			last_lower_dir = sf->file_directory_path;
-		}
 		g_free(sf);
 	}
-	if (last_lower_dir)			/* free the last one */
-		g_free(last_lower_dir);
-	if (last_dir)
+	if (last_dir)				/* free the last one */
 		g_free(last_dir);
 
 	g_slist_free(shared_files);
