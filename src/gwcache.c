@@ -259,9 +259,9 @@ static void gwc_retrieve(void)
 	gint line;
 	FILE *in;
 #ifdef USE_SOURCE_DIR_AS_FALLBACK
-	file_path_t fpvec[2];
-#else
 	file_path_t fpvec[3];
+#else
+	file_path_t fpvec[2];
 #endif
 	gchar tmp[1024];
 
@@ -1023,4 +1023,3 @@ static void gwc_update_ip_url(void)
 		return;
 	gwc_update_this(current_url);
 }
-
