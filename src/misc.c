@@ -41,6 +41,20 @@
 #include "huge.h"
 #include "base32.h"
 
+/*
+ * is_string_ip:
+ *
+ * Checks wether the given string contains a valid IP address. If the
+ * string is NULL returns FALSE.
+ */
+gboolean is_string_ip(const gchar *s)
+{
+    if (s == NULL)
+        return FALSE;
+
+    return (gboolean) gchar_to_ip(s);
+}
+
 gboolean file_exists(gchar *f)
 {
   	struct stat st;
@@ -87,7 +101,7 @@ int inet_aton(const char *s, struct in_addr *a)
 #endif
 
 
-guint32 gchar_to_ip(gchar * str)
+guint32 gchar_to_ip(const gchar * str)
 {
 	/* Returns 0 if str is not a valid IP */
 
@@ -211,7 +225,7 @@ gboolean is_private_ip(guint32 ip)
 
 
 /* Check whether path is a directory */
-gboolean is_directory(gchar * path)
+gboolean is_directory(const gchar *path)
 {
 	struct stat st;
 	if (stat(path, &st) == -1)
@@ -311,7 +325,7 @@ gchar *short_uptime(guint32 s)
 
 /* Returns the ip:port of a node */
 
-gchar *node_ip(struct gnutella_node * n)
+gchar *node_ip(gnutella_node_t *n)
 {
 	/* Same as ip_port_to_gchar(), but need another static buffer to be able
 	   to use both in same printf() line */
