@@ -39,6 +39,7 @@ struct vendor {
     { T_ACQX, "Acquisition" },
     { T_ARES, "Ares" },
     { T_ATOM, "AtomWire" },
+    { T_BARE, "BearShare-v4" },
     { T_BEAR, "BearShare" },
     { T_COCO, "CocoGnut" },
     { T_CULT, "Cultiv8r" },

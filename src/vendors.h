@@ -41,6 +41,7 @@
 #define T_ACQX  MAKE_CODE('A','C','Q','X')
 #define T_ARES  MAKE_CODE('A','R','E','S')
 #define T_ATOM  MAKE_CODE('A','T','O','M')
+#define T_BARE	MAKE_CODE('B','A','R','E')
 #define T_BEAR	MAKE_CODE('B','E','A','R')
 #define T_COCO	MAKE_CODE('C','O','C','O')
 #define T_CULT	MAKE_CODE('C','U','L','T')
