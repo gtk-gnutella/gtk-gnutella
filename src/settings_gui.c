@@ -181,7 +181,8 @@ static gboolean progressbar_downloads_visible_changed(property_t prop);
 static gboolean progressbar_uploads_visible_changed(property_t prop);
 static gboolean progressbar_connections_visible_changed(property_t prop);
 static gboolean search_results_show_tabs_changed(property_t prop);
-static gboolean autoclear_downloads_changed(property_t prop);
+static gboolean autoclear_completed_downloads_changed(property_t prop);
+static gboolean autoclear_failed_downloads_changed(property_t prop);
 static gboolean socks_user_changed(property_t prop);
 static gboolean socks_pass_changed(property_t prop);
 static gboolean traffic_stats_mode_changed(property_t prop);
@@ -189,6 +190,7 @@ static gboolean is_firewalled_changed(property_t prop);
 static gboolean min_dup_ratio_changed(property_t prop);
 static gboolean plug_icon_changed(property_t prop);
 static gboolean show_search_results_settings_changed(property_t prop);
+static gboolean show_dl_settings_changed(property_t prop);
 static gboolean local_address_changed(property_t prop);
 static gboolean force_local_ip_changed(property_t prop);
 static gboolean listen_port_changed(property_t prop);
@@ -1111,10 +1113,18 @@ static prop_map_t property_map[] = {
     },
     {
         get_main_window,
-        PROP_AUTOCLEAR_DOWNLOADS,
-        autoclear_downloads_changed,
+        PROP_AUTOCLEAR_COMPLETED_DOWNLOADS,
+        autoclear_completed_downloads_changed,
         TRUE,
-        "checkbutton_downloads_auto_clear",
+        "checkbutton_dl_clear_complete",
+        FREQ_UPDATES, 0
+    },
+    {
+        get_main_window,
+        PROP_AUTOCLEAR_FAILED_DOWNLOADS,
+        autoclear_failed_downloads_changed,
+        TRUE,
+        "checkbutton_dl_clear_failed",
         FREQ_UPDATES, 0
     },
     {
@@ -1539,6 +1549,14 @@ static prop_map_t property_map[] = {
         show_search_results_settings_changed,
         TRUE,
         "checkbutton_search_results_show_settings",
+        FREQ_UPDATES, 0
+    },
+    {
+        get_main_window,
+        PROP_SHOW_DL_SETTINGS,
+        show_dl_settings_changed,
+        TRUE,
+        "checkbutton_dl_show_settings",
         FREQ_UPDATES, 0
     },
     {
@@ -3050,7 +3068,7 @@ static gboolean search_results_show_tabs_changed(property_t prop)
     return FALSE;
 }
 
-static gboolean autoclear_downloads_changed(property_t prop)
+static gboolean autoclear_completed_downloads_changed(property_t prop)
 {
     gboolean val;
     prop_map_t *map_entry = settings_gui_get_map_entry(prop);
@@ -3063,11 +3081,28 @@ static gboolean autoclear_downloads_changed(property_t prop)
         (lookup_widget(top, map_entry->wid)), val);
 
     if(val)
-        download_clear_stopped(FALSE, TRUE);
+        download_clear_stopped(TRUE, FALSE, TRUE);
 
     return FALSE;
 }
 
+static gboolean autoclear_failed_downloads_changed(property_t prop)
+{
+    gboolean val;
+    prop_map_t *map_entry = settings_gui_get_map_entry(prop);
+    prop_set_stub_t *stub = map_entry->stub;
+    GtkWidget *top = map_entry->fn_toplevel();
+
+    stub->boolean.get(prop, &val, 0, 1);
+
+    gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON
+        (lookup_widget(top, map_entry->wid)), val);
+
+    if(val)
+        download_clear_stopped(FALSE, TRUE, TRUE);
+
+    return FALSE;
+}
 static gboolean traffic_stats_mode_changed(property_t prop)
 {
     gui_update_traffic_stats();
@@ -3122,6 +3157,42 @@ static gboolean show_search_results_settings_changed(property_t prop)
         gtk_label_set_text(
             GTK_LABEL(lookup_widget(top, 
                 "label_search_results_show_settings")),
+            "Show settings");
+        gtk_widget_hide(frame);
+    }
+
+    return FALSE;
+}
+
+static gboolean show_dl_settings_changed(property_t prop)
+{
+    GtkWidget *w;
+    GtkWidget *frame;
+    gboolean val;
+    prop_map_t *map_entry = settings_gui_get_map_entry(prop);
+    prop_set_stub_t *stub = map_entry->stub;
+    GtkWidget *top = map_entry->fn_toplevel();
+
+    if (!top)
+        return FALSE;
+
+    stub->boolean.get(prop, &val, 0, 1);
+
+    w = lookup_widget(top, map_entry->wid);
+    frame = lookup_widget(top, "frame_dl_settings");
+
+    gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(w), val);
+
+    if (val) {
+        gtk_label_set_text(
+            GTK_LABEL(lookup_widget(top, 
+                "label_dl_show_settings")),
+            "Hide settings");
+        gtk_widget_show(frame);
+    } else {
+        gtk_label_set_text(
+            GTK_LABEL(lookup_widget(top, 
+                "label_dl_show_settings")),
             "Show settings");
         gtk_widget_hide(frame);
     }
@@ -3412,6 +3483,7 @@ static gboolean gnet_connections_changed(property_t prop)
     guint32 max_connections;
     guint32 max_leaves;
     guint32 max_normal;
+    guint32 max_ultrapeers;
     gfloat  frac;
     guint32 cnodes;
     guint32 nodes = 0;
@@ -3425,16 +3497,17 @@ static gboolean gnet_connections_changed(property_t prop)
     gnet_prop_get_guint32_val(PROP_NODE_ULTRA_COUNT, &ultra_count);
     gnet_prop_get_guint32_val(PROP_MAX_CONNECTIONS, &max_connections);
     gnet_prop_get_guint32_val(PROP_MAX_LEAVES, &max_leaves);
+    gnet_prop_get_guint32_val(PROP_MAX_ULTRAPEERS, &max_ultrapeers);
     gnet_prop_get_guint32_val(PROP_NORMAL_CONNECTIONS, &max_normal);
     gnet_prop_get_guint32_val(PROP_CURRENT_PEERMODE, &peermode);
 
     cnodes = leaf_count + normal_count + ultra_count;
-    frac = MIN(cnodes, nodes) != 0 ? (gfloat) MIN(cnodes, nodes) / nodes : 0;
 
     switch (peermode) {
     case NODE_P_LEAF: /* leaf */
     case NODE_P_NORMAL: /* normal */
-        nodes = max_connections;
+        nodes = (peermode == NODE_P_NORMAL) ? 
+            max_connections : max_ultrapeers;
         gm_snprintf(set_tmp, sizeof(set_tmp), 
             "%u/%u connection%s",
             cnodes, nodes, (cnodes == 1 && nodes == 1) ? "" : "s");
@@ -3450,6 +3523,7 @@ static gboolean gnet_connections_changed(property_t prop)
     default:
         g_assert_not_reached();
     }
+    frac = MIN(cnodes, nodes) != 0 ? (gfloat) MIN(cnodes, nodes) / nodes : 0;
 
     gtk_progress_bar_set_text(pg, set_tmp);
     gtk_progress_bar_set_fraction(pg, frac);
