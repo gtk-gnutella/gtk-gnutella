@@ -1,5 +1,20 @@
 # since last version
 
+- (2002.10.14 RAM)
+ * Fixed bug when following HTTP redirection during downloads.
+ * Lowercase the Content-Range header value before parsing.
+ * Don't send them the download mesh entries if they abort on "Stopped (EOF)",
+   as they might choke on the HTTP continuation.
+ * Converted to new gnet_prop_get/set_type_val() macros.
+ * Generated property routines now have the opening "(" after the name.
+ * Merge adjacent "unknown" extensions in vector.
+ * Added new REMAP_ZALLOC compile flag to remap zalloc() and walloc() to
+   malloc(), indepently of the USE_DMALLOC flag.
+ * Added new properties: "library_rebuilding" and "sha1_rebuilding".
+ * Forgot to reclaim current web cache URL atom during final cleanup.
+ * Be nice to pushed uploads and don't impose them to follow a 301 if they
+   don't request the proper file and give a SHA1 in the HTTP header.
+
 - (2002.10.14 Richard)
  * Added icons to display state of background processes (building lib/sha1)
    to statusbar. 
