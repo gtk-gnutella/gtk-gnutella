@@ -1114,12 +1114,14 @@ gboolean route_exists_for_reply(guchar *muid, guint8 function)
  * Check whether we have a route to the given GUID, in order to send
  * pushes.
  *
- * Returns NULL if we have no such route, or the node to which we should
- * send the packet otherwise.
+ * Returns NULL if we have no such route, or a list of  node to which we should
+ * send the packet otherwise.  It is up to the caller to free that list.
  */
-struct gnutella_node *route_towards_guid(const guchar *guid)
+GSList *route_towards_guid(const guchar *guid)
 {
 	struct message *m;
+	GSList *nodes = NULL;
+	GSList *l;
 
 	if (g_hash_table_lookup(ht_banned_push, guid))	/* Banned for PUSH */
 		return NULL;
@@ -1127,7 +1129,12 @@ struct gnutella_node *route_towards_guid(const guchar *guid)
 	if (!find_message(guid, QUERY_HIT_ROUTE_SAVE, &m) || m->routes == NULL)
 		return NULL;
 
-	return ((struct route_data *) m->routes->data)->node;
+	for (l = m->routes; l; l = g_slist_next(l)) {
+		struct route_data *rd = (struct route_data *) l->data;
+		nodes = g_slist_prepend(nodes, rd->node);
+	}
+
+	return nodes;
 }
 
 /* frees the routing data associated with a message */

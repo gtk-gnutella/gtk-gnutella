@@ -3222,13 +3222,10 @@ static gboolean send_push_request(
 	const gchar *guid, guint32 file_id, guint16 port)
 {
 	struct gnutella_msg_push_request m;
-	struct gnutella_node *n;
+	GSList *nodes;
 
-	n = route_towards_guid(guid);
-	if (!n)
-		return FALSE;
-
-	if (!NODE_IS_WRITABLE(n))
+	nodes = route_towards_guid(guid);
+	if (nodes == NULL)
 		return FALSE;
 
 	message_set_muid(&(m.header), GTA_MSG_PUSH_REQUEST);
@@ -3251,8 +3248,16 @@ static gboolean send_push_request(
 	WRITE_GUINT32_BE(listen_ip(), m.request.host_ip);
 	WRITE_GUINT16_LE(port, m.request.host_port);
 
+	/*
+	 * Send the message to all the nodes that can route our request back
+	 * to the source of the query hit.
+	 */
+
 	message_add(m.header.muid, GTA_MSG_PUSH_REQUEST, NULL);
-	gmsg_sendto_one(n, (guchar *) &m, sizeof(struct gnutella_msg_push_request));
+	gmsg_sendto_all(nodes,
+		(guchar *) &m, sizeof(struct gnutella_msg_push_request));
+
+	g_slist_free(nodes);
 
 	return TRUE;
 }
