@@ -3,7 +3,7 @@ This is the stable 0.93.x branch.
 # since last version
 
 - (2004.02.14 - Richard)
- * Try to avoid memory corruption during selection in search results due
+ * [Gtk1] Try to avoid memory corruption during selection in search results due
    to recursive calls of on_ctree_search_results_select_row().
 
 - (2004.02.13 - Jeroen)
