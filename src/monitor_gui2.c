@@ -72,7 +72,6 @@ static void monitor_gui_append_to_monitor(
 
 	str = locale_to_utf8(tmpstr, -1);
    	gtk_list_store_set(monitor_model, &iter, QUERY_COLUMN, str, -1);
-	G_FREE_NULL(str);
 }
 
 
