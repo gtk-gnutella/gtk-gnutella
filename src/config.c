@@ -1160,6 +1160,46 @@ void config_save(void)
 	}
 }
 
+/*
+ * config_ip_changed
+ *
+ * This routine is called when we determined that our IP was no longer the
+ * one we force.  We base this on some headers sent back when we handshake
+ * with other nodes, and as a result, cannot trust the information.
+ *
+ * What we do henceforth is trust 3 successive indication that our IP changed,
+ * provided we get the same information each time.
+ *
+ *		--RAM, 13/01/2002
+ */
+void config_ip_changed(guint32 new_ip)
+{
+	static guint32 last_ip_seen = 0;
+	static gint same_ip_count = 0;
+
+	g_assert(force_local_ip);		/* Must only be called when IP is forced */
+
+	if (new_ip != last_ip_seen) {
+		last_ip_seen = new_ip;
+		same_ip_count = 1;
+		return;
+	}
+
+	if (++same_ip_count < 3)
+		return;
+
+	last_ip_seen = 0;
+	same_ip_count = 0;
+
+	if (new_ip == forced_local_ip)
+		return;
+
+	g_warning("Changing forced IP to %s", ip_to_gchar(new_ip));
+
+	forced_local_ip = new_ip;
+	gui_update_config_force_ip();
+}
+
 void config_close(void)
 {
 	if (home_dir)

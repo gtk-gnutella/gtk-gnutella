@@ -453,10 +453,11 @@ static void send_node_error(struct gnutella_socket *s, int code, guchar *msg)
 	rw = g_snprintf(gnet_response, sizeof(gnet_response),
 		"GNUTELLA/0.6 %d %s\r\n"
 		"User-Agent: %s\r\n"
+		"Remote-IP: %s\r\n"
 		"X-Live-Since: %s\r\n"
 		"%s"
 		"\r\n",
-		code, msg, version_string, start_rfc822_date,
+		code, msg, version_string, ip_to_gchar(s->ip), start_rfc822_date,
 		code == 503 ? formatted_connection_pongs("X-Try") : "");
 
 	if (-1 == (sent = write(s->file_desc, gnet_response, rw)))
@@ -682,6 +683,24 @@ static void extract_header_pongs(header_t *header, struct gnutella_node *n)
 			g_warning("Node %s sent us unparseable X-Try-Ultrapeers: %s\n",
 				node_ip(n), field);
 	}
+}
+
+/*
+ * extract_my_ip
+ *
+ * Try to determine whether headers contain an indication of our own IP.
+ * Return 0 if none found, or the indicated IP address.
+ */
+static guint32 extract_my_ip(header_t *header)
+{
+	gchar *field;
+
+	field = header_get(header, "Remote-Ip");
+
+	if (!field)
+		return 0;
+
+	return gchar_to_ip(field);
 }
 
 /*
@@ -946,7 +965,22 @@ static void node_process_handshake_header(struct io_header *ih)
 	 */
 
 	if (!(n->flags & NODE_F_INCOMING)) {
-		if (!analyse_status(n, NULL)) {
+		gboolean ok = analyse_status(n, NULL);
+
+		/*
+		 * Modern nodes include our own IP, as they see it, in the
+		 * handshake reply whether it is a success or not.  Use it
+		 * as an opportunity to automatically detect changes.
+		 *		--RAM, 13/01/2002
+		 */
+
+		if (force_local_ip) {
+			guint32 ip = extract_my_ip(ih->header);
+			if (ip && ip != forced_local_ip)
+				config_ip_changed(ip);
+		}
+
+		if (!ok) {
 			/*
 			 * If we have the "retry at 0.4" flag set, re-initiate the
 			 * connection at the 0.4 level.
