@@ -1470,7 +1470,12 @@ bio_sendfile(sendfile_ctx_t *ctx, bio_source_t *bio, gint in_fd, off_t *offset,
 				ctx->map_end = 0;
 				r = (ssize_t) -1;
 			} else {
+#ifdef MADV_SEQUENTIAL
+				/* TODO:	Add _proper_ Configure check for madvise.
+				 *			No mere symbol check, please.
+				 */
 				madvise(ctx->map, len, MADV_SEQUENTIAL);
+#endif
 			}
 		}
 		if (ctx->map != NULL) {
@@ -1874,7 +1879,7 @@ bsched_heartbeat(bsched_t *bs, GTimeVal *tv)
 	delay = (gint) ((tv->tv_sec - bs->last_period.tv_sec) * 1000 +
 		(tv->tv_usec - bs->last_period.tv_usec) / 1000);
 
-	if (dbg > 9)
+	if (/* XXX: dbg > 9*/ 0)
 		printf("[%s] tv = %d,%d  bs = %d,%d, delay = %d\n",
 			bs->name, (gint) tv->tv_sec, (gint) tv->tv_usec,
 			(gint) bs->last_period.tv_sec, (gint) bs->last_period.tv_usec,
@@ -2017,7 +2022,7 @@ bsched_heartbeat(bsched_t *bs, GTimeVal *tv)
 
 	bs->last_used = last_used;
 
-	if (dbg > 4) {
+	if (/* XXX: dbg > 4 */ 0) {
 		printf("bsched_timer(%s): delay=%d (EMA=%d), b/w=%d (EMA=%d), "
 			"overused=%d (EMA=%d) stolen=%d (EMA=%d) unwritten=%d "
 			"capped=%d (%d) used %d/%d\n",
@@ -2219,7 +2224,7 @@ bsched_timer(void)
 
 	bws_out_ema += (out_used >> 6) - (bws_out_ema >> 6);	/* Slow EMA */
 
-	if (dbg > 4)
+	if (/* XXX: dbg > 4 */ 0)
 		printf("Outgoing b/w EMA = %d bytes/s\n", bws_out_ema);
 
 	for (l = bws_in_list; l; l = g_slist_next(l)) {
@@ -2229,7 +2234,7 @@ bsched_timer(void)
 
 	bws_in_ema += (in_used >> 6) - (bws_in_ema >> 6);		/* Slow EMA */
 
-	if (dbg > 4)
+	if (/* XXX: dbg > 4 */ 0)
 		printf("Incoming b/w EMA = %d bytes/s\n", bws_in_ema);
 
 	if (in_used)
