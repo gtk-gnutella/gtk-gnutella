@@ -384,8 +384,8 @@ gboolean version_check(const guchar *str, const gchar *token, guint32 ip)
 		error = tok_version_valid(str, token, strlen(token), ip);
 
 		if (error != TOK_OK) {
-			g_warning("vendor string \"%s\" has wrong token \"%s\": %s ",
-				str, token, tok_strerror(error));
+			g_warning("vendor string \"%s\" [%s] has wrong token \"%s\": %s ",
+				str, ip_to_gchar(ip), token, tok_strerror(error));
 			return FALSE;
 		}
 
