@@ -27,7 +27,7 @@
 
 #include "gui.h"
 
-#include "share_gui.h"
+#include "monitor_gui.h"
 
 static guint32 monitor_items = 0;
 static GtkListStore *monitor_model = NULL;
@@ -38,7 +38,52 @@ enum
    MONITOR_COLUMNS
 };
 
-void share_gui_init(void)
+
+
+/***
+ *** Callbacks
+ ***/
+
+static void monitor_gui_append_to_monitor(
+    query_type_t type, const gchar *item)
+{
+    GtkTreeIter iter;
+    gchar tmpstr[100];
+
+	if (monitor_items < monitor_max_items)
+        monitor_items++;
+    else {
+        /* Get the first iter in the list */
+        gboolean valid = gtk_tree_model_get_iter_first
+            (GTK_TREE_MODEL(monitor_model), &iter);
+        if (valid)
+            gtk_list_store_remove(monitor_model, &iter);
+    }
+
+    /* Aquire an iterator */
+    gtk_list_store_append(monitor_model, &iter);
+
+    if (type == QUERY_SHA1) {
+        /* If the query is empty and we have a SHA1 extension,
+         * we print a urn:sha1-query instead. */
+        g_snprintf(tmpstr, sizeof(tmpstr), "urn:sha1:%s", item);
+    } else {
+        g_snprintf(tmpstr, sizeof(tmpstr), "%s", item);
+    }
+
+    gtk_list_store_set(
+        monitor_model, &iter, 
+        QUERY_COLUMN, tmpstr,
+        -1);
+}
+
+
+
+/***
+ *** Public functions
+ ***/
+
+void monitor_gui_init(void)
 {
     GtkWidget *tree;
     GtkTreeViewColumn *column;
@@ -68,27 +113,9 @@ void share_gui_init(void)
     gtk_tree_view_append_column (GTK_TREE_VIEW (tree), column);
 }
 
-void share_gui_append_to_monitor(gchar *item)
+void monitor_gui_shutdown()
 {
-    GtkTreeIter iter;
-
-	if (monitor_items < monitor_max_items)
-        monitor_items++;
-    else {
-        /* Get the first iter in the list */
-        gboolean valid = gtk_tree_model_get_iter_first
-            (GTK_TREE_MODEL(monitor_model), &iter);
-        if (valid)
-            gtk_list_store_remove(monitor_model, &iter);
-    }
-
-    /* Aquire an iterator */
-    gtk_list_store_append(monitor_model, &iter);
-
-    gtk_list_store_set(
-        monitor_model, &iter, 
-        QUERY_COLUMN, item,
-        -1);
+    monitor_gui_enable_monitor(FALSE);
 }
 
 /*
@@ -107,14 +134,20 @@ void share_gui_clear_monitor(void)
  *
  * Enable/disable monitor.
  */
-void share_gui_enable_monitor(gboolean b)
+void monitor_gui_enable_monitor(const gboolean val)
 {
-    /*
-     * This is not needed yet and also makes the monitor unreadable.
-     */
+    static gboolean registered = FALSE;
+    gtk_widget_set_sensitive
+        (lookup_widget(main_window, "clist_monitor"), !val);
 
-    /*
-	gtk_widget_set_sensitive
-        (lookup_widget(main_window, "treeview_monitor"), !b);
-    */
+    if (val != registered) {
+        if (val) {
+            share_add_search_request_listener
+                (monitor_gui_append_to_monitor);
+        } else {
+            share_remove_search_request_listener
+                (monitor_gui_append_to_monitor);
+        }
+        registered = val;
+    }
 }
