@@ -2075,6 +2075,8 @@ static void upload_request(gnutella_upload_t *u, header_t *header)
 		 */		
 
 		if (!parq_upload_request(u, parq_handle, running_uploads - 1)) {
+			gboolean parq_allows = FALSE;
+			
 			if (parq_upload_lookup_position(u) == -1) {
 				/*
 				 * Looks like upload got removed from PARQ queue. For now this
@@ -2109,26 +2111,17 @@ static void upload_request(gnutella_upload_t *u, header_t *header)
 				bsched_pct(bws.out) < ul_usage_min_percentage &&
 				bsched_avg_pct(bws.out) < ul_usage_min_percentage
 			) {
-				/*
-				 * XXX Will this give problems with PARQ?
-				 *		-- JA 5/03/2003
-				 */
-				if (dbg > 4)
-					printf("Overriden slot limit because u/l b/w used at "
-						"%d%% (minimum set to %d%%)\n",
-						bsched_avg_pct(bws.out), ul_usage_min_percentage);
-				
-				if (u->status == GTA_UL_QUEUED) {
-					/*
-					 * Enable bandwith allocation is unknown to PARQ. So it
-					 * could be PARQ made it GTA_UL_QUEUED. However, the
-					 * download will continue anyway. Revert the status to
-					 * GTA_UL_SENDING
-					 * 		-- JA, 19/05/'03  (XXX this is a workaround only)
-					 */
-					u->status = GTA_UL_SENDING;
+				if (parq_upload_request_force(
+						u, parq_handle, running_uploads - 1)) {
+					parq_allows = TRUE;
+					if (dbg > 4)
+						printf("Overriden slot limit because u/l b/w used at "
+							"%d%% (minimum set to %d%%)\n",
+							bsched_avg_pct(bws.out), ul_usage_min_percentage);
 				}
-			} else {
+			}
+			
+			if (!parq_allows) {
 				if (u->status == GTA_UL_QUEUED) {
 					/*
 					 * Cleanup data structures.

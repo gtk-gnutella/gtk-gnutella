@@ -1959,6 +1959,41 @@ cleanup:
 }
 
 /*
+ * parq_upload_request_force
+ *
+ * If the download may continue, true is returned. False otherwise (which 
+ * probably means the upload is queued).
+ * Where parq_upload_request honours the number of upload slots, this one
+ * is used for dynamic slot allocation.
+ * This function expects that the upload was checked with parq_upload_request
+ * first.
+ */
+gboolean parq_upload_request_force(gnutella_upload_t *u, gpointer handle, 
+	  guint used_slots)
+{
+	struct parq_ul_queued *parq_ul = handle_to_queued(handle);
+	
+	/*
+	 * Check whether the current upload is allowed to get an upload slot. If so
+	 * move other queued items after the current item up one position in the
+	 * queue
+	 */
+	if (max_uploads - used_slots > 0)
+		/* Again no!. We are not out of upload slots yet. So there is no reason
+		 * to let it continue now */
+		return FALSE;
+	
+	if (parq_upload_continue(parq_ul, 1)) {
+		if (u->status == GTA_UL_QUEUED)
+			u->status = GTA_UL_SENDING;
+		
+		return TRUE;
+	} else {
+		return FALSE;
+	}
+}
+
+/*
  * parq_upload_request
  *
  * If the download may continue, true is returned. False otherwise (which 
