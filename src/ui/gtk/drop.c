@@ -227,7 +227,7 @@ static gboolean handle_magnet(gchar *url)
 			}
 			
 			hash = p;
-			if (!guc_huge_http_sha1_extract32(hash, digest)) {
+			if (!urn_get_sha1(hash, digest)) {
 				g_message("Bad SHA1 in MAGNET URL");
 				continue;
 			}
