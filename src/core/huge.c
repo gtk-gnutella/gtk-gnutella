@@ -1025,20 +1025,28 @@ void huge_close(void)
  * things using the same pattern with other letters, as being rather
  * improbable hashes.
  */
-static gboolean
+gboolean
 huge_improbable_sha1(gchar *buf, gint len)
 {
 	gint i;
-	gchar first;
-	gchar *p;
+	guchar previous;
+	guchar *p;
+	gint ilen = 0;			/* Length of the improbable sequence */
+	gint longest = 0;
 
-	first = buf[0];
-	for (i = 1, p = &buf[1]; i < len; i++, p++) {
-		if (*p != first)
-			break;
+	previous = (guchar) buf[0];
+	for (i = 1, p = (guchar *) &buf[1]; i < len; i++, p++) {
+		guchar c = *p;
+		if (c == previous || (c + 1 == previous) || (c - 1 == previous))
+			ilen++;
+		else {
+			longest = MAX(longest, ilen);
+			ilen = 0;		/* Reset sequence, we broke out of the pattern */
+		}
+		previous = c;
 	}
 
-	return (i == len) ? TRUE : FALSE;
+	return (longest >= len / 2) ? TRUE : FALSE;
 }
 
 /*
@@ -1046,6 +1054,7 @@ huge_improbable_sha1(gchar *buf, gint len)
  *
  * Validate `len' bytes starting from `buf' as a proper base32 encoding
  * of a SHA1 hash, and write decoded value in `retval'.
+ * Also make sure that the SHA1 is not an improbable value.
  *
  * `header' is the header of the packet where we found the SHA1, so that we
  * may trace errors if needed.
