@@ -706,79 +706,6 @@ static gint search_gui_compare_host_func(
 					: ip_a > ip_b ? 1 : -1;
 }
 
-#if 0
-gint search_gui_compare_records(gint sort_col, record_t *r1, record_t *r2)
-{
-    results_set_t *rs1;
-	results_set_t *rs2;
-    gint result = 0;
-
-    if (r1 == r2)
-        result = 0;
-    else if (r1 == NULL)
-        result = -1;
-    else if (r2 == NULL)
-        result = +1;
-    else {
-        rs1 = r1->results_set;
-        rs2 = r2->results_set;
-
-        g_assert(rs1 != NULL);
-        g_assert(rs2 != NULL);
-
-        switch (sort_col) {
-        case c_sr_filename:
-            result = strcmp(r1->name, r2->name);
-            break;
-        case c_sr_size:
-			/*
-			 * Sort by size, then by identical SHA1.
-			 */
-			if (r1->size == r2->size)
-            	result = (r1->sha1 == r2->sha1) ? 0 :
-              		(r1->sha1 == NULL) ? -1 :
-              		(r2->sha1 == NULL) ? +1 :
-					memcmp(r1->sha1, r2->sha1, SHA1_RAW_SIZE);
-			else
-				result = (r1->size > r2->size) ? +1 : -1;
-            break;
-        case c_sr_speed:
-            result = (rs1->speed == rs2->speed) ? 0 :
-                (rs1->speed > rs2->speed) ? +1 : -1;
-            break;
-        case c_sr_host:
-            result = (rs1->ip == rs2->ip) ?  
-                (gint) rs1->port - (gint) rs2->port :
-                (rs1->ip > rs2->ip) ? +1 : -1;
-            break;
-        case c_sr_info:
-			result = memcmp(rs1->vendor, rs2->vendor, sizeof(rs1->vendor));
-			if (result)
-				break;
-            if (rs1->status == rs2->status)
-                result = 0;
-            else
-                result = (rs1->status > rs2->status) ? +1 : -1;
-            break;
-        case c_sr_urn:
-            if (r1->sha1 == r2->sha1)
-                result = 0;
-            else if (r1->sha1 == NULL)
-                result = -1;
-            else if (r2->sha1 == NULL)
-                result = +1;
-            else
-                result =  memcmp(r1->sha1, r2->sha1, SHA1_RAW_SIZE);  
-            break;
-        default:
-            g_assert_not_reached();
-        }
-    }
-
-	return result;
-}
-#endif /* 0 */
-
 /*
  * search_result_is_dup
  *
@@ -1210,6 +1137,9 @@ static void remove_selected_file(
 	GtkTreeIter child;
 	
 	current_search->items--;
+
+/* FIXME: Is there a memory leak or not? The records cannot be unref'ed here
+ *        but where's the right place? */
 #if 0
 	/* Remove one reference to this record. */
 	search_unref_record(rc);
@@ -2074,14 +2004,6 @@ static void add_results_columns (GtkTreeView *treeview)
 		(gfloat) 0.0, NULL);
 	add_results_column(treeview, "Size", c_sr_size, width[c_sr_size],
 		(gfloat) 1.0, search_gui_compare_size_func);
-#if 0
-	add_results_column(treeview, "Speed", c_sr_speed, width[c_sr_speed],
-		(gfloat) 1.0, NULL);
-	add_results_column(treeview, "Host", c_sr_host, width[c_sr_host],
-		(gfloat) 0.0, (gpointer) &search_gui_compare_host_func);
-	add_results_column(treeview, "urn:sha1", c_sr_urn, width[c_sr_urn],
-		(gfloat) 0.0, NULL);
-#endif
 	add_results_column(treeview, "#", c_sr_count, width[c_sr_count],
 		(gfloat) 1.0, search_gui_compare_count_func);
 	add_results_column(treeview, "Info", c_sr_info, width[c_sr_info],
