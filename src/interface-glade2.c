@@ -6106,6 +6106,7 @@ create_main_window (void)
   gtk_clist_set_column_width (GTK_CLIST (clist_downloads), 3, 80);
   gtk_clist_set_column_width (GTK_CLIST (clist_downloads), 4, 80);
   gtk_clist_set_column_width (GTK_CLIST (clist_downloads), 5, 80);
+  gtk_clist_set_selection_mode (GTK_CLIST (clist_downloads), GTK_SELECTION_MULTIPLE);
   gtk_clist_column_titles_show (GTK_CLIST (clist_downloads));
 
   label421 = gtk_label_new ("Filename");
@@ -9085,7 +9086,7 @@ create_main_window (void)
   gtk_widget_show (scrolledwindow32);
   gtk_container_add (GTK_CONTAINER (frame73), scrolledwindow32);
   gtk_container_set_border_width (GTK_CONTAINER (scrolledwindow32), 2);
-  gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolledwindow32), GTK_POLICY_AUTOMATIC, GTK_POLICY_NEVER);
+  gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolledwindow32), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
   gtk_scrolled_window_set_shadow_type (GTK_SCROLLED_WINDOW (scrolledwindow32), GTK_SHADOW_IN);
   gtk_scrolled_window_set_placement (GTK_SCROLLED_WINDOW (scrolledwindow32), GTK_CORNER_BOTTOM_LEFT);
 

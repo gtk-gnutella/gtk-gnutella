@@ -9735,7 +9735,7 @@ ko &lt;junkpile@free.fr&gt;</property>
 					  <property name="can_focus">True</property>
 					  <property name="n_columns">6</property>
 					  <property name="column_widths">80,80,80,80,80,80</property>
-					  <property name="selection_mode">GTK_SELECTION_SINGLE</property>
+					  <property name="selection_mode">GTK_SELECTION_MULTIPLE</property>
 					  <property name="show_titles">True</property>
 					  <property name="shadow_type">GTK_SHADOW_IN</property>
 					  <signal name="resize_column" handler="on_clist_downloads_resize_column" last_modification_time="Thu, 12 Sep 2002 19:45:14 GMT"/>
@@ -17754,7 +17754,7 @@ interface</property>
 					  <property name="visible">True</property>
 					  <property name="can_focus">True</property>
 					  <property name="hscrollbar_policy">GTK_POLICY_AUTOMATIC</property>
-					  <property name="vscrollbar_policy">GTK_POLICY_NEVER</property>
+					  <property name="vscrollbar_policy">GTK_POLICY_AUTOMATIC</property>
 					  <property name="shadow_type">GTK_SHADOW_IN</property>
 					  <property name="window_placement">GTK_CORNER_BOTTOM_LEFT</property>
 
