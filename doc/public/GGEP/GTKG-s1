@@ -1,0 +1,19 @@
+The 'GTKGs1' GGEP Extension
+======================
+
+Name: GTKGs1
+Where: Query Hit trailer
+Status: Experimental
+Date: Sat Feb 22 20:12:33 MET 2003
+Format: Opaque
+COBS-Encoding: Never
+Deflate: Never
+
+The 'GTKGs1' extension is a private GTKG extension that must be the
+LAST GGEP extension in the extension trailer of the Query Hits.
+It contains a "signature" of the query hit payload up to the start
+of the GTKGs1 extension itself, i.e. the Gnutella header is not counted.
+
+Total payload size: 10 bytes
+
+The payload is never deflated nor COBS-encoded.
