@@ -91,7 +91,7 @@ guchar *url_escape_cntrl(guchar *url)
 
 	new = g_malloc(p - url + (need_escape << 1));
 
-	for (p = url, q = new, c = *p; c; c = *p++) {
+	for (p = url, q = new, c = *p++; c; c = *p++) {
 		if (!iscntrl(c) && c != ESCAPE_CHAR)
 			*q++ = c;
 		else {
