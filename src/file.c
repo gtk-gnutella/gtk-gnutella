@@ -307,6 +307,18 @@ static gint do_open(const gchar *path, gint flags, gint mode, gboolean missing)
 		}
 	}
 
+	/*
+	 * Hack for broken libc, which can return -1 with errno = 0!
+	 * This happens when compiling with gcc-3.x and linking with -lpthread
+	 * on a Debian linux system.
+	 *		--RAM, 15/02/2004
+	 */
+
+	if (errno == 0) {
+		g_warning("open() returned -1 with errno = 0, assuming ENOENT");
+		errno = ENOENT;
+	}
+
 	if (!missing || errno != ENOENT)
 		g_warning("can't %s file \"%s\": %s", what, path, g_strerror(errno));
 

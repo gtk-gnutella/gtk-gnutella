@@ -117,6 +117,7 @@ extern gint guid_eq(gconstpointer a, gconstpointer b);
 /*
  * Log function
  */
+static inline void routing_log_v(gchar * fmt, ...) G_GNUC_PRINTF(1, 2);
 
 static inline void routing_log_v(gchar * fmt, ...)
 {

@@ -41,15 +41,16 @@ typedef struct word_entry {
 static char *fuzzy_strlower(char *dst, const char *src, size_t len)
 {
 	guchar *p = (guchar *) dst;
-	size_t i = 0;
+	size_t i = len;
 
 	g_assert(len > 0);
 	g_assert(NULL != dst);
 
-	len--;
-	while ('\0' != (*p++ = tolower((guchar) *src++)) && i++ < len)
-		;
+	while ('\0' != (*p = tolower((guchar) *src)) && --i > 0)
+		src++, p++;
 
+	g_assert((gchar *) p < dst + len);
+	*p = '\0'; /* The ``dst'' buffer could be smaller than src is long. */
 	return dst;
 }
 

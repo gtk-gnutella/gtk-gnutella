@@ -86,10 +86,11 @@ gboolean http_send_status(
 	gint sent;
 	gint i;
 	va_list args;
-	gchar *conn_close = "Connection: close\r\n";
-	gchar *no_content = "Content-Length: 0\r\n";
-	gchar *version;
-	gchar *token;
+	const gchar *conn_close = keep_alive ? "" : "Connection: close\r\n";
+	const gchar *no_content = "Content-Length: 0\r\n";
+	const gchar *version;
+	const gchar *date;
+	const gchar *token;
 	gint header_size = sizeof(header);
 	gboolean saturated = bsched_saturated(bws.out);
 	gint cb_flags = 0;
@@ -148,22 +149,21 @@ gboolean http_send_status(
 		token = tok_version();
 	}
 
-	if (keep_alive)
-		conn_close = "";		/* Keep HTTP connection */
-
 	if (code < 300 || !keep_alive) 
 		no_content = "";
 
 	g_assert(header_size <= sizeof(header));
 
+	date = date_to_rfc1123_gchar(time(NULL));
 	rw = gm_snprintf(header, header_size,
 		"HTTP/1.1 %d %s\r\n"
 		"Server: %s\r\n"
+		"Date: %s\r\n"
 		"%s"			/* Connection */
 		"X-Token: %s\r\n"
 		"%s"			/* X-Live-Since */
 		"%s",			/* Content length */
-		code, status_msg, version, conn_close, token, xlive, no_content);
+		code, status_msg, version, date, conn_close, token, xlive, no_content);
 
 	mrw = rw;		/* Minimal header length */
 
@@ -171,7 +171,11 @@ gboolean http_send_status(
 	 * Append extra information to the minimal header created above.
 	 */
 
-	for (i = 0; i < hevcnt && rw < header_size; i++) {
+	/* 
+	 * The +3 is there to leave room for "\r\n\0"
+	 *		-- JA, 09/02/2004
+	 */
+	for (i = 0; i < hevcnt && rw + 3 < header_size; i++) {
 		http_extra_desc_t *he = &hev[i];
 		http_extra_type_t type = he->he_type;
 
@@ -182,9 +186,10 @@ gboolean http_send_status(
 			break;
 		case HTTP_EXTRA_CALLBACK:
 			{
-				/* The -3 is there to leave room for "\r\n" + NUL */
-				gint len = header_size - rw - 3;
+				gint len = header_size - rw;
 
+				g_assert(len > 0 );
+				
 				(*he->he_cb)(&header[rw], &len, he->he_arg, cb_flags);
 
 				g_assert(len + rw <= header_size);
@@ -216,9 +221,8 @@ gboolean http_send_status(
 			sent, rw, code, reason, ip_to_gchar(s->ip), g_strerror(errno));
 		return FALSE;
 	} else if (dbg > 2) {
-		printf("----Sent HTTP Status to %s (%d bytes):\n%.*s----\n",
+		g_message("----Sent HTTP Status to %s (%d bytes):\n%.*s----\n",
 			ip_to_gchar(s->ip), rw, rw, header);
-		fflush(stdout);
 	}
 
 	return TRUE;
@@ -538,6 +542,7 @@ static gchar *parse_errstr[] = {
 	"Could not parse port",					/* HTTP_URL_BAD_PORT_PARSING */
 	"Port value is out of range",			/* HTTP_URL_BAD_PORT_RANGE */
 	"Could not resolve host into IP",		/* HTTP_URL_HOSTNAME_UNKNOWN */
+	"URL has no URI part",		/* HTTP_URL_MISSING_URI */
 };
 
 /*
@@ -575,8 +580,13 @@ gboolean http_url_parse(
 	gchar s;
 	guint32 portnum;
 	static gchar hostname[MAX_HOSTLEN + 1];
+	char *tmp_host, *tmp_path;
+	guint16 tmp_port;
 
 	g_assert(url != NULL);
+	if (!host) host = &tmp_host;
+	if (!path) path = &tmp_path;
+	if (!port) port = &tmp_port;
 
 	if (0 != strncasecmp(url, "http://", 7)) {
 		http_url_errno = HTTP_URL_NOT_HTTP;
@@ -618,12 +628,14 @@ gboolean http_url_parse(
 
 	p--;							/* Go back to trailing "/" */
 	if (*p != '/') {
-		http_url_errno = HTTP_URL_BAD_CREDENTIALS;
+		if (seen_upw)
+			http_url_errno = HTTP_URL_BAD_CREDENTIALS;
+		else
+			http_url_errno = HTTP_URL_MISSING_URI;
 		return FALSE;
 	}
 
-	if (path != NULL)
-		*path = p;					/* Start of path, at the "/" */
+	*path = p;					/* Start of path, at the "/" */
 
 	/*
 	 * Validate the port.
@@ -640,9 +652,7 @@ gboolean http_url_parse(
 		http_url_errno = HTTP_URL_BAD_PORT_RANGE;
 		return FALSE;
 	}
-
-	if (port != NULL)
-		*port = (guint16) portnum;
+	*port = (guint16) portnum;
 
 	hostname[0] = '\0';
 
@@ -663,12 +673,13 @@ gboolean http_url_parse(
 			*q++ = c;
 		}
 		hostname[MAX_HOSTLEN] = '\0';
-		if (host != NULL)
-			*host = hostname;				/* Static data! */
+		*host = hostname;				/* Static data! */
 	}
 
-	if (dbg > 4)
-		printf("URL \"%s\" -> host=%s, path=%s\n", url - 7, hostname, p);
+	if (dbg > 4) {
+		printf("URL \"%s\" -> host=\"%s\", port=%u, path=\"%s\"\n",
+			url - 7, *host, (unsigned) *port, *path);
+	}
 
 	http_url_errno = HTTP_URL_OK;
 
@@ -1525,15 +1536,23 @@ static void http_async_http_error(
  * header.
  */
 static gint http_async_build_request(gpointer handle, gchar *buf, gint len,
-	gchar *verb, gchar *path, gchar *host)
+	gchar *verb, gchar *path, gchar *host, guint16 port)
 {
-	int rw = gm_snprintf(buf, len,
+	int rw;
+	char port_str[32];
+
+	if (port != HTTP_PORT) {
+		gm_snprintf(port_str, sizeof port_str, ":%u", (guint) port);
+	} else {
+		port_str[0] = '\0';
+	}
+	rw = gm_snprintf(buf, len,
 		"%s %s HTTP/1.1\r\n"
-		"Host: %s\r\n"
+		"Host: %s%s\r\n"
 		"User-Agent: %s\r\n"
 		"Connection: close\r\n"
 		"\r\n",
-		verb, path, host, version_string);
+		verb, path, host, port_str, version_string);
 	
 	header_features_generate(&xfeatures.downloads, buf, len, &rw);
 	
@@ -2285,7 +2304,7 @@ void http_async_connected(gpointer handle)
 
 	rw = (*ha->op_request)(ha, req, sizeof(req),
 		(gchar *) http_verb[ha->type], ha->path,
-		ha->host ? ha->host : ip_to_gchar(s->ip));
+		ha->host ? ha->host : ip_to_gchar(s->ip), s->port);
 
 	if (rw >= sizeof(req)) {
 		http_async_error(ha, HTTP_ASYNC_REQ2BIG);
@@ -2480,3 +2499,5 @@ void http_close(void)
 		http_async_error(
 			(struct http_async *) sl_outgoing->data, HTTP_ASYNC_CANCELLED);
 }
+
+/* vi: set ts=4: */

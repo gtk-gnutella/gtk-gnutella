@@ -1807,8 +1807,8 @@ gnet_search_t search_new(
 {
 	search_ctrl_t *sch;
 	gchar *qdup;
-	gint qlen;
 	gint utf8_len;
+	gint qlen;
 	gboolean latin_locale = is_latin_locale();
 	extern guint compact_query(gchar *search, gint utf8_len);
 
@@ -1819,21 +1819,25 @@ gnet_search_t search_new(
 	 * Canonicalize the query we're sending.
 	 */
 
+	qlen = strlen(query);
+	utf8_len = utf8_is_valid_string(query, qlen);
+
 #ifdef USE_ICU
-	qdup = unicode_canonize(query);
-	utf8_len = strlen(qdup);
-#else
-	qdup = g_strdup(query);
-	qlen = strlen(qdup);
-
-	utf8_len = utf8_is_valid_string(qdup, qlen);
-	if (utf8_len && utf8_len == qlen)
-		utf8_len = 0;						/* Uses ASCII only */
-
-	/* Suppress accents, graphics, ... */
-	if (latin_locale)
-		use_map_on_query(qdup, qlen);
+	if (utf8_len > 0) {
+		qdup = unicode_canonize(query);
+		utf8_len = strlen(qdup);
+	} else
 #endif
+	{
+		qdup = g_strdup(query);
+
+		if (utf8_len && utf8_len == qlen)
+			utf8_len = 0;						/* Uses ASCII only */
+
+		/* Suppress accents, graphics, ... */
+		if (latin_locale)
+			use_map_on_query(qdup, qlen);
+	}
 
 	compact_query(qdup, utf8_len);
 
@@ -1945,4 +1949,3 @@ gboolean search_is_passive(gnet_search_t sh)
     
     return sch->passive;
 }
-

@@ -632,13 +632,13 @@ void locale_init(void)
 
 		/* set up the locale converter */
 		conv_icu_locale = ucnv_open(charset, &errorCode);
-		if (errorCode != U_ZERO_ERROR)
-			g_warning("ucnv_open : %s", U_SUCCESS(errorCode));
+		if (U_FAILURE(errorCode))
+			g_warning("ucnv_open for locale failed with %d", errorCode);
 
 		/* set up the UTF-8 converter */
 		conv_icu_utf8 = ucnv_open("utf8", &errorCode);
-		if (errorCode != U_ZERO_ERROR)
-			g_warning("ucnv_open : %s", U_SUCCESS(errorCode));
+		if (U_FAILURE(errorCode))
+			g_warning("ucnv_open for utf-8 failed with %d", errorCode);
 	}
 #endif
 }
@@ -1021,17 +1021,19 @@ int unicode_filters(const UChar *source, gint32 len, UChar *result)
  */
 gchar *unicode_canonize(const gchar *in)
 {
-	UChar *qtmp1;
-	UChar *qtmp2;
-	int	len, maxlen;
-	gchar *out;
+	UChar	*qtmp1;
+	UChar	*qtmp2;
+	int	 len, maxlen, out_len;
+	gchar	*out;
 	gboolean latin_locale = is_latin_locale();
 
+	g_assert( utf8_is_valid_string(in, strlen(in)) );
+	
 	len = strlen(in);
-	maxlen = len*6; /* Max 6 bytes for one char in utf8 */
+	maxlen = len * 6; /* Max 6 bytes for one char in utf8 */
 
-	qtmp1 = (UChar *) g_malloc(maxlen*sizeof(UChar));
-	qtmp2 = (UChar *) g_malloc(maxlen*sizeof(UChar));
+	qtmp1 = (UChar *) g_malloc(maxlen * sizeof(UChar));
+	qtmp2 = (UChar *) g_malloc(maxlen * sizeof(UChar));
 
 	if (latin_locale) {
 		len = to_icu_conv(in, len, qtmp1, maxlen);
@@ -1045,14 +1047,22 @@ gchar *unicode_canonize(const gchar *in)
 	len = unicode_filters(qtmp1, len, qtmp2);
 	len = unicode_NFC(qtmp2, len, qtmp1, maxlen);
 
-	out = g_malloc(len+1);
-
+	out = g_malloc(len + 1);
+	out_len = len + 1;
+	
 	if (latin_locale) /* Should be pure ASCII now */
 		len = icu_to_utf8_conv(qtmp2, len, out, len);
 	else
-		len = icu_to_utf8_conv(qtmp2, len, out, len*6);
+		len = icu_to_utf8_conv(qtmp2, len, out, len * 6);
 
-	out[len]=0;
+	/*
+	 * Make sure that the previous allocated memory is enough
+	 * 		-- JA 12/02/2004
+	 */
+	g_assert(len < out_len);
+	g_assert(len >= 0);
+	
+	out[len] = 0;
 
 	g_free(qtmp1);
 	g_free(qtmp2);

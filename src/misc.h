@@ -116,6 +116,7 @@ gboolean host_is_valid(guint32, guint16);
 gchar *date_to_iso_gchar(time_t date);
 gchar *date_to_rfc822_gchar(time_t date);
 gchar *date_to_rfc822_gchar2(time_t date);
+gchar *date_to_rfc1123_gchar(time_t date);
 
 /*
  * Time string conversions

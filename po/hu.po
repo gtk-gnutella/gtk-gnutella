@@ -1646,7 +1646,7 @@ msgid "Show percentages instead of absolute values in the gnet stats"
 msgstr "Abszolút értékek helyett százalékokat mutat a gnet statisztikákban"
 
 #: src/gui_property.c:1472
-msgid "Show bytes instead of packages in the gnet stats"
+msgid "Show bytes instead of packets in the gnet stats"
 msgstr "Bájtokat mutat csomagok helyett a gnet statisztikákban"
 
 #: src/gui_property.c:1489

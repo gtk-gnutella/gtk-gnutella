@@ -443,6 +443,20 @@ gboolean version_check(const gchar *str, const gchar *token, guint32 ip)
 		target_version = &last_dev_version;
 	}
 
+	/* 
+	 * Only compare a development version which has the same version
+	 * number with a more up to date version.
+	 * This will also avoid a 0.93.4u to be listed out of date if also a 0.94u
+	 * is available, while both are actually in development.
+	 * 		-- JA 15/04/2004
+	 */
+	
+	/* 
+	 * Their version is more recent, but is unstable
+	 */
+	if (their_version.tag == 'u' && cmp < 0)
+		return TRUE;
+
 	if (their_version.timestamp <= target_version->timestamp)
 		return TRUE;
 
@@ -471,7 +485,7 @@ gboolean version_check(const gchar *str, const gchar *token, guint32 ip)
 	g_warning("more recent %s version of gtk-gnutella: %s",
 		target_version == &last_dev_version ? "development" : "released",
 		version);
-
+	
 	if (target_version == &last_rel_version)
 		version_new_found(version, TRUE);
 	else if (our_version.tag == 'u')
@@ -661,4 +675,3 @@ void version_close(void)
 		g_warning("upgrade possible: most recent development version seen: %s",
 			version_str(&last_dev_version));
 }
-

@@ -95,5 +95,5 @@ void parq_upload_send_queue_conf(gnutella_upload_t *u);
 
 gboolean parq_ul_id_sent(gnutella_upload_t *u);
 
-gboolean parq_is_banned_source(guint32 ip);
+time_t parq_banned_source_expire(guint32 ip);
 #endif /* _parq_h_ */

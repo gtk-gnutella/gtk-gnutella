@@ -34,6 +34,7 @@
 #include "gwcache.h"
 #include "http.h"
 #include "hosts.h"
+#include "url.h"
 #include "version.h"
 
 #include "settings.h"
@@ -56,7 +57,7 @@ static gchar gwc_tmp[1024];
  */
 
 #define MAX_GWC_URLS	200					/* Max URLs we store */
-#define MAX_GWC_REUSE	8					/* Max amount of uses for one URL */
+#define MAX_GWC_REUSE	1					/* Max amount of uses for one URL */
 
 static gchar *gwc_url[MAX_GWC_URLS];		/* Holds string atoms */
 static gint gwc_url_slot = -1;
@@ -93,7 +94,7 @@ static gchar *current_url = NULL;			/* Cache we're currently using */
 static gint current_reused = 0;				/* Amount of times we reused it */
 
 #define MAX_URL_LINES	50					/* Max lines on a urlfile req */
-#define MAX_IP_LINES	50					/* Max lines on a hostfile req */
+#define MAX_IP_LINES	150					/* Max lines on a hostfile req */
 #define MAX_OK_LINES	3					/* Max lines when expecting OK */
 #define MIN_IP_LINES	5					/* Min lines expected */
 #define MIN_URL_LINES	5					/* Min lines expected */
@@ -123,7 +124,9 @@ static void gwc_seed_cache(gchar *cache_url);
 
 static gchar *boot_url[] = {
 	"http://gwebcache.bearshare.net/gcache.php",
-	"http://raphael.manfredi.free.fr/gwc/gcache.php",
+	"http://www.rodage.net/gnetcache/gcache.php",
+	"http://gcache.shacknet.nu:8088/gwc",
+	"http://cache.kicks-ass.net:8000/",
 };
 
 extern cqueue_t *callout_queue;
@@ -133,25 +136,39 @@ extern cqueue_t *callout_queue;
  *
  * Add new URL to cache, possibly pushing off an older one if cache is full.
  */
-static void gwc_add(gchar *url)
+static void gwc_add(const gchar *new_url)
 {
 	gchar *url_atom;
+	gchar *url;
 	gchar *old_url;
 
-	/*
-	 * Don't add duplicates in the cache.
-	 */
+	url = g_strdup(new_url); /* url_normalize() can modify the URL */
+	if (url) {
+		gchar *ret;
 
-	if (g_hash_table_lookup(gwc_known_url, url))
+		ret = url_normalize(url, URL_POLICY_GWC_RULES);
+		if (!ret) {
+			g_warning("ignoring bad web cache URL \"%s\"", new_url);
+			G_FREE_NULL(url);
+			return;
+		}
+		if (ret != url) {
+			G_FREE_NULL(url);
+			url = ret;
+		}
+	} else {
+		/* This is superfluous with GLib but this way the above ``ret'' is
+		 * is local and quitting isn't really appropriate anyway. */
+		g_warning("Out of memory");
 		return;
+	}
 
 	/*
-	 * Make sure the entry is well-formed.
-	 */
+	 * Don't add duplicates to the cache.
+  	 */
 
-	if (!http_url_parse(url, NULL, NULL, NULL)) {
-		g_warning("ignoring bad web cache URL \"%s\": %s",
-			url, http_url_strerror(http_url_errno));
+	if (g_hash_table_lookup(gwc_known_url, url)) {
+		G_FREE_NULL(url);
 		return;
 	}
 
@@ -164,6 +181,7 @@ static void gwc_add(gchar *url)
 
 	g_assert(url != NULL);
 	url_atom = atom_str_get(url);
+	G_FREE_NULL(url);
 
 	/*
 	 * Expire any entry present at the slot we're about to write into.
@@ -187,6 +205,9 @@ static void gwc_add(gchar *url)
  * gwc_pick
  *
  * Pickup a cache randomly from the known set.
+ *
+ * Try to avoid using default bootstrapping URLs if we have more than the
+ * minimum set of caches in stock...
  */
 static gchar *gwc_pick(void)
 {
@@ -380,8 +401,6 @@ void gwc_init(void)
 
 	if (ancient_version)
 		return;				/* Older versions must have a harder time */
-
-	gwc_get_urls();
 
 	/*
 	 * Schedule hourly updates, starting our first in 10 minutes:
@@ -1022,7 +1041,7 @@ static void gwc_update_data_ind(gpointer handle, gchar *data, gint len)
 }
 
 /*
- * gwc_host_error_ind
+ * gwc_update_error_ind
  *
  * HTTP request is being stopped.
  */
@@ -1087,7 +1106,7 @@ static void gwc_update_this(gchar *cache_url)
 
 	if (
 		!is_firewalled &&
-		current_peermode != NODE_P_LEAF &&
+		current_peermode == NODE_P_ULTRA &&
 		host_is_valid(listen_ip(), listen_port)
 	) {
 		rw += gm_snprintf(&gwc_tmp[rw], sizeof(gwc_tmp)-rw,
@@ -1162,3 +1181,5 @@ static void gwc_update_ip_url(void)
 		return;
 	gwc_update_this(current_url);
 }
+
+/* vi: set ts=4: */

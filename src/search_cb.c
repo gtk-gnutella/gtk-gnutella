@@ -660,14 +660,17 @@ void on_ctree_search_results_select_row(GtkCTree *ctree,
     gboolean search_autoselect_ident;
     gboolean search_autoselect_fuzzy;
     search_t *sch;
-	record_t *rc;
-	gint x;
+    record_t *rc;
+    gint x;
+    static gboolean active = FALSE;
 
-	if (TRUE == in_autoselect)
-		return;
+    if (in_autoselect || active)
+	return;
 	
-	if (NULL == node)
-		return;
+    if (NULL == node)
+	return;
+	
+    active = TRUE;
 	
     sch = search_gui_get_current_search();
 	rc = (record_t *) gtk_ctree_node_get_row_data(ctree, GTK_CTREE_NODE(node));
@@ -742,6 +745,8 @@ void on_ctree_search_results_select_row(GtkCTree *ctree,
 		}	
 	}
 #endif
+
+    active = FALSE;
 }
 
 

@@ -1473,7 +1473,7 @@ prop_set_t *gui_prop_init(void) {
      * General data:
      */
     gui_property->props[65].name = "gnet_stats_bytes";
-    gui_property->props[65].desc = _("Show bytes instead of packages in the gnet stats");
+    gui_property->props[65].desc = _("Show bytes instead of packets in the gnet stats");
     gui_property->props[65].ev_changed = event_new("gnet_stats_bytes_changed");
     gui_property->props[65].save = TRUE;
     gui_property->props[65].vector_size = 1;

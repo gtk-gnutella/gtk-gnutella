@@ -60,7 +60,7 @@ $spitshell >>Makefile <<'!NO!SUBS!'
 ########################################################################
 # Start of Jmakefile
 
-# $X-Id: Jmakefile,v 1.5 2003/08/14 20:36:22 rmanfredi Exp $
+# $X-Id: Jmakefile,v 1.6 2004/01/11 11:55:11 rmanfredi Exp $
 
 EXTRA_FILES = \
 	gwcache.boot \
@@ -147,7 +147,7 @@ Makefile.SH: Jmakefile
 		fi; \
 		echo "	$(JMAKE) -DTOPDIR=$(TOP) -DCURDIR=$(CURRENT)" ; \
 		$(JMAKE) -DTOPDIR=$(TOP) -DCURDIR=$(CURRENT) ; \
-	else touch $@; exit 0; fi
+	else touch $@; fi
 
 Makefile: Makefile.SH
 	/bin/sh Makefile.SH

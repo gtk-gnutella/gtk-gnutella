@@ -163,7 +163,7 @@ static const gchar *general_stat_str(
     else if (type == GNR_QUERY_COMPACT_SIZE)
         g_strlcpy(str, compact_size(stats->general[type]), n);
     else
-        gm_snprintf(str, n, "%u", stats->general[type]);
+        gm_snprintf(str, n, "%" G_GUINT64_FORMAT, stats->general[type]);
 
 	return str;
 }

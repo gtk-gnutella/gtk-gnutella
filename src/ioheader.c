@@ -299,6 +299,7 @@ static void io_read_data(
 	guint count;
 	gint r;
 
+	g_assert(s != NULL);
 	g_assert(s->gdk_tag);			/* I/O callback still registered */
 
 	if (cond & INPUT_EVENT_EXCEPTION) {
@@ -465,4 +466,3 @@ void io_continue_header(
 	ih->process_header = done;
 	ih->header_read_start = start;
 }
-

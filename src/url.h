@@ -38,6 +38,12 @@ typedef struct {
 
 #define url_params_count(x)	((x)->count)
 
+typedef enum {
+	URL_POLICY_ALLOW_IP_AS_HOST		= (1 << 0),
+	URL_POLICY_ALLOW_LOCAL_HOSTS	= (1 << 1),
+	URL_POLICY_GWC_RULES			= (1 << 2)
+} url_policy_t;
+
 /*
  * Public interface.
  */
@@ -51,6 +57,7 @@ gchar *url_unescape(gchar *url, gboolean inplace);
 url_params_t *url_params_parse(gchar *query);
 gchar *url_params_get(url_params_t *up, gchar *name);
 void url_params_free(url_params_t *up);
+gchar *url_normalize(gchar *url, url_policy_t pol);
 
 #endif	/* _url_h_ */
 

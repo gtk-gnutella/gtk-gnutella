@@ -411,10 +411,16 @@ static gboolean can_become_ultra(time_t now)
 	 * descriptors out of the banned pool if we run short of fd.  We need to
 	 * provision for possible PARQ active queuing, which is why we scale the
 	 * `max_uploads' parameter.
+	 *
+	 * Likewise, we assume that at most 1/4th of the downloads will actually
+	 * be active at one time (meaning one fd for the connection and one fd
+	 * for the file being written to).  We count "max_uploads" twice because
+	 * those have one also two fd (for the connection and the file).
 	 */
 
-	enough_fd = (max_leaves + max_connections + max_downloads
-			+ (max_uploads * (1 + NODE_UPLOAD_QUEUE_FD))
+	enough_fd = (max_leaves + max_connections
+			+ max_downloads + (max_downloads / 4)
+			+ (max_uploads * (1 + NODE_UPLOAD_QUEUE_FD)) + max_uploads
 			+ (max_banned_fd / 10) + NODE_CASUAL_FD) < sys_nofile;
 	enough_mem = (max_leaves * NODE_AVG_LEAF_MEM +
 		(max_leaves + max_connections) * node_sendqueue_size)
@@ -2023,7 +2029,7 @@ static gchar *formatted_connection_pongs(gchar *field, hcache_type_t htype)
  */
 static gchar *node_crawler_headers(struct gnutella_node *n)
 {
-	static gchar buf[6144];		/* 6 KB */
+	static gchar buf[8192];		/* 8 KB */
 	GSList *sl;
 	gint maxsize;
 	gint rw;
@@ -2884,7 +2890,7 @@ static gboolean node_can_accept_connection(
 	 */
 
 	if ((n->attrs & NODE_A_ULTRA) && (bad = node_is_bad(n)) != NODE_BAD_OK) {
-		gchar *msg = NULL;
+		const gchar *msg = "Unknown error";
 
 		switch (bad) {
 		case NODE_BAD_OK:
@@ -2901,7 +2907,7 @@ static gboolean node_can_accept_connection(
 			break;
 		}
 
-		send_node_error(n->socket, 403, msg);
+		send_node_error(n->socket, 403, "%s", msg);
 		node_remove(n, "Not connecting: %s", msg);
 		return FALSE;
 	}
@@ -3157,7 +3163,7 @@ static gboolean node_can_accept_protocol(
 			!(n->flags & NODE_F_LEAF) &&
 			strstr(field, "application/x-gnutella2") /* XXX parse the "," */
 		) {
-			gchar *msg = "Protocol not acceptable";
+			static const gchar msg[] = "Protocol not acceptable";
 
 			send_node_error(n->socket, 406, msg);
 			node_remove(n, msg);
@@ -3329,6 +3335,16 @@ static void node_process_handshake_ack(struct gnutella_node *n, header_t *head)
 
 		rx_recv(rx_bottom(n->rx), mb);
 
+		/* During rx_recv the node could be marked for removal again. In which
+		 * case the socket is freed, so lets exit now. 
+		 *		-- JA 14/04/04
+		 */
+		if (NODE_IS_REMOVING(n))
+			return;
+		
+		g_assert(n->socket == s);
+		g_assert(s != NULL);
+		
 		/* 
 		 * We know that the message is synchronously delivered.  At this
 		 * point, all the data have been consumed, and the socket buffer
@@ -3373,7 +3389,7 @@ static gchar *node_query_routing_header(struct gnutella_node *n)
 static void node_process_handshake_header(
 	struct gnutella_node *n, header_t *head)
 {
-	gchar gnet_response[8192];		/* Large in case Crawler info sent back */
+	gchar gnet_response[10240];		/* Large in case Crawler info sent back */
 	gint rw;
 	gint sent;
 	const gchar *field;
@@ -3639,8 +3655,8 @@ static void node_process_handshake_header(
 
 		if (msg != NULL) {
 			ban_record(n->socket->ip, msg);
-			send_node_error(n->socket, 403, msg);
-			node_remove(n, msg);
+			send_node_error(n->socket, 403, "%s", msg);
+			node_remove(n, "%s", msg);
 			return;
 		}
 	}
@@ -3721,7 +3737,7 @@ static void node_process_handshake_header(
 		/* Make sure we only receive incoming connections from crawlers */
 
 		if (n->flags & NODE_F_CRAWLER) {
-			gchar *msg = "Cannot connect to a crawler";
+			static const gchar msg[] = "Cannot connect to a crawler";
 
 			send_node_error(n->socket, 403, msg);
 			node_remove(n, msg);
@@ -3755,7 +3771,7 @@ static void node_process_handshake_header(
 					gnet_prop_set_guint32_val(PROP_CURRENT_PEERMODE,
 						NODE_P_LEAF);
 				} else if (current_peermode != NODE_P_LEAF) {
-					gchar *msg = "Not becoming a leaf node";
+					static const gchar msg[] = "Not becoming a leaf node";
 
 					if (dbg > 2) g_warning(
 						"denying request from %s <%s> to become a leaf",
@@ -3833,8 +3849,7 @@ static void node_process_handshake_header(
 				"%s"		/* X-Ultrapeer-Needed */
 				"%s"		/* X-Query-Routing */
 				"X-Token: %s\r\n"
-				"X-Live-Since: %s\r\n"
-				"\r\n",
+				"X-Live-Since: %s\r\n",
 				version_string, ip_to_gchar(n->socket->ip),
 				(n->attrs & NODE_A_TX_DEFLATE) ? compressing : empty,
 				current_peermode == NODE_P_NORMAL ? "" :
@@ -3851,6 +3866,8 @@ static void node_process_handshake_header(
 				
 			header_features_generate(&xfeatures.connections,
 				gnet_response, sizeof(gnet_response), &rw);
+
+			rw += gm_snprintf(&gnet_response[rw], sizeof(gnet_response) - rw, "\r\n");
 		}
 		g_assert(rw < sizeof(gnet_response));
 	}
@@ -3924,7 +3941,7 @@ static void err_line_too_long(gpointer obj)
 
 static void err_header_error_tell(gpointer obj, gint error)
 {
-	send_node_error(NODE(obj)->socket, 413, header_strerror(error));
+	send_node_error(NODE(obj)->socket, 413, "%s", header_strerror(error));
 }
 
 static void err_header_error(gpointer obj, gint error)
@@ -4544,8 +4561,7 @@ void node_init_outgoing(struct gnutella_node *n)
 		"X-Token: %s\r\n"
 		"X-Live-Since: %s\r\n"
 		"%s"		/* X-Ultrapeer */
-		"%s"		/* X-Query-Routing */
-		"\r\n",
+		"%s",		/* X-Query-Routing */
 		GNUTELLA_HELLO,
 		n->proto_major, n->proto_minor,
 		ip_port_to_gchar(listen_ip(), listen_port),
@@ -4559,6 +4575,8 @@ void node_init_outgoing(struct gnutella_node *n)
 
 	header_features_generate(&xfeatures.connections, buf, sizeof(buf), &len);
 
+	len += gm_snprintf(&buf[len], sizeof(buf) - len, "\r\n");
+	
 	g_assert(len < sizeof(buf));
 
 	/*
@@ -4940,7 +4958,7 @@ static void node_bye_flags(guint32 mask, gint code, gchar *message)
 			continue;
 
 		if (n->flags & mask)
-			node_bye_if_writable(n, code, message);
+			node_bye_if_writable(n, code, "%s", message);
 	}
 }
 
@@ -4961,7 +4979,7 @@ static void node_bye_all_but_one(
 			continue;
 
 		if (n != nskip)
-			node_bye_if_writable(n, code, message);
+			node_bye_if_writable(n, code, "%s", message);
 	}
 }
 

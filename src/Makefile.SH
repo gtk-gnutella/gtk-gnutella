@@ -426,7 +426,7 @@ local_realclean::
 
 gtk-gnutella:  $(OBJ) getdate.o
 	$(RM) $@
-	if test -f $@; then $(MV) $@ $@~; else exit 0; fi
+	if test -f $@; then $(MV) $@ $@~; fi
 	$(CC) -o $@  $(OBJ) getdate.o $(JLDFLAGS) $(LIBS)
 
 local_install:: gtk-gnutella
@@ -512,7 +512,7 @@ Makefile.SH: Jmakefile
 		fi; \
 		echo "	$(JMAKE) -DTOPDIR=$(TOP) -DCURDIR=$(CURRENT)" ; \
 		$(JMAKE) -DTOPDIR=$(TOP) -DCURDIR=$(CURRENT) ; \
-	else touch $@; exit 0; fi
+	else touch $@; fi
 
 Makefile: Makefile.SH
 	/bin/sh Makefile.SH

@@ -1,4 +1,60 @@
-# since last version
+This is the stable 0.93.x branch.
+
+# v 0.93.4	2004.06.09	[stable]
+
+ - Improved stability. Memory corruption issues should be resolved.
+ - Better gwebcache support, will parse up to 150 host in a reply
+
+- (2004.04.16 - Richard)
+ * [Gtk1] Added "Toolbar style" setting to the gui config pane.
+
+- (2004.04.15 - Jeroen)
+ * Added cache.kicks-ass.net:8000 to the list of fallback caches
+ * When looking for a more up to date version, only look for newer releases
+   of the current version. And of course still look for newer released versions
+   This will avoid 0.93.4u to report 'There is a newer version from CVS:0.94u'
+
+- (2004.04.14 - Jeroen)
+ * Don't write socket information in the socket structure if we just
+   freed it.
+ * Version of 14/4/2004
+
+- (2004.04.10 - RAM)
+ * Will now parse up to 150 hosts in hostfile replies.
+
+- (2004.03.26 - Richard)
+ * Make "purge" really remove file from disk so it doesn't come back
+   to the fileinfo database on a restart when it was already partially
+   downloaded.
+
+- (2004.02.15 - RAM)
+ * Also use "friendly download name" (i.e. non-URN) when renaming completed
+   file locally after a failed copy.
+ * Protect against "errno == 0" on failed open().
+ * Even if we can't start the move/verify thread correctly for an item,
+   invoke the download state change callbacks.
+ * Must use integer arg when calling ctype functions (fixes bug #897252).
+ * Must count two file descriptors per upload slot and active download: one
+   for the socket and one for the file being read/written.
+
+- (2004.02.14 - Richard)
+ * [Gtk1] Try to avoid memory corruption during selection in search results due
+   to recursive calls of on_ctree_search_results_select_row().
+   Should close #892802.
+   
+- (2004.02.13 - Jeroen)
+ * Added assert to avoid memory corruption by ICU in utf8
+ * Don't call unicode canonize if the string is not an utf8 string
+ * Don't allow unicode_canonize to be called if the string is not a valid
+   utf8 string
+
+- (2004.02.06 - Jeroen)
+ * Fixed compiler warnings
+ * Fixed a possible segfault when using ICU and iconv_open failed
+
+- (2004.02.06 - Richard)
+ * [Gtk1] Fixed sorting by name in search_gui.c. Result of 
+   search_gui_compare_records was not properly handled.
 
 # v 0.93.3   2004.01.25  [stable]
 

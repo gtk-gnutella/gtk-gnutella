@@ -101,9 +101,13 @@ static gboolean has_blank_guid(const struct download *d);
 static void download_verify_sha1(struct download *d);
 static gboolean download_get_server_name(struct download *d, header_t *header);
 static gboolean use_push_proxy(struct download *d);
-static void download_unavailable(
-	struct download *d, guint32 new_status, const gchar * reason, ...);
+static void download_unavailable(struct download *d, guint32 new_status,
+	const gchar * reason, ...) G_GNUC_PRINTF(3 ,4);
 static void download_reparent(struct download *d, struct dl_server *new_server);
+static void download_queue_delay(struct download *d, guint32 delay,
+	const gchar *fmt, ...) G_GNUC_PRINTF(3 ,4);
+static void download_queue_hold(struct download *d, guint32 hold,
+	const gchar *fmt, ...) G_GNUC_PRINTF(3 ,4);
 
 static gboolean download_dirty = FALSE;
 static void download_store(void);
@@ -476,7 +480,7 @@ void download_timer(time_t now)
 				 */
 				if (d->status == GTA_DL_ACTIVE_QUEUED)
 					parq_download_retry_active_queued(d);
-				else if (d->status == GTA_DL_CONNECTING)
+				else if (d->status == GTA_DL_CONNECTING && !(is_firewalled || !send_pushes))
 					download_fallback_to_push(d, TRUE, FALSE);
 				else if (d->status == GTA_DL_HEADERS)
 					download_incomplete_header(d);
@@ -1159,7 +1163,7 @@ void download_remove_file(struct download *d, gboolean reset)
 		}
 
 		if (DOWNLOAD_IS_RUNNING(d)) {
-			download_stop(d, GTA_DL_TIMEOUT_WAIT, NULL);
+			download_stop(d, GTA_DL_TIMEOUT_WAIT, "timeout wait");
 			download_queue(d, "Requeued due to file removal");
 		}
 	}
@@ -1210,7 +1214,7 @@ void download_info_change_all(
 		}
 
 		if (is_running)
-			download_stop(d, GTA_DL_TIMEOUT_WAIT, NULL);
+			download_stop(d, GTA_DL_TIMEOUT_WAIT, "timeout wait");
 
 		switch (d->status) {
 		case GTA_DL_COMPLETED:
@@ -1684,6 +1688,7 @@ static void download_move_to_list(struct download *d, enum dl_list idx)
 			dl_active--;
 		else {
 			g_assert(DOWNLOAD_IS_ESTABLISHING(d));
+			g_assert(dl_establishing > 0);
 			dl_establishing--;
 		}
 		downloads_with_name_dec(download_outname(d));
@@ -2119,7 +2124,7 @@ static void download_queue_v(struct download *d, const gchar *fmt, va_list ap)
 		download_gui_remove(d);
 
 	if (DOWNLOAD_IS_RUNNING(d))
-		download_stop(d, GTA_DL_TIMEOUT_WAIT, NULL);
+		download_stop(d, GTA_DL_TIMEOUT_WAIT, "timeout wait");
 	else
 		file_info_clear_download(d, TRUE);	/* Also done by download_stop() */
 
@@ -3746,7 +3751,7 @@ gboolean download_remove(struct download *d)
 	 */
 
 	if (DOWNLOAD_IS_RUNNING(d))
-		download_stop(d, GTA_DL_ABORTED, NULL);
+		download_stop(d, GTA_DL_ABORTED, "aborted");
 	else if (DOWNLOAD_IS_STOPPED(d))
 		/* nothing, lifecount already decremented */;
 	else {
@@ -3824,7 +3829,7 @@ void download_forget(struct download *d, gboolean unavailable)
 	if (unavailable)
 		download_unavailable(d, GTA_DL_ABORTED, NULL);
 	else
-		download_stop(d, GTA_DL_ABORTED, NULL);
+		download_stop(d, GTA_DL_ABORTED, "aborted");
 }
 
 /*
@@ -4286,7 +4291,7 @@ static gboolean download_overlap_check(struct download *d)
 
 		if (dl_remove_file_on_mismatch) {
 			download_queue(d, "Resuming data mismatch @ %lu",
-				d->skip - d->overlap_size);
+				(gulong) (d->skip - d->overlap_size));
 			download_remove_file(d, TRUE);
 		} else {
 			/*
@@ -4318,10 +4323,11 @@ static gboolean download_overlap_check(struct download *d)
 
 			if (random_value(99) >= 50)
 				download_stop(d, GTA_DL_ERROR, "Resuming data mismatch @ %lu",
-					d->skip - d->overlap_size);
+					(gulong) (d->skip - d->overlap_size));
 			else
 				download_queue_delay(d, download_retry_busy_delay,
-					"Resuming data mismatch @ %lu", d->skip - d->overlap_size);
+					"Resuming data mismatch @ %lu",
+					(gulong) (d->skip - d->overlap_size));
 		}
 		goto out;
 	}
@@ -4525,7 +4531,7 @@ partial_done:
 	 */
 
 	cd = download_clone(d);
-	download_stop(d, GTA_DL_COMPLETED, NULL);
+	download_stop(d, GTA_DL_COMPLETED, "completed");
 
 	/*
 	 * If we had to trim the data requested, it means the server did not
@@ -4553,7 +4559,7 @@ partial_done:
 	 */
 
 done:
-	download_stop(d, GTA_DL_COMPLETED, NULL);
+	download_stop(d, GTA_DL_COMPLETED, "completed");
 	download_verify_sha1(d);
 
 	gnet_prop_set_guint32_val(PROP_TOTAL_DOWNLOADS, total_downloads + 1);
@@ -6101,9 +6107,10 @@ static void download_request(
 	fi->recvcount++;
 	fi->dirty_status = TRUE;
 
-	dl_establishing--;
-	dl_active++;
-	g_assert(dl_establishing >= 0);
+    g_assert(dl_establishing > 0);
+    dl_establishing--;
+    dl_active++;
+    g_assert(d->list_idx == DL_LIST_RUNNING);
 
 	gnet_prop_set_guint32_val(PROP_DL_RUNNING_COUNT, count_running_downloads());
 	gui_update_download(d, TRUE);
@@ -6290,7 +6297,7 @@ static void download_write_request(
 		 *		--RAM, 14/07/2003
 		 */
 
-		gchar *msg = "Could not send whole HTTP request";
+		static const gchar msg[] = "Could not send whole HTTP request";
 
 		socket_eof(s);
 
@@ -6310,7 +6317,7 @@ static void download_write_request(
 		 * If download is queued with PARQ, etc...  [Same as above]
 		 */
 
-		gchar *msg = "Write failed: %s";
+		static const gchar msg[] = "Write failed: %s";
 
 		if (d->queue_status == NULL)
 			download_stop(d, GTA_DL_ERROR, msg, g_strerror(errno));
@@ -7031,7 +7038,7 @@ void download_retry(struct download *d)
 	if (d->push)
 		d->timeout_delay = 1;	/* Must send pushes before route expires! */
 
-	download_stop(d, GTA_DL_TIMEOUT_WAIT, NULL);
+	download_stop(d, GTA_DL_TIMEOUT_WAIT, "timeout wait");
 }
 
 /*
@@ -7520,9 +7527,9 @@ renamed:
 
 cleanup:
 
-	if (NULL != src);	
+	if (NULL != src)
 		G_FREE_NULL(src);
-	if (NULL != dest);	
+	if (NULL != dest)
 		G_FREE_NULL(dest);
 	return;
 }
@@ -7589,30 +7596,31 @@ void download_move_error(struct download *d)
 	const gchar *ext;
 	gchar *src;
 	gchar *dest;
+	gchar *name;
 
 	g_assert(d->status == GTA_DL_MOVING);
 
 	/*
 	 * If download is "good", rename it inplace as DL_OK_EXT, otherwise
 	 * rename it as DL_BAD_EXT.
+	 *
+	 * Don't keep an URN-like name when the file is done, if possible.
 	 */
+
+	name = file_info_readable_filename(fi);
 
 	src = g_strdup_printf("%s/%s", fi->path, fi->file_name);
 	ext = has_good_sha1(d) ? DL_OK_EXT : DL_BAD_EXT;
-	dest = unique_filename(fi->path, fi->file_name, ext);
+	dest = unique_filename(fi->path, name, ext);
 
 	file_info_strip_binary(fi);
 
-	
-	if (NULL == src ||
-		NULL == dest ||
-		-1 == rename(src, dest)
-	) {
+	if (NULL == src || NULL == dest || -1 == rename(src, dest)) {
 		g_warning("could not rename \"%s\" as \"%s\": %s",
 			src, dest, g_strerror(errno));
 		d->status = GTA_DL_DONE;
 	} else {
-		g_warning("completed \"%s\" left at \"%s\"", fi->file_name, dest);
+		g_warning("completed \"%s\" left at \"%s\"", name, dest);
 		download_move_done(d, 0);
 	}
 	if (NULL != src)
@@ -7691,12 +7699,12 @@ void download_verify_progress(struct download *d, guint32 hashed)
  */
 void download_verify_done(struct download *d, gchar *digest, time_t elapsed)
 {
-	struct dl_file_info *fi;
+	struct dl_file_info *fi = d->file_info;
+	gchar *name = file_info_readable_filename(fi);
 
 	g_assert(d->status == GTA_DL_VERIFYING);
 	g_assert(d->list_idx == DL_LIST_STOPPED);
 
-	fi = d->file_info;
 	fi->cha1 = atom_sha1_get(digest);
 	fi->cha1_elapsed = elapsed;
 	file_info_store_binary(fi);		/* Resync with computed SHA1 */
@@ -7704,10 +7712,9 @@ void download_verify_done(struct download *d, gchar *digest, time_t elapsed)
 	d->status = GTA_DL_VERIFIED;
 	gui_update_download(d, TRUE);
 
-	ignore_add_sha1(download_outname(d), fi->cha1);
+	ignore_add_sha1(name, fi->cha1);
 
 	if (has_good_sha1(d)) {
-		gchar *name = file_info_readable_filename(fi);
 		ignore_add_filesize(name, d->file_info->size);
 		queue_remove_downloads_with_file(d->file_info, d);
 		download_move(d, move_file_path, DL_OK_EXT);
@@ -7796,7 +7803,7 @@ static void download_resume_bg_tasks(void)
 			download_unqueue(d);
 
 		if (!DOWNLOAD_IS_STOPPED(d))
-			download_stop(d, GTA_DL_COMPLETED, NULL);
+			download_stop(d, GTA_DL_COMPLETED, "completed");
 
 		/*
 		 * If we don't have the computed SHA1 yet, queue it for SHA1

@@ -786,7 +786,7 @@ void search_gui_quick_sort(GArray *array, gint beg, gint end,
 				g_array_index(array, GtkCTreeNode *, i));
 			result = search_gui_compare_records(sort_col, rbeg, ri);
 
-			if (result == 1)
+			if (result > 0)
 				search_gui_quick_sort_array_swap(array, ++pivot_index, i);
 		}
 	} else {
@@ -796,7 +796,7 @@ void search_gui_quick_sort(GArray *array, gint beg, gint end,
 				g_array_index(array, GtkCTreeNode *, i));
 			result = search_gui_compare_records(sort_col, rbeg, ri);
 
-			if (result == -1) 
+			if (result < 0) 
 				search_gui_quick_sort_array_swap(array, ++pivot_index, i);
 		}
 	}
@@ -865,10 +865,10 @@ gint search_gui_analyze_col_data(GtkCTree *ctree, gint sort_col)
 		rcur = gtk_ctree_node_get_row_data(ctree, cur_node);
 		result = search_gui_compare_records(sort_col, rcur, rprev);
 
-		if (1 == result) 
+		if (0 < result) 
 			descending = FALSE;
 		
-		if (-1 == result) 
+		if (0 > result) 
 			ascending = FALSE;
 
 		if (!ascending && !descending) {

@@ -168,7 +168,8 @@ gchar *strndup_track(const gchar *s, gint n, gchar *file, gint line);
 gpointer memdup_track(gconstpointer p, guint size, gchar *file, gint line);
 gchar *strjoinv_track(const gchar *s, gchar **vec, gchar *file, gint line);
 gchar *strconcat_track(gchar *file, gint line, const gchar *s, ...);
-gchar *strdup_printf_track(gchar *file, gint line, const gchar *fmt, ...);
+gchar *strdup_printf_track(gchar *file, gint line, const gchar *fmt, ...)
+	G_GNUC_PRINTF(3, 4);
 gchar **strsplit_track(
 	const gchar *s, const gchar *d, gint m, gchar *file, gint line);
 
@@ -226,9 +227,11 @@ GString *string_insert_track(
 GString *string_insert_c_track(
 	GString *s, gint pos, gchar c, gchar *file, gint line);
 GString *string_sprintf_track(
-	GString *s, gchar *file, gint line, const gchar *fmt, ...);
+	GString *s, gchar *file, gint line, const gchar *fmt, ...)
+	G_GNUC_PRINTF(4, 5);
 GString *string_sprintfa_track(
-	GString *s, gchar *file, gint line, const gchar *fmt, ...);
+	GString *s, gchar *file, gint line, const gchar *fmt, ...)
+	G_GNUC_PRINTF(4, 5);
 
 #endif	/* TRACK_MALLOC || MALLOC_SOURCE */
 

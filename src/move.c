@@ -154,6 +154,8 @@ static void d_start(gpointer h, gpointer ctx, gpointer item)
 	g_assert(md->rd == -1);
 	g_assert(md->wd == -1);
 
+	download_move_start(d);
+
 	source = g_strdup_printf("%s/%s", download_path(d), download_outname(d));
 	g_return_if_fail(NULL != source);
 
@@ -162,12 +164,11 @@ static void d_start(gpointer h, gpointer ctx, gpointer item)
 
 	if (md->rd == -1) {
 		md->error = errno;
-		g_warning("can't copy \"%s\" into \"%s\"", source, we->dest);
-		G_FREE_NULL(source);
-		return;
+		goto abort_read;
 	}
 
 	if (-1 == fstat(md->rd, &buf)) {
+		md->error = errno;
 		g_warning("can't fstat \"%s\": %s", source, g_strerror(errno));
 		goto abort_read;
 	}
@@ -202,14 +203,15 @@ static void d_start(gpointer h, gpointer ctx, gpointer item)
 
 	G_FREE_NULL(source);
 	G_FREE_NULL(target);
-	download_move_start(d);
 
 	return;
 
 abort_read:
 	md->error = errno;
-	close(md->rd);
+	if (md->rd != -1)
+		close(md->rd);
 	md->rd = -1;
+	g_warning("can't copy \"%s\" to \"%s\"", source, we->dest);
 	if (NULL != source)
 		G_FREE_NULL(source);
 	if (NULL != target)
@@ -225,14 +227,16 @@ abort_read:
 static void d_end(gpointer h, gpointer ctx, gpointer item)
 {
 	struct moved *md = (struct moved *) ctx;
-	time_t elapsed;
+	time_t elapsed = 0;
 	struct download *d = md->d;
 
 	g_assert(md->magic == MOVED_MAGIC);
 	g_assert(md->d == ((struct work *) item)->d);
 
-	if (md->rd == -1)			/* Did not start properly */
-		return;
+	if (md->rd == -1) {			/* Did not start properly */
+		g_assert(md->error);
+		goto finish;
+	}
 
 	close(md->rd);
 	md->rd = -1;
@@ -261,6 +265,7 @@ static void d_end(gpointer h, gpointer ctx, gpointer item)
 		printf("Moved file \"%s\" at %lu bytes/sec [error=%d]\n",
 			download_outname(md->d), (gulong) md->size / elapsed, md->error);
 
+finish:
 	if (md->error == 0)
 		download_move_done(d, elapsed);
 	else
