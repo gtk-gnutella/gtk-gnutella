@@ -547,11 +547,9 @@ void config_init(void)
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON
 								 (checkbutton_downloads_auto_clear),
 								 clear_downloads);
-    // FIXME: enable when I have checked in the new glade stuff
-   	// gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON
-	//							 (checkbutton_downloads_delete_aborted),
-	//							 download_delete_aborted);
-    //     --BLUE, 24/04/2002
+   	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON
+							     (checkbutton_downloads_delete_aborted),
+							     download_delete_aborted);
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON
 								 (checkbutton_config_force_ip),
 								 force_local_ip);
