@@ -100,9 +100,9 @@ static gint current_reused = 0;				/* Amount of times we reused it */
 #define URL_RETRY_MS	(20 * 1000)			/* Retry timer for urlfile, in ms */
 #define REFRESH_MS		(8 * HOUR_MS)		/* Refresh every 8 hours */
 
-static gchar *gwc_file = "gwcache";
-static gchar *gwc_bootfile = "gwcache.boot";
-static gchar *gwc_what = "web cache URLs";
+static const gchar *gwc_file = "gwcache";
+static const gchar *gwc_bootfile = "gwcache.boot";
+static const gchar *gwc_what = "web cache URLs";
 
 static gpointer hourly_update_ev = NULL;
 static gpointer periodic_refresh_ev = NULL;
@@ -204,8 +204,9 @@ static void gwc_store(void)
 	FILE *out;
 	gint i;
 	gint j;
-	file_path_t fp = { settings_config_dir(), gwc_file };
+	file_path_t fp;
 
+	file_path_set(&fp, settings_config_dir(), gwc_file);
 	out = file_config_open_write(gwc_what, &fp);
 
 	if (!out)
@@ -257,14 +258,15 @@ static void gwc_retrieve(void)
 	gint line;
 	FILE *in;
 	file_path_t fpvec[] = {
-		{ settings_config_dir(), gwc_file },
-		{ PACKAGE_DATA_DIR, gwc_bootfile },
+		{ NULL, NULL },
+		{ PACKAGE_DATA_DIR, gwc_bootfile }
 #ifdef USE_SOURCE_DIR_AS_FALLBACK
-		{ PACKAGE_SOURCE_DIR, gwc_bootfile }
+		, { PACKAGE_SOURCE_DIR, gwc_bootfile }
 #endif
 	};
 	gchar tmp[1024];
 
+	file_path_set(&fpvec[0], settings_config_dir(), gwc_file);
 	in = file_config_open_read(gwc_what, fpvec, G_N_ELEMENTS(fpvec));
 
 	if (!in)
@@ -514,7 +516,7 @@ static void parse_dispatch_lines(
 	getline_t *getline;
 	gchar *p = buf;
 	gint remain = len;
-	guint parsed;
+	gint parsed;
 	gint linelen;
 	gchar *linep;
 
