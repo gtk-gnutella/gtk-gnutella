@@ -785,7 +785,7 @@ gint dmesh_alternate_location(guchar *sha1,
 
 	// g_assert(len < size);
 	if (len >= size) {
-		g_warning("BUG: dmesh_alternate_location: filled buffer completely "
+		g_error("BUG: dmesh_alternate_location: filled buffer completely "
 			"(size=%d, len=%d, nurl=%d)", size, len, nurl);
 		return 0;
 	}
