@@ -1,5 +1,6 @@
 # since last version
 
+
 - (2004-07-19 - TNT)
  * Added option 'ALL' to the remote shell command 'HORIZON'. This option
    will output the total horizon size as usual (including non-HSEP nodes) and
@@ -12,6 +13,11 @@
 - (2004-07-14 - Jeroen)
  * Added initial support for downloads with unknown size. Patch from emile
  
+- (2004-07-13 - RAM)
+ * Make sure PONG messages hold a reasonable number of files, i.e. detect
+   servents that did not encode the value correctly by advertising an
+   absurdly large number of files.  Then try to fix the total size shared.
+
 - (2004-07-10 - Richard)
  * [Gtk1] Replaces GtkFrame around progress indicator in fileinfo pane
    with a GtkViewport
