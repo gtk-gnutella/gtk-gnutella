@@ -3300,6 +3300,9 @@ void node_add_socket(struct gnutella_socket *s, guint32 ip, guint16 port)
 	incoming = s != NULL;
 	already_connected = node_is_connected(ip, port, incoming);
 
+	if (!incoming && already_connected)
+		return;
+
 	/*
 	 * Too many gnutellaNet connections?
      *
