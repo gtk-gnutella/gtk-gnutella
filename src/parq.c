@@ -1267,13 +1267,23 @@ void parq_upload_remove(gnutella_upload_t *u)
 /*
  * parq_upload_add_header
  * 
- * Adds X-Queued status to an queud upload in the HTTP header.
+ * Adds X-Queued status in the HTTP reply header for a queued upload.
+ *
+ * `buf' is the start of the buffer where the headers are to be added.
+ * `retval' contains the length of the buffer initially, and is filled
+ * with the amount of data written.
+ *
+ * NB: Adds a Retry-After field for servents that will not understand PARQ,
+ * to make sure they do not re-request too soon.
+ *
+ * XXX The value for Retry-After should probably be stored in the queue.
+ * XXX If they come back before that amount, it means they do not honour
+ * XXX this standard HTTP field and should be penalized.  Not much, but still.
  */
 void parq_upload_add_header(gchar *buf, gint *retval, gpointer arg)
 {	
 	gint rw = 0;
 	gint length = *retval;
-	gchar lbuf[1024];
 	struct upload_http_cb *a = (struct upload_http_cb *) arg;
 
 	g_assert(buf != NULL);
@@ -1281,27 +1291,32 @@ void parq_upload_add_header(gchar *buf, gint *retval, gpointer arg)
 	g_assert(a->u != NULL);
 	
 	if (parq_upload_queued(a->u)) {
-		guint neededlength = gm_snprintf(lbuf, length,
-			"X-Queue: %d.%d\r\n"
-			"X-Queued: position=%d; ID=%s; length=%d; ETA=%d; lifetime=%d\r\n",
-			PARQ_VERSION_MAJOR, PARQ_VERSION_MINOR,
-			parq_upload_lookup_position(a->u),
-			parq_upload_lookup_id(a->u),
-			parq_upload_lookup_size(a->u),
-			parq_upload_lookup_ETA(a->u),
-			parq_upload_lookup_lifetime(a->u));
+		gint lifetime = parq_upload_lookup_lifetime(a->u);
 
-		if (neededlength < length) {
-			rw = gm_snprintf(buf, length,
+		rw = gm_snprintf(buf, length,
 			"X-Queue: %d.%d\r\n"
-			"X-Queued: position=%d; ID=%s; length=%d; ETA=%d; lifetime=%d\r\n",
+			"X-Queued: position=%d; ID=%s; length=%d; ETA=%d; lifetime=%d\r\n"
+			"Retry-After: %d\r\n",
 			PARQ_VERSION_MAJOR, PARQ_VERSION_MINOR,
 			parq_upload_lookup_position(a->u),
 			parq_upload_lookup_id(a->u),
 			parq_upload_lookup_size(a->u),
 			parq_upload_lookup_ETA(a->u),
-			parq_upload_lookup_lifetime(a->u));
-		}
+			lifetime,
+			MAX(30, lifetime - 30));
+
+		/*
+		 * If we filled all the buffer, try with a shorter string, bearing
+		 * only the minimal amount of information.
+		 */
+
+		if (rw == length - 1 && buf[rw - 1] != '\n')
+			rw = gm_snprintf(buf, length,
+				"X-Queue: %d.%d\r\n"
+				"X-Queued: ID=%s; lifetime=%d\r\n",
+				PARQ_VERSION_MAJOR, PARQ_VERSION_MINOR,
+				parq_upload_lookup_id(a->u),
+				lifetime);
 	}
 
 	g_assert(rw < length);
