@@ -38,7 +38,6 @@ CFLAGS = -I$(TOP) -I.. $(GLIB_CFLAGS)
 DPFLAGS = $(CFLAGS)
 
 all:: properties
-AllTarget(gnet_property.o gui_property.o)
 
 properties: gnet_property.c gui_property.c
 
@@ -55,5 +54,7 @@ gui_property_priv.h gui_property.c gui_property.h: gui_props.ag props.tpl
 	-autogen gui_props.ag
 	touch gui_property_priv.h gui_property.c gui_property.h
 
+NormalObjectTarget(gnet_property)
+NormalObjectTarget(gui_property)
 DependTarget()
 
