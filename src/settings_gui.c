@@ -347,6 +347,7 @@ static prop_map_t property_map[] = {
         TRUE,
         "clist_ul_stats"
     },
+#ifndef USE_GTK2
     {
         get_main_window,
         PROP_SEARCH_LIST_COL_WIDTHS,
@@ -354,6 +355,7 @@ static prop_map_t property_map[] = {
         TRUE,
         "clist_search"
     },
+#endif
     {
         get_main_window,
         PROP_GNET_STATS_PKG_COL_WIDTHS,
@@ -2817,7 +2819,9 @@ void settings_gui_init(void)
 
 void settings_gui_shutdown(void)
 {
+#ifndef USE_GTK2	
     GtkCList *clist;
+#endif
     gint n;
     search_t *current_search;
 
@@ -2850,14 +2854,14 @@ void settings_gui_shutdown(void)
     gnet_stats_divider_pos = 
         gtk_paned_get_position(GTK_PANED
             (lookup_widget(main_window, "hpaned_gnet_stats")));
-
+#ifndef USE_GTK2
     clist = (current_search != NULL) ? 
         GTK_CLIST(current_search->clist) : 
         GTK_CLIST(default_search_clist);
 
     for (n = 0; n < clist->columns; n ++)
         search_results_col_visible[n] =  clist->column[n].visible;
-
+#endif 
     /*
      * Save properties to file
      */
