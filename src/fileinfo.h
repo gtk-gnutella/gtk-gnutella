@@ -42,6 +42,8 @@ struct dl_file_chunk {
 };
 
 struct dl_file_info {
+    gnet_fi_t fi_handle;    /* Handle */
+
 	guint32 flags;			/* Operating flags */
 	gchar *file_name;		/* Output file name (atom) */
 	gchar *path;			/* Output file path (atom) */
@@ -60,6 +62,7 @@ struct dl_file_info {
 	guint32 generation;		/* Generation number, incremented on disk update */
 	gboolean use_swarming;	/* Use swarming? */
 	gboolean dirty;			/* Does it need saving? */
+    gboolean dirty_status;  /* Notify about status change on next interval */
 	gboolean hashed;		/* In hash tables? */
 
 	/*
@@ -122,6 +125,9 @@ void file_info_close(void);
 void file_info_try_to_swarm_with(
 	gchar *file_name, guint32 idx, guint32 ip, guint32 port, guchar *sha1);
 void file_info_spot_completed_orphans(void);
+inline void file_info_ref(struct dl_file_info *fi);
+inline void file_info_unref(struct dl_file_info *fi);
+inline void file_info_timer(void);
 
 #endif /* _fileinfo_h_ */
 

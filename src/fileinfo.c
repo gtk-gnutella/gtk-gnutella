@@ -256,6 +256,23 @@ struct trailer {
 
 static struct dl_file_info *file_info_retrieve_binary(gchar *file, gchar *path);
 static void fi_free(struct dl_file_info *fi);
+static void file_info_hash_remove(struct dl_file_info *fi);
+
+static idtable_t *fi_handle_map = NULL;
+
+#define file_info_find_by_handle(n) \
+    (struct dl_file_info *) idtable_get_value(fi_handle_map, n)
+
+#define file_info_request_handle(n) \
+    idtable_new_id(fi_handle_map, n)
+
+#define file_info_drop_handle(n) \
+    idtable_free_id(fi_handle_map, n);
+
+struct event *fi_added_event = NULL;
+struct event *fi_removed_event = NULL;
+struct event *fi_info_changed_event = NULL;
+struct event *fi_status_changed_event = NULL;
 
 /*
  * tbuf_extend
@@ -320,6 +337,13 @@ void file_info_init(void)
 	fi_by_namesize = g_hash_table_new(namesize_hash, namesize_eq);
 	fi_by_size     = g_hash_table_new(g_int_hash, g_int_equal);
 	fi_by_outname  = g_hash_table_new(g_str_hash, g_str_equal);
+
+    fi_handle_map = idtable_new(32, 32);
+
+    fi_added_event = event_new("fi_added");
+    fi_removed_event = event_new("fi_removed");
+    fi_info_changed_event = event_new("fi_info_changed");
+    fi_status_changed_event = event_new("fi_status_changed");
 }
 
 static inline void file_info_checksum(guint32 *checksum, guchar *d, int len)
@@ -1252,7 +1276,18 @@ static void file_info_free_outname_kv(gpointer key, gpointer val, gpointer x)
 		g_warning("file_info_free_outname_kv() refcount = %u for \"%s\"",
 			fi->refcount, name);
 
-	fi->hashed = FALSE;			/* Since we're clearing them! */
+    /*
+     * Notify interested parties that file info is being removed and free
+     * it's handle.
+     */
+
+    event_trigger(
+        fi_removed_event, 
+        T_NORMAL(fi_listener_t, fi->fi_handle));    
+    file_info_drop_handle(fi->fi_handle);
+
+	fi->hashed = FALSE;
+
 	fi_free(fi);
 }
 
@@ -1273,6 +1308,22 @@ void file_info_close(void)
 	g_hash_table_foreach(fi_by_namesize, file_info_free_namesize_kv, NULL);
 	g_hash_table_foreach(fi_by_size, file_info_free_size_kv, NULL);
 	g_hash_table_foreach(fi_by_outname, file_info_free_outname_kv, NULL);
+
+    /*
+     * The hash tables may still not be completely empty, but the referenced
+     * file_info structs are all freed.
+     *      --Richard, 9/3/2003
+     */
+
+    g_assert(idtable_ids(fi_handle_map) == 0);
+    idtable_destroy(fi_handle_map);
+
+    g_warning("deleting events");
+
+    event_destroy(fi_added_event);
+    event_destroy(fi_removed_event);
+    event_destroy(fi_info_changed_event);
+    event_destroy(fi_status_changed_event);
 
 	g_hash_table_destroy(fi_by_sha1);
 	g_hash_table_destroy(fi_by_namesize);
@@ -1377,6 +1428,10 @@ static void file_info_hash_insert(struct dl_file_info *fi)
 	}
 
 	fi->hashed = TRUE;
+    fi->fi_handle = file_info_request_handle(fi);
+    event_trigger(
+        fi_added_event, 
+        T_NORMAL(fi_listener_t, fi->fi_handle));    
 }
 
 /*
@@ -1403,6 +1458,16 @@ static void file_info_hash_remove(struct dl_file_info *fi)
 			fi->sha1 ? sha1_base32(fi->sha1) : "none");
 		fflush(stdout);
 	}
+
+    /*
+     * Notify interested parties that file info is being removed and free
+     * it's handle.
+     */
+
+    event_trigger(
+        fi_removed_event, 
+        T_NORMAL(fi_listener_t, fi->fi_handle));    
+    file_info_drop_handle(fi->fi_handle);
 
 	/*
 	 * Remove from plain hash tables: by output name, and by SHA1.
@@ -2020,7 +2085,7 @@ void file_info_recreate(struct download *d)
 	 */
 
 	d->file_info = new_fi;			/* Don't decrement refcount on fi yet */
-	new_fi->refcount++;
+    file_info_ref(new_fi);
 	new_fi->lifecount++;
 
 	/*
@@ -2495,6 +2560,10 @@ again:
 		file_info_fd_store_binary(d->file_info, d->file_desc, FALSE);
 	else if (fi->dirty)
 		file_info_store_binary(d->file_info);
+
+    event_trigger(
+        fi_status_changed_event, 
+        T_NORMAL(fi_listener_t, fi->fi_handle));    
 }
 
 /*
@@ -3024,3 +3093,116 @@ void file_info_spot_completed_orphans(void)
 	g_hash_table_foreach(fi_by_outname, fi_spot_completed_kv, NULL);
 }
 
+void fi_add_fi_added_listener(fi_listener_t cb)
+{
+    event_add_subscriber(fi_added_event, (GCallback) cb, FREQ_UPDATES, 0);
+}
+
+void fi_remove_fi_added_listener(fi_listener_t cb)
+{
+    event_remove_subscriber(fi_added_event, (GCallback) cb);
+}
+
+void fi_add_fi_removed_listener(fi_listener_t cb)
+{
+    event_add_subscriber(fi_removed_event, (GCallback) cb, FREQ_UPDATES, 0);
+}
+
+void fi_remove_fi_removed_listener(fi_listener_t cb)
+{
+    event_remove_subscriber(fi_removed_event, (GCallback) cb);
+}
+
+void fi_add_fi_info_changed_listener(fi_listener_t cb)
+{
+    event_add_subscriber(
+        fi_info_changed_event, (GCallback) cb, FREQ_UPDATES, 0);
+}
+
+void fi_remove_fi_info_changed_listener(fi_listener_t cb)
+{
+    event_remove_subscriber(
+        fi_info_changed_event, (GCallback) cb);
+}
+
+void fi_add_fi_status_changed_listener(fi_listener_t cb)
+{
+    event_add_subscriber(
+        fi_status_changed_event, (GCallback) cb, FREQ_UPDATES, 0);
+}
+
+void fi_remove_fi_status_changed_listener(fi_listener_t cb)
+{
+    event_remove_subscriber(
+        fi_status_changed_event, (GCallback) cb);
+}
+
+gnet_fi_info_t *fi_get_info(gnet_fi_t fih)
+{
+    struct dl_file_info *fi = file_info_find_by_handle(fih); 
+    gnet_fi_info_t *info;
+
+    info = walloc(sizeof(*info));
+
+    info->file_name = fi->file_name ? atom_str_get(fi->file_name) : NULL;
+    info->fi_handle = fi->fi_handle;
+
+    return info;
+
+}
+
+void fi_free_info(gnet_fi_info_t *info)
+{
+    g_assert(info != NULL);
+
+	if (info->file_name)
+		atom_str_free(info->file_name);
+
+    wfree(info, sizeof(*info));
+}
+
+void fi_get_status(gnet_fi_t fih, gnet_fi_status_t *s)
+{
+    struct dl_file_info *fi = file_info_find_by_handle(fih); 
+
+    g_assert(s != NULL);
+
+    s->recvcount      = fi->recvcount;
+    s->refcount       = fi->refcount;
+    s->lifecount      = fi->lifecount;
+    s->done           = fi->done;
+    s->recv_last_rate = fi->recv_last_rate;
+    s->size           = fi->size;
+}
+
+inline void file_info_ref(struct dl_file_info *fi)
+{
+    fi->refcount ++;
+    fi->dirty_status = TRUE;
+}
+
+inline void file_info_unref(struct dl_file_info *fi)
+{
+    fi->refcount --;
+    fi->dirty_status = TRUE;
+}
+
+static void fi_notify_helper(
+    gpointer key, gpointer value, gpointer user_data)
+{
+    struct dl_file_info *fi = (struct dl_file_info *)value;
+
+    if (!fi->dirty_status)
+        return;
+
+    fi->dirty_status = FALSE;
+
+    event_trigger(
+        fi_status_changed_event, 
+        T_NORMAL(fi_listener_t, fi->fi_handle));    
+}
+
+inline void file_info_timer(void)
+{
+	g_hash_table_foreach(fi_by_outname, fi_notify_helper, NULL);
+}
