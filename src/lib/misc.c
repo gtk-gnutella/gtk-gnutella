@@ -129,17 +129,13 @@ ip2_to_gchar(guint32 ip)
 void
 ip_to_string(guint32 ip, gchar *buf, size_t size)
 {
-	union {
-		guint32 ip_be;
-		guint8 p[4];
-	} addr;
+	struct in_addr ia;
 
 	g_assert(buf != NULL);
 	g_assert(size <= INT_MAX);
 
-	addr.ip_be = htonl(ip);
-	gm_snprintf(buf, size, "%u.%u.%u.%u",
-		addr.p[0], addr.p[1], addr.p[2], addr.p[3]);
+	ia.s_addr = htonl(ip);
+	g_strlcpy(buf, inet_ntoa(ia), size);
 }
 
 gchar *
@@ -1325,10 +1321,9 @@ strlower(gchar *dst, const gchar *src)
 }
 
 /**
- * ascii_strlower
- *
  * Copies ``src'' to ``dst'', converting all ASCII upper-case characters to
- * ASCII lower-case. ``dst'' and ``src'' may point to the same object.
+ * ASCII lower-case. ``dst'' and ``src'' may be identical but must not
+ * overlap otherwise.
  */
 void
 ascii_strlower(gchar *dst, const gchar *src)
