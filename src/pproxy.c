@@ -873,6 +873,8 @@ static void cproxy_http_error_ind(
 			return;
 		}
 
+		cp->flags &= ~CP_F_SWAPPED_IP;
+
 		/* FALL THROUGH */
 	}
 
