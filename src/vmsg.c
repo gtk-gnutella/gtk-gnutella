@@ -179,10 +179,12 @@ void vmsg_handle(struct gnutella_node *n)
  * vmsg_fill_header
  *
  * Fill common message header part for all vendor-specific messages.
+ * The GUID is blanked (all zero bytes), TTL is set to 1 and hops to 0.
+ * Those common values can be superseded by the caller if needed.
  */
 static void vmsg_fill_header(struct gnutella_header *header, guint32 size)
 {
-	message_set_muid(header, GTA_MSG_VENDOR);
+	memset(header->muid, 0, 16);				/* Default GUID: all blank */
 	header->function = GTA_MSG_VENDOR;
 	header->ttl = 1;
 	header->hops = 0;
