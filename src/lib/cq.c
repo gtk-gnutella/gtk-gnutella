@@ -269,6 +269,7 @@ cq_cancel(cqueue_t *cq, gpointer handle)
 
 	ev_unlink(cq, ev);
 	ev->ce_magic = 0;			/* Prevent further use as a valid event */
+	memset(ev, 0, sizeof(*ev));
 	wfree(ev, sizeof(*ev));
 }
 
