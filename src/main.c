@@ -169,7 +169,6 @@ gint main(gint argc, gchar ** argv)
 	main_window = create_main_window();
 
 	create_popup_nodes();
-	create_popup_hosts();
 	create_popup_search();
 	create_popup_monitor();
 	create_popup_uploads();
@@ -282,6 +281,12 @@ gint main(gint argc, gchar ** argv)
 #endif
 
 	gtk_window_set_title(GTK_WINDOW(main_window), mtmp);
+
+	// FIXME: all the widget from here to end have empty callback functions
+	gtk_widget_set_sensitive(popup_queue_search_again, FALSE);
+	gtk_widget_set_sensitive(popup_downloads_remove_file, FALSE);
+	gtk_widget_set_sensitive(popup_downloads_search_again, FALSE);
+	// FIXME: end
 
     gtk_widget_set_sensitive(popup_nodes_remove, FALSE);
     gtk_widget_set_sensitive(popup_downloads_push, 
