@@ -322,7 +322,7 @@ G_INLINE_FUNC void node_add_sent(gnutella_node_t *n, gint x);
 G_INLINE_FUNC void node_add_txdrop(gnutella_node_t *n, gint x);
 G_INLINE_FUNC void node_add_rxdrop(gnutella_node_t *n, gint x);
 
-inline void node_set_vendor(gnutella_node_t *n, const gchar *vendor);
+G_INLINE_FUNC void node_set_vendor(gnutella_node_t *n, const gchar *vendor);
 
 void node_set_online_mode(gboolean on);
 void node_set_current_peermode(guint32 mode);
