@@ -52,6 +52,10 @@
 #include "verify.h"
 #include "move.h"
 
+#ifdef USE_REMOTE_SHELL
+#include "shell.h"
+#endif
+
 #include "main_gui.h"
 #include "settings.h"
 #include "fileinfo.h"
@@ -89,6 +93,10 @@ void gtk_gnutella_exit(gint n)
 		return;			/* Already exiting, must be in loop below */
 
 	exiting = TRUE;
+
+#ifdef USE_REMOTE_SHELL
+    shell_close();
+#endif
 
 	node_bye_all();
 	upload_close();		/* Done before settings_close() for stats update */
@@ -220,6 +228,9 @@ static gboolean main_timer(gpointer p)
 	node_timer(now);				/* Node timeouts */
 	http_timer(now);				/* HTTP request timeouts */
 	if (!exiting) {
+#ifdef USE_REMOTE_SHELL
+        shell_timer(now);
+#endif
 		download_timer(now);  	    /* Download timeouts */
 		upload_timer(now);			/* Upload timeouts */
 	}
@@ -329,6 +340,9 @@ gint main(gint argc, gchar ** argv)
 	dmesh_init();			/* Muse be done BEFORE download_init() */
 	download_init();
 	upload_init();
+#ifdef USE_REMOTE_SHELL
+    shell_init();
+#endif
 	ban_init();
     whitelist_init();
 

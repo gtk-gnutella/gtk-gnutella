@@ -55,6 +55,7 @@ enum socket_type {
 	SOCK_TYPE_DOWNLOAD,
 	SOCK_TYPE_UPLOAD,
 	SOCK_TYPE_HTTP,
+    SOCK_TYPE_SHELL
 };
 
 struct gnutella_socket {

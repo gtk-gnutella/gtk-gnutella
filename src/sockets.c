@@ -50,6 +50,10 @@
 #include "settings.h"
 #include "inet.h"
 
+#ifdef USE_REMOTE_SHELL
+#include "shell.h"
+#endif
+
 #if !defined(SOL_TCP) && defined(IPPROTO_TCP)
 #define SOL_TCP IPPROTO_TCP
 #endif
@@ -169,7 +173,15 @@ void socket_free(struct gnutella_socket *s)
 
 /* ----------------------------------------- */
 
-/* Read bytes on an unknown incoming socket */
+/* 
+ * socket_read:
+ *
+ * Used for incoming connections, for outgoing too??
+ * Read bytes on an unknown incoming socket. When the first line
+ * has been read it's decided on what type cof connection this is.
+ * If the first line is not complete on the first call, this function
+ * will be called as often as necessary to fetch a full line.
+ */
 
 static void socket_read(gpointer data, gint source, inputevt_cond_t cond)
 {
@@ -308,16 +320,19 @@ static void socket_read(gpointer data, gint source, inputevt_cond_t cond)
 	}
 
 	/*
-	 * Dispatch request.
+	 * Dispatch request. Here we decide what kind of connection this is.
 	 */
-
 	if (0 == strncmp(first, gnutella_hello, gnutella_hello_length))
 		node_add_socket(s, s->ip, s->port);	/* Incoming control connection */
 	else if (0 == strncmp(first, "GET ", 4))
 		upload_add(s);
 	else if (0 == strncmp(first, "HEAD ", 5))
 		upload_add(s);
-	else
+#ifdef USE_REMOTE_SHELL
+	else if (0 == strncmp(first, "HELO ", 5))
+        shell_add(s);
+#endif
+    else
 		goto unknown;
 
 	return;
@@ -337,9 +352,15 @@ cleanup:
 }
 
 /*
- * Sockets connection
+ * socket_connected:
+ *
+ * Used for outgoing connections!
+ * Called when a socket is connected. Checks type of connection and hands
+ * control over the connetion over to more specialized handlers. If no
+ * handler was found the connection is terminated.
+ * This is the place to hook up handlers for new communication types.
+ * So far there are CONTROL, UPLOAD, DOWNLOAD and HTTP handlers.
  */
-
 static void socket_connected(gpointer data, gint source, inputevt_cond_t cond)
 {
 	/* We are connected to somebody */
@@ -521,7 +542,11 @@ static void socket_connected(gpointer data, gint source, inputevt_cond_t cond)
 		case SOCK_TYPE_HTTP:
 			http_async_connected(s->resource.handle);
 			break;
-
+#ifdef USE_REMOTE_SHELL
+        case SOCK_TYPE_SHELL:
+            g_assert_not_reached(); // FIXME: add code here?
+            break;
+#endif
 		default:
 			g_warning("socket_connected(): Unknown socket type %d !", s->type);
 			socket_destroy(s, NULL);		/* ? */

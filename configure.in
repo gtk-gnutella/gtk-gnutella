@@ -18,11 +18,17 @@ dnl ---------------------------------------------------------------------------
 
 AC_ARG_ENABLE(no-rfc1918,[
 gtk-gnutella options:
-  --enable-no-rfc1918             avoid RFC1918 networks (default=off)], , enable_no_rfc1918=no)
+  --enable-no-rfc1918             avoid RFC1918 networks (default=off)], , 
+  enable_no_rfc1918=no)
 AC_ARG_ENABLE(xml-store,[
-  --enable-xml-store              save searches and filters in XML (default=on)], , enable_xml_store=yes)
+  --enable-xml-store              save searches and filters in XML (default=on)], , 
+  enable_xml_store=yes)
+AC_ARG_ENABLE(remote-shell,[
+  --enable-remote-shell           provide a shell on the gnutella port (default=off)], , 
+  enable_remote_shell=no)
 AC_ARG_ENABLE(gtk2,[
-  --enable-gtk2                   build a gtk2 version (default=off)], , enable_gtk2=no)
+  --enable-gtk2                   build a gtk2 version (default=off)], , 
+  enable_gtk2=no)
 
 
 if  test "x$enable_gtk2" = "xno"
@@ -116,6 +122,13 @@ else
 fi
 AM_CONDITIONAL(ENABLE_XML_STORE, test "x$enable_xml_store" = "xyes")
 
+dnl Check for remote shell support
+msg="Remote shell             :  "
+if test "x$enable_remote_shell" = "xyes" ; then
+    AC_DEFINE(USE_REMOTE_SHELL)
+fi
+AM_CONDITIONAL(ENABLE_REMOTE_SHELL, test "x$enable_remote_shell" = "xyes")
+
 
 dnl Use -Wall if we have gcc.
 changequote(,)dnl
@@ -189,6 +202,13 @@ if test "x$enable_xml_store" = "xno" ; then
 else
     echo "$msg yes"
 fi	
+
+msg="Remote shell             :  "
+if test "x$enable_remote_shell" = "xyes" ; then
+    echo "$msg yes"
+else
+    echo "$msg no"
+fi
 
 msg="RFC1918 avoidance        :  "
 if test "x$enable_no_rfc1918" = "xno" ; then

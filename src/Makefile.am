@@ -94,11 +94,18 @@ else
 XML_STORE =
 endif
 
+if ENABLE_REMOTE_SHELL
+REMOTE_SHELL = shell.c shell.h
+else
+REMOTE_SHELL =
+endif
+
 # interface.h must come before any .c files that include it so that it is built.
 gtk_gnutella_SOURCES = \
 	$(XML_STORE) \
 	$(GLADE_UI) \
 	$(ADDITIONAL_DROPIN) \
+	$(REMOTE_SHELL) \
 	gnutella.h listener.h \
 	gnet.h \
 	common.c common.h \

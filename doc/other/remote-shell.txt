@@ -1,0 +1,60 @@
+
+-------------------------------------------------------------------------------
+                          Gtk-gnutella remote shell
+-------------------------------------------------------------------------------
+Date: 17.12.2002
+Author: Richard Eckart
+
+
+
+Introduction
+------------
+
+  The remote shell service of gtk-gnutella serves as a playground for the
+upcoming core<->gui separation. Here I want to implement serveral commands
+the are currently only available through gnet.h. At the moment you can't
+do very much with this service.
+
+
+
+Connecting
+----------
+
+  To connect to the service simply telnet to the gnutella port on your machine.
+  
+  
+Authentification
+----------------
+
+  The first thing you need to do after the connect is to authentify. For that
+you need to supply the command
+
+  HELO [credential]
+
+The [credential] is stored in $GTK_GNUTELLA_DIR/auth_cookie. Gtk-gnutella
+creates this file at startup and stored a random base32 value in it. The
+file is readable only by the owner.
+
+
+Commands
+--------
+
+  After the authentification, you can enter commands. You can use double-quotes
+in commands to create arguments that contain spaces. Within those quotes the "\"
+(backslash) is used to escape chars ('\x' -> 'x', '\"' -> '"'). This is useful
+if you need to have double-quotes in a quoted argument.
+
+  Currently there are not many commands that are working. Those are:
+   
+  - HELP 
+    Shows available commands
+
+  - QUIT
+    Close connection
+
+  - SEARCH ADD <query>
+    Creates a new search for <query>.
+
+  - NODE ADD <ip> [port]
+    Try to connect to given <ip>. [port] is optional. If no [port] is given
+    the default gnutella port 6346 is used.
