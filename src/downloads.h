@@ -68,6 +68,7 @@ void download_kill(struct download *);
 void download_queue_back(struct download *);
 gboolean download_send_request(struct download *);
 void download_retry(struct download *);
+void download_index_changed(guint32, guint16, guint32, guint32);
 void download_close(void);
 
 #endif /* __downloads_h__ */
