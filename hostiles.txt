@@ -88,7 +88,9 @@
 ### The following gathered by the gtk-gnutella team
 ###
 
+38.118.155.0/255.255.255.0
 64.15.0.0/255.255.0.0
+207.234.131.147
 
 ###
 ### The following come from an htaccess denying RIAA/MPAA access
