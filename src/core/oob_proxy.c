@@ -339,6 +339,8 @@ oob_proxy_got_results(gnutella_node_t *n, gint results)
 	 */
 
 	memcpy(n->header.muid, opr->leaf_muid, 16);
+	if (n->header.ttl == 0)
+		n->header.ttl++;
 
 	/*
 	 * Route message to leaf node.
