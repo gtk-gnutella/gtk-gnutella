@@ -64,7 +64,7 @@ void gui_update_files_scanned(void)
 		(guc_shared_files_scanned() == 1) ?
 			_("%lu file shared (%s)") :_("%lu files shared (%s)"),
 		(gulong) guc_shared_files_scanned(),
-		short_kb_size64(guc_shared_kbytes_scanned()));
+		short_kb_size(guc_shared_kbytes_scanned()));
 	gtk_label_set(label_files_scanned, gui_tmp);
 }
 
