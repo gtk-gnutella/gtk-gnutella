@@ -2116,13 +2116,12 @@ static gboolean node_can_accept_connection(
  * node_can_accept_protocol
  *
  * Check whether we can accept a servent supporting a foreign protocol.
- * When `handshaking' is TRUE, we are still within an handshake so we
- * can reply with an error.  Otherwise, caller will need to send a BYE.
+ * Must be called during handshaking.
  *
  * Returns TRUE if OK, FALSE if connection was denied.
  */
 static gboolean node_can_accept_protocol(
-	struct gnutella_node *n, header_t *head, gboolean handshaking)
+	struct gnutella_node *n, header_t *head)
 {
 	gchar *field;
 
@@ -2147,10 +2146,8 @@ static gboolean node_can_accept_protocol(
 		) {
 			gchar *msg = "Protocol not acceptable";
 
-			if (handshaking) {
-				send_node_error(n->socket, 406, msg);
-				node_remove(n, msg);
-			}
+			send_node_error(n->socket, 406, msg);
+			node_remove(n, msg);
 			return FALSE;
 		}
 	}
@@ -2170,7 +2167,6 @@ static void node_process_handshake_ack(struct gnutella_node *n, header_t *head)
 	gboolean ack_ok;
 	gchar *field;
 	gboolean qrp_final_set = FALSE;
-	gboolean acceptable;
 
 	if (dbg) {
 		printf("Got final acknowledgment headers from node %s:\n",
@@ -2244,15 +2240,6 @@ static void node_process_handshake_ack(struct gnutella_node *n, header_t *head)
 	}
 
 	/*
-	 * Check that remote host speaks a protocol we can accept.
-	 *
-	 * We cannot send the BYE until we called node_is_now_connected(),
-	 * but that call will clean up `head', so we need to check now, BYE later.
-	 */
-
-	acceptable = node_can_accept_protocol(n,  head, FALSE);
-
-	/*
 	 * Install new node.
 	 */
 
@@ -2280,15 +2267,6 @@ static void node_process_handshake_ack(struct gnutella_node *n, header_t *head)
 				(guint) n->qrp_major, (guint) n->qrp_minor);
 			return;
 		}
-	}
-
-	/*
-	 * If remote host speaks a foreign protocol, good bye.
-	 */
-
-	if (!acceptable) {
-		node_bye(n, 406, "Protocol not acceptable");
-		return;
 	}
 
 	/*
@@ -2612,6 +2590,13 @@ static void node_process_handshake_header(
 	}
 
 	/*
+	 * Check that remote host speaks a protocol we can accept.
+	 */
+
+	if (!node_can_accept_protocol(n,  head))
+		return;
+
+	/*
 	 * If this is an outgoing connection, we're processing the remote
 	 * acknowledgment to our initial handshake.
 	 */
@@ -2680,13 +2665,6 @@ static void node_process_handshake_header(
 			g_warning("node %s <%s> is not an ultrapeer but sent the "
 				"X-Ultrapeer-Needed header",
 				node_ip(n), n->vendor ? n->vendor : "????");
-
-		/*
-		 * Check that remote host speaks a protocol we can accept.
-		 */
-
-		if (!node_can_accept_protocol(n,  head, TRUE))
-			return;
 
 		/*
 		 * Prepare our final acknowledgment.
