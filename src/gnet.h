@@ -53,6 +53,14 @@ enum {
  */
 typedef guint32 gnet_node_t;
 
+/*
+ * A gnutella host.
+ */
+typedef struct gnutella_host {
+	guint32 ip;
+	guint16 port;
+} gnet_host_t;
+
 typedef struct gnet_node_status {
 	guchar status;			    /* See possible values below */
 
@@ -237,6 +245,14 @@ typedef guint32 gnet_search_t;
 #define SEARCH_ENABLED	 0x02 /* start an enabled search */
 
 /*
+ * Host vectors held in query hits.
+ */
+typedef struct gnet_host_vec {
+	gnet_host_t *hvec;		/* Vector of alternate locations */
+	gint hvcnt;				/* Amount of hosts in vector */
+} gnet_host_vec_t;
+
+/*
  * Result sets `status' flags.
  */
 #define ST_KNOWN_VENDOR			0x8000		/* Found known vendor code */
@@ -264,18 +280,11 @@ typedef struct gnet_results_set {
 	guchar  vendor[4];			/* Vendor code */
 	gchar *version;				/* Version information (atom) */
     flag_t  flags;
+	gnet_host_vec_t *proxies;	/* Optional: known push proxies */
 
 	GSList *records;
 	guint32 num_recs;
 } gnet_results_set_t;
-
-/*
- * Host vectors held in query hits.
- */
-typedef struct gnet_host_vec {
-	struct gnutella_host *hvec;	/* Vector of alternate locations */
-	gint hvcnt;					/* Amount of hosts in vector */
-} gnet_host_vec_t;
 
 /*
  * Result record flags
@@ -325,6 +334,7 @@ void search_set_reissue_timeout(gnet_search_t sh, guint32 timeout);
 guint32 search_get_reissue_timeout(gnet_search_t sh);
 
 void search_free_alt_locs(gnet_record_t *rc);
+void search_free_proxies(gnet_results_set_t *rs);
 
 /***
  *** Filters
@@ -507,10 +517,10 @@ void gnet_get_bw_stats(gnet_bw_source type, gnet_bw_stats_t *stats);
 struct dl_file_info;
 gboolean download_new(gchar *,
 	guint32, guint32, guint32, guint16, gchar *, gchar *, time_t,
-    gboolean, struct dl_file_info *);
+    gboolean, struct dl_file_info *, gnet_host_vec_t *);
 void download_auto_new(gchar *,
  	guint32, guint32, guint32, guint16, gchar *, gchar *, time_t,
-    gboolean, struct dl_file_info *);
+    gboolean, struct dl_file_info *, gnet_host_vec_t *);
 void download_index_changed(guint32, guint16, gchar *, guint32, guint32);
 
 #define URN_INDEX	0xffffffff		/* Marking index, indicates URN instead */
@@ -630,7 +640,6 @@ void upload_get_status(gnet_upload_t u, gnet_upload_status_t *s);
 void upload_kill(gnet_upload_t);
 
 
-
 /* FIXME: temporarily located here: */
 struct ul_stats {
 	gchar  *filename;
@@ -640,7 +649,6 @@ struct ul_stats {
 	guint64 bytes_sent;
 	gfloat  norm;		/* bytes sent / file size */
 } ul_stats_t;
-
 
 
 /***
