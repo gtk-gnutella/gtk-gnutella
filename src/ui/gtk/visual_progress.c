@@ -427,7 +427,7 @@ vp_assert_chunks_list(GSList *list)
 {
 	GSList *l;
 	gnet_fi_chunks_t *chunk;
-	int last = 0;
+	guint32 last = 0;
 
 	for (l = list; l; l = g_slist_next(l)) {
 		chunk = (gnet_fi_chunks_t *) l->data;
