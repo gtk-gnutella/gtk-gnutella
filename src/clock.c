@@ -52,7 +52,7 @@ void clock_update(time_t update, gint precision)
     gint32 skew;
 
     gnet_prop_get_guint32_val(PROP_CLOCK_SKEW, &new_skew);
-	skew = *(gint32 *) &new_skew;	/* Casting not always works */
+	skew = (gint32) new_skew;
 
 	/*
 	 * It's not reasonable to have a delta of more than a day.  If people
@@ -75,7 +75,7 @@ void clock_update(time_t update, gint precision)
 
 	epsilon = now + skew - update;
 
-	if (2 * ABS(epsilon) <= precision)
+	if (ABS(epsilon) <= precision)
 		return;
 
 	/*
