@@ -459,13 +459,8 @@ static void shell_read_data(gnutella_shell_t *sh)
 
         buf = g_string_sized_new(100);
         reply_code = shell_exec(sh, getline_str(s->getline));
-#ifdef USE_GTK2
         g_string_printf(buf, "%u %s\n", reply_code,
             sh->msg ? sh->msg : "");
-#else
-        g_string_sprintf(buf, "%u %s\n", reply_code,
-            sh->msg ? sh->msg : "");
-#endif
         shell_write(sh, buf->str);
         g_string_free(buf, TRUE);
         sh->msg = NULL;
@@ -604,7 +599,7 @@ static void shell_destroy(gnutella_shell_t *s)
     g_assert(s);
     g_assert(s->socket);
 
-    g_warning("shell_destory");
+    g_warning("shell_destroy");
 
     sl_shells = g_slist_remove(sl_shells, s);
 
@@ -665,15 +660,16 @@ static void shell_dump_cookie()
 {
 	FILE *out;
 	file_path_t fp = { config_dir, "auth_cookie" };
+	mode_t mask;
 
+	mask = umask(S_IRWXG | S_IRWXO); /* umask 077 */
 	out = file_config_open_write("auth_cookie", &fp);
+	umask(mask);
 
 	if (!out)
 		return;
 
 	fprintf(out, "%s", sha1_base32(auth_cookie));
-
-    fchmod(fileno(out), 0400);
 
 	file_config_close(out, &fp);
 }
