@@ -1848,7 +1848,10 @@ search_results(gnutella_node_t *n, gint *results)
 	 * call dh_got_results() when oob_proxy_got_results() returns FALSE.
 	 */
 
-	if (proxy_oob_queries && oob_proxy_got_results(n, rs->num_recs))
+	if (
+		forward_it && proxy_oob_queries &&
+		oob_proxy_got_results(n, rs->num_recs)
+	)
 		forward_it = FALSE;
 	else
 		dh_got_results(n->header.muid, rs->num_recs);
@@ -2435,6 +2438,7 @@ search_oob_pending_results(
 	gint ask;
 
 	g_assert(NODE_IS_UDP(n));
+	g_assert(hits > 0);
 
 	/*
 	 * Locate the search bearing this MUID and get the amount of results
