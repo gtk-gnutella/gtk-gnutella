@@ -342,40 +342,36 @@ GList *downloads_gui_collect_ctree_data(GtkCTree *ctree, GList *node_list,
 static gboolean downloads_gui_any_status(
 	struct download *d, download_status_t status)
 {
-	struct download *drecord = NULL;
 	gpointer key;
-	gboolean any_found = FALSE;
 	GtkCTreeNode *node, *parent;
 	GtkCTreeRow *row;
     GtkCTree *ctree_downloads =
 		GTK_CTREE(lookup_widget(main_window, "ctree_downloads"));
 
-	if (d->file_info != NULL) {
-		key = (gpointer) &d->file_info->fi_handle;
-		parent = find_parent_with_fi_handle(parents, key);
+	if (!d->file_info)
+		return FALSE;
+	
+	key = (gpointer) &d->file_info->fi_handle;
+	parent = find_parent_with_fi_handle(parents, key);
 
-		if (parent != NULL) {
+	if (!parent)
+		return FALSE;
 
-			row = GTK_CTREE_ROW(parent);
-			node = row->children;
+	row = GTK_CTREE_ROW(parent);
+	node = row->children;
 			
-			for (; node != NULL; 
-				row = GTK_CTREE_ROW(node), node = row->sibling
-			) {		
-				drecord = gtk_ctree_node_get_row_data(ctree_downloads, node);
+	for (; node != NULL; row = GTK_CTREE_ROW(node), node = row->sibling) {		
+		struct download *drecord;
 
-				if (NULL == drecord || -1 == GPOINTER_TO_INT(drecord))
-					continue;
+		drecord = gtk_ctree_node_get_row_data(ctree_downloads, node);
+		if (!drecord || DL_GUI_IS_HEADER == drecord)
+			continue;
 					
-				if (drecord->status == status) {
-					any_found = TRUE;
-					break;
-				}
-			}					
-		}
-	}
+		if (drecord->status == status)
+			return TRUE;
+	}					
 
-	return any_found;
+	return FALSE;
 }
 
 /*
