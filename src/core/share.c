@@ -1449,6 +1449,7 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 	gboolean use_ggep_h = FALSE;
 	struct query_context *qctx;
 	gboolean tagged_speed = FALSE;
+	gboolean should_oob = FALSE;
 
 	/*
 	 * Make sure search request is NUL terminated... --RAM, 06/10/2001
@@ -1659,37 +1660,16 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
      */
 
 	/*
-	 * If the query comes from a node farther than our TTL (i.e. the TTL we'll
-	 * use to send our reply), don't bother processing it: the reply won't
-	 * be able to reach the issuing node.
-	 *
-	 * However, note that for replies, we use our maximum configured TTL, so
-	 * we compare to that, and not to my_ttl, which is the TTL used for
-	 * "standard" packets.
-	 *
-	 *				--RAM, 12/09/2001
-	 */
-
-    if (n->header.hops > max_ttl) {
-        gnet_stats_count_dropped(n, MSG_DROP_MAX_TTL_EXCEEDED);
-		return TRUE;					/* Drop this long-lived search */
-    }
-
-	/*
 	 * When an URN search is present, there can be an empty search string.
 	 *
-	 * If requester if farther than 3 hops. save bandwidth when returning
-	 * lots of hits from short queries, which are not specific enough.
+	 * If requester if farther than half our TTL hops. save bandwidth when
+	 * returning lots of hits from short queries, which are not specific enough.
 	 * The idea here is to give some response, but not too many.
-	 *
-	 * Notes from RAM, 09/09/2001:
-	 * 1) The hop amount must be made configurable.
-	 * 2) We can add a config option to forbid forwarding of such queries.
 	 */
 
 	if (
 		search_len <= 1 ||
-		(search_len < 5 && n->header.hops > 3)
+		(search_len < 5 && n->header.hops > (max_ttl / 2))
 	)
 		skip_file_search = TRUE;
 
@@ -1800,8 +1780,9 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 	}
 
     /*
-     * Push the query string to interested ones.
+     * Push the query string to interested ones (GUI tracing).
      */
+
     if (
 		(search[0] == '\0' || (search[0] == '\\' && search[1] == '\0'))
 		&& exv_sha1cnt
@@ -1972,6 +1953,31 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 	}
 
 	/*
+	 * If the query comes from a node farther than our TTL (i.e. the TTL we'll
+	 * use to send our reply), don't bother processing it: the reply won't
+	 * be able to reach the issuing node.
+	 *
+	 * However, note that for replies, we use our maximum configured TTL for
+	 * relayed messages, so we compare to that, and not to my_ttl, which is
+	 * the TTL used for "standard" packets.
+	 *
+	 *				--RAM, 12/09/2001
+	 *
+	 * Naturally, we don't do this check for OOB queries, since the reply
+	 * won't be relayed but delivered directly via UDP.
+	 *
+	 *				--RAM, 2004-11-27
+	 */
+
+	should_oob = process_oob_queries && enable_udp &&
+		recv_solicited_udp && n->header.hops > 1;
+
+    if (n->header.hops > max_ttl && !(oob && should_oob)) {
+        gnet_stats_count_dropped(n, MSG_DROP_MAX_TTL_EXCEEDED);
+		return TRUE;					/* Drop this long-lived search */
+    }
+
+	/*
 	 * If the query does not have an OOB mark, comes from a leaf node and
 	 * they allow us to be an OOB-proxy, then replace the IP:port of the
 	 * query with ours, so that we are the ones to get the UDP replies.
@@ -2135,10 +2141,7 @@ finish:
 	 */
 
 	if (qctx->found) {
-		if (
-			oob && process_oob_queries && enable_udp &&
-			recv_solicited_udp && n->header.hops > 1
-		)
+		if (oob && should_oob)
 			oob_got_results(n, qctx->files, qctx->found, use_ggep_h);
 		else
 			qhit_send_results(n, qctx->files, qctx->found, use_ggep_h);
