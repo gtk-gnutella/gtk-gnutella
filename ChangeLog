@@ -1,5 +1,15 @@
 # since last version
 
+- (2002.08.17 - RAM)
+ * Integrated swarming patch from Vidar Madsen.
+ * Will now drop query hits with bad SHA1 records.
+ * Obsoleted "appconfig.h".  Superseded by the new property system.
+ * Ensure `search_table' is initialized early in the process.
+
+- (2002.08.15 - RAM)
+ * Re-organized firewall detection code, and added Internet connection
+   monitoring.
+
 - (2002.08.15 - Richard)
  * Support NULL as default value of string properties.
  * Fixed default listen port (typo)
@@ -22,6 +32,7 @@
    what they send and we see the string HTTP somewhere.
  * When listening port changes, move back to firewalled state
    (fixes bug #594477).
+ * The "is_firewalled" flag is now handled by the property system.
 
 - (2002.08.14 - Richard)
  * Updated scan extensions (Affects 583093)
