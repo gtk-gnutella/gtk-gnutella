@@ -325,7 +325,7 @@ void settings_hostcache_save(void)
 
 	if (reading)
 		g_warning("exit() while still reading the hosts file, "
-			"caught hosts not saved !\n");
+			"caught hosts not saved!");
 	else
 		hcache_store(HCACHE_ANY);
 
@@ -335,7 +335,7 @@ void settings_hostcache_save(void)
 
 	if (reading)
 		g_warning("exit() while still reading the ultrahosts file, "
-			"caught hosts not saved !\n");
+			"caught hosts not saved !");
 	else
 		hcache_store(HCACHE_ULTRA);
 }
