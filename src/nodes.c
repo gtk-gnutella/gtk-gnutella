@@ -471,7 +471,7 @@ void node_timer(time_t now)
 			g_assert(bad_node != NULL);
 			g_assert(bad_node->vendor != NULL);
 			
-			g_warning("[nodes] Unbanning client: %s", bad_node->vendor);
+			g_warning("[nodes up] Unbanning client: %s", bad_node->vendor);
 			
 			g_hash_table_remove(unstable_servent, bad_node);
 			unstable_servents = g_slist_remove(unstable_servents, bad_node);
@@ -1041,7 +1041,7 @@ gboolean node_ip_is_bad(guint32 ip) {
 	bad_ip = g_hash_table_lookup(unstable_ip, &ip);
 	
 	if (bad_ip != NULL) {
-		g_warning("[nodes] Unstable ip %s", 
+		g_warning("[nodes up] Unstable ip %s", 
 			ip_to_gchar(ip));
 		return TRUE;
 	}
@@ -1060,7 +1060,7 @@ gboolean node_is_bad(struct gnutella_node *n)
 	g_assert(n != NULL);
 	
 	if (n->vendor == NULL) {
-		g_warning("[nodes] Got no vendor name!");
+		g_warning("[nodes up] Got no vendor name!");
 		return TRUE;
 	}
 	
@@ -1070,7 +1070,7 @@ gboolean node_is_bad(struct gnutella_node *n)
 	bad_ip = g_hash_table_lookup(unstable_ip, &n->ip);
 	
 	if (bad_ip != NULL) {
-		g_warning("[nodes] Unstable ip %s (%s)", 
+		g_warning("[nodes up] Unstable ip %s (%s)", 
 			ip_to_gchar(n->ip),
 			n->vendor);
 		return TRUE;
@@ -1082,7 +1082,7 @@ gboolean node_is_bad(struct gnutella_node *n)
 			return FALSE;
 	
 		if (bad_client->errors > node_error_threshhold) {
-			g_warning("[nodes] Banned client: %s", n->vendor);
+			g_warning("[nodes up] Banned client: %s", n->vendor);
 			return TRUE;
 		}
 	}
@@ -1108,13 +1108,20 @@ void node_mark_bad(struct gnutella_node *n)
 	g_assert(n != NULL);
 	g_assert(n->ip != 0);
 	
+	if (!(n->attrs & NODE_A_ULTRA))
+		/*
+		 * Only mark Ultrapeers as bad nodes. Leaves aren't expected to have
+		 * high uptimes
+		 */
+		return;
+	
 	/* Don't mark a node as bad with whom we could stay a long time */
 	if (
 		now - n->connect_date >
 			node_error_cleanup_timer / node_error_threshhold
 	) {
 		if (dbg)
-			printf("[nodes] "
+			printf("[nodes up] "
 				  "%s not marking as bad. Connected for: %d (min: %d)\r\n",
 				ip_to_gchar(n->ip),
 				(gint) (now - n->connect_date), 
@@ -1132,7 +1139,7 @@ void node_mark_bad(struct gnutella_node *n)
 		g_hash_table_insert(unstable_ip, &bad_ip->ip, bad_ip);
 		g_slist_append(unstable_ips, bad_ip);
 
-		g_warning("[nodes] Marked ip %s (%s) as a bad host",
+		g_warning("[nodes up] Marked ip %s (%s) as a bad host",
 			ip_to_gchar(n->ip),
 			n->vendor);
 	}	
@@ -1156,7 +1163,7 @@ void node_mark_bad(struct gnutella_node *n)
 
 	bad_client->errors++;
 
-	g_warning("[nodes] Increased error counter (%d) for client: %s",
+	g_warning("[nodes up] Increased error counter (%d) for client: %s",
 		bad_client->errors,
 		n->vendor);
 }

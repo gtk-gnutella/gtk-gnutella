@@ -2,7 +2,7 @@
 
 - (2003.07.20 - Jeroen)
  * Try to avoid to connect to unstable ultrapeer hosts. An ultrapeer
-   is marked unstable when we are unable to connect to it for less
+   is marked unstable when we are unable to connect to it for more
    than 2 hours
 
 # v 0.92.1c 2003.06.20 [candidate]
