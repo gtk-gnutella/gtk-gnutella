@@ -2899,7 +2899,15 @@ unicode_decompose_init(void)
 		s = g_utf8_normalize(utf8_char, -1, G_NORMALIZE_NFD);
 		if (strcmp(s, buf)) {
 			g_message("\n0x%04X\nbuf=\"%s\"\ns=\"%s\"", i, buf, s);
+
+#if (GLIB_MAJOR_VERSION > 2) || (GLIB_MINOR_VERSION >= 4) /* Glib >= 2.4.0 */
+			/*
+			 * The normalized strings should be identical. However, older
+			 * versions of GLib do not normalize some characters properly.
+			 */
 			G_BREAKPOINT();
+#endif /* GLib >= 2.4.0 */
+			
 		}
 		G_FREE_NULL(s);
 	}
