@@ -113,6 +113,7 @@ static struct vmsg vmsg_map[] = {
 	{ T_BEAR, 0x000b, 0x0001, handle_qstat_req, "Query Status Request" },
 	{ T_BEAR, 0x000c, 0x0001, handle_qstat_answer, "Query Status Response" },
 	{ T_GTKG, 0x0007, 0x0001, handle_udp_connect_back, "UDP Connect Back" },
+	{ T_GTKG, 0x0007, 0x0002, handle_udp_connect_back, "UDP Connect Back" },
 	{ T_GTKG, 0x0015, 0x0001, handle_proxy_cancel, "Push-Proxy Cancel" },
 	{ T_LIME, 0x000b, 0x0001, handle_oob_reply_ack, "OOB Reply Ack" },
 	{ T_LIME, 0x000b, 0x0002, handle_oob_reply_ack, "OOB Reply Ack" },
@@ -390,11 +391,14 @@ handle_messages_supported(struct gnutella_node *n,
 
 		if (vm == NULL) {
 			if (vmsg_debug > 1)
-				printf("VMSG node %s <%s> supports unknown %s/%dv%d\n",
+				g_warning("VMSG node %s <%s> supports unknown %s/%dv%d\n",
 					node_ip(n), node_vendor(n),
 					vendor_code_str(vendor), id, version);
 			continue;
 		}
+
+		if (vmsg_debug > 2)
+			printf("VMSG ...%s/%dv%d\n", vendor_code_str(vendor), id, version);
 
 		/*
 		 * Look for leaf-guided dynamic query support.
@@ -610,15 +614,34 @@ handle_udp_connect_back(struct gnutella_node *n,
 	guint16 port;
 	gchar guid_buf[16];
 
-	g_assert(vmsg->version <= 1);
+	g_assert(vmsg->version <= 2);
 
-	if (size != 18) {
-		vmsg_bad_payload(n, vmsg, size, 18);
-		return;
+	/*
+	 * Version 1 included the GUID at the end of the payload.
+	 * Version 2 uses the message's GUID itself to store the GUID
+	 * of the PING to send back.
+	 */
+
+	switch (vmsg->version) {
+	case 1:
+		if (size != 18) {
+			vmsg_bad_payload(n, vmsg, size, 18);
+			return;
+		}
+		memcpy(guid_buf, payload + 2, 16);		/* Get GUID from payload */
+		break;
+	case 2:
+		if (size != 2) {
+			vmsg_bad_payload(n, vmsg, size, 2);
+			return;
+		}
+		memcpy(guid_buf, n->header.muid, 16);	/* Get GUID from MUID */
+		break;
+	default:
+		g_assert_not_reached();
 	}
 
 	READ_GUINT16_LE(payload, port);
-	memcpy(guid_buf, payload + 2, 16);
 
 	if (port == 0) {
 		g_warning("got improper port #%d in %s from %s <%s>",
@@ -632,6 +655,8 @@ handle_udp_connect_back(struct gnutella_node *n,
 /**
  * Send a "UDP Connect Back" message to specified node, telling it to ping
  * us back via UDP on the specified port.
+ *
+ * XXX for now, we only send GTKG/7v1, although GTKG/7v2 is more compact.
  */
 void
 vmsg_send_udp_connect_back(struct gnutella_node *n, guint16 port)
