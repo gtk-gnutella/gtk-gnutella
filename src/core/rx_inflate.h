@@ -30,9 +30,9 @@
 
 #include "rx.h"
 
-struct rxdrv_ops rx_inflate_ops;
+const struct rxdrv_ops* rx_inflate_get_ops(void);
 
 #endif	/* _core_rx_inflate_h_ */
 
-/* vi: set ts=4: */
+/* vi: set ts=4 sw=4 cindent: */
 

@@ -66,7 +66,7 @@ RCSID("$Id$");
  */
 rxdrv_t *rx_make(
 	struct gnutella_node *n,
-	struct rxdrv_ops *ops,
+	const struct rxdrv_ops *ops,
 	rx_data_t data_ind,
 	gpointer args)
 {
@@ -126,7 +126,7 @@ static void rx_data_ind(rxdrv_t *rx, pmsg_t *mb)
  *
  * Return NULL if there is an initialization problem.
  */
-rxdrv_t *rx_make_under(rxdrv_t *urx, struct rxdrv_ops *ops, gpointer args)
+rxdrv_t *rx_make_under(rxdrv_t *urx, const struct rxdrv_ops *ops, gpointer args)
 {
 	rxdrv_t *rx;
 
@@ -233,3 +233,4 @@ struct bio_source *rx_bio_source(rxdrv_t *rx)
 	return RX_BIO_SOURCE(rx);
 }
 
+/* vi: set ts=4 sw=4 cindent: */

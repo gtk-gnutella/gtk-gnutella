@@ -41,7 +41,7 @@ typedef void (*rx_data_t)(struct rxdriver *, pmsg_t *mb);
  */
 typedef struct rxdriver {
 	struct gnutella_node *node;		/* Node to which this driver belongs */
-	struct rxdrv_ops *ops;			/* Dynamically dispatched operations */
+	const struct rxdrv_ops *ops;	/* Dynamically dispatched operations */
 	struct rxdriver *upper;			/* Layer above, NULL if none */
 	struct rxdriver *lower;			/* Layer underneath, NULL if none */
 	gint flags;						/* Driver flags */
@@ -74,11 +74,12 @@ struct rxdrv_ops {
 
 rxdrv_t *rx_make(
 	struct gnutella_node *n,
-	struct rxdrv_ops *ops,
+	const struct rxdrv_ops *ops,
 	rx_data_t data_ind,
 	gpointer args);
 
-rxdrv_t *rx_make_under(rxdrv_t *urx, struct rxdrv_ops *ops, gpointer args);
+rxdrv_t *rx_make_under(rxdrv_t *urx, const struct rxdrv_ops *ops,
+	gpointer args);
 void rx_free(rxdrv_t *d);
 void rx_recv(rxdrv_t *rx, pmsg_t *mb);
 void rx_enable(rxdrv_t *rx);
@@ -88,4 +89,4 @@ struct bio_source *rx_bio_source(rxdrv_t *rx);
 
 #endif	/* _core_rx_h_ */
 
-/* vi: set ts=4: */
+/* vi: set ts=4 sw=4 cindent: */

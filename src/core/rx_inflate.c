@@ -243,7 +243,7 @@ static struct bio_source *rx_inflate_bio_source(rxdrv_t *rx)
 	return rx_bio_source(rx->lower);
 }
 
-struct rxdrv_ops rx_inflate_ops = {
+static const struct rxdrv_ops rx_inflate_ops = {
 	rx_inflate_init,		/* init */
 	rx_inflate_destroy,		/* destroy */
 	rx_inflate_recv,		/* recv */
@@ -251,3 +251,11 @@ struct rxdrv_ops rx_inflate_ops = {
 	rx_inflate_disable,		/* disable */
 	rx_inflate_bio_source,	/* bio_source */
 };
+
+const struct rxdrv_ops *
+rx_inflate_get_ops(void)
+{
+	return &rx_inflate_ops;
+}
+
+/* vi: set ts=4 sw=4 cindent: */

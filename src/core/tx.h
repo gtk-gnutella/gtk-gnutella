@@ -42,7 +42,7 @@ typedef void (*tx_service_t)(gpointer obj);
  */
 typedef struct txdriver {
 	struct gnutella_node *node;		/* Node to which this driver belongs */
-	struct txdrv_ops *ops;			/* Dynamically dispatched operations */
+	const struct txdrv_ops *ops;	/* Dynamically dispatched operations */
 	gint flags;						/* Driver flags */
 	tx_service_t srv_routine;		/* Service routine of upper TX layer */
 	gpointer srv_arg;				/* Service routine argument */
@@ -74,7 +74,8 @@ struct txdrv_ops {
  * Public interface
  */
 
-txdrv_t *tx_make(struct gnutella_node *n, struct txdrv_ops *ops, gpointer args);
+txdrv_t *tx_make(struct gnutella_node *n, const struct txdrv_ops *ops,
+	gpointer args);
 void tx_free(txdrv_t *d);
 gint tx_write(txdrv_t *tx, gpointer data, gint len);
 gint tx_writev(txdrv_t *tx, struct iovec *iov, gint iovcnt);
@@ -86,5 +87,5 @@ struct bio_source *tx_bio_source(txdrv_t *tx);
 
 #endif	/* _core_tx_h_ */
 
-/* vi: set ts=4: */
+/* vi: set ts=4 sw=4 cindent: */
 

@@ -31,7 +31,7 @@
 #include "tx.h"
 #include "lib/cq.h"
 
-struct txdrv_ops tx_deflate_ops;
+const struct txdrv_ops *tx_deflate_get_ops(void);
 
 /*
  * Arguments to be passed when the layer is intantiated.
@@ -43,4 +43,4 @@ struct tx_deflate_args {
 
 #endif	/* _core_tx_deflate_h_ */
 
-/* vi: set ts=4: */
+/* vi: set ts=4 sw=4 cindent: */

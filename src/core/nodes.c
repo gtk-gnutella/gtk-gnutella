@@ -2406,14 +2406,14 @@ node_is_now_connected(struct gnutella_node *n)
 		if (dbg > 4)
 			printf("Receiving compressed data from node %s\n", node_ip(n));
 
-		n->rx = rx_make(n, &rx_inflate_ops, node_data_ind, 0);
-		rx = rx_make_under(n->rx, &rx_link_ops, 0);
+		n->rx = rx_make(n, rx_inflate_get_ops(), node_data_ind, 0);
+		rx = rx_make_under(n->rx, rx_link_get_ops(), 0);
 		g_assert(rx);			/* Cannot fail */
 		if (n->flags & NODE_F_LEAF)
 			compressed_leaf_cnt++;
         compressed_node_cnt++;
 	} else
-		n->rx = rx_make(n, &rx_link_ops, node_data_ind, 0);
+		n->rx = rx_make(n, rx_link_get_ops(), node_data_ind, 0);
 
 	rx_enable(n->rx);
 	n->flags |= NODE_F_READABLE;
@@ -2422,7 +2422,7 @@ node_is_now_connected(struct gnutella_node *n)
 	 * Create the TX stack, as we're going to tranmit Gnet messages.
 	 */
 
-	tx = tx_make(n, &tx_link_ops, 0);		/* Cannot fail */
+	tx = tx_make(n, tx_link_get_ops(), 0);		/* Cannot fail */
 
 	/*
 	 * If we committed on compressing traffic, install layer.
@@ -2438,7 +2438,7 @@ node_is_now_connected(struct gnutella_node *n)
 		args.nd = tx;
 		args.cq = callout_queue;
 
-		ctx = tx_make(n, &tx_deflate_ops, &args);
+		ctx = tx_make(n, tx_deflate_get_ops(), &args);
 		if (ctx == NULL) {
 			tx_free(tx);
 			node_remove(n, "Cannot setup compressing TX stack");

@@ -825,7 +825,7 @@ static struct bio_source *tx_deflate_bio_source(txdrv_t *tx)
 	return tx_bio_source(attr->nd);
 }
 
-struct txdrv_ops tx_deflate_ops = {
+static const struct txdrv_ops tx_deflate_ops = {
 	tx_deflate_init,		/* init */
 	tx_deflate_destroy,		/* destroy */
 	tx_deflate_write,		/* write */
@@ -836,4 +836,10 @@ struct txdrv_ops tx_deflate_ops = {
 	tx_deflate_bio_source,	/* bio_source */
 };
 
-/* vi: set ts=4: */
+const struct txdrv_ops *
+tx_deflate_get_ops(void)
+{
+	return &tx_deflate_ops;
+}
+
+/* vi: set ts=4 sw=4 cindent: */

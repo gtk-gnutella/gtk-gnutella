@@ -30,9 +30,9 @@
 
 #include "tx.h"
 
-struct txdrv_ops tx_link_ops;
+const struct txdrv_ops *tx_link_get_ops(void);
 
 #endif	/* _core_tx_link_h_ */
 
-/* vi: set ts=4: */
+/* vi: set ts=4 sw=4 cindent: */
 

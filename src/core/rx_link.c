@@ -226,7 +226,7 @@ static struct bio_source *rx_link_bio_source(rxdrv_t *rx)
 	return attr->bio;
 }
 
-struct rxdrv_ops rx_link_ops = {
+static const struct rxdrv_ops rx_link_ops = {
 	rx_link_init,		/* init */
 	rx_link_destroy,	/* destroy */
 	rx_link_recv,		/* recv */
@@ -234,5 +234,11 @@ struct rxdrv_ops rx_link_ops = {
 	rx_link_disable,	/* disable */
 	rx_link_bio_source,	/* bio_source */
 };
+
+const struct rxdrv_ops *
+rx_link_get_ops(void)
+{
+	return &rx_link_ops;
+}
 
 /* vi: set ts=4 sw=4 cindent: */

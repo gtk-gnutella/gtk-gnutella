@@ -279,7 +279,7 @@ static struct bio_source *tx_link_bio_source(txdrv_t *tx)
 	return attr->bio;
 }
 
-struct txdrv_ops tx_link_ops = {
+static const struct txdrv_ops tx_link_ops = {
 	tx_link_init,		/* init */
 	tx_link_destroy,	/* destroy */
 	tx_link_write,		/* write */
@@ -289,5 +289,11 @@ struct txdrv_ops tx_link_ops = {
 	tx_link_pending,	/* pending */
 	tx_link_bio_source,	/* bio_source */
 };
+
+const struct txdrv_ops *
+tx_link_get_ops(void)
+{
+	return &tx_link_ops;
+}
 
 /* vi: set ts=4 sw=4 cindent: */

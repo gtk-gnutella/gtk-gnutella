@@ -58,7 +58,8 @@ RCSID("$Id$");
  *
  * Return NULL if there is an initialization problem.
  */
-txdrv_t *tx_make(struct gnutella_node *n, struct txdrv_ops *ops, gpointer args)
+txdrv_t *tx_make(struct gnutella_node *n, const struct txdrv_ops *ops,
+	gpointer args)
 {
 	txdrv_t *tx;
 
@@ -177,3 +178,4 @@ struct bio_source *tx_bio_source(txdrv_t *tx)
 	return TX_BIO_SOURCE(tx);
 }
 
+/* vi: set ts=4 sw=4 cindent: */
