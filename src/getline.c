@@ -2,6 +2,7 @@
  * Copyright (c) 2001, Raphael Manfredi
  */
 
+#include <string.h>		/* For memmove() */
 #include "getline.h"
 
 /*
