@@ -1648,8 +1648,11 @@ void node_parse(struct gnutella_node *node)
 	if (drop) {
 		n->dropped++;
 		dropped_messages++;
+		if (dbg > 3)
+			printf("DROP %s (%d byte%s) from %s\n",
+				msg_name[n->header.function], *n->header.size,
+				*n->header.size == 1 ? "" : "s", node_ip(n));
 		goto reset_header;
-	
 	}
 
 	/*
