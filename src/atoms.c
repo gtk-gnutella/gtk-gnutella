@@ -54,16 +54,16 @@ struct table_desc {
 	gchar *type;				/* Type of atoms */
 	GHashTable *table;			/* Table of atoms: "atom value" => 1 */
 	GHashFunc hash_func;		/* Hashing function for atoms */
-	GCompareFunc cmp_func;		/* Atom comparison function */
+	GCompareFunc eq_func;		/* Atom equality function */
 	len_func_t len_func;		/* Atom length function */
 };
 
 static gint str_len(gconstpointer v);
 static guint guid_hash(gconstpointer key);
-static gint guid_cmp(gconstpointer a, gconstpointer b);
+static gint guid_eq(gconstpointer a, gconstpointer b);
 static gint guid_len(gconstpointer v);
 static guint sha1_hash(gconstpointer key);
-static gint sha1_cmp(gconstpointer a, gconstpointer b);
+static gint sha1_eq(gconstpointer a, gconstpointer b);
 static gint sha1_len(gconstpointer v);
 
 /*
@@ -71,8 +71,8 @@ static gint sha1_len(gconstpointer v);
  */
 struct table_desc atoms[] = {
 	{ "String",	NULL,	g_str_hash,	g_str_equal, str_len	},	/* 0 */
-	{ "GUID",	NULL,	guid_hash,	guid_cmp,	 guid_len	},	/* 1 */
-	{ "SHA1",	NULL,	sha1_hash,	sha1_cmp,	 sha1_len	},	/* 2 */
+	{ "GUID",	NULL,	guid_hash,	guid_eq,	 guid_len	},	/* 1 */
+	{ "SHA1",	NULL,	sha1_hash,	sha1_eq,	 sha1_len	},	/* 2 */
 };
 
 #define COUNT(x)	(sizeof(x) / sizeof(x[0]))
@@ -129,13 +129,13 @@ static guint guid_hash(gconstpointer key)
 }
 
 /*
- * guid_cmp
+ * guid_eq
  *
- * Compare two GUIDs.
+ * Test two GUIDs for equality.
  */
-static gint guid_cmp(gconstpointer a, gconstpointer b)
+static gint guid_eq(gconstpointer a, gconstpointer b)
 {
-	return memcmp(a, b, 16);
+	return 0 == memcmp(a, b, 16);
 }
 
 /*
@@ -159,13 +159,13 @@ static guint sha1_hash(gconstpointer key)
 }
 
 /*
- * sha1_cmp
+ * sha1_eq
  *
- * Compare two SHA1s.
+ * Test two SHA1s for equality.
  */
-static gint sha1_cmp(gconstpointer a, gconstpointer b)
+static gint sha1_eq(gconstpointer a, gconstpointer b)
 {
-	return memcmp(a, b, 20);
+	return 0 == memcmp(a, b, 20);
 }
 
 /*
@@ -191,7 +191,7 @@ void atoms_init(void)
 	for (i = 0; i < COUNT(atoms); i++) {
 		struct table_desc *td = &atoms[i];
 
-		td->table = g_hash_table_new(td->hash_func, td->cmp_func);
+		td->table = g_hash_table_new(td->hash_func, td->eq_func);
 	}
 }
 
