@@ -1021,6 +1021,11 @@ shared_file_t *file_info_shared_sha1(const gchar *sha1)
 		char *path = g_strdup_printf("%s/%s", fi->path, fi->file_name);
 		char *filename;
 
+		if (NULL == path) {
+			wfree(sf, sizeof(*sf));
+			return NULL;
+		}
+
 		/*
 		 * Determine a proper human-readable name for the file.
 		 * If it is an URN, look through the aliases.
@@ -3001,9 +3006,10 @@ static GSList *list_clone_shift(struct dl_file_info *fi)
 
 	for (l = fi->chunklist; l; l = g_slist_next(l)) {
 		fc = l->data;
-		if (fc->from < offset)
-			continue;
-		clone = g_slist_copy(l);
+		if (fc->from >= offset) {
+			clone = g_slist_copy(l);
+			break;
+		}
 	}
 
 	/*
@@ -3719,6 +3725,9 @@ gint file_info_available_ranges(struct dl_file_info *fi, gchar *buf, gint size)
 
 	fmt = header_fmt_make("X-Available-Ranges", size);
 
+	if (header_fmt_length(fmt) + sizeof("bytes 0-512\r\n") >= size)
+		goto emit;				/* Sorry, not enough room for anything */
+
 	for (l = fi->chunklist; l != NULL; l = g_slist_next(l)) {
 		struct dl_file_chunk *fc = l->data;
 		gint rw;
@@ -3747,11 +3756,6 @@ gint file_info_available_ranges(struct dl_file_info *fi, gchar *buf, gint size)
 	header_fmt_free(fmt);
 	fmt = header_fmt_make("X-Available-Ranges", size);
 	is_first = TRUE;
-
-	if (header_fmt_length(fmt) + sizeof("bytes 0-512\r\n") >= size) {
-		header_fmt_free(fmt);
-		return 0;				/* Sorry, not enough room for anything */
-	}
 
 	/*
 	 * See how many chunks we have.
