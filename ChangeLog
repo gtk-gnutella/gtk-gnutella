@@ -1,5 +1,61 @@
 # since last version
 
+# v 0.92   2003.02.08  [beta]
+
+Highlight of changes (user-visible):
+
+- Now supports Ultrapeers, which means GTKG can work as an ultra node or as
+  a leaf node.  You can still run as a normal node, although this is not
+  something wise to do, because that will likely relagate you in a small part
+  of the Gnutella network.
+- The GTK2 front-end is no longer experimental, albeit it is slower than
+  the GTK1.2 front-end.  This is due to the somewhat inefficient
+  implementation of the underlying GTK library.  Don't use GTK2 unless you
+  have the equivalent of a 1 GHz Intel chip.
+- Added client-side PFSP support (partial file sharing). GTKG can download
+  from servers holding partial files.
+- Added client-side PARQ support (Passive / Active Remote Queuing).  GTKG
+  can now queue downloads from either active-queuing servers or PARQ.
+- New Gnet statistics: flow-controlled packets per TTL and hops.
+- The "Type" column in the Gnet connection pane was turned into "Flags".
+- Added support for GGEP in pings/pongs/pushes: those packets are now
+  accepted and forwarded to connections advertising GGEP support.
+- New "use surplus bandwidth" setting: all unused bandwidth for Gnet or HTTP
+  can be stolen by the other in case it needs some.
+- Added count for total bytes uploaded and downloaded.
+- Added support for vendor-specific messages.
+- The "prefer compressed connections" settings no longer works as expected
+  when running in non-normal mode.
+- New hops-flow support: remote flow-controlled connections can now warn us
+  that thye are flow-controlling us, and so we can drop queries immediately
+  instead of sending them, saving outgoing bandwidth.
+- Will now show the GTKG version in query hits.
+- The queue now shows the count of alive downloads, as well as the queue count.
+  An "alive" download is an entry for which the remote server replies.
+- Changed the connection algorithm: will now attempt to connect to more
+  nodes than really configured, dropping the surplus connections later, when
+  needed at all.
+
+WARNING:
+
+- The amount of bandwidth configured for leaves is currently automatically
+  added to the HTTP connections when not in leaf mode, regardless of whether
+  "use surplus bandwidth" is activated.  This will change in the release.
+
+- (2003.02.08 - RAM)
+ * Fixed memory leak in gwcache.c.
+ * Refactored upload_stats_dump_history(), and added upload_stats_close().
+   Cleanup and dumping are now clearly separated.
+ * Suppressed settings_upload_stats_save(): there is no an explicit call
+   to upload_stats_close() done at exit time.
+ * Be sure to call bsched_set_peermode() each time a bandwidth value is changed
+   so that we can adjust the schedulers according to the current mode.
+ * New FALSE default for the "fuzzy_filter_dmesh" property.
+ * When downgrading from ultra to leaf mode due to peer request, be sure to
+   use the property system to change the "current_peermode" property, instead
+   of writing directly to the variable!
+ * Make sure we react to the peermode change asynchronously.
+
 - (2003.02.07 - RAM)
  * Fixed memory leaks in dmesh.c, fileinfo.c, qrp.c.
  * Allow user to abort actively-queued downloads.
