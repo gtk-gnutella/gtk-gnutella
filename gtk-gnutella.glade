@@ -8161,25 +8161,49 @@ settings</label>
 
   <widget>
     <class>GtkMenuItem</class>
-    <name>popup_search_dont_show_name</name>
+    <name>popup_search_drop_name</name>
     <signal>
       <name>activate</name>
-      <handler>on_popup_search_dont_show_name_activate</handler>
-      <last_modification_time>Sat, 15 Jun 2002 14:26:42 GMT</last_modification_time>
+      <handler>on_popup_search_drop_name_activate</handler>
+      <last_modification_time>Sun, 16 Jun 2002 18:55:52 GMT</last_modification_time>
     </signal>
-    <label>Don't show results with name</label>
+    <label>Drop results with name</label>
     <right_justify>False</right_justify>
   </widget>
 
   <widget>
     <class>GtkMenuItem</class>
-    <name>popup_search_dont_show_sha1</name>
+    <name>popup_search_drop_sha1</name>
     <signal>
       <name>activate</name>
-      <handler>on_popup_search_dont_show_sha1_activate</handler>
-      <last_modification_time>Sat, 15 Jun 2002 16:22:12 GMT</last_modification_time>
+      <handler>on_popup_search_drop_sha1_activate</handler>
+      <last_modification_time>Sun, 16 Jun 2002 18:55:52 GMT</last_modification_time>
     </signal>
-    <label>Don't show results with urn:sha1</label>
+    <label>Drop results with urn:sha1</label>
+    <right_justify>False</right_justify>
+  </widget>
+
+  <widget>
+    <class>GtkMenuItem</class>
+    <name>popup_search_drop_name_global</name>
+    <signal>
+      <name>activate</name>
+      <handler>on_popup_search_drop_name_global_activate</handler>
+      <last_modification_time>Sun, 16 Jun 2002 18:55:52 GMT</last_modification_time>
+    </signal>
+    <label>Globally drop results with name</label>
+    <right_justify>False</right_justify>
+  </widget>
+
+  <widget>
+    <class>GtkMenuItem</class>
+    <name>popup_search_drop_sha1_global</name>
+    <signal>
+      <name>activate</name>
+      <handler>on_popup_search_drop_sha1_global_activate</handler>
+      <last_modification_time>Sun, 16 Jun 2002 18:55:52 GMT</last_modification_time>
+    </signal>
+    <label>Globally drop results with urn:sha1</label>
     <right_justify>False</right_justify>
   </widget>
 

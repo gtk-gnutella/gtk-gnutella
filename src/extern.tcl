@@ -129,8 +129,10 @@ set w_main_list {
     popup_search_clear_results
     popup_search_close
     popup_search_duplicate 
-    popup_search_dont_show_name
-    popup_search_dont_show_sha1
+    popup_search_drop_name
+    popup_search_drop_sha1
+    popup_search_drop_name_global
+    popup_search_drop_sha1_global
     popup_search_edit_filter
     popup_search_restart 
     popup_search_resume

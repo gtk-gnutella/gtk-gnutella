@@ -130,8 +130,10 @@ GtkWidget *checkbutton_monitor_enable;
 GtkWidget *popup_search_clear_results;
 GtkWidget *popup_search_close;
 GtkWidget *popup_search_duplicate;
-GtkWidget *popup_search_dont_show_name;
-GtkWidget *popup_search_dont_show_sha1;
+GtkWidget *popup_search_drop_name;
+GtkWidget *popup_search_drop_sha1;
+GtkWidget *popup_search_drop_name_global;
+GtkWidget *popup_search_drop_sha1_global;
 GtkWidget *popup_search_edit_filter;
 GtkWidget *popup_search_restart;
 GtkWidget *popup_search_resume;
@@ -5062,19 +5064,33 @@ create_popup_search (void)
   gtk_container_add (GTK_CONTAINER (popup_search), separator13);
   gtk_widget_set_sensitive (separator13, FALSE);
 
-  popup_search_dont_show_name = gtk_menu_item_new_with_label ("Don't show results with name");
-  gtk_widget_ref (popup_search_dont_show_name);
-  gtk_object_set_data_full (GTK_OBJECT (popup_search), "popup_search_dont_show_name", popup_search_dont_show_name,
+  popup_search_drop_name = gtk_menu_item_new_with_label ("Drop results with name");
+  gtk_widget_ref (popup_search_drop_name);
+  gtk_object_set_data_full (GTK_OBJECT (popup_search), "popup_search_drop_name", popup_search_drop_name,
                             (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (popup_search_dont_show_name);
-  gtk_container_add (GTK_CONTAINER (popup_search), popup_search_dont_show_name);
+  gtk_widget_show (popup_search_drop_name);
+  gtk_container_add (GTK_CONTAINER (popup_search), popup_search_drop_name);
 
-  popup_search_dont_show_sha1 = gtk_menu_item_new_with_label ("Don't show results with urn:sha1");
-  gtk_widget_ref (popup_search_dont_show_sha1);
-  gtk_object_set_data_full (GTK_OBJECT (popup_search), "popup_search_dont_show_sha1", popup_search_dont_show_sha1,
+  popup_search_drop_sha1 = gtk_menu_item_new_with_label ("Drop results with urn:sha1");
+  gtk_widget_ref (popup_search_drop_sha1);
+  gtk_object_set_data_full (GTK_OBJECT (popup_search), "popup_search_drop_sha1", popup_search_drop_sha1,
                             (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (popup_search_dont_show_sha1);
-  gtk_container_add (GTK_CONTAINER (popup_search), popup_search_dont_show_sha1);
+  gtk_widget_show (popup_search_drop_sha1);
+  gtk_container_add (GTK_CONTAINER (popup_search), popup_search_drop_sha1);
+
+  popup_search_drop_name_global = gtk_menu_item_new_with_label ("Globally drop results with name");
+  gtk_widget_ref (popup_search_drop_name_global);
+  gtk_object_set_data_full (GTK_OBJECT (popup_search), "popup_search_drop_name_global", popup_search_drop_name_global,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (popup_search_drop_name_global);
+  gtk_container_add (GTK_CONTAINER (popup_search), popup_search_drop_name_global);
+
+  popup_search_drop_sha1_global = gtk_menu_item_new_with_label ("Globally drop results with urn:sha1");
+  gtk_widget_ref (popup_search_drop_sha1_global);
+  gtk_object_set_data_full (GTK_OBJECT (popup_search), "popup_search_drop_sha1_global", popup_search_drop_sha1_global,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (popup_search_drop_sha1_global);
+  gtk_container_add (GTK_CONTAINER (popup_search), popup_search_drop_sha1_global);
 
   separator3 = gtk_menu_item_new ();
   gtk_widget_ref (separator3);
@@ -5152,11 +5168,17 @@ create_popup_search (void)
   gtk_signal_connect (GTK_OBJECT (popup_search_edit_filter), "activate",
                       GTK_SIGNAL_FUNC (on_popup_search_edit_filter_activate),
                       NULL);
-  gtk_signal_connect (GTK_OBJECT (popup_search_dont_show_name), "activate",
-                      GTK_SIGNAL_FUNC (on_popup_search_dont_show_name_activate),
+  gtk_signal_connect (GTK_OBJECT (popup_search_drop_name), "activate",
+                      GTK_SIGNAL_FUNC (on_popup_search_drop_name_activate),
                       NULL);
-  gtk_signal_connect (GTK_OBJECT (popup_search_dont_show_sha1), "activate",
-                      GTK_SIGNAL_FUNC (on_popup_search_dont_show_sha1_activate),
+  gtk_signal_connect (GTK_OBJECT (popup_search_drop_sha1), "activate",
+                      GTK_SIGNAL_FUNC (on_popup_search_drop_sha1_activate),
+                      NULL);
+  gtk_signal_connect (GTK_OBJECT (popup_search_drop_name_global), "activate",
+                      GTK_SIGNAL_FUNC (on_popup_search_drop_name_global_activate),
+                      NULL);
+  gtk_signal_connect (GTK_OBJECT (popup_search_drop_sha1_global), "activate",
+                      GTK_SIGNAL_FUNC (on_popup_search_drop_sha1_global_activate),
                       NULL);
   gtk_signal_connect (GTK_OBJECT (popup_search_stop), "activate",
                       GTK_SIGNAL_FUNC (on_popup_search_stop_activate),
