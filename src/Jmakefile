@@ -216,7 +216,7 @@ LDFLAGS = $(GTK_LDFLAGS) $(XML2_LDFLAGS)
 >BINDIR
 >MANSRC		/* Tell jmake we use $(MANSRC)... */
 
-SetSubdirs(g2)
+/* SetSubdirs(g2) -- not yet */
 DependTarget()
 SimpleYaccTarget(gtk-gnutella, getdate)
 NormalProgramTarget(gtk-gnutella, $(SRC), $(OBJ) getdate.o)
