@@ -1,5 +1,15 @@
 # since last version
 
+- (2004.01.10 - Richard)
+ * [Gtk1] [Gtk2] Reverted changes to hostcount display from 2004.01.08
+ * Moved generation of hostname for downloads pane to downloads_gui_common.c.
+ * Fixed a memory leak in search_gui_common.c when search_hide_downloaded
+   was activated.
+
+- (2004.01.08 - Richard)
+ * [Gtk1] [Gtk2] Show active and trying hosts seperatly when counting hosts
+   in download pane. Format: "n hosts (m)" n - active, m - trying.
+
 # v 0.93.2   2004.01.05  [stable]
 
 - (2004.01.05 - RAM)
