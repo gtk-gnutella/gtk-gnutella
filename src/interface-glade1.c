@@ -2838,7 +2838,7 @@ create_main_window (void)
   gtk_widget_show (viewport42);
   gtk_box_pack_start (GTK_BOX (vbox36), viewport42, TRUE, TRUE, 0);
 
-  frame3 = gtk_frame_new (_("Active downloads"));
+  frame3 = gtk_frame_new (_("Active sources"));
   gtk_widget_set_name (frame3, "frame3");
   gtk_widget_ref (frame3);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "frame3", frame3,
@@ -3267,7 +3267,7 @@ create_main_window (void)
   gtk_widget_show (vbox35);
   gtk_container_add (GTK_CONTAINER (viewport1), vbox35);
 
-  frame4 = gtk_frame_new (_("Download queue"));
+  frame4 = gtk_frame_new (_("Inactive sources"));
   gtk_widget_set_name (frame4, "frame4");
   gtk_widget_ref (frame4);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "frame4", frame4,
@@ -3518,7 +3518,7 @@ create_main_window (void)
   gtk_widget_show (label539);
   gtk_box_pack_start (GTK_BOX (hbox169), label539, FALSE, FALSE, 0);
 
-  label510 = gtk_label_new (_("Downloads"));
+  label510 = gtk_label_new (_("Sources"));
   gtk_widget_set_name (label510, "label510");
   gtk_widget_ref (label510);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "label510", label510,
@@ -3526,7 +3526,7 @@ create_main_window (void)
   gtk_widget_show (label510);
   gtk_notebook_set_tab_label (GTK_NOTEBOOK (notebook_downloads), gtk_notebook_get_nth_page (GTK_NOTEBOOK (notebook_downloads), 0), label510);
 
-  frame76 = gtk_frame_new (_("Fileinfo"));
+  frame76 = gtk_frame_new (_("Files to get"));
   gtk_widget_set_name (frame76, "frame76");
   gtk_widget_ref (frame76);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "frame76", frame76,
@@ -3900,7 +3900,7 @@ create_main_window (void)
   gtk_widget_show (label545);
   gtk_box_pack_start (GTK_BOX (hbox175), label545, FALSE, FALSE, 0);
 
-  label511 = gtk_label_new (_("Fileinfo"));
+  label511 = gtk_label_new (_("Files"));
   gtk_widget_set_name (label511, "label511");
   gtk_widget_ref (label511);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "label511", label511,
