@@ -40,8 +40,10 @@
 #include "search_gui.h"
 #include "gui_property_priv.h"
 
+#include "settings_cb.h"
+
 /* Uncomment to override debug level for this file. */
-#define gui_debug 1
+//#define gui_debug 1
 
 /* 
  * This file has five parts:
@@ -1358,6 +1360,8 @@ static gboolean update_spinbutton(property_t prop)
     prop_set_stub_t *stub = map_entry->stub;
     GtkWidget *top = map_entry->fn_toplevel();
 
+    GtkAdjustment *adj;
+
     if (!top)
         return FALSE;
 
@@ -1373,7 +1377,11 @@ static gboolean update_spinbutton(property_t prop)
                 prop_type_str[map_entry->type]);
     }
 
-    gtk_spin_button_set_value(GTK_SPIN_BUTTON(w), val);
+    adj = gtk_spin_button_get_adjustment(GTK_SPIN_BUTTON(w));
+    gtk_adjustment_set_value(adj, val);
+    
+
+//    gtk_spin_button_set_value(GTK_SPIN_BUTTON(w), val);
 
     return FALSE;
 }
@@ -1507,7 +1515,54 @@ static gboolean update_bandwidth_spinbutton(property_t prop)
     return FALSE;
 }
 
+void spinbutton_adjustment_value_changed
+    (GtkAdjustment *adj, gpointer user_data)
+{
+    prop_map_t *map_entry = (prop_map_t *) user_data;
+    prop_set_stub_t *stub = map_entry->stub;
+    guint32 val = adj->value;
 
+    /*
+     * Special handling for the special cases.
+     */
+    if (stub == gnet_prop_set_stub) {
+        /*
+         * Bandwidth spinbuttons need the value multiplied by 1024
+         */
+        if (
+            (map_entry->prop == PROP_BW_HTTP_IN) ||
+            (map_entry->prop == PROP_BW_HTTP_OUT) ||
+            (map_entry->prop == PROP_BW_GNET_IN) ||
+            (map_entry->prop == PROP_BW_GNET_OUT)
+        ) {
+            val = adj->value * 1024.0;
+        }
+        
+        /*
+         * When MAX_DOWNLOADS or MAX_HOST_DOWNLOADS are changed, we
+         * have some ancient workaround which may still be necessary.
+         */
+        if (
+            (map_entry->prop == PROP_MAX_DOWNLOADS) ||
+            (map_entry->prop == PROP_MAX_HOST_DOWNLOADS)
+        ) {
+            /*
+             * XXX If the user modifies the max simulteneous download 
+             * XXX and click on a queued download, gtk-gnutella segfaults 
+             * XXX in some cases. This unselected_all() is a first attempt
+             * XXX to work around the problem.
+             *
+             * It's unknown wether this ancient workaround is still
+             * needed.
+             *      -- Richard, 13/08/2002
+             */             
+            gtk_clist_unselect_all(GTK_CLIST(
+                lookup_widget(main_window, "clist_downloads_queue")));
+        }
+    }
+
+    stub->guint32.set(map_entry->prop, &val, 0, 1);
+}
 
 /***
  *** V.  Control functions.
@@ -1564,6 +1619,11 @@ static void settings_config_widget(prop_map_t *map, prop_def_t *def)
                 default:
                     g_assert_not_reached();
                 };
+
+                gtk_signal_connect_after(
+                    GTK_OBJECT (adj), "value_changed",
+                    (GtkSignalFunc) spinbutton_adjustment_value_changed,
+                    (gpointer) map);
             }
         }
     }

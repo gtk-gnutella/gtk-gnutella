@@ -28,51 +28,8 @@
 
 #include "gui.h"
 
-void on_spinbutton_up_connections_changed(GtkEditable *, gpointer);
-void on_spinbutton_max_connections_changed(GtkEditable *, gpointer);
-void on_spinbutton_max_downloads_changed(GtkEditable *, gpointer);
-void on_spinbutton_max_host_downloads_changed(GtkEditable *, gpointer);
-void on_spinbutton_max_uploads_changed(GtkEditable *, gpointer);
-void on_spinbutton_max_uploads_ip_changed(GtkEditable *, gpointer);
-void on_spinbutton_nodes_max_hosts_cached_changed(GtkEditable *, gpointer);
 void on_spinbutton_search_reissue_timeout_changed(GtkEditable *, gpointer);
-void on_spinbutton_monitor_items_changed(GtkEditable *, gpointer);
-void on_spinbutton_config_port_changed(GtkEditable *, gpointer);
-void on_spinbutton_config_proxy_port_changed(GtkEditable *, gpointer);
-void on_spinbutton_config_bws_gin_changed(GtkEditable *, gpointer);
-void on_spinbutton_config_bws_gout_changed(GtkEditable *, gpointer);
-void on_spinbutton_config_bws_in_changed(GtkEditable *, gpointer);
-void on_spinbutton_config_bws_out_changed(GtkEditable *, gpointer);
-void on_spinbutton_config_ul_usage_min_percentage_changed(GtkEditable *, gpointer);
-void on_spinbutton_config_speed_changed(GtkEditable *, gpointer);
-void on_spinbutton_config_search_min_speed_changed(GtkEditable *, gpointer);
-void on_spinbutton_config_search_items_changed(GtkEditable *, gpointer);
-void on_spinbutton_config_node_tx_flowc_timeout_changed(GtkEditable *, gpointer);
-void on_spinbutton_config_node_connecting_timeout_changed(GtkEditable *, gpointer);
-void on_spinbutton_config_node_connected_timeout_changed(GtkEditable *, gpointer);
-void on_spinbutton_config_maxttl_changed(GtkEditable *, gpointer);
-void on_spinbutton_config_max_high_ttl_msg_changed(GtkEditable *, gpointer);
-void on_spinbutton_config_hard_ttl_limit_changed(GtkEditable *, gpointer);
-void on_spinbutton_config_myttl_changed(GtkEditable *, gpointer);
-void on_spinbutton_config_max_high_ttl_radius_changed(GtkEditable *, gpointer);
-void on_spinbutton_config_download_max_retries_changed(GtkEditable *, gpointer);
-void on_spinbutton_config_download_retry_stopped_delay_changed(GtkEditable *, gpointer);
-void on_spinbutton_config_download_retry_refused_delay_changed(GtkEditable *, gpointer);
-void on_spinbutton_config_download_retry_busy_delay_changed(GtkEditable *, gpointer);
-void on_spinbutton_config_download_retry_timeout_delay_changed(GtkEditable *, gpointer);
-void on_spinbutton_config_download_retry_timeout_min_changed(GtkEditable *, gpointer);
-void on_spinbutton_config_download_retry_timeout_max_changed(GtkEditable *, gpointer);
-void on_spinbutton_config_download_connecting_timeout_changed(GtkEditable *, gpointer);
-void on_spinbutton_config_download_push_sent_timeout_changed(GtkEditable *, gpointer);
-void on_spinbutton_config_download_connected_timeout_changed(GtkEditable *, gpointer);
-void on_spinbutton_config_upload_connecting_timeout_changed(GtkEditable *, gpointer);
-void on_spinbutton_config_upload_connected_timeout_changed(GtkEditable *, gpointer);
-void on_spinbutton_config_search_reissue_timeout_changed(GtkEditable *, gpointer);
 void on_spinbutton_minimum_speed_changed(GtkEditable *, gpointer);
-void on_spinbutton_search_stats_update_interval_changed(GtkEditable *, gpointer);
-void on_spinbutton_search_stats_delcoef_changed(GtkEditable *, gpointer);
-void on_spinbutton_config_search_min_dup_msg_changed(GtkEditable *, gpointer);
-void on_spinbutton_config_search_min_dup_ratio_changed(GtkEditable *, gpointer);
 
 gboolean on_entry_config_proxy_ip_focus_out_event (GtkWidget *widget, GdkEventFocus *event, gpointer user_data);
 void on_entry_config_proxy_ip_activate (GtkEditable *editable, gpointer user_data);
