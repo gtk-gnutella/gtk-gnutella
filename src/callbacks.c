@@ -17,6 +17,7 @@
 #include "autodownload.h"
 #include "dialog-filters.h"
 #include "search_stats.h"
+#include "upload_stats.h"
 
 gchar c_tmp[2048];
 
@@ -418,6 +419,63 @@ void on_popup_uploads_title_activate(GtkMenuItem * menuitem,
 
 }
 
+/*
+ * Upload Stats
+ */
+
+void on_clist_ul_stats_click_column(GtkCList * clist, gint column,
+				    gpointer user_data)
+{
+	static gint ul_sort_column = 2;
+	static gint ul_sort_order = GTK_SORT_DESCENDING;
+
+	switch (column) {
+	case UL_STATS_FILE_IDX:		/* Filename */
+		gtk_clist_set_compare_func(GTK_CLIST(clist_ul_stats), NULL);
+		break;
+	case UL_STATS_SIZE_IDX:		/* Size */
+		gtk_clist_set_compare_func(GTK_CLIST(clist_ul_stats),
+					   compare_ul_size);
+		break;
+	case UL_STATS_ATTEMPTS_IDX:		/* Attempts */
+		gtk_clist_set_compare_func(GTK_CLIST(clist_ul_stats),
+					   compare_ul_attempts);
+		break;
+	case UL_STATS_COMPLETE_IDX:		/* Completions */
+		gtk_clist_set_compare_func(GTK_CLIST(clist_ul_stats),
+					   compare_ul_complete);
+		break;
+	default:
+		g_assert(0);
+	}
+
+	if (column == ul_sort_column) {
+		ul_sort_order = (ul_sort_order == GTK_SORT_DESCENDING) ? 
+			GTK_SORT_ASCENDING : GTK_SORT_DESCENDING;
+	} else {
+		ul_sort_column = column;
+	}
+	gtk_clist_set_sort_type(GTK_CLIST(clist_ul_stats), ul_sort_order);
+	gtk_clist_set_sort_column(GTK_CLIST(clist_ul_stats), column);
+	gtk_clist_sort(GTK_CLIST(clist_ul_stats));
+}
+
+void on_clist_ul_stats_resize_column(GtkCList * clist, gint column,
+										   gint width, gpointer user_data)
+{
+	ul_stats_col_widths[column] = width;
+}
+
+void on_button_ul_stats_clear_all_clicked(GtkButton * button,
+									   gpointer user_data)
+{
+	ul_stats_clear_all();
+}
+
+void on_button_ul_stats_clear_deleted_clicked(GtkButton * button, gpointer user_data)
+{
+	ul_stats_prune_nonexistant();
+}
 /*
  * Downloads
  */
@@ -866,6 +924,10 @@ void on_checkbutton_enable_search_stats_toggled(GtkToggleButton * togglebutton,
 						gpointer user_data)
 {
 	search_stats_enabled = gtk_toggle_button_get_active(togglebutton);
+	/* if stats have been disabled, disable the toggle button too,
+	 * it will be re-enabled again by update_search_stats_display()
+	 * when the current stat timer expires.  this prevents multiple
+	 * scheduling of the search statistics update function */
 	if (search_stats_enabled)
 		enable_search_stats();
 	else

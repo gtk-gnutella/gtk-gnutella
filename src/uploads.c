@@ -24,6 +24,7 @@
 #include "hosts.h"		/* for check_valid_host() */
 #include "url.h"
 #include "bsched.h"
+#include "upload_stats.h"
 
 GSList *uploads = NULL;
 gint running_uploads = 0;
@@ -1084,6 +1085,7 @@ static void upload_request(struct upload *u, header_t *header)
 		gtk_clist_set_row_data(GTK_CLIST(clist_uploads), row, (gpointer) u);
 
 		gui_update_c_uploads();
+		ul_stats_file_begin(u);
 
 		return;
 	}
@@ -1201,10 +1203,13 @@ void upload_write(gpointer up, gint source, GdkInputCondition cond)
 
 	u->last_update = time((time_t *) NULL);
 
+	/* This upload is complete */
 	if (u->pos > u->end) {
 		count_uploads++;
 		gui_update_count_uploads();
 		gui_update_c_uploads();
+		ul_stats_file_complete(u);
+
 		if (clear_uploads == TRUE)
 			upload_remove(u, NULL);
 		else {

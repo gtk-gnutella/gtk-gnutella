@@ -21,9 +21,11 @@
 #include "gui.h"
 #include "autodownload.h"
 #include "search_stats.h"
+#include "upload_stats.h"
 
 static gchar *config_file = "config";
 static gchar *host_file = "hosts";
+static gchar *ul_stats_file = "upload_stats";
 
 gboolean clear_uploads = FALSE;
 gboolean clear_downloads = FALSE;
@@ -103,6 +105,7 @@ guint32 dl_queued_col_widths[] = { 320, 80, 80 };
 guint32 uploads_col_widths[] = { 200, 120, 36, 80, 80 };
 guint32 search_results_col_widths[] = { 210, 80, 50, 140, 140 };
 guint32 search_stats_col_widths[] = { 200, 80, 80 };
+guint32 ul_stats_col_widths[] = { 383, 40, 80, 80 };
 
 gboolean jump_to_downloads = TRUE;
 
@@ -149,7 +152,7 @@ enum {
 	k_win_x, k_win_y, k_win_w, k_win_h, k_win_coords, k_widths_nodes,
 	k_widths_uploads,
 	k_widths_dl_active, k_widths_dl_queued, k_widths_search_results,
-	k_widths_search_stats, k_show_results_tabs,
+	k_widths_search_stats, k_widths_ul_stats, k_show_results_tabs,
 	k_hops_random_factor, k_send_pushes, k_jump_to_downloads,
 	k_max_connections, k_proxy_connections,
 	k_proxy_protocol, k_proxy_ip, k_proxy_port, k_socksv5_user,
@@ -224,6 +227,7 @@ static gchar *keywords[] = {
 	"widths_dl_queued",			/* k_widths_dl_queued */
 	"widths_search_results",	/* k_widths_search_results */
 	"widths_search_stats",		/* k_widths_search_stats */
+	"widths_ul_stats",			/* k_widths_ul_stats */
 	"show_results_tabs",		/* k_show_results_tabs */
 	"hops_random_factor",		/* k_hops_random_factor */
 	"send_pushes",				/* k_send_pushes */
@@ -403,14 +407,23 @@ void config_init(void)
 
 		config_read();
 
-		/* Loads the catched hosts */
 
-		if (cfg_use_local_file)
+		if (cfg_use_local_file) {
+			/* Loads the catched hosts */
 			hosts_read_from_file(host_file, TRUE);
-		else {
+			/* Loads the upload statistics */
+			ul_stats_load_history(ul_stats_file);
+		} else {
 			g_snprintf(cfg_tmp, sizeof(cfg_tmp), "%s/%s", config_dir,
 					   host_file);
+			/* Loads the catched hosts */
 			hosts_read_from_file(cfg_tmp, TRUE);
+
+			g_snprintf(cfg_tmp, sizeof(cfg_tmp), "%s/%s", config_dir,
+					   ul_stats_file);
+			/* Loads the upload statistics */
+			ul_stats_load_history(cfg_tmp);
+
 		}
 	}
 
@@ -541,6 +554,9 @@ void config_init(void)
 	for (i = 0; i < 3; i++)
 		gtk_clist_set_column_width(GTK_CLIST(clist_search_stats), i,
 								   search_stats_col_widths[i]);
+	for (i = 0; i < 4; i++)
+		gtk_clist_set_column_width(GTK_CLIST(clist_ul_stats), i,
+								   ul_stats_col_widths[i]);
 
 	/* Transition : HOME/.gtk-gnutella is now a directory */
 
@@ -842,6 +858,12 @@ void config_set_param(guint32 keyword, gchar *value)
 		if ((a = config_parse_array(value, 3)))
 			for (i = 0; i < 3; i++)
 				search_stats_col_widths[i] = a[i];
+		return;
+
+	case k_widths_ul_stats:
+		if ((a = config_parse_array(value, 4)))
+			for (i = 0; i < 4; i++)
+				ul_stats_col_widths[i] = a[i];
 		return;
 
 	case k_show_results_tabs:
@@ -1214,9 +1236,13 @@ void config_save(void)
 			keywords[k_widths_search_stats],
 			search_stats_col_widths[0], search_stats_col_widths[1],
 			search_stats_col_widths[2]);
+	fprintf(config, "%s = %u,%u,%u,%u\n",
+			keywords[k_widths_ul_stats],
+			ul_stats_col_widths[0], ul_stats_col_widths[1],
+			ul_stats_col_widths[2], ul_stats_col_widths[3]);
 
-	fprintf(config, "\n\n# The following variables cannot "
-		"yet be configured with the GUI.\n\n");
+	fprintf(config, "\n\n#\n# The following variables cannot "
+		"yet be configured with the GUI.\n#\n\n");
 
 	/* XXX Bandwidth management must be GUI-configurable */
 
@@ -1412,7 +1438,7 @@ void config_save(void)
 
 	fclose(config);
 
-	/* Save the catched hosts */
+	/* Save the catched hosts & upload history */
 
 	if (hosts_idle_func) {
 		g_warning("exit() while still reading the hosts file, "
@@ -1421,10 +1447,18 @@ void config_save(void)
 		if (cfg_use_local_file)
 			hosts_write_to_file(host_file);
 		else {
-			g_snprintf(cfg_tmp, sizeof(cfg_tmp), "%s/%s", config_dir,
-					   host_file);
+			g_snprintf(cfg_tmp, sizeof(cfg_tmp), "%s/%s",
+				config_dir, host_file);
 			hosts_write_to_file(cfg_tmp);
 		}
+	}
+
+	if (cfg_use_local_file)
+		ul_stats_dump_history(ul_stats_file);
+	else {
+		g_snprintf(cfg_tmp, sizeof(cfg_tmp), "%s/%s",
+			config_dir, ul_stats_file);
+		ul_stats_dump_history(cfg_tmp);
 	}
 
 	/*

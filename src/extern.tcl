@@ -28,6 +28,7 @@ set w_main_list {
 	combo_searches combo_entry_searches
 	button_search_filter button_search_close
 	checkbutton_monitor entry_monitor clist_monitor
+	clist_ul_stats button_ul_stats_clear_deleted button_ul_stats_clear_all
 	checkbutton_enable_search_stats clist_search_stats entry_search_stats_update_interval entry_search_stats_delcoef label_search_stats_count
 	button_config_move_path
 	button_config_save_path entry_config_path label_files_scanned entry_config_extensions

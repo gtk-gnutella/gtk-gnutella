@@ -11,6 +11,7 @@
 
 #include "gnutella.h"
 #include "nodes.h"
+#include "misc.h"
 
 gchar *ip_to_gchar(guint32 ip)
 {
@@ -171,7 +172,7 @@ gboolean is_directory(gchar * path)
 
 gchar *short_size(guint32 size)
 {
-	static gchar b[64];
+	static gchar b[SIZE_FIELD_MAX];
 
 	if (size < 1024)
 		g_snprintf(b, sizeof(b), "%u Bytes", size);
@@ -189,7 +190,7 @@ gchar *short_size(guint32 size)
 
 gchar *short_kb_size(guint32 size)
 {
-	static gchar b[64];
+	static gchar b[SIZE_FIELD_MAX];
 
 	if (size < 1024)
 		g_snprintf(b, sizeof(b), "%u KB", size);
@@ -225,7 +226,7 @@ gchar *compact_size(guint32 size)
 
 gchar *short_time(guint32 s)
 {
-	static gchar b[64];
+	static gchar b[SIZE_FIELD_MAX];
 
 	if (s > 86400)
 		g_snprintf(b, sizeof(b), "%ud %uh", s / 86400, (s % 86400) / 3600);

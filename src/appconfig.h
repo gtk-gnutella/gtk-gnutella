@@ -58,6 +58,7 @@ extern guint32 dl_queued_col_widths[];
 extern guint32 uploads_col_widths[];
 extern guint32 search_results_col_widths[];
 extern guint32 search_stats_col_widths[];
+extern guint32 ul_stats_col_widths[];
 extern guint32 hops_random_factor;
 extern guint32 max_high_ttl_msg;
 extern guint32 max_high_ttl_radius;

@@ -23,6 +23,7 @@ gtk_gnutella_SOURCES = \
 	downloads.c downloads.h \
 	share.c share.h \
 	uploads.c uploads.h \
+	upload_stats.c upload_stats.h \
 	main.c \
 	gui.c gui.h \
 	support.c support.h \
