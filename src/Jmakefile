@@ -92,6 +92,7 @@ CORE = \
 	crc.c \
 	dmesh.c \
 	downloads.c \
+	dq.c \
 	drop.c \
 	eval.c \
 	event.c \

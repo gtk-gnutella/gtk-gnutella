@@ -100,7 +100,7 @@ all:: .FORCE_DEPEND
 ########################################################################
 # Start of Jmakefile
 
-# $X-Id: Jmakefile,v 1.16 2004/03/28 11:14:27 rmanfredi Exp $
+# $X-Id: Jmakefile,v 1.19 2004/07/15 18:29:34 nonamer Exp $
 
 GUI_GTK2 = \
 	downloads_cb2.c \
@@ -178,6 +178,7 @@ CORE = \
 	crc.c \
 	dmesh.c \
 	downloads.c \
+	dq.c \
 	drop.c \
 	eval.c \
 	event.c \
@@ -268,6 +269,7 @@ OBJLIST = \
 	downloads_gui2.o \
 	fileinfo_gui2.o \
 	gnet_stats_gui2.o \
+	hcache_gui2.o \
 	monitor_cb2.o \
 	monitor_gui2.o \
 	nodes_cb2.o \
@@ -281,6 +283,7 @@ OBJLIST = \
 	downloads_gui.o \
 	fileinfo_gui.o \
 	gnet_stats_gui.o \
+	hcache_gui.o \
 	monitor_cb.o \
 	monitor_gui.o \
 	nodes_cb.o \
@@ -300,6 +303,7 @@ OBJLIST = \
 	gtk-missing.o \
 	gui.o \
 	gui_property.o \
+	hcache_gui_common.o \
 	main_cb.o \
 	main_gui.o \
 	nodes_gui_common.o \
@@ -328,6 +332,7 @@ OBJLIST = \
 	crc.o \
 	dmesh.o \
 	downloads.o \
+	dq.o \
 	drop.o \
 	eval.o \
 	event.o \
@@ -347,9 +352,6 @@ OBJLIST = \
 	hashlist.o \
 	hashtree.o \
 	hcache.o \
-	hcache_gui.o \
-	hcache_gui2.o \
-	hcache_gui_common.o \
 	header.o \
 	hostiles.o \
 	hosts.o \
