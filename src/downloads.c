@@ -1504,6 +1504,7 @@ static void download_request(struct download *d, header_t *header)
 	gchar *ack_message = "";
 	gchar *buf;
 	struct stat st;
+	gboolean got_content_length = FALSE;
 
 	d->last_update = time((time_t *) 0);	/* Done reading headers */
 
@@ -1539,6 +1540,10 @@ static void download_request(struct download *d, header_t *header)
 
 	/*
 	 * We got a success status from the remote servent.  Parse header.
+	 *
+	 * Normally, a Content-Length: header is mandatory.  However, if we
+	 * get a valid Content-Range, relax that constraint a bit.
+	 *		--RAM, 08/01/2002
 	 */
 
 	buf = header_get(header, "Content-Length");		/* Mandatory */
@@ -1562,13 +1567,7 @@ static void download_request(struct download *d, header_t *header)
 				return;
 			}
 		}
-	} else {
-		char *ua = header_get(header, "Server");
-		ua = ua ? ua : header_get(header, "User-Agent");
-		if (ua)
-			g_warning("server \"%s\" did not send any Content-Length", ua);
-		download_stop(d, GTA_DL_ERROR, "No Content-Length header");
-		return;
+		got_content_length = TRUE;
 	}
 
 	buf = header_get(header, "Content-Range");		/* Optional */
@@ -1587,11 +1586,32 @@ static void download_request(struct download *d, header_t *header)
 			if (total != d->size) {
 				g_warning("File '%s': file size mismatch: expected %u, got %u",
 					d->file_name, d->size, total);
+				download_stop(d, GTA_DL_ERROR, "File size mismatch");
+				return;
 			}
+			got_content_length = TRUE;
 		} else {
 			g_warning("File '%s': malformed Content-Range: %s",
 				d->file_name, buf);
 		}
+	}
+
+	/*
+	 * If neither Content-Length nor Content-Range was seen, abort!
+	 *
+	 * If we were talking to an official web-server, we'd assume the length
+	 * to be correct and would be reading until EOF, but we're talking to
+	 * an unknown party, that we cannot trust too much.
+	 *		--RAM, 09/01/2002
+	 */
+
+	if (!got_content_length) {
+		char *ua = header_get(header, "Server");
+		ua = ua ? ua : header_get(header, "User-Agent");
+		if (ua)
+			g_warning("server \"%s\" did not send any length indication", ua);
+		download_stop(d, GTA_DL_ERROR, "No Content-Length header");
+		return;
 	}
 
 	/*

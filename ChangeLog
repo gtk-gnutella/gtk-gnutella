@@ -93,6 +93,8 @@
   that file only, despite multiple selections. [From Noel T.Nunkovich]
 - Removed useless and memory hog host catcher list in the gnutellaNet screen:
   saves 2 MB of RAM plus avoids cost of updating it [From Mark Schreiber].
+- Be tolerant on servents that do not send a Content-Length but send
+  a proper Content-Range line instead (which we tolerantly parse as well).
 
 # v 0.18   2001.11.19
 
