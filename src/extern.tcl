@@ -23,8 +23,10 @@ set w_main_list {
 	label_statusbar_uptime
 
 	button_config_move_path
+    entry_config_move_path
 	button_config_rescan_dir
 	button_config_save_path
+    entry_config_save_path
 	checkbutton_config_force_ip
 	checkbutton_config_proxy_connections
 	checkbutton_config_proxy_auth
@@ -49,6 +51,29 @@ set w_main_list {
     spinbutton_config_proxy_port 
 	spinbutton_config_bps_in
 	spinbutton_config_bps_out
+    spinbutton_config_bps_in
+    spinbutton_config_bps_out
+    spinbutton_config_port
+    spinbutton_config_proxy_port
+    spinbutton_config_max_high_ttl_radius
+    spinbutton_config_max_high_ttl_msg
+    spinbutton_config_hard_ttl_limit
+    spinbutton_config_download_overlap_range
+    spinbutton_config_download_max_retries
+    spinbutton_config_download_retry_stopped
+    spinbutton_config_download_retry_refused_delay
+    spinbutton_config_download_retry_busy_delay
+    spinbutton_config_download_retry_timeout_delay
+    spinbutton_config_download_retry_timeout_max
+    spinbutton_config_download_retry_timeout_min
+    spinbutton_config_download_connecting_timeout
+    spinbutton_config_download_push_sent_timeout
+    spinbutton_config_download_connected_timeout 
+    spinbutton_config_node_tx_flowc_timeout
+    spinbutton_config_node_connecting_timeout
+    spinbutton_config_node_connected_timeout
+    spinbutton_config_upload_connecting_timeout
+    spinbutton_config_upload_connected_timeout
 
 	button_nodes_add 
 	button_nodes_remove 
@@ -180,6 +205,7 @@ set w_main_list {
     entry_nodes_ip
     pixmap_firewall
     pixmap_no_firewall
+    spinbutton_nodes_max_hosts_cached
 }
 
 # interface.h ----------------------------------------------------------------------------------------
