@@ -317,8 +317,12 @@ mostlyclean:
 	rm -f core core.* $(DOMAIN).po $(DOMAIN).1po $(DOMAIN).2po *.new.po
 
 clean: mostlyclean
+	rm -f stamp-po
+	rm -f *.gmo
+
 realclean: clean
 	rm -f *~
+	rm -f $(DOMAIN).pot
 
 clobber: realclean
 	rm -f Makefile POTFILES *.mo
