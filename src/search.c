@@ -1313,14 +1313,6 @@ gnet_search_t search_new(
 		sch->passive = TRUE;
 		search_passive++;
 	} else {
-		guchar *muid = (guchar *) g_malloc(16);
-
-		guid_query_muid(muid, TRUE);
-        search_add_new_muid(sch, muid);
-
-		sch->sent_nodes =
-			g_hash_table_new(sent_node_hash_func, sent_node_compare);
-
 		sch->new_node_hook = g_hook_alloc(&node_added_hook_list);
 		sch->new_node_hook->data = sch;
 		sch->new_node_hook->func = node_added_callback;
@@ -1347,8 +1339,26 @@ void search_start(gnet_search_t sh)
 
     sch->frozen = FALSE;
 
-    if (!sch->passive)
+    if (!sch->passive) {
+		/*
+		 * If we just created the search with search_new(), there will be
+		 * no message ever sent, and sch->muids will be NULL.
+		 */
+
+		if (sch->muids == NULL) {
+			guchar *muid = (guchar *) g_malloc(16);
+
+			guid_query_muid(muid, TRUE);
+			search_add_new_muid(sch, muid);
+
+			sch->sent_nodes =
+				g_hash_table_new(sent_node_hash_func, sent_node_compare);
+
+			search_send_packet(sch);		/* Send initial query */
+		}
+
         update_one_reissue_timeout(sch);
+	}
 }
 
 /*
