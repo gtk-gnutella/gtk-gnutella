@@ -63,10 +63,15 @@ files that match the query, the following steps should be taken:
      described below).  If no response is received in a timely fashion,
      the servent can forget about the query.
 
+Newer versions use the LIME/12v2 message, which extends LIME/12v1 with
+an additionnal byte, containing 0x1 if the servent can receive unsollicited
+UDP traffic, 0x0 if it cannot receive such unsollicited traffic but only
+replies after it sent an UDP message to a given host.
+
 D. Responding to LIME/12v1 (Reply Number) Vendor Messages
 
 When a GUESS-capable servent that has sent an 'out-of-band' capable query
-receives a LIME/12v1, or Reply Number, VM, it should do the following:
+receives a LIME/12v1 or LIME/12v2 message, it should do the following:
 
   1. If the guid contained in the Reply Number VM is old or unknown, just
      ignore the message.
@@ -80,6 +85,9 @@ receives a LIME/12v1, or Reply Number, VM, it should do the following:
      255, that means that the servent wants 255 or more responses.  Note
      that the servent can lift the originator's IP address and port from
      the LIME/12v1 datagram packet.
+
+NOTE: Actually, LIME/11v1 was replaced with LIME/11v2, which is completely
+identical to LIME/11v1.  LimeWire does not support reception of LIME/11v1.
 
 E. Responding to LIME/11v1 (Ack) Vendor Messages
 
