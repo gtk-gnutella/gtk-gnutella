@@ -2,6 +2,10 @@ This is the stable 0.93.x branch.
 
 # since last version
 
+- (2004.02.14 - Richard)
+ * Try to avoid memory corruption during selection in search results due
+   to recursive calls of on_ctree_search_results_select_row().
+
 - (2004.02.13 - Jeroen)
  * Added assert to avoid memory corruption by ICU in utf8
  * Don't call unicode canonize if the string is not an utf8 string
