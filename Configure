@@ -20,7 +20,7 @@
 
 # $Id$
 #
-# Generated on Thu Jan  1 19:29:45 MET 2004 [metaconfig 3.0 PL70]
+# Generated on Sun Jan 11 17:25:59 MET 2004 [metaconfig 3.0 PL70]
 
 cat >/tmp/c1$$ <<EOF
 ARGGGHHHH!!!!!
@@ -3878,8 +3878,10 @@ eval $inlibc
 
 : check whether we have a working ICU library
 echo " "
+has_icu=n
 case " $libs " in
 *" -licuuc "*)
+	has_icu=y
 	case "$i_uni_putil$d_ucnv_open_2_6" in
 	"$define$define")
 		echo "Your ICU library is workable." >&4
@@ -3900,7 +3902,15 @@ set d_icu
 eval $setvar
 case "$d_icu" in
 "$define") icu=true;;
-*) icu=false;;
+*)
+	icu=false
+	case "$has_icu" in
+	y)
+		echo "(Removing unneeded -licuuc from the list of libraries.)"
+		libs=`echo "$libs " | $sed -e 's/-licuuc //'`
+		;;
+	esac
+	;;
 esac
 
 : check whether inet_aton exists

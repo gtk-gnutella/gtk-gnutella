@@ -2,7 +2,7 @@
 ?RCS:
 ?RCS: @COPYRIGHT@
 ?RCS:
-?MAKE:icu d_icu: Setvar i_uni_putil d_ucnv_open_2_6 libs
+?MAKE:icu d_icu: Setvar i_uni_putil d_ucnv_open_2_6 sed libs
 ?MAKE:	-pick add $@ %<
 ?S:icu:
 ?S:	This variable holds true if we have a working ICU library.
@@ -16,10 +16,14 @@
 ?H:#$d_icu USE_ICU
 ?H:.
 ?LINT:set d_icu
+?LINT:change libs
+?T:has_icu
 : check whether we have a working ICU library
 echo " "
+has_icu=n
 case " $libs " in
 *" -licuuc "*)
+	has_icu=y
 	case "$i_uni_putil$d_ucnv_open_2_6" in
 	"$define$define")
 		echo "Your ICU library is workable." >&4
@@ -40,6 +44,14 @@ set d_icu
 eval $setvar
 case "$d_icu" in
 "$define") icu=true;;
-*) icu=false;;
+*)
+	icu=false
+	case "$has_icu" in
+	y)
+		echo "(Removing unneeded -licuuc from the list of libraries.)"
+		libs=`echo "$libs " | $sed -e 's/-licuuc //'`
+		;;
+	esac
+	;;
 esac
 
