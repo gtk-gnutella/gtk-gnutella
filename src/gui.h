@@ -47,7 +47,7 @@ typedef struct statusbar_timeout {
 extern guint scid_hostsfile;
 extern guint scid_search_autoselected;
 extern guint scid_queue_freezed;
-extern guint scid_queue_remove_regex;
+extern guint scid_info;
 extern guint scid_warn;
 
 

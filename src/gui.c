@@ -92,7 +92,7 @@ guint scid_bottom              = -1;
 guint scid_hostsfile           = -1;
 guint scid_search_autoselected = -1;
 guint scid_queue_freezed       = -1;
-guint scid_queue_remove_regex  = -1;
+guint scid_info                = -1;
 guint scid_ip_changed          = -1;
 guint scid_warn                = -1;
 
@@ -143,9 +143,9 @@ void gui_init(void)
 		gtk_statusbar_get_context_id(GTK_STATUSBAR(statusbar), 
                                      "queue freezed");	
 
-   	scid_queue_remove_regex = 
+   	scid_info = 
 		gtk_statusbar_get_context_id(GTK_STATUSBAR(statusbar), 
-                                     "queue remove regex");	
+                                     "information");	
 
     scid_ip_changed =
         gtk_statusbar_get_context_id(GTK_STATUSBAR(statusbar),
@@ -1400,6 +1400,7 @@ void gui_update_download_abort_resume(void)
     gboolean resume = FALSE;
     gboolean remove = FALSE;
     gboolean queue  = FALSE;
+    gboolean abort_sha1 = FALSE;
 
 	for (l = GTK_CLIST(clist_downloads)->selection; l; l = l->next) {
 		d = (struct download *)
@@ -1415,6 +1416,9 @@ void gui_update_download_abort_resume(void)
 
         if (d->status != GTA_DL_COMPLETED)
             queue = TRUE;
+    
+        if (d->sha1 != NULL)
+            abort_sha1 = TRUE;
 
 		switch (d->status) {
 		case GTA_DL_QUEUED:
@@ -1451,6 +1455,7 @@ void gui_update_download_abort_resume(void)
 	gtk_widget_set_sensitive(popup_downloads_abort, abort);
     gtk_widget_set_sensitive(popup_downloads_abort_named, abort);
     gtk_widget_set_sensitive(popup_downloads_abort_host, abort);
+    gtk_widget_set_sensitive(popup_downloads_abort_sha1, abort_sha1);
 	gtk_widget_set_sensitive(button_downloads_resume, resume);
 	gtk_widget_set_sensitive(popup_downloads_resume, resume);
     gtk_widget_set_sensitive(popup_downloads_remove_file, remove);
