@@ -32,6 +32,7 @@
 #include "bsched.h"
 
 struct gnutella_node;
+struct dl_file_info;
 	
 typedef struct upload {
     gnet_upload_t upload_handle;
@@ -57,6 +58,8 @@ typedef struct upload {
 	time_t start_date;
 	time_t last_update;
 
+	struct dl_file_info *file_info;	/* For PFSP: only set when partial file */
+
 	guint32 ip;						/* Remote IP address */
 	gchar *user_agent;				/* Remote user agent */
 	guint skip;						/* First byte to send, inclusive */
@@ -75,7 +78,7 @@ typedef struct upload {
 				                       to parq */
 	gboolean accounted;				/* True when upload was accounted for */
 	gboolean unavailable_range;		/* True when last request ended with 416 */
-	gboolean partial;				/* True if uploading partial file */
+
 	
 	gboolean parq_status;
 } gnutella_upload_t;
@@ -112,6 +115,7 @@ void upload_connect_conf(struct upload *u);
 void upload_init(void);
 void upload_close(void);
 void upload_kill_ip(guint32 ip);
+void upload_stop_all(struct dl_file_info *fi, const gchar *reason);
 void upload_send_giv(guint32 ip, guint16 port, guint8 hops, guint8 ttl,
 	guint32 file_index, gchar *file_name, gboolean banning);
 gnutella_upload_t *upload_create(struct gnutella_socket *s, gboolean push);

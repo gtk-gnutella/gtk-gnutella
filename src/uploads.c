@@ -832,6 +832,41 @@ static void upload_error_remove_ext(
 	va_end(args);
 }
 
+/*
+ * upload_stop_all
+ *
+ * Stop all uploads dealing with partial file `fi'.
+ */
+void upload_stop_all(struct dl_file_info *fi, const gchar *reason)
+{
+	GSList *to_stop = NULL;
+	gint count = 0;
+	GSList *l;
+
+	for (l = uploads; l; l = g_slist_next(l)) {
+		gnutella_upload_t *up = (gnutella_upload_t *) (l->data);
+		g_assert(up);
+		if (up->file_info == fi) {
+			to_stop = g_slist_prepend(to_stop, up);
+			count++;
+		}
+	}
+
+	if (to_stop == NULL)
+		return;
+
+	if (dbg)
+		g_warning("stopping %d uploads for \"%s\": %s",
+			count, fi->file_name, reason);
+
+	for (l = to_stop; l; l = g_slist_next(l)) {
+		gnutella_upload_t *up = (gnutella_upload_t *) (l->data);
+		upload_remove(up, reason);
+	}
+
+	g_slist_free(to_stop);
+}
+
 /***
  *** I/O header parsing callbacks.
  ***/
@@ -1945,7 +1980,7 @@ static void upload_request(gnutella_upload_t *u, header_t *header)
         atom_str_free(u->name);
 
     u->name = atom_str_get(reqfile->file_name);
-	u->partial = reqfile->fi != NULL;
+	u->file_info = reqfile->fi;
 
 	/*
 	 * Range: bytes=10453-23456
@@ -2747,7 +2782,7 @@ gnet_upload_info_t *upload_get_info(gnet_upload_t uh)
     info->user_agent    = u->user_agent ? atom_str_get(u->user_agent) : NULL;
     info->upload_handle = u->upload_handle;
 	info->push          = u->push;
-	info->partial       = u->partial;
+	info->partial       = u->file_info != NULL;
 	
     return info;
 }

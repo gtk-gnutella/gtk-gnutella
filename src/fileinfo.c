@@ -557,6 +557,15 @@ static void fi_free(struct dl_file_info *fi)
 	g_assert(fi);
 	g_assert(!fi->hashed);
 
+	/*
+	 * Stop all uploads occurring for this file.
+	 */
+
+	if (fi->sf != NULL) {
+		file_info_upload_stop(fi, "File info discarded");
+		g_assert(fi->sf == NULL);
+	}
+
 	if (fi->size_atom)
 		atom_int_free(fi->size_atom);
 	if (fi->file_name)
@@ -577,8 +586,6 @@ static void fi_free(struct dl_file_info *fi)
 			atom_str_free(l->data);
 		g_slist_free(fi->alias);
 	}
-	if (fi->sf != NULL)
-		shared_file_free(fi->sf);
 	wfree(fi, sizeof(*fi));
 }
 
@@ -1707,6 +1714,59 @@ static void file_info_hash_remove(struct dl_file_info *fi)
 }
 
 /*
+ * file_info_upload_stop
+ *
+ * Stop all sharing occuring for this fileinfo.
+ */
+void file_info_upload_stop(struct dl_file_info *fi, const gchar *reason)
+{
+	upload_stop_all(fi, reason);
+	shared_file_free(fi->sf);
+	fi->sf = NULL;
+}
+
+/*
+ * file_info_unlink
+ *
+ * Unlink file from disk.
+ */
+void file_info_unlink(struct dl_file_info *fi)
+{
+	char *path;
+
+	path = g_strdup_printf("%s/%s", fi->path, fi->file_name);
+
+	if (NULL == path || -1 == unlink(path)) {
+		/*
+		 * File might not exist on disk yet if nothing was downloaded.
+		 */
+
+		if (fi->done)
+			g_warning("cannot unlink \"%s/%s\": %s",
+				fi->path, fi->file_name,
+				NULL == path ?  "Out of memory" : g_strerror(errno));
+	} else {
+		g_warning("unlinked \"%s\" (%u/%u bytes or %d%% done, %s SHA1%s%s)",
+			fi->file_name, fi->done, fi->size,
+			fi->done * 100 / (fi->size == 0 ? 1 : fi->size),
+			fi->sha1 ? "with" : "no",
+			fi->sha1 ? ": " : "",
+			fi->sha1 ? sha1_base32(fi->sha1) : "");
+	}
+
+	/*
+	 * If this fileinfo was partially shared, make sur all uploads currently
+	 * requesting it are terminated.
+	 */
+
+	if (fi->sf != NULL)
+		file_info_upload_stop(fi, "Partial file removed");
+
+	if (path != NULL)
+		g_free(path);
+}
+
+/*
  * file_info_reparent_all
  *
  * Reparent all downloads using `from' as a fileinfo, so they use `to' now.
@@ -1714,28 +1774,11 @@ static void file_info_hash_remove(struct dl_file_info *fi)
 static void file_info_reparent_all(
 	struct dl_file_info *from, struct dl_file_info *to)
 {
-	char *path;
-
 	g_assert(from->done == 0);
 	g_assert(0 != strcmp(from->file_name, to->file_name));
 
-	path = g_strdup_printf("%s/%s", from->path, from->file_name);
-	g_return_if_fail(NULL != path);
-
-	if (-1 == unlink(path)) {
-		/*
-		 * File may not exist yet if we have not started downloading anything.
-		 */
-
-		if (from->done)
-			g_warning("cannot unlink \"%s\": %s", path, g_strerror(errno));
-	} else
-		g_warning("reparenting unlinked \"%s\" (%u/%u bytes done, %s SHA1%s%s)",
-			from->file_name, from->done, from->size,
-			from->sha1 ? "with" : "no",
-			from->sha1 ? ": " : "",
-			from->sha1 ? sha1_base32(from->sha1) : "");
-
+	g_warning("about to unlink() for reparenting: \"%s\"", from->file_name);
+	file_info_unlink(from);
 	download_info_change_all(from, to);
 
 	/*
@@ -1747,7 +1790,6 @@ static void file_info_reparent_all(
 
 	file_info_hash_remove(from);
 	fi_free(from);
-	G_FREE_NULL(path);
 }
 
 /*
@@ -2797,6 +2839,9 @@ void file_info_reset(struct dl_file_info *fi)
 		atom_sha1_free(fi->cha1);
 		fi->cha1 = NULL;
 	}
+
+	if (fi->sf != NULL)				/* File possibly shared */
+		file_info_upload_stop(fi, "File info being reset");
 
 restart:
 	for (l = fi->chunklist; l; l = g_slist_next(l)) {

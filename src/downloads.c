@@ -924,29 +924,12 @@ gboolean download_file_exists(struct download *d)
  */
 void download_remove_file(struct download *d, gboolean reset)
 {
-	gchar *path;
 	struct dl_file_info *fi = d->file_info;
 	GSList *l;
 
-	path = g_strdup_printf("%s/%s", fi->path, fi->file_name);
-
-	if (
-		NULL == path || -1 == unlink(path)
-	) {
-		g_warning("cannot unlink \"%s/%s\": %s",
-			fi->path, fi->file_name, g_strerror(errno));
-	} else {
-		g_warning("unlinked \"%s\" (%u/%u bytes done, %s SHA1%s%s)",
-			fi->file_name, fi->done, fi->size,
-			fi->sha1 ? "with" : "no",
-			fi->sha1 ? ": " : "",
-			fi->sha1 ? sha1_base32(fi->sha1) : "");
-		if (reset)
-			file_info_reset(fi);
-	}
-
-	if (NULL != path)
-		G_FREE_NULL(path);
+	file_info_unlink(fi);
+	if (reset)
+		file_info_reset(fi);
 
 	/*
 	 * Requeue all the active downloads that were referencing that file.
