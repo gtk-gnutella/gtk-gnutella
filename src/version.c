@@ -307,14 +307,14 @@ static void version_new_found(const gchar *text, gboolean stable)
 {
     static gchar last_stable[256] = "";
     static gchar last_dev[256] = "";
-    gchar *s;
+    static gchar s[1024];
 
     if (stable)
         g_strlcpy(last_stable, text, sizeof(last_stable));
     else
         g_strlcpy(last_dev, text, sizeof(last_dev));
 
-	s = g_strdup_printf(
+	gm_snprintf(s, sizeof s,
 		"%s - Newer version%s available: %s%s%s%s%s",
 		GTA_WEBSITE,
 		last_stable[0] && last_dev[0] ? "s" : "",
@@ -325,8 +325,6 @@ static void version_new_found(const gchar *text, gboolean stable)
 		last_dev[0] ? last_dev : "");
 
     gnet_prop_set_string(PROP_NEW_VERSION_STR, s);
-
-    g_free(s);
 }
 
 /*
@@ -678,3 +676,4 @@ void version_close(void)
 			version_str(&last_dev_version));
 }
 
+/* vi: set ts=4: */
