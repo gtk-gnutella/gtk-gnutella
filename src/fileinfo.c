@@ -1831,11 +1831,13 @@ void file_info_retrieve(void)
 			 * the `aliases' list itself as an added bonus.
 			 */
 
-			for (l = aliases; l; l = l->next) {
+			for (l = aliases; l; l = g_slist_next(l)) {
 				fi_alias(fi, (gchar *) l->data, TRUE);
 				atom_str_free((gchar *) l->data);
+                l->data = NULL;
 			}
 			g_slist_free(aliases);
+            aliases = NULL;
 
 			empty = FALSE;
 			fi = NULL;
@@ -1843,8 +1845,12 @@ void file_info_retrieve(void)
 			continue;
 
 		discard:
-			for (l = aliases; l; l = l->next)
+			for (l = aliases; l; l = g_slist_next(l)) {
 				atom_str_free((gchar *) l->data);
+                l->data = NULL;
+            }
+            g_slist_free(aliases);
+            aliases = NULL;
 			fi_free(fi);
 			fi = NULL;
 			continue;
@@ -3164,7 +3170,7 @@ gchar **fi_get_aliases(gnet_fi_t fih)
     a = g_new(gchar *, len+1);
     a[len] = NULL; /* terminate with NULL */;
 
-    for(sl = fi->alias, n = 0; sl != NULL; sl = g_slist_next(sl), n++) {
+    for (sl = fi->alias, n = 0; sl != NULL; sl = g_slist_next(sl), n++) {
         g_assert(n < len);
         a[n] = g_strdup((gchar *)sl->data);
     }
