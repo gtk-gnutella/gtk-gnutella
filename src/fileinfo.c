@@ -2419,6 +2419,7 @@ void file_info_update(
 	struct dl_file_chunk *fc, *nfc;
 	gboolean found = FALSE;
 	int againcount = 0;
+	struct download *newval = (status == DL_CHUNK_EMPTY) ? NULL : d;
 
 	g_assert(fi->refcount > 0);
 	g_assert(fi->lifecount > 0);
@@ -2433,7 +2434,9 @@ again:
 	/* I think the algorithm is safe now, but hey... */
 	if (++againcount > 10) {
 		g_warning("Eek! Internal error! "
-			"file_info_update() is looping! Man battle stations!");
+			"file_info_update(%u, %u, %d) is looping for \"%s\"! "
+			"Man battle stations!",
+			from, to, status, d->file_name);
 		return;
 	}
 
@@ -2450,16 +2453,16 @@ again:
 		if ((fc->from == from) && (fc->to == to)) {
 
 			fc->status = status;	
-			fc->download = d;
+			fc->download = newval;
 			found = TRUE;
 			break;
 
 		} else if ((fc->from == from) && (fc->to < to)) {
 
 			fc->status = status;
-			fc->download = d;
+			fc->download = newval;
 			from = fc->to;
-			goto again;
+			continue;
 
 		} else if ((fc->from == from) && (fc->to > to)) {
 
@@ -2468,9 +2471,10 @@ again:
 			nfc->to = fc->to;
 			nfc->status = fc->status;
 			nfc->download = fc->download;
+
 			fc->to = to;
 			fc->status = status;
-			fc->download = d;
+			fc->download = newval;
 			g_slist_insert(fi->chunklist, nfc, n+1);
 			found = TRUE;
 			break;
@@ -2481,7 +2485,7 @@ again:
 			nfc->from = from;
 			nfc->to = to;
 			nfc->status = status;
-			nfc->download = d;
+			nfc->download = newval;
 			g_slist_insert(fi->chunklist, nfc, n+1);
 
 			if (fc->to > to) {
@@ -2506,7 +2510,7 @@ again:
 			nfc->from = from;
 			nfc->to = fc->to;
 			nfc->status = status;
-			nfc->download = d;
+			nfc->download = newval;
 			g_slist_insert(fi->chunklist, nfc, n+1);
 
 			tmp = fc->to;
