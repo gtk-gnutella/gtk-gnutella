@@ -2555,9 +2555,7 @@ static struct download *download_clone(struct download *d)
 	cd->file_name = atom_str_get(d->file_name);
 	cd->visible = FALSE;
 	cd->push = FALSE;
-
-	if (d->status == GTA_DL_RECEIVING)
-		cd->file_info->recvcount++;
+	cd->status = GTA_DL_CONNECTING;
 
 	download_add_to_list(cd, DL_LIST_WAITING);
 
