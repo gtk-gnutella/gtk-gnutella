@@ -3776,7 +3776,7 @@ static gboolean new_version_str_changed(property_t prop)
     gchar *str;
 
     str = gnet_prop_get_string(PROP_NEW_VERSION_STR, NULL, 0);
-    statusbar_gui_set_default(str);
+    statusbar_gui_set_default("%s", str);
 
 	if (str)
 		g_free(str);
@@ -4571,7 +4571,7 @@ static gboolean dl_http_latency_changed(property_t prop)
     gnet_prop_get_guint32_val(prop, &val);
 	gtk_label_printf(
 		GTK_LABEL(lookup_widget(main_window, "label_dl_http_latency")),
-		"%.3lf", val / 1000.0);
+		"%.3f", val / 1000.0);
 
 	return FALSE;
 }
@@ -5227,3 +5227,5 @@ const gchar *settings_gui_config_dir(void)
 {
 	return settings_config_dir();
 }
+
+/* vi: set ts=4: */

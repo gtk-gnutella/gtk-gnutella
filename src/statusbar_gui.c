@@ -103,7 +103,7 @@ void statusbar_gui_init(void)
 	 */
 
 	statbar_botstr = g_strdup(GTA_WEBSITE);
-	statusbar_gui_push(SB_MESSAGE, scid_bottom, 0, statbar_botstr);
+	statusbar_gui_push(SB_MESSAGE, scid_bottom, 0, "%s", statbar_botstr);
 }
 
 void statusbar_gui_shutdown(void)
@@ -111,9 +111,9 @@ void statusbar_gui_shutdown(void)
     statusbar_gui_free_timeout_list();
 
 	if (statbar_botstr_new)
-		g_free(statbar_botstr_new);
+		G_FREE_NULL(statbar_botstr_new);
 	if (statbar_botstr)
-		g_free(statbar_botstr);
+		G_FREE_NULL(statbar_botstr);
 
 }
 
@@ -125,7 +125,7 @@ void statusbar_gui_set_default(const char *format, ...)
     va_start(args, format);
 
     if (statbar_botstr_new != NULL)
-        g_free(statbar_botstr_new);
+        G_FREE_NULL(statbar_botstr_new);
 
     if (format != NULL) {
         gm_vsnprintf(buf, sizeof(buf), format, args);
@@ -269,10 +269,11 @@ void statusbar_gui_clear_timeouts(time_t now)
 
 	if (sl_statusbar_timeouts == NULL && statbar_botstr_new) {
 		statusbar_gui_pop(scid_bottom);
-		g_free(statbar_botstr);
+		G_FREE_NULL(statbar_botstr);
 		statbar_botstr = statbar_botstr_new;
 		statbar_botstr_new = NULL;
-		statusbar_gui_push(SB_MESSAGE, scid_bottom, 0, statbar_botstr);
+		statusbar_gui_push(SB_MESSAGE, scid_bottom, 0, "%s",
+			statbar_botstr);
 	}
 }
 
@@ -291,3 +292,5 @@ static void statusbar_gui_free_timeout_list(void)
 		statusbar_gui_free_timeout(t);
 	}
 }
+
+/* vi: set ts=4: */

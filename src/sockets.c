@@ -300,25 +300,25 @@ static void socket_destroy(struct gnutella_socket *s, gchar *reason)
 	switch (s->type) {
 	case SOCK_TYPE_CONTROL:
 		if (s->resource.node) {
-			node_remove(s->resource.node, reason);
+			node_remove(s->resource.node, "%s", reason);
 			return;
 		}
 		break;
 	case SOCK_TYPE_DOWNLOAD:
 		if (s->resource.download) {
-			download_stop(s->resource.download, GTA_DL_ERROR, reason);
+			download_stop(s->resource.download, GTA_DL_ERROR, "%s", reason);
 			return;
 		}
 		break;
 	case SOCK_TYPE_UPLOAD:
 		if (s->resource.upload) {
-			upload_remove(s->resource.upload, reason);
+			upload_remove(s->resource.upload, "%s", reason);
 			return;
 		}
 		break;
 	case SOCK_TYPE_PPROXY:
 		if (s->resource.pproxy) {
-			pproxy_remove(s->resource.pproxy, reason);
+			pproxy_remove(s->resource.pproxy, "%s", reason);
 			return;
 		}
 		break;
@@ -522,9 +522,9 @@ static void socket_read(gpointer data, gint source, inputevt_cond_t cond)
 				ip_to_gchar(s->ip), short_time(ban_delay(s->ip)), msg);
 
 			if (0 == strncmp(first, GNUTELLA_HELLO, GNUTELLA_HELLO_LENGTH))
-				send_node_error(s, 403, msg);
+				send_node_error(s, 403, "%s", msg);
 			else
-				http_send_status(s, 403, FALSE, NULL, 0, msg);
+				http_send_status(s, 403, FALSE, NULL, 0, "%s", msg);
 		}
 		goto cleanup;
 	case BAN_FIRST:				/* Connection refused, negative ack */
@@ -569,7 +569,7 @@ static void socket_read(gpointer data, gint source, inputevt_cond_t cond)
 	 */
 
 	if (hostiles_check(s->ip)) {
-		gchar *msg = "Hostile IP address banned";
+		static const gchar msg[] = "Hostile IP address banned";
 
 		g_warning("denying connection from hostile %s: \"%s\"",
 			ip_to_gchar(s->ip), first);

@@ -235,7 +235,7 @@ void http_timer(time_t now);
 
 gboolean http_send_status(struct gnutella_socket *s,
 	gint code, gboolean keep_alive, http_extra_desc_t *hev, gint hevcnt, 
-	const gchar *reason, ...);
+	const gchar *reason, ...) G_GNUC_PRINTF(6, 7);
 
 void http_hostname_add(
 	gchar *buf, gint *retval, gpointer arg, guint32 flags);

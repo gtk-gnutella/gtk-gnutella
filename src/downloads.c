@@ -101,9 +101,13 @@ static gboolean has_blank_guid(const struct download *d);
 static void download_verify_sha1(struct download *d);
 static gboolean download_get_server_name(struct download *d, header_t *header);
 static gboolean use_push_proxy(struct download *d);
-static void download_unavailable(
-	struct download *d, guint32 new_status, const gchar * reason, ...);
+static void download_unavailable(struct download *d, guint32 new_status,
+	const gchar * reason, ...) G_GNUC_PRINTF(3 ,4);
 static void download_reparent(struct download *d, struct dl_server *new_server);
+static void download_queue_delay(struct download *d, guint32 delay,
+	const gchar *fmt, ...) G_GNUC_PRINTF(3 ,4);
+static void download_queue_hold(struct download *d, guint32 hold,
+	const gchar *fmt, ...) G_GNUC_PRINTF(3 ,4);
 
 static gboolean download_dirty = FALSE;
 static void download_store(void);
@@ -1684,6 +1688,7 @@ static void download_move_to_list(struct download *d, enum dl_list idx)
 			dl_active--;
 		else {
 			g_assert(DOWNLOAD_IS_ESTABLISHING(d));
+			g_assert(dl_establishing > 0);
 			dl_establishing--;
 		}
 		downloads_with_name_dec(download_outname(d));
@@ -4286,7 +4291,7 @@ static gboolean download_overlap_check(struct download *d)
 
 		if (dl_remove_file_on_mismatch) {
 			download_queue(d, "Resuming data mismatch @ %lu",
-				d->skip - d->overlap_size);
+				(gulong) (d->skip - d->overlap_size));
 			download_remove_file(d, TRUE);
 		} else {
 			/*
@@ -4318,10 +4323,11 @@ static gboolean download_overlap_check(struct download *d)
 
 			if (random_value(99) >= 50)
 				download_stop(d, GTA_DL_ERROR, "Resuming data mismatch @ %lu",
-					d->skip - d->overlap_size);
+					(gulong) (d->skip - d->overlap_size));
 			else
 				download_queue_delay(d, download_retry_busy_delay,
-					"Resuming data mismatch @ %lu", d->skip - d->overlap_size);
+					"Resuming data mismatch @ %lu",
+					(gulong) (d->skip - d->overlap_size));
 		}
 		goto out;
 	}
@@ -6101,9 +6107,9 @@ static void download_request(
 	fi->recvcount++;
 	fi->dirty_status = TRUE;
 
+	g_assert(dl_establishing > 0);
 	dl_establishing--;
 	dl_active++;
-	g_assert(dl_establishing >= 0);
 
 	gnet_prop_set_guint32_val(PROP_DL_RUNNING_COUNT, count_running_downloads());
 	gui_update_download(d, TRUE);
@@ -6290,7 +6296,7 @@ static void download_write_request(
 		 *		--RAM, 14/07/2003
 		 */
 
-		gchar *msg = "Could not send whole HTTP request";
+		static const gchar msg[] = "Could not send whole HTTP request";
 
 		socket_eof(s);
 
@@ -6310,7 +6316,7 @@ static void download_write_request(
 		 * If download is queued with PARQ, etc...  [Same as above]
 		 */
 
-		gchar *msg = "Write failed: %s";
+		static const gchar msg[] = "Write failed: %s";
 
 		if (d->queue_status == NULL)
 			download_stop(d, GTA_DL_ERROR, msg, g_strerror(errno));
@@ -7520,9 +7526,9 @@ renamed:
 
 cleanup:
 
-	if (NULL != src);	
+	if (NULL != src)
 		G_FREE_NULL(src);
-	if (NULL != dest);	
+	if (NULL != dest)
 		G_FREE_NULL(dest);
 	return;
 }

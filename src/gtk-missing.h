@@ -66,18 +66,18 @@ GSList *clist_collect_data(GtkCList *clist, gboolean allow_null,
 void gtk_ctree_fast_move (GtkCTree *ctree, GtkCTreeNode *node,
 	GtkCTreeNode *new_sibling);
 #define GTK_CTREE_NODE_SIBLING(n) \
-    ((n) ? (GTK_CTREE_ROW(n)->sibling) : (NULL))
+    ((n) ? (GTK_CTREE_ROW(n)->sibling) : NULL)
 #endif /* USE_GTK1 */
 
 /*
  * GtkLabel
  */
-void gtk_label_printf(GtkLabel *label, const gchar * format, ...);
+void gtk_label_printf(GtkLabel *, const gchar *fmt, ...) G_GNUC_PRINTF(2, 3);
 
 /*
  * GtkEntry
  */
-void gtk_entry_printf(GtkEntry *entry, const gchar * format, ...);
+void gtk_entry_printf(GtkEntry *, const gchar *fmt, ...) G_GNUC_PRINTF(2, 3);
 
 /*
  * GtkEditable

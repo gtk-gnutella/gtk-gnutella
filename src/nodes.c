@@ -2890,7 +2890,7 @@ static gboolean node_can_accept_connection(
 	 */
 
 	if ((n->attrs & NODE_A_ULTRA) && (bad = node_is_bad(n)) != NODE_BAD_OK) {
-		gchar *msg = NULL;
+		const gchar *msg = "Unknown error";
 
 		switch (bad) {
 		case NODE_BAD_OK:
@@ -2907,7 +2907,7 @@ static gboolean node_can_accept_connection(
 			break;
 		}
 
-		send_node_error(n->socket, 403, msg);
+		send_node_error(n->socket, 403, "%s", msg);
 		node_remove(n, "Not connecting: %s", msg);
 		return FALSE;
 	}
@@ -3163,7 +3163,7 @@ static gboolean node_can_accept_protocol(
 			!(n->flags & NODE_F_LEAF) &&
 			strstr(field, "application/x-gnutella2") /* XXX parse the "," */
 		) {
-			gchar *msg = "Protocol not acceptable";
+			static const gchar msg[] = "Protocol not acceptable";
 
 			send_node_error(n->socket, 406, msg);
 			node_remove(n, msg);
@@ -3655,8 +3655,8 @@ static void node_process_handshake_header(
 
 		if (msg != NULL) {
 			ban_record(n->socket->ip, msg);
-			send_node_error(n->socket, 403, msg);
-			node_remove(n, msg);
+			send_node_error(n->socket, 403, "%s", msg);
+			node_remove(n, "%s", msg);
 			return;
 		}
 	}
@@ -3737,7 +3737,7 @@ static void node_process_handshake_header(
 		/* Make sure we only receive incoming connections from crawlers */
 
 		if (n->flags & NODE_F_CRAWLER) {
-			gchar *msg = "Cannot connect to a crawler";
+			static const gchar msg[] = "Cannot connect to a crawler";
 
 			send_node_error(n->socket, 403, msg);
 			node_remove(n, msg);
@@ -3771,7 +3771,7 @@ static void node_process_handshake_header(
 					gnet_prop_set_guint32_val(PROP_CURRENT_PEERMODE,
 						NODE_P_LEAF);
 				} else if (current_peermode != NODE_P_LEAF) {
-					gchar *msg = "Not becoming a leaf node";
+					static const gchar msg[] = "Not becoming a leaf node";
 
 					if (dbg > 2) g_warning(
 						"denying request from %s <%s> to become a leaf",
@@ -3941,7 +3941,7 @@ static void err_line_too_long(gpointer obj)
 
 static void err_header_error_tell(gpointer obj, gint error)
 {
-	send_node_error(NODE(obj)->socket, 413, header_strerror(error));
+	send_node_error(NODE(obj)->socket, 413, "%s", header_strerror(error));
 }
 
 static void err_header_error(gpointer obj, gint error)
@@ -4958,7 +4958,7 @@ static void node_bye_flags(guint32 mask, gint code, gchar *message)
 			continue;
 
 		if (n->flags & mask)
-			node_bye_if_writable(n, code, message);
+			node_bye_if_writable(n, code, "%s", message);
 	}
 }
 
@@ -4979,7 +4979,7 @@ static void node_bye_all_but_one(
 			continue;
 
 		if (n != nskip)
-			node_bye_if_writable(n, code, message);
+			node_bye_if_writable(n, code, "%s", message);
 	}
 }
 
