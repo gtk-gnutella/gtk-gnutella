@@ -103,7 +103,7 @@ void upload_timer(time_t now);
 void upload_remove(struct upload *, const gchar *, ...);
 void handle_push_request(struct gnutella_node *);
 void upload_add(struct gnutella_socket *s);
-void upload_push_conf(struct upload *u);
+void upload_connect_conf(struct upload *u);
 void upload_init(void);
 void upload_close(void);
 gnutella_upload_t *upload_create(struct gnutella_socket *s, gboolean push);

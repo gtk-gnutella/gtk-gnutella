@@ -729,7 +729,7 @@ static void socket_connected(gpointer data, gint source, inputevt_cond_t cond)
 				struct upload *u = s->resource.upload;
 
 				g_assert(u->socket == s);
-				upload_push_conf(u);
+				upload_connect_conf(u);
 			}
 			break;
 
