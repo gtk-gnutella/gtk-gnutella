@@ -184,6 +184,7 @@ gint enable_err_log = 0;		// enable writing to log file for errors
 gint search_strict_and = 0;		// search filter for strict AND of results
 gint search_pick_all = 1;		// enable picking all files alike in search
 gint max_uploads_ip = 2;		// maximum uploads per IP
+gint filter_default_policy = 0; // default to "don't display"
 guint16 downloads_divider_pos = 160;
 guint16 main_divider_pos = 128;
 guint16 side_divider_pos = 128;
@@ -207,6 +208,7 @@ guint32 search_results_col_widths[] = { 210, 80, 50, 140, 140 };
 guint32 search_stats_col_widths[] = { 200, 80, 80 };
 guint32 ul_stats_col_widths[] = { 200, 80, 80, 80, 80 };
 guint32 search_list_col_widths[] = { 80, 20, 20 };
+guint32 filter_table_col_widths[] = { 10, 240, 80 };
 
 gboolean jump_to_downloads = TRUE;
 
@@ -222,6 +224,7 @@ gchar *proxy_ip = NULL;
 
 #define SOCKS_USER	0
 #define SOCKS_PASS	1
+
 
 gboolean proxy_auth = FALSE;
 static gchar *socks[] = { "proxyuser", "proxypass" };
@@ -270,8 +273,8 @@ typedef enum {
 	k_win_x, k_win_y, k_win_w, k_win_h, k_win_coords, k_widths_nodes,
 	k_widths_uploads,
 	k_widths_dl_active, k_widths_dl_queued, k_widths_search_results,
-	k_widths_search_stats, k_widths_ul_stats, k_widths_search_list,
-	k_search_results_show_tabs,
+	k_widths_search_stats, k_widths_ul_stats, k_widths_search_list, 
+    k_widths_filter_table, k_search_results_show_tabs,
 	k_hops_random_factor, k_send_pushes, k_jump_to_downloads,
 	k_max_connections, k_proxy_connections,
 	k_proxy_protocol, k_proxy_ip, k_proxy_port, k_proxy_auth, k_socks_user,
@@ -312,6 +315,7 @@ typedef enum {
     k_downloads_divider_pos,
     k_main_divider_pos,
     k_side_divider_pos,
+    k_filter_default_policy,
 	k_end
 } keyword_t;
 
@@ -380,6 +384,7 @@ static gchar *keywords[k_end] = {
 	"widths_search_stats",		/* k_widths_search_stats */
 	"widths_ul_stats",			/* k_widths_ul_stats */
     "widths_search_list",       /* k_widths_search_list */
+    "widths_filter_table",      /* k_widths_filter_table */
 	"show_results_tabs",		/* k_search_results_show_tabs */
 	"hops_random_factor",		/* k_hops_random_factor */
 	"send_pushes",				/* k_send_pushes */
@@ -439,7 +444,8 @@ static gchar *keywords[k_end] = {
     "progressbar_bps_out_avg",
     "downloads_divider_pos",
     "main_divider_pos",
-    "side_divider_pos"
+    "side_divider_pos",
+    "filter_default_policy"
 };
 
 static gchar cfg_tmp[4096];
@@ -727,6 +733,7 @@ void config_set_param(keyword_t keyword, gchar *value)
         CONFIG_SET_NUM(search_stats_delcoef,           0,     100)
         CONFIG_SET_NUM(search_stats_update_interval,   0,   50000)
         CONFIG_SET_NUM(up_connections,                 1,     511)
+        CONFIG_SET_NUM(filter_default_policy,          0,       1)
         CONFIG_SET_STR(proxy_ip)
         CONFIG_SET_STR(socks_pass)
         CONFIG_SET_STR(socks_user)
@@ -881,6 +888,12 @@ void config_set_param(keyword_t keyword, gchar *value)
 		if ((a = config_parse_array(value, 3)))
 			for (i = 0; i < 3; i++)
 				search_list_col_widths[i] = a[i];
+		return;
+
+    case k_widths_filter_table:
+		if ((a = config_parse_array(value, 3)))
+			for (i = 0; i < 3; i++)
+				filter_table_col_widths[i] = a[i];
 		return;
 
 	case k_forced_local_ip:
@@ -1178,6 +1191,10 @@ static void config_save(void)
 			keywords[k_widths_search_list],
 			search_list_col_widths[0], search_list_col_widths[1],
 			search_list_col_widths[2]);
+        fprintf(config, "%s = %u,%u,%u\n",
+			keywords[k_widths_filter_table],
+			filter_table_col_widths[0], filter_table_col_widths[1],
+            filter_table_col_widths[2]);
        	fprintf(config, "%s = %u,%u,%u,%u\n", keywords[k_win_coords], win_x,
 			win_y, win_w, win_h);
     }
@@ -1397,6 +1414,7 @@ static void config_save(void)
         CONFIG_WRITE_UINT(search_reissue_timeout)
         CONFIG_WRITE_BOOL(search_results_show_tabs)
         CONFIG_WRITE_BOOL(search_remove_downloaded)
+        CONFIG_WRITE_INT(filter_default_policy)
         fprintf(config, "# Whether or not to jump to the "
             "downloads screen when a new download is selected.\n"
 			"%s = %u\n", keywords[k_jump_to_downloads],
