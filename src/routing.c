@@ -33,6 +33,7 @@
 #include "gmsg.h"
 #include "nodes.h"
 #include "gnet_stats.h"
+#include "hostiles.h"
 
 #include <stdarg.h>
 
@@ -941,6 +942,8 @@ gboolean route_message(struct gnutella_node **node, struct route_dest *dest)
 		 */
 
 		if (sender->header.function == GTA_MSG_PUSH_REQUEST) {
+			guint32 ip;
+
 			g_assert(sender->size > 16);	/* Must be a valid push */
 
 			/*
@@ -954,6 +957,23 @@ gboolean route_message(struct gnutella_node **node, struct route_dest *dest)
 						node_ip(sender), guid_hex_str(sender->data));
 
                 gnet_stats_count_dropped(sender, MSG_DROP_BANNED);
+				sender->rx_dropped++;
+
+				return FALSE;
+			}
+
+			/*
+			 * If IP address is among the hostile set, drop.
+			 */
+
+			READ_GUINT32_BE(sender->data + 20, ip);
+
+			if (hostiles_check(ip)) {
+				if (dbg > 3)
+					gmsg_log_dropped(&sender->header,
+						"from %s, hostile IP address", node_ip(sender));
+
+                gnet_stats_count_dropped(sender, MSG_DROP_HOSTILE_IP);
 				sender->rx_dropped++;
 
 				return FALSE;
