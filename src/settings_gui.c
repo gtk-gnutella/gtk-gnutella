@@ -3971,7 +3971,7 @@ static gboolean ancient_version_changed(property_t prop)
     stub->boolean.get(prop, &b, 0, 1);
 
     if (b) {
-        statusbar_gui_warning(15, _("*** RUNNING AN OLD VERSION! ***"));
+        statusbar_gui_message(15, _("*** RUNNING AN OLD VERSION! ***"));
         gtk_widget_show(w);
     } else {
         gtk_widget_hide(w);
@@ -4031,12 +4031,12 @@ static gboolean ancient_version_left_days_changed(property_t prop)
     gnet_prop_get_guint32_val(prop, &remain);
 
 	if (remain == 0)
-		statusbar_gui_warning(15, _("*** VERSION WILL SOON BECOME OLD! ***"));
+		statusbar_gui_message(15, _("*** VERSION WILL SOON BECOME OLD! ***"));
 	else if (remain == 1)
-		statusbar_gui_warning(15,
+		statusbar_gui_message(15,
 			_("*** VERSION WILL BECOME OLD IN 1 DAY! ***"));
 	else
-		statusbar_gui_warning(15,
+		statusbar_gui_message(15,
 			_("*** VERSION WILL BECOME OLD IN %d DAYS! ***"), remain);
 
     return FALSE;

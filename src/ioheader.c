@@ -240,9 +240,11 @@ nextline:
 	 */
 
 	if ((ih->flags & IO_HEAD_ONLY) && s->pos) {
-		g_warning("remote %s sent extra bytes after headers",
-			ip_to_gchar(s->ip));
-		dump_hex(stderr, "Extra Data", s->buffer, MIN(s->pos, 512));
+        if (dbg) {
+            g_message("remote %s sent extra bytes after headers",
+                ip_to_gchar(s->ip));
+            dump_hex(stderr, "Extra Data", s->buffer, MIN(s->pos, 512));
+        }
 		(*ih->error->header_extra_data)(ih->resource);
 		return;
 	}

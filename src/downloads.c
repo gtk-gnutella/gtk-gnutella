@@ -6032,7 +6032,7 @@ static void download_request(
 			return;
 		} else if (content_size != requested_size) {
 			if (content_size == fi->size) {
-				g_warning("File '%s': server seems to have "
+				g_message("File '%s': server seems to have "
 					"ignored our range request of %u-%u.",
 					d->file_name, d->skip - d->overlap_size, d->range_end - 1);
 				download_bad_source(d);
@@ -6055,45 +6055,53 @@ static void download_request(
 			sscanf(buf, "bytes=%d-%d/%d", &start, &end, &total)		/* Bad! */
 		) {
 			if (start != d->skip - d->overlap_size) {
-				g_warning("file '%s' on %s (%s): "
-					"start byte mismatch: wanted %u, got %u",
-					d->file_name,
-					ip_port_to_gchar(download_ip(d), download_port(d)),
-					download_vendor_str(d),
-					d->skip - d->overlap_size, start);
+                if (dbg) {
+                    g_message("file '%s' on %s (%s): "
+                        "start byte mismatch: wanted %u, got %u",
+                        d->file_name,
+                        ip_port_to_gchar(download_ip(d), download_port(d)),
+                        download_vendor_str(d),
+                        d->skip - d->overlap_size, start);
+                }
 				download_bad_source(d);
 				download_stop(d, GTA_DL_ERROR, "Range start mismatch");
 				return;
 			}
 			if (total != fi->size) {
-				g_warning("file '%s' on %s (%s): "
-					"file size mismatch: expected %u, got %u",
-					d->file_name,
-					ip_port_to_gchar(download_ip(d), download_port(d)),
-					download_vendor_str(d),
-					fi->size, total);
+                if (dbg) {
+                        g_message("file '%s' on %s (%s): "
+                        "file size mismatch: expected %u, got %u",
+                        d->file_name,
+                        ip_port_to_gchar(download_ip(d), download_port(d)),
+                        download_vendor_str(d),
+                        fi->size, total);
+                }
 				download_bad_source(d);
 				download_stop(d, GTA_DL_ERROR, "File size mismatch");
 				return;
 			}
 			if (end > d->range_end - 1) {
-				g_warning("file '%s' on %s (%s): "
-					"end byte too large: expected %u, got %u",
-					d->file_name,
-					ip_port_to_gchar(download_ip(d), download_port(d)),
-					download_vendor_str(d),
-					d->range_end - 1, end);
+                if (dbg) {
+                    g_message("file '%s' on %s (%s): "
+                        "end byte too large: expected %u, got %u",
+                        d->file_name,
+                        ip_port_to_gchar(download_ip(d), download_port(d)),
+                        download_vendor_str(d),
+                        d->range_end - 1, end);
+                }
 				download_bad_source(d);
 				download_stop(d, GTA_DL_ERROR, "Range end too large");
 				return;
 			}
 			if (end < d->range_end - 1) {
-				g_warning("file '%s' on %s (%s): "
-					"end byte short: wanted %u, got %u (continuing anyway)",
-					d->file_name,
-					ip_port_to_gchar(download_ip(d), download_port(d)),
-					download_vendor_str(d),
-					d->range_end - 1, end);
+                if (dbg) {
+                    g_message("file '%s' on %s (%s): "
+                        "end byte short: wanted %u, got %u (continuing anyway)",
+                        d->file_name,
+                        ip_port_to_gchar(download_ip(d), download_port(d)),
+                        download_vendor_str(d),
+                        d->range_end - 1, end);
+                }
 
 				/*
 				 * Since we're getting less than we asked for, we need to
@@ -6114,9 +6122,12 @@ static void download_request(
 			}
 			got_content_length = TRUE;
 			check_content_range = 0;		/* We validated the served range */
-		} else
-			g_warning("File '%s': malformed Content-Range: %s",
-				d->file_name, buf);
+		} else {
+            if (dbg) {
+                g_message("File '%s': malformed Content-Range: %s",
+                    d->file_name, buf);
+            }
+        }
 	}
 
 	/*
@@ -6125,7 +6136,7 @@ static void download_request(
 	 */
 
 	if (check_content_range != 0) {
-		g_warning("File '%s': expected content of %u, server %s (%s) said %u",
+		g_message("File '%s': expected content of %u, server %s (%s) said %u",
 			d->file_name, requested_size,
 			ip_port_to_gchar(download_ip(d), download_port(d)),
 			download_vendor_str(d),
@@ -6148,8 +6159,8 @@ static void download_request(
 	if (!got_content_length) {
 		const char *ua = header_get(header, "Server");
 		ua = ua ? ua : header_get(header, "User-Agent");
-		if (ua)
-			g_warning("server \"%s\" did not send any length indication", ua);
+		if (ua && dbg)
+			g_message("server \"%s\" did not send any length indication", ua);
 		download_bad_source(d);
 		download_stop(d, GTA_DL_ERROR, "No Content-Length header");
 		return;
@@ -6189,7 +6200,7 @@ static void download_request(
 	if (stat(path, &st) != -1) {
 		/* File exists, we'll append the data to it */
 		if (!fi->use_swarming && (fi->done != d->skip)) {
-			g_warning("File '%s' changed size (now %u, but was %u)",
+			g_message("File '%s' changed size (now %u, but was %u)",
 					fi->file_name, fi->done, d->skip);
 			download_queue_delay(d, download_retry_stopped_delay,
 				"Stopped (Output file size changed)");
@@ -6476,7 +6487,7 @@ static void download_write_request(
 	 */
 
 	if (dbg)
-		g_warning("flushed partially written HTTP request to %s (%d bytes)",
+		g_message("flushed partially written HTTP request to %s (%d bytes)",
 			ip_port_to_gchar(download_ip(d), download_port(d)),
 			http_buffer_length(r));
 	 
@@ -6817,7 +6828,7 @@ picked:
 		 * path is clogged.
 		 */
 
-		g_warning("partial HTTP request write to %s: wrote %d out of %d bytes",
+		g_message("partial HTTP request write to %s: wrote %d out of %d bytes",
 			ip_port_to_gchar(download_ip(d), download_port(d)),
 			sent, rw);
 
@@ -6860,7 +6871,7 @@ static void download_push_ready(struct download *d, getline_t *empty)
 	gint len = getline_length(empty);
 
 	if (len != 0) {
-		g_warning("File '%s': push reply was not followed by an empty line",
+		g_message("File '%s': push reply was not followed by an empty line",
 			d->file_name);
 		dump_hex(stderr, "Extra GIV data", getline_str(empty), MIN(len, 80));
 		download_stop(d, GTA_DL_ERROR, "Malformed push reply");
@@ -6943,7 +6954,7 @@ static struct download *select_push_download(guint file_index, gchar *hex_guid)
 	 */
 
 	if (!hex_to_guid(hex_guid, rguid)) {
-		g_warning("discarding GIV with malformed GUID %s", hex_guid);
+		g_message("discarding GIV with malformed GUID %s", hex_guid);
 		return NULL;
 	}
 
@@ -7074,7 +7085,7 @@ static struct download *select_push_download(guint file_index, gchar *hex_guid)
 		}
 	}
 
-	g_warning("discarding GIV from %s: no suitable alternate found",
+	g_message("discarding GIV from %s: no suitable alternate found",
 		guid_hex_str(rguid));
 
 	return NULL;
@@ -7376,7 +7387,7 @@ static void download_retrieve(void)
 			if (recline == 0)
 				continue;			/* Allow arbitrary blank lines */
 
-			g_warning("download_retrieve: "
+			g_message("download_retrieve: "
 				"Unexpected empty line #%d, aborting", line);
 			goto out;
 		}
@@ -7469,7 +7480,7 @@ static void download_retrieve(void)
 			continue;
 		case 4:						/* PARQ id, or "*" if none */
 			if (maxlines != 4) {
-				g_warning("download_retrieve: "
+				g_message("download_retrieve: "
 					"can't handle %d lines in records, aborting", maxlines);
 				goto out;
 			}
@@ -7479,7 +7490,7 @@ static void download_retrieve(void)
 			}
 			break;
 		default:
-			g_warning("download_retrieve: "
+			g_message("download_retrieve: "
 				"Too many lines for record at line #%d, aborting", line);
 			goto out;
 		}

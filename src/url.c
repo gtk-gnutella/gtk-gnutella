@@ -493,7 +493,7 @@ gchar *url_normalize(gchar *url, url_policy_t pol)
 	gchar *p, *q = url;
 	const gchar *uri;
 	static const char http_prefix[] = "http://";
-	static gboolean url_dbg = TRUE;
+	static gboolean url_dbg = FALSE;
 
 	g_assert(url);
 

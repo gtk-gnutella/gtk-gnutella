@@ -519,8 +519,10 @@ static void socket_read(gpointer data, gint source, inputevt_cond_t cond)
 		{
 			gchar *msg = ban_message(s->ip);
 
-			g_warning("rejecting connection from banned %s (%s still): %s",
-				ip_to_gchar(s->ip), short_time(ban_delay(s->ip)), msg);
+            if (dbg) {
+                g_message("rejecting connection from banned %s (%s still): %s",
+                    ip_to_gchar(s->ip), short_time(ban_delay(s->ip)), msg);
+            }
 
 			if (0 == strncmp(first, GNUTELLA_HELLO, GNUTELLA_HELLO_LENGTH))
 				send_node_error(s, 403, "%s", msg);
