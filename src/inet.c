@@ -210,7 +210,7 @@ gboolean inet_can_answer_ping(void)
 	time_t elapsed;
 
 	if (!is_firewalled)
-		return TRUE;
+		return current_peermode != NODE_P_LEAF;	/* Leaves don't send pongs */
 
 	ip = listen_ip();
 
