@@ -444,7 +444,7 @@ static gint search_gui_compare_size_func(
 
     gtk_tree_model_get(model, a, c_sr_record, &rec_a, (-1));
     gtk_tree_model_get(model, b, c_sr_record, &rec_b, (-1));
-	return SIGN(rec_a->size, rec_b->size);
+	return SIGN(rec_b->size, rec_a->size);
 }
 
 static gint search_gui_compare_count_func(
@@ -453,7 +453,7 @@ static gint search_gui_compare_count_func(
 	guint m = (guint) gtk_tree_model_iter_n_children(model, a);
 	guint n = (guint) gtk_tree_model_iter_n_children(model, b);
 	return m == n ?
-		search_gui_compare_size_func(model, a, b, user_data) : SIGN(m, n);
+		search_gui_compare_size_func(model, a, b, user_data) : SIGN(n, m);
 }
 
 #if 0
