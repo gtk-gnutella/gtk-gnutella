@@ -55,6 +55,7 @@ struct vendor {
     { T_HSLG, "Hagelslag" },
     { T_LIME, "Limewire" },
     { T_MACT, "Mactella" },
+    { T_MLDK, "MLDonkey" },
     { T_MMMM, "Morpheus-v2" },
     { T_MNAP, "MyNapster" },
     { T_MRPH, "Morpheus" },

@@ -1,5 +1,9 @@
 # since last version
 
+
+- (2003.02.22 - guruz)
+ * Added MLDonkey vendor code (MLDK)
+
 - (2003.02.21 - cbiere)
  * Added socket_connect_prepare() to reduce double code
  * Added adns_pending to which indicates whether the adns callback has been

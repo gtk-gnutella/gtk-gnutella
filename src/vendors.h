@@ -57,6 +57,7 @@
 #define T_HSLG	MAKE_CODE('H','S','L','G')
 #define T_LIME	MAKE_CODE('L','I','M','E')
 #define T_MACT	MAKE_CODE('M','A','C','T')
+#define T_MLDK  MAKE_CODE('M','L','D','K')
 #define T_MMMM	MAKE_CODE('M','M','M','M')
 #define T_MNAP	MAKE_CODE('M','N','A','P')
 #define T_MRPH	MAKE_CODE('M','R','P','H')
