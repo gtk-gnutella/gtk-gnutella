@@ -281,12 +281,12 @@ static void version_new_found(gchar *text, gboolean stable)
 	s = g_strdup_printf(
 		"%s - Newer version%s available: %s%s%s%s%s",
 		GTA_WEBSITE,
-		last_stable && last_dev ? "s" : "",
-		last_stable ? "release " : "",
-		last_stable ? last_stable : "",
-		last_stable && last_dev ? " / " : "",
-		last_dev ? "from CVS " : "",
-		last_dev ? last_dev : "");
+		last_stable[0] && last_dev[0] ? "s" : "",
+		last_stable[0] ? "release " : "",
+		last_stable[0] ? last_stable : "",
+		last_stable[0] && last_dev[0] ? " / " : "",
+		last_dev[0] ? "from CVS " : "",
+		last_dev[0] ? last_dev : "");
 
     gnet_prop_set_string(PROP_NEW_VERSION_STR, s);
 
