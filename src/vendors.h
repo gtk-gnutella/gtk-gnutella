@@ -38,10 +38,12 @@
 	((guint32) (c) << 8)  | \
 	((guint32) (d)))
 
+#define T_ACQX  MAKE_CODE('A','C','Q','X')
 #define T_ARES  MAKE_CODE('A','R','E','S')
 #define T_BEAR	MAKE_CODE('B','E','A','R')
 #define T_COCO	MAKE_CODE('C','O','C','O')
 #define T_CULT	MAKE_CODE('C','U','L','T')
+#define T_EVIL	MAKE_CODE('E','V','I','L')
 #define T_FIRE	MAKE_CODE('F','I','R','E')
 #define T_FISH	MAKE_CODE('F','I','S','H')
 #define T_GNEW	MAKE_CODE('G','N','E','W')
