@@ -121,7 +121,6 @@ static void gwc_seed_cache(gchar *cache_url);
  */
 
 static gchar *boot_url[] = {
-	"http://www.gnucleus.net/gcache/gcache.php",
 	"http://gwebcache.bearshare.net/gcache.php",
 	"http://raphael.manfredi.free.fr/gwc/gcache.php",
 };
