@@ -53,8 +53,7 @@ typedef struct version {
 #define VERSION_UNSTABLE_WARN	(86400*60)		/* 2 months - 60 days */
 #define VERSION_UNSTABLE_BAN	(86400*90)		/* 3 months - 90 days */
 
-#define stringify(x) #x
-#define xstr(x) stringify(x)  
+#define xstr(x) STRINGIFY(x)  
 
 #if defined(GTA_PATCHLEVEL) && (GTA_PATCHLEVEL != 0)
 #define GTA_VERSION_NUMBER \
