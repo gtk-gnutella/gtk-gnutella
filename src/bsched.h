@@ -109,7 +109,7 @@ typedef struct bio_source {
 	gint fd;							/* File descriptor */
 	gint io_tag;						/* Recorded I/O callback tag */
 	guint io_flags;						/* Flags for I/O callback */
-	GdkInputFunction io_callback;		/* I/O callback routine */
+	inputevt_handler_t io_callback;		/* I/O callback routine */
 	gpointer io_arg;					/* I/O callback argument */
 	guint32 flags;						/* Source flags */
 	guint bw_actual;					/* Actual bandwidth used in period */
@@ -156,11 +156,11 @@ void bsched_enable(bsched_t *bs);
 void bsched_disable(bsched_t *bs);
 void bsched_enable_all(void);
 bio_source_t *bsched_source_add(bsched_t *bs, int fd, guint32 flags,
-	GdkInputFunction callback, gpointer arg);
+	inputevt_handler_t callback, gpointer arg);
 void bsched_source_remove(bio_source_t *bio);
 void bsched_set_bandwidth(bsched_t *bs, gint bandwidth);
 void bio_add_callback(bio_source_t *bio,
-	GdkInputFunction callback, gpointer arg);
+	inputevt_handler_t callback, gpointer arg);
 void bio_remove_callback(bio_source_t *bio);
 gint bio_write(bio_source_t *bio, gpointer data, gint len);
 gint bio_writev(bio_source_t *bio, struct iovec *iov, gint iovcnt);

@@ -1206,7 +1206,7 @@ static void http_got_data(struct http_async *ha, gboolean eof)
  * Called when data are available on the socket.
  * Read them and pass them to http_got_data().
  */
-static void http_data_read(gpointer data, gint source, GdkInputCondition cond)
+static void http_data_read(gpointer data, gint source, inputevt_cond_t cond)
 {
 	struct http_async *ha = (struct http_async *) data;
 	struct gnutella_socket *s = ha->socket;

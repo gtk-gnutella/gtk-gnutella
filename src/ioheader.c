@@ -185,7 +185,7 @@ nextline:
 
 		g_assert(s->gdk_tag);
 
-		gdk_input_remove(s->gdk_tag);
+		g_source_remove(s->gdk_tag);
 		s->gdk_tag = 0;
 
 		ih->process_header(ih->resource, ih->header);
@@ -273,7 +273,7 @@ nextline:
 
 		g_assert(s->gdk_tag);
 
-		gdk_input_remove(s->gdk_tag);
+		g_source_remove(s->gdk_tag);
 		s->gdk_tag = 0;
 	}
 
@@ -289,7 +289,7 @@ nextline:
  * Read data is then handed out to io_header_parse() for analysis.
  */
 static void io_read_data(
-	gpointer data, gint source, GdkInputCondition cond)
+	gpointer data, gint source, inputevt_cond_t cond)
 {
 	struct io_header *ih = (struct io_header *) data;
 	struct gnutella_socket *s = ih->socket;
@@ -418,8 +418,8 @@ void io_get_header(
 
 	g_assert(s->gdk_tag == 0);
 
-	s->gdk_tag = gdk_input_add(s->file_desc,
-		(GdkInputCondition) GDK_INPUT_READ | GDK_INPUT_EXCEPTION,
+	s->gdk_tag = inputevt_add(s->file_desc,
+		(inputevt_cond_t) INPUT_EVENT_READ | INPUT_EVENT_EXCEPTION,
 		io_read_data, (gpointer) ih);
 
 	/*

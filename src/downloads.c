@@ -73,7 +73,7 @@ static GHashTable *pushed_downloads = 0;
 
 static void download_add_to_list(struct download *d, enum dl_list idx);
 static gboolean send_push_request(gchar *, guint32, guint16);
-static void download_read(gpointer data, gint source, GdkInputCondition cond);
+static void download_read(gpointer data, gint source, inputevt_cond_t cond);
 static void download_request(struct download *d, header_t *header, gboolean ok);
 static void download_push_ready(struct download *d, getline_t *empty);
 static void download_push_remove(struct download *d);
@@ -4246,7 +4246,7 @@ static void download_incomplete_header(struct download *d)
  *
  * Read callback for file data.
  */
-static void download_read(gpointer data, gint source, GdkInputCondition cond)
+static void download_read(gpointer data, gint source, inputevt_cond_t cond)
 {
 	struct download *d = (struct download *) data;
 	struct gnutella_socket *s;

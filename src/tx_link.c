@@ -51,7 +51,7 @@ struct attr {
  *
  * Invoked when the output file descriptor can accept more data.
  */
-static void is_writable(gpointer data, gint source, GdkInputCondition cond)
+static void is_writable(gpointer data, gint source, inputevt_cond_t cond)
 {
 	txdrv_t *tx = (txdrv_t *) data;
 	struct gnutella_node *n = tx->node;

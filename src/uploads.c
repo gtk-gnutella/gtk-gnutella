@@ -110,6 +110,7 @@ static void upload_error_remove_ext(gnutella_upload_t *u, struct shared_file *sf
 	gchar *extended, int code, guchar *msg, ...);
 static void upload_http_sha1_add(gchar *buf, gint *retval, gpointer arg);
 static void upload_http_xhost_add(gchar *buf, gint *retval, gpointer arg);
+static void upload_write(gpointer up, gint source, inputevt_cond_t cond);
 
 
 /***
@@ -2138,7 +2139,7 @@ static void upload_request(gnutella_upload_t *u, header_t *header)
  *
  * Called when output source can accept more data.
  */
-void upload_write(gpointer up, gint source, GdkInputCondition cond)
+static void upload_write(gpointer up, gint source, inputevt_cond_t cond)
 {
 	gnutella_upload_t *u = (gnutella_upload_t *) up;
 	gint written;

@@ -287,9 +287,9 @@ static void bio_enable(bio_source_t *bio)
 	g_assert(bio->io_tag == 0);
 	g_assert(bio->io_callback);		/* "passive" sources not concerned */
 
-	bio->io_tag = gdk_input_add(bio->fd,
-		(GdkInputCondition) GDK_INPUT_EXCEPTION |
-			((bio->flags & BIO_F_READ) ? GDK_INPUT_READ : GDK_INPUT_WRITE),
+	bio->io_tag = inputevt_add(bio->fd,
+		(inputevt_cond_t) INPUT_EVENT_EXCEPTION |
+			((bio->flags & BIO_F_READ) ? INPUT_EVENT_READ : INPUT_EVENT_WRITE),
 		bio->io_callback, bio->io_arg);
 
 	g_assert(bio->io_tag);
@@ -309,7 +309,7 @@ static void bio_disable(bio_source_t *bio)
 	g_assert(bio->io_tag);
 	g_assert(bio->io_callback);		/* "passive" sources not concerned */
 
-	gdk_input_remove(bio->io_tag);
+	g_source_remove(bio->io_tag);
 	bio->io_tag = 0;
 }
 
@@ -319,7 +319,7 @@ static void bio_disable(bio_source_t *bio)
  * Add I/O callback to a "passive" I/O source.
  */
 void bio_add_callback(bio_source_t *bio,
-	GdkInputFunction callback, gpointer arg)
+	inputevt_handler_t callback, gpointer arg)
 {
 	g_assert(bio);
 	g_assert(bio->io_callback == NULL);	/* "passive" source */
@@ -491,7 +491,7 @@ static void bsched_bio_remove(bsched_t *bs, bio_source_t *bio)
  * Returns new bio_source object.
  */
 bio_source_t *bsched_source_add(bsched_t *bs, int fd, guint32 flags,
-	GdkInputFunction callback, gpointer arg)
+	inputevt_handler_t callback, gpointer arg)
 {
 	bio_source_t *bio;
 
@@ -541,7 +541,7 @@ void bsched_source_remove(bio_source_t *bio)
 	if (bs)
 		bsched_bio_remove(bs, bio);
 	if (bio->io_tag)
-		gdk_input_remove(bio->io_tag);
+		g_source_remove(bio->io_tag);
 
 	g_free(bio);
 }

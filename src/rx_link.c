@@ -52,7 +52,7 @@ struct attr {
  *
  * Invoked when the input file descriptor has more data available.
  */
-static void is_readable(gpointer data, gint source, GdkInputCondition cond)
+static void is_readable(gpointer data, gint source, inputevt_cond_t cond)
 {
 	rxdrv_t *rx = (rxdrv_t *) data;
 	struct attr *attr = (struct attr *) rx->opaque;

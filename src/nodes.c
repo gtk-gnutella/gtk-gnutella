@@ -121,7 +121,7 @@ static gboolean in_shutdown = FALSE;
 static gboolean no_gnutella_04 = FALSE;
 
 static void node_read_connecting(
-	gpointer data, gint source, GdkInputCondition cond);
+	gpointer data, gint source, inputevt_cond_t cond);
 static void node_disable_read(struct gnutella_node *n);
 static void node_data_ind(rxdrv_t *rx, pmsg_t *mb);
 static void node_bye_sent(struct gnutella_node *n);
@@ -2603,8 +2603,8 @@ void node_init_outgoing(struct gnutella_node *n)
 	 */
 
 	if (old_handshake) {
-		s->gdk_tag = gdk_input_add(s->file_desc,
-			GDK_INPUT_READ | GDK_INPUT_EXCEPTION,
+		s->gdk_tag = inputevt_add(s->file_desc,
+			INPUT_EVENT_READ | INPUT_EVENT_EXCEPTION,
 			node_read_connecting, (gpointer) n);
 	} else {
 		/*
@@ -2872,7 +2872,7 @@ static void node_data_ind(rxdrv_t *rx, pmsg_t *mb)
  * Reads an outgoing connecting CONTROL node handshaking at the 0.4 level.
  */
 static void node_read_connecting(
-	gpointer data, gint source, GdkInputCondition cond)
+	gpointer data, gint source, inputevt_cond_t cond)
 {
 	struct gnutella_node *n = (struct gnutella_node *) data;
 	struct gnutella_socket *s = n->socket;
@@ -2937,7 +2937,7 @@ static void node_read_connecting(
 
 	s->pos = 0;
 
-	gdk_input_remove(s->gdk_tag);
+	g_source_remove(s->gdk_tag);
 	s->gdk_tag = 0;
 
 	node_is_now_connected(n);

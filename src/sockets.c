@@ -156,7 +156,7 @@ void socket_free(struct gnutella_socket *s)
 		sl_incoming = g_slist_remove(sl_incoming, s);
 	}
 	if (s->gdk_tag)
-		gdk_input_remove(s->gdk_tag);
+		g_source_remove(s->gdk_tag);
 	if (s->getline)
 		getline_free(s->getline);
 	if (s->file_desc != -1) {
@@ -171,7 +171,7 @@ void socket_free(struct gnutella_socket *s)
 
 /* Read bytes on an unknown incoming socket */
 
-static void socket_read(gpointer data, gint source, GdkInputCondition cond)
+static void socket_read(gpointer data, gint source, inputevt_cond_t cond)
 {
 	gint r;
 	struct gnutella_socket *s = (struct gnutella_socket *) data;
@@ -259,7 +259,7 @@ static void socket_read(gpointer data, gint source, GdkInputCondition cond)
 	 * an upload, we'll monitor the upload.
 	 */
 
-	gdk_input_remove(s->gdk_tag);
+	g_source_remove(s->gdk_tag);
 	s->gdk_tag = 0;
 	sl_incoming = g_slist_remove(sl_incoming, s);
 	s->last_update = 0;
@@ -340,7 +340,7 @@ cleanup:
  * Sockets connection
  */
 
-static void socket_connected(gpointer data, gint source, GdkInputCondition cond)
+static void socket_connected(gpointer data, gint source, inputevt_cond_t cond)
 {
 	/* We are connected to somebody */
 
@@ -359,7 +359,7 @@ static void socket_connected(gpointer data, gint source, GdkInputCondition cond)
 			proxy_connections
 			&& s->direction == SOCK_CONN_PROXY_OUTGOING
 		) {
-			gdk_input_remove(s->gdk_tag);
+			g_source_remove(s->gdk_tag);
 			s->gdk_tag = 0;
 
 			if (proxy_protocol == 4) {
@@ -371,9 +371,9 @@ static void socket_connected(gpointer data, gint source, GdkInputCondition cond)
 				s->direction = SOCK_CONN_OUTGOING;
 
 				s->gdk_tag =
-					gdk_input_add(s->file_desc,
-								  GDK_INPUT_READ | GDK_INPUT_WRITE |
-								  GDK_INPUT_EXCEPTION, socket_connected,
+					inputevt_add(s->file_desc,
+								  INPUT_EVENT_READ | INPUT_EVENT_WRITE |
+								  INPUT_EVENT_EXCEPTION, socket_connected,
 								  (gpointer) s);
 				return;
 			} else if (proxy_protocol == 5) {
@@ -386,17 +386,17 @@ static void socket_connected(gpointer data, gint source, GdkInputCondition cond)
 					s->direction = SOCK_CONN_OUTGOING;
 
 					s->gdk_tag =
-						gdk_input_add(s->file_desc,
-									  GDK_INPUT_READ | GDK_INPUT_WRITE |
-									  GDK_INPUT_EXCEPTION,
+						inputevt_add(s->file_desc,
+									  INPUT_EVENT_READ | INPUT_EVENT_WRITE |
+									  INPUT_EVENT_EXCEPTION,
 									  socket_connected, (gpointer) s);
 
 					return;
 				} else
 					s->gdk_tag =
-						gdk_input_add(s->file_desc,
-									  GDK_INPUT_WRITE |
-									  GDK_INPUT_EXCEPTION,
+						inputevt_add(s->file_desc,
+									  INPUT_EVENT_WRITE |
+									  INPUT_EVENT_EXCEPTION,
 									  socket_connected, (gpointer) s);
 
 				return;
@@ -411,15 +411,15 @@ static void socket_connected(gpointer data, gint source, GdkInputCondition cond)
 					s->direction = SOCK_CONN_OUTGOING;
 
 					s->gdk_tag =
-						gdk_input_add(s->file_desc,
-									  GDK_INPUT_READ | GDK_INPUT_WRITE |
-									  GDK_INPUT_EXCEPTION,
+						inputevt_add(s->file_desc,
+									  INPUT_EVENT_READ | INPUT_EVENT_WRITE |
+									  INPUT_EVENT_EXCEPTION,
 									  socket_connected, (gpointer) s);
 					return;
 				} else {
 					s->gdk_tag =
-						gdk_input_add(s->file_desc,
-									  GDK_INPUT_READ | GDK_INPUT_EXCEPTION,
+						inputevt_add(s->file_desc,
+									  INPUT_EVENT_READ | INPUT_EVENT_EXCEPTION,
 									  socket_connected, (gpointer) s);
 					return;
 				}
@@ -431,7 +431,7 @@ static void socket_connected(gpointer data, gint source, GdkInputCondition cond)
 		/* We are just connected to our partner */
 		gint res, option, size = sizeof(gint);
 
-		gdk_input_remove(s->gdk_tag);
+		g_source_remove(s->gdk_tag);
 		s->gdk_tag = 0;
 
 		/* Check wether the socket is really connected */
@@ -469,8 +469,8 @@ static void socket_connected(gpointer data, gint source, GdkInputCondition cond)
 			}
 
 			s->gdk_tag =
-				gdk_input_add(s->file_desc,
-							  GDK_INPUT_READ | GDK_INPUT_EXCEPTION,
+				inputevt_add(s->file_desc,
+							  INPUT_EVENT_READ | INPUT_EVENT_EXCEPTION,
 							  socket_connected, (gpointer) s);
 			return;
 		}
@@ -575,7 +575,7 @@ static int socket_local_port(struct gnutella_socket *s)
 }
 
 static void socket_accept(gpointer data, gint source,
-						  GdkInputCondition cond)
+						  inputevt_cond_t cond)
 {
 	/* Someone is connecting to us */
 
@@ -628,7 +628,7 @@ static void socket_accept(gpointer data, gint source,
 	switch (s->type) {
 	case SOCK_TYPE_CONTROL:
 		t->gdk_tag =
-			gdk_input_add(sd, GDK_INPUT_READ | GDK_INPUT_EXCEPTION,
+			inputevt_add(sd, INPUT_EVENT_READ | INPUT_EVENT_EXCEPTION,
 						  socket_read, t);
 		/*
 		 * Whilst the socket is attached to that callback, it has been
@@ -755,12 +755,12 @@ struct gnutella_socket *socket_connect(
 	g_assert(s->gdk_tag == 0);
 
 	if (proxy_connections)
-		s->gdk_tag = gdk_input_add(sd,
-			GDK_INPUT_READ | GDK_INPUT_WRITE | GDK_INPUT_EXCEPTION,
+		s->gdk_tag = inputevt_add(sd,
+			INPUT_EVENT_READ | INPUT_EVENT_WRITE | INPUT_EVENT_EXCEPTION,
 			socket_connected, s);
 	else
-		s->gdk_tag = gdk_input_add(sd,
-			GDK_INPUT_WRITE | GDK_INPUT_EXCEPTION,
+		s->gdk_tag = inputevt_add(sd,
+			INPUT_EVENT_WRITE | INPUT_EVENT_EXCEPTION,
 			socket_connected, s);
 
 	return s;
@@ -840,7 +840,7 @@ struct gnutella_socket *socket_listen(
 		s->local_port = port;
 
 	s->gdk_tag =
-		gdk_input_add(sd, GDK_INPUT_READ | GDK_INPUT_EXCEPTION,
+		inputevt_add(sd, INPUT_EVENT_READ | INPUT_EVENT_EXCEPTION,
 					  socket_accept, s);
 
 	return s;
