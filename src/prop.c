@@ -1094,7 +1094,7 @@ void prop_load_from_file(
 	guint32 n = 0;
 	struct stat buf;
 
-	static gchar *err = "Bad line %u in config file, ignored\n";
+#define ERR_FMT "Bad line %u in config file, ignored\n"
 
     g_assert(dir != NULL);
     g_assert(filename != NULL);
@@ -1132,14 +1132,14 @@ void prop_load_from_file(
 			   || (*s >= 'a' && *s <= 'z') || (*s >= '0' && *s <= '9'))
 			s++;
 		if (*s != '=' && *s != ' ' && *s != '\t') {
-			fprintf(stderr, err, n);
+			fprintf(stderr, ERR_FMT, n);
 			continue;
 		}
 		v = s;
 		while (*s == ' ' || *s == '\t')
 			s++;
 		if (*s != '=') {
-			fprintf(stderr, err, n);
+			fprintf(stderr, ERR_FMT, n);
 			continue;
 		}
 		*v = 0;
@@ -1151,7 +1151,7 @@ void prop_load_from_file(
 			while (*s && *s != '\n' && *s != '"')
 				s++;
 			if (!*s || *s == '\n') {
-				fprintf(stderr, err, n);
+				fprintf(stderr, ERR_FMT, n);
 				continue;
 			}
 		} else {
