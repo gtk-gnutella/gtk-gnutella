@@ -26,6 +26,8 @@
 #ifndef __bsched_h__
 #define __bsched_h__
 
+struct iovec;
+
 #include <sys/time.h>		/* For struct timeval */
 #include <sys/types.h>		/* For off_t */
 #include <gdk/gdk.h>
