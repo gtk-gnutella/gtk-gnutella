@@ -2112,7 +2112,10 @@ finish:
 	 */
 
 	if (qctx->found) {
-		if (oob && process_oob_queries && enable_udp && n->header.hops > 1)
+		if (
+			oob && process_oob_queries && enable_udp &&
+			recv_solicited_udp && n->header.hops > 1
+		)
 			oob_got_results(n, qctx->files, qctx->found, use_ggep_h);
 		else
 			qhit_send_results(n, qctx->files, qctx->found, use_ggep_h);
