@@ -99,6 +99,10 @@ static gboolean is_local_ip(guint32 ip)
 
 	if (our_ip == 0)
 		our_ip = host_to_ip(host_name());		/* This should not change */
+	if (our_ip == 0)
+		our_ip = listen_ip();
+	if (our_ip == 0)
+		our_ip = 0x7f000001;
 
 	return
 		ip == listen_ip()	||							/* Ourselves */
