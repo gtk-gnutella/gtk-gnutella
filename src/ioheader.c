@@ -300,6 +300,8 @@ static void io_read_data(
 	guint count;
 	gint r;
 
+	g_assert(s->gdk_tag);			/* I/O callback still registered */
+
 	if (cond & GDK_INPUT_EXCEPTION) {
 		(*ih->error->input_exception)(ih->resource);
 		return;
