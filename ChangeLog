@@ -8,6 +8,9 @@
   * Updated debian/substvars: added depends on zlib1g
 
 - (2002.05.12 - RAM)
+  * Fixed typo in cq.c that caused hash bucket chaining to be mixed up.
+  * Fixed order in the CH_INSERT_AFTER macro that was corrupting tail too
+    early (forgot it was a macro, and not a function call).
   * Made destruction of the RX stack a true depth-first operation.
   * The RX inflater will stop delivering packets as soon as RX is disabled.
   * The TX deflater writev() routine was not accurately detecting flow-control.
