@@ -920,7 +920,7 @@ void search_matched(search_t *sch, results_set_t *rs)
     gnet_prop_get_boolean(PROP_IS_FIREWALLED, &is_firewalled, 0, 1);
 
 	need_push = (rs->status & ST_FIREWALL) ||
-		!check_valid_host(rs->ip, rs->port);
+		!host_is_valid(rs->ip, rs->port);
 	skip_records = (!send_pushes || is_firewalled) && need_push;
 
 	if (gui_debug > 6)
@@ -1125,16 +1125,20 @@ static void download_selected_file(
 	struct results_set *rs;
 	struct record *rc;
 	gboolean need_push;
-	GSList	**iter_list = (GSList **)data;
 
 	gtk_tree_model_get(model, iter, c_sr_record, &rc, -1);
 
 	rs = rc->results_set;
 	need_push =
-		(rs->status & ST_FIREWALL) || !check_valid_host(rs->ip, rs->port);
+		(rs->status & ST_FIREWALL) || !host_is_valid(rs->ip, rs->port);
 	download_new(rc->name, rc->size, rc->index, rs->ip, rs->port,
 		rs->guid, rc->sha1, rs->stamp, need_push, NULL);
-	*iter_list = g_slist_append(*iter_list, gtk_tree_iter_copy(iter));
+
+	if (data != NULL) {
+		GSList	**iter_list = (GSList **)data;
+
+		*iter_list = g_slist_append(*iter_list, gtk_tree_iter_copy(iter));
+	}
 }
 
 static void remove_selected_file(
@@ -1165,14 +1169,16 @@ static void download_selection_of_tree_view(GtkTreeView * tree_view)
 	gtk_tree_selection_selected_foreach(
 		selection, 
 		download_selected_file, 
-		&iter_list);
+		!search_remove_downloaded ? &iter_list : NULL);
 
-	g_slist_foreach(
-		iter_list,
-		remove_selected_file,
-		model);
+	if (!search_remove_downloaded) {
+		g_slist_foreach(
+			iter_list,
+			remove_selected_file,
+			model);
 
-	g_slist_free(iter_list);
+		g_slist_free(iter_list);
+	}
 
 //    gtk_clist_freeze(c);
 /*
@@ -1194,7 +1200,7 @@ static void download_selection_of_tree_view(GtkTreeView * tree_view)
 
 		rs = rc->results_set;
 		need_push =
-			(rs->status & ST_FIREWALL) || !check_valid_host(rs->ip, rs->port);
+			(rs->status & ST_FIREWALL) || !host_is_valid(rs->ip, rs->port);
 		download_new(rc->name, rc->size, rc->index, rs->ip, rs->port,
 					 rs->guid, rc->sha1, rs->stamp, need_push, NULL);
 */
