@@ -255,6 +255,7 @@ void http_range_free(GSList *list);
 GSList *http_range_parse(
 	const gchar *field, gchar *value, guint32 size, const gchar *vendor);
 gboolean http_range_contains(GSList *ranges, guint32 from, guint32 to);
+GSList *http_range_merge(GSList *list1, GSList *list2);
 
 const gchar *http_url_strerror(http_url_error_t errnum);
 gboolean http_url_parse(
