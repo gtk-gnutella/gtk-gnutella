@@ -68,6 +68,9 @@ RCSID("$Id$");
 
 #define RQST_LINE_LENGTH	256		/* Reasonable estimate for request line */
 
+#define SOCK_ADNS_PENDING	1	/* Prevents free()ing the socket too early */
+#define SOCK_ADNS_FAILED	2	/* Indicates an error in the ADNS callback */
+
 static gboolean ip_computed = FALSE;
 
 static GSList *sl_incoming = (GSList *) NULL;	/* To spot inactive sockets */
@@ -174,7 +177,7 @@ void socket_free(struct gnutella_socket *s)
 		g_source_remove(s->gdk_tag);
 		s->gdk_tag = 0;
 	}
-	if (s->adns_pending) {
+	if (s->adns & SOCK_ADNS_PENDING) {
 		s->type = SOCK_TYPE_DESTROYING;
 		return;
 	}
@@ -724,7 +727,7 @@ static void socket_accept(gpointer data, gint source,
  * Returns NULL in case of failure.
  */
 static struct gnutella_socket *socket_connect_prepare(
-	guint32 ip, guint16 port, enum socket_type type)
+	guint16 port, enum socket_type type)
 {	
 	struct gnutella_socket *s;
 	gint sd, option = 1;
@@ -741,9 +744,7 @@ static struct gnutella_socket *socket_connect_prepare(
 	s->type = type;
 	s->direction = SOCK_CONN_OUTGOING;
 	s->file_desc = sd;
-	s->ip = ip;
 	s->port = port;
-	s->adns_pending = TRUE;
 
 	setsockopt(s->file_desc, SOL_SOCKET, SO_KEEPALIVE, (void *) &option,
 			   sizeof(option));
@@ -763,14 +764,14 @@ static struct gnutella_socket *socket_connect_prepare(
  * in two steps since DNS resolving is asynchronous.
  */
 static struct gnutella_socket *socket_connect_finalize(
-	struct gnutella_socket *s)
+	struct gnutella_socket *s, guint32 ip_addr)
 {
 	gint res = 0;
 	struct sockaddr_in addr;
 
 	g_assert(NULL != s);
 
-	s->adns_pending = FALSE;
+	s->ip = ip_addr;
 	memset(&addr, 0, sizeof(addr));
 	addr.sin_family = AF_INET;
 	addr.sin_addr.s_addr = g_htonl(s->ip);
@@ -785,7 +786,7 @@ static struct gnutella_socket *socket_connect_finalize(
 	if (force_local_ip) {
 		struct sockaddr_in lcladdr;
 
-		memset(&lcladdr, 0, sizeof(addr));
+		memset(&lcladdr, 0, sizeof(lcladdr));
 		lcladdr.sin_family = AF_INET;
 		lcladdr.sin_addr.s_addr = g_htonl(forced_local_ip);
 		lcladdr.sin_port = g_htons(0);
@@ -802,6 +803,7 @@ static struct gnutella_socket *socket_connect_finalize(
 	if (proxy_protocol != PROXY_NONE) {
 		struct sockaddr_in lcladdr;
 
+		memset(&lcladdr, 0, sizeof(lcladdr));
 		lcladdr.sin_family = AF_INET;
 		lcladdr.sin_port = INADDR_ANY;
 
@@ -818,7 +820,11 @@ static struct gnutella_socket *socket_connect_finalize(
 	if (res == -1 && errno != EINPROGRESS) {
 		g_warning("Unable to connect to %s: (%s)",
 			ip_port_to_gchar(s->ip, s->port), g_strerror(errno));
-		socket_destroy(s, "Connection failed");
+	
+		if (s->adns & SOCK_ADNS_PENDING)
+			s->adns_msg = "Connection failed";
+		else
+			socket_destroy(s, "Connection failed");
 		return NULL;
 	}
 
@@ -850,15 +856,15 @@ static struct gnutella_socket *socket_connect_finalize(
  * determined by the resource type.
  */
 struct gnutella_socket *socket_connect(
-	guint32 ip, guint16 port, enum socket_type type)
+	guint32 ip_addr, guint16 port, enum socket_type type)
 {
 	/* Create a socket and try to connect it to ip:port */
 
 	struct gnutella_socket *s;
 
-	s = socket_connect_prepare(ip, port, type);
+	s = socket_connect_prepare(port, type);
 	g_return_val_if_fail(NULL != s, NULL);
-	return socket_connect_finalize(s);
+	return socket_connect_finalize(s, ip_addr);
 }
 
 /*
@@ -873,12 +879,17 @@ void socket_connect_by_name_helper(guint32 ip_addr, gpointer user_data)
 	g_assert(NULL != s);
 
 	if (0 == ip_addr || s->type == SOCK_TYPE_DESTROYING) {
-		s->adns_pending = FALSE;
-		socket_destroy(s, "Could not resolve address");
+		s->adns &= ~SOCK_ADNS_PENDING;
+		s->adns |= SOCK_ADNS_FAILED;
+		s->adns_msg = "Could not resolve address";
 		return; 
 	}
-	s->ip = ip_addr;
-	socket_connect_finalize(s);
+	if (NULL == socket_connect_finalize(s, ip_addr)) {
+		s->adns &= ~SOCK_ADNS_PENDING;
+		s->adns |= SOCK_ADNS_FAILED;
+		return;
+	}
+	s->adns &= ~SOCK_ADNS_PENDING;
 }
 
 /*
@@ -895,9 +906,19 @@ struct gnutella_socket *socket_connect_by_name(
 	struct gnutella_socket *s;
 
 	g_assert(NULL != host);
-	s = socket_connect_prepare(0, port, type);
+	s = socket_connect_prepare(port, type);
 	g_return_val_if_fail(NULL != s, NULL);
-	adns_resolve(host, &socket_connect_by_name_helper, s);
+	s->adns |= SOCK_ADNS_PENDING;
+	if ((!adns_resolve(host, &socket_connect_by_name_helper, s))
+		&& (s->adns & SOCK_ADNS_FAILED)) {
+		/*	socket_connect_by_name_helper() was already invoked! */
+		if (dbg > 0)
+			g_warning("socket_connect_by_name: "
+				"adns_resolve() failed in synchronous mode");
+		socket_destroy(s, s->adns_msg);
+		return NULL;
+	}
+
 	return s;
 }
 
