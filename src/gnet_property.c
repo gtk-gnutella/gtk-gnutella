@@ -3118,7 +3118,7 @@ prop_set_t *gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[137].name = "quick_connect_pool_size";
-    gnet_property->props[137].desc = _("To connect more quickly, gtk-gnutella will allow up to this manyconnections to be active while trying to fill up the connectionslots.");
+    gnet_property->props[137].desc = _("To connect more quickly, gtk-gnutella will allow up to this many connections to be active while trying to fill up the connection slots.");
     gnet_property->props[137].ev_changed = event_new("quick_connect_pool_size_changed");
     gnet_property->props[137].save = TRUE;
     gnet_property->props[137].vector_size = 1;

@@ -1642,8 +1642,8 @@ prop = {
 
 prop = {
     name = "quick_connect_pool_size";
-    desc = "To connect more quickly, gtk-gnutella will allow up to this many"
-           "connections to be active while trying to fill up the connection"
+    desc = "To connect more quickly, gtk-gnutella will allow up to this many "
+           "connections to be active while trying to fill up the connection "
            "slots.";
     type = guint32;
     data = {
