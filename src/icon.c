@@ -29,6 +29,7 @@
 #include "config.h"
 #endif
 
+#include <gtk/gtk.h>
 /* Check whether we use GTK+ 2.2.0 or newer */
 #if (GTK_MAJOR_VERSION > 2) || \
 	(GTK_MAJOR_VERSION == 2 && GTK_MINOR_VERSION >= 2)
