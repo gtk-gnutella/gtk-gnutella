@@ -1019,6 +1019,28 @@ void huge_close(void)
 	}
 }
 
+/**
+ * Test whether the SHA1 in its base32/binary form is improbable.
+ * This is used to detect "urn:sha1:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" and
+ * things using the same pattern with other letters, as being rather
+ * improbable hashes.
+ */
+static gboolean
+huge_improbable_sha1(gchar *buf, gint len)
+{
+	gint i;
+	gchar first;
+	gchar *p;
+
+	first = buf[0];
+	for (i = 1, p = &buf[1]; i < len; i++, p++) {
+		if (*p != first)
+			break;
+	}
+
+	return (i == len) ? TRUE : FALSE;
+}
+
 /*
  * huge_sha1_extract32
  *
@@ -1036,17 +1058,11 @@ void huge_close(void)
 gboolean huge_sha1_extract32(gchar *buf, gint len, gchar *retval,
 	gpointer header, gboolean check_old)
 {
-	if (len != SHA1_BASE32_SIZE) {
-		if (dbg) {
-			g_warning("%s has bad SHA1 (len=%d)", gmsg_infostr(header), len);
-			if (len)
-				dump_hex(stderr, "Base32 SHA1", buf, len);
-		}
-		return FALSE;
-	}
+	if (len != SHA1_BASE32_SIZE || huge_improbable_sha1(buf, len))
+		goto bad;
 
 	if (base32_decode_into(buf, len, retval, SHA1_RAW_SIZE))
-		return TRUE;
+		goto ok;
 
 	if (!check_old) {
 		if (dbg) {
@@ -1059,11 +1075,30 @@ gboolean huge_sha1_extract32(gchar *buf, gint len, gchar *retval,
 	}
 
 	if (base32_decode_old_into(buf, len, retval, SHA1_RAW_SIZE))
-		return TRUE;
+		goto ok;
 
 	if (dbg) {
 		g_warning("%s bad SHA1: %32s", gmsg_infostr(header), buf);
 		dump_hex(stderr, "Base32 SHA1", buf, len);
+	}
+
+	return FALSE;
+
+ok:
+	/* 
+	 * Make sure the decoded value in `retval' is "valid".
+	 */
+
+	if (huge_improbable_sha1(retval, SHA1_RAW_SIZE))
+		goto bad;
+
+	return TRUE;
+
+bad:
+	if (dbg) {
+		g_warning("%s has bad SHA1 (len=%d)", gmsg_infostr(header), len);
+		if (len)
+			dump_hex(stderr, "Base32 SHA1", buf, len);
 	}
 
 	return FALSE;
