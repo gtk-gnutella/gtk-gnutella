@@ -495,17 +495,6 @@ prop = {
 };
 
 prop = {
-    name = "filter_default_policy";
-    desc = "Default policy for the DISPLAY filter property";
-    type = guint32;
-    data = {
-        default = FILTER_PROP_STATE_DO;
-        min     = FILTER_PROP_STATE_DO;
-        max     = FILTER_PROP_STATE_DONT;
-    };
-};
-
-prop = {
     name = "default_minimum_speed";
     cfgvar = "search_minimum_speed";
     desc = "This is the default minimum speed for new searches in kbit/s";
@@ -520,11 +509,25 @@ prop = {
 prop = {
     name = "search_stats_mode";
     desc = "Collect statistics about search that go through this node";
-    type = guint32;
+    type = multichoice;
     data = {
         default = 0;
-        min     = 0;
-        max     = 3;
+    };
+    choice = {
+        name = "disable";
+        value = 0;
+    };
+    choice = {
+        name = "by words";
+        value = 1;
+    };
+    choice = {
+        name = "by whole query";
+        value = 2;
+    };
+    choice = {
+        name = "by router";
+        value = 3;
     };
 };
 
