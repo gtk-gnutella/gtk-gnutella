@@ -889,7 +889,7 @@ static void flush_match(void)
 	 * It is compatible with BearShare's one in the "open data" section.
 	 */
 
-	strncpy(trailer, "GTKG", 4);	/* Vendor code */
+	memcpy(trailer, "GTKG", 4);	/* Vendor code */
 	trailer[4] = 2;					/* Open data size */
 	trailer[5] = 0x04 | 0x08 | 0x20;	/* Valid flags we set */
 	trailer[6] = 0x01;				/* Our flags (valid firewall bit) */
