@@ -233,12 +233,12 @@ static void uploads_gui_update_upload_info(const gnet_upload_info_t *u)
 				u->partial ? "*" : "",
 				compact_size(u->range_end - u->range_start + 1));
 
-			if (range_len < sizeof(str)) {
+			if ((guint) range_len < sizeof(str)) {
 				if (u->range_start)
 					range_len += gm_snprintf(&str[range_len],
 									sizeof(str)-range_len,
 									" @ %s", compact_size(u->range_start));
-				g_assert(range_len < sizeof(str));
+				g_assert((guint) range_len < sizeof(str));
 			}
 		}
 
@@ -337,7 +337,7 @@ void uploads_gui_add_upload(gnet_upload_info_t *u)
                 &range_tmp[range_len], sizeof(range_tmp)-range_len,
                 " @ %s", compact_size(u->range_start));
     
-        g_assert(range_len < sizeof(range_tmp));
+        g_assert((guint) range_len < sizeof(range_tmp));
 
         titles[c_ul_range] = range_tmp;
     }
@@ -388,7 +388,7 @@ static void add_column(gint column_id, GtkTreeIterCompareFunc sortfunc,
 	GtkCellRenderer *renderer;
 	guint32 width;
 
-	g_assert(column_id >= 0 && column_id < UPLOADS_GUI_VISIBLE_COLUMNS);
+	g_assert(column_id >= 0 && (guint) column_id < UPLOADS_GUI_VISIBLE_COLUMNS);
 	g_assert(NULL != treeview_uploads);
 	g_assert(NULL != store_uploads);
 
@@ -505,14 +505,12 @@ static inline void update_row(
 	gnet_upload_status_t status;
 
 	g_assert(NULL != rd);
-	if (*now > rd->last_update + 1) {
+	if (delta_time(*now, rd->last_update) > 1) {
 		rd->last_update = *now;
 		upload_get_status(rd->handle, &status);
 		gtk_list_store_set(store_uploads, &rd->iter,
 			c_ul_progress, 
-				force_range(
-					uploads_gui_progress(&status, rd),
-					0.0, 1.0),
+				force_range(uploads_gui_progress(&status, rd), 0.0, 1.0),
 			c_ul_status, uploads_gui_status_str(&status, rd),
 			(-1));
 	}
@@ -543,8 +541,12 @@ void uploads_gui_update_display(time_t now)
 		notebook = GTK_NOTEBOOK(lookup_widget(main_window, "notebook_main"));
 
 	current_page = gtk_notebook_get_current_page(notebook);
-	if (current_page != nb_main_page_uploads && now - last_update < UPDATE_MIN)
+	if (
+		current_page != nb_main_page_uploads &&
+		delta_time(now, last_update) < UPDATE_MIN
+	) {
 		return;
+	}
 
     if (last_update == now)
         return;
@@ -641,4 +643,5 @@ void uploads_gui_shutdown(void)
 	sl_removed_uploads = NULL;
 }
 
+/* vi: set ts=4: */
 #endif	/* USE_GTK2 */
