@@ -473,7 +473,7 @@ void gui_update_global(void)
 			   progressbar_bps_in_avg ? "(avg)" : "");
 	gtk_progress_set_format_string(GTK_PROGRESS(progressbar_bps_in), gui_tmp);
 
-	g_snprintf(gui_tmp, sizeof(gui_tmp), "%s/s in %s", 
+	g_snprintf(gui_tmp, sizeof(gui_tmp), "%s/s out %s", 
 			   compact_size(progressbar_bps_out_avg ? bsched_avg_bps(bws_out) :
 										              bsched_bps(bws_out)),
 			   progressbar_bps_out_avg ? "(avg)" : "");
