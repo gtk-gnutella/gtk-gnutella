@@ -44,6 +44,7 @@ RCSID("$Id$");
 #define RX_RECV(o,m)		((o)->ops->recv((o), (m)))
 #define RX_ENABLE(o)		((o)->ops->enable((o)))
 #define RX_DISABLE(o)		((o)->ops->disable((o)))
+#define RX_BIO_SOURCE(o)	((o)->ops->bio_source((o)))
 
 /*
  * rx_make
@@ -216,5 +217,17 @@ rxdrv_t *rx_bottom(rxdrv_t *rx)
 		return rx_bottom(rx->lower);
 
 	return rx;
+}
+
+/*
+ * rx_bio_source
+ *
+ * Returns the I/O source from the bottom of the stack (link layer).
+ */
+struct bio_source *rx_bio_source(rxdrv_t *rx)
+{
+	g_assert(rx);
+
+	return RX_BIO_SOURCE(rx);
 }
 

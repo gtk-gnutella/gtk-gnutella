@@ -262,6 +262,16 @@ static gint tx_link_pending(txdrv_t *tx)
 	return 0;
 }
 
+/*
+ * tx_link_bio_source
+ */
+static struct bio_source *tx_link_bio_source(txdrv_t *tx)
+{
+	struct attr *attr = (struct attr *) tx->opaque;
+
+	return attr->bio;
+}
+
 struct txdrv_ops tx_link_ops = {
 	tx_link_init,		/* init */
 	tx_link_destroy,	/* destroy */
@@ -270,5 +280,6 @@ struct txdrv_ops tx_link_ops = {
 	tx_link_enable,		/* enable */
 	tx_link_disable,	/* disable */
 	tx_link_pending,	/* pending */
+	tx_link_bio_source,	/* bio_source */
 };
 

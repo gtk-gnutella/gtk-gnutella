@@ -35,6 +35,7 @@
 
 struct rxdrv_ops;
 struct rxdriver;
+struct bio_source;
 
 typedef void (*rx_data_t)(struct rxdriver *, pmsg_t *mb);
 
@@ -68,6 +69,7 @@ struct rxdrv_ops {
 	void (*recv)(rxdrv_t *tx, pmsg_t *mb);
 	void (*enable)(rxdrv_t *tx);
 	void (*disable)(rxdrv_t *tx);
+	struct bio_source *(*bio_source)(rxdrv_t *tx);
 };
 
 /*
@@ -85,6 +87,7 @@ void rx_recv(rxdrv_t *rx, pmsg_t *mb);
 void rx_enable(rxdrv_t *rx);
 void rx_disable(rxdrv_t *rx);
 rxdrv_t *rx_bottom(rxdrv_t *rx);
+struct bio_source *rx_bio_source(rxdrv_t *rx);
 
 #endif	/* _rx_h_ */
 

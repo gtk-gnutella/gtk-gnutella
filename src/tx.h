@@ -32,6 +32,7 @@
 
 struct txdrv_ops;
 struct iovec;
+struct bio_source;
 
 typedef void (*tx_service_t)(gpointer obj);
 
@@ -66,6 +67,7 @@ struct txdrv_ops {
 	void (*enable)(txdrv_t *tx);
 	void (*disable)(txdrv_t *tx);
 	gint (*pending)(txdrv_t *tx);
+	struct bio_source *(*bio_source)(txdrv_t *tx);
 };
 
 /*
@@ -80,6 +82,7 @@ void tx_srv_register(txdrv_t *d, tx_service_t srv_fn, gpointer srv_arg);
 void tx_srv_enable(txdrv_t *tx);
 void tx_srv_disable(txdrv_t *tx);
 gint tx_pending(txdrv_t *tx);
+struct bio_source *tx_bio_source(txdrv_t *tx);
 
 #endif	/* _tx_h_ */
 

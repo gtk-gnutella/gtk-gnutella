@@ -227,11 +227,22 @@ static void rx_inflate_disable(rxdrv_t *rx)
 	attr->flags &= ~IF_ENABLED;
 }
 
+/*
+ * rx_inflate_bio_source
+ *
+ * Return I/O source of the lower level.
+ */
+static struct bio_source *rx_inflate_bio_source(rxdrv_t *rx)
+{
+	return rx_bio_source(rx->lower);
+}
+
 struct rxdrv_ops rx_inflate_ops = {
 	rx_inflate_init,		/* init */
 	rx_inflate_destroy,		/* destroy */
 	rx_inflate_recv,		/* recv */
 	rx_inflate_enable,		/* enable */
 	rx_inflate_disable,		/* disable */
+	rx_inflate_bio_source,	/* bio_source */
 };
 

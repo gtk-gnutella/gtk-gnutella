@@ -762,6 +762,18 @@ static gint tx_deflate_pending(txdrv_t *tx)
 	return pending + tx_pending(attr->nd);
 }
 
+/*
+ * tx_deflate_bio_source
+ *
+ * Fetch the I/O source of the network driver.
+ */
+static struct bio_source *tx_deflate_bio_source(txdrv_t *tx)
+{
+	struct attr *attr = (struct attr *) tx->opaque;
+
+	return tx_bio_source(attr->nd);
+}
+
 struct txdrv_ops tx_deflate_ops = {
 	tx_deflate_init,		/* init */
 	tx_deflate_destroy,		/* destroy */
@@ -770,5 +782,6 @@ struct txdrv_ops tx_deflate_ops = {
 	tx_deflate_enable,		/* enable */
 	tx_deflate_disable,		/* disable */
 	tx_deflate_pending,		/* pending */
+	tx_deflate_bio_source,	/* bio_source */
 };
 

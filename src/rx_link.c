@@ -212,11 +212,24 @@ static void rx_link_disable(rxdrv_t *rx)
 	attr->bio = NULL;
 }
 
+/*
+ * rx_link_bio_source
+ *
+ * Return I/O source of the lower level.
+ */
+static struct bio_source *rx_link_bio_source(rxdrv_t *rx)
+{
+	struct attr *attr = (struct attr *) rx->opaque;
+
+	return attr->bio;
+}
+
 struct rxdrv_ops rx_link_ops = {
 	rx_link_init,		/* init */
 	rx_link_destroy,	/* destroy */
 	rx_link_recv,		/* recv */
 	rx_link_enable,		/* enable */
 	rx_link_disable,	/* disable */
+	rx_link_bio_source,	/* bio_source */
 };
 

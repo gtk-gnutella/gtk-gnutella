@@ -46,6 +46,7 @@ RCSID("$Id$");
 #define TX_ENABLE(o)		((o)->ops->enable((o)))
 #define TX_DISABLE(o)		((o)->ops->disable((o)))
 #define TX_PENDING(o)		((o)->ops->pending((o)))
+#define TX_BIO_SOURCE(o)	((o)->ops->bio_source((o)))
 
 /*
  * tx_make
@@ -159,5 +160,18 @@ gint tx_pending(txdrv_t *tx)
 	g_assert(tx);
 
 	return TX_PENDING(tx);
+}
+
+/*
+ * tx_bio_source
+ *
+ * The I/O source of the lowest layer (link) that physically sends
+ * the information.
+ */
+struct bio_source *tx_bio_source(txdrv_t *tx)
+{
+	g_assert(tx);
+
+	return TX_BIO_SOURCE(tx);
 }
 
