@@ -1,0 +1,54 @@
+?RCS: $Id$
+?RCS:
+?RCS: @COPYRIGHT@
+?RCS:
+?MAKE:gtkversion gtkpackage d_usegtk1 d_usegtk2: Myread cat
+?MAKE:	-pick add $@ %<
+?S:gtkversion:
+?S:	The version of GTK+ they want to use.
+?S: We currently support 1 and 2.
+?S:.
+?S:gtkpackage:
+?S:	This variable holds the name of the GTK+ package to use when querying
+?S: for flags via pkg-config.
+?S:.
+?S:d_usegtk1:
+?S:	This symbol conditionally defines USE_GTK1 when compiling with GTK 1.x.
+?S:.
+?S:d_usegtk2:
+?S:	This symbol conditionally defines USE_GTK2 when compiling with GTK 2.x.
+?S:.
+?C:USE_GTK1:
+?C: This symbol is defined when compiling for the GTK1 toolkit.
+?C:.
+?C:USE_GTK2:
+?C: This symbol is defined when compiling for the GTK2 toolkit.
+?C:.
+?H:#$d_usegtk1 USE_GTK1    /**/
+?H:#$d_usegtk2 USE_GTK2    /**/
+?H:.
+: ask them wich GTK+ version they want
+$cat <<'EOM'
+
+I can compile for the GTK+ 1.x version or for the GTK+ 2.x version.
+
+The GTK1 frontend will use much less CPU that the GTK2 one, so if you
+have a slow CPU, you are encouraged to choose GTK1.
+
+EOM
+case "$gtkversion" in
+'') dflt=1;;
+2) dflt=2;;
+*) dflt=1;;
+esac
+rp="Use which GTK toolkit (1 or 2)"
+. ./myread
+case "$ans" in
+2)
+	gtkversion=2; gtkpackage=gtk+-2.0
+	d_usegtk2="$define"; d_usegtk1="$undef";;
+*)
+	gtkversion=1; gtkpackage=gtk+
+	d_usegtk1="$define"; d_usegtk2="$undef";;
+esac
+

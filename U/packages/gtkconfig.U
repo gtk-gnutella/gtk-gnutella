@@ -1,0 +1,65 @@
+?RCS: $Id$
+?RCS:
+?RCS: @COPYRIGHT@
+?RCS:
+?MAKE:gtkconfig gtkcflags gtkldflags: gtkversion gtkpackage awk
+?MAKE:	-pick add $@ %<
+?S:gtkconfig:
+?S:	This variable holds the command to use to grab information about GTK.
+?S: Typically something like "pkg-config gtk+" or "gtk-config".
+?S:.
+?S:gtkcflags:
+?S:	This variable holds the compiler flags required to compile with GTK.
+?S:.
+?S:gtkldflags:
+?S:	This variable holds the linker flags required to link against GTK.
+?S:.
+?T:modver version vint
+: how can we find information about GTK?
+echo " "
+echo "Checking how we can gather information about GTK+..." >&4
+if pkg-config $gtkpackage --cflags >/dev/null 2>&1; then
+	gtkconfig="pkg-config $gtkpackage"
+	modver=--modversion
+elif gtk-config --cflags >/dev/null 2>&1; then
+	gtkconfig='gtk-config'
+	modver=--version
+else
+	echo "You've got problems!  Do you have GTK+ installed?" >&4
+	gtkconfig='false'
+	modver=''
+fi
+echo "(I'll use '$gtkconfig' to gather that information.)"
+
+?X: check that we've got the version they asked for
+version=`$gtkconfig $modver`
+case "$gtkversion" in
+1)
+	case "$version" in
+	1.*)
+		vint=`echo $version | $awk -F. '{print $1 * 10000 + $2 * 100 + $3;}'`
+		if test 0$vint -lt 10210; then
+			echo "Sorry, you have GTK+ $version, I need at least 1.2.10." >&4
+			exit 1;
+		else
+			echo "OK, you have GTK+ $version"
+		fi
+		;;
+	*) echo "WARNING: you asked for GTK+ $gtkversion, I found $version" >&4;;
+	esac
+	;;
+2)
+	case "$version" in
+	2.*) echo "OK, you have GTK+ $version";;
+	*) echo "WARNING: you asked for GTK+ $gtkversion, I found $version" >&4;;
+	esac
+	;;
+*)
+	echo "Sorry, I don't know anything about GTK+ $version." >&4
+	exit 1
+	;;
+esac
+
+gtkcflags=`$gtkconfig --cflags`
+gtkldflags=`$gtkconfig --libs`
+

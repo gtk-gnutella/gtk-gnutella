@@ -1,0 +1,64 @@
+?RCS: $Id$
+?RCS:
+?RCS: @COPYRIGHT@
+?RCS:
+?MAKE:xmlconfig xmlcflags xmlldflags d_libxml2: awk
+?MAKE:	-pick add $@ %<
+?S:xmlconfig:
+?S:	This variable holds the command to use to grab information about libxml2.
+?S: Typically something like "pkg-config libxml-2.0" or "xml2-config".
+?S:.
+?S:xmlcflags:
+?S:	This variable holds the compiler flags required to compile with libxml2.
+?S:.
+?S:xmlldflags:
+?S:	This variable holds the linker flags required to link against libxml2.
+?S:.
+?S:d_libxml2:
+?S:	Controls whether HAS_LIBXML2 is defined.
+?S:.
+?C:HAS_LIBXML2:
+?C: This symbol is defined when libxml 2.4.19, at least, is present.
+?C:.
+?H:#$d_libxml2 HAS_LIBXML2	/**/
+?H:.
+?T:modver version vint
+: how can we find information about libxml2?
+echo " "
+echo "Checking how we can gather information about libxml2..." >&4
+if pkg-config libxml-2.0 --cflags >/dev/null 2>&1; then
+	xmlconfig="pkg-config libxml-2.0"
+	modver=--modversion
+elif xml2-config --cflags >/dev/null 2>&1; then
+	xmlconfig='xml2-config'
+	modver=--version
+else
+	echo "You don't seem to have libxml2 installed."
+	xmlconfig='false'
+	modver=''
+fi
+case "$xmlconfig" in
+false) ;;
+*) echo "(I'll use '$xmlconfig' to gather that information.)";;
+esac
+
+?X: Make sure we have a good enough version
+xmlcflags=""
+xmlldflags=""
+d_libxml2="$undef"
+version=`$xmlconfig $modver`
+case "$version" in
+'') ;;
+*)
+	vint=`echo $version | $awk -F. '{print $1 * 10000 + $2 * 100 + $3;}'`
+	if test 0$vint -lt 20419; then
+		echo "Sorry, you have libxml2 $version, I need at least 2.4.19." >&4
+	else
+		echo "Good, you have libxml2 $version.  Enabling XML persistence..."
+		xmlcflags=`$xmlconfig --cflags`
+		xmlldflags=`$xmlconfig --libs`
+		d_libxml2="$define"
+	fi
+	;;
+esac
+

@@ -1,0 +1,21 @@
+?RCS: $Id$
+?RCS:
+?RCS: @COPYRIGHT@
+?RCS:
+?MAKE:pkgsrc: src rsrc sh
+?MAKE:	-pick add $@ %<
+?S:pkgsrc:
+?S:	This variable holds the absolute path of the package source.
+?S:.
+?C:PACKAGE_SOURCE_DIR:
+?C: Holds the directory name holding the package source.
+?C:.
+?H:#define PACKAGE_SOURCE_DIR "$pkgsrc"
+?H:.
+?T:relsrc
+: define pakcage source directory
+case "$src" in
+/*) pkgsrc=$src;;
+*) pkgsrc=`relsrc=$rsrc; export relsrc; $sh -c "cd $relsrc; pwd" 2>/dev/null`;;
+esac
+
