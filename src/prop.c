@@ -365,8 +365,8 @@ void prop_set_boolean(
 
     g_assert(offset+length <= PROP(ps,prop).vector_size);
 
-    for (n = offset; (n < length) && !differ; n++) {
-        old = PROP(ps,prop).data.boolean.value[n] ? 1 : 0;
+    for (n = 0; (n < length) && !differ; n++) {
+        old = PROP(ps,prop).data.boolean.value[n + offset] ? 1 : 0;
         new = src[n] ? 1 : 0;
         
         if (old != new)
