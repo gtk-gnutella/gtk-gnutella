@@ -1022,7 +1022,7 @@ prop = {
     desc = "Use fuzzy file name matching";
     type = boolean;
     data = {
-	    default = TRUE;
+	    default = FALSE;
     };
 };
 
@@ -1089,3 +1089,4 @@ prop = {
         default = FALSE;
     };
 };
+
