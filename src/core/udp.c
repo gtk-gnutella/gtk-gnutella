@@ -123,6 +123,11 @@ udp_received(struct gnutella_socket *s)
 	if (!udp_is_valid_gnet(s))
 		return;
 
+	/*
+	 * Process message as if it had been received from regular Gnet by
+	 * another node, only we'll use a special "pseudo UDP node" as origin.
+	 */
+
 	if (udp_debug > 19)
 		printf("UDP got %s from %s\n", gmsg_infostr_full(s->buffer),
 			ip_port_to_gchar(s->ip, s->port));
