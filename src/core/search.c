@@ -2314,6 +2314,9 @@ search_get_reissue_timeout(gnet_search_t sh)
 
 /**
  * Create a new suspended search and return a handle which identifies it.
+ *
+ * @return -1 if the search could not be created, a valid handle for the
+ *			search otherwise.
  */
 gnet_search_t
 search_new(const gchar *query, guint32 reissue_timeout, flag_t flags)
@@ -2321,13 +2324,6 @@ search_new(const gchar *query, guint32 reissue_timeout, flag_t flags)
 	search_ctrl_t *sch;
 	gchar *qdup;
 	gint qlen;
-	gboolean latin_locale = is_latin_locale();
-
-	sch = g_new0(search_ctrl_t, 1);
-	sch->search_handle = search_request_handle(sch);
-	sch->id = search_id++;
-
-	g_hash_table_insert(searches, sch, GINT_TO_POINTER(1));
 
 	/*
 	 * Canonicalize the query we're sending.
@@ -2344,7 +2340,7 @@ search_new(const gchar *query, guint32 reissue_timeout, flag_t flags)
 		qdup = g_strdup(query);
 
 		/* Suppress accents, graphics, ... */
-		if (latin_locale && !utf8_is_valid_string(qdup, 0))
+		if (is_latin_locale() && !utf8_is_valid_string(qdup, 0))
 			use_map_on_query(qdup, qlen);
 
 		/* XXX: use_map_on_query() works for latin encodings only but
@@ -2356,15 +2352,25 @@ search_new(const gchar *query, guint32 reissue_timeout, flag_t flags)
 
 	if (!utf8_is_valid_string(qdup, 0)) {
 		gchar *s;
-		
+
 		s = locale_to_utf8(qdup, 0);
 		if (s != qdup) {
 			G_FREE_NULL(qdup);
 			qdup = g_strdup(s);
 		}
 	}
-	
+
 	compact_query(qdup);
+	if ('\0' == *qdup) {
+		G_FREE_NULL(qdup);
+		return -1;
+	}
+
+	sch = g_new0(search_ctrl_t, 1);
+	sch->search_handle = search_request_handle(sch);
+	sch->id = search_id++;
+
+	g_hash_table_insert(searches, sch, GINT_TO_POINTER(1));
 
 	sch->query = atom_str_get(qdup);
 	sch->frozen = TRUE;

@@ -317,6 +317,7 @@ gboolean search_gui_new_search_full(const gchar *querystr,
 	gint sort_order, flag_t flags, search_t **search)
 {
     search_t *sch;
+	gnet_search_t sch_id;
     GList *glist;
     gchar *titles[c_sl_num];
     gint row;
@@ -332,6 +333,11 @@ gboolean search_gui_new_search_full(const gchar *querystr,
 	query = search_gui_parse_query(querystr, &error);
 	if (!query) {
 		statusbar_gui_message(5, "%s", error);
+		return FALSE;
+	}
+    sch_id = guc_search_new(query, reissue_timeout, flags);
+	if (-1 == (gint) sch_id) {
+		statusbar_gui_warning(5, "%s", _("Failed to create the search"));
 		return FALSE;
 	}
 

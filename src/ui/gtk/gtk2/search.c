@@ -302,6 +302,7 @@ search_gui_new_search_full(const gchar *querystr, guint32 reissue_timeout,
 {
 	const gchar *query, *error;
 	search_t *sch;
+	gnet_search_t sch_id;
 	GList *glist;
 	GtkTreeStore *model;
 	GtkTreeIter iter;
@@ -314,13 +315,18 @@ search_gui_new_search_full(const gchar *querystr, guint32 reissue_timeout,
 		statusbar_gui_warning(5, "%s", error);
 		return FALSE;
 	}
+	sch_id = guc_search_new(query, reissue_timeout, flags);
+	if (-1 == (gint) sch_id) {
+		statusbar_gui_warning(5, "%s", _("Failed to create the search"));
+		return FALSE;
+	}
 
 	sch = g_new0(search_t, 1);
 	sch->sort_col = sort_col;		/* Unused in GTK2 currently */
 	sch->sort_order = sort_order;	/* Unused in GTK2 currently */
 	sch->query = atom_str_get(query);
 	sch->enabled = (flags & SEARCH_ENABLED) ? TRUE : FALSE;
-	sch->search_handle = guc_search_new(query, reissue_timeout, flags);
+	sch->search_handle = sch_id;
 	sch->passive = (flags & SEARCH_PASSIVE) ? TRUE : FALSE;
 	sch->massive_update = FALSE;
 	sch->dups = g_hash_table_new_full(
