@@ -25,8 +25,8 @@
  *----------------------------------------------------------------------
  */
 
-#ifndef __hcache_h__
-#define __hcache_h__
+#ifndef _hcache_h_
+#define _hcache_h_
 
 #include <glib.h>
 
@@ -65,5 +65,5 @@ gboolean hcache_find_nearby(hcache_type_t type, guint32 *ip, guint16 *port);
 void hcache_retrieve(hcache_type_t type);
 void hcache_store(hcache_type_t type);
 
-#endif /* __hcache_h__ */
+#endif /* _hcache_h_ */
 

@@ -25,8 +25,8 @@
  *----------------------------------------------------------------------
  */
 
-#ifndef __walloc_h__
-#define __walloc_h__
+#ifndef _walloc_h_
+#define _walloc_h_
 
 #include <glib.h>
 
@@ -56,5 +56,5 @@ gpointer wrealloc(gpointer old, gint old_size, gint new_size);
 
 void wdestroy(void);
 
-#endif /* __walloc_h__ */
+#endif /* _walloc_h_ */
 

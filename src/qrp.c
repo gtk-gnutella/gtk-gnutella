@@ -89,7 +89,7 @@ static void qrt_patch_compute(void);
  *
  * Compute standard QRP hash code on 32 bits.
  */
-__inline__ guint32 qrp_hashcode(guchar *x)
+G_INLINE_FUNC guint32 qrp_hashcode(guchar *x)
 {
 	guint32 xor = 0;		/* The running total */
 	gint j = 0;  			/* The byte position in xor */

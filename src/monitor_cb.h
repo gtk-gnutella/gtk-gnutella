@@ -23,8 +23,8 @@
  *----------------------------------------------------------------------
  */
 
-#ifndef __monitor_cb_h__
-#define __monitor_cb_h__
+#ifndef _monitor_cb_h_
+#define _monitor_cb_h_
 
 #include "gui.h"
 
@@ -32,4 +32,4 @@ void on_popup_monitor_add_search_activate (GtkMenuItem *menuitem, gpointer user_
 
 gboolean on_clist_monitor_button_press_event (GtkWidget *widget, GdkEventButton *event, gpointer user_data);
 
-#endif /* __monitor_cb_h__ */
+#endif /* _monitor_cb_h_ */

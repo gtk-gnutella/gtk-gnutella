@@ -23,8 +23,8 @@
  *----------------------------------------------------------------------
  */
 
-#ifndef __routing_h__
-#define __routing_h__
+#ifndef _routing_h_
+#define _routing_h_
 
 /*
  * Routing destination, as determined by route_message().
@@ -61,4 +61,4 @@ void sendto_all(guchar *, guchar *, guint32);
 void message_add(guchar *, guint8, struct gnutella_node *);
 struct gnutella_node *route_towards_guid(guchar *guid);
 
-#endif /* __routing_h__ */
+#endif /* _routing_h_ */

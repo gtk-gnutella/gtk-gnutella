@@ -23,8 +23,8 @@
  *----------------------------------------------------------------------
  */
 
-#ifndef __settings_gui_h__
-#define __settings_gui_h__
+#ifndef _settings_gui_h_
+#define _settings_gui_h_
 
 #include "gui.h"
 
@@ -45,4 +45,4 @@ void gui_prop_remove_prop_changed_listener
 void settings_gui_init(void);
 void settings_gui_shutdown(void);
 
-#endif /* __settings_gui_h__ */
+#endif /* _settings_gui_h_ */

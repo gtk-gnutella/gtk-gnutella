@@ -25,8 +25,8 @@
  *----------------------------------------------------------------------
  */
 
-#ifndef __http_h__
-#define __http_h__
+#ifndef _http_h_
+#define _http_h_
 
 #include <glib.h>
 
@@ -175,7 +175,7 @@ void http_async_log_error(gpointer handle, http_errtype_t type, gpointer v);
 
 void http_close(void);
 
-#endif	/* __http_h__ */
+#endif	/* _http_h_ */
 
 /* vi: set ts=4: */
 

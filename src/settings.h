@@ -21,8 +21,8 @@
  *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#ifndef __settings_h__
-#define __settings_h__
+#ifndef _settings_h_
+#define _settings_h_
 
 #include <glib.h>
 #include <sys/time.h>		/* for time_t */
@@ -52,4 +52,4 @@ void settings_ip_changed(guint32 new_ip);
 guint32 settings_max_msg_size(void);
 void settings_close(void);
 
-#endif /* __settings_h__ */
+#endif /* _settings_h_ */

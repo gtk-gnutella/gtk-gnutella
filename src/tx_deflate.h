@@ -25,8 +25,8 @@
  *----------------------------------------------------------------------
  */
 
-#ifndef __tx_deflate_h__
-#define __tx_deflate_h__
+#ifndef _tx_deflate_h_
+#define _tx_deflate_h_
 
 #include "gnutella.h"
 
@@ -42,7 +42,7 @@ struct tx_deflate_args {
 	cqueue_t *cq;				/* Callout queue to use */
 };
 
-#endif	/* __tx_deflate_h__ */
+#endif	/* _tx_deflate_h_ */
 
 /* vi: set ts=4: */
 

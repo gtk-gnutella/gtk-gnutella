@@ -24,8 +24,8 @@
  *----------------------------------------------------------------------
  */
 
-#ifndef __uploads_h__
-#define __uploads_h__
+#ifndef _uploads_h_
+#define _uploads_h_
 
 #include <sys/types.h>		/* For off_t */
 
@@ -94,5 +94,5 @@ void upload_push_conf(struct upload *u);
 void upload_init(void);
 void upload_close(void);
 
-#endif /* __uploads_h__ */
+#endif /* _uploads_h_ */
 

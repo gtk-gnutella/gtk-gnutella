@@ -23,8 +23,8 @@
  *----------------------------------------------------------------------
  */
 
-#ifndef __uploads_cb_h__
-#define __uploads_cb_h__
+#ifndef _uploads_cb_h_
+#define _uploads_cb_h_
 
 #include "gui.h"
 
@@ -58,4 +58,4 @@ void on_clist_ul_stats_click_column(GtkCList * clist, gint column, gpointer user
 void on_clist_ul_stats_resize_column(GtkCList * clist, gint column, gint width, gpointer user_data);
 
 
-#endif /* __uploads_cb_h__ */
+#endif /* _uploads_cb_h_ */

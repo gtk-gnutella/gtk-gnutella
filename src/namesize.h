@@ -25,8 +25,8 @@
  *----------------------------------------------------------------------
  */
 
-#ifndef __namesize_h__
-#define __namesize_h__
+#ifndef _namesize_h_
+#define _namesize_h_
 
 #include <glib.h>
 
@@ -49,7 +49,7 @@ gint namesize_eq(gconstpointer a, gconstpointer b);
 namesize_t *namesize_make(guchar *name, guint32 size);
 void namesize_free(namesize_t *ns);
 
-#endif	/* __namesize_h__ */
+#endif	/* _namesize_h_ */
 
 /* vi: set ts=4: */
 

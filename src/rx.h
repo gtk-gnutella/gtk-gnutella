@@ -25,8 +25,8 @@
  *----------------------------------------------------------------------
  */
 
-#ifndef __rx_h__
-#define __rx_h__
+#ifndef _rx_h_
+#define _rx_h_
 
 #include <stdarg.h>
 #include <glib.h>
@@ -86,7 +86,7 @@ void rx_enable(rxdrv_t *rx);
 void rx_disable(rxdrv_t *rx);
 rxdrv_t *rx_bottom(rxdrv_t *rx);
 
-#endif	/* __rx_h__ */
+#endif	/* _rx_h_ */
 
 /* vi: set ts=4: */
 

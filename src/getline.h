@@ -23,8 +23,8 @@
  *----------------------------------------------------------------------
  */
 
-#ifndef __getline_h__
-#define __getline_h__
+#ifndef _getline_h_
+#define _getline_h_
 
 #include <glib.h>
 
@@ -63,7 +63,7 @@ guchar *getline_str(getline_t *o);
 gint getline_length(getline_t *o);
 void getline_copy(getline_t *source, getline_t *dest);
 
-#endif	/* __getline_h__ */
+#endif	/* _getline_h_ */
 
 /* vi: set ts=4: */
 

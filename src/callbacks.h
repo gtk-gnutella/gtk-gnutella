@@ -23,8 +23,8 @@
  *----------------------------------------------------------------------
  */
 
-#ifndef __callbacks_h__
-#define __callbacks_h__
+#ifndef _callbacks_h_
+#define _callbacks_h_
 
 #include "gui.h"
 
@@ -115,4 +115,4 @@ void on_clist_search_resize_column(GtkCList * clist, gint column, gint width, gp
 gint compare_ul_norm(GtkCList *clist, gconstpointer ptr1, gconstpointer ptr2);
 
 
-#endif	/* __callbacks_h__ */
+#endif	/* _callbacks_h_ */

@@ -25,8 +25,8 @@
  *----------------------------------------------------------------------
  */
 
-#ifndef __verify_h__
-#define __verify_h__
+#ifndef _verify_h_
+#define _verify_h_
 
 #include <glib.h>
 
@@ -40,7 +40,7 @@ void verify_init(void);
 void verify_close(void);
 void verify_queue(struct download *d);
 
-#endif	/* __verify_h__ */
+#endif	/* _verify_h_ */
 
 /* vi: set ts=4: */
 

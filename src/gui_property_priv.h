@@ -25,8 +25,8 @@
  *----------------------------------------------------------------------
  */
 
-#ifndef __gui_property_priv_h__
-#define __gui_property_priv_h__
+#ifndef _gui_property_priv_h_
+#define _gui_property_priv_h_
 
 #include <glib.h>
 
@@ -99,5 +99,5 @@ extern guint32  gnet_stats_byte_col_widths[6];
 prop_set_t *gui_prop_init(void);
 void gui_prop_shutdown(void);
 
-#endif /* __gui_property_priv_h__ */
+#endif /* _gui_property_priv_h_ */
 

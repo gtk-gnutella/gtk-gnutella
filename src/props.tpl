@@ -69,8 +69,8 @@ Generating files:
 (. license) 
 =]
 
-#ifndef __[=(. set-name-down)=]_h__
-#define __[=(. set-name-down)=]_h__
+#ifndef _[=(. set-name-down)=]_h_
+#define _[=(. set-name-down)=]_h_
 
 #include "prop.h"
 
@@ -145,15 +145,15 @@ void [=(. func-prefix)=]_set_storage(property_t, const guint8 *, gsize);
 guint8 *[=(. func-prefix)=]_get_storage(property_t, guint8 *, gsize);
 
 
-#endif /* __[=(. set-name-down)=]_h__ */
+#endif /* _[=(. set-name-down)=]_h_ */
 
 [= 
 (out-switch (sprintf "%s_priv.h" (. set-name-down))) 
 (. license)
 =]
 
-#ifndef __[=(. set-name-down)=]_priv_h__
-#define __[=(. set-name-down)=]_priv_h__
+#ifndef _[=(. set-name-down)=]_priv_h_
+#define _[=(. set-name-down)=]_priv_h_
 
 #include <glib.h>
 
@@ -177,7 +177,7 @@ IF (exist? "vector_size") =][[=vector_size=]][=ENDIF=];
 prop_set_t *[=(. func-prefix)=]_init(void);
 void [=(. func-prefix)=]_shutdown(void);
 
-#endif /* __[=(. set-name-down)=]_priv_h__ */
+#endif /* _[=(. set-name-down)=]_priv_h_ */
 
 [= 
 (out-switch (sprintf "%s.c" (. set-name-down))) 

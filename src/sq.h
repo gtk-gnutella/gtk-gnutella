@@ -24,8 +24,8 @@
  *----------------------------------------------------------------------
  */
 
-#ifndef __sq_h__
-#define __sq_h__
+#ifndef _sq_h_
+#define _sq_h_
 
 #include <sys/time.h> 	/* for time_t */
 #include <glib.h>	 	/* for glib types */
@@ -65,5 +65,5 @@ void sq_putq(squeue_t *sq, pmsg_t *mb);
 void sq_process(squeue_t *sq, time_t now);
 void sq_search_closed(squeue_t *sq, gchar *qtext);
 
-#endif /* __sq_h__ */
+#endif /* _sq_h_ */
 

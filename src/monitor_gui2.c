@@ -73,8 +73,9 @@ static void monitor_gui_append_to_monitor(
 
 	str = g_locale_to_utf8(tmpstr, -1, NULL, NULL, &error);
 	if (NULL != error) {
-		g_warning("g_locale_to_utf8 failed in %s: %s, tmpstr=\"%s\"",
-			__FUNCTION__, error->message, tmpstr);
+		g_warning(
+			"g_locale_to_utf8 failed in monitor_gui_append_to_monitor: %s, "
+			"tmpstr=\"%s\"", error->message, tmpstr);
 		g_clear_error(&error);
 	}
 	else

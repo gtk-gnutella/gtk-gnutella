@@ -23,8 +23,8 @@
  *----------------------------------------------------------------------
  */
 
-#ifndef __gtk_missing_h__
-#define __gtk_missing_h__
+#ifndef _gtk_missing_h_
+#define _gtk_missing_h_
 
 #include <gtk/gtk.h>
 
@@ -58,4 +58,4 @@ void gtk_combo_init_choices(
     GtkCombo* combo, GtkSignalFunc func, prop_def_t *def, gpointer user_data);
 
 
-#endif	/* __gtk_missing_h__ */
+#endif	/* _gtk_missing_h_ */

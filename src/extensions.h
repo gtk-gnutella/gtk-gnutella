@@ -25,8 +25,8 @@
  *----------------------------------------------------------------------
  */
 
-#ifndef __extensions_h__
-#define __extensions_h__
+#ifndef _extensions_h_
+#define _extensions_h_
 
 #include <glib.h>
 
@@ -112,7 +112,7 @@ gboolean ext_has_ascii_word(extvec_t *e);
 void ext_dump(FILE *fd, extvec_t *extvec, gint extcnt,
 	gchar *prefix, gchar *postfix, gboolean payload);
 
-#endif	/* __extensions_h__ */
+#endif	/* _extensions_h_ */
 
 /* vi: set ts=4: */
 

@@ -21,8 +21,8 @@
  *----------------------------------------------------------------------
  */
 
-#ifndef __common_h__
-#define __common_h__
+#ifndef _common_h_
+#define _common_h_
 
 #ifdef HAVE_CONFIG_H
 # include <config.h>
@@ -122,4 +122,4 @@ extern guint32 common_dbg;
 void gtk_gnutella_exit(gint); 
 
 
-#endif /* __common_h__ */
+#endif /* _common_h_ */

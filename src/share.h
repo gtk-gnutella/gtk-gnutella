@@ -24,8 +24,8 @@
  *----------------------------------------------------------------------
  */
 
-#ifndef __share_h__
-#define __share_h__
+#ifndef _share_h_
+#define _share_h_
 
 #include "huge.h"
 
@@ -100,4 +100,4 @@ struct shared_file *shared_file_by_sha1(const gchar *sha1_digest);
 gboolean sha1_hash_available(const struct shared_file *);
 gboolean sha1_hash_is_uptodate(struct shared_file *sf);
 
-#endif /* __share_h__ */
+#endif /* _share_h_ */

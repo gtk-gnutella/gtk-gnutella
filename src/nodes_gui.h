@@ -23,8 +23,8 @@
  *----------------------------------------------------------------------
  */
 
-#ifndef __nodes_gui_h__
-#define __nodes_gui_h__
+#ifndef _nodes_gui_h_
+#define _nodes_gui_h_
 
 #include "gui.h"
 
@@ -37,4 +37,4 @@ void nodes_gui_remove_node(gnet_node_t n);
 void nodes_gui_update_node(gnet_node_info_t *, gboolean);
 void nodes_gui_update_nodes_display(time_t now);
 
-#endif /* __nodes_gui_h__ */
+#endif /* _nodes_gui_h_ */

@@ -23,8 +23,8 @@
  *----------------------------------------------------------------------
  */
 
-#ifndef __zlib_util_h__
-#define __zlib_util_h__
+#ifndef _zlib_util_h_
+#define _zlib_util_h_
 
 #include <glib.h>
 
@@ -54,7 +54,7 @@ void zlib_deflater_free(zlib_deflater_t *zd, gboolean output);
 
 guchar *zlib_uncompress(guchar *data, gint len, gint uncompressed_len);
 
-#endif	/* __zlib_util_h__ */
+#endif	/* _zlib_util_h_ */
 
 /* vi: set ts=4: */
 

@@ -23,8 +23,8 @@
  *----------------------------------------------------------------------
  */
 
-#ifndef __prop_h__
-#define __prop_h__
+#ifndef _prop_h_
+#define _prop_h_
 
 #include "common.h"
 #include "listener.h"
@@ -219,5 +219,5 @@ void prop_set_storage
 guint8 *prop_get_storage
     (prop_set_t *, property_t, guint8 *, gsize);
 
-#endif /* __prop_h__ */
+#endif /* _prop_h_ */
 

@@ -27,8 +27,8 @@
  *----------------------------------------------------------------------
  */
 
-#ifndef __cq_h__
-#define __cq_h__
+#ifndef _cq_h_
+#define _cq_h_
 
 #include <glib.h>
 
@@ -97,6 +97,6 @@ void cq_cancel(cqueue_t *cq, gpointer handle);
 void cq_resched(cqueue_t *cq, gpointer handle, gint delay);
 void cq_clock(cqueue_t *cq, gint elapsed);
 
-#endif	/* __cq_h__ */
+#endif	/* _cq_h_ */
 
 /* vi: set ts=4: */

@@ -25,8 +25,8 @@
  *----------------------------------------------------------------------
  */
 
-#ifndef __inet_h__
-#define __inet_h__
+#ifndef _inet_h_
+#define _inet_h_
 
 #include <glib.h>
 
@@ -41,5 +41,5 @@ gboolean inet_can_answer_ping(void);
 void inet_connection_attempted(guint32 ip);
 void inet_connection_succeeded(guint32 ip);
 
-#endif /* __inet_h__ */
+#endif /* _inet_h_ */
 

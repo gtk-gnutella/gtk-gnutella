@@ -1020,7 +1020,7 @@ static void show_error(char *fmt, ...)
  * It was modified to work with gtk_gnutella and non-blocking sockets. --DW
  */
 
-int proxy_connect(int __fd, const struct sockaddr *__addr, guint __len)
+int proxy_connect(int fd, const struct sockaddr *addr, guint len)
 {
 	struct sockaddr_in *connaddr;
 	void **kludge;
@@ -1029,7 +1029,7 @@ int proxy_connect(int __fd, const struct sockaddr *__addr, guint __len)
 	int rc = 0;
 
 
-	if (!(inet_aton(ip_to_gchar(proxy_ip), &server.sin_addr))) {
+	if (!inet_aton(ip_to_gchar(proxy_ip), &server.sin_addr)) {
 		show_error("The SOCKS server (%s) in configuration "
 				   "file is invalid\n", ip_to_gchar(proxy_ip));
 	} else {
@@ -1037,17 +1037,16 @@ int proxy_connect(int __fd, const struct sockaddr *__addr, guint __len)
 		server.sin_family = AF_INET;	/* host byte order */
 		server.sin_port = htons(proxy_port);
 		/* zero the rest of the struct */
-		memset(&(server.sin_zero), 0, sizeof(server.sin_zero));
+		memset(&server.sin_zero, 0, sizeof(server.sin_zero));
 	}
 
 
 	/* Ok, so this method sucks, but it's all I can think of */
 
-	kludge = (void *) &__addr;
+	kludge = (void *) &addr;
 	connaddr = (struct sockaddr_in *) *kludge;
 
-	rc = connect(__fd, (struct sockaddr *) &server,
-				 sizeof(struct sockaddr));
+	rc = connect(fd, (struct sockaddr *) &server, sizeof(struct sockaddr));
 
 	return rc;
 

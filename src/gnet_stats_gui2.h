@@ -23,8 +23,8 @@
  *----------------------------------------------------------------------
  */
 
-#ifndef __gnet_stats_gui_h__
-#define __gnet_stats_gui_h__
+#ifndef _gnet_stats_gui_h_
+#define _gnet_stats_gui_h_
 
 #include "gui.h"
 
@@ -46,4 +46,4 @@ void on_combo_entry_gnet_stats_drop_reasons_changed(
 void gnet_stats_gui_init(void);
 void gnet_stats_gui_update(void);
 
-#endif /* __gnet_stats_gui_h__ */
+#endif /* _gnet_stats_gui_h_ */

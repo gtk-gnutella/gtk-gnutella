@@ -25,8 +25,8 @@
  *----------------------------------------------------------------------
  */
 
-#ifndef __file_h__
-#define __file_h__
+#ifndef _file_h_
+#define _file_h_
 
 #include <stdio.h>
 
@@ -48,5 +48,5 @@ gboolean file_config_close(FILE *out, file_path_t *fv);
 
 void file_config_preamble(FILE *out, gchar *what);
 
-#endif /* __file__ */
+#endif /* _file_ */
 

@@ -23,8 +23,8 @@
  *----------------------------------------------------------------------
  */
 
-#ifndef __gnet_stats_h__
-#define __gnet_stats_h__
+#ifndef _gnet_stats_h_
+#define _gnet_stats_h_
 
 #include "gnutella.h"
 #include "nodes.h"
@@ -42,4 +42,4 @@ void gnet_stats_count_dropped_nosize(
 void gnet_stats_count_general(gnutella_node_t *n, gint, guint32);
 void gnet_stats_count_flowc(gpointer);
 
-#endif /* __gnet_stats_h__ */
+#endif /* _gnet_stats_h_ */

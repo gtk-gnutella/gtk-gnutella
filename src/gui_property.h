@@ -25,8 +25,8 @@
  *----------------------------------------------------------------------
  */
 
-#ifndef __gui_property_h__
-#define __gui_property_h__
+#ifndef _gui_property_h_
+#define _gui_property_h_
 
 #include "prop.h"
 
@@ -161,5 +161,5 @@ void gui_prop_set_storage(property_t, const guint8 *, gsize);
 guint8 *gui_prop_get_storage(property_t, guint8 *, gsize);
 
 
-#endif /* __gui_property_h__ */
+#endif /* _gui_property_h_ */
 

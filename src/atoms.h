@@ -25,8 +25,8 @@
  *----------------------------------------------------------------------
  */
 
-#ifndef __atoms_h__
-#define __atoms_h__
+#ifndef _atoms_h_
+#define _atoms_h_
 
 #include <glib.h>
 
@@ -65,7 +65,7 @@ void atoms_close(void);
 gpointer atom_get(gint type, gconstpointer key);
 void atom_free(gint type, gconstpointer key);
 
-#endif	/* __atoms_h__ */
+#endif	/* _atoms_h_ */
 
 /* vi: set ts=4: */
 

@@ -25,8 +25,8 @@
  *----------------------------------------------------------------------
  */
 
-#ifndef __header_h__
-#define __header_h__
+#ifndef _header_h_
+#define _header_h_
 
 #include <stdio.h>
 #include <glib.h>
@@ -113,7 +113,7 @@ gchar *header_strerror(gint errnum);
 gchar *header_get(header_t *o, gchar *field);
 gchar *header_getdup(header_t *o, gchar *field);
 
-#endif	/* __header_h__ */
+#endif	/* _header_h_ */
 
 /* vi: set ts=4: */
 

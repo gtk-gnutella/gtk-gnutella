@@ -23,8 +23,8 @@
  *----------------------------------------------------------------------
  */
 
-#ifndef __nodes_h__
-#define __nodes_h__
+#ifndef _nodes_h_
+#define _nodes_h_
 
 #include "gnutella.h"
 #include "mq.h"
@@ -318,9 +318,9 @@ void node_qrt_changed(gpointer query_table);
 
 void send_node_error(struct gnutella_socket *s, int code, guchar *msg, ...);
 
-__inline__ void node_add_sent(gnutella_node_t *n, gint x);
-__inline__ void node_add_txdrop(gnutella_node_t *n, gint x);
-__inline__ void node_add_rxdrop(gnutella_node_t *n, gint x);
+G_INLINE_FUNC void node_add_sent(gnutella_node_t *n, gint x);
+G_INLINE_FUNC void node_add_txdrop(gnutella_node_t *n, gint x);
+G_INLINE_FUNC void node_add_rxdrop(gnutella_node_t *n, gint x);
 
 inline void node_set_vendor(gnutella_node_t *n, const gchar *vendor);
 
@@ -328,5 +328,5 @@ void node_set_online_mode(gboolean on);
 void node_set_current_peermode(guint32 mode);
 gchar *node_ip(gnutella_node_t *n);
 
-#endif /* __nodes_h__ */
+#endif /* _nodes_h_ */
 

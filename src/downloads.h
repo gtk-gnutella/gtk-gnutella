@@ -23,8 +23,8 @@
  *----------------------------------------------------------------------
  */
 
-#ifndef __downloads_h__
-#define __downloads_h__
+#ifndef _downloads_h_
+#define _downloads_h_
 
 #include "bsched.h"
 #include "fileinfo.h"
@@ -270,5 +270,5 @@ void download_move_progress(struct download *d, guint32 copied);
 void download_move_done(struct download *d, time_t elapsed);
 void download_move_error(struct download *d);
 
-#endif /* __downloads_h__ */
+#endif /* _downloads_h_ */
 

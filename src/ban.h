@@ -25,8 +25,8 @@
  *----------------------------------------------------------------------
  */
 
-#ifndef __ban_h__
-#define __ban_h__
+#ifndef _ban_h_
+#define _ban_h_
 
 #include <glib.h>
 
@@ -49,7 +49,7 @@ gchar *ban_vendor(gchar *vendor);
 #define BAN_FIRST	1		/* Initial banning, send polite denial */
 #define BAN_FORCE	2		/* Force banning, don't send back anything */
 
-#endif	/* __ban_h__ */
+#endif	/* _ban_h_ */
 
 /* vi: set ts=4: */
 

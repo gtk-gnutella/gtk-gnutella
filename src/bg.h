@@ -25,8 +25,8 @@
  *----------------------------------------------------------------------
  */
 
-#ifndef __bg_h__
-#define __bg_h__
+#ifndef _bg_h_
+#define _bg_h_
 
 #include <glib.h>
 
@@ -116,7 +116,7 @@ void bg_task_ticks_used(gpointer h, gint used);
 gint bg_task_seqno(gpointer h);
 gpointer bg_task_context(gpointer h);
 
-#endif	/* __bg_h__ */
+#endif	/* _bg_h_ */
 
 /* vi: set ts=4: */
 

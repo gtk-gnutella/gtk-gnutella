@@ -25,8 +25,8 @@
  *----------------------------------------------------------------------
  */
 
-#ifndef __gmsg_h__
-#define __gmsg_h__
+#ifndef _gmsg_h_
+#define _gmsg_h_
 
 #include "gnutella.h"
 
@@ -65,6 +65,6 @@ gboolean gmsg_check_ggep(struct gnutella_node *n, gint maxsize, gint regsize);
 void gmsg_sendto_route_ggep(
 	struct gnutella_node *n, struct route_dest *rt, gint regular_size);
 
-#endif	/* __gmsg_h__ */
+#endif	/* _gmsg_h_ */
 
 /* vi: set ts=4: */

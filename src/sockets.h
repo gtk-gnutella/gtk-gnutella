@@ -24,8 +24,8 @@
  *----------------------------------------------------------------------
  */
 
-#ifndef __sockets_h__
-#define __sockets_h__
+#ifndef _sockets_h_
+#define _sockets_h_
 
 #include <sys/time.h>		/* for time_t */
 #include <glib.h>
@@ -116,4 +116,4 @@ int send_socks(struct gnutella_socket *);
 void socket_timer(time_t now);
 void socket_shutdown(void);
 
-#endif /* __sockets_h__ */
+#endif /* _sockets_h_ */

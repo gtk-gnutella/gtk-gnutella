@@ -23,8 +23,8 @@
  *----------------------------------------------------------------------
  */
 
-#ifndef __search_cb2_h__
-#define __search_cb2_h__
+#ifndef _search_cb2_h_
+#define _search_cb2_h_
 
 #include <gtk/gtk.h>
 
@@ -74,4 +74,4 @@ void on_popup_search_config_cols_activate(GtkMenuItem *menuitem, gpointer user_d
 void on_popup_search_new_from_selected_activate(GtkMenuItem *menuitem, gpointer user_data);
 
 
-#endif /* __search_cb2_h__ */
+#endif /* _search_cb2_h_ */

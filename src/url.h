@@ -23,8 +23,8 @@
  *----------------------------------------------------------------------
  */
 
-#ifndef __url_h__
-#define __url_h__
+#ifndef _url_h_
+#define _url_h_
 
 #include <glib.h>
 
@@ -38,7 +38,7 @@ gint url_escape_into(guchar *url, guchar *target, gint len);
 guchar *url_escape_cntrl(guchar *url);
 guchar *url_unescape(guchar *url, gboolean inplace);
 
-#endif	/* __url_h__ */
+#endif	/* _url_h_ */
 
 /* vi: set ts=4: */
 

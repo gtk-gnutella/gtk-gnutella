@@ -25,8 +25,8 @@
  *----------------------------------------------------------------------
  */
 
-#ifndef __pcache_h__
-#define __pcache_h__
+#ifndef _pcache_h_
+#define _pcache_h_
 
 #include "hcache.h"
 
@@ -52,4 +52,4 @@ void pcache_pong_fake(struct gnutella_node *n, guint32 ip, guint16 port);
 gboolean pcache_get_recent(hcache_type_t type, guint32 *ip, guint16 *port);
 void pcache_clear_recent(hcache_type_t type);
     
-#endif /* __pcache_h__ */
+#endif /* _pcache_h_ */

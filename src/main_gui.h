@@ -23,8 +23,8 @@
  *----------------------------------------------------------------------
  */
 
-#ifndef __main_gui_h__
-#define __main_gui_h__
+#ifndef _main_gui_h_
+#define _main_gui_h_
 
 void main_gui_early_init(gint, gchar **);
 void main_gui_init(void);
@@ -33,4 +33,4 @@ void main_gui_shutdown(void);
 void main_gui_timer(void);
 void main_gui_shutdown_tick(guint);
 
-#endif /* __main_gui_h__ */
+#endif /* _main_gui_h_ */

@@ -25,8 +25,8 @@
  *----------------------------------------------------------------------
  */
 
-#ifndef __move_h__
-#define __move_h__
+#ifndef _move_h_
+#define _move_h_
 
 #include <glib.h>
 
@@ -38,7 +38,7 @@ void move_init(void);
 void move_close(void);
 void move_queue(struct download *d, gchar *dest, gchar *ext);
 
-#endif	/* __move_h__ */
+#endif	/* _move_h_ */
 
 /* vi: set ts=4: */
 

@@ -25,8 +25,8 @@
  *----------------------------------------------------------------------
  */
 
-#ifndef __zalloc_h__
-#define __zalloc_h__
+#ifndef _zalloc_h_
+#define _zalloc_h_
 
 #include <glib.h>
 
@@ -90,5 +90,5 @@ void zfree(zone_t *, gpointer);
 
 #endif	/* REMAP_ZALLOC */
 
-#endif /* __zalloc_h__ */
+#endif /* _zalloc_h_ */
 

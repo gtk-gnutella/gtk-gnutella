@@ -23,10 +23,10 @@
  *----------------------------------------------------------------------
  */
 
-#ifndef __oldconfig_h__
-#define __oldconfig_h__
+#ifndef _oldconfig_h_
+#define _oldconfig_h_
 
 void config_init(void);
 
-#endif /* __oldconfig_h__ */
+#endif /* _oldconfig_h_ */
 

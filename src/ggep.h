@@ -25,8 +25,8 @@
  *----------------------------------------------------------------------
  */
 
-#ifndef __ggep_h__
-#define __ggep_h__
+#ifndef _ggep_h_
+#define _ggep_h_
 
 #include "extensions.h"
 
@@ -104,7 +104,7 @@ void ggep_mark_last(guchar *start);
 
 ggept_status_t ggept_h_sha1_extract(extvec_t *exv, guchar *buf, gint len);
 
-#endif	/* __ggep_h__ */
+#endif	/* _ggep_h_ */
 
 /* vi: set ts=4: */
 

@@ -23,8 +23,8 @@
  *----------------------------------------------------------------------
  */
 
-#ifndef __downloads_gui_h__
-#define __downloads_gui_h__
+#ifndef _downloads_gui_h_
+#define _downloads_gui_h_
 
 #include "gui.h"
 
@@ -40,4 +40,4 @@ void gui_update_download(struct download *, gboolean);
 void gui_update_c_downloads(gint, gint);
 void gui_update_queue_frozen();
 
-#endif /* __downloads_gui_h__ */
+#endif /* _downloads_gui_h_ */

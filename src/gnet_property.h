@@ -25,8 +25,8 @@
  *----------------------------------------------------------------------
  */
 
-#ifndef __gnet_property_h__
-#define __gnet_property_h__
+#ifndef _gnet_property_h_
+#define _gnet_property_h_
 
 #include "prop.h"
 
@@ -219,5 +219,5 @@ void gnet_prop_set_storage(property_t, const guint8 *, gsize);
 guint8 *gnet_prop_get_storage(property_t, guint8 *, gsize);
 
 
-#endif /* __gnet_property_h__ */
+#endif /* _gnet_property_h_ */
 

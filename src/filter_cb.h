@@ -23,8 +23,8 @@
  *----------------------------------------------------------------------
  */
 
-#ifndef __filter_cb_h__
-#define __filter_cb_h__
+#ifndef _filter_cb_h_
+#define _filter_cb_h_
 
 #include <gtk/gtk.h>
 
@@ -71,4 +71,4 @@ void on_popup_filter_rule_copy_activate(GtkMenuItem *menuitem, gpointer user_dat
 void on_popup_filter_rule_paste_activate(GtkMenuItem *menuitem, gpointer user_data); 
 
 
-#endif /* __filter_cb_h__ */
+#endif /* _filter_cb_h_ */

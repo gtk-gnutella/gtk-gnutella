@@ -23,12 +23,12 @@
  *----------------------------------------------------------------------
  */
 
-#ifndef __uploads_stats_gui_h__
-#define __uploads_stats_gui_h__
+#ifndef _uploads_stats_gui_h_
+#define _uploads_stats_gui_h_
 
 void upload_stats_gui_init(void);
 void upload_stats_gui_add(struct ul_stats *);
 void upload_stats_gui_update(const gchar *, guint64);
 void upload_stats_gui_clear_all(void);
 
-#endif /* __uploads_stats_gui_h__ */
+#endif /* _uploads_stats_gui_h_ */

@@ -23,8 +23,8 @@
  *----------------------------------------------------------------------
  */
 
-#ifndef __gui_h__
-#define __gui_h__
+#ifndef _gui_h_
+#define _gui_h_
 
 #include "gnet.h"
 
@@ -198,4 +198,4 @@ void gui_update_traffic_stats(void);
 void gui_update_stats(void);
 void gui_update_stats_frames();
 void gui_allow_rescan_dir(gboolean flag);
-#endif /* __gui_h__ */
+#endif /* _gui_h_ */

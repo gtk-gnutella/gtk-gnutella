@@ -23,8 +23,8 @@
  *----------------------------------------------------------------------
  */
 
-#ifndef __settings_cb_h__
-#define __settings_cb_h__
+#ifndef _settings_cb_h_
+#define _settings_cb_h_
 
 #include "gui.h"
 
@@ -62,4 +62,4 @@ void on_menu_bws_gout_visible_activate(GtkMenuItem * menuitem, gpointer user_dat
 
 void on_popup_search_toggle_tabs_activate (GtkMenuItem *menuitem, gpointer user_data);
 
-#endif /* __settings_cb_h__ */
+#endif /* _settings_cb_h_ */

@@ -25,8 +25,8 @@
  *----------------------------------------------------------------------
  */
 
-#ifndef __alive_h__
-#define __alive_h__
+#ifndef _alive_h_
+#define _alive_h_
 
 #include <glib.h>
 
@@ -42,5 +42,5 @@ gboolean alive_send_ping(gpointer obj);
 gboolean alive_ack_ping(gpointer obj, guchar *muid);
 void alive_get_roundtrip_ms(gpointer obj, guint32 *avg, guint32 *last);
 
-#endif /* __alive_h__ */
+#endif /* _alive_h_ */
 

@@ -25,8 +25,8 @@
  *----------------------------------------------------------------------
  */
 
-#ifndef __tx_h__
-#define __tx_h__
+#ifndef _tx_h_
+#define _tx_h_
 
 #include <glib.h>
 
@@ -81,7 +81,7 @@ void tx_srv_enable(txdrv_t *tx);
 void tx_srv_disable(txdrv_t *tx);
 gint tx_pending(txdrv_t *tx);
 
-#endif	/* __tx_h__ */
+#endif	/* _tx_h_ */
 
 /* vi: set ts=4: */
 

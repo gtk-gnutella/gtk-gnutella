@@ -830,7 +830,7 @@ static void update_neighbour_info(gnutella_node_t *n, gnet_results_set_t *rs)
 
 /* Create and send a search request packet */
 
-static void __search_send_packet(search_ctrl_t *sch, gnutella_node_t *n)
+static void _search_send_packet(search_ctrl_t *sch, gnutella_node_t *n)
 {
 	struct gnutella_msg_search *m;
 	guint32 size;
@@ -941,7 +941,7 @@ static void node_added_callback(gpointer data)
         !search_already_sent_to_node(sch, node_added) &&
         !sch->frozen
     ) {
-		__search_send_packet(sch, node_added);
+		_search_send_packet(sch, node_added);
 	}
 }
 
@@ -966,7 +966,7 @@ static void search_add_new_muid(search_ctrl_t *sch, guchar *muid)
 
 static void search_send_packet(search_ctrl_t *sch)
 {
-	__search_send_packet(sch, NULL);
+	_search_send_packet(sch, NULL);
 }
 
 /*

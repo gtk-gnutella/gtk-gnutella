@@ -25,8 +25,8 @@
  *----------------------------------------------------------------------
  */
 
-#ifndef __qrp_h__
-#define __qrp_h__
+#ifndef _qrp_h_
+#define _qrp_h_
 
 #include <glib.h>
 
@@ -54,7 +54,7 @@ gpointer qrt_get_table(void);
 gpointer qrt_ref(gpointer obj);
 void qrt_unref(gpointer obj);
 
-#endif	/* __qrp_h__ */
+#endif	/* _qrp_h_ */
 
 /* vi: set ts=4: */
 

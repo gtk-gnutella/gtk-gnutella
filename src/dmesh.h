@@ -25,8 +25,8 @@
  *----------------------------------------------------------------------
  */
 
-#ifndef __dmesh_h__
-#define __dmesh_h__
+#ifndef _dmesh_h_
+#define _dmesh_h_
 
 #include "downloads.h"
 
@@ -80,7 +80,7 @@ void dmesh_multiple_downloads(
 void dmesh_store(void);
 void dmesh_ban_store(void);
 
-#endif	/* __dmesh_h__ */
+#endif	/* _dmesh_h_ */
 
 /* vi: set ts=4: */
 

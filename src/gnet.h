@@ -21,8 +21,8 @@
  *----------------------------------------------------------------------
  */
 
-#ifndef __gnet_h__
-#define __gnet_h__
+#ifndef _gnet_h_
+#define _gnet_h_
 
 #include "common.h"
 #include "hcache.h"
@@ -611,5 +611,5 @@ struct ul_stats {
 	gfloat norm;		/* bytes sent / file size */
 };
 
-#endif /* __gnet_h__ */
+#endif /* _gnet_h_ */
 

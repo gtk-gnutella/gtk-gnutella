@@ -25,8 +25,8 @@
  *----------------------------------------------------------------------
  */
 
-#ifndef __rxbuf_h__
-#define __rxbuf_h__
+#ifndef _rxbuf_h_
+#define _rxbuf_h_
 
 #include "pmsg.h"
 
@@ -40,7 +40,7 @@ void rxbuf_free(gpointer p, gpointer unused);
 void rxbuf_init(void);
 void rxbuf_close(void);
 
-#endif	/* __rxbuf_h__ */
+#endif	/* _rxbuf_h_ */
 
 /* vi: set ts=4: */
 

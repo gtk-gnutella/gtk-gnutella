@@ -23,8 +23,8 @@
  *----------------------------------------------------------------------
  */
 
-#ifndef __filter_gui_h__
-#define __filter_gui_h__
+#ifndef _filter_gui_h_
+#define _filter_gui_h_
 
 #include "filter.h"
 #include "gui.h"
@@ -74,4 +74,4 @@ void filter_gui_thaw_rules();
 void filter_gui_freeze_filters();
 void filter_gui_thaw_filters();
 
-#endif /* __filter_gui_h__ */
+#endif /* _filter_gui_h_ */

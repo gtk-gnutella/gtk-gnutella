@@ -25,10 +25,10 @@
  *----------------------------------------------------------------------
  */
 
-#ifndef __fuzzy_h__
-#define __fuzzy_h__
+#ifndef _fuzzy_h_
+#define _fuzzy_h_
 
 float fuzzy_compare(char *str1, char *str2);
 
-#endif /* __fuzzy_h__ */
+#endif /* _fuzzy_h_ */
 

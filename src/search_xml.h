@@ -25,10 +25,10 @@
  *----------------------------------------------------------------------
  */
 
-#ifndef __search_xml_h__
-#define __search_xml_h__
+#ifndef _search_xml_h_
+#define _search_xml_h_
 
 void search_store_xml(void);
 gboolean search_retrieve_xml(void);
 
-#endif	/* __search_xml_h__ */
+#endif	/* _search_xml_h_ */

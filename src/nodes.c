@@ -3517,26 +3517,26 @@ void node_close(void)
 	rxbuf_close();
 }
 
-__inline__ void node_add_sent(gnutella_node_t *n, gint x)
+G_INLINE_FUNC void node_add_sent(gnutella_node_t *n, gint x)
 {
     n->last_update = time((time_t *)NULL);
 	n->sent += x; 
 }
 
-__inline__ void  node_add_txdrop(gnutella_node_t *n, gint x)
+G_INLINE_FUNC void  node_add_txdrop(gnutella_node_t *n, gint x)
 {
     n->last_update = time((time_t *)NULL);
 	n->tx_dropped += x;
 }
 
-__inline__ void node_add_rxdrop(gnutella_node_t *n, gint x)
+G_INLINE_FUNC void node_add_rxdrop(gnutella_node_t *n, gint x)
 {
     n->last_update = time((time_t *)NULL);
 	n->rx_dropped += x; 
 }
 
 
-__inline__ void node_set_vendor(gnutella_node_t *n, const gchar *vendor)
+G_INLINE_FUNC void node_set_vendor(gnutella_node_t *n, const gchar *vendor)
 {
     n->vendor = atom_str_get(vendor);
     node_fire_node_info_changed(n);

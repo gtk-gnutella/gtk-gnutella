@@ -23,8 +23,8 @@
  *----------------------------------------------------------------------
  */
 
-#ifndef __vendors_h__
-#define __vendors_h__
+#ifndef _vendors_h_
+#define _vendors_h_
 
 #include <glib.h>
 
@@ -78,5 +78,5 @@
 gchar *lookup_vendor_name(guchar code[4]);
 gboolean is_vendor_known(guchar code[4]);
 
-#endif /* __vendors_h__ */
+#endif /* _vendors_h_ */
 

@@ -23,8 +23,8 @@
  *----------------------------------------------------------------------
  */
 
-#ifndef __statusbar_gui_h__
-#define __statusbar_gui_h__
+#ifndef _statusbar_gui_h_
+#define _statusbar_gui_h_
 
 #include "gui.h"
 
@@ -67,4 +67,4 @@ statusbar_msgid_t statusbar_gui_push
     (sb_types_t, guint, guint, const gchar *, ...);
 void statusbar_gui_remove(statusbar_msgid_t);
 
-#endif /* __statusbar_gui_h__ */
+#endif /* _statusbar_gui_h_ */

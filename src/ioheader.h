@@ -25,8 +25,8 @@
  *----------------------------------------------------------------------
  */
 
-#ifndef __ioheader_h__
-#define __ioheader_h__
+#ifndef _ioheader_h_
+#define _ioheader_h_
 
 #include <glib.h>
 
@@ -87,7 +87,7 @@ void io_continue_header(
 	io_done_cb_t done,			/* Mandatory: final callback when all done */
 	io_start_cb_t start);		/* Optional: called when reading 1st byte */
 
-#endif	/* __ioheader_h__ */
+#endif	/* _ioheader_h_ */
 
 /* vi: set ts=4: */
 

@@ -532,7 +532,7 @@ static guint32 mask_hash(guchar *str) {
 }
 
 /* get key of two-char pair */
-__inline__ static gint st_key(search_table_t *table, guchar k[2])
+G_INLINE_FUNC gint st_key(search_table_t *table, guchar k[2])
 {
 	return table->index_map[k[0]] * table->nchars +
 		table->index_map[k[1]];

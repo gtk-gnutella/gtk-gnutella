@@ -191,7 +191,8 @@ G_INLINE_FUNC gulong settings_getphysmemsize(void)
 	size_t len = sizeof(physmem);
 
 	if (-1 == sysctl(mib, 2, &physmem, &len, NULL, 0))
-		g_warning("%s: sysctl() for HW_USERMEM failed: %s", __FUNCTION__,
+		g_warning(
+			"settings_getphysmemsize: sysctl() for HW_USERMEM failed: %s",
 			g_strerror(errno));
 	return physmem / 1024;
 #else	/* !(defined(__FreeBSD__) || ...) */

@@ -23,8 +23,8 @@
  *----------------------------------------------------------------------
  */
 
-#ifndef __main_cb_h__
-#define __main_cb_h__
+#ifndef _main_cb_h_
+#define _main_cb_h_
 
 #include "gui.h"
 
@@ -62,4 +62,4 @@ void on_main_gui_treeview_menu_cursor_changed(GtkTreeView *, gpointer);
 #endif
 
 
-#endif /* __main_cb_h__ */
+#endif /* _main_cb_h_ */

@@ -23,8 +23,8 @@
  *----------------------------------------------------------------------
  */
 
-#ifndef __search_stats_gui_h__
-#define __search_stats_gui_h__
+#ifndef _search_stats_gui_h_
+#define _search_stats_gui_h_
 
 #include "gui.h"
 
@@ -44,4 +44,4 @@ void search_stats_gui_reset(void);
 void search_stats_gui_set_type(gint type);
 void search_stats_gui_update(time_t now);
 
-#endif /* __search_stats_gui_h__ */
+#endif /* _search_stats_gui_h_ */

@@ -25,8 +25,8 @@
  *----------------------------------------------------------------------
  */
 
-#ifndef __gwcache_h__
-#define __gwcache_h__
+#ifndef _gwcache_h_
+#define _gwcache_h_
 
 #include <glib.h>
 
@@ -39,5 +39,5 @@ void gwc_close(void);
 void gwc_store_if_dirty(void);
 void gwc_get_hosts(void);
 
-#endif /* __gwcache_h__ */
+#endif /* _gwcache_h_ */
 

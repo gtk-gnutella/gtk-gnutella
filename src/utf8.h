@@ -25,8 +25,8 @@
  *----------------------------------------------------------------------
  */
 
-#ifndef __utf8_h__
-#define __utf8_h__
+#ifndef _utf8_h_
+#define _utf8_h_
 
 #include <glib.h>
 
@@ -35,7 +35,7 @@ gint utf8_is_valid_string(guchar *s, gint len);
 guint32 utf8_decode_char(guchar *s, gint len, gint *retlen, gboolean warn);
 gint utf8_to_iso8859(guchar *s, gint len, gboolean space);
 
-#endif	/* __utf8_h__ */
+#endif	/* _utf8_h_ */
 
 /* vi: set ts=4: */
 

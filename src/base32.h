@@ -25,8 +25,8 @@
  *----------------------------------------------------------------------
  */
 
-#ifndef __base32_h__
-#define __base32_h__
+#ifndef _base32_h_
+#define _base32_h_
 
 #include <glib.h>
 
@@ -44,7 +44,7 @@ gboolean base32_decode_into(const guchar *buf, gint len,
 gboolean base32_decode_old_into(const guchar *buf, gint len,
 	guchar *decbuf, gint declen);
 
-#endif	/* __base32_h__ */
+#endif	/* _base32_h_ */
 
 /* vi: set ts=4: */
 

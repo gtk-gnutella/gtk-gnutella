@@ -37,8 +37,8 @@
  * - Stuff...
  */
 
-#ifndef __misc_h__
-#define __misc_h__
+#ifndef _misc_h_
+#define _misc_h_
 
 #include <time.h>
 #include <stdio.h>
@@ -156,4 +156,4 @@ char *strcasestr(const char *haystack, const char *needle);
 guchar *strcasestr(const guchar *haystack, const guchar *needle);
 #endif
 
-#endif /* __misc_h__ */
+#endif /* _misc_h_ */

@@ -23,8 +23,8 @@
  *----------------------------------------------------------------------
  */
 
-#ifndef __matching_h__
-#define __matching_h__
+#ifndef _matching_h_
+#define _matching_h_
 
 void matching_init(void);
 void matching_close(void);
@@ -134,7 +134,7 @@ gint st_search(
 	st_search_callback callback,
 	gint max_res);
 
-#endif	/* __matching_h__ */
+#endif	/* _matching_h_ */
 
 /* vi: set ts=4: */
 

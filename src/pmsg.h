@@ -25,8 +25,8 @@
  *----------------------------------------------------------------------
  */
 
-#ifndef __pmsg_h__
-#define __pmsg_h__
+#ifndef _pmsg_h_
+#define _pmsg_h_
 
 #include <glib.h>
 
@@ -116,6 +116,6 @@ pdata_t *pdata_allocb_ext(void *buf, gint len,
 void pdata_free_nop(gpointer p, gpointer arg);
 void pdata_unref(pdata_t *db);
 
-#endif	/* __pmsg_h__ */
+#endif	/* _pmsg_h_ */
 
 /* vi: set ts=4: */

@@ -25,8 +25,8 @@
  *----------------------------------------------------------------------
  */
 
-#ifndef __bsched_h__
-#define __bsched_h__
+#ifndef _bsched_h_
+#define _bsched_h_
 
 struct iovec;
 
@@ -177,7 +177,7 @@ gint bws_write(bsched_t *bs, gint fd, gpointer data, gint len);
 gint bws_read(bsched_t *bs, gint fd, gpointer data, gint len);
 void bsched_timer(void);
 
-#endif	/* __bsched_h__ */
+#endif	/* _bsched_h_ */
 
 /* vi: set ts=4: */
 

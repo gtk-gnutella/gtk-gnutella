@@ -25,15 +25,15 @@
  *----------------------------------------------------------------------
  */
 
-#ifndef __getdate_h__
-#define __getdate_h__
+#ifndef _getdate_h_
+#define _getdate_h_
 
 #include <time.h>
 #include <sys/time.h>
 
 time_t date2time(const char *p, const time_t *now);
 
-#endif	/* __getdate_h__ */
+#endif	/* _getdate_h_ */
 
 /* vi: set ts=4: */
 

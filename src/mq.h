@@ -25,8 +25,8 @@
  *----------------------------------------------------------------------
  */
 
-#ifndef __mq_h__
-#define __mq_h__
+#ifndef _mq_h_
+#define _mq_h_
 
 #include <glib.h>
 
@@ -89,6 +89,6 @@ void mq_putq(mqueue_t *q, pmsg_t *mb);
 void mq_clear(mqueue_t *q);
 void mq_shutdown(mqueue_t *q);
 
-#endif	/* __mq_h__ */
+#endif	/* _mq_h_ */
 
 /* vi: set ts=4: */

@@ -21,8 +21,8 @@
  *----------------------------------------------------------------------
  */
 
-#ifndef __listener_h__
-#define __listener_h__
+#ifndef _listener_h_
+#define _listener_h_
 
 #include <glib.h>
 
@@ -62,4 +62,4 @@ typedef GSList *listeners_t;
         }                                                              \
     }
 
-#endif /* __listener_h__ */
+#endif /* _listener_h_ */

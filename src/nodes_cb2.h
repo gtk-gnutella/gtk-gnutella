@@ -23,8 +23,8 @@
  *----------------------------------------------------------------------
  */
 
-#ifndef __nodes_cb2_h__
-#define __nodes_cb2_h__
+#ifndef _nodes_cb2_h_
+#define _nodes_cb2_h_
 
 #include <gtk/gtk.h>
 
@@ -37,4 +37,4 @@ void on_button_nodes_remove_clicked (GtkButton *button, gpointer user_data);
 void on_entry_host_activate (GtkEditable *editable, gpointer user_data); 
 void on_entry_host_changed (GtkEditable *editable, gpointer user_data);
 
-#endif /* __nodes_cb2_h__ */
+#endif /* _nodes_cb2_h_ */

@@ -23,8 +23,8 @@
  *----------------------------------------------------------------------
  */
 
-#ifndef __search_gui_h__
-#define __search_gui_h__
+#ifndef _search_gui_h_
+#define _search_gui_h_
 
 #include "gui.h"
 
@@ -178,4 +178,4 @@ void gui_search_update_items(struct search *);
 gboolean search_gui_search_results_col_widths_changed(property_t prop);
 gboolean search_gui_search_results_col_visible_changed(property_t prop);
 
-#endif /* __search_gui_h__ */
+#endif /* _search_gui_h_ */

@@ -23,8 +23,8 @@
  *----------------------------------------------------------------------
  */
 
-#ifndef __downloads_cb_h__
-#define __downloads_cb_h__
+#ifndef _downloads_cb_h_
+#define _downloads_cb_h_
 
 #include "gui.h"
 
@@ -84,4 +84,4 @@ void on_popup_queue_copy_url_activate(GtkMenuItem *menuitem, gpointer user_data)
 void on_popup_queue_connect_activate(GtkMenuItem *menuitem, gpointer user_data);
 
 
-#endif /* __downloads_cb_h__ */
+#endif /* _downloads_cb_h_ */

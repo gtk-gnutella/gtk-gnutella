@@ -23,8 +23,8 @@
  *----------------------------------------------------------------------
  */
 
-#ifndef __uploads_gui_h__
-#define __uploads_gui_h__
+#ifndef _uploads_gui_h_
+#define _uploads_gui_h_
 
 #include "gui.h"
 
@@ -46,4 +46,4 @@ void uploads_gui_update_display(time_t now);
 void uploads_gui_clear_completed(void);
 
 
-#endif /* __uploads_gui_h__ */
+#endif /* _uploads_gui_h_ */

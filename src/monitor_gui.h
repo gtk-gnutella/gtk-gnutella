@@ -23,12 +23,12 @@
  *----------------------------------------------------------------------
  */
 
-#ifndef __monitor_gui_h__
-#define __monitor_gui_h__
+#ifndef _monitor_gui_h_
+#define _monitor_gui_h_
 
 void monitor_gui_init(void);
 void monitor_gui_shutdown(void);
 void monitor_gui_clear_monitor(void);
 void monitor_gui_enable_monitor(gboolean b);
 
-#endif /* __monitor_gui_h__ */
+#endif /* _monitor_gui_h_ */

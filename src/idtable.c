@@ -265,7 +265,7 @@ gpointer idtable_get_value(idtable_t *tbl, guint32 id)
  * not in use. If the id is outside the current table range it also returns
  * FALSE. The table is not modified by this call.
  */
-__inline__ gboolean idtable_is_id_used(idtable_t *tbl, guint32 id)
+G_INLINE_FUNC gboolean idtable_is_id_used(idtable_t *tbl, guint32 id)
 {
     g_assert(tbl != NULL);
     g_assert(tbl->last_id < tbl->size);

@@ -25,8 +25,8 @@
  *----------------------------------------------------------------------
  */
 
-#ifndef __version_h__
-#define __version_h__
+#ifndef _version_h_
+#define _version_h_
 
 #include <glib.h>
 
@@ -42,7 +42,7 @@ void version_check(guchar *str);
 extern gchar *version_string;
 extern gchar *version_number;
 
-#endif	/* __version_h__ */
+#endif	/* _version_h_ */
 
 /* vi: set ts=4: */
 

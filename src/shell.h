@@ -23,8 +23,8 @@
  *----------------------------------------------------------------------
  */
 
-#ifndef __shell_h__
-#define __shell_h__
+#ifndef _shell_h_
+#define _shell_h_
 
 #include <time.h>
 
@@ -34,4 +34,4 @@ void shell_close();
 void shell_add(struct gnutella_socket *s);
 void shell_timer(time_t now);
 
-#endif /* __shell_h__ */
+#endif /* _shell_h_ */

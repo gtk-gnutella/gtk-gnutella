@@ -25,8 +25,8 @@
  *----------------------------------------------------------------------
  */
 
-#ifndef __guid_h__
-#define __guid_h__
+#ifndef _guid_h_
+#define _guid_h_
 
 #include <glib.h>
 
@@ -42,4 +42,4 @@ void guid_random_muid(guchar *muid);
 void guid_ping_muid(guchar *muid);
 void guid_query_muid(guchar *muid, gboolean initial);
 
-#endif /* __guid_h__ */
+#endif /* _guid_h_ */

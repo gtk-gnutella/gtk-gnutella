@@ -25,8 +25,8 @@
  *----------------------------------------------------------------------
  */
 
-#ifndef __cobs_h__
-#define __cobs_h__
+#ifndef _cobs_h_
+#define _cobs_h_
 
 #include <glib.h>
 
@@ -42,7 +42,7 @@ guchar *cobs_decode(guchar *buf, gint len, gint *retlen, gboolean inplace);
 gboolean cobs_decode_into(
 	guchar *buf, gint len, guchar *out, gint outlen, gint *retlen);
 
-#endif	/* __cobs_h__ */
+#endif	/* _cobs_h_ */
 
 /* vi: set ts=4: */
 

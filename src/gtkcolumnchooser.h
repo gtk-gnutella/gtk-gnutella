@@ -23,8 +23,8 @@
  *----------------------------------------------------------------------
  */
 
-#ifndef __GTK_COLUMN_CHOOSER_H__
-#define __GTK_COLUMN_CHOOSER_H__ 
+#ifndef _gtk_column_chooser_h_
+#define _gtk_column_chooser_h_ 
 
 #include <gtk/gtkclist.h>
 #include <gtk/gtkmenu.h>
@@ -64,4 +64,4 @@ GtkWidget* gtk_column_chooser_new(GtkCList * list);
 }
 #endif /* __cplusplus */ 
 
-#endif /* __GTK_COLUMN_CHOOSER_H__ */
+#endif /* _gtk_column_chooser_h_ */

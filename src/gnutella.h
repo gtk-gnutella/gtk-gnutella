@@ -23,8 +23,8 @@
  *----------------------------------------------------------------------
  */
 
-#ifndef __gnutella_h__
-#define __gnutella_h__
+#ifndef _gnutella_h_
+#define _gnutella_h_
 
 #include "gnet.h"
 #include "gnet_property_priv.h"
@@ -167,6 +167,6 @@ struct gnutella_msg_vendor {
 extern struct gnutella_socket *s_listen;
 extern gchar *start_rfc822_date;
 
-#endif							/* __gnutella_h__ */
+#endif							/* _gnutella_h_ */
 
 /* vi: set ts=4: */

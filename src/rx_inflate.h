@@ -25,14 +25,14 @@
  *----------------------------------------------------------------------
  */
 
-#ifndef __rx_inflate_h__
-#define __rx_inflate_h__
+#ifndef _rx_inflate_h_
+#define _rx_inflate_h_
 
 #include "rx.h"
 
 struct rxdrv_ops rx_inflate_ops;
 
-#endif	/* __rx_inflate_h__ */
+#endif	/* _rx_inflate_h_ */
 
 /* vi: set ts=4: */
 

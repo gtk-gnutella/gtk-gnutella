@@ -25,8 +25,8 @@
  *----------------------------------------------------------------------
  */
 
-#ifndef __fileinfo_h__
-#define __fileinfo_h__
+#ifndef _fileinfo_h_
+#define _fileinfo_h_
 
 enum dl_chunk_status {
 	DL_CHUNK_EMPTY = 0,
@@ -121,5 +121,5 @@ void file_info_try_to_swarm_with(
 	gchar *file_name, guint32 idx, guint32 ip, guint32 port, guchar *sha1);
 void file_info_spot_completed_orphans(void);
 
-#endif /* __fileinfo_h__ */
+#endif /* _fileinfo_h_ */
 

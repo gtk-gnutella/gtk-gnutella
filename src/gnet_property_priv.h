@@ -25,8 +25,8 @@
  *----------------------------------------------------------------------
  */
 
-#ifndef __gnet_property_priv_h__
-#define __gnet_property_priv_h__
+#ifndef _gnet_property_priv_h_
+#define _gnet_property_priv_h_
 
 #include <glib.h>
 
@@ -157,5 +157,5 @@ extern guint32  sys_physmem;
 prop_set_t *gnet_prop_init(void);
 void gnet_prop_shutdown(void);
 
-#endif /* __gnet_property_priv_h__ */
+#endif /* _gnet_property_priv_h_ */
 

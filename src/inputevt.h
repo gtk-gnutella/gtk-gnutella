@@ -23,8 +23,8 @@
  *----------------------------------------------------------------------
  */
 
-#ifndef __inputevt_h__
-#define __inputevt_h__
+#ifndef _inputevt_h_
+#define _inputevt_h_
 
 #include <glib.h>
 
@@ -61,5 +61,5 @@ gint inputevt_add(guint source, inputevt_cond_t condition,
 
 #define inputevt_remove(source) (g_source_remove(source))
 
-#endif  /* __inputevt_h__ */
+#endif  /* _inputevt_h_ */
 

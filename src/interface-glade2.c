@@ -3919,7 +3919,6 @@ create_dlg_about (void)
   GtkWidget *vbox67;
   GtkWidget *frame44;
   GtkWidget *label_about_title;
-  GtkWidget *label538;
   GtkWidget *hbox208;
   GtkWidget *vbox87;
   GtkWidget *label501;
@@ -3943,6 +3942,7 @@ create_dlg_about (void)
   GtkWidget *label491;
   GtkWidget *hbox137;
   GtkWidget *button_about_close;
+  GtkWidget *label538;
 
   dlg_about = gtk_window_new (GTK_WINDOW_TOPLEVEL);
   gtk_widget_set_name (dlg_about, "dlg_about");
@@ -3964,12 +3964,6 @@ create_dlg_about (void)
   gtk_widget_show (label_about_title);
   gtk_container_add (GTK_CONTAINER (frame44), label_about_title);
   gtk_misc_set_padding (GTK_MISC (label_about_title), 10, 10);
-
-  label538 = gtk_label_new ("@(#) $Id$");
-  gtk_widget_set_name (label538, "label538");
-  gtk_widget_show (label538);
-  gtk_box_pack_start (GTK_BOX (vbox67), label538, FALSE, FALSE, 0);
-  gtk_label_set_justify (GTK_LABEL (label538), GTK_JUSTIFY_LEFT);
 
   hbox208 = gtk_hbox_new (TRUE, 0);
   gtk_widget_set_name (hbox208, "hbox208");
@@ -4136,6 +4130,12 @@ create_dlg_about (void)
   gtk_container_set_border_width (GTK_CONTAINER (button_about_close), 6);
   GTK_WIDGET_SET_FLAGS (button_about_close, GTK_CAN_DEFAULT);
 
+  label538 = gtk_label_new ("@(#) $Id$");
+  gtk_widget_set_name (label538, "label538");
+  gtk_box_pack_start (GTK_BOX (vbox67), label538, FALSE, FALSE, 0);
+  gtk_widget_set_sensitive (label538, FALSE);
+  gtk_label_set_justify (GTK_LABEL (label538), GTK_JUSTIFY_LEFT);
+
   g_signal_connect ((gpointer) dlg_about, "delete_event",
                     G_CALLBACK (on_dlg_about_delete_event),
                     NULL);
@@ -4148,7 +4148,6 @@ create_dlg_about (void)
   GLADE_HOOKUP_OBJECT (dlg_about, vbox67, "vbox67");
   GLADE_HOOKUP_OBJECT (dlg_about, frame44, "frame44");
   GLADE_HOOKUP_OBJECT (dlg_about, label_about_title, "label_about_title");
-  GLADE_HOOKUP_OBJECT (dlg_about, label538, "label538");
   GLADE_HOOKUP_OBJECT (dlg_about, hbox208, "hbox208");
   GLADE_HOOKUP_OBJECT (dlg_about, vbox87, "vbox87");
   GLADE_HOOKUP_OBJECT (dlg_about, label501, "label501");
@@ -4172,6 +4171,7 @@ create_dlg_about (void)
   GLADE_HOOKUP_OBJECT (dlg_about, label491, "label491");
   GLADE_HOOKUP_OBJECT (dlg_about, hbox137, "hbox137");
   GLADE_HOOKUP_OBJECT (dlg_about, button_about_close, "button_about_close");
+  GLADE_HOOKUP_OBJECT (dlg_about, label538, "label538");
 
   return dlg_about;
 }

@@ -23,8 +23,8 @@
  *----------------------------------------------------------------------
  */
 
-#ifndef __filter_h__
-#define __filter_h__
+#ifndef _filter_h_
+#define _filter_h_
 
 #include "gui.h"
 
@@ -205,4 +205,4 @@ inline filter_t *filter_get_nodownload_target(void);
 inline filter_t *filter_get_return_target(void);
 inline filter_t *filter_get_global_pre(void);
 inline filter_t *filter_get_global_post(void);
-#endif /* __filter_h__ */
+#endif /* _filter_h_ */

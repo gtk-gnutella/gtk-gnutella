@@ -764,7 +764,7 @@ static void search_gui_add_record(
 	titles[c_sr_filename] = 
 		g_locale_to_utf8(rc->name, -1, NULL, NULL, &error);
 	if (NULL != error) {
-		g_warning("g_locale_to_utf8 failed in %s: %s", __FUNCTION__,
+		g_warning("g_locale_to_utf8 failed in search_gui_add_record: %s",
 			error->message);
 		g_clear_error(&error);
 		titles[c_sr_filename] = g_strdup("<Filename cannot be viewed>");

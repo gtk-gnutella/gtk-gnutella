@@ -23,8 +23,8 @@
  *----------------------------------------------------------------------
  */
 
-#ifndef __idtable_h__
-#define __idtable_h__
+#ifndef _idtable_h_
+#define _idtable_h_
 
 /*
  * The idtable provides a automatically growing table which can resolve
@@ -68,9 +68,9 @@ void idtable_new_id_value(idtable_t *tbl, guint32 id, gpointer value);
 
 void idtable_free_id(idtable_t *tbl, guint32 id);
 
-__inline__ gboolean idtable_is_id_used(idtable_t *tbl, guint32 id);
+G_INLINE_FUNC gboolean idtable_is_id_used(idtable_t *tbl, guint32 id);
 
 void idtable_set_value(idtable_t *tbl, guint32 id, gpointer value);
 gpointer idtable_get_value(idtable_t *tbl, guint32 id);
 
-#endif /* __idtable_h__ */
+#endif /* _idtable_h_ */

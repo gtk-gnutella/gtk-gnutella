@@ -25,14 +25,14 @@
  *----------------------------------------------------------------------
  */
 
-#ifndef __rx_link_h__
-#define __rx_link_h__
+#ifndef _rx_link_h_
+#define _rx_link_h_
 
 #include "rx.h"
 
 struct rxdrv_ops rx_link_ops;
 
-#endif	/* __rx_link_h__ */
+#endif	/* _rx_link_h_ */
 
 /* vi: set ts=4: */
 

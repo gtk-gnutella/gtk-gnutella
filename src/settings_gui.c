@@ -1753,7 +1753,7 @@ static gboolean update_treeview_col_widths(property_t prop)
         }
         default:
             val = 0;
-            g_error("%s: incompatible type %s", __FUNCTION__,
+            g_error("update_treeview_col_widths: incompatible type %s",
                 prop_type_str[map_entry->type]);
     }
 
@@ -2425,7 +2425,7 @@ static gboolean show_search_results_settings_changed(property_t prop)
     return FALSE;
 }
 
-static gboolean __update_address_information(void)
+static gboolean _update_address_information(void)
 {
     static guint32 old_address = 0;
     static guint16 old_port = 0;
@@ -2469,20 +2469,20 @@ static gboolean __update_address_information(void)
 static gboolean force_local_ip_changed(property_t prop)
 {
     update_togglebutton(prop);
-    __update_address_information();
+    _update_address_information();
     return FALSE;
 }
 
 static gboolean listen_port_changed(property_t prop)
 {
     update_spinbutton(prop);
-    __update_address_information();
+    _update_address_information();
     return FALSE;
 }
 
 static gboolean local_address_changed(property_t prop)
 {
-    __update_address_information();
+    _update_address_information();
     return FALSE;
 }
 

@@ -23,8 +23,8 @@
  *----------------------------------------------------------------------
  */
 
-#ifndef __search_h__
-#define __search_h__
+#ifndef _search_h_
+#define _search_h_
 
 #include "nodes.h"
 
@@ -36,5 +36,5 @@ void search_shutdown(void);
 
 gboolean search_results(gnutella_node_t *n);
 
-#endif /* __search_h__ */
+#endif /* _search_h_ */
 

@@ -27,8 +27,8 @@
  *----------------------------------------------------------------------
  */
 
-#ifndef __huge_h__
-#define __huge_h__
+#ifndef _huge_h_
+#define _huge_h_
 
 #include <sys/types.h>
 
@@ -56,7 +56,7 @@ gboolean huge_extract_sha1(gchar *buf, guchar *digest);
 
 void huge_collect_locations(guchar *sha1, struct header *header);
 
-#endif	/* __huge_h__ */
+#endif	/* _huge_h_ */
 
 /* 
  * Emacs stuff:

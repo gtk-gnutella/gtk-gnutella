@@ -23,8 +23,8 @@
  *----------------------------------------------------------------------
  */
 
-#ifndef __upload_stats_h__
-#define __upload_stats_h__
+#ifndef _upload_stats_h_
+#define _upload_stats_h_
 
 #include <glib.h>
 #include "uploads.h"

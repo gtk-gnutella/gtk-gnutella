@@ -23,8 +23,8 @@
  *----------------------------------------------------------------------
  */
 
-#ifndef __hosts_h__
-#define __hosts_h__
+#ifndef _hosts_h_
+#define _hosts_h_
 
 #include <glib.h>
 
@@ -56,4 +56,4 @@ void host_close(void);
 void parse_netmasks(gchar *value);
 gboolean host_is_nearby(guint32 ip);
 
-#endif /* __hosts_h__ */
+#endif /* _hosts_h_ */
