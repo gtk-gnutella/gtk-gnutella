@@ -208,6 +208,7 @@ void search_gui_free_r_set(results_set_t *rs)
     /* 
      * Free list of searches set was intended for.
      */
+
     if (rs->schl) {
         g_slist_free(rs->schl);
         rs->schl = NULL;
@@ -1044,6 +1045,7 @@ void search_gui_flush(time_t now)
 
         if (rs->refcount == 0) {
             search_gui_free_r_set(rs);
+			g_slist_free(schl);
             continue;
         }
 
@@ -1079,6 +1081,7 @@ void search_gui_flush(time_t now)
                 }
             }
         } 
+		g_slist_free(schl);
     }
 
 #ifdef USE_GTK1
