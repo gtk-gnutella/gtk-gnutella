@@ -1315,8 +1315,9 @@ static gboolean update_entry(property_t prop)
     w = lookup_widget(top, map_entry->wid);
 
     if (w == NULL) {
-        g_warning("%s - widget not found: [%s]", 
-             G_GNUC_PRETTY_FUNCTION, map_entry->wid);
+		if (gui_debug)
+			g_warning("%s - widget not found: [%s]", 
+				 G_GNUC_PRETTY_FUNCTION, map_entry->wid);
         return FALSE;
     }
    
@@ -1369,8 +1370,9 @@ static gboolean update_spinbutton(property_t prop)
     w = lookup_widget(top, map_entry->wid);
 
     if (w == NULL) {
-        g_warning("%s - widget not found: [%s]", 
-             G_GNUC_PRETTY_FUNCTION, map_entry->wid);
+		if (gui_debug)
+			g_warning("%s - widget not found: [%s]", 
+				 G_GNUC_PRETTY_FUNCTION, map_entry->wid);
         return FALSE;
     }
    
@@ -1404,8 +1406,9 @@ static gboolean update_togglebutton(property_t prop)
     w = lookup_widget(top, map_entry->wid);
 
     if (w == NULL) {
-        g_warning("%s - widget not found: [%s]", 
-             G_GNUC_PRETTY_FUNCTION, map_entry->wid);
+		if (gui_debug)
+			g_warning("%s - widget not found: [%s]", 
+				 G_GNUC_PRETTY_FUNCTION, map_entry->wid);
         return FALSE;
     }
    
@@ -1438,8 +1441,9 @@ static gboolean update_split_pane(property_t prop)
     w = lookup_widget(top, map_entry->wid);
 
     if (w == NULL) {
-        g_warning("%s - widget not found: [%s]", 
-             G_GNUC_PRETTY_FUNCTION, map_entry->wid);
+		if (gui_debug)
+			g_warning("%s - widget not found: [%s]", 
+				 G_GNUC_PRETTY_FUNCTION, map_entry->wid);
         return FALSE;
     }
     
@@ -1472,8 +1476,9 @@ static gboolean update_clist_col_widths(property_t prop)
     w = lookup_widget(top, map_entry->wid);
 
     if (w == NULL) {
-        g_warning("%s - widget not found: [%s]", 
-             G_GNUC_PRETTY_FUNCTION, map_entry->wid);
+		if (gui_debug)
+			g_warning("%s - widget not found: [%s]", 
+				 G_GNUC_PRETTY_FUNCTION, map_entry->wid);
         return FALSE;
     }
 
@@ -1514,8 +1519,9 @@ static gboolean update_window_geometry(property_t prop)
     w = top;
     
     if (!w->window) {
-        g_warning("%s - top level window not available (NULL)", 
-             G_GNUC_PRETTY_FUNCTION);
+		if (gui_debug)
+			g_warning("%s - top level window not available (NULL)", 
+				 G_GNUC_PRETTY_FUNCTION);
         return FALSE;
     }
  
@@ -1558,8 +1564,9 @@ static gboolean update_bandwidth_spinbutton(property_t prop)
     w = lookup_widget(top, map_entry->wid);
 
     if (w == NULL) {
-        g_warning("%s - widget not found: [%s]", 
-             G_GNUC_PRETTY_FUNCTION, map_entry->wid);
+		if (gui_debug)
+			g_warning("%s - widget not found: [%s]", 
+				 G_GNUC_PRETTY_FUNCTION, map_entry->wid);
         return FALSE;
     }
    
