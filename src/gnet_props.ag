@@ -673,6 +673,28 @@ prop = {
 };
 
 prop = {
+    name = "gwc_debug";
+    desc = "Verbosity of GWebCache related debug messages";
+    type = guint32;
+    data = {
+        default = 0;
+        min     = 0;
+        max     = 20;
+    };
+};
+
+prop = {
+    name = "url_debug";
+    desc = "Verbosity of URL handling related debug messages";
+    type = guint32;
+    data = {
+        default = 0;
+        min     = 0;
+        max     = 20;
+    };
+};
+
+prop = {
     name = "track_props";
     desc = "For development use: track properties";
     type = guint32;
@@ -682,8 +704,6 @@ prop = {
         max     = 20;
     };
 };
-
-
 
 prop = {
     name = "stop_host_get";

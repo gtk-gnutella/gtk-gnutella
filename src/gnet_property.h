@@ -89,6 +89,8 @@ typedef enum {
     PROP_HARD_TTL_LIMIT,    
     PROP_DBG,    
     PROP_LIB_DEBUG,    
+    PROP_GWC_DEBUG,    
+    PROP_URL_DEBUG,    
     PROP_TRACK_PROPS,    
     PROP_STOP_HOST_GET,    
     PROP_BW_HTTP_IN_ENABLED,    
