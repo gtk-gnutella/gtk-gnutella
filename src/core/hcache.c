@@ -1093,13 +1093,15 @@ hcache_find_nearby(host_type_t type, guint32 *ip, guint16 *port)
             *ip = h->ip;
             *port = h->port;
             
-            hcache_unlink_host(hc, h);
             result = TRUE;
 			break;
 		}
 	}
 
 	hash_list_release(iter);
+
+	if (result)
+		hcache_unlink_host(hc, h);
 
 	return result;
 }
