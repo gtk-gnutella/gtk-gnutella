@@ -439,7 +439,7 @@ static void guess_local_ip(int sd)
 		} else if (!is_private_ip(ip) || is_private_ip(local_ip))
 			local_ip = ip;
 
-		gui_update_config_port();
+		gui_update_config_port(FALSE);
 	}
 }
 
