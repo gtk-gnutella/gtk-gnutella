@@ -52,7 +52,6 @@
 
 #include "filter_cb.h"
 #include "filter.h"
-#include "oldconfig.h"
 #include "callbacks.h" /* FIXME: remove this dependency (compare_ul_norm) */
 
 #include "fileinfo_gui.h"
@@ -79,54 +78,6 @@ GtkWidget *popup_queue = NULL;
 /***
  *** Private function
  ***/
-
-/*
- * load_legacy_settings:
- *
- * If no configuration files are found for frontend and core, it tries
- * to read in the old config file.
- * FIXME: This should be removed as soon as possible, probably for 1.0.
- */
-static void load_legacy_settings(void)
-{
-    struct passwd *pwd = getpwuid(getuid());
-    gchar *config_dir;
-    gchar *home_dir;
-    gchar tmp[2000] = "";
-    gchar core_config_file[2000] = "";
-    gchar gui_config_file[2000] = "";
-
-    config_dir = g_strdup(getenv("GTK_GNUTELLA_DIR"));
-    if (pwd && pwd->pw_dir)
-		home_dir = g_strdup(pwd->pw_dir);
-	else
-		home_dir = g_strdup(getenv("HOME"));
-
-    if (!home_dir)
-		g_warning(_("can't find your home directory!"));
- 
-    if (!config_dir) {
-		if (home_dir) {
-			gm_snprintf(tmp, sizeof(tmp),
-				"%s/.gtk-gnutella", home_dir);
-			config_dir = g_strdup(tmp);
-		} else
-			g_warning(_("no home directory: can't check legacy configuration!"));
-	}
-
-    gm_snprintf(core_config_file, sizeof(core_config_file), 
-        "%s/%s", config_dir, "config_gnet");
-    gm_snprintf(gui_config_file, sizeof(gui_config_file), 
-        "%s/%s", config_dir, "config_gui");
-
-    if (!file_exists(core_config_file) && !file_exists(gui_config_file)) {
-        g_warning(_("No configuration found, trying legacy config file"));
-        config_init();
-    }
-
-    g_free(config_dir);
-    g_free(home_dir);
-}
 
 static void gui_init_window_title(void)
 {
@@ -615,8 +566,6 @@ void main_gui_init(void)
     search_gui_init();
     filter_update_targets(); /* Make sure the default filters are ok */
     monitor_gui_init();
-
-    load_legacy_settings();
 
    	gui_update_all();
 }

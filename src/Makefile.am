@@ -118,7 +118,7 @@ gtk_gnutella_SOURCES = \
 	prop.c prop.h \
 	gnet_property.c gnet_property.h gnet_property_priv.h \
 	guid.c guid.h \
-	settings.c settings.h oldconfig.c oldconfig.h \
+	settings.c settings.h \
 	sockets.c sockets.h \
 	nodes.c nodes.h \
 	hosts.c hosts.h \
