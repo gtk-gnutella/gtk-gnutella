@@ -24,7 +24,6 @@
 #define DOWNLOAD_RECV_BUFSIZE		114688		/* 112K */
 
 struct download *selected_queued_download = (struct download *) NULL;
-struct download *selected_active_download = (struct download *) NULL;
 
 GSList *sl_downloads = NULL;
 guint32 count_downloads = 0;
@@ -305,8 +304,8 @@ void download_gui_add(struct download *d)
 	titles[3] = "";
 
 	if (DOWNLOAD_IS_QUEUED(d)) {		/* This is a queued download */
-		row = gtk_clist_append(GTK_CLIST(clist_download_queue), titles);
-		gtk_clist_set_row_data(GTK_CLIST(clist_download_queue), row,
+		row = gtk_clist_append(GTK_CLIST(clist_downloads_queue), titles);
+		gtk_clist_set_row_data(GTK_CLIST(clist_downloads_queue), row,
 							   (gpointer) d);
 	} else {					/* This is an active download */
 
@@ -318,8 +317,11 @@ void download_gui_add(struct download *d)
 	d->visible = TRUE;
 }
 
-/* Remove a download from the GUI */
-
+/**
+ * download_gui_remove:
+ *
+ * Remove a download from the GUI.
+ */
 void download_gui_remove(struct download *d)
 {
 	gint row;
@@ -334,19 +336,23 @@ void download_gui_remove(struct download *d)
 	}
 
 	if (DOWNLOAD_IS_QUEUED(d)) {
+     /*
 		if (selected_queued_download == d)
 			selected_queued_download = (struct download *) NULL;
+     */
 		row =
-			gtk_clist_find_row_from_data(GTK_CLIST(clist_download_queue),
+			gtk_clist_find_row_from_data(GTK_CLIST(clist_downloads_queue),
 										 (gpointer) d);
 		if (row != -1)
-			gtk_clist_remove(GTK_CLIST(clist_download_queue), row);
+			gtk_clist_remove(GTK_CLIST(clist_downloads_queue), row);
 		else
 			g_warning("download_gui_remove(): "
 				"Queued download '%s' not found in clist !?", d->file_name);
 	} else {
+     /*
 		if (selected_active_download == d)
 			selected_active_download = (struct download *) NULL;
+     */
 		row =
 			gtk_clist_find_row_from_data(GTK_CLIST(clist_downloads),
 										 (gpointer) d);
@@ -823,12 +829,12 @@ void download_pickup_queued(void)
 	time_t now = time((time_t *) NULL);
 	gint running = count_running_downloads();
 
-	gtk_clist_freeze(GTK_CLIST(clist_download_queue));
+	gtk_clist_freeze(GTK_CLIST(clist_downloads_queue));
 	row = 0;
-	while (row < GTK_CLIST(clist_download_queue)->rows
+	while (row < GTK_CLIST(clist_downloads_queue)->rows
 		   && running < max_downloads) {
 		struct download *d = (struct download *)
-			gtk_clist_get_row_data(GTK_CLIST(clist_download_queue), row);
+			gtk_clist_get_row_data(GTK_CLIST(clist_downloads_queue), row);
 
 		if (!DOWNLOAD_IS_QUEUED(d))
 			g_warning("download_pickup_queued(): "
@@ -850,9 +856,9 @@ void download_pickup_queued(void)
 	 * Enable "Start now" only if we would not exceed limits.
 	 */
 
-	gtk_widget_set_sensitive(download_start_now, running < max_downloads); 
+	gtk_widget_set_sensitive(popup_queue_start_now, running < max_downloads); 
 
-	gtk_clist_thaw(GTK_CLIST(clist_download_queue));
+	gtk_clist_thaw(GTK_CLIST(clist_downloads_queue));
 }
 
 static void download_push(struct download *d, gboolean on_timeout)
