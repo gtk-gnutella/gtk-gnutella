@@ -319,7 +319,7 @@ void ban_force(struct gnutella_socket *s)
 		GList *prev = g_list_previous(banned_tail);
 
 		g_assert(banned_tail);
-		g_assert(prev);
+		g_assert(max_banned_fd <= 1 || prev);
 
 		(void) close(GPOINTER_TO_INT(banned_tail->data));	/* Reclaim fd */
 
