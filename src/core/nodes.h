@@ -40,6 +40,8 @@
 #include "if/core/hsep.h"
 #include "if/core/nodes.h"
 
+#include "lib/header.h"
+
 typedef enum node_protocol_types {
 	PROTOCOL_TYPE_GNUTELLA = 0,
 	PROTOCOL_TYPE_G2
@@ -574,6 +576,7 @@ void node_can_tsync(gnutella_node_t *n);
 void node_crawl(gnutella_node_t *n, gint ucnt, gint lcnt, guint8 features);
 
 void node_update_udp_socket(void);
+void node_check_remote_ip_header(guint32 peer, header_t *head);
 
 #endif /* _core_nodes_h_ */
 

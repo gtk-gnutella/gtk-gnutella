@@ -3025,6 +3025,7 @@ node_got_bye(struct gnutella_node *n)
 		message);
 }
 
+
 /**
  * Whether they want to be "online" within Gnutella or not.
  */
@@ -3216,12 +3217,62 @@ extract_my_ip(header_t *header)
 	const gchar *field;
 
 	field = header_get(header, "Remote-Ip");
+	if (!field)
+		field = header_get(header, "X-Remote-Ip");
 
 	if (!field)
 		return 0;
 
 	return gchar_to_ip(field);
 }
+
+/**
+ * Checks for a Remote-IP or X-Remote-IP header and updates our IP address if
+ * the current IP address is not enforced. Note that settings_ip_changed()
+ * doesn't trust a single source.
+ *
+ * @param peer the IPv4 address of the peer who sent the header
+ * @param head a header_t holding headers sent by the peer
+ */
+void
+node_check_remote_ip_header(guint32 peer, header_t *head)
+{
+	guint32 ip;
+	
+	g_assert(head != NULL);
+	
+	/*
+	 * Remote-IP -- IP address of this node as seen from remote node
+	 *
+	 * Modern nodes include our own IP, as they see it, in the
+	 * handshake headers and reply, whether it indicates a success or not.
+	 * Use it as an opportunity to automatically detect changes.
+	 *		--RAM, 13/01/2002
+	 */
+
+	if (force_local_ip)
+		return;
+	
+	ip = extract_my_ip(head);
+	if (!ip || ip == local_ip)
+		return;
+	
+	if (dbg > 0) {
+		const gchar *ua;
+
+		ua = header_get(head, "User-Agent");
+		if (!ua)
+			ua = header_get(head, "Server");
+		if (!ua)
+			ua = "Unknown";
+
+		g_message("Peer %s reported different IP address: %s (%s)\n",
+			ip_to_gchar(peer), ip2_to_gchar(peer), ua);
+	}
+
+	settings_ip_changed(ip, peer);
+}
+
 
 /**
  * Analyses status lines we get from incoming handshakes (final ACK) or
@@ -4087,34 +4138,9 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 		n->attrs |= NODE_A_CAN_VENDOR;
 	}
 
-	/*
-	 * Remote-IP -- IP address of this node as seen from remote node
-	 *
-	 * Modern nodes include our own IP, as they see it, in the
-	 * handshake headers and reply, whether it indicates a success or not.
-	 * Use it as an opportunity to automatically detect changes.
-	 *		--RAM, 13/01/2002
-	 */
-
-	if (!force_local_ip) {
-		guint32 ip = extract_my_ip(head);
-		if (ip && ip != local_ip) {
-			if (dbg > 0) {
-				const gchar *ua;
-
-				ua = header_get(head, "User-Agent");
-				if (!ua)
-					ua = header_get(head, "Server");
-				if (!ua)
-					ua = "Unknown";
-
-				g_message("Peer %s reported different IP address: %s (%s)\n",
-					ip_to_gchar(n->ip), ip2_to_gchar(ip), ua);
-			}
-            settings_ip_changed(ip, n->ip);
-		}
-	}
-
+	/* Check for (X-)Remote-IP header and handle it */
+	node_check_remote_ip_header(n->ip, head);
+		
 	/* X-Live-Since -- time at which the remote node started. */
 	/* Uptime -- the remote host uptime.  Only used by Gnucleus. */
 

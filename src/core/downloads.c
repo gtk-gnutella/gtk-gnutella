@@ -5361,6 +5361,8 @@ download_request(struct download *d, header_t *header, gboolean ok)
 	if (download_get_server_name(d, header))
 		gcu_gui_update_download_server(d);
 
+	node_check_remote_ip_header(download_ip(d), header);
+	
 	/*
 	 * Check status.
 	 */
