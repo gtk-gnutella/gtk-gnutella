@@ -781,10 +781,9 @@ static void search_gui_add_record(
   	gchar *titles[c_sr_num];
     struct results_set *rs = rc->results_set;
 	GtkTreeIter iter;
-	GtkTreeView *tree_view = GTK_TREE_VIEW (sch->tree_view);
-	GtkTreeModel *model = gtk_tree_view_get_model (tree_view);
+	GtkTreeView *tree_view = GTK_TREE_VIEW(sch->tree_view);
+	GtkTreeModel *model = gtk_tree_view_get_model(tree_view);
 
-	titles[c_sr_filename] = g_strdup(locale_to_utf8(rc->name, -1));
 	titles[c_sr_size] = short_size(rc->size);
 	titles[c_sr_speed] = GUINT_TO_POINTER((guint)rs->speed);
 	titles[c_sr_host] = ip_port_to_gchar(rs->ip, rs->port);
@@ -814,7 +813,9 @@ static void search_gui_add_record(
 			g_string_append(info, "; ");
 		g_string_append(info, vinfo->str);
 	}
-	titles[c_sr_info] = g_strdup(locale_to_utf8(info->str, -1));
+	titles[c_sr_info] = g_strdup(locale_to_utf8(info->str, info->len));
+	/* strdup() info because it's normally shorter than filename */
+	titles[c_sr_filename] = locale_to_utf8(rc->name, 0);
 
 	gtk_list_store_append(GTK_LIST_STORE (model), &iter);
 	gtk_list_store_set(GTK_LIST_STORE (model), &iter,
@@ -830,7 +831,6 @@ static void search_gui_add_record(
 		      c_sr_record, rc,
 		      -1);
 	G_FREE_NULL(titles[c_sr_info]);
-	G_FREE_NULL(titles[c_sr_filename]);
 	g_string_free(info, TRUE);
 }
 
