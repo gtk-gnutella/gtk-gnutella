@@ -458,6 +458,7 @@ gboolean http_url_parse(
 	gchar s;
 	guint32 portnum;
 	static gchar hostname[MAX_HOSTLEN + 1];
+	gboolean numeric_host = FALSE;
 
 	if (0 != strncasecmp(url, "http://", 7))
 		return FALSE;
@@ -529,9 +530,11 @@ gboolean http_url_parse(
 				*ip = lsb + (b2 << 8) + (b3 << 16) + (msb << 24);
 			if (host != NULL)
 				*host = NULL;				/* No hostnmae */
-		} else
-			return FALSE;
-	} else {
+			numeric_host = TRUE;			/* Host given as IP address */
+		}
+	}
+
+	if (!numeric_host) {
 		gchar *q = hostname;
 		gchar *end = hostname + sizeof(hostname);
 
