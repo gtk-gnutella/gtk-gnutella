@@ -688,12 +688,14 @@ void parq_dl_reparent_id(struct download *d, struct download *cd)
 	parq_dl = (struct parq_dl_queued *) d->queue_status;
 
 	g_assert(parq_dl != NULL);
-	g_assert(parq_dl->id != NULL);
 	g_assert(d->queue_status == cd->queue_status);	/* Cloned */
 
-	g_hash_table_remove(dl_all_parq_by_id, parq_dl->id);
-	g_hash_table_insert(dl_all_parq_by_id, parq_dl->id, cd);
-
+	/* Not all parq downloads have an ID */
+	if (parq_dl->id != NULL) {
+		g_hash_table_remove(dl_all_parq_by_id, parq_dl->id);
+		g_hash_table_insert(dl_all_parq_by_id, parq_dl->id, cd);
+	}
+	
 	d->queue_status = NULL;			/* No longer associated to `d' */
 }
 
