@@ -103,6 +103,20 @@ size_t strlcpy(gchar *dst, const gchar *src, size_t dst_size);
 #define is_ascii_upper(c) (isascii(c) && isupper(c))
 #define is_ascii_xdigit(c) (isascii(c) && isxdigit(c))
 
+/**
+ * Skips over all ASCII space characters starting at ``s''.
+ *
+ * @return a pointer to the first Non-ASCII space character starting from s.
+ */
+static inline gchar *
+skip_ascii_spaces(const gchar *s)
+{
+	while (is_ascii_space(*s))
+		s++;
+
+	return (gchar *) s; /* override const */
+}
+
 /*
  * Array size determination
  */
