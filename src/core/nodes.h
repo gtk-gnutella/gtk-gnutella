@@ -423,12 +423,14 @@ extern gboolean route_exists_for_reply(gchar *muid, guint8 function);
  *
  * For queries, we look at the hops-flow, and whether there is a route for
  * the query hit: no need to forward the request if the reply will be dropped.
+ * We let OOB queries go through though, since they will probably get replied
+ * to out-of-band.
  * (we always forward queries with hops=0, of course, since they are ours!).
  */
 #define node_can_send(n, t, h, m) \
 	((t) != GTA_MSG_SEARCH || \
 		(node_query_hops_ok(n, h) && \
-			((h) == 0 || route_exists_for_reply(m, t))))
+			((h) == 0 || gmsg_is_oob_query(m) || route_exists_for_reply(m, t))))
 
 /*
  * node_flowc_swift_grace
