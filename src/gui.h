@@ -22,7 +22,7 @@ void gui_update_node(struct gnutella_node *, gboolean);
 void gui_update_download(struct download *, gboolean);
 void gui_update_c_gnutellanet(void);
 void gui_update_c_uploads(void);
-void gui_update_c_downloads(gint);
+void gui_update_c_downloads(gint, gint);
 void gui_update_stats(void);
 void gui_update_monitor_max_items(void);
 void gui_update_max_ttl(void);
