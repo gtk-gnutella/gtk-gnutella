@@ -11,5 +11,6 @@
 ?MAKE:Myinit: Init
 ?MAKE:	-pick add $@ %<
 ?LINT:change libswanted
-libswanted='sendfile z icuuc intl resolv'
+?LINT:nocomment
+libswanted='sendfile z icuuc intl resolv iconv'
 
