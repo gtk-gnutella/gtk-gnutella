@@ -13874,7 +13874,7 @@ create_dlg_prefs_ul_tab (void)
   gtk_table_set_row_spacings (GTK_TABLE (table12), 2);
   gtk_table_set_col_spacings (GTK_TABLE (table12), 4);
 
-  label179 = gtk_label_new_with_mnemonic (_("_Connecting timeout"));
+  label179 = gtk_label_new_with_mnemonic (_("Connectin_g timeout"));
   gtk_widget_set_name (label179, "label179");
   gtk_widget_show (label179);
   gtk_table_attach (GTK_TABLE (table12), label179, 0, 1, 0, 1,
