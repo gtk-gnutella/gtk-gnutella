@@ -262,9 +262,6 @@ void gtk_gnutella_exit(gint n)
 	dh_close();
 	dq_close();
 	hsep_close();
-	gip_close();
-	bogons_close();
-	hostiles_close();
 	drop_close();
 	file_info_close();
 	ext_close();
@@ -276,6 +273,9 @@ void gtk_gnutella_exit(gint n)
 	host_close();
 	hcache_close();		/* After host_close() */
 	settings_close();	/* Must come after hcache_close() */
+	bogons_close();		/* Idem, since host_close() can touch the cache */
+	hostiles_close();
+	gip_close();
 	ban_close();
 	inet_close();
 	whitelist_close();
@@ -352,6 +352,7 @@ static void slow_main_timer(time_t now)
 		break;
 	case 1:
 		search_gui_store_searches();
+		hcache_store_if_dirty(HOST_ANY);
 		break;
 	case 2:
 		upload_stats_flush_if_dirty();
@@ -361,6 +362,7 @@ static void slow_main_timer(time_t now)
 		break;
 	case 4:
 		gwc_store_if_dirty();
+		hcache_store_if_dirty(HOST_ULTRA);
 		break;
 	default:
 		g_assert(0);
