@@ -322,29 +322,37 @@ enum ignore_val ignore_is_requested(guchar *file, guint32 size, guchar *sha1)
 }
 
 /*
- * ignore_add
+ * ignore_add_sha1
  *
- * Add `file', `size' and possibly `sha1' to the set of ignored entries.
+ * Add `sha1' to the set of ignored entries.
  */
-void ignore_add(guchar *file, guint32 size, guchar *sha1)
+void ignore_add_sha1(guchar *file, guchar *sha1)
+{
+	g_assert(sha1);
+
+	if (!g_hash_table_lookup(by_sha1, sha1))
+		g_hash_table_insert(by_sha1, atom_sha1_get(sha1), (gpointer) 0x1);
+
+	/*
+	 * Write to file even if duplicate SHA1, in order to help us
+	 * diagnose possible problems.
+	 */
+
+	if (sha1_out) {
+		fprintf(sha1_out, "%s  %s\n", sha1_base32(sha1), file);
+		fflush(sha1_out);
+	}
+}
+
+/*
+ * ignore_add_filesize
+ *
+ * Add `file', `size' to the set of ignored entries.
+ */
+void ignore_add_filesize(guchar *file, guint32 size)
 {
 	namesize_t *ns;
 	namesize_t nsk;
-
-	if (sha1) {
-		if (!g_hash_table_lookup(by_sha1, sha1))
-			g_hash_table_insert(by_sha1, atom_sha1_get(sha1), (gpointer) 0x1);
-
-		/*
-		 * Write to file even if duplicate SHA1, in order to help us
-		 * diagnose possible problems.
-		 */
-
-		if (sha1_out) {
-			fprintf(sha1_out, "%s  %s\n", sha1_base32(sha1), file);
-			fflush(sha1_out);
-		}
-	}
 
 	nsk.name = file;
 	nsk.size = size;
