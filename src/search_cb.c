@@ -57,7 +57,6 @@ static gchar tmpstr[4096];
 static void refresh_popup(void)
 {
 	gboolean sensitive;
-
     search_t *search;
 
     search = search_gui_get_current_search();
@@ -672,7 +671,6 @@ void on_ctree_search_results_select_row(GtkCTree *ctree,
     refresh_popup();
 	search_cb_autoselect(ctree, GTK_CTREE_NODE(node)); 
    
-out:
     gtk_signal_handler_unblock_by_func(GTK_OBJECT(ctree),
         GTK_SIGNAL_FUNC(on_ctree_search_results_select_row),
         NULL);
@@ -1162,4 +1160,5 @@ void on_popup_search_collapse_all_activate(GtkMenuItem *menuitem,
 
 }
 
+/* vi: set ts=4: */
 #endif	/* USE_GTK1 */
