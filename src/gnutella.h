@@ -40,9 +40,9 @@
  */
 
 #define GTA_VERSION 0
-#define GTA_SUBVERSION 80
-#define GTA_REVISION "stable"
-#define GTA_RELEASE "31/01/2002"
+#define GTA_SUBVERSION 85
+#define GTA_REVISION "unstable"
+#define GTA_RELEASE "02/02/2002"
 #define GTA_WEBSITE "http://gtk-gnutella.sourceforge.net/"
 
 #define GTA_MSG_INIT					0x00
