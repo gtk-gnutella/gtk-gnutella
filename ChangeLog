@@ -1,5 +1,10 @@
 # since last version
 
+- (2003.02.05 - RAM)
+ * Fixed dmesh fuzzy matching memory corruption.
+ * Send PUSH messages at max TTL value, not my TTL in case it needs re-routing.
+ * Added missing memory cleanup to shutdown calls, preventing leak detection.
+
 - (2003.02.04 - RAM)
  * Abort download if handed out an URL that is too large (probably garbage).
  * Integrated fuzzy dmesh filtering for non-N2R entries [From Alex Bennee].
@@ -7,10 +12,11 @@
  * New properties "pfsp_server", "pfsp_first_chunk" for PFSP (unused for now).
  * New property "fuzzy_filter_dmesh" to toggle fuzzy dmesh filtering.
  * Give unused reserved bandwidth for leaf nodes to HTTP traffic.
+ * Integrated fix in get_header_value() [From Jeroen Asselman].
 
 - (2003.02.03 - RAM)
  * Added inclusion of "common.h" for FreeBSD 4.7 (utf8.c).
- * Integrated PARQ patch: client-side is fully supported [from Jeroen Asselman].
+ * Integrated PARQ patch: client-side is fully supported [From Jeroen Asselman].
  * Raised minimal query routing table size to 128 K slots, and lowered the
    sparseness and conflict ratios to check whether we can double the routing
    table size.
