@@ -248,8 +248,6 @@ void routing_init(void)
 	fake_route.saved_messages = 0;
 	fake_route.node = fake_node;
 
-	srand(time((time_t *) NULL) ^ getpid());
-
 	/*
 	 * Initialize the banned GUID hash.
 	 */
@@ -346,20 +344,10 @@ retry:
  */
 void generate_new_muid(guchar *muid, gboolean modern)
 {
-	static guint32 muid_cnt = 0;		/* Ensure messages we send are unique */
 	gint i;
 
-	/*
-	 * We place our unique counter at offset 4, and it is 4 bytes long
-	 * hence the tweaking with `k', and the upper bound for `i' of 12.
-	 */
-
-	for (i = 0; i < 12; i += 2) {
-		gint k = (i < 4) ? i : (i + 4);
-		(*((guint16 *) (muid + k))) = (guint16) random_value(0xffff);
-	}
-
-	*((guint32 *) (muid + 4)) = muid_cnt++;
+	for (i = 0; i < 16; i += 2)
+		(*((guint16 *) (muid + i))) = (guint16) random_value(0xffff);
 
 	if (modern)
 		patch_muid_for_modern_node(muid);
