@@ -343,13 +343,6 @@ static void file_info_fd_store_binary(
 
 	g_assert(fd >= 0);
 
-	if (lseek(fd, fi->size, SEEK_SET) != fi->size) {
-		g_warning("file_info_store_binary(): "
-			"lseek() to offset %u in \"%s\" failed: %s",
-			fi->size, fi->file_name, g_strerror(errno));
-		return;
-	}
-
 	/*
 	 * Don't flush unless required or some delay occurred since last flush.
 	 */
@@ -358,6 +351,17 @@ static void file_info_fd_store_binary(
 		fi->last_flush = fi->stamp;
 	else
 		return;
+
+	/*
+	 * Write trailer at the far end.
+	 */
+
+	if (lseek(fd, fi->size, SEEK_SET) != fi->size) {
+		g_warning("file_info_store_binary(): "
+			"lseek() to offset %u in \"%s\" failed: %s",
+			fi->size, fi->file_name, g_strerror(errno));
+		return;
+	}
 
 	TBUF_INIT_WRITE();
 	WRITE_INT32(FILE_INFO_VERSION);
@@ -1820,7 +1824,7 @@ void file_info_recreate(struct download *d)
 
 	/*
 	 * Before creating new fileinfo, we must remove the old structure
-	 * from the hash table.  This will also ensure that the output name be
+	 * from the hash table.  This will also ensure that the output name is
 	 * freed and available for immediate reuse.
 	 */
 
