@@ -165,6 +165,7 @@ extern gint guid_eq(gconstpointer a, gconstpointer b);
 			g_log(G_LOG_DOMAIN, G_LOG_LEVEL_DEBUG, __VA_ARGS__); \
 	} while (0)
 
+#define routing_log_flush(x)	/* XXX */
 
 static void free_route_list(struct message *m);
 
@@ -823,6 +824,41 @@ find_message(const gchar *muid, guint8 function, struct message **m)
 }
 
 /**
+ * Ensure sane hops and TTL counts.
+ *
+ * @return TRUE if we can continue, FALSE if we should not forward the
+ * message.
+ */
+static gboolean
+check_hops_ttl(struct gnutella_node *sender)
+{
+	/*
+	 * Can't forward a message with 255 hops: we can't increase the
+	 * counter.  This should never happen, even for a routed message
+	 * due to network constraints.
+	 *		--RAM, 04/07/2002
+	 */
+
+	if (sender->header.hops == 255) {
+		routing_log("(max hop count reached)");
+		gnet_stats_count_dropped(sender, MSG_DROP_MAX_HOP_COUNT);
+		sender->rx_dropped++;
+		sender->n_bad++;
+		if (dbg)
+			gmsg_log_bad(sender, "message with HOPS=255!");
+		return FALSE;	/* Don't route, something is wrong */
+	}
+
+	if (sender->header.ttl == 0) {
+		routing_log("(TTL was 0)");
+		node_sent_ttl0(sender);
+		return FALSE;	/* Don't route */
+	}
+
+	return TRUE;
+}
+
+/**
  * Forwards message to one node if `target' is non-NULL, or to all nodes but
  * the sender otherwise.  If we kick the node, then *node is set to NULL.
  * The message is not physically sent yet, but the `dest' structure is filled
@@ -845,12 +881,10 @@ forward_message(
 	struct gnutella_node *sender = *node;
 
 	g_assert(routes == NULL || target == NULL);
+	g_assert(current_peermode != NODE_P_LEAF);
 
 	/* Drop messages that would travel way too many nodes --RAM */
-	if (
-		(guint32) sender->header.ttl + sender->header.hops > hard_ttl_limit &&
-		current_peermode != NODE_P_LEAF
-	) {
+	if ((guint32) sender->header.ttl + sender->header.hops > hard_ttl_limit) {
 		routing_log("[ ] [NEW] hard TTL limit reached");
 
 		/*
@@ -874,42 +908,28 @@ forward_message(
 			node_bye(sender, 403, "Relayed %d high TTL (>%d) messages",
 				sender->n_hard_ttl, max_high_ttl_msg);
 			*node = NULL;
+			return FALSE;
 		}
 
-		return FALSE;
+		return TRUE;
 	}
 
-	/*
-	 * If we're a leaf node, it's OK though, as we don't have to route
-	 * the message.  Some broken Ultrapeers out there send such messages!
-	 * We'll even handle the message.
-	 *		-- RAM, 12/01/2003
-	 */
-
-	if (sender->header.ttl == 0) {
-		routing_log("[ ] [NEW] TTL was 0");
-		node_sent_ttl0(sender);
-		/* Don't handle unless we're a leaf: shouldn't have seen it */
-		if (current_peermode == NODE_P_LEAF) {
-			sender->header.hops++;	/* Going to handle it, must be accurate */
-			return TRUE;
-		} else
-			return FALSE;
-	}
+	if (!check_hops_ttl(sender))
+		return TRUE;
 
 	routing_log("[H] [NEW] ");
 
-	sender->header.hops++;	/* Going to handle it, must be accurate */
-
 	if (sender->header.ttl == 1) {
 		/* TTL expired, message stops here */
-		if (current_peermode != NODE_P_LEAF) {
-			routing_log("(TTL expired)");
-			gnet_stats_count_expired(sender);
-			/* don't increase rx_dropped, we'll handle this message */
-		}
-	} else if (current_peermode != NODE_P_LEAF) {
-		/* Forward message to all others nodes */
+		routing_log("(TTL expired)");
+		gnet_stats_count_expired(sender);
+		/* don't increase rx_dropped, we'll handle this message */
+	} else {
+		/*
+		 * Forward message to all others nodes, or the the ones specified
+		 * by the `routes' parameter if not NULL.
+		 */
+
 		if (routes != NULL) {
 			GSList *l;
 			GSList *nodes = NULL;
@@ -919,6 +939,8 @@ forward_message(
 			
 			for (l = routes, count = 0; l; l = g_slist_next(l), count++) {
 				struct route_data *rd = (struct route_data *) l->data;
+				if (rd->node == sender)
+					continue;
 				nodes = g_slist_prepend(nodes, rd->node);
 
 				routing_log("-> sendto_multi(%s) #%d",
@@ -957,20 +979,459 @@ forward_message(
 		}
 	}
 
+	return TRUE;
+}
+
+/**
+ * Lookup message in the routing table and check whether we have a duplicate.
+ *
+ * @param node is a pointer to the variable holding the node, and it can be
+ * set to NULL if we removed the node.
+ * @param mp is set on output to the message if found in the routing table.
+ *
+ * @return whether we should route the message.  If `*mp' is not NULL, then
+ * the message was a duplicate and it should not be handled locally.
+ */
+static gboolean
+check_duplicate(struct gnutella_node **node, struct message **mp)
+{
+	struct gnutella_node *sender = *node;
+
+	if (find_message(sender->header.muid, sender->header.function, mp)) {
+		struct message *m = *mp;
+
+		g_assert(m != NULL);		/* find_message() succeeded */
+
+		/*
+		 * This is a duplicated message, which we might drop.
+		 *
+		 * We don't drop queries/pushes that come to us with a higher TTL
+		 * as we have previously seen.  In that case, we forward them but
+		 * don't handle them, since this was done when we saw them the
+		 * very first time.
+		 *		--RAM, 2004-08-28
+		 */
+
+		if (sender->header.ttl > m->ttl) {
+			routing_log("[ ] dup message with higher ttl (forwarded)");
+
+			gnet_stats_count_general(sender, GNR_DUPS_WITH_HIGHER_TTL, 1);
+
+			m->ttl = sender->header.ttl;	/* Remember highest TTL */
+
+			return TRUE;			/* Forward but don't handle */
+		}
+
+		gnet_stats_count_dropped(sender, MSG_DROP_DUPLICATE);
+		sender->rx_dropped++;
+
+		if (m->routes && node_sent_message(sender, m)) {
+			/* The same node has sent us a message twice ! */
+			routing_log("[ ] dup message (from the same node!)");
+
+			/*
+			 * That is a really good reason to kick the offender
+			 * But do so only if killing this node would not bring
+			 * us too low in node count, and if they have sent enough
+			 * dups to be sure it's not bad luck in MUID generation.
+			 * Finally, check the ratio of dups on received messages,
+			 * because a dup once in a while is nothing.
+			 *				--RAM, 08/09/2001
+			 */
+
+			/* XXX max_dup_msg & max_dup_ratio XXX ***/
+
+			if (++(sender->n_dups) > min_dup_msg &&
+				!NODE_IS_UDP(sender) &&
+				connected_nodes() > MAX(2, up_connections) &&
+				sender->n_dups > (guint16) 
+					(((float)min_dup_ratio) / 10000.0 * sender->received)
+			) {
+				node_mark_bad_vendor(sender);
+				node_bye(sender, 401, "Sent %d dups (%.1f%% of RX)",
+					sender->n_dups, sender->received ?
+						100.0 * sender->n_dups / sender->received :
+						0.0);
+				*node = NULL;
+			} else {
+				if (dbg > 2)
+					gmsg_log_bad(sender, "dup message ID %s from same node",
+						guid_hex_str(sender->header.muid));
+			}
+		} else {
+			struct route_data *route;
+
+			if (m->routes == NULL)
+				routing_log("[ ] dup message, original route lost");
+			else
+				routing_log("[ ] dup message");
+
+			/*
+			 * append so that we route matches to the one that sent it
+			 * to us first; ie., presumably the one closest to the
+			 * original sender.
+			 */
+
+			route = get_routing_data(sender);
+			
+			g_assert(route != NULL);
+			
+			m->routes = g_slist_append(m->routes, route);
+			route->saved_messages++;
+		}
+
+		return FALSE;			/* Don't forward and don't handle */
+	}
+
+	g_assert(*mp == NULL);
+
+	return TRUE;				/* Forward and handle (new message) */
+}
+
+/**
+ * Route a push message.
+ *
+ * @return whether message should be handled
+ */
+static gboolean
+route_push(struct gnutella_node **node, struct route_dest *dest)
+{
+	struct gnutella_node *sender = *node;
+	struct message *m;
+	guint32 ip;
+
 	/*
-	 * Record the message in the routing table.
-	 *
-	 * This must not be done earlier, or we could corrupt the `m->routes'
-	 * argument that was given to us on entry as the `dest' parameter.
-	 * But now that we have traversed the list, it is safe.
+	 * A Push request is not broadcasted as other requests, it is routed
+	 * back along the nodes that have seen Query Hits from the target
+	 * servent of the Push.
 	 */
 
-	message_add(sender->header.muid, sender->header.function, sender);
+	g_assert(sender->size > 16);	/* Must be a valid push */
 
-	sender->header.ttl--;	/* Recorded, mark passage through our node */
+	/*
+	 * Is it for us?
+	 */
+
+	if (0 == memcmp(guid, sender->data, 16)) {
+		routing_log("[H] we are the target");
+		return TRUE;
+	}
+
+	if (current_peermode == NODE_P_LEAF)
+		return FALSE;				/* Not for us, and we can't relay */
+
+	/*
+	 * If the GUID is banned, drop it immediately.
+	 */
+
+	if (g_hash_table_lookup(ht_banned_push, sender->data)) {
+		if (dbg > 3)
+			gmsg_log_dropped(&sender->header,
+				"from %s, banned GUID %s",
+				node_ip(sender), guid_hex_str(sender->data));
+
+		gnet_stats_count_dropped(sender, MSG_DROP_BANNED);
+		sender->rx_dropped++;
+
+		return FALSE;
+	}
+
+	/*
+	 * If IP address is among the hostile set, drop.
+	 */
+
+	READ_GUINT32_BE(sender->data + 20, ip);
+
+	if (hostiles_check(ip)) {
+		gnet_stats_count_dropped(sender, MSG_DROP_HOSTILE_IP);
+		sender->rx_dropped++;
+
+		return FALSE;
+	}
+
+	/*
+	 * The GUID of the target are the leading bytes of the Push
+	 * message, hence we pass `sender->data' to find_message().
+	 */
+
+	if (
+		!find_message(sender->data, QUERY_HIT_ROUTE_SAVE, &m) ||
+		m->routes == NULL
+	) {
+		if (m && m->routes == NULL) {
+			routing_log("[ ] route to target GUID %s gone",
+				guid_hex_str(sender->data));
+			gnet_stats_count_dropped(sender, MSG_DROP_ROUTE_LOST);
+		} else {
+			routing_log("[ ] no route to target GUID %s",
+				guid_hex_str(sender->data));
+			gnet_stats_count_dropped(sender, MSG_DROP_NO_ROUTE);
+		}
+
+		sender->rx_dropped++;
+
+		return FALSE;
+	}
+
+	/*
+	 * By revitalizing the entry, we'll remember the route for
+	 * at least TABLE_MIN_CYCLE secs more after seeing this PUSH.
+	 */
+
+	revitalize_entry(m, FALSE);
+	forward_message(node, NULL, dest, m->routes);
+
+	return FALSE;		/* We are not the target, don't handle it */
+}
+
+/**
+ * Route a query message.
+ *
+ * @return whether message should be handled
+ */
+static gboolean
+route_query(struct gnutella_node **node, struct route_dest *dest)
+{
+	struct gnutella_node *sender = *node;
+	gboolean is_oob_query;
+
+	if (current_peermode == NODE_P_LEAF)
+		return TRUE;
+
+	/*
+	 * If the message comes from UDP, it's not going to go anywhere.
+	 */
+
+	if (NODE_IS_UDP(sender))
+		return TRUE;			/* Process it, but don't route */
+
+	is_oob_query = gmsg_split_is_oob_query(&sender->header, sender->data);
+
+	/*
+	 * If node is shutdown, it won't be there to get query hits back.
+	 * This check is useless for OOB queries since hits may flow out-of-band.
+	 */
+
+	if (!NODE_IS_READABLE(sender) && !is_oob_query) {
+		gnet_stats_count_dropped(sender, MSG_DROP_SHUTDOWN);
+		sender->rx_dropped++;
+		return FALSE;
+	}
+
+	/*
+	 * If the node is flow-controlled on TX, then it is preferable
+	 * to drop queries immediately: the traffic the replies may
+	 * generate could pile up and make the queue reach its maximum
+	 * size.  It is hoped that the flow control condition will not
+	 * last too long.
+	 *
+	 * We do that here, at the lowest level, because we do not
+	 * want to record the query as seen: if it comes from another
+	 * route, we'll handle it.
+	 *
+	 *		--RAM, 02/02/2002
+	 *
+	 * Let OOB queries pass through naturally, as most likely the replies
+	 * generated will flow back out-of-band.
+	 *
+	 *		--RAM, 2004-08-29
+	 */
+
+	if (!is_oob_query && NODE_IN_TX_FLOW_CONTROL(sender)) {
+		gnet_stats_count_dropped(sender, MSG_DROP_FLOW_CONTROL);
+		sender->rx_dropped++;
+
+		return FALSE;
+	}
+
+	return forward_message(node, NULL, dest, NULL);		/* Broadcast */
+}
+
+/**
+ * Route a query hit message.
+ *
+ * @return whether message should be handled
+ */
+static gboolean
+route_query_hit(struct gnutella_node **node, struct route_dest *dest)
+{
+	GSList *l;
+	struct gnutella_node *sender = *node;
+	struct message *m;
+	gboolean node_is_target = FALSE;
+	struct gnutella_node *found;
+
+	/*
+	 * We have to record we have seen a hit reply from the GUID held at
+	 * the tail of the packet.  This information is used to later route
+	 * back Push messages.
+	 *		--RAM, 06/01/2002
+	 */
+
+	if (!NODE_IS_UDP(sender)) {
+		gchar *guid = sender->data + sender->size - 16;
+		g_assert(sender->size >= 16);
+
+		if (!find_message(guid, QUERY_HIT_ROUTE_SAVE, &m)) {
+			/*
+			 * We've never seen any Query Hit from that servent.
+			 * Ensure it's not a banned GUID though.
+			 */
+
+			if (!g_hash_table_lookup(ht_banned_push, guid))
+				message_add(guid, QUERY_HIT_ROUTE_SAVE, sender);
+		} else if (m->routes == NULL || !node_sent_message(sender, m)) {
+			struct route_data *route;
+
+			/*
+			 * Either we have no more nodes that sent us any query hit
+			 * from that GUID, or we have never received any such hit
+			 * from the sender.
+			 */
+
+			route = get_routing_data(sender);
+			
+			g_assert(route != NULL);
+			
+			m->routes = g_slist_append(m->routes, route);
+			route->saved_messages++;
+
+			/*
+			 * We just made use of this routing data: make it persist
+			 * as long as we can by revitalizing the entry.  This will
+			 * allow us to route back PUSH requests for a longer time,
+			 * at least TABLE_MIN_CYCLE seconds after seeing the latest
+			 * query hit flow by.
+			 */
+
+			revitalize_entry(m, FALSE);
+		}
+	}
+
+	if (!check_hops_ttl(sender))
+		goto handle;				/* We will handle the hit nonetheless */
+
+	if (!find_message(sender->header.muid, GTA_MSG_SEARCH, &m)) {
+		/* We have never seen any request matching this reply ! */
+
+		routing_log("[ ] no request matching the reply!");
+
+		sender->rx_dropped++;
+		gnet_stats_count_dropped(sender, MSG_DROP_NO_ROUTE);
+		sender->n_bad++;	/* Node shouldn't have forwarded this message */
+
+		if (dbg)
+			gmsg_log_bad(sender, "got reply without matching request %s",
+				guid_hex_str(sender->header.muid));
+
+		goto handle;
+	}
+
+	g_assert(m);		/* Or find_message() would have returned FALSE */
+	
+	/*
+	 * Since this routing data is used, relocate it at the end of
+	 * the "message_array[]" to augment its lifetime.
+	 */
+
+	revitalize_entry(m, FALSE);
+
+	/*
+	 * If `m->routes' is NULL, we have seen the request, but unfortunately
+	 * none of the nodes that sent us the request is connected any more.
+	 */
+
+	if (m->routes == NULL)
+		goto route_lost;
+
+	if (node_sent_message(fake_node, m)) {
+		node_is_target = TRUE;		/* We are the target of the reply */
+		goto handle;
+	}
+
+	/*
+	 * Look for a route different from the one we received the
+	 * message from.
+	 * XXX should remember hops from queries and choose the lowest hop
+	 * XXX route for relaying. --RAM, 2004-08-29
+	 */
+
+	for (found = NULL, l = m->routes; l; l = g_slist_next(l)) {
+		struct route_data *route = (struct route_data *) l->data;
+		if (route->node != sender) {
+			found = route->node;
+			break;
+		}
+	}
+
+	if (found == NULL)
+		goto route_lost;
+
+	/*
+	 * If the TTL expired, drop the message, unless the target is a
+	 * leaf node, in which case we'll forward it the reply, or we
+	 * are a leaf node, in which case we won't route the message!.
+	 */
+
+	if (sender->header.ttl == 1) {
+		if (NODE_IS_LEAF(found)) {
+			/* TTL expired, but target is a leaf node */
+			routing_log("(expired TTL bumped)");
+			sender->header.ttl++;
+		} else {
+			/* TTL expired, message stops here in any case */
+			if (current_peermode != NODE_P_LEAF) {
+				routing_log("(TTL expired)");
+				gnet_stats_count_expired(sender);
+				sender->rx_dropped++;
+			}
+			goto handle;
+		}
+	}
+
+	routing_log("-> sendto_one(%s)", node_ip(found));
+
+	dest->type = ROUTE_ONE;
+	dest->ur.u_node = found;
+	
+	goto handle;
+
+route_lost:
+	routing_log("[H] route to target lost ");
+
+	sender->rx_dropped++;
+	gnet_stats_count_dropped(sender, MSG_DROP_ROUTE_LOST);
+	goto final;
+
+handle:
+	routing_log("[H] ");
+	if (node_is_target)
+		routing_log("we are the target ");
+
+	/* FALL THROUGH */
+final:
+	/*
+	 * We apply the TTL limits differently for replies.
+	 *
+	 * Indeed, replies are forwarded to ONE node, and are not
+	 * broadcasted.	It is therefore important to make sure the
+	 * reply will reach the issuing host.
+	 *
+	 * So we don't compare the header's TLL to `max_ttl' but to
+	 * `hard_ttl_limit', and if above the limit, we don't drop
+	 * the message but trim the TTL down to something acceptable.
+	 *
+	 *				--RAM, 15/09/2001
+	 */
+
+	if (sender->header.ttl > hard_ttl_limit + 1) {	/* TTL too large */
+		routing_log("(TTL adjusted) ");
+		sender->header.ttl = hard_ttl_limit + 1;
+	}
 
 	return TRUE;
 }
+
 
 /**
  * Main route computation function.
@@ -987,19 +1448,17 @@ forward_message(
 gboolean
 route_message(struct gnutella_node **node, struct route_dest *dest)
 {
-	struct gnutella_node *sender;	/* The node that sent the message */
-	struct message *m;			/* The copy of the message we've already seen */
-	gboolean handle_it = TRUE;
-	/*
-	 * The node to have sent us this message earliest of those we're
-	 * still connected to.
-	 */
-	struct gnutella_node *found;
+	gboolean handle_it = FALSE;
+	struct gnutella_node *sender = *node;
+	struct message *m;
+	gboolean duplicate = FALSE;
 
-	sender = *node;
+	/* Ensure we never get something bearing our special GUID route marker */
+	g_assert(sender->header.function != QUERY_HIT_ROUTE_SAVE);
+
 	dest->type = ROUTE_NONE;
 
-	/* if we haven't allocated routing data for this node yet, do so */
+	/* If we haven't allocated routing data for this node yet, do so */
 	if (sender->routing_data == NULL)
 		init_routing_data(sender);
 
@@ -1009,450 +1468,53 @@ route_message(struct gnutella_node **node, struct route_dest *dest)
 	routing_log("%3d/%3d : ", sender->header.hops, sender->header.ttl);
 
 	/*
-	 * We no longer route Pings through here.
-	 * And we use the special 0 function to record routes taken by Query Hits,
-	 * based on the responding servent ID.
+	 * For routed messages, we check whether we get a duplicate and
+	 * whether the message should be handled locally.
 	 */
 
-	g_assert(sender->header.function != QUERY_HIT_ROUTE_SAVE);
-
-	if (sender->header.function & 0x01) {
-		GSList *l;
-
-		/*
-		 * We'll also handle all search replies.
-		 */
-
-		handle_it = sender->header.function == GTA_MSG_SEARCH_RESULTS;
+	switch (sender->header.function) {
+	case GTA_MSG_PUSH_REQUEST:
+	case GTA_MSG_SEARCH:
+		if (!check_duplicate(node, &m))
+			goto done;
+		duplicate = (m != NULL);
 
 		/*
-		 * If message is a Query Hit, we have to record we have seen a
-		 * reply from the GUID held at the tail of the packet.  This
-		 * information is used to later route back Push messages.
-		 *		--RAM, 06/01/2002
+		 * Record the message in the routing table.
 		 */
 
-		if (
-			sender->header.function == GTA_MSG_SEARCH_RESULTS &&
-			!NODE_IS_UDP(sender)
-		) {
-			gchar *guid = sender->data + sender->size - 16;
-			g_assert(sender->size >= 16);
-
-			if (!find_message(guid, QUERY_HIT_ROUTE_SAVE, &m)) {
-				/*
-				 * We've never seen any Query Hit from that servent.
-				 * Ensure it's not a banned GUID though.
-				 */
-
-				if (!g_hash_table_lookup(ht_banned_push, guid))
-					message_add(guid, QUERY_HIT_ROUTE_SAVE, sender);
-			} else if (m->routes == NULL || !node_sent_message(sender, m)) {
-				struct route_data *route;
-
-				/*
-				 * Either we have no more nodes that sent us any query hit
-				 * from that GUID, or we have never received any such hit
-				 * from the sender.
-				 */
-
-				route = get_routing_data(sender);
-				
-				g_assert(route != NULL);
-				
-				m->routes = g_slist_append(m->routes, route);
-				route->saved_messages++;
-
-				/*
-				 * We just made use of this routing data: make it persist
-				 * as long as we can by revitalizing the entry.  This will
-				 * allow us to route back PUSH requests for a longer time,
-				 * at least TABLE_MIN_CYCLE seconds after seeing the latest
-				 * query hit flow by.
-				 */
-
-				revitalize_entry(m, FALSE);
-			}
-		}
-
-		/*
-		 * Can't forward a message with 255 hops: we can't increase the
-		 * counter.  This should never happen, even for a routed message
-		 * due to network constraints.
-		 *		--RAM, 04/07/2002
-		 */
-
-		if (sender->header.hops == 255) {
-			routing_log("(max hop count reached)");
-            gnet_stats_count_dropped(sender, MSG_DROP_MAX_HOP_COUNT);
-			sender->rx_dropped++;
-			sender->n_bad++;
-			if (dbg)
-				gmsg_log_bad(sender, "message with HOPS=255!");
-			return handle_it;	/* Don't route, something is wrong */
-		}
-
-		if (sender->header.ttl == 0) {
-			routing_log("(TTL was 0)");
-			node_sent_ttl0(sender);
-			return handle_it	/* Don't route, but parse query hit! */;
-		}
-
-		if (!find_message
-			(sender->header.muid, sender->header.function & ~(0x01), &m)) {
-			/* We have never seen any request matching this reply ! */
-
-			routing_log("[ ] no request matching the reply!");
-
-			sender->rx_dropped++;
-            gnet_stats_count_dropped(sender, MSG_DROP_NO_ROUTE);
-			sender->n_bad++;	/* Node shouldn't have forwarded this message */
-
-			if (dbg)
-				gmsg_log_bad(sender, "got reply without matching request %s",
-					guid_hex_str(sender->header.muid));
-
-			if (handle_it) {
-				sender->header.hops++;	/* Must be accurate if we handle it */
-				sender->header.ttl--;
-			}
-
-			return handle_it;	/* We can't route this message */
-		}
-
-		g_assert(m);		/* Or find_message() would have returned FALSE */
-
-		/*
-		 * Since this routing data is used, relocate it at the end of
-		 * the "message_array[]" to augment its lifetime.
-		 */
-
-		revitalize_entry(m, FALSE);
-
-		/*
-		 * If `m->routes' is NULL, we have seen the request, but unfortunately
-		 * none of the nodes that sent us the request is connected any more.
-		 */
-
-		if (m->routes == NULL)
-			goto route_lost;
-
-		if (node_sent_message(fake_node, m)) {
-			/* We are the target of the reply */
-			routing_log("[H] we are the target");
-			sender->header.hops++;		/* Must be accurate: we handle it */
-			sender->header.ttl--;
-			return TRUE;
-		}
-
-		routing_log("[%c] ", handle_it ? 'H' : ' ');
-
-		/*
-		 * If we got a message from UDP, we don't have to route it.
-		 */
-
-		if (NODE_IS_UDP(sender))	/* Don't forward hits we got from UDP */
-			return handle_it;
-
-		/* We only have to forward the message the target node */
-
-		/*
-		 * We apply the TTL limits differently for replies.
-		 *
-		 * Indeed, replies are forwarded to ONE node, and are not
-		 * broadcasted.	It is therefore important to make sure the
-		 * reply will reach the issuing host.
-		 *
-		 * So we don't compare the header's TLL to `max_ttl' but to
-		 * `hard_ttl_limit', and if above the limit, we don't drop
-		 * the message but trim the TTL down to something acceptable.
-		 *
-		 *				--RAM, 15/09/2001
-		 */
-
-		if (sender->header.ttl > hard_ttl_limit + 1) {	/* TTL too large */
-			routing_log("(TTL adjusted) ");
-			sender->header.ttl = hard_ttl_limit + 1;
-		}
-
-		sender->header.hops++;
-
-		/*
-		 * Look for a route different from the one we received the
-		 * message from.
-		 */
-
-		for (found = NULL, l = m->routes; l; l = g_slist_next(l)) {
-			struct route_data *route = (struct route_data *) l->data;
-			if (route->node != sender) {
-				found = route->node;
-				break;
-			}
-		}
-
-		if (found == NULL)
-			goto route_lost;
-
-		/*
-		 * If the TTL expired, drop the message, unless the target is a
-		 * leaf node, in which case we'll forward it the reply, or we
-		 * are a leaf node, in which case we won't route the message!.
-		 */
-
-		if (!--sender->header.ttl) {
-			if (NODE_IS_LEAF(found)) {
-				/* TTL expired, but target is a leaf node */
-				routing_log("(expired TTL bumped)");
-				sender->header.ttl = 1;
-			} else {
-				/* TTL expired, message stops here in any case */
-				if (current_peermode != NODE_P_LEAF) {
-					routing_log("(TTL expired)");
-					gnet_stats_count_expired(sender);
-					sender->rx_dropped++;
-				}
-				return handle_it;
-			}
-		}
-
-		routing_log("-> sendto_one(%s)", node_ip(found));
-
-		dest->type = ROUTE_ONE;
-		dest->ur.u_node = found;
-
-		return handle_it;
-
-	route_lost:
-		routing_log("[%c] route to target lost", handle_it ? 'H' : ' ');
-
-		sender->rx_dropped++;
-		gnet_stats_count_dropped(sender, MSG_DROP_ROUTE_LOST);
-
-		if (handle_it) {
-			sender->header.hops++;	/* Must be accurate if we handle it */
-			sender->header.ttl--;
-		}
-
-		return handle_it;
-	} else {
-		/*
-		 * Message is a request.
-		 */
-
-		if (find_message(sender->header.muid, sender->header.function, &m)) {
-			/*
-			 * This is a duplicated message, which we might drop.
-			 *
-			 * We don't drop queries/pushes that come to us with a higher TTL
-			 * as we have previously seen.  In that case, we forward them but
-			 * don't handle them, since this was done when we saw them the
-			 * very first time.
-			 *		--RAM, 2004-08-28
-			 */
-
-			if (sender->header.ttl > m->ttl) {
-				routing_log("[ ] dup message with higher ttl (forwarded)");
-
-				gnet_stats_count_general(sender, GNR_DUPS_WITH_HIGHER_TTL, 1);
-
-				m->ttl = sender->header.ttl;	/* Remember highest TTL */
-
-				handle_it = FALSE;			/* Forward but don't handle */
-				goto route_it;
-			}
-
-            gnet_stats_count_dropped(sender, MSG_DROP_DUPLICATE);
-			sender->rx_dropped++;
-
-			if (m->routes && node_sent_message(sender, m)) {
-				/* The same node has sent us a message twice ! */
-				routing_log("[ ] dup message (from the same node!)");
-
-				/*
-				 * That is a really good reason to kick the offender
-				 * But do so only if killing this node would not bring
-				 * us too low in node count, and if they have sent enough
-				 * dups to be sure it's not bad luck in MUID generation.
-				 * Finally, check the ratio of dups on received messages,
-				 * because a dup once in a while is nothing.
-				 *				--RAM, 08/09/2001
-				 */
-
-				/* XXX max_dup_msg & max_dup_ratio XXX ***/
-
-				if (++(sender->n_dups) > min_dup_msg &&
-					!NODE_IS_UDP(sender) &&
-					connected_nodes() > MAX(2, up_connections) &&
-					sender->n_dups > (guint16) 
-                        (((float)min_dup_ratio) / 10000.0 * sender->received)
-				) {
-					node_mark_bad_vendor(sender);
-					node_bye(sender, 401, "Sent %d dups (%.1f%% of RX)",
-						sender->n_dups, sender->received ?
-							100.0 * sender->n_dups / sender->received :
-							0.0);
-					*node = NULL;
-				} else {
-					if (dbg > 2)
-						gmsg_log_bad(sender, "dup message ID %s from same node",
-							guid_hex_str(sender->header.muid));
-				}
-			} else {
-				struct route_data * route;
-
-				if (m->routes == NULL)
-					routing_log("[ ] dup message, original route lost");
-				else
-					routing_log("[ ] dup message");
-
-				/* append so that we route matches to the one that sent it
-				 * to us first; ie., presumably the one closest to the
-				 * original sender. */
-
-				route = get_routing_data(sender);
-				
-				g_assert(route != NULL);
-				
-				m->routes = g_slist_append(m->routes, route);
-				route->saved_messages++;
-			}
-
-			return FALSE;
-		}
-
-	route_it:
-
-		/*
-		 * A Push request is not broadcasted as other requests, it is routed
-		 * back along the nodes that have seen Query Hits from the target
-		 * servent of the Push.
-		 */
-
-		if (sender->header.function == GTA_MSG_PUSH_REQUEST) {
-			guint32 ip;
-
-			g_assert(sender->size > 16);	/* Must be a valid push */
-
-			/*
-			 * If the GUID is banned, drop it immediately.
-			 */
-
-			if (g_hash_table_lookup(ht_banned_push, sender->data)) {
-				if (dbg > 3)
-					gmsg_log_dropped(&sender->header,
-						"from %s, banned GUID %s",
-						node_ip(sender), guid_hex_str(sender->data));
-
-                gnet_stats_count_dropped(sender, MSG_DROP_BANNED);
-				sender->rx_dropped++;
-
-				return FALSE;
-			}
-
-			/*
-			 * If IP address is among the hostile set, drop.
-			 */
-
-			READ_GUINT32_BE(sender->data + 20, ip);
-
-			if (hostiles_check(ip)) {
-                gnet_stats_count_dropped(sender, MSG_DROP_HOSTILE_IP);
-				sender->rx_dropped++;
-
-				return FALSE;
-			}
-
-			/*
-			 * The GUID of the target are the leading bytes of the Push
-			 * message, hence we pass `sender->data' to find_message().
-			 */
-
-			if (
-				!find_message(sender->data, QUERY_HIT_ROUTE_SAVE, &m) ||
-				m->routes == NULL
-			) {
-				if (0 == memcmp(guid, sender->data, 16)) {
-					routing_log("[H] we are the target");
-					return TRUE;
-				}
-
-				if (m && m->routes == NULL) {
-					routing_log("[ ] route to target GUID %s gone",
-						guid_hex_str(sender->data));
-                    gnet_stats_count_dropped(sender, MSG_DROP_ROUTE_LOST);
-                } else {
-					routing_log("[ ] no route to target GUID %s",
-						guid_hex_str(sender->data));
-                    gnet_stats_count_dropped(sender, MSG_DROP_NO_ROUTE);
-                }
-
-				sender->rx_dropped++;
-
-				return FALSE;
-			}
-
-			/*
-			 * By revitalizing the entry, we'll remember the route for
-			 * at least TABLE_MIN_CYCLE secs more after seeing this PUSH.
-			 */
-
-			revitalize_entry(m, FALSE);
-			forward_message(node, NULL, dest, m->routes);
-
-			return FALSE;		/* We are not the target, don't handle it */
-		} else {
-			gboolean handle;
-
-			/*
-			 * The message is a request to broadcast.
-			 */
-
-			if (!NODE_IS_READABLE(sender)) {		/* Being shutdown */
-                gnet_stats_count_dropped(sender, MSG_DROP_SHUTDOWN);
-				sender->rx_dropped++;
-				return FALSE;
-			}
-
-			/*
-			 * If the message comes from UDP, it's not going to go anywhere.
-			 */
-
-			if (NODE_IS_UDP(sender))
-				return TRUE;			/* Process it, but don't route */
-
-			/*
-			 * If the node is flow-controlled on TX, then it is preferable
-			 * to drop queries immediately: the traffic the replies may
-			 * generate could pile up and make the queue reach its maximum
-			 * size.  It is hoped that the flow control condition will not
-			 * last too long.
-			 *
-			 * We do that here, at the lowest level, because we do not
-			 * want to record the query as seen: if it comes from another
-			 * route, we'll handle it.
-			 *
-			 *		--RAM, 02/02/2002
-			 */
-
-			if (
-				sender->header.function == GTA_MSG_SEARCH &&
-				NODE_IN_TX_FLOW_CONTROL(sender)
-			) {
-                gnet_stats_count_dropped(sender, MSG_DROP_FLOW_CONTROL);
-				sender->rx_dropped++;
-
-				return FALSE;
-			}
-
-			handle = forward_message(node, NULL, dest, NULL); /* Broadcast */
-
-			return handle_it && handle;		/* handle_it == FALSE if dup */
-		}
+		message_add(sender->header.muid, sender->header.function, sender);
+		break;
+	default:
+		break;
 	}
 
-	g_error("BUG: fell through route_message");
+	/*
+	 * Compute the route, determine if we should handle the message.
+	 */
 
-	return FALSE;
+	switch (sender->header.function) {
+	case GTA_MSG_PUSH_REQUEST:
+		handle_it = route_push(node, dest);
+		break;
+	case GTA_MSG_SEARCH:
+		handle_it = route_query(node, dest);
+		break;
+	case GTA_MSG_SEARCH_RESULTS:
+		handle_it = route_query_hit(node, dest);
+		break;
+	default:
+		g_error("messages 0x%x \"%s\" should not be routed",
+			sender->header.function, debug_msg[sender->header.function]);
+	}
+
+done:
+	routing_log_flush("\n");
+
+	sender->header.hops++;				/* Mark passage through our node */
+	sender->header.ttl--;
+
+	return !duplicate && handle_it;		/* Don't handle duplicates */
 }
 
 /**
