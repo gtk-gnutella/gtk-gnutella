@@ -109,6 +109,7 @@ typedef struct gnutella_node {
 	gboolean have_header;		/* TRUE if we have got a full message header */
 
 	time_t last_update;			/* Last update of the node */
+	time_t last_rx;				/* Last time we received from the node */
 	time_t connect_date;		/* When we got connected (after handshake) */
 	time_t tx_flowc_date;		/* When we entered in TX flow control */
 	struct node_rxfc_mon *rxfc;	/* Optional, time spent in RX flow control */

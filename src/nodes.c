@@ -579,8 +579,16 @@ void node_timer(time_t now)
 				return;
 			}
 
+			/*
+			 * Only send "alive" pings if we have not received anything
+			 * for a while and if some time has elapsed since our last
+			 * attempt to send such a ping.
+			 *		--RAM, 01/11/2003
+			 */
+
 			if (NODE_IS_WRITABLE(n)) {
 				if (
+					now - n->last_rx > n->alive_period &&
 					now - n->last_alive_ping > n->alive_period &&
 					!alive_send_ping(n->alive_pings)
 				) {
@@ -4398,6 +4406,8 @@ static void node_data_ind(rxdrv_t *rx, pmsg_t *mb)
 	 * The node_read() routine will return FALSE when it detects that the
 	 * message buffer is empty.
 	 */
+
+	n->last_rx = time(NULL);
 
 	while (n->status == GTA_NODE_CONNECTED && NODE_IS_READABLE(n)) {
 		if (!node_read(n, mb))
