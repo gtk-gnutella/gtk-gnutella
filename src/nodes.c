@@ -1102,24 +1102,23 @@ void node_mark_bad(struct gnutella_node *n)
 	time_t now = time((time_t *) NULL);
 	
 	if (in_shutdown) {
-		printf("[nodes] Shutting down, not marking bad\r\n");
 		return;
 	}
 	
 	g_assert(n != NULL);
 	g_assert(n->ip != 0);
 	
-	printf("[nodes] Entering mark bad\r\n");
-	
 	/* Don't mark a node as bad with whom we could stay a long time */
 	if (
 		now - n->connect_date >
 			node_error_cleanup_timer / node_error_threshhold
 	) {
-		printf("[nodes] %s not marking as bad. Connected for: %d (min: %d)\r\n",
-			ip_to_gchar(n->ip),
-			(gint) (now - n->connect_date), 
-			(gint) (node_error_cleanup_timer / node_error_threshhold));
+		if (dbg)
+			printf("[nodes] "
+				  "%s not marking as bad. Connected for: %d (min: %d)\r\n",
+				ip_to_gchar(n->ip),
+				(gint) (now - n->connect_date), 
+				(gint) (node_error_cleanup_timer / node_error_threshhold));
 		return;
 	}
 	
@@ -1198,8 +1197,6 @@ void node_eof(struct gnutella_node *n, const gchar *reason, ...)
 	va_list args;
 
 	g_assert(n);
-
-	printf("[nodes] node eof\r\n");
 
 	node_mark_bad(n);
 
