@@ -102,7 +102,7 @@ nodes_gui_common_status_str(const gnet_node_status_t *n)
 
 				if (show_gnet_info_tx_speed)
 					slen += gm_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
-						"%s%.1f k/s", is_first ? "" : ", ", n->tx_bps);
+						"%s%s", is_first ? "" : ", ", compact_rate(n->tx_bps));
 
 				slen += gm_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
 					/* '(' */ ")");
@@ -130,7 +130,7 @@ nodes_gui_common_status_str(const gnet_node_status_t *n)
 
 				if (show_gnet_info_rx_speed)
 					slen += gm_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
-						"%s%.1f k/s", is_first ? "" : ", ", n->rx_bps);
+						"%s%s", is_first ? "" : ", ", compact_rate(n->rx_bps));
 
 				slen += gm_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
 					/* '(' */ ")");

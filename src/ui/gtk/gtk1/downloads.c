@@ -925,7 +925,6 @@ gui_update_download(struct download *d, gboolean force)
 	gint active_src, tot_src;
 	gfloat percent_done =0;
 	guint32 s = 0;
-	gfloat bs = 0;
 
 	gint rw;
     gint current_page;
@@ -1135,13 +1134,12 @@ gui_update_download(struct download *d, gboolean force)
 
 	case GTA_DL_COMPLETED:
 		if (d->last_update != d->start_date) {
-			guint32 spent = delta_time(d->last_update, d->start_date);
-
-			gfloat rate = ((d->range_end - d->skip + d->overlap_size) /
-				1024.0) / spent;
-			gm_snprintf(tmpstr, sizeof(tmpstr), "%s (%.1f k/s) %s",
+			guint32 t = delta_time(d->last_update, d->start_date);
+			
+			gm_snprintf(tmpstr, sizeof(tmpstr), "%s (%s) %s",
 				FILE_INFO_COMPLETE(fi) ? "Completed" : "Chunk done",
-				rate, short_time(spent));
+				compact_rate((d->range_end - d->skip + d->overlap_size) / t),
+				short_time(t));
 		} else {
 			gm_snprintf(tmpstr, sizeof(tmpstr), "%s (< 1s)",
 				FILE_INFO_COMPLETE(fi) ? "Completed" : "Chunk done");
@@ -1179,9 +1177,10 @@ gui_update_download(struct download *d, gboolean force)
 									"FAILED");
 			if (fi->cha1 && fi->cha1_hashed) {
 				guint elapsed = fi->cha1_elapsed;
+			
 				rw += gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
-					" (%.1f k/s) %s",
-					(gfloat) (fi->cha1_hashed >> 10) / (elapsed ? elapsed : 1),
+					" (%s) %s",
+					compact_rate(fi->cha1_hashed / (elapsed ? elapsed : 1)),
 					short_time(fi->cha1_elapsed));
 			}
 
@@ -1197,8 +1196,8 @@ gui_update_download(struct download *d, gboolean force)
 			case GTA_DL_DONE:
 				if (fi->copy_elapsed) {
 					gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
-						"; Moved (%.1f k/s) %s",
-						(gfloat) (fi->copied >> 10) / fi->copy_elapsed,
+						"; Moved (%s) %s",
+						compact_rate(fi->copied / fi->copy_elapsed),
 						short_time(fi->copy_elapsed));
 				}
 				break;
@@ -1231,13 +1230,11 @@ gui_update_download(struct download *d, gboolean force)
 			if (avg_bps) {
 				filesize_t remain = 0;
 				guint32 s;
-				gfloat bs;
 
                 if (d->size > (d->pos - d->skip))
                     remain = d->size - (d->pos - d->skip);
 
                 s = remain / avg_bps;
-				bs = bps / 1024.0;
 
 				rw = gm_snprintf(tmpstr, sizeof(tmpstr),
 					"%.02f%% / %.02f%% ", p, pt);
@@ -1247,7 +1244,7 @@ gui_update_download(struct download *d, gboolean force)
 						"(stalled) ");
 				else
 					rw += gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
-						"(%.1f k/s) ", bs);
+						"(%s) ", compact_rate(bps));
 
 				rw += gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
 					"[%d/%d] TR: %s", fi->recvcount, fi->lifecount,
@@ -1260,23 +1257,23 @@ gui_update_download(struct download *d, gboolean force)
 						" / %s", short_time(s));
 
 					if (fi->recvcount > 1) {
-						bs = fi->recv_last_rate / 1024.0;
-
 						rw += gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
-							" (%.1f k/s)", bs);
+							" (%s)", compact_rate(bps));
 					}
 				}
-			} else
+			} else {
 				rw = gm_snprintf(tmpstr, sizeof(tmpstr), "%.02f%%%s", p,
 					(now - d->last_update > IO_STALLED) ? " (stalled)" : "");
+			}
 
 			/*
 			 * If source is a partial source, show it.
 			 */
 
-			if (d->ranges != NULL)
+			if (d->ranges != NULL) {
 				gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
 					" <PFS %.02f%%>", d->ranges_size * 100.0 / fi->size);
+			}
 
 			a = tmpstr;
 		} else
@@ -1348,7 +1345,6 @@ gui_update_download(struct download *d, gboolean force)
 
 							percent_done = 0;
 							s = 0;
-							bs = 0;
 
 	        			    if (download_filesize(d))
 		                		percent_done = ((download_filedone(d) * 100.0)
@@ -1359,16 +1355,20 @@ gui_update_download(struct download *d, gboolean force)
 
 							if (fi->recv_last_rate)
 								s = (fi->size - fi->done) / fi->recv_last_rate;
-							bs = fi->recv_last_rate / 1024;
 
-							if (s)
+							if (s) {
 								gm_snprintf(tmpstr, sizeof(tmpstr),
-						"%.02f%%  (%.1f k/s)  [%d/%d]  TR:  %s", percent_done,
-									bs, active_src, tot_src, short_time(s));
-							else
+									"%.02f%%  (%s)  [%d/%d]  TR:  %s",
+									percent_done,
+									compact_rate(fi->recv_last_rate),
+									active_src, tot_src, short_time(s));
+							} else {
 								gm_snprintf(tmpstr, sizeof(tmpstr),
-						"%.02f%%  (%.1f k/s)  [%d/%d]  TR:  -", percent_done,
-									bs, active_src, tot_src);
+									"%.02f%%  (%s)  [%d/%d]  TR:  -",
+									percent_done,
+									compact_rate(fi->recv_last_rate),
+									active_src, tot_src);
+							}
 
 							gtk_ctree_node_set_text(ctree_downloads_queue,
 								parent, c_queue_status, tmpstr);
@@ -1419,7 +1419,6 @@ gui_update_download(struct download *d, gboolean force)
 
 							percent_done = 0;
 							s = 0;
-							bs = 0;
 
 	        			    if (download_filesize(d))
 		                		percent_done = ((download_filedone(d) * 100.0)
@@ -1430,16 +1429,20 @@ gui_update_download(struct download *d, gboolean force)
 
 							if (fi->recv_last_rate)
 								s = (fi->size - fi->done) / fi->recv_last_rate;
-							bs = fi->recv_last_rate / 1024;
 
-							if (s)
+							if (s) {
 								gm_snprintf(tmpstr, sizeof(tmpstr),
-						"%.02f%%  (%.1f k/s)  [%d/%d]  TR:  %s", percent_done,
-									bs, active_src, tot_src, short_time(s));
-							else
+									"%.02f%%  (%s)  [%d/%d]  TR:  %s",
+									percent_done,
+									compact_rate(fi->recv_last_rate),
+									active_src, tot_src, short_time(s));
+							} else {
 								gm_snprintf(tmpstr, sizeof(tmpstr),
-						"%.02f%%  (%.1f k/s)  [%d/%d]  TR:  -", percent_done,
-									bs, active_src, tot_src);
+									"%.02f%%  (%s)  [%d/%d]  TR:  -",
+									percent_done,
+									compact_rate(fi->recv_last_rate),
+									active_src, tot_src);
+							}
 
 							gtk_ctree_node_set_text(ctree_downloads,
 								parent, c_dl_status, tmpstr);

@@ -856,7 +856,7 @@ download_gui_add(download_t *d)
 
 				percent_done = guc_download_total_progress(d);
 				gm_snprintf(tmpstr, sizeof(tmpstr),
-					"%.02f%%  (0 k/s)  [%d/%d]  TR:  -",
+					"%.02f%% [%d/%d]  TR:  -",
 					percent_done * 100.0,
 					d->file_info->recvcount, d->file_info->lifecount);
 
@@ -1261,8 +1261,8 @@ void gui_update_download(download_t *d, gboolean force)
 					guint s = (fi->size - fi->done) / fi->recv_last_rate;
 
 					gm_snprintf(tmpstr, sizeof(tmpstr),
-						"%.02f%%  (%.1f k/s)  [%d/%d]  TR:  %s",
-						percent_done * 100.0, fi->recv_last_rate / 1024.0,
+						"%.02f%%  (%s)  [%d/%d]  TR:  %s",
+						percent_done * 100.0, compact_rate(fi->recv_last_rate),
 						fi->recvcount, fi->lifecount, short_time(s));
 				} else {
 					gm_snprintf(tmpstr, sizeof(tmpstr), "%.02f%% [%d/%d]",
@@ -1441,13 +1441,12 @@ void gui_update_download(download_t *d, gboolean force)
 
 	case GTA_DL_COMPLETED:
 		if (d->last_update != d->start_date) {
-			guint32 spent = d->last_update - d->start_date;
+			guint32 t = d->last_update - d->start_date;
 
-			gfloat rate = ((d->range_end - d->skip + d->overlap_size) /
-				1024) / (gfloat) spent;
-			gm_snprintf(tmpstr, sizeof(tmpstr), "%s (%.1f k/s) %s",
+			gm_snprintf(tmpstr, sizeof(tmpstr), "%s (%s) %s",
 				FILE_INFO_COMPLETE(fi) ? _("Completed") : _("Chunk done"),
-				rate, short_time(spent));
+				compact_rate((d->range_end - d->skip + d->overlap_size) / t),
+				short_time(t));
 		} else {
 			gm_snprintf(tmpstr, sizeof(tmpstr), "%s (< 1s)",
 				FILE_INFO_COMPLETE(fi) ? _("Completed") : _("Chunk done"));
@@ -1486,8 +1485,8 @@ void gui_update_download(download_t *d, gboolean force)
 			if (fi->cha1 && fi->cha1_hashed) {
 				guint elapsed = fi->cha1_elapsed;
 				rw += gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
-					" (%.1f k/s) %s",
-					(gfloat) (fi->cha1_hashed >> 10) / (elapsed ? elapsed : 1),
+					" (%s) %s",
+					compact_rate(fi->cha1_hashed / (elapsed ? elapsed : 1)),
 					short_time(fi->cha1_elapsed));
 			}
 
@@ -1503,8 +1502,8 @@ void gui_update_download(download_t *d, gboolean force)
 			case GTA_DL_DONE:
 				if (fi->copy_elapsed) {
 					gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
-						_("; Moved (%.1f k/s) %s"),
-						(gfloat) (fi->copied >> 10) / fi->copy_elapsed,
+						_("; Moved (%s) %s"),
+						compact_rate(fi->copied / fi->copy_elapsed),
 						short_time(fi->copy_elapsed));
 				}
 				break;
@@ -1542,7 +1541,6 @@ void gui_update_download(download_t *d, gboolean force)
                     remain = d->size - (d->pos - d->skip);
 
                 s = remain / avg_bps;
-				bs = bps / 1024.0;
 
 				rw = gm_snprintf(tmpstr, sizeof(tmpstr),
 					"%.02f%% / %.02f%% ",
@@ -1553,7 +1551,7 @@ void gui_update_download(download_t *d, gboolean force)
 							"%s ", _("(stalled)"));
 				else
 					rw += gm_snprintf(&tmpstr[rw], sizeof(tmpstr) - rw,
-						"(%.1f k/s) ", bs);
+						"(%s) ", compact_rate(bps));
 
 				if (!has_header) {
 					rw += gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
@@ -1573,7 +1571,7 @@ void gui_update_download(download_t *d, gboolean force)
 						bs = fi->recv_last_rate / 1024.0;
 
 						rw += gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
-							" (%.1f k/s)", bs);
+							" (%s)", compact_rate(bps));
 					}
 				}
 			} else if (delta_time(now, d->last_update) > IO_STALLED) {

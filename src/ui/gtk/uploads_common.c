@@ -106,31 +106,30 @@ uploads_gui_status_str(const gnet_upload_status_t *u,
     case GTA_UL_COMPLETE:
 		if (u->last_update != data->start_date) {
 	        filesize_t requested = data->range_end - data->range_start + 1;
-			gint spent = u->last_update - data->start_date;
-            gfloat rate = (requested / 1024) / (gfloat) spent;
+			gint t = u->last_update - data->start_date;
+			
 			gm_snprintf(tmpstr, sizeof(tmpstr),
-				_("Completed (%.1f k/s) %s"), rate, short_time(spent));
+				_("Completed (%s) %s"),
+				compact_rate(requested / t),
+				short_time(t));
 		} else
 			g_strlcpy(tmpstr, _("Completed (< 1s)"), sizeof(tmpstr));
         break;
 
     case GTA_UL_SENDING:
 		{
-			gint slen;
-			gfloat rate = u->bps / 1024.0;
-
 			/* Time Remaining at the current rate, in seconds  */
 			filesize_t tr = (data->range_end + 1 - u->pos) / u->avg_bps;
+			gint slen = gm_snprintf(tmpstr, sizeof(tmpstr), "%.02f%% ",
+							uploads_gui_progress(u, data) * 100.0);
 
-			slen = gm_snprintf(tmpstr, sizeof(tmpstr), "%.02f%% ",
-				uploads_gui_progress(u, data) * 100.0);
-
-			if (time((time_t *) NULL) - u->last_update > IO_STALLED)
+			if (time((time_t *) NULL) - u->last_update > IO_STALLED) {
 				slen += gm_snprintf(&tmpstr[slen], sizeof(tmpstr)-slen,
 					_("(stalled) "));
-			else
+			} else {
 				slen += gm_snprintf(&tmpstr[slen], sizeof(tmpstr)-slen,
-					"(%.1f k/s) ", rate);
+					"(%s) ", compact_rate(u->bps));
+			}
 
 			gm_snprintf(&tmpstr[slen], sizeof(tmpstr)-slen,
 				"TR: %s", short_time(tr));

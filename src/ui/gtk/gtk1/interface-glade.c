@@ -9584,6 +9584,18 @@ create_dlg_filters (void)
   gtk_signal_connect (GTK_OBJECT (button17), "clicked",
                       GTK_SIGNAL_FUNC (on_button_filter_abort_rule_clicked),
                       NULL);
+  gtk_signal_connect (GTK_OBJECT (entry_filter_size_min), "focus_out_event",
+                      GTK_SIGNAL_FUNC (on_entry_filter_size_focus_out_event),
+                      NULL);
+  gtk_signal_connect (GTK_OBJECT (entry_filter_size_min), "key_press_event",
+                      GTK_SIGNAL_FUNC (on_entry_filter_size_key_press_event),
+                      NULL);
+  gtk_signal_connect (GTK_OBJECT (entry_filter_size_max), "focus_out_event",
+                      GTK_SIGNAL_FUNC (on_entry_filter_size_focus_out_event),
+                      NULL);
+  gtk_signal_connect (GTK_OBJECT (entry_filter_size_max), "key_press_event",
+                      GTK_SIGNAL_FUNC (on_entry_filter_size_key_press_event),
+                      NULL);
   gtk_signal_connect (GTK_OBJECT (button_filter_size_reset), "clicked",
                       GTK_SIGNAL_FUNC (on_button_filter_reset_rule_clicked),
                       NULL);
@@ -10976,7 +10988,6 @@ create_dlg_prefs (void)
   GtkWidget *label688;
   GtkWidget *dialog_action_area2;
   GtkWidget *hbox205;
-  GtkWidget *alignment37;
   guint button_prefs_close_key;
   GtkWidget *button_prefs_close;
   GtkAccelGroup *accel_group;
@@ -11702,7 +11713,7 @@ create_dlg_prefs (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label553), 0, 0.5);
 
-  label554 = gtk_label_new (_("Kbytes"));
+  label554 = gtk_label_new (_("KiB"));
   gtk_widget_set_name (label554, "label554");
   gtk_widget_ref (label554);
   gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "label554", label554,
@@ -11713,7 +11724,7 @@ create_dlg_prefs (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label554), 0, 0.5);
 
-  label555 = gtk_label_new (_("Kbytes"));
+  label555 = gtk_label_new (_("KiB"));
   gtk_widget_set_name (label555, "label555");
   gtk_widget_ref (label555);
   gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "label555", label555,
@@ -13456,7 +13467,7 @@ create_dlg_prefs (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label558), 7.45058e-09, 0.5);
 
-  label560 = gtk_label_new (_("K/s"));
+  label560 = gtk_label_new (_("KiB/s"));
   gtk_widget_set_name (label560, "label560");
   gtk_widget_ref (label560);
   gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "label560", label560,
@@ -13477,7 +13488,7 @@ create_dlg_prefs (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label561), 7.45058e-09, 0.5);
 
-  label563 = gtk_label_new (_("K/s"));
+  label563 = gtk_label_new (_("KiB/s"));
   gtk_widget_set_name (label563, "label563");
   gtk_widget_ref (label563);
   gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "label563", label563,
@@ -13615,7 +13626,7 @@ create_dlg_prefs (void)
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
 
-  label181 = gtk_label_new (_("K/s"));
+  label181 = gtk_label_new (_("KiB/s"));
   gtk_widget_set_name (label181, "label181");
   gtk_widget_ref (label181);
   gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "label181", label181,
@@ -13626,7 +13637,7 @@ create_dlg_prefs (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label181), 0, 0.5);
 
-  label182 = gtk_label_new (_("K/s"));
+  label182 = gtk_label_new (_("KiB/s"));
   gtk_widget_set_name (label182, "label182");
   gtk_widget_ref (label182);
   gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "label182", label182,
@@ -13737,7 +13748,7 @@ create_dlg_prefs (void)
   gtk_widget_set_usize (spinbutton_config_bws_glout, 64, -2);
   gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_config_bws_glout), TRUE);
 
-  label556 = gtk_label_new (_("K/s"));
+  label556 = gtk_label_new (_("KiB/s"));
   gtk_widget_set_name (label556, "label556");
   gtk_widget_ref (label556);
   gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "label556", label556,
@@ -13748,7 +13759,7 @@ create_dlg_prefs (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label556), 0, 0.5);
 
-  label557 = gtk_label_new (_("K/s"));
+  label557 = gtk_label_new (_("KiB/s"));
   gtk_widget_set_name (label557, "label557");
   gtk_widget_ref (label557);
   gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "label557", label557,
@@ -13778,7 +13789,7 @@ create_dlg_prefs (void)
   gtk_table_set_row_spacings (GTK_TABLE (table4), 2);
   gtk_table_set_col_spacings (GTK_TABLE (table4), 4);
 
-  label126 = gtk_label_new (_("K/s"));
+  label126 = gtk_label_new (_("KiB/s"));
   gtk_widget_set_name (label126, "label126");
   gtk_widget_ref (label126);
   gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "label126", label126,
@@ -13873,7 +13884,7 @@ create_dlg_prefs (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label210), 0, 0.5);
 
-  label125 = gtk_label_new (_("K/s"));
+  label125 = gtk_label_new (_("KiB/s"));
   gtk_widget_set_name (label125, "label125");
   gtk_widget_ref (label125);
   gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "label125", label125,
@@ -13911,7 +13922,7 @@ create_dlg_prefs (void)
   gtk_tooltips_set_tip (tooltips, spinbutton_config_speed, _("What other people see as your connection speed."), NULL);
   gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_config_speed), TRUE);
 
-  label36 = gtk_label_new (_("kbit/s to peers"));
+  label36 = gtk_label_new (_("kbps to peers"));
   gtk_widget_set_name (label36, "label36");
   gtk_widget_ref (label36);
   gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "label36", label36,
@@ -16976,14 +16987,6 @@ create_dlg_prefs (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (hbox205);
   gtk_box_pack_end (GTK_BOX (dialog_action_area2), hbox205, FALSE, TRUE, 0);
-
-  alignment37 = gtk_alignment_new (0.5, 0.5, 1, 1);
-  gtk_widget_set_name (alignment37, "alignment37");
-  gtk_widget_ref (alignment37);
-  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "alignment37", alignment37,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (alignment37);
-  gtk_box_pack_start (GTK_BOX (hbox205), alignment37, TRUE, TRUE, 0);
 
   button_prefs_close = gtk_button_new_with_label ("");
   button_prefs_close_key = gtk_label_parse_uline (GTK_LABEL (GTK_BIN (button_prefs_close)->child),

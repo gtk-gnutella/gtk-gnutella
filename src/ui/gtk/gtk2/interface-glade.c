@@ -6855,12 +6855,11 @@ create_dlg_filters_size_tab (void)
   GtkWidget *table24;
   GtkWidget *label192;
   GtkWidget *label193;
-  GtkObject *spinbutton_filter_size_min_adj;
-  GtkWidget *spinbutton_filter_size_min;
-  GtkObject *spinbutton_filter_size_max_adj;
-  GtkWidget *spinbutton_filter_size_max;
   GtkWidget *label194;
   GtkWidget *label195;
+  GtkWidget *entry_filter_size_min;
+  GtkWidget *entry_filter_size_max;
+  GtkWidget *label916;
   GtkWidget *label229;
   GtkWidget *hbox108;
   GtkWidget *frame21;
@@ -6938,7 +6937,7 @@ create_dlg_filters_size_tab (void)
   gtk_widget_show (hbox119);
   gtk_container_add (GTK_CONTAINER (frame22), hbox119);
 
-  table24 = gtk_table_new (2, 3, FALSE);
+  table24 = gtk_table_new (3, 3, FALSE);
   gtk_widget_set_name (table24, "table24");
   gtk_widget_show (table24);
   gtk_box_pack_start (GTK_BOX (hbox119), table24, TRUE, TRUE, 0);
@@ -6946,7 +6945,7 @@ create_dlg_filters_size_tab (void)
   gtk_table_set_row_spacings (GTK_TABLE (table24), 2);
   gtk_table_set_col_spacings (GTK_TABLE (table24), 4);
 
-  label192 = gtk_label_new (_("minimum size"));
+  label192 = gtk_label_new (_("Minimum size:"));
   gtk_widget_set_name (label192, "label192");
   gtk_widget_show (label192);
   gtk_table_attach (GTK_TABLE (table24), label192, 0, 1, 0, 1,
@@ -6954,8 +6953,9 @@ create_dlg_filters_size_tab (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_label_set_justify (GTK_LABEL (label192), GTK_JUSTIFY_CENTER);
   gtk_misc_set_alignment (GTK_MISC (label192), 0, 0.5);
+  gtk_misc_set_padding (GTK_MISC (label192), 4, 0);
 
-  label193 = gtk_label_new (_("maximum size"));
+  label193 = gtk_label_new (_("Maximum size:"));
   gtk_widget_set_name (label193, "label193");
   gtk_widget_show (label193);
   gtk_table_attach (GTK_TABLE (table24), label193, 0, 1, 1, 2,
@@ -6963,26 +6963,7 @@ create_dlg_filters_size_tab (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_label_set_justify (GTK_LABEL (label193), GTK_JUSTIFY_CENTER);
   gtk_misc_set_alignment (GTK_MISC (label193), 0, 0.5);
-
-  spinbutton_filter_size_min_adj = gtk_adjustment_new (1, 0, 2e+09, 1, 1024, 1024);
-  spinbutton_filter_size_min = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_filter_size_min_adj), 1, 0);
-  gtk_widget_set_name (spinbutton_filter_size_min, "spinbutton_filter_size_min");
-  gtk_widget_show (spinbutton_filter_size_min);
-  gtk_table_attach (GTK_TABLE (table24), spinbutton_filter_size_min, 1, 2, 0, 1,
-                    (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-  gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_filter_size_min), TRUE);
-  gtk_spin_button_set_wrap (GTK_SPIN_BUTTON (spinbutton_filter_size_min), TRUE);
-
-  spinbutton_filter_size_max_adj = gtk_adjustment_new (1, 0, 2e+09, 1, 1024, 1024);
-  spinbutton_filter_size_max = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_filter_size_max_adj), 1, 0);
-  gtk_widget_set_name (spinbutton_filter_size_max, "spinbutton_filter_size_max");
-  gtk_widget_show (spinbutton_filter_size_max);
-  gtk_table_attach (GTK_TABLE (table24), spinbutton_filter_size_max, 1, 2, 1, 2,
-                    (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-  gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_filter_size_max), TRUE);
-  gtk_spin_button_set_wrap (GTK_SPIN_BUTTON (spinbutton_filter_size_max), TRUE);
+  gtk_misc_set_padding (GTK_MISC (label193), 4, 0);
 
   label194 = gtk_label_new (_("bytes"));
   gtk_widget_set_name (label194, "label194");
@@ -6992,6 +6973,7 @@ create_dlg_filters_size_tab (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_label_set_justify (GTK_LABEL (label194), GTK_JUSTIFY_CENTER);
   gtk_misc_set_alignment (GTK_MISC (label194), 0, 0.5);
+  gtk_misc_set_padding (GTK_MISC (label194), 4, 0);
 
   label195 = gtk_label_new (_("bytes"));
   gtk_widget_set_name (label195, "label195");
@@ -7001,6 +6983,30 @@ create_dlg_filters_size_tab (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_label_set_justify (GTK_LABEL (label195), GTK_JUSTIFY_CENTER);
   gtk_misc_set_alignment (GTK_MISC (label195), 0, 0.5);
+  gtk_misc_set_padding (GTK_MISC (label195), 4, 0);
+
+  entry_filter_size_min = gtk_entry_new ();
+  gtk_widget_set_name (entry_filter_size_min, "entry_filter_size_min");
+  gtk_widget_show (entry_filter_size_min);
+  gtk_table_attach (GTK_TABLE (table24), entry_filter_size_min, 1, 2, 0, 1,
+                    (GtkAttachOptions) (GTK_SHRINK | GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+
+  entry_filter_size_max = gtk_entry_new ();
+  gtk_widget_set_name (entry_filter_size_max, "entry_filter_size_max");
+  gtk_widget_show (entry_filter_size_max);
+  gtk_table_attach (GTK_TABLE (table24), entry_filter_size_max, 1, 2, 1, 2,
+                    (GtkAttachOptions) (GTK_SHRINK | GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+
+  label916 = gtk_label_new (_("You can use suffixes such as KB, KiB, MB, MiB, GB, GiB etc."));
+  gtk_widget_set_name (label916, "label916");
+  gtk_widget_show (label916);
+  gtk_table_attach (GTK_TABLE (table24), label916, 0, 3, 2, 3,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_label_set_line_wrap (GTK_LABEL (label916), TRUE);
+  gtk_misc_set_alignment (GTK_MISC (label916), 0, 0.5);
 
   label229 = gtk_label_new (_("Condition: If file size matches"));
   gtk_widget_set_name (label229, "label229");
@@ -7010,7 +7016,7 @@ create_dlg_filters_size_tab (void)
   hbox108 = gtk_hbox_new (FALSE, 0);
   gtk_widget_set_name (hbox108, "hbox108");
   gtk_widget_show (hbox108);
-  gtk_box_pack_start (GTK_BOX (vbox49), hbox108, FALSE, FALSE, 0);
+  gtk_box_pack_start (GTK_BOX (vbox49), hbox108, FALSE, TRUE, 0);
 
   frame21 = gtk_frame_new (NULL);
   gtk_widget_set_name (frame21, "frame21");
@@ -7084,6 +7090,18 @@ create_dlg_filters_size_tab (void)
   gtk_widget_show (button18);
   gtk_box_pack_start (GTK_BOX (hbox140), button18, FALSE, FALSE, 0);
 
+  g_signal_connect ((gpointer) entry_filter_size_min, "focus_out_event",
+                    G_CALLBACK (on_entry_filter_size_focus_out_event),
+                    NULL);
+  g_signal_connect ((gpointer) entry_filter_size_min, "key_press_event",
+                    G_CALLBACK (on_entry_filter_size_key_press_event),
+                    NULL);
+  g_signal_connect ((gpointer) entry_filter_size_max, "focus_out_event",
+                    G_CALLBACK (on_entry_filter_size_focus_out_event),
+                    NULL);
+  g_signal_connect ((gpointer) entry_filter_size_max, "key_press_event",
+                    G_CALLBACK (on_entry_filter_size_key_press_event),
+                    NULL);
   g_signal_connect ((gpointer) button_filter_size_reset, "clicked",
                     G_CALLBACK (on_button_filter_reset_rule_clicked),
                     NULL);
@@ -7113,10 +7131,11 @@ create_dlg_filters_size_tab (void)
   GLADE_HOOKUP_OBJECT (dlg_filters_size_tab, table24, "table24");
   GLADE_HOOKUP_OBJECT (dlg_filters_size_tab, label192, "label192");
   GLADE_HOOKUP_OBJECT (dlg_filters_size_tab, label193, "label193");
-  GLADE_HOOKUP_OBJECT (dlg_filters_size_tab, spinbutton_filter_size_min, "spinbutton_filter_size_min");
-  GLADE_HOOKUP_OBJECT (dlg_filters_size_tab, spinbutton_filter_size_max, "spinbutton_filter_size_max");
   GLADE_HOOKUP_OBJECT (dlg_filters_size_tab, label194, "label194");
   GLADE_HOOKUP_OBJECT (dlg_filters_size_tab, label195, "label195");
+  GLADE_HOOKUP_OBJECT (dlg_filters_size_tab, entry_filter_size_min, "entry_filter_size_min");
+  GLADE_HOOKUP_OBJECT (dlg_filters_size_tab, entry_filter_size_max, "entry_filter_size_max");
+  GLADE_HOOKUP_OBJECT (dlg_filters_size_tab, label916, "label916");
   GLADE_HOOKUP_OBJECT (dlg_filters_size_tab, label229, "label229");
   GLADE_HOOKUP_OBJECT (dlg_filters_size_tab, hbox108, "hbox108");
   GLADE_HOOKUP_OBJECT (dlg_filters_size_tab, frame21, "frame21");
@@ -10249,7 +10268,7 @@ create_dlg_prefs_net_tab (void)
   gtk_table_set_row_spacings (GTK_TABLE (table77), 2);
   gtk_table_set_col_spacings (GTK_TABLE (table77), 4);
 
-  label_kbytes_1 = gtk_label_new (_("Kbytes"));
+  label_kbytes_1 = gtk_label_new ("KiB");
   gtk_widget_set_name (label_kbytes_1, "label_kbytes_1");
   gtk_widget_show (label_kbytes_1);
   gtk_table_attach (GTK_TABLE (table77), label_kbytes_1, 2, 3, 1, 2,
@@ -10257,7 +10276,7 @@ create_dlg_prefs_net_tab (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_padding (GTK_MISC (label_kbytes_1), 2, 2);
 
-  label_kbytes = gtk_label_new (_("Kbytes"));
+  label_kbytes = gtk_label_new ("KiB");
   gtk_widget_set_name (label_kbytes, "label_kbytes");
   gtk_widget_show (label_kbytes);
   gtk_table_attach (GTK_TABLE (table77), label_kbytes, 2, 3, 0, 1,
@@ -12168,7 +12187,7 @@ create_dlg_prefs_bw_tab (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label743), 0, 0.5);
 
-  label744 = gtk_label_new (_("K/s"));
+  label744 = gtk_label_new ("KiB/s");
   gtk_widget_set_name (label744, "label744");
   gtk_widget_show (label744);
   gtk_table_attach (GTK_TABLE (table79), label744, 2, 3, 0, 1,
@@ -12176,7 +12195,7 @@ create_dlg_prefs_bw_tab (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label744), 0, 0.5);
 
-  label745 = gtk_label_new (_("K/s"));
+  label745 = gtk_label_new ("KiB/s");
   gtk_widget_set_name (label745, "label745");
   gtk_widget_show (label745);
   gtk_table_attach (GTK_TABLE (table79), label745, 2, 3, 1, 2,
@@ -12277,7 +12296,7 @@ create_dlg_prefs_bw_tab (void)
   gtk_table_set_row_spacings (GTK_TABLE (table13), 2);
   gtk_table_set_col_spacings (GTK_TABLE (table13), 4);
 
-  label181 = gtk_label_new (_("K/s"));
+  label181 = gtk_label_new ("KiB/s");
   gtk_widget_set_name (label181, "label181");
   gtk_widget_show (label181);
   gtk_table_attach (GTK_TABLE (table13), label181, 2, 3, 0, 1,
@@ -12286,7 +12305,7 @@ create_dlg_prefs_bw_tab (void)
   gtk_label_set_justify (GTK_LABEL (label181), GTK_JUSTIFY_CENTER);
   gtk_misc_set_alignment (GTK_MISC (label181), 0, 0.5);
 
-  label182 = gtk_label_new (_("K/s"));
+  label182 = gtk_label_new ("KiB/s");
   gtk_widget_set_name (label182, "label182");
   gtk_widget_show (label182);
   gtk_table_attach (GTK_TABLE (table13), label182, 2, 3, 1, 2,
@@ -12361,7 +12380,7 @@ create_dlg_prefs_bw_tab (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_config_bws_glout), TRUE);
 
-  label581 = gtk_label_new (_("K/s"));
+  label581 = gtk_label_new ("KiB/s");
   gtk_widget_set_name (label581, "label581");
   gtk_widget_show (label581);
   gtk_table_attach (GTK_TABLE (table62), label581, 2, 3, 0, 1,
@@ -12378,7 +12397,7 @@ create_dlg_prefs_bw_tab (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_config_bws_glin), TRUE);
 
-  label582 = gtk_label_new (_("K/s"));
+  label582 = gtk_label_new ("KiB/s");
   gtk_widget_set_name (label582, "label582");
   gtk_widget_show (label582);
   gtk_table_attach (GTK_TABLE (table62), label582, 2, 3, 1, 2,
@@ -12429,7 +12448,7 @@ create_dlg_prefs_bw_tab (void)
   gtk_table_set_row_spacings (GTK_TABLE (table4), 2);
   gtk_table_set_col_spacings (GTK_TABLE (table4), 4);
 
-  label125 = gtk_label_new (_("K/s"));
+  label125 = gtk_label_new ("KiB/s");
   gtk_widget_set_name (label125, "label125");
   gtk_widget_show (label125);
   gtk_table_attach (GTK_TABLE (table4), label125, 2, 3, 0, 1,
@@ -12438,7 +12457,7 @@ create_dlg_prefs_bw_tab (void)
   gtk_label_set_justify (GTK_LABEL (label125), GTK_JUSTIFY_CENTER);
   gtk_misc_set_alignment (GTK_MISC (label125), 0, 0.5);
 
-  label126 = gtk_label_new (_("K/s"));
+  label126 = gtk_label_new ("KiB/s");
   gtk_widget_set_name (label126, "label126");
   gtk_widget_show (label126);
   gtk_table_attach (GTK_TABLE (table4), label126, 2, 3, 1, 2,
@@ -12494,7 +12513,7 @@ create_dlg_prefs_bw_tab (void)
   gtk_label_set_justify (GTK_LABEL (label210), GTK_JUSTIFY_CENTER);
   gtk_misc_set_alignment (GTK_MISC (label210), 0, 0.5);
 
-  label36 = gtk_label_new (_("kbits/s to peers"));
+  label36 = gtk_label_new (_("kbps to peers"));
   gtk_widget_set_name (label36, "label36");
   gtk_widget_show (label36);
   gtk_table_attach (GTK_TABLE (table4), label36, 2, 3, 4, 5,
