@@ -258,8 +258,16 @@ void gui_update_download(struct download *d, gboolean force)
 					}
 				}
 			} else
-				g_snprintf(tmpstr, sizeof(tmpstr), "%.02f%%%s", p,
+				rw = g_snprintf(tmpstr, sizeof(tmpstr), "%.02f%%%s", p,
 					(now - d->last_update > IO_STALLED) ? " (stalled)" : "");
+
+			/*
+			 * If source is a partial source, show it.
+			 */
+
+			if (d->ranges != NULL)
+				g_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
+					" <PFS %.02f%%>", d->ranges_size * 100.0 / fi->size);
 
 			a = tmpstr;
 		} else

@@ -104,6 +104,7 @@ struct download {
 	guint32 last_dmesh;		/* Time when last download mesh was sent */
 
 	GSList *ranges;			/* PFSP -- known list of ranges, NULL if none */
+	guint32 ranges_size;	/* PFSP -- size of remotely available data */
 	guint32 sinkleft;		/* Amount of data left to sink */
 
 	guint32 flags;

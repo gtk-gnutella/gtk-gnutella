@@ -4057,11 +4057,13 @@ static void update_available_ranges(struct download *d, header_t *header)
 		return;
 
 	/*
-	 * Update available range list.
+	 * Update available range list and total size available remotely.
 	 */
 
 	d->ranges = http_range_parse(available, buf,
 		download_filesize(d), download_vendor_str(d));
+
+	d->ranges_size = http_range_size(d->ranges);
 }
 
 /*
