@@ -112,7 +112,26 @@ example, if you are from the Netherlands:
 The messages may be changed from release to release and with growing
 functionality there will be more messages that should be translated.
 Thus, translation isn't something static. Every few month there will
-be a few more sentences to be translated. 
+be a few more sentences to be translated.
+
+To update the .po files to reflect any changes to translatable strings
+in the source files simply run
+
+ $ cd po
+ $ make update-po
+
+This will scan the source files for translatable strings, will (re-)build
+the file "gtk-gnutella.pot" and will use msgmerge to update the .po files
+from the .pot file.
+
+After that you can check your language's .po file for missing/fuzzy
+translations and add/correct them. If you want, you can use the graphical .po
+file editor "poEdit" for that (includes UTF-8 support), see
+http://poedit.sourceforge.net.
+
+When you're finished, you should run "make update-po" again. This will wrap
+your .po file's lines properly to have a maximum line width of 80 characters.
+
 
 8. Add localised keys to gtk-gnutella.desktop:
 ==============================================
