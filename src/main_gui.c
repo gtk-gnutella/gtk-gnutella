@@ -431,6 +431,11 @@ void main_gui_early_init(gint argc, gchar **argv)
 
 	gtk_set_locale();
 
+	/*	Force Xft off by default as GTK+ >= 2.2.x has it on by default
+		which can cause a great performance penalty.
+	 */
+	if (NULL == getenv("GDK_USE_XFT"))
+		putenv("GDK_USE_XFT=0");
 	gtk_init(&argc, &argv);
 
 	add_pixmap_directory(PACKAGE_DATA_DIR "/pixmaps");
