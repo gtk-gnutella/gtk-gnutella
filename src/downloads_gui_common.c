@@ -116,8 +116,8 @@ void gui_update_queue_frozen(void)
         lookup_widget(main_window, "togglebutton_queue_freeze");
 
     if (gui_debug >= 3)
-	printf("frozen %i, msg %i\n", download_queue_is_frozen(),
-	    msg_displayed);
+		g_message("frozen %i, msg %i\n", download_queue_is_frozen(),
+	    	(gint) msg_displayed);
 
     if (download_queue_is_frozen() > 0) {
 #ifdef USE_GTK1
@@ -187,8 +187,7 @@ gint on_popup_downloads_selection_clear_event(GtkWidget * widget,
                                               GdkEventSelection *event)
 {
     if (selected_url != NULL) {
-        g_free(selected_url);
-        selected_url = NULL;
+        G_FREE_NULL(selected_url);
     }
     return TRUE;
 }
@@ -230,3 +229,5 @@ gchar *download_gui_get_hostname(struct download *d)
 		ip_port_to_gchar(download_ip(d), download_port(d)) :
 		hostname_port_to_gchar(d->server->hostname, download_port(d));    
 }
+
+/* vi: set ts=4: */
