@@ -2715,6 +2715,8 @@ static void node_process_handshake_header(
 
 		io_continue_header(n->io_opaque, IO_SAVE_FIRST,
 			call_node_process_handshake_ack, NULL);
+
+		node_fire_node_flags_changed(n);
 	} else
 		node_is_now_connected(n);
 }
