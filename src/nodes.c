@@ -853,8 +853,8 @@ static void node_got_bye(struct gnutella_node *n)
 	for (cnt = 0, p = message; cnt < n->size; cnt++, p++) {
 		c = *p;
 		if (c == '\r') {
-			if (cnt++ < n->size) {
-				if ((c = *p++) == '\n') {
+			if (++cnt < n->size) {
+				if ((c = *(++p)) == '\n') {
 					is_plain_message = FALSE;
 					message_len = (p - message) - 2;	/* 2 = length("\r\n") */
 					break;
