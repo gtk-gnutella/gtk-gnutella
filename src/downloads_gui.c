@@ -136,7 +136,7 @@ void gui_update_download(struct download *d, gboolean force)
 				if (cp->done) {
 					if (cp->sent)
 						rw = gm_snprintf(tmpstr, sizeof(tmpstr),
-							"Sent push%s", cp->directly ? " directly" : "");
+							"Push sent%s", cp->directly ? " directly" : "");
 					else
 						rw = gm_snprintf(tmpstr, sizeof(tmpstr),
 							"Failed to send push");
