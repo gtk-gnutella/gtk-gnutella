@@ -42,8 +42,8 @@ gboolean queue_regex_case     = FALSE;
 gboolean queue_regex_case_def = FALSE;
 gboolean search_autoselect     = TRUE;
 gboolean search_autoselect_def = TRUE;
-guint32  nodes_col_widths[5]     = { 130, 50, 120, 20, 80 };
-guint32  nodes_col_widths_def[5] = { 130, 50, 120, 20, 80 };
+guint32  nodes_col_widths[7]     = { 130, 50, 120, 20, 30, 30, 80 };
+guint32  nodes_col_widths_def[7] = { 130, 50, 120, 20, 30, 30, 80 };
 guint32  dl_active_col_widths[6]     = { 240, 80, 80, 80, 80, 80 };
 guint32  dl_active_col_widths_def[6] = { 240, 80, 80, 80, 80, 80 };
 guint32  dl_queued_col_widths[5]     = { 240, 80, 80, 80, 80 };
@@ -243,7 +243,7 @@ prop_set_t *gui_prop_init(void) {
     gui_property->props[4].desc = "Widths of the columns in the nodes table";
     gui_property->props[4].prop_changed_listeners = NULL;
     gui_property->props[4].save = TRUE;
-    gui_property->props[4].vector_size = 5;
+    gui_property->props[4].vector_size = 7;
 
     /* Type specific data: */
     gui_property->props[4].type               = PROP_TYPE_GUINT32;

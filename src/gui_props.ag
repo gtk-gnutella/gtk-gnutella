@@ -52,9 +52,9 @@ prop = {
     cfgvar = "widths_nodes";
     desc = "Widths of the columns in the nodes table";
     type = guint32;
-    vector_size = 5;
+    vector_size = 7;
     data = {
-        default = "{ 130, 50, 120, 20, 80 }";
+        default = "{ 130, 50, 120, 20, 30, 30, 80 }";
     };
 };
 
