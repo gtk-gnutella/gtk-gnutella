@@ -1797,51 +1797,79 @@ gboolean on_clist_search_results_button_press_event(GtkWidget * widget,
 													GdkEventButton * event,
 													gpointer user_data)
 {
-	if (event->button != 3)
+	gint row = 0;
+	gint column = 0;
+	static guint click_time = 0;
+
+	switch (event->button) {
+	case 1:
+		if (event->type == GDK_BUTTON_PRESS) {
+			if ((event->time - click_time) <= 250) {
+				/*
+				 * 2 clicks within 250 msec == doubleclick.
+				 * Surpress further events
+				 */
+				gtk_signal_emit_stop_by_name(GTK_OBJECT(widget),
+					"button_press_event");
+				if (
+					gtk_clist_get_selection_info(GTK_CLIST(widget), event->x,
+						event->y, &row, &column)
+				) {
+					search_download_files();
+					return TRUE;
+				}
+			} else {
+				click_time = event->time;
+				return FALSE;
+			}
+		}
 		return FALSE;
 
-	gtk_widget_set_sensitive(popup_search_toggle_tabs,
-							 (gboolean) searches);
-	gtk_widget_set_sensitive(popup_search_close, (gboolean) searches);
-	gtk_widget_set_sensitive(popup_search_restart, (gboolean) searches);
-	gtk_widget_set_sensitive(popup_search_duplicate, (gboolean) searches);
+	case 3:
+		gtk_widget_set_sensitive(popup_search_toggle_tabs,
+			(gboolean) searches);
+		gtk_widget_set_sensitive(popup_search_close, (gboolean) searches);
+		gtk_widget_set_sensitive(popup_search_restart, (gboolean) searches);
+		gtk_widget_set_sensitive(popup_search_duplicate, (gboolean) searches);
 
-	if (current_search) {
-		gtk_clist_unselect_all(GTK_CLIST(current_search->clist));
-		gtk_widget_set_sensitive(popup_search_stop_sorting,
-								 current_search->sort);
-		gtk_widget_set_sensitive(popup_search_stop,
-								 current_search->
-								 passive ? !current_search->
-								 frozen : current_search->reissue_timeout);
-		gtk_widget_set_sensitive(popup_search_resume,
-								 current_search->passive ? current_search->
-								 frozen : !current_search->
-								 reissue_timeout);
-		if (current_search->passive)
-			gtk_widget_set_sensitive(popup_search_restart, FALSE);
-		g_snprintf(c_tmp, sizeof(c_tmp), "%s", current_search->query);
-	} else {
-		gtk_widget_set_sensitive(popup_search_stop_sorting, FALSE);
-		gtk_widget_set_sensitive(popup_search_stop, FALSE);
-		gtk_widget_set_sensitive(popup_search_resume, FALSE);
-		g_snprintf(c_tmp, sizeof(c_tmp), "No current search");
+		if (current_search) {
+			gtk_clist_unselect_all(GTK_CLIST(current_search->clist));
+			gtk_widget_set_sensitive(popup_search_stop_sorting,
+				current_search->sort);
+			gtk_widget_set_sensitive(popup_search_stop,
+				current_search->passive ?
+					!current_search->frozen :
+					current_search->reissue_timeout);
+			gtk_widget_set_sensitive(popup_search_resume,
+				current_search->passive ?
+					current_search->frozen :
+					!current_search->reissue_timeout);
+			if (current_search->passive)
+				gtk_widget_set_sensitive(popup_search_restart, FALSE);
+			g_snprintf(c_tmp, sizeof(c_tmp), "%s", current_search->query);
+		} else {
+			gtk_widget_set_sensitive(popup_search_stop_sorting, FALSE);
+			gtk_widget_set_sensitive(popup_search_stop, FALSE);
+			gtk_widget_set_sensitive(popup_search_resume, FALSE);
+			g_snprintf(c_tmp, sizeof(c_tmp), "No current search");
+		}
+
+		gtk_label_set(
+			GTK_LABEL((GTK_MENU_ITEM(popup_search_title)->item.bin.child)),
+			c_tmp);
+		g_snprintf(c_tmp, sizeof(c_tmp),
+			(search_results_show_tabs) ? "Hide tabs" : "Show tabs");
+		gtk_label_set(
+			GTK_LABEL((GTK_MENU_ITEM(popup_search_toggle_tabs)->item.bin.child)),
+			c_tmp);
+		gtk_menu_popup(GTK_MENU(popup_search), NULL, NULL, NULL, NULL, 3, 0);
+		return TRUE;
+
+	default:
+		break;
 	}
 
-	gtk_label_set(GTK_LABEL
-				  ((GTK_MENU_ITEM(popup_search_title)->item.bin.child)),
-				  c_tmp);
-
-	g_snprintf(c_tmp, sizeof(c_tmp),
-			   (search_results_show_tabs) ? "Hide tabs" : "Show tabs");
-
-	gtk_label_set(GTK_LABEL
-				  ((GTK_MENU_ITEM(popup_search_toggle_tabs)->item.bin.
-					child)), c_tmp);
-
-	gtk_menu_popup(GTK_MENU(popup_search), NULL, NULL, NULL, NULL, 3, 0);
-
-	return TRUE;
+	return FALSE;
 }
 
 /* Column resize */

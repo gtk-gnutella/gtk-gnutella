@@ -89,6 +89,8 @@
 - Now parses the Query Hit packets only once, no matter how many searches open.
 - Integrated filtering patch [From Robert Bihlmeyer].  You may now apply
   filters to your searches.
+- Double-clicking on a file in the search window will request downloading of
+  that file only, despite multiple selections. [From Noel T.Nunkovich]
 
 # v 0.18   2001.11.19
 
