@@ -806,27 +806,30 @@ void on_entry_queue_regex_activate(GtkEditable *editable, gpointer user_data)
         gtk_clist_unselect_all(GTK_CLIST(clist_downloads_queue));
 
         for (i = 0; i < GTK_CLIST(clist_downloads_queue)->rows; i ++) {
-
             d = (struct download *) 
                 gtk_clist_get_row_data(GTK_CLIST(clist_downloads_queue), i);
 
             if (!d) {
-                g_warning("on_entry_queue_regex_activate: row %d has NULL data\n",
-                          i);
+                g_warning("on_entry_queue_regex_activate: "
+					"row %d has NULL data", i);
                 continue;
             }
 
-            if ((n = regexec(&re, d->file_name,0, NULL, 0)) == 0) {
+            if (
+				(n = regexec(&re, d->file_name, 0, NULL, 0)) == 0 ||
+				(n = regexec(&re, download_outname(d), 0, NULL, 0)) == 0
+			) {
                 gtk_clist_select_row(GTK_CLIST(clist_downloads_queue), i, 0);
                 m ++;
-            }
+			}
             
             if (n == REG_ESPACE)
-                g_warning("on_entry_queue_regex_activate: regexp memory overflow");
+                g_warning("on_entry_queue_regex_activate: "
+					"regexp memory overflow");
         }
         
         statusbar_gui_message(15, 
-            "Selected %u of %u queued downloads matching \"%s\".", 
+            "Selected %u of %u queued downloads matcing \"%s\".", 
             m, GTK_CLIST(clist_downloads_queue)->rows, regex);
 
 		regfree(&re);
