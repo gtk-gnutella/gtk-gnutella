@@ -1868,8 +1868,12 @@ socket_udp_accept(gpointer data, gint unused_source, inputevt_cond_t cond)
 	g_assert(s->type == SOCK_TYPE_UDP);
 
 	if (cond & INPUT_EVENT_EXCEPTION) {
-		g_warning("Input Exception for UDP listening socket #%d !!!!",
-				  s->file_desc);
+		gint error;
+
+		socklen_t error_len = sizeof error;
+		getsockopt(s->file_desc, SOL_SOCKET, SO_ERROR, &error, &error_len);
+		g_warning("Input Exception for UDP listening socket #%d: %s",
+				  s->file_desc, g_strerror(error));
 		return;
 	}
 
