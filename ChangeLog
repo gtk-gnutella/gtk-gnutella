@@ -1,6 +1,17 @@
 # since last version
 
-- (2003.03.01 - Richard)
+- (2003.02.01 - RAM)
+ * Limit lifetime of download mesh entries to 1 day.
+ * Added pre-condition to file_info_find_hole(): no busy chunks for download.
+ * Forbid outgoing connections to a Gnutella crawler.
+ * Apply vendor-specific banning early, so banned people know about it even
+   if we're otherwise busy.
+ * Limit the headers sent back to crawlers to the strict minimum.
+ * Replaced all broken g_snprintf() and g_vsnprintf() calls by calls to
+   fixed gm_snprintf() and gm_vsnprintf().  Broken calls are now forbidden.
+ * configure now looks for vsnprintf() and defines HAVE_VSNPRINTF.
+
+- (2003.02.01 - Richard)
  * [Gtk2] Reduced padding on uptime
  * [Gtk2] Added "edit filters" button back to search pane
  * Integrated patch by ko <junkpile@free.fr>:
