@@ -56,7 +56,7 @@ static gint bws_out_ema = 0;
 #define BW_SLOT_MIN		64		/* Minimum bandwidth/slot for realloc */
 
 #define BW_OUT_UP_MIN	8192	/* Minimum out bandwidth for becoming ultra */
-#define BW_OUT_GNET_MIN	256		/* Minimum out bandwidth per Gnet connection */
+#define BW_OUT_GNET_MIN	128		/* Minimum out bandwidth per Gnet connection */
 #define BW_OUT_LEAF_MIN	32		/* Minimum out bandwidth per leaf connection */
 
 #define BW_TCP_MSG		40		/* Smallest size of a TCP message */
@@ -2128,17 +2128,30 @@ bsched_timer(void)
 gboolean
 bsched_enough_up_bandwidth(void)
 {
-	if (bws_out_ema < BW_OUT_UP_MIN)
+	guint32 total = 0;
+
+	if (ul_running && bws_out_ema < BW_OUT_UP_MIN)
 		return FALSE;		/* 1. */
 
 	if (bws_glout_enabled && bws_out_enabled && bw_gnet_lout >= bw_http_out)
 		return FALSE;		/* 2. */
 
-	if (bws_gout_enabled && bw_gnet_out < BW_OUT_GNET_MIN * max_connections)
+	if (
+		bws_gout_enabled &&
+		bw_gnet_out < BW_OUT_GNET_MIN * (up_connections + max_connections) / 2
+	)
 		return FALSE;		/* 3. */
 
+	if (bws_gout_enabled)
+		total += bw_gnet_out;
+
+	if (bws_out_enabled)
+		total += bw_http_out;		/* Leaf b/w stolen from HTTP traffic */
+	else if (bws_glout_enabled)
+		total += bw_gnet_lout;
+
 	if (
-		(guint) bws_out_ema <
+		total <
 			(BW_OUT_GNET_MIN * max_connections + BW_OUT_LEAF_MIN * max_leaves)
 	)
 		return FALSE;		/* 4. */
