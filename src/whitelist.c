@@ -74,7 +74,8 @@ static void whitelist_retrieve(void)
         linenum++;
         if (*line == '#') continue;
 
-		/* Remove trailing spaces */
+		/* Remove trailing spaces so that lines that contain spaces only
+		 * are ignored and cause no warnings. */
 		p = strchr(line, '\0');
         while (--p >= line) {
 			if (!is_ascii_space((guchar) *p))
