@@ -123,6 +123,14 @@ GHookList node_added_hook_list;
  */
 struct gnutella_node *node_added;
 
+/*
+ * Structure used for asynchronous reaction to peer mode changes.
+ */
+static struct {
+	gboolean changed;
+	node_peer_t new;
+} peermode = { FALSE, NODE_P_UNKNOWN };
+
 static gint32 connected_node_cnt = 0;
 static gint32 compressed_node_cnt = 0;
 static gint pending_byes = 0;			/* Used when shutdowning servent */
@@ -142,6 +150,7 @@ static void node_send_patch_step(struct gnutella_node *n);
 static void node_bye_flags(guint32 mask, gint code, gchar *message);
 static void node_bye_all_but_one(
 	struct gnutella_node *nskip, gint code, gchar *message);
+static void node_set_current_peermode(node_peer_t mode);
 
 /***
  *** Callbacks
@@ -295,6 +304,16 @@ void node_extract_host(struct gnutella_node *n, guint32 *ip, guint16 *port)
 void node_timer(time_t now)
 {
 	GSList *l = sl_nodes;
+
+	/*
+	 * Asynchronously react to current peermode change.
+	 * See comment in node_set_current_peermode().
+	 */
+
+	if (peermode.changed) {
+		peermode.changed = FALSE;
+		node_set_current_peermode(peermode.new);
+	}
 
 	while (l) {
 		struct gnutella_node *n = (struct gnutella_node *) l->data;
@@ -1760,11 +1779,34 @@ void node_set_online_mode(gboolean on)
 }
 
 /*
- * node_set_current_peermode
+ * node_current_peermode_changed
  *
  * Called from the property system when current peermode is changed.
  */
-void node_set_current_peermode(node_peer_t mode)
+void node_current_peermode_changed(node_peer_t mode)
+{
+	/*
+	 * Only record the fact that it changed.
+	 *
+	 * We'll react by calling node_set_current_peermode() later, in the
+	 * node_timer() routine, so that we do not close connections in the
+	 * middle of the handshaking handling routing.
+	 */
+
+	peermode.changed = TRUE;
+	peermode.new = mode;
+}
+
+/*
+ * node_set_current_peermode
+ *
+ * Called from the node timer when the current peermode has changed.
+ *
+ * We call this "asynchronously" because the current peermode can change
+ * during handshaking, when we accept the guidance of the remote ultrapeer
+ * to become a leaf node.
+ */
+static void node_set_current_peermode(node_peer_t mode)
 {
 	gchar *msg = NULL;
 	static node_peer_t old_mode = NODE_P_UNKNOWN;

@@ -362,7 +362,7 @@ G_INLINE_FUNC void node_set_vendor(gnutella_node_t *n, const gchar *vendor);
 
 void node_set_hops_flow(gnutella_node_t *n, guint8 hops);
 void node_set_online_mode(gboolean on);
-void node_set_current_peermode(node_peer_t mode);
+void node_current_peermode_changed(node_peer_t mode);
 gchar *node_ip(gnutella_node_t *n);
 
 void node_connect_back(gnutella_node_t *n, guint16 port);
