@@ -320,9 +320,10 @@ clean: mostlyclean
 	rm -f stamp-po
 	rm -f *.gmo
 
+# Don't remove $(DOMAIN).pot since we distribute it...
 realclean: clean
 	rm -f *~
-	rm -f $(DOMAIN).pot
+	@echo "$(DOMAIN).pot NOT removed"
 
 clobber: realclean
 	rm -f Makefile POTFILES *.mo
