@@ -96,6 +96,7 @@ static gboolean download_get_server_name(struct download *d, header_t *header);
 static gboolean use_push_proxy(struct download *d);
 static void download_unavailable(
 	struct download *d, guint32 new_status, const gchar * reason, ...);
+static void download_reparent(struct download *d, struct dl_server *new_server);
 
 static gboolean download_dirty = FALSE;
 static void download_store(void);
@@ -152,6 +153,7 @@ static gint dl_active = 0;				/* Active downloads */
 #define count_running_on_server(s)	(s->count[DL_LIST_RUNNING])
 
 extern gint sha1_eq(gconstpointer a, gconstpointer b);
+extern gint guid_eq(gconstpointer a, gconstpointer b);
 
 /***
  *** Sources API
@@ -236,7 +238,6 @@ static gint dl_key_eq(gconstpointer a, gconstpointer b)
 {
 	const struct dl_key *ak = (const struct dl_key *) a;
 	const struct dl_key *bk = (const struct dl_key *) b;
-	extern gint guid_eq(gconstpointer a, gconstpointer b);
 
 	return ak->ip == bk->ip &&
 		ak->port == bk->port &&
@@ -749,6 +750,9 @@ static struct dl_server *get_server(
 static void change_server_ip(struct dl_server *server, guint32 new_ip)
 {
 	struct dl_key *key = server->key;
+	struct dl_server *dup;
+	guint32 old_ip;
+	GSList *l;
 
 	g_assert(key->ip != new_ip);
 
@@ -789,7 +793,72 @@ static void change_server_ip(struct dl_server *server, guint32 new_ip)
 	 * Perform the IP change.
 	 */
 
+	old_ip = key->ip;
 	key->ip = new_ip;
+
+	/*
+	 * Look for a duplicate.  It's quite possible that we saw some IP
+	 * address 1.2.3.4 and 5.6.7.8 without knowing that they both were
+	 * for the foo.example.com host.  And now we learn that the name
+	 * foo.example.com which we thought was 5.6.7.8 is at 1.2.3.4...
+	 */
+
+	dup = get_server(key->guid, new_ip, key->port);
+
+	if (dup != NULL) {
+		g_assert(dup->key->ip == key->ip);
+		g_assert(dup->key->port == key->port);
+
+		if (dbg) g_warning(
+			"new IP %s for server <%s> at %s:%u was used by <%s> at %s:%u",
+			ip_to_gchar(new_ip),
+			server->vendor == NULL ? "UNKNOWN" : server->vendor,
+			server->hostname == NULL ? "NONAME" : server->hostname,
+			key->port,
+			dup->vendor == NULL ? "UNKNOWN" : dup->vendor,
+			dup->hostname == NULL ? "NONAME" : dup->hostname,
+			dup->key->port);
+
+		/*
+		 * If there was no GUID known for `server', copy the one from `dup'.
+		 */
+
+		if (
+			guid_eq(key->guid, blank_guid) &&
+			!guid_eq(dup->key->guid, blank_guid)
+		) {
+			atom_guid_free(key->guid);
+			key->guid = atom_guid_get(dup->key->guid);
+		} else if (
+			!guid_eq(key->guid, dup->key->guid) &&
+			!guid_eq(dup->key->guid, blank_guid)
+		)
+			g_warning("found two distinct GUID for <%s> at %s:%u, keeping %s",
+				server->vendor == NULL ? "UNKNOWN" : server->vendor,
+				server->hostname == NULL ? "NONAME" : server->hostname,
+				key->port, guid_hex_str(key->guid));
+
+		/*
+		 * All the downloads attached to the `dup' server need to be
+		 * reparented to `server' instead.
+		 */
+
+		for (l = sl_downloads; l; l = g_slist_next(l)) {
+			struct download *d = (struct download *) l->data;
+
+			if (d->status == GTA_DL_REMOVED)
+				continue;
+
+			if (d->server == dup)
+				download_reparent(d, server);
+		}
+	}
+
+	/*
+	 * We can now blindly insert `server' in the hash.  If there was a
+	 * conflicting entry, all its downloads have been reparented and that
+	 * server will be freed later, asynchronously.
+	 */
 
 	g_hash_table_insert(dl_by_host, key, server);
 
@@ -1705,6 +1774,33 @@ static void download_remove_from_server(struct download *d, gboolean reclaim)
 
 	if (reclaim)
 		download_reclaim_server(d, FALSE);
+}
+
+/*
+ * download_reparent
+ *
+ * Move download from a server to another one.
+ */
+static void download_reparent(struct download *d, struct dl_server *new_server)
+{
+	struct dl_server *server;
+	enum dl_list list_idx;
+
+	g_assert(d);
+	g_assert(d->server);
+
+	list_idx = d->list_idx;			/* Save index, before removal from server */
+	download_remove_from_server(d, FALSE);	/* Server reclaimed later */
+	download_reclaim_server(d, TRUE);		/* Delays free if empty */
+	d->server = new_server;
+
+	/*
+	 * Insert download in new server, in the same list.
+	 */
+
+	d->list_idx = -1;			/* Pre-condition for download_add_to_list() */
+
+	download_add_to_list(d, list_idx);
 }
 
 /*
@@ -3594,7 +3690,6 @@ gboolean download_remove(struct download *d)
 	 *			-- JA, 18/4/2003
 	 */
 	parq_dl_remove(d);
-
 
 	download_remove_from_server(d, FALSE);
 	d->status = GTA_DL_REMOVED;
@@ -6568,7 +6663,6 @@ static struct download *select_push_download(guint file_index, gchar *hex_guid)
 
 		for (/* empty */; l; l = g_list_next(l)) {
 			struct dl_server *server = (struct dl_server *) l->data;
-			extern gint guid_eq(gconstpointer a, gconstpointer b);
 			GList *w;
 
 			/*
