@@ -1153,7 +1153,7 @@ forward_message(
 			 * NB: Account for the fact that we haven't decremented it yet.
 			 */
 
-			if (sender->header.hops + sender->header.ttl > max_ttl) {
+			if (sender->header.hops + sender->header.ttl > (gint) max_ttl) {
 				gint ttl_max = max_ttl - sender->header.hops;
 				sender->header.ttl = MAX(ttl_max, 1);	/* Trim down */
 
@@ -1487,7 +1487,7 @@ route_query(struct route_log *log,
 
 	if (
 		!(sender->flags & NODE_A_DYN_QUERY) &&
-		sender->header.ttl + sender->header.hops >= my_ttl
+		sender->header.ttl + sender->header.hops >= (gint) my_ttl
 	) {
 		gint ttl_max = my_ttl - sender->header.hops - 1;
 		sender->header.ttl = MAX(ttl_max, 1);	/* Trim down */
