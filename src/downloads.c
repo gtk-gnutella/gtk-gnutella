@@ -26,6 +26,7 @@ gboolean send_pushes = TRUE;
 gchar dl_tmp[4096];
 
 void send_push_request(gchar *, guint32, guint16);
+static void download_start_restart_timer(struct download *d);
 
 #define IS_DOWNLOAD_QUEUED(d)  ((d)->status == GTA_DL_QUEUED)
 
@@ -266,6 +267,7 @@ void downloads_clear_stopped(gboolean all, gboolean now)
 	gui_update_download_abort_resume();
 	gui_update_download_clear();
 }
+
 
 /*
  * Downloads management
@@ -747,6 +749,65 @@ abort_download:
 	return;
 }
 
+/* search has detected index change in queued download --RAM, 18/12/2001 */
+
+void download_index_changed(guint32 ip, guint16 port, guint32 from, guint32 to)
+{
+	GSList *l;
+	gint nfound = 0;
+
+	for (l = sl_downloads; l; l = l->next) {
+		struct download *d = (struct download *) l->data;
+
+		if (d->ip == ip && d->port == port && d->record_index == from) {
+			d->record_index = to;
+			nfound++;
+
+			switch (d->status) {
+			case GTA_DL_CONNECTING:
+			case GTA_DL_REQ_SENT:
+			case GTA_DL_HEADERS:
+			case GTA_DL_PUSH_SENT:
+				/*
+				 * We've sent a request with possibly the wrong index.
+				 * We can't know for sure, but it's safer to stop it, and
+				 * restart it in a while.  Sure, we might loose the download
+				 * slot, but we might as well have gotten a wrong file.
+				 *
+				 * NB: this can't happen when the remote peer is gtk-gnutella
+				 * since we check the matching between the index and the file
+				 * name, but some peers might not bother.
+				 */
+				g_warning("Stopping request for '%s': index changed",
+					d->file_name);
+				download_stop(d, GTA_DL_ERROR, "Stopped (Index changed)");
+				download_start_restart_timer(d);
+				break;
+			case GTA_DL_RECEIVING:
+				/*
+				 * Ouch.  Pray and hope that the change occurred after we
+				 * requested the file.  There's nothing we can do now.
+				 */
+				g_warning("Index of '%s' changed during reception",
+					d->file_name);
+				break;
+			default:
+				/* Queued or other state not needing special notice */
+				break;
+			}
+		}
+	}
+
+	/*
+	 * This is a sanity check: we should not have any duplicate request
+	 * in our download list.
+	 */
+
+	if (nfound > 1)
+		g_warning("Found %d requests for index %d (now %d) at %s",
+			nfound, from, to, ip_port_to_gchar(ip, port));
+}
+
 
 /* Create a new download */
 
@@ -1014,7 +1075,8 @@ gboolean download_send_request(struct download *d)
 			d->record_index, d->file_name,
 			GTA_VERSION, GTA_SUBVERSION);
 
-	printf("----Sending Request:\n%.*s----\n", (int) rw, dl_tmp);
+	printf("----Sending Request to %s:\n%.*s----\n",
+		ip_port_to_gchar(d->ip, d->port), (int) rw, dl_tmp);
 	fflush(stdout);
 
 	if (write(d->socket->file_desc, dl_tmp, rw) < 0) {
@@ -1031,7 +1093,7 @@ gboolean download_send_request(struct download *d)
 	return TRUE;
 }
 
-gboolean download_queue_w(gpointer dp)
+static gboolean download_queue_w(gpointer dp)
 {
 	struct download *d = (struct download *) dp;
 	download_queue(d);
@@ -1039,7 +1101,7 @@ gboolean download_queue_w(gpointer dp)
 	return TRUE;
 }
 
-void download_start_restart_timer(struct download *d)
+static void download_start_restart_timer(struct download *d)
 {
 	d->restart_timer_id = g_timeout_add(60 * 1000, download_queue_w, d);
 }
@@ -1101,7 +1163,8 @@ void download_read(gpointer data, gint source, GdkInputCondition cond)
 		/* We limit dumping up to the end of HTTP headers... */
 		char *end = strstr(s->buffer, "\r\n\r\n");
 		int len = end ? ((end - s->buffer) + 4) : (int) r;
-		printf("----Got Reply:\n%.*s----\n", len, s->buffer);
+		printf("----Got Reply from %s:\n%.*s----\n",
+			ip_port_to_gchar(s->ip, s->port), len, s->buffer);
 		fflush(stdout);
 	}
 
