@@ -48,6 +48,24 @@
 #define GUI_CELL_RENDERER_YPAD ((guint) 0)
 
 /*
+ * Gnet table columns.
+ */
+
+enum {
+	c_gnet_host = 0,
+	c_gnet_flags,
+	c_gnet_user_agent,
+	c_gnet_version,
+	c_gnet_connected,
+	c_gnet_uptime,
+	c_gnet_info,
+#ifdef USE_GTK2
+	c_gnet_handle,
+#endif
+	c_gnet_num
+};
+
+/*
  * Uploads table columns
  */
 enum {
@@ -194,8 +212,6 @@ enum {
 	c_sl_num
 };
 
-
-
 /*
  * Search stats table columns
  */
@@ -205,11 +221,10 @@ enum {
     c_st_total
 };
 
-
-
 /*
  * Notebook tabs in the main notebook.
  */
+
 enum {
     nb_main_page_gnet = 0,
     nb_main_page_uploads,
@@ -233,6 +248,15 @@ enum {
     nb_main_page_gnet_stats,
 
     nb_main_page_num
+};
+
+/*
+ * Notebook tabs in the downloads page.
+ */
+enum {
+	nb_notebook_page_downloads = 0,
+	nb_notebook_page_fileinfo,
+	nb_notebook_page_num
 };
 
 /*

@@ -41,21 +41,6 @@ RCSID("$Id$");
 
 #define pretty_node_vendor(n) ((n)->vendor != NULL ? (n)->vendor : "...")
 
-/*
- * gNet connections table columns
- */
-enum {
-    COL_NODE_HOST,
-    COL_NODE_TYPE,
-    COL_NODE_VENDOR,
-    COL_NODE_VERSION,
-    COL_NODE_CONNECTED,
-    COL_NODE_UPTIME,
-    COL_NODE_INFO,
-    COL_NODE_HANDLE,
-    NODE_COLUMNS
-};
-
 static GtkTreeView *treeview_nodes = NULL;
 static GtkListStore *nodes_model = NULL;
 static GtkCellRenderer *nodes_gui_cell_renderer = NULL;
@@ -112,7 +97,7 @@ static inline void nodes_gui_remove_selected_helper(
 	GSList **list = data;
 	guint handle;
 
-	gtk_tree_model_get(model, iter, COL_NODE_HANDLE, &handle, (-1));
+	gtk_tree_model_get(model, iter, c_gnet_handle, &handle, (-1));
 	*list = g_slist_append(*list, GUINT_TO_POINTER(handle));
 }
 
@@ -153,9 +138,9 @@ static inline void nodes_gui_update_node_info(gnet_node_info_t *n)
 		n->proto_major, n->proto_minor);
 
 	gtk_list_store_set(nodes_model, iter, 
-		COL_NODE_VENDOR, lazy_locale_to_utf8(pretty_node_vendor(n), 0),
-		COL_NODE_VERSION, version,
-		COL_NODE_INFO, nodes_gui_common_status_str(&status, now),
+		c_gnet_user_agent, lazy_locale_to_utf8(pretty_node_vendor(n), 0),
+		c_gnet_version, version,
+		c_gnet_info, nodes_gui_common_status_str(&status, now),
 		(-1));
 }
 
@@ -170,7 +155,7 @@ static inline void nodes_gui_update_node_flags(
 
 	iter = find_node(n);
 	g_assert(NULL != iter);
-	gtk_list_store_set(nodes_model, iter, COL_NODE_TYPE,  
+	gtk_list_store_set(nodes_model, iter, c_gnet_flags,  
 			nodes_gui_common_flags_str(flags), (-1));
 }
 
@@ -201,15 +186,15 @@ void nodes_gui_init(void)
 
     /* Create a model.  We are using the store model for now, though we
      * could use any other GtkTreeModel */
-    nodes_model = gtk_list_store_new(NODE_COLUMNS, 
-        G_TYPE_STRING,   /* COL_NODE_HOST */
-        G_TYPE_STRING,   /* COL_NODE_TYPE */
-        G_TYPE_STRING,   /* COL_NODE_VENDOR */
-        G_TYPE_STRING,   /* COL_NODE_VERSION */
-        G_TYPE_STRING,   /* COL_NODE_CONNECTED */
-        G_TYPE_STRING,   /* COL_NODE_UPTIME */
-        G_TYPE_STRING,   /* COL_NODE_INFO */
-        G_TYPE_UINT);    /* COL_NODE_HANDLE */
+    nodes_model = gtk_list_store_new(c_gnet_num, 
+        G_TYPE_STRING,   /* c_gnet_host */
+        G_TYPE_STRING,   /* c_gnet_flags */
+        G_TYPE_STRING,   /* c_gnet_user_agent */
+        G_TYPE_STRING,   /* c_gnet_version */
+        G_TYPE_STRING,   /* c_gnet_connected */
+        G_TYPE_STRING,   /* c_gnet_uptime */
+        G_TYPE_STRING,   /* c_gnet_info */
+        G_TYPE_UINT);    /* c_gnet_handle */
 
     /* Get the monitor widget */
 	treeview_nodes = GTK_TREE_VIEW(lookup_widget(
@@ -230,14 +215,14 @@ void nodes_gui_init(void)
 		"ypad", GUI_CELL_RENDERER_YPAD, NULL);
 
 	width = gui_prop_get_guint32(PROP_NODES_COL_WIDTHS, NULL, 0, 0);
-    add_column(tree, COL_NODE_HOST, width[COL_NODE_HOST], "Host");
-    add_column(tree, COL_NODE_TYPE, width[COL_NODE_TYPE], "Flags");
-    add_column(tree, COL_NODE_VENDOR, width[COL_NODE_VENDOR], "User-agent");
-    add_column(tree, COL_NODE_VERSION, width[COL_NODE_VERSION], "Ver");
-    add_column(tree, COL_NODE_CONNECTED, width[COL_NODE_CONNECTED],
+    add_column(tree, c_gnet_host, width[c_gnet_host], "Host");
+    add_column(tree, c_gnet_flags, width[c_gnet_flags], "Flags");
+    add_column(tree, c_gnet_user_agent, width[c_gnet_user_agent], "User-agent");
+    add_column(tree, c_gnet_version, width[c_gnet_version], "Ver");
+    add_column(tree, c_gnet_connected, width[c_gnet_connected],
 		"Connected");
-    add_column(tree, COL_NODE_UPTIME, width[COL_NODE_UPTIME], "Uptime");
-    add_column(tree, COL_NODE_INFO, width[COL_NODE_INFO], "Info");
+    add_column(tree, c_gnet_uptime, width[c_gnet_uptime], "Uptime");
+    add_column(tree, c_gnet_info, width[c_gnet_info], "Info");
 	G_FREE_NULL(width);
 
 	nodes_handles = g_hash_table_new_full(
@@ -302,14 +287,14 @@ void nodes_gui_add_node(gnet_node_info_t *n, const gchar *type)
 		n->proto_major, n->proto_minor);
     gtk_list_store_append(nodes_model, iter);
     gtk_list_store_set(nodes_model, iter, 
-        COL_NODE_HOST,    ip_port_to_gchar(n->ip, n->port),
-        COL_NODE_TYPE,    NULL,
-        COL_NODE_VENDOR,  lazy_locale_to_utf8(pretty_node_vendor(n), 0),
-        COL_NODE_VERSION, proto_tmp,
-        COL_NODE_CONNECTED, NULL,
-        COL_NODE_UPTIME,  NULL,
-        COL_NODE_INFO,    NULL,
-        COL_NODE_HANDLE,  n->node_handle,
+        c_gnet_host,    ip_port_to_gchar(n->ip, n->port),
+        c_gnet_flags,    NULL,
+        c_gnet_user_agent,  lazy_locale_to_utf8(pretty_node_vendor(n), 0),
+        c_gnet_version, proto_tmp,
+        c_gnet_connected, NULL,
+        c_gnet_uptime,  NULL,
+        c_gnet_info,    NULL,
+        c_gnet_handle,  n->node_handle,
         (-1));
 	g_hash_table_insert(nodes_handles,
 		GUINT_TO_POINTER(n->node_handle), iter);
@@ -332,16 +317,16 @@ static inline void update_row(gpointer data, const time_t *now)
 		g_strlcpy(timestr, short_uptime(*now - status.connect_date),
 			sizeof(timestr));
 		gtk_list_store_set(nodes_model, iter, 
-			COL_NODE_CONNECTED, timestr,
-			COL_NODE_UPTIME, status.up_date
+			c_gnet_connected, timestr,
+			c_gnet_uptime, status.up_date
 				? short_uptime(*now - status.up_date) : NULL,
-			COL_NODE_INFO, nodes_gui_common_status_str(&status, *now),
+			c_gnet_info, nodes_gui_common_status_str(&status, *now),
 			(-1));
 	} else {
 		gtk_list_store_set(nodes_model, iter,
-			COL_NODE_UPTIME, status.up_date
+			c_gnet_uptime, status.up_date
 				? short_uptime(*now - status.up_date) : NULL,
-			COL_NODE_INFO, nodes_gui_common_status_str(&status, *now),
+			c_gnet_info, nodes_gui_common_status_str(&status, *now),
 			(-1));
 	}
 }

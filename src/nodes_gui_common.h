@@ -28,19 +28,6 @@
 
 #include "gui.h"
 
-/*
- * Symbolic column index numbers
- */
-
-#define NODE_GUI_HOST_COLUMN		0
-#define NODE_GUI_FLAGS_COLUMN		1
-#define NODE_GUI_USER_AGENT_COLUMN	2
-#define NODE_GUI_VERSION_COLUMN		3
-#define NODE_GUI_CONNECTED_COLUMN	4
-#define NODE_GUI_UPTIME_COLUMN		5
-#define NODE_GUI_INFO_COLUMN		6
-#define NODE_GUI_COLUMN_COUNT		7
-
 void nodes_gui_common_init(void);
 void nodes_gui_common_shutdown(void);
 

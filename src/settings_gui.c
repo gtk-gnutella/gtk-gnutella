@@ -3289,12 +3289,12 @@ static gboolean update_node_column_visibility(property_t prop, gint col)
 
 static gboolean update_toggle_node_show_uptime(property_t prop)
 {
-	return update_node_column_visibility(prop, NODE_GUI_UPTIME_COLUMN);
+	return update_node_column_visibility(prop, c_gnet_uptime);
 }
 
 static gboolean update_toggle_node_show_handshake(property_t prop)
 {
-	return update_node_column_visibility(prop, NODE_GUI_VERSION_COLUMN);
+	return update_node_column_visibility(prop, c_gnet_version);
 }
 
 static gboolean update_toggle_node_show_detailed_info(property_t prop)
