@@ -142,8 +142,8 @@ void gui_search_create_ctree(GtkWidget **sw, GtkCTree **ctree);
 void gui_search_force_update_tab_label(struct search *);
 #endif
 
-void search_gui_expand_all();
-void search_gui_collapse_all();
+void search_gui_expand_all(void);
+void search_gui_collapse_all(void);
 
 void gui_search_set_enabled(struct search *sch, gboolean enabled);
 const GList *search_gui_get_searches(void);
@@ -160,7 +160,7 @@ void search_gui_end_massive_update(search_t *sch);
  * Metadata Update
  */
 
-void search_gui_metadata_update(bitzi_data_t *data);
+void search_gui_metadata_update(const bitzi_data_t *data);
 
 /*
  * Callbacks

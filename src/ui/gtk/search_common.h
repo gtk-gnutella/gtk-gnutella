@@ -110,7 +110,7 @@ void search_gui_common_shutdown(void);
 
 search_t *search_gui_get_current_search(void);
 void search_gui_set_current_search(search_t *sch);
-void search_gui_forget_current_search();
+void search_gui_forget_current_search(void);
 void search_gui_current_search(search_t *sch);
 
 void search_gui_free_alt_locs(record_t *rc);

@@ -237,7 +237,7 @@ void guc_upload_stats_prune_nonexistent(void);
 void guc_upload_stats_clear_all(void);
 
 /* version interface functions*/
-const gchar *guc_version_get_version_string();
+const gchar *guc_version_get_version_string(void);
 
 /* bitzi interface functions*/
 void guc_query_bitzi_by_urn(guchar *urnsha1);
