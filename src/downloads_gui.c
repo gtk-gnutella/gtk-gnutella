@@ -26,6 +26,7 @@
 #include "downloads_gui.h"
 
 #include "downloads.h" // FIXME: remove this dependency
+#include "dmesh.h" // FIXME: remove this dependency
 #include "statusbar_gui.h"
 #include "downloads_cb.h"
 #include "parq.h"
@@ -562,4 +563,124 @@ void gui_update_queue_frozen()
         GTK_OBJECT(togglebutton_queue_freeze),
         GTK_SIGNAL_FUNC(on_togglebutton_queue_freeze_toggled),
         NULL);
+}
+
+/* Add a download to the GUI */
+
+void download_gui_add(struct download *d)
+{
+	gchar *titles[6];
+	gint row;
+	GdkColor *color;
+	GtkCList* clist_downloads;
+
+	g_return_if_fail(d);
+
+	if (DOWNLOAD_IS_VISIBLE(d)) {
+		g_warning
+			("download_gui_add() called on already visible download '%s' !",
+			 d->file_name);
+		return;
+	}
+
+	clist_downloads = GTK_CLIST
+		(lookup_widget(main_window, "clist_downloads"));
+
+	color = &(gtk_widget_get_style(GTK_WIDGET(clist_downloads))
+				->fg[GTK_STATE_INSENSITIVE]);
+
+	/*
+	 * When `record_index' is URN_INDEX, the `file_name' is the URN, which
+	 * is not something really readable.  Better display the target filename
+	 * on disk in that case.
+	 *		--RAM, 22/10/2002
+	 */
+
+	if (DOWNLOAD_IS_QUEUED(d)) {		/* This is a queued download */
+		GtkCList* clist_downloads_queue;
+
+        titles[c_queue_filename] = d->record_index == URN_INDEX ?
+			d->file_info->file_name : d->file_name;
+        titles[c_queue_server] = download_vendor_str(d);
+        titles[c_queue_status] = "";
+		titles[c_queue_size] = short_size(d->file_info->size);
+        titles[c_queue_host] = is_faked_download(d) ? "" :
+			ip_port_to_gchar(download_ip(d), download_port(d));
+
+		clist_downloads_queue = GTK_CLIST
+			(lookup_widget(main_window, "clist_downloads_queue"));
+
+		row = gtk_clist_append(clist_downloads_queue, titles);
+		gtk_clist_set_row_data(clist_downloads_queue, row, (gpointer) d);
+		if (d->always_push)
+			 gtk_clist_set_foreground(clist_downloads_queue, row, color);
+	} else {					/* This is an active download */
+
+		titles[c_dl_filename] = d->record_index == URN_INDEX ?
+			d->file_info->file_name : d->file_name;
+		titles[c_dl_server] = download_vendor_str(d);
+		titles[c_dl_status] = "";
+		titles[c_dl_size] = short_size(d->file_info->size);
+		titles[c_dl_range] = "";
+		titles[c_dl_host] = is_faked_download(d) ? "" :
+			ip_port_to_gchar(download_ip(d), download_port(d));
+
+		row = gtk_clist_append(clist_downloads, titles);
+		gtk_clist_set_row_data(clist_downloads, row, (gpointer) d);
+		if (DOWNLOAD_IS_IN_PUSH_MODE(d))
+			 gtk_clist_set_foreground(clist_downloads, row, color);
+	}
+
+	d->visible = TRUE;
+}
+
+/*
+ * download_gui_remove:
+ *
+ * Remove a download from the GUI.
+ */
+void download_gui_remove(struct download *d)
+{
+	gint row;
+
+	g_return_if_fail(d);
+
+	if (!DOWNLOAD_IS_VISIBLE(d)) {
+		g_warning
+			("download_gui_remove() called on invisible download '%s' !",
+			 d->file_name);
+		return;
+	}
+
+	if (DOWNLOAD_IS_QUEUED(d)) {
+		GtkCList *clist_downloads_queue;
+
+		clist_downloads_queue = GTK_CLIST
+			(lookup_widget(main_window, "clist_downloads_queue"));
+
+		row =
+			gtk_clist_find_row_from_data(clist_downloads_queue, (gpointer) d);
+		if (row != -1)
+			gtk_clist_remove(clist_downloads_queue, row);
+		else
+			g_warning("download_gui_remove(): "
+				"Queued download '%s' not found in clist !?", d->file_name);
+	} else {
+		GtkCList *clist_downloads;
+
+		clist_downloads = GTK_CLIST
+			(lookup_widget(main_window, "clist_downloads"));
+
+		row = gtk_clist_find_row_from_data(clist_downloads, (gpointer) d);
+		if (row != -1)
+			gtk_clist_remove(clist_downloads, row);
+		else
+			g_warning("download_gui_remove(): "
+				"Active download '%s' not found in clist !?", d->file_name);
+	}
+
+	d->visible = FALSE;
+
+	gui_update_download_abort_resume();
+	gui_update_download_clear();
 }

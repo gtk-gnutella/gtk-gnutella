@@ -40,4 +40,7 @@ void gui_update_download(struct download *, gboolean);
 void gui_update_c_downloads(gint, gint);
 void gui_update_queue_frozen();
 
+void download_gui_add(struct download *d);
+void download_gui_remove(struct download *d);
+
 #endif /* _downloads_gui_h_ */
