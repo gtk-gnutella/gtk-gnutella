@@ -1,5 +1,24 @@
 # since last version
 
+- (2004-09-04 - RAM)
+ * Fixed typo causing aggregated TCP+UDP stats to be returned when TCP stats
+   were requested.
+ * Fixed the "crash when closing search" bug.
+ * Was accounting stats for HSEP message exchanges as "unknown"!
+ * Reply to an UDP ping with an UDP pong.
+ * Keep statistics about UDP traffic.
+
+- (2004-09-03 - RAM)
+ * Keep and allow retrieval of TCP and UDP stats, separately or in
+   aggregated form.
+ * New property "gnet_stats_source" to select the TCP/UDP source for stats.
+ * Added gnet_stats_tcp_get().
+ * [GTK1] [GTK2] Message stats can show TCP-only traffic, UDP-only, or both.
+ * [GTK1] [GTK2] Added icons showing TCP-only and UDP-only firewall status.
+ * Firewall status can now have 4 states: fully firewalled, TCP-only,
+   UDP-only and not firewalled.  The UDP firewall is shown only if UDP is
+   enabled.
+
 - (2004-09-02 - RAM)
  * Implemented dynamic querying for local queries, when running as an
    ultra node.
