@@ -1723,7 +1723,7 @@ msgstr ""
 "Mostrar porcentajes en lugar de valores absolutos en las estadísticas gnet"
 
 #: src/gui_property.c:1472
-msgid "Show bytes instead of packages in the gnet stats"
+msgid "Show bytes instead of packets in the gnet stats"
 msgstr "Mostrar bytes en lugar de paquetes en las estadísticas gnet"
 
 #: src/gui_property.c:1489
