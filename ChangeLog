@@ -1,5 +1,18 @@
 # since last version
 
+- (2004.03.03 - RAM)
+ * Removed constraint on bg_task_signal(): can be called from a non-running
+   task, since otherwise daemon taks can have difficulties using it in their
+   start/end callbacks!
+ * (move.c) Added termination signal handler to allow background task to
+   remove the target file if GTKG is shutdown in the middle of a move
+   operation.
+
+- (2004.03.02 - RAM)
+ * As per RFE #906834, use ISO timestamps in User-Agent string.
+ * New version of Spanish translation by Paco Arjonilla.
+ * [GTK2] Updated for 64-bit Gnet stats. [Patch from Russell Francis]
+
 - (2004.03.03 - Jeroen)
  * Fixed compiler error on some compilers
  * When in random port mode, retry a new port of the random chosen port
