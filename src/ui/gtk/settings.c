@@ -938,7 +938,6 @@ static gboolean update_byte_size_entry(property_t prop)
     prop_set_stub_t *stub = map_entry->stub;
     GtkWidget *top = map_entry->fn_toplevel();
 	guint64 value;
-	gchar buf[80];
 
     if (!top)
         return FALSE;
@@ -953,11 +952,8 @@ static gboolean update_byte_size_entry(property_t prop)
     }
 
 	gnet_prop_get_guint64_val(prop, &value);
-
-	gm_snprintf(buf, sizeof(buf), "%s (%s)",
+    gtk_entry_printf(GTK_ENTRY(w), "%s (%s)",
 		short_size(value), stub->to_string(prop));
-
-    gtk_entry_set_text(GTK_ENTRY(w), buf);
 
     return FALSE;
 }
@@ -2473,13 +2469,11 @@ downloads_count_changed(property_t unused_prop)
 static gboolean
 clock_skew_changed(property_t prop)
 {
-    gchar s[64];
     guint32 val;
 
     gnet_prop_get_guint32_val(prop, &val);
-    gm_snprintf(s, sizeof(s), "%d secs", (gint) val);
-    gtk_label_set_text(
-		GTK_LABEL(lookup_widget(dlg_prefs, "label_clock_skew")), s);
+    gtk_label_set_text(GTK_LABEL(lookup_widget(dlg_prefs, "label_clock_skew")),
+		short_time(val));
     return FALSE;
 }
 
