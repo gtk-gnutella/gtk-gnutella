@@ -947,7 +947,7 @@ void download_gui_remove(download_t *d)
 		remove_parent_with_fi_handle(ht, d->file_info->fi_handle);
 	} else if (n > 2) {
 		g_assert(iter != parent);
-		gm_snprintf(tmpstr, sizeof(tmpstr), _("%d hosts"), n - 1);
+		gm_snprintf(tmpstr, sizeof(tmpstr), _("%u hosts"), (guint)n - 1);
 		gtk_tree_store_set(store, parent, host_column, tmpstr, (-1));
 	} else if (2 == n) {
 		GtkTreeIter *child_iter;
