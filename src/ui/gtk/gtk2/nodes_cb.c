@@ -69,6 +69,16 @@ on_popup_nodes_disconnect_activate(GtkItem *unused_item, gpointer unused_udata)
 	return TRUE;
 }
 
+gboolean
+on_popup_nodes_reverse_lookup_activate(GtkItem *unused_item,
+		gpointer unused_udata)
+{
+	(void) unused_item;
+	(void) unused_udata;
+	nodes_gui_reverse_lookup_selected();
+	return TRUE;
+}
+
 void
 on_button_nodes_add_clicked(GtkButton *unused_button, gpointer unused_udata)
 {

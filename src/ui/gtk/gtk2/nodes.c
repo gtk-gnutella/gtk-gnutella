@@ -189,14 +189,16 @@ static void nodes_gui_create_treeview_nodes(void)
 	}
 }
 
-static inline void nodes_gui_remove_selected_helper(
-	GtkTreeModel *model, GtkTreePath *path, GtkTreeIter *iter, gpointer data)
+static inline void
+nodes_gui_remove_selected_helper(GtkTreeModel *model,
+		GtkTreePath *unused_path, GtkTreeIter *iter, gpointer data)
 {
 	GSList **list = data;
-	guint handle;
+	gnet_node_t n;
 
-	gtk_tree_model_get(model, iter, c_gnet_handle, &handle, (-1));
-	*list = g_slist_prepend(*list, GUINT_TO_POINTER(handle));
+	(void) unused_path;
+	gtk_tree_model_get(model, iter, c_gnet_handle, &n, (-1));
+	*list = g_slist_prepend(*list, GUINT_TO_POINTER(n));
 }
 
 /*
@@ -214,13 +216,11 @@ static inline GtkTreeIter *find_node(gnet_node_t n)
 	return iter;
 }
 
-/*
- * nodes_gui_update_node_info:
- *
+/**
  * Updates vendor, version and info column 
  */
-static inline void nodes_gui_update_node_info(
-    gnet_node_info_t *n, GtkTreeIter *iter)
+static inline void
+nodes_gui_update_node_info(gnet_node_info_t *n, GtkTreeIter *iter)
 {
     time_t now = time((time_t *) NULL);
 	static gchar version[32];
@@ -245,12 +245,12 @@ static inline void nodes_gui_update_node_info(
 		(-1));
 }
 
-/*
- * nodes_gui_update_node_flags
+/**
  *  
  */
-static inline void nodes_gui_update_node_flags(
-	gnet_node_t n, gnet_node_flags_t *flags, GtkTreeIter *iter)
+static inline void
+nodes_gui_update_node_flags(gnet_node_t n, gnet_node_flags_t *flags,
+		GtkTreeIter *iter)
 {
 	gchar buf[256];
 
@@ -289,13 +289,43 @@ on_focus_out(GtkWidget *widget, GdkEventFocus *unused_event,
 }
 
 static void
+host_lookup_callback(const gchar *hostname, gpointer data)
+{
+	gnet_node_t n;
+	gnet_node_info_t *info;
+	GtkTreeIter *iter;
+	GtkListStore *store;
+	GtkTreeView *tv;
+	gchar host[512];
+
+	if (!hostname) {
+		g_warning("Lookup failed");
+		return;
+	}
+	
+	tv = GTK_TREE_VIEW(lookup_widget(main_window, "treeview_nodes"));
+	store = GTK_LIST_STORE(gtk_tree_view_get_model(tv));
+	n = GPOINTER_TO_UINT(data);	
+    iter = find_node(n);
+	if (!iter)
+		return;
+
+   	info = guc_node_get_info(n);
+	gm_snprintf(host, sizeof host, "%s (%s)",
+		lazy_locale_to_utf8(hostname, 0),
+		ip_port_to_gchar(info->ip, info->port));
+	gtk_list_store_set(store, iter, c_gnet_host, host, (-1));
+	guc_node_free_info(info);
+}
+
+static void
 on_cursor_changed(GtkTreeView *tv, gpointer unused_udata)
 {
 	GtkTreeModel *model;
 	GtkTreePath *path;
 	GtkTreeIter iter;
 	gnet_node_info_t *info;
-	guint handle;
+	gnet_node_t n;
 	gchar text[1024];
 
 	(void) unused_udata;
@@ -308,12 +338,11 @@ on_cursor_changed(GtkTreeView *tv, gpointer unused_udata)
 	text[0] = '\0';
 	model = gtk_tree_view_get_model(tv);
 	gtk_tree_model_get_iter(model, &iter, path);
-	gtk_tree_model_get(model, &iter, c_gnet_handle, &handle, (-1));
-	if (!find_node(handle))
+	gtk_tree_model_get(model, &iter, c_gnet_handle, &n, (-1));
+	if (!find_node(n))
 		return;
 	
-
-   	info = guc_node_get_info(handle);
+   	info = guc_node_get_info(n);
 	gm_snprintf(text, sizeof text,
 		"Peer: %s\nCountry: %s (%s)\nVendor: %-64.64s\n%s",
 		ip_port_to_gchar(info->ip, info->port),
@@ -323,7 +352,8 @@ on_cursor_changed(GtkTreeView *tv, gpointer unused_udata)
 		_("(Press Control-F1 to toggle view)"));
 	
 	guc_node_free_info(info);
-	
+	info = NULL;
+
 	gtk_tooltips_set_tip(settings_gui_tooltips(), GTK_WIDGET(tv), text, NULL);
 	set_tooltips_keyboard_mode(GTK_WIDGET(tv), TRUE);
 }
@@ -645,9 +675,7 @@ static void nodes_gui_node_info_changed(gnet_node_t n)
         GUINT_TO_POINTER(n), GUINT_TO_POINTER(1));
 }
 
-/*
- * nodes_gui_node_flags_changed
- *
+/**
  * Callback invoked when the node's user-visible flags are changed.
  */
 static void nodes_gui_node_flags_changed(gnet_node_t n)
@@ -656,9 +684,7 @@ static void nodes_gui_node_flags_changed(gnet_node_t n)
         GUINT_TO_POINTER(n), GUINT_TO_POINTER(1));
 }
 
-/*
- * nodes_gui_remove_selected
- *
+/**
  * Removes all selected nodes from the treeview and disconnects them 
  */
 void nodes_gui_remove_selected(void)
@@ -670,9 +696,53 @@ void nodes_gui_remove_selected(void)
 	treeview = GTK_TREE_VIEW(lookup_widget(main_window, "treeview_nodes"));
 	selection = gtk_tree_view_get_selection(treeview);
 	gtk_tree_selection_selected_foreach(selection,
-		(gpointer) &nodes_gui_remove_selected_helper, &node_list);
+		nodes_gui_remove_selected_helper, &node_list);
 	guc_node_remove_nodes_by_handle(node_list);
 	g_slist_free(node_list);
+}
+
+static inline void
+nodes_gui_reverse_lookup_selected_helper(GtkTreeModel *model,
+		GtkTreePath *unused_path, GtkTreeIter *iter, gpointer unused_data)
+{
+	gnet_node_t n;
+	guint32 ip;
+	guint16 port;
+	gchar *host;
+
+	(void) unused_path;
+	(void) unused_data;
+	
+	gtk_tree_model_get(model, iter,
+			c_gnet_host, &host,
+			c_gnet_handle, &n,
+			(-1));
+	g_assert(host != NULL);
+	if (!strchr(host, '(') && gchar_to_ip_port(host, &ip, &port)) {
+		gchar buf[128];
+		
+		gm_snprintf(buf, sizeof buf, "%s (%s)",
+			_("Reverse lookup in progress..."), host);
+		gtk_list_store_set(GTK_LIST_STORE(model), iter,
+			c_gnet_host, buf, (-1));
+		adns_reverse_lookup(ip, host_lookup_callback, GUINT_TO_POINTER(n));
+	}
+	G_FREE_NULL(host);
+}
+
+/**
+ * Performs a reverse lookup for all selected nodes
+ */
+void
+nodes_gui_reverse_lookup_selected(void)
+{
+	GtkTreeView *treeview;
+	GtkTreeSelection *selection;
+
+	treeview = GTK_TREE_VIEW(lookup_widget(main_window, "treeview_nodes"));
+	selection = gtk_tree_view_get_selection(treeview);
+	gtk_tree_selection_selected_foreach(selection,
+		nodes_gui_reverse_lookup_selected_helper, NULL);
 }
 
 /* vi: set ts=4 sw=4 cindent: */
