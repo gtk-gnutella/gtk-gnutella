@@ -1435,6 +1435,7 @@ vmsg_send_udp_crawler_pong(struct gnutella_node *n, pmsg_t *mb)
 
 	msgsize = vmsg_fill_header(&m->header, paysize, sizeof(v_tmp));
 	payload = vmsg_fill_type(&m->data, T_LIME, 6, 1);
+	memcpy(m->header.muid, n->header.muid, 16);		/* Propagate MUID */
 
 	memcpy(payload, pmsg_start(mb), paysize);
 
