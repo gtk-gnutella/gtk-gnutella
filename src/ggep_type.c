@@ -157,7 +157,7 @@ ggept_status_t ggept_alt_extract(extvec_t *exv,
 	vec = walloc(cnt * sizeof(struct gnutella_host));
 
 	for (i = 0, h = vec; i < cnt; i++, h++) {
-		READ_GUINT32_LE(p, h->ip);	/* Yes, little endian!  Thank BearShare! */
+		READ_GUINT32_BE(p, h->ip);
 		p += 4;
 		READ_GUINT16_LE(p, h->port);
 		p += 2;
