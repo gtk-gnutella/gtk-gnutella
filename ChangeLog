@@ -1,6 +1,8 @@
 # since last version
 
 - (2002.06.23 - Richard)
+  * Tagret combos are correctly updated when adding and removing a filter
+  * "About" box added.
   * Added builtin targets to filter tree to have the stats (not selectable)
   * Added stats to builtin targets
   * Remember node state in filter tree
