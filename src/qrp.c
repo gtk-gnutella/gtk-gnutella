@@ -1690,14 +1690,12 @@ qrp_step_merge_with_leaves(gpointer h, gpointer u, gint ticks)
 	gint used;
 	struct routing_table *st = ctx->st;
 	struct routing_table *lt = ctx->lt;
-	gint max = st->slots;
+	gint max;
 	gint i = ctx->sidx;
 	gint expand = ctx->expand;
 	gint j;
 
 	g_assert(ctx->magic == QRP_MAGIC);
-	g_assert(st->compacted);
-	g_assert(lt->compacted);
 
 	/*
 	 * If we switched to leaf mode, go on...  The next step will explicitly
@@ -1706,6 +1704,12 @@ qrp_step_merge_with_leaves(gpointer h, gpointer u, gint ticks)
 
 	if (current_peermode != NODE_P_ULTRA)
 		return BGR_NEXT;
+
+	g_assert(st != NULL && lt != NULL);
+	g_assert(st->compacted);
+	g_assert(lt->compacted);
+
+	max = st->slots;
 
 	for (used = 0; used < ticks && i < max; i++, used++, ctx->sidx++) {
 		guchar vs = RT_SLOT_READ(st->arena, i);
