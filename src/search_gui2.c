@@ -27,8 +27,6 @@
 
 #include "gui.h"
 
-#include "hosts.h" // FIXME: remove this dependency
-
 /* GUI includes  */
 #include "search_gui.h"
 #include "search_cb2.h"
@@ -46,7 +44,6 @@
 /* System includes */
 #include <ctype.h>
 #include <gtk/gtk.h>
-#include <sys/stat.h>
 
 #define MAX_TAG_SHOWN	60		/* Show only first chars of tag */
 
@@ -1479,18 +1476,15 @@ static results_set_t *create_results_set(const gnet_results_set_t *r_set)
 static gboolean search_retrieve_old(void)
 {
 	FILE *in;
-	struct stat buf;
 	gint line;				/* File line number */
 
 	g_snprintf(tmpstr, sizeof(tmpstr), "%s/%s", gui_config_dir, search_file);
-	if (-1 == stat(tmpstr, &buf))
-		return FALSE;
-
 	in = fopen(tmpstr, "r");
 
 	if (!in) {
-		g_warning("Unable to open %s to retrieve searches: %s",
-			tmpstr, g_strerror(errno));
+		if (ENOENT != errno)
+			g_warning("Unable to open %s to retrieve searches: %s",
+				tmpstr, g_strerror(errno));
 		return FALSE;
 	}
 
