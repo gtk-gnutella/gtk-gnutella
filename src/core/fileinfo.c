@@ -1351,12 +1351,11 @@ file_info_store_one(FILE *f, struct dl_file_info *fi)
 
 		g_assert(alias != NULL);
 		if (looks_like_urn(alias)) {
-			g_warning("Skipping fileinfo alias which looks like a urn: "
+			g_warning("skipping fileinfo alias which looks like a urn: "
 				"\"%s\" (file_name=\"%s\")",
 				alias, fi->file_name);
-		} else {
+		} else
 			fprintf(f, "ALIA %s\n", alias);
-		}
 	}
 
 	if (fi->sha1)
@@ -1986,37 +1985,60 @@ typedef enum {
 	NUM_FI_TAGS
 } fi_tag_t;
 
-static const struct {
+static const struct fi_tag {
 	fi_tag_t	tag;
 	const gchar *str;	
 } fi_tag_map[] = {
-	{ FI_TAG_NAME, "NAME" },
-	{ FI_TAG_PATH, "PATH" },
-	{ FI_TAG_GENR, "GENR" },
+	/* Must be sorted alphabetically for dichotomic search */
+
 	{ FI_TAG_ALIA, "ALIA" },
-	{ FI_TAG_SIZE, "SIZE" },
-	{ FI_TAG_FSKN, "FSKN" },
-	{ FI_TAG_SHA1, "SHA1" },
 	{ FI_TAG_CHA1, "CHA1" },
-	{ FI_TAG_DONE, "DONE" },
-	{ FI_TAG_TIME, "TIME" },
-	{ FI_TAG_CTIM, "CTIM" },
-	{ FI_TAG_NTIM, "NTIM" },
-	{ FI_TAG_SWRM, "SWRM" },
 	{ FI_TAG_CHNK, "CHNK" },
+	{ FI_TAG_CTIM, "CTIM" },
+	{ FI_TAG_DONE, "DONE" },
+	{ FI_TAG_FSKN, "FSKN" },
+	{ FI_TAG_GENR, "GENR" },
+	{ FI_TAG_NAME, "NAME" },
+	{ FI_TAG_NTIM, "NTIM" },
+	{ FI_TAG_PATH, "PATH" },
+	{ FI_TAG_SHA1, "SHA1" },
+	{ FI_TAG_SIZE, "SIZE" },
+	{ FI_TAG_SWRM, "SWRM" },
+	{ FI_TAG_TIME, "TIME" },
+
+	/* Above line intentionally left blank (for "!}sort" on vi) */
 };
 
+#define END(v)		(v - 1 + sizeof(v) / sizeof(v[0]))
+
+/**
+ * Transform fileinfo tag string into tag constant.
+ * For instance, "TIME" would yield FI_TAG_TIME.
+ * An unknown tag yieldd FI_TAG_UNKNOWN.
+ */
 static fi_tag_t
 file_info_string_to_tag(const gchar *s)
 {
-	size_t i;
+	struct fi_tag const *low = fi_tag_map;
+	struct fi_tag const *high = END(fi_tag_map);
 
 	STATIC_ASSERT(G_N_ELEMENTS(fi_tag_map) == (NUM_FI_TAGS - 1));
-	
-	g_assert(s != NULL);
-	for (i = 0; i < G_N_ELEMENTS(fi_tag_map); i++)
-		if (0 == strcmp(s, fi_tag_map[i].str))
-			return fi_tag_map[i].tag;
+
+	/*
+	 * Dichotomic search.
+	 */
+
+	while (low <= high) {
+		struct fi_tag const *mid = low + (high - low) / 2;
+		gint c = strcmp(mid->str, s);
+
+		if (c == 0)
+			return mid->tag;
+		else if (c < 0)
+			low = mid + 1;
+		else
+			high = mid - 1;
+	}
 
 	return FI_TAG_UNKNOWN;
 }
@@ -2262,7 +2284,7 @@ file_info_retrieve(void)
 		}
 		*value++ = '\0'; /* Skip space and point to value */
 		if (value[0] == '\0') {
-			g_warning("Empty value in fileinfo line: %s %s", line, value);
+			g_warning("empty value in fileinfo line: %s %s", line, value);
 			continue;
 		}
 
@@ -2288,7 +2310,7 @@ file_info_retrieve(void)
 			break;
 		case FI_TAG_ALIA:
 			if (looks_like_urn(value)) {
-				g_warning("Skipping alias which looks like a urn in "
+				g_warning("skipping alias which looks like a urn in "
 					"fileinfo database: \"%s\" (file_name=\"%s\")", value,
 					NULL_STRING(fi->file_name));
 			} else {
@@ -2346,11 +2368,11 @@ file_info_retrieve(void)
 			fi->use_swarming = v;
 			break;
 		case FI_TAG_SHA1:
-			fi->sha1 = extract_sha1(line);
+			fi->sha1 = extract_sha1(value);
 			damaged = fi->sha1 != NULL;
 			break;
 		case FI_TAG_CHA1:
-			fi->cha1 = extract_sha1(line);
+			fi->cha1 = extract_sha1(value);
 			damaged = fi->cha1 != NULL;
 			break;
 		case FI_TAG_CHNK:
@@ -2391,9 +2413,8 @@ file_info_retrieve(void)
 			g_assert_not_reached();
 		}
 
-		if (damaged) {
-			g_warning("Damaged entry in fileinfo line: %s %s", line, value);
-		}
+		if (damaged)
+			g_warning("damaged entry in fileinfo line: %s %s", line, value);
 	}
 
 	if (fi) {
