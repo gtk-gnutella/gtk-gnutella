@@ -1,5 +1,9 @@
 # since last version
 
+- (2002.06.17 - Richard)
+  * Bugfix to "Autoselect identical" is handled
+  * Column visibility is persistant in search panel
+
 - (2002.06.16 - Richard)
   * Added ability to filter by urn:sha1 and by flags (push, stable, busy)
     (urn:sha1 filter is not editable yet)
