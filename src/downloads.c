@@ -878,6 +878,7 @@ gint download_remove_all_from_peer(const gchar *guid, guint32 ip, guint16 port)
     GSList *to_remove = NULL;
     GSList *sl;
 	gint i;
+	gint j;
 
 	/*
 	 * There can be two distinct server entries for a given IP:port.
@@ -902,8 +903,8 @@ gint download_remove_all_from_peer(const gchar *guid, guint32 ip, guint16 port)
 		if (server[i] == NULL)
 			continue;
 
-		for (n = 0; n < sizeof(listnum) / sizeof(listnum[0]); n++) {
-			enum dl_list idx = listnum[n];
+		for (j = 0; j < sizeof(listnum) / sizeof(listnum[0]); j++) {
+			enum dl_list idx = listnum[j];
 			GList *l;
 
 			for (l = server[i]->list[idx]; l; l = g_list_next(l)) {
@@ -913,7 +914,6 @@ gint download_remove_all_from_peer(const gchar *guid, guint32 ip, guint16 port)
 				g_assert(d->status != GTA_DL_REMOVED);
 
 				n++;
-
 				to_remove = g_slist_prepend(to_remove, d);
 			}
 		}
