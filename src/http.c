@@ -40,6 +40,20 @@
 #include "http.h"
 #include "sockets.h"
 #include "bsched.h"
+#include "header.h"
+#include "walloc.h"
+
+#define MAX_HOSTLEN		256		/* Max length for FQDN host */
+
+/*
+ * http_timer
+ *
+ * Called from main timer to expire HTTP requests that take too long.
+ */
+void http_timer(time_t now)
+{
+	// XXX handle list, put ha in them monitor last_update
+}
 
 /*
  * http_send_status
@@ -144,7 +158,7 @@ gboolean http_send_status(
 }
 
 /***
- *** HTTP status parsing.
+ *** HTTP parsing.
  ***/
 
 /*
@@ -354,5 +368,331 @@ gint http_status_parse(gchar *line,
 		return -1;
 
 	return code_message_parse(p, msg);
+}
+
+/*
+ * http_url_parse
+ *
+ * Parse HTTP url and extract the IP/port we need to connect to.
+ * Also identifies the start of the path to request on the server.
+ *
+ * Returns TRUE if the URL was correctly parsed, with `ip', `port' and `path'
+ * filled, FALSE otherwise.
+ */
+gboolean http_url_parse(gchar *url, guint32 *ip, guint16 *port, gchar **path)
+{
+	gchar *host_start;
+	gchar *port_start;
+	gchar *p;
+	gchar c;
+	gboolean seen_upw = FALSE;
+	gchar s;
+	guint32 portnum;
+
+	if (0 != strncasecmp(url, "http://", 7))
+		return FALSE;
+
+	url += 7;
+
+	/*
+	 * The general URL syntax is (RFC-1738):
+	 *
+	 *	//<user>:<password>@<host>:<port>/<url-path>
+	 *
+	 * Any special character in <user> or <password> (i.e. '/', ':' or '@')
+	 * must be URL-encoded, naturally.
+	 *
+	 * In the code below, we don't care about the user/password and simply
+	 * skip them if they are present.
+	 */
+
+	host_start = url;		/* Assume there's no <user>:<password> */
+	port_start = NULL;		/* Port not seen yet */
+	p = url + 1;
+
+	while ((c = *p++)) {
+		if (c == '@') {
+			if (seen_upw)			/* There can be only ONE user/password */
+				return FALSE;
+			seen_upw = TRUE;
+			host_start = p;			/* Right after the '@' */
+			port_start = NULL;
+		} else if (c == ':')
+			port_start = p;			/* Right after the ':' */
+		else if (c == '/')
+			break;
+	}
+
+	p--;							/* Go back to trailing "/" */
+	if (*p != '/')
+		return FALSE;
+	*path = p;						/* Start of path, at the "/" */
+
+	/*
+	 * Validate the port.
+	 */
+
+	if (port_start == NULL)
+		portnum = HTTP_PORT;
+	else if (2 != sscanf(port_start, "%u%c", &portnum, &s) || s != '/')
+		return FALSE;
+
+	if ((guint32) (guint16) portnum != portnum)
+		return FALSE;
+
+	*port = (guint16) portnum;
+
+	/*
+	 * Validate the host.
+	 */
+
+	if (isdigit(*host_start)) {
+		guint lsb, b2, b3, msb;
+		if (
+			5 == sscanf(host_start, "%u.%u.%u.%u%c", &msb, &b3, &b2, &lsb, &s)
+			&& (s == '/' || s == ':')
+		)
+			*ip = lsb + (b2 << 8) + (b3 << 16) + (msb << 24);
+		else
+			return FALSE;
+	} else {
+		gchar host[MAX_HOSTLEN + 1];
+		gchar *q = host;
+		gchar *end = host + sizeof(host);
+
+		/*
+		 * Extract hostname into host[].
+		 */
+
+		p = host_start;
+		while ((c = *p++) && q < end) {
+			if (c == '/' || c == ':') {
+				*q++ = '\0';
+				break;
+			}
+			*q++ = c;
+		}
+		host[MAX_HOSTLEN] = '\0';
+
+		*ip = host_to_ip(host);
+		if (*ip == 0)					/* Unable to resolve name */
+			return FALSE;
+	}
+
+	if (dbg > 12)
+		printf("URL \"%s\" -> host=%s, path=%s\n",
+			url, ip_port_to_gchar(*ip, *port), *path);
+
+	return TRUE;
+}
+
+/***
+ *** Asynchronous HTTP error code management.
+ ***/
+
+static gchar *error_str[] = {
+	"OK",									/* HTTP_ASYNC_OK */
+	"Invalid HTTP URL",						/* HTTP_ASYNC_BAD_URL */
+	"Connection failed",					/* HTTP_ASYNC_CONN_FAILED */
+	"I/O error",							/* HTTP_ASYNC_IO_ERROR */
+};
+
+gint http_async_errno;		/* Used to return error codes during setup */
+
+#define MAX_ERRNUM (sizeof(error_str) / sizeof(error_str[0]) - 1)
+
+/*
+ * http_async_strerror
+ *
+ * Return human-readable error string corresponding to error code `errnum'.
+ */
+gchar *http_async_strerror(gint errnum)
+{
+	if (errnum < 0 || errnum > MAX_ERRNUM)
+		return "Invalid error code";
+
+	return error_str[errnum];
+}
+
+/***
+ *** Asynchronous HTTP transactions.
+ ***/
+
+enum http_reqtype {
+	HTTP_GET,
+	HTTP_POST,
+};
+
+struct http_async {					/* An asynchronous HTTP request */
+	enum http_reqtype type;			/* Type of request */
+	gchar *path;					/* Path to request (atom) */
+	struct gnutella_socket *socket;	/* Attached socket */
+	http_data_cb_t data_ind;		/* Callback for data */
+	http_error_cb_t error_ind;		/* Callback for errors */
+	header_t *header;				/* Parsed HTTP reply header */
+	time_t last_update;				/* Time of last activity */
+};
+
+/*
+ * http_async_get
+ *
+ * Starts an asynchronous HTTP GET request on the specified path.
+ * Returns a handle on the request if OK, NULL on error with the
+ * http_async_errno variable set before returning.
+ *
+ * When data is available, `data_ind' will be called.  When all data have been
+ * read, a final call to `data_ind' is made with no data.
+ *
+ * On error, `error_ind' will be called, and upon return, the request will
+ * be automatically cancelled.
+ */
+gpointer http_async_get(
+	gchar *url,
+	http_data_cb_t data_ind,
+	http_error_cb_t error_ind)
+{
+	guint32 ip;
+	guint16 port;
+	gchar *path;
+	struct gnutella_socket *s;
+	struct http_async *ha;
+
+	g_assert(url);
+	g_assert(data_ind);
+	g_assert(error_ind);
+
+	/*
+	 * Extract the necessary parameters for the connection.
+	 */
+
+	if (!http_url_parse(url, &ip, &port, &path)) {
+		http_async_errno = HTTP_ASYNC_BAD_URL;
+		return NULL;
+	}
+
+	/*
+	 * Attempt asynchronous connection.
+	 *
+	 * When connection is established, http_async_connected() will be called
+	 * from the socket layer.
+	 */
+
+	s = socket_connect(ip, port, SOCK_TYPE_HTTP);
+
+	if (s == NULL) {
+		http_async_errno = HTTP_ASYNC_CONN_FAILED;
+		return NULL;
+	}
+
+	/*
+	 * Connection started, build handle and return.
+	 */
+
+	ha = walloc(sizeof(*ha));
+
+	s->resource.handle = ha;
+
+	ha->type = HTTP_GET;
+	ha->path = atom_str_get(path);
+	ha->socket = s;
+	ha->data_ind = data_ind;
+	ha->error_ind = error_ind;
+	ha->header = NULL;
+	ha->last_update = time(NULL);
+
+	return ha;
+}
+
+/*
+ * http_async_connected
+ *
+ * Callback from the socket layer when the connection to the remote
+ * server is made.
+ */
+void http_async_connected(gpointer handle)
+{
+	struct http_async *ha = (struct http_async *) handle;
+	struct gnutella_socket *s = ha->socket;
+	gchar req[2048];
+	gint rw;
+	gint sent;
+
+	g_assert(s);
+	g_assert(s->resource.handle == handle);
+
+	/*
+	 * Create the HTTP request.
+	 */
+
+	rw = g_snprintf(req, sizeof(req),
+		"%s %s HTTP/1.1\r\n"
+		"Host: %s\r\n"
+		"User-Agent: %s\r\n"
+		"Connection: close\r\n",
+		ha->type == HTTP_POST ? "POST" : "GET", ha->path,
+		ip_port_to_gchar(s->ip, s->port),
+		version_string);
+
+	if (rw >= sizeof(req)) {
+		http_async_cancel(ha, HTTP_ASYNC_REQ2BIG);
+		return;
+	}
+
+	/*
+	 * Send the HTTP request.
+	 */
+
+	if (-1 == (sent = bws_write(bws.out, s->file_desc, req, rw))) {
+		g_warning("HTTP request sending to %s failed: %s",
+			ip_port_to_gchar(s->ip, s->port), g_strerror(errno));
+		http_async_cancel(ha, HTTP_ASYNC_IO_ERROR);
+		return;
+	} else if (sent < rw) {
+		g_warning("HTTP request sending to %s: only %d of %d bytes sent",
+			ip_port_to_gchar(s->ip, s->port), sent, rw);
+		http_async_cancel(ha, HTTP_ASYNC_IO_ERROR);
+		return;
+	} else if (dbg > 2) {
+		printf("----Sent HTTP request to %s:\n%.*s----\n",
+			ip_port_to_gchar(s->ip, s->port), (int) rw, req);
+		fflush(stdout);
+	}
+
+	ha->last_update = time(NULL);
+	
+	/*
+	 * Prepare to read back the status line and the headers.
+	 */
+
+	// XXXX
+}
+
+/*
+ * http_async_free
+ *
+ * Free the HTTP asynchronous request handler, disposing of all its
+ * attached resources.
+ */
+static void http_async_free(struct http_async *ha)
+{
+	socket_free(ha->socket);
+	atom_str_free(ha->path);
+	if (ha->header)
+		header_free(ha->header);
+
+	wfree(ha, sizeof(*ha));
+}
+
+/*
+ * http_async_cancel
+ *
+ * Cancel request.
+ */
+void http_async_cancel(gpointer handle, gint code)
+{
+	struct http_async *ha = (struct http_async *) handle;
+
+	(*ha->error_ind)(handle, HTTP_ASYNC_ERROR, (gpointer) code);
+	http_async_free(ha);
 }
 

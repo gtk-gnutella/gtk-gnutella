@@ -30,8 +30,10 @@
 
 #include <glib.h>
 
-struct gnutella_socket;
+#define HTTP_PORT		80		/* Registered HTTP port */
 
+struct gnutella_socket;
+struct header;;
 
 /*
  * http_send_status() additional header description:
@@ -71,16 +73,63 @@ typedef struct {
 #define he_cb	u.u_cbk.u_cb
 #define he_arg	u.u_cbk.u_arg
 
+/*
+ * http_data_cb_t
+ *
+ * Callback used from asynchronous request to indicate that data is available.
+ */
+typedef void (*http_data_cb_t)(gpointer h, gchar *data, gint len);
+
+typedef enum {				/* Type of error reported by http_error_cb_t */
+	HTTP_ASYNC_SYSERR,		/* System error, value is errno */
+	HTTP_ASYNC_ERROR,		/* Internal error, value is error code */
+	HTTP_ASYNC_HERR,		/* HTTP error, value is http_error_t pointer */
+} http_errtype_t;
+
+typedef struct {
+	struct header *header;	/* Parsed HTTP header */
+	gint code;				/* HTTP status code */
+	gchar *message;			/* HTTP status message */
+} http_error_t;
+
+/*
+ * http_error_cb_t
+ *
+ * Callback used from asynchronous request to indicate that an error occurred.
+ * The type of `val' depends on the `error'.
+ */
+typedef void (*http_error_cb_t)(gpointer h, http_errtype_t error, gpointer val);
+
+/*
+ * Asynchronous request error codes.
+ */
+
+#define HTTP_ASYNC_OK			0	/* OK */
+#define HTTP_ASYNC_BAD_URL		1	/* Invalid HTTP URL */
+#define HTTP_ASYNC_CONN_FAILED	2	/* Connection failed */
+#define HTTP_ASYNC_IO_ERROR		3	/* I/O error */
+#define HTTP_ASYNC_REQ2BIG		4	/* Request too big */
+
+extern gint http_async_errno;
 
 /*
  * Public interface
  */
+
+void http_timer(time_t now);
 
 gboolean http_send_status(struct gnutella_socket *s,
 	gint code, http_extra_desc_t *hev, gint hevcnt, gchar *reason, ...);
 
 gint http_status_parse(gchar *line,
 	gchar *proto, gchar **msg, gint *major, gint *minor);
+
+gboolean http_url_parse(gchar *url, guint32 *ip, guint16 *port, gchar **res);
+
+gpointer http_async_get(
+	gchar *url, http_data_cb_t data_ind, http_error_cb_t error_ind);
+void http_async_connected(gpointer handle);
+void http_async_cancel(gpointer handle, gint code);
 
 #endif	/* __http_h__ */
 
