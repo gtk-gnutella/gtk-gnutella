@@ -1281,6 +1281,8 @@ static void add_results_columns(GtkTreeView *treeview)
 	guint32 width[G_N_ELEMENTS(columns)];
 	guint i;
 
+	STATIC_ASSERT(SEARCH_RESULTS_VISIBLE_COLUMNS == G_N_ELEMENTS(columns));
+
     gui_prop_get_guint32(PROP_SEARCH_RESULTS_COL_WIDTHS, width, 0,
 		G_N_ELEMENTS(width));
 	for (i = 0; i < G_N_ELEMENTS(columns); i++) {
