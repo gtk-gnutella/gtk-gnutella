@@ -31,6 +31,7 @@
 #include <glib.h>
 
 #include "pmsg.h"
+#include "gnutella.h"
 
 /*
  * A message queue.
@@ -46,13 +47,19 @@
  * The `qlink' field is used during flow-control.  It contains a sorted (by
  * priority) array of all the items in the list.  It is dynamically allocated
  * and freed as needed.
+ *
+ * The `header' is used to hold the function/hops/TTL of a reference message
+ * to be used as a comparison point when speeding up dropping in flow-control.
  */
 typedef struct mqueue {
+	struct gnutella_header header;	/* Comparison point during flow control */
 	struct gnutella_node *node;		/* Node to which this queue belongs */
 	struct txdriver *tx_drv;		/* Network TX driver */
 	GList *qhead;			/* The queue head, new messages are prepended */
 	GList *qtail;			/* The queue tail, oldest message to send first */
 	GList **qlink;			/* Sorted array of (GList *) entries, or NULL */
+	gpointer swift_ev;		/* Callout queue event in "swift" mode */
+	gint swift_elapsed;		/* Scheduled elapsed time, in ms */
 	gint qlink_count;		/* Amount of entries in `qlink' */
 	gint maxsize;			/* Maximum size of this queue (total queued) */
 	gint count;				/* Amount of messages queued */
@@ -61,6 +68,8 @@ typedef struct mqueue {
 	gint size;				/* Current amount of bytes queued */
 	gint flags;				/* Status flags */
 	gint last_written;		/* Amount last written by service routine */
+	gint flowc_written;		/* Amount written during flow control */
+	gint last_size;			/* Queue size at last "swift" event callback */
 } mqueue_t;
 
 /*
@@ -69,8 +78,10 @@ typedef struct mqueue {
 
 #define MQ_FLOWC		0x00000001	/* In flow control */
 #define MQ_DISCARD		0x00000002	/* No writing, discard message */
+#define MQ_SWIFT		0x00000004	/* Swift mode, dropping more traffic */
 
 #define mq_is_flow_controlled(q)	((q)->flags & MQ_FLOWC)
+#define mq_is_swift_controlled(q)	((q)->flags & MQ_SWIFT)
 #define mq_maxsize(q)				((q)->maxsize)
 #define mq_size(q)					((q)->size)
 #define mq_count(q)					((q)->count)

@@ -87,6 +87,7 @@ typedef struct gnet_node_status {
     gint     mqueue_count;
     gint     mqueue_percent_used;
     gboolean in_tx_flow_control;
+    gboolean in_tx_swift_control;
 
 	/*
 	 * Traffic statistics -- RAM, 13/05/2002.
@@ -179,6 +180,7 @@ typedef struct gnet_node_flags {
 	gboolean rx_compressed;
 	gboolean mqueue_empty;
 	gboolean in_tx_flow_control;
+    gboolean in_tx_swift_control;
 	gboolean is_push_proxied;
 	gboolean is_proxying;
 } gnet_node_flags_t;

@@ -269,6 +269,9 @@ typedef struct gnutella_node {
 #define NODE_IN_TX_FLOW_CONTROL(n) \
 	((n)->outq && mq_is_flow_controlled((n)->outq))
 
+#define NODE_IN_TX_SWIFT_CONTROL(n) \
+	((n)->outq && mq_is_swift_controlled((n)->outq))
+
 #define NODE_IS_WRITABLE(n) \
 	((n)->flags & NODE_F_WRITABLE)
 
@@ -374,6 +377,23 @@ extern gboolean route_exists_for_reply(gchar *muid, guint8 function);
 	((t) != GTA_MSG_SEARCH || \
 		(node_query_hops_ok(n, h) && \
 			((h) == 0 || route_exists_for_reply(m, t))))
+
+/*
+ * node_flowc_swift_grace
+ * node_flowc_swift_period
+ *
+ * The grace period between the time the node enters flow-control and the
+ * time we want to speed up things and drop traffic, entering "swift" mode.
+ * For a leaf node, we allow more time before we start to aggressively drop
+ * traffic, but for a peer, we need to respond quickly, to avoid long clogging.
+ *
+ * In "swift" mode, a callback is periodically invoked to drop more traffic
+ * if we don't see much progress in the queue backlog.  For a leaf node, it
+ * is invoked less often than for a peer.
+ * 
+ */
+#define node_flowc_swift_grace(n)	(NODE_IS_LEAF(n) ? 120 : 30)
+#define node_flowc_swift_period(n)	(NODE_IS_LEAF(n) ?  60 : 20)
 
 /*
  * Global Data

@@ -66,6 +66,7 @@ const gchar *nodes_gui_common_status_str(
 					"TX=%d RX=%d Q=%d,%d%% %s",
 					n->sent, n->received,
 					n->mqueue_count, n->mqueue_percent_used,
+					n->in_tx_swift_control ? " [SW]" :
 					n->in_tx_flow_control ? " [FC]" : "");
 				a = gui_tmp;
 				break;
@@ -208,6 +209,7 @@ const gchar *nodes_gui_common_status_str(
 			slen += gm_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
 				" Q=%d,%d%% %s",
 				n->mqueue_count, n->mqueue_percent_used,
+				n->in_tx_swift_control ? " [SW]" :
 				n->in_tx_flow_control ? " [FC]" : "");
 			a = gui_tmp;
 		} else
@@ -289,9 +291,10 @@ const gchar *nodes_gui_common_flags_str(const gnet_node_flags_t *flags)
 	else if (flags->is_proxying) status[7] = 'p';
 	else status[7] = '-';
 
-	if (flags->in_tx_flow_control) status[8] = 'F';
-	else if (!flags->mqueue_empty) status[8] = 'd';
-	else status[8] = '-';
+	if (flags->in_tx_swift_control) status[8]     = 'S';
+	else if (flags->in_tx_flow_control) status[8] = 'F';
+	else if (!flags->mqueue_empty) status[8]      = 'd';
+	else status[8]                                = '-';
 
 	if (flags->hops_flow == 0)
 		status[9] = 'f';

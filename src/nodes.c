@@ -5442,7 +5442,8 @@ void node_fill_flags(const gnet_node_t n, gnet_node_flags_t *flags)
 	flags->readable = NODE_IS_READABLE(node);
     flags->tx_compressed = NODE_TX_COMPRESSED(node);
     flags->mqueue_empty  = 0 == NODE_MQUEUE_COUNT(node);
-    flags->in_tx_flow_control  = NODE_IN_TX_FLOW_CONTROL(node);
+    flags->in_tx_flow_control = NODE_IN_TX_FLOW_CONTROL(node);
+    flags->in_tx_swift_control = NODE_IN_TX_SWIFT_CONTROL(node);
     flags->rx_compressed = NODE_RX_COMPRESSED(node);
 	flags->hops_flow = node->hops_flow;
 
@@ -5499,6 +5500,7 @@ void node_get_status(const gnet_node_t n, gnet_node_status_t *status)
     status->mqueue_count        = NODE_MQUEUE_COUNT(node);
     status->mqueue_percent_used = NODE_MQUEUE_PERCENT_USED(node);
     status->in_tx_flow_control  = NODE_IN_TX_FLOW_CONTROL(node);
+    status->in_tx_swift_control = NODE_IN_TX_SWIFT_CONTROL(node);
 
     status->tx_given    = node->tx_given;
     status->tx_deflated = node->tx_deflated;

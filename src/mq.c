@@ -38,6 +38,7 @@
 #include "tx.h"
 #include "gnet_stats.h"
 #include "walloc.h"
+#include "cq.h"
 
 RCSID("$Id$");
 
@@ -47,6 +48,12 @@ RCSID("$Id$");
 
 static void qlink_free(mqueue_t *q);
 static void mq_service(gpointer data);
+static void mq_update_flowc(mqueue_t *q);
+static gboolean make_room_header(
+	mqueue_t *q, gchar *header, gint prio, gint needed, gint *offset);
+static void mq_swift_timer(cqueue_t *cq, gpointer obj);
+
+extern cqueue_t *callout_queue;
 
 /*
  * mq_make
@@ -96,6 +103,9 @@ void mq_free(mqueue_t *q)
 	if (q->qlink)
 		qlink_free(q);
 
+	if (q->swift_ev)
+		cq_cancel(callout_queue, q->swift_ev);
+
 	g_list_free(q->qhead);
 	wfree(q, sizeof(*q));
 }
@@ -126,6 +136,251 @@ static GList *mq_rmlink_prev(mqueue_t *q, GList *l, gint size)
 }
 
 /*
+ * mq_swift_checkpoint
+ *
+ * A "swift" checkpoint was reached.
+ */
+static void mq_swift_checkpoint(mqueue_t *q, gboolean initial)
+{
+	gint elapsed = q->swift_elapsed;	/* Elapsed since we were scheduled */
+	gint target_to_lowmark;
+	gint flushed_till_next_timer;
+	gint added_till_next_timer;
+	gfloat period_ratio;
+	gint added;
+	gint needed;
+	gint extra;
+
+	g_assert(q->flags & MQ_FLOWC);
+	g_assert(q->size > q->lowat);		/* Or we would have left FC */
+
+	/*
+	 * For next period, the elapsed time will be...
+	 */
+
+	q->swift_elapsed = node_flowc_swift_period(q->node) * 1000;
+
+	/*
+	 * Compute target to reach the low watermark, and then the amount we
+	 * will have flushed by the time we reach the next timer, at the
+	 * present TX rate, as well as the data that will have been added to
+	 * the queue.
+	 */
+
+	period_ratio = (gfloat) q->swift_elapsed / (gfloat) elapsed;
+	target_to_lowmark = q->size - q->lowat;
+	added = q->size - q->last_size + q->flowc_written;
+
+	flushed_till_next_timer = (gint) (q->flowc_written * period_ratio);
+	added_till_next_timer = added <= 0 ? 0 : (gint) (added * period_ratio);
+
+	/*
+	 * Now compute the amount of bytes we need to forcefully drop to be
+	 * able to leave flow-control when the next timer fires...
+	 */
+
+	extra = target_to_lowmark -
+		(flushed_till_next_timer - added_till_next_timer);
+
+	if (extra <= 0) {
+		/*
+		 * We should be able to fully flush the queue by next timer at the
+		 * present average fill and flushing rates.  So needed could be 0.
+		 * However, to account for the bursty nature of the traffic,
+		 * take a margin...
+		 */
+
+		needed = target_to_lowmark / 3;
+	} else {
+		/*
+		 * We won't be able to reach the low watermark at the present rates.
+		 * We need to remove the extra traffic present in the queue, plus
+		 * add a margin: we assume we'll only be able to flush 75% of what
+		 * we flushed currently.
+		 */
+
+		needed = extra + flushed_till_next_timer / 4;
+	}
+
+	if (initial) {
+		/*
+		 * First time we're in "swift" mode.
+		 *
+		 * Purge pending queries, since they are getting quite old.
+		 * Leave our queries in for now (they have hops=0).
+		 */
+
+		q->header.function = GTA_MSG_SEARCH;
+		q->header.hops = 1;
+		q->header.ttl = max_ttl;
+
+		make_room_header(q, (gchar*) &q->header, PMSG_P_DATA, needed, NULL);
+
+		/*
+		 * Whether or not we were able to make enough room at this point
+		 * is not important, for the initial checkpoint.  Indeed, since
+		 * we are now in "swift" mode, more query messages will be dropped
+		 * at the next iteration, since we'll start dropping query hits,
+		 * and hits are more prioritary than queries.
+		 */
+
+	} else {
+		gint ttl;
+
+		/*
+		 * We're going to drop query hits...
+		 *
+		 * We start with the lowest prioritary query hit: low hops count
+		 * and high TTL, and we progressively increase until we can drop
+		 * the amount we need to drop.
+		 *
+		 * Note that we will never be able to drop the partially written
+		 * message at the tail of the queue, even if it is less prioritary
+		 * than our comparison point.
+		 */
+			
+		q->header.function = GTA_MSG_SEARCH_RESULTS;
+
+		/*
+		 * Loop until we reach hops=hard_ttl_limit or we have finished
+		 * removing enough data from the queue.
+		 */
+
+		for (ttl = hard_ttl_limit; needed > 0 && ttl >= 0; ttl--) {
+			gint old_size = q->size;
+
+			q->header.hops = hard_ttl_limit - ttl;
+			q->header.ttl = ttl;
+
+			if (
+				make_room_header(q, (gchar*) &q->header, PMSG_P_DATA,
+					needed, NULL)
+			)
+				break;
+
+			needed -= (old_size - q->size);		/* Amount we removed */
+		}
+	}
+
+	mq_update_flowc(q);		/* May cause us to leave "swift" mode */
+
+	/*
+	 * Re-install for next time, if still in "swift" mode.
+	 *
+	 * Subsequent calls after the initial call all go through
+	 * mq_swift_timer() anyway.
+	 */
+
+	if (q->flags & MQ_SWIFT) {
+		q->flowc_written = 0;
+		q->last_size = q->size;
+		q->swift_ev = cq_insert(callout_queue,
+			q->swift_elapsed, mq_swift_timer, q);
+	}
+}
+
+/*
+ * mq_swift_timer
+ *
+ * Callout queue callback: periodic "swift" mode timer.
+ */
+static void mq_swift_timer(cqueue_t *cq, gpointer obj)
+{
+	mqueue_t *q = (mqueue_t *) obj;
+
+	g_assert((q->flags & (MQ_FLOWC|MQ_SWIFT)) == (MQ_FLOWC|MQ_SWIFT));
+
+	mq_swift_checkpoint(q, FALSE);
+}
+
+/*
+ * mq_enter_swift
+ *
+ * Callout queue callback invoked when the queue must enter "swift" mode.
+ */
+static void mq_enter_swift(cqueue_t *cq, gpointer obj)
+{
+	mqueue_t *q = (mqueue_t *) obj;
+
+	g_assert((q->flags & (MQ_FLOWC|MQ_SWIFT)) == MQ_FLOWC);
+
+	q->flags |= MQ_SWIFT;
+
+	mq_swift_checkpoint(q, TRUE);
+}
+
+/*
+ * mq_leave_swift
+ *
+ * Invoked to clear the "swift" mode condition.
+ */
+static void mq_leave_swift(mqueue_t *q)
+{
+	g_assert(q->flags & MQ_SWIFT);
+	g_assert(q->swift_ev != NULL);
+	
+	q->flags &= ~MQ_SWIFT;
+	cq_cancel(callout_queue, q->swift_ev);
+}
+
+/*
+ * mq_enter_flowc
+ *
+ * Called when the message queue first enters flow-control.
+ */
+static void mq_enter_flowc(mqueue_t *q)
+{
+	/*
+	 * We're installing an event that will fire once the grace period is
+	 * exhausted: this will bring us into "swift" mode, unless the event
+	 * is cancelled because we're leaving flow-control.
+	 */
+
+	g_assert(q->swift_ev == NULL);
+	g_assert(q->node != NULL);
+	g_assert(!(q->flags & MQ_FLOWC));
+	g_assert(q->size >= q->hiwat);
+
+	q->flags |= MQ_FLOWC;			/* Above wartermark, raise */
+	q->flowc_written = 0;
+	q->last_size = q->size;
+	q->swift_elapsed = node_flowc_swift_grace(q->node) * 1000;
+	q->swift_ev =
+		cq_insert(callout_queue, q->swift_elapsed, mq_enter_swift, q);
+
+	node_tx_enter_flowc(q->node);	/* Signal flow control */
+
+	if (dbg > 4)
+		printf("entering FLOWC for node %s (%d bytes queued)\n",
+			node_ip(q->node), q->size);
+}
+
+/*
+ * mq_leave_flowc
+ *
+ * Leaving flow-control state.
+ */
+static void mq_leave_flowc(mqueue_t *q)
+{
+	g_assert(q->flags & MQ_FLOWC);
+
+	if (q->flags & MQ_SWIFT)
+		mq_leave_swift(q);
+
+	g_assert(!(q->flags & MQ_SWIFT));
+
+	q->flags &= ~MQ_FLOWC;			/* Under low watermark, clear */
+	if (q->qlink)
+		qlink_free(q);
+
+	node_tx_leave_flowc(q->node);	/* Signal end flow control */
+
+	if (dbg > 4)
+		printf("leaving FLOWC for node %s (%d bytes queued)\n",
+			node_ip(q->node), q->size);
+}
+
+/*
  * mq_update_flowc
  *
  * Update flow-control indication for queue.
@@ -134,24 +389,10 @@ static GList *mq_rmlink_prev(mqueue_t *q, GList *l, gint size)
 static void mq_update_flowc(mqueue_t *q)
 {
 	if (q->flags & MQ_FLOWC) {
-		if (q->size <= q->lowat) {
-			q->flags &= ~MQ_FLOWC;			/* Under low watermark, clear */
-			node_tx_leave_flowc(q->node);	/* Signal end flow control */
-			if (q->qlink)
-				qlink_free(q);
-			if (dbg > 4)
-				printf("leaving FLOWC for node %s (%d bytes queued)\n",
-					node_ip(q->node), q->size);
-		}
-	} else {
-		if (q->size >= q->hiwat) {
-			q->flags |= MQ_FLOWC;			/* Above wartermark, raise */
-			node_tx_enter_flowc(q->node);	/* Signal flow control */
-			if (dbg > 4)
-				printf("entering FLOWC for node %s (%d bytes queued)\n",
-					node_ip(q->node), q->size);
-		}
-	}
+		if (q->size <= q->lowat)
+			mq_leave_flowc(q);
+	} else if (q->size >= q->hiwat)
+		mq_enter_flowc(q);
 }
 
 /*
@@ -522,21 +763,38 @@ static void qlink_remove(mqueue_t *q, GList *l)
  * Remove from the queue enough messages that are less prioritary than
  * the current one, so as to make sure we can enqueue it.
  *
+ * If `offset' is not null, it may be set with the offset within qlink where
+ * the message immediately more prioritary than `mb' can be found.  It is
+ * up to the caller to initialize it with -1 and check whether it has been
+ * set.
+ *
  * Returns TRUE if we were able to make enough room.
- * Sets `offset' with the offset within qlink where the message immediately
- * more prioritary than `mb' can be found.
  */
 static gboolean make_room(mqueue_t *q, pmsg_t *mb, gint needed, gint *offset)
 {
-	gchar *mb_start = pmsg_start(mb);
-	gint mb_prio = pmsg_prio(mb);
+	gchar *header = pmsg_start(mb);
+	gint prio = pmsg_prio(mb);
+
+	return make_room_header(q, header, prio, needed, offset);
+}
+
+/*
+ * make_room_header
+ *
+ * Same as make_room(), but we are not given a "pmsg_t" as a comparison
+ * point but a Gnutella header and a message priority explicitly.
+ */
+static gboolean make_room_header(
+	mqueue_t *q, gchar *header, gint prio, gint needed, gint *offset)
+{
 	gint n;
 	gint dropped = 0;				/* Amount of messages dropped */
 
 	g_assert(needed > 0);
 
 	if (dbg > 5)
-		printf("FLOWC try to make room for %d bytes in queue 0x%lx (node %s)\n",
+		printf("%s try to make room for %d bytes in queue 0x%lx (node %s)\n",
+			(q->flags & MQ_SWIFT) ? "SWIFT" : "FLOWC",
 			needed, (gulong) q, node_ip(q->node));
 
 	if (q->qhead == NULL)			/* Queue is empty */
@@ -600,8 +858,9 @@ static gboolean make_room(mqueue_t *q, pmsg_t *mb, gint needed, gint *offset)
 		 * (it's necessarily >= 0 if we're in the loop)
 		 */
 
-		if (gmsg_cmp(cmb_start, mb_start) >= 0) {
-			*offset = n;
+		if (gmsg_cmp(cmb_start, header) >= 0) {
+			if (offset != NULL)
+				*offset = n;
 			break;
 		}
 
@@ -611,8 +870,9 @@ static gboolean make_room(mqueue_t *q, pmsg_t *mb, gint needed, gint *offset)
 		 * even if its embedded Gnet message is deemed less important.
 		 */
 
-		if (pmsg_prio(cmb) > mb_prio) {
-			*offset = n;
+		if (pmsg_prio(cmb) > prio) {
+			if (offset != NULL)
+				*offset = n;
 			break;
 		}
 
@@ -622,8 +882,9 @@ static gboolean make_room(mqueue_t *q, pmsg_t *mb, gint needed, gint *offset)
 
 		if (dbg > 4)
 			gmsg_log_dropped(pmsg_start(cmb),
-				"to FLOWC node %s, in favor of %s",
-				node_ip(q->node), gmsg_infostr(mb_start));
+				"to %s node %s, in favor of %s",
+				(q->flags & MQ_SWIFT) ? "SWIFT" : "FLOWC",
+				node_ip(q->node), gmsg_infostr(header));
 
 		gnet_stats_count_flowc(pmsg_start(cmb));
 		cmb_size = pmsg_size(cmb);
@@ -638,7 +899,8 @@ static gboolean make_room(mqueue_t *q, pmsg_t *mb, gint needed, gint *offset)
 		node_add_txdrop(q->node, dropped);	/* Dropped during TX */
 
 	if (dbg > 5)
-		printf("FLOWC end purge: %d bytes (count=%d) for node %s, need=%d\n",
+		printf("%s end purge: %d bytes (count=%d) for node %s, need=%d\n",
+			(q->flags & MQ_SWIFT) ? "SWIFT" : "FLOWC",
 			q->size, q->count, node_ip(q->node), needed);
 
 	/*
@@ -959,6 +1221,9 @@ again:
 
 	node_add_tx_given(q->node, r);
 	q->last_written = r;
+
+	if (q->flags & MQ_FLOWC)
+		q->flowc_written += r;
 
 	/*
 	 * Determine which messages we wrote, and whether we saturated the
