@@ -256,29 +256,32 @@ void search_init(void)
 	gtk_signal_connect(GTK_OBJECT(notebook_search_results), "switch_page", GTK_SIGNAL_FUNC(on_search_notebook_switch), NULL);
 	dialog_filters = create_dialog_filters();
 	gtk_window_set_position(GTK_WINDOW(dialog_filters), GTK_WIN_POS_CENTER);
-	gtk_widget_show(dialog_filters);
 }
 
-/* Free all the results sets of a search */
+/* Free records sets */
+
+void search_free_r_set(struct results_set *rs)
+{
+	GSList *m;
+
+	for (m = rs->records; m; m = m->next)
+	{
+		g_free(((struct record *) m->data)->name);
+		g_free(m->data);
+	}
+
+	g_slist_free(rs->records);
+	g_free(rs);
+}
 
 void search_free_r_sets(struct search *sch)
 {
-	GSList *l, *m;
+	GSList *l;
 
 	g_return_if_fail(sch);
 
 	for (l = sch->r_sets; l; l = l->next)
-	{
-		for (m = ((struct results_set *) l->data)->records; m; m = m->next)
-		{
-			g_free(((struct record *) m->data)->name);
-			g_free(m->data);
-		}
-
-		g_slist_free(((struct results_set *) l->data)->records);
-
-		g_free(l->data);
-	}
+		search_free_r_set((struct results_set *) l->data);
 
 	g_slist_free(sch->r_sets);
 }
@@ -490,14 +493,14 @@ void search_results(struct gnutella_node *n)
 		if (s >= e)
 		{
 /*			fprintf(stderr, "Node %s: %u records found in set (node said %u records)\n", node_ip(n), nr, rs->num_recs); */
-			g_free(rs);
+			search_free_r_set(rs);
 			return;
 		}
 
 		if (s[1])
 		{
 /*			fprintf(stderr, "Node %s: Record %u is not double-NULL terminated !\n", node_ip(n), nr); */
-			g_free(rs);
+			search_free_r_set(rs);
 			return;
 		}
 
@@ -521,15 +524,13 @@ void search_results(struct gnutella_node *n)
 	if (s < e)
 	{
 /*		fprintf(stderr, "Node %s: %u records found in set, but %u bytes remains after the records !\n", node_ip(n), nr, e - s); */
-		/* TODO FREE ALL THE RECORDS OF THE SET */
-		g_free(rs);
+		search_free_r_set(rs);
 		return;
 	}
 	else if (s > e)
 	{
 /*		fprintf(stderr, "Node %s: %u records found in set, but last record exceeded the struct by %u bytes !\n", node_ip(n), nr, s - e); */
-		/* TODO FREE ALL THE RECORDS OF THE SET */
-		g_free(rs);
+		search_free_r_set(rs);
 		return;
 	}
 
