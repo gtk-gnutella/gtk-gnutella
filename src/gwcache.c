@@ -385,8 +385,6 @@ void gwc_init(void)
 	if (ancient_version)
 		return;				/* Older versions must have a harder time */
 
-	gwc_get_urls();
-
 	/*
 	 * Schedule hourly updates, starting our first in 10 minutes:
 	 * It is hoped that by then, we'll have a stable IP and will know
@@ -1026,7 +1024,7 @@ static void gwc_update_data_ind(gpointer handle, gchar *data, gint len)
 }
 
 /*
- * gwc_host_error_ind
+ * gwc_update_error_ind
  *
  * HTTP request is being stopped.
  */
