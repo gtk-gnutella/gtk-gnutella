@@ -176,11 +176,11 @@ uploads_gui_status_str(const gnet_upload_status_t *u,
 			/* position 1 should always get an upload slot */
 			if (u->parq_retry > 0) {
 				slen += gm_snprintf(&tmpstr[slen], sizeof(tmpstr) - slen,
-							" %ds, ", u->parq_retry);
+							" %ds,", u->parq_retry);
 			}
 					
 			slen += gm_snprintf(&tmpstr[slen], sizeof(tmpstr) - slen,
-						"%s %s", _("lifetime:"), short_time(u->parq_lifetime));
+						" %s %s", _("lifetime:"), short_time(u->parq_lifetime));
 
 		}
 		break;
