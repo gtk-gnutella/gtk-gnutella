@@ -262,7 +262,8 @@ static void send_neighbouring_info(struct gnutella_node *n)
 		 * it in our reserve, so do it from here.
 		 */
 
-		host_add(cn->gnet_ip, cn->gnet_port, FALSE);
+		if (!NODE_IS_LEAF(n))
+			host_add(cn->gnet_ip, cn->gnet_port, FALSE);
 
 		/*
 		 * Node can be removed should its send queue saturate.
