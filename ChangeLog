@@ -8,6 +8,9 @@
  * Try to smartly ignore the Push flag and attempt direct connection, since
    many broken servent wrongly set the flag.
  * Stop scheduling downloads when we detect we're no longer connected.
+ * Query hit parsing now resets Push flag on servers known to wrongly set it.
+ * When comparing filesizes for auto-downloads, account for the possible
+   swarming trailer within the "download" directory.
 
 - (2002.08.17 - RAM)
  * Integrated swarming patch from Vidar Madsen.
