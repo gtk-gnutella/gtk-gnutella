@@ -217,6 +217,7 @@ gchar *url_escape_cntrl(gchar *url)
  *
  * Returns the argument if un-escaping is NOT necessary, a new string
  * otherwise unless in-place decoding was requested.
+ * Returns NULL if the argument isn't valid encoded.
  */
 gchar *url_unescape(gchar *url, gboolean inplace)
 {
@@ -227,15 +228,25 @@ gchar *url_unescape(gchar *url, gboolean inplace)
 	guchar c;
 	gchar *new;
 
-	for (p = url, c = *p++; c; c = *p++)
-		if (c == ESCAPE_CHAR)
+	for (p = url; (c = *p) != '\0'; c = *p++)
+		if (c == ESCAPE_CHAR) {
+			guchar h = *(++p);
+			guchar l = *(++p);
+
+			if (
+				(h == '0' && l == '0') ||	/* Forbid %00 */
+				!(is_ascii_xdigit(h) && is_ascii_xdigit(l))
+			) {
+				return NULL;
+			}
 			need_unescape++;
+		}
 
 	if (need_unescape == 0)
 		return url;
 
 	/*
-	 * The "+ 1" in the g_malloc() call below is for the rare cases where
+	 * The "+ 1" in the g_malloc() call below is for the impossible case where
 	 * the string would finish on a truncated escape sequence.  In that
 	 * case, we would not have enough room for the final trailing NUL.
 	 */
@@ -252,11 +263,11 @@ gchar *url_unescape(gchar *url, gboolean inplace)
 			*q++ = c;
 		else {
 			if ((c = *p++)) {
-				gint v = (hex2dec(c) << 4) & 0xf0;
+				gint v = (hex2dec(c) << 4);
 				if ((c = *p++))
-					v += hex2dec(c) & 0x0f;
+					v += hex2dec(c);
 				else
-					break;		/* String ending in the middle of escape */
+					g_assert_not_reached();	/* Handled in pre-scan above */
 
 				g_assert(inplace || new + unescaped_memory >= q);
 				*q++ = v;
@@ -281,6 +292,7 @@ gchar *url_unescape(gchar *url, gboolean inplace)
  * stored in their URL-unescaped form, but parameter names are NOT un-escaped.
  *
  * Returns an url_params_t object that can be queried for later...
+ * Returns NULL if the argument isn't valid encoded.
  */
 url_params_t *url_params_parse(gchar *query)
 {
@@ -302,6 +314,10 @@ url_params_t *url_params_parse(gchar *query)
 			if (c == '&' || c == '\0') {		/* End of value */
 				*q = '\0';
 				value = url_unescape(start, FALSE);
+				if (!value) {
+					url_params_free(up);
+					return NULL;
+				}
 				if (value == start)				/* No unescaping took place */
 					value = g_strdup(start);
 				*q = c;
