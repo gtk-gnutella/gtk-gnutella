@@ -233,6 +233,8 @@ src/guid.c
 src/guid.h
 src/gwcache.c
 src/gwcache.h
+src/hashtree.c
+src/hashtree.h
 src/hcache.c
 src/hcache.h
 src/header.c
