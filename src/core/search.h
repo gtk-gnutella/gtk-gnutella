@@ -40,7 +40,7 @@
 #define QUERY_SPEED_OOB_REPLY	0x0004		/* Out-of-band reply possible */
 #define QUERY_SPEED_FW_TO_FW	0x0002		/* Can do fw to fw transfers */
 
-#define QUERY_FW2FW_FILE_INDEX	2147483645	/* Magic index for fw-fw transfer */
+#define QUERY_FW2FW_FILE_INDEX	0x7FFFFFFD	/* Magic index for fw-fw transfer */
 
 /*
  * Global Functions
@@ -60,4 +60,4 @@ void search_oob_pending_results(
 	gnutella_node_t *n, gchar *muid, gint hits, gboolean udp_firewalled);
 
 #endif /* _core_search_h_ */
-
+/* vi: set ts=4 sw=4 cindent: */
