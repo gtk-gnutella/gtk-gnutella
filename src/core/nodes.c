@@ -98,7 +98,7 @@ RCSID("$Id$");
 #define CONNECT_PONGS_COUNT		10		/* Amoung of pongs to send */
 #define BYE_MAX_SIZE			4096	/* Maximum size for the Bye message */
 #define NODE_SEND_BUFSIZE		4096	/* TCP send buffer size - 4K */
-#define NODE_SEND_LEAF_BUFSIZE	256		/* TCP send buffer size for leaves */
+#define NODE_SEND_LEAF_BUFSIZE	1024	/* TCP send buffer size for leaves */
 #define MAX_GGEP_PAYLOAD		1024	/* In ping, pong, push */
 #define MAX_MSG_SIZE			65536	/* Absolute maximum message length */
 #define MAX_HOP_COUNT			255		/* Architecturally defined maximum */
@@ -1940,7 +1940,7 @@ node_bye_v(struct gnutella_node *n, gint code, const gchar *reason, va_list ap)
 
 	/*
 	 * Send the bye message, enlarging the TCP input buffer to make sure
-	 * can atomically send the message plus the remaining queued data.
+	 * we can atomically send the message plus the remaining queued data.
 	 */
 
 	sendbuf_len = NODE_SEND_BUFSIZE + mq_size(n->outq) +
