@@ -286,13 +286,13 @@ vp_get_chunks_initial(fih) {
 
 	GSList *result;
 	GSList *l;
-	gnet_fi_chunks_t *chunk;
 
 	result = guc_fi_get_chunks(fih);
-	for (l = result; l; ){
-		chunk = (gnet_fi_chunks_t *)l->data;
+
+	for (l = result; l; ) {
+		gnet_fi_chunks_t *chunk = (gnet_fi_chunks_t *) l->data;
 		l = g_slist_next(l);
-		if (DL_CHUNK_EMPTY == chunk->status) {
+		if (DL_CHUNK_DONE != chunk->status) {
 			result = g_slist_remove(result, chunk);
 			wfree(chunk, sizeof(gnet_fi_chunks_t));
 		}
@@ -300,7 +300,6 @@ vp_get_chunks_initial(fih) {
 
 	return result;
 }
-
 
 /**
  * A new fileinfo is available. We need to create a structure for it
@@ -371,6 +370,20 @@ vp_gui_fi_removed(gnet_fi_t fih)
 }
 
 /**
+ * For debugging: print chunk.
+ */
+static void
+vp_print_chunk(gnet_fi_chunks_t *c, gboolean show_old)
+{
+	if (show_old)
+		printf("%10d - %10d %d [%s]\n",
+			c->from, c->to, c->status, c->old ? "O" : "N");
+	else
+		printf("%10d - %10d %d\n",
+			c->from, c->to, c->status);
+}
+
+/**
  * Allocate a new chunk based on the parameters.
  *
  * @param from   Start of chunk
@@ -379,7 +392,9 @@ vp_gui_fi_removed(gnet_fi_t fih)
  * @param old    TRUE if the chunk was downloaded before gtk-gnutella is started
  */
 static gnet_fi_chunks_t *
-vp_create_chunk(guint32 from, guint32 to, enum dl_chunk_status status, gboolean old) {
+vp_create_chunk(
+	guint32 from, guint32 to, enum dl_chunk_status status, gboolean old)
+{
 	gnet_fi_chunks_t *chunk;
 	
 	chunk = walloc(sizeof(gnet_fi_chunks_t));
@@ -387,15 +402,19 @@ vp_create_chunk(guint32 from, guint32 to, enum dl_chunk_status status, gboolean 
 	chunk->to = to;
 	chunk->status = status;
 	chunk->old = old;
-	
+
+	printf("VP adding: ");
+	vp_print_chunk(chunk, TRUE);
+
 	return chunk;
 }
 
 /**
  * Assert that a chunks list confirms to the assumptions.
  */
-void
-vp_assert_chunks_list(GSList *list) {
+static void
+vp_assert_chunks_list(GSList *list)
+{
 	GSList *l;
 	gnet_fi_chunks_t *chunk;
 	int last = 0;
@@ -409,6 +428,23 @@ vp_assert_chunks_list(GSList *list) {
 	}
 }
 
+/*
+ * For debugging: print chunk list.
+ */
+static void
+vp_print_chunk_list(GSList *list, gchar *title)
+{
+	GSList *l;
+
+	printf("Chunk list \"%s\":\n", title);
+
+	for (l = list; l; l = g_slist_next(l)) {
+		gnet_fi_chunks_t *c = l->data;
+		vp_print_chunk(c, FALSE);
+	}
+
+	printf("End of list \"%s\".\n", title);
+}
 
 /** 
  * Fileinfo has been changed for a file. Update the information and 
@@ -463,7 +499,10 @@ vp_gui_fi_status_changed(gnet_fi_t fih)
 	vp_assert_chunks_list(new);
 	guc_fi_free_chunks(v->chunks_list);
 	v->chunks_list = NULL;
-	
+
+	vp_print_chunk_list(old, "Old");
+	vp_print_chunk_list(new, "New");
+
 	while (old || new) {
 		if (old && new) {
 			oc = (gnet_fi_chunks_t *) old->data;
@@ -472,7 +511,11 @@ vp_gui_fi_status_changed(gnet_fi_t fih)
 			/*
 			 * Skip over chunks below the highest mark, they are no longer
 			 * relevant.
+			 *
+			 * NB: the `old' list is NOT a contiguous list, but stores
+			 * only completed chunks.  The `new' list is contiguous though.
 			 */
+
 			if (oc->to <= highest) {
 				old = g_slist_next(old);
 				continue;
@@ -481,19 +524,21 @@ vp_gui_fi_status_changed(gnet_fi_t fih)
 				new = g_slist_next(new);
 				continue;
 			}
-				
+
+			g_assert(nc->from == highest);		/* Contiguous new list */
+
 			/*
 			 * The chunks are identical: nothing changed, copy one chunk
 			 */
 			if (oc->from == nc->from && oc->to == nc->to) {
-				highest = oc->to;
+				highest = nc->to;
 				v->chunks_list = g_slist_append(v->chunks_list, 
-				    vp_create_chunk(oc->from, oc->to, nc->status, TRUE));
+				    vp_create_chunk(nc->from, nc->to, nc->status, TRUE));
 				old = g_slist_next(old);
 				new = g_slist_next(new);
 				continue;
 			}
-				
+
 			/*
 			 * If one of the chunks fits completely before the other we
 			 * copy it and skip to the next chunk. This will only happen
@@ -506,7 +551,7 @@ vp_gui_fi_status_changed(gnet_fi_t fih)
 				new = g_slist_next(new);
 				continue;
 			}
-				
+
 			/*
 			 * This is the case where chunks overlap. The chunks will need
 			 * to be split in their old and new parts.
@@ -554,6 +599,7 @@ vp_gui_fi_status_changed(gnet_fi_t fih)
 	 */
 	guc_fi_free_chunks(keep_new);
 
+	vp_print_chunk_list(v->chunks_list, "Merged");
 	vp_assert_chunks_list(v->chunks_list);
 }
 
