@@ -43,7 +43,7 @@ RCSID("$Id$");
 
 #define PARQ_RETRY_SAFETY	40		/* 40 seconds before lifetime */
 #define PARQ_TIMER_BY_POS	30		/* 30 seconds for each queue position */
-#define PARQ_MAX_UL_RETRY_DELAY 600		/* 10 minutes retry rate max. */
+#define PARQ_MAX_UL_RETRY_DELAY 1200	/* 20 minutes retry rate max. */
 #define MIN_LIFE_TIME		90
 #define EXPIRE_GRACE_TIME	90
 #define QUEUE_PERIOD		600		/* Try to resend a queue every 10 minutes */
@@ -1215,7 +1215,7 @@ static void parq_upload_free(struct parq_ul_queued *parq_ul)
  */
 guint32 parq_ul_calc_retry(struct parq_ul_queued *parq_ul)
 {
-	int result = 30 + 20 * (parq_ul->relative_position - 1);
+	int result = 60 + 45 * (parq_ul->relative_position - 1);
 	
 	return MIN(PARQ_MAX_UL_RETRY_DELAY, result);
 }
