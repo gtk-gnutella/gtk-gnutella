@@ -27,8 +27,9 @@
 
 #include "gui.h"
 
-#include "downloads.h" /* FIXME: remove this dependency */
+#include <time.h>
 
+#include "downloads.h" /* FIXME: remove this dependency */
 #include "settings.h" /* For settings_config_dir() */
 #include "settings_gui.h"
 
@@ -209,6 +210,7 @@ static gboolean gnet_connections_changed(property_t prop);
 static gboolean uploads_count_changed(property_t prop);
 static gboolean downloads_count_changed(property_t prop);
 static gboolean current_peermode_changed(property_t prop);
+static gboolean configured_peermode_changed(property_t prop);
 static gboolean clock_skew_changed(property_t prop);
 static gboolean update_monitor_unstable_ip(property_t prop);
 static gboolean spinbutton_input_bw_changed(property_t prop);
@@ -222,6 +224,8 @@ static gboolean compute_connection_speed_changed(property_t prop);
 static gboolean update_toggle_node_show_uptime(property_t prop);
 static gboolean update_toggle_node_show_handshake(property_t prop);
 static gboolean update_toggle_node_show_detailed_info(property_t prop);
+static gboolean update_label_date(property_t prop);
+static gboolean update_label_yes_or_no(property_t prop);
 #endif
 
 /* FIXME:
@@ -1690,7 +1694,79 @@ static prop_map_t property_map[] = {
         "checkbutton_gnet_info_rt",
         FREQ_UPDATES, 0
     },
-#endif
+    {
+        get_main_window,
+        PROP_NODE_LAST_ULTRA_CHECK,
+        update_label_date,
+        TRUE,
+        "label_node_last_ultracheck",
+        FREQ_UPDATES, 0
+    },
+    {
+        get_main_window,
+        PROP_NODE_LAST_ULTRA_LEAF_SWITCH,
+        update_label_date,
+        TRUE,
+        "label_last_ultra_leaf_switch",
+        FREQ_UPDATES, 0
+    },
+    {
+        get_main_window,
+        PROP_UP_REQ_AVG_SERVENT_UPTIME,
+        update_label_yes_or_no,
+        TRUE,
+        "label_up_req_avg_servent_uptime",
+        FREQ_UPDATES, 0
+    },
+    {
+        get_main_window,
+        PROP_UP_REQ_AVG_IP_UPTIME,
+        update_label_yes_or_no,
+        TRUE,
+        "label_up_req_avg_ip_uptime",
+        FREQ_UPDATES, 0
+    },
+    {
+        get_main_window,
+        PROP_UP_REQ_NODE_UPTIME,
+        update_label_yes_or_no,
+        TRUE,
+        "label_up_req_node_uptime",
+        FREQ_UPDATES, 0
+    },
+    {
+        get_main_window,
+        PROP_UP_REQ_NOT_FIREWALLED,
+        update_label_yes_or_no,
+        TRUE,
+        "label_up_req_not_firewalled",
+        FREQ_UPDATES, 0
+    },
+    {
+        get_main_window,
+        PROP_UP_REQ_ENOUGH_FD,
+        update_label_yes_or_no,
+        TRUE,
+        "label_up_req_enough_fd",
+        FREQ_UPDATES, 0
+    },
+    {
+        get_main_window,
+        PROP_UP_REQ_ENOUGH_MEM,
+        update_label_yes_or_no,
+        TRUE,
+        "label_up_req_enough_mem",
+        FREQ_UPDATES, 0
+    },
+    {
+        get_main_window,
+        PROP_UP_REQ_ENOUGH_BW,
+        update_label_yes_or_no,
+        TRUE,
+        "label_up_req_enough_bw",
+        FREQ_UPDATES, 0
+    },
+#endif	/* USE_GTK1 */
     {
         NULL,
         PROP_PROGRESSBAR_BWS_IN_AVG,
@@ -1991,7 +2067,7 @@ static prop_map_t property_map[] = {
     {
         get_main_window,
         PROP_CONFIGURED_PEERMODE,
-        update_multichoice,
+        configured_peermode_changed,
         TRUE,
         "combo_config_peermode",
         FREQ_UPDATES, 0
@@ -3151,12 +3227,96 @@ static gboolean update_toggle_node_show_detailed_info(property_t prop)
 
 	return ret;
 }
+
+static gboolean update_label_date(property_t prop)
+{
+    GtkWidget *w;
+    prop_map_t *map_entry = settings_gui_get_map_entry(prop);
+    prop_set_stub_t *stub = map_entry->stub;
+    GtkWidget *top = map_entry->fn_toplevel();
+	time_t val;
+
+    if (!top)
+        return FALSE;
+
+    w = lookup_widget(top, map_entry->wid);
+
+    if (w == NULL) {
+		if (gui_debug)
+			g_warning("%s - widget not found: [%s]", 
+				 G_GNUC_PRETTY_FUNCTION, map_entry->wid);
+        return FALSE;
+    }
+
+	stub->guint32.get(prop, (guint32 *) &val, 0, 1);
+	if (val == 0)
+		gtk_label_set_text(GTK_LABEL(w), "Never");
+	else {
+		gchar buf[80];
+		struct tm *ct = localtime(&val);
+
+		gm_snprintf(buf, sizeof(buf), "%.2d/%.2d/%.2d %.2d:%.2d:%.2d",
+			ct->tm_mday, ct->tm_mon + 1, ct->tm_year % 100,
+			ct->tm_hour, ct->tm_min, ct->tm_sec);
+		gtk_label_set_text(GTK_LABEL(w), buf);
+	}
+
+    return FALSE;
+}
+
+static gboolean update_label_yes_or_no(property_t prop)
+{
+    GtkWidget *w;
+    prop_map_t *map_entry = settings_gui_get_map_entry(prop);
+    prop_set_stub_t *stub = map_entry->stub;
+    GtkWidget *top = map_entry->fn_toplevel();
+	gboolean val;
+
+    if (!top)
+        return FALSE;
+
+    w = lookup_widget(top, map_entry->wid);
+
+    if (w == NULL) {
+		if (gui_debug)
+			g_warning("%s - widget not found: [%s]", 
+				 G_GNUC_PRETTY_FUNCTION, map_entry->wid);
+        return FALSE;
+    }
+
+	stub->boolean.get(prop, &val, 0, 1);
+    gtk_label_set_text(GTK_LABEL(w), val ? "Yes" : "No");
+
+    return FALSE;
+}
 #endif
+
+static gboolean configured_peermode_changed(property_t prop)
+{
+	guint32 mode;
+	gboolean ret;
+#ifdef USE_GTK1
+	GtkWidget *frame =
+		lookup_widget(main_window, "frame_gnet_can_become_ultra");
+#endif
+
+	ret = update_multichoice(prop);
+    gnet_prop_get_guint32_val(prop, &mode);
+
+#ifdef USE_GTK1
+	if (mode == NODE_P_AUTO)
+		gtk_widget_show(frame);
+	else
+		gtk_widget_hide(frame);
+#endif
+
+	return ret;
+}
 
 static gboolean current_peermode_changed(property_t prop)
 {
-	GtkWidget *hbox_normal_ultrapeer = lookup_widget(main_window,
-											"hbox_normal_or_ultrapeer");
+	GtkWidget *hbox_normal_ultrapeer =
+		lookup_widget(main_window, "hbox_normal_or_ultrapeer");
 	GtkWidget *hbox_leaf = lookup_widget(main_window, "hbox_leaf");
     GtkWidget *icon_ultra;
 	GtkWidget *icon_leaf;
