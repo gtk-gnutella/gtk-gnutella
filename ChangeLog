@@ -1,5 +1,43 @@
 # since last version
 
+- (2003.08.08 - RAM)
+ * [GTK1] Renamed "Abort all from host" as "Forget all from host" since we're
+   no longer paying attention to the "delete file on abort" setting here.
+ * Was unduly removing downloaded files when removing all queued download from
+   a host on timeout when they had "delete file in abort" turned on.
+ * Allow them to abort/forget a download when it is in "Sinking" mode.
+ * Moved GUI callbacks for upload stats to new upload_stats_cb.c.
+ * Fixed config_comment() to have readable and nicely-formatted comments.
+ * Updated the French translations.
+ * [GTK1] Changed label to "Report an upload connection speed of" to avoid
+   confusion on asymetric lines.
+ * [GTK2] Applied Emile le Vivre's update.
+ * Applied update from Stephane Corbe and reran autogen.sh.
+ * Added 64.15.0.0/255.255.0.0 to the list of hostile IPs.
+ * Manually patched generated po/Makefile.in.in and Makefile.am because of
+   crappy auto* tools: it would not build on my machine, yet those files
+   were generated/updated!
+
+- (2003.08.07 - RAM)
+ * [GTK2] Integrated Emile le Vivre's patch adding support for the two
+   "node_monitor_unstable_ip" and "node_monitor_unstable_servents" properties.
+ * [GTK1] Added GUI configuration for "checkbutton_auto_feed_dmesh" and
+   "checkbutton_fuzzy_filter_dmesh" in the Config/Downloads pane.
+ * [GTK1] Reworded text for the checkbox controlling "auto_download_identical".
+ * When they don't monitor unstable IPs, gray out monitoring of unstable
+   servents in the GUI.
+
+- (2003.08.06 - RAM)
+ * Count actively and passively queued downloads.
+ * [GTK1] Display actively and passively queued downloads.
+ * Obsoleted "mark_ignored": only retained for GTK2, and replaced with
+   "search_handle_ignored_files" for GTK1.
+ * Can now prevent display of search results that will be ignored.
+ * [GTK1] New combo to handle ignored files: 3 choices: display / mark / skip.
+ * Also consider 172.31/12 as a private IP range, and 255/8 as unroutable,
+   instead of just 255.255.255/24.
+ * Ooops -- 172.31/12 does not exist as a defined private IP range!
+
 - (2003.08.05 - RAM)
  * Forgot to customize the HTTP async layer when we're using the IP
    swapping hack for client-side push proxy.
