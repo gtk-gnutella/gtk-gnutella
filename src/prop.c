@@ -422,7 +422,7 @@ void prop_set_guint32(
             if (newval < PROP(ps,prop).data.guint32.min)
                 newval = PROP(ps,prop).data.guint32.min;
 
-            g_warning("prop_set_guint32: [%s] new value of ouf bounds "
+            g_warning("prop_set_guint32: [%s] new value out of bounds "
                 "(%u/%u): %u (adjusting to %u)",
                 PROP(ps,prop).name,
                 PROP(ps,prop).data.guint32.min,
