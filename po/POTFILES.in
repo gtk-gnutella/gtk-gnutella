@@ -1,7 +1,6 @@
 src/core/downloads.c
 src/core/gnet_stats.c
 src/core/gwcache.c
-src/core/hcache.c
 src/core/settings.c
 src/core/shell.c
 src/core/uhc.c
@@ -11,6 +10,7 @@ src/lib/iso3166.c
 src/ui/gtk/bitzi.c
 src/ui/gtk/drop.c
 src/ui/gtk/filter.c
+src/ui/gtk/filter_core.c
 src/ui/gtk/gnet_stats_common.c
 src/ui/gtk/gtk-shared/callbacks.c
 src/ui/gtk/gtk1/callbacks.c
