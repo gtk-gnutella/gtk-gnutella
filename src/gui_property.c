@@ -30,7 +30,7 @@
 /*
  * Includes specified by "uses"-statement in .ag file
  */
-#include "gnet.h"
+#include "gui.h"
 
 
 

@@ -7,7 +7,7 @@ property_set = "gui_property";
 func_prefix = "gui_prop";
 offset = 1000;
 
-uses = "gnet.h";
+uses = "gui.h";
 
 prop = {
     name = "monitor_enabled";

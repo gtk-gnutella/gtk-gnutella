@@ -32,13 +32,10 @@
  *		(C) 2002 Michael Tesch, released with gtk-gnutella & its license
  */
 
-#include "gui.h"
+#include "search_stats.h"
 
 #include <stdio.h>
 #include <stdlib.h>
-
-#include "search_stats.h"
-
 
 /* this is what the stat_hash's 'val' points to */
 struct term_counts {

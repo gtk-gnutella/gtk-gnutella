@@ -26,7 +26,7 @@
 #ifndef _search_stats_h_
 #define _search_stats_h_
 
-#include "gnutella.h"
+#include "gui.h"
 
 void search_stats_enable(void);
 void search_stats_disable(void);
