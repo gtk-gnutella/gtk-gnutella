@@ -2308,7 +2308,7 @@ static void upload_request(gnutella_upload_t *u, header_t *header)
 			hev[hevcnt++].he_arg = NULL;
 		}
 	} else if (is_firewalled) {
-		/* Send X-Push-Proxies each time: might have changed! */
+		/* Send X-Push-Proxy each time: might have changed! */
 		hev[hevcnt].he_type = HTTP_EXTRA_CALLBACK;
 		hev[hevcnt].he_cb = node_http_proxies_add;
 		hev[hevcnt++].he_arg = NULL;

@@ -6689,7 +6689,7 @@ node_proxy_cancel_all(void)
  * HTTP status callback.
  *
  * If we are still firewalled and have push-proxies, let the downloader
- * know about them via the X-Push-Proxies header.
+ * know about them via the X-Push-Proxy header.
  */
 void
 node_http_proxies_add(gchar *buf, gint *retval, gpointer arg, guint32 flags)
@@ -6698,7 +6698,7 @@ node_http_proxies_add(gchar *buf, gint *retval, gpointer arg, guint32 flags)
 	gint length = *retval;		/* Space available, starting at `buf' */
 
 	if (is_firewalled && sl_proxies != NULL) {
-		gpointer fmt = header_fmt_make("X-Push-Proxies", ", ", 0);
+		gpointer fmt = header_fmt_make("X-Push-Proxy", ", ", 0);
 		GSList *sl;
 		gint len;
 

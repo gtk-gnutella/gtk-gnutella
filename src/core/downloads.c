@@ -5019,7 +5019,7 @@ collect_locations:
 }
 
 /**
- * Extract host:port information out of X-Push-Proxies if present and
+ * Extract host:port information out of X-Push-Proxy if present and
  * update the server's list.
  */
 static void
@@ -5030,7 +5030,16 @@ check_push_proxies(struct download *d, header_t *header)
 	const gchar *tok;
 	GSList *l = NULL;
 
-	buf = header_get(header, "X-Push-Proxies");
+	/*
+	 * The newest specifications say that the header to be used
+	 * is X-Push-Proxy.  Continue to parse the older forms, but
+	 * we'll emit the newest form now.
+	 *		--RAM, 2004-09-28
+	 */
+
+	buf = header_get(header, "X-Push-Proxy");		/* Newest specs */
+	if (buf == NULL)
+		buf = header_get(header, "X-Push-Proxies");
 	if (buf == NULL)
 		buf = header_get(header, "X-Pushproxies");	/* Legacy */
 
