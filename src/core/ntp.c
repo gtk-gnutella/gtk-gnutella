@@ -192,8 +192,8 @@ ntp_got_reply(struct gnutella_socket *s)
 	}
 
 	if (dbg)
-		printf("NTP got %s reply from NTP-%u server\n",
-			s->pos == NTP_MINSIZE ? "regular" : "auth", version);
+		printf("NTP got %s reply from NTP-%u server, stratum %u\n",
+			s->pos == NTP_MINSIZE ? "regular" : "auth", version, m->stratum);
 
 	/*
 	 * Since we know NTP runs locally, disarm the timeout.
@@ -226,6 +226,9 @@ ntp_got_reply(struct gnutella_socket *s)
 		printf("NTP local clock offset is %.6lf secs\n", clock_offset);
 
 	gnet_prop_set_guint32_val(PROP_CLOCK_SKEW, (guint32) clock_offset);
+
+	g_message("detected NTP-%u, stratum %u, offset %.6lf secs",
+		version, m->stratum, clock_offset);
 }
 
 /**
