@@ -74,11 +74,11 @@ gtk_gnutella_SOURCES = \
 	pcache.c pcache.h \
 	routing.c routing.h \
 	search.c search.h search_gui.h \
-	search_stats.c search_stats.h \
-	downloads.c downloads.h \
+	search_stats.c search_stats.h search_stats_gui.h \
+	downloads.c downloads.h downloads_gui.h \
 	share.c share.h share_gui.c share_gui.h \
-	uploads.c uploads.h \
-	upload_stats.c upload_stats.h \
+	uploads.c uploads.h uploads_gui.h \
+	upload_stats.c upload_stats.h upload_stats_gui.h \
 	main.c \
 	gui.c gui.h \
 	matching.c matching.h \
