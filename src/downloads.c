@@ -2700,6 +2700,7 @@ void download_start(struct download *d, gboolean check_allowed)
 			if (d->flags & DL_F_DNS_LOOKUP) {
 				atom_str_free(d->server->hostname);
 				d->server->hostname = NULL;
+				gui_update_download_host(d);
 			}
 
 			download_unavailable(d, GTA_DL_ERROR, "Connection failed");
@@ -2997,6 +2998,7 @@ void download_fallback_to_push(struct download *d,
 				ip_port_to_gchar(download_ip(d), download_port(d)));
 			atom_str_free(d->server->hostname);
 			d->server->hostname = NULL;
+			gui_update_download_host(d);
 		}
 
 		/*
@@ -4639,6 +4641,7 @@ static void check_xhostname(struct download *d, const header_t *header)
 		return;
 
 	set_server_hostname(server, buf);
+	gui_update_download_host(d);
 }
 
 /*
@@ -6125,8 +6128,10 @@ void download_send_request(struct download *d)
 	 *		--RAM, 26/10/2003
 	 */
 
-	if (d->server->hostname != NULL && download_ip(d) != s->ip)
+	if (d->server->hostname != NULL && download_ip(d) != s->ip) {
 		change_server_ip(d->server, s->ip);
+		gui_update_download_host(d);
+	}
 
 	/*
 	 * If we have d->always_push set, yet we did not use a Push, it means we
