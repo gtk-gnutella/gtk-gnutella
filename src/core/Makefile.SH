@@ -120,6 +120,7 @@ SRC = \
 	pcache.c \
 	pmsg.c \
 	pproxy.c \
+	qhit.c \
 	qrp.c \
 	routing.c \
 	rx.c \
@@ -186,6 +187,7 @@ OBJ = \
 	pcache.o \
 	pmsg.o \
 	pproxy.o \
+	qhit.o \
 	qrp.o \
 	routing.o \
 	rx.o \
