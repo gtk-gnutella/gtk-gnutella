@@ -434,6 +434,7 @@ install-data-local:
 	  done \
 	fi
 	$(INSTALL_DATA) $(srcdir)/gwcache.boot $(DESTDIR)$(pkgdatadir)/
+	$(INSTALL_DATA) $(srcdir)/hostiles.txt $(DESTDIR)$(pkgdatadir)/
 
 dist-hook:
 	if test -d pixmaps; then \
