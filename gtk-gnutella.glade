@@ -5787,7 +5787,7 @@ settings</label>
 			    <class>GtkCheckButton</class>
 			    <name>checkbutton_config_bws_glin</name>
 			    <can_focus>True</can_focus>
-			    <label>Limit outgoing bandwidth to leaves to</label>
+			    <label>Limit incoming bandwidth from leaves to</label>
 			    <active>False</active>
 			    <draw_indicator>True</draw_indicator>
 			    <child>
@@ -5810,7 +5810,7 @@ settings</label>
 			    <class>GtkCheckButton</class>
 			    <name>checkbutton_config_bws_glout</name>
 			    <can_focus>True</can_focus>
-			    <label>Limit incoming bandwidth from leaves to</label>
+			    <label>Limit outgoing bandwidth to leaves to</label>
 			    <active>False</active>
 			    <draw_indicator>True</draw_indicator>
 			    <child>

@@ -4118,7 +4118,7 @@ create_main_window (void)
   gtk_table_set_row_spacings (GTK_TABLE (table58), 2);
   gtk_table_set_col_spacings (GTK_TABLE (table58), 4);
 
-  checkbutton_config_bws_glin = gtk_check_button_new_with_label ("Limit outgoing bandwidth to leaves to");
+  checkbutton_config_bws_glin = gtk_check_button_new_with_label ("Limit incoming bandwidth from leaves to");
   gtk_widget_set_name (checkbutton_config_bws_glin, "checkbutton_config_bws_glin");
   gtk_widget_ref (checkbutton_config_bws_glin);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "checkbutton_config_bws_glin", checkbutton_config_bws_glin,
@@ -4128,7 +4128,7 @@ create_main_window (void)
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
 
-  checkbutton_config_bws_glout = gtk_check_button_new_with_label ("Limit incoming bandwidth from leaves to");
+  checkbutton_config_bws_glout = gtk_check_button_new_with_label ("Limit outgoing bandwidth to leaves to");
   gtk_widget_set_name (checkbutton_config_bws_glout, "checkbutton_config_bws_glout");
   gtk_widget_ref (checkbutton_config_bws_glout);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "checkbutton_config_bws_glout", checkbutton_config_bws_glout,
