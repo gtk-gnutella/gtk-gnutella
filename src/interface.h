@@ -10,6 +10,7 @@ GtkWidget* create_popup_monitor (void);
 GtkWidget* create_popup_nodes (void);
 GtkWidget* create_popup_uploads (void);
 GtkWidget* create_dlg_filters (void);
+GtkWidget* create_shutdown_window (void);
 
 /* Global Widgets (added by extern.tcl) */
 
@@ -107,7 +108,6 @@ extern GtkWidget *button_search_clear;
 extern GtkWidget *button_search_close;
 extern GtkWidget *button_search_download;
 extern GtkWidget *button_search_filter;
-extern GtkWidget *button_search_stream;
 extern GtkWidget *checkbutton_search_jump_to_downloads;
 extern GtkWidget *checkbutton_search_remove_downloaded;
 extern GtkWidget *checkbutton_search_pick_all;
@@ -200,6 +200,7 @@ extern GtkWidget *pixmap_no_firewall;
 extern GtkWidget *spinbutton_nodes_max_hosts_cached;
 extern GtkWidget *frame_bws_inout;
 extern GtkWidget *frame_bws_ginout;
+extern GtkWidget *label_shutdown_count;
 
 /* End of global widgets */
 

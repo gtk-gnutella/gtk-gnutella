@@ -282,10 +282,10 @@
     </widget>
 
     <widget>
-      <class>GtkHBox</class>
-      <name>hbox_main</name>
-      <homogeneous>False</homogeneous>
-      <spacing>0</spacing>
+      <class>GtkHPaned</class>
+      <name>hpaned1</name>
+      <handle_size>7</handle_size>
+      <gutter_size>8</gutter_size>
       <child>
 	<padding>0</padding>
 	<expand>True</expand>
@@ -299,9 +299,8 @@
 	<homogeneous>False</homogeneous>
 	<spacing>2</spacing>
 	<child>
-	  <padding>0</padding>
-	  <expand>False</expand>
-	  <fill>False</fill>
+	  <shrink>True</shrink>
+	  <resize>False</resize>
 	</child>
 
 	<widget>
@@ -313,7 +312,7 @@
 	  <vupdate_policy>GTK_UPDATE_CONTINUOUS</vupdate_policy>
 	  <child>
 	    <padding>0</padding>
-	    <expand>False</expand>
+	    <expand>True</expand>
 	    <fill>True</fill>
 	  </child>
 
@@ -345,23 +344,6 @@
 	      <ypad>0</ypad>
 	    </widget>
 	  </widget>
-	</widget>
-
-	<widget>
-	  <class>GtkLabel</class>
-	  <name>label118</name>
-	  <label></label>
-	  <justify>GTK_JUSTIFY_CENTER</justify>
-	  <wrap>False</wrap>
-	  <xalign>0.5</xalign>
-	  <yalign>0.5</yalign>
-	  <xpad>0</xpad>
-	  <ypad>0</ypad>
-	  <child>
-	    <padding>0</padding>
-	    <expand>True</expand>
-	    <fill>False</fill>
-	  </child>
 	</widget>
 
 	<widget>
@@ -597,9 +579,8 @@
 	<homogeneous>False</homogeneous>
 	<spacing>4</spacing>
 	<child>
-	  <padding>0</padding>
-	  <expand>True</expand>
-	  <fill>True</fill>
+	  <shrink>True</shrink>
+	  <resize>True</resize>
 	</child>
 
 	<widget>
@@ -2779,6 +2760,7 @@
 			<widget>
 			  <class>GtkToggleButton</class>
 			  <name>togglebutton_queue_freeze</name>
+			  <width>65</width>
 			  <can_focus>True</can_focus>
 			  <signal>
 			    <name>toggled</name>
@@ -3300,25 +3282,6 @@
 		  <last_modification_time>Sun, 26 Mar 2000 17:39:53 GMT</last_modification_time>
 		</signal>
 		<label>Download selected files</label>
-		<relief>GTK_RELIEF_NORMAL</relief>
-		<child>
-		  <padding>0</padding>
-		  <expand>False</expand>
-		  <fill>False</fill>
-		</child>
-	      </widget>
-
-	      <widget>
-		<class>GtkButton</class>
-		<name>button_search_stream</name>
-		<sensitive>False</sensitive>
-		<can_focus>True</can_focus>
-		<signal>
-		  <name>clicked</name>
-		  <handler>on_button_search_stream_clicked</handler>
-		  <last_modification_time>Sun, 26 Mar 2000 17:39:57 GMT</last_modification_time>
-		</signal>
-		<label>Stream selected files</label>
 		<relief>GTK_RELIEF_NORMAL</relief>
 		<child>
 		  <padding>0</padding>
@@ -4156,7 +4119,7 @@
 		      <snap>False</snap>
 		      <wrap>False</wrap>
 		      <value>6347</value>
-		      <lower>1</lower>
+		      <lower>0</lower>
 		      <upper>65535</upper>
 		      <step>1</step>
 		      <page>10</page>
@@ -8410,6 +8373,63 @@ don't display
 	<xpad>0</xpad>
 	<ypad>0</ypad>
       </widget>
+    </widget>
+  </widget>
+</widget>
+
+<widget>
+  <class>GtkWindow</class>
+  <name>shutdown_window</name>
+  <title>gtk-gnutella shutdown</title>
+  <type>GTK_WINDOW_TOPLEVEL</type>
+  <position>GTK_WIN_POS_CENTER</position>
+  <modal>False</modal>
+  <allow_shrink>False</allow_shrink>
+  <allow_grow>False</allow_grow>
+  <auto_shrink>False</auto_shrink>
+
+  <widget>
+    <class>GtkVBox</class>
+    <name>vbox44</name>
+    <border_width>30</border_width>
+    <homogeneous>False</homogeneous>
+    <spacing>0</spacing>
+
+    <widget>
+      <class>GtkLabel</class>
+      <name>label184</name>
+      <label>Gtk-gnutella is shutting down.
+Sending bye messages to peers.
+
+Grace time remaining:</label>
+      <justify>GTK_JUSTIFY_CENTER</justify>
+      <wrap>False</wrap>
+      <xalign>0.5</xalign>
+      <yalign>0.5</yalign>
+      <xpad>0</xpad>
+      <ypad>0</ypad>
+      <child>
+	<padding>0</padding>
+	<expand>False</expand>
+	<fill>False</fill>
+      </child>
+    </widget>
+
+    <widget>
+      <class>GtkLabel</class>
+      <name>label_shutdown_count</name>
+      <label>[time]</label>
+      <justify>GTK_JUSTIFY_CENTER</justify>
+      <wrap>False</wrap>
+      <xalign>0.5</xalign>
+      <yalign>0.5</yalign>
+      <xpad>0</xpad>
+      <ypad>0</ypad>
+      <child>
+	<padding>0</padding>
+	<expand>False</expand>
+	<fill>False</fill>
+      </child>
     </widget>
   </widget>
 </widget>

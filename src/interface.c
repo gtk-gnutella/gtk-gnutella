@@ -114,7 +114,6 @@ GtkWidget *button_search_clear;
 GtkWidget *button_search_close;
 GtkWidget *button_search_download;
 GtkWidget *button_search_filter;
-GtkWidget *button_search_stream;
 GtkWidget *checkbutton_search_jump_to_downloads;
 GtkWidget *checkbutton_search_remove_downloaded;
 GtkWidget *checkbutton_search_pick_all;
@@ -207,6 +206,7 @@ GtkWidget *pixmap_no_firewall;
 GtkWidget *spinbutton_nodes_max_hosts_cached;
 GtkWidget *frame_bws_inout;
 GtkWidget *frame_bws_ginout;
+GtkWidget *label_shutdown_count;
 
 /* End of global widgets */
 
@@ -235,10 +235,9 @@ create_main_window (void)
   GtkAccelGroup *menu_gnet_stats_visible_menu_accels;
   GtkWidget *toolbar1;
   GtkWidget *button_quit;
-  GtkWidget *hbox_main;
+  GtkWidget *hpaned1;
   GtkWidget *vbox_left;
   GtkWidget *label117;
-  GtkWidget *label118;
   GtkWidget *handlebox2;
   GtkWidget *vbox31;
   GtkWidget *vbox42;
@@ -749,19 +748,21 @@ create_main_window (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (button_quit);
 
-  hbox_main = gtk_hbox_new (FALSE, 0);
-  gtk_widget_ref (hbox_main);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "hbox_main", hbox_main,
+  hpaned1 = gtk_hpaned_new ();
+  gtk_widget_ref (hpaned1);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "hpaned1", hpaned1,
                             (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (hbox_main);
-  gtk_box_pack_start (GTK_BOX (vbox12), hbox_main, TRUE, TRUE, 0);
+  gtk_widget_show (hpaned1);
+  gtk_box_pack_start (GTK_BOX (vbox12), hpaned1, TRUE, TRUE, 0);
+  gtk_paned_set_handle_size (GTK_PANED (hpaned1), 7);
+  gtk_paned_set_gutter_size (GTK_PANED (hpaned1), 8);
 
   vbox_left = gtk_vbox_new (FALSE, 2);
   gtk_widget_ref (vbox_left);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "vbox_left", vbox_left,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (vbox_left);
-  gtk_box_pack_start (GTK_BOX (hbox_main), vbox_left, FALSE, FALSE, 0);
+  gtk_paned_pack1 (GTK_PANED (hpaned1), vbox_left, FALSE, TRUE);
   gtk_widget_set_usize (vbox_left, 110, -2);
 
   sw_menu = gtk_scrolled_window_new (NULL, NULL);
@@ -769,7 +770,7 @@ create_main_window (void)
   gtk_object_set_data_full (GTK_OBJECT (main_window), "sw_menu", sw_menu,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (sw_menu);
-  gtk_box_pack_start (GTK_BOX (vbox_left), sw_menu, FALSE, TRUE, 0);
+  gtk_box_pack_start (GTK_BOX (vbox_left), sw_menu, TRUE, TRUE, 0);
   gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (sw_menu), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
 
   ctree_menu = gtk_ctree_new (1, 0);
@@ -788,13 +789,6 @@ create_main_window (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (label117);
   gtk_clist_set_column_widget (GTK_CLIST (ctree_menu), 0, label117);
-
-  label118 = gtk_label_new ("");
-  gtk_widget_ref (label118);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "label118", label118,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (label118);
-  gtk_box_pack_start (GTK_BOX (vbox_left), label118, TRUE, FALSE, 0);
 
   handlebox2 = gtk_handle_box_new ();
   gtk_widget_ref (handlebox2);
@@ -918,7 +912,7 @@ create_main_window (void)
   gtk_object_set_data_full (GTK_OBJECT (main_window), "vbox_right", vbox_right,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (vbox_right);
-  gtk_box_pack_start (GTK_BOX (hbox_main), vbox_right, TRUE, TRUE, 0);
+  gtk_paned_pack2 (GTK_PANED (hpaned1), vbox_right, TRUE, TRUE);
 
   notebook_main = gtk_notebook_new ();
   gtk_widget_ref (notebook_main);
@@ -1966,6 +1960,7 @@ create_main_window (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (togglebutton_queue_freeze);
   gtk_box_pack_start (GTK_BOX (hbox68), togglebutton_queue_freeze, FALSE, FALSE, 0);
+  gtk_widget_set_usize (togglebutton_queue_freeze, 65, -2);
 
   hbox86 = gtk_hbox_new (FALSE, 4);
   gtk_widget_ref (hbox86);
@@ -2185,14 +2180,6 @@ create_main_window (void)
   gtk_widget_add_accelerator (button_search_download, "clicked", accel_group,
                               GDK_d, GDK_CONTROL_MASK,
                               GTK_ACCEL_VISIBLE);
-
-  button_search_stream = gtk_button_new_with_label ("Stream selected files");
-  gtk_widget_ref (button_search_stream);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "button_search_stream", button_search_stream,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (button_search_stream);
-  gtk_box_pack_start (GTK_BOX (hbox20), button_search_stream, FALSE, FALSE, 0);
-  gtk_widget_set_sensitive (button_search_stream, FALSE);
 
   button_search_passive = gtk_button_new_with_label ("New passive search");
   gtk_widget_ref (button_search_passive);
@@ -2573,7 +2560,7 @@ create_main_window (void)
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
 
-  spinbutton_config_port_adj = gtk_adjustment_new (6347, 1, 65535, 1, 10, 10);
+  spinbutton_config_port_adj = gtk_adjustment_new (6347, 0, 65535, 1, 10, 10);
   spinbutton_config_port = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_port_adj), 1, 0);
   gtk_widget_ref (spinbutton_config_port);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "spinbutton_config_port", spinbutton_config_port,
@@ -4131,9 +4118,6 @@ create_main_window (void)
   gtk_signal_connect (GTK_OBJECT (button_search_download), "clicked",
                       GTK_SIGNAL_FUNC (on_button_search_download_clicked),
                       NULL);
-  gtk_signal_connect (GTK_OBJECT (button_search_stream), "clicked",
-                      GTK_SIGNAL_FUNC (on_button_search_stream_clicked),
-                      NULL);
   gtk_signal_connect (GTK_OBJECT (button_search_passive), "clicked",
                       GTK_SIGNAL_FUNC (on_button_search_passive_clicked),
                       NULL);
@@ -5256,6 +5240,44 @@ create_dlg_filters (void)
   gtk_notebook_set_tab_label (GTK_NOTEBOOK (notebook2), gtk_notebook_get_nth_page (GTK_NOTEBOOK (notebook2), 3), label139);
 
   return dlg_filters;
+}
+
+GtkWidget*
+create_shutdown_window (void)
+{
+  GtkWidget *shutdown_window;
+  GtkWidget *vbox44;
+  GtkWidget *label184;
+
+  shutdown_window = gtk_window_new (GTK_WINDOW_TOPLEVEL);
+  gtk_object_set_data (GTK_OBJECT (shutdown_window), "shutdown_window", shutdown_window);
+  gtk_window_set_title (GTK_WINDOW (shutdown_window), "gtk-gnutella shutdown");
+  gtk_window_set_position (GTK_WINDOW (shutdown_window), GTK_WIN_POS_CENTER);
+  gtk_window_set_policy (GTK_WINDOW (shutdown_window), FALSE, FALSE, FALSE);
+
+  vbox44 = gtk_vbox_new (FALSE, 0);
+  gtk_widget_ref (vbox44);
+  gtk_object_set_data_full (GTK_OBJECT (shutdown_window), "vbox44", vbox44,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (vbox44);
+  gtk_container_add (GTK_CONTAINER (shutdown_window), vbox44);
+  gtk_container_set_border_width (GTK_CONTAINER (vbox44), 30);
+
+  label184 = gtk_label_new ("Gtk-gnutella is shutting down.\nSending bye messages to peers.\n\nGrace time remaining:");
+  gtk_widget_ref (label184);
+  gtk_object_set_data_full (GTK_OBJECT (shutdown_window), "label184", label184,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label184);
+  gtk_box_pack_start (GTK_BOX (vbox44), label184, FALSE, FALSE, 0);
+
+  label_shutdown_count = gtk_label_new ("[time]");
+  gtk_widget_ref (label_shutdown_count);
+  gtk_object_set_data_full (GTK_OBJECT (shutdown_window), "label_shutdown_count", label_shutdown_count,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label_shutdown_count);
+  gtk_box_pack_start (GTK_BOX (vbox44), label_shutdown_count, FALSE, FALSE, 0);
+
+  return shutdown_window;
 }
 
 
