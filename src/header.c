@@ -539,8 +539,8 @@ void header_dump(const header_t *o, FILE *out)
  ***/
 
 #define HEADER_FMT_MAGIC		0xf7a91c
-#define HEADER_FMT_DFLT_LEN		256		/* Default line length if no hint */
-#define HEADER_FMT_LINE_LEN		72		/* Try to never emit longer lines */
+#define HEADER_FMT_DFLT_LEN		256		/* Default field length if no hint */
+#define HEADER_FMT_LINE_LEN		78		/* Try to never emit longer lines */
 #define HEADER_FMT_MAX_SIZE		1024	/* Max line size for header */
 
 /*
@@ -548,11 +548,38 @@ void header_dump(const header_t *o, FILE *out)
  */
 struct header_fmt {
 	guint32 magic;
+	gint maxlen;				/* Maximum line length before continuation */
 	GString *header;			/* Header being built */
+	gchar *sep;					/* Optional separator (string NOT owned) */
+	gint seplen;				/* Length of separator string */
+	gint stripped_seplen;		/* Length of separator without trailing space */
 	gint current_len;			/* Length of currently built line */
 	gboolean data_emitted;		/* Whether data was ever emitted */
 	gboolean frozen;			/* Header terminated */
 };
+
+/*
+ * stripped_strlen
+ *
+ * Compute the length of the string `s' whose length is `len' with trailing
+ * whitespace ignored.
+ */
+static gint stripped_strlen(gchar *s, gint len)
+{
+	gchar *end = s + len;
+	gint i;
+
+	/*
+	 * Locate last non-space char in separator.
+	 */
+
+	for (i = len - 1; i >= 0; i--, end--) {
+		if (s[i] != ' ')
+			return end - s;
+	}
+
+	return 0;
+}
 
 /*
  * header_fmt_make
@@ -560,19 +587,34 @@ struct header_fmt {
  * Create a new formatting context for a header line.
  *
  * `field' is the header field name, without trailing ':'.
+ *
+ * `separator' is the optional default separator to emit between the values
+ * added via header_fmd_append_value().  To supersede the default separator,
+ * use header_fmd_append() and specify another separator explicitly.  If
+ * set to NULL, there will be no default separator and values will be simply
+ * concatenated together.  The value given must NOT be freed before
+ * the header_fmt_end() call (usually it will just be a static string).
+ * Trailing spaces in the separator will be stripped if it is emitted at
+ * the end of a line before a continuation.
+ *
  * `len_hint' is the expected line size, for pre-sizing purposes. (0 to guess).
  *
  * Returns opaque pointer.
  */
-gpointer header_fmt_make(gchar *field, gint len_hint)
+gpointer header_fmt_make(gchar *field, gchar *separator, gint len_hint)
 {
 	struct header_fmt *hf;
 
 	hf = walloc(sizeof(*hf));
 	hf->magic = HEADER_FMT_MAGIC;
 	hf->header = g_string_sized_new(len_hint ? len_hint : HEADER_FMT_DFLT_LEN);
+	hf->maxlen = HEADER_FMT_LINE_LEN;
 	hf->data_emitted = FALSE;
 	hf->frozen = FALSE;
+	hf->sep = separator;
+	hf->seplen = (separator == NULL) ? 0 : strlen(separator);
+	hf->stripped_seplen = (separator == NULL) ? 0 :
+		stripped_strlen(hf->sep, hf->seplen);
 
 	g_string_append(hf->header, field);
 	g_string_append(hf->header, ": ");
@@ -583,9 +625,28 @@ gpointer header_fmt_make(gchar *field, gint len_hint)
 }
 
 /*
+ * header_fmt_set_line_length
+ *
+ * Set max line length.
+ */
+void header_fmt_set_line_length(gpointer o, gint maxlen)
+{
+	struct header_fmt *hf = (struct header_fmt *) o;
+
+	g_assert(hf->magic == HEADER_FMT_MAGIC);
+	g_assert(maxlen > 0);
+
+	hf->maxlen = maxlen;
+}
+
+/*
  * header_fmt_free
  *
  * Dispose of header formatting context.
+ *
+ * NB: the optional separator string given at make time is NOT owned by
+ * this object and therefore not freed.  Most of the time, it will be
+ * a static string anyway.
  */
 void header_fmt_free(gpointer o)
 {
@@ -598,6 +659,81 @@ void header_fmt_free(gpointer o)
 }
 
 /*
+ * header_fmt_value_fits
+ *
+ * Checks whether appending `len' bytes of data to the header would fit
+ * within the `maxlen' total header size requirement in case a continuation
+ * is emitted, and using the configured separator.
+ *
+ * NB: The `maxlen' parameter is the amount of data that can be generated for
+ * the header string, not counting the final "\r\n" + the trailing NUL byte.
+ */
+gboolean header_fmt_value_fits(gpointer o, gint len, gint maxlen)
+{
+	struct header_fmt *hf = (struct header_fmt *) o;
+	gint final_len;
+
+	g_assert(hf->magic == HEADER_FMT_MAGIC);
+
+	/*
+	 * If it fits on the line, no continuation will have to be emitted.
+	 * Otherwise, we'll need the stripped version of the separator,
+	 * followed by "\r\n\t" (3 chars).
+	 */
+
+	if (hf->current_len + len + hf->seplen <= hf->maxlen)
+		final_len = hf->header->len + len + hf->seplen;
+	else
+		final_len = hf->header->len + len + hf->stripped_seplen + 3;
+
+	return final_len < maxlen;	/* Could say "<=" perhaps, but let's be safe */
+}
+
+/*
+ * header_fmt_append_full
+ *
+ * Append data `str' to the header line, atomically.
+ *
+ * `separator' is an optional separator string that will be emitted BEFORE
+ * outputting the data, and only when nothing has been emitted already.
+ * `slen' is the separator length, 0 if empty.
+ * `sslen' is the stripped separator length, -1 if unknown yet.
+ */
+static void header_fmt_append_full(
+	struct header_fmt *hf, gchar *str, gchar *separator, gint slen, gint sslen)
+{
+	gint len;
+	gint curlen;
+
+	len = strlen(str);
+	curlen = hf->current_len;
+
+	if (curlen + len + slen > hf->maxlen) {
+		/*
+		 * Emit sperator, if any and data was already emitted.
+		 */
+
+		if (separator != NULL && hf->data_emitted) {
+			gint s = sslen >= 0 ? sslen : stripped_strlen(separator, slen);
+			gchar *p;
+
+			for (p = separator; s > 0; p++, s--)
+				g_string_append_c(hf->header, *p);
+		}
+
+		g_string_append(hf->header, "\r\n\t");	/* Includes continuation */
+		curlen = 1;								/* One tab */
+	} else if (hf->data_emitted) {
+		g_string_append(hf->header, separator);
+		curlen += slen;
+	}
+
+	hf->data_emitted = TRUE;
+	g_string_append(hf->header, str);
+	hf->current_len = curlen + len;
+}
+
+/*
  * header_fmt_append
  *
  * Append data `str' to the header line, atomically.
@@ -605,55 +741,42 @@ void header_fmt_free(gpointer o)
  * `separator' is an optional separator string that will be emitted BEFORE
  * outputting the data, and only when nothing has been emitted already.
  * Any trailing space will be stripped out of `separator' if emitting at the
- * end of a line.
+ * end of a line.  It supersedes any separator configured at make time.
+ *
+ * To use the standard separator, use header_fmt_append_value().
  */
 void header_fmt_append(gpointer o, gchar *str, gchar *separator)
 {
 	struct header_fmt *hf = (struct header_fmt *) o;
-	gint len;
-	gint curlen;
 	gint seplen;
 
 	g_assert(hf->magic == HEADER_FMT_MAGIC);
 	g_assert(!hf->frozen);
 
-	len = strlen(str);
-	curlen = hf->current_len;
 	seplen = (separator == NULL) ? 0 : strlen(separator);
 
-	if (curlen + len + seplen > HEADER_FMT_LINE_LEN) {
-		/*
-		 * Emit sperator, if any and data was already emitted.
-		 */
+	header_fmt_append_full(hf, str, separator, seplen, -1);
+}
 
-		if (separator != NULL && hf->data_emitted) {
-			gchar *end = separator + seplen;
-			gchar *p;
-			gint i;
+/*
+ * header_fmt_append_value
+ *
+ * Append data `str' to the header line, atomically.
+ *
+ * Values are separated using the string specified at make time, if any.
+ * If emitted before a continuation, the version with stripped trailing
+ * whitespaces is used.
+ *
+ * To supersede the default separator, use header_fmt_append().
+ */
+void header_fmt_append_value(gpointer o, gchar *str)
+{
+	struct header_fmt *hf = (struct header_fmt *) o;
 
-			/*
-			 * Locate last non-space char in separator.
-			 */
+	g_assert(hf->magic == HEADER_FMT_MAGIC);
+	g_assert(!hf->frozen);
 
-			for (i = seplen - 1; i >= 0; i--) {
-				if (separator[i] == ' ')
-					end--;
-			}
-
-			for (p = separator; p < end; p++)
-				g_string_append_c(hf->header, *p);
-		}
-
-		g_string_append(hf->header, "\r\n\t");	/* Includes continuation */
-		curlen = 4;
-	} else if (hf->data_emitted) {
-		g_string_append(hf->header, separator);
-		curlen += seplen;
-	}
-
-	hf->data_emitted = TRUE;
-	g_string_append(hf->header, str);
-	hf->current_len = curlen + len;
+	header_fmt_append_full(hf, str, hf->sep, hf->seplen, hf->stripped_seplen);
 }
 
 /*
@@ -799,7 +922,7 @@ void header_features_generate(struct xfeature_t *xfeatures,
 	if (g_list_first(xfeatures->features) == NULL)
 		return;
 	
-	fmt = header_fmt_make("X-Features", len - *rw);
+	fmt = header_fmt_make("X-Features", ", ", len - *rw);
 	
 	for(cur = g_list_first(xfeatures->features);
 		cur != NULL;
@@ -812,7 +935,7 @@ void header_features_generate(struct xfeature_t *xfeatures,
 		gm_snprintf(feature_version, sizeof(feature_version), "%s/%d.%d ",
 			feature->name, feature->major, feature->minor);
 		
-		header_fmt_append(fmt, feature_version, ", ");
+		header_fmt_append_value(fmt, feature_version);
 	}
 
 	header_fmt_end(fmt);
