@@ -3622,7 +3622,7 @@ static gboolean update_label_date(property_t prop)
 
 	stub->guint32.get(prop, (guint32 *) &val, 0, 1);
 	if (val == 0)
-		gtk_label_set_text(GTK_LABEL(w), "Never");
+		gtk_label_set_text(GTK_LABEL(w), _("Never"));
 	else {
 		gchar buf[80];
 		struct tm *ct = localtime(&val);
@@ -3657,7 +3657,7 @@ static gboolean update_label_yes_or_no(property_t prop)
     }
 
 	stub->boolean.get(prop, &val, 0, 1);
-    gtk_label_set_text(GTK_LABEL(w), val ? "Yes" : "No");
+    gtk_label_set_text(GTK_LABEL(w), val ? _("Yes") : _("No"));
 
     return FALSE;
 }
@@ -4292,13 +4292,13 @@ static gboolean show_search_results_settings_changed(property_t prop)
         gtk_label_set_text(
             GTK_LABEL(lookup_widget(top, 
                 "label_search_results_show_settings")),
-            "Hide settings");
+            _("Hide settings"));
         gtk_widget_show(frame);
     } else {
         gtk_label_set_text(
             GTK_LABEL(lookup_widget(top, 
                 "label_search_results_show_settings")),
-            "Show settings");
+            _("Show settings"));
         gtk_widget_hide(frame);
     }
 
@@ -4328,13 +4328,13 @@ static gboolean show_dl_settings_changed(property_t prop)
         gtk_label_set_text(
             GTK_LABEL(lookup_widget(top, 
                 "label_dl_show_settings")),
-            "Hide settings");
+            _("Hide settings"));
         gtk_widget_show(frame);
     } else {
         gtk_label_set_text(
             GTK_LABEL(lookup_widget(top, 
                 "label_dl_show_settings")),
-            "Show settings");
+            _("Show settings"));
         gtk_widget_hide(frame);
     }
 
@@ -4365,7 +4365,7 @@ static gboolean _update_address_information(void)
         old_address = current_ip;
         old_port = listen_port;
 
-        statusbar_gui_message(15, "Address/port changed to: %s", iport);
+        statusbar_gui_message(15, _("Address/port changed to: %s"), iport);
         gtk_label_set_text(
             GTK_LABEL(lookup_widget(main_window, "label_current_port")) , 
             iport);
@@ -5340,7 +5340,5 @@ const gchar *settings_gui_config_dir(void)
 {
 	return settings_config_dir();
 }
-
-/* vi: set ts=4: */
 
 /* vi: set ts=4: */
