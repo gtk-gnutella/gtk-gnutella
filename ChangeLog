@@ -1,4 +1,4 @@
-# Since last release
+# v 0.17   2001.10.24
 
 - Integrated routing table optimization patch from Mark Schreiber
 - Shortened default connecting timeouts, especially to other nodes
