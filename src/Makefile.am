@@ -42,6 +42,7 @@ endif
 
 # interface.h must come before any .c files that include it so that it is built.
 gtk_gnutella_SOURCES = \
+	$(XML_STORE) \
 	autodownload.h autodownload.c \
 	interface.c interface.h \
 	gnutella.h \
@@ -88,11 +89,6 @@ gtk_gnutella_SOURCES = \
 	filter.c filter.h \
 	ban.c han.h \
 	qrp.c qrp.h \
-	getdate.c getdate.h \
-	$(XML_STORE)
-
-	qrp.c qrp.h \
-	ban.c ban.h \
 	getdate.y
 
 gtk_gnutella_LDFLAGS = $(XML_LIBS)
