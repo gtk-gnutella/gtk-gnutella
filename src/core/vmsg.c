@@ -243,7 +243,7 @@ vmsg_handle(struct gnutella_node *n)
 	vm = find_message(vendor, id, version);
 
 	if (vmsg_debug > 4)
-		printf("VMSG %s \"%s\": vendor=%s, id=%u, version=%u\n",
+		printf("VMSG %s \"%s\": %s/%uv%u\n",
 			gmsg_infostr(&n->header), vm == NULL ? "UNKNOWN" : vm->name,
 			vendor_code_str(vendor), id, version);
 
