@@ -1042,9 +1042,10 @@ void download_read(gpointer data, gint source, GdkInputCondition cond)
 							/* XXX - make optional "safe_resume"? */
 							download_stop(d, GTA_DL_ERROR,
 										  "Server can't handle resume request");
+							return;
 						} else if (d->size - d->skip > 1000 && z < 1000) {
 							download_stop(d, GTA_DL_ERROR,
-										  "Length to short, probably busy!?");
+										  "Length too short, probably busy!?");
 							return;
 						} else {
 							g_warning("File '%s': expected size %u "
@@ -1054,6 +1055,7 @@ void download_read(gpointer data, gint source, GdkInputCondition cond)
 							/* XXX - make optional "safe_resume"? */
 							download_stop(d, GTA_DL_ERROR,
 										  "File size mismatch");
+							return;
 						}
 					}
 				} else if (!g_strncasecmp(s->buffer, "Content-Range:", 14)) {
