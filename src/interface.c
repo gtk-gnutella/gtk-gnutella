@@ -120,6 +120,7 @@ GtkWidget *combo_search;
 GtkWidget *entry_search_reissue_timeout;
 GtkWidget *entry_search_stats_delcoef;
 GtkWidget *entry_search_stats_update_interval;
+GtkWidget *clist_search;
 GtkWidget *clist_monitor;
 GtkWidget *checkbutton_monitor_enable;
 GtkWidget *popup_search_clear_results;
@@ -130,6 +131,7 @@ GtkWidget *popup_search_restart;
 GtkWidget *popup_search_resume;
 GtkWidget *popup_search_stop;
 GtkWidget *popup_search_toggle_tabs;
+GtkWidget *popup_search_config_cols;
 GtkWidget *popup_search;
 GtkWidget *popup_hosts;
 GtkWidget *popup_hosts_export;
@@ -140,6 +142,8 @@ GtkWidget *popup_queue_abort_host;
 GtkWidget *popup_queue_search_again;
 GtkWidget *popup_queue_start_now;
 GtkWidget *popup_queue_search_again;
+GtkWidget *popup_queue_copy_url;
+GtkWidget *popup_queue_connect;
 GtkWidget *popup_dl_active;
 GtkWidget *popup_downloads_abort;
 GtkWidget *popup_downloads_abort_named;
@@ -150,6 +154,7 @@ GtkWidget *popup_downloads_queue;
 GtkWidget *popup_downloads_remove_file;
 GtkWidget *popup_downloads_search_again;
 GtkWidget *popup_downloads_copy_url;
+GtkWidget *popup_downloads_connect;
 GtkWidget *popup_monitor;
 GtkWidget *popup_monitor_add_search;
 GtkWidget *popup_nodes;
@@ -204,6 +209,9 @@ GtkWidget *spinbutton_nodes_max_hosts_cached;
 GtkWidget *frame_bws_inout;
 GtkWidget *frame_bws_ginout;
 GtkWidget *hpaned_main;
+GtkWidget *vpaned_sidebar;
+GtkWidget *hb_searches;
+GtkWidget *notebook_sidebar;
 GtkWidget *label_shutdown_count;
 
 /* End of global widgets */
@@ -233,8 +241,15 @@ create_main_window (void)
   GtkAccelGroup *menu_gnet_stats_visible_menu_accels;
   GtkWidget *toolbar1;
   GtkWidget *button_quit;
-  GtkWidget *vbox_left;
   GtkWidget *label117;
+  GtkWidget *vbox46;
+  GtkWidget *sw_searches;
+  GtkWidget *label185;
+  GtkWidget *label186;
+  GtkWidget *label187;
+  GtkWidget *label_nb_sb_1;
+  GtkWidget *label189;
+  GtkWidget *label188;
   GtkWidget *handlebox2;
   GtkWidget *vbox31;
   GtkWidget *vbox42;
@@ -343,6 +358,7 @@ create_main_window (void)
   GtkWidget *hbox19;
   GtkWidget *label30;
   GtkWidget *empty_notebook_page;
+  GtkWidget *label190;
   GtkWidget *hbox52;
   GtkWidget *search_reissue_label;
   GtkObject *entry_search_reissue_timeout_adj;
@@ -513,6 +529,7 @@ create_main_window (void)
   main_window = gtk_window_new (GTK_WINDOW_TOPLEVEL);
   gtk_object_set_data (GTK_OBJECT (main_window), "main_window", main_window);
   gtk_window_set_title (GTK_WINDOW (main_window), "gtk-gnutella");
+  gtk_window_set_policy (GTK_WINDOW (main_window), TRUE, TRUE, FALSE);
 
   vbox12 = gtk_vbox_new (FALSE, 0);
   gtk_widget_ref (vbox12);
@@ -757,20 +774,22 @@ create_main_window (void)
   gtk_paned_set_gutter_size (GTK_PANED (hpaned_main), 8);
   gtk_paned_set_position (GTK_PANED (hpaned_main), 110);
 
-  vbox_left = gtk_vbox_new (FALSE, 2);
-  gtk_widget_ref (vbox_left);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "vbox_left", vbox_left,
+  vpaned_sidebar = gtk_vpaned_new ();
+  gtk_widget_ref (vpaned_sidebar);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "vpaned_sidebar", vpaned_sidebar,
                             (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (vbox_left);
-  gtk_paned_pack1 (GTK_PANED (hpaned_main), vbox_left, FALSE, TRUE);
-  gtk_widget_set_usize (vbox_left, 110, -2);
+  gtk_widget_show (vpaned_sidebar);
+  gtk_paned_pack1 (GTK_PANED (hpaned_main), vpaned_sidebar, FALSE, TRUE);
+  gtk_paned_set_handle_size (GTK_PANED (vpaned_sidebar), 8);
+  gtk_paned_set_gutter_size (GTK_PANED (vpaned_sidebar), 8);
+  gtk_paned_set_position (GTK_PANED (vpaned_sidebar), 114);
 
   sw_menu = gtk_scrolled_window_new (NULL, NULL);
   gtk_widget_ref (sw_menu);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "sw_menu", sw_menu,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (sw_menu);
-  gtk_box_pack_start (GTK_BOX (vbox_left), sw_menu, TRUE, TRUE, 0);
+  gtk_paned_pack1 (GTK_PANED (vpaned_sidebar), sw_menu, FALSE, TRUE);
   gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (sw_menu), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
 
   ctree_menu = gtk_ctree_new (1, 0);
@@ -790,12 +809,101 @@ create_main_window (void)
   gtk_widget_show (label117);
   gtk_clist_set_column_widget (GTK_CLIST (ctree_menu), 0, label117);
 
+  vbox46 = gtk_vbox_new (FALSE, 4);
+  gtk_widget_ref (vbox46);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "vbox46", vbox46,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (vbox46);
+  gtk_paned_pack2 (GTK_PANED (vpaned_sidebar), vbox46, FALSE, TRUE);
+
+  notebook_sidebar = gtk_notebook_new ();
+  gtk_widget_ref (notebook_sidebar);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "notebook_sidebar", notebook_sidebar,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (notebook_sidebar);
+  gtk_box_pack_start (GTK_BOX (vbox46), notebook_sidebar, TRUE, TRUE, 0);
+  GTK_WIDGET_UNSET_FLAGS (notebook_sidebar, GTK_CAN_FOCUS);
+  gtk_notebook_set_show_tabs (GTK_NOTEBOOK (notebook_sidebar), FALSE);
+  gtk_notebook_set_show_border (GTK_NOTEBOOK (notebook_sidebar), FALSE);
+
+  hb_searches = gtk_handle_box_new ();
+  gtk_widget_ref (hb_searches);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "hb_searches", hb_searches,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (hb_searches);
+  gtk_container_add (GTK_CONTAINER (notebook_sidebar), hb_searches);
+  gtk_handle_box_set_handle_position (GTK_HANDLE_BOX (hb_searches), GTK_POS_TOP);
+  gtk_handle_box_set_snap_edge (GTK_HANDLE_BOX (hb_searches), GTK_POS_LEFT);
+
+  sw_searches = gtk_scrolled_window_new (NULL, NULL);
+  gtk_widget_ref (sw_searches);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "sw_searches", sw_searches,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (sw_searches);
+  gtk_container_add (GTK_CONTAINER (hb_searches), sw_searches);
+  gtk_widget_set_usize (sw_searches, 150, 200);
+  gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (sw_searches), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
+
+  clist_search = gtk_clist_new (3);
+  gtk_widget_ref (clist_search);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "clist_search", clist_search,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (clist_search);
+  gtk_container_add (GTK_CONTAINER (sw_searches), clist_search);
+  gtk_clist_set_column_width (GTK_CLIST (clist_search), 0, 109);
+  gtk_clist_set_column_width (GTK_CLIST (clist_search), 1, 26);
+  gtk_clist_set_column_width (GTK_CLIST (clist_search), 2, 27);
+  gtk_clist_set_selection_mode (GTK_CLIST (clist_search), GTK_SELECTION_BROWSE);
+  gtk_clist_column_titles_show (GTK_CLIST (clist_search));
+
+  label185 = gtk_label_new ("Search");
+  gtk_widget_ref (label185);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label185", label185,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label185);
+  gtk_clist_set_column_widget (GTK_CLIST (clist_search), 0, label185);
+
+  label186 = gtk_label_new ("Hits");
+  gtk_widget_ref (label186);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label186", label186,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label186);
+  gtk_clist_set_column_widget (GTK_CLIST (clist_search), 1, label186);
+
+  label187 = gtk_label_new ("New");
+  gtk_widget_ref (label187);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label187", label187,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label187);
+  gtk_clist_set_column_widget (GTK_CLIST (clist_search), 2, label187);
+
+  label_nb_sb_1 = gtk_label_new ("label187");
+  gtk_widget_ref (label_nb_sb_1);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label_nb_sb_1", label_nb_sb_1,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label_nb_sb_1);
+  gtk_notebook_set_tab_label (GTK_NOTEBOOK (notebook_sidebar), gtk_notebook_get_nth_page (GTK_NOTEBOOK (notebook_sidebar), 0), label_nb_sb_1);
+
+  label189 = gtk_label_new ("");
+  gtk_widget_ref (label189);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label189", label189,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label189);
+  gtk_container_add (GTK_CONTAINER (notebook_sidebar), label189);
+
+  label188 = gtk_label_new ("label188");
+  gtk_widget_ref (label188);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label188", label188,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label188);
+  gtk_notebook_set_tab_label (GTK_NOTEBOOK (notebook_sidebar), gtk_notebook_get_nth_page (GTK_NOTEBOOK (notebook_sidebar), 1), label188);
+
   handlebox2 = gtk_handle_box_new ();
   gtk_widget_ref (handlebox2);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "handlebox2", handlebox2,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (handlebox2);
-  gtk_box_pack_start (GTK_BOX (vbox_left), handlebox2, FALSE, FALSE, 0);
+  gtk_box_pack_start (GTK_BOX (vbox46), handlebox2, FALSE, TRUE, 0);
   gtk_handle_box_set_handle_position (GTK_HANDLE_BOX (handlebox2), GTK_POS_TOP);
   gtk_handle_box_set_snap_edge (GTK_HANDLE_BOX (handlebox2), GTK_POS_LEFT);
 
@@ -2131,13 +2239,19 @@ create_main_window (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (notebook_search_results);
   gtk_box_pack_start (GTK_BOX (vbox_search), notebook_search_results, TRUE, TRUE, 0);
-  GTK_WIDGET_UNSET_FLAGS (notebook_search_results, GTK_CAN_FOCUS);
-  gtk_notebook_set_show_tabs (GTK_NOTEBOOK (notebook_search_results), FALSE);
   gtk_notebook_set_show_border (GTK_NOTEBOOK (notebook_search_results), FALSE);
+  gtk_notebook_popup_enable (GTK_NOTEBOOK (notebook_search_results));
 
   empty_notebook_page = gtk_vbox_new (FALSE, 0);
   gtk_widget_show (empty_notebook_page);
   gtk_container_add (GTK_CONTAINER (notebook_search_results), empty_notebook_page);
+
+  label190 = gtk_label_new ("(no search)");
+  gtk_widget_ref (label190);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label190", label190,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label190);
+  gtk_notebook_set_tab_label (GTK_NOTEBOOK (notebook_search_results), gtk_notebook_get_nth_page (GTK_NOTEBOOK (notebook_search_results), 0), label190);
 
   hbox52 = gtk_hbox_new (FALSE, 4);
   gtk_widget_ref (hbox52);
@@ -2282,7 +2396,7 @@ create_main_window (void)
   gtk_widget_show (label68);
   gtk_box_pack_start (GTK_BOX (hbox45), label68, FALSE, FALSE, 0);
 
-  entry_monitor_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 10);
+  entry_monitor_adj = gtk_adjustment_new (1, 0, 1000, 1, 10, 10);
   entry_monitor = gtk_spin_button_new (GTK_ADJUSTMENT (entry_monitor_adj), 1, 0);
   gtk_widget_ref (entry_monitor);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "entry_monitor", entry_monitor,
@@ -3908,6 +4022,12 @@ create_main_window (void)
   gtk_signal_connect (GTK_OBJECT (ctree_menu), "tree_select_row",
                       GTK_SIGNAL_FUNC (on_ctree_menu_tree_select_row),
                       NULL);
+  gtk_signal_connect (GTK_OBJECT (clist_search), "select_row",
+                      GTK_SIGNAL_FUNC (on_clist_search_select_row),
+                      NULL);
+  gtk_signal_connect (GTK_OBJECT (clist_search), "resize_column",
+                      GTK_SIGNAL_FUNC (on_clist_search_resize_column),
+                      NULL);
   gtk_signal_connect (GTK_OBJECT (progressbar_bws_in), "button_press_event",
                       GTK_SIGNAL_FUNC (on_progressbar_bws_in_button_press_event),
                       NULL);
@@ -4531,6 +4651,13 @@ create_popup_dl_active (void)
   gtk_widget_show (popup_downloads_copy_url);
   gtk_container_add (GTK_CONTAINER (popup_dl_active), popup_downloads_copy_url);
 
+  popup_downloads_connect = gtk_menu_item_new_with_label ("Connect to host");
+  gtk_widget_ref (popup_downloads_connect);
+  gtk_object_set_data_full (GTK_OBJECT (popup_dl_active), "popup_downloads_connect", popup_downloads_connect,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (popup_downloads_connect);
+  gtk_container_add (GTK_CONTAINER (popup_dl_active), popup_downloads_connect);
+
   gtk_signal_connect (GTK_OBJECT (popup_dl_active), "selection_get",
                       GTK_SIGNAL_FUNC (on_popup_downloads_selection_get),
                       NULL);
@@ -4564,6 +4691,9 @@ create_popup_dl_active (void)
   gtk_signal_connect (GTK_OBJECT (popup_downloads_copy_url), "activate",
                       GTK_SIGNAL_FUNC (on_popup_downloads_copy_url_activate),
                       NULL);
+  gtk_signal_connect (GTK_OBJECT (popup_downloads_connect), "activate",
+                      GTK_SIGNAL_FUNC (on_popup_downloads_connect_activate),
+                      NULL);
 
   return popup_dl_active;
 }
@@ -4573,6 +4703,7 @@ create_popup_dl_queued (void)
 {
   GtkAccelGroup *popup_dl_queued_accels;
   GtkWidget *separator8;
+  GtkWidget *separator12;
   GtkTooltips *tooltips;
 
   tooltips = gtk_tooltips_new ();
@@ -4627,6 +4758,28 @@ create_popup_dl_queued (void)
   gtk_widget_show (popup_queue_search_again);
   gtk_container_add (GTK_CONTAINER (popup_dl_queued), popup_queue_search_again);
 
+  separator12 = gtk_menu_item_new ();
+  gtk_widget_ref (separator12);
+  gtk_object_set_data_full (GTK_OBJECT (popup_dl_queued), "separator12", separator12,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (separator12);
+  gtk_container_add (GTK_CONTAINER (popup_dl_queued), separator12);
+  gtk_widget_set_sensitive (separator12, FALSE);
+
+  popup_queue_copy_url = gtk_menu_item_new_with_label ("Copy url to clipboard");
+  gtk_widget_ref (popup_queue_copy_url);
+  gtk_object_set_data_full (GTK_OBJECT (popup_dl_queued), "popup_queue_copy_url", popup_queue_copy_url,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (popup_queue_copy_url);
+  gtk_container_add (GTK_CONTAINER (popup_dl_queued), popup_queue_copy_url);
+
+  popup_queue_connect = gtk_menu_item_new_with_label ("Connect to host");
+  gtk_widget_ref (popup_queue_connect);
+  gtk_object_set_data_full (GTK_OBJECT (popup_dl_queued), "popup_queue_connect", popup_queue_connect,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (popup_queue_connect);
+  gtk_container_add (GTK_CONTAINER (popup_dl_queued), popup_queue_connect);
+
   gtk_signal_connect (GTK_OBJECT (popup_queue_start_now), "activate",
                       GTK_SIGNAL_FUNC (on_popup_queue_start_now_activate),
                       NULL);
@@ -4641,6 +4794,12 @@ create_popup_dl_queued (void)
                       NULL);
   gtk_signal_connect (GTK_OBJECT (popup_queue_search_again), "activate",
                       GTK_SIGNAL_FUNC (on_popup_queue_search_again_activate),
+                      NULL);
+  gtk_signal_connect (GTK_OBJECT (popup_queue_copy_url), "activate",
+                      GTK_SIGNAL_FUNC (on_popup_queue_copy_url_activate),
+                      NULL);
+  gtk_signal_connect (GTK_OBJECT (popup_queue_connect), "activate",
+                      GTK_SIGNAL_FUNC (on_popup_queue_connect_activate),
                       NULL);
 
   gtk_object_set_data (GTK_OBJECT (popup_dl_queued), "tooltips", tooltips);
@@ -4732,6 +4891,13 @@ create_popup_search (void)
   gtk_widget_show (popup_search_toggle_tabs);
   gtk_container_add (GTK_CONTAINER (popup_search), popup_search_toggle_tabs);
 
+  popup_search_config_cols = gtk_menu_item_new_with_label ("Configure columns");
+  gtk_widget_ref (popup_search_config_cols);
+  gtk_object_set_data_full (GTK_OBJECT (popup_search), "popup_search_config_cols", popup_search_config_cols,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (popup_search_config_cols);
+  gtk_container_add (GTK_CONTAINER (popup_search), popup_search_config_cols);
+
   gtk_signal_connect (GTK_OBJECT (popup_search_filters), "activate",
                       GTK_SIGNAL_FUNC (on_popup_search_filters_activate),
                       NULL);
@@ -4755,6 +4921,9 @@ create_popup_search (void)
                       NULL);
   gtk_signal_connect (GTK_OBJECT (popup_search_toggle_tabs), "activate",
                       GTK_SIGNAL_FUNC (on_popup_search_toggle_tabs_activate),
+                      NULL);
+  gtk_signal_connect (GTK_OBJECT (popup_search_config_cols), "activate",
+                      GTK_SIGNAL_FUNC (on_popup_search_config_cols_activate),
                       NULL);
 
   return popup_search;
