@@ -232,7 +232,7 @@ static gint parq_ul_rel_pos_cmp(gconstpointer a, gconstpointer b);
 static gboolean parq_upload_continue(
 		struct parq_ul_queued *uq, gint free_slots);
 static void parq_upload_decrease_all_after(struct parq_ul_queued *cur_parq_ul);
-static void parq_store(gpointer data, gpointer x);
+static inline void parq_store(gpointer data, gpointer x);
 static void parq_upload_load_queue();
 static void parq_upload_update_relative_position(
 		struct parq_ul_queued *parq_ul);
@@ -1434,10 +1434,7 @@ parq_upload_create(gnutella_upload_t *u)
 	/* Create identifier to find upload again later. IP + Filename */
 	parq_ul->remote_ip = u->ip;
 	parq_upload_update_ip_and_name(parq_ul, u);
-	if (u->sha1)
-		parq_ul->sha1 = atom_sha1_get(u->sha1);
-	else
-		parq_ul->sha1 = NULL;
+	parq_ul->sha1 = u->sha1 ? atom_sha1_get(u->sha1) : NULL;
 
 	/* Create an ID */
 	guid_random_muid(parq_id);
@@ -3404,10 +3401,10 @@ parq_upload_save_queue(void)
 	) {
 		struct parq_ul_queue *queue = (struct parq_ul_queue *) queues->data;
 
-		g_list_foreach(queue->by_position, parq_store, f);
+		G_LIST_FOREACH(queue->by_position, parq_store, f);
 	}
 
-	file_config_close(f, &fp)	;
+	file_config_close(f, &fp);
 
 	if (dbg > 3)
 		g_message("PARQ UL: All saved");
@@ -3479,7 +3476,7 @@ parq_string_to_tag(const gchar *s)
  * Saves an individual queued upload to disc. This is the callback function
  * used by g_list_foreach in function parq_upload_save_queue
  */
-static void
+static inline void
 parq_store(gpointer data, gpointer x)
 {
 	FILE *f = (FILE *)x;
@@ -3725,7 +3722,7 @@ parq_upload_load_queue(void)
 			{
 				if (strlen(value) != SHA1_BASE32_SIZE) {
 					damaged = TRUE;
-					g_warning("Value is too long.");
+					g_warning("Value has wrong length.");
 				} else {
 					const gchar *raw;
 					
@@ -3741,7 +3738,7 @@ parq_upload_load_queue(void)
 		case PARQ_TAG_NAME:
 			if (
 				g_strlcpy(entry.name, value,
-					sizeof entry.name >= sizeof entry.name)
+					sizeof entry.name) >= sizeof entry.name
 			) {
 				damaged = TRUE;
 			} else {
