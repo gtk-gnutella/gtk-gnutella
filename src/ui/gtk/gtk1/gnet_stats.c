@@ -152,8 +152,8 @@ static void on_gnet_stats_type_selected(GtkItem *i, gpointer data)
  *** Private functions
  ***/
 
-gchar *
-pkt_stat_str(guint64 *val_tbl, gint type)
+const gchar *
+pkt_stat_str(const guint64 *val_tbl, gint type)
 {
     static gchar strbuf[21];
 
@@ -162,7 +162,7 @@ pkt_stat_str(guint64 *val_tbl, gint type)
 
     if (gnet_stats_perc)
         gm_snprintf(strbuf, sizeof(strbuf), "%.2f%%", 
-            (float)val_tbl[type]/val_tbl[MSG_TOTAL]*100.0);
+            (gfloat) val_tbl[type] / val_tbl[MSG_TOTAL] * 100.0);
     else
         gm_snprintf(strbuf, sizeof(strbuf), "%" PRIu64, val_tbl[type]);
 
@@ -170,8 +170,8 @@ pkt_stat_str(guint64 *val_tbl, gint type)
 }
 
 
-gchar *
-byte_stat_str(guint64 *val_tbl, guint64 *nb_packets, gint type)
+const gchar *
+byte_stat_str(const guint64 *val_tbl, const guint64 *nb_packets, gint type)
 {
     static gchar strbuf[21];
 	guint64 size = val_tbl[type];
@@ -187,14 +187,14 @@ byte_stat_str(guint64 *val_tbl, guint64 *nb_packets, gint type)
 		if (!gnet_stats_with_headers)
 			size -= nb_packets[MSG_TOTAL] * GTA_HEADER_SIZE;
         gm_snprintf(strbuf, sizeof(strbuf), "%.2f%%", 
-            (float) size / total_size * 100.0);
+            (gfloat) size / total_size * 100.0);
         return strbuf;
     } else
         return compact_size(size);
 }
 
-gchar *
-drop_stat_str(gnet_stats_t *stats, gint reason)
+const gchar *
+drop_stat_str(const gnet_stats_t *stats, gint reason)
 {
     static gchar strbuf[21];
     guint32 total = stats->pkg.dropped[MSG_TOTAL];
@@ -204,7 +204,7 @@ drop_stat_str(gnet_stats_t *stats, gint reason)
 
     if (gnet_stats_drop_perc)
         gm_snprintf(strbuf, sizeof(strbuf), "%.2f%%", 
-            (float)stats->drop_reason[reason][selected_type]/total*100);
+            (gfloat) stats->drop_reason[reason][selected_type] / total * 100);
     else
         gm_snprintf(strbuf, sizeof(strbuf), "%" PRIu64, 
             stats->drop_reason[reason][selected_type]);
@@ -212,8 +212,8 @@ drop_stat_str(gnet_stats_t *stats, gint reason)
     return strbuf;
 }
 
-gchar *
-general_stat_str(gnet_stats_t *stats, gint type)
+const gchar *
+general_stat_str(const gnet_stats_t *stats, gint type)
 {
     static gchar strbuf[21];
 
@@ -228,7 +228,8 @@ general_stat_str(gnet_stats_t *stats, gint type)
     }
 }
 
-gchar *flowc_stat_str_pkg(guint64 *val_tbl, gint type)
+const gchar *
+flowc_stat_str_pkg(const guint64 *val_tbl, gint type)
 {
     static gchar strbuf[21];
 
@@ -237,7 +238,7 @@ gchar *flowc_stat_str_pkg(guint64 *val_tbl, gint type)
 
 	if (gnet_stats_perc) {
 		gm_snprintf(strbuf, sizeof(strbuf), "%.2f%%", 
-            (float)val_tbl[type]/val_tbl[MSG_TOTAL]*100.0);
+            (gfloat) val_tbl[type]/val_tbl[MSG_TOTAL] * 100.0);
     } else {
        	gm_snprintf(strbuf, sizeof(strbuf), "%" PRIu64, val_tbl[type]);
     }
@@ -245,7 +246,8 @@ gchar *flowc_stat_str_pkg(guint64 *val_tbl, gint type)
     return strbuf;
 }
 
-gchar *flowc_stat_str_byte(guint64 *val_tbl, gint type)
+const gchar *
+flowc_stat_str_byte(const guint64 *val_tbl, gint type)
 {
     static gchar strbuf[21];
 
@@ -266,7 +268,8 @@ gchar *flowc_stat_str_byte(guint64 *val_tbl, gint type)
  *** Public functions
  ***/
 
-void gnet_stats_gui_init(void)
+void
+gnet_stats_gui_init(void)
 {
     GtkCList *clist_stats_msg;
     GtkCList *clist_stats_fc_ttl;
@@ -391,13 +394,15 @@ void gnet_stats_gui_init(void)
 		(GCallback) gnet_stats_gui_horizon_update, FREQ_UPDATES, 0);
 }
 
-void gnet_stats_gui_shutdown(void)
+void
+gnet_stats_gui_shutdown(void)
 {
 	guc_hsep_remove_global_table_listener(
 	    (GCallback) gnet_stats_gui_horizon_update);
 }
 
-void gnet_stats_gui_update(time_t now)
+void
+gnet_stats_gui_update(time_t now)
 {
 	static time_t last_update = 0;
     GtkCList *clist_stats_msg;
@@ -553,4 +558,4 @@ void gnet_stats_gui_update(time_t now)
     gtk_clist_thaw(clist_stats_fc_hops);
 }
 
-/* vi: set ts=4: */
+/* vi: set ts=4 sw=4 cindent: */
