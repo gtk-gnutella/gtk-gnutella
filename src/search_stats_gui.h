@@ -41,6 +41,6 @@ void search_stats_gui_init(void);
 void search_stats_gui_shutdown(void);
 void search_stats_gui_reset(void);
 void search_stats_gui_set_type(gint type);
-
+void search_stats_gui_update(time_t now);
 
 #endif /* __search_stats_gui_h__ */

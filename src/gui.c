@@ -36,6 +36,7 @@
 #include "statusbar_gui.h"
 #include "settings_gui.h"
 #include "gnet_stats_gui.h"
+#include "search_stats_gui.h"
 
 #include <arpa/inet.h>
 #include <math.h>
@@ -135,6 +136,7 @@ void gui_update_global(void)
      * Update the different parts of the GUI.
      */
     gnet_stats_gui_update();
+    search_stats_gui_update(now);
     nodes_gui_update_nodes_display(now);
     statusbar_gui_clear_timeouts(now);
 }

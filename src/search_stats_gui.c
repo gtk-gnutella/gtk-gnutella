@@ -45,12 +45,10 @@ struct term_counts {
 };
 
 static guint32 stat_count;
-static gint stats_tag = 0;
 
 static GHashTable *stat_hash = NULL;
 
 static gboolean delete_hash_entry(gpointer key, gpointer val, gpointer data);
-static int update_search_stats_display(gpointer data);
 static void empty_hash_table();
 static gboolean stats_hash_to_clist(
 	gpointer key, gpointer value, gpointer userdata);
@@ -198,57 +196,12 @@ static gboolean stats_hash_to_clist(
 }
 
 /*
- * Display the data gathered during the last time period.
- * Perhaps it would be better to have this done on a button click(?)
- */
-static int update_search_stats_display(gpointer data)
-{
-	static guint32 last_update_interval;
-	char tmpstr[32];
-    GtkWidget *clist_search_stats = 
-            lookup_widget(main_window, "clist_search_stats");
-    GtkWidget *label_search_stats_count = 
-            lookup_widget(main_window, "label_search_stats_count");
-
-	g_assert(stats_tag);
-
-	stat_count = 0;
-	gtk_clist_freeze(GTK_CLIST(clist_search_stats));
-
-	gtk_clist_clear(GTK_CLIST(clist_search_stats));
-	/* insert the hash table contents into the sorted clist */
-	g_hash_table_foreach_remove(stat_hash, stats_hash_to_clist, NULL);
-	gtk_clist_sort(GTK_CLIST(clist_search_stats));
-
-	gtk_clist_thaw(GTK_CLIST(clist_search_stats));
-
-	/* update the counter */
-	g_snprintf(tmpstr, sizeof(tmpstr), "%u terms counted", stat_count);
-	gtk_label_set_text(GTK_LABEL(label_search_stats_count), tmpstr);
-
-	/* reschedule? */
-	if (last_update_interval != search_stats_update_interval) {
-		last_update_interval = search_stats_update_interval;
-		g_source_remove(stats_tag);
-		stats_tag = g_timeout_add(1000 * search_stats_update_interval,
-					  update_search_stats_display, NULL);
-		return FALSE;
-	}
-	return TRUE;
-}
-
-/*
  * search_stats_enable
  *
  * Enable search stats.
  */
 static void search_stats_gui_enable(search_request_listener_t lst)
 {
-	g_assert(stats_tag == 0);
-
-	stats_tag = g_timeout_add(1000 * search_stats_update_interval,
-		update_search_stats_display, NULL);
-
     if (!callback_registered) {
         share_add_search_request_listener(lst);
         callback_registered = TRUE;
@@ -264,12 +217,6 @@ static void search_stats_gui_disable(void)
             (search_stats_notify_whole);
         callback_registered = FALSE;
     }
-
-	if (!stats_tag)
-		return;
-
-	g_source_remove(stats_tag);
-	stats_tag = 0;
 }
 
 /*
@@ -388,4 +335,39 @@ void search_stats_gui_init(void)
 void search_stats_gui_shutdown(void)
 {
     search_stats_gui_set_type(NO_SEARCH_STATS);
+}
+
+/*
+ * Display the data gathered during the last time period.
+ * Perhaps it would be better to have this done on a button click(?)
+ */
+void search_stats_gui_update(time_t now)
+{
+	static guint32 last_update = 0;
+	char tmpstr[32];
+    GtkWidget *clist_search_stats;
+    GtkWidget *label_search_stats_count;
+
+    if (last_update + search_stats_update_interval > now)
+        return;
+
+    last_update = now;
+
+    clist_search_stats = lookup_widget(main_window, "clist_search_stats");
+    label_search_stats_count = 
+        lookup_widget(main_window, "label_search_stats_count");
+
+	stat_count = 0;
+	gtk_clist_freeze(GTK_CLIST(clist_search_stats));
+
+	gtk_clist_clear(GTK_CLIST(clist_search_stats));
+	/* insert the hash table contents into the sorted clist */
+	g_hash_table_foreach_remove(stat_hash, stats_hash_to_clist, NULL);
+	gtk_clist_sort(GTK_CLIST(clist_search_stats));
+
+	gtk_clist_thaw(GTK_CLIST(clist_search_stats));
+
+	/* update the counter */
+	g_snprintf(tmpstr, sizeof(tmpstr), "%u terms counted", stat_count);
+	gtk_label_set_text(GTK_LABEL(label_search_stats_count), tmpstr);
 }
