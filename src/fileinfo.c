@@ -2607,6 +2607,9 @@ void file_info_merge_adjacent(struct dl_file_info *fi)
  *
  * Marks a chunk of the file with given status.
  * The bytes range from `from' (included) to `to' (excluded).
+ *
+ * When not marking the chunk as EMPTY, the range is linked to
+ * the supplied download `d' so we know who "owns" it currently.
  */
 void file_info_update(
 	struct download *d, guint32 from, guint32 to, enum dl_chunk_status status)
@@ -3235,7 +3238,8 @@ selected:	/* Selected a hole to download */
 /*
  * file_info_find_available_hole
  *
- * Find free chunk that also fully belongs to the `ranges' list.
+ * Find free chunk that also fully belongs to the `ranges' list.  If found,
+ * the returned chunk is marked BUSY and linked to the download `d'.
  *
  * Returns TRUE if one was found, with `from' and `to' set, FALSE otherwise.
  * NB: In accordance with other fileinfo semantics, `to' is NOT the last byte
