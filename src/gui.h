@@ -87,6 +87,7 @@ enum {
     c_sr_size,
     c_sr_speed,
     c_sr_host,
+    c_sr_urn,
     c_sr_info
 };
 

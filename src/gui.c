@@ -1709,10 +1709,10 @@ void gui_search_create_clist(GtkWidget ** sw, GtkWidget ** clist)
 								   GTK_POLICY_AUTOMATIC,
 								   GTK_POLICY_AUTOMATIC);
 
-	*clist = gtk_clist_new(5);
+	*clist = gtk_clist_new(6);
 
 	gtk_container_add(GTK_CONTAINER(*sw), *clist);
-	for (i = 0; i < 5; i++)
+	for (i = 0; i < 6; i++)
 		gtk_clist_set_column_width(GTK_CLIST(*clist), i,
 								   search_results_col_widths[i]);
 	gtk_clist_set_selection_mode(GTK_CLIST(*clist),
@@ -1748,13 +1748,22 @@ void gui_search_create_clist(GtkWidget ** sw, GtkWidget ** clist)
     gtk_widget_show_all(hbox);
     gtk_clist_set_column_name(GTK_CLIST(*clist), 3, "Host");
 
+	label = gtk_label_new("URN");
+    gtk_misc_set_alignment(GTK_MISC(label),0,0.5);
+    hbox = gtk_hbox_new(FALSE, 4);
+    gtk_box_pack_start(GTK_BOX(hbox), label, TRUE, TRUE, 0);
+	gtk_clist_set_column_widget(GTK_CLIST(*clist), c_sr_urn, hbox);
+    gtk_widget_show_all(hbox);
+    gtk_clist_set_column_name(GTK_CLIST(*clist), 4, "URN");
+    gtk_clist_set_column_visibility(GTK_CLIST(*clist), 4, FALSE);
+
 	label = gtk_label_new("Info");
     gtk_misc_set_alignment(GTK_MISC(label),0,0.5);
     hbox = gtk_hbox_new(FALSE, 4);
     gtk_box_pack_start(GTK_BOX(hbox), label, TRUE, TRUE, 0);
 	gtk_clist_set_column_widget(GTK_CLIST(*clist), c_sr_info, hbox);
     gtk_widget_show_all(hbox);
-    gtk_clist_set_column_name(GTK_CLIST(*clist), 4, "Info");
+    gtk_clist_set_column_name(GTK_CLIST(*clist), 5, "Info");
 
 	gtk_widget_show_all(*sw);
 
@@ -1777,11 +1786,17 @@ void gui_search_create_clist(GtkWidget ** sw, GtkWidget ** clist)
 
 void gui_search_update_items(struct search *sch)
 {
-	if (sch && sch->items)
-		g_snprintf(gui_tmp, sizeof(gui_tmp), "%u item%s found", sch->items,
-				   (sch->items > 1) ? "s" : "");
-	else
-		g_snprintf(gui_tmp, sizeof(gui_tmp), "No item found");
+    if (sch) {
+        gchar *str = sch->passive ? "(passive search) " : "";
+    
+        if (sch->items)
+            g_snprintf(gui_tmp, sizeof(gui_tmp), "%s%u item%s found", 
+                str, sch->items, (sch->items > 1) ? "s" : "");
+        else
+            g_snprintf(gui_tmp, sizeof(gui_tmp), "%sNo item found", str);
+    } else
+        g_snprintf(gui_tmp, sizeof(gui_tmp), "No search");
+
 	gtk_label_set(GTK_LABEL(label_items_found), gui_tmp);
 }
 
