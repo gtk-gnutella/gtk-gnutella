@@ -21451,7 +21451,7 @@ Proxy settings etc. </property>
 	  <child>
 	    <widget class="GtkLabel" id="label595">
 	      <property name="visible">True</property>
-	      <property name="label" translatable="yes">Settings for the User Interface like toolbar appereance, expert settings</property>
+	      <property name="label" translatable="yes">Settings for the User Interface like toolbar appearance, expert settings</property>
 	      <property name="use_underline">False</property>
 	      <property name="use_markup">False</property>
 	      <property name="justify">GTK_JUSTIFY_LEFT</property>

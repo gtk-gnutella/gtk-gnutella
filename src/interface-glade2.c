@@ -12480,7 +12480,7 @@ create_main_window_config_sel_tab (void)
   gtk_label_set_justify (GTK_LABEL (label597), GTK_JUSTIFY_LEFT);
   gtk_misc_set_alignment (GTK_MISC (label597), 0, 0.5);
 
-  label595 = gtk_label_new (_("Settings for the User Interface like toolbar appereance, expert settings"));
+  label595 = gtk_label_new (_("Settings for the User Interface like toolbar appearance, expert settings"));
   gtk_widget_set_name (label595, "label595");
   gtk_widget_show (label595);
   gtk_table_attach (GTK_TABLE (table64), label595, 1, 2, 5, 6,
