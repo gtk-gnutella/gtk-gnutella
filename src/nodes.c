@@ -1309,7 +1309,7 @@ void send_node_error(struct gnutella_socket *s, int code, guchar *msg, ...)
 		"User-Agent: %s\r\n"
 		"Remote-IP: %s\r\n"
 		"X-Live-Since: %s\r\n"
-		"%s",		// X-Ultrapeer
+		"%s"		// X-Ultrapeer
 		"%s",		// X-Try
 		code, msg_tmp, version_string, ip_to_gchar(s->ip), start_rfc822_date,
 		current_peermode == NODE_P_NORMAL ? "" :
