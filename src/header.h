@@ -86,7 +86,8 @@ gchar *header_strerror(gint errnum);
 gchar *header_get(header_t *o, gchar *field);
 gchar *header_getdup(header_t *o, gchar *field);
 
-gint parse_status_line(gchar *line, gchar **msg, gint *major, gint *minor);
+gint parse_status_line(gchar *line,
+	gchar *proto, gchar **msg, gint *major, gint *minor);
 
 #endif	/* __header_h__ */
 
