@@ -103,7 +103,7 @@ static inline void add_parent_with_fi_handle(
  * and frees the original key used to store it.
  */
 static inline void remove_parent_with_fi_handle(
-	GHashTable *ht, const gint *fi_handle)
+	GHashTable *ht, const gnet_fi_t *fi_handle)
 {
 	gpointer key;
 	GtkCTreeNode *data = NULL;
