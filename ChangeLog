@@ -1,5 +1,22 @@
 # since last version
 
+- (2002.06.22 - Richard)
+  * Synced GUI limits with config reader limits. (Closes #557681)
+  * Removed "autodownload" checkbox from GUI and deleted it's callback
+    This is to be replaced by the filtering system.
+  * More cleanup of the config.c file
+  * Rule count in filter tree is correctly updated when a rule is
+    inserted/removed.
+  * #527208 is closed since autoselection does respect hashes since
+    a few days.
+  * Hopefully now really fixed: access rule members after freeing the rule in
+    filter_replace_rule_in_session
+  * Added filter_gui_update_rule_count call to filter_gui
+  * Rename old searches file when moving to XML mode instead of delting.
+    Also move this from search_init to search_shutdown.
+  * Item count above results list is correctly updated when the
+    search is cleared.
+
 - (2002.06.22 - RAM)
   * Bandwidth limit is now up to BS_BW_MAX, included.
   * Now attempts to free memory as soon as a search record is removed from
