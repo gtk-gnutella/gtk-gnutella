@@ -410,8 +410,8 @@ gint main(gint argc, gchar **argv, gchar **env)
 	gm_savemain(argc, argv, env);	/* For gm_setproctitle() */
 
 	/* Our inits */
-	locale_init();
 	log_init();
+	locale_init();
 	adns_init();
 	atoms_init();
 	eval_init();
