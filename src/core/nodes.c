@@ -5150,6 +5150,8 @@ node_udp_process(struct gnutella_socket *s)
 
 	g_assert(n->status == GTA_NODE_CONNECTED && NODE_IS_READABLE(n));
 
+	node_add_rx_given(n, n->size + GTA_HEADER_SIZE);
+
 	/*
 	 * Discard incoming datagrams from registered hostile IP addresses.
 	 */
