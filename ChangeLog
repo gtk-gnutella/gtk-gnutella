@@ -24,6 +24,12 @@
  * Assume all GTKG versions newer than 05/10/2003 support X-Alt even if we
    have never seen an X-Alt from them.
 
+- (2003.10.05 - Jeroen)
+ * Closed bug [ 790622 ] change "fuzzy filter" tooltip contents. The tooltip
+   was: "... Thepurpose of this filtering..." which should be ".... The 
+   purpose of this filtering..."
+
+
 - (2003.10.04 - Jeroen)
  * Closed bug #784574 Transferred files byte counter rollover. Transfer counter
    is now a 64 bit counter.
