@@ -85,9 +85,9 @@ struct dmesh_entry {
 #define MIN_PFSP_PCT	10			/* 10%, min available data for PFSP */
 
 /* If not at least 60% alike, dump! */
-#define FUZZY_DROP		((60 / 100) << FUZZY_SHIFT)
+#define FUZZY_DROP		((60 << FUZZY_SHIFT) / 100)
 /* If more than 80% alike, equal! */
-#define FUZZY_MATCH		((80 / 100) << FUZZY_SHIFT)
+#define FUZZY_MATCH		((80 << FUZZY_SHIFT) / 100)
 
 static const gchar *dmesh_file = "dmesh";
 
@@ -378,7 +378,7 @@ const gchar *dmesh_url_strerror(dmesh_url_error_t errnum)
 {
 	static gchar http_error_str[128];
 
-	if (errnum < 0 || errnum >= G_N_ELEMENTS(parse_errstr))
+	if ((gint) errnum < 0 || errnum >= G_N_ELEMENTS(parse_errstr))
 		return "Invalid error code";
 
 	if (errnum == DMESH_URL_HTTP_PARSER) {
@@ -1535,8 +1535,8 @@ static void dmesh_check_deferred_against_existing(
 		matches = 0;
 
 		if (dbg > 4)
-			printf("Checking deferred url 0x%lx (str=0x%lx:%s)\n",
-				(glong) d, (glong) d->dmesh_url->name, d->dmesh_url->name);
+			printf("Checking deferred url 0x%p (str=0x%p:%s)\n",
+				d, d->dmesh_url->name, d->dmesh_url->name);
 
 		for (ex = existing_urls; ex; ex = ex->next) {
 			struct dmesh_entry *dme = ex->data;
@@ -2575,3 +2575,4 @@ void dmesh_close(void)
 	g_hash_table_destroy(ban_mesh_by_sha1);
 }
 
+/* vi: set ts=4: */
