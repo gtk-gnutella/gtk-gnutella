@@ -4074,7 +4074,7 @@ static void download_write_data(struct download *d)
 	}
 
 	file_info_update(d, d->pos, d->pos + written, DL_CHUNK_DONE);
-	gnet_prop_set_guint32_val(PROP_DL_BYTE_COUNT, dl_byte_count + written);
+	gnet_prop_set_guint64_val(PROP_DL_BYTE_COUNT, dl_byte_count + written);
 
 	if (written < s->pos) {
 		g_warning("partial write of %d out of %d bytes to file '%s'",
@@ -4709,7 +4709,7 @@ static gboolean check_content_urn(struct download *d, header_t *header)
 	 */
 
 collect_locations:
-	huge_collect_locations(d->sha1, header);
+	huge_collect_locations(d->sha1, header, download_vendor(d));
 
 	return TRUE;
 }
@@ -5111,6 +5111,10 @@ static void download_request(
 
 			file_info_clear_download(d, TRUE);		/* `d' is running */
 
+			/* Ensure we're waiting for the right file */
+			if (!check_content_urn(d, header))
+				return;
+
 			/* Update mesh -- we're about to return */
 			if (!d->always_push && d->sha1)
 				dmesh_add(d->sha1, ip, port,
@@ -5260,6 +5264,21 @@ static void download_request(
 			if (download_retry_no_urires(d, delay, ack_code))
 				return;
 			break;
+		case 416:				/* Requested range not available */
+			/*
+			 * There was no ranges supplied (or we'd have gone through the
+			 * PFSP code above), yet the server is sharing a partial file.
+			 * Give it some time and retry.
+			 */
+
+			/* Make sure we're waiting for the right file, collect alt-locs */
+			if (!check_content_urn(d, header))
+				return;
+
+			download_queue_hold(d,
+				delay ? delay : download_retry_timeout_delay,
+				"%sRequested range unavailable yet", short_read);
+			return;
 		case 503:				/* Busy */			
 			/* Make sure we're waiting for the right file, collect alt-locs */
 			if (!check_content_urn(d, header))
@@ -6120,7 +6139,7 @@ picked:
 		else {
 			wmesh = dmesh_alternate_location(sha1,
 				&dl_tmp[rw], sizeof(dl_tmp)-(rw+sha1_room),
-				download_ip(d), d->last_dmesh);
+				download_ip(d), d->last_dmesh, download_vendor(d));
 			rw += wmesh;
 
 			d->last_dmesh = (guint32) time(NULL);
