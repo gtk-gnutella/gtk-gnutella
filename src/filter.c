@@ -738,10 +738,28 @@ void filter_set(filter_t *f)
  */
 void filter_close_search(search_t *s)
 {
+    shadow_t *shadow;
+
     g_assert(s != NULL);
+    g_assert(s->filter != NULL);
 
     if (dbg >= 6)
         printf("closing search (freeing filter): %s\n", s->query);
+
+    shadow = shadow_find(s->filter);
+    if (shadow != NULL) {
+        GList *r;
+
+        for (r = g_list_copy(shadow->removed); r != NULL; r = r->next)
+            filter_append_rule_to_session(s->filter, r->data);
+        g_list_free(r);
+
+        for (r = g_list_copy(shadow->added); r != NULL; r = r->next)
+            filter_remove_rule_from_session(s->filter, r->data);
+        g_list_free(r);
+
+        shadow_cancel(shadow);
+    }          
 
     /*
      * If this is the filter currently worked on, clear the display.
@@ -1472,15 +1490,16 @@ void filter_append_rule_to_session(filter_t *f, rule_t * const r)
     else {
         /*
          * You can never add a filter to a shadow or filter
-         * twice! Not even if you removed it before (without
-         * committing).
+         * twice!
          */
-        g_assert(g_list_find(shadow->added,   r) == NULL);
         g_assert(g_list_find(shadow->current, r) == NULL);
-        g_assert(g_list_find(shadow->removed, r) == NULL);
     }
 
-    shadow->added   = g_list_append(shadow->added, r);
+    if (g_list_find(shadow->removed, r) == NULL) {
+        shadow->added = g_list_append(shadow->added, r);
+    } else {
+        shadow->removed = g_list_remove(shadow->removed, r);
+    }
     shadow->current = g_list_append(shadow->current, r);
 
     /*
@@ -1528,6 +1547,8 @@ void filter_remove_rule(filter_t *f, rule_t *r)
     shadow = shadow_find(f);
     target_shadow = shadow_find(r->target);
 
+    in_filter = g_list_find(f->ruleset, r) != NULL;
+
     /*
      * We need to check where the rule is actually located... in the
      * shadow, in the real filter or in both.
@@ -1536,21 +1557,23 @@ void filter_remove_rule(filter_t *f, rule_t *r)
         in_shadow_current = g_list_find(shadow->current, r) != NULL;
         in_shadow_removed = g_list_find(shadow->removed, r) != NULL;
     } else {
-        in_shadow_current = FALSE;
+        /*
+         * If there is no shadow, we pretend that the shadow is 
+         * equal to the filter, so we set in_shadow_current to in_filter.
+         */
+        in_shadow_current = in_filter; 
         in_shadow_removed = FALSE;
     }
-
-    in_filter = g_list_find(f->ruleset, r) != NULL;
 
     /*
      * We have to purge the rule from the shadow where necessary.
      */
-    if (in_shadow_current) {
+    if (in_shadow_current && (shadow != NULL)) {
         shadow->current = g_list_remove(shadow->current, r);
         shadow->added = g_list_remove(shadow->added, r);
     }
 
-    if (in_shadow_removed)
+    if (in_shadow_removed && (shadow != NULL))
        shadow->removed = g_list_remove(shadow->removed, r);
 
     if (in_filter)
@@ -1582,7 +1605,8 @@ void filter_remove_rule(filter_t *f, rule_t *r)
      *   
      * Possibilities:
      * 1) the rule has been there when the shadow was created and
-     *    has not been removed since then.
+     *    has not been removed since then. (Or has been removed and
+          added back)
      * 2) the rule has been there when the shadow was created, but
      *    was removed from the shadow. The target shadow already
      *    knows that so we only need to remove from the target filter
@@ -1597,7 +1621,7 @@ void filter_remove_rule(filter_t *f, rule_t *r)
      * Failures:
      * A) a rule can never be in shadow->added and shadow->removed at 
      *    the same time.
-     * B) a rule can but be in added but not in current
+     * B) a rule can not be in added but not in current
      * C) a rule can't be added if it was already in the original filter
      * D) a rule can't be in current and also in removed
      * E) if a rule is in the original filter but not in current it 

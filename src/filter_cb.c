@@ -187,10 +187,7 @@ void on_button_filter_ok_clicked(GtkButton *button, gpointer user_data)
     gint page = gtk_notebook_get_current_page
         (GTK_NOTEBOOK(notebook_filter_detail));
 
-    if (work_filter == NULL)
-        return;
-
-    if (page == nb_filt_page_buttons) {
+    if ((page == nb_filt_page_buttons) || (work_filter == NULL)) {
         filter_close_dialog(TRUE);
         return;
     }

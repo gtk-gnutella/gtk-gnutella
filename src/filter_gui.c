@@ -386,6 +386,9 @@ void filter_gui_filter_set
         gtk_widget_set_sensitive(button_filter_add_rule_size, TRUE);
         gtk_widget_set_sensitive(button_filter_add_rule_jump, TRUE);
         gtk_widget_set_sensitive(button_filter_add_rule_flag, TRUE);
+        gtk_widget_set_sensitive(button_filter_add_rule_state, TRUE);
+        gtk_widget_set_sensitive(clist_filter_rules, TRUE);
+        gtk_widget_set_sensitive(entry_filter_name, TRUE);
         gtk_widget_set_sensitive(button_filter_remove, removable);
         gtk_toggle_button_set_active(
             GTK_TOGGLE_BUTTON(checkbutton_filter_enabled),
@@ -409,7 +412,10 @@ void filter_gui_filter_set
         gtk_widget_set_sensitive(button_filter_add_rule_size, FALSE);
         gtk_widget_set_sensitive(button_filter_add_rule_jump, FALSE);
         gtk_widget_set_sensitive(button_filter_add_rule_flag, FALSE);
+        gtk_widget_set_sensitive(button_filter_add_rule_state, FALSE);
         gtk_widget_set_sensitive(button_filter_remove, FALSE);
+        gtk_widget_set_sensitive(clist_filter_rules, FALSE);
+        gtk_widget_set_sensitive(entry_filter_name, FALSE);
         gtk_toggle_button_set_active(
             GTK_TOGGLE_BUTTON(checkbutton_filter_enabled), FALSE);
     }
