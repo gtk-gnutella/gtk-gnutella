@@ -2576,7 +2576,7 @@ node_is_now_connected(struct gnutella_node *n)
 	case NODE_P_CRAWLER:
 	case NODE_P_UDP:
 	case NODE_P_UNKNOWN:
-		g_error("unknown peer mode %d", current_peermode);
+		g_error("Invalid peer mode %d", current_peermode);
 		break;
 	}
 
@@ -4633,7 +4633,11 @@ gnutella_node_t *
 node_udp_get_ip_port(guint32 ip, guint16 port)
 {
 	gnutella_node_t *n = udp_node;
-	
+
+	/* XXX: This is called by tsync_send() even if UDP is disabled
+	 *		Correct fix or not? */
+	g_return_val_if_fail(NULL != n->outq, NULL);
+		
 	n->ip = ip;
 	n->port = port;
 
