@@ -37,7 +37,7 @@
 #include "monitor_cb.h"
 #include "uploads_cb.h"
 #include "downloads_cb.h"
-#include "gnet_stats_gui2.h"
+#include "gnet_stats_gui.h"
 #else
 #include "filter_cb.h"
 #include "nodes_cb.h"
