@@ -530,7 +530,7 @@ struct recent {
 static struct cache_line pong_cache[PONG_CACHE_SIZE];
 static struct recent recent_pongs[HOST_MAX];
 
-#define CACHE_UP_LIFESPAN	10		/* seconds -- ultra/normal mode */
+#define CACHE_UP_LIFESPAN	20		/* seconds -- ultra/normal mode */
 #define CACHE_LEAF_LIFESPAN	120		/* seconds -- leaf mode */
 #define MAX_PONGS			10		/* Max pongs returned per ping */
 #define OLD_PING_PERIOD		45		/* Pinging period for "old" clients */
@@ -572,7 +572,7 @@ void
 pcache_init(void)
 {
 	gint h;
-	gchar *lang;
+	gchar *lang = NULL;
 
 	memset(pong_cache, 0, sizeof(pong_cache));
 	memset(recent_pongs, 0, sizeof(recent_pongs));
@@ -591,13 +591,22 @@ pcache_init(void)
 	 * Derive the locale if we can.
 	 */
 
-	lang = getenv("LC_CTYPE");		/* E.g. "fr_FR.iso-8859-1" */
-	if (lang == NULL)
-		lang = getenv("LC_MESSAGES");
-	if (lang == NULL)
-		lang = getenv("LC_ALL");
-	if (lang == NULL)
-		lang = getenv("LANG");
+#define GET_LANG(x) do {			\
+	if (lang == NULL) {				\
+		lang = getenv(#x);			\
+		if (lang != NULL) {			\
+			if (strlen(lang) >= 3 && lang[2] != '_')	\
+				lang = NULL;		\
+		}							\
+	}								\
+} while (0)
+
+	GET_LANG(LANG);
+	GET_LANG(LC_CTYPE);				/* E.g. "fr_FR.iso-8859-1" */
+	GET_LANG(LC_MESSAGES);
+	GET_LANG(LC_ALL);
+
+#undef GET_LANG
 
 	if (lang != NULL) {
 		gint len = strlen(lang);
@@ -622,7 +631,11 @@ pcache_init(void)
 			} else
 				local_meta.country[0] = '\0';
 		}
-	}
+
+		g_message("locale set to language=\"%.2s\", country=\"%.2s\"",
+			local_meta.language, local_meta.country);
+	} else
+		g_warning("unable to figure out locale preferences");
 
 	for (h = 0; h < PONG_CACHE_SIZE; h++)
 		pong_cache[h].hops = h;
@@ -719,7 +732,7 @@ found:
 	*ip = last_ip = cp->info.ip;
 	*port = last_port = cp->info.port;
 
-	if (dbg > 8)
+	if (pcache_debug > 8)
 		printf("returning recent %s PONG %s\n",
 			host_type_to_gchar(type),
 			ip_port_to_gchar(cp->info.ip, cp->info.port));
@@ -854,7 +867,7 @@ pcache_expire(void)
 		cl->cursor = NULL;
 	}
 
-	if (dbg > 4)
+	if (pcache_debug > 4)
 		printf("Pong CACHE expired (%d entr%s, %d in reserve)\n",
 			entries, entries == 1 ? "y" : "ies", hcache_size(HOST_ANY));
 }
@@ -1026,7 +1039,7 @@ setup_pong_demultiplexing(struct gnutella_node *n, guint8 ttl)
 		guchar amount = (guchar) (remains / (MAX_CACHE_HOPS + 1 - h));
 		n->pong_needed[h] = amount;
 		remains -= amount;
-		if (dbg > 7)
+		if (pcache_debug > 7)
 			printf("pong_needed[%d] = %d, remains = %d\n", h, amount, remains);
 	}
 
@@ -1091,7 +1104,7 @@ iterate_on_cached_line(
 
 		n->pong_missing--;
 
-		if (dbg > 7)
+		if (pcache_debug > 7)
 			printf("iterate: sent cached pong %s (hops=%d, TTL=%d) to %s, "
 				"missing=%d %s\n", ip_port_to_gchar(cp->info.ip, cp->info.port),
 				hops, ttl, node_ip(n), n->pong_missing,
@@ -1195,7 +1208,7 @@ pong_all_neighbours_but_one(
 		send_pong(cn, FALSE, UHC_NONE,
 			hops + 1, ttl, cn->ping_guid, &cp->info, cp->meta);
 
-		if (dbg > 7)
+		if (pcache_debug > 7)
 			printf("pong_all: sent cached pong %s (hops=%d, TTL=%d) to %s "
 				"missing=%d\n", ip_port_to_gchar(cp->info.ip, cp->info.port),
 				hops, ttl, node_ip(cn), cn->pong_missing);
@@ -1254,7 +1267,7 @@ pong_random_leaf(struct cached_pong *cp, guint8 hops, guint8 ttl)
 		send_pong(leaf, FALSE, UHC_NONE, hops + 1, ttl, leaf->ping_guid,
 			&cp->info, cp->meta);
 
-		if (dbg > 7)
+		if (pcache_debug > 7)
 			printf("pong_random_leaf: sent pong %s (hops=%d, TTL=%d) to %s\n",
 				ip_port_to_gchar(cp->info.ip, cp->info.port),
 				hops, ttl, node_ip(leaf));
@@ -1504,7 +1517,7 @@ pcache_ping_received(struct gnutella_node *n)
 		(n->attrs & (NODE_A_PONG_CACHING|NODE_A_PONG_ALIEN)) ==
 			NODE_A_PONG_CACHING
 	) {
-		if (dbg)
+		if (pcache_debug || dbg)
 			g_warning("node %s (%s) [%d.%d] claimed ping reduction, "
 				"got ping with hops=%d", node_ip(n),
 				node_vendor(n),
@@ -1656,14 +1669,14 @@ pcache_pong_received(struct gnutella_node *n)
 		swapped_count = swap_guint32(files_count);
 
 		if (swapped_count > PCACHE_MAX_FILES) {
-			if (dbg && ip == n->ip)
+			if (pcache_debug && ip == n->ip)
 				g_warning("node %s (%s) sent us a pong with "
 					"large file count %u (0x%x), dropped",
 					node_ip(n), node_vendor(n), files_count, files_count);
 			n->rx_dropped++;
 			return;
 		} else {
-			if (dbg && ip == n->ip) g_warning(
+			if (pcache_debug && ip == n->ip) g_warning(
 				"node %s (%s) sent us a pong with suspect file count %u "
 				"(fixed to %u)",
 				node_ip(n), node_vendor(n), files_count, swapped_count);
@@ -1697,7 +1710,7 @@ pcache_pong_received(struct gnutella_node *n)
 				n->gnet_ip = ip;		/* Signals: we have figured it out */
 				n->gnet_port = port;
 			} else if (!(n->flags & NODE_F_ALIEN_IP)) {
-				if (dbg) g_warning(
+				if (pcache_debug) g_warning(
 					"node %s (%s) sent us a pong for itself with alien IP %s",
 					node_ip(n), node_vendor(n), ip_to_gchar(ip));
 				n->flags |= NODE_F_ALIEN_IP;	/* Probably firewalled */
@@ -1725,7 +1738,7 @@ pcache_pong_received(struct gnutella_node *n)
 		 */
 
 		if (n->gnet_pong_ip && ip != n->gnet_pong_ip) {
-			if (dbg && n->n_ping_sent > 2) g_warning(
+			if (pcache_debug && n->n_ping_sent > 2) g_warning(
 				"node %s (%s) sent us a pong for new IP %s (used %s before)",
 				node_ip(n), node_vendor(n),
 				ip_port_to_gchar(ip, port), ip_to_gchar(n->gnet_pong_ip));
@@ -1782,7 +1795,7 @@ pcache_pong_received(struct gnutella_node *n)
 	if (!(n->attrs & NODE_A_PONG_CACHING)) {
 		gint ratio = (gint) random_value(100);
 		if (ratio >= OLD_CACHE_RATIO) {
-			if (dbg > 7)
+			if (pcache_debug > 7)
 				printf("NOT CACHED pong %s (hops=%d, TTL=%d) from OLD %s\n",
 					ip_port_to_gchar(ip, port), n->header.hops, n->header.ttl,
 					node_ip(n));
@@ -1804,7 +1817,7 @@ pcache_pong_received(struct gnutella_node *n)
 	if (ptype == HOST_ULTRA)
 		add_recent_pong(HOST_ULTRA, cp);
 
-	if (dbg > 6)
+	if (pcache_debug > 6)
 		printf("CACHED %s pong %s (hops=%d, TTL=%d) from %s %s\n",
 			ptype == HOST_ULTRA ? "ultra" : "normal",
 			ip_port_to_gchar(ip, port), n->header.hops, n->header.ttl,
