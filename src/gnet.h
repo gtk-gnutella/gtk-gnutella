@@ -290,8 +290,8 @@ typedef struct gnet_results_set {
 /*
  * Result record flags
  */
-#define SR_DOWNLOADED 1
-#define SR_IGNORED    2
+#define SR_DOWNLOADED	0x0001
+#define SR_IGNORED		0x0002
 
 /*
  * An individual hit.  It referes to a file entry on the remote servent,
