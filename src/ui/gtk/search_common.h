@@ -58,6 +58,7 @@ typedef struct results_set {
 	time_t  stamp;				/* Reception time of the hit */
 	guchar  vendor[4];			/* Vendor code */
 	gchar *version;				/* Version information (atom) */
+	gchar *country;				/* Country code -- 2-char ISO (atom) */
 	gnet_host_vec_t *proxies;	/* Optional: known push proxies */
 	gchar *hostname;			/* Optional: server's hostname */
 	guint32 udp_ip;				/* IP of delivering node, if hit from UDP */

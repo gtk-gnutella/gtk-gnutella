@@ -44,6 +44,7 @@ typedef struct upload_row_data {
 	gboolean      push; 
 	gchar         *user_agent;	/* atom */
 	gchar         *name;		/* atom */
+	gchar         *country;		/* atom */
 #endif
 } upload_row_data_t;
 
