@@ -179,9 +179,7 @@ static gboolean progressbar_connections_visible_changed(property_t prop);
 static gboolean search_results_show_tabs_changed(property_t prop);
 static gboolean autoclear_completed_downloads_changed(property_t prop);
 static gboolean autoclear_failed_downloads_changed(property_t prop);
-#ifdef USE_GTK1
 static gboolean autoclear_unavailable_downloads_changed(property_t prop);
-#endif
 static gboolean socks_user_changed(property_t prop);
 static gboolean socks_pass_changed(property_t prop);
 static gboolean traffic_stats_mode_changed(property_t prop);
@@ -1013,40 +1011,38 @@ static prop_map_t property_map[] = {
         "checkbutton_dl_remove_file_on_mismatch",
         FREQ_UPDATES, 0
     },
-#ifdef USE_GTK1
-	{
+    {
         get_main_window,
         PROP_GIVE_SERVER_HOSTNAME,
         update_togglebutton,
         TRUE,
         "checkbutton_give_server_hostname",
         FREQ_UPDATES, 0
-	},
-	{
+    },
+    {
         get_main_window,
         PROP_SERVER_HOSTNAME,
         update_entry,
         TRUE,
         "entry_server_hostname",
         FREQ_UPDATES, 0
-	},
-	{
+    },
+    {
         get_main_window,
         PROP_PFSP_SERVER,
         update_togglebutton,
         TRUE,
         "checkbutton_pfsp_server",
         FREQ_UPDATES, 0
-	},
-	{
+    },
+    {
         get_main_window,
         PROP_PFSP_FIRST_CHUNK,
         update_spinbutton,
         TRUE,
         "spinbutton_pfsp_first_chunk",
         FREQ_UPDATES, 0
-	},
-#endif	/* USE_GTK1 */
+    },
     {
         get_main_window,
         PROP_SEARCH_HIDE_DOWNLOADED,
@@ -1191,7 +1187,6 @@ static prop_map_t property_map[] = {
         "checkbutton_dl_clear_failed",
         FREQ_UPDATES, 0
     },
-#ifdef USE_GTK1		/* XXX not in GTK2 yet */
     {
         get_main_window,
         PROP_AUTOCLEAR_UNAVAILABLE_DOWNLOADS,
@@ -1200,7 +1195,6 @@ static prop_map_t property_map[] = {
         "checkbutton_dl_clear_unavailable",
         FREQ_UPDATES, 0
     },
-#endif
     {
         get_main_window,
         PROP_FORCE_LOCAL_IP,
@@ -1962,7 +1956,6 @@ static prop_map_t property_map[] = {
         "label_dl_aqueued_count",
         FREQ_UPDATES, 0
     },
-#ifdef USE_GTK1		/* XXX not in GTK2 yet */
     {
         get_main_window,
         PROP_FI_ALL_COUNT,
@@ -1979,7 +1972,6 @@ static prop_map_t property_map[] = {
         "label_fi_with_source_count",
         FREQ_UPDATES, 0
     },
-#endif /* USE_GTK1 */
     {
         get_main_window,
         PROP_SEARCH_MAX_RESULTS,
@@ -3270,7 +3262,6 @@ static gboolean autoclear_failed_downloads_changed(property_t prop)
     return FALSE;
 }
 
-#ifdef USE_GTK1
 static gboolean autoclear_unavailable_downloads_changed(property_t prop)
 {
     gboolean val;
@@ -3288,7 +3279,6 @@ static gboolean autoclear_unavailable_downloads_changed(property_t prop)
 
     return FALSE;
 }
-#endif
 
 static gboolean traffic_stats_mode_changed(property_t prop)
 {

@@ -1,5 +1,11 @@
 # since last version
 
+- (2003.11.01 - Jeroen)
+ * Now sends the X-Nalt header with sources that should not be tried.
+   GTKG won't parse and use it though.
+ * Intergrated patch from Clayton. Which adds PFS configuration options
+   in GTK2 too.
+
 - (2003.10.31 - RAM)
  * Disable non-passive searches that became full (max configured amount
    of result displayed).
