@@ -372,6 +372,7 @@ static prop_map_t property_map[] = {
         TRUE,
         "clist_gnet_stats_byte"
     },
+#ifndef USE_GTK2
     {
         get_main_window,
         PROP_GNET_STATS_FC_TTL_COL_WIDTHS,
@@ -386,6 +387,7 @@ static prop_map_t property_map[] = {
         TRUE,
         "clist_gnet_stats_fc_hops"
     },
+#endif
     {
         get_main_window,
         PROP_GNET_STATS_DROP_REASONS_COL_WIDTHS,
@@ -1268,6 +1270,7 @@ static prop_map_t property_map[] = {
         TRUE,
         "checkbutton_gnet_stats_byte_perc"
     },
+#ifndef USE_GTK2
     {
         get_main_window,
         PROP_GNET_STATS_FC_TTL_PERC,
@@ -1282,6 +1285,7 @@ static prop_map_t property_map[] = {
         TRUE,
         "checkbutton_gnet_stats_fc_hops_perc"
     },
+#endif
     {
         get_main_window,
         PROP_GNET_STATS_DROP_PERC,
