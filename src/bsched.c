@@ -704,15 +704,8 @@ static void bsched_heartbeat(bsched_t *bs, struct timeval *tv)
 	gint correction;
 
 	/*
-	 * If scheduler is disabled, we don't run most of the routine.
-	 *
-	 * Jump to the end, where the new timeslice begins, so that per-source
-	 * bandwidth transfer rates are updated nonetheless.  Use "goto" to avoid
-	 * indenting the whole routine.
+	 * How much time elapsed since last call?
 	 */
-
-	if (!(bs->flags & BS_F_ENABLED))
-		goto new_timeslice;
 
 	delay = (gint) ((tv->tv_sec - bs->last_period.tv_sec) * 1000 +
 		(tv->tv_usec - bs->last_period.tv_usec) / 1000);
@@ -758,6 +751,17 @@ static void bsched_heartbeat(bsched_t *bs, struct timeval *tv)
 
 	g_assert(bs->period_ema >= 0);
 	g_assert(bs->bw_ema >= 0);
+
+	/*
+	 * If scheduler is disabled, we don't need to recompute bandwidth.
+	 *
+	 * Jump to the end, where the new timeslice begins, so that per-source
+	 * bandwidth transfer rates are updated nonetheless.  Use "goto" to avoid
+	 * indenting the whole routine.
+	 */
+
+	if (!(bs->flags & BS_F_ENABLED))
+		goto new_timeslice;
 
 	/*
 	 * Recompute bandwidth for the next period.
