@@ -125,20 +125,38 @@ void on_button_quit_clicked(GtkButton * button, gpointer user_data)
 	gtk_gnutella_exit(0);
 }
 
-gboolean on_progressbar_bps_in_button_press_event(GtkWidget *widget, 
+gboolean on_progressbar_bws_in_button_press_event(GtkWidget *widget, 
 											      GdkEventButton *event, 
 											      gpointer user_data)
 {
-	progressbar_bps_in_avg = !progressbar_bps_in_avg;
+	progressbar_bws_in_avg = !progressbar_bws_in_avg;
 	gui_update_global();
 	return TRUE;
 }
 
-gboolean on_progressbar_bps_out_button_press_event(GtkWidget *widget, 
+gboolean on_progressbar_bws_out_button_press_event(GtkWidget *widget, 
 											       GdkEventButton *event, 
 											       gpointer user_data)
 {
-	progressbar_bps_out_avg = !progressbar_bps_out_avg;	
+	progressbar_bws_out_avg = !progressbar_bws_out_avg;	
+	gui_update_global();
+	return TRUE;
+}
+
+gboolean on_progressbar_bws_gin_button_press_event(GtkWidget *widget, 
+											      GdkEventButton *event, 
+											      gpointer user_data)
+{
+	progressbar_bws_gin_avg = !progressbar_bws_gin_avg;
+	gui_update_global();
+	return TRUE;
+}
+
+gboolean on_progressbar_bws_gout_button_press_event(GtkWidget *widget, 
+											       GdkEventButton *event, 
+											       gpointer user_data)
+{
+	progressbar_bws_gout_avg = !progressbar_bws_gout_avg;	
 	gui_update_global();
 	return TRUE;
 }
@@ -252,7 +270,10 @@ BIND_SPINBUTTON_CALL(
     spinbutton_nodes_max_hosts_cached,
     max_hosts_cached,
     1,
-    NO_FUNC)
+    {
+        host_prune_cache();
+        gui_update_hosts_in_catcher();
+    })
 
 
 
@@ -1204,7 +1225,6 @@ void on_clist_downloads_queue_resize_column(GtkCList * clist, gint column,
 										   gint width, gpointer user_data)
 {
 	dl_queued_col_widths[column] = width;
-
 }
 
 
@@ -1422,17 +1442,31 @@ void on_clist_search_stats_resize_column(GtkCList * clist, gint column,
  ***/ 
 
 BIND_SPINBUTTON_CALL(
-    spinbutton_config_bps_in,
+    spinbutton_config_bws_in,
     bandwidth.input,
     1024,
     bsched_set_bandwidth(bws.in, bandwidth.input)
 )
 
 BIND_SPINBUTTON_CALL(
-    spinbutton_config_bps_out,
+    spinbutton_config_bws_out,
     bandwidth.output,
     1024,
     bsched_set_bandwidth(bws.out, bandwidth.output)
+)
+
+BIND_SPINBUTTON_CALL(
+    spinbutton_config_bws_gin,
+    bandwidth.ginput,
+    1024,
+    bsched_set_bandwidth(bws.gin, bandwidth.ginput)
+)
+
+BIND_SPINBUTTON_CALL(
+    spinbutton_config_bws_gout,
+    bandwidth.goutput,
+    1024,
+    bsched_set_bandwidth(bws.gout, bandwidth.goutput)
 )
 
 /* While downloading, store files to */
@@ -1617,12 +1651,12 @@ void on_entry_config_path_activate(GtkEditable * editable,
 FOCUS_TO_ACTIVATE(entry_config_path)
 
 BIND_CHECKBUTTON(
-    checkbutton_config_bps_out, 
-    bps_out_enabled,
+    checkbutton_config_bws_out, 
+    bws_out_enabled,
     {
-        gtk_widget_set_sensitive(GTK_WIDGET(spinbutton_config_bps_out),
-                                 bps_out_enabled);
-        if (bps_out_enabled) {
+        gtk_widget_set_sensitive(GTK_WIDGET(spinbutton_config_bws_out),
+                                 bws_out_enabled);
+        if (bws_out_enabled) {
             bsched_enable(bws.out);
         } else {
             bsched_disable(bws.out);
@@ -1630,15 +1664,42 @@ BIND_CHECKBUTTON(
     }
 )
 BIND_CHECKBUTTON(
-    checkbutton_config_bps_in,
-    bps_in_enabled,
+    checkbutton_config_bws_in,
+    bws_in_enabled,
     {
-        gtk_widget_set_sensitive(GTK_WIDGET(spinbutton_config_bps_in),
-                                 bps_in_enabled);
-        if (bps_in_enabled) {
+        gtk_widget_set_sensitive(GTK_WIDGET(spinbutton_config_bws_in),
+                                 bws_in_enabled);
+        if (bws_in_enabled) {
             bsched_enable(bws.in);
         } else {
             bsched_disable(bws.in);
+        }
+    }
+)
+
+BIND_CHECKBUTTON(
+    checkbutton_config_bws_gout, 
+    bws_gout_enabled,
+    {
+        gtk_widget_set_sensitive(GTK_WIDGET(spinbutton_config_bws_gout),
+                                 bws_gout_enabled);
+        if (bws_gout_enabled) {
+            bsched_enable(bws.gout);
+        } else {
+            bsched_disable(bws.gout);
+        } 
+    }
+)
+BIND_CHECKBUTTON(
+    checkbutton_config_bws_gin,
+    bws_gin_enabled,
+    {
+        gtk_widget_set_sensitive(GTK_WIDGET(spinbutton_config_bws_gin),
+                                 bws_gin_enabled);
+        if (bws_gin_enabled) {
+            bsched_enable(bws.gin);
+        } else {
+            bsched_disable(bws.gin);
         }
     }
 )
@@ -1673,7 +1734,7 @@ void on_checkbutton_config_force_ip_toggled(GtkToggleButton * togglebutton,
 											gpointer user_data)
 {
 	force_local_ip = gtk_toggle_button_get_active(togglebutton);
-	gui_update_config_port();
+	gui_update_config_force_ip(TRUE);
 }
 
 void on_entry_config_force_ip_changed(GtkEditable * editable,
@@ -1697,8 +1758,12 @@ void on_entry_config_force_ip_activate(GtkEditable * editable,
 	ip = gchar_to_ip(e);
 	if (ip != forced_local_ip)
 		forced_local_ip = ip;
-	gui_update_config_force_ip();
-	gui_update_config_port();
+     /*
+     * We call this here to update the widget if e.g.
+     * we failed to get the socket properly and set to 0
+     *      --BLUE, 15/05/2002
+     */
+	gui_update_config_force_ip(TRUE);
 	g_free(e);
 }
 FOCUS_TO_ACTIVATE(entry_config_force_ip)
@@ -1709,6 +1774,8 @@ void on_spinbutton_config_port_activate(GtkEditable * editable,
 	guint16 p;
 	p = gtk_spin_button_get_value_as_int(
             GTK_SPIN_BUTTON(spinbutton_config_port));
+    g_message("selected port: %u", p);
+
 	if (listen_port != p) {
 		if (s_listen)
 			socket_destroy(s_listen);
@@ -1716,12 +1783,27 @@ void on_spinbutton_config_port_activate(GtkEditable * editable,
 			s_listen = socket_listen(0, p, GTA_TYPE_CONTROL);
 		else
 			s_listen = NULL;
+
 		if (s_listen)
 			listen_port = p;
 		else
 			listen_port = 0;
+
+        if (p != listen_port) {
+            guint msgid;
+            g_snprintf(c_tmp, sizeof(c_tmp), 
+                       "WARNING: Unable to allocate port %u", p);
+            msgid = gui_statusbar_push(scid_warn, c_tmp);
+            gui_statusbar_add_timeout(scid_warn, msgid, 15);
+        }
 	}
-	gui_update_config_port();
+
+    /*
+     * We call this here to update the widget if e.g.
+     * we failed to get the address, the widget gets updated.
+     *      --BLUE, 15/05/2002
+     */
+	gui_update_config_port(TRUE);
 }
 FOCUS_TO_ACTIVATE(spinbutton_config_port)
 
@@ -2476,9 +2558,9 @@ void on_menu_uploads_visible_activate(GtkMenuItem * menuitem,
 {
 	progressbar_uploads_visible = GTK_CHECK_MENU_ITEM(menuitem)->active;
 	if (GTK_CHECK_MENU_ITEM(menuitem)->active) {
-		gtk_widget_show_all( progressbar_uploads );
+		gtk_widget_show_all(progressbar_uploads);
 	} else {
-		gtk_widget_hide_all( progressbar_uploads );
+		gtk_widget_hide_all(progressbar_uploads);
 	}
 }
 
@@ -2487,32 +2569,62 @@ void on_menu_connections_visible_activate(GtkMenuItem * menuitem,
 {
 	progressbar_connections_visible = GTK_CHECK_MENU_ITEM(menuitem)->active;
 	if (GTK_CHECK_MENU_ITEM(menuitem)->active) {
-		gtk_widget_show_all( progressbar_connections );
+		gtk_widget_show_all(progressbar_connections);
 	} else {
-		gtk_widget_hide_all( progressbar_connections );
+		gtk_widget_hide_all(progressbar_connections);
 	}
 }
 
-void on_menu_bps_in_visible_activate(GtkMenuItem * menuitem,
+void on_menu_bws_in_visible_activate(GtkMenuItem * menuitem,
 								     gpointer user_data)
 {
-	progressbar_bps_in_visible = GTK_CHECK_MENU_ITEM(menuitem)->active;
+	progressbar_bws_in_visible = GTK_CHECK_MENU_ITEM(menuitem)->active;
 	if (GTK_CHECK_MENU_ITEM(menuitem)->active) {
-		gtk_widget_show_all( progressbar_bps_in );
+		gtk_widget_show_all(progressbar_bws_in);
 	} else {
-		gtk_widget_hide_all( progressbar_bps_in );
+		gtk_widget_hide_all(progressbar_bws_in);
 	}
+    
+    gui_update_stats_frames();
 }
 
-void on_menu_bps_out_visible_activate(GtkMenuItem * menuitem,
+void on_menu_bws_out_visible_activate(GtkMenuItem * menuitem,
 								      gpointer user_data)
 {
-	progressbar_bps_out_visible = GTK_CHECK_MENU_ITEM(menuitem)->active;
+	progressbar_bws_out_visible = GTK_CHECK_MENU_ITEM(menuitem)->active;
 	if (GTK_CHECK_MENU_ITEM(menuitem)->active) {
-		gtk_widget_show_all( progressbar_bps_out );
+		gtk_widget_show_all(progressbar_bws_out);
 	} else {
-		gtk_widget_hide_all( progressbar_bps_out );
+		gtk_widget_hide_all(progressbar_bws_out);
 	}
+
+    gui_update_stats_frames();
+}
+
+void on_menu_bws_gin_visible_activate(GtkMenuItem * menuitem,
+						 		      gpointer user_data)
+{
+	progressbar_bws_gin_visible = GTK_CHECK_MENU_ITEM(menuitem)->active;
+	if (GTK_CHECK_MENU_ITEM(menuitem)->active) {
+		gtk_widget_show_all( progressbar_bws_gin );
+	} else {
+		gtk_widget_hide_all( progressbar_bws_gin );
+	}
+    
+    gui_update_stats_frames();
+}
+
+void on_menu_bws_gout_visible_activate(GtkMenuItem * menuitem,
+								       gpointer user_data)
+{
+	progressbar_bws_gout_visible = GTK_CHECK_MENU_ITEM(menuitem)->active;
+	if (GTK_CHECK_MENU_ITEM(menuitem)->active) {
+		gtk_widget_show_all( progressbar_bws_gout );
+	} else {
+		gtk_widget_hide_all( progressbar_bws_gout );
+	}
+
+    gui_update_stats_frames();
 }
 
 /* vi: set ts=4: */

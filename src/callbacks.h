@@ -50,8 +50,10 @@ void on_entry_up_connections_activate (GtkEditable *editable, gpointer user_data
 /***
  *** sidebar
  ***/
-gboolean on_progressbar_bps_in_button_press_event(GtkWidget *widget, GdkEventButton *event, gpointer user_data);
-gboolean on_progressbar_bps_out_button_press_event(GtkWidget *widget, GdkEventButton *event, gpointer user_data);
+gboolean on_progressbar_bws_in_button_press_event(GtkWidget *widget, GdkEventButton *event, gpointer user_data);
+gboolean on_progressbar_bws_out_button_press_event(GtkWidget *widget, GdkEventButton *event, gpointer user_data);
+gboolean on_progressbar_bws_gin_button_press_event(GtkWidget *widget, GdkEventButton *event, gpointer user_data);
+gboolean on_progressbar_bws_gout_button_press_event(GtkWidget *widget, GdkEventButton *event, gpointer user_data);
 
 
 /***
@@ -153,8 +155,10 @@ void on_button_config_move_path_clicked (GtkButton *button, gpointer user_data);
 void on_button_config_rescan_dir_clicked (GtkButton *button, gpointer user_data); 
 void on_button_config_save_path_clicked (GtkButton *button, gpointer user_data);
 void on_button_config_save_path_clicked (GtkButton *button, gpointer user_data); 
-void on_checkbutton_config_bps_in_toggled (GtkToggleButton *togglebutton, gpointer user_data);
-void on_checkbutton_config_bps_out_toggled(GtkToggleButton *togglebutton, gpointer user_data);
+void on_checkbutton_config_bws_in_toggled (GtkToggleButton *togglebutton, gpointer user_data);
+void on_checkbutton_config_bws_out_toggled(GtkToggleButton *togglebutton, gpointer user_data);
+void on_checkbutton_config_bws_gin_toggled (GtkToggleButton *togglebutton, gpointer user_data);
+void on_checkbutton_config_bws_gout_toggled(GtkToggleButton *togglebutton, gpointer user_data);
 void on_checkbutton_config_force_ip_toggled (GtkToggleButton *togglebutton, gpointer user_data);
 void on_checkbutton_config_proxy_auth_toggled(GtkToggleButton *togglebutton, gpointer user_data);
 void on_checkbutton_config_proxy_connections_toggled (GtkToggleButton *togglebutton, gpointer user_data);
@@ -177,8 +181,10 @@ void on_entry_config_speed_activate (GtkEditable *editable, gpointer user_data);
 void on_radio_config_http_toggled (GtkToggleButton *togglebutton, gpointer user_data);
 void on_radio_config_socksv4_toggled (GtkToggleButton *togglebutton, gpointer user_data);
 void on_radio_config_socksv5_toggled (GtkToggleButton *togglebutton, gpointer user_data);
-SPINBUTTON_DECL(config_bps_in)
-SPINBUTTON_DECL(config_bps_out)
+SPINBUTTON_DECL(config_bws_in)
+SPINBUTTON_DECL(config_bws_out)
+SPINBUTTON_DECL(config_bws_gin)
+SPINBUTTON_DECL(config_bws_gout)
 SPINBUTTON_DECL(config_port)
 SPINBUTTON_DECL(config_proxy_port)
 SPINBUTTON_DECL(config_max_high_ttl_radius)
@@ -297,7 +303,10 @@ void on_menu_downloads_visible_activate(GtkMenuItem * menuitem, gpointer user_da
 void on_menu_uploads_visible_activate(GtkMenuItem * menuitem, gpointer user_data);
 void on_menu_statusbar_visible_activate(GtkMenuItem * menuitem, gpointer user_data);
 void on_menu_toolbar_visible_activate(GtkMenuItem * menuitem, gpointer user_data);
-void on_menu_bps_in_visible_activate(GtkMenuItem * menuitem, gpointer user_data);
-void on_menu_bps_out_visible_activate(GtkMenuItem * menuitem, gpointer user_data);
+void on_menu_bws_in_visible_activate(GtkMenuItem * menuitem, gpointer user_data);
+void on_menu_bws_out_visible_activate(GtkMenuItem * menuitem, gpointer user_data);
+void on_menu_bws_gin_visible_activate(GtkMenuItem * menuitem, gpointer user_data);
+void on_menu_bws_gout_visible_activate(GtkMenuItem * menuitem, gpointer user_data);
+
 
 #endif	/* __callbacks_h__ */
