@@ -88,7 +88,11 @@
     fprintf(config, "# %s\n", v);
 
 #define CONFIG_SECTION(v)                            \
-    fprintf(config, "\n\n#\n# %s\n#\n\n", v);
+    fprintf(config, "\n\n#\n#\n# SECTION: %s\n#\n#\n\n", v);
+
+#define CONFIG_SUBSECTION(v)                         \
+    fprintf(config, "\n#\n# SUBSECTION: %s\n#\n", v);
+
 
 static gchar *config_file = "config";
 static gchar *host_file = "hosts";
@@ -181,7 +185,8 @@ gint search_strict_and = 0;		// search filter for strict AND of results
 gint search_pick_all = 1;		// enable picking all files alike in search
 gint max_uploads_ip = 2;		// maximum uploads per IP
 guint16 downloads_divider_pos = 160;
-guint16 main_divider_pos = 110;
+guint16 main_divider_pos = 128;
+guint16 side_divider_pos = 128;
 
 time_t tab_update_time = 5;
 
@@ -201,6 +206,7 @@ guint32 uploads_col_widths[] = { 200, 120, 36, 80, 80, 80 };
 guint32 search_results_col_widths[] = { 210, 80, 50, 140, 140 };
 guint32 search_stats_col_widths[] = { 200, 80, 80 };
 guint32 ul_stats_col_widths[] = { 200, 80, 80, 80, 80 };
+guint32 search_list_col_widths[] = { 80, 20, 20 };
 
 gboolean jump_to_downloads = TRUE;
 
@@ -264,7 +270,7 @@ typedef enum {
 	k_win_x, k_win_y, k_win_w, k_win_h, k_win_coords, k_widths_nodes,
 	k_widths_uploads,
 	k_widths_dl_active, k_widths_dl_queued, k_widths_search_results,
-	k_widths_search_stats, k_widths_ul_stats, k_search_results_show_tabs,
+	k_widths_search_stats, k_widths_ul_stats, k_widths_search_list, k_search_results_show_tabs,
 	k_hops_random_factor, k_send_pushes, k_jump_to_downloads,
 	k_max_connections, k_proxy_connections,
 	k_proxy_protocol, k_proxy_ip, k_proxy_port, k_proxy_auth, k_socks_user,
@@ -304,6 +310,7 @@ typedef enum {
     k_progressbar_bps_out_avg,
     k_downloads_divider_pos,
     k_main_divider_pos,
+    k_side_divider_pos,
 	k_end
 } keyword_t;
 
@@ -371,6 +378,7 @@ static gchar *keywords[k_end] = {
 	"widths_search_results",	/* k_widths_search_results */
 	"widths_search_stats",		/* k_widths_search_stats */
 	"widths_ul_stats",			/* k_widths_ul_stats */
+    "widths_search_list",       /* k_widths_search_list */
 	"show_results_tabs",		/* k_search_results_show_tabs */
 	"hops_random_factor",		/* k_hops_random_factor */
 	"send_pushes",				/* k_send_pushes */
@@ -429,7 +437,8 @@ static gchar *keywords[k_end] = {
     "progressbar_bps_in_avg",
     "progressbar_bps_out_avg",
     "downloads_divider_pos",
-    "main_divider_pos"
+    "main_divider_pos",
+    "side_divider_pos"
 };
 
 static gchar cfg_tmp[4096];
@@ -688,6 +697,7 @@ void config_set_param(keyword_t keyword, gchar *value)
         CONFIG_SET_NUM(download_retry_timeout_min,    15,  100000)
         CONFIG_SET_NUM(downloads_divider_pos,          0,    5000)
         CONFIG_SET_NUM(main_divider_pos,               0,    5000)
+        CONFIG_SET_NUM(side_divider_pos,               0,    5000)
         CONFIG_SET_NUM(hard_ttl_limit,                 5,     254)
         CONFIG_SET_NUM(hops_random_factor,             0,       3)
         CONFIG_SET_NUM(listen_port,                    0,   65535)
@@ -864,6 +874,12 @@ void config_set_param(keyword_t keyword, gchar *value)
 		if ((a = config_parse_array(value, 5)))
 			for (i = 0; i < 5; i++)
 				ul_stats_col_widths[i] = a[i];
+		return;
+
+    case k_widths_search_list:
+		if ((a = config_parse_array(value, 3)))
+			for (i = 0; i < 3; i++)
+				search_list_col_widths[i] = a[i];
 		return;
 
 	case k_forced_local_ip:
@@ -1105,305 +1121,365 @@ static void config_save(void)
 			"#\n# Gtk-Gnutella %u.%u (%s) by Olrick & Co.\n# %s\n#\n",
 			GTA_VERSION, GTA_SUBVERSION, GTA_RELEASE, GTA_WEBSITE);
 #endif
-	fprintf(config, "# This is Gtk-Gnutella configuration file - "
-		"you may edit it if you're careful.\n");
-	fprintf(config, "# (only when the program is not running: "
-		"this file is saved on quit)\n#\n\n");
+    CONFIG_COMMENT("This is Gtk-Gnutella configuration file")
+	CONFIG_COMMENT("you may edit it if you're careful.")
+    CONFIG_COMMENT("(only when the program is not running:")
+	CONFIG_COMMENT("this file is saved on quit)")
 
-    CONFIG_WRITE_UINT(up_connections)
-    CONFIG_WRITE_UINT(max_connections)
-    CONFIG_WRITE_BOOL(clear_uploads)
-    CONFIG_WRITE_UINT(max_downloads)
-    CONFIG_WRITE_UINT(max_host_downloads)
-    CONFIG_WRITE_UINT(max_uploads)
-    CONFIG_WRITE_BOOL(clear_downloads)
-    CONFIG_WRITE_BOOL(download_delete_aborted)
-    CONFIG_WRITE_UINT(minimum_speed)
-    CONFIG_WRITE_BOOL(monitor_enabled)
-    CONFIG_WRITE_UINT(monitor_max_items)
-    CONFIG_WRITE_STR(save_file_path)
-    CONFIG_WRITE_STR(move_file_path)
-	fprintf(config, "%s = \"%s\"\n", keywords[k_shared_dirs],
-			(shared_dirs_paths) ? shared_dirs_paths : "");
-	fprintf(config, "%s = \"%s\"\n", keywords[k_scan_extensions],
-			(scan_extensions) ? scan_extensions : "");
-	fprintf(config, "%s = \"%s\"\n", keywords[k_local_ip],
-			ip_to_gchar(local_ip));
-    CONFIG_WRITE_BOOL(force_local_ip)
-	fprintf(config, "%s = \"%s\"\n", keywords[k_forced_local_ip],
-			ip_to_gchar(forced_local_ip));
-    CONFIG_WRITE_UINT(listen_port)
-	fprintf(config, "%s = \"%s\"\n", keywords[k_guid], guid_hex_str(guid));
-    CONFIG_WRITE_UINT(connection_speed)
-    CONFIG_WRITE_INT(search_max_items)
-
-    CONFIG_WRITE_UINT(max_ttl)
-    CONFIG_WRITE_UINT(my_ttl)
-    CONFIG_WRITE_UINT(search_reissue_timeout)
-    CONFIG_WRITE_BOOL(search_results_show_tabs)
-
-	fprintf(config, "\n\n# GUI values\n\n");
-
-	fprintf(config, "%s = %u,%u,%u,%u\n\n", keywords[k_win_coords], win_x,
-			win_y, win_w, win_h);
-    CONFIG_WRITE_UINT(downloads_divider_pos)
-    CONFIG_WRITE_UINT(main_divider_pos)
-    fprintf(config, "%s = %u,%u,%u,%u,%u\n", keywords[k_widths_nodes],
+    CONFIG_SECTION("GUI state") {
+        CONFIG_WRITE_BOOL(toolbar_visible)
+        CONFIG_WRITE_BOOL(statusbar_visible)
+        CONFIG_WRITE_BOOL(progressbar_uploads_visible)
+        CONFIG_WRITE_BOOL(progressbar_downloads_visible)
+        CONFIG_WRITE_BOOL(progressbar_connections_visible)
+        CONFIG_WRITE_BOOL(progressbar_bws_in_visible)
+        CONFIG_WRITE_BOOL(progressbar_bws_out_visible)
+        CONFIG_WRITE_BOOL(progressbar_bws_gin_visible)
+        CONFIG_WRITE_BOOL(progressbar_bws_gout_visible)
+        CONFIG_WRITE_BOOL(progressbar_bws_in_avg)
+        CONFIG_WRITE_BOOL(progressbar_bws_out_avg)
+        CONFIG_WRITE_BOOL(progressbar_bws_gin_avg)
+        CONFIG_WRITE_BOOL(progressbar_bws_gout_avg)
+        CONFIG_WRITE_BOOL(queue_regex_case)
+        CONFIG_WRITE_UINT(downloads_divider_pos)
+        CONFIG_WRITE_UINT(main_divider_pos)
+        CONFIG_WRITE_UINT(side_divider_pos)
+        fprintf(config, "%s = %u,%u,%u,%u,%u\n", keywords[k_widths_nodes],
 			nodes_col_widths[0], nodes_col_widths[1],
 			nodes_col_widths[2], nodes_col_widths[3], nodes_col_widths[4]);
-	fprintf(config, "%s = %u,%u,%u,%u,%u,%u\n", keywords[k_widths_uploads],
+        fprintf(config, "%s = %u,%u,%u,%u,%u,%u\n", keywords[k_widths_uploads],
 			uploads_col_widths[0], uploads_col_widths[1],
 			uploads_col_widths[2], uploads_col_widths[3],
 			uploads_col_widths[4], uploads_col_widths[5] );
-	fprintf(config, "%s = %u,%u,%u,%u,%u\n", keywords[k_widths_dl_active],
+        fprintf(config, "%s = %u,%u,%u,%u,%u\n", keywords[k_widths_dl_active],
 			dl_active_col_widths[0], dl_active_col_widths[1],
 			dl_active_col_widths[2], dl_active_col_widths[3],
             dl_active_col_widths[4]);
-	fprintf(config, "%s = %u,%u,%u,%u,%u\n", keywords[k_widths_dl_queued],
+        fprintf(config, "%s = %u,%u,%u,%u,%u\n", keywords[k_widths_dl_queued],
 			dl_queued_col_widths[0], dl_queued_col_widths[1],
             dl_queued_col_widths[2], dl_queued_col_widths[3],
             dl_queued_col_widths[4]);
-	fprintf(config, "%s = %u,%u,%u,%u,%u\n",
+        fprintf(config, "%s = %u,%u,%u,%u,%u\n",
 			keywords[k_widths_search_results],
 			search_results_col_widths[0], search_results_col_widths[1],
 			search_results_col_widths[2], search_results_col_widths[3],
 			search_results_col_widths[4]);
-	fprintf(config, "%s = %u,%u,%u\n",
+        fprintf(config, "%s = %u,%u,%u\n",
 			keywords[k_widths_search_stats],
 			search_stats_col_widths[0], search_stats_col_widths[1],
 			search_stats_col_widths[2]);
-	fprintf(config, "%s = %u,%u,%u,%u,%u\n",
+        fprintf(config, "%s = %u,%u,%u,%u,%u\n",
 			keywords[k_widths_ul_stats],
 			ul_stats_col_widths[0], ul_stats_col_widths[1],
 			ul_stats_col_widths[2], ul_stats_col_widths[3],
-				ul_stats_col_widths[4]);
-    CONFIG_WRITE_BOOL(toolbar_visible)
-    CONFIG_WRITE_BOOL(statusbar_visible)
-    CONFIG_WRITE_BOOL(progressbar_uploads_visible)
-    CONFIG_WRITE_BOOL(progressbar_downloads_visible)
-    CONFIG_WRITE_BOOL(progressbar_connections_visible)
-    CONFIG_WRITE_BOOL(progressbar_bws_in_visible)
-    CONFIG_WRITE_BOOL(progressbar_bws_out_visible)
-    CONFIG_WRITE_BOOL(progressbar_bws_gin_visible)
-    CONFIG_WRITE_BOOL(progressbar_bws_gout_visible)
-    CONFIG_WRITE_BOOL(progressbar_bws_in_avg)
-    CONFIG_WRITE_BOOL(progressbar_bws_out_avg)
-    CONFIG_WRITE_BOOL(progressbar_bws_gin_avg)
-    CONFIG_WRITE_BOOL(progressbar_bws_gout_avg)
-    CONFIG_WRITE_BOOL(queue_regex_case)
-    CONFIG_WRITE_BOOL(search_remove_downloaded)
-    CONFIG_WRITE_BOOL(download_delete_aborted)
-    CONFIG_WRITE_BOOL(bws_in_enabled)
-    CONFIG_WRITE_BOOL(bws_out_enabled)
-    CONFIG_WRITE_BOOL(bws_gin_enabled)
-    CONFIG_WRITE_BOOL(bws_gout_enabled)
+			ul_stats_col_widths[4]);
+        fprintf(config, "%s = %u,%u,%u\n",
+			keywords[k_widths_search_list],
+			search_list_col_widths[0], search_list_col_widths[1],
+			search_list_col_widths[2]);
+       	fprintf(config, "%s = %u,%u,%u,%u\n", keywords[k_win_coords], win_x,
+			win_y, win_w, win_h);
+    }
 
- 	/* Mike Perry's netmask hack */
-    CONFIG_WRITE_BOOL(use_netmasks)
- 
- 	if (local_netmasks_string)
- 		fprintf(config, "%s = %s\n", keywords[k_local_netmasks],
- 				local_netmasks_string);
+    CONFIG_SECTION("Network settings") {
+        CONFIG_SUBSECTION("non configurable") {
+          	fprintf(config, "%s = \"%s\"\n", keywords[k_local_ip],
+                    ip_to_gchar(local_ip));
+        }
+
+        CONFIG_SUBSECTION("IP settings") {
+            CONFIG_WRITE_UINT(listen_port)
+            CONFIG_WRITE_BOOL(force_local_ip)
+            fprintf(config, "%s = \"%s\"\n", keywords[k_forced_local_ip],
+                    ip_to_gchar(forced_local_ip));
+        }
+
+        CONFIG_SUBSECTION("Proxy settings") {
+            CONFIG_WRITE_UINT(proxy_connections)
+            CONFIG_WRITE_UINT(proxy_protocol)
+            CONFIG_WRITE_STR(proxy_ip)
+            CONFIG_WRITE_UINT(proxy_port)
+            CONFIG_WRITE_BOOL(proxy_auth)
+            CONFIG_WRITE_STR(socks_user)
+            CONFIG_WRITE_STR(socks_pass)
+        }
+        
+        CONFIG_SUBSECTION("Local networks") {
+           	/* Mike Perry's netmask hack */
+            CONFIG_WRITE_BOOL(use_netmasks)
+
+          	if (local_netmasks_string)
+                fprintf(config, "%s = %s\n", keywords[k_local_netmasks],
+                        local_netmasks_string);
+        }
+    }
+
+    CONFIG_SECTION("Bandwidth control") {
+        CONFIG_SUBSECTION("gnutellaNet traffic") {
+            CONFIG_WRITE_BOOL(bws_gin_enabled)
+            CONFIG_WRITE_BOOL(bws_gout_enabled)
+           	fprintf(config, "# Gnet output bandwidth, in bytes/sec "
+                "[0=nolimit, max=2 MB/s]\n"
+                "%s = %u\n", keywords[k_output_gnet_bandwidth], 
+                bandwidth.goutput);
+
+            fprintf(config, "# Gnet input bandwidth, in bytes/sec "
+                "[0=nolimit, max=2 MB/s]\n"
+                "%s = %u\n", keywords[k_input_gnet_bandwidth], 
+                bandwidth.ginput);
+
+        }
+
+        CONFIG_SUBSECTION("HTTP traffic") {
+            CONFIG_WRITE_BOOL(bws_in_enabled)
+            CONFIG_WRITE_BOOL(bws_out_enabled)
+            fprintf(config, "# Output bandwidth, in bytes/sec (Gnet excluded) "
+                "[0=nolimit, max=2 MB/s]\n"
+                "%s = %u\n", keywords[k_output_bandwidth], bandwidth.output);
+
+            fprintf(config, "# Input bandwidth, in bytes/sec (Gnet excluded) "
+                "[0=nolimit, max=2 MB/s]\n"
+                "%s = %u\n", keywords[k_input_bandwidth], bandwidth.input);
+        }
+    }
+
+    CONFIG_SECTION("GnutellaNet options") {
+        CONFIG_SUBSECTION("non configurable") {
+            fprintf(config, "%s = \"%s\"\n", keywords[k_guid], 
+                    guid_hex_str(guid));
+
+            fprintf(config, "# The following two variables work in concert:\n");
+            fprintf(config, "# Minimum amount of dup messages to enable kicking, "
+                "per node\n%s = %u\n",
+                keywords[k_min_dup_msg], min_dup_msg);
+            fprintf(config, "# Minimum ratio of dups on received messages, "
+                "per node (between 0.0 and 100.0)\n%s = %.2f\n",
+                keywords[k_min_dup_ratio], min_dup_ratio);
+
+            CONFIG_COMMENT("Maximum size of the sendqueue for the nodes")
+            CONFIG_COMMENT("(in bytes). Must be at least 150%% of max message")
+            fprintf(config, "# size (currently %u bytes), which means minimal\n",(
+                guint32) (1.5 * config_max_msg_size()) );
+            fprintf(config, "# allowed value is %u bytes.\n", config_max_msg_size() );
+            fprintf(config, "%s = %u\n",
+                keywords[k_node_sendqueue_size], node_sendqueue_size);
+        
+            fprintf(config, "# Random factor for the hops field "
+                "in search packets we send (between 0 and 3 inclusive)\n%s = %u\n",
+                keywords[k_hops_random_factor], hops_random_factor);
+        }
+
+        CONFIG_SUBSECTION("General") {
+            CONFIG_WRITE_UINT(up_connections)
+            CONFIG_WRITE_UINT(max_connections)
+            CONFIG_WRITE_UINT(connection_speed)
+            CONFIG_WRITE_INT(search_max_items)
+          	fprintf(config, "# Maximum amount of hosts to keep in cache "
+                "(minimum 100)\n%s = %u\n",
+                keywords[k_max_hosts_cached], max_hosts_cached);
+            
+        }
     
-   	fprintf(config, "# Output bandwidth, in bytes/sec (Gnet excluded) "
-		"[0=nolimit, max=2 MB/s]\n"
-		"%s = %u\n\n", keywords[k_output_bandwidth], bandwidth.output);
+        CONFIG_SUBSECTION("Timeouts (all values in seconds)") {
+            fprintf(config, "# Number of seconds before timeout "
+                "for a connecting node\n%s = %u\n",
+                keywords[k_node_connecting_timeout], node_connecting_timeout);
+            fprintf(config, "# Number of seconds before timeout "
+                "for a connected node\n%s = %u\n",
+                keywords[k_node_connected_timeout], node_connected_timeout);
+            fprintf(config, "# Maximum seconds node can remain in transmit "
+                "flow control\n%s = %u\n",
+                keywords[k_node_tx_flowc_timeout], node_tx_flowc_timeout);
+        }
 
-	fprintf(config, "# Input bandwidth, in bytes/sec (Gnet excluded) "
-		"[0=nolimit, max=2 MB/s]\n"
-		"%s = %u\n\n", keywords[k_input_bandwidth], bandwidth.input);
+        CONFIG_SUBSECTION("TTL settings") {
+            CONFIG_WRITE_UINT(max_ttl)
+            CONFIG_WRITE_UINT(my_ttl)
+            CONFIG_COMMENT("Max hard TTL limit (hop+ttl) on message (min 5)")
+            fprintf(config, "%s = %u\n", keywords[k_hard_ttl_limit],
+                hard_ttl_limit);
 
-	fprintf(config, "# Gnet output bandwidth, in bytes/sec "
-		"[0=nolimit, max=2 MB/s]\n"
-		"%s = %u\n\n", keywords[k_output_gnet_bandwidth], bandwidth.goutput);
+            fprintf(config, "# The following two variables work in concert:\n");
+            CONFIG_COMMENT("Amount of tolerable messages above hard TTL limit")
+            CONFIG_COMMENT("per node")
+            CONFIG_WRITE_UINT(max_high_ttl_msg)
 
-	fprintf(config, "# Gnet input bandwidth, in bytes/sec "
-		"[0=nolimit, max=2 MB/s]\n"
-		"%s = %u\n\n", keywords[k_input_gnet_bandwidth], bandwidth.ginput);
-
-	fprintf(config, "# Number of seconds before timeout "
-		"for a connecting download\n%s = %u\n\n",
-			keywords[k_download_connecting_timeout],
-			download_connecting_timeout);
-	fprintf(config, "# Number of seconds before timeout "
-		"for a 'push sent' download\n%s = %u\n\n",
-			keywords[k_download_push_sent_timeout],
-			download_push_sent_timeout);
-	fprintf(config, "# Number of seconds before timeout "
-		"for a connected download\n%s = %u\n\n",
-			keywords[k_download_connected_timeout],
-			download_connected_timeout);
-	fprintf(config, "# Number of seconds before timeout "
-		"for a connecting upload\n%s = %u\n\n",
-			keywords[k_upload_connecting_timeout],
-			upload_connecting_timeout);
-	fprintf(config, "# Number of seconds before timeout "
-		"for a connected upload\n%s = %u\n\n",
-			keywords[k_upload_connected_timeout],
-			upload_connected_timeout);
-	fprintf(config, "# Number of seconds before timeout "
-		"for a connecting node\n%s = %u\n\n",
-			keywords[k_node_connecting_timeout], node_connecting_timeout);
-	fprintf(config, "# Number of seconds before timeout "
-		"for a connected node\n%s = %u\n\n",
-			keywords[k_node_connected_timeout], node_connected_timeout);
-	fprintf(config, "# Maximum seconds node can remain in transmit "
-		"flow control\n%s = %u\n\n",
-			keywords[k_node_tx_flowc_timeout], node_tx_flowc_timeout);
-
-
-    CONFIG_SECTION("Proxy info") {
-        CONFIG_WRITE_UINT(proxy_connections)
-        CONFIG_WRITE_UINT(proxy_protocol)
-        CONFIG_WRITE_STR(proxy_ip)
-        CONFIG_WRITE_UINT(proxy_port)
-        CONFIG_WRITE_BOOL(proxy_auth)
-        CONFIG_WRITE_STR(socks_user)
-        CONFIG_WRITE_STR(socks_pass)
+            fprintf(config, "# Hop radius for counting high TTL limit messages "
+                "(#hops lower than...)\n%s = %u\n",
+                keywords[k_max_high_ttl_radius], max_high_ttl_radius);
+        }
     }
 
-    CONFIG_SECTION("Search stats gathering parameters") {
-        CONFIG_WRITE_BOOL(search_stats_enabled)
-        CONFIG_WRITE_UINT(search_stats_update_interval)
-        CONFIG_WRITE_UINT(search_stats_delcoef)
-    }
-
-    fprintf(config, "# Maximum uploads per IP address\n"
-		"%s = %u\n\n", keywords[k_max_uploads_ip], max_uploads_ip);
-
-	fprintf(config, "# Maximum amount of hosts to keep in cache "
-		"(minimum 100)\n%s = %u\n\n",
-			keywords[k_max_hosts_cached], max_hosts_cached);
-
-	fprintf(config, "# Whether or not to send pushes.\n%s = %u\n\n",
+    CONFIG_SECTION("Download settings") {
+        CONFIG_WRITE_UINT(max_downloads)
+        CONFIG_WRITE_UINT(max_host_downloads)
+        CONFIG_WRITE_BOOL(clear_downloads)
+        CONFIG_WRITE_BOOL(download_delete_aborted)
+        fprintf(config, "# Whether or not to send pushes.\n%s = %u\n",
 			keywords[k_send_pushes], send_pushes);
 
-	fprintf(config, "# Whether or not to jump to the "
-		"downloads screen when a new download is selected.\n"
-			"%s = %u\n\n", keywords[k_jump_to_downloads],
-			jump_to_downloads);
+        CONFIG_SUBSECTION("File storage") {
+            CONFIG_WRITE_STR(save_file_path)
+            CONFIG_WRITE_STR(move_file_path)
+        }
 
-	fprintf(config, "# Whether auto downloading should be enabled.\n"
+        CONFIG_SUBSECTION("Resume and retry") {
+          	fprintf(config, "# Maximum attempts to make, not counting HTTP busy "
+                "indications\n%s = %u\n",
+                keywords[k_download_max_retries], download_max_retries);
+            fprintf(config, "# Amount of bytes to overlap when resuming download"
+                "\n%s = %u\n",
+                keywords[k_download_overlap_range], download_overlap_range);
+        }
+
+        CONFIG_SUBSECTION("Delays and timeouts (all values in seconds)") {
+            CONFIG_COMMENT("Minimum seconds to wait on auto-retry timeouts")
+            CONFIG_WRITE_UINT(download_retry_timeout_min)
+            
+            CONFIG_COMMENT("Maximum seconds to wait on auto-retry timeouts")
+            CONFIG_WRITE_UINT(download_retry_timeout_max)
+
+            CONFIG_COMMENT("Delay in seconds to wait after connection failure")
+            CONFIG_WRITE_UINT(download_retry_timeout_delay)
+
+            CONFIG_COMMENT("Delay in seconds to wait after HTTP busy indication")
+            CONFIG_WRITE_UINT(download_retry_busy_delay)
+
+            CONFIG_COMMENT("Delay in seconds to wait if connection is refused")
+            CONFIG_WRITE_UINT(download_retry_refused_delay)
+
+            CONFIG_COMMENT("Delay in seconds to wait when running download stops")
+            CONFIG_WRITE_UINT(download_retry_stopped)
+
+            CONFIG_COMMENT("Number of seconds before timeout for a")
+            CONFIG_COMMENT("connecting download")
+            CONFIG_WRITE_UINT(download_connecting_timeout)
+
+            CONFIG_COMMENT("Number of seconds before timeout for a")
+            CONFIG_COMMENT("'push sent' download")
+            CONFIG_WRITE_UINT(download_push_sent_timeout)
+
+            CONFIG_COMMENT("Number of seconds before timeout for a")
+            CONFIG_COMMENT("connected download")
+            CONFIG_WRITE_UINT(download_connected_timeout)
+        }
+    }
+
+    CONFIG_SECTION("Upload settings") {
+        CONFIG_WRITE_BOOL(clear_uploads)
+        CONFIG_WRITE_UINT(max_uploads)
+        fprintf(config, "# Maximum uploads per IP address\n"
+            "%s = %u\n", keywords[k_max_uploads_ip], max_uploads_ip);
+
+    
+        CONFIG_SUBSECTION("Sharing") {
+            fprintf(config, "%s = \"%s\"\n", keywords[k_shared_dirs],
+                (shared_dirs_paths) ? shared_dirs_paths : "");
+            fprintf(config, "%s = \"%s\"\n", keywords[k_scan_extensions],
+                (scan_extensions) ? scan_extensions : "");
+        }
+
+        CONFIG_SUBSECTION("Timeouts (all values in seconds)") {
+            fprintf(config, "# Number of seconds before timeout "
+                "for a connecting upload\n%s = %u\n",
+                keywords[k_upload_connecting_timeout],
+                upload_connecting_timeout);
+            fprintf(config, "# Number of seconds before timeout "
+                "for a connected upload\n%s = %u\n",
+                keywords[k_upload_connected_timeout],
+                upload_connected_timeout);
+        }
+    }
+
+    CONFIG_SECTION("Searches") {
+        CONFIG_WRITE_UINT(minimum_speed)
+        CONFIG_WRITE_UINT(search_reissue_timeout)
+        CONFIG_WRITE_BOOL(search_results_show_tabs)
+        CONFIG_WRITE_BOOL(search_remove_downloaded)
+        fprintf(config, "# Whether or not to jump to the "
+            "downloads screen when a new download is selected.\n"
+			"%s = %u\n", keywords[k_jump_to_downloads],
+			jump_to_downloads);  
+       	fprintf(config, "# Whether auto downloading should be enabled.\n"
 			"%s = %u\n\n", keywords[k_use_auto_download],
 			use_autodownload);
-
-	fprintf(config, "# Name of file with auto-download strings "
-		"(relative is taken from launch dir)\n%s = \"%s\"\n\n",
-			keywords[k_auto_download_file],
-			auto_download_file);
-
-	fprintf(config, "# Max search results to show "
-		"(avoids running out of memory in passive searches)\n%s = %u\n\n",
-			keywords[k_search_max_results],
-			search_max_results);
-
-	fprintf(config, "# Minimum seconds to wait on auto-retry timeouts"
-		"\n%s = %u\n\n",
-		keywords[k_download_retry_timeout_min], download_retry_timeout_min);
-	fprintf(config, "# Maximum seconds to wait on auto-retry timeouts"
-		"\n%s = %u\n\n",
-		keywords[k_download_retry_timeout_max], download_retry_timeout_max);
-	fprintf(config, "# Delay in seconds to wait after connection failure"
-		"\n%s = %u\n\n",
-		keywords[k_download_retry_timeout_delay], download_retry_timeout_delay);
-	fprintf(config, "# Delay in seconds to wait after HTTP busy indication"
-		"\n%s = %u\n\n",
-		keywords[k_download_retry_busy_delay], download_retry_busy_delay);
-	fprintf(config, "# Delay in seconds to wait if connection is refused "
-		"\n%s = %u\n\n",
-		keywords[k_download_retry_refused_delay], download_retry_refused_delay);
-	fprintf(config, "# Delay in seconds to wait when running download stops"
-		"\n%s = %u\n\n",
-		keywords[k_download_retry_stopped], download_retry_stopped);
-	fprintf(config, "# Maximum attempts to make, not counting HTTP busy "
-		"indications\n%s = %u\n\n",
-		keywords[k_download_max_retries], download_max_retries);
-	fprintf(config, "# Amount of bytes to overlap when resuming download"
-		"\n%s = %u\n\n",
-		keywords[k_download_overlap_range], download_overlap_range);
-
-	fprintf(config, "# Max hard TTL limit (hop+ttl) on message (minimum 5)\n");
-	fprintf(config, "%s = %u\n\n", keywords[k_hard_ttl_limit],
-			hard_ttl_limit);
-
-	fprintf(config, "# The following two variables work in concert:\n");
-	fprintf(config, "# Amount of tolerable messages above hard TTL limit "
-		"per node\n%s = %u\n",
-			keywords[k_max_high_ttl_msg], max_high_ttl_msg);
-	fprintf(config, "# Hop radius for counting high TTL limit messages "
-		"(#hops lower than...)\n%s = %u\n\n",
-			keywords[k_max_high_ttl_radius], max_high_ttl_radius);
-
-	fprintf(config, "# The following two variables work in concert:\n");
-	fprintf(config, "# Minimum amount of dup messages to enable kicking, "
-		"per node\n%s = %u\n",
-			keywords[k_min_dup_msg], min_dup_msg);
-	fprintf(config, "# Minimum ratio of dups on received messages, "
-		"per node (between 0.0 and 100.0)\n%s = %.2f\n\n",
-			keywords[k_min_dup_ratio], min_dup_ratio);
-
-	fprintf(config, "# Maximum size of the sendqueue for the nodes (in bytes)\n"
-		"# Must be at least 150%% of max message size (currently %u bytes),\n"
-		"# which means minimal allowed value is %u bytes.\n"
-		"%s = %u\n\n",
-			config_max_msg_size(), (guint32) (1.5 * config_max_msg_size()),
-			keywords[k_node_sendqueue_size], node_sendqueue_size);
-
-	fprintf(config, "# Random factor for the hops field "
-		"in search packets we send (between 0 and 3 inclusive)\n%s = %u\n\n",
-			keywords[k_hops_random_factor], hops_random_factor);
-	fprintf(config, "\n");
-
-	fprintf(config,
-			"# Set to 1 to filter search results with a strict AND\n"
-			"%s = %u\n\n", keywords[k_search_strict_and],
-			search_strict_and);
-	fprintf(config, "# Set to 1 to select all same filenames with "
-		"greater or equal size\n"
+        fprintf(config, "# Set to 1 to select all same filenames with "
+            "greater or equal size\n"
 			"%s = %u\n\n", keywords[k_search_pick_all], search_pick_all);
 
-	fprintf(config, "# For developers only, debugging stuff\n\n");
-	fprintf(config, "# Debug level, each one prints more detail "
-		"(between 0 and 20)\n"
-			"%s = %u\n\n", keywords[k_dbg], dbg);
-	fprintf(config, "# Set to 1 to stop getting new hosts and "
-		"stop timeout, manual connect only\n"
-			"%s = %u\n\n", keywords[k_stop_host_get], stop_host_get);
-	fprintf(config, "# Set to 1 to log network errors for later "
-		"inspection, for developer improvements\n"
-			"%s = %u\n\n", keywords[k_enable_err_log], enable_err_log);
 
+        CONFIG_SUBSECTION("non configurable") {
+          	fprintf(config, "# Name of file with auto-download strings "
+                "(relative is taken from launch dir)\n%s = \"%s\"\n\n",
+                keywords[k_auto_download_file],
+                auto_download_file);
+            
+            fprintf(config, "# Max search results to show "
+                "(avoids running out of memory in passive searches)\n%s = %u\n\n",
+                keywords[k_search_max_results],
+                search_max_results);
+            fprintf(config,
+                "# Set to 1 to filter search results with a strict AND\n"
+                "%s = %u\n\n", keywords[k_search_strict_and],
+                search_strict_and);
+            
+        }
+
+        CONFIG_SUBSECTION("Search stats") {
+            CONFIG_WRITE_BOOL(search_stats_enabled)
+            CONFIG_WRITE_UINT(search_stats_update_interval)
+            CONFIG_WRITE_UINT(search_stats_delcoef)
+        }
+
+        CONFIG_SUBSECTION("Monitor") {
+            CONFIG_WRITE_BOOL(monitor_enabled)
+            CONFIG_WRITE_UINT(monitor_max_items)
+        }
+    }
+
+    CONFIG_SECTION("Debugging (for developers only)") {
+        fprintf(config, "# Debug level, each one prints more detail "
+            "(between 0 and 20)\n"
+			"%s = %u\n\n", keywords[k_dbg], dbg);
+        fprintf(config, "# Set to 1 to stop getting new hosts and "
+            "stop timeout, manual connect only\n"
+			"%s = %u\n\n", keywords[k_stop_host_get], stop_host_get);
+        fprintf(config, "# Set to 1 to log network errors for later "
+            "inspection, for developer improvements\n"
+			"%s = %u\n\n", keywords[k_enable_err_log], enable_err_log);
+    }
 
 	/* The following are useful if you want to tweak your node --RAM */
+    CONFIG_SECTION("Expert settings") {
+        fprintf(config, "# WARNING: *PLEASE* DO NOT MODIFY THE FOLLOWING\n"
+            "# VALUES IF YOU DON'T KNOW WHAT YOU'RE DOING\n\n");
 
-	fprintf(config, "#\n# WARNING: *PLEASE* DO NOT MODIFY THE FOLLOWING\n"
-		"# VALUES IF YOU DON'T KNOW WHAT YOU'RE DOING\n#\n\n");
-
-	fprintf(config, "# Maximum size of search queries messages "
-		"we forward to others (in bytes)\n%s = %u\n\n",
+        fprintf(config, "# Maximum size of search queries messages "
+            "we forward to others (in bytes)\n%s = %u\n\n",
 			keywords[k_search_queries_forward_size],
 			search_queries_forward_size);
-	fprintf(config, "# Maximum size of search queries messages "
-		"we allow, otherwise close the\n"
-		"# connection (in bytes)\n%s = %u\n\n",
+        fprintf(config, "# Maximum size of search queries messages "
+            "we allow, otherwise close the\n"
+            "# connection (in bytes)\n%s = %u\n\n",
 			keywords[k_search_queries_kick_size],
 			search_queries_kick_size);
-	fprintf(config, "# Maximum size of search answers messages "
-		"we forward to others (in bytes)\n%s = %u\n\n",
+        fprintf(config, "# Maximum size of search answers messages "
+            "we forward to others (in bytes)\n%s = %u\n\n",
 			keywords[k_search_answers_forward_size],
 			search_answers_forward_size);
-	fprintf(config, "# Maximum size of search answers messages "
-		"we allow, otherwise close the\n"
-		"# connection (in bytes)\n%s = %u\n\n",
+        fprintf(config, "# Maximum size of search answers messages "
+            "we allow, otherwise close the\n"
+            "# connection (in bytes)\n%s = %u\n\n",
 			keywords[k_search_answers_kick_size],
 			search_answers_kick_size);
-	fprintf(config, "# Maximum size of unknown messages we allow, "
-		"otherwise close the\n"
-		"# connection (in bytes)\n%s = %u\n\n",
+        fprintf(config, "# Maximum size of unknown messages we allow, "
+            "otherwise close the\n"
+            "# connection (in bytes)\n%s = %u\n\n",
 			keywords[k_other_messages_kick_size],
 			other_messages_kick_size);
-
-	fprintf(config, "### End of configuration file ###\n");
+    }
+    
+    fprintf(config, "### End of configuration file ###\n");
 
 	/*
 	 * Rename saved configuration file on success.
