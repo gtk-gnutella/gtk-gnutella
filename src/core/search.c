@@ -451,7 +451,13 @@ get_results_set(gnutella_node_t *n, gboolean validate_only)
 	READ_GUINT16_LE(r->host_port, rs->port);	/* Port */
 	READ_GUINT32_LE(r->host_speed, rs->speed);	/* Connection speed */
 
-	if (NODE_IS_UDP(n) && n->ip != rs->ip)
+	/*
+	 * Hits coming from UDP should bear the node's address, unless the
+	 * hit has a private IP because the servent did not determine its
+	 * own IP address yet or is firewalled.
+	 */
+
+	if (NODE_IS_UDP(n) && n->ip != rs->ip && !is_private_ip(rs->ip))
 		gnet_stats_count_general(n, GNR_OOB_HITS_WITH_ALIEN_IP, 1);
 
 	/* Check for hostile IP addresses */
