@@ -1,6 +1,7 @@
 Source: gtk-gnutella
 Build-Depends: debmake, glade, tclsh, libglib1.2-dev (>= 1.2.0),
  libgtk1.2-dev (>= 1.2.10-4), xlibs-dev (>> 4.1.0), zlib1g-dev (>= 1:1.1.4)
+ libxml2-dev (>= 2.4.19)
 Section: net
 Priority: optional
 Maintainer: Matthias Kabel <mkabel@debian.org>
