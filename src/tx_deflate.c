@@ -102,7 +102,7 @@ static void deflate_send(txdrv_t *tx)
 		printf("deflate_send: (%s) wrote %d bytes (buffer #%d)\n",
 			node_ip(tx->node), r, attr->send_idx);
 
-	if (r <= 0)
+	if (r < 0)
 		return;
 
 	/*
