@@ -45,7 +45,7 @@
  */
 
 #define BAN_DELAY		300		/* Initial ban delay: 5 minutes */
-#define MAX_REQUEST		10		/* Maximum of 10 requests... */
+#define MAX_REQUEST		5		/* Maximum of 5 requests... */
 #define MAX_PERIOD		60		/* ...per minute */
 #define MAX_BAN			10800	/* 3 hours */
 
