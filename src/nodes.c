@@ -2741,7 +2741,7 @@ void node_bye_all(void)
 	GSList *l;
 
 	for (l = sl_nodes; l; l = l->next) {
-		struct gnutella_node *n = sl_nodes->data;
+		struct gnutella_node *n = l->data;
 		if (NODE_IS_WRITABLE(n))
 			node_bye(n, 200, "Servent shutdown");
 	}
