@@ -1,5 +1,15 @@
 # since last version
 
+- (2003.08.15 - RAM)
+ * Moved the manual page from debian/ to src/.
+ * [GTK1] Added display of the amount of fileinfo entries, and which have
+   sources in the Fileinfo pane.
+ * New properties "fi_all_count" and "fi_with_source_count".
+ * Count all fileinfo, and those with sources.
+ * Factorized "Malformed SHA1 query" and "Query hit had bad SHA1" statistics
+   into "Malformed SHA1 message", since we keep track of message types.
+ * Renamed "Malformed UFT-8 query" into "Message with malformed UTF-8".
+
 # v 0.92.1 2003.08.20 [stable]
 
 These are some of the changes made since 0.92 stable:
