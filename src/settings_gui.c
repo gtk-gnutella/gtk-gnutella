@@ -59,7 +59,6 @@ RCSID("$Id$");
  * update_spinbutton (from part III) and add an entry to 
  * the property_map table. The rest will be done automatically.
  * If debugging is activated, you will get a list of unmapped and
-
  * ignored properties on startup.
  * To ignore a property, just set the cb, fn_toplevel and wid attributes
  * in the property_map to IGNORE,
@@ -205,6 +204,7 @@ static gboolean gnet_connections_changed(property_t prop);
 static gboolean uploads_count_changed(property_t prop);
 static gboolean downloads_count_changed(property_t prop);
 static gboolean current_peermode_changed(property_t prop);
+static gboolean clock_skew_changed(property_t prop);
 
 /* FIXME:
  * move to separate file and autogenerate from high-level description.
@@ -2008,6 +2008,14 @@ static prop_map_t property_map[] = {
         "entry_crawler_visit_count",
         FREQ_UPDATES, 0
     },
+    {
+        get_main_window,
+        PROP_CLOCK_SKEW,
+        clock_skew_changed,
+        TRUE,
+        "label_clock_skew",
+        FREQ_UPDATES, 0
+    },
 #ifndef USE_GTK2
     {
         get_main_window,
@@ -3260,10 +3268,6 @@ static gboolean _update_address_information(void)
    
     if (old_address != current_ip || old_port != listen_port) {
         const gchar * iport;
-        GtkLabel *label_current_port;
-
-        label_current_port = 
-            GTK_LABEL(lookup_widget(main_window, "label_current_port"));
 
       	iport = ip_port_to_gchar(current_ip, listen_port);
 
@@ -3272,6 +3276,9 @@ static gboolean _update_address_information(void)
 
         statusbar_gui_message
             (15, "Address/port changed to: %s", iport);
+        gtk_label_set_text(
+            GTK_LABEL(lookup_widget(main_window, "label_current_port")) , 
+            iport);
 
 #ifdef USE_GTK2
         gtk_label_set_text(
@@ -3623,6 +3630,21 @@ static gboolean downloads_count_changed(property_t prop)
 
     gtk_progress_bar_set_text(pg, set_tmp);
     gtk_progress_bar_set_fraction(pg, frac);
+    return FALSE;
+}
+
+static gboolean clock_skew_changed(property_t prop)
+{
+    GtkWidget *w;
+    gchar s[64];
+    guint32 val;
+
+    gnet_prop_get_guint32(prop, &val, 0, 1);
+
+    w = lookup_widget(main_window, "label_clock_skew");
+    gm_snprintf(s, sizeof(s), "%d secs", (gint32) val);
+    
+    gtk_label_set_text(GTK_LABEL(w), s);
     return FALSE;
 }
 
