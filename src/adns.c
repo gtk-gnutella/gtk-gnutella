@@ -197,10 +197,14 @@ static gboolean adns_do_transfer(
 			ret = write(fd, buf, n);
 		else 
 			ret = read(fd, buf, n);
-		
-		if (-1 == ret && errno != EAGAIN && errno != EINTR) {
-			g_warning("adns_do_transfer: %s (errno=%d, do_write=%d)",
-				g_strerror(errno), errno, (gint) do_write);
+	
+        	
+		if ((ssize_t) -1 == ret && errno != EAGAIN && errno != EINTR) {
+            /* Ignore the failure, if the parent process is gone.
+               This prevents an unnecessary warning when quitting. */
+            if (!is_helper || getppid() != 1)
+			    g_warning("adns_do_transfer: %s (errno=%d, do_write=%d)",
+				    g_strerror(errno), errno, (gint) do_write);
 			return FALSE;
 		} else if (0 == ret) {
 			/*
