@@ -115,6 +115,7 @@ struct gnutella_node {
 #define NODE_F_WRITABLE		0x00000040	/* Node is writable */
 #define NODE_F_READABLE		0x00000080	/* Node is readable, process queries */
 #define NODE_F_BYE_SENT		0x00000100	/* Bye message was sent */
+#define NODE_F_NODELAY		0x00000200	/* TCP_NODELAY was activated */
 
 /*
  * Node attributes.
@@ -234,6 +235,7 @@ void node_read(gpointer, gint, GdkInputCondition);
 gboolean node_sent_ttl0(struct gnutella_node *n);
 void node_disableq(struct gnutella_node *n);
 void node_enableq(struct gnutella_node *n);
+void node_flushq(struct gnutella_node *n);
 void node_tx_enter_flowc(struct gnutella_node *n);
 void node_tx_leave_flowc(struct gnutella_node *n);
 gint node_write(struct gnutella_node *n, gpointer data, gint len);

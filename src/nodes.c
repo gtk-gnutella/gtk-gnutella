@@ -364,7 +364,8 @@ void node_remove(struct gnutella_node *n, const gchar * reason, ...)
 /*
  * node_shutdown_mode
  *
- * Enter shutdown mode: prevent further writes, drop read broadcasted messages.
+ * Enter shutdown mode: prevent further writes, drop read broadcasted messages,
+ * and make sure we flush the buffers at the fastest possible speed.
  */
 static void node_shutdown_mode(struct gnutella_node *n)
 {
@@ -377,6 +378,7 @@ static void node_shutdown_mode(struct gnutella_node *n)
 	n->flags &= ~(NODE_F_WRITABLE|NODE_F_READABLE);
 	n->shutdown_date = time((time_t) NULL);
 	mq_shutdown(n->outq);
+	node_flushq(n);							/* Fast queue flushing */
 
 	shutdown_nodes++;
 
@@ -2237,7 +2239,41 @@ void node_disableq(struct gnutella_node *n)
 			printf("finally sent BYE \"%s\" to %s\n",
 				n->error_str, node_ip(n));
 		node_remove(n, NULL);
+		return;
 	}
+
+	/*
+	 * If we were put in TCP_NODELAY mode by node_flushq(), then go back
+	 * to delaying mode.  Indeed, the send queue is empty, and we want to
+	 * buffer the messages for a while to avoid sending an IP packet for
+	 * each Gnet message!
+	 *		--RAM, 15/03/2002
+	 */
+
+	if (n->flags & NODE_F_NODELAY) {
+		sock_nodelay(n->socket, FALSE);
+		n->flags &= ~NODE_F_NODELAY;
+	}
+}
+
+/*
+ * node_flushq
+ *
+ * Called by queue when it's not empty and it went through the service routine
+ * and yet has more data enqueued.
+ */
+void node_flushq(struct gnutella_node *n)
+{
+	/*
+	 * Put the connection in TCP_NODELAY mode to accelerate flushing of the
+	 * kernel buffers by truning off the Nagle algorithm.
+	 */
+
+	if (n->flags & NODE_F_NODELAY)		/* Already done */
+		return;
+
+	sock_nodelay(n->socket, TRUE);
+	n->flags |= NODE_F_NODELAY;
 }
 
 /*

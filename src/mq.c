@@ -528,10 +528,21 @@ void mq_service(mqueue_t *q)
 
 	mq_update_flowc(q);
 
+	/*
+	 * If queue is empty, disable servicing.
+	 *
+	 * If not, we've been through a writing cycle and there are still some
+	 * data we could not send.  We know the TCP window is full, or we
+	 * would not be servicing and still get some data to send.  Notify
+	 * the node.
+	 *		--RAM, 15/03/2002
+	 */
+
 	if (q->size == 0) {
 		g_assert(q->count == 0);
 		node_disableq(q->node);
-	}
+	} else
+		node_flushq(q->node);		/* Need to flush kernel buffers faster */
 }
 
 /*

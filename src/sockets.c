@@ -785,6 +785,20 @@ void sock_recv_buf(struct gnutella_socket *s, gint size, gboolean shrink)
 	_sock_set(s->file_desc, SO_RCVBUF, size, "receive", shrink);
 }
 
+/*
+ * sock_nodelay
+ *
+ * Turn TCP_NODELAY on or off on the socket.
+ */
+void sock_nodelay(struct gnutella_socket *s, gboolean on)
+{
+	gint arg = on ? 1 : 0;
+
+	if (-1 == setsockopt(s->file_desc, SOL_TCP, TCP_NODELAY, &arg, sizeof(arg)))
+		g_warning("unable to %s TCP_NODELAY on fd#%d: %s",
+			on ? "set" : "clear", s->file_desc, g_strerror(errno));
+}
+
 static void show_error(char *fmt, ...)
 {
 	va_list args;

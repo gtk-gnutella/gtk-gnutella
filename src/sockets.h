@@ -67,6 +67,7 @@ struct gnutella_socket *socket_listen(guint32, guint16, gint);
 void sock_cork(struct gnutella_socket *s, gboolean on);
 void sock_send_buf(struct gnutella_socket *s, gint size, gboolean shrink);
 void sock_recv_buf(struct gnutella_socket *s, gint size, gboolean shrink);
+void sock_nodelay(struct gnutella_socket *s, gboolean on);
 
 int connect_http(struct gnutella_socket *);
 int connect_socksv5(struct gnutella_socket *);
