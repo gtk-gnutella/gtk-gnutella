@@ -30,8 +30,6 @@ RCSID("$Id$");
 #define IO_STALLED		60		/* If nothing exchanged after that many secs */
 #define REMOVE_DELAY    5       /* delay before outdated info is removed */
 
-static gchar tmpstr[4096];
-
 static gboolean uploads_remove_lock = FALSE;
 static guint uploads_rows_done = 0;
 static GtkTreeView *uploads_gui_treeview = NULL;
