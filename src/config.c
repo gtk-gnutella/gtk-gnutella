@@ -36,6 +36,8 @@ gboolean statusbar_visible = TRUE;
 gboolean progressbar_uploads_visible = TRUE;
 gboolean progressbar_downloads_visible = TRUE;
 gboolean progressbar_connections_visible = TRUE;
+gboolean progressbar_bps_in_visible = TRUE;
+gboolean progressbar_bps_out_visible = TRUE;
 
 guint8 max_ttl = 7;
 guint8 my_ttl = 5;
@@ -172,7 +174,8 @@ enum {
 	k_search_stats_enabled,
 	k_toolbar_visible, k_statusbar_visible,
 	k_progressbar_uploads_visible, k_progressbar_downloads_visible, 
-	k_progressbar_connections_visible,
+	k_progressbar_connections_visible, k_progressbar_bps_in_visible,
+	k_progressbar_bps_out_visible,
 	k_end
 };
 
@@ -270,6 +273,8 @@ static gchar *keywords[] = {
 	"progressbar_uploads_visible",
 	"progressbar_downloads_visible",
 	"progressbar_connections_visible",
+	"progressbar_bps_in_visible",
+	"progressbar_bps_out_visible",
 	NULL
 };
 
@@ -554,11 +559,18 @@ void config_init(void)
 								   progressbar_downloads_visible);
 	gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(menu_connections_visible),
 								   progressbar_connections_visible);
+	gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(menu_bps_in_visible),
+								   progressbar_bps_in_visible);
+	gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(menu_bps_out_visible),
+								   progressbar_bps_out_visible);
 
 	gui_update_socks_host();
 	gui_update_socks_port();
 	gui_update_socks_user();
 	gui_update_socks_pass();
+
+	gui_update_bandwidth_input();
+	gui_update_bandwidth_output();
 
 	if (w_w && w_h) {
 		gtk_widget_set_uposition(main_window, w_x, w_y);
@@ -1032,6 +1044,10 @@ void config_set_param(guint32 keyword, gchar *value)
 		progressbar_downloads_visible = (gboolean) ! g_strcasecmp(value, "true");
 	case k_progressbar_connections_visible:
 		progressbar_connections_visible = (gboolean) ! g_strcasecmp(value, "true");
+	case k_progressbar_bps_in_visible:
+		progressbar_bps_in_visible = (gboolean) ! g_strcasecmp(value, "true");
+	case k_progressbar_bps_out_visible:
+		progressbar_bps_out_visible = (gboolean) ! g_strcasecmp(value, "true");
 	}
 }
 
@@ -1308,6 +1324,10 @@ static void config_save(void)
 			config_boolean(progressbar_downloads_visible));
 	fprintf(config, "%s = %s\n", keywords[k_progressbar_connections_visible],
 			config_boolean(progressbar_connections_visible));
+	fprintf(config, "%s = %s\n", keywords[k_progressbar_bps_in_visible],
+			config_boolean(progressbar_bps_in_visible));
+	fprintf(config, "%s = %s\n", keywords[k_progressbar_bps_out_visible],
+			config_boolean(progressbar_bps_out_visible));
 
 	fprintf(config, "\n\n#\n# The following variables cannot "
 		"yet be configured with the GUI.\n#\n\n");

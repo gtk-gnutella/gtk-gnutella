@@ -10,6 +10,8 @@ extern gchar *config_dir;
 extern gboolean progressbar_uploads_visible;
 extern gboolean progressbar_downloads_visible;
 extern gboolean progressbar_connections_visible;
+extern gboolean progressbar_bps_in_visible;
+extern gboolean progressbar_bps_out_visible;
 extern gboolean toolbar_visible;
 extern gboolean statusbar_visible;
 extern gboolean force_local_ip;
