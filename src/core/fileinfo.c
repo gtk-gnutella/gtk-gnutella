@@ -398,6 +398,7 @@ file_info_init(void)
 									  event_new("fi_status_changed_transient");
     fi_events[EV_FI_SRC_ADDED]      = event_new("fi_src_added");
     fi_events[EV_FI_SRC_REMOVED]    = event_new("fi_src_removed");
+	fi_events[EV_FI_RANGES_CHANGED] = event_new("fi_ranges_changed");
 }
 
 /**
@@ -4213,11 +4214,10 @@ fi_update_seenonnetwork(gnet_src_t srcid)
 	fi_free_ranges(old_list);
 		
 	/*
-	 * Trigger a transient change effect. Transient because we don't store
-	 * this info to disk. FIXME: perhaps this should be a special ranges event.
+	 * Trigger a changed ranges event so that others can use the updated info.
 	 */
 	event_trigger(
-        fi_events[EV_FI_STATUS_CHANGED_TRANSIENT], 
+        fi_events[EV_FI_RANGES_CHANGED], 
         T_NORMAL(fi_listener_t, d->file_info->fi_handle));   
 }
 

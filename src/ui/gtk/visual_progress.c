@@ -503,6 +503,28 @@ vp_gui_fi_status_changed(gnet_fi_t fih)
 	 * can safely throw away the new list itself.
 	 */
 	guc_fi_free_chunks(keep_new);
+}
+
+
+/** 
+ * The available ranges information has been changed for a
+ * file. Update the information and draw the information so the
+ * changes are visible.
+ * 
+ * @param fih Handle for fileinfo data that has been changed.
+ */
+static void 
+vp_gui_fi_ranges_changed(gnet_fi_t fih)
+{
+    vp_info_t *v;
+    gboolean found;
+	gpointer value;
+
+    found = g_hash_table_lookup_extended(vp_info_hash,
+		GUINT_TO_POINTER(fih), NULL, &value);
+    g_assert(found);
+    g_assert(value);
+	v = value;
 
 	/*
 	 * Copy the ranges. These can simply be copied as we do not need to 
@@ -548,6 +570,8 @@ vp_gui_init(void)
 		EV_FI_STATUS_CHANGED, FREQ_SECS, 0);
     guc_fi_add_listener(vp_gui_fi_status_changed, 
 		EV_FI_STATUS_CHANGED_TRANSIENT, FREQ_SECS, 0);
+    guc_fi_add_listener(vp_gui_fi_ranges_changed,
+						EV_FI_RANGES_CHANGED, FREQ_SECS, 0);
 
 	cmap = gdk_colormap_get_system();
     g_assert(cmap);
@@ -582,6 +606,9 @@ vp_gui_shutdown(void)
     guc_fi_remove_listener(vp_gui_fi_added, EV_FI_ADDED);
     guc_fi_remove_listener(vp_gui_fi_status_changed, 
 		EV_FI_STATUS_CHANGED);
+    guc_fi_remove_listener(vp_gui_fi_status_changed, 
+		EV_FI_STATUS_CHANGED_TRANSIENT);
+    guc_fi_remove_listener(vp_gui_fi_ranges_changed, EV_FI_RANGES_CHANGED);
 
     g_hash_table_foreach(vp_info_hash, vp_free_key_value, NULL);
     g_hash_table_destroy(vp_info_hash);
