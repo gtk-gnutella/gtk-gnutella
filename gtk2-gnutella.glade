@@ -3055,28 +3055,24 @@ Grace time remaining:</property>
 	      <property name="show_arrow">True</property>
 
 	      <child>
-		<widget class="GtkToolButton" id="button_quit">
+		<widget class="GtkToolItem" id="toolitem2">
 		  <property name="visible">True</property>
-		  <property name="label" translatable="yes">_Quit</property>
-		  <property name="use_underline">True</property>
-		  <property name="stock_id">gtk-quit</property>
 		  <property name="visible_horizontal">True</property>
 		  <property name="visible_vertical">True</property>
 		  <property name="is_important">False</property>
-		  <signal name="clicked" handler="on_button_quit_clicked" last_modification_time="Fri, 16 Apr 2004 22:40:47 GMT"/>
-		</widget>
-		<packing>
-		  <property name="expand">False</property>
-		  <property name="homogeneous">True</property>
-		</packing>
-	      </child>
 
-	      <child>
-		<widget class="GtkSeparatorToolItem" id="separatortoolitem1">
-		  <property name="visible">True</property>
-		  <property name="draw">True</property>
-		  <property name="visible_horizontal">True</property>
-		  <property name="visible_vertical">True</property>
+		  <child>
+		    <widget class="GtkButton" id="button_quit">
+		      <property name="visible">True</property>
+		      <property name="tooltip" translatable="yes">Guess what?</property>
+		      <property name="can_focus">True</property>
+		      <property name="label">gtk-quit</property>
+		      <property name="use_stock">True</property>
+		      <property name="relief">GTK_RELIEF_NONE</property>
+		      <property name="focus_on_click">True</property>
+		      <signal name="clicked" handler="on_button_quit_clicked" last_modification_time="Sat, 05 Jun 2004 00:18:55 GMT"/>
+		    </widget>
+		  </child>
 		</widget>
 		<packing>
 		  <property name="expand">False</property>
@@ -3085,19 +3081,57 @@ Grace time remaining:</property>
 	      </child>
 
 	      <child>
-		<widget class="GtkToolButton" id="buttonxxx">
+		<widget class="GtkToolItem" id="toolitem1">
 		  <property name="visible">True</property>
-		  <property name="label" translatable="yes">Filters</property>
-		  <property name="use_underline">True</property>
-		  <property name="icon">filter.xpm</property>
 		  <property name="visible_horizontal">True</property>
 		  <property name="visible_vertical">True</property>
 		  <property name="is_important">False</property>
-		  <signal name="clicked" handler="on_button_search_filter_clicked" last_modification_time="Fri, 16 Apr 2004 22:40:55 GMT"/>
+
+		  <child>
+		    <widget class="GtkLabel" id="label841">
+		      <property name="visible">True</property>
+		      <property name="label" translatable="yes">   </property>
+		      <property name="use_underline">False</property>
+		      <property name="use_markup">False</property>
+		      <property name="justify">GTK_JUSTIFY_LEFT</property>
+		      <property name="wrap">False</property>
+		      <property name="selectable">False</property>
+		      <property name="xalign">0.5</property>
+		      <property name="yalign">0.5</property>
+		      <property name="xpad">0</property>
+		      <property name="ypad">0</property>
+		    </widget>
+		  </child>
 		</widget>
 		<packing>
 		  <property name="expand">False</property>
-		  <property name="homogeneous">True</property>
+		  <property name="homogeneous">False</property>
+		</packing>
+	      </child>
+
+	      <child>
+		<widget class="GtkToolItem" id="toolitem3">
+		  <property name="visible">True</property>
+		  <property name="visible_horizontal">True</property>
+		  <property name="visible_vertical">True</property>
+		  <property name="is_important">False</property>
+
+		  <child>
+		    <widget class="GtkButton" id="button_search_filter">
+		      <property name="visible">True</property>
+		      <property name="tooltip" translatable="yes">Jump to the filters dialog</property>
+		      <property name="can_focus">True</property>
+		      <property name="label" translatable="yes">Filters</property>
+		      <property name="use_underline">True</property>
+		      <property name="relief">GTK_RELIEF_NONE</property>
+		      <property name="focus_on_click">True</property>
+		      <signal name="clicked" handler="on_button_search_filter_clicked" last_modification_time="Sat, 05 Jun 2004 00:24:37 GMT"/>
+		    </widget>
+		  </child>
+		</widget>
+		<packing>
+		  <property name="expand">False</property>
+		  <property name="homogeneous">False</property>
 		</packing>
 	      </child>
 	    </widget>

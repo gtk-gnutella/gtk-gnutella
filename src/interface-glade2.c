@@ -1784,10 +1784,12 @@ create_main_window (void)
   GtkWidget *hb_toolbar;
   GtkWidget *toolbar_main;
   gint tmp_toolbar_icon_size;
-  GtkWidget *tmp_image;
+  GtkWidget *toolitem2;
   GtkWidget *button_quit;
-  GtkWidget *separatortoolitem1;
-  GtkWidget *buttonxxx;
+  GtkWidget *toolitem1;
+  GtkWidget *label841;
+  GtkWidget *toolitem3;
+  GtkWidget *button_search_filter;
   GtkWidget *hpaned_main;
   GtkWidget *vpaned_sidebar;
   GtkWidget *scrolledwindow58;
@@ -2255,24 +2257,39 @@ create_main_window (void)
   gtk_toolbar_set_style (GTK_TOOLBAR (toolbar_main), GTK_TOOLBAR_BOTH);
   tmp_toolbar_icon_size = gtk_toolbar_get_icon_size (GTK_TOOLBAR (toolbar_main));
 
-  tmp_image = gtk_image_new_from_stock ("gtk-quit", tmp_toolbar_icon_size);
-  gtk_widget_show (tmp_image);
-  button_quit = (GtkWidget*) gtk_tool_button_new (tmp_image, _("_Quit"));
+  toolitem2 = (GtkWidget*) gtk_tool_item_new ();
+  gtk_widget_set_name (toolitem2, "toolitem2");
+  gtk_widget_show (toolitem2);
+  gtk_container_add (GTK_CONTAINER (toolbar_main), toolitem2);
+
+  button_quit = gtk_button_new_from_stock ("gtk-quit");
   gtk_widget_set_name (button_quit, "button_quit");
   gtk_widget_show (button_quit);
-  gtk_container_add (GTK_CONTAINER (toolbar_main), button_quit);
+  gtk_container_add (GTK_CONTAINER (toolitem2), button_quit);
+  gtk_tooltips_set_tip (tooltips, button_quit, _("Guess what?"), NULL);
+  gtk_button_set_relief (GTK_BUTTON (button_quit), GTK_RELIEF_NONE);
 
-  separatortoolitem1 = (GtkWidget*) gtk_separator_tool_item_new ();
-  gtk_widget_set_name (separatortoolitem1, "separatortoolitem1");
-  gtk_widget_show (separatortoolitem1);
-  gtk_container_add (GTK_CONTAINER (toolbar_main), separatortoolitem1);
+  toolitem1 = (GtkWidget*) gtk_tool_item_new ();
+  gtk_widget_set_name (toolitem1, "toolitem1");
+  gtk_widget_show (toolitem1);
+  gtk_container_add (GTK_CONTAINER (toolbar_main), toolitem1);
 
-  tmp_image = create_pixmap (main_window, "filter.xpm");
-  gtk_widget_show (tmp_image);
-  buttonxxx = (GtkWidget*) gtk_tool_button_new (tmp_image, _("Filters"));
-  gtk_widget_set_name (buttonxxx, "buttonxxx");
-  gtk_widget_show (buttonxxx);
-  gtk_container_add (GTK_CONTAINER (toolbar_main), buttonxxx);
+  label841 = gtk_label_new (_("   "));
+  gtk_widget_set_name (label841, "label841");
+  gtk_widget_show (label841);
+  gtk_container_add (GTK_CONTAINER (toolitem1), label841);
+
+  toolitem3 = (GtkWidget*) gtk_tool_item_new ();
+  gtk_widget_set_name (toolitem3, "toolitem3");
+  gtk_widget_show (toolitem3);
+  gtk_container_add (GTK_CONTAINER (toolbar_main), toolitem3);
+
+  button_search_filter = gtk_button_new_with_mnemonic (_("Filters"));
+  gtk_widget_set_name (button_search_filter, "button_search_filter");
+  gtk_widget_show (button_search_filter);
+  gtk_container_add (GTK_CONTAINER (toolitem3), button_search_filter);
+  gtk_tooltips_set_tip (tooltips, button_search_filter, _("Jump to the filters dialog"), NULL);
+  gtk_button_set_relief (GTK_BUTTON (button_search_filter), GTK_RELIEF_NONE);
 
   hpaned_main = gtk_hpaned_new ();
   gtk_widget_set_name (hpaned_main, "hpaned_main");
@@ -2711,7 +2728,7 @@ create_main_window (void)
   g_signal_connect ((gpointer) button_quit, "clicked",
                     G_CALLBACK (on_button_quit_clicked),
                     NULL);
-  g_signal_connect ((gpointer) buttonxxx, "clicked",
+  g_signal_connect ((gpointer) button_search_filter, "clicked",
                     G_CALLBACK (on_button_search_filter_clicked),
                     NULL);
   g_signal_connect ((gpointer) entry_search, "changed",
@@ -2817,9 +2834,12 @@ create_main_window (void)
   GLADE_HOOKUP_OBJECT (main_window, label697, "label697");
   GLADE_HOOKUP_OBJECT (main_window, hb_toolbar, "hb_toolbar");
   GLADE_HOOKUP_OBJECT (main_window, toolbar_main, "toolbar_main");
+  GLADE_HOOKUP_OBJECT (main_window, toolitem2, "toolitem2");
   GLADE_HOOKUP_OBJECT (main_window, button_quit, "button_quit");
-  GLADE_HOOKUP_OBJECT (main_window, separatortoolitem1, "separatortoolitem1");
-  GLADE_HOOKUP_OBJECT (main_window, buttonxxx, "buttonxxx");
+  GLADE_HOOKUP_OBJECT (main_window, toolitem1, "toolitem1");
+  GLADE_HOOKUP_OBJECT (main_window, label841, "label841");
+  GLADE_HOOKUP_OBJECT (main_window, toolitem3, "toolitem3");
+  GLADE_HOOKUP_OBJECT (main_window, button_search_filter, "button_search_filter");
   GLADE_HOOKUP_OBJECT (main_window, hpaned_main, "hpaned_main");
   GLADE_HOOKUP_OBJECT (main_window, vpaned_sidebar, "vpaned_sidebar");
   GLADE_HOOKUP_OBJECT (main_window, scrolledwindow58, "scrolledwindow58");
