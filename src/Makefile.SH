@@ -100,10 +100,9 @@ all:: .FORCE_DEPEND
 ########################################################################
 # Start of Jmakefile
 
-# $X-Id: Jmakefile,v 1.11 2004/01/16 00:06:34 rmanfredi Exp $
+# $X-Id: Jmakefile,v 1.13 2004/02/01 13:44:57 rmanfredi Exp $
 
 GUI_GTK2 = \
-	pbarcellrenderer_gui2.c \
 	downloads_cb2.c \
 	downloads_gui2.c \
 	fileinfo_gui2.c \
@@ -112,6 +111,7 @@ GUI_GTK2 = \
 	monitor_gui2.c \
 	nodes_cb2.c \
 	nodes_gui2.c \
+	pbarcellrenderer_gui2.c \
 	search_cb2.c \
 	search_gui2.c \
 	search_stats_gui2.c \
@@ -127,6 +127,7 @@ GUI_GTK1 = \
 	monitor_gui.c \
 	nodes_cb.c \
 	nodes_gui.c \
+	pbarcellrenderer_gui.c \
 	search_cb.c \
 	search_gui.c \
 	search_stats_gui.c \
@@ -254,7 +255,6 @@ SRCLIST = \
 	$(CORE)
 
 OBJLIST = \
-	pbarcellrenderer_gui2.o \
 	downloads_cb2.o \
 	downloads_gui2.o \
 	fileinfo_gui2.o \
@@ -263,6 +263,7 @@ OBJLIST = \
 	monitor_gui2.o \
 	nodes_cb2.o \
 	nodes_gui2.o \
+	pbarcellrenderer_gui2.o \
 	search_cb2.o \
 	search_gui2.o \
 	search_stats_gui2.o \
@@ -276,6 +277,7 @@ OBJLIST = \
 	monitor_gui.o \
 	nodes_cb.o \
 	nodes_gui.o \
+	pbarcellrenderer_gui.o \
 	search_cb.o \
 	search_gui.o \
 	search_stats_gui.o \
