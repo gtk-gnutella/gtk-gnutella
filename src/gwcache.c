@@ -916,9 +916,10 @@ void gwc_get_hosts(void)
 
 	/*
 	 * Make sure we don't probe more than one webcache at a time.
+	 * Ancient versions should rely on their hostcache to be connected.
 	 */
 
-	if (hostfile_running)
+	if (hostfile_running || ancient_version)
 		return;
 
 	/*
