@@ -190,6 +190,8 @@ src/downloads_gui.h
 src/downloads_gui2.c
 src/downloads_gui_common.c
 src/downloads_gui_common.h
+src/dq.c
+src/dq.h
 src/eval.c
 src/eval.h
 src/event.c

@@ -190,6 +190,8 @@ src/downloads_gui.h
 src/downloads_gui2.c
 src/downloads_gui_common.c
 src/downloads_gui_common.h
+src/dq.c
+src/dq.h
 src/eval.c
 src/eval.h
 src/event.c
@@ -265,11 +267,11 @@ src/hashtree.c
 src/hashtree.h
 src/hcache.c
 src/hcache.h
-src/hcache_gui_common.c
-src/hcache_gui_common.h
 src/hcache_gui.c
 src/hcache_gui.h
 src/hcache_gui2.c
+src/hcache_gui_common.c
+src/hcache_gui_common.h
 src/header.c
 src/header.h
 src/hostiles.c
