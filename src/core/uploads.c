@@ -3015,7 +3015,7 @@ upload_write(gpointer up, gint unused_source, inputevt_cond_t cond)
 	if ((ssize_t) -1 == written) {
 		gint e = errno;
 
-		if (use_sendfile && e == EOPNOTSUPP) {
+		if (use_sendfile && e != EINTR && e != EAGAIN) {
 			g_warning("sendfile() failed: \"%s\"\n"
 					"Disabling sendfile() for this session", strerror(e));
 			sendfile_failed = TRUE;
@@ -3133,7 +3133,6 @@ upload_is_enabled(void)
 {
 	if (max_uploads == 0)
 		return FALSE;
-
 	if (bsched_bwps(bws.out) < BW_OUT_MIN)
 		return FALSE;
 
