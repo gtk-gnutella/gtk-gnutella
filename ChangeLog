@@ -3,6 +3,9 @@
 - (2004.04.15 - Richard)
  * [Gtk1] [Gtk2] Changed layout of fileinfo pane to integrate progress indicator.
  * Made progess indicator use the complete drawing area.
+ * [Gtk2] Added toolbar buttons back.
+ * [Gtk2] Minor adjustments to the layout of the network config pane.
+ * [Gtk2] Removed searches combo from search pane put a label there instead.
 
 - (2004.04.15 - Jeroen)
  * Added cache.kicks-ass.net:8000 to the webcaches
