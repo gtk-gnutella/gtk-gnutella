@@ -1728,7 +1728,7 @@ create_main_window (void)
   gtk_widget_show (label38);
   gtk_box_pack_start (GTK_BOX (hbox_limit_search_results), label38, FALSE, FALSE, 0);
 
-  label39 = gtk_label_new ("(This limits how many results gnutella returns to other peole searching your files)");
+  label39 = gtk_label_new ("(This limits how many results gnutella returns to other people searching your files)");
   gtk_widget_ref (label39);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "label39", label39,
                             (GtkDestroyNotify) gtk_widget_unref);

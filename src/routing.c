@@ -5,7 +5,6 @@
 
 #include <stdarg.h>
 
-guchar muid[16];				/* ID of the last sent message */
 guchar guid[16];				/* ID of our client for this session */
 
 guint32 i_fake_node;			/* The address of this guint32 will be used to identify ourselves */
@@ -59,12 +58,11 @@ void routing_init(void)
 
 	srand(time((time_t *) NULL));
 
-	for (i = 0; i < 16; i++) muid[i] = rand() % 256;
 	for (i = 0; i < 16; i++) guid[i]  = rand() % 256;
 
 	for (i = 0; i < 256; i++) { messages[i] = NULL; n_messages[i] = 0; }
 
-	for (i = 0; i < 256; i++) debug_msg[i] = "UNKOWN MSG  ";
+	for (i = 0; i < 256; i++) debug_msg[i] = "UNKNOWN MSG  ";
 
 	debug_msg[GTA_MSG_INIT]                = "Ping Request";
 	debug_msg[GTA_MSG_INIT_RESPONSE]       = "Ping Reply  ";
@@ -77,8 +75,9 @@ void routing_init(void)
 
 void message_set_muid(struct gnutella_header *header)
 {
-	(*((guint32 *) (muid + 12)))++;
-	memcpy(header->muid, muid, 16);
+	gint i;
+
+	for (i = 0; i < 32; i += 2) (*((guint16 *) (header->muid + i))) = rand() % 65536;
 }
 
 /* Erase a node from the routing tables */

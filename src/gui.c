@@ -265,7 +265,7 @@ void gui_update_node(struct gnutella_node *n, gboolean force)
 			break;
 
 		default:
-			a = "UNKOWN STATUS";
+			a = "UNKNOWN STATUS";
 	}
 
 	n->last_update = time((time_t *) NULL);
@@ -419,7 +419,7 @@ void gui_update_download(struct download *d, gboolean force)
 			break;
 
 		default:
-			g_snprintf(gui_tmp, sizeof(gui_tmp), "UNKOWN STATUS %u", d->status);
+			g_snprintf(gui_tmp, sizeof(gui_tmp), "UNKNOWN STATUS %u", d->status);
 			a = gui_tmp;
 	}
 

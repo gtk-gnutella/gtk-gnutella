@@ -97,6 +97,9 @@ create_pixmap                          (GtkWidget       *widget,
   GtkWidget *pixmap;
   GList *elem;
 
+  if (!filename || !filename[0])
+      return create_dummy_pixmap (widget);
+
   /* We first try any pixmaps directories set by the application. */
   elem = pixmaps_directories;
   while (elem)

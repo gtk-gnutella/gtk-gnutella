@@ -8,7 +8,7 @@
 # Of course, you will need tclsh to run it...
 #
 
-set w_list {
+set w_main_list {
 	notebook_main
 	clist_menu clist_stats clist_connections button_stats_update
 	clist_nodes button_nodes_add button_nodes_remove entry_host \
@@ -55,17 +55,17 @@ while { ! [eof $h] } {
 	}
 }
 
-# interface.h ----------------------------------------------------------------------------------------
-
 close $h
 
-# Ok, we can add the global widgets declarations
+# interface.h ----------------------------------------------------------------------------------------
+
+# We add the global widgets declarations
 
 set h [open "interface.h" "a"]
 
 puts $h "\n/* Global Widgets (added by extern.tcl) */\n"
 
-foreach a $w_list { puts $h "extern GtkWidget *$a;" }
+foreach a $w_main_list { puts $h "extern GtkWidget *$a;" }
 
 puts $h "\n/* End of global widgets */\n";
 
@@ -88,11 +88,11 @@ while { ! [eof $s] } {
 
 puts $d "/* Global Widgets (added by extern.tcl) */\n"
 
-foreach a $w_list { puts $d "GtkWidget *$a;" }
+foreach a $w_main_list { puts $d "GtkWidget *$a;" }
 
 puts $d "\n/* End of global widgets */\n";
 
-# Puts back the "GtkWidget*" line
+# Put back the "GtkWidget*" line
 
 puts $d "\n$l"
 
@@ -105,17 +105,17 @@ while { ! [eof $s] } {
 	set l [gets $s]
 
 	if { [regexp -- "^  GtkWidget \\*" $l] == 1 } {
-		foreach a $w_list {
+
+		foreach a $w_main_list {
 			if { [regexp -- "^  GtkWidget \\*$a;" $l] == 1 } { set skip 1; break }
-			if { $skip } break
 		}
-	}
 	
-	if { $skip } {
-		puts -nonewline stdout "."
-		flush stdout
-		set skip 0
-		continue
+		if { $skip } {
+			puts -nonewline stdout "."
+			flush stdout
+			set skip 0
+			continue
+		}
 	}
 
 	puts $d $l

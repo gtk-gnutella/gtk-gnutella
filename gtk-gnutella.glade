@@ -3218,7 +3218,7 @@
 		<widget>
 		  <class>GtkLabel</class>
 		  <name>label39</name>
-		  <label>(This limits how many results gnutella returns to other peole searching your files)</label>
+		  <label>(This limits how many results gnutella returns to other people searching your files)</label>
 		  <justify>GTK_JUSTIFY_CENTER</justify>
 		  <wrap>True</wrap>
 		  <xalign>0.5</xalign>

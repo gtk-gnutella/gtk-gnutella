@@ -7,6 +7,7 @@
   results filters
 - The widths of the different clists's columns are now remembered
 - You can now force your local IP to whatever you want [NEED TESTS PLEASE]
+- 'Current port' label is now updated
 
 * v 0.12          2000.05.03
 

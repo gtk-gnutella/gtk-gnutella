@@ -256,6 +256,7 @@ void search_init(void)
 	gtk_signal_connect(GTK_OBJECT(notebook_search_results), "switch_page", GTK_SIGNAL_FUNC(on_search_notebook_switch), NULL);
 	dialog_filters = create_dialog_filters();
 	gtk_window_set_position(GTK_WINDOW(dialog_filters), GTK_WIN_POS_CENTER);
+	gtk_widget_show(dialog_filters);
 }
 
 /* Free all the results sets of a search */
