@@ -29,6 +29,7 @@
 #define _bsched_h_
 
 #include "gnet.h"			/* For node_peer_t */
+#include "sockets.h"		/* For enum socket_type */
 
 struct iovec;
 
@@ -195,6 +196,14 @@ gint bio_read(bio_source_t *bio, gpointer data, gint len);
 gint bws_write(bsched_t *bs, gint fd, gconstpointer data, gint len);
 gint bws_read(bsched_t *bs, gint fd, gpointer data, gint len);
 void bsched_timer(void);
+
+void bws_sock_connect(enum socket_type type);
+void bws_sock_connected(enum socket_type type);
+void bws_sock_accepted(enum socket_type type);
+void bws_sock_connect_timeout(enum socket_type type);
+void bws_sock_connect_failed(enum socket_type type);
+void bws_sock_closed(enum socket_type type, gboolean remote);
+gboolean bws_can_connect(enum socket_type type);
 
 gboolean bsched_enough_up_bandwidth(void);
 

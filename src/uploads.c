@@ -2715,6 +2715,7 @@ static void upload_write(gpointer up, gint source, inputevt_cond_t cond)
 
 	if (cond & INPUT_EVENT_EXCEPTION) {
 		/* If we can't write then we don't want it, kill the socket */
+		socket_eof(u->socket);
 		upload_remove(u, "Write exception");
 		return;
 	}
@@ -2773,8 +2774,10 @@ static void upload_write(gpointer up, gint source, inputevt_cond_t cond)
 #endif	/* HAS_SENDFILE */
 
 	if (written ==  -1) {
-		if (errno != EAGAIN)
+		if (errno != EAGAIN) {
+			socket_eof(u->socket);
 			upload_remove(u, "Data write error: %s", g_strerror(errno));
+		}
 		return;
 	} else if (written == 0) {
 		upload_remove(u, "No bytes written, source may be gone");

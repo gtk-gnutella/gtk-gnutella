@@ -1481,6 +1481,8 @@ void node_eof(struct gnutella_node *n, const gchar *reason, ...)
 	 * read it and closed the connection.
      */
 
+	socket_eof(n->socket);
+
 	if (n->flags & NODE_F_CLOSING)			/* Bye sent or explicit shutdown */
 		node_remove_v(n, NULL, args);		/* Reuse existing reason */
 	else
@@ -4665,6 +4667,7 @@ static void node_read_connecting(
 	g_assert(n->proto_major == 0 && n->proto_minor == 4);
 
 	if (cond & INPUT_EVENT_EXCEPTION) {
+		socket_eof(s);
 		node_remove(n, "Failed (Input Exception)");
 		return;
 	}
@@ -4673,11 +4676,13 @@ static void node_read_connecting(
 		GNUTELLA_WELCOME_LENGTH - s->pos);
 
 	if (!r) {
+		socket_eof(s);
 		node_remove(n, "Failed (EOF)");
 		return;
 	} else if (r < 0 && errno == EAGAIN)
 		return;
 	else if (r < 0) {
+		socket_eof(s);
 		node_remove(n, "Read error in HELLO: %s", g_strerror(errno));
 		return;
 	}

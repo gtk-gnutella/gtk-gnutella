@@ -63,7 +63,7 @@ enum socket_type {
 
 struct gnutella_socket {
 	gint file_desc;			/* file descriptor */
-
+	guint32 flags;			/* operating flags */
 	guint gdk_tag;			/* gdk tag */
 
 	enum socket_direction direction;
@@ -95,6 +95,13 @@ struct gnutella_socket {
 };
 
 /*
+ * Operating flags
+ */
+
+#define SOCK_F_ESTABLISHED		0x00000001 /* Connection was established */
+#define SOCK_F_EOF				0x00000002 /* Got an EOF condition */
+
+/*
  * Global Data
  */
 
@@ -104,6 +111,7 @@ extern gboolean is_firewalled;
  * Global Functions
  */
 
+void socket_eof(struct gnutella_socket *s);
 void socket_free(struct gnutella_socket *);
 struct gnutella_socket *socket_connect(guint32, guint16, enum socket_type);
 struct gnutella_socket *socket_connect_by_name(

@@ -60,6 +60,8 @@ static gint bws_out_ema = 0;
 #define BW_OUT_GNET_MIN	512		/* Minimum out bandwidth per Gnet connection */
 #define BW_OUT_LEAF_MIN	128		/* Minimum out bandwidth per leaf connection */
 
+#define BW_TCP_MSG		40		/* Smallest size of a TCP message */
+
 /*
  * Determine how large an I/O vector the kernel can accept.
  */
@@ -1388,6 +1390,197 @@ gint bws_read(bsched_t *bs, gint fd, gpointer data, gint len)
 		bsched_bw_update(bs, r, len);
 
 	return r;
+}
+
+/*
+ * bs_socket
+ *
+ * Returns adequate b/w shaper depending on the socket type.
+ * Returns NULL if there is no b/w shaper to consider.
+ */
+static bsched_t *bs_socket(enum socket_direction dir, enum socket_type type)
+{
+	switch (type) {
+	case SOCK_TYPE_DOWNLOAD:
+	case SOCK_TYPE_HTTP:
+	case SOCK_TYPE_UPLOAD:
+	case SOCK_TYPE_PPROXY:
+		return (dir == SOCK_CONN_OUTGOING) ? bws.out : bws.in;
+	case SOCK_TYPE_CONTROL:
+	case SOCK_TYPE_CONNBACK:
+		return (dir == SOCK_CONN_OUTGOING) ? bws.gout : bws.gin;
+	case SOCK_TYPE_SHELL:
+		return NULL;
+	default:
+		g_warning("bws_connect: unhandled socket type %d", type);
+		return (dir == SOCK_CONN_OUTGOING) ? bws.out : bws.in;
+	}
+}
+
+/*
+ * bws_sock_connect
+ *
+ * Record that we're issuing a TCP/IP connection of a particular type.
+ */
+void bws_sock_connect(enum socket_type type)
+{
+	bsched_t *bs = bs_socket(SOCK_CONN_OUTGOING, type);
+
+	/*
+	 * At worst, a TCP/IP connect sequence can send 3 SYN packets,
+	 * of 40 bytes each.  But the connection can be denied immediately
+	 * with a RST after the first SYN.
+	 *
+	 * What we do here is account for 60 bytes only (half the maximum).
+	 * If the connection attempt times out, we'll account for 40 more
+	 * bytes, as a conservative measure.
+	 */
+
+	if (bs != NULL)
+		bsched_bw_update(bs, 1.5 * BW_TCP_MSG, 1.5 * BW_TCP_MSG);
+}
+
+/*
+ * bws_sock_connect_failed
+ *
+ * Record that the connection attempt failed.
+ */
+void bws_sock_connect_failed(enum socket_type type)
+{
+	bsched_t *bs = bs_socket(SOCK_CONN_INCOMING, type);
+
+	/*
+	 * We got an RST message.
+	 */
+
+	if (bs != NULL)
+		bsched_bw_update(bs, BW_TCP_MSG, BW_TCP_MSG);
+}
+
+/*
+ * bws_sock_connect_timeout
+ *
+ * A connection attempt of `type' timed out.
+ */
+void bws_sock_connect_timeout(enum socket_type type)
+{
+	bsched_t *bs = bs_socket(SOCK_CONN_OUTGOING, type);
+
+	/*
+	 * Assume we sent an extra SYN.
+	 */
+
+	if (bs != NULL)
+		bsched_bw_update(bs, BW_TCP_MSG, BW_TCP_MSG);
+}
+
+/*
+ * bws_sock_connected
+ *
+ * Record that the connection attempt succeeded.
+ */
+void bws_sock_connected(enum socket_type type)
+{
+	bsched_t *bs = bs_socket(SOCK_CONN_INCOMING, type);
+
+	/*
+	 * We got an ACK message.
+	 */
+
+	if (bs != NULL)
+		bsched_bw_update(bs, BW_TCP_MSG, BW_TCP_MSG);
+}
+
+/*
+ * bws_sock_accepted
+ *
+ * We accepted an incoming connection of `type'.
+ */
+void bws_sock_accepted(enum socket_type type)
+{
+	bsched_t *bsout = bs_socket(SOCK_CONN_OUTGOING, type);
+	bsched_t *bsin = bs_socket(SOCK_CONN_INCOMING, type);
+
+	/*
+	 * We received a SYN message.
+	 * We sent back an ACK+SYN message to acknowledge the connection.
+	 */
+
+	if (bsout != NULL)
+		bsched_bw_update(bsout, BW_TCP_MSG, BW_TCP_MSG);
+	if (bsin != NULL)
+		bsched_bw_update(bsin, BW_TCP_MSG, BW_TCP_MSG);
+}
+
+/*
+ * bws_sock_closed
+ *
+ * The connection was closed, remotely if `remote' is true.
+ */
+void bws_sock_closed(enum socket_type type, gboolean remote)
+{
+	bsched_t *bsout = bs_socket(SOCK_CONN_OUTGOING, type);
+	bsched_t *bsin = bs_socket(SOCK_CONN_INCOMING, type);
+
+	/*
+	 * Assume we sent a FIN and an ACK if we closed locally,
+	 * or that we got a single FIN if it was closed remotely.
+	 */
+
+	if (remote) {
+		if (bsout != NULL)
+			bsched_bw_update(bsout, BW_TCP_MSG, BW_TCP_MSG); /* Sent an ACK */
+		if (bsin != NULL)
+			bsched_bw_update(bsin, BW_TCP_MSG, BW_TCP_MSG);	 /* Got a FIN */
+	} else {
+		/* Sent a FIN and an ACK */
+		if (bsout != NULL)
+			bsched_bw_update(bsout, 2 * BW_TCP_MSG, 2 * BW_TCP_MSG);
+		if (bsin != NULL)
+			bsched_bw_update(bsin, BW_TCP_MSG, BW_TCP_MSG);	 /* Got an ACK */
+	}
+}
+
+/*
+ * bws_can_connect
+ *
+ * Do we have the bandwidth to issue a new TCP/IP connection of `type'?
+ */
+gboolean bws_can_connect(enum socket_type type)
+{
+	bsched_t *bsout = bs_socket(SOCK_CONN_OUTGOING, type);
+	bsched_t *bsin = bs_socket(SOCK_CONN_INCOMING, type);
+	gint available;
+
+	if (bsout != NULL && (bsout->flags & BS_F_ENABLED)) {
+		if (bsout->flags & BS_F_NOBW)				/* No more bandwidth */
+			return FALSE;
+
+		/*
+		 * We need 1.5 TCP messages at least to allow the connection.
+		 */
+
+		available = bsout->bw_max + bsout->bw_stolen - bsout->bw_actual;
+
+		if (available < 1.5 * BW_TCP_MSG)
+			return FALSE;
+	}
+
+	if (bsin != NULL && (bsin->flags & BS_F_ENABLED)) {
+		if (bsin->flags & BS_F_NOBW)				/* No more bandwidth */
+			return FALSE;
+
+		/*
+		 * We need 1 TCP message at least to allow the connection.
+		 */
+
+		available = bsin->bw_max + bsin->bw_stolen - bsin->bw_actual;
+
+		if (available < BW_TCP_MSG)
+			return FALSE;
+	}
+
+	return TRUE;
 }
 
 /*

@@ -125,6 +125,18 @@ static gint sol_ip(void)
 }
 
 /*
+ * socket_eof
+ *
+ * Got an EOF condition on the socket.
+ */
+void socket_eof(struct gnutella_socket *s)
+{
+	g_assert(s != NULL);
+
+	s->flags |= SOCK_F_EOF;
+}
+
+/*
  * socket_tos
  *
  * Set the TOS on the socket.  Routers can use this information to
@@ -333,6 +345,13 @@ static void socket_destroy(struct gnutella_socket *s, gchar *reason)
 void socket_free(struct gnutella_socket *s)
 {
 	g_assert(s);
+
+	if (s->flags & SOCK_F_EOF)
+		bws_sock_closed(s->type, TRUE);
+	else if (s->flags & SOCK_F_ESTABLISHED)
+		bws_sock_closed(s->type, FALSE);
+	else
+		bws_sock_connect_timeout(s->type);
 
 	if (s->last_update) {
 		g_assert(sl_incoming);
@@ -634,12 +653,16 @@ static void socket_connected(gpointer data, gint source, inputevt_cond_t cond)
 	struct gnutella_socket *s = (struct gnutella_socket *) data;
 
 	if (cond & INPUT_EVENT_EXCEPTION) {	/* Error while connecting */
+		bws_sock_connect_failed(s->type);
 		if (s->type == SOCK_TYPE_DOWNLOAD && s->resource.download)
 			download_fallback_to_push(s->resource.download, FALSE, FALSE);
 		else
 			socket_destroy(s, "Connection failed");
 		return;
 	}
+
+	s->flags |= SOCK_F_ESTABLISHED;
+	bws_sock_connected(s->type);
 
 	if (cond & INPUT_EVENT_READ) {
 		if (
@@ -909,6 +932,9 @@ static void socket_accept(gpointer data, gint source,
 		return;
 	}
 
+	s->flags |= SOCK_F_ESTABLISHED;
+	bws_sock_accepted(SOCK_TYPE_HTTP);	/* Do not charge Gnet b/w for that */
+
 	if (!local_ip)
 		guess_local_ip(sd);
 
@@ -1074,6 +1100,7 @@ static struct gnutella_socket *socket_connect_finalize(
 	}
 
 	s->local_port = socket_local_port(s);
+	bws_sock_connect(s->type);
 
 	/* Set the file descriptor non blocking */
 	fcntl(s->file_desc, F_SETFL, O_NONBLOCK);

@@ -206,6 +206,7 @@ gboolean http_send_status(
 	}
 
 	if (-1 == (sent = bws_write(bws.out, s->file_desc, header, rw))) {
+		socket_eof(s);
 		g_warning("Unable to send back HTTP status %d (%s) to %s: %s",
 			code, reason, ip_to_gchar(s->ip), g_strerror(errno));
 		return FALSE;
@@ -1951,6 +1952,7 @@ static void http_data_read(gpointer data, gint source, inputevt_cond_t cond)
 	g_assert(ha->magic == HTTP_ASYNC_MAGIC);
 
 	if (cond & INPUT_EVENT_EXCEPTION) {
+		socket_eof(s);
 		http_async_error(ha, HTTP_ASYNC_IO_ERROR);
 		return;
 	}
@@ -1964,11 +1966,13 @@ static void http_data_read(gpointer data, gint source, inputevt_cond_t cond)
 
 	r = bio_read(ha->bio, s->buffer + s->pos, sizeof(s->buffer) - s->pos);
 	if (r == 0) {
+		socket_eof(s);
 		http_got_data(ha, TRUE);			/* Signals EOF */
 		return;
 	} else if (r < 0 && errno == EAGAIN)
 		return;
 	else if (r < 0) {
+		socket_eof(s);
 		http_async_syserr(ha, errno);
 		return;
 	}
@@ -2215,6 +2219,7 @@ static void http_async_write_request(
 	g_assert(ha->state == HTTP_AS_REQ_SENDING);
 
 	if (cond & INPUT_EVENT_EXCEPTION) {
+		socket_eof(s);
 		http_async_error(ha, HTTP_ASYNC_IO_ERROR);
 		return;
 	}

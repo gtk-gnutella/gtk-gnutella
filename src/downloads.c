@@ -2835,7 +2835,12 @@ void download_pickup_queued(void)
 	 * all hosts first.
 	 */
 
-	for (i = 0; i < DHASH_SIZE && running < max_downloads; i++) {
+	for (
+		i = 0;
+		i < DHASH_SIZE && running < max_downloads &&
+			bws_can_connect(SOCK_TYPE_DOWNLOAD);
+		i++
+	) {
 		GList *l;
 		gint last_change;
 
@@ -5108,6 +5113,7 @@ static void download_sink_read(gpointer data, gint source, inputevt_cond_t cond)
 	g_assert(s);
 
 	if (cond & INPUT_EVENT_EXCEPTION) {
+		socket_eof(s);
 		download_stop(d, GTA_DL_ERROR, "Failed (Input Exception)");
 		return;
 	}
@@ -5116,9 +5122,11 @@ static void download_sink_read(gpointer data, gint source, inputevt_cond_t cond)
 
 	if (r <= 0) {
 		if (r == 0) {
+			socket_eof(s);
 			download_queue_delay(d, download_retry_busy_delay,
 				"Stopped data (EOF)");
 		} else if (errno != EAGAIN) {
+			socket_eof(s);
 			if (errno == ECONNRESET)
 				download_queue_delay(d, download_retry_busy_delay,
 					"Stopped data (%s)", g_strerror(errno));
@@ -6021,6 +6029,7 @@ static void download_read(gpointer data, gint source, inputevt_cond_t cond)
 	g_assert(fi);
 
 	if (cond & INPUT_EVENT_EXCEPTION) {
+		socket_eof(s);
 		download_stop(d, GTA_DL_ERROR, "Failed (Input Exception)");
 		return;
 	}
@@ -6057,9 +6066,11 @@ static void download_read(gpointer data, gint source, inputevt_cond_t cond)
 
 	if (r <= 0) {
 		if (r == 0) {
+			socket_eof(s);
 			download_queue_delay(d, download_retry_busy_delay,
 				"Stopped data (EOF)");
 		} else if (errno != EAGAIN) {
+			socket_eof(s);
 			if (errno == ECONNRESET)
 				download_queue_delay(d, download_retry_busy_delay,
 					"Stopped data (%s)", g_strerror(errno));
@@ -6136,6 +6147,8 @@ static void download_write_request(
 		 */
 
 		gchar *msg = "Could not send whole HTTP request";
+
+		socket_eof(s);
 
 		if (d->queue_status == NULL)
 			download_stop(d, GTA_DL_ERROR, msg);

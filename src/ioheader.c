@@ -301,6 +301,7 @@ static void io_read_data(
 	g_assert(s->gdk_tag);			/* I/O callback still registered */
 
 	if (cond & INPUT_EVENT_EXCEPTION) {
+		socket_eof(s);
 		(*ih->error->input_exception)(ih->resource);
 		return;
 	}
@@ -336,11 +337,13 @@ static void io_read_data(
 
 	r = bws_read(ih->bs, s->file_desc, s->buffer + s->pos, count);
 	if (r == 0) {
+		socket_eof(s);
 		(*ih->error->header_read_eof)(ih->resource);
 		return;
 	} else if (r < 0 && errno == EAGAIN)
 		return;
 	else if (r < 0) {
+		socket_eof(s);
 		(*ih->error->header_read_error)(ih->resource, errno);
 		return;
 	}
