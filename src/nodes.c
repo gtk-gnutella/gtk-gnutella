@@ -4630,6 +4630,16 @@ void node_tx_leave_flowc(struct gnutella_node *n)
 }
 
 /*
+ * node_tx_swift_changed
+ *
+ * Called by message queue when swift mode changes.
+ */
+void node_tx_swift_changed(struct gnutella_node *n)
+{
+    node_fire_node_flags_changed(n);
+}
+
+/*
  * node_disable_read
  *
  * Disable reading callback.

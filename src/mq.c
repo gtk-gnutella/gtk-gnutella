@@ -152,7 +152,9 @@ static void mq_swift_checkpoint(mqueue_t *q, gboolean initial)
 	gint extra;
 
 	g_assert(q->flags & MQ_FLOWC);
-	g_assert(q->size > q->lowat);		/* Or we would have left FC */
+	g_assert(q->size > q->lowat);	/* Or we would have left FC */
+
+	q->swift_ev = NULL;				/* Event fired, we may not reinstall it */
 
 	/*
 	 * For next period, the elapsed time will be...
@@ -276,8 +278,7 @@ static void mq_swift_checkpoint(mqueue_t *q, gboolean initial)
 		q->last_size = q->size;
 		q->swift_ev = cq_insert(callout_queue,
 			q->swift_elapsed, mq_swift_timer, q);
-	} else
-		q->swift_ev = NULL;
+	}
 }
 
 /*
@@ -307,6 +308,7 @@ static void mq_enter_swift(cqueue_t *cq, gpointer obj)
 
 	q->flags |= MQ_SWIFT;
 
+	node_tx_swift_changed(q->node);
 	mq_swift_checkpoint(q, TRUE);
 }
 
@@ -321,7 +323,11 @@ static void mq_leave_swift(mqueue_t *q)
 	g_assert(q->swift_ev != NULL);
 	
 	q->flags &= ~MQ_SWIFT;
-	cq_cancel(callout_queue, q->swift_ev);
+	if (q->swift_ev)
+		cq_cancel(callout_queue, q->swift_ev);
+	q->swift_ev = NULL;
+
+	node_tx_swift_changed(q->node);
 }
 
 /*
@@ -339,7 +345,7 @@ static void mq_enter_flowc(mqueue_t *q)
 
 	g_assert(q->swift_ev == NULL);
 	g_assert(q->node != NULL);
-	g_assert(!(q->flags & MQ_FLOWC));
+	g_assert(!(q->flags & (MQ_FLOWC|MQ_SWIFT)));
 	g_assert(q->size >= q->hiwat);
 
 	q->flags |= MQ_FLOWC;			/* Above wartermark, raise */
