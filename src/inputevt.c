@@ -120,6 +120,9 @@ gint inputevt_add(guint source, inputevt_cond_t condition,
 		cond |= EXCEPTION_CONDITION;
 
 	chan = g_io_channel_unix_new(source);
+#ifdef USE_GTK2	
+	g_io_channel_set_encoding(chan, NULL, NULL); /* binary data */
+#endif
 	result = g_io_add_watch_full(chan, G_PRIORITY_DEFAULT, cond,
 				 inputevt_dispatch, relay, inputevt_relay_destroy);
 	g_io_channel_unref(chan);
