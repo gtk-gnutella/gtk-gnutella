@@ -86,7 +86,7 @@ RCSID("$Id$");
 #define MAX_TX_RX_RATIO			50	/* Max TX/RX ratio */
 #define MIN_TX_FOR_RATIO		500	/* TX packets before enforcing ratio */
 #define ALIVE_PERIOD			20	/* Seconds between each alive ping */
-#define ALIVE_PERIOD_LEAF		60	/* Idem, for leaf nodes <-> ultrapeers */
+#define ALIVE_PERIOD_LEAF		120	/* Idem, for leaf nodes <-> ultrapeers */
 #define ALIVE_MAX_PENDING		4	/* Max unanswered pings in a row */
 
 #define NODE_MIN_UPTIME			3600	/* Minumum uptime to become an UP */
