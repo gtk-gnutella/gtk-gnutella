@@ -35,7 +35,7 @@ EXTRA_FILES = \
 
 all::		/* So that default target is not clobber! */
 
-SetSubdirs(src pixmaps)
+SetSubdirs(src pixmaps po)
 DependDirs(src)
 AddedByConfigure(install gtk-gnutella.spec)
 

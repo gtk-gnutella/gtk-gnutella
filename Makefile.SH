@@ -49,7 +49,7 @@ RM = $rm -f
 ########################################################################
 # Automatically generated parameters -- do not edit
 
-SUBDIRS = src pixmaps
+SUBDIRS = src pixmaps po
 
 !GROK!THIS!
 $spitshell >>Makefile <<'!NO!SUBS!'
@@ -60,7 +60,7 @@ $spitshell >>Makefile <<'!NO!SUBS!'
 ########################################################################
 # Start of Jmakefile
 
-# $X-Id: Jmakefile,v 1.3 2003/08/10 23:04:33 rmanfredi Exp $
+# $X-Id: Jmakefile,v 1.4 2003/08/12 17:56:13 rmanfredi Exp $
 
 EXTRA_FILES = \
 	gwcache.boot \
