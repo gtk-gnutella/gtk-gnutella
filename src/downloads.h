@@ -96,7 +96,6 @@ struct download {
 
 	guint32 retries;
 	guint32 timeout_delay;
-	guint restart_timer_id;
 
 	const gchar *remove_msg;
 
@@ -125,7 +124,6 @@ struct download {
 #define GTA_DL_ERROR			9	/* Download is stopped due to error */
 #define GTA_DL_ABORTED			10	/* User used the 'Abort Download' button */
 #define GTA_DL_TIMEOUT_WAIT		11	/* Waiting to try connecting again */
-#define GTA_DL_STOPPED			12	/* Stopped, will restart shortly */
 
 /*
  * Download flags.

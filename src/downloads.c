@@ -67,7 +67,6 @@ static GHashTable *pushed_downloads = 0;
 
 static void download_add_to_list(struct download *d, enum dl_list idx);
 static gboolean send_push_request(gchar *, guint32, guint16);
-static void download_start_restart_timer(struct download *d);
 static void download_read(gpointer data, gint source, GdkInputCondition cond);
 static void download_request(struct download *d, header_t *header);
 static void download_push_ready(struct download *d, getline_t *empty);
@@ -282,7 +281,7 @@ void download_timer(time_t now)
 				if (d->status == GTA_DL_CONNECTING)
 					download_fallback_to_push(d, TRUE, FALSE);
 				else {
-					if (++d->retries <= download_max_retries)
+					if (d->retries++ < download_max_retries)
 						download_retry(d);
 					else
 						download_stop(d, GTA_DL_ERROR, "Timeout");
@@ -304,7 +303,6 @@ void download_timer(time_t now)
 		case GTA_DL_COMPLETED:
 		case GTA_DL_ABORTED:
 		case GTA_DL_ERROR:
-		case GTA_DL_STOPPED:
 			break;
 		case GTA_DL_QUEUED:
 			g_error("found queued download in sl_unqueued list: \"%s\"",
@@ -1235,14 +1233,6 @@ void download_stop(struct download *d, guint32 new_status,
 		return;
 	}
 
-	if (d->restart_timer_id) {
-		if (d->status != GTA_DL_STOPPED)
-			g_warning("download_stop: download \"%s\" has a restart_timer_id.",
-				  d->file_name);
-		g_source_remove(d->restart_timer_id);
-		d->restart_timer_id = 0;
-	}
-
 	switch (new_status) {
 	case GTA_DL_COMPLETED:
 	case GTA_DL_ABORTED:
@@ -1255,9 +1245,6 @@ void download_stop(struct download *d, guint32 new_status,
 	case GTA_DL_TIMEOUT_WAIT:
 		list_target = DL_LIST_WAITING;
 		break;
-	case GTA_DL_STOPPED:
-		list_target = DL_LIST_STOPPED;
-		download_start_restart_timer(d);
 		break;
 	default:
 		g_warning("download_stop(): unexpected new status %d !", new_status);
@@ -1374,11 +1361,6 @@ static void download_queue_v(struct download *d, const gchar *fmt, va_list ap)
 
 	download_gui_add(d);
 	gui_update_download(d, TRUE);
-
-	if (d->restart_timer_id) {
-		g_source_remove(d->restart_timer_id);
-		d->restart_timer_id = 0;
-	}
 
 	file_info_clear_download(d);
 }
@@ -1987,7 +1969,8 @@ attempt_retry:
 
 	if (on_timeout && d->always_push && (d->flags & DL_F_PUSH_IGN))
 		download_stop(d, GTA_DL_ERROR, "Can't reach host (Push or Direct)");
-	else if (++d->retries <= download_max_retries) {
+	else if (d->retries < download_max_retries) {
+		d->retries++;
 		if (on_timeout)
 			download_queue_delay(d, download_retry_timeout_delay,
 				"Timeout (%d retr%s)",
@@ -2172,7 +2155,6 @@ static void create_download(
 	d->size = size;
 	d->record_index = record_index;
 	d->file_desc = -1;
-	d->restart_timer_id = 0;
 	d->always_push = push;
 	if (sha1)
 		d->sha1 = atom_sha1_get(sha1);
@@ -2379,7 +2361,8 @@ void download_index_changed(guint32 ip, guint16 port, guchar *guid,
 
 	for (sl = to_stop; sl; sl = sl->next) {
 		struct download *d = (struct download *) sl->data;
-		download_stop(d, GTA_DL_STOPPED, "Stopped (Index changed)");
+		download_queue_delay(d, download_retry_stopped_delay,
+			"Stopped (Index changed)");
 	}
 
 	/*
@@ -2419,9 +2402,6 @@ void download_free(struct download *d)
 
 	sl_downloads = g_slist_remove(sl_downloads, d);
 	sl_unqueued = g_slist_remove(sl_unqueued, d);
-
-	if (d->restart_timer_id)
-		g_source_remove(d->restart_timer_id);
 
 	if (d->push)
 		download_push_remove(d);
@@ -2676,28 +2656,6 @@ static gboolean send_push_request(gchar *guid, guint32 file_id, guint16 port)
 	return TRUE;
 }
 
-static gboolean download_queue_w(gpointer dp)
-{
-	struct download *d = (struct download *) dp;
-	gchar error_str[256];	/* Used to sprintf() error strings with vars */
-
-	if (d->remove_msg)
-		strncpy(error_str, d->remove_msg, sizeof(error_str) - 1);
-
-	d->restart_timer_id = 0;
-	download_queue(d, d->remove_msg ? error_str : NULL);
-
-	return FALSE;			/* Called only once per download */
-}
-
-static void download_start_restart_timer(struct download *d)
-{
-	/* download_retry_stopped: seconds to wait after EOF or ECONNRESET */
-
-	d->restart_timer_id = g_timeout_add(download_retry_stopped_delay * 1000,
-		download_queue_w, d);
-}
-
 /***
  *** Header parsing callbacks
  ***
@@ -2889,15 +2847,22 @@ static void download_header_read(
 			download_retry_no_urires(d, 0, 0)
 		)
 			return;
-		download_stop(d, GTA_DL_STOPPED, "Stopped (EOF)");
+		if (d->retries++ < download_max_retries)
+			download_queue_delay(d, download_retry_stopped_delay,
+				"Stopped (EOF)");
+		else
+			goto too_many_retries;
 		return;
 	} else if (r < 0 && errno == EAGAIN)
 		return;
 	else if (r < 0) {
-		if (errno == ECONNRESET)
-			download_stop(d, GTA_DL_STOPPED, "Stopped (%s)",
-				g_strerror(errno));
-		else
+		if (errno == ECONNRESET) {
+			if (d->retries++ < download_max_retries)
+				download_queue_delay(d, download_retry_stopped_delay,
+					"Stopped (%s)", g_strerror(errno));
+			else
+				goto too_many_retries;
+		} else
 			download_stop(d, GTA_DL_ERROR, "Failed (Read error: %s)",
 				g_strerror(errno));
 		return;
@@ -2909,10 +2874,12 @@ static void download_header_read(
 
 	s->pos += r;
 	d->last_update = time((time_t *) 0);
-	d->retries = 0;		/* successful read means our retry was successful */
 
 	download_header_parse(ih);
 	return;
+
+too_many_retries:
+	download_stop(d, GTA_DL_ERROR, "Too many attempts (%d)", d->retries - 1);
 }
 
 /*
@@ -2961,7 +2928,8 @@ static gboolean download_overlap_check(struct download *d)
 	if (!d->file_info->use_swarming && d->skip != buf.st_size) {
 		g_warning("File '%s' changed size (now %lu, but was %u)",
 			d->file_info->file_name, (gulong) buf.st_size, d->skip);
-		download_stop(d, GTA_DL_STOPPED, "Stopped (Output file size changed)");
+		download_queue_delay(d, download_retry_stopped_delay,
+			"Stopped (Output file size changed)");
 		goto out;
 	}
 
@@ -2988,7 +2956,8 @@ static gboolean download_overlap_check(struct download *d)
 
 	if (r != d->overlap_size) {
 		if (r == 0)
-			download_stop(d, GTA_DL_STOPPED, "Stopped (EOF)");
+			download_queue_delay(d, download_retry_stopped_delay,
+				"Stopped (EOF)");
 		else {
 			g_warning("Short read (%d instead of %d bytes) on resuming data "
 				"for \"%s\"", r, d->overlap_size, d->file_info->file_name);
@@ -3286,6 +3255,7 @@ static void download_request(struct download *d, header_t *header)
 		return;
 	}
 
+	d->retries = 0;				/* Retry successful, we managed to connect */
 	ip = download_ip(d);
 	port = download_port(d);
 
@@ -3519,7 +3489,7 @@ static void download_request(struct download *d, header_t *header)
 		if (!d->file_info->use_swarming && (st.st_size != d->skip)) {
 			g_warning("File '%s' changed size (now %lu, but was %u)",
 					d->file_info->file_name, (gulong) st.st_size, d->skip);
-			download_stop(d, GTA_DL_STOPPED,
+			download_queue_delay(d, download_retry_stopped_delay,
 				"Stopped (Output file size changed)");
 			return;
 		}
@@ -3609,7 +3579,8 @@ static void download_read(gpointer data, gint source, GdkInputCondition cond)
 	g_assert(s->pos >= 0 && s->pos <= sizeof(s->buffer));
 
 	if (s->pos == sizeof(s->buffer)) {
-		download_stop(d, GTA_DL_STOPPED, "Stopped (Read buffer full)");
+		download_queue_delay(d, download_retry_stopped_delay,
+			"Stopped (Read buffer full)");
 		return;
 	}
 
@@ -3629,10 +3600,11 @@ static void download_read(gpointer data, gint source, GdkInputCondition cond)
 
 	if (r <= 0) {
 		if (r == 0) {
-			download_stop(d, GTA_DL_STOPPED, "Stopped (EOF)");
+			download_queue_delay(d, download_retry_stopped_delay,
+				"Stopped (EOF)");
 		} else if (errno != EAGAIN) {
 			if (errno == ECONNRESET)
-				download_stop(d, GTA_DL_STOPPED,
+				download_queue_delay(d, download_retry_stopped_delay,
 					"Stopped (%s)", g_strerror(errno));
 			else
 				download_stop(d, GTA_DL_ERROR,
@@ -4412,8 +4384,6 @@ void download_close(void)
 			bsched_source_remove(d->bio);
 		if (d->sha1)
 			atom_sha1_free(d->sha1);
-		if (d->restart_timer_id)
-			g_source_remove(d->restart_timer_id);
 		file_info_free(d->file_info, FALSE);
 		download_remove_from_server(d);
 		atom_str_free(d->file_name);

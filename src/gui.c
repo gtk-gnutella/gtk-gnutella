@@ -812,7 +812,6 @@ void gui_update_download_abort_resume(void)
                 remove = TRUE;
 			break;
 		case GTA_DL_TIMEOUT_WAIT:
-		case GTA_DL_STOPPED:
 			abort = resume = TRUE;
 			break;
 		}
@@ -998,7 +997,6 @@ void gui_update_download(struct download *d, gboolean force)
 			a = "Connected";
 		break;
 
-	case GTA_DL_STOPPED:
 	case GTA_DL_ERROR:
 		a = (gchar *) ((d->remove_msg) ? d->remove_msg : "Unknown Error");
 		break;
