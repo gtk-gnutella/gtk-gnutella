@@ -12,7 +12,7 @@
 : determine our version number
 echo " "
 echo "Figuring out my version number..." >&4
-$grep '^#define GTA' $rsrc/src/common.h >ver.c
+$grep '^#define GTA' $rsrc/src/common.h | $grep -v GTA_INTERFACE >ver.c
 $cat >>ver.c <<'EOM'
 int main()
 {
