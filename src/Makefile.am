@@ -81,7 +81,8 @@ ADDITIONAL_DROPIN = \
 	upload_stats_gui.c upload_stats_gui.h \
 	gnet_stats_gui.c gnet_stats_gui.h \
 	search_stats_gui.c search_stats_gui.h \
-	main_gui.c main_gui.h main_cb.c main_cb.h 
+	main_gui.c main_gui.h main_cb.c main_cb.h \
+	fileinfo_gui.c fileinfo_gui.h
 gtk_gnutella_LDADD = @GTK_LIBS@ -lz @XML_LIBS@
 endif
 

@@ -1,8 +1,5 @@
 /* config.h.in.  Generated automatically from configure.in by autoheader 2.13.  */
 
-/* Define if you need to in order for stat and other things to work.  */
-#undef _POSIX_SOURCE
-
 /* Define if you have the ANSI C header files.  */
 #undef STDC_HEADERS
 
@@ -36,6 +33,9 @@
 
 /* Define if you have the strcasestr function.  */
 #undef HAVE_STRCASESTR
+
+/* Define if you have the strlcpy function.  */
+#undef HAVE_STRLCPY
 
 /* Define if you have the vsnprintf function.  */
 #undef HAVE_VSNPRINTF
