@@ -32,6 +32,7 @@ RCSID("$Id$");
 #include "gwcache.h"
 #include "http.h"
 #include "hosts.h"
+#include "hcache.h"
 #include "version.h"
 #include "settings.h"
 
@@ -854,6 +855,15 @@ gwc_get_urls(void)
 static gboolean hostfile_running = FALSE;
 
 /**
+ * Check whether we're waiting for a hostfile request.
+ */
+gboolean
+gwc_is_waiting(void)
+{
+	return hostfile_running;
+}
+
+/**
  * Called from parse_dispatch_lines() for each complete line of output.
  *
  * @return FALSE to stop processing of any remaining data.
@@ -877,7 +887,7 @@ gwc_host_line(struct parse_context *ctx, gchar *buf, gint len)
 
 		if (gchar_to_ip_port(buf, &ip, &port)) {
 			ctx->processed++;
-			host_add(ip, port, FALSE);
+			hcache_add_caught(HOST_ULTRA, ip, port, "GWC");
 		}
 	}
 
