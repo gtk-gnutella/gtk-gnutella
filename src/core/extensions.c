@@ -325,24 +325,30 @@ ext_ggep_parse(gchar **retp, gint len, extvec_t *exv, gint exvcnt)
 		flags = (guchar) *p++;
 
 		if (flags & GGEP_F_MBZ)		/* A byte that Must Be Zero is set */
-			goto out;
+			goto abort;
 
 		id_len = flags & GGEP_F_IDLEN;
 
 		if (id_len == 0)
-			goto out;
+			goto abort;
 
 		if (end - p < id_len)		/* Not enough bytes to store the ID! */
-			goto out;
+			goto abort;
 
 		/*
 		 * Read ID, and NUL-terminate it.
+		 *
+		 * As a safety precaution, only allow ASCII IDs, and nothing in
+		 * the control space.  It's not really in the GGEP specs, but it's
+		 * safer that way, and should protect us if we parse garbage starting
+		 * with 0xC3....
+		 *		--RAM, 2004-11-12
 		 */
 
 		for (i = 0; i < id_len; i++) {
-			guchar c = *p++;
-			if (c == '\0')
-				goto out;
+			gint c = *p++;
+			if (c == '\0' || !isascii(c) || iscntrl(c))
+				goto abort;
 			*ip++ = c;
 		}
 
@@ -362,7 +368,7 @@ ext_ggep_parse(gchar **retp, gint len, extvec_t *exv, gint exvcnt)
 			 */
 
 			if (((b & GGEP_L_XFLAGS) == GGEP_L_XFLAGS) || !(b & GGEP_L_XFLAGS))
-				goto out;
+				goto abort;
 
 			data_length = (data_length << GGEP_L_VSHIFT) | (b & GGEP_L_VALUE);
 
@@ -373,7 +379,7 @@ ext_ggep_parse(gchar **retp, gint len, extvec_t *exv, gint exvcnt)
 		}
 
 		if (!length_ended)
-			goto out;
+			goto abort;
 
 		/* 
 		 * Ensure we have enough bytes left for the payload.  If not, it
@@ -381,7 +387,7 @@ ext_ggep_parse(gchar **retp, gint len, extvec_t *exv, gint exvcnt)
 		 */
 
 		if (end - p < data_length)		/* Not enough bytes for the payload */
-			goto out;
+			goto abort;
 
 		/*
 		 * OK, at this point we have validated the GGEP header.
@@ -438,10 +444,22 @@ ext_ggep_parse(gchar **retp, gint len, extvec_t *exv, gint exvcnt)
 			break;
 	}
 
-out:
 	*retp = lastp;	/* Points to first byte after what we parsed */
 
 	return count;
+
+abort:
+	/*
+	 * Cleanup any extension we already parsed.
+	 */
+
+	while (count--) {
+		exv--;
+		wfree(exv->opaque, sizeof(extdesc_t));
+		exv->opaque = NULL;
+	}
+
+	return 0;		/* Cannot be a GGEP block: leave parsing pointer intact */
 }
 
 /**
@@ -1056,6 +1074,9 @@ ext_ggep_decode(const extvec_t *e)
 	pbase = d->ext_phys_payload;
 	plen = d->ext_phys_paylen;
 
+	if (plen == 0)
+		goto out;
+
 	/*
 	 * COBS decoding must be performed before inflation, if any.
 	 */
@@ -1089,6 +1110,9 @@ ext_ggep_decode(const extvec_t *e)
 			plen = result;
 		}
 
+		if (plen == 0)		/* 0 bytes cannot be a valid deflated payload */
+			goto out;
+
 		/* FALL THROUGH */
 	}
 
@@ -1108,19 +1132,18 @@ out:
 		wfree(uncobs, uncobs_len);
 
 	/*
-	 * If something went wrong, allocate a small buffer so that we
+	 * If something went wrong, setup a zero-length payload so that we
 	 * don't go through this whole decoding again.
 	 */
 
 	if (d->ext_payload == NULL) {
-		g_warning("unable to get GGEP \"%s\" payload (%s)",
-			d->ext_ggep_id, 
+		g_warning("unable to get GGEP \"%s\" %d-byte payload (%s)",
+			d->ext_ggep_id, d->ext_phys_paylen,
 			(d->ext_ggep_deflate && d->ext_ggep_cobs) ? "COBS + deflated" :
 			d->ext_ggep_cobs ? "COBS" : "deflated");
 
-		d->ext_rpaylen = 1;		/* Signals it was walloc()'ed */
 		d->ext_paylen = 0;
-		d->ext_payload = walloc(d->ext_rpaylen);
+		d->ext_payload = d->ext_phys_payload;
 	}
 }
 
