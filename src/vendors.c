@@ -149,6 +149,9 @@ gchar *vendor_code_str(guint32 code)
 	static gchar temp[5];
     gint i;
 
+	if (code == 0)
+		return "null";
+
 	WRITE_GUINT32_BE(code, temp);
 	temp[4] = '\0';
 
