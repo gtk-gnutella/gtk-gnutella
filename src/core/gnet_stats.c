@@ -39,6 +39,7 @@ RCSID("$Id$");
 static guint8 stats_lut[256];
 
 static gnet_stats_t gnet_stats;
+static gnet_stats_t gnet_tcp_stats;
 static gnet_stats_t gnet_udp_stats;
 
 static gchar * const msg_drop_reason[MSG_DROP_REASON_COUNT] = {
@@ -102,9 +103,14 @@ void gnet_stats_count_received_header(gnutella_node_t *n)
 	guint i;
 	gnet_stats_t *stats;
 
-	stats = NODE_IS_UDP(n) ? &gnet_udp_stats : &gnet_stats;
+	stats = NODE_IS_UDP(n) ? &gnet_udp_stats : &gnet_tcp_stats;
 
     n->received++;
+
+    gnet_stats.pkg.received[MSG_TOTAL]++;
+    gnet_stats.pkg.received[t]++;
+    gnet_stats.byte.received[MSG_TOTAL] += sizeof(n->header);
+    gnet_stats.byte.received[t] += sizeof(n->header);
 
     stats->pkg.received[MSG_TOTAL]++;
     stats->pkg.received[t]++;
@@ -132,7 +138,10 @@ void gnet_stats_count_received_payload(gnutella_node_t *n)
 	guint i;
 	gnet_stats_t *stats;
 
-	stats = NODE_IS_UDP(n) ? &gnet_udp_stats : &gnet_stats;
+	stats = NODE_IS_UDP(n) ? &gnet_udp_stats : &gnet_tcp_stats;
+
+    gnet_stats.byte.received[MSG_TOTAL] += size;
+    gnet_stats.byte.received[t] += size;
 
     stats->byte.received[MSG_TOTAL] += size;
     stats->byte.received[t] += size;
@@ -152,9 +161,20 @@ void gnet_stats_count_queued(
 	guint64 *stats_pkg;
 	guint64 *stats_byte;
 	guint t = stats_lut[type];
+	gnet_stats_t *stats;
+
+	stats = NODE_IS_UDP(n) ? &gnet_udp_stats : &gnet_tcp_stats;
 
 	stats_pkg = hops ? gnet_stats.pkg.queued : gnet_stats.pkg.gen_queued;
 	stats_byte = hops ? gnet_stats.byte.queued : gnet_stats.byte.gen_queued;
+
+    stats_pkg[MSG_TOTAL]++;
+    stats_pkg[t]++;
+    stats_byte[MSG_TOTAL] += size;
+    stats_byte[t] += size;
+
+	stats_pkg = hops ? stats->pkg.queued : stats->pkg.gen_queued;
+	stats_byte = hops ? stats->byte.queued : stats->byte.gen_queued;
 
     stats_pkg[MSG_TOTAL]++;
     stats_pkg[t]++;
@@ -168,9 +188,20 @@ void gnet_stats_count_sent(
 	guint64 *stats_pkg;
 	guint64 *stats_byte;
 	guint t = stats_lut[type];
+	gnet_stats_t *stats;
+
+	stats = NODE_IS_UDP(n) ? &gnet_udp_stats : &gnet_tcp_stats;
 
 	stats_pkg = hops ? gnet_stats.pkg.relayed : gnet_stats.pkg.generated;
 	stats_byte = hops ? gnet_stats.byte.relayed : gnet_stats.byte.generated;
+
+    stats_pkg[MSG_TOTAL]++;
+    stats_pkg[t]++;
+    stats_byte[MSG_TOTAL] += size;
+    stats_byte[t] += size;
+
+	stats_pkg = hops ? stats->pkg.relayed : stats->pkg.generated;
+	stats_byte = hops ? stats->byte.relayed : stats->byte.generated;
 
     stats_pkg[MSG_TOTAL]++;
     stats_pkg[t]++;
@@ -182,11 +213,19 @@ void gnet_stats_count_expired(gnutella_node_t *n)
 {
     guint32 size = n->size + sizeof(n->header);
 	guint t = stats_lut[n->header.function];
+	gnet_stats_t *stats;
+
+	stats = NODE_IS_UDP(n) ? &gnet_udp_stats : &gnet_tcp_stats;
 
     gnet_stats.pkg.expired[MSG_TOTAL]++;
     gnet_stats.pkg.expired[t]++;
     gnet_stats.byte.expired[MSG_TOTAL] += size;
     gnet_stats.byte.expired[t] += size;
+
+    stats->pkg.expired[MSG_TOTAL]++;
+    stats->pkg.expired[t]++;
+    stats->byte.expired[MSG_TOTAL] += size;
+    stats->byte.expired[t] += size;
 }
 
 #define DROP_STATS(t,s) do {							\
@@ -280,6 +319,12 @@ void gnet_stats_count_flowc(gpointer head)
  ***/
 
 void gnet_stats_get(gnet_stats_t *s)
+{
+    g_assert(s != NULL);
+    memcpy(s, &gnet_stats, sizeof(*s));
+}
+
+void gnet_stats_tcp_get(gnet_stats_t *s)
 {
     g_assert(s != NULL);
     memcpy(s, &gnet_stats, sizeof(*s));
