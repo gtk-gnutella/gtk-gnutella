@@ -166,6 +166,9 @@ extern guint32  dl_running_count;
 extern guint32  dl_qalive_count;
 extern guint32  dl_byte_count;
 extern guint32  ul_byte_count;
+extern gboolean pfsp_server;
+extern guint32  pfsp_first_chunk;
+extern gboolean fuzzy_filter_dmesh;
 extern guint32  crawler_visit_count;
 
 

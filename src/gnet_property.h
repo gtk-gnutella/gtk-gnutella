@@ -171,6 +171,9 @@ typedef enum {
     PROP_DL_QALIVE_COUNT,    
     PROP_DL_BYTE_COUNT,    
     PROP_UL_BYTE_COUNT,    
+    PROP_PFSP_SERVER,    
+    PROP_PFSP_FIRST_CHUNK,    
+    PROP_FUZZY_FILTER_DMESH,    
     PROP_CRAWLER_VISIT_COUNT,
     GNET_PROPERTY_END
 } gnet_property_t;

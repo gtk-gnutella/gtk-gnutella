@@ -322,6 +322,12 @@ guint32  dl_byte_count     = 0;
 guint32  dl_byte_count_def = 0;
 guint32  ul_byte_count     = 0;
 guint32  ul_byte_count_def = 0;
+gboolean pfsp_server     = TRUE;
+gboolean pfsp_server_def = TRUE;
+guint32  pfsp_first_chunk     = 524288;
+guint32  pfsp_first_chunk_def = 524288;
+gboolean fuzzy_filter_dmesh     = TRUE;
+gboolean fuzzy_filter_dmesh_def = TRUE;
 guint32  crawler_visit_count     = 0;
 guint32  crawler_visit_count_def = 0;
 
@@ -546,7 +552,7 @@ prop_set_t *gnet_prop_init(void) {
     gnet_property->props[10].data.guint32.def   = &max_downloads_def;
     gnet_property->props[10].data.guint32.value = &max_downloads;
     gnet_property->props[10].data.guint32.choices = NULL;
-    gnet_property->props[10].data.guint32.max   = 100;
+    gnet_property->props[10].data.guint32.max   = 999;
     gnet_property->props[10].data.guint32.min   = 0;
 
 
@@ -1930,7 +1936,7 @@ prop_set_t *gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[82].name = "input_gnet_leaf_bandwidth";
-    gnet_property->props[82].desc = "Bandwidth limit for incoming gNet leaf traffic in bytes/sec. When not running as an ultra node, this bandwidth is given to the regular gNet traffic, whether or not the shaper for leaves is enabled.";
+    gnet_property->props[82].desc = "Bandwidth limit for incoming gNet leaf traffic in bytes/sec. When not running as an ultra node, this bandwidth is given to the regular HTTP traffic, whether or not the shaper for leaves is enabled.";
     gnet_property->props[82].prop_changed_listeners = NULL;
     gnet_property->props[82].save = TRUE;
     gnet_property->props[82].vector_size = 1;
@@ -1950,7 +1956,7 @@ prop_set_t *gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[83].name = "output_gnet_leaf_bandwidth";
-    gnet_property->props[83].desc = "Bandwidth limit for outgoing gNet leaf traffic in bytes/sec. When not running as an ultra node, this bandwidth is given to the regular gNet traffic, whether or not the shaper for leaves is enabled.";
+    gnet_property->props[83].desc = "Bandwidth limit for outgoing gNet leaf traffic in bytes/sec. When not running as an ultra node, this bandwidth is given to the regular HTTP traffic, whether or not the shaper for leaves is enabled.";
     gnet_property->props[83].prop_changed_listeners = NULL;
     gnet_property->props[83].save = TRUE;
     gnet_property->props[83].vector_size = 1;
@@ -2945,23 +2951,77 @@ prop_set_t *gnet_prop_init(void) {
 
 
     /*
+     * PROP_PFSP_SERVER:
+     *
+     * General data:
+     */
+    gnet_property->props[136].name = "pfsp_server";
+    gnet_property->props[136].desc = "Whether gtk-gnutella should serve partial files whilst they are still incompletely downloaded.  Recommended for network's health unless you already share many files, in which case it does not harm to leave it in, but will not matter as much.";
+    gnet_property->props[136].prop_changed_listeners = NULL;
+    gnet_property->props[136].save = TRUE;
+    gnet_property->props[136].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[136].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[136].data.boolean.def   = &pfsp_server_def;
+    gnet_property->props[136].data.boolean.value = &pfsp_server;
+
+
+    /*
+     * PROP_PFSP_FIRST_CHUNK:
+     *
+     * General data:
+     */
+    gnet_property->props[137].name = "pfsp_first_chunk";
+    gnet_property->props[137].desc = "When partial file sharing (PFSP) is enabled, gtk-gnutella will strive to download chunks in a random order, to maximize the spreading of the file in the network.  However, this makes auditing (file type, pre-viewing, etc...) of the file impossible. This field sets the size in bytes of the first chunk of data that should be continuously downloaded at the beginning of the file.  Don't set it too large.";
+    gnet_property->props[137].prop_changed_listeners = NULL;
+    gnet_property->props[137].save = TRUE;
+    gnet_property->props[137].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[137].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[137].data.guint32.def   = &pfsp_first_chunk_def;
+    gnet_property->props[137].data.guint32.value = &pfsp_first_chunk;
+    gnet_property->props[137].data.guint32.choices = NULL;
+    gnet_property->props[137].data.guint32.max   = 0xFFFFFFFF;
+    gnet_property->props[137].data.guint32.min   = 0x00000000;
+
+
+    /*
+     * PROP_FUZZY_FILTER_DMESH:
+     *
+     * General data:
+     */
+    gnet_property->props[138].name = "fuzzy_filter_dmesh";
+    gnet_property->props[138].desc = "Whether to apply a fuzzy filter on download mesh entries.  Thepurpose of this filtering is to remove entries whose names are too different to be sensibly part of the same mesh. When activated, your mesh will probably be more consistent at the cost of some small extra CPU time.";
+    gnet_property->props[138].prop_changed_listeners = NULL;
+    gnet_property->props[138].save = TRUE;
+    gnet_property->props[138].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[138].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[138].data.boolean.def   = &fuzzy_filter_dmesh_def;
+    gnet_property->props[138].data.boolean.value = &fuzzy_filter_dmesh;
+
+
+    /*
      * PROP_CRAWLER_VISIT_COUNT:
      *
      * General data:
      */
-    gnet_property->props[136].name = "crawler_visit_count";
-    gnet_property->props[136].desc = "Number of crawler visits during this session";
-    gnet_property->props[136].prop_changed_listeners = NULL;
-    gnet_property->props[136].save = FALSE;
-    gnet_property->props[136].vector_size = 1;
+    gnet_property->props[139].name = "crawler_visit_count";
+    gnet_property->props[139].desc = "Number of crawler visits during this session";
+    gnet_property->props[139].prop_changed_listeners = NULL;
+    gnet_property->props[139].save = FALSE;
+    gnet_property->props[139].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[136].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[136].data.guint32.def   = &crawler_visit_count_def;
-    gnet_property->props[136].data.guint32.value = &crawler_visit_count;
-    gnet_property->props[136].data.guint32.choices = NULL;
-    gnet_property->props[136].data.guint32.max   = 0xFFFFFFFF;
-    gnet_property->props[136].data.guint32.min   = 0x00000000;
+    gnet_property->props[139].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[139].data.guint32.def   = &crawler_visit_count_def;
+    gnet_property->props[139].data.guint32.value = &crawler_visit_count;
+    gnet_property->props[139].data.guint32.choices = NULL;
+    gnet_property->props[139].data.guint32.max   = 0xFFFFFFFF;
+    gnet_property->props[139].data.guint32.min   = 0x00000000;
     return gnet_property;
 }
 

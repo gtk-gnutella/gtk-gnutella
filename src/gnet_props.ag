@@ -135,7 +135,7 @@ prop = {
     data = {
         default = 10;
         min     = 0;
-        max     = 100;
+        max     = 999;
     };
 };
 
@@ -974,7 +974,7 @@ prop = {
      cfgvar = "input_gnet_leaf_bandwidth";
      desc = "Bandwidth limit for incoming gNet leaf traffic in bytes/sec. "
 			"When not running as an ultra node, this bandwidth is given "
-			"to the regular gNet traffic, whether or not the shaper for "
+			"to the regular HTTP traffic, whether or not the shaper for "
 			"leaves is enabled.";
      type = guint32;
      data = {
@@ -989,7 +989,7 @@ prop = {
     cfgvar = "output_gnet_leaf_bandwidth";
     desc = "Bandwidth limit for outgoing gNet leaf traffic in bytes/sec. "
 			"When not running as an ultra node, this bandwidth is given "
-			"to the regular gNet traffic, whether or not the shaper for "
+			"to the regular HTTP traffic, whether or not the shaper for "
 			"leaves is enabled.";
     type = guint32;
     data = {
@@ -1610,6 +1610,46 @@ prop = {
     type = guint32;
     data = {
         default = 0;
+    };
+};
+
+prop = {
+    name = "pfsp_server";
+    desc = "Whether gtk-gnutella should serve partial files whilst they are "
+			"still incompletely downloaded.  Recommended for network's health "
+			"unless you already share many files, in which case it does not "
+			"harm to leave it in, but will not matter as much.";
+    type = boolean;
+    data = {
+        default = TRUE;
+    };
+};
+
+prop = {
+    name = "pfsp_first_chunk";
+    desc = "When partial file sharing (PFSP) is enabled, gtk-gnutella will "
+			"strive to download chunks in a random order, to maximize the "
+			"spreading of the file in the network.  However, this makes "
+			"auditing (file type, pre-viewing, etc...) of the file impossible. "
+			"This field sets the size in bytes of the first chunk of data "
+			"that should be continuously downloaded at the beginning of the "
+			"file.  Don't set it too large.";
+    type = guint32;
+    data = {
+        default = 524288;
+    };
+};
+
+prop = {
+    name = "fuzzy_filter_dmesh";
+    desc = "Whether to apply a fuzzy filter on download mesh entries.  The"
+			"purpose of this filtering is to remove entries whose names "
+			"are too different to be sensibly part of the same mesh. "
+			"When activated, your mesh will probably be more consistent "
+			"at the cost of some small extra CPU time.";
+    type = boolean;
+    data = {
+        default = TRUE;
     };
 };
 
