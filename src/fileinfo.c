@@ -61,9 +61,15 @@
 #include <time.h>			/* For ctime() */
 #include <netinet/in.h>		/* For ntohl() and friends... */
 
-// XXX replace sl_file_info by a size-indexed hash, with linked items in values
+/* made visible for us by atoms.c */
+extern guint sha1_hash(gconstpointer key);
+extern gint sha1_eq(gconstpointer a, gconstpointer b);
 
-static GSList *sl_file_info = NULL;
+
+static GHashTable *file_info_size_hash = NULL;
+static GHashTable *file_info_name_hash = NULL;
+static GHashTable *file_info_sha1_hash = NULL;
+
 static gchar *file_info_file = "fileinfo";
 static gboolean fileinfo_dirty = FALSE;
 static gboolean can_swarm = FALSE;		/* Set by file_info_retrieve() */
@@ -756,6 +762,24 @@ static void file_info_store_one(FILE *f, struct dl_file_info *fi)
 }
 
 /*
+ * file_info_store_list
+ *
+ * Callback for hash table iterator. Used by file_info_store().
+ */
+static void file_info_store_list(gpointer key, gpointer val, gpointer x)
+{
+    GSList *l;
+    struct dl_file_info *fi;
+    FILE *f = (FILE *)x;
+
+    for (l = (GSList *)val; l; l = l->next) {
+        fi = (struct dl_file_info *) l->data;
+        file_info_store_one(f, fi);
+    }
+
+}
+
+/*
  * file_info_store
  *
  * Stores the list of output files and their metainfo to the
@@ -765,7 +789,6 @@ void file_info_store(void)
 {
 	gchar *file;
 	FILE *f;
-	GSList *l;
 	time_t now = time((time_t *)NULL);
 
 	file = g_strdup_printf("%s/%s", config_dir, file_info_file);
@@ -792,8 +815,7 @@ void file_info_store(void)
 	fputs("#	<blank line>\n", f);
 	fputs("#\n\n", f);
 
-	for (l = sl_file_info; l; l = l->next)
-		file_info_store_one(f, (struct dl_file_info *) l->data);
+    g_hash_table_foreach(file_info_size_hash, file_info_store_list, f);
 
 	fclose(f);
 	g_free(file);
@@ -808,8 +830,33 @@ void file_info_store(void)
  */
 void file_info_store_if_dirty(void)
 {
-	if (fileinfo_dirty)
-		file_info_store();
+    if (fileinfo_dirty)
+        file_info_store();
+}
+
+/*
+ * file_info_close_list
+ *
+ * Callback for hash table iterator. Used by file_info_close().
+ */
+static void file_info_close_list(gpointer key, gpointer val, gpointer x)
+{
+    GSList *l, *list;
+    struct dl_file_info *fi;
+
+    list = (GSList *)val;
+    
+    for (l = list; l; l = l->next) {
+        fi = (struct dl_file_info *) l->data;
+
+        if (fi->refcount) 
+            g_warning("file_info_close() refcount = %u", fi->refcount);
+
+        fi_free(fi);
+    }
+
+    g_slist_free(list);
+
 }
 
 /*
@@ -819,21 +866,38 @@ void file_info_store_if_dirty(void)
  */
 void file_info_close(void)
 {
-	GSList *l;
+    file_info_store();
 
-	file_info_store();
+    g_hash_table_foreach(file_info_size_hash, file_info_close_list, NULL);
 
-	for (l = sl_file_info; l; l = l->next) {
-		struct dl_file_info *fi = (struct dl_file_info *) l->data;
+    g_hash_table_destroy(file_info_size_hash);
+    g_hash_table_destroy(file_info_name_hash);
+    g_hash_table_destroy(file_info_sha1_hash);
+    
+    g_free(tbuf.arena);
+}
 
-		if (fi->refcount) 
-			g_warning("file_info_close() refcount = %u", fi->refcount);
+/*
+ * file_info_hash_insert
+ *
+ * Inserts a file_info struct into the hash tables.
+ */
+void file_info_hash_insert(struct dl_file_info *fi)
+{
+    GSList *l;
 
-		fi_free(fi);
-	}
+    l = g_hash_table_lookup(file_info_size_hash, &fi->size);
+    if(l) {
+        g_slist_append(l, fi);
+    } else {
+        l = g_slist_append(l, fi);
+        g_hash_table_insert(file_info_size_hash, &fi->size, l);
+    }
 
-	g_slist_free(sl_file_info);
-	g_free(tbuf.arena);
+    g_hash_table_insert(file_info_name_hash, fi->file_name, fi);
+
+    if(fi->sha1)
+        g_hash_table_insert(file_info_sha1_hash, fi->sha1, fi);
 }
 
 /*
@@ -853,6 +917,10 @@ void file_info_retrieve(void)
 	GHashTable *seen_file = g_hash_table_new(g_str_hash, g_str_equal);
 	gboolean empty = TRUE;
 
+    file_info_name_hash = g_hash_table_new(g_str_hash, g_str_equal);
+    file_info_size_hash = g_hash_table_new(g_int_hash, g_int_equal);
+    file_info_sha1_hash = g_hash_table_new(sha1_hash, sha1_eq);
+  
 	/*
 	 * We have a complex interaction here: each time a new entry within the
 	 * download mesh is added, file_info_try_to_swarm_with() will be
@@ -946,8 +1014,8 @@ void file_info_retrieve(void)
 				fi_free(dfi);
 			}
 
-			file_info_merge_adjacent(fi);
-			sl_file_info = g_slist_append(sl_file_info, fi);
+            file_info_merge_adjacent(fi);
+            file_info_hash_insert(fi);
 			empty = FALSE;
 
 		discard:
@@ -1065,7 +1133,7 @@ struct dl_file_info *file_info_get(
 	guint32 pos = 0;
 
 	/* See if we know anything about the file already. */
-	for (p = sl_file_info; p; p = p->next) {
+	for (p = g_hash_table_lookup(file_info_size_hash, &size); p; p = p->next) {
 
 		fi = p->data;
 
@@ -1074,7 +1142,11 @@ struct dl_file_info *file_info_get(
 		 * theorically possible to fetch from a partial file and use it to
 		 * fill our gaps, but for now, require files to be of identical length.
 		 */
-		if (fi->size != size) continue;
+        if (fi->size != size) {
+            g_warning("file_info_get(): size mismatch!? (%u vs %u)",
+                    fi->size, size);
+            continue;
+        }
 
 		if (sha1 && fi->sha1) {
 
@@ -1108,9 +1180,9 @@ struct dl_file_info *file_info_get(
 	if ((fi = file_info_retrieve_binary(file, path)) != NULL) {
 		g_warning("file_info_get(): "
 			"successfully retrieved meta info from file \"%s\"", file);
-		fi->refcount++;
-		sl_file_info = g_slist_append(sl_file_info, fi);
-		return fi;
+        fi->refcount++;
+        file_info_hash_insert(fi);
+        return fi;
 	}
 
 	/* New file; Allocate a new file structure */
@@ -1158,7 +1230,7 @@ struct dl_file_info *file_info_get(
 		fi->chunklist = g_slist_append(fi->chunklist, fc);
 	}
 
-	sl_file_info = g_slist_append(sl_file_info, fi);
+    file_info_hash_insert(fi);
 
 	if (sha1)
 		dmesh_multiple_downloads(sha1, size);
@@ -1179,8 +1251,8 @@ static gboolean file_info_has_identical(gchar *file, guint32 size, gchar *sha1)
 	struct dl_file_info *fi;
 	gint incomplete;
 
-	for (p = sl_file_info; p; p = p->next) {
-
+	for (p = g_hash_table_lookup(file_info_size_hash, &size); p; p = p->next) {
+        
 		fi = p->data;
 
 		if (fi->size != size) continue;
@@ -1227,6 +1299,9 @@ void file_info_check_results_set(struct results_set *rs)
 	for (l = rs->records; l; l = l->next) {
 		struct record *rc = (struct record *) l->data;
 
+        if(!g_hash_table_lookup(file_info_size_hash, &rc->size))
+            continue;
+        
 		if (file_info_has_identical(rc->name, rc->size, rc->sha1)) {
 			gboolean need_push = (rs->status & ST_FIREWALL) ||
 				!check_valid_host(rs->ip, rs->port);
@@ -1581,17 +1656,7 @@ enum dl_chunk_status file_info_find_hole(
  */
 static struct dl_file_info *file_info_active(guchar *sha1)
 {
-	struct dl_file_info *fi;
-	GSList *l;
-	
-
-	for (l = sl_file_info; l; l = l->next) {
-		fi = (struct dl_file_info *) l->data;
-		if (fi->sha1 && 0 == memcmp(fi->sha1, sha1, SHA1_RAW_SIZE))
-			return fi;
-	}
-
-	return NULL;
+    return g_hash_table_lookup(file_info_sha1_hash, sha1);
 }
 
 /*
