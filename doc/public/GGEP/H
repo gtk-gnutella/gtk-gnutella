@@ -3,7 +3,7 @@ The 'H' GGEP Extension
 
 Name: H
 Where: Query, Query Hit
-Status: Standard (GDF-approved in February, 2002)
+Status: Experimental
 Date: Sun Jun  9 12:09:17 MEST 2002
 Format: <hash type> <binary hash digest>
 COBS-Encoding: Maybe
