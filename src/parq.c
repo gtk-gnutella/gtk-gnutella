@@ -58,6 +58,9 @@ gchar *get_header_value(
 	
 	g_assert(s != NULL);
 	g_assert(attribute != NULL);
+
+	// XXX This routine is fragile.  If looking for say "bar=x", we can
+	// XXX mistakenly parse "foobar=x" instead. --RAM, 03/02/2003
 	
 	lowercase_header = strcasestr(s, attribute);
 
@@ -72,7 +75,10 @@ gchar *get_header_value(
 	
 	if (length != NULL) {
 		*length = 0;
-		end = strchr(lowercase_header, ';');
+
+		end = strchr(lowercase_header, ';');		/* PARQ style */
+		if (end == NULL)
+			end = strchr(lowercase_header, ',');	/* Active queuing style */
 		
 		if (end == NULL) {
 			/* 
