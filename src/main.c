@@ -267,6 +267,7 @@ void gtk_gnutella_exit(gint n)
 	hcache_close();		/* After host_close() */
 	settings_close();	/* Must come after hcache_close() */
 	ban_close();
+	inet_close();
 	whitelist_close();
 	features_close();
 	clock_close();
