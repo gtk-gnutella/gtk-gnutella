@@ -60,6 +60,7 @@ struct moved {
 	off_t size;				/* Size of file */
 	off_t copied;			/* Amount of data copied so far */
 	gchar *buffer;			/* Large buffer, where data is read */
+	gchar *target;			/* Target file name, in case an error occurs */
 	gint error;				/* Error code */
 };
 
@@ -146,13 +147,13 @@ static void d_start(gpointer h, gpointer ctx, gpointer item)
 	struct work *we = (struct work *) item;
 	struct download *d = we->d;
 	gchar *source = NULL;
-	gchar *target = NULL;
 	struct stat buf;
 	gchar *name;
 
 	g_assert(md->magic == MOVED_MAGIC);
 	g_assert(md->rd == -1);
 	g_assert(md->wd == -1);
+	g_assert(md->target == NULL);
 
 	source = g_strdup_printf("%s/%s", download_path(d), download_outname(d));
 	g_return_if_fail(NULL != source);
@@ -183,11 +184,11 @@ static void d_start(gpointer h, gpointer ctx, gpointer item)
 
 	name = file_info_readable_filename(d->file_info);
 
-	target = unique_filename(we->dest, name, we->ext);
-	if (NULL == target)
+	md->target = unique_filename(we->dest, name, we->ext);
+	if (NULL == md->target)
 		goto abort_read;
 
-	md->wd = file_create(target, O_WRONLY | O_TRUNC, buf.st_mode);
+	md->wd = file_create(md->target, O_WRONLY | O_TRUNC, buf.st_mode);
 
 	if (md->wd == -1)
 		goto abort_read;
@@ -198,10 +199,9 @@ static void d_start(gpointer h, gpointer ctx, gpointer item)
 	md->error = 0;
 
 	if (dbg > 1)
-		printf("Moving \"%s\" to \"%s\"\n", download_outname(d), target);
+		printf("Moving \"%s\" to \"%s\"\n", download_outname(d), md->target);
 
 	G_FREE_NULL(source);
-	G_FREE_NULL(target);
 	download_move_start(d);
 
 	return;
@@ -212,8 +212,6 @@ abort_read:
 	md->rd = -1;
 	if (NULL != source)
 		G_FREE_NULL(source);
-	if (NULL != target)
-		G_FREE_NULL(target);
 	return;
 }
 
@@ -240,6 +238,13 @@ static void d_end(gpointer h, gpointer ctx, gpointer item)
 	close(md->wd);
 	md->wd = -1;
 
+	/*
+	 * If copying went well, get rid of the source file.
+	 *
+	 * If an error occurred, the target file is removed, whilst the source
+	 * file is kept intact.
+	 */
+
 	if (md->error == 0) {
 		gchar *source;
 
@@ -252,7 +257,13 @@ static void d_end(gpointer h, gpointer ctx, gpointer item)
 				download_outname(md->d), g_strerror(errno));
 		if (NULL != source)
 			G_FREE_NULL(source);
+	} else {
+		if (md->target != NULL && -1 == unlink(md->target))
+			g_warning("cannot unlink \"%s\": %s",
+				md->target, g_strerror(errno));
 	}
+
+	G_FREE_NULL(md->target);
 
 	elapsed = time(NULL) - md->start;
 	elapsed = MAX(1, elapsed);
@@ -380,6 +391,7 @@ void move_init(void)
 	md->rd = -1;
 	md->wd = -1;
 	md->buffer = g_malloc(COPY_BUF_SIZE);
+	md->target = NULL;
 
 	move_daemon = bg_daemon_create("file moving",
 		&step, 1,
