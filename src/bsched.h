@@ -133,6 +133,9 @@ bio_source_t *bsched_source_add(bsched_t *bs, int fd, guint32 flags,
 	GdkInputFunction callback, gpointer arg);
 void bsched_source_remove(bio_source_t *bio);
 void bsched_set_bandwidth(bsched_t *bs, gint bandwidth);
+void bio_add_callback(bio_source_t *bio,
+	GdkInputFunction callback, gpointer arg);
+void bio_remove_callback(bio_source_t *bio);
 gint bio_write(bio_source_t *bio, gpointer data, gint len);
 gint bio_writev(bio_source_t *bio, struct iovec *iov, gint iovcnt);
 gint bio_sendfile(bio_source_t *bio, gint in_fd, off_t *offset, gint len);

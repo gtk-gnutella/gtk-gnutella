@@ -275,6 +275,43 @@ static void bio_disable(bio_source_t *bio)
 }
 
 /*
+ * bio_add_callback
+ *
+ * Add I/O callback to a "passive" I/O source.
+ */
+void bio_add_callback(bio_source_t *bio,
+	GdkInputFunction callback, gpointer arg)
+{
+	g_assert(bio);
+	g_assert(bio->io_callback == NULL);	/* "passive" source */
+	g_assert(callback);
+
+	bio->io_callback = callback;
+	bio->io_arg = arg;
+
+	if (!(bio->bs->flags & BS_F_NOBW))
+		bio_enable(bio);
+}
+
+/*
+ * bio_remove_callback
+ *
+ * Remove I/O callback from I/O source.
+ */
+void bio_remove_callback(bio_source_t *bio)
+{
+	g_assert(bio);
+	g_assert(bio->io_callback);		/* Not a "passive" source */
+
+	if (bio->io_tag)
+		bio_disable(bio);
+
+	bio->io_callback = NULL;
+	bio->io_arg = NULL;
+}
+
+
+/*
  * bsched_no_more_bandwidth
  *
  * Disable all sources and flag that we have no more bandwidth.

@@ -21,7 +21,6 @@
  */
 struct attr {
 	gint fd;			/* Cached socket file descriptor */
-	gint gdk_tag;		/* Input callback tag */
 	bio_source_t *bio;	/* Bandwidth-limited I/O source */
 };
 
@@ -78,7 +77,6 @@ static gpointer tx_link_init(txdrv_t *tx, gpointer args)
 	 */
 
 	attr->fd = tx->node->socket->file_desc;
-	attr->gdk_tag = 0;
 	attr->bio = bsched_source_add(bws.gout, attr->fd, BIO_F_WRITE, NULL, NULL);
 
 	tx->opaque = attr;
@@ -94,9 +92,6 @@ static gpointer tx_link_init(txdrv_t *tx, gpointer args)
 static void tx_link_destroy(txdrv_t *tx)
 {
 	struct attr *attr = (struct attr *) tx->opaque;
-
-	if (attr->gdk_tag)
-		gdk_input_remove(attr->gdk_tag);
 
 	bsched_source_remove(attr->bio);
 
@@ -199,15 +194,9 @@ static void tx_link_enable(txdrv_t *tx)
 	struct attr *attr = (struct attr *) tx->opaque;
 	struct gnutella_node *n = tx->node;
 
-	g_assert(!attr->gdk_tag);
 	g_assert(n->socket->file_desc == attr->fd);
 
-	attr->gdk_tag = gdk_input_add(attr->fd,
-		GDK_INPUT_WRITE | GDK_INPUT_EXCEPTION,
-		is_writable, (gpointer) tx);
-
-	/* We assume that if this is valid, it is non-zero */
-	g_assert(attr->gdk_tag);
+	bio_add_callback(attr->bio, is_writable, (gpointer) tx);
 }
 
 /*
@@ -220,10 +209,7 @@ static void tx_link_disable(txdrv_t *tx)
 	struct attr *attr = (struct attr *) tx->opaque;
 	struct gnutella_node *n = tx->node;
 
-	g_assert(attr->gdk_tag != 0);
-
-	gdk_input_remove(attr->gdk_tag);
-	attr->gdk_tag = 0;
+	bio_remove_callback(attr->bio);
 
 	/*
 	 * If we queued a Bye message, we can now rest assured it has been sent.
