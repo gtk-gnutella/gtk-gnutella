@@ -1690,10 +1690,8 @@ static void upload_request(gnutella_upload_t *u, header_t *header)
 	if (!user_agent)
 		user_agent = header_get(header, "Server");
 
-	if (user_agent) {
+	if (user_agent)
 		version_check(user_agent);
-		/* XXX match against web user agents, possibly */
-	}
 
 	if (!is_followup && user_agent)
 		u->user_agent = atom_str_get(user_agent);
@@ -1740,6 +1738,19 @@ static void upload_request(gnutella_upload_t *u, header_t *header)
 	if (!reqfile) {
 		/* get_file_to_upload() has signaled the error already */
 		return;
+	}
+
+	/*
+	 * Check vendor-specific banning.
+	 */
+
+	if (user_agent) {
+		gchar *msg = ban_vendor(user_agent);
+
+		if (msg != NULL) {
+			upload_error_remove(u, NULL, 403, msg);
+			return;
+		}
 	}
 
 	index = reqfile->file_index;

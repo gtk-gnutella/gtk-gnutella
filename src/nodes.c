@@ -62,6 +62,7 @@
 #include "whitelist.h"
 #include "gnet_stats.h"
 #include "ioheader.h"
+#include "ban.h"
 
 #include "settings.h"
 
@@ -1886,6 +1887,20 @@ static void node_process_handshake_header(
 				"Gnet connections currently disabled");
 			node_remove(n, "Gnet connections disabled");
 			return;
+		}
+
+		/*
+		 * Vendor-specific banning.
+		 */
+
+		if (n->vendor) {
+			gchar *msg = ban_vendor(n->vendor);
+
+			if (msg != NULL) {
+				send_node_error(n->socket, 403, msg);
+				node_remove(n, msg);
+				return;
+			}
 		}
 
 		/*

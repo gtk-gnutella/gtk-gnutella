@@ -406,3 +406,44 @@ void ban_close(void)
 	zdestroy(ipf_zone);
 }
 
+/***
+ *** Vendor-specific banning.
+ ***/
+
+/*
+ * ban_vendor
+ *
+ * Check whether servent identified by its vendor string should be banned.
+ * When we ban, we ban for both gnet and download connections.  Such banning
+ * is exceptional, usually restricted to some versions and the servent's author
+ * is informed about the banning.
+ *
+ * Returns NULL if we shall not ban, a banning reason string otherwise.
+ */
+gchar *ban_vendor(gchar *vendor)
+{
+	/*
+	 * Ban gtk-gnutella/0.90 from the network.  This servent had
+	 * bugs that could corrupt the traffic.  Also ban 0.91u.
+	 */
+
+#define GTKG_NAME	"gtk-gnutella/"
+#define GTKG_LEN	(sizeof(GTKG_NAME) - 1)
+
+	if (
+		vendor[0] == 'g' &&
+		0 == strncmp(vendor, GTKG_NAME, GTKG_LEN)
+	) {
+		if (
+			0 == strncmp(vendor + GTKG_LEN, "0.90", 4) ||
+			0 == strncmp(vendor + GTKG_LEN, "0.91u", 5)
+		)
+			return "Harmful version banned, upgrade required";
+	}
+
+#undef GTKG_NAME
+#undef GTKG_LEN
+
+	return NULL;
+}
+

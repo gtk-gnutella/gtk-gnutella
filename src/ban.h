@@ -38,6 +38,8 @@ gint ban_allow(guint32 ip);
 void ban_force(struct gnutella_socket *s);
 gint ban_delay(guint32 ip);
 
+gchar *ban_vendor(gchar *vendor);
+
 /*
  * Return codes for ban_allow().
  */
