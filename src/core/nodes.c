@@ -101,6 +101,7 @@ RCSID("$Id$");
 #include "lib/override.h"		/* Must be the last header included */
 
 #define CONNECT_PONGS_COUNT		10		/* Amoung of pongs to send */
+#define CONNECT_PONGS_LOW		5		/* Amoung of pongs sent if saturated */
 #define BYE_MAX_SIZE			4096	/* Maximum size for the Bye message */
 #define NODE_SEND_BUFSIZE		4096	/* TCP send buffer size - 4K */
 #define NODE_SEND_LEAF_BUFSIZE	1024	/* TCP send buffer size for leaves */
@@ -2263,14 +2264,16 @@ node_host_is_connected(guint32 ip, guint16 port)
  * continuations. --RAM, 10/01/2002
  */
 static gchar *
-formatted_connection_pongs(gchar *field, hcache_type_t htype)
+formatted_connection_pongs(gchar *field, hcache_type_t htype, gint num)
 {
 	struct gnutella_host hosts[CONNECT_PONGS_COUNT];
 	gint hcount;
 	gchar *line = "";
 
-	hcount = hcache_fill_caught_array(htype, hosts, CONNECT_PONGS_COUNT);
-	g_assert(hcount >= 0 && hcount <= CONNECT_PONGS_COUNT);
+	g_assert(num > 0 && num <= CONNECT_PONGS_COUNT);
+
+	hcount = hcache_fill_caught_array(htype, hosts, num);
+	g_assert(hcount >= 0 && hcount <= num);
 
 /* The most a pong can take is "xxx.xxx.xxx.xxx:yyyyy, ", i.e. 23 */
 #define PONG_LEN 23
@@ -2453,52 +2456,100 @@ cleanup:
 
 /**
  * Send error message to remote end, a node presumably.
- * NB: We don't need a node to call this routine, only a socket.
+ *
+ * @param s		the connected socket (mandatory)
+ * @param n		the node (optional, NULL if not available)
+ * @param code	the error code to report
+ * @param msg	the error message (printf format)
+ * @param ap	variable argument pointer, arguments for the error message
  */
-void
-send_node_error(struct gnutella_socket *s, int code, const gchar *msg, ...)
+static void
+send_error(
+	struct gnutella_socket *s, struct gnutella_node *n,
+	int code, const gchar *msg, va_list ap)
 {
 	gchar gnet_response[2048];
 	gchar msg_tmp[256];
 	size_t rw;
 	ssize_t sent;
-	va_list args;
+	gboolean saturated = bsched_saturated(bws.gout);
+	gchar *version;
+	gchar *token;
+	gchar xlive[128];
+	gchar xtoken[128];
+	gint pongs = saturated ? CONNECT_PONGS_LOW : CONNECT_PONGS_COUNT;
 
-	va_start(args, msg);
-	gm_vsnprintf(msg_tmp, sizeof(msg_tmp)-1,  msg, args);
-	va_end(args);
+	g_assert(n == NULL || n->socket == s);
+
+	gm_vsnprintf(msg_tmp, sizeof(msg_tmp)-1,  msg, ap);
 
 	/*
-	 * When sending a 503 (Busy) error to a node, send some hosts from
-	 * our cache list as well.  Likewise on 403 (Non-compressed, rejected).
-	 * If we're not a regular node, send out X-Try-Ultrapeers for 204 as well.
+	 * Try to limit the size of our reply if we're saturating bandwidth.
+	 */
+
+	if (saturated) {
+		xlive[0] = '\0';
+		version = version_short_string;
+		token = tok_short_version();
+	} else {
+		gm_snprintf(xlive, sizeof(xlive),
+			"X-Live-Since: %s\r\n", start_rfc822_date);
+		version = version_string;
+		token = tok_version();
+	}
+
+	gm_snprintf(xtoken, sizeof(xtoken), "X-Token: %s\r\n", token);
+ 
+	/*
+	 * If we have a node and we know that it is NOT a gtk-gnutella node,
+	 * chances are it will not care about the token and the X-Live-Since.
+	 *
+	 * If it is a genuine gtk-gnutella node, give it the maximum amount
+	 * of pongs though, to make it easier for the node to get a connection.
+	 */
+
+	if (n != NULL && n->vendor != NULL) {
+		if (n->flags & NODE_F_GTKG) {
+			if (!(n->flags & NODE_F_FAKE_NAME))	/* A genuine GTKG peer */
+				pongs = CONNECT_PONGS_COUNT;	/* Give it the maximum */
+		} else {
+			xlive[0] = '\0';
+			xtoken[0] = '\0';
+		}
+	}
+
+	/*
+	 * Do not send them any pong on 403 and 406 errors, even if GTKG.
+	 * When banning, the error code is 550 and does not warrant pongs either.
+	 */
+
+	if (code == 403 || code == 406 || code == 550)
+		pongs = 0;
+
+	/*
+	 * Build the response.
 	 */
 
 	rw = gm_snprintf(gnet_response, sizeof(gnet_response),
 		"GNUTELLA/0.6 %d %s\r\n"
 		"User-Agent: %s\r\n"
 		"Remote-IP: %s\r\n"
-		"X-Token: %s\r\n"
-		"X-Live-Since: %s\r\n"
+		"%s"		/* X-Token */
+		"%s"		/* X-Live-Since */
 		"%s"		/* X-Ultrapeer */
-		"%s",		/* X-Try */
-		code, msg_tmp, version_string, ip_to_gchar(s->ip),
-		tok_version(), start_rfc822_date,
+		"%s"		/* X-Try */
+		"%s"		/* X-Try-Ultrapeers */
+		"\r\n",
+		code, msg_tmp, version, ip_to_gchar(s->ip), xtoken, xlive,
 		current_peermode == NODE_P_NORMAL ? "" :
 		current_peermode == NODE_P_LEAF ?
 			"X-Ultrapeer: False\r\n": "X-Ultrapeer: True\r\n",
-		(current_peermode == NODE_P_NORMAL && (code == 503 || code == 403)) ?
-			formatted_connection_pongs("X-Try", HOST_ANY) : "");
-
-	header_features_generate(&xfeatures.connections,
-		gnet_response, sizeof(gnet_response), &rw);
-
-	rw += gm_snprintf(&gnet_response[rw], sizeof(gnet_response)-rw,
-		"%s"		/* X-Try-Ultrapeers */
-		"\r\n",
-		(current_peermode != NODE_P_NORMAL &&
-				(code == 503 || code == 403 || code == 204)) ?
-			formatted_connection_pongs("X-Try-Ultrapeers", HOST_ULTRA) : "");
+		(current_peermode == NODE_P_NORMAL && pongs) ?
+			formatted_connection_pongs("X-Try", HOST_ANY, pongs) : "",
+		(current_peermode != NODE_P_NORMAL && pongs) ?
+			formatted_connection_pongs("X-Try-Ultrapeers", HOST_ULTRA, pongs)
+			: ""
+	);
 
 	g_assert(rw < sizeof(gnet_response));
 
@@ -2517,6 +2568,33 @@ send_node_error(struct gnutella_socket *s, int code, const gchar *msg, ...)
 			code, ip_to_gchar(s->ip), (int) rw, (int) rw, gnet_response);
 		fflush(stdout);
 	}
+}
+
+/**
+ * Send error message to remote end, a node presumably.
+ * NB: We don't need a node to call this routine, only a socket.
+ */
+void
+send_node_error(struct gnutella_socket *s, int code, const gchar *msg, ...)
+{
+	va_list args;
+
+	va_start(args, msg);
+	send_error(s, NULL, code, msg, args);
+	va_end(args);
+}
+
+/**
+ * Send error message to remote node.
+ */
+static void
+node_send_error(struct gnutella_node *n, int code, const gchar *msg, ...)
+{
+	va_list args;
+
+	va_start(args, msg);
+	send_error(n->socket, n, code, msg, args);
+	va_end(args);
 }
 
 /**
@@ -3259,7 +3337,7 @@ node_can_accept_connection(struct gnutella_node *n, gboolean handshaking)
 	 */
 
 	if (handshaking && !allow_gnet_connections) {
-		send_node_error(n->socket, 403,
+		node_send_error(n, 403,
 			"Gnet connections currently disabled");
 		node_remove(n, "Gnet connections disabled");
 		return FALSE;
@@ -3296,7 +3374,7 @@ node_can_accept_connection(struct gnutella_node *n, gboolean handshaking)
 			break;
 		}
 
-		send_node_error(n->socket, 403, "%s", msg);
+		node_send_error(n, 403, "%s", msg);
 		node_remove(n, "Not connecting: %s", msg);
 		return FALSE;
 	}
@@ -3327,7 +3405,7 @@ node_can_accept_connection(struct gnutella_node *n, gboolean handshaking)
 				up_connections <= node_leaf_count - compressed_leaf_cnt &&
 				!(n->attrs & NODE_A_CAN_INFLATE)
 			) {
-				send_node_error(n->socket, 403,
+				node_send_error(n, 403,
 					"Compressed connection prefered");
 				node_remove(n, "Connection not compressed");
 				return FALSE;
@@ -3342,7 +3420,7 @@ node_can_accept_connection(struct gnutella_node *n, gboolean handshaking)
 				(void) node_remove_useless_leaf();
 
 			if (handshaking && node_leaf_count >= max_leaves) {
-				send_node_error(n->socket, 503,
+				node_send_error(n, 503,
 					"Too many leaf connections (%d max)", max_leaves);
 				node_remove(n, "Too many leaves (%d max)", max_leaves);
 				return FALSE;
@@ -3365,7 +3443,7 @@ node_can_accept_connection(struct gnutella_node *n, gboolean handshaking)
 					(compressed_node_cnt - compressed_leaf_cnt) &&
 				!(n->attrs & NODE_A_CAN_INFLATE)
 			) {
-				send_node_error(n->socket, 403,
+				node_send_error(n, 403,
 					"Compressed connection prefered");
 				node_remove(n, "Connection not compressed");
 				return FALSE;
@@ -3379,7 +3457,7 @@ node_can_accept_connection(struct gnutella_node *n, gboolean handshaking)
 				node_ultra_count >= ultra_max &&
 				(n->flags & NODE_F_INCOMING)
 			) {
-				send_node_error(n->socket, 503,
+				node_send_error(n, 503,
 					"Too many ultra connections (%d max)", ultra_max);
 				node_remove(n, "Too many ultra nodes (%d max)", ultra_max);
 				return FALSE;
@@ -3409,7 +3487,7 @@ node_can_accept_connection(struct gnutella_node *n, gboolean handshaking)
 					(n->flags & NODE_F_LEAF)
 				)
 			) {
-				send_node_error(n->socket, 403,
+				node_send_error(n, 403,
 					"Gnet connection not compressed");
 				node_remove(n, "Connection not compressed");
 				return FALSE;
@@ -3426,10 +3504,10 @@ node_can_accept_connection(struct gnutella_node *n, gboolean handshaking)
 			node_normal_count >= normal_connections
 		) {
 			if (normal_connections)
-				send_node_error(n->socket, 503,
+				node_send_error(n, 503,
 					"Too many normal nodes (%d max)", normal_connections);
 			else
-				send_node_error(n->socket, 403, "Normal nodes refused");
+				node_send_error(n, 403, "Normal nodes refused");
 			node_remove(n, "Rejected normal node (%d max)", normal_connections);
 			return FALSE;
 		}
@@ -3441,12 +3519,12 @@ node_can_accept_connection(struct gnutella_node *n, gboolean handshaking)
 			if (
 				(n->attrs & (NODE_A_CAN_ULTRA|NODE_A_ULTRA)) == NODE_A_CAN_ULTRA
 			) {
-				send_node_error(n->socket, 503, "Cannot accept leaf node");
+				node_send_error(n, 503, "Cannot accept leaf node");
 				node_remove(n, "Rejected leaf node");
 				return FALSE;
 			}
 			if (connected >= max_connections) {
-				send_node_error(n->socket, 503,
+				node_send_error(n, 503,
 					"Too many Gnet connections (%d max)", max_connections);
 				node_remove(n, "Too many nodes (%d max)", max_connections);
 				return FALSE;
@@ -3458,7 +3536,7 @@ node_can_accept_connection(struct gnutella_node *n, gboolean handshaking)
 				connected >= up_connections &&
 				connected > compressed_node_cnt
 			) {
-				send_node_error(n->socket, 403,
+				node_send_error(n, 403,
 					"Gnet connection not compressed");
 				node_remove(n, "Connection not compressed");
 				return FALSE;
@@ -3482,20 +3560,20 @@ node_can_accept_connection(struct gnutella_node *n, gboolean handshaking)
 			 */
 
 			if (!(n->attrs & NODE_A_ULTRA)) {
-				send_node_error(n->socket, 204,
+				node_send_error(n, 204,
 					"Shielded leaf node (%d peers max)", max_ultrapeers);
 				node_remove(n, "Sent shielded indication");
 				return FALSE;
 			}
 
 			if (!(n->attrs & NODE_A_ULTRA)) {
-				send_node_error(n->socket, 503, "Looking for an ultra node");
+				node_send_error(n, 503, "Looking for an ultra node");
 				node_remove(n, "Not an ultra node");
 				return FALSE;
 			}
 
 			if (node_ultra_count >= max_ultrapeers) {
-				send_node_error(n->socket, 503,
+				node_send_error(n, 503,
 					"Too many ultra connections (%d max)", max_ultrapeers);
 				node_remove(n, "Too many ultra nodes (%d max)", max_ultrapeers);
 				return FALSE;
@@ -3511,7 +3589,7 @@ node_can_accept_connection(struct gnutella_node *n, gboolean handshaking)
 				up_connections <= node_ultra_count - compressed_node_cnt &&
 				!(n->attrs & NODE_A_CAN_INFLATE)
 			) {
-				send_node_error(n->socket, 403,
+				node_send_error(n, 403,
 					"Compressed connection prefered");
 				node_remove(n, "Connection not compressed");
 				return FALSE;
@@ -3565,7 +3643,7 @@ node_can_accept_protocol(struct gnutella_node *n, header_t *head)
 		) {
 			static const gchar msg[] = "Protocol not acceptable";
 
-			send_node_error(n->socket, 406, msg);
+			node_send_error(n, 406, msg);
 			node_remove(n, msg);
 			return FALSE;
 		}
@@ -3840,7 +3918,7 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 	}
 
 	if (in_shutdown) {
-		send_node_error(n->socket, 503, "Servent Shutdown");
+		node_send_error(n, 503, "Servent Shutdown");
 		node_remove(n, "Servent Shutdown");
 		return;					/* node_remove() has freed s->getline */
 	}
@@ -3858,7 +3936,21 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 			n->flags |= NODE_F_FAKE_NAME;
         node_set_vendor(n, field);
 	}
-	
+
+	/*
+	 * Spot remote GTKG nodes (even if faked name).
+	 */
+
+	if (n->vendor != NULL) {
+		const gchar gtkg_vendor[] = "gtk-gnutella/";
+		gint len = sizeof(gtkg_vendor) - 1;		/* Without trailing NUL */
+		if (
+			0 == strncmp(gtkg_vendor, n->vendor, len) ||
+			(*n->vendor == '!' && 0 == strncmp(gtkg_vendor, n->vendor + 1, len))
+		)
+			n->flags |= NODE_F_GTKG;
+	}
+
 	/* Pong-Caching -- ping/pong reduction scheme */
 
 	field = header_get(head, "Pong-Caching");
@@ -4128,7 +4220,7 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 
 			g_warning("rejecting TCP crawler request from %s", node_ip(n));
 
-			send_node_error(n->socket, 403, "%s", msg);
+			node_send_error(n, 403, "%s", msg);
 			node_remove(n, "%s", msg);
 			return;
 		}
@@ -4163,24 +4255,10 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 
 		if (msg != NULL) {
 			ban_record(n->socket->ip, msg);
-			send_node_error(n->socket, 403, "%s", msg);
+			node_send_error(n, 403, "%s", msg);
 			node_remove(n, "%s", msg);
 			return;
 		}
-	}
-
-	/*
-	 * Spot remote GTKG nodes.
-	 */
-
-	if (n->vendor != NULL) {
-		const gchar gtkg_vendor[] = "gtk-gnutella/";
-		gint len = sizeof(gtkg_vendor) - 1;		/* Without trailing NUL */
-		if (
-			0 == strncmp(gtkg_vendor, n->vendor, len) ||
-			(*n->vendor == '!' && 0 == strncmp(gtkg_vendor, n->vendor + 1, len))
-		)
-			n->flags |= NODE_F_GTKG;
 	}
 
 	/*
@@ -4295,7 +4373,7 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 	 */
 
 	if (node_avoid_monopoly(n)) {
-		send_node_error(n->socket, 403,
+		node_send_error(n, 409,
 			"Vendor would exceed %d%% of our slots", unique_nodes);
 		node_remove(n, "Vendor would exceed %d%% of our slots", unique_nodes);
 		return;
@@ -4306,7 +4384,7 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 	 */
 
 	if (node_reserve_slot(n)) {
-		send_node_error(n->socket, 403, "Reserved slot");
+		node_send_error(n, 409, "Reserved slot");
 		node_remove(n, "Reserved slot");
 		return;
 	}
@@ -4348,7 +4426,7 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 		if ((n->flags & NODE_F_GTKG) && time(NULL) < 1107126000)
 			goto allow_for_now;		/* Up to Mon Jan 31 00:00:00 2005 */
 
-		send_node_error(n->socket, 403, "%s", msg);
+		node_send_error(n, 403, "%s", msg);
 		node_remove(n, "%s", msg);
 		return;
 	}
@@ -4368,7 +4446,7 @@ allow_for_now:		/* XXX remove after 2005-01-31 */
 		if (n->flags & NODE_F_CRAWLER) {
 			static const gchar msg[] = "Cannot connect to a crawler";
 
-			send_node_error(n->socket, 403, msg);
+			node_send_error(n, 403, msg);
 			node_remove(n, msg);
 			return;
 		}
@@ -4406,7 +4484,7 @@ allow_for_now:		/* XXX remove after 2005-01-31 */
 						"denying request from %s <%s> to become a leaf",
 						node_ip(n), node_vendor(n));
 
-					send_node_error(n->socket, 403, msg);
+					node_send_error(n, 403, msg);
 					node_remove(n, msg);
 					return;
 				}
@@ -4622,14 +4700,14 @@ allow_for_now:		/* XXX remove after 2005-01-31 */
 static void
 err_line_too_long(gpointer obj)
 {
-	send_node_error(NODE(obj)->socket, 413, "Header line too long");
+	node_send_error(NODE(obj), 413, "Header line too long");
 	node_remove(NODE(obj), "Failed (Header line too long)");
 }
 
 static void
 err_header_error_tell(gpointer obj, gint error)
 {
-	send_node_error(NODE(obj)->socket, 413, "%s", header_strerror(error));
+	node_send_error(NODE(obj), 413, "%s", header_strerror(error));
 }
 
 static void
@@ -5042,7 +5120,7 @@ node_add_socket(struct gnutella_socket *s, guint32 ip, guint16 port)
 
 	if (already_connected) {
 		if (incoming && (n->proto_major > 0 || n->proto_minor > 4))
-			send_node_error(s, 404, "Already connected");
+			node_send_error(n, 409, "Already connected");
 		node_remove(n, "Already connected");
 		return;
 	}
