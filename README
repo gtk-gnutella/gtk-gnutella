@@ -87,11 +87,6 @@ started quickly.
 You should have two directories created to store your files, "downloads"
 and "done".
 
-Connect to the Internet, start the program and it will try to contact
-"gnutellums.com:6346" and obtain a few hosts to connect to. This is a
-service provided by dss.clip2.com, another is
-"router.limewire.com:6346".
-
 If you don't get a connection, quit the program and restart it to get a
 few more hosts from the server. If you still don't get connected, you
 may need to check your Internet connection and DNS (etc/resolv.conf)
@@ -119,7 +114,7 @@ In the Config Screen, "Paths to Files" is the shared directory, they
 are the files you will share to the network. You should always share
 your done directory. When downloaded files are complete, they are
 moved to the done directory and then can be uploaded by others. Sharing
-is the whole point of this program.
+is the whole point of the Gnutella network.
 
 The client is pretty smart and won't "hammer" a host, even if you select
 all the files a host has, if the host is busy it will only try that host
@@ -158,7 +153,7 @@ Developers, Programmers and Other Tech Info
 
 The following information is for Developers only.
 
-* Run multi copies on the same computer:
+* Run multiple copies on the same computer:
 
 If you simply do a "make" rather than a "make install" a version
 of Gtk-Gnutella will appear in your "src" directory. Create a new
@@ -196,7 +191,7 @@ and see what we have been up to lately.
 
 Watch out when modifying code that you un-allocate any allocated
 memory. The function "strdup()" will allocate memory that needs to be
-"free()" in some cases. maloc is used a lot.
+"free()" in some cases. malloc() is used a lot.
 
 When editing the code, please turn off any options in your editor that
 replaces tabs with spaces. We use tabs that create 4 spaces in our source
@@ -214,9 +209,9 @@ for emacsen and its cousins.
 
 Consider src/header.c and src/header.h good examples of that style.
 
-Please use the patch manager found on the main development page to post
+Please, use the patch manager found on the main development page to post
 any patches you may have come up with. It allows you to upload the patch
-file as a binary. Posting to a email list usually wraps lines and messes
+file as a binary. Posting to a mailing list usually wraps lines and messes
 up a patch file. You should let everyone on the mail list know that
 you posted a patch to the patch manager.
 
