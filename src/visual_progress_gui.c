@@ -330,6 +330,11 @@ static void vp_gui_fi_removed(gnet_fi_t fih)
      */
     g_slist_free( ((vp_info_t *) v)->chunks_list );
     wfree(v, sizeof(vp_info_t));
+
+    /* 
+     * Forget the fileinfo handle for which we displayed progress info
+     */
+    fi_context.fih = -1;
 }
 
 /* 
