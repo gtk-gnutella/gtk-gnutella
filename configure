@@ -16,10 +16,6 @@ ac_help="$ac_help
                           (and sometimes confusing) to the casual installer"
 ac_help="$ac_help
 
-gtk-gnutella options:
-  --enable-no-rfc1918             avoid RFC1918 networks (default=off)"
-ac_help="$ac_help
-
   --enable-xml-store              save searches and filters in XML (default=on)"
 ac_help="$ac_help
 
@@ -1594,14 +1590,6 @@ test -n "$YACC" || YACC="yacc"
 
 
 
-# Check whether --enable-no-rfc1918 or --disable-no-rfc1918 was given.
-if test "${enable_no_rfc1918+set}" = set; then
-  enableval="$enable_no_rfc1918"
-  :
-else
-  enable_no_rfc1918=no
-fi
-
 # Check whether --enable-xml-store or --disable-xml-store was given.
 if test "${enable_xml_store+set}" = set; then
   enableval="$enable_xml_store"
@@ -2459,16 +2447,6 @@ cat >> confdefs.h <<EOF
 #define PACKAGE_SOURCE_DIR "${packagesrcdir}"
 EOF
 
-
-echo $ac_n "checking whether to enable RFC1918 network avoidance mode""... $ac_c" 1>&6
-echo "configure:2465: checking whether to enable RFC1918 network avoidance mode" >&5
-if test "x$enable_no_rfc1918" = "xno"
-then
-	echo "$ac_t""no" 1>&6
-else
-	CFLAGS="$CFLAGS -DNO_RFC1918"
-	echo "$ac_t""yes" 1>&6
-fi
 
 
 
@@ -3424,13 +3402,6 @@ if test "x$enable_remote_shell" = "xyes" ; then
     echo "$msg yes"
 else
     echo "$msg no"
-fi
-
-msg="RFC1918 avoidance        :  "
-if test "x$enable_no_rfc1918" = "xno" ; then
-    echo "$msg no"
-else
-    echo "$msg yes"
 fi
 
 msg="gNet traffic compression :  "
