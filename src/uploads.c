@@ -2101,9 +2101,11 @@ static void upload_request(gnutella_upload_t *u, header_t *header)
 	if (u->user_agent == NULL && user_agent != NULL) {
 		gboolean faked = !version_check(user_agent, token, u->ip);
 		if (faked) {
-			gchar *name = g_strdup_printf("!%s", user_agent);
+			gchar name[1024];
+
+			name[0] = '!';
+			g_strlcpy(&name[1], user_agent, sizeof name - 1);
 			u->user_agent = atom_str_get(name);
-			g_free(name);
 		} else
 			u->user_agent = atom_str_get(user_agent);
 	}
@@ -3147,3 +3149,5 @@ void upload_get_status(gnet_upload_t uh, gnet_upload_status_t *si)
 	if (si->avg_bps == 0)
         si->avg_bps++;
 }
+
+/* vi: set ts=4: */
