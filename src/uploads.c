@@ -634,13 +634,15 @@ static void upload_remove_v(
 
 	if (!UPLOAD_IS_COMPLETE(u) && dbg > 1) {
 		if (u->name) {
-			printf("Cancelling upload for %s from %s: %s\n",
+			printf("Cancelling upload for \"%s\" from %s (%s): %s\n",
 				u->name,
 				u->socket ? ip_to_gchar(u->socket->ip) : "<no socket>",
+				upload_vendor_str(u),
 				logreason);
 		} else {
-			printf("Cancelling upload from %s: %s\n",
+			printf("Cancelling upload from %s (%s): %s\n",
 				u->socket ? ip_to_gchar(u->socket->ip) : "<no socket>",
+				upload_vendor_str(u),
 				logreason);
 		}
 	}
