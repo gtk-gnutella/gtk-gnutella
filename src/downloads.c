@@ -2495,7 +2495,7 @@ static void download_request(struct download *d, header_t *header)
 			 * Check for possible download mesh headers.
 			 */
 
-			huge_alternate_location(d->sha1, header);
+			huge_collect_locations(d->sha1, header);
 		}
 	}
 

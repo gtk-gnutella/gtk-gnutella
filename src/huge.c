@@ -1052,17 +1052,17 @@ gboolean huge_sha1_extract32(guchar *buf, gint len, guchar *retval,
 }
 
 /*
- * huge_alternate_location
+ * huge_collect_locations
  *
  * Parse the "X-Gnutella-Alternate-Location" header if present to learn
  * about other sources for this file.
  */
-void huge_alternate_location(guchar *sha1, header_t *header)
+void huge_collect_locations(guchar *sha1, header_t *header)
 {
 	gchar *alt = header_get(header, "X-Gnutella-Alternate-Location");
 
 	/*
-	 * Unfortunately, clueless people broke HUGE specs and made up their
+	 * Unfortunately, clueless people broke the HUGE specs and made up their
 	 * own headers.  They should learn about header continuations, and
 	 * that "X-Gnutella-Alternate-Location" does not need to be repeated.
 	 */
