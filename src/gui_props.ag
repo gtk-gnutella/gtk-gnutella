@@ -168,20 +168,9 @@ prop = {
 };
 
 prop = {
-    name = "gnet_stats_pkg_col_widths";
-    cfgvar = "widths_gnet_stats_pkg";
+    name = "gnet_stats_msg_col_widths";
+    cfgvar = "widths_gnet_stats_msg";
     desc = "Widths of the columns in the gnet packet stats table";
-    type = guint32;
-    vector_size = 6;
-    data = {
-        default = "{ 60, 20, 20, 20, 20, 20 }";
-    };
-};
-
-prop = {
-    name = "gnet_stats_byte_col_widths";
-    cfgvar = "widths_gnet_stats_byte";
-    desc = "Widths of the columns in the gnet byte stats table";
     type = guint32;
     vector_size = 6;
     data = {
@@ -571,9 +560,8 @@ prop = {
 };
 
 prop = {
-    name = "gnet_stats_pkg_perc";
-    desc = "Show percentages instead of absolute values in the gnet stats "
-           "(packet display)";
+    name = "gnet_stats_perc";
+    desc = "Show percentages instead of absolute values in the gnet stats";
     type = boolean;
     data = {
         default = FALSE;
@@ -581,29 +569,8 @@ prop = {
 };
 
 prop = {
-    name = "gnet_stats_byte_perc";
-    desc = "Show percentages instead of absolute values in the gnet stats "
-           "(bytes display)";
-    type = boolean;
-    data = {
-        default = FALSE;
-    };
-};
-
-prop = {
-    name = "gnet_stats_fc_ttl_perc";
-    desc = "Show percentages instead of absolute values in the gnet stats "
-           "(flow control ttl display)";
-    type = boolean;
-    data = {
-        default = FALSE;
-    };
-};
-
-prop = {
-    name = "gnet_stats_fc_hops_perc";
-    desc = "Show percentages instead of absolute values in the gnet stats "
-           "(flow control hops display)";
+    name = "gnet_stats_bytes";
+    desc = "Show bytes instead of packages in the gnet stats";
     type = boolean;
     data = {
         default = FALSE;
@@ -642,3 +609,51 @@ prop = {
     };
 };
 
+
+/*
+ * GTK2 specific properties
+ */
+
+prop = {
+    name = "gnet_stats_pkg_col_widths";
+    cfgvar = "widths_gnet_stats_pkg";
+    desc = "Widths of the columns in the gnet packet stats table (pkg)"
+           "[GTK2]";
+    type = guint32;
+    vector_size = 6;
+    data = {
+        default = "{ 60, 20, 20, 20, 20, 20 }";
+    };
+};
+
+prop = {
+    name = "gnet_stats_byte_col_widths";
+    cfgvar = "widths_gnet_stats_byte";
+    desc = "Widths of the columns in the gnet packet stats table (byte)."
+           "[GTK2]";
+    type = guint32;
+    vector_size = 6;
+    data = {
+        default = "{ 60, 20, 20, 20, 20, 20 }";
+    };
+};
+
+prop = {
+    name = "gnet_stats_pkg_perc";
+    desc = "Show percentages instead of absolute values in the gnet stats "
+           "(pkg) [GTK2]";
+    type = boolean;
+    data = {
+        default = FALSE;
+    };
+};
+
+prop = {
+    name = "gnet_stats_byte_perc";
+    desc = "Show percentages instead of absolute values in the gnet stats "
+           "(byte) [GTK2]";
+    type = boolean;
+    data = {
+        default = FALSE;
+    };
+};
