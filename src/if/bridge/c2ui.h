@@ -66,6 +66,7 @@ gboolean gcu_search_gui_new_search(const gchar *query, flag_t flags);
 
 /* statusbar interface functions */
 void gcu_statusbar_warning(const gchar *message);
+void gcu_statusbar_message(const gchar *message);
 
 /* upload interface functions */
 void gcu_upload_stats_gui_add(struct ul_stats *stat);

@@ -152,3 +152,8 @@ void gcu_statusbar_warning(const gchar *message)
 	statusbar_gui_warning(15, "%s", message);
 }
 
+void gcu_statusbar_message(const gchar *message)
+{
+	statusbar_gui_message(10, "%s", message);
+}
+
