@@ -132,6 +132,7 @@ void gtk_gnutella_exit(gint n)
 		usleep(200000);					/* 200 ms */
 	}
 
+    file_info_close();
 	ext_close();
 	share_close();
 	node_close();
@@ -243,6 +244,7 @@ static gboolean main_timer(gpointer p)
 #endif
 		download_timer(now);  	    /* Download timeouts */
 		upload_timer(now);			/* Upload timeouts */
+        file_info_timer();          /* Notify about changes */
 	}
 	socket_timer(now);				/* Expire inactive sockets */
 	pcache_possibly_expired(now);	/* Expire pong cache */
@@ -407,6 +409,8 @@ gint main(gint argc, gchar **argv, gchar **env)
 	crc_init();
 
     main_gui_init();
+
+    download_restore_state();
 
 	/* Some signal handlers */
 
