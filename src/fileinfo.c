@@ -3719,11 +3719,7 @@ gint file_info_available_ranges(struct dl_file_info *fi, gchar *buf, gint size)
 
 	fmt = header_fmt_make("X-Available-Ranges", size);
 
-	for (
-		l = fi->chunklist;
-		l != NULL;
-		l = g_slist_next(l)
-	) {
+	for (l = fi->chunklist; l != NULL; l = g_slist_next(l)) {
 		struct dl_file_chunk *fc = l->data;
 		gint rw;
 
@@ -3731,8 +3727,7 @@ gint file_info_available_ranges(struct dl_file_info *fi, gchar *buf, gint size)
 			continue;
 
 		rw = gm_snprintf(range, sizeof(range), "%s%u-%u",
-			is_first ? "bytes " : "",
-			fc->from, fc->to - 1);
+			is_first ? "bytes " : "", fc->from, fc->to - 1);
 
 		if (header_fmt_length(fmt) + rw + 2 >= maxfmt)
 			break;			/* Will not fit, cannot emit all of it */
@@ -3772,6 +3767,8 @@ gint file_info_available_ranges(struct dl_file_info *fi, gchar *buf, gint size)
 	 * Reference all the "done" chunks in `fc_ary'.
 	 */
 
+	g_assert(count > 0);		/* Or there would be nothing to emit */
+
 	fc_ary = g_malloc(sizeof(struct dl_file_chunk) * count);
 
 	for (i = 0, l = fi->chunklist; l != NULL; l = g_slist_next(l)) {
@@ -3779,6 +3776,8 @@ gint file_info_available_ranges(struct dl_file_info *fi, gchar *buf, gint size)
 		if (fc->status == DL_CHUNK_DONE)
 			fc_ary[i++] = fc;
 	}
+
+	g_assert(i == count);
 
 	/*
 	 * Now select chunks randomly from the set, and emit them if they fit.
@@ -3793,8 +3792,7 @@ gint file_info_available_ranges(struct dl_file_info *fi, gchar *buf, gint size)
 		g_assert(fc->status == DL_CHUNK_DONE);
 
 		rw = gm_snprintf(range, sizeof(range), "%s%u-%u",
-			is_first ? "bytes " : "",
-			fc->from, fc->to - 1);
+			is_first ? "bytes " : "", fc->from, fc->to - 1);
 
 		if (header_fmt_length(fmt) + rw + 2 < maxfmt) {
 			header_fmt_append(fmt, range, ", ");
