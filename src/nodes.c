@@ -99,6 +99,9 @@ static GSList *sl_nodes = NULL;
 static GHashTable *unstable_ip = NULL;
 static GSList *unstable_ips = NULL;
 
+static guint32 unstable_hits = 0;
+
+
 typedef struct node_bad_ip {
 	guint32 ip;
 	time_t time_added;
@@ -463,6 +466,7 @@ void node_slow_timer(time_t now)
 	time_t last_switch = (time_t) node_last_ultra_leaf_switch;	/* Property */
 	GSList *sl;
 	GSList *to_remove = NULL;
+    guint32 expunged = 0;
 	
 	for (sl = unstable_ips; sl != NULL; sl = g_slist_next(sl)) {
 		node_bad_ip_t *bad_ip = (node_bad_ip_t *) sl->data;
@@ -480,9 +484,16 @@ void node_slow_timer(time_t now)
 		unstable_ips = g_slist_remove(unstable_ips, bad_ip);
 		
 		wfree(bad_ip, sizeof(*bad_ip));
+        expunged ++;
 	}
 	g_slist_free(to_remove);
 	to_remove = NULL;
+
+    if (dbg > 1) {
+        printf("unstable ips: %d (hits %d, expunged %d)", g_slist_length(unstable_ips),
+            unstable_hits, expunged);
+    }
+    unstable_hits = 0;
 	
 	/*
 	 * If we're in "auto" mode and we're still running as a leaf node,
@@ -612,7 +623,7 @@ void node_timer(time_t now)
 				if (now - n->shutdown_date > n->shutdown_delay) {
 					gchar *reason = g_strdup(n->error_str);
 					node_remove(n, "Shutdown (%s)", reason);
-					g_free(reason);
+					G_FREE_NULL(reason);
 				}
 			} else if (
 				current_peermode == NODE_P_ULTRA &&
@@ -1079,7 +1090,7 @@ static void node_remove_v(
 
 	if (n->rxfc) {
 		wfree(n->rxfc, sizeof(*n->rxfc));
-		n->rxfc = NULL;
+        n->rxfc = NULL;
 	}
 
 	if (n->status == GTA_NODE_CONNECTED) {		/* Already did if shutdown */
@@ -1108,7 +1119,7 @@ static void node_remove_v(
 	/* n->vendor will be freed by node_real_remove() */
 
 	if (n->allocated) {
-		g_free(n->data);
+		G_FREE_NULL(n->data);
 		n->allocated = 0;
 	}
 	if (n->outq) {
@@ -1181,7 +1192,7 @@ static void node_recursive_shutdown_v(
 
 	fmt = g_strdup_printf("%s (%s) [within %s]", where, reason, n->error_str);
 	node_remove_v(n, fmt, ap);
-	g_free(fmt);
+	G_FREE_NULL(fmt);
 }
 
 /*
@@ -1224,6 +1235,7 @@ static gboolean node_ip_is_bad(guint32 ip) {
 	if (bad_ip != NULL) {
 		if (dbg)
 			g_warning("[nodes up] Unstable ip %s", ip_to_gchar(ip));
+        unstable_hits ++;
 		return TRUE;
 	}
 		
@@ -1262,6 +1274,7 @@ static enum node_bad node_is_bad(struct gnutella_node *n)
 			g_warning("[nodes up] Unstable ip %s (%s)", 
 				ip_to_gchar(n->ip),
 				n->vendor);
+        unstable_hits ++;
 		return NODE_BAD_IP;
 	} else {
 		if (!node_monitor_unstable_servents)
@@ -2655,10 +2668,13 @@ static gint extract_field_pongs(gchar *field, hcache_type_t type)
 		guint16 port;
 		guint32 ip;
 
-		if (gchar_to_ip_port(tok, &ip, &port)) {
+		if (
+            gchar_to_ip_port(tok, &ip, &port) && 
+            ip && port && !node_ip_is_bad(ip)
+        ) {
 			if (type == HCACHE_ULTRA)
 				host_add_ultra(ip, port);
-			else
+            else
 				host_add(ip, port, FALSE);
 			pong++;
 		}
@@ -5252,14 +5268,14 @@ void node_close(void)
 		if (n->socket) {
 			if (n->socket->getline)
 				getline_free(n->socket->getline);
-			g_free(n->socket);
+			G_FREE_NULL(n->socket);
 		}
 		if (n->outq)
 			mq_free(n->outq);
 		if (n->searchq)
 			sq_free(n->searchq);
 		if (n->allocated)
-			g_free(n->data);
+			G_FREE_NULL(n->data);
 		if (n->gnet_guid)
 			atom_guid_free(n->gnet_guid);
 		if (n->alive_pings)
@@ -5324,7 +5340,7 @@ void node_set_vendor(gnutella_node_t *n, const gchar *vendor)
 	if (n->flags & NODE_F_FAKE_NAME) {
 		gchar *name = g_strdup_printf("!%s", vendor);
 		n->vendor = atom_str_get(name);
-		g_free(name);
+		G_FREE_NULL(name);
 	} else
 		n->vendor = atom_str_get(vendor);
 
@@ -5425,7 +5441,7 @@ void node_clear_info(gnet_node_info_t *info)
 void node_free_info(gnet_node_info_t *info)
 {
 	node_clear_info(info);
-    g_free(info);
+    G_FREE_NULL(info);
 }
 
 /*
