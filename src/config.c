@@ -773,6 +773,8 @@ void config_set_param(guint32 keyword, gchar *value)
 
 	case k_min_dup_ratio:
 		min_dup_ratio = atof(value);
+		if (min_dup_ratio < 0.0)   min_dup_ratio = 0.0;
+		if (min_dup_ratio > 100.0) min_dup_ratio = 100.0;
 		return;
 
 	case k_max_hosts_cached:
@@ -1055,7 +1057,7 @@ void config_save(void)
 		"per node\n%s = %u\n",
 			keywords[k_min_dup_msg], min_dup_msg);
 	fprintf(config, "# Minimum ratio of dups on received messages, "
-		"per node (between 0.0 and 1.0)\n%s = %.2f\n\n",
+		"per node (between 0.0 and 100.0)\n%s = %.2f\n\n",
 			keywords[k_min_dup_ratio], min_dup_ratio);
 
 	fprintf(config, "# Maximum amount of hosts to keep in cache "
@@ -1117,8 +1119,8 @@ void config_save(void)
 
 	/* The following are useful if you want to tweak your node --RAM */
 
-	fprintf(config, "# WARNING: *PLEASE* DO NOT MODIFY THE FOLLOWING "
-		"VALUES IF YOU DON'T KNOW WHAT YOU'RE DOING\n\n");
+	fprintf(config, "#\n# WARNING: *PLEASE* DO NOT MODIFY THE FOLLOWING\n"
+		"# VALUES IF YOU DON'T KNOW WHAT YOU'RE DOING\n#\n\n");
 
 	fprintf(config, "# Maximum size of search queries messages "
 		"we forward to others (in bytes)\n%s = %u\n\n",
