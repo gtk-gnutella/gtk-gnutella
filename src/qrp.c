@@ -30,7 +30,6 @@
 #include <ctype.h>
 
 #include "qrp.h"
-#include "zlib_util.h"
 
 #define MIN_SPARSE_RATIO	20		/* At most 20% of slots used */
 #define MAX_CONFLICT_RATIO	75		/* At most 75% of insertion conflicts */

@@ -25,24 +25,16 @@
  *----------------------------------------------------------------------
  */
 
-#include "common.h"			/* For proper -DUSE_DMALLOC compiles */
+#include "gnutella.h"			/* For proper -DUSE_DMALLOC compiles */
 
 #include <errno.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 
 #include "gwcache.h"
-#include "atoms.h"
-#include "misc.h"
-#include "getline.h"
 #include "http.h"
 #include "hosts.h"
-#include "cq.h"
-#include "url.h"
 #include "version.h"
-
-#include "gnet_property.h"
-#include "gnet_property_priv.h"
 
 #include "settings.h"
 

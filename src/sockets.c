@@ -44,7 +44,6 @@
 #include "uploads.h"
 #include "nodes.h"
 #include "header.h"
-#include "getline.h"
 #include "bsched.h"
 #include "ban.h"
 #include "http.h"

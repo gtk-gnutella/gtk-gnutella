@@ -25,7 +25,7 @@
  *----------------------------------------------------------------------
  */
 
-#include "common.h"			/* For <string.h>, mainly */
+#include "gnutella.h"		/* For <string.h> + dbg */
 
 #include <sys/types.h>		/* FreeBSD requires this before <sys/uio.h> */
 #include <sys/uio.h>		/* For struct iovec */
@@ -34,13 +34,8 @@
 
 #include "ggep.h"
 #include "extensions.h"
-#include "cobs.h"
-#include "walloc.h"
-#include "zlib_util.h"
 #include "huge.h"			/* For SHA1_RAW_SIZE */
 
-#include "gnet_property.h"
-#include "gnet_property_priv.h"		/* For dbg */
 
 #define MAX_PAYLOAD_LEN		65536	/* Max length for deflated payload */
 #define MIN_GROW			256		/* Minimum grow size for inflated buffer */

@@ -31,10 +31,7 @@
 #include "nodes.h"
 #include "routing.h"
 #include "downloads.h"
-#include "guid.h"
 #include "gnet_stats.h"
-#include "utf8.h"
-#include "vendors.h"
 #include "ignore.h"
 #include "ggep.h"
 

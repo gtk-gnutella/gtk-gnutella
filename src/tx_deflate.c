@@ -36,7 +36,6 @@
 #include "nodes.h"
 #include "tx.h"
 #include "tx_deflate.h"
-#include "zlib_util.h"
 
 /*
  * The driver manages two fixed-size buffers: one is being filled by the

@@ -33,13 +33,10 @@
 #include <sys/stat.h>
 
 #include "ignore.h"
-#include "namesize.h"
-#include "base32.h"
 #include "huge.h"
 #include "share.h"
 
 #include "settings.h"
-#include "gnet_property_priv.h"
 
 /*
  * Hash tables where we collect SHA1 we already own or wish to ignore and

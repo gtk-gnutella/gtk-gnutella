@@ -32,7 +32,6 @@
 #include "hosts.h"
 #include "gmsg.h"
 #include "nodes.h"
-#include "guid.h"
 #include "gnet_stats.h"
 
 #include <stdarg.h>

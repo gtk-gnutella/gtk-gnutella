@@ -25,13 +25,14 @@
  *----------------------------------------------------------------------
  */
 
+#include "gnutella.h"
+
 #include <stdio.h>
 #include <ctype.h>
 #include <stdlib.h>		/* for atoi() */
 #include <string.h>
 
 #include "header.h"
-#include "getline.h"	/* for MAX_LINE_SIZE */
 
 /***
  *** Operating flags

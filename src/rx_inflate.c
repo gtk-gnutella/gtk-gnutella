@@ -33,7 +33,6 @@
 #include "rx.h"
 #include "rx_inflate.h"
 #include "rxbuf.h"
-#include "zlib_util.h"
 
 /*
  * Private attributes for the decompressing layer.

@@ -41,7 +41,6 @@
 #include "routing.h"
 #include "hosts.h"
 #include "nodes.h"
-#include "getline.h"
 #include "header.h"
 #include "gmsg.h"
 #include "mq.h"
