@@ -66,13 +66,14 @@ static GHashTable *pushed_downloads = 0;
 static void download_add_to_list(struct download *d, enum dl_list idx);
 static gboolean send_push_request(gchar *, guint32, guint16);
 static void download_read(gpointer data, gint source, GdkInputCondition cond);
-static void download_request(struct download *d, header_t *header);
+static void download_request(struct download *d, header_t *header, gboolean ok);
 static void download_push_ready(struct download *d, getline_t *empty);
 static void download_push_remove(struct download *d);
 static void download_push(struct download *d, gboolean on_timeout);
 static void download_store(void);
 static void download_retrieve(void);
 static void download_free_removed(void);
+static void download_incomplete_header(struct download *d);
 
 /*
  * Download structures.
@@ -216,6 +217,45 @@ static gint dl_server_retry_cmp(gconstpointer a, gconstpointer b)
 /* ----------------------------------------- */
 
 /*
+ * io_free
+ *
+ * Free the opaque I/O data.
+ */
+static void io_free(gpointer opaque)
+{
+	struct io_header *ih = (struct io_header *) opaque;
+
+	g_assert(ih);
+	g_assert(ih->download->io_opaque == opaque);
+
+	ih->download->io_opaque = NULL;
+
+	if (ih->header)
+		header_free(ih->header);
+	if (ih->getline)
+		getline_free(ih->getline);
+
+	g_free(ih);
+}
+
+/*
+ * io_header
+ *
+ * Fetch header structure from opaque I/O data.
+ */
+static header_t *io_header(gpointer opaque)
+{
+	struct io_header *ih = (struct io_header *) opaque;
+
+	g_assert(ih);
+	g_assert(ih->download->io_opaque == opaque);
+
+	return ih->header;
+}
+
+/* ----------------------------------------- */
+
+/*
  * download_init
  *
  * Initialize downloading data structures.
@@ -270,6 +310,8 @@ void download_timer(time_t now)
 				t = download_push_sent_timeout;
 				break;
 			case GTA_DL_CONNECTING:
+			case GTA_DL_REQ_SENT:
+			case GTA_DL_HEADERS:
 				t = download_connecting_timeout;
 				break;
 			default:
@@ -280,6 +322,8 @@ void download_timer(time_t now)
 			if (now - d->last_update > t) {
 				if (d->status == GTA_DL_CONNECTING)
 					download_fallback_to_push(d, TRUE, FALSE);
+				else if (d->status == GTA_DL_HEADERS)
+					download_incomplete_header(d);
 				else {
 					if (d->retries++ < download_max_retries)
 						download_retry(d);
@@ -324,28 +368,6 @@ void download_timer(time_t now)
 	/* Dequeuing */
 	if (is_inet_connected)
 		download_pickup_queued();
-}
-
-/*
- * io_free
- *
- * Free the opaque I/O data.
- */
-static void io_free(gpointer opaque)
-{
-	struct io_header *ih = (struct io_header *) opaque;
-
-	g_assert(ih);
-	g_assert(ih->download->io_opaque == opaque);
-
-	ih->download->io_opaque = NULL;
-
-	if (ih->header)
-		header_free(ih->header);
-	if (ih->getline)
-		getline_free(ih->getline);
-
-	g_free(ih);
 }
 
 /* ----------------------------------------- */
@@ -2835,7 +2857,7 @@ static gboolean send_push_request(gchar *guid, guint32 file_id, guint16 port)
 
 static void call_download_request(struct io_header *ih)
 {
-	download_request(ih->download, ih->header);
+	download_request(ih->download, ih->header, TRUE);
 }
 
 static void call_download_push_ready(struct io_header *ih)
@@ -2993,6 +3015,7 @@ static void download_header_read(
 
 	if (d->status != GTA_DL_HEADERS) {
 		d->status = GTA_DL_HEADERS;
+		d->last_update = time((time_t *) 0);	/* Starting reading */
 		gui_update_download(d, TRUE);
 	}
 
@@ -3053,11 +3076,11 @@ static void download_header_read(
 	}
 
 	/*
-	 * During the header reading phase, we do update "d->last_update".
+	 * During the header reading phase, we don't update "d->last_update".
+	 * That way, timeout is measured from when we first started to read them.
 	 */
 
 	s->pos += r;
-	d->last_update = time((time_t *) 0);
 
 	download_header_parse(ih);
 	return;
@@ -3446,9 +3469,6 @@ static gboolean download_moved_permanently(struct download *d, header_t *header)
 
 		g_assert(d->list_idx == DL_LIST_RUNNING);
 
-		//downloads_with_name_dec(d->file_name);
-		//downloads_with_name_inc(info.name);
-
 		atom_str_free(d->file_name);
 		d->file_name = info.name;			/* Already an atom */
 	} else
@@ -3472,43 +3492,15 @@ static gboolean download_moved_permanently(struct download *d, header_t *header)
 }
 
 /*
- * download_request
+ * download_get_server_name
  *
- * Called to initiate the download once all the HTTP headers have been read.
- * Validate the reply, and begin saving the incoming data if OK.
- * Otherwise, stop the download.
+ * Extract server name from headers.
+ * Returns whether new server name was found.
  */
-static void download_request(struct download *d, header_t *header)
+static gboolean download_get_server_name(struct download *d, header_t *header)
 {
-	struct gnutella_socket *s = d->socket;
-	gchar *status = getline_str(s->getline);
-	gint ack_code;
-	gchar *ack_message = "";
 	gchar *buf;
-	struct stat st;
-	gboolean got_content_length = FALSE;
 	gboolean got_new_server = FALSE;
-	guint32 ip;
-	guint16 port;
-	gint http_major = 0, http_minor = 0;
-
-	d->last_update = time(NULL);	/* Done reading headers */
-
-	if (dbg > 2) {
-		printf("----Got reply from %s:\n", ip_to_gchar(s->ip));
-		printf("%s\n", status);
-		header_dump(header, stdout);
-		printf("----\n");
-		fflush(stdout);
-	}
-
-	ack_code = http_status_parse(status, "HTTP",
-		&ack_message, &http_major, &http_minor);
-
-	/*
-	 * Extract Server: header string, if present, and store it unless
-	 * we already have it.
-	 */
 
 	buf = header_get(header, "Server");			/* Mandatory */
 	if (!buf)
@@ -3527,15 +3519,23 @@ static void download_request(struct download *d, header_t *header)
 		}
 	}
 
-	/*
-	 * Check status.
-	 */
+	return got_new_server;
+}
 
-	if (ack_code == -1) {
+/*
+ * download_check_status
+ *
+ * Check status code from status line.
+ * Return TRUE if we can continue.
+ */
+static gboolean download_check_status(
+	struct download *d, getline_t *line, gint code)
+{
+	if (code == -1) {
 		g_warning("weird HTTP acknowledgment status line from %s",
-			ip_to_gchar(s->ip));
-		dump_hex(stderr, "Status Line", status,
-			MIN(getline_length(s->getline), 80));
+			ip_to_gchar(d->socket->ip));
+		dump_hex(stderr, "Status Line", getline_str(line),
+			MIN(getline_length(line), 80));
 
 		/*
 		 * Don't abort the download if we're already on a persistent
@@ -3547,8 +3547,247 @@ static void download_request(struct download *d, header_t *header)
 			download_queue(d, "Weird HTTP status (protocol desync?)");
 		else
 			download_stop(d, GTA_DL_ERROR, "Weird HTTP status");
+		return FALSE;
+	}
+
+	return TRUE;
+}
+
+/*
+ * extract_retry_after
+ *
+ * Extract Retry-After delay from header, returning 0 if none.
+ */
+static guint extract_retry_after(header_t *header)
+{
+	gchar *buf;
+	guint delay = 0;
+
+	/*
+	 * A Retry-After header is either a full HTTP date, such as
+	 * "Fri, 31 Dec 1999 23:59:59 GMT", or an amount of seconds.
+	 */
+
+	buf = header_get(header, "Retry-After");
+	if (buf) {
+		if (!sscanf(buf, "%u", &delay)) {
+			time_t now = time((time_t *) NULL);
+			time_t retry = date2time(buf, &now);
+
+			if (retry == -1)
+				g_warning("cannot parse Retry-After: %s", buf);
+			else
+				delay = retry > now ? retry - now : 0;
+		}
+	}
+
+	return delay;
+}
+
+/*
+ * check_content_urn
+ *
+ * Check for X-Gnutella-Content-URN.
+ * Returns FALSE if we cannot continue with the download.
+ */
+static gboolean check_content_urn(struct download *d, header_t *header)
+{
+	gchar *buf;
+	gchar *sha1;
+	guchar digest[SHA1_RAW_SIZE];
+
+	buf = header_get(header, "X-Gnutella-Content-Urn");
+
+	if (buf == NULL) {
+		/*
+		 * We don't have any X-Gnutella-Content-URN header on this server.
+		 * If fileinfo has a SHA1, we must be careful if we cannot be sure
+		 * we're writing to the SAME file.
+		 *
+		 * If they have configured an overlapping range of at least
+		 * DOWNLOAD_MIN_OVERLAP, we can requeue the download if we were not
+		 * overlapping here, in the hope we'll (later on) request a chunk after
+		 * something we have already downloaded.
+		 *
+		 * If not, stop definitively.
+		 */
+
+		if (d->file_info->sha1) {
+			if (download_overlap_range >= DOWNLOAD_MIN_OVERLAP) {
+				if (d->overlap_size == 0) {
+					download_queue_delay(d, download_retry_busy_delay,
+						"No URN on server, waiting for overlap");
+					return FALSE;
+				}
+			} else {
+				download_stop(d, GTA_DL_ERROR, "No URN on server to validate");
+				return FALSE;
+			}
+		}
+
+		return TRUE;		/* Nothing to check against, continue */
+	}
+
+	sha1 = strcasestr(buf, "urn:sha1:");		/* Case-insensitive */
+	
+	if (sha1) {
+		sha1 += 9;		/* Skip "urn:sha1:" */
+		if (!huge_http_sha1_extract32(sha1, digest))
+			sha1 = NULL;
+	}
+
+	if (sha1 == NULL)
+		return TRUE;
+
+	if (d->sha1 && 0 != memcmp(digest, d->sha1, SHA1_RAW_SIZE)) {
+		download_stop(d, GTA_DL_ERROR, "URN mismatch detected");
+		return FALSE;
+	}
+
+	/*
+	 * Record SHA1 if we did not know it yet.
+	 */
+
+	if (d->sha1 == NULL) {
+		d->sha1 = atom_sha1_get(digest);
+
+		/*
+		 * The following test for equality works because both SHA1
+		 * are atoms.
+		 */
+
+		if (d->file_info->sha1 != d->sha1) {
+			g_warning("discovered SHA1 %s on the fly for %s "
+				"(fileinfo has %s)",
+				sha1_base32(d->sha1), download_outname(d),
+				d->file_info->sha1 ? "another" : "none");
+
+			/*
+			 * If the SHA1 does not match that of the fileinfo,
+			 * abort the download.
+			 */
+
+			if (d->file_info->sha1) {
+				extern gint sha1_eq(gconstpointer a, gconstpointer b);
+				g_assert(!sha1_eq(d->file_info->sha1, d->sha1));
+
+				download_info_reget(d);
+				download_queue(d, "URN fileinfo mismatch");
+
+				return FALSE;
+			}
+
+			g_assert(d->file_info->sha1 == NULL);
+
+			/*
+			 * Record SHA1 in the fileinfo structure, and make sure
+			 * we're not asked to ignore this download, now that we
+			 * got the SHA1.
+			 *
+			 * WARNING: d->file_info can change underneath during
+			 * this call, and the current download can be requeued!
+			 */
+
+			if (!file_info_got_sha1(d->file_info, d->sha1)) {
+				download_info_reget(d);
+				download_queue(d, "Discovered dup SHA1");
+				return FALSE;
+			}
+
+			if (DOWNLOAD_IS_QUEUED(d))		/* Queued by call above */
+				return FALSE;
+
+			if (download_ignore_requested(d))
+				return FALSE;
+		}
+
+		download_store();		/* Save SHA1 */
+		file_info_store();
+
+		/*
+		 * Insert record in download mesh if it does not require
+		 * a push.	Since we just got a connection, we use "now"
+		 * as the mesh timestamp.
+		 */
+
+		if (!d->always_push)
+			dmesh_add(d->sha1,
+				download_ip(d), download_port(d), d->record_index,
+				d->file_name, 0);
+	}
+
+	/*
+	 * Check for possible download mesh headers.
+	 */
+
+	huge_collect_locations(d->sha1, header);
+
+	return TRUE;
+}
+
+/*
+ * download_request
+ *
+ * Called to initiate the download once all the HTTP headers have been read.
+ * If `ok' is false, we timed out reading the header, and have therefore
+ * something incomplete.
+ *
+ * Validate the reply, and begin saving the incoming data if OK.
+ * Otherwise, stop the download.
+ */
+static void download_request(struct download *d, header_t *header, gboolean ok)
+{
+	struct gnutella_socket *s = d->socket;
+	gchar *status = getline_str(s->getline);
+	gint ack_code;
+	gchar *ack_message = "";
+	gchar *buf;
+	struct stat st;
+	gboolean got_content_length = FALSE;
+	gboolean got_new_server = FALSE;
+	guint32 ip;
+	guint16 port;
+	gint http_major = 0, http_minor = 0;
+	gboolean is_followup = d->keep_alive;
+	gchar short_read[80];
+
+	d->last_update = time(NULL);	/* Done reading headers */
+
+	if (dbg > 2) {
+		gchar *incomplete = ok ? "" : "INCOMPLETE ";
+		printf("----Got %sreply from %s:\n", incomplete, ip_to_gchar(s->ip));
+		printf("%s\n", status);
+		header_dump(header, stdout);
+		printf("----\n");
+		fflush(stdout);
+	}
+
+	/*
+	 * If we did not get any status code at all, re-enqueue immediately.
+	 */
+
+	if (!ok && getline_length(s->getline) == 0) {
+		download_queue_delay(d, download_retry_busy_delay,
+			"Timeout reading headers");
 		return;
 	}
+
+	/*
+	 * Extract Server: header string, if present, and store it unless
+	 * we already have it.
+	 */
+
+	got_new_server = download_get_server_name(d, header);
+
+	/*
+	 * Check status.
+	 */
+
+	ack_code = http_status_parse(status, "HTTP",
+		&ack_message, &http_major, &http_minor);
+
+	if (!download_check_status(d, s->getline, ack_code))
+		return;
 
 	d->retries = 0;				/* Retry successful, we managed to connect */
 	ip = download_ip(d);
@@ -3577,127 +3816,26 @@ static void download_request(struct download *d, header_t *header)
 			d->keep_alive = TRUE;
 	}
 
+	if (!ok)
+		d->keep_alive = FALSE;			/* Got incomplete headers -> close */
 
 	/*
-	 * Check for X-Gnutella-Content-URN.
+	 * If an URN is present, validate that we can continue this download.
 	 */
-	
-	if ((buf = header_get(header, "X-Gnutella-Content-Urn"))) {
-		gchar *sha1 = strcasestr(buf, "urn:sha1:"); /* Case-insensitive */
-		guchar digest[SHA1_RAW_SIZE];
-		
-		if (sha1) {
-			sha1 += 9;		/* Skip "urn:sha1:" */
-			if (!huge_http_sha1_extract32(sha1, digest))
-				sha1 = NULL;
-		}
 
-		if (sha1) {
-			if (d->sha1 && 0 != memcmp(digest, d->sha1, SHA1_RAW_SIZE)) {
-				download_stop(d, GTA_DL_ERROR, "URN mismatch detected");
-				return;
-			}
+	if (!check_content_urn(d, header))
+		return;
 
-			/*
-			 * Record SHA1 if we did not know it yet.
-			 */
+	/*
+	 * Now deal with the return code.
+	 */
 
-			if (d->sha1 == NULL) {
-				d->sha1 = atom_sha1_get(digest);
-
-				/*
-				 * The following test for equality works because both SHA1
-				 * are atoms.
-				 */
-
-				if (d->file_info->sha1 != d->sha1) {
-					g_warning("discovered SHA1 %s on the fly for %s "
-						"(fileinfo has %s)",
-						sha1_base32(d->sha1), download_outname(d),
-						d->file_info->sha1 ? "another" : "none");
-
-					/*
-					 * If the SHA1 does not match that of the fileinfo,
-					 * abort the download.
-					 */
-
-					if (d->file_info->sha1) {
-						extern gint sha1_eq(gconstpointer a, gconstpointer b);
-						g_assert(!sha1_eq(d->file_info->sha1, d->sha1));
-
-						download_info_reget(d);
-						download_queue(d, "URN fileinfo mismatch");
-
-						return;
-					}
-
-					g_assert(d->file_info->sha1 == NULL);
-
-					/*
-					 * Record SHA1 in the fileinfo structure, and make sure
-					 * we're not asked to ignore this download, now that we
-					 * got the SHA1.
-					 *
-					 * WARNING: d->file_info can change underneath during
-					 * this call, and the current download can be requeued!
-					 */
-
-					if (!file_info_got_sha1(d->file_info, d->sha1)) {
-						download_info_reget(d);
-						download_queue(d, "Discovered dup SHA1");
-						return;
-					}
-
-					if (DOWNLOAD_IS_QUEUED(d))		/* Queued by call above */
-						return;
-
-					if (download_ignore_requested(d))
-						return;
-				}
-
-				download_store();		/* Save SHA1 */
-				file_info_store();
-
-				/*
-				 * Insert record in download mesh if it does not require
-				 * a push.	Since we just got a connection, we use "now"
-				 * as the mesh timestamp.
-				 */
-
-				if (!d->always_push)
-					dmesh_add(d->sha1, ip, port, d->record_index,
-						d->file_name, 0);
-			}
-
-			/*
-			 * Check for possible download mesh headers.
-			 */
-
-			huge_collect_locations(d->sha1, header);
-		}
-	} else {
-		/*
-		 * We don't have any X-Gnutella-Content-URN header on this server.
-		 * If fileinfo has a SHA1, we must be careful if we cannot be sure
-		 * we're writing to the SAME file.
-		 *
-		 * If they have configured an overlapping range of at least
-		 * DOWNLOAD_MIN_OVERLAP, we can requeue the download if we were not
-		 * overlapping here, in the hope we'll (later on) request a chunk after
-		 * something we have already downloaded.
-		 *
-		 * If not, stop definitively.
-		 */
-
-		if (d->file_info->sha1) {
-			if (download_overlap_range >= DOWNLOAD_MIN_OVERLAP) {
-				if (d->overlap_size == 0)
-					download_queue_delay(d, download_retry_busy_delay,
-						"No URN on server, waiting for overlap");
-			} else
-				download_stop(d, GTA_DL_ERROR, "No URN on server to validate");
-			return;
-		}
+	if (ok)
+		short_read[0] = '\0';
+	else {
+		gint count = header_lines(header);
+		g_snprintf(short_read, sizeof(short_read),
+			"[short %d line%s header] ", count, count == 1 ? "" : "s");
 	}
 
 	if (ack_code >= 200 && ack_code <= 299) {
@@ -3708,28 +3846,14 @@ static void download_request(struct download *d, header_t *header)
 		/* If connection is not kept alive, remember it for this server */
 		if (!d->keep_alive)
 			d->server->attrs |= DLS_A_NO_KEEPALIVE;
-	} else {
-		guint delay = 0;
 
-		/*
-		 * Check for Retry-After.
-		 *
-		 * A Retry-After header is either a full HTTP date, such as
-		 * "Fri, 31 Dec 1999 23:59:59 GMT", or an amount of seconds.
-		 */
-
-		buf = header_get(header, "Retry-After");
-		if (buf) {
-			if (!sscanf(buf, "%u", &delay)) {
-				time_t now = time((time_t *) NULL);
-				time_t retry = date2time(buf, &now);
-
-				if (retry == -1)
-					g_warning("cannot parse Retry-After: %s", buf);
-				else
-					delay = retry > now ? retry - now : 0;
-			}
+		if (!ok) {
+			download_queue_delay(d, download_retry_busy_delay,
+				"%sHTTP %d %s", short_read, ack_code, ack_message);
+			return;
 		}
+	} else {
+		guint delay = extract_retry_after(header);
 
 		switch (ack_code) {
 		case 301:				/* Moved permanently */
@@ -3737,7 +3861,7 @@ static void download_request(struct download *d, header_t *header)
 				break;
 			download_queue_delay(d,
 				delay ? delay : download_retry_busy_delay,
-				"HTTP %d %s", ack_code, ack_message);
+				"%sHTTP %d %s", short_read, ack_code, ack_message);
 			return;
 		case 400:				/* Bad request */
 		case 404:				/* Could be sent if /uri-res not understood */
@@ -3753,8 +3877,12 @@ static void download_request(struct download *d, header_t *header)
 			if (download_retry_no_urires(d, delay, ack_code))
 				return;
 			break;
-		case 408:				/* Request timeout */
 		case 503:				/* Busy */
+			/* If we made a follow-up request, mark host as not reliable */
+			if (is_followup)
+				d->server->attrs |= DLS_A_NO_KEEPALIVE;
+			/* FALL THROUGH */
+		case 408:				/* Request timeout */
 			/* Update mesh */
 			if (!d->always_push && d->sha1)
 				dmesh_add(d->sha1, ip, port, d->record_index, d->file_name, 0);
@@ -3762,21 +3890,25 @@ static void download_request(struct download *d, header_t *header)
 			/* No hammering */
 			download_queue_delay(d,
 				delay ? delay : download_retry_busy_delay,
-				"HTTP %d %s", ack_code, ack_message);
+				"%sHTTP %d %s", short_read, ack_code, ack_message);
 			return;
 		case 550:				/* Banned */
 			download_queue_delay(d,
 				delay ? delay : download_retry_refused_delay,
-				"HTTP %d %s", ack_code, ack_message);
+				"%sHTTP %d %s", short_read, ack_code, ack_message);
 			return;
 		default:
 			break;
 		}
+
 		if (!d->always_push && d->sha1)
 			dmesh_remove(d->sha1, ip, port, d->record_index, d->file_name);
+
 		if (got_new_server)
 			gui_update_download_server(d);
-		download_stop(d, GTA_DL_ERROR, "HTTP %d %s", ack_code, ack_message);
+
+		download_stop(d, GTA_DL_ERROR,
+			"%sHTTP %d %s", short_read, ack_code, ack_message);
 		return;
 	}
 
@@ -3787,6 +3919,8 @@ static void download_request(struct download *d, header_t *header)
 	 * get a valid Content-Range, relax that constraint a bit.
 	 *		--RAM, 08/01/2002
 	 */
+
+	g_assert(ok);
 
 	if (got_new_server)
 		gui_update_download_server(d);
@@ -3958,6 +4092,18 @@ static void download_request(struct download *d, header_t *header)
 
 	if (s->pos > 0)
 		download_write_data(d);
+}
+
+/*
+ * download_incomplete_header
+ *
+ * Called when header reading times out.
+ */
+static void download_incomplete_header(struct download *d)
+{
+	header_t *header = io_header(d->io_opaque);
+
+	download_request(d, header, FALSE);
 }
 
 /*
