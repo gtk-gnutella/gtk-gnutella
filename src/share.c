@@ -1412,7 +1412,7 @@ gboolean search_request(struct gnutella_node *n)
 			struct shared_file *sf;
 
 			sf = shared_file_by_sha1(exv_sha1[i].sha1_digest);
-			if (sf) {
+			if (sf && sf != SHARE_REBUILDING) {
 				got_match(sf);
 				max_replies--;
 				found_files++;

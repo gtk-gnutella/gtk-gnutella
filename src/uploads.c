@@ -1161,12 +1161,18 @@ static struct shared_file *get_file_to_upload_from_index(
 
 		/*
 		 * Look whether we know this SHA1 at all, and compare the results
-		 * to the file we found, if any.  Note that `sf' can be NULL at
+		 * with the file we found, if any.  Note that `sf' can be NULL at
 		 * this point, in which case we'll redirect them with 301 if we
 		 * know the hash.
 		 */
 
 		sfn = shared_file_by_sha1(digest);
+
+		if (sfn == SHARE_REBUILDING) {
+			/* Retry-able by user, hence 503 */
+			upload_error_remove(u, NULL, 503, "Library being rebuilt");
+			return NULL;
+		}
 
 		if (sfn && sf != sfn) {
 			gchar location[1024];
