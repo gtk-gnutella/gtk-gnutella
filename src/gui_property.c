@@ -1059,7 +1059,7 @@ prop_set_t *gui_prop_init(void) {
      * General data:
      */
     gui_property->props[49].name = "search_stats_delcoef";
-    gui_property->props[49].desc = "[unknown, please provide description in gnet_props.ag]";
+    gui_property->props[49].desc = "A deletion coefficient, so that small non-significant results can be dropped.  The lowest it is, the more search statistics will be kept in memory.";
     gui_property->props[49].prop_changed_listeners = NULL;
     gui_property->props[49].save = TRUE;
     gui_property->props[49].vector_size = 1;
@@ -1129,7 +1129,7 @@ prop_set_t *gui_prop_init(void) {
      * General data:
      */
     gui_property->props[53].name = "gnet_stats_pkg_perc";
-    gui_property->props[53].desc = "Show percentages instead of absolute values in the gnet stats (packet display";
+    gui_property->props[53].desc = "Show percentages instead of absolute values in the gnet stats (packet display)";
     gui_property->props[53].prop_changed_listeners = NULL;
     gui_property->props[53].save = TRUE;
     gui_property->props[53].vector_size = 1;
