@@ -41,6 +41,7 @@
 #include "lib/atoms.h"
 #include "lib/base32.h"
 #include "lib/glib-missing.h"
+#include "lib/urn.h"
 #include "lib/walloc.h"
 #include "lib/override.h"		/* Must be the last header included */
 
@@ -345,7 +346,7 @@ gboolean search_gui_new_search_full(
 	if (0 == strncasecmp(query, "magnet:", 7)) {
 		gchar raw[SHA1_RAW_SIZE];
 
-		if (guc_huge_extract_sha1(query, raw)) {
+		if (urn_get_sha1(query, raw)) {
 			gm_snprintf(query, sizeof(query), "urn:sha1:%s", sha1_base32(raw));
 		} else {
 			return FALSE;		/* Entry refused */

@@ -42,6 +42,7 @@
 #include "lib/atoms.h"
 #include "lib/misc.h"
 #include "lib/glib-missing.h"
+#include "lib/urn.h"
 #include "lib/utf8.h"
 #include "lib/override.h"		/* Must be the last header included */
 
@@ -294,7 +295,7 @@ gboolean search_gui_new_search_full(
 	if (0 == strncasecmp(query, "magnet:", 7)) {
 		guchar raw[SHA1_RAW_SIZE];
 
-		if (guc_huge_extract_sha1(query, raw)) {
+		if (urn_get_sha1(query, raw)) {
 			size_t len;
 
 			len = g_strlcpy(query, "urn:sha1:", sizeof(query));
