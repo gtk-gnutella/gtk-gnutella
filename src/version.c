@@ -39,29 +39,16 @@ RCSID("$Id$");
 gchar *version_number = NULL;
 gchar *version_string = NULL;
 
-/*
- * A decompiled version descriptor.
- * In our comments below, we are assuming a value of "0.90.3b2".
- */
-struct version {
-	guint major;				/* Major version number (0) */
-	guint minor;				/* Minor version number (90) */
-	guint patchlevel;			/* Patch level (3) */
-	guchar tag;					/* Code letter after version number (b) */
-	guint taglevel;				/* Value after code letter (2) */
-	time_t timestamp;
-};
-
-static struct version our_version;
-static struct version last_rel_version;
-static struct version last_dev_version;
+static version_t our_version;
+static version_t last_rel_version;
+static version_t last_dev_version;
 
 /*
  * version_dump
  *
  * Dump original version string and decompiled form to stdout.
  */
-static void version_dump(guchar *str, struct version *ver, gchar *cmptag)
+static void version_dump(guchar *str, version_t *ver, gchar *cmptag)
 {
 	printf("VERSION%s \"%s\":\n"
 		"\tmajor=%u minor=%u patch=%u tag=%c taglevel=%u\n",
@@ -75,7 +62,7 @@ static void version_dump(guchar *str, struct version *ver, gchar *cmptag)
  * Return a user-friendly description of the version.
  * NB: returns pointer to static data.
  */
-static gchar *version_str(struct version *ver)
+gchar *version_str(version_t *ver)
 {
 	static gchar str[80];
 	gint rw;
@@ -106,7 +93,7 @@ static gchar *version_str(struct version *ver)
  * Parse gtk-gnutella's version number in User-Agent/Server string `str'
  * and extract timestamp into `ver'.
  */
-static void version_stamp(guchar *str, struct version *ver)
+static void version_stamp(guchar *str, version_t *ver)
 {
 	guchar *p;
 
@@ -158,7 +145,7 @@ static void version_stamp(guchar *str, struct version *ver)
  * Returns TRUE if we parsed a gtk-gnutella version correctly, FALSE if we
  * were not facing a gtk-gnutella version, or if we did not recognize it.
  */
-static gboolean version_parse(guchar *str, struct version *ver)
+static gboolean version_parse(guchar *str, version_t *ver)
 {
 	guchar *v;
 
@@ -262,7 +249,7 @@ static gint version_tagcmp(guchar a, guchar b)
  * Compare two gtk-gnutella versions, timestamp not withstanding.
  * Returns -1, 0 or +1 depending on the sign of "a - b".
  */
-static gint version_cmp(struct version *a, struct version *b)
+static gint version_cmp(version_t *a, version_t *b)
 {
 	if (a->major == b->major) {
 		if (a->minor == b->minor) {
@@ -315,8 +302,8 @@ static void version_new_found(gchar *text, gboolean stable)
  */
 void version_check(guchar *str)
 {
-	struct version their_version;
-	struct version *target_version;
+	version_t their_version;
+	version_t *target_version;
 	gint cmp;
 	gchar *version;
 
@@ -477,7 +464,7 @@ void version_ancient_warn(void)
  */
 gboolean version_is_too_old(gchar *vendor)
 {
-	struct version ver;
+	version_t ver;
 
 	version_stamp(vendor, &ver);		/* Fills ver->timestamp */
 

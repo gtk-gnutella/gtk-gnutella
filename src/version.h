@@ -31,6 +31,19 @@
 #include <glib.h>
 
 /*
+ * A decompiled version descriptor.
+ * In our comments below, we are assuming a value of "0.90.3b2".
+ */
+typedef struct version {
+	guint major;				/* Major version number (0) */
+	guint minor;				/* Minor version number (90) */
+	guint patchlevel;			/* Patch level (3) */
+	guchar tag;					/* Code letter after version number (b) */
+	guint taglevel;				/* Value after code letter (2) */
+	time_t timestamp;
+} version_t;
+
+/*
  * Public interface.
  */
 
@@ -39,6 +52,8 @@ void version_close(void);
 void version_ancient_warn(void);
 void version_check(guchar *str);
 gboolean version_is_too_old(gchar *vendor);
+
+gchar *version_str(version_t *ver);
 
 extern gchar *version_string;
 extern gchar *version_number;
