@@ -309,9 +309,8 @@ proxy_connect_helper(guint32 addr, gpointer udata)
  * The socks 4/5 code was taken from tsocks 1.16 Copyright (C) 2000 Shaun Clowes
  * It was modified to work with gtk_gnutella and non-blocking sockets. --DW
  */
-
 static int
-proxy_connect(int fd, const struct sockaddr *addr, guint len)
+proxy_connect(int fd)
 {
 	static gboolean in_progress = FALSE;
 	struct sockaddr_in server;
@@ -332,7 +331,7 @@ proxy_connect(int fd, const struct sockaddr *addr, guint len)
 		}
 	}
 	
-	if (len != sizeof(struct sockaddr_in) || !proxy_ip || !proxy_port) {
+	if (!proxy_ip || !proxy_port) {
 		errno = EINVAL;
 		return -1;
 	}
@@ -1648,7 +1647,7 @@ socket_local_port(struct gnutella_socket *s)
  * Someone is connecting to us.
  */
 static void
-socket_accept(gpointer data, gint source, inputevt_cond_t cond)
+socket_accept(gpointer data, gint unused_source, inputevt_cond_t cond)
 {
 	struct sockaddr_in addr;
 	socklen_t len = sizeof addr;
@@ -1656,6 +1655,7 @@ socket_accept(gpointer data, gint source, inputevt_cond_t cond)
 	struct gnutella_socket *t = NULL;
 	gint sd;
 
+	(void) unused_source;
 	g_assert(s->flags & SOCK_F_TCP);
 
 	if (cond & INPUT_EVENT_EXCEPTION) {
@@ -1767,13 +1767,14 @@ accepted:
  * Someone is sending us a datagram.
  */
 static void
-socket_udp_accept(gpointer data, gint source, inputevt_cond_t cond)
+socket_udp_accept(gpointer data, gint unused_source, inputevt_cond_t cond)
 {
 	struct gnutella_socket *s = (struct gnutella_socket *) data;
 	struct udp_addr *addr;
 	struct sockaddr_in *inaddr;
 	ssize_t r;
 
+	(void) unused_source;
 	g_assert(s->flags & SOCK_F_UDP);
 	g_assert(s->type == SOCK_TYPE_UDP);
 
@@ -1933,17 +1934,8 @@ socket_connect_finalize(struct gnutella_socket *s, guint32 ip_addr)
 	}
 
 	if (proxy_protocol != PROXY_NONE) {
-		struct sockaddr_in lcladdr;
-
-		memset(&lcladdr, 0, sizeof(lcladdr));
-		lcladdr.sin_family = AF_INET;
-		lcladdr.sin_port = INADDR_ANY;
-
-		(void) bind(s->file_desc, (struct sockaddr *) &lcladdr, sizeof lcladdr);
-
 		s->direction = SOCK_CONN_PROXY_OUTGOING;
-		res = proxy_connect(s->file_desc,
-				(struct sockaddr *) &addr, sizeof addr);
+		res = proxy_connect(s->file_desc);
 	} else
 		res = connect(s->file_desc, (struct sockaddr *) &addr, sizeof addr);
 
