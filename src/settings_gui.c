@@ -260,6 +260,16 @@ static prop_map_t property_map[] = {
         "checkbutton_queue_regex_case",
         FREQ_UPDATES, 0
     },
+#ifdef USE_GTK1
+    {
+        get_main_window,
+        PROP_FI_REGEX_CASE,
+        update_togglebutton,
+        TRUE,
+        "checkbutton_fi_regex_case",
+        FREQ_UPDATES, 0
+    },
+#endif
     {
         get_main_window,
         PROP_SEARCH_AUTOSELECT,
