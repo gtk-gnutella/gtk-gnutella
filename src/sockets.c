@@ -1219,7 +1219,7 @@ int connect_socksv5(struct gnutella_socket *s)
 
 		if (
 			(unsigned short int) buf[1] == 2 &&
-			socksv5_user && socksv5_user[0]		/* has provided user info */
+			socks_user && socks_user[0]		/* has provided user info */
 		)
 			s->pos++;
 		else
@@ -1233,7 +1233,7 @@ int connect_socksv5(struct gnutella_socket *s)
 		/* Determine the current *nix username */
 		nixuser = getpwuid(getuid());
 
-		if (((uname = socksv5_user) == NULL) &&
+		if (((uname = socks_user) == NULL) &&
 			((uname =
 			  (nixuser == NULL ? NULL : nixuser->pw_name)) == NULL)) {
 			show_error("No Username to authenticate with.");
@@ -1241,7 +1241,7 @@ int connect_socksv5(struct gnutella_socket *s)
 			return (rc);
 		}
 
-		if (((upass = socksv5_pass) == NULL)) {
+		if (((upass = socks_pass) == NULL)) {
 			show_error("No Password to authenticate with.");
 			rc = ECONNREFUSED;
 			return (rc);
