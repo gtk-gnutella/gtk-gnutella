@@ -52,6 +52,7 @@ RCSID("$Id$");
 #include "ggep_type.h"
 #include "version.h"
 
+#include "if/core/hosts.h"
 #include "if/gnet_property_priv.h"
 
 #include "lib/atoms.h"
@@ -60,6 +61,7 @@ RCSID("$Id$");
 #include "lib/override.h"	/* Must be the last header included */
 
 #define PCACHE_MAX_FILES	10000000	/* Arbitrarily large file count */
+#define PCACHE_UHC_MAX_IP	30			/* Max amount of IP:port returned */
 
 /*
  * Basic pong information.
@@ -69,6 +71,13 @@ struct pong_info {
 	guint32 port;
 	guint32 files_count;
 	guint32 kbytes_count;
+};
+
+enum uhc_flag {
+	UHC_NONE = 0,			/* Not an UHC ping */
+	UHC_LEAF = 1,			/* UHC ping, wants leaf slots */
+	UHC_ULTRA = 2,			/* UHC ping, wants ultra slots */
+	UHC_ANY = 3,			/* UHC ping, wants any host */
 };
 
 static pong_meta_t local_meta;
@@ -159,12 +168,13 @@ build_ping_msg(const gchar *muid, guint8 ttl, guint32 *size)
 static struct gnutella_msg_init_response *
 build_pong_msg(
 	guint8 hops, guint8 ttl, const gchar *muid,
-	struct pong_info *info, pong_meta_t *meta, guint32 *size)
+	struct pong_info *info, pong_meta_t *meta, guint8 uhc, guint32 *size)
 {
 	static gchar buf[1024];
 	struct gnutella_msg_init_response *pong =
 		(struct gnutella_msg_init_response *) buf;
 	guint32 sz;
+	ggep_stream_t gs;
 
 	STATIC_ASSERT(
 		G_STRUCT_OFFSET(struct gnutella_msg_init_response, ggep)
@@ -186,11 +196,13 @@ build_pong_msg(
 	 * Add GGEP meta-data if we have some to propagate.
 	 */
 
+	ggep_stream_init(&gs, &pong->ggep, sizeof(buf) - sizeof(*pong));
+
+	/*
+	 * First, start with metadata about our host.
+	 */
+
 	if (meta != NULL) {
-		ggep_stream_t gs;
-
-		ggep_stream_init(&gs, &pong->ggep, sizeof(buf) - sizeof(*pong));
-
 		if (meta->flags & PONG_META_HAS_VC) {	/* Vendor code */
 			ggep_stream_begin(&gs, "VC", 0) &&
 			ggep_stream_write(&gs, meta->vendor, sizeof(meta->vendor)) &&
@@ -230,9 +242,43 @@ build_pong_msg(
 			len = ggept_du_encode(value, uptime);
 			ggep_stream_pack(&gs, "DU", uptime, len, 0);
 		}
-
-		sz += ggep_stream_close(&gs);
 	}
+
+	/*
+	 * If we're replying to an UDP node, and they sent an "SPP" in their
+	 * ping, then we're acting as an UDP host cache.  Given them some
+	 * fresh pongs of hosts with free slots.
+	 */
+
+	if (uhc != UHC_NONE) {
+		/*
+		 * XXX For this first implementation, ignore their desire.  Just
+		 * XXX fill a bunch of hosts as we would for an X-Try header.
+		 */
+
+		gnet_host_t host[PCACHE_UHC_MAX_IP];
+		gint hcount;
+
+		hcount = hcache_fill_caught_array(HOST_ULTRA, host, PCACHE_UHC_MAX_IP);
+
+		if (hcount > 0) {
+			gint i;
+			gboolean ok;
+			gchar addr[6];
+
+			ok = ggep_stream_begin(&gs, "IPP", GGEP_W_DEFLATE);
+
+			for (i = 0; ok && i < hcount; i++) {
+				WRITE_GUINT32_BE(host[i].ip, &addr[0]);
+				WRITE_GUINT16_LE(host[i].port, &addr[4]);
+				ok = ggep_stream_write(&gs, addr, sizeof(addr));
+			}
+
+			ok = ok && ggep_stream_end(&gs);
+		}
+	}
+
+	sz += ggep_stream_close(&gs);
 
 	WRITE_GUINT32_LE(sz, pong->header.size);
 
@@ -245,10 +291,11 @@ build_pong_msg(
 /**
  * Send pong message back to node.
  * If `control' is true, send it as a higher priority message.
+ * If `uhc' is true, this is an UDP host cache reply.
  */
 static void
 send_pong(
-	struct gnutella_node *n, gboolean control,
+	struct gnutella_node *n, gboolean control, enum uhc_flag uhc,
 	guint8 hops, guint8 ttl, gchar *muid,
 	struct pong_info *info, pong_meta_t *meta)
 {
@@ -265,7 +312,8 @@ send_pong(
 	 * as this means that we're replying to an "alive" check.
 	 */
 
-	r = build_pong_msg(hops, ttl, muid, info, control ? NULL : meta, &size);
+	r = build_pong_msg(hops, ttl, muid, info,
+			control ? NULL : meta, uhc, &size);
 	n->n_pong_sent++;
 
 	g_assert(!control || size == sizeof(*r));	/* control => no extensions */
@@ -292,6 +340,7 @@ send_personal_info(struct gnutella_node *n, gboolean control)
 	guint32 files;
 	struct pong_info info;
 	guint32 ip_uptime;
+	enum uhc_flag uhc = UHC_NONE;
 
 	g_assert(n->header.function == GTA_MSG_INIT);	/* Replying to a ping */
 
@@ -311,6 +360,38 @@ send_personal_info(struct gnutella_node *n, gboolean control)
 			kbytes = next_pow2(kbytes);
 	} else if (kbytes)
 		kbytes |= 1;		/* Ensure not a power of two */
+
+	/*
+	 * If the PING to which we're replying bears the GGEP "SCP" extension,
+	 * then it's an UDP host cache ping.
+	 */
+
+	if (NODE_IS_UDP(n)) {
+		gint i;
+
+		for (i = 0; i < n->extcount; i++) {
+			extvec_t *e = &n->extvec[i];
+
+			if (e->ext_token != EXT_T_GGEP_SCP)
+				continue;
+
+			/*
+			 * Look whether they want leaf slots, ultra slots, or don't care.
+			 */
+
+			if (e->ext_paylen >= 1) {
+				guint8 flags = e->ext_payload[0];
+				uhc = (flags & 0x1) ? UHC_ULTRA : UHC_LEAF;
+			} else
+				uhc = UHC_ANY;
+		}
+
+		if (ggep_debug > 1)
+			printf("%s: UHC ping requesting %s slots\n",
+				gmsg_infostr(&n->header),
+				uhc == UHC_ANY ?	"unspecified" :
+				uhc == UHC_ULTRA ?	"ultra" : "leaf");
+	}
 
 	/*
 	 * Pongs are sent with a TTL just large enough to reach the pinging host,
@@ -344,7 +425,7 @@ send_personal_info(struct gnutella_node *n, gboolean control)
 		local_meta.leaf_slots = MIN(node_leaves_missing(), 255);
 	}
 
-	send_pong(n, control, 0, MIN((guint) n->header.hops + 1, max_ttl),
+	send_pong(n, control, uhc, 0, MIN((guint) n->header.hops + 1, max_ttl),
 		n->header.muid, &info, &local_meta);
 
 	local_meta.flags &= ~PONG_META_HAS_UP;		/* Recomputed each time */
@@ -386,7 +467,7 @@ send_neighbouring_info(struct gnutella_node *n)
 		info.files_count = cn->gnet_files_count;
 		info.kbytes_count = cn->gnet_kbytes_count;
 
-		send_pong(n, FALSE,
+		send_pong(n, FALSE, UHC_NONE,
 			1, 1, n->header.muid, &info, NULL);	/* hops = 1, TTL = 1 */
 
 		/*
@@ -1005,7 +1086,8 @@ iterate_on_cached_line(
 
 		g_assert(hops < 255);		/* Because of MAX_CACHE_HOPS */
 
-		send_pong(n, FALSE, hops + 1, ttl, n->ping_guid, &cp->info, cp->meta);
+		send_pong(n, FALSE, UHC_NONE,
+			hops + 1, ttl, n->ping_guid, &cp->info, cp->meta);
 
 		n->pong_missing--;
 
@@ -1110,7 +1192,8 @@ pong_all_neighbours_but_one(
 
 		g_assert(hops < 255);
 
-		send_pong(cn, FALSE, hops + 1, ttl, cn->ping_guid, &cp->info, cp->meta);
+		send_pong(cn, FALSE, UHC_NONE,
+			hops + 1, ttl, cn->ping_guid, &cp->info, cp->meta);
 
 		if (dbg > 7)
 			printf("pong_all: sent cached pong %s (hops=%d, TTL=%d) to %s "
@@ -1168,7 +1251,7 @@ pong_random_leaf(struct cached_pong *cp, guint8 hops, guint8 ttl)
 	 */
 
 	if (leaf != NULL) {
-		send_pong(leaf, FALSE, hops + 1, ttl, leaf->ping_guid,
+		send_pong(leaf, FALSE, UHC_NONE, hops + 1, ttl, leaf->ping_guid,
 			&cp->info, cp->meta);
 
 		if (dbg > 7)
@@ -1345,6 +1428,10 @@ pcache_udp_ping_received(struct gnutella_node *n)
 			printf("UDP got unsolicited PING matching our GUID!\n");
 		return;
 	}
+
+	/*
+	 * We'll probe for UHC pings in send_personal_info().
+	 */
 
 	send_personal_info(n, FALSE);
 }
