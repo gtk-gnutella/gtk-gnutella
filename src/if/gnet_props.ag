@@ -1643,6 +1643,15 @@ prop = {
 };
 
 prop = {
+    name = "recv_solicited_udp";
+    desc = "Whether gtk-gnutella determined it could receive solicited UDP";
+    type = boolean;
+    data = {
+	    default = FALSE;
+    };
+};
+
+prop = {
     name = "gnet_compact_query";
     desc = "Remove unnecessary ballast from query string before processing "
            "or forwarding them. Reduces traffic at the cost of little CPU time";
@@ -2710,6 +2719,18 @@ prop = {
 	type = boolean;
 	data = {
 		default = TRUE;
+	};
+};
+
+prop = {
+	name = "uploads_stalling";
+	desc = "Whether uploads are frequently stalling, indicating that the "
+		"bandwidth is saturated.  Avoid running as an ultra-node under "
+		"those conditions.";
+	save = FALSE;
+	type = boolean;
+	data = {
+		default = FALSE;
 	};
 };
 

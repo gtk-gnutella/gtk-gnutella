@@ -172,6 +172,7 @@ extern const guint32  fuzzy_threshold;
 extern const gboolean is_firewalled;
 extern const gboolean is_inet_connected;
 extern const gboolean is_udp_firewalled;
+extern const gboolean recv_solicited_udp;
 extern const gboolean gnet_compact_query;
 extern const gboolean download_optimistic_start;
 extern const gboolean library_rebuilding;
@@ -263,6 +264,7 @@ extern const gboolean enable_udp;
 extern const gboolean process_oob_queries;
 extern const gboolean send_oob_queries;
 extern const gboolean proxy_oob_queries;
+extern const gboolean uploads_stalling;
 
 
 prop_set_t *gnet_prop_init(void);
