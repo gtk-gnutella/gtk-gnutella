@@ -138,7 +138,7 @@ void monitor_gui_enable_monitor(const gboolean val)
 {
     static gboolean registered = FALSE;
     gtk_widget_set_sensitive
-        (lookup_widget(main_window, "clist_monitor"), !val);
+        (lookup_widget(main_window, "treeview_monitor"), !val);
 
     if (val != registered) {
         if (val) {
