@@ -6348,8 +6348,7 @@ picked:
 		(d->server->attrs & DLS_A_BANNING) ?
 			download_vendor_str(d) : version_string);
 
-	header_features_generate(dl_tmp, sizeof(dl_tmp), &rw,
-		FEATURE_UPLOAD);
+	header_features_generate(xfeatures.downloads, dl_tmp, sizeof(dl_tmp), &rw);
 	
 	if (d->server->attrs & DLS_A_FAKE_G2)
 		rw += gm_snprintf(&dl_tmp[rw], sizeof(dl_tmp)-rw,

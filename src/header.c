@@ -64,12 +64,7 @@ struct header_x_feature
 	gchar *name;
 	int major;
 	int minor;
-	
-	int type;
 };
-
-GList *x_features;
-
 
 /*
  * header_strerror
@@ -734,6 +729,16 @@ gchar *header_fmt_to_gchar(gpointer o)
  ***/
 
 /*
+ * header_features_close
+ */
+void header_features_close()
+{
+	header_features_cleanup(xfeatures.uploads);
+	header_features_cleanup(xfeatures.downloads);
+	header_features_cleanup(xfeatures.connections);
+}
+
+/*
  * header_features_add
  *
  * Add support for feature_name with the specified version to the X-Features
@@ -741,10 +746,10 @@ gchar *header_fmt_to_gchar(gpointer o)
  * Type indicates when this header should be added (upload, download etc...)
  * which may be an or-ed value
  */
-void header_features_add(gchar *feature_name, 
+void header_features_add(struct xfeature_t xfeatures,
+	gchar *feature_name, 
 	int feature_version_major,
-	int feature_version_minor,
-	int type)
+	int feature_version_minor)
 {
 	struct header_x_feature *feature = walloc(sizeof(*feature));
 	
@@ -752,9 +757,7 @@ void header_features_add(gchar *feature_name,
 	feature->major = feature_version_major;
 	feature->minor = feature_version_minor;
 	
-	feature->type = type;
-	
-	x_features = g_list_append(x_features, feature);
+	xfeatures.features = g_list_append(xfeatures.features, feature);
 }
 
 /*
@@ -762,11 +765,11 @@ void header_features_add(gchar *feature_name,
  *
  * Removes all memory used by the header_features_add. 
  */
-void header_features_cleanup()
+void header_features_cleanup(struct xfeature_t xfeatures)
 {
 	GList *cur;
-	for(cur = g_list_first(x_features);
-		cur != g_list_last(x_features);
+	for(cur = g_list_first(xfeatures.features);
+		cur != g_list_last(xfeatures.features);
 		cur = g_list_next(cur)) {
 		
 		struct header_x_feature *feature = 
@@ -786,29 +789,28 @@ void header_features_cleanup()
  * we should include in the X-Features header.
  * *rw is changed too *rw + bytes written
  */
-void header_features_generate(gchar *buf, gint len, gint *rw, gint type)
+void header_features_generate(struct xfeature_t xfeatures,
+	gchar *buf, gint len, gint *rw)
 {
 	GList *cur;
 	gboolean first = TRUE;
 	
 
-	for(cur = g_list_first(x_features);
-		cur != g_list_last(x_features);
+	for(cur = g_list_first(xfeatures.features);
+		cur != g_list_last(xfeatures.features);
 		cur = g_list_next(cur)) {
 		
 		struct header_x_feature *feature = 
 			(struct header_x_feature *) cur->data;
 
-		if (feature->type & type > 0) {
-			if (first) {
-				*rw += gm_snprintf(&buf[*rw], len - *rw, "X-Features: ");
-				first = FALSE;
-			} else
-				*rw += gm_snprintf(&buf[*rw], len - *rw, ", ");
+		if (first) {
+			*rw += gm_snprintf(&buf[*rw], len - *rw, "X-Features: ");
+			first = FALSE;
+		} else
+			*rw += gm_snprintf(&buf[*rw], len - *rw, ", ");
 			
-			*rw += gm_snprintf(&buf[*rw], len - *rw, "%s/%d.%d ",
-				feature->name, feature->major, feature->minor);
-		}
+		*rw += gm_snprintf(&buf[*rw], len - *rw, "%s/%d.%d ",
+			feature->name, feature->major, feature->minor);
 	}
 	
 	/* Only close this header if we did start to write it */

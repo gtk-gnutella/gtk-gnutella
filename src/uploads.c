@@ -1681,6 +1681,19 @@ static void upload_http_xhost_add(
 }
 
 /*
+ * upload_http_xhost_add
+ */
+static void upload_xfeatures_add(
+	gchar *buf, gint *retval, gpointer arg, guint32 flags)
+{
+	gint rw = 0;
+	gint length = *retval;
+
+	header_features_generate(xfeatures.uploads, buf, length, &rw);
+	
+	*retval = rw;
+}
+/*
  * upload_http_sha1_add
  *
  * This routine is called by http_send_status() to generate the
@@ -2155,6 +2168,10 @@ static void upload_request(gnutella_upload_t *u, header_t *header)
 	u->end = end;
 	u->pos = skip;
 
+	hev[hevcnt].he_type = HTTP_EXTRA_CALLBACK;
+	hev[hevcnt].he_cb = upload_xfeatures_add;
+	hev[hevcnt++].he_arg = NULL;
+	
 	/*
 	 * If this is a pushed upload, and we are not firewalled, then tell
 	 * them they can reach us directly by outputting an X-Host line.
