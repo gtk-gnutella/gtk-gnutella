@@ -65,40 +65,97 @@ size_t strlcpy(gchar *dst, const gchar *src, size_t dst_size);
 #define g_strlcpy strlcpy
 #endif
 
-/* Wrappers for ctype functions that allow only ASCII characters whereas
- * the locale would allow others. The parameter doesn't have to be casted
- * to (unsigned char) because isascii() is defined for all values so that
- * these macros return false for everything out of [0..127].
+/* ctype-like functions that allow only ASCII characters whereas the locale
+ * would allow others. The parameter doesn't have to be casted to (unsigned
+ * char) because these functions return false for everything out of [0..127].
  *
  * GLib 2.x has similar macros/functions but defines only a subset.
  */
-#define is_ascii_alnum(c) (isascii(c) && isalnum((guchar) c))
-#define is_ascii_alpha(c) (isascii(c) && isalpha((guchar) c))
-#ifdef isblank
-#define is_ascii_blank(c) (isascii(c) && isblank((guchar) c))
-#else /* !isblank */
-#define is_ascii_blank(c) ((c) == ' ' || (c) == '\t')
-#endif /* isblank */
-#define is_ascii_cntrl(c) (isascii(c) && iscntrl((guchar) c))
-#define is_ascii_digit(c) (isascii(c) && isdigit((guchar) c))
-#define is_ascii_graph(c) (isascii(c) && isgraph((guchar) c))
-#define is_ascii_lower(c) (isascii(c) && islower((guchar) c))
-#define is_ascii_print(c) (isascii(c) && isprint((guchar) c))
-#define is_ascii_punct(c) (isascii(c) && ispunct((guchar) c))
-#define is_ascii_space(c) (isascii(c) && isspace((guchar) c))
-#define is_ascii_upper(c) (isascii(c) && isupper((guchar) c))
-#define is_ascii_xdigit(c) (isascii(c) && isxdigit((guchar) c))
+
+static inline gboolean
+is_ascii_blank(gint c)
+{
+	return c == 32 || c == 9;	/* space, tab */
+}
+
+static inline gboolean
+is_ascii_cntrl(gint c)
+{
+	return (c >= 0 && c <= 31) || c == 127;
+}
+
+static inline gboolean
+is_ascii_digit(gint c)
+{
+	return c >= 48 && c <= 57;	/* 0-9 */
+}
+
+static inline gboolean
+is_ascii_xdigit(gint c)
+{
+	return is_ascii_digit(c) ||			/* 0-9 */
+			(c >= 65 && c <= 70) ||		/* A-F */
+			(c >= 97 && c <= 102);		/* a-f */
+}
+
+static inline gboolean
+is_ascii_upper(gint c)
+{
+	return c >= 65 && c <= 90;		/* A-Z */
+}
+
+static inline gboolean
+is_ascii_lower(gint c)
+{
+	return c >= 97 && c <= 122;		/* a-z */
+}
+
+static inline gboolean
+is_ascii_alpha(gint c)
+{
+	return is_ascii_upper(c) || is_ascii_lower(c);	/* A-Z, a-z */
+}
+
+static inline gboolean
+is_ascii_alnum(gint c)
+{
+	return is_ascii_alpha(c) || is_ascii_digit(c);	/* A-Z, a-z, 0-9 */
+}
+
+static inline gboolean
+is_ascii_space(gint c)
+{
+	return c == 32 || (c >= 9 && c <= 13);
+}
+
+static inline gboolean
+is_ascii_graph(gint c)
+{
+	return c >= 33 && c <= 126;
+}
+
+static inline gboolean
+is_ascii_print(gint c)
+{
+	return is_ascii_graph(c) || c == 32;
+}
+
+static inline gboolean
+is_ascii_punct(gint c)
+{
+	return c >= 33 && c <= 126 && !is_ascii_alnum(c);
+}
 
 static inline gint
 ascii_toupper(gint c)
 {
-	return is_ascii_lower(c) ? c + 32 : c;
+	return is_ascii_lower(c) ? c - 32 : c;
 }
 
 static inline gint
 ascii_tolower(gint c)
 {
-	return is_ascii_upper(c) ? c - 32 : c;
+	return is_ascii_upper(c) ? c + 32 : c;
 }
 
 #if !GLIB_CHECK_VERSION(2,4,0)
