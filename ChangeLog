@@ -1,5 +1,21 @@
 # since last version
 
+- (2003.10.05 - RAM)
+ * Added parsing of new compact X-Alt header and generation of that new header
+   to servents who have shown support for it.
+ * Added collecting of alternate locations on HTTP 416 replies.
+ * Fixed update of the dl_byte_count/ul_byte_count properties (now a guint64).
+ * Now passes vendor string to alt-loc collection routine so that we can
+   record who supports X-Alt and who doesn't.
+ * Suppressed range header parsing warnings when not debugging.
+ * Now look at X-Alt when collecting alternate locations and record vendors
+   known to support that new compact form.
+ * Skip leading whitespaces when parsing IP address.
+ * Don't hardwire 6346 as default port, use the new GTA_PORT definition.
+ * Added version_newer() to check for GTKG versions being newer than a date.
+ * Assume all GTKG versions newer than 05/10/2003 support X-Alt even if we
+   have never seen an X-Alt from them.
+
 - (2003.10.04 - Jeroen)
  * Closed bug #784574 Transferred files byte counter rollover. Transfer counter
    is now a 64 bit counter.
