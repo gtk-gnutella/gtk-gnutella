@@ -8005,24 +8005,6 @@ settings</label>
 
   <widget>
     <class>GtkMenuItem</class>
-    <name>separator10</name>
-    <right_justify>False</right_justify>
-  </widget>
-
-  <widget>
-    <class>GtkMenuItem</class>
-    <name>popup_downloads_search_again</name>
-    <signal>
-      <name>activate</name>
-      <handler>on_popup_downloads_search_again_activate</handler>
-      <last_modification_time>Tue, 09 Apr 2002 17:55:57 GMT</last_modification_time>
-    </signal>
-    <label>Search again</label>
-    <right_justify>False</right_justify>
-  </widget>
-
-  <widget>
-    <class>GtkMenuItem</class>
     <name>separator11</name>
     <right_justify>False</right_justify>
   </widget>
@@ -8116,24 +8098,6 @@ settings</label>
       <last_modification_time>Sun, 16 Jun 2002 16:50:24 GMT</last_modification_time>
     </signal>
     <label>Abort all with urn:sha1</label>
-    <right_justify>False</right_justify>
-  </widget>
-
-  <widget>
-    <class>GtkMenuItem</class>
-    <name>separator8</name>
-    <right_justify>False</right_justify>
-  </widget>
-
-  <widget>
-    <class>GtkMenuItem</class>
-    <name>popup_queue_search_again</name>
-    <signal>
-      <name>activate</name>
-      <handler>on_popup_queue_search_again_activate</handler>
-      <last_modification_time>Tue, 09 Apr 2002 17:51:45 GMT</last_modification_time>
-    </signal>
-    <label>Search again</label>
     <right_justify>False</right_justify>
   </widget>
 
@@ -12502,7 +12466,8 @@ Robert Bihlmeyer &lt;robbe@orcus.priv.at&gt;
 Noel T.Nunkovich &lt;ntnunk@earthlink.net&gt;
 Michael Tesch &lt;tesch@users.sourceforge.net&gt;
 Markus 'guruz' Goetz &lt;guruz@guruz.info&gt;
-Richard Eckart &lt;wyldfire@users.sourceforge.net&gt;</text>
+Richard Eckart &lt;wyldfire@users.sourceforge.net&gt;
+Christophe Tronche &lt;ch.tronche@computer.org&gt;</text>
 	</widget>
       </widget>
     </widget>

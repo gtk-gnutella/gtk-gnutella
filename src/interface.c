@@ -4814,7 +4814,6 @@ create_popup_dl_active (void)
 {
   GtkAccelGroup *popup_dl_active_accels;
   GtkWidget *separator9;
-  GtkWidget *separator10;
   GtkWidget *separator11;
 
   popup_dl_active = gtk_menu_new ();
@@ -4885,21 +4884,6 @@ create_popup_dl_active (void)
   gtk_widget_show (popup_downloads_push);
   gtk_container_add (GTK_CONTAINER (popup_dl_active), popup_downloads_push);
 
-  separator10 = gtk_menu_item_new ();
-  gtk_widget_ref (separator10);
-  gtk_object_set_data_full (GTK_OBJECT (popup_dl_active), "separator10", separator10,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (separator10);
-  gtk_container_add (GTK_CONTAINER (popup_dl_active), separator10);
-  gtk_widget_set_sensitive (separator10, FALSE);
-
-  popup_downloads_search_again = gtk_menu_item_new_with_label ("Search again");
-  gtk_widget_ref (popup_downloads_search_again);
-  gtk_object_set_data_full (GTK_OBJECT (popup_dl_active), "popup_downloads_search_again", popup_downloads_search_again,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (popup_downloads_search_again);
-  gtk_container_add (GTK_CONTAINER (popup_dl_active), popup_downloads_search_again);
-
   separator11 = gtk_menu_item_new ();
   gtk_widget_ref (separator11);
   gtk_object_set_data_full (GTK_OBJECT (popup_dl_active), "separator11", separator11,
@@ -4952,9 +4936,6 @@ create_popup_dl_active (void)
   gtk_signal_connect (GTK_OBJECT (popup_downloads_push), "activate",
                       GTK_SIGNAL_FUNC (on_popup_downloads_push_activate),
                       NULL);
-  gtk_signal_connect (GTK_OBJECT (popup_downloads_search_again), "activate",
-                      GTK_SIGNAL_FUNC (on_popup_downloads_search_again_activate),
-                      NULL);
   gtk_signal_connect (GTK_OBJECT (popup_downloads_copy_url), "activate",
                       GTK_SIGNAL_FUNC (on_popup_downloads_copy_url_activate),
                       NULL);
@@ -4969,7 +4950,6 @@ GtkWidget*
 create_popup_dl_queued (void)
 {
   GtkAccelGroup *popup_dl_queued_accels;
-  GtkWidget *separator8;
   GtkWidget *separator12;
   GtkTooltips *tooltips;
 
@@ -5017,21 +4997,6 @@ create_popup_dl_queued (void)
   gtk_widget_show (popup_queue_abort_sha1);
   gtk_container_add (GTK_CONTAINER (popup_dl_queued), popup_queue_abort_sha1);
 
-  separator8 = gtk_menu_item_new ();
-  gtk_widget_ref (separator8);
-  gtk_object_set_data_full (GTK_OBJECT (popup_dl_queued), "separator8", separator8,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (separator8);
-  gtk_container_add (GTK_CONTAINER (popup_dl_queued), separator8);
-  gtk_widget_set_sensitive (separator8, FALSE);
-
-  popup_queue_search_again = gtk_menu_item_new_with_label ("Search again");
-  gtk_widget_ref (popup_queue_search_again);
-  gtk_object_set_data_full (GTK_OBJECT (popup_dl_queued), "popup_queue_search_again", popup_queue_search_again,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (popup_queue_search_again);
-  gtk_container_add (GTK_CONTAINER (popup_dl_queued), popup_queue_search_again);
-
   separator12 = gtk_menu_item_new ();
   gtk_widget_ref (separator12);
   gtk_object_set_data_full (GTK_OBJECT (popup_dl_queued), "separator12", separator12,
@@ -5068,9 +5033,6 @@ create_popup_dl_queued (void)
                       NULL);
   gtk_signal_connect (GTK_OBJECT (popup_queue_abort_sha1), "activate",
                       GTK_SIGNAL_FUNC (on_popup_queue_abort_sha1_activate),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (popup_queue_search_again), "activate",
-                      GTK_SIGNAL_FUNC (on_popup_queue_search_again_activate),
                       NULL);
   gtk_signal_connect (GTK_OBJECT (popup_queue_copy_url), "activate",
                       GTK_SIGNAL_FUNC (on_popup_queue_copy_url_activate),
@@ -7828,7 +7790,7 @@ create_dlg_about (void)
   gtk_container_add (GTK_CONTAINER (scrolledwindow18), text1);
   gtk_widget_set_usize (text1, 146, 126);
   gtk_text_insert (GTK_TEXT (text1), NULL, NULL, NULL,
-                   "Steven Wilcoxon <swilcoxon@users.sourceforge.net>\nJason Lingohr <lingman@users.sourceforge.net>\nBrian St Pierre <bstpierre@users.sourceforge.net>\nChuck Homic <homic@users.sourceforge.net>\nIngo Saitz <salz@users.sourceforge.net>\nBen Hochstedler <hochstrb@users.sourceforge.net>\nDaniel Walker <axiom@users.sourceforge.net>\nPaul Cassella <pwc@users.sourceforge.net> \nJared Mauch <jaredmauch@users.sourceforge.net>\nNate E <web1 (at) users dot sourceforge dot net>\nRaphael Manfredi <Raphael_Manfredi@pobox.com>\nKenn Brooks Hamm <khamm@andrew.cmu.edu>\nMark Schreiber <mark7@andrew.cmu.edu>\nSam Varshavchik <mrsam@courier-mta.com>\nVladimir Klebanov <unny@rz.uni-karlsruhe.de>\nRoman Shterenzon <roman@xpert.com>\nRobert Bihlmeyer <robbe@orcus.priv.at>\nNoel T.Nunkovich <ntnunk@earthlink.net>\nMichael Tesch <tesch@users.sourceforge.net>\nMarkus 'guruz' Goetz <guruz@guruz.info>\nRichard Eckart <wyldfire@users.sourceforge.net>", -1);
+                   "Steven Wilcoxon <swilcoxon@users.sourceforge.net>\nJason Lingohr <lingman@users.sourceforge.net>\nBrian St Pierre <bstpierre@users.sourceforge.net>\nChuck Homic <homic@users.sourceforge.net>\nIngo Saitz <salz@users.sourceforge.net>\nBen Hochstedler <hochstrb@users.sourceforge.net>\nDaniel Walker <axiom@users.sourceforge.net>\nPaul Cassella <pwc@users.sourceforge.net> \nJared Mauch <jaredmauch@users.sourceforge.net>\nNate E <web1 (at) users dot sourceforge dot net>\nRaphael Manfredi <Raphael_Manfredi@pobox.com>\nKenn Brooks Hamm <khamm@andrew.cmu.edu>\nMark Schreiber <mark7@andrew.cmu.edu>\nSam Varshavchik <mrsam@courier-mta.com>\nVladimir Klebanov <unny@rz.uni-karlsruhe.de>\nRoman Shterenzon <roman@xpert.com>\nRobert Bihlmeyer <robbe@orcus.priv.at>\nNoel T.Nunkovich <ntnunk@earthlink.net>\nMichael Tesch <tesch@users.sourceforge.net>\nMarkus 'guruz' Goetz <guruz@guruz.info>\nRichard Eckart <wyldfire@users.sourceforge.net>\nChristophe Tronche <ch.tronche@computer.org>", -1);
 
   hbox137 = gtk_hbox_new (FALSE, 0);
   gtk_widget_ref (hbox137);
