@@ -1508,7 +1508,11 @@ static prop_map_t property_map[] = {
         PROP_GUID,
         guid_changed,
         TRUE,
+#ifdef USE_GTK2
+        "label_nodes_guid",
+#else
         "entry_nodes_guid",
+#endif
         FREQ_UPDATES, 0
     },
     {
@@ -2662,21 +2666,20 @@ static gboolean proxy_ip_changed(property_t prop)
 
 static gboolean is_firewalled_changed(property_t prop)
 {
-	GtkWidget *image_firewall;
-	GtkWidget *image_no_firewall;
+	GtkWidget *icon_firewall;
+	GtkWidget *icon_open;
 	gboolean val;
 
-    image_firewall = lookup_widget(main_window, "image_firewall");
-	image_no_firewall = lookup_widget(main_window, "image_no_firewall");
+    icon_firewall = lookup_widget(main_window, "eventbox_image_firewall");
+	icon_open = lookup_widget(main_window, "eventbox_image_no_firewall");
 
     gnet_prop_get_boolean(prop, &val, 0, 1);
-
 	if (val) {
-		gtk_widget_show(image_firewall);
-		gtk_widget_hide(image_no_firewall);
+		gtk_widget_hide(icon_open);
+		gtk_widget_show(icon_firewall);
 	} else {
-		gtk_widget_hide(image_firewall);
-		gtk_widget_show(image_no_firewall);
+		gtk_widget_hide(icon_firewall);
+		gtk_widget_show(icon_open);
 	}
 
 	return FALSE;
@@ -2712,32 +2715,42 @@ static gboolean plug_icon_changed(property_t prop)
 
 static gboolean current_peermode_changed(property_t prop)
 {
-    GtkWidget *image_ultra = lookup_widget(main_window, "image_ultra");
-	GtkWidget *image_leaf = lookup_widget(main_window, "image_leaf");
-	GtkWidget *image_legacy = lookup_widget(main_window, "image_legacy");
 	GtkWidget *hbox_normal_ultrapeer = lookup_widget(main_window,
 											"hbox_normal_or_ultrapeer");
 	GtkWidget *hbox_leaf = lookup_widget(main_window, "hbox_leaf");
+    GtkWidget *icon_ultra;
+	GtkWidget *icon_leaf;
+	GtkWidget *icon_legacy;
 	guint32 mode;
 
+#ifdef USE_GTK2
+    icon_ultra = lookup_widget(main_window, "eventbox_image_ultra");
+	icon_leaf = lookup_widget(main_window, "eventbox_image_leaf");
+	icon_legacy = lookup_widget(main_window, "eventbox_image_legacy");
+#else
+    icon_ultra = lookup_widget(main_window, "image_ultra");
+	icon_leaf = lookup_widget(main_window, "image_leaf");
+	icon_legacy = lookup_widget(main_window, "image_legacy");
+#endif
+
     gnet_prop_get_guint32_val(prop, &mode);
-	gtk_widget_hide(image_ultra);
-	gtk_widget_hide(image_leaf);
-	gtk_widget_hide(image_legacy);
+	gtk_widget_hide(icon_ultra);
+	gtk_widget_hide(icon_leaf);
+	gtk_widget_hide(icon_legacy);
 
 	switch (mode) {
 	case NODE_P_ULTRA:
-		gtk_widget_show(image_ultra);
+		gtk_widget_show(icon_ultra);
 		gtk_widget_hide(hbox_leaf);
 		gtk_widget_show(hbox_normal_ultrapeer);
 		break;
 	case NODE_P_LEAF:
-		gtk_widget_show(image_leaf);
+		gtk_widget_show(icon_leaf);
 		gtk_widget_show(hbox_leaf);
 		gtk_widget_hide(hbox_normal_ultrapeer);
 		break;
 	case NODE_P_NORMAL:
-		gtk_widget_show(image_legacy);
+		gtk_widget_show(icon_legacy);
 		gtk_widget_show(hbox_normal_ultrapeer);
 		gtk_widget_hide(hbox_leaf);
 		break;
@@ -3242,14 +3255,11 @@ static gboolean _update_address_information(void)
         gnet_prop_get_guint32(PROP_LOCAL_IP, &current_ip, 0, 1);
    
     if (old_address != current_ip || old_port != listen_port) {
-        gchar * iport;
+        const gchar * iport;
         GtkLabel *label_current_port;
-        GtkEntry *entry_nodes_ip;
 
         label_current_port = 
             GTK_LABEL(lookup_widget(main_window, "label_current_port"));
-        entry_nodes_ip =
-            GTK_ENTRY(lookup_widget(main_window, "entry_nodes_ip"));
 
       	iport = ip_port_to_gchar(current_ip, listen_port);
 
@@ -3259,8 +3269,13 @@ static gboolean _update_address_information(void)
         statusbar_gui_message
             (15, "Address/port changed to: %s", iport);
 
-        gtk_label_set(label_current_port, iport);
-        gtk_entry_set_text(entry_nodes_ip, iport);
+#ifdef USE_GTK2
+        gtk_label_set_text(
+			GTK_LABEL(lookup_widget(main_window, "label_nodes_ip")), iport);
+#else
+        gtk_entry_set_text(
+			GTK_ENTRY(lookup_widget(main_window, "entry_nodes_ip")), iport);
+#endif
     }
 
     return FALSE;
@@ -3305,9 +3320,15 @@ static gboolean guid_changed(property_t prop)
    
     gnet_prop_get_storage(prop, guid_buf, sizeof(guid_buf));
 
+#ifdef USE_GTK2
+    gtk_label_set_text(
+        GTK_LABEL(lookup_widget(main_window, "label_nodes_guid")),
+        guid_hex_str(guid_buf));
+#else
     gtk_entry_set_text(
         GTK_ENTRY(lookup_widget(main_window, "entry_nodes_guid")),
         guid_hex_str(guid_buf));
+#endif
 
     return FALSE;
 }
@@ -3541,7 +3562,8 @@ static gboolean gnet_connections_changed(property_t prop)
         nodes = max_connections + max_leaves + max_normal;
         gm_snprintf(set_tmp, sizeof(set_tmp), 
             "%u/%uU | %u/%uN | %u/%uL",
-            ultra_count, max_connections - max_normal, 
+            ultra_count,
+			max_connections < max_normal ? 0 : max_connections - max_normal, 
             normal_count, max_normal, 
             leaf_count, max_leaves);
         break;
