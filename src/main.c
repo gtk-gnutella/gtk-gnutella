@@ -87,7 +87,8 @@ RCSID("$Id$");
 
 /* */
 
-struct gnutella_socket *s_listen = NULL;
+struct gnutella_socket *s_tcp_listen = NULL;
+struct gnutella_socket *s_udp_listen = NULL;
 gchar *start_rfc822_date = NULL;		/* RFC822 format of start_time */
 cqueue_t *callout_queue;
 
@@ -209,9 +210,13 @@ void gtk_gnutella_exit(gint n)
 	if (current_peermode == NODE_P_ULTRA)
 		exit_grace *= 2;
 
-	if (s_listen) {
-		socket_free(s_listen);		/* No longer accept connections */
-		s_listen = NULL;
+	if (s_tcp_listen) {
+		socket_free(s_tcp_listen);		/* No longer accept connections */
+		s_tcp_listen = NULL;
+	}
+	if (s_udp_listen) {
+		socket_free(s_udp_listen);		/* No longer accept connections */
+		s_udp_listen = NULL;
 	}
 
 	while (node_bye_pending()) {
