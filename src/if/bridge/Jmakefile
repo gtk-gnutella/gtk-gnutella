@@ -40,7 +40,8 @@ OBJ = \
 CFLAGS = -I$(TOP) -I../.. $(GLIB_CFLAGS)
 DPFLAGS = -I$(TOP) -I../.. $(GLIB_CFLAGS)
 
-AllTarget($(OBJ))
 DependTarget()
+NormalObjectTarget(c2ui)
+NormalObjectTarget(ui2c)
 
 RemoteTargetDependency(c2ui.o, .., gui_property.h)
