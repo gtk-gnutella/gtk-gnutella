@@ -1,5 +1,13 @@
 # since last version
 
+- (2004.03.09 - RAM)
+ * Don't call make_room() with "needed <= 0".
+ * Applied HSEP patch #6 from Thomas.
+
+- (2004.03.06 - RAM)
+ * Fixed typo that prevented renaming files to *.OK/*.BAD correctly when the
+   filename on disk was not readable (i.e. an URN).
+
 - (2004.03.03 - RAM)
  * Removed constraint on bg_task_signal(): can be called from a non-running
    task, since otherwise daemon taks can have difficulties using it in their
