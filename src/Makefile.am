@@ -49,7 +49,13 @@ GLADE_UI = \
 	support-glade1.c support-glade1.h
 ADDITIONAL_DROPIN = \
 	gtkcolumnchooser.c gtkcolumnchooser.h \
-	share_gui.c share_gui.h
+	share_gui.c share_gui.h \
+	nodes_gui.c nodes_gui.h nodes_cb.c nodes_cb.h \
+	gui_property.c gui_property.h gui_property_priv.h \
+	settings_gui.c settings_gui.h settings_cb.c settings_cb.h \
+	statusbar_gui.c statusbar_gui.h \
+	search_gui.c search_gui.h search_cb.c search_cb.h \
+	main_gui.c main_gui.h
 gtk_gnutella_LDADD = @GTK_LIBS@ -lz @XML_LIBS@
 endif
 
@@ -70,8 +76,11 @@ gtk_gnutella_SOURCES = \
 	$(GLADE_UI) \
 	$(ADDITIONAL_DROPIN) \
 	gnutella.h \
+	gnet.h \
 	misc.c misc.h \
-	config.c appconfig.h \
+	prop.c prop.h \
+	gnet_property.c gnet_property.h gnet_property_priv.h \
+	settings.c settings.h oldconfig.c oldconfig.h \
 	sockets.c sockets.h \
 	nodes.c nodes.h \
 	hosts.c hosts.h \
@@ -142,5 +151,8 @@ glade_files:
 	@echo $(GLADECMD) --write-source ../$(GLADEFILE)
 	@$(GLADECMD) --write-source ../$(GLADEFILE) || (echo $(GLADE_WARNING1);echo $(GLADE_WARNING2);echo $(GLADE_WARNING3);echo $(GLADE_WARNING4))
 
+properties:
+	autogen gui_props.ag
+	autogen gnet_props.ag
 
 
