@@ -982,7 +982,7 @@ void parq_download_queue_ack(struct gnutella_socket *s)
 				g_assert(dl->queue_status == NULL);		/* unparq'ed */
 
 				dl->queue_status = parq_dl_create(dl);
-				parq_dl_add_id(dl, queue);
+				parq_dl_add_id(dl, id);
 
 				/* All set for request now */
 			}
