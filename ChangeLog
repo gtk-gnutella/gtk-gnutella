@@ -1,5 +1,20 @@
 # since last version
 
+- (2003.01.04 - RAM)
+ * Had forgotten that we must "goto next" instead of "continue" in
+   the URL parsing loop from dmesh_collect_locations().
+ * Added argument to download_remove_file(), so that we can reset the fileinfo
+   of manually removed files, in order to not discard the entry at the
+   next startup.
+ * Fixed hops-flow handling in mq_service(): was generating bad iovec entries
+   for dropped messages!
+ * Don't need to send the "Connect Back" message as a control message.
+ * Seeing a vendor-specific message sets the NODE_A_CAN_VENDOR attribute as
+   if we had seen a Vendor-Message header.
+ * Drop ping/pongs/pushes that are smaller than their normal size.
+ * Added support for initial advertising of supported vendor messages.
+ * Count unhandled vendor-specific messages as being of an "unknown type".
+
 - (2003.01.03 - RAM)
  * Added support for vendor-specific messages.
  * Ban ancient-enough versions of GTKG.
