@@ -127,8 +127,7 @@ set w_main_list {
 	popup_search_filters 
 	popup_search_restart 
 	popup_search_resume
-	popup_search_stop 
-	popup_search_stop_sorting 
+	popup_search_stop
 	popup_search_toggle_tabs 
  	popup_search 
 
