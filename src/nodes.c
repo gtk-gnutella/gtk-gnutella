@@ -704,7 +704,10 @@ void node_timer(time_t now)
 				 * as they reply to eachother alive pings.
 				 *		--RAM, 11/12/2003
 				 */
-				if (delta_time(now, n->last_update) > node_connected_timeout) {
+				if (
+					delta_time(now, n->last_tx) > node_connected_timeout &&
+					NODE_MQUEUE_COUNT(n)
+				) {
                     hcache_add(HCACHE_TIMEOUT, n->ip, 0, 
                         "activity timeout");
 					node_bye_if_writable(n, 405, "Activity timeout");
@@ -1477,8 +1480,7 @@ void node_mark_bad_vendor(struct gnutella_node *n)
  */
 static gboolean node_avoid_monopoly(struct gnutella_node *n)
 {
-	guint up_in_cnt = 0;
-	guint up_out_cnt = 0;
+	guint up_cnt = 0;
 	guint leaf_cnt = 0;
 	guint normal_cnt = 0;
 	GSList *sl;
@@ -1504,24 +1506,18 @@ static gboolean node_avoid_monopoly(struct gnutella_node *n)
 		if (0 != strcmp_delimit(n->vendor, node->vendor, "/ "))
 			continue;
 				
-		if ((node->attrs & NODE_A_ULTRA) || (node->flags & NODE_F_ULTRA)) {
-			if (NODE_IS_INCOMING(node))
-				up_in_cnt++;
-			else
-				up_out_cnt++;
-		} else if (node->flags & NODE_F_LEAF)
+		if ((node->attrs & NODE_A_ULTRA) || (node->flags & NODE_F_ULTRA))
+			up_cnt++;
+		else if (node->flags & NODE_F_LEAF)
 			leaf_cnt++;
 		else
 			normal_cnt++;
 	}
 
 	/* Include current node into counter as well */
-	if ((n->attrs & NODE_A_ULTRA) || (n->flags & NODE_F_ULTRA)) {
-		if (NODE_IS_INCOMING(n))
-			up_in_cnt++;
-		else
-			up_out_cnt++;
-	} else if (n->flags & NODE_F_LEAF)
+	if ((n->attrs & NODE_A_ULTRA) || (n->flags & NODE_F_ULTRA))
+		up_cnt++;
+	else if (n->flags & NODE_F_LEAF)
 		leaf_cnt++;
 	else
 		normal_cnt++;
@@ -1529,15 +1525,9 @@ static gboolean node_avoid_monopoly(struct gnutella_node *n)
 	switch (current_peermode) {
 	case NODE_P_ULTRA:
 		if ((n->attrs & NODE_A_ULTRA) || (n->flags & NODE_F_ULTRA)) {
-			if (NODE_IS_INCOMING(n)) {
-				gint max = (max_connections - up_connections) - normal_connections;
-				if (max > 1 && up_in_cnt * 100 > max * unique_nodes)
-					return TRUE;	/* Disallow */
-			} else {
-				gint max = up_connections - normal_connections;
-				if (max > 1 && up_out_cnt * 100 > max * unique_nodes)
-					return TRUE;	/* Disallow */
-			}
+			gint max = max_connections - normal_connections;
+			if (max > 1 && up_cnt * 100 > max * unique_nodes)
+				return TRUE;	/* Disallow */
 		} else if (n->flags & NODE_F_LEAF) {
 			if (max_leaves > 1 && leaf_cnt * 100 > max_leaves * unique_nodes)
 				return TRUE;
@@ -1550,8 +1540,7 @@ static gboolean node_avoid_monopoly(struct gnutella_node *n)
 		}
 		break;
 	case NODE_P_LEAF:
-		if (max_ultrapeers > 1 &&
-				(up_in_cnt + up_out_cnt) * 100 > max_ultrapeers * unique_nodes)
+		if (max_ultrapeers > 1 && up_cnt * 100 > max_ultrapeers * unique_nodes)
 			return TRUE;	/* Dissallow */
 		break;
 	case NODE_P_NORMAL:
@@ -1578,8 +1567,7 @@ static gboolean node_avoid_monopoly(struct gnutella_node *n)
  */
 static gboolean node_reserve_slot(struct gnutella_node *n)
 {
-	guint up_in_cnt = 0;		/* GTKG UPs */
-	guint up_out_cnt = 0;
+	guint up_cnt = 0;		/* GTKG UPs */
 	guint leaf_cnt = 0;		/* GTKG leafs */
 	guint normal_cnt = 0;	/* GTKG normal nodes */
 	GSList *sl;
@@ -1602,10 +1590,7 @@ static gboolean node_reserve_slot(struct gnutella_node *n)
 			continue;
 
 		if ((node->attrs & NODE_A_ULTRA) || (node->attrs & NODE_F_ULTRA))
-			if (NODE_IS_INCOMING(node))
-				up_in_cnt++;
-			else
-				up_out_cnt++;
+			up_cnt++;
 		else if (node->flags & NODE_F_LEAF)
 			leaf_cnt++;
 		else
@@ -1628,17 +1613,10 @@ static gboolean node_reserve_slot(struct gnutella_node *n)
 	switch (current_peermode) {
 	case NODE_P_ULTRA:
 		if ((n->attrs & NODE_A_ULTRA) || (n->flags & NODE_F_ULTRA)) {
-			if (NODE_IS_INCOMING(n)) {
-				gint max = (max_connections - up_connections) - normal_connections;
-				gint gtkg_min = reserve_gtkg_nodes * max / 100;
-				if (node_ultra_count >= max + up_in_cnt - gtkg_min)
-					return TRUE;
-			} else {
-				gint max = up_connections - normal_connections;
-				gint gtkg_min = reserve_gtkg_nodes * max / 100;
-				if (node_ultra_count >= max + up_out_cnt - gtkg_min)
-					return TRUE;
-			}
+			gint max = max_connections - normal_connections;
+			gint gtkg_min = reserve_gtkg_nodes * max / 100;
+			if (node_ultra_count >= max + up_cnt - gtkg_min)
+				return TRUE;
 		} else if (n->flags & NODE_F_LEAF) {
 			gint gtkg_min = reserve_gtkg_nodes * max_leaves / 100;
 			if (node_leaf_count >= max_leaves + leaf_cnt - gtkg_min)
@@ -1652,8 +1630,7 @@ static gboolean node_reserve_slot(struct gnutella_node *n)
 	case NODE_P_LEAF:
 		if (max_ultrapeers > 0 ) {
 			gint gtkg_min = reserve_gtkg_nodes * max_ultrapeers / 100;
-			if (node_ultra_count >=
-					max_ultrapeers + (up_in_cnt + up_out_cnt) - gtkg_min)
+			if (node_ultra_count >= max_ultrapeers + up_cnt - gtkg_min)
 				return TRUE;
 		}
 		break;
@@ -4345,7 +4322,7 @@ void node_add_socket(struct gnutella_socket *s, guint32 ip, guint16 port)
 	n->peermode = NODE_P_UNKNOWN;		/* Until end of handshaking */
 	n->start_peermode = (node_peer_t) current_peermode;
 	n->hops_flow = MAX_HOP_COUNT;
-	n->last_update = time(NULL);
+	n->last_update = n->last_tx = n->last_rx = time(NULL);
 
 	n->routing_data = NULL;
 	n->flags = NODE_F_HDSK_PING;
@@ -5715,7 +5692,7 @@ void node_close(void)
 
 inline void node_add_sent(gnutella_node_t *n, gint x)
 {
-    n->last_update = time((time_t *)NULL);
+    n->last_update = n->last_tx = time((time_t *)NULL);
 	n->sent += x; 
 }
 
