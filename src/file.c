@@ -53,7 +53,7 @@ FILE *file_config_open_read(gchar *what, file_path_t *fv, gint fvcnt)
 {
 	FILE *in;
 	gchar tmp[2048];
-	gchar *error;
+	const gchar *error;
 	struct stat buf;
 	gchar *instead = empty_str;
 
