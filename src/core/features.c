@@ -138,7 +138,7 @@ void header_features_generate(struct xfeature_t *xfeatures,
 		struct header_x_feature *feature = 
 			(struct header_x_feature *) cur->data;
 		
-		gm_snprintf(feature_version, sizeof(feature_version), "%s/%d.%d ",
+		gm_snprintf(feature_version, sizeof(feature_version), "%s/%d.%d",
 			feature->name, feature->major, feature->minor);
 		
 		header_fmt_append_value(fmt, feature_version);
