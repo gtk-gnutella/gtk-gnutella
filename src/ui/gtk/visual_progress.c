@@ -214,7 +214,6 @@ vp_draw_fi_progress(gboolean valid, gnet_fi_t fih)
 
 			if (v->file_size > 0) {
 				g_slist_foreach(v->chunks_list, &vp_draw_chunk, v);
-				g_slist_foreach(v->chunks_initial, &vp_draw_chunk, v);
 				g_slist_foreach(v->ranges_list, &vp_draw_range, v);
 			} else {
 				gdk_gc_set_foreground(fi_context.gc, &nosize);
@@ -292,12 +291,8 @@ vp_gui_fi_added(gnet_fi_t fih)
 
 	/*
 	 * We also copy the chunks info in the chunks_initial list. This list is
-	 * the list of chunks we already had at start. By removing the empty
-	 * chunks from the list we can use it to draw the old chunks over
-	 * the new chunks, thus giving the impression that the old chunks remain
-	 * intact and the new chunks are added.
-	 * FIXME: This most likely needs to be changed, it is probably not
-	 * efficient enough and may cause flashing in the display.
+	 * the list of chunks we already had at start. The empty chunks are removed
+	 * so that the list can be processed more efficiently.
 	 */
 	new_vp_info->chunks_initial = guc_fi_get_chunks(fih);
 	for (l = new_vp_info->chunks_initial; l; ){
@@ -345,9 +340,32 @@ vp_gui_fi_removed(gnet_fi_t fih)
     fi_context.fih_valid = FALSE;
 }
 
-/* 
+/**
+ * Allocate a new chunk based on the parameters.
+ *
+ * @param from   Start of chunk
+ * @param to     End of chunk
+ * @param status Status of chunk
+ * @param old    TRUE if the chunk was downloaded before gtk-gnutella is started
+ */
+static gnet_fi_chunks_t *
+vp_create_chunk(guint32 from, guint32 to, enum dl_chunk_status status, gboolean old) {
+	gnet_fi_chunks_t *chunk;
+	
+	chunk = walloc(sizeof(gnet_fi_chunks_t));
+	chunk->from = from;
+	chunk->to = to;
+	chunk->status = status;
+	chunk->old = old;
+	
+	return chunk;
+}
+
+/** 
  * Fileinfo has been changed for a file. Update the information and 
  * draw the information so the changes are visible.
+ * 
+ * @param fih Handle for fileinfo data that has been changed.
  */
 static void 
 vp_gui_fi_status_changed(gnet_fi_t fih)
@@ -356,10 +374,11 @@ vp_gui_fi_status_changed(gnet_fi_t fih)
     GSList *old;
     GSList *new;
     GSList *keep_new;
-    gnet_fi_chunks_t *old_chunk;
-    gnet_fi_chunks_t * new_chunk;
+    gnet_fi_chunks_t *oc;
+    gnet_fi_chunks_t *nc;
     gboolean found;
 	gpointer value;
+	guint32 highest = 0;
 
     found = g_hash_table_lookup_extended(vp_info_hash,
 		GUINT_TO_POINTER(fih), NULL, &value);
@@ -367,52 +386,124 @@ vp_gui_fi_status_changed(gnet_fi_t fih)
     g_assert(value);
 	v = value;
 
-    /* 
-	 * Copy the chunks.
-     * We will use the new list. We don't just copy it because we want
-     * to mark new chunks in the new list as new. So we walk both
-     * trees in parallel to make this check.
-     */
-    old = v->chunks_list;
-    new = guc_fi_get_chunks(fih);
-    keep_new = new;
-    while (old || new) {
-        if (old && new) {
-            old_chunk = (gnet_fi_chunks_t *) old->data;
-            new_chunk = (gnet_fi_chunks_t *) new->data;
-            if (old_chunk->from == new_chunk->from) {
-                if (old_chunk->to == new_chunk->to)
-                    new_chunk->old = old_chunk->old;
-                else
-                    new_chunk->old = FALSE;
-                old = g_slist_next(old);
-                new = g_slist_next(new);
-            } else {
-                if (old_chunk->from < new_chunk->from) {
-                    old = g_slist_next(old);
-                } else {
-                    new_chunk->old = FALSE;
-                    new = g_slist_next(new);
-                }
-            }		    
-        } else {
-            /*
-             * Only one list still has nodes, so we just select the
-             * proper next one to advance that list to the end.
-             */
-            if (old)
-                old = g_slist_next(old);
-            if (new)
-                new = g_slist_next(new);
-        }
-    }
-
 	/*
-	 * Now that we have checked all old chunks we can discard them 
+	 * Use the new chunks list to create a composite with the initial
+	 * chunks. This way the previously downloaded chunks can be kept
+	 * intact.
 	 */
-    guc_fi_free_chunks(v->chunks_list);
-    v->chunks_list = keep_new;
+	old = v->chunks_initial;
+	new = guc_fi_get_chunks(fih);
+	keep_new = new;	/* So that we can free this list later */
+	guc_fi_free_chunks(v->chunks_list);
+	v->chunks_list = NULL;
 	
+	/*
+	 * FIXME: Also deal with the situation that the download was restarted!
+	 */
+	while (old || new) {
+		if (old && new) {
+			oc = (gnet_fi_chunks_t *) old->data;
+			nc = (gnet_fi_chunks_t *) new->data;
+			
+			/*
+			 * Skip over chunks below the highest mark, they are no longer
+			 * relevant.
+			 */
+			if (oc->to <= highest) {
+				old = g_slist_next(old);
+				continue;
+			}
+			if (nc->to <= highest) {
+				new = g_slist_next(new);
+				continue;
+			}
+				
+			
+			/*
+			 * The chunks are identical: nothing changed, copy one chunk
+			 */
+			if (oc->from == nc->from && oc->to == nc->to) {
+				highest = oc->to;
+				v->chunks_list = g_slist_append(v->chunks_list, 
+					vp_create_chunk(oc->from, oc->to, oc->status, TRUE));
+				old = g_slist_next(old);
+				new = g_slist_next(new);
+				continue;
+			}
+				
+			/*
+			 * If one of the chunks fits completely before the other we
+			 * copy it and skip to the next chunk. This will only happen
+			 * for chunks in the new list.
+			 */
+			if (oc->from >= nc->to) {
+				highest = nc->to;
+				v->chunks_list = g_slist_append(v->chunks_list, 
+					vp_create_chunk(nc->from, nc->to, nc->status, FALSE));
+				new = g_slist_next(new);
+				continue;
+			}
+				
+			/*
+			 * This is the case where chunks overlap. The chunks will need
+			 * to be split in their old and new parts.
+			 */
+			if (oc->from > nc->from) {
+				/* Create a new chunk in front of the old chunk */
+				v->chunks_list = g_slist_append(v->chunks_list,
+					vp_create_chunk(nc->from, oc->from, nc->status, FALSE));
+			}
+			highest = oc->to;
+			v->chunks_list = g_slist_append(v->chunks_list,
+				vp_create_chunk(oc->from, oc->to, oc->status, TRUE));
+			if (oc->to < nc->to) {
+				highest = nc->to;
+				v->chunks_list = g_slist_append(v->chunks_list,
+					vp_create_chunk(oc->to, nc->to, nc->status, FALSE));
+			}
+			
+			old = g_slist_next(old);
+			new = g_slist_next(new);
+		} else {
+			/*
+			 * If only old or new chunks are left then just copy them onto
+			 * the chunks list.
+			 */
+			if (old) {
+				oc = (gnet_fi_chunks_t *) old->data;
+				v->chunks_list = g_slist_append(v->chunks_list,
+					vp_create_chunk(oc->from, oc->to, oc->status, TRUE));
+				old = g_slist_next(old);
+			}
+				
+			if (new) {
+				nc = (gnet_fi_chunks_t *) new->data;
+				v->chunks_list = g_slist_append(v->chunks_list,
+					vp_create_chunk(nc->from, nc->to, nc->status, FALSE));
+				new = g_slist_next(new);
+			}
+		}
+	}
+	
+	// This code is only for debugging and should be removed before checkin
+	// Basically we check if the whole file is accounted for.
+	GSList *l;
+	gnet_fi_chunks_t *chunk;
+	int last = 0;
+	for (l = v->chunks_list; l; l = g_slist_next(l)) {
+		chunk = (gnet_fi_chunks_t *) l->data;
+		if (last != chunk->from)
+			printf("--> %d <--\n\n", last);
+		g_assert(last == chunk->from);
+		last = chunk->to;
+	}
+	
+	/* 
+	 * Now that the new list of chunks is merged with the old chunks we
+	 * can safely throw away the new list itself.
+	 */
+	guc_fi_free_chunks(keep_new);
+
 	/*
 	 * Copy the ranges. These can simply be copied as we do not need to 
 	 * apply our own logic to them.
