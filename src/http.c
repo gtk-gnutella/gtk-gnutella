@@ -219,6 +219,28 @@ gboolean http_send_status(
 	return TRUE;
 }
 
+/*
+ * http_hostname_add
+ *
+ * HTTP status callback.
+ * Add an X-Hostname line bearing the fully qualified hostname.
+ */
+void http_hostname_add(
+	gchar *buf, gint *retval, gpointer arg, guint32 flags)
+{
+	gchar host_tmp[256];
+	gint length = *retval;
+	gint rw;
+
+	if (flags & HTTP_CBF_SMALL_REPLY)
+		rw = 0;
+	else
+		rw = gm_snprintf(buf, length, "X-Hostname: %s\r\n", server_hostname);
+
+	if (rw != length - 1)
+		*retval = rw;
+}
+
 /***
  *** HTTP parsing.
  ***/
