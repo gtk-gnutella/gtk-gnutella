@@ -52,7 +52,7 @@ void send_push_request(gchar *, guint32, guint16);
 
 /* Return the current number of running downloads */
 
-gint count_running_downloads(void)
+static guint32 count_running_downloads(void)
 {
 	GSList *l;
 	guint32 n = 0;
@@ -66,7 +66,7 @@ gint count_running_downloads(void)
 	return n;
 }
 
-gint count_running_downloads_with_guid(gchar * guid)
+static guint32 count_running_downloads_with_guid(gchar * guid)
 {
 	GSList *l;
 	guint32 n = 0;
@@ -79,7 +79,7 @@ gint count_running_downloads_with_guid(gchar * guid)
 	return n;
 }
 
-gint count_running_downloads_with_name(const char *name)
+static guint32 count_running_downloads_with_name(const char *name)
 {
 	GSList *l;
 	guint32 n = 0;
@@ -90,6 +90,30 @@ gint count_running_downloads_with_name(const char *name)
 			n++;
 
 	return n;
+}
+
+static gboolean has_same_active_download(struct download *dn)
+{
+	/*
+	 * Check whether we already have an identical (same file, same GUID)
+	 * active download as the specified one.
+	 *		--RAM, 04/11/2001
+	 */
+
+	GSList *l;
+
+	for (l = sl_downloads; l; l = l->next) {
+		struct download *d = (struct download *) l->data;
+		if (IS_DOWNLOAD_STOPPED(d))
+			continue;
+		if (
+			0 == strcmp(dn->file_name, d->file_name) &&
+			0 == memcmp(dn->guid, d->guid, 16)
+		)
+			return TRUE;
+	}
+
+	return FALSE;
 }
 
 static void queue_remove_all_named(const gchar *name)
@@ -604,8 +628,6 @@ void download_new(gchar * file, guint32 size, guint32 record_index,
 	memcpy(d->guid, guid, 16);
 	d->restart_timer_id = 0;
 
-	sl_downloads = g_slist_prepend(sl_downloads, (gpointer) d);
-
 	/* Replace all slashes by underscores in the file name */
 
 	s = d->file_name;
@@ -614,6 +636,20 @@ void download_new(gchar * file, guint32 size, guint32 record_index,
 			*s = '_';
 		s++;
 	}
+
+	/*
+	 * Refuse to queue the same download twice. --RAM, 04/11/2001
+	 */
+
+	if (has_same_active_download(d)) {
+		g_warning("rejecting duplicate download for %s", d->file_name);
+		g_free(d->file_name);
+		g_free(d->path);
+		g_free(d);
+		return;
+	}
+
+	sl_downloads = g_slist_prepend(sl_downloads, (gpointer) d);
 
 	if (
 		count_running_downloads() < max_downloads &&

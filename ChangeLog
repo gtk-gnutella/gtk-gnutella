@@ -1,5 +1,6 @@
 # since last release
 
+- Refuse to record a download if we still have an identical active one
 - Integrated search results limiting patch, from Brian St. Pierre
 - Fixed incremental sort logic, which was not accurate for big values
 - Made search results sortable by Host and by Info
