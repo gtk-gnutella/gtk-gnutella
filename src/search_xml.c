@@ -53,6 +53,7 @@ extern void dump_ruleset(GList *ruleset);
 extern void dump_filter(filter_t *filter);
 
 extern GList *filters;
+extern GList *filters_current;
 
 /*
  * Private function prototypes
@@ -349,6 +350,8 @@ gboolean search_retrieve_xml(void)
         g_assert(!borked);
     }
 
+    g_list_free(filters_current);
+    filters_current = g_list_copy(filters);
 
     g_hash_table_destroy(id_map);
 
