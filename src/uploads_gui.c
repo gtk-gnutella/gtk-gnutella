@@ -194,7 +194,7 @@ static gchar *uploads_gui_status_str(
 	guint32 requested = data->range_end - data->range_start + 1;
 
 	if (u->pos < data->range_start)
-		return "not started"; /* Never wrote anything yet */
+		return "Not started"; /* Never wrote anything yet */
 
     switch(u->status) {
     case GTA_UL_ABORTED:
