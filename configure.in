@@ -1,7 +1,7 @@
 dnl Process this file with autoconf to produce a configure script.
 
 AC_INIT(configure.in)
-AM_INIT_AUTOMAKE(gtk-gnutella, 0.91)
+AM_INIT_AUTOMAKE(gtk-gnutella, 0.92u)
 AM_MAINTAINER_MODE
 AM_CONFIG_HEADER(config.h)
 
@@ -125,9 +125,20 @@ AC_CHECK_FUNCS(herror inet_aton)
 AC_CHECK_FUNCS(strcasestr)
 AC_CHECK_FUNCS(srandom random)
 
-dnl Checks for sys/sendfile.h
+dnl Checks for sendfile(2)
 AC_CHECK_FUNC(sendfile, , AC_CHECK_LIB(sendfile, sendfile,
         [LIBS="-lsendfile $LIBS"]))
+dnl Autoconf is messy, or I don't understand it
+if test "$ac_cv_func_sendfile" = yes; then
+    AC_DEFINE(HAVE_SENDFILE)
+fi
+
+dnl Checks for sys/sendfile.h
+AC_CHECK_HEADER(sys/sendfile.h,
+	[have_sys_sendfile_h=yes], [have_sys_sendfile_h=no])
+if test "$have_sys_sendfile_h" = yes; then
+    AC_DEFINE(HAVE_SYS_SENDFILE_H)
+fi
 
 dnl Checks for ctype.h
 AC_CHECK_HEADER(ctype.h, [have_ctype_h=yes], [have_ctype_h=no])
