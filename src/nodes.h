@@ -83,6 +83,7 @@ typedef struct gnutella_node {
 	time_t connect_date;		/* When we got connected (after handshake) */
 	time_t tx_flowc_date;		/* When we entered in TX flow control */
 	time_t shutdown_date;		/* When we entered in shutdown mode */
+	time_t up_date;				/* When remote server started (0 if unknown) */
 	guint32 shutdown_delay;		/* How long we can stay in shutdown mode */
 
 	const gchar *remove_msg;	/* Reason of removing */

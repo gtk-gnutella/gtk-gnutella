@@ -1767,6 +1767,20 @@ static void node_process_handshake_header(
             settings_ip_changed(ip);
 	}
 
+	 /* X-Live-Since -- time at which the remote node started. */
+
+	field = header_get(head, "X-Live-Since");
+	if (field) {
+		time_t now = time(NULL);
+		time_t up = date2time(field, &now);
+
+		if (up == -1)
+			g_warning("cannot parse X-Live-Since \"%s\" from %s (%s)",
+				field, node_ip(n), n->vendor ? n->vendor : "<unkown vendor>");
+		else
+			n->up_date = up;
+	}
+
 	/*
 	 * If the connection is flagged as being temporary, it's time to deny
 	 * it with a 503 error code.
@@ -3107,7 +3121,7 @@ __inline__ void node_set_vendor(gnutella_node_t *n, const gchar *vendor)
  * Since the gnet_node_t is actually a pointer to the gnutella_node
  * struct, this call is O(1). It would be safer to have gnet_node be
  * an index in a list or a number, but depending on the underlying
- * containerstructure of sl_nodes, that would have O(log(n)) (balanced tree)
+ * container structure of sl_nodes, that would have O(log(n)) (balanced tree)
  * or O(n) (list) runtime.
  */
 gnet_node_info_t *node_get_info(const gnet_node_t n)
@@ -3148,6 +3162,9 @@ void node_get_status(const gnet_node_t n, gnet_node_status_t *status)
     g_assert(status != NULL);
 
     status->status     = node->status;
+
+	status->connect_date = node->connect_date;
+	status->up_date      = node->up_date;
 
     status->sent       = node->sent;
     status->received   = node->received;

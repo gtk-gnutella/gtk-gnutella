@@ -53,6 +53,9 @@ typedef guint32 gnet_node_t;
 typedef struct gnet_node_status {
 	guchar status;			    /* See possible values below */
 
+	time_t connect_date;		/* When we got connected (after handshake) */
+	time_t up_date;				/* When remote server started (0 if unknown) */
+
 	guint32  sent;				/* Number of sent packets */
 	guint32  received;			/* Number of received packets */
 	guint32  tx_dropped;		/* Number of packets dropped at TX time */
