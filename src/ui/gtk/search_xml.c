@@ -653,7 +653,7 @@ search_to_xml(xmlNodePtr parent, search_t *s)
 {
     xmlNodePtr newxml;
     GList *l;
-	gchar *t;
+	gchar *query;
 
     g_assert(s != NULL);
     g_assert(s->query != NULL);
@@ -669,19 +669,16 @@ search_to_xml(xmlNodePtr parent, search_t *s)
 			s);
     }
 
-	t = s->query;
-#ifndef USE_GTK2
-	if (!is_ascii_string(s->query) && !utf8_is_valid_string(s->query, 0)) {
-		if (NULL == (t = locale_to_utf8(s->query, 0))) {
-			g_warning("search_to_xml: Cannot convert search string to UTF-8"
-				"Search won't be saved. query=\"%s\"", s->query);
-			return;
-		}
+	if (NULL == (query = locale_to_utf8_full(s->query))) {
+		g_warning("search_to_xml: Cannot convert search string to UTF-8. "
+			"Search won't be saved. (query=\"%s\")", s->query);
+		return;
 	}
-#endif
 
     newxml = xmlNewChild(parent, NULL, NODE_SEARCH, NULL);
-    xmlSetProp(newxml, TAG_SEARCH_QUERY, (const xmlChar *) t);
+    xmlSetProp(newxml, TAG_SEARCH_QUERY, (const xmlChar *) query);
+	if (query != s->query)
+		G_FREE_NULL(query);
 
 	xml_prop_printf(newxml, TAG_SEARCH_ENABLED, "%u", s->enabled);
     xml_prop_printf(newxml, TAG_SEARCH_PASSIVE, "%u", TO_BOOL(s->passive));
@@ -700,6 +697,7 @@ filter_to_xml(xmlNodePtr parent, filter_t *f)
 {
     xmlNodePtr newxml;
     GList *l;
+	gchar *name;
 
     g_assert(f != NULL);
     g_assert(f->name != NULL);
@@ -722,8 +720,18 @@ filter_to_xml(xmlNodePtr parent, filter_t *f)
 			f->search);
     }
 
+	if (NULL == (name = locale_to_utf8_full(f->name))) {
+		g_warning("filter_to_xml: Cannot convert search string to UTF-8. "
+			"Filter won't be saved. (name=\"%s\")", f->name);
+		return;
+	}
+
     newxml = xmlNewChild(parent, NULL, NODE_FILTER, NULL);
-    xmlSetProp(newxml, TAG_FILTER_NAME, (const xmlChar *) f->name);
+    xmlSetProp(newxml, TAG_FILTER_NAME, (const xmlChar *) name);
+	if (name != f->name)
+		G_FREE_NULL(name);
+
+	
     xml_prop_printf(newxml, TAG_FILTER_ACTIVE,
 		"%u", TO_BOOL(filter_is_active(f)));
 
@@ -767,14 +775,24 @@ rule_to_xml(xmlNodePtr parent, rule_t *r)
 
     switch (r->type) {
     case RULE_TEXT:
-        newxml = xmlNewChild(parent, NULL, NODE_RULE_TEXT, NULL);
+		{
+			gchar *match;
+			
+           	if (NULL == (match = locale_to_utf8_full(r->u.text.match))) {
+				g_warning("rule_to_xml: Cannot convert string to UTF-8. "
+					"Omitting rule (\"%s\")", r->u.text.match);
+				return;
+			}
 
-        xmlSetProp(newxml, TAG_RULE_TEXT_CASE,
-            (const xmlChar *) (r->u.text.case_sensitive ? "1" : "0"));
-        xmlSetProp(newxml, TAG_RULE_TEXT_MATCH,
-			(const xmlChar *) r->u.text.match);
+			newxml = xmlNewChild(parent, NULL, NODE_RULE_TEXT, NULL);
+        	xmlSetProp(newxml, TAG_RULE_TEXT_CASE,
+            	(const xmlChar *) (r->u.text.case_sensitive ? "1" : "0"));
+        	xmlSetProp(newxml, TAG_RULE_TEXT_MATCH, (const xmlChar *) match);
+			if (match != r->u.text.match)
+				G_FREE_NULL(match);
 
-        xml_prop_printf(newxml, TAG_RULE_TEXT_TYPE, "%u", r->u.text.type);
+        	xml_prop_printf(newxml, TAG_RULE_TEXT_TYPE, "%u", r->u.text.type);
+		}
         break;
     case RULE_IP:
         newxml = xmlNewChild(parent, NULL, NODE_RULE_IP, NULL);
@@ -799,15 +817,25 @@ rule_to_xml(xmlNodePtr parent, rule_t *r)
          */
         break;
     case RULE_SHA1:
-        newxml = xmlNewChild(parent, NULL, NODE_RULE_SHA1, NULL);
+		{
+			gchar *name;
+			
+        	newxml = xmlNewChild(parent, NULL, NODE_RULE_SHA1, NULL);
 
-        if (r->u.sha1.hash != NULL)
-            xmlSetProp(newxml, TAG_RULE_SHA1_HASH,
-				(const xmlChar *) sha1_base32(r->u.sha1.hash));
+        	if (r->u.sha1.hash != NULL)
+            	xmlSetProp(newxml, TAG_RULE_SHA1_HASH,
+					(const xmlChar *) sha1_base32(r->u.sha1.hash));
 
-        xmlSetProp(newxml, TAG_RULE_SHA1_FILENAME,
-			(const xmlChar *) r->u.sha1.filename);
-
+        	if (NULL == (name = locale_to_utf8_full(r->u.sha1.filename))) {
+				g_warning("rule_to_xml: Cannot convert filename to UTF-8. "
+					"Omitting filename (\"%s\")", r->u.sha1.filename);
+			} else {
+				xmlSetProp(newxml, TAG_RULE_SHA1_FILENAME,
+					(const xmlChar *) name);
+				if (name != r->u.sha1.filename)
+					G_FREE_NULL(name);
+			}
+		}
         /*
          * r->u.sha1.hash is NULL, we just omit the hash.
          */
