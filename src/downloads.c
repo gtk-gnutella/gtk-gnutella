@@ -3650,7 +3650,7 @@ static gboolean download_convert_to_urires(struct download *d)
 	 */
 
 	xd = has_same_download(name, d->sha1,
-			download_guid(d), download_ip(d), download_port(d))
+			download_guid(d), download_ip(d), download_port(d));
 
 	if (xd != NULL && xd != d) {
 		download_stop(d, GTA_DL_ERROR, "Was a duplicate");
