@@ -43,7 +43,9 @@ sed <<!GROK!THIS! >config.h -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un-
  *	This symbol, if defined, indicates that the program is running under
  *	a BSD system.
  */
+#ifndef BSD
 #$d_bsd BSD		/**/
+#endif
 
 /* CAT2:
  *	This macro catenates 2 tokens together.
