@@ -55,6 +55,25 @@ static void SIG_Ignore(int n)
 	return;
 }
 
+static void auto_connect(void)
+{
+	static gchar *host_catcher[] = {
+		"router.limewire.com",
+		"connect1.gnutellanet.com",
+		"connect2.gnutellanet.com",
+		"connect3.gnutellanet.com",
+	};
+	static guint host_idx = 0;
+	guint32 auto_ip = 0;
+
+	if (host_idx >= (sizeof(host_catcher)/sizeof(host_catcher[0])))
+		host_idx = 0;
+
+	auto_ip = host_to_ip(host_catcher[host_idx++]);
+	if (auto_ip != 0)
+		 node_add(NULL, auto_ip, 6346);
+}
+
 gboolean main_timer(gpointer p)
 {
 	GSList *l;
@@ -63,20 +82,20 @@ gboolean main_timer(gpointer p)
 	guint32 t;
 	time_t now = time((time_t *) NULL);
 
-       /* If we are under the number of connections wanted, we add a host
-        * to the connection list */
-       
-       if (
-			nodes_in_list < up_connections &&
-			sl_catched_hosts != NULL &&
-			!stop_host_get
-       ) {
-               struct gnutella_host *host;
+	/*
+	 * If we are under the number of connections wanted, we add a host
+	 * to the connection list
+	 */
 
-               host = (struct gnutella_host *) sl_catched_hosts->data;
-               node_add(NULL, host->ip, host->port);
-               host_remove(host, TRUE);
-       }
+	if (nodes_in_list < up_connections && !stop_host_get) {
+		if (sl_catched_hosts != NULL) {
+			struct gnutella_host *host;
+			host = (struct gnutella_host *) sl_catched_hosts->data;
+			node_add(NULL, host->ip, host->port);
+			host_remove(host, TRUE);
+		} else
+			auto_connect();
+	}
 
 	/* The nodes */
 
@@ -282,20 +301,6 @@ gint main(gint argc, gchar **argv)
 	/* Setup the main timer */
 
 	gtk_timeout_add(1000, (GtkFunction) main_timer, NULL);
-
-
-        /* Auto-connect to the network. */
-        if (up_connections && !stop_host_get) {
-            guint32 autoConnectIp = 0;
-
-            autoConnectIp = host_to_ip("router.limewire.com");
-            if (autoConnectIp != 0)
-            {
-                 node_add(NULL, autoConnectIp, 6346);
-            }
-        }
-    
-
 
 	/* Okay, here we go */
 
