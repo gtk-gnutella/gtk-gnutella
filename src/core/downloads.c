@@ -4640,6 +4640,7 @@ download_check_status(struct download *d, getline_t *line, gint code)
 	return TRUE;
 }
 
+#if 0
 /**
  * Convert download to /uri-res/N2R? request.
  *
@@ -4675,6 +4676,11 @@ download_convert_to_urires(struct download *d)
 	dmesh_remove(d->sha1, download_ip(d), download_port(d),
 		d->record_index, d->file_name);
 
+	/* XXX: This causes files with their hashsums as filenames!
+	 *		download_send_request() uses uri-res requests anyway, as long
+	 *		as the SHA1 is known. So converting the filename here is
+	 *		pointless.
+	 */
 	name = atom_str_get(sha1_base32(d->sha1));
 
 	if (dbg > 2) {
@@ -4705,6 +4711,7 @@ download_convert_to_urires(struct download *d)
 
 	return TRUE;
 }
+#endif /* 0 */
 
 /**
  * Extract Retry-After delay from header, returning 0 if none.
@@ -5419,6 +5426,8 @@ download_request(struct download *d, header_t *header, gboolean ok)
 
 	if (ack_code == 503 || (ack_code >= 200 && ack_code <= 299)) {
 
+	/* XXX: This doesn't look like it makes any sense any longer */
+#if 0
 		/*
 		 * If we made a /uri-res/N2R? request, yet if the download still
 		 * has the old index/name indication, convert it to a /uri-res/.
@@ -5426,6 +5435,7 @@ download_request(struct download *d, header_t *header, gboolean ok)
 		if (d->record_index != URN_INDEX && (d->flags & DL_F_URIRES))
 			if (!download_convert_to_urires(d))
 				return;
+#endif /* 0 */
 
 		/*
 		 * The download could be remotely queued. Check this now before
