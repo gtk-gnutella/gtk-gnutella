@@ -295,7 +295,7 @@ search_gui_new_search_full(const gchar *querystr, guint32 reissue_timeout,
 	search_t *sch;
 	gnet_search_t sch_id;
 	GList *glist;
-	GtkTreeStore *model;
+	GtkListStore *model;
 	GtkTreeIter iter;
     GtkWidget *button_search_close =
         lookup_widget(main_window, "button_search_close");
@@ -369,9 +369,9 @@ search_gui_new_search_full(const gchar *querystr, guint32 reissue_timeout,
 	sch->model = gtk_tree_view_get_model(GTK_TREE_VIEW(sch->tree_view));
 
 	/* Add the search to the TreeView in pane on the left */
-	model = GTK_TREE_STORE(gtk_tree_view_get_model(tree_view_search));
-	gtk_tree_store_append(model, &iter, NULL);
-	gtk_tree_store_set(model, &iter,
+	model = GTK_LIST_STORE(gtk_tree_view_get_model(tree_view_search));
+	gtk_list_store_append(model, &iter);
+	gtk_list_store_set(model, &iter,
 		c_sl_name, sch->query,
 		c_sl_hit, 0,
 		c_sl_new, 0,
@@ -868,6 +868,7 @@ add_list_columns(GtkTreeView *treeview)
 
     gui_prop_get_guint32(PROP_SEARCH_LIST_COL_WIDTHS, width, 0,
 		G_N_ELEMENTS(width));
+	
 	for (i = 0; i < G_N_ELEMENTS(columns); i++) {
 		add_column(treeview, _(columns[i].title), columns[i].id,
 			width[i], columns[i].align, c_sl_fg, c_sl_bg);
@@ -912,7 +913,7 @@ search_gui_init(void)
 		GDK_TYPE_COLOR,
 		G_TYPE_POINTER
 	};
-    GtkTreeStore *store;
+    GtkListStore *store;
     GtkTreeView *tv;
 	search_t *current_search;
 
@@ -929,7 +930,7 @@ search_gui_init(void)
 		G_CALLBACK(on_tree_view_search_button_press_event), NULL);
 
 	STATIC_ASSERT(c_sl_num == G_N_ELEMENTS(types));
-	store = gtk_tree_store_newv(G_N_ELEMENTS(types), types);
+	store = gtk_list_store_newv(G_N_ELEMENTS(types), types);
 	gtk_tree_view_set_model(tree_view_search, GTK_TREE_MODEL(store));
 	add_list_columns(tree_view_search);
 	g_signal_connect(G_OBJECT(tree_view_search),
@@ -1031,7 +1032,7 @@ tree_view_search_remove(GtkTreeModel *model, GtkTreePath *unused_path,
 	(void) unused_path;
     gtk_tree_model_get(model, iter, c_sl_sch, &sch, (-1));
  	if (sch == data) {
-    	gtk_tree_store_remove((GtkTreeStore *) model, iter);
+    	gtk_list_store_remove(GTK_LIST_STORE(model), iter);
 		return TRUE;
 	}
 
@@ -1384,7 +1385,7 @@ tree_view_search_update(
 			bg = NULL;
 		}
 
-		gtk_tree_store_set((GtkTreeStore *) model, iter,
+		gtk_list_store_set(GTK_LIST_STORE(model), iter,
 			c_sl_hit, sch->items,
 			c_sl_new, sch->unseen_items,
 			c_sl_fg, fg,
