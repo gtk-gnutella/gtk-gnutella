@@ -340,10 +340,10 @@ void main_gui_init(void)
                 (lookup_widget(main_window, 
                                "checkbutton_downloads_never_push"))));
 
+    nodes_gui_init();
     settings_gui_init();
     gnet_stats_gui_init();
     search_stats_gui_init();
-    nodes_gui_init();
     uploads_gui_init();
     gui_update_c_downloads(0,0); // FIXME: remove when downloads are overhauled
     /* Must come before search_init() so searches/filters can be loaded.*/
