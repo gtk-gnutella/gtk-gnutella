@@ -879,6 +879,14 @@ add_results_column(
 void
 search_gui_init(void)
 {
+	GType types[] = {
+		G_TYPE_STRING,
+		G_TYPE_INT,
+		G_TYPE_INT,
+		GDK_TYPE_COLOR,
+		GDK_TYPE_COLOR,
+		G_TYPE_POINTER
+	};
     GtkTreeStore *store;
     GtkTreeView *tv;
 	search_t *current_search;
@@ -892,14 +900,8 @@ search_gui_init(void)
 
 	search_gui_common_init();
 
-	store = gtk_tree_store_new(
-		c_sl_num,
-		G_TYPE_STRING,
-		G_TYPE_INT,
-		G_TYPE_INT,
-		GDK_TYPE_COLOR,
-		GDK_TYPE_COLOR,
-		G_TYPE_POINTER);
+	STATIC_ASSERT(c_sl_num == G_N_ELEMENTS(types));
+	store = gtk_tree_store_newv(G_N_ELEMENTS(types), types);
 	gtk_tree_view_set_model(tree_view_search, GTK_TREE_MODEL(store));
 	add_list_columns(tree_view_search);
 	g_signal_connect(G_OBJECT(tree_view_search), 
@@ -935,6 +937,7 @@ search_gui_shutdown(void)
 {
 	GtkTreeView *tv;
 	search_t *current_search = search_gui_get_current_search();
+	guint32 pos;
 
 	search_gui_shutting_down = TRUE;
 	search_callbacks_shutdown();
@@ -942,9 +945,10 @@ search_gui_shutdown(void)
 
 	search_gui_store_searches();
 
-    *(guint32 *) &results_divider_pos = 
-        gtk_paned_get_position(GTK_PANED
-            (lookup_widget(main_window, "vpaned_results")));
+	pos = gtk_paned_get_position(
+			GTK_PANED(lookup_widget(main_window, "vpaned_results")));
+		
+	gui_prop_set_guint32(PROP_RESULTS_DIVIDER_POS, &pos, 0, 1);
 
 	tv = current_search != NULL
 		? GTK_TREE_VIEW(current_search->tree_view)
