@@ -173,8 +173,10 @@ static void on_gnet_stats_column_resized(
 		column_id = (title[0] - '0') + 1;
 		g_assert(column_id >= 1 && column_id <= 9);
 	}
-	else
+	else {
+		column_id = -1;
 		g_assert_not_reached();
+	}
 
     if (!strcmp(widget_name, "treeview_gnet_stats_general"))
 		property = PROP_GNET_STATS_GENERAL_COL_WIDTHS;
@@ -184,8 +186,10 @@ static void on_gnet_stats_column_resized(
 		property = PROP_GNET_STATS_MSG_COL_WIDTHS;
     else if (!strcmp(widget_name, "treeview_gnet_stats_flowc"))
 		property = PROP_GNET_STATS_FC_COL_WIDTHS;
-	else
+	else {
+		property = -1;
 		g_assert_not_reached();
+	}
 
 	gui_prop_set_guint32(property, &width, column_id, 1);
 	lock = FALSE;
