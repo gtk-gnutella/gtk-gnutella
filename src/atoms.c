@@ -102,7 +102,7 @@ static inline void atom_unprotect(atom_t *a)
 	g_assert(a->attr.len > 0 && 0 == (a->attr.len % PAGESIZE));
 	ret = mprotect(a->arena, a->attr.len, PROT_READ | PROT_WRITE);
 	if (-1 == ret)
-		g_warning("atom_unprotect: mprotect(%p, %u, ...) failed: %s",
+		g_warning("atom_unprotect: mprotect(%p, %u, PROT_RDWR) failed: %s",
 			a->arena, a->attr.len, g_strerror(errno));
 }
 
@@ -115,7 +115,7 @@ static inline void atom_protect(atom_t *a, guint len)
 	a->attr.magic = ATOM_PROT_MAGIC;
 	ret = mprotect(a->arena, a->attr.len, PROT_READ);
 	if (-1 == ret)
-		g_warning("atom_protect: mprotect(%p, %u, ...) failed: %s",
+		g_warning("atom_protect: mprotect(%p, %u, PROT_READ) failed: %s",
 			a->arena, a->attr.len, g_strerror(errno));
 }
 #else
@@ -166,8 +166,6 @@ table_desc_t atoms[] = {
 	{ "SHA1",	NULL,	sha1_hash,	sha1_eq,	 sha1_len,	sha1_str},	/* 2 */
 	{ "int",	NULL,	g_int_hash,	g_int_equal, int_len,	int_str},	/* 3 */
 };
-
-#define COUNT(x)	G_N_ELEMENTS(x)
 
 /*
  * str_len
@@ -371,7 +369,7 @@ void atoms_init(void)
 	g_assert(ARENA_OFFSET == PAGESIZE);
 #endif /* PROTECT_ATOMS */
 
-	for (i = 0; i < COUNT(atoms); i++) {
+	for (i = 0; i < G_N_ELEMENTS(atoms); i++) {
 		table_desc_t *td = &atoms[i];
 
 		td->table = g_hash_table_new(td->hash_func, td->eq_func);
@@ -396,7 +394,7 @@ gpointer atom_get(gint type, gconstpointer key)
 	gint len;
 
     g_assert(key != NULL);
-	g_assert(type >= 0 && type < COUNT(atoms));
+	g_assert(type >= 0 && type < G_N_ELEMENTS(atoms));
 
 	td = &atoms[type];		/* Where atoms of this type are held */
 
@@ -450,7 +448,7 @@ void atom_free(gint type, gconstpointer key)
 	atom_t *a;
 
     g_assert(key != NULL);
-	g_assert(type >= 0 && type < COUNT(atoms));
+	g_assert(type >= 0 && type < G_N_ELEMENTS(atoms));
 
 	td = &atoms[type];		/* Where atoms of this type are held */
 
@@ -593,7 +591,7 @@ void atom_free_track(gint type, gconstpointer key, gchar *file, gint line)
 static void dump_tracking_entry(gpointer key, gpointer value, gpointer user)
 {
 	struct spot *sp = (struct spot *) value;
-	gchar *what = (gchar *) user;
+	const gchar *what = (const gchar *) user;
 
 	g_warning("%10d %s at \"%s\"", sp->count, what, (gchar *) key);
 }
@@ -653,7 +651,7 @@ void atoms_close(void)
 {
 	gint i;
 
-	for (i = 0; i < COUNT(atoms); i++) {
+	for (i = 0; i < G_N_ELEMENTS(atoms); i++) {
 		table_desc_t *td = &atoms[i];
 
 		g_hash_table_foreach_remove(td->table, atom_warn_free, td);
@@ -661,3 +659,4 @@ void atoms_close(void)
 	}
 }
 
+/* vi: set ts=4: */
