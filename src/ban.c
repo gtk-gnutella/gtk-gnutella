@@ -36,6 +36,7 @@
 #include "sockets.h"
 #include "version.h" /* for version_is_too_old() */
 #include "token.h"
+#include "atoms.h"
 
 RCSID("$Id$");
 
@@ -59,6 +60,10 @@ static zone_t *ipf_zone;		/* Zone for ip_info allocation */
 
 extern cqueue_t *callout_queue;
 
+/***
+ *** Hammering-specific banning.
+ ***/
+
 /*
  * Information kept in the info table, per IP address.
  */
@@ -68,6 +73,7 @@ struct ip_info {
 	time_t ctime;				/* When did last connection occur? */
 	gpointer cq_ev;				/* Scheduled callout event */
 	gint ban_delay;				/* Banning delay, in seconds */
+	gchar *ban_msg;				/* Banning message (atom) */
 	gboolean banned;			/* Is this IP currently banned? */
 };
 
@@ -88,6 +94,7 @@ static struct ip_info *ipf_make(guint32 ip, time_t now)
 	ipf->ip = ip;
 	ipf->ctime = now;
 	ipf->ban_delay = 0;
+	ipf->ban_msg = NULL;
 	ipf->banned = FALSE;
 
 	/*
@@ -115,6 +122,9 @@ static void ipf_free(struct ip_info *ipf)
 
 	if (ipf->cq_ev)
 		cq_cancel(callout_queue, ipf->cq_ev);
+
+	if (ipf->ban_msg)
+		atom_str_free(ipf->ban_msg);
 
 	zfree(ipf_zone, ipf);
 }
@@ -205,8 +215,9 @@ static void ipf_unban(cqueue_t *cq, gpointer obj)
  *   BAN_OK     ok, can proceed with connection.
  *   BAN_FIRST  will ban, but send back message, then close connection.
  *   BAN_FORCE	don't send back anything, and call ban_force().
+ *   BAN_MSG	will ban with explicit message and tailored error code.
  */
-gint ban_allow(guint32 ip)
+ban_type_t ban_allow(guint32 ip)
 {
 	struct ip_info *ipf;
 	time_t now = time((time_t *) NULL);
@@ -253,10 +264,14 @@ gint ban_allow(guint32 ip)
 
 	/*
 	 * If the IP is already banned, it already has an "unban" callback.
+	 *
+	 * When there is a message recorded, return BAN_MSG to signal that
+	 * we need special processing: dedicated error code, and message to
+	 * extract.
 	 */
 
 	if (ipf->banned)
-		return BAN_FORCE;
+		return (ipf->ban_msg == NULL) ? BAN_FORCE : BAN_MSG;
 
 	/*
 	 * Ban the IP if it crossed the request limit.
@@ -289,6 +304,32 @@ gint ban_allow(guint32 ip)
 		(gint) (1000.0 * ipf->counter / decay_coeff));
 
 	return BAN_OK;
+}
+
+/*
+ * ban_record
+ *
+ * Record banning with specific message for a given IP, for MAX_BAN seconds.
+ */
+void ban_record(guint32 ip, const gchar *msg)
+{
+	struct ip_info *ipf;
+
+	/*
+	 * If is possible that we already have an ip_info for that host.
+	 */
+
+	ipf = (struct ip_info *) g_hash_table_lookup(info, GUINT_TO_POINTER(ip));
+
+	if (ipf == NULL) {
+		ipf = ipf_make(ip, time(NULL));
+		g_hash_table_insert(info, GUINT_TO_POINTER(ip), ipf);
+	}
+
+	ipf->ban_msg = atom_str_get(msg);
+	ipf->ban_delay = MAX_BAN;
+
+	cq_resched(callout_queue, ipf->cq_ev, MAX_BAN * 1000);
 }
 
 /*
@@ -363,6 +404,21 @@ gint ban_delay(guint32 ip)
 	g_assert(ipf);
 
 	return ipf->ban_delay;
+}
+
+/*
+ * ban_message
+ *
+ * Return banning message for banned IP.
+ */
+gchar *ban_message(guint32 ip)
+{
+	struct ip_info *ipf;
+
+	ipf = (struct ip_info *) g_hash_table_lookup(info, GUINT_TO_POINTER(ip));
+	g_assert(ipf);
+
+	return ipf->ban_msg;
 }
 
 /*

@@ -32,22 +32,27 @@
 
 struct gnutella_socket;
 
-void ban_init(void);
-void ban_close(void);
-gint ban_allow(guint32 ip);
-void ban_force(struct gnutella_socket *s);
-gint ban_delay(guint32 ip);
-void ban_max_recompute(void);
-
-const gchar *ban_vendor(const gchar *vendor);
-
 /*
  * Return codes for ban_allow().
  */
 
-#define BAN_OK		0		/* OK, don't ban and accept the connection */
-#define BAN_FIRST	1		/* Initial banning, send polite denial */
-#define BAN_FORCE	2		/* Force banning, don't send back anything */
+typedef enum {
+	BAN_OK		= 0,		/* OK, don't ban and accept the connection */
+	BAN_FIRST	= 1,		/* Initial banning, send polite denial */
+	BAN_FORCE	= 2,		/* Force banning, don't send back anything */
+	BAN_MSG		= 3,		/* Ban with explicit message */
+} ban_type_t;
+
+void ban_init(void);
+void ban_close(void);
+ban_type_t ban_allow(guint32 ip);
+void ban_record(guint32 ip, const gchar *msg);
+void ban_force(struct gnutella_socket *s);
+gint ban_delay(guint32 ip);
+gchar *ban_message(guint32 ip);
+void ban_max_recompute(void);
+
+const gchar *ban_vendor(const gchar *vendor);
 
 #endif	/* _ban_h_ */
 

@@ -342,6 +342,7 @@ void handle_push_request(struct gnutella_node *n)
 	switch (ban_allow(ip)) {
 	case BAN_OK:				/* Connection authorized */
 		break;
+	case BAN_MSG:				/* Refused: host forcefully banned */
 	case BAN_FIRST:				/* Refused, negative ack (can't do for PUSH) */
 		show_banning = TRUE;
 		/* FALL THROUGH */
@@ -377,7 +378,11 @@ void handle_push_request(struct gnutella_node *n)
 	u->name = atom_str_get(req_file->file_name);
 
 	if (show_banning) {
-		upload_remove(u, "Banned for %s", short_time(ban_delay(ip)));
+		gchar *msg = ban_message(ip);
+		if (msg != NULL)
+			upload_remove(u, "Banned: %s", msg);
+		else
+			upload_remove(u, "Banned for %s", short_time(ban_delay(ip)));
 		return;
 	}
 
@@ -1841,6 +1846,7 @@ static void upload_request(gnutella_upload_t *u, header_t *header)
 		const gchar *msg = ban_vendor(user_agent);
 
 		if (msg != NULL) {
+			ban_record(u->ip, msg);
 			upload_error_remove(u, NULL, 403, msg);
 			return;
 		}

@@ -468,6 +468,19 @@ static void socket_read(gpointer data, gint source, inputevt_cond_t cond)
 	case BAN_FORCE:				/* Connection refused, no ack */
 		ban_force(s);
 		goto cleanup;
+	case BAN_MSG:				/* Send specific 403 error message */
+		{
+			gchar *msg = ban_message(s->ip);
+
+			g_warning("rejecting connection from banned %s (%s still): %s",
+				ip_to_gchar(s->ip), short_time(ban_delay(s->ip)), msg);
+
+			if (0 == strncmp(first, gnutella_hello, gnutella_hello_length))
+				send_node_error(s, 403, msg);
+			else
+				http_send_status(s, 403, FALSE, NULL, 0, msg);
+		}
+		goto cleanup;
 	case BAN_FIRST:				/* Connection refused, negative ack */
 		if (0 == strncmp(first, gnutella_hello, gnutella_hello_length))
 			send_node_error(s, 550, "Banned for %s",

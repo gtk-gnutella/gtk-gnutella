@@ -2938,6 +2938,7 @@ static void node_process_handshake_header(
 		const gchar *msg = ban_vendor(n->vendor);
 
 		if (msg != NULL) {
+			ban_record(n->socket->ip, msg);
 			send_node_error(n->socket, 403, msg);
 			node_remove(n, msg);
 			return;
