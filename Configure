@@ -11,18 +11,16 @@
 # Yes, you may rip this off to use in other distribution packages. This
 # script belongs to the public domain and cannot be copyrighted.
 #
-# (Note: this Configure script was generated automatically. Rather than
+# Note: this Configure script was generated automatically. Rather than
 # working with this copy of Configure, you may wish to get metaconfig.
-# The dist-3.0 package (which contains metaconfig) was posted in
-# comp.sources.misc and is available on CPAN under authors/id/RAM so
-# you may fetch it yourself from your nearest archive site.)
-#
+# The dist package (which contains metaconfig) is available at
+#     http://sourceforge.net/projects/dist/
 
 # $Id$
 #
-# Generated on Sun Feb  1 10:16:05 MET 2004 [metaconfig 3.0 PL70]
+# Generated on Sun Feb  8 12:40:59 MET 2004 [metaconfig 3.0 PL70]
 
-cat >/tmp/c1$$ <<EOF
+cat >c1$$ <<EOF
 ARGGGHHHH!!!!!
 
 SCO csh still thinks true is false.  Write to SCO today and tell them that next
@@ -33,18 +31,18 @@ we'd have to do is go in and swap the && and || tokens, wherever they are.)
 
 [End of diatribe. We now return you to your regularly scheduled programming...]
 EOF
-cat >/tmp/c2$$ <<EOF
+cat >c2$$ <<EOF
 
 OOPS!  You naughty creature!  You didn't run Configure with sh!
 I will attempt to remedy the situation by running sh for you...
 EOF
 
-true || cat /tmp/c1$$ /tmp/c2$$
+true || cat c1$$ c2$$
 true || exec sh $0 $argv:q
 
-(exit $?0) || cat /tmp/c2$$
+(exit $?0) || cat c2$$
 (exit $?0) || exec sh $0 $argv:q
-rm -f /tmp/c1$$ /tmp/c2$$
+rm -f c1$$ c2$$
 
 : compute my invocation name
 me=$0
@@ -55,13 +53,20 @@ case "$0" in
 	;;
 esac
 
-: Proper PATH separator
+: Proper separator for the PATH environment variable
 p_=:
 : On OS/2 this directory should exist if this is not floppy only system :-]
-if test -d c:/.; then
-	p_=\;
-	PATH=`cmd /c "echo %PATH%" | tr '\\\\' / `
-	OS2_SHELL=`cmd /c "echo %OS2_SHELL%" | tr '\\\\' / | tr '[A-Z]' '[a-z]'`
+if test -d c:/. ; then
+	if test -n "$OS2_SHELL"; then
+		p_=\;
+		PATH=`cmd /c "echo %PATH%" | tr '\\\\' / `
+		OS2_SHELL=`cmd /c "echo %OS2_SHELL%" | tr '\\\\' / | tr '[A-Z]' '[a-z]'`
+	elif test -n "$DJGPP"; then
+		case "X${MACHTYPE:-nonesuchmach}" in
+		*cygwin) ;;
+		*) p_=\; ;;
+		esac
+	fi
 fi
 
 : Proper PATH setting
@@ -73,6 +78,7 @@ paths="$paths /sys5.3/bin /sys5.3/usr/bin /bsd4.3/bin /bsd4.3/usr/ucb"
 paths="$paths /bsd4.3/usr/bin /usr/bsd /bsd43/bin /usr/ccs/bin"
 paths="$paths /etc /usr/lib /usr/ucblib /lib /usr/ccs/lib"
 paths="$paths /sbin /usr/sbin /usr/libexec"
+paths="$paths /system/gnu_library/bin"
 
 for p in $paths
 do
@@ -103,6 +109,13 @@ if test -d /usr/lpp -a -f /usr/bin/bsh -a -f /usr/bin/uname; then
 		newsh=/usr/bin/bsh
 	fi
 fi
+if test -f /osf_boot -a -f /usr/sbin/setld; then
+	if test X`/usr/bin/uname -s` = XOSF1; then
+		avoidksh="to avoid Digital UNIX' ksh"
+		newsh=/bin/sh
+		unset BIN_SH
+	fi
+fi
 case "$inksh/$needksh" in
 /[a-z]*)
 		ENV=''
@@ -126,6 +139,7 @@ EOM
 esac
 case "$changesh" in
 true)
+	export newsh
 	echo "(Feeding myself to $newsh $reason.)"
 	case "$0" in
 	Configure|*/Configure) exec $newsh $0 "$@";;
@@ -134,10 +148,19 @@ true)
 	;;
 esac
 
+: if needed, set CDPATH to a harmless value that is not chatty
+case "$CDPATH" in
+'')	;;
+*)	case "$SHELL" in
+	*bash*) CDPATH='.' ;;
+	*) CDPATH='' ;;
+	esac
+	;;
+esac
+
 : Configure runs within the UU subdirectory
 test -d UU || mkdir UU
-CDPATH=''
-cd UU && rm -f *
+cd UU && rm -f ./*
 
 from=''
 run=''
@@ -492,18 +515,30 @@ if `$sh -c '#' >/dev/null 2>&1`; then
 	shsharp=true
 	spitshell=cat
 	xcat=/bin/cat
-	test -f $xcat || xcat=/usr/bin/cat
+	test -f $xcat$_exe || xcat=/usr/bin/cat
+	if test ! -f $xcat$_exe; then
+		for p in `echo $PATH | sed -e "s/$p_/ /g"` $paths; do
+			if test -f $p/cat$_exe; then
+				xcat=$p/cat
+				break
+			fi
+		done
+		if test ! -f $xcat$_exe; then
+			echo "Can't find cat anywhere!"
+			exit 1
+		fi
+	fi
 	echo "#!$xcat" >try
 	$eunicefix try
 	chmod +x try
-	./try > today
+	./try > today 2>/dev/null
 	if test -s today; then
 		sharpbang='#!'
 	else
 		echo "#! $xcat" > try
 		$eunicefix try
 		chmod +x try
-		./try > today
+		./try > today 2>/dev/null
 		if test -s today; then
 			sharpbang='#! '
 		else
@@ -918,13 +953,15 @@ rm -f .echotmp
 
 : Now test for existence of everything in MANIFEST
 echo " "
-if test -f $rsrc/MANIFEST; then
+if test -f "$rsrc/MANIFEST"; then
 	echo "First let's make sure your kit is complete.  Checking..." >&4
-	awk '$1 !~ /PACK[A-Z]+/ {print $1}' $rsrc/MANIFEST | split -50
+	awk '$1 !~ /PACK[A-Z]+/ {print $1}' "$rsrc/MANIFEST" | \
+		(split -l 50 2>/dev/null || split -50)
 	rm -f missing
 	tmppwd=`pwd`
 	for filelist in x??; do
-		(cd $rsrc; ls `cat $tmppwd/$filelist` >/dev/null 2>>$tmppwd/missing)
+		(cd "$rsrc"; ls `cat "$tmppwd/$filelist"` \
+			>/dev/null 2>>"$tmppwd/missing")
 	done
 	if test -s missing; then
 		cat missing >&4
@@ -2333,6 +2370,7 @@ echo exit 1 >os2
 echo exit 1 >gnu
 echo exit 1 >linux
 d_bsd="$undef"
+d_linux="$undef"
 $cat /usr/include/signal.h /usr/include/sys/signal.h >foo 2>/dev/null
 if test -f /osf_boot || $contains 'OSF/1' /usr/include/ctype.h >/dev/null 2>&1
 then
@@ -4316,7 +4354,15 @@ case "$gtkversion" in
 	;;
 2)
 	case "$version" in
-	2.*) echo "OK, you have GTK+ $version";;
+	2.*)
+		vint=`echo $version | $awk -F. '{print $1 * 10000 + $2 * 100 + $3;}'`
+		if test 0$vint -lt 20201; then
+			echo "Sorry, you have GTK+ $version, I need at least 2.2.1." >&4
+			exit 1;
+		else
+			echo "OK, you have GTK+ $version"
+		fi
+		;;
 	*) echo "WARNING: you asked for GTK+ $gtkversion, I found $version" >&4;;
 	esac
 	;;
@@ -5043,6 +5089,12 @@ if test -d ../UU; then
 	cd ..
 fi
 
+: configuration may be unconditionally patched via a 'config.arch' file
+if $test -f config.arch; then
+	echo "I see a config.arch file, loading it." >&4
+	. ./config.arch
+fi
+
 : configuration may be patched via a 'config.over' file
 if $test -f config.over; then
 	echo " "
@@ -5062,9 +5114,10 @@ case "$d_portable" in
 "$define")
 	echo " "
 	echo "Stripping down executable paths..." >&4
+	xsed=$sed
 	for file in $loclist $trylist; do
 		eval sfile="\$$file"
-		sfile=`echo $sfile | sed -e 's,.*/\(.*\),\1,'`
+		sfile=`echo $sfile | $xsed -e 's,.*/\(.*\),\1,'`
 		eval $file="$sfile"
 	done
 	;;
