@@ -610,7 +610,6 @@ static void downgrade_handshaking(struct gnutella_node *n)
  *   X-Try: host1:port1, host2:port2; host3:port3
  *
  * i.e. we're very flexible about the separators which can be "," or ";".
- * We also allow for the port to be missing, in which case 6346 is used.
  */
 static gint extract_field_pongs(guchar *field)
 {
@@ -618,26 +617,10 @@ static gint extract_field_pongs(guchar *field)
 	gint pong = 0;
 
 	for (tok = strtok(field, ",;"); tok; tok = strtok(NULL, ",;")) {
-		guchar *s = tok;
 		guint16 port;
 		guint32 ip;
-		gint c;
 
-		while ((c = *tok)) {		/* Skip leading spaces */
-			if (!isspace(c))
-				break;
-			tok++;
-		}
-
-		while (*s && *s != ':')		/* Go to start of port */
-			s++;
-		port = (*s) ? atoi(s+1) : 6346;
-		c = *s;
-		*s = '\0';
-		ip = gchar_to_ip(tok);
-		*s = c;
-
-		if (ip) {
+		if (gchar_to_ip_port(tok, &ip, &port)) {
 			host_add(ip, port, FALSE);
 			pong++;
 		}
@@ -667,6 +650,9 @@ static void extract_header_pongs(header_t *header, struct gnutella_node *n)
 		if (dbg > 4)
 			printf("Node %s sent us %d pong%s in header\n",
 				node_ip(n), pong, pong == 1 ? "" : "s");
+		if (pong == 0)
+			g_warning("Node %s sent us unparseable X-Try: %s\n",
+				node_ip(n), field);
 	}
 
 	/*
@@ -680,6 +666,9 @@ static void extract_header_pongs(header_t *header, struct gnutella_node *n)
 		if (dbg > 4)
 			printf("Node %s sent us %d ultranode pong%s in header\n",
 				node_ip(n), pong, pong == 1 ? "" : "s");
+		if (pong == 0)
+			g_warning("Node %s sent us unparseable X-Try-Ultrapeers: %s\n",
+				node_ip(n), field);
 	}
 }
 
