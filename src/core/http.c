@@ -852,7 +852,7 @@ http_range_parse(
 			str++;
 			continue;
 		}
-		if (isspace(c)) {
+		if (is_ascii_space(c)) {
 			str++;
 			continue;
 		}
@@ -939,7 +939,7 @@ http_range_parse(
 			continue;
 		}
 
-		if (isdigit(c)) {
+		if (is_ascii_digit(c)) {
 			gint error;
 			gchar *dend;
 			guint64 val = parse_uint64(str - 1, &dend, 10, &error);
