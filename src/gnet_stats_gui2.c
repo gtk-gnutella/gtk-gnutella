@@ -294,7 +294,7 @@ void gnet_stats_gui_init(void)
     gtk_clist_set_column_justification(
         clist_stats_pkg, c_gs_expired, GTK_JUSTIFY_RIGHT);
     gtk_clist_set_column_justification(
-        clist_stats_pkg, c_gs_recieved, GTK_JUSTIFY_RIGHT);
+        clist_stats_pkg, c_gs_received, GTK_JUSTIFY_RIGHT);
     gtk_clist_set_column_justification(
         clist_stats_byte, c_gs_generated, GTK_JUSTIFY_RIGHT);
     gtk_clist_set_column_justification(
@@ -302,7 +302,7 @@ void gnet_stats_gui_init(void)
     gtk_clist_set_column_justification(
         clist_stats_byte, c_gs_expired, GTK_JUSTIFY_RIGHT);
     gtk_clist_set_column_justification(
-        clist_stats_byte, c_gs_recieved, GTK_JUSTIFY_RIGHT);
+        clist_stats_byte, c_gs_received, GTK_JUSTIFY_RIGHT);
     gtk_clist_set_column_justification(
         clist_stats_byte, c_gs_relayed, GTK_JUSTIFY_RIGHT);
     gtk_clist_set_column_justification(
@@ -466,18 +466,6 @@ void gnet_stats_gui_update(void)
 
     gnet_stats_get(&stats);
 
-    /*
-    gtk_label_printf(
-        GTK_LABEL(lookup_widget(main_window, "label_routing_errors")),
-        "%u", stats.routing_errors);
-    gtk_label_printf(
-        GTK_LABEL(lookup_widget(main_window, "label_local_searches")),
-        "%u", stats.local_searches);
-    gtk_label_printf(
-        GTK_LABEL(lookup_widget(main_window, "label_local_hits")),
-        "%u", stats.local_hits);
-    */
-
     clist_stats_pkg = GTK_CLIST(
         lookup_widget(main_window, "clist_gnet_stats_pkg"));
     clist_stats_byte = GTK_CLIST(
@@ -497,7 +485,7 @@ void gnet_stats_gui_update(void)
     gtk_clist_freeze(clist_stats_pkg);
 
     for (n = 0; n < MSG_TYPE_COUNT; n ++) {
-        gtk_clist_set_text(clist_stats_pkg, n, c_gs_recieved, 
+        gtk_clist_set_text(clist_stats_pkg, n, c_gs_received, 
             pkt_stat_str(stats.pkg.received, n));
         gtk_clist_set_text(clist_stats_pkg, n, c_gs_generated, 
             pkt_stat_str(stats.pkg.generated, n));
@@ -508,7 +496,7 @@ void gnet_stats_gui_update(void)
         gtk_clist_set_text(clist_stats_pkg, n, c_gs_relayed,
             pkt_stat_str(stats.pkg.relayed, n));
 
-        gtk_clist_set_text(clist_stats_byte, n, c_gs_recieved, 
+        gtk_clist_set_text(clist_stats_byte, n, c_gs_received, 
             byte_stat_str(stats.byte.received, n));
         gtk_clist_set_text(clist_stats_byte, n, c_gs_generated,
             byte_stat_str(stats.byte.generated, n));
