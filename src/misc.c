@@ -215,7 +215,12 @@ gchar *guid_hex_str(guchar *guid)
 	return buf;
 }
 
-static gint hexc2int(gchar c)
+/*
+ * hex2dec
+ *
+ * Convert an hexadecimal char (0-9, A-F, a-f) into decimal.
+ */
+gint hex2dec(gchar c)
 {
 	return c >= '0' && c <= '9' ? c - '0'
 		 : c >= 'a' && c <= 'f' ? c - 'a' + 10
@@ -232,7 +237,7 @@ void hex_to_guid(gchar *hexguid, guchar *guid)
 	gint i;
 
 	for (i = 0; i < 16; i++)
-		guid[i] = (hexc2int(hexguid[i*2]) << 4) + hexc2int(hexguid[i*2+1]);
+		guid[i] = (hex2dec(hexguid[i*2]) << 4) + hex2dec(hexguid[i*2+1]);
 }
 
 /*
