@@ -596,9 +596,17 @@ static void pcache_expire(void)
  */
 void pcache_close(void)
 {
+	static hcache_type_t types[] = { HCACHE_ANY, HCACHE_ULTRA };
+	gint i;
+
 	pcache_expire();
-	g_hash_table_destroy(recent_pongs[HCACHE_ANY].ht_recent_pongs);
-	g_hash_table_destroy(recent_pongs[HCACHE_ULTRA].ht_recent_pongs);
+
+	for (i = 0; i < sizeof(types) / sizeof(types[0]); i++) {
+		hcache_type_t type = types[i];
+
+		pcache_clear_recent(type);
+		g_hash_table_destroy(recent_pongs[type].ht_recent_pongs);
+	}
 }
 
 /*
