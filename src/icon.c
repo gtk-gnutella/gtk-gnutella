@@ -29,7 +29,9 @@
 #include "config.h"
 #endif
 
-#ifdef USE_GTK2
+/* Check whether we use GTK+ 2.2.0 or newer */
+#if (GTK_MAJOR_VERSION > 2) || \
+	(GTK_MAJOR_VERSION == 2 && GTK_MINOR_VERSION >= 2)
 
 #include <gdk/gdk.h>
 #include <gdk-pixbuf/gdk-pixbuf.h>
@@ -362,7 +364,7 @@ void icon_close(void)
     gtk_widget_destroy(icon);
 }
 
-#else                           /*   !USE_GTK2   */
+#else                           /*   GTK+ < 2.2.0  */
 
 /*
  * Right now, I haven't found a good way of setting any kind of
@@ -386,7 +388,7 @@ void icon_close(void)
     return;
 }
 
-#endif                          /*    USE_GTK2   */
+#endif                          /* GTK+ >= 2.2.0 */
 
 #if 0
 /*
