@@ -5324,6 +5324,7 @@
 		<widget>
 		  <class>GtkButton</class>
 		  <name>button_search_expand_all</name>
+		  <sensitive>False</sensitive>
 		  <can_focus>True</can_focus>
 		  <signal>
 		    <name>clicked</name>
@@ -5342,6 +5343,7 @@
 		<widget>
 		  <class>GtkButton</class>
 		  <name>button_search_collapse_all</name>
+		  <sensitive>False</sensitive>
 		  <can_focus>True</can_focus>
 		  <signal>
 		    <name>clicked</name>

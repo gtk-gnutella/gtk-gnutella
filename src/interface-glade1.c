@@ -4284,6 +4284,7 @@ create_main_window (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (button_search_expand_all);
   gtk_box_pack_start (GTK_BOX (hbox181), button_search_expand_all, FALSE, FALSE, 0);
+  gtk_widget_set_sensitive (button_search_expand_all, FALSE);
 
   button_search_collapse_all = gtk_button_new_with_label (_("Collapse all"));
   gtk_widget_set_name (button_search_collapse_all, "button_search_collapse_all");
@@ -4292,6 +4293,7 @@ create_main_window (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (button_search_collapse_all);
   gtk_box_pack_start (GTK_BOX (hbox181), button_search_collapse_all, FALSE, FALSE, 0);
+  gtk_widget_set_sensitive (button_search_collapse_all, FALSE);
 
   label650 = gtk_label_new ("");
   gtk_widget_set_name (label650, "label650");
