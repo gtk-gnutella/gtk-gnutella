@@ -40,13 +40,13 @@ struct adns_query_t {
 	gchar hostname[MAX_HOSTLEN + 1];
 	void (*user_callback)(guint32, gpointer);
 	gpointer user_data;
-} __attribute__((__packed__));
+};
 
 struct adns_reply_t {
     void (*user_callback)(guint32, gpointer);
     gpointer user_data;
     guint32 ip;
-} __attribute__((__packed__));
+};
 
 struct adns_cache_entry_t {
 	gchar hostname[MAX_HOSTLEN + 1];
@@ -76,9 +76,10 @@ static guint adns_event_id = 0;
 static struct adns_cache_t *adns_cache_init(void)
 {
 	struct adns_cache_t *cache;
-
+	
 	cache = g_malloc0(sizeof(*cache));
 	cache->size = ADNS_CACHED_NUM;
+	cache->oldest = 0;
 	cache->timeout = ADNS_CACHE_TIMEOUT;
 	return cache;
 }
