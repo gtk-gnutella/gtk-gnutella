@@ -10924,7 +10924,7 @@ create_dlg_prefs_gnet_tab (void)
   GtkWidget *label364;
   GtkWidget *label365;
   GtkWidget *label293;
-  GtkWidget *frame128;
+  GtkWidget *frame_expert_oob_queries;
   GtkWidget *table101;
   GtkWidget *checkbutton_send_oob_queries;
   GtkWidget *checkbutton_process_oob_queries;
@@ -11531,16 +11531,16 @@ create_dlg_prefs_gnet_tab (void)
   gtk_widget_show (label293);
   gtk_frame_set_label_widget (GTK_FRAME (frame_searches), label293);
 
-  frame128 = gtk_frame_new (NULL);
-  gtk_widget_set_name (frame128, "frame128");
-  gtk_widget_show (frame128);
-  gtk_box_pack_start (GTK_BOX (hbox286), frame128, FALSE, TRUE, 0);
-  gtk_container_set_border_width (GTK_CONTAINER (frame128), 4);
+  frame_expert_oob_queries = gtk_frame_new (NULL);
+  gtk_widget_set_name (frame_expert_oob_queries, "frame_expert_oob_queries");
+  gtk_widget_show (frame_expert_oob_queries);
+  gtk_box_pack_start (GTK_BOX (hbox286), frame_expert_oob_queries, FALSE, TRUE, 0);
+  gtk_container_set_border_width (GTK_CONTAINER (frame_expert_oob_queries), 4);
 
   table101 = gtk_table_new (3, 1, FALSE);
   gtk_widget_set_name (table101, "table101");
   gtk_widget_show (table101);
-  gtk_container_add (GTK_CONTAINER (frame128), table101);
+  gtk_container_add (GTK_CONTAINER (frame_expert_oob_queries), table101);
 
   checkbutton_send_oob_queries = gtk_check_button_new_with_mnemonic (_("Queries ask for OOB results"));
   gtk_widget_set_name (checkbutton_send_oob_queries, "checkbutton_send_oob_queries");
@@ -11567,7 +11567,7 @@ create_dlg_prefs_gnet_tab (void)
   label885 = gtk_label_new (_("Out of Band Querying"));
   gtk_widget_set_name (label885, "label885");
   gtk_widget_show (label885);
-  gtk_frame_set_label_widget (GTK_FRAME (frame128), label885);
+  gtk_frame_set_label_widget (GTK_FRAME (frame_expert_oob_queries), label885);
 
   frame_expert_search_queue = gtk_frame_new (NULL);
   gtk_widget_set_name (frame_expert_search_queue, "frame_expert_search_queue");
@@ -12274,7 +12274,7 @@ create_dlg_prefs_gnet_tab (void)
   GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, label364, "label364");
   GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, label365, "label365");
   GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, label293, "label293");
-  GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, frame128, "frame128");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, frame_expert_oob_queries, "frame_expert_oob_queries");
   GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, table101, "table101");
   GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, checkbutton_send_oob_queries, "checkbutton_send_oob_queries");
   GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, checkbutton_process_oob_queries, "checkbutton_process_oob_queries");

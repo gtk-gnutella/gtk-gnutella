@@ -20002,7 +20002,7 @@ Grace time remaining:</property>
 		  </child>
 
 		  <child>
-		    <widget class="GtkFrame" id="frame128">
+		    <widget class="GtkFrame" id="frame_expert_oob_queries">
 		      <property name="border_width">4</property>
 		      <property name="visible">True</property>
 		      <property name="label_xalign">0</property>
