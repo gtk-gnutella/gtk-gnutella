@@ -1,6 +1,6 @@
 # since last version
 
-- (2003.05.11 - Richard)
+-(2003.05.11 - Richard)
  * [Gtk1] Added clock skew to gui (calculation seems broken).
  * [Gtk1] Added PROP_RUNS_NTP to gui.
  * [Gtk1] Reordered connection settings in gnet pane.
@@ -20,6 +20,12 @@
  * Send QUEUE messages spaced by at least 10 minutes for a given entry.
  * Give dead downloads a chance to come back to life by sending them QUEUE.
 
+- (2003.05.10 - Jeroen)
+ * PARQ: Displays retry time when queue slot is waiting for its upload slot
+ * PARQ: Use uploads alive instead of queue size when displaying
+         position out of <size>
+ * PARQ: Only send QUEUE when library is not being rebuilt
+	    
 - (2003.05.10 - RAM)
  * Fixed "memory leak" in fileinfo_gui.c.
  * New -DTRACK_ZALLOC compilation switch that will track down the allocation
