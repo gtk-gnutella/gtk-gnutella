@@ -38,6 +38,7 @@ LSRC = \
 	crc.c \
 	eval.c \
 	event.c \
+	fifo.c \
 	file.c \
 	fuzzy.c \
 	getline.c \
