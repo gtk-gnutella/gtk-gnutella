@@ -1,5 +1,10 @@
 # since last version
 
+- (2003.11.09 - RAM)
+ * Forgot to include "settings_gui.h" in main.c.
+ * Forgot to allow X-Available-Ranges emission on HTTP 2xx returns.
+ * Don't expire pong cache for leaves as often as in ultra mode.
+
 - (2003.11.07 - Jeroen)
  * Added Hungarian translation from Sulyok Péter
 
