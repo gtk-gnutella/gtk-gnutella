@@ -45,7 +45,7 @@ ADDITIONAL_DROPIN = \
 	gui_property.c gui_property.h gui_property_priv.h \
 	settings_gui.c settings_gui.h settings_cb.c settings_cb.h \
 	statusbar_gui.c statusbar_gui.h \
-	search_gui.c search_gui.h search_cb.c search_cb.h \
+	search_gui2.c search_gui.h search_cb2.c search_cb2.h \
 	downloads_gui.c downloads_gui.h downloads_cb.c downloads_cb.h \
 	uploads_gui.c uploads_gui.h uploads_cb.c uploads_cb.h \
 	upload_stats_gui.c upload_stats_gui.h \

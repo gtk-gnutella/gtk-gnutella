@@ -32,7 +32,7 @@
 #include "filter_cb.h"
 #include "nodes_cb2.h"
 #include "settings_cb.h"
-#include "search_cb.h"
+#include "search_cb2.h"
 #include "main_cb.h"
 #include "monitor_cb.h"
 #include "uploads_cb.h"

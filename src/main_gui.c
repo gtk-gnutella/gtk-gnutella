@@ -302,8 +302,10 @@ void main_gui_init(void)
 
     gtk_clist_column_titles_passive(
         GTK_CLIST(lookup_widget(main_window, "clist_search_stats")));
+#ifndef USE_GTK2
     gtk_clist_column_titles_passive(
         GTK_CLIST(lookup_widget(main_window, "clist_search")));
+#endif
 	gtk_clist_column_titles_passive(
         GTK_CLIST(lookup_widget(main_window, "clist_downloads")));
 

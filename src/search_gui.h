@@ -85,7 +85,11 @@ typedef struct search {
 
 	gchar      *query;			   /* The search query */
 
+#ifdef USE_GTK2
+	GtkWidget  *tree_view;			   /* GtkCList for this search */
+#else
 	GtkWidget  *clist;			   /* GtkCList for this search */
+#endif
 	GtkWidget  *scrolled_window;   /* GtkScrolledWindow containing the GtkCList */
 	GtkWidget  *list_item;		   /* The GtkListItem in combo for this search */
     GtkWidget  *arrow;             /* The arrow displaying sort order  */
@@ -117,7 +121,11 @@ extern GtkWidget *dialog_filters;
 extern guint32 search_passive;
 extern guint32 search_reissue_timeout;
 extern GList *searches;			/* List of search structs */
+#ifdef USE_GTK2
+extern GtkWidget *default_search_tree_view;
+#else
 extern GtkWidget *default_search_clist;
+#endif
 extern time_t tab_update_time;
 extern search_t *search_selected;
 
@@ -155,7 +163,11 @@ gint search_gui_compare_records(gint sort_col, record_t *r1, record_t *r2);
 gboolean gui_search_update_tab_label(struct search *);
 void gui_search_clear_results(void);
 void gui_search_history_add(gchar *s);
+#ifdef USE_GTK2
+void gui_search_create_tree_view(GtkWidget ** sw, GtkWidget ** tree_view);
+#else
 void gui_search_create_clist(GtkWidget ** sw, GtkWidget ** clist);
+#endif
 void gui_search_force_update_tab_label(struct search *);
 void gui_search_update_items(struct search *);
 

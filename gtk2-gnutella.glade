@@ -7478,6 +7478,8 @@ Vidar Madsen &lt;vidar@gimp.org&gt;</property>
 
 		      <child>
 			<widget class="GtkHandleBox" id="hb_searches">
+			  <property name="width_request">110</property>
+			  <property name="height_request">90</property>
 			  <property name="visible">True</property>
 			  <property name="shadow_type">GTK_SHADOW_OUT</property>
 			  <property name="handle_position">GTK_POS_TOP</property>
@@ -7493,64 +7495,15 @@ Vidar Madsen &lt;vidar@gimp.org&gt;</property>
 			      <property name="window_placement">GTK_CORNER_TOP_LEFT</property>
 
 			      <child>
-				<widget class="GtkCList" id="clist_search">
+				<widget class="GtkTreeView" id="tree_view_search">
+				  <property name="width_request">108</property>
+				  <property name="height_request">88</property>
 				  <property name="visible">True</property>
 				  <property name="can_focus">True</property>
-				  <property name="n_columns">3</property>
-				  <property name="column_widths">80,80,80</property>
-				  <property name="selection_mode">GTK_SELECTION_SINGLE</property>
-				  <property name="show_titles">True</property>
-				  <property name="shadow_type">GTK_SHADOW_IN</property>
-				  <signal name="resize_column" handler="on_clist_search_resize_column" last_modification_time="Wed, 11 Sep 2002 16:50:39 GMT"/>
-				  <signal name="select_row" handler="on_clist_search_select_row" last_modification_time="Wed, 11 Sep 2002 16:50:58 GMT"/>
-
-				  <child>
-				    <widget class="GtkLabel" id="label352">
-				      <property name="visible">True</property>
-				      <property name="label" translatable="yes">Search</property>
-				      <property name="use_underline">False</property>
-				      <property name="use_markup">False</property>
-				      <property name="justify">GTK_JUSTIFY_LEFT</property>
-				      <property name="wrap">False</property>
-				      <property name="selectable">False</property>
-				      <property name="xalign">0</property>
-				      <property name="yalign">0.5</property>
-				      <property name="xpad">0</property>
-				      <property name="ypad">0</property>
-				    </widget>
-				  </child>
-
-				  <child>
-				    <widget class="GtkLabel" id="label353">
-				      <property name="visible">True</property>
-				      <property name="label" translatable="yes">Hits</property>
-				      <property name="use_underline">False</property>
-				      <property name="use_markup">False</property>
-				      <property name="justify">GTK_JUSTIFY_LEFT</property>
-				      <property name="wrap">False</property>
-				      <property name="selectable">False</property>
-				      <property name="xalign">0.5</property>
-				      <property name="yalign">0.5</property>
-				      <property name="xpad">0</property>
-				      <property name="ypad">0</property>
-				    </widget>
-				  </child>
-
-				  <child>
-				    <widget class="GtkLabel" id="label354">
-				      <property name="visible">True</property>
-				      <property name="label" translatable="yes">New</property>
-				      <property name="use_underline">False</property>
-				      <property name="use_markup">False</property>
-				      <property name="justify">GTK_JUSTIFY_LEFT</property>
-				      <property name="wrap">False</property>
-				      <property name="selectable">False</property>
-				      <property name="xalign">0.5</property>
-				      <property name="yalign">0.5</property>
-				      <property name="xpad">0</property>
-				      <property name="ypad">0</property>
-				    </widget>
-				  </child>
+				  <property name="headers_visible">True</property>
+				  <property name="rules_hint">False</property>
+				  <property name="reorderable">False</property>
+				  <property name="enable_search">True</property>
 				</widget>
 			      </child>
 			    </widget>
@@ -14756,7 +14709,6 @@ options</property>
 
 					  <child>
 					    <widget class="GtkSpinButton" id="spinbutton_config_download_overlap_range">
-					      <property name="width_request">96</property>
 					      <property name="visible">True</property>
 					      <property name="tooltip" translatable="yes">Amount of bytes to overlap when resuming download</property>
 					      <property name="can_focus">True</property>
@@ -14766,7 +14718,7 @@ options</property>
 					      <property name="update_policy">GTK_UPDATE_ALWAYS</property>
 					      <property name="snap_to_ticks">False</property>
 					      <property name="wrap">False</property>
-					      <property name="adjustment">128 128 4096 1 10 10</property>
+					      <property name="adjustment">133 128 4096 1 10 10</property>
 					    </widget>
 					    <packing>
 					      <property name="left_attach">1</property>

@@ -3999,7 +3999,7 @@ create_dlg_about (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label266), 0, 0.5);
 
-  label267 = gtk_label_new_with_mnemonic ("RaphaÃ«l Manfredi <Raphael__Manfredi@pobox.com>");
+  label267 = gtk_label_new_with_mnemonic ("Rapha\303«l Manfredi <Raphael__Manfredi@pobox.com>");
   gtk_widget_set_name (label267, "label267");
   gtk_widget_show (label267);
   gtk_table_attach (GTK_TABLE (table28), label267, 1, 2, 1, 2,
@@ -4053,7 +4053,7 @@ create_dlg_about (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label272), 0, 0.5);
 
-  label273 = gtk_label_new ("RaphaÃ«l Manfredi");
+  label273 = gtk_label_new ("Rapha\303«l Manfredi");
   gtk_widget_set_name (label273, "label273");
   gtk_widget_show (label273);
   gtk_table_attach (GTK_TABLE (table29), label273, 1, 2, 2, 3,
@@ -4061,7 +4061,7 @@ create_dlg_about (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label273), 0, 0.5);
 
-  label274 = gtk_label_new ("RaphaÃ«l Manfredi");
+  label274 = gtk_label_new ("Rapha\303«l Manfredi");
   gtk_widget_set_name (label274, "label274");
   gtk_widget_show (label274);
   gtk_table_attach (GTK_TABLE (table29), label274, 1, 2, 1, 2,
@@ -4077,7 +4077,7 @@ create_dlg_about (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label_d268), 0, 0.5);
 
-  label275 = gtk_label_new ("RaphaÃ«l Manfredi");
+  label275 = gtk_label_new ("Rapha\303«l Manfredi");
   gtk_widget_set_name (label275, "label275");
   gtk_widget_show (label275);
   gtk_table_attach (GTK_TABLE (table29), label275, 1, 2, 0, 1,
@@ -4112,7 +4112,7 @@ create_dlg_about (void)
   gtk_text_view_set_left_margin (GTK_TEXT_VIEW (textview1), 4);
   gtk_text_view_set_right_margin (GTK_TEXT_VIEW (textview1), 4);
   gtk_text_buffer_set_text (gtk_text_view_get_buffer (GTK_TEXT_VIEW (textview1)),
-	"Steven Wilcoxon <swilcoxon@users.sourceforge.net>\nJason Lingohr <lingman@users.sourceforge.net>\nBrian St Pierre <bstpierre@users.sourceforge.net>\nChuck Homic <homic@users.sourceforge.net>\nIngo Saitz <salz@users.sourceforge.net>\nBen Hochstedler <hochstrb@users.sourceforge.net>\nDaniel Walker <axiom@users.sourceforge.net>\nPaul Cassella <pwc@users.sourceforge.net> \nJared Mauch <jaredmauch@users.sourceforge.net>\nNate E <web1 (at) users dot sourceforge dot net>\nRaphaÃ«l Manfredi <Raphael_Manfredi@pobox.com>\nKenn Brooks Hamm <khamm@andrew.cmu.edu>\nMark Schreiber <mark7@andrew.cmu.edu>\nSam Varshavchik <mrsam@courier-mta.com>\nVladimir Klebanov <unny@rz.uni-karlsruhe.de>\nRoman Shterenzon <roman@xpert.com>\nRobert Bihlmeyer <robbe@orcus.priv.at>\nNoel T.Nunkovich <ntnunk@earthlink.net>\nMichael Tesch <tesch@users.sourceforge.net>\nMarkus 'guruz' Goetz <guruz@guruz.info>\nRichard Eckart <wyldfire@users.sourceforge.net>\nChristophe Tronche <ch.tronche@computer.org>\nAlex Bennee <alex@bennee.com>\nVidar Madsen <vidar@gimp.org>", -1);
+	"Steven Wilcoxon <swilcoxon@users.sourceforge.net>\nJason Lingohr <lingman@users.sourceforge.net>\nBrian St Pierre <bstpierre@users.sourceforge.net>\nChuck Homic <homic@users.sourceforge.net>\nIngo Saitz <salz@users.sourceforge.net>\nBen Hochstedler <hochstrb@users.sourceforge.net>\nDaniel Walker <axiom@users.sourceforge.net>\nPaul Cassella <pwc@users.sourceforge.net> \nJared Mauch <jaredmauch@users.sourceforge.net>\nNate E <web1 (at) users dot sourceforge dot net>\nRapha\303«l Manfredi <Raphael_Manfredi@pobox.com>\nKenn Brooks Hamm <khamm@andrew.cmu.edu>\nMark Schreiber <mark7@andrew.cmu.edu>\nSam Varshavchik <mrsam@courier-mta.com>\nVladimir Klebanov <unny@rz.uni-karlsruhe.de>\nRoman Shterenzon <roman@xpert.com>\nRobert Bihlmeyer <robbe@orcus.priv.at>\nNoel T.Nunkovich <ntnunk@earthlink.net>\nMichael Tesch <tesch@users.sourceforge.net>\nMarkus 'guruz' Goetz <guruz@guruz.info>\nRichard Eckart <wyldfire@users.sourceforge.net>\nChristophe Tronche <ch.tronche@computer.org>\nAlex Bennee <alex@bennee.com>\nVidar Madsen <vidar@gimp.org>", -1);
 
   label302 = gtk_label_new ("Contributors");
   gtk_widget_set_name (label302, "label302");
@@ -4224,10 +4224,7 @@ create_main_window (void)
   GtkWidget *notebook_sidebar;
   GtkWidget *hb_searches;
   GtkWidget *scrolledwindow28;
-  GtkWidget *clist_search;
-  GtkWidget *label352;
-  GtkWidget *label353;
-  GtkWidget *label354;
+  GtkWidget *tree_view_search;
   GtkWidget *label_nb_sb_1;
   GtkWidget *label189;
   GtkWidget *label188;
@@ -5145,6 +5142,7 @@ create_main_window (void)
   gtk_widget_set_name (hb_searches, "hb_searches");
   gtk_widget_show (hb_searches);
   gtk_container_add (GTK_CONTAINER (notebook_sidebar), hb_searches);
+  gtk_widget_set_size_request (hb_searches, 110, 90);
   gtk_handle_box_set_handle_position (GTK_HANDLE_BOX (hb_searches), GTK_POS_TOP);
   gtk_handle_box_set_snap_edge (GTK_HANDLE_BOX (hb_searches), GTK_POS_LEFT);
 
@@ -5154,33 +5152,11 @@ create_main_window (void)
   gtk_container_add (GTK_CONTAINER (hb_searches), scrolledwindow28);
   gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolledwindow28), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
 
-  clist_search = gtk_clist_new (3);
-  gtk_widget_set_name (clist_search, "clist_search");
-  gtk_widget_show (clist_search);
-  gtk_container_add (GTK_CONTAINER (scrolledwindow28), clist_search);
-  gtk_clist_set_column_width (GTK_CLIST (clist_search), 0, 80);
-  gtk_clist_set_column_width (GTK_CLIST (clist_search), 1, 80);
-  gtk_clist_set_column_width (GTK_CLIST (clist_search), 2, 80);
-  gtk_clist_column_titles_show (GTK_CLIST (clist_search));
-
-  label352 = gtk_label_new ("Search");
-  gtk_widget_set_name (label352, "label352");
-  gtk_widget_show (label352);
-  gtk_clist_set_column_widget (GTK_CLIST (clist_search), 0, label352);
-  gtk_label_set_justify (GTK_LABEL (label352), GTK_JUSTIFY_LEFT);
-  gtk_misc_set_alignment (GTK_MISC (label352), 0, 0.5);
-
-  label353 = gtk_label_new ("Hits");
-  gtk_widget_set_name (label353, "label353");
-  gtk_widget_show (label353);
-  gtk_clist_set_column_widget (GTK_CLIST (clist_search), 1, label353);
-  gtk_label_set_justify (GTK_LABEL (label353), GTK_JUSTIFY_LEFT);
-
-  label354 = gtk_label_new ("New");
-  gtk_widget_set_name (label354, "label354");
-  gtk_widget_show (label354);
-  gtk_clist_set_column_widget (GTK_CLIST (clist_search), 2, label354);
-  gtk_label_set_justify (GTK_LABEL (label354), GTK_JUSTIFY_LEFT);
+  tree_view_search = gtk_tree_view_new ();
+  gtk_widget_set_name (tree_view_search, "tree_view_search");
+  gtk_widget_show (tree_view_search);
+  gtk_container_add (GTK_CONTAINER (scrolledwindow28), tree_view_search);
+  gtk_widget_set_size_request (tree_view_search, 108, 88);
 
   label_nb_sb_1 = gtk_label_new ("label187");
   gtk_widget_set_name (label_nb_sb_1, "label_nb_sb_1");
@@ -7839,14 +7815,13 @@ create_main_window (void)
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
 
-  spinbutton_config_download_overlap_range_adj = gtk_adjustment_new (128, 128, 4096, 1, 10, 10);
+  spinbutton_config_download_overlap_range_adj = gtk_adjustment_new (133, 128, 4096, 1, 10, 10);
   spinbutton_config_download_overlap_range = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_download_overlap_range_adj), 1, 0);
   gtk_widget_set_name (spinbutton_config_download_overlap_range, "spinbutton_config_download_overlap_range");
   gtk_widget_show (spinbutton_config_download_overlap_range);
   gtk_table_attach (GTK_TABLE (table38), spinbutton_config_download_overlap_range, 1, 2, 0, 1,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
-  gtk_widget_set_size_request (spinbutton_config_download_overlap_range, 96, -2);
   gtk_tooltips_set_tip (tooltips, spinbutton_config_download_overlap_range, "Amount of bytes to overlap when resuming download", NULL);
   gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_config_download_overlap_range), TRUE);
 
@@ -8918,12 +8893,6 @@ create_main_window (void)
   g_signal_connect ((gpointer) ctree_menu, "tree_select_row",
                     G_CALLBACK (on_ctree_menu_tree_select_row),
                     NULL);
-  g_signal_connect ((gpointer) clist_search, "resize_column",
-                    G_CALLBACK (on_clist_search_resize_column),
-                    NULL);
-  g_signal_connect ((gpointer) clist_search, "select_row",
-                    G_CALLBACK (on_clist_search_select_row),
-                    NULL);
   g_signal_connect ((gpointer) progressbar_bws_in, "button_press_event",
                     G_CALLBACK (on_progressbar_bws_in_button_press_event),
                     NULL);
@@ -9182,10 +9151,7 @@ create_main_window (void)
   GLADE_HOOKUP_OBJECT (main_window, notebook_sidebar, "notebook_sidebar");
   GLADE_HOOKUP_OBJECT (main_window, hb_searches, "hb_searches");
   GLADE_HOOKUP_OBJECT (main_window, scrolledwindow28, "scrolledwindow28");
-  GLADE_HOOKUP_OBJECT (main_window, clist_search, "clist_search");
-  GLADE_HOOKUP_OBJECT (main_window, label352, "label352");
-  GLADE_HOOKUP_OBJECT (main_window, label353, "label353");
-  GLADE_HOOKUP_OBJECT (main_window, label354, "label354");
+  GLADE_HOOKUP_OBJECT (main_window, tree_view_search, "tree_view_search");
   GLADE_HOOKUP_OBJECT (main_window, label_nb_sb_1, "label_nb_sb_1");
   GLADE_HOOKUP_OBJECT (main_window, label189, "label189");
   GLADE_HOOKUP_OBJECT (main_window, label188, "label188");
