@@ -1,5 +1,18 @@
 # since last version
 
+- (2002.09.15 Richard)
+ * (Hopefully) fixed flickering in gui by jailing label_items_found and
+   label_search_stats_count into GtkViewports (Gtk1 & Gtk2)
+ * Added "(Globally) drop results from host" to search popup
+ * Added "New search from selected" action from search results
+   pane. Creates a new search based on the filename found and
+   adds a filter to it based on the sha1 hash if it has one or the
+   exact filename if it hasn't.
+   (patch by Andrew Meredith <andrew@anvil.org>)
+ * Fixed up build files following suggestions from Andrew
+ * Bumped version in configure.in
+ * Fixed warnings in gtk-missing.c when compiling with Gtk2
+
 - (2002.09.12 RAM)
  * Was mistakenly going through routing_log() formatting even if the debug
    level did not justify it.
