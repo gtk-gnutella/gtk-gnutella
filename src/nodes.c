@@ -2391,9 +2391,11 @@ void node_read(gpointer data, gint source, GdkInputCondition cond)
 
 		switch (n->header.function) {
 		case GTA_MSG_BYE:
-			if (n->size > BYE_MAX_SIZE)
+			if (n->size > BYE_MAX_SIZE) {
 				node_remove(n, "Kicked: %s message too big (%d bytes)",
 							gmsg_name(n->header.function), n->size);
+				return;
+			}
 			break;
 
 		case GTA_MSG_SEARCH:
