@@ -929,7 +929,7 @@ gint download_remove_all_with_sha1(const guchar *sha1)
 
 void download_gui_add(struct download *d)
 {
-	gchar *titles[5];
+	gchar *titles[6];
 	gint row;
 	GdkColor *color;
 	GtkCList* clist_downloads;
@@ -949,15 +949,15 @@ void download_gui_add(struct download *d)
 	color = &(gtk_widget_get_style(GTK_WIDGET(clist_downloads))
 				->fg[GTK_STATE_INSENSITIVE]);
 
-	titles[c_dl_filename] = d->file_name;
-	titles[c_dl_host] = ip_port_to_gchar(download_ip(d), download_port(d));
-	titles[c_dl_server] = download_vendor_str(d);
-	titles[c_dl_status] = "";
-
 	if (DOWNLOAD_IS_QUEUED(d)) {		/* This is a queued download */
 		GtkCList* clist_downloads_queue;
 
-		titles[c_dl_size] = short_size(d->file_info->size);
+        titles[c_queue_filename] = d->file_name;
+        titles[c_queue_server] = download_vendor_str(d);
+        titles[c_queue_status] = "";
+		titles[c_queue_size] = short_size(d->file_info->size);
+        titles[c_queue_host] = 
+            ip_port_to_gchar(download_ip(d), download_port(d));
 
 		clist_downloads_queue = GTK_CLIST
 			(lookup_widget(main_window, "clist_downloads_queue"));
@@ -974,7 +974,13 @@ void download_gui_add(struct download *d)
 		rw += g_snprintf(&dl_tmp[rw], sizeof(dl_tmp)-rw,
 			" (%s)", short_size(d->size));
 
+        titles[c_dl_filename] = d->file_name;
+        titles[c_dl_server] = download_vendor_str(d);
+        titles[c_dl_status] = "";
 		titles[c_dl_size] = dl_tmp;
+        titles[c_dl_range] = "...";
+        titles[c_dl_host] = 
+            ip_port_to_gchar(download_ip(d), download_port(d));
 
 		row = gtk_clist_append(clist_downloads, titles);
 		gtk_clist_set_row_data(clist_downloads, row, (gpointer) d);
@@ -1649,6 +1655,7 @@ static gboolean download_start_prepare(struct download *d)
 	struct stat st;
 	gboolean all_done = FALSE;
 
+    g_assert(d != NULL);
 	g_assert(d->list_idx != DL_LIST_RUNNING);
 
 	/*

@@ -58,14 +58,26 @@ enum {
 
 
 /*
- * Downloads table columns (and queue, must be same)
+ * Downloads table columns
  */
 enum {
     c_dl_filename = 0,
     c_dl_host,
     c_dl_size,
+    c_dl_range,
     c_dl_server,
     c_dl_status
+};
+
+/*
+ * Queue table columns
+ */
+enum {
+    c_queue_filename = 0,
+    c_queue_host,
+    c_queue_size,
+    c_queue_server,
+    c_queue_status
 };
 
 
@@ -161,9 +173,7 @@ void gui_update_global(void);
 void gui_update_traffic_stats(void);
 void gui_update_max_ttl(void);
 void gui_update_minimum_speed(void);
-void gui_update_move_file_path(void);
 void gui_update_my_ttl(void);
-void gui_update_save_file_path(void);
 void gui_update_scan_extensions(void);
 void gui_update_download(struct download *, gboolean);
 void gui_update_c_gnutellanet(void);
