@@ -60,6 +60,7 @@
 #include "hostiles.h"
 #include "clock.h"
 #include "eval.h"
+#include "pproxy.h"
 
 #ifdef USE_REMOTE_SHELL
 #include "shell.h"
@@ -112,6 +113,7 @@ void gtk_gnutella_exit(gint n)
 	upload_stats_close();
 	parq_close();
 	download_close();
+	pproxy_close();
 	http_close();
 	gwc_close();
 	verify_close();
@@ -263,6 +265,7 @@ static gboolean main_timer(gpointer p)
 		parq_upload_timer(now);		/* PARQ upload timeouts/removal */
 		upload_timer(now);			/* Upload timeouts */
         file_info_timer();          /* Notify about changes */
+		pproxy_timer(now);			/* Push-proxy requests */
 	}
 	socket_timer(now);				/* Expire inactive sockets */
 	pcache_possibly_expired(now);	/* Expire pong cache */
