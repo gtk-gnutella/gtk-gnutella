@@ -3738,7 +3738,11 @@ gint file_info_available_ranges(struct dl_file_info *fi, gchar *buf, gint size)
 		rw = gm_snprintf(range, sizeof(range), "%s%u-%u",
 			is_first ? "bytes " : "", fc->from, fc->to - 1);
 
-		if (header_fmt_length(fmt) + rw + 2 >= maxfmt)
+		/*
+		 * Account for 4 more chars: ",\r\n\t" in the worst case.
+		 */
+
+		if (header_fmt_length(fmt) + rw + 4 >= maxfmt)
 			break;			/* Will not fit, cannot emit all of it */
 
 		header_fmt_append(fmt, range, ", ");
@@ -3804,7 +3808,11 @@ gint file_info_available_ranges(struct dl_file_info *fi, gchar *buf, gint size)
 		if (len + sizeof("bytes 0-512\r\n") >= maxfmt)
 			break;			/* No more room, no need to continue */
 
-		if (len + rw + 2 < maxfmt) {
+		/*
+		 * Account for 4 more chars: ",\r\n\t" in the worst case.
+		 */
+
+		if (len + rw + 4 < maxfmt) {
 			header_fmt_append(fmt, range, ", ");
 			is_first = FALSE;
 		}
