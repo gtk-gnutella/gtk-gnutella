@@ -53,7 +53,7 @@ U/packages/xmlconfig.U
 U/specific/gtkgversion.U
 bogons.txt
 config_h.SH                  Produces config.h
-configure                    GNU configure-like wrapper
+configure.gnu                GNU configure-like wrapper
 debian/README.debian
 debian/changelog
 debian/control
