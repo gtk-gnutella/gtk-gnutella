@@ -1779,8 +1779,8 @@ void send_node_error(
 			"to node %s: %s",
 			sent, rw, code, msg_tmp, ip_to_gchar(s->ip), g_strerror(errno));
 	} else if (dbg > 2) {
-		printf("----Sent error %d to node %s:\n%.*s----\n",
-			code, ip_to_gchar(s->ip), rw, gnet_response);
+		printf("----Sent error %d to node %s (%d bytes):\n%.*s----\n",
+			code, ip_to_gchar(s->ip), rw, rw, gnet_response);
 		fflush(stdout);
 	}
 }
@@ -3378,8 +3378,8 @@ static void node_process_handshake_header(
 		node_remove(n, "Failed (Cannot send %s atomically)", what);
 		return;
 	} else if (dbg > 2) {
-		printf("----Sent OK %s to %s:\n%.*s----\n",
-			what, ip_to_gchar(n->ip), rw, gnet_response);
+		printf("----Sent OK %s to %s (%d bytes):\n%.*s----\n",
+			what, ip_to_gchar(n->ip), rw, rw, gnet_response);
 		fflush(stdout);
 	}
 
@@ -4089,8 +4089,8 @@ void node_init_outgoing(struct gnutella_node *n)
         node_fire_node_info_changed(n);
 
 		if (dbg > 2) {
-			printf("----Sent HELLO request to %s:\n%.*s----\n",
-				ip_to_gchar(n->ip), len, buf);
+			printf("----Sent HELLO request to %s (%d bytes):\n%.*s----\n",
+				ip_to_gchar(n->ip), len, len, buf);
 			fflush(stdout);
 		}
 	}
@@ -5327,7 +5327,8 @@ void node_proxy_add(gnutella_node_t *n, guint32 ip, guint16 port)
  * If we are still firewalled and have push-proxies, let the downloader
  * know about them via the X-Push-Proxies header.
  */
-void node_http_proxies_add(gchar *buf, gint *retval, gpointer arg)
+void node_http_proxies_add(
+	gchar *buf, gint *retval, gpointer arg, guint32 flags)
 {
 	gint rw = 0;
 	gint length = *retval;		/* Space available, starting at `buf' */

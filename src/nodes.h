@@ -399,7 +399,8 @@ void node_mark_bad(struct gnutella_node *n);
 	
 gboolean node_proxying_add(gnutella_node_t *n, gchar *guid);
 void node_proxy_add(gnutella_node_t *n, guint32 ip, guint16 port);
-void node_http_proxies_add(gchar *buf, gint *retval, gpointer arg);
+void node_http_proxies_add(
+	gchar *buf, gint *retval, gpointer arg, guint32 flags);
 GSList *node_push_proxies(void);
 const GSList *node_all_nodes(void);
 
