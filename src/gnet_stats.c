@@ -75,34 +75,35 @@ void gnet_stats_init(void)
 
 }
 
-void gnet_stats_count_received(gnutella_node_t *n)
+/*
+ * gnet_stats_count_received_header
+ *
+ * Called when Gnutella header has been read.
+ */
+void gnet_stats_count_received_header(gnutella_node_t *n)
 {
-    guint32 size;
-
     n->received++;
-    READ_GUINT32_LE(n->header.size, size);
-    size += sizeof(n->header);
 
     stats_pkg_recv[MSG_TOTAL]++;
     stats_pkg_recv[stats_lut[n->header.function]]++;
+    stats_byte_recv[MSG_TOTAL] += sizeof(n->header);
+    stats_byte_recv[stats_lut[n->header.function]] += sizeof(n->header);
+}
+
+/*
+ * gnet_stats_count_received_payload
+ *
+ * Called when Gnutella payload has been read.
+ */
+void gnet_stats_count_received_payload(gnutella_node_t *n)
+{
+    guint32 size = n->size;
+
     stats_byte_recv[MSG_TOTAL] += size;
     stats_byte_recv[stats_lut[n->header.function]] += size;
 }
 
-void gnet_stats_count_sent(gnutella_node_t *n)
-{
-    guint32 size;
-
-    READ_GUINT32_LE(n->header.size, size);
-    size += sizeof(n->header);
-
-    stats_pkg_sent[MSG_TOTAL]++;
-    stats_pkg_sent[stats_lut[n->header.function]]++;
-    stats_byte_sent[MSG_TOTAL] += size;
-    stats_byte_sent[stats_lut[n->header.function]] += size;
-}
-
-void gnet_stats_count_sent_ext(gnutella_node_t *n, guint8 type, guint32 size)
+void gnet_stats_count_sent(gnutella_node_t *n, guint8 type, guint32 size)
 {
     stats_pkg_sent[MSG_TOTAL]++;
     stats_pkg_sent[stats_lut[type]]++;
@@ -112,10 +113,7 @@ void gnet_stats_count_sent_ext(gnutella_node_t *n, guint8 type, guint32 size)
 
 void gnet_stats_count_expired(gnutella_node_t *n)
 {
-    guint32 size;
-
-    READ_GUINT32_LE(n->header.size, size);
-    size += sizeof(n->header);
+    guint32 size = n->size + sizeof(n->header);
 
     stats_pkg_expd[MSG_TOTAL]++;
     stats_pkg_expd[stats_lut[n->header.function]]++;
@@ -123,26 +121,33 @@ void gnet_stats_count_expired(gnutella_node_t *n)
     stats_byte_expd[stats_lut[n->header.function]] += size;
 }
 
+#define DROP_STATS(s) do {											\
+    if (															\
+        (reason == MSG_DROP_ROUTE_LOST) ||							\
+        (reason == MSG_DROP_DUPLICATE) ||							\
+        (reason == MSG_DROP_NO_ROUTE)								\
+    )																\
+        routing_errors ++;											\
+																	\
+    stats_drop_reason[reason][MSG_TOTAL]++;							\
+    stats_drop_reason[reason][stats_lut[n->header.function]]++;		\
+    stats_pkg_drop[MSG_TOTAL]++;									\
+    stats_pkg_drop[stats_lut[n->header.function]]++;				\
+    stats_byte_drop[MSG_TOTAL] += (s);								\
+    stats_byte_drop[stats_lut[n->header.function]] += (s);			\
+} while (0)
+
 void gnet_stats_count_dropped(gnutella_node_t *n, msg_drop_reason_t reason)
 {
-    guint32 size;
+    guint32 size = n->size + sizeof(n->header);
 
-    READ_GUINT32_LE(n->header.size, size);
-    size += sizeof(n->header);
+	DROP_STATS(size);
+}
 
-    if (
-        (reason == MSG_DROP_ROUTE_LOST) ||
-        (reason == MSG_DROP_DUPLICATE) ||
-        (reason == MSG_DROP_NO_ROUTE)
-    )
-        routing_errors ++;
-
-    stats_drop_reason[reason][MSG_TOTAL]++;
-    stats_drop_reason[reason][stats_lut[n->header.function]]++;
-    stats_pkg_drop[MSG_TOTAL]++;
-    stats_pkg_drop[stats_lut[n->header.function]]++;
-    stats_byte_drop[MSG_TOTAL] += size;
-    stats_byte_drop[stats_lut[n->header.function]] += size;
+void gnet_stats_count_dropped_nosize(
+	gnutella_node_t *n, msg_drop_reason_t reason)
+{
+	DROP_STATS(sizeof(n->header));
 }
 
 void gnet_stats_count_local_search(gnutella_node_t *n)

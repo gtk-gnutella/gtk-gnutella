@@ -31,11 +31,13 @@
 
 void gnet_stats_init(void);
 
-void gnet_stats_count_received(gnutella_node_t *n);
-void gnet_stats_count_sent(gnutella_node_t *n);
-void gnet_stats_count_sent_ext(gnutella_node_t *n, guint8 type, guint32 size);
+void gnet_stats_count_received_header(gnutella_node_t *n);
+void gnet_stats_count_received_payload(gnutella_node_t *n);
+void gnet_stats_count_sent(gnutella_node_t *n, guint8 type, guint32 size);
 void gnet_stats_count_expired(gnutella_node_t *n);
 void gnet_stats_count_dropped(gnutella_node_t *n, msg_drop_reason_t reason);
+void gnet_stats_count_dropped_nosize(
+	gnutella_node_t *n, msg_drop_reason_t reason);
 void gnet_stats_count_local_search(gnutella_node_t *n);
 void gnet_stats_count_local_hit(gnutella_node_t *n, guint32 hits);
 

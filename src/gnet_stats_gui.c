@@ -43,6 +43,7 @@ gchar *msg_drop_str[MSG_DROP_REASON_COUNT] = {
     "bad size",
     "too small",
     "too large",
+	"way too large",
     "unknown message type",
     "ttl = 0",
     "ping throttle",

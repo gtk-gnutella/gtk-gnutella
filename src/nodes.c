@@ -2457,7 +2457,7 @@ static void node_parse(struct gnutella_node *node)
 	case GTA_MSG_INIT_RESPONSE:
         if (n->size != sizeof(struct gnutella_init_response)) {
 			drop = TRUE;
-            gnet_stats_count_dropped(n,MSG_DROP_BAD_SIZE);
+            gnet_stats_count_dropped(n, MSG_DROP_BAD_SIZE);
         }
 		break;
 	case GTA_MSG_BYE:
@@ -2810,11 +2810,11 @@ static gboolean node_read(struct gnutella_node *n, pmsg_t *mb)
 
 		n->have_header = TRUE;
 
-        gnet_stats_count_received(n);
+		READ_GUINT32_LE(n->header.size, n->size);
 
+        gnet_stats_count_received_header(n);
 		node_emit_node_changed(n, FALSE);
 
-		READ_GUINT32_LE(n->header.size, n->size);
 
 		/* If the message haven't got any data, we process it now */
 
@@ -2828,6 +2828,7 @@ static gboolean node_read(struct gnutella_node *n, pmsg_t *mb)
 		switch (n->header.function) {
 		case GTA_MSG_BYE:
 			if (n->size > BYE_MAX_SIZE) {
+				gnet_stats_count_dropped_nosize(n, MSG_DROP_WAY_TOO_LARGE);
 				node_remove(n, "Kicked: %s message too big (%d bytes)",
 							gmsg_name(n->header.function), n->size);
 				return FALSE;
@@ -2856,6 +2857,7 @@ static gboolean node_read(struct gnutella_node *n, pmsg_t *mb)
 			 * desynchronized: the large payload will stay unread.
 			 */
 
+			gnet_stats_count_dropped_nosize(n, MSG_DROP_WAY_TOO_LARGE);
 			node_disable_read(n);
 			node_bye(n, 400, "Too large %s message (%u bytes)",
 				gmsg_name(n->header.function), n->size);
@@ -2877,6 +2879,7 @@ static gboolean node_read(struct gnutella_node *n, pmsg_t *mb)
 			if (maxsize < n->size) {
 				g_warning("got %u byte %s message, should have kicked node\n",
 					n->size, gmsg_name(n->header.function));
+				gnet_stats_count_dropped_nosize(n, MSG_DROP_WAY_TOO_LARGE);
 				node_disable_read(n);
 				node_bye(n, 400, "Too large %s message (%d bytes)",
 					gmsg_name(n->header.function), n->size);
@@ -2905,6 +2908,7 @@ static gboolean node_read(struct gnutella_node *n, pmsg_t *mb)
 	if (n->pos < n->size)
 		return FALSE;
 
+	gnet_stats_count_received_payload(n);
 	node_parse(n);
 
 	return TRUE;		/* There may be more data */
