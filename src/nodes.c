@@ -586,7 +586,7 @@ void node_timer(time_t now)
 			 *		--RAM, 01/11/2003
 			 */
 
-			if (NODE_IS_WRITABLE(n) && now - n->last_rx > n->alive_period) {
+			if (NODE_IS_ESTABLISHED(n) && now - n->last_rx > n->alive_period) {
 				guint32 last;
 				guint32 avg;
 				guint32 period;
