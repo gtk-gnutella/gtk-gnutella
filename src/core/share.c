@@ -4,8 +4,6 @@
  * Copyright (c) 2001-2003, Raphael Manfredi
  * Copyright (c) 2000 Daniel Walker (dwalker@cats.ucsc.edu)
  *
- * Handle sharing of our own files.
- *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
  *
@@ -24,6 +22,12 @@
  *  Foundation, Inc.:
  *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *----------------------------------------------------------------------
+ */
+
+/**
+ * @file
+ *
+ * Handle sharing of our own files and answers to remote queries.
  */
 
 #include "common.h"
@@ -346,18 +350,21 @@ static gchar stmp_1[4096];
 
 static listeners_t search_request_listeners = NULL;
 
-void share_add_search_request_listener(search_request_listener_t l)
+void
+share_add_search_request_listener(search_request_listener_t l)
 {
     LISTENER_ADD(search_request, (gpointer) l);
 }
 
-void share_remove_search_request_listener(search_request_listener_t l)
+void
+share_remove_search_request_listener(search_request_listener_t l)
 {
     LISTENER_REMOVE(search_request, (gpointer) l);
 }
 
-static void share_emit_search_request(
-    query_type_t type, const gchar *query, guint32 ip, guint16 port)
+static void
+share_emit_search_request(
+	query_type_t type, const gchar *query, guint32 ip, guint16 port)
 {
     LISTENER_EMIT(search_request, type, query, ip, port);
 }
@@ -422,39 +429,36 @@ static time_t release_date;
 static GHashTable *index_of_found_files = NULL;
 static struct gnutella_node *issuing_node;
 
-/* 
- * shared_file_already_in_found_set
- * 
+/**
  * Check if a given shared_file has been added to the QueryHit.
  * Return TRUE if the shared_file is in the QueryHit already, FALSE otherwise
  */
-static gboolean shared_file_already_in_found_set(const struct shared_file *sf)
+static gboolean
+shared_file_already_in_found_set(const struct shared_file *sf)
 {
 	return NULL != g_hash_table_lookup(index_of_found_files,
 		GUINT_TO_POINTER(sf->file_index));
 }
 
-/*
- * put_shared_file_into_found_set
- * 
+/**
  * Add the shared_file to the set of files already added to the QueryHit.
  */
 
-static void put_shared_file_into_found_set(const struct shared_file *sf)
+static void
+put_shared_file_into_found_set(const struct shared_file *sf)
 {
 	g_hash_table_insert(index_of_found_files, 
 				  GUINT_TO_POINTER(sf->file_index), 
 				  GUINT_TO_POINTER(!NULL));
 }
 
-/* 
- * found_reset
- * 
+/* *
  * Reset the QueryHit, that is, the "data found" pointer is at the beginning of
  * the data found section in the query hit packet and the index_of_found_files
  * GTree is reset.
  */
-static void found_reset(struct gnutella_node *n)
+static void
+found_reset(struct gnutella_node *n)
 {
 	FOUND_RESET();
 	issuing_node = n;
@@ -487,12 +491,11 @@ static void found_reset(struct gnutella_node *n)
 static char_map_t query_map;
 static gboolean b_latin = FALSE;
 
-/*
- * setup_char_map
- *
+/**
  * Set up keymapping table for Gnutella.
  */
-static void setup_char_map(char_map_t map)
+static void
+setup_char_map(char_map_t map)
 {
 	gint c;	
 	gboolean b_ascii = FALSE;
@@ -561,13 +564,12 @@ static void setup_char_map(char_map_t map)
 	}
 }
 
-/*
- * use_map_on_query
- *
+/**
  * Apply the proper charset mapping on the query, depending on their
  * locale, so that the query has no accent.
  */
-void use_map_on_query(gchar *query, int len)
+void
+use_map_on_query(gchar *query, int len)
 {
 	query += len - 1;
 	for (/* empty */; len > 0; len--) {
@@ -578,7 +580,11 @@ void use_map_on_query(gchar *query, int len)
 
 /* ----------------------------------------- */
 
-void share_init(void)
+/**
+ * Initialization of the sharing library.
+ */
+void
+share_init(void)
 {
 	setup_char_map(query_map);
 	huge_init();
@@ -606,14 +612,13 @@ void share_init(void)
 	st_create(&search_table);
 }
 
-/*
- * shared_file
- *
+/**
  * Given a valid index, returns the `struct shared_file' entry describing
  * the shared file bearing that index if found, NULL if not found (invalid
  * index) and SHARE_REBUILDING when we're rebuilding the library.
  */
-struct shared_file *shared_file(guint idx)
+struct shared_file *
+shared_file(guint idx)
 {
 	/* Return shared file info for index `idx', or NULL if none */
 
@@ -626,15 +631,14 @@ struct shared_file *shared_file(guint idx)
 	return file_table[idx - 1];
 }
 
-/*
- * shared_file_by_name
- *
+/**
  * Given a file basename, returns the `struct shared_file' entry describing
  * the shared file bearing that basename, provided it is unique, NULL if
  * we either don't have a unique filename or SHARE_REBUILDING if the library
  * is being rebuilt.
  */
-struct shared_file *shared_file_by_name(const gchar *basename)
+struct shared_file *
+shared_file_by_name(const gchar *basename)
 {
 	guint idx;
 
@@ -655,9 +659,11 @@ struct shared_file *shared_file_by_name(const gchar *basename)
 
 /* ----------------------------------------- */
 
-/* Free existing extensions */
-
-static void free_extensions(void)
+/**
+ * Free existing extensions
+ */
+static void
+free_extensions(void)
 {
 	GSList *sl = extensions;
 
@@ -673,9 +679,11 @@ static void free_extensions(void)
 	extensions = NULL;
 }
 
-/* Get the file extensions to scan */
-
-void parse_extensions(const gchar * str)
+/**
+ * Get the file extensions to scan.
+ */
+void
+parse_extensions(const gchar * str)
 {
 	gchar **exts = g_strsplit(str, ";", 0);
 	gchar *x, *s;
@@ -709,9 +717,11 @@ void parse_extensions(const gchar * str)
 	g_strfreev(exts);
 }
 
-/* Shared dirs */
-
-static void shared_dirs_free(void)
+/**
+ * Release shared dirs.
+ */
+static void
+shared_dirs_free(void)
 {
 	GSList *sl;
 
@@ -725,7 +735,11 @@ static void shared_dirs_free(void)
 	shared_dirs = NULL;
 }
 
-void shared_dirs_update_prop(void)
+/**
+ * Update the property holding the shared directories.
+ */
+void
+shared_dirs_update_prop(void)
 {
     GSList *sl;
     GString *s;
@@ -743,14 +757,13 @@ void shared_dirs_update_prop(void)
     g_string_free(s, TRUE);
 }
 
-/*
- * shared_dirs_parse:
- *
+/**
  * Parses the given string and updated the internal list of shared dirs.
  * The given string was completely parsed, it returns TRUE, otherwise
  * it returns FALSE.
  */
-gboolean shared_dirs_parse(const gchar *str)
+gboolean
+shared_dirs_parse(const gchar *str)
 {
 	gchar **dirs = g_strsplit(str, ":", 0);
 	guint i = 0;
@@ -772,7 +785,11 @@ gboolean shared_dirs_parse(const gchar *str)
     return ret;
 }
 
-void shared_dir_add(const gchar * path)
+/**
+ * Add directory to the list of shared directories.
+ */
+void
+shared_dir_add(const gchar *path)
 {
 	if (is_directory(path))
         shared_dirs = g_slist_append(shared_dirs, atom_str_get(path));
@@ -780,7 +797,11 @@ void shared_dir_add(const gchar * path)
     shared_dirs_update_prop();
 }
 
-static inline gboolean too_big_for_gnutella(off_t size)
+/**
+ * Is file too big to be shared on Gnutella?
+ */
+static inline gboolean
+too_big_for_gnutella(off_t size)
 {
 	g_return_val_if_fail(size >= 0, TRUE);
 	if (sizeof(off_t) <= sizeof(guint32))
@@ -788,14 +809,13 @@ static inline gboolean too_big_for_gnutella(off_t size)
 	return (guint64) size > (guint64) 0xffffffffUL;
 }
 
-/*
- * recurse_scan
- *
+/**
  * The directories that are given as shared will be completly transversed
  * including all files and directories. An entry of "/" would search the
  * the whole file system.
  */
-static void recurse_scan(gchar *dir, const gchar *basedir)
+static void
+recurse_scan(gchar *dir, const gchar *basedir)
 {
 	GSList *exts = NULL;
 	DIR *directory;			/* Dir stream used by opendir, readdir etc.. */
@@ -967,12 +987,11 @@ static void recurse_scan(gchar *dir, const gchar *basedir)
 	gcu_gtk_main_flush();
 }
 
-/*
- * shared_file_free
- *
+/**
  * Dispose of a shared_file_t structure.
  */
-void shared_file_free(shared_file_t *sf)
+void
+shared_file_free(shared_file_t *sf)
 {
 	g_assert(sf != NULL);
 
@@ -980,7 +999,11 @@ void shared_file_free(shared_file_t *sf)
 	wfree(sf, sizeof(*sf));
 }
 
-static void share_free(void)
+/**
+ * Free up memory used by the shared library.
+ */
+static void
+share_free(void)
 {
 	GSList *sl;
 
@@ -1005,7 +1028,12 @@ static void share_free(void)
 
 static void reinit_sha1_table(void);
 
-void share_scan(void)
+/**
+ * Perform scanning of the shared directories to build up the list of
+ * shared files.
+ */
+void
+share_scan(void)
 {
 	GSList *dirs;
 	GSList *sl;
@@ -1151,7 +1179,11 @@ void share_scan(void)
 	gnet_prop_set_boolean_val(PROP_LIBRARY_REBUILDING, FALSE);
 }
 
-void share_close(void)
+/**
+ * Shutdown cleanup.
+ */
+void
+share_close(void)
 {
 	G_FREE_NULL(found_data.d);
 	free_extensions();
@@ -1161,12 +1193,11 @@ void share_close(void)
 	qrp_close();
 }
 
-/*
- * flush_match
- *
+/**
  * Flush pending search request to the network.
  */
-static void flush_match(void)
+static void
+flush_match(void)
 {
 	struct gnutella_node *n = issuing_node;		/* XXX -- global! */
 	gchar trailer[10];
@@ -1413,13 +1444,14 @@ static void flush_match(void)
 	gmsg_sendto_one(n, (gchar *) FOUND_BUF, FOUND_SIZE);
 }
 
-/*
+/**
  * Callback from st_search(), for each matching file.	--RAM, 06/10/2001
  *
  * Returns TRUE if we inserted the record, FALSE if we refused it due to
  * lack of space.
  */
-static gboolean got_match(struct shared_file *sf)
+static gboolean
+got_match(struct shared_file *sf)
 {
 	guint32 pos = FOUND_SIZE;
 	guint32 needed = 8 + 2 + sf->file_name_len;		/* size of hit entry */
@@ -1593,16 +1625,15 @@ static gboolean got_match(struct shared_file *sf)
 
 #define MIN_WORD_LENGTH 1		/* For compaction */
 
-/*
- * compact_query:
- *
+/**
  * Remove unnecessary ballast from a query before processing it. Works in
  * place on the given string. Removed are all consecutive blocks of
  * whitespace and all word shorter then MIN_WORD_LENGTH.
  *
  * If `utf8_len' is non-zero, then we're facing an UTF-8 string.
  */
-guint compact_query(gchar *search, gint utf8_len)
+static guint
+compact_query_utf8(gchar *search, gint utf8_len)
 {
 	gchar *s;
 	gchar *w;
@@ -1691,9 +1722,7 @@ guint compact_query(gchar *search, gint utf8_len)
 	return w - search;
 }
 
-/*
- * query_utf8_decode
- *
+/**
  * Given a query `text' of `len' bytes:
  *
  * If query is UTF8, compute its length and store it in `retlen'.
@@ -1701,8 +1730,8 @@ guint compact_query(gchar *search, gint utf8_len)
  *
  * Returns FALSE on bad UTF-8, TRUE otherwise.
  */
-static gboolean query_utf8_decode(
-	const gchar *text, gint len, gint *retlen, gint *retoff)
+static gboolean
+query_utf8_decode(const gchar *text, gint len, gint *retlen, gint *retoff)
 {
 	gint offset = 0;
 	gint utf8_len = -1;
@@ -1738,7 +1767,47 @@ static gboolean query_utf8_decode(
 	return TRUE;
 }
 
-/*
+/**
+ * Remove unnecessary ballast from a query string, in-place.
+ * Returns new query string length.
+ */
+guint
+compact_query(gchar *search)
+{
+	gint utf8_len = -1;
+	gint offset = 0;			/* Query string start offset */
+	guint32 mangled_search_len;
+	gint search_len = strlen(search);
+
+	/*
+	 * Look whether we're facing an UTF-8 query.
+	 */
+
+	if (!query_utf8_decode(search, search_len, &utf8_len, &offset))
+		g_error("found invalid UTF-8 after a leading BOM");
+
+	/*
+	 * Compact the query, offsetting from the start as needed in case
+	 * there is a leading BOM (our UTF-8 decoder does not allow BOM
+	 * within the UTF-8 string, and rightly I think: that would be pure
+	 * gratuitous bloat).
+	 */
+
+	mangled_search_len = compact_query_utf8(search + offset, utf8_len);
+
+	g_assert(mangled_search_len <= search_len - offset);
+
+	/*
+	 * Get rid of BOM, if any.
+	 */
+
+	if (offset > 0)
+		memmove(search, search + offset, mangled_search_len);
+
+	return mangled_search_len;
+}
+
+/**
  * Searches requests (from others nodes) 
  * Basic matching. The search request is made lowercase and
  * is matched to the filenames in the LL.
@@ -1748,7 +1817,8 @@ static gboolean query_utf8_decode(
  *
  * Returns TRUE if the message should be dropped and not propagated further.
  */
-gboolean search_request(struct gnutella_node *n, query_hashvec_t *qhv)
+gboolean
+search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 {
 	guchar found_files = 0;
 	guint16 req_speed;
@@ -1852,7 +1922,7 @@ gboolean search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 		 * gratuitous bloat).
 		 */
 
-		mangled_search_len = compact_query(search + offset, utf8_len);
+		mangled_search_len = compact_query_utf8(search + offset, utf8_len);
 
 		g_assert(mangled_search_len <= search_len - offset);
 	
@@ -2361,27 +2431,23 @@ finish:
 
 static GTree *sha1_to_share = NULL;
 
-/* 
- * compare_share_sha1
- * 
+/**
  * Compare binary SHA1 hashes.
  * Return 0 if they're the same, a negative or positive number if s1 if greater
  * than s2 or s1 greater than s2, respectively.
  * Used to search the sha1_to_share tree.
  */
-
-static int compare_share_sha1(const gchar *s1, const gchar *s2)
+static gint
+compare_share_sha1(const gchar *s1, const gchar *s2)
 {
 	return memcmp(s1, s2, SHA1_RAW_SIZE);
 }
 
-/* 
- * reinit_sha1_table
- * 
+/**
  * Reset sha1_to_share
  */
-
-static void reinit_sha1_table(void)
+static void
+reinit_sha1_table(void)
 {
 	if (sha1_to_share)
 		g_tree_destroy(sha1_to_share);
@@ -2389,17 +2455,13 @@ static void reinit_sha1_table(void)
 	sha1_to_share = g_tree_new((GCompareFunc) compare_share_sha1);
 }
 
-/* 
- * set_sha1
- * 
+/**
  * Set the SHA1 hash of a given shared_file. Take care of updating the
  * sha1_to_share structure. This function is called from inside the bowels of
- * sha1_server.c when it knows what the hash associated to a file is.
- *
- * FIXME: sha1_server.c?? There's no such file. Maybe it's about huge.c?
+ * huge.c when it knows what the hash associated to a file is.
  */
-
-void set_sha1(struct shared_file *f, const char *sha1)
+void
+set_sha1(struct shared_file *f, const char *sha1)
 {
 	g_assert(f->fi == NULL);		/* Cannot be a partial file */
 
@@ -2417,31 +2479,28 @@ void set_sha1(struct shared_file *f, const char *sha1)
 	g_tree_insert(sha1_to_share, f->sha1_digest, f);
 }
 
-/*
- * sha1_hash_available
- * 
+/**
  * Predicate returning TRUE if the SHA1 hash is available for a given
  * shared_file, FALSE otherwise.
  *
  * Use sha1_hash_is_uptodate() to check for availability and accurateness.
  */
-
-gboolean sha1_hash_available(const struct shared_file *sf)
+gboolean
+sha1_hash_available(const struct shared_file *sf)
 {
 	return SHARE_F_HAS_DIGEST ==
 		(sf->flags & (SHARE_F_HAS_DIGEST | SHARE_F_RECOMPUTING));
 }
 
-/*
- * sha1_hash_is_uptodate
- *
+/**
  * Predicate returning TRUE if the SHA1 hash is available AND is up to date
  * for the shared file.
  *
  * NB: if the file is found to have changed, the background computation of
  * the SHA1 is requested.
  */
-gboolean sha1_hash_is_uptodate(struct shared_file *sf)
+gboolean
+sha1_hash_is_uptodate(struct shared_file *sf)
 {
 	struct stat buf;
 
@@ -2492,14 +2551,13 @@ gboolean sha1_hash_is_uptodate(struct shared_file *sf)
 	return TRUE;
 }
 
-/* 
- * shared_file_complete_by_sha1
- * 
+/**
  * Returns the shared_file if we share a complete file bearing the given SHA1.
  * Returns NULL if we don't share a complete file, or SHARE_REBUILDING if the
  * set of shared file is being rebuilt.
  */
-static struct shared_file *shared_file_complete_by_sha1(gchar *sha1_digest)
+static struct shared_file *
+shared_file_complete_by_sha1(gchar *sha1_digest)
 {
 	struct shared_file *f;
 
@@ -2524,16 +2582,15 @@ static struct shared_file *shared_file_complete_by_sha1(gchar *sha1_digest)
 	return f;
 }
 
-/* 
- * shared_file_by_sha1
- * 
+/**
  * Take a given binary SHA1 digest, and return the corresponding
  * shared_file if we have it.
  *
  * NOTA BENE: if the returned "shared_file" structure holds a non-NULL `fi',
  * then it means it is a partially shared file.
  */
-struct shared_file *shared_file_by_sha1(gchar *sha1_digest)
+struct shared_file *
+shared_file_by_sha1(gchar *sha1_digest)
 {
 	struct shared_file *f;
 
@@ -2555,31 +2612,28 @@ struct shared_file *shared_file_by_sha1(gchar *sha1_digest)
 }
 
 /*
- * is_latin_locale
- *
  * Is the locale using the latin alphabet?
  */
-gboolean is_latin_locale(void)
+gboolean
+is_latin_locale(void)
 {
 	return b_latin;
 }
 
-/*
- * shared_kbytes_scanned
- *
+/**
  * Get accessor for ``kbytes_scanned''
  */
-guint64 shared_kbytes_scanned(void)
+guint64
+shared_kbytes_scanned(void)
 {
 	return kbytes_scanned;
 }
 
-/*
- * shared_files_scanned
- *
+/**
  * Get accessor for ``files_scanned''
  */
-guint64 shared_files_scanned(void)
+guint64
+shared_files_scanned(void)
 {
 	return files_scanned;
 }
