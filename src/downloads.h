@@ -69,7 +69,9 @@ struct dl_server {
 	GList *list[DL_LIST_SZ];	/* Download lists */
 	gint count[DL_LIST_SZ];		/* Amount of downloads in list */
 	const gchar *vendor;		/* Remote server vendor string (atom) */
+	const gchar *hostname;		/* Remote hostname, if known (atom) */
 	time_t retry_after;			/* Time at which we may retry from this host */
+	time_t dns_lookup;			/* Last DNS lookup for hostname */
 	struct vernum parq_version;	/* Supported queueing version */
 	guint32 attrs;
 	GSList *proxies;			/* Known push proxies (struct gnutella_host) */
@@ -179,6 +181,7 @@ struct download {
 #define DL_F_SUNK_DATA		0x00000040	/* Whether we previously sunk data */
 #define DL_F_ACTIVE_QUEUED	0x00000080	/* Download is actively queued */
 #define DL_F_PASSIVE_QUEUED	0x00000100	/* Download is passively queued */
+#define DL_F_DNS_LOOKUP		0x00000200	/* Attempted DNS lookup */
 #define DL_F_SUSPENDED		0x40000000	/* Suspended, do not schedule */
 #define DL_F_MARK			0x80000000	/* Marked in traversal */
 
@@ -193,6 +196,7 @@ struct download {
 #define DLS_A_MINIMAL_HTTP	0x00000010	/* Use minimalist HTTP with server */
 #define DLS_A_BANNING		0x00000020	/* Server might be banning us */
 #define DLS_A_FAKE_G2		0x00000040	/* Fake a G2 server */
+#define DLS_A_DNS_LOOKUP	0x00000080	/* Perform DNS lookup if possible */
 #define DLS_A_REMOVED		0x80000000	/* Server marked for removal */
 
 /*
