@@ -119,6 +119,63 @@ static void io_free(gpointer opaque)
 }
 
 /*
+ * extract_http_version
+ *
+ * Extract HTTP version major/minor out of the given request, whose string
+ * length is `len' bytes.
+ *
+ * Returns TRUE when we identified the "HTTP/x.x" trailing string, filling
+ * major and minor accordingly.
+ */
+static gboolean extract_http_version(
+	gchar *request, gint len, gint *major, gint *minor)
+{
+	gint limit;
+	gchar *p;
+	gint i;
+
+	/*
+	 * The smallest request would be "GET / HTTP/1.0".
+	 */
+
+	limit = sizeof("GET / HTTP/1.0") - 1;
+
+	if (len < limit)
+		return FALSE;
+
+	/*
+	 * Scan backwards, until we find the first space with the last trailing
+	 * chars.  If we don't, it can't be an HTTP request.
+	 */
+
+	for (p = request + len - 1, i = 0; i < limit; p--, i++) {
+		gint c = *p;
+
+		if (c == ' ')		/* Not isspace(), looking for space only */
+			break;
+	}
+
+	if (i == limit)
+		return FALSE;		/* Reached our limit without finding a space */
+
+	/*
+	 * Here, `p' point to the space character.
+	 */
+
+	g_assert(*p == ' ');
+
+	if (2 != sscanf(p+1, "HTTP/%d.%d", major, minor))
+		return FALSE;
+
+	/*
+	 * We don't check trailing chars after the HTTP/x.x indication.
+	 * There should not be any, but even if there are, we'll just ignore them.
+	 */
+
+	return TRUE;			/* Parsed HTTP/x.x OK */
+}
+
+/*
  * upload_create
  *
  * Create a new upload structure, linked to a socket.
@@ -814,13 +871,52 @@ static void upload_request(struct upload *u, header_t *header)
 		time_t now;
 		time_t mtime;
 		struct stat statbuf;
+		gint http_major, http_minor;
+
+		/*
+		 * Check HTTP protocol version. --RAM, 11/04/2002
+		 */
+
+		if (
+			!extract_http_version(request, getline_length(s->getline),
+				&http_major, &http_minor)
+		) {
+			upload_error_remove(u, 500, "Unknown/Missing Protocol Tag");
+			return;
+		}
+
+		if (http_major != 1) {
+			upload_error_remove(u, 505,
+				"HTTP Version %d Not Supported", http_major);
+			return;
+		}
+
+		/*
+		 * If HTTP/1.1 or above, check the Host header.
+		 *
+		 * We require it because HTTP does, but we don't really care for
+		 * now.  Moreover, we might not know our external IP correctly,
+		 * so we have little ways to check that the Host refers to us.
+		 *
+		 *		--RAM, 11/04/2002
+		 */
+
+		if (http_minor >= 1) {
+			gchar *host = header_get(header, "Host");
+
+			if (host == NULL) {
+				upload_error_remove(u, 400, "Missing Host Header");
+				return;
+			}
+		}
 
 		/*
 		 * If we don't share, abort immediately. --RAM, 11/01/2002
+		 * Use 5xx error code, it's a server-side problem --RAM, 11/04/2002
 		 */
 
 		if (max_uploads == 0) {
-			upload_error_remove(u, 410, "Sharing currently disabled");
+			upload_error_remove(u, 500, "Sharing currently disabled");
 			return;
 		}
 
