@@ -1,5 +1,12 @@
 # Since last version
 
+- Was mistakenly using signed integer in GET requests for file indices
+- Double check requested file names with those in our library for extra safety
+- When download completes, remove all queued entries for same filename
+- Results differing only by connection speed are now considered identical
+- The payload size of query hits was written in native format, instead of LE!
+- Optimized query hit packet construction, reducing mem fragmentation
+- Now shows itself as "Gtk-Gnut" instead of "Gtk-Gnutella"
 - Fixed important sharing bug where extensions were not matched for correctly
 - Can now configure a max size for the host cache (defaults to 20480)
 - Kicking policies for dup messages and high TTL now configurable
