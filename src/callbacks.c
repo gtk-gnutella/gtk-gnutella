@@ -2002,7 +2002,7 @@ BIND_CHECKBUTTON(
 BIND_CHECKBUTTON(
     checkbutton_config_bw_ul_usage_enabled,
     bw_ul_usage_enabled,
-    NO_FUNC
+    gui_update_bw_ul_usage_enabled();
 )
 
 void on_entry_config_netmask_activate(GtkEditable * editable,
