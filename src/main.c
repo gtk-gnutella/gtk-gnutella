@@ -197,6 +197,7 @@ static gboolean main_timer(gpointer p)
 		gui_statusbar_clear_timeouts(now);
 		gui_update_global();
         gui_update_traffic_stats();
+        filter_timer(); /* Update the filter stats */
 
 		/* Update for things that change slowly */
 		if (main_slow_update++ > SLOW_UPDATE_PERIOD) {
@@ -293,6 +294,7 @@ gint main(gint argc, gchar ** argv)
 	routing_init();
 	filter_init();	/* Must come before search_init() for retrieval */
 	search_init();
+    filter_update_targets(); /* Make sure the default filters are ok */
 	share_init();
 	download_init();
 	autodownload_init();
