@@ -1330,8 +1330,9 @@ strcasestr(const gchar *haystack, const gchar *needle)
 /**
  * Compare two strings up to the specified delimiters.
  */
-gint
-strcmp_delimit(const gchar *a, const gchar *b, const gchar *delimit)
+static gint
+strcmp_delimit_full(const gchar *a, const gchar *b,
+	const gchar *delimit, gboolean case_sensitive)
 {
 	gboolean is_delimit[256];
 	gint i;
@@ -1350,7 +1351,7 @@ strcmp_delimit(const gchar *a, const gchar *b, const gchar *delimit)
 
 	p = (guchar *) delimit;
 	while ((c = *p++))
-		is_delimit[c] = TRUE;
+		is_delimit[case_sensitive ? c : tolower(c)] = TRUE;
 
 	/*
 	 * Compare strings up to the specified delimitors.
@@ -1362,6 +1363,10 @@ strcmp_delimit(const gchar *a, const gchar *b, const gchar *delimit)
 	for (;;) {
 		c = *p++;
 		d = *q++;
+		if (case_sensitive) {
+			c = tolower(c);
+			d = tolower(d);
+		}
 		if (is_delimit[c])
 			return is_delimit[d] ? 0 : -1;
 		if (is_delimit[d])
@@ -1369,6 +1374,24 @@ strcmp_delimit(const gchar *a, const gchar *b, const gchar *delimit)
 		if (c != d)
 			return c < d ? -1 : +1;
 	}
+}
+
+/**
+ * Compare two strings case-senstive up to the specified delimiters.
+ */
+gint
+strcmp_delimit(const gchar *a, const gchar *b, const gchar *delimit)
+{
+	return strcmp_delimit_full(a, b, delimit, TRUE);
+}
+
+/**
+ * Compare two strings case-insensitive up to the specified delimiters.
+ */
+gint
+strcasecmp_delimit(const gchar *a, const gchar *b, const gchar *delimit)
+{
+	return strcmp_delimit_full(a, b, delimit, FALSE);
 }
 
 /**
