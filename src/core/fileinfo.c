@@ -313,6 +313,7 @@ static struct dl_file_info *file_info_retrieve_binary(
 static void fi_free(struct dl_file_info *fi);
 static void file_info_hash_remove(struct dl_file_info *fi);
 static void fi_update_seenonnetwork(gnet_src_t srcid);
+static gchar *file_info_new_outname(const gchar *name, const gchar *dir);
 
 static idtable_t *fi_handle_map = NULL;
 
@@ -2058,6 +2059,7 @@ file_info_retrieve(void)
 	GSList *aliases = NULL;
 	gboolean last_was_truncated = FALSE;
 	file_path_t fp;
+	gchar *old_filename = NULL;		/* In case we must rename the file */
 
 	/*
 	 * We have a complex interaction here: each time a new entry within the
@@ -2177,6 +2179,48 @@ file_info_retrieve(void)
 				}
 			}
 
+			/*
+			 * If `old_filename' is not NULL, then we need to rename
+			 * the file bearing that name into the new (sanitized)
+			 * name, making sure there is no filename conflict.
+			 */
+
+			if (old_filename != NULL) {
+				gchar *new_filename;
+				gchar *old_pathname;
+				gchar *new_pathname;
+				gboolean renamed = TRUE;
+
+				new_filename = file_info_new_outname(fi->file_name, fi->path);
+				atom_str_free(fi->file_name);
+
+				old_pathname = make_pathname(fi->path, old_filename);
+				new_pathname = make_pathname(fi->path, new_filename);
+
+				/*
+				 * If fi->done == 0, the file might not exist on disk.
+				 */
+
+				if (-1 == rename(old_pathname, new_pathname) && fi->done != 0)
+					renamed = FALSE;
+
+				if (renamed) {
+					g_warning("renamed \"%s\" into sanitized \"%s\" in \"%s\"",
+						old_filename, new_filename, fi->path);
+					fi->file_name = new_filename;	/* Already an atom */
+					atom_str_free(old_filename);
+				} else {
+					g_warning("cannot rename \"%s\" into \"%s\" in \"%s\": %s",
+						old_filename, new_filename, fi->path,
+						g_strerror(errno));
+					fi->file_name = old_filename;	/* Already an atom */
+					atom_str_free(new_filename);
+				}
+
+				G_FREE_NULL(old_pathname);
+				G_FREE_NULL(new_pathname);
+			}
+
 			/* 
 			 * Check file trailer information.	The main file is only written
 			 * infrequently and the file's trailer can have more up-to-date
@@ -2274,6 +2318,7 @@ file_info_retrieve(void)
 			fi->seenonnetwork = NULL;
 			fi->file_size_known = TRUE;		/* Unless stated otherwise below */
 			aliases = NULL;
+			old_filename = NULL;
 		}
 
 		value = strchr(line, ' ');
@@ -2300,6 +2345,14 @@ file_info_retrieve(void)
 					g_warning("fileinfo database contained an "
 						"unsanitized filename: \"%s\" -> \"%s\"", value, s);
 					G_FREE_NULL(s);
+
+					/*
+					 * Record old filename, before sanitization.
+					 * We'll have to rename that file later, when we
+					 * have parsed the whole fileinfo.
+					 */
+
+					old_filename = atom_str_get(value);
 				}
 			}
 			break;
@@ -2427,11 +2480,11 @@ file_info_retrieve(void)
 }
 
 /**
- * Allocate unique output name for file `name'.
+ * Allocate unique output name for file `name', stored in `dir'.
  * Returns filename atom.
  */
 static gchar *
-file_info_new_outname(const gchar *name)
+file_info_new_outname(const gchar *name, const gchar *dir)
 {
 	gint i;
 	gchar xuid[16];
@@ -2450,7 +2503,10 @@ file_info_new_outname(const gchar *name)
 	 * If `name' (escaped form) is not taken yet, it will do.
 	 */
 
-	if (NULL == g_hash_table_lookup(fi_by_outname, escaped)) {
+	if (
+		NULL == g_hash_table_lookup(fi_by_outname, escaped) &&
+		!filepath_exists(dir, escaped)
+	) {
 		result = atom_str_get(escaped);
 		goto ok;
 	}
@@ -2461,7 +2517,7 @@ file_info_new_outname(const gchar *name)
 
 	flen = g_strlcpy(fi_tmp, escaped, sizeof fi_tmp);
 	if ((size_t) flen >= sizeof fi_tmp) {
-		g_warning("file_info_new_outname: Filename was truncated: \"%s\"",
+		g_warning("file_info_new_outname: filename was truncated: \"%s\"",
 			fi_tmp);
 	}
 
@@ -2480,7 +2536,10 @@ file_info_new_outname(const gchar *name)
 
 	for (i = 1; i < 100; i++) {
 		gm_snprintf(&fi_tmp[flen], sizeof(fi_tmp) - flen, ".%02d%s", i, ext);
-		if (NULL == g_hash_table_lookup(fi_by_outname, fi_tmp)) {
+		if (
+			NULL == g_hash_table_lookup(fi_by_outname, fi_tmp) &&
+			!filepath_exists(dir, fi_tmp)
+		) {
 			result = atom_str_get(fi_tmp);
 			goto ok;
 		}
@@ -2494,7 +2553,10 @@ file_info_new_outname(const gchar *name)
 
 	gm_snprintf(&fi_tmp[flen], sizeof(fi_tmp) - flen, "-%s%s",
 		guid_hex_str(xuid), ext);
-	if (NULL == g_hash_table_lookup(fi_by_outname, fi_tmp)) {
+	if (
+		NULL == g_hash_table_lookup(fi_by_outname, fi_tmp) &&
+		!filepath_exists(dir, fi_tmp)
+	) {
 		result = atom_str_get(fi_tmp);
 		goto ok;
 	}
@@ -2526,8 +2588,11 @@ file_info_create(
 	char *pathname;
 
 	fi = walloc0(sizeof(struct dl_file_info));
-	fi->file_name = file_info_new_outname(file);	/* Get unique file name */
+
+	/* Get unique file name */
+	fi->file_name = file_info_new_outname(file, path);
 	fi->path = atom_str_get(path);
+
 	if (sha1)
 		fi->sha1 = atom_sha1_get(sha1);
 	fi->size = 0;							/* Will be updated below */
@@ -2616,7 +2681,7 @@ file_info_get(
 	 * will be exactly `file'.  Otherwise, it will be a variant.
 	 */
 
-	outname = file_info_new_outname(file);
+	outname = file_info_new_outname(file, path);
 
 	/*
 	 * Check whether the file exists and has embedded meta info.
