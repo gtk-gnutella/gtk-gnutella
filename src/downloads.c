@@ -162,32 +162,30 @@ static gboolean has_same_active_download(gchar *file, gchar *guid)
 	return FALSE;
 }
 
+/*
+ * queue_remove_all_named
+ *
+ * Remove all queued downloads bearing given name. --RAM, 26/09/2001
+ * Rewritten to also handle timeout-waiting entries. --RAM, 20/01/2002
+ */
 static void queue_remove_all_named(const gchar *name)
 {
-	/*
-	 * Remove downloads from the queue bearing given name
-	 *		--RAM, 26/09/2001
-	 */
-
-	guint row;
 	GSList *to_remove = NULL;
 	GSList *l;
-	guint row_count = GTK_CLIST(clist_download_queue)->rows;
 
-	gtk_clist_freeze(GTK_CLIST(clist_download_queue));
-	for (row = 0; row < row_count; row++) {
-		struct download *d = (struct download *)
-			gtk_clist_get_row_data(GTK_CLIST(clist_download_queue), row);
+	for (l = sl_downloads; l; l = l->next) {
+		struct download *d = (struct download *) l->data;
 
-		if (!DOWNLOAD_IS_QUEUED(d))
-			g_warning("queue_remove_all_named(): "
-				"Download '%s' is not in queued state ! (state = %d)",
-				 d->file_name, d->status);
-
-		if (0 == strcmp(name, d->file_name))
-			to_remove = g_slist_prepend(to_remove, d);
+		switch (d->status) {
+		case GTA_DL_QUEUED:
+		case GTA_DL_TIMEOUT_WAIT:
+			if (0 == strcmp(name, d->file_name))
+				to_remove = g_slist_prepend(to_remove, d);
+			break;
+		default:
+			break;
+		}
 	}
-	gtk_clist_thaw(GTK_CLIST(clist_download_queue));
 
 	for (l = to_remove; l; l = l->next)
 		download_free((struct download *) l->data);
@@ -1962,7 +1960,7 @@ gboolean download_send_request(struct download *d)
 	if (d->skip)
 		rw = g_snprintf(dl_tmp, sizeof(dl_tmp),
 			"GET /get/%u/%s HTTP/1.0\r\n"
-			"Connection: Keep-Alive\r\n"
+			"Connection: close\r\n"
 			"Range: bytes=%u-\r\n"
 			"User-Agent: %s\r\n\r\n",
 			d->record_index, d->file_name, d->skip - d->overlap_size,
@@ -1970,7 +1968,7 @@ gboolean download_send_request(struct download *d)
 	else
 		rw = g_snprintf(dl_tmp, sizeof(dl_tmp),
 			"GET /get/%u/%s HTTP/1.0\r\n"
-			"Connection: Keep-Alive\r\n"
+			"Connection: close\r\n"
 			"User-Agent: %s\r\n\r\n",
 			d->record_index, d->file_name,
 			version_string);
