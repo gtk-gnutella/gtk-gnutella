@@ -458,7 +458,7 @@ prop = {
     desc = "Display incoming gNet leaf traffic bandwidth usage";
     type = boolean;
     data = {
-        default = TRUE;
+        default = FALSE;
     };
 };
 
@@ -467,7 +467,7 @@ prop = {
     desc = "Display outgoing gNet leaf traffic bandwidth usage";
     type = boolean;
     data = {
-        default = TRUE;
+        default = FALSE;
     };
 };
 
