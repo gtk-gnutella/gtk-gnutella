@@ -87,7 +87,7 @@ gpointer walloc(int size)
 
 	idx = rounded >> ZALLOC_ALIGNBITS;
 
-	g_assert(WALLOC_MAX >> ZALLOC_ALIGNBITS == WZONE_SIZE);
+	STATIC_ASSERT(WALLOC_MAX >> ZALLOC_ALIGNBITS == WZONE_SIZE);
 	g_assert(idx >= 0 && idx < WZONE_SIZE);
 
 	if (!(zone = wzone[idx])) {
