@@ -31,7 +31,8 @@
 
 #include "if/ui/gtk/bitzi.h"
 
-gchar *bitzi_fjtostring(bitzi_fj_t fj);
+const gchar *bitzi_fjtostring(bitzi_fj_t fj);
+gchar *bitzi_gui_get_metadata(const bitzi_data_t *bitzi_data);
 
 #endif /* _gtk_bitzi_h_ */
 
