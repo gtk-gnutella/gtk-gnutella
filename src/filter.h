@@ -95,6 +95,48 @@ typedef struct filter {
 
 
 
+/*
+ * MAX_FILTER_PROP is used to know how many FILTER_PROPS there are.
+ */
+typedef enum filter_prop {
+    FILTER_PROP_DISPLAY = 0,
+    FILTER_PROP_DOWNLOAD,
+    MAX_FILTER_PROP
+} filter_prop_t;
+
+/*
+ * The states a filter_property. I chose 0 for UNKNOWN because that
+ * makes it easy to initialize the property array with g_new0 and
+ * it's easy to check if the state is still unset by !.
+ */
+typedef enum filter_prop_state {
+    FILTER_PROP_STATE_UNKNOWN = 0,
+    FILTER_PROP_STATE_DO,
+    FILTER_PROP_STATE_DONT,
+} filter_prop_state_t;
+
+/*
+ * The following struct is used to hold the state information of filter
+ * properties. A rule can set one or more of those properties to define
+ * how the record should be processed (displayed, downloaded, etc).
+ */
+typedef struct filter_property {
+    filter_prop_state_t state;
+    gpointer user_data;
+} filter_property_t;
+
+/*
+ * This is used to hold the result of a filter. The props_set attribute
+ * holds the number of properties which have a state != UNKNOWN and the
+ * prop array holds the actual property informations.
+ */
+typedef struct filter_result {
+    gint props_set;
+    filter_property_t props[MAX_FILTER_PROP];
+} filter_result_t;
+
+
+
 /* 
  * Definition of a filter rule
  */
@@ -147,10 +189,9 @@ extern filter_t *work_filter;
 /*
  * Public interface.
  */
-
 filter_t *filter_new(gchar *);
-gboolean filter_record(struct search *, struct record *);
-gchar *filter_rule_condition_to_gchar(rule_t *r);
+filter_result_t *filter_record(struct search *, struct record *);
+gchar *filter_rule_condition_to_gchar(const rule_t *r);
 gchar *filter_rule_to_gchar(rule_t *f);
 inline gboolean filter_is_builtin(filter_t *f);
 inline gboolean filter_is_global(filter_t *f);
@@ -165,8 +206,8 @@ rule_t *filter_new_flag_rule
     (enum rule_flag_action stable, enum rule_flag_action busy, 
     enum rule_flag_action push, filter_t *target, guint16 flags);
 void filter_adapt_order(void);
-void filter_append_rule(filter_t *f, rule_t *r);
-void filter_append_rule_to_session(filter_t *, rule_t *);
+void filter_append_rule(filter_t *f, rule_t * const r);
+void filter_append_rule_to_session(filter_t * f, rule_t * const r);
 void filter_cancel_changes();
 void filter_close_dialog(gboolean);
 void filter_close_search(struct search *);
@@ -176,14 +217,18 @@ void filter_remove_from_session(filter_t *f);
 void filter_init(void);
 void filter_new_for_search(struct search *s);
 void filter_open_dialog();
-void filter_remove_rule_from_session(filter_t *, rule_t *);
-void filter_replace_rule_in_session(filter_t *, rule_t *, rule_t *);
+void filter_remove_rule_from_session(filter_t *, rule_t * const);
+void filter_replace_rule_in_session(filter_t *, rule_t * const, rule_t * const);
 void filter_set(filter_t *);
 void filter_set_enabled(filter_t *filter, gboolean active);
 void filter_shutdown(void);
 void filter_timer(void);
 void filter_update_targets(void);
+void filter_free_result(filter_result_t *);
 inline filter_t *filter_get_drop_target(void);
 inline filter_t *filter_get_show_target(void);
+inline filter_t *filter_get_download_target(void);
+inline filter_t *filter_get_nodownload_target(void);
 inline filter_t *filter_get_global_pre(void);
+inline filter_t *filter_get_global_post(void);
 #endif /* __filter_h__ */

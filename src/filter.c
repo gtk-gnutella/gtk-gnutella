@@ -61,7 +61,7 @@ static gint shadow_filter_eq(const shadow_t *a, const filter_t *b);
 static shadow_t *shadow_new(filter_t *s);
 static shadow_t *shadow_find(filter_t *s);
 static void rule_free(rule_t *f);
-static int filter_apply(filter_t *, struct record *rec);
+static int filter_apply(filter_t *, record_t *, filter_result_t *);
 static void filter_free(filter_t *f);
 static void filter_remove_rule(filter_t *f, rule_t *r);
 
@@ -82,11 +82,17 @@ static GList *filters_current = NULL;
 static GList *filters_added = NULL;
 static GList *filters_removed = NULL;
 
+/* built-in targets */
+static filter_t *filter_drop = NULL;
+static filter_t *filter_show = NULL;
+static filter_t *filter_download = NULL;
+static filter_t *filter_nodownload = NULL;
+
+/* global filters */
+static filter_t *filter_global_pre = NULL;
+static filter_t *filter_global_post = NULL;
+
 /* not static because needed in search_xml. */
-filter_t *filter_drop = NULL;
-filter_t *filter_show = NULL;
-filter_t *filter_global_pre = NULL;
-filter_t *filter_global_post = NULL;
 GList *filters = NULL;
 
 
@@ -399,6 +405,8 @@ void filter_close_dialog(gboolean commit)
     } else
         filter_cancel_changes();
 
+    filter_update_targets();
+
     if (filter_dialog != NULL) {
         gdk_window_get_root_origin
             (filter_dialog->window, &flt_dlg_x, &flt_dlg_y);
@@ -645,7 +653,7 @@ void filter_set(filter_t *f)
      * don't want the work_filter to be selectable as a target
      * so we changed it... we have to rebuild.
      */
-    filter_gui_rebuild_target_combos(filters);
+    filter_update_targets();
 }
 
 
@@ -785,7 +793,7 @@ void filter_cancel_changes()
  *
  * Convert a rule condition to a human readable string.
  */
-gchar *filter_rule_condition_to_gchar(rule_t *r)
+gchar *filter_rule_condition_to_gchar(const rule_t *r)
 {
     static gchar tmp[256];
 
@@ -1243,7 +1251,7 @@ static void rule_free(rule_t *r)
  * The addition of the rule can not be cancelled by canceling the
  * shadow. If no shadow for the filters exists, none is created.
  */
-void filter_append_rule(filter_t *f, rule_t *r)
+void filter_append_rule(filter_t *f, rule_t * const r)
 {
     shadow_t *shadow;
     shadow_t *target_shadow;
@@ -1298,7 +1306,7 @@ void filter_append_rule(filter_t *f, rule_t *r)
  * with an assertion error if the rule is already existing in
  * the shadow.
  */
-void filter_append_rule_to_session(filter_t *f, rule_t *r)
+void filter_append_rule_to_session(filter_t *f, rule_t * const r)
 {
     shadow_t *shadow = NULL;
     shadow_t *target_shadow = NULL;
@@ -1501,7 +1509,7 @@ void filter_remove_rule(filter_t *f, rule_t *r)
  * removed from the shadow or if it never was in the shadow.
  * The memory associated with the rule will be freed.
  */
-void filter_remove_rule_from_session(filter_t *f, rule_t *r)
+void filter_remove_rule_from_session(filter_t *f, rule_t * const r)
 {
     shadow_t *shadow;
     shadow_t *target_shadow;
@@ -1583,7 +1591,7 @@ void filter_remove_rule_from_session(filter_t *f, rule_t *r)
  * The memory for A is freed in the process.
  */
 void filter_replace_rule_in_session(filter_t *f, 
-    rule_t *old_rule, rule_t *new_rule)
+    rule_t * const old_rule, rule_t * const new_rule)
 {
     GList *filter;
     GList *added;
@@ -1733,27 +1741,38 @@ void filter_adapt_order(void)
 }
 
 
+#define MATCH_RULE(filter, r, res)                                \
+    (res)->props_set ++;                                          \
+    (r)->match_count ++;                                          \
+    (prop_count) ++;                                              \
+                                                                  \
+    if(dbg >= 6)                                                  \
+        printf("matched rule: %s\n", filter_rule_to_gchar((r)));  \
 
 /*
  * filter_apply:
  *
- * returns 0 for hide, 1 for display, -1 for undecided, 
- * 2 for display marked
+ * returns the number of properties set with this filter chain.
+ * a property which was already set is not set again. The res
+ * argument is changed depending on the rules that match.
  */
-static int filter_apply(filter_t *filter, struct record *rec)
+static int filter_apply
+    (filter_t *filter, struct record *rec, filter_result_t *res)
 {
     size_t namelen;
 	char *l_name;
     GList *list;
+    gint prop_count = 0;
 
     g_assert(filter != NULL);
     g_assert(rec != NULL);
+    g_assert(res != NULL);
 
     /*
      * We only try to prevent circles or the filter is inactive.
      */
     if ((filter->visited == TRUE) || !filter_is_active(filter)) {
-        return -1;
+        return 0;
     }
 
     filter->visited = TRUE;
@@ -1765,7 +1784,7 @@ static int filter_apply(filter_t *filter, struct record *rec)
 	strlower(l_name, rec->name);
 
 	list = g_list_first(list);
-	while (list != NULL) {
+	while ((list != NULL) && (res->props_set < MAX_FILTER_PROP)) {
 		size_t n;
 		int i;
 		rule_t *r; 
@@ -1780,7 +1799,7 @@ static int filter_apply(filter_t *filter, struct record *rec)
             case RULE_JUMP:
                 match = TRUE;
                 break;
-            case RULE_TEXT:
+                case RULE_TEXT:
                 switch (r->u.text.type) {
                 case RULE_TEXT_EXACT:
                     if (strcmp(r->u.text.case_sensitive ? rec->name : l_name,
@@ -1900,32 +1919,42 @@ static int filter_apply(filter_t *filter, struct record *rec)
 			match = !match;
 
         if (match) {
-            gint val;                                                
-            
-            r->match_count ++;
-    
-            if (r->target == filter_show) {
-                val = 1;
-                filter->match_count ++;
-            } else if (r->target == filter_drop) {
-                val = RULE_IS_SOFT(r) ? 2 : 0;
-                filter->match_count ++;
+            if ((r->target == filter_show) && 
+                (!res->props[FILTER_PROP_DISPLAY].state)) {
+
+                res->props[FILTER_PROP_DISPLAY].state =
+                    FILTER_PROP_STATE_DO;
+
+                MATCH_RULE(filter, r, res);
+            } else 
+            if ((r->target == filter_drop) && 
+                (!res->props[FILTER_PROP_DISPLAY].state)) {
+
+                res->props[FILTER_PROP_DISPLAY].state =
+                    FILTER_PROP_STATE_DONT;
+                res->props[FILTER_PROP_DISPLAY].user_data =
+                    (gpointer) (RULE_IS_SOFT(r) ? 1 : 0);
+
+                MATCH_RULE(filter, r, res);
+            } else 
+            if ((r->target == filter_download) &&
+                (!res->props[FILTER_PROP_DOWNLOAD].state)) {
+                
+                res->props[FILTER_PROP_DOWNLOAD].state =
+                    FILTER_PROP_STATE_DO;
+
+                MATCH_RULE(filter, r, res);
+            } else 
+            if ((r->target == filter_nodownload) &&
+                (!res->props[FILTER_PROP_DOWNLOAD].state)) {
+                
+                res->props[FILTER_PROP_DOWNLOAD].state =
+                    FILTER_PROP_STATE_DONT;
+
+                MATCH_RULE(filter, r, res);
             } else {
-                val = filter_apply(r->target, rec);
-                if (val != -1)
-                    filter->fail_count ++;
-            }
-
-            /*
-             * If a decision could be reached, we return.
-             */
-            if (val != -1) {
-                if(dbg >= 6)
-                    printf("matched rule: %s\n", filter_rule_to_gchar(r));
-
-                g_free(l_name); 
-                filter->visited = FALSE; 
-                return val;    
+                prop_count += filter_apply(r->target, rec, res);
+                r->match_count ++;
             }
         } else {
             r->fail_count ++;
@@ -1936,8 +1965,9 @@ static int filter_apply(filter_t *filter, struct record *rec)
     g_free(l_name);
 
     filter->visited = FALSE;
-    filter->fail_count ++;
-    return -1;
+    filter->fail_count += MAX_FILTER_PROP - prop_count;
+    filter->match_count += prop_count;
+    return prop_count;
 }
 
 
@@ -1946,20 +1976,29 @@ static int filter_apply(filter_t *filter, struct record *rec)
  * filter_record:
  *
  * Check a particular record against the search filter and the global
- * filters. Returns TRUE if the record can be displayed, FALSE if not
+ * filters. Returns a filter_property_t array with MAX_FILTER_PROP
+ * rows. This must be freed with filter_free_properties.
  */
-gboolean filter_record(search_t *sch, struct record *rec)
+filter_result_t *filter_record(search_t *sch, record_t *rec)
 {
-    gint r;
     gboolean filtered;
+    filter_result_t *result;
+    gint i;
 
     g_assert(sch != NULL);
     g_assert(rec != NULL);
+
+    /*
+     * Initialize all properties with FILTER_PROP_STATE_UNKNOWN and
+     * the props_set count with 0;
+     */
+    result = g_new0(filter_result_t, 1);
 
 	if (search_strict_and) {	
         // FIXME:
         // config value for strict AND checking
 		// XXX for now -- RAM
+        // Should just be dumped. I don't think we need that anymore. -- BLUE
 	}
 
     filtered =  
@@ -1970,44 +2009,54 @@ gboolean filter_record(search_t *sch, struct record *rec)
         ((filter_global_post->ruleset != NULL) &&
             filter_is_active(sch->filter));
 
-
-    /*
-     * Default to "display" if there is no filter defined or to
-     * global_policy if there is.
-     */
-    r = filtered ? -1 : 1;
-
-    /*
-     * If it has not yet been decided, try the global filter
-     */
-    if (r == -1)
-        r = filter_apply(filter_global_pre, rec);
+    filter_apply(filter_global_pre, rec, result);
 
     /*
      * If not decided check if the filters for this search apply.
      */
-    if (r == -1)
-        r = filter_apply(sch->filter, rec);
+    if (result->props_set < MAX_FILTER_PROP)
+        filter_apply(sch->filter, rec, result);
 
     /*
      * If it has not yet been decided, try the global filter
      */
-	if (r == -1)
-		r = filter_apply(filter_global_post, rec);
+	if (result->props_set < MAX_FILTER_PROP)
+		filter_apply(filter_global_post, rec, result);
 
-    /*
-     * If no filter can decide then use the default.
-     */
-    if (r == -1)
-        r = filter_default_policy;
+    
+    // FIXME: if no filter can decide, use the default.
 
+    /* FIXME: this does no longer give useful output
     if (dbg >= 5) {
         printf("result %d for search \"%s\" matching \"%s\" (%s)\n",
             r, sch->query, rec->name, 
             filtered ? "filtered" : "unfiltered");
     }
+    */
 
-	return r;
+    /*
+     * Set the defaults for the props that are still in UNKNOWN state.
+     */
+    for (i = 0; i < MAX_FILTER_PROP; i ++) {
+        switch(i) {
+        case FILTER_PROP_DISPLAY:
+            if (!result->props[i].state) {
+                result->props[i].state = 
+                    filter_default_policy;
+                result->props_set ++;
+            }
+            break;
+        case FILTER_PROP_DOWNLOAD:
+            if (!result->props[i].state) {
+                result->props[i].state = 
+                    FILTER_PROP_STATE_DONT;
+                result->props_set ++;
+            }
+            break;
+        }
+    }
+
+	return result;
 }
 
 
@@ -2080,11 +2129,15 @@ void filter_init(void)
     filter_global_post = filter_new("Global (post)");
     filter_drop        = filter_new("don't display");
     filter_show        = filter_new("display");
+    filter_download    = filter_new("download");
+    filter_nodownload    = filter_new("don't download");
 
     filters = g_list_append(filters, filter_global_pre);
     filters = g_list_append(filters, filter_global_post);
     filters = g_list_append(filters, filter_drop);
     filters = g_list_append(filters, filter_show);
+    filters = g_list_append(filters, filter_download);
+    filters = g_list_append(filters, filter_nodownload);
 }
 
 
@@ -2178,6 +2231,37 @@ void filter_set_enabled(filter_t *filter, gboolean active)
     locked = FALSE;
 }
 
+/*
+ * filter_free_properties:
+ *
+ * Free a filter_result returned by filter_record
+ * after it has been processed.
+ */
+void filter_free_result(filter_result_t *res)
+{
+    gint i;
+
+    g_assert(res != NULL);
+
+    /*
+     * Since every property type can need a special handling
+     * for freeing the user data, we handle that here. Currently
+     * no property needs this.
+     */
+    for (i = 0; i < MAX_FILTER_PROP; i ++) {
+        switch (i) {
+        case FILTER_PROP_DISPLAY:
+            break;
+        case FILTER_PROP_DOWNLOAD:
+            break;
+        default:
+            g_assert_not_reached();
+        };
+    }
+
+    g_free(res);
+}
+
 inline gboolean filter_is_global(filter_t *f)
 {
     return ((f == filter_global_pre) || (f == filter_global_post));
@@ -2185,7 +2269,8 @@ inline gboolean filter_is_global(filter_t *f)
 
 inline gboolean filter_is_builtin(filter_t *f)
 {
-    return ((f == filter_show) || (f == filter_drop));
+    return ((f == filter_show) || (f == filter_drop) || 
+            (f == filter_download) || (f == filter_nodownload));
 }
 
 inline filter_t *filter_get_drop_target(void)
@@ -2198,7 +2283,22 @@ inline filter_t *filter_get_show_target(void)
     return filter_show;
 }
 
+inline filter_t *filter_get_download_target(void)
+{
+    return filter_download;
+}
+
+inline filter_t *filter_get_nodownload_target(void)
+{
+    return filter_nodownload;
+}
+
 inline filter_t *filter_get_global_pre(void)
 {
     return filter_global_pre;
+}
+
+inline filter_t *filter_get_global_post(void)
+{
+    return filter_global_post;
 }
