@@ -3216,7 +3216,7 @@ inline void file_info_remove_source(
         fi_events[EV_FI_SRC_REMOVED], 
         T_NORMAL(fi_src_listener_t, fi->fi_handle, dl->src_handle));    
 
-    fi->refcount --;
+    fi->refcount--;
     fi->dirty_status = TRUE;
     dl->file_info = NULL;
     fi->sources = g_slist_remove(fi->sources, dl);
@@ -3263,25 +3263,32 @@ inline void file_info_timer(void)
  */
 void fi_purge(gnet_fi_t fih)
 {
-    GSList *sl;
-    GSList *csl;
-    struct dl_file_info *fi = file_info_find_by_handle(fih); 
+	GSList *sl;
+	GSList *csl;
+	struct dl_file_info *fi = file_info_find_by_handle(fih); 
 
-    g_assert(fi != NULL);
+	g_assert(fi != NULL);
 
-    csl = g_slist_copy(fi->sources);
-    for(sl = csl; sl != NULL; sl = g_slist_next(sl)) {
-        struct download *dl = (struct download *) sl->data;
-        download_abort(dl);
-        download_remove(dl);
-    }
+	csl = g_slist_copy(fi->sources);	/* Clone list, orig can be modified */
 
-    download_free_removed();
+	for(sl = csl; sl != NULL; sl = g_slist_next(sl)) {
+		struct download *dl = (struct download *) sl->data;
 
-    g_assert(fi->refcount == 0);
+		download_abort(dl);
+		download_remove(dl);
+	}
 
-    file_info_hash_remove(fi);
-    fi_free(fi);
+	g_slist_free(csl);
 
-    g_slist_free(csl);
+	/*
+	 * Downloads not freed at this point, this will happen when the
+	 * download_free_removed() is asynchronously called.  However, all
+	 * references to the file info has been cleared, so we can remove it.
+	 */
+
+	g_assert(fi->refcount == 0);
+
+	file_info_hash_remove(fi);
+	fi_free(fi);
 }
+
