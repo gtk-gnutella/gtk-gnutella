@@ -1,19 +1,26 @@
-RAM's TODO list:
+This documents describes briefly the things we want to have in gtk-gnutella 
 
-* Add reverse engineering notes.
-* Show node's in/out bandwidth (Exp. Moving Average)
-* Add a regression test suite for the protocol.
-* Replace randomly when results > max_results in Query Hits
+0.94 (1.0)
+	* Tigertree 						(started)
+	* Smaller memory footprint by using Berkeley DB for:
+	 - PARQ
+	 - Host cache
+	* Faster connecting to the gnutella network by connecting to good /
+	  stable ultrapeers first.
+	* Dynamic query
+	* Browse host support
+	* Implementation of Horizon Estimation (HEP 0.2)
+	* Meta data
+	* magnet links
+	* Download proxy
+	* GUI: Add / remove of gwebcaches
+	* PARQ: PFS aware
+	* PARQ: Tigertree aware
+	* PARQ: 'Rotating' queue by filename
+	* IP / hostname White list
 
-TODO List :
+After this release we should start with the gui <-> core/lib seperation.
+Therefore 0.94.x will probably be renamed to 1.0 as soon as it is completly
+stable
 
-- Test and fix the CVS (always needed)
-
-- Add many more configuration possibilities through the GUI (we really needs
-  dialog boxes)
-
-- In the future, a section with graphs of traffic (outgoing, incoming, packets...)
-  should be a great thing to have.
-
-All other ideas are welcome :)
-
+- Jeroen

@@ -1,5 +1,10 @@
 # since last version
 
+- (2004.02.06 - Jeroen)
+ * I am back, so lets start with tiny things ;)
+ * Fixed a couple of compiler warnings
+ * Fixed a possible segfault when using ICU and iconv_open failed
+
 - (2004.02.06 - Richard)
  * [Gtk1] Fix sorting by name in the search panel. Result from 
    search_gui_compare_records() was interpreted wrong.
