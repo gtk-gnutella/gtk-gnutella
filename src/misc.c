@@ -33,6 +33,7 @@
 #include <arpa/inet.h>
 #include <string.h>			/* For strlen() */
 #include <ctype.h>			/* For isalnum() and isspace() */
+#include <sys/times.h>		/* For times() */
 
 #include "gnutella.h"
 #include "nodes.h"
@@ -40,6 +41,7 @@
 #include "url.h"
 #include "huge.h"
 #include "base32.h"
+#include "sha1.h"
 
 /*
  * is_string_ip:
@@ -682,6 +684,98 @@ gchar *build_url_from_download(struct download *d)
     }
     
     return url_tmp;
+}
+
+/*
+ * random_init
+ *
+ * Initialize random number generator.
+ */
+void random_init(void)
+{
+	FILE *f = NULL;
+	SHA1Context ctx;
+	struct stat buf;
+	struct timeval start, end;
+	struct tms ticks;
+	guint32 seed;
+	guint8 digest[SHA1HashSize];
+	guint32 sys[7];
+	gint i;
+	gint j;
+
+	/*
+	 * Get random entropy from the system.
+	 */
+
+	gettimeofday(&start, NULL);
+
+	SHA1Reset(&ctx);
+
+	if (-1 != stat("/bin/ps", &buf))
+		f = popen("/bin/ps -ef", "r");
+	else if (-1 != stat("/usr/bin/ps", &buf))
+		f = popen("/usr/bin/ps -ef", "r");
+	else if (-1 != stat("/usr/ucb/ps", &buf))
+		f = popen("/usr/ucb/ps aux", "r");
+
+	if (f == NULL)
+		g_warning("was unable to find the ps command on your system");
+	else {
+		/*
+		 * Compute SHA1 of ps's output.
+		 */
+
+		for (;;) {
+			guint8 data[1024];
+			gint r;
+
+			r = fread(data, 1, sizeof(data), f);
+			if (r)
+				SHA1Input(&ctx, data, r);
+			if (r < sizeof(data))
+				break;
+		}
+
+		pclose(f);
+	}
+
+	/*
+	 * Add timing entropy.
+	 */
+
+	sys[0] = start.tv_sec;
+	sys[1] = start.tv_usec;
+
+	sys[2] = times(&ticks);
+	sys[3] = ticks.tms_utime;
+	sys[4] = ticks.tms_stime;
+
+	gettimeofday(&end, NULL);
+
+	sys[5] = end.tv_sec - start.tv_sec;
+	sys[6] = end.tv_usec - start.tv_usec;
+
+	SHA1Input(&ctx, (guint8 *) sys, sizeof(sys));
+
+	/*
+	 * Reduce SHA1 to a single guint32.
+	 */
+
+	SHA1Result(&ctx, digest);
+
+	for (seed = 0, i = j = 0; i < SHA1HashSize; i++) {
+		guint32 b = digest[i];
+		seed ^= b << (j << 3);
+		j = (j + 1) & 0x3;
+	}
+
+	/*
+	 * Finally, can initialize the random number generator.
+	 */
+
+printf("seed = 0x%x\n", (gint) seed);
+	srand(seed);
 }
 
 /* vi: set ts=4: */

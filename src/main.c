@@ -374,6 +374,7 @@ gint main(gint argc, gchar ** argv)
 
 	/* Our inits */
 
+	random_init();
 	atoms_init();
 	version_init();
 	callout_queue = cq_make(0);

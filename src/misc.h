@@ -85,6 +85,7 @@ gchar *short_kb_size(guint32);
 gchar *compact_size(guint32 size);
 gchar *short_time(guint32 s);
 gchar *short_uptime(guint32 s);
+void random_init(void);
 guint32 random_value(guint32 max);
 void strlower(gchar *, gchar *);
 gchar *build_url_from_download(struct download *d);
