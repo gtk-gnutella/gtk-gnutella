@@ -57,7 +57,7 @@ typedef enum {
     PROP_TYPE_MULTICHOICE
 } prop_type_t;
 
-extern const gchar *prop_type_str[];
+extern const gchar * const prop_type_str[];
 
 /*
  * Callback signature definition
