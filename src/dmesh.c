@@ -745,7 +745,7 @@ gint dmesh_alternate_location(guchar *sha1,
 			 * the header if we don't append anything else, plus the trailing
 			 * NUL.
 			 */
-			if (url_len + 6 > size - len)	/* Needs "\t" and 2*"\r\n" + "," */
+			if (url_len + 6 >= size - len)	/* Needs "\t" and 2*"\r\n" + "," */
 				continue;
 			len += g_snprintf(&buf[len], size - len, ",\r\n");
 		} else {
@@ -753,7 +753,7 @@ gint dmesh_alternate_location(guchar *sha1,
 			 * We just need to be able to emit our URL and close the header,
 			 * i.e. we need "\t" and "\r\n" to end, plus the trailing NUL.
 			 */
-			if (url_len + 3 > size - len)	/* Needs "\t" and "\r\n" */
+			if (url_len + 3 >= size - len)	/* Needs "\t" and "\r\n" */
 				continue;
 		}
 
