@@ -1727,7 +1727,6 @@ static void upload_request(gnutella_upload_t *u, header_t *header)
 	gboolean was_actively_queued = u->status == GTA_UL_QUEUED;
 	gboolean faked = FALSE;
 	gchar *token;
-	gpointer parq_handle = NULL;
 	extern gint sha1_eq(gconstpointer a, gconstpointer b);
 
 	if (dbg > 2) {
@@ -2047,9 +2046,9 @@ static void upload_request(gnutella_upload_t *u, header_t *header)
 			is_followup = FALSE;
 		}
 		
-		parq_handle = parq_upload_get(u, header);
+		u->parq_opaque = parq_upload_get(u, header);
 
-		if (parq_handle == NULL) {
+		if (u->parq_opaque == NULL) {
 			upload_error_remove(u, reqfile, 503, "Queue full");
 			return;
 		}
@@ -2106,7 +2105,7 @@ static void upload_request(gnutella_upload_t *u, header_t *header)
 		 *
 		 */		
 
-		if (!parq_upload_request(u, parq_handle, running_uploads - 1)) {
+		if (!parq_upload_request(u, u->parq_opaque, running_uploads - 1)) {
 			gboolean parq_allows = FALSE;
 			
 			if (parq_upload_lookup_position(u) == -1) {
@@ -2146,7 +2145,7 @@ static void upload_request(gnutella_upload_t *u, header_t *header)
 				bsched_avg_pct(bws.out) < ul_usage_min_percentage
 			) {
 				if (parq_upload_request_force(
-						u, parq_handle, running_uploads - 1)) {
+						u, u->parq_opaque, running_uploads - 1)) {
 					parq_allows = TRUE;
 					if (dbg > 4)
 						printf("Overriden slot limit because u/l b/w used at "
@@ -2199,7 +2198,7 @@ static void upload_request(gnutella_upload_t *u, header_t *header)
 	}
 
 	if (!head_only)
-		parq_upload_busy(u, parq_handle);
+		parq_upload_busy(u, u->parq_opaque);
 	
 	/*
 	 * Do we have to keep the connection after this request?

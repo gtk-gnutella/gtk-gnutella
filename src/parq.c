@@ -1407,9 +1407,6 @@ static struct parq_ul_queued *parq_upload_create(gnutella_upload_t *u)
 	parq_ul->by_ip->total++;
 	parq_ul->by_ip->list = g_list_prepend(parq_ul->by_ip->list, parq_ul);
 	
-	/* well, we can safely assign the parq pointer to this upload now */
-	u->parq_opaque = parq_ul;
-	
 	g_assert(parq_ul != NULL);
 	g_assert(parq_ul->position > 0);
 	g_assert(parq_ul->id != NULL);
@@ -2206,8 +2203,6 @@ gpointer parq_upload_get(gnutella_upload_t *u, header_t *header)
 cleanup:
 	g_assert(parq_ul != NULL);
 
-	u->parq_opaque = parq_ul;
-	
 	if (parq_ul->queue->by_date_dead != NULL &&
 		  g_list_find(parq_ul->queue->by_date_dead, parq_ul) != NULL)
 		parq_ul->queue->by_date_dead = 
