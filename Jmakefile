@@ -28,7 +28,9 @@
 ;# $Id$
 
 EXTRA_FILES = \
+	bogons.txt \
 	gwcache.boot \
+	geo-ip.txt \
 	hostiles.txt
 
 all::		/* So that default target is not clobber! */
