@@ -1979,6 +1979,19 @@ static gboolean download_pick_chunk(struct download *d)
 	return TRUE;
 }
 
+/*
+ * download_bad_source
+ *
+ * Indicates that this download source is not good enough for us: it is either
+ * non-connectible, does not allow resuming, etc...  Remove it from the mesh.
+ */
+static void download_bad_source(struct download *d)
+{
+	if (!d->always_push && d->sha1)
+		dmesh_remove(d->sha1, download_ip(d), download_port(d),
+			d->record_index, d->file_name);
+}
+
 /* (Re)start a stopped or queued download */
 
 void download_start(struct download *d, gboolean check_allowed)
@@ -2257,9 +2270,7 @@ attempt_retry:
 	 * connect to it properly.
 	 */
 
-	if (!d->always_push && d->sha1)
-		dmesh_remove(d->sha1, download_ip(d), download_port(d),
-			d->record_index, d->file_name);
+	download_bad_source(d);
 }
 
 /* Direct download failed, let's try it with a push request */
@@ -3168,6 +3179,7 @@ static gboolean download_overlap_check(struct download *d)
 	}
 
 	if (0 != memcmp(s->buffer, data, d->overlap_size)) {
+		download_bad_source(d);
 		download_stop(d, GTA_DL_ERROR, "Resuming data mismatch @ %lu",
 				d->skip - d->overlap_size);
 		if (dbg > 3)
@@ -3666,6 +3678,8 @@ static gboolean check_content_urn(struct download *d, header_t *header)
 			goto collect_locations;		/* Should be correct in reply */
 
 		/*
+		 * If "download_require_urn" is set, stop.
+		 *
 		 * If they have configured an overlapping range of at least
 		 * DOWNLOAD_MIN_OVERLAP, we can requeue the download if we were not
 		 * overlapping here, in the hope we'll (later on) request a chunk after
@@ -3675,6 +3689,11 @@ static gboolean check_content_urn(struct download *d, header_t *header)
 		 */
 
 		if (d->file_info->sha1) {
+			if (download_require_urn) {			/* They want strictness */
+				download_bad_source(d);
+				download_stop(d, GTA_DL_ERROR, "No URN on server (required)");
+				return FALSE;
+			}
 			if (download_overlap_range >= DOWNLOAD_MIN_OVERLAP) {
                 if (download_optimistic_start && (d->pos == 0))
                     return TRUE;
@@ -3685,6 +3704,7 @@ static gboolean check_content_urn(struct download *d, header_t *header)
 					return FALSE;
 				}
 			} else {
+				download_bad_source(d);
 				download_stop(d, GTA_DL_ERROR, "No URN on server to validate");
 				return FALSE;
 			}
@@ -3699,6 +3719,7 @@ static gboolean check_content_urn(struct download *d, header_t *header)
 		return TRUE;
 
 	if (d->sha1 && 0 != memcmp(digest, d->sha1, SHA1_RAW_SIZE)) {
+		download_bad_source(d);
 		download_stop(d, GTA_DL_ERROR, "URN mismatch detected");
 		return FALSE;
 	}
@@ -3913,13 +3934,6 @@ static void download_request(struct download *d, header_t *header, gboolean ok)
 		d->keep_alive = FALSE;			/* Got incomplete headers -> close */
 
 	/*
-	 * If an URN is present, validate that we can continue this download.
-	 */
-
-	if (!check_content_urn(d, header))
-		return;
-
-	/*
 	 * Now deal with the return code.
 	 */
 
@@ -3994,8 +4008,7 @@ static void download_request(struct download *d, header_t *header, gboolean ok)
 			break;
 		}
 
-		if (!d->always_push && d->sha1)
-			dmesh_remove(d->sha1, ip, port, d->record_index, d->file_name);
+		download_bad_source(d);
 
 		download_stop(d, GTA_DL_ERROR,
 			"%sHTTP %d %s", short_read, ack_code, ack_message);
@@ -4004,13 +4017,33 @@ static void download_request(struct download *d, header_t *header, gboolean ok)
 
 	/*
 	 * We got a success status from the remote servent.	Parse header.
-	 *
+	 */
+
+	g_assert(ok);
+
+	/*
+	 * If an URN is present, validate that we can continue this download.
+	 */
+
+	if (!check_content_urn(d, header))
+		return;
+
+	/*
+	 * If they configured us to require a server name, and we have none
+	 * at this stage, stop.
+	 */
+
+	if (download_require_server_name && download_vendor(d) == NULL) {
+		download_bad_source(d);
+		download_stop(d, GTA_DL_ERROR, "Server did not supply identification");
+		return;
+	}
+
+	/*
 	 * Normally, a Content-Length: header is mandatory.	However, if we
 	 * get a valid Content-Range, relax that constraint a bit.
 	 *		--RAM, 08/01/2002
 	 */
-
-	g_assert(ok);
 
 	fi = d->file_info;
 
@@ -4019,13 +4052,15 @@ static void download_request(struct download *d, header_t *header, gboolean ok)
 		guint32 content_size = atol(buf);
 		guint32 requested_size = d->range_end - d->skip + d->overlap_size;
 		if (content_size == 0) {
-			download_stop(d, GTA_DL_ERROR, "Null Content-Length");
+			download_bad_source(d);
+			download_stop(d, GTA_DL_ERROR, "Zero Content-Length");
 			return;
 		} else if (content_size != requested_size) {
 			if (content_size == fi->size) {
 				g_warning("File '%s': server seems to have "
 					"ignored our range request of %u-%u.",
 					d->file_name, d->skip - d->overlap_size, d->range_end - 1);
+				download_bad_source(d);
 				download_stop(d, GTA_DL_ERROR,
 					"Server can't handle resume request");
 				return;
@@ -4044,6 +4079,7 @@ static void download_request(struct download *d, header_t *header, gboolean ok)
 				 */
 				g_warning("File '%s': expected content of %u, server said %u",
 					d->file_name, requested_size, content_size);
+				download_bad_source(d);
 				download_stop(d, GTA_DL_ERROR, "Content-Length mismatch");
 				return;
 			}
@@ -4062,6 +4098,7 @@ static void download_request(struct download *d, header_t *header, gboolean ok)
 			if (start != d->skip - d->overlap_size) {
 				g_warning("File '%s': start byte mismatch: wanted %u, got %u",
 					d->file_name, d->skip - d->overlap_size, start);
+				download_bad_source(d);
 				download_stop(d, GTA_DL_ERROR, "Range start mismatch");
 				return;
 			}
@@ -4073,6 +4110,7 @@ static void download_request(struct download *d, header_t *header, gboolean ok)
 			if (total != fi->size) {
 				g_warning("File '%s': file size mismatch: expected %u, got %u",
 					d->file_name, fi->size, total);
+				download_bad_source(d);
 				download_stop(d, GTA_DL_ERROR, "File size mismatch");
 				return;
 			}
@@ -4097,6 +4135,7 @@ static void download_request(struct download *d, header_t *header, gboolean ok)
 		ua = ua ? ua : header_get(header, "User-Agent");
 		if (ua)
 			g_warning("server \"%s\" did not send any length indication", ua);
+		download_bad_source(d);
 		download_stop(d, GTA_DL_ERROR, "No Content-Length header");
 		return;
 	}
