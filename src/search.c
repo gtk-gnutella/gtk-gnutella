@@ -1834,7 +1834,7 @@ gnet_search_t search_new(
 		sch->new_node_hook->func = (gpointer) node_added_callback;
 		g_hook_prepend(&node_added_hook_list, sch->new_node_hook);
 
-		sch->reissue_timeout = reissue_timeout;
+		sch->reissue_timeout = MAX(reissue_timeout, SEARCH_MIN_RETRY);
 	}
 
 	sl_search_ctrl = g_slist_prepend(sl_search_ctrl, (gpointer) sch);
