@@ -93,6 +93,8 @@ RCSID("$Id$");
 #define NODE_CASUAL_FD			10		/* # of fds we might use casually */
 #define NODE_AUTO_SWITCH_MIN	1800	/* Don't switch too often UP <-> leaf */
 
+#define QRELAYED_HALF_LIFE		5	/* Rotate `qrelayed' every 5 seconds */
+
 static GSList *sl_nodes = NULL;
 
 static GHashTable *unstable_ip = NULL;
@@ -261,6 +263,55 @@ static void node_fire_node_flags_changed
     LISTENER_EMIT(node_flags_changed, n->node_handle);
 }
 
+/***
+ *** Utilities
+ ***/
+
+/*
+ * free_key
+ *
+ * Free atom string key from hash table.
+ */
+static void free_key(gpointer key, gpointer val, gpointer x)
+{
+	atom_str_free(key);
+}
+
+/*
+ * free_key_true
+ *
+ * Free atom string key from hash table and return TRUE.
+ */
+static gboolean free_key_true(gpointer key, gpointer val, gpointer x)
+{
+	atom_str_free(key);
+	return TRUE;
+}
+
+/*
+ * string_table_clear
+ *
+ * Clear hash table whose keys are atoms and values ignored.
+ */
+static void string_table_clear(GHashTable *ht)
+{
+	g_assert(ht != NULL);
+
+	g_hash_table_foreach_remove(ht, free_key_true, NULL);
+}
+
+/*
+ * string_table_free
+ *
+ * Dispose of hash table whose keys are atoms and values ignored.
+ */
+static void string_table_free(GHashTable *ht)
+{
+	g_assert(ht != NULL);
+
+	g_hash_table_foreach(ht, free_key, NULL);
+	g_hash_table_destroy(ht);
+}
 
 /***
  *** Private functions
@@ -674,6 +725,28 @@ void node_timer(time_t now)
 				}
 			}
 		}
+
+		/*
+		 * Rotate `qrelayed' on a regular basis into `qrelayed_old' and
+		 * dispose of previous `qrelayed_old'.
+		 */
+
+		if (
+			n->qrelayed != NULL &&
+			now - n->qrelayed_created > QRELAYED_HALF_LIFE
+		) {
+			GHashTable *new;
+
+			if (n->qrelayed_old != NULL) {
+				new = n->qrelayed_old;
+				string_table_clear(new);
+			} else
+				new = g_hash_table_new(g_str_hash, g_str_equal);
+
+			n->qrelayed_old = n->qrelayed;
+			n->qrelayed = new;
+			n->qrelayed_created = now;
+		}
 	}
 }
 
@@ -1013,6 +1086,19 @@ static void node_remove_v(
 
 	if (n->proxy_ip != 0)
 		sl_proxies = g_slist_remove(sl_proxies, n);
+
+	if (n->qseen != NULL) {
+		string_table_free(n->qseen);
+		n->qseen = NULL;
+	}
+	if (n->qrelayed != NULL) {
+		string_table_free(n->qrelayed);
+		n->qrelayed = NULL;
+	}
+	if (n->qrelayed_old != NULL) {
+		string_table_free(n->qrelayed_old);
+		n->qrelayed_old = NULL;
+	}
 
     node_fire_node_info_changed(n);
     node_fire_node_flags_changed(n);
@@ -2271,6 +2357,20 @@ static void node_is_now_connected(struct gnutella_node *n)
 			vmsg_send_connect_back(n, listen_port);
 			if (!NODE_IS_LEAF(n))
 				send_proxy_request(n);
+		}
+	}
+
+	/*
+	 * If we're an Ultranode, we're going to monitor the queries sent by
+	 * our leaves and by our neighbours.
+	 */
+
+	if (current_peermode != NODE_P_LEAF) {
+		if (NODE_IS_LEAF(n))
+			n->qseen = g_hash_table_new(g_str_hash, g_str_equal);
+		else {
+			n->qrelayed = g_hash_table_new(g_str_hash, g_str_equal);
+			n->qrelayed_created = time(NULL);
 		}
 	}
 
@@ -5131,6 +5231,12 @@ void node_close(void)
 			route_proxy_remove(n->guid);
 			atom_guid_free(n->guid);
 		}
+		if (n->qseen != NULL)
+			string_table_free(n->qseen);
+		if (n->qrelayed != NULL)
+			string_table_free(n->qrelayed);
+		if (n->qrelayed_old != NULL)
+			string_table_free(n->qrelayed_old);
 		node_real_remove(n);
 	}
 

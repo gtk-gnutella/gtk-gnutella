@@ -88,13 +88,17 @@ typedef struct gnutella_node {
 	guint32 size;	/* How many bytes we need to read for the current message */
 
 	gchar *data;			/* data of the current message */
-
 	guint32 pos;			/* write position in data */
 
 	guchar status;			/* See possible values below */
 	guint8 hops_flow;		/* Don't send queries with a >= hop count */
 	guint32 flags;			/* See possible values below */
 	guint32 attrs;			/* See possible values below */
+
+	GHashTable *qseen;			/* Queries seen from this leaf node */
+	GHashTable *qrelayed;		/* Queries relayed from this node */
+	GHashTable *qrelayed_old;	/* Older version of the `qrelayed' table */
+	time_t qrelayed_created;	/* When `qrelayed' was created */
 
 	guint32 sent;				/* Number of sent packets */
 	guint32 received;			/* Number of received packets */

@@ -1071,14 +1071,15 @@ static void update_neighbour_info(gnutella_node_t *n, gnet_results_set_t *rs)
 	) {
 		if (
 			(n->gnet_qhit_ip && n->gnet_qhit_ip != rs->ip) ||
-			(n->gnet_pong_ip && n->gnet_pong_ip != rs->ip)
+			(n->gnet_qhit_ip == 0 &&
+				n->gnet_pong_ip && n->gnet_pong_ip != rs->ip)
 		) {
 			n->n_weird++;
 			if (dbg) g_warning("[weird #%d] "
 				"node %s (%s) advertised %s but now says Query Hits from %s",
 				n->n_weird, node_ip(n), node_vendor(n),
-				ip_to_gchar(n->gnet_pong_ip ?
-					n->gnet_pong_ip : n->gnet_qhit_ip),
+				ip_to_gchar(n->gnet_qhit_ip ?
+					n->gnet_qhit_ip : n->gnet_pong_ip),
 				ip_port_to_gchar(rs->ip, rs->port));
 		}
 		n->gnet_qhit_ip = rs->ip;
