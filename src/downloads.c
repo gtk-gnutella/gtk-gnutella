@@ -50,7 +50,7 @@ GSList *sl_downloads = NULL;
 guint32 count_downloads = 0;
 gboolean send_pushes = TRUE;
 static gchar dl_tmp[4096];
-static gboolean frozen_queue = FALSE;
+static gint queue_frozen = 0;
 
 static GHashTable *pushed_downloads = 0;
 
@@ -103,7 +103,7 @@ void download_timer(time_t now)
 {
 	GSList *l = sl_downloads;
 
-	if (frozen_queue)
+	if (queue_frozen > 0)
 		return;
 
 	while (l) {
@@ -804,11 +804,27 @@ void download_queue(struct download *d, const gchar *fmt, ...)
 /*
  * download_freeze_queue
  *
- * Freeze/unfreeze the scheduling queue.
+ * Freeze the scheduling queue. Multiple freezing requires
+ * multiple thawing.
  */
-void download_freeze_queue(gboolean val)
+void download_freeze_queue()
 {
-	frozen_queue = val;
+	queue_frozen ++;
+    gui_update_queue_frozen();
+}
+
+/*
+ * download_thaw_queue
+ *
+ * Thaw the scheduling queue. Multiple freezing requires
+ * multiple thawing.
+ */
+void download_thaw_queue(void)
+{
+    g_return_if_fail(queue_frozen > 0);
+
+	queue_frozen --;
+    gui_update_queue_frozen();
 }
 
 /*
@@ -816,9 +832,9 @@ void download_freeze_queue(gboolean val)
  *
  * Test whether download queue is frozen.
  */
-gboolean download_queue_is_frozen(void)
+gint download_queue_is_frozen(void)
 {
-	return frozen_queue;
+	return queue_frozen;
 }
 
 /*
@@ -2749,6 +2765,8 @@ void download_push_ack(struct gnutella_socket *s)
 
 void download_retry(struct download *d)
 {
+    g_assert(d != NULL);
+
 	/* download_stop() sets the time, so all we need to do is set the delay */
 
 	if (d->timeout_delay == 0)
