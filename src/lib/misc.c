@@ -53,6 +53,7 @@ RCSID("$Id$");
 #endif
 
 static const char hex_alphabet[] = "0123456789ABCDEF";
+static const char hex_alphabet_lower[] = "0123456789abcdef";
 
 #ifndef HAS_STRLCPY
 size_t

@@ -52,6 +52,8 @@ const gchar * const prop_type_str[] = {
 	"multichoice"
 };
 
+static const char hex_alphabet_lower[] = "0123456789abcdef";
+
 static gchar prop_tmp[4096];
 
 /***
