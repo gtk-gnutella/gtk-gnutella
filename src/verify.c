@@ -26,7 +26,6 @@
  */
 
 #include "gnutella.h"
-#include "downloads.h"
 
 #include <errno.h>
 #include <fcntl.h>
@@ -205,7 +204,7 @@ static bgret_t d_step_compute(gpointer h, gpointer u, gint ticks)
 
 	if (r < 0) {
 		vd->error = errno;
-		g_warning("Error while reading %s for computing SHA1: %s",
+		g_warning("error while reading %s for computing SHA1: %s",
 			download_outname(vd->d), g_strerror(errno));
 		return BGR_DONE;
 	}
@@ -247,9 +246,6 @@ static bgret_t d_step_compute(gpointer h, gpointer u, gint ticks)
  */
 void verify_queue(struct download *d)
 {
-	g_assert(d->status == GTA_DL_COMPLETED);
-	
-	d->status = GTA_DL_VERIFY_WAIT;
 	bg_daemon_enqueue(verify_daemon, d);
 }
 
