@@ -121,6 +121,7 @@ bsched_t *bsched_make(gchar *name,
 void bsched_init(void);
 void bsched_close(void);
 void bsched_enable(bsched_t *bs);
+void bsched_disable(bsched_t *bs);
 void bsched_enable_all(void);
 bio_source_t *bsched_source_add(bsched_t *bs, int fd, guint32 flags,
 	GdkInputFunction callback, gpointer arg);

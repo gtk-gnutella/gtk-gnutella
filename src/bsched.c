@@ -137,7 +137,7 @@ void bsched_enable(bsched_t *bs)
  *
  * Disable scheduling.
  */
-static void bsched_disable(bsched_t *bs)
+void bsched_disable(bsched_t *bs)
 {
 	g_assert(bs);
 
