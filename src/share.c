@@ -944,6 +944,8 @@ static void recurse_scan(gchar *dir, const gchar *basedir)
  */
 void shared_file_free(shared_file_t *sf)
 {
+	g_assert(sf != NULL);
+
 	atom_str_free(sf->file_path);
 	wfree(sf, sizeof(*sf));
 }
