@@ -37,8 +37,9 @@ struct gnutella_node;
  * Global Functions
  */
 
+struct gnutella_msg_init *build_ping_msg(const gchar *muid, guint8 ttl);
 struct gnutella_msg_init_response *build_pong_msg(
-	guint8 hops, guint8 ttl, gchar *muid,
+	guint8 hops, guint8 ttl, const gchar *muid,
 	guint32 ip, guint16 port, guint32 files, guint32 kbytes);
 
 /*

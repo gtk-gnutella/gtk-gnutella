@@ -66,20 +66,14 @@ RCSID("$Id$");
 static void
 send_ping(struct gnutella_node *n, guint8 ttl)
 {
-	struct gnutella_msg_init m;
+	struct gnutella_msg_init *m;
 
-	message_set_muid(&m.header, GTA_MSG_INIT);
-
-	m.header.function = GTA_MSG_INIT;
-	m.header.ttl = ttl;
-	m.header.hops = 0;
-
-	WRITE_GUINT32_LE(0, m.header.size);
+	m = build_ping_msg(NULL, ttl);
 
 	if (n) {
 		if (NODE_IS_WRITABLE(n)) {
 			n->n_ping_sent++;
-			gmsg_sendto_one(n, (gchar *) &m, sizeof(struct gnutella_msg_init));
+			gmsg_sendto_one(n, (gchar *) m, sizeof(*m));
 		}
 	} else {
 		const GSList *sl_nodes = node_all_nodes();
@@ -97,39 +91,36 @@ send_ping(struct gnutella_node *n, guint8 ttl)
 			n->n_ping_sent++;
 		}
 
-		gmsg_sendto_all(sl_nodes, (gchar *) &m,
-			sizeof(struct gnutella_msg_init));
+		gmsg_sendto_all(sl_nodes, (gchar *) m, sizeof(*m));
 	}
 }
 
 /**
- * Send ping to immediate neighbour, to check its latency and the fact
- * that it is alive, or get its Gnet sharing information (ip, port).
- * The message is sent as a "control" one, i.e. it's put ahead of the queue.
+ * Build ping message, bearing given TTL and MUID.
+ * By construction, hops=0 for all pings.
+ * If the MUID is NULL, a random one is assigned.
  *
- * The message ID used is copied back to `muid'.
- *
- * NB: this routine is only made visible for "alive.c".
+ * @return pointer to static data
  */
-void
-send_alive_ping(struct gnutella_node *n, gchar *muid)
+struct gnutella_msg_init *
+build_ping_msg(const gchar *muid, guint8 ttl)
 {
-	struct gnutella_msg_init m;
+	static struct gnutella_msg_init m;
 
-	g_assert(NODE_IS_WRITABLE(n));
-	g_assert(muid);
+	g_assert(ttl);
 
-	message_set_muid(&m.header, GTA_MSG_INIT);
-	memcpy(muid, &m.header, 16);
+	if (muid)
+		memcpy(&m.header, muid, 16);
+	else
+		message_set_muid(&m.header, GTA_MSG_INIT);
 
 	m.header.function = GTA_MSG_INIT;
-	m.header.ttl = 1;
+	m.header.ttl = ttl;
 	m.header.hops = 0;
 
 	WRITE_GUINT32_LE(0, m.header.size);
 
-	n->n_ping_sent++;
-	gmsg_ctrl_sendto_one(n, (gchar *) &m, sizeof(struct gnutella_msg_init));
+	return &m;
 }
 
 /**
@@ -137,7 +128,7 @@ send_alive_ping(struct gnutella_node *n, gchar *muid)
  */
 struct gnutella_msg_init_response *
 build_pong_msg(
-	guint8 hops, guint8 ttl, gchar *muid,
+	guint8 hops, guint8 ttl, const gchar *muid,
 	guint32 ip, guint16 port, guint32 files, guint32 kbytes)
 {
 	static struct gnutella_msg_init_response pong;
