@@ -316,6 +316,15 @@ gboolean is_regular(const gchar *path)
 	return S_ISREG(st.st_mode);
 }
 
+/* Check whether path is a symbolic link */
+gboolean is_symlink(const gchar *path)
+{
+	struct stat st;
+	if (-1 == lstat(path, &st))
+		return FALSE;
+	return (st.st_mode & S_IFMT) == S_IFLNK;
+}
+
 /* Returns a number of bytes in a more readable form */
 
 gchar *short_size(guint32 size)

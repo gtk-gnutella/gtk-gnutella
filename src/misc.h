@@ -137,6 +137,7 @@ gboolean is_string_ip(const gchar *);
 gboolean is_private_ip(guint32 ip);
 gboolean is_directory(const gchar *);
 gboolean is_regular(const gchar *);
+gboolean is_symlink(const gchar *);
 gboolean file_exists(const gchar *);
 gboolean is_pow2(guint32 value);
 guint32 next_pow2(guint32 n);

@@ -610,10 +610,15 @@ static void recurse_scan(gchar *dir, const gchar *basedir)
 
 		full = g_strconcat(dir_slash, dir_entry->d_name, NULL);
 
-		if (!is_directory(full))
+		if (!is_directory(full)) {
+			if (scan_ignore_symlink_regfiles && is_symlink(full))
+				continue;
 			files = g_slist_prepend(files, full);
-		else
+		} else {
+			if (scan_ignore_symlink_dirs && is_symlink(full))
+				continue;
 			directories = g_slist_prepend(directories, full);
+		}
 	}
 
 	for (i = 0, l = files; l; i++, l = l->next) {
