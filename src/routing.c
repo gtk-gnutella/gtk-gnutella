@@ -44,10 +44,22 @@
 
 RCSID("$Id$");
 
-struct gnutella_node *fake_node;		/* Our fake node */
+static struct gnutella_node *fake_node;		/* Our fake node */
 
+/*
+ * An entry in the routing table.
+ *
+ * Each entry is stored in the "message_array[]", to keep track of the
+ * order used to create the routes, and in a hash table for quick lookup,
+ * hashing being made based on the muid and the function.
+ *
+ * Query hit routes and push routes are precious, therefore they are
+ * moved to the tail of the "message_array[]" when they get used to increase
+ * their liftime.
+ */
 struct message {
 	gchar muid[16];				/* Message UID */
+	struct message **slot;		/* Place where we're referenced from */
 	GSList *routes;	            /* route_data from where the message came */
 	guint8 function;			/* Type of the message */
 };
@@ -68,7 +80,7 @@ struct route_data {
 	gint32 saved_messages; 		/* # msg from this host in routing table */
 };
 
-struct route_data fake_route;		/* Our fake route_data */
+static struct route_data fake_route;		/* Our fake route_data */
 
 static const gchar *debug_msg[256];
 
@@ -91,6 +103,10 @@ static const gchar *debug_msg[256];
  * back to the beginning of the table, loosing all the routing information
  * before at least TABLE_MIN_CYCLE seconds have elapsed or we have
  * allocated more than the amount of chunks we can tolerate.
+ *
+ * Each chunk contains pointers to dynamically allocated message entries,
+ * each pointer being called a "slot" whilst the message structure is called
+ * the "entry".
  */
 
 #define CHUNK_BITS			14 		/* log2 of # messages stored  in a chunk */
@@ -102,10 +118,10 @@ static const gchar *debug_msg[256];
 #define ENTRY_INDEX(x)		((x) & (CHUNK_MESSAGES - 1))
 
 static struct {
-	struct message *chunks[MAX_CHUNKS];
+	struct message **chunks[MAX_CHUNKS];
 	gint next_idx;					/* Next slot to use in "message_array[]" */
 	gint capacity;					/* Capacity in terms of messages */
-	gint max_filled;				/* Maximum index filled in table */
+	gint count;						/* Amount really stored */
 	GHashTable *messages_hashed;	/* All messages (key = struct message) */
 	time_t last_rotation;			/* Last time we restarted from idx=0 */
 } routing;
@@ -178,15 +194,61 @@ init_routing_data(struct gnutella_node *node)
 }
 
 /**
- * Fetch next routing table entry to be able to store routing information.
+ * Clean already allocated entry.
+ */
+static void
+clean_entry(struct message *entry)
+{
+	g_hash_table_remove(routing.messages_hashed, entry);
+
+	if (entry->routes != NULL)
+		free_route_list(entry);
+
+	entry->routes = NULL;
+}
+
+/**
+ * Prepare entry, cleaning any old value we can find at the referenced slot.
+ * We try to avoid re-allocating something if we can.
+ *
+ * @return message entry to use
  */
 static struct message *
-get_next_entry(void)
+prepare_entry(struct message **entryp)
+{
+	struct message *entry = *entryp;
+
+	if (entry == NULL) {
+		*entryp = entry = walloc0(sizeof(*entry));
+		entry->slot = entryp;
+		routing.count++;
+		goto done;
+	}
+
+	/*
+	 * We cycled over the table, remove the message at the slot we're
+	 * going to supersede.  We don't need to allocate anything, we'll
+	 * reuse the old structure, which will be rehashed after being updated.
+	 */
+
+	clean_entry(entry);
+
+done:
+	g_assert(entry->slot == entryp);
+
+	return entry;
+}
+
+/**
+ * Fetch next routing table slot, a pointer to a routing entry.
+ */
+static struct message **
+get_next_slot(void)
 {
 	guint idx;
 	guint chunk_idx;
-	struct message *chunk;
-	struct message *entry = NULL;
+	struct message **chunk;
+	struct message **slot = NULL;
 
 	idx = routing.next_idx;
 	chunk_idx = CHUNK_INDEX(idx);
@@ -212,13 +274,13 @@ get_next_entry(void)
 			gint elapsed = now - routing.last_rotation;
 
 			if (dbg)
-				printf("RT cycling over table, elapsed=%d, capacity=%d\n",
-					elapsed, routing.capacity);
+				printf("RT cycling over table, elapsed=%d, holds %d / %d\n",
+					elapsed, routing.count, routing.capacity);
 
-			entry = routing.chunks[0];
 			chunk_idx = 0;
 			idx = routing.next_idx = 0;
 			routing.last_rotation = now;
+			slot = routing.chunks[0];
 		} else {
 			/*
 			 * Allocate new chunk, extending the capacity of the table.
@@ -227,17 +289,17 @@ get_next_entry(void)
 			g_assert(idx == 0 || chunk_idx > 0);
 
 			routing.capacity += CHUNK_MESSAGES;
-			routing.chunks[chunk_idx] = (struct message *)
-				g_malloc0(CHUNK_MESSAGES * sizeof(struct message));
+			routing.chunks[chunk_idx] = (struct message **)
+				g_malloc0(CHUNK_MESSAGES * sizeof(struct message *));
 
 			if (dbg)
-				printf("RT created new chunk #%d, new capacity=%d\n",
-					chunk_idx, routing.capacity);
+				printf("RT created new chunk #%d, now holds %d / %d\n",
+					chunk_idx, routing.count, routing.capacity);
 
-			entry = routing.chunks[chunk_idx];	/* First entry in new chunk */
+			slot = routing.chunks[chunk_idx];	/* First slot in new chunk */
 		}
 	} else {
-		entry = &chunk[ENTRY_INDEX(idx)];
+		slot = &chunk[ENTRY_INDEX(idx)];
 
 		/*
 		 * If we went back to the first index without allocating a chunk,
@@ -250,37 +312,16 @@ get_next_entry(void)
 			gint elapsed = now - routing.last_rotation;
 
 			if (dbg)
-				printf("RT cycling over FORCED, elapsed=%d, capacity=%d\n",
-					elapsed, routing.capacity);
+				printf("RT cycling over FORCED, elapsed=%d, holds %d / %d\n",
+					elapsed, routing.count, routing.capacity);
 
 			routing.last_rotation = now;
 		}
 	}
 
-	g_assert(entry != NULL);
+	g_assert(slot != NULL);
 	g_assert(idx == routing.next_idx);
 	g_assert(idx >= 0 && idx < routing.capacity);
-
-	/*
-	 * If we cycled over the table, remove the message at the slot we're
-	 * going to supersede.
-	 */
-
-	if (idx <= routing.max_filled) {
-		g_hash_table_remove(routing.messages_hashed, entry);
-
-		if (entry->routes != NULL)
-			free_route_list(entry);
-	}
-
-	g_assert(entry->routes == NULL);
-
-	/*
-	 * Compute the next index and update the max_filled field.
-	 */
-
-	if (idx > routing.max_filled)
-		routing.max_filled = idx;
 
 	/*
 	 * It's OK to go beyond the last allocated chunk (a new chunk will
@@ -292,7 +333,62 @@ get_next_entry(void)
 	if (CHUNK_INDEX(routing.next_idx) >= MAX_CHUNKS)
 		routing.next_idx = 0;		/* Will force cycling over next time */
 
-	return entry;
+	return slot;
+}
+
+/**
+ * Fetch next routing table entry to be able to store routing information.
+ */
+static struct message *
+get_next_entry(void)
+{
+	struct message **slot;
+
+	slot = get_next_slot();
+	return prepare_entry(slot);
+}
+
+/**
+ * When a precious route (for query hit or push) is used, revitalize the
+ * entry by moving it to the end of the "message_array[]", thereby making
+ * it unlikely that it expires soon.
+ *
+ * @return the new location of the revitalized entry
+ */
+void
+revitalize_entry(struct message *entry)
+{
+	struct message **relocated;
+	struct message *prev;
+
+	/*
+	 * Relocate at the end of the table, preventing early expiration.
+	 */
+
+	relocated = get_next_slot();
+
+	if (entry->slot == relocated)			/* Same slot being used */
+		return;
+
+	/*
+	 * Clean and reclaim new slot content, if present.
+	 */
+
+	prev = *relocated;
+
+	if (prev != NULL) {
+		clean_entry(prev);
+		wfree(prev, sizeof(*prev));
+		routing.count--;
+	}
+
+	/*
+	 * Move `entry' to this new slot.
+	 */
+
+	*relocated = entry;
+	*(entry->slot) = NULL;					/* Old slot "freed" */
+	entry->slot = relocated;				/* Entry now at new slot */
 }
 
 /**
@@ -459,7 +555,6 @@ retry:
 		g_hash_table_new(message_hash_func, message_compare_func);
 	routing.next_idx = 0;
 	routing.capacity = 0;
-	routing.max_filled = -1;
 	routing.last_rotation = time(NULL);
 
 	/*
@@ -919,6 +1014,16 @@ route_message(struct gnutella_node **node, struct route_dest *dest)
 				
 				m->routes = g_slist_append(m->routes, route);
 				route->saved_messages++;
+
+				/*
+				 * We just made use of this routing data: make it persist
+				 * as long as we can by revitalizing the entry.  This will
+				 * allow us to route back PUSH requests for a longer time,
+				 * at least TABLE_MIN_CYCLE seconds after seeing the latest
+				 * query hit flow by.
+				 */
+
+				revitalize_entry(m);
 			}
 		}
 
@@ -952,7 +1057,7 @@ route_message(struct gnutella_node **node, struct route_dest *dest)
 			routing_log("[ ] no request matching the reply!");
 
 			sender->rx_dropped++;
-            gnet_stats_count_dropped(sender, MSG_DROP_UNREQUESTED_REPLY);
+            gnet_stats_count_dropped(sender, MSG_DROP_NO_ROUTE);
 			sender->n_bad++;	/* Node shouldn't have forwarded this message */
 
 			if (dbg)
@@ -968,6 +1073,13 @@ route_message(struct gnutella_node **node, struct route_dest *dest)
 		}
 
 		g_assert(m);		/* Or find_message() would have returned FALSE */
+
+		/*
+		 * Since this routing data is used, relocate it at the end of
+		 * the "message_array[]" to augment its lifetime.
+		 */
+
+		revitalize_entry(m);
 
 		/*
 		 * If `m->routes' is NULL, we have seen the request, but unfortunately
@@ -1188,6 +1300,12 @@ route_message(struct gnutella_node **node, struct route_dest *dest)
 				return FALSE;
 			}
 
+			/*
+			 * By revitalizing the entry, we'll remember the route for
+			 * at least TABLE_MIN_CYCLE secs more after seeing this PUSH.
+			 */
+
+			revitalize_entry(m);
 			forward_message(node, NULL, dest, m->routes);
 
 			return FALSE;		/* We are not the target, don't handle it */
@@ -1323,16 +1441,6 @@ route_proxy_find(gchar *guid)
 }
 
 /**
- * Frees the routing data associated with a message.
- */
-static void
-free_routing_data(gpointer key, gpointer value, gpointer udata)
-{
-	struct message *m = (struct message *) value;
-	free_route_list(m);
-}
-
-/**
  * Frees the banned GUID atom keys.
  */
 static void
@@ -1351,13 +1459,22 @@ routing_close(void)
 
 	g_assert(routing.messages_hashed);
 	
-	g_hash_table_foreach(routing.messages_hashed, free_routing_data, NULL);
 	g_hash_table_destroy(routing.messages_hashed);
 	routing.messages_hashed = NULL;
 
 	for (cnt = 0; cnt < MAX_CHUNKS; cnt++) {
-		if (routing.chunks[cnt] != NULL)
-			G_FREE_NULL(routing.chunks[cnt]);
+		struct message **chunk = routing.chunks[cnt];
+		if (chunk != NULL) {
+			gint i;
+			for (i = 0; i < CHUNK_MESSAGES; i++) {
+				struct message *m = chunk[i];
+				if (m != NULL) {
+					free_route_list(m);
+					wfree(m, sizeof(*m));
+				}
+			}
+			G_FREE_NULL(chunk);
+		}
 	}
 
 	g_hash_table_foreach(ht_banned_push, free_banned_push, NULL);
