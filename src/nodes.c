@@ -4732,17 +4732,8 @@ static void node_parse(struct gnutella_node *node)
 				n->header.ttl++;
 				n->header.hops--;
 			}
-
-			/*
-			 * We may forward this message to our leaves.  Ensure it does
-			 * not appear to have expired here.  Leave the hop count intact
-			 * though.
-			 */
-
-			if (current_peermode == NODE_P_ULTRA && n->header.ttl == 0)
-				n->header.ttl++;
-
 			break;
+
 		case GTA_MSG_SEARCH_RESULTS:
             /*
              * search_results takes care of telling the stats that
@@ -4750,6 +4741,7 @@ static void node_parse(struct gnutella_node *node)
              */
 			drop = search_results(n, &results);
 			break;
+
 		default:
 			message_dump(n);
 			break;

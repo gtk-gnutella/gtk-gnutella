@@ -3797,6 +3797,11 @@ qrp_node_can_route(gnutella_node_t *n, query_hashvec_t *qhv)
  * and by its source node (so we don't send back the query where it
  * came from).
  *
+ * NB: it is allowed to call this with TTL=0, in which case we won't
+ * consider UPs for forwarding.  If TTL=1, we forward to all normal nodes
+ * or UPs that don't support last-hop QRP, plus those whose QRP table says
+ * they could bring a match.
+ *
  * Returns list of nodes, a subset of the currently connected nodes.
  * Once used, the list of nodes can be freed with g_slist_free().
  */
@@ -3862,11 +3867,14 @@ qrt_build_query_target(
 
 		node_inc_qrp_query(dn);
 
-		if (!NODE_IS_LEAF(dn) && !NODE_UP_QRP(dn))
-			goto can_send;				/* Broadcast to that node */
-
-		if (rt == NULL)					/* UP has not sent us its table */
-			goto can_send;				/* Forward everything then */
+		if (!NODE_IS_LEAF(dn)) {
+			if (ttl == 0)				/* Message expired here */
+				continue;				/* Don't forward to non-leaves */
+			if (!NODE_UP_QRP(dn))		/* QRP-unaware host? */
+				goto can_send;			/* Broadcast to that node */
+			if (rt == NULL)				/* UP has not sent us its table */
+				goto can_send;			/* Forward everything then */
+		}
 
 		if (!qrp_can_route(qhvec, rt))
 			continue;
@@ -3958,6 +3966,16 @@ qrt_route_query(struct gnutella_node *n, query_hashvec_t *qhvec)
 			gmsg_infostr(&n->header), qhvec->count, leaves, node_leaf_count,
 			ultras, ultras == 1 ? "" : "s");
 	}
+
+	/*
+	 * Now that the original TTL was used to build the node list, don't
+	 * forget that we choose to forward queries that reach us with TTL=0
+	 * to our leaves.  But we can never send out a TTL=0 message, so
+	 * increase the TTL before sending.
+	 */
+
+	if (nodes != NULL && n->header.ttl == 0)
+		n->header.ttl++;
 
 	gmsg_split_sendto_all(nodes, (guchar *) &n->header, n->data,
 		n->size + sizeof(struct gnutella_header));
