@@ -111,6 +111,7 @@ void node_remove(struct gnutella_node *n, const gchar *reason, ...)
 	{
 		g_assert(n->socket->resource.node == n);
 		socket_free(n->socket);
+		n->socket = NULL;
 	}
 
 	if (n->gdk_tag)		gdk_input_remove(n->gdk_tag);
