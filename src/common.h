@@ -284,21 +284,38 @@ extern guint32 common_dbg;
 #  include <libintl.h>
 #  undef _
 #  define _(String) dgettext(PACKAGE, String)
+#  define Q_(String) g_strip_context ((String), gettext (String))
 #  ifdef gettext_noop
 #    define N_(String) gettext_noop(String)
 #  else
 #    define N_(String) (String)
 #  endif
+
+
 #else
 #  define textdomain(String) (String)
 #  define gettext(String) (String)
 #  define dgettext(Domain,Message) (Message)
 #  define dcgettext(Domain,Message,Type) (Message)
 #  define bindtextdomain(Domain,Directory) (Domain)
+#  define ngettext(Single, Plural, Number) ((Number) == 1 ? (Single) : (Plural))
 #  define _(String) (String)
 #  define N_(String) (String)
+#  define Q_(String) g_strip_context ((String), (String))
 #endif /* ENABLE_NLS */
 
+static inline const gchar *
+ngettext_(const gchar *msg1, const gchar *msg2, gulong n)
+G_GNUC_FORMAT(1) G_GNUC_FORMAT(2);
+
+static inline const gchar *
+ngettext_(const gchar *msg1, const gchar *msg2, gulong n)
+{
+	return ngettext(msg1, msg2, n);
+}
+
+#define NG_(Single, Plural, Number) ngettext_((Single), (Plural), (Number))
+																		
 #endif /* _common_h_ */
 
 /* vi: set ts=4 sw=4 cindent: */
