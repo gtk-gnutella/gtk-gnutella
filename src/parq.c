@@ -108,6 +108,10 @@ struct parq_ul_queued_by_ip {
 	gint	uploading;		/* Number of uploads uploading */
 	gint	total;			/* Total queued items for this ip */
 	guint32 ip;
+	
+	time_t	last_queue_sent;
+	time_t	last_queue_connected;
+	
 	GList	*list;			/* List or queued items for this ip */
 };
 
@@ -1820,20 +1824,74 @@ void parq_upload_timer(time_t now)
 
 	gnet_prop_get_boolean_val(PROP_LIBRARY_REBUILDING, &rebuilding);
 	
-	if (!rebuilding) {
+	if (!rebuilding && ul_parq_queue != NULL) {
+		GList *queue_cmd_remove = NULL;
+		GList *queue_cmd_list = NULL;
 		extern gint registered_uploads;			/* From uploads.c */
-
-		while (
-			registered_uploads < MAX_UPLOADS && 
-			g_list_first(ul_parq_queue) != NULL
-		) {
+		
+		queue_cmd_list = ul_parq_queue;
+		do {
 			struct parq_ul_queued *parq_ul = 
-				(struct parq_ul_queued *) g_list_first(ul_parq_queue)->data;
+				(struct parq_ul_queued *) queue_cmd_list->data;
+			
+			/* 
+			 * If a previous QUEUE command could not connect to this IP during
+			 * this timeframe, we can safely ignore all QUEUE commands for this
+			 * IP now. 
+			 */
+			if (
+				now >= parq_ul->by_ip->last_queue_sent + 
+					upload_connecting_timeout &&
+				parq_ul->by_ip->last_queue_sent >
+					parq_ul->by_ip->last_queue_connected &&
+				now - parq_ul->by_ip->last_queue_sent < QUEUE_PERIOD
+			) {
+
+				if (dbg > 3)
+					printf("PARQ UL: Removing QUEUE command due to other "
+						"failed QUEUE command for ip: %s\r\n",
+						ip_to_gchar(parq_ul->by_ip->ip));
+
+				parq_ul->last_queue_sent = parq_ul->by_ip->last_queue_sent;
+				queue_cmd_remove = g_list_prepend(queue_cmd_remove, parq_ul);
 				
+				parq_ul->flags &= ~PARQ_UL_QUEUE;
+				continue;
+			}
+	
+			/*
+			 * Don't send queue if the current IP has another pending connecting
+			 * QUEUE.
+			 */
+			if (
+				parq_ul->by_ip->last_queue_sent + upload_connecting_timeout >= 
+					now &&
+				parq_ul->by_ip->last_queue_sent >
+					parq_ul->by_ip->last_queue_connected
+				) {
+					
+					if (dbg > 3)
+						printf("PARQ UL: Not sending QUEUE command due to "
+							"another pending QUEUE command for ip: %s\r\n",
+							ip_to_gchar(parq_ul->by_ip->ip));
+					continue;
+			}
+			
 			parq_upload_do_send_queue(parq_ul);
 	
-			ul_parq_queue = g_list_remove(ul_parq_queue, parq_ul);
+			queue_cmd_remove = g_list_prepend(queue_cmd_remove, parq_ul);
+			
 			parq_ul->flags &= ~PARQ_UL_QUEUE;
+		} while (
+			registered_uploads < MAX_UPLOADS && 
+			(queue_cmd_list = g_list_next(queue_cmd_list)) != NULL
+		);
+		
+		while (g_list_first(queue_cmd_remove) != NULL) {
+			ul_parq_queue = 
+				g_list_remove(ul_parq_queue, queue_cmd_remove->data);
+			queue_cmd_remove =
+				g_list_remove(queue_cmd_remove, queue_cmd_remove->data);
 		}
 	}
 }
@@ -2899,6 +2957,7 @@ void parq_upload_send_queue(struct parq_ul_queued *parq_ul)
 		parq_ul->flags |= PARQ_UL_NOQUEUE;
 		return;
 	}
+printf("Adding queue command for ip: %s\r\n", ip_to_gchar(parq_ul->by_ip->ip));
 
 	ul_parq_queue = g_list_append(ul_parq_queue, parq_ul);
 	parq_ul->flags |= PARQ_UL_QUEUE;
@@ -2913,12 +2972,14 @@ void parq_upload_do_send_queue(struct parq_ul_queued *parq_ul)
 {
 	struct gnutella_socket *s;
 	gnutella_upload_t *u;
+	time_t now = time((time_t *) NULL);
 
 	g_assert(parq_ul->flags & PARQ_UL_QUEUE);
 
 	parq_ul->last_queue_sent = time(NULL);		/* We tried... */
 	parq_ul->queue_sent++;
-
+	parq_ul->by_ip->last_queue_sent = now;
+	
 	if (dbg)
 		printf("PARQ UL Q %d/%d (%3d[%3d]/%3d): "
 			"Sending QUEUE #%d to %s: '%s'\n\r",
@@ -2963,6 +3024,7 @@ void parq_upload_send_queue_conf(gnutella_upload_t *u)
 	struct gnutella_socket *s;
 	gint rw;
 	gint sent;
+	time_t now = time((time_t *) NULL);
 
 	g_assert(u);
 	g_assert(u->status == GTA_UL_QUEUE);
@@ -2971,6 +3033,8 @@ void parq_upload_send_queue_conf(gnutella_upload_t *u)
 	parq_ul = parq_upload_find(u);
 	
 	g_assert(parq_ul != NULL);
+
+	parq_ul->by_ip->last_queue_connected = now;
 
 	/*
 	 * Send the QUEUE header.
