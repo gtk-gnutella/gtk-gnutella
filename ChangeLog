@@ -1,5 +1,15 @@
 # since last version
 
+- (2003.03.16 - RAM)
+ * Regenerated configure and friends.
+ * Integrated icon patch from Mike Gray.
+ * Suppress error message from DNS helper upon final exit.
+ * Make sure we don't try to parse ranges if the file size is zero bytes.
+ * In leaf mode, allow flow control from ultrapeer up to 95% of the time.
+ * Fixed flags display for nodes: was no longer showing 'I' or 'O'.
+ * Adjusted bandwidth scheduler to limit starvation effects when we have
+   a large amount of entries.
+
 - (2003.03.11 - Richard)
  * Added possibility to tap into the fileinfo database from the gui.
  * [Gtk1] Added file info table to the downloads pane. This is not finished, 
@@ -10,6 +20,9 @@
  * Introduced file_info_ref() and file_info_unref() to make it possible to
    watch for changes here and notify the gui.
  * Fixed: PROP_BAN_MAX_FDS not updated in gui
+
+- (2003.03.09 - RAM)
+ * Change web cache when an ERROR (HTTP or web cache) is reported.
 
 - (2003.03.06 - Richard)
  * Fixed odometers (were all showing "in")
