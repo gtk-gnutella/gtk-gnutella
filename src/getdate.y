@@ -758,7 +758,7 @@ static int LookupWord(char *buff)
     int abbrev;
 
     /* Make it lowercase. */
-    for (p = buff; *p; p++)
+    for (p = (unsigned char *) buff; *p; p++)
 	if (ISUPPER(*p))
 	    *p = tolower(*p);
 
@@ -835,7 +835,7 @@ static int LookupWord(char *buff)
     }
 
     /* Drop out any periods and try the timezone table again. */
-    for (i = 0, p = q = buff; *q; q++)
+    for (i = 0, p = q = (unsigned char *) buff; *q; q++)
 	if (*q != '.')
 	    *p++ = *q;
 	else
@@ -904,7 +904,7 @@ static int yylex(void)
 		    *p++ = c;
 	    *p = '\0';
 	    yyInput--;
-	    return LookupWord(buff);
+	    return LookupWord((char *) buff);
 	}
 	if (c != '(')
 	    return *yyInput++;
@@ -956,7 +956,7 @@ time_t date2time(const char *p, const time_t *now)
     struct tm tm, tm0, *tmp;
     time_t Start;
 
-    yyInput = p;
+    yyInput = (const unsigned char *) p;
     Start = now ? *now : time((time_t *) NULL);
     tmp = localtime(&Start);
     yyYear = tmp->tm_year + TM_YEAR_ORIGIN;
