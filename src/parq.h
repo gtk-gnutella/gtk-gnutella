@@ -59,6 +59,7 @@ void parq_download_queue_ack(struct gnutella_socket *s);
 	
 void parq_upload_timer(time_t now);
 void parq_upload_add_header(gchar *buf, gint *retval, gpointer arg);
+void parq_upload_add_header_id(gchar *buf, gint *retval, gpointer arg);
 gpointer parq_upload_get(gnutella_upload_t *u, header_t *header);
 gboolean parq_upload_request(gnutella_upload_t *u, gpointer handle, 
 		guint used_slots);
