@@ -55,7 +55,6 @@ static GtkCellRenderer *nodes_gui_cell_renderer = NULL;
 /* hash table for fast handle -> GtkTreeIter mapping */
 static GHashTable *nodes_handles = NULL;
 /* list of all node handles */
-static GList *list_nodes = NULL;
 
 /***
  *** Private functions
@@ -166,16 +165,9 @@ static void nodes_gui_create_treeview_nodes(void)
     /*
      * Get the monitor widget
      */
-	treeview_nodes = GTK_TREE_VIEW(lookup_widget(
-		main_window, "treeview_nodes"));
-	tree = treeview_nodes;
-
+	tree = GTK_TREE_VIEW(lookup_widget(main_window, "treeview_nodes"));
+	treeview_nodes = tree;
 	gtk_tree_view_set_model(tree, GTK_TREE_MODEL(nodes_model));
-
-    /*
-     * The view now holds a reference.  We can get rid of our own
-     * reference
-     */
 	gtk_tree_selection_set_mode(gtk_tree_view_get_selection(tree),
 		GTK_SELECTION_MULTIPLE);
 
@@ -349,9 +341,6 @@ void nodes_gui_shutdown(void)
 	g_hash_table_destroy(nodes_handles);
 	nodes_handles = NULL;
 
-	g_list_free(list_nodes);
-	list_nodes = NULL;
-
     g_hash_table_destroy(ht_node_info_changed);
     g_hash_table_destroy(ht_node_flags_changed);
 
@@ -379,7 +368,6 @@ void nodes_gui_remove_node(gnet_node_t n)
 	g_assert(NULL != iter);
 	gtk_list_store_remove(nodes_model, iter);
 	g_hash_table_remove(nodes_handles, GUINT_TO_POINTER(n));
-	list_nodes = g_list_remove(list_nodes, GUINT_TO_POINTER(n));
 }
 
 /*
@@ -409,18 +397,17 @@ void nodes_gui_add_node(gnet_node_info_t *n, const gchar *type)
         (-1));
 	g_hash_table_insert(nodes_handles,
 		GUINT_TO_POINTER(n->node_handle), iter);
-	list_nodes = g_list_prepend(list_nodes, GUINT_TO_POINTER(n->node_handle));
 }
 
 
-static inline void update_row(gpointer data, const time_t *now)
+static inline void update_row(gpointer key, gpointer value, gpointer user_data)
 {
-	GtkTreeIter *iter;
-	gnet_node_t n = (gnet_node_t) GPOINTER_TO_UINT(data);
-	gnet_node_status_t status;
 	static gchar timestr[SIZE_FIELD_MAX];
+	GtkTreeIter *iter = value;
+	gnet_node_t n = (gnet_node_t) GPOINTER_TO_UINT(key);
+	time_t now = *(time_t *) user_data;
+	gnet_node_status_t status;
 
-	iter = find_node(n);
 	g_assert(NULL != iter);
 	node_get_status(n, &status);
 
@@ -445,19 +432,19 @@ static inline void update_row(gpointer data, const time_t *now)
     }
 
 	if (status.connect_date) {
-		g_strlcpy(timestr, short_uptime(delta_time(*now, status.connect_date)),
+		g_strlcpy(timestr, short_uptime(delta_time(now, status.connect_date)),
 			sizeof(timestr));
 		gtk_list_store_set(nodes_model, iter, 
 			c_gnet_connected, timestr,
 			c_gnet_uptime, status.up_date
-				? short_uptime(delta_time(*now, status.up_date)) : NULL,
-			c_gnet_info, nodes_gui_common_status_str(&status, *now),
+				? short_uptime(delta_time(now, status.up_date)) : NULL,
+			c_gnet_info, nodes_gui_common_status_str(&status, now),
 			(-1));
 	} else {
 		gtk_list_store_set(nodes_model, iter,
 			c_gnet_uptime, status.up_date
-				? short_uptime(delta_time(*now, status.up_date)) : NULL,
-			c_gnet_info, nodes_gui_common_status_str(&status, *now),
+				? short_uptime(delta_time(now, status.up_date)) : NULL,
+			c_gnet_info, nodes_gui_common_status_str(&status, now),
 			(-1));
 	}
 }
@@ -521,7 +508,7 @@ void nodes_gui_update_nodes_display(time_t now)
     	gtk_tree_view_set_model(treeview_nodes, NULL);
 	}
 
-	G_LIST_FOREACH(list_nodes, update_row, &now);
+	g_hash_table_foreach(nodes_handles, update_row, &now);
 
 	if (do_freeze) {
     	/* "Thaw" view */
