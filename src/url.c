@@ -234,10 +234,16 @@ guchar *url_unescape(guchar *url, gboolean inplace)
 	if (need_unescape == 0)
 		return url;
 
+	/*
+	 * The "+ 1" in the g_malloc() call below is for the rare cases where
+	 * the string would finish on a truncated escape sequence.  In that
+	 * case, we would not have enough room for the final trailing NUL.
+	 */
+
 	if (inplace)
 		new = url;
 	else
-		new = g_malloc(p - url - (need_unescape << 1));
+		new = g_malloc(p - url - (need_unescape << 1) + 1);
 
 	for (p = url, q = new, c = *p++; c; c = *p++) {
 		if (c != ESCAPE_CHAR)
@@ -248,7 +254,7 @@ guchar *url_unescape(guchar *url, gboolean inplace)
 				if ((c = *p++))
 					v += hex2dec(c) & 0x0f;
 				else
-					break;
+					break;		/* String ending in the middle of escape */
 				*q++ = v;
 			} else
 				break;
