@@ -89,6 +89,9 @@ typedef struct gnet_node_status {
     gboolean rx_compressed;     /* Is rx traffic compressed */
     gfloat   rx_compression_ratio;/* Rx compression ratio */
 
+	guint32  rt_avg;			/* Average ping/pong roundtrip time */
+	guint32  rt_last;			/* Last ping/pong roundtrip time */
+
     gint     shutdown_remain;   /* Number of seconds before shutdown */
     gchar    message[128];       /* Additional information */
 } gnet_node_status_t;

@@ -143,10 +143,10 @@ static gchar *nodes_gui_status_str(const gnet_node_status_t *n, time_t now)
 
 			slen += g_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
 				" Query(TX=%d, Q=%d) Drop(TX=%d, RX=%d)"
-				" Dup=%d Bad=%d W=%d Q=%d,%d%% %s",
+				" Dup=%d Bad=%d W=%d RT(avg=%d, last=%d) Q=%d,%d%% %s",
 				n->squeue_sent, n->squeue_count,
 				n->tx_dropped, n->rx_dropped, n->n_dups, n->n_bad, n->n_weird,
-				n->mqueue_count, n->mqueue_percent_used,
+				n->rt_avg, n->rt_last, n->mqueue_count, n->mqueue_percent_used,
 				n->in_tx_flow_control ? " [FC]" : "");
 			a = gui_tmp;
 		} else
