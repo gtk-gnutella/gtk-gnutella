@@ -1045,7 +1045,7 @@ void upload_push_conf(struct upload *u)
 	} else if (sent < rw) {
 		g_warning("Only sent %d out of %d bytes of GIV for \"%s\" to %s: %s",
 			sent, rw, u->name, ip_to_gchar(s->ip), g_strerror(errno));
-	} else if (dbg > 4) {
+	} else if (dbg > 2) {
 		printf("----Sent GIV to %s:\n%.*s----\n", ip_to_gchar(s->ip), rw, giv);
 		fflush(stdout);
 	}
@@ -1578,7 +1578,7 @@ static void upload_request(struct upload *u, header_t *header)
 
 	titles[0] = titles[1] = titles[2] = titles[3] = titles[4] = NULL;
 
-	if (dbg > 4) {
+	if (dbg > 2) {
 		printf("----Incoming Request from %s:\n", ip_to_gchar(s->ip));
 		printf("%s\n", request);
 		header_dump(header, stdout);

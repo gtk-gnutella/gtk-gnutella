@@ -124,7 +124,7 @@ gboolean http_send_status(
 		g_warning("Only sent %d out of %d bytes of status %d (%s) to %s: %s",
 			sent, rw, code, reason, ip_to_gchar(s->ip), g_strerror(errno));
 		return FALSE;
-	} else if (dbg > 4) {
+	} else if (dbg > 2) {
 		printf("----Sent HTTP Status to %s:\n%.*s----\n",
 			ip_to_gchar(s->ip), rw, header);
 		fflush(stdout);
