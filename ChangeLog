@@ -1,5 +1,16 @@
 # since last version
 
+- (2002.12.31 - cbiere)
+ * [Gtk2] Added and removed properties for gnet stats
+ * Size for received packets was wrongly added
+ * Added enum PROXY_NONE (gnet.h)
+ * Rearranged gnet stats
+ * Simplified proxy and peer mode configuration
+ * Use enums for proxy protocol (sockets.c)
+ * [Gtk2] Upload stats are sortable now (not by size yet)
+ * Skip manual int->string conversion (upload_stats_gui2.c)
+ * Added RCSID macro which should be used in every .c file: RCSID("$Id")
+
 - (2002.12.30 - Richard)
  * Added PROP_BW_ALLOW_STEALING to gui
  * Replaced radiobuttons with GtkCombo for PROP_PROXY_PROTOCOL
