@@ -232,7 +232,7 @@ struct efj_t
 	bitzi_fj_t judgement;
 };
 
-static struct efj_t enum_fj_table[] = {
+static const struct efj_t const enum_fj_table[] = {
 	{"Unknown", UNKNOWN},
 	{"Dangerous/Misleading", DANGEROUS_MISLEADING},
 	{"Incomplete/Damaged", INCOMPLETE_DAMAGED},
@@ -274,7 +274,7 @@ process_rdf_description(xmlNode * node, bitzi_data_t * data)
 	 */
 	xml_string = xmlGetProp(node, "fileGoodness");
 	if (xml_string) {
-		data->goodness = atof(xml_string);
+		data->goodness = g_strtod(xml_string, NULL);
 		if (dbg)
 			g_message("fileGoodness is %s/%f", xml_string, data->goodness);
 	} else
@@ -284,8 +284,8 @@ process_rdf_description(xmlNode * node, bitzi_data_t * data)
 	xml_string = xmlGetProp(node, "fileJudgement");
 
 	if (xml_string) {
-		unsigned int i;
-		for (i = 0; i <  G_N_ELEMENTS(enum_fj_table); i++) {
+		size_t i;
+		for (i = 0; i < G_N_ELEMENTS(enum_fj_table); i++) {
 			if (xmlStrEqual(xml_string, enum_fj_table[i].string))
 				data->judgement = enum_fj_table[i].judgement;
 		}
@@ -389,7 +389,7 @@ process_meta_data(bitzi_request_t *request)
 {
 	xmlDoc	*doc = NULL; 	/* the resulting document tree */
 	xmlNode	*root = NULL;
-	int result;
+	gint result;
 
 	if (dbg)
 		g_message("process_meta_data: %p", request);
@@ -448,10 +448,8 @@ process_meta_data(bitzi_request_t *request)
  * Called directly when a request launched or via the bitzi_heartbeat tick.
  */
 static gboolean
-do_metadata_query(bitzi_request_t * req)
+do_metadata_query(bitzi_request_t *req)
 {
-	bitzi_data_t *data;
-
 	if (dbg)
 		g_message("do_metadata_query: %p", req);
 
@@ -461,10 +459,9 @@ do_metadata_query(bitzi_request_t * req)
 	bitzi_rq = g_slist_remove(bitzi_rq, req);
 
 	/*
-	 * check we havn't already got a response from a previous query 
+	 * check we haven't already got a response from a previous query 
 	 */
-	data = bitzi_querycache_byurnsha1(req->urnsha1);
-	if (data)
+	if (NULL != bitzi_querycache_byurnsha1(req->urnsha1))
 		return FALSE;
 
 	current_bitzi_request = req;
@@ -515,9 +512,11 @@ do_metadata_query(bitzi_request_t * req)
  * Add the data entry to the cache and in expiry sorted date order to
  * the linked list.
  */
-static int
-bitzi_date_compare(bitzi_data_t *a, bitzi_data_t *b)
+static gint
+bitzi_date_compare(gconstpointer p, gconstpointer q)
 {
+	const bitzi_data_t *a = p, *b = q;
+
 	if (a->expiry < b->expiry)
 		return -1;
 	else if (b->expiry > a->expiry)
@@ -535,8 +534,7 @@ bitzi_cache_add(bitzi_data_t *data)
 	}
 
 	g_hash_table_insert(bitzi_cache_ht, data->urnsha1, data);
-	bitzi_cache = g_list_insert_sorted(
-		bitzi_cache, data, (GCompareFunc) bitzi_date_compare);
+	bitzi_cache = g_list_insert_sorted(bitzi_cache, data, bitzi_date_compare);
 
 	if (dbg)
 		g_message("bitzi_cache_add: data %p, now %d entries",
@@ -562,33 +560,30 @@ static void
 bitzi_cache_clean(void)
 {
 	time_t now = time(NULL);
-	bitzi_data_t *data;
-	GList *cl = bitzi_cache;
-	GList *el = NULL;
+	GList *l = bitzi_cache;
+	GSList *to_remove = NULL, *sl;
 
 	/*
 	 * find all entries that have expired 
 	 */
 
-	if (cl != NULL) {
-		do {
-			data = cl->data;
+	for (l = bitzi_cache; l != NULL; l = g_list_next(l)) {
+		bitzi_data_t *data = l->data;
 
-			if (data->expiry < now)
-				el = g_list_append(el, data);
+		if (delta_time(data->expiry, now) >= 0)
+			break;
 
-			cl = cl->next;
-		} while (cl && data->expiry < now);
+		to_remove = g_slist_prepend(to_remove, data);
 	}
 
 	/*
 	 * now flush the expired entries 
 	 */
 
-	for ( /* el */ ; el; el = el->next)
-		bitzi_cache_remove(el->data);
+	for (sl = to_remove; sl != NULL; sl = g_slist_next(sl))
+		bitzi_cache_remove(sl->data);
 
-	g_list_free(el);
+	g_slist_free(to_remove);
 }
 
 /*************************************************************
@@ -603,18 +598,14 @@ bitzi_cache_clean(void)
 static gboolean
 bitzi_heartbeat(gpointer null_data)
 {
-	gboolean done;
-
 	/*
 	 * launch any pending queries 
 	 */
 
-	do {
-		if (current_bitzi_request == NULL && bitzi_rq != NULL)
-			done = do_metadata_query(bitzi_rq->data);
-		else
-			done = TRUE;
-	} while (done == FALSE);
+	while (current_bitzi_request == NULL && bitzi_rq != NULL) {
+		if (do_metadata_query(bitzi_rq->data))
+			break;
+	}
 
 	bitzi_cache_clean();
 
@@ -631,7 +622,7 @@ bitzi_heartbeat(gpointer null_data)
  * nothing otherwise we return the 
  */
 bitzi_data_t *
-bitzi_querycache_byurnsha1(gchar * urnsha1)
+bitzi_querycache_byurnsha1(const gchar *urnsha1)
 {
 	return g_hash_table_lookup(bitzi_cache_ht, urnsha1);
 }
@@ -644,8 +635,8 @@ bitzi_querycache_byurnsha1(gchar * urnsha1)
  * If no query succeds then the call back is never made, however we
  * should always get some sort of data back from the service.
  */
-void *
-bitzi_query_byurnsha1(gchar * urnsha1)
+gpointer
+bitzi_query_byurnsha1(const gchar *urnsha1)
 {
 	bitzi_data_t *data = NULL;
 	bitzi_request_t	*request;
@@ -687,7 +678,8 @@ bitzi_query_byurnsha1(gchar * urnsha1)
 /**
  * Initialise any bitzi specific stuff we want to here
  */
-void bitzi_init(void)
+void
+bitzi_init(void)
 {
 	bitzi_cache_ht = g_hash_table_new(NULL, NULL);
 
