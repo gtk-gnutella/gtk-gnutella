@@ -844,13 +844,12 @@ gint highest_bit_set(guint32 n)
  */
 gfloat force_range(gfloat val, gfloat min, gfloat max)
 {
-    g_assert(min <= max);
+	g_assert(min <= max);
 
-    if (val < min)
-	return min;
-    if (val > max)
-	return max;
-    return val;	
+	return
+		val < min ? min :
+		val > max ? max :
+		val;
 }
 
 /*
