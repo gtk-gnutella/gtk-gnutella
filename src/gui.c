@@ -575,6 +575,8 @@ void gui_update_download_abort_resume(void)
 			continue;
 		}
 
+		g_assert(d->status != GTA_DL_REMOVED);
+
         if (d->status != GTA_DL_COMPLETED)
             queue = TRUE;
     
