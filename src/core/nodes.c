@@ -6349,11 +6349,15 @@ node_get_info(const gnet_node_t n)
 void
 node_clear_info(gnet_node_info_t *info)
 {
-	if (info->vendor)
+	if (info->vendor) {
 		atom_str_free(info->vendor);
+		info->vendor = NULL;
+	}
 
-	if (info->country)
+	if (info->country) {
 		atom_str_free(info->country);
+		info->country = NULL;
+	}
 }
 
 /**
