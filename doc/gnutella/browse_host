@@ -1,0 +1,173 @@
+-------------- BROWSE HOST PROTOCOL PROPOSAL --------------
+
+At a high level, the protocol manages the exchange of binary Query
+Replies through the HTTP protocol used for Uploads and Downloads.
+
+Here are the details about the proposed standard:
+
+1) Advertising Browse Host through GGEP
+
+'Browse Host' capable clients notify others of this feature via
+GGEP. THe new extension ID for Browse Host is 'BH' (subject to
+approval) and 'Browse Host' capable clients should add a
+corresponding extension header to all Query Replies. There is no
+need for any extension data.
+In the future, this may be extended to allow more depth in the
+description of Browse Host capabilities (via a non-empty extension
+data field), ie "text/html" or "binary QR".
+For now, simply having a GGEP ext. ID (and no data) is sufficient
+because different 'Browse Host' implementations are resolved via the
+'Accept' HTTP header flag (see below for more detail).
+
+2) The HTTP-based Browse Host Protocol
+
+A) The Protocol
+
+A Browse Host request will be satisfied through an HTTP GET request.
+The request will list media types that are acceptable as a return
+value (via the 'Accept' request header field, RFC 1945, pg. 59).
+The request lists these media types with a empty-string valued GET.
+For example, here is a sample Browse Host HTTP request:
+
+Client (LimeWire)
+-------------------------
+GET / HTTP/1.1
+Host: w.x.y.z
+User-Agent: Limewire x.y.z Pro
+Accept: text/html, application/x-gnutella-packets
+Content-Length: 0
+Connection: close
+
+Server (New BearShare)
+-------------------------
+HTTP/1.1 200 OK
+Server: BearShare/x.y
+Content-Type: text/html; charset=iso-8859-1
+
+In this example above, LimeWire wants to browse a BearShare and it
+accepts responses with media types text/html and
+application/x-gnutella-packets.
+The BearShare supports text/html only. Therefore it returns a OK
+indicating that responses will be sent back as html (the html will
+immediately follow the HTTP OK Response). Requesting the root "/"
+in the GET request is translated into an Browse Host request.
+
+The Server's IP and port can be retrieved via the standard route, ie a
+Query Reply.
+
+As can be seen, servers reply back with the media type that will be
+returned - the standard response media type is
+"application/x-gnutella-packets" .
+This media type implies that a stream of binary Query Replies
+describing the shared files of the responding servent will be
+returned.
+
+The "text/html" media type is featured in BearShare clients. Bearshare
+has had the browse host feature for some time now. The "text/html"
+media type simply sends back a HTML page listing the servent's files.
+This media type lacks several important features, such as reporting
+file size. It is recommended that all implementations use the
+"application/x-gnutella-packets" media type as their default but
+implement "text/html" reception (to be compatible with older
+BearShare's).  Minimally, all implementation must support the 
+"application/x-gnutella-packets" media type for output while being
+browsed.  The GUID of the query replies sent back for a 
+"application/x-gnutella-packets" Browse Host request can be
+determined arbritrarily by the Server.
+
+Other media types will be followed by different responses, as
+necessary.
+
+A server may compress the results of a Browse Host query.  First,
+the server should confirm that the client accepts the compressed
+encoding, ie "deflate".  This can be communicated by the client
+through use of the HTTP 'Accept-Encoding' header and by the
+server's use of the HTTP 'Content-Encoding' header.  For example:
+
+Client (LimeWire)
+-------------------------
+GET / HTTP/1.1
+Host: w.x.y.z
+User-Agent: Limewire x.y.z Pro
+Accept: text/html, application/x-gnutella-packets
+Accept-Encoding: deflate
+Content-Length: 0
+Connection: close
+
+Server (New BearShare)
+-------------------------
+HTTP/1.1 200 OK
+Server: BearShare/x.y
+Content-Type: text/html; charset=iso-8859-1
+Content-Encoding: deflate
+
+B) Error Cases
+
+If a servent cannot respond to any of the requested media types, an
+HTTP error message is returned.
+For example:
+
+Client (Old BearShare)
+-------------------------
+GET / HTTP/1.0
+Accept:text/html
+
+Server (LimeWire)
+-------------------------
+HTTP/1.1 406 Not Acceptable
+Content-Type: text/html
+
+Old BearShare's only support text/html and LimeWire does not, so a 406
+is returned (This is a example only) .
+
+C) Servent Specific Behavior
+
+A servent may impose whatever limitations on responding to Browse
+Host requests that they see fit, such as Upload Slot and Bandwidth
+Usage limitations. It is recommended that Upload Slot limitations
+are not enforced for the majority of clients though (A client sharing 
+a large number of files may want to limit 'Browse Host' requests).
+
+3) Browse Host through Pushes
+
+Pushes are also supported. A Push is routed in the normal fashion
+(a la Push Requests). The Push Request can technically have any
+index.
+The GIV message (sent from the server to the client requesting a
+browse host) is the same. The Server should connect back to the
+client regardless of the value of the index - what is most important
+is the <servent-identifier> (the server's guid), which is used by the
+client to match up the appropriate state.
+For example, in response to the PushRequest, the following transaction
+takes place:
+
+Server (just connected to Client)
+-------------------------
+GIV 4141414141:<servent-identifier>/<lf><lf>
+
+Client (noting the servent-identifier)
+-------------------------
+GET / HTTP/1.1
+Host: w.x.y.z
+User-Agent: Limewire x.y.z Pro
+Accept: text/html, application/x-gnutella-packets
+Content-Length: 0
+Connection: close
+
+Server
+-------------------------
+HTTP/1.1 200 OK
+Server: BearShare/x.y
+Content-Type: text/html; charset=iso-8859-1
+
+
+4) Protocol Advantages
+
+This scheme has the following advantages:
+1) It works seamlessly with all existing BearShares. This flexibility
+also allows clients to create custom media type standards if they
+wish,
+while still allowing for inter-vendor browsing.
+2) No new message format is needed - pre-existing infrastructure is
+special cased and the HTTP protocol is leveraged.
+3) As a consequence of 2), Browse Host works through Pushes.
