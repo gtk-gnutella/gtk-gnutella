@@ -218,11 +218,13 @@ void settings_init(void)
 {
     struct passwd *pwd = NULL;
 	guint32 maxfd = (guint32) sysconf(_SC_OPEN_MAX);
-	guint32 amount = (guint32) settings_getphysmemsize();
+	gulong memory = settings_getphysmemsize();
+	guint32 amount = (guint32) memory;
 	struct rlimit lim;
 	char *path = NULL;
 
-	g_message("Detected amount of physical RAM: %lu KB", (gulong) amount);
+	g_message("detected amount of physical RAM: %lu KB", memory);
+	g_message("process can use %u file descriptors", maxfd);
 
 	if (-1 != getrlimit(RLIMIT_DATA, &lim)) {
 		guint32 maxdata = lim.rlim_cur >> 10;
