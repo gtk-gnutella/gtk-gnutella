@@ -1,4 +1,6 @@
 /*
+ * $Id$
+ *
  * Copyright (c) 2002, Raphael Manfredi
  *
  * Alive status checking ping/pongs.

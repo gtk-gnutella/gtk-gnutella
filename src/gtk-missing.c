@@ -1,4 +1,6 @@
 /*
+ * $Id$
+ *
  * Copyright (c) 2002, Richard Eckart
  *
  * Functions that should be in gtk-1.2 but are not.

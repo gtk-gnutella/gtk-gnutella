@@ -1,4 +1,6 @@
 /*
+ * $Id$
+ *
  * Copyright (c) 2001-2002, Raphael Manfredi
  *
  * Base32 encoding/decoding.

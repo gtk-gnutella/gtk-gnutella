@@ -1,4 +1,6 @@
 /*
+ * $Id$
+ *
  * Copyright (c) 2002, Raphael Manfredi
  *
  * Message queues.
@@ -295,6 +297,25 @@ static gboolean make_room(mqueue_t *q, pmsg_t *mb, gint needed)
 	 * Traverse the sorted links and prune as many messages as necessary.
 	 * Note that we try to prune at least one byte more than needed, hence
 	 * we stay in the loop even when needed reaches 0.
+	 *
+	 * XXXX
+	 * To avoid freeing the qlink array every time we drop something, we
+	 * should write NULLs at the entries we drop (which should be ignored
+	 * in the loop below).  Then, when we break out because we found a
+	 * more prioritary message, we should remember the index and return it
+	 * to the caller.  If the message is finally inserted in the queue,
+	 * we can insert it right before that index (but we insert GList links,
+	 * not messages).
+	 * We must also remember the size of the array, in order to be able
+	 * to extend it to splice the new entry in in case we don't have holes
+	 * (NULLs) somewhere.  And we must write a new routine to do that
+	 * splicing.
+	 * This adds some complexity but it will avoid millions of calls to
+	 * qlink_cmp(), which is costly.
+	 * We'd free qlink when we leave flow control.  In FC, we'd need to
+	 * find the messages we're removing after writing them to the network,
+	 * so we can NULLify the corresponding slot in the qlink array.
+	 * XXXX
 	 */
 
 	for (n = 0; needed >= 0 && n < q->qlink_count; n++) {

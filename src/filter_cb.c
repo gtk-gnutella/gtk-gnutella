@@ -1,4 +1,6 @@
 /*
+ * $Id$
+ *
  * Copyright (c) 2001-2002, Raphael Manfredi, Richard Eckart
  *
  * GUI filtering functions.

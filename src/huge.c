@@ -1,4 +1,6 @@
 /*
+ * $Id$
+ *
  * Copyright (c) 2002, Ch. Tronche & Raphael Manfredi
  *
  * HUGE support (Hash/URN Gnutella Extension).
