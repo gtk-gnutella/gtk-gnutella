@@ -53,8 +53,9 @@ RCSID("$Id$");
 #include "namesize.h"
 #include "http.h"				/* For http_range_t */
 
-#include "lib/base32.h"
 #include "lib/atoms.h"
+#include "lib/base32.h"
+#include "lib/endian.h"
 #include "lib/file.h"
 #include "lib/fuzzy.h"
 #include "lib/header.h"
@@ -76,10 +77,6 @@ struct dl_file_chunk {
 	enum dl_chunk_status status;	/* Status of range */
 	struct download *download;		/* Download that "reserved" the range */
 };
-
-/* made visible for us by atoms.c */
-extern guint sha1_hash(gconstpointer key);
-extern gint sha1_eq(gconstpointer a, gconstpointer b);
 
 /*
  * File information is uniquely describing an output file in the download
@@ -110,20 +107,24 @@ extern gint sha1_eq(gconstpointer a, gconstpointer b);
 static GHashTable *fi_by_sha1 = NULL;
 static GHashTable *fi_by_namesize = NULL;
 static GHashTable *fi_by_size = NULL;
-GHashTable *fi_by_outname = NULL;
+static GHashTable *fi_by_outname = NULL;
 
-static const gchar *file_info_file = "fileinfo";
-static const gchar *file_info_what = "the fileinfo database";
+static const gchar file_info_file[] = "fileinfo";
+static const gchar file_info_what[] = "the fileinfo database";
 static gboolean fileinfo_dirty = FALSE;
 static gboolean can_swarm = FALSE;		/* Set by file_info_retrieve() */
 
 static gchar fi_tmp[4096];
 
-#define FILE_INFO_MAGIC		0xD1BB1ED0
-#define FILE_INFO_VERSION	5
+typedef enum {
+	FILE_INFO_MAGIC32 = 0xD1BB1ED0U,
+	FILE_INFO_MAGIC64 = 0X91E63640U
+} fi_magic_t;
+
+#define FILE_INFO_VERSION	6
 
 enum dl_file_info_field {
-	FILE_INFO_FIELD_NAME = 1,	/* No longer used in version >= 3 */
+	FILE_INFO_FIELD_NAME = 1,	/* No longer used in 32-bit version >= 3 */
 	FILE_INFO_FIELD_ALIAS,
 	FILE_INFO_FIELD_SHA1,
 	FILE_INFO_FIELD_CHUNK,
@@ -132,7 +133,7 @@ enum dl_file_info_field {
 };
 
 #define FI_STORE_DELAY		10	/* Max delay (secs) for flushing fileinfo */
-#define FI_TRAILER_INT		5	/* Amount of guint32 that make up the trailer */
+#define FI_TRAILER_INT		6	/* Amount of guint32 that make up the trailer */
 #define FI_TRAILER_SIZE		(FI_TRAILER_INT * sizeof(guint32))
 
 /*
@@ -276,6 +277,7 @@ static struct {
 #define READ_INT32(a) do {			\
 	gint32 val;						\
 	TBUF_GETINT32(&val);			\
+	STATIC_ASSERT(sizeof val == sizeof(*a)); \
 	*a = ntohl(val);				\
 	file_info_checksum(&checksum, (gchar *) &val, sizeof(val)); \
 } while(0)
@@ -301,18 +303,18 @@ static struct {
  */
 
 struct trailer {
-	guint32 filesize;		/* Real file size */
+	guint64 filesize;		/* Real file size */
 	guint32 generation;		/* Generation number */
 	guint32 length;			/* Total trailer length */
 	guint32 checksum;		/* Trailer checksum */
-	guint32 magic;			/* Magic number */
+	fi_magic_t magic;		/* Magic number */
 };
 
 static struct dl_file_info *file_info_retrieve_binary(
 	const gchar *file, const gchar *path);
 static void fi_free(struct dl_file_info *fi);
 static void file_info_hash_remove(struct dl_file_info *fi);
-static void fi_update_seenonnetwork(gnet_src_t srcid);
+static void fi_update_seen_on_network(gnet_src_t srcid);
 static gchar *file_info_new_outname(const gchar *name, const gchar *dir);
 
 static idtable_t *fi_handle_map = NULL;
@@ -328,6 +330,23 @@ static idtable_t *fi_handle_map = NULL;
 
 event_t *fi_events[EV_FI_EVENTS] = {
     NULL, NULL, NULL, NULL, NULL, NULL };
+
+/**
+ * Checks the kind of trailer. The trailer must be initialized.
+ *
+ * @return TRUE if the trailer is the 64-bit version, FALSE if it's 32-bit.
+ */
+static inline gboolean
+trailer_is_64bit(const struct trailer *tb)
+{
+	switch (tb->magic) {
+	case FILE_INFO_MAGIC32: return FALSE;
+	case FILE_INFO_MAGIC64: return TRUE;
+	}
+	
+	g_assert_not_reached();
+	return FALSE;
+}
 
 /**
  * Make sure there is enough room in the buffer for `x' more bytes.
@@ -412,7 +431,7 @@ void
 file_info_init_post(void)
 {
 	/* subscribe to src events on available range updates */
-	src_add_listener(fi_update_seenonnetwork, EV_SRC_RANGES_CHANGED, 
+	src_add_listener(fi_update_seen_on_network, EV_SRC_RANGES_CHANGED, 
 		FREQ_SECS, 0);
 }
 
@@ -435,7 +454,6 @@ file_info_fd_store_binary(struct dl_file_info *fi, int fd, gboolean force)
 {
 	GSList *fclist;
 	GSList *a;
-	struct dl_file_chunk *fc;
 	guint32 checksum = 0;
 	guint32 length;
 
@@ -490,25 +508,30 @@ file_info_fd_store_binary(struct dl_file_info *fi, int fd, gboolean force)
 	}
 
 	for (fclist = fi->chunklist; fclist; fclist = g_slist_next(fclist)) {
-		guint32 tmpchunk[3];
-		fc = fclist->data;
-		tmpchunk[0] = htonl(fc->from);
-		tmpchunk[1] = htonl(fc->to);
-		tmpchunk[2] = htonl(fc->status);
-		FIELD_ADD(FILE_INFO_FIELD_CHUNK, sizeof(tmpchunk), tmpchunk);
+		struct dl_file_chunk *fc = fclist->data;
+		guint64 from_hi = fc->from >> 32, to_hi = fc->to >> 32;
+		guint32 chunk[] = {
+			htonl(from_hi),
+			htonl((guint32) fc->from),
+			htonl(to_hi),
+			htonl((guint32) fc->to),
+			htonl(fc->status)
+		};
+		FIELD_ADD(FILE_INFO_FIELD_CHUNK, sizeof(chunk), chunk);
 	}
 
 	fi->generation++;
 
 	WRITE_INT32(FILE_INFO_FIELD_END);
-	WRITE_INT32(fi->size);
+	WRITE_INT32(((guint32) (fi->size >> 32)));
+	WRITE_INT32((guint32) fi->size);
 	WRITE_INT32(fi->generation);
 
 	length = TBUF_WRITTEN_LEN() + 3 * sizeof(guint32);
 
 	WRITE_INT32(length);				/* Total trailer size */
 	WRITE_INT32(checksum);
-	WRITE_UINT32(FILE_INFO_MAGIC);
+	WRITE_UINT32(FILE_INFO_MAGIC64);
 
 	tbuf_write(fd, fi->file_name);		/* Flush buffer at current position */
 
@@ -646,8 +669,8 @@ fi_free(struct dl_file_info *fi)
 			atom_str_free(l->data);
 		g_slist_free(fi->alias);
 	}
-	if (fi->seenonnetwork)
-		fi_free_ranges(fi->seenonnetwork);
+	if (fi->seen_on_network)
+		fi_free_ranges(fi->seen_on_network);
 	wfree(fi, sizeof(*fi));
 }
 
@@ -735,9 +758,12 @@ static gboolean
 file_info_get_trailer(gint fd, struct trailer *tb, const gchar *name)
 {
 	ssize_t r;
+	fi_magic_t magic;
 	guint32 tr[FI_TRAILER_INT];
 	struct stat buf;
 	off_t offset;
+	guint64 filesize_hi;
+	size_t i = 0;
 
 	g_assert(fd >= 0);
 	g_assert(tb);
@@ -747,6 +773,11 @@ file_info_get_trailer(gint fd, struct trailer *tb, const gchar *name)
 		return FALSE;
 	}
 
+	if (!S_ISREG(buf.st_mode)) {
+		g_warning("Not a regular file: \"%s\"", name);
+		return FALSE;
+	}
+	
 	if (buf.st_size < sizeof(tr))
 		return FALSE;
 
@@ -765,7 +796,8 @@ file_info_get_trailer(gint fd, struct trailer *tb, const gchar *name)
 		return FALSE;
 	}
 
-	if (-1 == (r = read(fd, tr, sizeof(tr)))) {
+	r = read(fd, tr, sizeof(tr));
+	if ((ssize_t) -1 == r) {
 		g_warning("file_info_get_trailer(): "
 			"error reading trailer in  \"%s\": %s", name, g_strerror(errno));
 		return FALSE;
@@ -779,22 +811,44 @@ file_info_get_trailer(gint fd, struct trailer *tb, const gchar *name)
 	 */
 	if (r < (ssize_t) sizeof(tr))
 		return FALSE;
-		
-	tb->filesize	= ntohl(tr[0]);
-	tb->generation	= ntohl(tr[1]);
-	tb->length		= ntohl(tr[2]);
-	tb->checksum	= ntohl(tr[3]);
-	tb->magic		= ntohl(tr[4]);
 
+	filesize_hi = 0;
+	magic = ntohl(tr[5]);
+	switch (magic) {
+	case FILE_INFO_MAGIC64:
+		filesize_hi	= ((guint64) ((guint32) ntohl(tr[0]))) << 32;
+		/* FALLTHROUGH */
+	case FILE_INFO_MAGIC32:
+		tb->filesize = filesize_hi | ((guint32) ntohl(tr[1]));
+		i = 2;
+		break;
+	}
+	if (i != 2) {
+		return FALSE;
+	}
+
+	for (/* NOTHING */; i < G_N_ELEMENTS(tr); i++) {
+		guint32 v = ntohl(tr[i]);
+
+		switch (i) {
+		case 2: tb->generation	= v; break;
+		case 3: tb->length		= v; break;
+		case 4: tb->checksum	= v; break;
+		case 5: tb->magic 		= v; break;
+		default:
+			g_assert_not_reached();
+		}
+	}
+	
+	g_assert(FILE_INFO_MAGIC32 == tb->magic || FILE_INFO_MAGIC64 == tb->magic);
+	
 	/*
 	 * Now, sanity checks...  We must make sure this is a valid trailer.
 	 */
 
-	if (tb->magic != FILE_INFO_MAGIC)
+	if ((guint64) buf.st_size != tb->filesize + tb->length) {
 		return FALSE;
-
-	if (buf.st_size != tb->filesize + tb->length)
-		return FALSE;
+	}
 
 	return TRUE;
 }
@@ -1092,7 +1146,7 @@ file_info_shared_sha1(const gchar *sha1)
 static struct dl_file_info *
 file_info_retrieve_binary(const gchar *file, const gchar *path)
 {
-	guint32 tmpchunk[3];
+	guint32 tmpchunk[5];
 	guint32 tmpguint;
 	guint32 checksum = 0;
 	struct dl_file_info *fi = NULL;
@@ -1105,6 +1159,7 @@ file_info_retrieve_binary(const gchar *file, const gchar *path)
 	guint32 version;
 	struct trailer trailer;
 	struct stat;
+	gboolean t64;
 
 	pathname = make_pathname(path, file);
 	g_return_val_if_fail(NULL != pathname, NULL);
@@ -1119,8 +1174,9 @@ file_info_retrieve_binary(const gchar *file, const gchar *path)
 		reason = "could not find trailer";
 		goto bailout;
 	}
+	t64 = trailer_is_64bit(&trailer);
 
-	if (trailer.filesize != lseek(fd, trailer.filesize, SEEK_SET)) {
+	if (trailer.filesize != (guint64) lseek(fd, trailer.filesize, SEEK_SET)) {
 		g_warning("seek to position %" PRIu64 " within \"%s\" failed: %s",
 			(guint64) trailer.filesize, pathname, g_strerror(errno));
 		goto eof;
@@ -1139,7 +1195,7 @@ file_info_retrieve_binary(const gchar *file, const gchar *path)
 
 	/* Check version */
 	READ_INT32(&version);
-	if (version > FILE_INFO_VERSION) {
+	if ((t64 && version > FILE_INFO_VERSION) || (!t64 && version > 5)) {
 		g_warning("file_info_retrieve_binary(): strange version; %u", version);
 		goto eof;
 	}
@@ -1153,7 +1209,7 @@ file_info_retrieve_binary(const gchar *file, const gchar *path)
 	fi->generation = trailer.generation;
 	fi->file_size_known = fi->use_swarming = 1;		/* Must assume swarming */
 	fi->refcount = 0;
-	fi->seenonnetwork = NULL;
+	fi->seen_on_network = NULL;
 
 	/*
 	 * Read leading binary fields.
@@ -1198,7 +1254,7 @@ file_info_retrieve_binary(const gchar *file, const gchar *path)
 		READ_STR(tmp, tmpguint);
 		tmp[tmpguint] = '\0';				/* Did not store trailing NUL */
 
-		switch(field) {
+		switch (field) {
 		case FILE_INFO_FIELD_NAME:
 			/*
 			 * Starting with version 3, the file name is added as an alias.
@@ -1222,19 +1278,41 @@ file_info_retrieve_binary(const gchar *file, const gchar *path)
 		case FILE_INFO_FIELD_CHUNK:
 			memcpy(tmpchunk, tmp, sizeof(tmpchunk));
 			fc = walloc0(sizeof(*fc));
-			/*
-			 * In version 1, fields were written in native form.
-			 * Starting with version 2, they are written in network order.
-			 */
-			if (version == 1) {
-				fc->from = tmpchunk[0];
-				fc->to = tmpchunk[1];
-				fc->status = tmpchunk[2];
+
+			if (!t64) {
+				g_assert(version < 6);
+
+				/*
+			 	 * In version 1, fields were written in native form.
+			 	 * Starting with version 2, they are written in network order.
+			 	 */
+
+			   	if (version == 1) {
+					fc->from = tmpchunk[0];
+					fc->to = tmpchunk[1];
+					fc->status = tmpchunk[2];
+				} else {
+					fc->from = ntohl(tmpchunk[0]);
+					fc->to = ntohl(tmpchunk[1]);
+					fc->status = ntohl(tmpchunk[2]);
+				}
 			} else {
-				fc->from = ntohl(tmpchunk[0]);
-				fc->to = ntohl(tmpchunk[1]);
-				fc->status = ntohl(tmpchunk[2]);
+				guint64 hi, lo;
+
+				g_assert(version >= 6);
+				hi = ntohl(tmpchunk[0]);
+				lo = ntohl(tmpchunk[1]);
+				fc->from = (hi << 32) | lo;
+				hi = ntohl(tmpchunk[2]);
+				lo = ntohl(tmpchunk[3]);
+				fc->to = (hi << 32) | lo;
+				fc->status = ntohl(tmpchunk[4]);
 			}
+
+			/*
+			 * XXX: Isn't it mandatory to verify that ``from'' <= ``to''?
+			 */
+			
 			if (fc->status == DL_CHUNK_BUSY)
 				fc->status = DL_CHUNK_EMPTY;
 			fi->chunklist = g_slist_append(fi->chunklist, fc);
@@ -1247,8 +1325,8 @@ file_info_retrieve_binary(const gchar *file, const gchar *path)
 	}
 
 	/*
-	 * Pre-v4 trailers lacked the ctime and ntime fields.
-	 * Pre-v5 trailers lacked the fskn (file size known) indication.
+	 * Pre-v4 (32-bit) trailers lacked the ctime and ntime fields.
+	 * Pre-v5 (32-bit) trailers lacked the fskn (file size known) indication.
 	 */
 
 	if (version < 4)
@@ -1274,8 +1352,12 @@ file_info_retrieve_binary(const gchar *file, const gchar *path)
 	 * checksum recomputation, but don't assert that what we read matches
 	 * the trailer we already parsed.
 	 */
-
-	READ_INT32(&tmpguint);			/* file size */
+	
+	/* file size */
+	if (t64)
+		READ_INT32(&tmpguint);	/* Upper 32 bits since version 6 */
+	READ_INT32(&tmpguint);		/* Lower bits */
+	
 	READ_INT32(&tmpguint);			/* generation number */
 	READ_INT32(&tmpguint);			/* trailer length */
 
@@ -1562,7 +1644,7 @@ file_info_free_outname_kv(gpointer key, gpointer val, gpointer unused_x)
 void
 file_info_close_pre(void)
 {
-	src_remove_listener(fi_update_seenonnetwork, EV_SRC_RANGES_CHANGED);
+	src_remove_listener(fi_update_seen_on_network, EV_SRC_RANGES_CHANGED);
 }
 
 
@@ -2328,7 +2410,7 @@ file_info_retrieve(void)
 		if (!fi) {
 			fi = walloc0(sizeof(struct dl_file_info));
 			fi->refcount = 0;
-			fi->seenonnetwork = NULL;
+			fi->seen_on_network = NULL;
 			fi->file_size_known = TRUE;		/* Unless stated otherwise below */
 			aliases = NULL;
 			old_filename = NULL;
@@ -2613,15 +2695,15 @@ file_info_create(gchar *file, const gchar *path, filesize_t size,
 	fi->done = 0;
 	fi->use_swarming = use_swarming && file_size_known;
 	fi->ctime = time(NULL);
-	fi->seenonnetwork = NULL;
+	fi->seen_on_network = NULL;
 
 	pathname = make_pathname(fi->path, fi->file_name);
 	if (NULL != pathname && stat(pathname, &st) != -1 && S_ISREG(st.st_mode)) {
 		struct dl_file_chunk *fc;
 
 		g_warning("file_info_create(): "
-			"assuming file \"%s\" is complete up to %lu bytes",
-			pathname, (gulong) st.st_size);
+			"assuming file \"%s\" is complete up to %" PRIu64 " bytes",
+			pathname, (guint64) st.st_size);
 		fc = walloc0(sizeof(struct dl_file_chunk));
 		fc->from = 0;
 		fi->size = fc->to = st.st_size;
@@ -2896,20 +2978,15 @@ void
 file_info_merge_adjacent(struct dl_file_info *fi)
 {
 	GSList *fclist;
-	int n;
 	struct dl_file_chunk *fc1, *fc2;
-	int restart = 1;
-	guint done;
+	gboolean restart = TRUE;
+	filesize_t done;
 
 	while (restart) {
-		restart = 0;
+		restart = FALSE;
 		done = 0;
 		fc2 = NULL;
-		for (
-			n = 0, fclist = fi->chunklist;
-			fclist;
-			n++, fclist = g_slist_next(fclist)
-		) {
+		for (fclist = fi->chunklist; fclist; fclist = g_slist_next(fclist)) {
 			fc1 = fc2;
 			fc2 = fclist->data;
 
@@ -2926,7 +3003,7 @@ file_info_merge_adjacent(struct dl_file_info *fi)
 				fc1->to = fc2->to;
 				fi->chunklist = g_slist_remove(fi->chunklist, fc2);
 				wfree(fc2, sizeof(*fc2));
-				restart = 1;
+				restart = TRUE;
 				break;
 			}
 		}
@@ -3968,7 +4045,7 @@ fi_get_ranges(gnet_fi_t fih)
     
     g_assert( fi );
 
-    for (l = fi->seenonnetwork; l != NULL; l = g_slist_next(l)) {
+    for (l = fi->seen_on_network; l != NULL; l = g_slist_next(l)) {
         http_range_t *r = l->data;
         range = (http_range_t *) walloc(sizeof(http_range_t));
         range->start = r->start;
@@ -4383,7 +4460,7 @@ file_info_restrict_range(struct dl_file_info *fi,
 /**
  * Create a ranges list with one item covering the whole file.
  * This may be better placed in http.c, but since it is only
- * used here as a utility function for fi_update_seenonnetwork
+ * used here as a utility function for fi_update_seen_on_network
  * it is now placed here.
  *
  * @param[in] size  File size to be used in range creation
@@ -4406,7 +4483,7 @@ fi_range_for_complete_file(filesize_t size)
  * This function gets triggered by an event when new ranges
  * information has become available for a download source.
  * We collect the set of currently available ranges in 
- * file_info->seenonnetwork. Currently we only fold in new ranges
+ * file_info->seen_on_network. Currently we only fold in new ranges
  * from a download source, but we should also remove sets of ranges when
  * a download source is no longer available.
  *
@@ -4415,7 +4492,7 @@ fi_range_for_complete_file(filesize_t size)
  * @param[in] srcid  The abstract id of the source that had its ranges updated.
  */
 static void 
-fi_update_seenonnetwork(gnet_src_t srcid)
+fi_update_seen_on_network(gnet_src_t srcid)
 {
 	struct download *d;
 	GSList *old_list;    /** The previous list of ranges, no longer needed */
@@ -4427,7 +4504,7 @@ fi_update_seenonnetwork(gnet_src_t srcid)
 	d = src_get_download(srcid);
 	g_assert(d);
 
-	old_list = d->file_info->seenonnetwork;
+	old_list = d->file_info->seen_on_network;
 	
 	/*
 	 * FIXME: this code is currently only triggered by new HTTP ranges
@@ -4490,7 +4567,7 @@ fi_update_seenonnetwork(gnet_src_t srcid)
 	}
 	if (dbg > 5)
 		printf("    Final ranges: %s\n\n", http_range_to_gchar(r));
-	d->file_info->seenonnetwork = r;
+	d->file_info->seen_on_network = r;
 		
 	/* 
 	 * Remove the old list and free its range elements
