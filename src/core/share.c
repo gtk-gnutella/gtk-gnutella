@@ -1387,6 +1387,8 @@ query_strip_oob_flag(gnutella_node_t *n, gchar *data)
 	speed &= ~QUERY_SPEED_OOB_REPLY;
 	WRITE_GUINT16_LE(speed, data);
 
+	gnet_stats_count_general(n, GNR_OOB_QUERIES_STRIPPED, 1);
+
 	if (query_debug)
 		printf("QUERY from node %s <%s>: removed OOB delivery (speed = 0x%x)\n",
 			node_ip(n), node_vendor(n), speed);
