@@ -255,15 +255,46 @@ gboolean route_message(struct gnutella_node **node)
 
 		if (m && m->nodes)						/* We only have to forward the message the target node */
 		{
-			if (sender->header.ttl > max_ttl) /* TTL too large, don't forward */
+			/*
+			 * We apply the TTL limits differently for replies.
+			 *
+			 * Indeed, replies are forwarded to ONE node, and are not
+			 * broadcasted.  It is therefore important to make sure the
+			 * reply will reach the issuing host.
+			 *
+			 * So we don't compare the header's TLL to `max_ttl' but to
+			 * `hard_ttl_limit', and if above the limit, we don't drop
+			 * the message but trim the TTL down to something acceptable.
+			 *
+			 *		--RAM, 15/09/2001
+			 */
+
+			if (sender->header.ttl > hard_ttl_limit) /* TTL too large, trim */
 			{
-				routing_log("[Max TTL] ");
-				sender->dropped++;
-				dropped_messages++;
-				return handle_it;
+				routing_log("[TTL adjusted] ");
+				sender->header.ttl = hard_ttl_limit + 1;
 			}
 
-			if (!sender->header.ttl || !--sender->header.ttl)	/* TTL expired, message can't go further */
+			/*
+			 * If node propagates messages with TTL=0, it's a danger to
+			 * the network, kick him out.
+			 *		-- RAM, 15/09/2001
+			 */
+
+			if (sender->header.ttl == 0) {
+				routing_log("[TTL was 0] ");
+				if (connected_nodes() > MAX(2, up_connections)) {
+					node_remove(sender, "Kicked: sent message with TTL=0");
+					(*node) = NULL;
+				} else {
+					sender->dropped++;
+					sender->n_bad++;
+				}
+				dropped_messages++;
+				return FALSE;		/* Don't handle, shouldn't have seen it */
+			}
+
+			if (!--sender->header.ttl)	/* TTL expired, message stops here */
 			{
 				routing_log("[TTL expired] ");
 				sender->dropped++;
@@ -352,9 +383,9 @@ gboolean route_message(struct gnutella_node **node)
 				/*
 				 * When close neighboors of that node send messages we drop
 				 * that way, they may try to flood the network.  Disconnect
-				 * after too many offenses, which should have give the relaying
-				 * node ample time to kick the offender out, according to our
-				 * standards.
+				 * after too many offenses, which should have given the
+				 * relaying node ample time to kick the offender out,
+				 * according to our standards.
 				 *		--RAM, 08/09/2001
 				 */
 
@@ -374,16 +405,32 @@ gboolean route_message(struct gnutella_node **node)
 			}
 
 			if (sender->header.ttl > max_ttl)	/* TTL too large */
-			{
-				routing_log("[ ] [NEW] Max TTL reached\n");
-				sender->dropped++;
+				sender->header.ttl = max_ttl;	/* Trim down */
+
+			/*
+			 * If node propagates messages with TTL=0, it's a danger to
+			 * the network, kick him out.
+			 *		-- RAM, 15/09/2001
+			 */
+
+			if (sender->header.ttl == 0) {
+				routing_log("[ ] [NEW] TTL was 0\n");
+				if (connected_nodes() > MAX(2, up_connections)) {
+					node_remove(sender, "Kicked: sent message with TTL=0");
+					(*node) = NULL;
+				} else {
+					sender->dropped++;
+					sender->n_bad++;
+				}
 				dropped_messages++;
-				return FALSE;
+				return FALSE;		/* Don't handle, shouldn't have seen it */
 			}
 
 			message_add(sender->header.muid, sender->header.function, sender);
 
-			if (!sender->header.ttl || !--sender->header.ttl)	/* TTL expired, message can't go further */
+			sender->header.hops++;	/* Going to handle it, must be accurate */
+
+			if (!--sender->header.ttl)	/* TTL expired, message stops here */
 			{
 				routing_log("[H] [NEW] (TTL expired)\n");
 				sender->dropped++;
@@ -391,11 +438,10 @@ gboolean route_message(struct gnutella_node **node)
 			}
 			else 							/* Forward it to all others nodes */
 			{
-				sender->header.hops++;
-
 				routing_log("[H] [NEW] -> sento_all_but_one()\n");
-
-				sendto_all_but_one(sender, (guchar *) &(sender->header), sender->data, sender->size + sizeof(struct gnutella_header));
+				sendto_all_but_one(sender,
+					(guchar *) &(sender->header), sender->data,
+					sender->size + sizeof(struct gnutella_header));
 			}
 
 			return TRUE;
@@ -418,7 +464,7 @@ void sendto_one(struct gnutella_node *n, guchar *msg, guchar *data, guint32 size
 
 	if (n->status != GTA_NODE_CONNECTED) return;
 
-	if(!data) {
+	if(!data || size == sizeof(struct gnutella_header)) {
 	  if(node_enqueue(n, msg, size)) {
 		node_enqueue_end_of_packet(n);
 	  }
