@@ -4756,8 +4756,10 @@ static gboolean download_check_status(
 		g_warning("weird HTTP acknowledgment status line from %s (%s)",
 			ip_port_to_gchar(download_ip(d), download_port(d)),
 			download_vendor_str(d));
-		dump_hex(stderr, "Status Line", getline_str(line),
-			MIN(getline_length(line), 80));
+		if (dbg > 4) {
+			dump_hex(stderr, "Status Line", getline_str(line),
+				MIN(getline_length(line), 80));
+		}
 
 		/*
 		 * Don't abort the download if we're already on a persistent
