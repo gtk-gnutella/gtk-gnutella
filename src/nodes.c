@@ -2718,7 +2718,7 @@ static void node_process_handshake_header(
 	field = header_get(head, "User-Agent");
 	if (field) {
 		const gchar *token = header_get(head, "X-Token");
-		if (!version_check(field, token))
+		if (!version_check(field, token, n->ip))
 			n->flags |= NODE_F_FAKE_NAME;
         node_set_vendor(n, field);
 	}

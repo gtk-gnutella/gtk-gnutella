@@ -59,6 +59,7 @@
 #include "crc.h"
 #include "icon.h"
 #include "hostiles.h"
+#include "clock.h"
 
 #ifdef USE_REMOTE_SHELL
 #include "shell.h"
@@ -153,6 +154,7 @@ void gtk_gnutella_exit(gint n)
 	settings_close();	/* Must come after hcache_close() */
 	ban_close();
     whitelist_close();
+	clock_close();
 	cq_free(callout_queue);
 	matching_close();
 	pmsg_close();
@@ -436,6 +438,7 @@ gint main(gint argc, gchar **argv, gchar **env)
 	crc_init();
 	hostiles_init();
 	parq_init();
+	clock_init();
 
     main_gui_init();
 

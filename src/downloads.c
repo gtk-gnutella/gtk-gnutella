@@ -3815,7 +3815,8 @@ static gboolean download_get_server_name(
 
 	if (buf) {
 		struct dl_server *server = d->server;
-		gboolean faked = !version_check(buf, header_get(header, "X-Token"));
+		gboolean faked =
+			!version_check(buf, header_get(header, "X-Token"), download_ip(d));
 		if (server->vendor == NULL) {
 			if (faked) {
 				gchar *name = g_strdup_printf("!%s", buf);
@@ -3965,7 +3966,7 @@ guint extract_retry_after(const header_t *header)
  *
  * Look for a Date: header in the reply and use it to update our skew.
  */
-static void check_date(const header_t *header)
+static void check_date(const header_t *header, guint32 ip)
 {
 	const gchar *buf;
 
@@ -3977,7 +3978,7 @@ static void check_date(const header_t *header)
 		if (their == -1)
 			g_warning("cannot parse Date: %s", buf);
 		else
-			clock_update(their, 1);
+			clock_update(their, 1, ip);
 	}
 }
 
@@ -4443,7 +4444,7 @@ static void download_request(
 	ip = download_ip(d);
 	port = download_port(d);
 
-	check_date(header);			/* Update clock skew if we have a Date: */
+	check_date(header, ip);		/* Update clock skew if we have a Date: */
 
 	/*
 	 * Do we have to keep the connection after this request?
@@ -4815,8 +4816,6 @@ static void download_request(
 				download_queue_delay(d,
 					delay ? delay : download_retry_busy_delay,
 					"%sHTTP %d %s", short_read, ack_code, ack_message);
-
-				gui_update_download_server(d);
 
 				return;
 			}

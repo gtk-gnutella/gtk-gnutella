@@ -306,10 +306,12 @@ guchar *tok_version(void)
  * tok_version_valid
  *
  * Validate a base64-encoded version token `tokenb64' of `len' bytes.
+ * The `ip' is given only for clock update operations.
+ *
  * Returns error code, or TOK_OK if token is valid.
  */
 tok_error_t tok_version_valid(
-	const gchar *version, const guchar *tokenb64, gint len)
+	const gchar *version, const guchar *tokenb64, gint len, guint32 ip)
 {
 	time_t now = time(NULL);
 	time_t stamp;
@@ -352,7 +354,7 @@ tok_error_t tok_version_valid(
 	 * clock skew if necessary.
 	 */
 
-	clock_update(stamp, TOKEN_LIFE);
+	clock_update(stamp, TOKEN_LIFE, ip);
 
 	if (ABS(stamp - clock_loc2gmt(now)) > TOKEN_CLOCK_SKEW)
 		return TOK_BAD_STAMP;
