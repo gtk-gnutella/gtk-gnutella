@@ -43,6 +43,7 @@
 #include "utf8.h"
 #include "qrp.h"
 #include "base32.h"
+#include "atoms.h"
 
 static guchar iso_8859_1[96] = {
 	' ', 			/* 160 - NO-BREAK SPACE */
@@ -152,6 +153,7 @@ GSList *shared_dirs = NULL;
 static GSList *shared_files = NULL;
 static struct shared_file **file_table = NULL;
 static search_table_t search_table;
+static GHashTable *file_basenames = NULL;
 
 gchar stmp_1[4096];
 gchar stmp_2[4096];
@@ -276,6 +278,8 @@ static void found_reset()
  */
 #define QHIT_MIN_TRAILER_LEN	(4+3+16)	/* NAME + open flags + GUID */
 
+#define FILENAME_CLASH 0xffffffff			/* Indicates basename clashes */
+
 /* ----------------------------------------- */
 
 static char_map_t query_map;
@@ -327,6 +331,13 @@ void share_init(void)
 	found_data.d = (guchar *) g_malloc(found_data.l * sizeof(guchar));
 }
 
+/*
+ * shared_file
+ *
+ * Given a valid index, returns the `struct shared_file' entry describing
+ * the shared file bearing that index if found, NULL if not found (invalid
+ * index) and SHARE_REBUILDING when we're rebuilding the library.
+ */
 struct shared_file *shared_file(guint idx)
 {
 	/* Return shared file info for index `idx', or NULL if none */
@@ -336,6 +347,33 @@ struct shared_file *shared_file(guint idx)
 
 	if (idx < 1 || idx > files_scanned)
 		return NULL;
+
+	return file_table[idx - 1];
+}
+
+/*
+ * shared_file_by_name
+ *
+ * Given a file basename, returns the `struct shared_file' entry describing
+ * the shared file bearing that basename, provided it is unique, NULL if
+ * we either don't have a unique filename or SHARE_REBUILDING if the library
+ * is being rebuilt.
+ */
+struct shared_file *shared_file_by_name(gchar *basename)
+{
+	guint idx;
+
+	if (file_table == NULL)
+		return SHARE_REBUILDING;
+
+	g_assert(file_basenames);
+
+	idx = (guint) g_hash_table_lookup(file_basenames, basename);
+
+	if (idx == 0 || idx == FILENAME_CLASH)
+		return NULL;
+
+	g_assert(idx >= 1 && idx <= files_scanned);
 
 	return file_table[idx - 1];
 }
@@ -353,7 +391,7 @@ static void free_extensions(void)
 
 	while (l) {
 		struct extension *e = (struct extension *) l->data;
-		g_free(e->str);
+		atom_str_free(e->str);
 		g_free(e);
 		l = l->next;
 	}
@@ -385,7 +423,7 @@ void parse_extensions(gchar * str)
 				*x = 0;
 			if (*s) {
 				struct extension *e = (struct extension *) g_malloc(sizeof(*e));
-				e->str = g_strdup(s);
+				e->str = atom_str_get(s);
 				e->len = strlen(s);
 				extensions = g_slist_append(extensions, e);
 			}
@@ -403,7 +441,7 @@ static void shared_dirs_free(void)
 	if (shared_dirs) {
 		GSList *l = shared_dirs;
 		while (l) {
-			g_free(l->data);
+			atom_str_free(l->data);
 			l = l->next;
 		}
 		g_slist_free(shared_dirs);
@@ -422,7 +460,7 @@ void shared_dirs_parse(gchar * str)
 
 	while (dirs[i]) {
 		if (is_directory(dirs[i]))
-			shared_dirs = g_slist_append(shared_dirs, g_strdup(dirs[i]));
+			shared_dirs = g_slist_append(shared_dirs, atom_str_get(dirs[i]));
 		i++;
 	}
 
@@ -434,7 +472,7 @@ void shared_dir_add(gchar * path)
 	if (!is_directory(path))
 		return;
 
-	shared_dirs = g_slist_append(shared_dirs, g_strdup(path));
+	shared_dirs = g_slist_append(shared_dirs, atom_str_get(path));
 
 	gui_update_shared_dirs();
 }
@@ -452,8 +490,8 @@ static void recurse_scan(gchar *dir, gchar *basedir)
 	DIR *directory;			/* Dir stream used by opendir, readdir etc.. */
 	struct dirent *dir_entry;
 	gchar *full = NULL, *sl = "/";
-	gchar *file_directory = NULL;
 	GSList *files = NULL;
+	GSList *directories = NULL;
 	gchar *dir_slash = NULL;
 	GSList *l;
 
@@ -474,39 +512,17 @@ static void recurse_scan(gchar *dir, gchar *basedir)
 	else
 		dir_slash = g_strconcat(dir, sl, NULL);
 
-	/*
-	 * Because we wish to optimize memory and only allocate the directory
-	 * name once for all the files in the directory, we also need to have
-	 * all the files for that same directory consecutively listed in the
-	 * `shared_files' list, so that we can properly free the string in
-	 * share_free() later on.
-	 *
-	 * In other words, we must process the sub-directories first, and then
-	 * only the files.  To avoid traversing the directory twice and build
-	 * all those full-name strings twice, we put files away in the `files'
-	 * list and traverse directories first.
-	 *
-	 *		--RAM, 12/03/2002, with the help of Michael Tesch
-	 */
-
 	while ((dir_entry = readdir(directory))) {
 
-		if (dir_entry->d_name[0] == '.')
+		if (dir_entry->d_name[0] == '.')	/* Hidden file, or "." or ".." */
 			continue;
 
 		full = g_strconcat(dir_slash, dir_entry->d_name, NULL);
 
-		if (!is_directory(full)) {
+		if (!is_directory(full))
 			files = g_slist_prepend(files, full);
-			continue;
-		}
-
-		/*
-		 * Depth first traversal of directories.
-		 */
-
-		recurse_scan(full, basedir);
-		g_free(full);
+		else
+			directories = g_slist_prepend(directories, full);
 	}
 
 	for (l = files; l; l = l->next) {
@@ -541,17 +557,9 @@ static void recurse_scan(gchar *dir, gchar *basedir)
 				found = (struct shared_file *)
 					g_malloc0(sizeof(struct shared_file));
 
-				/*
-				 * As long as we've got one file in this directory (so it'll be
-				 * freed in share_free()), allocate these strings.
-				 */
-
-				if (!file_directory)
-					file_directory = g_strdup(dir);
-
-				found->file_name = g_strdup(name);
+				found->file_path = atom_str_get(full);
+				found->file_name = found->file_path + (name - full);
 				found->file_name_len = name_len;
-				found->file_directory = file_directory;
 				found->file_size = file_stat.st_size;
 				found->file_index = ++files_scanned;
 				found->mtime = file_stat.st_mtime;
@@ -578,6 +586,18 @@ static void recurse_scan(gchar *dir, gchar *basedir)
 	closedir(directory);
 	g_slist_free(files);
 
+	/*
+	 * Now that we handled files at this level and freed all their memory,
+	 * recurse on directories.
+	 */
+
+	for (l = directories; l; l = l->next) {
+		gchar *path = (gchar *) l->data;
+		recurse_scan(path, basedir);
+		g_free(path);
+	}
+	g_slist_free(directories);
+
 	if (dir_slash != dir)
 		g_free(dir_slash);
 
@@ -588,31 +608,23 @@ static void recurse_scan(gchar *dir, gchar *basedir)
 static void share_free(void)
 {
 	GSList *l;
-	gchar *last_dir = NULL;
 
 	st_destroy(&search_table);
+
+	if (file_basenames)
+		g_hash_table_destroy(file_basenames);
+	file_basenames = NULL;
 
 	if (file_table) {
 		g_free(file_table);
 		file_table = NULL;
 	}
 
-	if (shared_files) {
-		struct shared_file *sf = shared_files->data;
-		last_dir = sf->file_directory;
-	}
-
 	for (l = shared_files; l; l = l->next) {
 		struct shared_file *sf = l->data;
-		g_free(sf->file_name);
-		if (last_dir && last_dir != sf->file_directory) {
-			g_free(last_dir);
-			last_dir = sf->file_directory;
-		}
+		atom_str_free(sf->file_path);
 		g_free(sf);
 	}
-	if (last_dir)				/* free the last one */
-		g_free(last_dir);
 
 	g_slist_free(shared_files);
 	shared_files = NULL;
@@ -624,6 +636,22 @@ void share_scan(void)
 {
 	GSList *l;
 	gint i;
+	static gboolean in_share_scan = FALSE;
+
+	/*
+	 * We normally disable the "Rescan" button, so we should not enter here
+	 * twice.  Nonetheless, the events can be stacked, and since we call
+	 * the main loop whilst scanning, we could re-enter here.
+	 *
+	 *		--RAM, 05/06/2002 (added after the above indeed happened)
+	 */
+
+	if (in_share_scan)
+		return;
+	else
+		in_share_scan = TRUE;
+
+	g_assert(file_basenames == NULL);
 
 	files_scanned = 0;
 	bytes_scanned = 0;
@@ -633,6 +661,7 @@ void share_scan(void)
 	share_free();
 
 	st_create(&search_table);
+	file_basenames = g_hash_table_new(g_str_hash, g_str_equal);
 
 	for (l = shared_dirs; l; l = l->next)
 		recurse_scan(l->data, l->data);
@@ -648,10 +677,34 @@ void share_scan(void)
 
 	file_table = g_malloc0(files_scanned * sizeof(struct shared_file *));
 
-	for (l = shared_files; l; l = l->next) {
+	for (i = 0, l = shared_files; l; i++, l = l->next) {
 		struct shared_file *sf = l->data;
+		guint val;
+
 		g_assert(sf->file_index > 0 && sf->file_index <= files_scanned);
 		file_table[sf->file_index - 1] = sf;
+
+		/*
+		 * In order to transparently handle files requested with the wrong
+		 * indices, for older servents that would not know how to handle a
+		 * return code of "301 Moved" with a Location header, we keep track
+		 * of individual basenames of files, recording the index of each file.
+		 * As soon as there is a clash, we revoke the entry by storing
+		 * FILENAME_CLASH instead, which cannot be a valid index.
+		 *		--RAM, 06/06/2002
+		 */
+
+		val = (guint) g_hash_table_lookup(file_basenames, sf->file_name);
+
+		/*
+		 * The following works because 0 cannot be a valid file index.
+		 */
+
+		val = (val != 0) ? FILENAME_CLASH : sf->file_index;
+		g_hash_table_insert(file_basenames, sf->file_name, (gpointer) val);
+
+		if (0 == (i & 0x7ff))
+			gtk_main_flush();
 	}
 
 	gui_update_files_scanned();		/* Final view */
@@ -670,6 +723,8 @@ void share_scan(void)
 	}
 
 	qrp_finalize_computation();
+
+	in_share_scan = FALSE;
 }
 
 void share_close(void)
@@ -879,12 +934,13 @@ gboolean search_request(struct gnutella_node *n)
 			search_len++;
 
 		if (search_len > max_len) {
-			g_warning("search request (hops=%d, ttl=%d) had no NUL (%d byte%s)",
-				n->header.hops, n->header.ttl, n->size - 2,
-				n->size == 3 ? "" : "s");
 			g_assert(n->data[n->size - 1] != '\0');
+			if (dbg)
+				g_warning("query (hops=%d, ttl=%d) had no NUL (%d byte%s)",
+					n->header.hops, n->header.ttl, n->size - 2,
+					n->size == 3 ? "" : "s");
 			if (dbg > 4)
-				dump_hex(stderr, "Search Text", search, MIN(n->size - 2, 256));
+				dump_hex(stderr, "Query Text", search, MIN(n->size - 2, 256));
 
 			return TRUE;		/* Drop the message! */
 		}
@@ -908,14 +964,15 @@ gboolean search_request(struct gnutella_node *n)
 			scan_query_extensions(search + search_len + 1, &query_extension);
 
 			if (query_extension.unknown) {
-				g_warning("search request (hops=%d, ttl=%d) "
-					"has %d extra byte%s after NUL",
-					n->header.hops, n->header.ttl, extra,
-					extra == 1 ? "" : "s");
+				if (dbg)
+					g_warning("query (hops=%d, ttl=%d) "
+						"has %d extra byte%s after NUL",
+						n->header.hops, n->header.ttl, extra,
+						extra == 1 ? "" : "s");
 				if (dbg > 4) {
+					printf("Search was: %s\n", search);
 					dump_hex(stdout, "Extra Query Data", &search[search_len+1],
 						MIN(extra, 256));
-					printf("Search was: %s\n", search);
 				}
 			}
 
@@ -948,15 +1005,6 @@ gboolean search_request(struct gnutella_node *n)
 		return FALSE;				/* We're not fast enough */
 
 	/*
-	 * If we aren't going to let the searcher download anything, then
-	 * don't waste bandwidth and his time by giving him search results.
-	 *		--Mark Schreiber, 11/01/2002
-	 */
-
-	if (max_uploads == 0)
-		return FALSE;
-
-	/*
 	 * If the query comes from a node farther than our TTL (i.e. the TTL we'll
 	 * use to send our reply), don't bother processing it: the reply won't
 	 * be able to reach the issuing node.
@@ -970,6 +1018,15 @@ gboolean search_request(struct gnutella_node *n)
 
 	if (n->header.hops > max_ttl)
 		return TRUE;					/* Drop this long-lived search */
+
+	/*
+	 * If we aren't going to let the searcher download anything, then
+	 * don't waste bandwidth and his time by giving him search results.
+	 *		--Mark Schreiber, 11/01/2002
+	 */
+
+	if (max_uploads == 0)
+		return FALSE;
 
 	/*
 	 * When an URN search is present, there can be an empty search string.
@@ -1003,7 +1060,7 @@ gboolean search_request(struct gnutella_node *n)
 
 	if (query_extension.urn) {
 		struct shared_file *sf =
-			shared_file_from_sha1_hash(query_extension.urn);
+			shared_file_by_sha1_base32(query_extension.urn);
 
 		if (sf) {
 			got_match(sf);
@@ -1189,23 +1246,16 @@ gboolean sha1_hash_available(const struct shared_file *sf)
 }
 
 /* 
- * shared_file_from_sha1_hash
+ * shared_file_by_sha1
  * 
- * Take a given base-32 encoded SHA1 hash, and return the corresponding
+ * Take a given binary SHA1 digest, and return the corresponding
  * shared_file if we have it.
  */
-struct shared_file *shared_file_from_sha1_hash(const gchar *sha1_digest)
+struct shared_file *shared_file_by_sha1(const gchar *sha1_digest)
 {
 	struct shared_file *f;
-	gchar digest[SHA1_RAW_SIZE];
 
-	if (
-		!base32_decode_into(sha1_digest, SHA1_BASE32_SIZE,
-			digest, sizeof(digest))
-	)
-		return NULL;
-
-	f = g_tree_lookup(sha1_to_share, (gpointer) digest);
+	f = g_tree_lookup(sha1_to_share, (gpointer) sha1_digest);
 
 	if (!f)
 		return NULL;
@@ -1214,6 +1264,25 @@ struct shared_file *shared_file_from_sha1_hash(const gchar *sha1_digest)
 		return NULL;
 
 	return f;
+}
+
+/* 
+ * shared_file_by_sha1_base32
+ * 
+ * Take a given base-32 encoded SHA1 hash, and return the corresponding
+ * shared_file if we have it.
+ */
+struct shared_file *shared_file_by_sha1_base32(const gchar *sha1_digest)
+{
+	gchar digest[SHA1_RAW_SIZE];
+
+	if (
+		!base32_decode_into(sha1_digest, SHA1_BASE32_SIZE,
+			digest, sizeof(digest))
+	)
+		return NULL;
+
+	return shared_file_by_sha1(digest);
 }
 
 /* 
