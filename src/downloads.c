@@ -1811,7 +1811,7 @@ static void download_request(struct download *d, header_t *header)
 
 	if (ack_code >= 200 && ack_code <= 299) {
 		/* empty -- everything OK */
-	} else if (ack_code >= 500 && ack_code <= 599) {
+	} else if ((ack_code >= 500 && ack_code <= 599) || ack_code == 408) {
 		/* No hammering */
 		download_queue_delay(d, download_retry_busy_delay);
 		return;
