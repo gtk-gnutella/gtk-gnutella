@@ -1274,19 +1274,16 @@ search_gui_parse_text_query(const gchar *s, struct query *query)
 {
 	static const struct query zero_query;
 	const gchar *p, *q;
-	GString *gs_pos, *gs_neg;
 
 	g_assert(s);
 	g_assert(query);
 
 	*query = zero_query;
 	
-	gs_pos = g_string_new("");
-	gs_neg = g_string_new("");
-	
 	for (p = s; *p != '\0'; p = q) {
 		gboolean neg;
 		gint n;
+		gchar *dst, *src;
 
 		q = strchr(p, ' ');
 		if (!q)
@@ -1297,32 +1294,27 @@ search_gui_parse_text_query(const gchar *s, struct query *query)
 		if (neg)
 			p++;
 		n = q - p + (*q != '\0' ? 1 : 0);
-		g_string_append_len(neg ? gs_neg : gs_pos, p, n);
+		g_assert(n >= 0);
+		src = neg ? query->neg : query->text;
+		dst = g_strdup_printf("%s%.*s", src ? src : "", n, p);
+		if (neg) {
+			g_free(query->neg);
+			query->neg = dst;
+		} else {
+			g_free(query->text);
+			query->text = dst;
+		}
+	
+#if 0 
 		g_message("%s: \"%.*s\"", neg ? "neg" : "pos", n, p);
+#endif
 		p = *q != '\0' ? ++q : q;
 	}
 
-	query->text = gs_pos->str;
-	g_string_free(gs_pos, FALSE);
-
-	if (gs_neg->len > 0) {
-		query->neg = gs_neg->len > 0 ? gs_neg->str : NULL;
-		g_string_free(gs_neg, FALSE);
-	} else {
-		g_string_free(gs_neg, TRUE);
-	}
-}
-
-static void
-free_query(struct query *q)
-{
-	static const struct query zero_query;
-
-	g_assert(q);
-
-	G_FREE_NULL(q->text);
-	G_FREE_NULL(q->neg);
-	*q = zero_query;
+	if (query->text)
+		g_strchomp(query->text);
+	if (query->neg)
+		g_strchomp(query->neg);
 }
 
 /**
@@ -1415,8 +1407,9 @@ search_gui_parse_query(const gchar *querystr, rule_t **rule,
 	}
 
 	search_gui_parse_text_query(query, &qs);
+	g_assert(qs.text != NULL);
 	g_strlcpy(query, qs.text, sizeof query);
-	if (qs.neg && NULL != rule) {
+	if (NULL != qs.neg && NULL != rule) {
 		filter_t *target;
 
 		target = filter_get_drop_target();
@@ -1424,7 +1417,8 @@ search_gui_parse_query(const gchar *querystr, rule_t **rule,
 		*rule = filter_new_text_rule(qs.neg, RULE_TEXT_WORDS, FALSE,
 					target, RULE_FLAG_ACTIVE);
 	}
-	free_query(&qs);
+	G_FREE_NULL(qs.text);
+	G_FREE_NULL(qs.neg);
 	
 	return query;
 }
