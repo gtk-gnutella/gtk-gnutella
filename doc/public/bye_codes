@@ -46,6 +46,7 @@ Here are the officially registered BYE codes and their meaning:
 409		RESERVED
 410		Excessive Messages [UNUSED]
 411		Invalid Payload [UNUSED]
+412		Security Violation
 499		Generic Peer-side Error [UNUSED]
 
 500		Servent Internal Error [UNUSED]
