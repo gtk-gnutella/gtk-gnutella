@@ -6036,7 +6036,7 @@ msgstr "Informatie over het geselecteerde bestand"
 
 #: src/interface-glade2.c:11108
 msgid "No items found                                                                          "
-msgstr "No items found··························································································"
+msgstr "Geen resultaten gevonden"
 
 #: src/interface-glade2.c:11121
 msgid "Re_try search every"
