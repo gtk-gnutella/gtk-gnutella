@@ -283,7 +283,7 @@ void on_button_config_move_path_clicked(GtkButton * button,
 	if (!move_path_filesel) {
 		move_path_filesel =
 			gtk_file_selection_new(
-				_("Please choose where to move files after download"));
+				_("Please choose where to move files after successful download"));
 
 		gtk_signal_connect(GTK_OBJECT
 						   (GTK_FILE_SELECTION(move_path_filesel)->
@@ -340,7 +340,7 @@ void on_button_config_bad_path_clicked(
 	if (!bad_path_filesel) {
 		bad_path_filesel =
 			gtk_file_selection_new(
-				_("Please choose where to move files corrupted files"));
+				_("Please choose where to move corrupted files"));
 
 		gtk_signal_connect(GTK_OBJECT
 						   (GTK_FILE_SELECTION(bad_path_filesel)->
