@@ -7051,9 +7051,6 @@ download_retry(struct download *d)
 	if (d->timeout_delay > download_retry_timeout_max)
 		d->timeout_delay = download_retry_timeout_max;
 
-	if (d->push)
-		d->timeout_delay = 1;	/* Must send pushes before route expires! */
-
 	download_stop(d, GTA_DL_TIMEOUT_WAIT, NULL);
 }
 
