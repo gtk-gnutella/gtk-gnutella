@@ -132,6 +132,7 @@ struct download {
  */
 
 #define DL_F_URIRES			0x00000001	/* Tried to GET "/uri-res/N2R?" */
+#define DL_F_PUSH_IGN		0x00000002	/* Trying to ignore push flag */
 #define DL_F_MARK			0x80000000	/* Marked in traversal */
 
 /*
@@ -139,6 +140,7 @@ struct download {
  */
 
 #define DLS_A_NO_URIRES		0x00000001	/* No support for "/uri-res/N2R?" */
+#define DLS_A_PUSH_IGN		0x00000002	/* Ignore pushes and connect directly */
 
 /*
  * Access macros.
