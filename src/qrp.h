@@ -55,6 +55,13 @@ typedef struct query_hashvec {
 	struct query_hash *vec;	/* Vector of at most `size' entries */
 } query_hashvec_t;
 
+typedef struct qrt_info {
+	gint slots;				/* Amount of slots */
+	gint generation;		/* Generation number */
+	gint fill_ratio;		/* Percentage of slots used */
+	gint pass_throw;		/* Passing throw, on a d100 */
+} qrt_info_t;
+
 /*
  * Public interface.
  */
@@ -82,6 +89,7 @@ gboolean qrt_receive_next(gpointer handle, gboolean *done);
 gpointer qrt_get_table(void);
 gpointer qrt_ref(gpointer obj);
 void qrt_unref(gpointer obj);
+void qrt_get_info(gpointer obj, qrt_info_t *qi);
 
 struct query_hashvec *qhvec_alloc(gint size);
 void qhvec_free(struct query_hashvec *qhvec);

@@ -114,6 +114,11 @@ typedef struct gnet_node_status {
 	guint32 rx_qhits;			/* Total amount of hits received */
 	guint32 tx_qhits;			/* Total amount of hits sent */
 
+	gint qrt_slots;				/* Amount of slots in leaf's QRT */
+	gint qrt_generation;		/* Generation number */
+	gint qrt_fill_ratio;		/* % of filling */
+	gint qrt_pass_throw;		/* Query limiter pass throw when table filled */
+
 	guint32  rt_avg;			/* Average ping/pong roundtrip time */
 	guint32  rt_last;			/* Last ping/pong roundtrip time */
 

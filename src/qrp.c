@@ -702,6 +702,25 @@ void qrt_unref(gpointer obj)
 		qrt_free(rt);
 }
 
+/*
+ * qrt_get_info
+ *
+ * Returns information about query routing table.
+ */
+void qrt_get_info(gpointer obj, qrt_info_t *qi)
+{
+	struct routing_table *rt = (struct routing_table *) obj;
+
+	g_assert(obj);
+	g_assert(rt->magic == QRP_ROUTE_MAGIC);
+	g_assert(rt->refcnt > 0);
+
+	qi->slots = rt->slots;
+	qi->generation = rt->generation;
+	qi->fill_ratio = rt->fill_ratio;
+	qi->pass_throw = rt->pass_throw;
+}
+
 /***
  *** Management of per-connection routing table.
  ***/
@@ -2550,6 +2569,8 @@ static gboolean qrt_handle_patch(
 
 		if (rt->generation == 0)
 			node_qrt_install(n, rt);
+		else
+			node_qrt_patched(n, rt);
 
 		(void) qrt_dump(stdout, rt, dbg > 20);
 	}

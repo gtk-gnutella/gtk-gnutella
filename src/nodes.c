@@ -1020,6 +1020,11 @@ static void node_remove_v(
 		n->query_table = NULL;
 	}
 
+	if (n->qrt_info) {
+		wfree(n->qrt_info, sizeof(*n->qrt_info));
+		n->qrt_info = NULL;
+	}
+
 	if (n->rxfc)
 		wfree(n->rxfc, sizeof(*n->rxfc));
 
@@ -5154,8 +5159,25 @@ void node_qrt_install(struct gnutella_node *n, gpointer query_table)
 	g_assert(n->query_table == NULL);
 
 	n->query_table = qrt_ref(query_table);
+	n->qrt_info = walloc(sizeof(*n->qrt_info));
+	qrt_get_info(query_table, n->qrt_info);
 
     node_fire_node_flags_changed(n);
+}
+
+/*
+ * node_qrt_patched
+ *
+ * Invoked for ultra nodes when the Query Routing Table of a leaf was
+ * fully patched (i.e. we got a new generation).
+ */
+void node_qrt_patched(struct gnutella_node *n, gpointer query_table)
+{
+	g_assert(NODE_IS_LEAF(n));
+	g_assert(n->query_table == query_table);
+	g_assert(n->qrt_info != NULL);
+
+	qrt_get_info(query_table, n->qrt_info);
 }
 
 /*
@@ -5261,6 +5283,8 @@ void node_close(void)
 			qrt_receive_free(n->qrt_receive);
 		if (n->query_table)
 			qrt_unref(n->query_table);
+		if (n->qrt_info)
+			wfree(n->qrt_info, sizeof(*n->qrt_info));
 		if (n->rxfc)
 			wfree(n->rxfc, sizeof(*n->rxfc));
 		if (n->guid) {
@@ -5533,6 +5557,15 @@ void node_get_status(const gnet_node_t n, gnet_node_status_t *status)
 		status->has_qrp = TRUE;
 	} else
 		status->has_qrp = FALSE;
+
+	if (node->qrt_info != NULL) {
+		qrt_info_t *qi = node->qrt_info;
+		status->qrt_slots = qi->slots;
+		status->qrt_generation = qi->generation;
+		status->qrt_fill_ratio = qi->fill_ratio;
+		status->qrt_pass_throw = qi->pass_throw;
+	} else
+		status->qrt_slots = 0;
 
 	status->rx_queries = node->rx_queries;
 	status->tx_queries = node->tx_queries;

@@ -90,6 +90,11 @@ const gchar *nodes_gui_common_status_str(
 					" QRP=%u%%",
 					(guint) (n->qrp_efficiency * 100.0));
 
+			if (n->qrt_slots != 0)
+				slen += gm_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
+					" QRT(%s, g=%d, f=%d%%, t=%d%%)",
+					compact_size(n->qrt_slots), n->qrt_generation,
+					n->qrt_fill_ratio, n->qrt_pass_throw);
 
 			slen += gm_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
 				" Dup=%d Bad=%d W=%d RT(avg=%d, last=%d) Q=%d,%d%% %s",

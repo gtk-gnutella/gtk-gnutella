@@ -30,6 +30,7 @@
 #include "mq.h"
 #include "sq.h"
 #include "rx.h"
+#include "qrp.h"
 
 /*
  * This structure keeps tracks of remote flow-control indications and
@@ -138,6 +139,7 @@ typedef struct gnutella_node {
 	gpointer query_table;		/* Opaque info, query table sent / used by UP */
 	gpointer qrt_update;		/* Opaque info, query routing update handle */
 	gpointer qrt_receive;		/* Opaque info, query routing reception */
+	qrt_info_t *qrt_info;		/* For leaves: info about their query table */
 
 	gpointer alive_pings;		/* Opaque info, for alive ping checks */
 	time_t last_alive_ping;		/* Last time we sent an alive ping */
@@ -414,6 +416,7 @@ gboolean node_remove_worst(gboolean non_local);
 void node_qrt_changed(gpointer query_table);
 void node_qrt_discard(struct gnutella_node *n);
 void node_qrt_install(struct gnutella_node *n, gpointer query_table);
+void node_qrt_patched(struct gnutella_node *n, gpointer query_table);
 
 void send_node_error(
 	struct gnutella_socket *s, int code, const gchar *msg, ...);
