@@ -37,6 +37,7 @@
 #define QUERY_SPEED_NO_XML		0x2000		/* No XML in result set, please */
 #define QUERY_SPEED_LEAF_GUIDED	0x1000		/* Leaf-guided query */
 #define QUERY_SPEED_GGEP_H		0x0800		/* Recipient understands GGEP "H" */
+#define QUERY_SPEED_OOB_REPLY	0x0400		/* Out-of-band reply possible */
 
 /*
  * Global Functions
