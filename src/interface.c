@@ -81,6 +81,7 @@ GtkWidget *button_search_download;
 GtkWidget *button_search_filter;
 GtkWidget *button_search_stream;
 GtkWidget *checkbutton_search_jump_to_downloads;
+GtkWidget *checkbutton_search_remove_downloaded;
 GtkWidget *entry_search;
 GtkWidget *combo_search;
 GtkWidget *entry_search_reissue_timeout;
@@ -278,11 +279,12 @@ create_main_window (void)
   GtkWidget *hbox19;
   GtkWidget *label30;
   GtkWidget *empty_notebook_page;
-  GtkWidget *hbox20;
-  GtkWidget *button_search_passive;
   GtkWidget *hbox52;
   GtkWidget *search_reissue_label;
   GtkObject *entry_search_reissue_timeout_adj;
+  GtkWidget *hbox20;
+  GtkWidget *button_search_passive;
+  GtkWidget *hbox80;
   GtkWidget *label_search;
   GtkWidget *vbox_monitor;
   GtkWidget *hbox45;
@@ -1776,6 +1778,31 @@ create_main_window (void)
   gtk_widget_show (empty_notebook_page);
   gtk_container_add (GTK_CONTAINER (notebook_search_results), empty_notebook_page);
 
+  hbox52 = gtk_hbox_new (FALSE, 4);
+  gtk_widget_ref (hbox52);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "hbox52", hbox52,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (hbox52);
+  gtk_box_pack_start (GTK_BOX (vbox_search), hbox52, FALSE, TRUE, 0);
+
+  search_reissue_label = gtk_label_new ("Retry search every (seconds, 0=never):");
+  gtk_widget_ref (search_reissue_label);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "search_reissue_label", search_reissue_label,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (search_reissue_label);
+  gtk_box_pack_start (GTK_BOX (hbox52), search_reissue_label, TRUE, TRUE, 0);
+  gtk_misc_set_alignment (GTK_MISC (search_reissue_label), 1, 0.5);
+
+  entry_search_reissue_timeout_adj = gtk_adjustment_new (1, 0, 9999, 60, 600, 600);
+  entry_search_reissue_timeout = gtk_spin_button_new (GTK_ADJUSTMENT (entry_search_reissue_timeout_adj), 1, 0);
+  gtk_widget_ref (entry_search_reissue_timeout);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "entry_search_reissue_timeout", entry_search_reissue_timeout,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (entry_search_reissue_timeout);
+  gtk_box_pack_start (GTK_BOX (hbox52), entry_search_reissue_timeout, FALSE, TRUE, 0);
+  gtk_widget_set_usize (entry_search_reissue_timeout, 70, -2);
+  gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (entry_search_reissue_timeout), TRUE);
+
   hbox20 = gtk_hbox_new (FALSE, 4);
   gtk_widget_ref (hbox20);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "hbox20", hbox20,
@@ -1824,44 +1851,33 @@ create_main_window (void)
                               GDK_c, GDK_CONTROL_MASK,
                               GTK_ACCEL_VISIBLE);
 
-  hbox52 = gtk_hbox_new (FALSE, 4);
-  gtk_widget_ref (hbox52);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "hbox52", hbox52,
+  hbox80 = gtk_hbox_new (FALSE, 4);
+  gtk_widget_ref (hbox80);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "hbox80", hbox80,
                             (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (hbox52);
-  gtk_box_pack_start (GTK_BOX (vbox_search), hbox52, FALSE, TRUE, 0);
+  gtk_widget_show (hbox80);
+  gtk_box_pack_start (GTK_BOX (vbox_search), hbox80, FALSE, TRUE, 0);
 
   checkbutton_search_jump_to_downloads = gtk_check_button_new_with_label ("Jump to downloads");
   gtk_widget_ref (checkbutton_search_jump_to_downloads);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "checkbutton_search_jump_to_downloads", checkbutton_search_jump_to_downloads,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (checkbutton_search_jump_to_downloads);
-  gtk_box_pack_start (GTK_BOX (hbox52), checkbutton_search_jump_to_downloads, FALSE, FALSE, 0);
+  gtk_box_pack_start (GTK_BOX (hbox80), checkbutton_search_jump_to_downloads, FALSE, FALSE, 0);
 
   checkbutton_autodownload = gtk_check_button_new_with_label ("Automatic Download");
   gtk_widget_ref (checkbutton_autodownload);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "checkbutton_autodownload", checkbutton_autodownload,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (checkbutton_autodownload);
-  gtk_box_pack_start (GTK_BOX (hbox52), checkbutton_autodownload, FALSE, FALSE, 0);
+  gtk_box_pack_start (GTK_BOX (hbox80), checkbutton_autodownload, FALSE, FALSE, 0);
 
-  search_reissue_label = gtk_label_new ("Retry search every (seconds, 0=never):");
-  gtk_widget_ref (search_reissue_label);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "search_reissue_label", search_reissue_label,
+  checkbutton_search_remove_downloaded = gtk_check_button_new_with_label ("Remove downloaded items from list");
+  gtk_widget_ref (checkbutton_search_remove_downloaded);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "checkbutton_search_remove_downloaded", checkbutton_search_remove_downloaded,
                             (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (search_reissue_label);
-  gtk_box_pack_start (GTK_BOX (hbox52), search_reissue_label, TRUE, TRUE, 0);
-  gtk_misc_set_alignment (GTK_MISC (search_reissue_label), 1, 0.5);
-
-  entry_search_reissue_timeout_adj = gtk_adjustment_new (1, 0, 9999, 60, 600, 600);
-  entry_search_reissue_timeout = gtk_spin_button_new (GTK_ADJUSTMENT (entry_search_reissue_timeout_adj), 1, 0);
-  gtk_widget_ref (entry_search_reissue_timeout);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "entry_search_reissue_timeout", entry_search_reissue_timeout,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (entry_search_reissue_timeout);
-  gtk_box_pack_start (GTK_BOX (hbox52), entry_search_reissue_timeout, FALSE, TRUE, 0);
-  gtk_widget_set_usize (entry_search_reissue_timeout, 70, -2);
-  gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (entry_search_reissue_timeout), TRUE);
+  gtk_widget_show (checkbutton_search_remove_downloaded);
+  gtk_box_pack_start (GTK_BOX (hbox80), checkbutton_search_remove_downloaded, FALSE, FALSE, 0);
 
   label_search = gtk_label_new ("Search");
   gtk_widget_ref (label_search);
@@ -3047,6 +3063,12 @@ create_main_window (void)
   gtk_signal_connect (GTK_OBJECT (entry_minimum_speed), "activate",
                       GTK_SIGNAL_FUNC (on_entry_minimum_speed_activate),
                       NULL);
+  gtk_signal_connect (GTK_OBJECT (entry_search_reissue_timeout), "activate",
+                      GTK_SIGNAL_FUNC (on_entry_search_reissue_timeout_activate),
+                      NULL);
+  gtk_signal_connect (GTK_OBJECT (entry_search_reissue_timeout), "focus_out_event",
+                      GTK_SIGNAL_FUNC (on_entry_search_reissue_timeout_focus_out_event),
+                      NULL);
   gtk_signal_connect (GTK_OBJECT (button_search_download), "clicked",
                       GTK_SIGNAL_FUNC (on_button_search_download_clicked),
                       NULL);
@@ -3065,11 +3087,8 @@ create_main_window (void)
   gtk_signal_connect (GTK_OBJECT (checkbutton_autodownload), "toggled",
                       GTK_SIGNAL_FUNC (on_checkbutton_autodownload_toggled),
                       NULL);
-  gtk_signal_connect (GTK_OBJECT (entry_search_reissue_timeout), "activate",
-                      GTK_SIGNAL_FUNC (on_entry_search_reissue_timeout_activate),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (entry_search_reissue_timeout), "focus_out_event",
-                      GTK_SIGNAL_FUNC (on_entry_search_reissue_timeout_focus_out_event),
+  gtk_signal_connect (GTK_OBJECT (checkbutton_search_remove_downloaded), "toggled",
+                      GTK_SIGNAL_FUNC (on_checkbutton_search_remove_downloaded_toggled),
                       NULL);
   gtk_signal_connect (GTK_OBJECT (checkbutton_monitor_enable), "toggled",
                       GTK_SIGNAL_FUNC (on_checkbutton_monitor_enable_toggled),
