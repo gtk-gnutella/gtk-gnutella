@@ -1,5 +1,20 @@
 # since last version
 
+- (2002.10.13 RAM)
+ * Made socket_destroy() a private routine of sockets.c, which now takes
+   a reason string that can be propagated back to the socket's resource
+   for better error logging.
+ * Fixed stupid error in vendors.c: was comparing aginst '0', instead of '\0'.
+ * Give more precise feedback for failed pushed uploads.
+ * Forgot to initialize flags in HTTP async requests.
+ * Fixed HTTP redirection bug: had put a wrong assertion.
+ * Applied Solaris portability patch [From Uros Bizjak] (patch #579522).
+ * Always parse query hits bearing 4 bytes of open data, whatever the vendor.
+ * Fixed some function formatting, according to point 4.5 of STYLE guide.
+ * When creating a new search, immediately send message to the search queue
+   as soon as the search is unfrozen (fixes bug #617206).
+ * Turn fuzzy name matching off by default, since it is potentially unsafe.
+
 - (2002.10.12 Richard)
  * Option to visually mark ignored files in the search results.
  * Update local address displays when listen port is changes (closes 622020).
