@@ -130,21 +130,22 @@ static void nodes_gui_update_node_info(gnet_node_info_t *n)
 
         node_get_status(n->node_handle, &status);
 
-        gtk_clist_set_text(clist, row, 2, n->vendor ? n->vendor : "...");
+        gtk_clist_set_text(clist, row, NODE_GUI_USER_AGENT_COLUMN,
+			n->vendor ? n->vendor : "...");
 
         gm_snprintf(gui_tmp, sizeof(gui_tmp), "%d.%d",
             n->proto_major, n->proto_minor);
-        gtk_clist_set_text(clist, row, 3, gui_tmp);
+        gtk_clist_set_text(clist, row, NODE_GUI_VERSION_COLUMN, gui_tmp);
 
 		if (status.status == GTA_NODE_CONNECTED)
-	        gtk_clist_set_text(clist, row, 4, 
+	        gtk_clist_set_text(clist, row, NODE_GUI_CONNECTED_COLUMN, 
        			short_uptime(now - status.connect_date));
 
 		if (status.up_date)
-    	    gtk_clist_set_text(clist, row, 5, 
+    	    gtk_clist_set_text(clist, row, NODE_GUI_UPTIME_COLUMN, 
 	        	status.up_date ?  short_uptime(now - status.up_date) : "...");
 
-        gtk_clist_set_text(clist, row, 6,
+        gtk_clist_set_text(clist, row, NODE_GUI_INFO_COLUMN,
 			nodes_gui_common_status_str(&status, now));
     } else {
         g_warning("%s: no matching row found", G_GNUC_PRETTY_FUNCTION);
@@ -244,7 +245,7 @@ void nodes_gui_add_node(gnet_node_info_t *n, const gchar *type)
 {
     GtkCList *clist_nodes;
     gint row;
-	gchar *titles[7];
+	gchar *titles[NODE_GUI_COLUMN_COUNT];
 	gchar proto_tmp[32];
 
     g_assert(n != NULL);
@@ -252,21 +253,19 @@ void nodes_gui_add_node(gnet_node_info_t *n, const gchar *type)
    	gm_snprintf(proto_tmp, sizeof(proto_tmp), "%d.%d",
 		n->proto_major, n->proto_minor);
 
-    titles[0] = ip_port_to_gchar(n->ip, n->port);
-    titles[1] = "...";
-    titles[2] = n->vendor ? n->vendor : "...";
-    titles[3] = proto_tmp;
-    titles[4] = "...";
-    titles[5] = "...";
-    titles[6] = "...";
+    titles[NODE_GUI_HOST_COLUMN]       = ip_port_to_gchar(n->ip, n->port);
+    titles[NODE_GUI_FLAGS_COLUMN]      = "...";
+    titles[NODE_GUI_USER_AGENT_COLUMN] = n->vendor ? n->vendor : "...";
+    titles[NODE_GUI_VERSION_COLUMN]    = proto_tmp;
+    titles[NODE_GUI_CONNECTED_COLUMN]  = "...";
+    titles[NODE_GUI_UPTIME_COLUMN]     = "...";
+    titles[NODE_GUI_INFO_COLUMN]       = "...";
 
     clist_nodes = GTK_CLIST(lookup_widget(main_window, "clist_nodes"));
 
     row = gtk_clist_append(clist_nodes, titles);
     gtk_clist_set_row_data(clist_nodes, row, GUINT_TO_POINTER(n->node_handle));
 }
-
-
 
 /*
  * gui_update_nodes_display
@@ -308,15 +307,15 @@ void nodes_gui_update_nodes_display(time_t now)
 		 */
 
 		if (status.status == GTA_NODE_CONNECTED) {
-	        gtk_clist_set_text(clist, row, 4, 
+	        gtk_clist_set_text(clist, row, NODE_GUI_CONNECTED_COLUMN, 
         			short_uptime(now - status.connect_date));
 		
 			if (status.up_date)
-				gtk_clist_set_text(clist, row, 5, 
+				gtk_clist_set_text(clist, row, NODE_GUI_UPTIME_COLUMN, 
 					status.up_date ?
 						short_uptime(now - status.up_date) : "...");
 		}
-        gtk_clist_set_text(clist, row, 6,
+        gtk_clist_set_text(clist, row, NODE_GUI_INFO_COLUMN,
 			nodes_gui_common_status_str(&status, now));
     }
     gtk_clist_thaw(clist);
