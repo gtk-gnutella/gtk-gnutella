@@ -789,19 +789,9 @@ static void cproxy_http_newstate(gpointer handle, http_state_t newstate);
 #define CP_F_SWAPPED_IP	0x00000001		/* Tried to swap IP address */
 
 /*
- * swap_ip
- *
  * Swap endianness of IP.
  */
-guint32 swap_ip(guint32 ip)
-{
-	gint a = ip & 0x000000ff;
-	gint b = (ip & 0x0000ff00) >> 8;
-	gint c = (ip & 0x00ff0000) >> 16;
-	gint d = (ip & 0xff000000) >> 24;
-
-	return d + (c << 8) + (b << 16) + (a << 24);
-}
+#define SWAP_IP(x) GUINT32_SWAP_LE_BE(x)
 
 /*
  * cproxy_free
@@ -855,7 +845,7 @@ static void cproxy_http_error_ind(
 	 *	--RAM, 04/08/2003
 	 */
 
-	new_ip = swap_ip(cp->ip);
+	new_ip = SWAP_IP(cp->ip);
 
 	if (
 		!(cp->flags & CP_F_SWAPPED_IP) &&
@@ -895,7 +885,7 @@ static void cproxy_http_error_ind(
 	}
 
 	if (cp->flags & CP_F_SWAPPED_IP)
-		cp->ip = swap_ip(cp->ip);		/* Restore original IP */
+		cp->ip = SWAP_IP(cp->ip);		/* Restore original IP */
 
 	cp->http_handle = NULL;
 	cp->done = TRUE;
@@ -1072,7 +1062,7 @@ struct cproxy *cproxy_create(struct download *d,
 	 */
 
 	if (handle == NULL)
-		new_ip = swap_ip(ip);
+		new_ip = SWAP_IP(ip);
 
 	if (handle == NULL && host_is_valid(new_ip, port)) {
 		g_warning("can't connect to push-proxy %s for GUID %s: %s "
