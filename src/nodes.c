@@ -130,7 +130,7 @@ static void call_node_process_handshake_ack(gpointer obj, header_t *header);
 
 static listeners_t node_added_listeners   = NULL;
 static listeners_t node_removed_listeners = NULL;
-static listeners_t node_changed_listeners = NULL;
+static listeners_t node_info_changed_listeners = NULL;
 
 void node_add_node_added_listener(node_added_listener_t l)
 {
@@ -152,17 +152,17 @@ void node_remove_node_removed_listener(node_removed_listener_t l)
     LISTENER_REMOVE(node_removed, l);
 }
 
-void node_add_node_changed_listener(node_changed_listener_t l)
+void node_add_node_info_changed_listener(node_info_changed_listener_t l)
 {
-    LISTENER_ADD(node_changed, l);
+    LISTENER_ADD(node_info_changed, l);
 }
 
-void node_remove_node_changed_listener(node_changed_listener_t l)
+void node_remove_node_info_changed_listener(node_info_changed_listener_t l)
 {
-    LISTENER_REMOVE(node_changed, l);
+    LISTENER_REMOVE(node_info_changed, l);
 }
 
-static void node_emit_node_added(
+static void node_fire_node_added(
     gnutella_node_t *n, const gchar *type)
 {
     n->last_update = time((time_t *)NULL);
@@ -170,24 +170,17 @@ static void node_emit_node_added(
         connected_nodes(), node_count());;
 }
 
-static void node_emit_node_removed(gnutella_node_t *n)
+static void node_fire_node_removed(gnutella_node_t *n)
 {
     n->last_update = time((time_t *)NULL);
     LISTENER_EMIT(node_removed, n->node_handle, 
         connected_nodes(), node_count());
 }
 
-static void node_emit_node_changed
-    (gnutella_node_t *n, gboolean force)
+static void node_fire_node_info_changed
+    (gnutella_node_t *n)
 {
-    time_t now = time((time_t *) NULL);
-
-    if (!force && (n->last_update == now))
-        return;
-
-    n->last_update = time((time_t *)NULL);
-    LISTENER_EMIT(node_changed, n->node_handle, force, 
-        connected_nodes(), node_count());
+    LISTENER_EMIT(node_info_changed, n->node_handle);
 }
 
 /***
@@ -413,7 +406,7 @@ void node_real_remove(gnutella_node_t *node)
     /*
      * Tell the frontend that the node was removed.
      */
-    node_emit_node_removed(node);
+    node_fire_node_removed(node);
 
 	sl_nodes = g_slist_remove(sl_nodes, node);
     node_drop_handle(node->node_handle);
@@ -551,7 +544,7 @@ static void node_remove_v(
 	if (n->flags & NODE_F_EOF_WAIT)
 		pending_byes--;
 
-    node_emit_node_changed(n, TRUE);
+    node_fire_node_info_changed(n);
 }
 
 /*
@@ -687,7 +680,7 @@ static void node_shutdown_mode(struct gnutella_node *n, guint32 delay)
 
 	shutdown_nodes++;
 
-    node_emit_node_changed(n, TRUE);
+    node_fire_node_info_changed(n);
 }
 
 /*
@@ -1216,7 +1209,7 @@ static void node_is_now_connected(struct gnutella_node *n)
 	/*
 	 * Update the GUI.
 	 */
-    node_emit_node_changed(n, TRUE);
+    node_fire_node_info_changed(n);
 
 	node_added = n;
 	g_hook_list_invoke(&node_added_hook_list, TRUE);
@@ -1318,7 +1311,7 @@ static void downgrade_handshaking(struct gnutella_node *n)
 	} else
 		n->remove_msg = "Re-connection failed";
 
-    node_emit_node_changed(n, TRUE);
+    node_fire_node_info_changed(n);
 }
 
 /*
@@ -2140,7 +2133,7 @@ void node_add_socket(struct gnutella_socket *s, guint32 ip, guint16 port)
 		connection_type = "Outgoing";
 	}
 
-    node_emit_node_added(n, connection_type);
+    node_fire_node_added(n, connection_type);
 
 	/*
 	 * Insert node in lists, before checking `already_connected', since
@@ -2199,7 +2192,7 @@ void node_add_socket(struct gnutella_socket *s, guint32 ip, guint16 port)
 		}
 	}
 
-    node_emit_node_changed(n, TRUE);
+    node_fire_node_info_changed(n);
 }
 
 /*
@@ -2464,7 +2457,7 @@ void node_init_outgoing(struct gnutella_node *n)
 		return;
 	} else {
 		n->status = GTA_NODE_HELLO_SENT;
-        node_emit_node_changed(n, TRUE);
+        node_fire_node_info_changed(n);
 
 		if (dbg > 2) {
 			printf("----Sent HELLO request to %s:\n%.*s----\n",
@@ -2611,8 +2604,6 @@ static gboolean node_read(struct gnutella_node *n, pmsg_t *mb)
 		READ_GUINT32_LE(n->header.size, n->size);
 
         gnet_stats_count_received_header(n);
-		node_emit_node_changed(n, FALSE);
-
 
 		/* If the message haven't got any data, we process it now */
 
@@ -3011,29 +3002,29 @@ void node_close(void)
 	rxbuf_close();
 }
 
-inline void node_add_sent(gnutella_node_t *n, gint x)
+__inline__ void node_add_sent(gnutella_node_t *n, gint x)
 {
+    n->last_update = time((time_t *)NULL);
 	n->sent += x; 
-    node_emit_node_changed(n, FALSE);
 }
 
-inline void  node_add_txdrop(gnutella_node_t *n, gint x)
+__inline__ void  node_add_txdrop(gnutella_node_t *n, gint x)
 {
+    n->last_update = time((time_t *)NULL);
 	n->tx_dropped += x;
-    node_emit_node_changed(n, FALSE);
 }
 
-inline void node_add_rxdrop(gnutella_node_t *n, gint x)
+__inline__ void node_add_rxdrop(gnutella_node_t *n, gint x)
 {
+    n->last_update = time((time_t *)NULL);
 	n->rx_dropped += x; 
-    node_emit_node_changed(n, FALSE);
 }
 
 
-inline void node_set_vendor(gnutella_node_t *n, const gchar *vendor)
+__inline__ void node_set_vendor(gnutella_node_t *n, const gchar *vendor)
 {
     n->vendor = atom_str_get(vendor);
-    node_emit_node_changed(n, TRUE);
+    node_fire_node_info_changed(n);
 }
 
 
@@ -3058,55 +3049,13 @@ gnet_node_info_t *node_get_info(const gnet_node_t n)
 
     info->node_handle = n;
 
-    info->error_str = (node->error_str != NULL) ? 
-        g_strdup(node->error_str) : NULL;
     info->proto_major = node->proto_major;
     info->proto_minor = node->proto_minor;
     info->vendor = node->vendor ? g_strdup(node->vendor) : NULL;
     memcpy(info->vcode, node->vcode, 4);
 
-    info->status   = node->status;
-    info->peermode = node->peermode;
-    info->flags    = node->flags;
-    info->attrs    = node->attrs;
-
-    info->sent       = node->sent;
-    info->received   = node->received;
-    info->tx_dropped = node->tx_dropped;
-    info->rx_dropped = node->rx_dropped;
-    info->n_bad      = node->n_bad;
-    info->n_dups     = node->n_dups;
-    info->n_hard_ttl = node->n_hard_ttl;
-    info->n_weird    = node->n_weird;
-
-    info->squeue_sent         = NODE_SQUEUE_SENT(node);
-    info->squeue_count        = NODE_SQUEUE_COUNT(node);
-    info->mqueue_count        = NODE_MQUEUE_COUNT(node);
-    info->mqueue_percent_used = NODE_MQUEUE_PERCENT_USED(node);
-    info->in_tx_flow_control  =	NODE_IN_TX_FLOW_CONTROL(node);
-    
-    info->last_update    = node->last_update;
-    info->connect_date   = node->connect_date;
-    info->tx_flowc_date  = node->tx_flowc_date;
-    info->shutdown_date  = node->shutdown_date;
-    info->shutdown_delay = node->shutdown_delay;
-
-    info->remove_msg = g_strdup(node->remove_msg);
-
     info->ip   = node->ip;
     info->port = node->port;
-    
-    info->tx_given    = node->tx_given;
-    info->tx_deflated = node->tx_deflated;
-    info->tx_written  = node->tx_written;
-    info->tx_compressed = NODE_TX_COMPRESSED(node);
-    info->tx_compression_ratio = NODE_TX_COMPRESSION_RATIO(node);
-
-    info->rx_given    = node->rx_given;
-    info->rx_inflated = node->rx_inflated;
-    info->rx_read     = node->rx_read;
-    info->rx_compressed = NODE_RX_COMPRESSED(node);
-    info->rx_compression_ratio = NODE_RX_COMPRESSION_RATIO(node);
 
     return info;
 }
@@ -3119,13 +3068,60 @@ gnet_node_info_t *node_get_info(const gnet_node_t n)
 void node_free_info(gnet_node_info_t *info)
 {
 	if (info->vendor)
-		g_free(info->vendor);
-	if (info->error_str)
-		g_free(info->error_str);
-	if (info->remove_msg)
-		g_free(info->remove_msg);
-
+        g_free(info->vendor);
     g_free(info);
+}
+
+void node_get_status(const gnet_node_t n, gnet_node_status_t *status)
+{
+    gnutella_node_t  *node = node_find_by_handle(n); 
+    time_t now = time((time_t *) NULL);
+
+    g_assert(status != NULL);
+
+    status->status     = node->status;
+
+    status->sent       = node->sent;
+    status->received   = node->received;
+    status->tx_dropped = node->tx_dropped;
+    status->rx_dropped = node->rx_dropped;
+    status->n_bad      = node->n_bad;
+    status->n_dups     = node->n_dups;
+    status->n_hard_ttl = node->n_hard_ttl;
+    status->n_weird    = node->n_weird;
+
+    status->squeue_sent         = NODE_SQUEUE_SENT(node);
+    status->squeue_count        = NODE_SQUEUE_COUNT(node);
+    status->mqueue_count        = NODE_MQUEUE_COUNT(node);
+    status->mqueue_percent_used = NODE_MQUEUE_PERCENT_USED(node);
+    status->in_tx_flow_control  = NODE_IN_TX_FLOW_CONTROL(node);
+
+    status->tx_given    = node->tx_given;
+    status->tx_deflated = node->tx_deflated;
+    status->tx_written  = node->tx_written;
+    status->tx_compressed = NODE_TX_COMPRESSED(node);
+    status->tx_compression_ratio = NODE_TX_COMPRESSION_RATIO(node);
+
+    status->rx_given    = node->rx_given;
+    status->rx_inflated = node->rx_inflated;
+    status->rx_read     = node->rx_read;
+    status->rx_compressed = NODE_RX_COMPRESSED(node);
+    status->rx_compression_ratio = NODE_RX_COMPRESSION_RATIO(node);
+
+    status->shutdown_remain = 
+        node->shutdown_delay - (now - node->shutdown_date);
+    if (status->shutdown_remain < 0)
+        status->shutdown_remain = 0;
+
+    if (node->error_str != NULL)
+        g_snprintf(status->message, sizeof(status->message), "%s", 
+            node->error_str);
+    else if (node->remove_msg != NULL)
+        g_snprintf(status->message, sizeof(status->message), "%s", 
+            node->remove_msg);
+    else
+        status->message[0] = '\0';
+
 }
 
 /*

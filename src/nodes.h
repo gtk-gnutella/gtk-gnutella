@@ -306,11 +306,12 @@ void node_close(void);
 gboolean node_remove_non_nearby(void);
 gboolean node_remove_worst(void);
 
+
 void send_node_error(struct gnutella_socket *s, int code, guchar *msg, ...);
 
-inline void node_add_sent(gnutella_node_t *n, gint x);
-inline void node_add_txdrop(gnutella_node_t *n, gint x);
-inline void node_add_rxdrop(gnutella_node_t *n, gint x);
+__inline__ void node_add_sent(gnutella_node_t *n, gint x);
+__inline__ void node_add_txdrop(gnutella_node_t *n, gint x);
+__inline__ void node_add_rxdrop(gnutella_node_t *n, gint x);
 
 inline void node_set_vendor(gnutella_node_t *n, const gchar *vendor);
 
