@@ -5813,6 +5813,9 @@ struct download *download_find_waiting_unparq(guint32 ip, guint16 port)
 
 		g_assert(!DOWNLOAD_IS_RUNNING(d));
 
+		if (d->flags & DL_F_SUSPENDED)		/* Suspended, cannot pick */
+			continue;
+
 		if (d->queue_status == NULL)		/* No PARQ information yet */
 			return d;						/* Found it! */
 	}
@@ -6352,6 +6355,7 @@ static void download_verify_sha1(struct download *d)
 	g_assert(DOWNLOAD_IS_STOPPED(d));
 	g_assert(!DOWNLOAD_IS_VERIFYING(d));
 	g_assert(!(d->flags & DL_F_SUSPENDED));
+	g_assert(d->list_idx == DL_LIST_STOPPED);
 
 	/*
 	 * Even if download was aborted or in error, we have a complete file
@@ -6377,6 +6381,7 @@ static void download_verify_sha1(struct download *d)
 void download_verify_start(struct download *d)
 {
 	g_assert(d->status == GTA_DL_VERIFY_WAIT);
+	g_assert(d->list_idx == DL_LIST_STOPPED);
 
 	d->status = GTA_DL_VERIFYING;
 	d->file_info->cha1_hashed = 0;
@@ -6392,6 +6397,7 @@ void download_verify_start(struct download *d)
 void download_verify_progress(struct download *d, guint32 hashed)
 {
 	g_assert(d->status == GTA_DL_VERIFYING);
+	g_assert(d->list_idx == DL_LIST_STOPPED);
 
 	d->file_info->cha1_hashed = hashed;
 }
@@ -6406,6 +6412,7 @@ void download_verify_done(struct download *d, guchar *digest, time_t elapsed)
 	struct dl_file_info *fi;
 
 	g_assert(d->status == GTA_DL_VERIFYING);
+	g_assert(d->list_idx == DL_LIST_STOPPED);
 
 	fi = d->file_info;
 	fi->cha1 = atom_sha1_get(digest);
