@@ -4563,7 +4563,7 @@
 		<name>table34</name>
 		<border_width>2</border_width>
 		<rows>3</rows>
-		<columns>4</columns>
+		<columns>5</columns>
 		<homogeneous>False</homogeneous>
 		<row_spacing>2</row_spacing>
 		<column_spacing>4</column_spacing>
@@ -4662,29 +4662,6 @@
 
 		<widget>
 		  <class>GtkCheckButton</class>
-		  <name>checkbutton_search_mark_ignored</name>
-		  <can_focus>True</can_focus>
-		  <label>Mark ignored files</label>
-		  <active>False</active>
-		  <draw_indicator>True</draw_indicator>
-		  <child>
-		    <left_attach>2</left_attach>
-		    <right_attach>3</right_attach>
-		    <top_attach>2</top_attach>
-		    <bottom_attach>3</bottom_attach>
-		    <xpad>0</xpad>
-		    <ypad>0</ypad>
-		    <xexpand>False</xexpand>
-		    <yexpand>False</yexpand>
-		    <xshrink>False</xshrink>
-		    <yshrink>False</yshrink>
-		    <xfill>True</xfill>
-		    <yfill>False</yfill>
-		  </child>
-		</widget>
-
-		<widget>
-		  <class>GtkCheckButton</class>
 		  <name>checkbutton_search_jump_to_downloads</name>
 		  <can_focus>True</can_focus>
 		  <label>Jump to downloads</label>
@@ -4709,7 +4686,7 @@
 		<widget>
 		  <class>GtkLabel</class>
 		  <name>label460</name>
-		  <label>Maximum results per search</label>
+		  <label>Maximum results shown</label>
 		  <justify>GTK_JUSTIFY_CENTER</justify>
 		  <wrap>False</wrap>
 		  <xalign>0</xalign>
@@ -4733,12 +4710,72 @@
 		</widget>
 
 		<widget>
+		  <class>GtkCheckButton</class>
+		  <name>checkbutton_search_hide_downloaded</name>
+		  <can_focus>True</can_focus>
+		  <label>Hide downloaded files</label>
+		  <active>False</active>
+		  <draw_indicator>True</draw_indicator>
+		  <child>
+		    <left_attach>3</left_attach>
+		    <right_attach>4</right_attach>
+		    <top_attach>0</top_attach>
+		    <bottom_attach>1</bottom_attach>
+		    <xpad>0</xpad>
+		    <ypad>0</ypad>
+		    <xexpand>False</xexpand>
+		    <yexpand>False</yexpand>
+		    <xshrink>False</xshrink>
+		    <yshrink>False</yshrink>
+		    <xfill>True</xfill>
+		    <yfill>False</yfill>
+		  </child>
+		</widget>
+
+		<widget>
+		  <class>GtkCombo</class>
+		  <name>combo_search_handle_ignored_files</name>
+		  <value_in_list>False</value_in_list>
+		  <ok_if_empty>True</ok_if_empty>
+		  <case_sensitive>False</case_sensitive>
+		  <use_arrows>True</use_arrows>
+		  <use_arrows_always>False</use_arrows_always>
+		  <items></items>
+		  <child>
+		    <left_attach>3</left_attach>
+		    <right_attach>4</right_attach>
+		    <top_attach>2</top_attach>
+		    <bottom_attach>3</bottom_attach>
+		    <xpad>0</xpad>
+		    <ypad>0</ypad>
+		    <xexpand>False</xexpand>
+		    <yexpand>False</yexpand>
+		    <xshrink>False</xshrink>
+		    <yshrink>False</yshrink>
+		    <xfill>True</xfill>
+		    <yfill>False</yfill>
+		  </child>
+
+		  <widget>
+		    <class>GtkEntry</class>
+		    <child_name>GtkCombo:entry</child_name>
+		    <name>combo-entry4</name>
+		    <width>66</width>
+		    <can_focus>True</can_focus>
+		    <editable>True</editable>
+		    <text_visible>True</text_visible>
+		    <text_max_length>0</text_max_length>
+		    <text></text>
+		  </widget>
+		</widget>
+
+		<widget>
 		  <class>GtkSpinButton</class>
 		  <name>spinbutton_search_max_results</name>
 		  <can_focus>True</can_focus>
 		  <climb_rate>1</climb_rate>
 		  <digits>0</digits>
-		  <numeric>False</numeric>
+		  <numeric>True</numeric>
 		  <update_policy>GTK_UPDATE_ALWAYS</update_policy>
 		  <snap>False</snap>
 		  <wrap>False</wrap>
@@ -4765,17 +4802,20 @@
 		</widget>
 
 		<widget>
-		  <class>GtkCheckButton</class>
-		  <name>checkbutton_search_hide_downloaded</name>
-		  <can_focus>True</can_focus>
-		  <label>Hide downloaded files</label>
-		  <active>False</active>
-		  <draw_indicator>True</draw_indicator>
+		  <class>GtkLabel</class>
+		  <name>label541</name>
+		  <label>Ignored files are</label>
+		  <justify>GTK_JUSTIFY_RIGHT</justify>
+		  <wrap>False</wrap>
+		  <xalign>0</xalign>
+		  <yalign>0.5</yalign>
+		  <xpad>21</xpad>
+		  <ypad>0</ypad>
 		  <child>
-		    <left_attach>3</left_attach>
-		    <right_attach>4</right_attach>
-		    <top_attach>0</top_attach>
-		    <bottom_attach>1</bottom_attach>
+		    <left_attach>2</left_attach>
+		    <right_attach>3</right_attach>
+		    <top_attach>2</top_attach>
+		    <bottom_attach>3</bottom_attach>
 		    <xpad>0</xpad>
 		    <ypad>0</ypad>
 		    <xexpand>False</xexpand>
@@ -12321,7 +12361,7 @@ interface</label>
 		<widget>
 		  <class>GtkFrame</class>
 		  <name>frame65</name>
-		  <height>170</height>
+		  <height>185</height>
 		  <label>General stats</label>
 		  <label_xalign>0</label_xalign>
 		  <shadow_type>GTK_SHADOW_ETCHED_IN</shadow_type>
