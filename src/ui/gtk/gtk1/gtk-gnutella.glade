@@ -372,7 +372,7 @@
 	    <handler>on_button_quit_clicked</handler>
 	    <last_modification_time>Wed, 24 Apr 2002 09:49:45 GMT</last_modification_time>
 	  </signal>
-	  <label>Quit</label>
+	  <label>_Quit</label>
 	  <icon>exit.xpm</icon>
 	</widget>
 
@@ -13135,49 +13135,23 @@ Grace time remaining:</label>
       <child>
 	<padding>0</padding>
 	<expand>False</expand>
-	<fill>True</fill>
+	<fill>False</fill>
       </child>
 
       <widget>
 	<class>GtkTable</class>
 	<name>table28</name>
 	<border_width>4</border_width>
-	<rows>6</rows>
-	<columns>2</columns>
+	<rows>3</rows>
+	<columns>5</columns>
 	<homogeneous>False</homogeneous>
 	<row_spacing>2</row_spacing>
-	<column_spacing>4</column_spacing>
+	<column_spacing>0</column_spacing>
 	<child>
-	  <padding>0</padding>
+	  <padding>4</padding>
 	  <expand>True</expand>
 	  <fill>True</fill>
 	</child>
-
-	<widget>
-	  <class>GtkLabel</class>
-	  <name>label265</name>
-	  <label>Yann Grossel</label>
-	  <justify>GTK_JUSTIFY_CENTER</justify>
-	  <wrap>False</wrap>
-	  <xalign>0</xalign>
-	  <yalign>0.5</yalign>
-	  <xpad>0</xpad>
-	  <ypad>0</ypad>
-	  <child>
-	    <left_attach>1</left_attach>
-	    <right_attach>2</right_attach>
-	    <top_attach>0</top_attach>
-	    <bottom_attach>1</bottom_attach>
-	    <xpad>0</xpad>
-	    <ypad>0</ypad>
-	    <xexpand>True</xexpand>
-	    <yexpand>False</yexpand>
-	    <xshrink>False</xshrink>
-	    <yshrink>False</yshrink>
-	    <xfill>True</xfill>
-	    <yfill>False</yfill>
-	  </child>
-	</widget>
 
 	<widget>
 	  <class>GtkLabel</class>
@@ -13185,9 +13159,9 @@ Grace time remaining:</label>
 	  <label>Original author:</label>
 	  <justify>GTK_JUSTIFY_CENTER</justify>
 	  <wrap>False</wrap>
-	  <xalign>1</xalign>
+	  <xalign>0</xalign>
 	  <yalign>0.5</yalign>
-	  <xpad>0</xpad>
+	  <xpad>4</xpad>
 	  <ypad>0</ypad>
 	  <child>
 	    <left_attach>0</left_attach>
@@ -13197,58 +13171,6 @@ Grace time remaining:</label>
 	    <xpad>0</xpad>
 	    <ypad>0</ypad>
 	    <xexpand>True</xexpand>
-	    <yexpand>False</yexpand>
-	    <xshrink>False</xshrink>
-	    <yshrink>False</yshrink>
-	    <xfill>True</xfill>
-	    <yfill>False</yfill>
-	  </child>
-	</widget>
-
-	<widget>
-	  <class>GtkLabel</class>
-	  <name>label266</name>
-	  <label>Project leader:</label>
-	  <justify>GTK_JUSTIFY_CENTER</justify>
-	  <wrap>False</wrap>
-	  <xalign>1</xalign>
-	  <yalign>0.5</yalign>
-	  <xpad>0</xpad>
-	  <ypad>0</ypad>
-	  <child>
-	    <left_attach>0</left_attach>
-	    <right_attach>1</right_attach>
-	    <top_attach>1</top_attach>
-	    <bottom_attach>2</bottom_attach>
-	    <xpad>0</xpad>
-	    <ypad>0</ypad>
-	    <xexpand>False</xexpand>
-	    <yexpand>False</yexpand>
-	    <xshrink>False</xshrink>
-	    <yshrink>False</yshrink>
-	    <xfill>True</xfill>
-	    <yfill>False</yfill>
-	  </child>
-	</widget>
-
-	<widget>
-	  <class>GtkLabel</class>
-	  <name>label267</name>
-	  <label>Raphaël Manfredi</label>
-	  <justify>GTK_JUSTIFY_CENTER</justify>
-	  <wrap>False</wrap>
-	  <xalign>0</xalign>
-	  <yalign>0.5</yalign>
-	  <xpad>0</xpad>
-	  <ypad>0</ypad>
-	  <child>
-	    <left_attach>1</left_attach>
-	    <right_attach>2</right_attach>
-	    <top_attach>1</top_attach>
-	    <bottom_attach>2</bottom_attach>
-	    <xpad>0</xpad>
-	    <ypad>0</ypad>
-	    <xexpand>False</xexpand>
 	    <yexpand>False</yexpand>
 	    <xshrink>False</xshrink>
 	    <yshrink>False</yshrink>
@@ -13263,9 +13185,35 @@ Grace time remaining:</label>
 	  <label>Core development:</label>
 	  <justify>GTK_JUSTIFY_CENTER</justify>
 	  <wrap>False</wrap>
-	  <xalign>1</xalign>
+	  <xalign>0</xalign>
 	  <yalign>0.5</yalign>
-	  <xpad>0</xpad>
+	  <xpad>4</xpad>
+	  <ypad>0</ypad>
+	  <child>
+	    <left_attach>0</left_attach>
+	    <right_attach>1</right_attach>
+	    <top_attach>1</top_attach>
+	    <bottom_attach>2</bottom_attach>
+	    <xpad>0</xpad>
+	    <ypad>0</ypad>
+	    <xexpand>False</xexpand>
+	    <yexpand>False</yexpand>
+	    <xshrink>False</xshrink>
+	    <yshrink>False</yshrink>
+	    <xfill>True</xfill>
+	    <yfill>False</yfill>
+	  </child>
+	</widget>
+
+	<widget>
+	  <class>GtkLabel</class>
+	  <name>label527</name>
+	  <label>PARQ development:</label>
+	  <justify>GTK_JUSTIFY_CENTER</justify>
+	  <wrap>False</wrap>
+	  <xalign>0</xalign>
+	  <yalign>0.5</yalign>
+	  <xpad>4</xpad>
 	  <ypad>0</ypad>
 	  <child>
 	    <left_attach>0</left_attach>
@@ -13285,22 +13233,48 @@ Grace time remaining:</label>
 
 	<widget>
 	  <class>GtkLabel</class>
-	  <name>label271</name>
-	  <label>GUI development:</label>
+	  <name>label266</name>
+	  <label>Project leader:</label>
 	  <justify>GTK_JUSTIFY_CENTER</justify>
 	  <wrap>False</wrap>
-	  <xalign>1</xalign>
+	  <xalign>0</xalign>
 	  <yalign>0.5</yalign>
 	  <xpad>0</xpad>
 	  <ypad>0</ypad>
 	  <child>
-	    <left_attach>0</left_attach>
-	    <right_attach>1</right_attach>
-	    <top_attach>3</top_attach>
-	    <bottom_attach>4</bottom_attach>
+	    <left_attach>3</left_attach>
+	    <right_attach>4</right_attach>
+	    <top_attach>0</top_attach>
+	    <bottom_attach>1</bottom_attach>
 	    <xpad>0</xpad>
 	    <ypad>0</ypad>
-	    <xexpand>False</xexpand>
+	    <xexpand>True</xexpand>
+	    <yexpand>False</yexpand>
+	    <xshrink>False</xshrink>
+	    <yshrink>False</yshrink>
+	    <xfill>True</xfill>
+	    <yfill>False</yfill>
+	  </child>
+	</widget>
+
+	<widget>
+	  <class>GtkLabel</class>
+	  <name>label271</name>
+	  <label>GUI development:</label>
+	  <justify>GTK_JUSTIFY_CENTER</justify>
+	  <wrap>False</wrap>
+	  <xalign>0</xalign>
+	  <yalign>0.5</yalign>
+	  <xpad>0</xpad>
+	  <ypad>0</ypad>
+	  <child>
+	    <left_attach>3</left_attach>
+	    <right_attach>4</right_attach>
+	    <top_attach>1</top_attach>
+	    <bottom_attach>2</bottom_attach>
+	    <xpad>0</xpad>
+	    <ypad>0</ypad>
+	    <xexpand>True</xexpand>
 	    <yexpand>False</yexpand>
 	    <xshrink>False</xshrink>
 	    <yshrink>False</yshrink>
@@ -13315,18 +13289,141 @@ Grace time remaining:</label>
 	  <label>Swarming development:</label>
 	  <justify>GTK_JUSTIFY_CENTER</justify>
 	  <wrap>False</wrap>
-	  <xalign>1</xalign>
+	  <xalign>0</xalign>
 	  <yalign>0.5</yalign>
 	  <xpad>0</xpad>
 	  <ypad>0</ypad>
 	  <child>
-	    <left_attach>0</left_attach>
-	    <right_attach>1</right_attach>
-	    <top_attach>4</top_attach>
-	    <bottom_attach>5</bottom_attach>
+	    <left_attach>3</left_attach>
+	    <right_attach>4</right_attach>
+	    <top_attach>2</top_attach>
+	    <bottom_attach>3</bottom_attach>
 	    <xpad>0</xpad>
 	    <ypad>0</ypad>
-	    <xexpand>False</xexpand>
+	    <xexpand>True</xexpand>
+	    <yexpand>False</yexpand>
+	    <xshrink>False</xshrink>
+	    <yshrink>False</yshrink>
+	    <xfill>True</xfill>
+	    <yfill>False</yfill>
+	  </child>
+	</widget>
+
+	<widget>
+	  <class>GtkVSeparator</class>
+	  <name>vseparator5</name>
+	  <child>
+	    <left_attach>2</left_attach>
+	    <right_attach>3</right_attach>
+	    <top_attach>0</top_attach>
+	    <bottom_attach>3</bottom_attach>
+	    <xpad>4</xpad>
+	    <ypad>0</ypad>
+	    <xexpand>True</xexpand>
+	    <yexpand>False</yexpand>
+	    <xshrink>False</xshrink>
+	    <yshrink>False</yshrink>
+	    <xfill>True</xfill>
+	    <yfill>True</yfill>
+	  </child>
+	</widget>
+
+	<widget>
+	  <class>GtkLabel</class>
+	  <name>label292</name>
+	  <label>Vidar Madsen</label>
+	  <justify>GTK_JUSTIFY_CENTER</justify>
+	  <wrap>False</wrap>
+	  <xalign>0</xalign>
+	  <yalign>0.5</yalign>
+	  <xpad>0</xpad>
+	  <ypad>0</ypad>
+	  <child>
+	    <left_attach>4</left_attach>
+	    <right_attach>5</right_attach>
+	    <top_attach>2</top_attach>
+	    <bottom_attach>3</bottom_attach>
+	    <xpad>4</xpad>
+	    <ypad>0</ypad>
+	    <xexpand>True</xexpand>
+	    <yexpand>False</yexpand>
+	    <xshrink>False</xshrink>
+	    <yshrink>False</yshrink>
+	    <xfill>True</xfill>
+	    <yfill>False</yfill>
+	  </child>
+	</widget>
+
+	<widget>
+	  <class>GtkLabel</class>
+	  <name>label272</name>
+	  <label>Richard Eckart</label>
+	  <justify>GTK_JUSTIFY_CENTER</justify>
+	  <wrap>False</wrap>
+	  <xalign>0</xalign>
+	  <yalign>0.5</yalign>
+	  <xpad>0</xpad>
+	  <ypad>0</ypad>
+	  <child>
+	    <left_attach>4</left_attach>
+	    <right_attach>5</right_attach>
+	    <top_attach>1</top_attach>
+	    <bottom_attach>2</bottom_attach>
+	    <xpad>4</xpad>
+	    <ypad>0</ypad>
+	    <xexpand>True</xexpand>
+	    <yexpand>False</yexpand>
+	    <xshrink>False</xshrink>
+	    <yshrink>False</yshrink>
+	    <xfill>True</xfill>
+	    <yfill>False</yfill>
+	  </child>
+	</widget>
+
+	<widget>
+	  <class>GtkLabel</class>
+	  <name>label267</name>
+	  <label>Raphaël Manfredi</label>
+	  <justify>GTK_JUSTIFY_CENTER</justify>
+	  <wrap>False</wrap>
+	  <xalign>0</xalign>
+	  <yalign>0.5</yalign>
+	  <xpad>0</xpad>
+	  <ypad>0</ypad>
+	  <child>
+	    <left_attach>4</left_attach>
+	    <right_attach>5</right_attach>
+	    <top_attach>0</top_attach>
+	    <bottom_attach>1</bottom_attach>
+	    <xpad>4</xpad>
+	    <ypad>0</ypad>
+	    <xexpand>True</xexpand>
+	    <yexpand>False</yexpand>
+	    <xshrink>False</xshrink>
+	    <yshrink>False</yshrink>
+	    <xfill>True</xfill>
+	    <yfill>False</yfill>
+	  </child>
+	</widget>
+
+	<widget>
+	  <class>GtkLabel</class>
+	  <name>label265</name>
+	  <label>Yann Grossel</label>
+	  <justify>GTK_JUSTIFY_CENTER</justify>
+	  <wrap>False</wrap>
+	  <xalign>0</xalign>
+	  <yalign>0.5</yalign>
+	  <xpad>0</xpad>
+	  <ypad>0</ypad>
+	  <child>
+	    <left_attach>1</left_attach>
+	    <right_attach>2</right_attach>
+	    <top_attach>0</top_attach>
+	    <bottom_attach>1</bottom_attach>
+	    <xpad>4</xpad>
+	    <ypad>0</ypad>
+	    <xexpand>True</xexpand>
 	    <yexpand>False</yexpand>
 	    <xshrink>False</xshrink>
 	    <yshrink>False</yshrink>
@@ -13348,87 +13445,9 @@ Grace time remaining:</label>
 	  <child>
 	    <left_attach>1</left_attach>
 	    <right_attach>2</right_attach>
-	    <top_attach>2</top_attach>
-	    <bottom_attach>3</bottom_attach>
-	    <xpad>0</xpad>
-	    <ypad>0</ypad>
-	    <xexpand>False</xexpand>
-	    <yexpand>False</yexpand>
-	    <xshrink>False</xshrink>
-	    <yshrink>False</yshrink>
-	    <xfill>True</xfill>
-	    <yfill>False</yfill>
-	  </child>
-	</widget>
-
-	<widget>
-	  <class>GtkLabel</class>
-	  <name>label272</name>
-	  <label>Richard Eckart</label>
-	  <justify>GTK_JUSTIFY_CENTER</justify>
-	  <wrap>False</wrap>
-	  <xalign>0</xalign>
-	  <yalign>0.5</yalign>
-	  <xpad>0</xpad>
-	  <ypad>0</ypad>
-	  <child>
-	    <left_attach>1</left_attach>
-	    <right_attach>2</right_attach>
-	    <top_attach>3</top_attach>
-	    <bottom_attach>4</bottom_attach>
-	    <xpad>0</xpad>
-	    <ypad>0</ypad>
-	    <xexpand>False</xexpand>
-	    <yexpand>False</yexpand>
-	    <xshrink>False</xshrink>
-	    <yshrink>False</yshrink>
-	    <xfill>True</xfill>
-	    <yfill>False</yfill>
-	  </child>
-	</widget>
-
-	<widget>
-	  <class>GtkLabel</class>
-	  <name>label292</name>
-	  <label>Vidar Madsen</label>
-	  <justify>GTK_JUSTIFY_CENTER</justify>
-	  <wrap>False</wrap>
-	  <xalign>0</xalign>
-	  <yalign>0.5</yalign>
-	  <xpad>0</xpad>
-	  <ypad>0</ypad>
-	  <child>
-	    <left_attach>1</left_attach>
-	    <right_attach>2</right_attach>
-	    <top_attach>4</top_attach>
-	    <bottom_attach>5</bottom_attach>
-	    <xpad>0</xpad>
-	    <ypad>0</ypad>
-	    <xexpand>False</xexpand>
-	    <yexpand>False</yexpand>
-	    <xshrink>False</xshrink>
-	    <yshrink>False</yshrink>
-	    <xfill>True</xfill>
-	    <yfill>False</yfill>
-	  </child>
-	</widget>
-
-	<widget>
-	  <class>GtkLabel</class>
-	  <name>label527</name>
-	  <label>PARQ development:</label>
-	  <justify>GTK_JUSTIFY_CENTER</justify>
-	  <wrap>False</wrap>
-	  <xalign>1</xalign>
-	  <yalign>0.5</yalign>
-	  <xpad>0</xpad>
-	  <ypad>0</ypad>
-	  <child>
-	    <left_attach>0</left_attach>
-	    <right_attach>1</right_attach>
-	    <top_attach>5</top_attach>
-	    <bottom_attach>6</bottom_attach>
-	    <xpad>0</xpad>
+	    <top_attach>1</top_attach>
+	    <bottom_attach>2</bottom_attach>
+	    <xpad>4</xpad>
 	    <ypad>0</ypad>
 	    <xexpand>False</xexpand>
 	    <yexpand>False</yexpand>
@@ -13452,9 +13471,9 @@ Grace time remaining:</label>
 	  <child>
 	    <left_attach>1</left_attach>
 	    <right_attach>2</right_attach>
-	    <top_attach>5</top_attach>
-	    <bottom_attach>6</bottom_attach>
-	    <xpad>0</xpad>
+	    <top_attach>2</top_attach>
+	    <bottom_attach>3</bottom_attach>
+	    <xpad>4</xpad>
 	    <ypad>0</ypad>
 	    <xexpand>False</xexpand>
 	    <yexpand>False</yexpand>
@@ -13492,7 +13511,8 @@ Grace time remaining:</label>
 	<widget>
 	  <class>GtkText</class>
 	  <name>text_about_contributors</name>
-	  <width>213</width>
+	  <width>240</width>
+	  <height>100</height>
 	  <can_focus>True</can_focus>
 	  <editable>False</editable>
 	  <text></text>
@@ -13501,23 +13521,83 @@ Grace time remaining:</label>
     </widget>
 
     <widget>
-      <class>GtkLabel</class>
-      <name>label408</name>
-      <label>==&gt; We are looking for people who want to contribute to this fine tool. &lt;==
-Visit http://gtk-gnutella.sourceforge.net.
-Join the users or developers mailing lists.
-Meet us on #gtk-gnutella at irc.freenode.net.</label>
-      <justify>GTK_JUSTIFY_CENTER</justify>
-      <wrap>False</wrap>
-      <xalign>0.5</xalign>
-      <yalign>0.5</yalign>
-      <xpad>0</xpad>
-      <ypad>0</ypad>
+      <class>GtkVBox</class>
+      <name>vbox133</name>
+      <homogeneous>False</homogeneous>
+      <spacing>0</spacing>
       <child>
 	<padding>4</padding>
 	<expand>False</expand>
 	<fill>False</fill>
       </child>
+
+      <widget>
+	<class>GtkLabel</class>
+	<name>label719</name>
+	<label>==&gt; We are looking for people who want to contribute to this fine tool. &lt;==</label>
+	<justify>GTK_JUSTIFY_CENTER</justify>
+	<wrap>False</wrap>
+	<xalign>0.5</xalign>
+	<yalign>0.5</yalign>
+	<xpad>0</xpad>
+	<ypad>0</ypad>
+	<child>
+	  <padding>0</padding>
+	  <expand>False</expand>
+	  <fill>False</fill>
+	</child>
+      </widget>
+
+      <widget>
+	<class>GtkLabel</class>
+	<name>label716</name>
+	<label>Visit http://gtk-gnutella.sourceforge.net/.</label>
+	<justify>GTK_JUSTIFY_CENTER</justify>
+	<wrap>False</wrap>
+	<xalign>0.5</xalign>
+	<yalign>0.5</yalign>
+	<xpad>0</xpad>
+	<ypad>0</ypad>
+	<child>
+	  <padding>0</padding>
+	  <expand>False</expand>
+	  <fill>False</fill>
+	</child>
+      </widget>
+
+      <widget>
+	<class>GtkLabel</class>
+	<name>label717</name>
+	<label>Join the users or developers mailing lists.</label>
+	<justify>GTK_JUSTIFY_CENTER</justify>
+	<wrap>False</wrap>
+	<xalign>0.5</xalign>
+	<yalign>0.5</yalign>
+	<xpad>0</xpad>
+	<ypad>0</ypad>
+	<child>
+	  <padding>0</padding>
+	  <expand>False</expand>
+	  <fill>False</fill>
+	</child>
+      </widget>
+
+      <widget>
+	<class>GtkLabel</class>
+	<name>label718</name>
+	<label>Meet us on #gtk-gnutella at irc.freenode.net.</label>
+	<justify>GTK_JUSTIFY_CENTER</justify>
+	<wrap>False</wrap>
+	<xalign>0.5</xalign>
+	<yalign>0.5</yalign>
+	<xpad>0</xpad>
+	<ypad>0</ypad>
+	<child>
+	  <padding>0</padding>
+	  <expand>False</expand>
+	  <fill>False</fill>
+	</child>
+      </widget>
     </widget>
 
     <widget>
@@ -13543,21 +13623,33 @@ Meet us on #gtk-gnutella at irc.freenode.net.</label>
     </widget>
 
     <widget>
-      <class>GtkLabel</class>
-      <name>label700</name>
-      <label>This product includes GeoIP data created by MaxMind, available from
-     http://maxmind.com/</label>
-      <justify>GTK_JUSTIFY_CENTER</justify>
-      <wrap>False</wrap>
-      <xalign>0.5</xalign>
-      <yalign>0.5</yalign>
-      <xpad>0</xpad>
-      <ypad>0</ypad>
+      <class>GtkVBox</class>
+      <name>vbox134</name>
+      <homogeneous>False</homogeneous>
+      <spacing>0</spacing>
       <child>
 	<padding>4</padding>
 	<expand>False</expand>
 	<fill>False</fill>
       </child>
+
+      <widget>
+	<class>GtkLabel</class>
+	<name>label700</name>
+	<label>This product includes GeoIP data created by MaxMind, available from
+http://maxmind.com/</label>
+	<justify>GTK_JUSTIFY_CENTER</justify>
+	<wrap>False</wrap>
+	<xalign>0.5</xalign>
+	<yalign>0.5</yalign>
+	<xpad>0</xpad>
+	<ypad>0</ypad>
+	<child>
+	  <padding>0</padding>
+	  <expand>False</expand>
+	  <fill>False</fill>
+	</child>
+      </widget>
     </widget>
 
     <widget>
@@ -13565,7 +13657,7 @@ Meet us on #gtk-gnutella at irc.freenode.net.</label>
       <name>hseparator15</name>
       <child>
 	<padding>0</padding>
-	<expand>True</expand>
+	<expand>False</expand>
 	<fill>True</fill>
       </child>
     </widget>
@@ -14707,13 +14799,14 @@ Meet us on #gtk-gnutella at irc.freenode.net.</label>
 		<widget>
 		  <class>GtkLabel</class>
 		  <name>label441</name>
-		  <label>Max file descriptors reserved</label>
+		  <label>Max. file descriptors reserved for _banning</label>
 		  <justify>GTK_JUSTIFY_CENTER</justify>
 		  <wrap>False</wrap>
 		  <xalign>0</xalign>
 		  <yalign>0.5</yalign>
 		  <xpad>0</xpad>
 		  <ypad>0</ypad>
+		  <default_focus_target>spinbutton_config_ban_max_fds</default_focus_target>
 		  <child>
 		    <left_attach>0</left_attach>
 		    <right_attach>1</right_attach>
@@ -14733,13 +14826,14 @@ Meet us on #gtk-gnutella at irc.freenode.net.</label>
 		<widget>
 		  <class>GtkLabel</class>
 		  <name>label442</name>
-		  <label>Max. percentage  of file descriptors used</label>
+		  <label>_Max. percentage of file descriptors used for banning</label>
 		  <justify>GTK_JUSTIFY_CENTER</justify>
 		  <wrap>False</wrap>
 		  <xalign>0</xalign>
 		  <yalign>0.5</yalign>
 		  <xpad>0</xpad>
 		  <ypad>0</ypad>
+		  <default_focus_target>spinbutton_config_ban_ratio_fds</default_focus_target>
 		  <child>
 		    <left_attach>0</left_attach>
 		    <right_attach>1</right_attach>
@@ -14824,13 +14918,14 @@ Meet us on #gtk-gnutella at irc.freenode.net.</label>
 		<widget>
 		  <class>GtkLabel</class>
 		  <name>label502</name>
-		  <label>Hardlimit of file descriptors used</label>
+		  <label>Hard limit of _file descriptors used</label>
 		  <justify>GTK_JUSTIFY_CENTER</justify>
 		  <wrap>False</wrap>
 		  <xalign>0</xalign>
 		  <yalign>0.5</yalign>
 		  <xpad>0</xpad>
 		  <ypad>0</ypad>
+		  <default_focus_target>entry_config_max_banned_fd</default_focus_target>
 		  <child>
 		    <left_attach>0</left_attach>
 		    <right_attach>1</right_attach>
@@ -16429,13 +16524,14 @@ Meet us on #gtk-gnutella at irc.freenode.net.</label>
 		    <widget>
 		      <class>GtkLabel</class>
 		      <name>label567</name>
-		      <label>Default search reissue timeout</label>
+		      <label>Default search _reissue timeout</label>
 		      <justify>GTK_JUSTIFY_CENTER</justify>
 		      <wrap>False</wrap>
 		      <xalign>0</xalign>
 		      <yalign>0.5</yalign>
 		      <xpad>0</xpad>
 		      <ypad>0</ypad>
+		      <default_focus_target>spinbutton_config_search_reissue_timeout</default_focus_target>
 		      <child>
 			<left_attach>0</left_attach>
 			<right_attach>1</right_attach>
@@ -17547,7 +17643,7 @@ Meet us on #gtk-gnutella at irc.freenode.net.</label>
 		<widget>
 		  <class>GtkLabel</class>
 		  <name>label280</name>
-		  <label>messages</label>
+		  <label>_Messages</label>
 		  <justify>GTK_JUSTIFY_CENTER</justify>
 		  <wrap>False</wrap>
 		  <xalign>0</xalign>
@@ -18519,7 +18615,7 @@ allowed</label>
 		    <class>GtkCheckButton</class>
 		    <name>checkbutton_config_bw_allow_stealing</name>
 		    <can_focus>True</can_focus>
-		    <label>Use surplus bandwidth</label>
+		    <label>Use _surplus bandwidth</label>
 		    <active>False</active>
 		    <draw_indicator>True</draw_indicator>
 		    <child>
@@ -18533,7 +18629,7 @@ allowed</label>
 		    <class>GtkCheckButton</class>
 		    <name>checkbutton_prefer_compressed_gnet</name>
 		    <can_focus>True</can_focus>
-		    <label>Prefer compressed connections</label>
+		    <label>Prefer _compressed connections</label>
 		    <active>False</active>
 		    <draw_indicator>True</draw_indicator>
 		    <child>
@@ -18547,7 +18643,7 @@ allowed</label>
 		    <class>GtkCheckButton</class>
 		    <name>checkbutton_config_use_ip_tos</name>
 		    <can_focus>True</can_focus>
-		    <label>Use IP Type of Service (TOS)</label>
+		    <label>Use IP _Type of Service (TOS)</label>
 		    <active>False</active>
 		    <draw_indicator>True</draw_indicator>
 		    <child>
@@ -18636,7 +18732,7 @@ allowed</label>
 		    <widget>
 		      <class>GtkLabel</class>
 		      <name>label561</name>
-		      <label>Total output bandwidth limit: </label>
+		      <label>Total output bandwidth limit:</label>
 		      <justify>GTK_JUSTIFY_CENTER</justify>
 		      <wrap>False</wrap>
 		      <xalign>7.45058e-09</xalign>
@@ -18688,7 +18784,7 @@ allowed</label>
 		    <widget>
 		      <class>GtkLabel</class>
 		      <name>label564</name>
-		      <label>Measured HTTP latency: </label>
+		      <label>Measured HTTP latency:</label>
 		      <justify>GTK_JUSTIFY_CENTER</justify>
 		      <wrap>False</wrap>
 		      <xalign>7.45058e-09</xalign>
@@ -18840,7 +18936,7 @@ allowed</label>
 	    <widget>
 	      <class>GtkFrame</class>
 	      <name>frame20</name>
-	      <label>Bandwidth control for GnutellaNet traffic</label>
+	      <label>Bandwidth limits for GnutellaNet traffic</label>
 	      <label_xalign>0</label_xalign>
 	      <shadow_type>GTK_SHADOW_ETCHED_IN</shadow_type>
 	      <child>
@@ -19240,7 +19336,7 @@ allowed</label>
 	    <widget>
 	      <class>GtkFrame</class>
 	      <name>frame12</name>
-	      <label>Bandwidth control for HTTP traffic</label>
+	      <label>Bandwidth limits for HTTP traffic</label>
 	      <label_xalign>0</label_xalign>
 	      <shadow_type>GTK_SHADOW_ETCHED_IN</shadow_type>
 	      <child>
@@ -19401,7 +19497,7 @@ allowed</label>
 		  <class>GtkCheckButton</class>
 		  <name>checkbutton_config_bw_ul_usage_enabled</name>
 		  <can_focus>True</can_focus>
-		  <label>Enable dynamic upload slots allocation</label>
+		  <label>Enable dynamic upload slots _allocation</label>
 		  <active>False</active>
 		  <draw_indicator>True</draw_indicator>
 		  <child>
@@ -19508,13 +19604,14 @@ allowed</label>
 		<widget>
 		  <class>GtkLabel</class>
 		  <name>label156</name>
-		  <label>Report an upload connection speed of</label>
+		  <label>Report an upload connection _speed of</label>
 		  <justify>GTK_JUSTIFY_CENTER</justify>
 		  <wrap>False</wrap>
 		  <xalign>7.45058e-09</xalign>
 		  <yalign>0.5</yalign>
 		  <xpad>0</xpad>
 		  <ypad>0</ypad>
+		  <default_focus_target>spinbutton_config_speed</default_focus_target>
 		  <child>
 		    <left_attach>0</left_attach>
 		    <right_attach>1</right_attach>
@@ -19614,7 +19711,7 @@ allowed</label>
 		  <class>GtkCheckButton</class>
 		  <name>checkbutton_compute_connection_speed</name>
 		  <can_focus>True</can_focus>
-		  <label>Compute upload connection speed</label>
+		  <label>_Compute upload connection speed</label>
 		  <active>False</active>
 		  <draw_indicator>True</draw_indicator>
 		  <child>
@@ -19858,7 +19955,7 @@ allowed</label>
 		  <class>GtkCheckButton</class>
 		  <name>checkbutton_config_convert_spaces</name>
 		  <can_focus>True</can_focus>
-		  <label>Convert spaces to &quot;__&quot;  in generated file names</label>
+		  <label>Convert spaces to underscores in generated filenames</label>
 		  <active>False</active>
 		  <draw_indicator>True</draw_indicator>
 		  <child>
@@ -19881,7 +19978,7 @@ allowed</label>
 		  <class>GtkCheckButton</class>
 		  <name>checkbutton_config_convert_evil_chars</name>
 		  <can_focus>True</can_focus>
-		  <label>Convert &quot;evil&quot; characters (like shell meta characters) to &quot;__&quot; in filenames</label>
+		  <label>Convert &quot;evil&quot; characters (like shell meta characters) to underscores in generated filenames</label>
 		  <active>False</active>
 		  <draw_indicator>True</draw_indicator>
 		  <child>
@@ -19950,13 +20047,14 @@ allowed</label>
 		<widget>
 		  <class>GtkLabel</class>
 		  <name>label171</name>
-		  <label>Overlap when resuming</label>
+		  <label>_Overlap when resuming</label>
 		  <justify>GTK_JUSTIFY_CENTER</justify>
 		  <wrap>False</wrap>
 		  <xalign>7.45058e-09</xalign>
 		  <yalign>0.5</yalign>
 		  <xpad>0</xpad>
 		  <ypad>0</ypad>
+		  <default_focus_target>spinbutton_config_download_overlap_range</default_focus_target>
 		  <child>
 		    <left_attach>0</left_attach>
 		    <right_attach>1</right_attach>
@@ -19976,13 +20074,14 @@ allowed</label>
 		<widget>
 		  <class>GtkLabel</class>
 		  <name>label172</name>
-		  <label>Maximum number of retries</label>
+		  <label>Maximum number of _retries</label>
 		  <justify>GTK_JUSTIFY_CENTER</justify>
 		  <wrap>False</wrap>
 		  <xalign>7.45058e-09</xalign>
 		  <yalign>0.5</yalign>
 		  <xpad>0</xpad>
 		  <ypad>0</ypad>
+		  <default_focus_target>spinbutton_config_download_max_retries</default_focus_target>
 		  <child>
 		    <left_attach>0</left_attach>
 		    <right_attach>1</right_attach>
@@ -20395,13 +20494,14 @@ allowed</label>
 		<widget>
 		  <class>GtkLabel</class>
 		  <name>label169</name>
-		  <label>Push sent timeout</label>
+		  <label>_Push sent timeout</label>
 		  <justify>GTK_JUSTIFY_CENTER</justify>
 		  <wrap>False</wrap>
 		  <xalign>0</xalign>
 		  <yalign>0.5</yalign>
 		  <xpad>0</xpad>
 		  <ypad>0</ypad>
+		  <default_focus_target>spinbutton_config_download_push_sent_timeout</default_focus_target>
 		  <child>
 		    <left_attach>4</left_attach>
 		    <right_attach>5</right_attach>
@@ -20768,7 +20868,7 @@ allowed</label>
 		  <class>GtkCheckButton</class>
 		  <name>checkbutton_config_use_swarming</name>
 		  <can_focus>True</can_focus>
-		  <label>Enable swarming</label>
+		  <label>Enable s_warming</label>
 		  <active>False</active>
 		  <draw_indicator>True</draw_indicator>
 		  <child>
@@ -20806,7 +20906,7 @@ allowed</label>
 		    <class>GtkCheckButton</class>
 		    <name>checkbutton_config_aggressive_swarming</name>
 		    <can_focus>True</can_focus>
-		    <label>Aggressive mode</label>
+		    <label>A_ggressive mode</label>
 		    <active>False</active>
 		    <draw_indicator>True</draw_indicator>
 		    <child>
@@ -20847,13 +20947,14 @@ allowed</label>
 		  <widget>
 		    <class>GtkLabel</class>
 		    <name>label283</name>
-		    <label>Minimum chunk size</label>
+		    <label>M_inimum chunk size</label>
 		    <justify>GTK_JUSTIFY_CENTER</justify>
 		    <wrap>False</wrap>
 		    <xalign>0</xalign>
 		    <yalign>0.5</yalign>
 		    <xpad>0</xpad>
 		    <ypad>0</ypad>
+		    <default_focus_target>spinbutton_dl_minchunksize</default_focus_target>
 		    <child>
 		      <left_attach>2</left_attach>
 		      <right_attach>3</right_attach>
@@ -20873,13 +20974,14 @@ allowed</label>
 		  <widget>
 		    <class>GtkLabel</class>
 		    <name>label284</name>
-		    <label>Maximum chunk size</label>
+		    <label>Ma_ximum chunk size</label>
 		    <justify>GTK_JUSTIFY_CENTER</justify>
 		    <wrap>False</wrap>
 		    <xalign>0</xalign>
 		    <yalign>0.5</yalign>
 		    <xpad>0</xpad>
 		    <ypad>0</ypad>
+		    <default_focus_target>spinbutton_dl_maxchunksize</default_focus_target>
 		    <child>
 		      <left_attach>2</left_attach>
 		      <right_attach>3</right_attach>
@@ -20990,7 +21092,7 @@ allowed</label>
 		    <class>GtkCheckButton</class>
 		    <name>checkbutton_config_strict_sha1_matching</name>
 		    <can_focus>True</can_focus>
-		    <label>Strict SHA1 matching</label>
+		    <label>Strict SHA_1 matching</label>
 		    <active>False</active>
 		    <draw_indicator>True</draw_indicator>
 		    <child>
@@ -21013,7 +21115,7 @@ allowed</label>
 		    <class>GtkCheckButton</class>
 		    <name>checkbutton_config_use_fuzzy_matching</name>
 		    <can_focus>True</can_focus>
-		    <label>Use fuzzy matching</label>
+		    <label>Use fu_zzy matching</label>
 		    <active>False</active>
 		    <draw_indicator>True</draw_indicator>
 		    <child>
@@ -21094,7 +21196,7 @@ allowed</label>
 		    <class>GtkCheckButton</class>
 		    <name>checkbutton_fuzzy_filter_dmesh</name>
 		    <can_focus>True</can_focus>
-		    <label>Apply fuzzy filter on download mesh entries</label>
+		    <label>_Apply fuzzy filter on download mesh entries</label>
 		    <active>False</active>
 		    <draw_indicator>True</draw_indicator>
 		    <child>
@@ -21117,7 +21219,7 @@ allowed</label>
 		    <class>GtkCheckButton</class>
 		    <name>checkbutton_config_use_alternate_sources</name>
 		    <can_focus>True</can_focus>
-		    <label>Watch hits for alternate download sources</label>
+		    <label>Watch hits for _alternate sources</label>
 		    <active>False</active>
 		    <draw_indicator>True</draw_indicator>
 		    <child>
@@ -21140,7 +21242,7 @@ allowed</label>
 		    <class>GtkCheckButton</class>
 		    <name>checkbutton_auto_feed_dmesh</name>
 		    <can_focus>True</can_focus>
-		    <label>Feed mesh from hits</label>
+		    <label>_Feed mesh from hits</label>
 		    <active>False</active>
 		    <draw_indicator>True</draw_indicator>
 		    <child>
@@ -21201,7 +21303,7 @@ allowed</label>
 	    <widget>
 	      <class>GtkFrame</class>
 	      <name>frame_path_to_files</name>
-	      <label>Path(s) to files</label>
+	      <label>_Path(s) to files</label>
 	      <label_xalign>0</label_xalign>
 	      <shadow_type>GTK_SHADOW_ETCHED_IN</shadow_type>
 	      <child>
@@ -21262,12 +21364,12 @@ allowed</label>
 		      <handler>on_button_config_add_dir_clicked</handler>
 		      <last_modification_time>Sun, 26 Mar 2000 17:41:01 GMT</last_modification_time>
 		    </signal>
-		    <label> Add directory </label>
+		    <label>_Add directory</label>
 		    <relief>GTK_RELIEF_NORMAL</relief>
 		    <child>
 		      <padding>0</padding>
 		      <expand>False</expand>
-		      <fill>False</fill>
+		      <fill>True</fill>
 		    </child>
 		  </widget>
 
@@ -21297,12 +21399,12 @@ allowed</label>
 		      <handler>on_button_config_rescan_dir_clicked</handler>
 		      <last_modification_time>Sun, 26 Mar 2000 17:41:22 GMT</last_modification_time>
 		    </signal>
-		    <label> Rescan </label>
+		    <label>_Rescan</label>
 		    <relief>GTK_RELIEF_NORMAL</relief>
 		    <child>
 		      <padding>0</padding>
 		      <expand>False</expand>
-		      <fill>False</fill>
+		      <fill>True</fill>
 		    </child>
 		  </widget>
 		</widget>
@@ -21373,13 +21475,14 @@ allowed</label>
 		  <widget>
 		    <class>GtkLabel</class>
 		    <name>label41</name>
-		    <label>Search extensions</label>
+		    <label>Search _extensions</label>
 		    <justify>GTK_JUSTIFY_CENTER</justify>
 		    <wrap>False</wrap>
 		    <xalign>0.5</xalign>
 		    <yalign>0.5</yalign>
 		    <xpad>0</xpad>
 		    <ypad>0</ypad>
+		    <default_focus_target>entry_config_extensions</default_focus_target>
 		    <child>
 		      <padding>0</padding>
 		      <expand>False</expand>
@@ -21558,7 +21661,7 @@ allowed</label>
 	    <widget>
 	      <class>GtkFrame</class>
 	      <name>frame_partial_file_sharing</name>
-	      <label>Partial File Sharing (swarming)</label>
+	      <label>Partial File Sharing</label>
 	      <label_xalign>0</label_xalign>
 	      <shadow_type>GTK_SHADOW_ETCHED_IN</shadow_type>
 	      <child>
@@ -21580,7 +21683,7 @@ allowed</label>
 		<widget>
 		  <class>GtkLabel</class>
 		  <name>label547</name>
-		  <label>First chunk size </label>
+		  <label>First chunk size</label>
 		  <justify>GTK_JUSTIFY_CENTER</justify>
 		  <wrap>False</wrap>
 		  <xalign>0</xalign>
@@ -21918,7 +22021,7 @@ allowed</label>
 			<widget>
 			  <class>GtkLabel</class>
 			  <name>label608</name>
-			  <label>and lasted </label>
+			  <label>and lasted</label>
 			  <justify>GTK_JUSTIFY_CENTER</justify>
 			  <wrap>False</wrap>
 			  <xalign>0</xalign>
@@ -22347,7 +22450,7 @@ allowed</label>
 		    <widget>
 		      <class>GtkFrame</class>
 		      <name>frame_qrp_table_info</name>
-		      <label>Query Routing table information</label>
+		      <label>Query routing table information</label>
 		      <label_xalign>0</label_xalign>
 		      <shadow_type>GTK_SHADOW_OUT</shadow_type>
 		      <child>
@@ -23086,7 +23189,7 @@ allowed</label>
 		  <class>GtkCheckButton</class>
 		  <name>checkbutton_config_confirm_quit</name>
 		  <can_focus>True</can_focus>
-		  <label>Show confirmation dialog when leaving gtk-gnutella</label>
+		  <label>Show _confirmation dialog when leaving gtk-gnutella</label>
 		  <active>False</active>
 		  <draw_indicator>True</draw_indicator>
 		  <child>
@@ -23109,7 +23212,7 @@ allowed</label>
 		  <class>GtkCheckButton</class>
 		  <name>checkbutton_config_show_tooltips</name>
 		  <can_focus>True</can_focus>
-		  <label>Show tooltips (does not affect all tooltips yet)</label>
+		  <label>Show _tooltips (does not affect all tooltips yet)</label>
 		  <active>False</active>
 		  <draw_indicator>True</draw_indicator>
 		  <child>
@@ -23385,7 +23488,7 @@ allowed</label>
 		  <class>GtkCheckButton</class>
 		  <name>checkbutton_expert_mode</name>
 		  <can_focus>True</can_focus>
-		  <label>Show additional information and settings for advanced and expert users</label>
+		  <label>Show additional information and settings for advanced and _expert users</label>
 		  <active>False</active>
 		  <draw_indicator>True</draw_indicator>
 		  <child>
@@ -24014,13 +24117,14 @@ allowed</label>
 		    <widget>
 		      <class>GtkLabel</class>
 		      <name>label288</name>
-		      <label>Core debug level</label>
+		      <label>_Core debug level</label>
 		      <justify>GTK_JUSTIFY_CENTER</justify>
 		      <wrap>False</wrap>
 		      <xalign>0</xalign>
 		      <yalign>0.5</yalign>
 		      <xpad>0</xpad>
 		      <ypad>0</ypad>
+		      <default_focus_target>spinbutton_config_dbg</default_focus_target>
 		      <child>
 			<left_attach>0</left_attach>
 			<right_attach>1</right_attach>
@@ -24040,13 +24144,14 @@ allowed</label>
 		    <widget>
 		      <class>GtkLabel</class>
 		      <name>label289</name>
-		      <label>GUI debug level</label>
+		      <label>_GUI debug level</label>
 		      <justify>GTK_JUSTIFY_CENTER</justify>
 		      <wrap>False</wrap>
 		      <xalign>0</xalign>
 		      <yalign>0.5</yalign>
 		      <xpad>0</xpad>
 		      <ypad>0</ypad>
+		      <default_focus_target>spinbutton_config-gui_debug</default_focus_target>
 		      <child>
 			<left_attach>0</left_attach>
 			<right_attach>1</right_attach>
@@ -24098,13 +24203,14 @@ allowed</label>
 		    <widget>
 		      <class>GtkLabel</class>
 		      <name>label440</name>
-		      <label>Lib debug level</label>
+		      <label>_Lib debug level</label>
 		      <justify>GTK_JUSTIFY_CENTER</justify>
 		      <wrap>False</wrap>
 		      <xalign>0</xalign>
 		      <yalign>0.5</yalign>
 		      <xpad>0</xpad>
 		      <ypad>0</ypad>
+		      <default_focus_target>spinbutton_config_lib_debug</default_focus_target>
 		      <child>
 			<left_attach>0</left_attach>
 			<right_attach>1</right_attach>
@@ -24156,13 +24262,14 @@ allowed</label>
 		    <widget>
 		      <class>GtkLabel</class>
 		      <name>label509</name>
-		      <label>Track properties</label>
+		      <label>_Track properties</label>
 		      <justify>GTK_JUSTIFY_CENTER</justify>
 		      <wrap>False</wrap>
 		      <xalign>0</xalign>
 		      <yalign>0.5</yalign>
 		      <xpad>0</xpad>
 		      <ypad>0</ypad>
+		      <default_focus_target>spinbutton_config_track_props</default_focus_target>
 		      <child>
 			<left_attach>0</left_attach>
 			<right_attach>1</right_attach>
@@ -24247,7 +24354,7 @@ allowed</label>
 		      <class>GtkCheckButton</class>
 		      <name>checkbutton_config_stop_host_get</name>
 		      <can_focus>True</can_focus>
-		      <label>Stop collecting hosts</label>
+		      <label>_Stop collecting hosts</label>
 		      <active>False</active>
 		      <draw_indicator>True</draw_indicator>
 		      <child>
@@ -24292,13 +24399,14 @@ allowed</label>
 		    <widget>
 		      <class>GtkLabel</class>
 		      <name>label689</name>
-		      <label>Gnet web cache</label>
+		      <label>_GWebCache</label>
 		      <justify>GTK_JUSTIFY_CENTER</justify>
 		      <wrap>False</wrap>
 		      <xalign>0</xalign>
 		      <yalign>0.5</yalign>
 		      <xpad>0</xpad>
 		      <ypad>0</ypad>
+		      <default_focus_target>spinbutton_config_gwc_debug</default_focus_target>
 		      <child>
 			<left_attach>0</left_attach>
 			<right_attach>1</right_attach>
@@ -24318,13 +24426,14 @@ allowed</label>
 		    <widget>
 		      <class>GtkLabel</class>
 		      <name>label690</name>
-		      <label>URL handling</label>
+		      <label>UR_L handling</label>
 		      <justify>GTK_JUSTIFY_CENTER</justify>
 		      <wrap>False</wrap>
 		      <xalign>0</xalign>
 		      <yalign>0.5</yalign>
 		      <xpad>0</xpad>
 		      <ypad>0</ypad>
+		      <default_focus_target>spinbutton_config_url_debug</default_focus_target>
 		      <child>
 			<left_attach>0</left_attach>
 			<right_attach>1</right_attach>
@@ -24344,13 +24453,14 @@ allowed</label>
 		    <widget>
 		      <class>GtkLabel</class>
 		      <name>label691</name>
-		      <label>Dynamic querying</label>
+		      <label>Dynamic _querying</label>
 		      <justify>GTK_JUSTIFY_CENTER</justify>
 		      <wrap>False</wrap>
 		      <xalign>0</xalign>
 		      <yalign>0.5</yalign>
 		      <xpad>0</xpad>
 		      <ypad>0</ypad>
+		      <default_focus_target>spinbutton_config_dq_debug</default_focus_target>
 		      <child>
 			<left_attach>0</left_attach>
 			<right_attach>1</right_attach>
@@ -24370,13 +24480,14 @@ allowed</label>
 		    <widget>
 		      <class>GtkLabel</class>
 		      <name>label692</name>
-		      <label>Dynamic query hits</label>
+		      <label>Dynamic query _hits</label>
 		      <justify>GTK_JUSTIFY_CENTER</justify>
 		      <wrap>False</wrap>
 		      <xalign>0</xalign>
 		      <yalign>0.5</yalign>
 		      <xpad>0</xpad>
 		      <ypad>0</ypad>
+		      <default_focus_target>spinbutton_config_dh_debug</default_focus_target>
 		      <child>
 			<left_attach>0</left_attach>
 			<right_attach>1</right_attach>
@@ -24396,13 +24507,14 @@ allowed</label>
 		    <widget>
 		      <class>GtkLabel</class>
 		      <name>label693</name>
-		      <label>Vendor messages</label>
+		      <label>_Vendor messages</label>
 		      <justify>GTK_JUSTIFY_CENTER</justify>
 		      <wrap>False</wrap>
 		      <xalign>0</xalign>
 		      <yalign>0.5</yalign>
 		      <xpad>0</xpad>
 		      <ypad>0</ypad>
+		      <default_focus_target>spinbutton_config_vmsg_debug</default_focus_target>
 		      <child>
 			<left_attach>0</left_attach>
 			<right_attach>1</right_attach>
@@ -24422,13 +24534,14 @@ allowed</label>
 		    <widget>
 		      <class>GtkLabel</class>
 		      <name>label694</name>
-		      <label>Search management</label>
+		      <label>_Search management</label>
 		      <justify>GTK_JUSTIFY_CENTER</justify>
 		      <wrap>False</wrap>
 		      <xalign>0</xalign>
 		      <yalign>0.5</yalign>
 		      <xpad>0</xpad>
 		      <ypad>0</ypad>
+		      <default_focus_target>spinbutton_config_search_debug</default_focus_target>
 		      <child>
 			<left_attach>2</left_attach>
 			<right_attach>3</right_attach>
@@ -24448,13 +24561,14 @@ allowed</label>
 		    <widget>
 		      <class>GtkLabel</class>
 		      <name>label695</name>
-		      <label>UDP traffic</label>
+		      <label>_UDP traffic</label>
 		      <justify>GTK_JUSTIFY_CENTER</justify>
 		      <wrap>False</wrap>
 		      <xalign>0</xalign>
 		      <yalign>0.5</yalign>
 		      <xpad>0</xpad>
 		      <ypad>0</ypad>
+		      <default_focus_target>spinbutton_config_udp_debug</default_focus_target>
 		      <child>
 			<left_attach>2</left_attach>
 			<right_attach>3</right_attach>
@@ -24474,13 +24588,14 @@ allowed</label>
 		    <widget>
 		      <class>GtkLabel</class>
 		      <name>label696</name>
-		      <label>QRP management</label>
+		      <label>QR_P management</label>
 		      <justify>GTK_JUSTIFY_CENTER</justify>
 		      <wrap>False</wrap>
 		      <xalign>0</xalign>
 		      <yalign>0.5</yalign>
 		      <xpad>0</xpad>
 		      <ypad>0</ypad>
+		      <default_focus_target>spinbutton_config_qrp_debug</default_focus_target>
 		      <child>
 			<left_attach>2</left_attach>
 			<right_attach>3</right_attach>
