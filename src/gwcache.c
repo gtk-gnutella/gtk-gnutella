@@ -123,7 +123,7 @@ static void gwc_seed_cache(gchar *cache_url);
 
 static gchar *boot_url[] = {
 	"http://gwebcache.bearshare.net/gcache.php",
-	"http://raphael.manfredi.free.fr/gwc/gcache.php",
+	"http://www.rodage.net/gnetcache/gcache.php",
 };
 
 extern cqueue_t *callout_queue;
