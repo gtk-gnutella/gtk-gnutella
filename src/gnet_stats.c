@@ -27,20 +27,21 @@
 
 static guint8 stats_lut[256];
 
-static guint32 stats_recv[MSG_TYPE_COUNT];
-static guint32 stats_sent[MSG_TYPE_COUNT];
-static guint32 stats_expd[MSG_TYPE_COUNT];
-static guint32 stats_drop[MSG_TYPE_COUNT];
+static guint32 stats_pkg_recv[MSG_TYPE_COUNT];
+static guint32 stats_pkg_sent[MSG_TYPE_COUNT];
+static guint32 stats_pkg_expd[MSG_TYPE_COUNT];
+static guint32 stats_pkg_drop[MSG_TYPE_COUNT];
 
-static guint32 stats_drop_reason[MSG_DROP_REASON_COUNT];
+static guint32 stats_byte_recv[MSG_TYPE_COUNT];
+static guint32 stats_byte_sent[MSG_TYPE_COUNT];
+static guint32 stats_byte_expd[MSG_TYPE_COUNT];
+static guint32 stats_byte_drop[MSG_TYPE_COUNT];
+
+static guint32 stats_drop_reason[MSG_DROP_REASON_COUNT][MSG_TYPE_COUNT];
 
 static guint32 routing_errors = 0;
 static guint32 local_searches = 0;
-
-static guint32 msg_recv_total = 0;
-static guint32 msg_sent_total = 0;
-static guint32 msg_expired_total = 0;
-static guint32 msg_dropped_total = 0;
+static guint32 local_hits = 0;
 
 /***
  *** Public functions
@@ -59,45 +60,80 @@ void gnet_stats_init(void)
     stats_lut[GTA_MSG_SEARCH] = MSG_SEARCH;
     stats_lut[GTA_MSG_SEARCH_RESULTS] = MSG_SEARCH_RESULTS;
 
-    memset(stats_recv, 0, sizeof(guint32)*sizeof(stats_recv));
-    memset(stats_sent, 0, sizeof(guint32)*sizeof(stats_sent));
-    memset(stats_expd, 0, sizeof(guint32)*sizeof(stats_expd));
-    memset(stats_drop, 0, sizeof(guint32)*sizeof(stats_drop));
-    memset(stats_drop_reason, 0, sizeof(guint32)*sizeof(stats_drop_reason));
+    memset(stats_pkg_recv, 0, sizeof(guint32)*sizeof(stats_pkg_recv));
+    memset(stats_pkg_sent, 0, sizeof(guint32)*sizeof(stats_pkg_sent));
+    memset(stats_pkg_expd, 0, sizeof(guint32)*sizeof(stats_pkg_expd));
+    memset(stats_pkg_drop, 0, sizeof(guint32)*sizeof(stats_pkg_drop));
+
+    memset(stats_byte_recv, 0, sizeof(guint32)*sizeof(stats_byte_recv));
+    memset(stats_byte_sent, 0, sizeof(guint32)*sizeof(stats_byte_sent));
+    memset(stats_byte_expd, 0, sizeof(guint32)*sizeof(stats_byte_expd));
+    memset(stats_byte_drop, 0, sizeof(guint32)*sizeof(stats_byte_drop));
+
+    memset(stats_drop_reason, 0, 
+        sizeof(guint32)*MSG_DROP_REASON_COUNT*MSG_TYPE_COUNT);
 
 }
 
 void gnet_stats_count_received(gnutella_node_t *n)
 {
-    n->received++;
-    msg_recv_total++;
+    guint32 size;
 
-    stats_recv[stats_lut[n->header.function]]++;
+    n->received++;
+    READ_GUINT32_LE(n->header.size, size);
+    size += sizeof(n->header);
+
+    stats_pkg_recv[MSG_TOTAL]++;
+    stats_pkg_recv[stats_lut[n->header.function]]++;
+    stats_byte_recv[MSG_TOTAL] += size;
+    stats_byte_recv[stats_lut[n->header.function]] += size;
 }
 
 void gnet_stats_count_sent(gnutella_node_t *n)
 {
-    msg_sent_total++;
+    guint32 size;
 
-    stats_sent[stats_lut[n->header.function]]++;
+    READ_GUINT32_LE(n->header.size, size);
+    size += sizeof(n->header);
+
+    stats_pkg_sent[MSG_TOTAL]++;
+    stats_pkg_sent[stats_lut[n->header.function]]++;
+    stats_byte_sent[MSG_TOTAL] += size;
+    stats_byte_sent[stats_lut[n->header.function]] += size;
 }
 
 void gnet_stats_count_sent_type(gnutella_node_t *n, guint8 type)
 {
-    msg_sent_total++;
-    stats_sent[stats_lut[type]]++;
+    guint32 size;
+
+    READ_GUINT32_LE(n->header.size, size);
+    size += sizeof(n->header);
+
+    stats_pkg_sent[MSG_TOTAL]++;
+    stats_pkg_sent[stats_lut[type]]++;
+    stats_byte_sent[MSG_TOTAL] += size;
+    stats_byte_sent[stats_lut[n->header.function]] += size;
 }
 
 void gnet_stats_count_expired(gnutella_node_t *n)
 {
-    msg_expired_total++;
+    guint32 size;
 
-    stats_expd[stats_lut[n->header.function]]++;
+    READ_GUINT32_LE(n->header.size, size);
+    size += sizeof(n->header);
+
+    stats_pkg_expd[MSG_TOTAL]++;
+    stats_pkg_expd[stats_lut[n->header.function]]++;
+    stats_byte_expd[MSG_TOTAL] += size;
+    stats_byte_expd[stats_lut[n->header.function]] += size;
 }
 
 void gnet_stats_count_dropped(gnutella_node_t *n, msg_drop_reason_t reason)
 {
-    msg_dropped_total++;
+    guint32 size;
+
+    READ_GUINT32_LE(n->header.size, size);
+    size += sizeof(n->header);
 
     if (
         (reason == MSG_DROP_ROUTE_LOST) ||
@@ -106,13 +142,22 @@ void gnet_stats_count_dropped(gnutella_node_t *n, msg_drop_reason_t reason)
     )
         routing_errors ++;
 
-    stats_drop_reason[reason]++;
-    stats_drop[stats_lut[n->header.function]]++;
+    stats_drop_reason[reason][MSG_TOTAL]++;
+    stats_drop_reason[reason][stats_lut[n->header.function]]++;
+    stats_pkg_drop[MSG_TOTAL]++;
+    stats_pkg_drop[stats_lut[n->header.function]]++;
+    stats_byte_drop[MSG_TOTAL] += size;
+    stats_byte_drop[stats_lut[n->header.function]] += size;
 }
 
 void gnet_stats_count_local_search(gnutella_node_t *n)
 {
     local_searches++;
+}
+
+void gnet_stats_count_local_hit(gnutella_node_t *n, guint32 hits)
+{
+    local_hits += hits;
 }
 
 /***
@@ -123,19 +168,20 @@ void gnet_stats_get(gnet_stats_t *s)
 {
     g_assert(s != NULL);
 
-    memcpy(s->recieved, stats_recv, sizeof(guint32)*MSG_TYPE_COUNT);
-    memcpy(s->sent, stats_sent, sizeof(guint32)*MSG_TYPE_COUNT);
-    memcpy(s->expired, stats_expd, sizeof(guint32)*MSG_TYPE_COUNT);
-    memcpy(s->dropped, stats_drop, sizeof(guint32)*MSG_TYPE_COUNT);
+    memcpy(s->pkg.recieved, stats_pkg_recv, sizeof(guint32)*MSG_TYPE_COUNT);
+    memcpy(s->pkg.sent, stats_pkg_sent, sizeof(guint32)*MSG_TYPE_COUNT);
+    memcpy(s->pkg.expired, stats_pkg_expd, sizeof(guint32)*MSG_TYPE_COUNT);
+    memcpy(s->pkg.dropped, stats_pkg_drop, sizeof(guint32)*MSG_TYPE_COUNT);
+
+    memcpy(s->byte.recieved, stats_byte_recv, sizeof(guint32)*MSG_TYPE_COUNT);
+    memcpy(s->byte.sent, stats_byte_sent, sizeof(guint32)*MSG_TYPE_COUNT);
+    memcpy(s->byte.expired, stats_byte_expd, sizeof(guint32)*MSG_TYPE_COUNT);
+    memcpy(s->byte.dropped, stats_byte_drop, sizeof(guint32)*MSG_TYPE_COUNT);
 
     memcpy(s->drop_reason, stats_drop_reason, 
-        sizeof(guint32)*MSG_DROP_REASON_COUNT);
-
-    s->dropped_total  = msg_dropped_total;
-    s->sent_total     = msg_sent_total;
-    s->recieved_total = msg_recv_total;
-    s->expired_total  = msg_expired_total;
+        sizeof(guint32)*MSG_DROP_REASON_COUNT*MSG_TYPE_COUNT);
 
     s->routing_errors = routing_errors;
     s->local_searches = local_searches;
+    s->local_hits     = local_hits;
 }

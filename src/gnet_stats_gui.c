@@ -35,17 +35,14 @@ gchar *msg_type_str[MSG_TYPE_COUNT] = {
     "Vendor Std.",
     "Push",
     "Query",
-    "Query Hit"
+    "Query Hit",
+    "Total"
 };
 
 gchar *msg_drop_str[MSG_DROP_REASON_COUNT] = {
-    "bad size: init message",
-    "bad size: init response",
-    "bad size: bye message",
-    "bad size: push request",
-    "search too small",
-    "search too large",
-    "result too large",
+    "bad size",
+    "too small",
+    "too large",
     "unknown message type",
     "ttl = 0",
     "ping throttle",
@@ -54,7 +51,7 @@ gchar *msg_drop_str[MSG_DROP_REASON_COUNT] = {
     "unrequested reply",
     "route lost",
     "no route",
-    "duplicate",
+    "duplicate message",
     "msg from banned host",
     "node shutting down",
     "flow control",
@@ -63,22 +60,54 @@ gchar *msg_drop_str[MSG_DROP_REASON_COUNT] = {
     "multiple SHA1",
     "misformed SHA1 query",
     "max ttl exceeded",
-    "result too small",
-    "result has double NUL",
-    "malformed result",
-    "result had bad SHA1"
+    "malformed query hit",
+    "query hit has double NUL",
+    "query hit had bad SHA1"
 };
+
+static gint selected_type = MSG_TOTAL;
 
 /***
  *** Callbacks
  ***/
-void on_clist_gnet_stats_resize_column(
+void on_clist_gnet_stats_pkg_resize_column(
     GtkCList *clist, gint column, gint width, gpointer user_data)
 {
+    static gboolean lock = FALSE;
     guint32 buf = width;
 
+    if (lock)
+        return;
+
+    lock = TRUE;
+
     /* remember the width for storing it to the config file later */
-    gui_prop_set_guint32(PROP_GNET_STATS_COL_WIDTHS, &buf, column, 1);
+    gui_prop_set_guint32(PROP_GNET_STATS_PKG_COL_WIDTHS, &buf, column, 1);
+    gtk_clist_set_column_width(
+        GTK_CLIST(lookup_widget(main_window, "clist_gnet_stats_byte")),
+        column, width);
+
+    lock = FALSE;
+}
+
+void on_clist_gnet_stats_byte_resize_column(
+    GtkCList *clist, gint column, gint width, gpointer user_data)
+{
+    static gboolean lock = FALSE;
+    guint32 buf = width;
+
+    if (lock)
+        return;
+
+    lock = TRUE;
+
+    /* remember the width for storing it to the config file later */
+    gui_prop_set_guint32(PROP_GNET_STATS_BYTE_COL_WIDTHS, &buf, column, 1);
+    gtk_clist_set_column_width(
+        GTK_CLIST(lookup_widget(main_window, "clist_gnet_stats_pkg")),
+        column, width);
+
+    lock = FALSE;
 }
 
 void on_clist_gnet_stats_drop_reasons_resize_column(
@@ -91,6 +120,14 @@ void on_clist_gnet_stats_drop_reasons_resize_column(
         &buf, column, 1);
 }
 
+static void on_gnet_stats_type_selected(GtkItem *i, gpointer data)
+{
+    printf( "selected type: %d\n", (gint) data);
+
+    selected_type = (gint) data;
+    gnet_stats_gui_update();
+}
+
 
 
 /***
@@ -99,23 +136,51 @@ void on_clist_gnet_stats_drop_reasons_resize_column(
 
 void gnet_stats_gui_init(void)
 {
-    GtkCList *clist_stats;
+    GtkCList *clist_stats_pkg;
+    GtkCList *clist_stats_byte;
     GtkCList *clist_reason;
+    GtkCombo *combo_types;
     gchar *titles[5];
     gint n;
 
     titles[1] = titles[2] = titles[3] = titles[4] = "-";
 
-    clist_stats = GTK_CLIST(
-        lookup_widget(main_window, "clist_gnet_stats"));
+    clist_stats_pkg = GTK_CLIST(
+        lookup_widget(main_window, "clist_gnet_stats_pkg"));
+    clist_stats_byte = GTK_CLIST(
+        lookup_widget(main_window, "clist_gnet_stats_byte"));
     clist_reason = GTK_CLIST(
         lookup_widget(main_window, "clist_gnet_stats_drop_reasons"));
+    combo_types = GTK_COMBO(
+        lookup_widget(main_window, "combo_gnet_stats_type"));
 
     for (n = 0; n < MSG_TYPE_COUNT; n ++) {
+        GtkWidget *list_item;
+        GList *l;
         gint row;
+
         titles[0] = msg_type_str[n];
-        row = gtk_clist_append(clist_stats, titles);
-        gtk_clist_set_selectable(clist_stats, row, FALSE);
+
+        row = gtk_clist_append(clist_stats_pkg, titles);
+        gtk_clist_set_selectable(clist_stats_pkg, row, FALSE);
+        row = gtk_clist_append(clist_stats_byte, titles);
+        gtk_clist_set_selectable(clist_stats_byte, row, FALSE);
+
+        list_item = gtk_list_item_new_with_label(msg_type_str[n]);
+
+        gtk_widget_show(list_item);
+
+        gtk_signal_connect(
+            GTK_OBJECT(list_item), "select",
+            GTK_SIGNAL_FUNC(on_gnet_stats_type_selected),
+            (gpointer) n);
+
+        l = g_list_prepend(NULL, (gpointer) list_item);
+        gtk_list_append_items(GTK_LIST(GTK_COMBO(combo_types)->list), l);
+
+        if (n == MSG_TOTAL)
+            gtk_list_select_child(
+                GTK_LIST(GTK_COMBO(combo_types)->list), list_item);
     }
 
     for (n = 0; n < MSG_DROP_REASON_COUNT; n ++) {
@@ -128,8 +193,8 @@ void gnet_stats_gui_init(void)
 
 void gnet_stats_gui_update(void)
 {
-    GtkCList *clist_stats;
-
+    GtkCList *clist_stats_pkg;
+    GtkCList *clist_stats_byte;
     GtkCList *clist_reason;
     gint n;
     gchar strbuf[10];
@@ -145,37 +210,39 @@ void gnet_stats_gui_update(void)
         GTK_LABEL(lookup_widget(main_window, "label_local_searches")),
         "%u", stats.local_searches);
     gtk_label_printf(
-        GTK_LABEL(lookup_widget(main_window, "label_msg_dropped_total")),
-        "%u", stats.dropped_total);
-    gtk_label_printf(
-        GTK_LABEL(lookup_widget(main_window, "label_msg_sent_total")),
-        "%u", stats.sent_total);
-    gtk_label_printf(
-        GTK_LABEL(lookup_widget(main_window, "label_msg_recv_total")),
-        "%u", stats.recieved_total);
-    gtk_label_printf(
-        GTK_LABEL(lookup_widget(main_window, "label_msg_expired_total")),
-        "%u", stats.expired_total);
+        GTK_LABEL(lookup_widget(main_window, "label_local_hits")),
+        "%u", stats.local_hits);
 
-
-    clist_stats = GTK_CLIST(
-        lookup_widget(main_window, "clist_gnet_stats"));
+    clist_stats_pkg = GTK_CLIST(
+        lookup_widget(main_window, "clist_gnet_stats_pkg"));
+    clist_stats_byte = GTK_CLIST(
+        lookup_widget(main_window, "clist_gnet_stats_byte"));
     clist_reason = GTK_CLIST(
         lookup_widget(main_window, "clist_gnet_stats_drop_reasons"));
 
     for (n = 0; n < MSG_TYPE_COUNT; n ++) {
-        g_snprintf(strbuf, sizeof(strbuf), "%u", stats.recieved[n]);
-        gtk_clist_set_text(clist_stats, n, c_gs_recieved, strbuf);
-        g_snprintf(strbuf, sizeof(strbuf), "%u", stats.sent[n]);
-        gtk_clist_set_text(clist_stats, n, c_gs_sent, strbuf);
-        g_snprintf(strbuf, sizeof(strbuf), "%u", stats.dropped[n]);
-        gtk_clist_set_text(clist_stats, n, c_gs_dropped, strbuf);
-        g_snprintf(strbuf, sizeof(strbuf), "%u", stats.expired[n]);
-        gtk_clist_set_text(clist_stats, n, c_gs_expired, strbuf);
+        g_snprintf(strbuf, sizeof(strbuf), "%u", stats.pkg.recieved[n]);
+        gtk_clist_set_text(clist_stats_pkg, n, c_gs_recieved, strbuf);
+        g_snprintf(strbuf, sizeof(strbuf), "%u", stats.pkg.sent[n]);
+        gtk_clist_set_text(clist_stats_pkg, n, c_gs_sent, strbuf);
+        g_snprintf(strbuf, sizeof(strbuf), "%u", stats.pkg.dropped[n]);
+        gtk_clist_set_text(clist_stats_pkg, n, c_gs_dropped, strbuf);
+        g_snprintf(strbuf, sizeof(strbuf), "%u", stats.pkg.expired[n]);
+        gtk_clist_set_text(clist_stats_pkg, n, c_gs_expired, strbuf);
+
+        gtk_clist_set_text(clist_stats_byte, n, c_gs_recieved, 
+            compact_size(stats.byte.recieved[n]));
+        gtk_clist_set_text(clist_stats_byte, n, c_gs_sent,
+            compact_size(stats.byte.sent[n]));
+        gtk_clist_set_text(clist_stats_byte, n, c_gs_dropped,
+            compact_size(stats.byte.dropped[n]));
+        gtk_clist_set_text(clist_stats_byte, n, c_gs_expired,
+            compact_size(stats.byte.expired[n]));
     }
 
     for (n = 0; n < MSG_DROP_REASON_COUNT; n ++) {
-        g_snprintf(strbuf, sizeof(strbuf), "%u", stats.drop_reason[n]);
+        g_snprintf(strbuf, sizeof(strbuf), "%u", 
+            stats.drop_reason[n][selected_type]);
         gtk_clist_set_text(clist_reason, n, 1, strbuf);
     }
 }

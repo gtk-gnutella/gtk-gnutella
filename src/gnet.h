@@ -344,17 +344,14 @@ enum {
     MSG_PUSH_REQUEST,
     MSG_SEARCH,
     MSG_SEARCH_RESULTS,
+    MSG_TOTAL,     /* allways counted (for all the above types) */
     MSG_TYPE_COUNT /* number of known message types */
 };
 
 typedef enum msg_drop_reason {
-    MSG_DROP_INIT_BAD_SIZE,
-    MSG_DROP_INIT_RESPONSE_BAD_SIZE,
-    MSG_DROP_BYE_BAD_SIZE,
-    MSG_DROP_PUSH_BAD_SIZE,
-    MSG_DROP_SEARCH_TOO_SMALL,
-    MSG_DROP_SEARCH_TOO_LARGE,
-    MSG_DROP_RESULT_TOO_LARGE,
+    MSG_DROP_BAD_SIZE,
+    MSG_DROP_TOO_SMALL,
+    MSG_DROP_TOO_LARGE,
     MSG_DROP_UNKNOWN_TYPE,
     MSG_DROP_TTL0,
     MSG_DROP_PING_THROTTLE,
@@ -372,28 +369,32 @@ typedef enum msg_drop_reason {
     MSG_DROP_MULTIPLE_SHA1,
     MSG_DROP_MISFORMED_SHA1_QUERY,
     MSG_DROP_MAX_TTL_EXCEEDED,
-    MSG_DROP_RESULT_TOO_SMALL,
-    MSG_DROP_RESULT_DOUBLE_NUL,
     MSG_DROP_BAD_RESULT,
+    MSG_DROP_RESULT_DOUBLE_NUL,
     MSG_DROP_RESULT_SHA1_ERROR,
     MSG_DROP_REASON_COUNT /* number of known reasons to drop a message */
 } msg_drop_reason_t;
 
 typedef struct gnet_stats {
-    guint32 drop_reason[MSG_DROP_REASON_COUNT];
+    guint32 drop_reason[MSG_DROP_REASON_COUNT][MSG_TYPE_COUNT];
 
-    guint32 recieved[MSG_TYPE_COUNT];
-    guint32 sent[MSG_TYPE_COUNT];
-    guint32 dropped[MSG_TYPE_COUNT];
-    guint32 expired[MSG_TYPE_COUNT];
+    struct {
+        guint32 recieved[MSG_TYPE_COUNT];
+        guint32 sent[MSG_TYPE_COUNT];
+        guint32 dropped[MSG_TYPE_COUNT];
+        guint32 expired[MSG_TYPE_COUNT];
+    } pkg;
 
-    guint32 dropped_total;
-    guint32 sent_total;
-    guint32 recieved_total;
-    guint32 expired_total;
+    struct {
+        guint32 recieved[MSG_TYPE_COUNT];
+        guint32 sent[MSG_TYPE_COUNT];
+        guint32 dropped[MSG_TYPE_COUNT];
+        guint32 expired[MSG_TYPE_COUNT];
+    } byte;
 
     guint32 routing_errors;
     guint32 local_searches;
+    guint32 local_hits;
 } gnet_stats_t;
 
 typedef struct gnet_bw_stats {
