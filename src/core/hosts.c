@@ -151,9 +151,9 @@ host_timer(void)
 	if (count < max_nodes)
 		missing -= whitelist_connect();
 
-	if (dbg > 10)
+	if (dbg > 10 && missing > 0)
 		g_message("host_timer - missing %d host%s",
-			count, count == 1 ? "" : "s");
+			missing, missing == 1 ? "" : "s");
 
 	/*
 	 * If we are under the number of connections wanted, we add hosts
