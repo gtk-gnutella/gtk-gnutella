@@ -61,6 +61,7 @@ gchar *msg_drop_str[MSG_DROP_REASON_COUNT] = {
     "Query text too short",
     "Query had unnecessary overhead",
     "Malformed SHA1 Query",
+    "Malformed UTF-8 Query",
     "Max TTL exceeded",
     "Malformed Query Hit",
     "Query hit had bad SHA1"

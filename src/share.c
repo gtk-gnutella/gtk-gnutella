@@ -1044,6 +1044,53 @@ guint compact_query(gchar *search, gint utf8_len)
 }
 
 /*
+ * query_utf8_decode
+ *
+ * Given a query `text' of `len' bytes:
+ *
+ * If query is UTF8, compute its length and store it in `retlen'.
+ * If query starts with a BOM mark, skip it and set `retoff' accordingly.
+ *
+ * Returns FALSE on bad UTF-8, TRUE otherwise.
+ */
+static gboolean query_utf8_decode(
+	gchar *text, guint32 len, guint32 *retlen, guint *retoff)
+{
+	guint offset = 0;
+	guint32 utf8_len = -1;
+
+	/*
+	 * Look whether we're facing an UTF-8 query.
+	 *
+	 * If it starts with the sequence EF BB BF (BOM in UTF-8), then
+	 * it is clearly UTF-8.  If we can't decode it, it is bad UTF-8.
+	 */
+
+	if (len >= 3) {
+		guchar *p = (guchar *) text;
+		if (p[0] == 0xef && p[1] == 0xbb && p[2] == 0xbf) {
+			offset = 3;				/* Is UTF-8, skip BOM */
+			if (
+				len == offset ||
+				!(utf8_len = utf8_is_valid_string(text + offset, len - offset))
+			)
+				return FALSE;		/* Bad UTF-8 encoding */
+		}
+	}
+
+	if (utf8_len == -1) {
+		utf8_len = utf8_is_valid_string(text, len);
+		if (utf8_len && utf8_len == len)			/* Is pure ASCII */
+			utf8_len = 0;							/* Not fully UTF-8 */
+	}
+
+	*retlen = utf8_len;
+	*retoff = offset;
+
+	return TRUE;
+}
+
+/*
  * Searches requests (from others nodes) 
  * Basic matching. The search request is made lowercase and
  * is matched to the filenames in the LL.
@@ -1066,6 +1113,8 @@ gboolean search_request(struct gnutella_node *n)
 	} exv_sha1[MAX_EXTVEC];
 	gint exv_sha1cnt = 0;
 	gint utf8_len = -1;
+	guint offset = 0;			/* Query string start offset */
+	gboolean drop_it = FALSE;
 
 	/*
 	 * Make sure search request is NUL terminated... --RAM, 06/10/2001
@@ -1114,20 +1163,27 @@ gboolean search_request(struct gnutella_node *n)
 		 * Look whether we're facing an UTF-8 query.
 		 */
 
-		utf8_len = utf8_is_valid_string(search, search_len);
-		if (utf8_len && utf8_len != search_len)			/* Not pure ASCII */
+		if (!query_utf8_decode(search, search_len, &utf8_len, &offset)) {
+			gnet_stats_count_dropped(n, MSG_DROP_MALFORMED_UTF_8);
+			return TRUE;					/* Drop message! */
+		} else if (utf8_len)
 			gnet_stats_count_general(n, GNR_QUERY_UTF8, 1);
-		else
-			utf8_len = 0;			/* Not fully UTF-8 */
 
-		mangled_search_len = compact_query(search, utf8_len);
+		/*
+		 * Compact the query, offsetting from the start as needed in case
+		 * there is a leading BOM (our UTF-8 decoder does not allow BOM
+		 * within the UTF-8 string, and rightly I think: that would be pure
+		 * gratuitous bloat).
+		 */
 
-		g_assert(mangled_search_len <= search_len);
+		mangled_search_len = compact_query(search + offset, utf8_len);
+
+		g_assert(mangled_search_len <= search_len - offset);
 	
-		if (mangled_search_len != search_len) {
+		if (mangled_search_len != search_len - offset) {
 			gnet_stats_count_general(n, GNR_QUERY_COMPACT_COUNT, 1);
 			gnet_stats_count_general(n, GNR_QUERY_COMPACT_SIZE,
-				search_len - mangled_search_len);
+				search_len - offset - mangled_search_len);
 		}
 
 		/*
@@ -1136,13 +1192,13 @@ gboolean search_request(struct gnutella_node *n)
 		 */
 
 		g_memmove(
-			search+mangled_search_len, /* new end of query string */
-			search+search_len,         /* old end of query string */
+			search+offset+mangled_search_len, /* new end of query string */
+			search+search_len,                /* old end of query string */
 			n->size - (search - n->data) - search_len); /* trailer len */
 
-		n->size -= search_len - mangled_search_len;
+		n->size -= search_len - offset - mangled_search_len;
 		WRITE_GUINT32_LE(n->size, n->header.size);
-		search_len = mangled_search_len;
+		search_len = mangled_search_len + offset;
 
 		g_assert(search[search_len] == '\0');
 	} 
@@ -1333,24 +1389,29 @@ gboolean search_request(struct gnutella_node *n)
 
 		g_assert(search[search_len] == '\0');
 
-		if (utf8_len == -1) {
-			utf8_len = utf8_is_valid_string(search, search_len);
-			if (utf8_len && utf8_len != search_len) {  /* Not pure ASCII */
-				is_utf8 = TRUE;
-				gnet_stats_count_general(n, GNR_QUERY_UTF8, 1);
-			}
-		} else
-			is_utf8 = utf8_len > 0;
+		if (
+			utf8_len == -1 &&
+			!query_utf8_decode(search, search_len, &utf8_len, &offset)
+		) {
+			gnet_stats_count_dropped(n, MSG_DROP_MALFORMED_UTF_8);
+			drop_it = TRUE;					/* Drop message! */
+			goto finish;					/* Flush any SHA1 result we have */
+		} else if (utf8_len)
+			gnet_stats_count_general(n, GNR_QUERY_UTF8, 1);
+
+		is_utf8 = utf8_len > 0;
 
 		/*
 		 * Because st_search() will apply a character map over the string,
 		 * we always need to copy the query string to avoid changing the
 		 * data inplace.
 		 *
-		 * `stmp_1' is a static buffer.
+		 * `stmp_1' is a static buffer.  Note that we copy the trailing NUL
+		 * into the buffer, hence the "+1" below.
 		 */
 
-		memcpy(stmp_1, search, search_len + 1);		/* Copy trailing NUL */
+		search_len -= offset;
+		memcpy(stmp_1, search + offset, search_len + 1);
 
 		if (is_utf8) {
 			gint isochars;
@@ -1362,7 +1423,7 @@ gboolean search_request(struct gnutella_node *n)
 
 			if (dbg > 4)
 				printf("UTF-8 query, len=%d, utf8-len=%d, iso-len=%d: \"%s\"\n",
-					search_len, utf8_len, isochars, search);
+					search_len, utf8_len, isochars, stmp_1);
 		}
 
 		if (!ignore)
@@ -1370,6 +1431,7 @@ gboolean search_request(struct gnutella_node *n)
 				st_search(&search_table, stmp_1, got_match, max_replies);
 	}
 
+finish:
 	if (found_files > 0) {
         gnet_stats_count_general(n, GNR_LOCAL_HITS, found_files);
 
@@ -1377,7 +1439,8 @@ gboolean search_request(struct gnutella_node *n)
 			flush_match();			/* Send last packet */
 
 		if (dbg > 3) {
-			printf("Share HIT %u files '%s'%s ", (gint) found_files, search,
+			printf("Share HIT %u files '%s'%s ", (gint) found_files,
+				search + offset,
 				skip_file_search ? " (skipped)" : "");
 			if (exv_sha1cnt) {
 				gint i;
@@ -1393,7 +1456,7 @@ gboolean search_request(struct gnutella_node *n)
 		}
 	}
 
-	return FALSE;		/* Can propagate this message if needed */
+	return drop_it;
 }
 
 /*
