@@ -91,7 +91,7 @@ static prop_set_t *properties = NULL;
  */
 
 static gchar cfg_tmp[4096];
-static gchar *pidfile = "gtk-gnutella.pid";
+static const gchar *pidfile = "gtk-gnutella.pid";
 
 static void settings_callbacks_init(void);
 static void settings_callbacks_shutdown(void);
@@ -174,11 +174,22 @@ static void save_pid(const gchar *file)
 #define _SC_PAGE_SIZE _SC_PAGESIZE
 #endif
 
-#ifdef _SC_PAGE_SIZE
-#define settings_getpagesize() ((glong) sysconf(_SC_PAGE_SIZE))
+#if defined (_SC_PAGE_SIZE) && defined (_SC_PHYS_PAGES)
+static glong settings_getpagesize(void)
+{
+	glong ret;
+
+	errno = 0;
+	ret = sysconf(_SC_PAGE_SIZE);
+	if ((glong) -1 == ret && 0 != errno) {
+		g_warning("sysconf(_SC_PHYS_PAGES) failed: %s", g_strerror(errno));
+		return 0;
+	}
+	return ret;
+}
 #else
 #define settings_getpagesize() ((glong) getpagesize())
-#endif
+#endif /* _SC_PAGE_SIZE && _SC_PHYS_PAGES */
 
 /* 
  * settings_getphysmemsize:
@@ -189,7 +200,15 @@ static gulong settings_getphysmemsize(void)
 {
 #if defined (_SC_PHYS_PAGES)
 	guint32 pagesize = settings_getpagesize();
-	return (pagesize >> 10) * sysconf(_SC_PHYS_PAGES);
+	glong pages;
+
+	errno = 0;
+	pages = sysconf(_SC_PHYS_PAGES); 
+	if ((glong) -1 == pages && 0 != errno) {
+		g_warning("sysconf(_SC_PHYS_PAGES) failed: %s", g_strerror(errno));
+		return 0;
+	}
+	return (pagesize >> 10) * (gulong) pages;
 #elif defined(HAVE_SYSCTL) && defined(CTL_HW) && defined(HW_USERMEM)
 /* There's also HW_PHYSMEM but HW_USERMEM is better for our needs. */
 	int mib[2] = { CTL_HW, HW_USERMEM };
