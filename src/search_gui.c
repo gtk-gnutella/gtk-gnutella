@@ -364,7 +364,7 @@ gboolean search_gui_new_search_full(
  *			it's NULL (or raise a SIGSEGV in case of NODEBUG).
  */
 	search_start(sch->search_handle);
-	if (sch->enabled)
+	if (!sch->enabled)
 		search_stop(sch->search_handle);
 
 	if (search)
