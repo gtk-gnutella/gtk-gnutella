@@ -24,6 +24,7 @@
 #ifndef __sockets_h__
 #define __sockets_h__
 
+#include <sys/time.h>		/* for time_t */
 #include <glib.h>
 
 struct sockaddr;

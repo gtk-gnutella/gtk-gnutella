@@ -22,6 +22,8 @@
 #ifndef __appconfig_h__
 #define __appconfig_h__
 
+#include <sys/time.h>		/* for time_t */
+
 /*
  * Global Data
  */
