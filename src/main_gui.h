@@ -26,9 +26,11 @@
 #ifndef __main_gui_h__
 #define __main_gui_h__
 
+void main_gui_early_init(gint, gchar **);
 void main_gui_init(void);
 void main_gui_run(void);
 void main_gui_shutdown(void);
 void main_gui_timer(void);
+void main_gui_shutdown_tick(guint);
 
 #endif /* __main_gui_h__ */

@@ -31,7 +31,9 @@
 #include "settings_gui.h"
 #include "search_gui.h"
 #include "monitor_gui.h"
+#include "statusbar_gui.h"
 #include "search_stats.h"
+#include "gnet_stats_gui.h"
 
 #include "filter_cb.h"
 
@@ -39,7 +41,25 @@
 
 #include "oldconfig.h"
 
+#include "callbacks.h" // FIXME: remove this dependency (compare_ul_norm)
+
 #include <pwd.h>
+
+static gchar tmpstr[4096];
+
+/***
+ *** Windows
+ ***/
+GtkWidget *main_window = NULL;
+GtkWidget *shutdown_window = NULL;
+GtkWidget *dlg_about = NULL;
+GtkWidget *dlg_quit = NULL;
+GtkWidget *popup_downloads = NULL;
+GtkWidget *popup_uploads = NULL;
+GtkWidget *popup_search = NULL;
+GtkWidget *popup_nodes = NULL;
+GtkWidget *popup_monitor = NULL;
+GtkWidget *popup_queue = NULL;
 
 
 /***
@@ -94,11 +114,175 @@ void load_legacy_settings(void)
     g_free(home_dir);
 }
 
+static void gui_init_menu() 
+{
+    gchar * title;
+	gint optimal_width;
+	GtkCTreeNode *parent_node = NULL;    
+	GtkCTreeNode *last_node = NULL;
+    GtkCTree *ctree_menu =
+        GTK_CTREE(lookup_widget(main_window, "ctree_menu"));
+
+     // gNet
+    title = (gchar *) &"gnutellaNet";
+    parent_node = gtk_ctree_insert_node(
+		ctree_menu, NULL, NULL, &title,
+        0, NULL, NULL, NULL, NULL, FALSE, TRUE );
+    gtk_ctree_node_set_row_data(
+		ctree_menu, parent_node, 
+        (gpointer) nb_main_page_gnet);
+
+    // gNet -> Stats
+    title = (gchar *) &"Stats";
+    last_node = gtk_ctree_insert_node(
+		GTK_CTREE(ctree_menu), parent_node, NULL, &title,
+        0, NULL, NULL, NULL, NULL, TRUE, TRUE);
+    gtk_ctree_node_set_row_data(
+		GTK_CTREE(ctree_menu), last_node, 
+        (gpointer) nb_main_page_gnet_stats);
+
+    // Uploads
+    title = (gchar *) &"Uploads";
+    parent_node = gtk_ctree_insert_node(
+		GTK_CTREE(ctree_menu), NULL, NULL, &title,
+        0, NULL, NULL, NULL, NULL, FALSE, TRUE );
+    gtk_ctree_node_set_row_data(
+		GTK_CTREE(ctree_menu), parent_node, 
+        (gpointer) nb_main_page_uploads);
+
+    // Uploads -> Stats
+    title = (gchar *) &"Stats";
+    last_node = gtk_ctree_insert_node(
+		GTK_CTREE(ctree_menu), parent_node, NULL, &title,
+        0, NULL, NULL, NULL, NULL, TRUE, TRUE);
+    gtk_ctree_node_set_row_data(
+		GTK_CTREE(ctree_menu), last_node, 
+        (gpointer) nb_main_page_uploads_stats);
+
+    // Downloads
+    title = (gchar *) &"Downloads";
+    last_node = gtk_ctree_insert_node(
+		GTK_CTREE(ctree_menu), NULL, NULL, &title,
+
+        0, NULL, NULL, NULL, NULL, TRUE, TRUE );
+    gtk_ctree_node_set_row_data(
+		GTK_CTREE(ctree_menu), last_node, 
+        (gpointer) nb_main_page_downloads);
+
+    // Search
+    title = (gchar *) &"Search";
+    parent_node = gtk_ctree_insert_node(
+		GTK_CTREE(ctree_menu), NULL, NULL, &title,
+        0, NULL, NULL, NULL, NULL, FALSE, TRUE );
+    gtk_ctree_node_set_row_data(
+		GTK_CTREE(ctree_menu), parent_node, 
+        (gpointer) nb_main_page_search);
+
+    // Search -> Monitor
+    title = (gchar *) &"Monitor";
+    last_node = gtk_ctree_insert_node(
+		GTK_CTREE(ctree_menu), parent_node, NULL, &title,
+        0, NULL, NULL, NULL, NULL, TRUE, TRUE );
+    gtk_ctree_node_set_row_data(
+		GTK_CTREE(ctree_menu), last_node, 
+        (gpointer) nb_main_page_monitor);
+
+    // Search -> search stats
+    title = (gchar *) &"Stats";
+    last_node = gtk_ctree_insert_node(
+		GTK_CTREE(ctree_menu), parent_node, NULL, &title,
+        0, NULL, NULL, NULL, NULL, TRUE, TRUE );
+    gtk_ctree_node_set_row_data(
+		GTK_CTREE(ctree_menu), last_node, 
+        (gpointer) nb_main_page_search_stats);
+
+    // Config
+    title = (gchar *) &"Config";
+    last_node = gtk_ctree_insert_node(
+		GTK_CTREE(ctree_menu), NULL, NULL, (gchar **) &title,
+        0, NULL, NULL, NULL, NULL, TRUE, TRUE );
+    gtk_ctree_node_set_row_data(
+		GTK_CTREE(ctree_menu), last_node, 
+        (gpointer) nb_main_page_config);
+
+	gtk_clist_select_row(GTK_CLIST(ctree_menu), 0, 0);
+
+    optimal_width =
+		gtk_clist_optimal_column_width(GTK_CLIST(ctree_menu), 0);
+
+#ifdef GTA_REVISION
+	g_snprintf(tmpstr, sizeof(tmpstr), "gtk-gnutella %u.%u %s", GTA_VERSION,
+			   GTA_SUBVERSION, GTA_REVISION);
+#else
+	g_snprintf(tmpstr, sizeof(tmpstr), "gtk-gnutella %u.%u", GTA_VERSION,
+			   GTA_SUBVERSION);
+#endif
+
+	gtk_window_set_title(GTK_WINDOW(main_window), tmpstr);
+}
+
 
 
 /***
  *** Public functions
  ***/
+
+/*
+ * main_gui_early_init:
+ *
+ * Some setup of the gui side which I wanted out of main.c but must be done
+ * before the backend can be initialized since the core code is not free of
+ * GTK yet.
+ *      -- Richard, 6/9/2002
+ */
+void main_gui_early_init(gint argc, gchar **argv)
+{
+	/* Glade inits */
+
+	gtk_set_locale();
+
+	gtk_init(&argc, &argv);
+
+	add_pixmap_directory(PACKAGE_DATA_DIR "/pixmaps");
+	add_pixmap_directory(PACKAGE_SOURCE_DIR "/pixmaps");
+
+    main_window = create_main_window();
+    shutdown_window = create_shutdown_window();
+    dlg_about = create_dlg_about();
+    dlg_quit = create_dlg_quit();
+
+	/* popup menus */
+	popup_nodes = create_popup_nodes();
+	popup_search = create_popup_search();
+	popup_monitor = create_popup_monitor();
+	popup_uploads = create_popup_uploads();
+	popup_downloads = create_popup_dl_active();
+	popup_queue = create_popup_dl_queued();	
+
+    statusbar_gui_init();
+
+    gui_init_menu();
+
+    /* about box */
+#ifdef GTA_REVISION
+	g_snprintf(tmpstr, sizeof(tmpstr), "gtk-gnutella %u.%u %s", GTA_VERSION,
+			   GTA_SUBVERSION, GTA_REVISION);
+#else
+	g_snprintf(tmpstr, sizeof(tmpstr), "gtk-gnutella %u.%u", GTA_VERSION,
+			   GTA_SUBVERSION);
+#endif
+    gtk_label_set_text
+        (GTK_LABEL(lookup_widget(dlg_about, "label_about_title")), tmpstr);
+
+    /* search history combo stuff */
+    gtk_combo_disable_activate
+        (GTK_COMBO(lookup_widget(main_window, "combo_search")));
+
+    /* copy url selection stuff */
+    gtk_selection_add_target
+        (popup_downloads, GDK_SELECTION_PRIMARY, GDK_SELECTION_TYPE_STRING, 1);
+
+}
 
 void main_gui_init(void)
 {
@@ -117,17 +301,41 @@ void main_gui_init(void)
     gtk_clist_set_column_justification(
         GTK_CLIST(lookup_widget(main_window, "clist_uploads")),
         c_ul_size, GTK_JUSTIFY_RIGHT);
+    gtk_clist_set_column_justification(
+        GTK_CLIST(lookup_widget(main_window, "clist_gnet_stats")),
+        c_gs_sent, GTK_JUSTIFY_RIGHT);
+    gtk_clist_set_column_justification(
+        GTK_CLIST(lookup_widget(main_window, "clist_gnet_stats")),
+        c_gs_dropped, GTK_JUSTIFY_RIGHT);
+    gtk_clist_set_column_justification(
+        GTK_CLIST(lookup_widget(main_window, "clist_gnet_stats")),
+        c_gs_expired, GTK_JUSTIFY_RIGHT);
+    gtk_clist_set_column_justification(
+        GTK_CLIST(lookup_widget(main_window, "clist_gnet_stats")),
+        c_gs_recieved, GTK_JUSTIFY_RIGHT);
+    gtk_clist_set_column_justification(
+        GTK_CLIST(lookup_widget(main_window, "clist_gnet_stats_drop_reasons")),
+        1, GTK_JUSTIFY_RIGHT);
 
     gtk_clist_column_titles_passive(
         GTK_CLIST(lookup_widget(main_window, "clist_search_stats")));
     gtk_clist_column_titles_passive(
         GTK_CLIST(lookup_widget(main_window, "clist_search")));
-    gtk_clist_column_titles_passive
-        (GTK_CLIST(lookup_widget(main_window, "clist_nodes")));
-	gtk_clist_column_titles_passive
-        (GTK_CLIST(lookup_widget(main_window, "clist_uploads")));
-	gtk_clist_column_titles_passive
-        (GTK_CLIST(lookup_widget(main_window, "clist_downloads")));
+    gtk_clist_column_titles_passive(
+        GTK_CLIST(lookup_widget(main_window, "clist_nodes")));
+	gtk_clist_column_titles_passive(
+        GTK_CLIST(lookup_widget(main_window, "clist_uploads")));
+	gtk_clist_column_titles_passive(
+        GTK_CLIST(lookup_widget(main_window, "clist_downloads")));
+	gtk_clist_column_titles_passive(
+        GTK_CLIST(lookup_widget(main_window, "clist_gnet_stats")));
+	gtk_clist_column_titles_passive(
+        GTK_CLIST(lookup_widget(
+            main_window, "clist_gnet_stats_drop_reasons")));
+
+    gtk_clist_set_compare_func(
+        GTK_CLIST(lookup_widget(main_window, "clist_ul_stats")), 
+        compare_ul_norm);
 
     {
         GtkCList *clist = 
@@ -160,6 +368,7 @@ void main_gui_init(void)
                                "checkbutton_downloads_never_push"))));
 
     settings_gui_init();
+    gnet_stats_gui_init();
     nodes_gui_init();
     /* Must come before search_init() so searches/filters can be loaded.*/
 	filter_init(); 
@@ -168,6 +377,8 @@ void main_gui_init(void)
     monitor_gui_init();
 
     load_legacy_settings();
+
+   	gui_update_all();
 }
 
 void main_gui_run(void)
@@ -199,6 +410,7 @@ void main_gui_shutdown(void)
      * Discard all changes and close the dialog.
      */
     filter_close_dialog(FALSE);
+	gtk_widget_hide(main_window);
 
     search_stats_disable();
     filter_cb_close();
@@ -214,4 +426,25 @@ void main_gui_timer()
     gui_update_global();
     gui_update_traffic_stats();
     filter_timer(); /* Update the filter stats */
+}
+
+void main_gui_shutdown_tick(guint left)
+{
+    static gboolean notice_visible = FALSE;
+	gchar tmp[256];
+
+    GtkLabel *label_shutdown_count;
+ 
+    if (!notice_visible) {
+        gtk_widget_show(shutdown_window);
+        notice_visible = TRUE;
+    }
+
+    label_shutdown_count = GTK_LABEL
+        (lookup_widget(shutdown_window, "label_shutdown_count"));
+
+	g_snprintf(tmp, sizeof(tmp), "%d seconds", left);
+
+	gtk_label_set(label_shutdown_count,tmp);
+    gtk_main_flush();
 }
