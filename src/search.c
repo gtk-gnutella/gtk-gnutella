@@ -1470,6 +1470,8 @@ static void download_selection_of_clist(GtkCList * c)
 	GList *l;
 
 	for (l = c->selection; l; l = l->next) {
+		gtk_clist_set_foreground(c, (gint) l->data, 
+								 &gtk_widget_get_style(GTK_WIDGET(c))->fg[GTK_STATE_ACTIVE]);
 		rc = (struct record *) gtk_clist_get_row_data(c, (gint) l->data);
 		rs = rc->results_set;
 		need_push =
