@@ -228,11 +228,11 @@ bitzi_host_error_ind(gpointer handle, http_errtype_t type, gpointer v)
 
 struct efj_t
 {
-	xmlChar *string;
+	const xmlChar *string;
 	bitzi_fj_t judgement;
 };
 
-static const struct efj_t const enum_fj_table[] = {
+static const struct efj_t enum_fj_table[] = {
 	{"Unknown", UNKNOWN},
 	{"Dangerous/Misleading", DANGEROUS_MISLEADING},
 	{"Incomplete/Damaged", INCOMPLETE_DAMAGED},
