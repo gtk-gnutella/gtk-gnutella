@@ -1231,7 +1231,7 @@ bio_sendfile(bio_source_t *bio, gint in_fd, off_t *offset, gint len)
 
 	if (dbg > 7)
 		printf("bsched_write(fd=%d, len=%d) available=%d\n",
-			bio->fd, len, available);
+			bio->wio->fd(bio->wio), len, available);
 
 #ifdef USE_BSD_SENDFILE
 	/*
@@ -1263,7 +1263,7 @@ bio_sendfile(bio_source_t *bio, gint in_fd, off_t *offset, gint len)
 
 #else	/* !USE_BSD_SENDFILE */
 
-	r = sendfile(bio->fd, in_fd, offset, amount);
+	r = sendfile(bio->wio->fd(bio->wio), in_fd, offset, amount);
 
 	if (r >= 0 && *offset != start + r) {		/* Paranoid, as usual */
 		g_warning("FIXED SENDFILE returned offset: "

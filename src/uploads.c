@@ -2043,6 +2043,7 @@ static void upload_request(gnutella_upload_t *u, header_t *header)
 	gboolean was_actively_queued = u->status == GTA_UL_QUEUED;
 	gboolean range_unavailable = FALSE;
 	gboolean replacing_stall = FALSE;
+	gboolean use_sendfile;
 	gchar *token;
 	extern gint sha1_eq(gconstpointer a, gconstpointer b);
 
@@ -2728,24 +2729,30 @@ static void upload_request(gnutella_upload_t *u, header_t *header)
 		return;
 	}
 
-#ifndef HAS_SENDFILE
-	/* If we got a valid skip amount then jump ahead to that position */
-	if (u->skip > 0) {
-		if (-1 == lseek(u->file_desc, u->skip, SEEK_SET)) {
-			upload_error_remove(u, NULL,
-				500, "File seek error: %s", g_strerror(errno));
-			return;
+#ifdef HAS_SENDFILE
+	use_sendfile = !SOCKET_USES_TLS(u->socket);
+#else
+	use_sendfile = FALSE;
+#endif /* HAS_SENDFILE */
+
+	if (use_sendfile) {
+		/* If we got a valid skip amount then jump ahead to that position */
+		if (u->skip > 0) {
+			if (-1 == lseek(u->file_desc, u->skip, SEEK_SET)) {
+				upload_error_remove(u, NULL,
+					500, "File seek error: %s", g_strerror(errno));
+				return;
+			}
+		}
+
+		u->bpos = 0;
+		u->bsize = 0;
+
+		if (!is_followup) {
+			u->buf_size = READ_BUF_SIZE * sizeof(gchar);
+			u->buffer = (gchar *) g_malloc(u->buf_size);
 		}
 	}
-
-	u->bpos = 0;
-	u->bsize = 0;
-
-	if (!is_followup) {
-		u->buf_size = READ_BUF_SIZE * sizeof(gchar);
-		u->buffer = (gchar *) g_malloc(u->buf_size);
-	}
-#endif	/* !HAS_SENDFILE */
 
 	/*
 	 * Set remaining upload information
@@ -2883,9 +2890,7 @@ static void upload_write(gpointer up, gint source, inputevt_cond_t cond)
 	gint written;
 	guint32 amount;
 	guint32 available;
-#ifdef HAS_SENDFILE
-	off_t pos;				/* For sendfile() sanity checks */
-#endif	/* !HAS_SENDFILE */
+	gboolean use_sendfile;
 
 	if (cond & INPUT_EVENT_EXCEPTION) {
 		/* If we can't write then we don't want it, kill the socket */
@@ -2895,57 +2900,62 @@ static void upload_write(gpointer up, gint source, inputevt_cond_t cond)
 	}
 
 #ifdef HAS_SENDFILE
-	/*
-	 * Compute the amount of bytes to send.
-	 * Use the two variables to avoid warnings about unused vars by compiler.
-	 */
+	use_sendfile = !SOCKET_USES_TLS(u->socket);
+#else
+	use_sendfile = FALSE;
+#endif
 
-	amount = u->end - u->pos + 1;
-	available = amount > READ_BUF_SIZE ? READ_BUF_SIZE : amount;
+	if (use_sendfile) {
+		off_t pos;				/* For sendfile() sanity checks */
+		/*
+	 	 * Compute the amount of bytes to send.
+	 	 * Use the two variables to avoid warnings about unused vars by
+		 * compiler.
+	 	 */
 
-	g_assert(amount > 0);
+		amount = u->end - u->pos + 1;
+		available = amount > READ_BUF_SIZE ? READ_BUF_SIZE : amount;
 
-	pos = u->pos;
-	written = bio_sendfile(u->bio, u->file_desc, &u->pos, available);
+		g_assert(amount > 0);
 
-	g_assert(written == -1 || written == u->pos - pos);
+		pos = u->pos;
+		written = bio_sendfile(u->bio, u->file_desc, &u->pos, available);
 
-#else	/* !HAS_SENDFILE */
+		g_assert(written == -1 || written == u->pos - pos);
+	} else
+		/*
+	 	* Compute the amount of bytes to send.
+	 	*/
 
-	/*
-	 * Compute the amount of bytes to send.
-	 */
+		amount = u->end - u->pos + 1;
 
-	amount = u->end - u->pos + 1;
+		g_assert(amount > 0);
 
-	g_assert(amount > 0);
+		/*
+	 	 * If the buffer position reached the size, then we need to read
+	 	 * more data from the file.
+	 	 */
 
-	/*
-	 * If the buffer position reached the size, then we need to read
-	 * more data from the file.
-	 */
-
-	if (u->bpos == u->bsize) {
-		if ((u->bsize = read(u->file_desc, u->buffer, u->buf_size)) == -1) {
-			upload_remove(u, "File read error: %s", g_strerror(errno));
-			return;
+		if (u->bpos == u->bsize) {
+			if ((u->bsize = read(u->file_desc, u->buffer, u->buf_size)) == -1) {
+				upload_remove(u, "File read error: %s", g_strerror(errno));
+				return;
+			}
+			if (u->bsize == 0) {
+				upload_remove(u, "File EOF?");
+				return;
+			}
+			u->bpos = 0;
 		}
-		if (u->bsize == 0) {
-			upload_remove(u, "File EOF?");
-			return;
-		}
-		u->bpos = 0;
+
+		available = u->bsize - u->bpos;
+		if (available > amount)
+			available = amount;
+
+		g_assert(available > 0);
+
+		written = bio_write(u->bio, &u->buffer[u->bpos], available);
 	}
-
-	available = u->bsize - u->bpos;
-	if (available > amount)
-		available = amount;
-
-	g_assert(available > 0);
-
-	written = bio_write(u->bio, &u->buffer[u->bpos], available);
-
-#endif	/* HAS_SENDFILE */
 
 	if (written == -1) {
 		if (errno != EAGAIN) {
@@ -2958,16 +2968,16 @@ static void upload_write(gpointer up, gint source, inputevt_cond_t cond)
 		return;
 	}
 
-#ifndef HAS_SENDFILE
-	/*
-	 * Only required when not using sendfile(), otherwise the u->pos field
-	 * is directly updated by the kernel, and u->bpos is unused.
-	 *		--RAM, 21/02/2002
-	 */
+	if (!use_sendfile) {
+		/*
+	 	 * Only required when not using sendfile(), otherwise the u->pos field
+	 	 * is directly updated by the kernel, and u->bpos is unused.
+	 	 *		--RAM, 21/02/2002
+	 	 */
 
-	u->pos += written;
-	u->bpos += written;
-#endif
+		u->pos += written;
+		u->bpos += written;
+	}
 
 	gnet_prop_set_guint64_val(PROP_UL_BYTE_COUNT, ul_byte_count + written);
 
