@@ -48,6 +48,7 @@ struct pproxy {
 	guint16 port;			/* Port where GIV should be sent back */
 	gchar *user_agent;		/* User-Agent string */
 	gchar *guid;			/* GUID (atom) to which push should be sent */
+	guint32 file_idx;		/* File index to request (0 if none supplied) */
 	gpointer io_opaque;		/* Opaque I/O callback information */
 };
 
@@ -73,6 +74,7 @@ struct cproxy {
 	guint16 port;			/* Port of the proxy servent */
 	gchar *server;			/* Server string */
 	gchar *guid;			/* GUID (atom) to which push should be sent */
+	guint32 file_idx;		/* File index to request */
 	gpointer http_handle;	/* Asynchronous HTTP request handle */
 
 	/*
@@ -90,7 +92,7 @@ struct cproxy {
 #define cproxy_port(c)			((c)->port)
 
 struct cproxy *cproxy_create(struct download *d,
-	guint32 ip, guint16 port, gchar *guid);
+	guint32 ip, guint16 port, gchar *guid, guint32 file_idx);
 void cproxy_free(struct cproxy *cp);
 void cproxy_reparent(struct download *d, struct download *cd);
 	

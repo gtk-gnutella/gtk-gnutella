@@ -42,6 +42,7 @@
 #include "routing.h"
 #include "gmsg.h"
 #include "uploads.h"
+#include "url.h"
 
 /* Following extra needed for the client-side */
 
@@ -290,22 +291,25 @@ static struct pproxy *pproxy_create(struct gnutella_socket *s)
 }
 
 /*
- * get_guid
+ * get_params
  *
- * Extract GUID for push-proxyfication from the HTTP requestl line.
+ * Extract GUID for push-proxyfication from the HTTP request line.
+ * Extract file index if present (otherwise 0 will be used).
  *
- * Returns GUID atom, or NULL if we could not figure it out, in which case
+ * Fills the GUID atom into `guid_atom' and the file index into `file_idx'.
+ *
+ * Returns TRUE if OK, FLASE if we could not figure it out, in which case
  * we also return an error to the calling party.
  */
-static gchar *get_guid(struct pproxy *pp, gchar *request)
+static gboolean get_params(struct pproxy *pp, gchar *request,
+	gchar **guid_atom, guint32 *file_idx)
 {
 	gchar *uri;
 	gchar *attr;
-	gchar *next;
 	gchar *p;
-	gint attrlen;
+	gchar *value;
 	gint datalen;
-	gboolean maybe = FALSE;
+	url_params_t *up;
 
 	/*
 	 * Move to the start of the requested path.  Note that sizeof("GET")
@@ -348,53 +352,27 @@ static gchar *get_guid(struct pproxy *pp, gchar *request)
 		attr = "guid";
 	} else {
 		pproxy_error_remove(pp, 400, "Request not understood");
-		return NULL;
+		return FALSE;
 	}
 
 	/*
 	 * Look for the proper "ServerId=" or "guid=" parameter.
 	 */
 
-	attrlen = strlen(attr);
+	up = url_params_parse(uri);
+	value = url_params_get(up, attr);
 
-	if (0 == strncmp(uri, attr, attrlen)) {
-		uri += attrlen;
-		maybe = TRUE;
-	} else
-		maybe = FALSE;
-
-	while (*uri && (!maybe || *uri != '=')) {
-		uri = strchr(uri, '&');				/* Move to next parameter */
-		if (uri == NULL)
-			break;
-		uri++;
-		if (0 == strncmp(uri, attr, attrlen)) {
-			uri += attrlen;
-			maybe = TRUE;
-		} else
-			maybe = FALSE;
-	}
-
-	if (uri == NULL || *uri != '=' || !maybe) {
+	if (value == NULL) {
 		pproxy_error_remove(pp, 400,
 			"Malformed push-proxy request: no %s found", attr);
-		return NULL;
+		goto error;
 	}
-
-	g_assert(*uri == '=');
-	g_assert(maybe);
-
-	uri++;						/* Skip the "=" */
 
 	/*
 	 * Determine how much data we have for the parameter.
 	 */
 
-	next = strchr(uri, '&');
-	if (next != NULL)
-		*next = '\0';
-
-	datalen = strlen(uri);
+	datalen = strlen(value);
 
 	if (0 == strcmp(attr, "ServerId")) {
 		gchar *guid;
@@ -407,20 +385,20 @@ static gchar *get_guid(struct pproxy *pp, gchar *request)
 			pproxy_error_remove(pp, 400, "Malformed push-proxy request: "
 				"wrong length for parameter \"%s\": %d byte%s", attr, datalen,
 				datalen == 1 ? "" : "s");
-			return NULL;
+			goto error;
 		}
 
 		if (dbg > 4)
-			printf("PUSH-PROXY: decoding %s=%s as base32\n", attr, uri);
+			printf("PUSH-PROXY: decoding %s=%s as base32\n", attr, value);
 		
-		guid = base32_to_guid(uri);
+		guid = base32_to_guid(value);
 		if (guid == NULL) {
 			pproxy_error_remove(pp, 400, "Malformed push-proxy request: "
 				"parameter \"%s\" is not valid base32", attr);
-			return NULL;
+			goto error;
 		}
 
-		return atom_guid_get(guid);
+		*guid_atom = atom_guid_get(guid);
 	} else if (0 == strcmp(attr, "guid")) {
 		gchar guid[16];
 
@@ -432,37 +410,51 @@ static gchar *get_guid(struct pproxy *pp, gchar *request)
 			pproxy_error_remove(pp, 400, "Malformed push-proxy request: "
 				"wrong length for parameter \"%s\": %d byte%s", attr, datalen,
 				datalen == 1 ? "" : "s");
-			return NULL;
+			goto error;
 		}
 
 		if (dbg > 4)
-			printf("PUSH-PROXY: decoding %s=%s as hexadecimal\n", attr, uri);
+			printf("PUSH-PROXY: decoding %s=%s as hexadecimal\n", attr, value);
 
-		if (!hex_to_guid(uri, guid)) {
+		if (!hex_to_guid(value, guid)) {
 			pproxy_error_remove(pp, 400, "Malformed push-proxy request: "
 				"parameter \"%s\" is not valid hexadecimal", attr);
-			return NULL;
+			goto error;
 		}
 
-		return atom_guid_get(guid);
-	}
+		*guid_atom = atom_guid_get(guid);
+	} else
+		g_error("unhandled parameter \"%s\"", attr);
 
-	g_error("unhandled parameter \"%s\"", attr);
-	return NULL;
+	/*
+	 * Extract the optional "file=" parameter.
+	 */
+
+	value = url_params_get(up, "file");
+
+	if (value == NULL)
+		*file_idx = 0;
+	else
+		*file_idx = (guint32) atoi(value);		/* Silent about errors */
+
+	url_params_free(up);
+	return TRUE;
+
+error:
+	url_params_free(up);
+	return FALSE;
 }
 
 /*
  * build_push
  *
  * Build a push request to send.  We set TTL=max_ttl-1 and hops=1 since
- * it does not come from our node really.  The file ID is set to 0, but
+ * it does not come from our node really.  The file ID may be set to 0, but
  * it should be ignored when the GIV is received anyway.
  */
 static void build_push(struct gnutella_msg_push_request *m,
-	gchar *guid, guint32 ip, guint16 port)
+	gchar *guid, guint32 ip, guint16 port, guint32 file_idx)
 {
-	static const guint32 one = 1;
-
 	message_set_muid(&m->header, GTA_MSG_PUSH_REQUEST);
 
 	m->header.function = GTA_MSG_PUSH_REQUEST;
@@ -473,7 +465,7 @@ static void build_push(struct gnutella_msg_push_request *m,
 
 	memcpy(m->request.guid, guid, 16);
 
-	WRITE_GUINT32_LE(one, m->request.file_id);
+	WRITE_GUINT32_LE(file_idx, m->request.file_id);
 	WRITE_GUINT32_BE(ip, m->request.host_ip);
 	WRITE_GUINT16_LE(port, m->request.host_port);
 }
@@ -540,14 +532,12 @@ static void pproxy_request(struct pproxy *pp, header_t *header)
 	 * Determine the servent ID.
 	 */
 
-	pp->guid = get_guid(pp, request);
-
-	if (pp->guid == NULL)
-		return;				/* Already reported the error in get_guid() */
+	if (!get_params(pp, request, &pp->guid, &pp->file_idx))
+		return;				/* Already reported the error in get_params() */
 
 	if (dbg > 2)
-		printf("PUSH-PROXY: %s requesting a push to %s",
-			ip_to_gchar(s->ip), guid_hex_str(pp->guid));
+		printf("PUSH-PROXY: %s requesting a push to %s for file #%d\n",
+			ip_to_gchar(s->ip), guid_hex_str(pp->guid), pp->file_idx);
 
 	/*
 	 * Make sure they provide an X-Node header so we know whom to set up
@@ -587,7 +577,7 @@ static void pproxy_request(struct pproxy *pp, header_t *header)
 	n = route_proxy_find(pp->guid);
 
 	if (n != NULL) {
-		build_push(&m, pp->guid, pp->ip, pp->port);
+		build_push(&m, pp->guid, pp->ip, pp->port, pp->file_idx);
 		message_add(m.header.muid, GTA_MSG_PUSH_REQUEST, NULL);
 
 		gmsg_sendto_one(n, (gchar *) &m, sizeof(m));
@@ -595,6 +585,7 @@ static void pproxy_request(struct pproxy *pp, header_t *header)
 		http_send_status(pp->socket, 202, FALSE, NULL, 0,
 			"Push-proxy: message sent to node");
 
+		pp->error_sent = 202;
 		pproxy_remove(pp, "Push sent directly to node GUID %s",
 			guid_hex_str(pp->guid));
 
@@ -610,7 +601,7 @@ static void pproxy_request(struct pproxy *pp, header_t *header)
 	if (nodes != NULL) {
 		gint cnt;
 
-		build_push(&m, pp->guid, pp->ip, pp->port);
+		build_push(&m, pp->guid, pp->ip, pp->port, pp->file_idx);
 		message_add(m.header.muid, GTA_MSG_PUSH_REQUEST, NULL);
 
 		gmsg_sendto_all(nodes, (gchar *) &m, sizeof(m));
@@ -622,6 +613,7 @@ static void pproxy_request(struct pproxy *pp, header_t *header)
 			"Push-proxy: message sent through Gnutella (via %d node%s)",
 			cnt, cnt == 1 ? "" : "s");
 
+		pp->error_sent = 203;
 		pproxy_remove(pp, "Push sent via Gnutella (%d node%s) for GUID %s",
 			cnt, cnt == 1 ? "" : "s", guid_hex_str(pp->guid));
 
@@ -640,6 +632,7 @@ static void pproxy_request(struct pproxy *pp, header_t *header)
 			"Push-proxy: you found the target GUID %s",
 			guid_hex_str(pp->guid));
 
+		pp->error_sent = 202;
 		pproxy_remove(pp, "Push was for our GUID %s", guid_hex_str(pp->guid));
 
 		return;
@@ -873,20 +866,27 @@ static gboolean cproxy_http_header_ind(
 		cp->directly = FALSE;
 		break;
 	case 400:
-		g_warning("push-proxy at %s (%s) for %s reported HTTP %d: %s",
+		g_warning("push-proxy at %s (%s) for %s file #%u reported HTTP %d: %s",
 			ip_port_to_gchar(cp->ip, cp->port), cproxy_vendor_str(cp),
-			guid_hex_str(cp->guid), code, message);
+			guid_hex_str(cp->guid), cp->file_idx, code, message);
 		/* FALL THROUGH */
 	case 410:
 		download_proxy_failed(cp->d);
 		break;
 	default:
-		g_warning("push-proxy at %s (%s) for %s sent unexpected HTTP %d: %s",
+		g_warning("push-proxy at %s (%s) for %s file #%u "
+			"sent unexpected HTTP %d: %s",
 			ip_port_to_gchar(cp->ip, cp->port), cproxy_vendor_str(cp),
-			guid_hex_str(cp->guid), code, message);
+			guid_hex_str(cp->guid), cp->file_idx, code, message);
 		download_proxy_failed(cp->d);
 		break;
 	}
+
+	if (dbg > 2 && cp->sent)
+		printf("PUSH-PROXY at %s (%s) sent PUSH for %s file #%u %s\n",
+			ip_port_to_gchar(cp->ip, cp->port), cproxy_vendor_str(cp),
+			guid_hex_str(cp->guid), cp->file_idx,
+			cp->directly ? "directly" : "via Gnet");
 
 	return FALSE;		/* Don't continue -- handle invalid now anyway */
 }
@@ -944,15 +944,15 @@ static void cproxy_http_newstate(gpointer handle, http_state_t newstate)
  * Returns NULL if problem during connection.
  */
 struct cproxy *cproxy_create(struct download *d,
-	guint32 ip, guint16 port, gchar *guid)
+	guint32 ip, guint16 port, gchar *guid, guint32 file_idx)
 {
 	struct cproxy *cp;
 	gpointer handle;
 	static gchar path[128];
 
 	(void) gm_snprintf(path, sizeof(path),
-		"/gnutella/push-proxy?ServerId=%s",
-		guid_base32_str(guid));
+		"/gnutella/push-proxy?ServerId=%s&file=%u",
+		guid_base32_str(guid), file_idx);
 
 	/*
 	 * Try to connect immediately: if we can't connect, no need to continue.
@@ -975,6 +975,7 @@ struct cproxy *cproxy_create(struct download *d,
 	cp->ip = ip;
 	cp->port = port;
 	cp->guid = atom_guid_get(guid);
+	cp->file_idx = file_idx;
 	cp->http_handle = handle;
 
 	/*
@@ -999,12 +1000,14 @@ void cproxy_reparent(struct download *d, struct download *cd)
 	g_assert(d != cd);
 	g_assert(d->cproxy != NULL);
 	g_assert(cd->cproxy != NULL);
+	g_assert(d->cproxy == cd->cproxy);
+	g_assert(d->cproxy->magic == CPROXY_MAGIC);
 	
 	cd->cproxy->d = cd;
-	
 	d->cproxy = NULL;
 	
 	g_assert(d->cproxy == NULL);
 	g_assert(cd->cproxy != NULL);
 	g_assert(cd == cd->cproxy->d);
 }
+
