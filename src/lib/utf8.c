@@ -2270,9 +2270,7 @@ utf8_encode_char(guint32 uc, gchar *buf)
 	return len;
 }
 
-/*
- * utf8_decode_char
- *
+/**
  * Returns the character value of the first character in the string `s',
  * which is assumed to be in UTF-8 encoding and no longer than `len'.
  * `retlen' will be set to the length, in bytes, of that character.
@@ -2282,7 +2280,8 @@ utf8_encode_char(guint32 uc, gchar *buf)
  * the caller will raise a warning, and this function will silently just
  * set `retlen' to -1 and return zero.
  */
-guint32 utf8_decode_char(const gchar *s, gint len, gint *retlen, gboolean warn)
+guint32
+utf8_decode_char(const gchar *s, gint len, gint *retlen, gboolean warn)
 {
 	guint32 v = *s;
 	guint32 ov = 0;
@@ -3094,7 +3093,7 @@ utf8_to_utf32(const gchar *in, guint32 *out, size_t size)
 {
 	const gchar *s = in;
 	guint32 *p = out;
-	guint retlen;
+	gint retlen;
 	size_t len = 0;
 
 	g_assert(in != NULL);
@@ -3376,7 +3375,7 @@ utf8_decompose_nfd(const gchar *in, gchar *out, size_t size)
 	gchar *p = out;
 	guint32 uc;
 	size_t len = 0, d_len;
-	guint retlen;
+	gint retlen;
 	gchar utf8_buf[7];
 
 	g_assert(in != NULL);
