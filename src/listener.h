@@ -47,7 +47,7 @@ typedef GSList *listeners_t;
 
 #define LISTENER_ADD(signal, callback)                                 \
     g_assert(callback != NULL);                                        \
-    signal##_listeners = g_slist_prepend(signal##_listeners, callback);
+    signal##_listeners = g_slist_append(signal##_listeners, callback);
 
 #define LISTENER_REMOVE(signal, callback)                              \
     g_assert(callback != NULL);                                        \
