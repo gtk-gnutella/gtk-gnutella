@@ -4,25 +4,28 @@ $Id$
 1. INTRO
 ========
 
-This is a short summary of the gettext documenation. See the
+This is a short summary of the gettext documentation. See the
 APPENDIX if this information isn't sufficient for you.
 
 
 2. Extract the translatable strings from the source files:
 ==========================================================
 
- $ cd src
- $ xgettext --keyword=_ --keyword=N_ *.c *.h
+Update your source files to the latest version from CVS.
 
-You should now have a file called ``messages.po''. If you look
-at the source files, you'll find many strings which are not
-marked as translatable. The reason for this is that these strings
-are only used internally or they are only interesting for
-developers i.e., for debugging.
+Then extract the strings:
+
+ $ cd po
+ $ make update-po
+ $ cp gtk-gnutella.pot messages.po
+
+If you look at the source files, you'll find many strings which are not marked
+as translatable. The reason for this is that these strings are only used
+internally or they are only interesting for developers i.e., for debugging.
 
 
-3. Prepare the POT file:
-========================
+3. Prepare the PO file:
+=======================
 
 Use your favourite editor and edit the first lines of 
 ``messages.po'' to match these:
@@ -44,7 +47,11 @@ support UTF-8 don't mind, you can convert that later.
 4. Translate the messages:
 ==========================
 
-You'll find something like this:
+You can use a text editor or a graphical PO file editor like "poEdit" for
+editing the translations (includes UTF-8 support), see
+http://poedit.sourceforge.net.
+
+In the PO file you'll find something like this:
 
 #: main.c:42
 msgid "Hello world"
@@ -87,10 +94,10 @@ and strip the part up to the . (dot). For example:
  $ iconv -f eucJP -t UTF-8 messages.po > utf8.po
 
 
-6. Install the POT file:
-========================
+6. Install the PO file:
+=======================
 
-First, verify that your POT file is correct:
+First, verify that your PO file is correct:
 
  $ msgfmt --check --strict utf8.po -o output.mo
 
@@ -114,20 +121,18 @@ functionality there will be more messages that should be translated.
 Thus, translation isn't something static. Every few month there will
 be a few more sentences to be translated.
 
-To update the .po files to reflect any changes to translatable strings
-in the source files simply run
+To update the PO files to reflect any changes to translatable strings
+in the source files simply update your files from CVS and run
 
  $ cd po
  $ make update-po
 
 This will scan the source files for translatable strings, will (re-)build
-the file "gtk-gnutella.pot" and will use msgmerge to update the .po files
-from the .pot file.
+the file "gtk-gnutella.pot" and will use msgmerge to update the PO files
+from the POT file.
 
-After that you can check your language's .po file for missing/fuzzy
-translations and add/correct them. If you want, you can use the graphical .po
-file editor "poEdit" for that (includes UTF-8 support), see
-http://poedit.sourceforge.net.
+After that you can check your language's PO file for missing/fuzzy
+translations and add/correct them with you favorite editor.
 
 When you're finished, you should run "make update-po" again. This will wrap
 your .po file's lines properly to have a maximum line width of 80 characters.
@@ -146,6 +151,7 @@ For example:
 Name[nl]=Gtk-Gnutella
 
 Make sure the file stays UTF-8 encoded. 
+
 
 9. APPENDIX
 ===========
