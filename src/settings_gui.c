@@ -1467,21 +1467,38 @@ static prop_map_t property_map[] = {
         TRUE,
         "label_dl_running_count"
     },
-#ifdef USE_GTK2
-/* FIXME: Gtk1 version should have these one too */
-    {
-        get_main_window,
-        PROP_CONFIG_TOOLBAR_STYLE,
-        config_toolbar_style_changed,
-        TRUE,
-        "combo_config_toolbar_style"
-    },
     {
         get_main_window,
         PROP_SEARCH_MAX_RESULTS,
         update_spinbutton,
         TRUE,
         "spinbutton_search_max_results"
+    },
+#ifndef USE_GTK2
+/* FIXME: Gtk2 version should have these too */
+    {
+        get_main_window,
+        PROP_NODE_RX_FLOWC_RATIO,
+        update_spinbutton,
+        TRUE,
+        "spinbutton_config_node_rx_flowc_ratio"
+    },
+    {
+        get_main_window,
+        PROP_NORMAL_CONNECTIONS,
+        update_spinbutton,
+        TRUE,
+        "spinbutton_normal_connections"
+    },
+#endif
+#ifdef USE_GTK2
+/* FIXME: Gtk1 version should have these too */
+    {
+        get_main_window,
+        PROP_CONFIG_TOOLBAR_STYLE,
+        config_toolbar_style_changed,
+        TRUE,
+        "combo_config_toolbar_style"
     },
 #endif
 };
@@ -2039,12 +2056,12 @@ static gboolean proxy_ip_changed(property_t prop)
 
 static gboolean current_peermode_changed(property_t prop)
 {
-	GtkWidget *hbox_normal_or_ultrapeer;
 	GtkWidget *hbox_leaf;
+	GtkWidget *hbox_normal_ultrapeer;
 	guint32 val;
 
-	hbox_normal_or_ultrapeer = lookup_widget(
-		main_window, "hbox_normal_or_ultrapeer");
+	hbox_normal_ultrapeer = lookup_widget(
+        main_window, "hbox_normal_or_ultrapeer");
 	hbox_leaf = lookup_widget(main_window, "hbox_leaf");
 
 	update_multichoice(prop);
@@ -2054,11 +2071,11 @@ static gboolean current_peermode_changed(property_t prop)
 	switch (val) {
 	case NODE_P_LEAF:
 		gtk_widget_show(hbox_leaf);
-		gtk_widget_hide(hbox_normal_or_ultrapeer);
+		gtk_widget_hide(hbox_normal_ultrapeer);
 		break;
 	case NODE_P_NORMAL:
 	case NODE_P_ULTRA:
-		gtk_widget_show(hbox_normal_or_ultrapeer);
+		gtk_widget_show(hbox_normal_ultrapeer);
 		gtk_widget_hide(hbox_leaf);
 		break;
 	default:
