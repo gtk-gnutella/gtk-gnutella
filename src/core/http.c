@@ -737,6 +737,9 @@ http_content_range_parse(const gchar *buf,
 	s = skip_ascii_spaces(ep);
 	*total = parse_uint64(s, (gchar **) &ep, 10, &error);
 
+	if (start > end)
+		return -1;
+
 	return error ? -1 : 0;
 }
 
