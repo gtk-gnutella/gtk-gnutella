@@ -42,6 +42,7 @@
 #include "upload_stats_gui.h"
 #include "downloads_gui.h"
 #include "version.h"
+#include "icon.h"
 
 #include "filter_cb.h"
 #include "filter.h"
@@ -468,7 +469,7 @@ void main_gui_early_init(gint argc, gchar **argv)
 }
 
 void main_gui_init(void)
-{
+{	
 #ifndef USE_GTK2
     gtk_clist_set_column_justification(
         GTK_CLIST(lookup_widget(main_window, "clist_search_stats")),
@@ -544,7 +545,7 @@ void main_gui_init(void)
 }
 
 void main_gui_run(void)
-{
+{	
     guint32 coord[4] = { 0, 0, 0, 0 };
 
     gui_prop_get_guint32(PROP_WINDOW_COORDS, coord, 0, 4);
@@ -562,6 +563,8 @@ void main_gui_run(void)
             GTK_WINDOW(main_window), coord[2], coord[3]);
 
     gtk_widget_show(main_window);		/* Display the main window */
+    
+    icon_init();
 
     if ((coord[2] != 0) && (coord[3] != 0))
         gdk_window_move_resize(main_window->window, 
@@ -573,6 +576,8 @@ void main_gui_run(void)
 void main_gui_shutdown(void)
 {
     guint32 coord[4] = { 0, 0, 0, 0};
+	
+	icon_close();
 
 	gdk_window_get_root_origin(main_window->window, &coord[0], &coord[1]);
 	gdk_drawable_get_size(main_window->window, &coord[2], &coord[3]);

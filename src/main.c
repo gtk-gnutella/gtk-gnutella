@@ -56,6 +56,7 @@
 #include "inet.h"
 #include "adns.h"
 #include "crc.h"
+#include "icon.h"
 
 #ifdef USE_REMOTE_SHELL
 #include "shell.h"
@@ -262,6 +263,8 @@ static gboolean main_timer(gpointer p)
 			slow_main_timer(now);
 		}
 	}
+	
+	icon_timer();
 
 	bg_sched_timer();				/* Background tasks */
 
@@ -343,9 +346,11 @@ static void log_handler(const gchar *log_domain, GLogLevelFlags log_level,
 	}
 
 	safer = hex_escape(message, FALSE); /* non-strict escaping */
+
 	fprintf(stderr, "%.2d/%.2d/%.2d %.2d:%.2d:%.2d (%s): %s\n",
 		ct->tm_year % 100, ct->tm_mon + 1, ct->tm_mday,
 		ct->tm_hour, ct->tm_min, ct->tm_sec, level, safer);
+
 	if (safer != message)
 		G_FREE_NULL(safer);
 }
