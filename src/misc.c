@@ -31,7 +31,7 @@
 #include <stdlib.h>			/* For RAND_MAX */
 #include <netdb.h>
 #include <netinet/in.h>
-#include <arpa/inet.h>		/* For ntohl(), htonl() */
+#include <arpa/inet.h>		/* For ntohl() */
 #include <string.h>			/* For strlen() */
 #include <ctype.h>			/* For isalnum() and isspace() */
 #include <sys/times.h>		/* For times() */
@@ -50,30 +50,31 @@ RCSID("$Id$");
 #define RANDOM_MAXV				RANDOM_MASK
 #endif
 
-static const char *hex_alphabet = "0123456789ABCDEF";
-const char *hex_alphabet_lower = "0123456789abcdef";
+static const char hex_alphabet[] = "0123456789ABCDEF";
+const char hex_alphabet_lower[] = "0123456789abcdef";
 
 #ifndef HAVE_STRLCPY
 size_t strlcpy(gchar *dst, const gchar *src, size_t dst_size)
 {
 	gchar *d = dst;
 	const gchar *s = src;
-	size_t i = 0;
 
 	g_assert(NULL != dst);
 	g_assert(NULL != src);
 
-	if (dst_size) {
-		while (i < dst_size - 1) {
+	if (dst_size--) {
+		size_t i = 0;
+
+		while (i < dst_size) {
 			if (!(*d++ = *s++))
 				return i;
 			i++;
 		}
-		dst[dst_size - 1] = '\0';
+		dst[dst_size] = '\0';
 	}
- 	while (*s++)
-		i++;
-	return i;
+ 	while (*s)
+		s++;
+	return s - src;
 }
 #endif /* HAVE_STRLCPY */
 
@@ -88,7 +89,7 @@ gboolean is_string_ip(const gchar *s)
     if (s == NULL)
         return FALSE;
 
-    return (gboolean) gchar_to_ip(s);
+    return 0 != gchar_to_ip(s);
 }
 
 gboolean file_exists(const gchar *f)
@@ -102,9 +103,9 @@ gboolean file_exists(const gchar *f)
 gchar *ip_to_gchar(guint32 ip)
 {
 	static gchar a[32];
-	struct in_addr ia;
-	ia.s_addr = htonl(ip);
-	g_strlcpy(a, inet_ntoa(ia), sizeof(a));
+	const guchar *t = (const guchar *) &ip;
+
+	gm_snprintf(a, sizeof(a), "%u.%u.%u.%u", t[0], t[1], t[2], t[3]);
 	return a;
 }
 
@@ -112,36 +113,37 @@ gchar *ip_to_gchar(guint32 ip)
 gchar *ip_port_to_gchar(guint32 ip, guint16 port)
 {
 	static gchar a[32];
-	size_t len;
-	struct in_addr ia;
+	const guchar *t = (const guchar *) &ip;
 
-	ia.s_addr = htonl(ip);
-	len = g_strlcpy(a, inet_ntoa(ia), sizeof(a));
-	if (len < sizeof(a) - 1)
-		gm_snprintf(a + len, sizeof(a) - len, ":%u", port);
+	gm_snprintf(a, sizeof(a), "%u.%u.%u.%u:%u", t[0], t[1], t[2], t[3], port);
 	return a;
 }
 
-#if defined(_WIN32) || !defined(HAVE_INET_ATON)
+#ifndef HAVE_INET_ATON
 /* 
  * Copied from icecast.
  * Fixed to returns 0 on failure, 1 on success --RAM, 12/01/2002.
  */
 int inet_aton(const char *s, struct in_addr *a)
 {
-	int lsb, b2, b3, msb;
+	int a, b, c, d;
 
-	/* Assumes host byte ordering is little endian, which is OK on Wintel */
-	if (sscanf(s, "%d.%d.%d.%d", &lsb, &b2, &b3, &msb) < 4)
+	if (sscanf(s, "%d.%d.%d.%d", &a, &b, &c, &d) < 4)
 		return 0;
 
-	a->s_addr = lsb + (b2 << 8) + (b3 << 16) + (msb << 24);
+#if G_BYTE_ORDER == G_BIG_ENDIAN	
+	a->s_addr = d + (c << 8) + (b << 16) + (a << 24);
+#elif G_BYTE_ORDER == G_LITTLE_ENDIAN
+	a->s_addr = a + (b << 8) + (c << 16) + (d << 24);
+#else
+#error Byteorder not supported!
+#endif
 	return 1;
 }
-#endif
+#endif /* !HAVE_INET_ATON */
 
 
-guint32 gchar_to_ip(const gchar * str)
+guint32 gchar_to_ip(const gchar *str)
 {
 	/* Returns 0 if str is not a valid IP */
 
@@ -149,7 +151,7 @@ guint32 gchar_to_ip(const gchar * str)
 	gint r;
 	r = inet_aton(str, &ia);
 	if (r)
-		return ntohl(ia.s_addr);
+		return (guint32) ia.s_addr;
 	return 0;
 }
 
@@ -161,7 +163,7 @@ guint32 gchar_to_ip(const gchar * str)
  */
 gboolean gchar_to_ip_port(const gchar *str, guint32 *ip, guint16 *port)
 {
-	gint lsb, b2, b3, msb;
+	gint a, b, c, d;
 	gint iport;
 
 	/* Skip leading spaces */
@@ -169,13 +171,19 @@ gboolean gchar_to_ip_port(const gchar *str, guint32 *ip, guint16 *port)
 		str++;
 
 	/* IP addresses are always written in big-endian format */
-	if (sscanf(str, "%d.%d.%d.%d:%d", &msb, &b3, &b2, &lsb, &iport) < 5)
+	if (sscanf(str, "%d.%d.%d.%d:%d", &a, &b, &c, &d, &iport) < 5)
 		return FALSE;
 
 	if (iport < 0 || iport > 65535)
 		return FALSE;
-	
-	*ip = lsb + (b2 << 8) + (b3 << 16) + (msb << 24);
+
+#if G_BYTE_ORDER == G_BIG_ENDIAN	
+	*ip = d + (c << 8) + (b << 16) + (a << 24);
+#elif G_BYTE_ORDER == G_LITTLE_ENDIAN
+	*ip = a + (b << 8) + (c << 16) + (d << 24);
+#else
+#error Byteorder not supported!
+#endif
 	*port = iport;
 
 	return TRUE;
@@ -185,7 +193,7 @@ guint32 host_to_ip(const gchar * host)
 {
 	struct hostent *he = gethostbyname(host);
 	if (he)
-		return ntohl(*(guint32 *) (he->h_addr_list[0]));
+		return (guint32) he->h_addr_list[0];
 	else {
 #if defined(HAVE_HSTRERROR)
 		g_warning("cannot resolve \"%s\": %s", host, hstrerror(h_errno));
@@ -224,23 +232,20 @@ gchar *host_name(void)
  */
 gboolean host_is_valid(guint32 ip, guint16 port)
 {
-	if ((!ip || !port) ||			/* IP == 0 || Port == 0 */
-		(is_private_ip(ip)) ||
-		/* 1.2.3.4 || 1.1.1.1 */
-		(ip == (guint32) 0x01020304 || ip == (guint32) 0x01010101) ||
+	return ip && port &&	/* IP != 0 && Port != 0 */
+		!is_private_ip(ip) &&
+		/* 1.2.3.4 && 1.1.1.1 */
+		ip != htonl(0x01020304) && ip != htonl(0x01010101) &&
 		/* 224..239.0.0 / 8 (multicast) */
-		((ip & (guint32) 0xF0000000) == (guint32) 0xE0000000) ||
+		(ip & htonl(0xF0000000)) != htonl(0xE0000000) &&
 		/* 0.0.0.0 / 8 */
-		((ip & (guint32) 0xFF000000) == (guint32) 0x00000000) ||
+		(ip & htonl(0xFF000000)) != htonl(0x00000000) &&
 		/* 127.0.0.0 / 8 */
-		((ip & (guint32) 0xFF000000) == (guint32) 0x7F000000) ||
+		(ip & htonl(0xFF000000)) != htonl(0x7F000000) &&
 		/* 192.0.2.0 -- (192.0.2/24 prefix) TEST-NET [RFC 3330] */
-		((ip & 0xFFFFFF00) == 0xC0000200) ||
+		(ip & htonl(0xFFFFFF00)) != htonl(0xC0000200) &&
 		/* 255.255.255.0 / 24 */
-		((ip & (guint32) 0xFFFFFF00) == (guint32) 0xFFFFFF00))
-			return FALSE;
-
-	return TRUE;
+		(ip & htonl(0xFFFFFF00)) != htonl(0xFFFFFF00);
 }
 
 /*
@@ -278,19 +283,19 @@ gint str_chomp(gchar *str, gint len)
 gboolean is_private_ip(guint32 ip)
 {
 	/* 10.0.0.0 -- (10/8 prefix) */
-	if ((ip & 0xff000000) == 0xa000000)
+	if ((ip & htonl(0xff000000)) == htonl(0xa000000))
 		return TRUE;
 
 	/* 172.16.0.0 -- (172.16/12 prefix) */
-	if ((ip & 0xfff00000) == 0xac100000)
+	if ((ip & htonl(0xfff00000)) == htonl(0xac100000))
 		return TRUE;
 
 	/* 169.254.0.0 -- (169.254/16 prefix) -- since Jan 2001 */
-	if ((ip & 0xffff0000) == 0xa9fe0000)
+	if ((ip & htonl(0xffff0000)) == htonl(0xa9fe0000))
 		return TRUE;
 
 	/* 192.168.0.0 -- (192.168/16 prefix) */
-	if ((ip & 0xffff0000) == 0xc0a80000)
+	if ((ip & htonl(0xffff0000)) == htonl(0xc0a80000))
 		return TRUE;
 
 	return FALSE;
@@ -588,10 +593,10 @@ static gint tm_diff(const struct tm *a, const struct tm * b)
 		+ (a->tm_sec - b->tm_sec));
 }
 
-static const gchar* days[] =
+static const gchar days[7][4] =
 	{ "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat" };
 
-static const gchar* months[] = {
+static const gchar months[12][4] = {
 	"Jan", "Feb", "Mar", "Apr", "May", "Jun",
 	"Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
 };
@@ -1149,7 +1154,8 @@ gboolean gchar_to_ip_and_mask(const gchar *str, guint32 *ip, guint32 *netmask)
 	if (strchr(mask_str, '.')) {
 		*netmask = gchar_to_ip(mask_str);
 		if (~0 != *netmask) {
-			if (*netmask != ~((1 << (highest_bit_set(~*netmask) + 1)) - 1))
+			guint32 mask = ntohl(*netmask);
+			if (mask != ~((1 << (highest_bit_set(~mask) + 1)) - 1))
 				return FALSE;
 		}
 		return 0 != *netmask;

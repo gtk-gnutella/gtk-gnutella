@@ -157,36 +157,6 @@ void host_init(void)
 }
 
 /*
- * host_is_connected
- *
- * Are we directly connected to that host?
- */
-static gboolean host_is_connected(guint32 ip, guint16 port)
-{
-	GSList *l;
-
-	/* Check our local ip */
-
-	if (ip == listen_ip())
-		return TRUE;
-
-	/* Check the nodes -- this is a small list, OK to traverse */
-
-	for (l = sl_nodes; l; l = g_slist_next(l)) {
-		struct gnutella_node *node = (struct gnutella_node *) l->data;
-		if (NODE_IS_REMOVING(node))
-			continue;
-		if (!node->gnet_ip)
-			continue;
-		if (node->gnet_ip == ip && node->gnet_port == port)
-			return TRUE;
-	}
-
-	return FALSE;
-}
-
-
-/*
  * add_host_to_cache
  *
  * Common processing for host_add() and host_add_semi_pong().
@@ -198,7 +168,7 @@ static gboolean add_host_to_cache(
 	if (ip == listen_ip() && port == listen_port)
 		return FALSE;
 
-	if (host_is_connected(ip, port))
+	if (node_host_is_connected(ip, port))
 		return FALSE;			/* Connected to that host? */
 
 	if (hcache_add(htype, ip, port, type))
@@ -359,7 +329,7 @@ void parse_netmasks(gchar * str)
 		}
 		/* get the network address from the user */
 		if (inet_aton(masks[i], &local_networks[i].net) == 0)
-			perror("inet_nota on netmasks");
+			perror("inet_aton on netmasks");
 	}
 
 	g_strfreev(masks);
@@ -375,8 +345,7 @@ gboolean host_is_nearby(guint32 ip)
 	int i;
 
 	for (i = 0; i < number_local_networks; i++) {
-		/* We store IP's in host byte order for some reason... */
-		if ((htonl(ip) & local_networks[i].mask.s_addr) == 
+		if ((ip & local_networks[i].mask.s_addr) == 
 				(local_networks[i].net.s_addr & local_networks[i].mask.s_addr))
 			return TRUE;
 	}

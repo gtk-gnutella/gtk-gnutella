@@ -73,10 +73,10 @@ GSList *sl_removed_servers = NULL;	/* Removed servers only */
 static gchar dl_tmp[4096];
 static gint queue_frozen = 0;
 
-static const gchar *DL_OK_EXT = ".OK";		/* Extension to mark OK files */
-static const gchar *DL_BAD_EXT = ".BAD"; 	/* "Bad" files (SHA1 mismatch) */
-static const gchar *DL_UNKN_EXT = ".UNKN";	/* For unchecked files */
-static const gchar *file_what = "downloads";/* What we're persisting to file */
+static const gchar DL_OK_EXT[] = ".OK";		/* Extension to mark OK files */
+static const gchar DL_BAD_EXT[] = ".BAD"; 	/* "Bad" files (SHA1 mismatch) */
+static const gchar DL_UNKN_EXT[] = ".UNKN";	/* For unchecked files */
+static const gchar file_what[] = "downloads";/* What we're persisting to file */
 
 static GHashTable *pushed_downloads = 0;
 
@@ -3549,6 +3549,7 @@ static gboolean send_push_request(
 {
 	struct gnutella_msg_push_request m;
 	GSList *nodes;
+	guint32 ip;
 
 	nodes = route_towards_guid(guid);
 	if (nodes == NULL)
@@ -3571,7 +3572,8 @@ static gboolean send_push_request(
 	memcpy(m.request.guid, guid, 16);
 
 	WRITE_GUINT32_LE(file_id, m.request.file_id);
-	WRITE_GUINT32_BE(listen_ip(), m.request.host_ip);
+	ip = listen_ip();
+	memcpy(m.request.host_ip, &ip, 4);
 	WRITE_GUINT16_LE(port, m.request.host_port);
 
 	/*

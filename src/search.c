@@ -193,12 +193,12 @@ static void mark_search_sent_to_node(
 
 static void mark_search_sent_to_connected_nodes(search_ctrl_t *sch)
 {
-	GSList *l;
+	const GSList *sl;
 	struct gnutella_node *n;
 
 	g_hash_table_freeze(sch->sent_nodes);
-	for (l = sl_nodes; l; l = l->next) {
-		n = (struct gnutella_node *) l->data;
+	for (sl = node_all_nodes(); sl; sl = g_slist_next(sl)) {
+		n = (struct gnutella_node *) sl->data;
 		if (NODE_IS_WRITABLE(n))
 			mark_search_sent_to_node(sch, n);
 	}
@@ -368,7 +368,7 @@ static gnet_results_set_t *get_results_set(
 	/* Transfer the Query Hit info to our internal results_set struct */
 
 	rs->num_recs = (guint8) r->num_recs;		/* Number of hits */
-	READ_GUINT32_BE(r->host_ip, rs->ip);		/* IP address */
+	memcpy(&rs->ip, r->host_ip, 4);				/* IP address */
 	READ_GUINT16_LE(r->host_port, rs->port);	/* Port */
 	READ_GUINT32_LE(r->host_speed, rs->speed);	/* Connection speed */
 
@@ -1245,10 +1245,10 @@ static void _search_send_packet(search_ctrl_t *sch, gnutella_node_t *n)
 				(gchar *) m, size);
 			g_slist_free(nodes);
 			gmsg_search_sendto_all_nonleaf(
-				sl_nodes, sch->search_handle, (gchar *) m, size);
+				node_all_nodes(), sch->search_handle, (gchar *) m, size);
 		} else
 			gmsg_search_sendto_all(
-				sl_nodes, sch->search_handle, (gchar *) m, size);
+				node_all_nodes(), sch->search_handle, (gchar *) m, size);
 	}
 
 	wfree(m, size);
@@ -1375,10 +1375,10 @@ static void update_one_reissue_timeout(search_ctrl_t *sch)
  */
 static void search_dequeue_all_nodes(gnet_search_t sh)
 {
-	GSList *l;
+	const GSList *sl;
 
-	for (l = sl_nodes; l; l = l->next) {
-		struct gnutella_node *n = (struct gnutella_node *) l->data;
+	for (sl = node_all_nodes(); sl; sl = g_slist_next(sl)) {
+		struct gnutella_node *n = (struct gnutella_node *) sl->data;
 		squeue_t *sq = NODE_SQUEUE(n);
 
 		if (sq)
@@ -1611,11 +1611,11 @@ static void search_check_alt_locs(
  */
 static void search_check_results_set(gnet_results_set_t *rs)
 {
-	GSList *l;
+	GSList *sl;
 	struct dl_file_info *fi;
 
-	for (l = rs->records; l; l = l->next) {
-		gnet_record_t *rc = (gnet_record_t *) l->data;
+	for (sl = rs->records; sl; sl = g_slist_next(sl)) {
+		gnet_record_t *rc = (gnet_record_t *) sl->data;
 
 		fi = file_info_has_identical(rc->name, rc->size, rc->sha1);
 

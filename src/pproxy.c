@@ -474,7 +474,7 @@ static void build_push(struct gnutella_msg_push_request *m,
 	memcpy(m->request.guid, guid, 16);
 
 	WRITE_GUINT32_LE(one, m->request.file_id);
-	WRITE_GUINT32_BE(ip, m->request.host_ip);
+	memcpy(m->request.host_ip, &ip, 4);
 	WRITE_GUINT16_LE(port, m->request.host_port);
 }
 
