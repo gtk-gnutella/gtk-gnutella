@@ -38,6 +38,9 @@
 #include "token.h"
 #include "atoms.h"
 
+#include "gnet_property.h"
+#include "gnet_property_priv.h"
+
 RCSID("$Id$");
 
 /*
@@ -353,7 +356,6 @@ void ban_record(guint32 ip, const gchar *msg)
 
 static GList *banned_head = NULL;
 static GList *banned_tail = NULL;
-static gint banned_count = 0;
 
 /*
  * ban_reclaim_fd
@@ -384,7 +386,7 @@ gboolean ban_reclaim_fd(void)
 	g_list_free_1(banned_tail);
 	banned_tail = prev;
 
-	banned_count--;
+	gnet_prop_set_guint32_val(PROP_BANNED_COUNT, banned_count - 1);
 
 	return TRUE;
 }
@@ -420,10 +422,11 @@ void ban_force(struct gnutella_socket *s)
 	 * Insert banned fd in the list.
 	 */
 
-	banned_count++;
 	banned_head = g_list_prepend(banned_head, GINT_TO_POINTER(fd));
 	if (banned_tail == NULL)
 		banned_tail = banned_head;
+
+	gnet_prop_set_guint32_val(PROP_BANNED_COUNT, banned_count + 1);
 }
 
 /*

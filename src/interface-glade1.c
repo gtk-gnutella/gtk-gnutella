@@ -473,6 +473,9 @@ create_main_window (void)
   GtkWidget *spinbutton_config_ban_ratio_fds;
   GtkWidget *label502;
   GtkWidget *entry_config_max_banned_fd;
+  GtkWidget *label654;
+  GtkWidget *frame120;
+  GtkWidget *label_banned_count;
   GtkWidget *frame80;
   GtkWidget *table62;
   GtkWidget *checkbutton_host_runs_ntp;
@@ -5003,7 +5006,7 @@ create_main_window (void)
   gtk_widget_show (frame_expert_nw_misc);
   gtk_box_pack_start (GTK_BOX (vbox24), frame_expert_nw_misc, FALSE, TRUE, 0);
 
-  table48 = gtk_table_new (3, 2, FALSE);
+  table48 = gtk_table_new (3, 4, FALSE);
   gtk_widget_set_name (table48, "table48");
   gtk_widget_ref (table48);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "table48", table48,
@@ -5084,6 +5087,37 @@ create_main_window (void)
   gtk_widget_set_sensitive (entry_config_max_banned_fd, FALSE);
   gtk_tooltips_set_tip (tooltips, entry_config_max_banned_fd, _("Actual amount of file descriptors used -- cannot be changed at runtime"), NULL);
   gtk_entry_set_editable (GTK_ENTRY (entry_config_max_banned_fd), FALSE);
+
+  label654 = gtk_label_new (_("Currently used"));
+  gtk_widget_set_name (label654, "label654");
+  gtk_widget_ref (label654);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label654", label654,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label654);
+  gtk_table_attach (GTK_TABLE (table48), label654, 2, 3, 2, 3,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label654), 0, 0.5);
+
+  frame120 = gtk_frame_new (NULL);
+  gtk_widget_set_name (frame120, "frame120");
+  gtk_widget_ref (frame120);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "frame120", frame120,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (frame120);
+  gtk_table_attach (GTK_TABLE (table48), frame120, 3, 4, 2, 3,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (GTK_FILL), 0, 0);
+  gtk_frame_set_shadow_type (GTK_FRAME (frame120), GTK_SHADOW_IN);
+
+  label_banned_count = gtk_label_new (_("[banned count]"));
+  gtk_widget_set_name (label_banned_count, "label_banned_count");
+  gtk_widget_ref (label_banned_count);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label_banned_count", label_banned_count,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label_banned_count);
+  gtk_container_add (GTK_CONTAINER (frame120), label_banned_count);
+  gtk_misc_set_padding (GTK_MISC (label_banned_count), 5, 0);
 
   frame80 = gtk_frame_new (_("Clock synchronisation"));
   gtk_widget_set_name (frame80, "frame80");

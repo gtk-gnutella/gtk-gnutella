@@ -3029,6 +3029,9 @@ create_main_window_config_net_tab (void)
   GtkWidget *spinbutton_config_ban_ratio_fds;
   GtkObject *spinbutton_config_ban_max_fds_adj;
   GtkWidget *spinbutton_config_ban_max_fds;
+  GtkWidget *label835;
+  GtkWidget *viewport103;
+  GtkWidget *label_banned_count;
   GtkWidget *label514;
   GtkWidget *frame83;
   GtkWidget *table72;
@@ -3349,7 +3352,7 @@ create_main_window_config_net_tab (void)
   gtk_widget_show (frame_expert_nw_misc);
   gtk_box_pack_start (GTK_BOX (vbox24), frame_expert_nw_misc, FALSE, TRUE, 0);
 
-  table43 = gtk_table_new (3, 2, FALSE);
+  table43 = gtk_table_new (3, 4, FALSE);
   gtk_widget_set_name (table43, "table43");
   gtk_widget_show (table43);
   gtk_container_add (GTK_CONTAINER (frame_expert_nw_misc), table43);
@@ -3410,6 +3413,28 @@ create_main_window_config_net_tab (void)
   gtk_table_attach (GTK_TABLE (table43), spinbutton_config_ban_max_fds, 1, 2, 0, 1,
                     (GtkAttachOptions) (GTK_SHRINK | GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
+
+  label835 = gtk_label_new (_("Currently used"));
+  gtk_widget_set_name (label835, "label835");
+  gtk_widget_show (label835);
+  gtk_table_attach (GTK_TABLE (table43), label835, 2, 3, 2, 3,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_label_set_justify (GTK_LABEL (label835), GTK_JUSTIFY_LEFT);
+  gtk_misc_set_alignment (GTK_MISC (label835), 0, 0.5);
+
+  viewport103 = gtk_viewport_new (NULL, NULL);
+  gtk_widget_set_name (viewport103, "viewport103");
+  gtk_widget_show (viewport103);
+  gtk_table_attach (GTK_TABLE (table43), viewport103, 3, 4, 2, 3,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (GTK_FILL), 0, 0);
+
+  label_banned_count = gtk_label_new (_("[banned count]"));
+  gtk_widget_set_name (label_banned_count, "label_banned_count");
+  gtk_widget_show (label_banned_count);
+  gtk_container_add (GTK_CONTAINER (viewport103), label_banned_count);
+  gtk_label_set_justify (GTK_LABEL (label_banned_count), GTK_JUSTIFY_LEFT);
 
   label514 = gtk_label_new (_("Banning"));
   gtk_widget_set_name (label514, "label514");
@@ -3680,6 +3705,9 @@ create_main_window_config_net_tab (void)
   GLADE_HOOKUP_OBJECT (main_window_config_net_tab, entry_config_max_banned_fd, "entry_config_max_banned_fd");
   GLADE_HOOKUP_OBJECT (main_window_config_net_tab, spinbutton_config_ban_ratio_fds, "spinbutton_config_ban_ratio_fds");
   GLADE_HOOKUP_OBJECT (main_window_config_net_tab, spinbutton_config_ban_max_fds, "spinbutton_config_ban_max_fds");
+  GLADE_HOOKUP_OBJECT (main_window_config_net_tab, label835, "label835");
+  GLADE_HOOKUP_OBJECT (main_window_config_net_tab, viewport103, "viewport103");
+  GLADE_HOOKUP_OBJECT (main_window_config_net_tab, label_banned_count, "label_banned_count");
   GLADE_HOOKUP_OBJECT (main_window_config_net_tab, label514, "label514");
   GLADE_HOOKUP_OBJECT (main_window_config_net_tab, frame83, "frame83");
   GLADE_HOOKUP_OBJECT (main_window_config_net_tab, table72, "table72");

@@ -2237,6 +2237,14 @@ static prop_map_t property_map[] = {
     },
     {
         get_main_window,
+        PROP_BANNED_COUNT,
+        update_label,
+        TRUE,
+        "label_banned_count",
+        FREQ_UPDATES, 0
+    },
+    {
+        get_main_window,
         PROP_PROXY_PROTOCOL,
         update_multichoice,
         TRUE,

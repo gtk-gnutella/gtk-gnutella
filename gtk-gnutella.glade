@@ -6711,7 +6711,7 @@
 		      <name>table48</name>
 		      <border_width>2</border_width>
 		      <rows>3</rows>
-		      <columns>2</columns>
+		      <columns>4</columns>
 		      <homogeneous>False</homogeneous>
 		      <row_spacing>2</row_spacing>
 		      <column_spacing>4</column_spacing>
@@ -6883,6 +6883,65 @@
 			  <xfill>True</xfill>
 			  <yfill>False</yfill>
 			</child>
+		      </widget>
+
+		      <widget>
+			<class>GtkLabel</class>
+			<name>label654</name>
+			<label>Currently used</label>
+			<justify>GTK_JUSTIFY_CENTER</justify>
+			<wrap>False</wrap>
+			<xalign>0</xalign>
+			<yalign>0.5</yalign>
+			<xpad>0</xpad>
+			<ypad>0</ypad>
+			<child>
+			  <left_attach>2</left_attach>
+			  <right_attach>3</right_attach>
+			  <top_attach>2</top_attach>
+			  <bottom_attach>3</bottom_attach>
+			  <xpad>0</xpad>
+			  <ypad>0</ypad>
+			  <xexpand>False</xexpand>
+			  <yexpand>False</yexpand>
+			  <xshrink>False</xshrink>
+			  <yshrink>False</yshrink>
+			  <xfill>True</xfill>
+			  <yfill>False</yfill>
+			</child>
+		      </widget>
+
+		      <widget>
+			<class>GtkFrame</class>
+			<name>frame120</name>
+			<label_xalign>0</label_xalign>
+			<shadow_type>GTK_SHADOW_IN</shadow_type>
+			<child>
+			  <left_attach>3</left_attach>
+			  <right_attach>4</right_attach>
+			  <top_attach>2</top_attach>
+			  <bottom_attach>3</bottom_attach>
+			  <xpad>0</xpad>
+			  <ypad>0</ypad>
+			  <xexpand>False</xexpand>
+			  <yexpand>False</yexpand>
+			  <xshrink>False</xshrink>
+			  <yshrink>False</yshrink>
+			  <xfill>True</xfill>
+			  <yfill>True</yfill>
+			</child>
+
+			<widget>
+			  <class>GtkLabel</class>
+			  <name>label_banned_count</name>
+			  <label>[banned count]</label>
+			  <justify>GTK_JUSTIFY_CENTER</justify>
+			  <wrap>False</wrap>
+			  <xalign>0.5</xalign>
+			  <yalign>0.5</yalign>
+			  <xpad>5</xpad>
+			  <ypad>0</ypad>
+			</widget>
 		      </widget>
 		    </widget>
 		  </widget>
