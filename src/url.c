@@ -20,7 +20,7 @@
 static gboolean is_transparent[96] = {
 /*  0 1 2 3 4 5 6 7 8 9 a b c d e f */	/* 0123456789abcdef -            */
     0,1,0,0,1,0,0,1,1,1,1,1,1,1,1,1,	/*  !"#$%&'()*+,-./ -  32 -> 47  */
-    1,1,1,1,1,1,1,1,1,1,0,0,0,1,0,0,	/* 0123456789:;<=>? -  48 -> 63  */
+    1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,	/* 0123456789:;<=>? -  48 -> 63  */
     0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,	/* @ABCDEFGHIJKLMNO -  64 -> 79  */
     1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,1,	/* PQRSTUVWXYZ[\]^_ -  80 -> 95  */
     0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,	/* `abcdefghijklmno -  96 -> 111 */
@@ -110,8 +110,8 @@ guchar *url_escape_cntrl(guchar *url)
  *
  * Unescape string, in-place if `inplace' is TRUE.
  *
- * Returns the argument if un-escaping is necessary, a new string otherwise
- * if in-place decoding was not requested.
+ * Returns the argument if un-escaping is NOT necessary, a new string
+ * otherwise unless in-place decoding was requested.
  */
 guchar *url_unescape(guchar *url, gboolean inplace)
 {
