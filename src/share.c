@@ -60,6 +60,8 @@ RCSID("$Id$");
 #define QHIT_MAX_ALT		5		/* Send out 5 alt-locs per entry, at most */
 #define QHIT_MAX_PROXIES	5		/* Send out 5 push-proxies at most */
 
+#define QUERY_RETRY_MIN		1700	/* Don't allow requeries more often */
+
 static const guchar iso_8859_1[96] = {
 	' ', 			/* 160 - NO-BREAK SPACE */
 	' ', 			/* 161 - INVERTED EXCLAMATION MARK */
@@ -1734,6 +1736,7 @@ gboolean search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 		gchar sha1_digest[SHA1_RAW_SIZE];
 		gboolean matched;
 	} exv_sha1[MAX_EXTVEC];
+	gchar *last_sha1_digest = NULL;
 	gint exv_sha1cnt = 0;
 	gint utf8_len = -1;
 	gint offset = 0;			/* Query string start offset */
@@ -1793,7 +1796,6 @@ gboolean search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 #undef QTRAX_STRLEN
 
     }
-
 
 	/*
 	 * Compact query, if requested and we're going to relay that message.
@@ -1921,6 +1923,8 @@ gboolean search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 						"urn:sha1:%s", sha1_base32(sha1_digest));
 					qhvec_add(qhv, stmp_1, QUERY_H_URN);
 				}
+
+				last_sha1_digest = sha1_digest;
 			}
 		}
 
@@ -1978,6 +1982,106 @@ gboolean search_request(struct gnutella_node *n, query_hashvec_t *qhv)
         gnet_stats_count_dropped(n, MSG_DROP_QUERY_TOO_SHORT);
 		return TRUE;					/* Drop this search message */
     }
+
+	/*
+	 * When we are not a leaf node, we do two sanity checks here:
+	 * 
+	 * 1. We keep track of all the queries sent by the node (hops = 1)
+	 *    and the time by which we saw them.  If they are sent too often,
+	 *    just drop the duplicates.  Since an Ultranode will send queries
+	 *    from its leaves with an adjusted hop, we only do that for leaf
+	 *    nodes.
+	 *
+	 * 2. We keep track of all queries relayed by the node (hops >= 1)
+	 *    by hops and by search text for a limited period of time.
+	 *    The purpose is to sanitize the traffic if the node did not do
+	 *    point #1 above for its own neighbours.  Naturally, we expire
+	 *    this data more quickly.
+	 *
+	 * When there is a SHA1 in the query, it is the SHA1 itself that is
+	 * being remembered.
+	 *
+	 *		--RAM, 09/12/2003
+	 */
+
+	if (n->header.hops == 1 && n->qseen != NULL) {
+		time_t now = time(NULL);
+		time_t seen = 0;
+		gboolean found;
+		gpointer atom;
+		gpointer seenp;
+		gchar *query = search;
+
+		g_assert(NODE_IS_LEAF(n));
+
+		if (last_sha1_digest != NULL) {
+			gm_snprintf(stmp_1, sizeof(stmp_1),
+				"urn:sha1:%s", sha1_base32(last_sha1_digest));
+			query = stmp_1;
+		}
+
+		found = g_hash_table_lookup_extended(n->qseen, query, &atom, &seenp);
+		if (found)
+			seen = (time_t) GPOINTER_TO_INT(seenp);
+
+		if (now - seen < QUERY_RETRY_MIN) {
+			if (dbg) g_warning("node %s (%s) re-queried \"%s\" after %d secs",
+				node_ip(n), node_vendor(n), query, now - seen);
+			gnet_stats_count_dropped(n, MSG_DROP_THROTTLE);
+			return TRUE;		/* Drop the message! */
+		}
+
+		if (!found)
+			atom = atom_str_get(query);
+
+		g_hash_table_insert(n->qseen, atom, GINT_TO_POINTER(now));
+	}
+
+	/*
+	 * For point #2, there are two tables to consider: `qrelayed_old' and
+	 * `qrelayed'.  Presence in any of the tables is sufficient, but we
+	 * only insert in the "new" table `qrelayed'.
+	 */
+
+	if (n->qrelayed != NULL) {					/* Check #2 */
+		gpointer found = NULL;
+
+		g_assert(!NODE_IS_LEAF(n));
+
+		/*
+		 * Consider both hops and TTL for dynamic querying, whereby the
+		 * same query can be repeated with an increased TTL.
+		 */
+
+		if (last_sha1_digest == NULL)
+			gm_snprintf(stmp_1, sizeof(stmp_1),
+				"%d/%d%s", n->header.hops, n->header.ttl, search);
+		else
+			gm_snprintf(stmp_1, sizeof(stmp_1),
+				"%d/%durn:sha1:%s", n->header.hops, n->header.ttl,
+				sha1_base32(last_sha1_digest));
+
+		if (n->qrelayed_old != NULL)
+			found = g_hash_table_lookup(n->qrelayed_old, stmp_1);
+
+		if (found == NULL)
+			found = g_hash_table_lookup(n->qrelayed, stmp_1);
+
+		if (found != NULL) {
+			if (dbg) g_warning("dropping query \"%s%s\" (hops=%d, TTL=%d) "
+				"already seen recently from %s (%s)",
+				last_sha1_digest == NULL ? "" : "urn:sha1:",
+				last_sha1_digest == NULL ?
+					search : sha1_base32(last_sha1_digest),
+				n->header.hops, n->header.ttl,
+				node_ip(n), node_vendor(n));
+			gnet_stats_count_dropped(n, MSG_DROP_THROTTLE);
+			return TRUE;		/* Drop the message! */
+		}
+
+		g_hash_table_insert(n->qrelayed,
+			atom_str_get(stmp_1), GINT_TO_POINTER(1));
+	}
 
     /*
      * Push the query string to interested ones.
