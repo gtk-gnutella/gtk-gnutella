@@ -53,6 +53,7 @@ RCSID("$Id$");
 #define MAX_TABLE_BITS		21		/* 2 MB */
 
 #define MAX_TABLE_SIZE		(1 << MAX_TABLE_BITS)
+#define MAX_UP_TABLE_SIZE	131072	/* Max size for inter-UP QRP: 128 Kslots */
 #define EMPTY_TABLE_SIZE	8
 
 #define LEAF_MONITOR_PERIOD	(90 * 1000)	/* 1.5 minutes, in ms */
@@ -579,8 +580,10 @@ qrt_patch_compress_done(gpointer h, gpointer u, bgstatus_t status, gpointer arg)
 	 *		--RAM, 29/01/2003
 	 */
 
-	if (status != BGS_KILLED)
+	if (status != BGS_KILLED) {
+		g_assert(g_slist_find(sl_compress_tasks, h));
 		sl_compress_tasks = g_slist_remove(sl_compress_tasks, h);
+	}
 
 	(*ctx->usr_done)(h, u, status, ctx->usr_arg);
 }
@@ -700,6 +703,48 @@ qrt_free(struct routing_table *rt)
 	G_FREE_NULL(rt->name);
 
 	wfree(rt, sizeof(*rt));
+}
+
+/**
+ * Shrink arena inplace to use only `new_slots' instead of `old_slots'.
+ * The memory area is also shrunk and the new location of the arena is
+ * returned.
+ */
+static gpointer
+qrt_shrink_arena(guchar *arena, gint old_slots, gint new_slots, gint infinity)
+{
+	gint factor;		/* Shrink factor */
+	gint ratio;
+	gint i, j;
+
+	g_assert(old_slots > new_slots);
+	g_assert(is_pow2(old_slots));
+	g_assert(is_pow2(new_slots));
+
+	ratio = highest_bit_set(old_slots) - highest_bit_set(new_slots);
+
+	g_assert(ratio >= 0);
+
+	factor = 1 << ratio;
+
+	/*
+	 * The shrinking algorithm: an entry is "set" to contain something if
+	 * any of the "factor" entries in the larger table contain something.
+	 */
+
+	for (i = 0, j = 0; i < new_slots && j < old_slots; i++, j += factor) {
+		gint k;
+		gint set = FALSE;
+
+		for (k = 0; k < factor && !set; k++) {
+			if (arena[j + k] != infinity)
+				set = TRUE;
+		}
+
+		arena[i] = set ? 0 : infinity;
+	}
+
+	return g_realloc(arena, new_slots);
 }
 
 /**
@@ -1755,6 +1800,23 @@ qrp_step_install_ultra(gpointer h, gpointer u, gint ticks)
 		return qrp_step_install_leaf(h, u, ticks);
 
 	/*
+	 * Since we exchange lots of inter-UP QRP tables, make sure they're not
+	 * too big so that their patches remain small enough.  It does not matter
+	 * much if they are more filled than leaf QRP tables!
+	 *
+	 * We only shrink before installing, since shrinking looses information
+	 * and may make the resulting table more full than the original was.
+	 * All our computations are therefore done internally using the highest
+	 * table size.
+	 */
+
+	if (ctx->slots > MAX_UP_TABLE_SIZE) {
+		ctx->table = qrt_shrink_arena(
+			ctx->table, ctx->slots, MAX_UP_TABLE_SIZE, LOCAL_INFINITY);
+		ctx->slots = MAX_UP_TABLE_SIZE;
+	}
+
+	/*
 	 * Install merged table as `routing_table'.
 	 */
 
@@ -2614,7 +2676,7 @@ struct qrt_receive {
 	gchar *data;			/* Where inflated data is written */
 	gint len;				/* Length of the `data' buffer */
 	gint current_slot;		/* Current slot processed in patch */
-	gint current_index;	/* Current index (after shrinking) in QR table */
+	gint current_index;		/* Current index (after shrinking) in QR table */
 	gchar *expansion;		/* Temporary expansion arena before shrinking */
 	gboolean deflated;		/* Is data deflated? */
 };
