@@ -1410,7 +1410,7 @@ void node_set_online_mode(gboolean on)
  */
 void node_set_current_peermode(guint32 mode)
 {
-	gchar *msg;
+	gchar *msg = NULL;
 
 	switch (mode) {
 	case NODE_P_NORMAL:
@@ -2733,6 +2733,7 @@ void node_init_outgoing(struct gnutella_node *n)
 			"Accept-Encoding: deflate\r\n"
 			"X-Live-Since: %s\r\n"
 			"%s"
+			"%s"
 			"\r\n",
 			n->proto_major, n->proto_minor,
 			ip_port_to_gchar(listen_ip(), listen_port),
@@ -2740,7 +2741,9 @@ void node_init_outgoing(struct gnutella_node *n)
 			version_string, start_rfc822_date,
 			current_peermode == NODE_P_NORMAL ? "" :
 			current_peermode == NODE_P_LEAF ?
-				"X-Ultrapeer: False\r\n": "X-Ultrapeer: True\r\n");
+				"X-Ultrapeer: False\r\n": "X-Ultrapeer: True\r\n",
+			current_peermode != NODE_P_NORMAL ? "X-Query-Routing: 0.1\r\n" : ""
+		);
 
 	g_assert(len < sizeof(buf));
 
