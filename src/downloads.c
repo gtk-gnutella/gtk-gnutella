@@ -15,6 +15,7 @@
 #include "routing.h"
 #include "gmsg.h"
 #include "bsched.h"
+#include "regex.h"
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -377,7 +378,7 @@ void download_remove_all_named(const gchar *name)
 	
 	int n = 0, m = 0;
 
-	g_return_if_fail(guid);
+	g_return_if_fail(name);
 	
 	g_snprintf(dl_tmp, sizeof(dl_tmp), "%s", name);
 
@@ -387,7 +388,7 @@ void download_remove_all_named(const gchar *name)
 		n ++;
 
 		if (!d) {
-			g_warning("download_remove_all_from_peer(): NULL download");
+			g_warning("download_remove_all_from_named(): NULL download");
 			continue;
 		}
 
@@ -410,6 +411,82 @@ void download_remove_all_named(const gchar *name)
 
 	g_message( "removed %u of %u downloads named %s", m, n, dl_tmp );
 
+	g_slist_free(to_remove);
+}
+
+/*
+ * download_remove_all_named
+ *
+ * remove all downloads with a given name from the download queue
+ * and abort all conenctions to peer in the active download list.
+ */
+void download_remove_all_regex(const gchar *regex)
+{
+	GSList *l;
+	GSList *to_remove = NULL;
+	int n = 0, m = 0;
+
+    guint msgid = -1;
+    int err;
+	regex_t *re;
+
+	g_return_if_fail(regex);
+	
+	g_snprintf(dl_tmp, sizeof(dl_tmp), "%s", regex);
+    
+    re = g_new(regex_t, 1);
+
+    g_return_if_fail(re);
+
+    err = regcomp(re, 
+                  regex,
+                  REG_NOSUB|(queue_regex_case ? 0 : REG_ICASE));
+
+   	if (err) {
+		char buf[1000];
+		regerror(err, re, buf, 1000);
+        g_error("download_remove_all_regex: regex error %s",buf);
+        msgid = gui_statusbar_push(scid_queue_remove_regex, buf);
+        gui_statusbar_add_timeout(scid_queue_remove_regex, msgid, 15);
+    } else {
+        g_message("traversing rows");
+        for (l = sl_downloads; l; l = g_slist_next(l)) {
+            int i;
+            struct download *d = (struct download *) l->data;
+
+            n ++;
+
+            if (!d) {
+                g_warning("download_remove_all_regex(): NULL download");
+                continue;
+            }
+    
+            if (((i = regexec(re, d->file_name,0, NULL, 0)) == 0) &&
+                (d->status == GTA_DL_QUEUED))
+                to_remove = g_slist_prepend(to_remove, d);
+            if (i == REG_ESPACE)
+                g_warning("regexp memory overflow");
+        }
+    
+        for (l = to_remove; l; l = l->next) {
+            struct download *d = (struct download *) l->data;
+            m ++;
+            /* 
+             * we know that the download is queued because we filtered this
+             * above so we can call download_free
+             *      --BLUE, 07/05/2002
+             */
+            download_free(d);
+        }
+
+        g_snprintf(dl_tmp, sizeof(dl_tmp), 
+                   "Removed %u of %u queued downloads matching \"%s\".", 
+                   m, n, regex);
+        msgid = gui_statusbar_push(scid_queue_remove_regex, dl_tmp);
+        gui_statusbar_add_timeout(scid_queue_remove_regex, msgid, 15);
+    }
+
+    g_free(re);
 	g_slist_free(to_remove);
 }
 
