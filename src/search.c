@@ -252,9 +252,13 @@ void search_close_current(void)
 	GList *glist;
 	GSList *m;
 	struct search *sch = current_search;
-   gboolean sensitive;
+    gboolean sensitive;
+    gint row;
 
 	g_return_if_fail(current_search);
+
+    row = gtk_clist_find_row_from_data(GTK_CLIST(clist_search), sch);
+    gtk_clist_remove(GTK_CLIST(clist_search), row);
 
 	searches = g_slist_remove(searches, (gpointer) sch);
 
@@ -301,9 +305,14 @@ void search_close_current(void)
 
 		gtk_entry_set_text(GTK_ENTRY(combo_entry_searches), "");
 
+        gtk_notebook_set_tab_label_text(GTK_NOTEBOOK(notebook_search_results),
+            default_scrolled_window,
+            "(no search)");
+/* FIXME: remove
 		if (search_results_show_tabs)
 			gtk_notebook_set_show_tabs(GTK_NOTEBOOK(notebook_search_results),
 				FALSE);
+*/
 
 		gtk_widget_set_sensitive(button_search_clear, FALSE);
 		gtk_widget_set_sensitive(popup_search_clear_results, FALSE);
@@ -620,6 +629,8 @@ struct search *_new_search(guint16 speed, gchar * query, guint flags)
 {
 	struct search *sch;
 	GList *glist;
+    gchar *titles[3];
+    gint row;
 
 	sch = (struct search *) g_malloc0(sizeof(struct search));
 
@@ -657,6 +668,12 @@ struct search *_new_search(guint16 speed, gchar * query, guint flags)
 
 	gtk_list_prepend_items(GTK_LIST(GTK_COMBO(combo_searches)->list),
 						   glist);
+
+    titles[c_sl_name] = sch->query;
+    titles[c_sl_hit] = "0";
+    titles[c_sl_new] = "0";
+    row = gtk_clist_append(GTK_CLIST(clist_search), titles);
+    gtk_clist_set_row_data(GTK_CLIST(clist_search), row, sch);
 
 	/* Create a new CList if needed, or use the default CList */
 
@@ -700,9 +717,14 @@ struct search *_new_search(guint16 speed, gchar * query, guint flags)
 	if (!sch->dups)
 		g_error("new_search: unable to allocate hash table.\n");
 
-	if (!searches && search_results_show_tabs)
-		gtk_notebook_set_show_tabs(GTK_NOTEBOOK(notebook_search_results),
-								   TRUE);
+    if (!searches) {
+        GtkWidget * w = gtk_notebook_get_nth_page( 
+            GTK_NOTEBOOK(notebook_search_results), 0);
+    
+		gtk_notebook_set_tab_label_text(
+            GTK_NOTEBOOK(notebook_search_results),
+            w, "(no search)");
+    }
 
 	gtk_signal_connect(GTK_OBJECT(sch->list_item), "select",
 					   GTK_SIGNAL_FUNC(on_search_selected),
@@ -1583,8 +1605,9 @@ static void download_selection_of_clist(GtkCList * c)
          l = c->selection) {
 
         /* make it visibile that we already selected this for download */
-		gtk_clist_set_foreground(c, (gint) l->data, 
-								 &gtk_widget_get_style(GTK_WIDGET(c))->fg[GTK_STATE_ACTIVE]);
+		gtk_clist_set_foreground
+            (c, (gint) l->data, 
+			 &gtk_widget_get_style(GTK_WIDGET(c))->fg[GTK_STATE_ACTIVE]);
 
 		rc = (struct record *) gtk_clist_get_row_data(c, (gint) l->data);
         
