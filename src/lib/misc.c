@@ -682,13 +682,13 @@ guid_hex_str(const gchar *guid)
  * represented with a trailing "..." added to show it is incomplete.
  */
 gchar *
-data_hex_str(const gchar *data, gint len)
+data_hex_str(const gchar *data, size_t len)
 {
 	static gchar buf[84];
-	gint maxlen = sizeof(buf) - 3 - 1;	/* 3 chars for "more" and NUL */
+	static const size_t maxlen = sizeof(buf) - 4; /* 3 chars for "more" + NUL */
 	const guchar *p = (guchar *) data;
-	gint hmax;
-	gint i;
+	size_t hmax;
+	size_t i;
 
 	hmax = 2 * len;
 	hmax = MIN(hmax, maxlen);
