@@ -729,7 +729,8 @@ shrink_frame_status(void)
 #endif
 }
 
-static gboolean is_firewalled_changed(property_t prop)
+static gboolean
+is_firewalled_changed(property_t unused_prop)
 {
 	GtkWidget *icon_firewall;
 	GtkWidget *icon_firewall_punchable;
@@ -742,6 +743,8 @@ static gboolean is_firewalled_changed(property_t prop)
 	gboolean recv_solicited_udp;
 	gboolean send_pushes;
 	gboolean enable_udp;
+
+	(void) unused_prop;
 
     icon_firewall = lookup_widget(main_window, "eventbox_image_firewall");
     icon_firewall_punchable = lookup_widget(main_window,
@@ -810,13 +813,15 @@ static gboolean enable_udp_changed(property_t prop)
 	return changed;
 }
 
-static gboolean plug_icon_changed(property_t prop)
+static gboolean plug_icon_changed(property_t unused_prop)
 {
 	GtkWidget *image_online;
 	GtkWidget *image_offline;
 	GtkWidget *tb;
 	gboolean val_is_connected;
 	gboolean val_online_mode;
+
+	(void) unused_prop;
 
     image_online = lookup_widget(main_window, "image_online");
 	image_offline = lookup_widget(main_window, "image_offline");
@@ -1068,7 +1073,9 @@ static gboolean monitor_enabled_changed(property_t prop)
     gboolean val;
     GtkWidget *w = lookup_widget(main_window, "checkbutton_monitor_enable");
 
-    gui_prop_get_boolean_val(PROP_MONITOR_ENABLED, &val);
+	g_return_val_if_fail(PROP_MONITOR_ENABLED == prop, FALSE);
+
+    gui_prop_get_boolean_val(prop, &val);
     gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(w), val);
     monitor_gui_enable_monitor(val);
 
@@ -1095,11 +1102,13 @@ static void set_host_progress(const gchar *w, guint32 cur, guint32 max)
     gtk_progress_bar_set_fraction(pg, frac / 100.0);
 }
 
-static gboolean hosts_in_catcher_changed(property_t prop)
+static gboolean
+hosts_in_catcher_changed(property_t unused_prop)
 {
     guint32 hosts_in_catcher;
     guint32 max_hosts_cached;
 
+	(void) unused_prop;
     gnet_prop_get_guint32_val(PROP_HOSTS_IN_CATCHER, &hosts_in_catcher);
     gnet_prop_get_guint32_val(PROP_MAX_HOSTS_CACHED, &max_hosts_cached);
 
@@ -1115,11 +1124,13 @@ static gboolean hosts_in_catcher_changed(property_t prop)
     return FALSE;
 }
 
-static gboolean hosts_in_ultra_catcher_changed(property_t prop)
+static gboolean
+hosts_in_ultra_catcher_changed(property_t unused_prop)
 {
     guint32 hosts;
     guint32 max_hosts;
 
+	(void) unused_prop;
     gnet_prop_get_guint32_val(PROP_HOSTS_IN_ULTRA_CATCHER, &hosts);
     gnet_prop_get_guint32_val(PROP_MAX_ULTRA_HOSTS_CACHED, &max_hosts);
 
@@ -1135,11 +1146,13 @@ static gboolean hosts_in_ultra_catcher_changed(property_t prop)
     return FALSE;
 }
 
-static gboolean hosts_in_bad_catcher_changed(property_t prop)
+static gboolean
+hosts_in_bad_catcher_changed(property_t unused_prop)
 {
     guint32 hosts;
     guint32 max_hosts;
 
+	(void) unused_prop;
     gnet_prop_get_guint32_val(PROP_HOSTS_IN_BAD_CATCHER, &hosts);
     gnet_prop_get_guint32_val(PROP_MAX_BAD_HOSTS_CACHED, &max_hosts);
 
@@ -1151,20 +1164,20 @@ static gboolean hosts_in_bad_catcher_changed(property_t prop)
      * Multiply by 3 because the three bad hostcaches can't steal slots
      * from each other.
      */
-    set_host_progress(
-        "progressbar_hosts_in_bad_catcher", 
-        hosts, 
-        max_hosts*3); 
-
+    set_host_progress("progressbar_hosts_in_bad_catcher",
+		hosts, max_hosts * 3);
     return FALSE;
 }
 
-static gboolean reading_hostfile_changed(property_t prop)
+static gboolean
+reading_hostfile_changed(property_t prop)
 {
-    gboolean state;
     static statusbar_msgid_t id = {0, 0};
+    gboolean state;
 
-    gnet_prop_get_boolean_val(PROP_READING_HOSTFILE, &state);
+	g_return_val_if_fail(PROP_READING_HOSTFILE == prop, FALSE);
+	
+    gnet_prop_get_boolean_val(prop, &state);
     if (state) {
         GtkProgressBar *pg = GTK_PROGRESS_BAR
             (lookup_widget(main_window, "progressbar_hosts_in_catcher"));
@@ -1178,13 +1191,15 @@ static gboolean reading_hostfile_changed(property_t prop)
     return FALSE;
 }
 
-static gboolean reading_ultrafile_changed(property_t prop)
+static gboolean
+reading_ultrafile_changed(property_t prop)
 {
-    gboolean state;
     static statusbar_msgid_t id = {0, 0};
+    gboolean state;
 
-    gnet_prop_get_boolean_val
-		(PROP_READING_ULTRAFILE, &state);
+	g_return_val_if_fail(PROP_READING_ULTRAFILE == prop, FALSE);
+
+    gnet_prop_get_boolean_val(prop, &state);
     if (state) {
         GtkProgressBar *pg = GTK_PROGRESS_BAR
             (lookup_widget(main_window, "progressbar_hosts_in_ultra_catcher"));
@@ -1198,10 +1213,11 @@ static gboolean reading_ultrafile_changed(property_t prop)
     return FALSE;
 }
 
-static gboolean hostcache_size_changed(property_t prop)
+static gboolean
+hostcache_size_changed(property_t prop)
 {
     update_spinbutton(prop);
-    switch(prop) {
+    switch (prop) {
     case PROP_MAX_HOSTS_CACHED:
         hosts_in_catcher_changed(PROP_HOSTS_IN_CATCHER);
         break;
@@ -1218,7 +1234,8 @@ static gboolean hostcache_size_changed(property_t prop)
     return FALSE;
 }
 
-static gboolean ancient_version_changed(property_t prop)
+static gboolean
+ancient_version_changed(property_t prop)
 {
     gboolean b;
     GtkWidget *w;
@@ -1241,7 +1258,8 @@ static gboolean ancient_version_changed(property_t prop)
     return FALSE;
 }
 
-static gboolean uploads_stalling_changed(property_t prop)
+static gboolean
+uploads_stalling_changed(property_t prop)
 {
     gboolean b;
     GtkWidget *w;
@@ -1265,7 +1283,8 @@ static gboolean uploads_stalling_changed(property_t prop)
     return FALSE;
 }
 
-static gboolean file_descriptor_warn_changed(property_t prop)
+static gboolean
+file_descriptor_warn_changed(property_t prop)
 {
 	GtkWidget *icon_shortage;
 	GtkWidget *icon_runout;
@@ -1298,7 +1317,8 @@ static gboolean file_descriptor_warn_changed(property_t prop)
     return FALSE;
 }
 
-static gboolean ancient_version_left_days_changed(property_t prop)
+static gboolean
+ancient_version_left_days_changed(property_t prop)
 {
     guint32 remain;
 
@@ -1316,11 +1336,14 @@ static gboolean ancient_version_left_days_changed(property_t prop)
     return FALSE;
 }
 
-static gboolean new_version_str_changed(property_t prop)
+static gboolean
+new_version_str_changed(property_t prop)
 {
     gchar *str;
 
-    str = gnet_prop_get_string(PROP_NEW_VERSION_STR, NULL, 0);
+	g_return_val_if_fail(PROP_NEW_VERSION_STR == prop, FALSE);
+	
+    str = gnet_prop_get_string(prop, NULL, 0);
 	if (!str)
 		str = g_strdup(GTA_WEBSITE);
 
@@ -1332,7 +1355,8 @@ static gboolean new_version_str_changed(property_t prop)
     return FALSE;
 }
 
-static gboolean send_pushes_changed(property_t prop)
+static gboolean
+send_pushes_changed(property_t prop)
 {
     gboolean val;
 	gboolean is_firewalled;
@@ -1353,7 +1377,8 @@ static gboolean send_pushes_changed(property_t prop)
     return FALSE;
 }
 
-static gboolean statusbar_visible_changed(property_t prop)
+static gboolean
+statusbar_visible_changed(property_t prop)
 {
     gboolean b;
 
@@ -1374,14 +1399,12 @@ static gboolean statusbar_visible_changed(property_t prop)
     return FALSE;
 }
 
-/*
- * update_stats_visibility:
- *
+/**
  * Change the menu item cm and show/hide the widget w to reflect the
  * value of val. val = TRUE means w should be visible.
  */
-static void update_stats_visibility
-    (GtkCheckMenuItem *cm, GtkWidget *w, gboolean val)
+static void
+update_stats_visibility(GtkCheckMenuItem *cm, GtkWidget *w, gboolean val)
 {
     gtk_check_menu_item_set_state(cm, val);
 
@@ -1394,7 +1417,8 @@ static void update_stats_visibility
     gui_update_stats_frames();
 }
 
-static gboolean progressbar_bws_in_visible_changed(property_t prop)
+static gboolean
+progressbar_bws_in_visible_changed(property_t prop)
 {
     gboolean val;
     GtkWidget *w = lookup_widget(main_window, "progressbar_bws_in");
@@ -1407,7 +1431,8 @@ static gboolean progressbar_bws_in_visible_changed(property_t prop)
     return FALSE;
 }
 
-static gboolean progressbar_bws_out_visible_changed(property_t prop)
+static gboolean
+progressbar_bws_out_visible_changed(property_t prop)
 {
     gboolean val;
     GtkWidget *w = lookup_widget(main_window, "progressbar_bws_out");
@@ -1415,13 +1440,13 @@ static gboolean progressbar_bws_out_visible_changed(property_t prop)
         (lookup_widget(main_window, "menu_bws_out_visible"));
 
     gui_prop_get_boolean_val(prop, &val);
-
     update_stats_visibility(cm, w, val);
 
     return FALSE;
 }
 
-static gboolean progressbar_bws_gin_visible_changed(property_t prop)
+static gboolean
+progressbar_bws_gin_visible_changed(property_t prop)
 {
     gboolean val;
     GtkWidget *w = lookup_widget(main_window, "progressbar_bws_gin");
@@ -1434,7 +1459,8 @@ static gboolean progressbar_bws_gin_visible_changed(property_t prop)
     return FALSE;
 }
 
-static gboolean progressbar_bws_gout_visible_changed(property_t prop)
+static gboolean
+progressbar_bws_gout_visible_changed(property_t prop)
 {
     gboolean val;
     GtkWidget *w = lookup_widget(main_window, "progressbar_bws_gout");
@@ -1447,7 +1473,8 @@ static gboolean progressbar_bws_gout_visible_changed(property_t prop)
     return FALSE;
 }
 
-static gboolean progressbar_bws_glin_visible_changed(property_t prop)
+static gboolean
+progressbar_bws_glin_visible_changed(property_t prop)
 {
     gboolean val;
     GtkWidget *w = lookup_widget(main_window, "progressbar_bws_lin");
@@ -1460,7 +1487,8 @@ static gboolean progressbar_bws_glin_visible_changed(property_t prop)
     return FALSE;
 }
 
-static gboolean progressbar_bws_glout_visible_changed(property_t prop)
+static gboolean
+progressbar_bws_glout_visible_changed(property_t prop)
 {
     gboolean val;
     GtkWidget *w = lookup_widget(main_window, "progressbar_bws_lout");
@@ -1473,7 +1501,8 @@ static gboolean progressbar_bws_glout_visible_changed(property_t prop)
     return FALSE;
 }
 
-static gboolean autohide_bws_gleaf_changed(property_t prop)
+static gboolean
+autohide_bws_gleaf_changed(property_t prop)
 {
     gboolean val;
     prop_map_t *map_entry = settings_gui_get_map_entry(prop);
@@ -1492,7 +1521,8 @@ static gboolean autohide_bws_gleaf_changed(property_t prop)
     return FALSE;
 }
 
-static gboolean progressbar_downloads_visible_changed(property_t prop)
+static gboolean
+progressbar_downloads_visible_changed(property_t prop)
 {
     gboolean val;
     GtkWidget *w = lookup_widget(main_window, "hbox_stats_downloads");
@@ -1505,7 +1535,8 @@ static gboolean progressbar_downloads_visible_changed(property_t prop)
     return FALSE;
 }
 
-static gboolean progressbar_uploads_visible_changed(property_t prop)
+static gboolean
+progressbar_uploads_visible_changed(property_t prop)
 {
     gboolean val;
     GtkWidget *w = lookup_widget(main_window, "hbox_stats_uploads");
@@ -1518,7 +1549,8 @@ static gboolean progressbar_uploads_visible_changed(property_t prop)
     return FALSE;
 }
 
-static gboolean progressbar_connections_visible_changed(property_t prop)
+static gboolean
+progressbar_connections_visible_changed(property_t prop)
 {
     gboolean val;
     GtkWidget *w = lookup_widget(main_window, "hbox_stats_connections");
@@ -1531,7 +1563,8 @@ static gboolean progressbar_connections_visible_changed(property_t prop)
     return FALSE;
 }
 
-static gboolean search_results_show_tabs_changed(property_t prop)
+static gboolean
+search_results_show_tabs_changed(property_t prop)
 {
     gboolean val;
 
@@ -1546,7 +1579,8 @@ static gboolean search_results_show_tabs_changed(property_t prop)
     return FALSE;
 }
 
-static gboolean autoclear_completed_downloads_changed(property_t prop)
+static gboolean
+autoclear_completed_downloads_changed(property_t prop)
 {
     gboolean val;
     prop_map_t *map_entry = settings_gui_get_map_entry(prop);
@@ -1564,7 +1598,8 @@ static gboolean autoclear_completed_downloads_changed(property_t prop)
     return FALSE;
 }
 
-static gboolean autoclear_failed_downloads_changed(property_t prop)
+static gboolean
+autoclear_failed_downloads_changed(property_t prop)
 {
     gboolean val;
     prop_map_t *map_entry = settings_gui_get_map_entry(prop);
@@ -1582,7 +1617,8 @@ static gboolean autoclear_failed_downloads_changed(property_t prop)
     return FALSE;
 }
 
-static gboolean autoclear_unavailable_downloads_changed(property_t prop)
+static gboolean
+autoclear_unavailable_downloads_changed(property_t prop)
 {
     gboolean val;
     prop_map_t *map_entry = settings_gui_get_map_entry(prop);
@@ -1600,14 +1636,17 @@ static gboolean autoclear_unavailable_downloads_changed(property_t prop)
     return FALSE;
 }
 
-static gboolean traffic_stats_mode_changed(property_t prop)
+static gboolean
+traffic_stats_mode_changed(property_t unused_prop)
 {
+	(void) unused_prop;
     gui_update_traffic_stats();
 
     return FALSE;
 }
 
-static gboolean compute_connection_speed_changed(property_t prop)
+static gboolean
+compute_connection_speed_changed(property_t prop)
 {
     gboolean b;
     
@@ -1619,7 +1658,8 @@ static gboolean compute_connection_speed_changed(property_t prop)
     return FALSE;
 }
 
-static gboolean min_dup_ratio_changed(property_t prop)
+static gboolean
+min_dup_ratio_changed(property_t prop)
 {
     GtkWidget *w;
     guint32 val = 0;
@@ -1637,7 +1677,8 @@ static gboolean min_dup_ratio_changed(property_t prop)
     return FALSE;
 }
 
-static gboolean show_search_results_settings_changed(property_t prop)
+static gboolean
+show_search_results_settings_changed(property_t prop)
 {
     GtkWidget *w;
     GtkWidget *frame;
@@ -1673,7 +1714,8 @@ static gboolean show_search_results_settings_changed(property_t prop)
     return FALSE;
 }
 
-static gboolean show_dl_settings_changed(property_t prop)
+static gboolean
+show_dl_settings_changed(property_t prop)
 {
     GtkWidget *w;
     GtkWidget *frame;
@@ -1709,7 +1751,8 @@ static gboolean show_dl_settings_changed(property_t prop)
     return FALSE;
 }
 
-static gboolean _update_address_information(void)
+static gboolean
+update_address_information(void)
 {
     static guint32 old_address = 0;
     static guint16 old_port = 0;
@@ -1751,7 +1794,8 @@ static gboolean _update_address_information(void)
     return FALSE;
 }
 
-static void update_input_bw_display(void)
+static void
+update_input_bw_display(void)
 {
 	gboolean enabled;
 	guint32 val = 0;
@@ -1787,7 +1831,8 @@ static void update_input_bw_display(void)
 		"%.2f", val / 1024.0);
 }
 
-static gboolean spinbutton_input_bw_changed(property_t prop)
+static
+gboolean spinbutton_input_bw_changed(property_t prop)
 {
 	gboolean ret;
 
@@ -1796,7 +1841,8 @@ static gboolean spinbutton_input_bw_changed(property_t prop)
 	return ret;
 }
 
-static void update_output_bw_display(void)
+static void
+update_output_bw_display(void)
 {
 	gboolean enabled;
 	guint32 val = 0;
@@ -1829,7 +1875,8 @@ static void update_output_bw_display(void)
 		"%.2f", val / 1024.0);
 }
 
-static gboolean spinbutton_output_bw_changed(property_t prop)
+static gboolean
+spinbutton_output_bw_changed(property_t prop)
 {
 	gboolean ret;
 
@@ -1838,27 +1885,33 @@ static gboolean spinbutton_output_bw_changed(property_t prop)
 	return ret;
 }
 
-static gboolean force_local_ip_changed(property_t prop)
+static gboolean
+force_local_ip_changed(property_t prop)
 {
     update_togglebutton(prop);
-    _update_address_information();
+    update_address_information();
     return FALSE;
 }
 
-static gboolean listen_port_changed(property_t prop)
+static gboolean
+listen_port_changed(property_t prop)
 {
     update_spinbutton(prop);
-    _update_address_information();
+    update_address_information();
     return FALSE;
 }
 
-static gboolean local_address_changed(property_t prop)
+static gboolean
+local_address_changed(property_t prop)
 {
-    _update_address_information();
+	g_return_val_if_fail(PROP_LOCAL_IP == prop, FALSE);
+
+    update_address_information();
     return FALSE;
 }
 
-static gboolean use_netmasks_changed(property_t prop)
+static gboolean
+use_netmasks_changed(property_t prop)
 {
     gboolean b;
     
@@ -1870,7 +1923,8 @@ static gboolean use_netmasks_changed(property_t prop)
     return FALSE;
 }
 
-static gboolean guid_changed(property_t prop)
+static gboolean
+guid_changed(property_t prop)
 {
     gchar guid_buf[16];
    
@@ -1895,7 +1949,8 @@ static gboolean guid_changed(property_t prop)
     return FALSE;
 }
 
-static gboolean update_monitor_unstable_ip(property_t prop)
+static gboolean
+update_monitor_unstable_ip(property_t prop)
 {
 	gboolean b;
 
@@ -1907,7 +1962,8 @@ static gboolean update_monitor_unstable_ip(property_t prop)
 	return update_togglebutton(prop);
 }
 
-static gboolean show_tooltips_changed(property_t prop)
+static gboolean
+show_tooltips_changed(property_t prop)
 {
     gboolean b;
 
@@ -1928,7 +1984,8 @@ static gboolean show_tooltips_changed(property_t prop)
     return FALSE;
 }
 
-static gboolean expert_mode_changed(property_t prop)
+static gboolean
+expert_mode_changed(property_t prop)
 {
     static const gchar *expert_widgets_main[] = {
         "button_search_passive",
@@ -1936,7 +1993,6 @@ static gboolean expert_mode_changed(property_t prop)
         "hbox_expert_search_timeout",
 		NULL
 	};
-
 	static const gchar *expert_widgets_prefs[] = {
         "frame_expert_nw_local",
         "frame_expert_nw_misc",
@@ -1992,7 +2048,8 @@ static gboolean expert_mode_changed(property_t prop)
     return FALSE;
 }
 
-static gboolean search_stats_mode_changed(property_t prop)
+static gboolean
+search_stats_mode_changed(property_t prop)
 {
     guint32 val;
 
@@ -2004,7 +2061,8 @@ static gboolean search_stats_mode_changed(property_t prop)
     return FALSE;
 }
 
-static inline gboolean widget_set_sensitive(const gchar *name, property_t prop)
+static inline gboolean
+widget_set_sensitive(const gchar *name, property_t prop)
 {
 	gboolean val;
 
@@ -2014,27 +2072,32 @@ static inline gboolean widget_set_sensitive(const gchar *name, property_t prop)
 	return FALSE;
 }
 
-static gboolean sha1_rebuilding_changed(property_t prop)
+static gboolean
+sha1_rebuilding_changed(property_t prop)
 {
 	return widget_set_sensitive("image_sha", prop);
 }
 
-static gboolean sha1_verifying_changed(property_t prop)
+static gboolean
+sha1_verifying_changed(property_t prop)
 {
 	return widget_set_sensitive("image_shav", prop);
 }
 
-static gboolean library_rebuilding_changed(property_t prop)
+static gboolean
+library_rebuilding_changed(property_t prop)
 {
 	return widget_set_sensitive("image_lib", prop);
 }
 
-static gboolean file_moving_changed(property_t prop)
+static gboolean
+file_moving_changed(property_t prop)
 {
 	return widget_set_sensitive("image_save", prop);
 }
 
-static gboolean dl_running_count_changed(property_t prop)
+static gboolean
+dl_running_count_changed(property_t prop)
 {
 	guint32 val;
 
@@ -2057,7 +2120,8 @@ static gboolean dl_running_count_changed(property_t prop)
 	return FALSE;
 }
 
-static gboolean dl_active_count_changed(property_t prop)
+static gboolean
+dl_active_count_changed(property_t prop)
 {
 	guint32 val;
 
@@ -2071,7 +2135,8 @@ static gboolean dl_active_count_changed(property_t prop)
 	return FALSE;
 }
 
-static gboolean dl_http_latency_changed(property_t prop)
+static gboolean
+dl_http_latency_changed(property_t prop)
 {
 	guint32 val;
 
@@ -2083,7 +2148,8 @@ static gboolean dl_http_latency_changed(property_t prop)
 	return FALSE;
 }
 
-static gboolean dl_aqueued_count_changed(property_t prop)
+static gboolean
+dl_aqueued_count_changed(property_t prop)
 {
 	guint32 val;
 
@@ -2098,7 +2164,8 @@ static gboolean dl_aqueued_count_changed(property_t prop)
 #ifdef USE_GTK1
 /* Currently deactivated for GTK+ 2.x because the code created by Glade 2.6.0
  * requires GTK+ 2.4 */
-static gboolean config_toolbar_style_changed(property_t prop)
+static gboolean
+config_toolbar_style_changed(property_t prop)
 {
 	guint32 val;
 	GtkToolbarStyle style;
@@ -2135,7 +2202,8 @@ static gboolean config_toolbar_style_changed(property_t prop)
 	return FALSE;
 }
 
-static gboolean toolbar_visible_changed(property_t prop)
+static gboolean
+toolbar_visible_changed(property_t prop)
 {
     gboolean b;
 
@@ -2154,7 +2222,8 @@ static gboolean toolbar_visible_changed(property_t prop)
 }
 #endif /* USE_GTK1 */
 
-static gboolean update_spinbutton_ultranode(property_t prop)
+static gboolean
+update_spinbutton_ultranode(property_t prop)
 {
 	gboolean ret;
 	guint32 current_peermode;
@@ -2172,8 +2241,11 @@ static gboolean update_spinbutton_ultranode(property_t prop)
 	return ret;
 }
 
-static gboolean gnet_connections_changed(property_t prop)
+static gboolean
+gnet_connections_changed(property_t unused_prop)
 {
+    GtkProgressBar *pg = GTK_PROGRESS_BAR(
+        lookup_widget(main_window, "progressbar_connections"));
     guint32 leaf_count;
     guint32 normal_count;
     guint32 ultra_count;
@@ -2186,9 +2258,7 @@ static gboolean gnet_connections_changed(property_t prop)
     guint32 nodes = 0;
     guint32 peermode;
 
-    GtkProgressBar *pg = GTK_PROGRESS_BAR(
-        lookup_widget(main_window, "progressbar_connections"));
-
+	(void) unused_prop;
     gnet_prop_get_guint32_val(PROP_NODE_LEAF_COUNT, &leaf_count);
     gnet_prop_get_guint32_val(PROP_NODE_NORMAL_COUNT, &normal_count);
     gnet_prop_get_guint32_val(PROP_NODE_ULTRA_COUNT, &ultra_count);
@@ -2232,7 +2302,8 @@ static gboolean gnet_connections_changed(property_t prop)
     return FALSE;
 }
 
-static gboolean uploads_count_changed(property_t prop)
+static gboolean
+uploads_count_changed(property_t unused_prop)
 {
     GtkProgressBar *pg = GTK_PROGRESS_BAR
          (lookup_widget(main_window, "progressbar_uploads"));
@@ -2241,6 +2312,7 @@ static gboolean uploads_count_changed(property_t prop)
 	guint32 running;
 	guint32 min;
 
+	(void) unused_prop;
     gnet_prop_get_guint32_val(PROP_UL_REGISTERED, &registered);
     gnet_prop_get_guint32_val(PROP_UL_RUNNING, &running);
 	if (registered == 1)
@@ -2258,7 +2330,8 @@ static gboolean uploads_count_changed(property_t prop)
 	return FALSE;
 }
 
-static gboolean downloads_count_changed(property_t prop)
+static gboolean
+downloads_count_changed(property_t unused_prop)
 {
     GtkProgressBar *pg = GTK_PROGRESS_BAR
          (lookup_widget(main_window, "progressbar_downloads"));
@@ -2267,6 +2340,7 @@ static gboolean downloads_count_changed(property_t prop)
     guint32 running;
     guint32 min;
 
+	(void) unused_prop;
     gnet_prop_get_guint32_val(PROP_DL_ACTIVE_COUNT, &active);
     gnet_prop_get_guint32_val(PROP_DL_RUNNING_COUNT, &running);
 	if (running == 1)
@@ -2284,13 +2358,14 @@ static gboolean downloads_count_changed(property_t prop)
     return FALSE;
 }
 
-static gboolean clock_skew_changed(property_t prop)
+static gboolean
+clock_skew_changed(property_t prop)
 {
     gchar s[64];
     guint32 val;
 
     gnet_prop_get_guint32_val(prop, &val);
-    gm_snprintf(s, sizeof(s), "%d secs", (gint32) val);
+    gm_snprintf(s, sizeof(s), "%d secs", (gint) val);
     gtk_label_set_text(
 		GTK_LABEL(lookup_widget(dlg_prefs, "label_clock_skew")), s);
     return FALSE;
@@ -2300,15 +2375,13 @@ static gboolean clock_skew_changed(property_t prop)
  *** IV.  Control functions.
  ***/
 
-/*
- * spinbutton_adjustment_value_changed:
- *
+/**
  * This callbacks is called when a GtkSpinbutton which is referenced in 
  * the property_map changed. It reacts to the "value_changed" signal of 
  * the GtkAdjustement associated with the GtkSpinbutton.
  */
-static void spinbutton_adjustment_value_changed
-    (GtkAdjustment *adj, gpointer user_data)
+static void
+spinbutton_adjustment_value_changed(GtkAdjustment *adj, gpointer user_data)
 {
     prop_map_t *map_entry = (prop_map_t *) user_data;
     prop_set_stub_t *stub = map_entry->stub;
@@ -2370,17 +2443,15 @@ static void spinbutton_adjustment_value_changed
     stub->guint32.set(map_entry->prop, &val, 0, 1);
 }
 
-/*
- * togglebutton_state_changed:
- *
+/**
  * This function is called when the state of a GtkToggleButton that
  * is managed by the property_map. It is bound during initialization
  * when the property_map is processed.
  * GtkToggleButtons are normally bound directly to thier associated
  * properties. Special cases are handled here.
  */
-static void togglebutton_state_changed(
-    GtkToggleButton *tb, gpointer user_data)
+static void
+togglebutton_state_changed(GtkToggleButton *tb, gpointer user_data)
 {
     prop_map_t *map_entry = (prop_map_t *) user_data;
     prop_set_stub_t *stub = map_entry->stub;
@@ -2401,7 +2472,8 @@ static void togglebutton_state_changed(
     stub->boolean.set(map_entry->prop, &val, 0, 1);
 }
 
-static void multichoice_item_selected(GtkItem *i, gpointer data)
+static void
+multichoice_item_selected(GtkItem *i, gpointer data)
 {
     prop_map_t *map_entry = (prop_map_t *) data;
     prop_set_stub_t *stub = map_entry->stub;
@@ -2410,12 +2482,11 @@ static void multichoice_item_selected(GtkItem *i, gpointer data)
     stub->guint32.set(map_entry->prop, &val, 0, 1);
 }
 
-/*
- * settings_gui_config_widget:
- *
+/**
  * Set up tooltip and constraints where applicable.
  */
-static void settings_gui_config_widget(prop_map_t *map, prop_def_t *def)
+static void
+settings_gui_config_widget(prop_map_t *map, prop_def_t *def)
 {
     g_assert(map != NULL);
     g_assert(def != NULL);
@@ -2537,18 +2608,18 @@ static void settings_gui_config_widget(prop_map_t *map, prop_def_t *def)
     }
 }
 
-/*
- * settings_gui_save_if_dirty
- *
+/**
  * Save GUI settings if dirty.
  */
-void settings_gui_save_if_dirty(void)
+void
+settings_gui_save_if_dirty(void)
 {
     prop_save_to_file_if_dirty(
 		properties, settings_gui_config_dir(), property_file);
 }
 
-const gchar *settings_gui_config_dir(void)
+const gchar *
+settings_gui_config_dir(void)
 {
 	return guc_settings_config_dir();
 }
@@ -5207,7 +5278,8 @@ static prop_map_t property_map[] = {
  * The tooltips for the widgets are set from to the description from the
  * property definition.
  */
-static void settings_gui_init_prop_map(void)
+static void
+settings_gui_init_prop_map(void)
 {
     guint n;
 
@@ -5315,7 +5387,8 @@ static void settings_gui_init_prop_map(void)
     }
 }
 
-void settings_gui_init(void)
+void
+settings_gui_init(void)
 {
     gint n;
 
@@ -5359,7 +5432,8 @@ void settings_gui_init(void)
 #endif
 }
 
-void settings_gui_shutdown(void)
+void
+settings_gui_shutdown(void)
 {
     guint n;
 

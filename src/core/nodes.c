@@ -2338,13 +2338,13 @@ node_crawler_headers(struct gnutella_node *n)
 			continue;
 
 		if (NODE_IS_ULTRA(cn)) {
-			g_assert(ux < node_ultra_count);
+			g_assert((guint) ux < node_ultra_count);
 			ultras[ux++] = cn;
 			continue;
 		}
 
 		if (NODE_IS_LEAF(cn)) {
-			g_assert(lx < node_leaf_count);
+			g_assert((guint) lx < node_leaf_count);
 			leaves[lx++] = cn;
 			continue;
 		}
@@ -3370,6 +3370,7 @@ node_can_accept_connection(struct gnutella_node *n, gboolean handshaking)
 			ultra_max = max_connections > normal_connections 
 				? max_connections - normal_connections : 0;
 
+#if 0
 			if (
 				handshaking &&
 				node_ultra_count >= ultra_max &&
@@ -3385,6 +3386,7 @@ node_can_accept_connection(struct gnutella_node *n, gboolean handshaking)
 					"Too many ultra connections (%d max)", ultra_max);
 				return FALSE;
 			}
+#endif
 		}
 
 		/*
@@ -3489,12 +3491,14 @@ node_can_accept_connection(struct gnutella_node *n, gboolean handshaking)
 				node_remove(n, "Not an ultra node");
 				return FALSE;
 			}
+#if 0
 			if (node_ultra_count >= max_ultrapeers) {
 				send_node_error(n->socket, 503,
 					"Too many ultra connections (%d max)", max_ultrapeers);
 				node_remove(n, "Too many ultra nodes (%d max)", max_ultrapeers);
 				return FALSE;
 			}
+#endif
 			
 			/*
 			 * Honour the prefer compressed connection setting. Even when making
@@ -7444,13 +7448,13 @@ node_crawl(gnutella_node_t *n, gint ucnt, gint lcnt, guint8 features)
 			continue;
 
 		if (ucnt && NODE_IS_ULTRA(cn)) {
-			g_assert(ux < node_ultra_count);
+			g_assert((guint) ux < node_ultra_count);
 			ultras[ux++] = cn;
 			continue;
 		}
 
 		if (lcnt && NODE_IS_LEAF(cn)) {
-			g_assert(lx < node_leaf_count);
+			g_assert((guint) lx < node_leaf_count);
 			leaves[lx++] = cn;
 			continue;
 		}
@@ -7611,7 +7615,7 @@ node_crawl(gnutella_node_t *n, gint ucnt, gint lcnt, guint8 features)
 			else
 				pmsg_write(mb, dpayload, dlen);
 
-			g_assert(dlen == pmsg_size(mb) - (pdata_len(db) - remains));
+			g_assert((size_t) dlen == pmsg_size(mb) - pdata_len(db) + remains);
 		}
 
 		zlib_deflater_free(zd, TRUE);

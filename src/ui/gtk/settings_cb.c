@@ -44,9 +44,11 @@ RCSID("$Id$");
  * the callback for the activate signal.
  */
 #define FOCUS_TO_ACTIVATE(a)                                            \
-    gboolean CAT3(on_,a,_focus_out_event)                               \
-        (GtkWidget *widget, GdkEventFocus *event, gpointer user_data)   \
+    gboolean CAT3(on_,a,_focus_out_event) (GtkWidget *widget,			\
+			GdkEventFocus *unused_event, gpointer unused_udata)			\
     {                                                                   \
+		(void) unused_event;											\
+		(void) unused_udata;											\
         CAT3(on_,a,_activate)(GTK_EDITABLE(widget), NULL);              \
         return FALSE;                                                   \
     }
@@ -56,13 +58,16 @@ RCSID("$Id$");
         CAT2(pref,_prop_set_boolean)(p, &val, 0, 1);                    \
     } while (0)
 
-void on_spinbutton_search_reissue_timeout_changed
-    (GtkEditable *editable, gpointer user_data)
+void
+on_spinbutton_search_reissue_timeout_changed(GtkEditable *editable,
+		gpointer unused_udata)
 {
     static gboolean lock = FALSE;
     search_t *current_search;
     guint32 timeout_real;
     guint32 timeout;
+
+	(void) unused_udata;
 
     if (lock)
         return;
@@ -90,17 +95,21 @@ void on_spinbutton_search_reissue_timeout_changed
     lock = FALSE;
 }
 
-static void on_entry_config_proxy_hostname_activate_helper(
-	guint32 ip, gpointer user_data)
+static void
+on_entry_config_proxy_hostname_activate_helper(guint32 ip,
+		gpointer unused_udata)
 {
+	(void) unused_udata;
     gnet_prop_set_guint32_val(PROP_PROXY_IP, ip);
 }
 
-void on_entry_config_proxy_hostname_activate
-    (GtkEditable *editable, gpointer user_data)
+void
+on_entry_config_proxy_hostname_activate(GtkEditable *editable,
+		gpointer unused_udata)
 {
    	gchar *e = g_strstrip(STRTRACK(gtk_editable_get_chars(editable, 0, -1)));
 
+	(void) unused_udata;
     gnet_prop_set_string(PROP_PROXY_HOSTNAME, e);
 	if (e[0] != '\0') {
 		guc_adns_resolve
@@ -110,55 +119,62 @@ void on_entry_config_proxy_hostname_activate
 }
 FOCUS_TO_ACTIVATE(entry_config_proxy_hostname)
 
-void on_entry_config_socks_username_activate
-    (GtkEditable *editable, gpointer user_data)
+void
+on_entry_config_socks_username_activate(GtkEditable *editable,
+		gpointer unused_udata)
 {
    	gchar *e = g_strstrip(STRTRACK(gtk_editable_get_chars(editable, 0, -1)));
 
+	(void) unused_udata;
     gnet_prop_set_string(PROP_SOCKS_USER, e);
-	
     g_free(e);
 }
 FOCUS_TO_ACTIVATE(entry_config_socks_username)
 
-void on_entry_config_socks_password_activate
-    (GtkEditable * editable, gpointer user_data)
+void
+on_entry_config_socks_password_activate(GtkEditable * editable,
+		gpointer unused_udata)
 {
    	gchar *e = g_strstrip(STRTRACK(gtk_editable_get_chars(editable, 0, -1)));
 
+	(void) unused_udata;
     gnet_prop_set_string(PROP_SOCKS_PASS, e);
-	
     g_free(e);
 }
 FOCUS_TO_ACTIVATE(entry_config_socks_password)
 
-void on_entry_config_extensions_activate(GtkEditable *editable, gpointer data)
+void
+on_entry_config_extensions_activate(GtkEditable *editable, gpointer unused_data)
 {
     gchar *ext;
 
+	(void) unused_data;
     ext = STRTRACK(gtk_editable_get_chars(editable, 0, -1));
-
     gnet_prop_set_string(PROP_SCAN_EXTENSIONS, ext);
-
     g_free(ext);
 }
 FOCUS_TO_ACTIVATE(entry_config_extensions)
 
-void on_entry_config_path_activate(GtkEditable *editable, gpointer user_data)
+void
+on_entry_config_path_activate(GtkEditable *editable, gpointer unused_udata)
 {
     gchar *path = STRTRACK(gtk_editable_get_chars(editable, 0, -1));
 
+	(void) unused_udata;
     gnet_prop_set_string(PROP_SHARED_DIRS_PATHS, path);
-
     g_free(path);
 }
 FOCUS_TO_ACTIVATE(entry_config_path)
 
-void on_entry_config_force_ip_activate
-    (GtkEditable *editable, gpointer user_data)
+void
+on_entry_config_force_ip_activate(GtkEditable *unused_editable,
+		gpointer unused_udata)
 {
    	gchar *e;
 	guint32 ip;
+	
+	(void) unused_editable;
+	(void) unused_udata;
 	e = STRTRACK(gtk_editable_get_chars(
         GTK_EDITABLE(lookup_widget(dlg_prefs, "entry_config_force_ip")), 
         0, -1));
@@ -169,25 +185,27 @@ void on_entry_config_force_ip_activate
 }
 FOCUS_TO_ACTIVATE(entry_config_force_ip)
 
-void on_entry_config_force_ip_changed
-    (GtkEditable *editable,  gpointer user_data)
+void
+on_entry_config_force_ip_changed(GtkEditable *editable, gpointer unused_udata)
 {
     gchar *e = STRTRACK(gtk_editable_get_chars(editable, 0, -1));
 
+	(void) unused_udata;
 	g_strstrip(e);
-
 	gtk_widget_set_sensitive(
         lookup_widget(dlg_prefs, "checkbutton_config_force_ip"),
         is_string_ip(e));
-
 	g_free(e);
 }
 
-void on_entry_server_hostname_activate
-    (GtkEditable *editable, gpointer user_data)
+void
+on_entry_server_hostname_activate(GtkEditable *unused_editable,
+		gpointer unused_udata)
 {
    	gchar *e;
 
+	(void) unused_editable;
+	(void) unused_udata;
 	e = STRTRACK(gtk_editable_get_chars(
         GTK_EDITABLE(lookup_widget(dlg_prefs, "entry_server_hostname")), 
         0, -1));
@@ -197,105 +215,118 @@ void on_entry_server_hostname_activate
 }
 FOCUS_TO_ACTIVATE(entry_server_hostname)
 
-void on_entry_server_hostname_changed
-    (GtkEditable *editable,  gpointer user_data)
+void
+on_entry_server_hostname_changed(GtkEditable *editable, gpointer unused_udata)
 {
     gchar *e = STRTRACK(gtk_editable_get_chars(editable, 0, -1));
 
+	(void) unused_udata;
 	g_strstrip(e);
-
 	gtk_widget_set_sensitive(
         lookup_widget(dlg_prefs, "checkbutton_give_server_hostname"),
         strlen(e) > 3);		/* Minimum: "x.cx" */
-
 	g_free(e);
 }
 
 
-void on_menu_toolbar_visible_activate
-    (GtkMenuItem *menuitem, gpointer user_data)
+void
+on_menu_toolbar_visible_activate(GtkMenuItem *menuitem, gpointer unused_udata)
 {
+	(void) unused_udata;
 	checkmenu_changed(gui, PROP_TOOLBAR_VISIBLE, menuitem);
 }
 
-void on_menu_statusbar_visible_activate
-    (GtkMenuItem *menuitem, gpointer user_data)
+void
+on_menu_statusbar_visible_activate(GtkMenuItem *menuitem, gpointer unused_udata)
 {
+	(void) unused_udata;
 	checkmenu_changed(gui, PROP_STATUSBAR_VISIBLE, menuitem);
 }
 
-void on_menu_downloads_visible_activate(GtkMenuItem * menuitem,
-									 gpointer user_data)
+void
+on_menu_downloads_visible_activate(GtkMenuItem *menuitem, gpointer unused_udata)
 {
+	(void) unused_udata;
 	checkmenu_changed(gui, PROP_PROGRESSBAR_DOWNLOADS_VISIBLE, menuitem);
 }
 
-void on_menu_uploads_visible_activate(GtkMenuItem * menuitem,
-								   gpointer user_data)
+void
+on_menu_uploads_visible_activate(GtkMenuItem *menuitem, gpointer unused_udata)
 {
+	(void) unused_udata;
 	checkmenu_changed(gui, PROP_PROGRESSBAR_UPLOADS_VISIBLE, menuitem);
 }
 
-void on_menu_connections_visible_activate(GtkMenuItem * menuitem,
-									   gpointer user_data)
+void
+on_menu_connections_visible_activate(GtkMenuItem *menuitem,
+		gpointer unused_udata)
 {
+	(void) unused_udata;
 	checkmenu_changed(gui, PROP_PROGRESSBAR_CONNECTIONS_VISIBLE, menuitem);
 }
 
-void on_menu_bws_in_visible_activate(GtkMenuItem * menuitem,
-								     gpointer user_data)
+void
+on_menu_bws_in_visible_activate(GtkMenuItem *menuitem, gpointer unused_udata)
 {
+	(void) unused_udata;
 	checkmenu_changed(gui, PROP_PROGRESSBAR_BWS_IN_VISIBLE, menuitem);
 }
 
-void on_menu_bws_out_visible_activate(GtkMenuItem * menuitem,
-								      gpointer user_data)
+void
+on_menu_bws_out_visible_activate(GtkMenuItem *menuitem, gpointer unused_udata)
 {
+	(void) unused_udata;
 	checkmenu_changed(gui, PROP_PROGRESSBAR_BWS_OUT_VISIBLE, menuitem);
 }
 
-void on_menu_bws_gin_visible_activate(GtkMenuItem * menuitem,
-						 		      gpointer user_data)
+void
+on_menu_bws_gin_visible_activate(GtkMenuItem *menuitem, gpointer unused_udata)
 {
+	(void) unused_udata;
 	checkmenu_changed(gui, PROP_PROGRESSBAR_BWS_GIN_VISIBLE, menuitem);
 }
 
-void on_menu_bws_gout_visible_activate(GtkMenuItem * menuitem,
-								       gpointer user_data)
+void
+on_menu_bws_gout_visible_activate(GtkMenuItem *menuitem, gpointer unused_udata)
 {
+	(void) unused_udata;
 	checkmenu_changed(gui, PROP_PROGRESSBAR_BWS_GOUT_VISIBLE, menuitem);
 }
 
-void on_menu_bws_glin_visible_activate(GtkMenuItem * menuitem,
-						 		      gpointer user_data)
+void
+on_menu_bws_glin_visible_activate(GtkMenuItem *menuitem, gpointer unused_udata)
 {
+	(void) unused_udata;
 	checkmenu_changed(gui, PROP_PROGRESSBAR_BWS_GLIN_VISIBLE, menuitem);
 }
 
-void on_menu_bws_glout_visible_activate(GtkMenuItem * menuitem,
-								       gpointer user_data)
+void
+on_menu_bws_glout_visible_activate(GtkMenuItem *menuitem, gpointer unused_udata)
 {
+	(void) unused_udata;
 	checkmenu_changed(gui, PROP_PROGRESSBAR_BWS_GLOUT_VISIBLE, menuitem);
 }
 
-
-
-void on_menu_autohide_bws_gleaf_activate(GtkMenuItem * menuitem,
-                                        gpointer user_data)
+void
+on_menu_autohide_bws_gleaf_activate(GtkMenuItem *menuitem,
+		gpointer unused_udata)
 {
+	(void) unused_udata;
 	checkmenu_changed(gui, PROP_AUTOHIDE_BWS_GLEAF, menuitem);
 }
 
-
-
-void on_popup_search_toggle_tabs_activate
-    (GtkMenuItem *menuitem, gpointer user_data)
+void
+on_popup_search_toggle_tabs_activate(GtkMenuItem *unused_menuitem,
+		gpointer unused_udata)
 {
     gboolean val;
 
-    gui_prop_get_boolean(PROP_SEARCH_RESULTS_SHOW_TABS, &val, 0, 1);
+	(void) unused_menuitem;
+	(void) unused_udata;
+	
+    gui_prop_get_boolean_val(PROP_SEARCH_RESULTS_SHOW_TABS, &val);
     val = !val;
-    gui_prop_set_boolean(PROP_SEARCH_RESULTS_SHOW_TABS, &val, 0, 1);
+    gui_prop_set_boolean_val(PROP_SEARCH_RESULTS_SHOW_TABS, val);
 }
 
 /* vi: set ts=4 sw=4 cindent: */
