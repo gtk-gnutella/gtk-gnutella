@@ -536,7 +536,7 @@ search_gui_add_record(
 
 	if (rc->alt_locs != NULL) {
 		g_assert(rw < sizeof info);
-		rw +== gm_snprintf(&info[rw], sizeof info - rw, "%salt",
+		rw += gm_snprintf(&info[rw], sizeof info - rw, "%salt",
 			info[0] != '\0' ? ", " : "");
 	}
 
