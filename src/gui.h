@@ -3,6 +3,7 @@
 
 #include "downloads.h"
 #include "uploads.h"
+#include "search.h"
 
 /* gui.c */
 
@@ -43,6 +44,12 @@ void gui_update_socks_host();
 void gui_update_socks_port();
 void gui_update_socks_user();
 void gui_update_socks_pass();
+void gui_search_update_items(struct search *sch);
+void gui_search_create_clist(GtkWidget ** sw, GtkWidget ** clist);
+void gui_search_init(void);
+void gui_search_force_update_tab_label(struct search *sch);
+gboolean gui_search_update_tab_label(struct search *sch);
+void gui_search_clear_results(void);
 void gui_close(void);
 
 #endif /* __gui_h__ */

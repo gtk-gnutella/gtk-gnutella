@@ -9,6 +9,7 @@ RAM's TODO list:
 * Implement modular HTTP parsing code as coroutine.
 * Add a regression test suite for the protocol.
 * Add "safer" resume: read a few bytes we already got, and compare.
+* Replace randomly when results > max_results in Query Hits
 
 TODO List :
 

@@ -10,12 +10,17 @@
 #include "downloads.h" /* For stats globals. (FIXME: move to config.h?) */
 #include "hosts.h" /* For pr_ref. (FIXME: ???) */
 #include "misc.h"
+#include "callbacks.h"
 
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <math.h>
 
 gchar gui_tmp[4096];
+
+/* If no search are currently allocated */
+GtkWidget *default_search_clist = NULL;
+GtkWidget *default_scrolled_window = NULL;
 
 void gui_set_status(gchar * msg)
 {
@@ -640,6 +645,128 @@ void gui_update_upload(struct upload *u)
 
 	gtk_clist_set_text(GTK_CLIST(clist_uploads), row, 2, gui_tmp);
 
+}
+
+/* Create a new GtkCList for search results */
+
+void gui_search_create_clist(GtkWidget ** sw, GtkWidget ** clist)
+{
+	GtkWidget *label;
+	gint i;
+
+	*sw = gtk_scrolled_window_new(NULL, NULL);
+
+	gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(*sw),
+								   GTK_POLICY_AUTOMATIC,
+								   GTK_POLICY_AUTOMATIC);
+
+	*clist = gtk_clist_new(5);
+
+	gtk_container_add(GTK_CONTAINER(*sw), *clist);
+	for (i = 0; i < 5; i++)
+		gtk_clist_set_column_width(GTK_CLIST(*clist), i,
+								   search_results_col_widths[i]);
+	gtk_clist_set_selection_mode(GTK_CLIST(*clist),
+								 GTK_SELECTION_EXTENDED);
+	gtk_clist_column_titles_show(GTK_CLIST(*clist));
+
+	label = gtk_label_new("File");
+	gtk_clist_set_column_widget(GTK_CLIST(*clist), 0, label);
+
+	label = gtk_label_new("Size");
+	gtk_clist_set_column_widget(GTK_CLIST(*clist), 1, label);
+
+	label = gtk_label_new("Speed");
+	gtk_widget_show(label);
+	gtk_clist_set_column_widget(GTK_CLIST(*clist), 2, label);
+
+	label = gtk_label_new("Host");
+	gtk_clist_set_column_widget(GTK_CLIST(*clist), 3, label);
+
+	label = gtk_label_new("Info");
+	gtk_clist_set_column_widget(GTK_CLIST(*clist), 4, label);
+
+	gtk_widget_show_all(*sw);
+
+	gtk_signal_connect(GTK_OBJECT(*clist), "select_row",
+					   GTK_SIGNAL_FUNC(on_clist_search_results_select_row),
+					   NULL);
+	gtk_signal_connect(GTK_OBJECT(*clist), "unselect_row",
+					   GTK_SIGNAL_FUNC
+					   (on_clist_search_results_unselect_row), NULL);
+	gtk_signal_connect(GTK_OBJECT(*clist), "click_column",
+					   GTK_SIGNAL_FUNC
+					   (on_clist_search_results_click_column), NULL);
+	gtk_signal_connect(GTK_OBJECT(*clist), "button_press_event",
+					   GTK_SIGNAL_FUNC
+					   (on_clist_search_results_button_press_event), NULL);
+	gtk_signal_connect(GTK_OBJECT(*clist), "resize-column",
+					   GTK_SIGNAL_FUNC
+					   (on_clist_search_results_resize_column), NULL);
+}
+
+void gui_search_update_items(struct search *sch)
+{
+	if (sch && sch->items)
+		g_snprintf(gui_tmp, sizeof(gui_tmp), "%u item%s found", sch->items,
+				   (sch->items > 1) ? "s" : "");
+	else
+		g_snprintf(gui_tmp, sizeof(gui_tmp), "No item found");
+	gtk_label_set(GTK_LABEL(label_items_found), gui_tmp);
+}
+
+void gui_search_init(void)
+{
+	gui_search_create_clist(&default_scrolled_window, &default_search_clist);
+	gtk_notebook_remove_page(GTK_NOTEBOOK(notebook_search_results), 0);
+	gtk_notebook_set_scrollable(GTK_NOTEBOOK(notebook_search_results),
+								TRUE);
+	gtk_notebook_append_page(GTK_NOTEBOOK(notebook_search_results),
+							 default_scrolled_window, NULL);
+	gtk_signal_connect(GTK_OBJECT(GTK_COMBO(combo_searches)->popwin),
+					   "hide", GTK_SIGNAL_FUNC(on_search_popdown_switch),
+					   NULL);
+	gtk_signal_connect(GTK_OBJECT(notebook_search_results), "switch_page",
+					   GTK_SIGNAL_FUNC(on_search_notebook_switch), NULL);
+	gtk_window_set_position(GTK_WINDOW(dialog_filters),
+							GTK_WIN_POS_CENTER);
+}
+
+/* Like search_update_tab_label but always update the label */
+void gui_search_force_update_tab_label(struct search *sch)
+{
+	if (sch == current_search || sch->unseen_items == 0)
+		g_snprintf(gui_tmp, sizeof(gui_tmp), "%s\n(%d)", sch->query,
+				   sch->items);
+	else
+		g_snprintf(gui_tmp, sizeof(gui_tmp), "%s\n(%d, %d)", sch->query,
+				   sch->items, sch->unseen_items);
+	sch->last_update_items = sch->items;
+	gtk_notebook_set_tab_label_text(GTK_NOTEBOOK(notebook_search_results),
+									sch->scrolled_window, gui_tmp);
+	sch->last_update_time = time(NULL);
+}
+
+/* Doesn't update the label if nothing's changed or if the last update was
+   recent. */
+gboolean gui_search_update_tab_label(struct search *sch)
+{
+	if (sch->items == sch->last_update_items)
+		return TRUE;
+
+	if (time(NULL) - sch->last_update_time < tab_update_time)
+		return TRUE;
+
+	gui_search_force_update_tab_label(sch);
+
+	return TRUE;
+}
+
+void gui_search_clear_results(void)
+{
+	gtk_clist_clear(GTK_CLIST(current_search->clist));
+	current_search->items = current_search->unseen_items = 0;
+	gui_search_force_update_tab_label(current_search);
 }
 
 void gui_close(void)

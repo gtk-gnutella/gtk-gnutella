@@ -1,4 +1,8 @@
+#ifndef __callbacks_h__
+#define __callbacks_h__
+
 #include <gtk/gtk.h>
+#include "search.h"
 
 void on_button_stats_update_clicked (GtkButton *button, gpointer user_data);
 void on_button_nodes_remove_clicked (GtkButton *button, gpointer user_data);
@@ -135,3 +139,24 @@ void on_entry_max_connections_activate (GtkEditable *editable, gpointer user_dat
 gboolean on_entry_max_connections_focus_out_event (GtkWidget *, GdkEventFocus*, gpointer);
 void on_popup_search_stop_activate (GtkMenuItem *menuitem, gpointer user_data);
 void on_popup_search_resume_activate (GtkMenuItem *menuitem, gpointer user_data);
+void on_clist_search_results_select_row(GtkCList * clist, gint row, gint column, GdkEvent * event, gpointer user_data);
+void on_clist_search_results_unselect_row(GtkCList * clist, gint row, gint column, GdkEvent * event, gpointer user_data);
+void on_clist_search_results_click_column(GtkCList * clist, gint column, gpointer user_data);
+void on_popup_search_stop_sorting_activate(GtkMenuItem * menuitem, gpointer user_data);
+void on_popup_search_filters_activate(GtkMenuItem * menuitem, gpointer user_data);
+void on_popup_search_close_activate(GtkMenuItem * menuitem, gpointer user_data);
+void on_popup_search_toggle_tabs_activate(GtkMenuItem * menuitem, gpointer user_data);
+void on_popup_search_restart_activate(GtkMenuItem * menuitem, gpointer user_data);
+void on_popup_search_duplicate_activate(GtkMenuItem * menuitem, gpointer user_data);
+void on_popup_search_stop_activate(GtkMenuItem * menuitem, gpointer user_data);
+void on_popup_search_resume_activate(GtkMenuItem * menuitem, gpointer user_data);
+gboolean on_clist_search_results_button_press_event(GtkWidget * widget, GdkEventButton * event, gpointer user_data);
+void on_clist_search_results_resize_column(GtkCList * clist, gint column, gint width, gpointer user_data);
+void on_search_selected(GtkItem * i, gpointer data);
+void on_search_switch(struct search *sch);
+void on_search_popdown_switch(GtkWidget * w, gpointer data);
+void on_search_notebook_switch(GtkNotebook * notebook, GtkNotebookPage * page, gint page_num, gpointer user_data);
+void on_button_search_clear_clicked(GtkButton * button, gpointer user_data);
+void on_popup_search_clear_results_activate(GtkMenuItem * menuitem, gpointer user_data);
+
+#endif	/* __callbacks_h__ */

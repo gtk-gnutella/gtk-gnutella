@@ -15,6 +15,7 @@
 #include "downloads.h"
 #include "misc.h"
 #include "autodownload.h"
+#include "dialog-filters.h"
 
 gchar c_tmp[2048];
 
@@ -1583,5 +1584,371 @@ gboolean on_entry_max_connections_focus_out_event(GtkWidget * widget,
 	return TRUE;
 }
 
+/*
+ * search callbacks
+ */
+
+/* ----------------------------------------- */
+
+static gint search_results_compare_size(GtkCList * clist, gconstpointer ptr1,
+								 gconstpointer ptr2)
+{
+	guint32 s1 = ((struct record *) ((GtkCListRow *) ptr1)->data)->size;
+	guint32 s2 = ((struct record *) ((GtkCListRow *) ptr2)->data)->size;
+
+	return (s1 == s2) ? 0 :
+		(s1 > s2) ? +1 : -1;
+}
+
+static gint search_results_compare_speed(GtkCList * clist, gconstpointer ptr1,
+								  gconstpointer ptr2)
+{
+	struct results_set *rs1 =
+		((struct record *) ((GtkCListRow *) ptr1)->data)->results_set;
+	struct results_set *rs2 =
+		((struct record *) ((GtkCListRow *) ptr2)->data)->results_set;
+
+	return (rs1->speed == rs2->speed) ? 0 :
+		(rs1->speed > rs2->speed) ? +1 : -1;
+}
+
+static gint search_results_compare_host(GtkCList * clist, gconstpointer ptr1,
+							   gconstpointer ptr2)
+{
+	struct results_set *rs1 =
+		((struct record *) ((GtkCListRow *) ptr1)->data)->results_set;
+	struct results_set *rs2 =
+		((struct record *) ((GtkCListRow *) ptr2)->data)->results_set;
+
+	if (rs1->ip == rs2->ip)
+		return (gint) rs1->port - (gint) rs2->port;
+	else
+		return (rs1->ip > rs2->ip) ? +1 : -1;
+}
+
+/* ----------------------------------------- */
+
+/* Row selected */
+
+static gint select_all_lock = 0;
+
+void on_clist_search_results_select_row(GtkCList * clist, gint row,
+										gint column, GdkEvent * event,
+										gpointer user_data)
+{
+	gtk_widget_set_sensitive(button_search_download, TRUE);
+
+	if (search_pick_all) {		// config setting select all is on
+		if (!select_all_lock) {
+			struct record *rc, *rc2;
+			gint x, i;
+			// this will be called for each selection, so only do it here
+			select_all_lock = 1;
+			rc = (struct record *) gtk_clist_get_row_data(clist, row);
+			x = 1;
+			for (i = 0; i < clist->rows; i++) {
+				if (i == row)
+					continue;	// skip this one
+				rc2 = (struct record *) gtk_clist_get_row_data(clist, i);
+				// if name match and file is same or larger, select it
+				if (rc2)
+					if (!strcmp(rc2->name, rc->name)) {
+						if (rc2->size >= rc->size) {
+							gtk_clist_select_row(clist, i, 0);
+							x++;
+						}
+					}
+			}
+			g_snprintf(c_tmp, sizeof(c_tmp),
+					   "		(%d auto selected)", x);
+			gtk_label_set(GTK_LABEL(label_left), c_tmp);
+			select_all_lock = 0;		// we are done, un "lock" it
+		}
+	}
+}
+
+/* Row unselected */
+
+void on_clist_search_results_unselect_row(GtkCList * clist, gint row,
+										  gint column, GdkEvent * event,
+										  gpointer user_data)
+{
+	gboolean sensitive;
+
+	sensitive = current_search
+		&& GTK_CLIST(current_search->clist)->selection;
+	gtk_widget_set_sensitive(button_search_download, sensitive);
+	if (search_pick_all)
+		gtk_label_set(GTK_LABEL(label_left), "");
+}
+
+/* Column title clicked */
+
+void on_clist_search_results_click_column(GtkCList * clist, gint column,
+										  gpointer user_data)
+{
+	if (current_search == NULL)
+		return;
+
+	switch (column) {
+	case 1:		/* Size */
+		gtk_clist_set_compare_func(GTK_CLIST(current_search->clist),
+								   search_results_compare_size);
+		break;
+	case 2:		/* Speed */
+		gtk_clist_set_compare_func(GTK_CLIST(current_search->clist),
+								   search_results_compare_speed);
+		break;
+	case 3:		/* Host */
+		gtk_clist_set_compare_func(GTK_CLIST(current_search->clist),
+								   search_results_compare_host);
+		break;
+	default:
+		gtk_clist_set_compare_func(GTK_CLIST(current_search->clist), NULL);
+	}
+
+	if (column == current_search->sort_col) {
+		current_search->sort_order =
+			(current_search->sort_order > 0) ? -1 : 1;
+	} else {
+		current_search->sort_col = column;
+		current_search->sort_order = 1;
+	}
+
+	gtk_clist_set_sort_type(GTK_CLIST(current_search->clist),
+		(current_search->sort_order > 0) ?
+			GTK_SORT_ASCENDING : GTK_SORT_DESCENDING);
+	gtk_clist_set_sort_column(GTK_CLIST(current_search->clist), column);
+
+	gtk_clist_sort(GTK_CLIST(current_search->clist));
+
+	current_search->sort = TRUE;
+}
+
+/* Search results popup menu (glade puts funcs prototypes in callbacks.h) */
+
+void on_popup_search_stop_sorting_activate(GtkMenuItem * menuitem,
+										   gpointer user_data)
+{
+	if (current_search)
+		current_search->sort = FALSE;
+}
+
+void on_popup_search_filters_activate(GtkMenuItem * menuitem,
+									  gpointer user_data)
+{
+	filters_open_dialog();
+}
+
+void on_popup_search_close_activate(GtkMenuItem * menuitem,
+									gpointer user_data)
+{
+	if (current_search)
+		search_close_current();
+}
+
+void on_popup_search_toggle_tabs_activate(GtkMenuItem * menuitem,
+										  gpointer user_data)
+{
+	gtk_notebook_set_show_tabs(GTK_NOTEBOOK(notebook_search_results),
+		(search_results_show_tabs = !search_results_show_tabs));
+}
+
+void on_popup_search_restart_activate(GtkMenuItem * menuitem,
+									  gpointer user_data)
+{
+	if (current_search)
+		search_restart(current_search);
+}
+
+void on_popup_search_duplicate_activate(GtkMenuItem * menuitem,
+										gpointer user_data)
+{
+	if (current_search)
+		new_search(current_search->speed, current_search->query);
+}
+
+void on_popup_search_stop_activate(GtkMenuItem * menuitem,
+								   gpointer user_data)
+{
+	if (current_search) {
+		gtk_widget_set_sensitive(popup_search_stop, FALSE);
+		gtk_widget_set_sensitive(popup_search_resume, TRUE);
+		search_stop(current_search);
+	}
+}
+
+void on_popup_search_resume_activate(GtkMenuItem * menuitem,
+									 gpointer user_data)
+{
+	if (current_search) {
+		gtk_widget_set_sensitive(popup_search_stop, TRUE);
+		gtk_widget_set_sensitive(popup_search_resume, FALSE);
+		search_resume(current_search);
+	}
+}
+
+gboolean on_clist_search_results_button_press_event(GtkWidget * widget,
+													GdkEventButton * event,
+													gpointer user_data)
+{
+	if (event->button != 3)
+		return FALSE;
+
+	gtk_widget_set_sensitive(popup_search_toggle_tabs,
+							 (gboolean) searches);
+	gtk_widget_set_sensitive(popup_search_close, (gboolean) searches);
+	gtk_widget_set_sensitive(popup_search_restart, (gboolean) searches);
+	gtk_widget_set_sensitive(popup_search_duplicate, (gboolean) searches);
+
+	if (current_search) {
+		gtk_clist_unselect_all(GTK_CLIST(current_search->clist));
+		gtk_widget_set_sensitive(popup_search_stop_sorting,
+								 current_search->sort);
+		gtk_widget_set_sensitive(popup_search_stop,
+								 current_search->
+								 passive ? !current_search->
+								 frozen : current_search->reissue_timeout);
+		gtk_widget_set_sensitive(popup_search_resume,
+								 current_search->passive ? current_search->
+								 frozen : !current_search->
+								 reissue_timeout);
+		if (current_search->passive)
+			gtk_widget_set_sensitive(popup_search_restart, FALSE);
+		g_snprintf(c_tmp, sizeof(c_tmp), "%s", current_search->query);
+	} else {
+		gtk_widget_set_sensitive(popup_search_stop_sorting, FALSE);
+		gtk_widget_set_sensitive(popup_search_stop, FALSE);
+		gtk_widget_set_sensitive(popup_search_resume, FALSE);
+		g_snprintf(c_tmp, sizeof(c_tmp), "No current search");
+	}
+
+	gtk_label_set(GTK_LABEL
+				  ((GTK_MENU_ITEM(popup_search_title)->item.bin.child)),
+				  c_tmp);
+
+	g_snprintf(c_tmp, sizeof(c_tmp),
+			   (search_results_show_tabs) ? "Hide tabs" : "Show tabs");
+
+	gtk_label_set(GTK_LABEL
+				  ((GTK_MENU_ITEM(popup_search_toggle_tabs)->item.bin.
+					child)), c_tmp);
+
+	gtk_menu_popup(GTK_MENU(popup_search), NULL, NULL, NULL, NULL, 3, 0);
+
+	return TRUE;
+}
+
+/* Column resize */
+
+void on_clist_search_results_resize_column(GtkCList * clist, gint column,
+										   gint width, gpointer user_data)
+{
+	static gboolean resizing = FALSE;
+	GSList *l;
+
+	if (resizing)
+		return;
+
+	resizing = TRUE;
+
+	search_results_col_widths[column] = width;
+
+	for (l = searches; l; l = l->next)
+		gtk_clist_set_column_width(GTK_CLIST
+								   (((struct search *) l->data)->clist),
+								   column, width);
+
+	resizing = FALSE;
+}
+
+void on_search_selected(GtkItem * i, gpointer data)
+{
+	search_selected = (struct search *) data;
+}
+
+static gboolean updating = FALSE;
+
+void on_search_switch(struct search *sch)
+{
+	struct search *old_sch = current_search;
+	g_return_if_fail(sch);
+
+	current_search = sch;
+	sch->unseen_items = 0;
+
+	if (old_sch)
+		gui_search_force_update_tab_label(old_sch);
+	gui_search_force_update_tab_label(sch);
+
+	gui_search_update_items(sch);
+	gui_update_minimum_speed(sch->speed);
+	gtk_widget_set_sensitive(button_search_download,
+							 (gboolean) GTK_CLIST(sch->clist)->selection);
+
+	if (sch->items == 0) {
+		gtk_widget_set_sensitive(button_search_clear, FALSE);
+		gtk_widget_set_sensitive(popup_search_clear_results, FALSE);
+	} else {
+		gtk_widget_set_sensitive(button_search_clear, TRUE);
+		gtk_widget_set_sensitive(popup_search_clear_results, TRUE);
+	}
+
+	gtk_widget_set_sensitive(popup_search_restart, !sch->passive);
+	gtk_widget_set_sensitive(popup_search_duplicate, !sch->passive);
+	gtk_widget_set_sensitive(popup_search_stop, sch->passive ?
+							 !sch->frozen : sch->reissue_timeout);
+	gtk_widget_set_sensitive(popup_search_resume, sch->passive ?
+							 sch->frozen : sch->reissue_timeout);
+}
+
+void on_search_popdown_switch(GtkWidget * w, gpointer data)
+{
+	struct search *sch = search_selected;
+	if (!sch || updating)
+		return;
+	updating = TRUE;
+	on_search_switch(sch);
+	gtk_notebook_set_page(GTK_NOTEBOOK(notebook_search_results),
+						  gtk_notebook_page_num(GTK_NOTEBOOK
+												(notebook_search_results),
+												sch->scrolled_window));
+	updating = FALSE;
+}
+
+void on_search_notebook_switch(GtkNotebook * notebook,
+							   GtkNotebookPage * page, gint page_num,
+							   gpointer user_data)
+{
+	struct search *sch =
+		gtk_object_get_user_data((GtkObject *) page->child);
+	g_return_if_fail(sch);
+	if (updating)
+		return;
+	updating = TRUE;
+	on_search_switch(sch);
+	gtk_list_item_select(GTK_LIST_ITEM(sch->list_item));
+	updating = FALSE;
+}
+
+void on_button_search_clear_clicked(GtkButton * button, gpointer user_data)
+{
+	gui_search_clear_results();
+
+	gtk_widget_set_sensitive(button_search_clear, FALSE);
+	gtk_widget_set_sensitive(popup_search_clear_results, FALSE);
+
+}
+
+void
+on_popup_search_clear_results_activate(GtkMenuItem * menuitem,
+									   gpointer user_data)
+{
+	gui_search_clear_results();
+
+	gtk_widget_set_sensitive(button_search_clear, FALSE);
+	gtk_widget_set_sensitive(popup_search_clear_results, FALSE);
+
+}
 
 /* vi: set ts=4: */

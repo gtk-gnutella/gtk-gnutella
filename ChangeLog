@@ -14,6 +14,9 @@
 - Don't send user/password to proxy if none was configured
 - Assume we're firewalled and advertise so until we get an incoming connection
 - Try to parse all extended Query Hit Data (the open part) assuming BS compat.
+- Started to reorganize GUI/callbacks in search.c, moving relevant code to
+  callbacks.c and gui.c.  There is still a fair amount of mixing between the
+  GUI stuff and the program logic, requiring further fine tuning.
 
 # v 0.18   2001.11.19
 

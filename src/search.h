@@ -101,6 +101,8 @@ extern guint32 search_passive;
 extern guint32 search_reissue_timeout;
 extern GSList *searches;			/* List of search structs */
 extern guint32 search_max_results;	/* Max items allowed in GUI results */
+extern struct search *search_selected;
+extern struct search *current_search;	/*	The search currently displayed */
 
 /* flags for _new_search() */
 #define SEARCH_PASSIVE	 0x01 /* start a passive search */
@@ -113,6 +115,8 @@ void search_init(void);
 struct search *new_search(guint16, gchar *);
 struct search *_new_search(guint16, gchar *, guint flags);
 void search_stop(struct search *sch);
+void search_restart(struct search *sch);
+void search_reissue(struct search *sch);
 void search_resume(struct search *sch);
 void search_results(struct gnutella_node *n);
 void search_download_files(void);

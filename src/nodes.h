@@ -1,6 +1,8 @@
 #ifndef __nodes_h__
 #define __nodes_h__
 
+#include "gnutella.h"
+
 struct gnutella_node {
 	gchar error_str[256];		/* To sprintf() error strings with vars */
 	struct gnutella_socket *socket;		/* Socket of the node */
