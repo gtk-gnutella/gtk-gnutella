@@ -276,11 +276,11 @@ retry:
 		sq->n_sent++;
 		sq->last_sent = now;
 		sent = TRUE;
-
-	} else if (dbg > 4) {
-		printf("sq for node %s, ignored \"%s\" (%d left, %d sent)\n",
-			node_ip(n), QUERY_TEXT(pmsg_start(sb->mb)),
-			sq->count, sq->n_sent);
+	} else {
+		if (dbg > 4)
+			printf("sq for node %s, ignored \"%s\" (%d left, %d sent)\n",
+				node_ip(n), QUERY_TEXT(pmsg_start(sb->mb)),
+				sq->count, sq->n_sent);
 		pmsg_free(sb->mb);
 	}
 
