@@ -104,10 +104,12 @@ struct dmesh_banned {
 	dmesh_urlinfo_t *info;	/* The banned URL (same as key) */
 	time_t ctime;			/* Last time we saw this banned URL */
 	gpointer cq_ev;			/* Scheduled callout event */
-	
-	const gchar *sha1;
+	const gchar *sha1;		/* The SHA1, if any */
 };
 
+/*
+ * This table stores the banned entries by SHA1.
+ */
 static GHashTable *ban_mesh_by_sha1 = NULL;
 
 #define BAN_LIFETIME	7200		/* 2 hours */
@@ -220,8 +222,6 @@ static void dmesh_ban_expire(cqueue_t *cq, gpointer obj)
 {
 	struct dmesh_banned *dmb = (struct dmesh_banned *) obj;
 
-	GSList *by_ip;
-	
 	g_assert(dmb);
 	g_assert((gpointer) dmb == g_hash_table_lookup(ban_mesh, dmb->info));
 
@@ -231,14 +231,22 @@ static void dmesh_ban_expire(cqueue_t *cq, gpointer obj)
 	 *		-- JA 24/10/2003
 	 */
 	if (dmb->sha1 != NULL) {
-		by_ip = g_hash_table_lookup(ban_mesh_by_sha1, dmb->sha1);
-		g_hash_table_remove(ban_mesh_by_sha1, dmb->sha1);
-		
-		by_ip = g_slist_remove(by_ip, &dmb->info->ip);
-		
-		if (by_ip != NULL) {
-			g_hash_table_insert(ban_mesh_by_sha1, dmb->sha1, by_ip);
-		}
+		GSList *by_ip;
+		GSList *head;
+		gpointer key;			/* The SHA1 atom used for key in table */
+		gpointer x;
+
+		head = by_ip = (GSList *) g_hash_table_lookup_extended(
+			ban_mesh_by_sha1, dmb->sha1, &key, &x);
+		by_ip = g_slist_remove(by_ip, dmb);
+
+		if (by_ip == NULL) {
+			g_hash_table_remove(ban_mesh_by_sha1, key);
+			atom_sha1_free(key);
+		} else if (by_ip != head)
+			g_hash_table_insert(ban_mesh_by_sha1, key, by_ip);
+
+		atom_sha1_free(dmb->sha1);
 	}
 	
 	g_hash_table_remove(ban_mesh, dmb->info);
@@ -260,8 +268,6 @@ static void dmesh_ban_add(const gchar *sha1,
 	struct dmesh_banned *dmb;
 	gint lifetime = BAN_LIFETIME;
 	
-	GList *by_ip = NULL;
-
 	if (stamp == 0)
 		stamp = now;
 
@@ -273,10 +279,6 @@ static void dmesh_ban_add(const gchar *sha1,
 
 	if (lifetime <= 0)
 		return;
-
-	if (sha1 != NULL) {
-		by_ip = (GList *) g_hash_table_lookup(ban_mesh_by_sha1, sha1);
-	}
 
 	/*
 	 * Insert new entry, or update old entry if the new one is more recent.
@@ -308,15 +310,18 @@ static void dmesh_ban_add(const gchar *sha1,
 		 *		-- JA, 1/11/2003.
 		 */
 		if (sha1 != NULL) {
-			/*
-			 * We remove it from the hash table first because we are going
-			 * to modify the list.
-			 */
-			g_hash_table_remove(ban_mesh_by_sha1, sha1);
-			
-			by_ip = g_list_append(by_ip, dmb);
+			GSList *by_ip;
+			gboolean existed;
 
-			g_hash_table_insert(ban_mesh_by_sha1, atom_sha1_get(sha1), by_ip);
+			dmb->sha1 = atom_sha1_get(sha1);
+
+			by_ip = (GSList *) g_hash_table_lookup(ban_mesh_by_sha1, sha1);
+			existed = by_ip != NULL;
+			by_ip = g_slist_append(by_ip, dmb);
+
+			if (!existed)
+				g_hash_table_insert(ban_mesh_by_sha1,
+					atom_sha1_get(sha1), by_ip);
 		}
 	}
 	else if (dmb->ctime < stamp) {
@@ -1145,42 +1150,54 @@ gint dmesh_alternate_location(const gchar *sha1,
 	 * of the total buffer size.
 	 *		 -- JA, 1/11/2003
 	 */
+
 	if (use_compact) {
-		GList *by_ip = NULL;
-		GList *cur;
-		gboolean first = TRUE;
+		GSList *by_ip;
+		gpointer fmt;
+		gboolean added = FALSE;
 
 		/*
 		 * Get the list with banned ips
 		 */
-		by_ip = (GList *) g_hash_table_lookup(ban_mesh_by_sha1, sha1);
-		
+
+		by_ip = (GSList *) g_hash_table_lookup(ban_mesh_by_sha1, sha1);
+
+		if (by_ip == NULL)
+			goto no_nalt;
+
+		fmt = header_fmt_make("X-Nalt", size);
+
 		/* Loop through the X-Nalts */
-		for (cur = g_list_first(by_ip);
-			cur != g_list_last(by_ip);
-			cur = g_list_next(cur)) {
-			
-			struct dmesh_banned *banned = (struct dmesh_banned *) cur->data;
+		for (l = by_ip; l != NULL; l = g_slist_next(l)) {
+			struct dmesh_banned *banned = (struct dmesh_banned *) l->data;
+			dmesh_urlinfo_t *info = banned->info;
+
+			if (info->idx != URN_INDEX)
+				continue;
+
 			if (banned->ctime > last_sent) {
-				if (first) {
-					len = gm_snprintf(&buf[len], size - len, "X-Nalt: ");
-					first = FALSE;
-				} else {
-					len = gm_snprintf(&buf[len], size - len, ",");
-				}
-				
-				len += gm_snprintf(&buf[len], size - len, "%s:%d", 
-					ip_to_gchar(banned->info->ip), banned->info->port);
+				added = TRUE;
+				header_fmt_append(
+					fmt, ip_port_to_gchar(info->ip, info->port), ", ");
+
+				if (header_fmt_length(fmt) > size / 3)
+					break;
 			}
-			
-			if (len > size / 3)
-				break;
 		}
 	
-		if (!first) {
-			len += gm_snprintf(&buf[len], size - len, "\r\n");
+		if (added) {
+			gint length;
+			header_fmt_end(fmt);
+			length = header_fmt_length(fmt);
+			g_assert(length < size);
+			strncpy(buf, header_fmt_string(fmt), length + 1); /* + final NUL */
+			len += length;
 		}	
+
+		header_fmt_free(fmt);
 	}
+
+no_nalt:
 	
 	/*
 	 * Start filling the buffer.
@@ -2547,6 +2564,19 @@ static gboolean dmesh_ban_free_kv(gpointer key, gpointer value, gpointer udata)
 }
 
 /*
+ * dmesh_ban_sha1_free_kv
+ *
+ * Free key/value pair in the ban_mesh_by_sha1 hash.
+ */
+static gboolean dmesh_ban_sha1_free_kv(
+	gpointer key, gpointer value, gpointer udata)
+{
+	atom_sha1_free(key);
+
+	return TRUE;
+}
+
+/*
  * dmesh_close
  *
  * Called at servent shutdown time.
@@ -2561,4 +2591,8 @@ void dmesh_close(void)
 
 	g_hash_table_foreach_remove(ban_mesh, dmesh_ban_free_kv, NULL);
 	g_hash_table_destroy(ban_mesh);
+
+	g_hash_table_foreach_remove(ban_mesh_by_sha1, dmesh_ban_sha1_free_kv, NULL);
+	g_hash_table_destroy(ban_mesh_by_sha1);
 }
+
