@@ -781,7 +781,7 @@ download_gui_add(download_t *d)
 		  	c_queue_host, guc_download_get_hostname(d),
 		  	c_queue_loc, guc_download_get_country(d),
 	      	c_queue_size, d_file_size,
-	      	c_queue_server, vendor,
+	      	c_queue_server, lazy_locale_to_utf8(vendor, 0),
 	      	c_queue_status, NULL,
 		  	c_queue_record, d,
    	      	(-1));		
@@ -896,7 +896,7 @@ download_gui_add(download_t *d)
 			c_dl_loc, guc_download_get_country(d),
 			c_dl_size, d_file_size,
 			c_dl_range, NULL,
-			c_dl_server, vendor,
+			c_dl_server, lazy_locale_to_utf8(vendor, 0),
 			c_dl_progress, force_range(
 				guc_download_total_progress(d), 0.0, 1.0),
 			c_dl_status, NULL,
@@ -1120,7 +1120,7 @@ void gui_update_download_column(download_t *d, GtkTreeView *tree_view,
 		return;
 	}
 
-	gtk_tree_store_set(model, iter, column, value, (-1));
+	gtk_tree_store_set(model, iter, column, lazy_locale_to_utf8(value, 0), (-1));
 }
 
 
