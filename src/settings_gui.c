@@ -2016,7 +2016,6 @@ static prop_map_t property_map[] = {
         "label_clock_skew",
         FREQ_UPDATES, 0
     },
-#ifndef USE_GTK2
     {
         get_main_window,
         PROP_HOST_RUNS_NTP,
@@ -2025,7 +2024,6 @@ static prop_map_t property_map[] = {
         "checkbutton_host_runs_ntp",
         FREQ_UPDATES, 0
     },
-#endif
 #ifdef USE_GTK2
 /* FIXME: Gtk1 version should have these too */
     {
