@@ -1061,7 +1061,7 @@ static prop_map_t property_map[] = {
         hosts_in_catcher_changed,
         TRUE,
         "progressbar_hosts_in_catcher",
-        FREQ_SECS, 1
+        FREQ_SECS, 0
     },
     {
         get_main_window,
@@ -1361,6 +1361,22 @@ static prop_map_t property_map[] = {
     },
     {
         NULL,
+        PROP_PROGRESSBAR_BWS_GLIN_AVG,
+        traffic_stats_mode_changed,
+        FALSE,
+        NULL,
+        FREQ_UPDATES, 0
+    },
+    {
+        NULL,
+        PROP_PROGRESSBAR_BWS_GLOUT_AVG,
+        traffic_stats_mode_changed,
+        FALSE,
+        NULL,
+        FREQ_UPDATES, 0
+    },
+    {
+        NULL,
         PROP_NODE_SENDQUEUE_SIZE,
         IGNORE,
         FALSE,
@@ -1650,7 +1666,7 @@ static prop_map_t property_map[] = {
         hosts_in_ultra_catcher_changed,
         TRUE,
         "progressbar_hosts_in_ultra_catcher",
-        FREQ_SECS, 1
+        FREQ_SECS, 0
     },
     {
         get_main_window,
@@ -1658,7 +1674,7 @@ static prop_map_t property_map[] = {
         update_entry,
         TRUE,
         "entry_ul_byte_count",
-        FREQ_SECS, 2
+        FREQ_SECS, 1
     },
     {
         get_main_window,
@@ -1666,7 +1682,7 @@ static prop_map_t property_map[] = {
         update_entry,
         TRUE,
         "entry_dl_byte_count",
-        FREQ_SECS, 2
+        FREQ_SECS, 1
     },
     {
         get_main_window,
@@ -2872,7 +2888,7 @@ static gboolean progressbar_bws_gout_visible_changed(property_t prop)
 static gboolean progressbar_downloads_visible_changed(property_t prop)
 {
     gboolean val;
-    GtkWidget *w = lookup_widget(main_window, "progressbar_downloads");
+    GtkWidget *w = lookup_widget(main_window, "hbox_stats_downloads");
     GtkCheckMenuItem *cm = GTK_CHECK_MENU_ITEM
         (lookup_widget(main_window, "menu_downloads_visible"));
 
@@ -2886,7 +2902,7 @@ static gboolean progressbar_downloads_visible_changed(property_t prop)
 static gboolean progressbar_uploads_visible_changed(property_t prop)
 {
     gboolean val;
-    GtkWidget *w = lookup_widget(main_window, "progressbar_uploads");
+    GtkWidget *w = lookup_widget(main_window, "hbox_stats_uploads");
     GtkCheckMenuItem *cm = GTK_CHECK_MENU_ITEM
         (lookup_widget(main_window, "menu_uploads_visible"));
 
@@ -2900,7 +2916,7 @@ static gboolean progressbar_uploads_visible_changed(property_t prop)
 static gboolean progressbar_connections_visible_changed(property_t prop)
 {
     gboolean val;
-    GtkWidget *w = lookup_widget(main_window, "progressbar_connections");
+    GtkWidget *w = lookup_widget(main_window, "hbox_stats_connections");
     GtkCheckMenuItem *cm = GTK_CHECK_MENU_ITEM
         (lookup_widget(main_window, "menu_connections_visible"));
 

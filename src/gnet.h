@@ -467,27 +467,24 @@ typedef struct gnet_stat {
     guint32 general[GNR_TYPE_COUNT];
 } gnet_stats_t;
 
+typedef enum {
+    BW_GNET_IN,
+    BW_GNET_OUT,
+    BW_HTTP_IN,
+    BW_HTTP_OUT,
+    BW_LEAF_IN,
+    BW_LEAF_OUT
+} gnet_bw_source;
+
 typedef struct gnet_bw_stats {
-    gboolean gnet_in_enabled;
-    guint32  gnet_in;
-    guint32  gnet_in_avg;
-    guint32  gnet_in_limit;
-    gboolean gnet_out_enabled;
-    guint32  gnet_out;
-    guint32  gnet_out_avg;
-    guint32  gnet_out_limit;
-    gboolean http_in_enabled;
-    guint32  http_in;
-    guint32  http_in_avg;
-    guint32  http_in_limit;
-    gboolean http_out_enabled;
-    guint32  http_out;
-    guint32  http_out_avg;
-    guint32  http_out_limit;
+    gboolean enabled;
+    guint32  current;
+    guint32  average;
+    guint32  limit;
 } gnet_bw_stats_t;
 
 void gnet_stats_get(gnet_stats_t *stats);
-void gnet_get_bw_stats(gnet_bw_stats_t *stats);
+void gnet_get_bw_stats(gnet_bw_source type, gnet_bw_stats_t *stats);
 
 
 

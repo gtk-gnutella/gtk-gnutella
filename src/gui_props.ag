@@ -422,6 +422,24 @@ prop = {
 };
 
 prop = {
+    name = "progressbar_bws_glin_visible";
+    desc = "Display incoming gNet leaf traffic bandwidth usage";
+    type = boolean;
+    data = {
+        default = TRUE;
+    };
+};
+
+prop = {
+    name = "progressbar_bws_glout_visible";
+    desc = "Display outgoing gNet leaf traffic bandwidth usage";
+    type = boolean;
+    data = {
+        default = TRUE;
+    };
+};
+
+prop = {
     name = "progressbar_bws_in_avg";
     desc = "Display incoming HTTP traffic bandwidth average";
     type = boolean;
@@ -451,6 +469,24 @@ prop = {
 prop = {
     name = "progressbar_bws_gout_avg";
     desc = "Display outgoing gNet traffic bandwidth average";
+    type = boolean;
+    data = {
+        default = TRUE;
+    };
+};
+
+prop = {
+    name = "progressbar_bws_glin_avg";
+    desc = "Display incoming gNet leaf traffic bandwidth average";
+    type = boolean;
+    data = {
+        default = TRUE;
+    };
+};
+
+prop = {
+    name = "progressbar_bws_glout_avg";
+    desc = "Display outgoing gNet leaf traffic bandwidth average";
     type = boolean;
     data = {
         default = TRUE;

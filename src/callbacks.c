@@ -112,6 +112,31 @@ gboolean on_progressbar_bws_gout_button_press_event(GtkWidget *widget,
 	return TRUE;
 }
 
+gboolean on_progressbar_bws_lin_button_press_event(GtkWidget *widget, 
+											      GdkEventButton *event, 
+											      gpointer user_data)
+{
+    gboolean val;
+    
+    gui_prop_get_boolean(PROP_PROGRESSBAR_BWS_GLIN_AVG, &val, 0, 1);
+    val = !val;
+    gui_prop_set_boolean(PROP_PROGRESSBAR_BWS_GLIN_AVG, &val, 0, 1);
+	return TRUE;
+}
+
+gboolean on_progressbar_bws_lout_button_press_event(GtkWidget *widget, 
+											       GdkEventButton *event, 
+											       gpointer user_data)
+{
+    gboolean val;
+    
+    gui_prop_get_boolean(PROP_PROGRESSBAR_BWS_GLOUT_AVG, &val, 0, 1);
+    val = !val;
+    gui_prop_set_boolean(PROP_PROGRESSBAR_BWS_GLOUT_AVG, &val, 0, 1);
+	return TRUE;
+}
+
+
 
 /***
  *** gnutellaNet pane

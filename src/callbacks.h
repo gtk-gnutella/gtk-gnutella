@@ -63,6 +63,8 @@ gboolean on_progressbar_bws_in_button_press_event(GtkWidget *widget, GdkEventBut
 gboolean on_progressbar_bws_out_button_press_event(GtkWidget *widget, GdkEventButton *event, gpointer user_data);
 gboolean on_progressbar_bws_gin_button_press_event(GtkWidget *widget, GdkEventButton *event, gpointer user_data);
 gboolean on_progressbar_bws_gout_button_press_event(GtkWidget *widget, GdkEventButton *event, gpointer user_data);
+gboolean on_progressbar_bws_lin_button_press_event(GtkWidget *widget, GdkEventButton *event, gpointer user_data);
+gboolean on_progressbar_bws_lout_button_press_event(GtkWidget *widget, GdkEventButton *event, gpointer user_data);
 
 
 
@@ -154,3 +156,4 @@ on_button_config_select_ui_clicked     (GtkButton       *button,
 void
 on_button_config_select_dbg_clicked    (GtkButton       *button,
                                         gpointer         user_data);
+
