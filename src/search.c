@@ -1348,22 +1348,22 @@ static gboolean search_reissue_timeout_callback(gpointer data)
 static void update_one_reissue_timeout(search_ctrl_t *sch)
 {
 	guint32 max_items;
-	guint percent;
-	guint factor;
+	gint percent;
+	gfloat factor;
 	guint32 tm;
 
-    g_assert(sch != NULL);
-    g_assert(!sch->passive);
+	g_assert(sch != NULL);
+	g_assert(!sch->passive);
 
-    if (sch->reissue_timeout_id > 0)
-        g_source_remove(sch->reissue_timeout_id);
+	if (sch->reissue_timeout_id > 0)
+		g_source_remove(sch->reissue_timeout_id);
 
-    /*
-     * When a search is frozen or the reissue_timout is zero, all we need 
-     * to do is to remove the timer.
-     */
-    if (sch->frozen || (sch->reissue_timeout == 0))
-        return;
+	/*
+	 * When a search is frozen or the reissue_timout is zero, all we need 
+	 * to do is to remove the timer.
+	 */
+	if (sch->frozen || (sch->reissue_timeout == 0))
+		return;
 
 	/*
 	 * Look at the amount of items we got for this search already.
@@ -1372,21 +1372,22 @@ static void update_one_reissue_timeout(search_ctrl_t *sch)
 
 	gui_prop_get_guint32_val(PROP_SEARCH_MAX_RESULTS, &max_items);
 	percent = sch->items * 100 / max_items;
-	factor = (percent < 40) ? 1 : 2 + (percent - 40) * (percent - 40) / 250;
+	factor = (percent < 10) ? 1.0 :
+		1.0 + (percent - 10) * (percent - 10) / 550.0;
 
-    tm = (guint32) sch->reissue_timeout;
-	tm = MAX(tm, SEARCH_MIN_RETRY) * factor;
+	tm = (guint32) sch->reissue_timeout;
+	tm = (guint32) (MAX(tm, SEARCH_MIN_RETRY) * factor);
 
-    /*
-     * Otherwise we also add a new timer. If the search was stopped, this
-     * will restart the search, otherwise is will simply reset the timer
-     * and set a new timer with the searches's reissue_timeout.
-     */
+	/*
+	 * Otherwise we also add a new timer. If the search was stopped, this
+	 * will restart the search, otherwise is will simply reset the timer
+	 * and set a new timer with the searches's reissue_timeout.
+	 */
 
 	if (dbg > 3)
 		printf("updating search \"%s\" with timeout %u.\n", sch->query, tm);
 
-    sch->reissue_timeout_id = g_timeout_add(
+	sch->reissue_timeout_id = g_timeout_add(
 		tm * 1000, search_reissue_timeout_callback, sch);
 }
 
