@@ -1,22 +1,24 @@
-                    Passive/Active Remote Queuing
-                            Version 1.0
+                    Passive/Active Remote Queueing
+                            Version 1.0.a
 
                           Raphael Manfredi
                     <Raphael_Manfredi@pobox.com>
 
                           August, 14th 2002
+                           May, 10th, 2003
+
 
 
 1. Introduction
 
-This proposal is a formalization of my previous Queuing proposal, which
+This proposal is a formalization of my previous Queueing proposal, which
 was in turn derived from the original proposal from Mike Green.  It has
 been refined to take into account the feedback I got from the GDF, as well
-as my own comments to another queuing proposal from Christopher Rohrs.
+as my own comments to another queueing proposal from Christopher Rohrs.
 
-The aim of remote queuing is to have a servent serving a file (aka, the
+The aim of remote queueing is to have a servent serving a file (aka, the
 "server") enqueue a request from a servent requesting a file (aka, the
-"client") when the server has run out of upload slots.  This queuing
+"client") when the server has run out of upload slots.  This queueing
 must satisfy the following properties:
 
 * Fairness: first come, first serve, provided the client plays by
@@ -36,7 +38,7 @@ to become unavailable for a short period of time (max. 5 minutes) and
 yet not perturb the queue.  This property is valuable for modem users
 (this includes DSL users), which can experience a connection drop, and
 servent developers who can have their servent crash in the middle of an
-experiment.  Finally, Legacy ensures that in a world of queuing servers,
+experiment.  Finally, Legacy ensures that in a world of queueing servers,
 a client not aware of PARQ can still be allowed to get slots, although
 it will not be able to get the complete PARQ experience, of course.
 
@@ -102,9 +104,9 @@ to a GIV request sent by the server to the client when a PUSH is received.
 It is named "QUEUE" and will be detailed in section 4.
 
 
-4. Active Queuing
+4. Active Queueing
 
-This section presents the active queuing, i.e. only addresses clients
+This section presents the active queueing, i.e. only addresses clients
 that are aware of PARQ.
 
 PARQ-compliance is indicated by the client through the following header
@@ -112,7 +114,7 @@ in the HTTP request:
 
     X-Queue: 1.0
 
-which indicates that the servent will understand the queuing protocol
+which indicates that the servent will understand the queueing protocol
 and the replies from the PARQ-compliant server.
 
 An initial request/answer from the client will result in the following
@@ -121,7 +123,7 @@ HTTP exchange:
     GET /resource HTTP/1.1
     User-Agent: blah
     X-Queue: 1.0
-    X-Listen-IP: 13.4.5.6:4567
+    X-Node: 13.4.5.6:4567
 
         HTTP/1.1 503 Queued
         Server: blah
@@ -131,7 +133,7 @@ HTTP exchange:
         Connection: close
         Retry-After: 600
 
-The "X-Listen-IP" in the request indicates the client is not firewalled
+The "X-Node" in the request indicates the client is not firewalled
 and provides the address and port where the server can make its QUEUE
 callback, if necessary (more on this later).
 
@@ -169,19 +171,29 @@ and given out by the client within further requests to identify the
 queued item.
 
 If the client does not re-issue the request before "lifetime", and
-provided there was an X-Listen-IP given, then the server will contact the
+provided there was an X-Node given, then the server will contact the
 client at the specified IP:port and will give it the following request:
 
-    QUEUE 6a074979f3201edbf323b6425fef4a53\r\n
+    QUEUE 6a074979f3201edbf323b6425fef4a53 45.56.67.78:1234\r\n
 
 To "cancel" the request, the client simply stops sending requests and
 ignores the QUEUE callbacks, which will cause the slot to be freed.
+
+The format of the QUEUE line is:
+
+    QUEUE <PARQ ID> <IP>:<port>\r\n
+
+The IP and port are those of the server.  It is necessary to communicate
+them again because the server might have changed its IP address since the
+client started the queueing, and if we don't refresh it, the client will have
+no way to contact the server back again: it will only be able to reply to
+QUEUE requests.
 
 In order to maintain its queue position, the client MUST reply with:
 
     GET /resource HTTP/1.1
     User-Agent: blah
-    X-Listen-IP: 13.4.5.6:4567
+    X-Node: 13.4.5.6:4567
     X-Queue: 1.0
     X-Queued: position=1503; ID=6a074979f3201edbf323b6425fef4a53
 
@@ -217,7 +229,7 @@ an example, but things would be totally similar for an initial request:
 
     GET /resource HTTP/1.1
     User-Agent: blah
-    X-Listen-IP: 13.4.5.6:4567
+    X-Node: 13.4.5.6:4567
     X-Queue: 1.0
     X-Queued: position=53; ID=6a074979f3201edbf323b6425fef4a53
 
@@ -232,7 +244,7 @@ an example, but things would be totally similar for an initial request:
 
     GET /resource HTTP/1.1
     User-Agent: blah
-    X-Listen-IP: 13.4.5.6:4567
+    X-Node: 13.4.5.6:4567
     X-Queue: 1.0
     X-Queued: position=14; ID=6a074979f3201edbf323b6425fef4a53
 
@@ -247,7 +259,7 @@ an example, but things would be totally similar for an initial request:
 
     GET /resource HTTP/1.1
     User-Agent: blah
-    X-Listen-IP: 13.4.5.6:4567
+    X-Node: 13.4.5.6:4567
     X-Queue: 1.0
     X-Queued: position=1; ID=6a074979f3201edbf323b6425fef4a53
 
@@ -280,9 +292,9 @@ will force the server to reserve the slot for that amount of time, so 600
 seconds is a reasonable value.
 
 
-5. Passive Queuing
+5. Passive Queueing
 
-This section presents the passive queuing, i.e. only addresses clients
+This section presents the passive queueing, i.e. only addresses clients
 that are unaware of PARQ (clients that do not send the X-Queue header,
 and which are incapable of handling the QUEUE callback).
 
@@ -317,7 +329,7 @@ In practice, servents requery every 60 seconds or so.
 
 6. Discussion
 
-The main advantage of PARQ is that it provides a queuing system for
+The main advantage of PARQ is that it provides a queueing system for
 modern servents whilst not completely preventing older servents from
 getting slots.  Full deployment of PARQ will indeed take some time.
 
@@ -355,10 +367,10 @@ requested range at the last minute.  It even permits the client to change
 its mind and request a totally different file than it had initially done.
 
 
-7. Backward Compatibility with Legacy Queuing
+7. Backward Compatibility with Legacy Queueing
 
-BearShare and Shareaza support an incompatible queuing protocol, built
-before PARQ was launched (it's called "Active Queuing").
+BearShare and Shareaza support an incompatible queueing protocol, built
+before PARQ was launched (it's called "Active Queueing").
 
 In order to allow for smooth transition to PARQ and at the same time
 not penalize PARQ-compliant clients that would connect to those legacy
@@ -366,7 +378,7 @@ servers, any client advertising:
 
     X-Queue: 1.0
 
-MUST also be prepared to honour the legacy queuing implementation.
+MUST also be prepared to honour the legacy queueing implementation.
 The legacy server will reply with:
 
     X-Queue: position=2,length=5,limit=4,pollMin=45,pollMax=120
@@ -393,8 +405,8 @@ i.e. they require HTTP/1.1 persistent connections (they only support
 some kind of Sq, in PARQ parlance).  If the connection is dropped,
 the slot will be lost since those servers do not support Remanence.
 
-PARQ servers SHOULD support Active Queuing as well as PARQ (i.e. honour
-at least the X-Queue: 0.1 header and behave as in Active Queuing).
+PARQ servers SHOULD support Active Queueing as well as PARQ (i.e. honour
+at least the X-Queue: 0.1 header and behave as in Active Queueing).
 
 
 8. Conclusion
@@ -403,12 +415,23 @@ Let's go back to the initial goals we had set and look how well we fulfill
 them:
 
 * Fairness: this is ensured by the FIFO nature of the queue and by the fact
-  that we support both active and passive queuing.
+  that we support both active and passive queueing.
 * Monitoring: low granularity when the request is far deep in the queue (Aq),
   the period of feedback increases as the request reaches Sq and moves to the
   first slots.  Each client request also gives the instantaneous status (queue
   position, ETA).
 * Remanence: this is a property of the implementation, but PARQ makes it easy
   to support since it was designed with it in mind.
-* Legacy: this is assured by the passive queuing features of PARQ.
+* Legacy: this is assured by the passive queueing features of PARQ.
 
+
+A. Change History
+
+May 10th, 2003 - revision 1.0.a:
+
+    * Changed X-Listen-IP headers into X-Node to be compliant with what
+      BearShare is going to use (combination of X-Node and X-Features
+      headers to obsolete headers like Chat: or Browse: in the requests).
+
+    * Added the IP:port section to the QUEUE callback.  Amazing that nobody
+      had noticed that it was lacking!
