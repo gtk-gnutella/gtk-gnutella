@@ -10,12 +10,17 @@
     flickering
 
 - (2002.06.23 - RAM)
+  * Forgot that scheduling in callout queue uses milli-seconds units: was
+    purging uploading mesh info too often.  Also added mesh info traces.
+  * Added periodic savings of the search/filters.
+  * Saving of search.xml is done to a .new file, renamed upon success,
+    to prevent one loosing precious data in case of a crash whilst saving.
   * Forgot to clear callout queue callback info before freeing structure
-	(fixes bug # 572800).
+    (fixes bug # 572800).
   * Fixed root cause of GTK critical warnings regarding progress bar.
   * Forgot to include Alex Bennee in AUTHORS.
   * Make sure we detect a duplicate node connection before dropping a node
-	in favour of a local one (fixes bug # 572748).
+    in favour of a local one (fixes bug # 572748).
 
 - (2002.06.23 - Richard)
   * Also set foreground color for root nodes and builtin targets in 
@@ -30,9 +35,9 @@
 - (2002.06.23 - RAM)
   * Fixed size computation problems when generating alternate location header.
   * Now displays Server name in downloads as soon as it is known.  Previously,
-	it needed to be known beforehand (from a previous try) to be displayed.
+    it needed to be known beforehand (from a previous try) to be displayed.
   * Obsoleted old "autodownload" feature, since we now have more flexible
-	download selection features with the filter chains.
+    download selection features with the filter chains.
   * Mesh information will now only be sent to uploaders when a change occurred.
   * Christophe Tronche was missing from AUTHORS.
 
@@ -54,7 +59,7 @@
   * Fixed memory leak in search queues.
   * Fixed possible use of uninitialized value in analyse_status().
   * Added debugging traces in huge.c cache flushing... Which made the
-	problem I witnessed go away.
+    problem I witnessed go away.
   * Unplugged non-functional QRP stuff.
 
 - (2002.06.22 - Richard)
@@ -84,7 +89,7 @@
 - (2002.06.22 - RAM)
   * Bandwidth limit is now up to BS_BW_MAX, included.
   * Now attempts to free memory as soon as a search record is removed from
-	the GUI, and not when the search is closed.
+    the GUI, and not when the search is closed.
   * Would be omitting to send a SHA1 starting with a leading NUL byte.
   * Forgot to clear the node's search queue at final cleanup.
 
@@ -98,7 +103,7 @@
   * Forgot to free dmesh slots sometimes.
   * General cleanup to be able to compile with dmalloc.
   * Watch out the g_snprintf() return code: it can return more than the
-	buffer size with glibc >= 2.1.
+    buffer size with glibc >= 2.1.
 
 - (2002.06.20 - RAM)
   * Was not properly parsing more than one GGEP extension block in a row.
@@ -107,10 +112,10 @@
   * Removed the gnotella.fileflash.com host cache: host no longer exists.
   * New date_to_iso_gchar() to emit the ISO date for the download mesh.
   * Now keeps track of the time we received the query hits, for the
-	download mesh.
+    download mesh.
   * Simplified parsing of the query hit trailer, keeping only the vendor
-	code around instead of the whole trailer.  Adapted sorting algorithm
-	accordingly.
+    code around instead of the whole trailer.  Adapted sorting algorithm
+    accordingly.
   * shared_file_by_sha1_base32() is no longer used (share.c).
   * New url_escape_into() routine (url.c).
   * HTTP status parsing routine now called http_status_parse().
@@ -167,9 +172,9 @@
   * Now recognizes old base32 encoding, translated into new one.
   * Had not properly plugged in the 301 Moved triggering for uploads.
   * Until we have received a message from nodes, handle them with the
-	"connecting" timeout.  This works because of the handshaking ping.
+    "connecting" timeout.  This works because of the handshaking ping.
   * Reworked upload HTTP parsing so that we can handle HEAD requests on
-	/uri-res/N2R? queries as well.
+    /uri-res/N2R? queries as well.
   * Download code will now honour 301 Moved replies from other nodes.
   * Added debugging traces for queries/hits holding more than 32 extensions.
 
