@@ -1,5 +1,22 @@
 # since last version
 
+- (2004.04.10 - RAM)
+ * Will now parse up to 150 hosts in hostfile replies.
+ * Try to not use a bootstrapping cache URL if we can avoid it.
+
+- (2004.04.07 - RAM)
+ * Added my own web cache, now that I run GhostWhiteCrab/0.1.
+ * Only write readable filenames in done.sha1.
+
+- (2004.04.02 - RAM)
+ * (hostiles.c) Avoid side effect when calling isspace().
+ * Removed default cache on raphael.manfredi.free.fr, which was erased.
+
+- (2004.03.28 - RAM)
+ * [GTK1] Fileinfo filtering now also applies the regexp to fileinfo aliases.
+ * Compile glade-generated files last, to save time when there is an error
+   elsewhere.
+
 - (2004.03.26 - Richard)
  * Show queued status in fileinfo pane. (Closes #916976)
  * Comment out GTK_GNUTELLA_DIR export in run script.
