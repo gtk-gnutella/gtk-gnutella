@@ -1,6 +1,9 @@
 # since last version
 
 - (2004-08-03 - RAM)
+ * Updated hostiles.txt from BearShare's list.
+ * Removed spurious and wrongly placed call to header_features_generate()
+   from http_async_build_request().
  * The "up_req_*" properties were wrongly saved in the config file.  Since
    they're transient and dynamic, it's useless to persist them.
  * New "up_req_enough_conn" property to track whether they configured enough
