@@ -1122,7 +1122,7 @@ prop_set_t *gui_prop_init(void) {
      * General data:
      */
     gui_property->props[49].name = "search_stats_mode";
-    gui_property->props[49].desc = "Collect statistics about search that go through this node";
+    gui_property->props[49].desc = "Collect statistics about searches that go through this node";
     gui_property->props[49].ev_changed = event_new("search_stats_mode_changed");
     gui_property->props[49].save = TRUE;
     gui_property->props[49].vector_size = 1;
@@ -1162,7 +1162,7 @@ prop_set_t *gui_prop_init(void) {
      * General data:
      */
     gui_property->props[51].name = "search_stats_delcoef";
-    gui_property->props[51].desc = "A deletion coefficient, so that small non-significant results can be dropped.  The lowest it is, the more search statistics will be kept in memory.";
+    gui_property->props[51].desc = "A deletion coefficient, so that small non-significant results can be dropped.  The lower it is, the more search statistics will be kept in memory.";
     gui_property->props[51].ev_changed = event_new("search_stats_delcoef_changed");
     gui_property->props[51].save = TRUE;
     gui_property->props[51].vector_size = 1;
@@ -1216,7 +1216,7 @@ prop_set_t *gui_prop_init(void) {
      * General data:
      */
     gui_property->props[54].name = "expert_mode";
-    gui_property->props[54].desc = "Show a lot more settings to tweak. If you temper with them be sure to read up what they are doing";
+    gui_property->props[54].desc = "Show a lot more settings to tweak. If you tamper with them be sure to read up on what they are doing";
     gui_property->props[54].ev_changed = event_new("expert_mode_changed");
     gui_property->props[54].save = TRUE;
     gui_property->props[54].vector_size = 1;

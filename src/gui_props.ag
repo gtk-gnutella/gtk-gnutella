@@ -508,7 +508,7 @@ prop = {
 
 prop = {
     name = "search_stats_mode";
-    desc = "Collect statistics about search that go through this node";
+    desc = "Collect statistics about searches that go through this node";
     type = multichoice;
     data = {
         default = 0;
@@ -545,7 +545,7 @@ prop = {
 prop = {
     name = "search_stats_delcoef";
     desc =	"A deletion coefficient, so that small non-significant results "
-			"can be dropped.  The lowest it is, the more search statistics "
+			"can be dropped.  The lower it is, the more search statistics "
 			"will be kept in memory.";
     type = guint32;
     data = {
@@ -576,8 +576,8 @@ prop = {
 
 prop = {
     name = "expert_mode";
-    desc = "Show a lot more settings to tweak. If you temper with them be "
-           "sure to read up what they are doing";
+    desc = "Show a lot more settings to tweak. If you tamper with them be "
+           "sure to read up on what they are doing";
     type = boolean;
     data = {
         default = FALSE;
