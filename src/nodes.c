@@ -684,10 +684,8 @@ static void node_process_handshake_header(struct io_header *ih)
 	rw = g_snprintf(gnet_response, sizeof(gnet_response),
 		"GNUTELLA/0.6 200 OK\r\n"
 		"User-Agent: gtk-gnutella/%d.%d\r\n"
-		"X-Comment: This is still experimental, no special features\r\n"
-//		"X-Comment: This is still experimental, and none of the new 0.6\r\n"
-//		"    features are supported.  In particular, no attention is paid\r\n"
-//		"    to any headers that are sent along the handshake.\r\n"
+		"Pong-Caching: 0.1\r\n"
+		"X-Comment: This is still experimental\r\n"
 		"\r\n",
 		GTA_VERSION, GTA_SUBVERSION);
 
