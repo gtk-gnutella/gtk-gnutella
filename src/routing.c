@@ -242,7 +242,7 @@ void routing_init(void)
 
 		g_assert(strlen(hex) == 2*sizeof(g));
 
-		hex_to_guid(hex, g);
+		(void) hex_to_guid(hex, g);
 		g_hash_table_insert(ht_banned_push, atom_guid_get(g), (gpointer) 1);
 	}
 
@@ -1179,6 +1179,20 @@ gboolean route_proxy_add(gchar *guid, struct gnutella_node *n)
 
 	g_hash_table_insert(ht_proxyfied, guid, n);
 	return TRUE;
+}
+
+/*
+ * route_proxy_find
+ *
+ * Find node to which we are connected with supplied GUID and who requested
+ * that we act as its push-proxy.
+ *
+ * Returns node address if we found it, or NULL if we aren't connected to
+ * that node directly.
+ */
+struct gnutella_node *route_proxy_find(gchar *guid)
+{
+	return (struct gnutella_node *) g_hash_table_lookup(ht_proxyfied, guid);
 }
 
 /* frees the routing data associated with a message */

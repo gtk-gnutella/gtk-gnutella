@@ -68,6 +68,7 @@ gboolean route_exists_for_reply(gchar *muid, guint8 function);
 
 gboolean route_proxy_add(gchar *guid, struct gnutella_node *n);
 void route_proxy_remove(gchar *guid);
+struct gnutella_node *route_proxy_find(gchar *guid);
 
 #endif /* _routing_h_ */
 
