@@ -102,6 +102,7 @@ struct bgtask {
 #define TASK_F_ZOMBIE		0x00000008	/* Task waiting status collect */
 #define TASK_F_NOTICK		0x00000010	/* Do no recompute tick info */
 #define TASK_F_SLEEPING		0x00000020	/* Task is sleeping */
+#define TASK_F_RUNNABLE		0x00000040	/* Task is runnable */
 #define TASK_F_DAEMON		0x80000000	/* Task is a daemon */
 
 /*
@@ -125,11 +126,14 @@ static GSList *dead_tasks = NULL;
  */
 static void bg_sched_add(struct bgtask *bt)
 {
+	g_assert(!(bt->flags & TASK_F_RUNNABLE));	/* Not already in list */
+
 	/*
 	 * Enqueue task at the tail of the runqueue.
 	 * For now, we don't handle priorities.
 	 */
 
+	bt->flags |= TASK_F_RUNNABLE;
 	runq = g_slist_append(runq, bt);
 }
 
@@ -145,6 +149,7 @@ static void bg_sched_remove(struct bgtask *bt)
 	 */
 
 	runq = g_slist_remove(runq, bt);
+	bt->flags &= ~TASK_F_RUNNABLE;
 }
 
 /*
@@ -895,6 +900,7 @@ void bg_sched_timer(void)
 
 		bt = bg_sched_pick();
 		g_assert(bt);					/* runcount > 0 => there is a task */
+		g_assert(bt->flags & TASK_F_RUNNABLE);
 
 		/*
 		 * Compute how many ticks we can ask for this processing step.
@@ -1036,7 +1042,7 @@ void bg_close(void)
 	g_slist_free(runq);
 
 	if (count)
-		g_warning("terminated %d task%s", count, count == 1 ? "" : "s");
+		g_warning("terminated %d running task%s", count, count == 1 ? "" : "s");
 
 	for (count = 0, l = sleepq; l; l = l->next) {
 		count++;
