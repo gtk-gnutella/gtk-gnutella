@@ -1521,7 +1521,7 @@ gint download_remove_all_with_sha1(const gchar *sha1)
  * failed == TRUE:      removes ERROR | ABORTED without `unavailable' set
  * unavailable == TRUE: removes ERROR | ABORTED with `unavailable' set
  * now == TRUE:         remove immediately, else remove only downloads
- *                      idle since at least 3 seconds 
+ *                      idle since at least "entry_removal_timeout" seconds 
  */
 void download_clear_stopped(gboolean complete,
 	gboolean failed, gboolean unavailable, gboolean now)
@@ -1548,7 +1548,7 @@ void download_clear_stopped(gboolean complete,
 			continue;
 		}
 
-		if (now || (current_time - d->last_update) > 3) {
+		if (now || (current_time - d->last_update) > entry_removal_timeout) {
 			if (
 				complete && (
 					d->status == GTA_DL_DONE || 
