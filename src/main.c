@@ -97,7 +97,7 @@ void gtk_gnutella_exit(gint n)
 	gui_shutdown();
 
 	if (hosts_idle_func)
-		gtk_idle_remove(hosts_idle_func);
+		g_source_remove(hosts_idle_func);
 	config_shutdown();
 
 	if (s_listen)
