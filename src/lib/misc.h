@@ -226,8 +226,8 @@ skip_ascii_blanks(const gchar *s)
  * Set/clear binary flags
  */
 typedef guint16 flag_t;
-#define set_flags(r,f) (r = r | (f))
-#define clear_flags(r,f) (r = r & ~(f))
+#define set_flags(r,f) (r |= (f))
+#define clear_flags(r,f) (r &= ~(f))
 
 /*
  * Network related string routines
