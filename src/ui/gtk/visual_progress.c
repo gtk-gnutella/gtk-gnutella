@@ -484,7 +484,7 @@ vp_create_chunk(filesize_t from, filesize_t to,
 /**
  * Assert that a chunks list confirms to the assumptions.
  */
-static void
+static gboolean
 vp_assert_chunks_list(GSList *list)
 {
 	GSList *l;
@@ -494,13 +494,14 @@ vp_assert_chunks_list(GSList *list)
 	for (l = list; l; l = g_slist_next(l)) {
 		chunk = (gnet_fi_chunks_t *) l->data;
 		if (last != chunk->from) {
-			g_warning("**** Chunks list is not consistent! "
-				"Please tell hans@degraaff.org");
+			g_warning("**** Chunks list is not consistent! ");
 			vp_print_chunk_list(list, "Chunks list");
+			return FALSE;
 			break;
 		}
 		last = chunk->to;
 	}
+	return TRUE;
 }
 
 /** 
@@ -554,7 +555,18 @@ vp_gui_fi_status_changed(gnet_fi_t fih)
 	old = v->chunks_initial;
 	new = guc_fi_get_chunks(fih);
 	keep_new = new;	/* So that we can free this list later */
-	vp_assert_chunks_list(new);
+
+	/* 
+	 * Check if this chunks list is valid. If not then skip building a
+	 * new list, and do housekeeping stuff here. We may get an invalid
+	 * list due to an obscure bug in the fileinfo core which has not
+	 * been tracked down yet: #1065382
+	 */
+	if (! vp_assert_chunks_list(new)) {
+		guc_fi_free_chunks(keep_new);
+		return;
+	}
+		
 	guc_fi_free_chunks(v->chunks_list);
 	v->chunks_list = NULL;
 
