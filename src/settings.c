@@ -153,8 +153,14 @@ static void save_pid(gchar *file)
 void settings_init(void)
 {
     struct passwd *pwd = NULL;
+	guint32 pagesize = (guint32) sysconf(_SC_PAGE_SIZE);
+	guint32 maxfd = (guint32) sysconf(_SC_OPEN_MAX);
+	guint32 physmem = (pagesize >> 10) * sysconf(_SC_PHYS_PAGES);
 
     properties = gnet_prop_init();
+
+	gnet_prop_set_guint32_val(PROP_SYS_NOFILE, maxfd);
+	gnet_prop_set_guint32_val(PROP_SYS_PHYSMEM, physmem);
 
 	config_dir = g_strdup(getenv("GTK_GNUTELLA_DIR"));
 	memset(guid, 0, sizeof(guid));
