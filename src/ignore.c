@@ -65,7 +65,7 @@ static time_t ignore_namesize_mtime;
 static FILE *sha1_out = NULL;
 static FILE *namesize_out = NULL;
 
-static gchar ign_tmp[1024];
+static guchar ign_tmp[1024];
 
 static void ignore_sha1_load(guchar *file, time_t *stamp);
 static void ignore_namesize_load(guchar *file, time_t *stamp);
@@ -236,7 +236,7 @@ static void namesize_parse(FILE *f, guchar *file)
 
 		str_chomp(ign_tmp, 0);	/* Remove final "\n" */
 
-		size = strtoul(ign_tmp, &p, 10);
+		size = strtoul(ign_tmp, (gchar **)&p, 10);
 
 		if (p == ign_tmp || !isspace(*(guchar *) p)) {
 			g_warning("malformed size at \"%s\" line %d: %s",
