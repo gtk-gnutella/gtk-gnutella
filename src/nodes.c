@@ -29,6 +29,20 @@
 #include "gmsg.h"
 #include "mq.h"
 
+/*
+ * Determine how large an I/O vector the kernel can accept.
+ */
+
+#if defined(MAXIOV)
+#define MAX_IOV_COUNT	MAXIOV			/* Regular */
+#elif defined(UIO_MAXIOV)
+#define MAX_IOV_COUNT	UIO_MAXIOV		/* Linux */
+#elif defined(IOV_MAX)
+#define MAX_IOV_COUNT	IOV_MAX			/* Solaris */
+#else
+#define MAX_IOV_COUNT	16				/* Unknown, use required minimum */
+#endif
+
 #define CONNECT_PONGS_COUNT		10		/* Amoung of pongs to send */
 #define BYE_MAX_SIZE			4096	/* Maximum size for the Bye message */
 #define NODE_SEND_BUFSIZE		4096	/* TCP send buffer size - 4K*/
@@ -2436,6 +2450,57 @@ gint node_write(struct gnutella_node *n, gpointer data, gint len)
 }
 
 /*
+ * safe_writev
+ *
+ * Wrapper over writev() ensuring that we don't request more than
+ * MAX_IOV_COUNT entries at a time.
+ */
+static gint safe_writev(gint fd, struct iovec *iov, gint iovcnt)
+{
+	gint sent = 0;
+	struct iovec *end = iov + iovcnt;
+	struct iovec *siov;
+	gint siovcnt = MAX_IOV_COUNT;
+	gint iovsent = 0;
+
+	for (siov = iov; siov < end; siov += siovcnt) {
+		gint r;
+		gint size;
+		struct iovec *xiv;
+		struct iovec *xend;
+
+		siovcnt = iovcnt - iovsent;
+		if (siovcnt > MAX_IOV_COUNT)
+			siovcnt = MAX_IOV_COUNT;
+		g_assert(siovcnt > 0);
+		
+		r = writev(fd, siov, siovcnt);
+
+		if (r <= 0) {
+			if (r == 0 || sent)
+				break;				/* Don't flag error if bytes sent */
+			return -1;				/* Propagate error */
+		}
+
+		sent += r;
+		iovsent += siovcnt;		/* We'll break out if we did not send it all */
+
+		/*
+		 * How much did we sent?  If not the whole vector, we're blocking,
+		 * so stop writing and return amount we sent.
+		 */
+
+		for (size = 0, xiv = siov, xend = siov + siovcnt; xiv < xend; xiv++)
+			size += xiv->iov_len;
+
+		if (r < size)
+			break;
+	}
+
+	return sent;
+}
+
+/*
  * node_writev
  *
  * Write I/O vector.
@@ -2445,9 +2510,16 @@ gint node_writev(struct gnutella_node *n, struct iovec *iov, gint iovcnt)
 {
 	gint r;
 
-	/* XXX -- handle systems where MAXIOV < our limit -- RAM, 02/02/2002 */
+	/*
+	 * If `iovcnt' is greater than MAX_IOV_COUNT, use our custom writev()
+	 * wrapper to avoid failure with EINVAL.
+	 *		--RAM, 17/03/2002
+	 */
 
-	r = writev(n->socket->file_desc, iov, iovcnt);
+	if (iovcnt > MAX_IOV_COUNT)
+		r = safe_writev(n->socket->file_desc, iov, iovcnt);
+	else
+		r = writev(n->socket->file_desc, iov, iovcnt);
 
 	if (r >= 0)
 		return r;
