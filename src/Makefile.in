@@ -91,6 +91,7 @@ GTK_CONFIG = @GTK_CONFIG@
 GTK_GNUTELLA_CFLAGS = @GTK_GNUTELLA_CFLAGS@
 GTK_LIBS = @GTK_LIBS@
 LIBXML2_REQUIRED = @LIBXML2_REQUIRED@
+MAINT = @MAINT@
 MAKEINFO = @MAKEINFO@
 PACKAGE = @PACKAGE@
 PKG_CONFIG = @PKG_CONFIG@
@@ -316,7 +317,7 @@ OBJECTS = $(gtk_gnutella_OBJECTS)
 all: all-redirect
 .SUFFIXES:
 .SUFFIXES: .S .c .o .s .y
-$(srcdir)/Makefile.in: Makefile.am $(top_srcdir)/configure.in $(ACLOCAL_M4) 
+$(srcdir)/Makefile.in: @MAINTAINER_MODE_TRUE@ Makefile.am $(top_srcdir)/configure.in $(ACLOCAL_M4) 
 	cd $(top_srcdir) && $(AUTOMAKE) --gnu src/Makefile
 
 Makefile: $(srcdir)/Makefile.in  $(top_builddir)/config.status $(BUILT_SOURCES)
