@@ -1220,6 +1220,7 @@ static gboolean download_start_prepare(struct download *d)
 		if (!DOWNLOAD_IS_VISIBLE(d))
 			download_gui_add(d);
 		download_stop(d, GTA_DL_ERROR, "Nothing more to get");
+		queue_remove_identical(d->file_name, d->sha1, d->size);
 		return FALSE;
 	}
 
