@@ -88,6 +88,9 @@ static gchar *tok_errstr[] = {
 	"Bad key index",				/* TOK_BAD_INDEX */
 	"Failed checking",				/* TOK_INVALID */
 	"Not base64-encoded",			/* TOK_BAD_ENCODING */
+	"Keys not found",				/* TOK_BAD_KEYS */
+	"Bad version string",			/* TOK_BAD_VERSION */
+	"Version older than expected",	/* TOK_OLD_VERSION */
 };
 
 /*
@@ -174,6 +177,7 @@ guchar *tok_version(void)
 	gchar *key;
 	SHA1Context ctx;
 	guint8 seed[3];
+	guint32 now32;
 
 	/*
 	 * We don't generate a new token each time, but only every TOKEN_LIFE
@@ -194,7 +198,8 @@ guchar *tok_version(void)
 	seed[2] = random_value(0xff) & 0xe0;	/* Upper 3 bits only */
 	seed[2] |= idx;							/* Has 5 bits for the index */
 
-	memcpy(digest, &now, 4);
+	now32 = (guint32) now;
+	memcpy(digest, &now32, 4);
 	memcpy(digest + 4, &seed, 3);
 
 	SHA1Reset(&ctx);
@@ -223,12 +228,14 @@ tok_error_t tok_version_valid(gchar *version, guchar *tokenb64, gint len)
 {
 	time_t now = time(NULL);
 	time_t stamp;
+	guint32 stamp32;
 	struct tokkey *tk;
 	gint idx;
 	gchar *key;
 	SHA1Context ctx;
 	guchar token[TOKEN_VERSION_SIZE]; 
 	guint8 digest[SHA1HashSize];
+	version_t rver;
 
 	if (len != TOKEN_BASE64_SIZE)
 		return TOK_BAD_LENGTH;
@@ -236,14 +243,17 @@ tok_error_t tok_version_valid(gchar *version, guchar *tokenb64, gint len)
 	if (!base64_decode_into(tokenb64, len, token, TOKEN_VERSION_SIZE))
 		return TOK_BAD_ENCODING;
 
-	memcpy(&stamp, token, 4);
+	memcpy(&stamp32, token, 4);
+	stamp = (time_t) stamp32;
 
 	if (ABS(stamp - now) > TOKEN_CLOCK_SKEW)
 		return TOK_BAD_STAMP;
 
 	tk = find_tokkey(stamp);				/* The keys they used */
-	idx = token[6] & 0x1f;					/* 5 bits for the index */
+	if (tk == NULL)
+		return TOK_BAD_KEYS;
 
+	idx = token[6] & 0x1f;					/* 5 bits for the index */
 	if (idx >= tk->count)
 		return TOK_BAD_INDEX;
 
@@ -255,7 +265,13 @@ tok_error_t tok_version_valid(gchar *version, guchar *tokenb64, gint len)
 	SHA1Input(&ctx, version, strlen(version));
 	SHA1Result(&ctx, digest);
 
-	return 0 == memcmp(token + 7, digest, SHA1HashSize) ?
-		TOK_OK : TOK_INVALID;
+	if (0 != memcmp(token + 7, digest, SHA1HashSize))
+		return TOK_INVALID;
+
+	if (!version_fill(version, &rver))		/* Remote version */
+		return TOK_BAD_VERSION;
+
+	if (version_cmp(&rver, &tk->ver) < 0)
+		return TOK_OLD_VERSION;
 }
 

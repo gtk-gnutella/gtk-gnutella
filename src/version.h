@@ -62,6 +62,8 @@ void version_close(void);
 void version_ancient_warn(void);
 gboolean version_check(guchar *str, gchar *token);
 gboolean version_is_too_old(gchar *vendor);
+gint version_cmp(version_t *a, version_t *b);
+gboolean version_fill(gchar *version, version_t *vs);
 
 gchar *version_str(version_t *ver);
 

@@ -254,7 +254,7 @@ static gint version_tagcmp(guchar a, guchar b)
  * Compare two gtk-gnutella versions, timestamp not withstanding.
  * Returns -1, 0 or +1 depending on the sign of "a - b".
  */
-static gint version_cmp(version_t *a, version_t *b)
+gint version_cmp(version_t *a, version_t *b)
 {
 	if (a->major == b->major) {
 		if (a->minor == b->minor) {
@@ -271,6 +271,22 @@ static gint version_cmp(version_t *a, version_t *b)
 		return a->minor < b->minor ? -1 : +1;
 	}
 	return a->major < b->major ? -1 : +1;
+}
+
+/*
+ * version_fill
+ *
+ * Parse vendor string and fill supplied version structure `vs'.
+ * Returns OK if we were able to parse correctly.
+ */
+gboolean version_fill(gchar *version, version_t *vs)
+{
+	if (!version_parse(version, vs))
+		return FALSE;
+
+	version_stamp(version, vs);			/* Optional, set to 0 if missing */
+
+	return TRUE;
 }
 
 static void version_new_found(gchar *text, gboolean stable)

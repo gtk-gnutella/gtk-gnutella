@@ -43,6 +43,9 @@ typedef enum {
 	TOK_BAD_INDEX,				/* Bad key index */
 	TOK_INVALID,				/* Invalid */
 	TOK_BAD_ENCODING,			/* Not base64-encoded */
+	TOK_BAD_KEYS,				/* Keys not found */
+	TOK_BAD_VERSION,			/* Bad version string */
+	TOK_OLD_VERSION,			/* Version older than expected */
 } tok_error_t;
 
 /*
