@@ -25,6 +25,8 @@
  *----------------------------------------------------------------------
  */
 
+#include "common.h"		/* For -DUSE_DMALLOC */
+
 #include "vmsg.h"
 #include "vendors.h"
 #include "nodes.h"
