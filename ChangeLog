@@ -1,5 +1,14 @@
 # since last version
 
+- (2002.06.23 - RAM)
+  * Fixed size computation problems when generating alternate location header.
+  * Now displays Server name in downloads as soon as it is known.  Previously,
+	it needed to be known beforehand (from a previous try) to be displayed.
+  * Obsoleted old "autodownload" feature, since we now have more flexible
+	download selection features with the filter chains.
+  * Mesh information will now only be sent to uploaders when a change occurred.
+  * Christophe Tronche was missing from AUTHORS.
+
 - (2002.06.23 - Richard)
   * Fixed bug: active downloads not unfreezed after "force push"
   * Mark active "push mode" downloads and "always push" downloads in queue
