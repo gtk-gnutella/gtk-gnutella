@@ -254,6 +254,8 @@ src/core/pmsg.c
 src/core/pmsg.h 
 src/core/pproxy.c 
 src/core/pproxy.h 
+src/core/qhit.c
+src/core/qhit.h
 src/core/qrp.c 
 src/core/qrp.h 
 src/core/routing.c 

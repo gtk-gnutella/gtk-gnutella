@@ -36,6 +36,7 @@ struct extension {
 };
 
 typedef struct shared_file {
+	gint refcnt;			/* Reference count */
 	gchar *file_path;		/* The full path of the file */
 	const gchar *file_name;	/* Pointer within file_path at start of filename */
 	guint32 file_index;		/* the files index within our local DB */
@@ -84,9 +85,14 @@ extern GSList *extensions, *shared_dirs;
  */
 
 void share_init(void);
-struct shared_file *shared_file(guint idx);
-struct shared_file *shared_file_by_name(const gchar *basename);
 void share_close(void);
+
+shared_file_t *shared_file(guint idx);
+shared_file_t *shared_file_by_name(const gchar *basename);
+shared_file_t * shared_file_ref(shared_file_t *sf);
+shared_file_t *shared_file_by_sha1(gchar *sha1_digest);
+void shared_file_unref(shared_file_t *sf);
+
 gboolean search_request(struct gnutella_node *n, struct query_hashvec *qhv);
 void parse_extensions(const gchar *);
 gchar *get_file_path(gint);
@@ -96,9 +102,7 @@ gint get_file_size(gint);
 
 guint compact_query(gchar *search);
 
-void shared_file_free(shared_file_t *sf);
 void set_sha1(struct shared_file *, const gchar *sha1_digest);
-struct shared_file *shared_file_by_sha1(gchar *sha1_digest);
 gboolean sha1_hash_available(const struct shared_file *);
 gboolean sha1_hash_is_uptodate(struct shared_file *sf);
 
