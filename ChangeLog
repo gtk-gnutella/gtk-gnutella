@@ -1,5 +1,11 @@
 # since last version
 
+- (2004.04.15 - Richard)
+ * [Gtk1] Added toolbar style selection combo to gui config pane
+ * [Gtk1] [Gtk2] Added icons for PROP_FILE_DESCRITOR_SHORTAGE and
+   PROP_FILE_DESCRIPTOR_RUNOUT
+ * Updated filter.xpm
+
 - (2004.04.11 - RAM)
  * Renamed parq_is_banned_source() into parq_banned_source_expire() and
    have it return the expiration date of the banning.
