@@ -335,6 +335,7 @@ void uploads_gui_update_display(time_t now)
     GSList *sl;
 	gboolean all_removed = TRUE;
 	gint current_page;
+	static GtkNotebook *notebook = NULL;
 
 	/*
 	 * Usually don't perform updates if nobody is watching.  However,
@@ -344,9 +345,10 @@ void uploads_gui_update_display(time_t now)
 	 *		--RAM, 28/12/2003
 	 */
 
-	current_page = gtk_notebook_get_current_page(
-		GTK_NOTEBOOK(lookup_widget(main_window, "notebook_main")));
+	if (notebook == NULL)
+		notebook = GTK_NOTEBOOK(lookup_widget(main_window, "notebook_main"));
 
+	current_page = gtk_notebook_get_current_page(notebook);
 	if (current_page != nb_main_page_uploads && now - last_update < UPDATE_MIN)
 		return;
 
