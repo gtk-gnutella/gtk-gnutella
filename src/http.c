@@ -628,6 +628,7 @@ static gchar *http_verb[HTTP_MAX_REQTYPE] = {
 struct http_async {					/* An asynchronous HTTP request */
 	gint magic;						/* Magic number */
 	enum http_reqtype type;			/* Type of request */
+	guint32 flags;					/* Operational flags */
 	gchar *url;						/* Initial URL request (atom) */
 	gchar *path;					/* Path to request (atom) */
 	gchar *host;					/* Hostname, if not a numeric IP (atom) */
@@ -643,6 +644,23 @@ struct http_async {					/* An asynchronous HTTP request */
 	struct http_async *parent;		/* Parent request, for redirections */
 	GSList *children;				/* Child requests */
 };
+
+/*
+ * Operational flags.
+ */
+
+#define HA_F_FREED		0x00000001	/* Structure has been logically freed */
+
+/*
+ * In order to allow detection of logically freed structures when we return
+ * from user callbacks, we delay the physical removal of the http_async
+ * structure to the clock timer.  A freed structure is marked HA_F_FREED
+ * and its magic number is zeroed to prevent accidental reuse.
+ *
+ * All freed structures are enqueued in the sl_ha_freed list.
+ */
+
+static GSList *sl_ha_freed = NULL;		/* Pending physical removal */
 
 /*
  * http_async_info
@@ -710,6 +728,8 @@ static void http_async_free_recursive(struct http_async *ha)
 {
 	GSList *l;
 
+	g_assert(ha->magic == HTTP_ASYNC_MAGIC);
+
 	g_assert(sl_outgoing);
 
 	if (ha->socket)
@@ -738,7 +758,10 @@ static void http_async_free_recursive(struct http_async *ha)
 		http_async_free_recursive(cha);
 	}
 
-	wfree(ha, sizeof(*ha));
+	ha->magic = 0;				/* Prevent accidental reuse */
+	ha->flags |= HA_F_FREED;	/* Will be freed later */
+
+	sl_ha_freed = g_slist_prepend(sl_ha_freed, ha);
 }
 
 /*
@@ -766,6 +789,26 @@ static void http_async_free(struct http_async *ha)
 	g_assert(hax->parent == NULL);
 
 	http_async_free_recursive(hax);
+}
+
+/*
+ * http_async_free_pending
+ *
+ * Free all structures that have already been logically freed.
+ */
+static void http_async_free_pending(void)
+{
+	GSList *l;
+
+	for (l = sl_ha_freed; l; l = l->next) {
+		struct http_async *ha = (struct http_async *) l->data;
+
+		g_assert(ha->flags & HA_F_FREED);
+		wfree(ha, sizeof(*ha));
+	}
+
+	g_slist_free(sl_ha_freed);
+	sl_ha_freed = NULL;
 }
 
 /*
@@ -1036,20 +1079,26 @@ static void http_subreq_error_ind(
  * Create a child request, to follow redirection transparently.
  * All callbacks will be rerouted to the parent request, as if they came
  * from the original parent.
+ *
+ * Returns whether we succeeded in creating the subrequest.
  */
-static struct http_async *http_async_subrequest(
+static gboolean http_async_subrequest(
 	struct http_async *parent, gchar *url, enum http_reqtype type)
 {
+	struct http_async *child;
+
 	/*
 	 * We're installing our own callbacks to transparently reroute them
 	 * to the user-supplied callbacks for the parent request, hence making
 	 * the sub-request invisible from the outside.
 	 */
 
-	return http_async_create(url, type,
+	child = http_async_create(url, type,
 		parent->header_ind ? http_subreq_header_ind : NULL,	/* Optional */
 		http_subreq_data_ind, http_subreq_error_ind,
 		parent);
+
+	return child != NULL;
 }
 
 /*
@@ -1072,18 +1121,26 @@ static void http_redirect(struct http_async *ha, gchar *url)
 
 	/*
 	 * Close connection of parent request.
+	 *
+	 * Free useless I/O opaque structure (a new one will be created when the
+	 * subrequest has its socket connected).
 	 */
 
 	g_assert(ha->socket);
+	g_assert(ha->io_opaque);
 
 	socket_free(ha->socket);
 	ha->socket = NULL;
+
+	io_free(ha->io_opaque);
+	ha->io_opaque = NULL;
 
 	/*
 	 * Create sub-request to handle the redirection.
 	 */
 
-	(void) http_async_subrequest(ha, url, ha->type);
+	if (!http_async_subrequest(ha, url, ha->type))
+		http_async_error(ha, http_async_errno);
 }
 
 /*
@@ -1096,16 +1153,21 @@ static void http_got_data(struct http_async *ha, gboolean eof)
 {
 	struct gnutella_socket *s = ha->socket;
 
+	g_assert(s);
 	g_assert(eof || s->pos > 0);		/* If not EOF, there must be data */
 
 	if (s->pos > 0) {
 		ha->last_update = time(NULL);
 		(*ha->data_ind)(ha, s->buffer, s->pos);
+		if (ha->flags & HA_F_FREED)		/* Callback decided to cancel/close */
+			return;
 		s->pos = 0;
 	}
 
 	if (eof) {
 		(*ha->data_ind)(ha, NULL, 0);	/* Indicates EOF */
+		if (ha->flags & HA_F_FREED)		/* Callback decided to cancel/close */
+			return;
 		http_async_free(ha);
 	}
 }
@@ -1442,6 +1504,13 @@ retry:
 			goto retry;
 		}
 	}
+
+	/*
+	 * Dispose of the logically freed structures, asynchronously.
+	 */
+
+	if (sl_ha_freed)
+		http_async_free_pending();
 }
 
 /*
