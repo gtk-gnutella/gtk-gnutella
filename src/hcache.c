@@ -120,6 +120,7 @@ static const gchar * const host_type_names[HOST_MAX] = {
 
 
 static gpointer bg_reader[HCACHE_MAX];
+static gboolean is_closing = FALSE;
 
 enum {
     HCACHE_ALREADY_CONNECTED,
@@ -153,11 +154,6 @@ static void stop_mass_update(hostcache_t *hc)
         switch (hc->type) {
         case HCACHE_FRESH_ANY:
         case HCACHE_VALID_ANY: {
-            if ((NULL == caches[HCACHE_FRESH_ANY]) || 
-                (NULL == caches[HCACHE_VALID_ANY])) {
-                break;
-            }
-
             gnet_prop_set_guint32_val(hc->hosts_in_catcher,
                 caches[HCACHE_FRESH_ANY]->host_count +
                 caches[HCACHE_VALID_ANY]->host_count);
@@ -165,11 +161,6 @@ static void stop_mass_update(hostcache_t *hc)
         }
         case HCACHE_FRESH_ULTRA:
         case HCACHE_VALID_ULTRA:
-            if ((NULL == caches[HCACHE_FRESH_ULTRA]) || 
-                (NULL == caches[HCACHE_VALID_ULTRA])) {
-                break;
-            }
-
             gnet_prop_set_guint32_val(hc->hosts_in_catcher,
                 caches[HCACHE_FRESH_ULTRA]->host_count +
                 caches[HCACHE_VALID_ULTRA]->host_count);
@@ -177,12 +168,6 @@ static void stop_mass_update(hostcache_t *hc)
         case HCACHE_TIMEOUT:
         case HCACHE_UNSTABLE:
         case HCACHE_BUSY:
-            if ((NULL == caches[HCACHE_TIMEOUT]) || 
-                (NULL == caches[HCACHE_UNSTABLE]) ||
-                (NULL == caches[HCACHE_BUSY])) {
-                break;
-            }
-
             gnet_prop_set_guint32_val(hc->hosts_in_catcher,
                 caches[HCACHE_TIMEOUT]->host_count +
                 caches[HCACHE_UNSTABLE]->host_count +
@@ -419,6 +404,7 @@ static void hcache_unlink_host(hostcache_t *hc, GList *l)
 
 	g_assert(hc->host_count > 0);
 	hc->host_count--;
+
     if (hc->mass_update == 0) {
         guint32 cur;
         gnet_prop_get_guint32_val(hc->hosts_in_catcher, &cur);
@@ -499,6 +485,8 @@ gboolean hcache_add(
 	hostcache_t *hc;
 
 	g_assert((guint) type < HCACHE_MAX);
+
+    g_assert(!is_closing);
 
 	if (ip == listen_ip() && port == listen_port) {
         stats[HCACHE_LOCAL_INSTANCE] ++;
@@ -714,6 +702,9 @@ static void hcache_remove_all(hostcache_t *hc)
     while (NULL != hc->hostlist) {
         hcache_remove((gnet_host_t *) hc->hostlist->data);
     }
+
+    g_assert(hc->hostlist == NULL);
+    g_assert(hc->host_count == 0);
 
     stop_mass_update(hc);
 }
@@ -1137,8 +1128,9 @@ static hostcache_t *hcache_alloc(hcache_type_t type,
 static void hcache_free(hostcache_t *hc)
 {
     g_assert(hc != NULL);
+    g_assert(hc->host_count == 0);
+    g_assert(hc->hostlist == NULL);
 
-    hcache_remove_all(hc);
 	G_FREE_NULL(hc);
 }
 
@@ -1475,6 +1467,8 @@ void hcache_close(void)
         HCACHE_UNSTABLE
     };
 	guint i;
+
+    is_closing = TRUE;
 
     /*
      * First we stop all background processes and remove all hosts, 
