@@ -184,7 +184,7 @@ typedef struct gnet_node_flags {
 /*
  * Nodes callback definitions
  */
-typedef void (*node_added_listener_t) (gnet_node_t, const gchar *);
+typedef void (*node_added_listener_t) (gnet_node_t);
 typedef void (*node_removed_listener_t) (gnet_node_t);
 typedef void (*node_info_changed_listener_t) (gnet_node_t);
 typedef void (*node_flags_changed_listener_t) (gnet_node_t);
@@ -222,6 +222,9 @@ void node_clear_info(gnet_node_info_t *info);
 void node_free_info(gnet_node_info_t *info);
 void node_fill_flags(gnet_node_t n, gnet_node_flags_t *flags);
 void node_fill_info(const gnet_node_t n, gnet_node_info_t *info);
+
+void node_udp_gui_show(void);
+void node_udp_gui_remove(void);
 
 #endif /* CORE_SOURCES */
 #endif /* _if_core_nodes_h */
