@@ -58,6 +58,7 @@ RCSID("$Id$");
 #define MAX_REQUEST		5		/* Maximum of 5 requests... */
 #define MAX_PERIOD		60		/* ...per minute */
 #define MAX_BAN			10800	/* 3 hours */
+#define BAN_REMIND		10		/* Every so many attemps, tell them about it */
 
 static GHashTable *info;		/* Info by IP address */
 static gfloat decay_coeff;		/* Decay coefficient, per second */
@@ -78,6 +79,7 @@ struct ip_info {
 	time_t ctime;				/* When did last connection occur? */
 	gpointer cq_ev;				/* Scheduled callout event */
 	gint ban_delay;				/* Banning delay, in seconds */
+	gint ban_count;				/* Amount of time we banned this source */
 	gchar *ban_msg;				/* Banning message (atom) */
 	gboolean banned;			/* Is this IP currently banned? */
 };
@@ -99,6 +101,7 @@ static struct ip_info *ipf_make(guint32 ip, time_t now)
 	ipf->ip = ip;
 	ipf->ctime = now;
 	ipf->ban_delay = 0;
+	ipf->ban_count = 0;
 	ipf->ban_msg = NULL;
 	ipf->banned = FALSE;
 
@@ -275,8 +278,22 @@ ban_type_t ban_allow(guint32 ip)
 	 * extract.
 	 */
 
-	if (ipf->banned)
-		return (ipf->ban_msg == NULL) ? BAN_FORCE : BAN_MSG;
+	if (ipf->banned) {
+		if (ipf->ban_msg != NULL)
+			return BAN_MSG;
+
+		/*
+		 * Every BAN_REMIND attempts, return BAN_FIRST to let them know
+		 * that they have been banned, in case they "missed" our previous
+		 * indications or did not get the Retry-After right.
+		 *		--RAM, 2004-06-21
+		 */
+
+		if (++(ipf->ban_count) % BAN_REMIND == 0)
+			return BAN_FIRST;
+
+		return BAN_FORCE;
+	}
 
 	/*
 	 * Ban the IP if it crossed the request limit.
