@@ -28,6 +28,7 @@
 
 #include "common.h"		/* For RCSID */
 
+#include "atoms.h"		/* For binary_hash() */
 /*
  * Routines in this file are defined either for TRACK_MALLOC or TRACK_ZALLOC
  */
