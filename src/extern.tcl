@@ -145,6 +145,7 @@ set w_main_list {
     popup_queue_abort
     popup_queue_abort_named
     popup_queue_abort_host
+    popup_queue_abort_sha1
     popup_queue_search_again
     popup_queue_start_now
     popup_queue_search_again
@@ -155,6 +156,7 @@ set w_main_list {
     popup_downloads_abort
     popup_downloads_abort_named
     popup_downloads_abort_host
+    popup_downloads_abort_sha1
     popup_downloads_resume
     popup_downloads_push 
     popup_downloads_queue
