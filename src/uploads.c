@@ -2677,7 +2677,15 @@ void upload_get_status(gnet_upload_t uh, gnet_upload_status_t *si)
     si->bps         = 1;
     si->avg_bps     = 1;
     si->last_update = u->last_update;
-
+	
+	/*
+	 * If the ip is banned by PARQ, the status is PARQ_BAN, no matter what.
+	 *		-- JA, 29/07/2003
+	 */
+	if (parq_is_banned_source(u->ip)) {
+		si->status = GTA_UL_PARQ_BAN;
+	}
+	
 	si->parq_queue_no = parq_upload_lookup_queue_no(u);
 	si->parq_position = parq_upload_lookup_position(u);
 	si->parq_size = parq_upload_lookup_size(u);

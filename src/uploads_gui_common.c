@@ -173,8 +173,16 @@ const gchar *uploads_gui_status_str(
          * wanted. The connection is established and now waiting for some action
          *      -- JA, 15/04/2003
          */
-        return "Sent QUEUE, waiting for headers...";
+		return "Sent QUEUE, waiting for headers...";
 
+	case GTA_UL_PARQ_BAN:
+		/*
+		 * The downloading client repeateatly ignored the retry-after header,
+		 * now PARQ completed banned this client.
+		 *		-- JA, 29/07/2003
+		 */
+		return "PARQ banned this source";
+	
     default:
         g_assert_not_reached();
 	}
@@ -209,5 +217,9 @@ gboolean upload_should_remove(time_t now, const upload_row_data_t *ul)
 		return val;
 	}
 
+	if (GTA_UL_PARQ_BAN == ul->status) {
+		return TRUE;
+	}
+	
 	return FALSE;
 }

@@ -526,6 +526,16 @@ static void socket_read(gpointer data, gint source, inputevt_cond_t cond)
 	}
 
 	/*
+	 * Check for PARQ banning.
+	 * 		-- JA, 29/07/2003
+	 */
+	 
+	if (parq_is_banned_source(s->ip)) {
+		g_warning("[sockets] PARQ has banned ip %s", ip_to_gchar(s->ip));
+		ban_force(s);
+	}
+
+	/*
 	 * Deny connections from hostile IP addresses.
 	 *
 	 * We do this after banning checks so that if they hammer us, they

@@ -547,8 +547,9 @@ typedef enum {
     GTA_UL_CLOSED           = 7,    /* Upload removed while waiting */
     GTA_UL_QUEUED           = 8,    /* Upload is queued */
     GTA_UL_QUEUE            = 9,    /* Send a queue (Similar to push) */
-    GTA_UL_QUEUE_WAITING    = 10    /* Connect back with GTA_UL_QUEUE was
+    GTA_UL_QUEUE_WAITING    = 10,    /* Connect back with GTA_UL_QUEUE was
                                        success now waiting for a response */
+	GTA_UL_PARQ_BAN
 } upload_stage_t;
 
 typedef struct gnet_upload_status {

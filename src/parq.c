@@ -90,6 +90,16 @@ gboolean enable_real_passive = TRUE;	/* If TRUE, a dead upload is only marked
 										 * its position */
 
 
+GHashTable *parq_banned_source = NULL;
+GList *parq_banned_sources = NULL;
+
+struct parq_banned {
+	guint32 ip;
+	time_t added;
+	time_t expire;
+};
+
+
 gboolean parq_shutdown = FALSE;
  
 /*
@@ -216,6 +226,9 @@ static void parq_upload_update_ip_and_name(struct parq_ul_queued *parq_ul,
 
 static void parq_upload_send_queue(struct parq_ul_queued *parq_ul);
 static void parq_upload_do_send_queue(struct parq_ul_queued *parq_ul);
+
+void parq_add_banned_source(guint32 ip, time_t delay);
+void parq_del_banned_source(guint32 ip);
 
 /***
  ***  Generic non PARQ specific functions
@@ -384,12 +397,15 @@ void parq_init(void)
 	ul_all_parq_by_id = g_hash_table_new(g_str_hash, g_str_equal);
 	dl_all_parq_by_id = g_hash_table_new(g_str_hash, g_str_equal);
 
+	parq_banned_source = g_hash_table_new(g_int_hash, g_int_equal);
+	
 	(void) parq_upload_new_queue();
 	
 	g_assert(ul_all_parq_by_ip_and_name != NULL);
 	g_assert(ul_all_parq_by_id != NULL);
 	g_assert(ul_all_parq_by_ip != NULL);
 	g_assert(dl_all_parq_by_id != NULL);
+	g_assert(parq_banned_source != NULL);
 	
 	parq_upload_load_queue();
 }
@@ -411,6 +427,18 @@ void parq_close(void)
 	parq_shutdown = TRUE;
 	
 	parq_upload_save_queue();
+	
+	for (dl = parq_banned_sources ; dl != NULL; dl = dl->next) {
+		struct parq_banned *banned = (struct parq_banned *) dl->data;
+			
+		remove = g_slist_prepend(remove, banned);
+	}
+	
+	for (sl = remove; sl != NULL; sl = sl->next) {
+		struct parq_banned *banned = (struct parq_banned *) sl->data;
+			
+		parq_del_banned_source(banned->ip);
+	}
 	
 	/* 
 	 * First locate all queued items (dead or alive). And place them in the
@@ -457,6 +485,9 @@ void parq_close(void)
 	g_hash_table_destroy(ul_all_parq_by_ip_and_name);
 	g_hash_table_destroy(ul_all_parq_by_ip);
 	g_hash_table_destroy(ul_all_parq_by_id);
+	
+	g_hash_table_destroy(parq_banned_source);
+	g_list_free(parq_banned_sources);
 
 }
 
@@ -1727,6 +1758,27 @@ void parq_upload_timer(time_t now)
 		return;
 	}
 
+	
+	/* PARQ ip banning timer */
+	for (dl = parq_banned_sources ; dl != NULL; dl = dl->next) {
+		struct parq_banned *banned = (struct parq_banned *) dl->data;
+			
+		if (now - banned->added > PARQ_MAX_UL_RETRY_DELAY ||
+			now - banned->expire > 0) {
+			remove = g_slist_prepend(remove, banned);
+		}
+	}
+	
+	for (sl = remove; sl != NULL; sl = sl->next) {
+		struct parq_banned *banned = (struct parq_banned *) sl->data;
+			
+		parq_del_banned_source(banned->ip);
+	}
+	
+	g_slist_free(remove);
+	remove = NULL;
+	
+	
 	for (queues = ul_parqs ; queues != NULL; queues = queues->next) {
 		struct parq_ul_queue *queue = (struct parq_ul_queue *) queues->data;
 
@@ -2443,6 +2495,8 @@ gboolean parq_upload_request(gnutella_upload_t *u, gpointer handle,
 				ip_port_to_gchar(u->socket->ip, u->socket->port), 
 				upload_vendor_str(u),
 				u->name, (gint) (org_retry - now));
+
+			parq_add_banned_source(u->ip, parq_ul->retry - now);
 
 			parq_upload_force_remove(u);
 			return FALSE;
@@ -3494,6 +3548,74 @@ static void parq_upload_load_queue(void)
 	
 	wfree(u, sizeof(*u));
 	fclose(f);
+}
+
+/*
+ * parq_add_banned_source
+ *
+ * Adds an ip to the parq ban list. This list is used to deny connections from
+ * such a host. Sources will only make it in this list when they ignore our
+ * delay Retry-After header twice.
+ */
+void parq_add_banned_source(guint32 ip, time_t delay)
+{
+	time_t now = time((time_t *) NULL);
+	struct parq_banned *banned = NULL;
+		
+	g_assert(parq_banned_source != NULL);
+
+	banned = (struct parq_banned *) 
+			g_hash_table_lookup(parq_banned_source, &ip);
+	
+	if (banned == NULL) {
+		/* Host not yet banned yet, good */
+		banned = walloc0(sizeof(*banned));
+		banned->ip = ip;
+		g_hash_table_insert(parq_banned_source, &banned->ip, banned);
+		
+		g_list_append(parq_banned_sources, banned);
+	}
+
+	g_assert(banned != NULL);
+	g_assert(banned->ip == ip);
+	
+	/* Update timestamp */
+	banned->added = now;
+	if (banned->expire < delay + now) {
+		banned->expire = delay + now;
+	}
+}
+
+/*
+ * parq_del_banned_source
+ *
+ * Removes a banned ip from the parq banned list 
+ */
+void parq_del_banned_source(guint32 ip)
+{
+	struct parq_banned *banned = NULL;
+
+	g_assert(parq_banned_source != NULL);
+	g_assert(parq_banned_sources != NULL);
+	
+	banned = (struct parq_banned *)
+		g_hash_table_lookup(parq_banned_source, &ip);
+	
+	g_assert(banned != NULL);
+	g_assert(banned->ip == ip);
+	
+	g_hash_table_remove(parq_banned_source, banned);
+	g_list_remove(parq_banned_sources, banned);
+
+	wfree(banned, sizeof(*banned));
+}
+
+gboolean parq_is_banned_source(guint32 ip)
+{
+	g_assert(parq_banned_source != NULL);
+	
+	return 
+		g_hash_table_lookup(parq_banned_source, &ip) != NULL;
 }
 
 /*
