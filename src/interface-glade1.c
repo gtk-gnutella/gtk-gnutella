@@ -427,6 +427,11 @@ create_main_window (void)
   GtkWidget *spinbutton_config_min_dup_msg;
   GtkObject *spinbutton_config_min_dup_ratio_adj;
   GtkWidget *spinbutton_config_min_dup_ratio;
+  GtkWidget *frame50;
+  GtkWidget *table33;
+  GtkWidget *label290;
+  GtkObject *spinbutton_config_hops_random_factor_adj;
+  GtkWidget *spinbutton_config_hops_random_factor;
   GtkWidget *label122;
   GtkWidget *vbox38;
   GtkWidget *frame_save_new_files;
@@ -515,6 +520,17 @@ create_main_window (void)
   GtkObject *spinbutton_config_upload_connected_timeout_adj;
   GtkWidget *spinbutton_config_upload_connected_timeout;
   GtkWidget *label174;
+  GtkWidget *vbox75;
+  GtkWidget *frame49;
+  GtkWidget *table32;
+  GtkWidget *label288;
+  GtkWidget *label289;
+  GtkObject *spinbutton_config_dbg_adj;
+  GtkWidget *spinbutton_config_dbg;
+  GtkObject *spinbutton_config_gui_debug_adj;
+  GtkWidget *spinbutton_config_gui_debug;
+  GtkWidget *checkbutton_config_stop_host_get;
+  GtkWidget *label287;
   GtkWidget *label_config;
   GtkWidget *hbox_statusbar;
   GtkWidget *statusbar;
@@ -3666,6 +3682,43 @@ create_main_window (void)
                     (GtkAttachOptions) (0),
                     (GtkAttachOptions) (0), 0, 0);
 
+  frame50 = gtk_frame_new ("Other");
+  gtk_widget_ref (frame50);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "frame50", frame50,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (frame50);
+  gtk_box_pack_start (GTK_BOX (vbox25), frame50, TRUE, TRUE, 0);
+
+  table33 = gtk_table_new (1, 2, FALSE);
+  gtk_widget_ref (table33);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "table33", table33,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (table33);
+  gtk_container_add (GTK_CONTAINER (frame50), table33);
+  gtk_container_set_border_width (GTK_CONTAINER (table33), 2);
+  gtk_table_set_row_spacings (GTK_TABLE (table33), 2);
+  gtk_table_set_col_spacings (GTK_TABLE (table33), 4);
+
+  label290 = gtk_label_new ("Hops random factor");
+  gtk_widget_ref (label290);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label290", label290,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label290);
+  gtk_table_attach (GTK_TABLE (table33), label290, 0, 1, 0, 1,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label290), 0, 0.5);
+
+  spinbutton_config_hops_random_factor_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 10);
+  spinbutton_config_hops_random_factor = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_hops_random_factor_adj), 1, 0);
+  gtk_widget_ref (spinbutton_config_hops_random_factor);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "spinbutton_config_hops_random_factor", spinbutton_config_hops_random_factor,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (spinbutton_config_hops_random_factor);
+  gtk_table_attach (GTK_TABLE (table33), spinbutton_config_hops_random_factor, 1, 2, 0, 1,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+
   label122 = gtk_label_new ("GnutellaNet\noptions");
   gtk_widget_ref (label122);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "label122", label122,
@@ -4317,6 +4370,87 @@ create_main_window (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (label174);
   gtk_notebook_set_tab_label (GTK_NOTEBOOK (notebook1), gtk_notebook_get_nth_page (GTK_NOTEBOOK (notebook1), 4), label174);
+
+  vbox75 = gtk_vbox_new (FALSE, 0);
+  gtk_widget_ref (vbox75);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "vbox75", vbox75,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (vbox75);
+  gtk_container_add (GTK_CONTAINER (notebook1), vbox75);
+  gtk_container_set_border_width (GTK_CONTAINER (vbox75), 4);
+
+  frame49 = gtk_frame_new ("Debug levels");
+  gtk_widget_ref (frame49);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "frame49", frame49,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (frame49);
+  gtk_box_pack_start (GTK_BOX (vbox75), frame49, FALSE, TRUE, 0);
+
+  table32 = gtk_table_new (3, 2, FALSE);
+  gtk_widget_ref (table32);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "table32", table32,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (table32);
+  gtk_container_add (GTK_CONTAINER (frame49), table32);
+  gtk_container_set_border_width (GTK_CONTAINER (table32), 2);
+  gtk_table_set_row_spacings (GTK_TABLE (table32), 2);
+  gtk_table_set_col_spacings (GTK_TABLE (table32), 4);
+
+  label288 = gtk_label_new ("Core debug level");
+  gtk_widget_ref (label288);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label288", label288,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label288);
+  gtk_table_attach (GTK_TABLE (table32), label288, 0, 1, 0, 1,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label288), 0, 0.5);
+
+  label289 = gtk_label_new ("GUI debug level");
+  gtk_widget_ref (label289);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label289", label289,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label289);
+  gtk_table_attach (GTK_TABLE (table32), label289, 0, 1, 1, 2,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label289), 0, 0.5);
+
+  spinbutton_config_dbg_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 10);
+  spinbutton_config_dbg = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_dbg_adj), 1, 0);
+  gtk_widget_ref (spinbutton_config_dbg);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "spinbutton_config_dbg", spinbutton_config_dbg,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (spinbutton_config_dbg);
+  gtk_table_attach (GTK_TABLE (table32), spinbutton_config_dbg, 1, 2, 0, 1,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+
+  spinbutton_config_gui_debug_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 10);
+  spinbutton_config_gui_debug = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_gui_debug_adj), 1, 0);
+  gtk_widget_ref (spinbutton_config_gui_debug);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "spinbutton_config_gui_debug", spinbutton_config_gui_debug,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (spinbutton_config_gui_debug);
+  gtk_table_attach (GTK_TABLE (table32), spinbutton_config_gui_debug, 1, 2, 1, 2,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+
+  checkbutton_config_stop_host_get = gtk_check_button_new_with_label ("Stop collecting hosts in host catcher");
+  gtk_widget_ref (checkbutton_config_stop_host_get);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "checkbutton_config_stop_host_get", checkbutton_config_stop_host_get,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (checkbutton_config_stop_host_get);
+  gtk_table_attach (GTK_TABLE (table32), checkbutton_config_stop_host_get, 0, 2, 2, 3,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+
+  label287 = gtk_label_new ("Debugging");
+  gtk_widget_ref (label287);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label287", label287,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label287);
+  gtk_notebook_set_tab_label (GTK_NOTEBOOK (notebook1), gtk_notebook_get_nth_page (GTK_NOTEBOOK (notebook1), 5), label287);
 
   label_config = gtk_label_new ("Config");
   gtk_widget_ref (label_config);
