@@ -286,8 +286,8 @@ static void fi_gui_set_filter_regex(gchar *s)
     GSList *sl;
     gint row;
     GSList *old_hidden = g_slist_copy(hidden_fi);
-	GtkCList *clist_fi;
-    char *fallback_re = ".";
+    GtkCList *clist_fi;
+    char *fallback_re = ".";	
 
     if (s == NULL) {
         s = fallback_re;
@@ -406,16 +406,8 @@ void on_clist_fileinfo_unselect_row(GtkCList *clist, gint row, gint column,
 
 void on_button_fi_purge_clicked(GtkButton *button, gpointer user_data)
 {
-    GSList *sl = NULL;
-    GtkCList *clist = GTK_CLIST(
-        lookup_widget(main_window, "clist_fileinfo"));
-
-    sl = clist_collect_data(clist, TRUE, NULL);
-
-    if (sl)
-        fi_purge_by_handle_list(sl);
-
-    g_slist_free(sl);
+    if (last_shown_valid)
+        fi_purge(last_shown);
 }
 
 void on_entry_fi_regex_activate(GtkEditable *editable, gpointer user_data)
