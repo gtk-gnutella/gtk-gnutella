@@ -1,5 +1,11 @@
 # since last version
 
+- (2002.12.31 - RAM)
+ * Added static RCS Id to all the C files.
+ * Now accepts and forwards big pings/pongs/pushes to nodes that will
+   advertize "GGEP: 0.5" (at least) in their handshakes.  Other nodes
+   will get a stripped down message without the GGEP extensions.
+
 - (2002.12.31 - cbiere)
  * [Gtk2] Added and removed properties for gnet stats
  * Size for received packets was wrongly added
