@@ -7548,6 +7548,12 @@ node_crawl(gnutella_node_t *n, gint ucnt, gint lcnt, guint8 features)
 
 		g_assert(agents->len > 0);
 
+		/*
+		 * Append our own vendor string to the list.
+		 */
+
+		node_crawl_append_vendor(agents, version_string);
+
 		zd = zlib_deflater_make(
 			agents->str,
 			agents->len - 1,			/* Drop trailing separator */
