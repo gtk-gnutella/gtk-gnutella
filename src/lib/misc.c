@@ -883,7 +883,7 @@ base32_sha1(const gchar *base32)
 	len = base32_decode_into(base32, SHA1_BASE32_SIZE,
 		digest_sha1, sizeof(digest_sha1));
 
-	return SHA1_BASE32_SIZE == len ? digest_sha1 : NULL;
+	return SHA1_RAW_SIZE == len ? digest_sha1 : NULL;
 }
 
 /**
