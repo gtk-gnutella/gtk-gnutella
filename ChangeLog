@@ -1,5 +1,11 @@
 # since last version
 
+- (2004-07-19 - TNT)
+ * Added option 'ALL' to the remote shell command 'HORIZON'. This option
+   will output the total horizon size as usual (including non-HSEP nodes) and
+   will then output the horizon size of each directly connected HSEP node. May
+   come handy for checking/debugging purposes.
+
 - (2004-07-15 - Jeroen)
  * Enabled drag and drop for the GTK2 interface for magnet links.
 
