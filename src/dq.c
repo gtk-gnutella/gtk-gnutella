@@ -571,9 +571,9 @@ dq_sendto_leaves(dquery_t *dq, gnutella_node_t *source)
 	nodes = qrt_build_query_target(dq->qhv,
 		head->hops, MAX(head->ttl, 2), source);
 
-	if (dbg > 4)
+	if (dq_debug > 4)
 		g_message("DQ QRP %s (%d word/hash) forwarded to %d/%d leaves",
-			gmsg_infostr(head), dq->qhv->count, g_slist_length(nodes),
+			gmsg_infostr_full(payload), dq->qhv->count, g_slist_length(nodes),
 			node_leaf_count);
 
 	gmsg_mb_sendto_all(nodes, dq->mb);
