@@ -53,7 +53,7 @@ RCSID("$Id$");
 #define REPLY_ERROR       400
 #define REPLY_GOOD_BYE    900
 
-GSList *sl_shells = NULL;
+static GSList *sl_shells = NULL;
 
 typedef struct gnutella_shell {
 	struct gnutella_socket *socket;
@@ -84,9 +84,9 @@ enum {
 	CMD_HORIZON
 };
 
-static struct {
-	gint id;
-	gchar *cmd;
+static const struct {
+	const gint id;
+	const gchar * const cmd;
 } commands[] = {
 	{CMD_QUIT,   "QUIT"},
 	{CMD_SEARCH, "SEARCH"},
@@ -141,7 +141,7 @@ static const gchar *shell_token_end(const gchar *s)
 
 		g_assert(!escape);
 
-		switch(*cur) {
+		switch (*cur) {
 		case '"':
 			quote = !quote;
 			if (!quote)
@@ -235,7 +235,7 @@ static guint shell_exec_node(gnutella_shell_t *sh, const gchar *cmd)
 	if (!tok)
 		goto error;
 
-	switch(get_command(tok)) {
+	switch (get_command(tok)) {
 	case CMD_ADD: {
 		gchar *tok_buf;
 		guint32 ip = 0;
@@ -258,16 +258,16 @@ static guint shell_exec_node(gnutella_shell_t *sh, const gchar *cmd)
 
 		if (ip && port) {
 			node_add(ip, port);
-			sh->msg = "Node added";
+			sh->msg = _("Node added");
 			reply_code = REPLY_READY;
 		} else {
-			sh->msg = "Invalid IP/Port";
+			sh->msg = _("Invalid IP/Port");
 			goto error;
 		}
 		break;
 	}
 	default:
-		sh->msg = "Unknown operation";
+		sh->msg = _("Unknown operation");
 		goto error;
 	}
 
@@ -278,7 +278,7 @@ static guint shell_exec_node(gnutella_shell_t *sh, const gchar *cmd)
 error:
 	G_FREE_NULL(tok);
 	if (sh->msg == NULL)
-		sh->msg = "Malformed command";
+		sh->msg = _("Malformed command");
 	
 	return REPLY_ERROR;
 }
@@ -302,19 +302,19 @@ static guint shell_exec_search(gnutella_shell_t *sh, const gchar *cmd)
 		
 		tok_query = shell_get_token(cmd, &pos);
 		if (!tok_query) {
-			sh->msg = "Query string missing";
+			sh->msg = _("Query string missing");
 			goto error;
 		}
 	
 		search_gui_new_search(tok_query, 0, NULL);
 		G_FREE_NULL(tok_query);
 	   
-		sh->msg = "Search added";
+		sh->msg = _("Search added");
 		reply_code = REPLY_READY;
 		break;
 	}
 	default:
-		sh->msg = "Unknown operation";
+		sh->msg = _("Unknown operation");
 		goto error;
 	}
 
@@ -325,7 +325,7 @@ static guint shell_exec_search(gnutella_shell_t *sh, const gchar *cmd)
 error:
 	G_FREE_NULL(tok);
 	if (sh->msg == NULL)
-		sh->msg = "Malformed command";
+		sh->msg = _("Malformed command");
 	
 	return REPLY_ERROR;
 }
@@ -349,7 +349,7 @@ static guint shell_exec_print(gnutella_shell_t *sh, const gchar *cmd)
 
 	tok_prop = shell_get_token(cmd, &pos);
 	if (!tok_prop) {
-		sh->msg = "Property missing";
+		sh->msg = _("Property missing");
 		goto error;
 	}
 
@@ -362,15 +362,15 @@ static guint shell_exec_print(gnutella_shell_t *sh, const gchar *cmd)
 	}
 			
 	if (prop == NO_PROP) {
-		sh->msg = "Unknown property";
+		sh->msg = _("Unknown property");
 		goto error;
 	}
 
-	shell_write(sh, "Value: ");
+	shell_write(sh, _("Value: "));
 	shell_write(sh, stub->to_string(prop));
 	shell_write(sh, "\n");
 
-	sh->msg = "Value found and displayed";
+	sh->msg = _("Value found and displayed");
 	reply_code = REPLY_READY;
 
 	G_FREE_NULL(stub);
@@ -382,7 +382,7 @@ error:
 	G_FREE_NULL(stub);
 	G_FREE_NULL(tok_prop);
 	if (sh->msg == NULL)
-		sh->msg = "Malformed command";
+		sh->msg = _("Malformed command");
 	
 	return REPLY_ERROR;
 }
@@ -408,12 +408,12 @@ static guint shell_exec_set(gnutella_shell_t *sh, const gchar *cmd)
 
 	tok_prop = shell_get_token(cmd, &pos);
 	if (!tok_prop) {
-		sh->msg = "Property missing";
+		sh->msg = _("Property missing");
 		goto error;
 	}
 
 	n = 0; prop = NO_PROP;
-	while((stub_getter[n] != NULL) && (prop == NO_PROP)) {
+	while ((stub_getter[n] != NULL) && (prop == NO_PROP)) {
 		G_FREE_NULL(stub);
 		stub = (stub_getter[n])();
 		prop = stub->get_by_name(tok_prop);
@@ -421,7 +421,7 @@ static guint shell_exec_set(gnutella_shell_t *sh, const gchar *cmd)
 	}
 			
 	if (prop == NO_PROP) {
-		sh->msg = "Unknown property";
+		sh->msg = _("Unknown property");
 		goto error;
 	}
 
@@ -432,7 +432,7 @@ static guint shell_exec_set(gnutella_shell_t *sh, const gchar *cmd)
 	tok_value = shell_get_token(cmd, &pos);
 	if (!tok_value) {
 		prop_free_def (prop_buf);
-		sh->msg = "Value missing";
+		sh->msg = _("Value missing");
 		goto error;
 	}
 
@@ -476,11 +476,11 @@ static guint shell_exec_set(gnutella_shell_t *sh, const gchar *cmd)
 	}
 	default:
 		prop_free_def (prop_buf);
-		sh->msg = "Type not supported";
+		sh->msg = _("Type not supported");
 		goto error;
 	}
 
-	sh->msg = "Value found and set";
+	sh->msg = _("Value found and set");
 	reply_code = REPLY_READY;
 
 	G_FREE_NULL(stub);
@@ -494,7 +494,7 @@ error:
 	G_FREE_NULL(stub);
 	G_FREE_NULL(tok_prop);
 	if (sh->msg == NULL)
-		sh->msg = "Malformed command";
+		sh->msg = _("Malformed command");
 	
 	return REPLY_ERROR;
 }
@@ -524,12 +524,12 @@ static guint shell_exec_whatis(gnutella_shell_t *sh, const gchar *cmd)
 
 	tok_prop = shell_get_token(cmd, &pos);
 	if (!tok_prop) {
-		sh->msg = "Property missing";
+		sh->msg = _("Property missing");
 		goto error;
 	}
 
 	n = 0; prop = NO_PROP;
-	while((stub_getter[n] != NULL) && (prop == NO_PROP)) {
+	while ((stub_getter[n] != NULL) && (prop == NO_PROP)) {
 		G_FREE_NULL(stub);
 		stub = (stub_getter[n])();
 		prop = stub->get_by_name(tok_prop);
@@ -537,7 +537,7 @@ static guint shell_exec_whatis(gnutella_shell_t *sh, const gchar *cmd)
 	}
 			
 	if (prop == NO_PROP) {
-		sh->msg = "Unknown property";
+		sh->msg = _("Unknown property");
 		goto error;
 	}
 
@@ -545,7 +545,7 @@ static guint shell_exec_whatis(gnutella_shell_t *sh, const gchar *cmd)
 
 	g_assert (prop_buf);
 
-	shell_write(sh, "Help: ");
+	shell_write(sh, _("Help: "));
 	shell_write(sh, prop_buf->desc);
 	shell_write(sh, "\n");
 
@@ -562,7 +562,7 @@ error:
 	G_FREE_NULL(stub);
 	G_FREE_NULL(tok_prop);
 	if (sh->msg == NULL)
-		sh->msg = "Malformed command";
+		sh->msg = _("Malformed command");
 	
 	return REPLY_ERROR;
 }
@@ -604,12 +604,12 @@ static guint shell_exec_horizon(gnutella_shell_t *sh, const gchar *cmd)
 	}
 
 	gm_snprintf(buf, sizeof(buf),
-		"Horizon size (%u/%u nodes support HSEP):\n\n", hsep_nodes, nodes);
+		_("Horizon size (%u/%u nodes support HSEP):\n\n"), hsep_nodes, nodes);
 
 	shell_write(sh, buf);
 
 	if (hsep_nodes == 0) {
-		shell_write(sh, "No horizon information available.\n");
+		shell_write(sh, _("No horizon information available.\n"));
 		return REPLY_READY;
 	}
 	
@@ -636,8 +636,8 @@ static guint shell_exec_horizon(gnutella_shell_t *sh, const gchar *cmd)
 			maxlen[i % 3] = n;
 	}
 
-	gm_snprintf(buf, sizeof(buf), "Hops  %*s  %*s  %*s\n----------",
-		maxlen[0], "Nodes", maxlen[1], "Files", maxlen[2], "Size");
+	gm_snprintf(buf, sizeof(buf), _("Hops  %*s  %*s  %*s\n----------"),
+		maxlen[0], _("Nodes"), maxlen[1], _("Files"), maxlen[2], _("Size"));
 
 	shell_write(sh, buf);
 
@@ -679,7 +679,7 @@ static guint shell_exec(gnutella_shell_t *sh, const gchar *cmd)
 	if (!tok)
 		goto error;
 
-	switch(get_command(tok)) {
+	switch (get_command(tok)) {
 	case CMD_HELP:
 		shell_write(sh, 
 			"100-Help:\n"
@@ -694,7 +694,7 @@ static guint shell_exec(gnutella_shell_t *sh, const gchar *cmd)
 		reply_code = REPLY_READY;
 		break;
 	case CMD_QUIT:
-		sh->msg = "Good bye";
+		sh->msg = _("Good bye");
 		reply_code = REPLY_GOOD_BYE;
 		shell_shutdown(sh);
 		break;
@@ -727,7 +727,7 @@ static guint shell_exec(gnutella_shell_t *sh, const gchar *cmd)
 error:
 	G_FREE_NULL(tok);
 	if (sh->msg == NULL)
-		sh->msg = "Unknown command";
+		sh->msg = _("Unknown command");
 	
 	return REPLY_ERROR;
 }
@@ -794,7 +794,7 @@ static void shell_read_data(gnutella_shell_t *sh)
 	s = sh->socket;
 
 	if (s->pos >= sizeof(s->buffer))
-		g_warning ("Remote shell: Read more than buffer size.\n");
+		g_warning("Remote shell: Read more than buffer size.\n");
 	else {
 		rc = read(s->file_desc, s->buffer+s->pos,
 				sizeof(s->buffer)-1-s->pos);
@@ -843,8 +843,7 @@ static void shell_read_data(gnutella_shell_t *sh)
 
 		buf = g_string_sized_new(100);
 		reply_code = shell_exec(sh, getline_str(s->getline));
-		g_string_printf(buf, "%u %s\n", reply_code,
-			sh->msg ? sh->msg : "");
+		g_string_printf(buf, "%u %s\n", reply_code, sh->msg ? sh->msg : "");
 		shell_write(sh, buf->str);
 		g_string_free(buf, TRUE);
 		sh->msg = NULL;
@@ -860,8 +859,7 @@ static void shell_read_data(gnutella_shell_t *sh)
  *
  * Called whenever some event occurs on a shell socket.
  */
-static void shell_handle_data(
-	gpointer data, gint source, GdkInputCondition cond)
+static void shell_handle_data(gpointer data, gint source, inputevt_cond_t cond)
 {
 	gnutella_shell_t *sh = (gnutella_shell_t *) data;
 
@@ -993,7 +991,8 @@ static void shell_destroy(gnutella_shell_t *s)
 	g_assert(s);
 	g_assert(s->socket);
 
-	g_warning("shell_destroy");
+	if (dbg > 0)
+		g_warning("shell_destroy");
 
 	sl_shells = g_slist_remove(sl_shells, s);
 
