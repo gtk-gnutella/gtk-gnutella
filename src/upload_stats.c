@@ -326,11 +326,14 @@ void upload_stats_prune_nonexistent()
 	/* for each row, get the filename, check if filename is ? */
 }
 
-void upload_stats_clear_all(void)
+/*
+ * upload_stats_free_all
+ *
+ * Clear all the upload stats data structure
+ */
+void upload_stats_free_all(void)
 {
     GList *l;
-
-	upload_stats_gui_clear_all();
 
 	for (l = g_list_first(upload_stats_list); NULL != l; l = g_list_next(l)) {
 		G_FREE_NULL(((struct ul_stats *)(l->data))->filename);
@@ -340,5 +343,16 @@ void upload_stats_clear_all(void)
 	g_list_free(upload_stats_list);
 	upload_stats_list = NULL;
 	dirty = TRUE;
+}
+
+/*
+ * upload_stats_clear_all
+ *
+ * Like upload_stats_free_all() but also clears the GUI.
+ */
+void upload_stats_clear_all(void)
+{
+	upload_stats_gui_clear_all();
+	upload_stats_free_all();
 }
 

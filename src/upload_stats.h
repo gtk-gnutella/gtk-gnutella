@@ -36,6 +36,7 @@ void upload_stats_file_begin(const struct upload *u);
 void upload_stats_file_aborted(const struct upload *u);
 void upload_stats_file_complete(const struct upload *u);
 void upload_stats_prune_nonexistent(void);
+void upload_stats_free_all(void);
 void upload_stats_clear_all(void);
 
 #endif

@@ -147,6 +147,7 @@ void gtk_gnutella_exit(gint n)
 	verify_close();
 	move_close();
 	bg_close();
+	upload_stats_free_all();
 	atom_str_free(start_rfc822_date);
 	atoms_close();
 	wdestroy();
