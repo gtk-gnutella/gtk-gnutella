@@ -2495,13 +2495,23 @@ void on_clist_search_results_select_row(GtkCList * clist, gint row,
 				rc2 = (struct record *) gtk_clist_get_row_data(clist, i);
 				// if name or urn match and file is same or larger, select it
 
-               if ((rc2 && !strcmp(rc2->name, rc->name)) ||
-                    (rc->sha1 != NULL && rc2->sha1 != NULL &&
-                     memcmp(rc->sha1, rc2->sha1, SHA1_RAW_SIZE) == 0)) {
-                    if (
-                        (search_autoselect_ident && (rc2->size == rc->size)) ||
-                        (!search_autoselect_ident && (rc2->size >= rc->size))
-                    ) {
+                if (search_autoselect_ident) {
+                    if ((
+                            rc->sha1 != NULL && rc2->sha1 != NULL &&
+                            memcmp(rc->sha1, rc2->sha1, SHA1_RAW_SIZE) == 0
+                        ) || (
+                            (rc->sha1 == NULL) && rc2 && 
+                            !strcmp(rc2->name, rc->name) && 
+                            (rc2->size == rc->size)
+                        )) {
+                        gtk_clist_select_row(clist, i, 0);
+                        x++;
+                    }
+                } else {
+                    if (((rc->sha1 != NULL && rc2->sha1 != NULL &&
+                        memcmp(rc->sha1, rc2->sha1, SHA1_RAW_SIZE) == 0) || 
+                        (rc2 && !strcmp(rc2->name, rc->name))) &&
+                        (rc2->size >= rc->size)) {
                         gtk_clist_select_row(clist, i, 0);
                         x++;
                     }
