@@ -9585,32 +9585,33 @@ create_main_window_downloads_tab (void)
   GtkWidget *scrolledwindow70;
   GtkWidget *treeview_fileinfo;
   GtkWidget *label673;
+  GtkWidget *vbox132;
+  GtkWidget *frame82;
+  GtkWidget *vbox106;
+  GtkWidget *table67;
+  GtkWidget *viewport68;
+  GtkWidget *entry_fi_filename;
+  GtkWidget *label837;
+  GtkWidget *label677;
+  GtkWidget *label678;
+  GtkWidget *frame105;
+  GtkWidget *drawingarea_fi_progress;
+  GtkWidget *frame106;
+  GtkWidget *label_fi_size;
+  GtkWidget *frame108;
+  GtkWidget *scrolledwindow72;
+  GtkWidget *treeview_fi_aliases;
+  GtkWidget *label838;
+  GtkWidget *label674;
+  GtkWidget *hbox264;
+  GtkWidget *button_fi_purge;
+  GtkWidget *frame107;
   GtkWidget *hbox235;
   GtkWidget *label715;
   GtkWidget *label_fi_all_count;
   GtkWidget *label717;
   GtkWidget *label_fi_with_source_count;
   GtkWidget *label719;
-  GtkWidget *frame82;
-  GtkWidget *vbox106;
-  GtkWidget *table67;
-  GtkWidget *label_fi_size;
-  GtkWidget *label677;
-  GtkWidget *label678;
-  GtkWidget *viewport68;
-  GtkWidget *entry_fi_filename;
-  GtkWidget *button_fi_purge;
-  GtkWidget *notebook4;
-  GtkWidget *scrolledwindow71;
-  GtkWidget *treeview_fi_sources;
-  GtkWidget *label675;
-  GtkWidget *scrolledwindow72;
-  GtkWidget *treeview_fi_aliases;
-  GtkWidget *label676;
-  GtkWidget *frame104;
-  GtkWidget *drawingarea_fi_progress;
-  GtkWidget *label836;
-  GtkWidget *label674;
   GtkWidget *label672;
   GtkTooltips *tooltips;
 
@@ -10147,6 +10148,7 @@ create_main_window_downloads_tab (void)
   gtk_widget_set_name (vpaned_fileinfo, "vpaned_fileinfo");
   gtk_widget_show (vpaned_fileinfo);
   gtk_container_add (GTK_CONTAINER (notebook_downloads), vpaned_fileinfo);
+  gtk_container_set_border_width (GTK_CONTAINER (vpaned_fileinfo), 2);
   gtk_paned_set_position (GTK_PANED (vpaned_fileinfo), 305);
 
   vbox108 = gtk_vbox_new (FALSE, 0);
@@ -10158,7 +10160,6 @@ create_main_window_downloads_tab (void)
   gtk_widget_set_name (frame81, "frame81");
   gtk_widget_show (frame81);
   gtk_box_pack_start (GTK_BOX (vbox108), frame81, TRUE, TRUE, 0);
-  gtk_container_set_border_width (GTK_CONTAINER (frame81), 2);
 
   scrolledwindow70 = gtk_scrolled_window_new (NULL, NULL);
   gtk_widget_set_name (scrolledwindow70, "scrolledwindow70");
@@ -10178,10 +10179,144 @@ create_main_window_downloads_tab (void)
   gtk_widget_show (label673);
   gtk_frame_set_label_widget (GTK_FRAME (frame81), label673);
 
+  vbox132 = gtk_vbox_new (FALSE, 2);
+  gtk_widget_set_name (vbox132, "vbox132");
+  gtk_widget_show (vbox132);
+  gtk_paned_pack2 (GTK_PANED (vpaned_fileinfo), vbox132, TRUE, TRUE);
+
+  frame82 = gtk_frame_new (NULL);
+  gtk_widget_set_name (frame82, "frame82");
+  gtk_widget_show (frame82);
+  gtk_box_pack_start (GTK_BOX (vbox132), frame82, TRUE, TRUE, 0);
+
+  vbox106 = gtk_vbox_new (FALSE, 2);
+  gtk_widget_set_name (vbox106, "vbox106");
+  gtk_widget_show (vbox106);
+  gtk_container_add (GTK_CONTAINER (frame82), vbox106);
+  gtk_container_set_border_width (GTK_CONTAINER (vbox106), 2);
+
+  table67 = gtk_table_new (3, 2, FALSE);
+  gtk_widget_set_name (table67, "table67");
+  gtk_widget_show (table67);
+  gtk_box_pack_start (GTK_BOX (vbox106), table67, FALSE, TRUE, 0);
+  gtk_container_set_border_width (GTK_CONTAINER (table67), 2);
+  gtk_table_set_row_spacings (GTK_TABLE (table67), 2);
+  gtk_table_set_col_spacings (GTK_TABLE (table67), 4);
+
+  viewport68 = gtk_viewport_new (NULL, NULL);
+  gtk_widget_set_name (viewport68, "viewport68");
+  gtk_widget_show (viewport68);
+  gtk_table_attach (GTK_TABLE (table67), viewport68, 1, 2, 0, 1,
+                    (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK | GTK_FILL),
+                    (GtkAttachOptions) (GTK_FILL), 0, 0);
+  gtk_viewport_set_shadow_type (GTK_VIEWPORT (viewport68), GTK_SHADOW_ETCHED_IN);
+
+  entry_fi_filename = gtk_entry_new ();
+  gtk_widget_set_name (entry_fi_filename, "entry_fi_filename");
+  gtk_widget_show (entry_fi_filename);
+  gtk_container_add (GTK_CONTAINER (viewport68), entry_fi_filename);
+  gtk_editable_set_editable (GTK_EDITABLE (entry_fi_filename), FALSE);
+  gtk_entry_set_has_frame (GTK_ENTRY (entry_fi_filename), FALSE);
+
+  label837 = gtk_label_new (_("Progress:"));
+  gtk_widget_set_name (label837, "label837");
+  gtk_widget_show (label837);
+  gtk_table_attach (GTK_TABLE (table67), label837, 0, 1, 2, 3,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label837), 0, 0.5);
+
+  label677 = gtk_label_new (_("Filename:"));
+  gtk_widget_set_name (label677, "label677");
+  gtk_widget_show (label677);
+  gtk_table_attach (GTK_TABLE (table67), label677, 0, 1, 0, 1,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label677), 0, 0.5);
+
+  label678 = gtk_label_new (_("Size:"));
+  gtk_widget_set_name (label678, "label678");
+  gtk_widget_show (label678);
+  gtk_table_attach (GTK_TABLE (table67), label678, 0, 1, 1, 2,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label678), 0, 0.5);
+
+  frame105 = gtk_frame_new (NULL);
+  gtk_widget_set_name (frame105, "frame105");
+  gtk_widget_show (frame105);
+  gtk_table_attach (GTK_TABLE (table67), frame105, 1, 2, 2, 3,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (GTK_FILL), 0, 0);
+
+  drawingarea_fi_progress = gtk_drawing_area_new ();
+  gtk_widget_set_name (drawingarea_fi_progress, "drawingarea_fi_progress");
+  gtk_widget_show (drawingarea_fi_progress);
+  gtk_container_add (GTK_CONTAINER (frame105), drawingarea_fi_progress);
+  gtk_widget_set_size_request (drawingarea_fi_progress, -1, 14);
+  gtk_tooltips_set_tip (tooltips, drawingarea_fi_progress, _("This bar shows the progress on downloading the file. Green parts have already been downloaded, with the bright green parts during this session. White parts are currently being downloaded."), NULL);
+
+  frame106 = gtk_frame_new (NULL);
+  gtk_widget_set_name (frame106, "frame106");
+  gtk_widget_show (frame106);
+  gtk_table_attach (GTK_TABLE (table67), frame106, 1, 2, 1, 2,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (GTK_FILL), 0, 0);
+
+  label_fi_size = gtk_label_new ("");
+  gtk_widget_set_name (label_fi_size, "label_fi_size");
+  gtk_widget_show (label_fi_size);
+  gtk_container_add (GTK_CONTAINER (frame106), label_fi_size);
+  gtk_misc_set_alignment (GTK_MISC (label_fi_size), 0, 0.5);
+
+  frame108 = gtk_frame_new (NULL);
+  gtk_widget_set_name (frame108, "frame108");
+  gtk_widget_show (frame108);
+  gtk_box_pack_start (GTK_BOX (vbox106), frame108, TRUE, TRUE, 0);
+
+  scrolledwindow72 = gtk_scrolled_window_new (NULL, NULL);
+  gtk_widget_set_name (scrolledwindow72, "scrolledwindow72");
+  gtk_widget_show (scrolledwindow72);
+  gtk_container_add (GTK_CONTAINER (frame108), scrolledwindow72);
+  gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolledwindow72), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
+  gtk_scrolled_window_set_shadow_type (GTK_SCROLLED_WINDOW (scrolledwindow72), GTK_SHADOW_IN);
+
+  treeview_fi_aliases = gtk_tree_view_new ();
+  gtk_widget_set_name (treeview_fi_aliases, "treeview_fi_aliases");
+  gtk_widget_show (treeview_fi_aliases);
+  gtk_container_add (GTK_CONTAINER (scrolledwindow72), treeview_fi_aliases);
+  gtk_tree_view_set_headers_visible (GTK_TREE_VIEW (treeview_fi_aliases), FALSE);
+  gtk_tree_view_set_rules_hint (GTK_TREE_VIEW (treeview_fi_aliases), TRUE);
+
+  label838 = gtk_label_new (_("Altenate filenames"));
+  gtk_widget_set_name (label838, "label838");
+  gtk_widget_show (label838);
+  gtk_frame_set_label_widget (GTK_FRAME (frame108), label838);
+
+  label674 = gtk_label_new (_("Detail information"));
+  gtk_widget_set_name (label674, "label674");
+  gtk_widget_show (label674);
+  gtk_frame_set_label_widget (GTK_FRAME (frame82), label674);
+
+  hbox264 = gtk_hbox_new (FALSE, 4);
+  gtk_widget_set_name (hbox264, "hbox264");
+  gtk_widget_show (hbox264);
+  gtk_box_pack_start (GTK_BOX (vbox132), hbox264, FALSE, TRUE, 0);
+
+  button_fi_purge = gtk_button_new_with_mnemonic (_("_Purge"));
+  gtk_widget_set_name (button_fi_purge, "button_fi_purge");
+  gtk_widget_show (button_fi_purge);
+  gtk_box_pack_start (GTK_BOX (hbox264), button_fi_purge, FALSE, FALSE, 0);
+
+  frame107 = gtk_frame_new (NULL);
+  gtk_widget_set_name (frame107, "frame107");
+  gtk_widget_show (frame107);
+  gtk_box_pack_start (GTK_BOX (hbox264), frame107, TRUE, TRUE, 0);
+
   hbox235 = gtk_hbox_new (FALSE, 0);
   gtk_widget_set_name (hbox235, "hbox235");
   gtk_widget_show (hbox235);
-  gtk_box_pack_start (GTK_BOX (vbox108), hbox235, FALSE, FALSE, 0);
+  gtk_container_add (GTK_CONTAINER (frame107), hbox235);
 
   label715 = gtk_label_new ("");
   gtk_widget_set_name (label715, "label715");
@@ -10208,137 +10343,6 @@ create_main_window_downloads_tab (void)
   gtk_widget_show (label719);
   gtk_box_pack_start (GTK_BOX (hbox235), label719, FALSE, FALSE, 0);
 
-  frame82 = gtk_frame_new (NULL);
-  gtk_widget_set_name (frame82, "frame82");
-  gtk_widget_show (frame82);
-  gtk_paned_pack2 (GTK_PANED (vpaned_fileinfo), frame82, TRUE, TRUE);
-  gtk_container_set_border_width (GTK_CONTAINER (frame82), 2);
-
-  vbox106 = gtk_vbox_new (FALSE, 0);
-  gtk_widget_set_name (vbox106, "vbox106");
-  gtk_widget_show (vbox106);
-  gtk_container_add (GTK_CONTAINER (frame82), vbox106);
-
-  table67 = gtk_table_new (2, 3, FALSE);
-  gtk_widget_set_name (table67, "table67");
-  gtk_widget_show (table67);
-  gtk_box_pack_start (GTK_BOX (vbox106), table67, FALSE, TRUE, 0);
-  gtk_container_set_border_width (GTK_CONTAINER (table67), 2);
-  gtk_table_set_row_spacings (GTK_TABLE (table67), 2);
-  gtk_table_set_col_spacings (GTK_TABLE (table67), 4);
-
-  label_fi_size = gtk_label_new ("");
-  gtk_widget_set_name (label_fi_size, "label_fi_size");
-  gtk_widget_show (label_fi_size);
-  gtk_table_attach (GTK_TABLE (table67), label_fi_size, 2, 3, 1, 2,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-  gtk_misc_set_alignment (GTK_MISC (label_fi_size), 0, 0.5);
-
-  label677 = gtk_label_new (_("Filename:"));
-  gtk_widget_set_name (label677, "label677");
-  gtk_widget_show (label677);
-  gtk_table_attach (GTK_TABLE (table67), label677, 1, 2, 0, 1,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 4, 0);
-  gtk_misc_set_alignment (GTK_MISC (label677), 0, 0.5);
-
-  label678 = gtk_label_new (_("Size:"));
-  gtk_widget_set_name (label678, "label678");
-  gtk_widget_show (label678);
-  gtk_table_attach (GTK_TABLE (table67), label678, 1, 2, 1, 2,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 4, 0);
-  gtk_misc_set_alignment (GTK_MISC (label678), 0, 0.5);
-
-  viewport68 = gtk_viewport_new (NULL, NULL);
-  gtk_widget_set_name (viewport68, "viewport68");
-  gtk_widget_show (viewport68);
-  gtk_table_attach (GTK_TABLE (table67), viewport68, 2, 3, 0, 1,
-                    (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK | GTK_FILL),
-                    (GtkAttachOptions) (GTK_FILL), 0, 0);
-  gtk_viewport_set_shadow_type (GTK_VIEWPORT (viewport68), GTK_SHADOW_ETCHED_IN);
-
-  entry_fi_filename = gtk_entry_new ();
-  gtk_widget_set_name (entry_fi_filename, "entry_fi_filename");
-  gtk_widget_show (entry_fi_filename);
-  gtk_container_add (GTK_CONTAINER (viewport68), entry_fi_filename);
-  gtk_editable_set_editable (GTK_EDITABLE (entry_fi_filename), FALSE);
-  gtk_entry_set_has_frame (GTK_ENTRY (entry_fi_filename), FALSE);
-
-  button_fi_purge = gtk_button_new_with_mnemonic (_("_Purge"));
-  gtk_widget_set_name (button_fi_purge, "button_fi_purge");
-  gtk_widget_show (button_fi_purge);
-  gtk_table_attach (GTK_TABLE (table67), button_fi_purge, 0, 1, 0, 1,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-
-  notebook4 = gtk_notebook_new ();
-  gtk_widget_set_name (notebook4, "notebook4");
-  gtk_widget_show (notebook4);
-  gtk_box_pack_start (GTK_BOX (vbox106), notebook4, TRUE, TRUE, 0);
-  gtk_notebook_set_tab_pos (GTK_NOTEBOOK (notebook4), GTK_POS_LEFT);
-  gtk_notebook_set_scrollable (GTK_NOTEBOOK (notebook4), TRUE);
-
-  scrolledwindow71 = gtk_scrolled_window_new (NULL, NULL);
-  gtk_widget_set_name (scrolledwindow71, "scrolledwindow71");
-  gtk_widget_show (scrolledwindow71);
-  gtk_container_add (GTK_CONTAINER (notebook4), scrolledwindow71);
-  gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolledwindow71), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
-  gtk_scrolled_window_set_shadow_type (GTK_SCROLLED_WINDOW (scrolledwindow71), GTK_SHADOW_IN);
-
-  treeview_fi_sources = gtk_tree_view_new ();
-  gtk_widget_set_name (treeview_fi_sources, "treeview_fi_sources");
-  gtk_widget_show (treeview_fi_sources);
-  gtk_container_add (GTK_CONTAINER (scrolledwindow71), treeview_fi_sources);
-  gtk_tree_view_set_rules_hint (GTK_TREE_VIEW (treeview_fi_sources), TRUE);
-
-  label675 = gtk_label_new (_("Sources"));
-  gtk_widget_set_name (label675, "label675");
-  gtk_widget_show (label675);
-  gtk_notebook_set_tab_label (GTK_NOTEBOOK (notebook4), gtk_notebook_get_nth_page (GTK_NOTEBOOK (notebook4), 0), label675);
-
-  scrolledwindow72 = gtk_scrolled_window_new (NULL, NULL);
-  gtk_widget_set_name (scrolledwindow72, "scrolledwindow72");
-  gtk_widget_show (scrolledwindow72);
-  gtk_container_add (GTK_CONTAINER (notebook4), scrolledwindow72);
-  gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolledwindow72), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
-  gtk_scrolled_window_set_shadow_type (GTK_SCROLLED_WINDOW (scrolledwindow72), GTK_SHADOW_IN);
-
-  treeview_fi_aliases = gtk_tree_view_new ();
-  gtk_widget_set_name (treeview_fi_aliases, "treeview_fi_aliases");
-  gtk_widget_show (treeview_fi_aliases);
-  gtk_container_add (GTK_CONTAINER (scrolledwindow72), treeview_fi_aliases);
-  gtk_tree_view_set_headers_visible (GTK_TREE_VIEW (treeview_fi_aliases), FALSE);
-  gtk_tree_view_set_rules_hint (GTK_TREE_VIEW (treeview_fi_aliases), TRUE);
-
-  label676 = gtk_label_new (_("Aliases"));
-  gtk_widget_set_name (label676, "label676");
-  gtk_widget_show (label676);
-  gtk_notebook_set_tab_label (GTK_NOTEBOOK (notebook4), gtk_notebook_get_nth_page (GTK_NOTEBOOK (notebook4), 1), label676);
-
-  frame104 = gtk_frame_new (NULL);
-  gtk_widget_set_name (frame104, "frame104");
-  gtk_widget_show (frame104);
-  gtk_box_pack_start (GTK_BOX (vbox106), frame104, FALSE, TRUE, 0);
-
-  drawingarea_fi_progress = gtk_drawing_area_new ();
-  gtk_widget_set_name (drawingarea_fi_progress, "drawingarea_fi_progress");
-  gtk_widget_show (drawingarea_fi_progress);
-  gtk_container_add (GTK_CONTAINER (frame104), drawingarea_fi_progress);
-  gtk_widget_set_size_request (drawingarea_fi_progress, -1, 14);
-  gtk_tooltips_set_tip (tooltips, drawingarea_fi_progress, _("This bar shows the progress on downloading the file. Green parts have already been downloaded, with the bright green parts during this session. White parts are currently being downloaded."), NULL);
-
-  label836 = gtk_label_new (_("Download progress"));
-  gtk_widget_set_name (label836, "label836");
-  gtk_widget_show (label836);
-  gtk_frame_set_label_widget (GTK_FRAME (frame104), label836);
-
-  label674 = gtk_label_new (_("Detail information"));
-  gtk_widget_set_name (label674, "label674");
-  gtk_widget_show (label674);
-  gtk_frame_set_label_widget (GTK_FRAME (frame82), label674);
-
   label672 = gtk_label_new (_("Fileinfo"));
   gtk_widget_set_name (label672, "label672");
   gtk_widget_show (label672);
@@ -10362,9 +10366,6 @@ create_main_window_downloads_tab (void)
   g_signal_connect ((gpointer) entry_queue_regex, "activate",
                     G_CALLBACK (on_entry_queue_regex_activate),
                     NULL);
-  g_signal_connect ((gpointer) button_fi_purge, "clicked",
-                    G_CALLBACK (on_button_fi_purge_clicked),
-                    NULL);
   g_signal_connect ((gpointer) drawingarea_fi_progress, "realize",
                     G_CALLBACK (on_drawingarea_fi_progress_realize),
                     NULL);
@@ -10373,6 +10374,9 @@ create_main_window_downloads_tab (void)
                     NULL);
   g_signal_connect ((gpointer) drawingarea_fi_progress, "expose_event",
                     G_CALLBACK (on_drawingarea_fi_progress_expose_event),
+                    NULL);
+  g_signal_connect ((gpointer) button_fi_purge, "clicked",
+                    G_CALLBACK (on_button_fi_purge_clicked),
                     NULL);
 
   /* Store pointers to all widgets, for use by lookup_widget(). */
@@ -10471,32 +10475,33 @@ create_main_window_downloads_tab (void)
   GLADE_HOOKUP_OBJECT (main_window_downloads_tab, scrolledwindow70, "scrolledwindow70");
   GLADE_HOOKUP_OBJECT (main_window_downloads_tab, treeview_fileinfo, "treeview_fileinfo");
   GLADE_HOOKUP_OBJECT (main_window_downloads_tab, label673, "label673");
+  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, vbox132, "vbox132");
+  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, frame82, "frame82");
+  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, vbox106, "vbox106");
+  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, table67, "table67");
+  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, viewport68, "viewport68");
+  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, entry_fi_filename, "entry_fi_filename");
+  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, label837, "label837");
+  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, label677, "label677");
+  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, label678, "label678");
+  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, frame105, "frame105");
+  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, drawingarea_fi_progress, "drawingarea_fi_progress");
+  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, frame106, "frame106");
+  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, label_fi_size, "label_fi_size");
+  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, frame108, "frame108");
+  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, scrolledwindow72, "scrolledwindow72");
+  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, treeview_fi_aliases, "treeview_fi_aliases");
+  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, label838, "label838");
+  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, label674, "label674");
+  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, hbox264, "hbox264");
+  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, button_fi_purge, "button_fi_purge");
+  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, frame107, "frame107");
   GLADE_HOOKUP_OBJECT (main_window_downloads_tab, hbox235, "hbox235");
   GLADE_HOOKUP_OBJECT (main_window_downloads_tab, label715, "label715");
   GLADE_HOOKUP_OBJECT (main_window_downloads_tab, label_fi_all_count, "label_fi_all_count");
   GLADE_HOOKUP_OBJECT (main_window_downloads_tab, label717, "label717");
   GLADE_HOOKUP_OBJECT (main_window_downloads_tab, label_fi_with_source_count, "label_fi_with_source_count");
   GLADE_HOOKUP_OBJECT (main_window_downloads_tab, label719, "label719");
-  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, frame82, "frame82");
-  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, vbox106, "vbox106");
-  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, table67, "table67");
-  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, label_fi_size, "label_fi_size");
-  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, label677, "label677");
-  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, label678, "label678");
-  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, viewport68, "viewport68");
-  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, entry_fi_filename, "entry_fi_filename");
-  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, button_fi_purge, "button_fi_purge");
-  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, notebook4, "notebook4");
-  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, scrolledwindow71, "scrolledwindow71");
-  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, treeview_fi_sources, "treeview_fi_sources");
-  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, label675, "label675");
-  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, scrolledwindow72, "scrolledwindow72");
-  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, treeview_fi_aliases, "treeview_fi_aliases");
-  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, label676, "label676");
-  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, frame104, "frame104");
-  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, drawingarea_fi_progress, "drawingarea_fi_progress");
-  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, label836, "label836");
-  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, label674, "label674");
   GLADE_HOOKUP_OBJECT (main_window_downloads_tab, label672, "label672");
   GLADE_HOOKUP_OBJECT_NO_REF (main_window_downloads_tab, tooltips, "tooltips");
 
