@@ -50,6 +50,7 @@ EXTRA_SHELL = \
 
 EXTRA_DIST = gtk-gnutella.spec	\
 	gwcache.boot \
+	hostiles.txt \
 	debian/README.debian		\
 	debian/changelog			\
 	debian/control				\

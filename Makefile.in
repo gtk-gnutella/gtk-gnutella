@@ -131,7 +131,7 @@ EXTRA_GTK2 =  	src/monitor_gui2.c 	src/monitor_cb2.c 	src/nodes_gui2.c 	src/node
 EXTRA_SHELL =  	src/shell.c 	src/shell.h
 
 
-EXTRA_DIST = gtk-gnutella.spec		gwcache.boot 	debian/README.debian			debian/changelog				debian/control					debian/copyright				debian/dirs						debian/gtk-gnutella.1			debian/menu						debian/rules					debian/substvars				$(EXTRA_GTK2) 	$(EXTRA_SHELL)
+EXTRA_DIST = gtk-gnutella.spec		gwcache.boot 	hostiles.txt 	debian/README.debian			debian/changelog				debian/control					debian/copyright				debian/dirs						debian/gtk-gnutella.1			debian/menu						debian/rules					debian/substvars				$(EXTRA_GTK2) 	$(EXTRA_SHELL)
 
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs
