@@ -176,9 +176,10 @@ udp_received(struct gnutella_socket *s)
 }
 
 /**
- * Send a reply datagram to the specified node, made of `len' bytes from `buf'.
+ * Send a datagram to the specified node, made of `len' bytes from `buf',
+ * forming a valid Gnutella message.
  */
-void udp_send_reply(gnutella_node_t *n, gpointer buf, gint len)
+void udp_send_msg(gnutella_node_t *n, gpointer buf, gint len)
 {
 	g_assert(NODE_IS_UDP(n));
 
@@ -199,7 +200,7 @@ udp_connect_back(guint32 ip, guint16 port, const gchar *muid)
 	if (!enable_udp)
 		return;
 
-	m = build_ping_msg(muid, 1, &size);
+	m = build_ping_msg(muid, 1, FALSE, &size);
 
 	mq_udp_node_putq(n->outq, gmsg_to_pmsg(m, size), n);
 
@@ -221,9 +222,8 @@ udp_send_ping(guint32 ip, guint16 port)
 	if (!enable_udp)
 		return;
 
-	m = build_ping_msg(NULL, 1, &size);
-
-	mq_udp_node_putq(n->outq, gmsg_to_pmsg(m, size), n);
+	m = build_ping_msg(NULL, 1, FALSE, &size);
+	udp_send_msg(n, m, size);
 }
 
 /* vi: set ts=4: */
