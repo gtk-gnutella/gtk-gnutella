@@ -1375,10 +1375,9 @@ static void download_remove_from_server(struct download *d, gboolean reclaim)
  * download_redirect_to_server
  *
  * Move download from a server to another when the IP:port changed due
- * to a Location: redirection.
+ * to a Location: redirection for instance, or because of a QUEUE callback.
  */
-static void download_redirect_to_server(struct download *d,
-	guint32 ip, guint16 port)
+void download_redirect_to_server(struct download *d, guint32 ip, guint16 port)
 {
 	struct dl_server *server;
 	guchar old_guid[16];

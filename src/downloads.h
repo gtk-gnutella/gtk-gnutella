@@ -287,6 +287,7 @@ gboolean download_file_exists(struct download *d);
 gboolean download_server_nopush(guchar *guid, guint32 ip, guint16 port);
 const gchar *build_url_from_download(struct download *d);
 void download_free_removed(void);
+void download_redirect_to_server(struct download *d, guint32 ip, guint16 port);
 
 void download_verify_start(struct download *d);
 void download_verify_progress(struct download *d, guint32 hashed);
