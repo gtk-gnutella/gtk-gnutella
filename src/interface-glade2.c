@@ -1549,7 +1549,8 @@ create_main_window (void)
   GtkWidget *main_window;
   GtkWidget *vbox12;
   GtkWidget *handlebox1;
-  GtkWidget *hbox210;
+  GtkWidget *table70;
+  GtkWidget *hbox229;
   GtkWidget *menubar1;
   GtkWidget *menu_file;
   GtkWidget *menu_file_menu;
@@ -1579,6 +1580,10 @@ create_main_window (void)
   GtkWidget *menu_help_menu;
   GtkWidget *menu_about;
   GtkWidget *image136;
+  GtkWidget *viewport69;
+  GtkWidget *table71;
+  GtkWidget *label695;
+  GtkWidget *label_statusbar_uptime;
   GtkWidget *hbox211;
   GtkWidget *eventbox_image_sha;
   GtkWidget *image_sha;
@@ -1600,7 +1605,7 @@ create_main_window (void)
   GtkWidget *image_leaf;
   GtkWidget *eventbox_image_legacy;
   GtkWidget *image_legacy;
-  GtkWidget *label_statusbar_uptime;
+  GtkWidget *label697;
   GtkWidget *hb_toolbar;
   GtkWidget *toolbar_main;
   GtkWidget *tmp_toolbar_icon;
@@ -1683,15 +1688,23 @@ create_main_window (void)
   gtk_widget_show (handlebox1);
   gtk_box_pack_start (GTK_BOX (vbox12), handlebox1, FALSE, FALSE, 0);
 
-  hbox210 = gtk_hbox_new (FALSE, 4);
-  gtk_widget_set_name (hbox210, "hbox210");
-  gtk_widget_show (hbox210);
-  gtk_container_add (GTK_CONTAINER (handlebox1), hbox210);
+  table70 = gtk_table_new (1, 4, FALSE);
+  gtk_widget_set_name (table70, "table70");
+  gtk_widget_show (table70);
+  gtk_container_add (GTK_CONTAINER (handlebox1), table70);
+  gtk_table_set_col_spacings (GTK_TABLE (table70), 4);
+
+  hbox229 = gtk_hbox_new (FALSE, 0);
+  gtk_widget_set_name (hbox229, "hbox229");
+  gtk_widget_show (hbox229);
+  gtk_table_attach (GTK_TABLE (table70), hbox229, 0, 1, 0, 1,
+                    (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
+                    (GtkAttachOptions) (GTK_FILL), 0, 0);
 
   menubar1 = gtk_menu_bar_new ();
   gtk_widget_set_name (menubar1, "menubar1");
   gtk_widget_show (menubar1);
-  gtk_box_pack_start (GTK_BOX (hbox210), menubar1, TRUE, TRUE, 0);
+  gtk_box_pack_start (GTK_BOX (hbox229), menubar1, TRUE, TRUE, 0);
 
   menu_file = gtk_menu_item_new_with_mnemonic (_("_File"));
   gtk_widget_set_name (menu_file, "menu_file");
@@ -1840,10 +1853,45 @@ create_main_window (void)
   gtk_widget_show (image136);
   gtk_image_menu_item_set_image (GTK_IMAGE_MENU_ITEM (menu_about), image136);
 
+  viewport69 = gtk_viewport_new (NULL, NULL);
+  gtk_widget_set_name (viewport69, "viewport69");
+  gtk_widget_show (viewport69);
+  gtk_table_attach (GTK_TABLE (table70), viewport69, 1, 2, 0, 1,
+                    (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_container_set_border_width (GTK_CONTAINER (viewport69), 2);
+  gtk_viewport_set_shadow_type (GTK_VIEWPORT (viewport69), GTK_SHADOW_NONE);
+
+  table71 = gtk_table_new (1, 2, FALSE);
+  gtk_widget_set_name (table71, "table71");
+  gtk_widget_show (table71);
+  gtk_container_add (GTK_CONTAINER (viewport69), table71);
+  gtk_table_set_col_spacings (GTK_TABLE (table71), 4);
+
+  label695 = gtk_label_new (_("Uptime: "));
+  gtk_widget_set_name (label695, "label695");
+  gtk_widget_show (label695);
+  gtk_table_attach (GTK_TABLE (table71), label695, 0, 1, 0, 1,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (GTK_EXPAND | GTK_FILL), 0, 0);
+  gtk_label_set_justify (GTK_LABEL (label695), GTK_JUSTIFY_LEFT);
+  gtk_misc_set_alignment (GTK_MISC (label695), 0, 0.5);
+
+  label_statusbar_uptime = gtk_label_new (_("[uptime]"));
+  gtk_widget_set_name (label_statusbar_uptime, "label_statusbar_uptime");
+  gtk_widget_show (label_statusbar_uptime);
+  gtk_table_attach (GTK_TABLE (table71), label_statusbar_uptime, 1, 2, 0, 1,
+                    (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
+                    (GtkAttachOptions) (GTK_EXPAND | GTK_FILL), 0, 0);
+  gtk_label_set_justify (GTK_LABEL (label_statusbar_uptime), GTK_JUSTIFY_LEFT);
+  gtk_misc_set_alignment (GTK_MISC (label_statusbar_uptime), 0, 0.5);
+
   hbox211 = gtk_hbox_new (FALSE, 4);
   gtk_widget_set_name (hbox211, "hbox211");
   gtk_widget_show (hbox211);
-  gtk_box_pack_start (GTK_BOX (hbox210), hbox211, FALSE, TRUE, 0);
+  gtk_table_attach (GTK_TABLE (table70), hbox211, 2, 3, 0, 1,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (GTK_EXPAND | GTK_FILL), 0, 0);
   gtk_container_set_border_width (GTK_CONTAINER (hbox211), 2);
 
   eventbox_image_sha = gtk_event_box_new ();
@@ -1892,7 +1940,7 @@ create_main_window (void)
   hbox147 = gtk_hbox_new (FALSE, 0);
   gtk_widget_set_name (hbox147, "hbox147");
   gtk_widget_show (hbox147);
-  gtk_box_pack_start (GTK_BOX (hbox211), hbox147, FALSE, TRUE, 0);
+  gtk_box_pack_start (GTK_BOX (hbox211), hbox147, TRUE, TRUE, 0);
 
   eventbox_image_firewall = gtk_event_box_new ();
   gtk_widget_set_name (eventbox_image_firewall, "eventbox_image_firewall");
@@ -1960,13 +2008,14 @@ create_main_window (void)
   gtk_container_add (GTK_CONTAINER (eventbox_image_legacy), image_legacy);
   gtk_misc_set_padding (GTK_MISC (image_legacy), 1, 0);
 
-  label_statusbar_uptime = gtk_label_new (_("[uptime]"));
-  gtk_widget_set_name (label_statusbar_uptime, "label_statusbar_uptime");
-  gtk_widget_show (label_statusbar_uptime);
-  gtk_box_pack_start (GTK_BOX (hbox210), label_statusbar_uptime, FALSE, TRUE, 0);
-  gtk_label_set_justify (GTK_LABEL (label_statusbar_uptime), GTK_JUSTIFY_LEFT);
-  gtk_misc_set_alignment (GTK_MISC (label_statusbar_uptime), 1, 0.5);
-  gtk_misc_set_padding (GTK_MISC (label_statusbar_uptime), 4, 0);
+  label697 = gtk_label_new (_(" "));
+  gtk_widget_set_name (label697, "label697");
+  gtk_widget_show (label697);
+  gtk_table_attach (GTK_TABLE (table70), label697, 3, 4, 0, 1,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_label_set_justify (GTK_LABEL (label697), GTK_JUSTIFY_LEFT);
+  gtk_misc_set_alignment (GTK_MISC (label697), 0, 0.5);
 
   hb_toolbar = gtk_handle_box_new ();
   gtk_widget_set_name (hb_toolbar, "hb_toolbar");
@@ -2399,7 +2448,8 @@ create_main_window (void)
   GLADE_HOOKUP_OBJECT_NO_REF (main_window, main_window, "main_window");
   GLADE_HOOKUP_OBJECT (main_window, vbox12, "vbox12");
   GLADE_HOOKUP_OBJECT (main_window, handlebox1, "handlebox1");
-  GLADE_HOOKUP_OBJECT (main_window, hbox210, "hbox210");
+  GLADE_HOOKUP_OBJECT (main_window, table70, "table70");
+  GLADE_HOOKUP_OBJECT (main_window, hbox229, "hbox229");
   GLADE_HOOKUP_OBJECT (main_window, menubar1, "menubar1");
   GLADE_HOOKUP_OBJECT (main_window, menu_file, "menu_file");
   GLADE_HOOKUP_OBJECT (main_window, menu_file_menu, "menu_file_menu");
@@ -2429,6 +2479,10 @@ create_main_window (void)
   GLADE_HOOKUP_OBJECT (main_window, menu_help_menu, "menu_help_menu");
   GLADE_HOOKUP_OBJECT (main_window, menu_about, "menu_about");
   GLADE_HOOKUP_OBJECT (main_window, image136, "image136");
+  GLADE_HOOKUP_OBJECT (main_window, viewport69, "viewport69");
+  GLADE_HOOKUP_OBJECT (main_window, table71, "table71");
+  GLADE_HOOKUP_OBJECT (main_window, label695, "label695");
+  GLADE_HOOKUP_OBJECT (main_window, label_statusbar_uptime, "label_statusbar_uptime");
   GLADE_HOOKUP_OBJECT (main_window, hbox211, "hbox211");
   GLADE_HOOKUP_OBJECT (main_window, eventbox_image_sha, "eventbox_image_sha");
   GLADE_HOOKUP_OBJECT (main_window, image_sha, "image_sha");
@@ -2450,7 +2504,7 @@ create_main_window (void)
   GLADE_HOOKUP_OBJECT (main_window, image_leaf, "image_leaf");
   GLADE_HOOKUP_OBJECT (main_window, eventbox_image_legacy, "eventbox_image_legacy");
   GLADE_HOOKUP_OBJECT (main_window, image_legacy, "image_legacy");
-  GLADE_HOOKUP_OBJECT (main_window, label_statusbar_uptime, "label_statusbar_uptime");
+  GLADE_HOOKUP_OBJECT (main_window, label697, "label697");
   GLADE_HOOKUP_OBJECT (main_window, hb_toolbar, "hb_toolbar");
   GLADE_HOOKUP_OBJECT (main_window, toolbar_main, "toolbar_main");
   GLADE_HOOKUP_OBJECT (main_window, button_quit, "button_quit");
@@ -5932,6 +5986,8 @@ GtkWidget*
 create_main_window_gnet_tab (void)
 {
   GtkWidget *main_window_gnet_tab;
+  GtkWidget *scrolledwindow73;
+  GtkWidget *viewport70;
   GtkWidget *vbox_gnutellanet;
   GtkWidget *frame5;
   GtkWidget *vbox17;
@@ -6008,10 +6064,22 @@ create_main_window_gnet_tab (void)
   gtk_widget_set_name (main_window_gnet_tab, "main_window_gnet_tab");
   gtk_window_set_title (GTK_WINDOW (main_window_gnet_tab), _("window8"));
 
+  scrolledwindow73 = gtk_scrolled_window_new (NULL, NULL);
+  gtk_widget_set_name (scrolledwindow73, "scrolledwindow73");
+  gtk_widget_show (scrolledwindow73);
+  gtk_container_add (GTK_CONTAINER (main_window_gnet_tab), scrolledwindow73);
+  gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolledwindow73), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
+
+  viewport70 = gtk_viewport_new (NULL, NULL);
+  gtk_widget_set_name (viewport70, "viewport70");
+  gtk_widget_show (viewport70);
+  gtk_container_add (GTK_CONTAINER (scrolledwindow73), viewport70);
+  gtk_viewport_set_shadow_type (GTK_VIEWPORT (viewport70), GTK_SHADOW_NONE);
+
   vbox_gnutellanet = gtk_vbox_new (FALSE, 2);
   gtk_widget_set_name (vbox_gnutellanet, "vbox_gnutellanet");
   gtk_widget_show (vbox_gnutellanet);
-  gtk_container_add (GTK_CONTAINER (main_window_gnet_tab), vbox_gnutellanet);
+  gtk_container_add (GTK_CONTAINER (viewport70), vbox_gnutellanet);
   gtk_container_set_border_width (GTK_CONTAINER (vbox_gnutellanet), 2);
 
   frame5 = gtk_frame_new (NULL);
@@ -6468,6 +6536,8 @@ create_main_window_gnet_tab (void)
 
   /* Store pointers to all widgets, for use by lookup_widget(). */
   GLADE_HOOKUP_OBJECT_NO_REF (main_window_gnet_tab, main_window_gnet_tab, "main_window_gnet_tab");
+  GLADE_HOOKUP_OBJECT (main_window_gnet_tab, scrolledwindow73, "scrolledwindow73");
+  GLADE_HOOKUP_OBJECT (main_window_gnet_tab, viewport70, "viewport70");
   GLADE_HOOKUP_OBJECT (main_window_gnet_tab, vbox_gnutellanet, "vbox_gnutellanet");
   GLADE_HOOKUP_OBJECT (main_window_gnet_tab, frame5, "frame5");
   GLADE_HOOKUP_OBJECT (main_window_gnet_tab, vbox17, "vbox17");
