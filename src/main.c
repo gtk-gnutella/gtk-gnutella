@@ -16,6 +16,7 @@
 #include "filter.h"
 #include "misc.h"
 #include "autodownload.h"
+#include "gmsg.h"
 
 #define NODE_ERRMSG_TIMEOUT		5	/* Time to leave erorr messages displayed */
 #define SLOW_UPDATE_PERIOD		20	/* Updating period for `main_slow_update' */
@@ -197,6 +198,11 @@ gboolean main_timer(gpointer p)
 			node_remove(n, "Timeout");
 		else if (now - n->last_update > node_connected_timeout)
 			node_remove(n, "Activity Timeout");
+		else if (
+			NODE_IN_TX_FLOW_CONTROL(n) &&
+			now - n->tx_flowc_date > node_tx_flowc_timeout
+		)
+			node_remove(n, "Transmit Timeout");
 	}
 
 	/* The downloads */
@@ -229,7 +235,7 @@ gboolean main_timer(gpointer p)
 
 			if (now - d->last_update > t) {
 				if (d->status == GTA_DL_CONNECTING)
-					download_fallback_to_push(d, FALSE);
+					download_fallback_to_push(d, TRUE, FALSE);
 				else {
 					if (++d->retries <= download_max_retries)
 						download_retry(d);
@@ -365,6 +371,7 @@ gint main(gint argc, gchar ** argv)
 	init_constants();
 	config_init();
 	host_init();
+	gmsg_init();
 	network_init();
 	routing_init();
 	search_init();

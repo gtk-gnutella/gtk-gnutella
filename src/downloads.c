@@ -6,22 +6,19 @@
 #include "interface.h"
 #include "gui.h"
 #include "sockets.h"
-#include "routing.h"
 #include "downloads.h"
 #include "hosts.h"
 #include "getline.h"
 #include "header.h"
 #include "routing.h"
 #include "url.h"
+#include "routing.h"
+#include "gmsg.h"
 
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <time.h>			/* For ctime() */
-
-#define DL_RUN_DELAY		5	/* To avoid hammering host --RAM */
-#define DL_RETRY_TIMER		15	/* Seconds to wait after EOF or ECONNRESET */
-#define DL_OVERLAP_SIZE		512	/* Amount of bytes we overlap */
 
 struct download *selected_queued_download = (struct download *) NULL;
 struct download *selected_active_download = (struct download *) NULL;
@@ -39,6 +36,7 @@ static void download_read(gpointer data, gint source, GdkInputCondition cond);
 static void download_request(struct download *d, header_t *header);
 static void download_push_ready(struct download *d, getline_t *empty);
 static void download_push_remove(struct download *d);
+static void download_push(struct download *d, gboolean on_timeout);
 static void download_store(void);
 static void download_retrieve(void);
 
@@ -458,7 +456,7 @@ void download_queue(struct download *d)
 		download_gui_remove(d);
 
 	if (DOWNLOAD_IS_RUNNING(d))
-		download_stop(d, GTA_DL_ABORTED, NULL);
+		download_stop(d, GTA_DL_TIMEOUT_WAIT, NULL);
 
 	d->status = GTA_DL_QUEUED;
 
@@ -564,24 +562,24 @@ static gboolean download_start_prepare(struct download *d)
 	 * was bigger.	I think the "done" dir is sacred.  Let the user move back
 	 * the file if he so wants --RAM, 03/09/2001)
 	 *
-	 * If the file already exists, and has less than DL_OVERLAP_SIZE bytes,
-	 * we restart the download from scratch.  Otherwise, we request that
-	 * amount before the resuming point.
+	 * If the file already exists, and has less than `download_overlap_range'
+	 * bytes, we restart the download from scratch.  Otherwise, we request
+	 * that amount before the resuming point.
 	 * Later on, in download_write_data(), and as soon as we have read more
-	 * than DL_OVERLAP_SIZE bytes, we'll check for a match.
+	 * than `download_overlap_range' bytes, we'll check for a match.
 	 *		--RAM, 12/01/2002
 	 */
 
 	g_snprintf(dl_tmp, sizeof(dl_tmp), "%s/%s", d->path, d->output_name);
 
-	if (stat(dl_tmp, &st) != -1 && st.st_size > DL_OVERLAP_SIZE)
+	if (stat(dl_tmp, &st) != -1 && st.st_size > download_overlap_range)
 		d->skip = st.st_size;
 	else
 		d->skip = 0;
 
 	d->pos = d->skip;
 	d->last_update = time((time_t *) NULL);
-	d->overlap_size = (d->skip == 0) ? 0 : DL_OVERLAP_SIZE;
+	d->overlap_size = (d->skip == 0) ? 0 : download_overlap_range;
 
 	g_assert(d->overlap_size == 0 || d->skip > d->overlap_size);
 
@@ -649,7 +647,7 @@ void download_start(struct download *d, gboolean check_allowed)
 		if (!DOWNLOAD_IS_VISIBLE(d))
 			download_gui_add(d);
 
-		download_push(d);
+		download_push(d, FALSE);
 	}
 
 	gui_update_download(d, TRUE);
@@ -690,7 +688,7 @@ void download_pickup_queued(void)
 	gtk_clist_thaw(GTK_CLIST(clist_download_queue));
 }
 
-void download_push(struct download *d)
+static void download_push(struct download *d, gboolean on_timeout)
 {
 	g_return_if_fail(d);
 
@@ -727,16 +725,19 @@ void download_push(struct download *d)
 	return;
 
 attempt_retry:
-	if (++d->retries <= download_max_retries)
-		download_queue_delay(d, DL_RUN_DELAY);
-	else
+	if (++d->retries <= download_max_retries) {
+		if (on_timeout)
+			download_queue_delay(d, download_retry_timeout_delay);
+		else
+			download_queue_delay(d, download_retry_refused_delay);
+	} else
 		download_stop(d, GTA_DL_ERROR, "Timeout");
-
 }
 
 /* Direct download failed, let's try it with a push request */
 
-void download_fallback_to_push(struct download *d, gboolean user_request)
+void download_fallback_to_push(struct download *d,
+	gboolean on_timeout, gboolean user_request)
 {
 	g_return_if_fail(d);
 
@@ -768,7 +769,7 @@ void download_fallback_to_push(struct download *d, gboolean user_request)
 	else
 		d->status = GTA_DL_FALLBACK;
 
-	download_push(d);
+	download_push(d, on_timeout);
 
 	gui_update_download(d, TRUE);
 }
@@ -1295,8 +1296,7 @@ static gboolean send_push_request(gchar *guid, guint32 file_id, guint16 port)
 	WRITE_GUINT16_LE(port, m.request.host_port);
 
 	message_add(m.header.muid, GTA_MSG_PUSH_REQUEST, NULL);
-	sendto_one(n, (guchar *) & m, NULL,
-			   sizeof(struct gnutella_msg_push_request));
+	gmsg_sendto_one(n, (guchar *) &m, sizeof(struct gnutella_msg_push_request));
 
 	return TRUE;
 }
@@ -1311,7 +1311,9 @@ static gboolean download_queue_w(gpointer dp)
 
 static void download_start_restart_timer(struct download *d)
 {
-	d->restart_timer_id = g_timeout_add(DL_RETRY_TIMER * 1000,
+	/* download_retry_stopped: seconds to wait after EOF or ECONNRESET */
+
+	d->restart_timer_id = g_timeout_add(download_retry_stopped * 1000,
 		download_queue_w, d);
 }
 
@@ -1732,7 +1734,7 @@ static void download_request(struct download *d, header_t *header)
 		/* empty -- everything OK */
 	} else if (ack_code >= 500 && ack_code <= 599) {
 		/* No hammering */
-		download_queue_delay(d, DL_RUN_DELAY);
+		download_queue_delay(d, download_retry_busy_delay);
 		return;
 	} else {
 		download_stop(d, GTA_DL_ERROR, "HTTP %d %s", ack_code, ack_message);
