@@ -39,7 +39,9 @@ DIR = $DIR
 AR = ar rc
 CC = $cc
 CTAGS = ctags
-JCFLAGS = \$(CFLAGS) $optimize $ccflags $large
+CFLAGS = -I\$(TOP) -I.. \$(GLIB_CFLAGS) -DCURDIR=\$(CURRENT) $optimize $ccflags $large
+JCFLAGS = \$(CFLAGS)
+DPFLAGS = \$(CFLAGS)
 JYFLAGS = \$(YFLAGS) $yaccflags
 MKDEP = $mkdep \$(DPFLAGS) --
 MV = $mv
@@ -162,10 +164,6 @@ LOBJ = \
 	wordvec.o \
 	zalloc.o \
 	zlib_util.o 
-
-# Those extra flags are expected to be user-defined
-CFLAGS = -I$(TOP) -I.. $(GLIB_CFLAGS) -DCURDIR=$(CURRENT)
-DPFLAGS = $(CFLAGS)
 
 libshared.a:  getdate.c
 
