@@ -55,7 +55,7 @@ RCSID("$Id$");
 #define QHIT_SIZE_THRESHOLD	2016	/* Flush query hits larger than this */
 #define QHIT_SIZE_OOB		645		/* Flush OOB query hits larger than this */
 #define QHIT_MAX_RESULTS	255		/* Maximum amount of hits in a query hit */
-#define QHIT_MAX_ALT		5		/* Send out 5 alt-locs per entry, at most */
+#define QHIT_MAX_ALT		10		/* Send out 10 alt-locs per entry, max */
 #define QHIT_MAX_PROXIES	5		/* Send out 5 push-proxies at most */
 #define QHIT_MAX_GGEP		512		/* Allocated room for trailing GGEP */
 
