@@ -1253,7 +1253,7 @@ void pcache_pong_received(struct gnutella_node *n)
 	if (files_count > 10000000) {		/* Arbitrarily large constant */
 		gboolean fixed = FALSE;
 
-		swapped_count = GUINT32_SWAP_LE_BE(files_count);
+		swapped_count = swap_guint32(files_count);
 
 		if (swapped_count < files_count) {
 			if (dbg && ip == n->ip) g_warning(
@@ -1270,7 +1270,7 @@ void pcache_pong_received(struct gnutella_node *n)
 		 * Maybe the kbytes_count is correct if the files_count was?
 		 */
 
-		swapped_count = GUINT32_SWAP_LE_BE(kbytes_count);
+		swapped_count = swap_guint32(kbytes_count);
 
 		if (fixed && swapped_count < kbytes_count)
 			kbytes_count = swapped_count;		/* Probably wrong as well */
