@@ -736,7 +736,7 @@ static inline void
 nodes_gui_reverse_lookup_selected_helper(GtkTreeModel *model,
 		GtkTreePath *unused_path, GtkTreeIter *iter, gpointer unused_data)
 {
-	gnet_node_t n = ~0;
+	gnet_node_t n = ~(gnet_node_t) 0;
 	gpointer key = GUINT_TO_POINTER(n);
 	gnet_node_info_t info;
 	gchar buf[128];
