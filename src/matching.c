@@ -126,37 +126,53 @@ static word_vec_t *word_vec_zrealloc(word_vec_t *wv, gint ncount)
  * with the pointer to the allocated vector.  If there are no items, there
  * is no vector returned.
  */
-guint query_make_word_vec(gchar *query_str, word_vec_t **wovec)
+guint query_make_word_vec(const gchar *query_str, word_vec_t **wovec)
 {
 	guint n = 0;
-	GHashTable *seen_word = g_hash_table_new(g_str_hash, g_str_equal);
+	GHashTable *seen_word = NULL;
 	guint nv = WOVEC_DFLT;
 	word_vec_t *wv = zalloc(wovec_zone);
-	guchar c;
-	guchar *start = NULL;
-	guchar *query = (guchar *) query_str;
-
+	const gchar *start = NULL;
+	gchar * const query_dup = g_strdup(query_str);
+	gchar *query;
+	gchar *first_word = NULL;
+	guint first_n = 0;
+	gchar first = TRUE;
+	
 	g_assert(wovec != NULL);
 
-	for (;; query++) {
+	for (query = query_dup; '\0' != *query; query++) {
 		gboolean is_alpha;
-		c = *query;
-		is_alpha = c ? isalnum(c) : FALSE;
+		is_alpha = isalnum((guchar) *query);
 		if (start == NULL) {				/* Not in a word yet */
 			if (is_alpha) start = query;
 		} else {
 			guint np1;
 			if (is_alpha) continue;
 			*query = '\0';
-			/*
-			 * If word already seen in query, it's in the seen_word table.
-			 * The associated value is the index in the vector plus 1.
-			 */
-			np1 = GPOINTER_TO_UINT(
-				g_hash_table_lookup(seen_word, (gconstpointer) start));
+
+			/* Only create a hash table if there is more than one word. */
+			if (first) 
+				np1 = 0;
+			else {
+				if (seen_word == NULL) {
+					seen_word = g_hash_table_new(g_str_hash, g_str_equal);
+					g_hash_table_insert(seen_word, first_word,
+						GUINT_TO_POINTER(first_n));
+					first_word = NULL;
+				}
+
+				/*
+			 	* If word already seen in query, it's in the seen_word table.
+		 	 	* The associated value is the index in the vector plus 1.
+		 	 	*/
+				np1 = GPOINTER_TO_UINT(
+					g_hash_table_lookup(seen_word, (gconstpointer) start));
+			}
+
 			if (np1--) {
-				wv[np1].amount++;
-				wv[np1].len = query - start;
+					wv[np1].amount++;
+					wv[np1].len = query - start;
 			} else {
 				word_vec_t *entry;
 				if (n == nv) {				/* Filled all the slots */
@@ -169,23 +185,29 @@ guint query_make_word_vec(gchar *query_str, word_vec_t **wovec)
 				entry = &wv[n++];
 				entry->len = query - start;
 				entry->word = walloc(entry->len + 1);	/* For trailing NUL */
-				memcpy(entry->word, start, entry->len + 1);	/* Include NUL */
+				memcpy(entry->word, start, entry->len + 1); /* Includes NUL */
+				
 				entry->amount = 1;
-				g_hash_table_insert(seen_word, entry->word,
-					GUINT_TO_POINTER(n));
+				if (first) {
+					first_n = n;
+					first_word = entry->word;
+					first = FALSE;
+				} else { 
+					g_hash_table_insert(seen_word, entry->word,
+						GUINT_TO_POINTER(n));
+				}
 			}
-			*query = c;
 			start = NULL;
 		}
-		if (!c) break;
 	}
-
-	g_hash_table_destroy(seen_word);	/* Key pointers belong to vector */
+	
+	if (NULL != seen_word)
+		g_hash_table_destroy(seen_word);	/* Key pointers belong to vector */
 	if (n)
 		*wovec = wv;
 	else
 		zfree(wovec_zone, wv);
-
+	g_free(query_dup);
 	return n;
 }
 

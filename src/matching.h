@@ -41,7 +41,7 @@ typedef struct {				/* Query word vector */
 	guint amount;				/* Amount of expected occurrences */
 } word_vec_t;
 
-guint query_make_word_vec(gchar *query, word_vec_t **wovec);
+guint query_make_word_vec(const gchar *query, word_vec_t **wovec);
 void query_word_vec_free(word_vec_t *wovec, guint n);
 
 typedef	gchar char_map_t[256];		/* Maps one char to another */
