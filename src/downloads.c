@@ -2497,7 +2497,6 @@ static void download_store(void)
 	GSList *l;
 	time_t now = time((time_t *) NULL);
 	gchar filename[1024];
-	gboolean saved = FALSE;		/* Did we save at least one entry? */
 
 	if (retrieving)
 		return;
@@ -2529,7 +2528,6 @@ static void download_store(void)
 			continue;
 
 		escaped = url_escape_cntrl(d->file_name);	/* Protect against "\n" */
-		saved = TRUE;
 
 		fprintf(out, "%s\n", escaped);
 		fprintf(out, "%u, %u:%s, %s\n\n",
@@ -2542,15 +2540,12 @@ static void download_store(void)
 	}
 
 	if (0 == fclose(out)) {
-		if (saved) {
-			g_snprintf(filename, sizeof(filename), "%s/%s",
-				config_dir, download_file);
+		g_snprintf(filename, sizeof(filename), "%s/%s",
+			config_dir, download_file);
 
-			if (-1 == rename(dl_tmp, filename))
-				g_warning("could not rename %s as %s: %s",
-					dl_tmp, filename, g_strerror(errno));
-		} else
-			(void) unlink(dl_tmp);
+		if (-1 == rename(dl_tmp, filename))
+			g_warning("could not rename %s as %s: %s",
+				dl_tmp, filename, g_strerror(errno));
 	} else
 		g_warning("could not flush %s: %s", dl_tmp, g_strerror(errno));
 }
