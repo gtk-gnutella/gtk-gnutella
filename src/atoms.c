@@ -172,7 +172,7 @@ gint guid_eq(gconstpointer a, gconstpointer b)
 		ax[2] == bx[2] &&
 		ax[3] == bx[3];
 #else
-	return 0 == memcmp(a, b, 16);
+	return a == b || 0 == memcmp(a, b, 16);
 #endif
 }
 
@@ -229,7 +229,7 @@ gint sha1_eq(gconstpointer a, gconstpointer b)
 		ax[3] == bx[3] &&
 		ax[4] == bx[4];
 #else
-	return 0 == memcmp(a, b, 20);
+	return a == b || 0 == memcmp(a, b, 20);
 #endif
 }
 
