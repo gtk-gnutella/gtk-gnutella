@@ -201,6 +201,7 @@ bogons_retrieve(void)
 	G_FREE_NULL(filename);
 
 	bogons_load(f);
+	fclose(f);
 }
 
 /**

@@ -65,6 +65,7 @@ static void whitelist_retrieve(void)
 
 	if (fstat(fileno(f), &st)) {
 		g_warning("whitelist_retrieve: fstat() failed: %s", g_strerror(errno));
+		fclose(f);
 		return;
 	}
     whitelist_checked = time(NULL);
@@ -143,6 +144,7 @@ static void whitelist_retrieve(void)
     }
 
     sl_whitelist = g_slist_reverse(sl_whitelist);
+	fclose(f);
 }
 
 /*

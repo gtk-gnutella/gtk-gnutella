@@ -265,6 +265,7 @@ gip_changed(const gchar *filename, gpointer unused)
 
 	gip_close();
 	count = gip_load(f);
+	fclose(f);
 
 	gm_snprintf(buf, sizeof(buf), "Reloaded %d geographic IP ranges.", count);
 	gcu_statusbar_message(buf);
@@ -310,6 +311,7 @@ gip_retrieve(void)
 	G_FREE_NULL(filename);
 
 	gip_load(f);
+	fclose(f);
 }
 
 /**
