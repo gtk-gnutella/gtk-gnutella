@@ -176,8 +176,8 @@ void search_store_xml(void)
     xmlDocSetRootElement(doc, root);
     xmlSetProp(root, (const xmlChar *) "Time", (const xmlChar *) ctime(&now));
 
-	g_strlcpy(x_tmp, version_number, sizeof(x_tmp));
-    xmlSetProp(root, (const xmlChar *) "Version", (const xmlChar *) x_tmp);
+    xmlSetProp(root, (const xmlChar *) "Version",
+		(const xmlChar *) GTA_VERSION_NUMBER);
 
     /*
      * Store UIDs for the builtin targets
