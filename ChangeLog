@@ -5,6 +5,10 @@
  * Forgot to allow X-Available-Ranges emission on HTTP 2xx returns.
  * Don't expire pong cache for leaves as often as in ultra mode.
 
+- (2003.11.08 - Jeroen)
+ * Fixed hevcnt <= G_N_ELEMENTS(hev) assertion bug
+ * Purge button now available in GTK2 interface
+ 
 - (2003.11.07 - Jeroen)
  * Added Hungarian translation from Sulyok Péter
 
