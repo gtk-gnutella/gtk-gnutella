@@ -98,7 +98,6 @@ static void auto_connect(void)
 		"connect3.gnutellanet.com",
 		"gnet2.ath.cx",
 		"connect1.bearshare.net",
-		"gnutella-again.hostscache.com",	/* Multiple IPs, oh well */
 	};
 	static struct host_catcher {
 		time_t tried;
