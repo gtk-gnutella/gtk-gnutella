@@ -145,13 +145,12 @@ static gboolean update_spinbutton(property_t prop);
 static gboolean update_togglebutton(property_t prop);
 static gboolean update_multichoice(property_t prop);
 static gboolean update_split_pane(property_t prop);
+#ifdef USE_GTK1
 static gboolean update_clist_col_widths(property_t prop);
+#endif /* USE_GTK1 */
 static gboolean update_bandwidth_spinbutton(property_t prop);
 static gboolean update_window_geometry(property_t prop);
 
-#ifdef USE_GTK2
-static gboolean update_treeview_col_widths(property_t prop);
-#endif
 static gboolean hosts_in_catcher_changed(property_t prop);
 static gboolean hosts_in_ultra_catcher_changed(property_t prop);
 static gboolean hosts_in_bad_catcher_changed(property_t prop);
@@ -237,7 +236,7 @@ static gboolean update_toggle_node_watch_similar_queries(property_t prop);
 static gboolean update_spinbutton_ultranode(property_t prop);
 static gboolean update_toggle_remove_on_mismatch(property_t prop);
 
-#define PROP_ENTRY(widget, prop, handler, init, name, freq, interval)			\
+#define PROP_ENTRY(widget, prop, handler, init, name, freq, interval)		\
 	{																		\
 		(widget), (prop), (handler), (init), (name), (freq), (interval), 	\
 		0, NULL, NULL														\
@@ -373,7 +372,7 @@ static prop_map_t property_map[] = {
         "menu_statusbar_visible",
         FREQ_UPDATES, 0
     ),
-#ifndef USE_GTK2
+#ifdef USE_GTK1
 /* XXX: Toolbar currently removed because Glade 2.6.0 creates source code
  * 		for it which depends on GTK+ 2.4.0.
  */
@@ -394,16 +393,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
 #endif
-#ifdef USE_GTK2
-    PROP_ENTRY(
-        get_main_window,
-        PROP_NODES_COL_WIDTHS,
-        update_treeview_col_widths,
-        TRUE,
-        "treeview_nodes",
-        FREQ_UPDATES, 0
-    ),
-#else
+#ifdef USE_GTK1
     PROP_ENTRY(
         get_main_window,
         PROP_NODES_COL_WIDTHS,
@@ -412,33 +402,6 @@ static prop_map_t property_map[] = {
         "clist_nodes",
         FREQ_UPDATES, 0
     ),
-#endif
-#ifdef USE_GTK2
-    PROP_ENTRY(
-        get_main_window,
-        PROP_DL_ACTIVE_COL_WIDTHS,
-        update_treeview_col_widths,
-        TRUE,
-        "treeview_downloads",
-        FREQ_UPDATES, 0
-    ),
-    PROP_ENTRY(
-        get_main_window,
-        PROP_DL_QUEUED_COL_WIDTHS,
-        update_treeview_col_widths,
-        TRUE,
-        "treeview_downloads_queue",
-        FREQ_UPDATES, 0
-    ),
-    PROP_ENTRY(
-        get_main_window,
-        PROP_FILE_INFO_COL_WIDTHS,
-        update_treeview_col_widths,
-        TRUE,
-        "treeview_fileinfo",
-        FREQ_UPDATES, 0
-    ),
-#else
     PROP_ENTRY(
         get_main_window,
         PROP_DL_ACTIVE_COL_WIDTHS,
@@ -463,17 +426,6 @@ static prop_map_t property_map[] = {
         "clist_fileinfo",
         FREQ_UPDATES, 0
     ),
-#endif
-#ifdef USE_GTK2
-    PROP_ENTRY(
-        get_main_window,
-        PROP_SEARCH_STATS_COL_WIDTHS,
-        update_treeview_col_widths,
-        TRUE,
-        "treeview_search_stats",
-        FREQ_UPDATES, 0
-    ),
-#else
     PROP_ENTRY(
         get_main_window,
         PROP_SEARCH_STATS_COL_WIDTHS,
@@ -482,17 +434,6 @@ static prop_map_t property_map[] = {
         "clist_search_stats",
         FREQ_UPDATES, 0
     ),
-#endif
-#ifdef USE_GTK2
-    PROP_ENTRY(
-        get_main_window,
-        PROP_UPLOADS_COL_WIDTHS,
-        update_treeview_col_widths,
-        TRUE,
-        "treeview_uploads",
-        FREQ_UPDATES, 0
-    ),
-#else	
     PROP_ENTRY(
         get_main_window,
         PROP_UPLOADS_COL_WIDTHS,
@@ -501,17 +442,6 @@ static prop_map_t property_map[] = {
         "clist_uploads",
         FREQ_UPDATES, 0
     ),
-#endif
-#ifdef USE_GTK2
-    PROP_ENTRY(
-        get_main_window,
-        PROP_HCACHE_COL_WIDTHS,
-        update_treeview_col_widths,
-        TRUE,
-        "treeview_hcache",
-        FREQ_UPDATES, 0
-    ),
-#else
     PROP_ENTRY(
         get_main_window,
         PROP_HCACHE_COL_WIDTHS,
@@ -520,8 +450,6 @@ static prop_map_t property_map[] = {
         "clist_hcache",
         FREQ_UPDATES, 0
     ),
-#endif
-#ifndef USE_GTK2
     PROP_ENTRY(
         get_main_window,
         PROP_UL_STATS_COL_WIDTHS,
@@ -530,49 +458,6 @@ static prop_map_t property_map[] = {
         "clist_ul_stats",
         FREQ_UPDATES, 0
     ),
-#endif
-#ifdef USE_GTK2
-    PROP_ENTRY(
-        get_main_window,
-        PROP_SEARCH_LIST_COL_WIDTHS,
-        update_treeview_col_widths,
-        TRUE,
-        "tree_view_search",
-        FREQ_UPDATES, 0
-    ),
-    PROP_ENTRY(
-        get_main_window,
-        PROP_GNET_STATS_MSG_COL_WIDTHS,
-        update_treeview_col_widths,
-        TRUE,
-        "treeview_gnet_stats_messages",
-        FREQ_UPDATES, 0
-    ),
-    PROP_ENTRY(
-        get_main_window,
-        PROP_GNET_STATS_FC_TTL_COL_WIDTHS,
-        update_treeview_col_widths,
-        TRUE,
-        "treeview_gnet_stats_flowc",
-        FREQ_UPDATES, 0
-    ),
-    PROP_ENTRY(
-        get_main_window,
-        PROP_GNET_STATS_FC_HOPS_COL_WIDTHS,
-        update_treeview_col_widths,
-        TRUE,
-        "treeview_gnet_stats_flowc",
-        FREQ_UPDATES, 0
-    ),
-    PROP_ENTRY(
-        get_main_window,
-        PROP_GNET_STATS_DROP_REASONS_COL_WIDTHS,
-        update_treeview_col_widths,
-        TRUE,
-        "treeview_gnet_stats_drop_reasons",
-        FREQ_UPDATES, 0
-    ),
-#else
     PROP_ENTRY(
         get_main_window,
         PROP_SEARCH_LIST_COL_WIDTHS,
@@ -621,7 +506,14 @@ static prop_map_t property_map[] = {
         "clist_gnet_stats_drop_reasons",
         FREQ_UPDATES, 0
     ),
-#endif
+    PROP_ENTRY(
+        get_main_window,
+        PROP_GNET_STATS_GENERAL_COL_WIDTHS,
+        update_clist_col_widths,
+        TRUE,
+        "clist_gnet_stats_general",
+        FREQ_UPDATES, 0
+    ),
     PROP_ENTRY(
         get_filter_dialog,
         PROP_FILTER_RULES_COL_WIDTHS,
@@ -638,7 +530,6 @@ static prop_map_t property_map[] = {
         "clist_filter_filters",
         FREQ_UPDATES, 0
     ),
-#ifndef USE_GTK2 
     PROP_ENTRY(
         get_main_window,
         PROP_SEARCH_RESULTS_COL_WIDTHS,
@@ -647,7 +538,7 @@ static prop_map_t property_map[] = {
         NULL,
         FREQ_UPDATES, 0
     ),
-#endif
+#endif /* USE_GTK1 */
     PROP_ENTRY(
         get_main_window,
         PROP_SEARCH_RESULTS_COL_VISIBLE,
@@ -2141,25 +2032,6 @@ static prop_map_t property_map[] = {
         "checkbutton_gnet_compact_query",
         FREQ_UPDATES, 0
     ),
-#ifdef USE_GTK2
-    PROP_ENTRY(
-        get_main_window,
-        PROP_GNET_STATS_GENERAL_COL_WIDTHS,
-        update_treeview_col_widths,
-        TRUE,
-        "treeview_gnet_stats_general",
-        FREQ_UPDATES, 0
-	),
-#else
-    PROP_ENTRY(
-        get_main_window,
-        PROP_GNET_STATS_GENERAL_COL_WIDTHS,
-        update_clist_col_widths,
-        TRUE,
-        "clist_gnet_stats_general",
-        FREQ_UPDATES, 0
-    ),
-#endif
     PROP_ENTRY(
         get_main_window,
         PROP_DOWNLOAD_OPTIMISTIC_START,
@@ -3119,6 +2991,7 @@ static gboolean update_split_pane(property_t prop)
     return FALSE;
 }
 
+#ifdef USE_GTK1
 static gboolean update_clist_col_widths(property_t prop)
 {
     GtkWidget *w;
@@ -3162,65 +3035,7 @@ static gboolean update_clist_col_widths(property_t prop)
     g_free(val);
     return FALSE;
 }
-
-#ifdef USE_GTK2
-/* FIXME: Dummy function; verify whether we need it all. */
-static gboolean update_treeview_col_widths(property_t prop)
-{
-	return FALSE;
-}
-#endif
-
-#if 0
-static gboolean update_treeview_col_widths(property_t prop)
-{
-    GtkWidget *w;
-    guint32* val = NULL;
-    prop_map_t *map_entry = settings_gui_get_map_entry(prop);
-    prop_set_stub_t *stub = map_entry->stub;
-    GtkWidget *top = map_entry->fn_toplevel();
-
-    if (!top)
-        return FALSE;
-
-    w = lookup_widget(top, map_entry->wid);
-
-    if (w == NULL) {
-		if (gui_debug)
-			g_warning("%s - widget not found: [%s]", 
-				 G_GNUC_PRETTY_FUNCTION, map_entry->wid);
-        return FALSE;
-    }
-
-    switch (map_entry->type) {
-        case PROP_TYPE_GUINT32: {
-            gint n = 0;
-            prop_def_t *def;
-
-            val = stub->guint32.get(prop, NULL, 0, 0);
-            def = stub->get_def(prop);
-
-            for (n = 0; n < def->vector_size; n ++) {
-            	GtkTreeViewColumn *col = gtk_tree_view_get_column(
-            		GTK_TREE_VIEW(w), n);
-            		
-            	if (col && val[n] > 0)
-            		gtk_tree_view_column_set_fixed_width(col, val[n]);
-            }
-
-            prop_free_def(def);
-            break;
-        }
-        default:
-            val = 0;
-            g_error("update_treeview_col_widths: incompatible type %s",
-                prop_type_str[map_entry->type]);
-    }
-
-    g_free(val);
-    return FALSE;
-}
-#endif /* 0 */
+#endif /* USE_GTK1 */
 
 static gboolean update_window_geometry(property_t prop)
 {
@@ -3593,30 +3408,40 @@ static gboolean update_toggle_remove_on_mismatch(property_t prop)
     return ret;
 }
 
+#ifdef USE_GTK1
 static gboolean update_node_column_visibility(property_t prop, gint col)
 {
-#ifdef USE_GTK1
 	GtkCList *clist = GTK_CLIST(lookup_widget(main_window, "clist_nodes"));
-#else
-	GtkTreeView *treeview = GTK_TREE_VIEW(lookup_widget(
-		main_window, "treeview_nodes"));
-	GtkTreeViewColumn *column;
-#endif
 	gboolean ret;
 	gboolean value;
 
 	ret = update_togglebutton(prop);
 	gui_prop_get_boolean_val(prop, &value);
 
-#ifdef USE_GTK1
 	gtk_clist_set_column_visibility(clist, col, value);
-#else
-	column = gtk_tree_view_get_column(treeview, col);
-	gtk_tree_view_column_set_visible(column, value);
-#endif
 
 	return ret;
 }
+#endif /* USE_GTK1 */
+
+#ifdef USE_GTK2
+static gboolean update_node_column_visibility(property_t prop, gint col)
+{
+    GtkTreeView *treeview = GTK_TREE_VIEW(lookup_widget(
+        main_window, "treeview_nodes"));
+    GtkTreeViewColumn *column;
+    gboolean ret;
+    gboolean value;
+
+    ret = update_togglebutton(prop);
+    gui_prop_get_boolean_val(prop, &value);
+
+    column = gtk_tree_view_get_column(treeview, col);
+    gtk_tree_view_column_set_visible(column, value);
+
+    return ret;
+}
+#endif /* USE_GTK2 */
 
 static gboolean update_toggle_node_show_uptime(property_t prop)
 {
