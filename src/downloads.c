@@ -33,18 +33,15 @@
 #include "getline.h"
 #include "header.h"
 #include "routing.h"
-#include "url.h"
 #include "routing.h"
 #include "gmsg.h"
 #include "bsched.h"
 #include "regex.h"
-#include "getdate.h"
 #include "huge.h"
 #include "dmesh.h"
 #include "http.h"
 #include "version.h"
 
-#include "gnet_property_priv.h"
 #include "settings.h"
 #include "nodes.h"
 
@@ -4775,6 +4772,41 @@ void download_close(void)
 
 	// XXX free & check other hash tables as well.
 	// dl_by_ip, dl_by_host
+}
+
+/* 
+ * build_url_from_download:
+ *
+ * creates a url which points to a downloads (e.g. you can move this to a
+ * browser and download the file there with this url
+ */
+gchar *build_url_from_download(struct download *d) 
+{
+    static gchar url_tmp[1024];
+    gchar *buf = NULL;
+
+    if (d == NULL)
+        return NULL;
+   
+    buf = url_escape(d->file_name);
+
+    g_snprintf(url_tmp, sizeof(url_tmp),
+               "http://%s/get/%u/%s",
+               ip_port_to_gchar(download_ip(d), download_port(d)),
+			   d->record_index, buf);
+
+    /*
+     * Since url_escape() creates a new string ONLY if
+     * escaping is necessary, we have to check this and
+     * free memory accordingly.
+     *     --BLUE, 30/04/2002
+     */
+
+    if (buf != d->file_name) {
+        g_free(buf);
+    }
+    
+    return url_tmp;
 }
 
 /* vi: set ts=4: */
