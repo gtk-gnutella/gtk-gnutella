@@ -1354,8 +1354,8 @@ int connect_socksv5(struct gnutella_socket *s)
 		buf[1] = '\x01';		/* Connect request */
 		buf[2] = '\x00';		/* Reserved		*/
 		buf[3] = '\x01';		/* IP version 4	*/
-		*(uint32_t *)(buf + 4) = htonl(s->ip);
-		*(uint16_t *)(buf + 8) = htons(s->port);
+		*(guint32 *)(buf + 4) = htonl(s->ip);
+		*(guint16 *)(buf + 8) = htons(s->port);
 
 		/* Now send the connection */
 		if ((rc = send(sockid, (void *) buf, 10, 0)) <= 0) {
