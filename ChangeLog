@@ -1,5 +1,12 @@
 # since last version
 
+- (2003.07.30 - Jeroen)
+ * PARQ will now treat servents which do not honour the Retry-After header
+   as hosts which are hammering the connection
+
+- (2003.07.29 - Jeroen)
+ * Increased dbg level for ultrapeer client/ip 'banning'
+
 - (2003.07.27 - Jeroen)
  * Downloads through a push proxy should no longer crash gtkg due to 
    download_clone
