@@ -39,7 +39,7 @@
 #include <arpa/inet.h>
 #include <netinet/tcp.h>
 
-#if defined(HAVE_IP_TOS) && defined(NEED_NETINET_IP_H_FOR_TOS)
+#if defined(USE_IP_TOS) && defined(I_NETINET_IP)
 #include <netinet/in_systm.h>
 #include <netinet/ip.h>
 #endif
@@ -114,7 +114,7 @@ static gint sol_tcp(void)
 	return sol_tcp_cached;
 }
 
-#ifdef HAVE_IP_TOS
+#ifdef USE_IP_TOS
   
 static gint sol_ip(void)
 {
@@ -215,7 +215,7 @@ void socket_tos_default(struct gnutella_socket *s)
 {
 	/* Empty */
 }
-#endif /* HAVE_IP_TOS */
+#endif /* USE_IP_TOS */
 
 
 /*
