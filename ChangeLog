@@ -1,5 +1,42 @@
 # since last version
 
+# v 0.93.2   2004.01.04  [stable]
+
+- Numerous GUI updates:
+ . GTK1 now supports groupped searches and groupped downloads, like GTK2 did.
+ . GTK1 and GTK2 GUIs were brought in sync feature-wise, as much as possible.
+ . Gnet pane will now show leaf nodes and normal nodes in light gray.
+ . Fixed memory leak problems in the GTK2 interface that slipped in 0.93.1.
+- Bandwidth requirements to become an ultranode were lowered significantly.
+  This is due to the filtering of SHA1 queries through QRP now, instead of
+  systematically forwarding them: gtk-gnutella assumes all servents out there
+  include the SHA1 URNs in their QRP tables.
+- As a result of the above, default amount of leaf nodes was increased.
+- Added a special fix for BearShare: the HTTP headers which gtk-gnutella
+  emitted used continuations, and were well-formed, but BearShare was
+  misparsing those, causing it to enter an endless loop...
+- Search results are now buffered by the GUI for burst updates, which reduces
+  CPU usage and the amount of redrawing significantly.  The buffering time
+  is configurable from the GUI.
+- Gtk-gnutella is now fully compliant with LimeWire regarding I18N queries,
+  provided you have the ICU library.  Otherwise, it should be OK for roman
+  charsets only.
+
+- (2004.01.04 - RAM)
+ * New property "search_accumulation_period" for burst period configuration.
+ * Made the burst interval period for search refresh configurable from the GUI.
+ * New header formatting routines: header_fmt_set_line_length(),
+   header_fmt_value_fits() and header_fmt_append_value().
+   Changed signature of header_fmt_make() to include default separator.
+   Default line length set to 78 chars (was 72).
+ * Changed signature of dmesh_alternate_location() to include whether we're
+   emitting alt-locs in a request or in a reply.
+   No longer format X-Alt and X-Nalt with continuations in requests, and
+   to BearShare nodes on replies (due to a parsing bug in BS causing its crash).
+ * Lowered min size for QRP tables to 16K.
+ * Finished normalization of filenames/queries when the ICU library is
+   present [From Stephane Corbe].
+
 - (2004.01.04 - Hans)
  * [Gtk1] Show leafs and "normal" (legacy) clients in grey in the nodes list.
  * [Gtk2] Update nodes and uploads lists to show rows in grey in line with Gtk1
@@ -17,14 +54,15 @@
  * [Gtk1] Added "Push mode" status for downloads tree
  
 - (2004.01.04 - Richard)
- * Implemented "results bursting". That means that the gui accumulates incoming
-   results over a period of time and then flushes them out to display in a burst.
+ * Implemented "results bursting". That means that the gui accumulates
+   incoming results over a period of time and then flushes them out to display
+   in a burst.
    This technique drastically reduces the number of redraws. Unfortunately I
    had to inject some #ifdef USE_GTK1 into search_gui_common.c. I hope you can
    bear with me ;) The burst interval is currently hardcoded at 5 seconds
    in search_gui_common.c::search_gui_flush().
- * [Gtk1] "results burting" causes CTrees affected by the burst to be frozen during
-   the burst and unfrozen later.
+ * [Gtk1] "results burting" causes CTrees affected by the burst to be frozen
+   during the burst and unfrozen later.
  * [Gtk2] the TreeViews are not frozen, but Gtk2 seems to handle the burst 
    intelligently and doesn't redraw during the burst all by itself. *shrug*
    Further testing is required here.
