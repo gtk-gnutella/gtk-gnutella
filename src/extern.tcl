@@ -26,9 +26,9 @@ set w_main_list {
 	button_config_rescan_dir
 	button_config_save_path 
 	button_config_update_port 
-	checkbutton_config_force_ip 
-	checkbutton_config_throttle
+	checkbutton_config_force_ip
 	checkbutton_config_proxy_connections
+	checkbutton_config_proxy_auth
 	entry_config_extensions
 	entry_config_force_ip 
 	entry_config_maxttl 
