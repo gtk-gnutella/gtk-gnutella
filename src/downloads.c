@@ -3525,6 +3525,8 @@ void download_proxy_failed(struct download *d)
 	gui_update_download(d, TRUE);	/* Will read status in d->cproxy */
 
 	remove_proxy(d->server, cproxy_ip(cp), cproxy_port(cp));
+	cproxy_free(d->cproxy);
+	d->cproxy = NULL;
 
 	if (!use_push_proxy(d))
 		download_retry(d);

@@ -806,7 +806,7 @@ static void cproxy_http_error_ind(
 	)
 		return;		/* Was an explicit cancel */
 
-	cproxy_free(cp);
+	download_proxy_failed(cp->d);
 }
 
 /*
