@@ -51,7 +51,7 @@ static char *hex_alphabet = "0123456789ABCDEF";
 /*
  * url_escape
  *
- * Excape undesirable characters using %xx, where xx is an hex code.
+ * Escape undesirable characters using %xx, where xx is an hex code.
  *
  * Returns argument if no escaping is necessary, or a new string otherwise.
  */
@@ -81,15 +81,52 @@ guchar *url_escape(guchar *url)
 			*q++ = hex_alphabet[c & 0xf];
 		}
 	}
-	*q++ = '\0';
+	*q = '\0';
 
 	return new;
 }
 
 /*
+ * url_escape_into
+ *
+ * Escape undesirable characters using %xx, where xx is an hex code.
+ * This is done in the `target' buffer, whose size is `len'.
+ *
+ * Returns amount of characters written into buffer (not counting trailing
+ * NUL), or -1 if the buffer was too small.
+ */
+gint url_escape_into(guchar *url, guchar *target, gint len)
+{
+	guchar *p;
+	guchar *q;
+	gint c;
+	guchar *end = target + len;
+
+	for (p = url, q = target, c = *p++; c && q < end; c = *p++) {
+		if (TRANSPARENT(c))
+			*q++ = c;
+		else if (end - q >= 3) {
+			*q++ = ESCAPE_CHAR;
+			*q++ = hex_alphabet[c >> 4];
+			*q++ = hex_alphabet[c & 0xf];
+		} else
+			break;
+	}
+
+	g_assert(q <= end);
+
+	if (q == end)
+		return -1;
+
+	*q = '\0';
+
+	return q - target;
+}
+
+/*
  * url_escape_cntrl
  *
- * Excape control characters using %xx, where xx is an hex code.
+ * Escape control characters using %xx, where xx is an hex code.
  *
  * Returns argument if no escaping is necessary, or a new string otherwise.
  */
@@ -119,7 +156,7 @@ guchar *url_escape_cntrl(guchar *url)
 			*q++ = hex_alphabet[c & 0xf];
 		}
 	}
-	*q++ = '\0';
+	*q = '\0';
 
 	return new;
 }
@@ -167,7 +204,7 @@ guchar *url_unescape(guchar *url, gboolean inplace)
 				break;
 		}
 	}
-	*q++ = '\0';
+	*q = '\0';
 
 	g_assert(!inplace || new == url);
 

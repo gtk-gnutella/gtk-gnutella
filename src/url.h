@@ -31,6 +31,7 @@
  */
 
 guchar *url_escape(guchar *url);
+gint url_escape_into(guchar *url, guchar *target, gint len);
 guchar *url_escape_cntrl(guchar *url);
 guchar *url_unescape(guchar *url, gboolean inplace);
 
