@@ -442,7 +442,7 @@ void st_insert_item(search_table_t *table, guchar *string, void *data)
 	gint i;
 	guint len;
 	struct st_entry *entry;
-	GHashTable *seen_keys = g_hash_table_new(g_direct_hash, 0);
+	GHashTable *seen_keys;
 
 	string = g_strdup(string);
 
@@ -451,6 +451,8 @@ void st_insert_item(search_table_t *table, guchar *string, void *data)
 		g_free(string);
 		return;
 	}
+
+	seen_keys = g_hash_table_new(g_direct_hash, 0);
 	
 	entry = g_malloc(sizeof(struct st_entry));
 	entry->string = string;
