@@ -64,6 +64,16 @@
  * computed.
  */
 
+struct sha1_cache_entry {
+    gchar *file_name;                     /* Full path name                 */
+    off_t  size;                          /* File size                      */
+    time_t mtime;                         /* Last modification time         */
+    guchar digest[SHA1_BASE32_SIZE];      /* SHA1 digest as an ASCII string */
+    gboolean shared;                      /* There's a known entry for this
+                                           * file in the share library
+                                           */
+};
+
 static GHashTable *sha1_cache = NULL;
 
 /* 
@@ -166,8 +176,16 @@ static void add_persistent_cache_entry(
 		return;
 	}
 
+	/*
+	 * If we're adding the very first entry (file empty), then emit header.
+	 */
+
+	if (0 == ftell(persistent_cache))
+		fprintf(persistent_cache, "%s", sha1_persistent_cache_file_header);
+
 	fwrite(sha1_digest_ascii, SHA1_BASE32_SIZE, 1, persistent_cache);
-	fprintf(persistent_cache, "\t%ld\t%ld\t%s\n", size, mtime, file_name);
+	fprintf(persistent_cache, "\t%lu\t%ld\t%s\n",
+		(gulong) size, mtime, file_name);
 	fclose(persistent_cache);
 }
 
@@ -187,7 +205,7 @@ static void dump_cache_one_entry(
 
 	fwrite(e->digest, SHA1_BASE32_SIZE, 1, persistent_cache);
 	fprintf(persistent_cache,
-		"\t%lu\t%ld\t%s\n", e->size, e->mtime, e->file_name);
+		"\t%lu\t%ld\t%s\n", (gulong) e->size, e->mtime, e->file_name);
 }
 
 /*
@@ -539,6 +557,17 @@ static void try_to_put_sha1_back_into_share_library()
 	}
 }
 
+/*
+ * free_cell
+ *
+ * Free a working cell.
+ */
+static void free_cell(struct file_sha1 *cell)
+{
+	g_free(cell->file_name);
+	g_free(cell);
+}
+
 /* 
  * close_current_file
  * 
@@ -548,8 +577,7 @@ static void try_to_put_sha1_back_into_share_library()
 static void close_current_file(void)
 {
 	if (current_file) {
-		g_free(current_file->file_name);
-		g_free(current_file);
+		free_cell(current_file);
 		current_file = NULL;
 	}
 	if (current_fd != -1) {
@@ -576,14 +604,56 @@ static void close_current_file(void)
  */
 static struct file_sha1 *get_next_file_from_list(void)
 {
-	struct file_sha1 *result = waiting_for_sha1_computation;
+	struct file_sha1 *l;
 
-	if (!result)
-		return NULL;
+	/*
+	 * XXX HACK ALERT
+	 *
+	 * We need to be careful here, because each time the library is rescanned,
+	 * we add file to the list of SHA1 to recompute if we don't have them
+	 * yet.  This means that when we rescan the library during a computation,
+	 * we'll add duplicates to our working queue.
+	 *
+	 * Fortunately, we can probe our in-core cache to see if what we have
+	 * is already up-to-date.
+	 *
+	 * XXX It would be best to maintain a hash table of all the filenames
+	 * XXX in our workqueue and not enqueue the work in the first place.
+	 * XXX		--RAM, 21/05/2002
+	 */
 
-	waiting_for_sha1_computation = waiting_for_sha1_computation->next;
+	for (;;) {
+		struct sha1_cache_entry *cached;
 
-	return result;
+		l = waiting_for_sha1_computation;
+
+		if (!l)
+			return NULL;
+
+		waiting_for_sha1_computation = waiting_for_sha1_computation->next;
+
+		cached = (struct sha1_cache_entry *)
+			g_hash_table_lookup(sha1_cache, (gconstpointer) l->file_name);
+
+		if (cached) {
+			struct stat buf;
+
+			if (-1 == stat(l->file_name, &buf)) {
+				g_warning("ignoring SHA1 recomputation request for \"%s\": %s",
+					l->file_name, g_strerror(errno));
+				continue;
+			}
+
+			if (cached->size == buf.st_size && cached->mtime == buf.st_mtime) {
+				if (dbg > 1)
+					printf("ignoring duplicate SHA1 work for \"%s\"\n",
+						l->file_name);
+				continue;
+			}
+		}
+
+		return l;
+	}
 }
 
 /* 

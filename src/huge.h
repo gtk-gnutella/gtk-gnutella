@@ -34,16 +34,6 @@
 
 struct shared_file;
 
-struct sha1_cache_entry {
-    gchar *file_name;                     /* Full path name                 */
-    off_t  size;                          /* File size                      */
-    time_t mtime;                         /* Last modification time         */
-    guchar digest[SHA1_BASE32_SIZE];      /* SHA1 digest as an ASCII string */
-    gboolean shared;                      /* There's a known entry for this
-                                           * file in the share library
-                                           */
-};
-
 void huge_init(void);		/* Call this function at the beginning */
 void huge_close(void);		/* Call this when servent is shutdown */
 
