@@ -41,10 +41,6 @@
 
 #include "settings.h"
 
-#ifndef USE_GTK2
-#define g_ascii_strcasecmp g_strcasecmp
-#endif
-
 extern cqueue_t *callout_queue;
 
 /* made visible for us by atoms.c */
@@ -1062,6 +1058,7 @@ void dmesh_collect_locations(guchar *sha1, guchar *value)
 				if (
 					(p[1] == 'h' || p[1] == 'H') &&
 					0 == g_ascii_strcasecmp(&p[1], "http://")
+
 				)
 					break;
 				if (p[1] != ' ')

@@ -49,6 +49,13 @@
 
 
 /*
+ * Needs to be defined if we are not using Glib 2
+ */
+#ifndef USE_GTK2
+#define g_ascii_strcasecmp g_strcasecmp
+#endif
+
+/*
  * Array size determination
  */
 #ifndef G_N_ELEMENTS
