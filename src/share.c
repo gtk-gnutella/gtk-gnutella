@@ -60,8 +60,6 @@ RCSID("$Id$");
 #define QHIT_MAX_ALT		5		/* Send out 5 alt-locs per entry, at most */
 #define QHIT_MAX_PROXIES	5		/* Send out 5 push-proxies at most */
 
-#define QUERY_RETRY_MIN		1700	/* Don't allow requeries more often */
-
 static const guchar iso_8859_1[96] = {
 	' ', 			/* 160 - NO-BREAK SPACE */
 	' ', 			/* 161 - INVERTED EXCLAMATION MARK */
@@ -2038,7 +2036,7 @@ gboolean search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 		if (found)
 			seen = (time_t) GPOINTER_TO_INT(seenp);
 
-		if (now - seen < QUERY_RETRY_MIN) {
+		if (now - seen < node_requery_threshold) {
 			if (dbg) g_warning("node %s (%s) re-queried \"%s\" after %d secs",
 				node_ip(n), node_vendor(n), query, (gint) (now - seen));
 			gnet_stats_count_dropped(n, MSG_DROP_THROTTLE);
