@@ -1,5 +1,21 @@
 # since last version
 
+- (2003.02.02 - RAM)
+ * No longer free remaining atoms in atom_warn_free(), for leak detectors.
+ * When seeking to get the fileinfo trailer, don't use SEEK_END with a
+   negative offset, but use SEEK_SET with an explicit positive value to
+   avoid problems when off_t is 8-byte wide [From Christian Biere].
+ * Be sure to not truncate the headers for crawler replies in the middle
+   of an IP address [From Christian Biere].
+ * Fixed final cleanup in pcache.c to also discard the recent pong cache.
+ * Changed freeing order for the existing query table when a RESET is received.
+ * Protect against broken servents that don't send us QRP patches covering
+   the whole query table.
+ * Fixed memory leak on the query sending path in ultra mode.
+ * Made sure `n' is no greater than INT_MAX for gm_*snprintf() calls.
+ * Don't forget to reset str[0] to NUL in case we have to strlen(str) within
+   the gm_*snprintf() calls.
+
 - (2003.02.01 - RAM)
  * Limit lifetime of download mesh entries to 1 day.
  * Added pre-condition to file_info_find_hole(): no busy chunks for download.
