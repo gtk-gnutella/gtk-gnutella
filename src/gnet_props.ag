@@ -868,12 +868,14 @@ prop = {
 prop = {
     name = "min_dup_ratio";
     desc = "Minimum ratio of dups on received messages, per node "
-           "(between 0.0 and 100.0) (also see [min_dup_msg])";
+           "(between 0.00 and 100.00) (also see [min_dup_msg])"
+           "Note: the value is stored between 0 (0.0) and 10000 (100.0)"
+           "in the config file";
     type = guint32;
     data = {
-        default = 1;
+        default = 150;
         min     = 0;
-        max     = 100;
+        max     = 10000;
     };
 };
 
@@ -883,7 +885,8 @@ prop = {
     desc = "Only files with the given extensions will be shared";
     type = string;
     data = {
-        default = "asf;avi;"
+        default = 
+          "asf;avi;"
 		  "bin;bz2;"
 		  "cue;"
 		  "divx;"
@@ -1089,21 +1092,21 @@ prop = {
 
 prop = {
     name = "is_firewalled";
-	desc = "Whether gtk-gnutella thinks we're currently firewalled";
-	save = FALSE;
+    desc = "Whether gtk-gnutella thinks we're currently firewalled";
+    save = FALSE;
     type = boolean;
     data = {
-		default = TRUE;
-	};
+	default = TRUE;
+    };
 };
 
 prop = {
     name = "is_inet_connected";
-	desc = "Whether gtk-gnutella thinks it's connected to the Internet";
-	save = FALSE;
+    desc = "Whether gtk-gnutella thinks it's connected to the Internet";
+    save = FALSE;
     type = boolean;
     data = {
-		default = FALSE;
-	};
+	default = TRUE;
+    };
 };
 

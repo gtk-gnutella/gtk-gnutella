@@ -189,8 +189,8 @@ gboolean send_pushes     = TRUE;
 gboolean send_pushes_def = TRUE;
 guint32  min_dup_msg     = 5;
 guint32  min_dup_msg_def = 5;
-guint32  min_dup_ratio     = 1;
-guint32  min_dup_ratio_def = 1;
+guint32  min_dup_ratio     = 150;
+guint32  min_dup_ratio_def = 150;
 gchar   *scan_extensions     = "asf;avi;bin;bz2;cue;divx;flc;fli;gif;gz;ifo;iso;it;jpeg;jpg;mjpg;mod;mov;mpa;mpg;mpeg;mpega;mp4;mp3;mp2;mp1:mpv;ogg;qt;png;ps;pdf;ram;rm;rar;s3m;stm;txt;vob;voc;vqf;wav;wma;wmv;xm;zip";
 gchar   *scan_extensions_def = "asf;avi;bin;bz2;cue;divx;flc;fli;gif;gz;ifo;iso;it;jpeg;jpg;mjpg;mod;mov;mpa;mpg;mpeg;mpega;mp4;mp3;mp2;mp1:mpv;ogg;qt;png;ps;pdf;ram;rm;rar;s3m;stm;txt;vob;voc;vqf;wav;wma;wmv;xm;zip";
 gchar   *save_file_path     = "/tmp";
@@ -230,8 +230,8 @@ guint32  fuzzy_threshold     = 70;
 guint32  fuzzy_threshold_def = 70;
 gboolean is_firewalled     = TRUE;
 gboolean is_firewalled_def = TRUE;
-gboolean is_inet_connected     = FALSE;
-gboolean is_inet_connected_def = FALSE;
+gboolean is_inet_connected     = TRUE;
+gboolean is_inet_connected_def = TRUE;
 
 static prop_set_t *gnet_property = NULL;
 
@@ -1668,7 +1668,7 @@ prop_set_t *gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[76].name = "min_dup_ratio";
-    gnet_property->props[76].desc = "Minimum ratio of dups on received messages, per node (between 0.0 and 100.0) (also see [min_dup_msg])";
+    gnet_property->props[76].desc = "Minimum ratio of dups on received messages, per node (between 0.00 and 100.00) (also see [min_dup_msg])Note: the value is stored between 0 (0.0) and 10000 (100.0)in the config file";
     gnet_property->props[76].prop_changed_listeners = NULL;
     gnet_property->props[76].save = TRUE;
     gnet_property->props[76].vector_size = 1;
@@ -1677,7 +1677,7 @@ prop_set_t *gnet_prop_init(void) {
     gnet_property->props[76].type               = PROP_TYPE_GUINT32;
     gnet_property->props[76].data.guint32.def   = &min_dup_ratio_def;
     gnet_property->props[76].data.guint32.value = &min_dup_ratio;
-    gnet_property->props[76].data.guint32.max   = 100;
+    gnet_property->props[76].data.guint32.max   = 10000;
     gnet_property->props[76].data.guint32.min   = 0;
 
 
