@@ -672,6 +672,30 @@ void parq_dl_del_id(struct download *d)
 	g_assert(parq_dl->id == NULL);	/* We don't expect an id here */
 }
 
+/*
+ * parq_dl_reparent_id
+ *
+ * Called from download_clone() to reparent the PARQ ID from the parent `d'
+ * to the cloned `cd'.
+ */
+void parq_dl_reparent_id(struct download *d, struct download *cd)
+{
+	struct parq_dl_queued *parq_dl = NULL;
+
+	g_assert(d != NULL);
+	g_assert(cd != NULL);
+
+	parq_dl = (struct parq_dl_queued *) d->queue_status;
+
+	g_assert(parq_dl != NULL);
+	g_assert(parq_dl->id != NULL);
+	g_assert(d->queue_status == cd->queue_status);	/* Cloned */
+
+	g_hash_table_remove(dl_all_parq_by_id, parq_dl->id);
+	g_hash_table_insert(dl_all_parq_by_id, parq_dl->id, cd);
+
+	d->queue_status = NULL;			/* No longer associated to `d' */
+}
 
 /*
  * parq_dl_update_id
@@ -1021,6 +1045,13 @@ void parq_download_queue_ack(struct gnutella_socket *s)
 
 	dl->server->parq_version.major = 1;				/* At least */
 	dl->server->parq_version.minor = 0;
+
+	/*
+	 * Revitalize download, if stopped (aborted, error).
+	 */
+
+	if (dl->list_idx == DL_LIST_STOPPED)
+		dl->file_info->lifecount++;
 
 	/*
 	 * Send the request on the connection the server opened.

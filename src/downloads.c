@@ -2858,6 +2858,11 @@ static struct download *download_clone(struct download *d)
 		download_push_insert(cd);
 	}
 
+	if (d->queue_status != NULL)
+		parq_dl_reparent_id(d, cd);
+
+	g_assert(d->queue_status == NULL);	/* Cleared by parq_dl_reparent_id() */
+
 	/*
 	 * The following have been copied and appropriated by the cloned download.
 	 * They are reset so that a download_free() on the original will not
@@ -2867,7 +2872,6 @@ static struct download *download_clone(struct download *d)
 	d->sha1 = NULL;
 	d->socket = NULL;
 	d->ranges = NULL;
-	d->queue_status = NULL;
 	
 	return cd;
 }
@@ -3148,6 +3152,8 @@ void download_resume(struct download *d)
 
 	if (DOWNLOAD_IS_RUNNING(d))
 		return;
+
+	g_assert(d->list_idx == DL_LIST_STOPPED);
 
 	switch (d->status) {
 	case GTA_DL_COMPLETED:
