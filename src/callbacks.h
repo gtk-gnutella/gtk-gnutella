@@ -158,5 +158,44 @@ void
 on_button_config_select_dbg_clicked    (GtkButton       *button,
                                         gpointer         user_data);
 
+void
+on_menu_wizard_connection_unknown_activate
+                                        (GtkMenuItem     *menuitem,
+                                        gpointer         user_data);
+
+void
+on_menu_wizard_connection_t3_activate  (GtkMenuItem     *menuitem,
+                                        gpointer         user_data);
+
+void
+on_menu_wizard_connection_t1_activate  (GtkMenuItem     *menuitem,
+                                        gpointer         user_data);
+
+void
+on_menu_wizard_connection_sdsl_activate
+                                        (GtkMenuItem     *menuitem,
+                                        gpointer         user_data);
+
+void
+on_menu_wizard_connection_adsl_activate
+                                        (GtkMenuItem     *menuitem,
+                                        gpointer         user_data);
+
+void
+on_menu_wizard_connection_isdn128_activate
+                                        (GtkMenuItem     *menuitem,
+                                        gpointer         user_data);
+
+void
+on_menu_wizard_connection_isdn64_activate
+                                        (GtkMenuItem     *menuitem,
+                                        gpointer         user_data);
+
+void
+on_menu_wizard_connection_modem_activate
+                                        (GtkMenuItem     *menuitem,
+                                        gpointer         user_data);
+
 #endif	/* _callbacks_h_ */
+
 

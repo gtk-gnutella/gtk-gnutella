@@ -532,5 +532,76 @@ on_hb_searches_child_detached          (GtkHandleBox    *handlebox,
 	gtk_widget_set_size_request(widget, width, height);
 }
 
+void
+on_menu_wizard_connection_unknown_activate
+                                        (GtkMenuItem     *menuitem,
+                                        gpointer         user_data)
+{
+	/* TODO: Implement */
+}
+
+
+void
+on_menu_wizard_connection_t3_activate  (GtkMenuItem     *menuitem,
+                                        gpointer         user_data)
+{
+	/* TODO: Implement */
+}
+
+
+void
+on_menu_wizard_connection_t1_activate  (GtkMenuItem     *menuitem,
+                                        gpointer         user_data)
+{
+	/* TODO: Implement */
+}
+
+
+void
+on_menu_wizard_connection_sdsl_activate
+                                        (GtkMenuItem     *menuitem,
+                                        gpointer         user_data)
+{
+	/* TODO: Implement */
+}
+
+
+void
+on_menu_wizard_connection_adsl_activate
+                                        (GtkMenuItem     *menuitem,
+                                        gpointer         user_data)
+{
+
+	/* TODO: Implement */
+}
+
+
+void
+on_menu_wizard_connection_isdn128_activate
+                                        (GtkMenuItem     *menuitem,
+                                        gpointer         user_data)
+{
+	/* TODO: Implement */
+}
+
+
+void
+on_menu_wizard_connection_isdn64_activate
+                                        (GtkMenuItem     *menuitem,
+                                        gpointer         user_data)
+{
+	/* TODO: Implement */
+}
+
+
+void
+on_menu_wizard_connection_modem_activate
+                                        (GtkMenuItem     *menuitem,
+                                        gpointer         user_data)
+{
+	/* TODO: Implement */
+}
+
+
 #endif /* USE_GTK2 */
 /* vi: set ts=4 sw=4 cindent: */
