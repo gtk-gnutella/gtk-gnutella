@@ -223,6 +223,8 @@ gboolean is_inet_connected     = TRUE;
 gboolean is_inet_connected_def = TRUE;
 gboolean gnet_compact_query     = TRUE;
 gboolean gnet_compact_query_def = TRUE;
+gboolean download_optimistic_start     = FALSE;
+gboolean download_optimistic_start_def = FALSE;
 
 static prop_set_t *gnet_property = NULL;
 
@@ -1987,6 +1989,23 @@ prop_set_t *gnet_prop_init(void) {
     gnet_property->props[93].type               = PROP_TYPE_BOOLEAN;
     gnet_property->props[93].data.boolean.def   = &gnet_compact_query_def;
     gnet_property->props[93].data.boolean.value = &gnet_compact_query;
+
+
+    /*
+     * PROP_DOWNLOAD_OPTIMISTIC_START:
+     *
+     * General data:
+     */
+    gnet_property->props[94].name = "download_optimistic_start";
+    gnet_property->props[94].desc = "Also use sources that don't provide a SHA1 value for the first chunk of a file. This dramatically reduces the 'No URN on server' messages, but may result in overlap problems later if the first chunk was actually from a different file. Use with caution.";
+    gnet_property->props[94].prop_changed_listeners = NULL;
+    gnet_property->props[94].save = TRUE;
+    gnet_property->props[94].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[94].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[94].data.boolean.def   = &download_optimistic_start_def;
+    gnet_property->props[94].data.boolean.value = &download_optimistic_start;
     return gnet_property;
 }
 

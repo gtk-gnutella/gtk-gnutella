@@ -1067,3 +1067,14 @@ prop = {
     };
 };
 
+prop = {
+    name = "download_optimistic_start";
+    desc = "Also use sources that don't provide a SHA1 value for the first "
+           "chunk of a file. This dramatically reduces the 'No URN on server' "
+           "messages, but may result in overlap problems later if the first "
+           "chunk was actually from a different file. Use with caution.";
+    type = boolean;
+    data = {
+        default = FALSE;
+    };
+};
