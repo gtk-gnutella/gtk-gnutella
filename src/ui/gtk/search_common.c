@@ -82,6 +82,7 @@ static struct {
 	{ ST_UPLOADED,		N_("stable") },		/* Allows uploads -> stable */
 	{ ST_FIREWALL,		N_("push") },
 	{ ST_PUSH_PROXY,	N_("proxy") },
+	{ ST_BOGUS,			N_("bogus") },		/* Bogus IP address */
 };
 
 search_t *search_gui_get_current_search(void)	{ return current_search; }
@@ -241,6 +242,8 @@ search_gui_free_r_set(results_set_t *rs)
 		search_gui_free_proxies(rs);
 	if (rs->hostname)
 		atom_str_free(rs->hostname);
+	if (rs->country)
+		atom_str_free(rs->country);
 
 	g_slist_free(rs->records);
 	zfree(rs_zone, rs);
@@ -541,6 +544,7 @@ search_gui_create_results_set(GSList *schl, const gnet_results_set_t *r_set)
     memcpy(rs->vendor, r_set->vendor, sizeof(rs->vendor));
 	rs->version = r_set->version ? atom_str_get(r_set->version) : NULL;
 	rs->hostname = r_set->hostname ? atom_str_get(r_set->hostname) : NULL;
+	rs->country = r_set->country ? atom_str_get(r_set->country) : NULL;
 	rs->udp_ip = r_set->udp_ip;
 
     rs->num_recs = 0;
@@ -605,7 +609,7 @@ search_gui_check_alt_locs(results_set_t *rs, record_t *rc)
 	for (i = alt->hvcnt - 1; i >= 0; i--) {
 		gnet_host_t *h = &alt->hvec[i];
 
-		if (!host_is_valid(h->ip, h->port))
+		if (h->port == 0 || !ip_is_valid(h->ip))
 			continue;
 
 		guc_download_auto_new(rc->name, rc->size, URN_INDEX, 
@@ -819,7 +823,7 @@ search_matched(search_t *sch, results_set_t *rs)
 		(PROP_SEND_PUSHES, &send_pushes, 0, 1);
     gnet_prop_get_boolean(PROP_IS_FIREWALLED, &is_firewalled, 0, 1);
 
-	need_push = (rs->status & ST_FIREWALL) || !host_is_valid(rs->ip, rs->port);
+	need_push = (rs->status & ST_FIREWALL) != 0;
 	skip_records = (!send_pushes || is_firewalled) && need_push;
 
 	if (gui_debug > 6)
