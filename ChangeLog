@@ -3,7 +3,14 @@
 - (2002.08.27 Richard)
  * Moved vendor code resolving to vendors.[ch]
  * Added ARES to known vendors 
- * Juggled includes
+ * Juggled includes: 
+   - All GUI modules should include gui.h
+   - All CORE modules shound include gnutella.h
+   - Both, gui.h and gnutella.h include common.h
+   - Any module included by common.h may not include any module from
+     the GUI or CORE. 
+   Later we will moved files belonging to the different sections of
+   gtk-gnutella to sub-directories.
  * Moved more gui initialization and shutdown code to main_gui.c
  * Moved main gui timer to main_gui.c
  * Moved loading of legacy config file to main_gui.c
