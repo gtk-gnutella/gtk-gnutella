@@ -1042,8 +1042,10 @@ void pcache_ping_received(struct gnutella_node *n)
 		n->n_ping_special++;
 		if (n->header.ttl == 1)
 			send_personal_info(n);
-		else
+		else if (n->header.ttl == 2)
 			send_neighbouring_info(n);
+		else
+			node_sent_ttl0(n);
 		return;
 	}
 
