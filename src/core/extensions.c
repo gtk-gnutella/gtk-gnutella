@@ -149,6 +149,7 @@ static const struct rwtable ggeptable[] =	/* GGEP extension table (sorted) */
 	GGEP_ID(IPP),					/* IP:port in pongs (UHC) */
 	GGEP_ID(LF),					/* Large file size in qhits */
 	GGEP_ID(LOC),					/* Locale preferences, for clustering  */
+	GGEP_ID(PATH),					/* Shared file path, in query hits */
 	GGEP_ID(PHC),					/* Packed host caches (UHC) in pongs */
 	GGEP_ID(PUSH),					/* Push proxy info, in qhits */
 	GGEP_ID(SCP),					/* Supports cached pongs, in pings (UHC) */
@@ -197,6 +198,23 @@ rw_screen(gboolean case_sensitive,
 	*retkw = NULL;
 
 	return EXT_T_UNKNOWN;
+}
+
+/**
+ * Ensure the reserved-word table is lexically sorted.
+ */
+static void
+rw_is_sorted(const gchar *name,
+	const struct rwtable *low, const struct rwtable *high)
+{
+	const struct rwtable *e;
+
+	for (e = low + 1; e <= high; e++) {
+		const struct rwtable *prev = e - 1;
+		if (strcmp(prev->rw_name, e->rw_name) >= 0)
+			g_error("reserved word table \"%s\" unsorted (near item \"%s\")",
+				name, e->rw_name);
+	}
 }
 
 /**
@@ -1442,6 +1460,9 @@ void
 ext_init(void)
 {
 	ext_names = g_hash_table_new(g_str_hash, g_str_equal);
+
+	rw_is_sorted("ggeptable", ggeptable, END(ggeptable));
+	rw_is_sorted("urntable", urntable, END(urntable));
 }
 
 /**
