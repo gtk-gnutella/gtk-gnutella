@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.92c\n"
 "POT-Creation-Date: 2003-06-07 21:33+0200\n"
-"PO-Revision-Date: 2003-06-08 22:29--100\n"
+"PO-Revision-Date: 2003-06-10 21:37--100\n"
 "Last-Translator: Jeroen Asselman <jeroen@asselman.com>\n"
 "Language-Team: nl <jeroen@asselman.com>\n"
 "MIME-Version: 1.0\n"
@@ -508,7 +508,7 @@ msgstr ""
 
 #: gnet_property.c:2395
 msgid "Directories which contain shared files"
-msgstr ""
+msgstr "Directories waar gedeelde bestanden staan"
 
 #: gnet_property.c:2416
 msgid "List of networks considered local.  This is a list of IP addresses, separated by ';'.  The IP address can be given out fully, as in 192.168.0.1, or be optionally followed by '/' and a network mask prefix length. For instance, 192.168.0.1/24 would represent the whole 192.168.0.* network."
@@ -516,51 +516,51 @@ msgstr ""
 
 #: gnet_property.c:2437
 msgid "Total number of completed downloads in this session"
-msgstr ""
+msgstr "Totaal aantal afgeronde downloads tijdens deze sessie"
 
 #: gnet_property.c:2457
 msgid "Number of running uploads"
-msgstr ""
+msgstr "Aantal uploads die draaien"
 
 #: gnet_property.c:2477
 msgid "Number of registered (pending) uploads"
-msgstr ""
+msgstr "Aantal geregistreerde uploads (welke nog verwerkt moeten worden)"
 
 #: gnet_property.c:2497
 msgid "Total number of completed uploads in this session"
-msgstr ""
+msgstr "Aantal afgeronde uploads tijdens deze sessie"
 
 #: gnet_property.c:2517
 msgid "Global Unique IDentifier of this node"
-msgstr ""
+msgstr "Globale Unieke IDentiteit van deze node"
 
 #: gnet_property.c:2534
 msgid "Whether or not to use swarming (recommended = YES)"
-msgstr ""
+msgstr "Of er wel of geen gebruik moet worden gebruikt van 'swarming' (aangeraden)"
 
 #: gnet_property.c:2551
 msgid "Whether or not to launch competing downloads when swarming and there are many sources available with a few chunks left."
-msgstr ""
+msgstr "Of er wel niet meerdere downloads tegelijk voor één segment moeten worden gestart als er nog maar een klein beetje gedaan moet worden."
 
 #: gnet_property.c:2568
 msgid "Minimum chunk size when swarming.  This is only a hint as gtk-gnutella will download less if you only have a few bytes to get for a file..."
-msgstr ""
+msgstr "Maximale fragment grootte tijdens 'swarming'. Dit is alleen een indicatie voor gtk-gnutella, aangezien er minder bytes gedownload zullen worden als er minder nodig zijn voor een bestand."
 
 #: gnet_property.c:2588
 msgid "Maximum chunk size when swarming"
-msgstr ""
+msgstr "Maximale fragment grootte tijdens 'swarming'"
 
 #: gnet_property.c:2608
 msgid "Whether or not to automatically queue search results that match a file in the download queue"
-msgstr ""
+msgstr "Of er wel niet automatisch zoekresultaten die overeenkomen met een download moeten worden toegevoegd aan de download wachtrij."
 
 #: gnet_property.c:2625
 msgid "When enabled, SHA1s must match. Otherwise, name and size will be sufficient"
-msgstr ""
+msgstr "Als deze aan staat, dan moet de SHA1 overeenkomen. Anders is de naam en grootte voldoende"
 
 #: gnet_property.c:2642
 msgid "Use fuzzy file name matching (recommended = NO; only rely on SHA1 matching to be safe)"
-msgstr ""
+msgstr "Gebruik 'fuzzy' bestandsnaam vergelijking (dit wordt afgeraden; vertrouw alleen de SHA1 om zeker te zijn)"
 
 #: gnet_property.c:2659
 msgid "Fuzziness threshold for filename matching (higher = stricter). A value of 100 means the filenames must be 100% identical.  A value of 0 means any two filenames will always be considered to be identical.  The minimum is 50%."
@@ -568,11 +568,11 @@ msgstr ""
 
 #: gnet_property.c:2679
 msgid "Whether gtk-gnutella thinks we're currently firewalled"
-msgstr ""
+msgstr "Of gtk-gnutella denkt dat deze host achter een firewall zit of niet"
 
 #: gnet_property.c:2696
 msgid "Whether gtk-gnutella thinks it's connected to the Internet"
-msgstr ""
+msgstr "Of gtk-gnutella denkt dat deze host met het internet verbonden is of niet"
 
 #: gnet_property.c:2713
 msgid "Remove unnecessary ballast from query string before processing or forwarding them. Reduces traffic at the cost of little CPU time"
@@ -620,19 +620,19 @@ msgstr ""
 
 #: gnet_property.c:2900
 msgid "Maximum amount of Ultrapeers we should connect to as a leaf."
-msgstr ""
+msgstr "Maximum aantal Ultrapeers waar we mee moeten connecten als we in leaf modus zijn."
 
 #: gnet_property.c:2920
 msgid "Maximum amount of leaves we can accept."
-msgstr ""
+msgstr "Maximum aantal leaves die met ons mogen verbinden."
 
 #: gnet_property.c:2940
 msgid "The peer mode you want to operate as for gtk-gnutella.  When auto is selected, gtk-gnutella will start as a leaf node and may be promoted to an ultra node if bandwidth and uptime permits, provided that you are not firewalled."
-msgstr ""
+msgstr "De peer modus waarin je wilt dat gtk-gnutella functioneert. Als de auto-modus is geselecteerd, dan zal gtk-gnutella beginnen als een leaf node. Als blijkt dat de bandbreedte en de uptime het toestaan en je gtk-gnutella zit niet achter een firewall, dan zal gtk-gnutella zichzelf promoten tot een ultrapeer."
 
 #: gnet_property.c:2960
 msgid "Current peer mode for gtk-gnutella"
-msgstr ""
+msgstr "Huidige peer modus voor gtk-gnutella"
 
 #: gnet_property.c:2980
 msgid "How many file descriptors a process can open."
@@ -640,31 +640,31 @@ msgstr ""
 
 #: gnet_property.c:3000
 msgid "How many KB of physical memory is available."
-msgstr ""
+msgstr "Hoeveel fyisch geheugen (in KB) beschikbaar is."
 
 #: gnet_property.c:3020
 msgid "How many downloads are currently held in the queue."
-msgstr ""
+msgstr "Het aantal downloads dat momenteel staat te wachten in de wachtrij"
 
 #: gnet_property.c:3040
 msgid "How many downloads are currently running (downloading / connecting)."
-msgstr ""
+msgstr "Het aantal downloads dat momenteel bezig is (aan het downloaden of verbinden)"
 
 #: gnet_property.c:3060
 msgid "How many downloads are currently active."
-msgstr ""
+msgstr "Het aantal downloads dat momenteel actief is"
 
 #: gnet_property.c:3080
 msgid "How many queued downloads are currently responsive (remote servent answering requests)."
-msgstr ""
+msgstr "Het aantal downloads in de wachtrij dat reageert (dat is: de host aan de andere kant reageert op aanvragen)"
 
 #: gnet_property.c:3100
 msgid "Amount of bytes downloaded so far, HTTP headers notwithstanding."
-msgstr ""
+msgstr "Het aantal bytes dat tot nu toe is gedownload. Dit is exclusief de HTTP headers."
 
 #: gnet_property.c:3120
 msgid "Amount of bytes uploaded so far, HTTP headers notwithstanding."
-msgstr ""
+msgstr "Het aantal bytes dat tot nu toe is geupload. Dit is exclusief de HTTP headers."
 
 #: gnet_property.c:3140
 msgid "Whether gtk-gnutella should serve partial files whilst they are still incompletely downloaded.  Recommended for network's health unless you already share many files, in which case it does no harm to leave it in, but will not matter as much."

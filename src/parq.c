@@ -1874,12 +1874,14 @@ struct parq_ul_queued *parq_upload_get_at(struct parq_ul_queue *queue,
 static gboolean parq_upload_continue(struct parq_ul_queued *uq, gint free_slots)
 {
 	GList *l = NULL;
-
+	extern guint max_uploads;
+	gint slots_free = max_uploads;
+	
 	/*
 	 * max_uploads holds the number of upload slots an queue may currently
 	 * use. This is the lowest number of upload slots used by a queue + 1.
 	 */
-	guint max_uploads = -1;
+	gint allowed_max_uploads = -1;
 
 	g_assert(uq != NULL);
 
@@ -1929,18 +1931,23 @@ static gboolean parq_upload_continue(struct parq_ul_queued *uq, gint free_slots)
 		struct parq_ul_queue *queue = (struct parq_ul_queue *) l->data;
 		if (queue->alive > queue->active_uploads) {
 			/* Queue would like to get another upload slot */
-			if (max_uploads > queue->active_uploads) {
+			if ((guint) allowed_max_uploads > queue->active_uploads) {
 				/*
 				 * Determine the current maximum of upload
 				 * slots allowed compared to other queus.
 				 */
-				max_uploads = queue->active_uploads + 1;
+				allowed_max_uploads = queue->active_uploads + 1;
 			}
 		}
+		if (queue->alive > 0)
+			slots_free--;
 	}
 	
-	if (max_uploads <= uq->queue->active_uploads)
-			return FALSE;
+	g_assert(slots_free >= 0);
+	
+	if (allowed_max_uploads <= uq->queue->active_uploads - slots_free) {
+		return FALSE;
+	}
 	
 	/*
 	 * Step 3. Check if current upload may have this slot
@@ -1955,10 +1962,13 @@ static gboolean parq_upload_continue(struct parq_ul_queued *uq, gint free_slots)
 		if (
 			  !parq_ul->has_slot && parq_ul != uq && 
 			  parq_ul->by_ip->ip != uq->by_ip->ip && !parq_ul->by_ip->uploading
-			)
+			) {
 			/* Another upload in the current queue is allowed first */
-			return FALSE;
-		else
+			if (slots_free < 0) {
+				return FALSE;
+			}
+			slots_free--;
+		} else
 		if (parq_ul == uq || parq_ul->by_ip->ip == uq->by_ip->ip)
 			/*
 			 * So the current upload is the first in line (we would have
@@ -1972,6 +1982,9 @@ static gboolean parq_upload_continue(struct parq_ul_queued *uq, gint free_slots)
 	}
 	
 	/* We should never make it here */
+	g_warning("PARQ UL: "
+		"Error while determining wether an upload should continue");
+	
 	return FALSE;
 }
 
