@@ -1,5 +1,11 @@
 # since last version
 
+- (2003.05.25 - Jeroen)
+ * PARQ: New ETA calculations. It now takes the current uploads into account too.
+ * PARQ: Don't save PARQ entries from which the upload was finished.
+ * PARQ: Avoid abusing: re-using the ID for another upload which got finished.
+         (a client could keep an upload slot for eternity)
+ 
 - (2003.05.23 - RAM)
  * Fixed punishing of hosts that re-request too early without paying attention
    to the Retry-After header.
