@@ -3976,7 +3976,7 @@ create_main_window (void)
   gtk_widget_show (hbox167);
   gtk_container_add (GTK_CONTAINER (viewport_fix_flashing_1), hbox167);
 
-  label_items_found = gtk_label_new (_("No items found"));
+  label_items_found = gtk_label_new ("");
   gtk_widget_set_name (label_items_found, "label_items_found");
   gtk_widget_ref (label_items_found);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "label_items_found", label_items_found,
