@@ -11,9 +11,9 @@
  * Public interaface.
  */
 
-gchar *url_escape(gchar *url);
-gchar *url_escape_cntrl(gchar *url);
-gchar *url_unescape(gchar *url, gboolean inplace);
+guchar *url_escape(guchar *url);
+guchar *url_escape_cntrl(guchar *url);
+guchar *url_unescape(guchar *url, gboolean inplace);
 
 #endif	/* __url_h__ */
 

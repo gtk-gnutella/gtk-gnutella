@@ -36,13 +36,13 @@ static char *hex_alphabet = "0123456789ABCDEF";
  *
  * Returns argument if no escaping is necessary, or a new string otherwise.
  */
-gchar *url_escape(gchar *url)
+guchar *url_escape(guchar *url)
 {
-	gchar *p;
-	gchar *q;
+	guchar *p;
+	guchar *q;
 	int need_escape = 0;
 	gint c;
-	gchar *new;
+	guchar *new;
 
 	for (p = url, c = *p; c; c = *p++)
 		if (!TRANSPARENT(c))
@@ -74,13 +74,13 @@ gchar *url_escape(gchar *url)
  *
  * Returns argument if no escaping is necessary, or a new string otherwise.
  */
-gchar *url_escape_cntrl(gchar *url)
+guchar *url_escape_cntrl(guchar *url)
 {
-	gchar *p;
-	gchar *q;
+	guchar *p;
+	guchar *q;
 	int need_escape = 0;
 	gint c;
-	gchar *new;
+	guchar *new;
 
 	for (p = url, c = *p; c; c = *p++)
 		if (iscntrl(c) || c == ESCAPE_CHAR)
@@ -113,13 +113,13 @@ gchar *url_escape_cntrl(gchar *url)
  * Returns the argument if un-escaping is necessary, a new string otherwise
  * if in-place decoding was not requested.
  */
-gchar *url_unescape(gchar *url, gboolean inplace)
+guchar *url_unescape(guchar *url, gboolean inplace)
 {
-	gchar *p;
-	gchar *q;
+	guchar *p;
+	guchar *q;
 	gint need_unescape = 0;
 	gint c;
-	gchar *new;
+	guchar *new;
 
 	for (p = url, c = *p; c; c = *p++)
 		if (c == ESCAPE_CHAR)
