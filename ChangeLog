@@ -1,5 +1,12 @@
 # since last version
 
+- (2002.05.29 - RAM)
+  * Added date parsing.
+  * Now parses Retry-After in HTTP replies, supersedes user-defined timeouts.
+  * When banning, emmit a Retry-After header.
+  * Renamed getdate() to date2time() to avoid conflict on Solaris.
+  * Integrated minimal upload b/w percentage patch [From Tobias Frech].
+
 - (2002.05.27 - RAM)
   * Fixed ipf_unban() to test rounded integer counter and not float in removal.
   * Was not properly updating SHA1 info when library was being rebuilt.
