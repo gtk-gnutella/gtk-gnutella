@@ -864,6 +864,22 @@ void on_treeview_downloads_select_row(GtkTreeView *tree_view,
 }
 
 
+typedef struct {
+	guint		count;
+	gboolean	is_header;
+} queue_select_help_t;
+
+static void queue_select_row_helper(GtkTreeModel *model, GtkTreePath *path,
+	GtkTreeIter *iter, gpointer data)
+{
+	queue_select_help_t *q = data;
+	download_t *d;
+
+	gtk_tree_model_get(model, iter, c_queue_record, &d, (-1));				
+	q->is_header |= DL_GUI_IS_HEADER == d;
+	q->count++;
+}
+
 /*
  *	on_treeview_downloads_queue_select_row
  *
@@ -871,67 +887,40 @@ void on_treeview_downloads_select_row(GtkTreeView *tree_view,
 void on_treeview_downloads_queue_select_row(GtkTreeView * tree_view, 
 	gpointer user_data)
 {
-    gboolean is_header = FALSE;
-	gboolean only_one = FALSE;
-	gboolean something = FALSE;	/* is something selected? */
-	GList *l;	
-	struct download *d;
-	GtkTreeIter iter;
-	GtkTreeModel *model;
-	GtkTreeModel **modelp;
 	GtkTreeSelection *selection;
+	queue_select_help_t q = { 0 /* count */, FALSE /* is_header */ };
 	
 	/* The user selects a row(s) in the downloads_queue treeview
 	 * we unselect all rows in the downloads tree view
 	 */
-	tree_view = GTK_TREE_VIEW
-		(lookup_widget(main_window, "treeview_downloads"));
-	selection = gtk_tree_view_get_selection(tree_view);
+	selection = gtk_tree_view_get_selection(
+		GTK_TREE_VIEW(lookup_widget(main_window, "treeview_downloads")));
 	gtk_tree_selection_unselect_all(selection);
 		
-	tree_view = GTK_TREE_VIEW
-		(lookup_widget(main_window, "treeview_downloads_queue"));
-	model = gtk_tree_view_get_model(tree_view);
-	modelp = &model;
-
-	if (NULL != model) {
-		GtkTreeSelection *selection = gtk_tree_view_get_selection(tree_view);
-		l = gtk_tree_selection_get_selected_rows(selection, modelp);
-
-		if (NULL != l) {		
-			if (gtk_tree_model_get_iter(model, &iter, l->data)) {
-
-				gtk_tree_model_get(model, &iter, c_queue_record, &d, (-1));				
-
-				is_header = (DL_GUI_IS_HEADER == d);
-				only_one = (NULL == l->next);
-				something = TRUE;
-			}
-		}	
+	selection = gtk_tree_view_get_selection(
+		GTK_TREE_VIEW(lookup_widget(main_window, "treeview_downloads_queue")));
+	gtk_tree_selection_selected_foreach(selection, queue_select_row_helper, &q);
 	
-		g_list_foreach(l, (GFunc) gtk_tree_path_free, NULL);
-		g_list_free(l);		
-	}
-	
-	gtk_widget_set_sensitive
-		(lookup_widget(popup_queue, "popup_queue_copy_url"), only_one);
-	gtk_widget_set_sensitive
-        (lookup_widget(popup_queue, "popup_queue_connect"), only_one);
+	gtk_widget_set_sensitive(
+		lookup_widget(popup_queue, "popup_queue_copy_url"),
+		!q.is_header && q.count == 1);
+	gtk_widget_set_sensitive(
+		lookup_widget(popup_queue, "popup_queue_connect"),
+		!q.is_header && q.count == 1);
 	gui_update_download_abort_resume();
 
-	gtk_widget_set_sensitive
-        (lookup_widget(popup_queue, "popup_queue_abort"), !is_header);
-	gtk_widget_set_sensitive
-        (lookup_widget(popup_queue, "popup_queue_abort_named"), !is_header);
-	gtk_widget_set_sensitive
-        (lookup_widget(popup_queue, "popup_queue_abort_host"), !is_header);
-    gtk_widget_set_sensitive
-        (lookup_widget(popup_queue, "popup_queue_abort_sha1"), something);	
+	gtk_widget_set_sensitive(
+		lookup_widget(popup_queue, "popup_queue_abort"), !q.is_header);
+	gtk_widget_set_sensitive(
+		lookup_widget(popup_queue, "popup_queue_abort_named"), !q.is_header);
+	gtk_widget_set_sensitive(
+		lookup_widget(popup_queue, "popup_queue_abort_host"), !q.is_header);
+    gtk_widget_set_sensitive(
+		lookup_widget(popup_queue, "popup_queue_abort_sha1"), q.count > 0);	
 
-	if (is_header)
-		gtk_widget_set_sensitive
-        (lookup_widget(popup_queue, "popup_queue_start_now"), FALSE);
-	
+	if (q.is_header)
+		gtk_widget_set_sensitive(
+			lookup_widget(popup_queue, "popup_queue_start_now"), FALSE);
 }
 
 
