@@ -25,6 +25,7 @@
 
 #include "common.h"		/* For -DUSE_DMALLOC */
 
+#include <ctype.h>
 #include <glib.h>
 #include "parq.h"
 #include "ioheader.h"
@@ -146,7 +147,7 @@ static gboolean get_header_version(gchar const *const header,
 /* 
  * get_header_value
  *
- * Retreives a value from a header line. If possible the length (in gchars)
+ * Retrieves a value from a header line. If possible the length (in gchars)
  * is returned for that value.
  */
 static gchar *get_header_value(
@@ -342,7 +343,7 @@ void parq_download_retry_active_queued(struct download *d)
  */
 static gint get_integer(gchar *buf)
 {
-	glong val;
+	gulong val;
 	gchar *end;
 
 	/* XXX This needs to get more parameters, so that we can log the
@@ -427,7 +428,8 @@ gboolean parq_download_parse_queue_status(struct download *d, header_t *header)
 		d->queue_status.retry_delay = extract_retry_after(header);
 
 		value = get_header_value(buf, "ID", &header_value_length);
-		header_value_length = MIN(header_value_length, PARQ_MAX_ID_LENGTH - 1);
+		header_value_length = MIN(header_value_length,
+									sizeof(d->queue_status.ID) - 1);
 		strncpy(d->queue_status.ID, value, header_value_length);
 		d->queue_status.ID[sizeof(d->queue_status.ID) - 1] = '\0';
 		g_hash_table_insert(dl_all_parq_by_ID, d->queue_status.ID, d);
@@ -561,8 +563,13 @@ void parq_download_queue_ack(struct gnutella_socket *s)
 	printf(" %s\n", queue);
 	printf("---\n");
 	fflush(stdout);
-	
-	id = strcasestr(queue, "QUEUE") + sizeof(gchar) * strlen("QUEUE ");
+
+ 	/* ensured by socket_read() */
+	g_assert(0 == strncmp(queue, "QUEUE ", sizeof("QUEUE ")));
+
+	id = queue + strlen("QUEUE ");
+	while (isspace((guchar) *id))
+		id++;
 		
 	dl = (struct download *) g_hash_table_lookup(dl_all_parq_by_ID, id);
 
@@ -689,9 +696,7 @@ static struct parq_ul_queued *parq_upload_create(gnutella_upload_t *u)
 	struct parq_ul_queued *parq_ul_prev = NULL;
 	struct parq_ul_queue *parq_ul_queue = NULL;
 
-	guint rw = 0;
 	guint ETA = 0;
-	gchar buf[1024];
 	GList *l;
 	
 	g_assert(u != NULL);
@@ -738,8 +743,8 @@ static struct parq_ul_queued *parq_upload_create(gnutella_upload_t *u)
 	parq_upload_update_IP_and_name(parq_ul, u);
 	
 	/* Create an ID. We might want to this better some day. */
-	rw = gm_snprintf(buf, sizeof(buf), "%d%d", u->ip, random_value(999999));
-	g_strlcpy(parq_ul->ID, buf, sizeof(parq_ul->ID));
+	gm_snprintf(parq_ul->ID, sizeof(parq_ul->ID),
+		"%d%d", u->ip, random_value(999999));
 	
 	g_assert(parq_ul->IP_and_name != NULL);
 	g_assert(parq_ul->ID != NULL);
@@ -949,15 +954,13 @@ static struct parq_ul_queued *parq_upload_find_ID(gnutella_upload_t *u,
  */
 static struct parq_ul_queued *parq_upload_find(gnutella_upload_t *u)
 {
-	guint rw;
 	gchar buf[1024];
 	
 	g_assert(u != NULL);
 	g_assert(ul_all_parq_by_IP_and_Name != NULL);
 	g_assert(ul_all_parq_by_ID != NULL);
 	
-	rw = gm_snprintf(buf, sizeof(buf),
-		"%d %s", u->ip, u->name);
+	gm_snprintf(buf, sizeof(buf), "%d %s", u->ip, u->name);
 	
 	return g_hash_table_lookup(ul_all_parq_by_IP_and_Name, buf);
 }
@@ -1221,7 +1224,6 @@ static gboolean parq_upload_continue(struct parq_ul_queued *uq, gint free_slots)
 static void parq_upload_update_IP_and_name(struct parq_ul_queued *parq_ul, 
 	gnutella_upload_t *u)
 {
-	gint rw;
 	gchar buf[1024];
 	
 	g_assert(parq_ul != NULL);
@@ -1231,7 +1233,7 @@ static void parq_upload_update_IP_and_name(struct parq_ul_queued *parq_ul,
 		g_free(parq_ul->IP_and_name);
 	}
 	
-	rw = gm_snprintf(buf, sizeof(buf), "%d %s", u->ip, u->name);
+	gm_snprintf(buf, sizeof(buf), "%d %s", u->ip, u->name);
 	parq_ul->IP_and_name = g_strdup(buf);
 	
 	g_hash_table_insert(ul_all_parq_by_IP_and_Name, parq_ul->IP_and_name, 
@@ -1742,8 +1744,7 @@ void parq_upload_send_queue_conf(gnutella_upload_t *u)
 	 * Send the QUEUE header.
 	 */
 
-	rw = gm_snprintf(queue, sizeof(queue), "QUEUE %s\r\n",
-		parq_ul->ID);
+	rw = gm_snprintf(queue, sizeof(queue), "QUEUE %s\r\n", parq_ul->ID);
 	
 	s = u->socket;
 	if (-1 == (sent = bws_write(bws.out, s->file_desc, queue, rw))) {
