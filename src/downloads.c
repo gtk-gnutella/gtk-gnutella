@@ -967,20 +967,14 @@ void download_gui_add(struct download *d)
 		if (d->always_push)
 			 gtk_clist_set_foreground(clist_downloads_queue, row, color);
 	} else {					/* This is an active download */
-		gint rw;
 
-		rw = g_snprintf(dl_tmp, sizeof(dl_tmp),
-			"%s", short_size(d->file_info->size));
-		rw += g_snprintf(&dl_tmp[rw], sizeof(dl_tmp)-rw,
-			" (%s)", short_size(d->size));
-
-        titles[c_dl_filename] = d->file_name;
-        titles[c_dl_server] = download_vendor_str(d);
-        titles[c_dl_status] = "";
-		titles[c_dl_size] = dl_tmp;
-        titles[c_dl_range] = "...";
-        titles[c_dl_host] = 
-            ip_port_to_gchar(download_ip(d), download_port(d));
+		titles[c_dl_filename] = d->file_name;
+		titles[c_dl_server] = download_vendor_str(d);
+		titles[c_dl_status] = "";
+		titles[c_dl_size] = short_size(d->file_info->size);
+		titles[c_dl_range] = "";
+		titles[c_dl_host] = 
+			ip_port_to_gchar(download_ip(d), download_port(d));
 
 		row = gtk_clist_append(clist_downloads, titles);
 		gtk_clist_set_row_data(clist_downloads, row, (gpointer) d);
@@ -4138,6 +4132,8 @@ void download_send_request(struct download *d)
 
 	d->last_update = time((time_t *) 0);
 	d->status = GTA_DL_REQ_SENT;
+
+	gui_update_download_range(d);
 	gui_update_download(d, TRUE);
 
 	/*

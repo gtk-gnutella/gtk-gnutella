@@ -1031,7 +1031,7 @@ void gui_update_download(struct download *d, gboolean force)
 
 		row = gtk_clist_find_row_from_data
             (clist_downloads_queue, (gpointer) d);
-		gtk_clist_set_text(clist_downloads_queue, row, c_dl_status, a);
+		gtk_clist_set_text(clist_downloads_queue, row, c_queue_status, a);
         if (d->always_push)
              gtk_clist_set_foreground(clist_downloads_queue, row, color);
 	}
@@ -1050,6 +1050,27 @@ void gui_update_download_server(struct download *d)
 
 	row = gtk_clist_find_row_from_data(clist_downloads,	(gpointer) d);
 	gtk_clist_set_text(clist_downloads, row, c_dl_server, download_vendor(d));
+}
+
+void gui_update_download_range(struct download *d)
+{
+	gint rw;
+	gint row;
+    GtkCList *clist_downloads = GTK_CLIST
+            (lookup_widget(main_window, "clist_downloads"));
+
+	g_assert(d);
+	g_assert(d->status != GTA_DL_QUEUED);
+
+	rw = g_snprintf(gui_tmp, sizeof(gui_tmp), "%s",
+		compact_size(d->range_end - d->skip + d->overlap_size));
+
+	if (d->skip)
+		g_snprintf(&gui_tmp[rw], sizeof(gui_tmp)-rw, " @ %s",
+			compact_size(d->skip));
+
+	row = gtk_clist_find_row_from_data(clist_downloads,	(gpointer) d);
+	gtk_clist_set_text(clist_downloads, row, c_dl_range, gui_tmp);
 }
 
 void gui_update_upload(struct upload *u)
