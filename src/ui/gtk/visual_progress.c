@@ -599,8 +599,6 @@ vp_gui_fi_status_changed(gnet_fi_t fih)
 			 */
 			if (nc->from != highest) {
 				g_warning("Visual progress list corruption!");
-				g_warning("Please email trace below to hans@degraaff.org "
-					"for analysis.");
 				vp_print_chunk_list(v->chunks_initial, "Old");
 				vp_print_chunk_list(keep_new, "New");
 				vp_print_chunk_list(v->chunks_list, "Result");
