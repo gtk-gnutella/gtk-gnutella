@@ -2354,6 +2354,16 @@ search_new(const gchar *query, guint32 reissue_timeout, flag_t flags)
 		 */
 	}
 
+	if (!utf8_is_valid_string(qdup, 0)) {
+		gchar *s;
+		
+		s = locale_to_utf8(qdup, 0);
+		if (s != qdup) {
+			G_FREE_NULL(qdup);
+			qdup = g_strdup(s);
+		}
+	}
+	
 	compact_query(qdup);
 
 	sch->query = atom_str_get(qdup);
