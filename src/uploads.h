@@ -58,6 +58,14 @@ struct upload {
 	guint skip;						/* First byte to send, inclusive */
 	guint end;						/* Last byte to send, inclusive */
 	off_t pos;						/* Read position in file we're sending */
+
+	guint32 last_dmesh;				/* Time when last download mesh was sent */
+	guchar *sha1;					/* SHA1 of requested file */
+	off_t total_requested;			/* Total amount of bytes requested */
+	gint http_major;				/* HTTP major version */
+	gint http_minor;				/* HTTP minor version */
+
+	gboolean keep_alive;			/* Keep HTTP connection? */
 	gboolean push;
 	gboolean accounted;				/* True when upload was accounted for */
 };
@@ -66,11 +74,11 @@ struct upload {
  * Upload states.
  */
 
-#define GTA_UL_CONNECTED		1	/* Someone has connected to us	*/
-#define GTA_UL_PUSH_RECEIVED	2	/* We got a push request */
-#define GTA_UL_COMPLETE			3	/* The file has been sent completely */
-#define GTA_UL_SENDING			4	/* We are sending data */
-#define GTA_UL_HEADERS			5	/* Receiving the HTTP request headers */
+#define GTA_UL_PUSH_RECEIVED	1	/* We got a push request */
+#define GTA_UL_COMPLETE			2	/* The file has been sent completely */
+#define GTA_UL_SENDING			3	/* We are sending data */
+#define GTA_UL_HEADERS			4	/* Receiving the HTTP request headers */
+#define GTA_UL_WAITING			5	/* Waiting new HTTP request */
 
 /*
  * State inspection macros.
@@ -78,7 +86,8 @@ struct upload {
 
 #define UPLOAD_IS_CONNECTING(u)						\
 	(	(u)->status == GTA_UL_HEADERS				\
-	||	(u)->status == GTA_UL_PUSH_RECEIVED	)
+	||	(u)->status == GTA_UL_PUSH_RECEIVED			\
+	||	(u)->status == GTA_UL_WAITING	)
 
 #define UPLOAD_IS_COMPLETE(u)	\
 	((u)->status == GTA_UL_COMPLETE)

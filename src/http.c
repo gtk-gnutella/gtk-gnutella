@@ -50,7 +50,10 @@
  * containing `hevcnt' entries.  Each entry describes something to be
  * inserted in the header.
  *
- * The connection is NOT closed.
+ * The connection is NOT closed physically.
+ *
+ * At the HTTP level, the connection is closed if an error is returned
+ * (either 4xx or 5xx) or a redirection occurs (3xx).
  *
  * Returns TRUE if we were able to send everything, FALSE otherwise.
  */
@@ -66,17 +69,21 @@ gboolean http_send_status(
 	gint sent;
 	gint i;
 	va_list args;
+	gchar *conn_close = "Connection: close\r\n";
 
 	va_start(args, reason);
 	g_vsnprintf(status_msg, sizeof(status_msg)-1,  reason, args);
 	va_end(args);
 
+	if (code < 300)
+		conn_close = "";		/* Keep HTTP connection */
+
 	rw = g_snprintf(header, sizeof(header),
-		"HTTP/1.0 %d %s\r\n"
+		"HTTP/1.1 %d %s\r\n"
 		"Server: %s\r\n"
-		"Connection: close\r\n"
+		"%s"
 		"X-Live-Since: %s\r\n",
-		code, status_msg, version_string, start_rfc822_date);
+		code, status_msg, version_string, conn_close, start_rfc822_date);
 
 	mrw = rw;		/* Minimal header length */
 

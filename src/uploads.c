@@ -398,6 +398,55 @@ static void upload_free_resources(struct upload *u)
 		atom_str_free(u->user_agent);
 		u->user_agent = NULL;
 	}
+	if (u->sha1) {
+		atom_sha1_free(u->sha1);
+		u->sha1 = NULL;
+	}
+}
+
+/*
+ * upload_clone
+ *
+ * Clone upload, resetting all dynamically allocated structures in the
+ * original, since they are shallow-copied to the new upload.
+ *
+ * (This routine is used because each different upload from the same host
+ * will become a line in the GUI, and the GUI stores upload structures in
+ * its row data, and will call upload_remove() to clear them.)
+ */
+static struct upload *upload_clone(struct upload *u)
+{
+	struct upload *cu = g_malloc(sizeof(struct upload));
+
+	*cu = *u;		/* Struct copy */
+
+	g_assert(u->io_opaque == NULL);		/* If cloned, we were transferrring! */
+
+	cu->bio = NULL;						/* Recreated on each transfer */
+	cu->file_desc = -1;					/* File re-opened each time */
+	cu->socket->resource.upload = cu;	/* Takes ownership of socket */
+	cu->accounted = FALSE;
+
+	/*
+	 * The following have been copied and appropriated by the cloned upload.
+	 * They are reset so that an upload_free_resource() on the original will
+	 * not free them.
+	 */
+
+	u->name = NULL;
+	u->socket = NULL;
+	u->buffer = NULL;
+	u->user_agent = NULL;
+	u->sha1 = NULL;
+
+	/*
+	 * Add the upload structure to the upload slist, so it's monitored
+	 * from now on within the main loop for timeouts.
+	 */
+
+	uploads = g_slist_append(uploads, cu);
+
+	return cu;
 }
 
 /*
@@ -984,9 +1033,9 @@ void upload_add(struct gnutella_socket *s)
 	struct upload *u;
 	struct io_header *ih;
 
-	u = upload_create(s, FALSE);
-
 	s->type = GTA_TYPE_UPLOAD;
+
+	u = upload_create(s, FALSE);
 
 	/*
 	 * Prepare callback argument used during the header reading phase.
@@ -1015,6 +1064,59 @@ void upload_add(struct gnutella_socket *s)
 }
 
 /*
+ * expect_http_header
+ *
+ * Prepare reception of a full HTTP header, including the leading request.
+ * Will call upload_request() when everything has been parsed.
+ */
+static void expect_http_header(struct upload *u)
+{
+	struct gnutella_socket *s = u->socket;
+	struct io_header *ih;
+
+	g_assert(s->resource.upload == u);
+	g_assert(s->getline == NULL);
+	g_assert(u->io_opaque == NULL);
+
+	/*
+	 * Prepare callback argument used during the header reading phase.
+	 *
+	 * We're requesting the reading of a "status line", which will be the
+	 * HTTP request.  It will be stored in a created s->getline entry.
+	 * Once we're done, we'll end-up in upload_request(): the path joins
+	 * with the one used for direct uploading.
+	 */
+
+	ih = (struct io_header *) g_malloc(sizeof(struct io_header));
+	ih->upload = u;
+	ih->header = header_make();
+	ih->getline = getline_make();
+	ih->flags = IO_STATUS_LINE;		/* XXX will be really the HTTP request */
+	ih->process_header = call_upload_request;
+	u->io_opaque = (gpointer) ih;
+
+	g_assert(s->gdk_tag == 0);
+
+	s->gdk_tag = gdk_input_add(s->file_desc,
+		(GdkInputCondition) GDK_INPUT_READ | GDK_INPUT_EXCEPTION,
+		upload_header_read, (gpointer) ih);
+}
+
+/*
+ * upload_wait_new_request
+ *
+ * This is used for HTTP/1.1 persistent connections.
+ *
+ * Move the upload back to a waiting state, until a new HTTP request comes
+ * on the socket.
+ */
+static void upload_wait_new_request(struct upload *u)
+{
+	u->status = GTA_UL_WAITING;
+	expect_http_header(u);
+}
+
+/*
  * upload_push_conf
  *
  * Got confirmation that the connection to the remote host was OK.
@@ -1024,7 +1126,6 @@ void upload_push_conf(struct upload *u)
 {
 	gchar giv[MAX_LINE_SIZE];
 	struct gnutella_socket *s;
-	struct io_header *ih;
 	gint rw;
 	gint sent;
 
@@ -1057,30 +1158,7 @@ void upload_push_conf(struct upload *u)
 		return;
 	}
 
-	/*
-	 * Prepare callback argument used during the header reading phase.
-	 *
-	 * We're requesting the reading of a "status line", which will be the
-	 * HTTP request.  It will be stored in a created s->getline entry.
-	 * Once we're done, we'll end-up in upload_request(): the path joins
-	 * with the one used for direct uploading.
-	 */
-
-	g_assert(s->getline == 0);
-
-	ih = (struct io_header *) g_malloc(sizeof(struct io_header));
-	ih->upload = u;
-	ih->header = header_make();
-	ih->getline = getline_make();
-	ih->flags = IO_STATUS_LINE;		/* XXX will be really the HTTP request */
-	ih->process_header = call_upload_request;
-	u->io_opaque = (gpointer) ih;
-
-	g_assert(s->gdk_tag == 0);
-
-	s->gdk_tag = gdk_input_add(s->file_desc,
-		(GdkInputCondition) GDK_INPUT_READ | GDK_INPUT_EXCEPTION,
-		upload_header_read, (gpointer) ih);
+	expect_http_header(u);
 }
 
 /*
@@ -1095,7 +1173,7 @@ static void upload_error_not_found(struct upload *u, const gchar *request)
 }
 
 /* 
- * upload_error_request_is_ok
+ * upload_request_is_ok
  * 
  * Check the request.
  * Return TRUE if ok or FALSE otherwise (upload must then be aborted)
@@ -1154,6 +1232,9 @@ static gboolean upload_request_is_ok(
 		upload_error_remove(u, NULL, 503, "Sharing currently disabled");
 		return FALSE;
 	}
+
+	u->http_major = http_major;
+	u->http_minor = http_minor;
 
 	return TRUE;
 }
@@ -1257,6 +1338,7 @@ static struct shared_file *get_file_to_upload_from_index(
 
 	if (sha1) {
 		struct shared_file *sfn;
+		extern gint sha1_eq(gconstpointer a, gconstpointer b);
 
 		/*
 		 * If they sent a SHA1, maybe they have a download mesh as well?
@@ -1278,7 +1360,7 @@ static struct shared_file *get_file_to_upload_from_index(
 		 */
 
 		if (sf && sha1_hash_available(sf)) {
-			if (0 == memcmp(digest, sf->sha1_digest, SHA1_RAW_SIZE))
+			if (sha1_eq(digest, sf->sha1_digest))
 				goto found;
 		}
 
@@ -1472,11 +1554,25 @@ static void upload_http_sha1_add(gchar *buf, gint *retval, gpointer arg)
 
 	if (rw < length) {
 		time_t now = time(NULL);
-		guint32 last_sent = mi_get_stamp(a->u->socket->ip,
-			a->sf->sha1_digest, now);
+		struct upload *u = a->u;
+
+		guint32 last_sent;
+
+		/*
+		 * Because of possible persistent uplaods, we have to keep track on
+		 * the last time we sent download mesh information within the upload
+		 * itself: the time for them to download a range will be greater than
+		 * our expiration timer on the external mesh information.
+		 */
+
+		last_sent = u->last_dmesh ?
+			u->last_dmesh :
+			mi_get_stamp(u->socket->ip, a->sf->sha1_digest, now);
 
 		rw += dmesh_alternate_location(a->sf->sha1_digest,
-			&buf[rw], length - rw, a->u->socket->ip, last_sent);
+			&buf[rw], length - rw, u->socket->ip, last_sent);
+
+		u->last_dmesh = now;
 	}
 
 	*retval = rw;
@@ -1516,7 +1612,10 @@ static void upload_http_status(gchar *buf, gint *retval, gpointer arg)
 	struct upload_http_cb *a = (struct upload_http_cb *) arg;
 	struct upload *u = a->u;
 
-	rw = g_snprintf(buf, length,
+	if (!u->keep_alive)
+		rw = g_snprintf(buf, length, "Connection: close\r\n");
+
+	rw += g_snprintf(&buf[rw], length - rw,
 		"Date: %s\r\n"
 		"Last-Modified: %s\r\n"
 		"Content-Type: application/binary\r\n"
@@ -1577,11 +1676,16 @@ static void upload_request(struct upload *u, header_t *header)
 	gint http_code;
 	gchar *http_msg;
 	http_extra_desc_t hev;
+	guchar *sha1;
+	gboolean is_followup = u->status == GTA_UL_WAITING;
+	extern gint sha1_eq(gconstpointer a, gconstpointer b);
 
 	titles[0] = titles[1] = titles[2] = titles[3] = titles[4] = NULL;
 
 	if (dbg > 2) {
-		printf("----Incoming Request from %s:\n", ip_to_gchar(s->ip));
+		printf("----%s Request from %s:\n",
+			is_followup ? "Follow-up" : "Incoming",
+			ip_to_gchar(s->ip));
 		printf("%s\n", request);
 		header_dump(header, stdout);
 		printf("----\n");
@@ -1643,6 +1747,25 @@ static void upload_request(struct upload *u, header_t *header)
 	}
 
 	index = reqfile->file_index;
+	sha1 = sha1_hash_available(reqfile) ? reqfile->sha1_digest : NULL;
+
+	/*
+	 * A follow-up request must be for the same file, since the slot is
+	 * allocated on the basis of one file.  We compare SHA1s if available,
+	 * otherwise indices, in case the library has been rebuilt.
+	 */
+
+	if (
+		is_followup &&
+		((sha1 && u->sha1 && !sha1_eq(sha1, u->sha1)) || index != u->index)
+	) {
+		g_warning("Host %s sent initial request for %u (%s), "
+			"now requesting %u (%s)",
+			ip_to_gchar(s->ip),
+			u->index, u->name, index, reqfile->file_name);
+		upload_error_remove(u, NULL, 400, "Change of Resource Forbidden");
+		return;
+	}
 
 	if (!upload_request_is_ok(u, header, request))
 		return;
@@ -1650,9 +1773,11 @@ static void upload_request(struct upload *u, header_t *header)
 	/*
 	 * We let all HEAD request go through, whether we're busy or not, since
 	 * we only send back the header.
+	 *
+	 * Follow-up requests already have their slots.
 	 */
 
-	if (!head_only) {
+	if (!(head_only || is_followup)) {
 		/*
 		 * Ensure that noone tries to download the same file twice, and
 		 * that they don't get beyond the max authorized downloads per IP.
@@ -1714,6 +1839,24 @@ static void upload_request(struct upload *u, header_t *header)
 				return;
 			}
 		}
+	}
+
+	/*
+	 * Do we have to keep the connection after this request?
+	 */
+
+	buf = header_get(header, "Connection");
+
+	if (u->http_major > 1 || (u->http_major == 1 && u->http_minor >= 1)) {
+		/* HTTP/1.1 or greater -- defaults to persistent connections */
+		u->keep_alive = TRUE;
+		if (buf && 0 == strcasecmp(buf, "close"))
+			u->keep_alive = FALSE;
+	} else {
+		/* HTTP/1.0 or lesser -- must request persistence */
+		u->keep_alive = FALSE;
+		if (buf && 0 == strcasecmp(buf, "keep-alive"))
+			u->keep_alive = TRUE;
 	}
 
 	/*
@@ -1798,6 +1941,21 @@ static void upload_request(struct upload *u, header_t *header)
 		return;
 	}
 
+	/*
+	 * Ensure that a given persistent connection never requests more than
+	 * the total file length.  Add 0.5% to account for partial overlapping
+	 * ranges.
+	 */
+
+	u->total_requested += end - skip + 1;
+
+	if (u->total_requested > u->file_size * 1.005) {
+		g_warning("Host %s requesting more than there is to %u (%s)",
+			ip_to_gchar(s->ip), u->index, u->name);
+		upload_error_remove(u, NULL, 400, "Requesting Too Much");
+		return;
+	}
+
 	/* Open the file for reading , READONLY just in case. */
 	if ((u->file_desc = open(fpath, O_RDONLY)) < 0) {
 		upload_error_not_found(u, request);
@@ -1827,6 +1985,8 @@ static void upload_request(struct upload *u, header_t *header)
 	 */
 
 	u->index = index;
+	if (!u->sha1 && sha1)
+		u->sha1 = atom_sha1_get(sha1);	/* Identify file for followup reqs */
 
 	if (u->push && 0 != strcmp(u->name, reqfile->file_name)) {
 		atom_str_free(u->name);
@@ -1836,9 +1996,6 @@ static void upload_request(struct upload *u, header_t *header)
 	if (u->name == NULL)
 		u->name = atom_str_get(reqfile->file_name);
 
-	if (user_agent)
-		u->user_agent = atom_str_get(user_agent);
-
 	u->ip = s->ip;
 	u->skip = skip;
 	u->end = end;
@@ -1846,8 +2003,14 @@ static void upload_request(struct upload *u, header_t *header)
 	u->start_date = time((time_t *) NULL);
 	u->last_update = time((time_t *) 0);
 
-	u->buf_size = 4096 * sizeof(gchar);
-	u->buffer = (gchar *) g_malloc(u->buf_size);
+	if (!is_followup) {
+		u->buf_size = 4096 * sizeof(gchar);
+		u->buffer = (gchar *) g_malloc(u->buf_size);
+
+		if (user_agent)
+			u->user_agent = atom_str_get(user_agent);
+	}
+
 	u->bpos = 0;
 	u->bsize = 0;
 
@@ -1895,19 +2058,29 @@ static void upload_request(struct upload *u, header_t *header)
 	}
 
 	/*
+	 * Cleanup data structures.
+	 */
+
+	io_free(u->io_opaque);
+
+	getline_free(s->getline);
+	s->getline = NULL;
+
+	/*
 	 * If we need to send only the HEAD, we're done. --RAM, 26/12/2001
 	 */
 
 	if (head_only) {
-		upload_remove(u, NULL);		/* No message, everything was OK */
+		if (u->keep_alive)
+			upload_wait_new_request(u);
+		else
+			upload_remove(u, NULL);		/* No message, everything was OK */
 		return;
 	}
 
 	/*
 	 * Install the output I/O, which is via a bandwidth limited source.
 	 */
-
-	io_free(u->io_opaque);
 
 	g_assert(s->gdk_tag == 0);
 	g_assert(u->bio == NULL);
@@ -2058,14 +2231,32 @@ void upload_write(gpointer up, gint source, GdkInputCondition cond)
 		ul_stats_file_complete(u);
 		u->accounted = TRUE;			/* Called ul_stats_file_complete() */
 
+		/*
+		 * We do the following before cloning, since this will reset most
+		 * of the information, including the upload name.  If they chose
+		 * to clear uploads immediately, they will incur a small overhead...
+		 */
+
+		u->status = GTA_UL_COMPLETE;
+		gui_update_upload(u);
+
+		/*
+		 * If we're going to keep the connection, we must clone the upload
+		 * structure, since it is associated to the GUI entry.
+		 */
+
+		if (u->keep_alive) {
+			struct upload *cu = upload_clone(u);
+			upload_wait_new_request(cu);
+			registered_uploads++;
+		}
+
 		if (clear_uploads == TRUE)
 			upload_remove(u, NULL);
 		else {
             GtkWidget *button = 
                 lookup_widget(main_window, "button_uploads_clear_completed");
 
-			u->status = GTA_UL_COMPLETE;
-			gui_update_upload(u);
 			registered_uploads--;
 			running_uploads--;
 			gui_update_c_uploads();
