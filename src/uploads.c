@@ -2030,6 +2030,7 @@ static void upload_request(gnutella_upload_t *u, header_t *header)
 	gboolean was_actively_queued = u->status == GTA_UL_QUEUED;
 	gboolean faked = FALSE;
 	gboolean range_unavailable = FALSE;
+	gboolean replacing_stall = FALSE;
 	gchar *token;
 	extern gint sha1_eq(gconstpointer a, gconstpointer b);
 
@@ -2514,6 +2515,7 @@ static void upload_request(gnutella_upload_t *u, header_t *header)
 				ip_to_gchar(up->ip), upload_vendor_str(up), up->sent, stalled);
 
 			upload_remove(up, "Stalling upload replaced");
+			replacing_stall = TRUE;
 		}
 	}
 		
@@ -2541,8 +2543,10 @@ static void upload_request(gnutella_upload_t *u, header_t *header)
 			upload_error_remove(u, reqfile, 503, "Queue full");
 			return;
 		}
+
+		u->parq_opaque = parq_upload_get(u, header, replacing_stall);
 		
-		if ((u->parq_opaque = parq_upload_get(u, header)) == NULL) {
+		if (u->parq_opaque == NULL) {
 			upload_error_remove(u, reqfile, 503,
 				"Another connection is still active");
 			return;
@@ -2656,8 +2660,24 @@ static void upload_request(gnutella_upload_t *u, header_t *header)
 		}
 	}
 
-	if (!head_only)
+	if (!head_only) {
+		/*
+		 * Avoid race conditions in case of QUEUE callback answer: they might
+		 * already have got an upload slot since we sent the QUEUE and they
+		 * replied.  Not sure this is the right fix though, but it does
+		 * the job.
+		 *		--RAM, 24/12/2003
+		 */
+
+		if (!is_followup && !parq_upload_ip_can_proceed(u)) {
+			upload_error_remove(u, reqfile, 503,
+				"Only %d upload%s per IP address",
+				max_uploads_ip, max_uploads_ip == 1 ? "" : "s");
+			return;
+		}
+
 		parq_upload_busy(u, u->parq_opaque);
+	}
 	
 	if (-1 == stat(fpath, &statbuf)) {
 		upload_error_not_found(u, request);
