@@ -35,10 +35,12 @@
 #define QUERY_SPEED_MARK		0x8000		/* Field is special: not a speed */
 #define QUERY_SPEED_FIREWALLED	0x4000		/* Issuing servent is firewalled */
 #define QUERY_SPEED_NO_XML		0x2000		/* No XML in result set, please */
+#define QUERY_SPEED_GGEP_H		0x1000		/* Recipient understands GGEP "H" */
 
 /*
  * Global Functions
  */
+
 void search_init(void);
 void search_shutdown(void);
 
