@@ -56,6 +56,19 @@ gint count_running_downloads(void)
 	return n;
 }
 
+gint count_running_downloads_with_guid(gchar *guid)
+{
+  GSList *l;
+  guint32 n = 0;
+
+	for (l = sl_downloads; l; l = l->next)
+		if (IS_DOWNLOAD_RUNNING((struct download *) l->data))
+		  if (!memcmp(((struct download *) l->data)->guid, guid, 16))
+			 n++;
+
+	return n;
+}
+
 /* GUI operations --------------------------------------------------------------------------------- */
 
 /* Add a download to the GUI */
@@ -321,14 +334,21 @@ void download_start(struct download *d)
 
 void download_pickup_queued(void)
 {
-	while (GTK_CLIST(clist_download_queue)->rows && count_running_downloads() < max_downloads)
+	guint row;
+	
+	gtk_clist_freeze(GTK_CLIST(clist_download_queue));
+	row=0;
+	while (row<GTK_CLIST(clist_download_queue)->rows && count_running_downloads() < max_downloads)
 	{
-		struct download *d = (struct download *) gtk_clist_get_row_data(GTK_CLIST(clist_download_queue), 0);
+		struct download *d = (struct download *) gtk_clist_get_row_data(GTK_CLIST(clist_download_queue), row);
 
 		if (!IS_DOWNLOAD_QUEUED(d)) g_warning("download_pickup_queued(): Download '%s' is not in queued state ! (state = %d)\n", d->file_name, d->status);
 
-		download_start(d);
+		if (count_running_downloads_with_guid(d->guid) < max_host_downloads)
+			download_start(d);
+		else row++;
 	}
+	gtk_clist_thaw(GTK_CLIST(clist_download_queue));
 }
 
 void download_push(struct download *d)
@@ -400,7 +420,8 @@ void download_new(gchar *file, guint32 size, guint32 record_index, guint32 ip, g
 
 	s = d->file_name; while (*s) { if (*s == '/') *s = '\\'; s++; }
 
-	if (count_running_downloads() < max_downloads)
+	if (count_running_downloads() < max_downloads && 
+		 count_running_downloads_with_guid(d->guid) < max_host_downloads)
 	{
 		download_start(d);	/* Starts the download immediately */
 	}

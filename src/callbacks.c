@@ -1004,3 +1004,30 @@ void on_button_extra_config_clicked (GtkButton *button, gpointer user_data)
 
 /* vi: set ts=3: */
 
+void
+on_entry_max_host_downloads_activate   (GtkEditable     *editable,
+                                        gpointer         user_data)
+{
+	gtk_widget_grab_focus(clist_menu); /* This will generate a focus out event (next func) */
+}
+
+gboolean
+on_entry_max_host_downloads_focus_out_event
+                                        (GtkWidget       *widget,
+                                        GdkEventFocus   *event,
+                                        gpointer         user_data)
+{
+	gint v = atol(gtk_entry_get_text(GTK_ENTRY(entry_max_host_downloads)));
+	if (v > 0 && v < 65536) max_host_downloads = v;
+
+	/* XXX If the user modifies the max simulteneous download and click on a queued download, */
+	/* XXX gtk-gnutella segfaults in some cases. */
+	/* XXX This unselected_all() is a first attempt to work around the problem */
+
+	gtk_clist_unselect_all(GTK_CLIST(clist_download_queue));
+
+	gui_update_max_host_downloads();
+	download_pickup_queued();
+
+  return TRUE;
+}

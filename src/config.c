@@ -19,6 +19,7 @@ guint16 listen_port						= 6346;
 
 guint32 up_connections					= 4;
 guint32 max_downloads					= 10;
+guint32 max_host_downloads				= 4;
 guint32 minimum_speed					= 0;
 guint32 monitor_max_items				= 25;
 guint32 connection_speed				= 28;
@@ -57,10 +58,10 @@ gint w_x = 0, w_y = 0, w_w = 0, w_h = 0;
 
 enum
 {
-	k_up_connections = 0, k_clear_uploads, k_max_downloads, k_clear_downloads, k_minimum_speed,
-	k_monitor_enabled, k_monitor_max_items, k_old_save_file_path, k_scan_extensions, k_listen_port,
-	k_max_ttl, k_my_ttl, k_shared_dirs, k_forced_local_ip, k_connection_speed, k_search_max_items,
-	k_force_local_ip, k_hosts_catched, k_download_connecting_timeout,
+	k_up_connections = 0, k_clear_uploads, k_max_downloads, k_max_host_downloads, k_clear_downloads, 
+	k_minimum_speed, k_monitor_enabled, k_monitor_max_items, k_old_save_file_path, k_scan_extensions, 
+	k_listen_port, k_max_ttl, k_my_ttl, k_shared_dirs, k_forced_local_ip, k_connection_speed, 
+	k_search_max_items, k_force_local_ip, k_hosts_catched, k_download_connecting_timeout,
 	k_download_push_sent_timeout, k_download_connected_timeout, k_node_connected_timeout,
 	k_node_connecting_timeout, k_node_sendqueue_size, k_search_queries_forward_size,
 	k_search_queries_kick_size, k_search_answers_forward_size, k_search_answers_kick_size,
@@ -75,6 +76,7 @@ gchar *keywords[] =
 	"up_connections",							/* k_up_connections					*/
 	"auto_clear_completed_uploads",		/* k_clear_uploads					*/
 	"max_simultaneous_downloads",			/* k_max_downloads					*/
+	"max_simultaneous_host_downloads",	/* k_max_host_downloads				*/
 	"auto_clear_completed_downloads",	/* k_clear_downloads					*/
 	"search_minimum_speed",					/* k_minimum_speed					*/
 	"monitor_enabled",						/* k_monitor_enabled					*/
@@ -197,6 +199,7 @@ void config_init(void)
 	gui_update_my_ttl();
 
 	gui_update_max_downloads();
+	gui_update_max_host_downloads();
 	gui_update_files_scanned();
 
 	gui_update_connection_speed();
@@ -305,6 +308,7 @@ void config_set_param(guint32 keyword, gchar *value)
 		case k_clear_downloads: { clear_downloads = (gboolean) !g_strcasecmp(value, "true"); return; }
 		case k_up_connections: { if (i > 0 && i < 512) up_connections = i; return; }
 		case k_max_downloads: { if (i > 0 && i < 512) max_downloads = i; return; }
+		case k_max_host_downloads: { if (i > 0 && i < 512) max_host_downloads = i; return; }
 		case k_minimum_speed: { minimum_speed = atol(value); return; }
 		case k_listen_port: { listen_port = atoi(value); return; }
 		case k_max_ttl: { if (i > 0 && i < 255) max_ttl = i; return; }
@@ -439,6 +443,8 @@ void config_save(void)
 	fprintf(config, "%s = %s\n", keywords[k_clear_uploads], config_boolean(clear_uploads));
 	fprintf(config, "\n");
 	fprintf(config, "%s = %u\n", keywords[k_max_downloads], max_downloads);
+	fprintf(config, "\n");
+	fprintf(config, "%s = %u\n", keywords[k_max_host_downloads], max_host_downloads);
 	fprintf(config, "\n");
 	fprintf(config, "%s = %s\n", keywords[k_clear_downloads], config_boolean(clear_downloads));
 	fprintf(config, "\n");

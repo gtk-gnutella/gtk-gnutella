@@ -9,6 +9,7 @@
 - You can now force your local IP to whatever you want [NEED TESTS PLEASE]
 - 'Current port' label is now updated
 - Automatic retry for failed downloads
+- A new option limits the number of downloads from a single GnutellaNet host
 
 * v 0.12          2000.05.03
 

@@ -43,6 +43,7 @@ extern GtkWidget *button_abort_download;
 extern GtkWidget *button_resume_download;
 extern GtkWidget *button_clear_download;
 extern GtkWidget *entry_max_downloads;
+extern GtkWidget *entry_max_host_downloads;
 extern GtkWidget *checkbutton_clear_downloads;
 extern GtkWidget *clist_download_queue;
 extern GtkWidget *button_remove_download;

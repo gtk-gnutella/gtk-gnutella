@@ -50,6 +50,7 @@ GtkWidget *button_abort_download;
 GtkWidget *button_resume_download;
 GtkWidget *button_clear_download;
 GtkWidget *entry_max_downloads;
+GtkWidget *entry_max_host_downloads;
 GtkWidget *checkbutton_clear_downloads;
 GtkWidget *clist_download_queue;
 GtkWidget *button_remove_download;
@@ -184,6 +185,7 @@ create_main_window (void)
   GtkWidget *hbox41;
   GtkWidget *hbox42;
   GtkWidget *label64;
+  GtkWidget *label80;
   GtkWidget *hbox43;
   GtkWidget *label65;
   GtkWidget *scrolledwindow7;
@@ -1059,6 +1061,21 @@ create_main_window (void)
   gtk_box_pack_start (GTK_BOX (hbox42), entry_max_downloads, FALSE, TRUE, 0);
   gtk_widget_set_usize (entry_max_downloads, 32, -2);
 
+  label80 = gtk_label_new ("Max downloads from single host:");
+  gtk_widget_ref (label80);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label80", label80,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label80);
+  gtk_box_pack_start (GTK_BOX (hbox42), label80, FALSE, FALSE, 0);
+
+  entry_max_host_downloads = gtk_entry_new ();
+  gtk_widget_ref (entry_max_host_downloads);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "entry_max_host_downloads", entry_max_host_downloads,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (entry_max_host_downloads);
+  gtk_box_pack_start (GTK_BOX (hbox42), entry_max_host_downloads, FALSE, TRUE, 0);
+  gtk_widget_set_usize (entry_max_host_downloads, 32, -2);
+
   checkbutton_clear_downloads = gtk_check_button_new_with_label ("Auto clear completed downloads");
   gtk_widget_ref (checkbutton_clear_downloads);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "checkbutton_clear_downloads", checkbutton_clear_downloads,
@@ -1922,6 +1939,12 @@ create_main_window (void)
                       NULL);
   gtk_signal_connect (GTK_OBJECT (entry_max_downloads), "activate",
                       GTK_SIGNAL_FUNC (on_entry_max_downloads_activate),
+                      NULL);
+  gtk_signal_connect (GTK_OBJECT (entry_max_host_downloads), "focus_out_event",
+                      GTK_SIGNAL_FUNC (on_entry_max_host_downloads_focus_out_event),
+                      NULL);
+  gtk_signal_connect (GTK_OBJECT (entry_max_host_downloads), "activate",
+                      GTK_SIGNAL_FUNC (on_entry_max_host_downloads_activate),
                       NULL);
   gtk_signal_connect (GTK_OBJECT (checkbutton_clear_downloads), "toggled",
                       GTK_SIGNAL_FUNC (on_checkbutton_clear_downloads_toggled),

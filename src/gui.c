@@ -118,6 +118,11 @@ void gui_update_max_downloads(void)
 	gtk_entry_set_text(GTK_ENTRY(entry_max_downloads), gui_tmp);
 }
 
+void gui_update_max_host_downloads(void)
+{
+	g_snprintf(gui_tmp, sizeof(gui_tmp), "%u", max_host_downloads);
+	gtk_entry_set_text(GTK_ENTRY(entry_max_host_downloads), gui_tmp);
+}
 
 void gui_update_files_scanned(void)
 {
