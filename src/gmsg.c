@@ -209,7 +209,7 @@ void gmsg_split_sendto_one(struct gnutella_node *n,
  *
  * Broadcast message to all nodes in the list.
  */
-void gmsg_sendto_all(GSList *l, gchar *msg, guint32 size)
+void gmsg_sendto_all(const GSList *sl, gchar *msg, guint32 size)
 {
 	pmsg_t *mb = gmsg_to_pmsg(PMSG_P_DATA, msg, size);
 
@@ -218,8 +218,8 @@ void gmsg_sendto_all(GSList *l, gchar *msg, guint32 size)
 	if (dbg > 5 && gmsg_hops(msg) == 0)
 		gmsg_dump(stdout, msg, size);
 
-	for (/* empty */; l; l = l->next) {
-		struct gnutella_node *dn = (struct gnutella_node *) l->data;
+	for (/* empty */; sl; sl = g_slist_next(sl)) {
+		struct gnutella_node *dn = (struct gnutella_node *) sl->data;
 		if (!NODE_IS_WRITABLE(dn))
 			continue;
 		mq_putq(dn->outq, pmsg_clone(mb));
@@ -234,7 +234,7 @@ void gmsg_sendto_all(GSList *l, gchar *msg, guint32 size)
  * Broadcast our search message to all nodes in the list.
  */
 void gmsg_search_sendto_all(
-	GSList *l, gnet_search_t sh, gchar *msg, guint32 size)
+	const GSList *sl, gnet_search_t sh, gchar *msg, guint32 size)
 {
 	pmsg_t *mb = gmsg_to_pmsg(PMSG_P_DATA, msg, size);
 
@@ -244,8 +244,8 @@ void gmsg_search_sendto_all(
 	if (dbg > 5 && gmsg_hops(msg) == 0)
 		gmsg_dump(stdout, msg, size);
 
-	for (/* empty */; l; l = l->next) {
-		struct gnutella_node *dn = (struct gnutella_node *) l->data;
+	for (/* empty */; sl; sl = g_slist_next(sl)) {
+		struct gnutella_node *dn = (struct gnutella_node *) sl->data;
 		if (!NODE_IS_WRITABLE(dn))
 			continue;
 		sq_putq(dn->searchq, sh, pmsg_clone(mb));
@@ -260,7 +260,7 @@ void gmsg_search_sendto_all(
  * Broadcast our search message to all non-leaf nodes in the list.
  */
 void gmsg_search_sendto_all_nonleaf(
-	GSList *l, gnet_search_t sh, gchar *msg, guint32 size)
+	const GSList *sl, gnet_search_t sh, gchar *msg, guint32 size)
 {
 	pmsg_t *mb = gmsg_to_pmsg(PMSG_P_DATA, msg, size);
 
@@ -270,8 +270,8 @@ void gmsg_search_sendto_all_nonleaf(
 	if (dbg > 5 && gmsg_hops(msg) == 0)
 		gmsg_dump(stdout, msg, size);
 
-	for (/* empty */; l; l = l->next) {
-		struct gnutella_node *dn = (struct gnutella_node *) l->data;
+	for (/* empty */; sl; sl = g_slist_next(sl)) {
+		struct gnutella_node *dn = (struct gnutella_node *) sl->data;
 		if (!NODE_IS_WRITABLE(dn) || NODE_IS_LEAF(dn))
 			continue;
 		sq_putq(dn->searchq, sh, pmsg_clone(mb));
@@ -288,7 +288,7 @@ void gmsg_search_sendto_all_nonleaf(
  *
  * We never broadcast anything to a leaf node.  Those are handled specially.
  */
-void gmsg_split_sendto_all_but_one(GSList *l, struct gnutella_node *n,
+void gmsg_split_sendto_all_but_one(const GSList *sl, struct gnutella_node *n,
 	gpointer head, gpointer data, guint32 size)
 {
 	pmsg_t *mb = gmsg_split_to_pmsg(head, data, size);
@@ -297,8 +297,8 @@ void gmsg_split_sendto_all_but_one(GSList *l, struct gnutella_node *n,
 
 	/* relayed broadcasted message, cannot be sent with hops=0 */
 
-	for (/* empty */; l; l = l->next) {
-		struct gnutella_node *dn = (struct gnutella_node *) l->data;
+	for (/* empty */; sl; sl = g_slist_next(sl)) {
+		struct gnutella_node *dn = (struct gnutella_node *) sl->data;
 		if (dn == n)
 			continue;
 		if (!NODE_IS_WRITABLE(dn) || NODE_IS_LEAF(dn))
@@ -314,7 +314,7 @@ void gmsg_split_sendto_all_but_one(GSList *l, struct gnutella_node *n,
  *
  * Send message consisting of header and data to all the leaves in the list.
  */
-void gmsg_split_sendto_leaves(GSList *l,
+void gmsg_split_sendto_leaves(const GSList *sl,
 	gpointer head, gpointer data, guint32 size)
 {
 	pmsg_t *mb = gmsg_split_to_pmsg(head, data, size);
@@ -323,8 +323,8 @@ void gmsg_split_sendto_leaves(GSList *l,
 
 	/* relayed broadcasted message, cannot be sent with hops=0 */
 
-	for (/* empty */; l; l = l->next) {
-		struct gnutella_node *dn = (struct gnutella_node *) l->data;
+	for (/* empty */; sl; sl = g_slist_next(sl)) {
+		struct gnutella_node *dn = (struct gnutella_node *) sl->data;
 
 		/*
 		 * We have already tested that the node was being writable.
@@ -346,7 +346,7 @@ void gmsg_split_sendto_leaves(GSList *l,
  * We never broadcast anything to a leaf node.  Those are handled specially.
  */
 static void gmsg_split_sendto_all_but_one_ggep(
-	GSList *l,
+	const GSList *sl,
 	struct gnutella_node *n,
 	gpointer head, gpointer data, guint32 size, gint regular_size)
 {
@@ -358,8 +358,8 @@ static void gmsg_split_sendto_all_but_one_ggep(
 
 	/* relayed broadcasted message, cannot be sent with hops=0 */
 
-	for (/* empty */; l; l = l->next) {
-		struct gnutella_node *dn = (struct gnutella_node *) l->data;
+	for (/* empty */; sl; sl = g_slist_next(sl)) {
+		struct gnutella_node *dn = (struct gnutella_node *) sl->data;
 		if (dn == n)
 			continue;
 		if (!NODE_IS_WRITABLE(dn) || NODE_IS_LEAF(dn))
@@ -394,7 +394,7 @@ static void gmsg_split_sendto_all_but_one_ggep(
 void gmsg_sendto_route(struct gnutella_node *n, struct route_dest *rt)
 {
 	struct gnutella_node *rt_node = rt->ur.u_node;
-	GSList *l;
+	const GSList *sl;
 
 	switch (rt->type) {
 	case ROUTE_NONE:
@@ -405,12 +405,12 @@ void gmsg_sendto_route(struct gnutella_node *n, struct route_dest *rt)
 		break;
 	case ROUTE_ALL_BUT_ONE:
 		g_assert(n == rt_node);
-		gmsg_split_sendto_all_but_one(sl_nodes, rt_node,
+		gmsg_split_sendto_all_but_one(node_all_nodes(), rt_node,
 			(guchar *) &n->header, n->data, n->size + HEADER_SIZE);
 		break;
 	case ROUTE_MULTI:
-		for (l = rt->ur.u_nodes; l; l = g_slist_next(l)) {
-			rt_node = (struct gnutella_node *) l->data;
+		for (sl = rt->ur.u_nodes; sl; sl = g_slist_next(sl)) {
+			rt_node = (struct gnutella_node *) sl->data;
 			gmsg_split_sendto_one(rt_node,
 				(guchar *) &n->header, n->data, n->size + HEADER_SIZE);
 		}
@@ -451,7 +451,7 @@ void gmsg_sendto_route_ggep(
 	struct gnutella_node *n, struct route_dest *rt, gint regular_size)
 {
 	struct gnutella_node *rt_node = rt->ur.u_node;
-	GSList *l;
+	const GSList *sl;
 
 	g_assert(regular_size >= 0);
 
@@ -463,13 +463,13 @@ void gmsg_sendto_route_ggep(
 		break;
 	case ROUTE_ALL_BUT_ONE:
 		g_assert(n == rt_node);
-		gmsg_split_sendto_all_but_one_ggep(sl_nodes, rt_node,
+		gmsg_split_sendto_all_but_one_ggep(node_all_nodes(), rt_node,
 			(guchar *) &n->header, n->data, n->size + HEADER_SIZE,
 			regular_size);
 		break;
 	case ROUTE_MULTI:
-		for (l = rt->ur.u_nodes; l; l = g_slist_next(l)) {
-			rt_node = (struct gnutella_node *) l->data;
+		for (sl = rt->ur.u_nodes; sl; sl = g_slist_next(sl)) {
+			rt_node = (struct gnutella_node *) sl->data;
 			sendto_ggep(n, rt_node, regular_size);
 		}
 		break;
