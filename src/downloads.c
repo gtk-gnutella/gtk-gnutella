@@ -38,6 +38,7 @@
 #include "gmsg.h"
 #include "bsched.h"
 #include "regex.h"
+#include "getdate.h"
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -450,67 +451,66 @@ void download_remove_all_regex(const gchar *regex)
 	GSList *to_remove = NULL;
 	int n = 0, m = 0;
 
-    guint msgid = -1;
-    int err;
+	guint msgid = -1;
+	int err;
 	regex_t *re;
 
 	g_return_if_fail(regex);
 	
 	g_snprintf(dl_tmp, sizeof(dl_tmp), "%s", regex);
-    
-    re = g_new(regex_t, 1);
+	
+	re = g_new(regex_t, 1);
 
-    g_return_if_fail(re);
+	g_return_if_fail(re);
 
-    err = regcomp(re, 
-                  regex,
-                  REG_NOSUB|(queue_regex_case ? 0 : REG_ICASE));
+	err = regcomp(re, regex,
+		REG_NOSUB|(queue_regex_case ? 0 : REG_ICASE));
 
-   	if (err) {
+	if (err) {
 		char buf[1000];
 		regerror(err, re, buf, 1000);
-        g_error("download_remove_all_regex: regex error %s",buf);
-        msgid = gui_statusbar_push(scid_queue_remove_regex, buf);
-        gui_statusbar_add_timeout(scid_queue_remove_regex, msgid, 15);
-    } else {
-        g_message("traversing rows");
-        for (l = sl_downloads; l; l = g_slist_next(l)) {
-            int i;
-            struct download *d = (struct download *) l->data;
+		g_error("download_remove_all_regex: regex error %s",buf);
+		msgid = gui_statusbar_push(scid_queue_remove_regex, buf);
+		gui_statusbar_add_timeout(scid_queue_remove_regex, msgid, 15);
+	} else {
+		g_message("traversing rows");
+		for (l = sl_downloads; l; l = g_slist_next(l)) {
+			int i;
+			struct download *d = (struct download *) l->data;
 
-            n ++;
+			n ++;
 
-            if (!d) {
-                g_warning("download_remove_all_regex(): NULL download");
-                continue;
-            }
-    
-            if (((i = regexec(re, d->file_name,0, NULL, 0)) == 0) &&
-                (d->status == GTA_DL_QUEUED))
-                to_remove = g_slist_prepend(to_remove, d);
-            if (i == REG_ESPACE)
-                g_warning("regexp memory overflow");
-        }
-    
-        for (l = to_remove; l; l = l->next) {
-            struct download *d = (struct download *) l->data;
-            m ++;
-            /* 
-             * we know that the download is queued because we filtered this
-             * above so we can call download_free
-             *      --BLUE, 07/05/2002
-             */
-            download_free(d);
-        }
+			if (!d) {
+				g_warning("download_remove_all_regex(): NULL download");
+				continue;
+			}
+	
+			if (((i = regexec(re, d->file_name,0, NULL, 0)) == 0) &&
+				(d->status == GTA_DL_QUEUED))
+				to_remove = g_slist_prepend(to_remove, d);
+			if (i == REG_ESPACE)
+				g_warning("regexp memory overflow");
+		}
+	
+		for (l = to_remove; l; l = l->next) {
+			struct download *d = (struct download *) l->data;
+			m ++;
+			/* 
+			 * we know that the download is queued because we filtered this
+			 * above so we can call download_free
+			 *      --BLUE, 07/05/2002
+			 */
+			download_free(d);
+		}
 
-        g_snprintf(dl_tmp, sizeof(dl_tmp), 
-                   "Removed %u of %u queued downloads matching \"%s\".", 
-                   m, n, regex);
-        msgid = gui_statusbar_push(scid_queue_remove_regex, dl_tmp);
-        gui_statusbar_add_timeout(scid_queue_remove_regex, msgid, 15);
-    }
+		g_snprintf(dl_tmp, sizeof(dl_tmp), 
+				   "Removed %u of %u queued downloads matching \"%s\".", 
+				   m, n, regex);
+		msgid = gui_statusbar_push(scid_queue_remove_regex, dl_tmp);
+		gui_statusbar_add_timeout(scid_queue_remove_regex, msgid, 15);
+	}
 
-    g_free(re);
+	g_free(re);
 	g_slist_free(to_remove);
 }
 
@@ -536,8 +536,8 @@ void download_gui_add(struct download *d)
 
 	titles[c_dl_filename] = d->file_name;
 	titles[c_dl_host] = ip_port_to_gchar(d->ip, d->port);
-    titles[c_dl_size] = short_size(d->size);
-    titles[c_dl_server] = (d->server != NULL) ? d->server : "";
+	titles[c_dl_size] = short_size(d->size);
+	titles[c_dl_server] = (d->server != NULL) ? d->server : "";
 	titles[c_dl_status] = "";
 
 	if (DOWNLOAD_IS_QUEUED(d)) {		/* This is a queued download */
@@ -815,7 +815,7 @@ void download_queue(struct download *d, const gchar *fmt, ...)
 void download_freeze_queue()
 {
 	queue_frozen ++;
-    gui_update_queue_frozen();
+	gui_update_queue_frozen();
 }
 
 /*
@@ -826,10 +826,10 @@ void download_freeze_queue()
  */
 void download_thaw_queue(void)
 {
-    g_return_if_fail(queue_frozen > 0);
+	g_return_if_fail(queue_frozen > 0);
 
 	queue_frozen --;
-    gui_update_queue_frozen();
+	gui_update_queue_frozen();
 }
 
 /*
@@ -2238,13 +2238,40 @@ static void download_request(struct download *d, header_t *header)
 	if (ack_code >= 200 && ack_code <= 299) {
 		/* empty -- everything OK */
 	} else {
+		guint delay = 0;
+
+		/*
+		 * Check for Retry-After.
+		 *
+		 * A Retry-After header is either a full HTTP date, such as
+		 * "Fri, 31 Dec 1999 23:59:59 GMT", or an amount of seconds.
+		 */
+
+		buf = header_get(header, "Retry-After");
+		if (buf) {
+			if (!sscanf(buf, "%u", &delay)) {
+				time_t now = time((time_t *) NULL);
+				time_t retry = getdate(buf, &now);
+
+				if (retry == -1)
+					g_warning("cannot parse Retry-After: %s", buf);
+				else
+					delay = retry > now ? retry - now : 0;
+			}
+		}
+
 		switch (ack_code) {
 		case 408:				/* Request timeout */
 		case 503:				/* Busy */
 			/* No hammering */
-			download_queue_delay(d, download_retry_busy_delay,
+			download_queue_delay(d,
+				delay ? delay : download_retry_busy_delay,
 				"HTTP %d %s", ack_code, ack_message);
 			return;
+		case 550:				/* Banned */
+			download_queue_delay(d,
+				delay ? delay : download_retry_refused_delay,
+				"HTTP %d %s", ack_code, ack_message);
 		default:
 			break;
 		}
@@ -2803,7 +2830,7 @@ void download_push_ack(struct gnutella_socket *s)
 
 void download_retry(struct download *d)
 {
-    g_assert(d != NULL);
+	g_assert(d != NULL);
 
 	/* download_stop() sets the time, so all we need to do is set the delay */
 
