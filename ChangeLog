@@ -1,6 +1,8 @@
 # since last version
 
-#### Changes
+# v 0.91   2002.10.19  [stable]
+
+Highlight of changes (user-visible):
 
 - Now uses HTTP/1.1, which implies support for persistent connections.
 - gtk-gnutella will now monitor whether we're connected to Internet and
@@ -57,6 +59,11 @@ KNOWN BUGS/PROBLEMS:
   can however edit the done.sha1 and done.namesize files in your
   ~/.gtk-gnutella directory manually. Unignoring via gui is planned
   for the next release.
+
+- (2002.10.19 RAM)
+ * Changed error code for non-compressed connections from 401 to 403.
+ * Cleaned up manual page: removed obsolete information about config options.
+ * Cleaned up Gnet & GUI properties.
 
 - (2002.10.18 RAM)
  * Small cleaning of whitelist/local (patch #623100).
