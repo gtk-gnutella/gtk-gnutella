@@ -65,9 +65,9 @@ gchar *gmsg_name(gint function)
  *
  * Construct PDU from message.
  */
-static pmsg_t *gmsg_to_pmsg(guchar *msg, guint32 size)
+static pmsg_t *gmsg_to_pmsg(gint prio, guchar *msg, guint32 size)
 {
-	return pmsg_new(0, msg, size);
+	return pmsg_new(prio, msg, size);
 }
 
 /*
@@ -105,7 +105,23 @@ void gmsg_sendto_one(struct gnutella_node *n, guchar *msg, guint32 size)
 	if (!NODE_IS_WRITABLE(n))
 		return;
 
-	mq_putq(n->outq, gmsg_to_pmsg(msg, size));
+	mq_putq(n->outq, gmsg_to_pmsg(PMSG_P_DATA, msg, size));
+}
+
+/*
+ * gmsg_ctrl_sendto_one
+ *
+ * Send control message to one node.
+ * A control message is inserted ahead any other queued regular data.
+ */
+void gmsg_ctrl_sendto_one(struct gnutella_node *n, guchar *msg, guint32 size)
+{
+	g_assert(((struct gnutella_header *) msg)->ttl > 0);
+
+	if (!NODE_IS_WRITABLE(n))
+		return;
+
+	mq_putq(n->outq, gmsg_to_pmsg(PMSG_P_CONTROL, msg, size));
 }
 
 /*
@@ -131,7 +147,7 @@ void gmsg_split_sendto_one(struct gnutella_node *n,
  */
 void gmsg_sendto_all(GSList *l, guchar *msg, guint32 size)
 {
-	pmsg_t *mb = gmsg_to_pmsg(msg, size);
+	pmsg_t *mb = gmsg_to_pmsg(PMSG_P_DATA, msg, size);
 
 	g_assert(((struct gnutella_header *) msg)->ttl > 0);
 
