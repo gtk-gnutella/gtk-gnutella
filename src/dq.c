@@ -1,7 +1,7 @@
 /*
  * $Id$
  *
- * Copyright (c) 2002-2003, Raphael Manfredi
+ * Copyright (c) 2004, Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -37,6 +37,7 @@ RCSID("$Id$");
 #include <math.h>			/* For pow() */
 #include <glib.h>
 
+#include "dq.h"
 #include "glib-missing.h"
 #include "misc.h"
 #include "atoms.h"
