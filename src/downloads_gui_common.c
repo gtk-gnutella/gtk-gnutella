@@ -26,6 +26,8 @@
 #include "downloads_gui_common.h"
 #include "downloads_gui.h"
 
+RCSID("$Id$");
+
 #include "downloads.h" /* FIXME: remove this dependency */
 #include "dmesh.h" /* FIXME: remove this dependency */
 #include "http.h" /* FIXME: remove this dependency */
@@ -40,9 +42,6 @@
 #ifdef USE_GTK1
 #include "downloads_cb.h"
 #endif
-
-
-RCSID("$Id$");
 
 #define IO_STALLED		60		/* If nothing exchanged after that many secs */
 #define IO_AVG_RATE		5		/* Compute global recv rate every 5 secs */
@@ -72,11 +71,6 @@ void gui_update_download_clear(void)
         clear);
 }
 
-
-
-
-
-
 void gui_update_queue_frozen(void)
 {
     static gboolean msg_displayed = FALSE;
@@ -92,7 +86,7 @@ void gui_update_queue_frozen(void)
 	    msg_displayed);
 
     if (download_queue_is_frozen() > 0) {
-#ifndef USE_GTK2
+#ifdef USE_GTK1
     	gtk_widget_hide(lookup_widget(main_window, "vbox_queue_freeze"));
     	gtk_widget_show(lookup_widget(main_window, "vbox_queue_thaw"));
 #endif
@@ -106,7 +100,7 @@ void gui_update_queue_frozen(void)
           	id = statusbar_gui_message(0, "QUEUE FROZEN");
         }
     } else {
-#ifndef USE_GTK2
+#ifdef USE_GTK1
     	gtk_widget_show(lookup_widget(main_window, "vbox_queue_freeze"));
     	gtk_widget_hide(lookup_widget(main_window, "vbox_queue_thaw"));
 #endif
