@@ -166,6 +166,7 @@ struct parq_ul_queued {
 	 
 	gchar *ip_and_name;		/* "IP name", used as key in hash table */
 	gchar *name;			/* NB: points directly into `ip_and_name' */
+	gchar *sha1;			/* SHA1 digest for easy reference */
 	guint32 remote_ip;		/* IP address of the socket endpoint */
 	
 	guint32 file_size;		/* Needed to recalculate ETA */
@@ -225,6 +226,8 @@ static void parq_upload_update_ip_and_name(struct parq_ul_queued *parq_ul,
 
 static void parq_upload_register_send_queue(struct parq_ul_queued *parq_ul);
 static void parq_upload_send_queue(struct parq_ul_queued *parq_ul);
+
+static gboolean parq_still_sharing(struct parq_ul_queued *);
 
 void parq_add_banned_source(guint32 ip, time_t delay);
 void parq_del_banned_source(guint32 ip);
@@ -523,7 +526,7 @@ gchar *get_parq_dl_id(const struct download *d)
  *
  * Retreives the remote queued position associated with an download.
  * Returns the remote queued position or 0 if download is not queued or queuing
- *     status is unknown
+ * status is unknown
  */
 gint get_parq_dl_position(const struct download *d)
 {
@@ -540,7 +543,7 @@ gint get_parq_dl_position(const struct download *d)
  *
  * Retreives the remote queue size associated with an download.
  * Returns the remote queue size or 0 if download is not queued or queueing 
- *     status is unknown.
+ * status is unknown.
  */
 gint get_parq_dl_queue_length(const struct download *d)
 {
@@ -557,7 +560,7 @@ gint get_parq_dl_queue_length(const struct download *d)
  *
  * Retreives the estimated time of arival for a queued download.
  * Returns the relative eta or 0 if download is not queued or queuing status is
- *     unknown.
+ * unknown.
  */
 gint get_parq_dl_eta(const struct download *d)
 {
@@ -574,7 +577,7 @@ gint get_parq_dl_eta(const struct download *d)
  * 
  * Retreives the retry rate at which a queued download should retry.
  * Returns the retry rate or 0 if download is not queued or queueing status is
- *     unknown.
+ * unknown.
  */
 gint get_parq_dl_retry_delay(const struct download *d)
 {
@@ -1168,7 +1171,7 @@ void parq_download_queue_ack(struct gnutella_socket *s)
   		g_assert(dl->socket != NULL);
 		dl->last_update = time((time_t *) NULL);
 		s->resource.download = dl;
-																			     
+
 		/* Resend request for download */
 		download_send_request(dl);
 	}
@@ -1294,6 +1297,9 @@ static void parq_upload_free(struct parq_ul_queued *parq_ul)
 	/* Free the memory used by the current queued item */
 	G_FREE_NULL(parq_ul->ip_and_name);
 	G_FREE_NULL(parq_ul->id);
+	if (parq_ul->sha1)
+		atom_sha1_free(parq_ul->sha1);
+	parq_ul->sha1 = NULL;
 	parq_ul->name = NULL;
 
 	wfree(parq_ul, sizeof(*parq_ul));
@@ -1399,6 +1405,10 @@ static struct parq_ul_queued *parq_upload_create(gnutella_upload_t *u)
 	/* Create identifier to find upload again later. IP + Filename */
 	parq_ul->remote_ip = u->ip;
 	parq_upload_update_ip_and_name(parq_ul, u);
+	if (u->sha1)
+		parq_ul->sha1 = atom_sha1_get(u->sha1);
+	else
+		parq_ul->sha1 = NULL;
 	
 	/* Create an ID */
 	guid_random_muid(parq_id);
@@ -1790,7 +1800,8 @@ void parq_upload_timer(time_t now)
 					now - parq_ul->last_queue_sent > QUEUE_PERIOD &&
 					parq_ul->queue_sent < MAX_QUEUE &&
 					parq_ul->queue_refused < MAX_QUEUE_REFUSED &&
-					!ban_is_banned(parq_ul->remote_ip)
+					!ban_is_banned(parq_ul->remote_ip) &&
+					parq_still_sharing(parq_ul)
 				)
 					parq_upload_register_send_queue(parq_ul);
 			}
@@ -1810,7 +1821,8 @@ void parq_upload_timer(time_t now)
 				parq_ul->queue_sent < MAX_QUEUE &&
 				parq_ul->queue_refused < MAX_QUEUE_REFUSED &&
 				max_uploads > 0 &&
-				!ban_is_banned(parq_ul->remote_ip)
+				!ban_is_banned(parq_ul->remote_ip) &&
+				parq_still_sharing(parq_ul)
 			)
 				parq_upload_register_send_queue(parq_ul);
 			
@@ -1864,12 +1876,11 @@ void parq_upload_timer(time_t now)
 		parq_upload_update_eta(parq_ul->queue);
 		
 		g_assert(parq_ul->queue->alive >= 0);					
-
-		if (!enable_real_passive)
-			parq_upload_free((struct parq_ul_queued *) sl->data);
-		else
+		if (enable_real_passive && parq_still_sharing(parq_ul)) {
 			parq_ul->queue->by_date_dead = 
-				  g_list_append(parq_ul->queue->by_date_dead, parq_ul);
+			g_list_append(parq_ul->queue->by_date_dead, parq_ul);
+		} else 
+			parq_upload_free((struct parq_ul_queued *) sl->data);
 	}
 	
 	g_slist_free(remove);
@@ -1882,10 +1893,10 @@ void parq_upload_timer(time_t now)
 			printf("\n");
 
 			for (queues = ul_parqs ; queues != NULL; queues = queues->next) {
-   	    		struct parq_ul_queue *queue = 
-				  	  (struct parq_ul_queue *) queues->data;
+				struct parq_ul_queue *queue = 
+					  (struct parq_ul_queue *) queues->data;
 			
- 				printf("PARQ UL: Queue %d/%d contains %d items, "
+				printf("PARQ UL: Queue %d/%d contains %d items, "
 					  "%d uploading, %d alive, queue is marked %s \n",
 					  g_list_position(ul_parqs, g_list_find(ul_parqs, queue))
 						  + 1,
@@ -1974,7 +1985,7 @@ void parq_upload_timer(time_t now)
 							ip_to_gchar(parq_ul->by_ip->ip));
 					continue;
 			}
-			
+
 			parq_upload_send_queue(parq_ul);
 	
 			queue_cmd_remove = g_list_prepend(queue_cmd_remove, parq_ul);
@@ -2374,7 +2385,7 @@ cleanup:
 			  g_list_remove(parq_ul->queue->by_date_dead, parq_ul);
 	
 	/*
-     * It is possible the client reused its ID for another file name, which is
+	 * It is possible the client reused its ID for another file name, which is
 	 * a valid thing to do. So make sure we have still got the IP and name
 	 * in sync
 	 */
@@ -2434,10 +2445,13 @@ cleanup:
 		}
 	}
 		
-	parq_ul->u = u;	/* Save pointer to structure. Don't forget to move it too
-	                   the cloned upload or remove the pointer when the struct
-	                   is freed */
+	/* Save pointer to structure. Don't forget to move it to
+     * the cloned upload or remove the pointer when the struct
+     * is freed
+	 */
 	
+	parq_ul->u = u;
+
 	return parq_ul;
 }
 
@@ -3367,7 +3381,7 @@ void parq_upload_send_queue_conf(gnutella_upload_t *u)
 /*
  * parq_upload_save_queue
  *
- * Saves all the current queues and there items so it can be restored when the
+ * Saves all the current queues and their items so it can be restored when the
  * client starts up again.
  */
 void parq_upload_save_queue()
@@ -3380,8 +3394,8 @@ void parq_upload_save_queue()
 	if (dbg > 3)
 		printf("PARQ UL: Trying to save all queue info\n");
 	
-    file_path_set(&fp, settings_config_dir(), file_parq_file);
-    f = file_config_open_write("PARQ upload queue data", &fp);
+	file_path_set(&fp, settings_config_dir(), file_parq_file);
+	f = file_config_open_write("PARQ upload queue data", &fp);
 	if (!f)
 		return;
 
@@ -3436,6 +3450,7 @@ static void parq_store(gpointer data, gpointer x)
 	
 	strncpy(ip, ip_to_gchar(parq_ul->remote_ip), sizeof(ip));
 	strncpy(xip, ip_to_gchar(parq_ul->ip), sizeof(xip));
+
 	/*
 	 * Save all needed parq information. The ip and port information gathered
 	 * from X-Node is saved as XIP and XPORT 
@@ -3449,8 +3464,7 @@ static void parq_store(gpointer data, gpointer x)
 		  "SIZE: %d\n"
 		  "XIP: %s\n"
 		  "XPORT: %d\n"
-		  "IP: %s\n"
-		  "NAME: %s\n\n", 
+		  "IP: %s\n",
 		  g_list_position(ul_parqs, g_list_find(ul_parqs, parq_ul->queue)) + 1,
 		  parq_ul->position,
 		  (gint) parq_ul->enter,
@@ -3459,8 +3473,10 @@ static void parq_store(gpointer data, gpointer x)
 		  parq_ul->file_size,
 		  xip,
 		  parq_ul->port,
-		  ip,
-		  parq_ul->name);
+		  ip);
+	if (parq_ul->sha1)
+		fprintf(f, "SHA1: %s\n", sha1_base32(parq_ul->sha1));
+	fprintf(f, "NAME: %s\n\n", parq_ul->name);
 }
 
 /*
@@ -3489,6 +3505,8 @@ static void parq_upload_load_queue(void)
 	char name[1024];
 	char id[1024];
 	gchar ip_copy[32];
+	gchar base32[40];
+	gchar *sha1 = NULL;
 	int ip1, ip2, ip3, ip4;
 	int ret;
 	
@@ -3558,6 +3576,14 @@ static void parq_upload_load_queue(void)
 			if (newline)
 				*newline = '\0';
 		}		
+		if (0 == strncmp(line, "SHA1: ", 6)) {
+			char *newline;
+			g_strlcpy(base32, (line + sizeof("SHA1:")), sizeof(base32));
+			newline = strchr(base32, '\n');
+			if (newline)
+			*newline = '\0';
+			sha1 = atom_sha1_get(base32_sha1(base32));
+		}
 		if (!strncmp(line, "NAME: ", 6)) {
 			char *newline;
 
@@ -3589,6 +3615,8 @@ static void parq_upload_load_queue(void)
 			parq_ul->expire = now + expire;
 			parq_ul->ip = xip;
 			parq_ul->port = xport;
+			parq_ul->sha1 = sha1;
+			sha1 = NULL;  /* We are not sure the next record will contain a SHA1 */
 			
 			/* During parq_upload_create already created an ID for us */
 			g_hash_table_remove(ul_all_parq_by_id, parq_ul->id);
@@ -3688,6 +3716,59 @@ gboolean parq_is_banned_source(guint32 ip)
 		g_hash_table_lookup(parq_banned_source, &ip) != NULL;
 }
 
+/* 
+ * parq_still_sharing
+ *
+ * Determine if we are still sharing this file, so that PARQ can
+ * determine if it makes sense to keep this file in the queue.
+ *
+ * Returns FALSE if the file is no longer shared, or TRUE if the file
+ * is shared or if we don't know, e.g. if the library is being
+ * rebuilt.
+ */
+static gboolean parq_still_sharing(struct parq_ul_queued *parq_ul)
+{
+	struct shared_file *sf;
+
+	if (parq_ul->sha1) {
+		sf = shared_file_by_sha1(parq_ul->sha1);
+		if (sf != SHARE_REBUILDING && NULL == sf) {
+			printf("[PARQ UL] We no longer share this file: SHA1=%s \"%s\"\n",
+				sha1_base32(parq_ul->sha1), parq_ul->name);
+			return FALSE;
+		} else
+			return TRUE;  /* Either we have the file or we are rebuilding */
+	} else {
+		/* 
+		 * Let's see if we can find the SHA1 for this file if there
+		 * isn't one on record yet. We can search for it by name, but
+		 * in that way we miss out on the partial files. This is not a
+		 * big deal here, because the partials will become normal
+		 * files over time, and new partials do have a SHA1 in the
+		 * PARQ data structure.
+		 */
+		sf = shared_file_by_name(parq_ul->name);
+		if (sf != SHARE_REBUILDING) {
+			if (NULL != sf) {
+				parq_ul->sha1 = atom_sha1_get(sf->sha1_digest);
+				printf("[PARQ UL] Found SHA1=%s for \"%s\"\n",
+					sha1_base32(parq_ul->sha1), parq_ul->name);
+				return TRUE;
+			} else {
+				printf("[PARQ UL] We no longer share this file \"%s\"\n",
+					parq_ul->name);
+				return FALSE;
+			}
+		} else 
+			return TRUE;
+	}
+
+	/* Return TRUE by default because this is the safest condition */
+
+	return TRUE;
+}
+
 /*
 # vim:ts=4:sw=4
 */
+
