@@ -62,6 +62,7 @@ RCSID("$Id$");
 
 #include "if/gnet_property_priv.h"
 #include "if/gui_property.h"
+#include "if/core/hosts.h"
 
 #include "lib/atoms.h"
 #include "lib/endian.h"
@@ -88,11 +89,6 @@ RCSID("$Id$");
 #define MUID_SIZE			16
 #define MUID_MAX			4		/* Max amount of MUID we keep per search */
 #define SEARCH_MIN_RETRY	1800	/* Minimum search retry timeout */
-
-struct sent_node_data {		/* XXX replace by gnet_host_t */
-	guint32 ip;
-	guint16 port;
-};
 
 static guint32 search_id = 0;			/* Unique search counter */
 static GHashTable *searches = NULL;		/* All alive searches */
@@ -157,7 +153,7 @@ static query_hashvec_t *query_hashvec = NULL;
 #define search_drop_handle(n) \
     idtable_free_id(search_handle_map, n);
 
-guint32   search_passive  = 0;		/* Amount of passive searches */
+static guint32   search_passive  = 0;		/* Amount of passive searches */
 
 static void search_check_results_set(gnet_results_set_t *rs);
 
@@ -202,31 +198,30 @@ void search_fire_got_results(GSList *sch_matched, const gnet_results_set_t *rs)
 static guint
 sent_node_hash_func(gconstpointer key)
 {
-	const struct sent_node_data *sd = (const struct sent_node_data *) key;
+	const gnet_host_t *sd = (const gnet_host_t *) key;
 
 	/* ensure that we've got sizeof(gint) bytes of deterministic data */
-	guint32 ip = sd->ip;
-	guint32 port = sd->port;
-
-	return ip ^ port;
+	return (guint32) sd->ip ^ (guint32) sd->port;
 }
 
 static gint
 sent_node_compare(gconstpointer a, gconstpointer b)
 {
-	const struct sent_node_data *sa = (const struct sent_node_data *) a;
-	const struct sent_node_data *sb = (const struct sent_node_data *) b;
+	const gnet_host_t *sa = a, *sb = b;
 
 	return sa->ip == sb->ip && sa->port == sb->port;
 }
 
 static gboolean
-search_free_sent_node(gpointer node,
+search_free_sent_node(gpointer key,
 	gpointer unused_value, gpointer unused_udata)
 {
+	gnet_host_t *node = key;
+	
 	(void) unused_value;
 	(void) unused_udata;
-	wfree(node, sizeof(struct sent_node_data));
+
+	wfree(node, sizeof *node);
 	return TRUE;
 }
 
@@ -247,7 +242,7 @@ search_reset_sent_nodes(search_ctrl_t *sch)
 static void
 mark_search_sent_to_node(search_ctrl_t *sch, gnutella_node_t *n)
 {
-	struct sent_node_data *sd = walloc(sizeof(*sd));
+	gnet_host_t *sd = walloc(sizeof(*sd));
 	sd->ip = n->ip;
 	sd->port = n->port;
 	g_hash_table_insert(sch->sent_nodes, sd, GUINT_TO_POINTER(1));
@@ -297,12 +292,12 @@ mark_search_sent_to_node_id(search_ctrl_t *sch, guint32 node_id)
 }
 
 /**
- * Return TRUE if we already queried the given node for the given search.
+ * @return TRUE if we already queried the given node for the given search.
  */
 static gboolean
-search_already_sent_to_node(search_ctrl_t *sch, gnutella_node_t *n)
+search_already_sent_to_node(const search_ctrl_t *sch, const gnutella_node_t *n)
 {
-	struct sent_node_data sd;
+	gnet_host_t sd;
 	sd.ip = n->ip;
 	sd.port = n->port;
 	return NULL != g_hash_table_lookup(sch->sent_nodes, &sd);
