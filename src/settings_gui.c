@@ -189,8 +189,6 @@ static gboolean search_results_show_tabs_changed(property_t prop);
 static gboolean autoclear_completed_downloads_changed(property_t prop);
 static gboolean autoclear_failed_downloads_changed(property_t prop);
 static gboolean autoclear_unavailable_downloads_changed(property_t prop);
-static gboolean socks_user_changed(property_t prop);
-static gboolean socks_pass_changed(property_t prop);
 static gboolean traffic_stats_mode_changed(property_t prop);
 static gboolean is_firewalled_changed(property_t prop);
 static gboolean min_dup_ratio_changed(property_t prop);
@@ -992,7 +990,7 @@ static prop_map_t property_map[] = {
     PROP_ENTRY(
         get_main_window,
         PROP_SOCKS_USER,
-        socks_user_changed,
+        update_entry,
         TRUE,
         "entry_config_socks_username",
         FREQ_UPDATES, 0
@@ -1000,7 +998,7 @@ static prop_map_t property_map[] = {
     PROP_ENTRY(
         get_main_window,
         PROP_SOCKS_PASS,
-        socks_pass_changed,
+        update_entry,
         TRUE,
         "entry_config_socks_password",
         FREQ_UPDATES, 0
@@ -3121,26 +3119,6 @@ static gboolean update_bandwidth_spinbutton(property_t prop)
 /***
  *** IV. Special case callbacks
  ***/
-
-#define ENTRY(v, widget)                                    \
-    static gboolean CAT2(v,_changed)(property_t prop)       \
-    {                                                       \
-        gchar *val   = gnet_prop_get_string(prop, NULL, 0); \
-        GtkWidget *w = lookup_widget(main_window, widget);  \
-                                                            \
-        gtk_entry_set_text(GTK_ENTRY(w), val);              \
-                                                            \
-        g_free(val);                                        \
-        return FALSE;                                       \
-    }
-
-
-ENTRY(
-    socks_user, 
-    "entry_config_socks_username")
-ENTRY(
-    socks_pass, 
-    "entry_config_socks_password")
 
 static gboolean bw_gnet_lin_enabled_changed(property_t prop)
 {
