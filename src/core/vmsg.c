@@ -95,7 +95,7 @@ static void handle_qstat_answer(struct gnutella_node *n,
 	struct vmsg *vmsg, gchar *payload, gint size);
 static void handle_proxy_cancel(struct gnutella_node *n,
 	struct vmsg *vmsg, gchar *payload, gint size);
-static void handle_oob_reply_number(struct gnutella_node *n,
+static void handle_oob_reply_ind(struct gnutella_node *n,
 	struct vmsg *vmsg, gchar *payload, gint size);
 static void handle_oob_reply_ack(struct gnutella_node *n,
 	struct vmsg *vmsg, gchar *payload, gint size);
@@ -116,8 +116,8 @@ static struct vmsg vmsg_map[] = {
 	{ T_GTKG, 0x0015, 0x0001, handle_proxy_cancel, "Push-Proxy Cancel" },
 	{ T_LIME, 0x000b, 0x0001, handle_oob_reply_ack, "OOB Reply Ack" },
 	{ T_LIME, 0x000b, 0x0002, handle_oob_reply_ack, "OOB Reply Ack" },
-	{ T_LIME, 0x000c, 0x0001, handle_oob_reply_number, "OOB Reply Number" },
-	{ T_LIME, 0x000c, 0x0002, handle_oob_reply_number, "OOB Reply Number" },
+	{ T_LIME, 0x000c, 0x0001, handle_oob_reply_ind, "OOB Reply Indication" },
+	{ T_LIME, 0x000c, 0x0002, handle_oob_reply_ind, "OOB Reply Indication" },
 	{ T_LIME, 0x0015, 0x0002, handle_proxy_req, "Push-Proxy Request" },
 	{ T_LIME, 0x0016, 0x0002, handle_proxy_ack, "Push-Proxy Acknowledgment" },
 
@@ -726,7 +726,7 @@ handle_proxy_ack(struct gnutella_node *n,
 	READ_GUINT16_LE(payload, port);
 
 	if (vmsg_debug > 2)
-		g_warning("got proxy ACK from %s <%s>: proxy at %s",
+		g_message("got proxy ACK from %s <%s>: proxy at %s",
 			node_ip(n), node_vendor(n), ip_port_to_gchar(ip, port));
 
 
@@ -905,23 +905,23 @@ vmsg_send_proxy_cancel(struct gnutella_node *n)
 	gmsg_sendto_one(n, (gchar *) m, msgsize);
 
 	if (vmsg_debug > 2)
-		g_warning("sent proxy CANCEL to %s <%s>", node_ip(n), node_vendor(n));
+		g_message("sent proxy CANCEL to %s <%s>", node_ip(n), node_vendor(n));
 }
 
 /**
- * Handle reception of an "OOB Reply Number" message, whereby the remote
+ * Handle reception of an "OOB Reply Indication" message, whereby the remote
  * host informs us about the amount of query hits it has for us for a
  * given query.  The message bears the GUID of the query we sent out.
  */
-static void handle_oob_reply_number(struct gnutella_node *n,
+static void handle_oob_reply_ind(struct gnutella_node *n,
 	struct vmsg *vmsg, gchar *payload, gint size)
 {
-	guint hits;
+	gint hits;
 	gboolean can_recv_unsolicited = FALSE;
 
 	if (!NODE_IS_UDP(n)) {
 		/*
-		 * Uh-oh, someone forwarded us a LIME/12v2 message.  Ignore it!
+		 * Uh-oh, someone forwarded us a LIME/12 message.  Ignore it!
 		 */
 
 		g_warning("got %s/%uv%u from TCP via %s, ignoring",
@@ -949,20 +949,22 @@ static void handle_oob_reply_number(struct gnutella_node *n,
 		goto not_handling;
 	}
 
-	// XXX return
+	search_oob_pending_results(n, n->header.muid, hits, can_recv_unsolicited);
+	return;
+
 not_handling:
 	g_warning("Not handling %s/%uv%u from %s",
 		vendor_code_str(vmsg->vendor), vmsg->id, vmsg->version, node_ip(n));
 }
 
 /**
- * Build an "OOB Reply Number" message.
+ * Build an "OOB Reply Indication" message.
  *
  * @param muid is the query ID
  * @param hits is the number of hits we have to deliver for that query
  */
 pmsg_t *
-vmsg_build_oob_reply_number(gchar *muid, guint8 hits)
+vmsg_build_oob_reply_ind(gchar *muid, guint8 hits)
 {
 	struct gnutella_msg_vendor *m = (struct gnutella_msg_vendor *) v_tmp;
 	guint32 msgsize;
@@ -1011,10 +1013,10 @@ static void handle_oob_reply_ack(struct gnutella_node *n,
 /**
  * Send an "OOB Reply Ack" message to specified node, informing it that
  * we want the specified amount of hits delivered for the query identified
- * by the GUID of the message we got (the "OOB Reply Number").
+ * by the GUID of the message we got (the "OOB Reply Indication").
  */
 void
-vmsg_send_oob_reply_ack(struct gnutella_node *n, guint8 wanted)
+vmsg_send_oob_reply_ack(struct gnutella_node *n, gchar *muid, guint8 want)
 {
 	struct gnutella_msg_vendor *m = (struct gnutella_msg_vendor *) v_tmp;
 	guint32 msgsize;
@@ -1024,13 +1026,16 @@ vmsg_send_oob_reply_ack(struct gnutella_node *n, guint8 wanted)
 	g_assert(NODE_IS_UDP(n));
 
 	msgsize = vmsg_fill_header(&m->header, paysize, sizeof(v_tmp));
-	memcpy(m->header.muid, blank_guid, 16);
+	memcpy(m->header.muid, muid, 16);
 	payload = vmsg_fill_type(&m->data, T_LIME, 11, 2);
+
+	*payload = want;
 
 	udp_send_reply(n, m, msgsize);
 
 	if (vmsg_debug > 2)
-		g_warning("sent OOB reply ACK to %s for %u hits", node_ip(n), wanted);
+		printf("sent OOB reply ACK %s to %s for %u hit%s\n",
+			guid_hex_str(muid), node_ip(n), want, want == 1 ? "" : "s");
 }
 
 /* vi: set ts=4: */
