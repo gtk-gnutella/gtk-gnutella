@@ -977,6 +977,7 @@ xml_to_search(xmlNodePtr xmlnode, gpointer unused_udata)
     xmlNodePtr node;
     search_t * search;
     guint flags = 0;
+	gboolean override;
 
 	(void) unused_udata;
     g_assert(xmlnode != NULL);
@@ -985,6 +986,7 @@ xml_to_search(xmlNodePtr xmlnode, gpointer unused_udata)
 		(const gchar *) NODE_SEARCH));
 
     gnet_prop_get_guint32_val(PROP_SEARCH_REISSUE_TIMEOUT, &reissue_timeout);
+	gnet_prop_get_boolean_val(PROP_ALLOW_DANGEROUS_BUGS, &override);
 
 	buf = (gchar *) STRTRACK(xmlGetProp(xmlnode, TAG_SEARCH_QUERY));
     if (!buf) {
@@ -1050,7 +1052,8 @@ xml_to_search(xmlNodePtr xmlnode, gpointer unused_udata)
 	 * Deactivate it for now.
 	 *		-- cbiere, 2005-03-22
 	 */
-	if (!(flags & SEARCH_PASSIVE))
+
+	if (!(flags & SEARCH_PASSIVE) && !override)
 		flags &= ~SEARCH_ENABLED;
 	
     if (gui_debug >= 4) {

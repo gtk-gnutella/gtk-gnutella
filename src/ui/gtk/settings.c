@@ -5520,6 +5520,7 @@ void
 settings_gui_init(void)
 {
     gint n;
+	gboolean override;
 
     gui_prop_set_stub = gui_prop_get_stub();
     gnet_prop_set_stub = gnet_prop_get_stub();
@@ -5559,6 +5560,23 @@ settings_gui_init(void)
 		gtk_widget_set_sensitive(w, FALSE);
 	}
 #endif
+
+	gnet_prop_get_boolean_val(PROP_ALLOW_DANGEROUS_BUGS, &override);
+	if (override) {
+		gchar *names[] = {
+			"search_reissue_label",
+			"spinbutton_search_reissue_timeout",
+			"label_search_reissue",
+			NULL,
+		};
+		gchar **n;
+		
+		for (n = names; *n; n++) {
+			GtkWidget *w = lookup_widget(main_window, *n);
+			g_assert(w != NULL);
+			gtk_widget_show(w);
+		}
+	}
 }
 
 void

@@ -8383,7 +8383,7 @@ http://maxmind.com/</property>
 		  </child>
 
 		  <child>
-		    <widget class="GtkLabel" id="label656">
+		    <widget class="GtkLabel" id="label_search_reissue">
 		      <property name="label" translatable="yes">secs   </property>
 		      <property name="use_underline">False</property>
 		      <property name="use_markup">False</property>

@@ -4648,7 +4648,7 @@ create_main_window_search_tab (void)
   GtkWidget *label655;
   GtkObject *spinbutton_search_reissue_timeout_adj;
   GtkWidget *spinbutton_search_reissue_timeout;
-  GtkWidget *label656;
+  GtkWidget *label_search_reissue;
   GtkWidget *hbox154;
   GtkWidget *button_search_download_selected;
   GtkWidget *alignment89;
@@ -5210,9 +5210,9 @@ create_main_window_search_tab (void)
   gtk_box_pack_start (GTK_BOX (hbox_expert_search_timeout), spinbutton_search_reissue_timeout, TRUE, TRUE, 0);
   gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_search_reissue_timeout), TRUE);
 
-  label656 = gtk_label_new (_("secs   "));
-  gtk_widget_set_name (label656, "label656");
-  gtk_box_pack_start (GTK_BOX (hbox_expert_search_timeout), label656, FALSE, FALSE, 0);
+  label_search_reissue = gtk_label_new (_("secs   "));
+  gtk_widget_set_name (label_search_reissue, "label_search_reissue");
+  gtk_box_pack_start (GTK_BOX (hbox_expert_search_timeout), label_search_reissue, FALSE, FALSE, 0);
 
   hbox154 = gtk_hbox_new (FALSE, 4);
   gtk_widget_set_name (hbox154, "hbox154");
@@ -5431,7 +5431,7 @@ create_main_window_search_tab (void)
   GLADE_HOOKUP_OBJECT (main_window_search_tab, hbox_expert_search_timeout, "hbox_expert_search_timeout");
   GLADE_HOOKUP_OBJECT (main_window_search_tab, label655, "label655");
   GLADE_HOOKUP_OBJECT (main_window_search_tab, spinbutton_search_reissue_timeout, "spinbutton_search_reissue_timeout");
-  GLADE_HOOKUP_OBJECT (main_window_search_tab, label656, "label656");
+  GLADE_HOOKUP_OBJECT (main_window_search_tab, label_search_reissue, "label_search_reissue");
   GLADE_HOOKUP_OBJECT (main_window_search_tab, hbox154, "hbox154");
   GLADE_HOOKUP_OBJECT (main_window_search_tab, button_search_download_selected, "button_search_download_selected");
   GLADE_HOOKUP_OBJECT (main_window_search_tab, alignment89, "alignment89");

@@ -403,7 +403,7 @@ create_main_window (void)
   GtkWidget *search_reissue_label;
   GtkObject *spinbutton_search_reissue_timeout_adj;
   GtkWidget *spinbutton_search_reissue_timeout;
-  GtkWidget *label246;
+  GtkWidget *label_search_reissue;
   GtkWidget *hbox181;
   guint button_search_download_key;
   GtkWidget *button_search_download;
@@ -4026,12 +4026,12 @@ create_main_window (void)
   gtk_widget_set_usize (spinbutton_search_reissue_timeout, 70, -2);
   gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_search_reissue_timeout), TRUE);
 
-  label246 = gtk_label_new (_("secs   "));
-  gtk_widget_set_name (label246, "label246");
-  gtk_widget_ref (label246);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "label246", label246,
+  label_search_reissue = gtk_label_new (_("secs   "));
+  gtk_widget_set_name (label_search_reissue, "label_search_reissue");
+  gtk_widget_ref (label_search_reissue);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label_search_reissue", label_search_reissue,
                             (GtkDestroyNotify) gtk_widget_unref);
-  gtk_box_pack_start (GTK_BOX (hbox_expert_search_timeout), label246, FALSE, FALSE, 0);
+  gtk_box_pack_start (GTK_BOX (hbox_expert_search_timeout), label_search_reissue, FALSE, FALSE, 0);
 
   hbox181 = gtk_hbox_new (FALSE, 4);
   gtk_widget_set_name (hbox181, "hbox181");

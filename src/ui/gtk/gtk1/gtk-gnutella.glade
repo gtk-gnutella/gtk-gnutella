@@ -5708,7 +5708,7 @@
 
 		  <widget>
 		    <class>GtkLabel</class>
-		    <name>label246</name>
+		    <name>label_search_reissue</name>
 		    <visible>False</visible>
 		    <label>secs   </label>
 		    <justify>GTK_JUSTIFY_CENTER</justify>
