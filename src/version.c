@@ -48,8 +48,8 @@ struct version {
 };
 
 static struct version our_version;
-static struct version last_version;
-static gboolean seen_more_stable = FALSE;
+static struct version last_rel_version;
+static struct version last_dev_version;
 
 /*
  * version_dump
@@ -72,7 +72,7 @@ static void version_dump(guchar *str, struct version *ver, gchar *cmptag)
  */
 static gchar *version_str(struct version *ver)
 {
-	static gchar str[64];
+	static gchar str[80];
 	gint rw;
 
 	rw = g_snprintf(str, sizeof(str), "%u.%u", ver->major, ver->minor);
@@ -84,6 +84,12 @@ static gchar *version_str(struct version *ver)
 		rw += g_snprintf(&str[rw], sizeof(str)-rw, "%c", ver->tag);
 		if (ver->taglevel)
 			rw += g_snprintf(&str[rw], sizeof(str)-rw, "%u", ver->taglevel);
+	}
+
+	if (ver->timestamp) {
+		struct tm *tmp = localtime(&ver->timestamp);
+		rw += g_snprintf(&str[rw], sizeof(str)-rw, " (%02d/%02d/%d)",
+			tmp->tm_mday, tmp->tm_mon + 1, tmp->tm_year + 1900);
 	}
 
 	return str;
@@ -271,13 +277,23 @@ static gint version_cmp(struct version *a, struct version *b)
 void version_check(guchar *str)
 {
 	struct version their_version;
+	struct version *target_version;
 	gint cmp;
 	gchar *version;
 
 	if (!version_parse(str, &their_version))
 		return;				/* Not gtk-gnutella, or unparseable */
 
-	cmp = version_cmp(&last_version, &their_version);
+	/*
+	 * Is their version a development one, or a release?
+	 */
+
+	if (their_version.tag == 'u')
+		target_version = &last_dev_version;
+	else
+		target_version = &last_rel_version;
+
+	cmp = version_cmp(target_version, &their_version);
 
 	if (dbg > 6)
 		version_dump(str, &their_version,
@@ -296,7 +312,29 @@ void version_check(guchar *str)
 	if (dbg > 6)
 		printf("VERSION time=%d\n", (gint) their_version.timestamp);
 
-	if (their_version.timestamp < last_version.timestamp)
+	/*
+	 * If timestamp is greater and we were comparing against a stable
+	 * release, and cmp == 0, then this means an update in CVS about
+	 * a "released" version, probably alpha/beta.
+	 */
+
+	if (
+		cmp == 0 &&
+		their_version.timestamp > target_version->timestamp &&
+		target_version == &last_rel_version
+	) {
+		if (dbg > 6)
+			printf("VERSION is a CVS update of a release\n");
+
+		if (version_cmp(&last_dev_version, &their_version) > 0) {
+			if (dbg > 6)
+				printf("VERSION is less recent than latest dev we know\n");
+			return;
+		}
+		target_version = &last_dev_version;
+	}
+
+	if (their_version.timestamp < target_version->timestamp)
 		return;
 
 	if (their_version.timestamp == our_version.timestamp)
@@ -307,21 +345,22 @@ void version_check(guchar *str)
 	 */
 
 	if (dbg > 4)
-		printf("more recent VERSION \"%s\"\n", str);
+		printf("more recent %s VERSION \"%s\"\n",
+			target_version == &last_dev_version ? "dev" : "rel", str);
 
-	last_version = their_version;		/* struct copy */
-
-	if (!seen_more_stable && last_version.tag == '\0')
-		seen_more_stable = TRUE;
+	*target_version = their_version;		/* struct copy */
 
 	/*
 	 * Signal new version to user.
 	 */
 
-	version =  version_str(&last_version);
+	version =  version_str(&their_version);
 
-	g_warning("more recent version of gtk-gnutella: %s", version);
-	gui_new_version_found(version, seen_more_stable);
+	g_warning("more recent %s version of gtk-gnutella: %s",
+		target_version == &last_dev_version ? "development" : "released",
+		version);
+
+	gui_new_version_found(version, target_version == &last_rel_version);
 }
  
 /*
@@ -350,7 +389,8 @@ void version_init(void)
 	version_stamp(version_string, &our_version);
 	g_assert(our_version.timestamp > 0);
 
-	last_version = our_version;		/* struct copy */
+	last_rel_version = our_version;		/* struct copy */
+	last_dev_version = our_version;		/* struct copy */
 }
 
 /*
@@ -378,8 +418,11 @@ void version_close(void)
 {
 	atom_str_free(version_string);
 
-	if (version_cmp(&our_version, &last_version) < 0)
-		g_warning("upgrade recommended: most recent version seen: %s",
-			version_str(&last_version));
+	if (version_cmp(&our_version, &last_rel_version) < 0)
+		g_warning("upgrade recommended: most recent released version seen: %s",
+			version_str(&last_rel_version));
+	else if (version_cmp(&our_version, &last_dev_version) < 0)
+		g_warning("upgrade possible: most recent development version seen: %s",
+			version_str(&last_dev_version));
 }
 

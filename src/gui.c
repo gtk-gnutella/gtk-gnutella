@@ -79,6 +79,10 @@
 
 static gchar gui_tmp[4096];
 
+static gchar *last_stable = NULL;	/* Last stable version seen */
+static gchar *last_dev = NULL;		/* Last development version seen */
+
+
 /*
  * If no search are currently allocated 
  */
@@ -651,14 +655,24 @@ static void gui_statusbar_free_timeout_list()
  */
 void gui_new_version_found(gchar *text, gboolean stable)
 {
+	gchar **update = stable ? &last_stable : &last_dev;
+
+	if (*update)
+		g_free(*update);
+	*update = g_strdup(text);
+
 	if (statbar_botstr_new)
 		g_free(statbar_botstr_new);
 
 	statbar_botstr_new = g_strdup_printf(
-		"%s - Newer %s version available%s: %s",
+		"%s - Newer version%s available: %s%s%s%s%s",
 		GTA_WEBSITE,
-		stable ? "stable" : "development",
-		stable ? "" : " (in CVS)", text);
+		last_stable && last_dev ? "s" : "",
+		last_stable ? "release " : "",
+		last_stable ? last_stable : "",
+		last_stable && last_dev ? " / " : "",
+		last_dev ? "from CVS " : "",
+		last_dev ? last_dev : "");
 }
 
 /*
@@ -2091,6 +2105,10 @@ void gui_close(void)
 		g_free(statbar_botstr_new);
 	if (statbar_botstr)
 		g_free(statbar_botstr);
+	if (last_stable)
+		g_free(last_stable);
+	if (last_dev)
+		g_free(last_dev);
 }
 
 void gui_shutdown(void)
