@@ -4876,17 +4876,17 @@ utf32_decompose_nfd(const guint32 *in, guint32 *out, size_t size)
 }
 
 /**
- * Decomposes a UTF-8 encoded string.
+ * Decomposes an UTF-8 encoded string.
  *
- * The UTF-8 string written to ``out'' is always NUL-terminated unless
- * ``size'' is zero. If the size of ``out'' is too small to hold the
+ * The UTF-8 string written to ``dst'' is always NUL-terminated unless
+ * ``size'' is zero. If the size of ``dst'' is too small to hold the
  * complete decomposed string, the resulting string will be truncated but
  * the validity of the UTF-8 encoding will be preserved. Truncation is
  * indicated by the return value being equal to or greater than ``size''.
  *
- * @param in a UTF-8 encoded string.
- * @param out a pointer to a buffer which will hold the decomposed string.
- * @param size the number of bytes ``out'' can hold.
+ * @param src a UTF-8 encoded string.
+ * @param dst a pointer to a buffer which will hold the decomposed string.
+ * @param size the number of bytes ``dst'' can hold.
  *
  * @returns the length in bytes (not characters!) of completely decomposed
  *			string.
