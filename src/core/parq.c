@@ -654,7 +654,7 @@ static guint
 get_integer(const gchar *buf)
 {
 	guint64 val;
-	gchar *end;
+	const gchar *endptr;
 	gint error;
 
 	/* XXX This needs to get more parameters, so that we can log the
@@ -664,11 +664,9 @@ get_integer(const gchar *buf)
 	 * XXX	--RAM, 02/02/2003.
 	 */
 
-	while (is_ascii_space(*buf))
-		buf++;
-
-	val = parse_uint64(buf, &end, 10, &error);
-	if (end == buf)
+	buf = skip_ascii_spaces(buf);
+	val = parse_uint64(buf, &endptr, 10, &error);
+	if (endptr == buf)
 		return 0;
 
 	return error || val > INT_MAX ? INT_MAX : val;
@@ -1096,8 +1094,7 @@ parq_download_queue_ack(struct gnutella_socket *s)
 	g_assert(0 == strncmp(queue, "QUEUE ", sizeof("QUEUE ") - 1));
 
 	id = queue + sizeof("QUEUE ") - 1;
-	while (is_ascii_space((guchar) *id))
-		id++;
+	id = skip_ascii_spaces(id);
 
 	/*
 	 * Fetch the IP port at the end of the QUEUE string.
@@ -1739,7 +1736,7 @@ parq_upload_find_id(header_t *header)
 static inline struct parq_ul_queued *
 parq_upload_find(const gnutella_upload_t *u)
 {
-	gchar buf[1024];
+	gchar buf[1024 + 128];
 
 	g_assert(u != NULL);
 	g_assert(ul_all_parq_by_ip_and_name != NULL);
@@ -2526,6 +2523,7 @@ parq_upload_request(gnutella_upload_t *u, gpointer handle, guint used_slots)
 	parq_ul->chunk_size = chunk_size;
 	parq_ul->updated = now;
 	parq_ul->retry = now + parq_ul_calc_retry(parq_ul);
+	g_assert(parq_ul->retry >= now);
 
 #if AGGRESSIVE
 	avg_bps = bsched_avg_bps(bws.out);
@@ -3416,6 +3414,67 @@ parq_upload_save_queue(void)
 
 }
 
+typedef enum {
+	PARQ_TAG_UNKNOWN = 0,
+	PARQ_TAG_ENTERED,
+	PARQ_TAG_EXPIRE,
+	PARQ_TAG_ID,
+	PARQ_TAG_IP,
+	PARQ_TAG_NAME,
+	PARQ_TAG_POS,
+	PARQ_TAG_QUEUE,
+	PARQ_TAG_SHA1,
+	PARQ_TAG_SIZE,
+	PARQ_TAG_XIP,
+	PARQ_TAG_XPORT,
+
+	NUM_PARQ_TAGS
+} parq_tag_t;
+
+static const struct parq_tag {
+	parq_tag_t	tag;
+	const gchar *str;
+} parq_tag_map[] = {
+	/* Must be sorted alphabetically for dichotomic search */
+
+#define PARQ_TAG(x) { CAT2(PARQ_TAG_,x), STRINGIFY(x) }
+	PARQ_TAG(ENTERED),
+	PARQ_TAG(EXPIRE),
+	PARQ_TAG(ID),
+	PARQ_TAG(IP),
+	PARQ_TAG(NAME),
+	PARQ_TAG(POS),
+	PARQ_TAG(QUEUE),
+	PARQ_TAG(SHA1),
+	PARQ_TAG(SIZE),
+	PARQ_TAG(XIP),
+	PARQ_TAG(XPORT),
+
+	/* Above line intentionally left blank (for "!}sort" on vi) */
+#undef PARQ_TAG
+};
+
+
+/**
+ */
+static parq_tag_t
+parq_string_to_tag(const gchar *s)
+{
+	STATIC_ASSERT(G_N_ELEMENTS(parq_tag_map) == (NUM_PARQ_TAGS - 1));
+
+#define GET_ITEM(i) (parq_tag_map[(i)].str)
+#define FOUND(i) do { return parq_tag_map[(i)].tag; } while (0)
+	
+	/* Perform a binary search to find ``s'' */
+	BINARY_SEARCH(const gchar *, s, G_N_ELEMENTS(parq_tag_map), strcmp,
+		GET_ITEM, FOUND);
+	
+#undef FOUND
+#undef GET_ITEM
+	return PARQ_TAG_UNKNOWN;
+}
+
+
 /**
  * Saves an individual queued upload to disc. This is the callback function
  * used by g_list_foreach in function parq_upload_save_queue
@@ -3426,11 +3485,14 @@ parq_store(gpointer data, gpointer x)
 	FILE *f = (FILE *)x;
 	time_t now = time((time_t *) NULL);
 	struct parq_ul_queued *parq_ul = (struct parq_ul_queued *) data;
-	gchar xip[32];
-	gchar ip[32];
+	gint expire;
 
 	if (parq_ul->had_slot && !parq_ul->has_slot)
 		/* We are not saving uploads which already finished an upload */
+		return;
+
+	expire = delta_time(parq_ul->expire, now);
+	if (expire <= 0)
 		return;
 
 	g_assert(NULL != f);
@@ -3446,36 +3508,53 @@ parq_store(gpointer data, gpointer x)
 			  ip_to_gchar(parq_ul->remote_ip),
 			  parq_ul->name);
 
-	strncpy(ip, ip_to_gchar(parq_ul->remote_ip), sizeof(ip));
-	strncpy(xip, ip_to_gchar(parq_ul->ip), sizeof(xip));
-
 	/*
 	 * Save all needed parq information. The ip and port information gathered
 	 * from X-Node is saved as XIP and XPORT
 	 * The lifetime is saved as a relative value.
 	 */
-	fprintf(f, "QUEUE: %d\n"
+	fprintf(f,
+		  "QUEUE: %d\n"
 		  "POS: %d\n"
 		  "ENTERED: %d\n"
 		  "EXPIRE: %d\n"
 		  "ID: %s\n"
 		  "SIZE: %" PRIu64 "\n"
-		  "XIP: %s\n"
-		  "XPORT: %d\n"
 		  "IP: %s\n",
 		  g_list_position(ul_parqs, g_list_find(ul_parqs, parq_ul->queue)) + 1,
 		  parq_ul->position,
 		  (gint) parq_ul->enter,
-		  (gint) delta_time(parq_ul->expire, now),
+		  expire,
 		  parq_ul->id,
 		  (guint64) parq_ul->file_size,
-		  xip,
-		  parq_ul->port,
-		  ip);
-	if (parq_ul->sha1)
+		  ip_to_gchar(parq_ul->remote_ip));
+
+	if (parq_ul->sha1) {
 		fprintf(f, "SHA1: %s\n", sha1_base32(parq_ul->sha1));
+	}
+	if (parq_ul->ip) {
+		fprintf(f,
+			"XIP: %s\n"
+			"XPORT: %u\n",
+			ip_to_gchar(parq_ul->ip),
+		  	(unsigned) parq_ul->port);
+	}
 	fprintf(f, "NAME: %s\n\n", parq_ul->name);
 }
+
+typedef struct {
+	gchar *sha1;
+	filesize_t filesize;
+	guint32 ip;
+	guint32 xip;
+	gint queue;
+	gint pos;
+	gint entered;
+	gint expire;
+	gint xport;
+	gchar name[1024];
+	gchar id[1024 + 128];
+} parq_entry_t;
 
 /**
  * Loads the saved queue status back into memory
@@ -3483,150 +3562,236 @@ parq_store(gpointer data, gpointer x)
 static void
 parq_upload_load_queue(void)
 {
+	static const parq_entry_t zero_entry;
+	parq_entry_t entry;
 	FILE *f;
-	file_path_t fp;
-	gchar line[1024];
+	file_path_t fp[1];
+	gchar line[4096];
 	gboolean next = FALSE;
-	gnutella_upload_t *u;
+	gnutella_upload_t u;
 	struct parq_ul_queued *parq_ul;
-	time_t now = time((time_t *) NULL);
-
-	int queue = 0;
-	int position = 0;
-	int enter = 0;
-	int expire = 0;
-	filesize_t filesize = 0;
-	guint32 ip = 0;
-	guint32 xip = 0;
-	int xport = 0;
-	char name[1024];
-	char id[1024];
-	gchar ip_copy[32];
-	gchar base32[40];
-	gchar *sha1 = NULL;
-	int ip1, ip2, ip3, ip4;
-	int ret;
-
-	file_path_set(&fp, settings_config_dir(), file_parq_file);
-	f = file_config_open_read("PARQ upload queue data", &fp, 1);
+	time_t now = time(NULL);
+	guint line_no = 0;
+	guint64 v;
+	gint error;
+	const gchar *endptr;
+	gchar tag_used[NUM_PARQ_TAGS];
+	
+	file_path_set(fp, settings_config_dir(), file_parq_file);
+	f = file_config_open_read("PARQ upload queue data", fp, G_N_ELEMENTS(fp));
 	if (!f)
 		return;
-
-	u = walloc0(sizeof(*u));
 
 	if (dbg)
 		g_warning("[PARQ UL] Loading queue information");
 
-	line[sizeof(line)-1] = '\0';
+	/* Reset state */
+	entry = zero_entry;
+	memset(tag_used, 0, sizeof tag_used);
 
 	while (fgets(line, sizeof(line), f)) {
-		/* Skip comments */
-		if (*line == '#') continue;
+		const gchar *tag_name, *value;
+		gchar *colon, *nl;
+		gboolean damaged;
+		parq_tag_t tag;
+	
+		line_no++;
+	
+		damaged = FALSE;
+		nl = strchr(line, '\n');
+		if (!nl) {
+			/*
+			 * If the line is too long or unterminated the file is either
+			 * corrupt or was manually edited without respecting the
+			 * exact format. If we continued, we would read from the
+			 * middle of a line which could be the filename or ID.
+			 */
+			g_warning("parq_upload_load_queue(): "
+				"line too long or missing newline in line %u",
+				line_no);
+			break;
+		}
+		*nl = '\0';
 
-		if (!strncmp(line, "IP: ", 4)) {
-			char *newline;
+		/* Skip comments and empty lines */
+		if (*line == '#' || *line == '\0')
+			continue;
 
-			strncpy(ip_copy, line + sizeof("IP:"), sizeof(ip_copy));
-			newline = strchr(ip_copy, '\n');
-			if (newline != NULL) {
-				*newline = '\0';
-				ip_copy[31] = '\0';
-				ret = sscanf(ip_copy, "%d.%d.%d.%d\n", &ip1, &ip2, &ip3, &ip4);
-				if (4 == ret)
-					ip = gchar_to_ip(ip_copy);
-				else {
-					ip = 0;
-					g_warning("[PARQ UL] Invalid value for IP: %s", ip_copy);
+		colon = strchr(line, ':');
+		if (!colon) {
+			g_warning("parq_upload_load_queue(): missing colon in line %u",
+				line_no);
+			break;
+		}
+		*colon = '\0';
+		tag_name = line;
+		value = &colon[1];
+		if (*value != ' ') {
+			g_warning("parq_upload_load_queue(): "
+				"missing space after colon in line %u",
+				line_no);
+			break;
+		}
+		value++;	/* skip blank after colon */
+
+		tag = parq_string_to_tag(tag_name);
+		g_assert((gint) tag >= 0 && tag <= G_N_ELEMENTS(tag_used));
+		if (0 == (tag_used[tag] ^= 1)) {
+			g_warning("parq_upload_load_queue(): "
+				"duplicate tag \"%s\" in entry in line %u",
+				tag_name, line_no);
+			break;
+		}
+	
+		switch (tag) {
+		case PARQ_TAG_IP:
+		case PARQ_TAG_XIP:
+			{
+				guint32 ip;
+				
+				if (!gchar_to_ip_strict(value, &ip, &endptr)) {
+					damaged = TRUE;
+					g_warning("Not a valid IP address.");
+				} else if (*endptr != '\0') {
+					damaged = TRUE;
+					g_warning("Trailing data after IP address.");
+				} else {
+					switch (tag) {
+					case PARQ_TAG_IP:
+						if (!ip) {
+							damaged = TRUE;
+							g_warning("Zero IP address.");
+						}
+						entry.ip = ip;
+						break;
+						
+					case PARQ_TAG_XIP:
+						/* Ignore zero for backwards compatibility */
+						entry.xip = ip;
+						break;
+
+					default:
+						g_assert_not_reached();
+					}
 				}
 			}
-		}
+			break;
 
-		if (!strncmp(line, "XIP: ", 5)) {
-			gchar *newline;
+		case PARQ_TAG_QUEUE:
+			v = parse_uint64(value, &endptr, 10, &error);
+			damaged |= error != 0 || v > INT_MAX || *endptr != '\0';
+			entry.queue = v;
+			break;
+			
+		case PARQ_TAG_POS:
+			v = parse_uint64(value, &endptr, 10, &error);
+			damaged |= error != 0 || v > INT_MAX || *endptr != '\0';
+			entry.pos = v;
+			break;
+			
+		case PARQ_TAG_ENTERED:
+			v = parse_uint64(value, &endptr, 10, &error);
+			damaged |= error != 0 || v > INT_MAX || *endptr != '\0';
+			entry.entered = v;
+			break;
+			
+		case PARQ_TAG_EXPIRE:
+			v = parse_uint64(value, &endptr, 10, &error);
+			damaged |= error != 0 || *endptr != '\0';
+			entry.expire = v;
+			break;
 
-			strncpy(ip_copy, line + sizeof("XIP:"), sizeof(ip_copy));
-			newline = strchr(ip_copy, '\n');
-			if (newline != NULL) {
-				*newline = '\0';
-				ip_copy[31] = '\0';
-				ret = sscanf(ip_copy, "%d.%d.%d.%d", &ip1, &ip2, &ip3, &ip4);
-				if (4 == ret)
-					xip = gchar_to_ip(ip_copy);
-				else {
-					xip = 0;
-					g_warning("[PARQ UL] Invalid value for XIP: %s", ip_copy);
+		case PARQ_TAG_XPORT:
+			v = parse_uint64(value, &endptr, 10, &error);
+			/* Ignore zero for backwards compatibility */
+			damaged = error || v > 0xffff || *endptr != '\0';
+			entry.xport = v;
+			break;
+
+		case PARQ_TAG_SIZE:
+			v = parse_uint64(value, &endptr, 10, &error);
+			damaged |= error != 0 ||
+				(v > UINT_MAX && sizeof entry.filesize <= 4) ||
+				*endptr != '\0';
+			entry.filesize = v; 
+			break;
+
+		case PARQ_TAG_ID:
+			if (g_strlcpy(entry.id, value, sizeof entry.id) >= sizeof entry.id)
+				damaged = TRUE;
+			break;
+		
+		case PARQ_TAG_SHA1:
+			{
+				if (strlen(value) != SHA1_BASE32_SIZE) {
+					damaged = TRUE;
+					g_warning("Value is too long.");
+				} else {
+					const gchar *raw;
+					
+					raw = base32_sha1(value);
+					if (!raw)
+						damaged = TRUE;
+					else
+						entry.sha1 = atom_sha1_get(raw);
 				}
 			}
+			break;
+
+		case PARQ_TAG_NAME:
+			if (
+				g_strlcpy(entry.name, value,
+					sizeof entry.name >= sizeof entry.name)
+			) {
+				damaged = TRUE;
+			} else {
+				/* Expect next parq entry */
+				next = TRUE;
+			}
+			break;
+			
+		case PARQ_TAG_UNKNOWN:
+			damaged = TRUE;	
+			break;
+
+		case NUM_PARQ_TAGS:
+			g_assert_not_reached();
 		}
 
-		sscanf(line, "QUEUE: %d", &queue);
-		sscanf(line, "POS: %d\n", &position);
-		sscanf(line, "ENTERED: %d\n", &enter);
-		sscanf(line, "EXPIRE: %d\n", &expire);
-		if (0 == strncmp(line, "SIZE: ", CONST_STRLEN("SIZE: "))) {
-			const gchar *s = &line[CONST_STRLEN("SIZE: ")];
-			guint64 v;
-			gint error;
-
-			v = parse_uint64(s, NULL, 10, &error);
-			filesize = v < UINT_MAX || sizeof(filesize) > 4 ? v : 0;
-		}
-		sscanf(line, "XPORT: %d\n", &xport);
-
-		if (!strncmp(line, "ID: ", 4)) {
-			gchar *newline;
-
-			g_strlcpy(id, (line + sizeof("ID:")), sizeof(id));
-			newline = strchr(id, '\n');
-			if (newline)
-				*newline = '\0';
-		}
-		if (0 == strncmp(line, "SHA1: ", 6)) {
-			gchar *newline;
-			g_strlcpy(base32, (line + sizeof("SHA1:")), sizeof(base32));
-			newline = strchr(base32, '\n');
-			if (newline)
-				*newline = '\0';
-			sha1 = atom_sha1_get(base32_sha1(base32));
-		}
-		if (!strncmp(line, "NAME: ", 6)) {
-			gchar *newline;
-
-			g_strlcpy(name, (line + sizeof("NAME:")), sizeof(name));
-			newline = strchr(name, '\n');
-
-			if (newline)
-				*newline = '\0';
-
-			/* Expect next parq entry */
-			next = TRUE;
+		if (damaged) {
+			g_warning("Damaged PARQ entry in line %u: "
+				"tag_name=\"%s\", value=\"%s\"",
+				line_no, tag_name, value);
+			break;
 		}
 
 		if (next) {
 			next = FALSE;
 
+			g_assert(!damaged);
+
 			/* Fill a fake upload structure */
-			u->file_size = filesize;
-			u->name = name;
-			u->ip = ip;
+			memset(&u, 0, sizeof u);
+			u.file_size = entry.filesize;
+			u.name = entry.name;
+			u.ip = entry.ip;
 
-			g_assert(u->name != NULL);
+			g_assert(u.name != NULL);
 
-			parq_ul = parq_upload_create(u);
+			parq_ul = parq_upload_create(&u);
 
 			g_assert(parq_ul != NULL);
 
-			parq_ul->enter = enter;
-			parq_ul->expire = now + expire;
-			parq_ul->ip = xip;
-			parq_ul->port = xport;
-			parq_ul->sha1 = sha1;
-			sha1 = NULL;  /* We aren't sure the next record contains a SHA1 */
+			parq_ul->enter = entry.entered;
+			parq_ul->expire = now + entry.expire;
+			parq_ul->ip = entry.xip;
+			parq_ul->port = entry.xport;
+			parq_ul->sha1 = entry.sha1;
 
 			/* During parq_upload_create already created an ID for us */
 			g_hash_table_remove(ul_all_parq_by_id, parq_ul->id);
 			G_FREE_NULL(parq_ul->id);
-			parq_ul->id = g_strdup(id);
+			parq_ul->id = g_strdup(entry.id);
 			g_hash_table_insert(ul_all_parq_by_id, parq_ul->id, parq_ul);
 
 			if (dbg > 2)
@@ -3638,16 +3803,19 @@ parq_upload_load_queue(void)
 					parq_ul->position,
 				 	parq_ul->relative_position,
 					parq_ul->queue->size,
-					short_time(parq_upload_lookup_eta(u)),
+					short_time(parq_upload_lookup_eta(&u)),
 					ip_to_gchar(parq_ul->remote_ip),
 					parq_ul->name);
 
 			if (max_uploads > 0)
 				parq_upload_register_send_queue(parq_ul);
+
+			/* Reset state */
+			entry = zero_entry;
+			memset(tag_used, 0, sizeof tag_used);
 		}
 	}
 
-	wfree(u, sizeof(*u));
 	fclose(f);
 }
 
