@@ -647,31 +647,6 @@ create_popup_monitor (void)
 }
 
 GtkWidget*
-create_popup_nodes (void)
-{
-  GtkWidget *popup_nodes;
-  GtkWidget *popup_nodes_remove;
-
-  popup_nodes = gtk_menu_new ();
-  gtk_widget_set_name (popup_nodes, "popup_nodes");
-
-  popup_nodes_remove = gtk_menu_item_new_with_mnemonic ("Remove");
-  gtk_widget_set_name (popup_nodes_remove, "popup_nodes_remove");
-  gtk_widget_show (popup_nodes_remove);
-  gtk_container_add (GTK_CONTAINER (popup_nodes), popup_nodes_remove);
-
-  gtk_signal_connect (GTK_OBJECT (popup_nodes_remove), "activate",
-                      GTK_SIGNAL_FUNC (on_popup_nodes_remove_activate),
-                      NULL);
-
-  /* Store pointers to all widgets, for use by lookup_widget(). */
-  GLADE_HOOKUP_OBJECT_NO_REF (popup_nodes, popup_nodes, "popup_nodes");
-  GLADE_HOOKUP_OBJECT (popup_nodes, popup_nodes_remove, "popup_nodes_remove");
-
-  return popup_nodes;
-}
-
-GtkWidget*
 create_popup_uploads (void)
 {
   GtkWidget *popup_uploads;
@@ -4260,12 +4235,7 @@ create_main_window (void)
   GtkWidget *frame5;
   GtkWidget *vbox17;
   GtkWidget *scrolledwindow37;
-  GtkWidget *clist_nodes;
-  GtkWidget *label472;
-  GtkWidget *label473;
-  GtkWidget *label474;
-  GtkWidget *label475;
-  GtkWidget *label476;
+  GtkWidget *treeview_nodes;
   GtkWidget *hbox2;
   GtkWidget *button_nodes_remove;
   GtkWidget *alignment32;
@@ -5248,50 +5218,11 @@ create_main_window (void)
   gtk_widget_set_name (scrolledwindow37, "scrolledwindow37");
   gtk_widget_show (scrolledwindow37);
   gtk_box_pack_start (GTK_BOX (vbox17), scrolledwindow37, TRUE, TRUE, 0);
-  gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolledwindow37), GTK_POLICY_AUTOMATIC, GTK_POLICY_ALWAYS);
 
-  clist_nodes = gtk_clist_new (5);
-  gtk_widget_set_name (clist_nodes, "clist_nodes");
-  gtk_widget_show (clist_nodes);
-  gtk_container_add (GTK_CONTAINER (scrolledwindow37), clist_nodes);
-  gtk_clist_set_column_width (GTK_CLIST (clist_nodes), 0, 80);
-  gtk_clist_set_column_width (GTK_CLIST (clist_nodes), 1, 80);
-  gtk_clist_set_column_width (GTK_CLIST (clist_nodes), 2, 80);
-  gtk_clist_set_column_width (GTK_CLIST (clist_nodes), 3, 80);
-  gtk_clist_set_column_width (GTK_CLIST (clist_nodes), 4, 80);
-  gtk_clist_column_titles_show (GTK_CLIST (clist_nodes));
-
-  label472 = gtk_label_new ("Host");
-  gtk_widget_set_name (label472, "label472");
-  gtk_widget_show (label472);
-  gtk_clist_set_column_widget (GTK_CLIST (clist_nodes), 0, label472);
-  gtk_label_set_justify (GTK_LABEL (label472), GTK_JUSTIFY_LEFT);
-  gtk_misc_set_alignment (GTK_MISC (label472), 0, 0.5);
-
-  label473 = gtk_label_new ("Type");
-  gtk_widget_set_name (label473, "label473");
-  gtk_widget_show (label473);
-  gtk_clist_set_column_widget (GTK_CLIST (clist_nodes), 1, label473);
-  gtk_label_set_justify (GTK_LABEL (label473), GTK_JUSTIFY_LEFT);
-
-  label474 = gtk_label_new ("Vendor");
-  gtk_widget_set_name (label474, "label474");
-  gtk_widget_show (label474);
-  gtk_clist_set_column_widget (GTK_CLIST (clist_nodes), 2, label474);
-  gtk_label_set_justify (GTK_LABEL (label474), GTK_JUSTIFY_LEFT);
-
-  label475 = gtk_label_new ("Ver");
-  gtk_widget_set_name (label475, "label475");
-  gtk_widget_show (label475);
-  gtk_clist_set_column_widget (GTK_CLIST (clist_nodes), 3, label475);
-  gtk_label_set_justify (GTK_LABEL (label475), GTK_JUSTIFY_LEFT);
-
-  label476 = gtk_label_new ("Info");
-  gtk_widget_set_name (label476, "label476");
-  gtk_widget_show (label476);
-  gtk_clist_set_column_widget (GTK_CLIST (clist_nodes), 4, label476);
-  gtk_label_set_justify (GTK_LABEL (label476), GTK_JUSTIFY_LEFT);
-  gtk_misc_set_alignment (GTK_MISC (label476), 0, 0.5);
+  treeview_nodes = gtk_tree_view_new ();
+  gtk_widget_set_name (treeview_nodes, "treeview_nodes");
+  gtk_widget_show (treeview_nodes);
+  gtk_container_add (GTK_CONTAINER (scrolledwindow37), treeview_nodes);
 
   hbox2 = gtk_hbox_new (FALSE, 4);
   gtk_widget_set_name (hbox2, "hbox2");
@@ -8715,18 +8646,6 @@ create_main_window (void)
   gtk_signal_connect (GTK_OBJECT (progressbar_bws_gout), "button_press_event",
                       GTK_SIGNAL_FUNC (on_progressbar_bws_gout_button_press_event),
                       NULL);
-  gtk_signal_connect (GTK_OBJECT (clist_nodes), "select_row",
-                      GTK_SIGNAL_FUNC (on_clist_nodes_select_row),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (clist_nodes), "unselect_row",
-                      GTK_SIGNAL_FUNC (on_clist_nodes_unselect_row),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (clist_nodes), "button_press_event",
-                      GTK_SIGNAL_FUNC (on_clist_nodes_button_press_event),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (clist_nodes), "resize_column",
-                      GTK_SIGNAL_FUNC (on_clist_nodes_resize_column),
-                      NULL);
   gtk_signal_connect (GTK_OBJECT (button_nodes_remove), "clicked",
                       GTK_SIGNAL_FUNC (on_button_nodes_remove_clicked),
                       NULL);
@@ -8995,12 +8914,7 @@ create_main_window (void)
   GLADE_HOOKUP_OBJECT (main_window, frame5, "frame5");
   GLADE_HOOKUP_OBJECT (main_window, vbox17, "vbox17");
   GLADE_HOOKUP_OBJECT (main_window, scrolledwindow37, "scrolledwindow37");
-  GLADE_HOOKUP_OBJECT (main_window, clist_nodes, "clist_nodes");
-  GLADE_HOOKUP_OBJECT (main_window, label472, "label472");
-  GLADE_HOOKUP_OBJECT (main_window, label473, "label473");
-  GLADE_HOOKUP_OBJECT (main_window, label474, "label474");
-  GLADE_HOOKUP_OBJECT (main_window, label475, "label475");
-  GLADE_HOOKUP_OBJECT (main_window, label476, "label476");
+  GLADE_HOOKUP_OBJECT (main_window, treeview_nodes, "treeview_nodes");
   GLADE_HOOKUP_OBJECT (main_window, hbox2, "hbox2");
   GLADE_HOOKUP_OBJECT (main_window, button_nodes_remove, "button_nodes_remove");
   GLADE_HOOKUP_OBJECT (main_window, alignment32, "alignment32");
