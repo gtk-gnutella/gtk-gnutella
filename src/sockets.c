@@ -211,15 +211,15 @@ void socket_tos_throughput(struct gnutella_socket *s)
 void socket_tos_default(struct gnutella_socket *s)
 {
 	switch (s->type) {
-	case SOCK_TYPE_CONTROL:
 	case SOCK_TYPE_DOWNLOAD: /* ACKs w/ low latency => higher transfer rates */
-	case SOCK_TYPE_HTTP:
-	case SOCK_TYPE_PPROXY:
 		socket_tos_lowdelay(s);
 		break;
 	case SOCK_TYPE_UPLOAD:
 		socket_tos_throughput(s);
 		break;
+	case SOCK_TYPE_CONTROL:
+	case SOCK_TYPE_HTTP:
+	case SOCK_TYPE_PPROXY:
 	default:
 		socket_tos_normal(s);
 	}
@@ -1025,7 +1025,7 @@ static struct gnutella_socket *socket_connect_prepare(
 	/* Set the file descriptor non blocking */
 	fcntl(s->file_desc, F_SETFL, O_NONBLOCK);
 
-	socket_tos_default(s);
+	socket_tos_normal(s);
 	return s;
 }
 

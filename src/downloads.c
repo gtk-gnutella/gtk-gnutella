@@ -4403,6 +4403,7 @@ partial_done:
 	else if (!cd->keep_alive)
 		download_queue(cd, _("Chunk done, connection closed"));
 	else {
+		socket_tos_normal(s);
 		if (download_start_prepare(cd)) {
 			cd->keep_alive = TRUE;			/* Was reset by _prepare() */
 			download_gui_add(cd);
@@ -5978,9 +5979,10 @@ static void download_request(
 		BIO_F_READ, download_read, (gpointer) d);
 
 	/*
-	 * Increase our reception window to maximize throughput.
+	 * Increase our reception window to maximize throughput, set TOS.
 	 */
 
+	socket_tos_lowdelay(s);
 	sock_recv_buf(s, DOWNLOAD_RECV_BUFSIZE, FALSE);
 
 	/*
@@ -6796,8 +6798,6 @@ void download_push_ack(struct gnutella_socket *s)
 	gchar *giv;
 	guint file_index;		/* The requested file index */
 	gchar hex_guid[33];		/* The hexadecimal GUID */
-
-	socket_tos_default(s);	/* Set proper Type of Service */
 
 	g_assert(s->getline);
 	giv = getline_str(s->getline);

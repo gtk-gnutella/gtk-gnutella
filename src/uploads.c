@@ -281,7 +281,7 @@ void upload_timer(time_t now)
 						" disabling TCP_CORK",
 						ip_to_gchar(u->ip), upload_vendor_str(u));
 					sock_cork(u->socket, FALSE);
-					socket_tos_lowdelay(u->socket); /* Have ACKs come faster */
+					socket_tos_normal(u->socket); /* Have ACKs come faster */
 				}
 				u->flags |= UPLOAD_F_EARLY_STALL;
 			} else
@@ -1214,7 +1214,6 @@ void upload_add(struct gnutella_socket *s)
 	gnutella_upload_t *u;
 
 	s->type = SOCK_TYPE_UPLOAD;
-	socket_tos_default(s);			/* Set proper Type of Service */
 
 	u = upload_create(s, FALSE);
 		
@@ -1264,6 +1263,7 @@ void expect_http_header(gnutella_upload_t *u, upload_stage_t new_status)
  */
 static void upload_wait_new_request(gnutella_upload_t *u)
 {
+	socket_tos_normal(u->socket);
 	expect_http_header(u, GTA_UL_WAITING);
 }
 
@@ -2725,10 +2725,11 @@ static void upload_request(gnutella_upload_t *u, header_t *header)
 	 * Ethernet, it's about 1500 bytes.
 	 */
 
-	if (stalled <= STALL_THRESH)
+	if (stalled <= STALL_THRESH) {
 		sock_cork(s, TRUE);
-	else
-		socket_tos_lowdelay(s);	/* Make sure ACKs come back faster */
+		socket_tos_throughput(s);
+	} else
+		socket_tos_normal(s);	/* Make sure ACKs come back faster */
 
 	/*
 	 * If they have some connections stalling recently, reduce the send buffer
