@@ -124,7 +124,7 @@ dh_table_free(GHashTable *ht)
  * @returns located record, or NULL if not found.
  */
 static dqhit_t *
-dh_locate(gchar *muid)
+dh_locate(const gchar *muid)
 {
 	gboolean found = FALSE;
 	gpointer key;
@@ -153,7 +153,7 @@ dh_locate(gchar *muid)
  * New record is registered in the current table.
  */
 static dqhit_t *
-dh_create(gchar *muid)
+dh_create(const gchar *muid)
 {
 	dqhit_t *dh;
 	gchar *key;
@@ -170,7 +170,7 @@ dh_create(gchar *muid)
  * Called every time we successfully parsed a query hit from the network.
  */
 void
-dh_got_results(gchar *muid, gint count)
+dh_got_results(const gchar *muid, gint count)
 {
 	dqhit_t *dh;
 

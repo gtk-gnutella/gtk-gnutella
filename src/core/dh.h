@@ -39,7 +39,7 @@ struct gnutella_node;
 void dh_init(void);
 void dh_close(void);
 
-void dh_got_results(gchar *muid, gint count);
+void dh_got_results(const gchar *muid, gint count);
 void dh_timer(time_t now);
 void dh_route(
 	struct gnutella_node *src, struct gnutella_node *dest, gint count);
