@@ -27,6 +27,7 @@
 
 #include "config.h"
 
+#include <errno.h>
 #include <sys/types.h>
 #include <sys/time.h>			/* For FreeBSD, before <sys/resource.h> */
 #include <sys/resource.h>

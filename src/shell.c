@@ -34,6 +34,7 @@
 
 #include "search_gui.h" /* FIXME: remove this dependency */
 
+#include <errno.h>
 #include <sys/stat.h>
 
 RCSID("$Id$");

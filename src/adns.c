@@ -31,6 +31,7 @@ RCSID("$Id$");
 
 #include <fcntl.h> /* open(), O_RDONLY */
 #include <signal.h> /* signal(), SIGCHLD, SIG_IGN */
+#include <errno.h>
 #include "adns.h"
 #include "http.h" /* MAX_HOSTLEN */
 

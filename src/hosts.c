@@ -25,6 +25,7 @@
 
 #include "gnutella.h"
 
+#include <errno.h>
 #include <stdlib.h>
 #include <fcntl.h>
 #include <sys/types.h>

@@ -25,6 +25,8 @@
  *----------------------------------------------------------------------
  */
 
+#include <errno.h>
+
 #include "gnutella.h"		/* For <string.h> + dbg */
 
 #include "pproxy.h"

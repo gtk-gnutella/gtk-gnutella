@@ -49,6 +49,7 @@
 #include "nodes.h"
 #include "http.h"			/* For http_range_t */
 
+#include <errno.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>

@@ -25,6 +25,8 @@
  *----------------------------------------------------------------------
  */
 
+#include <errno.h>
+
 #include "gui.h"
 #include "gnet.h"
 #include "guid.h"			/* For blank_guid[] */

@@ -28,6 +28,7 @@
 
 #include "gnutella.h"
 
+#include <errno.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/uio.h>	/* For struct iovec */

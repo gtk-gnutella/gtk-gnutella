@@ -30,6 +30,8 @@
  */
 
 #include "gnutella.h"
+
+#include <errno.h>
 #include <sys/types.h>
 
 #include "sockets.h"
