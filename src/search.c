@@ -895,7 +895,8 @@ static void _search_send_packet(search_ctrl_t *sch, gnutella_node_t *n)
 
 	m->header.function = GTA_MSG_SEARCH;
 	m->header.ttl = my_ttl;
-	m->header.hops = hops_random_factor ? random_value(hops_random_factor) : 0;
+	m->header.hops = (hops_random_factor && current_peermode != NODE_P_LEAF) ?
+		random_value(hops_random_factor) : 0;
 	if (m->header.ttl + m->header.hops > hard_ttl_limit)
 		m->header.ttl = hard_ttl_limit - m->header.hops;
 
