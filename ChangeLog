@@ -1,5 +1,30 @@
 # since last version
 
+# v 0.90   2002.07.07  [stable]
+
+Highlight of changes (user-visible):
+
+- All configuration can now be made from the GUI.
+- Fully redesigned search filters to work like ipchains/iptable on Linux.
+- Obsoleted experimental "auto-download", superseded by the new filtering code.
+- Added Gnutella bandwidth management.
+- Both HTTP and Gnet bandwidth is now displayed real time.
+- Added full HUGE support (Hash/URN Gnutella Extensions).
+- Added support for local host preference.
+- Gtk-gnutella can do traffic compression when connecting to a node that
+  also supports it.
+- Upload and downloads will now show User-Agent/Server information.
+- Added status to the download queue.
+- You can now freeze the download queue whilst manipulating it.
+- Searches can now be listed on the left side of the screen, or as tabs like
+  in the previous versions.
+- Added automatic banning of servents that are hammering us.
+- Many more cool new features that you'll discover whilst playing with it.
+
+- (2002.07.07 - RAM)
+  * Raised limit for requeries from 300 to 600 seconds.
+  * Updated manual page.
+
 - (2002.07.06 - RAM)
   * In case there are unfreed atoms at exit time, dump their values.
   * Don't forbid connections to local host on different port.
@@ -126,25 +151,6 @@ Highlight of changes (user-visible):
   * Fixed bug in dmesh_url_parse(), caused by buggy sscanf(), grrr...
 
 # v 0.90   2002.06.24  [beta]
-
-Highlight of changes (user-visible):
-
-- All configuration can now be made from the GUI.
-- Fully redesigned search filters to work like ipchains/iptable on Linux.
-- Obsoleted experimental "auto-download", superseded by the new filtering code.
-- Added Gnutella bandwidth management.
-- Both HTTP and Gnet bandwidth is now displayed real time.
-- Added full HUGE support (Hash/URN Gnutella Extensions).
-- Added support for local host preference.
-- Gtk-gnutella can do traffic compression when connecting to a node that
-  also supports it.
-- Upload and downloads will now show User-Agent/Server information.
-- Added status to the download queue.
-- You can now freeze the download queue whilst manipulating it.
-- Searches can now be listed on the left side of the screen, or as tabs like
-  in the previous versions.
-- Added automatic banning of servents that are hammering us.
-- Many more cool new features that you'll discover whilst playing with it.
 
 History of changes since 0.85 stable:
 
