@@ -2610,32 +2610,6 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
 #endif
-#ifdef USE_GTK1
-    PROP_ENTRY(
-        get_main_window,
-        PROP_SEARCH_AUTOSELECT_SIMILAR,
-        update_toggle_search_autoselect,
-        TRUE,
-        "checkbutton_search_autoselect",
-        FREQ_UPDATES, 0
-    ),
-    PROP_ENTRY(
-        get_main_window,
-        PROP_SEARCH_AUTOSELECT_SAMESIZE,
-        update_togglebutton,
-        TRUE,
-        "checkbutton_search_autoselect_ident",
-        FREQ_UPDATES, 0
-    ),
-    PROP_ENTRY(
-        get_main_window,
-        PROP_SEARCH_AUTOSELECT_FUZZY,
-        update_togglebutton,
-        TRUE,
-        "checkbutton_search_autoselect_fuzzy",
-        FREQ_UPDATES, 0
-    ),
-#endif /* USE_GTK1 */
     PROP_ENTRY(
         get_main_window,
         PROP_MAIN_DIVIDER_POS,
