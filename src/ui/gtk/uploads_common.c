@@ -110,7 +110,7 @@ uploads_gui_status_str(const gnet_upload_status_t *u,
 			
 			gm_snprintf(tmpstr, sizeof(tmpstr),
 				_("Completed (%s) %s"),
-				t > 0 ? compact_rate(requested / t) : "< 1s",
+				t > 0 ? compact_rate(requested / t) : _("< 1s"),
 				t > 0 ? short_time(t) : "");
 		}
         break;
@@ -150,6 +150,8 @@ uploads_gui_status_str(const gnet_upload_status_t *u,
 	case GTA_UL_QUEUED:
 		{
 			guint32 max_up, cur_up;
+			gboolean queued;
+			size_t slen = 0;
 
 			/*
 			 * Status: GTA_UL_QUEUED. When PARQ is enabled, and all upload
@@ -162,42 +164,27 @@ uploads_gui_status_str(const gnet_upload_status_t *u,
 
 			gnet_prop_get_guint32_val(PROP_MAX_UPLOADS, &max_up);
 			gnet_prop_get_guint32_val(PROP_UL_RUNNING, &cur_up);
-			if (u->parq_position <= max_up - cur_up) {
-				/* position 1 should always get an upload slot */
-				if (u->parq_retry > 0)
-					gm_snprintf(tmpstr, sizeof(tmpstr),
-						_("Waiting [%d] (slot %d / %d) %ds, lifetime: %s"),
+			queued = u->parq_position > max_up - cur_up;
+				
+			slen += gm_snprintf(tmpstr, sizeof(tmpstr),
+						_("%s [%d] (slot %d / %d)"),
+						queued ? _("Queued") : _("Waiting"),
 						u->parq_queue_no,
 						u->parq_position,
-						u->parq_size,
-						u->parq_retry,
-						short_time(u->parq_lifetime));
-				else
-					gm_snprintf(tmpstr, sizeof(tmpstr),
-						_("Waiting [%d] (slot %d / %d) lifetime: %s"),
-						u->parq_queue_no,
-						u->parq_position,
-						u->parq_size,
-						short_time(u->parq_lifetime));
-			} else {
-				if (u->parq_retry > 0)
-					gm_snprintf(tmpstr, sizeof(tmpstr),
-						_("Queued [%d] (slot %d / %d) %ds, lifetime: %s"),
-						u->parq_queue_no,
-						u->parq_position,
-						u->parq_size,
-						u->parq_retry,
-						short_time(u->parq_lifetime));
-				else
-					gm_snprintf(tmpstr, sizeof(tmpstr),
-						_("Queued [%d] (slot %d / %d) lifetime: %s"),
-						u->parq_queue_no,
-						u->parq_position,
-						u->parq_size,
-						short_time(u->parq_lifetime));
+						u->parq_size);
+						
+			/* position 1 should always get an upload slot */
+			if (u->parq_retry > 0) {
+				slen += gm_snprintf(&tmpstr[slen], sizeof(tmpstr) - slen,
+							"%ds, ", u->parq_retry);
 			}
-			break;
+					
+			slen += gm_snprintf(&tmpstr[slen], sizeof(tmpstr) - slen,
+						"%s %s", _("lifetime:"), short_time(u->parq_lifetime));
+
 		}
+		break;
+
     case GTA_UL_QUEUE:
         /*
          * PARQ wants to inform a client that action from the client its side
@@ -213,8 +200,6 @@ uploads_gui_status_str(const gnet_upload_status_t *u,
          *      -- JA, 15/04/2003
          */
 		return _("Sent QUEUE, waiting for headers...");
-
-        g_assert_not_reached();
 	}
 
     return tmpstr;
