@@ -760,12 +760,16 @@ void search_matched(search_t *sch, results_set_t *rs)
     /*
      * A result set may not be added more then once to a search!
      */
-    /* FIXME: expensive assert */
-    g_assert(g_slist_find(sch->r_sets, rs) == NULL);
+	if (NULL != sch->r_sets)
+    	g_assert(!hash_list_contains(sch->r_sets, rs));
+	else
+		sch->r_sets = hash_list_new(); 
 
 	/* Adds the set to the list */
-	sch->r_sets = g_slist_prepend(sch->r_sets, (gpointer) rs);
+	hash_list_prepend(sch->r_sets, (gpointer) rs);
 	rs->refcount++;
+   	g_assert(hash_list_contains(sch->r_sets, rs));
+	g_assert(hash_list_first(sch->r_sets) == rs);
 
 	if (old_items == 0 && sch == current_search && sch->items > 0) {
         GtkWidget *button_search_clear =

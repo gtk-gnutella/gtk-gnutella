@@ -63,7 +63,8 @@ struct search {
 
 	gboolean    passive;		   /* Is this a passive search? */
 
-	GSList     *r_sets;			   /* The results sets of this search */
+	hash_list_t *r_sets;		   /* The results sets of this search */
+
 	GHashTable *dups;			   /* keep a record of dups. */
 	guint32     items;			   /* Total number of items for this search */
 
