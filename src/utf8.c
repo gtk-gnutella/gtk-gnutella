@@ -518,7 +518,7 @@ const char *locale_charset(void)
 	size_t cs_len;
 
 	cs = nl_langinfo(CODESET);
-	if (NULL == cs || '\0' != *cs)
+	if (NULL == cs || '\0' == *cs)
 		return NULL;
 
 	cs_len = strlen(cs);
