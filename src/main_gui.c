@@ -329,7 +329,7 @@ static void gui_init_menu(void)
         0, NULL, NULL, NULL, NULL, FALSE, TRUE );
     gtk_ctree_node_set_row_data(
 		ctree_menu, parent_node, 
-        (gpointer) nb_main_page_gnet);
+        GINT_TO_POINTER(nb_main_page_gnet));
 
     // gNet -> Stats
     title = (gchar *) &"Stats";
@@ -338,7 +338,7 @@ static void gui_init_menu(void)
         0, NULL, NULL, NULL, NULL, TRUE, TRUE);
     gtk_ctree_node_set_row_data(
 		GTK_CTREE(ctree_menu), last_node, 
-        (gpointer) nb_main_page_gnet_stats);
+        GINT_TO_POINTER(nb_main_page_gnet_stats));
 
     // Uploads
     title = (gchar *) &"Uploads";
@@ -347,7 +347,7 @@ static void gui_init_menu(void)
         0, NULL, NULL, NULL, NULL, FALSE, TRUE );
     gtk_ctree_node_set_row_data(
 		GTK_CTREE(ctree_menu), parent_node, 
-        (gpointer) nb_main_page_uploads);
+        GINT_TO_POINTER(nb_main_page_uploads));
 
     // Uploads -> Stats
     title = (gchar *) &"Stats";
@@ -356,7 +356,7 @@ static void gui_init_menu(void)
         0, NULL, NULL, NULL, NULL, TRUE, TRUE);
     gtk_ctree_node_set_row_data(
 		GTK_CTREE(ctree_menu), last_node, 
-        (gpointer) nb_main_page_uploads_stats);
+        GINT_TO_POINTER(nb_main_page_uploads_stats));
 
     // Downloads
     title = (gchar *) &"Downloads";
@@ -365,7 +365,7 @@ static void gui_init_menu(void)
         0, NULL, NULL, NULL, NULL, TRUE, TRUE );
     gtk_ctree_node_set_row_data(
 		GTK_CTREE(ctree_menu), last_node, 
-        (gpointer) nb_main_page_downloads);
+        GINT_TO_POINTER(nb_main_page_downloads));
 
     // Search
     title = (gchar *) &"Search";
@@ -374,7 +374,7 @@ static void gui_init_menu(void)
         0, NULL, NULL, NULL, NULL, FALSE, TRUE );
     gtk_ctree_node_set_row_data(
 		GTK_CTREE(ctree_menu), parent_node, 
-        (gpointer) nb_main_page_search);
+        GINT_TO_POINTER(nb_main_page_search));
 
     // Search -> Monitor
     title = (gchar *) &"Monitor";
@@ -383,7 +383,7 @@ static void gui_init_menu(void)
         0, NULL, NULL, NULL, NULL, TRUE, TRUE );
     gtk_ctree_node_set_row_data(
 		GTK_CTREE(ctree_menu), last_node, 
-        (gpointer) nb_main_page_monitor);
+        GINT_TO_POINTER(nb_main_page_monitor));
 
     // Search -> search stats
     title = (gchar *) &"Stats";
@@ -392,7 +392,7 @@ static void gui_init_menu(void)
         0, NULL, NULL, NULL, NULL, TRUE, TRUE );
     gtk_ctree_node_set_row_data(
 		GTK_CTREE(ctree_menu), last_node, 
-        (gpointer) nb_main_page_search_stats);
+        GINT_TO_POINTER(nb_main_page_search_stats));
 
     // Config
     title = (gchar *) &"Config";
@@ -401,7 +401,7 @@ static void gui_init_menu(void)
         0, NULL, NULL, NULL, NULL, TRUE, TRUE );
     gtk_ctree_node_set_row_data(
 		GTK_CTREE(ctree_menu), last_node, 
-        (gpointer) nb_main_page_config);
+        GINT_TO_POINTER(nb_main_page_config));
 
 	gtk_clist_select_row(GTK_CLIST(ctree_menu), 0, 0);
 }

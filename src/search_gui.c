@@ -1728,7 +1728,7 @@ void search_gui_set_current_search(search_t *sch)
         node = gtk_ctree_find_by_row_data(
             ctree_menu,
             gtk_ctree_node_nth(ctree_menu,0),
-            (gpointer) nb_main_page_search);
+            GINT_TO_POINTER(nb_main_page_search));
     
         if (node != NULL)
             gtk_ctree_select(ctree_menu,node);
