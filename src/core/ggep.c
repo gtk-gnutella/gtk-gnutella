@@ -277,8 +277,8 @@ gint ggep_decode_into(extvec_t *exv, gchar *buf, gint len)
 	}
 
 	/*
-	 * COBS decoding must be performed before deflation, if any.
-	 * However, if no deflation will be required, we can decode directly
+	 * COBS decoding must be performed before inflation, if any.
+	 * However, if no inflation will be required, we can decode directly
 	 * in the supplied output buffer.
 	 */
 
@@ -348,7 +348,9 @@ gint ggep_ext_writev(
 	struct iovec *xiov;
 	gint plen = 0;
 	gchar *payload = NULL;
-	gint initial_plen;
+	gint initial_plen = 0;
+	gchar *dpayload = NULL;		/* Deflated payload */
+	gint dplen = 0;				/* Deflated payload length */
 
 	g_assert(buf);
 	g_assert(len > 0);
@@ -360,21 +362,84 @@ gint ggep_ext_writev(
 
 	g_assert(idlen > 0);
 	g_assert(idlen < 16);
-	g_assert(!(wflags & GGEP_W_DEFLATE));	/* XXX deflate not supported yet */
+
+	/*
+	 * Begin with deflating if we have to compress data.
+	 */
+
+	if (wflags & GGEP_W_DEFLATE) {
+		zlib_deflater_t *zd;
+		gint size = 0;
+
+		for (i = iovcnt, xiov = iov; i--; xiov++)
+			size += xiov->iov_len;
+
+		initial_plen = size;
+
+		/*
+		 * Compress data into dynamically allocated buffer.
+		 */
+
+		zd = zlib_deflater_make(NULL, size, Z_DEFAULT_COMPRESSION);
+
+		for (i = iovcnt, xiov = iov; i--; xiov++) {
+			if (!zlib_deflate_data(zd, xiov->iov_base, xiov->iov_len))
+				goto zlib_error;
+		}
+
+		if (!zlib_deflate_close(zd))
+			goto zlib_error;
+
+		/*
+		 * Extract compressed data.
+		 */
+
+		dpayload = zlib_deflater_out(zd);
+		dplen = zlib_deflater_outlen(zd);
+
+		zlib_deflater_free(zd, FALSE);		/* Don't free compressed buffer! */
+
+		/*
+		 * If the compressed data is larger than the original, don't
+		 * compress the data then!
+		 */
+
+		if (dplen >= initial_plen) {
+			G_FREE_NULL(dpayload);
+			dplen = 0;
+		}
+
+		goto cobs_check;
+
+	zlib_error:
+		zlib_deflater_free(zd, TRUE);
+		return -1;
+	}
 
 	/*
 	 * If NUL is not allowed, check the payload to see whether we need
 	 * to activate COBS encoding.
 	 */
 
-	if (wflags & GGEP_W_COBS) {
-		for (i = iovcnt, xiov = iov; i-- && !needs_cobs; xiov++) {
-			gint j;
+cobs_check:
 
-			for (j = xiov->iov_len, p = xiov->iov_base; j--; /**/) {
+	if (wflags & GGEP_W_COBS) {
+		if (dpayload) {
+			for (p = dpayload, i = dplen; i--; p++) {
 				if (*p++ == '\0') {
-					needs_cobs = TRUE;		/* Will break us from outer loop */
+					needs_cobs = TRUE;
 					break;
+				}
+			}
+		} else {
+			for (i = iovcnt, xiov = iov; i-- && !needs_cobs; xiov++) {
+				gint j;
+
+				for (j = xiov->iov_len, p = xiov->iov_base; j--; /**/) {
+					if (*p++ == '\0') {
+						needs_cobs = TRUE;	/* Will break us from outer loop */
+						break;
+					}
 				}
 			}
 		}
@@ -384,13 +449,17 @@ gint ggep_ext_writev(
 	 * Compute initial payload length.
 	 */
 
-	i = iovcnt;
-	xiov = iov;
+	if (!dpayload)
+		plen = dplen;
+	else {
+		i = iovcnt;
+		xiov = iov;
 
-	while (i--)
-		plen += (xiov++)->iov_len;
+		while (i--)
+			plen += (xiov++)->iov_len;
 
-	initial_plen = plen;
+		initial_plen = plen;
+	}
 
 	/*
 	 * If COBS is needed, encode into a new buffer.
@@ -400,8 +469,12 @@ gint ggep_ext_writev(
 	 * the final length only after COBS is done.
 	 */
 
-	if (needs_cobs)
-		payload = cobs_encodev(iov, iovcnt, &plen);
+	if (needs_cobs) {
+		if (dpayload)
+			payload = cobs_encode(dpayload, dplen, &plen);
+		else
+			payload = cobs_encodev(iov, iovcnt, &plen);
+	}
 
 	/*
 	 * Encode length.
@@ -433,6 +506,8 @@ gint ggep_ext_writev(
 		flags |= GGEP_F_LAST;
 	if (needs_cobs)
 		flags |= GGEP_F_COBS;
+	if (dpayload != NULL)
+		flags |= GGEP_F_DEFLATE;
 	flags |= idlen & GGEP_F_IDLEN;
 
 	/*
@@ -449,8 +524,9 @@ gint ggep_ext_writev(
 	 * If there's not enough room in the buffer, bail out.
 	 */
 
-	if (dbg > 4)
-		printf("GGEP \"%s\" flags=0x%x payload=%d raw=%d needed=%d avail=%d\n",
+	if (dbg)
+		g_warning(
+			"GGEP \"%s\" flags=0x%x payload=%d raw=%d needed=%d avail=%d\n",
 			id, flags, initial_plen, plen, needed, len);
 
 	if (len < needed)
@@ -475,6 +551,9 @@ gint ggep_ext_writev(
 		memcpy(p, payload, plen);		/* Raw payload */
 		p += plen;
 		G_FREE_NULL(payload);
+	} else if (dpayload != NULL) {		/* Vector was simply compressed */
+		memcpy(p, dpayload, dplen);		/* Raw payload */
+		p += dplen;
 	} else {
 		for (i = iovcnt, xiov = iov; i--; xiov++) {
 			gint xlen = xiov->iov_len;
@@ -484,11 +563,16 @@ gint ggep_ext_writev(
 		}
 	}
 
+	if (dpayload)
+		G_FREE_NULL(dpayload);
+
 	g_assert(p - buf == needed);		/* We have not forgotten anything */
 
 	return needed;
 
 bad:
+	if (dpayload)
+		G_FREE_NULL(dpayload);
 	if (needs_cobs)
 		G_FREE_NULL(payload);
 	return -1;
