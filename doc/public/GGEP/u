@@ -1,0 +1,33 @@
+The 'u' GGEP Extension
+======================
+
+Name: u
+Where: Query, Query Hit (per File Entry)
+Status: Experimental (as tagged in HUGE specifications)
+Date: Mon Jul 16 13:47:36 MEST 2003
+Format: Text of the URN, without the leading "urn:" prefix
+COBS-Encoding: Never
+Deflate: Maybe
+Revision: $Id$
+
+[Those specs written by Raphael Manfredi from the HUGE specifications]
+
+The "u" extension is used to transport URNs in their natural textual form,
+with all the necessary escaping.  There is never any NUL bytes in URNs,
+so it is never necessary to COBS-encode those.
+
+The payload of "u" is the actual URN but without the leading "urn:" prefix.
+For instance, to actually transmit the value:
+
+	urn:sha1:PLSTHIPQGSSZTS5FJUPAKUZWUGYQYPFB
+
+in the "u" extension, one would only put the following in the payload:
+
+	sha1:PLSTHIPQGSSZTS5FJUPAKUZWUGYQYPFB
+
+In order to send common hashes, better use the "H" extension, which is more
+compact.  The "u" extension is only meant to be used to send other kind
+of URNs, such as the ones that cannot be summarized by a single binary value.
+
+If the URN you want to send does not start with "urn:", i.e. if you cannot
+strip any "urn:" prefix out of it, then you MUST NOT use the "u" extension.

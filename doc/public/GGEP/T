@@ -1,0 +1,18 @@
+The 'T' GGEP Extension
+======================
+
+Name: T
+Where: Query Hit (per File Entry)
+Status: Experimental
+Date: Mon Jul 16 13:58:16 MEST 2003
+Format: Plain text
+COBS-Encoding: Never
+Deflate: Maybe
+Revision: $Id$
+
+The "T" extension is used to transport text that can be displayed as-is
+by servents, along each entry in the query hit.  It is pure text, without
+any embedded NUL byte (and no trailing one), so no COBS-encoding is necessary.
+
+This extension was created in order to deprecate the GEM extension mechanism
+outlined in HUGE in favor of the new GGEP model.
