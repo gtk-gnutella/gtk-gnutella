@@ -120,6 +120,7 @@ typedef struct gnet_node_info {
 	gint proto_major;			/* Protocol major number */
 	gint proto_minor;			/* Protocol minor number */
 	gchar *vendor;				/* Vendor information */
+	gchar *country;				/* Country information */
 	guchar vcode[4];			/* Vendor code (vcode[0] == NUL when unknown) */
 
 	guint32 ip;					/* ip of the node */

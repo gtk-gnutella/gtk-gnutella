@@ -56,6 +56,7 @@ typedef struct gnet_host_vec {
 #define ST_KNOWN_VENDOR			0x8000		/* Found known vendor code */
 #define ST_PARSED_TRAILER		0x4000		/* Was able to parse trailer */
 #define ST_UDP					0x2000		/* Got hit via UDP */
+#define ST_BOGUS				0x1000		/* Bogus IP address */
 #define ST_PUSH_PROXY			0x0010		/* Listed some push proxies */
 #define ST_GGEP					0x0008		/* Trailer has a GGEP extension */
 #define ST_UPLOADED				0x0004		/* Is "stable", people downloaded */
@@ -86,6 +87,7 @@ typedef struct gnet_results_set {
 	time_t  stamp;				/* Reception time of the hit */
 	guchar  vendor[4];			/* Vendor code */
 	gchar *version;				/* Version information (atom) */
+	gchar *country;				/* Country code -- 2-char ISO (atom) */
     flag_t  flags;
 	gnet_host_vec_t *proxies;	/* Optional: known push proxies */
 	gchar *hostname;			/* Optional: server's hostname */

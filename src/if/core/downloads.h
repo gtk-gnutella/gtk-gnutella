@@ -89,6 +89,7 @@ struct dl_server {
 	guint count[DL_LIST_SZ];	/* Amount of downloads in list */
 	const gchar *vendor;		/* Remote server vendor string (atom) */
 	const gchar *hostname;		/* Remote hostname, if known (atom) */
+	const gchar *country;		/* Country of origin -- 2-char ISO (atom) */
 	time_t retry_after;			/* Time at which we may retry from this host */
 	time_t dns_lookup;			/* Last DNS lookup for hostname */
 	struct vernum parq_version;	/* Supported queueing version */
@@ -234,6 +235,7 @@ struct download {
 #define download_ip(d)			((d)->server->key->ip)
 #define download_port(d)		((d)->server->key->port)
 #define download_vendor(d)		((d)->server->vendor)
+#define download_country(d)		((d)->server->country)
 
 #define download_vendor_str(d) \
 	((d)->server->vendor ? (d)->server->vendor : "")
