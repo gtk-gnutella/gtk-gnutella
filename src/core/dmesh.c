@@ -40,6 +40,7 @@ RCSID("$Id$");
 #include "share.h"
 #include "fileinfo.h"
 #include "settings.h"
+#include "hosts.h"
 
 #include "if/gnet_property_priv.h"
 
