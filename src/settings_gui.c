@@ -2028,10 +2028,16 @@ static gboolean show_search_results_settings_changed(property_t prop)
     gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(w), val);
 
     if (val) {
-        gtk_label_set_text(GTK_LABEL(GTK_BIN(w)->child), "Hide settings");
+        gtk_label_set_text(
+            GTK_LABEL(lookup_widget(top, 
+                "label_search_results_show_settings")),
+            "Hide settings");
         gtk_widget_show(frame);
     } else {
-        gtk_label_set_text(GTK_LABEL(GTK_BIN(w)->child), "Show settings");
+        gtk_label_set_text(
+            GTK_LABEL(lookup_widget(top, 
+                "label_search_results_show_settings")),
+            "Show settings");
         gtk_widget_hide(frame);
     }
 
