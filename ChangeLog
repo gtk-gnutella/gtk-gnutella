@@ -1,5 +1,31 @@
 # since last version
 
+# v 0.93.3   2004.01.25  [stable]
+
+- GUI updates:
+  . New node info display configuration: show library size / # of files shared,
+	configurable from the Config / User interface pane.
+  . Number of file descriptors currently used for banning is now shown.
+  . Increased search results sorting speed for GTK1.
+  . Moved "close" button for searches to a more convenient position, in
+	the upper right corner.
+- Default number of node connections raised to 12 now that many servents
+  support high outdegree.
+- Eradication of memory leaks.
+- Enhanced flow-control algorithm that will more aggressively drop packets
+  (including query hits) when the connection remains clogged for too long.
+  This new "swift" mode is indicated by the 'S' flag instead of 'F'.
+- Bug fixes: #846755, #876011, #857075, #874596, #859761, #762121.
+
+- (2004.01.25 - RAM)
+ * If the last QRP patch message contains only zlib trailer data to mark
+   the end of stream, don't consider it as a spurious message: just ignore it.
+
+- (2004.01.20 - RAM)
+ * Only call message_add() at the end of forward_message() since that call
+   could modify the validity of the `dest' list we get as an argument.
+   (should fix bug #846755 and bug #876011).
+
 - (2004.01.19 - RAM)
  * Abort download_clear_stopped() if there's nothing in `sl_unqueued'.
  * Don't call downloads_gui_init() before settings_gui_init().
