@@ -16,6 +16,11 @@
    actually destroyed.
  * [Gtk1] [Gtk2] Adjusted colors in progress indicator.
 
+- (2004.04.12 - RAM)
+ * (gwcache.boot) Re-initialized from GhostWhiteCrab's verified peer list.
+ * Don't publish our IP to web caches if we're a normal (legacy) node.
+ * Removed connection to GWC at startup.  Wait 8 hours to do that!
+
 - (2004.04.11 - RAM)
  * Renamed parq_is_banned_source() into parq_banned_source_expire() and
    have it return the expiration date of the banning.
