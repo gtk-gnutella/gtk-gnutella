@@ -485,11 +485,13 @@ prop = {
 };
 
 prop = {
-    name = "search_stats_enabled";
+    name = "search_stats_mode";
     desc = "Collect statistics about search that go through this node";
-    type = boolean;
+    type = guint32;
     data = {
-        default = FALSE;
+        default = 0;
+        min     = 0;
+        max     = 2;
     };
 };
 
@@ -571,5 +573,16 @@ prop = {
     type = boolean;
     data = {
         default = FALSE;
+    };
+};
+
+prop = {
+    name = "gnet_stats_general_col_widths";
+    cfgvar = "widths_gnet_stats_general";
+    desc = "Widths of the columns in the gnet stats general table";
+    type = guint32;
+    vector_size = 2;
+    data = {
+        default = "{ 60, 20 }";
     };
 };

@@ -75,7 +75,7 @@ extern gboolean show_search_results_settings;
 extern gboolean search_autoselect_fuzzy;
 extern guint32  filter_default_policy;
 extern guint32  default_minimum_speed;
-extern gboolean search_stats_enabled;
+extern guint32  search_stats_mode;
 extern guint32  search_stats_update_interval;
 extern guint32  search_stats_delcoef;
 extern gboolean confirm_quit;
@@ -84,6 +84,7 @@ extern gboolean expert_mode;
 extern gboolean gnet_stats_pkg_perc;
 extern gboolean gnet_stats_byte_perc;
 extern gboolean gnet_stats_drop_perc;
+extern guint32  gnet_stats_general_col_widths[2];
 
 
 prop_set_t *gui_prop_init(void);

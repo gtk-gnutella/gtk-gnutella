@@ -128,8 +128,8 @@ guint32  filter_default_policy     = FILTER_PROP_STATE_DO;
 guint32  filter_default_policy_def = FILTER_PROP_STATE_DO;
 guint32  default_minimum_speed     = 0;
 guint32  default_minimum_speed_def = 0;
-gboolean search_stats_enabled     = FALSE;
-gboolean search_stats_enabled_def = FALSE;
+guint32  search_stats_mode     = 0;
+guint32  search_stats_mode_def = 0;
 guint32  search_stats_update_interval     = 200;
 guint32  search_stats_update_interval_def = 200;
 guint32  search_stats_delcoef     = 25;
@@ -146,6 +146,8 @@ gboolean gnet_stats_byte_perc     = FALSE;
 gboolean gnet_stats_byte_perc_def = FALSE;
 gboolean gnet_stats_drop_perc     = FALSE;
 gboolean gnet_stats_drop_perc_def = FALSE;
+guint32  gnet_stats_general_col_widths[2]     = { 60, 20 };
+guint32  gnet_stats_general_col_widths_def[2] = { 60, 20 };
 
 static prop_set_t *gui_property = NULL;
 
@@ -1012,20 +1014,22 @@ prop_set_t *gui_prop_init(void) {
 
 
     /*
-     * PROP_SEARCH_STATS_ENABLED:
+     * PROP_SEARCH_STATS_MODE:
      *
      * General data:
      */
-    gui_property->props[47].name = "search_stats_enabled";
+    gui_property->props[47].name = "search_stats_mode";
     gui_property->props[47].desc = "Collect statistics about search that go through this node";
     gui_property->props[47].prop_changed_listeners = NULL;
     gui_property->props[47].save = TRUE;
     gui_property->props[47].vector_size = 1;
 
     /* Type specific data: */
-    gui_property->props[47].type               = PROP_TYPE_BOOLEAN;
-    gui_property->props[47].data.boolean.def   = &search_stats_enabled_def;
-    gui_property->props[47].data.boolean.value = &search_stats_enabled;
+    gui_property->props[47].type               = PROP_TYPE_GUINT32;
+    gui_property->props[47].data.guint32.def   = &search_stats_mode_def;
+    gui_property->props[47].data.guint32.value = &search_stats_mode;
+    gui_property->props[47].data.guint32.max   = 2;
+    gui_property->props[47].data.guint32.min   = 0;
 
 
     /*
@@ -1166,6 +1170,25 @@ prop_set_t *gui_prop_init(void) {
     gui_property->props[55].type               = PROP_TYPE_BOOLEAN;
     gui_property->props[55].data.boolean.def   = &gnet_stats_drop_perc_def;
     gui_property->props[55].data.boolean.value = &gnet_stats_drop_perc;
+
+
+    /*
+     * PROP_GNET_STATS_GENERAL_COL_WIDTHS:
+     *
+     * General data:
+     */
+    gui_property->props[56].name = "widths_gnet_stats_general";
+    gui_property->props[56].desc = "Widths of the columns in the gnet stats general table";
+    gui_property->props[56].prop_changed_listeners = NULL;
+    gui_property->props[56].save = TRUE;
+    gui_property->props[56].vector_size = 2;
+
+    /* Type specific data: */
+    gui_property->props[56].type               = PROP_TYPE_GUINT32;
+    gui_property->props[56].data.guint32.def   = gnet_stats_general_col_widths_def;
+    gui_property->props[56].data.guint32.value = gnet_stats_general_col_widths;
+    gui_property->props[56].data.guint32.max   = 0xFFFFFFFF;
+    gui_property->props[56].data.guint32.min   = 0x00000000;
     return gui_property;
 }
 
