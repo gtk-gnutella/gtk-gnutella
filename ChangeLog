@@ -1,5 +1,12 @@
 # since last version
 
+- (2003.07.12 - Jeroen)
+ * PARQ doesn't like it when gets multiple requests for the same file from the
+   same host while it is allready being upload to that host. Duplicate upload
+   detection is now done before handing the upload over to PARQ.
+ * PARQ now keeps track to an upload structure so it can look up information
+   faster, as well as testing parq <-> upload integrity
+
 - (2003.07.09 - Jeroen)
  * PARQ: Uploads->parq pointers were only assigned during parq_upload_create.
          Pointer is now also set when a existing parq upload is rerequested.
