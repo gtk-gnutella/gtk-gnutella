@@ -28,6 +28,7 @@
 #ifndef _visual_progress_gui_h_
 #define _visual_progress_gui_h_
 
+#include "ui_core_interface_fileinfo_defs.h"
 #include "gui.h"
 
 /* 
@@ -35,7 +36,6 @@
  */
 void vp_gui_init(void);
 void vp_gui_shutdown(void);
-
 
 /* 
  * External function for drawing information in supplied pixmap
@@ -63,4 +63,3 @@ on_drawingarea_fi_progress_expose_event
                                         gpointer         user_data);
 
 #endif /* _visual_progress_gui_h_ */
-

@@ -29,17 +29,18 @@
 
 #ifdef USE_GTK2
 
-#include "adns.h"
 #include "nodes_cb2.h"
 #include "settings_gui.h"
 #include "statusbar_gui.h"
+
+#include "ui_core_interface.h"
 #include "override.h"		/* Must be the last header included */
 
 RCSID("$Id$");
 
 static void add_node_helper(guint32 ip, gpointer port)
 {
-	node_add(ip, GPOINTER_TO_UINT(port));
+	guc_node_add(ip, GPOINTER_TO_UINT(port));
 }
 
 /*
@@ -75,7 +76,7 @@ static void nodes_cb_connect_by_name(const gchar *addr)
 	if (port < 1 || port > 65535) {
         statusbar_gui_warning(15, "Port must be between 1 and 65535");
     } else {
-		adns_resolve(e, add_node_helper, GUINT_TO_POINTER((guint) port));
+		guc_adns_resolve(e, add_node_helper, GUINT_TO_POINTER((guint) port));
 	}
 
     G_FREE_NULL(e);

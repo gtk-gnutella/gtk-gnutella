@@ -23,9 +23,10 @@
  *----------------------------------------------------------------------
  */
 
-#include "gnutella.h"
+#include <arpa/inet.h> /* for ntohl() */
 #include "common.h"
 
+#include "ui_core_interface_gnutella_defs.h"
 #include "override.h"		/* Must be the last header included */
 
 RCSID("$Id$");

@@ -30,6 +30,8 @@
 
 #include "hcache.h"
 #include "gnet.h"		/* For node_peer_t */
+#include "ui_core_interface_nodes_defs.h"
+
 
 /*
  * Global Functions

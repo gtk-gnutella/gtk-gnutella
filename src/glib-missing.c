@@ -31,7 +31,7 @@
 
 #include "common.h"
 #include "glib-missing.h"
-#include "gnet_property.h"
+#include "gnet_property.h"  
 #include "gnet_property_priv.h"
 
 #include "override.h"		/* Must be the last header included */

@@ -40,6 +40,8 @@
 #include <stdlib.h>
 
 #include "search_stats_gui.h"
+#include "ui_core_interface.h"
+#include "gui.h"
 #include "override.h"		/* Must be the last header included */
 
 RCSID("$Id$");
@@ -200,7 +202,7 @@ static gboolean stats_hash_to_treeview(
 static void search_stats_gui_enable(search_request_listener_t lst)
 {
     if (!callback_registered) {
-        share_add_search_request_listener(lst);
+        guc_share_add_search_request_listener(lst);
         callback_registered = TRUE;
     }
 }
@@ -208,11 +210,11 @@ static void search_stats_gui_enable(search_request_listener_t lst)
 static void search_stats_gui_disable(void)
 {
     if (callback_registered) {
-        share_remove_search_request_listener
+        guc_share_remove_search_request_listener
             (search_stats_notify_word);
-        share_remove_search_request_listener
+        guc_share_remove_search_request_listener
             (search_stats_notify_whole);
-        share_remove_search_request_listener
+        guc_share_remove_search_request_listener
             (search_stats_notify_routed);
         callback_registered = FALSE;
     }

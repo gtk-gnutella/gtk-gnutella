@@ -27,15 +27,13 @@
 #define _gnet_stats_gui_common_h_
 
 #include "config.h"
-#include "gnet.h"		/* XXX -- for the sizes of the arrays below */
-#include "gui.h"
-#include "hsep.h"
+#include "gui.h" 
+#include "ui_core_interface.h"
 
 const gchar *msg_type_str(int MSG_TYPE_COUNT);
 const gchar *msg_drop_str(int MSG_DROP_REASON_COUNT);
 const gchar *general_type_str(int GNR_TYPE_COUNT);
-const gchar *horizon_stat_str(hsep_triple *table, hsep_triple *other,
-    gint row, c_horizon_t column);
+const gchar *horizon_stat_str(gint row,	c_horizon_t column);
 
 int msg_type_str_size(void);
 void gnet_stats_gui_horizon_update(hsep_triple *table, guint32 triples);

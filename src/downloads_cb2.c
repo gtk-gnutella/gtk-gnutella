@@ -24,19 +24,21 @@
  */
 
 
+#include <regex.h>
 #include "gui.h"
 
 #ifdef USE_GTK2
 
 RCSID("$Id$");
 
+#include "gnet_property_priv.h"
 #include "downloads_cb2.h"
 #include "downloads_gui.h"
 #include "downloads_gui_common.h"
 #include "statusbar_gui.h"
 #include "gtkcolumnchooser.h"
 
-#include "downloads.h"	/* FIXME: remove this dependency */
+#include "ui_core_interface.h"
 #include "override.h"		/* Must be the last header included */
 
 typedef enum {
@@ -256,7 +258,7 @@ void on_popup_downloads_push_activate(GtkMenuItem *menuitem, gpointer user_data)
 
 	for (sl = selected; sl; sl = g_slist_next(sl)) {
 		struct download *d = sl->data;
-		download_fallback_to_push(d, FALSE, TRUE);
+		guc_download_fallback_to_push(d, FALSE, TRUE);
 	}
 	g_slist_free(selected);
 }
@@ -280,7 +282,7 @@ void on_popup_downloads_abort_named_activate(GtkMenuItem *menuitem,
 
    	for (sl = selected; sl; sl = g_slist_next(sl)) {
 		struct download *d = sl->data;
-		removed += download_remove_all_named(d->file_name);
+		removed += guc_download_remove_all_named(d->file_name);
 	}
 	g_slist_free(selected);
 
@@ -307,8 +309,8 @@ void on_popup_downloads_abort_host_activate(GtkMenuItem *menuitem,
 
    	for (sl = selected; sl; sl = g_slist_next(sl)) {
 		struct download *d = sl->data;
-		removed += download_remove_all_from_peer(download_guid(d),
-						download_ip(d), download_port(d), FALSE);
+		removed += guc_download_remove_all_from_peer
+			(download_guid(d), download_ip(d), download_port(d), FALSE);
 	}
 	g_slist_free(selected);
 
@@ -334,7 +336,8 @@ void on_popup_downloads_abort_sha1_activate(GtkMenuItem *menuitem,
 
    	for (sl = selected; sl; sl = g_slist_next(sl)) {
 		struct download *d = sl->data;
-		removed += download_remove_all_with_sha1(d->file_info->sha1);
+		removed += guc_download_remove_all_with_sha1
+			(d->file_info->sha1);
 	}
 	g_slist_free(selected);
 
@@ -370,8 +373,8 @@ void on_popup_downloads_remove_file_activate(GtkMenuItem *menuitem,
     	if (d->status != GTA_DL_ERROR && d->status != GTA_DL_ABORTED)
 			continue;
 
-		if (download_file_exists(d))
-			download_remove_file(d, TRUE);
+		if (guc_download_file_exists(d))
+			guc_download_remove_file(d, TRUE);
 	}
 	g_slist_free(selected);
 }
@@ -394,7 +397,7 @@ void on_popup_downloads_queue_activate(GtkMenuItem *menuitem,
 
 	for (sl = selected; sl; sl = g_slist_next(sl)) {
 		struct download *d = sl->data;
-		download_requeue(d);
+		guc_download_requeue(d);
    	}
 	g_slist_free(selected);
 }
@@ -413,7 +416,7 @@ static void copy_selection_to_clipboard(const gchar *treeview_name,
 		struct download *d = sl->data;
 		const gchar *url;
 
-       	url = build_url_from_download(d);
+       	url = guc_build_url_from_download(d);
 		gtk_clipboard_clear(gtk_clipboard_get(GDK_SELECTION_PRIMARY));
 		gtk_clipboard_set_text(gtk_clipboard_get(GDK_SELECTION_PRIMARY),
 			url, -1);
@@ -455,7 +458,7 @@ void on_popup_downloads_connect_activate(GtkMenuItem *menuitem,
 
 	for (sl = selected; sl; sl = g_slist_next(sl)) {
 		struct download *d = sl->data;
-   		node_add(download_ip(d), download_port(d));
+   		guc_node_add(download_ip(d), download_port(d));
    	}
 	g_slist_free(selected);
 }
@@ -485,7 +488,7 @@ void on_popup_queue_start_now_activate(GtkMenuItem *menuitem,
 
 	for (sl = selected; sl; sl = g_slist_next(sl)) {
 		struct download *d = sl->data;
-		download_start(d, TRUE);
+		guc_download_start(d, TRUE);
    	}
 	g_slist_free(selected);
 }
@@ -508,7 +511,7 @@ void on_popup_queue_abort_activate(GtkMenuItem *menuitem, gpointer user_data)
 
 	for (sl = selected; sl; sl = g_slist_next(sl)) {
 		struct download *d = sl->data;
-		download_remove(d);
+		guc_download_remove(d);
    	}
 	g_slist_free(selected);
 }
@@ -533,7 +536,7 @@ void on_popup_queue_abort_named_activate(GtkMenuItem *menuitem,
 
 	for (sl = selected; sl; sl = g_slist_next(sl)) {
 		struct download *d = sl->data;
-		removed += download_remove_all_named(d->file_name);
+		removed += guc_download_remove_all_named(d->file_name);
 	}
 	g_slist_free(selected);
 
@@ -560,7 +563,7 @@ void on_popup_queue_abort_host_activate(GtkMenuItem *menuitem,
 
 	for (sl = selected; sl; sl = g_slist_next(sl)) {
 		struct download *d = sl->data;
-		removed += download_remove_all_from_peer(
+		removed += guc_download_remove_all_from_peer(
 				download_guid(d), download_ip(d), download_port(d), FALSE);
 	}
 	g_slist_free(selected);
@@ -589,7 +592,8 @@ void on_popup_queue_abort_sha1_activate(GtkMenuItem *menuitem,
 
 	for (sl = selected; sl; sl = g_slist_next(sl)) {
 		struct download *d = sl->data;
-   		removed += download_remove_all_with_sha1(d->file_info->sha1);
+   		removed += guc_download_remove_all_with_sha1
+			(d->file_info->sha1);
 	}
 	g_slist_free(selected);
 
@@ -627,7 +631,7 @@ void on_popup_queue_connect_activate(GtkMenuItem *menuitem, gpointer user_data)
 
 	for (sl = selected; sl; sl = g_slist_next(sl)) {
 		struct download *d = sl->data;
-    	node_add(download_ip(d), download_port(d));
+    	guc_node_add(download_ip(d), download_port(d));
 	}
 	g_slist_free(selected);
 }
@@ -655,7 +659,7 @@ void on_button_downloads_abort_clicked(GtkButton *button, gpointer user_data)
 
 	for (sl = selected; sl; sl = g_slist_next(sl)) {
 		struct download *d = sl->data;
-		download_abort(d);
+		guc_download_abort(d);
 	}
 	g_slist_free(selected);
 }
@@ -678,7 +682,7 @@ void on_button_downloads_resume_clicked(GtkButton *button, gpointer user_data)
 
 	for (sl = selected; sl; sl = g_slist_next(sl)) {
 		struct download *d = sl->data;
-     	download_resume(d);	
+     	guc_download_resume(d);	
 	}
 	g_slist_free(selected);
 

@@ -32,22 +32,18 @@
 #include <errno.h>
 
 #include "gui.h"
-#include "gnet.h"
-#include "guid.h"			/* For blank_guid[] */
 
-/* GUI includes  */
+#include "guid.h"
 #include "search_gui_common.h"
 #include "search_gui.h"
 #include "settings_gui.h"
-
-/* Core includes */
-#include "search.h"
 
 #ifdef HAS_LIBXML2
 #include "search_xml.h"
 #include <libxml/parser.h>
 #endif
 
+#include "ui_core_interface.h"
 #include "override.h"		/* Must be the last header included */
 
 RCSID("$Id$");
@@ -406,7 +402,7 @@ gboolean search_gui_result_is_dup(search_t *sch, record_t *rc)
 			g_warning("Index changed from %u to %u at %s for %s",
 				old.rc->index, rc->index, guid_hex_str(rc->results_set->guid),
 				rc->name);
-		download_index_changed(
+		guc_download_index_changed(
 			rc->results_set->ip,		/* This is for optimizing lookups */
 			rc->results_set->port,
 			rc->results_set->guid,		/* This is for formal identification */
@@ -569,8 +565,8 @@ void search_gui_check_alt_locs(results_set_t *rs, record_t *rc)
 		if (!host_is_valid(h->ip, h->port))
 			continue;
 
-		download_auto_new(rc->name, rc->size, URN_INDEX, h->ip,
-			h->port, blank_guid, rs->hostname,
+		guc_download_auto_new(rc->name, rc->size, URN_INDEX, 
+			h->ip, h->port, blank_guid, rs->hostname,
 			rc->sha1, rs->stamp, FALSE, TRUE, NULL, NULL);
 	}
 
@@ -758,7 +754,8 @@ void search_matched(search_t *sch, results_set_t *rs)
 	 * bother displaying results if they need a push request to succeed.
 	 *		--RAM, 10/03/2002
 	 */
-    gnet_prop_get_boolean(PROP_SEND_PUSHES, &send_pushes, 0, 1);
+    gnet_prop_get_boolean
+		(PROP_SEND_PUSHES, &send_pushes, 0, 1);
     gnet_prop_get_boolean(PROP_IS_FIREWALLED, &is_firewalled, 0, 1);
 
 	need_push = (rs->status & ST_FIREWALL) || !host_is_valid(rs->ip, rs->port);
@@ -815,9 +812,9 @@ void search_matched(search_t *sch, results_set_t *rs)
             (flt_result->props[FILTER_PROP_DOWNLOAD].state ==
 				FILTER_PROP_STATE_DO)
 		) {
-            download_auto_new(rc->name, rc->size, rc->index, rs->ip, rs->port,
-                rs->guid, rs->hostname, rc->sha1, rs->stamp, need_push, TRUE,
-				NULL, rs->proxies);
+            guc_download_auto_new(rc->name, rc->size, rc->index, 
+				rs->ip, rs->port, rs->guid, rs->hostname, rc->sha1, rs->stamp, 
+				need_push, TRUE, NULL, rs->proxies);
 
 			if (rs->proxies != NULL)
 				search_gui_free_proxies(rs);
@@ -896,7 +893,7 @@ void search_matched(search_t *sch, results_set_t *rs)
 	 * Update counters in the core-side of the search.
 	 */
 
-	search_update_items(sch->search_handle, sch->items);
+	guc_search_update_items(sch->search_handle, sch->items);
 	if (results_kept)
 		search_add_kept(sch->search_handle, results_kept);
 

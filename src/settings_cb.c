@@ -27,10 +27,11 @@
 
 #include "gui.h"
 
-#include "adns.h"
 #include "settings_cb.h"
 #include "settings_gui.h"
 #include "search_gui.h"
+
+#include "ui_core_interface.h"
 #include "override.h"		/* Must be the last header included */
 
 RCSID("$Id$");
@@ -67,15 +68,18 @@ void on_spinbutton_search_reissue_timeout_changed
 
     current_search = search_gui_get_current_search();
 
-    if (!current_search || search_is_passive(current_search->search_handle)) {
+    if (!current_search || guc_search_is_passive
+		(current_search->search_handle)) {
         lock = FALSE;
         return;
     }
 
     timeout = gtk_spin_button_get_value(GTK_SPIN_BUTTON(editable));
 
-    search_set_reissue_timeout(current_search->search_handle, timeout);
-    timeout_real = search_get_reissue_timeout(current_search->search_handle);
+    guc_search_set_reissue_timeout
+		(current_search->search_handle, timeout);
+    timeout_real = guc_search_get_reissue_timeout
+		(current_search->search_handle);
 
     if (timeout != timeout_real)
         gtk_spin_button_set_value(GTK_SPIN_BUTTON(editable), timeout_real);
@@ -96,7 +100,8 @@ void on_entry_config_proxy_hostname_activate
 
     gnet_prop_set_string(PROP_PROXY_HOSTNAME, e);
 	if (e[0] != '\0') {
-		adns_resolve(e, &on_entry_config_proxy_hostname_activate_helper, NULL);
+		guc_adns_resolve
+			(e, &on_entry_config_proxy_hostname_activate_helper, NULL);
 	}
 	g_free(e);
 }

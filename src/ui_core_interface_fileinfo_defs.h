@@ -1,0 +1,154 @@
+/*
+ * FILL_IN_EMILES_BLANKS
+ *
+ * Interface definition file.  One of the files that defines structures,
+ * macros, etc. as part of the gui/core interface.
+ *
+ *----------------------------------------------------------------------
+ * This file is part of gtk-gnutella.
+ *
+ *  gtk-gnutella is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation; either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  gtk-gnutella is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with gtk-gnutella; if not, write to the Free Software
+ *  Foundation, Inc.:
+ *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *----------------------------------------------------------------------
+ */
+
+#ifndef _ui_core_interface_fileinfo_defs_h_
+#define _ui_core_interface_fileinfo_defs_h_
+
+#include <time.h>           /* For time_t */
+#include "ui_core_interface_gnet_download_defs.h"
+
+
+struct shared_file;
+	
+/*
+ * These used to be in fileinfo.h, but we need them now at several places.
+ */
+enum dl_chunk_status {
+    DL_CHUNK_EMPTY = 0,
+    DL_CHUNK_BUSY  = 1,
+    DL_CHUNK_DONE  = 2
+};
+
+typedef guint32 gnet_fi_t;
+
+typedef struct gnet_fi_info {
+	gnet_fi_t fi_handle;
+	gchar *file_name;			/* Name of the file on disk */
+	GSList *aliases;			/* List of aliases (NULL if none) */
+} gnet_fi_info_t;
+
+typedef struct gnet_fi_status {
+	guint32  recvcount;
+	guint32  refcount;
+	guint32  lifecount;
+	guint32  size;
+	guint32  done;
+	guint32  recv_last_rate;
+	guint32  aqueued_count;
+	guint32  pqueued_count;
+} gnet_fi_status_t;
+
+typedef struct gnet_fi_chunks {
+    guint32  from;
+    guint32  to;
+    enum dl_chunk_status status;
+    gboolean old;
+} gnet_fi_chunks_t;
+
+struct dl_file_chunk {
+	guint32 from;					/* Range offset start (byte included) */
+	guint32 to;						/* Range offset end (byte EXCLUDED) */
+	enum dl_chunk_status status;	/* Status of range */
+	struct download *download;		/* Download that "reserved" the range */
+};
+
+struct dl_file_info {
+    gnet_fi_t fi_handle;    /* Handle */
+
+	guint32 flags;			/* Operating flags */
+	gchar *file_name;		/* Output file name (atom) */
+	gchar *path;			/* Output file path (atom) */
+	GSList *alias;			/* List of file name aliases (atoms) */
+	guint32 size;			/* File size */
+	gint *size_atom;		/* File size (atom -- points to value in memory) */
+	gchar *sha1;			/* server SHA1 (atom) if known, NULL if not. */
+	gchar *cha1;			/* computed SHA1 (atom) if known, NULL if not. */
+	gint32 refcount;		/* Reference count of file (number of sources)*/
+	GSList *sources;        /* list of sources (struct download *)*/
+	gint32 lifecount;		/* Amount of "alive" downloads referencing us */
+	time_t stamp;			/* Time stamp */
+	time_t ctime;			/* Creation time stamp */
+	time_t ntime;			/* Last time a new source was added */
+	time_t last_flush;		/* When last flush to disk occurred */
+	time_t last_dmesh;		/* When last dmesh query was used */
+	guint32 done;			/* Total number of bytes completed */
+	GSList *chunklist;		/* List of ranges within file */
+	guint32 generation;		/* Generation number, incremented on disk update */
+	struct shared_file *sf;	/* When PFSP-server is enabled, share this file */
+	gboolean file_size_known; /* File size known? */
+	gboolean use_swarming;	/* Use swarming? */
+	gboolean dirty;			/* Does it need saving? */
+	gboolean dirty_status;  /* Notify about status change on next interval */
+	gboolean hashed;		/* In hash tables? */
+	guint32  aqueued_count; /* Actively queued sources */
+	guint32  pqueued_count; /* Passively queued sources */
+		
+
+	/*
+	 * The following group is used to compute the aggregated reception rate.
+	 */
+
+	gint32 recvcount;		/* Amount of "receiving" downloads referencing us */
+	guint32 recv_last_rate;	/* Last amount of bytes/sec received */
+	guint32 recv_amount;	/* Amount of bytes received this period */
+	time_t recv_last_time;	/* When did we last compute recv_last_rate? */
+
+	/*
+	 * This group of fields is used by the background SHA1 and moving daemons.
+	 */
+
+	guint cha1_elapsed;	/* Time spent to compute the SHA1 */
+	guint32 cha1_hashed;	/* Amount of bytes hashed so far */
+	guint copy_elapsed;	/* Time spent to copy the file */
+	guint32 copied;			/* Amount of bytes copied so far */
+};
+
+/*
+ * Operating flags.
+ */
+
+#define FI_F_SUSPEND		0x00000001 	/* Marked "suspended" new downloads */
+#define FI_F_DISCARD		0x00000002 	/* Discard fileinfo when refcount = 0 */
+#define FI_F_MARK			0x80000000 	/* Marked during traversal */
+
+#define FILE_INFO_COMPLETE(x)	((x)->done == (x)->size && (x)->file_size_known)
+
+typedef void (*fi_listener_t) (gnet_fi_t);
+typedef void (*fi_src_listener_t) (gnet_fi_t, gnet_src_t);
+
+typedef enum {
+	EV_FI_ADDED = 0,       /* fi_listener */
+	EV_FI_REMOVED,         /* fi_listener */
+	EV_FI_INFO_CHANGED,    /* fi_listener */
+	EV_FI_STATUS_CHANGED,  /* fi_listener */
+	EV_FI_STATUS_CHANGED_TRANSIENT, /* fi_listener */
+	EV_FI_SRC_ADDED,       /* fi_src_listener */
+	EV_FI_SRC_REMOVED,     /* fi_src_listener */
+	EV_FI_EVENTS           /* Number of events in this domain */
+} gnet_fi_ev_t;
+
+
+#endif

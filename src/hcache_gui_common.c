@@ -26,6 +26,7 @@
 #include "config.h"
 
 #include "hcache_gui_common.h"
+#include "ui_core_interface.h" /* for RCSID */
 #include "override.h"		/* Must be the last header included */
 
 RCSID("$Id$");

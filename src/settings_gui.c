@@ -29,18 +29,16 @@
 
 #include <time.h>
 
-#include "downloads.h" /* FIXME: remove this dependency */
-#include "settings.h" /* For settings_config_dir() */
 #include "settings_gui.h"
-
 #include "monitor_gui.h"
 #include "statusbar_gui.h"
 #include "search_gui.h"
 #include "filter_gui.h"
 #include "search_stats_gui.h"
 #include "nodes_gui_common.h"
-
 #include "settings_cb.h"
+
+#include "ui_core_interface.h"
 #include "override.h"		/* Must be the last header included */
 
 RCSID("$Id$");
@@ -1168,7 +1166,8 @@ static gboolean reading_ultrafile_changed(property_t prop)
     gboolean state;
     static statusbar_msgid_t id = {0, 0};
 
-    gnet_prop_get_boolean_val(PROP_READING_ULTRAFILE, &state);
+    gnet_prop_get_boolean_val
+		(PROP_READING_ULTRAFILE, &state);
     if (state) {
         GtkProgressBar *pg = GTK_PROGRESS_BAR
             (lookup_widget(main_window, "progressbar_hosts_in_ultra_catcher"));
@@ -1305,11 +1304,13 @@ static gboolean new_version_str_changed(property_t prop)
 static gboolean send_pushes_changed(property_t prop)
 {
     gboolean val;
+	gboolean is_firewalled;
     prop_map_t *map_entry = settings_gui_get_map_entry(prop);
     prop_set_stub_t *stub = map_entry->stub;
     GtkWidget *top = map_entry->fn_toplevel();
 
     stub->boolean.get(prop, &val, 0, 1);
+    gnet_prop_get_boolean(PROP_IS_FIREWALLED, &is_firewalled, 0, 1);
 
     gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON
         (lookup_widget(top, map_entry->wid)), !val);
@@ -1527,7 +1528,7 @@ static gboolean autoclear_completed_downloads_changed(property_t prop)
         (lookup_widget(top, map_entry->wid)), val);
 
     if (val)
-        download_clear_stopped(TRUE, FALSE, FALSE, TRUE);
+        guc_download_clear_stopped(TRUE, FALSE, FALSE, TRUE);
 
     return FALSE;
 }
@@ -1545,7 +1546,7 @@ static gboolean autoclear_failed_downloads_changed(property_t prop)
         (lookup_widget(top, map_entry->wid)), val);
 
     if (val)
-        download_clear_stopped(FALSE, TRUE, FALSE, TRUE);
+        guc_download_clear_stopped(FALSE, TRUE, FALSE, TRUE);
 
     return FALSE;
 }
@@ -1563,7 +1564,7 @@ static gboolean autoclear_unavailable_downloads_changed(property_t prop)
         (lookup_widget(top, map_entry->wid)), val);
 
     if (val)
-        download_clear_stopped(FALSE, FALSE, TRUE, TRUE);
+        guc_download_clear_stopped(FALSE, FALSE, TRUE, TRUE);
 
     return FALSE;
 }
@@ -1685,13 +1686,17 @@ static gboolean _update_address_information(void)
     guint32 listen_port;
     guint32 current_ip;
 
-    gnet_prop_get_boolean_val(PROP_FORCE_LOCAL_IP, &force_local_ip);
-    gnet_prop_get_guint32_val(PROP_LISTEN_PORT, &listen_port);
+    gnet_prop_get_boolean_val
+		(PROP_FORCE_LOCAL_IP, &force_local_ip);
+    gnet_prop_get_guint32_val
+		(PROP_LISTEN_PORT, &listen_port);
 
     if (force_local_ip)
-        gnet_prop_get_guint32_val(PROP_FORCED_LOCAL_IP, &current_ip);
+        gnet_prop_get_guint32_val
+			(PROP_FORCED_LOCAL_IP, &current_ip);
     else
-        gnet_prop_get_guint32_val(PROP_LOCAL_IP, &current_ip);
+        gnet_prop_get_guint32_val
+			(PROP_LOCAL_IP, &current_ip);
    
     if (old_address != current_ip || old_port != listen_port) {
         const gchar * iport;
@@ -1700,7 +1705,6 @@ static gboolean _update_address_information(void)
 
         old_address = current_ip;
         old_port = listen_port;
-
         statusbar_gui_message(15, _("Address/port changed to: %s"), iport);
         gtk_label_set_text(
             GTK_LABEL(lookup_widget(dlg_prefs, "label_current_port")) , 
@@ -1724,17 +1728,20 @@ static void update_input_bw_display(void)
 	guint32 val = 0;
 	guint32 bw;
 
-	gnet_prop_get_boolean_val(PROP_BW_GNET_LEAF_IN_ENABLED, &enabled);
+	gnet_prop_get_boolean_val
+		(PROP_BW_GNET_LEAF_IN_ENABLED, &enabled);
 	if (enabled) {
 		gnet_prop_get_guint32_val(PROP_BW_GNET_LIN, &bw);
 		val += bw;
 	}
-	gnet_prop_get_boolean_val(PROP_BW_HTTP_IN_ENABLED, &enabled);
+	gnet_prop_get_boolean_val
+		(PROP_BW_HTTP_IN_ENABLED, &enabled);
 	if (enabled) {
 		gnet_prop_get_guint32_val(PROP_BW_HTTP_IN, &bw);
 		val += bw;
 		/* Leaf bandwidth is taken from HTTP traffic, when enabled */
-		gnet_prop_get_boolean_val(PROP_BW_GNET_LEAF_IN_ENABLED, &enabled);
+		gnet_prop_get_boolean_val
+			(PROP_BW_GNET_LEAF_IN_ENABLED, &enabled);
 		if (enabled) {
 			gnet_prop_get_guint32_val(PROP_BW_GNET_LIN, &bw);
 			val -= bw;
@@ -2500,7 +2507,7 @@ void settings_gui_save_if_dirty(void)
 
 const gchar *settings_gui_config_dir(void)
 {
-	return settings_config_dir();
+	return guc_settings_config_dir();
 }
 
 /***

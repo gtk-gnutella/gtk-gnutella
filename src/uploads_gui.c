@@ -92,9 +92,9 @@ static void upload_added(
 {
     gnet_upload_info_t *info;
 
-    info = upload_get_info(n);
+    info = guc_upload_get_info(n);
     uploads_gui_add_upload(info);
-    upload_free_info(info);
+    guc_upload_free_info(info);
 }
 
 /*
@@ -108,9 +108,9 @@ static void upload_info_changed(gnet_upload_t u,
 {
     gnet_upload_info_t *info;
 
-    info = upload_get_info(u);
+    info = guc_upload_get_info(u);
     uploads_gui_update_upload_info(info);
-    upload_free_info(info);
+    guc_upload_free_info(info);
 }
 
 /***
@@ -211,7 +211,7 @@ static void uploads_gui_update_upload_info(gnet_upload_info_t *u)
 	gtk_clist_set_text(clist_uploads, row, c_ul_agent, 
 		(u->user_agent != NULL) ? u->user_agent : "...");
 
-	upload_get_status(u->upload_handle, &status);
+	guc_upload_get_status(u->upload_handle, &status);
 
 	rd->status = status.status;
 
@@ -311,9 +311,10 @@ void uploads_gui_init(void)
 	gtk_clist_column_titles_passive(
         GTK_CLIST(lookup_widget(main_window, "clist_uploads")));
 
-    upload_add_upload_added_listener(upload_added);
-    upload_add_upload_removed_listener(upload_removed);
-    upload_add_upload_info_changed_listener(upload_info_changed);
+    guc_upload_add_upload_added_listener(upload_added);
+    guc_upload_add_upload_removed_listener(upload_removed);
+    guc_upload_add_upload_info_changed_listener
+		(upload_info_changed);
 }
 
 /*
@@ -323,9 +324,10 @@ void uploads_gui_init(void)
  */
 void uploads_gui_shutdown(void) 
 {
-    upload_remove_upload_added_listener(upload_added);
-    upload_remove_upload_removed_listener(upload_removed);
-    upload_remove_upload_info_changed_listener(upload_info_changed);
+    guc_upload_remove_upload_added_listener(upload_added);
+    guc_upload_remove_upload_removed_listener(upload_removed);
+    guc_upload_remove_upload_info_changed_listener
+		(upload_info_changed);
 }
 
 /*
@@ -375,7 +377,7 @@ void uploads_gui_update_display(time_t now)
 
         if (data->valid) {
             data->last_update = now;
-            upload_get_status(data->handle, &status);
+            guc_upload_get_status(data->handle, &status);
             gtk_clist_set_text(clist, row, c_ul_status, 
                 uploads_gui_status_str(&status, data));
         } else {

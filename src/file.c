@@ -25,13 +25,13 @@
  *----------------------------------------------------------------------
  */
 
-#include "common.h"
 
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
 
-#include "ban.h"
+//#include "ban.h"	/* FIXME: needed for ban_reclaim_fd() */
+#include "common.h"
 #include "override.h"		/* Must be the last header included */
 
 RCSID("$Id$");
@@ -311,6 +311,11 @@ static gint do_open(const gchar *path, gint flags, gint mode, gboolean missing)
 	 * banning pool and retry.
 	 */
 
+	/*  FIXME:  This forces us to depend on ban.h which includes a number of
+		other core files.  We therefore can't use file.h in the gui. 
+	
+		We need to find a better way to do this if it's necessary. --- Emile
+
 	if ((errno == EMFILE || errno == ENFILE) && ban_reclaim_fd()) {
 		fd = open(path, flags, mode);
 		if (fd >= 0) {
@@ -318,7 +323,8 @@ static gint do_open(const gchar *path, gint flags, gint mode, gboolean missing)
 			return fd;
 		}
 	}
-
+	*/
+	
 	/*
 	 * Hack for broken libc, which can return -1 with errno = 0!
 	 * This happens when compiling with gcc-3.x and linking with -lpthread
@@ -403,6 +409,11 @@ static FILE *do_fopen(const gchar *path, const gchar *mode, gboolean missing)
 	 * banning pool and retry.
 	 */
 
+	/*  FIXME:  This forces us to depend on ban.h which includes a number of
+		other core files.  We therefore can't use file.h in the gui. 
+	
+		We need to find a better way to do this if it's necessary. --- Emile
+	
 	if ((errno == EMFILE || errno == ENFILE) && ban_reclaim_fd()) {
 		f = fopen(path, mode);
 		if (f != NULL) {
@@ -410,6 +421,7 @@ static FILE *do_fopen(const gchar *path, const gchar *mode, gboolean missing)
 			return f;
 		}
 	}
+	*/
 
 	if (!missing || errno != ENOENT)
 		g_warning("can't %s file \"%s\": %s", what, path, g_strerror(errno));

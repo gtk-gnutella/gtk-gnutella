@@ -25,6 +25,8 @@
  *----------------------------------------------------------------------
  */
 
+#include "common.h"
+
 #include "gui.h"
 #include "gtk-missing.h"
 #include "override.h"		/* Must be the last header included */

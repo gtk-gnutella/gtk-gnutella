@@ -31,8 +31,8 @@
 #include <time.h>
 #include "filter.h"
 
+#include "common.h"
 #include "search_gui_common.h"
-
 /* 
  * Structure for search results 
  */

@@ -25,17 +25,19 @@
  *----------------------------------------------------------------------
  */
 
-#include "gnutella.h" /* mainly for dbg */
-
-RCSID("$Id$");
 
 #include <fcntl.h> /* open(), O_RDONLY */
 #include <signal.h> /* signal(), SIGCHLD, SIG_IGN */
 #include <errno.h>
+
 #include "adns.h"
-#include "http.h" /* MAX_HOSTLEN */
+#include "common.h"
+#include "misc.h"
+#include "ui_core_interface_http_defs.h" /* MAX_HOSTLEN */
 
 #include "override.h"		/* Must be the last header included */
+
+RCSID("$Id$");
 
 /* private data types */
 
@@ -206,12 +208,12 @@ static gboolean adns_cache_lookup(
 	if (delta_time(now, entry->timestamp) < cache->timeout) {
 		if (NULL != ip)
 			*ip = entry->ip;
-		if (dbg > 0)
+		if (common_dbg > 0)
 			g_warning("adns_cache_lookup: \"%s\" cached (ip=%s)",
 				entry->hostname, ip_to_gchar(entry->ip));
 		return TRUE;
 	} else {
-		if (dbg > 0)
+		if (common_dbg > 0)
 			g_warning("adns_cache_lookup: removing \"%s\" from cache",
 				entry->hostname);
 		g_hash_table_remove(cache->hashtab, key);
@@ -240,7 +242,7 @@ static gboolean adns_do_transfer(
 	size_t n = len;
 
 	while (n > 0) {
-		if (dbg > 2)
+		if (common_dbg > 2)
 			g_warning("adns_do_transfer: n=%lu", (gulong) n);
 
 		if (do_write)
@@ -307,7 +309,7 @@ static void adns_gethostbyname(const adns_query_t *query, adns_reply_t *reply)
 	g_assert(NULL != query);
 	g_assert(NULL != reply);
 
-	if (dbg > 1)
+	if (common_dbg > 1)
 		g_warning("adns_gethostbyname: Resolving \"%s\" ...", query->hostname);
 	reply->user_callback = query->user_callback;
 	reply->user_data = query->user_data;
@@ -417,7 +419,7 @@ again:
 	if (sizeof(reply) == n) {
 		time_t now = time(NULL);
 
-		if (dbg > 1)
+		if (common_dbg > 1)
 			g_warning("adns_reply_callback: Resolved \"%s\" to \"%s\".",
 				(gchar *) reply.data, ip_to_gchar(reply.ip));
 		g_assert(NULL != reply.user_callback);

@@ -26,10 +26,11 @@
 #ifndef _uploads_gui_common_h_
 #define _uploads_gui_common_h_
 
-#include "config.h"
-
 #include <glib.h> 
 #include <time.h>           /* For time_t */
+
+#include "config.h"
+#include "gui.h"
 #include "uploads_gui.h"    /* For upload_row_data_t */
 
 gfloat uploads_gui_progress(

@@ -34,6 +34,8 @@
 #include "nodes_gui_common.h"
 #include "nodes_gui.h"
 #include "interface-glade2.h"
+
+#include "ui_core_interface.h"
 #include "override.h"		/* Must be the last header included */
 
 RCSID("$Id$");
@@ -229,7 +231,7 @@ static inline void nodes_gui_update_node_info(
 
 	g_assert(NULL != iter);
 
-    node_get_status(n->node_handle, &status);
+    guc_node_get_status(n->node_handle, &status);
     gm_snprintf(version, sizeof(version), "%d.%d",
 		n->proto_major, n->proto_minor);
 
@@ -314,10 +316,10 @@ void nodes_gui_init(void)
     ht_node_info_changed = g_hash_table_new(g_direct_hash, g_direct_equal);
     ht_node_flags_changed = g_hash_table_new(g_direct_hash, g_direct_equal);
 
-    node_add_node_added_listener(nodes_gui_node_added);
-    node_add_node_removed_listener(nodes_gui_node_removed);
-    node_add_node_info_changed_listener(nodes_gui_node_info_changed);
-    node_add_node_flags_changed_listener(nodes_gui_node_flags_changed);
+    guc_node_add_node_added_listener(nodes_gui_node_added);
+    guc_node_add_node_removed_listener(nodes_gui_node_removed);
+    guc_node_add_node_info_changed_listener(nodes_gui_node_info_changed);
+    guc_node_add_node_flags_changed_listener(nodes_gui_node_flags_changed);
 }
 
 /*
@@ -330,10 +332,10 @@ void nodes_gui_shutdown(void)
 	tree_view_save_widths(treeview_nodes, PROP_NODES_COL_WIDTHS);
 	tree_view_save_visibility(treeview_nodes, PROP_NODES_COL_VISIBLE);
 
-    node_remove_node_added_listener(nodes_gui_node_added);
-    node_remove_node_removed_listener(nodes_gui_node_removed);
-    node_remove_node_info_changed_listener(nodes_gui_node_info_changed);
-    node_remove_node_flags_changed_listener(nodes_gui_node_flags_changed);
+    guc_node_remove_node_added_listener(nodes_gui_node_added);
+    guc_node_remove_node_removed_listener(nodes_gui_node_removed);
+    guc_node_remove_node_info_changed_listener(nodes_gui_node_info_changed);
+    guc_node_remove_node_flags_changed_listener(nodes_gui_node_flags_changed);
 
 	gtk_list_store_clear(nodes_model);
 	g_object_unref(G_OBJECT(nodes_model));
@@ -411,7 +413,7 @@ static inline void update_row(gpointer key, gpointer value, gpointer user_data)
 	gnet_node_status_t status;
 
 	g_assert(NULL != iter);
-	node_get_status(n, &status);
+	guc_node_get_status(n, &status);
 
     /* 
      * Update additional info too if it has recorded changes.
@@ -420,16 +422,16 @@ static inline void update_row(gpointer key, gpointer value, gpointer user_data)
         gnet_node_info_t info;
 
         g_hash_table_remove(ht_node_info_changed, GUINT_TO_POINTER(n));
-        node_fill_info(n, &info);
+        guc_node_fill_info(n, &info);
         nodes_gui_update_node_info(&info, iter);
-        node_clear_info(&info);
+        guc_node_clear_info(&info);
     }
 
     if (g_hash_table_lookup(ht_node_flags_changed, GUINT_TO_POINTER(n))) {
         gnet_node_flags_t flags;
 
         g_hash_table_remove(ht_node_flags_changed, GUINT_TO_POINTER(n));
-        node_fill_flags(n, &flags);
+        guc_node_fill_flags(n, &flags);
         nodes_gui_update_node_flags(n, &flags, iter);
     }
 
@@ -554,9 +556,9 @@ static void nodes_gui_node_added(gnet_node_t n, const gchar *type)
     if (gui_debug >= 5)
         g_warning("nodes_gui_node_added(%u, %s)\n", n, type);
 
-    info = node_get_info(n);
+    info = guc_node_get_info(n);
     nodes_gui_add_node(info, type);
-    node_free_info(info);
+    guc_node_free_info(info);
 }
 
 /*
@@ -573,9 +575,9 @@ static void nodes_gui_node_info_changed(gnet_node_t n)
 #if 0
     gnet_node_info_t info;
 
-    node_fill_info(n, &info);
+    guc_node_fill_info(n, &info);
     nodes_gui_update_node_info(&info, NULL);
-    node_clear_info(&info);
+    guc_node_clear_info(&info);
 #endif
 }
 
@@ -592,7 +594,7 @@ static void nodes_gui_node_flags_changed(gnet_node_t n)
 #if 0
     gnet_node_flags_t flags;
 
-    node_fill_flags(n, &flags);
+    guc_node_fill_flags(n, &flags);
     nodes_gui_update_node_flags(n, &flags, NULL);
 #endif
 }
@@ -612,7 +614,7 @@ void nodes_gui_remove_selected(void)
 	selection = gtk_tree_view_get_selection(treeview);
 	gtk_tree_selection_selected_foreach(selection,
 		(gpointer) &nodes_gui_remove_selected_helper, &node_list);
-	node_remove_nodes_by_handle(node_list);
+	guc_node_remove_nodes_by_handle(node_list);
 	g_slist_free(node_list);
 }
 

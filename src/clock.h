@@ -29,7 +29,8 @@
 #ifndef _clock_h_
 #define _clock_h_
 
-#include "gnutella.h"
+#include <time.h>
+
 
 /*
  * Public interface.
@@ -44,4 +45,3 @@ time_t clock_loc2gmt(time_t stamp);
 time_t clock_gmt2loc(time_t stamp);
 
 #endif /* _clock_h_ */
-

@@ -26,7 +26,7 @@
 #ifndef _gui_h_
 #define _gui_h_
 
-#include "gnet.h"
+#include "ui_core_interface_misc_defs.h" /* for RCSID */
 
 #include <gtk/gtk.h>
 

@@ -220,4 +220,3 @@ guint8 *gui_prop_get_storage(property_t, guint8 *, gsize);
 gchar *gui_prop_to_string(property_t prop);
 
 #endif /* _gui_property_h_ */
-

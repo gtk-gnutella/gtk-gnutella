@@ -33,7 +33,6 @@
 #include "gnutella.h"
 
 #include "fileinfo.h"
-#include "downloads_gui.h"
 #include "sockets.h"
 #include "downloads.h"
 #include "uploads.h"
@@ -49,7 +48,6 @@
 #include "guid.h"
 #include "share.h"
 #include "file.h"
-
 #include "settings.h"
 #include "nodes.h"
 #include "http.h"			/* For http_range_t */

@@ -30,7 +30,8 @@
 #include "uploads_gui.h"
 #include "gtkcolumnchooser.h"
 
-#include "upload_stats.h"	/* FIXME: remove this dependency */
+#include "gui.h"
+#include "ui_core_interface.h"
 #include "override.h"			/* Must be the last header included */
 
 RCSID("$Id$");
@@ -42,7 +43,7 @@ RCSID("$Id$");
 
 void on_button_ul_stats_clear_all_clicked(GtkButton *button, gpointer data)
 {
-	upload_stats_clear_all();
+	upload_stats_gui_clear_all();
 }
 
 void on_button_ul_stats_clear_deleted_clicked(

@@ -109,6 +109,7 @@ CORE = \
 	gnet_property.c \
 	gnet_stats.c \
 	guid.c \
+	ui_core_interface.c \
 	gwcache.c \
 	hashlist.c \
 	hashtree.c \

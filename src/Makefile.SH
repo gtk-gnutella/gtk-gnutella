@@ -195,6 +195,7 @@ CORE = \
 	gnet_property.c \
 	gnet_stats.c \
 	guid.c \
+	ui_core_interface.c \
 	gwcache.c \
 	hashlist.c \
 	hashtree.c \
@@ -351,6 +352,7 @@ OBJLIST = \
 	gmsg.o \
 	gnet_property.o \
 	gnet_stats.o \
+	ui_core_interface.o \
 	guid.o \
 	gwcache.o \
 	hashlist.o \
@@ -580,4 +582,3 @@ Makefiles.SH::
 !NO!SUBS!
 chmod 644 Makefile
 $eunicefix Makefile
-

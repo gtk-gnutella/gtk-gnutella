@@ -32,9 +32,9 @@
 /*
  * Includes specified by "uses"-statement in .ag file
  */
-#include "sockets.h"
-#include "gnet.h"
-#include "bsched.h"
+#include "ui_core_interface_gnet_defs.h"
+#include "ui_core_interface_bsched_defs.h"
+#include "ui_core_interface_socket_defs.h"
 
 #include "override.h"		/* Must be the last header included */
 

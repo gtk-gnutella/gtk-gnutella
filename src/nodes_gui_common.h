@@ -27,6 +27,7 @@
 #define _nodes_gui_common_h_
 
 #include "gui.h"
+#include "ui_core_interface_gnet_nodes_defs.h"
 
 void nodes_gui_common_init(void);
 void nodes_gui_common_shutdown(void);

@@ -91,6 +91,7 @@
 #include "hsep.h"
 #include "header.h"
 #include "uploads.h"
+#include "share.h"
 
 RCSID("$Id$");
 
@@ -1041,5 +1042,63 @@ void hsep_get_non_hsep_triple(hsep_triple *tripledest)
 	tripledest[0][HSEP_IDX_FILES] = other_files;
 	tripledest[0][HSEP_IDX_KIB] = other_kib;
 }
+
+
+/*
+ * hsep_get_static_str
+ *
+ * Returns a static string of the cell contents of the given row and column.
+ * NB: The static buffers for each column are disjunct.
+ */
+const gchar *hsep_get_static_str(gint row, gint column)
+{
+	static gchar buf[21];
+	hsep_triple hsep_table[HSEP_N_MAX + 1];
+	hsep_triple *other = walloc(sizeof(hsep_triple));
+
+	hsep_get_global_table(hsep_table, G_N_ELEMENTS(hsep_table));
+	hsep_get_non_hsep_triple(other);
+
+    switch (column) {
+    case HSEP_IDX_NODES:
+		gm_snprintf(buf, sizeof(buf), "%" PRIu64,
+		    hsep_table[row][HSEP_IDX_NODES] + other[0][HSEP_IDX_NODES]);
+		break;
+	
+    case HSEP_IDX_FILES:
+
+		gm_snprintf(buf, sizeof(buf), "%" PRIu64,
+		    hsep_table[row][HSEP_IDX_FILES] + other[0][HSEP_IDX_FILES]);
+		break;
+	
+	case HSEP_IDX_KIB:
+		/* Make a copy because concurrent usage of short_kb_size64()
+	 	 * could be hard to discover. */
+		g_strlcpy(buf, short_kb_size64(hsep_table[row][HSEP_IDX_KIB] +
+		    other[0][HSEP_IDX_KIB]), sizeof buf);	
+		break;
+
+	default:
+		g_assert_not_reached();
+	    return NULL;
+    }
+	
+	wfree(other, sizeof(hsep_triple));
+  	return buf;
+}
+
+/*
+ * hsep_get_table_size
+ *
+ * Returns the size of the global hsep table
+ *
+ */
+gint hsep_get_table_size(void)
+{	
+	hsep_triple hsep_table[HSEP_N_MAX + 1];
+	hsep_get_global_table(hsep_table, G_N_ELEMENTS(hsep_table));
+	return G_N_ELEMENTS(hsep_table);
+}
+
 
 /* vi: set ts=4: */

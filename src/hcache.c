@@ -49,8 +49,8 @@
 #include "hcache.h"
 #include "pcache.h"
 #include "nodes.h"
-
 #include "settings.h"
+
 #include "override.h"		/* Must be the last header included */
 
 RCSID("$Id$");
@@ -1511,4 +1511,3 @@ void hcache_close(void)
 }
 
 /* vi: set ts=4: */
-

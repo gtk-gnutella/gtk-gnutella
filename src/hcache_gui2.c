@@ -28,7 +28,7 @@
 #ifdef USE_GTK2
 
 #include "hcache_gui.h"
-#include "gnutella.h" /* for sizeof(struct gnutella_header) */
+#include "ui_core_interface.h" /* for sizeof(struct gnutella_header) */
 #include "override.h"		/* Must be the last header included */
 
 RCSID("$Id$");
@@ -140,7 +140,7 @@ void hcache_gui_update(time_t now)
     if (current_page != nb_main_page_hostcache)
 		goto cleanup;
 
-    hcache_get_stats(stats);
+    guc_hcache_get_stats(stats);
 
 	store = GTK_LIST_STORE(gtk_tree_view_get_model(treeview_hcache));
 	gtk_tree_model_get_iter_first(GTK_TREE_MODEL(store), &iter);

@@ -26,23 +26,7 @@
 
 #include "common.h"
 
-/***
- *** Sharing
- ***/
-
-/*
- * Search query types
- */
-typedef enum {
-    QUERY_STRING,
-    QUERY_SHA1
-} query_type_t;
-
-/*
- * Sharing callbacks
- */
-typedef void (*search_request_listener_t) (
-    query_type_t, const gchar *query, guint32, guint16);
+#include "ui_core_interface_gnet_share_defs.h"
 
 void share_add_search_request_listener(search_request_listener_t l);
 void share_remove_search_request_listener(search_request_listener_t l);

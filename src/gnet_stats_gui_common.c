@@ -26,7 +26,9 @@
 #include "config.h"
 
 #include "gnet_stats_gui_common.h"
-#include "nodes.h"
+
+#include "ui_core_interface_hsep_defs.h"
+#include "ui_core_interface.h"
 #include "override.h"		/* Must be the last header included */
 
 RCSID("$Id$");
@@ -152,8 +154,7 @@ const gchar *general_type_str(int value)
  * Returns the cell contents for the horizon stats table.
  * NB: The static buffers for each column are disjunct.
  */
-const gchar *horizon_stat_str(hsep_triple *table, hsep_triple *other, gint row,
-	c_horizon_t column)
+const gchar *horizon_stat_str(gint row,	c_horizon_t column)
 {
     switch (column) {
     case c_horizon_hops:
@@ -165,29 +166,15 @@ const gchar *horizon_stat_str(hsep_triple *table, hsep_triple *other, gint row,
 		}
     case c_horizon_nodes:
 		{
-    		static gchar buf[21];
-
-			gm_snprintf(buf, sizeof(buf), "%" PRIu64,
-			    table[row][HSEP_IDX_NODES] + other[0][HSEP_IDX_NODES]);
-           	return buf;
+           	return guc_hsep_get_static_str(row, HSEP_IDX_NODES);
 		}
     case c_horizon_files:
 		{
-    		static gchar buf[21];
-
-			gm_snprintf(buf, sizeof(buf), "%" PRIu64,
-			    table[row][HSEP_IDX_FILES] + other[0][HSEP_IDX_FILES]);
-           	return buf;
+           	return guc_hsep_get_static_str(row, HSEP_IDX_FILES);
 		}
     case c_horizon_size:
 		{
-   			static gchar buf[21];
-
-			/* Make a copy because concurrent usage of short_kb_size64()
-		 	 * could be hard to discover. */
-			g_strlcpy(buf, short_kb_size64(table[row][HSEP_IDX_KIB] +
-			    other[0][HSEP_IDX_KIB]), sizeof buf);
-			return buf;
+           	return guc_hsep_get_static_str(row, HSEP_IDX_KIB);
 		}
     case num_c_horizon:
 		g_assert_not_reached();
@@ -217,7 +204,7 @@ void gnet_stats_gui_horizon_update(hsep_triple *table, guint32 triples)
 	    return;
 	g_assert((gint32) triples > 0);
 
-	hsep_get_non_hsep_triple(&other);
+	guc_hsep_get_non_hsep_triple(&other);
 
 	/*
 	 * Update the 3 labels in the statusbar with the horizon values for a

@@ -73,6 +73,7 @@
 #endif
 
 #include "main_gui.h"
+#include "upload_stats_gui.h"
 #include "settings.h"
 #include "fileinfo.h"
 #include "settings_gui.h"

@@ -29,8 +29,6 @@
 #include "filter.h"
 #include "gui.h"
 
-
-
 /*
  * Notebook tabs in the filter detail notebook.
  */

@@ -31,29 +31,7 @@
 #include <glib.h>	 	/* for glib types */
 
 #include "pmsg.h"
-
-struct gnutella_node;
-
-/*
- * A search queue.
- *
- * There is one search queue per node, placed above the message queue.
- * It is only fed by the queries sent by ourselves.  Its purpose is to
- * delay queries to avoid flooding a single connection.
- */
-typedef struct search_queue {
-	GList *searches;			/* A pointer to the GList */
-	GHashTable *handles;		/* Keeps track of search handles in queue */
-	struct gnutella_node *node;	/* Node owning this search queue */
-	time_t last_sent;    		/* Time last msg was sent */
-	guint count;					/* Count of number in queue */
-	/* stats */
-	gint n_sent;				/* Number of searches sent */
-	gint n_dropped;				/* Number dropped due to flow control */
-} squeue_t;
-
-#define sq_count(q)			((q)->count)
-#define sq_sent(q)			((q)->n_sent)
+#include "ui_core_interface_sq_defs.h"
 
 /*
  * Public interfaces
@@ -68,4 +46,3 @@ void sq_search_closed(squeue_t *sq, gnet_search_t sh);
 
 /* vi: set ts=4: */
 #endif /* _sq_h_ */
-

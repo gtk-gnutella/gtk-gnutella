@@ -30,8 +30,6 @@
  */
 
 #include "gnutella.h"
-#include "downloads_gui.h"
-#include "downloads_gui_common.h"
 #include "sockets.h"
 #include "downloads.h"
 #include "hosts.h"
@@ -66,6 +64,7 @@
 #include <fcntl.h>
 #include <regex.h>
 
+#include "ui_core_interface.h"
 #include "override.h"		/* Must be the last header included */
 
 RCSID("$Id$");
@@ -449,7 +448,7 @@ download_timer(time_t now)
 	GSList *l = sl_unqueued;		/* Only downloads not in the queue */
 
 	if (queue_frozen > 0) {
-		gui_update_download_clear_now();
+		gcu_gui_update_download_clear_now();
 		return;
 	}
 
@@ -545,7 +544,7 @@ download_timer(time_t now)
 					}
 				}
 			} else if (now != d->last_gui_update)
-				gui_update_download(d, TRUE);
+				gcu_gui_update_download(d, TRUE);
 			break;
 		case GTA_DL_TIMEOUT_WAIT:
 			if (!is_inet_connected) {
@@ -556,11 +555,11 @@ download_timer(time_t now)
 			if (delta_time(now, d->last_update) > d->timeout_delay)
 				download_start(d, TRUE);
 			else
-				gui_update_download(d, FALSE);
+				gcu_gui_update_download(d, FALSE);
 			break;
 		case GTA_DL_VERIFYING:
 		case GTA_DL_MOVING:
-			gui_update_download(d, FALSE);
+			gcu_gui_update_download(d, FALSE);
 			break;
 		case GTA_DL_COMPLETED:
 		case GTA_DL_ABORTED:
@@ -589,7 +588,7 @@ download_timer(time_t now)
 		FALSE);
 
 	download_free_removed();
-	gui_update_download_clear_now();
+	gcu_gui_update_download_clear_now();
 
 	/* Dequeuing */
 	if (is_inet_connected)
@@ -1670,8 +1669,8 @@ download_clear_stopped(gboolean complete,
 		}
 	}
 
-	gui_update_download_abort_resume();
-	gui_update_download_clear();
+	gcu_gui_update_download_abort_resume();
+	gcu_gui_update_download_clear();
 }
 
 /*
@@ -2064,7 +2063,7 @@ download_stop_v(struct download *d, guint32 new_status,
 		d->retries = 0;		/* If they retry, go over whole cycle again */
 
 	if (DOWNLOAD_IS_VISIBLE(d))
-		gui_update_download(d, TRUE);
+		gcu_gui_update_download(d, TRUE);
 
 	if (store_queue)
 		download_dirty = TRUE;		/* Refresh list, in case we crash */
@@ -2073,8 +2072,8 @@ download_stop_v(struct download *d, guint32 new_status,
 		download_push_remove(d);
 
 	if (DOWNLOAD_IS_VISIBLE(d)) {
-		gui_update_download_abort_resume();
-		gui_update_download_clear();
+		gcu_gui_update_download_abort_resume();
+		gcu_gui_update_download_clear();
 	}
 
 	file_info_clear_download(d, FALSE);
@@ -2144,7 +2143,7 @@ download_queue_v(struct download *d, const gchar *fmt, va_list ap)
 	}
 
 	if (DOWNLOAD_IS_VISIBLE(d))
-		download_gui_remove(d);
+		gcu_download_gui_remove(d);
 
 	if (DOWNLOAD_IS_RUNNING(d))
 		download_stop(d, GTA_DL_TIMEOUT_WAIT, NULL);
@@ -2169,8 +2168,8 @@ download_queue_v(struct download *d, const gchar *fmt, va_list ap)
 	if (d->flags & DL_F_REPLIED)
 		gnet_prop_set_guint32_val(PROP_DL_QALIVE_COUNT, dl_qalive_count + 1);
 
-	download_gui_add(d);
-	gui_update_download(d, TRUE);
+	gcu_download_gui_add(d);
+	gcu_gui_update_download(d, TRUE);
 }
 
 /**
@@ -2194,7 +2193,7 @@ void
 download_freeze_queue(void)
 {
 	queue_frozen++;
-	gui_update_queue_frozen();
+	gcu_gui_update_queue_frozen();
 }
 
 /**
@@ -2207,7 +2206,7 @@ download_thaw_queue(void)
 	g_return_if_fail(queue_frozen > 0);
 
 	queue_frozen--;
-	gui_update_queue_frozen();
+	gcu_gui_update_queue_frozen();
 }
 
 /**
@@ -2455,7 +2454,7 @@ download_ignore_requested(struct download *d)
 
 	if (reason != IGNORE_FALSE) {
 		if (!DOWNLOAD_IS_VISIBLE(d))
-			download_gui_add(d);
+			gcu_download_gui_add(d);
 
 		download_stop(d, GTA_DL_ERROR, "Ignoring requested (%s)",
 			reason == IGNORE_OURSELVES ? "Points to ourselves" :
@@ -2501,7 +2500,7 @@ download_unqueue(struct download *d)
 	g_assert(dl_queue_count > 0);
 
 	if (DOWNLOAD_IS_VISIBLE(d))
-		download_gui_remove(d);
+		gcu_download_gui_remove(d);
 
 	sl_unqueued = g_slist_prepend(sl_unqueued, d);
 	gnet_prop_set_guint32_val(PROP_DL_QUEUE_COUNT, dl_queue_count - 1);
@@ -2591,7 +2590,7 @@ download_start_prepare_running(struct download *d)
 
 	if (FILE_INFO_COMPLETE(fi)) {
 		if (!DOWNLOAD_IS_VISIBLE(d))
-			download_gui_add(d);
+			gcu_download_gui_add(d);
 		download_stop(d, GTA_DL_ERROR, "Nothing more to get");
 		download_verify_sha1(d);
 		return FALSE;
@@ -2681,7 +2680,7 @@ download_pick_chunk(struct download *d)
 	} else if (status == DL_CHUNK_DONE) {
 
 		if (!DOWNLOAD_IS_VISIBLE(d))
-			download_gui_add(d);
+			gcu_download_gui_add(d);
 
 		download_stop(d, GTA_DL_ERROR, "No more gaps to fill");
 		queue_remove_downloads_with_file(d->file_info, d);
@@ -2861,7 +2860,7 @@ download_start(struct download *d, gboolean check_allowed)
 		d->socket = download_connect(d);
 
 		if (!DOWNLOAD_IS_VISIBLE(d))
-			download_gui_add(d);
+			gcu_download_gui_add(d);
 
 		if (!d->socket) {
 			/*
@@ -2889,7 +2888,7 @@ download_start(struct download *d, gboolean check_allowed)
 			if (d->flags & DL_F_DNS_LOOKUP) {
 				atom_str_free(d->server->hostname);
 				d->server->hostname = NULL;
-				gui_update_download_host(d);
+				gcu_gui_update_download_host(d);
 			}
 
 			download_unavailable(d, GTA_DL_ERROR, "Connection failed");
@@ -2904,14 +2903,14 @@ download_start(struct download *d, gboolean check_allowed)
 		g_assert(d->socket == NULL);
 
 		if (!DOWNLOAD_IS_VISIBLE(d))
-			download_gui_add(d);
+			gcu_download_gui_add(d);
 
 		download_push(d, FALSE);
 	}
 
 	gnet_prop_set_guint32_val(PROP_DL_RUNNING_COUNT, count_running_downloads());
 
-	gui_update_download(d, TRUE);
+	gcu_gui_update_download(d, TRUE);
 	gnet_prop_set_guint32_val(PROP_DL_ACTIVE_COUNT, dl_active);
 }
 
@@ -3011,23 +3010,7 @@ download_pickup_queued(void)
 		}
 	}
 
-	/*
-	 * Enable "Start now" only if we would not exceed limits.
-	 */
-
-#ifdef USE_GTK2
-	
-	gtk_widget_set_sensitive(lookup_widget
-		(popup_queue, "popup_queue_start_now"), (running < max_downloads));	
-	
-#else
-		
-	gtk_widget_set_sensitive(
-		lookup_widget(popup_queue, "popup_queue_start_now"), 
-		(running < max_downloads) &&
-		GTK_CLIST(
-			lookup_widget(main_window, "ctree_downloads_queue"))->selection); 
-#endif
+	gcu_download_enable_start_now(running, max_downloads);
 }
 
 static void
@@ -3211,7 +3194,7 @@ download_fallback_to_push(struct download *d,
 				ip_port_to_gchar(download_ip(d), download_port(d)));
 			atom_str_free(d->server->hostname);
 			d->server->hostname = NULL;
-			gui_update_download_host(d);
+			gcu_gui_update_download_host(d);
 		}
 
 		/*
@@ -3240,7 +3223,7 @@ download_fallback_to_push(struct download *d,
 	d->last_update = time(NULL);		/* Reset timeout if we send the push */
 	download_push(d, on_timeout);
 
-	gui_update_download(d, TRUE);
+	gcu_gui_update_download(d, TRUE);
 }
 
 /*
@@ -3813,7 +3796,7 @@ download_remove(struct download *d)
 		return FALSE;
 	
 	if (DOWNLOAD_IS_VISIBLE(d))
-		download_gui_remove(d);
+		gcu_download_gui_remove(d);
 
 	if (DOWNLOAD_IS_QUEUED(d)) {
 		g_assert(dl_queue_count > 0);
@@ -3907,7 +3890,7 @@ download_forget(struct download *d, gboolean unavailable)
 
 	if (DOWNLOAD_IS_QUEUED(d)) {
 		download_unqueue(d);
-		download_gui_add(d);
+		gcu_download_gui_add(d);
 	}
 
 	if (unavailable)
@@ -4020,7 +4003,8 @@ use_push_proxy(struct download *d)
 			download_guid(d), d->record_index);
 
 		if (d->cproxy) {
-			gui_update_download(d, TRUE);	/* Will read status in d->cproxy */
+			/* Will read status in d->cproxy */
+			gcu_gui_update_download(d, TRUE);	
 			return TRUE;
 		}
 
@@ -4037,7 +4021,8 @@ use_push_proxy(struct download *d)
 void
 download_proxy_newstate(struct download *d)
 {
-	gui_update_download(d, TRUE);	/* Will read status in d->cproxy */
+	/* Will read status in d->cproxy */
+	gcu_gui_update_download(d, TRUE);
 }
 
 /**
@@ -4047,7 +4032,8 @@ download_proxy_newstate(struct download *d)
 void
 download_proxy_sent(struct download *d)
 {
-	gui_update_download(d, TRUE);	/* Will read status in d->cproxy */
+	/* Will read status in d->cproxy */
+	gcu_gui_update_download(d, TRUE);	
 }
 
 /**
@@ -4060,7 +4046,8 @@ download_proxy_failed(struct download *d)
 
 	g_assert(cp != NULL);
 
-	gui_update_download(d, TRUE);	/* Will read status in d->cproxy */
+	/* Will read status in d->cproxy */
+	gcu_gui_update_download(d, TRUE);	
 
 	remove_proxy(d->server, cproxy_ip(cp), cproxy_port(cp));
 	cproxy_free(d->cproxy);
@@ -4260,7 +4247,7 @@ download_start_reading(gpointer o)
 
 	d->status = GTA_DL_HEADERS;
 	d->last_update = time((time_t *) 0);	/* Starting reading */
-	gui_update_download(d, TRUE);
+	gcu_gui_update_download(d, TRUE);
 }
 
 static void
@@ -4603,7 +4590,7 @@ download_write_data(struct download *d)
 	} else if (FILE_INFO_COMPLETE(fi))
 		goto done;
 	else
-		gui_update_download(d, FALSE);
+		gcu_gui_update_download(d, FALSE);
 
 	return;
 
@@ -4638,7 +4625,7 @@ partial_done:
 	else {
 		if (download_start_prepare(cd)) {
 			cd->keep_alive = TRUE;			/* Was reset by _prepare() */
-			download_gui_add(cd);
+			gcu_download_gui_add(cd);
 			download_send_request(cd);		/* Will pick up new range */
 		}
 	}
@@ -4981,7 +4968,7 @@ check_xhostname(struct download *d, const header_t *header)
 		return;
 
 	set_server_hostname(server, buf);
-	gui_update_download_host(d);
+	gcu_gui_update_download_host(d);
 }
 
 /**
@@ -5498,7 +5485,7 @@ download_request(struct download *d, header_t *header, gboolean ok)
 	 */
 
 	if (download_get_server_name(d, header))
-		gui_update_download_server(d);
+		gcu_gui_update_download_server(d);
 
 	/*
 	 * Check status.
@@ -5742,7 +5729,7 @@ download_request(struct download *d, header_t *header, gboolean ok)
 					if (s->pos > 0)
 						download_sink(d);
 
-					gui_update_download(d, TRUE);
+					gcu_gui_update_download(d, TRUE);
 				}
 			} else {
 				/* Host might support queueing. If so, retreive queue status */
@@ -5925,7 +5912,7 @@ download_request(struct download *d, header_t *header, gboolean ok)
 			d->server->attrs &= ~DLS_A_FAKE_G2;
 
 			if (was_banning)
-				gui_update_download_server(d);
+				gcu_gui_update_download_server(d);
 
 		} else if (!(d->server->attrs & DLS_A_BANNING)) {
 			switch (ack_code) {
@@ -6151,7 +6138,7 @@ download_request(struct download *d, header_t *header, gboolean ok)
 				d->size = d->range_end - d->skip;	/* Don't count overlap */
 				d->flags |= DL_F_SHRUNK_REPLY;		/* Remember shrinking */
 
-				gui_update_download_range(d);
+				gcu_gui_update_download_range(d);
 			}
 			got_content_length = TRUE;
 			check_content_range = 0;		/* We validated the served range */
@@ -6292,7 +6279,7 @@ download_request(struct download *d, header_t *header, gboolean ok)
 	g_assert(d->list_idx == DL_LIST_RUNNING);
 
 	gnet_prop_set_guint32_val(PROP_DL_RUNNING_COUNT, count_running_downloads());
-	gui_update_download(d, TRUE);
+	gcu_gui_update_download(d, TRUE);
 	gnet_prop_set_guint32_val(PROP_DL_ACTIVE_COUNT, dl_active);
 
 	g_assert(s->gdk_tag == 0);
@@ -6434,7 +6421,7 @@ download_request_sent(struct download *d)
 	d->status = GTA_DL_REQ_SENT;
 	tm_now(&d->header_sent);
 
-	gui_update_download(d, TRUE);
+	gcu_gui_update_download(d, TRUE);
 
 	/*
 	 * Now prepare to read the status line and the headers.
@@ -6568,7 +6555,7 @@ download_send_request(struct download *d)
 
 	if (d->server->hostname != NULL && download_ip(d) != s->ip) {
 		change_server_ip(d->server, s->ip);
-		gui_update_download_host(d);
+		gcu_gui_update_download_host(d);
 	}
 
 	/*
@@ -6658,9 +6645,9 @@ picked:
 	d->last_update = time((time_t *) 0);
 
 	if (!DOWNLOAD_IS_VISIBLE(d))
-		download_gui_add(d);
-	gui_update_download_range(d);
-	gui_update_download(d, TRUE);
+		gcu_download_gui_add(d);
+	gcu_gui_update_download_range(d);
+	gcu_gui_update_download(d, TRUE);
 
 	/*
 	 * Build the HTTP request.
@@ -7093,9 +7080,9 @@ select_push_download(guint file_index, const gchar *hex_guid)
 				if (download_start_prepare(d)) {
 					d->status = GTA_DL_CONNECTING;
 					if (!DOWNLOAD_IS_VISIBLE(d))
-						download_gui_add(d);
+						gcu_download_gui_add(d);
 
-					gui_update_download(d, TRUE);
+					gcu_gui_update_download(d, TRUE);
 					gnet_prop_set_guint32_val(PROP_DL_ACTIVE_COUNT,
 						dl_active);
 					gnet_prop_set_guint32_val(PROP_DL_RUNNING_COUNT,
@@ -7187,7 +7174,7 @@ download_push_ack(struct gnutella_socket *s)
 	d->last_update = time((time_t *) NULL);
 	d->socket = s;
 	s->resource.download = d;
-	gui_update_download_host(d);
+	gcu_gui_update_download_host(d);
 
 	/*
 	 * Now we have to read that trailing "\n" which comes right afterwards.
@@ -7697,9 +7684,9 @@ download_move(struct download *d, const gchar *dir, const gchar *ext)
 	move_queue(d, dir, common_dir ? ext : "");
 
 	if (!DOWNLOAD_IS_VISIBLE(d))
-		download_gui_add(d);
+		gcu_download_gui_add(d);
 
-	gui_update_download(d, TRUE);
+	gcu_gui_update_download(d, TRUE);
 
 	goto cleanup;
 
@@ -7734,7 +7721,7 @@ download_move_start(struct download *d)
 	d->status = GTA_DL_MOVING;
 	d->file_info->copied = 0;
 
-	gui_update_download(d, TRUE);
+	gcu_gui_update_download(d, TRUE);
 }
 
 /**
@@ -7760,7 +7747,7 @@ download_move_done(struct download *d, guint elapsed)
 
 	d->status = GTA_DL_DONE;
 	fi->copy_elapsed = elapsed;
-	gui_update_download(d, TRUE);
+	gcu_gui_update_download(d, TRUE);
 
 	/*
 	 * File was unlinked by rename() if we were on the same filesystem,
@@ -7842,9 +7829,9 @@ download_verify_sha1(struct download *d)
 	verify_queue(d);
 
 	if (!DOWNLOAD_IS_VISIBLE(d))
-		download_gui_add(d);
+		gcu_download_gui_add(d);
 
-	gui_update_download(d, TRUE);
+	gcu_gui_update_download(d, TRUE);
 }
 
 /**
@@ -7859,7 +7846,7 @@ download_verify_start(struct download *d)
 	d->status = GTA_DL_VERIFYING;
 	d->file_info->cha1_hashed = 0;
 
-	gui_update_download(d, TRUE);
+	gcu_gui_update_download(d, TRUE);
 }
 
 /**
@@ -7891,7 +7878,7 @@ download_verify_done(struct download *d, gchar *digest, guint elapsed)
 	file_info_store_binary(fi);		/* Resync with computed SHA1 */
 
 	d->status = GTA_DL_VERIFIED;
-	gui_update_download(d, TRUE);
+	gcu_gui_update_download(d, TRUE);
 
 	ignore_add_sha1(name, fi->cha1);
 
@@ -7928,7 +7915,7 @@ download_verify_error(struct download *d)
 	ignore_add_filesize(name, fi->size);
 	queue_remove_downloads_with_file(fi, d);
 	download_move(d, move_file_path, DL_UNKN_EXT);
-	gui_update_download(d, TRUE);
+	gcu_gui_update_download(d, TRUE);
 }
 
 /**
@@ -8016,7 +8003,7 @@ download_resume_bg_tasks(void)
 			to_remove = g_slist_prepend(to_remove, d->file_info);
 		}
 
-		gui_update_download(d, TRUE);
+		gcu_gui_update_download(d, TRUE);
 	}
 
 	/*
@@ -8172,6 +8159,41 @@ download_get_hostname(const struct download *d)
 	gm_snprintf(buf, sizeof buf, "%s:%u", d->server->hostname ?
 			d->server->hostname : ip_to_gchar(ip), port);
 	return buf;
+}
+
+gint download_get_http_req_percent(const struct download *d)
+{
+	http_buffer_t *r = d->req;
+	
+	return (http_buffer_read_base(r) - http_buffer_base(r))
+				* 100 / http_buffer_length(r);
+}
+
+/*
+ * download_something_to_clear
+ *
+ * Checks unqueued list to see if there are any downloads that are finished and
+ * therefore ready to be cleared.
+ */
+gboolean download_something_to_clear()
+{
+	GSList *l;
+	gboolean clear = FALSE;
+	
+	for (l = sl_unqueued; !clear && l; l = l->next) {
+		switch (((struct download *) l->data)->status) {
+		case GTA_DL_COMPLETED:
+		case GTA_DL_ERROR:
+		case GTA_DL_ABORTED:
+		case GTA_DL_DONE:
+			clear = TRUE;
+			break;
+		default:
+			break;
+		}
+	}
+
+	return clear;	
 }
 
 /* 

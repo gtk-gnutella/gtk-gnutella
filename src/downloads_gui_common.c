@@ -29,13 +29,7 @@ RCSID("$Id$");
 
 #include "downloads_gui_common.h"
 #include "downloads_gui.h"
-
-#include "downloads.h" /* FIXME: remove this dependency */
-#include "dmesh.h" /* FIXME: remove this dependency */
-#include "http.h" /* FIXME: remove this dependency */
-#include "pproxy.h" /* FIXME: remove this dependency */
 #include "statusbar_gui.h"
-#include "parq.h"
 
 #ifdef USE_GTK2
 #include "downloads_cb2.h"
@@ -43,6 +37,7 @@ RCSID("$Id$");
 #include "downloads_cb.h"
 #endif
 
+#include "ui_core_interface.h"
 #include "override.h"		/* Must be the last header included */
 
 #define IO_STALLED		60		/* If nothing exchanged after that many secs */
@@ -71,28 +66,12 @@ void gui_update_download_clear(void)
  */
 void gui_update_download_clear_now(void)
 {
-	GSList *l;
-	gboolean clear = FALSE;
-
 	if (!update_download_clear_needed)
 		return;
 
-	for (l = sl_unqueued; !clear && l; l = l->next) {
-		switch (((struct download *) l->data)->status) {
-		case GTA_DL_COMPLETED:
-		case GTA_DL_ERROR:
-		case GTA_DL_ABORTED:
-		case GTA_DL_DONE:
-			clear = TRUE;
-			break;
-		default:
-			break;
-		}
-	}
-
 	gtk_widget_set_sensitive(
         lookup_widget(main_window, "button_downloads_clear_stopped"), 
-        clear);
+        guc_download_something_to_clear());
 }
 
 
@@ -114,10 +93,11 @@ void gui_update_queue_frozen(void)
         lookup_widget(main_window, "togglebutton_queue_freeze");
 
     if (gui_debug >= 3)
-		g_message("frozen %i, msg %i\n", download_queue_is_frozen(),
+		g_message("frozen %i, msg %i\n", 
+			guc_download_queue_is_frozen(),
 	    	(gint) msg_displayed);
 
-    if (download_queue_is_frozen() > 0) {
+    if (guc_download_queue_is_frozen() > 0) {
 #ifdef USE_GTK1
     	gtk_widget_hide(lookup_widget(main_window, "vbox_queue_freeze"));
     	gtk_widget_show(lookup_widget(main_window, "vbox_queue_thaw"));
@@ -154,7 +134,7 @@ void gui_update_queue_frozen(void)
 
     gtk_toggle_button_set_active(
         GTK_TOGGLE_BUTTON(togglebutton_queue_freeze),
-        download_queue_is_frozen() > 0);
+        guc_download_queue_is_frozen() > 0);
     
     gtk_signal_handler_unblock_by_func(
         GTK_OBJECT(togglebutton_queue_freeze),
@@ -173,7 +153,7 @@ void gui_update_queue_frozen(void)
 void on_button_downloads_clear_stopped_clicked(
     GtkButton *button, gpointer user_data)
 {
-	download_clear_stopped(TRUE, TRUE, TRUE, TRUE);
+	guc_download_clear_stopped(TRUE, TRUE, TRUE, TRUE);
 }
 
 
@@ -187,9 +167,9 @@ void on_togglebutton_queue_freeze_toggled(GtkToggleButton *togglebutton,
 	gpointer user_data) 
 {
     if (gtk_toggle_button_get_active(togglebutton)) {
-        download_freeze_queue();
+        guc_download_freeze_queue();
     } else {
-        download_thaw_queue();
+        guc_download_thaw_queue();
     }
 }
 

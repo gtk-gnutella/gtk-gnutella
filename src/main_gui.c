@@ -23,11 +23,12 @@
  *----------------------------------------------------------------------
  */
 
-#include "config.h"
-
 #include <pwd.h>
 
+#include "config.h"
+#include "common.h"
 #include "gui.h"
+#include "ui_core_interface.h"
 
 #ifdef USE_GTK2
 #include "interface-glade2.h"
@@ -39,8 +40,6 @@
 #include "nodes_gui.h"
 #include "hcache_gui.h"
 #include "main_cb.h"
-
-#include "settings.h"	/* Used for settings_home_dir */
 #include "settings_gui.h"
 #include "search_gui.h"
 #include "monitor_gui.h"
@@ -50,15 +49,15 @@
 #include "uploads_gui.h"
 #include "upload_stats_gui.h"
 #include "downloads_gui.h"
-#include "version.h"
 #include "icon.h"
-
 #include "filter_cb.h"
 #include "filter.h"
 #include "upload_stats_cb.h" /* FIXME: remove dependency (compare_ul_norm) */
 #include "fileinfo_gui.h"
 #include "visual_progress_gui.h"
 #include "override.h"			/* Must be the last header included */
+
+static gchar tmpstr[1024];
 
 RCSID("$Id$");
 
@@ -84,13 +83,16 @@ GtkWidget *popup_queue = NULL;
 
 static void gui_init_window_title(void)
 {
-	gtk_window_set_title(GTK_WINDOW(main_window),
 #ifdef GTA_REVISION
-		"gtk-gnutella " GTA_VERSION_NUMBER " " GTA_REVISION
+	gm_snprintf(tmpstr, sizeof(tmpstr), "gtk-gnutella %s %s",
+		GTA_VERSION_NUMBER,
+		GTA_REVISION);
 #else
-		"gtk-gnutella " GTA_VERSION_NUMBER
+	gm_snprintf(tmpstr, sizeof(tmpstr), "gtk-gnutella %s",
+		GTA_VERSION_NUMBER);
 #endif
-	);
+
+	gtk_window_set_title(GTK_WINDOW(main_window), tmpstr);
 }
 
 /*
@@ -391,7 +393,7 @@ static GtkWidget *gui_create_dlg_about(void)
 
     gtk_label_set_text(
         GTK_LABEL(lookup_widget(dlg, "label_about_title")), 
-        version_string);
+        guc_version_get_version_string());
 
     return dlg;
 }
@@ -419,26 +421,26 @@ void main_gui_gtkrc_init(void)
 	gchar *userrc;
 
 	/* parse gtkrc files (thx to the sylpheed-claws developers for the tip) */
-	userrc = make_pathname(settings_home_dir(), rchfn);
+	userrc = make_pathname(guc_settings_home_dir(), rchfn);
 	gtk_rc_parse(userrc);
 	G_FREE_NULL(userrc);
 
-	userrc = g_strconcat(settings_home_dir(), G_DIR_SEPARATOR_S, ".gtk",
-		  G_DIR_SEPARATOR_S, "gtkrc", NULL);
+	userrc = g_strconcat(guc_settings_home_dir(), 
+		G_DIR_SEPARATOR_S, ".gtk", G_DIR_SEPARATOR_S, "gtkrc", NULL);
 	gtk_rc_parse(userrc);
 	G_FREE_NULL(userrc);
 
 #ifdef USE_GTK2
-	userrc = g_strconcat(settings_home_dir(), G_DIR_SEPARATOR_S, ".gtk2",
-		  G_DIR_SEPARATOR_S, "gtkrc", NULL);
+	userrc = g_strconcat(guc_settings_home_dir(), 
+		G_DIR_SEPARATOR_S, ".gtk2", G_DIR_SEPARATOR_S, "gtkrc", NULL);
 #else
-	userrc = g_strconcat(settings_home_dir(), G_DIR_SEPARATOR_S, ".gtk1",
-		  G_DIR_SEPARATOR_S, "gtkrc", NULL);
+	userrc = g_strconcat(guc_settings_home_dir(), 
+		G_DIR_SEPARATOR_S, ".gtk1", G_DIR_SEPARATOR_S, "gtkrc", NULL);
 #endif
 	gtk_rc_parse(userrc);
 	G_FREE_NULL(userrc);
 
-	userrc = make_pathname(settings_config_dir(), rcfn);
+	userrc = make_pathname(guc_settings_config_dir(), rcfn);
 	gtk_rc_parse(userrc);
 	G_FREE_NULL(userrc);
 

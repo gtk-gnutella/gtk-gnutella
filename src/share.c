@@ -37,9 +37,6 @@
 #include <string.h>
 #include <ctype.h>		/* toupper() */
 
-/* FIXME: remove this dependency */
-#include "gui.h"		/* gui_update_files_scanned() */
-
 #include "share.h"
 #include "gmsg.h"
 #include "huge.h"
@@ -53,6 +50,8 @@
 #include "search.h"		/* For QUERY_SPEED_MARK */
 #include "dmesh.h"		/* For dmesh_fill_alternate() */
 #include "hostiles.h"
+
+#include "ui_core_interface.h"
 #include "override.h"		/* Must be the last header included */
 
 RCSID("$Id$");
@@ -937,8 +936,8 @@ static void recurse_scan(gchar *dir, const gchar *basedir)
 		G_FREE_NULL(full);
 
 		if (!(i & 0x3f)) {
-			gui_update_files_scanned();		/* Interim view */
-			gtk_main_flush();
+			gcu_gui_update_files_scanned();	/* Interim view */
+			gcu_gtk_main_flush();
 		}
 	}
 
@@ -962,8 +961,8 @@ static void recurse_scan(gchar *dir, const gchar *basedir)
 	if (dir_slash != dir)
 		G_FREE_NULL(dir_slash);
 
-	gui_update_files_scanned();		/* Interim view */
-	gtk_main_iteration_do(FALSE);
+	gcu_gui_update_files_scanned();		/* Interim view */
+	gcu_gtk_main_flush();
 }
 
 /*
@@ -1116,10 +1115,10 @@ void share_scan(void)
 			GUINT_TO_POINTER(val));
 
 		if (0 == (i & 0x7ff))
-			gtk_main_flush();
+			gcu_gtk_main_flush();
 	}
 
-	gui_update_files_scanned();		/* Final view */
+	gcu_gui_update_files_scanned();		/* Final view */
 
 	now = time(NULL);
 	elapsed = delta_time(now, (time_t) 0) - library_rescan_timestamp;
@@ -1137,7 +1136,7 @@ void share_scan(void)
 		struct shared_file *sf = sl->data;
 		qrp_add_file(sf);
 		if (0 == (i & 0x7ff))
-			gtk_main_flush();
+			gcu_gtk_main_flush();
 	}
 
 	qrp_finalize_computation();

@@ -36,6 +36,7 @@
 #include "guid.h"
 #include "gnet_property.h"
 #include "ban.h"
+#include "share.h"
 #include "override.h"		/* Must be the last header included */
 
 RCSID("$Id$");
@@ -3812,4 +3813,3 @@ static gboolean parq_still_sharing(struct parq_ul_queued *parq_ul)
 /*
 # vim:ts=4:sw=4
 */
-

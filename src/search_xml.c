@@ -34,13 +34,13 @@
 #include <libxml/tree.h>
 #include <libxml/parser.h>
 
+#include "common.h"
 #include "filter.h"
 #include "search_xml.h"
-
 #include "settings_gui.h"
 #include "search_gui.h"
-#include "version.h"
-#include "utf8.h"
+
+#include "ui_core_interface.h"
 #include "override.h"		/* Must be the last header included */
 
 RCSID("$Id$");
@@ -490,7 +490,7 @@ static void search_to_xml(xmlNodePtr parent, search_t *s)
     xmlSetProp(newxml, TAG_SEARCH_PASSIVE, (const xmlChar *) x_tmp);
 
   	gm_snprintf(x_tmp, sizeof(x_tmp), "%u", 
-        search_get_reissue_timeout(s->search_handle));
+        guc_search_get_reissue_timeout(s->search_handle));
     xmlSetProp(newxml, TAG_SEARCH_REISSUE_TIMEOUT, (const xmlChar *) x_tmp);
 
   	gm_snprintf(x_tmp, sizeof(x_tmp), "%i", s->sort_col);
@@ -1297,4 +1297,3 @@ static guint16 get_rule_flags_from_xml(xmlNodePtr xmlnode)
 
 /* vi: set ts=4: */
 #endif	/* HAS_LIBXML2 */
-

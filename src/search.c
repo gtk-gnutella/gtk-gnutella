@@ -51,7 +51,9 @@
 #include "guid.h"
 #include "dq.h"
 #include "dh.h"
-#include "gui_property.h"
+#include "share.h"
+
+#include "ui_core_interface.h"
 #include "override.h"		/* Must be the last header included */
 
 RCSID("$Id$");
@@ -1393,7 +1395,8 @@ update_one_reissue_timeout(search_ctrl_t *sch)
 	 * The more we have, the less often we retry to save network resources.
 	 */
 
-	gui_prop_get_guint32_val(PROP_SEARCH_MAX_RESULTS, &max_items);
+	gui_prop_get_guint32_val
+		(PROP_SEARCH_MAX_RESULTS, &max_items);
 	percent = sch->items * 100 / max_items;
 	factor = (percent < 10) ? 1.0 :
 		1.0 + (percent - 10) * (percent - 10) / 550.0;

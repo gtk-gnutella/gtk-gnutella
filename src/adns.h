@@ -26,15 +26,13 @@
 #ifndef _adns_h_
 #define _adns_h_
 
-#include "config.h"
-
 #include <glib.h>
 
-typedef void (*adns_callback_t)(guint32, gpointer);
+#include "config.h"
+#include "ui_core_interface_adns_defs.h"
 
 void adns_init(void);
 gboolean adns_resolve(const gchar *, adns_callback_t, gpointer);
 void adns_close(void);
 
 #endif /* _adns_h_ */
-

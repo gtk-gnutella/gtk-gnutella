@@ -41,7 +41,6 @@
 
 RCSID("$Id$");
 
-#include "gnutella.h" /* dbg */
 
 #if !defined(USE_GTK2) || defined(ENABLE_NLS)
 #include <iconv.h>
@@ -2691,7 +2690,7 @@ static inline char *g_iconv_complete(GIConv cd,
 			switch (errno) {
 			case EILSEQ:
 			case EINVAL:
-				if (dbg > 1)
+				if (common_dbg > 1)
 					g_warning("g_iconv_complete: g_iconv() failed soft: %s",
 						g_strerror(errno));
 				*outbuf = '_';
@@ -2701,7 +2700,7 @@ static inline char *g_iconv_complete(GIConv cd,
 				inbytes_left--;
 				break;
 			default:
-				if (dbg > 1)
+				if (common_dbg > 1)
 					g_warning("g_iconv_complete(): g_iconv() failed hard: %s",
 						g_strerror(errno));
 				return NULL;

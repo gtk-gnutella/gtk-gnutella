@@ -29,7 +29,10 @@
 #include <glib.h>
 #include <gtk/gtk.h>
 #include <time.h>
-#include "uploads.h"
+
+#include "ui_core_interface.h"
+
+//#include "uploads.h" /* FIXME EJFALEKJFKLEJF */
 
 typedef struct upload_row_data {
     gnet_upload_t handle;      /* upload handle in backend */

@@ -23,13 +23,12 @@
  *----------------------------------------------------------------------
  */
 
-#include "config.h"
-#include "common.h"
-#include "hsep.h"
+#include "gui.h"
 
 #ifdef USE_GTK1
 
 #include "gnet_stats_gui.h"
+#include "ui_core_interface.h"
 #include "override.h"		/* Must be the last header included */
 
 RCSID("$Id$");
@@ -367,18 +366,18 @@ void gnet_stats_gui_init(void)
 
     for (n = 0; n < HSEP_N_MAX; n ++) {
         gint row;
-        titles[0] = (gchar *) horizon_stat_str(NULL, NULL, n + 1, 0);
+        titles[0] = (gchar *) horizon_stat_str(n + 1, 0);
         row = gtk_clist_append(clist_horizon, titles);
         gtk_clist_set_selectable(clist_horizon, row, FALSE);
     }
 
-    hsep_add_global_table_listener((GCallback) gnet_stats_gui_horizon_update,
+    guc_hsep_add_global_table_listener((GCallback) gnet_stats_gui_horizon_update,
 	                               FREQ_UPDATES, 0);
 }
 
 void gnet_stats_gui_shutdown(void)
 {
-	hsep_remove_global_table_listener(
+	guc_hsep_remove_global_table_listener(
 	    (GCallback) gnet_stats_gui_horizon_update);
 }
 
@@ -394,6 +393,8 @@ void gnet_stats_gui_update(time_t now)
     gint n;
     gnet_stats_t stats;
 	static time_t last_horizon_update = 0;
+	gint global_table_size;
+
 
     gint current_page;
 
@@ -406,7 +407,7 @@ void gnet_stats_gui_update(time_t now)
     if (current_page != nb_main_page_gnet_stats)
         return;
 
-    gnet_stats_get(&stats);
+    guc_gnet_stats_get(&stats);
 
     clist_stats_msg = GTK_CLIST(
         lookup_widget(main_window, "clist_gnet_stats_msg"));
@@ -481,25 +482,22 @@ void gnet_stats_gui_update(time_t now)
 	 */
 
 	if (delta_time(now, last_horizon_update) >= 2) {
-		hsep_triple hsep_table[HSEP_N_MAX + 1];
-		hsep_triple other;
-
-		hsep_get_global_table(hsep_table, HSEP_N_MAX + 1);
-		hsep_get_non_hsep_triple(&other);
 		
 		gtk_clist_freeze(clist_horizon);
 
-		for (n = 0; n < HSEP_N_MAX; n ++) {
+		global_table_size = guc_hsep_get_table_size();
+		
+		for (n = 0; n < global_table_size; n ++) {
 			/* 
-			 * Note that we output hsep_table[1..HSEP_N_MAX] 
+			 * Note that we output hsep_table[1..global_table_size] 
 			 *		-- TNT 02/06/2004 
 			 */
 			gtk_clist_set_text(clist_horizon, n, 1,
-			    horizon_stat_str(hsep_table, &other, n + 1, 1));
+			    horizon_stat_str(n + 1, 1));
 			gtk_clist_set_text(clist_horizon, n, 2,
-			    horizon_stat_str(hsep_table, &other, n + 1, 2));
+			    horizon_stat_str(n + 1, 2));
 			gtk_clist_set_text(clist_horizon, n, 3,
-			    horizon_stat_str(hsep_table, &other, n + 1, 3));
+			    horizon_stat_str(n + 1, 3));
 		}
 		last_horizon_update = now;
 		gtk_clist_thaw(clist_horizon);

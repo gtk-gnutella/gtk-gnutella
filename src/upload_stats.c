@@ -49,9 +49,10 @@
 #include <errno.h>
 #include <time.h>		/* For ctime() */
 
-#include "upload_stats_gui.h"
 #include "upload_stats.h"
 #include "file.h"
+
+#include "ui_core_interface.h"
 #include "override.h"		/* Must be the last header included */
 
 RCSID("$Id$");
@@ -73,7 +74,7 @@ static void upload_stats_add(const gchar *filename,
 	stat->norm = size > 0 ? (gfloat) ul_bytes / (gfloat) size : 0;
 	stat->bytes_sent = ul_bytes;
 	upload_stats_list = g_list_append(upload_stats_list, stat);
-	upload_stats_gui_add(stat);
+	gcu_upload_stats_gui_add(stat);
 }
 
 void upload_stats_load_history(const gchar *ul_history_file_name)
@@ -234,7 +235,7 @@ void upload_stats_file_begin(const struct upload *u)
 		upload_stats_add(u->name, u->file_size, 1, 0, 0);
 	else {
 		stat->attempts++;
-		upload_stats_gui_update(u->name, u->file_size);
+		gcu_upload_stats_gui_update(u->name, u->file_size);
 	}
 
 	dirty = TRUE;		/* Request asynchronous save of stats */
@@ -267,7 +268,7 @@ static void upload_stats_file_add(
 		stat->bytes_sent += sent;
 		stat->norm = (gfloat) stat->bytes_sent / (gfloat) stat->size;
 		stat->complete += comp;
-		upload_stats_gui_update(name, size);
+		gcu_upload_stats_gui_update(name, size);
 	}
 
 	dirty = TRUE;		/* Request asynchronous save of stats */
@@ -282,7 +283,7 @@ void upload_stats_file_aborted(const struct upload *u)
 {
 	if (u->pos > u->skip) {
 		upload_stats_file_add(u->name, u->file_size, 0, u->pos - u->skip);
-		upload_stats_gui_update(u->name, u->file_size);
+		gcu_upload_stats_gui_update(u->name, u->file_size);
 	}
 }
 
@@ -327,7 +328,7 @@ static void upload_stats_free_all(void)
  */
 void upload_stats_clear_all(void)
 {
-	upload_stats_gui_clear_all();
+	gcu_upload_stats_gui_clear_all();
 	upload_stats_free_all();
 }
 

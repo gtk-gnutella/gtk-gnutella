@@ -25,14 +25,13 @@
  *----------------------------------------------------------------------
  */
 
-#include "gnutella.h"		/* Needed to be able to compile with dmalloc */
-
 #include <pwd.h>
 #include <unistd.h>
 #include <sys/types.h>
 #include <ctype.h>
 
 #include "eval.h"
+#include "common.h"
 #include "override.h"		/* Must be the last header included */
 
 RCSID("$Id$");
@@ -156,7 +155,7 @@ gchar *eval_subst(const gchar *str)
 	}
 
 
-	if (dbg > 3)
+	if (common_dbg > 3)
 		printf("eval_subst: on entry: \"%s\"\n", buf);
 
 	for (p =  buf, c = *p++; c; c = *p++) {
@@ -195,7 +194,7 @@ gchar *eval_subst(const gchar *str)
 		g_assert(p <= (buf + len));
 	}
 
-	if (dbg > 3)
+	if (common_dbg > 3)
 		printf("eval_subst: on exit: \"%s\"\n", buf);
 
 	g_assert(len == strlen(buf));
@@ -275,7 +274,7 @@ static gchar *get_variable(gchar *s, gchar **end)
 	if (value == NULL)
 		value = "";
 
-	if (dbg > 4)
+	if (common_dbg > 4)
 		printf("variable \"%s\" is \"%s\"\n", name, value);
 
 	*p = c;

@@ -70,10 +70,11 @@
  *
  */
  
-#include "gnutella.h"
-
+//#include "gnutella.h"
 #include <glib.h>
 #include <string.h>
+
+#include "misc.h"
 #include "tigertree.h"
 #include "override.h"		/* Must be the last header included */
 

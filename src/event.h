@@ -27,31 +27,8 @@
 #define _event_h_
 
 #include "common.h"
+#include "ui_core_interface_event_defs.h"
 
-typedef enum frequency_type {
-    FREQ_SECS,
-    FREQ_UPDATES
-} frequency_t;
-
-struct subscriber {
-    GCallback           cb;
-    enum frequency_type f_type;
-    guint32             f_interval;
-    time_t              last_call;
-};
-
-typedef struct event {
-    const gchar *name;
-    guint32      triggered_count;
-    GSList      *subscribers;
-} event_t;
-
-struct event *event_new(const gchar *name);
-
-#define event_destroy(evt) G_STMT_START {                          \
-    real_event_destroy(evt);                                       \
-    G_FREE_NULL(evt);                                              \
-} G_STMT_END
 void real_event_destroy(struct event *evt);
 
 void event_add_subscriber(

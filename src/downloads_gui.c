@@ -32,13 +32,10 @@ RCSID("$Id$");
 #include "downloads_gui.h"
 #include "downloads_gui_common.h"
 #include "downloads_cb.h"
-
-#include "downloads.h" /* FIXME: remove this dependency */
-#include "dmesh.h" /* FIXME: remove this dependency */
-#include "http.h" /* FIXME: remove this dependency */
-#include "pproxy.h" /* FIXME: remove this dependency */
 #include "statusbar_gui.h"
-#include "parq.h"
+
+#include "ui_core_interface_cproxy_defs.h"
+#include "ui_core_interface.h"
 
 #include "override.h"		/* Must be the last header included */
 
@@ -589,7 +586,7 @@ void download_gui_add(struct download *d)
 	 *		--RAM, 22/10/2002
 	 */
 
-	file_name = file_info_readable_filename(d->file_info);
+	file_name = guc_file_info_readable_filename(d->file_info);
 
 	gm_snprintf(vendor, sizeof(vendor), "%s%s",
 		(d->server->attrs & DLS_A_BANNING) ? "*" : "",
@@ -607,8 +604,7 @@ void download_gui_add(struct download *d)
 	else
 		titles[c_queue_size] = UNKNOWN_SIZE_STR;				
 
-	titles[c_queue_host] = download_get_hostname(d);
-
+ 	titles[c_queue_host] = guc_download_get_hostname(d);
 
 	if (DOWNLOAD_IS_QUEUED(d)) {
 		if (NULL != d->file_info) {
@@ -626,7 +622,8 @@ void download_gui_add(struct download *d)
 					/* No header entry so we will create one */
 					/* Copy the old parents info into a new node */
 					
-					filename = file_info_readable_filename(drecord->file_info);
+					filename = guc_file_info_readable_filename
+						(drecord->file_info);
 					gtk_ctree_node_get_text(ctree_downloads_queue, parent,
 						c_queue_host, &host);
 					gtk_ctree_node_get_text(ctree_downloads_queue, parent,
@@ -735,7 +732,7 @@ void download_gui_add(struct download *d)
 		else
 			titles[c_dl_size] = UNKNOWN_SIZE_STR;				
 		titles[c_dl_range] = "";
-        titles[c_dl_host] = download_get_hostname(d);
+        titles[c_dl_host] = guc_download_get_hostname(d);
 		
 		if (NULL != d->file_info) {
 			key = (gpointer) &d->file_info->fi_handle;
@@ -751,7 +748,8 @@ void download_gui_add(struct download *d)
 					/* No header entry so we will create one */
 					/* Copy the old parents info into a new node */
 					
-					filename = file_info_readable_filename(drecord->file_info);
+					filename = guc_file_info_readable_filename
+						(drecord->file_info);
 					gtk_ctree_node_get_text(ctree_downloads, parent,
 						c_dl_host, &host);
 					gtk_ctree_node_get_text(ctree_downloads, parent,
@@ -935,7 +933,7 @@ void gui_update_download_host(struct download *d)
 	node = gtk_ctree_find_by_row_data(ctree_downloads, NULL, (gpointer) d);
 	if (NULL != node)
 		gtk_ctree_node_set_text(ctree_downloads, node,
-			c_dl_host, download_get_hostname(d));
+			c_dl_host, guc_download_get_hostname(d));
 }
 
 void gui_update_download(struct download *d, gboolean force)
@@ -1023,21 +1021,22 @@ void gui_update_download(struct download *d, gboolean force)
 
 			rw = gm_snprintf(tmpstr, sizeof(tmpstr), "Queued");
 
-			if (get_parq_dl_position(d) > 0) {
+			if (guc_get_parq_dl_position(d) > 0) {
 
 				rw += gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
 					" (slot %d",		/* ) */
-					get_parq_dl_position(d));
+					guc_get_parq_dl_position(d));
 				
-				if (get_parq_dl_queue_length(d) > 0) {
+				if (guc_get_parq_dl_queue_length(d) > 0) {
 					rw += gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
-						" / %d", get_parq_dl_queue_length(d));
+						" / %d", guc_get_parq_dl_queue_length(d));
 				}
 
-				if (get_parq_dl_eta(d)  > 0) {
+				if (guc_get_parq_dl_eta(d)  > 0) {
 					rw += gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
 						", ETA: %s",
-						short_time((get_parq_dl_eta(d)  - elapsed)));
+						short_time((guc_get_parq_dl_eta(d) 
+							- elapsed)));
 				}
 
 				rw += gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw, /* ( */ ")");
@@ -1045,7 +1044,8 @@ void gui_update_download(struct download *d, gboolean force)
 
 			rw += gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
 					" retry in %ds",
-					(gint) (get_parq_dl_retry_delay(d) - elapsed));
+					(gint) (guc_get_parq_dl_retry_delay(d) 
+						- elapsed));
 
 			if (
 				parent_gui_needs_update(d, now) &&
@@ -1128,10 +1128,9 @@ void gui_update_download(struct download *d, gboolean force)
 
 	case GTA_DL_REQ_SENDING:
 		if (d->req != NULL) {
-			http_buffer_t *r = d->req;
-			gint pct = (http_buffer_read_base(r) - http_buffer_base(r))
-				* 100 / http_buffer_length(r);
-			gm_snprintf(tmpstr, sizeof(tmpstr), "Sending request (%d%%)", pct);
+			gint pct = guc_download_get_http_req_percent(d);
+			gm_snprintf(tmpstr, sizeof(tmpstr), _("Sending request (%d%%)"),
+				pct);
 			a = tmpstr;
 		} else
 			a = "Sending request";
@@ -1540,7 +1539,7 @@ void gui_update_download_abort_resume(void)
 		case GTA_DL_ABORTED:
 			do_resume = TRUE;
             /* only check if file exists if really necessary */
-            if (!do_remove && download_file_exists(d))
+            if (!do_remove && guc_download_file_exists(d))
                 do_remove = TRUE;
 			break;
 		case GTA_DL_TIMEOUT_WAIT:
@@ -1641,7 +1640,9 @@ void download_gui_remove(struct download *d)
 
 						drecord = gtk_ctree_node_get_row_data
 							(ctree_downloads_queue, node);
-						filename = file_info_readable_filename(drecord->file_info);
+						filename = 
+							guc_file_info_readable_filename
+							(drecord->file_info);
 						gtk_ctree_node_get_text(ctree_downloads_queue, node,
 							c_queue_host, &host);
 						gtk_ctree_node_get_text(ctree_downloads_queue, node,
@@ -1724,7 +1725,8 @@ void download_gui_remove(struct download *d)
 
 						drecord = gtk_ctree_node_get_row_data
 							(ctree_downloads, node);
-						filename = file_info_readable_filename
+						filename = 
+							guc_file_info_readable_filename
 							(drecord->file_info);
 						gtk_ctree_node_get_text(ctree_downloads, node,
 							c_dl_host, &host);

@@ -36,6 +36,7 @@
 #include "tiger.h"
 #include "hashtree.h"
 #include "downloads.h"
+#include "ui_core_interface.h"
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -311,6 +312,7 @@ void tt_parse_header(struct download *d, header_t *header)
 		
 	download_new_uri(hash /* file */, uri /* uri */, 0 /* size */,
 		d->socket->ip, d->socket->port,
+//		NULL, NULL,
 		blank_guid, NULL /* hostname */, NULL /* SHA1 */, time(NULL), 
 		FALSE /* PUSH */, NULL /* fi */, NULL /* proxies */);
 

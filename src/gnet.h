@@ -24,15 +24,7 @@
 #ifndef _gnet_h_
 #define _gnet_h_
 
-/***
- *** Proxy protocols
- ***/
-enum {
-    PROXY_NONE    = 0,
-    PROXY_HTTP    = 1,
-    PROXY_SOCKSV4 = 4,
-    PROXY_SOCKSV5 = 5
-};
+#include "ui_core_interface_gnet_defs.h"
 
 #include "gnet_property.h"
 #include "gnet_nodes.h"

@@ -38,7 +38,7 @@
 #include "nodes.h"
 #include "hsep.h"
 
-#include "search_gui.h" /* FIXME: remove this dependency */
+#include "ui_core_interface.h"
 #include "override.h"		/* Must be the last header included */
 
 RCSID("$Id$");
@@ -310,7 +310,7 @@ static guint shell_exec_search(gnutella_shell_t *sh, const gchar *cmd)
 			goto error;
 		}
 	
-		search_gui_new_search(tok_query, 0, NULL);
+		gcu_search_gui_new_search(tok_query, 0, NULL);
 		G_FREE_NULL(tok_query);
 	   
 		sh->msg = _("Search added");

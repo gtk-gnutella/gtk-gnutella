@@ -28,9 +28,10 @@
 #ifndef _pproxy_h_
 #define _pproxy_h_
 
-#include "http.h"
-
 #include <glib.h>
+
+#include "http.h"
+#include "ui_core_interface_cproxy_defs.h"
 
 /***
  *** Server side
@@ -63,35 +64,6 @@ void pproxy_close(void);
 /***
  *** Client side
  ***/
-
-/*
- * A client push proxy request.
- */
-struct cproxy {
-	guint32 magic;
-	struct download *d;		/* Which download triggered us */
-
-	guint32 ip;				/* IP of the proxy servent */
-	guint16 port;			/* Port of the proxy servent */
-	gchar *server;			/* Server string */
-	gchar *guid;			/* GUID (atom) to which push should be sent */
-	guint32 file_idx;		/* File index to request */
-	gpointer http_handle;	/* Asynchronous HTTP request handle */
-	guint32 flags;			/* Operating flags */
-
-	/*
-	 * For GUI.
-	 */
-
-	http_state_t state;		/* State of the HTTP request */
-	gboolean done;			/* We're done with request */
-	gboolean sent;			/* Whether push was sent */
-	gboolean directly;		/* Whether push was sent directly or via Gnet */
-};
-
-#define cproxy_vendor_str(c)	((c)->server ? (c)->server : "")
-#define cproxy_ip(c)			((c)->ip)
-#define cproxy_port(c)			((c)->port)
 
 struct cproxy *cproxy_create(struct download *d,
 	guint32 ip, guint16 port, gchar *guid, guint32 file_idx);

@@ -32,6 +32,8 @@
 #include "interface-glade1.h"
 #include "nodes_gui_common.h"
 #include "nodes_gui.h"
+
+#include "ui_core_interface.h"
 #include "override.h"		/* Must be the last header included */
 
 RCSID("$Id$");
@@ -99,9 +101,9 @@ static void nodes_gui_node_added(gnet_node_t n, const gchar *t)
     if (gui_debug >= 5)
         printf("nodes_gui_node_added(%u, %s)\n", n, t);
 
-    node_fill_info(n, &info);
+    guc_node_fill_info(n, &info);
     nodes_gui_add_node(&info, t);
-    node_clear_info(&info);
+    guc_node_clear_info(&info);
 }
 
 /*
@@ -119,9 +121,9 @@ static void nodes_gui_node_info_changed(gnet_node_t n)
 	{
     	gnet_node_info_t info;
 
-    	node_fill_info(n, &info);
+    	guc_node_fill_info(n, &info);
     	nodes_gui_update_node_info(&info, -1);
-    	node_clear_info(&info);
+    	guc_node_clear_info(&info);
 	}
 #endif
 }
@@ -139,7 +141,7 @@ static void nodes_gui_node_flags_changed(gnet_node_t n)
 	{
     	gnet_node_flags_t flags;
 
-    	node_fill_flags(n, &flags);
+    	guc_node_fill_flags(n, &flags);
     	nodes_gui_update_node_flags(n, &flags, -1);
 	}
 #endif
@@ -172,7 +174,7 @@ static void nodes_gui_update_node_info(gnet_node_info_t *n, gint row)
         gnet_node_status_t status;
         time_t now = time((time_t *) NULL);
 
-        node_get_status(n->node_handle, &status);
+        guc_node_get_status(n->node_handle, &status);
 
         gtk_clist_set_text(clist, row, c_gnet_user_agent,
 			n->vendor ? n->vendor : "...");
@@ -253,10 +255,10 @@ void nodes_gui_init(void)
     ht_node_info_changed = g_hash_table_new(g_direct_hash, g_direct_equal);
     ht_node_flags_changed = g_hash_table_new(g_direct_hash, g_direct_equal);
 
-    node_add_node_added_listener(nodes_gui_node_added);
-    node_add_node_removed_listener(nodes_gui_node_removed);
-    node_add_node_info_changed_listener(nodes_gui_node_info_changed);
-    node_add_node_flags_changed_listener(nodes_gui_node_flags_changed);
+    guc_node_add_node_added_listener(nodes_gui_node_added);
+    guc_node_add_node_removed_listener(nodes_gui_node_removed);
+    guc_node_add_node_info_changed_listener(nodes_gui_node_info_changed);
+    guc_node_add_node_flags_changed_listener(nodes_gui_node_flags_changed);
 }
 
 /*
@@ -266,10 +268,10 @@ void nodes_gui_init(void)
  */
 void nodes_gui_shutdown() 
 {
-    node_remove_node_added_listener(nodes_gui_node_added);
-    node_remove_node_removed_listener(nodes_gui_node_removed);
-    node_remove_node_info_changed_listener(nodes_gui_node_info_changed);
-    node_remove_node_flags_changed_listener(nodes_gui_node_flags_changed);
+    guc_node_remove_node_added_listener(nodes_gui_node_added);
+    guc_node_remove_node_removed_listener(nodes_gui_node_removed);
+    guc_node_remove_node_info_changed_listener(nodes_gui_node_info_changed);
+    guc_node_remove_node_flags_changed_listener(nodes_gui_node_flags_changed);
 
     g_hash_table_destroy(ht_node_info_changed);
     g_hash_table_destroy(ht_node_flags_changed);
@@ -381,7 +383,7 @@ void nodes_gui_update_nodes_display(time_t now)
 		gnet_node_t n =
 			(gnet_node_t) GPOINTER_TO_UINT(((GtkCListRow *) l->data)->data);
 
-        node_get_status(n, &status);
+        guc_node_get_status(n, &status);
 
         /* 
          * Update additional info too if it has recorded changes.
@@ -390,16 +392,16 @@ void nodes_gui_update_nodes_display(time_t now)
             gnet_node_info_t info;
 
             g_hash_table_remove(ht_node_info_changed, GUINT_TO_POINTER(n));
-            node_fill_info(n, &info);
+            guc_node_fill_info(n, &info);
             nodes_gui_update_node_info(&info, row);
-            node_clear_info(&info);
+            guc_node_clear_info(&info);
         }
 
         if (g_hash_table_lookup(ht_node_flags_changed, GUINT_TO_POINTER(n))) {
             gnet_node_flags_t flags;
 
             g_hash_table_remove(ht_node_flags_changed, GUINT_TO_POINTER(n));
-            node_fill_flags(n, &flags);
+            guc_node_fill_flags(n, &flags);
             nodes_gui_update_node_flags(n, &flags, -1);
         }
     

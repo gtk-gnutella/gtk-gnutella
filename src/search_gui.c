@@ -34,8 +34,6 @@
 #include <gtk/gtk.h>
 #include <sys/stat.h>
 
-#include "file.h"
-
 /* GUI includes  */
 #include "search_gui.h"
 #include "search_cb.h"
@@ -45,8 +43,7 @@
 #include "settings_gui.h"
 #include "statusbar_gui.h"
 
-/* Core includes */
-#include "search.h"
+#include "ui_core_interface.h" 
 #include "override.h"		/* Must be the last header included */
 
 RCSID("$Id$");
@@ -175,11 +172,11 @@ void search_gui_restart_search(search_t *sch)
 {
 	if (!sch->enabled)
 		gui_search_set_enabled(sch, TRUE);
-	search_reissue(sch->search_handle);	
+	guc_search_reissue(sch->search_handle);	
 	search_gui_clear_search(sch);	
 	sch->items = sch->unseen_items = 0;
 	gui_search_update_items(sch);
-	search_update_items(sch->search_handle, sch->items);
+	guc_search_update_items(sch->search_handle, sch->items);
 }
 
 
@@ -250,7 +247,7 @@ void search_gui_clear_search(search_t *sch)
 	search_gui_free_r_sets(sch);
 
 	sch->items = sch->unseen_items = 0;
-	search_update_items(sch->search_handle, sch->items);
+	guc_search_update_items(sch->search_handle, sch->items);
 }
 
 
@@ -283,7 +280,7 @@ void search_gui_close_search(search_t *sch)
 	g_hash_table_destroy(sch->parents);
 	sch->parents = NULL;
 
-    search_close(sch->search_handle);
+    guc_search_close(sch->search_handle);
 	atom_str_free(sch->query);
 
 	g_free(sch);
@@ -302,7 +299,8 @@ gboolean search_gui_new_search(
     gint sort_col = SORT_NO_COL;
 	gint sort_order = SORT_NONE;
 	
-    gnet_prop_get_guint32_val(PROP_SEARCH_REISSUE_TIMEOUT, &timeout);
+    gnet_prop_get_guint32_val
+		(PROP_SEARCH_REISSUE_TIMEOUT, &timeout);
 
     return search_gui_new_search_full(query, 0, timeout,
 		sort_col, sort_order, flags | SEARCH_ENABLED, search);
@@ -349,7 +347,7 @@ gboolean search_gui_new_search_full(
 	if (0 == strncasecmp(query, "magnet:", 7)) {
 		gchar raw[SHA1_RAW_SIZE];
 
-		if (huge_extract_sha1(query, raw)) {
+		if (guc_huge_extract_sha1(query, raw)) {
 			gm_snprintf(query, sizeof(query), "urn:sha1:%s", sha1_base32(raw));
 		} else {
 			return FALSE;		/* Entry refused */
@@ -403,7 +401,8 @@ gboolean search_gui_new_search_full(
 	
 	sch->query = atom_str_get(query);
 	sch->enabled = (flags & SEARCH_ENABLED) ? TRUE : FALSE;
-    sch->search_handle = search_new(query, speed, reissue_timeout, flags);
+    sch->search_handle = guc_search_new
+		(query, speed, reissue_timeout, flags);
     sch->passive = (flags & SEARCH_PASSIVE) ? TRUE : FALSE;
 	sch->dups = g_hash_table_new((GHashFunc) search_gui_hash_func,
 					(GCompareFunc) search_gui_hash_key_compare);
@@ -489,9 +488,9 @@ gboolean search_gui_new_search_full(
  *			the function in search.c accessing this hashtable, will warn
  *			it's NULL (or raise a SIGSEGV in case of NODEBUG).
  */
-	search_start(sch->search_handle);
+	guc_search_start(sch->search_handle);
 	if (!sch->enabled)
-		search_stop(sch->search_handle);
+		guc_search_stop(sch->search_handle);
 
 	set_search_color(sch);
 
@@ -1607,8 +1606,8 @@ static guint download_selection_of_ctree(GtkCTree * ctree, guint *selected)
 			(rs->status & ST_FIREWALL) || !host_is_valid(rs->ip, rs->port);
 
 		filename = gm_sanitize_filename(rc->name);
-		if (download_new(filename, rc->size, rc->index, rs->ip, rs->port,
-				rs->guid, rs->hostname,
+		if (guc_download_new(filename, rc->size, rc->index, 
+				rs->ip, rs->port, rs->guid, rs->hostname,
 				rc->sha1, rs->stamp, need_push, NULL, rs->proxies)
 		) {
 			created++;
@@ -1689,7 +1688,8 @@ static guint download_selection_of_ctree(GtkCTree * ctree, guint *selected)
 
     gui_search_force_update_tab_label(current_search);
     gui_search_update_items(current_search);
-    search_update_items(current_search->search_handle, current_search->items);
+    guc_search_update_items(current_search->search_handle, 
+		current_search->items);
 
 	*selected = count;
 	return created;
@@ -2021,9 +2021,10 @@ void search_gui_set_current_search(search_t *sch)
 	if (old_sch)
 		gui_search_force_update_tab_label(old_sch);
 
-    passive = search_is_passive(sch->search_handle);
-    frozen = search_is_frozen(sch->search_handle);
-    reissue_timeout = search_get_reissue_timeout(sch->search_handle);
+    passive = guc_search_is_passive(sch->search_handle);
+    frozen = guc_search_is_frozen(sch->search_handle);
+    reissue_timeout = guc_search_get_reissue_timeout
+		(sch->search_handle);
 
     /*
      * We now propagate the column visibility from the current_search
@@ -2468,9 +2469,9 @@ void gui_search_set_enabled(struct search *sch, gboolean enabled)
 	sch->enabled = enabled;
 
 	if (enabled)
-		search_start(sch->search_handle);
+		guc_search_start(sch->search_handle);
 	else
-		search_stop(sch->search_handle);
+		guc_search_stop(sch->search_handle);
 
 	set_search_color(sch);
 }

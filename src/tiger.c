@@ -26,10 +26,11 @@
  *----------------------------------------------------------------------
  */
  
-#include "gnutella.h"
-
-#include "tiger.h"
+//#include "gnutella.h"
 #include <glib.h>
+
+#include "misc.h"
+#include "tiger.h"
 
 #include "override.h"		/* Must be the last header included */
 

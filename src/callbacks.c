@@ -24,10 +24,10 @@
  */
 
 #include "gui.h"
-
 #include "statusbar_gui.h"
 #include "search_stats_gui.h"
 
+#include "ui_core_interface.h"
 #include "override.h"		/* Must be the last header included */
 
 RCSID("$Id$");
@@ -149,21 +149,21 @@ gboolean on_progressbar_bws_lout_button_press_event(GtkWidget *widget,
 void on_button_host_catcher_clear_clicked(
     GtkButton *button, gpointer user_data)
 {
-	hcache_clear_host_type(HOST_ANY);
+	guc_hcache_clear_host_type(HOST_ANY);
 }
 
 void on_button_ultra_catcher_clear_clicked(
     GtkButton *button, gpointer user_data)
 {
-	hcache_clear_host_type(HOST_ULTRA);
+	guc_hcache_clear_host_type(HOST_ULTRA);
 }
 
 void on_button_hostcache_clear_bad_clicked(
     GtkButton *button, gpointer user_data)
 {
-    hcache_clear(HCACHE_TIMEOUT);
-    hcache_clear(HCACHE_BUSY);
-    hcache_clear(HCACHE_UNSTABLE);
+    guc_hcache_clear(HCACHE_TIMEOUT);
+    guc_hcache_clear(HCACHE_BUSY);
+    guc_hcache_clear(HCACHE_UNSTABLE);
 }
 
 
@@ -379,7 +379,7 @@ void button_fs_add_dir_clicked(GtkButton * button, gpointer user_data)
             (GTK_FILE_SELECTION(add_dir_filesel)));
 
 		if (is_directory(name))
-			shared_dir_add(name);
+			guc_shared_dir_add(name);
 
         G_FREE_NULL(name);
 	}
@@ -416,7 +416,7 @@ void on_button_config_rescan_dir_clicked(GtkButton * button,
 										 gpointer user_data)
 {
 	gui_allow_rescan_dir(FALSE);
-	share_scan();
+	guc_share_scan();
 	gui_allow_rescan_dir(TRUE);
 }
 

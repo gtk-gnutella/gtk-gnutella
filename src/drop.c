@@ -33,8 +33,9 @@ RCSID("$Id$");
 
 #include "drop.h"
 #include "statusbar_gui.h"
-#include "downloads.h"
 #include "search_gui.h"
+
+#include "ui_core_interface.h"
 #include "override.h"		/* Must be the last header included */
 
 /*
@@ -222,7 +223,7 @@ static gboolean handle_magnet(gchar *url)
 			}
 			
 			hash = p;
-			if (!huge_http_sha1_extract32(hash, digest)) {
+			if (!guc_huge_http_sha1_extract32(hash, digest)) {
 				g_message("Bad SHA1 in MAGNET URL");
 				continue;
 			}
@@ -258,8 +259,9 @@ static gboolean handle_magnet(gchar *url)
 		g_message("file=\"%s\"", dl.file);
 
 		filename = gm_sanitize_filename(dl.file);
-		download_new_unknown_size(filename, URN_INDEX, dl.ip, dl.port, 
-			blank_guid, dl.hostname, dl.sha1, time(NULL), FALSE, NULL, NULL);
+		guc_download_new_unknown_size(filename, URN_INDEX, dl.ip, 
+			dl.port, blank_guid, dl.hostname, dl.sha1, time(NULL), 
+			FALSE, NULL, NULL);
 		if (filename != dl.file)
 			G_FREE_NULL(filename);
 	}

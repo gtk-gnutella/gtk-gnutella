@@ -26,8 +26,8 @@
 #include "uploads_cb.h"
 #include "uploads_gui.h"
 #include "gtkcolumnchooser.h"
+#include "gui.h"
 
-#include "upload_stats.h"	/* FIXME: remove this dependency */
 #include "override.h"			/* Must be the last header included */
 
 RCSID("$Id$");
@@ -44,7 +44,7 @@ RCSID("$Id$");
 static void kill_upload(upload_row_data_t *d, gpointer user_data)
 {
     if (d->valid)
-        upload_kill(d->handle);
+        guc_upload_kill(d->handle);
 }
 
 /***

@@ -4,9 +4,9 @@ autogen definitions 'props.tpl';
  * $Id$
  */
 
-uses = "sockets.h";
-uses = "gnet.h";
-uses = "bsched.h";
+uses = "ui_core_interface_gnet_defs.h";
+uses = "ui_core_interface_bsched_defs.h";
+uses = "ui_core_interface_socket_defs.h";
 
 property_set = "gnet_property";
 func_prefix  = "gnet_prop";

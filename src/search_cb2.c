@@ -35,6 +35,8 @@
 #include "search_cb2.h"
 #include "search_gui.h"
 #include "statusbar_gui.h"
+
+#include "ui_core_interface.h"
 #include "override.h"		/* Must be the last header included */
 
 RCSID("$Id$");
@@ -73,10 +75,10 @@ static void refresh_popup(void)
     if (search) {
         gtk_widget_set_sensitive(
             lookup_widget(popup_search, "popup_search_stop"), 
-			!search_is_frozen(search->search_handle));
+			!guc_search_is_frozen(search->search_handle));
 		gtk_widget_set_sensitive(
 			lookup_widget(popup_search, "popup_search_resume"),
-			search_is_frozen(search->search_handle));
+			guc_search_is_frozen(search->search_handle));
 		if (search->passive)
 			gtk_widget_set_sensitive(
 				lookup_widget(popup_search, "popup_search_restart"), FALSE);

@@ -32,15 +32,10 @@ RCSID("$Id$");
 #include "downloads_gui.h"
 #include "downloads_gui_common.h"
 #include "downloads_cb2.h"
+#include "statusbar_gui.h"
 #include "pbarcellrenderer_gui2.h"
 
-#include "downloads.h" /* FIXME: remove this dependency */
-#include "dmesh.h" /* FIXME: remove this dependency */
-#include "http.h" /* FIXME: remove this dependency */
-#include "pproxy.h" /* FIXME: remove this dependency */
-#include "statusbar_gui.h"
-#include "parq.h"
-
+#include "ui_core_interface.h"
 #include "override.h"		/* Must be the last header included */
 
 static gchar tmpstr[4096];
@@ -684,7 +679,8 @@ void download_gui_add(download_t *d)
 		 */
 		if (!parent) {
 			host_count = 1;
-			d_file_name = file_info_readable_filename(d->file_info);
+			d_file_name = guc_file_info_readable_filename
+				(d->file_info);
 			d_file_name = lazy_locale_to_utf8(
 					(gchar *) d_file_name, 0); /* Override const */
 			
@@ -762,7 +758,7 @@ void download_gui_add(download_t *d)
 		/* Fill in the values for current download d */
 		gtk_tree_store_set(model, child,
 	    	c_queue_filename, d_file_name,
-		  	c_queue_host, download_get_hostname(d),
+		  	c_queue_host, guc_download_get_hostname(d),
 	      	c_queue_size, d_file_size,
 	      	c_queue_server, vendor,
 	      	c_queue_status, NULL,
@@ -776,7 +772,8 @@ void download_gui_add(download_t *d)
 
 		if (!parent) {
 			host_count = 1;
-			d_file_name = file_info_readable_filename(d->file_info);
+			d_file_name = guc_file_info_readable_filename
+				(d->file_info);
 			d_file_name = lazy_locale_to_utf8(
 					(gchar *) d_file_name, 0); /* Override const */
 
@@ -833,7 +830,7 @@ void download_gui_add(download_t *d)
 	      			c_dl_record, drecord,
 		        	(-1));
 					
-				percent_done = download_total_progress(d);
+				percent_done = guc_download_total_progress(d);
 				gm_snprintf(tmpstr, sizeof(tmpstr),
 					"%.02f%%  (0 k/s)  [%d/%d]  TR:  -",
 					percent_done * 100.0,
@@ -869,11 +866,12 @@ void download_gui_add(download_t *d)
 		/* Fill in the values for current download d */
 		gtk_tree_store_set(model, child,
 			c_dl_filename, d_file_name,
-			c_dl_host, download_get_hostname(d),
+			c_dl_host, guc_download_get_hostname(d),
 			c_dl_size, d_file_size,
 			c_dl_range, NULL,
 			c_dl_server, vendor,
-			c_dl_progress, force_range(download_total_progress(d), 0.0, 1.0),
+			c_dl_progress, force_range(
+				guc_download_total_progress(d), 0.0, 1.0),
 			c_dl_status, NULL,
 			c_dl_record, d,
 			(-1));
@@ -1175,7 +1173,7 @@ void gui_update_download_host(download_t *d)
 	g_assert(d->status != GTA_DL_QUEUED);
 
 	gui_update_download_column(d, treeview_downloads,
-		c_dl_host, download_get_hostname(d));
+		c_dl_host, guc_download_get_hostname(d));
 }
 
 
@@ -1263,21 +1261,22 @@ void gui_update_download(download_t *d, gboolean force)
 			gint elapsed = delta_time(now, d->last_update);
 			rw = gm_snprintf(tmpstr, sizeof(tmpstr), "%s", _("Queued"));
 
-			if (get_parq_dl_position(d) > 0) {
+			if (guc_get_parq_dl_position(d) > 0) {
 
 				rw += gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
 					" (slot %d",		/* ) */
-					get_parq_dl_position(d));
+					guc_get_parq_dl_position(d));
 				
-				if (get_parq_dl_queue_length(d) > 0) {
+				if (guc_get_parq_dl_queue_length(d) > 0) {
 					rw += gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
-						" / %d", get_parq_dl_queue_length(d));
+						" / %d", guc_get_parq_dl_queue_length(d));
 				}
 
-				if (get_parq_dl_eta(d)  > 0) {
+				if (guc_get_parq_dl_eta(d)  > 0) {
 					rw += gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
 						", ETA: %s",
-						short_time((get_parq_dl_eta(d)  - elapsed)));
+						short_time((guc_get_parq_dl_eta(d) 
+							- elapsed)));
 				}
 				
 				rw += gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw, /* ( */ ")");
@@ -1285,7 +1284,8 @@ void gui_update_download(download_t *d, gboolean force)
 
 			rw += gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
 					_(" retry in %ds"),
-					(gint) (get_parq_dl_retry_delay(d) - elapsed));
+					(gint) (guc_get_parq_dl_retry_delay(d) 
+						- elapsed));
 		}
 		a = tmpstr;
 		break;
@@ -1349,9 +1349,7 @@ void gui_update_download(download_t *d, gboolean force)
 
 	case GTA_DL_REQ_SENDING:
 		if (d->req != NULL) {
-			http_buffer_t *r = d->req;
-			gint pct = (http_buffer_read_base(r) - http_buffer_base(r))
-				* 100 / http_buffer_length(r);
+			gint pct = guc_download_get_http_req_percent(d);
 			gm_snprintf(tmpstr, sizeof(tmpstr), _("Sending request (%d%%)"),
 				pct);
 			a = tmpstr;
@@ -1459,8 +1457,8 @@ void gui_update_download(download_t *d, gboolean force)
 			guint32 avg_bps;
 			gfloat progress_source, progress_total;
 
-			progress_total = download_total_progress(d);
-			progress_source = download_source_progress(d);
+			progress_total = guc_download_total_progress(d);
+			progress_source = guc_download_source_progress(d);
 			
 			bps = bio_bps(d->bio);
 			avg_bps = bio_avg_bps(d->bio);
@@ -1576,7 +1574,7 @@ void gui_update_download(download_t *d, gboolean force)
 			progress = 0.0;
 			break;
 		default:
-			progress = download_source_progress(d);
+			progress = guc_download_source_progress(d);
 			break;
 		}	
 		gtk_tree_store_set(model, iter,
@@ -1622,7 +1620,7 @@ void gui_update_download(download_t *d, gboolean force)
 			progress = 1.0;
 			status = _("Complete");
 		} else if (GTA_DL_RECEIVING == d->status && d->pos > d->skip) {
-			gfloat percent_done = download_total_progress(d);
+			gfloat percent_done = guc_download_total_progress(d);
 			
 			if (fi->recv_last_rate) {
 				guint s = (fi->size - fi->done) / fi->recv_last_rate;
@@ -1716,7 +1714,7 @@ static void update_download_abort_resume_helper(GtkTreeModel *model,
 	case GTA_DL_ABORTED:
 		uh->do_resume = TRUE;
 		/* only check if file exists if really necessary */
-		if (!uh->do_remove && download_file_exists(d))
+		if (!uh->do_remove && guc_download_file_exists(d))
 			uh->do_remove = TRUE;
 		break;
 	case GTA_DL_TIMEOUT_WAIT:

@@ -51,11 +51,13 @@
  * Boston, MA 02111-1307, USA.
  */
 
-#include "common.h"
+#include "gui.h"
+
 
 #ifdef USE_GTK2
 
 #include <stdlib.h>
+#include "common.h"
 #include "pbarcellrenderer_gui2.h"
 
 #include "override.h"		/* Must be the last header included */
@@ -316,8 +318,7 @@ gtk_cell_renderer_progress_get_size(
  * @return a GtkCellRenderer * for your use.
  *
  */
-GtkCellRenderer*
-gtk_cell_renderer_progress_new(void)
+GtkCellRenderer* gtk_cell_renderer_progress_new(void)
 {
 	return GTK_CELL_RENDERER(
 		g_object_new(gtk_cell_renderer_progress_get_type(), NULL));

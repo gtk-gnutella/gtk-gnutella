@@ -40,14 +40,8 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 
-#ifdef USE_GTK2
-#define G_DISABLE_DEPRECATED
-#define GDK_DISABLE_DEPRECATED
-#if 0
-/* This isn't possible due to use of GtkCombo */
-#define GTK_DISABLE_DEPRECATED
-#endif
-#endif
+#include "ui_core_interface_common_defs.h"
+
 
 #ifdef I_INTTYPES
 #include <inttypes.h>
@@ -96,38 +90,33 @@
 #include <stdarg.h>
 #include <regex.h>
 
-#ifndef USE_GTK2
-typedef void (*GCallback) (void);
-#else
-#include <glib-object.h>
-#endif
 
-#include "cq.h"
-#include "url.h"
-#include "vendors.h"
-#include "misc.h"
-#include "base32.h"
-#include "zalloc.h"
-#include "walloc.h"
 #include "atoms.h"
-#include "listener.h"
-#include "fuzzy.h"
-#include "matching.h"
-#include "getdate.h"
-#include "sha1.h"
-#include "idtable.h"
-#include "getline.h"
-#include "namesize.h"
-#include "utf8.h"
-#include "zlib_util.h"
-#include "cobs.h"
+#include "base32.h"
 #include "bg.h"
-#include "guid.h"
-#include "file.h"
-#include "inputevt.h"
-#include "glib-missing.h"
+#include "cobs.h"
+#include "cq.h"
 #include "event.h"
+#include "file.h"
+#include "fuzzy.h"
+#include "getdate.h"
+#include "getline.h"
+#include "glib-missing.h"
+#include "guid.h"
 #include "hashlist.h"
+#include "idtable.h"
+#include "inputevt.h"
+#include "listener.h"
+#include "matching.h"
+#include "misc.h"
+#include "namesize.h"
+#include "sha1.h"
+#include "url.h"
+#include "utf8.h"
+#include "vendors.h"
+#include "walloc.h"
+#include "zalloc.h"
+#include "zlib_util.h"
 
 /*
  * Portability macros.

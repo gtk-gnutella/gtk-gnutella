@@ -25,12 +25,16 @@
  *----------------------------------------------------------------------
  */
 
+#include <regex.h>
 #include "gui.h"
+#include "filter_gui.h"
 
 #ifdef USE_GTK1
 
 #include "statusbar_gui.h"
 #include "visual_progress_gui.h"
+
+#include "ui_core_interface.h"
 #include "override.h"		/* Must be the last header included */
 
 RCSID("$Id$");
@@ -74,10 +78,10 @@ static gnet_fi_info_t *fi_gui_fill_info(
      * outside through titles[]. */
 
     if (last_fi != NULL)
-        fi_free_info(last_fi);
+        guc_fi_free_info(last_fi);
         
     /* Fetch new info */
-    last_fi = fi_get_info(fih);
+    last_fi = guc_fi_get_info(fih);
     g_assert(last_fi != NULL);
 
     titles[c_fi_filename] = last_fi->file_name;
@@ -94,7 +98,7 @@ static void fi_gui_fill_status(
     static gchar fi_size[SIZE_FIELD_MAX];
     gnet_fi_status_t s;
 
-    fi_get_status(fih, &s);
+    guc_fi_get_status(fih, &s);
 
     gm_snprintf(fi_sources, sizeof(fi_sources), "%d/%d/%d",
         s.recvcount, s.aqueued_count+s.pqueued_count, s.lifecount);
@@ -145,11 +149,11 @@ static void fi_gui_set_details(gnet_fi_t fih)
     GtkCList *cl_aliases;
 	gboolean in_progress = FALSE;
 
-    fi = fi_get_info(fih);
+    fi = guc_fi_get_info(fih);
     g_assert(fi != NULL);
 
-    fi_get_status(fih, &fis);
-    aliases = fi_get_aliases(fih);
+    guc_fi_get_status(fih, &fis);
+    aliases = guc_fi_get_aliases(fih);
 
     cl_aliases = GTK_CLIST(lookup_widget(main_window, "clist_fi_aliases"));
 
@@ -169,7 +173,7 @@ static void fi_gui_set_details(gnet_fi_t fih)
 	in_progress = (fis.done != fis.size);
     
     g_strfreev(aliases);
-    fi_free_info(fi);
+    guc_fi_free_info(fi);
 
     last_shown = fih;
     last_shown_valid = TRUE;
@@ -446,7 +450,7 @@ void on_button_fi_purge_clicked(GtkButton *button, gpointer user_data)
 		
     sl = clist_collect_data(clist, TRUE, NULL);
     if (sl) {
-        fi_purge_by_handle_list(sl);
+        guc_fi_purge_by_handle_list(sl);
     }
 				    
     g_slist_free(sl);
@@ -469,9 +473,9 @@ void fi_gui_init(void)
 {
     GtkCList *clist;
 
-    fi_add_listener(fi_gui_fi_added, EV_FI_ADDED, FREQ_SECS, 0);
-    fi_add_listener(fi_gui_fi_removed, EV_FI_REMOVED, FREQ_SECS, 0);
-    fi_add_listener(fi_gui_fi_status_changed, EV_FI_STATUS_CHANGED,
+    guc_fi_add_listener(fi_gui_fi_added, EV_FI_ADDED, FREQ_SECS, 0);
+    guc_fi_add_listener(fi_gui_fi_removed, EV_FI_REMOVED, FREQ_SECS, 0);
+    guc_fi_add_listener(fi_gui_fi_status_changed, EV_FI_STATUS_CHANGED,
 		FREQ_SECS, 0);
 
     clist = GTK_CLIST(lookup_widget(main_window, "clist_fileinfo"));
@@ -490,12 +494,12 @@ void fi_gui_shutdown(void)
     g_slist_free(hidden_fi);
     g_slist_free(visible_fi);
 
-    fi_remove_listener(fi_gui_fi_removed, EV_FI_REMOVED);
-    fi_remove_listener(fi_gui_fi_added, EV_FI_ADDED);
-    fi_remove_listener(fi_gui_fi_status_changed, EV_FI_STATUS_CHANGED);
+    guc_fi_remove_listener(fi_gui_fi_removed, EV_FI_REMOVED);
+    guc_fi_remove_listener(fi_gui_fi_added, EV_FI_ADDED);
+    guc_fi_remove_listener(fi_gui_fi_status_changed, EV_FI_STATUS_CHANGED);
 
     if (last_fi != NULL)
-        fi_free_info(last_fi);
+        guc_fi_free_info(last_fi);
 
     regfree(&filter_re);
 }

@@ -25,17 +25,15 @@
  *----------------------------------------------------------------------
  */
 
-#include "common.h"
-
 #include <ctype.h>
 
+#include "common.h"
+#include "gnutella.h"		/* for dbg */
 #include "qrp.h"			/* For qhvec_add() */
 #include "override.h"			/* Must be the last header included */
 
 RCSID("$Id$");
 
-/* FIXME: remove this dependency */
-extern guint32 dbg;
 
 #define WOVEC_DFLT	10				/* Default size of word-vectors */
 
@@ -885,4 +883,3 @@ gint st_search(
 }
 
 /* vi: set ts=4: */
-

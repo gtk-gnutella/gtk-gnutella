@@ -42,14 +42,13 @@
  *		(C) 2002 Michael Tesch, released with gtk-gnutella & its license
  */
 
-#include "gnutella.h"
+#include "gui.h"
 
 #ifdef USE_GTK2
 
-#include "gui.h"
-#include "interface-glade2.h"
+#include "common.h"
+#include "interface-glade2.h" /* for create_popup_upload_stats */
 #include "upload_stats_gui.h" 
-#include "upload_stats.h"
 #include "override.h"		/* Must be the last header included */
 
 RCSID("$Id$");

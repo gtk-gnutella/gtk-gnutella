@@ -23,6 +23,7 @@
  *----------------------------------------------------------------------
  */
 
+#include <regex.h>
 #include "gui.h"
 
 #ifdef USE_GTK1
@@ -32,7 +33,7 @@
 #include "downloads_cb.h"
 #include "statusbar_gui.h"
 
-#include "downloads.h"	/* FIXME: remove this dependency */
+#include "ui_core_interface.h"
 #include "override.h"		/* Must be the last header included */
 
 RCSID("$Id$");
@@ -188,7 +189,7 @@ void on_popup_downloads_push_activate(GtkMenuItem * menuitem,
 				"row has NULL data");
 		    continue;
         }
-     	download_fallback_to_push(d, FALSE, TRUE);
+     	guc_download_fallback_to_push(d, FALSE, TRUE);
 	}
 	
     gtk_clist_thaw(GTK_CLIST(ctree_downloads_queue));
@@ -230,7 +231,7 @@ void on_popup_downloads_abort_named_activate(GtkMenuItem * menuitem,
                 " row has NULL data");
 			continue;
 		}
-		removed += download_remove_all_named(d->file_name);
+		removed += guc_download_remove_all_named(d->file_name);
 	}
 	
 	g_list_free(data_list);
@@ -275,7 +276,7 @@ void on_popup_downloads_abort_host_activate(GtkMenuItem * menuitem,
                 " row has NULL data");
 			continue;
 		}
-		removed += download_remove_all_from_peer(
+		removed += guc_download_remove_all_from_peer(
 			download_guid(d), download_ip(d), 
 			download_port(d), FALSE);
 	}
@@ -324,7 +325,7 @@ void on_popup_downloads_abort_sha1_activate(GtkMenuItem * menuitem,
 		}
 
         if (d->file_info->sha1 != NULL)
-            removed += download_remove_all_with_sha1(
+            removed += guc_download_remove_all_with_sha1(
 			d->file_info->sha1);
 	}
 	
@@ -379,9 +380,9 @@ void on_popup_downloads_remove_file_activate(GtkMenuItem * menuitem,
         
         if (
 			(d->status == GTA_DL_ERROR || d->status == GTA_DL_ABORTED) &&
-            download_file_exists(d)
+            guc_download_file_exists(d)
 		)
-           	download_remove_file(d, TRUE);
+           	guc_download_remove_file(d, TRUE);
 	}
 	
     gtk_clist_thaw(GTK_CLIST(ctree_downloads));
@@ -422,7 +423,7 @@ void on_popup_downloads_queue_activate(GtkMenuItem * menuitem,
 				"row has NULL data");
             continue;
         }
-        download_requeue(d);
+        guc_download_requeue(d);
 	}
 	
     gtk_clist_thaw(GTK_CLIST(ctree_downloads_queue));
@@ -474,7 +475,7 @@ void on_popup_downloads_copy_url_activate(GtkMenuItem * menuitem,
             G_FREE_NULL(selected_url);
         }
 
-        selected_url = g_strdup(build_url_from_download(d));
+        selected_url = g_strdup(guc_build_url_from_download(d));
     } 
 }
 
@@ -502,7 +503,7 @@ void on_popup_downloads_connect_activate(GtkMenuItem * menuitem,
 	}
 	   
     gtk_ctree_unselect(ctree_downloads, l->data);
-    node_add(download_ip(d), download_port(d));   
+    guc_node_add(download_ip(d), download_port(d));   
 }
 
 
@@ -534,7 +535,7 @@ void on_popup_queue_start_now_activate(GtkMenuItem * menuitem,
             continue;
         }
 		if (d->status == GTA_DL_QUEUED)
-			download_start(d, TRUE);
+			guc_download_start(d, TRUE);
 	}
 	
     gtk_clist_thaw(GTK_CLIST(ctree_downloads_queue));
@@ -569,7 +570,7 @@ void on_popup_queue_abort_activate(GtkMenuItem * menuitem,
 		    continue;
         }
 		if (d->status == GTA_DL_QUEUED)
-			download_remove(d);
+			guc_download_remove(d);
 	}
 	
     gtk_clist_thaw(GTK_CLIST(ctree_downloads_queue));
@@ -606,7 +607,7 @@ void on_popup_queue_abort_named_activate(GtkMenuItem * menuitem,
 				"row has NULL data");
 			continue;
 		}
-		removed += download_remove_all_named(d->file_name);
+		removed += guc_download_remove_all_named(d->file_name);
 	}
 	
 	g_list_free(data_list);
@@ -644,7 +645,7 @@ void on_popup_queue_abort_host_activate(GtkMenuItem * menuitem,
 				"row has NULL data");
 			continue;
 		}
-		removed += download_remove_all_from_peer(
+		removed += guc_download_remove_all_from_peer(
 			download_guid(d), download_ip(d), download_port(d), FALSE);
 	}
 	
@@ -686,7 +687,8 @@ void on_popup_queue_abort_sha1_activate(GtkMenuItem * menuitem,
 		}
 
         if (d->file_info->sha1 != NULL)
-            removed += download_remove_all_with_sha1(d->file_info->sha1);
+            removed += guc_download_remove_all_with_sha1
+				(d->file_info->sha1);
 	}
 
 	g_list_free(data_list);
@@ -742,7 +744,7 @@ void on_popup_queue_copy_url_activate(GtkMenuItem * menuitem,
             G_FREE_NULL(selected_url);
         }
 
-        selected_url = g_strdup(build_url_from_download(d));
+        selected_url = g_strdup(guc_build_url_from_download(d));
     } 
 }
 
@@ -769,7 +771,7 @@ void on_popup_queue_connect_activate(GtkMenuItem * menuitem,
     }
 
     gtk_ctree_unselect(ctree_downloads_queue, l->data);
-    node_add(download_ip(d), download_port(d));
+    guc_node_add(download_ip(d), download_port(d));
 }
  
 /***
@@ -806,7 +808,7 @@ void on_button_downloads_abort_clicked(GtkButton * button, gpointer user_data)
 			continue;
 		}
 
-		download_abort(d);
+		guc_download_abort(d);
 	}
 	
 	g_list_free(data_list);
@@ -837,7 +839,7 @@ void on_button_downloads_resume_clicked(GtkButton * button, gpointer user_data)
 				"row has NULL data");
             continue;
         }
-        download_resume(d);
+        guc_download_resume(d);
 	}
 	
 	g_list_free(data_list);
@@ -1079,14 +1081,14 @@ void on_ctree_downloads_queue_drag_begin(GtkWidget *widget,
                                          GdkDragContext *drag_context, 
                                          gpointer user_data)
 {
-    download_freeze_queue();
+    guc_download_freeze_queue();
 }
 
 void on_ctree_downloads_queue_drag_end(GtkWidget *widget, 
                                        GdkDragContext *drag_context, 
                                        gpointer user_data)
 {
-    download_thaw_queue();
+    guc_download_thaw_queue();
 }
 
 

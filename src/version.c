@@ -25,15 +25,20 @@
  *----------------------------------------------------------------------
  */
 
-#include "gnutella.h"
 
 #include <ctype.h>				/* For isalpha() */
 #include <sys/utsname.h>		/* For uname() */
+#include <time.h>
 
+#include "common.h"
+#include "misc.h"		/* for RCSID */
+#include "getdate.h"
 #include "version.h"
 #include "token.h"
-#include "gnet_property.h"
+#include "gnet_property.h" 
 #include "settings.h"
+#include "gnutella.h"
+
 #include "override.h"				/* Must be the last header included */
 
 RCSID("$Id$");

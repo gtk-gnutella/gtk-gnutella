@@ -26,8 +26,12 @@
 #ifndef _filter_h_
 #define _filter_h_
 
-#include "gui.h"
+#include <regex.h>
 
+#include "gui.h"
+#include "common.h"
+#include "ui_core_interface_filters_defs.h"
+#include "ui_core_interface_matching_defs.h"
 
 /*
  * Needed stuff from search.h

@@ -26,8 +26,10 @@
  */
 
 #include "gui.h"
-#include "fileinfo.h"
+#include "filter_gui.h"
 #include "visual_progress_gui.h"
+
+#include "ui_core_interface.h"
 #include "override.h"		/* Must be the last header included */
 
 #ifdef USE_GTK2
@@ -73,11 +75,11 @@ static void fi_gui_set_details(gnet_fi_t fih)
 	GtkTreeIter iter;
 	gint i;
 
-    fi = fi_get_info(fih);
+    fi = guc_fi_get_info(fih);
     g_assert(fi != NULL);
 
-    fi_get_status(fih, &fis);
-    aliases = fi_get_aliases(fih);
+    guc_fi_get_status(fih, &fis);
+    aliases = guc_fi_get_aliases(fih);
 
     gtk_entry_set_text(entry_fi_filename,
 		lazy_locale_to_utf8(fi->file_name, 0));
@@ -91,7 +93,7 @@ static void fi_gui_set_details(gnet_fi_t fih)
 			lazy_locale_to_utf8(aliases[i], 0), (-1));
 	}
     g_strfreev(aliases);
-    fi_free_info(fi);
+    guc_fi_free_info(fi);
 
     last_shown = fih;
     last_shown_valid = TRUE;
@@ -140,7 +142,7 @@ void on_treeview_fileinfo_selected(
 void on_button_fi_purge_clicked(GtkButton *button, gpointer user_data)
 {
     if (last_shown_valid) {
-	fi_purge(last_shown);
+	guc_fi_purge(last_shown);
 	fi_gui_clear_details();
     }
 }
@@ -172,11 +174,11 @@ static void fi_gui_fill_info(
      * have to strdup entries from it when passing them to the 
      * outside through titles[]. */
     if (fi != NULL) {
-        fi_free_info(fi);
+        guc_fi_free_info(fi);
     }
         
     /* Fetch new info */
-    fi = fi_get_info(fih);
+    fi = guc_fi_get_info(fih);
     g_assert(fi != NULL);
 
     titles[c_fi_filename] = fi->file_name;
@@ -191,7 +193,7 @@ static void fi_gui_fill_status(
     static gchar fi_done[SIZE_FIELD_MAX+10];
     static gchar fi_size[SIZE_FIELD_MAX];
 
-    fi_get_status(fih, &s);
+    guc_fi_get_status(fih, &s);
 
     gm_snprintf(fi_sources, sizeof(fi_sources), "%d/%d/%d",
         s.recvcount, s.aqueued_count+s.pqueued_count, s.lifecount);
@@ -401,17 +403,17 @@ void fi_gui_init(void)
 
     add_column(treeview_fi_aliases, 0, _("Aliases"), 0.0, 0);
 
-    fi_add_listener(fi_gui_fi_added, EV_FI_ADDED, FREQ_SECS, 0);
-    fi_add_listener(fi_gui_fi_removed, EV_FI_REMOVED, FREQ_SECS, 0);
-    fi_add_listener(fi_gui_fi_status_changed, EV_FI_STATUS_CHANGED,
+    guc_fi_add_listener(fi_gui_fi_added, EV_FI_ADDED, FREQ_SECS, 0);
+    guc_fi_add_listener(fi_gui_fi_removed, EV_FI_REMOVED, FREQ_SECS, 0);
+    guc_fi_add_listener(fi_gui_fi_status_changed, EV_FI_STATUS_CHANGED,
 		FREQ_SECS, 0);
 }
 
 void fi_gui_shutdown(void)
 {
-    fi_remove_listener(fi_gui_fi_removed, EV_FI_REMOVED);
-    fi_remove_listener(fi_gui_fi_added, EV_FI_ADDED);
-    fi_remove_listener(fi_gui_fi_status_changed, EV_FI_STATUS_CHANGED);
+    guc_fi_remove_listener(fi_gui_fi_removed, EV_FI_REMOVED);
+    guc_fi_remove_listener(fi_gui_fi_added, EV_FI_ADDED);
+    guc_fi_remove_listener(fi_gui_fi_status_changed, EV_FI_STATUS_CHANGED);
 
 	tree_view_save_widths(treeview_fileinfo, PROP_FILE_INFO_COL_WIDTHS);
 	gtk_tree_store_clear(store_fileinfo);

@@ -42,6 +42,9 @@
 #include "http.h"
 #include "hostiles.h"
 #include "guid.h"
+#include "share.h"
+#include "fileinfo.h"
+#include "header.h"
 
 #include "settings.h"
 #include "override.h"		/* Must be the last header included */

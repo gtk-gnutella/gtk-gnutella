@@ -54,13 +54,9 @@
  * perhaps max once a second.
  */
 
-#include "common.h"
-#include "gnutella.h"
-
 #include "gui.h"
-#include "http.h"
-#include "downloads.h"
 #include "visual_progress_gui.h"
+#include "ui_core_interface.h"
 
 #include "override.h"		/* Must be the last header included */
 
@@ -278,8 +274,8 @@ vp_gui_fi_added(gnet_fi_t fih)
     vp_info_t *new_vp_info = NULL;
     gnet_fi_status_t s;
 
-    fi = fi_get_info(fih);
-    fi_get_status(fih, &s);
+    fi = guc_fi_get_info(fih);
+    guc_fi_get_status(fih, &s);
     
     new_vp_info = walloc0(sizeof(*new_vp_info));
     new_vp_info->fi_handle = fih;
@@ -290,11 +286,11 @@ vp_gui_fi_added(gnet_fi_t fih)
     new_vp_info->row = fih;
     new_vp_info->file_name = g_strdup(fi->file_name);
     new_vp_info->file_size = s.size;
-    new_vp_info->chunks_list = fi_get_chunks(fih);
+    new_vp_info->chunks_list = guc_fi_get_chunks(fih);
 
     g_hash_table_insert(vp_info_hash, GUINT_TO_POINTER(fih), new_vp_info);
     
-    fi_free_info(fi);
+    guc_fi_free_info(fi);
 }
 
 /**
@@ -320,8 +316,10 @@ vp_gui_fi_removed(gnet_fi_t fih)
      */
 
     g_hash_table_remove(vp_info_hash, GUINT_TO_POINTER(fih));
-    fi_free_chunks(v->chunks_list);
+
+    guc_fi_free_chunks(v->chunks_list);
 	G_FREE_NULL(v->file_name);
+
     wfree(v, sizeof(vp_info_t));
 
     /* Forget the fileinfo handle for which we displayed progress info */
@@ -360,7 +358,7 @@ vp_gui_fi_status_changed(gnet_fi_t fih)
      * trees in parallel to make this check.
      */
     old = v->chunks_list;
-    new = fi_get_chunks(fih);
+    new = guc_fi_get_chunks(fih);
     keep_new = new;
     while (old || new) {
         if (old && new) {
@@ -396,7 +394,7 @@ vp_gui_fi_status_changed(gnet_fi_t fih)
 	/*
 	 * Now that we have checked all old chunks we can discard them 
 	 */
-    fi_free_chunks(v->chunks_list);
+    guc_fi_free_chunks(v->chunks_list);
     v->chunks_list = keep_new;
 }
 
@@ -417,7 +415,6 @@ range_for_complete_file(guint32 size)
     return g_slist_append(NULL, range);
 }
 
-
 /**
  * Callback for updates to ranges available on the network.
  * 
@@ -436,7 +433,7 @@ vp_update_ranges(gnet_src_t srcid)
 	GSList *old_list;    /** The previous list of ranges, no longer needed */
 	GSList *l;           /** Temporary pointer to help remove old_list */
 
-	d = src_get_download(srcid);
+	d = guc_src_get_download(srcid);
 	g_assert(d);
 
 	/* 
@@ -460,14 +457,16 @@ vp_update_ranges(gnet_src_t srcid)
 		v->ranges = range_for_complete_file(d->file_info->size);
 	} else {
 		/* Merge in the new ranges */
-
-		if (dbg) {
-			g_message("Ranges before: %s", http_range_to_gchar(v->ranges));
-			g_message("Ranges new   : %s", http_range_to_gchar(d->ranges));
+		if (gui_debug) {
+			g_message("Ranges before: %s", 
+				guc_http_range_to_gchar(v->ranges));
+			g_message("Ranges new   : %s", 
+				guc_http_range_to_gchar(d->ranges));
 		}
-		v->ranges = http_range_merge(v->ranges, d->ranges);
-		if (dbg)
-			g_message("Ranges after : %s", http_range_to_gchar(v->ranges));
+		v->ranges = guc_http_range_merge(v->ranges, d->ranges);
+		if (gui_debug)
+			g_message("Ranges after : %s", 
+				guc_http_range_to_gchar(v->ranges));
 	}
 	/* Remove the old list and free its range elements */
 	for (l = old_list; l; l = g_slist_next(l)) {
@@ -484,7 +483,7 @@ vp_free_key_value (gpointer key, gpointer value, gpointer user_data)
 {
 	(void) key;
 	(void) user_data;
-    fi_free_chunks(((vp_info_t *) value)->chunks_list);
+    guc_fi_free_chunks(((vp_info_t *) value)->chunks_list);
 	G_FREE_NULL(((vp_info_t *) value)->file_name);
     wfree(value, sizeof(vp_info_t));
 }
@@ -501,14 +500,17 @@ vp_gui_init(void)
 
     vp_info_hash = g_hash_table_new(NULL, NULL);
 
-    fi_add_listener(vp_gui_fi_added, EV_FI_ADDED, FREQ_SECS, 0);
-    fi_add_listener(vp_gui_fi_removed, EV_FI_REMOVED, FREQ_SECS, 0);
-    fi_add_listener(vp_gui_fi_status_changed, EV_FI_STATUS_CHANGED,
+    guc_fi_add_listener(vp_gui_fi_added, EV_FI_ADDED, 
 		FREQ_SECS, 0);
-    fi_add_listener(vp_gui_fi_status_changed, EV_FI_STATUS_CHANGED_TRANSIENT,
+    guc_fi_add_listener(vp_gui_fi_removed, EV_FI_REMOVED, 
 		FREQ_SECS, 0);
+    guc_fi_add_listener(vp_gui_fi_status_changed, 
+		EV_FI_STATUS_CHANGED, FREQ_SECS, 0);
+    guc_fi_add_listener(vp_gui_fi_status_changed, 
+		EV_FI_STATUS_CHANGED_TRANSIENT, FREQ_SECS, 0);
 
-	src_add_listener(vp_update_ranges, EV_SRC_RANGES_CHANGED, FREQ_SECS, 0);
+	guc_src_add_listener(vp_update_ranges, 
+		EV_SRC_RANGES_CHANGED, FREQ_SECS, 0);
 
     cmap = gdk_colormap_get_system();
     g_assert(cmap);
@@ -539,15 +541,18 @@ vp_gui_init(void)
 void 
 vp_gui_shutdown(void)
 {
-    fi_remove_listener(vp_gui_fi_removed, EV_FI_REMOVED);
-    fi_remove_listener(vp_gui_fi_added, EV_FI_ADDED);
-    fi_remove_listener(vp_gui_fi_status_changed, EV_FI_STATUS_CHANGED);
+    guc_fi_remove_listener(vp_gui_fi_removed, EV_FI_REMOVED);
+    guc_fi_remove_listener(vp_gui_fi_added, EV_FI_ADDED);
+    guc_fi_remove_listener(vp_gui_fi_status_changed, 
+		EV_FI_STATUS_CHANGED);
 
-	src_remove_listener(vp_update_ranges, EV_SRC_RANGES_CHANGED);
+	guc_src_remove_listener(vp_update_ranges, 
+		EV_SRC_RANGES_CHANGED);
 
     g_hash_table_foreach(vp_info_hash, vp_free_key_value, NULL);
     g_hash_table_destroy(vp_info_hash);
 }
+
 
 
 

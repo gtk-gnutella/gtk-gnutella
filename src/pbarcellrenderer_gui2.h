@@ -50,6 +50,7 @@
 #define _pbarcellrenderer_gui2_h_
 
 #include <gtk/gtkcellrenderer.h>
+#include "gui.h"
 
 G_BEGIN_DECLS
 

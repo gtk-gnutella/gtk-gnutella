@@ -32,45 +32,7 @@
 #include <glib.h>
 
 #include "pmsg.h"
-
-struct rxdrv_ops;
-struct rxdriver;
-struct bio_source;
-
-typedef void (*rx_data_t)(struct rxdriver *, pmsg_t *mb);
-
-/*
- * A network driver
- *
- */
-typedef struct rxdriver {
-	struct gnutella_node *node;		/* Node to which this driver belongs */
-	struct rxdrv_ops *ops;			/* Dynamically dispatched operations */
-	struct rxdriver *upper;			/* Layer above, NULL if none */
-	struct rxdriver *lower;			/* Layer underneath, NULL if none */
-	gint flags;						/* Driver flags */
-	rx_data_t data_ind;				/* Data indication routine */
-	gpointer opaque;				/* Used by heirs to store specific info */
-} rxdrv_t;
-
-#define rx_node(r)	((r)->node)
-
-/*
- * Driver flags.
- */
-
-/*
- * Operations defined on all drivers.
- */
-
-struct rxdrv_ops {
-	gpointer (*init)(rxdrv_t *tx, gpointer args);
-	void (*destroy)(rxdrv_t *tx);
-	void (*recv)(rxdrv_t *tx, pmsg_t *mb);
-	void (*enable)(rxdrv_t *tx);
-	void (*disable)(rxdrv_t *tx);
-	struct bio_source *(*bio_source)(rxdrv_t *tx);
-};
+#include "ui_core_interface_rx_defs.h"
 
 /*
  * Public interface
@@ -92,4 +54,3 @@ struct bio_source *rx_bio_source(rxdrv_t *rx);
 #endif	/* _rx_h_ */
 
 /* vi: set ts=4: */
-

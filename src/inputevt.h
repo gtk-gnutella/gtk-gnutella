@@ -28,23 +28,8 @@
 
 #include <glib.h>
 
-/*
- * This mimics the GDK input condition type.
- */
-typedef enum {
-	INPUT_EVENT_READ		= 1 << 0,
-	INPUT_EVENT_WRITE		= 1 << 1,
-	INPUT_EVENT_EXCEPTION	= 1 << 2,
-} inputevt_cond_t;
+#include "ui_core_interface_inputevt_defs.h"
 
-/*
- * And the handler function type.
- */
-typedef void (*inputevt_handler_t) (
-	gpointer data,
-	gint source,
-	inputevt_cond_t condition
-);
 
 /*
  * Module initialization and cleanup functions. 
@@ -62,4 +47,3 @@ guint inputevt_add(gint source, inputevt_cond_t condition,
 #define inputevt_remove(source) (g_source_remove(source))
 
 #endif  /* _inputevt_h_ */
-

@@ -29,43 +29,11 @@
 
 #include "huge.h"
 
+#include "ui_core_interface_share_defs.h"
+
 struct gnutella_node;
 struct query_hashvec;
-struct dl_file_info;
 
-/* A file extension we have to share */
-struct extension {
-	gchar *str;			/* Extension string (e.g. "html") */
-	gint len;			/* Extension length (e.g. 4) */
-};
-
-typedef struct shared_file {
-	gchar *file_path;		/* The full path of the file */
-	const gchar *file_name;	/* Pointer within file_path at start of filename */
-	guint32 file_index;		/* the files index within our local DB */
-	guint32 file_size;		/* File size in Bytes */
-	guint32 flags;			/* See below for definition */
-	gint file_name_len;
-	time_t mtime;			/* Last modification time, for SHA1 computation */
-	gchar sha1_digest[SHA1_RAW_SIZE];	/* SHA1 digest, binary form */
-	struct dl_file_info *fi;			/* PFSP-server: the holding fileinfo */
-} shared_file_t;
-
-/*
- * shared_file flags
- */
-
-#define SHARE_F_HAS_DIGEST	0x00000001		/* Digest is set */
-#define SHARE_F_RECOMPUTING	0x00000002		/* Digest being recomputed */
-
-struct gnutella_search_results_out {
-	guchar num_recs;
-	guchar host_port[2];
-	guchar host_ip[4];
-	guchar host_speed[4];
-
-	/* Last 16 bytes = client_id */
-};
 
 /*
  * Global Data
@@ -77,8 +45,6 @@ extern GSList *extensions, *shared_dirs;
  * Special return value from shared_file() during library rebuild time.
  * This is needed because we no longer block the GUI whilst scanning.
  */
-
-#define SHARE_REBUILDING	((struct shared_file *) 0x1)
 
 /*
  * Global Functions

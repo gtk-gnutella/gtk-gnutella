@@ -29,7 +29,11 @@
 #include <time.h>
 #include <glib.h>
 
-#include "gnet.h"
+#include "ui_core_interface_gnet_search_defs.h"
+#include "ui_core_interface_search_gui_defs.h"
+
+void search_add_got_results_listener(search_got_results_listener_t l);
+void search_remove_got_results_listener(search_got_results_listener_t l);
 
 #define TAB_UPDATE_TIME	5		/* Update search tabs after 5 seconds */
 
@@ -108,8 +112,6 @@ typedef struct record {
 /*
  * Global Functions
  */
-
-typedef struct search search_t;
 
 void search_matched(search_t *sch, results_set_t *rs);
 

@@ -28,75 +28,7 @@
 #ifndef _fileinfo_h_
 #define _fileinfo_h_
 
-struct shared_file;
-
-struct dl_file_chunk {
-	guint32 from;					/* Range offset start (byte included) */
-	guint32 to;						/* Range offset end (byte EXCLUDED) */
-	enum dl_chunk_status status;	/* Status of range */
-	struct download *download;		/* Download that "reserved" the range */
-};
-
-struct dl_file_info {
-    gnet_fi_t fi_handle;    /* Handle */
-
-	guint32 flags;			/* Operating flags */
-	gchar *file_name;		/* Output file name (atom) */
-	gchar *path;			/* Output file path (atom) */
-	GSList *alias;			/* List of file name aliases (atoms) */
-	guint32 size;			/* File size */
-	gint *size_atom;		/* File size (atom -- points to value in memory) */
-	gchar *sha1;			/* server SHA1 (atom) if known, NULL if not. */
-	gchar *cha1;			/* computed SHA1 (atom) if known, NULL if not. */
-	gint32 refcount;		/* Reference count of file (number of sources)*/
-	GSList *sources;        /* list of sources (struct download *)*/
-	gint32 lifecount;		/* Amount of "alive" downloads referencing us */
-	time_t stamp;			/* Time stamp */
-	time_t ctime;			/* Creation time stamp */
-	time_t ntime;			/* Last time a new source was added */
-	time_t last_flush;		/* When last flush to disk occurred */
-	time_t last_dmesh;		/* When last dmesh query was used */
-	guint32 done;			/* Total number of bytes completed */
-	GSList *chunklist;		/* List of ranges within file */
-	guint32 generation;		/* Generation number, incremented on disk update */
-	struct shared_file *sf;	/* When PFSP-server is enabled, share this file */
-	gboolean file_size_known; /* File size known? */
-	gboolean use_swarming;	/* Use swarming? */
-	gboolean dirty;			/* Does it need saving? */
-	gboolean dirty_status;  /* Notify about status change on next interval */
-	gboolean hashed;		/* In hash tables? */
-	guint32  aqueued_count; /* Actively queued sources */
-	guint32  pqueued_count; /* Passively queued sources */
-		
-
-	/*
-	 * The following group is used to compute the aggregated reception rate.
-	 */
-
-	gint32 recvcount;		/* Amount of "receiving" downloads referencing us */
-	guint32 recv_last_rate;	/* Last amount of bytes/sec received */
-	guint32 recv_amount;	/* Amount of bytes received this period */
-	time_t recv_last_time;	/* When did we last compute recv_last_rate? */
-
-	/*
-	 * This group of fields is used by the background SHA1 and moving daemons.
-	 */
-
-	guint cha1_elapsed;	/* Time spent to compute the SHA1 */
-	guint32 cha1_hashed;	/* Amount of bytes hashed so far */
-	guint copy_elapsed;	/* Time spent to copy the file */
-	guint32 copied;			/* Amount of bytes copied so far */
-};
-
-/*
- * Operating flags.
- */
-
-#define FI_F_SUSPEND		0x00000001 	/* Marked "suspended" new downloads */
-#define FI_F_DISCARD		0x00000002 	/* Discard fileinfo when refcount = 0 */
-#define FI_F_MARK			0x80000000 	/* Marked during traversal */
-
-#define FILE_INFO_COMPLETE(x)	((x)->done == (x)->size && (x)->file_size_known)
+#include "ui_core_interface_fileinfo_defs.h"
 
 void file_info_init(void);
 void file_info_scandir(const gchar *dir);

@@ -130,9 +130,9 @@ static void upload_added(
 {
     gnet_upload_info_t *info;
 
-    info = upload_get_info(n);
+    info = guc_upload_get_info(n);
     uploads_gui_add_upload(info);
-    upload_free_info(info);
+    guc_upload_free_info(info);
 }
 
 /*
@@ -146,9 +146,9 @@ static void upload_info_changed(gnet_upload_t u,
 {
     gnet_upload_info_t *info;
 
-    info = upload_get_info(u);
+    info = guc_upload_get_info(u);
     uploads_gui_update_upload_info(info);
-    upload_free_info(info);
+    guc_upload_free_info(info);
 }
 
 #if 0	/* UNUSED */
@@ -282,7 +282,7 @@ static void uploads_gui_update_upload_info(const gnet_upload_info_t *u)
 			(-1));
 	}
 
-	upload_get_status(u->upload_handle, &status);
+	guc_upload_get_status(u->upload_handle, &status);
 	rd->status = status.status;
 
 	gtk_list_store_set(store_uploads, &rd->iter,
@@ -326,7 +326,7 @@ void uploads_gui_add_upload(gnet_upload_info_t *u)
 	rd->push		= u->push;
 	rd->valid		= TRUE;
 
-	upload_get_status(u->upload_handle, &status);
+	guc_upload_get_status(u->upload_handle, &status);
     rd->status = status.status;
 
     if (u->range_start == 0 && u->range_end == 0)
@@ -482,9 +482,10 @@ void uploads_gui_init(void)
 
 	upload_handles = g_hash_table_new(NULL, NULL);
 
-    upload_add_upload_added_listener(upload_added);
-    upload_add_upload_removed_listener(upload_removed);
-    upload_add_upload_info_changed_listener(upload_info_changed);
+    guc_upload_add_upload_added_listener(upload_added);
+    guc_upload_add_upload_removed_listener(upload_removed);
+    guc_upload_add_upload_info_changed_listener
+		(upload_info_changed);
 	
 	g_signal_connect(GTK_OBJECT(treeview), "button_press_event",
 		G_CALLBACK(on_button_press_event), NULL);
@@ -536,7 +537,7 @@ static inline void update_row(gpointer key, gpointer data, gpointer user_data)
 		return;
 
 	rd->last_update = now;
-	upload_get_status(rd->handle, &status);
+	guc_upload_get_status(rd->handle, &status);
 	gtk_list_store_set(store_uploads, &rd->iter,
 		c_ul_progress, force_range(uploads_gui_progress(&status, rd), 0.0, 1.0),
 		c_ul_status, uploads_gui_status_str(&status, rd),
@@ -657,9 +658,10 @@ void uploads_gui_shutdown(void)
 	tree_view_save_widths(treeview_uploads, PROP_UPLOADS_COL_WIDTHS);
 	tree_view_save_visibility(treeview_uploads, PROP_UPLOADS_COL_VISIBLE);
 
-    upload_remove_upload_added_listener(upload_added);
-    upload_remove_upload_removed_listener(upload_removed);
-    upload_remove_upload_info_changed_listener(upload_info_changed);
+    guc_upload_remove_upload_added_listener(upload_added);
+    guc_upload_remove_upload_removed_listener(upload_removed);
+    guc_upload_remove_upload_info_changed_listener
+		(upload_info_changed);
 
 	gtk_list_store_clear(store_uploads);
 

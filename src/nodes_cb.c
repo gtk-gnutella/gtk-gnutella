@@ -29,17 +29,18 @@
 
 #ifdef USE_GTK1
 
-#include "adns.h"
 #include "nodes_cb.h"
 #include "settings_gui.h"
 #include "statusbar_gui.h"
+
+#include "ui_core_interface.h"
 #include "override.h"		/* Must be the last header included */
 
 RCSID("$Id$");
 
 static void add_node_helper(guint32 ip, gpointer port)
 {
-	node_add(ip, GPOINTER_TO_UINT(port));
+ 	guc_node_add(ip, GPOINTER_TO_UINT(port));
 }
 
 /*
@@ -75,7 +76,8 @@ static void nodes_cb_connect_by_name(const gchar *addr)
 	if (port < 1 || port > 65535) {
         statusbar_gui_warning(15, "Port must be between 1 and 65535");
     } else {
-		adns_resolve(e, add_node_helper, GUINT_TO_POINTER((guint) port));
+		guc_adns_resolve(e, add_node_helper, 
+			GUINT_TO_POINTER((guint) port));
 	}
 
     G_FREE_NULL(e);
@@ -141,7 +143,7 @@ static void remove_selected_nodes(void)
     g_assert(clist != NULL);
 
     node_list = clist_collect_data(clist, TRUE, list_direct_equal);
-    node_remove_nodes_by_handle(node_list);
+    guc_node_remove_nodes_by_handle(node_list);
     g_slist_free(node_list);
 }
 

@@ -28,8 +28,9 @@
 
 #include "prop.h"
 #include "common.h"
-#include "version.h"
 #include "file.h"
+
+#include "ui_core_interface_version_defs.h"
 #include "override.h"		/* Must be the last header included */
 
 RCSID("$Id$");

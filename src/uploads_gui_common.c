@@ -23,16 +23,16 @@
  *----------------------------------------------------------------------
  */
 
-#include "config.h"
-
 #include <glib.h>
-#include "glib-missing.h"   /* For gm_snprintf() */
-#include "gnet.h"           /* For gnet_upload_status_t */
-#include "misc.h"           /* For g_strlcpy() [GTK1] */
-#include "uploads_gui.h"    /* For upload_row_data_t */
-#include "gui_property.h"   /* For gui_prop_get_guint32() */
 
+#include "config.h"
+#include "gui.h"
+#include "glib-missing.h"   /* For gm_snprintf() */
+#include "gui_property.h"   /* For gui_prop_get_guint32() */
+#include "uploads_gui.h"    /* For upload_row_data_t */
 #include "uploads_gui_common.h"
+
+#include "ui_core_interface.h"
 #include "override.h"			/* Must be the last header included */
 
 RCSID("$Id$");

@@ -28,6 +28,8 @@
 #include "gui.h"
 #include "monitor_gui.h"
 #include "monitor_cb.h"
+
+#include "ui_core_interface.h"
 #include "override.h"		/* Must be the last header included */
 
 #ifdef USE_GTK2
@@ -155,9 +157,9 @@ void monitor_gui_enable_monitor(const gboolean val)
 
     if (val != registered) {
         if (val)
-            share_add_search_request_listener(monitor_gui_append_to_monitor);
+            guc_share_add_search_request_listener(monitor_gui_append_to_monitor);
         else
-            share_remove_search_request_listener(
+            guc_share_remove_search_request_listener(
 				monitor_gui_append_to_monitor);
         registered = val;
     }

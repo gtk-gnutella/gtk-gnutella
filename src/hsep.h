@@ -29,26 +29,7 @@
 #define HSEP_VERSION_MAJOR 0
 #define HSEP_VERSION_MINOR 2
 
-/* number of hops to consider */
-#define HSEP_N_MAX 7
-
-/* average time in seconds before resending a */
-/* HSEP message to a node (can be increased to 60) */
-/* TODO: make this configurable? */
-#define HSEP_MSG_INTERVAL 30 
-
-/* random skew in seconds for message interval */
-/* time is in the interval msg_interval +/- msg_skew */
-/* TODO: make this configurable? */
-#define HSEP_MSG_SKEW 10
-
-typedef guint64 hsep_triple[3];
-
-enum {
-	HSEP_IDX_NODES = 0,
-	HSEP_IDX_FILES = 1,
-	HSEP_IDX_KIB = 2
-};
+#include "ui_core_interface_hsep_defs.h"
 
 typedef void (*hsep_global_listener_t) (hsep_triple *table, guint32 triples);
 
@@ -76,6 +57,9 @@ unsigned int hsep_get_global_table(hsep_triple *buffer,
 	unsigned int maxtriples);
 unsigned int hsep_get_connection_table(struct gnutella_node *n,
 	hsep_triple *buffer, unsigned int maxtriples);
+gint hsep_get_table_size(void);
+const gchar *hsep_get_static_str(gint row, gint column);
+
 #endif
 
 /* vi: set ts=4: */

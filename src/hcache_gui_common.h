@@ -27,7 +27,7 @@
 #define _hcache_gui_common_h_
 
 #include "config.h"
-#include "gnet.h"		/* XXX -- for the sizes of the arrays below */
+#include "ui_core_interface_gnet_hcache_defs.h"
 
 const gchar *get_hcache_name(hcache_type_t type);
 

@@ -53,10 +53,10 @@ void gui_update_files_scanned(void)
         GTK_LABEL(lookup_widget(dlg_prefs, "label_files_scanned"));
 
 	gm_snprintf(gui_tmp, sizeof(gui_tmp),
-		(shared_files_scanned() == 1) ?
+		(guc_shared_files_scanned() == 1) ?
 			_("%lu file shared (%s)") :_("%lu files shared (%s)"),
-		(gulong) shared_files_scanned(),
-		short_kb_size64(shared_kbytes_scanned()));
+		(gulong) guc_shared_files_scanned(),
+		short_kb_size64(guc_shared_kbytes_scanned()));
 	gtk_label_set(label_files_scanned, gui_tmp);
 }
 
@@ -151,17 +151,17 @@ void gui_update_traffic_stats() {
 	 *		--RAM, 16/04/2002
 	 */
 
-    gnet_get_bw_stats(BW_HTTP_IN,&s);
+    guc_gnet_get_bw_stats(BW_HTTP_IN,&s);
     update_stat(&http_in_max, pg_http_in, &s, progressbar_bws_in_avg, 1);
-    gnet_get_bw_stats(BW_HTTP_OUT, &s);
+    guc_gnet_get_bw_stats(BW_HTTP_OUT, &s);
     update_stat(&http_out_max, pg_http_out, &s, progressbar_bws_out_avg, 0);
-    gnet_get_bw_stats(BW_GNET_IN, &s);
+    guc_gnet_get_bw_stats(BW_GNET_IN, &s);
     update_stat(&gnet_in_max, pg_gnet_in, &s, progressbar_bws_gin_avg, 1);
-    gnet_get_bw_stats(BW_GNET_OUT, &s);
+    guc_gnet_get_bw_stats(BW_GNET_OUT, &s);
     update_stat(&gnet_out_max, pg_gnet_out, &s, progressbar_bws_gout_avg, 0);
-    gnet_get_bw_stats(BW_LEAF_IN, &s);
+    guc_gnet_get_bw_stats(BW_LEAF_IN, &s);
     update_stat(&leaf_in_max, pg_leaf_in, &s, progressbar_bws_glin_avg, 1);
-    gnet_get_bw_stats(BW_LEAF_OUT, &s);
+    guc_gnet_get_bw_stats(BW_LEAF_OUT, &s);
     update_stat(&leaf_out_max, pg_leaf_out, &s, progressbar_bws_glout_avg, 0);
 }
 

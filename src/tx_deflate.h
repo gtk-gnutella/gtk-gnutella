@@ -28,8 +28,6 @@
 #ifndef _tx_deflate_h_
 #define _tx_deflate_h_
 
-#include "gnutella.h"
-
 #include "tx.h"
 
 struct txdrv_ops tx_deflate_ops;
@@ -45,4 +43,3 @@ struct tx_deflate_args {
 #endif	/* _tx_deflate_h_ */
 
 /* vi: set ts=4: */
-

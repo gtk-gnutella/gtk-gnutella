@@ -24,15 +24,19 @@
 #ifndef _gnet_downloads_h_
 #define _gnet_downloads_h_
 
+#include "ui_core_interface_fileinfo_defs.h"
+#include "ui_core_interface_gnet_download_defs.h"
 
 /***
- *** Downloads
+ *** Sources (downloads)
  ***/
-/* FIXME: dl_file_info must not be used here and download_index_changed
+
+/* FIXME: download_index_changed
  *        actually needs to be in downloads.h and should be called from
- *       search.h and not from search_gui.h.
+ *        search.h and not from search_gui.h.
  */
-struct dl_file_info;
+void download_index_changed(guint32, guint16, gchar *, guint32, guint32);
+  
 gboolean download_new(gchar *,
 	guint32, guint32, guint32, guint16, gchar *, gchar *, gchar *, time_t,
     gboolean, struct dl_file_info *, gnet_host_vec_t *);
@@ -41,87 +45,14 @@ void download_auto_new(gchar *,
     gboolean, gboolean, struct dl_file_info *, gnet_host_vec_t *);
 void download_index_changed(guint32, guint16, gchar *, guint32, guint32);
 
-#define URN_INDEX	0xffffffff		/* Marking index, indicates URN instead */
-
-
-/***
- *** Sources (traditionally called "downloads")
- ***/
-
-typedef guint32 gnet_src_t;
-
-typedef void (*src_listener_t) (gnet_src_t);
-typedef enum {
-	EV_SRC_ADDED = 0,
-	EV_SRC_REMOVED,
-	EV_SRC_INFO_CHANGED,
-	EV_SRC_STATUS_CHANGED,
-	EV_SRC_RANGES_CHANGED,
-	EV_SRC_EVENTS /* Number of events in this domain */
-} gnet_src_ev_t;
-
 void src_add_listener(src_listener_t, gnet_src_ev_t, frequency_t, guint32);
 void src_remove_listener(src_listener_t, gnet_src_ev_t);
-
 struct download *src_get_download(gnet_src_t src_handle);
 
 
 /***
  *** Fileinfo
  ***/
-
-
-/*
- * These used to be in fileinfo.h, but we need them now at several places.
- */
-enum dl_chunk_status {
-    DL_CHUNK_EMPTY = 0,
-    DL_CHUNK_BUSY  = 1,
-    DL_CHUNK_DONE  = 2
-};
-
-
-typedef guint32 gnet_fi_t;
-
-typedef struct gnet_fi_info {
-	gnet_fi_t fi_handle;
-	gchar *file_name;			/* Name of the file on disk */
-	GSList *aliases;			/* List of aliases (NULL if none) */
-} gnet_fi_info_t;
-
-typedef struct gnet_fi_status {
-	guint32  recvcount;
-	guint32  refcount;
-	guint32  lifecount;
-	guint32  size;
-	guint32  done;
-	guint32  recv_last_rate;
-	guint32  aqueued_count;
-	guint32  pqueued_count;
-} gnet_fi_status_t;
-
-typedef void (*fi_listener_t) (gnet_fi_t);
-typedef void (*fi_src_listener_t) (gnet_fi_t, gnet_src_t);
-
-typedef enum {
-	EV_FI_ADDED = 0,       /* fi_listener */
-	EV_FI_REMOVED,         /* fi_listener */
-	EV_FI_INFO_CHANGED,    /* fi_listener */
-	EV_FI_STATUS_CHANGED,  /* fi_listener */
-	EV_FI_STATUS_CHANGED_TRANSIENT, /* fi_listener */
-	EV_FI_SRC_ADDED,       /* fi_src_listener */
-	EV_FI_SRC_REMOVED,     /* fi_src_listener */
-	EV_FI_EVENTS           /* Number of events in this domain */
-} gnet_fi_ev_t;
-
-
-typedef struct gnet_fi_chunks {
-    guint32  from;
-    guint32  to;
-    enum dl_chunk_status status;
-    gboolean old;
-} gnet_fi_chunks_t;
-
 void fi_add_listener(fi_listener_t, gnet_fi_ev_t, frequency_t, guint32);
 void fi_remove_listener(fi_listener_t, gnet_fi_ev_t);
 
@@ -134,6 +65,7 @@ gchar **fi_get_aliases(gnet_fi_t fih);
 
 void fi_purge_by_handle_list(GSList *list);
 gboolean fi_purge(gnet_fi_t fih);
+
 
 
 #endif /* _gnet_downloads_h_ */

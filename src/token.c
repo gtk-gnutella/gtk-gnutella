@@ -30,14 +30,14 @@
 #include <arpa/inet.h>	/* For ntohl(), htonl() */
 
 #include "common.h"
-
 #include "token.h"
-#include "version.h"
 #include "misc.h"
 #include "sha1.h"
 #include "base64.h"
 #include "crc.h"
 #include "clock.h"
+
+#include "version.h"
 #include "override.h"		/* Must be the last header included */
 
 RCSID("$Id$");

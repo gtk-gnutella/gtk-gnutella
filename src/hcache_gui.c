@@ -28,6 +28,8 @@
 #ifdef USE_GTK1
 
 #include "hcache_gui.h"
+
+#include "ui_core_interface.h"
 #include "override.h"		/* Must be the last header included */
 
 RCSID("$Id$");
@@ -128,7 +130,7 @@ void hcache_gui_update(time_t now)
     if (current_page != nb_main_page_hostcache)
         return;
 
-    hcache_get_stats(stats);
+    guc_hcache_get_stats(stats);
 
     clist_hcache = GTK_CLIST(
         lookup_widget(main_window, "clist_hcache"));

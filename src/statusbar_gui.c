@@ -25,6 +25,7 @@
  *----------------------------------------------------------------------
  */
 
+#include "common.h"
 #include "gui.h"
 #include "statusbar_gui.h"
 #include "override.h"		/* Must be the last header included */
