@@ -593,6 +593,7 @@ static gchar *error_str[] = {
 	"Got moved status, but no location",	/* HTTP_ASYNC_NO_LOCATION */
 	"Data timeout",							/* HTTP_ASYNC_TIMEOUT */
 	"Nested redirection",					/* HTTP_ASYNC_NESTED */
+	"Invalid URI in Location header",		/* HTTP_ASYNC_BAD_LOCATION_URI */
 };
 
 gint http_async_errno;		/* Used to return error codes during setup */
@@ -1302,10 +1303,12 @@ static void http_got_header(struct http_async *ha, header_t *header)
 			http_async_error(ha, HTTP_ASYNC_NO_LOCATION);
 			return;
 		}
+
 		/*
 		 * On 302, we can only blindly follow the redirection if the original
 		 * request was a GET or a HEAD.
 		 */
+
 		if (
 			ack_code != 302 ||
 			(ack_code == 302 && (ha->type == HTTP_GET || ha->type == HTTP_HEAD))
@@ -1313,6 +1316,17 @@ static void http_got_header(struct http_async *ha, header_t *header)
 			if (dbg > 2)
 				printf("HTTP %s redirect %d (%s): \"%s\" -> \"%s\"\n",
 					http_verb[ha->type], ack_code, ack_message, ha->url, buf);
+
+			/*
+			 * The Location: header MUST be an absolute URI, according to
+			 * RFC-2616 (HTTP/1.1 specs).
+			 */
+
+			if (!http_url_parse(buf, NULL, NULL, NULL, NULL)) {
+				http_async_error(ha, HTTP_ASYNC_BAD_LOCATION_URI);
+				return;
+			}
+
 			http_redirect(ha, buf);
 			return;
 		}

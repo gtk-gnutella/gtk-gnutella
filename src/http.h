@@ -121,18 +121,19 @@ typedef void (*http_user_free_t)(gpointer data);
  * Asynchronous request error codes.
  */
 
-#define HTTP_ASYNC_OK			0	/* OK */
-#define HTTP_ASYNC_BAD_URL		1	/* Invalid HTTP URL */
-#define HTTP_ASYNC_CONN_FAILED	2	/* Connection failed */
-#define HTTP_ASYNC_IO_ERROR		3	/* I/O error */
-#define HTTP_ASYNC_REQ2BIG		4	/* Request too big */
-#define HTTP_ASYNC_HEAD2BIG		5	/* Header too big */
-#define HTTP_ASYNC_CANCELLED	6	/* User cancel */
-#define HTTP_ASYNC_EOF			7	/* Got EOF */
-#define HTTP_ASYNC_BAD_STATUS	8	/* Unparseable HTTP status */
-#define HTTP_ASYNC_NO_LOCATION	9	/* Got moved status, but no location */
-#define HTTP_ASYNC_TIMEOUT		10	/* Data timeout */
-#define HTTP_ASYNC_NESTED		11	/* Nested redirections */
+#define HTTP_ASYNC_OK				0	/* OK */
+#define HTTP_ASYNC_BAD_URL			1	/* Invalid HTTP URL */
+#define HTTP_ASYNC_CONN_FAILED		2	/* Connection failed */
+#define HTTP_ASYNC_IO_ERROR			3	/* I/O error */
+#define HTTP_ASYNC_REQ2BIG			4	/* Request too big */
+#define HTTP_ASYNC_HEAD2BIG			5	/* Header too big */
+#define HTTP_ASYNC_CANCELLED		6	/* User cancel */
+#define HTTP_ASYNC_EOF				7	/* Got EOF */
+#define HTTP_ASYNC_BAD_STATUS		8	/* Unparseable HTTP status */
+#define HTTP_ASYNC_NO_LOCATION		9	/* Got moved status, but no location */
+#define HTTP_ASYNC_TIMEOUT			10	/* Data timeout */
+#define HTTP_ASYNC_NESTED			11	/* Nested redirections */
+#define HTTP_ASYNC_BAD_LOCATION_URI	12	/* Invalid URI in Location header */
 
 extern gint http_async_errno;
 
