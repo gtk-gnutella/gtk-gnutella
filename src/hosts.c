@@ -262,8 +262,6 @@ void host_save_valid(guint32 ip, guint16 port)
 
 void host_init(void)
 {
-	static void pcache_init(void);
-
 	ht_known_hosts = g_hash_table_new(host_hash, host_eq);
 	pcache_init();
 }
