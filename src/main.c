@@ -135,9 +135,9 @@ void gtk_gnutella_exit(gint n)
 	routing_close();
 	bsched_close();
 	gui_close();
+	dmesh_close();
 	config_close();
 	ban_close();
-	dmesh_close();
 	cq_free(callout_queue);
 	atom_str_free(version_string);
 	atom_str_free(start_rfc822_date);
