@@ -62,6 +62,7 @@ gboolean hcache_node_is_bad(guint32 ip);
 
 void hcache_prune(hcache_type_t type);
 
+gboolean hcache_read_finished(void);
 gint hcache_size(host_type_t type);
 gboolean hcache_is_low(host_type_t type);
 

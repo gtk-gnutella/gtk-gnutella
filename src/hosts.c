@@ -184,10 +184,11 @@ void host_timer(void)
             if ((to_add + count) > (max_pool))
                 to_add = max_pool - count;
 
-            if (dbg > 10) {
-                g_message("host_timer - connecting - add: %d fan:%d   miss:%d"
-                     "max_hosts:%d   count:%d   extra:%d", to_add, fan, missing, 
-                     max_nodes, count, quick_connect_pool_size);
+            /* if (dbg > 10) */ {
+                g_message("host_timer - connecting - add: %d fan:%d  miss:%d "
+                     "max_hosts:%d   count:%d   extra:%d",
+					 to_add, fan, missing, max_nodes, count,
+					 quick_connect_pool_size);
             }
 
             missing = to_add;
@@ -196,11 +197,14 @@ void host_timer(void)
 				hcache_get_caught(htype, &ip, &port);
 				node_add(ip, port);
 			}
-			if (missing > 0)
-				gwc_get_hosts(); 		/* Fill hosts from web host cache */
+			
+			if (missing > 0 && hcache_read_finished()) {
+				/* Fill hosts from web host cache */
+				gwc_get_hosts(); 
+			}
 		}
-	}
-	else if (use_netmasks) {
+
+	} else if (use_netmasks) {
 		/* Try to find better hosts */
 		if (hcache_find_nearby(htype, &ip, &port)) {
 			if (node_remove_worst(TRUE))
@@ -395,5 +399,5 @@ void host_close(void)
 	free_networks();
 }
 
-/* vi: set ts=4: */
+/* vi: set ts=4 sw=4 cindent: */
 

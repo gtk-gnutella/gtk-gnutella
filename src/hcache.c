@@ -1405,6 +1405,29 @@ void hcache_retrieve_all(void) {
 }
 
 /**
+ * Check whether the host caches are completely read. This should be
+ * used before contacting a GWebCache at start-up time.
+ *
+ * @returns TRUE if the host caches have been completely loaded and FALSE
+ *			if the loading is still in process.
+ */
+gboolean
+hcache_read_finished(void)
+{
+	gboolean reading;
+
+	gnet_prop_get_boolean_val(PROP_READING_HOSTFILE, &reading);
+	if (reading)
+		return FALSE;
+
+	gnet_prop_get_boolean_val(PROP_READING_ULTRAFILE, &reading);
+	if (reading)
+		return FALSE;
+
+	return TRUE;
+}
+
+/**
  * Shutdown host caches.
  */
 void hcache_shutdown(void)
