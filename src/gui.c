@@ -313,6 +313,15 @@ void gui_update_shared_dirs(void)
 
 void gui_update_global(void)
 {
+	static gboolean startupset = FALSE;
+	static time_t startup;
+	time_t now = time((time_t *) NULL);	
+
+	if( !startupset ) {
+		startup = time((time_t *) NULL);
+		startupset = TRUE;
+	}
+
 	g_snprintf(gui_tmp, sizeof(gui_tmp), "%u", global_messages);
 	gtk_entry_set_text(GTK_ENTRY(entry_global_messages), gui_tmp);
 
@@ -327,6 +336,11 @@ void gui_update_global(void)
 
 	g_snprintf(gui_tmp, sizeof(gui_tmp), "%u", hosts_in_catcher);
 	gtk_entry_set_text(GTK_ENTRY(entry_hosts_in_catcher), gui_tmp);
+
+	
+    g_snprintf(gui_tmp, sizeof(gui_tmp),  "Uptime: %s", 
+							   short_uptime((guint32) difftime(now,startup)));
+	gtk_label_set_text(GTK_LABEL(label_statusbar_uptime), gui_tmp);
 }
 
 void gui_update_node_display(struct gnutella_node *n, time_t now)
