@@ -4351,7 +4351,7 @@ static gboolean download_overlap_check(struct download *d)
 
 		if (dl_remove_file_on_mismatch) {
 			download_queue(d, "Resuming data mismatch @ %lu",
-				d->skip - d->overlap_size);
+				(gulong) (d->skip - d->overlap_size));
 			download_remove_file(d, TRUE);
 		} else {
 			/*
@@ -4383,7 +4383,7 @@ static gboolean download_overlap_check(struct download *d)
 
 			if (random_value(99) >= 50)
 				download_stop(d, GTA_DL_ERROR, "Resuming data mismatch @ %lu",
-					d->skip - d->overlap_size);
+					(gulong) (d->skip - d->overlap_size));
 			else
 				download_queue_delay(d, download_retry_busy_delay,
 					"Resuming data mismatch @ %lu", d->skip - d->overlap_size);
@@ -6396,7 +6396,7 @@ static void download_write_request(
 		 *		--RAM, 14/07/2003
 		 */
 
-		gchar *msg = "Could not send whole HTTP request";
+		const gchar msg[] = "Could not send whole HTTP request";
 
 		socket_eof(s);
 
@@ -6416,7 +6416,7 @@ static void download_write_request(
 		 * If download is queued with PARQ, etc...  [Same as above]
 		 */
 
-		gchar *msg = "Write failed: %s";
+		const gchar msg[] = "Write failed: %s";
 
 		if (d->queue_status == NULL)
 			download_stop(d, GTA_DL_ERROR, msg, g_strerror(errno));
