@@ -69,12 +69,18 @@ typedef struct pdata {
  * A message block
  */
 
-typedef struct pmsg {
+struct mqueue;
+
+typedef struct pmsg pmsg_t;
+typedef gboolean (*pmsg_check_t)(pmsg_t *mb, struct mqueue *q);
+
+struct pmsg {
 	gchar *m_rptr;					/* First unread byte in buffer */
 	gchar *m_wptr;					/* First unwritten byte in buffer */
 	pdata_t *m_data;				/* Data buffer */
 	guint m_prio;					/* Message priority (0 = normal) */
-} pmsg_t;
+	pmsg_check_t m_check;			/* Optional check before sending */
+};
 
 typedef void (*pmsg_free_t)(pmsg_t *mb, gpointer arg);
 
@@ -87,6 +93,8 @@ typedef void (*pmsg_free_t)(pmsg_t *mb, gpointer arg);
 
 #define pmsg_is_unread(x)	((x)->m_rptr == (x)->m_data->d_arena)
 #define pmsg_read_base(x)	((x)->m_rptr)
+
+#define pmsg_check(x,y)		((x)->m_check ? (x)->m_check((x), (y)) : TRUE)
 
 /*
  * Message priorities.
@@ -125,6 +133,7 @@ pmsg_t *pmsg_clone_extend(pmsg_t *mb, pmsg_free_t free, gpointer arg);
 pmsg_free_t pmsg_replace_ext(
 	pmsg_t *mb, pmsg_free_t nfree, gpointer narg, gpointer *oarg);
 gpointer pmsg_get_metadata(pmsg_t *mb);
+pmsg_check_t pmsg_set_check(pmsg_t *mb, pmsg_check_t check);
 void pmsg_free(pmsg_t *mb);
 gint pmsg_write(pmsg_t *mb, gpointer data, gint len);
 gint pmsg_read(pmsg_t *mb, gpointer data, gint len);

@@ -57,6 +57,7 @@ typedef struct pmsg_ext {
 	gchar *m_wptr;					/* First unwritten byte in buffer */
 	pdata_t *m_data;				/* Data buffer */
 	guint m_prio;					/* Message priority (0 = normal) */
+	pmsg_check_t m_check;			/* Optional check before sending */
 	/* Additional fields */
 	pmsg_free_t m_free;				/* Free routine */
 	gpointer m_arg;					/* Argument to pass to free routine */
@@ -110,6 +111,7 @@ pmsg_fill(pmsg_t *mb, pdata_t *db, gint prio, void *buf, gint len)
 {
 	mb->m_data = db;
 	mb->m_prio = prio;
+	mb->m_check = NULL;
 	db->d_refcnt++;
 
 	if (buf) {
@@ -195,6 +197,7 @@ pmsg_alloc(gint prio, pdata_t *db, gint roff, gint woff)
 
 	mb->m_data = db;
 	mb->m_prio = prio;
+	mb->m_check = NULL;
 	db->d_refcnt++;
 
 	mb->m_rptr = db->d_arena + roff;
@@ -217,6 +220,7 @@ pmsg_clone_extend(pmsg_t *mb, pmsg_free_t free, gpointer arg)
 	nmb->m_wptr = mb->m_wptr;
 	nmb->m_data = mb->m_data;
 	nmb->m_prio = mb->m_prio;
+	nmb->m_check = mb->m_check;
 	pdata_addref(nmb->m_data);
 
 	nmb->m_prio |= PMSG_PF_EXT;
@@ -270,6 +274,29 @@ pmsg_get_metadata(pmsg_t *mb)
 	g_assert(pmsg_is_extended(mb));
 
 	return ((pmsg_ext_t *) mb)->m_arg;
+}
+
+/**
+ * Set the pre-send checking routine for the buffer.
+ *
+ * This routine, if it exists (non-NULL) is called just before enqueueing
+ * the message for sending.  If it returns FALSE, the message is immediately
+ * dropped.
+ *
+ * The callback routine must not modify the message, as the buffer can
+ * be shared among multiple messages, unless its refcount is 1.
+ *
+ * @return the previous pre-send checking routine.
+ */
+pmsg_check_t
+pmsg_set_check(pmsg_t *mb, pmsg_check_t check)
+{
+	pmsg_check_t old;
+
+	old = mb->m_check;
+	mb->m_check = check;
+
+	return old;
 }
 
 /**
