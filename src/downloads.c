@@ -1787,7 +1787,7 @@ void download_start(struct download *d, gboolean check_allowed)
 	g_assert(d->file_info->refcount > 0);		/* Still alive */
 	g_assert(d->file_info->lifecount > 0);
 
-	if (!send_pushes && d->push)
+	if ((is_firewalled || !send_pushes) && d->push)
 		download_push_remove(d);
 
 	/*
@@ -1927,7 +1927,7 @@ static void download_push(struct download *d, gboolean on_timeout)
 	if (d->flags & DL_F_PUSH_IGN)
 		ignore_push = TRUE;
 
-	if (!send_pushes || ignore_push) {
+	if (is_firewalled || !send_pushes || ignore_push) {
 		if (d->push)
 			download_push_remove(d);
 		goto attempt_retry;
