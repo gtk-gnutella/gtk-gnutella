@@ -623,6 +623,27 @@ struct ul_stats {
 } ul_stats_t;
 
 
+
+/***
+ *** Sources (traditionally called "downloads")
+ ***/
+
+typedef guint32 gnet_src_t;
+
+typedef void (*src_listener_t) (gnet_src_t);
+typedef enum {
+    EV_SRC_ADDED = 0,
+    EV_SRC_REMOVED,
+    EV_SRC_INFO_CHANGED,
+    EV_SRC_STATUS_CHANGED,
+    EV_SRC_EVENTS /* Number of events in this domain */
+} gnet_src_ev_t;
+
+void src_add_listener(src_listener_t, gnet_src_ev_t, frequency_t, guint32);
+void src_remove_listener(src_listener_t, gnet_src_ev_t);
+
+
+
 /***
  *** Fileinfo
  ***/
@@ -645,15 +666,20 @@ typedef struct gnet_fi_status {
 } gnet_fi_status_t;
 
 typedef void (*fi_listener_t) (gnet_fi_t);
+typedef void (*fi_src_listener_t) (gnet_fi_t, gnet_src_t);
 
-void fi_add_fi_added_listener(fi_listener_t);
-void fi_remove_fi_added_listener(fi_listener_t);
-void fi_add_fi_removed_listener(fi_listener_t);
-void fi_remove_fi_removed_listener(fi_listener_t);
-void fi_add_fi_info_changed_listener(fi_listener_t);
-void fi_remove_fi_info_changed_listener(fi_listener_t);
-void fi_add_fi_status_changed_listener(fi_listener_t);
-void fi_remove_fi_status_changed_listener(fi_listener_t);
+typedef enum {
+    EV_FI_ADDED = 0,       /* fi_listener */
+    EV_FI_REMOVED,         /* fi_listener */
+    EV_FI_INFO_CHANGED,    /* fi_listener */
+    EV_FI_STATUS_CHANGED,  /* fi_listener */
+    EV_FI_SRC_ADDED,       /* fi_src_listener */
+    EV_FI_SRC_REMOVED,     /* fi_src_listener */
+    EV_FI_EVENTS           /* Number of events in this domain */
+} gnet_fi_ev_t;
+
+void fi_add_listener(GCallback, gnet_fi_ev_t, frequency_t, guint32);
+void fi_remove_listener(GCallback, gnet_fi_ev_t);
 
 gnet_fi_info_t *fi_get_info(gnet_fi_t);
 void fi_free_info(gnet_fi_info_t *);
