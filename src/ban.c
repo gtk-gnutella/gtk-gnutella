@@ -288,10 +288,10 @@ gint ban_allow(guint32 ip)
  * Banning structures.
  *
  * We maintain a FIFO of all the file descriptors we've banned.  When we
- * have MAX_BANNED_FD entries in the FIFO, start closing the oldest one.
+ * have `max_banned_fd' entries in the FIFO, start closing the oldest one.
  */
 
-#define MAX_BANNED_FD	100
+static gint max_banned_fd = 0;
 #define SOCK_BUFFER		512				/* Reduced socket buffer */
 
 static GList *banned_head = NULL;
@@ -309,7 +309,7 @@ void ban_force(struct gnutella_socket *s)
 {
 	gint fd = s->file_desc;
 
-	if (banned_count >= MAX_BANNED_FD) {
+	if (banned_count >= max_banned_fd) {
 		GList *prev = g_list_previous(banned_tail);
 
 		g_assert(banned_tail);
@@ -366,8 +366,18 @@ gint ban_delay(guint32 ip)
  */
 void ban_init(void)
 {
+	gint maxopen = sysconf(_SC_OPEN_MAX);
+
 	info = g_hash_table_new(g_direct_hash, 0);
 	decay_coeff = (gfloat) MAX_REQUEST / MAX_PERIOD;
+
+	max_banned_fd = MIN(ban_max_fds, maxopen * ban_ratio_fds / 100);
+	if (max_banned_fd == 0)
+		max_banned_fd = 1;
+
+	if (dbg)
+		printf("will use at most %d file descriptor%s for banning\n",
+			max_banned_fd, max_banned_fd == 1 ? "" : "s");
 }
 
 static void free_info(gpointer key, gpointer value, gpointer udata)

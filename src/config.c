@@ -176,6 +176,8 @@ gfloat min_dup_ratio = 1.5;
 guint32 max_hosts_cached = 20480;
 guint32 search_stats_update_interval = 200;
 guint32 search_stats_delcoef = 25;
+guint32 ban_max_fds = 100;					/* Max amount of fds for banning */
+guint32 ban_ratio_fds = 25;					/* Max %ratio of available fds */
 
 struct conf_bandwidth bandwidth = { 0, 0, 0, 0};	/* No limits */
 
@@ -328,6 +330,7 @@ typedef enum {
     k_filter_dlg_coords,
     k_search_autoselect_ident,
     k_search_column_visible,
+	k_ban_max_fds, k_ban_ratio_fds,
 	k_end
 } keyword_t;
 
@@ -461,7 +464,9 @@ static gchar *keywords[k_end] = {
     "filter_default_policy",
     "filter_dlg_coords",
     "search_autoselect_ident",
-    "search_column_visible"
+    "search_column_visible",
+	"ban_max_fds",
+	"ban_ratio_fds",
 };
 
 static gchar cfg_tmp[4096];
@@ -770,6 +775,8 @@ void config_set_param(keyword_t keyword, gchar *value)
         CONFIG_SET_NUM(upload_connecting_timeout,      1,    100000)
         CONFIG_SET_NUM(upload_connected_timeout,       1,    100000)
         CONFIG_SET_NUM(search_reissue_timeout,         0,      9999)
+        CONFIG_SET_NUM(ban_ratio_fds,                  0,      100)
+        CONFIG_SET_NUM(ban_max_fds,                    0,     10000)
         
     case k_output_bandwidth:
         if ((i >= 0) && (i <= BS_BW_MAX))
@@ -1313,6 +1320,8 @@ static void config_save(void)
             CONFIG_WRITE_UINT(max_connections)
             CONFIG_WRITE_UINT(connection_speed)
             CONFIG_WRITE_INT(search_max_items)
+            CONFIG_WRITE_INT(ban_max_fds)
+            CONFIG_WRITE_INT(ban_ratio_fds)
           	fprintf(config, "# Maximum amount of hosts to keep in cache "
                 "(minimum 100)\n%s = %u\n",
                 keywords[k_max_hosts_cached], max_hosts_cached);

@@ -132,6 +132,9 @@ extern gboolean search_stats_enabled;
 extern guint32 search_stats_update_interval;
 extern guint32 search_stats_delcoef;
 
+extern guint32 ban_max_fds;
+extern guint32 ban_ratio_fds;
+
 extern gint dbg;
 extern gint stop_host_get;
 extern gint enable_err_log;
