@@ -627,6 +627,7 @@ bitzi_heartbeat(gpointer unused_data)
 bitzi_data_t *
 bitzi_querycache_byurnsha1(const gchar *urnsha1)
 {
+	g_return_val_if_fail(NULL != urnsha1, NULL);
 	return g_hash_table_lookup(bitzi_cache_ht, urnsha1);
 }
 
@@ -644,37 +645,34 @@ bitzi_query_byurnsha1(const gchar *urnsha1)
 	bitzi_data_t *data = NULL;
 	bitzi_request_t	*request;
 
-	if (urnsha1 != NULL) {
-		data = bitzi_querycache_byurnsha1(urnsha1);
+	g_return_val_if_fail(NULL != urnsha1, NULL);
+	
+	data = bitzi_querycache_byurnsha1(urnsha1);
+	if (data == NULL) {
+		size_t len;
+		request = walloc(sizeof *request);
 
-		if (data == NULL) {
-			size_t len;
-			request = walloc(sizeof *request);
+		/*
+		 * build the bitzi url 
+		 */
+		request->urnsha1 = atom_sha1_get(urnsha1);
+		len = gm_snprintf(request->bitzi_url, sizeof request->bitzi_url,
+				bitzi_url_fmt, sha1_base32(urnsha1));
+		g_assert(len < sizeof request->bitzi_url);
 
-			/*
-			 * build the bitzi url 
-			 */
-			request->urnsha1 = atom_sha1_get(urnsha1);
-			len = gm_snprintf(request->bitzi_url, sizeof request->bitzi_url,
-					bitzi_url_fmt, sha1_base32(urnsha1));
-			g_assert(len < sizeof request->bitzi_url);
-
-			bitzi_rq = g_slist_append(bitzi_rq, request);
-			if (dbg)
-				g_message("bitzy_queryby_urnsha1: queued query, %d in queue",
-					g_slist_position(bitzi_rq, g_slist_last(bitzi_rq)) + 1);
-
-			/*
-			 * the heartbeat will pick up the request 
-			 */
-		} else {
-			if (dbg)
-				g_message("bitzi_queryby_urnsha1: result already in cache");
-					gcu_bitzi_result(data);
+		bitzi_rq = g_slist_append(bitzi_rq, request);
+		if (dbg) {
+			g_message("bitzy_queryby_urnsha1: queued query, %d in queue",
+				g_slist_position(bitzi_rq, g_slist_last(bitzi_rq)) + 1);
 		}
+
+		/*
+		 * the heartbeat will pick up the request 
+		 */
 	} else {
 		if (dbg)
-			g_message("bitzi_queryby_urnsha1: no urnsha1 for this file");
+			g_message("bitzi_queryby_urnsha1: result already in cache");
+				gcu_bitzi_result(data);
 	}
 
 	return data;
