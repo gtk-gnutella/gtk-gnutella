@@ -30,49 +30,23 @@
 #include "search.h"
 
 #include "filter_cb.h"
-
-#define SPINBUTTON_DECL(v)\
-    void on_spinbutton_##v##_activate\
-        (GtkEditable *editable, gpointer user_data);\
-    gboolean on_spinbutton_##v##_focus_out_event\
-        (GtkWidget *widget, GdkEventFocus *event, gpointer user_data);
-
+#include "nodes_cb.h"
+#include "settings_cb.h"
+#include "search_cb.h"
 
 gboolean on_clist_monitor_button_press_event (GtkWidget *widget, GdkEventButton *event, gpointer user_data);
-gboolean on_clist_nodes_button_press_event (GtkWidget *widget, GdkEventButton *event, gpointer user_data);
 gboolean on_clist_uploads_button_press_event (GtkWidget *widget, GdkEventButton *event, gpointer user_data);
-gboolean on_entry_max_connections_focus_out_event (GtkWidget *, GdkEventFocus*, gpointer);
-gboolean on_entry_max_downloads_focus_out_event (GtkWidget *widget, GdkEventFocus *event, gpointer user_data);
-gboolean on_entry_max_host_downloads_focus_out_event (GtkWidget *widget, GdkEventFocus *event, gpointer user_data);
-gboolean on_entry_max_uploads_focus_out_event (GtkWidget *widget, GdkEventFocus *event, gpointer user_data);
-gboolean on_entry_minimum_speed_focus_out_event (GtkWidget *widget, GdkEventFocus *event, gpointer user_data);
 gboolean on_entry_monitor_focus_out_event (GtkWidget *widget, GdkEventFocus *event, gpointer user_data); 
 gboolean on_entry_search_reissue_timeout_focus_out_event (GtkWidget *widget, GdkEventFocus *event, gpointer user_data);
-gboolean on_entry_up_connections_focus_out_event (GtkWidget *widget, GdkEventFocus *event, gpointer user_data);
 gboolean on_main_window_delete_event (GtkWidget *widget, GdkEvent *event, gpointer user_data);
 gboolean on_main_window_destroy_event (GtkWidget *widget, GdkEvent *event, gpointer user_data); 
 void on_button_extra_config_clicked (GtkButton *button, gpointer user_data); 
 void on_button_quit_clicked (GtkButton *button, gpointer user_data);
-void on_checkbutton_monitor_enable_toggled (GtkToggleButton *togglebutton, gpointer user_data); 
-void on_checkbutton_downloads_never_push_toggled (GtkToggleButton *togglebutton, gpointer user_data);
-void on_clist_nodes_resize_column (GtkCList *clist, gint column, gint width, gpointer user_data);
-void on_clist_nodes_select_row (GtkCList *clist, gint row, gint column, GdkEvent *event, gpointer user_data);
-void on_clist_nodes_unselect_row (GtkCList *clist, gint row, gint column, GdkEvent *event, gpointer user_data);
 void on_ctree_menu_tree_select_row (GtkCTree *clist, GList *node, gint column, gpointer user_data);
-void on_entry_host_activate (GtkEditable *editable, gpointer user_data); 
-void on_entry_host_changed (GtkEditable *editable, gpointer user_data);
-void on_entry_max_connections_activate (GtkEditable *editable, gpointer user_data);
-void on_entry_max_downloads_activate (GtkEditable *editable, gpointer user_data); 
-void on_entry_max_downloads_activate (GtkEditable *editable, gpointer user_data); 
-void on_entry_max_host_downloads_activate (GtkEditable *editable, gpointer user_data);
-void on_entry_max_uploads_activate (GtkEditable *editable, gpointer user_data);
-void on_entry_minimum_speed_activate (GtkEditable *editable, gpointer user_data); 
 void on_entry_monitor_activate (GtkEditable *editable, gpointer user_data); 
-void on_entry_monitor_activate (GtkEditable *editable, gpointer user_data); 
-void on_entry_up_connections_activate (GtkEditable *editable, gpointer user_data); 
 
 
-
+ 
 /***
  *** sidebar
  ***/
@@ -87,11 +61,8 @@ gboolean on_progressbar_bws_gout_button_press_event(GtkWidget *widget, GdkEventB
  *** gnutellaNet panel
  ***/
 void on_button_host_catcher_clear_clicked (GtkButton *button, gpointer user_data);
-void on_button_nodes_add_clicked (GtkButton *button, gpointer user_data); 
-void on_button_nodes_remove_clicked (GtkButton *button, gpointer user_data);
-SPINBUTTON_DECL(nodes_max_hosts_cached)
 
-
+ 
 
 /***
  *** uploads panel
@@ -104,8 +75,6 @@ void on_clist_uploads_resize_column (GtkCList *clist, gint column, gint width, g
 void on_clist_uploads_select_row (GtkCList *clist, gint row, gint column, GdkEvent *event, gpointer user_data); 
 void on_clist_uploads_unselect_row (GtkCList *clist, gint row, gint column, GdkEvent *event, gpointer user_data);
 void on_button_uploads_clear_completed_clicked (GtkButton *button, gpointer user_data);
-void on_spinbutton_uploads_max_ip_activate(GtkEditable *editable, gpointer user_data);
-gboolean on_spinbutton_uploads_max_ip_focus_out_event(GtkWidget *widget, GdkEventFocus *event, gpointer user_data);
 
 
 
@@ -131,7 +100,6 @@ void on_clist_downloads_queue_select_row (GtkCList *clist, gint row, gint column
 void on_clist_downloads_queue_unselect_row (GtkCList *clist, gint row, gint column, GdkEvent *event, gpointer user_data);
 void on_togglebutton_queue_freeze_toggled(GtkToggleButton *togglebutton, gpointer user_data);
 void on_entry_queue_regex_activate (GtkEditable *editable, gpointer user_data); 
-void on_checkbutton_queue_regex_case_toggled (GtkToggleButton *togglebutton, gpointer user_data);
 void on_clist_downloads_queue_drag_begin(GtkWidget *widget, GdkDragContext *drag_context, gpointer user_data);
 void on_clist_downloads_queue_drag_end(GtkWidget *widget, GdkDragContext *drag_context, gpointer user_data);
 
@@ -142,29 +110,22 @@ void on_clist_downloads_queue_drag_end(GtkWidget *widget, GdkDragContext *drag_c
  ***/
 gboolean on_clist_search_results_button_press_event(GtkWidget *widget, GdkEventButton *event, gpointer user_data);
 gboolean on_clist_search_results_key_press_event(GtkWidget *widget, GdkEventKey *event, gpointer user_data);
-void on_button_search_clear_clicked (GtkButton *button, gpointer user_data);
 void on_button_search_clear_clicked(GtkButton * button, gpointer user_data);
 void on_button_search_clicked (GtkButton *button, gpointer user_data); 
 void on_button_search_close_clicked (GtkButton *button, gpointer user_data);
 void on_button_search_download_clicked (GtkButton *button, gpointer user_data); 
 void on_button_search_filter_clicked (GtkButton *button, gpointer user_data);
 void on_button_search_passive_clicked (GtkButton *button, gpointer user_data);
-void on_checkbutton_search_jump_to_downloads_toggled (GtkToggleButton *togglebutton, gpointer user_data);
-void on_checkbutton_search_remove_downloaded_toggled (GtkToggleButton *togglebutton, gpointer user_data);
-void on_checkbutton_search_autoselect_ident_toggled (GtkToggleButton *togglebutton, gpointer user_data);
-void on_checkbutton_search_pick_all_toggled (GtkToggleButton *togglebutton, gpointer user_data);
 void on_clist_search_results_click_column(GtkCList * clist, gint column, gpointer user_data);
 void on_clist_search_results_resize_column(GtkCList * clist, gint column, gint width, gpointer user_data);
 void on_clist_search_results_select_row(GtkCList * clist, gint row, gint column, GdkEvent * event, gpointer user_data);
 void on_clist_search_results_unselect_row(GtkCList * clist, gint row, gint column, GdkEvent * event, gpointer user_data);
-void on_clist_search_select_row(GtkCList * clist, gint row, gint column, GdkEvent * event, gpointer user_data);
 void on_entry_search_activate (GtkEditable *editable, gpointer user_data); 
 void on_entry_search_changed (GtkEditable *editable, gpointer user_data);
 void on_entry_search_reissue_timeout_activate (GtkEditable *editable, gpointer user_data);
-void on_search_notebook_switch(GtkNotebook * notebook, GtkNotebookPage * page, gint page_num, gpointer user_data);
-void on_search_popdown_switch(GtkWidget * w, gpointer data);
 void on_search_selected(GtkItem * i, gpointer data);
-void on_button_search_filter_clicked(GtkButton * button, gpointer user_data);
+void on_combo_entry_searches_activate(GtkEditable *editable, gpointer user_data);
+
 
 
 
@@ -178,21 +139,16 @@ gboolean on_entry_config_myttl_focus_out_event (GtkWidget *widget, GdkEventFocus
 gboolean on_entry_config_netmask_focus_out_event(GtkWidget * widget, GdkEventFocus * event, gpointer user_data);
 gboolean on_entry_config_path_focus_out_event (GtkWidget *widget, GdkEventFocus *event, gpointer user_data);
 gboolean on_entry_config_search_items_focus_out_event (GtkWidget *widget, GdkEventFocus *event, gpointer user_data);
-gboolean on_entry_config_proxy_ip_focus_out_event (GtkWidget *widget, GdkEventFocus *event, gpointer user_data);
-gboolean on_entry_config_socks_password_focus_out_event (GtkWidget *widget, GdkEventFocus *event, gpointer user_data);
-gboolean on_entry_config_socks_username_focus_out_event (GtkWidget *widget, GdkEventFocus *event, gpointer user_data);
 gboolean on_entry_config_speed_focus_out_event (GtkWidget *widget, GdkEventFocus *event, gpointer user_data);
 void on_button_config_add_dir_clicked (GtkButton *button, gpointer user_data); 
 void on_button_config_move_path_clicked (GtkButton *button, gpointer user_data); 
 void on_button_config_rescan_dir_clicked (GtkButton *button, gpointer user_data); 
 void on_button_config_save_path_clicked (GtkButton *button, gpointer user_data);
-void on_button_config_save_path_clicked (GtkButton *button, gpointer user_data); 
 void on_checkbutton_config_bws_in_toggled (GtkToggleButton *togglebutton, gpointer user_data);
 void on_checkbutton_config_bws_out_toggled(GtkToggleButton *togglebutton, gpointer user_data);
 void on_checkbutton_config_bws_gin_toggled (GtkToggleButton *togglebutton, gpointer user_data);
 void on_checkbutton_config_bws_gout_toggled(GtkToggleButton *togglebutton, gpointer user_data);
 void on_checkbutton_config_force_ip_toggled (GtkToggleButton *togglebutton, gpointer user_data);
-void on_checkbutton_config_bw_ul_usage_enabled_toggled (GtkToggleButton *togglebutton, gpointer user_data);
 void on_checkbutton_config_proxy_auth_toggled(GtkToggleButton *togglebutton, gpointer user_data);
 void on_checkbutton_config_proxy_connections_toggled (GtkToggleButton *togglebutton, gpointer user_data);
 void on_checkbutton_use_netmasks_toggled(GtkToggleButton * togglebutton, gpointer user_data);
@@ -207,40 +163,10 @@ void on_entry_config_myttl_changed (GtkEditable *editable, gpointer user_data);
 void on_entry_config_netmask_activate(GtkEditable * editable, gpointer user_data);
 void on_entry_config_path_activate (GtkEditable *editable, gpointer user_data); 
 void on_entry_config_search_items_activate (GtkEditable *editable, gpointer user_data);
-void on_entry_config_proxy_ip_activate (GtkEditable *editable, gpointer user_data);
-void on_entry_config_socks_password_activate (GtkEditable *editable, gpointer user_data);
-void on_entry_config_socks_username_activate (GtkEditable *editable, gpointer user_data);
 void on_entry_config_speed_activate (GtkEditable *editable, gpointer user_data);
 void on_radio_config_http_toggled (GtkToggleButton *togglebutton, gpointer user_data);
 void on_radio_config_socksv4_toggled (GtkToggleButton *togglebutton, gpointer user_data);
 void on_radio_config_socksv5_toggled (GtkToggleButton *togglebutton, gpointer user_data);
-SPINBUTTON_DECL(config_bws_in)
-SPINBUTTON_DECL(config_bws_out)
-SPINBUTTON_DECL(config_bws_gin)
-SPINBUTTON_DECL(config_bws_gout)
-SPINBUTTON_DECL(config_port)
-SPINBUTTON_DECL(config_proxy_port)
-SPINBUTTON_DECL(config_max_high_ttl_radius)
-SPINBUTTON_DECL(config_max_high_ttl_msg)
-SPINBUTTON_DECL(config_hard_ttl_limit)
-SPINBUTTON_DECL(config_download_overlap_range)
-SPINBUTTON_DECL(config_download_max_retries)
-SPINBUTTON_DECL(config_download_retry_stopped)
-SPINBUTTON_DECL(config_download_retry_refused_delay)
-SPINBUTTON_DECL(config_download_retry_busy_delay)
-SPINBUTTON_DECL(config_download_retry_timeout_delay)
-SPINBUTTON_DECL(config_download_retry_timeout_max)
-SPINBUTTON_DECL(config_download_retry_timeout_min)
-SPINBUTTON_DECL(config_download_connecting_timeout)
-SPINBUTTON_DECL(config_download_push_sent_timeout)
-SPINBUTTON_DECL(config_download_connected_timeout)
-SPINBUTTON_DECL(config_node_tx_flowc_timeout)
-SPINBUTTON_DECL(config_node_connecting_timeout)
-SPINBUTTON_DECL(config_node_connected_timeout)
-SPINBUTTON_DECL(config_upload_connecting_timeout)
-SPINBUTTON_DECL(config_upload_connected_timeout)
-SPINBUTTON_DECL(config_search_min_speed)
-SPINBUTTON_DECL(config_ul_usage_min_percentage)
 
 
 
@@ -260,13 +186,6 @@ void on_popup_uploads_title_activate (GtkMenuItem *menuitem, gpointer user_data)
 
 
 /***
- *** popup-nodes
- ***/
-void on_popup_nodes_remove_activate (GtkMenuItem *menuitem, gpointer user_data); 
-
-
-
-/***
  *** popup-search
  ***/
 void on_popup_search_drop_name_activate (GtkMenuItem *menuitem, gpointer user_data);
@@ -282,7 +201,6 @@ void on_popup_search_duplicate_activate (GtkMenuItem *menuitem, gpointer user_da
 void on_popup_search_restart_activate (GtkMenuItem *menuitem, gpointer user_data);
 void on_popup_search_resume_activate (GtkMenuItem *menuitem, gpointer user_data);
 void on_popup_search_stop_activate (GtkMenuItem *menuitem, gpointer user_data);
-void on_popup_search_toggle_tabs_activate (GtkMenuItem *menuitem, gpointer user_data);
 void on_popup_search_config_cols_activate (GtkMenuItem *menuitem, gpointer user_data);
 
 
@@ -333,28 +251,15 @@ void on_clist_ul_stats_resize_column(GtkCList * clist, gint column, gint width, 
 /*** 
  *** search stats
  ***/
-gboolean on_entry_search_stats_delcoef_focus_out_event(GtkWidget * widget, GdkEventFocus * event, gpointer user_data);
-gboolean on_entry_search_stats_update_interval_focus_out_event(GtkWidget * widget, GdkEventFocus * event, gpointer user_data);
 void     on_button_search_stats_reset_clicked(GtkButton * button, gpointer user_data);
 void     on_checkbutton_search_stats_enable_toggled(GtkToggleButton * togglebutton, gpointer user_data);
 void     on_clist_search_stats_resize_column(GtkCList * clist, gint column, gint width, gpointer user_data);
-void     on_entry_search_stats_delcoef_activate(GtkEditable * editable, gpointer user_data);
-void     on_entry_search_stats_update_interval_activate(GtkEditable * editable, gpointer user_data);
 
 
 
 /***
  *** menu bar
  ***/
-void on_menu_connections_visible_activate(GtkMenuItem * menuitem, gpointer user_data);
-void on_menu_downloads_visible_activate(GtkMenuItem * menuitem, gpointer user_data);
-void on_menu_uploads_visible_activate(GtkMenuItem * menuitem, gpointer user_data);
-void on_menu_statusbar_visible_activate(GtkMenuItem * menuitem, gpointer user_data);
-void on_menu_toolbar_visible_activate(GtkMenuItem * menuitem, gpointer user_data);
-void on_menu_bws_in_visible_activate(GtkMenuItem * menuitem, gpointer user_data);
-void on_menu_bws_out_visible_activate(GtkMenuItem * menuitem, gpointer user_data);
-void on_menu_bws_gin_visible_activate(GtkMenuItem * menuitem, gpointer user_data);
-void on_menu_bws_gout_visible_activate(GtkMenuItem * menuitem, gpointer user_data);
 void on_menu_about_activate(GtkMenuItem * menuitem, gpointer user_data);
 
 
@@ -373,3 +278,18 @@ void on_button_about_close_clicked(GtkButton *button, gpointer user_data);
 gboolean on_dlg_about_delete_event(GtkWidget *widget, GdkEvent *event, gpointer user_data);
 
 #endif	/* __callbacks_h__ */
+
+void
+on_spinbutton_search_stats_defcoef_changed
+                                        (GtkEditable     *editable,
+                                        gpointer         user_data);
+
+void
+on_spinbutton_config_min_dup_msg_changed
+                                        (GtkEditable     *editable,
+                                        gpointer         user_data);
+
+void
+on_spinbutton_config_min_dup_ratio_changed
+                                        (GtkEditable     *editable,
+                                        gpointer         user_data);
