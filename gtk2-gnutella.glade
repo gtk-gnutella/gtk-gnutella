@@ -1130,8 +1130,6 @@ for all filters</property>
 		  <property name="show_border">False</property>
 		  <property name="tab_pos">GTK_POS_TOP</property>
 		  <property name="scrollable">False</property>
-		  <property name="tab_hborder">2</property>
-		  <property name="tab_vborder">2</property>
 		  <property name="enable_popup">False</property>
 
 		  <child>
@@ -7317,8 +7315,6 @@ Grace time remaining:</property>
 		      <property name="show_border">False</property>
 		      <property name="tab_pos">GTK_POS_TOP</property>
 		      <property name="scrollable">False</property>
-		      <property name="tab_hborder">2</property>
-		      <property name="tab_vborder">2</property>
 		      <property name="enable_popup">False</property>
 
 		      <child>
@@ -7710,8 +7706,6 @@ Grace time remaining:</property>
 		  <property name="show_border">True</property>
 		  <property name="tab_pos">GTK_POS_TOP</property>
 		  <property name="scrollable">False</property>
-		  <property name="tab_hborder">2</property>
-		  <property name="tab_vborder">2</property>
 		  <property name="enable_popup">False</property>
 
 		  <child>
@@ -7749,7 +7743,7 @@ Grace time remaining:</property>
 				      <property name="visible">True</property>
 				      <property name="can_focus">True</property>
 				      <property name="headers_visible">True</property>
-				      <property name="rules_hint">False</property>
+				      <property name="rules_hint">True</property>
 				      <property name="reorderable">False</property>
 				      <property name="enable_search">True</property>
 				    </widget>
@@ -10673,8 +10667,6 @@ Grace time remaining:</property>
 			  <property name="show_border">False</property>
 			  <property name="tab_pos">GTK_POS_TOP</property>
 			  <property name="scrollable">False</property>
-			  <property name="tab_hborder">2</property>
-			  <property name="tab_vborder">2</property>
 			  <property name="enable_popup">False</property>
 
 			  <child>
@@ -11813,8 +11805,6 @@ Grace time remaining:</property>
 		      <property name="show_border">True</property>
 		      <property name="tab_pos">GTK_POS_TOP</property>
 		      <property name="scrollable">False</property>
-		      <property name="tab_hborder">2</property>
-		      <property name="tab_vborder">2</property>
 		      <property name="enable_popup">False</property>
 
 		      <child>
@@ -13974,7 +13964,7 @@ control</property>
 					<widget class="GtkTable" id="table37">
 					  <property name="border_width">2</property>
 					  <property name="visible">True</property>
-					  <property name="n_rows">2</property>
+					  <property name="n_rows">3</property>
 					  <property name="n_columns">3</property>
 					  <property name="homogeneous">False</property>
 					  <property name="row_spacing">2</property>
@@ -14115,6 +14105,27 @@ control</property>
 					      <property name="right_attach">2</property>
 					      <property name="top_attach">1</property>
 					      <property name="bottom_attach">2</property>
+					      <property name="x_options">fill</property>
+					      <property name="y_options"></property>
+					    </packing>
+					  </child>
+
+					  <child>
+					    <widget class="GtkCheckButton" id="checkbutton_prefer_compressed_gnet">
+					      <property name="visible">True</property>
+					      <property name="can_focus">True</property>
+					      <property name="label" translatable="yes">prefer compressed connections</property>
+					      <property name="use_underline">True</property>
+					      <property name="relief">GTK_RELIEF_NORMAL</property>
+					      <property name="active">False</property>
+					      <property name="inconsistent">False</property>
+					      <property name="draw_indicator">True</property>
+					    </widget>
+					    <packing>
+					      <property name="left_attach">0</property>
+					      <property name="right_attach">3</property>
+					      <property name="top_attach">2</property>
+					      <property name="bottom_attach">3</property>
 					      <property name="x_options">fill</property>
 					      <property name="y_options"></property>
 					    </packing>
@@ -16986,47 +16997,56 @@ interface</property>
 	  <property name="spacing">0</property>
 
 	  <child>
-	    <widget class="GtkHBox" id="hbox170">
+	    <widget class="GtkToggleButton" id="togglebutton_online">
 	      <property name="visible">True</property>
-	      <property name="homogeneous">False</property>
-	      <property name="spacing">0</property>
+	      <property name="relief">GTK_RELIEF_NORMAL</property>
+	      <property name="active">False</property>
+	      <property name="inconsistent">False</property>
 
 	      <child>
-		<widget class="GtkImage" id="image_offline">
+		<widget class="GtkHBox" id="hbox170">
 		  <property name="visible">True</property>
-		  <property name="pixbuf">offline.xpm</property>
-		  <property name="xalign">0.5</property>
-		  <property name="yalign">0.5</property>
-		  <property name="xpad">0</property>
-		  <property name="ypad">0</property>
-		</widget>
-		<packing>
-		  <property name="padding">0</property>
-		  <property name="expand">True</property>
-		  <property name="fill">True</property>
-		</packing>
-	      </child>
+		  <property name="homogeneous">False</property>
+		  <property name="spacing">0</property>
 
-	      <child>
-		<widget class="GtkImage" id="image_online">
-		  <property name="visible">True</property>
-		  <property name="pixbuf">online.xpm</property>
-		  <property name="xalign">0.5</property>
-		  <property name="yalign">0.5</property>
-		  <property name="xpad">0</property>
-		  <property name="ypad">0</property>
+		  <child>
+		    <widget class="GtkImage" id="image_offline">
+		      <property name="visible">True</property>
+		      <property name="pixbuf">offline.xpm</property>
+		      <property name="xalign">0.5</property>
+		      <property name="yalign">0.5</property>
+		      <property name="xpad">0</property>
+		      <property name="ypad">0</property>
+		    </widget>
+		    <packing>
+		      <property name="padding">0</property>
+		      <property name="expand">True</property>
+		      <property name="fill">True</property>
+		    </packing>
+		  </child>
+
+		  <child>
+		    <widget class="GtkImage" id="image_online">
+		      <property name="visible">True</property>
+		      <property name="pixbuf">online.xpm</property>
+		      <property name="xalign">0.5</property>
+		      <property name="yalign">0.5</property>
+		      <property name="xpad">0</property>
+		      <property name="ypad">0</property>
+		    </widget>
+		    <packing>
+		      <property name="padding">0</property>
+		      <property name="expand">True</property>
+		      <property name="fill">True</property>
+		    </packing>
+		  </child>
 		</widget>
-		<packing>
-		  <property name="padding">0</property>
-		  <property name="expand">True</property>
-		  <property name="fill">True</property>
-		</packing>
 	      </child>
 	    </widget>
 	    <packing>
 	      <property name="padding">0</property>
 	      <property name="expand">False</property>
-	      <property name="fill">True</property>
+	      <property name="fill">False</property>
 	    </packing>
 	  </child>
 
@@ -17043,6 +17063,87 @@ interface</property>
 	  </child>
 
 	  <child>
+	    <widget class="GtkImage" id="image_save">
+	      <property name="pixbuf">save.xpm</property>
+	      <property name="xalign">0.5</property>
+	      <property name="yalign">0.5</property>
+	      <property name="xpad">1</property>
+	      <property name="ypad">0</property>
+	    </widget>
+	    <packing>
+	      <property name="padding">0</property>
+	      <property name="expand">False</property>
+	      <property name="fill">False</property>
+	    </packing>
+	  </child>
+
+	  <child>
+	    <widget class="GtkEventBox" id="eventbox_image_sha">
+	      <property name="visible">True</property>
+
+	      <child>
+		<widget class="GtkImage" id="image_sha">
+		  <property name="visible">True</property>
+		  <property name="pixbuf">booksha.xpm</property>
+		  <property name="xalign">0.5</property>
+		  <property name="yalign">0.5</property>
+		  <property name="xpad">1</property>
+		  <property name="ypad">0</property>
+		</widget>
+	      </child>
+	    </widget>
+	    <packing>
+	      <property name="padding">0</property>
+	      <property name="expand">False</property>
+	      <property name="fill">False</property>
+	    </packing>
+	  </child>
+
+	  <child>
+	    <widget class="GtkEventBox" id="eventbox_image_shav">
+	      <property name="visible">True</property>
+
+	      <child>
+		<widget class="GtkImage" id="image_shav">
+		  <property name="visible">True</property>
+		  <property name="pixbuf">bookshav.xpm</property>
+		  <property name="xalign">0.5</property>
+		  <property name="yalign">0.5</property>
+		  <property name="xpad">1</property>
+		  <property name="ypad">0</property>
+		</widget>
+	      </child>
+	    </widget>
+	    <packing>
+	      <property name="padding">0</property>
+	      <property name="expand">False</property>
+	      <property name="fill">True</property>
+	    </packing>
+	  </child>
+
+	  <child>
+	    <widget class="GtkEventBox" id="eventbox_image_lib">
+	      <property name="visible">True</property>
+
+	      <child>
+		<widget class="GtkImage" id="image_lib">
+		  <property name="visible">True</property>
+		  <property name="pixbuf">booklib.xpm</property>
+		  <property name="xalign">0.5</property>
+		  <property name="yalign">0.5</property>
+		  <property name="xpad">1</property>
+		  <property name="ypad">0</property>
+		</widget>
+	      </child>
+	    </widget>
+	    <packing>
+	      <property name="padding">0</property>
+	      <property name="expand">False</property>
+	      <property name="fill">True</property>
+	    </packing>
+	  </child>
+
+	  <child>
 	    <widget class="GtkHBox" id="hbox147">
 	      <property name="visible">True</property>
 	      <property name="homogeneous">False</property>
@@ -17054,7 +17155,7 @@ interface</property>
 		  <property name="pixbuf">firewall.xpm</property>
 		  <property name="xalign">0.5</property>
 		  <property name="yalign">0.5</property>
-		  <property name="xpad">0</property>
+		  <property name="xpad">1</property>
 		  <property name="ypad">0</property>
 		</widget>
 		<packing>
@@ -17070,7 +17171,7 @@ interface</property>
 		  <property name="pixbuf">no_firewall.xpm</property>
 		  <property name="xalign">0.5</property>
 		  <property name="yalign">0.5</property>
-		  <property name="xpad">0</property>
+		  <property name="xpad">1</property>
 		  <property name="ypad">0</property>
 		</widget>
 		<packing>
@@ -17083,7 +17184,7 @@ interface</property>
 	    <packing>
 	      <property name="padding">0</property>
 	      <property name="expand">False</property>
-	      <property name="fill">False</property>
+	      <property name="fill">True</property>
 	    </packing>
 	  </child>
 

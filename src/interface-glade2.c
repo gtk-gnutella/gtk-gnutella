@@ -20,11 +20,11 @@
 #include "support-glade2.h"
 
 #define GLADE_HOOKUP_OBJECT(component,widget,name) \
-  gtk_object_set_data_full (GTK_OBJECT (component), name, \
-    gtk_widget_ref (widget), (GtkDestroyNotify) gtk_widget_unref)
+  g_object_set_data_full (G_OBJECT (component), name, \
+    gtk_widget_ref (widget), (GDestroyNotify) gtk_widget_unref)
 
 #define GLADE_HOOKUP_OBJECT_NO_REF(component,widget,name) \
-  gtk_object_set_data (GTK_OBJECT (component), name, widget)
+  g_object_set_data (G_OBJECT (component), name, widget)
 
 GtkWidget*
 create_popup_dl_active (void)
@@ -155,42 +155,42 @@ create_popup_dl_active (void)
   gtk_widget_show (image60);
   gtk_image_menu_item_set_image (GTK_IMAGE_MENU_ITEM (popup_downloads_connect), image60);
 
-  gtk_signal_connect (GTK_OBJECT (popup_dl_active), "selection_get",
-                      GTK_SIGNAL_FUNC (on_popup_downloads_selection_get),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (popup_dl_active), "selection_clear_event",
-                      GTK_SIGNAL_FUNC (on_popup_downloads_selection_clear_event),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (popup_downloads_abort), "activate",
-                      GTK_SIGNAL_FUNC (on_button_downloads_abort_clicked),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (popup_downloads_abort_named), "activate",
-                      GTK_SIGNAL_FUNC (on_popup_downloads_abort_named_activate),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (popup_downloads_abort_host), "activate",
-                      GTK_SIGNAL_FUNC (on_popup_downloads_abort_host_activate),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (popup_downloads_abort_sha1), "activate",
-                      GTK_SIGNAL_FUNC (on_popup_downloads_abort_sha1_activate),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (popup_downloads_remove_file), "activate",
-                      GTK_SIGNAL_FUNC (on_popup_downloads_remove_file_activate),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (popup_downloads_resume), "activate",
-                      GTK_SIGNAL_FUNC (on_button_downloads_resume_clicked),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (popup_downloads_queue), "activate",
-                      GTK_SIGNAL_FUNC (on_popup_downloads_queue_activate),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (popup_downloads_push), "activate",
-                      GTK_SIGNAL_FUNC (on_popup_downloads_push_activate),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (popup_downloads_copy_url), "activate",
-                      GTK_SIGNAL_FUNC (on_popup_downloads_copy_url_activate),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (popup_downloads_connect), "activate",
-                      GTK_SIGNAL_FUNC (on_popup_downloads_connect_activate),
-                      NULL);
+  g_signal_connect ((gpointer) popup_dl_active, "selection_get",
+                    G_CALLBACK (on_popup_downloads_selection_get),
+                    NULL);
+  g_signal_connect ((gpointer) popup_dl_active, "selection_clear_event",
+                    G_CALLBACK (on_popup_downloads_selection_clear_event),
+                    NULL);
+  g_signal_connect ((gpointer) popup_downloads_abort, "activate",
+                    G_CALLBACK (on_button_downloads_abort_clicked),
+                    NULL);
+  g_signal_connect ((gpointer) popup_downloads_abort_named, "activate",
+                    G_CALLBACK (on_popup_downloads_abort_named_activate),
+                    NULL);
+  g_signal_connect ((gpointer) popup_downloads_abort_host, "activate",
+                    G_CALLBACK (on_popup_downloads_abort_host_activate),
+                    NULL);
+  g_signal_connect ((gpointer) popup_downloads_abort_sha1, "activate",
+                    G_CALLBACK (on_popup_downloads_abort_sha1_activate),
+                    NULL);
+  g_signal_connect ((gpointer) popup_downloads_remove_file, "activate",
+                    G_CALLBACK (on_popup_downloads_remove_file_activate),
+                    NULL);
+  g_signal_connect ((gpointer) popup_downloads_resume, "activate",
+                    G_CALLBACK (on_button_downloads_resume_clicked),
+                    NULL);
+  g_signal_connect ((gpointer) popup_downloads_queue, "activate",
+                    G_CALLBACK (on_popup_downloads_queue_activate),
+                    NULL);
+  g_signal_connect ((gpointer) popup_downloads_push, "activate",
+                    G_CALLBACK (on_popup_downloads_push_activate),
+                    NULL);
+  g_signal_connect ((gpointer) popup_downloads_copy_url, "activate",
+                    G_CALLBACK (on_popup_downloads_copy_url_activate),
+                    NULL);
+  g_signal_connect ((gpointer) popup_downloads_connect, "activate",
+                    G_CALLBACK (on_popup_downloads_connect_activate),
+                    NULL);
 
   /* Store pointers to all widgets, for use by lookup_widget(). */
   GLADE_HOOKUP_OBJECT_NO_REF (popup_dl_active, popup_dl_active, "popup_dl_active");
@@ -304,27 +304,27 @@ create_popup_dl_queued (void)
   gtk_widget_show (image63);
   gtk_image_menu_item_set_image (GTK_IMAGE_MENU_ITEM (popup_queue_connect), image63);
 
-  gtk_signal_connect (GTK_OBJECT (popup_queue_start_now), "activate",
-                      GTK_SIGNAL_FUNC (on_popup_queue_start_now_activate),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (popup_queue_abort), "activate",
-                      GTK_SIGNAL_FUNC (on_popup_queue_abort_activate),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (popup_queue_abort_named), "activate",
-                      GTK_SIGNAL_FUNC (on_popup_queue_abort_named_activate),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (popup_queue_abort_host), "activate",
-                      GTK_SIGNAL_FUNC (on_popup_queue_abort_host_activate),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (popup_queue_abort_sha1), "activate",
-                      GTK_SIGNAL_FUNC (on_popup_queue_abort_sha1_activate),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (popup_queue_copy_url), "activate",
-                      GTK_SIGNAL_FUNC (on_popup_queue_copy_url_activate),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (popup_queue_connect), "activate",
-                      GTK_SIGNAL_FUNC (on_popup_queue_connect_activate),
-                      NULL);
+  g_signal_connect ((gpointer) popup_queue_start_now, "activate",
+                    G_CALLBACK (on_popup_queue_start_now_activate),
+                    NULL);
+  g_signal_connect ((gpointer) popup_queue_abort, "activate",
+                    G_CALLBACK (on_popup_queue_abort_activate),
+                    NULL);
+  g_signal_connect ((gpointer) popup_queue_abort_named, "activate",
+                    G_CALLBACK (on_popup_queue_abort_named_activate),
+                    NULL);
+  g_signal_connect ((gpointer) popup_queue_abort_host, "activate",
+                    G_CALLBACK (on_popup_queue_abort_host_activate),
+                    NULL);
+  g_signal_connect ((gpointer) popup_queue_abort_sha1, "activate",
+                    G_CALLBACK (on_popup_queue_abort_sha1_activate),
+                    NULL);
+  g_signal_connect ((gpointer) popup_queue_copy_url, "activate",
+                    G_CALLBACK (on_popup_queue_copy_url_activate),
+                    NULL);
+  g_signal_connect ((gpointer) popup_queue_connect, "activate",
+                    G_CALLBACK (on_popup_queue_connect_activate),
+                    NULL);
 
   /* Store pointers to all widgets, for use by lookup_widget(). */
   GLADE_HOOKUP_OBJECT_NO_REF (popup_dl_queued, popup_dl_queued, "popup_dl_queued");
@@ -536,54 +536,54 @@ create_popup_search (void)
   gtk_widget_show (popup_search_config_cols);
   gtk_container_add (GTK_CONTAINER (popup_search), popup_search_config_cols);
 
-  gtk_signal_connect (GTK_OBJECT (popup_search_edit_filter), "activate",
-                      GTK_SIGNAL_FUNC (on_popup_search_edit_filter_activate),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (popup_search_drop_name), "activate",
-                      GTK_SIGNAL_FUNC (on_popup_search_drop_name_activate),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (popup_search_drop_sha1), "activate",
-                      GTK_SIGNAL_FUNC (on_popup_search_drop_sha1_activate),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (popup_search_drop_host), "activate",
-                      GTK_SIGNAL_FUNC (on_popup_search_drop_host_activate),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (popup_search_drop_name_global), "activate",
-                      GTK_SIGNAL_FUNC (on_popup_search_drop_name_global_activate),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (popup_search_drop_sha1_global), "activate",
-                      GTK_SIGNAL_FUNC (on_popup_search_drop_sha1_global_activate),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (popup_search_drop_host_global), "activate",
-                      GTK_SIGNAL_FUNC (on_popup_search_drop_host_global_activate),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (popup_search_autodownload_name), "activate",
-                      GTK_SIGNAL_FUNC (on_popup_search_autodownload_name_activate),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (popup_search_autodownload_sha1), "activate",
-                      GTK_SIGNAL_FUNC (on_popup_search_autodownload_sha1_activate),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (popup_search_new_from_selected), "activate",
-                      GTK_SIGNAL_FUNC (on_popup_search_new_from_selected_activate),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (popup_search_stop), "activate",
-                      GTK_SIGNAL_FUNC (on_popup_search_stop_activate),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (popup_search_resume), "activate",
-                      GTK_SIGNAL_FUNC (on_popup_search_resume_activate),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (popup_search_restart), "activate",
-                      GTK_SIGNAL_FUNC (on_popup_search_restart_activate),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (popup_search_duplicate), "activate",
-                      GTK_SIGNAL_FUNC (on_popup_search_duplicate_activate),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (popup_search_toggle_tabs), "activate",
-                      GTK_SIGNAL_FUNC (on_popup_search_toggle_tabs_activate),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (popup_search_config_cols), "activate",
-                      GTK_SIGNAL_FUNC (on_popup_search_config_cols_activate),
-                      NULL);
+  g_signal_connect ((gpointer) popup_search_edit_filter, "activate",
+                    G_CALLBACK (on_popup_search_edit_filter_activate),
+                    NULL);
+  g_signal_connect ((gpointer) popup_search_drop_name, "activate",
+                    G_CALLBACK (on_popup_search_drop_name_activate),
+                    NULL);
+  g_signal_connect ((gpointer) popup_search_drop_sha1, "activate",
+                    G_CALLBACK (on_popup_search_drop_sha1_activate),
+                    NULL);
+  g_signal_connect ((gpointer) popup_search_drop_host, "activate",
+                    G_CALLBACK (on_popup_search_drop_host_activate),
+                    NULL);
+  g_signal_connect ((gpointer) popup_search_drop_name_global, "activate",
+                    G_CALLBACK (on_popup_search_drop_name_global_activate),
+                    NULL);
+  g_signal_connect ((gpointer) popup_search_drop_sha1_global, "activate",
+                    G_CALLBACK (on_popup_search_drop_sha1_global_activate),
+                    NULL);
+  g_signal_connect ((gpointer) popup_search_drop_host_global, "activate",
+                    G_CALLBACK (on_popup_search_drop_host_global_activate),
+                    NULL);
+  g_signal_connect ((gpointer) popup_search_autodownload_name, "activate",
+                    G_CALLBACK (on_popup_search_autodownload_name_activate),
+                    NULL);
+  g_signal_connect ((gpointer) popup_search_autodownload_sha1, "activate",
+                    G_CALLBACK (on_popup_search_autodownload_sha1_activate),
+                    NULL);
+  g_signal_connect ((gpointer) popup_search_new_from_selected, "activate",
+                    G_CALLBACK (on_popup_search_new_from_selected_activate),
+                    NULL);
+  g_signal_connect ((gpointer) popup_search_stop, "activate",
+                    G_CALLBACK (on_popup_search_stop_activate),
+                    NULL);
+  g_signal_connect ((gpointer) popup_search_resume, "activate",
+                    G_CALLBACK (on_popup_search_resume_activate),
+                    NULL);
+  g_signal_connect ((gpointer) popup_search_restart, "activate",
+                    G_CALLBACK (on_popup_search_restart_activate),
+                    NULL);
+  g_signal_connect ((gpointer) popup_search_duplicate, "activate",
+                    G_CALLBACK (on_popup_search_duplicate_activate),
+                    NULL);
+  g_signal_connect ((gpointer) popup_search_toggle_tabs, "activate",
+                    G_CALLBACK (on_popup_search_toggle_tabs_activate),
+                    NULL);
+  g_signal_connect ((gpointer) popup_search_config_cols, "activate",
+                    G_CALLBACK (on_popup_search_config_cols_activate),
+                    NULL);
 
   /* Store pointers to all widgets, for use by lookup_widget(). */
   GLADE_HOOKUP_OBJECT_NO_REF (popup_search, popup_search, "popup_search");
@@ -635,9 +635,9 @@ create_popup_monitor (void)
   gtk_widget_show (popup_monitor_add_search);
   gtk_container_add (GTK_CONTAINER (popup_monitor), popup_monitor_add_search);
 
-  gtk_signal_connect (GTK_OBJECT (popup_monitor_add_search), "activate",
-                      GTK_SIGNAL_FUNC (on_popup_monitor_add_search_activate),
-                      NULL);
+  g_signal_connect ((gpointer) popup_monitor_add_search, "activate",
+                    G_CALLBACK (on_popup_monitor_add_search_activate),
+                    NULL);
 
   /* Store pointers to all widgets, for use by lookup_widget(). */
   GLADE_HOOKUP_OBJECT_NO_REF (popup_monitor, popup_monitor, "popup_monitor");
@@ -660,9 +660,9 @@ create_popup_uploads (void)
   gtk_widget_show (popup_uploads_title);
   gtk_container_add (GTK_CONTAINER (popup_uploads), popup_uploads_title);
 
-  gtk_signal_connect (GTK_OBJECT (popup_uploads_title), "activate",
-                      GTK_SIGNAL_FUNC (on_popup_uploads_title_activate),
-                      NULL);
+  g_signal_connect ((gpointer) popup_uploads_title, "activate",
+                    G_CALLBACK (on_popup_uploads_title_activate),
+                    NULL);
 
   /* Store pointers to all widgets, for use by lookup_widget(). */
   GLADE_HOOKUP_OBJECT_NO_REF (popup_uploads, popup_uploads, "popup_uploads");
@@ -1179,7 +1179,7 @@ create_dlg_filters (void)
   gtk_widget_set_name (entry_filter_name, "entry_filter_name");
   gtk_widget_show (entry_filter_name);
   gtk_box_pack_start (GTK_BOX (hbox97), entry_filter_name, TRUE, TRUE, 0);
-  gtk_entry_set_editable (GTK_ENTRY (entry_filter_name), FALSE);
+  gtk_editable_set_editable (GTK_EDITABLE (entry_filter_name), FALSE);
 
   checkbutton_filter_enabled = gtk_check_button_new_with_mnemonic ("enabled");
   gtk_widget_set_name (checkbutton_filter_enabled, "checkbutton_filter_enabled");
@@ -2182,7 +2182,7 @@ create_dlg_filters (void)
   gtk_table_attach (GTK_TABLE (table25), entry_filter_sha1_hash, 0, 1, 1, 2,
                     (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
-  gtk_entry_set_editable (GTK_ENTRY (entry_filter_sha1_hash), FALSE);
+  gtk_editable_set_editable (GTK_EDITABLE (entry_filter_sha1_hash), FALSE);
 
   hbox132 = gtk_hbox_new (FALSE, 4);
   gtk_widget_set_name (hbox132, "hbox132");
@@ -2200,7 +2200,7 @@ create_dlg_filters (void)
   gtk_widget_set_name (entry_filter_sha1_origfile, "entry_filter_sha1_origfile");
   gtk_widget_show (entry_filter_sha1_origfile);
   gtk_box_pack_start (GTK_BOX (hbox132), entry_filter_sha1_origfile, TRUE, TRUE, 0);
-  gtk_entry_set_editable (GTK_ENTRY (entry_filter_sha1_origfile), FALSE);
+  gtk_editable_set_editable (GTK_EDITABLE (entry_filter_sha1_origfile), FALSE);
 
   label235 = gtk_label_new ("Condition: If urn:sha1 matches");
   gtk_widget_set_name (label235, "label235");
@@ -2377,7 +2377,7 @@ create_dlg_filters (void)
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
   gtk_radio_button_set_group (GTK_RADIO_BUTTON (radiobutton_filter_flag_busy_ignore), radiobutton_filter_flag_busy_ignore_group);
-  radiobutton_filter_flag_busy_ignore_group = gtk_radio_button_group (GTK_RADIO_BUTTON (radiobutton_filter_flag_busy_ignore));
+  radiobutton_filter_flag_busy_ignore_group = gtk_radio_button_get_group (GTK_RADIO_BUTTON (radiobutton_filter_flag_busy_ignore));
   gtk_toggle_button_set_mode (GTK_TOGGLE_BUTTON (radiobutton_filter_flag_busy_ignore), FALSE);
 
   alignment47 = gtk_alignment_new (0.5, 0.5, 0, 0);
@@ -2408,7 +2408,7 @@ create_dlg_filters (void)
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
   gtk_radio_button_set_group (GTK_RADIO_BUTTON (radiobutton_filter_flag_push_ignore), radiobutton_filter_flag_busy_ignore_group);
-  radiobutton_filter_flag_busy_ignore_group = gtk_radio_button_group (GTK_RADIO_BUTTON (radiobutton_filter_flag_push_ignore));
+  radiobutton_filter_flag_busy_ignore_group = gtk_radio_button_get_group (GTK_RADIO_BUTTON (radiobutton_filter_flag_push_ignore));
   gtk_toggle_button_set_mode (GTK_TOGGLE_BUTTON (radiobutton_filter_flag_push_ignore), FALSE);
 
   alignment48 = gtk_alignment_new (0.5, 0.5, 0, 0);
@@ -2439,7 +2439,7 @@ create_dlg_filters (void)
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
   gtk_radio_button_set_group (GTK_RADIO_BUTTON (radiobutton_filter_flag_push_unset), radiobutton_filter_flag_busy_ignore_group);
-  radiobutton_filter_flag_busy_ignore_group = gtk_radio_button_group (GTK_RADIO_BUTTON (radiobutton_filter_flag_push_unset));
+  radiobutton_filter_flag_busy_ignore_group = gtk_radio_button_get_group (GTK_RADIO_BUTTON (radiobutton_filter_flag_push_unset));
   gtk_toggle_button_set_mode (GTK_TOGGLE_BUTTON (radiobutton_filter_flag_push_unset), FALSE);
 
   alignment42 = gtk_alignment_new (0.5, 0.5, 0, 0);
@@ -2470,7 +2470,7 @@ create_dlg_filters (void)
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
   gtk_radio_button_set_group (GTK_RADIO_BUTTON (radiobutton_filter_flag_push_set), radiobutton_filter_flag_busy_ignore_group);
-  radiobutton_filter_flag_busy_ignore_group = gtk_radio_button_group (GTK_RADIO_BUTTON (radiobutton_filter_flag_push_set));
+  radiobutton_filter_flag_busy_ignore_group = gtk_radio_button_get_group (GTK_RADIO_BUTTON (radiobutton_filter_flag_push_set));
   gtk_toggle_button_set_mode (GTK_TOGGLE_BUTTON (radiobutton_filter_flag_push_set), FALSE);
 
   alignment51 = gtk_alignment_new (0.5, 0.5, 0, 0);
@@ -2501,7 +2501,7 @@ create_dlg_filters (void)
                     (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
                     (GtkAttachOptions) (GTK_EXPAND), 0, 0);
   gtk_radio_button_set_group (GTK_RADIO_BUTTON (radiobutton_filter_flag_busy_set), radiobutton_filter_flag_busy_ignore_group);
-  radiobutton_filter_flag_busy_ignore_group = gtk_radio_button_group (GTK_RADIO_BUTTON (radiobutton_filter_flag_busy_set));
+  radiobutton_filter_flag_busy_ignore_group = gtk_radio_button_get_group (GTK_RADIO_BUTTON (radiobutton_filter_flag_busy_set));
   gtk_toggle_button_set_mode (GTK_TOGGLE_BUTTON (radiobutton_filter_flag_busy_set), FALSE);
 
   alignment50 = gtk_alignment_new (0.5, 0.5, 0, 0);
@@ -2540,7 +2540,7 @@ create_dlg_filters (void)
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
   gtk_radio_button_set_group (GTK_RADIO_BUTTON (radiobutton_filter_flag_stable_set), radiobutton_filter_flag_busy_ignore_group);
-  radiobutton_filter_flag_busy_ignore_group = gtk_radio_button_group (GTK_RADIO_BUTTON (radiobutton_filter_flag_stable_set));
+  radiobutton_filter_flag_busy_ignore_group = gtk_radio_button_get_group (GTK_RADIO_BUTTON (radiobutton_filter_flag_stable_set));
   gtk_toggle_button_set_mode (GTK_TOGGLE_BUTTON (radiobutton_filter_flag_stable_set), FALSE);
 
   alignment49 = gtk_alignment_new (0.5, 0.5, 0, 0);
@@ -2571,7 +2571,7 @@ create_dlg_filters (void)
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
   gtk_radio_button_set_group (GTK_RADIO_BUTTON (radiobutton_filter_flag_stable_unset), radiobutton_filter_flag_busy_ignore_group);
-  radiobutton_filter_flag_busy_ignore_group = gtk_radio_button_group (GTK_RADIO_BUTTON (radiobutton_filter_flag_stable_unset));
+  radiobutton_filter_flag_busy_ignore_group = gtk_radio_button_get_group (GTK_RADIO_BUTTON (radiobutton_filter_flag_stable_unset));
   gtk_toggle_button_set_mode (GTK_TOGGLE_BUTTON (radiobutton_filter_flag_stable_unset), FALSE);
 
   alignment41 = gtk_alignment_new (0.5, 0.5, 0, 0);
@@ -2602,7 +2602,7 @@ create_dlg_filters (void)
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
   gtk_radio_button_set_group (GTK_RADIO_BUTTON (radiobutton_filter_flag_stable_ignore), radiobutton_filter_flag_busy_ignore_group);
-  radiobutton_filter_flag_busy_ignore_group = gtk_radio_button_group (GTK_RADIO_BUTTON (radiobutton_filter_flag_stable_ignore));
+  radiobutton_filter_flag_busy_ignore_group = gtk_radio_button_get_group (GTK_RADIO_BUTTON (radiobutton_filter_flag_stable_ignore));
   gtk_toggle_button_set_mode (GTK_TOGGLE_BUTTON (radiobutton_filter_flag_stable_ignore), FALSE);
 
   alignment46 = gtk_alignment_new (0.5, 0.5, 0, 0);
@@ -2633,7 +2633,7 @@ create_dlg_filters (void)
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
   gtk_radio_button_set_group (GTK_RADIO_BUTTON (radiobutton_filter_flag_busy_unset), radiobutton_filter_flag_busy_ignore_group);
-  radiobutton_filter_flag_busy_ignore_group = gtk_radio_button_group (GTK_RADIO_BUTTON (radiobutton_filter_flag_busy_unset));
+  radiobutton_filter_flag_busy_ignore_group = gtk_radio_button_get_group (GTK_RADIO_BUTTON (radiobutton_filter_flag_busy_unset));
   gtk_toggle_button_set_mode (GTK_TOGGLE_BUTTON (radiobutton_filter_flag_busy_unset), FALSE);
 
   alignment40 = gtk_alignment_new (0.5, 0.5, 0, 0);
@@ -2870,7 +2870,7 @@ create_dlg_filters (void)
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
   gtk_radio_button_set_group (GTK_RADIO_BUTTON (radiobutton_filter_state_download_dont), radiobutton_filter_state_download_dont_group);
-  radiobutton_filter_state_download_dont_group = gtk_radio_button_group (GTK_RADIO_BUTTON (radiobutton_filter_state_download_dont));
+  radiobutton_filter_state_download_dont_group = gtk_radio_button_get_group (GTK_RADIO_BUTTON (radiobutton_filter_state_download_dont));
   gtk_toggle_button_set_mode (GTK_TOGGLE_BUTTON (radiobutton_filter_state_download_dont), FALSE);
 
   alignment55 = gtk_alignment_new (0.5, 0.5, 0, 0);
@@ -2901,7 +2901,7 @@ create_dlg_filters (void)
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
   gtk_radio_button_set_group (GTK_RADIO_BUTTON (radiobutton_filter_state_download_undef), radiobutton_filter_state_download_dont_group);
-  radiobutton_filter_state_download_dont_group = gtk_radio_button_group (GTK_RADIO_BUTTON (radiobutton_filter_state_download_undef));
+  radiobutton_filter_state_download_dont_group = gtk_radio_button_get_group (GTK_RADIO_BUTTON (radiobutton_filter_state_download_undef));
   gtk_toggle_button_set_mode (GTK_TOGGLE_BUTTON (radiobutton_filter_state_download_undef), FALSE);
 
   alignment57 = gtk_alignment_new (0.5, 0.5, 0, 0);
@@ -2940,7 +2940,7 @@ create_dlg_filters (void)
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
   gtk_radio_button_set_group (GTK_RADIO_BUTTON (radiobutton_filter_state_download_do), radiobutton_filter_state_download_dont_group);
-  radiobutton_filter_state_download_dont_group = gtk_radio_button_group (GTK_RADIO_BUTTON (radiobutton_filter_state_download_do));
+  radiobutton_filter_state_download_dont_group = gtk_radio_button_get_group (GTK_RADIO_BUTTON (radiobutton_filter_state_download_do));
   gtk_toggle_button_set_mode (GTK_TOGGLE_BUTTON (radiobutton_filter_state_download_do), FALSE);
 
   alignment53 = gtk_alignment_new (0.5, 0.5, 0, 0);
@@ -2971,7 +2971,7 @@ create_dlg_filters (void)
                     (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
   gtk_radio_button_set_group (GTK_RADIO_BUTTON (radiobutton_filter_state_display_do), radiobutton_filter_state_download_dont_group);
-  radiobutton_filter_state_download_dont_group = gtk_radio_button_group (GTK_RADIO_BUTTON (radiobutton_filter_state_display_do));
+  radiobutton_filter_state_download_dont_group = gtk_radio_button_get_group (GTK_RADIO_BUTTON (radiobutton_filter_state_display_do));
   gtk_toggle_button_set_mode (GTK_TOGGLE_BUTTON (radiobutton_filter_state_display_do), FALSE);
 
   alignment52 = gtk_alignment_new (0.5, 0.5, 0, 0);
@@ -3002,7 +3002,7 @@ create_dlg_filters (void)
                     (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
   gtk_radio_button_set_group (GTK_RADIO_BUTTON (radiobutton_filter_state_display_dont), radiobutton_filter_state_download_dont_group);
-  radiobutton_filter_state_download_dont_group = gtk_radio_button_group (GTK_RADIO_BUTTON (radiobutton_filter_state_display_dont));
+  radiobutton_filter_state_download_dont_group = gtk_radio_button_get_group (GTK_RADIO_BUTTON (radiobutton_filter_state_display_dont));
   gtk_toggle_button_set_mode (GTK_TOGGLE_BUTTON (radiobutton_filter_state_display_dont), FALSE);
 
   alignment54 = gtk_alignment_new (0.5, 0.5, 0, 0);
@@ -3033,7 +3033,7 @@ create_dlg_filters (void)
                     (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
   gtk_radio_button_set_group (GTK_RADIO_BUTTON (radiobutton_filter_state_display_undef), radiobutton_filter_state_download_dont_group);
-  radiobutton_filter_state_download_dont_group = gtk_radio_button_group (GTK_RADIO_BUTTON (radiobutton_filter_state_display_undef));
+  radiobutton_filter_state_download_dont_group = gtk_radio_button_get_group (GTK_RADIO_BUTTON (radiobutton_filter_state_display_undef));
   gtk_toggle_button_set_mode (GTK_TOGGLE_BUTTON (radiobutton_filter_state_display_undef), FALSE);
 
   alignment56 = gtk_alignment_new (0.5, 0.5, 0, 0);
@@ -3064,7 +3064,7 @@ create_dlg_filters (void)
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
   gtk_radio_button_set_group (GTK_RADIO_BUTTON (radiobutton_filter_state_display_ignore), radiobutton_filter_state_download_dont_group);
-  radiobutton_filter_state_download_dont_group = gtk_radio_button_group (GTK_RADIO_BUTTON (radiobutton_filter_state_display_ignore));
+  radiobutton_filter_state_download_dont_group = gtk_radio_button_get_group (GTK_RADIO_BUTTON (radiobutton_filter_state_display_ignore));
   gtk_toggle_button_set_mode (GTK_TOGGLE_BUTTON (radiobutton_filter_state_display_ignore), FALSE);
 
   alignment58 = gtk_alignment_new (0.5, 0.5, 0, 0);
@@ -3095,7 +3095,7 @@ create_dlg_filters (void)
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
   gtk_radio_button_set_group (GTK_RADIO_BUTTON (radiobutton_filter_state_download_ignore), radiobutton_filter_state_download_dont_group);
-  radiobutton_filter_state_download_dont_group = gtk_radio_button_group (GTK_RADIO_BUTTON (radiobutton_filter_state_download_ignore));
+  radiobutton_filter_state_download_dont_group = gtk_radio_button_get_group (GTK_RADIO_BUTTON (radiobutton_filter_state_download_ignore));
   gtk_toggle_button_set_mode (GTK_TOGGLE_BUTTON (radiobutton_filter_state_download_ignore), FALSE);
 
   alignment59 = gtk_alignment_new (0.5, 0.5, 0, 0);
@@ -3264,168 +3264,168 @@ create_dlg_filters (void)
   gtk_box_pack_start (GTK_BOX (hbox103), button_filter_cancel, TRUE, TRUE, 0);
   GTK_WIDGET_SET_FLAGS (button_filter_cancel, GTK_CAN_DEFAULT);
 
-  gtk_signal_connect (GTK_OBJECT (dlg_filters), "delete_event",
-                      GTK_SIGNAL_FUNC (on_dlg_filters_delete_event),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (entry_filter_new), "activate",
-                      GTK_SIGNAL_FUNC (on_entry_filter_new_activate),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (button_filter_create), "clicked",
-                      GTK_SIGNAL_FUNC (on_button_filter_create_clicked),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (ctree_filter_filters), "tree_select_row",
-                      GTK_SIGNAL_FUNC (on_ctree_filter_filters_tree_select_row),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (ctree_filter_filters), "resize_column",
-                      GTK_SIGNAL_FUNC (on_ctree_filter_filters_resize_column),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (checkbutton_filter_enabled), "toggled",
-                      GTK_SIGNAL_FUNC (on_checkbutton_filter_enabled_toggled),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (button_filter_remove), "clicked",
-                      GTK_SIGNAL_FUNC (on_button_filter_remove_clicked),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (clist_filter_rules), "select_row",
-                      GTK_SIGNAL_FUNC (on_clist_filter_rules_select_row),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (clist_filter_rules), "unselect_row",
-                      GTK_SIGNAL_FUNC (on_clist_filter_rules_unselect_row),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (clist_filter_rules), "resize_column",
-                      GTK_SIGNAL_FUNC (on_clist_filter_rules_resize_column),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (clist_filter_rules), "drag_end",
-                      GTK_SIGNAL_FUNC (on_clist_filter_rules_drag_end),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (clist_filter_rules), "button_press_event",
-                      GTK_SIGNAL_FUNC (on_clist_filter_rules_button_press_event),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (button_filter_clear), "clicked",
-                      GTK_SIGNAL_FUNC (on_button_filter_clear_clicked),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (button_filter_reset_all_rules), "clicked",
-                      GTK_SIGNAL_FUNC (on_button_filter_reset_all_rules_clicked),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (button_filter_reset), "clicked",
-                      GTK_SIGNAL_FUNC (on_button_filter_reset_clicked),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (button_filter_reset_all), "clicked",
-                      GTK_SIGNAL_FUNC (on_button_filter_reset_all_clicked),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (button_filter_add_rule_jump), "clicked",
-                      GTK_SIGNAL_FUNC (on_button_filter_add_rule_jump_clicked),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (button_filter_add_rule_size), "clicked",
-                      GTK_SIGNAL_FUNC (on_button_filter_add_rule_size_clicked),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (button_filter_add_rule_ip), "clicked",
-                      GTK_SIGNAL_FUNC (on_button_filter_add_rule_ip_clicked),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (button_filter_add_rule_text), "clicked",
-                      GTK_SIGNAL_FUNC (on_button_filter_add_rule_text_clicked),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (button_filter_add_rule_flag), "clicked",
-                      GTK_SIGNAL_FUNC (on_button_filter_add_rule_flag_clicked),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (button_filter_add_rule_state), "clicked",
-                      GTK_SIGNAL_FUNC (on_button_filter_add_rule_state_clicked),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (button_filter_text_reset), "clicked",
-                      GTK_SIGNAL_FUNC (on_button_filter_reset_rule_clicked),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (button_filter_text_add), "clicked",
-                      GTK_SIGNAL_FUNC (on_button_filter_add_rule_clicked),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (button_filter_text_remove), "clicked",
-                      GTK_SIGNAL_FUNC (on_button_filter_remove_rule_clicked),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (button16), "clicked",
-                      GTK_SIGNAL_FUNC (on_button_filter_abort_rule_clicked),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (button_filter_ip_reset), "clicked",
-                      GTK_SIGNAL_FUNC (on_button_filter_reset_rule_clicked),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (button4), "clicked",
-                      GTK_SIGNAL_FUNC (on_button_filter_add_rule_clicked),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (button5), "clicked",
-                      GTK_SIGNAL_FUNC (on_button_filter_remove_rule_clicked),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (button17), "clicked",
-                      GTK_SIGNAL_FUNC (on_button_filter_abort_rule_clicked),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (button_filter_size_reset), "clicked",
-                      GTK_SIGNAL_FUNC (on_button_filter_reset_rule_clicked),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (button6), "clicked",
-                      GTK_SIGNAL_FUNC (on_button_filter_add_rule_clicked),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (button7), "clicked",
-                      GTK_SIGNAL_FUNC (on_button_filter_remove_rule_clicked),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (button18), "clicked",
-                      GTK_SIGNAL_FUNC (on_button_filter_abort_rule_clicked),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (button_filter_jump_reset), "clicked",
-                      GTK_SIGNAL_FUNC (on_button_filter_reset_rule_clicked),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (button8), "clicked",
-                      GTK_SIGNAL_FUNC (on_button_filter_add_rule_clicked),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (button9), "clicked",
-                      GTK_SIGNAL_FUNC (on_button_filter_remove_rule_clicked),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (button19), "clicked",
-                      GTK_SIGNAL_FUNC (on_button_filter_abort_rule_clicked),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (button_filter_sha1_reset), "clicked",
-                      GTK_SIGNAL_FUNC (on_button_filter_reset_rule_clicked),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (button10), "clicked",
-                      GTK_SIGNAL_FUNC (on_button_filter_add_rule_clicked),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (button11), "clicked",
-                      GTK_SIGNAL_FUNC (on_button_filter_remove_rule_clicked),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (button20), "clicked",
-                      GTK_SIGNAL_FUNC (on_button_filter_abort_rule_clicked),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (button_filter_flag_reset), "clicked",
-                      GTK_SIGNAL_FUNC (on_button_filter_reset_rule_clicked),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (button12), "clicked",
-                      GTK_SIGNAL_FUNC (on_button_filter_add_rule_clicked),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (button13), "clicked",
-                      GTK_SIGNAL_FUNC (on_button_filter_remove_rule_clicked),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (button21), "clicked",
-                      GTK_SIGNAL_FUNC (on_button_filter_abort_rule_clicked),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (button_filter_state_reset), "clicked",
-                      GTK_SIGNAL_FUNC (on_button_filter_reset_rule_clicked),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (button14), "clicked",
-                      GTK_SIGNAL_FUNC (on_button_filter_add_rule_clicked),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (button15), "clicked",
-                      GTK_SIGNAL_FUNC (on_button_filter_remove_rule_clicked),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (button22), "clicked",
-                      GTK_SIGNAL_FUNC (on_button_filter_abort_rule_clicked),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (button_filter_apply), "clicked",
-                      GTK_SIGNAL_FUNC (on_button_filter_apply_clicked),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (button_filter_revert), "clicked",
-                      GTK_SIGNAL_FUNC (on_button_filter_revert_clicked),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (button_filter_ok), "clicked",
-                      GTK_SIGNAL_FUNC (on_button_filter_ok_clicked),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (button_filter_cancel), "clicked",
-                      GTK_SIGNAL_FUNC (on_button_filter_cancel_clicked),
-                      NULL);
+  g_signal_connect ((gpointer) dlg_filters, "delete_event",
+                    G_CALLBACK (on_dlg_filters_delete_event),
+                    NULL);
+  g_signal_connect ((gpointer) entry_filter_new, "activate",
+                    G_CALLBACK (on_entry_filter_new_activate),
+                    NULL);
+  g_signal_connect ((gpointer) button_filter_create, "clicked",
+                    G_CALLBACK (on_button_filter_create_clicked),
+                    NULL);
+  g_signal_connect ((gpointer) ctree_filter_filters, "tree_select_row",
+                    G_CALLBACK (on_ctree_filter_filters_tree_select_row),
+                    NULL);
+  g_signal_connect ((gpointer) ctree_filter_filters, "resize_column",
+                    G_CALLBACK (on_ctree_filter_filters_resize_column),
+                    NULL);
+  g_signal_connect ((gpointer) checkbutton_filter_enabled, "toggled",
+                    G_CALLBACK (on_checkbutton_filter_enabled_toggled),
+                    NULL);
+  g_signal_connect ((gpointer) button_filter_remove, "clicked",
+                    G_CALLBACK (on_button_filter_remove_clicked),
+                    NULL);
+  g_signal_connect ((gpointer) clist_filter_rules, "select_row",
+                    G_CALLBACK (on_clist_filter_rules_select_row),
+                    NULL);
+  g_signal_connect ((gpointer) clist_filter_rules, "unselect_row",
+                    G_CALLBACK (on_clist_filter_rules_unselect_row),
+                    NULL);
+  g_signal_connect ((gpointer) clist_filter_rules, "resize_column",
+                    G_CALLBACK (on_clist_filter_rules_resize_column),
+                    NULL);
+  g_signal_connect ((gpointer) clist_filter_rules, "drag_end",
+                    G_CALLBACK (on_clist_filter_rules_drag_end),
+                    NULL);
+  g_signal_connect ((gpointer) clist_filter_rules, "button_press_event",
+                    G_CALLBACK (on_clist_filter_rules_button_press_event),
+                    NULL);
+  g_signal_connect ((gpointer) button_filter_clear, "clicked",
+                    G_CALLBACK (on_button_filter_clear_clicked),
+                    NULL);
+  g_signal_connect ((gpointer) button_filter_reset_all_rules, "clicked",
+                    G_CALLBACK (on_button_filter_reset_all_rules_clicked),
+                    NULL);
+  g_signal_connect ((gpointer) button_filter_reset, "clicked",
+                    G_CALLBACK (on_button_filter_reset_clicked),
+                    NULL);
+  g_signal_connect ((gpointer) button_filter_reset_all, "clicked",
+                    G_CALLBACK (on_button_filter_reset_all_clicked),
+                    NULL);
+  g_signal_connect ((gpointer) button_filter_add_rule_jump, "clicked",
+                    G_CALLBACK (on_button_filter_add_rule_jump_clicked),
+                    NULL);
+  g_signal_connect ((gpointer) button_filter_add_rule_size, "clicked",
+                    G_CALLBACK (on_button_filter_add_rule_size_clicked),
+                    NULL);
+  g_signal_connect ((gpointer) button_filter_add_rule_ip, "clicked",
+                    G_CALLBACK (on_button_filter_add_rule_ip_clicked),
+                    NULL);
+  g_signal_connect ((gpointer) button_filter_add_rule_text, "clicked",
+                    G_CALLBACK (on_button_filter_add_rule_text_clicked),
+                    NULL);
+  g_signal_connect ((gpointer) button_filter_add_rule_flag, "clicked",
+                    G_CALLBACK (on_button_filter_add_rule_flag_clicked),
+                    NULL);
+  g_signal_connect ((gpointer) button_filter_add_rule_state, "clicked",
+                    G_CALLBACK (on_button_filter_add_rule_state_clicked),
+                    NULL);
+  g_signal_connect ((gpointer) button_filter_text_reset, "clicked",
+                    G_CALLBACK (on_button_filter_reset_rule_clicked),
+                    NULL);
+  g_signal_connect ((gpointer) button_filter_text_add, "clicked",
+                    G_CALLBACK (on_button_filter_add_rule_clicked),
+                    NULL);
+  g_signal_connect ((gpointer) button_filter_text_remove, "clicked",
+                    G_CALLBACK (on_button_filter_remove_rule_clicked),
+                    NULL);
+  g_signal_connect ((gpointer) button16, "clicked",
+                    G_CALLBACK (on_button_filter_abort_rule_clicked),
+                    NULL);
+  g_signal_connect ((gpointer) button_filter_ip_reset, "clicked",
+                    G_CALLBACK (on_button_filter_reset_rule_clicked),
+                    NULL);
+  g_signal_connect ((gpointer) button4, "clicked",
+                    G_CALLBACK (on_button_filter_add_rule_clicked),
+                    NULL);
+  g_signal_connect ((gpointer) button5, "clicked",
+                    G_CALLBACK (on_button_filter_remove_rule_clicked),
+                    NULL);
+  g_signal_connect ((gpointer) button17, "clicked",
+                    G_CALLBACK (on_button_filter_abort_rule_clicked),
+                    NULL);
+  g_signal_connect ((gpointer) button_filter_size_reset, "clicked",
+                    G_CALLBACK (on_button_filter_reset_rule_clicked),
+                    NULL);
+  g_signal_connect ((gpointer) button6, "clicked",
+                    G_CALLBACK (on_button_filter_add_rule_clicked),
+                    NULL);
+  g_signal_connect ((gpointer) button7, "clicked",
+                    G_CALLBACK (on_button_filter_remove_rule_clicked),
+                    NULL);
+  g_signal_connect ((gpointer) button18, "clicked",
+                    G_CALLBACK (on_button_filter_abort_rule_clicked),
+                    NULL);
+  g_signal_connect ((gpointer) button_filter_jump_reset, "clicked",
+                    G_CALLBACK (on_button_filter_reset_rule_clicked),
+                    NULL);
+  g_signal_connect ((gpointer) button8, "clicked",
+                    G_CALLBACK (on_button_filter_add_rule_clicked),
+                    NULL);
+  g_signal_connect ((gpointer) button9, "clicked",
+                    G_CALLBACK (on_button_filter_remove_rule_clicked),
+                    NULL);
+  g_signal_connect ((gpointer) button19, "clicked",
+                    G_CALLBACK (on_button_filter_abort_rule_clicked),
+                    NULL);
+  g_signal_connect ((gpointer) button_filter_sha1_reset, "clicked",
+                    G_CALLBACK (on_button_filter_reset_rule_clicked),
+                    NULL);
+  g_signal_connect ((gpointer) button10, "clicked",
+                    G_CALLBACK (on_button_filter_add_rule_clicked),
+                    NULL);
+  g_signal_connect ((gpointer) button11, "clicked",
+                    G_CALLBACK (on_button_filter_remove_rule_clicked),
+                    NULL);
+  g_signal_connect ((gpointer) button20, "clicked",
+                    G_CALLBACK (on_button_filter_abort_rule_clicked),
+                    NULL);
+  g_signal_connect ((gpointer) button_filter_flag_reset, "clicked",
+                    G_CALLBACK (on_button_filter_reset_rule_clicked),
+                    NULL);
+  g_signal_connect ((gpointer) button12, "clicked",
+                    G_CALLBACK (on_button_filter_add_rule_clicked),
+                    NULL);
+  g_signal_connect ((gpointer) button13, "clicked",
+                    G_CALLBACK (on_button_filter_remove_rule_clicked),
+                    NULL);
+  g_signal_connect ((gpointer) button21, "clicked",
+                    G_CALLBACK (on_button_filter_abort_rule_clicked),
+                    NULL);
+  g_signal_connect ((gpointer) button_filter_state_reset, "clicked",
+                    G_CALLBACK (on_button_filter_reset_rule_clicked),
+                    NULL);
+  g_signal_connect ((gpointer) button14, "clicked",
+                    G_CALLBACK (on_button_filter_add_rule_clicked),
+                    NULL);
+  g_signal_connect ((gpointer) button15, "clicked",
+                    G_CALLBACK (on_button_filter_remove_rule_clicked),
+                    NULL);
+  g_signal_connect ((gpointer) button22, "clicked",
+                    G_CALLBACK (on_button_filter_abort_rule_clicked),
+                    NULL);
+  g_signal_connect ((gpointer) button_filter_apply, "clicked",
+                    G_CALLBACK (on_button_filter_apply_clicked),
+                    NULL);
+  g_signal_connect ((gpointer) button_filter_revert, "clicked",
+                    G_CALLBACK (on_button_filter_revert_clicked),
+                    NULL);
+  g_signal_connect ((gpointer) button_filter_ok, "clicked",
+                    G_CALLBACK (on_button_filter_ok_clicked),
+                    NULL);
+  g_signal_connect ((gpointer) button_filter_cancel, "clicked",
+                    G_CALLBACK (on_button_filter_cancel_clicked),
+                    NULL);
 
   /* Store pointers to all widgets, for use by lookup_widget(). */
   GLADE_HOOKUP_OBJECT_NO_REF (dlg_filters, dlg_filters, "dlg_filters");
@@ -3893,12 +3893,12 @@ create_popup_filter_rule (void)
   gtk_widget_show (image12);
   gtk_image_menu_item_set_image (GTK_IMAGE_MENU_ITEM (popup_filter_rule_paste), image12);
 
-  gtk_signal_connect (GTK_OBJECT (popup_filter_rule_copy), "activate",
-                      GTK_SIGNAL_FUNC (on_popup_filter_rule_copy_activate),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (popup_filter_rule_paste), "activate",
-                      GTK_SIGNAL_FUNC (on_popup_filter_rule_paste_activate),
-                      NULL);
+  g_signal_connect ((gpointer) popup_filter_rule_copy, "activate",
+                    G_CALLBACK (on_popup_filter_rule_copy_activate),
+                    NULL);
+  g_signal_connect ((gpointer) popup_filter_rule_paste, "activate",
+                    G_CALLBACK (on_popup_filter_rule_paste_activate),
+                    NULL);
 
   /* Store pointers to all widgets, for use by lookup_widget(). */
   GLADE_HOOKUP_OBJECT_NO_REF (popup_filter_rule, popup_filter_rule, "popup_filter_rule");
@@ -4125,12 +4125,12 @@ create_dlg_about (void)
   gtk_box_pack_start (GTK_BOX (hbox137), button_about_close, TRUE, TRUE, 0);
   GTK_WIDGET_SET_FLAGS (button_about_close, GTK_CAN_DEFAULT);
 
-  gtk_signal_connect (GTK_OBJECT (dlg_about), "delete_event",
-                      GTK_SIGNAL_FUNC (on_dlg_about_delete_event),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (button_about_close), "clicked",
-                      GTK_SIGNAL_FUNC (on_button_about_close_clicked),
-                      NULL);
+  g_signal_connect ((gpointer) dlg_about, "delete_event",
+                    G_CALLBACK (on_dlg_about_delete_event),
+                    NULL);
+  g_signal_connect ((gpointer) button_about_close, "clicked",
+                    G_CALLBACK (on_button_about_close_clicked),
+                    NULL);
 
   /* Store pointers to all widgets, for use by lookup_widget(). */
   GLADE_HOOKUP_OBJECT_NO_REF (dlg_about, dlg_about, "dlg_about");
@@ -4644,6 +4644,7 @@ create_main_window (void)
   GtkWidget *spinbutton_config_min_dup_msg;
   GtkObject *spinbutton_config_min_dup_ratio_adj;
   GtkWidget *spinbutton_config_min_dup_ratio;
+  GtkWidget *checkbutton_prefer_compressed_gnet;
   GtkWidget *label429;
   GtkWidget *frame_expert_gnet_other;
   GtkWidget *table32;
@@ -4825,10 +4826,18 @@ create_main_window (void)
   GtkWidget *label382;
   GtkWidget *label378;
   GtkWidget *hbox_statusbar;
+  GtkWidget *togglebutton_online;
   GtkWidget *hbox170;
   GtkWidget *image_offline;
   GtkWidget *image_online;
   GtkWidget *statusbar;
+  GtkWidget *image_save;
+  GtkWidget *eventbox_image_sha;
+  GtkWidget *image_sha;
+  GtkWidget *eventbox_image_shav;
+  GtkWidget *image_shav;
+  GtkWidget *eventbox_image_lib;
+  GtkWidget *image_lib;
   GtkWidget *hbox147;
   GtkWidget *image_firewall;
   GtkWidget *image_no_firewall;
@@ -5230,6 +5239,7 @@ create_main_window (void)
   gtk_widget_set_name (treeview_nodes, "treeview_nodes");
   gtk_widget_show (treeview_nodes);
   gtk_container_add (GTK_CONTAINER (scrolledwindow37), treeview_nodes);
+  gtk_tree_view_set_rules_hint (GTK_TREE_VIEW (treeview_nodes), TRUE);
 
   hbox2 = gtk_hbox_new (FALSE, 4);
   gtk_widget_set_name (hbox2, "hbox2");
@@ -5510,7 +5520,7 @@ create_main_window (void)
   gtk_widget_set_name (entry_nodes_guid, "entry_nodes_guid");
   gtk_widget_show (entry_nodes_guid);
   gtk_box_pack_start (GTK_BOX (hbox151), entry_nodes_guid, TRUE, TRUE, 0);
-  gtk_entry_set_editable (GTK_ENTRY (entry_nodes_guid), FALSE);
+  gtk_editable_set_editable (GTK_EDITABLE (entry_nodes_guid), FALSE);
 
   label151 = gtk_label_new ("IP:Port");
   gtk_widget_set_name (label151, "label151");
@@ -5522,7 +5532,7 @@ create_main_window (void)
   gtk_widget_set_name (entry_nodes_ip, "entry_nodes_ip");
   gtk_widget_show (entry_nodes_ip);
   gtk_box_pack_start (GTK_BOX (hbox151), entry_nodes_ip, TRUE, TRUE, 0);
-  gtk_entry_set_editable (GTK_ENTRY (entry_nodes_ip), FALSE);
+  gtk_editable_set_editable (GTK_EDITABLE (entry_nodes_ip), FALSE);
 
   label282 = gtk_label_new ("Local node");
   gtk_widget_set_name (label282, "label282");
@@ -6196,8 +6206,8 @@ create_main_window (void)
   gtk_box_pack_start (GTK_BOX (hbox18), label204, FALSE, FALSE, 0);
 
   combo_search = gtk_combo_new ();
-  gtk_object_set_data (GTK_OBJECT (GTK_COMBO (combo_search)->popwin),
-                       "GladeParentKey", combo_search);
+  g_object_set_data (G_OBJECT (GTK_COMBO (combo_search)->popwin),
+                     "GladeParentKey", combo_search);
   gtk_widget_set_name (combo_search, "combo_search");
   gtk_widget_show (combo_search);
   gtk_box_pack_start (GTK_BOX (hbox18), combo_search, TRUE, TRUE, 0);
@@ -6262,8 +6272,8 @@ create_main_window (void)
   gtk_box_pack_start (GTK_BOX (hbox152), label79, FALSE, FALSE, 0);
 
   combo_searches = gtk_combo_new ();
-  gtk_object_set_data (GTK_OBJECT (GTK_COMBO (combo_searches)->popwin),
-                       "GladeParentKey", combo_searches);
+  g_object_set_data (G_OBJECT (GTK_COMBO (combo_searches)->popwin),
+                     "GladeParentKey", combo_searches);
   gtk_widget_set_name (combo_searches, "combo_searches");
   gtk_widget_show (combo_searches);
   gtk_box_pack_start (GTK_BOX (hbox152), combo_searches, TRUE, TRUE, 0);
@@ -6275,7 +6285,7 @@ create_main_window (void)
   combo_entry_searches = GTK_COMBO (combo_searches)->entry;
   gtk_widget_set_name (combo_entry_searches, "combo_entry_searches");
   gtk_widget_show (combo_entry_searches);
-  gtk_entry_set_editable (GTK_ENTRY (combo_entry_searches), FALSE);
+  gtk_editable_set_editable (GTK_EDITABLE (combo_entry_searches), FALSE);
 
   button_search_close = gtk_button_new ();
   gtk_widget_set_name (button_search_close, "button_search_close");
@@ -6607,8 +6617,8 @@ create_main_window (void)
   gtk_box_pack_start (GTK_BOX (vbox12a), hbox67, FALSE, TRUE, 0);
 
   combo_search_stats_type = gtk_combo_new ();
-  gtk_object_set_data (GTK_OBJECT (GTK_COMBO (combo_search_stats_type)->popwin),
-                       "GladeParentKey", combo_search_stats_type);
+  g_object_set_data (G_OBJECT (GTK_COMBO (combo_search_stats_type)->popwin),
+                     "GladeParentKey", combo_search_stats_type);
   gtk_widget_set_name (combo_search_stats_type, "combo_search_stats_type");
   gtk_widget_show (combo_search_stats_type);
   gtk_box_pack_start (GTK_BOX (hbox67), combo_search_stats_type, TRUE, TRUE, 0);
@@ -6616,7 +6626,7 @@ create_main_window (void)
   combo_entry1 = GTK_COMBO (combo_search_stats_type)->entry;
   gtk_widget_set_name (combo_entry1, "combo_entry1");
   gtk_widget_show (combo_entry1);
-  gtk_entry_set_editable (GTK_ENTRY (combo_entry1), FALSE);
+  gtk_editable_set_editable (GTK_EDITABLE (combo_entry1), FALSE);
 
   label101 = gtk_label_new ("Update interval (sec)");
   gtk_widget_set_name (label101, "label101");
@@ -6842,14 +6852,14 @@ create_main_window (void)
   gtk_widget_show (radio_config_http);
   gtk_box_pack_start (GTK_BOX (hbox59), radio_config_http, FALSE, FALSE, 0);
   gtk_radio_button_set_group (GTK_RADIO_BUTTON (radio_config_http), radio_config_http_group);
-  radio_config_http_group = gtk_radio_button_group (GTK_RADIO_BUTTON (radio_config_http));
+  radio_config_http_group = gtk_radio_button_get_group (GTK_RADIO_BUTTON (radio_config_http));
 
   radio_config_socksv4 = gtk_radio_button_new_with_mnemonic (NULL, "v4");
   gtk_widget_set_name (radio_config_socksv4, "radio_config_socksv4");
   gtk_widget_show (radio_config_socksv4);
   gtk_box_pack_start (GTK_BOX (hbox59), radio_config_socksv4, FALSE, FALSE, 0);
   gtk_radio_button_set_group (GTK_RADIO_BUTTON (radio_config_socksv4), radio_config_http_group);
-  radio_config_http_group = gtk_radio_button_group (GTK_RADIO_BUTTON (radio_config_socksv4));
+  radio_config_http_group = gtk_radio_button_get_group (GTK_RADIO_BUTTON (radio_config_socksv4));
   gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (radio_config_socksv4), TRUE);
 
   radio_config_socksv5 = gtk_radio_button_new_with_mnemonic (NULL, "v5");
@@ -6857,7 +6867,7 @@ create_main_window (void)
   gtk_widget_show (radio_config_socksv5);
   gtk_box_pack_start (GTK_BOX (hbox59), radio_config_socksv5, FALSE, FALSE, 0);
   gtk_radio_button_set_group (GTK_RADIO_BUTTON (radio_config_socksv5), radio_config_http_group);
-  radio_config_http_group = gtk_radio_button_group (GTK_RADIO_BUTTON (radio_config_socksv5));
+  radio_config_http_group = gtk_radio_button_get_group (GTK_RADIO_BUTTON (radio_config_socksv5));
 
   hbox60 = gtk_hbox_new (FALSE, 4);
   gtk_widget_set_name (hbox60, "hbox60");
@@ -7500,7 +7510,7 @@ create_main_window (void)
   gtk_widget_show (frame_expert_gnet_quality);
   gtk_box_pack_start (GTK_BOX (vbox25), frame_expert_gnet_quality, FALSE, TRUE, 0);
 
-  table37 = gtk_table_new (2, 3, FALSE);
+  table37 = gtk_table_new (3, 3, FALSE);
   gtk_widget_set_name (table37, "table37");
   gtk_widget_show (table37);
   gtk_container_add (GTK_CONTAINER (frame_expert_gnet_quality), table37);
@@ -7561,6 +7571,13 @@ create_main_window (void)
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
   gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_config_min_dup_ratio), TRUE);
+
+  checkbutton_prefer_compressed_gnet = gtk_check_button_new_with_mnemonic ("prefer compressed connections");
+  gtk_widget_set_name (checkbutton_prefer_compressed_gnet, "checkbutton_prefer_compressed_gnet");
+  gtk_widget_show (checkbutton_prefer_compressed_gnet);
+  gtk_table_attach (GTK_TABLE (table37), checkbutton_prefer_compressed_gnet, 0, 3, 2, 3,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
 
   label429 = gtk_label_new ("Quality management");
   gtk_widget_set_name (label429, "label429");
@@ -7650,7 +7667,7 @@ create_main_window (void)
   gtk_widget_show (entry_config_save_path);
   gtk_box_pack_start (GTK_BOX (hbox96), entry_config_save_path, TRUE, TRUE, 0);
   gtk_widget_set_sensitive (entry_config_save_path, FALSE);
-  gtk_entry_set_editable (GTK_ENTRY (entry_config_save_path), FALSE);
+  gtk_editable_set_editable (GTK_EDITABLE (entry_config_save_path), FALSE);
 
   button_config_save_path = gtk_button_new_with_mnemonic ("Browse");
   gtk_widget_set_name (button_config_save_path, "button_config_save_path");
@@ -7679,7 +7696,7 @@ create_main_window (void)
   gtk_widget_show (entry_config_move_path);
   gtk_box_pack_start (GTK_BOX (hbox95), entry_config_move_path, TRUE, TRUE, 0);
   gtk_widget_set_sensitive (entry_config_move_path, FALSE);
-  gtk_entry_set_editable (GTK_ENTRY (entry_config_move_path), FALSE);
+  gtk_editable_set_editable (GTK_EDITABLE (entry_config_move_path), FALSE);
 
   button_config_move_path = gtk_button_new_with_mnemonic ("Browse");
   gtk_widget_set_name (button_config_move_path, "button_config_move_path");
@@ -7735,7 +7752,7 @@ create_main_window (void)
   gtk_table_attach (GTK_TABLE (table38), spinbutton_config_download_overlap_range, 1, 2, 0, 1,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
-  gtk_widget_set_usize (spinbutton_config_download_overlap_range, 96, -2);
+  gtk_widget_set_size_request (spinbutton_config_download_overlap_range, 96, -2);
   gtk_tooltips_set_tip (tooltips, spinbutton_config_download_overlap_range, "Amount of bytes to overlap when resuming download", NULL);
   gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_config_download_overlap_range), TRUE);
 
@@ -8545,8 +8562,8 @@ create_main_window (void)
   gtk_label_set_justify (GTK_LABEL (label406), GTK_JUSTIFY_LEFT);
 
   combo_gnet_stats_type = gtk_combo_new ();
-  gtk_object_set_data (GTK_OBJECT (GTK_COMBO (combo_gnet_stats_type)->popwin),
-                       "GladeParentKey", combo_gnet_stats_type);
+  g_object_set_data (G_OBJECT (GTK_COMBO (combo_gnet_stats_type)->popwin),
+                     "GladeParentKey", combo_gnet_stats_type);
   gtk_widget_set_name (combo_gnet_stats_type, "combo_gnet_stats_type");
   gtk_widget_show (combo_gnet_stats_type);
   gtk_box_pack_start (GTK_BOX (hbox155), combo_gnet_stats_type, TRUE, TRUE, 0);
@@ -8554,7 +8571,7 @@ create_main_window (void)
   combo_entry2 = GTK_COMBO (combo_gnet_stats_type)->entry;
   gtk_widget_set_name (combo_entry2, "combo_entry2");
   gtk_widget_show (combo_entry2);
-  gtk_entry_set_editable (GTK_ENTRY (combo_entry2), FALSE);
+  gtk_editable_set_editable (GTK_EDITABLE (combo_entry2), FALSE);
 
   scrolledwindow31 = gtk_scrolled_window_new (NULL, NULL);
   gtk_widget_set_name (scrolledwindow31, "scrolledwindow31");
@@ -8648,10 +8665,16 @@ create_main_window (void)
   gtk_widget_show (hbox_statusbar);
   gtk_box_pack_start (GTK_BOX (vbox12), hbox_statusbar, FALSE, TRUE, 0);
 
+  togglebutton_online = gtk_toggle_button_new ();
+  gtk_widget_set_name (togglebutton_online, "togglebutton_online");
+  gtk_widget_show (togglebutton_online);
+  gtk_box_pack_start (GTK_BOX (hbox_statusbar), togglebutton_online, FALSE, FALSE, 0);
+  GTK_WIDGET_UNSET_FLAGS (togglebutton_online, GTK_CAN_FOCUS);
+
   hbox170 = gtk_hbox_new (FALSE, 0);
   gtk_widget_set_name (hbox170, "hbox170");
   gtk_widget_show (hbox170);
-  gtk_box_pack_start (GTK_BOX (hbox_statusbar), hbox170, FALSE, TRUE, 0);
+  gtk_container_add (GTK_CONTAINER (togglebutton_online), hbox170);
 
   image_offline = create_pixmap (main_window, "offline.xpm");
   gtk_widget_set_name (image_offline, "image_offline");
@@ -8667,22 +8690,62 @@ create_main_window (void)
   gtk_widget_set_name (statusbar, "statusbar");
   gtk_widget_show (statusbar);
   gtk_box_pack_start (GTK_BOX (hbox_statusbar), statusbar, TRUE, TRUE, 0);
-  gtk_statusbar_set_has_resize_grip (GTK_STATUSBAR (statusbar), TRUE);
+  gtk_statusbar_set_has_resize_grip (GTK_STATUSBAR (statusbar), FALSE);
+
+  image_save = create_pixmap (main_window, "save.xpm");
+  gtk_widget_set_name (image_save, "image_save");
+  gtk_box_pack_start (GTK_BOX (hbox_statusbar), image_save, FALSE, FALSE, 0);
+  gtk_misc_set_padding (GTK_MISC (image_save), 1, 0);
+
+  eventbox_image_sha = gtk_event_box_new ();
+  gtk_widget_set_name (eventbox_image_sha, "eventbox_image_sha");
+  gtk_widget_show (eventbox_image_sha);
+  gtk_box_pack_start (GTK_BOX (hbox_statusbar), eventbox_image_sha, FALSE, FALSE, 0);
+
+  image_sha = create_pixmap (main_window, "booksha.xpm");
+  gtk_widget_set_name (image_sha, "image_sha");
+  gtk_widget_show (image_sha);
+  gtk_container_add (GTK_CONTAINER (eventbox_image_sha), image_sha);
+  gtk_misc_set_padding (GTK_MISC (image_sha), 1, 0);
+
+  eventbox_image_shav = gtk_event_box_new ();
+  gtk_widget_set_name (eventbox_image_shav, "eventbox_image_shav");
+  gtk_widget_show (eventbox_image_shav);
+  gtk_box_pack_start (GTK_BOX (hbox_statusbar), eventbox_image_shav, FALSE, TRUE, 0);
+
+  image_shav = create_pixmap (main_window, "bookshav.xpm");
+  gtk_widget_set_name (image_shav, "image_shav");
+  gtk_widget_show (image_shav);
+  gtk_container_add (GTK_CONTAINER (eventbox_image_shav), image_shav);
+  gtk_misc_set_padding (GTK_MISC (image_shav), 1, 0);
+
+  eventbox_image_lib = gtk_event_box_new ();
+  gtk_widget_set_name (eventbox_image_lib, "eventbox_image_lib");
+  gtk_widget_show (eventbox_image_lib);
+  gtk_box_pack_start (GTK_BOX (hbox_statusbar), eventbox_image_lib, FALSE, TRUE, 0);
+
+  image_lib = create_pixmap (main_window, "booklib.xpm");
+  gtk_widget_set_name (image_lib, "image_lib");
+  gtk_widget_show (image_lib);
+  gtk_container_add (GTK_CONTAINER (eventbox_image_lib), image_lib);
+  gtk_misc_set_padding (GTK_MISC (image_lib), 1, 0);
 
   hbox147 = gtk_hbox_new (FALSE, 0);
   gtk_widget_set_name (hbox147, "hbox147");
   gtk_widget_show (hbox147);
-  gtk_box_pack_start (GTK_BOX (hbox_statusbar), hbox147, FALSE, FALSE, 0);
+  gtk_box_pack_start (GTK_BOX (hbox_statusbar), hbox147, FALSE, TRUE, 0);
 
   image_firewall = create_pixmap (main_window, "firewall.xpm");
   gtk_widget_set_name (image_firewall, "image_firewall");
   gtk_widget_show (image_firewall);
   gtk_box_pack_start (GTK_BOX (hbox147), image_firewall, FALSE, TRUE, 0);
+  gtk_misc_set_padding (GTK_MISC (image_firewall), 1, 0);
 
   image_no_firewall = create_pixmap (main_window, "no_firewall.xpm");
   gtk_widget_set_name (image_no_firewall, "image_no_firewall");
   gtk_widget_show (image_no_firewall);
   gtk_box_pack_start (GTK_BOX (hbox147), image_no_firewall, FALSE, TRUE, 0);
+  gtk_misc_set_padding (GTK_MISC (image_no_firewall), 1, 0);
 
   label_statusbar_uptime = gtk_label_new ("[uptime]");
   gtk_widget_set_name (label_statusbar_uptime, "label_statusbar_uptime");
@@ -8690,264 +8753,264 @@ create_main_window (void)
   gtk_box_pack_start (GTK_BOX (hbox_statusbar), label_statusbar_uptime, FALSE, FALSE, 0);
   gtk_label_set_justify (GTK_LABEL (label_statusbar_uptime), GTK_JUSTIFY_LEFT);
 
-  gtk_signal_connect (GTK_OBJECT (main_window), "delete_event",
-                      GTK_SIGNAL_FUNC (on_main_window_delete_event),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (quit), "activate",
-                      GTK_SIGNAL_FUNC (on_button_quit_clicked),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (menu_toolbar_visible), "activate",
-                      GTK_SIGNAL_FUNC (on_menu_toolbar_visible_activate),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (menu_statusbar_visible), "activate",
-                      GTK_SIGNAL_FUNC (on_menu_statusbar_visible_activate),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (menu_downloads_visible), "activate",
-                      GTK_SIGNAL_FUNC (on_menu_downloads_visible_activate),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (menu_uploads_visible), "activate",
-                      GTK_SIGNAL_FUNC (on_menu_uploads_visible_activate),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (menu_connections_visible), "activate",
-                      GTK_SIGNAL_FUNC (on_menu_connections_visible_activate),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (menu_bws_in_visible), "activate",
-                      GTK_SIGNAL_FUNC (on_menu_bws_in_visible_activate),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (menu_bws_out_visible), "activate",
-                      GTK_SIGNAL_FUNC (on_menu_bws_out_visible_activate),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (menu_bws_gin_visible), "activate",
-                      GTK_SIGNAL_FUNC (on_menu_bws_gin_visible_activate),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (menu_bws_gout_visible), "activate",
-                      GTK_SIGNAL_FUNC (on_menu_bws_gout_visible_activate),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (menu_about), "activate",
-                      GTK_SIGNAL_FUNC (on_menu_about_activate),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (button_quit), "clicked",
-                      GTK_SIGNAL_FUNC (on_button_quit_clicked),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (ctree_menu), "tree_select_row",
-                      GTK_SIGNAL_FUNC (on_ctree_menu_tree_select_row),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (clist_search), "resize_column",
-                      GTK_SIGNAL_FUNC (on_clist_search_resize_column),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (clist_search), "select_row",
-                      GTK_SIGNAL_FUNC (on_clist_search_select_row),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (progressbar_bws_in), "button_press_event",
-                      GTK_SIGNAL_FUNC (on_progressbar_bws_in_button_press_event),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (progressbar_bws_out), "button_press_event",
-                      GTK_SIGNAL_FUNC (on_progressbar_bws_out_button_press_event),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (progressbar_bws_gin), "button_press_event",
-                      GTK_SIGNAL_FUNC (on_progressbar_bws_gin_button_press_event),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (progressbar_bws_gout), "button_press_event",
-                      GTK_SIGNAL_FUNC (on_progressbar_bws_gout_button_press_event),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (button_nodes_remove), "clicked",
-                      GTK_SIGNAL_FUNC (on_button_nodes_remove_clicked),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (button_nodes_add), "clicked",
-                      GTK_SIGNAL_FUNC (on_button_nodes_add_clicked),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (entry_host), "changed",
-                      GTK_SIGNAL_FUNC (on_entry_host_changed),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (entry_host), "activate",
-                      GTK_SIGNAL_FUNC (on_entry_host_activate),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (button_host_catcher_clear), "clicked",
-                      GTK_SIGNAL_FUNC (on_button_host_catcher_clear_clicked),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (clist_uploads), "resize_column",
-                      GTK_SIGNAL_FUNC (on_clist_uploads_resize_column),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (clist_uploads), "unselect_row",
-                      GTK_SIGNAL_FUNC (on_clist_uploads_unselect_row),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (clist_uploads), "select_row",
-                      GTK_SIGNAL_FUNC (on_clist_uploads_select_row),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (clist_uploads), "button_press_event",
-                      GTK_SIGNAL_FUNC (on_clist_uploads_button_press_event),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (button_uploads_kill), "clicked",
-                      GTK_SIGNAL_FUNC (on_button_uploads_kill_clicked),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (button_uploads_clear_completed), "clicked",
-                      GTK_SIGNAL_FUNC (on_button_uploads_clear_completed_clicked),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (clist_ul_stats), "click_column",
-                      GTK_SIGNAL_FUNC (on_clist_ul_stats_click_column),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (clist_ul_stats), "resize_column",
-                      GTK_SIGNAL_FUNC (on_clist_ul_stats_resize_column),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (button_ul_stats_clear_deleted), "clicked",
-                      GTK_SIGNAL_FUNC (on_button_ul_stats_clear_deleted_clicked),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (button_ul_stats_clear_all), "clicked",
-                      GTK_SIGNAL_FUNC (on_button_ul_stats_clear_all_clicked),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (clist_downloads), "resize_column",
-                      GTK_SIGNAL_FUNC (on_clist_downloads_resize_column),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (clist_downloads), "select_row",
-                      GTK_SIGNAL_FUNC (on_clist_downloads_select_row),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (clist_downloads), "unselect_row",
-                      GTK_SIGNAL_FUNC (on_clist_downloads_unselect_row),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (clist_downloads), "button_press_event",
-                      GTK_SIGNAL_FUNC (on_clist_downloads_button_press_event),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (button_downloads_abort), "clicked",
-                      GTK_SIGNAL_FUNC (on_button_downloads_abort_clicked),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (button_downloads_resume), "clicked",
-                      GTK_SIGNAL_FUNC (on_button_downloads_resume_clicked),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (button_downloads_clear_completed), "clicked",
-                      GTK_SIGNAL_FUNC (on_button_downloads_clear_completed_clicked),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (clist_downloads_queue), "resize_column",
-                      GTK_SIGNAL_FUNC (on_clist_downloads_queue_resize_column),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (clist_downloads_queue), "select_row",
-                      GTK_SIGNAL_FUNC (on_clist_downloads_queue_select_row),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (clist_downloads_queue), "unselect_row",
-                      GTK_SIGNAL_FUNC (on_clist_downloads_queue_unselect_row),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (clist_downloads_queue), "button_press_event",
-                      GTK_SIGNAL_FUNC (on_clist_downloads_queue_button_press_event),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (togglebutton_queue_freeze), "toggled",
-                      GTK_SIGNAL_FUNC (on_togglebutton_queue_freeze_toggled),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (entry_queue_regex), "activate",
-                      GTK_SIGNAL_FUNC (on_entry_queue_regex_activate),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (entry_search), "changed",
-                      GTK_SIGNAL_FUNC (on_entry_search_changed),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (entry_search), "activate",
-                      GTK_SIGNAL_FUNC (on_entry_search_activate),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (button_search), "clicked",
-                      GTK_SIGNAL_FUNC (on_button_search_clicked),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (button_search_passive), "clicked",
-                      GTK_SIGNAL_FUNC (on_button_search_passive_clicked),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (button_search_close), "clicked",
-                      GTK_SIGNAL_FUNC (on_button_search_close_clicked),
-                      NULL);
-  gtk_signal_connect_after (GTK_OBJECT (spinbutton_search_reissue_timeout), "changed",
-                            GTK_SIGNAL_FUNC (on_spinbutton_search_reissue_timeout_changed),
-                            NULL);
-  gtk_signal_connect (GTK_OBJECT (spinbutton_minimum_speed), "changed",
-                      GTK_SIGNAL_FUNC (on_spinbutton_minimum_speed_changed),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (button_search_download), "clicked",
-                      GTK_SIGNAL_FUNC (on_button_search_download_clicked),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (button_search_clear), "clicked",
-                      GTK_SIGNAL_FUNC (on_button_search_clear_clicked),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (button_search_filter), "clicked",
-                      GTK_SIGNAL_FUNC (on_button_search_filter_clicked),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (clist_search_stats), "resize_column",
-                      GTK_SIGNAL_FUNC (on_clist_search_stats_resize_column),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (button_search_stats_reset), "clicked",
-                      GTK_SIGNAL_FUNC (on_button_search_stats_reset_clicked),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (entry_config_force_ip), "changed",
-                      GTK_SIGNAL_FUNC (on_entry_config_force_ip_changed),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (entry_config_force_ip), "activate",
-                      GTK_SIGNAL_FUNC (on_entry_config_force_ip_activate),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (entry_config_force_ip), "focus_out_event",
-                      GTK_SIGNAL_FUNC (on_entry_config_force_ip_focus_out_event),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (radio_config_http), "toggled",
-                      GTK_SIGNAL_FUNC (on_radio_config_http_toggled),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (radio_config_socksv4), "toggled",
-                      GTK_SIGNAL_FUNC (on_radio_config_socksv4_toggled),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (radio_config_socksv5), "toggled",
-                      GTK_SIGNAL_FUNC (on_radio_config_socksv5_toggled),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (entry_config_proxy_ip), "activate",
-                      GTK_SIGNAL_FUNC (on_entry_config_proxy_ip_activate),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (entry_config_proxy_ip), "focus_out_event",
-                      GTK_SIGNAL_FUNC (on_entry_config_proxy_ip_focus_out_event),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (entry_config_socks_username), "activate",
-                      GTK_SIGNAL_FUNC (on_entry_config_socks_username_activate),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (entry_config_socks_username), "focus_out_event",
-                      GTK_SIGNAL_FUNC (on_entry_config_socks_username_focus_out_event),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (entry_config_socks_password), "activate",
-                      GTK_SIGNAL_FUNC (on_entry_config_socks_password_activate),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (entry_config_socks_password), "focus_out_event",
-                      GTK_SIGNAL_FUNC (on_entry_config_socks_password_focus_out_event),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (entry_config_netmasks), "focus_out_event",
-                      GTK_SIGNAL_FUNC (on_entry_config_netmask_focus_out_event),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (entry_config_netmasks), "activate",
-                      GTK_SIGNAL_FUNC (on_entry_config_netmask_activate),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (button_config_save_path), "clicked",
-                      GTK_SIGNAL_FUNC (on_button_config_save_path_clicked),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (button_config_move_path), "clicked",
-                      GTK_SIGNAL_FUNC (on_button_config_move_path_clicked),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (entry_config_path), "activate",
-                      GTK_SIGNAL_FUNC (on_entry_config_path_activate),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (entry_config_path), "focus_out_event",
-                      GTK_SIGNAL_FUNC (on_entry_config_path_focus_out_event),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (button_config_add_dir), "clicked",
-                      GTK_SIGNAL_FUNC (on_button_config_add_dir_clicked),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (button_config_rescan_dir), "clicked",
-                      GTK_SIGNAL_FUNC (on_button_config_rescan_dir_clicked),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (entry_config_extensions), "activate",
-                      GTK_SIGNAL_FUNC (on_entry_config_extensions_activate),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (entry_config_extensions), "focus_out_event",
-                      GTK_SIGNAL_FUNC (on_entry_config_extensions_focus_out_event),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (clist_gnet_stats_pkg), "resize_column",
-                      GTK_SIGNAL_FUNC (on_clist_gnet_stats_pkg_resize_column),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (clist_gnet_stats_byte), "resize_column",
-                      GTK_SIGNAL_FUNC (on_clist_gnet_stats_byte_resize_column),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (clist_gnet_stats_drop_reasons), "resize_column",
-                      GTK_SIGNAL_FUNC (on_clist_gnet_stats_drop_reasons_resize_column),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (clist_gnet_stats_general), "resize_column",
-                      GTK_SIGNAL_FUNC (on_clist_gnet_stats_general_resize_column),
-                      NULL);
+  g_signal_connect ((gpointer) main_window, "delete_event",
+                    G_CALLBACK (on_main_window_delete_event),
+                    NULL);
+  g_signal_connect ((gpointer) quit, "activate",
+                    G_CALLBACK (on_button_quit_clicked),
+                    NULL);
+  g_signal_connect ((gpointer) menu_toolbar_visible, "activate",
+                    G_CALLBACK (on_menu_toolbar_visible_activate),
+                    NULL);
+  g_signal_connect ((gpointer) menu_statusbar_visible, "activate",
+                    G_CALLBACK (on_menu_statusbar_visible_activate),
+                    NULL);
+  g_signal_connect ((gpointer) menu_downloads_visible, "activate",
+                    G_CALLBACK (on_menu_downloads_visible_activate),
+                    NULL);
+  g_signal_connect ((gpointer) menu_uploads_visible, "activate",
+                    G_CALLBACK (on_menu_uploads_visible_activate),
+                    NULL);
+  g_signal_connect ((gpointer) menu_connections_visible, "activate",
+                    G_CALLBACK (on_menu_connections_visible_activate),
+                    NULL);
+  g_signal_connect ((gpointer) menu_bws_in_visible, "activate",
+                    G_CALLBACK (on_menu_bws_in_visible_activate),
+                    NULL);
+  g_signal_connect ((gpointer) menu_bws_out_visible, "activate",
+                    G_CALLBACK (on_menu_bws_out_visible_activate),
+                    NULL);
+  g_signal_connect ((gpointer) menu_bws_gin_visible, "activate",
+                    G_CALLBACK (on_menu_bws_gin_visible_activate),
+                    NULL);
+  g_signal_connect ((gpointer) menu_bws_gout_visible, "activate",
+                    G_CALLBACK (on_menu_bws_gout_visible_activate),
+                    NULL);
+  g_signal_connect ((gpointer) menu_about, "activate",
+                    G_CALLBACK (on_menu_about_activate),
+                    NULL);
+  g_signal_connect ((gpointer) button_quit, "clicked",
+                    G_CALLBACK (on_button_quit_clicked),
+                    NULL);
+  g_signal_connect ((gpointer) ctree_menu, "tree_select_row",
+                    G_CALLBACK (on_ctree_menu_tree_select_row),
+                    NULL);
+  g_signal_connect ((gpointer) clist_search, "resize_column",
+                    G_CALLBACK (on_clist_search_resize_column),
+                    NULL);
+  g_signal_connect ((gpointer) clist_search, "select_row",
+                    G_CALLBACK (on_clist_search_select_row),
+                    NULL);
+  g_signal_connect ((gpointer) progressbar_bws_in, "button_press_event",
+                    G_CALLBACK (on_progressbar_bws_in_button_press_event),
+                    NULL);
+  g_signal_connect ((gpointer) progressbar_bws_out, "button_press_event",
+                    G_CALLBACK (on_progressbar_bws_out_button_press_event),
+                    NULL);
+  g_signal_connect ((gpointer) progressbar_bws_gin, "button_press_event",
+                    G_CALLBACK (on_progressbar_bws_gin_button_press_event),
+                    NULL);
+  g_signal_connect ((gpointer) progressbar_bws_gout, "button_press_event",
+                    G_CALLBACK (on_progressbar_bws_gout_button_press_event),
+                    NULL);
+  g_signal_connect ((gpointer) button_nodes_remove, "clicked",
+                    G_CALLBACK (on_button_nodes_remove_clicked),
+                    NULL);
+  g_signal_connect ((gpointer) button_nodes_add, "clicked",
+                    G_CALLBACK (on_button_nodes_add_clicked),
+                    NULL);
+  g_signal_connect ((gpointer) entry_host, "changed",
+                    G_CALLBACK (on_entry_host_changed),
+                    NULL);
+  g_signal_connect ((gpointer) entry_host, "activate",
+                    G_CALLBACK (on_entry_host_activate),
+                    NULL);
+  g_signal_connect ((gpointer) button_host_catcher_clear, "clicked",
+                    G_CALLBACK (on_button_host_catcher_clear_clicked),
+                    NULL);
+  g_signal_connect ((gpointer) clist_uploads, "resize_column",
+                    G_CALLBACK (on_clist_uploads_resize_column),
+                    NULL);
+  g_signal_connect ((gpointer) clist_uploads, "unselect_row",
+                    G_CALLBACK (on_clist_uploads_unselect_row),
+                    NULL);
+  g_signal_connect ((gpointer) clist_uploads, "select_row",
+                    G_CALLBACK (on_clist_uploads_select_row),
+                    NULL);
+  g_signal_connect ((gpointer) clist_uploads, "button_press_event",
+                    G_CALLBACK (on_clist_uploads_button_press_event),
+                    NULL);
+  g_signal_connect ((gpointer) button_uploads_kill, "clicked",
+                    G_CALLBACK (on_button_uploads_kill_clicked),
+                    NULL);
+  g_signal_connect ((gpointer) button_uploads_clear_completed, "clicked",
+                    G_CALLBACK (on_button_uploads_clear_completed_clicked),
+                    NULL);
+  g_signal_connect ((gpointer) clist_ul_stats, "click_column",
+                    G_CALLBACK (on_clist_ul_stats_click_column),
+                    NULL);
+  g_signal_connect ((gpointer) clist_ul_stats, "resize_column",
+                    G_CALLBACK (on_clist_ul_stats_resize_column),
+                    NULL);
+  g_signal_connect ((gpointer) button_ul_stats_clear_deleted, "clicked",
+                    G_CALLBACK (on_button_ul_stats_clear_deleted_clicked),
+                    NULL);
+  g_signal_connect ((gpointer) button_ul_stats_clear_all, "clicked",
+                    G_CALLBACK (on_button_ul_stats_clear_all_clicked),
+                    NULL);
+  g_signal_connect ((gpointer) clist_downloads, "resize_column",
+                    G_CALLBACK (on_clist_downloads_resize_column),
+                    NULL);
+  g_signal_connect ((gpointer) clist_downloads, "select_row",
+                    G_CALLBACK (on_clist_downloads_select_row),
+                    NULL);
+  g_signal_connect ((gpointer) clist_downloads, "unselect_row",
+                    G_CALLBACK (on_clist_downloads_unselect_row),
+                    NULL);
+  g_signal_connect ((gpointer) clist_downloads, "button_press_event",
+                    G_CALLBACK (on_clist_downloads_button_press_event),
+                    NULL);
+  g_signal_connect ((gpointer) button_downloads_abort, "clicked",
+                    G_CALLBACK (on_button_downloads_abort_clicked),
+                    NULL);
+  g_signal_connect ((gpointer) button_downloads_resume, "clicked",
+                    G_CALLBACK (on_button_downloads_resume_clicked),
+                    NULL);
+  g_signal_connect ((gpointer) button_downloads_clear_completed, "clicked",
+                    G_CALLBACK (on_button_downloads_clear_completed_clicked),
+                    NULL);
+  g_signal_connect ((gpointer) clist_downloads_queue, "resize_column",
+                    G_CALLBACK (on_clist_downloads_queue_resize_column),
+                    NULL);
+  g_signal_connect ((gpointer) clist_downloads_queue, "select_row",
+                    G_CALLBACK (on_clist_downloads_queue_select_row),
+                    NULL);
+  g_signal_connect ((gpointer) clist_downloads_queue, "unselect_row",
+                    G_CALLBACK (on_clist_downloads_queue_unselect_row),
+                    NULL);
+  g_signal_connect ((gpointer) clist_downloads_queue, "button_press_event",
+                    G_CALLBACK (on_clist_downloads_queue_button_press_event),
+                    NULL);
+  g_signal_connect ((gpointer) togglebutton_queue_freeze, "toggled",
+                    G_CALLBACK (on_togglebutton_queue_freeze_toggled),
+                    NULL);
+  g_signal_connect ((gpointer) entry_queue_regex, "activate",
+                    G_CALLBACK (on_entry_queue_regex_activate),
+                    NULL);
+  g_signal_connect ((gpointer) entry_search, "changed",
+                    G_CALLBACK (on_entry_search_changed),
+                    NULL);
+  g_signal_connect ((gpointer) entry_search, "activate",
+                    G_CALLBACK (on_entry_search_activate),
+                    NULL);
+  g_signal_connect ((gpointer) button_search, "clicked",
+                    G_CALLBACK (on_button_search_clicked),
+                    NULL);
+  g_signal_connect ((gpointer) button_search_passive, "clicked",
+                    G_CALLBACK (on_button_search_passive_clicked),
+                    NULL);
+  g_signal_connect ((gpointer) button_search_close, "clicked",
+                    G_CALLBACK (on_button_search_close_clicked),
+                    NULL);
+  g_signal_connect_after ((gpointer) spinbutton_search_reissue_timeout, "changed",
+                          G_CALLBACK (on_spinbutton_search_reissue_timeout_changed),
+                          NULL);
+  g_signal_connect ((gpointer) spinbutton_minimum_speed, "changed",
+                    G_CALLBACK (on_spinbutton_minimum_speed_changed),
+                    NULL);
+  g_signal_connect ((gpointer) button_search_download, "clicked",
+                    G_CALLBACK (on_button_search_download_clicked),
+                    NULL);
+  g_signal_connect ((gpointer) button_search_clear, "clicked",
+                    G_CALLBACK (on_button_search_clear_clicked),
+                    NULL);
+  g_signal_connect ((gpointer) button_search_filter, "clicked",
+                    G_CALLBACK (on_button_search_filter_clicked),
+                    NULL);
+  g_signal_connect ((gpointer) clist_search_stats, "resize_column",
+                    G_CALLBACK (on_clist_search_stats_resize_column),
+                    NULL);
+  g_signal_connect ((gpointer) button_search_stats_reset, "clicked",
+                    G_CALLBACK (on_button_search_stats_reset_clicked),
+                    NULL);
+  g_signal_connect ((gpointer) entry_config_force_ip, "changed",
+                    G_CALLBACK (on_entry_config_force_ip_changed),
+                    NULL);
+  g_signal_connect ((gpointer) entry_config_force_ip, "activate",
+                    G_CALLBACK (on_entry_config_force_ip_activate),
+                    NULL);
+  g_signal_connect ((gpointer) entry_config_force_ip, "focus_out_event",
+                    G_CALLBACK (on_entry_config_force_ip_focus_out_event),
+                    NULL);
+  g_signal_connect ((gpointer) radio_config_http, "toggled",
+                    G_CALLBACK (on_radio_config_http_toggled),
+                    NULL);
+  g_signal_connect ((gpointer) radio_config_socksv4, "toggled",
+                    G_CALLBACK (on_radio_config_socksv4_toggled),
+                    NULL);
+  g_signal_connect ((gpointer) radio_config_socksv5, "toggled",
+                    G_CALLBACK (on_radio_config_socksv5_toggled),
+                    NULL);
+  g_signal_connect ((gpointer) entry_config_proxy_ip, "activate",
+                    G_CALLBACK (on_entry_config_proxy_ip_activate),
+                    NULL);
+  g_signal_connect ((gpointer) entry_config_proxy_ip, "focus_out_event",
+                    G_CALLBACK (on_entry_config_proxy_ip_focus_out_event),
+                    NULL);
+  g_signal_connect ((gpointer) entry_config_socks_username, "activate",
+                    G_CALLBACK (on_entry_config_socks_username_activate),
+                    NULL);
+  g_signal_connect ((gpointer) entry_config_socks_username, "focus_out_event",
+                    G_CALLBACK (on_entry_config_socks_username_focus_out_event),
+                    NULL);
+  g_signal_connect ((gpointer) entry_config_socks_password, "activate",
+                    G_CALLBACK (on_entry_config_socks_password_activate),
+                    NULL);
+  g_signal_connect ((gpointer) entry_config_socks_password, "focus_out_event",
+                    G_CALLBACK (on_entry_config_socks_password_focus_out_event),
+                    NULL);
+  g_signal_connect ((gpointer) entry_config_netmasks, "focus_out_event",
+                    G_CALLBACK (on_entry_config_netmask_focus_out_event),
+                    NULL);
+  g_signal_connect ((gpointer) entry_config_netmasks, "activate",
+                    G_CALLBACK (on_entry_config_netmask_activate),
+                    NULL);
+  g_signal_connect ((gpointer) button_config_save_path, "clicked",
+                    G_CALLBACK (on_button_config_save_path_clicked),
+                    NULL);
+  g_signal_connect ((gpointer) button_config_move_path, "clicked",
+                    G_CALLBACK (on_button_config_move_path_clicked),
+                    NULL);
+  g_signal_connect ((gpointer) entry_config_path, "activate",
+                    G_CALLBACK (on_entry_config_path_activate),
+                    NULL);
+  g_signal_connect ((gpointer) entry_config_path, "focus_out_event",
+                    G_CALLBACK (on_entry_config_path_focus_out_event),
+                    NULL);
+  g_signal_connect ((gpointer) button_config_add_dir, "clicked",
+                    G_CALLBACK (on_button_config_add_dir_clicked),
+                    NULL);
+  g_signal_connect ((gpointer) button_config_rescan_dir, "clicked",
+                    G_CALLBACK (on_button_config_rescan_dir_clicked),
+                    NULL);
+  g_signal_connect ((gpointer) entry_config_extensions, "activate",
+                    G_CALLBACK (on_entry_config_extensions_activate),
+                    NULL);
+  g_signal_connect ((gpointer) entry_config_extensions, "focus_out_event",
+                    G_CALLBACK (on_entry_config_extensions_focus_out_event),
+                    NULL);
+  g_signal_connect ((gpointer) clist_gnet_stats_pkg, "resize_column",
+                    G_CALLBACK (on_clist_gnet_stats_pkg_resize_column),
+                    NULL);
+  g_signal_connect ((gpointer) clist_gnet_stats_byte, "resize_column",
+                    G_CALLBACK (on_clist_gnet_stats_byte_resize_column),
+                    NULL);
+  g_signal_connect ((gpointer) clist_gnet_stats_drop_reasons, "resize_column",
+                    G_CALLBACK (on_clist_gnet_stats_drop_reasons_resize_column),
+                    NULL);
+  g_signal_connect ((gpointer) clist_gnet_stats_general, "resize_column",
+                    G_CALLBACK (on_clist_gnet_stats_general_resize_column),
+                    NULL);
 
   /* Store pointers to all widgets, for use by lookup_widget(). */
   GLADE_HOOKUP_OBJECT_NO_REF (main_window, main_window, "main_window");
@@ -9390,6 +9453,7 @@ create_main_window (void)
   GLADE_HOOKUP_OBJECT (main_window, label433, "label433");
   GLADE_HOOKUP_OBJECT (main_window, spinbutton_config_min_dup_msg, "spinbutton_config_min_dup_msg");
   GLADE_HOOKUP_OBJECT (main_window, spinbutton_config_min_dup_ratio, "spinbutton_config_min_dup_ratio");
+  GLADE_HOOKUP_OBJECT (main_window, checkbutton_prefer_compressed_gnet, "checkbutton_prefer_compressed_gnet");
   GLADE_HOOKUP_OBJECT (main_window, label429, "label429");
   GLADE_HOOKUP_OBJECT (main_window, frame_expert_gnet_other, "frame_expert_gnet_other");
   GLADE_HOOKUP_OBJECT (main_window, table32, "table32");
@@ -9552,10 +9616,18 @@ create_main_window (void)
   GLADE_HOOKUP_OBJECT (main_window, label382, "label382");
   GLADE_HOOKUP_OBJECT (main_window, label378, "label378");
   GLADE_HOOKUP_OBJECT (main_window, hbox_statusbar, "hbox_statusbar");
+  GLADE_HOOKUP_OBJECT (main_window, togglebutton_online, "togglebutton_online");
   GLADE_HOOKUP_OBJECT (main_window, hbox170, "hbox170");
   GLADE_HOOKUP_OBJECT (main_window, image_offline, "image_offline");
   GLADE_HOOKUP_OBJECT (main_window, image_online, "image_online");
   GLADE_HOOKUP_OBJECT (main_window, statusbar, "statusbar");
+  GLADE_HOOKUP_OBJECT (main_window, image_save, "image_save");
+  GLADE_HOOKUP_OBJECT (main_window, eventbox_image_sha, "eventbox_image_sha");
+  GLADE_HOOKUP_OBJECT (main_window, image_sha, "image_sha");
+  GLADE_HOOKUP_OBJECT (main_window, eventbox_image_shav, "eventbox_image_shav");
+  GLADE_HOOKUP_OBJECT (main_window, image_shav, "image_shav");
+  GLADE_HOOKUP_OBJECT (main_window, eventbox_image_lib, "eventbox_image_lib");
+  GLADE_HOOKUP_OBJECT (main_window, image_lib, "image_lib");
   GLADE_HOOKUP_OBJECT (main_window, hbox147, "hbox147");
   GLADE_HOOKUP_OBJECT (main_window, image_firewall, "image_firewall");
   GLADE_HOOKUP_OBJECT (main_window, image_no_firewall, "image_no_firewall");
@@ -9624,12 +9696,12 @@ create_dlg_quit (void)
   gtk_dialog_add_action_widget (GTK_DIALOG (dlg_quit), button_really_quit, GTK_RESPONSE_OK);
   GTK_WIDGET_SET_FLAGS (button_really_quit, GTK_CAN_DEFAULT);
 
-  gtk_signal_connect (GTK_OBJECT (button_abort_quit), "clicked",
-                      GTK_SIGNAL_FUNC (on_button_abort_quit_clicked),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (button_really_quit), "clicked",
-                      GTK_SIGNAL_FUNC (on_button_really_quit_clicked),
-                      NULL);
+  g_signal_connect ((gpointer) button_abort_quit, "clicked",
+                    G_CALLBACK (on_button_abort_quit_clicked),
+                    NULL);
+  g_signal_connect ((gpointer) button_really_quit, "clicked",
+                    G_CALLBACK (on_button_really_quit_clicked),
+                    NULL);
 
   /* Store pointers to all widgets, for use by lookup_widget(). */
   GLADE_HOOKUP_OBJECT_NO_REF (dlg_quit, dlg_quit, "dlg_quit");

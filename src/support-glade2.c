@@ -29,14 +29,14 @@ lookup_widget                          (GtkWidget       *widget,
       else
         parent = widget->parent;
       if (!parent)
-        parent = gtk_object_get_data (GTK_OBJECT (widget), "GladeParentKey");
+        parent = g_object_get_data (G_OBJECT (widget), "GladeParentKey");
       if (parent == NULL)
         break;
       widget = parent;
     }
 
-  found_widget = (GtkWidget*) gtk_object_get_data (GTK_OBJECT (widget),
-                                                   widget_name);
+  found_widget = (GtkWidget*) g_object_get_data (G_OBJECT (widget),
+                                                 widget_name);
   if (!found_widget)
     g_warning ("Widget not found: %s", widget_name);
   return found_widget;
