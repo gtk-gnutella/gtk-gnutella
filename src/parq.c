@@ -2957,7 +2957,6 @@ void parq_upload_send_queue(struct parq_ul_queued *parq_ul)
 		parq_ul->flags |= PARQ_UL_NOQUEUE;
 		return;
 	}
-printf("Adding queue command for ip: %s\r\n", ip_to_gchar(parq_ul->by_ip->ip));
 
 	ul_parq_queue = g_list_append(ul_parq_queue, parq_ul);
 	parq_ul->flags |= PARQ_UL_QUEUE;
