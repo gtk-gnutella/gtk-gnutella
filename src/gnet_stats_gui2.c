@@ -40,61 +40,6 @@ static GtkTreeView *treeview_gnet_stats_general = NULL;
 static GtkNotebook *notebook_main = NULL;
 static GtkNotebook *notebook_gnet_stats = NULL;
 
-static const gchar *msg_type_str[MSG_TYPE_COUNT] = {
-    "Unknown",
-    "Ping",
-    "Pong",
-    "Bye",
-    "QRP",
-    "Vendor Spec.",
-    "Vendor Std.",
-    "Push",
-    "Query",
-    "Query Hit",
-    "Total"
-};
-
-static const gchar *msg_drop_str[MSG_DROP_REASON_COUNT] = {
-    "Bad size",
-    "Too small",
-    "Too large",
-	"Way too large",
-    "Unknown message type",
-    "Unexpected message",
-    "Message sent with TTL = 0",
-    "Max TTL exceeded",
-    "Ping throttle",
-	"Unusable Pong",
-    "Hard TTL limit reached",
-    "Max hop count reached",
-    "Unrequested reply",
-    "Route lost",
-    "No route",
-    "Duplicate message",
-    "Message to banned GUID",
-    "Node shutting down",
-    "Flow control",
-    "Query text had no trailing NUL",
-    "Query text too short",
-    "Query had unnecessary overhead",
-    "Malformed SHA1 Query",
-    "Malformed UTF-8 Query",
-    "Malformed Query Hit",
-    "Query hit had bad SHA1",
-	"Hostile IP address",
-};
-
-static const gchar *general_type_str[GNR_TYPE_COUNT] = {
-    "Routing errors",
-    "Searches to local DB",
-    "Hits on local DB",
-    "Compacted queries",
-    "Bytes saved by compacting",
-    "UTF8 queries",
-    "SHA1 queries",
-    "Broadcasted push messages",
-};
-
 static const gchar *msg_stats_label[] = {
 	"Type",
 	"Received",

@@ -96,7 +96,7 @@ all:: .FORCE_DEPEND
 ########################################################################
 # Start of Jmakefile
 
-# $X-Id: Jmakefile,v 1.2 2003/08/09 22:38:30 rmanfredi Exp $
+# $X-Id: Jmakefile,v 1.3 2003/08/10 23:07:04 rmanfredi Exp $
 
 GUI_GTK2 = \
 	fileinfo_gui2.c \
@@ -131,6 +131,7 @@ GUI_COMMON = \
 	filter.c \
 	filter_cb.c \
 	filter_gui.c \
+	gnet_stats_gui_common.c \
 	gtkcolumnchooser.c \
 	gtk-missing.c \
 	gui.c \
@@ -269,6 +270,7 @@ OBJLIST = \
 	filter.o \
 	filter_cb.o \
 	filter_gui.o \
+	gnet_stats_gui_common.o \
 	gtkcolumnchooser.o \
 	gtk-missing.o \
 	gui.o \

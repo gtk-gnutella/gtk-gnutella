@@ -52,6 +52,7 @@ GUI_COMMON = \
 	filter.c \
 	filter_cb.c \
 	filter_gui.c \
+	gnet_stats_gui_common.c \
 	gtkcolumnchooser.c \
 	gtk-missing.c \
 	gui.c \

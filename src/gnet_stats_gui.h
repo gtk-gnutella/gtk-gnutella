@@ -27,6 +27,7 @@
 #define _gnet_stats_gui_h_
 
 #include "gui.h"
+#include "gnet_stats_gui_common.h"
 
 #ifndef USE_GTK2
 void on_clist_gnet_stats_msg_resize_column(

@@ -31,61 +31,6 @@
 
 RCSID("$Id$");
 
-gchar *msg_type_str[MSG_TYPE_COUNT] = {
-    "Unknown",
-    "Ping",
-    "Pong",
-    "Bye",
-    "QRP",
-    "Vendor Spec.",
-    "Vendor Std.",
-    "Push",
-    "Query",
-    "Query Hit",
-    "Total"
-};
-
-gchar *msg_drop_str[MSG_DROP_REASON_COUNT] = {
-    "Bad size",
-    "Too small",
-    "Too large",
-	"Way too large",
-    "Unknown message type",
-    "Unexpected message",
-    "Message sent with TTL = 0",
-    "Max TTL exceeded",
-    "Ping throttle",
-	"Unusable Pong",
-    "Hard TTL limit reached",
-    "Max hop count reached",
-    "Unrequested reply",
-    "Route lost",
-    "No route",
-    "Duplicate message",
-    "Message to banned GUID",
-    "Node shutting down",
-    "Flow control",
-    "Query text had no trailing NUL",
-    "Query text too short",
-    "Query had unnecessary overhead",
-    "Malformed SHA1 Query",
-    "Malformed UTF-8 Query",
-    "Malformed Query Hit",
-    "Query hit had bad SHA1",
-	"Hostile IP address",
-};
-
-gchar *general_type_str[GNR_TYPE_COUNT] = {
-    "Routing errors",
-    "Searches to local DB",
-    "Hits on local DB",
-    "Compacted queries",
-    "Bytes saved by compacting",
-    "UTF8 queries",
-    "SHA1 queries",
-    "Broadcasted push messages",
-};
-
 static gint selected_type = MSG_TOTAL;
 
 /***
@@ -351,7 +296,7 @@ void gnet_stats_gui_init(void)
         GList *l;
         gint row;
 
-        titles[0] = msg_type_str[n];
+        titles[0] = (gchar *) msg_type_str[n];
 
         row = gtk_clist_append(clist_stats_msg, titles);
         gtk_clist_set_selectable(clist_stats_msg, row, FALSE);
@@ -379,14 +324,14 @@ void gnet_stats_gui_init(void)
 
     for (n = 0; n < MSG_DROP_REASON_COUNT; n ++) {
         gint row;
-        titles[0] = msg_drop_str[n];
+        titles[0] = (gchar *) msg_drop_str[n];
         row = gtk_clist_append(clist_reason, titles);
         gtk_clist_set_selectable(clist_reason, row, FALSE);
     }
 
     for (n = 0; n < GNR_TYPE_COUNT; n ++) {
         gint row;
-        titles[0] = general_type_str[n];
+        titles[0] = (gchar *) general_type_str[n];
         row = gtk_clist_append(clist_general, titles);
         gtk_clist_set_selectable(clist_general, row, FALSE);
     }
