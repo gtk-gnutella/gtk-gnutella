@@ -2053,18 +2053,14 @@ static gboolean current_peermode_changed(property_t prop)
 
 	switch (val) {
 	case NODE_P_LEAF:
-		{
 		gtk_widget_show(hbox_leaf);
 		gtk_widget_hide(hbox_normal_or_ultrapeer);
 		break;
-		};
 	case NODE_P_NORMAL:
 	case NODE_P_ULTRA:
-		{
 		gtk_widget_show(hbox_normal_or_ultrapeer);
 		gtk_widget_hide(hbox_leaf);
 		break;
-		};
 	default:
 		g_assert_not_reached();
 	};
