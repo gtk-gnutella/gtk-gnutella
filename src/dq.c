@@ -872,6 +872,8 @@ dq_send_next(dquery_t *dq)
 	gnutella_node_t *node;
 	gint ttl;
 	gint timeout;
+	gint i;
+	gboolean sent = FALSE;
 
 	g_assert(dq->results_ev == NULL);
 
@@ -926,12 +928,32 @@ dq_send_next(dquery_t *dq)
 
 	/*
 	 * Select the first node, and compute the proper TTL for the query.
+	 *
+	 * If the selected TTL is 1 and the node is QRP-capable and says
+	 * it won't match, pick the next...
 	 */
 
-	node = nv[0].node;
-	ttl = dq_select_ttl(dq, node, found);
+	for (i = 0; i < found; i++) {
+		node = nv[i].node;
+		ttl = dq_select_ttl(dq, node, found);
 
-	dq_send_query(dq, node, ttl);
+		if (
+			ttl == 1 && NODE_UP_QRP(node) &&
+			!qrp_node_can_route(node, dq->qhv)
+		) {
+			if (dq_debug > 19)
+				printf("DQ[%d] TTL=1, skipping node #%d: can't route query!\n",
+					dq->qid, node->id);
+
+			continue;
+		}
+
+		dq_send_query(dq, node, ttl);
+		sent = TRUE;
+	}
+
+	if (!sent)
+		dq_terminate(dq);
 
 	/*
 	 * Adjust waiting period if we don't get enough results, indicating
