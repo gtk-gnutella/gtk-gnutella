@@ -106,6 +106,33 @@ static void we_free(gpointer data)
 }
 
 /*
+ * d_sighandler
+ *
+ * Signal handler for termination.
+ */
+static void d_sighandler(gpointer h, gpointer u, bgsig_t sig)
+{
+	struct moved *md = (struct moved *) u;
+
+	g_assert(md->magic == MOVED_MAGIC);
+
+	switch (sig) {
+	case BG_SIG_TERM:
+		/*
+		 * Get rid of incompletely moved file.  Moving will be resumed
+		 * when we are relaunched.
+		 */
+
+		if (md->target != NULL && -1 == unlink(md->target))
+			g_warning("cannot unlink \"%s\": %s",
+				md->target, g_strerror(errno));
+		break;
+	default:
+		break;
+	}
+}
+
+/*
  * d_free
  *
  * Freeing of computation context.
@@ -156,6 +183,7 @@ static void d_start(gpointer h, gpointer ctx, gpointer item)
 	g_assert(md->target == NULL);
 
 	download_move_start(d);
+	bg_task_signal(h, BG_SIG_TERM, d_sighandler);
 
 	source = g_strdup_printf("%s/%s", download_path(d), download_outname(d));
 	g_return_if_fail(NULL != source);
@@ -230,6 +258,8 @@ static void d_end(gpointer h, gpointer ctx, gpointer item)
 
 	g_assert(md->magic == MOVED_MAGIC);
 	g_assert(md->d == ((struct work *) item)->d);
+
+	bg_task_signal(h, BG_SIG_TERM, NULL);
 
 	if (md->rd == -1) {			/* Did not start properly */
 		g_assert(md->error);
