@@ -45,6 +45,8 @@
 
 #if defined(TRACK_MALLOC) && !defined(MALLOC_SOURCE)
 
+#undef strdup			/* Defined in <bits/string2.h> */
+
 #define malloc(s)		malloc_track((s), __FILE__, __LINE__)
 #define calloc(n,s)		malloc0_track((n)*(s), __FILE__, __LINE__)
 #define free(o)			free_track(o, __FILE__, __LINE__)
