@@ -3773,6 +3773,7 @@ void node_init_outgoing(struct gnutella_node *n)
 		return;
 	} else {
 		n->status = GTA_NODE_HELLO_SENT;
+		n->last_update = time((time_t *)NULL);
         node_fire_node_info_changed(n);
 
 		if (dbg > 2) {
