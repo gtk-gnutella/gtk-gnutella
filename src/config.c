@@ -159,6 +159,7 @@ enum {
 	k_min_dup_msg, k_min_dup_ratio, k_max_hosts_cached,
 	k_use_auto_download, k_auto_download_file, 
 	k_search_stats_update_interval, k_search_stats_delcoef,
+	k_search_stats_enabled,
 	k_end
 };
 
@@ -249,6 +250,7 @@ gchar *keywords[] = {
 	"auto_download_file",
 	"search_stats_update_interval",
 	"search_stats_delcoef",
+	"search_stats_enabled",
 	NULL
 };
 
@@ -392,6 +394,10 @@ void config_init(void)
 
 	gui_update_search_stats_delcoef();
 	gui_update_search_stats_update_interval();
+
+	gtk_toggle_button_set_active(
+		GTK_TOGGLE_BUTTON(checkbutton_enable_search_stats),
+		search_stats_enabled);
 
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(checkbutton_monitor),
 								 monitor_enabled);
@@ -867,10 +873,16 @@ void config_set_param(guint32 keyword, gchar *value)
 	case k_auto_download_file:
 		auto_download_file = g_strdup(value);
 		return;
+
+	case k_search_stats_enabled:
+		search_stats_enabled = (gboolean) ! g_strcasecmp(value, "true");
+		return;
+
 	case k_search_stats_delcoef:
 		if (i >= 0 && i <= 100)
 			search_stats_delcoef = i;
 		return;
+
 	case k_search_stats_update_interval:
 		if (i >= 0 && i <= 50000)
 			search_stats_update_interval = i;
@@ -1250,6 +1262,8 @@ void config_save(void)
 			"%s = %u\n\n", keywords[k_enable_err_log], enable_err_log);
 
 	fprintf(config, "# Search stats gathering parameters\n");
+	fprintf(config, "%s = %s\n", keywords[k_search_stats_enabled],
+			config_boolean(search_stats_enabled));
 	fprintf(config, "%s = %u\n", keywords[k_search_stats_update_interval],
 		search_stats_update_interval);
 	fprintf(config, "%s = %u\n", keywords[k_search_stats_delcoef],

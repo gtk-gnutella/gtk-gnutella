@@ -64,6 +64,8 @@ extern guint32 max_high_ttl_radius;
 extern guint32 min_dup_msg;
 extern gfloat min_dup_ratio;
 extern guint32 max_hosts_cached;
+
+extern gboolean search_stats_enabled;
 extern guint32 search_stats_update_interval;
 extern guint32 search_stats_delcoef;
 

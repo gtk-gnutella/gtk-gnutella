@@ -20,6 +20,7 @@
 #include "autodownload.h"
 #include "gmsg.h"
 #include "bsched.h"
+#include "search_stats.h"
 
 #define SLOW_UPDATE_PERIOD		20	/* Updating period for `main_slow_update' */
 
@@ -257,6 +258,9 @@ gint main(gint argc, gchar ** argv)
 	gtk_timeout_add(1000, (GtkFunction) main_timer, NULL);
 
 	/* Okay, here we go */
+
+	if (search_stats_enabled)
+		enable_search_stats();
 
 	bsched_enable_all();
 	gtk_main();
