@@ -131,7 +131,7 @@ void host_timer(void)
 	}
 	else if (use_netmasks) {
 		/* Try to find better hosts */
-		if (find_nearby_host(&ip, &port) && node_remove_non_nearby())
+		if (find_nearby_host(&ip, &port) && node_remove_worst(TRUE))
 			node_add(ip, port); 
 	}
 }
@@ -404,7 +404,7 @@ void host_add(guint32 ip, guint16 port, gboolean connect)
 			/* If we are above the max connections, delete a non-nearby 
 			 * connection before adding this better one
 			 */
-			if (use_netmasks && host_is_nearby(ip) && node_remove_non_nearby())
+			if (use_netmasks && host_is_nearby(ip) && node_remove_worst(TRUE))
 				node_add(ip, port);
 		}
 

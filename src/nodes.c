@@ -2037,17 +2037,16 @@ void node_add_socket(struct gnutella_socket *s, guint32 ip, guint16 port)
 	}
 #endif
 
-	if (
-        s && 
-        (major == 0) && (minor < 6) && (
-            no_gnutella_04 || (
-                prefer_compressed_gnet && 
-                (connected_nodes() >= up_connections)
-            )
-        ) 
-    ) {
-		socket_free(s);
-		return;
+	if (s && major == 0 && minor < 6) {
+		if (no_gnutella_04) {
+			socket_free(s);
+			return;
+		}
+		if (
+			prefer_compressed_gnet && 
+            (connected_nodes() >= up_connections)
+		)
+            ponging_only = TRUE;	/* Will only send connection pongs */
 	}
 
 	/*
@@ -2058,29 +2057,22 @@ void node_add_socket(struct gnutella_socket *s, guint32 ip, guint16 port)
 	already_connected = node_connected(ip, port, incoming);
 
 	/*
-	 * If we are preferring local hosts, try to remove a non-local host
-	 * if the new host is a local one.
-	 *		-- Mike Perry's netmask hack, 17/04/2002
+	 * Too many gnutellaNet connections?
 	 */
 
-	if (
-		use_netmasks &&
-		!already_connected &&
-		node_count() >= max_connections &&
-		host_is_nearby(ip)
-	)
-		node_remove_non_nearby();
-
-	/* Too many gnutellaNet connections */
     if (node_count() >= max_connections) {
         if (!s)
             return;
-        if (whitelist_check(ip)) {
-            /* Incoming whitelisted IP, and we're full.
-             * Remove another node. */
-            node_remove_worst();
-        } else if (!already_connected)
-            ponging_only = TRUE;	/* Will only send connection pongs */
+        if (!already_connected) {
+			if (whitelist_check(ip)) {
+				/* Incoming whitelisted IP, and we're full. Remove one node. */
+				ponging_only = !node_remove_worst(FALSE);
+			} else if (use_netmasks && host_is_nearby(ip)) {
+				 /* We are preferring local hosts, remove a non-local node */
+				ponging_only = !node_remove_worst(TRUE);
+			} else
+				ponging_only = TRUE;	/* Will only send connection pongs */
+		}
 	}
 
 	/*
@@ -2914,40 +2906,17 @@ gboolean node_bye_pending(void)
 	return pending_byes > 0;
 }
 
-/* 
- * node_remove_non_nearby
- * 
- * Remove a connected node that is not in our local netmasks (used to make
- * room for a local node)
- * 
- * returns true if we found a node to remove
- */
-gboolean node_remove_non_nearby(void)
-{
-	GSList *l;
-
-	/* iterate through nodes list */
-	for (l = sl_nodes; l; l = l->next) {
-		struct gnutella_node *n = (struct gnutella_node *) l->data;
-
-		if (n->status == GTA_NODE_CONNECTED && !host_is_nearby(n->ip)) {
-			node_bye_if_writable(n, 202, "Local node preferred");
-			return TRUE;
-		}
-	}
-	
-	/* All nodes are local.. Keep them. */
-	return FALSE;
-
-}
-
 /*
  * node_remove_worst
  *
  * Removes the node with the worst stats, considering the
  * number of weird, bad and duplicate packets.
+ *
+ * If `non_local' is TRUE, we're removing this node because it is not
+ * a local node, and we're having a connection from the local LAN.
+ * Otherwise, we're just removing a bad node (the BYE code is different).
  */
-gboolean node_remove_worst(void)
+gboolean node_remove_worst(gboolean non_local)
 {
     GSList *l;
     GSList *m = NULL;
@@ -2959,9 +2928,14 @@ gboolean node_remove_worst(void)
         n = l->data;
         if (n->status != GTA_NODE_CONNECTED)
             continue;
+
         /* Don't kick whitelisted nodes. */
-        if (whitelist_check(n->ip))
+        if (!non_local && whitelist_check(n->ip))
             continue;
+
+		/* Don't kick nearby hosts if making room for a local node */
+		if (non_local && host_is_nearby(n->ip))
+			continue;
 
         score = n->n_weird * 100 + n->n_bad * 10 + n->n_dups;
 
@@ -2979,10 +2953,16 @@ gboolean node_remove_worst(void)
         }
     }
     if (m) {
-        /* fixme: pick a random node instead of the first one. */
         n = g_slist_nth_data(m, random_value(num - 1));
         g_slist_free(m);
-        node_bye_if_writable(n, 202, "Too many errors");
+		if (non_local)
+			node_bye_if_writable(n, 202, "Local Node Prefered");
+		else {
+			if (worst)
+				node_bye_if_writable(n, 409, "Too Many Errors");
+			else
+				node_bye_if_writable(n, 202, "Making Room for Another Node");
+		}
         return TRUE;
     }
 
