@@ -477,7 +477,7 @@ static void node_recursive_shutdown_v(
  *
  * It will be reclaimed on the "idle" stack frame, via node_real_remove().
  */
-void node_remove(struct gnutella_node *n, const gchar * reason, ...)
+void node_remove(struct gnutella_node *n, const gchar *reason, ...)
 {
 	va_list args;
 
@@ -499,19 +499,13 @@ void node_remove(struct gnutella_node *n, const gchar * reason, ...)
  * Terminate connection with remote node, but keep structure around for a
  * while, for displaying purposes.
  */
-void node_eof(struct gnutella_node *n, const gchar * reason, ...)
+void node_eof(struct gnutella_node *n, const gchar *reason, ...)
 {
 	va_list args;
 
 	g_assert(n);
 
 	va_start(args, reason);
-
-	/*
-	 * Call node_remove_v() with supplied message unless we alrady sent a BYE
- 	 * message, in which case we're done since the remote end most probably
-	 * read it and closed the connection.
-     */
 
 	if (n->flags & NODE_F_BYE_SENT) {
 		g_assert(n->status == GTA_NODE_SHUTDOWN);
@@ -520,8 +514,17 @@ void node_eof(struct gnutella_node *n, const gchar * reason, ...)
 			vprintf(reason, args);
 			printf("\n");
 		}
+	}
+
+	/*
+	 * Call node_remove_v() with supplied message unless we already sent a BYE
+ 	 * message, in which case we're done since the remote end most probably
+	 * read it and closed the connection.
+     */
+
+	if (n->flags & NODE_F_CLOSING)			/* Bye sent or explicit shutdown */
 		node_remove_v(n, NULL, args);		/* Reuse existing reason */
-	} else
+	else
 		node_remove_v(n, reason, args);
 
 	va_end(args);
@@ -572,7 +575,7 @@ static void node_shutdown_mode(struct gnutella_node *n, guint32 delay)
  * This is mostly called when a fatal write error happens, but we want to
  * see whether the node did not send us a Bye we haven't read yet.
  */
-void node_shutdown(struct gnutella_node *n, const gchar * reason, ...)
+void node_shutdown(struct gnutella_node *n, const gchar *reason, ...)
 {
 	va_list args;
 
@@ -584,6 +587,8 @@ void node_shutdown(struct gnutella_node *n, const gchar * reason, ...)
 		node_recursive_shutdown_v(n, "Shutdown", reason, args);
 		goto end;
 	}
+
+	n->flags |= NODE_F_CLOSING;
 
 	if (reason) {
 		g_vsnprintf(n->error_str, sizeof(n->error_str), reason, args);
@@ -606,7 +611,7 @@ end:
  * The vectorized version of node_bye().
  */
 static void node_bye_v(
-	struct gnutella_node *n, gint code, const gchar * reason, va_list ap)
+	struct gnutella_node *n, gint code, const gchar *reason, va_list ap)
 {
 	struct gnutella_header head;
 	gchar reason_fmt[1024];
@@ -632,6 +637,8 @@ static void node_bye_v(
 		node_remove_v(n, reason, ap);
 		return;
 	}
+
+	n->flags |= NODE_F_CLOSING;
 
 	if (reason) {
 		g_vsnprintf(n->error_str, sizeof(n->error_str), reason, ap);
@@ -727,7 +734,7 @@ static void node_bye_v(
  *
  * This is otherwise equivalent to the node_shutdown() call.
  */
-void node_bye(struct gnutella_node *n, gint code, const gchar * reason, ...)
+void node_bye(struct gnutella_node *n, gint code, const gchar *reason, ...)
 {
 	va_list args;
 
@@ -744,7 +751,7 @@ void node_bye(struct gnutella_node *n, gint code, const gchar * reason, ...)
  * Otherwise, act as if node_remove() had been called.
  */
 void node_bye_if_writable(
-	struct gnutella_node *n, gint code, const gchar * reason, ...)
+	struct gnutella_node *n, gint code, const gchar *reason, ...)
 {
 	va_list args;
 
@@ -974,7 +981,7 @@ void send_node_error(struct gnutella_socket *s, int code, guchar *msg, ...)
 		if (dbg) g_warning("Only sent %d out of %d bytes of error %d (%s) "
 			"to node %s: %s",
 			sent, rw, code, msg_tmp, ip_to_gchar(s->ip), g_strerror(errno));
-	} else if (dbg > 4) {
+	} else if (dbg > 2) {
 		printf("----Sent error %d to node %s:\n%.*s----\n",
 			code, ip_to_gchar(s->ip), rw, gnet_response);
 		fflush(stdout);
@@ -1712,7 +1719,7 @@ static void node_process_handshake_header(struct io_header *ih)
 			sent, rw, what, ip_to_gchar(n->ip));
 		node_remove(n, "Failed (Cannot send %s atomically)", what);
 		return;
-	} else if (dbg > 4) {
+	} else if (dbg > 2) {
 		printf("----Sent OK %s to %s:\n%.*s----\n",
 			what, ip_to_gchar(n->ip), rw, gnet_response);
 		fflush(stdout);
@@ -2299,7 +2306,7 @@ static void node_parse(struct gnutella_node *node)
 		break;
 	case GTA_MSG_BYE:
 		if (n->header.hops != 0 || n->header.ttl != 1) {
-			if (dbg > 2)
+			if (dbg)
 				gmsg_log_bad(n, "bye message with improper hops/ttl");
 			n->n_bad++;
 			drop = TRUE;
@@ -2331,7 +2338,7 @@ static void node_parse(struct gnutella_node *node)
 
 	default:					/* Unknown message type - we drop it */
 		drop = TRUE;
-		if (dbg > 2)
+		if (dbg)
 			gmsg_log_bad(n, "unknown message type");
 		n->n_bad++;
 		break;
@@ -2477,7 +2484,7 @@ void node_init_outgoing(struct gnutella_node *n)
 		n->status = GTA_NODE_HELLO_SENT;
 		gui_update_node(n, TRUE);
 
-		if (dbg > 4) {
+		if (dbg > 2) {
 			printf("----Sent HELLO request to %s:\n%.*s----\n",
 				ip_to_gchar(n->ip), len, buf);
 			fflush(stdout);
@@ -2863,7 +2870,7 @@ gboolean node_sent_ttl0(struct gnutella_node *n)
 	n->rx_dropped++;
 	n->n_bad++;
 
-	if (dbg > 2)
+	if (dbg)
 		gmsg_log_bad(n, "message received with TTL=0");
 
 	return FALSE;

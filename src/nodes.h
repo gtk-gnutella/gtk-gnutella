@@ -151,6 +151,7 @@ struct gnutella_node {
 #define NODE_F_NODELAY		0x00000200	/* TCP_NODELAY was activated */
 #define NODE_F_NOREAD		0x00000400	/* Prevent further reading from node */
 #define NODE_F_EOF_WAIT		0x00000800	/* During final shutdown, waiting EOF */
+#define NODE_F_CLOSING		0x00001000	/* Initiated bye or shutdown */
 
 /*
  * Node attributes.
