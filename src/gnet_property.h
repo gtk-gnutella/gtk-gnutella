@@ -30,12 +30,12 @@
 
 #include "prop.h"
 
-#define GNET_PROPERTY_MIN (0)
-#define GNET_PROPERTY_MAX (0+GNET_PROPERTY_END-1)
-#define GNET_PROPERTY_NUM (GNET_PROPERTY_END-0)
+#define GNET_PROPERTY_MIN ((NO_PROP+1))
+#define GNET_PROPERTY_MAX ((NO_PROP+1)+GNET_PROPERTY_END-1)
+#define GNET_PROPERTY_NUM (GNET_PROPERTY_END-(NO_PROP+1))
  
 typedef enum {    
-    PROP_READING_HOSTFILE=0,    
+    PROP_READING_HOSTFILE=(NO_PROP+1),    
     PROP_READING_ULTRAFILE,    
     PROP_ANCIENT_VERSION,    
     PROP_NEW_VERSION_STR,    
@@ -86,6 +86,8 @@ typedef enum {
     PROP_MY_TTL,    
     PROP_HARD_TTL_LIMIT,    
     PROP_DBG,    
+    PROP_LIB_DEBUG,    
+    PROP_TRACK_PROPS,    
     PROP_STOP_HOST_GET,    
     PROP_BW_HTTP_IN_ENABLED,    
     PROP_BW_HTTP_OUT_ENABLED,    
@@ -156,7 +158,6 @@ typedef enum {
     PROP_FILE_MOVING,    
     PROP_PREFER_COMPRESSED_GNET,    
     PROP_ONLINE_MODE,    
-    PROP_LIB_DEBUG,    
     PROP_DOWNLOAD_REQUIRE_URN,    
     PROP_DOWNLOAD_REQUIRE_SERVER_NAME,    
     PROP_FORCE_ULTRAPEER,    
@@ -187,6 +188,7 @@ prop_set_stub_t *gnet_prop_get_stub(void);
  * Property definition
  */
 prop_def_t *gnet_prop_get_def(property_t);
+property_t gnet_prop_get_by_name(const gchar *);
 
 /*
  * Property-change listeners
@@ -236,6 +238,8 @@ guint32 *gnet_prop_get_guint32(
 void gnet_prop_set_storage(property_t, const guint8 *, gsize);
 guint8 *gnet_prop_get_storage(property_t, guint8 *, gsize);
 
+gchar *gnet_prop_to_string(property_t prop);
+property_t gnet_prop_get_by_name(const gchar *name);
 
 #endif /* _gnet_property_h_ */
 

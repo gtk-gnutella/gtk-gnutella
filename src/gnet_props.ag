@@ -10,7 +10,7 @@ uses = "bsched.h";
 
 property_set = "gnet_property";
 func_prefix  = "gnet_prop";
-offset = 0;
+offset       = "(NO_PROP+1)";
 
 prop = {
     name = "reading_hostfile";
@@ -625,6 +625,28 @@ prop = {
         max     = 20;
     };
 };
+
+prop = {
+    name = "lib_debug";
+    desc = "Debug level for code shared between gui and core";
+    type = guint32;
+    data = {
+        default = 0;
+    };
+};
+
+prop = {
+    name = "track_props";
+    desc = "For development use: track properties";
+    type = guint32;
+    data = {
+        default = 0;
+        min     = 0;
+        max     = 20;
+    };
+};
+
+
 
 prop = {
     name = "stop_host_get";
@@ -1443,15 +1465,6 @@ prop = {
     type = boolean;
     data = {
         default = TRUE;
-    };
-};
-
-prop = {
-    name = "lib_debug";
-    desc = "Debug level for code shared between gui and core";
-    type = guint32;
-    data = {
-        default = 0;
     };
 };
 
