@@ -78,16 +78,15 @@ void on_popup_nodes_config_cols_activate(
 }
 
 /*
- * nodes_gui_add_column
+ * add_column
  *
  * Create a column, associating the attribute ``attr'' (usually "text") of the
  * cell_renderer to the first column of the model. Also associate the
  * foreground color with the c_gnet_fg column, so that we can set
  * the foreground color for the whole row.
  */
-static void nodes_gui_add_column(
-	GtkTreeView *tree, gint column_id, gint width,
-	const gchar *title, const gchar *attr)
+static void add_column(
+	GtkTreeView *tree, gint column_id, const gchar *title, const gchar *attr)
 {
     GtkTreeViewColumn *column;
 
@@ -100,7 +99,7 @@ static void nodes_gui_add_column(
 		     "foreground-set", TRUE,
 		     NULL);
 	g_object_set(G_OBJECT(column),
-		"fixed-width", MAX(1, width),
+		"fixed-width", 1,
 		"min-width", 1,
 		"reorderable", TRUE,
 		"resizable", TRUE,
@@ -115,13 +114,13 @@ static void nodes_gui_add_column(
  * Sets the specified column, from the specified tree to the
  * specified width.
  */
-static void nodes_gui_set_column_width(
-	GtkTreeView *tree, gint column_id, gint width)
+static void set_column(GtkTreeView *tree, gint id, gint width, gboolean visible)
 {
 	GtkTreeViewColumn *column;
 
-	column = gtk_tree_view_get_column(tree, column_id);
-	gtk_tree_view_column_set_fixed_width (column, MAX(1, width));
+	column = gtk_tree_view_get_column(tree, id);
+	gtk_tree_view_column_set_visible(column, visible);
+	gtk_tree_view_column_set_fixed_width(column, MAX(1, width));
 }
 
 /*
@@ -135,7 +134,21 @@ static void nodes_gui_set_column_width(
  */
 static void nodes_gui_create_treeview_nodes(void)
 {
+	static const struct {
+		const gchar * const title;
+		const gint id;
+		const gchar * const attr;
+	} columns[] = {
+		{ N_("Host"),		c_gnet_host,		"text" },
+		{ N_("Flags"),		c_gnet_flags,		"markup" },
+		{ N_("User-Agent"), c_gnet_user_agent,	"text" },
+		{ N_("Ver"),		c_gnet_version,		"text" },
+		{ N_("Connected"),	c_gnet_connected,	"text" },
+		{ N_("Uptime"),		c_gnet_uptime,		"text" },
+		{ N_("Info"),		c_gnet_info,		"text" }
+	};
 	GtkTreeView *tree;
+	guint i;
 
     /*
      * Create a model.  We are using the store model for now, though we
@@ -175,13 +188,9 @@ static void nodes_gui_create_treeview_nodes(void)
 	g_object_set(nodes_gui_cell_renderer,
 		"ypad", GUI_CELL_RENDERER_YPAD, NULL);
 
-	nodes_gui_add_column(tree, c_gnet_host, 1, _("Host"), "text");
-	nodes_gui_add_column(tree, c_gnet_flags, 1, _("Flags"), "markup");
-	nodes_gui_add_column(tree, c_gnet_user_agent, 1, _("User-Agent"), "text");
-	nodes_gui_add_column(tree, c_gnet_version, 1, _("Ver"), "text");
-	nodes_gui_add_column(tree, c_gnet_connected, 1, _("Connected"), "text");
-	nodes_gui_add_column(tree, c_gnet_uptime, 1, _("Uptime"), "text");
-	nodes_gui_add_column(tree, c_gnet_info, 1, _("Info"), "text");
+	for (i = 0; i < G_N_ELEMENTS(columns); i++) {
+		add_column(tree, columns[i].id, _(columns[i].title), columns[i].attr);
+	}
 }
 
 static inline void nodes_gui_remove_selected_helper(
@@ -287,7 +296,9 @@ void nodes_gui_early_init(void)
 void nodes_gui_init(void) 
 {
     GtkTreeView *tree;
-	guint32 *width;
+	guint32 width[NODES_VISIBLE_COLUMNS];
+	gboolean visible[NODES_VISIBLE_COLUMNS];
+	guint i;
 
 	treeview_nodes = GTK_TREE_VIEW(lookup_widget(
 		main_window, "treeview_nodes"));
@@ -295,19 +306,16 @@ void nodes_gui_init(void)
 
     g_object_set(tree, "fixed_height_mode", TRUE, NULL);
 
-	width = gui_prop_get_guint32(PROP_NODES_COL_WIDTHS, NULL, 0, 0);
-    nodes_gui_set_column_width(tree, c_gnet_host, width[c_gnet_host]);
-    nodes_gui_set_column_width(tree, c_gnet_flags, width[c_gnet_flags]);
-    nodes_gui_set_column_width(tree, c_gnet_user_agent,
-        width[c_gnet_user_agent]);
-    nodes_gui_set_column_width(tree, c_gnet_version, width[c_gnet_version]);
-    nodes_gui_set_column_width(tree, c_gnet_connected, width[c_gnet_connected]);
-    nodes_gui_set_column_width(tree, c_gnet_uptime, width[c_gnet_uptime]);
-    nodes_gui_set_column_width(tree, c_gnet_info, width[c_gnet_info]);
-	G_FREE_NULL(width);
+	gui_prop_get_guint32(PROP_NODES_COL_WIDTHS, width, 0, G_N_ELEMENTS(width));
+	gui_prop_get_boolean(PROP_NODES_COL_VISIBLE, visible, 0,
+		G_N_ELEMENTS(visible));
+
+	for (i = 0; i < G_N_ELEMENTS(width); i++) {
+    	set_column(tree, i, width[i], visible[i]);
+	}
 
 	nodes_handles = g_hash_table_new_full(
-		NULL, NULL, NULL, (gpointer) w_tree_iter_free);
+		NULL, NULL, NULL, (GDestroyNotify) w_tree_iter_free);
 
     ht_node_info_changed = g_hash_table_new(g_direct_hash, g_direct_equal);
     ht_node_flags_changed = g_hash_table_new(g_direct_hash, g_direct_equal);
@@ -326,6 +334,7 @@ void nodes_gui_init(void)
 void nodes_gui_shutdown(void)
 {
 	tree_view_save_widths(treeview_nodes, PROP_NODES_COL_WIDTHS);
+	tree_view_save_visibility(treeview_nodes, PROP_NODES_COL_VISIBLE);
 
     node_remove_node_added_listener(nodes_gui_node_added);
     node_remove_node_removed_listener(nodes_gui_node_removed);
@@ -571,7 +580,7 @@ static void nodes_gui_node_added(gnet_node_t n, const gchar *type)
 static void nodes_gui_node_info_changed(gnet_node_t n)
 {
     g_hash_table_insert(ht_node_info_changed, 
-        GUINT_TO_POINTER(n), (gpointer) 0x1);
+        GUINT_TO_POINTER(n), GUINT_TO_POINTER(1));
 #if 0
     gnet_node_info_t info;
 
@@ -589,7 +598,7 @@ static void nodes_gui_node_info_changed(gnet_node_t n)
 static void nodes_gui_node_flags_changed(gnet_node_t n)
 {
     g_hash_table_insert(ht_node_flags_changed, 
-        GUINT_TO_POINTER(n), (gpointer) 0x1);
+        GUINT_TO_POINTER(n), GUINT_TO_POINTER(1));
 
 #if 0
     gnet_node_flags_t flags;
