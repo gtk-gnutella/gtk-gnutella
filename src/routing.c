@@ -63,7 +63,7 @@ struct route_data {
 
 struct route_data fake_route;		/* Our fake route_data */
 
-gchar *debug_msg[256];
+static gchar *debug_msg[256];
 
 #define MAX_STORED_MESSAGES 65536	/* Max messages we can remember */
 
@@ -109,12 +109,12 @@ void routing_log(gchar * fmt, ...)
 	static gchar t[4096];
 	va_list va;
 
+	if (dbg <= 8)
+		return;
+
 	va_start(va, fmt);
 	g_vsnprintf(t, sizeof(t), fmt, va);
 	va_end(va);
-
-	if (dbg > 8)
-		printf("%s", t);
 }
 
 static void free_route_list(struct message *m);
