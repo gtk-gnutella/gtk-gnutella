@@ -408,7 +408,7 @@ struct {
 #define FOUND_LEFT(x)	(found_data.l - (x))
 
 static gboolean use_ggep_h;			/* Can we use GGEP "H" for this query? */
-static time_t release_date;
+static guint32 release_date;
 
 /* 
  * We don't want to include the same file several times in a reply (for
@@ -602,7 +602,7 @@ void share_init(void)
 	found_data.l = FOUND_CHUNK;		/* must be > size after found_reset */
 	found_data.d = (guchar *) g_malloc(found_data.l * sizeof(guchar));
 
-	release_date = date2time(GTA_RELEASE, NULL);
+	release_date = delta_time(date2time(GTA_RELEASE, NULL), (time_t) 0);
 
 	/*
 	 * We allocate an empty search_table, which will be de-allocated when we
@@ -726,15 +726,16 @@ void parse_extensions(const gchar * str)
 
 static void shared_dirs_free(void)
 {
-	if (shared_dirs) {
-		GSList *l = shared_dirs;
-		while (l) {
-			atom_str_free(l->data);
-			l = l->next;
-		}
-		g_slist_free(shared_dirs);
-		shared_dirs = NULL;
+	GSList *sl;
+
+	if (!shared_dirs)
+		return;
+
+	for (sl = shared_dirs; sl; sl = g_slist_next(sl)) {
+		atom_str_free(sl->data);
 	}
+	g_slist_free(shared_dirs);
+	shared_dirs = NULL;
 }
 
 void shared_dirs_update_prop(void)
@@ -803,18 +804,15 @@ static void recurse_scan(gchar *dir, const gchar *basedir)
 	GSList *exts = NULL;
 	DIR *directory;			/* Dir stream used by opendir, readdir etc.. */
 	struct dirent *dir_entry;
-	gchar *full = NULL, *sl = "/";
+	gchar *full = NULL;
 	GSList *files = NULL;
 	GSList *directories = NULL;
 	gchar *dir_slash = NULL;
-	gboolean in_tmpdir = FALSE;
-	gint tmpdir_len;
-	GSList *l;
+	GSList *sl;
 	gint i;
-
 	struct shared_file *found = NULL;
 	struct stat file_stat;
-	gchar *entry_end;
+	const gchar *entry_end;
 
 	if (*dir == '\0')
 		return;
@@ -827,7 +825,7 @@ static void recurse_scan(gchar *dir, const gchar *basedir)
 	if (dir[strlen(dir) - 1] == '/')
 		dir_slash = dir;
 	else
-		dir_slash = g_strconcat(dir, sl, NULL);
+		dir_slash = g_strconcat(dir, G_DIR_SEPARATOR_S, NULL);
 
 	while ((dir_entry = readdir(directory))) {
 
@@ -838,45 +836,24 @@ static void recurse_scan(gchar *dir, const gchar *basedir)
 
 		if (!is_directory(full)) {
 			if (scan_ignore_symlink_regfiles && is_symlink(full)) {
-				g_free(full);
+				G_FREE_NULL(full);
 				continue;
 			}
 			files = g_slist_prepend(files, full);
 		} else {
 			if (scan_ignore_symlink_dirs && is_symlink(full)) {
-				g_free(full);
+				G_FREE_NULL(full);
 				continue;
 			}
 			directories = g_slist_prepend(directories, full);
 		}
 	}
 
-	/*
-	 * Look whether we are under the "tmp" directory where downloaded
-	 * files are shared.
-	 */
-
-	tmpdir_len = strlen(save_file_path);
-
-	if (0 == strncmp(dir_slash, save_file_path, tmpdir_len)) {
-		/*
-		 * Need additional check in case the "tmp" directory does not end
-		 * with a "/".  We could have dir_slash="/a/bc/" and the tmp dir set
-		 * to "/a/b" only.  That would make the above test true, but we
-		 * would not be under the tmp directory.
-		 */
-
-		if (save_file_path[tmpdir_len - 1] != '/')
-			in_tmpdir = (dir_slash[tmpdir_len] == '/');
-		else
-			in_tmpdir = TRUE;		/* Was ending with "/", so we're sure */
-	}
-
-	for (i = 0, l = files; l; i++, l = l->next) {
-		gchar *name;
+	for (i = 0, sl = files; sl; i++, sl = g_slist_next(sl)) {
+		const gchar *name;
 		gint name_len;
 
-		full = (gchar *) l->data;
+		full = (gchar *) sl->data;
 
 		/*
 		 * In the "tmp" directory, don't share files that have a trailer.
@@ -884,11 +861,6 @@ static void recurse_scan(gchar *dir, const gchar *basedir)
 		 * This check is necessary in case they choose to share their
 		 * downloading directory...
 		 */
-
-		if (in_tmpdir && file_info_has_trailer(full)) {
-			g_warning("will not share partial file \"%s\"", full);
-			continue;
-		}
 
 		name = strrchr(full, '/');
 		g_assert(name);
@@ -899,7 +871,7 @@ static void recurse_scan(gchar *dir, const gchar *basedir)
 
 		for (exts = extensions; exts; exts = exts->next) {
 			struct extension *e = (struct extension *) exts->data;
-			gchar *start = entry_end - (e->len + 1);	/* +1 for "." */
+			const gchar *start = entry_end - (e->len + 1);	/* +1 for "." */
 
 			/*
 			 * Look for the trailing chars (we're matching an extension).
@@ -914,16 +886,30 @@ static void recurse_scan(gchar *dir, const gchar *basedir)
 				(start >= name && *start == '.' &&
 					0 == g_ascii_strcasecmp(start+1, e->str))
 			) {
+
+				if (dbg > 5)
+					g_message("%s: full=\"%s\"", __func__, full);
+
+				if (file_info_has_trailer(full)) {
+					/*
+		 		 	 * It's probably a file being downloaded, and which is not
+				 	 * complete yet. This check is necessary in case they
+					 * choose to share their downloading directory...
+		 		  	 */
+
+					g_warning("will not share partial file \"%s\"", full);
+					break;
+				}
+
 				if (stat(full, &file_stat) == -1) {
 					g_warning("can't stat %s: %s", full, g_strerror(errno));
 					break;
 				}
 
-				found = (struct shared_file *)
-					walloc0(sizeof(struct shared_file));
+				found = (struct shared_file *) walloc0(sizeof(*found));
 
 				found->file_path = atom_str_get(full);
-				found->file_name = found->file_path + (name - full);
+				found->file_name = /*found->file_path + (*/name/* - full)*/;
 				found->file_name_len = name_len;
 				found->file_size = file_stat.st_size;
 				found->file_index = ++files_scanned;
@@ -940,7 +926,7 @@ static void recurse_scan(gchar *dir, const gchar *basedir)
 				break;			/* for loop */
 			}
 		}
-		g_free(full);
+		G_FREE_NULL(full);
 
 		if (!(i & 0x3f)) {
 			gui_update_files_scanned();		/* Interim view */
@@ -949,22 +935,24 @@ static void recurse_scan(gchar *dir, const gchar *basedir)
 	}
 
 	closedir(directory);
+	directory = NULL;
 	g_slist_free(files);
+	files = NULL;
 
 	/*
 	 * Now that we handled files at this level and freed all their memory,
 	 * recurse on directories.
 	 */
 
-	for (l = directories; l; l = l->next) {
-		gchar *path = (gchar *) l->data;
+	for (sl = directories; sl; sl = g_slist_next(sl)) {
+		gchar *path = (gchar *) sl->data;
 		recurse_scan(path, basedir);
-		g_free(path);
+		G_FREE_NULL(path);
 	}
 	g_slist_free(directories);
 
 	if (dir_slash != dir)
-		g_free(dir_slash);
+		G_FREE_NULL(dir_slash);
 
 	gui_update_files_scanned();		/* Interim view */
 	gtk_main_iteration_do(FALSE);
@@ -985,21 +973,20 @@ void shared_file_free(shared_file_t *sf)
 
 static void share_free(void)
 {
-	GSList *l;
+	GSList *sl;
 
 	st_destroy(&search_table);
 
-	if (file_basenames)
+	if (file_basenames) {
 		g_hash_table_destroy(file_basenames);
-	file_basenames = NULL;
-
-	if (file_table) {
-		g_free(file_table);
-		file_table = NULL;
+		file_basenames = NULL;
 	}
 
-	for (l = shared_files; l; l = l->next) {
-		struct shared_file *sf = l->data;
+	if (file_table)
+		G_FREE_NULL(file_table);
+
+	for (sl = shared_files; sl; sl = g_slist_next(sl)) {
+		struct shared_file *sf = sl->data;
 		shared_file_free(sf);
 	}
 
@@ -1012,7 +999,7 @@ static void reinit_sha1_table(void);
 void share_scan(void)
 {
 	GSList *dirs;
-	GSList *l;
+	GSList *sl;
 	gint i;
 	static gboolean in_share_scan = FALSE;
 	time_t now;
@@ -1032,9 +1019,10 @@ void share_scan(void)
 		in_share_scan = TRUE;
 
 	now = time(NULL);
+	elapsed = delta_time(now, (time_t) 0);
 
 	gnet_prop_set_boolean_val(PROP_LIBRARY_REBUILDING, TRUE);
-	gnet_prop_set_guint32_val(PROP_LIBRARY_RESCAN_TIMESTAMP, (guint32) now);
+	gnet_prop_set_guint32_val(PROP_LIBRARY_RESCAN_TIMESTAMP, elapsed);
 
 	files_scanned = 0;
 	bytes_scanned = 0;
@@ -1055,16 +1043,18 @@ void share_scan(void)
 	 *		--RAM, 30/01/2003
 	 */
 
-	for (dirs = NULL, l = shared_dirs; l; l = l->next)
-		dirs = g_slist_append(dirs, atom_str_get(l->data));
+	for (dirs = NULL, sl = shared_dirs; sl; sl = g_slist_next(sl))
+		dirs = g_slist_append(dirs, atom_str_get(sl->data));
 
-	for (l = dirs; l; l = l->next)			/* Recurse on the cloned list... */
-		recurse_scan(l->data, l->data);		/* ...since this updates the GUI! */
+	/* Recurse on the cloned list... */
+	for (sl = dirs; sl; sl = g_slist_next(sl))
+		recurse_scan(sl->data, sl->data);	/* ...since this updates the GUI! */
 
-	for (l = dirs; l; l = l->next)
-		atom_str_free(l->data);
+	for (sl = dirs; sl; sl = g_slist_next(sl))
+		atom_str_free(sl->data);
 
 	g_slist_free(dirs);
+	dirs = NULL;
 
 	/*
 	 * Done scanning all the files.
@@ -1085,10 +1075,10 @@ void share_scan(void)
 	 *		--RAM, 23/10/2002
 	 */
 
-	file_table = g_malloc0((files_scanned + 1) * sizeof(struct shared_file *));
+	file_table = g_malloc0((files_scanned + 1) * sizeof(*file_table[0]));
 
-	for (i = 0, l = shared_files; l; i++, l = l->next) {
-		struct shared_file *sf = l->data;
+	for (i = 0, sl = shared_files; sl; i++, sl = g_slist_next(sl)) {
+		struct shared_file *sf = sl->data;
 		guint val;
 
 		g_assert(sf->file_index > 0 && sf->file_index <= files_scanned);
@@ -1112,7 +1102,7 @@ void share_scan(void)
 		 */
 
 		val = (val != 0) ? FILENAME_CLASH : sf->file_index;
-		g_hash_table_insert(file_basenames, sf->file_name,
+		g_hash_table_insert(file_basenames, (gchar *) sf->file_name,
 			GUINT_TO_POINTER(val));
 
 		if (0 == (i & 0x7ff))
@@ -1122,7 +1112,7 @@ void share_scan(void)
 	gui_update_files_scanned();		/* Final view */
 
 	now = time(NULL);
-	elapsed = (guint32) now - library_rescan_timestamp;
+	elapsed = delta_time(now, (time_t) 0) - library_rescan_timestamp;
 	gnet_prop_set_guint32_val(PROP_LIBRARY_RESCAN_TIME, MAX(elapsed, 1));
 
 	/*
@@ -1133,8 +1123,8 @@ void share_scan(void)
 
 	qrp_prepare_computation();
 
-	for (i = 0, l = shared_files; l; i++, l = l->next) {
-		struct shared_file *sf = l->data;
+	for (i = 0, sl = shared_files; sl; i++, sl = g_slist_next(sl)) {
+		struct shared_file *sf = sl->data;
 		qrp_add_file(sf);
 		if (0 == (i & 0x7ff))
 			gtk_main_flush();
@@ -1143,7 +1133,7 @@ void share_scan(void)
 	qrp_finalize_computation();
 
 	now = time(NULL);
-	elapsed = (guint32) now - qrp_indexing_timestamp;
+	elapsed = delta_time(now, (time_t) 0) - qrp_indexing_timestamp;
 	gnet_prop_set_guint32_val(PROP_QRP_INDEXING_TIME, elapsed);
 
 	in_share_scan = FALSE;
@@ -1382,7 +1372,7 @@ static void flush_match(void)
 	}
 
 	packet_head->function = GTA_MSG_SEARCH_RESULTS;
-	packet_head->ttl = MIN(n->header.hops + 5, hard_ttl_limit);
+	packet_head->ttl = MIN((guint) n->header.hops + 5, hard_ttl_limit);
 	packet_head->hops = 0;
 	WRITE_GUINT32_LE(pl, packet_head->size);
 
@@ -2048,7 +2038,7 @@ gboolean search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 		if (found)
 			seen = (time_t) GPOINTER_TO_INT(seenp);
 
-		if (now - seen < node_requery_threshold) {
+		if (delta_time(now, (time_t) 0) - seen < node_requery_threshold) {
 			if (dbg) g_warning("node %s (%s) re-queried \"%s\" after %d secs",
 				node_ip(n), node_vendor(n), query, (gint) (now - seen));
 			gnet_stats_count_dropped(n, MSG_DROP_THROTTLE);
@@ -2058,7 +2048,8 @@ gboolean search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 		if (!found)
 			atom = atom_str_get(query);
 
-		g_hash_table_insert(n->qseen, atom, GINT_TO_POINTER(now));
+		g_hash_table_insert(n->qseen, atom,
+			GINT_TO_POINTER((gint) delta_time(now, (time_t) 0)));
 	}
 
 	/*
@@ -2201,7 +2192,7 @@ gboolean search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 		node_inc_qrp_query(n);
 	found_reset(n);
 
-	max_replies = (search_max_items == -1) ? 255 : search_max_items;
+	max_replies = (search_max_items == (guint32) -1) ? 255 : search_max_items;
 
 	/*
 	 * Search each SHA1.
@@ -2316,8 +2307,8 @@ finish:
 						sha1_base32(exv_sha1[i].sha1_digest));
 				printf("\n\t");
 			}
-			printf("req_speed=%u ttl=%u hops=%u\n",
-				   req_speed, (gint) n->header.ttl, (gint) n->header.hops);
+			printf("req_speed=%u ttl=%d hops=%d\n", (guint) req_speed,
+				(gint) n->header.ttl, (gint) n->header.hops);
 			fflush(stdout);
 		}
 	}
@@ -2537,3 +2528,4 @@ gboolean is_latin_locale(void)
 	return b_latin;
 }
 
+/* vi: set ts=4: */
