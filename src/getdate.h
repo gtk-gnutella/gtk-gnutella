@@ -31,7 +31,7 @@
 #include <time.h>
 #include <sys/time.h>
 
-time_t date2time(const char *p, const time_t *now);
+time_t date2time(const char *p, time_t now);
 
 #endif	/* _getdate_h_ */
 

@@ -127,7 +127,6 @@ static void version_stamp(const gchar *str, version_t *ver)
 		if (end == NULL)
 			end = strchr(p, ')');		/* Only date present: short version */
 		if (end) {
-			time_t now = time(NULL);
 			size_t size = end - p + 1;
 
 			/*
@@ -137,7 +136,7 @@ static void version_stamp(const gchar *str, version_t *ver)
 			 */
 
 			g_strlcpy(stamp, p, MIN(size, sizeof(stamp)));
-			ver->timestamp = date2time(stamp, &now);
+			ver->timestamp = date2time(stamp, time(NULL));
 
 			if (ver->timestamp == -1) {
 				ver->timestamp = 0;

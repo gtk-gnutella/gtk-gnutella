@@ -937,14 +937,13 @@ static long difftm(struct tm *a, struct tm *b)
  * NB: was originally called getdate(), but it conflicted with a library
  * routine on Solaris.
  */
-time_t date2time(const char *p, const time_t *now)
+time_t date2time(const char *p, time_t now)
 {
     struct tm tm, tm0, *tmp;
     time_t Start;
 
     yyInput = (const unsigned char *) p;
-    Start = now ? *now : time((time_t *) NULL);
-    tmp = localtime(&Start);
+    tmp = localtime(&now);
     yyYear = tmp->tm_year + TM_YEAR_ORIGIN;
     yyMonth = tmp->tm_mon + 1;
     yyDay = tmp->tm_mday;
@@ -1049,7 +1048,9 @@ int main(int ac, char *av[])
 
     buff[MAX_BUFF_LEN] = 0;
     while (fgets(buff, MAX_BUFF_LEN, stdin) && buff[0]) {
-	d = date2time(buff, (time_t *) NULL);
+	time_t now;
+
+	d = date2time(buff, time(NULL));
 	if (d == -1)
 	    (void) printf("Bad format - couldn't convert.\n");
 	else

@@ -26,16 +26,8 @@
  *----------------------------------------------------------------------
  */
 
+#include "common.h"
 #include "gnutella.h"
-
-#include <errno.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <sys/uio.h>	/* For struct iovec */
-#include <unistd.h>
-#include <dirent.h>
-#include <string.h>
-#include <ctype.h>		/* toupper() */
 
 #include "share.h"
 #include "gmsg.h"
@@ -586,7 +578,7 @@ void share_init(void)
 	found_data.l = FOUND_CHUNK;		/* must be > size after found_reset */
 	found_data.d = (guchar *) g_malloc(found_data.l * sizeof(guchar));
 
-	release_date = date2time(GTA_RELEASE, NULL);
+	release_date = date2time(GTA_RELEASE, time(NULL));
 
 	/*
 	 * We allocate an empty search_table, which will be de-allocated when we
