@@ -28,6 +28,7 @@
 #include "gnutella.h"
 
 #include <sys/types.h>
+#include <sys/resource.h>
 
 // XXX this is rather bad, it must be metaconfigured
 #if defined(__FreeBSD__) || defined(__NetBSD__) || defined(__OpenBSD__) 
@@ -203,8 +204,14 @@ void settings_init(void)
     struct passwd *pwd = NULL;
 	guint32 maxfd = (guint32) sysconf(_SC_OPEN_MAX);
 	guint32 physmem = (guint32) settings_getphysmemsize();
+	struct rlimit lim;
 
 	g_warning("Detected amount of physical RAM: %lu KB", (gulong) physmem);
+
+	if (-1 != getrlimit(RLIMIT_DATA, &lim)) {
+		guint32 maxdata = lim.rlim_cur >> 10;
+		physmem = MIN(physmem, maxdata);		/* For our purposes */
+	}
 
     properties = gnet_prop_init();
 
