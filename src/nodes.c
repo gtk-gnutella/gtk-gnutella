@@ -2783,8 +2783,9 @@ static void node_process_handshake_header(
 
 					node_bye_all_but_one(n, 203, "Becoming a leaf node");
 					n->flags |= NODE_F_ULTRA;
-					current_peermode = NODE_P_LEAF;
 					mode_changed = TRUE;
+					gnet_prop_set_guint32_val(PROP_CURRENT_PEERMODE,
+						NODE_P_LEAF);
 				} else if (dbg > 2)
 					g_warning("denied request from %s <%s> to become a leaf",
 						node_ip(n), n->vendor ? n->vendor : "????");
