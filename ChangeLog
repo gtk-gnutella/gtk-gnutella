@@ -1,5 +1,9 @@
 # since last version
 
+- (2002.10.14 Richard)
+ * Added icons to display state of background processes (building lib/sha1)
+   to statusbar. 
+
 - (2002.10.13 RAM)
  * Made socket_destroy() a private routine of sockets.c, which now takes
    a reason string that can be propagated back to the socket's resource
