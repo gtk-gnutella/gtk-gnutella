@@ -1003,9 +1003,10 @@ search_gui_update_items(struct search *sch)
     if (sch) {
         const gchar *str = sch->passive ? _("(passive search) ") : "";
     
-		gm_snprintf(tmpstr, sizeof(tmpstr), _("%s%u %s "
-			"(%u skipped, %u ignored, %u hidden, %u auto-downloaded, %u dups)"
+		gm_snprintf(tmpstr, sizeof(tmpstr), _("%s%s%u %s "
+			"(%u skipped, %u ignored, %u hidden, %u auto-d/l, %u dups)"
 			" Hits: %u (%u TCP, %u UDP)"),
+			sch->enabled ? "" : _("[stopped] "),
 			str, sch->items, (sch->items > 1) ? _("items") : _("item"),
 			sch->skipped, sch->ignored, sch->hidden, sch->auto_downloaded,
 			sch->duplicates,
