@@ -483,7 +483,8 @@ gboolean search_gui_new_search(
     gnet_prop_get_guint32_val(PROP_SEARCH_REISSUE_TIMEOUT, &timeout);
     gui_prop_get_guint32_val(PROP_DEFAULT_MINIMUM_SPEED, &speed);
 	return search_gui_new_search_full(
-        query, speed, timeout, flags, SORT_NO_COL, SORT_NONE, search);
+        query, speed, timeout, SORT_NO_COL, SORT_NONE,
+		flags | SEARCH_ENABLED, search);
 }
 
 /* 
