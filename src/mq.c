@@ -1098,7 +1098,6 @@ void mq_putq(mqueue_t *q, pmsg_t *mb)
 		node_add_tx_given(q->node, written);
 
 		if (written == size) {
-			gchar *mbs = pmsg_start(mb);
 			node_inc_sent(q->node);
             gnet_stats_count_sent(q->node, function, hops, size);
 			switch (function) {
