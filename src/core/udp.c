@@ -45,6 +45,7 @@ RCSID("$Id$");
 #include "routing.h"
 #include "pcache.h"
 #include "ntp.h"
+#include "bogons.h"
 
 #include "if/gnet_property_priv.h"
 
@@ -125,6 +126,8 @@ not:
 void
 udp_received(struct gnutella_socket *s)
 {
+	gboolean bogus = FALSE;
+
 	/*
 	 * If reply comes from the NTP port, notify that they're running NTP.
 	 */
@@ -141,6 +144,16 @@ udp_received(struct gnutella_socket *s)
 	inet_udp_got_incoming(s->ip);
 	bws_udp_count_read(s->pos);
 
+	/*
+	 * If we get traffic from a bogus IP (unroutable), warn, for now.
+	 */
+
+	if (bogons_check(s->ip)) {
+		bogus = TRUE;
+		g_warning("UDP datagram (%d byte%s) received from bogus IP %s",
+			s->pos, s->pos == 1 ? "" : "s", ip_to_gchar(s->ip));
+	}
+
 	if (!udp_is_valid_gnet(s))
 		return;
 
@@ -150,8 +163,8 @@ udp_received(struct gnutella_socket *s)
 	 */
 
 	if (udp_debug > 19)
-		printf("UDP got %s from %s\n", gmsg_infostr_full(s->buffer),
-			ip_port_to_gchar(s->ip, s->port));
+		printf("UDP got %s from %s%s\n", gmsg_infostr_full(s->buffer),
+			bogus ? "BOGUS " : "", ip_port_to_gchar(s->ip, s->port));
 
 	node_udp_process(s);
 }
