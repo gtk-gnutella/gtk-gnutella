@@ -1387,11 +1387,22 @@ prop = {
 
 prop = {
     name = "current_peermode";
-    desc = "Current peer mode for gtk-gnutella "
-			"(acting as a Leaf / Ultra node).";
-    type = guint32;
+    desc = "Current peer mode for gtk-gnutella";
+    type = multichoice;
     data = {
         default = 1;
+    };
+    choice = {
+        name = "normal node";
+        value = 1;
+    };
+    choice = {
+        name = "leaf node";
+        value = 0;
+    };
+    choice = {
+        name = "ultrapeer";
+        value = 2;
     };
 };
 
