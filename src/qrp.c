@@ -1463,7 +1463,7 @@ gboolean qrt_update_send_next(gpointer handle)
 
 	qup->offset += len;
 
-	g_assert(qup->seqno < qup->seqsize || qup->offset == qup->patch->len);
+	g_assert(qup->seqno <= qup->seqsize || qup->offset == qup->patch->len);
 
 	return qup->seqno < qup->seqsize;
 }
