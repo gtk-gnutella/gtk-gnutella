@@ -439,27 +439,26 @@ gchar *url_normalize(gchar *url, url_policy_t pol)
 	const gchar *uri;
 	static const char http_prefix[] = "http://";
 	static gboolean url_debug = FALSE;
+	gchar *warn = NULL;
 
 	g_assert(url);
 
 	if (0 != strncmp(q, http_prefix, sizeof http_prefix - 1)) {
 		if (url_debug)
-			g_warning("URL isn't preceded by \"%s\"", http_prefix);
+			g_warning("URL \"%s\" isn't preceded by \"%s\"", url, http_prefix);
 		return NULL;
 	}
 	q += sizeof http_prefix - 1;
 
 	if (!isalnum((guchar) *q)) {
-		if (url_debug)
-			g_warning("HTTP prefix MUST be followed by an alphanum");
-		return NULL;
+		warn = "HTTP prefix MUST be followed by an alphanum";
+		goto bad;
 	}
 
 	if (gchar_to_ip_strict(q, NULL, (const gchar **) &endptr)) {
 		if (!(pol & URL_POLICY_ALLOW_IP_AS_HOST)) {
-			if (url_debug)
-				g_warning("URLs without hostnames have been disabled");
-			return NULL;
+			warn = "URLs without hostnames have been disabled";
+			goto bad;
 		}
 		q = endptr;
 
@@ -479,17 +478,15 @@ gchar *url_normalize(gchar *url, url_policy_t pol)
 
 			if (c == '\0') {
 				if (dots < 1 && !(pol & URL_POLICY_ALLOW_LOCAL_HOSTS)) {
-					g_warning("Current URL policy forbids local hosts");
-					return NULL;
+					warn = "current URL policy forbids local hosts";
+					goto bad;
 				}
 				break;
 			} else if (c == '.') {
 
 				if (!(isalnum((guchar) *(q - 1)) && isalnum((guchar) q[1]))) {
-					if (url_debug)
-						g_warning("a dot must be preceded and followed by"
-						 	"an alphanum");
-					return NULL;
+					warn = "a dot must be preceded and followed by an alphanum";
+					goto bad;
 				}
 				dots++;
 				if (q[1] == '\0' || q[1] == ':' || q[1] == '/')
@@ -500,16 +497,16 @@ gchar *url_normalize(gchar *url, url_policy_t pol)
 				break;
 			} else {
 				if (url_debug)
-					g_warning("invalid character in ``host:port'' part: "
-						"%s", q);
+					g_warning("Bad URL \"%s\": "
+						"invalid character '%c' in ``host:port'' part.",
+						url, isprint(c) ? c : '?');
 				return NULL;
 			}
 		}
 
 		if (!tld || !(isalpha((guchar) tld[0]) && isalpha((guchar) tld[1]))) {
-			if (url_debug)
-				g_warning("no or invalid top-level domain");
-			return NULL;
+			warn = "no or invalid top-level domain";
+			goto bad;
 		}
 
 	}
@@ -525,9 +522,8 @@ gchar *url_normalize(gchar *url, url_policy_t pol)
 			v = strtoul(q, &endptr, 10);
 		}
 		if (v < 1 || v > 65535 || errno) {
-			if (url_debug)
-				g_warning("':' MUST be followed a by port value (1-65535)");
-			return NULL;
+			warn = "':' MUST be followed a by port value (1-65535)";
+			goto bad;
 		}
 		port = (guint16) v;
 		p = endptr;
@@ -541,9 +537,8 @@ gchar *url_normalize(gchar *url, url_policy_t pol)
 	}
 
 	if (*p != '/' && *p != '\0') {
-		if (url_debug)
-			g_warning("host must be followed by ':', '/' or NUL");
-		return NULL;
+		warn = "host must be followed by ':', '/' or NUL";
+		goto bad;
 	}
 
 	uri = q;
@@ -551,9 +546,8 @@ gchar *url_normalize(gchar *url, url_policy_t pol)
 	/* Scan path */
 	for (/* NOTHING */; (c = *(guchar *) p) != '\0'; q++, p++) {
 		if (!url_safe_char(c, pol)) {
-			if (url_debug)
-				g_warning("URL contains characters prohibited by policy");
-			return NULL;
+			warn = "URL contains characters prohibited by policy";
+			goto bad;
 		}
       
 		/* Handle relative paths i.e., /. and /.. */
@@ -573,24 +567,23 @@ gchar *url_normalize(gchar *url, url_policy_t pol)
 			if (0 == strcmp(p, "/.")) {
 				p++;
 				if (url_debug)
-					g_message("Ignoring trailing \"/.\" in URI");
+					g_message("ignoring trailing \"/.\" in URI");
 			} else if (0 == strcmp(p, "/..")) {
 				if (url_debug)
-					g_message("Trailing \"/..\" in URI; rejected");
+					g_message("trailing \"/..\" in URI; rejected");
 				return NULL;
 			} else if (0 == strncmp(p, "/./", sizeof "/./" - 1)) {
 				p += 2;
 				if (url_debug)
-					g_message("Ignoring unnecessary \"/./\" in URI");
+					g_message("ignoring unnecessary \"/./\" in URI");
 			} else if (0 == strncmp(p, "/../", sizeof "/../" - 1)) {
 				p += 3;
 				if (url_debug)
-					g_message("Ascending one component in URI");
+					g_message("ascending one component in URI");
 				while (*--q != '/')
 					if (q <= uri) {
-						if (url_debug)
-							g_message("URI ascents beyond root per \"/../\"");
-						return NULL;
+						warn = "URI ascends beyond root per \"/../\"";
+						goto bad;
 					}
 			} else {
 				break;
@@ -614,9 +607,8 @@ gchar *url_normalize(gchar *url, url_policy_t pol)
 
 		for (i = 0; i < G_N_ELEMENTS(static_types); i++)
     		if (!strcasecmp(q - static_types[i].len, static_types[i].ext)) {
-				if (url_debug)
-					g_message("URL points probably to static data; rejected");
-      			return NULL;
+				warn = "URL points probably to static data; rejected";
+      			goto bad;
     		}
 	}
 
@@ -638,6 +630,11 @@ gchar *url_normalize(gchar *url, url_policy_t pol)
 		g_message("url=\"%s\"", url);
 
 	return url;
+
+bad:
+	if (url_debug)
+		g_warning("invalid URL \"%s\": %s", url, warn);
+	return NULL;
 }
 
 /* vi: set ts=4: */
