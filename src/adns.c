@@ -640,7 +640,7 @@ gboolean adns_resolve(
 		g_assert(adns_query_fd >= 0);
 		g_assert(hostname_len < sizeof(q.hostname));
 
-		memcpy(q.hostname, query.data, hostname_len + 1);
+		strncpy(q.hostname, query.data, sizeof(q.hostname));
 		q.user_callback = user_callback;
 		q.user_data = user_data;
 		q.data = query.data;
