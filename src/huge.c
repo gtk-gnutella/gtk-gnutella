@@ -42,6 +42,8 @@
 #include "misc.h"
 #include "atoms.h"
 #include "gmsg.h"
+#include "header.h"
+#include "dmesh.h"
 
 /***
  *** Server side: computation of SHA1 hash digests and replies.
@@ -1017,6 +1019,31 @@ gboolean huge_sha1_extract32(guchar *buf, gint len, guchar *retval,
 	}
 
 	return FALSE;
+}
+
+/*
+ * huge_alternate_location
+ *
+ * Parse the "X-Gnutella-Alternate-Location" header if present to learn
+ * about other sources for this file.
+ */
+void huge_alternate_location(guchar *sha1, header_t *header)
+{
+	gchar *alt = header_get(header, "X-Gnutella-Alternate-Location");
+
+	/*
+	 * Unfortunately, clueless people broke HUGE specs and made up their
+	 * own headers.  They should learn about header continuations, and
+	 * that "X-Gnutella-Alternate-Location" does not need to be repeated.
+	 */
+
+	if (alt == NULL)
+		alt = header_get(header, "Alternate-Location");
+	if (alt == NULL)
+		alt = header_get(header, "Alt-Location");
+
+	if (alt)
+		dmesh_collect_locations(sha1, alt);
 }
 
 /* 

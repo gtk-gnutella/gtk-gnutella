@@ -42,6 +42,8 @@
 #include "atoms.h"
 #include "huge.h"
 #include "base32.h"
+#include "dmesh.h"
+#include "http.h"
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -914,6 +916,47 @@ static void download_queue_delay(struct download *d, guint32 delay,
 }
 
 /*
+ * download_retry_no_urires
+ *
+ * If we sent a "GET /uri-res/N2R?" and we don't know the remote
+ * server does not support it, then mark it here and retry as if we
+ * got a 503 busy.
+ *
+ * `delay' is the Retry-After delay we got, 0 if none.
+ * `ack_code' is the HTTP status code we got, 0 if none.
+ *
+ * Returns TRUE if we marked the download for retry.
+ */
+static gboolean download_retry_no_urires(struct download *d,
+	gint delay, gint ack_code)
+{
+	if (!(d->attrs & DL_A_NO_URIRES_N2R) && (d->flags & DL_F_URIRES_N2R)) {
+		/*
+		 * We sent /uri-res, and never marked server as not supporting it.
+		 */
+
+		d->attrs |= DL_A_NO_URIRES_N2R;
+
+		if (dbg > 3)
+			printf("Server %s (%s) does not support /uri-res/N2R?\n",
+				ip_port_to_gchar(d->ip, d->port),
+				d->server ? d->server : "");
+
+		if (ack_code)
+			download_queue_delay(d,
+				delay ? delay : download_retry_busy_delay,
+				"Server cannot handle /uri-res (%d)", ack_code);
+		else
+			download_queue_delay(d, download_retry_busy_delay,
+				"Server cannot handle /uri-res (EOF)");
+
+		return TRUE;
+	}
+
+	return FALSE;
+}
+
+/*
  * download_push_insert
  *
  * Record that we sent a push request for this download.
@@ -1247,6 +1290,14 @@ attempt_retry:
 	} else
 		download_stop(d, GTA_DL_ERROR, "Timeout (%d retr%s)",
 				d->retries, d->retries == 1 ? "y" : "ies");
+
+	/*
+	 * Remove this source from mesh, since we don't seem to be able to
+	 * connect to it properly.
+	 */
+
+	if (!d->always_push && d->sha1)
+		dmesh_remove(d->sha1, d->ip, d->port, d->record_index, d->file_name);
 }
 
 /* Direct download failed, let's try it with a push request */
@@ -1336,8 +1387,8 @@ static gchar *escape_filename(gchar *file)
  */
 static void create_download(
 	gchar *file, gchar *output, guint32 size, guint32 record_index,
-	guint32 ip, guint16 port, gchar *guid, gchar *sha1, gboolean push,
-	gboolean interactive)
+	guint32 ip, guint16 port, gchar *guid, gchar *sha1, time_t stamp,
+	gboolean push, gboolean interactive)
 {
 	struct download *d;
 	gchar *file_name = interactive ? atom_str_get(file) : file;
@@ -1388,9 +1439,17 @@ static void create_download(
 		download_push_insert(d);
 	else
 		d->push = FALSE;
+	d->record_stamp = stamp;
 
 	sl_downloads = g_slist_prepend(sl_downloads, (gpointer) d);
 	download_store();			/* Refresh list, in case we crash */
+
+	/*
+	 * Insert in download mesh if it does not require a push and has a SHA1.
+	 */
+
+	if (!d->always_push && d->sha1)
+		dmesh_add(d->sha1, ip, port, record_index, file_name, stamp);
 
 	if (
 		count_running_downloads() < max_downloads &&
@@ -1409,7 +1468,7 @@ static void create_download(
 
 void auto_download_new(gchar *file, guint32 size, guint32 record_index,
 					   guint32 ip, guint16 port, gchar *guid, gchar *sha1,
-					   gboolean push)
+					   time_t stamp, gboolean push)
 {
 	gchar dl_tmp[4096];
 	gchar *output_name = escape_filename(file);
@@ -1475,7 +1534,7 @@ void auto_download_new(gchar *file, guint32 size, guint32 record_index,
 		output_name = file_name;	/* So must reuse file_name */
 
 	create_download(file_name, output_name,
-		size, record_index, ip, port, guid, sha1, push, FALSE);
+		size, record_index, ip, port, guid, sha1, stamp, push, FALSE);
 	return;
 
 abort_download:
@@ -1575,10 +1634,10 @@ void download_index_changed(guint32 ip, guint16 port, guchar *guid,
 
 void download_new(gchar *file, guint32 size, guint32 record_index,
 				  guint32 ip, guint16 port, gchar *guid, gchar *sha1,
-				  gboolean push)
+				  time_t stamp, gboolean push)
 {
 	create_download(file, NULL, size, record_index, ip, port, guid, sha1,
-		push, TRUE);
+		stamp, push, TRUE);
 }
 
 /* Free a download. */
@@ -1605,6 +1664,9 @@ void download_free(struct download *d)
 
 	if (d->server)
 		atom_str_free(d->server);
+
+	if (d->sha1)
+		atom_sha1_free(d->sha1);
 
 	atom_guid_free(d->guid);
 	atom_str_free(d->path);
@@ -2035,6 +2097,18 @@ static void download_header_read(
 
 	r = bws_read(bws.in, s->file_desc, s->buffer + s->pos, count);
 	if (r == 0) {
+		/*
+		 * If we did not read anything in the header at that point, and
+		 * we sent a /uri-res request, maybe the remote server does not
+		 * support it and closed the connection abruptly.
+		 *		--RAM, 20/06/2002
+		 */
+
+		if (
+			header_lines(ih->header) == 0 &&
+			download_retry_no_urires(d, 0, 0)
+		)
+			return;
 		download_stop(d, GTA_DL_STOPPED, "Stopped (EOF)");
 		return;
 	} else if (r < 0 && errno == EAGAIN)
@@ -2242,54 +2316,23 @@ static void download_write_data(struct download *d)
 static gboolean download_moved_permanently(struct download *d, header_t *header)
 {
 	gchar *buf;
-	guint32 ip;
-	guint port;
-	guint idx;
-	guint lsb, b2, b3, msb;
-	gchar *file;
+	dmesh_urlinfo_t info;
 
 	buf = header_get(header, "Location");
 	if (buf == NULL)
 		return FALSE;
 
-	/*
-	 * The URL given must be of the form:
-	 *
-	 *    http://1.2.3.4:5678/get/1/name.txt
-	 *
-	 * Although theorically a /uri-res/N2R? URL could be given for the
-	 * resource, we always use that form if we have the SHA1, so there is
-	 * no 301 Moved return possible, if everyone does it right.
-	 *
-	 * If the port is missing, then 80 is assumed.
-	 */
-
-	if (
-		6 == sscanf(buf, "http://%u.%u.%u.%u:%u/get/%u/",
-			&msb, &b3, &b2, &lsb, &port, &idx)
-	)
-		goto ok;
-
-	if (
-		5 == sscanf(buf, "http://%u.%u.%u.%u/get/%u/",
-			&msb, &b3, &b2, &lsb, &idx)
-	) {
-		port = 80;
-		goto ok;
+	if (!dmesh_url_parse(buf, &info)) {
+		g_warning("could not parse HTTP Location: %s", buf);
+		return FALSE;
 	}
-
-	g_warning("could not parse HTTP Location: %s", buf);
-	return FALSE;
-
-ok:
-	ip = lsb + (b2 << 8) + (b3 << 16) + (msb << 24);
 
 	/*
 	 * If ip/port changed, accept the new ones but warn.
 	 */
 
-	if (ip != d->ip || port != d->port)
-		g_warning("server %s (file \"%s\") redirecting us to %s",
+	if (info.ip != d->ip || info.port != d->port)
+		g_warning("server %s (file \"%s\") redirecting us to alien %s",
 			ip_port_to_gchar(d->ip, d->port), d->file_name, buf);
 
 	/*
@@ -2297,26 +2340,37 @@ ok:
 	 *
 	 * If it changed, we don't change the output_name, so we'll continue
 	 * to write to the same file we previously started with.
+	 *
+	 * NB: idx = 0 is used to indicate a /uri-res/N2R? URL, which we don't
+	 * really want here (if we have the SHA1, we already asked for it).
 	 */
 
-	file = strrchr(buf, '/');
-	g_assert(file);					/* Or we'd have not parse above */
+	if (info.idx == 0) {
+		g_warning("server %s (file \"%s\") would redirect us to %s",
+			ip_port_to_gchar(d->ip, d->port), d->file_name, buf);
+		atom_str_free(info.name);
+		return FALSE;
+	}
 
-	file++;
-	if (0 != strcmp(file, d->file_name)) {
+	if (0 != strcmp(info.name, d->file_name)) {
 		g_warning("file \"%s\" was renamed \"%s\" on %s",
-			d->file_name, file, ip_port_to_gchar(d->ip, d->port));
+			d->file_name, info.name, ip_port_to_gchar(info.ip, info.port));
 
 		if (d->output_name == d->file_name)
 			d->output_name = g_strdup(d->file_name);
 
 		atom_str_free(d->file_name);
-		d->file_name = atom_str_get(file);
-	}
+		d->file_name = info.name;			/* Already an atom */
+	} else
+		atom_str_free(info.name);
 
-	d->ip = ip;
-	d->port = port;
-	d->record_index = idx;
+	/*
+	 * Update download structure.
+	 */
+
+	d->ip = info.ip;
+	d->port = info.port;
+	d->record_index = info.idx;
 
 	return TRUE;
 }
@@ -2338,7 +2392,7 @@ static void download_request(struct download *d, header_t *header)
 	struct stat st;
 	gboolean got_content_length = FALSE;
 
-	d->last_update = time((time_t *) 0);	/* Done reading headers */
+	d->last_update = time(NULL);	/* Done reading headers */
 
 	if (dbg > 4) {
 		printf("----Got reply from %s:\n", ip_to_gchar(s->ip));
@@ -2348,7 +2402,7 @@ static void download_request(struct download *d, header_t *header)
 		fflush(stdout);
 	}
 
-	ack_code = parse_status_line(status, "HTTP", &ack_message, NULL, NULL);
+	ack_code = http_status_parse(status, "HTTP", &ack_message, NULL, NULL);
 
 	/*
 	 * Extract Server: header string, if present, and store it unless
@@ -2400,15 +2454,39 @@ static void download_request(struct download *d, header_t *header)
 				download_stop(d, GTA_DL_ERROR, "URN mismatch detected");
 				return;
 			}
+
+			/*
+			 * Record SHA1 if we did not know it yet.
+			 */
+
 			if (d->sha1 == NULL) {
 				d->sha1 = atom_sha1_get(digest);
 				download_store();		/* Save SHA1 */
+
+				/*
+				 * Insert record in download mesh if it does not require
+				 * a push.  Since we just got a connection, we use "now"
+				 * as the mesh timestamp.
+				 */
+
+				if (!d->always_push)
+					dmesh_add(d->sha1, d->ip, d->port, d->record_index,
+						d->file_name, 0);
 			}
+
+			/*
+			 * Check for possible download mesh headers.
+			 */
+
+			huge_alternate_location(d->sha1, header);
 		}
 	}
 
 	if (ack_code >= 200 && ack_code <= 299) {
-		/* empty -- everything OK */
+		/* OK -- Update mesh */
+		if (!d->always_push && d->sha1)
+			dmesh_add(d->sha1, d->ip, d->port, d->record_index,
+				d->file_name, 0);
 	} else {
 		guint delay = 0;
 
@@ -2446,27 +2524,21 @@ static void download_request(struct download *d, header_t *header)
 		case 403:				/* Idem, /uri-res is "forbidden" */
 		case 410:				/* Idem, /uri-res is "gone" */
 		case 500:				/* Server error */
+		case 501:				/* Not implemented */
 			/*
-			 * If we sent a "GET /uri-res/N2R?" and we don't know the remote
-			 * server does not support it, then mark it here and retry.
+			 * If we sent a "GET /uri-res/N2R?" and the remote
+			 * server does not support it, then retry without it.
 			 */
-			if (
-				!(d->attrs & DL_A_NO_URIRES_N2R) &&
-				(d->flags & DL_F_URIRES_N2R)			/* We sent /uri-res */
-			) {
-				d->attrs |= DL_A_NO_URIRES_N2R;
-				if (dbg > 3)
-					printf("Server %s (%s) does not support /uri-res/N2R?\n",
-						ip_port_to_gchar(d->ip, d->port),
-						d->server ? d->server : "");
-				download_queue_delay(d,
-					delay ? delay : download_retry_busy_delay,
-					"Server cannot handle /uri-res (%d)", ack_code);
+			if (download_retry_no_urires(d, delay, ack_code))
 				return;
-			}
 			break;
 		case 408:				/* Request timeout */
 		case 503:				/* Busy */
+			/* Update mesh */
+			if (!d->always_push && d->sha1)
+				dmesh_add(d->sha1, d->ip, d->port, d->record_index,
+				d->file_name, 0);
+
 			/* No hammering */
 			download_queue_delay(d,
 				delay ? delay : download_retry_busy_delay,
@@ -2479,6 +2551,9 @@ static void download_request(struct download *d, header_t *header)
 		default:
 			break;
 		}
+		if (!d->always_push && d->sha1)
+			dmesh_remove(d->sha1, d->ip, d->port, d->record_index,
+				d->file_name);
 		download_stop(d, GTA_DL_ERROR, "HTTP %d %s", ack_code, ack_message);
 		return;
 	}
@@ -2771,10 +2846,32 @@ gboolean download_send_request(struct download *d)
 			"Range: bytes=%u-\r\n",
 			d->skip - d->overlap_size);
 
-	if (d->sha1 && !n2r)
-		rw += g_snprintf(&dl_tmp[rw], sizeof(dl_tmp)-rw,
-			"X-Gnutella-Content-URN: urn:sha1:%s\r\n",
-			sha1_base32(d->sha1));
+	if (d->sha1) {
+		gint wmesh;
+
+		/*
+		 * Send to the server any new alternate locations we may have
+		 * learned about since the last time.
+		 */
+
+		wmesh = dmesh_alternate_location(d->sha1,
+			&dl_tmp[rw], sizeof(dl_tmp)-rw, d->ip, d->last_dmesh);
+		rw += wmesh;
+
+		d->last_dmesh = (guint32) time(NULL);
+
+		/*
+		 * HUGE specs says that the alternate locations are only defined
+		 * when there is an X-Gnutella-Content-URN present.  When we use
+		 * the N2R form to retrieve a resource by SHA1, that line is
+		 * redundant.  We only send it if we sent mesh information.
+		 */
+
+		if (!n2r || wmesh)
+			rw += g_snprintf(&dl_tmp[rw], sizeof(dl_tmp)-rw,
+				"X-Gnutella-Content-URN: urn:sha1:%s\r\n",
+				sha1_base32(d->sha1));
+	}
 
 	rw += g_snprintf(&dl_tmp[rw], sizeof(dl_tmp)-rw, "\r\n");
 
@@ -3348,8 +3445,13 @@ static void download_retrieve(void)
 
 		hex_to_guid(d_hexguid, d_guid);
 
+		/*
+		 * Download is created with a timestamp of `1' so that it is very
+		 * old and the entry does not get added to the download mesh yet.
+		 */
+
 		create_download(d_name, NULL, d_size, d_index, d_ip, d_port, d_guid,
-			has_sha1 ? sha1_digest : NULL, FALSE, FALSE);
+			has_sha1 ? sha1_digest : NULL, 1, FALSE, FALSE);
 
 		/*
 		 * Don't free `d_name', we gave it to create_download()!
@@ -3390,6 +3492,10 @@ void download_close(void)
 			bsched_source_remove(d->bio);
 		if (d->server)
 			atom_str_free(d->server);
+		if (d->sha1)
+			atom_sha1_free(d->sha1);
+		if (d->restart_timer_id)
+			g_source_remove(d->restart_timer_id);
 		atom_guid_free(d->guid);
 		atom_str_free(d->path);
 		atom_str_free(d->file_name);

@@ -51,6 +51,7 @@ struct download {
 	time_t start_date;		/* Download start date */
 	time_t last_update;		/* Last status update or I/O */
 	time_t last_gui_update;	/* Last stats update on the GUI */
+	time_t record_stamp;	/* Stamp of the query hit that launched us */
 
 	guint32 retries;
 	guint32 timeout_delay;
@@ -62,6 +63,7 @@ struct download {
 	guint16 port;
 	gchar *server;			/* Remote server vendor string (atom) */
 	gchar *sha1;			/* Known SHA1 (binary atom), NULL if none */
+	guint32 last_dmesh;		/* Time when last download mesh was sent */
 
 	guint32 flags;
 	guint32 attrs;
@@ -151,9 +153,10 @@ extern gboolean send_pushes;
 void download_init(void);
 void download_timer(time_t now);
 void download_new(gchar *,
-	guint32, guint32, guint32, guint16, gchar *, gchar *, gboolean);
+	guint32, guint32, guint32, guint16, gchar *, gchar *, time_t, gboolean);
 void auto_download_new(
-	gchar *, guint32, guint32, guint32, guint16, gchar *, gchar *, gboolean);
+	gchar *, guint32, guint32, guint32, guint16, gchar *, gchar *, time_t,
+	gboolean);
 void download_queue(struct download *d, const gchar *fmt, ...);
 void download_freeze_queue();
 void download_thaw_queue();

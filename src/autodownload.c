@@ -92,7 +92,8 @@ void autodownload_init()
 
 void autodownload_notify(gchar *file, guint32 size,
 						 guint32 record_index, guint32 ip,
-						 guint16 port, gchar *guid, gchar *sha1, gboolean push)
+						 guint16 port, gchar *guid, gchar *sha1,
+						 guint32 stamp, gboolean push)
 {
 	GSList* l;
 
@@ -110,7 +111,7 @@ void autodownload_notify(gchar *file, guint32 size,
 				printf("*** AUTO-MATCHED '%s' pattern '%s'\n",
 					file, pattern->pattern);
 			auto_download_new(file, size, record_index, ip, port,
-				guid, sha1, push);
+				guid, sha1, (time_t) stamp, push);
 			return;
 		}
 	}

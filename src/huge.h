@@ -34,6 +34,7 @@
 #define SHA1_RAW_SIZE		20		/* 160 bits in binary representation */
 
 struct shared_file;
+struct header;
 
 void huge_init(void);		/* Call this function at the beginning */
 void huge_close(void);		/* Call this when servent is shutdown */
@@ -49,6 +50,8 @@ void request_sha1(struct shared_file *);
 gboolean huge_http_sha1_extract32(guchar *buf, guchar *retval);
 gboolean huge_sha1_extract32(guchar *buf, gint len, guchar *retval,
 	gpointer header, gboolean check_old);
+
+void huge_alternate_location(guchar *sha1, struct header *header);
 
 #endif	/* __huge_h__ */
 
