@@ -231,6 +231,7 @@ create_main_window (void)
   GtkWidget *spinbutton_max_host_downloads;
   GtkWidget *checkbutton_download_delete_aborted;
   GtkWidget *checkbutton_downloads_never_push;
+  GtkWidget *checkbutton_dl_remove_file_on_mismatch;
   GtkWidget *frame_dl_autoclear;
   GtkWidget *table64;
   GtkWidget *checkbutton_dl_clear_complete;
@@ -2683,7 +2684,7 @@ create_main_window (void)
   gtk_widget_show (vbox112);
   gtk_container_add (GTK_CONTAINER (frame_dl_settings), vbox112);
 
-  table60 = gtk_table_new (2, 4, FALSE);
+  table60 = gtk_table_new (2, 5, FALSE);
   gtk_widget_set_name (table60, "table60");
   gtk_widget_ref (table60);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "table60", table60,
@@ -2694,7 +2695,7 @@ create_main_window (void)
   gtk_table_set_row_spacings (GTK_TABLE (table60), 2);
   gtk_table_set_col_spacings (GTK_TABLE (table60), 4);
 
-  label64 = gtk_label_new (_("Maximum simultaneous downloads"));
+  label64 = gtk_label_new (_("Maximum concurrent requests"));
   gtk_widget_set_name (label64, "label64");
   gtk_widget_ref (label64);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "label64", label64,
@@ -2704,7 +2705,7 @@ create_main_window (void)
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
 
-  label80 = gtk_label_new (_("Max downloads from single host"));
+  label80 = gtk_label_new (_("Max requests from single host"));
   gtk_widget_set_name (label80, "label80");
   gtk_widget_ref (label80);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "label80", label80,
@@ -2755,6 +2756,16 @@ create_main_window (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (checkbutton_downloads_never_push);
   gtk_table_attach (GTK_TABLE (table60), checkbutton_downloads_never_push, 0, 2, 1, 2,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+
+  checkbutton_dl_remove_file_on_mismatch = gtk_check_button_new_with_label (_("Remove file on mismatch"));
+  gtk_widget_set_name (checkbutton_dl_remove_file_on_mismatch, "checkbutton_dl_remove_file_on_mismatch");
+  gtk_widget_ref (checkbutton_dl_remove_file_on_mismatch);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "checkbutton_dl_remove_file_on_mismatch", checkbutton_dl_remove_file_on_mismatch,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (checkbutton_dl_remove_file_on_mismatch);
+  gtk_table_attach (GTK_TABLE (table60), checkbutton_dl_remove_file_on_mismatch, 4, 5, 1, 2,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
 
