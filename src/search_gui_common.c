@@ -32,11 +32,21 @@
 /* GUI includes  */
 #include "search_gui_common.h"
 #include "search_gui.h"
+#include "settings_gui.h"
+
+#ifdef USE_SEARCH_XML
+#include "search_xml.h"
+#include <libxml/parser.h>
+#endif
 
 RCSID("$Id$");
 
 static zone_t *rs_zone;		/* Allocation of results_set */
 static zone_t *rc_zone;		/* Allocation of record */
+
+static gchar *search_file = "searches";	/* File where "old" searches are */
+
+static gchar tmpstr[1024];
 
 /*
  * search_gui_free_alt_locs
@@ -506,5 +516,138 @@ void search_gui_check_alt_locs(record_t *rc, time_t stamp)
 	}
 
 	search_gui_free_alt_locs(rc);
+}
+
+#ifndef USE_SEARCH_XML
+/*
+ * search_store_old
+ *
+ * Store pending non-passive searches.
+ */
+static void search_store_old(void)
+{
+	GList *l;
+	FILE *out;
+	file_path_t fp;
+
+	file_path_set(&fp, settings_gui_config_dir(), search_file);
+	out = file_config_open_write("searches", &fp);
+
+	if (!out)
+		return;
+
+	file_config_preamble(out, "Searches");
+	
+	for (l = searches; l; l = g_list_next(l)) {
+		const struct search *sch = (const struct search *) l->data;
+		if (!sch->passive)
+			fprintf(out, "%s\n", sch->query);
+	}
+
+	file_config_close(f, &fp);
+}
+#endif /* USE_SEARCH_XML */
+
+/*
+ * search_gui_store_searches
+ *
+ * Persist searches to disk.
+ */
+void search_gui_store_searches(void)
+{
+#ifdef USE_SEARCH_XML
+	char *path;
+
+	search_store_xml();
+    
+	path = g_strdup_printf("%s/%s", settings_gui_config_dir(), search_file);
+	g_return_if_fail(NULL != path);
+
+    if (file_exists(path)) {
+		char *path_old;
+
+      	path_old = g_strdup_printf("%s.old", path);
+		if (NULL != path_old) {
+        	g_warning(
+            	_("Found old searches file. The search information has been\n"
+            	"stored in the new XML format and the old file is renamed to\n"
+            	"%s"), path_old);
+        	if (-1 == rename(path, path_old))
+          		g_warning(_("could not rename %s as %s: %s\n"
+                	"The XML file will not be used "
+					"unless this problem is resolved."),
+                path, path_old, g_strerror(errno));
+			G_FREE_NULL(path_old);
+		}
+    }
+	G_FREE_NULL(path);
+#else
+    search_store_old();
+#endif
+}
+
+/*
+ * search_retrieve_old
+ *
+ * Retrieve search list and restart searches.
+ * The searches are normally retrieved from ~/.gtk-gnutella/searches.
+ */
+static gboolean search_retrieve_old(void)
+{
+	FILE *in;
+	gint line;				/* File line number */
+	file_path_t fp;
+
+	file_path_set(&fp, settings_gui_config_dir(), search_file);
+	in = file_config_open_read("old searches (gtkg pre v0.90)", &fp, 1);
+	if (!in)
+		return FALSE;
+
+	/*
+	 * Retrieval of each searches.
+	 */
+
+	line = 0;
+
+	while (fgets(tmpstr, sizeof(tmpstr) - 1, in)) {	/* Room for trailing NUL */
+		line++;
+
+		if (tmpstr[0] == '#')
+			continue;				/* Skip comments */
+
+		if (tmpstr[0] == '\n')
+			continue;				/* Allow arbitrary blank lines */
+
+		(void) str_chomp(tmpstr, 0);	/* The search string */
+
+		search_gui_new_search(tmpstr, 0, NULL);
+		tmpstr[0] = '\0';
+	}
+
+	fclose(in);
+
+    return TRUE;
+}
+
+/*
+ * search_gui_retrieve_searches
+ *
+ * Retrieve searches from disk.
+ */
+void search_gui_retrieve_searches(void)
+{
+#ifdef USE_SEARCH_XML
+	LIBXML_TEST_VERSION
+
+	if (search_retrieve_old()) {
+        g_warning(
+            _("Found old searches file. Loaded it.\n"
+            "On exit the searches will be saved in the new XML format\n"
+            "and the old file will be renamed."));
+    } else
+        search_retrieve_xml();
+#else
+    search_retrieve_old();
+#endif /* USE_SEARCH_XML */
 }
 
