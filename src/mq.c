@@ -658,6 +658,8 @@ static gboolean make_room(mqueue_t *q, pmsg_t *mb, gint needed, gint *offset)
 	 *		--RAM, 22/03/2002
 	 */
 
+	mq_update_flowc(q);		/* Perhaps we dropped enough to leave FC? */
+
 	if (q->count == 0) {
 		tx_srv_disable(q->tx_drv);
 		node_tx_service(q->node, FALSE);
