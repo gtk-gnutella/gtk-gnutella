@@ -1973,6 +1973,10 @@ static gboolean parq_upload_continue(struct parq_ul_queued *uq, gint free_slots)
 			slots_free--;
 	}
 	
+	/* This is to ensure dynamic slot allocation */
+	if (slots_free < 0)
+		slots_free = 0;
+	
 	if (allowed_max_uploads <= uq->queue->active_uploads - slots_free) {
 		return FALSE;
 	}
