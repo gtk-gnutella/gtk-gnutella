@@ -222,7 +222,7 @@ upload_should_remove(time_t now, const upload_row_data_t *ul)
 		break;
 	case GTA_UL_CLOSED:
 	case GTA_UL_ABORTED:
-		prop = PROP_ENTRY_REMOVAL_TIMEOUT;
+		prop = PROP_AUTOCLEAR_FAILED_UPLOADS;
 		break;
 	case GTA_UL_PUSH_RECEIVED:
 	case GTA_UL_SENDING:
@@ -242,7 +242,7 @@ upload_should_remove(time_t now, const upload_row_data_t *ul)
 		if (delta_time(now, ul->last_update) > grace) {
 			gboolean val;
 
-			gui_prop_get_boolean_val(PROP_AUTOCLEAR_COMPLETED_UPLOADS, &val);
+			gui_prop_get_boolean_val(prop, &val);
 			return val;
 		}
 	}
