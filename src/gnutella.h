@@ -483,7 +483,7 @@ extern gboolean send_pushes;
 
 extern guint32 files_scanned, bytes_scanned, kbytes_scanned;
 extern guint32 monitor_max_items, monitor_items;
-extern GSList *extensions, *shared_dirs, *shared_files;
+extern GSList *extensions, *shared_dirs;
 
 /* uploads.c */
 
@@ -663,6 +663,7 @@ void upload_close(void);
 /* share.c */
 
 void share_init(void);
+struct shared_file *shared_file(guint idx);
 void share_scan(void);
 void share_close(void);
 void search_request(struct gnutella_node *n);

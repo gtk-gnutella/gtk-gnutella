@@ -19,7 +19,8 @@ guint32 bytes_scanned = 0;
 
 GSList *extensions = NULL;
 GSList *shared_dirs = NULL;
-GSList *shared_files = NULL;
+static GSList *shared_files = NULL;
+static struct shared_file **file_table = NULL;
 static search_table_t search_table;
 
 gchar stmp_1[4096];
@@ -114,6 +115,16 @@ void share_init(void)
 	share_scan();
 	found_data.l = FOUND_CHUNK;		/* must be > size after FOUND_RESET */
 	found_data.d = (guchar *) g_malloc(found_data.l * sizeof(guchar));
+}
+
+struct shared_file *shared_file(guint idx)
+{
+	/* Return shared file info for index `idx', or NULL if none */
+
+	if (idx < 1 || idx > files_scanned)
+		return NULL;
+
+	return file_table[idx - 1];
 }
 
 /* ----------------------------------------- */
@@ -312,7 +323,6 @@ void recurse_scan(gchar * dir, gchar * basedir)
 		g_free(full);
 	}
 	closedir(directory);
-	gui_update_files_scanned(); /* Avoid frozen GUI, update often -- RAM */
 }
 
 static void share_free(void)
@@ -321,6 +331,11 @@ static void share_free(void)
 	gchar *last_dir = NULL, *last_lower_dir = NULL;
 
 	st_destroy(&search_table);
+
+	if (file_table) {
+		g_free(file_table);
+		file_table = NULL;
+	}
 
 	for (l = shared_files; l; l = l->next) {
 		struct shared_file *sf = l->data;
@@ -361,6 +376,23 @@ void share_scan(void)
 		recurse_scan(l->data, l->data);
 
 	st_compact(&search_table);
+
+	/*
+	 * In order to quickly locate files based on indicies, build a table
+	 * of all shared files.  This table is only accessible via shared_file().
+	 * NB: file indicies start at 1, but indexing in table start at 0.
+	 *		--RAM, 08/10/2001
+	 */
+
+	file_table = g_malloc0(files_scanned * sizeof(struct shared_file *));
+
+	for (l = shared_files; l; l = l->next) {
+		struct shared_file *sf = l->data;
+		g_assert(sf->file_index > 0 && sf->file_index <= files_scanned);
+		file_table[sf->file_index - 1] = sf;
+	}
+
+	gui_update_files_scanned();		/* Final view */
 }
 
 void share_close(void)

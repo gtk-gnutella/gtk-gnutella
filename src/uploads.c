@@ -76,7 +76,7 @@ struct upload *upload_add(struct gnutella_socket *s)
 	 */
 	struct upload *new_upload = NULL;
 	struct shared_file *requested_file = NULL;
-	GSList *files = NULL, *t_uploads = NULL;
+	GSList *t_uploads = NULL;
 	guint index = 0, skip = 0, rw = 0, row = 0, upcount = 0;
 	gchar http_response[1024], *fpath = NULL, sl[] = "/\0";
 	gchar *user_agent = 0;
@@ -145,34 +145,7 @@ struct upload *upload_add(struct gnutella_socket *s)
 			return NULL;
 		}
 
-		for (t_uploads = uploads; t_uploads; t_uploads = t_uploads->next) {
-			struct upload *u = (struct upload *) (t_uploads->data);
-			if (u->status != GTA_UL_SENDING)
-				continue;
-			if (u->index == index && u->socket->ip == s->ip) {
-				rw = g_snprintf(http_response, sizeof(http_response),
-					"HTTP/1.0 409 Already downloading that file\r\n"
-					"Server: gtk-gnutella/%d.%d\r\n\r\n",
-					GTA_VERSION, GTA_SUBVERSION);
-				write(s->file_desc, http_response, rw);
-				return NULL;
-			}
-			if (u->socket->ip == s->ip && ++upcount >= max_uploads_ip) {
-				rw = g_snprintf(http_response, sizeof(http_response),
-					"HTTP/1.0 503 Only %u download%s per IP address\r\n"
-					"Server: gtk-gnutella/%d.%d\r\n\r\n",
-					max_uploads_ip,
-					max_uploads_ip == 1 ? "" : "s",
-					GTA_VERSION, GTA_SUBVERSION);
-				write(s->file_desc, http_response, rw);
-				return NULL;
-			}
-		}
-
-		for (files = shared_files; files; files = files->next)
-			if ((((struct shared_file *) files->data)->file_index == index))
-				requested_file = (struct shared_file *) files->data;
-
+		requested_file = shared_file(index);
 		if (requested_file == NULL)
 			goto not_found;
 
@@ -198,6 +171,35 @@ struct upload *upload_add(struct gnutella_socket *s)
 			g_warning("file index/name mismatch from %s for %d/%s",
 				ip_to_gchar(s->ip), index, requested_file->file_name);
 			return NULL;
+		}
+
+		/*
+		 * Ensure that noone tries to download the same file twice, and
+		 * that they don't get beyond the max authorized downloads per IP.
+		 */
+
+		for (t_uploads = uploads; t_uploads; t_uploads = t_uploads->next) {
+			struct upload *u = (struct upload *) (t_uploads->data);
+			if (u->status != GTA_UL_SENDING)
+				continue;
+			if (u->index == index && u->socket->ip == s->ip) {
+				rw = g_snprintf(http_response, sizeof(http_response),
+					"HTTP/1.0 409 Already downloading that file\r\n"
+					"Server: gtk-gnutella/%d.%d\r\n\r\n",
+					GTA_VERSION, GTA_SUBVERSION);
+				write(s->file_desc, http_response, rw);
+				return NULL;
+			}
+			if (u->socket->ip == s->ip && ++upcount >= max_uploads_ip) {
+				rw = g_snprintf(http_response, sizeof(http_response),
+					"HTTP/1.0 503 Only %u download%s per IP address\r\n"
+					"Server: gtk-gnutella/%d.%d\r\n\r\n",
+					max_uploads_ip,
+					max_uploads_ip == 1 ? "" : "s",
+					GTA_VERSION, GTA_SUBVERSION);
+				write(s->file_desc, http_response, rw);
+				return NULL;
+			}
 		}
 
 		/*
