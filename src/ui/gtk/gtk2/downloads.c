@@ -1217,7 +1217,6 @@ void gui_update_download_host(download_t *d)
 void gui_update_download(download_t *d, gboolean force)
 {
 	static GtkNotebook *notebook = NULL;
-	static GtkNotebook *dl_notebook = NULL;
 	const gchar *a = NULL;
 	time_t now = time((time_t *) NULL);
 	struct dl_file_info *fi;
@@ -1294,19 +1293,9 @@ void gui_update_download(download_t *d, gboolean force)
 	if (notebook == NULL)
 		notebook = GTK_NOTEBOOK(lookup_widget(main_window, "notebook_main"));
 
-	if (dl_notebook == NULL)
-		dl_notebook =
-			GTK_NOTEBOOK(lookup_widget(main_window, "notebook_downloads"));
-
     current_page = gtk_notebook_get_current_page(notebook);
     if (current_page != nb_main_page_downloads)
         looking = FALSE;
-
-	if (looking) {
-		current_page = gtk_notebook_get_current_page(dl_notebook);
-		if (current_page != nb_downloads_page_downloads)
-			looking = FALSE;
-	}
 
 	if (!looking) {
 		switch (d->status) {
