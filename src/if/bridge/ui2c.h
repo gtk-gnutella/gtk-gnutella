@@ -129,11 +129,6 @@ void guc_hcache_clear_host_type(host_type_t type);
 void guc_hcache_clear(hcache_type_t type);
 void guc_hcache_get_stats(hcache_stats_t *stats);
 
-/* huge interface  functions*/
-gboolean guc_huge_extract_sha1(gchar *buf, gchar *digest);
-gboolean guc_huge_extract_sha1_no_urn(gchar *buf, gchar *digest);
-gboolean guc_huge_http_sha1_extract32(gchar *buf, gchar *retval);
-
 /* hsep interface functions */
 gint guc_hsep_get_table_size(void);
 void guc_hsep_get_non_hsep_triple(hsep_triple *tripledest);
