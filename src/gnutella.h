@@ -66,7 +66,7 @@
 #define GTA_REVISION "unstable"
 #define GTA_REVCHAR "u"
 #define GTA_INTERFACE "X11"
-#define GTA_RELEASE "07/07/2002"
+#define GTA_RELEASE "11/07/2002"
 #define GTA_WEBSITE "http://gtk-gnutella.sourceforge.net/"
 
 #define GTA_MSG_INIT					0x00

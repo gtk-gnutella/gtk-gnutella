@@ -1,5 +1,14 @@
 # since last version
 
+- (2002.07.11 - RAM)
+ * Installed workaround for the reception of SIGPIPE on broken systems,
+   despite explicit SIG_IGN action (but does not fix bug #578151).
+ * Added zone allocators.
+ * Forgot to send "Content-Range: bytes */size" on HTTP 416 errors.
+ * Refactored download scheduling queue for scalability.
+ * Optimized pattern matching and searches further.
+ * Remove assert in gmsg_cmp(), a routine called many times!
+
 - (2002.07.09 - Richard)
   * Have two versions of share_gui (API compatible), one for Gtk1 using
     a GtkCList and one for Gtk2 using a GtkTreeView (GtkListStore)
