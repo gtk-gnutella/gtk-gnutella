@@ -29,6 +29,7 @@
 #include "gui.h" 
 #include "columns.h"
 #include "if/core/hsep.h"
+#include "if/ui/gtk/gnet_stats.h"
 
 const gchar *msg_type_str(int MSG_TYPE_COUNT);
 const gchar *msg_drop_str(int MSG_DROP_REASON_COUNT);

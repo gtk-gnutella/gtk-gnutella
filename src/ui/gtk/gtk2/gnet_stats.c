@@ -365,11 +365,9 @@ static void gnet_stats_update_types(
 		
 				value = byte_counters[i][n];
 				total = byte_counters[i][MSG_TOTAL];
-				if (with_headers) {
-					value += pkg_counters[i][n]
-						* GTA_HEADER_SIZE;
-					total += pkg_counters[i][MSG_TOTAL]
-						* GTA_HEADER_SIZE;
+				if (!with_headers) {
+					value -= pkg_counters[i][n] * GTA_HEADER_SIZE;
+					total -= pkg_counters[i][MSG_TOTAL] * GTA_HEADER_SIZE;
 				}
 				type_stat_str(str[i], sizeof(str[0]), value, total, perc, TRUE);
 			}
@@ -789,6 +787,18 @@ void gnet_stats_gui_update(time_t now)
 
 	switch (current_page) {
 	case GNET_STATS_NB_PAGE_MESSAGES:
+		switch (gnet_stats_source) {
+		case GNET_STATS_FULL:
+			break;
+		case GNET_STATS_TCP_ONLY:
+			guc_gnet_stats_tcp_get(&stats);
+			break;
+		case GNET_STATS_UDP_ONLY:
+			guc_gnet_stats_udp_get(&stats);
+			break;
+		default:
+			g_assert_not_reached();
+		}
 		gnet_stats_update_messages(&stats);
 		break;
 	case GNET_STATS_NB_PAGE_FLOWC:
