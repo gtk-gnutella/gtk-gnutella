@@ -976,12 +976,13 @@ search_gui_update_items(struct search *sch)
         const gchar *str = sch->passive ? _("(passive search) ") : "";
 
 		gm_snprintf(tmpstr, sizeof(tmpstr), _("%s%s%u %s "
-			"(%u skipped, %u ignored, %u hidden, %u auto-d/l, %u dups)"
+			"(%u skipped, %u ignored, %u hidden, %u auto-d/l, %u %s)"
 			" Hits: %u (%u TCP, %u UDP)"),
 			sch->enabled ? "" : _("[stopped] "),
-			str, sch->items, sch->items != 1 ? _("items") : _("item"),
+			str,
+			sch->items, NG_("item", "items", sch->items),
 			sch->skipped, sch->ignored, sch->hidden, sch->auto_downloaded,
-			sch->duplicates,
+			sch->duplicates, NG_("dupe", "dupes", sch->duplicates),
 			sch->tcp_qhits + sch->udp_qhits, sch->tcp_qhits, sch->udp_qhits);
     } else
         g_strlcpy(tmpstr, _("No search"), sizeof(tmpstr));
