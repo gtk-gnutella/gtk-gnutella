@@ -2251,7 +2251,7 @@ static void download_request(struct download *d, header_t *header)
 		if (buf) {
 			if (!sscanf(buf, "%u", &delay)) {
 				time_t now = time((time_t *) NULL);
-				time_t retry = getdate(buf, &now);
+				time_t retry = date2time(buf, &now);
 
 				if (retry == -1)
 					g_warning("cannot parse Retry-After: %s", buf);

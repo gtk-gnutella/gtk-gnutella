@@ -941,7 +941,15 @@ static long difftm(struct tm *a, struct tm *b)
 	    + (a->tm_sec - b->tm_sec));
 }
 
-time_t getdate(const char *p, const time_t *now)
+/*
+ * date2time
+ *
+ * Convert date string into time_t.
+ *
+ * NB: was originally called getdate(), but it conflicted with a library
+ * routine on Solaris.
+ */
+time_t date2time(const char *p, const time_t *now)
 {
     struct tm tm, tm0, *tmp;
     time_t Start;
@@ -1053,7 +1061,7 @@ int main(int ac, char *av[])
 
     buff[MAX_BUFF_LEN] = 0;
     while (fgets(buff, MAX_BUFF_LEN, stdin) && buff[0]) {
-	d = getdate(buff, (time_t *) NULL);
+	d = date2time(buff, (time_t *) NULL);
 	if (d == -1)
 	    (void) printf("Bad format - couldn't convert.\n");
 	else
