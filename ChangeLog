@@ -1,5 +1,27 @@
 # since last version
 
+- (2003.05.17 - RAM)
+ * Doubled half period for remote flow control computations to 5 minutes.
+ * Don't requeue actively queued downloads or connecting ones when the
+   underlying file is removed.
+ * When a download has PARQ information, don't stop it when a write to the
+   remote host fails, but requeue it instead.  Those downloads have a chance
+   of being resumed.
+ * Renamed download_free() into download_remove().
+ * Clone lists before iterating in bg_close().
+ * Reverted to using casts in clock_update().
+ * Made clock_update() ignore the new timestamp if delta is within precision
+   (making the ignore interval 2*precision instead of just precision).
+ * Increased period for alive pings between ultrapeer and leaf to 120 seconds.
+ * Flag when we send a QUEUE, and determine whether they refused our callback.
+   After they refused it MAX_QUEUE_REFUSED times, we give up and never send
+   them a QUEUE during this session.
+ * Added parq_upload_add_header_id() to add an X-Queued header on 2xx replies.
+ * Always call parq_upload_remove() from upload_remove().
+ * Plugged call to parq_upload_add_header_id() to send queue ID on 2xx replies.
+ * Renamed upload_push_conf() as upload_connect_conf().
+ * Added call to parq_download_parse_queue_status() even on 2xx replies.
+
 - (2003.05.16 - RAM)
  * Limit clock skew to one day maximum: avoid badly synchronized remote clocks
    to let the skew deviate out of proportions.
