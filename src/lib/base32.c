@@ -417,8 +417,9 @@ static gint base32_decode_alphabet(const gint8 valmap[256],
 	switch ((ip - buf) % 8) {
 	case 0:
 		do {
-			i = valmap[(guchar) *--ip];		/* Input #7 */
-			if (i < 0) return 0;
+			v = valmap[(guchar) *--ip];		/* Input #7 */
+			if (v < 0) return 0;
+			i = v;
 			/* FALLTHROUGH */
 	case 7:
 			v = valmap[(guchar) *--ip];		/* Input #6 */

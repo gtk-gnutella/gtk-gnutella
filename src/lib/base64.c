@@ -326,8 +326,9 @@ static guint base64_decode_alphabet(const gint8 valmap[256],
 	switch ((ip - buf) % 4) {
 	case 0:
 		do {
-			i = valmap[(guchar) *--ip];		/* Input #3 */
-			if (i < 0) return 0;
+			v = valmap[(guchar) *--ip];		/* Input #3 */
+			if (v < 0) return 0;
+			i = v;
 			/* FALLTHROUGH */
 	case 3:
 			v = valmap[(guchar) *--ip];		/* Input #2 */
