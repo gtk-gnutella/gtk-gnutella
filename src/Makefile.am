@@ -106,7 +106,7 @@ gtk_gnutella_SOURCES = \
 	sha1.c sha1.h huge.c huge.h \
 	base32.c base32.h \
 	utf8.c utf8.h \
-	filter.c filter.h filter_cb.c filter_cb.h filter_gui.c filter_gui.h\
+	filter.c filter.h filter_cb.c filter_cb.h filter_gui.c filter_gui.h \
 	ban.c ban.h \
 	qrp.c qrp.h \
 	getdate.y getdate.h \
@@ -115,7 +115,9 @@ gtk_gnutella_SOURCES = \
 	dmesh.c dmesh.h \
 	http.c http.h \
 	version.c version.h \
-	alive.c alive.h
+	alive.c alive.h \
+	zalloc.c zalloc.h \
+	walloc.c walloc.h
 
 GLADE_WARNING1 = "Warning: gtk-gnutella.glade is newer than glade-built files and"
 GLADE_WARNING2 = "  \"glade --write-source\" failed.  To ignore any changes to"

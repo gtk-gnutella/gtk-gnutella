@@ -1,0 +1,386 @@
+/*
+ * Copyright (c) 2002, Raphael Manfredi
+ *
+ * Zone allocator.
+ *
+ *----------------------------------------------------------------------
+ * This file is part of gtk-gnutella.
+ *
+ *  gtk-gnutella is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation; either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  gtk-gnutella is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with gtk-gnutella; if not, write to the Free Software
+ *  Foundation, Inc.:
+ *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *----------------------------------------------------------------------
+ */
+
+
+#include "zalloc.h"
+
+/*
+ * Define ZONE_SAFE to allow detection of duplicate frees on a zone object.
+ *
+ * Don't leave that as the default because it adds an overhead to each allocated
+ * block, which defeats one of the advantages of having a zone allocation in
+ * the first place!
+ */
+#if defined(DMALLOC) && !defined(ZONE_SAFE)
+#define ZONE_SAFE
+#endif
+
+#ifdef ZONE_SAFE
+#define BLOCK_USED	((gchar *) 0xff12aa34)	/* Tagging of used blocks. */
+#endif
+
+#define DEFAULT_HINT		128	/* Default amount of blocks in a zone */
+
+/*
+ * Extra allocated zones.
+ */
+struct subzone {
+	struct subzone *zn_next;	/* Next allocated zone chunk, null if last */
+	gpointer zn_arena;			/* Base address of zone arena */
+};
+
+static void zn_cram(zone_t *, gchar *, gint);
+static gchar **zn_extend(zone_t *);
+static struct zone *zn_create(zone_t *, gint, gint);
+
+/*
+ * zalloc
+ *
+ * Allcate memory with fixed size blocks (zone allocation).
+ * Returns a pointer to a block containing at least 'size' bytes of
+ * memory.  It is a fatal error if memory cannot be allocated.
+ *
+ * A zone is, in its simplest expression, a memory chunk where fix-sized
+ * blocks are sliced, all free blocks being chained together via a link
+ * written in the first bytes of the block. To allocate a block, the first
+ * free block is removed from the list. Freeing is just as easy, since we
+ * insert the block at the head of the free list.
+ *
+ * Zone chunks are linked together to make a bigger pool, where only the
+ * first zone descriptor is accurate (i.e. only it has meaningful zn_cnt and
+ * zn_free fields).
+ *
+ * The advantages for allocating from a zone are:
+ *   - very fast allocation time.
+ *   - absence of block header overhead.
+ *   - no risk of memory fragmentation.
+ *
+ * The disadvantages are:
+ *   - need to allocate the zone before allocating items.
+ *   - need to pass-in the zone descriptor each time.
+ *   - programmer must be careful to return each block to its native zone.
+ *
+ * Moreover, periodic calls to the zone gc are needed to collect unused chunks
+ * when peak allocations are infrequent or occur at random.
+ */
+gpointer zalloc(zone_t *zone)
+{
+	gchar **blk;		/* Allocated block */
+
+	/*
+	 * Grab first available free block and update free list pointer. If we
+	 * succeed in getting a block, we are done so return immediately.
+	 */
+
+	blk = zone->zn_free;
+	if (blk != NULL) {
+		zone->zn_free = (gchar **) *blk;
+		zone->zn_cnt++;
+
+#ifdef ZONE_SAFE
+		*blk++ = BLOCK_USED;
+#endif
+
+		return blk;
+	}
+
+	/*
+	 * No more free blocks, extend the zone.
+	 */
+
+	blk = zn_extend(zone);
+	if (blk == NULL)
+		g_error("cannot extend zone to allocate a %d-byte block",
+			zone->zn_size);
+
+	/*
+	 * Use first block from new extended zone.
+	 */
+
+	zone->zn_free = (char **) *blk;
+	zone->zn_cnt++;
+
+#ifdef ZONE_SAFE
+	*blk++ = BLOCK_USED;
+#endif
+
+	return blk;
+}
+
+/*
+ * zcreate
+ *
+ * Create a new zone able to hold items of 'size' bytes. Returns
+ * NULL if no new zone can be created.
+ *
+ * The hint argument is to be construed as the average amount of objects
+ * that are to be created per zone chunks. That is not the total amount of
+ * expected objects of a given type. Leaving it a 0 selects the default hint
+ * value.
+ */
+zone_t *zcreate(gint size, gint hint)
+{
+	zone_t *zone;			/* Zone descriptor */
+
+	zone = g_malloc(sizeof(*zone));
+
+	return zn_create(zone, size, hint);
+}
+
+/*
+ * zn_create
+ *
+ * Create a new zone able to hold items of 'size' bytes.
+ */
+static zone_t *zn_create(zone_t *zone, gint size, gint hint)
+{
+	gint asked;		/* Amount of bytes requested */
+	gchar *arena;	/* Zone arena we got */
+
+	/*
+	 * Make sure size is big enough to store the free-list pointer used to
+	 * chain all free blocks. Also round it so that all blocks are aligned on
+	 * the correct boundary.
+	 */
+
+	if (size < sizeof(gchar *))
+		size = sizeof(gchar *);
+	size = zalloc_round(size);
+
+#ifdef ZONE_SAFE
+	/*
+	 * To secure the accesses, we reserve a pointer on top to make the linking.
+	 * This pointer is filled in with the BLOCK_USED tag, enabling zfree to
+	 * detect duplicate frees of a given block (which are indeed disastrous
+	 * if done at all and the error remains undetected: the free list is
+	 * corrupted).
+	 */
+	size += sizeof(char *);
+#endif
+	
+	/*
+	 * Make sure we have at least room for `hint' blocks in the zone.
+	 */
+
+	hint = (hint == 0) ? DEFAULT_HINT : hint;
+	asked = size * hint;
+
+	/*
+	 * Allocate the arena.
+	 */
+
+	arena = g_malloc(asked);
+
+	/*
+	 * Initialize zone descriptor.
+	 */
+
+	zone->zn_hint = hint;
+	zone->zn_size = size;
+	zone->zn_next = NULL;			/* Link zones to keep track of arenas */
+	zone->zn_cnt = 0;
+	zone->zn_free = (gchar **) arena;	/* First free block available */
+	zone->zn_arena = arena;				/* For GC, later on */
+	zone->zn_refcnt = 1;
+
+	zn_cram(zone, arena, size);
+
+	return zone;
+}
+
+/*
+ * zfree
+ *
+ * Return block to its zone, hence freeing it. Previous content of the
+ * block is lost.
+ *
+ * Since a zone consists of blocks with a fixed size, memory fragmentation
+ * is not an issue. Therefore, the block is returned to the zone by being
+ * inserted at the head of the free list.
+ *
+ * Warning: returning a block to the wrong zone may lead to disasters.
+ */
+void zfree(zone_t *zone, gpointer ptr)
+{
+	g_assert(ptr);
+	g_assert(zone);
+
+#ifdef ZONE_SAFE
+	{
+		gchar **tmp = ((gchar **) ptr-1);	/* Go back at leading magic */
+		if (*tmp != BLOCK_USED)
+			g_error("trying to free block 0x%lx twice", (gulong) ptr);
+		ptr = tmp;
+	}
+#endif
+
+	g_assert(zone->zn_cnt > 0);		/* There must be something to free! */
+
+	*(gchar **) ptr = (gchar *) zone->zn_free;	/* Will precede old head */
+	zone->zn_free = (gchar **) ptr;				/* New free list head */
+	zone->zn_cnt--;								/* To make zone gc easier */
+}
+
+/*
+ * zdestroy
+ *
+ * Destroy a zone chunk by releasing its memory to the system if possible,
+ * converting it into a malloc chunk otherwise.
+ */
+void zdestroy(zone_t *zone)
+{
+	struct subzone *sz;
+	struct subzone *next;
+
+	/*
+	 * A zone can be used by many different parts of the code, through
+	 * calls to zget().  Therefore, only destroy the zone when all references
+	 * are gone.
+	 */
+
+	g_assert(zone->zn_refcnt > 0);
+
+	if (zone->zn_refcnt-- > 1)
+		return;
+
+	if (zone->zn_cnt)
+		g_warning("destroyed zone (%d-byte blocks) still holds %d entr%s",
+			zone->zn_size, zone->zn_cnt, zone->zn_cnt == 1 ? "y" : "ies");
+
+	for (sz = zone->zn_next, next = NULL; sz; sz = next) {
+		next = sz->zn_next;
+		g_free(sz->zn_arena);
+		g_free(sz);
+	}
+
+	g_free(zone->zn_arena);
+	g_free(zone);
+}
+
+/*
+ * zget
+ * 
+ * Get a zone suitable for allocating blocks of 'size' bytes.
+ * `hint' represents the desired amount of blocks per subzone.
+ *
+ * This is mainly intended for external clients who want distinct zones for
+ * distinct sizes, yet may share zones for distinct albeit same-sized blocks.
+ * For instance, walloc() requests zones for power-of-two sizes and uses
+ * zget() to get the zone, instead of zcreate() to maximize sharing.
+ */
+zone_t *zget(gint size, gint hint)
+{
+	static GHashTable *zt;	/* Keeps size (modulo ZALLOC_ALIGNBYTES) -> zone */
+	zone_t *zone;
+
+	/*
+	 * Allocate hash table if not already done!
+	 */
+
+	if (zt == NULL)
+		zt = g_hash_table_new(g_direct_hash, 0);
+
+	/*
+	 * Make sure size is big enough to store the free-list pointer used to
+	 * chain all free blocks. Also round it so that all blocks are aligned on
+	 * the correct boundary.
+	 *
+	 * This simply duplicates the adjustment done in zcreate. We have to do
+	 * it now in order to allow proper lookup in the zone hash table.
+	 */
+
+	if (size < sizeof(gchar *))
+		size = sizeof(gchar *);
+	size = zalloc_round(size);
+	
+	zone = (zone_t *) g_hash_table_lookup(zt, (gpointer) size);
+
+	if (zone) {
+		if (zone->zn_hint < hint)
+			zone->zn_hint = hint;	/* For further extension */
+		zone->zn_refcnt++;
+		return zone;				/* Found a zone for matching size! */
+	}
+
+	/*
+	 * No zone of the corresponding size already, create a new one!
+	 */
+
+	zone = zcreate(size, hint);
+
+	/*
+	 * Insert new zone in the hash table so that we can return it to other
+	 * clients requesting a similar size. If we can't insert it, it's not
+	 * a fatal error, only a warning: we can always allocate a new zone next
+	 * time!
+	 */
+
+	g_hash_table_insert(zt, (gpointer) size, zone);
+
+	return zone;
+}
+
+/*
+ * zn_cram
+ *
+ * Cram a new zone in chunk.
+ *
+ * A zone consists of linked blocks, where the address of the next free block
+ * is written in the first bytes of each free block.
+ */
+static void zn_cram(zone_t *zone, gchar *arena, gint size)
+{
+	gchar *end;		/* End address (first address beyond zone scope) */
+	gchar *next;	/* Next free block in arena */
+
+	end = arena + zone->zn_hint * zone->zn_size;
+
+	for (next = arena + size; arena < end; next += size, arena += size)
+		*(gchar **) arena = (next < end) ? next : (gchar *) 0;
+}
+
+/*
+ * zn_extend
+ *
+ * Extend zone by allocating a new zone chunk. Returns the address of the
+ * first new free block within the extended chunk arena.
+ */
+static gchar **zn_extend(zone_t *zone)
+{
+	struct subzone *new;		/* New sub-zone */
+
+	new = g_malloc(sizeof(*new));
+
+	new->zn_arena = g_malloc(zone->zn_size * zone->zn_hint);
+	zone->zn_free = (gchar **) new->zn_arena;
+
+	new->zn_next = zone->zn_next;
+	zone->zn_next = new;				/* New subzone at head of list */
+
+	zn_cram(zone, new->zn_arena, zone->zn_size);
+
+	return zone->zn_free;
+}
+
