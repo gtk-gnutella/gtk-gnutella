@@ -36,6 +36,7 @@
 #include "statusbar_gui.h"
 #include "settings_gui.h"
 #include "search_stats_gui.h"
+#include "hcache_gui.h"
 
 #include "override.h"		/* Must be the last header included */
 
@@ -98,6 +99,7 @@ void gui_update_global(void)
     /*
      * Update the different parts of the GUI.
      */
+    hcache_gui_update(now);
     gnet_stats_gui_update(now);
     search_stats_gui_update(now);
     nodes_gui_update_nodes_display(now);

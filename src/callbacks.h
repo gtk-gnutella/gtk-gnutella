@@ -34,6 +34,7 @@
 #include "monitor_cb.h"
 #include "uploads_cb.h"
 #include "gnet_stats_gui.h"
+#include "hcache_gui.h"
 #include "fileinfo_gui.h"
 #include "visual_progress_gui.h"
 #include "upload_stats_cb.h"
@@ -67,10 +68,11 @@ gboolean on_progressbar_bws_lout_button_press_event(GtkWidget *widget, GdkEventB
 
 
 /***
- *** gnutellaNet panel
+ *** hostcache panel
  ***/
-void on_button_host_catcher_clear_clicked (GtkButton *button, gpointer user_data);
-void on_button_ultra_catcher_clear_clicked (GtkButton *button, gpointer user_data);
+void on_button_host_catcher_clear_clicked(GtkButton *button, gpointer user_data);
+void on_button_ultra_catcher_clear_clicked(GtkButton *button, gpointer user_data);
+void on_button_hostcache_clear_bad_clicked(GtkButton *button, gpointer user_data);
 
 
 
@@ -147,11 +149,5 @@ on_button_config_select_ui_clicked     (GtkButton       *button,
 void
 on_button_config_select_dbg_clicked    (GtkButton       *button,
                                         gpointer         user_data);
-void
-on_button_hostcache_clear_bad_clicked   (GtkButton       *button,
-                                        gpointer         user_data);
-
-void on_clist_hcache_resize_column(
-    GtkCList * clist, gint column, gint width, gpointer user_data);
 
 #endif	/* _callbacks_h_ */

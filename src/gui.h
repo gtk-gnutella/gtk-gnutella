@@ -233,6 +233,15 @@ typedef enum {
     num_c_horizon
 } c_horizon_t;
 
+/*
+ * Hostcache stats table columns
+ */
+enum {
+    c_hcs_name = 0,
+    c_hcs_host_count,
+    c_hcs_hits,
+    c_hcs_misses
+};
 
 
 /*
@@ -284,6 +293,7 @@ enum {
     nb_main_page_config,
 #endif
     nb_main_page_gnet_stats,
+    nb_main_page_hostcache,
 
     nb_main_page_num
 };
@@ -303,6 +313,7 @@ enum {
 enum {
     TREEMENU_NODE_GNET = 0,
     TREEMENU_NODE_GNET_STATS,
+    TREEMENU_NODE_HOSTCACHE,
     TREEMENU_NODE_UL,
     TREEMENU_NODE_UL_STATS,
     TREEMENU_NODE_DL,

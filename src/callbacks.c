@@ -146,15 +146,27 @@ gboolean on_progressbar_bws_lout_button_press_event(GtkWidget *widget,
 
 /* minimum connections up */
 
-void on_button_host_catcher_clear_clicked(GtkButton *button, gpointer user_data)
+void on_button_host_catcher_clear_clicked(
+    GtkButton *button, gpointer user_data)
 {
-	hcache_clear(HCACHE_ANY);
+	hcache_clear_host_type(HOST_ANY);
 }
 
-void on_button_ultra_catcher_clear_clicked(GtkButton *button, gpointer user_data)
+void on_button_ultra_catcher_clear_clicked(
+    GtkButton *button, gpointer user_data)
 {
-	hcache_clear(HCACHE_ULTRA);
+	hcache_clear_host_type(HOST_ULTRA);
 }
+
+void on_button_hostcache_clear_bad_clicked(
+    GtkButton *button, gpointer user_data)
+{
+    hcache_clear(HCACHE_TIMEOUT);
+    hcache_clear(HCACHE_BUSY);
+    hcache_clear(HCACHE_UNSTABLE);
+}
+
+
 
 /***
  *** Search Stats
@@ -430,18 +442,6 @@ void on_clist_search_resize_column(
     GtkCList * clist, gint column, gint width, gpointer user_data)
 {
     search_list_col_widths[column] = width;
-}
-
-void
-on_button_hostcache_clear_bad_clicked   (GtkButton       *button,
-                                        gpointer         user_data)
-{
-	/* XXX: Implement this */
-}
-void on_clist_hcache_resize_column(
-    GtkCList * clist, gint column, gint width, gpointer user_data)
-{
-	/* XXX: Implement this */
 }
 
 #ifdef USE_GTK2
