@@ -49,8 +49,6 @@ RCSID("$Id$");
 
 static GHashTable *used;		/* Records the IP address used */
 
-static gint finest_precision = MAX_DELTA;
-
 struct used_val {
 	guint *ip_atom;				/* The atom used for the key */
 	gint precision;				/* The precision used for the last update */
@@ -157,25 +155,12 @@ void clock_update(time_t update, gint precision, guint32 ip)
 	g_assert(used);
 
 	/*
-	 * If precision is more coarse grain than the finsest we've seen,
-	 * then discard update.  Don't consider precision=0, since this is
-	 * a special processing (clock synchronization via Time Sync from an
-	 * NTP-synchronized servent).
-	 */
-
-	if (precision > finest_precision)
-		return;
-
-	if (precision)
-		finest_precision = precision;
-
-	/*
 	 * Discard update if from an IP we've seen less than REUSE_DELAY secs ago
-	 * and the precision used for the update was more coarse grain than it
+	 * and the precision used for the update was more fine grained than it
 	 * is now.
 	 *
 	 * We always allow updates when the precision is 0, which means the remote
-	 * end was running NTP.
+	 * end is running NTP.
 	 */
 
 	if ((v = g_hash_table_lookup(used, &ip))) {
@@ -207,14 +192,19 @@ void clock_update(time_t update, gint precision, guint32 ip)
 
 	/*
 	 * Compute how far we land from the absolute time given our present skew.
-	 * If that epsilon is smaller than the precision of the measure, don't
-	 * further update the skew.
+	 * If that epsilon is smaller than the precision of the measure,
+	 * don't further update the skew.
 	 */
 
 	epsilon = now + skew - update;
 
-	if (ABS(epsilon) <= precision)
+	if (ABS(epsilon) <= precision) {
+		if (dbg)
+			printf("CLOCK rejecting update=%u, precision=%d [%s]"
+				" (epsilon=%d, within precision window)\n",
+				(guint32) update, precision, ip_to_gchar(ip), epsilon);
 		return;
+	}
 
 	/*
 	 * Limit the amount by which we can correct to avoid sudden jumps.
