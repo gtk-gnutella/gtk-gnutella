@@ -1,5 +1,8 @@
 # since last version
 
+- (2002.05.14 - Richard)
+  * Added lots of config stuff.
+
 - (2002.05.14 - RAM)
   * Added traffic compression ratios.
   * Added support for Gnet bandwidth limiting (core only, no GUI settings).
