@@ -400,15 +400,20 @@ gboolean version_check(const gchar *str, const gchar *token, guint32 ip)
 		tok_error_t error;
 
 		if (token == NULL) {
-			g_warning("got GTKG vendor string \"%s\" without token!", str);
+            if (dbg) {
+                g_message("got GTKG vendor string \"%s\" without token!", str);
+            }
 			return FALSE;	/* Can't be correct */
 		}
 
 		error = tok_version_valid(str, token, strlen(token), ip);
 
 		if (error != TOK_OK) {
-			g_warning("vendor string \"%s\" [%s] has wrong token \"%s\": %s ",
-				str, ip_to_gchar(ip), token, tok_strerror(error));
+            if (dbg) {
+                g_message("vendor string \"%s\" [%s] has wrong token "
+                    "\"%s\": %s ", str, ip_to_gchar(ip), token, 
+                    tok_strerror(error));
+            }
 			return FALSE;
 		}
 
