@@ -1633,6 +1633,8 @@ void file_info_retrieve(void)
 		g_warning("retrieving file info from \"%s\"%s", filename, instead);
 	}
 
+	line[sizeof(line)-1] = '\0';
+
 	while (fgets(line, sizeof(line), f)) {
 		gint len;
 		gboolean had_trailing_nl = FALSE;
