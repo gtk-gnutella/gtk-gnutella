@@ -172,9 +172,10 @@ gboolean download_send_request(struct download *);
 void download_retry(struct download *);
 void download_index_changed(guint32, guint16, guchar *, guint32, guint32);
 void download_close(void);
-void download_remove_all_from_peer(const gchar *guid);
-void download_remove_all_named(const gchar *name);
-void download_remove_all_regex(const gchar *regex);
+gint download_remove_all_from_peer(const gchar *guid);
+gint download_remove_all_named(const gchar *name);
+gint download_remove_all_with_sha1(const guchar *sha1);
+gint download_remove_all_regex(const gchar *regex);
 void download_remove_file(struct download *d);
 gboolean download_file_exists(struct download *d);
 

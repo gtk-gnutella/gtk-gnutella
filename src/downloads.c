@@ -351,15 +351,16 @@ static void queue_remove_all_named(const gchar *name, guint32 size)
  *
  * Remove all downloads to a given peer from the download queue
  * and abort all conenctions to peer in the active download list.
+ * Return the number of removed downloads.
  */
-void download_remove_all_from_peer(const gchar *guid)
+gint download_remove_all_from_peer(const gchar *guid)
 {
 	GSList *l;
 	GSList *to_remove = NULL;
 
 	int n = 0, m = 0;
 
-	g_return_if_fail(guid);
+	g_return_val_if_fail(guid, 0);
 
 	for (l = sl_downloads; l; l = g_slist_next(l)) {
 		struct download *d = (struct download *) l->data;
@@ -389,6 +390,8 @@ void download_remove_all_from_peer(const gchar *guid)
 	}
 
 	g_slist_free(to_remove);
+    
+    return m;
 }
 
 /*
@@ -396,15 +399,16 @@ void download_remove_all_from_peer(const gchar *guid)
  *
  * remove all downloads with a given name from the download queue
  * and abort all conenctions to peer in the active download list.
+ * Returns the number of removed downloads.
  */
-void download_remove_all_named(const gchar *name)
+gint download_remove_all_named(const gchar *name)
 {
 	GSList *l;
 	GSList *to_remove = NULL;
 	
 	int n = 0, m = 0;
 
-	g_return_if_fail(name);
+	g_return_val_if_fail(name, 0);
 	
 	g_snprintf(dl_tmp, sizeof(dl_tmp), "%s", name);
 
@@ -414,7 +418,7 @@ void download_remove_all_named(const gchar *name)
 		n ++;
 
 		if (!d) {
-			g_warning("download_remove_all_from_named(): NULL download");
+			g_warning("download_remove_all_named(): NULL download");
 			continue;
 		}
 
@@ -436,15 +440,67 @@ void download_remove_all_named(const gchar *name)
 	}
 
 	g_slist_free(to_remove);
+
+    return m;
 }
 
 /*
- * download_remove_all_named
+ * download_remove_all_with_sha1
+ *
+ * remove all downloads with a given sha1 hash from the download queue
+ * and abort all conenctions to peer in the active download list.
+ * Returns the number of removed downloads.
+ * Note: if sha1 is NULL, we do not clear all download with sha1==NULL
+ *       but abort instead.
+ */
+gint download_remove_all_with_sha1(const guchar *sha1)
+{
+	GSList *l;
+	GSList *to_remove = NULL;
+	
+	int n = 0, m = 0;
+
+	g_return_val_if_fail(sha1 != NULL, 0);
+	
+	for (l = sl_downloads; l; l = g_slist_next(l)) {
+		struct download *d = (struct download *) l->data;
+
+		n ++;
+
+		if (!d) {
+			g_warning("download_remove_all_with_sha1(): NULL download");
+			continue;
+		}
+
+		if ((d->sha1 != NULL) && (memcmp(sha1, d->sha1, SHA1_RAW_SIZE) == 0)) 
+			to_remove = g_slist_prepend(to_remove, d);
+	}
+
+	for (l = to_remove; l; l = l->next) {
+		struct download *d = (struct download *) l->data;
+		m ++;
+		switch (d->status) {
+		case GTA_DL_QUEUED:
+		case GTA_DL_TIMEOUT_WAIT:
+			download_free(d);
+			break;
+		default:
+			download_abort(d);
+		}
+	}
+
+	g_slist_free(to_remove);
+    
+    return m;
+}
+
+/*
+ * download_remove_all_regex
  *
  * remove all downloads with a given name from the download queue
  * and abort all conenctions to peer in the active download list.
  */
-void download_remove_all_regex(const gchar *regex)
+gint download_remove_all_regex(const gchar *regex)
 {
 	GSList *l;
 	GSList *to_remove = NULL;
@@ -454,13 +510,13 @@ void download_remove_all_regex(const gchar *regex)
 	int err;
 	regex_t *re;
 
-	g_return_if_fail(regex);
+	g_return_val_if_fail(regex, 0);
 	
 	g_snprintf(dl_tmp, sizeof(dl_tmp), "%s", regex);
 	
 	re = g_new(regex_t, 1);
 
-	g_return_if_fail(re);
+	g_return_val_if_fail(re, 0);
 
 	err = regcomp(re, regex,
 		REG_EXTENDED|REG_NOSUB|(queue_regex_case ? 0 : REG_ICASE));
@@ -469,8 +525,8 @@ void download_remove_all_regex(const gchar *regex)
 		char buf[1000];
 		regerror(err, re, buf, 1000);
 		g_error("download_remove_all_regex: regex error %s",buf);
-		msgid = gui_statusbar_push(scid_queue_remove_regex, buf);
-		gui_statusbar_add_timeout(scid_queue_remove_regex, msgid, 15);
+		msgid = gui_statusbar_push(scid_warn, buf);
+		gui_statusbar_add_timeout(scid_warn, msgid, 15);
 	} else {
 		for (l = sl_downloads; l; l = g_slist_next(l)) {
 			int i;
@@ -500,16 +556,12 @@ void download_remove_all_regex(const gchar *regex)
 			 */
 			download_free(d);
 		}
-
-		g_snprintf(dl_tmp, sizeof(dl_tmp), 
-				   "Removed %u of %u queued downloads matching \"%s\".", 
-				   m, n, regex);
-		msgid = gui_statusbar_push(scid_queue_remove_regex, dl_tmp);
-		gui_statusbar_add_timeout(scid_queue_remove_regex, msgid, 15);
 	}
 
 	g_free(re);
 	g_slist_free(to_remove);
+
+    return m;
 }
 
 /*
