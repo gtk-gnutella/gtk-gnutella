@@ -96,10 +96,34 @@ gboolean http_send_status(
 	gchar *token;
 	gint header_size = sizeof(header);
 	gboolean saturated = bsched_saturated(bws.out);
+	gint cb_flags = 0;
 
 	va_start(args, reason);
 	gm_vsnprintf(status_msg, sizeof(status_msg)-1,  reason, args);
 	va_end(args);
+
+	/*
+	 * Prepare flags for callbacks.
+	 */
+
+	if (saturated)					cb_flags |= HTTP_CBF_BW_SATURATED;
+	if (code == 503)				cb_flags |= HTTP_CBF_BUSY_SIGNAL;
+
+	/*
+	 * On 5xx errors, limit the header to 1K max, a priori.  This will be
+	 * further reduced below if we have saturated the bandwidth.
+	 * Likewise, on 4xx errors, we don't need to send much, excepted on 416:
+	 * we need a longer reply when the connection is kept alive because of
+	 * the available ranges to propagate.
+	 */
+
+	if		(code >= 500 && code <= 599)	header_size = 1024;
+	else if	(code >= 400 && code <= 499)	header_size = 512;
+
+	if (code == 416 && keep_alive) {
+		header_size = sizeof(header);
+		cb_flags |= HTTP_CBF_SHOW_RANGES;
+	}
 
 	/*
 	 * If bandwidth is short, drop X-Live-Since, and reduce the header
@@ -112,6 +136,7 @@ gboolean http_send_status(
 		version = version_short_string;
 		token = tok_short_version();
 		header_size = 512;
+		cb_flags |= HTTP_CBF_SMALL_REPLY;
 	} else {
 		gm_snprintf(xlive, sizeof(xlive)-1,
 			"X-Live-Since: %s\r\n", start_rfc822_date);
@@ -155,8 +180,8 @@ gboolean http_send_status(
 			{
 				/* The -3 is there to leave room for "\r\n" + NUL */
 				gint len = header_size - rw - 3;
-				
-				(*he->he_cb)(&header[rw], &len, he->he_arg);
+
+				(*he->he_cb)(&header[rw], &len, he->he_arg, cb_flags);
 
 				g_assert(len + rw <= header_size);
 
@@ -186,8 +211,8 @@ gboolean http_send_status(
 			sent, rw, code, reason, ip_to_gchar(s->ip), g_strerror(errno));
 		return FALSE;
 	} else if (dbg > 2) {
-		printf("----Sent HTTP Status to %s:\n%.*s----\n",
-			ip_to_gchar(s->ip), rw, header);
+		printf("----Sent HTTP Status to %s (%d bytes):\n%.*s----\n",
+			ip_to_gchar(s->ip), rw, rw, header);
 		fflush(stdout);
 	}
 
@@ -2178,8 +2203,8 @@ static void http_async_write_request(
 		http_buffer_add_read(r, sent);
 		return;
 	} else if (dbg > 2) {
-		printf("----Sent HTTP request completely to %s:\n%.*s----\n",
-			ip_port_to_gchar(s->ip, s->port),
+		printf("----Sent HTTP request completely to %s (%d bytes):\n%.*s----\n",
+			ip_port_to_gchar(s->ip, s->port), http_buffer_length(r),
 			http_buffer_length(r), http_buffer_base(r));
 		fflush(stdout);
 	}
@@ -2264,8 +2289,8 @@ void http_async_connected(gpointer handle)
 
 		return;
 	} else if (dbg > 2) {
-		printf("----Sent HTTP request to %s:\n%.*s----\n",
-			ip_port_to_gchar(s->ip, s->port), (int) rw, req);
+		printf("----Sent HTTP request to %s (%d bytes):\n%.*s----\n",
+			ip_port_to_gchar(s->ip, s->port), (int) rw, (int) rw, req);
 		fflush(stdout);
 	}
 

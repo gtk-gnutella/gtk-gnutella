@@ -33,7 +33,6 @@
 #define HTTP_PORT		80		/* Registered HTTP port */
 #define MAX_HOSTLEN		256		/* Max length for FQDN host */
 
-
 struct gnutella_socket;
 struct header;
 
@@ -54,11 +53,13 @@ typedef enum {
  * `buf' is where the callback can generate extra data.
  * `retlen' is initially filled with the room available in `buf'.
  * `arg' is user-supplied data.
+ * `flags' are extra flags passed by callback invoker
  *
  * The callback is expected to fill `buf' and return the length of written
  * data into `retlen'.
  */
-typedef void (*http_status_cb_t)(gchar *buf, gint *retlen, gpointer arg);
+typedef void (*http_status_cb_t)(
+	gchar *buf, gint *retlen, gpointer arg, guint32 flags);
 
 typedef struct {
 	http_extra_type_t he_type;		/* Union discriminent */
@@ -74,6 +75,15 @@ typedef struct {
 #define he_msg	u.u_msg
 #define he_cb	u.u_cbk.u_cb
 #define he_arg	u.u_cbk.u_arg
+
+/*
+ * Flags used during callback invocation.
+ */
+
+#define HTTP_CBF_SMALL_REPLY	0x00000001	/* Try to emit smallest reply */
+#define HTTP_CBF_BW_SATURATED	0x00000002	/* Bandwidth is saturated */
+#define HTTP_CBF_BUSY_SIGNAL	0x00000004	/* Sending back a 503 "busy" */
+#define HTTP_CBF_SHOW_RANGES	0x00000008	/* Show available ranges */
 
 /*
  * http_header_cb_t
