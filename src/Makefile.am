@@ -37,6 +37,7 @@ GLADE_UI = \
 	support-glade2.c support-glade2.h
 ADDITIONAL_DROPIN = \
 	filter.c filter.h filter_cb.c filter_cb.h filter_gui.c filter_gui.h \
+	glib-missing.c glib-missing.h \
 	gtk-missing.c gtk-missing.h \
 	gui.c gui.h \
 	callbacks.c callbacks.h \
@@ -64,6 +65,7 @@ GLADE_UI = \
 	support-glade1.c support-glade1.h
 ADDITIONAL_DROPIN = \
 	filter.c filter.h filter_cb.c filter_cb.h filter_gui.c filter_gui.h \
+	glib-missing.c glib-missing.h \
 	gtk-missing.c gtk-missing.h \
 	gui.c gui.h \
 	callbacks.c callbacks.h \
