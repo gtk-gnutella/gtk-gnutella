@@ -131,10 +131,12 @@ GList *g_list_delete_link(GList *l, GList *lnk)
 #define DO_VSNPRINTF() do {					\
 	str[0] = '\0';							\
 	retval = vsnprintf(str, n, fmt, args);	\
-	if (retval < 0) {				/* Old versions of vsnprintf() */ \
+	if (retval < 0) {						\
+		/* Old versions of vsnprintf() */ 	\
 		str[n - 1] = '\0';					\
 		retval = strlen(str);				\
-	} else if (retval >= n) {		/* New versions (compliant with C99) */ \
+	} else if ((size_t) retval >= n) {		\
+	/* New versions (compliant with C99) */ \
 		str[n - 1] = '\0';					\
 		retval = n - 1;						\
 	}										\
@@ -142,7 +144,7 @@ GList *g_list_delete_link(GList *l, GList *lnk)
 #else	/* !HAVE_VSNPRINTF */
 #define DO_VSNPRINTF() do {							\
 	gchar *printed = g_strdup_vprintf(fmt, args);	\
-	gint l = g_strlcpy(str, printed, n);			\
+	size_t l = g_strlcpy(str, printed, n);			\
 	retval = MIN((n - 1), l);						\
 	G_FREE_NULL(printed);							\
 } while (0)
@@ -160,12 +162,12 @@ size_t gm_vsnprintf(gchar *str, size_t n, gchar const *fmt, va_list args)
 
 	g_return_val_if_fail (str != NULL, 0);
 	g_return_val_if_fail (fmt != NULL, 0);
-	g_return_val_if_fail (n > 0, 0);
-	g_return_val_if_fail (n <= INT_MAX, 0);
+	g_return_val_if_fail ((ssize_t) n > 0, 0);
+	g_return_val_if_fail (n <= (size_t) INT_MAX, 0);
 
 	DO_VSNPRINTF();
 
-	g_assert(retval >= 0 && retval < n);
+	g_assert((size_t) retval < n);
 
 	return retval;
 }
@@ -184,14 +186,14 @@ size_t gm_snprintf(gchar *str, size_t n, gchar const *fmt, ...)
 
 	g_return_val_if_fail (str != NULL, 0);
 	g_return_val_if_fail (fmt != NULL, 0);
-	g_return_val_if_fail (n > 0, 0);
-	g_return_val_if_fail (n <= INT_MAX, 0);
+	g_return_val_if_fail ((ssize_t) n > 0, 0);
+	g_return_val_if_fail (n <= (size_t) INT_MAX, 0);
 
 	va_start (args, fmt);
 	DO_VSNPRINTF();
 	va_end (args);
 
-	g_assert(retval >= 0 && retval < n);
+	g_assert((size_t) retval < n);
 
 	return retval;
 }
@@ -339,3 +341,4 @@ unsigned long gm_atoul(const char *str, char **endptr, int *errorcode)
 	return ret;
 }
 
+/* vi: set ts=4: */
