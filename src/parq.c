@@ -145,7 +145,7 @@ struct parq_ul_queued {
 	guint32 remote_ip;		/* IP address of the socket endpoint */
 	
 	guint32 file_size;		/* Needed to recalculate ETA */
-	
+	guint32 chunk_size;		/* Requested chunk size */
 	guint32 ip;				/* Contact IP:port, as read from X-Node: */
 	guint16 port;
 
@@ -1217,6 +1217,27 @@ static void parq_upload_free(struct parq_ul_queued *parq_ul)
 guint32 parq_ul_calc_retry(struct parq_ul_queued *parq_ul)
 {
 	int result = 60 + 45 * (parq_ul->relative_position - 1);
+	int fast_result;
+	struct parq_ul_queued *parq_ul_prev = NULL;
+	GList *l = NULL;
+	
+	l = g_list_find(parq_ul->queue->by_rel_pos, parq_ul);
+	
+	if (l == NULL)
+		l = g_list_last(parq_ul->queue->by_position);
+	
+	if (l == NULL)
+		return MIN(PARQ_MAX_UL_RETRY_DELAY, result);
+	
+	if (l->prev != NULL) {
+		parq_ul_prev = (struct parq_ul_queued *) l->prev->data;
+	
+		g_assert(parq_ul_prev != NULL);
+		
+		fast_result = parq_ul_prev->chunk_size / bw_http_out;
+	
+		result = MIN(result, fast_result);
+	}
 	
 	return MIN(PARQ_MAX_UL_RETRY_DELAY, result);
 }
@@ -1894,6 +1915,12 @@ static gboolean parq_upload_continue(struct parq_ul_queued *uq, gint free_slots)
 		return FALSE;
 
 	/*
+	 * Don't allow more than max_uploads_ip per single host (IP)
+	 */
+	if (uq->by_ip->uploading >= max_uploads_ip)
+		return FALSE;
+	
+	/*
 	 * If the number of upload slots have been decreased, an old queue
 	 * may still exist. What to do with those uploads? Should we make
 	 * sure those uploads are served first? Those uploads should take
@@ -2187,12 +2214,15 @@ gboolean parq_upload_request(gnutella_upload_t *u, gpointer handle,
 	time_t now = time((time_t *) NULL);
 	time_t org_retry = parq_ul->retry; 
 	
+	parq_ul->chunk_size = abs(u->skip - u->end);
 	parq_ul->updated = now;
 	parq_ul->retry = now + parq_ul_calc_retry(parq_ul);
 	
 	g_assert(parq_ul->eta - now > 0);
 	
-	parq_ul->expire = MIN_LIFE_TIME + parq_ul->retry;
+	/* If the chunk sizes are really small, expire them sooner */
+	parq_ul->expire = parq_ul->retry + parq_ul->chunk_size / bw_http_out;
+	parq_ul->expire = MIN(MIN_LIFE_TIME + parq_ul->retry, parq_ul->expire);
 	
 	if (
 		org_retry > now && 
@@ -2297,12 +2327,11 @@ void parq_upload_busy(gnutella_upload_t *u, gpointer handle)
 	g_assert(parq_ul->by_ip != NULL);
 	g_assert(parq_ul->by_ip->ip == parq_ul->remote_ip);
 	
-	if (!parq_ul->has_slot)
-		parq_ul->by_ip->uploading++;
 	
 	parq_ul->has_slot = TRUE;
 	parq_ul->had_slot = TRUE;
 	parq_ul->queue->active_uploads++;
+	parq_ul->by_ip->uploading++;
 }
 
 void parq_upload_add(gnutella_upload_t *u)
@@ -2453,7 +2482,18 @@ gboolean parq_upload_remove(gnutella_upload_t *u)
 		/* Disconnected upload is allowed to reconnect immediatly */
 		parq_ul->has_slot = FALSE;
 		parq_ul->retry = now;
+		
+		/*
+		 * The upload slot expires rather soon to speed up uploading. This 
+		 * doesn't prevent a broken connection from reconnecting though, it is
+		 * just not garanteed anymore that it will regain its upload slot
+		 * immediatly
+		 */
+#if 1
+		parq_ul->expire = now + 1;
+#else
 		parq_ul->expire = now + MIN_LIFE_TIME;
+#endif
 	}
 	
 	return return_result;
@@ -2470,10 +2510,6 @@ gboolean parq_upload_remove(gnutella_upload_t *u)
  *
  * NB: Adds a Retry-After field for servents that will not understand PARQ,
  * to make sure they do not re-request too soon.
- *
- * XXX The value for Retry-After should probably be stored in the queue.
- * XXX If they come back before that amount, it means they do not honour
- * XXX this standard HTTP field and should be penalized.  Not much, but still.
  */
 void parq_upload_add_header(gchar *buf, gint *retval, gpointer arg)
 {	
