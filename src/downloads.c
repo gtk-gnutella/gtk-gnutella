@@ -505,13 +505,12 @@ static void download_push_insert(struct download *d)
 	 * warning should not happen.  It will indicate a bug. --RAM, 01/01/2002
 	 */
 
-	if (0 != g_hash_table_lookup(pushed_downloads, (gpointer) key)) {
+	if (0 != g_hash_table_lookup(pushed_downloads, (gpointer) key))
 		g_warning("BUG: duplicate push ignored for \"%s\"", d->file_name);
-		d->push = FALSE;		/* Don't do it */
-	} else {
+	else
 		g_hash_table_insert(pushed_downloads, (gpointer) key, (gpointer) d);
-		d->push = TRUE;
-	}
+
+	d->push = TRUE;
 }
 
 /*
