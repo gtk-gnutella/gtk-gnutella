@@ -570,13 +570,14 @@ void main_gui_init(void)
         GTK_CLIST(lookup_widget(main_window, "clist_downloads_queue")),
         c_queue_size, GTK_JUSTIFY_RIGHT);
 
+	{
+		GtkCList *clist = 
+			GTK_CLIST(lookup_widget(main_window, "clist_downloads_queue"));
 
-	GtkCList *clist = 
-            GTK_CLIST(lookup_widget(main_window, "clist_downloads_queue"));
-
-        gtk_clist_column_titles_passive(clist);
-        gtk_clist_set_reorderable(clist, TRUE);
-        gtk_clist_set_use_drag_icons(clist, FALSE);
+		gtk_clist_column_titles_passive(clist);
+		gtk_clist_set_reorderable(clist, TRUE);
+		gtk_clist_set_use_drag_icons(clist, FALSE);
+	}
 #endif
 
     /* FIXME: those gtk_widget_set_sensitive should become obsolete when
