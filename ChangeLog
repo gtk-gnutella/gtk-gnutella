@@ -1,5 +1,13 @@
 # since last version
 
+- (2004-09-08 - RAM)
+ * Moved query hit generation from share.c to new qhit.c.
+ * Changed process for generating query hits: the matching code now generates
+   a list of hits, and that list is then traversed to generate the necessary
+   query hit messages.
+ * Changed frequency of inter-UP QRP exchanges: now performs one update every
+   5 minutes instead of one every 90 secs.
+
 - (2004-09-06 - RAM)
  * Added UDP bandwidth schedulers for Gnet traffic, taking half the bandwidth.
    The other half being given to the TCP Gnet traffic.  Both auto-steal their
