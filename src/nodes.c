@@ -454,7 +454,8 @@ static inline void node_error_cleanup(void)
 		g_assert(bad_node != NULL);
 		g_assert(bad_node->vendor != NULL);
 			
-		g_warning("[nodes up] Unbanning client: %s", bad_node->vendor);
+		if (dbg > 1)
+			g_warning("[nodes up] Unbanning client: %s", bad_node->vendor);
 			
 		g_hash_table_remove(unstable_servent, bad_node->vendor);
 		unstable_servents = g_slist_remove(unstable_servents, bad_node);
@@ -1039,7 +1040,8 @@ gboolean node_ip_is_bad(guint32 ip) {
 	bad_ip = g_hash_table_lookup(unstable_ip, GUINT_TO_POINTER(ip));
 	
 	if (bad_ip != NULL) {
-		g_warning("[nodes up] Unstable ip %s", ip_to_gchar(ip));
+		if (dbg)
+			g_warning("[nodes up] Unstable ip %s", ip_to_gchar(ip));
 		return TRUE;
 	}
 		
