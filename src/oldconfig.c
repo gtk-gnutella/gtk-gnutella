@@ -683,9 +683,6 @@ void config_set_param(keyword_t keyword, gchar *value)
         CONFIG_SET_NUM(
             min_dup_msg, gnet,
             PROP_MIN_DUP_MSG)
-        CONFIG_SET_NUM(
-            min_dup_ratio, gnet,
-            PROP_MIN_DUP_RATIO)
         CONFIG_SET_IP(
             local_ip, gnet,
             PROP_LOCAL_IP)
@@ -790,6 +787,12 @@ void config_set_param(keyword_t keyword, gchar *value)
 	case k_win_w:
 	case k_win_h:
 		return;
+
+    case k_min_dup_ratio: {
+        guint32 v = atof(value)*100;
+        gnet_prop_set_guint32(PROP_MIN_DUP_RATIO, &v, 0, 1);
+		return;
+    }
 
     case k_send_pushes: {
         gboolean b = (gboolean) i;

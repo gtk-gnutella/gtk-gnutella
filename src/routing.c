@@ -934,8 +934,8 @@ gboolean route_message(struct gnutella_node **node, struct route_dest *dest)
 
 				if (++(sender->n_dups) > min_dup_msg &&
 					connected_nodes() > MAX(2, up_connections) &&
-					sender->n_dups >
-						(guint16) (min_dup_ratio / 100.0 * sender->received)
+					sender->n_dups > (guint16) 
+                        (((float)min_dup_ratio) / 10000.0 * sender->received)
 				) {
 					node_bye(sender, 401, "Sent %d dups (%.1f%% of RX)",
 						sender->n_dups, sender->received ?
