@@ -2024,6 +2024,18 @@ static void upload_request(gnutella_upload_t *u, header_t *header)
 	 */
 
 	if (!head_only) {
+		if (is_followup && parq_upload_lookup_position(u) == -1) {
+			/*
+			 * Allthough the request is an follow up request, the last time the
+			 * upload didn't get a parq slot. There is probably a good reason 
+			 * for this. The most logical explantion is that the client did a
+			 * HEAD only request with a keep-alive. However, no parq structure
+			 * is set for such an upload. So we should treat as a new upload.
+			 *		-- JA, 1/06/'03
+			 */
+			is_followup = FALSE;
+		}
+		
 		parq_handle = parq_upload_get(u, header);
 
 		if (parq_handle == NULL) {
