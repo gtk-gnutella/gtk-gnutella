@@ -130,8 +130,9 @@ guint32 search_reissue_timeout = 600;	/* 10 minutes */
 
 gboolean proxy_connections = FALSE;
 gint proxy_protocol = 4;
-gchar *proxy_ip = "0.0.0.0";
+static gchar *static_proxy_ip = "0.0.0.0";
 gint proxy_port = 1080;
+gchar *proxy_ip = NULL;
 
 #define SOCKSV5_USER	0
 #define SOCKSV5_PASS	1
@@ -402,6 +403,7 @@ void config_init(void)
 	config_dir = g_strdup(getenv("GTK_GNUTELLA_DIR"));
 	socksv5_user = socksv5[SOCKSV5_USER];
 	socksv5_pass = socksv5[SOCKSV5_PASS];
+	proxy_ip = static_proxy_ip;
 	memset(guid, 0, sizeof(guid));
 
 	pwd = getpwuid(getuid());
@@ -1718,7 +1720,7 @@ void config_close(void)
 		g_free(save_file_path);
 	if (move_file_path)
 		g_free(move_file_path);
-	if (proxy_ip)
+	if (proxy_ip && proxy_ip != static_proxy_ip)
 		g_free(proxy_ip);
 	if (socksv5_user && socksv5_user != socksv5[SOCKSV5_USER])
 		g_free(socksv5_user);
