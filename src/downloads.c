@@ -241,25 +241,29 @@ static guint32 count_running_downloads_with_name(const char *name)
 	return n;
 }
 
-static gboolean has_same_active_download(gchar *file, gchar *guid)
+/*
+ * has_same_active_download
+ *
+ * Check whether we already have an identical (same file, same GUID)
+ * active download as the specified one.
+ *		--RAM, 04/11/2001
+ *
+ * Returns found active download, or NULL if we have no such download yet.
+ */
+static struct download *has_same_active_download(gchar *file, gchar *guid)
 {
-	/*
-	 * Check whether we already have an identical (same file, same GUID)
-	 * active download as the specified one.
-	 *		--RAM, 04/11/2001
-	 */
-
 	GSList *l;
 
 	for (l = sl_downloads; l; l = l->next) {
 		struct download *d = (struct download *) l->data;
 		if (DOWNLOAD_IS_STOPPED(d))
 			continue;
-		if (0 == strcmp(file, d->file_name) && 0 == memcmp(guid, d->guid, 16))
-			return TRUE;
+		if (0 == strcmp(file, d->file_name) && 0 == memcmp(guid, d->guid, 16)) {
+			return d;
+		}
 	}
 
-	return FALSE;
+	return NULL;
 }
 
 /*
@@ -1292,9 +1296,17 @@ static void create_download(
 	 * Refuse to queue the same download twice. --RAM, 04/11/2001
 	 */
 
-	if (has_same_active_download(file_name, guid)) {
+	if ((d = has_same_active_download(file_name, guid))) {
 		if (interactive)
 			g_warning("rejecting duplicate download for %s", file_name);
+
+		if (ip != d->ip || port != d->port) {
+			d->ip = ip;
+			d->port = port;
+			g_warning("updated IP:port for %s to %s",
+				file_name, ip_port_to_gchar(ip, port));
+		}
+
 		g_free(file_name);
 		return;
 	}
@@ -1580,7 +1592,7 @@ void download_resume(struct download *d)
 	if (DOWNLOAD_IS_RUNNING(d))
 		return;
 
-	if (has_same_active_download(d->file_name, d->guid)) {
+	if (NULL != has_same_active_download(d->file_name, d->guid)) {
 		d->status = GTA_DL_CONNECTING;		/* So we may call download_stop */
 		download_stop(d, GTA_DL_ERROR, "Duplicate");
 		return;
