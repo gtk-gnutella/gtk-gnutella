@@ -1274,7 +1274,13 @@ void node_eof(struct gnutella_node *n, const gchar *reason, ...)
 
 	g_assert(n);
 
-	node_mark_bad(n);
+	/*
+	 * If the Gnutella connection was established, we should have got a BYE
+	 * to cleanly shutdown.
+	 */
+
+	if (n->flags & NODE_F_ESTABLISHED)
+		node_mark_bad(n);
 
 	va_start(args, reason);
 
