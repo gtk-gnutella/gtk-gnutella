@@ -3,6 +3,8 @@
 - (2002.06.02 - RAM)
   * Added build dependency on libxml2-dev in debian control.
   * Force --enable-xml-store in debian's build.
+  * Will now prevent propagation of badly formed/too short queries.
+  * Replaced more gtk_idle_add() calls with g_idle_add().
 
 - (2002.06.01 - Richard)
   * Disabled xml backend by default. Use "configure --enable-xml-store"
