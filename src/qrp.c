@@ -811,34 +811,35 @@ void qrp_add_file(struct shared_file *sf)
 	 * Copy filename to buffer, since we're going to map it inplace.
 	 */
 
-#ifndef USE_ICU
-	if (sf->file_name_len >= buffer.len) {
-		gint grow = MAX(MIN_BUF_GROW, sf->file_name_len - buffer.len + 1);
-
-		buffer.arena = g_realloc(buffer.arena, buffer.len + grow);
-		buffer.len += grow;
-	}
-	g_assert(sf->file_name_len <= (buffer.len + 1));
-
-	strncpy(buffer.arena, sf->file_name, buffer.len);
-
-	/*
-	 * Apply our mapping filter, which will keep only words and lowercase
-	 * everything.  All other letters are replaced by spaces, so that
-	 * we may use query_make_word_vec() to break them up.
-	 */
-
-	(void) match_map_string(qrp_map, buffer.arena);
-	wocnt = query_make_word_vec(buffer.arena, &wovec);
-#else
-	{
+#ifdef USE_ICU
+	if (utf8_is_valid_string(sf->file_name, sf->file_name_len)) {
 		gchar *normalised_filename;
-
 		normalised_filename = unicode_canonize(sf->file_name);
 		wocnt = query_make_word_vec(normalised_filename, &wovec);
 		G_FREE_NULL(normalised_filename);
 	}
+	else
 #endif
+	{
+		if (sf->file_name_len >= buffer.len) {
+			gint grow = MAX(MIN_BUF_GROW, sf->file_name_len - buffer.len + 1);
+
+			buffer.arena = g_realloc(buffer.arena, buffer.len + grow);
+			buffer.len += grow;
+		}
+		g_assert(sf->file_name_len <= (buffer.len + 1));
+
+		strncpy(buffer.arena, sf->file_name, buffer.len);
+
+		/*
+		 * Apply our mapping filter, which will keep only words and
+		 * lowercase everything.  All other letters are replaced by spaces,
+		 * so that we may use query_make_word_vec() to break them up.
+		 */
+
+		(void) match_map_string(qrp_map, buffer.arena);
+		wocnt = query_make_word_vec(buffer.arena, &wovec);
+	}
 
 	if (wocnt == 0)
 		return;

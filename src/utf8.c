@@ -1018,6 +1018,7 @@ int unicode_filters(const UChar *source, gint32 len, UChar *result)
  * unicode_canonize
  *
  * Apply the NFKD/NFC algo to have nomalized keywords
+ * The string `in' MUST be valid UTF-8 or that function would return rubbish.
  */
 gchar *unicode_canonize(const gchar *in)
 {
@@ -1029,6 +1030,8 @@ gchar *unicode_canonize(const gchar *in)
 
 	len = strlen(in);
 	maxlen = len*6; /* Max 6 bytes for one char in utf8 */
+
+	g_assert(utf8_is_valid_string(in, len));
 
 	qtmp1 = (UChar *) g_malloc(maxlen*sizeof(UChar));
 	qtmp2 = (UChar *) g_malloc(maxlen*sizeof(UChar));
