@@ -34,7 +34,7 @@ prop = {
     desc = "Match queue selection by regexp case sensitive";
     type = boolean;
     data = {
-        default = TRUE;
+        default = FALSE;
     };
 };
 
@@ -237,7 +237,7 @@ prop = {
     desc = "Size of the sidebar";
     type = guint32;
     data = {
-        default = 120;
+        default = 140;
         min     = 0x0000;
         max     = 0xFFFF;
     };
@@ -292,7 +292,7 @@ prop = {
     desc = "Size of the filter tree in the filter dialog";
     type = guint32;
     data = {
-        default = 0x0000;
+        default = 140;
         min     = 0x0000;
         max     = 0xFFFF;
     };
@@ -430,7 +430,7 @@ prop = {
            "matches exactly, otherwise it must be equal or greater";
     type = boolean;
     data = {
-        default = FALSE;
+        default = TRUE;
     };
 };
 
@@ -439,7 +439,7 @@ prop = {
     desc = "Jump to downloads screen when downloading a file";
     type = boolean;
     data = {
-        default = TRUE;
+        default = FALSE;
     };
 };
 
