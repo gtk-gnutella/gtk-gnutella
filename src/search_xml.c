@@ -250,36 +250,62 @@ gboolean search_retrieve_xml(void)
 	xmlDocPtr doc;
     xmlNodePtr node;
     xmlNodePtr root;
-    GList *f;
-	gchar *path;
-    
+	GList  *f;
+	gchar *path = NULL;
+	gchar *path_orig = NULL;
+
+	/*
+	 * We can't use routines from file.c here because libxml2 only defines
+	 * interfaces for parsing a path or memory, but not for parsing a FILE
+	 * stream!  Unbelievable.
+	 *		--RAM, 16/07/2003
+	 */
+	
   	path = g_strdup_printf("%s/%s", settings_gui_config_dir(),
 			search_file_xml);
-	g_return_val_if_fail(NULL != path, FALSE);
-	
-	/* 
-     * if the file doesn't exist 
-     */
-	if (!file_exists(path)) {
-        g_warning("Searches file does not exist: %s", path);
-		G_FREE_NULL(path);
-		return FALSE;
-    }
-	
+	if (NULL == path)
+		goto out;
+
+  	path_orig = g_strdup_printf("%s/%s.orig", settings_gui_config_dir(),
+			search_file_xml);
+	if (NULL == path_orig)
+		goto out;
 
 	/* 
-     * parse the new file and put the result into newdoc 
+     * If the file doesn't exist, try retrieving from the .orig version.
      */
-	doc = xmlParseFile(path);
+
+	if (file_exists(path)) {
+		if (-1 == rename(path, path_orig)) {
+			g_warning("could not rename \"%s\" as \"%s\": %s",
+				path, path_orig, g_strerror(errno));
+			G_FREE_NULL(path_orig);
+			path_orig = path;
+			path = NULL;
+		} else
+			G_FREE_NULL(path);
+	} else {
+        g_warning("searches file does not exist: %s", path);
+		G_FREE_NULL(path);
+
+		if (!file_exists(path_orig))
+			goto out;
+
+		g_warning("retrieving searches from %s instead", path_orig);
+    }
+
+	/* 
+     * parse the file and put the result into newdoc 
+     */
+	doc = xmlParseFile(path_orig);
     root = xmlDocGetRootElement(doc);
 
 	/* 
      * in case something went wrong 
      */
     if(!doc) {
-        g_warning("Error parsing searches file: %s", path);
-		G_FREE_NULL(path);
-		return FALSE;
+        g_warning("error parsing searches file: %s", path_orig);
+		goto out;
     }
 
 	if (/* if there is no root element */
@@ -289,12 +315,11 @@ gboolean search_retrieve_xml(void)
 	    /* if it isn't a Genealogy node */
 	    g_ascii_strcasecmp((const gchar *) root->name, "Searches") != 0
     ) {
-        g_warning("Searches file has invalid format: %s", path);
+        g_warning("searches file has invalid format: %s", path);
 		xmlFreeDoc(doc);
-		G_FREE_NULL(path);
-		return FALSE;
+		goto out;
 	}
-	G_FREE_NULL(path);
+	G_FREE_NULL(path_orig);
 
     id_map = g_hash_table_new(NULL, NULL);
 
@@ -392,6 +417,14 @@ gboolean search_retrieve_xml(void)
     xmlCleanupParser();
 
 	return TRUE;
+
+out:
+	if (path != NULL)
+		G_FREE_NULL(path);
+	if (path_orig != NULL)
+		G_FREE_NULL(path_orig);
+
+	return FALSE;
 }
 
 static void builtin_to_xml(xmlNodePtr parent)
