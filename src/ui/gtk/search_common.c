@@ -335,9 +335,10 @@ search_gui_unref_record(record_t *rc)
 static inline void
 free_r_sets_helper(gpointer data, gpointer unused_udata)
 {
+	results_set_t *rs = data;
+	
 	(void) unused_udata;
 
-	results_set_t *rs = data;
 	search_gui_free_r_set(rs);
 }
 
