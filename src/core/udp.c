@@ -108,9 +108,14 @@ udp_is_valid_gnet(struct gnutella_socket *s)
 
 drop:
 	gnet_stats_count_dropped(n, MSG_DROP_UNEXPECTED);
-	/* FALL THROUGH */
+	gnet_stats_count_general(n, GNR_UDP_UNPROCESSED_MESSAGE, 1);
+	goto log;
 
 not:
+	gnet_stats_count_general(n, GNR_UDP_ALIEN_MESSAGE, 1);
+	/* FALL THROUGH */
+
+log:
 	if (udp_debug) {
 		g_warning("got invalid Gnutella packet from UDP: %s", msg);
 		if (s->pos)
@@ -152,6 +157,7 @@ udp_received(struct gnutella_socket *s)
 		bogus = TRUE;
 		g_warning("UDP datagram (%d byte%s) received from bogus IP %s",
 			s->pos, s->pos == 1 ? "" : "s", ip_to_gchar(s->ip));
+		gnet_stats_count_general(NULL, GNR_UDP_BOGUS_SOURCE_IP, 1);
 	}
 
 	if (!udp_is_valid_gnet(s))
