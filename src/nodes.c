@@ -669,14 +669,20 @@ static void node_remove_v(
 	if (n->routing_data)
 		routing_node_remove(n);
 
-	if (n->qrt_update)
+	if (n->qrt_update) {
 		qrt_update_free(n->qrt_update);
+		n->qrt_update = NULL;
+	}
 
-	if (n->qrt_receive)
+	if (n->qrt_receive) {
 		qrt_receive_free(n->qrt_receive);
+		n->qrt_receive = NULL;
+	}
 
-	if (n->query_table)
+	if (n->query_table) {
 		qrt_unref(n->query_table);
+		n->query_table = NULL;
+	}
 
 	if (n->rxfc)
 		wfree(n->rxfc, sizeof(*n->rxfc));
