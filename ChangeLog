@@ -1,5 +1,12 @@
 # since last version
 
+- (2002.09.10 Richard)
+ * Expanded gnet statistics
+ * Added percentage display for gnet statistics
+ * Moved "(globally) drop..." do submenus. More to come
+ * Renamed "local" to "generated" in the gnet statistics
+ * "Can't remove node" bug should be fixed now
+
 - (2002.09.09 RAM)
  * Fixed reference count problem when resetting fileinfo.
  * Made socket_connected() private.
@@ -13,6 +20,10 @@
    has at least configured 64 bytes of overlap (fixes bug #606373).
 
 - (2002.09.09 Richard)
+ * Finally added the "expert mode". This means you'll not see lots of 
+   settings in the config panes next time you start. If you want to
+   enable the expert mode, edit your "config_gui" file in ~/.gtk-gnutella
+   manually and set "expert mode" to TRUE.
  * Added drop statistics for every message type and accumulated traffic
    statistics for every message type.
  * Reduced number of drop reasons and use same reason for different
