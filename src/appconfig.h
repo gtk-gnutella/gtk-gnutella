@@ -5,6 +5,9 @@
  * Global Data
  */
 
+extern gboolean bps_in_enabled;
+extern gboolean bps_out_enabled;
+
 extern gchar *config_dir;
 
 extern gboolean progressbar_uploads_visible;
@@ -23,6 +26,7 @@ extern gboolean clear_uploads;
 extern gboolean clear_downloads;
 extern gboolean download_delete_aborted;
 extern gboolean queue_regex_case;
+extern gboolean use_autodownload;
 
 extern gboolean use_netmasks;
 extern struct in_addr *local_netmasks;
@@ -95,6 +99,10 @@ extern gint enable_err_log;
 extern gint search_strict_and;
 extern gint search_pick_all;
 extern gint max_uploads_ip;
+extern gint win_x;
+extern gint win_y;
+extern gint win_w;
+extern gint win_h;
 
 extern gchar *save_file_path;
 extern gchar *move_file_path;
@@ -111,8 +119,8 @@ extern gint proxy_protocol;
 extern gchar *proxy_ip;
 extern gint proxy_port;
 extern gboolean proxy_auth;
-extern gchar *socksv5_user;
-extern gchar *socksv5_pass;
+extern gchar *socks_user;
+extern gchar *socks_pass;
 
 /*
  * Global macros.
