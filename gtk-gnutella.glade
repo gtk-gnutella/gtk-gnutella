@@ -4329,11 +4329,6 @@
 				<last_modification_time>Sat, 10 Apr 2004 15:41:00 GMT</last_modification_time>
 			      </signal>
 			      <signal>
-				<name>configure_event</name>
-				<handler>on_drawingarea_fi_progress_configure_event</handler>
-				<last_modification_time>Sun, 11 Apr 2004 07:41:16 GMT</last_modification_time>
-			      </signal>
-			      <signal>
 				<name>expose_event</name>
 				<handler>on_drawingarea_fi_progress_expose_event</handler>
 				<last_modification_time>Sun, 11 Apr 2004 08:04:56 GMT</last_modification_time>

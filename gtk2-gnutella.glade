@@ -18494,7 +18494,6 @@ before kicking</property>
 				      <property name="visible">True</property>
 				      <property name="tooltip" translatable="yes">This bar shows the progress on downloading the file. Green parts have already been downloaded, with the bright green parts during this session. White parts are currently being downloaded.</property>
 				      <signal name="realize" handler="on_drawingarea_fi_progress_realize" last_modification_time="Sun, 11 Apr 2004 18:42:24 GMT"/>
-				      <signal name="configure_event" handler="on_drawingarea_fi_progress_configure_event" last_modification_time="Sun, 11 Apr 2004 18:42:31 GMT"/>
 				      <signal name="expose_event" handler="on_drawingarea_fi_progress_expose_event" last_modification_time="Sun, 11 Apr 2004 18:42:39 GMT"/>
 				    </widget>
 				  </child>

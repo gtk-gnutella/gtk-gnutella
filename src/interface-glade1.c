@@ -11385,9 +11385,6 @@ create_main_window (void)
   gtk_signal_connect (GTK_OBJECT (drawingarea_fi_progress), "realize",
                       GTK_SIGNAL_FUNC (on_drawingarea_fi_progress_realize),
                       NULL);
-  gtk_signal_connect (GTK_OBJECT (drawingarea_fi_progress), "configure_event",
-                      GTK_SIGNAL_FUNC (on_drawingarea_fi_progress_configure_event),
-                      NULL);
   gtk_signal_connect (GTK_OBJECT (drawingarea_fi_progress), "expose_event",
                       GTK_SIGNAL_FUNC (on_drawingarea_fi_progress_expose_event),
                       NULL);

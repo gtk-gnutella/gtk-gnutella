@@ -1,5 +1,9 @@
 # since last version
 
+- (2004.06.09 - Hans)
+ * [Gtk1] [Gtk2] Use more efficient handling for size of visual progress
+   indicator and remove obsolete code.
+	
 - (2004.06.08 - Richard)
  * Use hash table instead of list for faster lookup in node_is_connected()
    and node_host_is_connected().
@@ -42,6 +46,10 @@
  * Applied HSEP patch 8, this adds HSEP info to the gnet stats pane
    for gtk1. By Thomas Schuerger
 
+- (2004.05.01 - Hans)
+ * [Gtk1] [Gtk2] Fix crash bug in visual progress indicator when
+   displaying info for small files.
+	
 - (2004.04.25 - Hans)
  * [Gtk1] [Gtk2] Show ranges which we have seen to be available on the
    network as part of the visual progress indicator.

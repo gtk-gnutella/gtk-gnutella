@@ -10310,9 +10310,6 @@ create_main_window_downloads_tab (void)
   g_signal_connect ((gpointer) drawingarea_fi_progress, "realize",
                     G_CALLBACK (on_drawingarea_fi_progress_realize),
                     NULL);
-  g_signal_connect ((gpointer) drawingarea_fi_progress, "configure_event",
-                    G_CALLBACK (on_drawingarea_fi_progress_configure_event),
-                    NULL);
   g_signal_connect ((gpointer) drawingarea_fi_progress, "expose_event",
                     G_CALLBACK (on_drawingarea_fi_progress_expose_event),
                     NULL);

@@ -43,10 +43,6 @@
  *
  * Check out why only some requests provide a range
  *
- * Check event code more carefully, the width is sometimes messed up.
- * size-allocate signal or drawing area ->allocation.width should also work.
- * 
- * 
  * Do not redraw the bar too often, only on event for actual file and
  * perhaps max once a second.
  */
@@ -58,22 +54,15 @@
 
 RCSID("$Id$");
 
-#define VP_PIXELS_PER_ROW   35
-#define VP_H_OFFSET         35
-#define VP_LINE_BELOW_CHARS 3
-
 /**
  * The context for drawing, including location to draw
  */
 typedef struct vp_context {
-    GdkDrawable *drawable;
-    GdkGC *gc;
-    int offset_hor; 
-    int offset_ver;
-    int width;
-    int height;
-    gnet_fi_t fih;
-	gboolean fih_valid;
+	GtkWidget *widget;     /** The widget containing the drawing area */
+    GdkDrawable *drawable; /** The drawable inside the widget */
+    GdkGC *gc;             /** The Graphics Context used in this vp context */
+    gnet_fi_t fih;         /** The most recently used fileinfo handle */
+	gboolean fih_valid;    /** Whether fih is still a valid handle */
 } vp_context_t;
 
 /**
@@ -125,19 +114,17 @@ void vp_draw_rectangle(vp_info_t *v,
 	 * neither should be zero when we end up here, so this can be
 	 * considered a bug somewhere in the calling code.
 	 *
-	 * width should be set as part of the setup of the drawing area.
-	 *
 	 * file_size should be set in the fileinfo code.
 	 */
-	g_assert(v->context->width);
 	g_assert(v->file_size);
 
-	s_from = (gfloat) from * v->context->width / v->file_size;
-	s_to   = (gfloat) to   * v->context->width / v->file_size;
+	s_from = (gfloat) from * v->context->widget->allocation.width 
+		/ v->file_size;
+	s_to   = (gfloat) to   * v->context->widget->allocation.width 
+		/ v->file_size;
 
     gdk_draw_rectangle(v->context->drawable, v->context->gc, TRUE, 
-        s_from + v->context->offset_hor, top, 
-		s_to - s_from, bottom);
+        s_from, top, s_to - s_from, bottom);
 }
 
 /**
@@ -160,7 +147,8 @@ void vp_draw_chunk (gpointer data, gpointer user_data)
     }
 
     vp_draw_rectangle(v,
-		chunk->from, chunk->to, v->context->offset_ver, v->context->height);
+		chunk->from, chunk->to, 
+		0, v->context->widget->allocation.height);
 }
 
 static void vp_draw_range (gpointer data, gpointer user_data)
@@ -170,7 +158,9 @@ static void vp_draw_range (gpointer data, gpointer user_data)
 
 	gdk_gc_set_foreground(v->context->gc, &available);
 	vp_draw_rectangle(v,
-		range->start, range->end, v->context->height - 3, v->context->height);
+		range->start, range->end, 
+        v->context->widget->allocation.height - 3, 
+        v->context->widget->allocation.height);
 }
 
 
@@ -207,7 +197,9 @@ void vp_draw_fi_progress(gboolean valid, gnet_fi_t fih)
 		} else {
 			gdk_gc_set_foreground(fi_context.gc, base);
 			gdk_draw_rectangle(fi_context.drawable, fi_context.gc, TRUE,
-							   0, 0, fi_context.width, fi_context.height);
+							   0, 0, 
+							   fi_context.widget->allocation.width, 
+							   fi_context.widget->allocation.height);
 		}
 	}
 }
@@ -220,25 +212,14 @@ on_drawingarea_fi_progress_realize(GtkWidget *widget, gpointer user_data)
 {
 	GtkStyle *style;
 
+	fi_context.widget = widget;
     fi_context.drawable = widget->window;
     g_assert(fi_context.drawable);
     fi_context.gc = gdk_gc_new(fi_context.drawable);
     g_assert(fi_context.gc);
-    fi_context.offset_hor = 0;
-    fi_context.offset_ver = 0;
 
 	style = gtk_widget_get_style(widget);
 	base = gdk_color_copy(&(style->base[GTK_STATE_INSENSITIVE]));
-}
-
-gboolean
-on_drawingarea_fi_progress_configure_event(
-	GtkWidget *widget, GdkEventConfigure *event, gpointer user_data)
-{
-    fi_context.width = event->width;
-    fi_context.height = event->height;
-
-    return FALSE;
 }
 
 gboolean
