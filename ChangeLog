@@ -1,5 +1,12 @@
 # since last version
 
+- (2004.03.14 - Richard)
+ * [Gtk1] [Gtk2] No longer clear "Select" field in the download queue
+   after pressing [enter].
+ * [Gtk1] Add filtering to fileinfo pane.
+ * [Gtk1] Minor layout change on the downloads pane.
+ * Really remove file from disk when pressing "Purge" in the fileinfo page.
+
 - (2004.03.09 - RAM)
  * Don't call make_room() with "needed <= 0".
  * Applied HSEP patch #6 from Thomas.
@@ -7,6 +14,10 @@
 - (2004.03.06 - RAM)
  * Fixed typo that prevented renaming files to *.OK/*.BAD correctly when the
    filename on disk was not readable (i.e. an URN).
+   
+- (2004.03.03 - Richard)
+ * [Gtk2] Minor layout change on the nodes panel
+ * Regenerated glade files
 
 - (2004.03.03 - RAM)
  * Removed constraint on bg_task_signal(): can be called from a non-running
