@@ -63,6 +63,8 @@ void on_button_filter_reset_rule_clicked(GtkButton *button, gpointer user_data);
 void on_ctree_filter_filters_tree_select_row(GtkCTree * ctree, GList *node, gint column, gpointer user_data);
 void on_checkbutton_filter_enabled_toggled(GtkToggleButton * togglebutton, gpointer user_data);
 gboolean on_clist_filter_rules_button_press_event(GtkWidget * widget, GdkEventButton * event, gpointer user_data);
+gboolean on_entry_filter_size_focus_out_event(GtkEditable *editable, gpointer unused_udata);
+gboolean on_entry_filter_size_key_press_event(GtkWidget *widget, GdkEventKey *event, gpointer unused_udata);
 
 /*
  * Filter popup for rule list

@@ -73,6 +73,7 @@ void filter_gui_freeze_rules(void);
 void filter_gui_thaw_rules(void);
 void filter_gui_freeze_filters(void);
 void filter_gui_thaw_filters(void);
+guint64 filter_update_size(GtkEntry *entry);
 
 #ifdef USE_GTK1
 #define filter_gui_create_dlg_filters() create_dlg_filters()

@@ -120,32 +120,32 @@ void dump_ruleset(GList *ruleset)
     gint n = 0;
 
     for (r = ruleset; r != NULL; r=r->next)
-        printf("       rule %3d : %s\n", n, filter_rule_to_gchar(r->data));
+        g_message("       rule %3d : %s\n", n, filter_rule_to_gchar(r->data));
 }
 
 void dump_filter(filter_t *filter)
 {
     g_assert(filter != NULL);
-    printf("Filter name     : %s\n", filter->name);
-    printf("       bound    : %p\n", filter->search);
-    printf("       refcount : %d\n", filter->refcount);
+    g_message("Filter name     : %s\n", filter->name);
+    g_message("       bound    : %p\n", filter->search);
+    g_message("       refcount : %d\n", filter->refcount);
     dump_ruleset(filter->ruleset);
 }
 
 void dump_shadow(shadow_t *shadow)
 {
     g_assert(shadow != NULL);
-    printf("Shadow for filt : %s\n", shadow->filter->name);
-    printf("       bound    : %p\n", shadow->filter->search);
-    printf("       refcount : %d\n", shadow->refcount);
-    printf("       flt. ref : %d\n", shadow->filter->refcount);
-    printf("  Added:\n");
+    g_message("Shadow for filt : %s\n", shadow->filter->name);
+    g_message("       bound    : %p\n", shadow->filter->search);
+    g_message("       refcount : %d\n", shadow->refcount);
+    g_message("       flt. ref : %d\n", shadow->filter->refcount);
+    g_message("  Added:\n");
     dump_ruleset(shadow->added);
-    printf("  Removed:\n");
+    g_message("  Removed:\n");
     dump_ruleset(shadow->removed);
-    printf("  Current:\n");
+    g_message("  Current:\n");
     dump_ruleset(shadow->current);
-    printf("  Original:\n");
+    g_message("  Original:\n");
     dump_ruleset(shadow->filter->ruleset);
 }
 
@@ -185,11 +185,11 @@ static shadow_t *shadow_find(filter_t *f)
 
     if (l != NULL) {
         if (gui_debug >= 6)
-            printf("shadow found for: %s\n", f->name);
+            g_message("shadow found for: %s\n", f->name);
         return l->data;
     } else {
         if (gui_debug >= 6)
-            printf("no shadow found for: %s\n", f->name);
+            g_message("no shadow found for: %s\n", f->name);
         return NULL;
     }
 }
@@ -210,7 +210,7 @@ static shadow_t *shadow_new(filter_t *f)
     g_assert(f->name != NULL);
 
     if (gui_debug >= 6)
-        printf("creating shadow for: %s\n", f->name);
+        g_message("creating shadow for: %s\n", f->name);
 
     shadow = g_new0(shadow_t, 1);
 
@@ -246,7 +246,7 @@ static void shadow_cancel(shadow_t *shadow)
     g_assert(shadow->filter != NULL);
 
     if (gui_debug >= 6)
-        printf("cancel shadow for filter: %s\n", shadow->filter->name);
+        g_message("cancel shadow for filter: %s\n", shadow->filter->name);
 
     for (r = shadow->added; r != NULL; r = r->next)
         filter_free_rule(r->data);
@@ -284,7 +284,7 @@ static void shadow_commit(shadow_t *shadow)
     realf = shadow->filter;
 
     if (gui_debug >= 6) {
-        printf("committing shadow for filter:\n");
+        g_message("committing shadow for filter:\n");
         dump_shadow(shadow);
     }
 
@@ -337,7 +337,7 @@ static void shadow_commit(shadow_t *shadow)
     G_FREE_NULL(shadow);
 
     if (gui_debug >= 6) {
-        printf("after commit filter looks like this\n");
+        g_message("after commit filter looks like this\n");
         dump_filter(realf);
     }
 }
@@ -574,7 +574,7 @@ rule_t *filter_new_ip_rule
 
 
 rule_t *filter_new_size_rule
-    (size_t lower, size_t upper, filter_t *target, guint16 flags)
+    (filesize_t lower, filesize_t upper, filter_t *target, guint16 flags)
 {
    	rule_t *f;
 
@@ -751,7 +751,7 @@ void filter_close_search(search_t *s)
     g_assert(s->filter != NULL);
 
     if (gui_debug >= 6)
-        printf("closing search (freeing filter): %s\n", s->query);
+        g_message("closing search (freeing filter): %s\n", s->query);
 
     shadow = shadow_find(s->filter);
     if (shadow != NULL) {
@@ -842,7 +842,7 @@ void filter_revert_changes(void)
     gint n;
 
     if (gui_debug >= 5)
-        printf("Canceling all changes to filters/rules\n");
+        g_message("Canceling all changes to filters/rules\n");
 
     filter_gui_freeze_filters();
     filter_gui_freeze_rules();
@@ -923,44 +923,44 @@ gchar *filter_rule_condition_to_gchar(const rule_t *r)
         case RULE_TEXT_PREFIX:
            	gm_snprintf(
                 tmp, sizeof(tmp),
-                "If filename begins with \"%s\" %s",
+                _("If filename begins with \"%s\" %s"),
                 r->u.text.match,
-                r->u.text.case_sensitive ? "(case sensitive)" : "");
+                r->u.text.case_sensitive ? _("(case-sensitive)") : "");
             break;
         case RULE_TEXT_WORDS:
            	gm_snprintf(
                 tmp, sizeof(tmp),
-                "If filename contains the words \"%s\" %s",
+                _("If filename contains the words \"%s\" %s"),
                 r->u.text.match,
-                r->u.text.case_sensitive ? "(case sensitive)" : "");
+                r->u.text.case_sensitive ? _("(case-sensitive)") : "");
             break;
         case RULE_TEXT_SUFFIX:
           	gm_snprintf(
                 tmp, sizeof(tmp),
-                "If filename ends with \"%s\" %s",
+                _("If filename ends with \"%s\" %s"),
                 r->u.text.match,
-                r->u.text.case_sensitive ? "(case sensitive)" : "");
+                r->u.text.case_sensitive ? _("(case-sensitive)") : "");
             break;
         case RULE_TEXT_SUBSTR:
            	gm_snprintf(
                 tmp, sizeof(tmp),
-                "If filename contains the substring \"%s\" %s",
+                _("If filename contains the substring \"%s\" %s"),
                 r->u.text.match,
-                r->u.text.case_sensitive ? "(case sensitive)" : "");
+                r->u.text.case_sensitive ? _("(case sensitive)") : "");
             break;
         case RULE_TEXT_REGEXP:
            	gm_snprintf(
                 tmp, sizeof(tmp),
-                "If filename matches the regex \"%s\" %s",
+                _("If filename matches the regex \"%s\" %s"),
                 r->u.text.match,
                 r->u.text.case_sensitive ? "(case sensitive)" : "");
             break;
         case RULE_TEXT_EXACT:
            	gm_snprintf(
                 tmp, sizeof(tmp),
-                "If filename is \"%s\" %s",
+                _("If filename is \"%s\" %s"),
                 r->u.text.match,
-                r->u.text.case_sensitive ? "(case sensitive)" : "");
+                r->u.text.case_sensitive ? _("(case sensitive)") : "");
             break;
         default:
             g_error("filter_rule_condition_to_gchar:"
@@ -976,47 +976,56 @@ gchar *filter_rule_condition_to_gchar(const rule_t *r)
             addr = g_strdup(ip_to_gchar(r->u.ip.addr));
 
             gm_snprintf(tmp, sizeof(tmp),
-                "If IP address matches %s/%s", addr, mask);
+                _("If IP address matches %s/%s"), addr, mask);
 
             G_FREE_NULL(addr);
             G_FREE_NULL(mask);
         }
         break;
     case RULE_SIZE:
-		if (r->u.size.lower == 0)
-			gm_snprintf(tmp, sizeof(tmp),
-				"If filesize is smaller than %d (%s)",
-				(gint) r->u.size.upper, short_size(r->u.size.upper));
-		else if (r->u.size.upper == r->u.size.lower)
-			gm_snprintf(tmp, sizeof(tmp),
-				"If filesize is exactly %d (%s)",
-				(gint) r->u.size.upper, short_size(r->u.size.upper));
-        else {
-            gchar *s1;
-            gchar *s2;
+		if (r->u.size.lower == 0) {
+            gchar smax_64[32];
 
-            s1 = g_strdup(short_size(r->u.size.lower));
-            s2 = g_strdup(short_size(r->u.size.upper));
+			gm_snprintf(smax_64, sizeof(smax_64),
+				"%" PRIu64, (guint64) r->u.size.upper);
+			gm_snprintf(tmp, sizeof(tmp),
+				_("If filesize is smaller than %s (%s)"),
+				smax_64, short_size(r->u.size.upper));
+		} else if (r->u.size.upper == r->u.size.lower) {
+            gchar smax_64[32];
+
+			gm_snprintf(smax_64, sizeof(smax_64),
+				"%" PRIu64, (guint64) r->u.size.upper);
+			gm_snprintf(tmp, sizeof(tmp),
+				_("If filesize is exactly %s (%s)"),
+				smax_64, short_size(r->u.size.upper));
+		} else {
+            gchar smin[256], smax[256];
+            gchar smin_64[32], smax_64[32];
+
+            g_strlcpy(smin, short_size(r->u.size.lower), sizeof smin);
+            g_strlcpy(smax, short_size(r->u.size.upper), sizeof smax);
+			gm_snprintf(smin_64, sizeof smin_64,
+				"%" PRIu64, (guint64) r->u.size.lower);
+			gm_snprintf(smax_64, sizeof smax_64,
+				"%" PRIu64, (guint64) r->u.size.upper);
 
 			gm_snprintf(tmp, sizeof(tmp),
-				"If filesize is between %d and %d (%s - %s)",
-				(gint) r->u.size.lower, (int)r->u.size.upper, s1, s2);
-
-            G_FREE_NULL(s1);
-            G_FREE_NULL(s2);
+				_("If filesize is between %s and %s (%s - %s)"),
+				smin_64, smax_64, smin, smax);
         }
         break;
     case RULE_SHA1:
         if (r->u.sha1.hash != NULL) {
-            gm_snprintf(tmp, sizeof(tmp), "If urn:sha1 is same as for \"%s\"",
+            gm_snprintf(tmp, sizeof(tmp),
+				_("If urn:sha1 is same as for \"%s\""),
                 r->u.sha1.filename);
-        } else
-            gm_snprintf(tmp, sizeof(tmp), "If urn:sha1 is not available");
+        } else {
+            gm_snprintf(tmp, sizeof(tmp), _("If urn:sha1 is not available"));
+		}
         break;
     case RULE_JUMP:
-       	gm_snprintf(
-            tmp, sizeof(tmp),
-            "Always");
+       	gm_snprintf(tmp, sizeof(tmp), _("Always"));
         break;
     case RULE_FLAG:
         {
@@ -1029,11 +1038,11 @@ gchar *filter_rule_condition_to_gchar(const rule_t *r)
 
             switch (r->u.flag.busy) {
             case RULE_FLAG_SET:
-                busy_str = "busy is set";
+                busy_str = _("busy is set");
                 b = TRUE;
                 break;
             case RULE_FLAG_UNSET:
-                busy_str = "busy is not set";
+                busy_str = _("busy is not set");
                 b = TRUE;
                 break;
             case RULE_FLAG_IGNORE:
@@ -1043,12 +1052,12 @@ gchar *filter_rule_condition_to_gchar(const rule_t *r)
             switch (r->u.flag.push) {
             case RULE_FLAG_SET:
                 if (b) s1 = ", ";
-                push_str = "push is set";
+                push_str = _("push is set");
                 b = TRUE;
                 break;
             case RULE_FLAG_UNSET:
                 if (b) s1 = ", ";
-                push_str = "push is not set";
+                push_str = _("push is not set");
                 b = TRUE;
                 break;
             case RULE_FLAG_IGNORE:
@@ -1058,27 +1067,25 @@ gchar *filter_rule_condition_to_gchar(const rule_t *r)
             switch (r->u.flag.stable) {
             case RULE_FLAG_SET:
                 if (b) s2 = ", ";
-                stable_str = "stable is set";
+                stable_str = _("stable is set");
                 b = TRUE;
                 break;
             case RULE_FLAG_UNSET:
                 if (b) s2 = ", ";
-                stable_str = "stable is not set";
+                stable_str = _("stable is not set");
                 b = TRUE;
                 break;
             case RULE_FLAG_IGNORE:
                 break;
             }
 
-            if (b)
-                gm_snprintf(
-                    tmp, sizeof(tmp),
-                    "If flag %s%s%s%s%s",
+            if (b) {
+                gm_snprintf(tmp, sizeof(tmp), _("If flag %s%s%s%s%s"),
                     busy_str, s1, push_str, s2, stable_str);
-            else
-                 gm_snprintf(
-                    tmp, sizeof(tmp),
-                    "Always (all flags ignored)");
+			} else {
+                 gm_snprintf(tmp, sizeof(tmp),
+					_("Always (all flags ignored)"));
+			}
         }
         break;
     case RULE_STATE:
@@ -1090,15 +1097,15 @@ gchar *filter_rule_condition_to_gchar(const rule_t *r)
 
             switch (r->u.state.display) {
             case FILTER_PROP_STATE_UNKNOWN:
-                display_str = "DISPLAY is undefined";
+                display_str = _("DISPLAY is undefined");
                 b = TRUE;
                 break;
             case FILTER_PROP_STATE_DO:
-                display_str = "DISPLAY";
+                display_str = _("DISPLAY");
                 b = TRUE;
                 break;
             case FILTER_PROP_STATE_DONT:
-                display_str = "DON'T DISPLAY";
+                display_str = _("DON'T DISPLAY");
                 b = TRUE;
                 break;
             case FILTER_PROP_STATE_IGNORE:
@@ -1110,17 +1117,17 @@ gchar *filter_rule_condition_to_gchar(const rule_t *r)
             switch (r->u.state.download) {
             case FILTER_PROP_STATE_UNKNOWN:
                 if (b) s1 = ", ";
-                download_str = "DOWNLOAD is undefined";
+                download_str = _("DOWNLOAD is undefined");
                 b = TRUE;
                 break;
             case FILTER_PROP_STATE_DO:
                 if (b) s1 = ", ";
-                download_str = "DOWNLOAD";
+                download_str = _("DOWNLOAD");
                 b = TRUE;
                 break;
             case FILTER_PROP_STATE_DONT:
                 if (b) s1 = ", ";
-                download_str = "DON'T DOWNLOAD";
+                download_str = _("DON'T DOWNLOAD");
                 b = TRUE;
                 break;
             case FILTER_PROP_STATE_IGNORE:
@@ -1129,22 +1136,20 @@ gchar *filter_rule_condition_to_gchar(const rule_t *r)
                 g_assert_not_reached();
             }
 
-            if (b)
-                gm_snprintf(
-                    tmp, sizeof(tmp),
-                    "If flag %s%s%s",
+            if (b) {
+                gm_snprintf(tmp, sizeof(tmp), _("If flag %s%s%s"),
                     display_str, s1, download_str);
-            else
-                 gm_snprintf(
-                    tmp, sizeof(tmp),
-                    "Always (all states ignored)");
+			} else {
+                 gm_snprintf(tmp, sizeof(tmp),
+					_("Always (all states ignored)"));
+			}
         }
         break;
     default:
         g_error("filter_rule_condition_to_gchar: "
                 "unknown rule type: %d", r->type);
         return NULL;
-    };
+    }
 
     return tmp;
 }
@@ -1164,11 +1169,11 @@ gchar *filter_rule_to_gchar(rule_t *r)
 
     cond = g_strdup(filter_rule_condition_to_gchar(r));
 
-	gm_snprintf(f_tmp, sizeof(f_tmp), "%s%s %s jump to \"%s\"",
-        RULE_IS_NEGATED(r) ? "(Negated) " : "",
-        RULE_IS_ACTIVE(r) ? "" : "(deactivated)",
+	gm_snprintf(f_tmp, sizeof(f_tmp), _("%s%s %s jump to \"%s\""),
+        RULE_IS_NEGATED(r) ? _("(Negated) ") : "",
+        RULE_IS_ACTIVE(r) ? "" : _("(deactivated)"),
         cond,
-        RULE_IS_VALID(r) ? r->target->name : "(invalid)");
+        RULE_IS_VALID(r) ? r->target->name : _("(invalid)"));
 
     G_FREE_NULL(cond);
 
@@ -1358,7 +1363,7 @@ void filter_free_rule(rule_t *r)
     g_assert(r != NULL);
 
     if (gui_debug >= 6)
-        printf("freeing rule: %s\n", filter_rule_to_gchar(r));
+        g_message("freeing rule: %s\n", filter_rule_to_gchar(r));
 
     switch (r->type) {
     case RULE_TEXT:
@@ -1436,7 +1441,7 @@ void filter_append_rule(filter_t *f, rule_t * const r)
     f->ruleset = g_list_append(f->ruleset, r);
     r->target->refcount ++;
     if (gui_debug >= 6)
-        printf("increased refcount on \"%s\" to %d\n",
+        g_message("increased refcount on \"%s\" to %d\n",
             r->target->name, r->target->refcount);
 
     /*
@@ -1452,7 +1457,7 @@ void filter_append_rule(filter_t *f, rule_t * const r)
         target_shadow->refcount ++;
 
         if (gui_debug >= 6)
-            printf("increased refcount on shadow of \"%s\" to %d\n",
+            g_message("increased refcount on shadow of \"%s\" to %d\n",
                 target_shadow->filter->name, target_shadow->refcount);
     }
 
@@ -1489,7 +1494,7 @@ void filter_append_rule_to_session(filter_t *f, rule_t * const r)
     g_assert(r->target != NULL);
 
     if (gui_debug >= 4)
-        printf("appending rule to filter: %s <- %s (%p)\n",
+        g_message("appending rule to filter: %s <- %s (%p)\n",
             f->name, filter_rule_to_gchar(r), r->target);
 
     /*
@@ -1527,7 +1532,7 @@ void filter_append_rule_to_session(filter_t *f, rule_t * const r)
 
     target_shadow->refcount ++;
     if (gui_debug >= 6)
-        printf("increased refcount on shadow of \"%s\" to %d\n",
+        g_message("increased refcount on shadow of \"%s\" to %d\n",
             target_shadow->filter->name, target_shadow->refcount);
 
     /*
@@ -1651,7 +1656,7 @@ void filter_remove_rule(filter_t *f, rule_t *r)
         r->target->refcount --;
 
         if (gui_debug >= 6)
-            printf("decreased refcount on \"%s\" to %d\n",
+            g_message("decreased refcount on \"%s\" to %d\n",
                 r->target->name, r->target->refcount);
     }
 
@@ -1660,7 +1665,7 @@ void filter_remove_rule(filter_t *f, rule_t *r)
             target_shadow->refcount --;
 
             if (gui_debug >= 6)
-                printf("decreased refcount on shadow of \"%s\" to %d\n",
+                g_message("decreased refcount on shadow of \"%s\" to %d\n",
                     target_shadow->filter->name, target_shadow->refcount);
         }
     }
@@ -1705,7 +1710,7 @@ void filter_remove_rule_from_session(filter_t *f, rule_t * const r)
     g_assert(f != NULL);
 
     if (gui_debug >= 4)
-        printf("removing rule in filter: %s -> %s\n",
+        g_message("removing rule in filter: %s -> %s\n",
             f->name, filter_rule_to_gchar(r));
 
     /*
@@ -1730,7 +1735,7 @@ void filter_remove_rule_from_session(filter_t *f, rule_t * const r)
 
     target_shadow->refcount --;
     if (gui_debug >= 6)
-        printf("decreased refcount on shadow of \"%s\" to %d\n",
+        g_message("decreased refcount on shadow of \"%s\" to %d\n",
             target_shadow->filter->name, target_shadow->refcount);
 
     l = g_list_find(shadow->added, r);
@@ -1741,7 +1746,7 @@ void filter_remove_rule_from_session(filter_t *f, rule_t * const r)
          * and free the ressources.
          */
         if (gui_debug >= 4)
-            printf("while removing from %s: removing from added: %s\n",
+            g_message("while removing from %s: removing from added: %s\n",
                 f->name, filter_rule_to_gchar(r));
         shadow->added = g_list_remove(shadow->added, r);
         filter_free_rule(r);
@@ -1753,7 +1758,7 @@ void filter_remove_rule_from_session(filter_t *f, rule_t * const r)
         g_assert(g_list_find(shadow->removed, r) == NULL);
 
         if (gui_debug >= 4)
-            printf("while removing from %s: adding to removed: %s\n",
+            g_message("while removing from %s: adding to removed: %s\n",
                 f->name, filter_rule_to_gchar(r));
 
         shadow->removed = g_list_append(shadow->removed, r);
@@ -1809,7 +1814,7 @@ void filter_replace_rule_in_session(filter_t *f,
         gchar * f1 = g_strdup(filter_rule_to_gchar(old_rule));
         gchar * f2 = g_strdup(filter_rule_to_gchar(new_rule));
 
-        printf("replacing rules (old <- new): %s <- %s\n", f1, f2);
+        g_message("replacing rules (old <- new): %s <- %s\n", f1, f2);
 
         G_FREE_NULL(f1);
         G_FREE_NULL(f2);
@@ -1825,7 +1830,7 @@ void filter_replace_rule_in_session(filter_t *f,
 
     target_shadow->refcount --;
     if (gui_debug >= 6)
-        printf("decreased refcount on shadow of \"%s\" to %d\n",
+        g_message("decreased refcount on shadow of \"%s\" to %d\n",
             target_shadow->filter->name, target_shadow->refcount);
 
     /*
@@ -1865,7 +1870,7 @@ void filter_replace_rule_in_session(filter_t *f,
 
     target_shadow->refcount ++;
     if (gui_debug >= 6)
-        printf("increased refcount on shadow of \"%s\" to %d\n",
+        g_message("increased refcount on shadow of \"%s\" to %d\n",
             target_shadow->filter->name, target_shadow->refcount);
 
     /*
@@ -1933,14 +1938,15 @@ void filter_adapt_order(void)
 }
 
 
-#define MATCH_RULE(filter, r, res)                                \
-    (res)->props_set ++;                                          \
-    (r)->match_count ++;                                          \
-    (prop_count) ++;                                              \
-    (r)->target->match_count ++;                                  \
-                                                                  \
-    if (gui_debug >= 10)                                                 \
-        printf("matched rule: %s\n", filter_rule_to_gchar((r)));
+#define MATCH_RULE(filter, r, res)									\
+do {																\
+    (res)->props_set++;												\
+    (r)->match_count++;												\
+    (prop_count)++;													\
+    (r)->target->match_count++;										\
+    if (gui_debug >= 10)											\
+        g_message("matched rule: %s\n", filter_rule_to_gchar((r)));	\
+} while (0)
 
 /*
  * filter_apply:
@@ -1986,7 +1992,7 @@ static int filter_apply
 
         r = (rule_t *)list->data;
         if (gui_debug >= 10)
-            printf("trying to match against: %s\n", filter_rule_to_gchar(r));
+            g_message("trying to match against: %s\n", filter_rule_to_gchar(r));
 
         if (RULE_IS_ACTIVE(r)) {
             switch (r->type) {
@@ -2248,7 +2254,7 @@ filter_result_t *filter_record(search_t *sch, record_t *rec)
 
     /* FIXME: this does no longer give useful output
     if (gui_debug >= 5) {
-        printf("result %d for search \"%s\" matching \"%s\" (%s)\n",
+        g_message("result %d for search \"%s\" matching \"%s\" (%s)\n",
             r, sch->query, rec->name,
             filtered ? "filtered" : "unfiltered");
     }
@@ -2291,7 +2297,7 @@ void filter_shutdown(void)
     GList *f;
 
     if (gui_debug >= 5)
-        printf("shutting down filters\n");
+        g_message("shutting down filters\n");
 
     /*
      * It is important that all searches have already been closed.
@@ -2340,13 +2346,13 @@ void filter_shutdown(void)
  */
 void filter_init(void)
 {
-    filter_global_pre  = filter_new("Global (pre)");
-    filter_global_post = filter_new("Global (post)");
-    filter_show        = filter_new("DISPLAY");
-    filter_drop        = filter_new("DON'T DISPLAY");
-    filter_download    = filter_new("DOWNLOAD");
-    filter_nodownload  = filter_new("DON'T DOWNLOAD");
-    filter_return      = filter_new("RETURN");
+    filter_global_pre  = filter_new(_("Global (pre)"));
+    filter_global_post = filter_new(_("Global (post)"));
+    filter_show        = filter_new(_("DISPLAY"));
+    filter_drop        = filter_new(_("DON'T DISPLAY"));
+    filter_download    = filter_new(_("DOWNLOAD"));
+    filter_nodownload  = filter_new(_("DON'T DOWNLOAD"));
+    filter_return      = filter_new(_("RETURN"));
 
     filters = g_list_append(filters, filter_global_pre);
     filters = g_list_append(filters, filter_global_post);
@@ -2642,3 +2648,5 @@ void filter_add_download_name_rule(record_t *rec, filter_t *filter)
 
     filter_append_rule(filter, rule);
 }
+
+/* vi: set ts=4 sw=4 cindent: */

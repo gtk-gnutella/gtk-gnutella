@@ -121,8 +121,8 @@ typedef struct rule {
             guint32 mask;		        /* netmask */
         } ip;
         struct _f_size {
-            size_t lower;		        /* lower limit or 0 */
-            size_t upper;		        /* upper limit or ~0 */
+            filesize_t lower;		        /* lower limit or 0 */
+            filesize_t upper;		        /* upper limit or ~0 */
         } size;
         struct _f_sha1 {
             gchar *hash;                /* sha1 hash */
@@ -163,7 +163,7 @@ void filter_rule_reset_stats(rule_t *rule);
 rule_t *filter_duplicate_rule(rule_t *rule);
 rule_t *filter_new_ip_rule(guint32, guint32, filter_t *, guint16);
 rule_t *filter_new_jump_rule(filter_t *,guint16);
-rule_t *filter_new_size_rule(size_t, size_t, filter_t *, guint16);
+rule_t *filter_new_size_rule(filesize_t, filesize_t, filter_t *, guint16);
 rule_t *filter_new_text_rule(gchar *, gint, gboolean, filter_t *, guint16);
 rule_t *filter_new_sha1_rule(gchar *, gchar *, filter_t *, guint16);
 rule_t *filter_new_flag_rule

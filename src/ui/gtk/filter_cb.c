@@ -29,9 +29,12 @@
 
 RCSID("$Id$");
 
+#include <gdk/gdkkeysyms.h>
+
 #include "filter_core.h"
 #include "filter_cb.h"
 #include "filter.h"
+#include "gtk-missing.h"
 
 #include "if/gui_property_priv.h"
 
@@ -633,6 +636,29 @@ void on_popup_filter_rule_paste_activate(
     r = filter_duplicate_rule(rule_clipboard);
 
     filter_append_rule_to_session(work_filter, r);
+}
+
+gboolean
+on_entry_filter_size_focus_out_event(GtkEditable *editable,
+	gpointer unused_udata)
+{
+	(void) unused_udata;
+
+	(void) filter_update_size(GTK_ENTRY(editable));
+	return FALSE;
+}
+
+gboolean
+on_entry_filter_size_key_press_event(GtkWidget *widget, GdkEventKey *event,
+	gpointer unused_udata)
+{
+
+  (void) unused_udata;
+
+  if (GDK_Return == event->keyval) {
+  	(void) filter_update_size(GTK_ENTRY(widget));
+  }
+  return FALSE;
 }
 
 /* vi: set ts=4 sw=4 cindent: */

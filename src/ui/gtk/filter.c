@@ -47,15 +47,6 @@ RCSID("$Id$");
 #include "lib/glib-missing.h"
 #include "lib/override.h"		/* Must be the last header included */
 
-#ifdef USE_GTK1
-#define WIDGET_FILTER_SIZE_MIN "entry_filter_size_min"
-#define WIDGET_FILTER_SIZE_MAX "entry_filter_size_max"
-#endif
-#ifdef USE_GTK2
-#define WIDGET_FILTER_SIZE_MIN "spinbutton_filter_size_min"
-#define WIDGET_FILTER_SIZE_MAX "spinbutton_filter_size_max"
-#endif
-
 #define DEFAULT_TARGET (filter_get_drop_target())
 
 /*
@@ -1046,8 +1037,8 @@ void filter_gui_edit_text_rule(rule_t *r)
  */
 void filter_gui_edit_size_rule(rule_t *r)
 {
-    guint32 min     = 0;
-    guint32 max     = 0;
+    filesize_t min     = 0;
+    filesize_t max     = 0;
     gpointer target = (gpointer) DEFAULT_TARGET;
     gboolean invert = FALSE;
     gboolean active = TRUE;
@@ -1068,11 +1059,11 @@ void filter_gui_edit_size_rule(rule_t *r)
     }
 
     gtk_entry_printf(
-        GTK_ENTRY(lookup_widget(filter_dialog, WIDGET_FILTER_SIZE_MIN)),
-		"%u", min);
+        GTK_ENTRY(lookup_widget(filter_dialog, "entry_filter_size_min")),
+		"%" PRIu64, (guint64) min);
     gtk_entry_printf(
-        GTK_ENTRY(lookup_widget(filter_dialog, WIDGET_FILTER_SIZE_MAX)),
-		"%u", max);
+        GTK_ENTRY(lookup_widget(filter_dialog, "entry_filter_size_max")),
+		"%" PRIu64, (guint64) max);
     option_menu_select_item_by_data(
         lookup_widget(filter_dialog, "optionmenu_filter_size_target"),
         target);
@@ -1377,7 +1368,7 @@ void filter_gui_set_ruleset(GList *ruleset)
         count != 0);
 
     if (gui_debug >= 5)
-        printf("updated %d items\n", count);
+        g_message("updated %d items\n", count);
 }
 
 
@@ -1554,7 +1545,80 @@ static rule_t *filter_gui_get_ip_rule(void)
     return filter_new_ip_rule(addr, mask, target, flags);
 }
 
+guint64
+filter_update_size(GtkEntry *entry)
+{
+	const gchar *text = gtk_entry_get_text(entry);
+	gchar buf[32];
+	guint64 size = 0;
+	gint error = 0;
+    gchar *ep, *p;
+	
+	p = skip_ascii_blanks(text);
+	size = parse_uint64(p, &ep, 10, &error);
+	p = skip_ascii_blanks(ep);
 
+	if (!error && *p != '\0') {
+		static const char *suffixes[] = {
+			"KB",
+			"KiB",
+			"MB",
+			"MiB",
+			"GB",
+			"GiB",
+			"TB",
+			"TiB",
+			"PB",
+			"PiB",
+			"EB",
+			"EiB",
+		};
+		guint64 m10 = 1, m2 = 1;
+		guint i;
+
+		error = EINVAL;
+		
+		for (i = 0; i < G_N_ELEMENTS(suffixes); i++) {
+			gboolean base2 = 0 != (i & 1);
+			const gchar *suffix = suffixes[i];
+			size_t len = strlen(suffix);
+			
+			if (base2) {
+				m2 *= 1024;
+			} else {
+				m10 *= 1000;
+			}
+			if (0 == strncasecmp(suffix, p, len)) {
+				guint64 v, mp = base2 ? m2 : m10;
+				
+				v = size * mp;
+				if ((size == 0 || v > size) && size == v / mp) {
+					size = v;
+					error = 0;
+					p += len;
+				} else {
+					error = ERANGE;
+				}
+				break;
+			}
+		}
+		
+		p = skip_ascii_blanks(p);
+		if (!error && *p != '\0')
+			error = EINVAL;
+	}
+
+	if (error) {
+		size = 0;
+	}
+
+	gm_snprintf(buf, sizeof buf, "%" PRIu64, size);
+	if (0 != strcmp(buf, text)) {
+		gtk_entry_set_text(entry, buf);
+	}
+
+	return size;
+}
 
 /*
  * filter_gui_get_size_rule:
@@ -1564,8 +1628,8 @@ static rule_t *filter_gui_get_ip_rule(void)
  */
 static rule_t *filter_gui_get_size_rule(void)
 {
-    size_t lower;
-    size_t upper;
+    filesize_t lower;
+    filesize_t upper;
     filter_t *target;
     gboolean negate;
     gboolean active;
@@ -1575,13 +1639,11 @@ static rule_t *filter_gui_get_size_rule(void)
     if (filter_dialog == NULL)
         return NULL;
 
-    lower = gtk_editable_get_value_as_uint
-        (GTK_EDITABLE
-            (lookup_widget(filter_dialog, WIDGET_FILTER_SIZE_MIN)));
+    lower = filter_update_size(
+		GTK_ENTRY(lookup_widget(filter_dialog, "entry_filter_size_min")));
 
-    upper = gtk_editable_get_value_as_uint
-        (GTK_EDITABLE
-            (lookup_widget(filter_dialog, WIDGET_FILTER_SIZE_MAX)));
+    upper = filter_update_size(
+		GTK_ENTRY(lookup_widget(filter_dialog, "entry_filter_size_max")));
 
 	negate = gtk_toggle_button_get_active(
         GTK_TOGGLE_BUTTON
@@ -1841,3 +1903,4 @@ GtkWidget *filter_gui_create_dlg_filters(void)
 }
 #endif	/* USE_GTK2 */
 
+/* vi: set ts=4 sw=4 cindent: */
