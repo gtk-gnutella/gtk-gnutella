@@ -1613,36 +1613,29 @@ static void parq_upload_update_eta(struct parq_ul_queue *which_ul_queue)
 	extern gint running_uploads;
 	GList *l;
 	guint eta = 0;
+	guint avg_bps;
+
+	avg_bps = bsched_avg_bps(bws.out);
+	avg_bps = MAX(1, avg_bps);
 	
 	if (which_ul_queue->active_uploads) {
 		/*
-		 * Current queue as an upload slot. Use this one for a start ETA.
+		 * Current queue has an upload slot. Use this one for a start ETA.
 		 * Locate the first active upload in this queue.
 		 */
 		
 		for (l = which_ul_queue->by_position; l; l = g_list_next(l)) {	
 			struct parq_ul_queued *parq_ul = (struct parq_ul_queued *) l->data;
 			
-			if (parq_ul->has_slot) {
-				if (max_uploads > 0) {
-					/* Recalculate ETA */
-					if (bw_http_out != 0 && bws_out_enabled) {
-						eta += parq_ul->file_size / (bw_http_out / max_uploads);
-					} else {
-						/* FIXME, should use average bandwidth here */
-						/* Pessimistic: 1 bytes / sec */
-						eta += parq_ul->file_size;
-					}
-				} else
-					eta = (guint) -1;
-
+			if (parq_ul->has_slot) {		/* Recompute ETA */
+				eta += parq_ul->file_size / avg_bps * max_uploads;
 				break;
 			}
 		}
 	}
 	
 	if (eta == 0 && running_uploads > max_uploads) {
-		/* We don't have an upload slot available, so an start ETA (for position
+		/* We don't have an upload slot available, so a start ETA (for position
 		 * 1) is necessary.
 		 * Use the eta of another queue. First by the queue which uses more than
 		 * one upload slot. If that result is still 0, we have a small problem
@@ -1674,20 +1667,10 @@ static void parq_upload_update_eta(struct parq_ul_queue *which_ul_queue)
 		parq_ul->eta = eta;
 		
 		if (parq_ul->has_slot)
-			/* Skip already uploading uploads */
-			continue;
+			continue;			/* Skip already uploading uploads */
 		
-		if (max_uploads > 0) {
-			/* Recalculate ETA */
-			if (bw_http_out != 0 && bws_out_enabled) {
-				eta += parq_ul->file_size / (bw_http_out / max_uploads);
-			} else {
-				/* FIXME, should use average bandwidth here */
-				/* Pessimistic: 1 bytes / sec */
-				eta += parq_ul->file_size;
-			}
-		} else
-			eta = (guint) -1;
+		/* Recalculate ETA */
+		eta += parq_ul->file_size / avg_bps * max_uploads;
 	}
 }
 
