@@ -28,7 +28,11 @@
 #ifndef _fuzzy_h_
 #define _fuzzy_h_
 
-float fuzzy_compare(char *str1, char *str2);
+/* FUZZY_SHIFT is used to shift the real score to gain extra precision
+ * in favour of using float */
+#define FUZZY_SHIFT 10
+
+gulong fuzzy_compare(const char *str1, const char *str2);
 
 #endif /* _fuzzy_h_ */
 
