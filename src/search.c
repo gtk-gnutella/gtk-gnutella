@@ -22,8 +22,6 @@ struct search *current_search = NULL;			/*	The search currently displayed */
 
 GtkWidget *dialog_filters = NULL;
 
-guint32 search_results_col_widths[] = { 290, 80, 50, 140 };
-
 gboolean search_results_show_tabs = FALSE;	/* Do we have to display the notebook tabs */
 
 /* --------------------------------------------------------------------------------------------------------- */
@@ -252,6 +250,7 @@ void search_init(void)
 {
 	search_create_clist(&default_scrolled_window, &default_search_clist);
 	gtk_notebook_remove_page(GTK_NOTEBOOK(notebook_search_results), 0);
+	gtk_notebook_set_scrollable(GTK_NOTEBOOK(notebook_search_results), TRUE);
 	gtk_notebook_append_page(GTK_NOTEBOOK(notebook_search_results), default_scrolled_window, NULL);
 	gtk_signal_connect(GTK_OBJECT(GTK_COMBO(combo_searches)->popwin), "hide", GTK_SIGNAL_FUNC(on_search_popdown_switch), NULL);
 	gtk_signal_connect(GTK_OBJECT(notebook_search_results), "switch_page", GTK_SIGNAL_FUNC(on_search_notebook_switch), NULL);

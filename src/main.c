@@ -154,12 +154,6 @@ gint main(gint argc, gchar **argv)
 	for (i = 0; i < 6; i++) gtk_clist_insert(GTK_CLIST(clist_menu), i, (gchar **) &menus[i]);
 	gtk_clist_select_row(GTK_CLIST(clist_menu), 0, 0);
 
-	gtk_clist_set_column_width(GTK_CLIST(clist_nodes), 0, 140);
-
-	gtk_clist_set_column_width(GTK_CLIST(clist_downloads), 0, 180);
-
-	gtk_clist_set_column_width(GTK_CLIST(clist_download_queue), 0, 320);
-
 	gtk_clist_column_titles_passive(GTK_CLIST(clist_nodes));
 	gtk_clist_column_titles_passive(GTK_CLIST(clist_uploads));
 	gtk_clist_column_titles_passive(GTK_CLIST(clist_downloads));
@@ -180,8 +174,6 @@ gint main(gint argc, gchar **argv)
 	gui_update_c_downloads(0);
 
 	gui_update_global();
-
-	gtk_widget_set_sensitive(entry_config_force_ip, FALSE);
 
 	#ifdef GTA_REVISION
 	g_snprintf(mtmp, sizeof(mtmp), "gtk-gnutella %u.%u %s", GTA_VERSION, GTA_SUBVERSION, GTA_REVISION);

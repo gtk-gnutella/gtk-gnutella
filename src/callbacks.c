@@ -115,6 +115,11 @@ void on_clist_nodes_unselect_row (GtkCList *clist, gint row, gint column, GdkEve
 	gtk_widget_set_sensitive(button_nodes_remove, (gboolean) GTK_CLIST(clist_nodes)->selection);
 }
 
+void on_clist_nodes_resize_column (GtkCList *clist, gint column, gint width, gpointer user_data)
+{
+	nodes_col_widths[column] = width;
+}
+
 /* minimum connections up */
 
 void on_entry_up_connections_activate (GtkEditable *editable, gpointer user_data)
@@ -326,6 +331,11 @@ void on_clist_uploads_click_column (GtkCList *clist, gint column, gpointer user_
 {
 }
 
+void on_clist_uploads_resize_column (GtkCList *clist, gint column, gint width, gpointer user_data)
+{
+	uploads_col_widths[column] = width;
+}
+
 void on_button_kill_upload_clicked (GtkButton *button, gpointer user_data)
 {
 }
@@ -373,6 +383,11 @@ void on_clist_downloads_unselect_row (GtkCList *clist, gint row, gint column, Gd
 
 void on_clist_downloads_click_column (GtkCList *clist, gint column, gpointer user_data)
 {
+}
+
+void on_clist_downloads_resize_column (GtkCList *clist, gint column, gint width, gpointer user_data)
+{
+	dl_active_col_widths[column] = width;
 }
 
 /* Active downloads popup menu */
@@ -563,6 +578,11 @@ gboolean on_clist_download_queue_button_press_event (GtkWidget *widget, GdkEvent
 	return TRUE;
 }
 
+void on_clist_download_queue_resize_column (GtkCList *clist, gint column, gint width, gpointer user_data)
+{
+	dl_queued_col_widths[column] = width;
+}
+
 /* Searches --------------------------------------------------------------------------------------- */
 
 void on_entry_minimum_speed_activate (GtkEditable *editable, gpointer user_data)
@@ -629,12 +649,6 @@ void on_button_search_stream_clicked (GtkButton *button, gpointer user_data)
 void on_checkbutton_monitor_toggled (GtkToggleButton *togglebutton, gpointer user_data)
 {
 	monitor_enabled = gtk_toggle_button_get_active(togglebutton);
-
-	if (!monitor_enabled)
-	{
-		gtk_clist_clear(GTK_CLIST(clist_monitor));
-		monitor_items = 0;
-	}
 }
 
 void on_entry_monitor_activate (GtkEditable *editable, gpointer user_data)
@@ -840,6 +854,7 @@ gboolean on_entry_config_extensions_focus_out_event (GtkWidget *widget, GdkEvent
 
 void on_checkbutton_config_force_ip_toggled (GtkToggleButton *togglebutton, gpointer user_data)
 {
+	force_local_ip = gtk_toggle_button_get_active(togglebutton);
 }
 
 void on_entry_config_force_ip_changed (GtkEditable *editable, gpointer user_data)
@@ -852,19 +867,22 @@ void on_entry_config_force_ip_changed (GtkEditable *editable, gpointer user_data
 	g_free(e);
 }
 
-void on_entry_config_force_ip_activate (GtkEditable *editable, gpointer user_data)
+void on_entry_config_force_ip_activate(GtkEditable *editable, gpointer user_data)
 {
-	gchar *e = g_strdup(gtk_entry_get_text(GTK_ENTRY(editable)));
+	gtk_widget_grab_focus(clist_menu); /* This will generate a focus out event (next func) */
+}
+
+gboolean on_entry_config_force_ip_focus_out_event (GtkWidget *widget, GdkEventFocus *event, gpointer user_data)
+{
+	gchar *e;
 	guint32 ip;
+	e = g_strdup(gtk_entry_get_text(GTK_ENTRY(entry_config_force_ip)));
 	g_strstrip(e);
 	ip = gchar_to_ip(e);
-	if (ip != listen_ip)
-	{
-		gtk_widget_grab_focus(clist_menu);
-		listen_ip = ip;
-	}
+	if (ip != forced_local_ip) forced_local_ip = ip;
 	gui_update_config_force_ip();
 	g_free(e);
+	return TRUE;
 }
 
 void config_port_update_request(void)
@@ -982,12 +1000,6 @@ gboolean on_entry_config_search_items_focus_out_event (GtkWidget *widget, GdkEve
 void on_button_extra_config_clicked (GtkButton *button, gpointer user_data)
 {
 	gtk_notebook_set_page(GTK_NOTEBOOK(notebook_main), 6);
-}
-
-
-gboolean on_entry_config_force_ip_focus_out_event (GtkWidget *widget, GdkEventFocus *event, gpointer user_data)
-{
-	return FALSE;
 }
 
 /* vi: set ts=3: */

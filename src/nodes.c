@@ -100,7 +100,7 @@ gboolean have_node(guint32 ip)
 {
 	GSList *l;
 
-	if (ip == local_ip) return TRUE;
+	if (ip == local_ip || (force_local_ip && ip == forced_local_ip)) return TRUE;
 	for (l = sl_nodes; l; l = l->next) if (((struct gnutella_node *) l->data)->ip == ip) return TRUE;
 	return FALSE;
 }

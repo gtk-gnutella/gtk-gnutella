@@ -29,6 +29,7 @@ set w_list {
 	button_config_move_path
 	button_config_save_path entry_config_path label_files_scanned entry_config_extensions
 	entry_config_port entry_config_force_ip entry_config_speed checkbutton_config_throttle
+	label_current_port
 	checkbutton_config_force_ip entry_config_search_items entry_config_maxttl entry_config_myttl
 	button_config_update_port button_config_rescan_dir
 	label_left label_right

@@ -30,7 +30,7 @@ gboolean find_host(guint32 ip, guint16 port)
 
 	/* Check our local ip */
 
-	if (ip == local_ip) return TRUE;
+	if (ip == local_ip || (force_local_ip && ip == forced_local_ip)) return TRUE;
 
 	/* Check the nodes */
 
@@ -330,10 +330,10 @@ void reply_init(struct gnutella_node *n)
 {	
 	static struct gnutella_msg_init_response r;
 
-	if (!local_ip) return; /* If we don't know yet your local IP, we can't reply */
+	if (!force_local_ip && !local_ip) return; /* If we don't know yet your local IP, we can't reply */
 
 	WRITE_GUINT16_LE(listen_port,   r.response.host_port);
-	WRITE_GUINT32_BE(local_ip,      r.response.host_ip);
+	WRITE_GUINT32_BE((force_local_ip)? forced_local_ip : local_ip, r.response.host_ip);
 	WRITE_GUINT32_LE(files_scanned, r.response.files_count);
 	WRITE_GUINT32_LE(bytes_scanned, r.response.kbytes_count);
 

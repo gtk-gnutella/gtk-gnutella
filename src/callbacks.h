@@ -100,3 +100,7 @@ void on_button_search_close_clicked (GtkButton *button, gpointer user_data);
 void on_popup_search_filters_activate (GtkMenuItem *menuitem, gpointer user_data);
 void on_popup_search_close_activate (GtkMenuItem *menuitem, gpointer user_data);
 void on_popup_search_toggle_tabs_activate (GtkMenuItem *menuitem, gpointer user_data);
+void on_clist_nodes_resize_column (GtkCList *clist, gint column, gint width, gpointer user_data);
+void on_clist_uploads_resize_column (GtkCList *clist, gint column, gint width, gpointer user_data);
+void on_clist_downloads_resize_column (GtkCList *clist, gint column, gint width, gpointer user_data);
+void on_clist_download_queue_resize_column (GtkCList *clist, gint column, gint width, gpointer user_data);

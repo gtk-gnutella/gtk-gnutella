@@ -69,6 +69,7 @@ extern GtkWidget *entry_config_port;
 extern GtkWidget *entry_config_force_ip;
 extern GtkWidget *entry_config_speed;
 extern GtkWidget *checkbutton_config_throttle;
+extern GtkWidget *label_current_port;
 extern GtkWidget *checkbutton_config_force_ip;
 extern GtkWidget *entry_config_search_items;
 extern GtkWidget *entry_config_maxttl;

@@ -76,6 +76,7 @@ GtkWidget *entry_config_port;
 GtkWidget *entry_config_force_ip;
 GtkWidget *entry_config_speed;
 GtkWidget *checkbutton_config_throttle;
+GtkWidget *label_current_port;
 GtkWidget *checkbutton_config_force_ip;
 GtkWidget *entry_config_search_items;
 GtkWidget *entry_config_maxttl;
@@ -230,7 +231,6 @@ create_main_window (void)
   GtkWidget *label35;
   GtkWidget *hbox22;
   GtkWidget *hbox49;
-  GtkWidget *label34;
   GtkWidget *frame_connection_speed;
   GtkWidget *vbox_connection_speed;
   GtkWidget *hbox_speed_kpbs;
@@ -1628,12 +1628,12 @@ create_main_window (void)
   gtk_widget_show (hbox49);
   gtk_box_pack_start (GTK_BOX (vbox9), hbox49, FALSE, FALSE, 0);
 
-  label34 = gtk_label_new ("Current port : 6346");
-  gtk_widget_ref (label34);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "label34", label34,
+  label_current_port = gtk_label_new ("Current port : 6346");
+  gtk_widget_ref (label_current_port);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label_current_port", label_current_port,
                             (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (label34);
-  gtk_box_pack_start (GTK_BOX (hbox49), label34, FALSE, FALSE, 0);
+  gtk_widget_show (label_current_port);
+  gtk_box_pack_start (GTK_BOX (hbox49), label_current_port, FALSE, FALSE, 0);
 
   frame_connection_speed = gtk_frame_new ("Connection speed");
   gtk_widget_ref (frame_connection_speed);
@@ -1827,6 +1827,9 @@ create_main_window (void)
   gtk_signal_connect (GTK_OBJECT (clist_nodes), "button_press_event",
                       GTK_SIGNAL_FUNC (on_clist_nodes_button_press_event),
                       NULL);
+  gtk_signal_connect (GTK_OBJECT (clist_nodes), "resize_column",
+                      GTK_SIGNAL_FUNC (on_clist_nodes_resize_column),
+                      NULL);
   gtk_signal_connect (GTK_OBJECT (button_nodes_remove), "clicked",
                       GTK_SIGNAL_FUNC (on_button_nodes_remove_clicked),
                       NULL);
@@ -1878,6 +1881,9 @@ create_main_window (void)
   gtk_signal_connect (GTK_OBJECT (clist_uploads), "button_press_event",
                       GTK_SIGNAL_FUNC (on_clist_uploads_button_press_event),
                       NULL);
+  gtk_signal_connect (GTK_OBJECT (clist_uploads), "resize_column",
+                      GTK_SIGNAL_FUNC (on_clist_uploads_resize_column),
+                      NULL);
   gtk_signal_connect (GTK_OBJECT (button_kill_upload), "clicked",
                       GTK_SIGNAL_FUNC (on_button_kill_upload_clicked),
                       NULL);
@@ -1898,6 +1904,9 @@ create_main_window (void)
                       NULL);
   gtk_signal_connect (GTK_OBJECT (clist_downloads), "button_press_event",
                       GTK_SIGNAL_FUNC (on_clist_downloads_button_press_event),
+                      NULL);
+  gtk_signal_connect (GTK_OBJECT (clist_downloads), "resize_column",
+                      GTK_SIGNAL_FUNC (on_clist_downloads_resize_column),
                       NULL);
   gtk_signal_connect (GTK_OBJECT (button_abort_download), "clicked",
                       GTK_SIGNAL_FUNC (on_button_abort_download_clicked),
@@ -1928,6 +1937,9 @@ create_main_window (void)
                       NULL);
   gtk_signal_connect (GTK_OBJECT (clist_download_queue), "button_press_event",
                       GTK_SIGNAL_FUNC (on_clist_download_queue_button_press_event),
+                      NULL);
+  gtk_signal_connect (GTK_OBJECT (clist_download_queue), "resize_column",
+                      GTK_SIGNAL_FUNC (on_clist_download_queue_resize_column),
                       NULL);
   gtk_signal_connect (GTK_OBJECT (button_remove_download), "clicked",
                       GTK_SIGNAL_FUNC (on_button_remove_download_clicked),

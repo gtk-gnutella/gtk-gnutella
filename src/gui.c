@@ -26,13 +26,15 @@ void gui_set_status(gchar *msg)
 
 void gui_update_config_force_ip(void)
 {
-	gtk_entry_set_text(GTK_ENTRY(entry_config_force_ip), ip_to_gchar(listen_ip));
+	gtk_entry_set_text(GTK_ENTRY(entry_config_force_ip), ip_to_gchar(forced_local_ip));
 }
 	
 void gui_update_config_port(void)
 {
 	g_snprintf(gui_tmp, sizeof(gui_tmp), "%u", listen_port);
 	gtk_entry_set_text(GTK_ENTRY(entry_config_port), gui_tmp);
+	g_snprintf(gui_tmp, sizeof(gui_tmp), "Current port : %u", listen_port);
+	gtk_label_set(GTK_LABEL(label_current_port), gui_tmp);
 }
 
 void gui_update_max_ttl(void)

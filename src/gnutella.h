@@ -31,7 +31,7 @@
 #define GTA_VERSION 0
 #define GTA_SUBVERSION 13
 #define GTA_REVISION "pre-alpha"
-#define GTA_RELEASE "07.05.2000"
+#define GTA_RELEASE "10.05.2000"
 #define GTA_WEBSITE "http://gtk-gnutella.sourceforge.net/"
 
 #define GTA_MSG_INIT					0x00
@@ -264,6 +264,11 @@ struct gnutella_upload
 
 /* config.c */
 
+extern gboolean force_local_ip;
+extern gboolean monitor_enabled;
+extern gboolean clear_uploads;
+extern gboolean clear_downloads;
+
 extern guint8  my_ttl;
 extern guint8  max_ttl;
 extern guint16 listen_port;
@@ -272,7 +277,7 @@ extern guint32 up_connections;
 extern guint32 max_downloads;
 extern guint32 connection_speed;
 extern guint32 search_max_items;
-extern guint32 listen_ip;
+extern guint32 forced_local_ip;
 extern guint32 download_connecting_timeout;
 extern guint32 download_push_sent_timeout;
 extern guint32 download_connected_timeout;
@@ -289,6 +294,12 @@ extern gchar *move_file_path;
 extern gchar *scan_extensions;
 extern gchar *shared_dirs_paths;
 extern gchar *completed_file_path;
+
+extern guint32 nodes_col_widths[];
+extern guint32 dl_active_col_widths[];
+extern guint32 dl_queued_col_widths[];
+extern guint32 uploads_col_widths[];
+extern guint32 search_results_col_widths[];
 
 /* sockets.c */
 
@@ -310,9 +321,8 @@ extern gint hosts_idle_func;
 
 /* search.c */
 
-extern gboolean  clear_uploads, clear_downloads;
 extern GtkWidget *dialog_filters;
-extern guint32   search_results_col_widths[];
+extern gboolean search_results_show_tabs;
 
 /* downloads.c */
 
@@ -322,7 +332,6 @@ extern guint32 count_downloads;
 /* share.c */
 
 extern guint32 files_scanned, bytes_scanned;
-extern gboolean monitor_enabled;
 extern guint32 monitor_max_items, monitor_items;
 extern GSList *extensions, *shared_dirs;
 
