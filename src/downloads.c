@@ -3627,8 +3627,8 @@ static void check_xhost(struct download *d, header_t *header)
 static gboolean check_content_urn(struct download *d, header_t *header)
 {
 	gchar *buf;
-	gchar *sha1;
 	guchar digest[SHA1_RAW_SIZE];
+	gboolean found_sha1 = FALSE;
 
 	buf = header_get(header, "X-Gnutella-Content-Urn");
 
@@ -3684,15 +3684,9 @@ static gboolean check_content_urn(struct download *d, header_t *header)
 		return TRUE;		/* Nothing to check against, continue */
 	}
 
-	sha1 = strcasestr(buf, "urn:sha1:");		/* Case-insensitive */
-	
-	if (sha1) {
-		sha1 += 9;		/* Skip "urn:sha1:" */
-		if (!huge_http_sha1_extract32(sha1, digest))
-			sha1 = NULL;
-	}
+	found_sha1 = huge_extract_sha1(buf, digest);
 
-	if (sha1 == NULL)
+	if (!found_sha1)
 		return TRUE;
 
 	if (d->sha1 && 0 != memcmp(digest, d->sha1, SHA1_RAW_SIZE)) {

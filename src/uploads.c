@@ -1133,7 +1133,7 @@ static struct shared_file *get_file_to_upload_from_index(
 	guchar c;
 	gchar *buf;
 	gchar *basename;
-	gchar *sha1 = NULL;
+	gboolean sent_sha1 = FALSE;
 	gchar digest[SHA1_RAW_SIZE];
 	gchar *p;
 
@@ -1196,15 +1196,8 @@ static struct shared_file *get_file_to_upload_from_index(
 	 * SHA1 URN in there and extract it.
 	 */
 
-	if ((buf = header_get(header, "X-Gnutella-Content-Urn"))) {
-		sha1 = strcasestr(buf, "urn:sha1:");	/* Case-insensitive */
-
-		if (sha1) {
-			sha1 += 9;		/* Skip "urn:sha1:" */
-			if (!huge_http_sha1_extract32(sha1, digest))
-				sha1 = NULL;
-		}
-	}
+	if ((buf = header_get(header, "X-Gnutella-Content-Urn")))
+		sent_sha1 = huge_extract_sha1(buf, digest);
 
 	/*
 	 * If they sent a SHA1, look whether we got a matching file.
@@ -1212,7 +1205,7 @@ static struct shared_file *get_file_to_upload_from_index(
 	 * it's a 404.
 	 */
 
-	if (sha1) {
+	if (sent_sha1) {
 		struct shared_file *sfn;
 		extern gint sha1_eq(gconstpointer a, gconstpointer b);
 
@@ -1378,18 +1371,24 @@ static struct shared_file *get_file_to_upload_from_urn(
 	gchar digest[SHA1_RAW_SIZE];
 	const gchar *urn = uri + N2R_QUERY_LENGTH;
 	struct shared_file *sf;
+	gint skip;
 
 	/*
-	 * We currently only support SHA1 URNs.
-	 *		--RAM, 10/06/2002
+	 * We currently only support SHA1, but this allows us to process
+	 * both "urn:sha1:" and "urn:bitprint:" URNs.
+	 *		--RAM, 16/11/2002
 	 */
 
-	if (0 != strncasecmp(urn, "urn:sha1:", 9)) {
+	if (0 == strncasecmp(urn, "urn:sha1:", 9))
+		skip = 9;
+	else if (0 == strncasecmp(urn, "urn:bitprint:", 13))
+		skip = 13;
+	else {
 		upload_error_not_found(u, uri);			/* Unknown URN => not found */
 		return NULL;
 	}
 
-	if (1 != sscanf(urn + 9, "%32s", hash))
+	if (1 != sscanf(urn + skip, "%32s", hash))
 		goto malformed;
 
 	hash[SHA1_BASE32_SIZE] = '\0';

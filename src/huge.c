@@ -1066,6 +1066,42 @@ gboolean huge_sha1_extract32(guchar *buf, gint len, guchar *retval,
 }
 
 /*
+ * huge_extract_sha1
+ *
+ * Locate the start of "urn:sha1:" or "urn:bitprint:" indications and extract
+ * the SHA1 out of it, placing it in the supplied `digest' buffer.
+ *
+ * Returns whether we successfully extracted the SHA1.
+ */
+gboolean huge_extract_sha1(gchar *buf, guchar *digest)
+{
+	gchar *sha1;
+
+	/*
+	 * We handle both "urn:sha1:" and "urn:bitprint:".  In the latter case,
+	 * the first 32 bytes of the bitprint is the SHA1.
+	 */
+
+	sha1 = strcasestr(buf, "urn:sha1:");		/* Case-insensitive */
+	
+	if (sha1) {
+		sha1 += 9;		/* Skip "urn:sha1:" */
+		if (huge_http_sha1_extract32(sha1, digest))
+			return TRUE;
+	}
+
+	sha1 = strcasestr(buf, "urn:bitprint:");	/* Case-insensitive */
+
+	if (sha1) {
+		sha1 += 13;		/* Skip "urn:bitprint:" */
+		if (huge_http_sha1_extract32(sha1, digest))
+			return TRUE;
+	}
+
+	return FALSE;
+}
+
+/*
  * huge_collect_locations
  *
  * Parse the "X-Gnutella-Alternate-Location" header if present to learn

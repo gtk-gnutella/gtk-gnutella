@@ -282,6 +282,7 @@ static gnet_results_set_t *get_results_set(
 	gint sha1_errors = 0;
 	guchar *trailer = NULL;
 	gboolean seen_ggep_h = FALSE;
+	gboolean seen_bitprint = FALSE;
 
 	/* We shall try to detect malformed packets as best as we can */
 	if (n->size < 27) {
@@ -426,6 +427,9 @@ static gnet_results_set_t *get_results_set(
 				ggept_status_t ret;
 
 				switch (e->ext_token) {
+				case EXT_T_URN_BITPRINT:	/* first 32 chars is the SHA1 */
+					seen_bitprint = TRUE;
+					/* FALLTHROUGH */
 				case EXT_T_URN_SHA1:
 					if (
 						huge_sha1_extract32(e->ext_payload, e->ext_paylen,
@@ -636,10 +640,17 @@ static gnet_results_set_t *get_results_set(
 			}
 		}
 
-		if (dbg && seen_ggep_h) {
-			gchar *vendor = lookup_vendor_name(rs->vendor);
-			g_warning("%s from %s used GGEP \"H\" extension",
-				 gmsg_infostr(&n->header), vendor ? vendor : "????");
+		if (dbg) {
+			if (seen_ggep_h) {
+				gchar *vendor = lookup_vendor_name(rs->vendor);
+				g_warning("%s from %s used GGEP \"H\" extension",
+					 gmsg_infostr(&n->header), vendor ? vendor : "????");
+			}
+			if (seen_bitprint) {
+				gchar *vendor = lookup_vendor_name(rs->vendor);
+				g_warning("%s from %s used urn:bitprint",
+					 gmsg_infostr(&n->header), vendor ? vendor : "????");
+			}
 		}
 
 		/*

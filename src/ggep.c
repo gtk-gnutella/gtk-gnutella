@@ -570,10 +570,13 @@ ggept_status_t ggept_h_sha1_extract(extvec_t *exv, guchar *buf, gint len)
 
 	/*
 	 * Try decoding as a SHA1 hash, which is <type> <sha1_digest>
-	 * for a total of 21 bytes.
+	 * for a total of 21 bytes.  We also allow BITRPINT hashes, since the
+	 * first 20 bytes of the binary bitprint is actually the SHA1.
 	 */
 
 	tlen = ggep_decode_into(exv, tmp, sizeof(tmp));
+
+#define TIGER_RAW_SIZE	24		// XXX temporary, until we implement tiger
 
 	if (tlen == -1)
 		return GGEP_NOT_FOUND;			/* Don't know what this is */
@@ -581,11 +584,14 @@ ggept_status_t ggept_h_sha1_extract(extvec_t *exv, guchar *buf, gint len)
 	if (tlen <= 1)
 		return GGEP_INVALID;			/* Can't be a valid "H" payload */
 
-	if (tmp[0] != GGEP_H_SHA1)			/* Not a SHA1 */
+	if (tmp[0] == GGEP_H_SHA1) {
+		if (tlen != (SHA1_RAW_SIZE + 1))
+			return GGEP_INVALID;			/* Size is not right */
+	} else if (tmp[0] == GGEP_H_BITPRINT) {
+		if (tlen != (SHA1_RAW_SIZE + TIGER_RAW_SIZE + 1))
+			return GGEP_INVALID;			/* Size is not right */
+	} else
 		return GGEP_NOT_FOUND;
-
-	if (tlen != (SHA1_RAW_SIZE + 1))	/* Was supposed to be a SHA1 */
-		return GGEP_INVALID;			/* But size is not right */
 
 	memcpy(buf, &tmp[1], SHA1_RAW_SIZE);
 

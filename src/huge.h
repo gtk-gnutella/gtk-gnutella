@@ -52,6 +52,7 @@ void request_sha1(struct shared_file *);
 gboolean huge_http_sha1_extract32(guchar *buf, guchar *retval);
 gboolean huge_sha1_extract32(guchar *buf, gint len, guchar *retval,
 	gpointer header, gboolean check_old);
+gboolean huge_extract_sha1(gchar *buf, guchar *digest);
 
 void huge_collect_locations(guchar *sha1, struct header *header);
 
