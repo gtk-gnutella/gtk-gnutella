@@ -375,14 +375,28 @@ static void mq_leave_flowc(mqueue_t *q)
  *
  * Update flow-control indication for queue.
  * Invoke node "callbacks" when crossing a watermark boundary.
+ *
+ * We define three levels: no flow-control, in warn zone, in flow-control.
  */
 static void mq_update_flowc(mqueue_t *q)
 {
 	if (q->flags & MQ_FLOWC) {
-		if (q->size <= q->lowat)
+		if (q->size <= q->lowat) {
 			mq_leave_flowc(q);
-	} else if (q->size >= q->hiwat)
+			q->flags &= ~MQ_WARNZONE;		/* no flow-control */
+		}
+	} else if (q->size >= q->hiwat) {
 		mq_enter_flowc(q);
+		q->flags |= MQ_WARNZONE;			/* in flow-control */
+	} else if (q->size >= q->lowat) {
+		if (!(q->flags & MQ_WARNZONE)) {
+			q->flags |= MQ_WARNZONE;		/* in warn zone */
+			node_tx_enter_warnzone(q->node);
+		}
+	} else if (q->flags & MQ_WARNZONE) {
+		q->flags &= ~MQ_WARNZONE;			/* no flow-control */
+		node_tx_leave_warnzone(q->node);
+	}
 }
 
 /*

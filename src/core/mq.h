@@ -79,6 +79,7 @@ typedef struct mqueue {
 #define MQ_FLOWC		0x00000001	/* In flow control */
 #define MQ_DISCARD		0x00000002	/* No writing, discard message */
 #define MQ_SWIFT		0x00000004	/* Swift mode, dropping more traffic */
+#define MQ_WARNZONE		0x00000008	/* Between hiwat and lowat */
 
 #define mq_is_flow_controlled(q)	((q)->flags & MQ_FLOWC)
 #define mq_is_swift_controlled(q)	((q)->flags & MQ_SWIFT)
