@@ -1,5 +1,8 @@
 # since last version
 
+- (2003.07.17 - Jeroen)
+ * Made GtkG compile when xml was disabled
+
 - (2003.07.16 - RAM)
  * Forgot to initialize `len' in dl_req_alloc().
  * Factorized common search GUI code to search_gui_common.c.
@@ -34,6 +37,9 @@
    requests to that host.
  * Make sure to space requests to same host by 15 seconds or so.
 
+- (2003.07.15 - Jeroen)
+ * Made search_gui.c compilable again when xml was disabled
+
 - (2003.07.15 - RAM)
  * Ran the new "fix_copyright" script to update all copyright notice dates.
  * Removed support for the loading of old (legacy) config files.
@@ -42,6 +48,7 @@
  * Handle partial sending of the HTTP request, instead of stopping.
  * Fixed encoding of saved strings [Patch from Stephane Corbe, fixes #747501].
 
+>>>>>>> 1.419
 - (2003.07.13 - Jeroen)
  * PARQ won't assert on bad behaving clients anymore
 
