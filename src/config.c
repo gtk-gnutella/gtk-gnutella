@@ -180,7 +180,8 @@ gint enable_err_log = 0;		// enable writing to log file for errors
 gint search_strict_and = 0;		// search filter for strict AND of results
 gint search_pick_all = 1;		// enable picking all files alike in search
 gint max_uploads_ip = 2;		// maximum uploads per IP
-gint downloads_divider_pos = 160;
+guint16 downloads_divider_pos = 160;
+guint16 main_divider_pos = 110;
 
 time_t tab_update_time = 5;
 
@@ -302,6 +303,7 @@ typedef enum {
     k_progressbar_bps_in_avg,
     k_progressbar_bps_out_avg,
     k_downloads_divider_pos,
+    k_main_divider_pos,
 	k_end
 } keyword_t;
 
@@ -426,7 +428,8 @@ static gchar *keywords[k_end] = {
     "progressbar_bps_out_visible",
     "progressbar_bps_in_avg",
     "progressbar_bps_out_avg",
-    "downloads_divider_pos"
+    "downloads_divider_pos",
+    "main_divider_pos"
 };
 
 static gchar cfg_tmp[4096];
@@ -705,6 +708,7 @@ void config_set_param(keyword_t keyword, gchar *value)
         CONFIG_SET_NUM(download_retry_timeout_max,    15,  100000)
         CONFIG_SET_NUM(download_retry_timeout_min,    15,  100000)
         CONFIG_SET_NUM(downloads_divider_pos,          0,    5000)
+        CONFIG_SET_NUM(main_divider_pos,               0,    5000)
         CONFIG_SET_NUM(hard_ttl_limit,                 5,     254)
         CONFIG_SET_NUM(hops_random_factor,             0,       3)
         CONFIG_SET_NUM(listen_port,                    0,   65535)
@@ -738,7 +742,6 @@ void config_set_param(keyword_t keyword, gchar *value)
         CONFIG_SET_STR(socks_user)
         CONFIG_SET_STR_COMPAT(socks_pass, socksv5_pass)
         CONFIG_SET_STR_COMPAT(socks_user, socksv5_user)
-
 
 	case k_local_ip:
 		local_ip = gchar_to_ip(value);
@@ -1165,6 +1168,7 @@ static void config_save(void)
 	fprintf(config, "%s = %u,%u,%u,%u\n\n", keywords[k_win_coords], win_x,
 			win_y, win_w, win_h);
     CONFIG_WRITE_UINT(downloads_divider_pos)
+    CONFIG_WRITE_UINT(main_divider_pos)
     fprintf(config, "%s = %u,%u,%u,%u,%u\n", keywords[k_widths_nodes],
 			nodes_col_widths[0], nodes_col_widths[1],
 			nodes_col_widths[2], nodes_col_widths[3], nodes_col_widths[4]);
