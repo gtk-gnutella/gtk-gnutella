@@ -736,16 +736,19 @@ static struct download *has_same_download(
  */
 gboolean download_file_exists(struct download *d)
 {
-	gchar path[2048];
+	gboolean ret;
+	gchar *path;
 	struct stat buf;
 
-	gm_snprintf(path, sizeof(path), "%s/%s",
-		d->file_info->path, d->file_info->file_name);
-
-	if (-1 == stat(path, &buf))
-		return FALSE;
-
-	return TRUE;
+	path = g_strdup_printf("%s/%s",
+				d->file_info->path, d->file_info->file_name);
+	if (NULL != path) {
+		ret = -1 != stat(path, &buf);
+		G_FREE_NULL(path);
+	} else
+		ret = FALSE;
+	
+	return ret;
 }
 
 /*
@@ -760,15 +763,18 @@ gboolean download_file_exists(struct download *d)
  */
 void download_remove_file(struct download *d, gboolean reset)
 {
-	gchar path[2048];
+	gchar *path;
 	struct dl_file_info *fi = d->file_info;
 	GSList *l;
 
-	gm_snprintf(path, sizeof(path), "%s/%s", fi->path, fi->file_name);
+	path = g_strdup_printf("%s/%s", fi->path, fi->file_name);
 
-	if (-1 == unlink(path))
-		g_warning("cannot unlink \"%s\": %s", path, g_strerror(errno));
-	else {
+	if (
+		NULL == path || -1 == unlink(path)
+	) {
+		g_warning("cannot unlink \"%s/%s\": %s",
+			fi->path, fi->file_name, g_strerror(errno));
+	} else {
 		g_warning("unlinked \"%s\" (%u/%u bytes done, %s SHA1%s%s)",
 			fi->file_name, fi->done, fi->size,
 			fi->sha1 ? "with" : "no",
@@ -777,6 +783,9 @@ void download_remove_file(struct download *d, gboolean reset)
 		if (reset)
 			file_info_reset(fi);
 	}
+
+	if (NULL != path)
+		G_FREE_NULL(path);
 
 	/*
 	 * Requeue all the active downloads that were referencing that file.
@@ -3317,17 +3326,21 @@ static void call_download_push_ready(gpointer o, header_t *header)
  */
 static gboolean download_overlap_check(struct download *d)
 {
+	gchar *path;
 	struct gnutella_socket *s = d->socket;
 	gint fd = -1;
 	struct stat buf;
 	gchar *data = NULL;
 	gint r;
+	off_t offset;
 
-	gm_snprintf(dl_tmp, sizeof(dl_tmp), "%s/%s", d->file_info->path,
-		d->file_info->file_name);
+	path = g_strdup_printf("%s/%s",
+				d->file_info->path, d->file_info->file_name);
+	if (NULL == path)
+		goto out;
 
-	fd = open(dl_tmp, O_RDONLY);
-
+	fd = open(path, O_RDONLY);
+	G_FREE_NULL(path);
 	if (fd == -1) {
 		const gchar * error = g_strerror(errno);
 		g_warning("cannot check resuming for \"%s\": %s",
@@ -3357,7 +3370,8 @@ static gboolean download_overlap_check(struct download *d)
 		goto out;
 	}
 
-	if (-1 == lseek(fd, d->skip - d->overlap_size, SEEK_SET)) {
+	offset = d->skip - d->overlap_size;
+	if (offset != lseek(fd, offset, SEEK_SET)) {
 		download_stop(d, GTA_DL_ERROR, "Unable to seek: %s",
 			g_strerror(errno));
 		goto out;
@@ -3454,7 +3468,7 @@ static void download_write_data(struct download *d)
 		/* FALL THROUGH */
 	}
 
-	if (-1 == lseek(d->file_desc, d->pos, SEEK_SET)) {
+	if (d->pos != lseek(d->file_desc, d->pos, SEEK_SET)) {
 		const char *error = g_strerror(errno);
 		g_warning("download_write_data(): failed to seek at offset %u (%s)",
 			d->pos, error);
@@ -4234,6 +4248,7 @@ static void download_request(struct download *d, header_t *header, gboolean ok)
 	struct dl_file_info *fi;
 	gchar short_read[80];
 	guint delay;
+	gchar *path = NULL;
 
 	/*
 	 * If `ok' is FALSE, we might not even have fully read the status line,
@@ -4789,36 +4804,43 @@ static void download_request(struct download *d, header_t *header, gboolean ok)
 
 	g_assert(d->file_desc == -1);
 
-	gm_snprintf(dl_tmp, sizeof(dl_tmp), "%s/%s", fi->path, fi->file_name);
+	path = g_strdup_printf("%s/%s", fi->path, fi->file_name);
+	if (NULL == path);
+		return;  
 
-	if (stat(dl_tmp, &st) != -1) {
+	if (stat(path, &st) != -1) {
 		/* File exists, we'll append the data to it */
 		if (!fi->use_swarming && (fi->done != d->skip)) {
 			g_warning("File '%s' changed size (now %u, but was %u)",
 					fi->file_name, fi->done, d->skip);
 			download_queue_delay(d, download_retry_stopped_delay,
 				"Stopped (Output file size changed)");
+			G_FREE_NULL(path);
 			return;
 		}
 
-		d->file_desc = open(dl_tmp, O_WRONLY);
+		d->file_desc = open(path, O_WRONLY);
 	} else {
 		if (!fi->use_swarming && d->skip) {
 			download_stop(d, GTA_DL_ERROR, "Cannot resume: file gone");
+			G_FREE_NULL(path);
 			return;
 		}
-		d->file_desc = open(dl_tmp, O_WRONLY | O_CREAT, 0644);
+		d->file_desc = open(path, O_WRONLY | O_CREAT,
+						S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH); /* 0644 */
 	}
 
 	if (d->file_desc == -1) {
 		const gchar *error = g_strerror(errno);
-		g_warning("Unable to open file '%s' for writing! (%s)",
-			dl_tmp, error);
+		g_warning("Unable to open file '%s' for writing! (%s)", path, error);
 		download_stop(d, GTA_DL_ERROR, "Cannot write into file: %s", error);
+		G_FREE_NULL(path);
 		return;
 	}
 
-	if (d->skip && -1 == lseek(d->file_desc, d->skip, SEEK_SET)) {
+	G_FREE_NULL(path);
+
+	if (d->skip && d->skip != lseek(d->file_desc, d->skip, SEEK_SET)) {
 		download_stop(d, GTA_DL_ERROR, "Unable to seek: %s",
 			g_strerror(errno));
 		return;
@@ -5850,8 +5872,8 @@ static void download_moved_with_bad_sha1(struct download *d)
 static void download_move(struct download *d, gchar *dir, gchar *ext)
 {
 	struct dl_file_info *fi;
-	gchar *dest_name;
-	gchar src_name[2048];
+	gchar *dest = NULL;
+	gchar *src = NULL;
 	gboolean common_dir;
 
 	g_assert(d);
@@ -5861,17 +5883,18 @@ static void download_move(struct download *d, gchar *dir, gchar *ext)
 	d->status = GTA_DL_MOVING;
 	fi = d->file_info;
 
-	gm_snprintf(src_name, sizeof(src_name), "%s/%s", fi->path, fi->file_name);
-	src_name[sizeof(src_name)-1] = '\0';
+	src = g_strdup_printf("%s/%s", fi->path, fi->file_name);
+	if (NULL == src)
+		goto error;
 
 	/*
-	 * If the target directory is the asme as the source directory. we'll
+	 * If the target directory is the same as the source directory, we'll
 	 * use the supplied extension and simply rename the file.
 	 */
 
 	if (0 == strcmp(dir, fi->path)) {
-		dest_name = unique_filename(dir, fi->file_name, ext);
-		if (-1 == rename(src_name, dest_name))
+		dest = unique_filename(dir, fi->file_name, ext);
+		if (NULL == dest || -1 == rename(src, dest))
 			goto error;
 		goto renamed;
 	}
@@ -5885,9 +5908,11 @@ static void download_move(struct download *d, gchar *dir, gchar *ext)
 
 	common_dir = (0 == strcmp(move_file_path, bad_file_path));
 
-	dest_name = unique_filename(dir, fi->file_name, common_dir ? ext : "");
+	dest = unique_filename(dir, fi->file_name, common_dir ? ext : "");
+	if (NULL == dest)
+		goto error;
 
-	if (-1 != rename(src_name, dest_name))
+	if (-1 != rename(src, dest))
 		goto renamed;
 
 	/*
@@ -5910,17 +5935,25 @@ static void download_move(struct download *d, gchar *dir, gchar *ext)
 
 	gui_update_download(d, TRUE);
 
-	return;
+	goto cleanup;
 
 error:
-	g_warning("cannot rename %s as %s: %s",
-		src_name, dest_name, g_strerror(errno));
+	g_warning("cannot rename %s as %s: %s", src, dest, g_strerror(errno));
 	download_move_error(d);
-	return;
+	goto cleanup;
 
 renamed:
-	file_info_strip_binary_from_file(fi, dest_name);
+
+	file_info_strip_binary_from_file(fi, dest);
 	download_move_done(d, 0);
+	goto cleanup;
+
+cleanup:
+
+	if (NULL != src);	
+		G_FREE_NULL(src);
+	if (NULL != dest);	
+		G_FREE_NULL(dest);
 	return;
 }
 
@@ -5984,8 +6017,8 @@ void download_move_error(struct download *d)
 {
 	struct dl_file_info *fi = d->file_info;
 	gchar *ext;
-	gchar src_name[2048];
-	gchar *dest_name;
+	gchar *src;
+	gchar *dest;
 
 	g_assert(d->status == GTA_DL_MOVING);
 
@@ -5994,24 +6027,28 @@ void download_move_error(struct download *d)
 	 * rename it as DL_BAD_EXT.
 	 */
 
-	gm_snprintf(src_name, sizeof(src_name), "%s/%s", fi->path, fi->file_name);
-	src_name[sizeof(src_name)-1] = '\0';
-
+	src = g_strdup_printf("%s/%s", fi->path, fi->file_name);
 	ext = has_good_sha1(d) ? DL_OK_EXT : DL_BAD_EXT;
-	dest_name = unique_filename(fi->path, fi->file_name, ext);
+	dest = unique_filename(fi->path, fi->file_name, ext);
 
 	file_info_strip_binary(fi);
 
-	if (-1 == rename(src_name, dest_name)) {
+	
+	if (NULL == src ||
+		NULL == dest ||
+		-1 == rename(src, dest)
+	) {
 		g_warning("could not rename \"%s\" as \"%s\": %s",
-			src_name, dest_name, g_strerror(errno));
+			src, dest, g_strerror(errno));
 		d->status = GTA_DL_DONE;
-		return;
+	} else {
+		g_warning("completed \"%s\" left at \"%s\"", fi->file_name, dest);
+		download_move_done(d, 0);
 	}
-
-	g_warning("completed \"%s\" left at \"%s\"", fi->file_name, dest_name);
-
-	download_move_done(d, 0);
+	if (NULL != src)
+		G_FREE_NULL(src);
+	if (NULL != dest)
+		G_FREE_NULL(dest);
 }
 
 /***
