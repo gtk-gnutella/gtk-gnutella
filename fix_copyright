@@ -32,7 +32,6 @@
 
 my @DEVS = (
 	"Raphael Manfredi",
-	"Christian Biere",
 	"Jeroen Asselman",
 	"Richard Eckart",
 );
