@@ -52,6 +52,7 @@ RCSID("$Id$");
 
 /* Private variables */
 static GtkTreeView *upload_stats_treeview = NULL;
+static GtkCellRenderer *upload_stats_cell_renderer = NULL;
 
 /* Private functions */
 
@@ -73,20 +74,9 @@ static void upload_stats_gui_add_column(
     GtkTreeView *tree, gint column_id, const gchar *title)
 {
     GtkTreeViewColumn *column;
-	GtkCellRenderer *renderer;
 
-	renderer = gtk_cell_renderer_text_new();
-
-	if (0 == column_id) {
-    	column = gtk_tree_view_column_new();
-    	gtk_tree_view_column_set_title(column, title);
-    	gtk_tree_view_column_pack_start(column, renderer, TRUE);
-    	gtk_tree_view_column_add_attribute(column, renderer, "text", column_id);
-	} else {
-    	column = gtk_tree_view_column_new_with_attributes(
-			title, renderer, "text", column_id, NULL);
-	}
-
+   	column = gtk_tree_view_column_new_with_attributes(
+			title, upload_stats_cell_renderer, "text", column_id, NULL);
     gtk_tree_view_column_set_reorderable(column, TRUE);
     gtk_tree_view_column_set_resizable(column, TRUE);
     gtk_tree_view_column_set_sizing(column, GTK_TREE_VIEW_COLUMN_FIXED);
@@ -170,6 +160,10 @@ void upload_stats_gui_init(void)
 	upload_stats_treeview = GTK_TREE_VIEW(
 		lookup_widget(main_window, "treeview_ul_stats"));
 	gtk_tree_view_set_model(upload_stats_treeview, model);
+	upload_stats_cell_renderer = gtk_cell_renderer_text_new();
+	g_object_set(upload_stats_cell_renderer,
+		"ypad", (gint) GUI_CELL_RENDERER_YPAD, NULL);
+
 	upload_stats_gui_add_column(
 		upload_stats_treeview, c_us_filename, "Filename");
 	upload_stats_gui_add_column(

@@ -47,13 +47,12 @@ enum {
 
 static gchar gui_tmp[4096];
 static GtkListStore *nodes_model = NULL;
+static GtkCellRenderer *nodes_gui_cell_renderer = NULL;
 
-static void nodes_gui_node_removed(
-    gnet_node_t n, guint32, guint32);
-static void nodes_gui_node_added(
-    gnet_node_t n, const gchar *t, guint32, guint32);
+static void nodes_gui_node_removed(gnet_node_t, guint32, guint32);
+static void nodes_gui_node_added(gnet_node_t, const gchar *, guint32, guint32);
 static void nodes_gui_node_info_changed(gnet_node_t);
-static void nodes_gui_node_flags_changed(gnet_node_t n);
+static void nodes_gui_node_flags_changed(gnet_node_t);
 static void nodes_gui_add_column(GtkTreeView *, gint, const gchar *);
 
 /*
@@ -127,6 +126,9 @@ void nodes_gui_init()
 	gtk_tree_selection_set_mode(gtk_tree_view_get_selection(tree),
 		GTK_SELECTION_MULTIPLE);
 
+    nodes_gui_cell_renderer = gtk_cell_renderer_text_new();
+    g_object_set(nodes_gui_cell_renderer,
+		"ypad", (gint) GUI_CELL_RENDERER_YPAD, NULL);
     nodes_gui_add_column(tree, COL_NODE_HOST, "Host");
     nodes_gui_add_column(tree, COL_NODE_TYPE, "Flags");
     nodes_gui_add_column(tree, COL_NODE_VENDOR, "User-agent");
@@ -524,8 +526,8 @@ static void nodes_gui_add_column(
 {
     GtkTreeViewColumn *column;
 
-    column = gtk_tree_view_column_new_with_attributes 
-        (title, gtk_cell_renderer_text_new (), "text", column_id, NULL);
+    column = gtk_tree_view_column_new_with_attributes(
+		title, nodes_gui_cell_renderer, "text", column_id, NULL);
     gtk_tree_view_column_set_reorderable(column, TRUE);
     gtk_tree_view_column_set_resizable(column, TRUE);
     gtk_tree_view_column_set_sizing(column, GTK_TREE_VIEW_COLUMN_FIXED);

@@ -154,7 +154,10 @@ static void gui_init_menu(void)
 	GtkTreeIter	iter, parent;
 	GtkTreeStore *store;
 	GtkTreeViewColumn *column;
+    GtkCellRenderer *renderer;
 
+    renderer = gtk_cell_renderer_text_new();
+    g_object_set(renderer, "ypad", (gint) GUI_CELL_RENDERER_YPAD, NULL);
 	treeview = GTK_TREE_VIEW(lookup_widget(main_window, "treeview_menu"));
 	store = gtk_tree_store_new(3,
 		G_TYPE_STRING,	/* Label */
@@ -198,7 +201,7 @@ static void gui_init_menu(void)
 	gtk_tree_view_set_model(treeview, GTK_TREE_MODEL(store));
 
 	column = gtk_tree_view_column_new_with_attributes(
-		NULL, gtk_cell_renderer_text_new(), "text", 0, NULL);
+		NULL, renderer, "text", 0, NULL);
     gtk_tree_view_column_set_resizable(column, TRUE);
     gtk_tree_view_column_set_sizing(column, GTK_TREE_VIEW_COLUMN_FIXED);
     gtk_tree_view_append_column(treeview, column);

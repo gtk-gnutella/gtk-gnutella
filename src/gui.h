@@ -42,6 +42,8 @@
 #define g_ascii_strcasecmp g_strcasecmp
 #endif
 
+#define GUI_CELL_RENDERER_YPAD 0
+
 /*
  * Uploads table columns
  */

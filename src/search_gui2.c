@@ -51,6 +51,7 @@ RCSID("$Id$");
 static gchar tmpstr[4096];
 
 GList *searches = NULL;		/* List of search structs */
+GtkCellRenderer *search_gui_cell_renderer = NULL;  /* Common cell renderer */
 
 /* Need to remove this dependency on GUI further --RAM */
 extern GtkWidget *default_search_tree_view;
@@ -837,6 +838,7 @@ void search_matched(search_t *sch, results_set_t *rs)
     gboolean send_pushes;
     gboolean is_firewalled;
 	gint i;
+	guint32 max_results;
 
     g_assert(sch != NULL);
     g_assert(rs != NULL);
@@ -939,10 +941,11 @@ void search_matched(search_t *sch, results_set_t *rs)
         /*
          * We start with FILTER_PROP_DISPLAY:
          */
+		gui_prop_get_guint32_val(PROP_SEARCH_MAX_RESULTS, &max_results);
         if (!((flt_result->props[FILTER_PROP_DISPLAY].state == 
                 FILTER_PROP_STATE_DONT) &&
             (flt_result->props[FILTER_PROP_DISPLAY].user_data == 0)) &&
-            (sch->items < search_max_results))
+            (sch->items < max_results))
         {
             GdkColor *fg_color = NULL;
             gboolean mark;
@@ -1485,9 +1488,13 @@ void search_gui_init(void)
 		G_TYPE_INT,
 		G_TYPE_POINTER);
 	gtk_tree_view_set_model(tree_view_search, GTK_TREE_MODEL(list_store));
-	add_search_column(tree_view_search, "Search", c_sl_name, 80);
-	add_search_column(tree_view_search, "Hits", c_sl_hit, 40);
-	add_search_column(tree_view_search, "New", c_sl_new, 40);
+    search_gui_cell_renderer = gtk_cell_renderer_text_new();
+	g_object_set(search_gui_cell_renderer,
+		"ypad", (gint) GUI_CELL_RENDERER_YPAD, NULL);
+/* FIXME: connect to signal "notify::width" to save the columns' widths */
+	add_search_column(tree_view_search, "Search", c_sl_name, 100);
+	add_search_column(tree_view_search, "Hits", c_sl_hit, 30);
+	add_search_column(tree_view_search, "New", c_sl_new, 30);
 	g_signal_connect(G_OBJECT(tree_view_search), 
 		"cursor-changed",
 		G_CALLBACK(on_tree_view_search_select_row),
@@ -1825,12 +1832,10 @@ GtkTreeModel *create_model (void)
 static GtkTreeViewColumn *add_column(
 	GtkTreeView *treeview, gchar *name, gint id, gint width)
 {
-    GtkCellRenderer *renderer;
     GtkTreeViewColumn *column;
 
-    renderer = gtk_cell_renderer_text_new();
-    column = gtk_tree_view_column_new_with_attributes(name, renderer,
-        "text", id, NULL);
+    column = gtk_tree_view_column_new_with_attributes(
+		name, search_gui_cell_renderer, "text", id, NULL);
     gtk_tree_view_column_set_sort_column_id(column, id);
     gtk_tree_view_column_set_fixed_width(column, width);
     gtk_tree_view_column_set_min_width(column, 0);
@@ -1906,7 +1911,6 @@ void gui_search_create_tree_view(GtkWidget ** sw, GtkWidget ** tv)
 
 	tree_selection = gtk_tree_view_get_selection(tree_view);
 	gtk_tree_selection_set_mode(tree_selection, GTK_SELECTION_MULTIPLE);
-	gtk_tree_view_set_reorderable(tree_view, TRUE);
 	gtk_tree_view_set_headers_visible(tree_view, TRUE);
 	gtk_tree_view_set_headers_clickable(tree_view, TRUE);
 	gtk_tree_view_set_enable_search(tree_view, TRUE);
