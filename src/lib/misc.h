@@ -195,9 +195,11 @@ gchar *short_uptime(gint s);
  */
 const gchar *short_size(guint64 size);
 const gchar *short_kb_size(guint64 size);
+const gchar *short_rate(guint64 rate);
 const gchar *compact_size(guint64 size);
 const gchar *compact_rate(guint64 rate);
 const gchar *compact_kb_size(guint32 size);
+gchar *short_value(gchar *buf, size_t size, guint64 v);
 gchar *compact_value(gchar *buf, size_t size, guint64 v);
 
 /*
