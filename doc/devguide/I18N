@@ -93,6 +93,12 @@ and strip the part up to the . (dot). For example:
  ja_JP.eucJP
  $ iconv -f eucJP -t UTF-8 messages.po > utf8.po
 
+If you use Vim you can also convert lines on the fly like this:
+
+:,!iconv -f ISO-8859-1 -t UTF-8
+
+This usually works even if your terminal doesn't support UTF-8
+encoded character sets.
 
 6. Install the PO file:
 =======================
