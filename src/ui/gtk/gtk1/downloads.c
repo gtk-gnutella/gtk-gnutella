@@ -78,45 +78,39 @@ static GtkCTree *ctree_downloads_queue = NULL;
  *** Private functions
  ***/
  
-/*
- * add_parent_with_fi_handle
- *
+/**
  * Add the given tree node to the hashtable.
  * The key is an int ref on the fi_handle for a given download.
- *
  */
-static inline void add_parent_with_fi_handle(
-	GHashTable *ht, gpointer key, GtkCTreeNode *data)
+static inline void
+add_parent_with_fi_handle(GHashTable *ht, gpointer key, GtkCTreeNode *data)
 {
 	/*
 	 * Since we're inserting an integer ref into the hash table, we need
 	 * to make it an atom.
 	 */
 
-	g_hash_table_insert(ht, atom_int_get(key), data);
+	g_hash_table_insert(ht, key, data);
 }
 
-/*
- * remove_parent_with_fi_handle
- *
+/**
  * Removes the treenode matching the given fi_handle from the hash table
  * and frees the original key used to store it.
  */
-static inline void remove_parent_with_fi_handle(
-	GHashTable *ht, const gnet_fi_t *fi_handle)
+static inline void
+remove_parent_with_fi_handle(GHashTable *ht, const gnet_fi_t fi_handle)
 {
 	gpointer key;
 	GtkCTreeNode *data = NULL;
 	gpointer orig_key;
  
-	key = (gpointer) fi_handle;
+	key = GUINT_TO_POINTER(fi_handle);
 
 	if (
 		g_hash_table_lookup_extended(ht, key,
 			(gpointer) &orig_key, (gpointer) &data)
 	) {
 		g_hash_table_remove(ht, key);
-		atom_int_free(orig_key);
 	} else
 		g_warning("remove_parent_with_fi_handle:can't find fi in hash table!");
 
@@ -131,41 +125,25 @@ static inline void remove_parent_with_fi_handle(
 			(gpointer) &orig_key, (gpointer) &data)
 	) {
 		g_hash_table_remove(parents_gui_time, key);
-		atom_int_free(orig_key);
 	}
 }
 
 
-/*
- * find_parent_with_fi_handle
- *
- * Returns the tree iterator corresponding to the given key, an atomized
+/**
+ * @eturn the tree iterator corresponding to the given key, an atomized
  * fi_handle.
- *
  */
-static inline GtkCTreeNode *find_parent_with_fi_handle(
-	GHashTable *ht, gpointer key)
+static inline
+GtkCTreeNode *find_parent_with_fi_handle(GHashTable *ht, gpointer key)
 {
 	return g_hash_table_lookup(ht, key);
 }
 
-/*
- * downloads_gui_free_parent
- *
- * Hash table iterator to free the allocated keys.
- */
-gboolean downloads_gui_free_parent(gpointer key, gpointer value, gpointer x)
-{
-	atom_int_free(key);
-	return TRUE;
-}
-
-/*
- * record_parent_gui_update
- *
+/**
  * Remember when we did the last GUI update of the parent.
  */
-static inline void record_parent_gui_update(gpointer key, time_t when)
+static inline void
+record_parent_gui_update(gpointer key, time_t when)
 {
 	gpointer orig_key;
 	gpointer data;
@@ -176,28 +154,25 @@ static inline void record_parent_gui_update(gpointer key, time_t when)
 	)
 		g_hash_table_insert(parents_gui_time, orig_key, GINT_TO_POINTER(when));
 	else
-		g_hash_table_insert(parents_gui_time, atom_int_get(key),
-			GINT_TO_POINTER(when));
+		g_hash_table_insert(parents_gui_time, key, GINT_TO_POINTER(when));
 }
 
-/*
- * get_last_parent_gui_update
- *
- * Returns the last time we updated the GUI of the parent.
+/**
+ * @return the last time we updated the GUI of the parent.
  */
-static inline time_t get_last_parent_gui_update(gpointer key)
+static inline time_t
+get_last_parent_gui_update(gpointer key)
 {
 	return (time_t) GPOINTER_TO_INT(g_hash_table_lookup(parents_gui_time, key));
 }
 
-/*
- * parent_gui_needs_update
- *
- * Returns whether the parent of download `d', if any, needs a GUI update.
+/**
+ * @return whether the parent of download `d', if any, needs a GUI update.
  */
-static inline gboolean parent_gui_needs_update(struct download *d, time_t now)
+static inline gboolean
+parent_gui_needs_update(struct download *d, time_t now)
 {
-	gpointer key = &d->file_info->fi_handle;
+	gpointer key = GUINT_TO_POINTER(d->file_info->fi_handle);
 	gpointer parent = find_parent_with_fi_handle(parents, key);
 
 	if (parent == NULL)
@@ -206,18 +181,17 @@ static inline gboolean parent_gui_needs_update(struct download *d, time_t now)
 	return get_last_parent_gui_update(key) != now;
 }
 
-/*
- * parent_children_add
- *
+/**
  * Add (arithmetically) `x' to the amount of children of the parent, identified
  * by its fileifo hande.
  *
  * The `ctree' is used to determine whether we're managing a parent from
  * the active downlods or the queue downlaods.
  *
- * Returns the new amount of children (use x=0 to get the current count).
+ * @return the new amount of children (use x=0 to get the current count).
  */
-static gint parent_children_add(GtkCTree *ctree, gpointer key, gint x)
+static gint
+parent_children_add(GtkCTree *ctree, gpointer key, gint x)
 {
 	GHashTable *ht = NULL;
 	gpointer k;
@@ -239,11 +213,11 @@ static gint parent_children_add(GtkCTree *ctree, gpointer key, gint x)
 		g_assert(x >= 0);
 		if (x == 0)
 			return 0;
-		g_hash_table_insert(ht, atom_int_get(key), GINT_TO_POINTER(x));
+		g_hash_table_insert(ht, key, GINT_TO_POINTER(x));
 		return x;
 	}
 
-	g_assert(*(gint *) k == *(gint *) key);
+	g_assert(GPOINTER_TO_UINT(k) == GPOINTER_TO_UINT(key));
 
 	cnt = GPOINTER_TO_INT(v);
 
@@ -258,7 +232,6 @@ static gint parent_children_add(GtkCTree *ctree, gpointer key, gint x)
 			g_hash_table_insert(ht, k, GINT_TO_POINTER(cnt));
 		else {
 			g_hash_table_remove(ht, k);
-			atom_int_free(k);
 		}
 	}
 
@@ -266,9 +239,7 @@ static gint parent_children_add(GtkCTree *ctree, gpointer key, gint x)
 }
 
 
-/* 
- * 	downloads_gui_collect_ctree_data
- *
+/**
  *	Given a GList of GtkCTreeNodes, return a new list pointing to the row data
  *	If unselect is TRUE, unselect all nodes in the list
  *  If children is TRUE, check and strip out header nodes.  Instead of adding
@@ -278,7 +249,8 @@ static gint parent_children_add(GtkCTree *ctree, gpointer key, gint x)
  * FIXME: Worst case approaches O(n*n) ensuring no duplicate children are added
  * FIXME: There are a lot of glist "appends" in here => unneccesary O(n)
  */
-GList *downloads_gui_collect_ctree_data(GtkCTree *ctree, GList *node_list, 
+GList *
+downloads_gui_collect_ctree_data(GtkCTree *ctree, GList *node_list, 
 	gboolean unselect, gboolean add_children)
 {
 	GList *data_list = NULL, *dup_list = NULL;
@@ -333,14 +305,12 @@ GList *downloads_gui_collect_ctree_data(GtkCTree *ctree, GList *node_list,
 	return data_list;
 }
 
-/*
- *	downloads_gui_any_status
- *
- *	Returns true if any of the active downloads in the same tree as the given 
+/**
+ *	@return true if any of the active downloads in the same tree as the given 
  * 	download are in the specified status.
  */
-static gboolean downloads_gui_any_status(
-	struct download *d, download_status_t status)
+static gboolean
+downloads_gui_any_status(struct download *d, download_status_t status)
 {
 	gpointer key;
 	GtkCTreeNode *node, *parent;
@@ -351,7 +321,7 @@ static gboolean downloads_gui_any_status(
 	if (!d->file_info)
 		return FALSE;
 	
-	key = (gpointer) &d->file_info->fi_handle;
+	key = GUINT_TO_POINTER(d->file_info->fi_handle);
 	parent = find_parent_with_fi_handle(parents, key);
 
 	if (!parent)
@@ -374,13 +344,12 @@ static gboolean downloads_gui_any_status(
 	return FALSE;
 }
 
-/*
- *	downloads_gui_all_aborted
- *
- *	Returns true if all the active downloads in the same tree as the given 
+/**
+ *	@return true if all the active downloads in the same tree as the given 
  * 	download are aborted (status is GTA_DL_ABORTED or GTA_DL_ERROR).
  */
-gboolean downloads_gui_all_aborted(struct download *d)
+gboolean
+downloads_gui_all_aborted(struct download *d)
 {
 	struct download *drecord = NULL;
 	gpointer key;
@@ -393,7 +362,7 @@ gboolean downloads_gui_all_aborted(struct download *d)
 
 	if (NULL != d->file_info) {
 			
-		key = &d->file_info->fi_handle;
+		key = GUINT_TO_POINTER(d->file_info->fi_handle);
 		parent = find_parent_with_fi_handle(parents, key);
 
 		if (NULL != parent) {
@@ -424,14 +393,13 @@ gboolean downloads_gui_all_aborted(struct download *d)
 }
 
 
-/*
- *	downloads_gui_update_parent_status
- *
+/**
  * 	Finds parent of given download in the active download tree and changes the
  *  status column to the given string.  Returns true if status is changed.
  */
-gboolean downloads_gui_update_parent_status(
-	struct download *d, time_t now, gchar *new_status)
+gboolean
+downloads_gui_update_parent_status(struct download *d, time_t now,
+	gchar *new_status)
 {
 	gpointer key;
 	gboolean changed = FALSE;
@@ -444,7 +412,7 @@ gboolean downloads_gui_update_parent_status(
 
     if (NULL != d->file_info) {
 
-		key = &d->file_info->fi_handle;
+		key = GUINT_TO_POINTER(d->file_info->fi_handle);
 		parent = find_parent_with_fi_handle(parents, key);
 
 		if (NULL != parent) {
@@ -467,11 +435,12 @@ gboolean downloads_gui_update_parent_status(
 }
 
 
-// FIXME: insteadof this download_gui should pull a listener on 
-//        fileinfo status changes, but since the downloads gui
-//        has to be overhauled for better fileinfo integration anyway,
-//        I didn't do this now.
-//     --BLUE, 10/1/2004
+/* FIXME: instead of this download_gui should pull a listener on 
+ *        fileinfo status changes, but since the downloads gui
+ *        has to be overhauled for better fileinfo integration anyway,
+ *        I didn't do this now.
+ *     --BLUE, 10/1/2004
+ */
 #if 0
 void gui_update_download_hostcount(struct download *d)
 {
@@ -482,7 +451,7 @@ void gui_update_download_hostcount(struct download *d)
 
     if (NULL != d->file_info) {
 
-		key = &d->file_info->fi_handle;
+		key = GUINT_TO_POINTER(d->file_info->fi_handle);
 		parent = find_parent_with_fi_handle(parents, key);
 
 		if (NULL != parent) {
@@ -499,9 +468,7 @@ void gui_update_download_hostcount(struct download *d)
 }
 #endif	/* 0 */
 
-/*
- * downloads_gui_init
- *
+/**
  * Initialize local data structures.
  */
 void downloads_gui_init(void)
@@ -525,29 +492,19 @@ void downloads_gui_init(void)
     gtk_clist_set_column_justification(
         clist, c_queue_size, GTK_JUSTIFY_RIGHT);
 
-	parents = g_hash_table_new(g_int_hash, g_int_equal);
-	parents_queue = g_hash_table_new(g_int_hash, g_int_equal);
-	parents_gui_time = g_hash_table_new(g_int_hash, g_int_equal);
-	parents_children = g_hash_table_new(g_int_hash, g_int_equal);
-	parents_queue_children = g_hash_table_new(g_int_hash, g_int_equal);
+	parents = g_hash_table_new(NULL, NULL);
+	parents_queue = g_hash_table_new(NULL, NULL);
+	parents_gui_time = g_hash_table_new(NULL, NULL);
+	parents_children = g_hash_table_new(NULL, NULL);
+	parents_queue_children = g_hash_table_new(NULL, NULL);
 }
 
-/*
- * downloads_gui_shutdown
- *
+/**
  * Cleanup local data structures.
  */
-void downloads_gui_shutdown(void)
+void
+downloads_gui_shutdown(void)
 {
-	g_hash_table_foreach_remove(parents, downloads_gui_free_parent, NULL);
-	g_hash_table_foreach_remove(parents_queue, downloads_gui_free_parent, NULL);
-	g_hash_table_foreach_remove(parents_gui_time,
-		downloads_gui_free_parent, NULL);
-	g_hash_table_foreach_remove(parents_children,
-		downloads_gui_free_parent, NULL);
-	g_hash_table_foreach_remove(parents_queue_children,
-		downloads_gui_free_parent, NULL);
-
 	g_hash_table_destroy(parents);
 	g_hash_table_destroy(parents_queue);
 	g_hash_table_destroy(parents_gui_time);
@@ -558,12 +515,11 @@ void downloads_gui_shutdown(void)
 #define DL_VISIBLE_MAX \
 	MAX(DOWNLOADS_VISIBLE_COLUMNS, DOWNLOAD_QUEUE_VISIBLE_COLUMNS)
 
-/*
- *	download_gui_add
- *
+/**
  *	Adds a download to the gui.  All parenting (grouping) is done here
  */
-void download_gui_add(struct download *d)
+void
+download_gui_add(struct download *d)
 {
 	const gchar *UNKNOWN_SIZE_STR = "no size";
 	const gchar *titles[DL_VISIBLE_MAX];
@@ -616,7 +572,7 @@ void download_gui_add(struct download *d)
 
 	if (DOWNLOAD_IS_QUEUED(d)) {
 		if (NULL != d->file_info) {
-			key = (gpointer) &d->file_info->fi_handle;
+			key = GUINT_TO_POINTER(d->file_info->fi_handle);
 			parent = find_parent_with_fi_handle(parents_queue, key);
 			if (NULL != parent) {
 				/* 	There already is a download with that file_info
@@ -748,7 +704,7 @@ void download_gui_add(struct download *d)
         titles[c_dl_loc] = guc_download_get_country(d);
 		
 		if (NULL != d->file_info) {
-			key = (gpointer) &d->file_info->fi_handle;
+			key = GUINT_TO_POINTER(d->file_info->fi_handle);
 			parent = find_parent_with_fi_handle(parents, key);
 			if (NULL != parent) {
 				/* 	There already is a download with that file_info
@@ -875,7 +831,8 @@ void download_gui_add(struct download *d)
 }
 
 
-void gui_update_download_server(struct download *d)
+void
+gui_update_download_server(struct download *d)
 {
 	GtkCTreeNode *node;
 
@@ -902,7 +859,8 @@ void gui_update_download_server(struct download *d)
 		gtk_ctree_node_set_text(ctree_downloads, node, c_dl_server, tmpstr);
 }
 
-void gui_update_download_range(struct download *d)
+void
+gui_update_download_range(struct download *d)
 {
 	guint32 len;
 	gchar *and_more = "";
@@ -938,7 +896,8 @@ void gui_update_download_range(struct download *d)
 		gtk_ctree_node_set_text(ctree_downloads, node, c_dl_range, tmpstr);
 }
 
-void gui_update_download_host(struct download *d)
+void
+gui_update_download_host(struct download *d)
 {
 	GtkCTreeNode *node;
 
@@ -954,7 +913,8 @@ void gui_update_download_host(struct download *d)
 			c_dl_host, guc_download_get_hostname(d));
 }
 
-void gui_update_download(struct download *d, gboolean force)
+void
+gui_update_download(struct download *d, gboolean force)
 {
 	const gchar *a = NULL;
 	time_t now = time((time_t *) NULL);
@@ -1365,7 +1325,7 @@ void gui_update_download(struct download *d, gboolean force)
 		/*  Update header for downloads with multiple hosts */
 		if (NULL != d->file_info) {
 		
-			key = &d->file_info->fi_handle;
+			key = GUINT_TO_POINTER(d->file_info->fi_handle);
 			parent = find_parent_with_fi_handle(parents_queue, key);
 
 			if (parent != NULL) {
@@ -1433,7 +1393,7 @@ void gui_update_download(struct download *d, gboolean force)
 		/*  Update header for downloads with multiple hosts */
 		if (NULL != d->file_info) {
 		
-			key = &d->file_info->fi_handle;
+			key = GUINT_TO_POINTER(d->file_info->fi_handle);
 			parent = find_parent_with_fi_handle(parents, key);
 
 			if (
@@ -1495,7 +1455,8 @@ void gui_update_download(struct download *d, gboolean force)
 }
 
 
-void gui_update_download_abort_resume(void)
+void
+gui_update_download_abort_resume(void)
 {
    	struct download *d;
     GList *node_list;
@@ -1597,12 +1558,11 @@ void gui_update_download_abort_resume(void)
         (lookup_widget(popup_downloads, "popup_downloads_queue"), do_queue);
 }
 
-/*
- * download_gui_remove
- *
+/**
  * Remove a download from the GUI.
  */
-void download_gui_remove(struct download *d)
+void
+download_gui_remove(struct download *d)
 {
 	GtkCTreeNode *node, *parent;
 	GtkCTreeRow *parent_row;
@@ -1630,7 +1590,7 @@ void download_gui_remove(struct download *d)
 			/*  We need to discover if the download has a parent */
 			if (NULL != d->file_info) {
 		
-				key = &d->file_info->fi_handle;
+				key = GUINT_TO_POINTER(d->file_info->fi_handle);
 				parent =  find_parent_with_fi_handle(parents_queue, key);
 
 				if (NULL != parent) {
@@ -1686,8 +1646,8 @@ void download_gui_remove(struct download *d)
 				
 					if (0 == n) {
 						/* Node has no children -> is a parent */
-						remove_parent_with_fi_handle
-							(parents_queue, &(d->file_info->fi_handle));
+						remove_parent_with_fi_handle(parents_queue,
+							d->file_info->fi_handle);
 					}
 						
 					if (n > 2){
@@ -1719,7 +1679,7 @@ void download_gui_remove(struct download *d)
 			/*  We need to discover if the download has a parent */
 			if (NULL != d->file_info) {
 		
-				key = &d->file_info->fi_handle;
+				key = GUINT_TO_POINTER(d->file_info->fi_handle);
 				parent = find_parent_with_fi_handle(parents, key);
 
 				if (NULL != parent) {
@@ -1779,14 +1739,12 @@ void download_gui_remove(struct download *d)
 				
 					if (0 == n) {
 						/* Node has no children -> is a parent */
-						remove_parent_with_fi_handle
-							(parents, &(d->file_info->fi_handle));
+						remove_parent_with_fi_handle(parents, 
+							d->file_info->fi_handle);
 					}
 						
 					if (2 < n){
-						gm_snprintf(tmpstr, sizeof(tmpstr), 
-                            "%u hosts", n-1);
-
+						gm_snprintf(tmpstr, sizeof(tmpstr), "%u hosts", n - 1);
 						gtk_ctree_node_set_text(ctree_downloads,  parent,
 							c_dl_host, tmpstr);
 					}
@@ -1811,25 +1769,23 @@ void download_gui_remove(struct download *d)
 	gui_update_download_clear();
 }
 
-/*
- *	downloads_gui_collapse_all
- *
+/**
  *	Collapse all nodes in given, tree either downloads or downloads_queue
  */
-void downloads_gui_expand_all(GtkCTree *ctree)
+void
+downloads_gui_expand_all(GtkCTree *ctree)
 {	
 	gtk_ctree_expand_recursive(ctree, NULL);
 }
 
 
-/*
- *	downloads_gui_collapse_all
- *
+/**
  *	Collapse all nodes in given, tree either downloads or downloads_queue
  */
-void downloads_gui_collapse_all(GtkCTree *ctree)
+void
+downloads_gui_collapse_all(GtkCTree *ctree)
 {
 	gtk_ctree_collapse_recursive(ctree, NULL);
 }
 
-/* vi: set ts=4: */
+/* vi: set ts=4 sw=4 cindent: */

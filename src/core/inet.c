@@ -628,7 +628,7 @@ free_ip_record(gpointer key, gpointer value, gpointer udata)
 {
 	struct ip_record *ipr = (struct ip_record *) value;
 
-	g_assert(ipr->ip == GUINT_TO_POINTER(key));
+	g_assert(ipr->ip == GPOINTER_TO_UINT(key));
 	ip_record_free(ipr);
 }
 
