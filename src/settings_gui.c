@@ -25,17 +25,12 @@
  *----------------------------------------------------------------------
  */
 
+#include "settings_gui.h"
+
 #include <pwd.h>
 #include <sys/stat.h>
 
-#include "gnutella.h"
-#include "settings_gui.h"
-#include "gnet.h"
-#include "gui.h"
-#include "prop.h"
-
-#include "gtk-missing.h"
-#include "share_gui.h"
+#include "monitor_gui.h"
 #include "statusbar_gui.h"
 #include "search_gui.h"
 #include "gui_property_priv.h"
@@ -179,6 +174,8 @@ static gboolean is_firewalled_changed(property_t prop);
 static gboolean min_dup_ratio_changed(property_t prop);
 static gboolean is_inet_connected_changed(property_t prop);
 static gboolean show_search_results_settings_changed(property_t prop);
+static gboolean local_address_changed(property_t prop);
+static gboolean force_local_ip_changed(property_t prop);
 
 // FIXME: move to separate file and autoegenerate from high-level
 //        description. 
@@ -809,7 +806,7 @@ static prop_map_t property_map[] = {
     {
         get_main_window,
         PROP_FORCE_LOCAL_IP,
-        update_togglebutton,
+        force_local_ip_changed,
         TRUE,
         "checkbutton_config_force_ip"
     },
@@ -1103,7 +1100,7 @@ static prop_map_t property_map[] = {
     {
         NULL,
         PROP_LOCAL_IP,
-        IGNORE,
+        local_address_changed,
         FALSE,
         NULL
     },
@@ -1605,7 +1602,7 @@ static gboolean monitor_enabled_changed(property_t prop)
 
     gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(w), val);
 
-    share_gui_enable_monitor(val);
+    monitor_gui_enable_monitor(val);
 
     return FALSE;
 }
@@ -1969,6 +1966,53 @@ static gboolean show_search_results_settings_changed(property_t prop)
     return FALSE;
 }
 
+static gboolean local_address_changed(property_t prop)
+{
+    static guint32 old_address = 0;
+    static guint16 old_port = 0;
+    gboolean force_local_ip;
+    guint32 listen_port;
+    guint32 current_ip;
+
+    gnet_prop_get_boolean(PROP_FORCE_LOCAL_IP, &force_local_ip, 0, 1);
+    gnet_prop_get_guint32(PROP_LISTEN_PORT, &listen_port, 0, 1);
+
+    if (force_local_ip)
+        gnet_prop_get_guint32(PROP_FORCED_LOCAL_IP, &current_ip, 0, 1);
+    else
+        gnet_prop_get_guint32(PROP_LOCAL_IP, &current_ip, 0, 1);
+   
+    if (old_address != current_ip || old_port != listen_port) {
+        gchar * iport;
+        GtkLabel *label_current_port;
+        GtkEntry *entry_nodes_ip;
+
+        label_current_port = 
+            GTK_LABEL(lookup_widget(main_window, "label_current_port"));
+        entry_nodes_ip =
+            GTK_ENTRY(lookup_widget(main_window, "entry_nodes_ip"));
+
+      	iport = ip_port_to_gchar(current_ip, listen_port);
+
+        old_address = current_ip;
+        old_port = listen_port;
+
+        statusbar_gui_message
+            (15, "Address/port changed to: %s", iport);
+
+        gtk_label_set(label_current_port, iport);
+        gtk_entry_set_text(entry_nodes_ip, iport);
+    }
+
+    return FALSE;
+}
+
+gboolean force_local_ip_changed(property_t prop)
+{
+    update_togglebutton(prop);
+    local_address_changed(prop);
+    return FALSE;
+}
 
 /***
  *** V.  Control functions.
