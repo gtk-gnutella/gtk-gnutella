@@ -39,7 +39,6 @@
 
 #include "sockets.h"
 #include "share.h"
-#include "getline.h"
 #include "header.h"
 #include "hosts.h"		/* for check_valid_host() */
 #include "bsched.h"
@@ -1192,6 +1191,10 @@ static struct shared_file *get_file_to_upload_from_index(
 
 	basename = buf;
 
+    if (u->name != NULL)
+        atom_str_free(u->name);
+    u->name = atom_str_get(basename);
+
 	/*
 	 * If we have a X-Gnutella-Content-Urn, check whether we got a valid
 	 * SHA1 URN in there and extract it.
@@ -1401,6 +1404,10 @@ static struct shared_file *get_file_to_upload_from_urn(
 
 	sf = shared_file_by_sha1(digest);
 
+    if (u->name != NULL)
+        atom_str_free(u->name);
+    u->name = atom_str_get(urn);
+
 	if (sf == SHARE_REBUILDING) {
 		/* Retry-able by user, hence 503 */
 		upload_error_remove(u, NULL, 503, "Library being rebuilt");
@@ -1441,6 +1448,9 @@ static struct shared_file *get_file_to_upload(
 	 */
 
 	uri = request + ((request[0] == 'G') ? sizeof("GET") : sizeof("HEAD"));
+
+    if (u->name == NULL)
+        u->name = atom_str_get(uri);
 
 	/*
 	 * Because of a bug in sscanf(), we must end the format with a parameter,
@@ -1746,26 +1756,20 @@ static void upload_request(gnutella_upload_t *u, header_t *header)
 			ip_to_gchar(u->ip), u->index, u->name, index, reqfile->file_name);
 
 	/*
-	 *
-	 * When comming from a push request, we already have a non-NULL
-	 * u->name in the structure.  However, even if the index is the same,
-	 * it's not a 100% certainety that the filename matches (the library
-	 * could have been rebuilt).  Most of the time, it will, so it
-	 * pays to strcmp() it.
-	 *		--RAM, 25/03/2002, memory leak found by Michael Tesch
+	 * We already have a non-NULL u->name in the structure, because we
+     * saved the uri there or the name from a push request.
+     * However, we want to display the actual name of the shared file.
+	 *		--Richard, 20/11/2002
 	 */
 
 	u->index = index;
 	if (!u->sha1 && sha1)
 		u->sha1 = atom_sha1_get(sha1);	/* Identify file for followup reqs */
 
-	if (u->push && 0 != strcmp(u->name, reqfile->file_name)) {
-		atom_str_free(u->name);
-		u->name = NULL;
-	}
+    if (u->name != NULL)
+        atom_str_free(u->name);
 
-	if (u->name == NULL)
-		u->name = atom_str_get(reqfile->file_name);
+    u->name = atom_str_get(reqfile->file_name);
 
 	/*
 	 * Range: bytes=10453-23456
