@@ -6,6 +6,12 @@
 
 #include <sys/stat.h>
 #include <pwd.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <unistd.h>
+#include <netdb.h>
 
 gboolean clear_uploads					= FALSE;
 gboolean clear_downloads				= FALSE;
@@ -20,10 +26,11 @@ guint16 listen_port						= 6346;
 guint32 up_connections					= 4;
 guint32 max_downloads					= 10;
 guint32 max_host_downloads				= 4;
+guint32 max_uploads						= 10;
 guint32 minimum_speed					= 0;
 guint32 monitor_max_items				= 25;
 guint32 connection_speed				= 28;
-guint32 search_max_items				= 30;
+gint32 search_max_items					= 30; /* For now, this is limited to 255 anyway */
 guint32 forced_local_ip					= 0;
 guint32 download_connecting_timeout	= 60;
 guint32 download_push_sent_timeout	= 60;
@@ -33,13 +40,15 @@ guint32 download_retry_timeout_max	= 120;
 guint32 download_max_retries			= 3;
 guint32 node_connected_timeout		= 45;
 guint32 node_connecting_timeout		= 45;
-guint32 node_sendqueue_size			= 10240;
+guint32 node_sendqueue_size			= 20480; /* was 10240 */
 guint32 search_queries_forward_size	= 256;
-guint32 search_queries_kick_size		= 512;
+guint32 search_queries_kick_size		= 5120;
 guint32 search_answers_forward_size	= 32768;
 guint32 search_answers_kick_size		= 40960;
 guint32 other_messages_kick_size		= 40960;
 guint32 hops_random_factor				= 0;
+
+time_t tab_update_time = 5;
 
 gchar *scan_extensions					= NULL;
 gchar *save_file_path					= NULL;
@@ -55,11 +64,13 @@ guint32 dl_queued_col_widths[]      = { 320, 80 };
 guint32 uploads_col_widths[]        = { 200, 140, 80 };
 guint32 search_results_col_widths[] = { 290, 80, 50, 140 };
 
+gboolean jump_to_downloads = TRUE;
+
 gint w_x = 0, w_y = 0, w_w = 0, w_h = 0;
 
 enum
 {
-	k_up_connections = 0, k_clear_uploads, k_max_downloads, k_max_host_downloads, k_clear_downloads, 
+	k_up_connections = 0, k_clear_uploads, k_max_downloads, k_max_host_downloads, k_max_uploads, k_clear_downloads, 
 	k_minimum_speed, k_monitor_enabled, k_monitor_max_items, k_old_save_file_path, k_scan_extensions, 
 	k_listen_port, k_max_ttl, k_my_ttl, k_shared_dirs, k_forced_local_ip, k_connection_speed, 
 	k_search_max_items, k_force_local_ip, k_hosts_catched, k_download_connecting_timeout,
@@ -69,7 +80,7 @@ enum
 	k_other_messages_kick_size, k_save_file_path, k_move_file_path,
 	k_win_x, k_win_y, k_win_w, k_win_h, k_win_coords, k_widths_nodes, k_widths_uploads,
 	k_widths_dl_active, k_widths_dl_queued, k_widths_search_results, k_show_results_tabs,
-	k_hops_random_factor,
+	k_hops_random_factor, k_send_pushes, k_jump_to_downloads,
 	k_end
 };
 
@@ -79,6 +90,7 @@ gchar *keywords[] =
 	"auto_clear_completed_uploads",		/* k_clear_uploads					*/
 	"max_simultaneous_downloads",			/* k_max_downloads					*/
 	"max_simultaneous_host_downloads",	/* k_max_host_downloads				*/
+	"max_simultaneous_uploads",			/* k_max_uploads					*/
 	"auto_clear_completed_downloads",	/* k_clear_downloads					*/
 	"search_minimum_speed",					/* k_minimum_speed					*/
 	"monitor_enabled",						/* k_monitor_enabled					*/
@@ -119,6 +131,8 @@ gchar *keywords[] =
 	"widths_search_results",				/* k_width_search_results			*/
 	"show_results_tabs",						/* k_show_results_tabs				*/
 	"hops_random_factor",					/* k_hops_random_factor 			*/
+	"send_pushes",							/* k_send_pushes					*/
+    "jump_to_downloads",                    /* k_jump_to_downloads              */
 	NULL
 };
 
@@ -183,6 +197,16 @@ void config_init(void)
 
 	if (!scan_extensions) scan_extensions = g_strdup("mp3;mp2;mp1;vqf;avi;mpg;mpeg;wav;mod;voc;it;xm;s3m;stm;wma;mov;asf;zip;rar");
 
+	if (0 && !local_ip)	/* We need our local address */
+	  {
+	    char hostname[255];
+	    struct hostent* hostinfo;
+	    gethostname(hostname, 255);
+	    hostinfo = gethostbyname(hostname);
+	    local_ip = g_ntohl(((struct in_addr*)(hostinfo->h_addr))->s_addr);
+	  }
+
+
 	/* Okay, update the GUI with values loaded */
 
 	gui_update_count_downloads();
@@ -203,6 +227,7 @@ void config_init(void)
 
 	gui_update_max_downloads();
 	gui_update_max_host_downloads();
+	gui_update_max_uploads();
 	gui_update_files_scanned();
 
 	gui_update_connection_speed();
@@ -216,6 +241,8 @@ void config_init(void)
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(checkbutton_clear_uploads), clear_uploads);
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(checkbutton_clear_downloads), clear_downloads);
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(checkbutton_config_force_ip), force_local_ip);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(checkbutton_never_push), !send_pushes);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(checkbutton_jump_to_downloads), jump_to_downloads);
 
 	if (w_w && w_h)
 	{
@@ -312,11 +339,12 @@ void config_set_param(guint32 keyword, gchar *value)
 		case k_up_connections: { if (i >= 0 && i < 512) up_connections = i; return; }
 		case k_max_downloads: { if (i > 0 && i < 512) max_downloads = i; return; }
 		case k_max_host_downloads: { if (i > 0 && i < 512) max_host_downloads = i; return; }
+		case k_max_uploads: { if (i >= 0 && i < 512) max_uploads = i; return; }
 		case k_minimum_speed: { minimum_speed = atol(value); return; }
 		case k_listen_port: { listen_port = atoi(value); return; }
 		case k_max_ttl: { if (i > 0 && i < 255) max_ttl = i; return; }
 		case k_my_ttl:  { if (i > 0 && i < 255) my_ttl = i; return; }
-		case k_search_max_items: { if (i >= 0 && i < 65535) search_max_items = i; return; }
+		case k_search_max_items: { if (i >= -1 && i < 256) search_max_items = i; return; }
 		case k_connection_speed: { if (i > 0 && i < 65535) connection_speed = i; return; }
 		case k_force_local_ip: { force_local_ip = (gboolean) !g_strcasecmp(value, "true"); return; }
 		case k_scan_extensions: { parse_extensions(value); return; }
@@ -349,6 +377,8 @@ void config_set_param(guint32 keyword, gchar *value)
 		case k_show_results_tabs: { search_results_show_tabs = (gboolean) !g_strcasecmp(value, "true"); return; }
 		case k_forced_local_ip: { forced_local_ip = gchar_to_ip(value); return; }
 		case k_hops_random_factor: { if (i >= 0 && i <= 3) hops_random_factor = i; return; }
+		case k_send_pushes: { send_pushes = i ? 1 : 0; return; }
+		case k_jump_to_downloads: { jump_to_downloads = i ? TRUE : FALSE; return; }
 	}
 }
 
@@ -450,6 +480,8 @@ void config_save(void)
 	fprintf(config, "\n");
 	fprintf(config, "%s = %u\n", keywords[k_max_host_downloads], max_host_downloads);
 	fprintf(config, "\n");
+	fprintf(config, "%s = %u\n", keywords[k_max_uploads], max_uploads);
+	fprintf(config, "\n");
 	fprintf(config, "%s = %s\n", keywords[k_clear_downloads], config_boolean(clear_downloads));
 	fprintf(config, "\n");
 	fprintf(config, "%s = %u\n", keywords[k_minimum_speed], minimum_speed);
@@ -469,7 +501,7 @@ void config_save(void)
 	fprintf(config, "\n");
 	fprintf(config, "%s = %u\n", keywords[k_connection_speed], connection_speed);
 	fprintf(config, "\n");
-	fprintf(config, "%s = %u\n", keywords[k_search_max_items], search_max_items);
+	fprintf(config, "%s = %d\n", keywords[k_search_max_items], search_max_items);
 	fprintf(config, "\n");
 	fprintf(config, "%s = %u\n", keywords[k_max_ttl], max_ttl);
 	fprintf(config, "%s = %u\n\n", keywords[k_my_ttl], my_ttl);
@@ -500,6 +532,11 @@ void config_save(void)
 
 	fprintf(config, "# Random factor for the hops field in search packets we send (between 0 and 3 inclusive)\n%s = %u\n\n", keywords[k_hops_random_factor], hops_random_factor);
 
+	fprintf(config, "# Whether or not to send pushes.\n%s = %u\n\n", keywords[k_send_pushes], send_pushes);
+
+	fprintf(config, "# Whether or not to jump to the downloads screen when a new download is selected.\n"
+			"%s = %u\n\n", keywords[k_jump_to_downloads], jump_to_downloads);
+
 	fprintf(config, "\n");
 
 	/* I'm not sure yet that the following variables are really useful...
@@ -522,7 +559,7 @@ void config_save(void)
 
 	if (hosts_idle_func)
 	{
-		g_warning("exit() while reading a hosts file, catched hosts not saved !\n");
+		g_warning("exit() while still reading the hosts file, catched hosts not saved !\n");
 	}
 	else
 	{

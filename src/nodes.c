@@ -8,6 +8,8 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
+#include <assert.h>
+
 #include "interface.h"
 
 GSList *sl_nodes = (GSList *) NULL;
@@ -22,6 +24,9 @@ guint32 dropped_messages = 0;
 const gchar *gnutella_hello   = "GNUTELLA CONNECT/0.4\n\n";
 const gchar *gnutella_welcome = "GNUTELLA OK\n\n";
 
+GHookList node_added_hook_list;
+struct gnutella_node *node_added; /* For use by node_added_hook_list hooks, since we can't add a parameter at list invoke time. */
+
 guint32 gnutella_welcome_length = 0;
 
 /* Network init ----------------------------------------------------------------------------------- */
@@ -29,6 +34,9 @@ guint32 gnutella_welcome_length = 0;
 void network_init(void)
 {
 	gnutella_welcome_length = strlen(gnutella_welcome);
+	g_hook_list_init(&node_added_hook_list, sizeof(GHook));
+	node_added_hook_list.seq_id = 1;
+	node_added = NULL; 
 }
 
 /* Nodes ------------------------------------------------------------------------------------------ */
@@ -111,6 +119,17 @@ struct gnutella_node *node_add(struct gnutella_socket *s, guint32 ip, guint16 po
 	gchar *titles[4];
 	gint row;
 	gboolean incoming = FALSE, already_connected = FALSE;
+
+#ifdef NO_RFC1918
+       /* This needs to be a runtime option.  I could see a need for someone
+       * to want to run gnutella behind a firewall over on a private network. */
+       if (is_private_ip(ip))
+       {
+          g_warning("discarding: private ip address %#x\n", ip);
+          return NULL;
+        }
+#endif
+
 
 	n = (struct gnutella_node *) g_malloc0(sizeof(struct gnutella_node));
 
@@ -196,20 +215,20 @@ void node_parse(struct gnutella_node *node)
 	switch (n->header.function)
 	{
 		case GTA_MSG_INIT:
-			if (n->size) drop = TRUE;
+		  if (*n->header.size) drop = TRUE;
 			break;
 		case GTA_MSG_INIT_RESPONSE:
-			if (n->size != sizeof(struct gnutella_init_response)) drop = TRUE;
+			if (*n->header.size != sizeof(struct gnutella_init_response)) drop = TRUE;
 			break;
 		case GTA_MSG_PUSH_REQUEST:
-			if (n->size != sizeof(struct gnutella_push_request)) drop = TRUE;
+			if (*n->header.size != sizeof(struct gnutella_push_request)) drop = TRUE;
 			break;
 		case GTA_MSG_SEARCH:
-			if (!n->size) drop = TRUE;
-			else if (n->size > search_queries_forward_size) drop = TRUE;
+			if (!*n->header.size) drop = TRUE;
+			else if (*n->header.size > search_queries_forward_size) drop = TRUE;
 			break;
 		case GTA_MSG_SEARCH_RESULTS:
-			if (n->size > search_answers_forward_size) drop = TRUE;
+			if (*n->header.size > search_answers_forward_size) drop = TRUE;
 			break;
 
 		default: /* Unknown message type - we drop it */
@@ -265,18 +284,72 @@ gboolean node_enqueue(struct gnutella_node *n, gchar *data, guint32 size)
 
 	g_return_val_if_fail(n, FALSE);
 
-	if (size + n->sq_pos > node_sendqueue_size) { node_remove(n, "Send queue excedeed"); return FALSE; }
+	assert(n->status != GTA_NODE_REMOVING);
 
-	if (!n->gdk_tag)
-		n->gdk_tag = gdk_input_add(n->socket->file_desc, GDK_INPUT_WRITE, node_write, (gpointer) n);
+	if(data == NULL) {
+	  g_warning("gtk-gnutella:node_enqueue:called with data == NULL\n");
+	  return (size == 0);
+	}
 
-	if (!n->sendq) n->sendq = (gchar *) g_malloc(node_sendqueue_size);
+	if(size == 0) {
+	  g_warning("gtk-gnutella:node_enqueue:called with size == 0\n");
+	  return TRUE;
+	}
+
+	if(!n->sq_pos) {
+	  int r = write(n->socket->file_desc, data, size);
+	  if(r == size)
+		return TRUE;
+	  if(r > 0) {
+		data += r;
+		size -= r;
+	  }
+	  if(r < 0) {
+		if(errno == EPIPE || errno == ENOSPC || errno == EIO || errno == ECONNRESET) {
+		  node_remove(n, "Write of data failed");
+		  return FALSE; 
+		}
+		if(errno == EBADF || errno == EINVAL || errno == EFAULT)
+		  g_error("gtk-gnutella:node_enqueue:write:%s\n", g_strerror(errno));
+		if(errno != EAGAIN && errno != EINTR)
+		  g_error("gtk-gnutella:node_enqueue:write failed with unknown errno %d (%s)\n",
+				  errno, g_strerror(errno));
+		/* errno == EAGAIN || errno == EINTR */
+	  }
+	  if(r == 0)
+		g_error("gtk-gnutella:node_enqueue:write returned 0?\n");
+	  /* We're still here if there was a partial write or if we got EAGAIN or EINTR */
+	}
+
+	/* We get here if there already was a send queue or we need to start one. */
+
+	if (size + n->sq_pos > node_sendqueue_size) { node_remove(n, "Send queue exceeded"); return FALSE; }
+
+	if (!n->gdk_tag) {
+		n->gdk_tag = gdk_input_add(n->socket->file_desc, GDK_INPUT_WRITE | GDK_INPUT_EXCEPTION, node_write, (gpointer) n);
+
+		/* We assume that if this is valid, it is non-zero */
+		assert(n->gdk_tag);
+	}
+
+	if (!n->sendq) n->sendq = (gchar *) g_malloc0(node_sendqueue_size);
 
 	memcpy(n->sendq + n->sq_pos, data, size);
 
 	n->sq_pos += size;
 
 	return TRUE;
+}
+
+void node_enqueue_end_of_packet(struct gnutella_node *n) {
+  assert(n);
+
+  if(!n->sq_pos) {
+	n->sent++;
+	gui_update_node(n, FALSE);
+  }
+  else
+	n->end_of_packets = g_slist_append(n->end_of_packets, (gpointer)n->sq_pos);
 }
 
 void node_write(gpointer data, gint source, GdkInputCondition cond)
@@ -286,6 +359,8 @@ void node_write(gpointer data, gint source, GdkInputCondition cond)
 
 	g_return_if_fail(n);
 
+	if (cond & GDK_INPUT_EXCEPTION)	{ node_remove(n, "Write failed (Input Exceptions)"); return;}
+
 	/* We can write again on the node's socket */
 
 	if (n->sendq && n->sq_pos)
@@ -294,11 +369,24 @@ void node_write(gpointer data, gint source, GdkInputCondition cond)
 
 		if (r >= 0)
 		{
+		  GSList *l;
 			/* Move the remaining data to the beginning of the buffer */
 			/* Thanks to Steven Wilcoxon <swilcoxon@uswest.net> who noticed this awful bug */
 
 			memmove(n->sendq, n->sendq + r, n->sq_pos - r);
 			n->sq_pos -= r;
+
+			/* count all the packets we just wrote */
+			while(n->end_of_packets  &&  ((guint32) n->end_of_packets->data <= r)) {
+			  n->sent++;
+			  n->end_of_packets = g_slist_remove(n->end_of_packets, n->end_of_packets->data);
+			}
+			gui_update_node(n, FALSE);
+
+			/* update the rest of the counts. */
+			for(l = n->end_of_packets; l; l = l->next)
+			  l->data = (gpointer) (((guint32) l->data) - r);
+				
 		}
 		else if (errno == EAGAIN) return;
 		else { node_remove(n, "Write of queue failed"); return; }
@@ -325,6 +413,10 @@ void node_read(gpointer data, gint source, GdkInputCondition cond)
 	{
 		n->status = GTA_NODE_CONNECTED;
 		gtk_widget_set_sensitive(button_host_catcher_get_more, TRUE);
+
+		node_added = n;
+		g_hook_list_invoke(&node_added_hook_list, TRUE);
+		node_added = NULL;
 
 		/* TODO Update the search button if there is the search entry is not empty */
 	}
@@ -390,7 +482,7 @@ void node_read(gpointer data, gint source, GdkInputCondition cond)
 			/* We need to allocate the data buffer */
 
 			n->allocated = TRUE;
-			n->data = (guchar *) g_malloc(n->size);
+			n->data = (guchar *) g_malloc0(n->size);
 		}
 
 		return;
@@ -444,6 +536,9 @@ void node_read_connecting(gpointer data, gint source, GdkInputCondition cond)
 
 	s->gdk_tag = gdk_input_add(s->file_desc, GDK_INPUT_READ | GDK_INPUT_EXCEPTION, node_read, (gpointer) s->resource.node);
 
+	/* We assume that if this is valid, it is non-zero */
+	assert(s->gdk_tag);
+
 	s->pos = 0;
 
 	s->resource.node->status = GTA_NODE_CONNECTED;
@@ -453,6 +548,10 @@ void node_read_connecting(gpointer data, gint source, GdkInputCondition cond)
 	gtk_widget_set_sensitive(button_host_catcher_get_more, TRUE);
 
 	send_init(s->resource.node);
+
+	node_added = s->resource.node;
+	g_hook_list_invoke(&node_added_hook_list, TRUE);
+	node_added = NULL;
 }
 
 /* vi: set ts=3: */

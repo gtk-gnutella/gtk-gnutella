@@ -11,7 +11,7 @@ AC_HEADER_STDC
 
 dnl Check wether libresolv is needed for inet_aton()
 need_lresolv=yes
-AC_MSG_CHECKING(wether inet_aton needs libresolv)
+AC_MSG_CHECKING(whether inet_aton needs libresolv)
 AC_TRY_LINK_FUNC(inet_aton, need_lresolv=no, LIBS="$LIBS -lresolv")
 AC_MSG_RESULT($need_lresolv)
 
@@ -33,6 +33,25 @@ dnl Set PACKAGE_SOURCE_DIR in config.h.
 packagesrcdir=`cd $srcdir && pwd`
 AC_DEFINE_UNQUOTED(PACKAGE_SOURCE_DIR, "${packagesrcdir}")
 
+
+dnl ---------------------------------------------------------------------------
+dnl Handle user-specified configure options
+dnl ---------------------------------------------------------------------------
+
+AC_ARG_ENABLE(no-rfc1918,[
+gtk-gnutella options:
+  --enable-no-rfc1918             avoid RFC1918 networks (default=off)], , enable_no_rfc1918=no)
+
+AC_MSG_CHECKING([whether to enable RFC1918 network avoidance mode])
+if test "x$enable_no_rfc1918" = "xno"
+then
+       AC_MSG_RESULT([no])
+else
+        CFLAGS="$CFLAGS -DNO_RFC1918"
+       AC_MSG_RESULT([yes])
+fi
+
+
 dnl Use -Wall if we have gcc.
 changequote(,)dnl
 if test "x$GCC" = "xyes"; then
@@ -42,6 +61,8 @@ if test "x$GCC" = "xyes"; then
   esac
 fi
 changequote([,])dnl
+
+AC_CHECK_FUNCS(herror inet_aton)
 
 AC_OUTPUT([
 Makefile

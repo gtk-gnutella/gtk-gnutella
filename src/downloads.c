@@ -13,6 +13,8 @@ GSList *sl_downloads = NULL;
 
 guint32 count_downloads  = 0;
 
+gboolean send_pushes = TRUE;
+
 gchar dl_tmp[4096];
 
 void download_start(struct download *);
@@ -144,9 +146,13 @@ void download_gui_remove(struct download *d)
 void downloads_clear_stopped(gboolean all, gboolean now)
 {
 	GSList *l = sl_downloads;
+	time_t current_time = 0;
 
 	/* If all == TRUE: remove COMPLETED | ERROR | ABORTED, else remove only COMPLETED */
 	/* If now == TRUE: remove immediately, else remove only downloads idle since at least 3 seconds */
+
+	if(l && !now)
+	  current_time = time(NULL);
 
 	while (l)
 	{
@@ -157,11 +163,11 @@ void downloads_clear_stopped(gboolean all, gboolean now)
 
 		if (all)
 		{
-			if (now || (time((time_t *) NULL) - d->last_update) > 3) download_free(d);
+			if (now || (current_time - d->last_update) > 3) download_free(d);
 		}
 		else if (d->status == GTA_DL_COMPLETED)
 		{
-			if (now || (time((time_t *) NULL) - d->last_update) > 3) download_free(d);
+			if (now || (current_time - d->last_update) > 3) download_free(d);
 		}
 	}
 
@@ -302,6 +308,9 @@ void download_start(struct download *d)
 	
 	d->pos = d->skip;
 
+	if(!send_pushes)
+	  d->push = FALSE;
+
 	if (!IS_DOWNLOAD_IN_PUSH_MODE(d) && check_valid_host(d->ip, d->port))	/* Direct download */
 	{
 		d->status = GTA_DL_CONNECTING;
@@ -354,6 +363,13 @@ void download_pickup_queued(void)
 void download_push(struct download *d)
 {
 	g_return_if_fail(d);
+
+	if(!send_pushes) {
+	  d->push = FALSE;
+	  if (++d->retries <= download_max_retries) download_retry(d);
+	  else download_stop(d, GTA_DL_ERROR, "Timeout");
+	  return;
+	}
 
 	d->push = TRUE;
 	d->socket = socket_listen(0, 0, GTA_TYPE_DOWNLOAD);
@@ -669,6 +685,9 @@ void download_read(gpointer data, gint source, GdkInputCondition cond)
 			{
 /*				printf("Got GIV string : %s\n", s->buffer); */
 			}
+			else if (!g_strcasecmp(s->buffer, "GNUTELLA CONNECT/0.4")) {
+				g_warning("download_read: \"GNUTELLA CONNECT/0.4\" when not expected, ignoring.\n");
+			}
 			else
 			{
 				g_warning("download_read(): Unknown header on incoming socket ('%s')\n", s->buffer);
@@ -716,10 +735,10 @@ void download_read(gpointer data, gint source, GdkInputCondition cond)
 				guint32 z = atol(s->buffer + 15);
 
 				if (!z) { download_stop(d, GTA_DL_ERROR, "Bad length !?"); return; }
-				else if (z != d->size)
+				else if (z + d->skip != d->size)
 				{
-					g_warning("File '%s': expected size %u but server says %u, believing it...\n", d->file_name, d->size, z);
-					d->size = z;
+					g_warning("File '%s': expected size %u but server says %u, believing it...\n", d->file_name, d->size, z + d->skip);
+					d->size = z + d->skip;
 				}
 			}
 
@@ -758,6 +777,7 @@ void download_read(gpointer data, gint source, GdkInputCondition cond)
 		if (s->pos > 0 && write(d->file_desc, s->buffer, s->pos) < 0)
 		{
 			g_warning("download_read(): write to file failed (%s) !\n", g_strerror(errno));
+			g_warning("download_read: tried to write(%d, %p, %d)\n", d->file_desc, s->buffer, s->pos);
 			download_stop(d, GTA_DL_ERROR, "Can't save data !");
 			return;
 		}
@@ -800,4 +820,3 @@ void download_retry(struct download *d)
 }
    
 /* vi: set ts=3: */
-

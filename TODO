@@ -1,12 +1,10 @@
 
 TODO List :
 
+- Test and fix the CVS (always needed)
+
 - Add many more configuration possibilities through the GUI (we really needs
   dialog boxes)
-
-- It should be possible to specify a forced local ip in the config section
-
-- Of course, allow uploads and sharing of our own files should become a priority...
 
 - In the future, a section with graphs of traffic (outgoing, incoming, packets...)
   should be a great thing to have.

@@ -28,3 +28,8 @@ gtk_gnutella_SOURCES = \
 
 gtk_gnutella_LDADD = @GTK_LIBS@
 
+interface.h callbacks.h interface.c callbacks.c: .externs_made.interface
+
+.externs_made.interface: ../gtk-gnutella.glade extern.tcl
+	./extern.tcl
+

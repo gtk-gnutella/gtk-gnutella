@@ -259,6 +259,7 @@
 	  <last_modification_time>Wed, 22 Mar 2000 07:12:16 GMT</last_modification_time>
 	</signal>
 	<label>Update</label>
+	<relief>GTK_RELIEF_NORMAL</relief>
 	<child>
 	  <padding>0</padding>
 	  <expand>False</expand>
@@ -286,6 +287,7 @@
 	  <last_modification_time>Sat, 10 Jun 2000 11:53:11 GMT</last_modification_time>
 	</signal>
 	<label>Quit</label>
+	<relief>GTK_RELIEF_NORMAL</relief>
 	<child>
 	  <padding>0</padding>
 	  <expand>False</expand>
@@ -489,6 +491,7 @@
 		  <last_modification_time>Wed, 22 Mar 2000 07:11:42 GMT</last_modification_time>
 		</signal>
 		<label>Remove</label>
+		<relief>GTK_RELIEF_NORMAL</relief>
 		<child>
 		  <padding>0</padding>
 		  <expand>True</expand>
@@ -507,6 +510,7 @@
 		  <last_modification_time>Wed, 22 Mar 2000 07:11:12 GMT</last_modification_time>
 		</signal>
 		<label>Add</label>
+		<relief>GTK_RELIEF_NORMAL</relief>
 		<child>
 		  <padding>0</padding>
 		  <expand>True</expand>
@@ -1189,6 +1193,7 @@
 		    <last_modification_time>Wed, 22 Mar 2000 07:10:12 GMT</last_modification_time>
 		  </signal>
 		  <label>Connect</label>
+		  <relief>GTK_RELIEF_NORMAL</relief>
 		</widget>
 
 		<widget>
@@ -1203,6 +1208,7 @@
 		    <last_modification_time>Wed, 22 Mar 2000 07:10:20 GMT</last_modification_time>
 		  </signal>
 		  <label>Get More</label>
+		  <relief>GTK_RELIEF_NORMAL</relief>
 		</widget>
 	      </widget>
 
@@ -1233,6 +1239,7 @@
 		    <last_modification_time>Wed, 22 Mar 2000 07:10:26 GMT</last_modification_time>
 		  </signal>
 		  <label>Remove</label>
+		  <relief>GTK_RELIEF_NORMAL</relief>
 		</widget>
 
 		<widget>
@@ -1247,6 +1254,7 @@
 		    <last_modification_time>Wed, 22 Mar 2000 07:10:32 GMT</last_modification_time>
 		  </signal>
 		  <label>Clear</label>
+		  <relief>GTK_RELIEF_NORMAL</relief>
 		</widget>
 	      </widget>
 	    </widget>
@@ -1416,6 +1424,7 @@
 		<last_modification_time>Sun, 26 Mar 2000 17:35:47 GMT</last_modification_time>
 	      </signal>
 	      <label> Kill selected </label>
+	      <relief>GTK_RELIEF_NORMAL</relief>
 	      <child>
 		<padding>0</padding>
 		<expand>False</expand>
@@ -1434,6 +1443,7 @@
 		<last_modification_time>Sun, 26 Mar 2000 17:35:59 GMT</last_modification_time>
 	      </signal>
 	      <label> Clear completed </label>
+	      <relief>GTK_RELIEF_NORMAL</relief>
 	      <child>
 		<padding>0</padding>
 		<expand>False</expand>
@@ -1447,22 +1457,81 @@
 	  </widget>
 
 	  <widget>
-	    <class>GtkCheckButton</class>
-	    <name>checkbutton_clear_uploads</name>
-	    <can_focus>True</can_focus>
-	    <signal>
-	      <name>toggled</name>
-	      <handler>on_checkbutton_clear_uploads_toggled</handler>
-	      <last_modification_time>Sun, 26 Mar 2000 17:37:22 GMT</last_modification_time>
-	    </signal>
-	    <label>Auto clear completed uploads</label>
-	    <active>False</active>
-	    <draw_indicator>True</draw_indicator>
+	    <class>GtkHBox</class>
+	    <name>hbox53</name>
+	    <homogeneous>False</homogeneous>
+	    <spacing>0</spacing>
 	    <child>
 	      <padding>0</padding>
 	      <expand>False</expand>
 	      <fill>False</fill>
 	    </child>
+
+	    <widget>
+	      <class>GtkCheckButton</class>
+	      <name>checkbutton_clear_uploads</name>
+	      <can_focus>True</can_focus>
+	      <signal>
+		<name>toggled</name>
+		<handler>on_checkbutton_clear_uploads_toggled</handler>
+		<last_modification_time>Sun, 26 Mar 2000 17:37:22 GMT</last_modification_time>
+	      </signal>
+	      <label>Auto clear completed uploads</label>
+	      <active>False</active>
+	      <draw_indicator>True</draw_indicator>
+	      <child>
+		<padding>0</padding>
+		<expand>False</expand>
+		<fill>False</fill>
+	      </child>
+	    </widget>
+
+	    <widget>
+	      <class>GtkEntry</class>
+	      <name>entry_max_uploads</name>
+	      <width>32</width>
+	      <can_focus>True</can_focus>
+	      <signal>
+		<name>activate</name>
+		<handler>on_entry_max_uploads_activate</handler>
+		<last_modification_time>Sat, 30 Dec 2000 07:01:23 GMT</last_modification_time>
+	      </signal>
+	      <signal>
+		<name>focus_out_event</name>
+		<handler>on_entry_max_uploads_focus_out_event</handler>
+		<last_modification_time>Sat, 30 Dec 2000 07:01:39 GMT</last_modification_time>
+	      </signal>
+	      <editable>True</editable>
+	      <text_visible>True</text_visible>
+	      <text_max_length>4</text_max_length>
+	      <text></text>
+	      <child>
+		<padding>0</padding>
+		<expand>False</expand>
+		<fill>True</fill>
+	      </child>
+	    </widget>
+
+	    <widget>
+	      <class>GtkLabel</class>
+	      <name>label81</name>
+	      <label>Maximum simultaneous uploads</label>
+	      <justify>GTK_JUSTIFY_CENTER</justify>
+	      <wrap>False</wrap>
+	      <xalign>0.5</xalign>
+	      <yalign>0.5</yalign>
+	      <xpad>0</xpad>
+	      <ypad>0</ypad>
+	      <child>
+		<padding>0</padding>
+		<expand>False</expand>
+		<fill>False</fill>
+	      </child>
+	    </widget>
+
+	    <widget>
+	      <class>Placeholder</class>
+	    </widget>
 	  </widget>
 	</widget>
 
@@ -1629,6 +1698,7 @@
 		<last_modification_time>Sun, 26 Mar 2000 17:37:32 GMT</last_modification_time>
 	      </signal>
 	      <label> Abort selected </label>
+	      <relief>GTK_RELIEF_NORMAL</relief>
 	      <child>
 		<padding>0</padding>
 		<expand>False</expand>
@@ -1647,6 +1717,7 @@
 		<last_modification_time>Sun, 26 Mar 2000 17:37:38 GMT</last_modification_time>
 	      </signal>
 	      <label> Resume selected </label>
+	      <relief>GTK_RELIEF_NORMAL</relief>
 	      <child>
 		<padding>0</padding>
 		<expand>False</expand>
@@ -1665,6 +1736,7 @@
 		<last_modification_time>Sun, 26 Mar 2000 17:37:43 GMT</last_modification_time>
 	      </signal>
 	      <label> Clear completed </label>
+	      <relief>GTK_RELIEF_NORMAL</relief>
 	      <child>
 		<padding>0</padding>
 		<expand>False</expand>
@@ -1776,22 +1848,53 @@
 	  </widget>
 
 	  <widget>
-	    <class>GtkCheckButton</class>
-	    <name>checkbutton_clear_downloads</name>
-	    <can_focus>True</can_focus>
-	    <signal>
-	      <name>toggled</name>
-	      <handler>on_checkbutton_clear_downloads_toggled</handler>
-	      <last_modification_time>Sun, 26 Mar 2000 17:38:01 GMT</last_modification_time>
-	    </signal>
-	    <label>Auto clear completed downloads</label>
-	    <active>False</active>
-	    <draw_indicator>True</draw_indicator>
+	    <class>GtkHBox</class>
+	    <name>hbox51</name>
+	    <homogeneous>False</homogeneous>
+	    <spacing>0</spacing>
 	    <child>
 	      <padding>0</padding>
 	      <expand>False</expand>
-	      <fill>False</fill>
+	      <fill>True</fill>
 	    </child>
+
+	    <widget>
+	      <class>GtkCheckButton</class>
+	      <name>checkbutton_clear_downloads</name>
+	      <can_focus>True</can_focus>
+	      <signal>
+		<name>toggled</name>
+		<handler>on_checkbutton_clear_downloads_toggled</handler>
+		<last_modification_time>Sun, 26 Mar 2000 17:38:01 GMT</last_modification_time>
+	      </signal>
+	      <label>Auto clear completed downloads</label>
+	      <active>False</active>
+	      <draw_indicator>True</draw_indicator>
+	      <child>
+		<padding>0</padding>
+		<expand>False</expand>
+		<fill>False</fill>
+	      </child>
+	    </widget>
+
+	    <widget>
+	      <class>GtkCheckButton</class>
+	      <name>checkbutton_never_push</name>
+	      <can_focus>True</can_focus>
+	      <signal>
+		<name>toggled</name>
+		<handler>on_checkbutton_never_push_toggled</handler>
+		<last_modification_time>Tue, 06 Jun 2000 01:47:16 GMT</last_modification_time>
+	      </signal>
+	      <label>Never send a push request</label>
+	      <active>False</active>
+	      <draw_indicator>True</draw_indicator>
+	      <child>
+		<padding>0</padding>
+		<expand>False</expand>
+		<fill>False</fill>
+	      </child>
+	    </widget>
 	  </widget>
 
 	  <widget>
@@ -1925,6 +2028,7 @@
 		<last_modification_time>Mon, 10 Apr 2000 20:37:08 GMT</last_modification_time>
 	      </signal>
 	      <label> Remove selected from queue </label>
+	      <relief>GTK_RELIEF_NORMAL</relief>
 	      <child>
 		<padding>0</padding>
 		<expand>False</expand>
@@ -2004,6 +2108,7 @@
 		<last_modification_time>Sun, 26 Mar 2000 17:38:58 GMT</last_modification_time>
 	      </signal>
 	      <label> New search </label>
+	      <relief>GTK_RELIEF_NORMAL</relief>
 	      <child>
 		<padding>0</padding>
 		<expand>False</expand>
@@ -2037,6 +2142,7 @@
 		<last_modification_time>Sat, 06 May 2000 20:41:36 GMT</last_modification_time>
 	      </signal>
 	      <label>Close this search</label>
+	      <relief>GTK_RELIEF_NORMAL</relief>
 	      <child>
 		<left_attach>3</left_attach>
 		<right_attach>4</right_attach>
@@ -2063,6 +2169,7 @@
 		<last_modification_time>Sat, 06 May 2000 20:41:27 GMT</last_modification_time>
 	      </signal>
 	      <label>Filter results</label>
+	      <relief>GTK_RELIEF_NORMAL</relief>
 	      <child>
 		<left_attach>2</left_attach>
 		<right_attach>3</right_attach>
@@ -2274,12 +2381,18 @@
 	      <name>button_search_download</name>
 	      <sensitive>False</sensitive>
 	      <can_focus>True</can_focus>
+	      <accelerator>
+		<modifiers>GDK_CONTROL_MASK</modifiers>
+		<key>GDK_d</key>
+		<signal>clicked</signal>
+	      </accelerator>
 	      <signal>
 		<name>clicked</name>
 		<handler>on_button_search_download_clicked</handler>
 		<last_modification_time>Sun, 26 Mar 2000 17:39:53 GMT</last_modification_time>
 	      </signal>
 	      <label> Download selected files </label>
+	      <relief>GTK_RELIEF_NORMAL</relief>
 	      <child>
 		<padding>0</padding>
 		<expand>False</expand>
@@ -2298,11 +2411,95 @@
 		<last_modification_time>Sun, 26 Mar 2000 17:39:57 GMT</last_modification_time>
 	      </signal>
 	      <label> Stream selected files </label>
+	      <relief>GTK_RELIEF_NORMAL</relief>
 	      <child>
 		<padding>0</padding>
 		<expand>False</expand>
 		<fill>False</fill>
 	      </child>
+	    </widget>
+
+	    <widget>
+	      <class>GtkButton</class>
+	      <name>button_search_passive</name>
+	      <tooltip>A passive search matches any search results routed through this node</tooltip>
+	      <can_focus>True</can_focus>
+	      <accelerator>
+		<modifiers>GDK_CONTROL_MASK</modifiers>
+		<key>GDK_p</key>
+		<signal>clicked</signal>
+	      </accelerator>
+	      <signal>
+		<name>clicked</name>
+		<handler>on_button_search_passive_clicked</handler>
+		<last_modification_time>Tue, 30 May 2000 06:59:17 GMT</last_modification_time>
+	      </signal>
+	      <label>New passive search</label>
+	      <relief>GTK_RELIEF_NORMAL</relief>
+	      <child>
+		<padding>0</padding>
+		<expand>False</expand>
+		<fill>False</fill>
+	      </child>
+	    </widget>
+
+	    <widget>
+	      <class>GtkButton</class>
+	      <name>button_search_clear</name>
+	      <sensitive>False</sensitive>
+	      <can_focus>True</can_focus>
+	      <accelerator>
+		<modifiers>GDK_CONTROL_MASK</modifiers>
+		<key>GDK_c</key>
+		<signal>clicked</signal>
+	      </accelerator>
+	      <signal>
+		<name>clicked</name>
+		<handler>on_button_search_clear_clicked</handler>
+		<last_modification_time>Sat, 30 Sep 2000 06:49:15 GMT</last_modification_time>
+	      </signal>
+	      <label>Clear results</label>
+	      <relief>GTK_RELIEF_NORMAL</relief>
+	      <child>
+		<padding>0</padding>
+		<expand>False</expand>
+		<fill>False</fill>
+	      </child>
+	    </widget>
+	  </widget>
+
+	  <widget>
+	    <class>GtkHBox</class>
+	    <name>hbox52</name>
+	    <homogeneous>False</homogeneous>
+	    <spacing>0</spacing>
+	    <child>
+	      <padding>0</padding>
+	      <expand>False</expand>
+	      <fill>True</fill>
+	    </child>
+
+	    <widget>
+	      <class>GtkCheckButton</class>
+	      <name>checkbutton_jump_to_downloads</name>
+	      <can_focus>True</can_focus>
+	      <signal>
+		<name>toggled</name>
+		<handler>on_checkbutton_jump_to_downloads_toggled</handler>
+		<last_modification_time>Sat, 30 Sep 2000 07:33:07 GMT</last_modification_time>
+	      </signal>
+	      <label>Jump to downloads</label>
+	      <active>False</active>
+	      <draw_indicator>True</draw_indicator>
+	      <child>
+		<padding>0</padding>
+		<expand>False</expand>
+		<fill>False</fill>
+	      </child>
+	    </widget>
+
+	    <widget>
+	      <class>Placeholder</class>
 	    </widget>
 
 	    <widget>
@@ -2532,6 +2729,7 @@
 		  <last_modification_time>Mon, 27 Mar 2000 06:18:49 GMT</last_modification_time>
 		</signal>
 		<label></label>
+		<relief>GTK_RELIEF_NORMAL</relief>
 		<child>
 		  <left_attach>0</left_attach>
 		  <right_attach>1</right_attach>
@@ -2582,6 +2780,7 @@
 		  <last_modification_time>Mon, 01 May 2000 15:08:31 GMT</last_modification_time>
 		</signal>
 		<label></label>
+		<relief>GTK_RELIEF_NORMAL</relief>
 		<child>
 		  <left_attach>0</left_attach>
 		  <right_attach>1</right_attach>
@@ -2665,6 +2864,7 @@
 		    <last_modification_time>Sun, 26 Mar 2000 17:41:01 GMT</last_modification_time>
 		  </signal>
 		  <label> Add directory </label>
+		  <relief>GTK_RELIEF_NORMAL</relief>
 		  <child>
 		    <padding>0</padding>
 		    <expand>False</expand>
@@ -2716,6 +2916,7 @@
 		    <last_modification_time>Sun, 26 Mar 2000 17:41:22 GMT</last_modification_time>
 		  </signal>
 		  <label> Rescan </label>
+		  <relief>GTK_RELIEF_NORMAL</relief>
 		  <child>
 		    <padding>0</padding>
 		    <expand>False</expand>
@@ -3031,6 +3232,7 @@
 		      <last_modification_time>Sun, 26 Mar 2000 17:42:28 GMT</last_modification_time>
 		    </signal>
 		    <label> Update </label>
+		    <relief>GTK_RELIEF_NORMAL</relief>
 		    <child>
 		      <padding>0</padding>
 		      <expand>False</expand>
@@ -3466,10 +3668,6 @@
 	    <pack>GTK_PACK_END</pack>
 	  </child>
 	</widget>
-
-	<widget>
-	  <class>Placeholder</class>
-	</widget>
       </widget>
     </widget>
   </widget>
@@ -3662,12 +3860,6 @@
 
   <widget>
     <class>GtkMenuItem</class>
-    <name>separator4</name>
-    <right_justify>False</right_justify>
-  </widget>
-
-  <widget>
-    <class>GtkMenuItem</class>
     <name>popup_search_close</name>
     <signal>
       <name>activate</name>
@@ -3675,6 +3867,19 @@
       <last_modification_time>Mon, 08 May 2000 14:09:18 GMT</last_modification_time>
     </signal>
     <label>Close this search</label>
+    <right_justify>False</right_justify>
+  </widget>
+
+  <widget>
+    <class>GtkMenuItem</class>
+    <name>popup_search_clear_results</name>
+    <sensitive>False</sensitive>
+    <signal>
+      <name>activate</name>
+      <handler>on_popup_search_clear_results_activate</handler>
+      <last_modification_time>Sat, 30 Sep 2000 07:01:28 GMT</last_modification_time>
+    </signal>
+    <label>Clear search results</label>
     <right_justify>False</right_justify>
   </widget>
 

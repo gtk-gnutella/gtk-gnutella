@@ -41,6 +41,7 @@ extern GtkWidget *clist_uploads;
 extern GtkWidget *button_kill_upload;
 extern GtkWidget *button_clear_uploads;
 extern GtkWidget *checkbutton_clear_uploads;
+extern GtkWidget *entry_max_uploads;
 extern GtkWidget *clist_downloads;
 extern GtkWidget *button_abort_download;
 extern GtkWidget *button_resume_download;
@@ -50,6 +51,8 @@ extern GtkWidget *entry_max_host_downloads;
 extern GtkWidget *checkbutton_clear_downloads;
 extern GtkWidget *clist_download_queue;
 extern GtkWidget *button_remove_download;
+extern GtkWidget *checkbutton_never_push;
+extern GtkWidget *checkbutton_jump_to_downloads;
 extern GtkWidget *entry_search;
 extern GtkWidget *button_search;
 extern GtkWidget *label_items_found;
@@ -107,6 +110,8 @@ extern GtkWidget *popup_nodes;
 extern GtkWidget *popup_nodes_title;
 extern GtkWidget *popup_uploads;
 extern GtkWidget *popup_uploads_title;
+extern GtkWidget *button_search_clear;
+extern GtkWidget *popup_search_clear_results;
 
 /* End of global widgets */
 

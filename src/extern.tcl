@@ -19,11 +19,12 @@ set w_main_list {
 	clist_host_catcher
 	button_host_catcher_connect button_host_catcher_get_more
 	button_host_catcher_remove button_host_catcher_clear
-	clist_uploads button_kill_upload button_clear_uploads checkbutton_clear_uploads
+	clist_uploads button_kill_upload button_clear_uploads checkbutton_clear_uploads entry_max_uploads
 	clist_downloads button_abort_download button_resume_download button_clear_download
 	entry_max_downloads entry_max_host_downloads checkbutton_clear_downloads clist_download_queue button_remove_download
+	checkbutton_never_push checkbutton_jump_to_downloads
 	entry_search button_search label_items_found entry_minimum_speed
-	notebook_search_results button_search_download button_search_stream
+	notebook_search_results button_search_download button_search_stream button_search_clear
 	combo_searches combo_entry_searches
 	button_search_filter button_search_close
 	checkbutton_monitor entry_monitor clist_monitor
@@ -38,7 +39,7 @@ set w_main_list {
 	popup_dl_active popup_dl_active_title download_p_push download_p_queue download_p_kill
 	popup_dl_queued popup_dl_queued_title download_start_now
 	popup_search popup_search_title popup_search_stop_sorting popup_search_filters popup_search_close
-	popup_search_toggle_tabs popup_search_restart popup_search_duplicate
+	popup_search_toggle_tabs popup_search_restart popup_search_duplicate popup_search_clear_results
 	popup_monitor popup_monitor_title
 	popup_nodes popup_nodes_title
 	popup_uploads popup_uploads_title
@@ -132,6 +133,9 @@ close $d
 file rename -force -- interface.c.tmp interface.c
 
 #
+
+set s [open ".externs_made.interface" "w" ]
+close $s
 
 puts stdout ""
 

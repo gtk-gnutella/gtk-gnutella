@@ -2,6 +2,7 @@
 #include "gnutella.h"
 
 #include <signal.h>
+#include <mcheck.h>
 
 #include "interface.h"
 #include "support.h"
@@ -36,6 +37,18 @@ gboolean main_timer(gpointer p)
 	struct download *d;
 	guint32 t;
 
+       /* If we are under the number of connections wanted, we add a host
+        * to the connection list */
+       
+       if ((nodes_in_list < up_connections) && (sl_catched_hosts != NULL))
+       {
+               struct gnutella_host *host;
+
+               host = (struct gnutella_host *) sl_catched_hosts->data;
+               node_add(NULL, host->ip, host->port);
+               host_remove(host, TRUE);
+       }
+
 	/* The nodes */
 
 	l = sl_nodes;
@@ -53,7 +66,6 @@ gboolean main_timer(gpointer p)
 	/* The downloads */
 
 	l = sl_downloads;
-
 	while (l)
 	{
 		d = (struct download *) l->data;
@@ -106,6 +118,10 @@ gboolean main_timer(gpointer p)
 	}
 
 	if (clear_downloads) downloads_clear_stopped(FALSE, FALSE);
+
+        /* Uploads */
+        
+        for (l = uploads; l; l = l->next) gui_update_upload((struct upload*)l->data);
 
 	/* GUI update */
 
@@ -160,6 +176,7 @@ gint main(gint argc, gchar **argv)
 	signal(SIGTERM, SIG_Handler);
 	signal(SIGINT,  SIG_Handler);
 	signal(SIGPIPE, SIG_IGN);
+	signal(SIGABRT, SIG_IGN);
 
 	/* Create the main listening socket */
 
@@ -220,6 +237,20 @@ gint main(gint argc, gchar **argv)
 
 	gtk_timeout_add(1000, (GtkFunction) main_timer, NULL);
 
+
+        /* Auto-connect to the network. */
+        {
+            guint32 autoConnectIp = 0;
+
+            autoConnectIp = host_to_ip("gnutellahosts.com");
+            if (autoConnectIp != 0)
+            {
+                 node_add(NULL, autoConnectIp, 6346);
+            }
+        }
+    
+
+
 	/* Okay, here we go */
 
 	gtk_main();
@@ -228,4 +259,7 @@ gint main(gint argc, gchar **argv)
 }
 
 /* vi: set ts=3: */
+
+
+
 

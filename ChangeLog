@@ -1,4 +1,18 @@
+# v 0.13	  2001.01.05
 
+- File Sharing (woohoo!)
+- force_local_ip fixed (more than one fix)
+- Max simultaneous uploads
+- gui_update_upload moved into main timer
+- Autoconnect to gnutellahosts.com on startup
+- Automatically connect to new hosts when below "atleast connections" 
+- Configure option to discard non-routable ip's
+- Solaris (maybe win23?) build fix
+- Allow passive search results
+- "Jump to Downloads" switch added
+- "Clear Results" button added to search screen
+- All sorts of other random fixes
+ 
 * v 0.13          2000.07.??
 
 - 32 bits overflow when computing the size of all files on the GnutellaNet

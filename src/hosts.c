@@ -335,7 +335,7 @@ void reply_init(struct gnutella_node *n)
 	WRITE_GUINT16_LE(listen_port,   r.response.host_port);
 	WRITE_GUINT32_BE((force_local_ip)? forced_local_ip : local_ip, r.response.host_ip);
 	WRITE_GUINT32_LE(files_scanned, r.response.files_count);
-	WRITE_GUINT32_LE(bytes_scanned, r.response.kbytes_count);
+	WRITE_GUINT32_LE(kbytes_scanned, r.response.kbytes_count);
 
 	r.header.function = GTA_MSG_INIT_RESPONSE;
 	r.header.ttl      = my_ttl;

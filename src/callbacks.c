@@ -7,6 +7,7 @@
 #include "callbacks.h"
 #include "interface.h"
 #include "support.h"
+#include "search.h"
 
 gchar c_tmp[2048];
 
@@ -326,10 +327,12 @@ void on_popup_hosts_importe_activate (GtkMenuItem *menuitem, gpointer user_data)
 
 void on_clist_uploads_select_row (GtkCList *clist, gint row, gint column, GdkEvent *event, gpointer user_data)
 {
+  gui_update_upload_kill();
 }
 
 void on_clist_uploads_unselect_row (GtkCList *clist, gint row, gint column, GdkEvent *event, gpointer user_data)
 {
+  gui_update_upload_kill();
 }
 
 void on_clist_uploads_click_column (GtkCList *clist, gint column, gpointer user_data)
@@ -343,10 +346,47 @@ void on_clist_uploads_resize_column (GtkCList *clist, gint column, gint width, g
 
 void on_button_kill_upload_clicked (GtkButton *button, gpointer user_data)
 {
+  GList *l = NULL, *next;
+  struct upload *d;
+
+  l = GTK_CLIST(clist_uploads)->selection;
+ 
+  while(l) 
+    {
+	  next = l->next;
+      d = (struct upload *) gtk_clist_get_row_data(GTK_CLIST(clist_uploads), (gint) l->data);
+      
+      if (!d)
+	{
+	  g_warning("on_button_kill_uploadd_clicked(): row %d has NULL data\n", (gint) l->data);
+	  continue;
+	}
+      
+      if (d->status != GTA_UL_COMPLETE) socket_destroy(d->socket);
+      l = next;
+    }
+
+  gui_update_count_uploads();
+  gui_update_c_uploads();
+  return;
+
 }
 
 void on_button_clear_uploads_clicked (GtkButton *button, gpointer user_data)
 {
+  struct upload *d;
+  gint row;
+
+  for (row = 0; ; ) {
+	d = gtk_clist_get_row_data(GTK_CLIST(clist_uploads), row);
+	if(!d)
+	  break;
+	if (d->status == GTA_UL_COMPLETE)
+	  upload_remove(d, NULL);
+	else
+	  row++;
+  }
+  gtk_widget_set_sensitive(button_clear_uploads, 0);
 }
 
 void on_checkbutton_clear_uploads_toggled (GtkToggleButton *togglebutton, gpointer user_data)
@@ -358,11 +398,22 @@ void on_checkbutton_clear_uploads_toggled (GtkToggleButton *togglebutton, gpoint
 
 gboolean on_clist_uploads_button_press_event (GtkWidget *widget, GdkEventButton *event, gpointer user_data)
 {
+  gint row, col;
+  /* struct upload *d; */
+
 	if (event->button != 3) return FALSE;
 
-	gtk_clist_unselect_all(GTK_CLIST(clist_uploads));
+	if (!gtk_clist_get_selection_info(GTK_CLIST(clist_uploads), event->x, event->y, &row, &col)) return FALSE;
+
+/*  	d = (struct upload *) gtk_clist_get_row_data(GTK_CLIST(clist_uploads), row); */
+/*  	gtk_clist_unselect_all(GTK_CLIST(clist_uploads)); */
+/*  	gtk_widget_set_sensitive(button_kill_upload, (d->status != GTA_UL_COMPLETE)); */
+
+	gui_update_upload_kill();
 
 	gtk_menu_popup(GTK_MENU(popup_uploads), NULL, NULL, NULL, NULL, 3, 0);
+
+	
 
 	return TRUE;
 }
@@ -506,7 +557,7 @@ void on_entry_max_downloads_activate (GtkEditable *editable, gpointer user_data)
 gboolean on_entry_max_downloads_focus_out_event (GtkWidget *widget, GdkEventFocus *event, gpointer user_data)
 {
 	gint v = atol(gtk_entry_get_text(GTK_ENTRY(entry_max_downloads)));
-	if (v > 0 && v < 65536) max_downloads = v;
+	if (v > 0 && v < 512) max_downloads = v;
 
 	/* XXX If the user modifies the max simulteneous download and click on a queued download, */
 	/* XXX gtk-gnutella segfaults in some cases. */
@@ -528,7 +579,7 @@ void on_entry_max_host_downloads_activate (GtkEditable *editable, gpointer user_
 gboolean on_entry_max_host_downloads_focus_out_event (GtkWidget *widget, GdkEventFocus *event, gpointer user_data)
 {
 	gint v = atol(gtk_entry_get_text(GTK_ENTRY(entry_max_host_downloads)));
-	if (v > 0 && v < 65536) max_host_downloads = v;
+	if (v > 0 && v < 512) max_host_downloads = v;
 
 	/* XXX If the user modifies the max simulteneous download and click on a queued download, */
 	/* XXX gtk-gnutella segfaults in some cases. */
@@ -665,6 +716,7 @@ void on_button_search_stream_clicked (GtkButton *button, gpointer user_data)
 {
 
 }
+
 
 /* Monitor ---------------------------------------------------------------------------------------- */
 
@@ -806,7 +858,7 @@ void on_button_config_move_path_clicked (GtkButton *button, gpointer user_data)
 	}
 }
 
-/* */
+/* Local File DB Managment */
 
 GtkWidget *add_dir_filesel = NULL;
 
@@ -848,6 +900,9 @@ void on_button_config_add_dir_clicked (GtkButton *button, gpointer user_data)
 
 void on_button_config_rescan_dir_clicked (GtkButton *button, gpointer user_data)
 {
+  gtk_widget_set_sensitive (button_config_rescan_dir, FALSE);
+  share_scan();
+  gtk_widget_set_sensitive (button_config_rescan_dir, TRUE);
 }
 
 void on_entry_config_path_activate (GtkEditable *editable, gpointer user_data)
@@ -1009,11 +1064,11 @@ void on_entry_config_search_items_activate (GtkEditable *editable, gpointer user
 
 gboolean on_entry_config_search_items_focus_out_event (GtkWidget *widget, GdkEventFocus *event, gpointer user_data)
 {
-	guint32 v;
+	gint32 v;
 	gchar *e = g_strdup(gtk_entry_get_text(GTK_ENTRY(entry_config_search_items)));
 	g_strstrip(e);
 	v = atol(e);
-	if (v > 0 && v < 256) search_max_items = v;
+	if (v >= -1 && v < 256) search_max_items = v;
 	gui_update_search_max_items();
 	g_free(e);
 	return TRUE;
@@ -1024,5 +1079,44 @@ void on_button_extra_config_clicked (GtkButton *button, gpointer user_data)
 	gtk_notebook_set_page(GTK_NOTEBOOK(notebook_main), 6);
 }
 
-/* vi: set ts=3: */
+void on_button_search_passive_clicked (GtkButton *button, gpointer user_data) {
+  struct search *sch;
+  sch = _new_search(minimum_speed, "Passive", FALSE);
+  sch->passive = TRUE;
+  gtk_widget_grab_focus(clist_menu);
+  search_passive++;
+}
 
+void on_checkbutton_never_push_toggled (GtkToggleButton *togglebutton, gpointer user_data)
+{
+	send_pushes = !gtk_toggle_button_get_active(togglebutton);
+}
+
+void on_checkbutton_jump_to_downloads_toggled (GtkToggleButton *togglebutton, gpointer user_data) {
+  jump_to_downloads = gtk_toggle_button_get_active(togglebutton);
+}
+
+void on_entry_max_uploads_activate (GtkEditable *editable, gpointer user_data)
+{
+	gtk_widget_grab_focus(clist_menu); /* This will generate a focus out event (next func) */
+}
+
+gboolean on_entry_max_uploads_focus_out_event (GtkWidget *widget, GdkEventFocus *event, gpointer user_data)
+{
+	gint v = atol(gtk_entry_get_text(GTK_ENTRY(entry_max_uploads)));
+	if (v >= 0 && v < 512) max_uploads = v;
+
+#if 0
+	/* XXX If the user modifies the max simulteneous download and click on a queued download, */
+	/* XXX gtk-gnutella segfaults in some cases. */
+	/* XXX This unselected_all() is a first attempt to work around the problem */
+
+	gtk_clist_unselect_all(GTK_CLIST(clist_upload_queue));
+#endif
+
+	gui_update_max_uploads();
+
+	return TRUE;
+}
+
+/* vi: set ts=3: */

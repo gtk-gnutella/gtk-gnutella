@@ -26,6 +26,23 @@ gchar *ip_port_to_gchar(guint32 ip, guint16 port)
 	return a;
 }
 
+#if defined(_WIN32) || !defined(HAVE_INET_ATON)
+/* 
+ * Copied from icecast
+ */
+int 
+inet_aton(const char *s, struct in_addr *a)
+{
+    int lsb, b2, b3, msb;
+    if (sscanf(s, "%d.%d.%d.%d", &lsb, &b2, &b3, &msb) < 4)
+                return -1;
+
+    a->s_addr = lsb + (b2 << 8) + (b3 << 16) + (msb << 24);
+                return 0;
+}
+#endif
+
+
 guint32 gchar_to_ip(gchar *str)
 {
 	/* Returns 0 if str is not a valid IP */
@@ -41,12 +58,41 @@ guint32 host_to_ip(gchar *host)
 {
 	struct hostent *he = gethostbyname(host);
 	if (he) return g_ntohl(*(guint32 *) (he->h_addr_list[0]));
+#if defined(HAVE_HERROR)
 	else herror("gethostbyname()");
+#else
+        else g_warning("gethostbyname('%s') failed!\n",host);
+#endif
+ 
 	return 0;
 }
 
-/* Check wether path is a directory */
+/* Checks for RFC1918 private addresses; returns TRUE if is a private address. */
+gboolean is_private_ip(guint32 ip)
+{
+    /* 10.0.0.0 -- (10/8 prefix) */
+    if ((ip & 0xff000000) == 0xa000000)
+    {
+        return TRUE;
+    }
 
+    /* 172.16.0.0 -- (172.16/12 prefix) */
+    if ((ip & 0xfff00000) == 0xac100000)
+    {
+        return TRUE;
+    }
+
+    /* 192.168.0.0 -- (192.168/16 prefix) */
+    if ((ip & 0xffff0000) == 0xc0a80000)
+    {
+        return TRUE;
+    }
+
+    return FALSE;
+}
+
+
+/* Check whether path is a directory */
 gboolean is_directory(gchar *path)
 {
 	struct stat st;

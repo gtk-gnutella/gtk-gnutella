@@ -4,11 +4,8 @@
 #include "gnutella.h"
 
 #include <stdarg.h>
+#include <assert.h>
 
-guchar guid[16];				/* ID of our client for this session */
-
-guint32 i_fake_node;			/* The address of this guint32 will be used to identify ourselves */
-									/* as a fake node (for our own ping & searches requests) */
 
 struct gnutella_node *fake_node;	/* Our fake node */
 
@@ -44,6 +41,8 @@ void routing_log(gchar *fmt, ...)
 	/* XXX put the log somewhere */
 
 	va_end(va);
+
+	//printf("%s", t);
 }
 
 /* Init function */
@@ -52,9 +51,8 @@ void routing_init(void)
 {
 	guint32 i;
 
-	i_fake_node = 0;			/* Make sure the compiler allocate an address for this guint32 */
-
-	fake_node = (struct gnutella_node *) &(i_fake_node);
+	/* make sure it segfaults if we try to access it, but it must be distinct from NULL. */
+	fake_node = (struct gnutella_node *) 0x01;
 
 	srand(time((time_t *) NULL));
 
@@ -177,8 +175,14 @@ gboolean route_message(struct gnutella_node **node)
 	routing_log("%s ", md5dump(sender->header.muid));
 	routing_log("%3d/%3d : ", sender->header.ttl, sender->header.hops);
 
-	if (sender->header.function & 0x01) /* The message is a reply */
+	if (sender->header.function & 0x01) /* The message is a ping or search reply */
 	{
+		/* We'll handle all ping replies we receive, even if they are not destinated to us */
+		handle_it = (sender->header.function == GTA_MSG_INIT_RESPONSE);
+
+		/* We'll also handle all search replies if we're doing a passive search */
+		handle_it = handle_it  ||  (sender->header.function == GTA_MSG_SEARCH_RESULTS  &&  search_passive);
+
 		if (!find_message(sender->header.muid, sender->header.function & ~(0x01), &found))
 		{
 			/* We have never seen any request matching this reply ! */
@@ -189,7 +193,7 @@ gboolean route_message(struct gnutella_node **node)
 			dropped_messages++;
 			sender->n_bad++;					/* The node shouldn't have forwarded us this message */
 
-			return FALSE;						/* We don't have to handle the message */
+			return handle_it;					/* We don't have to handle the message */
 		}
 
 		if (found == fake_node)				/* We are the target of the reply */
@@ -198,9 +202,6 @@ gboolean route_message(struct gnutella_node **node)
 			routing_log("[H] we are the target\n");
 			return TRUE;	
 		}
-
-		/* We'll handle all ping replies we receive, even if they are not destinated to us */
-		handle_it = (sender->header.function == GTA_MSG_INIT_RESPONSE);
 
 		if (handle_it) routing_log("[H] "); else routing_log("[ ] ");
 
@@ -305,28 +306,19 @@ void sendto_one(struct gnutella_node *n, guchar *msg, guchar *data, guint32 size
 	g_return_if_fail(msg);
 	g_return_if_fail(size > 0);
 
+
 	if (n->status != GTA_NODE_CONNECTED) return;
 
-	if ((!data && write(n->socket->file_desc, msg, size) < 0)
-	  || (data &&
-	        (write(n->socket->file_desc, msg, sizeof(struct gnutella_header)) < 0
-		   || write(n->socket->file_desc, data, size - sizeof(struct gnutella_header)) < 0)
-		  )
-		)
-	{
-		if (errno == EAGAIN)
-		{
-			if (node_enqueue(n, msg, sizeof(struct gnutella_header)) && data)
-					node_enqueue(n, data, size - sizeof(struct gnutella_header));
-
-			n->sent++;
+	if(!data) {
+	  if(node_enqueue(n, msg, size)) {
+		node_enqueue_end_of_packet(n);
+	  }
+	} else {
+	  if(node_enqueue(n, msg, sizeof(struct gnutella_header))) {
+		if(node_enqueue(n, data, size - sizeof(struct gnutella_header))) {
+		  node_enqueue_end_of_packet(n);
 		}
-		else node_remove(n, "Write failed");
-	}
-	else
-	{
-		n->sent++;
-		gui_update_node(n, FALSE);
+	  }
 	}
 }
 
@@ -334,41 +326,18 @@ void sendto_one(struct gnutella_node *n, guchar *msg, guchar *data, guint32 size
 
 void sendto_all_but_one(struct gnutella_node *o, guchar *msg, guchar *data, guint32 size)
 {
-	GSList *l = sl_nodes;
+	GSList *l;
 	struct gnutella_node *n;
 
 	g_return_if_fail(o);
 	g_return_if_fail(msg);
 	g_return_if_fail(size > 0);
 
-	while (l)
+	for(l = sl_nodes; l; l = l->next)
 	{
 		n = (struct gnutella_node *) l->data;
-		l = l->next;
-
-		if (n->status != GTA_NODE_CONNECTED || n == o) continue;
-
-		if ((!data && write(n->socket->file_desc, msg, size) < 0)
-		  || (data &&
-		        (write(n->socket->file_desc, msg, sizeof(struct gnutella_header)) < 0
-			   || write(n->socket->file_desc, data, size - sizeof(struct gnutella_header)) < 0)
-			  )
-			)
-		{
-			if (errno == EAGAIN)
-			{
-				if (node_enqueue(n, msg, sizeof(struct gnutella_header)) && data)
-						node_enqueue(n, data, size - sizeof(struct gnutella_header));
-
-				n->sent++;
-			}
-			else node_remove(n, "Write failed");
-		}
-		else
-		{
-			n->sent++;
-			gui_update_node(n, FALSE);
-		}
+		if(n != o)
+		  sendto_one(n, msg, data, size);
 	}
 }
 
@@ -376,40 +345,16 @@ void sendto_all_but_one(struct gnutella_node *o, guchar *msg, guchar *data, guin
 
 void sendto_all(guchar *msg, guchar *data, guint32 size)
 {
-	GSList *l = sl_nodes;
+	GSList *l;
 	struct gnutella_node *n;
 
 	g_return_if_fail(msg);
 	g_return_if_fail(size > 0);
 
-	while (l)
+	for(l = sl_nodes; l; l = l->next)
 	{
 		n = (struct gnutella_node *) l->data;
-		l = l->next;
-
-		if (n->status != GTA_NODE_CONNECTED) continue;
-
-		if ((!data && write(n->socket->file_desc, msg, size) < 0)
-		  || (data &&
-		        (write(n->socket->file_desc, msg, sizeof(struct gnutella_header)) < 0
-			   || write(n->socket->file_desc, data, size - sizeof(struct gnutella_header)) < 0)
-			  )
-			)
-		{
-			if (errno == EAGAIN)
-			{
-				if (node_enqueue(n, msg, sizeof(struct gnutella_header)) && data)
-						node_enqueue(n, data, size - sizeof(struct gnutella_header));
-
-				n->sent++;
-			}
-			else node_remove(n, "Write failed");
-		}
-		else
-		{
-			n->sent++;
-			gui_update_node(n, FALSE);
-		}
+		sendto_one(n, msg, data, size);
 	}
 }
 

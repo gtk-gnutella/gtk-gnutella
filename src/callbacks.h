@@ -109,3 +109,11 @@ void on_entry_max_host_downloads_activate (GtkEditable *editable, gpointer user_
 void on_popup_search_restart_activate (GtkMenuItem *menuitem, gpointer user_data);
 void on_popup_search_duplicate_activate (GtkMenuItem *menuitem, gpointer user_data);
 void on_button_quit_clicked (GtkButton *button, gpointer user_data);
+void on_button_search_passive_clicked (GtkButton *button, gpointer user_data);
+void on_checkbutton_never_push_toggled (GtkToggleButton *togglebutton, gpointer user_data);
+void on_button_search_clear_clicked (GtkButton *button, gpointer user_data);
+void on_popup_search_clear_results_activate (GtkMenuItem *menuitem, gpointer user_data);
+void on_checkbutton_jump_downloads_toggled (GtkToggleButton *togglebutton, gpointer user_data);
+void on_checkbutton_jump_to_downloads_toggled (GtkToggleButton *togglebutton, gpointer user_data);
+void on_entry_max_uploads_activate (GtkEditable *editable, gpointer user_data);
+gboolean on_entry_max_uploads_focus_out_event (GtkWidget *widget, GdkEventFocus *event, gpointer user_data);

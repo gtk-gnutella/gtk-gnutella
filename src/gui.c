@@ -6,6 +6,7 @@
 
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <math.h>
 
 gchar gui_tmp[4096];
 
@@ -101,7 +102,7 @@ void gui_update_c_gnutellanet(void)
 
 void gui_update_c_uploads(void)
 {
-	gint i = g_slist_length(uploads);
+	gint i = running_uploads;
 	g_snprintf(gui_tmp, sizeof(gui_tmp), "%u upload%s", i, (i == 1)? "" : "s");
 	gtk_clist_set_text(GTK_CLIST(clist_connections), 1, 0, gui_tmp);
 }
@@ -124,6 +125,12 @@ void gui_update_max_host_downloads(void)
 	gtk_entry_set_text(GTK_ENTRY(entry_max_host_downloads), gui_tmp);
 }
 
+void gui_update_max_uploads(void)
+{
+	g_snprintf(gui_tmp, sizeof(gui_tmp), "%u", max_uploads);
+	gtk_entry_set_text(GTK_ENTRY(entry_max_uploads), gui_tmp);
+}
+
 void gui_update_files_scanned(void)
 {
 	g_snprintf(gui_tmp, sizeof(gui_tmp), "Files scanned: %u", files_scanned);
@@ -138,7 +145,7 @@ void gui_update_connection_speed(void)
 
 void gui_update_search_max_items(void)
 {
-	g_snprintf(gui_tmp, sizeof(gui_tmp), "%u", search_max_items);
+	g_snprintf(gui_tmp, sizeof(gui_tmp), "%d", search_max_items);
 	gtk_entry_set_text(GTK_ENTRY(entry_config_search_items), gui_tmp);
 }
 
@@ -182,7 +189,9 @@ void gui_update_shared_dirs(void)
 	gtk_entry_set_position(GTK_ENTRY(entry_config_path), 0);
 
 /*	gtk_widget_set_sensitive (button_config_rescan_dir, (gboolean) *shared_dirs_paths); */
-	gtk_widget_set_sensitive (button_config_rescan_dir, FALSE);
+	
+	/*gtk_widget_set_sensitive (button_config_rescan_dir, FALSE);*/
+
 }
 
 void gui_update_stats(void)
@@ -199,6 +208,8 @@ void gui_update_stats(void)
 		ping   = pr_ref->delay / pr_ref->hosts;
 	}
 	else hosts = files = kbytes = ping = 0;
+
+        if (files_scanned > 0) {files += files_scanned; kbytes += kbytes_scanned;}
 
 	g_snprintf(gui_tmp, sizeof(gui_tmp), "%u hosts", hosts);
 	gtk_clist_set_text(GTK_CLIST(clist_stats), 0, 0, gui_tmp);
@@ -257,7 +268,7 @@ void gui_update_node(struct gnutella_node *n, gboolean force)
 
 			if (n->sent || n->received)
 			{
-				g_snprintf(gui_tmp, sizeof(gui_tmp), "Connected: %d/%d/%d", n->sent, n->received, n->dropped);
+				g_snprintf(gui_tmp, sizeof(gui_tmp), "Connected:   %-8d\t%-8d\t%-8d", n->sent, n->received, n->dropped);
 				a = gui_tmp;
 			}
 			else a = "Connected";
@@ -327,6 +338,26 @@ void gui_update_download_abort_resume(void)
 	gtk_widget_set_sensitive(button_abort_download, abort);
 	gtk_widget_set_sensitive(button_resume_download, resume);
 }
+
+void gui_update_upload_kill(void)
+{
+  GList *l = NULL;
+  struct upload *d = NULL;
+
+  for (l = GTK_CLIST(clist_uploads)->selection; l; l = l->next)
+    {
+      d = (struct upload *) gtk_clist_get_row_data(GTK_CLIST(clist_uploads), (gint) l->data); 
+      if (d->status == GTA_UL_COMPLETE) {d = NULL; break;}
+    }
+
+      if (d)
+	{
+	  gtk_widget_set_sensitive(button_kill_upload, 1);
+	}
+      else gtk_widget_set_sensitive(button_kill_upload, 0);
+
+}
+
 
 void gui_update_download_clear(void)
 {
@@ -443,5 +474,38 @@ void gui_update_download(struct download *d, gboolean force)
 	}
 }
 
-/* vi: set ts=3: */
+void gui_update_upload(struct upload *u)
+{
+  gfloat rate = 1, pc = 0;
+  guint32 tr = 0;
+  gint row;
+  gchar gui_tmp[256];
+  
+  if (u->status != GTA_UL_COMPLETE)
+    {
+  /* position divided by 1 percentage point , found by dividing the total size by 100 */
+  pc = (u->pos) / ( (u->file_size / 100.0));
 
+  /* Data rate KBytes/second , K transfered (subtract off 1k remainder) divided by total seconds running */
+  if (u->last_update != u->start_date) 
+     rate = ( (u->pos - u->skip)  / 1024.0) / (u->last_update - u->start_date);
+
+  /* Time Remaining at the current rate, in seconds  */
+  if (fabs(rate) < .02 ) rate = 1;
+  tr = ((u->file_size - u->pos) - ((u->file_size - u->pos) % 1024))/1024   / rate;
+  
+
+  if (tr > 86400) g_snprintf(gui_tmp, sizeof(gui_tmp), "%.1f%% (%.1f k/s) TR: %ud %uh", pc, rate, tr / 86400, (tr % 86400) / 3600);
+  else if (tr > 3600) g_snprintf(gui_tmp, sizeof(gui_tmp), "%.1f%% (%.1f k/s) TR: %uh %um", pc, rate, tr / 3600, (tr % 3600) / 60);
+  else if (tr > 60) g_snprintf(gui_tmp, sizeof(gui_tmp), "%.1f%% (%.1f k/s) TR: %um %us", pc, rate, tr / 60, tr % 60);
+  else g_snprintf(gui_tmp, sizeof(gui_tmp), "%.1f%% (%.1f k/s) TR: %us", pc, rate, tr);
+  
+    }
+  else g_snprintf(gui_tmp, sizeof(gui_tmp), "Completed");
+  
+  row = gtk_clist_find_row_from_data(GTK_CLIST(clist_uploads), (gpointer) u);
+
+  gtk_clist_set_text(GTK_CLIST(clist_uploads), row, 2, gui_tmp);
+
+}
+/* vi: set ts=3: */

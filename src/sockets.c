@@ -33,6 +33,7 @@ void socket_destroy(struct gnutella_socket *s)
 /*		printf("socket_remove(): removing download %s first \n", s->resource.download->file_name); */
 		download_stop(s->resource.download, GTA_DL_ERROR, NULL);
 		return;
+
 	}
 	else if (s->type == GTA_TYPE_UPLOAD && s->resource.upload)
 	{
@@ -43,7 +44,7 @@ void socket_destroy(struct gnutella_socket *s)
 	if (s->gdk_tag)   gdk_input_remove(s->gdk_tag);
 	if (s->file_desc) close(s->file_desc);
 
-	g_free(s);
+	g_free(s); 
 }
 
 /* ------------------------------------------------------------------------------------------------ */
@@ -54,6 +55,8 @@ void socket_read(gpointer data, gint source, GdkInputCondition cond)
 {
 	gint r;
 	struct gnutella_socket *s = (struct gnutella_socket *) data;
+	
+	//s->type = 0;
 
 	if (cond & GDK_INPUT_EXCEPTION) { socket_destroy(s); return; }
 
@@ -65,6 +68,7 @@ void socket_read(gpointer data, gint source, GdkInputCondition cond)
 
 	s->pos += r;
 
+	/* XXX FIXME: need to read all the headers, not just the firts so that we read the Range: field if there is one. */
 	if (strchr(s->buffer, '\n')) /* We have got at least a line */
 	{
 
@@ -79,10 +83,27 @@ void socket_read(gpointer data, gint source, GdkInputCondition cond)
 			n = node_add(s, s->ip, s->port);
 
 			if (n) s->gdk_tag = gdk_input_add(s->file_desc, (GdkInputCondition) GDK_INPUT_READ | GDK_INPUT_EXCEPTION, node_read, (gpointer) n);
+
 		}
-		else
-		{
+		else if ( (!strncmp(s->buffer, "GET", 3)) || (!strncmp(s->buffer, "HEAD", 4))) { /* This is an Upload request in HTTP */
+		  struct upload* up; 
+		  
+		  gdk_input_remove(s->gdk_tag);
+
+		  up = upload_add(s);
+
+		  if (up != NULL) 
+		    {
+		      s->gdk_tag = gdk_input_add(s->file_desc, (GdkInputCondition) GDK_INPUT_WRITE | GDK_INPUT_EXCEPTION,
+						 upload_write, (gpointer) up);
+		      s->resource.upload = up;
+
+		    }
+
+		  else {socket_destroy(s); return;}
+		} else {
 			g_warning("socket_read(): Got an unknown incoming connection, dropping it.\n");
+			g_warning("socket_read: first 80 chars: %.80s\n", s->buffer);
 
 			socket_destroy(s);
 		}
@@ -141,17 +162,43 @@ void socket_connected(gpointer data, gint source, GdkInputCondition cond)
 
 			case GTA_TYPE_UPLOAD:
 			{
-				g_warning("No handler for UPLOADS yet...");
+			  if (!(s->gdk_tag))
+			    {
+			      struct upload* up; 
+      
+			      up = upload_add(s);
+			      if (up != NULL) {
+			      s->gdk_tag = gdk_input_add(s->file_desc, (GdkInputCondition) GDK_INPUT_WRITE | GDK_INPUT_EXCEPTION,
+						     upload_write, (gpointer) up);
+			      s->resource.upload = up;
+			      }
+			      else socket_destroy(s);
+			    }
 				break;
 			}
 
 			default:
 			{
 				g_warning("socket_connected(): Unknown socket type %d !", s->type);
+				socket_destroy(s); /* ? */
 			}
 		}
 	}
 }
+
+int guess_local_ip(int sd, guint32 *ip_addr, guint16 *ip_port) {
+  struct sockaddr_in addr;
+  gint len = sizeof(struct sockaddr_in);
+
+  if (getsockname(sd, (struct sockaddr *) &addr, &len) == -1) {
+	return -1;
+  } else {
+	if(ip_addr) *ip_addr = g_ntohl(addr.sin_addr.s_addr);
+	if(ip_port) *ip_port = g_ntohs(addr.sin_port);
+	return 0;
+  }
+}
+
 
 void socket_accept(gpointer data, gint source, GdkInputCondition cond)
 {
@@ -173,6 +220,7 @@ void socket_accept(gpointer data, gint source, GdkInputCondition cond)
 	{
 		case GTA_TYPE_CONTROL:
 		case GTA_TYPE_DOWNLOAD:
+	        case GTA_TYPE_UPLOAD:
 			break;
 
 		default:
@@ -185,6 +233,9 @@ void socket_accept(gpointer data, gint source, GdkInputCondition cond)
 	sd = accept(s->file_desc, (struct sockaddr *) &addr, &len);
 
 	if (sd == -1) { g_warning("accept() failed (%s)", g_strerror(errno)); return; }
+
+	if(!local_ip) 	 
+	  guess_local_ip(sd, &local_ip, NULL);
 
 	/* Create a new struct socket for this incoming connection */
 
@@ -227,7 +278,17 @@ void socket_accept(gpointer data, gint source, GdkInputCondition cond)
 
 		case GTA_TYPE_UPLOAD:
 		{
-			/* TODO */
+
+		  struct upload* up; 
+
+		  up = upload_add(s);
+		  if (up != NULL) 
+		    {
+		  s->gdk_tag = gdk_input_add(s->file_desc, (GdkInputCondition) GDK_INPUT_WRITE | GDK_INPUT_EXCEPTION,
+					     upload_write, (gpointer) up);
+		  s->resource.upload = up;
+		    }
+		  else socket_destroy(s);
 
 			break;
 		}
@@ -241,7 +302,7 @@ struct gnutella_socket *socket_connect(guint32 ip, guint16 port, gint type)
 	/* Create a socket and try to connect it to ip:port */
 
 	gint sd, option = 1, res;
-	struct sockaddr_in addr;
+	struct sockaddr_in addr, lcladdr;
 	struct gnutella_socket *s;
 
 	sd = socket(AF_INET, SOCK_STREAM, 0);
@@ -267,6 +328,16 @@ struct gnutella_socket *socket_connect(guint32 ip, guint16 port, gint type)
 	addr.sin_addr.s_addr = g_htonl(ip);
 	addr.sin_port = g_htons(port);
 
+        /* Now we check if we're forcing a local IP, and make it happen if so.  --JSL */
+        if (force_local_ip)
+        {
+                lcladdr.sin_family = AF_INET;
+                lcladdr.sin_addr.s_addr = g_htonl(forced_local_ip);
+                lcladdr.sin_port = g_htons(0);
+
+                res = bind(sd, (struct sockaddr *) &lcladdr, sizeof(struct sockaddr_in));
+        }
+
 	res = connect(sd, (struct sockaddr *) &addr, sizeof(struct sockaddr_in));
 
 	if (res == -1 && errno != EINPROGRESS)
@@ -276,22 +347,13 @@ struct gnutella_socket *socket_connect(guint32 ip, guint16 port, gint type)
 		return NULL;
 	}
 
-	if (!local_ip)	/* We need our local address */
-	{
-		gint len = sizeof(struct sockaddr_in);
-
-		if (getsockname(sd, (struct sockaddr *) &addr, &len) == -1)
+	if(!local_ip)
+	  if(guess_local_ip(sd, &local_ip, &s->local_port) == -1)
 		{
-			g_warning("Unable to guess our IP ! (%s)\n", g_strerror(errno));
-			socket_destroy(s);
-			return NULL;
+		  g_warning("Unable to guess our IP ! (%s)\n", g_strerror(errno));
+		  socket_destroy(s);
+		  return NULL;
 		}
-		else
-		{
-			local_ip = g_ntohl(addr.sin_addr.s_addr);
-			s->local_port = g_ntohs(addr.sin_port);
-		}
-	}
 
 	s->gdk_tag = gdk_input_add(sd, GDK_INPUT_READ | GDK_INPUT_WRITE | GDK_INPUT_EXCEPTION, socket_connected, s);
 
