@@ -425,6 +425,13 @@ gchar *date_to_iso_gchar(time_t date)
 	return buf;
 }
 
+static gchar* days[] = { "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat" };
+
+static gchar* months[] = {
+	"Jan", "Feb", "Mar", "Apr", "May", "Jun",
+	"Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+};
+
 /*
  * date_to_rfc822_gchar
  *
@@ -434,10 +441,31 @@ gchar *date_to_iso_gchar(time_t date)
 gchar *date_to_rfc822_gchar(time_t date)
 {
 	static gchar buf[80];
+	static gchar btz[10];
 	struct tm *tm;
 
 	tm = localtime(&date);
-	strftime(buf, sizeof(buf), "%a, %d %b %Y %H:%M:%S %z", tm);
+
+	/*
+	 * We used to do:
+	 *
+	 *    strftime(buf, sizeof(buf), "%a, %d %b %Y %H:%M:%S %z", tm);
+	 *
+	 * but doing both:
+	 *
+	 *    putenv("LC_TIME=C");
+	 *    setlocale(LC_TIME, "C");
+	 *
+	 * did not seem to force that routine to emit English.  Let's do it
+	 * ourselves.
+	 */
+
+	strftime(btz, sizeof(btz), "%z", tm);
+
+	g_snprintf(buf, sizeof(buf), "%s, %02d %s %04d %02d:%02d:%02d %s",
+		days[tm->tm_wday], tm->tm_mday, months[tm->tm_mon], tm->tm_year + 1900,
+		tm->tm_hour, tm->tm_min, tm->tm_sec, btz);
+
 	buf[sizeof(buf)-1] = '\0';		/* Be really sure */
 
 	return buf;
@@ -452,10 +480,17 @@ gchar *date_to_rfc822_gchar(time_t date)
 gchar *date_to_rfc822_gchar2(time_t date)
 {
 	static gchar buf[80];
+	static gchar btz[10];
 	struct tm *tm;
 
 	tm = localtime(&date);
-	strftime(buf, sizeof(buf), "%a, %d %b %Y %H:%M:%S %z", tm);
+
+	strftime(btz, sizeof(btz), "%z", tm);
+
+	g_snprintf(buf, sizeof(buf), "%s, %02d %s %04d %02d:%02d:%02d %s",
+		days[tm->tm_wday], tm->tm_mday, months[tm->tm_mon], tm->tm_year + 1900,
+		tm->tm_hour, tm->tm_min, tm->tm_sec, btz);
+
 	buf[sizeof(buf)-1] = '\0';		/* Be really sure */
 
 	return buf;

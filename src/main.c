@@ -28,7 +28,6 @@
 
 #include <signal.h>
 #include <locale.h>
-#include <stdlib.h>
 
 #include "search.h"
 #include "share.h"
@@ -297,15 +296,6 @@ gint main(gint argc, gchar ** argv)
 
 	for (i = 3; i < 256; i++)
 		close(i);				/* Just in case */
-
-	/*
-	 * strftime() must emit standard dates, in English.
-	 */
-
-	if (-1 == putenv(lc_time))
-		g_warning("unable to add \"%s\" to the environment", lc_time);
-
-	setlocale(LC_TIME, "C");
 
     gnet_stats_init();
     main_gui_early_init(argc, argv);
