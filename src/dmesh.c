@@ -768,9 +768,12 @@ gboolean dmesh_add(guchar *sha1,
  * can hold `len' bytes.
  *
  * Returns length of formatted entry, -1 if the URL would be larger than
- * the buffer.
+ * the buffer.  If `quoting' is non-NULL, set it to indicate whether the
+ * formatted URL should be quoted if emitted in a header, because it
+ * contains a "," character.
  */
-static gint dmesh_urlinfo(dmesh_urlinfo_t *info, gchar *buf, gint len)
+static gint dmesh_urlinfo(
+	dmesh_urlinfo_t *info, gchar *buf, gint len, gboolean *quoting)
 {
 	gint rw;
 	gint maxslen = len - 1;			/* Account for trailing NUL */
@@ -787,9 +790,11 @@ static gint dmesh_urlinfo(dmesh_urlinfo_t *info, gchar *buf, gint len)
 	if (rw >= maxslen)
 		return -1;
 
-	if (info->idx == URN_INDEX)
+	if (info->idx == URN_INDEX) {
 		rw += g_snprintf(&buf[rw], len - rw, "/uri-res/N2R?%s", info->name);
-	else {
+		if (quoting != NULL)
+			*quoting = FALSE;			/* No "," in the generated URL */
+	} else {
 		rw += g_snprintf(&buf[rw], len - rw, "/get/%u/", info->idx);
 
 		/*
@@ -806,6 +811,15 @@ static gint dmesh_urlinfo(dmesh_urlinfo_t *info, gchar *buf, gint len)
 			if (rw < len)
 				buf[rw] = '\0';
 		}
+
+		/*
+		 * If `quoting' is non-NULL, look whether there is a "," in the
+		 * filename.  Since "," is not URL-escaped, we look directly in
+		 * the info->name field.
+		 */
+
+		if (quoting != NULL)
+			*quoting = NULL != strchr(info->name, ',');
 	}
 
 	return (rw >= maxslen) ? -1 : rw;
@@ -820,7 +834,7 @@ static gchar *dmesh_urlinfo_to_gchar(dmesh_urlinfo_t *info)
 {
 	static gchar urlstr[1024];
 
-	(void) dmesh_urlinfo(info, urlstr, sizeof(urlstr) - 1);
+	(void) dmesh_urlinfo(info, urlstr, sizeof(urlstr) - 1, NULL);
 	urlstr[sizeof(urlstr) - 1] = '\0';
 
 	return urlstr;
@@ -839,15 +853,31 @@ static gint dmesh_entry_url_stamp(struct dmesh_entry *dme, gchar *buf, gint len)
 {
 	gint rw;
 	gint maxslen = len - 1;			/* Account for trailing NUL */
+	gboolean quoting;
 
 	/*
 	 * Format the URL info first.
 	 */
 
-	rw = dmesh_urlinfo(&dme->url, buf, len);
+	rw = dmesh_urlinfo(&dme->url, buf, len, &quoting);
 
 	if (rw < 0)
 		return -1;
+
+	/*
+	 * If quoting is required, we need to surround the already formatted
+	 * string into "quotes".
+	 */
+
+	if (quoting) {
+		if (rw + 2 >= maxslen)		/* Not enough room for 2 quotes */
+			return -1;
+
+		g_memmove(buf + 1, buf, rw);
+		buf[0] = '"';
+		buf[rw++] = '"';
+		buf[rw] = '\0';
+	}
 
 	/*
 	 * Append timestamp.
@@ -1177,7 +1207,7 @@ void dmesh_collect_locations(guchar *sha1, guchar *value)
 		*p = c;
 
 		if (c == '"')				/* URL ended with a quote, skip it */
-			c = *p++;
+			c = *(++p);
 
 		/*
 		 * Maybe there is no date following the URL?
