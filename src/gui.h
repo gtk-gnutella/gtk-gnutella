@@ -67,8 +67,6 @@ enum {
     c_us_attempts,
     c_us_complete,
     c_us_norm,
-	c_us_size_val,
-	c_us_norm_val,
 	c_us_stat,
 
 	c_us_num
@@ -113,6 +111,9 @@ enum {
     c_sr_urn,
     c_sr_info,
 #ifdef USE_GTK2
+	c_sr_status,
+	c_sr_fg, /* invisible, holds the foreground color for the row */
+	c_sr_bg, /* invisible, holds the background color for the row */
 	c_sr_record, /* invisible, pointer to the record_t of this entry */
 #endif
 	c_sr_num
@@ -142,6 +143,8 @@ enum {
     c_sl_hit,
     c_sl_new,
 #ifdef USE_GTK2
+    c_sl_fg,
+    c_sl_bg,
 	c_sl_sch, /* invisible, pointer to the search_t for this entry */
 #endif
 	c_sl_num
