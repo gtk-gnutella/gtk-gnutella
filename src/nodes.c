@@ -152,6 +152,16 @@ static struct {
 	node_peer_t new;
 } peermode = { FALSE, NODE_P_UNKNOWN };
 
+/*
+ * Types of bad nodes for node_is_bad().
+ */
+enum node_bad {
+	NODE_BAD_OK = 0,		/* Node is fine */
+	NODE_BAD_IP,			/* Node has a bad (unstable) IP */
+	NODE_BAD_VENDOR,		/* Node has a bad vendor string */
+	NODE_BAD_NO_VENDOR,		/* Node has no vendor string */
+};
+
 static gint32 connected_node_cnt = 0;
 static gint32 compressed_node_cnt = 0;
 static gint32 compressed_leaf_cnt = 0;
@@ -173,6 +183,8 @@ static void node_bye_flags(guint32 mask, gint code, gchar *message);
 static void node_bye_all_but_one(
 	struct gnutella_node *nskip, gint code, gchar *message);
 static void node_set_current_peermode(node_peer_t mode);
+static gboolean node_ip_is_bad(guint32 ip);
+static enum node_bad node_is_bad(struct gnutella_node *n);
 
 extern gint guid_eq(gconstpointer a, gconstpointer b);
 
@@ -1036,7 +1048,7 @@ void node_remove_by_handle(gnet_node_t n)
  *
  * True when a certain IP has proven to be unstable
  */
-gboolean node_ip_is_bad(guint32 ip) {
+static gboolean node_ip_is_bad(guint32 ip) {
 	node_bad_ip_t *bad_ip = NULL;
 	
 	g_assert(ip != 0);
@@ -1054,8 +1066,11 @@ gboolean node_ip_is_bad(guint32 ip) {
 
 /*
  * node_is_bad
+ *
+ * Check whether node has been identified as having a bad IP or vendor string.
+ * Returns NODE_BAD_OK if node is OK, the reason why the node is bad otherwise.
  */
-gboolean node_is_bad(struct gnutella_node *n)
+static enum node_bad node_is_bad(struct gnutella_node *n)
 {
 	node_bad_client_t *bad_client = NULL;
 	node_bad_ip_t *bad_ip = NULL;
@@ -1065,7 +1080,7 @@ gboolean node_is_bad(struct gnutella_node *n)
 	if (n->vendor == NULL) {
 		if (dbg)
 			g_warning("[nodes up] Got no vendor name!");
-		return TRUE;
+		return NODE_BAD_NO_VENDOR;
 	}
 	
 	g_assert(n->vendor != NULL);
@@ -1077,20 +1092,20 @@ gboolean node_is_bad(struct gnutella_node *n)
 			g_warning("[nodes up] Unstable ip %s (%s)", 
 				ip_to_gchar(n->ip),
 				n->vendor);
-		return TRUE;
+		return NODE_BAD_IP;
 	} else {
 		bad_client = g_hash_table_lookup(unstable_servent, n->vendor);
 	
 		if (bad_client == NULL)
-			return FALSE;
+			return NODE_BAD_OK;
 	
 		if (bad_client->errors > node_error_threshold) {
 			if (dbg)
 				g_warning("[nodes up] Banned client: %s", n->vendor);
-			return TRUE;
+			return NODE_BAD_VENDOR;
 		}
 	}
-	return FALSE;
+	return NODE_BAD_OK;
 }
 
 /*
@@ -2514,6 +2529,8 @@ static gboolean analyse_status(struct gnutella_node *n, gint *code)
 static gboolean node_can_accept_connection(
 	struct gnutella_node *n, gboolean handshaking)
 {
+	enum node_bad bad;
+
 	g_assert(handshaking || n->status == GTA_NODE_CONNECTED);
 	g_assert(n->attrs & (NODE_A_NO_ULTRA|NODE_A_CAN_ULTRA));
 
@@ -2534,20 +2551,36 @@ static gboolean node_can_accept_connection(
 
 	if (n->flags & NODE_F_CRAWLER)
 		return TRUE;
+
 	/*
 	 * If a specific client version has proven to be very unstable during this
 	 * version, don't connect to it.
 	 *		-- JA 17/7/200
 	 */
 
-	if ((n->attrs & NODE_A_ULTRA) && node_is_bad(n)) {
-		send_node_error(n->socket, 403,
-			"Unstable servent or host");
-		node_remove(n, 
-			"Not connecting to node, host or servent proved to be unstable");
+	if ((n->attrs & NODE_A_ULTRA) && (bad = node_is_bad(n)) != NODE_BAD_OK) {
+		gchar *msg;
+
+		switch (bad) {
+		case NODE_BAD_OK:
+			g_error("logic error");
+			break;
+		case NODE_BAD_IP:
+			msg = "Unstable IP address";
+			break;
+		case NODE_BAD_VENDOR:
+			msg = "Servent version appears unstable";
+			break;
+		case NODE_BAD_NO_VENDOR:
+			msg = "No vendor string supplied";
+			break;
+		}
+
+		send_node_error(n->socket, 403, msg);
+		node_remove(n, "Not connecting: %s", msg);
 		return FALSE;
 	}
-	
+
 	/*
 	 * If we are handshaking, we have not incremented the node counts yet.
 	 * Hence we can do >= tests against the limits.
