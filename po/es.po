@@ -3,14 +3,15 @@
 # Copyright (C) YEAR Copyright (c) 2000-2001, Yann Grossel; Copyright (c) 2001-2003, Raphael Manfredi
 # This file is distributed under the same license as the gtk-gnutella package.
 # Nicolás Lichtmaier <nick@technisys.com.ar>, 2003.
+# Paco Arjonilla García <pacoarjonilla@yahoo.es>, 2004.
 #
 msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.92\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
 "POT-Creation-Date: 2004-01-04 23:27+0100\n"
-"PO-Revision-Date: 2003-04-06 22:38-0300\n"
-"Last-Translator: Nicolás Lichtmaier <nick@technisys.com.ar>\n"
+"PO-Revision-Date: 2004-02-28 12:48+0100\n"
+"Last-Translator: Paco Arjonilla García <pacoarjonilla@yahoo.es>\n"
 "Language-Team: Spanish <gtk-gnutella-devel@lists.sourceforge.net>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -22,24 +23,23 @@ msgstr "Ya no está conectado"
 
 #: src/downloads.c:1230
 msgid "Requeued by file info change"
-msgstr ""
+msgstr "Reencolado por cambio en los atributos del fichero"
 
 #: src/downloads.c:1303 src/downloads.c:2518 src/downloads.c:3379
 msgid "Suspended (SHA1 checking)"
-msgstr ""
+msgstr "Suspendido (comprobando SHA1)"
 
 #: src/downloads.c:2803 src/downloads.c:3389
-#, fuzzy
 msgid "No download slot"
-msgstr "Bajadas"
+msgstr "Ranuras de bajada agotadas"
 
 #: src/downloads.c:3064
 msgid "Ignoring Push flag"
-msgstr ""
+msgstr "Ignorando indicación 'Push'"
 
 #: src/downloads.c:3370
 msgid "Dup SHA1 during creation"
-msgstr ""
+msgstr "Doble SHA1 durante la creación"
 
 #: src/downloads.c:3886
 msgid "Explicitly requeued"
@@ -51,27 +51,27 @@ msgstr "Reencolado por bajada de un tercero en competencia"
 
 #: src/downloads.c:4503
 msgid "Requeued after trimmed data"
-msgstr ""
+msgstr "Reencolado tras datos recortados"
 
 #: src/downloads.c:4505
 msgid "Chunk done, connection closed"
-msgstr ""
+msgstr "Bloque completado, conexión cerrada"
 
 #: src/downloads.c:4676
 msgid "Weird HTTP status (protocol desync?)"
-msgstr ""
+msgstr "Estado HTTP desconocido (¿desincronización del protocolo?)"
 
 #: src/downloads.c:5018
 msgid "URN fileinfo mismatch"
-msgstr ""
+msgstr "Información de archivo URN no coincide"
 
 #: src/downloads.c:5038
 msgid "Discovered dup SHA1"
-msgstr ""
+msgstr "Descubierto un SHA1 doble"
 
 #: src/downloads.c:7378
 msgid "SHA1 mismatch detected"
-msgstr ""
+msgstr "Detectado distinto SHA1"
 
 #: src/gui.c:73
 #, c-format
@@ -93,25 +93,28 @@ msgstr "salida"
 
 #: src/gui.c:126
 msgid "(avg)"
-msgstr "(prom)"
+msgstr "(media)"
 
 #: src/gnet_property.c:497
 msgid "Indicates whether the hostcache file is being read"
 msgstr ""
+"Indica si el caché de nodos normales está siendo leida"
 
 #: src/gnet_property.c:514
 msgid "Indicates whether the ultracache file is being read"
 msgstr ""
+"Indica si el caché de ultranodos está siendo leida"
 
 #: src/gnet_property.c:531
 msgid "Indicates that gtk-gnutella finds the version you run very very old"
-msgstr ""
+msgstr "Indica que la versión de gtk-gnutella es muy antigua."
 
 #: src/gnet_property.c:548
 msgid ""
 "Gtk-gnutella found a newer version on the gNet and gives information about "
 "it here"
 msgstr ""
+"Gtk-gnutella encuentró una nueva versión en la red e informa de ello aquí"
 
 #: src/gnet_property.c:569
 msgid ""
@@ -119,6 +122,9 @@ msgid ""
 "same kind as we are (normal or ultra nodes). This should be smaller than the "
 "maximum amount of connections to allow incoming connections."
 msgstr ""
+"Tratar de mantener al menos este número de conexiones a nodos del mismo tipo "
+"que nosotros (normal o ultranodos). Debería ser más pequeño que el número "
+"máximo de conexiones entrantes permitidas."
 
 #: src/gnet_property.c:589
 msgid ""
@@ -126,6 +132,9 @@ msgid ""
 "normal servents.  This should be smaller than the maximum amount of "
 "connections to allow incoming connections."
 msgstr ""
+"Tratar de mantener al menos este número de conexiones con nodos normales "
+"cuando somos ultranodos. Debería ser más pequeño que el número máximo de "
+"conexiones entrantes permitidas."
 
 #: src/gnet_property.c:609
 msgid ""
@@ -134,62 +143,73 @@ msgid ""
 "up all your bandwidth, leave a little space for TCP/IP overhead. It's not "
 "advisable that you set this to a value larger than 10."
 msgstr ""
+"No permitir más de este número de conexiones a otros nodos. Como norma "
+"general, debería reservar 1kb/s del ancho de banda para cada conexión. Nunca "
+"use todo su ancho de banda, deje algo de espacio para las transacciones "
+"TCP/IP. No es recomendable que tenga un valor mayor que diez."
 
 #: src/gnet_property.c:629
 msgid "Number of leaf nodes currently connected."
 msgstr ""
+"Número de nodos hoja actualmente conectados."
 
 #: src/gnet_property.c:649
 msgid "Number of normal nodes currently connected."
-msgstr ""
+msgstr "Número de nodos normales actualmente conectados."
 
 #: src/gnet_property.c:669
 msgid "Number of ultra nodes currently connected."
-msgstr ""
+msgstr "Número de ultranodos actualmente conectados."
 
 #: src/gnet_property.c:689
 msgid ""
 "Don't start more than this number of parallel downloads.  Others will remain "
 "in the queue waiting for a download slot."
 msgstr ""
+"No comenzar más de esta cantidad de bajadas paralelamente. El resto "
+"esperarán en la cola a la espera de una ranura."
 
 #: src/gnet_property.c:709
 msgid ""
 "Don't make more connections than given here to a single host to download a "
 "file.  Be nice to others, and leave it at the default value (1)."
 msgstr ""
+"No realizar más conexiones de las indicadas aquí con un solo nodo al "
+"descargar un archivo. Sea agradable y déjelo en el valor por defecto (1)."
 
 #: src/gnet_property.c:729
 msgid ""
 "Don't allow more than this number of uploads in total. This also defines the "
 "amount of PARQ queues that will be used. You should at least set it to 2."
 msgstr ""
+"No permitir más de este número de subidas en total. También define la "
+"cantidad de colas PARQ que se usarán. Debería ponerlo por lo menos en dos."
 
 #: src/gnet_property.c:749
 msgid ""
 "Don't upload more than this number of files in parallel to a single host"
 msgstr ""
+"No subir más de este número de archivos paralelamente a un único nodo"
 
 #: src/gnet_property.c:769
-#, fuzzy
 msgid "Local IP address last determined"
-msgstr "todavía no determinado"
+msgstr "Última dirección IP local"
 
 #: src/gnet_property.c:789
 msgid "When the current IP address was determined"
-msgstr ""
+msgstr "Cuándo se determinó la dirección IP"
 
 #: src/gnet_property.c:809
 msgid "Average uptime with the same IP address"
-msgstr ""
+msgstr "Tiempo de ejecución promedio con la misma IP"
 
 #: src/gnet_property.c:829
 msgid "Timestamp at which servent was started"
-msgstr ""
+msgstr "Fecha y hora en que se inició la aplicación"
 
 #: src/gnet_property.c:849
 msgid "Average servent uptime, in seconds"
-msgstr ""
+msgstr "Tiempo de ejecución promedio de la aplicación, en segundos"
 
 #: src/gnet_property.c:869
 msgid ""
@@ -199,16 +219,25 @@ msgid ""
 "opening, as necessary.  Note that by default, the port 6346 is not used to "
 "guard against undue censorship."
 msgstr ""
+"Puerto local en que gtk-gnutella escucha. Su ISP podría bloquear o impedir "
+"el tráfico en el puerto 6346 por lo que sería buena idea cambiarlo a algún "
+"valor entre 1024 y 65535. No olvide actualizar su cortafuegos para permitir "
+"conexiones en los puertos usados por gtk-gnutella. Tenga en cuenta que por "
+"defecto el puerto 6346 no está protegido."
 
 #: src/gnet_property.c:889
 msgid "Use this IP address as source address if 'force local ip' is activated"
 msgstr ""
+"Usar esta dirección IP como dirección de origen si 'forzar ip local' está "
+"activada"
 
 #: src/gnet_property.c:909
 msgid ""
 "The connection bandwidth reported to other hosts. This is the speed at which "
 "you can upload things to others."
 msgstr ""
+"El ancho de banda comunicado a otros nodos. Ésta es la velocidad a la que "
+"se enviarán los archivos a los demás nodos."
 
 #: src/gnet_property.c:929
 msgid ""
@@ -219,6 +248,13 @@ msgid ""
 "divided by the number of upload slots. When it is ON (recommended setting), "
 "the hardwired connection speed is not used."
 msgstr ""
+"Si la conexión comunicada a los demás nodos se calculará basado en la "
+"velocidad promedio de salida de datos actual. Esta velocidad es la disponible "
+"para una nueva subida, no la máxima teórica configurada: El ancho de banda "
+"promedio ( ó el máximo ancho de banda configurado, en caso de no haber tráfico "
+"todavía) dividido por el número de ranuras disponibles para subidas. Cuando "
+"está activado (Recomendado) la velocidad de conexión de la línea no se tiene "
+"en cuenta."
 
 #: src/gnet_property.c:946
 msgid ""
@@ -226,60 +262,76 @@ msgid ""
 "packets as necessary.  To avoid network flooding, keep this to a reasonable "
 "value."
 msgstr ""
+"Devolver como mucho esta cantidad de resultados a una petición, usando tantos "
+"paquetes de petición encontrada como sea necesario. Para evitar congestión en "
+"la red, manténgalo en un valor razonable. "
 
 #: src/gnet_property.c:966
 msgid ""
 "Unless this percentage or more of the upload bandwidth is used, allow "
 "additional upload slots"
 msgstr ""
+"A no ser que este porcentaje del ancho de banda para subidas esté en uso, "
+"permitir nuevas ranuras para subidas."
 
 #: src/gnet_property.c:986
 msgid "Number of seconds before a download connect attempt times out"
 msgstr ""
+"Tiempo en segundos antes de que un intento de conexión expire"
 
 #: src/gnet_property.c:1006
 msgid "Number of seconds before a push request times out"
-msgstr ""
+msgstr "Número de segundos antes de que una petición 'push' caduque"
 
 #: src/gnet_property.c:1026
 msgid "Number of seconds before a download times out if no data is received"
 msgstr ""
+"Tiempo en segundos antes de que una descarga expire si no se reciben datos"
 
 #: src/gnet_property.c:1046
 msgid "Minimum number of seconds to wait on auto-retry timeouts"
-msgstr ""
+msgstr "Número mínimo de segundos a esperar en autoreintentos caducados"
 
 #: src/gnet_property.c:1066
-#, fuzzy
 msgid "Maximum number of seconds to wait on auto-retry timeouts"
-msgstr "Máximo número de resultados a mostrar en cualquier búsqueda"
+msgstr "Número máximo de segundos a esperar en autoreintentos caducados"
 
 #: src/gnet_property.c:1086
 msgid ""
 "Maximum number of attempts to download a file not counting HTTP busy "
 "indications"
 msgstr ""
+"Número máximo de intentos de descargar un archivo, sin contar indicadiones "
+"HTTP ocupado"
 
 #: src/gnet_property.c:1106
 msgid "Delay in seconds before retrying after a connection timed out"
 msgstr ""
+"Demora en segundos antes de reintentar después de el tiempo de una conexión "
+"expire"
 
 #: src/gnet_property.c:1126
 msgid ""
 "Delay in seconds before retrying after getting a 'busy' response from a host"
 msgstr ""
+"Demora en segundos antes de reintentar después de recibir una indicación de "
+"ocupado de un nodo"
 
 #: src/gnet_property.c:1146
 msgid ""
 "Delay in seconds before retrying after getting a 'connection refused' "
 "response from a host"
 msgstr ""
+"Demora en segundos antes de reintentar después de que un nodo rechace la "
+"conexión"
 
 #: src/gnet_property.c:1166
 msgid ""
 "Delay in seconds before retrying after a retry stopped (timed out, "
 "connection reset by peer, etc...)"
 msgstr ""
+"Demora en segundos antes de reintentar después de que un reintento se "
+"detenga (tiempo expirado, conexión reiniciada por el nodo, etc...)"
 
 #: src/gnet_property.c:1186
 msgid ""
@@ -287,6 +339,10 @@ msgid ""
 "64 bytes for safe resuming, otherwise gtk-gnutella will not accept to resume "
 "a file for which we had no SHA1 known, after a server gives one back."
 msgstr ""
+"Número de bytes a solapar cuando se reanude una descarga. Debería ser al "
+"menos 64 bytes para reanudar de forma segura, en otro caso gtk-gnutella no "
+"aceptará reanudar un archivo del que no tenga un SHA1 conocido, tras conocer "
+"el SHA1 del archivo en el servidor remoto."
 
 #: src/gnet_property.c:1206
 msgid ""
@@ -294,11 +350,15 @@ msgid ""
 "established during a push.  It is also the maximum amount of time we wait to "
 "get the whole HTTP request."
 msgstr ""
+"Segundos antes de que una subida expire si no se puede establecer una conexión "
+"durante una petición 'push'. También es el tiempo máximo de espera para "
+"recibir la petición HTTP completa."
 
 #: src/gnet_property.c:1226
 msgid ""
 "Number of seconds after which an upload times out if no data is transmitted"
 msgstr ""
+"Tiempo en segundos antes de que una subida expire si no se transmiten datos"
 
 #: src/gnet_property.c:1246
 msgid ""
@@ -307,6 +367,10 @@ msgid ""
 "it too low or you will damage the Gnutella network.  A delay of half an hour "
 "is fine."
 msgstr ""
+"Tiempo en segundos antes de que una búsqueda sea solicitada de nuevo "
+"para encontrar nuevos resultados. Tenga cuidado con este parámetro, pues un "
+"valor muy bajo podría dañar la red Gnutella. Una demora de media hora es "
+"decuado."
 
 #: src/gnet_property.c:1266
 msgid ""
@@ -328,21 +392,26 @@ msgstr ""
 msgid ""
 "Number of seconds an incoming connection has to start sending out its request"
 msgstr ""
+"Tiempo en segundos para que una conexión entrante deba comenzar a enviar su "
+"petición"
 
 #: src/gnet_property.c:1346
 msgid ""
 "Number of seconds before a Gnet connect attempt times out if no connection "
 "can be established"
 msgstr ""
+"Tiempo en segundos antes de que un intento de conexión Gnet expire si no se "
+"puede establecer ninguna conexión"
 
 #: src/gnet_property.c:1366
 msgid ""
 "Number of seconds before a Gnet connection times out if no data is "
 "transmitted"
 msgstr ""
+"Tiempo en segundos para que una conexión Gnet expire si no se transmiten "
+"datos"
 
 #: src/gnet_property.c:1386
-#, c-format
 msgid ""
 "Maximum size of the sendqueue for the nodes (in bytes). Must be at least "
 "150% of the maximum message size"
@@ -353,6 +422,8 @@ msgid ""
 "Maximum number of seconds a node can remain in transmit flow control before "
 "being kicked out."
 msgstr ""
+"Tiempo máximo en segundos antes de que un nodo sea pateado por mantener el "
+"control del flujo de transmisiones."
 
 #: src/gnet_property.c:1426
 msgid ""
@@ -387,87 +458,98 @@ msgstr ""
 
 #: src/gnet_property.c:1506
 msgid "For development use: debug level"
-msgstr ""
+msgstr "Para desarrollo: Nivel de depuración"
 
 #: src/gnet_property.c:1526
 msgid "Debug level for code shared between gui and core"
 msgstr ""
+"Nivel de depuración para el código compartido entre la interfaz gráfica y "
+"el núcleo"
 
 #: src/gnet_property.c:1546
 msgid "For development use: track properties"
-msgstr ""
+msgstr "Para uso en desarrollo: Vigilar propiedades"
 
 #: src/gnet_property.c:1566
 msgid "For development use: don't add new hosts to the hostcatcher"
-msgstr ""
+msgstr "Para uso en desarrollo: Dejar de añadir nodos a el caché de nodos"
 
 #: src/gnet_property.c:1583
 msgid "Enable bandwidth limitation for incoming HTTP traffic"
-msgstr ""
+msgstr "Activar limitación de ancho de banda para tráfico HTTP entrante"
 
 #: src/gnet_property.c:1600
 msgid "Enable bandwidth limitation for outgoing HTTP traffic"
-msgstr ""
+msgstr "Activar limitación de ancho de banda para tráfico HTTP saliente"
 
 #: src/gnet_property.c:1617
 msgid "Enable bandwidth limitation for incoming Gnet traffic"
-msgstr ""
+msgstr "Activar limitación de ancho de banda para tráfico Gnet entrante"
 
 #: src/gnet_property.c:1634
 msgid "Enable bandwidth limitation for incoming Gnet leaf traffic"
-msgstr ""
+msgstr "Activar limitación de ancho de banda para tráfico de nodos hoja entrante"
 
 #: src/gnet_property.c:1651
 msgid "Enable bandwidth limitation for outgoing Gnet traffic"
-msgstr ""
+msgstr "Activar limitación de ancho de banda para tráfico Gnet saliente"
 
 #: src/gnet_property.c:1668
 msgid "Enable bandwidth limitation for outgoing Gnet leaf traffic"
-msgstr ""
+msgstr "Activar limitación de ancho de banda para tráfico de nodos hoja saliente"
 
 #: src/gnet_property.c:1685
 msgid "Enable dynamic upload slots allocation"
-msgstr ""
+msgstr "Activar reserva dinámica de ranuras para subidas."
 
 #: src/gnet_property.c:1702
 msgid ""
 "Allow HTTP and Gnutella to grab whatever bandwidth the other is not using.  "
 "If FALSE, unused bandwidth is lost."
 msgstr ""
+"Permitir a HTTP y Gnutella usar el ancho de banda que el otro no usa. Si no "
+"se permite, se pierde el ancho de banda no usado."
 
 #: src/gnet_property.c:1719
 msgid "Auto clear completed downloads"
-msgstr ""
+msgstr "Limpiar automáticamente descargas completadas"
 
 #: src/gnet_property.c:1736
 msgid ""
 "Auto clear failed downloads (HTTP error, failure to resume, write error, "
 "etc...)."
 msgstr ""
+"Limpiar automáticamente descargas fracasadas (error HTTP, fracaso al "
+"reanudar, error de escritura, etc...)."
 
 #: src/gnet_property.c:1753
 msgid ""
 "Auto clear unavailable downloads (connection timeout, push route lost, "
 "etc...)."
 msgstr ""
+"Limpiar automáticamente descarga no disponibles (conexión caducada, "
+"rute 'push' perdida, etc...)."
 
 #: src/gnet_property.c:1770
 msgid "Remove downloaded files from the search result"
 msgstr ""
+"Quitar archivos descargados del resultado de búsquedas"
 
 #: src/gnet_property.c:1787
 msgid "Enable to use [forced_local_ip] as local ip"
-msgstr ""
+msgstr "Usar [forzar_ip_local] como ip local"
 
 #: src/gnet_property.c:1804
 msgid "Try to connect to local networks first"
-msgstr ""
+msgstr "Tartar de conectar a las redes locales primero"
 
 #: src/gnet_property.c:1821 src/interface-glade2.c:3323
 msgid ""
 "Check this button if you want to use GTK-Gnutella on your Local Area "
 "Network. RFC1918 will be ignored."
 msgstr ""
+"Actívelo para usar GTK-Gnutella en su red de área local. RFC1918 será "
+"ignorado."
 
 #: src/gnet_property.c:1838
 msgid ""
@@ -476,28 +558,37 @@ msgid ""
 "cases, and can particularly help with badly misconfigured hosts, LANs, and "
 "ISPs."
 msgstr ""
+"Active esta opción para que GTK-Gnutella use IP TOS para diferenciar entre "
+"los distintoos tipos de datos. Probablemente sea una buena idea en la mayoría "
+"de los casos, y puede ser particularmente útil en nodos, LANs ó ISPs mal "
+"configurados."
 
 #: src/gnet_property.c:1855
 msgid "Remove files of aborted downloads from disk"
 msgstr ""
+"Borrar físicamente los archivos de descargas abortadas"
 
 #: src/gnet_property.c:1872
 msgid ""
 "DEPRECATED and automatically set to TRUE. Use a proxy to connect to the "
 "internet"
 msgstr ""
+"OBSOLETO y configurado a verdadero automáticamente. Use un proxy para "
+"conectarse a Internet "
 
 #: src/gnet_property.c:1889
 msgid "Use username and password to authenticate to proxy"
 msgstr ""
+"Usar usuario y contraseña para autenticarse al proxy"
 
 #: src/gnet_property.c:1906
 msgid "Username for proxy"
 msgstr ""
+"Usuario para el proxy"
 
 #: src/gnet_property.c:1927
 msgid "Password for proxy"
-msgstr ""
+msgstr "Contraseña para el proxy"
 
 #: src/gnet_property.c:1948
 msgid "IP address of the proxy"
@@ -505,35 +596,35 @@ msgstr "Dirección IP del proxy"
 
 #: src/gnet_property.c:1968
 msgid "Port the proxy is listening on"
-msgstr ""
+msgstr "Puerto sobre el cual está escuchando el proxy"
 
 #: src/gnet_property.c:1988
 msgid "Protocol the proxy uses"
-msgstr ""
+msgstr "Protocolo que usa el proxy"
 
 #: src/gnet_property.c:2008
-#, fuzzy
 msgid "Maximum number of hosts in the regular node catcher"
-msgstr "Máximo número de resultados a mostrar en cualquier búsqueda"
+msgstr "Número máximo de nodos en la caché de nodos normales"
 
 #: src/gnet_property.c:2028
 msgid "Current number of hosts in regular node catcher"
-msgstr ""
+msgstr "Número de nodos actualmente en la reserva de nodos normales"
 
 #: src/gnet_property.c:2048
 msgid "Current number of hosts in ultra node catcher"
-msgstr ""
+msgstr "Número de nodos actualmente en la reserva de ultranodos"
 
 #: src/gnet_property.c:2068
-#, fuzzy
 msgid "Maximum number of hosts in the ultra node catcher"
-msgstr "Máximo número de resultados a mostrar en cualquier búsqueda"
+msgstr "Número máximo de nodos en la caché de ultranodos"
 
 #: src/gnet_property.c:2088
 msgid ""
 "Amount of tolerable messages above hard TTL limit per node. See also "
 "MAX_HIGH_TTL_RADIUS"
 msgstr ""
+"Cantidad de mensajes tolerables por nodo con un TTL mayor que el límite. Ver "
+"también MAX_HIGH_TTL_RADIUS"
 
 #: src/gnet_property.c:2108
 msgid ""
@@ -543,19 +634,19 @@ msgstr ""
 
 #: src/gnet_property.c:2128
 msgid "Bandwidth limit for incoming HTTP traffic in bytes/sec"
-msgstr ""
+msgstr "Ancho de banda límite para tráfico HTTP entrante, en bytes/seg"
 
 #: src/gnet_property.c:2148
 msgid "Bandwidth limit for outgoing HTTP traffic in bytes/sec"
-msgstr ""
+msgstr "Ancho de banda límite para tráfico HTTP saliente, en bytes/seg"
 
 #: src/gnet_property.c:2168
 msgid "Bandwidth limit for incoming gNet traffic in bytes/sec"
-msgstr ""
+msgstr "Ancho de banda límite para tráfico gNet entrante, en bytes/seg"
 
 #: src/gnet_property.c:2188
 msgid "Bandwidth limit for outgoing gNet traffic in bytes/sec"
-msgstr ""
+msgstr "Ancho de banda límite para tráfico gNet saliente, en bytes/seg"
 
 #: src/gnet_property.c:2208
 msgid ""
@@ -575,34 +666,46 @@ msgstr ""
 msgid ""
 "Maximum size of search queries messages we forward to others  (in bytes)"
 msgstr ""
+"Tamaño máximo de los mensajes de peticiones de búsquedas pasadas a otros "
+"nodos (en bytes)"
 
 #: src/gnet_property.c:2268
 msgid ""
 "Maximum size of search queries messages we allow, otherwise close the "
 "connection (in bytes)"
 msgstr ""
+"Tamaño máximo permitido de mensajes de peticiones de búsqueda, sino cerrar "
+"la conexión (en bytes)"
 
 #: src/gnet_property.c:2288
 msgid "Maximum size of search answers messages we forward to others (in bytes)"
 msgstr ""
+"Tamaño máximo de los mensajes de resultados de búsqedas pasadas a otros "
+"nodos (en bytes)"
 
 #: src/gnet_property.c:2308
 msgid ""
 "Maximum size of search answers messages we allow, otherwise close the "
 "connection (in bytes)"
 msgstr ""
+"Tamaño máximo permitido de mensajes de resultados de búsqueda, sino cerrar "
+"la conexión (en bytes)"
 
 #: src/gnet_property.c:2328
 msgid ""
 "Maximum size of unknown messages we allow, otherwise close the connection "
 "(in bytes)"
 msgstr ""
+"Cantidad máxima permitida de mensajes desconocidos, después se cierra la "
+"conexión (en bytes)"
 
 #: src/gnet_property.c:2348
 msgid ""
 "Random factor for the hops field in search packets we send between 0 and 3 "
 "inclusive)"
 msgstr ""
+"Factor de aleatoriedad para el campo de saltos en paquetes de búsquedas, "
+"entre 0 y 3 inclusive"
 
 #: src/gnet_property.c:2368
 msgid ""
@@ -610,12 +713,17 @@ msgid ""
 "will never send push requests anyway.  If you don't let gtk-gnutella send "
 "pushes, it will not show search results that would require a push."
 msgstr ""
+"Permitir el envío de peticiones 'push'. Si tiene un cortafuegos, "
+"gtk-gnutella no los enviará de todas formas. Si no permite enviarlos, no le "
+"mostrará resultados que requieren de una petición 'push'."
 
 #: src/gnet_property.c:2385
 msgid ""
 "Minimum amount of dup messages to enable kicking, per node (also see "
 "[min_dup_ratio])"
 msgstr ""
+"Cantidad mínima de mensajes duplicados por nodo para permitir pateos (ver "
+"también [min_dup_ratio])"
 
 #: src/gnet_property.c:2405
 msgid ""
@@ -630,18 +738,25 @@ msgid ""
 "extension matches all files, even if they don't have any extension.  Use "
 "with care."
 msgstr ""
+"Sólo los archivos con las extensiones especificadas serán compartidos. La "
+"extensión especial --all-- coincide todos los archivos, incluso los "
+"carentes de extensión. Usar con cuidado."
 
 #: src/gnet_property.c:2446
 msgid "Ignore symbolically linked directories when scanning files to share."
 msgstr ""
+"Ignorar directorios enlazados simbólicamente al escanear archivos para "
+"compartir"
 
 #: src/gnet_property.c:2463
 msgid "Ignore symbolically linked regular files when scanning files to share."
 msgstr ""
+"Ignorar archivos enlazados simbólicamente al escanear archivos para compartir"
 
 #: src/gnet_property.c:2480
 msgid "Store incomplete files in this directory"
 msgstr ""
+"Guardar archivos incompletos en este directorio"
 
 #: src/gnet_property.c:2501
 msgid ""
@@ -649,6 +764,9 @@ msgid ""
 "as the incomplete or corrupted files, files will be renamed with a trailing ."
 "OK"
 msgstr ""
+"Mover archivos finalizados a este directorio. Si es EL MISMO directorio que "
+"el de los archivos incompletos ó corruptos, los archivos serán renombrados "
+"con el sufijo .OK"
 
 #: src/gnet_property.c:2522
 msgid ""
@@ -656,10 +774,13 @@ msgid ""
 "SAME directory as the incomplete or completed files, files will be renamed "
 "with a trailing .BAD"
 msgstr ""
+"Mover archivos descargados pero corruptos a este directorio. Si es EL MISMO "
+"directorio que el de los archivos incompletos ó corruptos, los archivos "
+"serñan renombrados con el sufijo .BAD"
 
 #: src/gnet_property.c:2543
 msgid "Directories which contain shared files"
-msgstr ""
+msgstr "Directorios que contienen archivos compartidos"
 
 #: src/gnet_property.c:2564
 msgid ""
@@ -668,30 +789,35 @@ msgid ""
 "or be optionally followed by '/' and a network mask prefix length. For "
 "instance, 192.168.0.1/24 would represent the whole 192.168.0.* network."
 msgstr ""
+"Lista de redes consideradas como locales. Esto es una lista de direcciones "
+"IP separadas por ';'. Puede especificarse completa, como en 192.168.0.1, u "
+"opcionalmente estar seguido por '/' y la longitud del prefijo de la máscara "
+"de red. Por ejemplo, 192.168.0.1/24 representaría la red 192.168.0.* "
+"completa."
 
 #: src/gnet_property.c:2585
 msgid "Total number of completed downloads in this session"
-msgstr ""
+msgstr "Número total de descargas completadas en esta sesión"
 
 #: src/gnet_property.c:2605
 msgid "Number of running uploads"
-msgstr ""
+msgstr "Número de subidas actuales"
 
 #: src/gnet_property.c:2625
 msgid "Number of registered (pending) uploads"
-msgstr ""
+msgstr "Número de subidas registradas (pendientes)"
 
 #: src/gnet_property.c:2645
 msgid "Total number of completed uploads in this session"
-msgstr ""
+msgstr "Número total de subidas completadas en esta sesión"
 
 #: src/gnet_property.c:2665
 msgid "Global Unique IDentifier of this node"
-msgstr ""
+msgstr "GUID: IDentificador Único Global de este nodo"
 
 #: src/gnet_property.c:2682
 msgid "Whether or not to use swarming (recommended = YES)"
-msgstr ""
+msgstr "Si usar o no descargas distribuídas (recomendado = SÍ)"
 
 #: src/gnet_property.c:2699
 msgid ""
@@ -704,16 +830,22 @@ msgid ""
 "Minimum chunk size when swarming.  This is only a hint as gtk-gnutella will "
 "download less if you only have a few bytes to get for a file..."
 msgstr ""
+"Tamaño de bloque mínimo al descargar de forma distribuída. Esto es sólo una "
+"pista, gtk-gnutella descargará menos si sólo quedan por descargar unos pocos "
+"bytes..."
 
 #: src/gnet_property.c:2736
 msgid "Maximum chunk size when swarming"
 msgstr ""
+"Tamaño de bloque máximo al descargar de forma distribuída"
 
 #: src/gnet_property.c:2756
 msgid ""
 "Whether or not to automatically queue search results that match a file in "
 "the download queue"
 msgstr ""
+"Si se deben poner los resultados de búsqueda que coinciden con un archivo en "
+"la cola de descargas"
 
 #: src/gnet_property.c:2773
 msgid ""
@@ -726,12 +858,16 @@ msgstr ""
 msgid ""
 "When enabled, SHA1s must match. Otherwise, name and size will be sufficient"
 msgstr ""
+"Hacer que SHA1 coincida. Si no está activado, el nombre y el tamaño serán "
+"suficientes."
 
 #: src/gnet_property.c:2807
 msgid ""
 "Use fuzzy file name matching (recommended = NO; only rely on SHA1 matching "
 "to be safe)"
 msgstr ""
+"Usar coincidencia de nombre difuso (no recomendado; depender únicamente de "
+"coincidencias SHA1 para estar seguros)"
 
 #: src/gnet_property.c:2824
 msgid ""
@@ -739,20 +875,27 @@ msgid ""
 "100 means the filenames must be 100% identical.  A value of 0 means any two "
 "filenames will always be considered to be identical.  The minimum is 50%."
 msgstr ""
+"Umbral difuso para la coincidencia de nombres (más estricto cuanto más "
+"alto). Un valor de 100 significa que los nombres de los archivos deben ser "
+"100% idénticos. Un valor de 0 significa que los nombres de dos archivos "
+"cualesquiera siempre coincidirán. El mínimo es del 50%."
 
 #: src/gnet_property.c:2844
 msgid "Whether gtk-gnutella thinks we're currently firewalled"
-msgstr ""
+msgstr "Si gtk-gnutella debe operar como si estuviera tras un cortafuegos"
 
 #: src/gnet_property.c:2861
 msgid "Whether gtk-gnutella thinks it's connected to the Internet"
-msgstr ""
+msgstr "Si gtk-gnutella debe operar como si estuviera conectado a Internet"
 
 #: src/gnet_property.c:2878
 msgid ""
 "Remove unnecessary ballast from query string before processing or forwarding "
 "them. Reduces traffic at the cost of little CPU time"
 msgstr ""
+"Quita desperdicios innecesarios del texto de una petición antes de su "
+"procesamiento o antes de delegar al siguiente nodo. Reduce el tráfico a costa "
+"de un poco de CPU"
 
 #: src/gnet_property.c:2895
 msgid ""
@@ -761,29 +904,38 @@ msgid ""
 "result in overlap problems later if the first chunk was actually from a "
 "different file. Use with caution."
 msgstr ""
+"Usar también fuentes que no dispongan de un valor SHA1 para el primer bloque "
+"de un archivo. Reduce dramáticamente los mensajes 'servidor sin URN', pero "
+"más tarde puede producir problemas de solapamiento si el bloque era de un "
+"archivo diferente. Usar con cautela."
 
 #: src/gnet_property.c:2912
 msgid ""
 "Whether gtk-gnutella is currently rebuilding its library in the background"
 msgstr ""
+"Si gtk-gnutella está reconstruyendo su biblioteca en segundo plano"
 
 #: src/gnet_property.c:2929
 msgid ""
 "Whether gtk-gnutella is currently computing SHA1 of shared files in the "
 "background"
 msgstr ""
+"Si gtk-gnutella está actualmente computando el SHA1 de archivos compartidos"
 
 #: src/gnet_property.c:2946
 msgid ""
 "Whether gtk-gnutella is currently verifying SHA1 of downloaded files in the "
 "background"
 msgstr ""
+"Si gtk-gnutella está actualmente verificando el SHA1 de archivos descargados"
 
 #: src/gnet_property.c:2963
 msgid ""
 "Whether gtk-gnutella is currently moving files across filesystems or simply "
 "copying in the background"
 msgstr ""
+"Si gtk-gnutella está actualmente moviendo archivos entre sistemas de archivos "
+"o copiándolos."
 
 #: src/gnet_property.c:2980
 msgid ""
@@ -791,12 +943,17 @@ msgid ""
 "minimum number of connections has been established. Always allows for one "
 "non-compressed connection."
 msgstr ""
+"Si está activo, sólo se permitirán conexiones entrantes comprimidas una vez "
+"se haya establecido el número mínimo de conexiones. Siempre permite una "
+"conexión sin comprimir."
 
 #: src/gnet_property.c:2997
 msgid ""
 "If deactivated, only uploads and downloads will continue. All gNet "
 "connections are disabled/terminated."
 msgstr ""
+"Si está desactivado, sólo continuarán las descargas y las subidas. Todas las "
+"conexiones gNet se cerrarán."
 
 #: src/gnet_property.c:3014
 msgid ""
@@ -805,26 +962,36 @@ msgid ""
 "name is used (i.e. gtk-gnutella is not issuing a /uri-res/N2R? request).  "
 "When set, it supersedes the optimistic first chunk setting."
 msgstr ""
+"Si gtk-gnutella debe asegurarse de que el servidor confirma el URN del "
+"archivo que estamos solicitando cuando es conocido localmente y se usa una "
+"petición tradicional por nombre (gtk-gnutella no hace una petición "
+"/uri-res/N2R?). Cuando está activado, se ignora la opción de primer bloque "
+"optimista."
 
 #: src/gnet_property.c:3031
 msgid ""
 "Whether gtk-gnutella should make sure the server gives us back a non-empty "
 "identifying token."
 msgstr ""
+"Si gtk-gnutella debe asegurarse de que el servidor tenga una identificación "
+"no vacía."
 
 #: src/gnet_property.c:3048
 msgid "Maximum amount of Ultrapeers we should connect to as a leaf."
 msgstr ""
+"Cantidad máxima de ultranodos a los que deberemos conectarnos en modo hoja."
 
 #: src/gnet_property.c:3068
 msgid ""
 "Maximum amount of leaves we can accept.  To be promoted Ultra, you should "
 "reserve 32 bytes of bandwidth per leaf."
 msgstr ""
+"Número máximo de nodos hoja aceptados. Para ser ascendido al modo ultra, "
+"debería reservar al menos 32 bytes del ancho de banda por hoja."
 
 #: src/gnet_property.c:3088
 msgid "What to do with files that will be ignored for downloading."
-msgstr ""
+msgstr "Qué hacer con los archivos para descargar ignorados."
 
 #: src/gnet_property.c:3108
 msgid ""
@@ -833,60 +1000,68 @@ msgid ""
 "ultra node if bandwidth and uptime permits, provided that you are not "
 "firewalled."
 msgstr ""
+"El modo en que desea que gtk-gnutella opere. Si selecciona el modo "
+"automático, gtk-gnutella comenzará como un nodo hoja y quizás sea ascendido "
+"al modo ultranodo si el tiempo en ejecución, el ancho de banda y la ausencia "
+"de cortafuegos lo permiten."
 
 #: src/gnet_property.c:3128
 msgid "Current peer mode for gtk-gnutella"
-msgstr ""
+msgstr "Modo actual de gtk-gnutella"
 
 #: src/gnet_property.c:3148
 msgid "How many file descriptors a process can open."
-msgstr ""
+msgstr "Cuántos descriptores de fichero puede abrir un proceso."
 
 #: src/gnet_property.c:3168
 msgid "How many KB of physical memory is available."
-msgstr ""
+msgstr "Cantidad de memoria física disponible, en KBytes."
 
 #: src/gnet_property.c:3188
 msgid "How many downloads are currently held in the queue."
-msgstr ""
+msgstr "Número de bajadas actualmente esperando en la cola."
 
 #: src/gnet_property.c:3208
 msgid "How many downloads are currently running (downloading / connecting)."
-msgstr ""
+msgstr "Número de bajadas actualmente descargando o cenctando."
 
 #: src/gnet_property.c:3228
 msgid "How many downloads are currently active."
-msgstr ""
+msgstr "Cantidad de descargas actualmente activas."
 
 #: src/gnet_property.c:3248
 msgid "How many downloads are currently actively queued."
-msgstr ""
+msgstr "Cantidad de descargas activamente encoladas actualmente."
 
 #: src/gnet_property.c:3268
 msgid "How many downloads are currently passively queued."
-msgstr ""
+msgstr "Cantidad de descargas pasivamente encoladas actualemente."
 
 #: src/gnet_property.c:3288
 msgid "How many fileinfo do we have."
-msgstr ""
+msgstr "Cuántos atributos de archivo tenemos."
 
 #: src/gnet_property.c:3308
 msgid "How many fileinfo with sources do we have."
-msgstr ""
+msgstr "Cuántos atributos de archivo con fuentes tenemos."
 
 #: src/gnet_property.c:3328
 msgid ""
 "How many queued downloads are currently responsive (remote servent answering "
 "requests)."
 msgstr ""
+"Cuántas descargas encoladas están respondiendo actualmente (nodo remoto "
+"atendiendo peticiones)."
 
 #: src/gnet_property.c:3348
 msgid "Amount of bytes downloaded so far, HTTP headers notwithstanding."
 msgstr ""
+"Cantidad de bytes descargados hasta ahora, sin contar cabeceras HTTP."
 
 #: src/gnet_property.c:3368
 msgid "Amount of bytes uploaded so far, HTTP headers notwithstanding."
 msgstr ""
+"Cantidad de bytes subidos hasta ahora, sin contar cabeceras HTTP."
 
 #: src/gnet_property.c:3388
 msgid ""
@@ -895,6 +1070,10 @@ msgid ""
 "already share many files, in which case it does no harm to leave it in, but "
 "will not matter as much."
 msgstr ""
+"Si gtk-gnutella deve compartir archivos parciales mientras estén aún sin "
+"descargar completamente. Recomendado para la salud de la red, a no ser que ya "
+"comparta muchos archivos, en cuyo caso no hace daño activarlo, aunque no "
+"afecte tanto."
 
 #: src/gnet_property.c:3405
 msgid ""
@@ -905,6 +1084,12 @@ msgid ""
 "of data that should be continuously downloaded at the beginning of the "
 "file.  Don't set it too large."
 msgstr ""
+"Cuando se comparten archivos parciales (PFSP), gtk-gnutella descargará los "
+"bloques en un orden aleatorio para maximizar la distribución del archivo en "
+"la red. Sin embargo, la auditoría (tipo de archivo, previsualización, etc.) "
+"del archivo no será posible. Este campo determina el tamaño en bytes del "
+"primer bloque de datos que debe ser descargado al principio del archivo. No "
+"lo ajuste a un valor demasiado alto."
 
 #: src/gnet_property.c:3425
 msgid ""
@@ -936,6 +1121,8 @@ msgid ""
 "Whether gtk-gnutella should keep track of the IP of unstable servents it "
 "encounters, preventing further connections attempts to/from them."
 msgstr ""
+"Si gtk-gnutella debe estar atento de la dirección IP de nodos inestables que "
+"encuentre, previniendo más intentos de conexión desde/hacia esos nodos."
 
 #: src/gnet_property.c:3516
 msgid ""
@@ -944,6 +1131,10 @@ msgid ""
 "from them.  This only works when gtk-gnutella already keeps track of "
 "unstable IP addresses."
 msgstr ""
+"Si gtk-gnutella debe determinar los tipos de nodos que son inestables "
+"(identificados por su información de versión), previniendo más intentos de "
+"conexión desde/hacia esos nodos. Sólo funciona si gtk-gnutella está atento de "
+"la dirección IP de servidores inestables."
 
 #: src/gnet_property.c:3533
 msgid ""
@@ -980,10 +1171,11 @@ msgid ""
 "Percentage of the number of connections we should reserve for gtk-gnutella "
 "nodes."
 msgstr ""
+"Porcentaje del número de conexiones reservadas para nodos gtk-gnutella."
 
 #: src/gnet_property.c:3628
 msgid "Maximum percentage of slots a vendor can occupy"
-msgstr ""
+msgstr "Porcentaje máximo de ranuras ocupadas por una única aplicación"
 
 #: src/gnet_property.c:3648
 msgid ""
@@ -994,6 +1186,12 @@ msgid ""
 "greater value. Remember: the smaller the value, the more you will be able to "
 "precisely control the incoming rate."
 msgstr ""
+"Tamaño del búfer de recepción de datos usado para descargas, en kbytes. Si "
+"desea evitar que las descargas usen todo el ancho de banda de la línea, "
+"ajustarlo a un nivel bajo (8KBytes, el valor por defecto, está bien). Si no "
+"le importa ocupar todo el ancho de banda, aumentado el tiempo de latencia de "
+"la conexión, ajustarlo a un valor mayor. Recuerde: Cuanto más pequeño, con "
+"mayor precisión podrá controlar la velocidad de descarga."
 
 #: src/gnet_property.c:3668
 msgid ""
@@ -1002,42 +1200,58 @@ msgid ""
 "you don't read quickly enough, which would be the case if you limit the "
 "incoming bandwidth."
 msgstr ""
+"Tamaño de búfer de recepción usado para los nodos, en kbytes. Cuanto más "
+"pequeño, más rápido podrá la conexión remota controlar el flujo a nivel "
+"TCP/IP si no se lee suficientemente rápido, que será el caso si limita el "
+"ancho de banda entrante."
 
 #: src/gnet_property.c:3688
 msgid ""
 "Average recent latency between the sending of the HTTP request and the "
 "reception of the reply from the remote server, in msecs."
 msgstr ""
+"Tiempo promedio de latencia entre el envío de la petición HTTP y la "
+"recepción de la respuesta del servidor remoto, en milisegundos."
 
 #: src/gnet_property.c:3708
 msgid "Last time at which we performed the ultrapeer requirement checks."
 msgstr ""
+"Última vez en que se cumplieron los requisitos para pasar al modo ultranodo."
 
 #: src/gnet_property.c:3728
 msgid "Last time an automatic switch between ultra and leaf mode occurred."
 msgstr ""
+"Última vez que ocurrió un cambio automático del modo ultra al modo hoja."
 
 #: src/gnet_property.c:3748
 msgid ""
 "Whether we meet the sufficient average uptime requirement to become an Ultra "
 "node."
 msgstr ""
+"Si se cumple el requisito de tiempo en ejecución promedio "
+"para pasar al modo ultra."
 
 #: src/gnet_property.c:3765
 msgid ""
 "Whether we meet the sufficient average IP address uptime requirement to "
 "become an Ultra node."
 msgstr ""
+"Si se cumple el requisito de tiempo en ejecución promedio de la dirección IP "
+"para pasar al modo ultra."
 
 #: src/gnet_property.c:3782
 msgid ""
 "Whether we meet the sufficient node uptime requirement to become an Ultra "
 "node."
 msgstr ""
+"Si se cumple el requisito de tiempo en ejecución mínimo de este nodo para "
+"pasar al modo ultra."
 
 #: src/gnet_property.c:3799
 msgid "Whether we meet the non-firewalled requirement to become an Ultra node."
 msgstr ""
+"Si cumple el requisito de no estar detrás de un cortafuegos para ser un "
+"ultranodo."
 
 #: src/gnet_property.c:3816
 msgid ""
@@ -1048,10 +1262,12 @@ msgstr ""
 #: src/gnet_property.c:3833
 msgid "Whether we meet the memory requirements to become an Ultra node."
 msgstr ""
+"Si el ordenador cumple los requisitos de memoria para ser un ultranodo."
 
 #: src/gnet_property.c:3850
 msgid "Whether we meet the bandwidth requirements to become an Ultra node."
 msgstr ""
+"Si la conexión cumple los requisitos de ancho de banda para ser un ultranodo."
 
 #: src/gnet_property.c:3867
 msgid ""
@@ -1067,18 +1283,25 @@ msgid ""
 "connection (for locally generated queries only!). The larger the value, the "
 "less negative impact it has on the network."
 msgstr ""
+"Cantidad mínima de segundos entre dos peticiones consecutivas enviadas a una "
+"determinada conexión (¡Solamente para peticiones generadas localmente!). "
+"Cuanto más alto, menos dañino para la red."
 
 #: src/gnet_property.c:3907
 msgid ""
 "Whether connection to gtk-gnutella via the 'shell' control interface should "
 "be allowed."
 msgstr ""
+"Si se debe permitir la conexión con gtk-gnutella a través de la línea de "
+"comandos."
 
 #: src/gnet_property.c:3924
 msgid ""
 "Amount of seconds to leave 'dead' entries around so that they can still be "
 "displayed by the GUI along with the termination status."
 msgstr ""
+"Número de segundos que las conexiones 'muertas' se mantendrán para que "
+"puedan ser mostradas por la interfaz junto al estado de finalización."
 
 #: src/gnet_property.c:3944
 msgid ""
@@ -1109,54 +1332,67 @@ msgid ""
 "Deviations from the default of 1700 have exponential effects on the network "
 "traffic."
 msgstr ""
+"Mínimo número de segundos para permitir dos peticiones idénticas desde nodos "
+"hoja consecutivas. Si la segunda petición ocurre antes de la cantidad "
+"indicada, se abandona y se registra en el contador del 'umbral de mensajes'. "
+"Peticiones muy frecuentes son dañinas para la red, pero se debe permitir "
+"cierta cantidad de repeticiones dada la naturaleza cambiante de las "
+"conexiones Gnutella. No se puede desactivar esta comprobación, pero sí "
+"reducirla considerablemente. Desviaciones del valor por defecto de 1700 "
+"tienen efectos exponenciales sobre el tráfico de la red."
 
 #: src/gnet_property.c:4001
 msgid "Time at which we started the last scan of the library."
 msgstr ""
+"Hora en que comenzó el último escaneo de la biblioteca."
 
 #: src/gnet_property.c:4021
 msgid "Time spent scanning the library, in seconds."
 msgstr ""
+"Tiempo empleado en escanear la biblioteca, en segundos."
 
 #: src/gnet_property.c:4041
 msgid "Time at which we started shared file indexing."
 msgstr ""
+"Hora en que comenzó el indexado de archivos compartidos."
 
 #: src/gnet_property.c:4061
 msgid "Time spent indexing shared files."
-msgstr ""
+msgstr "Tiempo empleado en indexar los archivos compartidos."
 
 #: src/gnet_property.c:4081
 msgid "Time at which we started query routing table generation."
 msgstr ""
+"Hora en que comenzó la generación de la tabla del enrutado de peticiones."
 
 #: src/gnet_property.c:4101
 msgid "Time spent computing the QRP table, in seconds."
-msgstr ""
+msgstr "Tiempo empleado en computar la tabla QRP, en segundos."
 
 #: src/gnet_property.c:4121
 msgid "Time at which we started computing our QRP patch."
-msgstr ""
+msgstr "Hora en que comenzó a computar el parche QRP."
 
 #: src/gnet_property.c:4141
 msgid "Time spent computing the QRP table patch, in seconds."
-msgstr ""
+msgstr "Tiempo empleado en computar la tabla QRP, en segundos."
 
 #: src/gnet_property.c:4161
 msgid "Query routing table generation number."
 msgstr ""
+"Número de generación de la tabla del enrutado de peticiones."
 
 #: src/gnet_property.c:4181
 msgid "Amount of slots used by our QRP table."
-msgstr ""
+msgstr "Número de ranuras usadas por nuestra tabla QRP."
 
 #: src/gnet_property.c:4201
 msgid "Amount of slots filled within our QRP table."
-msgstr ""
+msgstr "Número de ranuras usadas en nuestra tabla QRP."
 
 #: src/gnet_property.c:4221
 msgid "Percentage of slots filled within our QRP table."
-msgstr ""
+msgstr "Porcentaje de ranuras usadas en nuestra tabla QRP."
 
 #: src/gnet_property.c:4241
 msgid "Percentage of hashing conflicts whilst inserting data in our QRP table."
@@ -1183,10 +1419,12 @@ msgid ""
 "This property must be set to the current version number of gtk-gnutella in "
 "order to allow it to run when it is ancient"
 msgstr ""
+"Esta propiedad debe estar ajustada al número de versión actual de "
+"gtk-gnutella para permitirle su ejecución cuando se quede anticuado."
 
 #: src/gnet_property.c:4362
 msgid "Indicates that gtk-gnutella will expire in that many days."
-msgstr ""
+msgstr "Indica que gtk-gnutella expirará en tantos días."
 
 #: src/gui_property.c:268
 msgid "Search monitor enabled"
@@ -1194,15 +1432,18 @@ msgstr "Monitor de búsquedas activado"
 
 #: src/gui_property.c:285
 msgid "Maximum number of queries visible in search monitor"
-msgstr ""
+msgstr "Cantidad máxima de peticiones visibles en el monitor de búsquedas"
 
 #: src/gui_property.c:305
 msgid "Match queue selection by regexp case sensitive"
 msgstr ""
+"Coincidir selección de la cola por una expresión regular con coincidencia "
+"mayúsc/minúsc"
 
 #: src/gui_property.c:322
 msgid "Autoselect similar files in searches"
 msgstr ""
+"Seleccionar automáticamente archivos similares en las búsquedas"
 
 #: src/gui_property.c:339
 msgid ""
@@ -1213,98 +1454,115 @@ msgstr ""
 #: src/gui_property.c:356
 msgid "Widths of the columns in the nodes table"
 msgstr ""
+"Ancho de las columnas en la tabla de los nodos"
 
 #: src/gui_property.c:376
 msgid "Widths of the columns in the active downloads table"
 msgstr ""
+"Ancho de las columnas en la tabla de las descargas activas"
 
 #: src/gui_property.c:396
 msgid "Widths of the columns in the queued downloads table"
 msgstr ""
+"Ancho de las columnas en la tabla de la cola de descargas"
 
 #: src/gui_property.c:416
 msgid "Widths of the columns in the file info table"
-msgstr ""
+msgstr "Ancho de las columnas en la tabla de los atributos de archivos"
 
 #: src/gui_property.c:436
 msgid "Which columns are visible in the search results tables"
 msgstr ""
+"Qué columnas son visibles en las tablas de los resultados de búsquedas"
 
 #: src/gui_property.c:456
 msgid "Widths of the columns in the search list on the sidebar"
 msgstr ""
+"Ancho de las columnas en la lista de búsquedas en la barra lateral"
 
 #: src/gui_property.c:476
 msgid "Widths of the columns in the search results tables"
-msgstr ""
+msgstr "Ancho de las columnas en las tablas de resultados de búsquedas"
 
 #: src/gui_property.c:496
 msgid "Widths of the columns in the search stats table"
 msgstr ""
+"Ancho de las columnas en la tabla de estadísticas de búsquedas"
 
 #: src/gui_property.c:516
 msgid "Widths of the columns in the upload stats table"
 msgstr ""
+"Ancho de las columnas en la tabla de estadísticas de subidas"
 
 #: src/gui_property.c:536
 msgid "Widths of the columns in the uploads table"
 msgstr ""
+"Ancho de las columnas en la tabla de subidas"
 
 #: src/gui_property.c:556
 msgid "Widths of the columns in the rules table in the filter dialog"
 msgstr ""
+"Ancho de las columnas en la tabla de reglas en el diálogo de filtros"
 
 #: src/gui_property.c:576
 msgid "Widths of the columns in the filter table in the filter dialog"
 msgstr ""
+"Ancho de las columnas en la tabla de filtros en el diálogo de filtros."
 
 #: src/gui_property.c:596
 msgid "Widths of the columns in the gnet packet stats table"
 msgstr ""
+"Ancho de las columnas en la tabla de estadísticas de paquetes gnet"
 
 #: src/gui_property.c:616
 msgid "Widths of the columns in the gnet fc ttl stats table"
 msgstr ""
+"Ancho de las columnas en la tabla de estadísticas de gnet fc ttl"
 
 #: src/gui_property.c:636 src/gui_property.c:656
 msgid "Widths of the columns in the gnet fc hops stats table"
 msgstr ""
+"Ancho de las columnas en la tabla de estadísticas de saltos fc de gnet"
 
 #: src/gui_property.c:676 src/gui_property.c:696
 msgid "Widths of the columns in the gnet stats drop reasons table"
 msgstr ""
+"Ancho de las columnas en la tabla de estadísticas gnet de razones de "
+"abandono"
 
 #: src/gui_property.c:716
 msgid "Position and size of the main window"
 msgstr ""
+"Posición y tamaño de la ventana principal"
 
 #: src/gui_property.c:736
 msgid "Position and size of the filter dialog"
 msgstr ""
+"Posición y tamaño del diálogo de filtros"
 
 #: src/gui_property.c:756
 msgid "Position of the divider in the downloads panel"
-msgstr ""
+msgstr "Posición del divisor en el panel de descargas"
 
 #: src/gui_property.c:776
 msgid "Position of the divider in the fileinfo panel"
-msgstr ""
+msgstr "Posición del divisor en el panel de atributos de archivo"
 
 #: src/gui_property.c:796
 msgid "Size of the sidebar"
-msgstr ""
+msgstr "Tamaño de la barra lateral"
 
 #: src/gui_property.c:816
 msgid "Position of the divider in the gnet stats pane"
-msgstr ""
+msgstr "Posición del divisor en el panel de estadísticas gnet"
 
 #: src/gui_property.c:836
 msgid "Size of the menu in the sidebar"
-msgstr ""
+msgstr "Tamaño del menú en el panel lateral"
 
 #: src/gui_property.c:856
 msgid "Position of the divider in the search results pane"
-msgstr ""
+msgstr "Posición del divisor en el panel de resultados de búsquedas"
 
 #: src/gui_property.c:876
 msgid "Maximum number of results to show in any search"
@@ -1312,180 +1570,202 @@ msgstr "Máximo número de resultados a mostrar en cualquier búsqueda"
 
 #: src/gui_property.c:896
 msgid "Debug level for the gui"
-msgstr ""
+msgstr "Nivel de depurado para la interfaz gráfica"
 
 #: src/gui_property.c:916
 msgid "Size of the filter tree in the filter dialog"
-msgstr ""
+msgstr "Tamaño del árbol de filtros en el diálogo de filtros"
 
 #: src/gui_property.c:936
 msgid "Show tabs or search list"
-msgstr ""
+msgstr "Mostrar pestañas ó lista de resultados"
 
 #: src/gui_property.c:953
 msgid "Display toolbar"
-msgstr ""
+msgstr "Mostrar barra de utilidades"
 
 #: src/gui_property.c:970
 msgid "Display statusbar"
-msgstr ""
+msgstr "Mostrat barra de estado"
 
 #: src/gui_property.c:987
 msgid "Display upload statistics in sidebar"
-msgstr ""
+msgstr "Mostrar estadísticas de subidas en la barra lateral"
 
 #: src/gui_property.c:1004
 msgid "Display download statistics in sidebar"
-msgstr ""
+msgstr "Mostrar estadísticas de bajadas en la barra lateral"
 
 #: src/gui_property.c:1021
 msgid "Display connection statistics in sidebar"
-msgstr ""
+msgstr "Mostrar estadísticas de conexión en la barra lateral"
 
 #: src/gui_property.c:1038
 msgid "Display incoming HTTP traffic bandwidth usage"
-msgstr ""
+msgstr "Mostrar uso del ancho de banda del tráfico HTTP entrante"
 
 #: src/gui_property.c:1055
 msgid "Display outgoing HTTP traffic bandwidth usage"
-msgstr ""
+msgstr "Mostrar uso del ancho de banda del tráfico HTTP saliente"
 
 #: src/gui_property.c:1072
 msgid "Display incoming gNet traffic bandwidth usage"
-msgstr ""
+msgstr "Mostrar uso del ancho de banda del tráfico gNet entrante"
 
 #: src/gui_property.c:1089
 msgid "Display outgoing gNet traffic bandwidth usage"
-msgstr ""
+msgstr "Mostrar uso del ancho de banda del tráfico gNet saliente"
 
 #: src/gui_property.c:1106
 msgid "Display incoming gNet leaf traffic bandwidth usage"
-msgstr ""
+msgstr "Mostrar uso del ancho de banda del tráfico de nodos hoja entrante"
 
 #: src/gui_property.c:1123
 msgid "Display outgoing gNet leaf traffic bandwidth usage"
-msgstr ""
+msgstr "Mostrar uso del ancho de banda del tráfico de nodos hoja saliente"
 
 #: src/gui_property.c:1140
 msgid "Automatically hide leaf bandwidth display when not in ultrapeer mode"
 msgstr ""
+"Ocultar automáticamente la visualización del ancho de banda de nodos "
+"hoja cuando no se está en el modo ultranodo."
 
 #: src/gui_property.c:1157
 msgid "Display incoming HTTP traffic bandwidth average"
 msgstr ""
+"Mostrar promedio del ancho de banda para el tráfico HTTP entrante"
 
 #: src/gui_property.c:1174
 msgid "Display outgoing HTTP traffic bandwidth average"
 msgstr ""
+"Mostrar promedio del ancho de banda para el tráfico HTTP saliente"
 
 #: src/gui_property.c:1191
 msgid "Display incoming gNet traffic bandwidth average"
 msgstr ""
+"Mostrar promedio del ancho de banda para el tráfico gNet entrante"
 
 #: src/gui_property.c:1208
 msgid "Display outgoing gNet traffic bandwidth average"
 msgstr ""
+"Mostrar promedio del ancho de banda para el tráfico gNet saliente"
 
 #: src/gui_property.c:1225
 msgid "Display incoming gNet leaf traffic bandwidth average"
 msgstr ""
+"Mostrar promedio del ancho de banda para el tráfico de nodos hoja entrante"
 
 #: src/gui_property.c:1242
 msgid "Display outgoing gNet leaf traffic bandwidth average"
 msgstr ""
+"Mostrar promedio del ancho de banda para el tráfico de nodos hoja saliente"
 
 #: src/gui_property.c:1259
 msgid ""
 "When enabled autoselection only takes place if filesize matches exactly, "
 "otherwise it must be equal or greater"
 msgstr ""
+"Cuando está activado, la autoselección se produce solamente si el tamaño del "
+"archivo coincide exactamente, sino debe ser igual o mayor"
 
 #: src/gui_property.c:1276
 msgid "Jump to downloads screen when downloading a file"
-msgstr ""
+msgstr "Ir a la ventana de descargas al descargar un archivo"
 
 #: src/gui_property.c:1293
 msgid "Display search settings"
-msgstr ""
+msgstr "Mostrar ajustes de búsquedas"
 
 #: src/gui_property.c:1310
 msgid "Display download settings"
-msgstr ""
+msgstr "Mostrar ajustes de bajadas"
 
 #: src/gui_property.c:1327
 msgid "Use fuzzy name match for autoselection"
-msgstr ""
+msgstr "Usar coincidencia de nombres difusa para autoselecciones"
 
 #: src/gui_property.c:1344
 msgid "Collect statistics about searches that go through this node"
-msgstr ""
+msgstr "Recoger estadñisticas sobre búsquedas que pasan por este nodo"
 
 #: src/gui_property.c:1364
 msgid "Interval in which the search stats are updated"
-msgstr ""
+msgstr "Intervalo en el que las estadísticas de búsquedas se actualizan"
 
 #: src/gui_property.c:1384
 msgid ""
 "A deletion coefficient, so that small non-significant results can be "
 "dropped.  The lower it is, the more search statistics will be kept in memory."
 msgstr ""
+"Un coeficiente de borrado, para que resultados insignificantes puedan ser "
+"eliminados. Cuanto más bajo, más datos sobre las estadísticas de subidas se "
+"guardarán en la memoria."
 
 #: src/gui_property.c:1404
 msgid "Show confirmation dialog when leaving gtk-gnutella"
-msgstr ""
+msgstr "Pedir confirmación al salir de gtk-gnutella"
 
 #: src/gui_property.c:1421
 msgid "Show a helpful message when the mouse pointer lingers over a widget"
-msgstr ""
+msgstr "Mostrar mensajes de ayuda al pasar sobre las opciones con el ratón"
 
 #: src/gui_property.c:1438
 msgid ""
 "Show a lot more settings to tweak. If you tamper with them be sure to read "
 "up on what they are doing"
 msgstr ""
+"Mostrar muchas más opciones. Si va a modificarlas, asegúrese de haber "
+"entendido lo que hacen."
 
 #: src/gui_property.c:1455
 msgid "Show percentages instead of absolute values in the gnet stats"
 msgstr ""
+"Mostrar porcentajes en lugar de valores absolutos en las estadísticas gnet"
 
 #: src/gui_property.c:1472
 msgid "Show bytes instead of packages in the gnet stats"
-msgstr ""
+msgstr "Mostrar bytes en lugar de paquetes en las estadísticas gnet"
 
 #: src/gui_property.c:1489
 msgid "Show stats per hops instead of per TTL"
 msgstr ""
+"Mostar estadísticas por saltos en lugar de por TTL"
 
 #: src/gui_property.c:1506
 msgid "Add the headers to the volume"
-msgstr ""
+msgstr "Añadir cabeceras al volumen"
 
 #: src/gui_property.c:1523
 msgid ""
 "Show percentages instead of absolute values in the gnet stats (drop reasons)"
 msgstr ""
+"Mostrar porcentajes en lugar de valores absolutos en las estadístcas gnet "
+"(razones del abandono)"
 
 #: src/gui_property.c:1540
 msgid "Widths of the columns in the gnet stats general table"
 msgstr ""
+"Ancho de la columnas en la tabla general de estadísticas gnet"
 
 #: src/gui_property.c:1560 src/interface-glade2.c:9321
 msgid "Auto clear completed uploads"
-msgstr ""
+msgstr "Limpiar subidas finalizadas"
 
 #: src/gui_property.c:1577 src/interface-glade2.c:9328
 msgid "Auto clear failed uploads"
-msgstr ""
+msgstr "Limpiar subidas fracasadas"
 
 #: src/gui_property.c:1594
 msgid ""
 "Whether the node's uptime should be shown (not all nodes provide this "
 "information)."
 msgstr ""
+"Si se debe mostrar el timpo de ejecución de los nodos (no todos los nodos "
+"suministran esta información)"
 
 #: src/gui_property.c:1611
 msgid "Whether the handshaking version number should be displayed."
-msgstr ""
+msgstr "Si la versión del protocolo se debe mostrar."
 
 #: src/gui_property.c:1628
 msgid ""
@@ -1494,30 +1774,36 @@ msgid ""
 "When disabled, only TX and RX message counts are displayed, followed by the "
 "message queue info."
 msgstr ""
+"Si se debe mostrar información detallada del tráfico del nodo. Cuando está "
+"activado, también es posible personalizar cuanta información mostrar."
 
 #: src/gui_property.c:1645
 msgid "Whether TX traffic compression ratio should be displayed."
 msgstr ""
+"Si el grado de compresión del tráfico saliente debe mostrarse."
 
 #: src/gui_property.c:1662
 msgid "Whether RX traffic compression ratio should be displayed."
-msgstr ""
+msgstr "Si el grado de compresión del tráfico entrante debe mostrarse."
 
 #: src/gui_property.c:1679
 msgid "Whether TX instantaneous transmission speed should be displayed."
 msgstr ""
+"Si el grado de compresión del tráfico saliente en el instante debe mostrarse."
 
 #: src/gui_property.c:1696
 msgid "Whether RX instantaneous transmission speed should be displayed."
 msgstr ""
+"Si el grado de compresión del tráfico entrante en el instante debe mostrarse."
 
 #: src/gui_property.c:1713
 msgid "Whether count of transmitted queries should be displayed."
 msgstr ""
+"Si la cuenta de las peticiones transmitidas debe mostrarse."
 
 #: src/gui_property.c:1730
 msgid "Whether count of received queries should be displayed."
-msgstr ""
+msgstr "Si la cuenta de las peticiones recibidas debe mostrarse."
 
 #: src/gui_property.c:1747
 msgid "Whether count of transmitted query hits should be displayed."
@@ -1529,20 +1815,24 @@ msgstr ""
 
 #: src/gui_property.c:1781
 msgid "Whether count of locally generated queries should be displayed."
-msgstr ""
+msgstr "Si la cuenta de peticiones generadas localmente debe mostrarse."
 
 #: src/gui_property.c:1798
 msgid ""
 "Whether count of local queries pending transmission should be displayed."
 msgstr ""
+"Si la cuenta de peticiones locales esperando su transmisión debe "
+"mostrarse."
 
 #: src/gui_property.c:1815
 msgid "Whether count of dropped messages on TX should be displayed."
 msgstr ""
+"Si la cuenta de mensajes abandonados en la transmisión debe mostrarse."
 
 #: src/gui_property.c:1832
 msgid "Whether count of dropped messages on RX should be displayed."
 msgstr ""
+"Si la cuenta de mensajes abandonados en la recepción debe mostrarse."
 
 #: src/gui_property.c:1849
 msgid ""
@@ -1558,6 +1848,7 @@ msgstr ""
 msgid ""
 "Whether duplicate, bad and weird received message counts should be displayed."
 msgstr ""
+"Si se debe mostrar el número de mensajes duplicados, incorrectos ó extraños."
 
 #: src/gui_property.c:1883
 msgid ""
@@ -1572,6 +1863,10 @@ msgid ""
 "but also saves CPU cycles since less redrawing has to occur in the search "
 "pane."
 msgstr ""
+"Tiempo en segundos que la interfaz gráfica debe guardar en un búfer los "
+"resultados de búsquedas según se vayan recibiendo. Previene parpadeos en la "
+"pantalla y ahorra ciclos de CPU al no tener que actualizar la tabla de "
+"resultados con tanta frecuencia."
 
 #: src/gui_property.c:1920
 msgid "Expanded stati of the nodes in the treemenu"
@@ -1587,7 +1882,7 @@ msgstr ""
 
 #: src/gui_property.c:1980
 msgid "Configures the appearance of the toolbar"
-msgstr ""
+msgstr "Configura la apariencia de la barra de herramientas"
 
 #: src/interface-glade2.c:62 src/interface-glade2.c:294
 #: src/interface-glade2.c:12411 src/interface-glade2.c:12692
@@ -1595,27 +1890,27 @@ msgstr ""
 #: src/interface-glade2.c:13499 src/interface-glade2.c:14136
 #: src/interface-glade2.c:14735
 msgid "Abort"
-msgstr ""
+msgstr "Abortar"
 
 #: src/interface-glade2.c:72 src/interface-glade2.c:304
 msgid "Abort all..."
-msgstr ""
+msgstr "Abortar todos..."
 
 #: src/interface-glade2.c:81 src/interface-glade2.c:313
 msgid "with name"
-msgstr ""
+msgstr "con nombre"
 
 #: src/interface-glade2.c:86 src/interface-glade2.c:318
 msgid "from host"
-msgstr ""
+msgstr "del nodo"
 
 #: src/interface-glade2.c:91 src/interface-glade2.c:323
 msgid "with urn:sha1"
-msgstr ""
+msgstr "con urn:sha1"
 
 #: src/interface-glade2.c:96
 msgid "Remove file"
-msgstr ""
+msgstr "Borrar archivo"
 
 #: src/interface-glade2.c:106
 msgid "Resume"
@@ -1627,25 +1922,25 @@ msgstr "Devolver a la cola"
 
 #: src/interface-glade2.c:132
 msgid "Force push mode"
-msgstr ""
+msgstr "Forzar modo 'push'"
 
 #: src/interface-glade2.c:143 src/interface-glade2.c:334
 msgid "Copy url to clipboard"
-msgstr ""
+msgstr "Copiar url al portapapeles"
 
 #: src/interface-glade2.c:153 src/interface-glade2.c:344
 msgid "Connect to host"
-msgstr ""
+msgstr "Conectar al nodo"
 
 #: src/interface-glade2.c:169 src/interface-glade2.c:360
 #: src/interface-glade2.c:633
 msgid "Expand all"
-msgstr ""
+msgstr "Expandir todo"
 
 #: src/interface-glade2.c:179 src/interface-glade2.c:370
 #: src/interface-glade2.c:643
 msgid "Collapse all"
-msgstr ""
+msgstr "Colapsar todo"
 
 #: src/interface-glade2.c:289
 msgid "Start now"
@@ -1657,7 +1952,7 @@ msgstr "Editar filtro"
 
 #: src/interface-glade2.c:503
 msgid "Download selected files"
-msgstr ""
+msgstr "Descargar archivos seleccionados"
 
 #: src/interface-glade2.c:513
 msgid "Drop..."
@@ -1665,27 +1960,27 @@ msgstr "Descartar..."
 
 #: src/interface-glade2.c:527 src/interface-glade2.c:556
 msgid "results with name"
-msgstr ""
+msgstr "resultados con el nombre"
 
 #: src/interface-glade2.c:532 src/interface-glade2.c:561
 msgid "results with urn:sha1"
-msgstr ""
+msgstr "resultados con urn:sha1"
 
 #: src/interface-glade2.c:537 src/interface-glade2.c:566
 msgid "results from host"
-msgstr ""
+msgstr "resultados del nodo"
 
 #: src/interface-glade2.c:542
 msgid "Globally drop..."
-msgstr ""
+msgstr "Abandonar globalmente..."
 
 #: src/interface-glade2.c:577
 msgid "Auto-download selected by"
-msgstr ""
+msgstr "Descargar selección por"
 
 #: src/interface-glade2.c:591 src/search_gui.c:1641 src/search_gui.c:1647
 msgid "urn:sha1"
-msgstr ""
+msgstr "urn:sha1"
 
 #: src/interface-glade2.c:601
 msgid "name"
@@ -1693,7 +1988,7 @@ msgstr "nombre"
 
 #: src/interface-glade2.c:617
 msgid "New search from selected"
-msgstr ""
+msgstr "Nueva búsqueda de la selección"
 
 #: src/interface-glade2.c:659
 msgid "Stop this search"
@@ -1729,7 +2024,7 @@ msgstr "Nada por ahora"
 
 #: src/interface-glade2.c:940
 msgid "Ruleset editor"
-msgstr ""
+msgstr "Editor de reglas"
 
 #: src/interface-glade2.c:976
 msgid "Create filter"
@@ -1753,17 +2048,19 @@ msgstr "activado"
 
 #: src/interface-glade2.c:1046
 msgid "Remove filter"
-msgstr "Remover filtro"
+msgstr "Borrar filtro"
 
 #: src/interface-glade2.c:1050
 msgid ""
 "A filter cannot be removed if it is bound to a search or if it is in use "
 "(used as a target in a rule)."
 msgstr ""
+"Un filtro no puede ser borado si está asociado a una búsqueda o si está en uso "
+"(usado como un objetivo en una regla)."
 
 #: src/interface-glade2.c:1068
 msgid "!"
-msgstr ""
+msgstr "!"
 
 #: src/interface-glade2.c:1074
 msgid "Condition"
@@ -1774,13 +2071,15 @@ msgstr "Condición"
 #: src/interface-glade2.c:13173 src/interface-glade2.c:13446
 #: src/interface-glade2.c:14042 src/interface-glade2.c:14682
 msgid "Target"
-msgstr ""
+msgstr "Objetivo"
 
 #: src/interface-glade2.c:1098
 msgid ""
 "Remove all rules\n"
 "from this filter"
 msgstr ""
+"Borrar las reglas\n"
+"de este filtro"
 
 #: src/interface-glade2.c:1103
 msgid ""
@@ -1806,7 +2105,7 @@ msgstr "Revertir"
 
 #: src/interface-glade2.c:1318
 msgid "gtk-gnutella shutdown"
-msgstr ""
+msgstr "Cerrar gtk-gnutella"
 
 #: src/interface-glade2.c:1339
 msgid ""
@@ -1815,6 +2114,10 @@ msgid ""
 "\n"
 "Grace time remaining:"
 msgstr ""
+"Gtk-gnutella se está cerrando.\n"
+"Despidiéndose de los nodos.\n"
+"\n"
+"Tiempo de gracia restante:"
 
 #: src/interface-glade2.c:1344
 msgid "[time]"
@@ -1822,11 +2125,11 @@ msgstr "[tiempo]"
 
 #: src/interface-glade2.c:1375
 msgid "Copy rule"
-msgstr ""
+msgstr "Copiar regla"
 
 #: src/interface-glade2.c:1385
 msgid "Paste rule"
-msgstr ""
+msgstr "Pegar regla"
 
 #: src/interface-glade2.c:1452
 msgid "About gtk-gnutella"
@@ -1838,7 +2141,7 @@ msgstr "[nombre y versión]"
 
 #: src/interface-glade2.c:1501
 msgid "Original author:"
-msgstr ""
+msgstr "Autor original:"
 
 #: src/interface-glade2.c:1509
 msgid "Project leader:"
@@ -1846,62 +2149,63 @@ msgstr "Líder del proyecto:"
 
 #: src/interface-glade2.c:1517
 msgid "Core development:"
-msgstr ""
+msgstr "Desarrollo del núcleo:"
 
 #: src/interface-glade2.c:1525
 msgid "GUI development:"
-msgstr ""
+msgstr "Desarrollo del GUI:"
 
 #: src/interface-glade2.c:1533
 msgid "Swarming development:"
 msgstr ""
 
 #: src/interface-glade2.c:1541
-#, fuzzy
 msgid "PARQ development:"
-msgstr "desarrollo"
+msgstr "desarrollo PARQ"
 
 #: src/interface-glade2.c:1554
 msgid "Yann Grossel"
-msgstr ""
+msgstr "Yann Grossel"
 
 #: src/interface-glade2.c:1562 src/interface-glade2.c:1570
 msgid "Raphaël Manfredi"
-msgstr ""
+msgstr "Raphaël Manfredi"
 
 #: src/interface-glade2.c:1578
 msgid "Richard Eckart"
-msgstr ""
+msgstr "Richard Eckart"
 
 #: src/interface-glade2.c:1586
 msgid "Vidar Madsen"
-msgstr ""
+msgstr "Vidar Madsen"
 
 #: src/interface-glade2.c:1594
 msgid "Jeroen Asselman"
-msgstr ""
+msgstr "Jeroen Asselman"
 
 #: src/interface-glade2.c:1631
 msgid "Contributors"
-msgstr ""
+msgstr "Contribuyentes"
 
 #: src/interface-glade2.c:1637
 msgid ""
 "==&gt; We are looking for people who want to contribute to this fine tool."
 "&lt;=="
 msgstr ""
+"==&gt; Estamos buscando gente que quiera colaborar con esta herramienta."
+"&lt;=="
 
 #: src/interface-glade2.c:1643
 msgid "Visit http://gtk-gnutella.sourceforge.net."
-msgstr ""
+msgstr "Visite http://gtk-gnutella.sourceforge.net."
 
 #: src/interface-glade2.c:1651
 msgid "Join the users or developers mailing lists."
-msgstr ""
+msgstr "Únase a las listas de correos de usuarios o desarrolladores."
 
 #: src/interface-glade2.c:1657
 msgid "Meet us on #gtk-gnutella at irc.freenode.net."
-msgstr ""
+msgstr "Conózcanos en #gtk-gnutella en irc.freenode.net."
 
 #: src/interface-glade2.c:1669
 msgid "_Close"
@@ -1909,11 +2213,11 @@ msgstr "_Cerrar"
 
 #: src/interface-glade2.c:1676
 msgid "@(#) $Id$"
-msgstr ""
+msgstr "@(#) $Id$"
 
 #: src/interface-glade2.c:1874
 msgid "gtk-gnutella"
-msgstr ""
+msgstr "gtk-gnutella"
 
 #: src/interface-glade2.c:1911
 msgid "_File"
@@ -1965,28 +2269,27 @@ msgstr "Estadísticas del tráfico de gNet"
 
 #: src/interface-glade2.c:2008
 msgid "show gNet incoming traffic"
-msgstr ""
+msgstr "Mostrar tráfico gNet entrante"
 
 #: src/interface-glade2.c:2014
 msgid "show gNet outgoing traffic"
-msgstr ""
+msgstr "Mostrar tráfico gNet saliente"
 
 #: src/interface-glade2.c:2020
 msgid "gNet leaf traffic stats"
-msgstr ""
+msgstr "Estadísticas de tráfico gNet de nodos hoja"
 
 #: src/interface-glade2.c:2029
-#, fuzzy
 msgid "autohide leaf traffic stats"
-msgstr "Estadísticas del tráfico de gNet"
+msgstr "Ocultar automáticamente estadísticas de tráfico de nodos hoja"
 
 #: src/interface-glade2.c:2034
 msgid "show leaf incoming traffic"
-msgstr ""
+msgstr "mostrar tráfico entrante desde nodos hoja"
 
 #: src/interface-glade2.c:2039
 msgid "show leaf outgoing traffic"
-msgstr ""
+msgstr "mostrar tráfico saliente hacia nodos hoja"
 
 #: src/interface-glade2.c:2044
 msgid "Help"
@@ -1997,13 +2300,12 @@ msgid "_About"
 msgstr "_Acerca"
 
 #: src/interface-glade2.c:2078
-#, fuzzy
 msgid "Uptime: "
-msgstr "Tiempo arriba: %s"
+msgstr "Tiempo en ejecución: "
 
 #: src/interface-glade2.c:2087
 msgid "[uptime]"
-msgstr "[tiempo arriba]"
+msgstr "[tiempo en ejecución]"
 
 #: src/interface-glade2.c:2156
 msgid ""
@@ -2018,11 +2320,11 @@ msgstr "La gente se puede conectar con usted. \"Push\" debería funcionar."
 
 #: src/interface-glade2.c:2186
 msgid "Running in ultrapeer mode."
-msgstr ""
+msgstr "Ejecutando en el modo ultranodo."
 
 #: src/interface-glade2.c:2198
 msgid "This node is in leaf mode."
-msgstr ""
+msgstr "Este nodo está en modo hoja."
 
 #: src/interface-glade2.c:2210
 msgid "Legacy mode is active. (Make sure there's an IRQ left!)"
@@ -2031,37 +2333,37 @@ msgstr ""
 #: src/interface-glade2.c:2218 src/interface-glade2.c:15169
 #: src/interface-glade2.c:15178 src/interface-glade2.c:15187
 msgid " "
-msgstr ""
+msgstr " "
 
 #: src/interface-glade2.c:2267
 msgid "Filters"
 msgstr "Filtros"
 
 #: src/interface-glade2.c:2322
-#, fuzzy
 msgid "_Search:"
-msgstr "Buscar"
+msgstr "_Buscar:"
 
 #: src/interface-glade2.c:2357
-#, fuzzy
 msgid "_New"
-msgstr "_Ver"
+msgstr "_Nuevo"
 
 #: src/interface-glade2.c:2363
 msgid "_Passive"
-msgstr ""
+msgstr "_Pasivo"
 
 #: src/interface-glade2.c:2367
 msgid "A passive search matches any search results routed through this node"
 msgstr ""
+"Una búsqueda pasiva coincide todos los resultados de búsquedas encaminados "
+"por este nodo"
 
 #: src/interface-glade2.c:2403
 msgid "label187"
-msgstr ""
+msgstr "label 187"
 
 #: src/interface-glade2.c:2413
 msgid "label188"
-msgstr ""
+msgstr "label188"
 
 #: src/interface-glade2.c:2450
 msgid "gNet connections"
@@ -2081,7 +2383,7 @@ msgstr "Bajadas"
 #: src/interface-glade2.c:2555 src/interface-glade2.c:2562
 #: src/interface-glade2.c:2587 src/interface-glade2.c:2594
 msgid "Click to toggle display."
-msgstr ""
+msgstr "Pinche para alternar la visualización."
 
 #: src/interface-glade2.c:2533
 msgid "HTTP traffic"
@@ -2093,11 +2395,11 @@ msgstr "tráfico gnutellaNet"
 
 #: src/interface-glade2.c:2597
 msgid "Leaf traffic"
-msgstr ""
+msgstr "Tráfico nodos hoja"
 
 #: src/interface-glade2.c:2645
 msgid "You seem to be offline."
-msgstr "Parece que usted está desconectado."
+msgstr "Parece que está desconectado."
 
 #: src/interface-glade2.c:2901
 msgid "gtk-gnutella: Quit?"
@@ -2113,11 +2415,11 @@ msgstr "Confirme por favor"
 
 #: src/interface-glade2.c:3064 src/interface-glade2.c:14884
 msgid "window1"
-msgstr ""
+msgstr "ventana1"
 
 #: src/interface-glade2.c:3100
 msgid "Current IP settings (Address:Port):"
-msgstr ""
+msgstr "Ajustes IP actuales (Dirección:Puerto):"
 
 #: src/interface-glade2.c:3105
 msgid "not yet determined"
@@ -2125,19 +2427,19 @@ msgstr "todavía no determinado"
 
 #: src/interface-glade2.c:3130
 msgid "Default: 6346, Disable: 0"
-msgstr ""
+msgstr "Por defecto: 6346, Desactivar: 0"
 
 #: src/interface-glade2.c:3146
 msgid "Public hostname"
-msgstr ""
+msgstr "Nombre público de la máquina"
 
 #: src/interface-glade2.c:3160
 msgid "_Force local IP to"
-msgstr ""
+msgstr "_Forzar IP local a"
 
 #: src/interface-glade2.c:3167
 msgid "_Listen port"
-msgstr ""
+msgstr "Puerto de _escucha"
 
 #: src/interface-glade2.c:3175
 msgid "IP settings"
@@ -2153,11 +2455,11 @@ msgstr "_Tipo de proxy:"
 
 #: src/interface-glade2.c:3246
 msgid "H_ost:"
-msgstr ""
+msgstr "N_odo:"
 
 #: src/interface-glade2.c:3260
 msgid "Use username and password to _authenticate to proxy"
-msgstr ""
+msgstr "Usar usuario y contraseña para _autenticarse al proxy"
 
 #: src/interface-glade2.c:3270
 msgid "_Username"
@@ -2165,15 +2467,15 @@ msgstr "_Usuario"
 
 #: src/interface-glade2.c:3281
 msgid "Pass_word"
-msgstr "_Clave"
+msgstr "_Contraseña"
 
 #: src/interface-glade2.c:3291
 msgid "Proxy settings"
-msgstr "Configuración de \"proxy\""
+msgstr "Configuración del proxy"
 
 #: src/interface-glade2.c:3313
 msgid "_Try to connect to local networks first"
-msgstr ""
+msgstr "_Intentar conectarse a las redes locales primero"
 
 #: src/interface-glade2.c:3317
 msgid ""
@@ -2183,11 +2485,11 @@ msgstr ""
 
 #: src/interface-glade2.c:3319
 msgid "Allow connections from and to LAN addresses"
-msgstr ""
+msgstr "Permitir conexiones desde y hacia direcciones LAN"
 
 #: src/interface-glade2.c:3330
 msgid "A_ddresses of Local Network(s)"
-msgstr ""
+msgstr "_Direcciones de redes locales(LANs)"
 
 #: src/interface-glade2.c:3339
 msgid ""
@@ -2231,50 +2533,47 @@ msgstr ""
 
 #: src/interface-glade2.c:3469
 msgid "       "
-msgstr ""
+msgstr "       "
 
 #: src/interface-glade2.c:3477
 msgid "Clock synchronisation"
-msgstr ""
+msgstr "Sincronización del reloj"
 
 #: src/interface-glade2.c:3494
 msgid "Enable \"shell\" control interface"
-msgstr ""
+msgstr "Activar interfaz de control por línea de comandos"
 
 #: src/interface-glade2.c:3499 src/interface-glade2.c:7879
 msgid "Miscellaneous"
-msgstr ""
+msgstr "Miscelánea"
 
 #: src/interface-glade2.c:3518 src/interface-glade2.c:3527
-#, fuzzy
 msgid "Kbytes"
-msgstr "Mostrar en bytes"
+msgstr "Kbytes"
 
 #: src/interface-glade2.c:3553
-#, fuzzy
 msgid "Download RX buffer: "
-msgstr "Bajado"
+msgstr "Búfer de recepción de descargas: "
 
 #: src/interface-glade2.c:3562
 msgid "Gnutella RX buffer: "
-msgstr ""
+msgstr "Búfer de recepción Gnutella:"
 
 #: src/interface-glade2.c:3571
 msgid "Socket receive buffer size"
-msgstr ""
+msgstr "Tamaño del búfer del socket de recepción"
 
 #: src/interface-glade2.c:3896
 msgid "window2"
-msgstr ""
+msgstr "ventana2"
 
 #: src/interface-glade2.c:3939
-#, fuzzy
 msgid "Configured peermode"
-msgstr "Configurar columnas"
+msgstr "Tipo de nodo configurado"
 
 #: src/interface-glade2.c:3961
 msgid "Monitor bad node IP addresses"
-msgstr ""
+msgstr "Monitorear direcciones IP con nodos incorrectos"
 
 #: src/interface-glade2.c:3969
 msgid "Monitor and auto-ban unstable servent types"
@@ -2282,71 +2581,70 @@ msgstr ""
 
 #: src/interface-glade2.c:3993
 msgid "Legacy connections"
-msgstr ""
+msgstr "Conexiones normales"
 
 #: src/interface-glade2.c:4010
 msgid "Maximum # of leaves"
-msgstr ""
+msgstr "Cantidad máxima de hojas"
 
 #: src/interface-glade2.c:4027
 msgid "Ultrapeer mode settings"
-msgstr ""
+msgstr "Ajustes del modo ultranodo"
 
 #: src/interface-glade2.c:4057
 msgid "Last check"
-msgstr ""
+msgstr "Última comprobación"
 
 #: src/interface-glade2.c:4067
 msgid "Last switch"
-msgstr ""
+msgstr "Último cambio"
 
 #: src/interface-glade2.c:4084 src/interface-glade2.c:4097
 msgid "26/12/2001 7:54:23"
-msgstr ""
+msgstr "26/12/2001 7:54:23"
 
 #: src/interface-glade2.c:4114
 msgid "Sufficient average uptime"
-msgstr ""
+msgstr "Tiempo promedio en ejecución suficiente"
 
 #: src/interface-glade2.c:4123
 msgid "Large enough uptime"
-msgstr ""
+msgstr "Tiempo en ejecución suficiente"
 
 #: src/interface-glade2.c:4132
 msgid "Enough file descriptors"
-msgstr ""
+msgstr "Suficientes descriptores de archivo"
 
 #: src/interface-glade2.c:4141
 msgid "Enough available bandwidth"
-msgstr ""
+msgstr "El ancho de banda disponible es suficiente"
 
 #: src/interface-glade2.c:4157
 msgid "Not firewalled"
-msgstr ""
+msgstr "No hay cortafuegos"
 
 #: src/interface-glade2.c:4166
 msgid "Enough physical memory"
-msgstr ""
+msgstr "Memoria física suficiente"
 
 #: src/interface-glade2.c:4175
-#, fuzzy
 msgid "IP address stability"
-msgstr "Dirección IP"
+msgstr "Estabilidad de la dirección IP"
 
 #: src/interface-glade2.c:4191 src/interface-glade2.c:4205
 #: src/interface-glade2.c:4220 src/interface-glade2.c:4234
 #: src/interface-glade2.c:4248 src/interface-glade2.c:4262
 #: src/interface-glade2.c:4276
 msgid "[no]"
-msgstr ""
+msgstr "[no]"
 
 #: src/interface-glade2.c:4283
 msgid "Ultrapeer promotion statistics"
-msgstr ""
+msgstr "Estadísticas de promoción al ultranodo"
 
 #: src/interface-glade2.c:4289
 msgid "Gnutella network mode"
-msgstr ""
+msgstr "Modo de red Gnutella"
 
 #: src/interface-glade2.c:4318
 msgid "items"
@@ -2357,10 +2655,12 @@ msgid ""
 "This limits how many results gnutella returns to other people searching your "
 "files."
 msgstr ""
+"Esto limita el número de resultados que gnutella devuelve a otros nodos "
+"buscando sus archivos."
 
 #: src/interface-glade2.c:4336
 msgid "Limit search _results to "
-msgstr ""
+msgstr "Limitar _resultados de búsquedas a "
 
 #: src/interface-glade2.c:4344
 msgid "Default search _reissue timeout"
@@ -2368,7 +2668,7 @@ msgstr ""
 
 #: src/interface-glade2.c:4353
 msgid "seconds (0 - disable)"
-msgstr ""
+msgstr "segundos (0 - desactivar)"
 
 #: src/interface-glade2.c:4388 src/search_gui.c:1607 src/search_gui.c:1613
 msgid "Size"
@@ -2376,12 +2676,11 @@ msgstr "Tamaño"
 
 #: src/interface-glade2.c:4400
 msgid "Spacing"
-msgstr ""
+msgstr "Espaciado"
 
 #: src/interface-glade2.c:4413
-#, fuzzy
 msgid "Search queue"
-msgstr "Búsquedas"
+msgstr "Cola de búsquedas"
 
 #: src/interface-glade2.c:4419
 msgid "Searches"
@@ -2389,7 +2688,7 @@ msgstr "Búsquedas"
 
 #: src/interface-glade2.c:4438
 msgid "Connecting time_out"
-msgstr ""
+msgstr "Caducidad al conectar"
 
 #: src/interface-glade2.c:4446
 msgid "T_X flow control timeout"
@@ -2397,23 +2696,25 @@ msgstr ""
 
 #: src/interface-glade2.c:4454
 msgid "Connected time_out"
-msgstr ""
+msgstr "Caducidad conectado"
 
 #: src/interface-glade2.c:4462
 msgid "Incoming connecting timeout"
-msgstr ""
+msgstr "Caducidad de conexión entrante"
 
 #: src/interface-glade2.c:4507
 msgid "gnutellaNet timeouts (all values in seconds)"
-msgstr ""
+msgstr "Tiempos de caducidad gnutellaNet (todos los valores en segundos)"
 
 #: src/interface-glade2.c:4526
 msgid "hops radius"
-msgstr ""
+msgstr "Radio de saltos"
 
 #: src/interface-glade2.c:4549
 msgid "Amount of tolerable messages above hard TTL limit per node"
 msgstr ""
+"Cantidad de mensajes tolerables por nodo con un TTL mayor que el "
+"límite"
 
 #: src/interface-glade2.c:4559
 msgid "Max hard TTL limit (hop+ttl) on message"
@@ -2425,7 +2726,7 @@ msgstr ""
 
 #: src/interface-glade2.c:4581
 msgid "H_ard TTL limit"
-msgstr ""
+msgstr "TTL límite"
 
 #: src/interface-glade2.c:4590
 msgid "Max # of _high TTL msg"
@@ -2456,7 +2757,7 @@ msgstr "mensajes"
 #: src/interface-glade2.c:5672 src/interface-glade2.c:7345
 #: src/interface-glade2.c:7354 src/interface-glade2.c:7495
 msgid "%"
-msgstr ""
+msgstr "%"
 
 #: src/interface-glade2.c:4679
 msgid "Ratio of tolerable duplicate messages per node"
@@ -2472,97 +2773,99 @@ msgstr ""
 
 #: src/interface-glade2.c:4731
 msgid "Watch for similar queries"
-msgstr ""
+msgstr "Vigilar peticiones similares"
 
 #: src/interface-glade2.c:4738
 msgid "Similar query half-life"
 msgstr ""
 
 #: src/interface-glade2.c:4755
-#, fuzzy
 msgid "Leaf requery threshold"
-msgstr "Umbral difuso"
+msgstr "Umbral de repetición para nodos hoja"
 
 #: src/interface-glade2.c:4772
 msgid "Quality management"
-msgstr ""
+msgstr "Gestión de calidad"
 
 #: src/interface-glade2.c:4791
 msgid "Connections reserved for gtk-gnutella nodes"
-msgstr ""
+msgstr "Conexiones reservadas para nodos gtk-gnutella"
 
 #: src/interface-glade2.c:4818
 msgid "Max connections allowed per unique vendor"
-msgstr ""
+msgstr "Conexiones máximas permitidas por una sola aplicación"
 
 #: src/interface-glade2.c:4843
 msgid "Maximum percentage of connection slots a vendor can occupy."
-msgstr ""
+msgstr "Porcentaje máximo de las conexiones que cada aplicación puede ocupar."
 
 #: src/interface-glade2.c:4845
-#, fuzzy
 msgid "Connection settings"
-msgstr "Más opciones de configuración"
+msgstr "Ajustes de la conexión"
 
 #: src/interface-glade2.c:4873
 msgid "Hops random factor"
-msgstr ""
+msgstr "Factor de aleatorización de saltos"
 
 #: src/interface-glade2.c:4882
 msgid "Clean up queries before processing"
-msgstr ""
+msgstr "Limpiar peticiones antes de su procesamiento"
 
 #: src/interface-glade2.c:4889
 msgid "Other"
-msgstr "Otro"
+msgstr "Otros"
 
 #: src/interface-glade2.c:4908
 msgid ""
 "Forwarded\n"
 "Message"
 msgstr ""
+"Mensaje\n"
+"Retransmitido"
 
 #: src/interface-glade2.c:4916
-#, fuzzy
 msgid ""
 "Maximum size\n"
 "allowed"
-msgstr "tamaño máximo"
+msgstr ""
+"Tamaño máximo\n"
+"permitido"
 
 #: src/interface-glade2.c:4924
 msgid ""
 "Size threshold\n"
 "before kicking"
 msgstr ""
+"Umbral del tamaño\n"
+"antes de patear"
 
 #: src/interface-glade2.c:4933
 msgid "Query"
-msgstr ""
+msgstr "Petición"
 
 #: src/interface-glade2.c:4942
 msgid "Query hit"
 msgstr ""
 
 #: src/interface-glade2.c:4951
-#, fuzzy
 msgid "Unknown"
-msgstr "Error desconocido"
+msgstr "Desconocido"
 
 #: src/interface-glade2.c:4960
 msgid "(not forwarded)"
-msgstr ""
+msgstr "(no reenviado)"
 
 #: src/interface-glade2.c:5008
 msgid "gnutellaNet message size limits"
-msgstr ""
+msgstr "Límites de tamaño en mensages gnutellaNet"
 
 #: src/interface-glade2.c:5264
 msgid "window3"
-msgstr ""
+msgstr "ventana3"
 
 #: src/interface-glade2.c:5305
 msgid "Use surplus bandwidth"
-msgstr ""
+msgstr "Usar ancho de banda adicional"
 
 #: src/interface-glade2.c:5310
 msgid "Prefer compressed connections"
@@ -2570,75 +2873,74 @@ msgstr "Preferir conexiones comprimidas"
 
 #: src/interface-glade2.c:5315
 msgid "Use IP Type of Service (TOS)"
-msgstr ""
+msgstr "Usar tipo de servicio IP (TOS)"
 
 #: src/interface-glade2.c:5340
 msgid "Total input bandwidth limit:"
-msgstr ""
+msgstr "Ancho de banda límite para todas las entradas"
 
 #: src/interface-glade2.c:5349
 msgid "Total output bandwidth limit:"
-msgstr ""
+msgstr "Ancho de banda límite para todas las salidas"
 
 #: src/interface-glade2.c:5358
 msgid "Measured HTTP latency:"
-msgstr ""
+msgstr "Latencia HTTP medida:"
 
 #: src/interface-glade2.c:5367 src/interface-glade2.c:5376
 #: src/interface-glade2.c:5470 src/interface-glade2.c:5478
 #: src/interface-glade2.c:5546 src/interface-glade2.c:5564
 #: src/interface-glade2.c:5618 src/interface-glade2.c:5626
 msgid "K/s"
-msgstr ""
+msgstr "K/s"
 
 #: src/interface-glade2.c:5385
-#, fuzzy
 msgid "secs"
-msgstr "búsquedas"
+msgstr "segs"
 
 #: src/interface-glade2.c:5401
 msgid "label_output_bw_limit"
-msgstr ""
+msgstr "label_output_bw_limit"
 
 #: src/interface-glade2.c:5416
 msgid "label_http_latency"
-msgstr ""
+msgstr "label_http_latency"
 
 #: src/interface-glade2.c:5431
 msgid "label_input_bw_limit"
-msgstr ""
+msgstr "label_input_bw_limit"
 
 #: src/interface-glade2.c:5439
 msgid "Available bandwidth"
-msgstr ""
+msgstr "Ancho de banda disponible"
 
 #: src/interface-glade2.c:5445 src/interface-glade2.c:11817
 msgid "General"
-msgstr ""
+msgstr "General"
 
 #: src/interface-glade2.c:5504 src/interface-glade2.c:5695
 msgid "Limit bandwidth for _incoming traffic to"
-msgstr ""
+msgstr "Limitar ancho de banda para tráfico _entrante a"
 
 #: src/interface-glade2.c:5511 src/interface-glade2.c:5702
 msgid "Limit bandwidth for _outgoing traffic to"
-msgstr ""
+msgstr "Limitar ancho de banda para tráfico _saliente a"
 
 #: src/interface-glade2.c:5573
 msgid "Limit incoming bandwidth from leaves to"
-msgstr ""
+msgstr "Limitar ancho de banda entrante desde nodos hoja a"
 
 #: src/interface-glade2.c:5580
 msgid "Limit outgoing bandwidth to leaves to"
-msgstr ""
+msgstr "Limitar ancho de banda saliente hacia nodos hoja a"
 
 #: src/interface-glade2.c:5587
 msgid "Ultrapeer mode"
-msgstr ""
+msgstr "Modo ultranodo"
 
 #: src/interface-glade2.c:5593
 msgid "Bandwidth control for gnutellaNet traffic"
-msgstr ""
+msgstr "Control del ancho de banda para el tráfico gnutellaNet"
 
 #: src/interface-glade2.c:5659 src/interface-glade2.c:5715
 #, c-format
@@ -2649,32 +2951,31 @@ msgstr ""
 
 #: src/interface-glade2.c:5669
 msgid "What other people see as your connection speed."
-msgstr ""
+msgstr "Lo que los demás nodos ven como su velocidad de conexión."
 
 #: src/interface-glade2.c:5680
 msgid "kbits/s to peers"
-msgstr ""
+msgstr "kbits/s a nodos"
 
 #: src/interface-glade2.c:5709
 msgid "Enable _dynamic upload slots allocation"
-msgstr ""
+msgstr "Activar reserva dinámica de ranuras para subidas"
 
 #: src/interface-glade2.c:5717
 msgid "Report an upload connection _speed of"
-msgstr ""
+msgstr "Informar de una _velocidad de conexión de salida de"
 
 #: src/interface-glade2.c:5725
-#, fuzzy
 msgid "Compute upload connection speed"
-msgstr "Conexiones gnutellaNet"
+msgstr "Computar velocidad de conexión en subidas"
 
 #: src/interface-glade2.c:5732
 msgid "Bandwidth control for HTTP traffic"
-msgstr ""
+msgstr "Control del ancho de banda para el tráfico HTTP"
 
 #: src/interface-glade2.c:5924
 msgid "window4"
-msgstr ""
+msgstr "ventana4"
 
 #: src/interface-glade2.c:5981 src/interface-glade2.c:6030
 #: src/interface-glade2.c:6079
@@ -2683,19 +2984,19 @@ msgstr "_Buscar archivo"
 
 #: src/interface-glade2.c:5987
 msgid "Keep downloading/incomplete files in"
-msgstr ""
+msgstr "Almacenar archivos en descarga/incompletos en"
 
 #: src/interface-glade2.c:6036
 msgid "Move completely downloaded files to"
-msgstr ""
+msgstr "Mover archivos completamente descargados a"
 
 #: src/interface-glade2.c:6085
 msgid "Move corrupted downloaded files to"
-msgstr ""
+msgstr "Mover archivos descargados corruptos a"
 
 #: src/interface-glade2.c:6104
 msgid "_Overlap when resuming"
-msgstr ""
+msgstr "_Solapar al reanudar"
 
 #: src/interface-glade2.c:6112
 msgid "Maximum number of _retries"
@@ -2704,23 +3005,23 @@ msgstr "Máximo número de _reintentos"
 #: src/interface-glade2.c:6120 src/interface-glade2.c:12895
 #: src/interface-glade2.c:12903
 msgid "bytes"
-msgstr ""
+msgstr "bytes"
 
 #: src/interface-glade2.c:6134
 msgid "Amount of bytes to overlap when resuming download"
-msgstr ""
+msgstr "Cantidad de bytes a solapar al reanudar una descarga"
 
 #: src/interface-glade2.c:6144
 msgid "Maximum attempts to make, not counting HTTP busy indications"
-msgstr ""
+msgstr "Número máximo de reintentos, sin contar indicaciones HTTP ocupado"
 
 #: src/interface-glade2.c:6147
 msgid "Resume and retry"
-msgstr ""
+msgstr "Reanudar y reintentar"
 
 #: src/interface-glade2.c:6166
 msgid "Optimistic first _chunk"
-msgstr ""
+msgstr "Primer _bloque optimista"
 
 #: src/interface-glade2.c:6173
 msgid "Require _urn"
@@ -2728,27 +3029,27 @@ msgstr "Requerir _urn"
 
 #: src/interface-glade2.c:6180
 msgid "Require _server name"
-msgstr ""
+msgstr "Requerir nombre del _servidor"
 
 #: src/interface-glade2.c:6187
 msgid "Source quality"
-msgstr "Calidad de la fuente"
+msgstr "Calidad del origen"
 
 #: src/interface-glade2.c:6213
 msgid "Delay in seconds to wait when running download stops"
-msgstr ""
+msgstr "Demora a esperar cuando una descarga se detiene, en segundos"
 
 #: src/interface-glade2.c:6223
 msgid "Delay in seconds to wait if connection is refused"
-msgstr ""
+msgstr "Demora a esperar si una conexión es rechazada, en segundos"
 
 #: src/interface-glade2.c:6233
 msgid "Delay in seconds to wait after HTTP busy indication"
-msgstr ""
+msgstr "Demora a esperar tras una indicación HTTP ocupado, en segundos"
 
 #: src/interface-glade2.c:6243
 msgid "Delay in seconds to wait after connection failure"
-msgstr ""
+msgstr "Demora a esperar tras el fracaso de una conexión, en segundos"
 
 #: src/interface-glade2.c:6253
 msgid "Maximum seconds to wait on auto-retry timeouts"
@@ -2760,31 +3061,32 @@ msgstr ""
 
 #: src/interface-glade2.c:6273
 msgid "Number of seconds before timeout for a connecting download"
-msgstr ""
+msgstr "Número de segundos antes de que una descarga al conectar caduque"
 
 #: src/interface-glade2.c:6283
 msgid "Number of seconds before timeout for a 'push sent' download"
 msgstr ""
+"Número de segundos antes de que una descarga con 'push' enviado caduque"
 
 #: src/interface-glade2.c:6293
 msgid "Number of seconds before timeout for a connected download"
-msgstr ""
+msgstr "Número de segundos antes de que una descarga conectada caduque"
 
 #: src/interface-glade2.c:6296
 msgid "Retry stopped delay"
-msgstr ""
+msgstr "Demora para reintentar detenidos"
 
 #: src/interface-glade2.c:6304
 msgid "Retry refused delay"
-msgstr ""
+msgstr "Demora para reintentar rechazados"
 
 #: src/interface-glade2.c:6312
 msgid "Retry busy delay"
-msgstr ""
+msgstr "Demora para reintentar ocupados"
 
 #: src/interface-glade2.c:6320
 msgid "Retry timeout delay"
-msgstr ""
+msgstr "Demora para reintentar caducados"
 
 #: src/interface-glade2.c:6328
 msgid "Retry timeout max"
@@ -2796,35 +3098,35 @@ msgstr ""
 
 #: src/interface-glade2.c:6344
 msgid "Connecting timeout"
-msgstr ""
+msgstr "Tiempo de caducidad al conectar"
 
 #: src/interface-glade2.c:6352
 msgid "_Push sent timeout"
-msgstr ""
+msgstr "Caducidad al enviar '_push'"
 
 #: src/interface-glade2.c:6360
 msgid "Connected timeout"
-msgstr ""
+msgstr "Caducidad de la conexión"
 
 #: src/interface-glade2.c:6368
 msgid "Delays and timeouts (all values in seconds)"
-msgstr ""
+msgstr "Demoras y tiempos de caducidad (todos los valores en segundos)"
 
 #: src/interface-glade2.c:6392
 msgid "M_inimum chunk size"
-msgstr ""
+msgstr "Tamaño de bloque mí_nimo"
 
 #: src/interface-glade2.c:6401
 msgid "Ma_ximum chunk size"
-msgstr ""
+msgstr "Tamaño de bloque má_ximo"
 
 #: src/interface-glade2.c:6410
 msgid "Enable s_warming"
-msgstr ""
+msgstr "Permitir descargas distribuídas"
 
 #: src/interface-glade2.c:6450
 msgid "A_ggressive mode"
-msgstr ""
+msgstr "Modo a_gresivo"
 
 #: src/interface-glade2.c:6455
 msgid "Watch hit for _alternate sources"
@@ -2832,7 +3134,7 @@ msgstr ""
 
 #: src/interface-glade2.c:6460
 msgid "Strict SHA_1 matching"
-msgstr ""
+msgstr "Coincidencias SHA_1 estrictas"
 
 #: src/interface-glade2.c:6465
 msgid "_Feed mesh from hits"
@@ -2848,15 +3150,15 @@ msgstr ""
 
 #: src/interface-glade2.c:6513 src/interface-glade2.c:10816
 msgid "Use fu_zzy matching"
-msgstr ""
+msgstr "Usar coincidencias _difusas"
 
 #: src/interface-glade2.c:6519
 msgid "Downloading from multiple sources (swarming)"
-msgstr ""
+msgstr "Descargando de fuentes múltiples (descarga distribuída)"
 
 #: src/interface-glade2.c:6760
 msgid "window5"
-msgstr ""
+msgstr "ventana5"
 
 #: src/interface-glade2.c:6822
 msgid "_Add"
@@ -2864,195 +3166,188 @@ msgstr "_Añadir"
 
 #: src/interface-glade2.c:6828
 msgid "Files scanned"
-msgstr ""
+msgstr "Archivos escaneados"
 
 #: src/interface-glade2.c:6854
 msgid "_Rescan"
-msgstr ""
+msgstr "_Reescanear"
 
 #: src/interface-glade2.c:6865
 msgid "Search _extensions"
-msgstr ""
+msgstr "_Extensiones para la búsqueda"
 
 #: src/interface-glade2.c:6880
 msgid "Ignore symbolically linked directories"
-msgstr ""
+msgstr "Ignorar directorios enlazados simbólicamente"
 
 #: src/interface-glade2.c:6885
 msgid "Ignore symbolically linked regular files"
-msgstr ""
+msgstr "Ignorar archivos normales enlazados simbólicamente"
 
 #: src/interface-glade2.c:6890
 msgid "_Path(s) to files"
-msgstr ""
+msgstr "R_utas a los archivos"
 
 #: src/interface-glade2.c:6927
 msgid "_Connecting timeout"
-msgstr ""
+msgstr "_Caducidad al conectar"
 
 #: src/interface-glade2.c:6935
 msgid "C_onnected timeout"
-msgstr ""
+msgstr "C_aducidad de la conexión"
 
 #: src/interface-glade2.c:6943
 msgid "Timeouts (all values in seconds)"
-msgstr ""
+msgstr "Tiempos de caducidad (todos los valores en segundos)"
 
 #: src/interface-glade2.c:6962
-#, fuzzy
 msgid "Enable"
 msgstr "activado"
 
 #: src/interface-glade2.c:6969
 msgid "First chunk size"
-msgstr ""
+msgstr "Tamaño del primer bloque"
 
 #: src/interface-glade2.c:6986
 msgid "Partial File Sharing (swarming)"
-msgstr ""
+msgstr "Compartir archivos parciales (descargas distribuídas)"
 
 #: src/interface-glade2.c:7022
 msgid "Last scan initiated on"
-msgstr ""
+msgstr "Último inicio de escaneo:"
 
 #: src/interface-glade2.c:7031
 msgid "File scanning time"
-msgstr ""
+msgstr "Tiempo para escanear los archivos"
 
 #: src/interface-glade2.c:7040 src/interface-glade2.c:7148
 #: src/interface-glade2.c:7157 src/interface-glade2.c:7166
 #: src/interface-glade2.c:7836 src/interface-glade2.c:7870
 msgid "seconds"
-msgstr ""
+msgstr "segundos"
 
 #: src/interface-glade2.c:7056 src/interface-glade2.c:7182
 #: src/interface-glade2.c:7196 src/interface-glade2.c:7210
 msgid "26/12/2003 17:54:23"
-msgstr ""
+msgstr "26/12/2003 17:54:23"
 
 #: src/interface-glade2.c:7070
 msgid "18"
-msgstr ""
+msgstr "18"
 
 #: src/interface-glade2.c:7077
 msgid "Library scanning"
-msgstr ""
+msgstr "Escaneando la biblioteca"
 
 #: src/interface-glade2.c:7097
 msgid "Indexing started on"
-msgstr ""
+msgstr "Comienzo de la indexación:"
 
 #: src/interface-glade2.c:7105
 msgid "Table generation started on"
-msgstr ""
+msgstr "Comienzo de la generación de tablas:"
 
 #: src/interface-glade2.c:7113
 msgid "Patch generation started on"
-msgstr ""
+msgstr "Comienzo de la generación de parches:"
 
 #: src/interface-glade2.c:7121 src/interface-glade2.c:7130
 #: src/interface-glade2.c:7139
 msgid "and lasted"
-msgstr ""
+msgstr "y duró"
 
 #: src/interface-glade2.c:7224 src/interface-glade2.c:7238
 #: src/interface-glade2.c:7252 src/interface-glade2.c:7441
 msgid "25"
-msgstr ""
+msgstr "25"
 
 #: src/interface-glade2.c:7259
 msgid "Query Routing Protocol"
-msgstr ""
+msgstr "Protocolo de enrutado de peticiones"
 
 #: src/interface-glade2.c:7284
 msgid "Keywords"
-msgstr ""
+msgstr "Palabras clave"
 
 #: src/interface-glade2.c:7293
-#, fuzzy
 msgid "Slots"
-msgstr "Estadísticas"
+msgstr "Ranuras"
 
 #: src/interface-glade2.c:7302
 msgid "Flled slots"
-msgstr ""
+msgstr "Ranuras ocupadas"
 
 #: src/interface-glade2.c:7318
 msgid "Generation"
-msgstr ""
+msgstr "Generación"
 
 #: src/interface-glade2.c:7327
-#, fuzzy
 msgid "Filled ratio"
-msgstr "Información del archivo"
+msgstr ""
 
 #: src/interface-glade2.c:7336
-#, fuzzy
 msgid "Conflict ratio"
-msgstr "Condición"
+msgstr "Grado de conflicto"
 
 #: src/interface-glade2.c:7370
 msgid "12345678"
-msgstr ""
+msgstr "12345678"
 
 #: src/interface-glade2.c:7384
 msgid "1M"
-msgstr ""
+msgstr "1M"
 
 #: src/interface-glade2.c:7399
 msgid "1234567"
-msgstr ""
+msgstr "1234567"
 
 #: src/interface-glade2.c:7413
 msgid "1"
-msgstr ""
+msgstr "1"
 
 #: src/interface-glade2.c:7427 src/interface-glade2.c:7539
 msgid "10"
-msgstr ""
+msgstr "10"
 
 #: src/interface-glade2.c:7448
-#, fuzzy
 msgid "Query routing table information"
-msgstr "Detalle"
+msgstr "Información de la tabla de enrutado de peticiones"
 
 #: src/interface-glade2.c:7468
 msgid "Raw length"
-msgstr ""
+msgstr "Longitud en crudo"
 
 #: src/interface-glade2.c:7477
 msgid "Compressed length"
-msgstr ""
+msgstr "Longitud comprimido"
 
 #: src/interface-glade2.c:7486
 msgid "Compressed ratio"
-msgstr ""
+msgstr "Grado de compresión"
 
 #: src/interface-glade2.c:7511
 msgid "954065"
-msgstr ""
+msgstr "954065"
 
 #: src/interface-glade2.c:7525
 msgid "13456"
-msgstr ""
+msgstr "13456"
 
 #: src/interface-glade2.c:7546
-#, fuzzy
 msgid "Query routing patch information"
-msgstr "Detalle"
+msgstr ""
 
 #: src/interface-glade2.c:7552
-#, fuzzy
 msgid "Statistics"
 msgstr "Estadísticas"
 
 #: src/interface-glade2.c:7757
 msgid "window6"
-msgstr ""
+msgstr "ventana6"
 
 #: src/interface-glade2.c:7790
 msgid "Toolbar style"
-msgstr ""
+msgstr "Estilo de la barra de herramientas"
 
 #: src/interface-glade2.c:7799
 msgid "Try to keep 'dead' entries around for"
@@ -3060,50 +3355,50 @@ msgstr ""
 
 #: src/interface-glade2.c:7822
 msgid "Show _tootips (does not affect all tooltips yet)"
-msgstr ""
+msgstr "Mostrar _ayudas (Aún no afecta a todos los controles)"
 
 #: src/interface-glade2.c:7829
 msgid "Show _confirmation dialog when leaving gtk-gnutella"
-msgstr ""
+msgstr "Mostrar diáolog de _confirmación al salir de gtk-gnutella"
 
 #: src/interface-glade2.c:7853
 msgid "Update search results pane every"
-msgstr ""
+msgstr "Actualizar el panel de resultados de búsqueda cada"
 
 #: src/interface-glade2.c:7898
 msgid ""
 "Show additional information and settings for advanced and _expert users."
 msgstr ""
+"Mostrar ajustes e información adicional para los usuarios avanzados y "
+"_expertos."
 
 #: src/interface-glade2.c:7905
 msgid "Expert mode"
-msgstr ""
+msgstr "Modo experto"
 
 #: src/interface-glade2.c:7927
 msgid "Show node uptime"
-msgstr ""
+msgstr "Mostrar tiempo en ejecución del nodo"
 
 #: src/interface-glade2.c:7932
 msgid "Show handshaking version"
-msgstr ""
+msgstr "Mostrar versión del protocolo"
 
 #: src/interface-glade2.c:7937
-#, fuzzy
 msgid "Display detailed traffic information"
-msgstr "Detalle"
+msgstr "Mostrar información detallada del tráfico"
 
 #: src/interface-glade2.c:7961
 msgid "TX compression"
-msgstr ""
+msgstr "Compresión en la transmisión"
 
 #: src/interface-glade2.c:7968
-#, fuzzy
 msgid "TX speed"
-msgstr "Velocidad"
+msgstr "Velocidad de transmisión"
 
 #: src/interface-glade2.c:7975
 msgid "TX queries"
-msgstr ""
+msgstr "Peticiones de transmisión"
 
 #: src/interface-glade2.c:7982
 msgid "TX query hits"
@@ -3111,20 +3406,19 @@ msgstr ""
 
 #: src/interface-glade2.c:7989
 msgid "TX dropped"
-msgstr ""
+msgstr "Transmisiones abandonadas"
 
 #: src/interface-glade2.c:7996
 msgid "RX compression"
-msgstr ""
+msgstr "Compresión en la recepción"
 
 #: src/interface-glade2.c:8003
-#, fuzzy
 msgid "RX speed"
-msgstr "Velocidad"
+msgstr "Velocidad de recepción"
 
 #: src/interface-glade2.c:8010
 msgid "RX queries"
-msgstr ""
+msgstr "Peticiones de recepción"
 
 #: src/interface-glade2.c:8017
 msgid "RX query hits"
@@ -3132,118 +3426,115 @@ msgstr ""
 
 #: src/interface-glade2.c:8024
 msgid "RX dropped"
-msgstr ""
+msgstr "Recepciones abandonadas"
 
 #: src/interface-glade2.c:8031
 msgid "Generated queries"
-msgstr ""
+msgstr "Peticiones generadas"
 
 #: src/interface-glade2.c:8038
 msgid "Pending local queries"
-msgstr ""
+msgstr "Peticiones locales pendientes"
 
 #: src/interface-glade2.c:8045
-#, fuzzy
 msgid "QRP stats"
-msgstr "_Reiniciar estadísticas"
+msgstr "Estadísticas QRP"
 
 #: src/interface-glade2.c:8052
 msgid "Dup / Bad / Weird"
-msgstr ""
+msgstr "Duplicado / Inválido / Extraño"
 
 #: src/interface-glade2.c:8059
 msgid "Ping / Pong round trip"
-msgstr ""
+msgstr "Viaje de vuelta del Ping / Pong"
 
 #: src/interface-glade2.c:8066
-#, fuzzy
 msgid "Detailed traffic information to display"
-msgstr "Detalle"
+msgstr "Información detallada del tráfico a mostrar"
 
 #: src/interface-glade2.c:8072
-#, fuzzy
 msgid "gnutellaNet display"
-msgstr "tráfico gnutellaNet"
+msgstr ""
 
 #: src/interface-glade2.c:8179
 msgid "window7"
-msgstr ""
+msgstr "ventana7"
 
 #: src/interface-glade2.c:8249
 msgid "_Track properties"
-msgstr ""
+msgstr "_Vigilar propiedades"
 
 #: src/interface-glade2.c:8258
 msgid "_Shared code debug level"
-msgstr ""
+msgstr "Nivel de depuración del código _compartido"
 
 #: src/interface-glade2.c:8267
 msgid "_GUI debug level"
-msgstr ""
+msgstr "Nivel de depuración del _GUI"
 
 #: src/interface-glade2.c:8276
 msgid "_Core debug level"
-msgstr ""
+msgstr "Nivel de depuración del _núcleo"
 
 #: src/interface-glade2.c:8285
 msgid "_stop collecting hosts in host catcher"
-msgstr ""
+msgstr "_Dejar de recoger nodos en el caché de nodos"
 
 #: src/interface-glade2.c:8292
 msgid "Debug settings"
-msgstr ""
+msgstr "Ajustes de depuración"
 
 #: src/interface-glade2.c:8311 src/interface-glade2.c:15196
 msgid "  "
-msgstr ""
+msgstr "  "
 
 #: src/interface-glade2.c:8393
 msgid "PROP_READING_ULTRAFILE"
-msgstr ""
+msgstr "PROP_READING_ULTRAFILE"
 
 #: src/interface-glade2.c:8402
 msgid "PROP_CURRENT_IP_STAMP"
-msgstr ""
+msgstr "PROP_CURRENT_IP_STAMP"
 
 #: src/interface-glade2.c:8411
 msgid "PROP_AVERAGE_IP_UPTIME"
-msgstr ""
+msgstr "PROP_AVERAGE_IP_UPTIME"
 
 #: src/interface-glade2.c:8420
 msgid "PROP_START_STAMP"
-msgstr ""
+msgstr "PROP_START_STAMP"
 
 #: src/interface-glade2.c:8429
 msgid "PROP_AVERAGE_SERVENT_UPTIME"
-msgstr ""
+msgstr "PROP_AVERAGE_SERVENT_UPTIME"
 
 #: src/interface-glade2.c:8438
 msgid "PROP_PROXY_CONNECTIONS"
-msgstr ""
+msgstr "PROP_PROXY_CONNECTIONS"
 
 #: src/interface-glade2.c:8447
 msgid "PROP_SYS_NOFILE"
-msgstr ""
+msgstr "PROP_SYS_NOFILE"
 
 #: src/interface-glade2.c:8456
 msgid "PROP_SYS_PHYSMEM"
-msgstr ""
+msgstr "PROP_SYS_PHYSMEM"
 
 #: src/interface-glade2.c:8465
 msgid "PROP_CRAWLER_VISIT_COUNT"
-msgstr ""
+msgstr "PROP_CRAWLER_VISIT_COUNT"
 
 #: src/interface-glade2.c:8474
 msgid "Unmapped stuff"
-msgstr ""
+msgstr "Opciones sin clasificar"
 
 #: src/interface-glade2.c:8609
 msgid "window8"
-msgstr ""
+msgstr "ventana8"
 
 #: src/interface-glade2.c:8670
 msgid "Try to connect to specified address"
-msgstr ""
+msgstr "Intentar conectar a la dirección especificada"
 
 #: src/interface-glade2.c:8687
 msgid "Add"
@@ -3251,21 +3542,21 @@ msgstr "Añadir"
 
 #: src/interface-glade2.c:8700
 msgid "Connect to"
-msgstr ""
+msgstr "Conectar a"
 
 #: src/interface-glade2.c:8713
 msgid "ultrapeers"
-msgstr ""
+msgstr "ultranodos"
 
 #: src/interface-glade2.c:8733
 msgid "Disconnect from selected nodes"
-msgstr ""
+msgstr "Desconectar de los nodos seleccionados"
 
 #: src/interface-glade2.c:8750 src/interface-glade2.c:12687
 #: src/interface-glade2.c:12986 src/interface-glade2.c:13221
 #: src/interface-glade2.c:13494
 msgid "Remove"
-msgstr ""
+msgstr "Quitar"
 
 #: src/interface-glade2.c:8761
 msgid "Try to keep at least"
@@ -3289,19 +3580,19 @@ msgstr "Conexiones gnutellaNet"
 
 #: src/interface-glade2.c:8831
 msgid "Max hosts cached"
-msgstr ""
+msgstr "Nodos máximos"
 
 #: src/interface-glade2.c:8840
 msgid "Hosts in cache"
-msgstr ""
+msgstr "Nodos en el caché"
 
 #: src/interface-glade2.c:8856
 msgid "Ultrapeers"
-msgstr ""
+msgstr "Ultrandodos"
 
 #: src/interface-glade2.c:8863
 msgid "Normal hosts"
-msgstr ""
+msgstr "Nodos normales"
 
 #: src/interface-glade2.c:8888 src/interface-glade2.c:8895
 msgid "Clear"
@@ -3321,7 +3612,7 @@ msgstr "Bajado"
 
 #: src/interface-glade2.c:8937
 msgid "Chunks/Files"
-msgstr ""
+msgstr "Bloques/Archivos"
 
 #: src/interface-glade2.c:8944
 msgid "Volume"
@@ -3333,23 +3624,27 @@ msgstr "Transferencias"
 
 #: src/interface-glade2.c:9014
 msgid "GUID:"
-msgstr ""
+msgstr "GUID:"
 
 #: src/interface-glade2.c:9024
 msgid ""
 "The Global Unique IDentifier associated with this node. It's used for "
 "routing packets in the Gnutella network."
 msgstr ""
+"El Identificador Único Global asociado a este nodo. Se usa para enrutar "
+"paquetes en la red Gnutella."
 
 #: src/interface-glade2.c:9035
 msgid "Address/Port:"
-msgstr ""
+msgstr "Dirección/Puerto:"
 
 #: src/interface-glade2.c:9045
 msgid ""
 "The current IP address and listening port for this node. To change these go "
 "to Config->Network."
 msgstr ""
+"La dirección IP actual y el puerto de escucha para este nodo. Para "
+"cambiarlas, ir a Configuración->Red."
 
 #: src/interface-glade2.c:9056
 msgid "Local node"
@@ -3357,85 +3652,83 @@ msgstr "Nodo local"
 
 #: src/interface-glade2.c:9196
 msgid "window9"
-msgstr ""
+msgstr "ventana9"
 
 #: src/interface-glade2.c:9233
 msgid "Abort and remove all selected uploads"
-msgstr ""
+msgstr "Abortar y quitar las subidas seleccionadas"
 
 #: src/interface-glade2.c:9250
 msgid " Kill selected "
-msgstr ""
+msgstr " Matar seleccionadas "
 
 #: src/interface-glade2.c:9261
 msgid "Clear already completed uploads from list"
-msgstr ""
+msgstr "Limpiar subidas ya completadas de la lista"
 
 #: src/interface-glade2.c:9278
 msgid " Clear completed "
-msgstr ""
+msgstr " Limpiar completados "
 
 #: src/interface-glade2.c:9305 src/interface-glade2.c:15105
 msgid "Upload Settings"
-msgstr ""
+msgstr "Ajustes de subidas"
 
 #: src/interface-glade2.c:9335
 msgid "Max. uploads to single host"
-msgstr ""
+msgstr "Máximo número de subidas a un único nodo"
 
 #: src/interface-glade2.c:9343
 msgid "Max. simultaneous uploads"
-msgstr ""
+msgstr "Máximo número de subidas simultáneas"
 
 #: src/interface-glade2.c:9447
 msgid "window10"
-msgstr ""
+msgstr "ventana10"
 
 #: src/interface-glade2.c:9485
 msgid "Somebody tell me a sensible tooltip for this."
-msgstr ""
+msgstr "Que alguien aporte una ayuda decente para esto."
 
 #: src/interface-glade2.c:9502
 msgid "Clear non-existent files"
-msgstr ""
+msgstr "Limpiar archivos inexistentes"
 
 #: src/interface-glade2.c:9528
 msgid "Clear all"
-msgstr ""
+msgstr "Limpiar todo"
 
 #: src/interface-glade2.c:9534
 msgid "Upload history"
-msgstr ""
+msgstr "Historial de subidas"
 
 #: src/interface-glade2.c:9701
 msgid "window11"
-msgstr ""
+msgstr "ventana11"
 
 #: src/interface-glade2.c:9766
 msgid "Max. downloads from single host"
-msgstr ""
+msgstr "Número máximo de descargas de un sólo nodo"
 
 #: src/interface-glade2.c:9773
 msgid "Max. simultaneous downloads"
-msgstr ""
+msgstr "Número máximo de descargas simultáneas"
 
 #: src/interface-glade2.c:9781
-#, fuzzy
 msgid "Bytes to back off on mismatch"
-msgstr "Remover filtro"
+msgstr "Bytes a retroceder si no coincide"
 
 #: src/interface-glade2.c:9790
 msgid "Delete file on abort"
-msgstr ""
+msgstr "Borrar el archivo físicamente al abortar"
 
 #: src/interface-glade2.c:9797
-#, fuzzy
 msgid "Remove file on mismatch"
-msgstr "Remover filtro"
+msgstr "Borrar el archivo si no coincide"
 
 #: src/interface-glade2.c:9804
 msgid "Never send a push request"
-msgstr ""
+msgstr "No enviar nunca una petición 'push'"
 
 #: src/interface-glade2.c:9860
 msgid "More Settings"
@@ -3446,79 +3739,76 @@ msgid "Completed"
 msgstr "Completado"
 
 #: src/interface-glade2.c:9888
-#, fuzzy
 msgid "Failed"
-msgstr "Archivo"
+msgstr "Fracasado"
 
 #: src/interface-glade2.c:9893
 msgid "Unavailable"
-msgstr ""
+msgstr "No disponible"
 
 #: src/interface-glade2.c:9898
 msgid "Auto clear stopped downloads"
-msgstr ""
+msgstr "Autolimpiar descargas detenidas"
 
 #: src/interface-glade2.c:9904
 msgid "Download settings"
-msgstr ""
+msgstr "Ajustes de descargas"
 
 #: src/interface-glade2.c:9924
 msgid "Abort all selected downloads"
-msgstr ""
+msgstr "Abortar las descargas seleccionadas"
 
 #: src/interface-glade2.c:9941
 msgid "_Abort selected"
-msgstr ""
+msgstr "_Abortar selección"
 
 #: src/interface-glade2.c:9954
 msgid "Resume all selected downloads"
-msgstr ""
+msgstr "Reanudar las descargas seleccionadas"
 
 #: src/interface-glade2.c:9971
 msgid "_Resume selected"
-msgstr ""
+msgstr "_Reanudar selección"
 
 #: src/interface-glade2.c:9984
 msgid "Remove completed downloads from list"
-msgstr ""
+msgstr "Quitar de la lista las descargas completadas"
 
 #: src/interface-glade2.c:10001
 msgid "_Clear completed"
-msgstr ""
+msgstr "_Limpiar completadas"
 
 #: src/interface-glade2.c:10019
 msgid "[running]"
-msgstr ""
+msgstr "[ejecutando]"
 
 #: src/interface-glade2.c:10026
 msgid " ("
-msgstr ""
+msgstr " ("
 
 #: src/interface-glade2.c:10032
-#, fuzzy
 msgid "[active]"
-msgstr "[tiempo]"
+msgstr "[activo]"
 
 #: src/interface-glade2.c:10039
 msgid ", "
-msgstr ""
+msgstr ", "
 
 #: src/interface-glade2.c:10045
-#, fuzzy
 msgid "[aqueued]"
-msgstr "Encolado"
+msgstr "[encolado]"
 
 #: src/interface-glade2.c:10051
 msgid ")"
-msgstr ""
+msgstr ")"
 
 #: src/interface-glade2.c:10079
 msgid "Show _settings"
-msgstr ""
+msgstr "Mostar _ajustes"
 
 #: src/interface-glade2.c:10085
 msgid "Active downloads"
-msgstr ""
+msgstr "Descargas activas"
 
 #: src/interface-glade2.c:10153
 msgid "Freeze queue"
@@ -3526,41 +3816,39 @@ msgstr "Congelar cola"
 
 #: src/interface-glade2.c:10159 src/interface-glade2.c:12283
 msgid "case sensitive"
-msgstr ""
+msgstr "Coincidencia mayúsc/minúsc"
 
 #: src/interface-glade2.c:10166
 msgid "Select all matching regex from queue"
-msgstr ""
+msgstr "Selecionar de la cola los que coinciden con la expresión regular"
 
 #: src/interface-glade2.c:10194
 msgid "[queued downloads]"
-msgstr ""
+msgstr "[descargas encoladas]"
 
 #: src/interface-glade2.c:10201
-#, fuzzy
 msgid " queued ("
-msgstr "Encolado"
+msgstr " encolado ("
 
 #: src/interface-glade2.c:10207
 msgid "[hosts alive]"
-msgstr ""
+msgstr "[nodos vivos]"
 
 #: src/interface-glade2.c:10213
 msgid " alive with "
-msgstr ""
+msgstr " vivo con "
 
 #: src/interface-glade2.c:10219
-#, fuzzy
 msgid "[pqueued]"
-msgstr "Encolado"
+msgstr "[encoladop]"
 
 #: src/interface-glade2.c:10225
 msgid " passive)"
-msgstr ""
+msgstr " pasivo)"
 
 #: src/interface-glade2.c:10231
 msgid "Download queue"
-msgstr ""
+msgstr "Cola de descargas"
 
 #: src/interface-glade2.c:10273 src/interface-glade2.c:10434
 msgid "Fileinfo"
@@ -3568,20 +3856,19 @@ msgstr "Información del archivo"
 
 #: src/interface-glade2.c:10290
 msgid "[all count]"
-msgstr ""
+msgstr "[cuenta total]"
 
 #: src/interface-glade2.c:10296
 msgid " registered, "
-msgstr ""
+msgstr " registrados, "
 
 #: src/interface-glade2.c:10302
 msgid "[with source count]"
-msgstr ""
+msgstr "[con cuenta de las fuentes]"
 
 #: src/interface-glade2.c:10308
-#, fuzzy
 msgid " with sources "
-msgstr "no hay fuentes activas"
+msgstr " con fuentes "
 
 #: src/interface-glade2.c:10342 src/interface-glade2.c:10946
 msgid "Filename:"
@@ -3593,7 +3880,7 @@ msgstr "Tamaño:"
 
 #: src/interface-glade2.c:10375
 msgid "_Purge"
-msgstr ""
+msgstr "_Limpiar"
 
 #: src/interface-glade2.c:10402
 msgid "Sources"
@@ -3609,12 +3896,11 @@ msgstr "Detalle"
 
 #: src/interface-glade2.c:10703
 msgid "window12"
-msgstr ""
+msgstr "ventana12"
 
 #: src/interface-glade2.c:10724
-#, fuzzy
 msgid "Current search"
-msgstr "_Cerrar búsqueda"
+msgstr "Búsqueda actual"
 
 #: src/interface-glade2.c:10777 src/search_gui.c:463 src/search_gui.c:1288
 #: src/search_gui.c:1404
@@ -3623,7 +3909,7 @@ msgstr "(ninguna búsqueda)"
 
 #: src/interface-glade2.c:10810
 msgid "Autoselect _identical"
-msgstr ""
+msgstr "Seleccionar automáticamente _idénticos"
 
 #: src/interface-glade2.c:10814
 msgid ""
@@ -3633,39 +3919,41 @@ msgstr ""
 
 #: src/interface-glade2.c:10821
 msgid "Enable _autoselect"
-msgstr ""
+msgstr "Permitir _autoselecciones"
 
 #: src/interface-glade2.c:10826
 msgid "Automatically select all other results with the same name or urn:sha1."
 msgstr ""
+"Seleccionar automáticamente otros resultados con el mismo nombre ó el mismo "
+"urn:sha1."
 
 #: src/interface-glade2.c:10842
 msgid "Max. _number of results"
-msgstr ""
+msgstr "_Número máximo de resultados"
 
 #: src/interface-glade2.c:10851
 msgid "Ignored files are"
-msgstr ""
+msgstr "Los archivos ignorados son"
 
 #: src/interface-glade2.c:10860
 msgid "_Jump to downloads"
-msgstr ""
+msgstr "_Saltar a descargas"
 
 #: src/interface-glade2.c:10867
 msgid "_Hide downloaded files"
-msgstr ""
+msgstr "_Ocultar archivos descargados"
 
 #: src/interface-glade2.c:10887
 msgid "_Remove manually downloaded files"
-msgstr ""
+msgstr "_Limpiar manualmente archivos descargados"
 
 #: src/interface-glade2.c:10908
 msgid "Displaying"
-msgstr ""
+msgstr "Mostrando"
 
 #: src/interface-glade2.c:10914
 msgid "General search settings (affect all searches)"
-msgstr ""
+msgstr "Ajustes generales de búsquedas (afecta a todas las búsquedas)"
 
 #: src/interface-glade2.c:10955
 msgid "ServentID:"
@@ -3677,7 +3965,7 @@ msgstr "Programa:"
 
 #: src/interface-glade2.c:10973
 msgid "Timestamp:"
-msgstr ""
+msgstr "Hora y fecha:"
 
 #: src/interface-glade2.c:10982
 msgid "Source:"
@@ -3685,7 +3973,7 @@ msgstr "Fuente:"
 
 #: src/interface-glade2.c:10991
 msgid "SHA1:"
-msgstr ""
+msgstr "SHA1:"
 
 #: src/interface-glade2.c:11009
 msgid "Index:"
@@ -3693,11 +3981,11 @@ msgstr "Índice:"
 
 #: src/interface-glade2.c:11141
 msgid "Tag:"
-msgstr ""
+msgstr "Identificación:"
 
 #: src/interface-glade2.c:11165
 msgid "Information about selected file"
-msgstr ""
+msgstr "Información sobre el archivo seleccionado"
 
 #: src/interface-glade2.c:11181
 msgid ""
@@ -3707,16 +3995,15 @@ msgstr ""
 
 #: src/interface-glade2.c:11188
 msgid "Re_try search every"
-msgstr ""
+msgstr "Re_intentar búsqueda cada"
 
 #: src/interface-glade2.c:11201
 msgid "secs   "
-msgstr ""
+msgstr "segs   "
 
 #: src/interface-glade2.c:11232
-#, fuzzy
 msgid "_Download selected"
-msgstr "Bajado"
+msgstr "_Descargar selección"
 
 #: src/interface-glade2.c:11258
 msgid "Edit _Filters"
@@ -3735,21 +4022,20 @@ msgid "Cl_ose search"
 msgstr "_Cerrar búsqueda"
 
 #: src/interface-glade2.c:11352
-#, fuzzy
 msgid "Search results"
-msgstr "_Limpiar resultados"
+msgstr "Resultados de búsqueda"
 
 #: src/interface-glade2.c:11503
 msgid "window13"
-msgstr ""
+msgstr "ventana13"
 
 #: src/interface-glade2.c:11517
 msgid "Search _monitor enabled"
-msgstr ""
+msgstr "_Monitor de búsquedas activado"
 
 #: src/interface-glade2.c:11527
 msgid "Show _last"
-msgstr ""
+msgstr "Mostrar ú_ltimo"
 
 #: src/interface-glade2.c:11539
 msgid "searches"
@@ -3757,15 +4043,15 @@ msgstr "búsquedas"
 
 #: src/interface-glade2.c:11606
 msgid "window14"
-msgstr ""
+msgstr "ventana14"
 
 #: src/interface-glade2.c:11631
 msgid "_Update interval (sec)"
-msgstr ""
+msgstr "Intervalo de _actualización (seg)"
 
 #: src/interface-glade2.c:11643
 msgid "_Deletion coeff. (0-100)"
-msgstr ""
+msgstr "Coeficiente de _borrado (0-100)"
 
 #: src/interface-glade2.c:11694
 msgid "_Reset stats"
@@ -3777,7 +4063,7 @@ msgstr "se contaron 0 términos"
 
 #: src/interface-glade2.c:11782
 msgid "window15"
-msgstr ""
+msgstr "ventana15"
 
 #: src/interface-glade2.c:11848
 msgid "_Messages"
@@ -3801,23 +4087,23 @@ msgstr "Mostrar en bytes"
 
 #: src/interface-glade2.c:11917
 msgid "Columns show hops"
-msgstr ""
+msgstr "Columnas muestran saltos"
 
 #: src/interface-glade2.c:11924
 msgid "Add headers"
-msgstr ""
+msgstr "Añadir cabeceras"
 
 #: src/interface-glade2.c:11955
 msgid "Show reasons for"
-msgstr ""
+msgstr "Mostrar razones para"
 
 #: src/interface-glade2.c:11993
 msgid "Drop reasons"
-msgstr ""
+msgstr "Razones del abandono"
 
 #: src/interface-glade2.c:12053
 msgid "window24"
-msgstr ""
+msgstr "ventana24"
 
 #: src/interface-glade2.c:12073
 msgid "Add jump rule"
@@ -3825,15 +4111,15 @@ msgstr ""
 
 #: src/interface-glade2.c:12080
 msgid "Add size rule"
-msgstr ""
+msgstr "Añadir regla de tamaño"
 
 #: src/interface-glade2.c:12087
 msgid "Add IP rule"
-msgstr ""
+msgstr "Añadir regla de IP"
 
 #: src/interface-glade2.c:12094
 msgid "Add name rule"
-msgstr ""
+msgstr "Añadir regla de nombre"
 
 #: src/interface-glade2.c:12101
 msgid "Add flag rule"
@@ -3841,11 +4127,11 @@ msgstr ""
 
 #: src/interface-glade2.c:12108
 msgid "Add state rule"
-msgstr ""
+msgstr "Añadir regla de estado"
 
 #: src/interface-glade2.c:12196
 msgid "window25"
-msgstr ""
+msgstr "ventana25"
 
 #: src/interface-glade2.c:12224 src/interface-glade2.c:12543
 #: src/interface-glade2.c:12819 src/interface-glade2.c:13345
@@ -3858,13 +4144,13 @@ msgstr "invertir condición"
 #: src/interface-glade2.c:13349 src/interface-glade2.c:13677
 #: src/interface-glade2.c:14356
 msgid "active"
-msgstr ""
+msgstr "activo"
 
 #: src/interface-glade2.c:12234 src/interface-glade2.c:12553
 #: src/interface-glade2.c:12829 src/interface-glade2.c:13355
 #: src/interface-glade2.c:13682 src/interface-glade2.c:14361
 msgid "mark only"
-msgstr ""
+msgstr "sólo marcar"
 
 #: src/interface-glade2.c:12239 src/interface-glade2.c:12558
 #: src/interface-glade2.c:12834 src/interface-glade2.c:13116
@@ -3875,14 +4161,14 @@ msgstr ""
 
 #: src/interface-glade2.c:12290
 msgid "Condition: If filename matches"
-msgstr ""
+msgstr "Condición: Si el nombre del archivo coincide"
 
 #: src/interface-glade2.c:12329 src/interface-glade2.c:12651
 #: src/interface-glade2.c:12950 src/interface-glade2.c:13185
 #: src/interface-glade2.c:13458 src/interface-glade2.c:14054
 #: src/interface-glade2.c:14694
 msgid "Reset stats"
-msgstr ""
+msgstr "Estadísticas de reinicio"
 
 #: src/interface-glade2.c:12359 src/interface-glade2.c:12681
 #: src/interface-glade2.c:12980 src/interface-glade2.c:13215
@@ -3898,7 +4184,7 @@ msgstr "Borrar"
 
 #: src/interface-glade2.c:12515
 msgid "window26"
-msgstr ""
+msgstr "ventana26"
 
 #: src/interface-glade2.c:12583
 msgid "IP address"
@@ -3906,15 +4192,15 @@ msgstr "Dirección IP"
 
 #: src/interface-glade2.c:12591
 msgid "network mask"
-msgstr ""
+msgstr "máscara de red"
 
 #: src/interface-glade2.c:12612
 msgid "Condition: If IP address matches"
-msgstr ""
+msgstr "Condición: Si la dirección IP coincide"
 
 #: src/interface-glade2.c:12791
 msgid "window27"
-msgstr ""
+msgstr "ventana27"
 
 #: src/interface-glade2.c:12859
 msgid "minimum size"
@@ -3926,11 +4212,11 @@ msgstr "tamaño máximo"
 
 #: src/interface-glade2.c:12911
 msgid "Condition: If file size matches"
-msgstr ""
+msgstr "Condición: Si el tamaño del archivo coincide"
 
 #: src/interface-glade2.c:13083
 msgid "window28"
-msgstr ""
+msgstr "ventana28"
 
 #: src/interface-glade2.c:13134
 msgid ""
@@ -3938,14 +4224,17 @@ msgid ""
 "in the specified target filter. That's also why you can't invert this "
 "condition. If you could, this rule would just be ignored."
 msgstr ""
+"No hay condición. Cuando se llega a esta regla, la coincidencia continuará "
+"en el filtro objetivo especificado. También es por eso que no se puede "
+"invertir esta condición. Si se pudiese, esta regla se ignoraría."
 
 #: src/interface-glade2.c:13141
 msgid "Condition: always"
-msgstr ""
+msgstr "Condición: siempre"
 
 #: src/interface-glade2.c:13317
 msgid "window29"
-msgstr ""
+msgstr "ventana29"
 
 #: src/interface-glade2.c:13384
 msgid "SHA1 hash (not editable, add from search popup)"
@@ -3953,15 +4242,15 @@ msgstr ""
 
 #: src/interface-glade2.c:13407
 msgid "Originally obtained from"
-msgstr ""
+msgstr "Obtenido originalmente desde"
 
 #: src/interface-glade2.c:13418
 msgid "Condition: If urn:sha1 matches"
-msgstr ""
+msgstr "Condición: Si urn:sha1 coincide"
 
 #: src/interface-glade2.c:13649
 msgid "window30"
-msgstr ""
+msgstr "ventana30"
 
 #: src/interface-glade2.c:13712
 msgid "Busy"
@@ -3969,22 +4258,22 @@ msgstr "Ocupado"
 
 #: src/interface-glade2.c:13720
 msgid "Push"
-msgstr ""
+msgstr "Push"
 
 #: src/interface-glade2.c:13753 src/interface-glade2.c:13784
 #: src/interface-glade2.c:13978
 msgid "ignored"
-msgstr ""
+msgstr "ignorado"
 
 #: src/interface-glade2.c:13815 src/interface-glade2.c:13947
 #: src/interface-glade2.c:14009
 msgid "unset"
-msgstr ""
+msgstr "desactivado"
 
 #: src/interface-glade2.c:13846 src/interface-glade2.c:13877
 #: src/interface-glade2.c:13916
 msgid "set"
-msgstr ""
+msgstr "activado"
 
 #: src/interface-glade2.c:13883
 msgid "Stable"
@@ -3996,86 +4285,95 @@ msgstr ""
 
 #: src/interface-glade2.c:14323
 msgid "window31"
-msgstr ""
+msgstr "ventana31"
 
 #: src/interface-glade2.c:14391
 msgid "DOWNLOAD"
-msgstr ""
+msgstr "DESCARGAR"
 
 #: src/interface-glade2.c:14424 src/interface-glade2.c:14556
 msgid "don't"
-msgstr ""
+msgstr "no"
 
 #: src/interface-glade2.c:14455 src/interface-glade2.c:14587
 msgid "undefined"
-msgstr ""
+msgstr "indefinido"
 
 #: src/interface-glade2.c:14461
 msgid "DISPLAY"
-msgstr ""
+msgstr "MOSTRAR"
 
 #: src/interface-glade2.c:14494 src/interface-glade2.c:14525
 msgid "do"
-msgstr ""
+msgstr "hacer"
 
 #: src/interface-glade2.c:14618 src/interface-glade2.c:14649
 msgid "ignore"
-msgstr ""
+msgstr "ignorar"
 
 #: src/interface-glade2.c:14655
 msgid "Condition: If current filter result properties match"
-msgstr ""
+msgstr "Condición: Si las propiedades del resultado del filtro actual coincide"
 
 #: src/interface-glade2.c:14901
 msgid ""
 "Configuration of IP address, Port,\n"
 "Proxy settings etc. "
 msgstr ""
+"Configuración de la dirección IP,\n"
+"Puerto, Proxy, etc. "
 
 #: src/interface-glade2.c:14911
 msgid ""
 "Peer mode selection, timeout and TTL settings, quality management regarding "
 "GnutellaNet traffic"
 msgstr ""
+"Selección del modo del nodo, caducidad y ajustes TTL, gestión de la calidad "
+"del tráfico GnutellaNet"
 
 #: src/interface-glade2.c:14921
 msgid ""
 "Bandwidth limit configuration for HTTP, normal GnutellaNet and Ultrapeer "
 "traffic"
 msgstr ""
+"Configuración del ancho de banda límite para HTTP y el tráfico GnutellaNet "
+"de nodos normales y ultras"
 
 #: src/interface-glade2.c:14931
 msgid "Choose directories for completed files and downloads in progress"
 msgstr ""
+"Elija directorios para archivos completados y descargas en progreso"
 
 #: src/interface-glade2.c:14941
 msgid "Selection of directories and filetypes to share"
-msgstr ""
+msgstr "Selección de los directorios y los tipos de archivo compartidos"
 
 #: src/interface-glade2.c:14950
 msgid ""
 "Settings for the User Interface like toolbar appearance, expert settings"
 msgstr ""
+"Ajustes para la interfaz de usuario, como la apariencia de la barra de "
+"herramientas y los ajustes para expertos"
 
 #: src/interface-glade2.c:14960
 msgid "Debug level configuration"
-msgstr ""
+msgstr "Configuración del nivel de depuración"
 
 #: src/interface-glade2.c:14991
 msgid "Network Settings"
-msgstr ""
+msgstr "Ajustes de red"
 
 #: src/interface-glade2.c:15019
 msgid "GnutellaNet Settings"
-msgstr ""
+msgstr "Ajustes GnutellaNet"
 
 #: src/interface-glade2.c:15047
 msgid "Bandwidth Control"
-msgstr ""
+msgstr "Control del Ancho de Banda"
 
 #: src/interface-glade2.c:15076
 msgid "Download Settings"
-msgstr ""
+msgstr "Ajustes de Descargas"
 
 #: src/interface-glade2.c:15135 src/main_gui.c:182
 msgid "User Interface"
@@ -4086,13 +4384,12 @@ msgid "Debugging"
 msgstr "Depuración"
 
 #: src/interface-glade2.c:15293
-#, fuzzy
 msgid "Disconnect"
-msgstr "Conectado"
+msgstr "Desconectar"
 
 #: src/main_gui.c:126
 msgid "gnutellaNet"
-msgstr ""
+msgstr "gnutellaNet"
 
 #: src/main_gui.c:129 src/main_gui.c:136 src/main_gui.c:153
 msgid "Stats"
@@ -4104,7 +4401,7 @@ msgstr "Buscar"
 
 #: src/main_gui.c:149
 msgid "Monitor"
-msgstr ""
+msgstr "Monitor"
 
 #: src/main_gui.c:158
 msgid "Config"
@@ -4116,7 +4413,7 @@ msgstr "Red"
 
 #: src/main_gui.c:166
 msgid "GnutellaNet"
-msgstr ""
+msgstr "GnutellaNet"
 
 #: src/main_gui.c:170
 msgid "Bandwidth"
@@ -4128,7 +4425,7 @@ msgstr "Archivo"
 
 #: src/search_gui.c:1615 src/search_gui.c:1621
 msgid "#"
-msgstr ""
+msgstr "#"
 
 #: src/search_gui.c:1623 src/search_gui.c:1629
 msgid "Speed"
@@ -4136,21 +4433,21 @@ msgstr "Velocidad"
 
 #: src/search_gui.c:1632 src/search_gui.c:1638
 msgid "Host"
-msgstr ""
+msgstr "Nodo"
 
 #: src/search_gui.c:1650 src/search_gui.c:1656
 msgid "Info"
-msgstr ""
+msgstr "Info"
 
 #: src/search_gui.c:1692
-#, fuzzy, c-format
+#, c-format
 msgid "%s%u item%s found"
-msgstr "se contaron 0 términos"
+msgstr ""
 
 #: src/search_gui.c:1695
-#, fuzzy, c-format
+#, c-format
 msgid "%sNo items found"
-msgstr "se contaron 0 términos"
+msgstr ""
 
 #: src/search_gui.c:1697
 msgid "No search"
@@ -4166,55 +4463,54 @@ msgstr "Leyendo cache de hosts..."
 
 #: src/settings_gui.c:3724
 msgid "*** RUNNING AN OLD VERSION! ***"
-msgstr ""
+msgstr "*** ¡EJECUTANDO VERSIÓN ANTICUADA! ***"
 
 #: src/settings_gui.c:3740
 msgid "*** VERSION WILL SOON BECOME OLD! ***"
-msgstr ""
+msgstr "*** ¡ESTA VERSIÓN PRONTO SE QUEDARÁ ANTICUADA! ***"
 
 #: src/settings_gui.c:3743
 msgid "*** VERSION WILL BECOME OLD IN 1 DAY! ***"
-msgstr ""
+msgstr "*** ¡ESTA VERSIÓN SE QUEDARÁ ANTICUADA EN UN DÍA! ***"
 
 #: src/settings_gui.c:3746
 #, c-format
 msgid "*** VERSION WILL BECOME OLD IN %d DAYS! ***"
-msgstr ""
+msgstr "*** ¡ESTA VERSIÓN SE QUEDARÁ ANTICUADA EN %d DÍAS! ***"
 
 #: src/settings_gui.c:3833
 #, c-format
 msgid "%u/%u host%s (%u%%)"
-msgstr ""
+msgstr "%u/%u nodo%s (%u%%)"
 
 #: src/settings_gui.c:3835
 #, c-format
 msgid "%u/%u host%s (%u%%%%)"
-msgstr ""
+msgstr "%u/%u nodo%s (%u%%%%)"
 
 #: src/settings_gui.c:4518
-#, fuzzy
 msgid "no sources"
-msgstr "no hay fuentes activas"
+msgstr "no hay fuentes"
 
 #: src/settings_gui.c:4522
-#, fuzzy, c-format
+#, c-format
 msgid "%u source%s"
-msgstr "Fuentes"
+msgstr "%u fuente%s"
 
 #: src/settings_gui.c:4537
-#, fuzzy, c-format
+#, c-format
 msgid "%u active"
-msgstr "no hay fuentes activas"
+msgstr "%u activas"
 
 #: src/settings_gui.c:4563
-#, fuzzy, c-format
+#, c-format
 msgid "%u queued"
-msgstr "Encolado"
+msgstr "%u encolado"
 
 #: src/settings_gui.c:4659
-#, fuzzy, c-format
+#, c-format
 msgid "%u/%u connection%s"
-msgstr "Conexiones gNet"
+msgstr "%u/%u conexione%s"
 
 #: src/settings_gui.c:4693
 #, c-format
@@ -4222,118 +4518,7 @@ msgid "%u/%u upload%s"
 msgstr "%u/%u subida%s"
 
 #: src/settings_gui.c:4715
-#, fuzzy, c-format
+#, c-format
 msgid "%u/%u download%s"
 msgstr "%u/%u bajada%s"
 
-#~ msgid "Filename"
-#~ msgstr "Archivo"
-
-#~ msgid "Range"
-#~ msgstr "Rango"
-
-#~ msgid "Server"
-#~ msgstr "Servidor"
-
-#~ msgid "Status"
-#~ msgstr "Estado"
-
-#~ msgid "_New search"
-#~ msgstr "_Nueva búsqueda"
-
-#~ msgid "New _passive search"
-#~ msgstr "Nueva búsqueda _pasiva"
-
-#~ msgid "Add new search"
-#~ msgstr "Añadir nueva búsqueda"
-
-#~ msgid "Speed:"
-#~ msgstr "Velocidad:"
-
-#~ msgid "can't find your home directory!"
-#~ msgstr "no se pudo encontrar su directorio hogar!"
-
-#~ msgid "busy"
-#~ msgstr "ocupado"
-
-#~ msgid "stable"
-#~ msgstr "estable"
-
-#~ msgid " retry in %ds"
-#~ msgstr " reintento en %ds"
-
-#~ msgid "Connecting..."
-#~ msgstr "Conectando..."
-
-#~ msgid "Push sent"
-#~ msgstr "\"Push\" enviado"
-
-#~ msgid "Request sent"
-#~ msgstr "Requerimiento enviado"
-
-#~ msgid "Receiving headers"
-#~ msgstr "Recibiendo cabeceras"
-
-#~ msgid "Aborted"
-#~ msgstr "Abortado"
-
-#~ msgid "Chunk done"
-#~ msgstr "Tramo completo"
-
-#~ msgid "Waiting for SHA1 checking..."
-#~ msgstr "Esperando verificación SHA1..."
-
-#~ msgid "Computing SHA1 (%.02f%%)"
-#~ msgstr "Calculando SHA1 (%.02f%%)"
-
-#~ msgid "; Waiting for moving..."
-#~ msgstr "; Esperando para mover..."
-
-#~ msgid "; Moving (%.02f%%)"
-#~ msgstr "; Moviendo (%.02f%%)"
-
-#~ msgid "; Moved (%.1f k/s) %s"
-#~ msgstr "; Movido (%.1f k/s) %s"
-
-#~ msgid "(stalled) "
-#~ msgstr "(detenido) "
-
-#, fuzzy
-#~ msgid " (stalled)"
-#~ msgstr " (detenido)"
-
-#~ msgid "Retry in %ds"
-#~ msgstr "Reintento en %ds"
-
-#~ msgid "Timeout"
-#~ msgstr "Tiempo expirado"
-
-#~ msgid "no home directory: prefs will not be saved!"
-#~ msgstr "no hay directorio hogar: no se guardarán las preferencias!"
-
-#~ msgid "creating configuration directory '%s'\n"
-#~ msgstr "creando directorio de configuración '%s'\n"
-
-#, fuzzy
-#~ msgid "Request timeout"
-#~ msgstr "Requerimiento enviado"
-
-#~ msgid "No reason given"
-#~ msgstr "No se dio una razón"
-
-#~ msgid "Cancelling upload from %s: %s\n"
-#~ msgstr "Cancelando subida de %s: %s\n"
-
-#, fuzzy
-#~ msgid "Bad Request"
-#~ msgstr "Requerimiento enviado"
-
-#, fuzzy
-#~ msgid "Failed (%s)"
-#~ msgstr "%u archivo compartido (%s)"
-
-#~ msgid "Moved Permanently"
-#~ msgstr "Movido permanentemente"
-
-#~ msgid "from CVS "
-#~ msgstr "de CVS "
