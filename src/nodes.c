@@ -3366,6 +3366,8 @@ static void node_send_qrt(struct gnutella_node *n, gpointer query_table)
 
 	n->query_table = qrt_ref(query_table);
 	node_send_patch_step(n);
+
+	node_fire_node_flags_changed(n);
 }
 
 /*
@@ -3400,6 +3402,8 @@ static void node_send_patch_step(struct gnutella_node *n)
 
 	qrt_update_free(n->qrt_update);
 	n->qrt_update = NULL;
+
+	node_fire_node_flags_changed(n);
 }
 
 /*
@@ -3596,6 +3600,16 @@ void node_fill_flags(const gnet_node_t n, gnet_node_flags_t *flags)
     flags->tx_compressed = NODE_TX_COMPRESSED(node);
     flags->in_tx_flow_control  = NODE_IN_TX_FLOW_CONTROL(node);
     flags->rx_compressed = NODE_RX_COMPRESSED(node);
+
+	flags->qrt_state = QRT_S_NONE;
+	if (node->peermode == NODE_P_LEAF) {
+		// XXX
+	} else if (node->peermode == NODE_P_ULTRA) {
+		if (node->qrt_update != NULL)
+			flags->qrt_state = QRT_S_SENDING;
+		else if (node->query_table != NULL)
+			flags->qrt_state = QRT_S_SENT;
+	}
 }
 
 void node_get_status(const gnet_node_t n, gnet_node_status_t *status)

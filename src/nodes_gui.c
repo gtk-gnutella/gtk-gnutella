@@ -249,21 +249,22 @@ static void nodes_gui_update_node_info(gnet_node_info_t *n)
  *
  * Display a summary of the node flags:
  *
- *    0123456 (offset)
- *    NIrwTRF
+ *    01234567 (offset)
+ *    NIrwqTRF
  *    ^^^^^^^
- *    ||||||+ flow control
- *    |||||+  indicates whether RX is compressed
- *    ||||+   indicates whether TX is compressed
- *    |||+    indicates whether node is writable
- *    ||+     indicates whether node is readable
- *    |+      indicates connection type (Incoming, Outgoing, Ponging)
- *    +       indicates peer mode (Normal, Ultra, Leaf)
+ *    |||||||+ flow control
+ *    ||||||+  indicates whether RX is compressed
+ *    |||||+   indicates whether TX is compressed
+ *    ||||+    indicates whether we sent/received a QRT, or send/receive one
+ *    |||+     indicates whether node is writable
+ *    ||+      indicates whether node is readable
+ *    |+       indicates connection type (Incoming, Outgoing, Ponging)
+ *    +        indicates peer mode (Normal, Ultra, Leaf)
  */
 static void nodes_gui_update_node_flags(gnet_node_t n, gnet_node_flags_t *flags)
 {
 	gint row;
-	gchar status[] = { '-', '-', '-', '-', '-', '-', '-', '\0' };
+	gchar status[] = { '-', '-', '-', '-', '-', '-', '-', '-', '\0' };
     GtkCList *clist = GTK_CLIST
         (lookup_widget(main_window, "clist_nodes"));
 
@@ -282,16 +283,22 @@ static void nodes_gui_update_node_flags(gnet_node_t n, gnet_node_flags_t *flags)
 		if (flags->temporary) status[1] = 'P';
 		if (flags->readable) status[2] = 'r';
 		if (flags->writable) status[3] = 'w';
-		if (flags->tx_compressed) status[4] = 'T';
-		if (flags->rx_compressed) status[5] = 'R';
-		if (flags->in_tx_flow_control) status[6] = 'F';
+
+		switch (flags->qrt_state) {
+		case QRT_S_SENT: case QRT_S_RECEIVED:		status[4] = 'Q'; break;
+		case QRT_S_SENDING: case QRT_S_RECEIVING:	status[4] = 'q'; break;
+		default:									break;
+		}
+
+		if (flags->tx_compressed) status[5] = 'T';
+		if (flags->rx_compressed) status[6] = 'R';
+		if (flags->in_tx_flow_control) status[7] = 'F';
 
         gtk_clist_set_text(clist, row, 1, status);
     } else {
         g_warning("%s: no matching row found", G_GNUC_PRETTY_FUNCTION);
     }
 }
-
 
 /***
  *** Public functions

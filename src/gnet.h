@@ -120,8 +120,21 @@ typedef enum {
 	NODE_P_UNKNOWN,						/* Unknown mode yet */
 } node_peer_t;
 
+/*
+ * QRT state.
+ */
+
+typedef enum {
+	QRT_S_NONE = 0,						/* Nothing */
+	QRT_S_SENDING,						/* Sending QRT to ultrapeer */
+	QRT_S_SENT,							/* Sent QRT to ultrapeer */
+	QRT_S_RECEIVING,					/* Receiving QRT from leaf */
+	QRT_S_RECEIVED,						/* Received QRT from leaf */
+} qrt_state_t;
+
 typedef struct gnet_node_flags {
 	node_peer_t peermode;
+	qrt_state_t qrt_state;
 	gboolean incoming;
 	gboolean temporary;
 	gboolean writable;
