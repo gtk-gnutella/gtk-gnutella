@@ -54,6 +54,25 @@ void on_button_quit_clicked(GtkButton * button, gpointer user_data)
 	gtk_gnutella_exit(0);
 }
 
+gboolean on_progressbar_bps_in_button_press_event(GtkWidget *widget, 
+											      GdkEventButton *event, 
+											      gpointer user_data)
+{
+	progressbar_bps_in_avg = !progressbar_bps_in_avg;
+	gui_update_global();
+	return TRUE;
+}
+
+gboolean on_progressbar_bps_out_button_press_event(GtkWidget *widget, 
+											       GdkEventButton *event, 
+											       gpointer user_data)
+{
+	progressbar_bps_out_avg = !progressbar_bps_out_avg;	
+	gui_update_global();
+	return TRUE;
+}
+
+
 /***
  *** gnutellaNet pane
  ***/
@@ -1844,11 +1863,18 @@ gboolean on_entry_config_socks_password_focus_out_event(GtkWidget * widget,
 
 
 void on_checkbutton_config_proxy_connections_toggled(GtkToggleButton *
+											         togglebutton,
+											         gpointer user_data)
+{
+	proxy_connections = gtk_toggle_button_get_active(togglebutton);
+	
+}
+
+void on_checkbutton_config_proxy_auth_toggled(GtkToggleButton *
 											  togglebutton,
 											  gpointer user_data)
 {
-	proxy_connections = gtk_toggle_button_get_active(togglebutton);
-
+	proxy_auth = gtk_toggle_button_get_active(togglebutton);
 }
 
 void on_radio_config_http_toggled(GtkToggleButton * togglebutton,

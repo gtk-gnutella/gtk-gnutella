@@ -41,6 +41,13 @@ void on_entry_up_connections_activate (GtkEditable *editable, gpointer user_data
 
 
 /***
+ *** sidebar
+ ***/
+gboolean on_progressbar_bps_in_button_press_event(GtkWidget *widget, GdkEventButton *event, gpointer user_data);
+gboolean on_progressbar_bps_out_button_press_event(GtkWidget *widget, GdkEventButton *event, gpointer user_data);
+
+
+/***
  *** gnutellaNet panel
  ***/
 void on_button_host_catcher_clear_clicked (GtkButton *button, gpointer user_data);
@@ -136,6 +143,7 @@ void on_button_config_save_path_clicked (GtkButton *button, gpointer user_data);
 void on_button_config_update_port_clicked (GtkButton *button, gpointer user_data); 
 void on_checkbutton_config_force_ip_toggled (GtkToggleButton *togglebutton, gpointer user_data);
 void on_checkbutton_config_proxy_connections_toggled (GtkToggleButton *togglebutton, gpointer user_data);
+void on_checkbutton_config_proxy_auth_toggled(GtkToggleButton *togglebutton, gpointer user_data);
 void on_checkbutton_config_throttle_toggled (GtkToggleButton *togglebutton, gpointer user_data);
 void on_entry_config_extensions_activate (GtkEditable *editable, gpointer user_data); 
 void on_entry_config_extensions_changed (GtkEditable *editable, gpointer user_data);
