@@ -1,5 +1,13 @@
 # since last version
 
+- (2003.08.10 - RAM)
+ * Replacement inet_aton() was using same parameter and local variable names.
+ * [GTK2] Integrated GUI update from Andrew Barnert, propagating changes
+   made to the GTK1 interface.
+
+- (2003.08.09 - RAM)
+ * Switched to metaconfig.
+
 - (2003.08.08 - RAM)
  * [GTK1] Renamed "Abort all from host" as "Forget all from host" since we're
    no longer paying attention to the "delete file on abort" setting here.
