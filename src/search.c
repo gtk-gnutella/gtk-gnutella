@@ -77,8 +77,10 @@
 #define T_OPRA	MAKE_CODE('O','P','R','A')
 #define T_PHEX	MAKE_CODE('P','H','E','X')
 #define T_QTEL	MAKE_CODE('Q','T','E','L')
+#define T_RAZA	MAKE_CODE('R','A','Z','A')
 #define T_SNUT	MAKE_CODE('S','N','U','T')
 #define T_SWAP	MAKE_CODE('S','W','A','P')
+#define T_SWFT	MAKE_CODE('S','W','F','T')
 #define T_TOAD	MAKE_CODE('T','O','A','D')
 #define T_XOLO	MAKE_CODE('X','O','L','O')
 #define T_XTLA	MAKE_CODE('X','T','L','A')
@@ -954,8 +956,10 @@ static gchar *extract_vendor_name(struct results_set * rs)
 	case T_OPRA: vendor = "Opera";			break;
 	case T_PHEX: vendor = "Phex";			break;
 	case T_QTEL: vendor = "Qtella";			break;
+	case T_RAZA: vendor = "Shareaza";		break;
 	case T_SNUT: vendor = "SwapNut";		break;
 	case T_SWAP: vendor = "Swapper";		break;
+	case T_SWFT: vendor = "Swift";			break;
 	case T_TOAD: vendor = "ToadNode";		break;
 	case T_XOLO: vendor = "Xolox";			break;
 	case T_XTLA: vendor = "Xtella";			break;
@@ -1217,13 +1221,6 @@ static struct results_set *get_results_set(struct gnutella_node *n)
 			if (trailer[4] == 4)
 				trailer[4] = 2;			/* We ignore XML data size */
 				/* Fall through */
-		case T_FIRE:
-		case T_FISH:
-		case T_GTKG:
-		case T_BEAR:
-		case T_GNOT:
-		case T_GNUC:
-		case T_SNUT:
 		default:
 			if (trailer[4] == 2) {
 				guint32 status =
@@ -1232,12 +1229,16 @@ static struct results_set *get_results_set(struct gnutella_node *n)
 				if (status & 0x01) rs->status |= ST_FIREWALL;
 				if (status & 0x08) rs->status |= ST_UPLOADED;
 				rs->status |= ST_PARSED_TRAILER;
-			} else if (rs->status  & ST_KNOWN_VENDOR)
-				g_warning("vendor %s changed # of open data bytes to %d",
-						  vendor, trailer[4]);
-			else if (vendor)
-				g_warning("ignoring %d open data byte%s from unknown vendor %s",
-					trailer[4], trailer[4] == 1 ? "" : "s", vendor);
+			} else if (rs->status  & ST_KNOWN_VENDOR) {
+				if (dbg)
+					g_warning("vendor %s changed # of open data bytes to %d",
+							  vendor, trailer[4]);
+			} else if (vendor) {
+				if (dbg)
+					g_warning("ignoring %d open data byte%s from "
+						"unknown vendor %s",
+						trailer[4], trailer[4] == 1 ? "" : "s", vendor);
+			}
 			break;
 		}
 
