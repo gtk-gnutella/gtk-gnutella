@@ -45,19 +45,21 @@ RCSID("$Id$");
 
 static guint32 monitor_items = 0;
 
-
-
 /***
  *** Callbacks
  ***/
 
-static void monitor_gui_append_to_monitor(
-    query_type_t type, const gchar *item, guint32 ip, guint16 port)
+static void
+monitor_gui_append_to_monitor(query_type_t type, const gchar *item,
+	guint32 unused_ip, guint16 unused_port)
 {
     char *titles[1];
     static GtkWidget *clist_monitor = NULL;
     gchar tmpstr[100];
 
+	(void) unused_ip;
+	(void) unused_port;
+	
     if (clist_monitor == NULL) {
         clist_monitor = lookup_widget(main_window, "clist_monitor");
         g_assert(clist_monitor != NULL);
@@ -80,9 +82,7 @@ static void monitor_gui_append_to_monitor(
     }
 
     titles[0] = tmpstr;
-
 	gtk_clist_prepend(GTK_CLIST(clist_monitor), titles);
-
 	gtk_clist_thaw(GTK_CLIST(clist_monitor));
 }
 
@@ -93,23 +93,24 @@ static void monitor_gui_append_to_monitor(
  *** Public functions
  ***/
 
-void monitor_gui_init()
+void
+monitor_gui_init(void)
 {
     gtk_clist_column_titles_passive
         (GTK_CLIST(lookup_widget(main_window, "clist_monitor")));  
 }
 
-void monitor_gui_shutdown()
+void
+monitor_gui_shutdown(void)
 {
     monitor_gui_enable_monitor(FALSE);
 }
 
-/*
- * monitor_gui_clear_monitor:
- *
+/**
  * Remove all but the first n items from the monitor.
  */
-void monitor_gui_clear_monitor(void) 
+void
+monitor_gui_clear_monitor(void) 
 {
     GtkWidget *clist_monitor;
 
@@ -119,12 +120,11 @@ void monitor_gui_clear_monitor(void)
 	monitor_items = 0;
 }
 
-/*
- * monitor_gui_enable_monitor:
- *
+/**
  * Enable/disable monitor.
  */
-void monitor_gui_enable_monitor(const gboolean val)
+void
+monitor_gui_enable_monitor(const gboolean val)
 {
     static gboolean registered = FALSE;
     gtk_widget_set_sensitive
@@ -142,3 +142,4 @@ void monitor_gui_enable_monitor(const gboolean val)
     }
 }
 
+/* vi: set ts=4 sw=4 cindent: */

@@ -40,15 +40,32 @@ RCSID("$Id$");
 
 static gchar *selected_url = NULL;
 
+/**
+ * Informs the user about the number of removed downloads.
+ *
+ * @param removed amount of removed downloads.
+ */
+static void
+show_removed(guint removed)
+{
+    statusbar_gui_message(15,
+		removed == 1 ? _("Removed %u download") : _("Removed %u downloads"),
+		removed);
+}
+
 /***
  *** Downloads pane
  ***/
-void on_ctree_downloads_tree_select_row
-    (GtkCTree *ctree, GList *node, gint column, gpointer user_data)
+void
+on_ctree_downloads_tree_select_row(GtkCTree *ctree, GList *node,
+	gint unused_column, gpointer unused_udata)
 {
 	gboolean activate = FALSE;
 	struct download *d;
     GList *selection;
+
+	(void) unused_column;
+	(void) unused_udata;
 
 	gui_update_download_abort_resume();
 
@@ -70,34 +87,39 @@ void on_ctree_downloads_tree_select_row
 
 
 
-void on_ctree_downloads_tree_unselect_row
-    (GtkCTree *ctree, GList *node, gint column, gpointer user_data)
+void
+on_ctree_downloads_tree_unselect_row(GtkCTree *ctree, GList *node,
+	gint column, gpointer user_data)
 {
 	/* Update the popup visibility */
     on_ctree_downloads_tree_select_row(ctree, node, column, user_data);
 }
 
-void on_ctree_downloads_resize_column
-    (GtkCList * clist, gint column, gint width, gpointer user_data)
+void
+on_ctree_downloads_resize_column(GtkCList *unused_clist,
+	gint column, gint width, gpointer unused_udata)
 {
+	(void) unused_clist;
+	(void) unused_udata;
 	*(gint *) &dl_active_col_widths[column] = width;
 }
 
-gboolean on_ctree_downloads_button_press_event
-    (GtkWidget *widget, GdkEventButton *event, gpointer user_data)
+gboolean
+on_ctree_downloads_button_press_event(GtkWidget *widget,
+	GdkEventButton *event, gpointer unused_udata)
 {
 	gint row;
     gint col;
     GList *selection;
 
+	(void) unused_udata;
 	if (event->button != 3)
 		return FALSE;
 
     selection = GTK_CLIST(widget)->selection;
 
 	/* If no items are selected */
-    if (selection == NULL)
-	{
+    if (selection == NULL) {
 	    gtk_widget_set_sensitive
 	        (lookup_widget(popup_downloads, "popup_downloads_abort"), 
 			FALSE);
@@ -128,7 +150,7 @@ gboolean on_ctree_downloads_button_press_event
 	    gtk_widget_set_sensitive
 	        (lookup_widget(popup_downloads, "popup_downloads_connect"), 
 			FALSE);
-	}else if (GTK_CTREE_NODE_HAS_CHILDREN(selection->data)) {
+	} else if (GTK_CTREE_NODE_HAS_CHILDREN(selection->data)) {
 	    gtk_widget_set_sensitive
  	        (lookup_widget(popup_downloads, "popup_downloads_copy_url"), 
 			FALSE);
@@ -148,22 +170,16 @@ gboolean on_ctree_downloads_button_press_event
 	return TRUE;
 }
 
-
-
 /***
  *** Popup menu: downloads
  ***/
 
-
-
-
-/* 
- * 	on_popup_downloads_push_activate
- *
+/**
  *	All selected downloads fallback to push
  */
-void on_popup_downloads_push_activate(GtkMenuItem * menuitem,
-								      gpointer user_data)
+void
+on_popup_downloads_push_activate(GtkMenuItem *unused_menuitem,
+	gpointer unused_udata)
 {
    	struct download *d;
     GList *node_list;
@@ -174,6 +190,8 @@ void on_popup_downloads_push_activate(GtkMenuItem * menuitem,
     GtkCTree *ctree_downloads_queue = GTK_CTREE
         (lookup_widget(main_window, "ctree_downloads_queue"));
 
+	(void) unused_menuitem;
+	(void) unused_udata;
     gtk_clist_freeze(GTK_CLIST(ctree_downloads_queue));
     gtk_clist_freeze(GTK_CLIST(ctree_downloads));
 	node_list = g_list_copy(GTK_CLIST(ctree_downloads)->selection);
@@ -198,13 +216,12 @@ void on_popup_downloads_push_activate(GtkMenuItem * menuitem,
 }
 	
 
-/* 
- * 	on_popup_downloads_abort_named_activate
- *
+/**
  *	Abort all downloads with names identical to any of the selected downloads
  */
-void on_popup_downloads_abort_named_activate(GtkMenuItem * menuitem,
-										   gpointer user_data) 
+void
+on_popup_downloads_abort_named_activate(GtkMenuItem *unused_menuitem,
+	gpointer unused_udata) 
 {
    	struct download *d;
     GList *node_list;
@@ -216,6 +233,8 @@ void on_popup_downloads_abort_named_activate(GtkMenuItem * menuitem,
         (lookup_widget(main_window, "ctree_downloads_queue"));
     gint removed = 0;
 
+	(void) unused_menuitem;
+	(void) unused_udata;
     gtk_clist_freeze(GTK_CLIST(ctree_downloads));
     gtk_clist_freeze(GTK_CLIST(ctree_downloads_queue));
 	node_list = g_list_copy(GTK_CLIST(ctree_downloads)->selection);
@@ -238,17 +257,16 @@ void on_popup_downloads_abort_named_activate(GtkMenuItem * menuitem,
     gtk_clist_thaw(GTK_CLIST(ctree_downloads_queue));
     gtk_clist_thaw(GTK_CLIST(ctree_downloads));
 	
-    statusbar_gui_message(15, "Removed %u downloads", removed);
+    show_removed(removed);
 }
 
 
-/* 
- * 	on_popup_downloads_abort_host_activate
- *
+/**
  *	Abort all downloads with hosts identical to any of the selected downloads
  */
-void on_popup_downloads_abort_host_activate(GtkMenuItem * menuitem,
-										   gpointer user_data) 
+void
+on_popup_downloads_abort_host_activate(GtkMenuItem *unused_menuitem,
+	gpointer unused_udata) 
 {
 	/* XXX routing misnamed: we're "forgetting" here, not "aborting" */
     struct download *d;
@@ -261,6 +279,8 @@ void on_popup_downloads_abort_host_activate(GtkMenuItem * menuitem,
         (lookup_widget(main_window, "ctree_downloads_queue"));
     gint removed = 0;
 
+	(void) unused_menuitem;
+	(void) unused_udata;
 	gtk_clist_freeze(GTK_CLIST(ctree_downloads));
     gtk_clist_freeze(GTK_CLIST(ctree_downloads_queue));
 	node_list = g_list_copy(GTK_CLIST(ctree_downloads)->selection);
@@ -285,18 +305,19 @@ void on_popup_downloads_abort_host_activate(GtkMenuItem * menuitem,
     gtk_clist_thaw(GTK_CLIST(ctree_downloads_queue));
     gtk_clist_thaw(GTK_CLIST(ctree_downloads));
 
-    statusbar_gui_message(15, _("Forgot %u downloads"), removed);
+    statusbar_gui_message(15,
+		removed == 1 ? _("Forgot %u download") : _("Forgot %u downloads"),
+		removed);
 }
 
 
 
-/* 
- * 	on_popup_downloads_abort_sha1_activate
- *
+/**
  *	Abort all downloads with sha1s identical to any of the selected downloads
  */
-void on_popup_downloads_abort_sha1_activate(GtkMenuItem * menuitem,
-										   gpointer user_data) 
+void
+on_popup_downloads_abort_sha1_activate(GtkMenuItem *unused_menuitem,
+	gpointer unused_udata) 
 {
    	struct download *d;
     GList *node_list;
@@ -308,6 +329,8 @@ void on_popup_downloads_abort_sha1_activate(GtkMenuItem * menuitem,
         (lookup_widget(main_window, "ctree_downloads_queue"));
     gint removed = 0;
 
+	(void) unused_menuitem;
+	(void) unused_udata;
     gtk_clist_freeze(GTK_CLIST(ctree_downloads));
     gtk_clist_freeze(GTK_CLIST(ctree_downloads_queue));	
 	node_list = g_list_copy(GTK_CLIST(ctree_downloads)->selection);
@@ -333,17 +356,16 @@ void on_popup_downloads_abort_sha1_activate(GtkMenuItem * menuitem,
     gtk_clist_thaw(GTK_CLIST(ctree_downloads_queue));
     gtk_clist_thaw(GTK_CLIST(ctree_downloads));
 
-    statusbar_gui_message(15, _("Removed %u downloads"), removed);
+    show_removed(removed);
 }
 
 
-/* 
- * 	on_popup_downloads_remove_file_activate
- *
+/**
  *	Remove all downloads selected
  */
-void on_popup_downloads_remove_file_activate(GtkMenuItem * menuitem,
-										   gpointer user_data) 
+void
+on_popup_downloads_remove_file_activate(GtkMenuItem *unused_menuitem,
+	gpointer unused_udata) 
 {
 	struct download *d;
     GList *node_list;
@@ -352,6 +374,8 @@ void on_popup_downloads_remove_file_activate(GtkMenuItem * menuitem,
     GtkCTree *ctree_downloads = GTK_CTREE
         (lookup_widget(main_window, "ctree_downloads"));
 
+	(void) unused_menuitem;
+	(void) unused_udata;
     gtk_clist_freeze(GTK_CLIST(ctree_downloads));
 	
 	node_list = g_list_copy(GTK_CLIST(ctree_downloads)->selection);
@@ -391,13 +415,12 @@ void on_popup_downloads_remove_file_activate(GtkMenuItem * menuitem,
 }
 
 
-/* 
- * 	on_popup_downloads_queue_activate
- *
+/**
  *	Move all selected downloads back to queue
  */
-void on_popup_downloads_queue_activate(GtkMenuItem * menuitem,
-										   gpointer user_data) 
+void
+on_popup_downloads_queue_activate(GtkMenuItem *unused_menuitem,
+	gpointer unused_udata) 
 {
    	struct download *d;
     GList *node_list;
@@ -408,6 +431,8 @@ void on_popup_downloads_queue_activate(GtkMenuItem * menuitem,
     GtkCTree *ctree_downloads_queue = GTK_CTREE
         (lookup_widget(main_window, "ctree_downloads_queue"));
 
+	(void) unused_menuitem;
+	(void) unused_udata;
     gtk_clist_freeze(GTK_CLIST(ctree_downloads));
     gtk_clist_freeze(GTK_CLIST(ctree_downloads_queue));
 	node_list = g_list_copy(GTK_CLIST(ctree_downloads)->selection);
@@ -432,17 +457,17 @@ void on_popup_downloads_queue_activate(GtkMenuItem * menuitem,
 	g_list_free(node_list);
 }
 
-
-
-
-void on_popup_downloads_copy_url_activate(GtkMenuItem * menuitem,
-									      gpointer user_data) 
+void
+on_popup_downloads_copy_url_activate(GtkMenuItem *unused_menuitem,
+	gpointer unused_udata) 
 {
    	struct download * d = NULL;
     GtkCTree *ctree_downloads = GTK_CTREE
         (lookup_widget(main_window, "ctree_downloads"));
     GList *l = GTK_CLIST(ctree_downloads)->selection;
 
+	(void) unused_menuitem;
+	(void) unused_udata;
     g_return_if_fail(l);
 
     if (GTK_CTREE_NODE_HAS_CHILDREN(l->data))
@@ -479,14 +504,17 @@ void on_popup_downloads_copy_url_activate(GtkMenuItem * menuitem,
 }
 
 
-void on_popup_downloads_connect_activate(GtkMenuItem * menuitem,
-					 	                 gpointer user_data) 
+void
+on_popup_downloads_connect_activate(GtkMenuItem *unused_menuitem,
+	gpointer unused_udata) 
 {
 	struct download *d;
    	GtkCTree *ctree_downloads = GTK_CTREE
 		(lookup_widget(main_window, "ctree_downloads"));
     GList *l = GTK_CLIST(ctree_downloads)->selection;
 
+	(void) unused_menuitem;
+	(void) unused_udata;
     g_return_if_fail(l);
 
     if (GTK_CTREE_NODE_HAS_CHILDREN(l->data))
@@ -505,12 +533,13 @@ void on_popup_downloads_connect_activate(GtkMenuItem * menuitem,
     guc_node_add(download_ip(d), download_port(d));   
 }
 
-
 /***
  *** popup-queue
  ***/
-void on_popup_queue_start_now_activate(GtkMenuItem * menuitem,
-										   gpointer user_data) 
+
+void
+on_popup_queue_start_now_activate(GtkMenuItem *unused_menuitem,
+	gpointer unused_udata) 
 {
    	struct download *d;
     GList *node_list;
@@ -519,6 +548,8 @@ void on_popup_queue_start_now_activate(GtkMenuItem * menuitem,
     GtkCTree *ctree_downloads_queue = GTK_CTREE
         (lookup_widget(main_window, "ctree_downloads_queue"));
 
+	(void) unused_menuitem;
+	(void) unused_udata;
     gtk_clist_freeze(GTK_CLIST(ctree_downloads_queue));
 	
 	node_list = g_list_copy(GTK_CLIST(ctree_downloads_queue)->selection);
@@ -543,8 +574,9 @@ void on_popup_queue_start_now_activate(GtkMenuItem * menuitem,
 	g_list_free(node_list);
 }
 
-void on_popup_queue_abort_activate(GtkMenuItem * menuitem,
-  							       gpointer user_data)
+void
+on_popup_queue_abort_activate(GtkMenuItem *unused_menuitem,
+	gpointer unused_udata)
 {
 	struct download *d;
     GList *node_list;
@@ -553,6 +585,8 @@ void on_popup_queue_abort_activate(GtkMenuItem * menuitem,
     GtkCTree *ctree_downloads_queue = GTK_CTREE
         (lookup_widget(main_window, "ctree_downloads_queue"));
 
+	(void) unused_menuitem;
+	(void) unused_udata;
     gtk_clist_freeze(GTK_CLIST(ctree_downloads_queue));
 	
 	/* Remove for all selected active downloads */
@@ -579,8 +613,9 @@ void on_popup_queue_abort_activate(GtkMenuItem * menuitem,
 } 
 
 
-void on_popup_queue_abort_named_activate(GtkMenuItem * menuitem,
-										  gpointer user_data) 
+void
+on_popup_queue_abort_named_activate(GtkMenuItem *unused_menuitem,
+	gpointer unused_udata) 
 {
    	struct download *d;
     GList *node_list;
@@ -592,6 +627,8 @@ void on_popup_queue_abort_named_activate(GtkMenuItem * menuitem,
         (lookup_widget(main_window, "ctree_downloads_queue"));
     gint removed = 0;
 
+	(void) unused_menuitem;
+	(void) unused_udata;
     gtk_clist_freeze(GTK_CLIST(ctree_downloads));
     gtk_clist_freeze(GTK_CLIST(ctree_downloads_queue));
 	node_list = g_list_copy(GTK_CLIST(ctree_downloads_queue)->selection);
@@ -614,11 +651,12 @@ void on_popup_queue_abort_named_activate(GtkMenuItem * menuitem,
     gtk_clist_thaw(GTK_CLIST(ctree_downloads_queue));
     gtk_clist_thaw(GTK_CLIST(ctree_downloads));
 
-    statusbar_gui_message(15, "Removed %u downloads", removed);
+	show_removed(removed);
 }
 
-void on_popup_queue_abort_host_activate(GtkMenuItem * menuitem,
-										    gpointer user_data) 
+void
+on_popup_queue_abort_host_activate(GtkMenuItem *unused_menuitem,
+	gpointer unused_udata) 
 {
    	struct download *d;
     GList *node_list;
@@ -630,6 +668,8 @@ void on_popup_queue_abort_host_activate(GtkMenuItem * menuitem,
         (lookup_widget(main_window, "ctree_downloads_queue"));
     gint removed = 0;
 
+	(void) unused_menuitem;
+	(void) unused_udata;
     gtk_clist_freeze(GTK_CLIST(ctree_downloads));
     gtk_clist_freeze(GTK_CLIST(ctree_downloads_queue));
 	node_list = g_list_copy(GTK_CLIST(ctree_downloads_queue)->selection);
@@ -653,12 +693,12 @@ void on_popup_queue_abort_host_activate(GtkMenuItem * menuitem,
     gtk_clist_thaw(GTK_CLIST(ctree_downloads_queue));
     gtk_clist_thaw(GTK_CLIST(ctree_downloads));
 
-    statusbar_gui_message(15, "Removed %u downloads", removed);
+    show_removed(removed);
 }
 
-
-void on_popup_queue_abort_sha1_activate(GtkMenuItem * menuitem,
-								        gpointer user_data) 
+void
+on_popup_queue_abort_sha1_activate(GtkMenuItem *unused_menuitem,
+	gpointer unused_udata) 
 {
    	struct download *d;
     GList *node_list;
@@ -670,6 +710,8 @@ void on_popup_queue_abort_sha1_activate(GtkMenuItem * menuitem,
         (lookup_widget(main_window, "ctree_downloads_queue"));
     gint removed = 0;
 
+	(void) unused_menuitem;
+	(void) unused_udata;
     gtk_clist_freeze(GTK_CLIST(ctree_downloads));
     gtk_clist_freeze(GTK_CLIST(ctree_downloads_queue));
 	node_list = g_list_copy(GTK_CLIST(ctree_downloads_queue)->selection);
@@ -695,11 +737,12 @@ void on_popup_queue_abort_sha1_activate(GtkMenuItem * menuitem,
     gtk_clist_thaw(GTK_CLIST(ctree_downloads_queue));
     gtk_clist_thaw(GTK_CLIST(ctree_downloads));
 
-    statusbar_gui_message(15, "Removed %u downloads", removed);
+    show_removed(removed);
 }
 
-void on_popup_queue_copy_url_activate(GtkMenuItem * menuitem,
-					 	              gpointer user_data) 
+void
+on_popup_queue_copy_url_activate(GtkMenuItem *unused_menuitem,
+	gpointer unused_udata) 
 {
     /* FIXME: This is more or less copy/paste from the downloads_copy_url
      * handler. There should be a more general function to call which
@@ -712,6 +755,8 @@ void on_popup_queue_copy_url_activate(GtkMenuItem * menuitem,
         (lookup_widget(main_window, "ctree_downloads_queue"));
     GList *l = GTK_CLIST(ctree_downloads_queue)->selection;
 
+	(void) unused_menuitem;
+	(void) unused_udata;
     g_return_if_fail(l);
 
     if (GTK_CTREE_NODE_HAS_CHILDREN(l->data))
@@ -747,14 +792,17 @@ void on_popup_queue_copy_url_activate(GtkMenuItem * menuitem,
     } 
 }
 
-void on_popup_queue_connect_activate(GtkMenuItem * menuitem,
-					 	             gpointer user_data) 
+void
+on_popup_queue_connect_activate(GtkMenuItem *unused_menuitem,
+	gpointer unused_udata) 
 {
     struct download * d = NULL;
     GtkCTree *ctree_downloads_queue = GTK_CTREE
         (lookup_widget(main_window, "ctree_downloads_queue"));
     GList *l = GTK_CLIST(ctree_downloads_queue)->selection;
 
+	(void) unused_menuitem;
+	(void) unused_udata;
     g_return_if_fail(l);
 
     if (GTK_CTREE_NODE_HAS_CHILDREN(l->data))
@@ -778,13 +826,13 @@ void on_popup_queue_connect_activate(GtkMenuItem * menuitem,
  ***/
 
 
-/*
- *	on_button_downloads_abort_clicked
- *
+/**
  *	For all selected active downloads, forget them.  This doubles as the 
  *	callback for the abort option on the popup menu.
  */
-void on_button_downloads_abort_clicked(GtkButton * button, gpointer user_data)
+void
+on_button_downloads_abort_clicked(GtkButton *unused_button,
+	gpointer unused_udata)
 {
    	struct download *d;
     GList *node_list; 
@@ -793,6 +841,8 @@ void on_button_downloads_abort_clicked(GtkButton * button, gpointer user_data)
     GtkCTree *ctree_downloads = GTK_CTREE
         (lookup_widget(main_window, "ctree_downloads"));
 
+	(void) unused_button;
+	(void) unused_udata;
     gtk_clist_freeze(GTK_CLIST(ctree_downloads));
 	node_list = g_list_copy(GTK_CLIST(ctree_downloads)->selection);
 	data_list = downloads_gui_collect_ctree_data(ctree_downloads, 
@@ -816,7 +866,9 @@ void on_button_downloads_abort_clicked(GtkButton * button, gpointer user_data)
 }
 
 
-void on_button_downloads_resume_clicked(GtkButton * button, gpointer user_data)
+void
+on_button_downloads_resume_clicked(GtkButton *unused_button,
+	gpointer unused_udata)
 {
    	struct download *d;
     GList *node_list;
@@ -825,6 +877,8 @@ void on_button_downloads_resume_clicked(GtkButton * button, gpointer user_data)
     GtkCTree *ctree_downloads = GTK_CTREE
         (lookup_widget(main_window, "ctree_downloads"));
 
+	(void) unused_button;
+	(void) unused_udata;
     gtk_clist_freeze(GTK_CLIST(ctree_downloads));
 	node_list = g_list_copy(GTK_CLIST(ctree_downloads)->selection);
 	data_list = downloads_gui_collect_ctree_data(ctree_downloads, 
@@ -849,19 +903,20 @@ void on_button_downloads_resume_clicked(GtkButton * button, gpointer user_data)
 	gui_update_download_clear();
 }
 
-
-
 /*** 
  *** Queued downloads
  ***/
 
-void on_ctree_downloads_queue_tree_select_row
-    (GtkCTree *ctree, GList *node, gint column, gpointer user_data)
+void
+on_ctree_downloads_queue_tree_select_row(GtkCTree *ctree, GList *node,
+	gint unused_column, gpointer unused_udata)
 {
     gboolean only_one = FALSE;
     gboolean one_or_more = (GTK_CLIST(ctree)->selection != NULL);
 	struct download *d;
-		
+
+	(void) unused_column;
+	(void) unused_udata;
 	d = gtk_ctree_node_get_row_data(ctree, GTK_CTREE_NODE(node));	
 	
 	/* If it's a header, there is more than one */
@@ -886,23 +941,22 @@ void on_ctree_downloads_queue_tree_select_row
         (lookup_widget(popup_queue, "popup_queue_abort_sha1"), one_or_more);
 }
 
-void on_ctree_downloads_queue_tree_unselect_row
-    (GtkCTree *ctree, GList *node, gint column, gpointer user_data)
+void
+on_ctree_downloads_queue_tree_unselect_row(GtkCTree *ctree,
+	GList *node, gint column, gpointer user_data)
 {
 	/* Update popups */
     on_ctree_downloads_queue_tree_select_row(ctree, node, column, user_data);
 }
 
-
-
-void on_entry_queue_regex_activate(GtkEditable *editable, gpointer user_data)
+void
+on_entry_queue_regex_activate(GtkEditable *editable, gpointer unused_udata)
 {
 	GtkCTree *ctree_downloads_queue;
 	GtkCTreeNode *node;
 	GtkCTreeNode *child, *parent;
 	GtkCTreeRow *row;
 	struct download *d, *dtemp;
-
 	gboolean child_selected, node_expanded;	
     gint i;
   	gint n;
@@ -911,8 +965,8 @@ void on_entry_queue_regex_activate(GtkEditable *editable, gpointer user_data)
     gchar * regex;
 	regex_t re;
 
+	(void) unused_udata;
     regex = STRTRACK(gtk_editable_get_chars(GTK_EDITABLE(editable), 0, -1));
-
 	g_return_if_fail(regex != NULL);
 	
     err = regcomp(&re, 
@@ -926,6 +980,8 @@ void on_entry_queue_regex_activate(GtkEditable *editable, gpointer user_data)
 			"regex error %s", buf);
 
 	} else {
+		gint rows;
+
         ctree_downloads_queue = GTK_CTREE
             (lookup_widget(main_window, "ctree_downloads_queue"));
 
@@ -1010,10 +1066,13 @@ void on_entry_queue_regex_activate(GtkEditable *editable, gpointer user_data)
 					"regexp memory overflow");
         }
 	    gtk_clist_thaw(GTK_CLIST(ctree_downloads_queue));
-        
+       
+		rows = GTK_CLIST(ctree_downloads_queue)->rows; 
         statusbar_gui_message(15, 
-            "Selected %u of %u queued downloads matching \"%s\".", 
-            m, GTK_CLIST(ctree_downloads_queue)->rows, regex);
+            rows == 1
+				?_("Selected %u of %u queued download matching \"%s\".") 
+            	: _("Selected %u of %u queued downloads matching \"%s\"."), 
+            m, rows, regex);
 
 		regfree(&re);
     }
@@ -1021,14 +1080,16 @@ void on_entry_queue_regex_activate(GtkEditable *editable, gpointer user_data)
     G_FREE_NULL(regex);
 }
 
-gboolean on_ctree_downloads_queue_button_press_event
-    (GtkWidget *widget, GdkEventButton *event, gpointer user_data)
+gboolean
+on_ctree_downloads_queue_button_press_event(GtkWidget *widget,
+	GdkEventButton *event, gpointer unused_udata)
 {
 	gint row;
     gint col;
     GtkCTree *ctree_downloads_queue = GTK_CTREE(widget);
     GList *selection;
 
+	(void) unused_udata;
 	if (event->button != 3)
 		return FALSE;
 
@@ -1070,84 +1131,108 @@ gboolean on_ctree_downloads_queue_button_press_event
 	return TRUE;
 }
 
-void on_ctree_downloads_queue_resize_column(GtkCList * clist, gint column,
-										   gint width, gpointer user_data)
+void
+on_ctree_downloads_queue_resize_column(GtkCList *unused_clist,
+	gint column, gint width, gpointer unused_udata)
 {
+	(void) unused_clist;
+	(void) unused_udata;
 	*(gint *) &dl_queued_col_widths[column] = width;
 }
 
-void on_ctree_downloads_queue_drag_begin(GtkWidget *widget, 
-                                         GdkDragContext *drag_context, 
-                                         gpointer user_data)
+void
+on_ctree_downloads_queue_drag_begin(GtkWidget *unused_widget, 
+	GdkDragContext *unused_drag_context, gpointer unused_udata)
 {
+	(void) unused_widget;
+	(void) unused_drag_context;
+	(void) unused_udata;
     guc_download_freeze_queue();
 }
 
-void on_ctree_downloads_queue_drag_end(GtkWidget *widget, 
-                                       GdkDragContext *drag_context, 
-                                       gpointer user_data)
+void
+on_ctree_downloads_queue_drag_end(GtkWidget *unused_widget,
+	GdkDragContext *unused_drag_context, gpointer unused_udata)
 {
+	(void) unused_widget;
+	(void) unused_drag_context;
+	(void) unused_udata;
     guc_download_thaw_queue();
 }
 
-
-/* 
- * 	on_popup_downloads_expand_all_activate
+/**
+ * Expands all parent nodes.
  */
-void on_popup_downloads_expand_all_activate(GtkMenuItem *menuitem, 
-	gpointer user_data)
+void
+on_popup_downloads_expand_all_activate(GtkMenuItem *unused_menuitem, 
+	gpointer unused_udata)
 {
 	GtkCTree *ctree_downloads = GTK_CTREE
 		(lookup_widget(main_window, "ctree_downloads"));
 
+	(void) unused_menuitem;
+	(void) unused_udata;
     downloads_gui_expand_all(ctree_downloads);
 }
 
-
-/* 
- * 	on_popup_downloads_collapse_all_activate
+/**
+ * Collapses all parent nodes.
  */
-void on_popup_downloads_collapse_all_activate(GtkMenuItem *menuitem,
-	gpointer user_data)
+void
+on_popup_downloads_collapse_all_activate(GtkMenuItem *unused_menuitem,
+	gpointer unused_udata)
 {
 	GtkCTree *ctree_downloads = GTK_CTREE
 		(lookup_widget(main_window, "ctree_downloads"));
 
+	(void) unused_menuitem;
+	(void) unused_udata;
     downloads_gui_collapse_all(ctree_downloads);
 }
 
-/* 
- * 	on_popup_expand_all_activate
+/**
+ * Expands all parent nodes.
  */
-void on_popup_queue_expand_all_activate(GtkMenuItem *menuitem, 
-	gpointer user_data)
+void
+on_popup_queue_expand_all_activate(GtkMenuItem *unused_menuitem,
+	gpointer unused_udata)
 {
 	GtkCTree *ctree_downloads_queue = GTK_CTREE
 		(lookup_widget(main_window, "ctree_downloads_queue"));
 
+	(void) unused_menuitem;
+	(void) unused_udata;
     downloads_gui_expand_all(ctree_downloads_queue);
 }
 
 
-/* 
- * 	on_popup_collapse_all_activate
+/**
+ * Collapses all parent nodes.
  */
-void on_popup_queue_collapse_all_activate(GtkMenuItem *menuitem,
-	gpointer user_data)
+void
+on_popup_queue_collapse_all_activate(GtkMenuItem *unused_menuitem,
+	gpointer unused_udata)
 {
 	GtkCTree *ctree_downloads_queue = GTK_CTREE
 		(lookup_widget(main_window, "ctree_downloads_queue"));
 
+	(void) unused_menuitem;
+	(void) unused_udata;
     downloads_gui_collapse_all(ctree_downloads_queue);
 }
 
-/*
- *	on_popup_downloads_selection_get
- *
+/**
+ * Make the current selected URL the selection data.
  */
-void on_popup_downloads_selection_get(GtkWidget * widget, 
-	GtkSelectionData * data, guint info, guint eventtime, gpointer user_data) 
+void
+on_popup_downloads_selection_get(GtkWidget *unused_widget, 
+	GtkSelectionData *data, guint unused_info,
+	guint unused_eventtime, gpointer unused_udata) 
 {
+	(void) unused_widget;
+	(void) unused_info;
+	(void) unused_udata;
+	(void) unused_eventtime;
     g_return_if_fail(selected_url);
 
     gtk_selection_data_set(data, GDK_SELECTION_TYPE_STRING,
@@ -1155,17 +1240,19 @@ void on_popup_downloads_selection_get(GtkWidget * widget,
 }
 
 
-/*
- *	on_popup_downloads_selection_clear_event
- *
+/**
+ * Frees the string holding current selected URL if any.
  */
-gint on_popup_downloads_selection_clear_event(GtkWidget *widget,
-	GdkEventSelection *event)
+gint
+on_popup_downloads_selection_clear_event(GtkWidget *unused_widget,
+	GdkEventSelection *unused_event)
 {
+	(void) unused_widget;
+	(void) unused_event;
     if (selected_url != NULL) {
         G_FREE_NULL(selected_url);
     }
     return TRUE;
 }
 
-/* vi: set ts=4: */
+/* vi: set ts=4 sw=4 cindent: */

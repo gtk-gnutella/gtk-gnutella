@@ -65,22 +65,27 @@ on_clist_nodes_unselect_row(GtkCList *clist, gint unused_row,
 }
 
 void
-on_clist_nodes_resize_column(GtkCList *clist, gint column,
+on_clist_nodes_resize_column(GtkCList *unused_clist, gint column,
 		gint width, gpointer unused_udata)
 {
+	(void) unused_clist;
 	(void) unused_udata;
 	g_assert(column >= 0 && column <= (gint) G_N_ELEMENTS(nodes_col_widths));
     *(guint32 *) &nodes_col_widths[column] = width; /* override const */
 }
 
-gboolean on_clist_nodes_button_press_event
-    (GtkWidget * widget, GdkEventButton * event, gpointer user_data)
+gboolean
+on_clist_nodes_button_press_event(GtkWidget *unused_widget,
+		GdkEventButton *event, gpointer unused_udata)
 {
     gint row;
     gint col;
     GtkCList *clist_nodes = GTK_CLIST
         (lookup_widget(main_window, "clist_nodes"));
 
+	(void) unused_widget;
+	(void) unused_udata;
+	
     if (event->button != 3)
 		return FALSE;
 

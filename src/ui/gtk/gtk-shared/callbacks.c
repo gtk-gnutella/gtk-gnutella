@@ -41,12 +41,14 @@ RCSID("$Id$");
  * Create a function for the focus out signal and make it call
  * the callback for the activate signal.
  */
-#define FOCUS_TO_ACTIVATE(a)                                            \
-    gboolean CAT3(on_,a,_focus_out_event)                               \
-        (GtkWidget *widget, GdkEventFocus *event, gpointer user_data)   \
-    {                                                                   \
-        CAT3(on_,a,_activate)(GTK_EDITABLE(widget), NULL);                  \
-        return FALSE;                                                   \
+#define FOCUS_TO_ACTIVATE(a)                                    \
+    gboolean CAT3(on_,a,_focus_out_event) (GtkWidget *widget,	\
+			GdkEventFocus *unused_event, gpointer unused_udata)	\
+    {                                                           \
+        (void) unused_event;                                    \
+        (void) unused_udata;                                    \
+        CAT3(on_,a,_activate)(GTK_EDITABLE(widget), NULL);      \
+        return FALSE;                                           \
     }
 
 
@@ -58,10 +60,14 @@ static GtkWidget *add_dir_filesel = NULL;
  *** Left panel (selection tree)
  ***/
 
-void on_ctree_menu_tree_select_row
-    (GtkCTree *ctree, GList *node, gint column, gpointer user_data)
+void
+on_ctree_menu_tree_select_row(GtkCTree *ctree, GList *node,
+	gint unused_column, gpointer unused_udata)
 {
     gint tab;
+
+	(void) unused_column;
+	(void) unused_udata;
 
     tab = GPOINTER_TO_INT(
 		gtk_ctree_node_get_row_data(ctree, GTK_CTREE_NODE(node)));
@@ -71,120 +77,144 @@ void on_ctree_menu_tree_select_row
 }
 
 
-gboolean on_progressbar_bws_in_button_press_event(GtkWidget *widget, 
-											      GdkEventButton *event, 
-											      gpointer user_data)
+gboolean
+on_progressbar_bws_in_button_press_event(GtkWidget *unused_widget,
+		GdkEventButton *unused_event, gpointer unused_udata)
 {
     gboolean val;
     
-    gui_prop_get_boolean(PROP_PROGRESSBAR_BWS_IN_AVG, &val, 0, 1);
-    val = !val;
-    gui_prop_set_boolean(PROP_PROGRESSBAR_BWS_IN_AVG, &val, 0, 1);
+	(void) unused_widget;
+	(void) unused_event;
+	(void) unused_udata;
+    gui_prop_get_boolean_val(PROP_PROGRESSBAR_BWS_IN_AVG, &val);
+    gui_prop_set_boolean_val(PROP_PROGRESSBAR_BWS_IN_AVG, !val);
 	return TRUE;
 }
 
-gboolean on_progressbar_bws_out_button_press_event(GtkWidget *widget, 
-											       GdkEventButton *event, 
-											       gpointer user_data)
+gboolean
+on_progressbar_bws_out_button_press_event(GtkWidget *unused_widget,
+	GdkEventButton *unused_event, gpointer unused_udata)
 {
     gboolean val;
     
-    gui_prop_get_boolean(PROP_PROGRESSBAR_BWS_OUT_AVG, &val, 0, 1);
-    val = !val;
-    gui_prop_set_boolean(PROP_PROGRESSBAR_BWS_OUT_AVG, &val, 0, 1);
+	(void) unused_widget;
+	(void) unused_event;
+	(void) unused_udata;
+    gui_prop_get_boolean_val(PROP_PROGRESSBAR_BWS_OUT_AVG, &val);
+    gui_prop_set_boolean_val(PROP_PROGRESSBAR_BWS_OUT_AVG, !val);
 	return TRUE;
 }
 
-gboolean on_progressbar_bws_gin_button_press_event(GtkWidget *widget, 
-											      GdkEventButton *event, 
-											      gpointer user_data)
+gboolean
+on_progressbar_bws_gin_button_press_event(GtkWidget *unused_widget, 
+	GdkEventButton *unused_event, gpointer unused_udata)
 {
     gboolean val;
     
-    gui_prop_get_boolean(PROP_PROGRESSBAR_BWS_GIN_AVG, &val, 0, 1);
-    val = !val;
-    gui_prop_set_boolean(PROP_PROGRESSBAR_BWS_GIN_AVG, &val, 0, 1);
+	(void) unused_widget;
+	(void) unused_event;
+	(void) unused_udata;
+    gui_prop_get_boolean_val(PROP_PROGRESSBAR_BWS_GIN_AVG, &val);
+    gui_prop_set_boolean_val(PROP_PROGRESSBAR_BWS_GIN_AVG, !val);
 	return TRUE;
 }
 
-gboolean on_progressbar_bws_gout_button_press_event(GtkWidget *widget, 
-											       GdkEventButton *event, 
-											       gpointer user_data)
+gboolean
+on_progressbar_bws_gout_button_press_event(GtkWidget *unused_widget, 
+	GdkEventButton *unused_event, gpointer unused_udata)
 {
     gboolean val;
     
-    gui_prop_get_boolean(PROP_PROGRESSBAR_BWS_GOUT_AVG, &val, 0, 1);
-    val = !val;
-    gui_prop_set_boolean(PROP_PROGRESSBAR_BWS_GOUT_AVG, &val, 0, 1);
+	(void) unused_widget;
+	(void) unused_event;
+	(void) unused_udata;
+    gui_prop_get_boolean_val(PROP_PROGRESSBAR_BWS_GOUT_AVG, &val);
+    gui_prop_set_boolean_val(PROP_PROGRESSBAR_BWS_GOUT_AVG, !val);
 	return TRUE;
 }
 
-gboolean on_progressbar_bws_lin_button_press_event(GtkWidget *widget, 
-											      GdkEventButton *event, 
-											      gpointer user_data)
+gboolean
+on_progressbar_bws_lin_button_press_event(GtkWidget *unused_widget, 
+	GdkEventButton *unused_event, gpointer unused_udata)
 {
     gboolean val;
     
-    gui_prop_get_boolean(PROP_PROGRESSBAR_BWS_GLIN_AVG, &val, 0, 1);
-    val = !val;
-    gui_prop_set_boolean(PROP_PROGRESSBAR_BWS_GLIN_AVG, &val, 0, 1);
+	(void) unused_widget;
+	(void) unused_event;
+	(void) unused_udata;
+    gui_prop_get_boolean_val(PROP_PROGRESSBAR_BWS_GLIN_AVG, &val);
+    gui_prop_set_boolean_val(PROP_PROGRESSBAR_BWS_GLIN_AVG, !val);
 	return TRUE;
 }
 
-gboolean on_progressbar_bws_lout_button_press_event(GtkWidget *widget, 
-											       GdkEventButton *event, 
-											       gpointer user_data)
+gboolean
+on_progressbar_bws_lout_button_press_event(GtkWidget *unused_widget,
+		GdkEventButton *unused_event, gpointer unused_udata)
 {
     gboolean val;
     
-    gui_prop_get_boolean(PROP_PROGRESSBAR_BWS_GLOUT_AVG, &val, 0, 1);
-    val = !val;
-    gui_prop_set_boolean(PROP_PROGRESSBAR_BWS_GLOUT_AVG, &val, 0, 1);
+	(void) unused_widget;
+	(void) unused_event;
+	(void) unused_udata;
+    gui_prop_get_boolean_val(PROP_PROGRESSBAR_BWS_GLOUT_AVG, &val);
+    gui_prop_set_boolean_val(PROP_PROGRESSBAR_BWS_GLOUT_AVG, !val);
 	return TRUE;
 }
-
-
 
 /***
- *** gnutellaNet pane
+ *** GnutellaNet pane
  ***/
 
 /* minimum connections up */
 
-void on_button_host_catcher_clear_clicked(
-    GtkButton *button, gpointer user_data)
+void
+on_button_host_catcher_clear_clicked(GtkButton *unused_button,
+	gpointer unused_udata)
 {
+	(void) unused_button;
+	(void) unused_udata;
 	guc_hcache_clear_host_type(HOST_ANY);
 }
 
-void on_button_ultra_catcher_clear_clicked(
-    GtkButton *button, gpointer user_data)
+void
+on_button_ultra_catcher_clear_clicked(GtkButton *unused_button,
+	gpointer unused_udata)
 {
+	(void) unused_button;
+	(void) unused_udata;
 	guc_hcache_clear_host_type(HOST_ULTRA);
 }
 
-void on_button_hostcache_clear_bad_clicked(
-    GtkButton *button, gpointer user_data)
+void
+on_button_hostcache_clear_bad_clicked(GtkButton *unused_button,
+	gpointer unused_udata)
 {
+	(void) unused_button;
+	(void) unused_udata;
     guc_hcache_clear(HCACHE_TIMEOUT);
     guc_hcache_clear(HCACHE_BUSY);
     guc_hcache_clear(HCACHE_UNSTABLE);
 }
 
-
-
 /***
  *** Search Stats
  ***/ 
 
-void on_button_search_stats_reset_clicked(GtkButton *button, gpointer data)
+void
+on_button_search_stats_reset_clicked(GtkButton *unused_button,
+	gpointer unused_data)
 {
+	(void) unused_button;
+	(void) unused_data;
 	search_stats_gui_reset();
 }
 
-void on_clist_search_stats_resize_column(
-    GtkCList * clist, gint column, gint width, gpointer user_data)
+void
+on_clist_search_stats_resize_column(GtkCList *unused_clist, gint column,
+	gint width, gpointer unused_udata)
 {
+	(void) unused_clist;
+	(void) unused_udata;
 	*(gint *) &search_stats_col_widths[column] = width;
 }
 
@@ -197,16 +227,22 @@ void on_clist_search_stats_resize_column(
 
 GtkWidget *save_path_filesel = NULL;
 
-gboolean fs_save_path_delete_event(GtkWidget * widget, GdkEvent * event,
-								   gpointer user_data)
+gboolean
+fs_save_path_delete_event(GtkWidget *unused_widget,
+	GdkEvent *unused_event, gpointer unused_udata)
 {
+	(void) unused_widget;
+	(void) unused_event;
+	(void) unused_udata;
 	gtk_widget_destroy(save_path_filesel);
 	save_path_filesel = NULL;
 	return TRUE;
 }
 
-void button_fs_save_path_clicked(GtkButton * button, gpointer user_data)
+void
+button_fs_save_path_clicked(GtkButton *unused_button, gpointer user_data)
 {
+	(void) unused_button;
 
 	if (user_data) {
 		gchar *name;
@@ -225,9 +261,13 @@ void button_fs_save_path_clicked(GtkButton * button, gpointer user_data)
 	save_path_filesel = NULL;
 }
 
-void on_button_config_save_path_clicked(GtkButton * button,
-										gpointer user_data)
+void
+on_button_config_save_path_clicked(GtkButton *unused_button,
+	gpointer unused_udata)
 {
+	(void) unused_button;
+	(void) unused_udata;
+
 	if (!save_path_filesel) {
 		save_path_filesel =
 			gtk_file_selection_new(
@@ -255,16 +295,23 @@ void on_button_config_save_path_clicked(GtkButton * button,
 
 GtkWidget *move_path_filesel = (GtkWidget *) NULL;
 
-gboolean fs_save_move_delete_event(GtkWidget * widget, GdkEvent * event,
-								   gpointer user_data)
+gboolean
+fs_save_move_delete_event(GtkWidget *unused_widget, GdkEvent *unused_event,
+	gpointer unused_udata)
 {
+	(void) unused_widget;
+	(void) unused_event;
+	(void) unused_udata;
 	gtk_widget_destroy(move_path_filesel);
 	move_path_filesel = (GtkWidget *) NULL;
 	return TRUE;
 }
 
-void button_fs_move_path_clicked(GtkButton *button, gpointer user_data)
+void
+button_fs_move_path_clicked(GtkButton *unused_button, gpointer user_data)
 {
+	(void) unused_button;
+
 	if (user_data) {
 		gchar *name;
 
@@ -282,19 +329,22 @@ void button_fs_move_path_clicked(GtkButton *button, gpointer user_data)
 	move_path_filesel = (GtkWidget *) NULL;
 }
 
-void on_button_config_move_path_clicked(GtkButton * button,
-										gpointer user_data)
+void
+on_button_config_move_path_clicked(GtkButton *unused_button,
+	gpointer unused_udata)
 {
+	(void) unused_button;
+	(void) unused_udata;
+
 	if (!move_path_filesel) {
-		move_path_filesel =
-			gtk_file_selection_new(
-				_("Please choose where to move files after successful download"));
+		move_path_filesel = gtk_file_selection_new(
+			_("Please choose where to move files after successful download"));
 
 		gtk_signal_connect(GTK_OBJECT
 						   (GTK_FILE_SELECTION(move_path_filesel)->
 							ok_button), "clicked",
 						   GTK_SIGNAL_FUNC(button_fs_move_path_clicked),
-						   (gpointer) 1);
+						   GINT_TO_POINTER(1));
 		gtk_signal_connect(GTK_OBJECT
 						   (GTK_FILE_SELECTION(move_path_filesel)->
 							cancel_button), "clicked",
@@ -312,16 +362,23 @@ void on_button_config_move_path_clicked(GtkButton * button,
 
 GtkWidget *bad_path_filesel = (GtkWidget *) NULL;
 
-gboolean fs_save_bad_delete_event(
-	GtkWidget *widget, GdkEvent *event, gpointer user_data)
+gboolean
+fs_save_bad_delete_event(GtkWidget *unused_widget, GdkEvent *unused_event,
+	gpointer unused_udata)
 {
+	(void) unused_widget;
+	(void) unused_event;
+	(void) unused_udata;
 	gtk_widget_destroy(bad_path_filesel);
 	bad_path_filesel = (GtkWidget *) NULL;
 	return TRUE;
 }
 
-void button_fs_bad_path_clicked(GtkButton *button, gpointer user_data)
+void
+button_fs_bad_path_clicked(GtkButton *unused_button, gpointer user_data)
 {
+	(void) unused_button;
+	
 	if (user_data) {
 		gchar *name;
 
@@ -339,9 +396,13 @@ void button_fs_bad_path_clicked(GtkButton *button, gpointer user_data)
 	bad_path_filesel = (GtkWidget *) NULL;
 }
 
-void on_button_config_bad_path_clicked(
-	GtkButton *button, gpointer user_data)
+void
+on_button_config_bad_path_clicked(GtkButton *unused_button,
+	gpointer unused_udata)
 {
+	(void) unused_button;
+	(void) unused_udata;
+	
 	if (!bad_path_filesel) {
 		bad_path_filesel =
 			gtk_file_selection_new(
@@ -351,7 +412,7 @@ void on_button_config_bad_path_clicked(
 						   (GTK_FILE_SELECTION(bad_path_filesel)->
 							ok_button), "clicked",
 						   GTK_SIGNAL_FUNC(button_fs_bad_path_clicked),
-						   (gpointer) 1);
+						   GINT_TO_POINTER(1));
 		gtk_signal_connect(GTK_OBJECT
 						   (GTK_FILE_SELECTION(bad_path_filesel)->
 							cancel_button), "clicked",
@@ -367,16 +428,23 @@ void on_button_config_bad_path_clicked(
 
 /* Local File DB Managment */
 
-gboolean fs_add_dir_delete_event(GtkWidget * widget, GdkEvent * event,
-								 gpointer user_data)
+gboolean
+fs_add_dir_delete_event(GtkWidget *unused_widget, GdkEvent *unused_event,
+	gpointer unused_udata)
 {
+	(void) unused_widget;
+	(void) unused_event;
+	(void) unused_udata;
 	gtk_widget_destroy(add_dir_filesel);
 	add_dir_filesel = NULL;
 	return TRUE;
 }
 
-void button_fs_add_dir_clicked(GtkButton * button, gpointer user_data)
+void
+button_fs_add_dir_clicked(GtkButton *unused_button, gpointer user_data)
 {
+	(void) unused_button;
+	
 	if (user_data) {
 		gchar *name;
      
@@ -393,9 +461,13 @@ void button_fs_add_dir_clicked(GtkButton * button, gpointer user_data)
 	add_dir_filesel = NULL;
 }
 
-void on_button_config_add_dir_clicked(GtkButton * button,
-									  gpointer user_data)
+void
+on_button_config_add_dir_clicked(GtkButton *unused_button,
+	gpointer unused_udata)
 {
+	(void) unused_button;
+	(void) unused_udata;
+	
 	if (!add_dir_filesel) {
 		add_dir_filesel =
 			gtk_file_selection_new(_("Please choose a directory to share"));
@@ -404,7 +476,7 @@ void on_button_config_add_dir_clicked(GtkButton * button,
 						   (GTK_FILE_SELECTION(add_dir_filesel)->
 							ok_button), "clicked",
 						   GTK_SIGNAL_FUNC(button_fs_add_dir_clicked),
-						   (gpointer) 1);
+						   GINT_TO_POINTER(1));
 		gtk_signal_connect(GTK_OBJECT
 						   (GTK_FILE_SELECTION(add_dir_filesel)->
 							cancel_button), "clicked",
@@ -417,47 +489,54 @@ void on_button_config_add_dir_clicked(GtkButton * button,
 	}
 }
 
-void on_button_config_rescan_dir_clicked(GtkButton * button,
-										 gpointer user_data)
+void
+on_button_config_rescan_dir_clicked(GtkButton *unused_button,
+	gpointer unused_udata)
 {
+	(void) unused_button;
+	(void) unused_udata;
+	
 	gui_allow_rescan_dir(FALSE);
 	guc_share_scan();
 	gui_allow_rescan_dir(TRUE);
 }
 
 
-void on_entry_config_netmask_activate(GtkEditable *editable, gpointer data)
+void
+on_entry_config_netmask_activate(GtkEditable *editable, gpointer unused_data)
 {
     gchar *buf;
     
+	(void) unused_data;
     buf = STRTRACK(gtk_editable_get_chars(editable, 0, -1));
-    
     gnet_prop_set_string(PROP_LOCAL_NETMASKS_STRING, buf);
-    
     G_FREE_NULL(buf);
 }
 FOCUS_TO_ACTIVATE(entry_config_netmask)
 
-
-
 /***
  *** search list (sidebar)
  ***/
-void on_clist_search_resize_column(
-    GtkCList * clist, gint column, gint width, gpointer user_data)
+void
+on_clist_search_resize_column(GtkCList *unused_clist, gint column,
+	gint width, gpointer unused_udata)
 {
+	(void) unused_clist;
+	(void) unused_udata;
     *(gint *) &search_list_col_widths[column] = width;
 }
 
 #ifdef USE_GTK2
 
 void
-on_hb_searches_child_detached          (GtkHandleBox    *handlebox,
-                                        GtkWidget       *widget,
-                                        gpointer         user_data)
+on_hb_searches_child_detached(GtkHandleBox *unused_handlebox,
+	GtkWidget *widget, gpointer unused_udata)
 {
 	gint width, height;
 
+	(void) unused_handlebox;
+	(void) unused_udata;
+	
 	/*
 	 * Before the GtkHandleBox is detached, request the current size
 	 * of the widget inside to preserve dimensions. Otherwise, the
@@ -470,73 +549,83 @@ on_hb_searches_child_detached          (GtkHandleBox    *handlebox,
 }
 
 void
-on_menu_wizard_connection_unknown_activate
-                                        (GtkMenuItem     *menuitem,
-                                        gpointer         user_data)
+on_menu_wizard_connection_unknown_activate(GtkMenuItem *unused_menuitem,
+	gpointer unused_udata)
 {
 	/* TODO: Implement */
+	(void) unused_menuitem;
+	(void) unused_udata;
 }
 
 
 void
-on_menu_wizard_connection_t3_activate  (GtkMenuItem     *menuitem,
-                                        gpointer         user_data)
+on_menu_wizard_connection_t3_activate(GtkMenuItem *unused_menuitem,
+	gpointer unused_udata)
 {
 	/* TODO: Implement */
+	(void) unused_menuitem;
+	(void) unused_udata;
 }
 
 
 void
-on_menu_wizard_connection_t1_activate  (GtkMenuItem     *menuitem,
-                                        gpointer         user_data)
+on_menu_wizard_connection_t1_activate(GtkMenuItem *unused_menuitem,
+	gpointer unused_udata)
 {
 	/* TODO: Implement */
+	(void) unused_menuitem;
+	(void) unused_udata;
 }
 
 
 void
-on_menu_wizard_connection_sdsl_activate
-                                        (GtkMenuItem     *menuitem,
-                                        gpointer         user_data)
+on_menu_wizard_connection_sdsl_activate(GtkMenuItem *unused_menuitem,
+	gpointer unused_udata)
 {
 	/* TODO: Implement */
+	(void) unused_menuitem;
+	(void) unused_udata;
 }
 
 
 void
-on_menu_wizard_connection_adsl_activate
-                                        (GtkMenuItem     *menuitem,
-                                        gpointer         user_data)
+on_menu_wizard_connection_adsl_activate(GtkMenuItem *unused_menuitem,
+	gpointer unused_udata)
 {
 
 	/* TODO: Implement */
+	(void) unused_menuitem;
+	(void) unused_udata;
 }
 
 
 void
-on_menu_wizard_connection_isdn128_activate
-                                        (GtkMenuItem     *menuitem,
-                                        gpointer         user_data)
+on_menu_wizard_connection_isdn128_activate(GtkMenuItem *unused_menuitem,
+	gpointer unused_udata)
 {
 	/* TODO: Implement */
+	(void) unused_menuitem;
+	(void) unused_udata;
 }
 
 
 void
-on_menu_wizard_connection_isdn64_activate
-                                        (GtkMenuItem     *menuitem,
-                                        gpointer         user_data)
+on_menu_wizard_connection_isdn64_activate(GtkMenuItem *unused_menuitem,
+	gpointer unused_udata)
 {
 	/* TODO: Implement */
+	(void) unused_menuitem;
+	(void) unused_udata;
 }
 
 
 void
-on_menu_wizard_connection_modem_activate
-                                        (GtkMenuItem     *menuitem,
-                                        gpointer         user_data)
+on_menu_wizard_connection_modem_activate(GtkMenuItem *unused_menuitem,
+	gpointer unused_udata)
 {
 	/* TODO: Implement */
+	(void) unused_menuitem;
+	(void) unused_udata;
 }
 
 

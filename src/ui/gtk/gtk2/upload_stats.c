@@ -64,9 +64,13 @@ static GtkWidget *popup_upload_stats = NULL;
 
 /* Private callbacks */
 
-static gboolean on_button_press_event(GtkWidget *widget, GdkEventButton *event,
-	gpointer user_data)
+static gboolean
+on_button_press_event(GtkWidget *unused_widget, GdkEventButton *event,
+	gpointer unused_udata)
 {
+	(void) unused_widget;
+	(void) unused_udata;
+
     if (3 == event->button) {
         /* Right click section (popup menu) */
         gtk_menu_popup(GTK_MENU(popup_upload_stats), NULL, NULL, NULL, NULL,
@@ -89,15 +93,13 @@ static gboolean on_button_press_event(GtkWidget *widget, GdkEventButton *event,
  * @param data user data passed to the function.
  *
  */
-static void cell_render_size_func(
-	GtkTreeViewColumn *column,
-	GtkCellRenderer *cell,
-	GtkTreeModel *model,
-	GtkTreeIter *iter,
-	gpointer data)
+static void
+cell_render_size_func(GtkTreeViewColumn *column, GtkCellRenderer *cell,
+	GtkTreeModel *model, GtkTreeIter *iter, gpointer unused_data)
 {
 	guint val = 0;
 
+	(void) unused_data;
 	g_assert(column != NULL);
 	g_assert(cell != NULL);
 	g_assert(model != NULL);
@@ -120,16 +122,14 @@ static void cell_render_size_func(
  * @param data user data passed to the function.
  *
  */
-static void cell_render_norm_func(
-	GtkTreeViewColumn *column,
-	GtkCellRenderer *cell,
-	GtkTreeModel *model,
-	GtkTreeIter *iter,
-	gpointer data)
+static void
+cell_render_norm_func(GtkTreeViewColumn *column, GtkCellRenderer *cell,
+	GtkTreeModel *model, GtkTreeIter *iter, gpointer unused_data)
 {
 	gfloat val = 0.0;
 	gchar tmpstr[32];
 	
+	(void) unused_data;
 	g_assert(column != NULL);
 	g_assert(cell != NULL);
 	g_assert(model != NULL);

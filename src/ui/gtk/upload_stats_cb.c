@@ -45,25 +45,33 @@ RCSID("$Id$");
  *** Upload Stats pane
  ***/
 
-void on_button_ul_stats_clear_all_clicked(GtkButton *button, gpointer data)
+void
+on_button_ul_stats_clear_all_clicked(GtkButton *unused_button,
+	gpointer unused_data)
 {
+	(void) unused_button;
+	(void) unused_data;
 	guc_upload_stats_clear_all();
 }
 
-void on_button_ul_stats_clear_deleted_clicked(
-	GtkButton * button, gpointer user_data)
+void
+on_button_ul_stats_clear_deleted_clicked(GtkButton *unused_button,
+	gpointer unused_data)
 {
+	(void) unused_button;
+	(void) unused_data;
 	guc_upload_stats_prune_nonexistent();
 }
 
 
 #ifdef USE_GTK1
-static gint compare_ul_size(GtkCList *clist, gconstpointer ptr1,
-						 gconstpointer ptr2)
+static gint
+compare_ul_size(GtkCList *unused_clist, gconstpointer ptr1, gconstpointer ptr2)
 {
 	guint32 s1;
 	guint32 s2;
-	
+
+	(void) unused_clist;	
 	s1 = ((const struct ul_stats *) ((const GtkCListRow *) ptr1)->data)->size;
 	s2 = ((const struct ul_stats *) ((const GtkCListRow *) ptr2)->data)->size;
 
@@ -73,7 +81,8 @@ static gint compare_ul_size(GtkCList *clist, gconstpointer ptr1,
 /*
  * first by complete, then by attempts
  */
-static gint compare_ul_complete(GtkCList *clist,
+static gint
+compare_ul_complete(GtkCList *unused_clist,
 	gconstpointer ptr1, gconstpointer ptr2)
 {
 	guint32 a1 = ((const struct ul_stats *)
@@ -85,6 +94,7 @@ static gint compare_ul_complete(GtkCList *clist,
 	guint32 c2 = ((const struct ul_stats *)
 		((const GtkCListRow *) ptr2)->data)->complete;
 
+	(void) unused_clist;	
 	return (c1 != c2) ? ((c1 > c2) ? 1 : -1) : 
 		(a1 == a2) ? 0 : (a1 > a2) ? 1 : -1;
 }
@@ -92,8 +102,8 @@ static gint compare_ul_complete(GtkCList *clist,
 /*
  * first by normalized, then by complete
  */
-gint compare_ul_norm(GtkCList *clist, gconstpointer ptr1,
-						 gconstpointer ptr2)
+gint
+compare_ul_norm(GtkCList *clist, gconstpointer ptr1, gconstpointer ptr2)
 {
 	gfloat n1;
 	gfloat n2;
@@ -108,8 +118,9 @@ gint compare_ul_norm(GtkCList *clist, gconstpointer ptr1,
 /*
  * first by attempts, then by complete
  */
-static gint compare_ul_attempts(GtkCList *clist, gconstpointer ptr1,
-						 gconstpointer ptr2)
+static gint
+compare_ul_attempts(GtkCList *unused_clist,
+	gconstpointer ptr1, gconstpointer ptr2)
 {
 	guint32 a1 = ((const struct ul_stats *)
 		((const GtkCListRow *) ptr1)->data)->attempts;
@@ -120,16 +131,19 @@ static gint compare_ul_attempts(GtkCList *clist, gconstpointer ptr1,
 	guint32 c2 = ((const struct ul_stats *)
 		((const GtkCListRow *) ptr2)->data)->complete;
 
+	(void) unused_clist;	
 	return (a1 != a2) ? ((a1 > a2) ? 1 : -1) : 
 		(c1 == c2) ? 0 : (c1 > c2) ? 1 : -1;
 }
 
-void on_clist_ul_stats_click_column
-    (GtkCList *clist, gint column, gpointer user_data)
+void
+on_clist_ul_stats_click_column(GtkCList *clist, gint column,
+	gpointer unused_udata)
 {
 	static gint ul_sort_column = 2;
 	static gint ul_sort_order = GTK_SORT_DESCENDING;
 
+	(void) unused_udata;
 	switch (column) {
 	case c_us_filename:
 		gtk_clist_set_compare_func(clist, NULL);
@@ -161,9 +175,12 @@ void on_clist_ul_stats_click_column
 	gtk_clist_sort(clist);
 }
 
-void on_clist_ul_stats_resize_column(GtkCList *clist, 
-    gint column, gint width, gpointer user_data)
+void
+on_clist_ul_stats_resize_column(GtkCList *unused_clist,
+	gint column, gint width, gpointer unused_udata)
 {
+	(void) unused_clist;
+	(void) unused_udata;
     /* FIXME: use properties */
 	*(gint *) &ul_stats_col_widths[column] = width;
 }
@@ -171,15 +188,17 @@ void on_clist_ul_stats_resize_column(GtkCList *clist,
 #endif /* USE_GTK1*/
 
 #ifdef USE_GTK2
-void on_popup_upload_stats_config_cols_activate(
-	GtkMenuItem *menuitem, gpointer user_data)
+void
+on_popup_upload_stats_config_cols_activate(GtkMenuItem *unused_menuitem,
+	gpointer unused_udata)
 {
     GtkWidget *cc;
 
+	(void) unused_menuitem;
+	(void) unused_udata;
     cc = gtk_column_chooser_new(
 			lookup_widget(main_window, "treeview_ul_stats"));
-    gtk_menu_popup(GTK_MENU(cc), NULL, NULL, NULL, NULL,
-		0, GDK_CURRENT_TIME);
+    gtk_menu_popup(GTK_MENU(cc), NULL, NULL, NULL, NULL, 0, GDK_CURRENT_TIME);
 }
 #endif /* USE_GTK2 */
 

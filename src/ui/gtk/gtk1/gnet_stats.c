@@ -44,12 +44,16 @@ static gint selected_type = MSG_TOTAL;
 /***
  *** Callbacks
  ***/
-void on_clist_gnet_stats_msg_resize_column(
-    GtkCList *clist, gint column, gint width, gpointer user_data)
+void
+on_clist_gnet_stats_msg_resize_column(GtkCList *unused_clist, gint column,
+	gint width, gpointer unused_udata)
 {
     static gboolean lock = FALSE;
     guint32 buf = width;
 
+	(void) unused_clist;
+	(void) unused_udata;
+	
     if (lock)
         return;
 
@@ -62,13 +66,18 @@ void on_clist_gnet_stats_msg_resize_column(
 }
 
 
-void on_clist_gnet_stats_fc_ttl_resize_column(
-    GtkCList *clist, gint column, gint width, gpointer user_data)
+void
+on_clist_gnet_stats_fc_ttl_resize_column(GtkCList *unused_clist,
+	gint unused_column, gint width, gpointer unused_udata)
 {
     static gboolean lock = FALSE;
     guint32 buf[9];
     guint n;
 
+	(void) unused_clist;
+	(void) unused_column;
+	(void) unused_udata;
+	
     if (lock)
         return;
 
@@ -83,13 +92,18 @@ void on_clist_gnet_stats_fc_ttl_resize_column(
     lock = FALSE;
 }
 
-void on_clist_gnet_stats_fc_hops_resize_column(
-    GtkCList *clist, gint column, gint width, gpointer user_data)
+void
+on_clist_gnet_stats_fc_hops_resize_column(GtkCList *unused_clist,
+	gint unused_column, gint width, gpointer unused_udata)
 {
     static gboolean lock = FALSE;
     guint32 buf[9];
     guint n;
 
+	(void) unused_clist;
+	(void) unused_column;
+	(void) unused_udata;
+	
     if (lock)
         return;
 
@@ -104,12 +118,16 @@ void on_clist_gnet_stats_fc_hops_resize_column(
     lock = FALSE;
 }
 
-void on_clist_gnet_stats_horizon_resize_column(
-    GtkCList *clist, gint column, gint width, gpointer user_data)
+void
+on_clist_gnet_stats_horizon_resize_column(GtkCList *unused_clist,
+	gint column, gint width, gpointer unused_udata)
 {
     static gboolean lock = FALSE;
     guint32 buf = width;
 
+	(void) unused_clist;
+	(void) unused_udata;
+	
     if (lock)
         return;
 
@@ -121,28 +139,39 @@ void on_clist_gnet_stats_horizon_resize_column(
     lock = FALSE;
 }
 
-void on_clist_gnet_stats_drop_reasons_resize_column(
-    GtkCList *clist, gint column, gint width, gpointer user_data)
+void
+on_clist_gnet_stats_drop_reasons_resize_column(GtkCList *unused_clist,
+	gint column, gint width, gpointer unused_udata)
 {
     guint32 buf = width;
 
+	(void) unused_clist;
+	(void) unused_udata;
+	
     /* remember the width for storing it to the config file later */
     gui_prop_set_guint32(PROP_GNET_STATS_DROP_REASONS_COL_WIDTHS, 
         &buf, column, 1);
 }
 
-void on_clist_gnet_stats_general_resize_column(
-    GtkCList *clist, gint column, gint width, gpointer user_data)
+void
+on_clist_gnet_stats_general_resize_column(GtkCList *unused_clist, gint column,
+	gint width, gpointer unused_udata)
 {
     guint32 buf = width;
 
+	(void) unused_clist;
+	(void) unused_udata;
+	
     /* remember the width for storing it to the config file later */
     gui_prop_set_guint32(PROP_GNET_STATS_GENERAL_COL_WIDTHS, 
         &buf, column, 1);
 }
 
-static void on_gnet_stats_type_selected(GtkItem *i, gpointer data)
+static void
+on_gnet_stats_type_selected(GtkItem *unused_item, gpointer data)
 {
+	(void) unused_item;
+
     selected_type = GPOINTER_TO_INT(data);
     gnet_stats_gui_update(time(NULL));
 }

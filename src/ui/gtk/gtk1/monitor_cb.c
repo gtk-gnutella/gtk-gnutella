@@ -32,12 +32,15 @@ RCSID("$Id$");
 
 #include "lib/override.h"		/* Must be the last header included */
 
-gboolean on_clist_monitor_button_press_event
-    (GtkWidget *widget, GdkEventButton *event, gpointer user_data)
+gboolean
+on_clist_monitor_button_press_event(GtkWidget *widget,
+	GdkEventButton *event, gpointer unused_udata)
 {
     gint row;
     gint col;
     GtkCList *clist_monitor = GTK_CLIST(widget);
+
+	(void) unused_udata;
 
 	if (event->button != 3)
 		return FALSE;
@@ -59,14 +62,18 @@ gboolean on_clist_monitor_button_press_event
 	return TRUE;
 }
 
-void on_popup_monitor_add_search_activate 
-    (GtkMenuItem *menuitem, gpointer user_data)
+void
+on_popup_monitor_add_search_activate(GtkMenuItem *unused_menuitem,
+	gpointer unused_udata)
 {
 	GList *l;
 	gchar *titles[1];
 	gchar *e;
     GtkCList *clist_monitor = GTK_CLIST
         (lookup_widget(main_window, "clist_monitor"));
+
+	(void) unused_menuitem;
+	(void) unused_udata;
 
 	for (
         l = GTK_CLIST(clist_monitor)->selection; 
@@ -88,3 +95,4 @@ void on_popup_monitor_add_search_activate
 	}	
 }
 
+/* vi: set ts=4 sw=4 cindent: */

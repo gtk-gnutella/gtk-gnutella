@@ -284,14 +284,20 @@ gtk_cell_renderer_progress_set_property(
  */ 
 static void
 gtk_cell_renderer_progress_get_size(
-	GtkCellRenderer *cell,
-	GtkWidget       *widget,
-	GdkRectangle    *cell_area,
-	gint            *x_offset,
-	gint            *y_offset,
+	GtkCellRenderer *unused_cell,
+	GtkWidget       *unused_widget,
+	GdkRectangle    *unused_cell_area,
+	gint            *unused_x_offset,
+	gint            *unused_y_offset,
 	gint            *width,
 	gint            *height)
 {
+	(void) unused_cell;
+	(void) unused_widget;
+	(void) unused_cell_area;
+	(void) unused_x_offset;
+	(void) unused_y_offset;
+
 	/* 
 	 * Always return 1 here. Doesn't make to much sense,
 	 * but providing the real width would make it
@@ -340,10 +346,10 @@ gtk_cell_renderer_progress_render(
 	GtkCellRenderer *cell,
 	GdkWindow *window,
 	GtkWidget *widget,
-	GdkRectangle *background_area,
+	GdkRectangle *unused_background_area,
 	GdkRectangle *cell_area,
-	GdkRectangle *expose_area,
-	guint flags)
+	GdkRectangle *unused_expose_area,
+	guint unused_flags)
 {
 	GtkCellRendererProgress *cellprogress = (GtkCellRendererProgress *) cell;
 	GtkStateType state;
@@ -354,6 +360,10 @@ gtk_cell_renderer_progress_render(
 	int x, y, w, h, perc_w, pos;
 	int val;
 	
+	(void) unused_background_area;
+	(void) unused_expose_area;
+	(void) unused_flags;
+
 	gc = gdk_gc_new(window);
 
 	x = cell_area->x + 4;

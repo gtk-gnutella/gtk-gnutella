@@ -97,11 +97,14 @@ static void search_stats_tally(const word_vec_t * vec);
 
 static void
 search_stats_notify_word(query_type_t type, const gchar *search,
-	guint32 ip, guint16 port)
+	guint32 unused_ip, guint16 unused_port)
 {
     word_vec_t *wovec;
     guint wocnt;
     guint i;
+
+	(void) unused_ip;
+	(void) unused_port;
 
     if (type == QUERY_SHA1)
         return;
@@ -117,10 +120,13 @@ search_stats_notify_word(query_type_t type, const gchar *search,
 
 static void
 search_stats_notify_whole(query_type_t type, const gchar *search,
-	guint32 ip, guint16 port)
+	guint32 unused_ip, guint16 unused_port)
 {
     word_vec_t wovec;
 	gchar buf[1024];
+
+	(void) unused_ip;
+	(void) unused_port;
 
 	gm_snprintf(buf, sizeof buf, type == QUERY_SHA1 ? "urn:sha1:%s" : "[%s]",
         search);
@@ -133,10 +139,13 @@ search_stats_notify_whole(query_type_t type, const gchar *search,
 }
 
 static void
-search_stats_notify_routed(query_type_t type, const gchar *search,
+search_stats_notify_routed(query_type_t unused_type, const gchar *unused_search,
 	guint32 ip, guint16 port)
 {
     word_vec_t wovec;
+
+	(void) unused_type;
+	(void) unused_search;
 
     wovec.word = ip_port_to_gchar(ip, port);
     wovec.len = strlen(wovec.word);
@@ -166,10 +175,12 @@ empty_hash_table(void)
  *  2. sticks the rest of the search terms in treeview_search_stats
  */
 static gboolean
-stats_hash_to_treeview(gpointer key, gpointer value, gpointer userdata)
+stats_hash_to_treeview(gpointer key, gpointer value, gpointer unused_udata)
 {
 	struct term_counts *val = value;
 	GtkTreeIter iter;
+
+	(void) unused_udata;
 
 	/* update counts */
 	val->periods = val->period_cnt ? 0 : (val->periods + 1);

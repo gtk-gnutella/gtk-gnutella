@@ -65,8 +65,9 @@ static gboolean stats_hash_to_clist(
 	gpointer key, gpointer value, gpointer userdata);
 
 static gboolean
-delete_hash_entry(gpointer key, gpointer val, gpointer data)
+delete_hash_entry(gpointer key, gpointer val, gpointer unused_data)
 {
+	(void) unused_data;
 	/* free the key str (was strdup'd below) */
 	g_free(key);
 	g_free(val);
@@ -86,13 +87,17 @@ static void search_stats_tally(const word_vec_t * vec);
  *** Callbacks
  ***/
 
-static void search_stats_notify_word(
-    query_type_t type, const gchar *search, guint32 ip, guint16 port)
+static void
+search_stats_notify_word(query_type_t type, const gchar *search,
+	guint32 unused_ip, guint16 unused_port)
 {
     word_vec_t *wovec;
     guint wocnt;
     guint i;
     gchar *buf;
+
+	(void) unused_ip;
+	(void) unused_port;
 
     if (type == QUERY_SHA1)
         return;
@@ -110,11 +115,15 @@ static void search_stats_notify_word(
     g_free(buf);
 }
 
-static void search_stats_notify_whole(
-    query_type_t type, const gchar *search, guint32 ip, guint16 port)
+static void
+search_stats_notify_whole(query_type_t type, const gchar *search,
+	guint32 unused_ip, guint16 unused_port)
 {
     word_vec_t wovec;
 	char buf[1024];
+
+	(void) unused_ip;
+	(void) unused_port;
 
     gm_snprintf(buf, sizeof buf, type == QUERY_SHA1 ? "urn:sha1:%s" : "[%s]",
 		search);
@@ -126,10 +135,14 @@ static void search_stats_notify_whole(
     search_stats_tally(&wovec);
 }
 
-static void search_stats_notify_routed(
-    query_type_t type, const gchar *search, guint32 ip, guint16 port)
+static void
+search_stats_notify_routed(query_type_t unused_type, const gchar *unused_search,
+	guint32 ip, guint16 port)
 {
     word_vec_t wovec;
+
+	(void) unused_type;
+	(void) unused_search;
 
     wovec.word = ip_port_to_gchar(ip, port);
     wovec.len = strlen(wovec.word);
@@ -143,7 +156,8 @@ static void search_stats_notify_routed(
  ***/
 
 /* this sucks -- too slow */
-static void empty_hash_table(void)
+static void
+empty_hash_table(void)
 {
 	if (!stat_hash)
 		return;
@@ -151,20 +165,22 @@ static void empty_hash_table(void)
 	g_hash_table_foreach_remove(stat_hash, delete_hash_entry, NULL);
 }
 
-/*
+/**
  * helper func for stats_display -
  *  does two things:
  *  1. clears out aged / infrequent search terms
  *  2. sticks the rest of the search terms in clist_search_stats
  *
  */
-static gboolean stats_hash_to_clist(
-    gpointer key, gpointer value, gpointer userdata)
+static gboolean
+stats_hash_to_clist(gpointer key, gpointer value, gpointer unused_udata)
 {
 	gchar *text[3];
 	gchar period_tmp[32];
 	gchar total_tmp[32];
 	struct term_counts *val = (struct term_counts *) value;
+
+	(void) unused_udata;
 
 	/* update counts */
 	if (!val->period_cnt)
@@ -208,12 +224,11 @@ static gboolean stats_hash_to_clist(
 	return FALSE;
 }
 
-/*
- * search_stats_enable
- *
+/**
  * Enable search stats.
  */
-static void search_stats_gui_enable(search_request_listener_t lst)
+static void
+search_stats_gui_enable(search_request_listener_t lst)
 {
     if (!callback_registered) {
         guc_share_add_search_request_listener(lst);
@@ -221,7 +236,8 @@ static void search_stats_gui_enable(search_request_listener_t lst)
     }
 }
 
-static void search_stats_gui_disable(void)
+static void
+search_stats_gui_disable(void)
 {
     if (callback_registered) {
         guc_share_remove_search_request_listener
@@ -236,12 +252,11 @@ static void search_stats_gui_disable(void)
     empty_hash_table();
 }
 
-/*
- * search_stats_tally:
- *
+/**
  * Count a word that has been seen.
  */
-static void search_stats_tally(const word_vec_t * vec)
+static void
+search_stats_tally(const word_vec_t * vec)
 {
 	struct term_counts *val;
 	gpointer key;
@@ -266,19 +281,19 @@ static void search_stats_tally(const word_vec_t * vec)
  *** Public functions 
  ***/
 
-/*
- * search_stats_reset:
- *
+/**
  * Clear the list, empty the hash table.
  */
-void search_stats_gui_reset(void)
+void
+search_stats_gui_reset(void)
 {
 	empty_hash_table();
 	gtk_clist_clear(GTK_CLIST(
         lookup_widget(main_window, "clist_search_stats")));
 }
 
-void search_stats_gui_set_type(gint type)
+void
+search_stats_gui_set_type(gint type)
 {
     if (type == selected_type)
         return;
@@ -302,10 +317,11 @@ void search_stats_gui_set_type(gint type)
         break;
     default:
         g_assert_not_reached();
-    };
+    }
 }
 
-void search_stats_gui_init(void)
+void
+search_stats_gui_init(void)
 {
     GtkCombo *combo_types;
     GtkWidget *clist_search_stats = 
@@ -358,21 +374,22 @@ void search_stats_gui_init(void)
 		GTK_SORT_DESCENDING);
 
 	stat_hash = g_hash_table_new(g_str_hash, g_str_equal);
-
 }
 
-void search_stats_gui_shutdown(void)
+void
+search_stats_gui_shutdown(void)
 {
     search_stats_gui_set_type(NO_SEARCH_STATS);
     g_hash_table_destroy(stat_hash);
 	stat_hash = NULL;
 }
 
-/*
+/**
  * Display the data gathered during the last time period.
  * Perhaps it would be better to have this done on a button click(?)
  */
-void search_stats_gui_update(time_t now)
+void
+search_stats_gui_update(time_t now)
 {
 	static guint32 last_update = 0;
 	char tmpstr[32];
@@ -399,8 +416,10 @@ void search_stats_gui_update(time_t now)
 	gtk_clist_thaw(GTK_CLIST(clist_search_stats));
 
 	/* update the counter */
-	gm_snprintf(tmpstr, sizeof(tmpstr), "%u terms counted", stat_count);
+	gm_snprintf(tmpstr, sizeof(tmpstr),
+		stat_count == 1 ? _("%u term counted") : _("%u terms counted"),
+		stat_count);
 	gtk_label_set_text(GTK_LABEL(label_search_stats_count), tmpstr);
 }
 
-/* vi: set ts=4: */
+/* vi: set ts=4 sw=4 cindent: */

@@ -53,9 +53,12 @@ static GSList *hidden_fi  = NULL;
 
 static regex_t filter_re;
 
-void on_clist_fileinfo_resize_column(
-    GtkCList *clist, gint column, gint width, gpointer user_data)
+void
+on_clist_fileinfo_resize_column(GtkCList *unused_clist,
+	gint column, gint width, gpointer unused_udata)
 {
+	(void) unused_clist;
+	(void) unused_udata;
     *(gint *) &file_info_col_widths[column] = width;
 }
 
@@ -72,8 +75,8 @@ static gnet_fi_info_t *last_fi = NULL;
  * WARNING: returns pointer to global data: the gnet_fi_info_t structure
  * filled from the given `fih'.
  */
-static gnet_fi_info_t *fi_gui_fill_info(
-    gnet_fi_t fih, gchar *titles[c_fi_num])
+static gnet_fi_info_t *
+fi_gui_fill_info(gnet_fi_t fih, gchar *titles[c_fi_num])
 {
     /* Clear info from last call. We keep this around so we don't
      * have to strdup entries from it when passing them to the 
@@ -91,8 +94,8 @@ static gnet_fi_info_t *fi_gui_fill_info(
 	return last_fi;
 }
 
-static void fi_gui_fill_status(
-    gnet_fi_t fih, gchar *titles[c_fi_num])
+static void
+fi_gui_fill_status(gnet_fi_t fih, gchar *titles[c_fi_num])
 {
     static gchar fi_sources[32];
     static gchar fi_status[256];
@@ -135,14 +138,13 @@ static void fi_gui_fill_status(
     }
 }
 
-/*
- * fi_gui_set_details:
- *
+/**
  * Display details for the given fileinfo entry in the details pane.
  * It is expected, that the given handle is really used. If not, an
  * assertion will be triggered.
  */
-static void fi_gui_set_details(gnet_fi_t fih)
+static void
+fi_gui_set_details(gnet_fi_t fih)
 {
     gnet_fi_info_t *fi = NULL;
     gnet_fi_status_t fis;
@@ -186,12 +188,11 @@ static void fi_gui_set_details(gnet_fi_t fih)
 							 in_progress);
 }
 
-/*
- * fi_gui_clear_details:
- *
+/**
  * Clear the details pane.
  */
-static void fi_gui_clear_details()
+static void
+fi_gui_clear_details(void)
 {
     last_shown_valid = FALSE;
 
@@ -209,13 +210,12 @@ static void fi_gui_clear_details()
     vp_draw_fi_progress(last_shown_valid, last_shown);
 }
 
-/*
- * fi_gui_match_filter:
- *
- * Returns TRUE if the given string matches with the currntly set
+/**
+ * @return TRUE if the given string matches with the currntly set
  * row filter. Returns FALSE otherwise.
  */
-static inline gboolean fi_gui_match_filter(const gchar *s)
+static inline gboolean
+fi_gui_match_filter(const gchar *s)
 {
     gint n;
 
@@ -228,15 +228,14 @@ static inline gboolean fi_gui_match_filter(const gchar *s)
     return n == 0;
 }
 
-/*
- * fi_gui_append_row:
- *
+/**
  * Add a fileinfo entry to the list if it matches the currently set
  * row filter. visible_fi and hidden_fi are properly updated wether
  * the entry is displayed or not and no matter if the line was already
  * shown/hidden or is newly added.
  */
-static void fi_gui_add_row(gnet_fi_t fih)
+static void
+fi_gui_add_row(gnet_fi_t fih)
 {
     GtkCList *clist;
     gint row;
@@ -285,14 +284,13 @@ static void fi_gui_add_row(gnet_fi_t fih)
     gtk_clist_set_row_data(clist, row, GUINT_TO_POINTER(fih));
 }
 
-/*
- * fi_gui_remove_row:
- *
+/**
  * Remove a fileinfo entry from the list. If it is not displayed, then
  * nothing happens. If hide is TRUE, then the row is not unregistered
  * and only moved to the hidden_fi list.
  */
-static void fi_gui_remove_row(gnet_fi_t fih, gboolean hide)
+static void
+fi_gui_remove_row(gnet_fi_t fih, gboolean hide)
 {
     GtkCList *clist;
     gint row;
@@ -311,13 +309,12 @@ static void fi_gui_remove_row(gnet_fi_t fih, gboolean hide)
     }
 }
 
-/*
- * fi_gui_set_filter_regex:
- *
+/**
  * Takes a string containing a regular expression updates the list to
  * only show files matching that expression.
  */
-static void fi_gui_set_filter_regex(gchar *s)
+static void
+fi_gui_set_filter_regex(gchar *s)
 {
     gint err;
     GSList *sl;
@@ -381,7 +378,8 @@ static void fi_gui_set_filter_regex(gchar *s)
     gtk_clist_thaw(clist_fi);
 }
 
-static void fi_gui_update(gnet_fi_t fih, gboolean full)
+static void
+fi_gui_update(gnet_fi_t fih, gboolean full)
 {
     GtkCList *clist;
 	gchar    *titles[c_fi_num];
@@ -412,44 +410,58 @@ static void fi_gui_update(gnet_fi_t fih, gboolean full)
 	vp_draw_fi_progress(last_shown_valid, last_shown);
 }
 
-static void fi_gui_fi_added(gnet_fi_t fih)
+static void
+fi_gui_fi_added(gnet_fi_t fih)
 {
     fi_gui_add_row(fih);
 }
 
-static void fi_gui_fi_removed(gnet_fi_t fih)
+static void
+fi_gui_fi_removed(gnet_fi_t fih)
 {
     fi_gui_remove_row(fih, FALSE);
 }
 
-static void fi_gui_fi_status_changed(gnet_fi_t fih)
+static void
+fi_gui_fi_status_changed(gnet_fi_t fih)
 {
     fi_gui_update(fih, FALSE);
 }
 
-void on_clist_fileinfo_select_row(GtkCList *clist, gint row, gint column,
-    GdkEvent *event, gpointer user_data)
+void
+on_clist_fileinfo_select_row(GtkCList *clist, gint row, gint unused_column,
+    GdkEvent *unused_event, gpointer unused_udata)
 {
     gnet_fi_t fih;
     
+	(void) unused_column;
+	(void) unused_event;
+	(void) unused_udata;
     fih = GPOINTER_TO_UINT(gtk_clist_get_row_data(clist, row));
-
     fi_gui_set_details(fih);
 }
 
-void on_clist_fileinfo_unselect_row(GtkCList *clist, gint row, gint column,
-    GdkEvent *event, gpointer user_data)
+void
+on_clist_fileinfo_unselect_row(GtkCList *clist, gint unused_row,
+	gint unused_column, GdkEvent *unused_event, gpointer unused_udata)
 { 
+	(void) unused_row;
+	(void) unused_column;
+	(void) unused_event;
+	(void) unused_udata;
     if (clist->selection == NULL)
         fi_gui_clear_details();
 }
 
-void on_button_fi_purge_clicked(GtkButton *button, gpointer user_data)
+void
+on_button_fi_purge_clicked(GtkButton *unused_button, gpointer unused_udata)
 {
     GSList *sl = NULL;
     GtkCList *clist = GTK_CLIST(
         lookup_widget(main_window, "clist_fileinfo"));
 		
+	(void) unused_button;
+	(void) unused_udata;
     sl = clist_collect_data(clist, TRUE, NULL);
     if (sl) {
         guc_fi_purge_by_handle_list(sl);
@@ -458,20 +470,21 @@ void on_button_fi_purge_clicked(GtkButton *button, gpointer user_data)
     g_slist_free(sl);
 }
 
-void on_entry_fi_regex_activate(GtkEditable *editable, gpointer user_data)
+void
+on_entry_fi_regex_activate(GtkEditable *editable, gpointer unused_udata)
 {
     gchar *regex;
 
+	(void) unused_udata;
     regex = STRTRACK(gtk_editable_get_chars(GTK_EDITABLE(editable), 0, -1));
-    if (NULL == regex)
-        return;
-
-    fi_gui_set_filter_regex(regex);
-
-    G_FREE_NULL(regex);
+    if (regex) {
+    	fi_gui_set_filter_regex(regex);
+    	G_FREE_NULL(regex);
+	}
 }
 
-void fi_gui_init(void) 
+void
+fi_gui_init(void) 
 {
     GtkCList *clist;
 
@@ -491,7 +504,8 @@ void fi_gui_init(void)
     fi_gui_set_filter_regex(NULL);
 }
 
-void fi_gui_shutdown(void)
+void
+fi_gui_shutdown(void)
 {
     g_slist_free(hidden_fi);
     g_slist_free(visible_fi);
@@ -506,9 +520,7 @@ void fi_gui_shutdown(void)
     regfree(&filter_re);
 }
 
-/*
- * fi_gui_update_display
- *
+/**
  * Update all the fileinfo at the same time.
  */
 
@@ -518,7 +530,8 @@ void fi_gui_shutdown(void)
  *        to by the row user_data and should be automatically freed
  *        when removing the row (see upload stats code).
  */
-void fi_gui_update_display(time_t now)
+void
+fi_gui_update_display(time_t now)
 {
 #if 0
     static time_t last_update = 0;
@@ -544,6 +557,8 @@ void fi_gui_update_display(time_t now)
         fi_gui_update_row(clist, row, titles, G_N_ELEMENTS(titles));
     }
     gtk_clist_thaw(clist);
+#else
+	(void) now;
 #endif
 }
 

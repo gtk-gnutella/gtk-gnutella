@@ -41,10 +41,13 @@ RCSID("$Id$");
  *** Callbacks
  ***/
 void on_clist_hcache_resize_column(
-    GtkCList *clist, gint column, gint width, gpointer user_data)
+    GtkCList *unused_clist, gint column, gint width, gpointer unused_udata)
 {
     static gboolean lock = FALSE;
     guint32 buf = width;
+
+	(void) unused_clist;
+	(void) unused_udata;
 
     if (lock)
         return;
@@ -154,3 +157,4 @@ void hcache_gui_update(time_t now)
     gtk_clist_thaw(clist_hcache);
 }
 
+/* vi: set ts=4 sw=4 cindent: */

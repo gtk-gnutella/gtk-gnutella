@@ -53,21 +53,22 @@ static void uploads_gui_add_upload(gnet_upload_info_t *u);
  *** Callbacks
  ***/
 
-/*
- * upload_removed:
- *
+/**
  * Callback: called when an upload is removed from the backend.
  *
  * Either immediatly clears the upload from the frontend or just
  * set the upload_row_info->valid to FALSE, so we don't acidentially
  * try to use the handle to communicate with the backend.
  */
-static void upload_removed(
-    gnet_upload_t uh, const gchar *reason, 
-    guint32 running, guint32 registered)
+static void
+upload_removed(gnet_upload_t uh, const gchar *reason, 
+    guint32 unused_running, guint32 unused_registered)
 {
     gint row;
     upload_row_data_t *data;
+
+	(void) unused_running;
+	(void) unused_registered;
 
     /* Invalidate row and remove it from the gui if autoclear is on */
     row = find_row(uh, &data);
@@ -85,33 +86,36 @@ static void upload_removed(
     }
 }
 
-/*
- * upload_added:
- *
+/**
  * Callback: called when an upload is added from the backend.
  *
  * Adds the upload to the gui.
  */
-static void upload_added(
-    gnet_upload_t n, guint32 running, guint32 registered)
+static void
+upload_added(gnet_upload_t n, guint32 unused_running, guint32 unused_registered)
 {
     gnet_upload_info_t *info;
+
+	(void) unused_running;
+	(void) unused_registered;
 
     info = guc_upload_get_info(n);
     uploads_gui_add_upload(info);
     guc_upload_free_info(info);
 }
 
-/*
- * upload_info_changed:
- *
+/**
  * Callback: called when upload information was changed by the backend.
  * This updates the upload information in the gui.
  */
-static void upload_info_changed(gnet_upload_t u, 
-    guint32 running, guint32 registered)
+static void
+upload_info_changed(gnet_upload_t u,
+	guint32 unused_running, guint32 unused_registered)
 {
     gnet_upload_info_t *info;
+
+	(void) unused_running;
+	(void) unused_registered;
 
     info = guc_upload_get_info(u);
     uploads_gui_update_upload_info(info);
@@ -122,15 +126,14 @@ static void upload_info_changed(gnet_upload_t u,
  *** Private functions
  ***/
 
-/*
- * find_row:
- *
+/**
  * Tries to fetch the row number and upload_row_data associated with a
  * given upload. The upload_row_data_t pointer data points to is only
  * updated when data != NULL and when the function returns a row number
  * != -1.
  */
-static gint find_row(gnet_upload_t u, upload_row_data_t **data)
+static gint
+find_row(gnet_upload_t u, upload_row_data_t **data)
 {
     GtkCList *clist;
     GList *l;
@@ -163,7 +166,8 @@ static gint find_row(gnet_upload_t u, upload_row_data_t **data)
     return -1;
 }
 
-static void uploads_gui_update_upload_info(gnet_upload_info_t *u)
+static void
+uploads_gui_update_upload_info(gnet_upload_info_t *u)
 {
     gint row;
     GtkCList *clist_uploads;
@@ -173,11 +177,8 @@ static void uploads_gui_update_upload_info(gnet_upload_info_t *u)
 	gchar range_tmp[256];
 	guint range_len;
 
-
     clist_uploads = GTK_CLIST(lookup_widget(main_window, "clist_uploads"));
-
     row =  find_row(u->upload_handle, &rd);
-
 	if (row == -1) {
         g_warning("%s: no matching row found [handle=%u]", 
             G_GNUC_PRETTY_FUNCTION, u->upload_handle);
@@ -231,22 +232,20 @@ static void uploads_gui_update_upload_info(gnet_upload_info_t *u)
 }
 
 
-/*
- * free_data
- *
+/**
  * Called to free the row data -- needed when running under -DTRACK_MALLOC.
  */
-static void free_data(gpointer o)
+static void
+free_data(gpointer o)
 {
 	g_free(o);
 }
 
-/*
- * uploads_gui_add_upload:
- *
+/**
  * Adds the given upload to the gui.
  */
-void uploads_gui_add_upload(gnet_upload_info_t *u)
+void
+uploads_gui_add_upload(gnet_upload_info_t *u)
 {
  	gchar size_tmp[256];
 	gchar range_tmp[256];
@@ -299,17 +298,18 @@ void uploads_gui_add_upload(gnet_upload_info_t *u)
         data, free_data);
 }
 
-
 /***
  *** Public functions
  ***/
 
-void uploads_gui_early_init(void)
+void
+uploads_gui_early_init(void)
 {
     popup_uploads = create_popup_uploads();
 }
 
-void uploads_gui_init(void)
+void
+uploads_gui_init(void)
 {
     gtk_clist_set_column_justification(
         GTK_CLIST(lookup_widget(main_window, "clist_uploads")),
@@ -324,12 +324,11 @@ void uploads_gui_init(void)
 		(upload_info_changed);
 }
 
-/*
- * uploads_gui_shutdown:
- *
+/**
  * Unregister callbacks in the backend and clean up.
  */
-void uploads_gui_shutdown(void) 
+void
+uploads_gui_shutdown(void) 
 {
     guc_upload_remove_upload_added_listener(upload_added);
     guc_upload_remove_upload_removed_listener(upload_removed);
@@ -337,12 +336,11 @@ void uploads_gui_shutdown(void)
 		(upload_info_changed);
 }
 
-/*
- * uploads_gui_update_display
- *
+/**
  * Update all the uploads at the same time.
  */
-void uploads_gui_update_display(time_t now)
+void
+uploads_gui_update_display(time_t now)
 {
 	static GtkNotebook *notebook = NULL;
     static time_t last_update = 0;
@@ -408,13 +406,16 @@ void uploads_gui_update_display(time_t now)
 			FALSE);
 }
 
-static gboolean uploads_clear_helper(gpointer user_data) {
+static gboolean
+uploads_clear_helper(gpointer unused_udata)
+{
     GList *l;
     GSList *to_remove= NULL;
     GSList *sl;
     guint row = 0;
     GtkCList *clist = GTK_CLIST(lookup_widget(main_window, "clist_uploads"));
 
+	(void) unused_udata;
     gtk_clist_freeze(clist);
    
     for (l = clist->row_list; l != NULL; l = g_list_next(l)) {
@@ -448,7 +449,8 @@ static gboolean uploads_clear_helper(gpointer user_data) {
     return TRUE;
 }
 
-void uploads_gui_clear_completed(void)
+void
+uploads_gui_clear_completed(void)
 {
 	if (!uploads_remove_lock) {
 		uploads_remove_lock = TRUE;
@@ -457,4 +459,4 @@ void uploads_gui_clear_completed(void)
 	}
 }
 
-/* vi: set ts=4: */
+/* vi: set ts=4 sw=4 cindent: */

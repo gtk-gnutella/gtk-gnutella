@@ -130,13 +130,16 @@ fi_gui_clear_details(void)
 }
 
 void
-on_treeview_fileinfo_selected(GtkTreeView *tree_view, gpointer user_data)
+on_treeview_fileinfo_selected(GtkTreeView *unused_tv, gpointer unused_udata)
 {
 	GtkTreeSelection *selection;
 	GtkTreeModel *model;
 	GtkTreeIter iter;
     gnet_fi_t fih;
 
+	(void) unused_tv;
+	(void) unused_udata;
+	
     selection = gtk_tree_view_get_selection(treeview_fileinfo);
     if (gtk_tree_selection_get_selected(selection, &model, &iter)) {
 		gtk_tree_model_get(model, &iter, c_fi_handle, &fih, (-1));
@@ -149,8 +152,11 @@ on_treeview_fileinfo_selected(GtkTreeView *tree_view, gpointer user_data)
  * Handle the clicking of the purge button.  Purge the selected file.
  */
 void
-on_button_fi_purge_clicked(GtkButton *button, gpointer user_data)
+on_button_fi_purge_clicked(GtkButton *unused_button, gpointer unused_udata)
 {
+	(void) unused_button;
+	(void) unused_udata;
+	
     if (last_shown_valid) {
 		guc_fi_purge(last_shown);
 		fi_gui_clear_details();
@@ -312,6 +318,9 @@ static gboolean
 fi_gui_update_queued(gpointer key, gpointer unused_value, gpointer unused_udata)
 {
 	gnet_fi_t fih = GPOINTER_TO_UINT(key);
+
+	(void) unused_value;
+	(void) unused_udata;
 
   	fi_gui_update(fih, FALSE);
 	return TRUE; /* Remove the handle from the hashtable */

@@ -158,12 +158,11 @@ static node_parser_t parser_map[] = {
 };
 
 
-/*
- * search_store_xml
- *
+/**
  * Store pending searches.
  */
-void search_store_xml(void)
+void
+search_store_xml(void)
 {
 	const GList *l;
 	time_t now = time((time_t *) NULL);
@@ -244,14 +243,13 @@ void search_store_xml(void)
 	xmlFreeDoc(doc);
 }
 
-/*
- * search_retrieve_xml:
- *
+/**
  * Retrieve search list and restart searches.
  * This is the new xml version. The searches are normally
  * retrieved from  ~/.gtk-gnutella/searches.xml.
  */
-gboolean search_retrieve_xml(void)
+gboolean
+search_retrieve_xml(void)
 {
 	xmlDocPtr doc;
     xmlNodePtr node;
@@ -431,7 +429,8 @@ out:
 	return FALSE;
 }
 
-static void builtin_to_xml(xmlNodePtr parent)
+static void
+builtin_to_xml(xmlNodePtr parent)
 {
     xmlNodePtr newxml;
     
@@ -455,7 +454,8 @@ static void builtin_to_xml(xmlNodePtr parent)
     xmlSetProp(newxml, TAG_BUILTIN_RETURN_UID, (const xmlChar *) x_tmp);
 }
 
-static void search_to_xml(xmlNodePtr parent, search_t *s)
+static void
+search_to_xml(xmlNodePtr parent, search_t *s)
 {
     xmlNodePtr newxml;
     GList *l;
@@ -506,7 +506,8 @@ static void search_to_xml(xmlNodePtr parent, search_t *s)
 }
 
 
-static void filter_to_xml(xmlNodePtr parent, filter_t *f)
+static void
+filter_to_xml(xmlNodePtr parent, filter_t *f)
 {
     xmlNodePtr newxml;
     GList *l;
@@ -564,7 +565,8 @@ static void filter_to_xml(xmlNodePtr parent, filter_t *f)
         rule_to_xml(newxml, (rule_t *) l->data);
 }
 
-static void rule_to_xml(xmlNodePtr parent, rule_t *r)
+static void
+rule_to_xml(xmlNodePtr parent, rule_t *r)
 {
     xmlNodePtr newxml = NULL;
 
@@ -664,7 +666,8 @@ static void rule_to_xml(xmlNodePtr parent, rule_t *r)
     xmlSetProp(newxml, TAG_RULE_TARGET, (const xmlChar *) x_tmp);
 }
 
-static void parse_xml(xmlNodePtr xmlnode, gpointer user_data)
+static void
+parse_xml(xmlNodePtr xmlnode, gpointer user_data)
 {
     gint n;
 
@@ -691,11 +694,13 @@ static void parse_xml(xmlNodePtr xmlnode, gpointer user_data)
     g_error("Unknown node: %s", xmlnode->name);
 }
 
-static void xml_to_builtin(xmlNodePtr xmlnode, gpointer user_data)
+static void
+xml_to_builtin(xmlNodePtr xmlnode, gpointer unused_udata)
 {
     gchar *buf;
     gpointer target;
 
+	(void) unused_udata;
     g_assert(xmlnode != NULL);
     g_assert(xmlnode->name != NULL);
     g_assert(0 == g_ascii_strcasecmp((const gchar *) xmlnode->name,
@@ -759,7 +764,8 @@ static void xml_to_builtin(xmlNodePtr xmlnode, gpointer user_data)
     }
 }
 
-static void xml_to_search(xmlNodePtr xmlnode, gpointer user_data)
+static void
+xml_to_search(xmlNodePtr xmlnode, gpointer unused_udata)
 {
     gchar *buf;
     gchar *query;
@@ -769,6 +775,7 @@ static void xml_to_search(xmlNodePtr xmlnode, gpointer user_data)
     search_t * search;
     guint flags = 0;
 
+	(void) unused_udata;
     g_assert(xmlnode != NULL);
     g_assert(xmlnode->name != NULL);
     g_assert(0 == g_ascii_strcasecmp((const gchar *) xmlnode->name,
@@ -852,7 +859,8 @@ static void xml_to_search(xmlNodePtr xmlnode, gpointer user_data)
         parse_xml(node, search->filter);
 }
 
-static void xml_to_filter(xmlNodePtr xmlnode, gpointer user_data)
+static void
+xml_to_filter(xmlNodePtr xmlnode, gpointer unused_udata)
 {
     gchar *buf;
     gchar *name;
@@ -861,6 +869,7 @@ static void xml_to_filter(xmlNodePtr xmlnode, gpointer user_data)
     gpointer dest;
     gboolean active = TRUE;
 
+	(void) unused_udata;
     g_assert(xmlnode != NULL);
     g_assert(xmlnode->name != NULL);
     g_assert(0 == g_ascii_strcasecmp((const gchar *) xmlnode->name,
@@ -923,11 +932,12 @@ static void xml_to_filter(xmlNodePtr xmlnode, gpointer user_data)
     /*
      * Also parse all children.
      */
-	for(node = xmlnode->children; node != NULL; node = node->next)
+	for (node = xmlnode->children; node != NULL; node = node->next)
         parse_xml(node, filter);
 }
 
-static void xml_to_text_rule(xmlNodePtr xmlnode, gpointer filter)
+static void
+xml_to_text_rule(xmlNodePtr xmlnode, gpointer filter)
 {
     gchar *match;
     enum rule_text_type type;
@@ -977,7 +987,8 @@ static void xml_to_text_rule(xmlNodePtr xmlnode, gpointer filter)
     G_FREE_NULL(match);
 }
 
-static void xml_to_ip_rule(xmlNodePtr xmlnode, gpointer filter)
+static void
+xml_to_ip_rule(xmlNodePtr xmlnode, gpointer filter)
 {
     guint32 addr;
     guint32 mask;
@@ -1023,7 +1034,8 @@ static void xml_to_ip_rule(xmlNodePtr xmlnode, gpointer filter)
         g_list_append(((filter_t *) filter)->ruleset, rule);
 }
 
-static void xml_to_size_rule(xmlNodePtr xmlnode, gpointer filter)
+static void
+xml_to_size_rule(xmlNodePtr xmlnode, gpointer filter)
 {
     size_t lower;
     size_t upper;
@@ -1069,7 +1081,8 @@ static void xml_to_size_rule(xmlNodePtr xmlnode, gpointer filter)
         g_list_append(((filter_t *) filter)->ruleset, rule);
 }
 
-static void xml_to_jump_rule(xmlNodePtr xmlnode, gpointer filter)
+static void
+xml_to_jump_rule(xmlNodePtr xmlnode, gpointer filter)
 {
     gchar *buf;
     rule_t *rule;
@@ -1102,7 +1115,8 @@ static void xml_to_jump_rule(xmlNodePtr xmlnode, gpointer filter)
         g_list_append(((filter_t *) filter)->ruleset, rule);
 }
 
-static void xml_to_sha1_rule(xmlNodePtr xmlnode, gpointer filter)
+static void
+xml_to_sha1_rule(xmlNodePtr xmlnode, gpointer filter)
 {
     gchar *hash = NULL;
     gchar *filename = NULL;
@@ -1147,7 +1161,8 @@ static void xml_to_sha1_rule(xmlNodePtr xmlnode, gpointer filter)
         g_list_append(((filter_t *) filter)->ruleset, rule);
 }
 
-static void xml_to_flag_rule(xmlNodePtr xmlnode, gpointer filter)
+static void
+xml_to_flag_rule(xmlNodePtr xmlnode, gpointer filter)
 {
     enum rule_flag_action stable = RULE_FLAG_IGNORE;
     enum rule_flag_action busy   = RULE_FLAG_IGNORE;
@@ -1207,7 +1222,8 @@ static void xml_to_flag_rule(xmlNodePtr xmlnode, gpointer filter)
         g_list_append(((filter_t *) filter)->ruleset, rule);
 }
 
-static void xml_to_state_rule(xmlNodePtr xmlnode, gpointer filter)
+static void
+xml_to_state_rule(xmlNodePtr xmlnode, gpointer filter)
 {
     enum filter_prop_state display = FILTER_PROP_STATE_UNKNOWN;
     enum filter_prop_state download = FILTER_PROP_STATE_UNKNOWN;
@@ -1260,7 +1276,8 @@ static void xml_to_state_rule(xmlNodePtr xmlnode, gpointer filter)
         g_list_append(((filter_t *) filter)->ruleset, rule);
 }
 
-static guint16 get_rule_flags_from_xml(xmlNodePtr xmlnode)
+static guint16
+get_rule_flags_from_xml(xmlNodePtr xmlnode)
 {
     gboolean negate = FALSE;
     gboolean active = TRUE;
@@ -1299,4 +1316,4 @@ static guint16 get_rule_flags_from_xml(xmlNodePtr xmlnode)
 
 #endif	/* HAS_LIBXML2 */
 
-/* vi: set ts=4: */
+/* vi: set ts=4 sw=4 cindent: */
