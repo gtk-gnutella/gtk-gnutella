@@ -94,6 +94,7 @@ typedef enum {
     PROP_DH_DEBUG,    
     PROP_DQ_DEBUG,    
     PROP_VMSG_DEBUG,    
+    PROP_QUERY_DEBUG,    
     PROP_SEARCH_DEBUG,    
     PROP_UDP_DEBUG,    
     PROP_QRP_DEBUG,    

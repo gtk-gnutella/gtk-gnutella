@@ -93,6 +93,7 @@ extern const guint32  url_debug;
 extern const guint32  dh_debug;
 extern const guint32  dq_debug;
 extern const guint32  vmsg_debug;
+extern const guint32  query_debug;
 extern const guint32  search_debug;
 extern const guint32  udp_debug;
 extern const guint32  qrp_debug;

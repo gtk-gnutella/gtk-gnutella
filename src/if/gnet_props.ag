@@ -724,6 +724,17 @@ prop = {
 };
 
 prop = {
+	name = "query_debug";
+	desc = "Debug level for queries.";
+    type = guint32;
+    data = {
+        default = 0;
+        min     = 0;
+        max     = 20;
+    };
+};
+
+prop = {
 	name = "search_debug";
 	desc = "Debug level for searches and search results management.";
     type = guint32;
@@ -2631,17 +2642,18 @@ prop = {
 	desc = "Whether UDP shall be used in complement to TCP.  When set, "
 		"gtk-gnutella will also listen for UDP traffic on the same port "
 		"as the one configured for TCP and process incoming Gnutella traffic "
-		"in almost the same way as if it was received via TCP.";
+		"in almost the same way as if it was received via TCP.  It is "
+		"safe to leave this set, which is the default behaviour.";
 	type = boolean;
 	data = {
-		default = FALSE;
+		default = TRUE;
 	};
 };
 
 prop = {
 	name = "process_oob_queries";
 	desc = "Whether gtk-gnutella should honour the request for out-of-band "
-		"delivery of query hits via UDP, regardless of whether UDP listening "
+		"delivery of query hits via UDP, provided UDP listening "
 		"is enabled.  It should not be necessary to open a port on your "
 		"firewall to enable this as your node will be the origin of the UDP "
 		"traffic and should therefore be able to receive replies sent to "
