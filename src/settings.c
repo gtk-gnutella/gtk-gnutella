@@ -471,6 +471,16 @@ void settings_shutdown(void)
 }
 
 /*
+ * settings_save_if_dirty
+ *
+ * Save settings if dirty.
+ */
+void settings_save_if_dirty(void)
+{
+    prop_save_to_file_if_dirty(properties, config_dir, config_file);
+}
+
+/*
  * settings_close:
  *
  * Finally free all memory allocated. Call after settings_shutdown.

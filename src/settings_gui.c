@@ -4193,6 +4193,17 @@ void settings_gui_shutdown(void)
     G_FREE_NULL(gnet_prop_set_stub);
 }
 
+/*
+ * settings_gui_save_if_dirty
+ *
+ * Save GUI settings if dirty.
+ */
+void settings_gui_save_if_dirty(void)
+{
+    prop_save_to_file_if_dirty(
+		properties, settings_gui_config_dir(), property_file);
+}
+
 const gchar *settings_gui_config_dir(void)
 {
 	return settings_config_dir();

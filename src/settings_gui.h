@@ -35,6 +35,7 @@
 
 void settings_gui_init(void);
 const gchar *settings_gui_config_dir(void);
+void settings_gui_save_if_dirty(void);
 void settings_gui_shutdown(void);
 
 #endif /* _settings_gui_h_ */

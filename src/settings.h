@@ -45,6 +45,7 @@ extern struct in_addr *local_netmasks;
  */
 
 void settings_init(void);
+void settings_save_if_dirty(void);
 void settings_shutdown(void);
 void settings_ip_changed(guint32 new_ip);
 guint32 settings_max_msg_size(void);
