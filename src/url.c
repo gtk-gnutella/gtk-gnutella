@@ -29,7 +29,7 @@
 #include "url.h"
 
 #define ESCAPE_CHAR		'%'
-#define TRANSPARENT(x,m) \
+#define TRANSPARENT_CHAR(x,m) \
 	((x) >= 32 && (x) < 128 && (is_transparent[(x)-32] & (m)))
 
 /*
@@ -74,7 +74,7 @@ static guchar *url_escape_mask(guchar *url, guint8 mask)
 	guchar *new;
 
 	for (p = url, c = *p++; c; c = *p++)
-		if (!TRANSPARENT(c, mask))
+		if (!TRANSPARENT_CHAR(c, mask))
 			need_escape++;
 
 	if (need_escape == 0)
@@ -83,7 +83,7 @@ static guchar *url_escape_mask(guchar *url, guint8 mask)
 	new = g_malloc(p - url + (need_escape << 1));
 
 	for (p = url, q = new, c = *p++; c; c = *p++) {
-		if (TRANSPARENT(c, mask))
+		if (TRANSPARENT_CHAR(c, mask))
 			*q++ = c;
 		else {
 			*q++ = ESCAPE_CHAR;
@@ -115,7 +115,7 @@ static gint url_escape_mask_into(
 	guchar *end = target + len;
 
 	for (p = url, q = target, c = *p++; c && q < end; c = *p++) {
-		if (TRANSPARENT(c, mask))
+		if (TRANSPARENT_CHAR(c, mask))
 			*q++ = c;
 		else if (end - q >= 3) {
 			*q++ = ESCAPE_CHAR;

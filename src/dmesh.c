@@ -336,7 +336,7 @@ ok:
 			return FALSE;					/* Index 0 is our mark */
 		file += 5;							/* Skip "/N2R?" */
 	} else {
-		gchar c;
+		guchar c;
 
 		file = strstr(url, "/get/");
 		g_assert(file);					/* Or we'd have not parsed above */

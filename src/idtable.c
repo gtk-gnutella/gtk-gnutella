@@ -23,6 +23,7 @@
  *----------------------------------------------------------------------
  */
 
+#include "common.h"			/* For <string.h>, basically */
 #include "idtable.h"
 
 /*

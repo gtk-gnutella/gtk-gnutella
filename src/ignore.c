@@ -240,7 +240,7 @@ static void namesize_parse(FILE *f, guchar *file)
 
 		size = strtoul(ign_tmp, &p, 10);
 
-		if (p == ign_tmp || !isspace(*p)) {
+		if (p == ign_tmp || !isspace(*(guchar *) p)) {
 			g_warning("malformed size at \"%s\" line %d: %s",
 				file, line, ign_tmp);
 			continue;
