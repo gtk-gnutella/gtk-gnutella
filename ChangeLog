@@ -1,5 +1,8 @@
 # since last version
 
+- (2003.01.02 - cbiere)
+ * Bugfix: Wrote into stats array out of bounds (gnet_stats.c)
+
 - (2003.01.02 - Richard)
  * Added UP host catcher to gnet panel
  * Redesigned a few config panels
