@@ -13,7 +13,7 @@
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU General Public License for more details.
- *
+ *g
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
@@ -25,9 +25,13 @@
 #define __gtk_missing_h__
 
 #include <gtk/gtk.h>
+#include <glib.h>
 
 gint gtk_paned_get_position(GtkPaned *paned);
 void gtk_clist_set_column_name(GtkCList * clist, gint col, gchar * t);
 gint gtk_main_flush();
+void option_menu_select_item_by_data(GtkWidget *m, gpointer *d);
+gpointer option_menu_get_selected_data(GtkWidget *m);
+GtkWidget *menu_new_item_with_data(GtkMenu *m, gchar *l, gpointer d );
 
 #endif	/* __gtk_missing_h__ */

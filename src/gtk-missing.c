@@ -77,3 +77,67 @@ gint gtk_main_flush()
 
     return val;
 }
+
+
+
+/*
+ * Select the menu item which has given data attached to it.
+ */
+void option_menu_select_item_by_data(GtkWidget *m, gpointer *d)
+{
+    GList *l;
+    gint n = 0;
+    GtkWidget *menu;
+
+    g_assert(m != NULL);
+    g_assert(GTK_IS_OPTION_MENU(m));
+
+    menu = GTK_WIDGET(gtk_option_menu_get_menu(GTK_OPTION_MENU(m)));
+
+    for (l = GTK_MENU_SHELL(menu)->children; l != NULL; l = l->next) {
+        if (l->data != NULL) {
+            if (gtk_object_get_user_data((GtkObject *)l->data) == d) {
+                gtk_option_menu_set_history(GTK_OPTION_MENU(m), n); 
+                break;
+            }
+        }
+
+        n ++;
+    }
+
+    if (l == NULL)
+        g_warning("option_menu_select_item_by_data: no item with data %p", d);
+}
+
+
+
+/*
+ * Add a new menu item to the GtkMenu m, with the label l and
+ * the data d.
+ */
+GtkWidget *menu_new_item_with_data(GtkMenu * m, gchar * l, gpointer d )
+{
+    GtkWidget *w;                                                     
+                         
+    g_assert(l != NULL);
+                                                 
+    w = gtk_menu_item_new_with_label(l);                              
+    gtk_object_set_user_data((GtkObject *)w, (gpointer)d);            
+    gtk_widget_show(w);                                               
+    gtk_menu_append(m, w);    
+    return w;
+}
+
+
+/*
+ * Fetches the data set associated with the selected menu item in 
+ * the GtkOptionMenu m.
+ */
+gpointer option_menu_get_selected_data(GtkWidget *m)
+{
+    g_assert(GTK_IS_OPTION_MENU(m));
+
+    return gtk_object_get_user_data                                    
+        ((GtkObject *)gtk_menu_get_active(                            
+            GTK_MENU(gtk_option_menu_get_menu(GTK_OPTION_MENU(m)))));
+}
