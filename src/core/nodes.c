@@ -3370,7 +3370,6 @@ node_can_accept_connection(struct gnutella_node *n, gboolean handshaking)
 			ultra_max = max_connections > normal_connections 
 				? max_connections - normal_connections : 0;
 
-#if 0
 			if (
 				handshaking &&
 				node_ultra_count >= ultra_max &&
@@ -3386,7 +3385,6 @@ node_can_accept_connection(struct gnutella_node *n, gboolean handshaking)
 					"Too many ultra connections (%d max)", ultra_max);
 				return FALSE;
 			}
-#endif
 		}
 
 		/*
@@ -3491,14 +3489,13 @@ node_can_accept_connection(struct gnutella_node *n, gboolean handshaking)
 				node_remove(n, "Not an ultra node");
 				return FALSE;
 			}
-#if 0
+
 			if (node_ultra_count >= max_ultrapeers) {
 				send_node_error(n->socket, 503,
 					"Too many ultra connections (%d max)", max_ultrapeers);
 				node_remove(n, "Too many ultra nodes (%d max)", max_ultrapeers);
 				return FALSE;
 			}
-#endif
 			
 			/*
 			 * Honour the prefer compressed connection setting. Even when making
