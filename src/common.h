@@ -106,7 +106,7 @@ typedef void (*GCallback) (void);
  */
 
 #define GTA_VERSION 0
-#define GTA_SUBVERSION 92
+#define GTA_SUBVERSION 93
 #define GTA_PATCHLEVEL 0
 #define GTA_REVISION "unstable"
 #define GTA_REVCHAR "u"
