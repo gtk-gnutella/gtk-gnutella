@@ -1,8 +1,21 @@
 # since last version
 
+- (2002.12.06 - RAM)
+ * Added properties "download_require_urn" and "download_require_server_name".
+ * Added more cases where we remove source from the download mesh on error.
+ * Added alive_get_roundtrip_ms() to extract roundtrip times.
+ * Show average/last ping-pong roundtrip time in milliseconds in node's Info.
+ * Two query hits or push messages with same hop count are now discriminated
+   via their TTL: the lowest it is, the more priority we give.
+ * Removed all GDK input dependencies, using a new input event facade on top
+   of the Glib I/O routines [Patch from ko].
+
 - (2002.12.05 - cbiere)
  * Cleanup for 64-bit architectures; replaced non-portable casts by
    GINT_TO_POINTER() et al.
+
+- (2002.12.02 - RAM)
+ * ban.c: forgot missing trailing space after the "Gnucleus" name.
 
 - (2002.11.30 - RAM)
  * Was passing 'len' as a macro argument, which was then copying this into

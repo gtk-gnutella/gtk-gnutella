@@ -68,6 +68,7 @@
 #include "bg.h"
 #include "guid.h"
 #include "file.h"
+#include "inputevt.h"
 
 #include "../config.h"
 
@@ -105,7 +106,7 @@
 #define GTA_REVISION "unstable"
 #define GTA_REVCHAR "u"
 #define GTA_INTERFACE "X11"
-#define GTA_RELEASE "30/11/2002"
+#define GTA_RELEASE "06/11/2002"
 #define GTA_WEBSITE "http://gtk-gnutella.sourceforge.net/"
 
 /*
