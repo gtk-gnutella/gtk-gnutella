@@ -33,6 +33,15 @@
  * 
  * TODO and other ideas to be implemented.
  *
+ * - The current availability info (blue line) is not accurate,
+ * because it only aggregates. It should also take into account when
+ * we loose a source. As ram mentioned on IRC: 
+ *
+ *  right, that's why it's better to construct it dynamically when
+ *  needed, and have a "one more alive source", "lost one alive
+ *  source" events to update the cached merged list when it's needed
+ *  only.
+ *
  * make colors into properties so that they can be stored in config,
  * should keep hardcoded backups.
  * 
@@ -271,10 +280,16 @@ static void vp_gui_fi_added(gnet_fi_t fih)
     fi_free_info(fi);
 }
 
+/**
+ * Handle the event that a fileinfo entry has been removed
+ *
+ * @param fih The fileinfo handle of the entry to be removed
+ */
 static void vp_gui_fi_removed(gnet_fi_t fih)
 {
-    gpointer *v, value;
+    gpointer value;
     gboolean found;
+	vp_info_t *v;
 
     found = g_hash_table_lookup_extended(vp_info_hash,
 		GUINT_TO_POINTER(fih), NULL, &value);
@@ -287,13 +302,11 @@ static void vp_gui_fi_removed(gnet_fi_t fih)
      */
 
     g_hash_table_remove(vp_info_hash, GUINT_TO_POINTER(fih));
-    fi_free_chunks(((vp_info_t *) v)->chunks_list);
-    
+    fi_free_chunks(v->chunks_list);
+	G_FREE_NULL(v->file_name);
     wfree(v, sizeof(vp_info_t));
 
-    /* 
-     * Forget the fileinfo handle for which we displayed progress info
-     */
+    /* Forget the fileinfo handle for which we displayed progress info */
     fi_context.fih_valid = FALSE;
 }
 
@@ -386,7 +399,7 @@ static GSList *range_for_complete_file(guint32 size)
 
 
 /**
- * Callback for range updates.  
+ * Callback for updates to ranges available on the network.
  * 
  * This function gets triggered by an event when new ranges
  * information has become available for a download source.
@@ -399,6 +412,8 @@ static void vp_update_ranges(gnet_src_t srcid)
 	gpointer value;
 	gnet_fi_t fih;
 	struct download *d;
+	GSList *old_list;    /** The previous list of ranges, no longer needed */
+	GSList *l;           /** Temporary pointer to help remove old_list */
 
 	d = src_get_download(srcid);
 	g_assert(d);
@@ -412,6 +427,7 @@ static void vp_update_ranges(gnet_src_t srcid)
     g_assert(found);
     g_assert(value);
 	v = value;
+	old_list = v->ranges;
 	
 	/* 
 	 * If this download is not using swarming then we have the whole
@@ -423,22 +439,31 @@ static void vp_update_ranges(gnet_src_t srcid)
 		v->ranges = range_for_complete_file(d->file_info->size);
 	} else {
 		/* Merge in the new ranges */
+
 		if (dbg) {
 			g_message("Ranges before: %s", http_range_to_gchar(v->ranges));
 			g_message("Ranges new   : %s", http_range_to_gchar(d->ranges));
 		}
 		v->ranges = http_range_merge(v->ranges, d->ranges);
-		/* FIXME: should be freeing old v->ranges list here... */
 		if (dbg)
 			g_message("Ranges after : %s", http_range_to_gchar(v->ranges));
 	}
+	/* Remove the old list and free its range elements */
+	for (l = old_list; l; l = g_slist_next(l)) {
+		wfree(l->data, sizeof(http_range_t));
+	}
+	g_slist_free(old_list);
 }
 
-
+/**
+ * Free the vp_info_t structs in the vp_info_hash
+ */
 void vp_free_key_value (gpointer key, gpointer value, gpointer user_data)
 {
 	(void) key;
 	(void) user_data;
+    fi_free_chunks(((vp_info_t *) value)->chunks_list);
+	G_FREE_NULL(((vp_info_t *) value)->file_name);
     wfree(value, sizeof(vp_info_t));
 }
 
