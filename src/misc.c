@@ -183,6 +183,24 @@ gchar *short_size(guint32 size)
 	return b;
 }
 
+/* Returns a number of kbytes in a more readable form */
+
+gchar *short_kb_size(guint32 size)
+{
+	static gchar b[64];
+
+	if (size < 1024)
+		g_snprintf(b, sizeof(b), "%u KB", size);
+	else if (size < 1048576)
+		g_snprintf(b, sizeof(b), "%.2f MB", (float) size / 1024.0);
+	else if (size < 1073741824)
+		g_snprintf(b, sizeof(b), "%.2f GB", (float) size / 1048576.0);
+	else
+		g_snprintf(b, sizeof(b), "%.2f TB", (float) size / 1073741824.0);
+
+	return b;
+}
+
 /* Returns the ip:port of a node */
 
 gchar *node_ip(struct gnutella_node * n)

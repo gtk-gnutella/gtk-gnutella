@@ -168,8 +168,9 @@ void gui_update_max_uploads(void)
 
 void gui_update_files_scanned(void)
 {
-	g_snprintf(gui_tmp, sizeof(gui_tmp), "Files scanned: %u",
-			   files_scanned);
+	g_snprintf(gui_tmp, sizeof(gui_tmp), "%u file%s shared (%s)",
+		files_scanned, files_scanned == 1 ? "" : "s",
+		short_kb_size(kbytes_scanned));
 	gtk_label_set(GTK_LABEL(label_files_scanned), gui_tmp);
 }
 
@@ -296,16 +297,7 @@ void gui_update_stats(void)
 	g_snprintf(gui_tmp, sizeof(gui_tmp), "%u files", files);
 	gtk_clist_set_text(GTK_CLIST(clist_stats), 1, 0, gui_tmp);
 
-	if (kbytes < 1024)
-		g_snprintf(b, sizeof(b), "%u KB", (guint32) kbytes);
-	else if (kbytes < 1048576)
-		g_snprintf(b, sizeof(b), "%.1f MB", (double) kbytes / 1024.0);
-	else if (kbytes < 1073741824)
-		g_snprintf(b, sizeof(b), "%.1f GB", (double) kbytes / 1048576.0);
-	else
-		g_snprintf(b, sizeof(b), "%.2f TB",
-				   (double) kbytes / 1073741824.0);
-
+	g_snprintf(b, sizeof(b), "%s", short_kb_size(kbytes));
 	gtk_clist_set_text(GTK_CLIST(clist_stats), 2, 0, b);
 
 	if (ping < 1000)
