@@ -1,5 +1,12 @@
 # since last version
 
+- (2002.09.21 RAM)
+ * Removed hostcache "gnutella-again.hostscache.com": no longer resolves.
+ * Added http_async_close() to cleanly request connection close.
+ * Added url_escape_query() to escape query string parameters in URLs.
+ * Periodically save Gnutella web cache ring if dirty.
+ * Finalized web cache support to publish our IP and propagate ring.
+
 - (2002.09.20 RAM)
  * Forgot to update the name hash-table when changing fileinfo.
  * Must always seek before writing to a downloaded file, even when swarming
