@@ -194,6 +194,7 @@ static guint compressed_node_cnt = 0;
 static guint compressed_leaf_cnt = 0;
 static gint pending_byes = 0;			/* Used when shutdowning servent */
 static gboolean in_shutdown = FALSE;
+static guint32 leaf_to_up_switch = NODE_AUTO_SWITCH_MIN;
 
 static query_hashvec_t *query_hashvec = NULL;
 
@@ -537,7 +538,7 @@ can_become_ultra(time_t now)
 		< 1024 / 2 * sys_physmem;
 
 	/* Bandwidth requirements */
-	enough_bw = bsched_enough_up_bandwidth();
+	enough_bw = bsched_enough_up_bandwidth() && !uploads_stalling;
 
 	/* Connection requirements */
 	enough_conn = up_connections >= NODE_MIN_UP_CONNECTIONS;
@@ -593,7 +594,7 @@ node_slow_timer(time_t now)
 	if (
 		configured_peermode == NODE_P_AUTO &&
 		current_peermode == NODE_P_LEAF &&
-		delta_time(now, last_switch) > NODE_AUTO_SWITCH_MIN &&
+		delta_time(now, last_switch) > leaf_to_up_switch &&
 		can_become_ultra(now)
 	) {
 		g_warning("being promoted to Ultrapeer status");
@@ -606,6 +607,9 @@ node_slow_timer(time_t now)
 	 * If we're in "auto" mode and we've been promoted to an ultra node,
 	 * evaluate how good we are and whether we would not be better off
 	 * running as a leaf node.
+	 *
+	 * We double the time we'll spend as a leaf node before switching
+	 * again to UP mode to avoid endless switches between UP and leaf.
 	 */
 
 	if (
@@ -615,6 +619,7 @@ node_slow_timer(time_t now)
 		!can_become_ultra(now)
 	) {
 		g_warning("being demoted from Ultrapeer status");
+		leaf_to_up_switch *= 2;
 		gnet_prop_set_guint32_val(PROP_CURRENT_PEERMODE, NODE_P_LEAF);
 		gnet_prop_set_guint32_val(PROP_NODE_LAST_ULTRA_LEAF_SWITCH, now);
 		return;
