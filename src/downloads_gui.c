@@ -149,11 +149,13 @@ void gui_update_download(struct download *d, gboolean force)
 				fi->cha1 == NULL ?	"ERROR" :
 				sha1_ok ?			"OK" :
 									"FAILED");
-			if (fi->cha1)
+			if (fi->cha1 && fi->cha1_hashed) {
+				time_t elapsed = fi->cha1_elapsed;
 				rw += g_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
 					" (%.1f k/s) %s",
-					(gfloat) (fi->cha1_hashed >> 10) / fi->cha1_elapsed,
+					(gfloat) (fi->cha1_hashed >> 10) / (elapsed ? elapsed : 1),
 					short_time(fi->cha1_elapsed));
+			}
 		}
 		a = tmpstr;
 		break;
