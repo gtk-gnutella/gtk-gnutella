@@ -302,4 +302,6 @@ void download_move_error(struct download *d);
 guint extract_retry_after(const header_t *header);
 gboolean is_faked_download(struct download *d);
 
+struct download *download_find_waiting_unparq(guint32 ip, guint16 port);
+
 #endif /* _downloads_h_ */
