@@ -2146,14 +2146,18 @@ static gboolean qrt_apply_patch(
 
 	/*
 	 * Make sure the received table is not full yet.  If that
-	 * test fails, they have alreayd sent more data than the
+	 * test fails, they have already sent more data than the
 	 * advertised table size.
 	 */
 
+	if (len == 0)						/* No data, only zlib trailer */
+		return TRUE;
+
 	if (qrcv->current_index >= rt->slots) {
 		struct gnutella_node *n = qrcv->node;
-		g_warning("node %s <%s> overflowed its QRP patch (spurious message?)",
-			node_ip(n), node_vendor(n));
+		g_warning("node %s <%s> overflowed its QRP patch of %s slots"
+			" (spurious message?)",
+			node_ip(n), node_vendor(n), compact_size(rt->client_slots));
 		node_bye_if_writable(n, 413, "QRP patch overflowed table (%s slots)",
 			compact_size(rt->client_slots));
 		return FALSE;
@@ -2323,8 +2327,9 @@ static gboolean qrt_apply_patch(
 			if (qrcv->current_slot >= rt->client_slots) {
 				if (j != (epb - 1) || i != (len - 1)) {
 					struct gnutella_node *n = qrcv->node;
-					g_warning("node %s <%s> overflowed its QRP patch",
-						node_ip(n), node_vendor(n));
+					g_warning("node %s <%s> overflowed its QRP patch"
+						" of %s slots", node_ip(n), node_vendor(n),
+						compact_size(rt->client_slots));
 					node_bye_if_writable(n, 413,
 						"QRP patch overflowed table (%s slots)",
 						compact_size(rt->client_slots));
