@@ -20,6 +20,7 @@
 #include "uploads.h"
 #include "nodes.h"
 #include "misc.h"
+#include "getline.h"
 
 guint32 local_ip = 0;
 gboolean is_firewalled = TRUE;		/* Assume the worst --RAM, 20/12/2001 */
@@ -88,6 +89,8 @@ void socket_free(struct gnutella_socket *s)
 	}
 	if (s->gdk_tag)
 		gdk_input_remove(s->gdk_tag);
+	if (s->getline)
+		getline_free(s->getline);
 	if (s->file_desc != -1)
 		close(s->file_desc);
 	g_free(s);
@@ -101,7 +104,9 @@ static void socket_read(gpointer data, gint source, GdkInputCondition cond)
 {
 	gint r;
 	struct gnutella_socket *s = (struct gnutella_socket *) data;
-	gint count;
+	guint count;
+	guint parsed;
+	guchar *first;
 
 	//s->type = 0;
 
@@ -109,6 +114,8 @@ static void socket_read(gpointer data, gint source, GdkInputCondition cond)
 		socket_destroy(s);
 		return;
 	}
+
+	g_assert(s->pos == 0);		/* We read a line, then leave this callback */
 
 	count = sizeof(s->buffer) - s->pos - 1;		/* -1 to allow trailing NUL */
 	if (count <= 0) {
@@ -134,79 +141,64 @@ static void socket_read(gpointer data, gint source, GdkInputCondition cond)
 
 	s->last_update = time((time_t *) 0);
 	s->pos += r;
-	*(s->buffer + s->pos) = '\0';		/* Bound strchr() below --RAM */
 
 	/*
-	 * XXX FIXME: need to read all the headers, not just the firts so
-	 * that we read the Range: field if there is one.
+	 * Get first line.
 	 */
-	if (s->pos >= 4 && strchr(s->buffer, '\n')) {
-		/* We've got at least a line */
 
-		if (!strncmp(s->buffer, gnutella_hello, 17)) {
-			/* This is an incoming control connection */
-			struct gnutella_node *n;
+	switch (getline_read(s->getline, s->buffer, s->pos, &parsed)) {
+	case READ_OVERFLOW:
+		g_warning("socket_read(): first line too long, disconnecting from %s",
+			 ip_to_gchar(s->ip));
+		dump_hex(stderr, "Leading Data", s->buffer, MIN(s->pos, 256));
+		socket_destroy(s);
+		return;
+	case READ_DONE:
+		if (s->pos != parsed)
+			memmove(s->buffer, s->buffer + parsed, s->pos - parsed);
+		s->pos -= parsed;
+		break;
+	case READ_MORE:		/* ok, but needs more data */
+	default:
+		g_assert(parsed == s->pos);
+		s->pos = 0;
+		return;
+	}
 
-			gdk_input_remove(s->gdk_tag);
-			s->gdk_tag = 0;
-			if (s->pos > 22) {	/* 22 = 17 + "0.4\n\n" */
-				g_warning("incoming node %s sent extra bytes after HELLO",
-					 ip_port_to_gchar(s->ip, s->port));
-				dump_hex(stderr, "Extra HELLO Data",
-					s->buffer + 22, MIN(s->pos - 22, 80));
-			} else if (s->pos < 22) {
-				g_warning("incoming node %s sent short HELLO",
-						  ip_port_to_gchar(s->ip, s->port));
-				dump_hex(stderr, "HELLO Data", s->buffer, s->pos);
-			}
-			s->pos = 0;
-			sl_incoming = g_slist_remove(sl_incoming, s);
-			s->last_update = 0;
+	/*
+	 * We come here only when we got the first line of data.
+	 *
+	 * Whatever happens now, we're not going to use the existing read
+	 * callback, and we'll no longer monitor the socket via the `sl_incoming'
+	 * list: if it's a node connection, we'll monitor the node, if it's
+	 * an upload, we'll monitor the uplaod.
+	 */
 
-			n = node_add(s, s->ip, s->port);
+	gdk_input_remove(s->gdk_tag);
+	s->gdk_tag = 0;
+	sl_incoming = g_slist_remove(sl_incoming, s);
+	s->last_update = 0;
 
-			if (n)
-				s->gdk_tag =
-					gdk_input_add(s->file_desc,
-								  (GdkInputCondition) GDK_INPUT_READ |
-								  GDK_INPUT_EXCEPTION, node_read,
-								  (gpointer) n);
+	/*
+	 * Dispatch request.
+	 *
+	 * XXX TODO: handle push requests (GIV)
+	 */
 
-		} else if ((!strncmp(s->buffer, "GET", 3)) || (!strncmp(s->buffer, "HEAD", 4))) {		/* This is an Upload request in HTTP */
-			struct upload *up;
+	first = getline_str(s->getline);
 
-			gdk_input_remove(s->gdk_tag);
-
-			/* XXX initiate state machine to remain here while we did not
-			 * XXX read the full headers; then we'll call upload_add().
-			 * XXX better move to a dedicated callback waiting for all headers.
-			 * XXX		--RAM
-			 */
-
-			up = upload_add(s);
-			sl_incoming = g_slist_remove(sl_incoming, s);
-			s->last_update = 0;
-
-			if (up != NULL) {
-				s->gdk_tag =
-					gdk_input_add(s->file_desc,
-								  (GdkInputCondition) GDK_INPUT_WRITE |
-								  GDK_INPUT_EXCEPTION, upload_write,
-								  (gpointer) up);
-				s->resource.upload = up;
-
-			}
-
-			else {
-				socket_destroy(s);
-				return;
-			}
-		} else {
-			g_warning("socket_read(): Got an unknown incoming connection, "
-				"dropping it.");
-			dump_hex(stderr, "Connection Header", s->buffer, MIN(s->pos, 80));
-			socket_destroy(s);
-		}
+	if (0 == strncmp(first, gnutella_hello, gnutella_hello_length))
+		node_add(s, s->ip, s->port);	/* Incoming control connection */
+	else if (0 == strncmp(first, "GET", 3))
+		upload_add(s, FALSE);
+	else if (0 == strncmp(first, "HEAD", 4))
+		upload_add(s, TRUE);
+	else {
+		gint len = getline_length(s->getline);
+		g_warning("socket_read(): Got an unknown incoming connection, "
+			"dropping it.");
+		dump_hex(stderr, "First Line", first, MIN(len, 160));
+		socket_destroy(s);
 	}
 }
 
@@ -231,9 +223,12 @@ void socket_connected(gpointer data, gint source, GdkInputCondition cond)
 	}
 
 	if (cond & GDK_INPUT_READ) {
-		if (proxy_connections
-			&& s->direction == GTA_CONNECTION_PROXY_OUTGOING) {
+		if (
+			proxy_connections
+			&& s->direction == GTA_CONNECTION_PROXY_OUTGOING
+		) {
 			gdk_input_remove(s->gdk_tag);
+			s->gdk_tag = 0;
 
 			if (socks_protocol == 4) {
 				if (recv_socks(s) != 0) {
@@ -283,11 +278,11 @@ void socket_connected(gpointer data, gint source, GdkInputCondition cond)
 		gint res, option, size = sizeof(gint);
 
 		gdk_input_remove(s->gdk_tag);
+		s->gdk_tag = 0;
 
 		/* Check wether the socket is really connected */
 
-		res =
-			getsockopt(s->file_desc, SOL_SOCKET, SO_ERROR,
+		res = getsockopt(s->file_desc, SOL_SOCKET, SO_ERROR,
 					   (void *) &option, &size);
 
 		if (res == -1 || option) {
@@ -326,53 +321,45 @@ void socket_connected(gpointer data, gint source, GdkInputCondition cond)
 		s->pos = 0;
 		memset(s->buffer, 0, sizeof(s->buffer));
 
+		g_assert(s->gdk_tag == 0);
+
 		switch (s->type) {
 		case GTA_TYPE_CONTROL:
 			{
-				s->gdk_tag =
-					gdk_input_add(s->file_desc,
-								  GDK_INPUT_READ | GDK_INPUT_EXCEPTION,
-								  node_read_connecting, (gpointer) s);
-				node_init_outgoing(s->resource.node);
-				break;
+				struct gnutella_node *n = s->resource.node;
+
+				g_assert(n->socket == s);
+
+				s->gdk_tag = gdk_input_add(s->file_desc,
+					  GDK_INPUT_READ | GDK_INPUT_EXCEPTION,
+					  node_read_connecting, (gpointer) n);
+				node_init_outgoing(n);
 			}
+			break;
 
 		case GTA_TYPE_DOWNLOAD:
 			{
-				s->gdk_tag =
-					gdk_input_add(s->file_desc,
-								  GDK_INPUT_READ | GDK_INPUT_EXCEPTION,
-								  download_read, (gpointer) s);
-				download_send_request(s->resource.download);
-				break;
+				struct download *d = s->resource.download;
+
+				g_assert(d->socket == s);
+
+				s->gdk_tag = gdk_input_add(s->file_desc,
+					  GDK_INPUT_READ | GDK_INPUT_EXCEPTION,
+					  download_read, (gpointer) d);
+				download_send_request(d);
 			}
+			break;
 
 		case GTA_TYPE_UPLOAD:
-			{
-				if (!(s->gdk_tag)) {
-					struct upload *up;
-
-					up = upload_add(s);
-					if (up != NULL) {
-						s->gdk_tag = gdk_input_add(s->file_desc,
-												   (GdkInputCondition)
-												   GDK_INPUT_WRITE |
-												   GDK_INPUT_EXCEPTION,
-												   upload_write,
-												   (gpointer) up);
-						s->resource.upload = up;
-					} else
-						socket_destroy(s);
-				}
-				break;
-			}
+			// XXX
+			g_warning("Unhandled UPLOAD asynchronous connection");
+			socket_destroy(s);
+			break;
 
 		default:
-			{
-				g_warning("socket_connected(): Unknown socket type %d !",
-						  s->type);
-				socket_destroy(s);		/* ? */
-			}
+			g_warning("socket_connected(): Unknown socket type %d !", s->type);
+			socket_destroy(s);		/* ? */
+			break;
 		}
 	}
 }
@@ -439,8 +426,7 @@ static void socket_accept(gpointer data, gint source,
 
 	fcntl(sd, F_SETFL, O_NONBLOCK);	/* Set the file descriptor non blocking */
 
-	t = (struct gnutella_socket *)
-		g_malloc0(sizeof(struct gnutella_socket));
+	t = (struct gnutella_socket *) g_malloc0(sizeof(struct gnutella_socket));
 
 	t->file_desc = sd;
 	t->ip = g_ntohl(addr.sin_addr.s_addr);
@@ -448,6 +434,7 @@ static void socket_accept(gpointer data, gint source,
 	t->direction = GTA_CONNECTION_INCOMING;
 	t->type = s->type;
 	t->local_port = s->local_port;
+	t->getline = getline_make();
 
 	switch (s->type) {
 	case GTA_TYPE_CONTROL:
@@ -476,7 +463,7 @@ static void socket_accept(gpointer data, gint source,
 		break;
 
 	case GTA_TYPE_DOWNLOAD:
-		if (dbg > 7) printf("Accepting INCOMING CONNECTION for %s\n",
+		if (dbg > 4) printf("Accepting INCOMING CONNECTION for %s\n",
 			s->resource.download->file_name);
 
 		t->resource.download = s->resource.download;
@@ -484,7 +471,7 @@ static void socket_accept(gpointer data, gint source,
 
 		t->gdk_tag =
 			gdk_input_add(sd, GDK_INPUT_READ | GDK_INPUT_EXCEPTION,
-						  download_read, t);
+						  download_read, (gpointer) t->resource.download);
 
 		socket_free(s);		/* Close the listening socket */
 		break;
@@ -502,7 +489,7 @@ static void socket_accept(gpointer data, gint source,
 
 	if (is_firewalled) {
 		is_firewalled = FALSE;
-		printf("Got evidence that we're not fully firewalled\n");
+		if (dbg) printf("Got evidence that we're not fully firewalled\n");
 	}
 }
 
@@ -525,8 +512,7 @@ struct gnutella_socket *socket_connect(guint32 ip, guint16 port, gint type)
 		return NULL;
 	}
 
-	s = (struct gnutella_socket *)
-		g_malloc0(sizeof(struct gnutella_socket));
+	s = (struct gnutella_socket *) g_malloc0(sizeof(struct gnutella_socket));
 
 	s->type = type;
 	s->direction = GTA_CONNECTION_OUTGOING;
@@ -542,8 +528,8 @@ struct gnutella_socket *socket_connect(guint32 ip, guint16 port, gint type)
 	fcntl(sd, F_SETFL, O_NONBLOCK);	/* Set the file descriptor non blocking */
 
 	addr.sin_family = AF_INET;
-	s->ip = addr.sin_addr.s_addr = g_htonl(ip);
-	s->port = addr.sin_port = g_htons(port);
+	addr.sin_addr.s_addr = g_htonl(ip);
+	addr.sin_port = g_htons(port);
 
 	/*
 	 * Now we check if we're forcing a local IP, and make it happen if so.
@@ -560,7 +546,7 @@ struct gnutella_socket *socket_connect(guint32 ip, guint16 port, gint type)
 		 * behind a masquerading firewall --RAM.
 		 */
 		(void) bind(sd, (struct sockaddr *) &lcladdr,
-					sizeof(struct sockaddr_in));
+			sizeof(struct sockaddr_in));
 	}
 
 	if (proxy_connections) {
@@ -568,20 +554,19 @@ struct gnutella_socket *socket_connect(guint32 ip, guint16 port, gint type)
 		lcladdr.sin_port = INADDR_ANY;
 
 		(void) bind(sd, (struct sockaddr *) &lcladdr,
-					sizeof(struct sockaddr_in));
+			sizeof(struct sockaddr_in));
 
-		res =
-			proxy_connect(sd, (struct sockaddr *) &addr,
-						  sizeof(struct sockaddr_in));
+		res = proxy_connect(sd, (struct sockaddr *) &addr,
+			sizeof(struct sockaddr_in));
 
 		s->direction = GTA_CONNECTION_PROXY_OUTGOING;
 	} else
-		res =
-			connect(sd, (struct sockaddr *) &addr,
-					sizeof(struct sockaddr_in));
+		res = connect(sd, (struct sockaddr *) &addr,
+			sizeof(struct sockaddr_in));
 
 	if (res == -1 && errno != EINPROGRESS) {
-		g_warning("Unable to connect (%s)", g_strerror(errno));
+		g_warning("Unable to connect to %s: (%s)",
+			ip_port_to_gchar(s->ip, s->port), g_strerror(errno));
 		socket_destroy(s);
 		return NULL;
 	}
@@ -595,15 +580,16 @@ struct gnutella_socket *socket_connect(guint32 ip, guint16 port, gint type)
 		return NULL;
 	}
 
+	g_assert(s->gdk_tag == 0);
+
 	if (proxy_connections)
-		s->gdk_tag =
-			gdk_input_add(sd, GDK_INPUT_WRITE | GDK_INPUT_EXCEPTION,
-						  socket_connected, s);
+		s->gdk_tag = gdk_input_add(sd,
+			GDK_INPUT_READ | GDK_INPUT_WRITE | GDK_INPUT_EXCEPTION,
+			socket_connected, s);
 	else
-		s->gdk_tag =
-			gdk_input_add(sd,
-						  GDK_INPUT_READ | GDK_INPUT_WRITE |
-						  GDK_INPUT_EXCEPTION, socket_connected, s);
+		s->gdk_tag = gdk_input_add(sd,
+			GDK_INPUT_WRITE | GDK_INPUT_EXCEPTION,
+			socket_connected, s);
 
 	return s;
 }
@@ -624,8 +610,7 @@ struct gnutella_socket *socket_listen(guint32 ip, guint16 port, gint type)
 		return NULL;
 	}
 
-	s = (struct gnutella_socket *)
-		g_malloc0(sizeof(struct gnutella_socket));
+	s = (struct gnutella_socket *) g_malloc0(sizeof(struct gnutella_socket));
 
 	s->type = type;
 	s->direction = GTA_CONNECTION_LISTENING;
@@ -654,7 +639,7 @@ struct gnutella_socket *socket_listen(guint32 ip, guint16 port, gint type)
 
 	/* listen() the socket */
 
-	if (listen(sd, 1) == -1) {
+	if (listen(sd, 5) == -1) {
 		g_warning("Unable to listen() the socket (%s)", g_strerror(errno));
 		socket_destroy(s);
 		return NULL;
@@ -687,7 +672,11 @@ struct gnutella_socket *socket_listen(guint32 ip, guint16 port, gint type)
 
 static void show_error(char *fmt, ...)
 {
+	va_list args;
 
+	va_start(args, fmt);
+	vfprintf(stderr, fmt, args);
+	va_end(args);
 }
 
 /*
@@ -995,7 +984,7 @@ int connect_socksv5(struct gnutella_socket *s)
 			rc = ECONNREFUSED;
 			return (rc);
 		}
-		printf("connect_socksv5: Step 5, bytes recv'd %i\n", rc);
+		if (dbg) printf("connect_socksv5: Step 5, bytes recv'd %i\n", rc);
 		if (rc < 10) {
 			show_error("Short reply from SOCKS server\n");
 			rc = ECONNREFUSED;
