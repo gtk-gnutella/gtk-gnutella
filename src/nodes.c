@@ -6,6 +6,7 @@
 
 #include <fcntl.h>
 #include <sys/types.h>
+#include <sys/uio.h>	/* struct iovec */
 #include <string.h>
 #include <ctype.h>		/* For isspace() */
 

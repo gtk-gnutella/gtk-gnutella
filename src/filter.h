@@ -2,7 +2,6 @@
 #ifndef __filter_h__
 #define __filter_h__
 
-#include <arpa/inet.h>
 #include <regex.h>
 
 #include "matching.h"
