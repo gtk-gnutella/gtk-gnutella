@@ -2825,6 +2825,22 @@ GSList *qrt_build_query_target(
 		}
 
 		/*
+		 * If leaf is flow-controlled, it has trouble reading or we don't
+		 * have enough bandwidth to send everything.  If we were not skipping
+		 * it, the flow-control would cause the message queue to prioritize
+		 * the query in the queue, removing queries coming far away in favor
+		 * of closer ones (hops-wise).  But if we skip it alltogether, we loose
+		 * some potential for a match.
+		 *
+		 * Therefore, let only 50% of the queries pass to flow-controlled nodes.
+		 */
+
+		if (NODE_IN_TX_FLOW_CONTROL(dn)) {
+			if (random_value(99) >= 50)
+				continue;
+		}
+
+		/*
 		 * OK, can send the query to that node.
 		 */
 
