@@ -1,5 +1,13 @@
 # since last version
 
+- (2002.11.23 - RAM)
+ * Flag downloads when overlapping checks have been done to avoid doing
+   them twice when we got exactly as many bytes as the overlapping window.
+   (Bug found by Richard)
+ * Also apply vendor-specific banning to nodes we connect to.
+ * Added bootstrapping web cache file [Patch from Markus Goetz].
+ * Added Markus Goetz to the AUTHORS file.
+
 - (2002.11.23 - Richard)
  * Added key != NULL assertion to atom_get and atom_free.
  * Made dmesh cope with buggy alternate locations from LimeWire.
