@@ -616,14 +616,15 @@ static void mq_service(gpointer data)
 			ie->iov_base = mb->m_rptr;
 			ie->iov_len = pmsg_size(mb);
 		} else {
-			/* drop the message */
+			gnet_stats_count_flowc(mbs);	/* Done before message freed */
+
+			/* drop the message, will be freed by mq_rmlink_prev() */
 			l = mq_rmlink_prev(q, l, pmsg_size(mb));
 
 			if (dbg > 4)
 				gmsg_log_dropped(mbs, "to node %s due to hops-flow",
 					node_ip(q->node));
 
-			gnet_stats_count_flowc(mbs);
 			dropped++;
 		}
 	}
