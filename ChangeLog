@@ -1,5 +1,68 @@
 # since last version
 
+# v 0.93.1   2003.12.28  [stable]
+
+- Simplified the GUI for non-experts.  Beginners will now see less
+  curious things on the screen, until they become more acquainted and
+  turn on "expert" mode.
+- Many improvements in the GUI:
+  . The Gnutella node information displayed can now be configured in
+	detail, and is by default reduced to four statistics only.
+  . It is possible to hide the handshaking version and the Uptime column
+	from the Gnutella pane.
+  . When running in auto mode, show the criteria for becoming an ultranode.
+  . The leaf node bandwidth odometers are by default automatically hidden
+	when running as a leaf node.
+  . GUI refreshing has been optimized so we don't unnecessarily refresh
+	screens that the user is not looking at.  The downside is that when
+	moving to that screen, stale data is presented for about 1 second until
+	the refreshing takes place.
+- 0.93 was not reporting uploaded partial files as such to downloading peers.
+- Remote control "shell" is now compiled in by default but needs to be
+  explicitly enabled in the GUI to become operational.
+- Improved connectivity between ultrapeers to avoid frequent disconnection
+  due to "activity timeout".
+- Bugfixes:
+  . Was misparsing query hits bearing alt-locs attached to each hit, causing
+	GTKG to possibly drop those hits and close the connection when coming
+	from an immediate neighbour.
+  . When restarting a search from menu, re-enable it automatically if it
+	was disabled (fixes bug #864348).
+  . Upon restart, a disabled search will now be shown in gray in the
+    search list (fixes bug #857972) -- feature only implemented for GTK1.
+- Many other little changes that we'll let you discover...
+
+- (2003.12.28 - RAM)
+ * [GTK1] Renamed "Search for" as "Search:" to save horizontal real-estate
+   and have a larger search box.
+ * Ensure that we update the uploads every 5 minutes at least, even if nobody
+   is watching to perform cleanup of dead entries.
+ * [GTK2] Brought up in sync with GTK1 [From Clayton Rollins].
+ * Ensure that we update the nodes every 5 minutes at least, even if nobody
+   is watching to perform cleanup of dead entries.
+ * Cache result of lookup_widget(main_window, "notebook_main").
+ * Put column definition enum for gnet pane in gui.h, to be in line with
+   the way it's done for others.
+ * Only update downloads if we're in the "Downloads" tab.
+ * Put column definition enum for fileinfo pane in gui.h, to be in line with
+   the way it's done for others.
+ * Some download states must always be updated whether they are looking or
+   not since we won't periodically refresh the GUI.
+ * Added statistics properties about library scanning and QRP patch generation.
+ * [GTK1] Added "expert" statistics frame showing library scanning time and
+   some properties about the QRP table and the generated patch in the upload
+   config pane.
+ * New "fileinfo_divider_pos" property to remember the postion of the
+   fileinfo vertical separation.
+ * [GTK1] Remember the vertical position of the fileinfo pane separation.
+ * Fileinfo callback were not prepared to handle (FREQ_SECS, 2), otherwise
+   change notifications are lost when adding/removing sources.
+ * Forgot to handle the GTA_DL_REQ_SENDING state in download_timer().
+   Now that we do, we can skip the GUI update for that state if they're
+   not looking.
+ * [GTK1] Turned off "expand" from "frame_gnet_can_become_ultra".
+ * [GTK2] GUI brought up in sync with GTK1 again [Thanks to Clayton Rollins].
+
 - (2003.12.27 - RAM)
  * Due to a stupid typo, we were denying promoting nodes to UP even if the
    bandwidth requirements were met [Patch from Sebastian Bork].
@@ -22,6 +85,10 @@
  * Query traffic monitoring is now controlled by GUI-settable properties.
  * Must always perform nodes_gui_node_info_changed().
  * Must always perform upload_info_changed().
+ * When autoselect is disabled in the search pane, prevent them from being
+   able to select the fuzzy matching or identical settings...
+ * Now that remote control can be disabled from the GUI, compile it by
+   default but do not activate it.
 
 - (2003.12.26 - RAM)
  * Don't send QUEUE callbacks for entries we no longer share [Patch from
@@ -444,7 +511,6 @@
 - (2003.10.12 - Jeroen)
  * Intergrated patch from Richard Hyde which implements the Purge button for
    the gtk2 interface.
-
 
 - (2003.10.11 - RAM)
  [This batch of changes implements server-side PFSP]
