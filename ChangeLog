@@ -1,4 +1,6 @@
 # since last version
+- visually distinguish items in search list that where already selected for
+  downloading (Richard)
 - Added uptime of servent to statusbar. (Richard)
 - Modified multiple-selection handling in on_button_uploads_kill_clicked,
   on_button_downloads_queue_remove_clicked and on_download_start_now_activate.
