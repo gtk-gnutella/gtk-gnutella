@@ -57,6 +57,7 @@ void search_callbacks_shutdown(void);
 /***
  *** Search results popup
  ***/
+void on_popup_search_download_activate(GtkMenuItem *menuitem, gpointer user_data);
 void on_popup_search_drop_name_activate(GtkMenuItem *menuitem, gpointer user_data);
 void on_popup_search_drop_sha1_activate(GtkMenuItem *menuitem, gpointer user_data);
 void on_popup_search_drop_host_activate(GtkMenuItem *menuitem, gpointer user_data);

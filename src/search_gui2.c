@@ -1860,8 +1860,8 @@ void search_gui_remove_search(search_t * sch)
 		sensitive = sensitive && 
 			selection_counter(GTK_TREE_VIEW(current_search->tree_view)) > 0;
 
-    gtk_widget_set_sensitive
-        (lookup_widget(main_window, "button_search_download"), sensitive);
+    gtk_widget_set_sensitive(
+		lookup_widget(popup_search, "popup_search_download"), sensitive);
 }
 
 void search_gui_set_current_search(search_t *sch) 
@@ -1945,7 +1945,7 @@ void search_gui_set_current_search(search_t *sch)
             (GTK_SPIN_BUTTON(spinbutton_reissue_timeout), reissue_timeout);
         gtk_widget_set_sensitive(spinbutton_reissue_timeout, !passive);
         gtk_widget_set_sensitive(
-            lookup_widget(main_window, "button_search_download"), 
+            lookup_widget(popup_search, "popup_search_download"), 
 			selection_counter(GTK_TREE_VIEW(sch->tree_view)) > 0);
         gtk_widget_set_sensitive(
             lookup_widget(main_window, "button_search_clear"), 
@@ -1969,7 +1969,7 @@ void search_gui_set_current_search(search_t *sch)
         gtk_widget_set_sensitive(spinbutton_minimum_speed, FALSE);
         gtk_widget_set_sensitive(spinbutton_reissue_timeout, FALSE);
         gtk_widget_set_sensitive(
-            lookup_widget(main_window, "button_search_download"), FALSE);
+            lookup_widget(popup_search, "popup_search_download"), FALSE);
         gtk_widget_set_sensitive(
             lookup_widget(main_window, "button_search_clear"), FALSE);
         gtk_widget_set_sensitive(

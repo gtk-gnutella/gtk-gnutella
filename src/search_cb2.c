@@ -46,17 +46,13 @@ static gchar tmpstr[4096];
 static void refresh_popup(void)
 {
 	gboolean sensitive;
-	search_t *current_search;
+	search_t *search;
 
-    current_search = search_gui_get_current_search();
-
-/*	sensitive = current_search && 
-        (gboolean) GTK_CLIST(current_search->clist)->selection;
-*/
-	sensitive = current_search != NULL;
+    search = search_gui_get_current_search();
+	sensitive = search != NULL;
 
 	gtk_widget_set_sensitive
-        (lookup_widget(main_window, "button_search_download"), sensitive);
+        (lookup_widget(popup_search, "popup_search_download"), sensitive);
     gtk_widget_set_sensitive
         (lookup_widget(popup_search, "popup_search_drop_name"), sensitive);
     gtk_widget_set_sensitive
@@ -83,23 +79,20 @@ static void refresh_popup(void)
         sensitive);   
 
     gtk_widget_set_sensitive(
-        lookup_widget(popup_search, "popup_search_restart"), 
-        (gboolean) current_search);
+        lookup_widget(popup_search, "popup_search_restart"), NULL != search);
     gtk_widget_set_sensitive(
-        lookup_widget(popup_search, "popup_search_duplicate"), 
-        (gboolean) current_search);
+        lookup_widget(popup_search, "popup_search_duplicate"), NULL != search);
 
-    if (current_search) {
+    if (search) {
         gtk_widget_set_sensitive(
             lookup_widget(popup_search, "popup_search_stop"), 
-                        !search_is_frozen(current_search->search_handle));
-	gtk_widget_set_sensitive(
-		lookup_widget(popup_search, "popup_search_resume"),
-		search_is_frozen(current_search->search_handle));
-	if (current_search->passive)
+			!search_is_frozen(search->search_handle));
 		gtk_widget_set_sensitive(
-                lookup_widget(popup_search, "popup_search_restart"), 
-                FALSE);
+			lookup_widget(popup_search, "popup_search_resume"),
+			search_is_frozen(search->search_handle));
+		if (search->passive)
+			gtk_widget_set_sensitive(
+				lookup_widget(popup_search, "popup_search_restart"), FALSE);
     } else {
 		gtk_widget_set_sensitive(
 			lookup_widget(popup_search, "popup_search_stop"), FALSE);
@@ -121,8 +114,8 @@ void on_combo_entry_searches_activate
 
 void on_search_popdown_switch(GtkWidget *w, gpointer data)
 {
-	if (search_selected != NULL)
-		search_gui_set_current_search(search_selected);
+	g_return_if_fail(NULL != search_selected);
+	search_gui_set_current_search(search_selected);
 }
 
 void on_search_notebook_switch(GtkNotebook * notebook,
@@ -165,24 +158,25 @@ void on_tree_view_search_select_row(GtkTreeView * treeview, gpointer user_data)
 	selection = gtk_tree_view_get_selection(treeview);
 	if (gtk_tree_selection_get_selected(selection, &model, &iter)) {
 		gtk_tree_model_get(model, &iter, c_sl_sch, &sch, -1);
-		if (NULL != sch) {
-			gtk_notebook_set_page(
-				GTK_NOTEBOOK(lookup_widget(main_window, "notebook_main")),
-				nb_main_page_search);
-			search_gui_set_current_search(sch);
-		}
+
+		g_return_if_fail(NULL != sch);
+
+		gtk_notebook_set_page(
+		GTK_NOTEBOOK(lookup_widget(main_window, "notebook_main")),
+		nb_main_page_search);
+		search_gui_set_current_search(sch);
 	}
 }
 
 void on_search_selected(GtkItem * i, gpointer data)
 {
-        search_selected = (search_t *) data;
+	search_selected = (search_t *) data;
 }
 
 void on_button_search_clicked(GtkButton *button, gpointer user_data)
 {
-	gchar *e = gtk_editable_get_chars
-        (GTK_EDITABLE(lookup_widget(main_window, "entry_search")), 0, -1);
+	gchar *e = gtk_editable_get_chars(
+		GTK_EDITABLE(lookup_widget(main_window, "entry_search")), 0, -1);
 
         /*
          * Even though we might not be on_the_net() yet, record the search.
@@ -192,7 +186,7 @@ void on_button_search_clicked(GtkButton *button, gpointer user_data)
          */
 
     g_strstrip(e);
-    if (*e) {
+    if ('\0' != *e) {
         filter_t *default_filter;
         search_t *search;
         gboolean res;
@@ -220,8 +214,8 @@ void on_button_search_clicked(GtkButton *button, gpointer user_data)
 		 * If we should set a default filter, we do that.
 		 */
 		if (res && (default_filter != NULL)) {
-				rule_t *rule = filter_new_jump_rule
-						(default_filter, RULE_FLAG_ACTIVE);
+			rule_t *rule = filter_new_jump_rule(
+								default_filter, RULE_FLAG_ACTIVE);
 
 				/*
 				 * Since we don't want to distrub the shadows and
@@ -229,13 +223,13 @@ void on_button_search_clicked(GtkButton *button, gpointer user_data)
 				 * the "ok" button in the dialog, we add the rule
 				 * manually.
 				 */
-				search->filter->ruleset = 
-						g_list_append(search->filter->ruleset, rule);
-				rule->target->refcount ++;
+			search->filter->ruleset = g_list_append(
+											search->filter->ruleset, rule);
+			rule->target->refcount ++;
 		}
          
-	if (!res)
-		gdk_beep();
+		if (!res)
+			gdk_beep();
 	}
 
 	G_FREE_NULL(e);
@@ -248,39 +242,32 @@ void on_entry_search_activate(GtkEditable * editable, gpointer user_data)
      *      --BLUE, 30/04/2002
      */
 
-        on_button_search_clicked(NULL, user_data);
+	on_button_search_clicked(NULL, user_data);
 }
 
 void on_entry_search_changed(GtkEditable * editable, gpointer user_data)
 {
-        gchar *e = gtk_editable_get_chars(editable, 0, -1);
-        g_strstrip(e);
-        gtk_widget_set_sensitive
-        (lookup_widget(main_window, "button_search"), *e != 0);
-        G_FREE_NULL(e);
+	gchar *e = gtk_editable_get_chars(editable, 0, -1);
+	g_strstrip(e);
+	gtk_widget_set_sensitive(
+		lookup_widget(main_window, "button_search"), '\0' != *e);
+	G_FREE_NULL(e);
 }
 
 void on_button_search_clear_clicked(GtkButton * button, gpointer user_data)
 {
-        gui_search_clear_results();
-
-        gtk_widget_set_sensitive
-        (lookup_widget(main_window, "button_search_clear"), FALSE);
+	gui_search_clear_results();
+	gtk_widget_set_sensitive(
+		lookup_widget(main_window, "button_search_clear"), FALSE);
 }
 
 void on_button_search_close_clicked(GtkButton * button, gpointer user_data)
 {
-    search_t *current_search;
+    search_t *search;
 
-    current_search = search_gui_get_current_search();
-
-    if (current_search != NULL)
-        search_gui_close_search(current_search);
-}
-
-void on_button_search_download_clicked(GtkButton * button, gpointer user_data)
-{
-    search_gui_download_files();
+    search = search_gui_get_current_search();
+	g_return_if_fail(NULL != search);
+	search_gui_close_search(search);
 }
 
 gboolean on_tree_view_search_results_key_press_event
@@ -301,9 +288,6 @@ gboolean on_tree_view_search_results_button_press_event
     (GtkWidget *widget, GdkEventButton * event, gpointer user_data)
 {
 	static guint click_time = 0;
-	search_t *current_search;
-
-	current_search = search_gui_get_current_search();
 
 	switch (event->button) {
 	case 1:
@@ -391,8 +375,7 @@ static void autoselect_files_helper(
 	gboolean more_rows;
 	GtkTreeSelection	*selection;
 
-	if (autoselect_files_lock)
-		return;
+	g_return_if_fail(!autoselect_files_lock);
 	autoselect_files_lock = TRUE;
 
 	/* 
@@ -607,11 +590,11 @@ void on_tree_view_search_results_select_row(
 			rc->tag ? locale_to_utf8(rc->tag, 0) : "");
 	}
 
-	if (!autoselection_running) {
-		autoselection_running = TRUE;
-		autoselect_files(tree_view);
-		autoselection_running = FALSE;
-	}
+	g_return_if_fail(!autoselection_running);
+
+	autoselection_running = TRUE;
+	autoselect_files(tree_view);
+	autoselection_running = FALSE;
 }
 
 void on_tree_view_search_results_resize_column(
@@ -629,16 +612,15 @@ void on_button_search_passive_clicked(
     GtkButton *button, gpointer user_data)
 {
     filter_t *default_filter;
-        search_t *search;
+	search_t *search;
 
     /*
      * We have to capture the selection here already, because
      * new_search will trigger a rebuild of the menu as a
      * side effect.
      */
-    default_filter = (filter_t *)
-        option_menu_get_selected_data
-            (lookup_widget(main_window, "optionmenu_search_filter"));
+    default_filter = (filter_t *) option_menu_get_selected_data(
+		lookup_widget(main_window, "optionmenu_search_filter"));
 
 	search_gui_new_search("Passive", SEARCH_PASSIVE, &search);
 
@@ -655,11 +637,9 @@ void on_button_search_passive_clicked(
          * the "ok" button in the dialog, we add the rule
          * manually.
          */
-        search->filter->ruleset =
-            g_list_append(search->filter->ruleset, rule);
+        search->filter->ruleset = g_list_append(search->filter->ruleset, rule);
         rule->target->refcount ++;
     }
-
 }
 
 
@@ -668,72 +648,67 @@ void on_button_search_passive_clicked(
  *** Search results popup
  ***/
 
+void on_popup_search_download_activate(
+    GtkMenuItem *menuitem, gpointer user_data)
+{
+    search_gui_download_files();
+}
+
 void on_popup_search_drop_name_activate(
     GtkMenuItem *menuitem, gpointer user_data)
 {
-    search_t *current_search;
+    search_t *search;
 	GtkTreeSelection *selection;
     GSList *sl;
 
-    current_search = search_gui_get_current_search();
-    g_assert(current_search != NULL);
-	selection = gtk_tree_view_get_selection(
-					GTK_TREE_VIEW(current_search->tree_view));
-
+    search = search_gui_get_current_search();
+    g_assert(search != NULL);
+	selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(search->tree_view));
     sl = tree_selection_collect_data(selection, gui_record_name_eq);
-    g_slist_foreach(sl, (GFunc) filter_add_drop_name_rule,
-        current_search->filter);
+    g_slist_foreach(sl, (GFunc) filter_add_drop_name_rule, search->filter);
     g_slist_free(sl);
 }
 
 void on_popup_search_drop_sha1_activate(
     GtkMenuItem *menuitem, gpointer user_data)
 {
-    search_t *current_search;
+    search_t *search;
 	GtkTreeSelection *selection;
     GSList *sl;
 
-    current_search = search_gui_get_current_search();
-    g_assert(current_search != NULL);
-	selection = gtk_tree_view_get_selection(
-					GTK_TREE_VIEW(current_search->tree_view));
-
+    search = search_gui_get_current_search();
+    g_assert(search != NULL);
+	selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(search->tree_view));
     sl = tree_selection_collect_data(selection, gui_record_sha1_eq);
-    g_slist_foreach(sl, (GFunc) filter_add_drop_sha1_rule,
-        current_search->filter);
+    g_slist_foreach(sl, (GFunc) filter_add_drop_sha1_rule, search->filter);
     g_slist_free(sl);
 }
 
 void on_popup_search_drop_host_activate(
     GtkMenuItem *menuitem, gpointer user_data)
 {
-    search_t *current_search;
+    search_t *search;
 	GtkTreeSelection *selection;
     GSList *sl;
 
-    current_search = search_gui_get_current_search();
-    g_assert(current_search != NULL);
-	selection = gtk_tree_view_get_selection(
-					GTK_TREE_VIEW(current_search->tree_view));
-
+    search = search_gui_get_current_search();
+    g_assert(search != NULL);
+	selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(search->tree_view));
     sl = tree_selection_collect_data(selection, gui_record_host_eq);
-    g_slist_foreach(sl, (GFunc) filter_add_drop_host_rule,
-        current_search->filter);
+    g_slist_foreach(sl, (GFunc) filter_add_drop_host_rule, search->filter);
     g_slist_free(sl);
 }
 
 void on_popup_search_drop_name_global_activate
     (GtkMenuItem *menuitem, gpointer user_data)
 {
-    search_t *current_search;
+    search_t *search;
 	GtkTreeSelection *selection;
     GSList *sl;
 
-    current_search = search_gui_get_current_search();
-    g_assert(current_search != NULL);
-	selection = gtk_tree_view_get_selection(
-					GTK_TREE_VIEW(current_search->tree_view));
-
+    search = search_gui_get_current_search();
+    g_assert(search != NULL);
+	selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(search->tree_view));
     sl = tree_selection_collect_data(selection, gui_record_name_eq);
     g_slist_foreach(sl, (GFunc) filter_add_drop_name_rule,
         filter_get_global_pre());
@@ -743,16 +718,13 @@ void on_popup_search_drop_name_global_activate
 void on_popup_search_drop_sha1_global_activate
     (GtkMenuItem *menuitem, gpointer user_data)
 {
-    search_t *current_search;
+    search_t *search;
 	GtkTreeSelection *selection;
     GSList *sl;
 
-    current_search = search_gui_get_current_search();
-    g_assert(current_search != NULL);
-	selection = gtk_tree_view_get_selection(
-					GTK_TREE_VIEW(current_search->tree_view));
-
-
+    search = search_gui_get_current_search();
+    g_assert(search != NULL);
+	selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(search->tree_view));
     sl = tree_selection_collect_data(selection, gui_record_sha1_eq);
     g_slist_foreach(sl, (GFunc) filter_add_drop_sha1_rule,
         filter_get_global_pre());
@@ -762,15 +734,13 @@ void on_popup_search_drop_sha1_global_activate
 void on_popup_search_drop_host_global_activate(
     GtkMenuItem *menuitem, gpointer user_data)
 {
-    search_t *current_search;
+    search_t *search;
 	GtkTreeSelection *selection;
     GSList *sl;
 
-    current_search = search_gui_get_current_search();
-    g_assert(current_search != NULL);
-	selection = gtk_tree_view_get_selection(
-				GTK_TREE_VIEW(current_search->tree_view));
-
+    search = search_gui_get_current_search();
+    g_assert(search != NULL);
+	selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(search->tree_view));
     sl = tree_selection_collect_data(selection, gui_record_host_eq);
     g_slist_foreach(sl, (GFunc) filter_add_drop_host_rule,
         filter_get_global_pre());
@@ -780,54 +750,45 @@ void on_popup_search_drop_host_global_activate(
 void on_popup_search_autodownload_name_activate(
     GtkMenuItem *menuitem, gpointer user_data)
 {
-    search_t *current_search;
+    search_t *search;
 	GtkTreeSelection *selection;
     GSList *sl;
 
-    current_search = search_gui_get_current_search();
-    g_assert(current_search != NULL);
-	selection = gtk_tree_view_get_selection(
-        GTK_TREE_VIEW(current_search->tree_view));
-
+    search = search_gui_get_current_search();
+    g_assert(search != NULL);
+	selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(search->tree_view));
     sl = tree_selection_collect_data(selection, gui_record_name_eq);
-    g_slist_foreach(sl, (GFunc) filter_add_download_name_rule,
-        current_search->filter);
+    g_slist_foreach(sl, (GFunc) filter_add_download_name_rule, search->filter);
     g_slist_free(sl);
 }
 
 void on_popup_search_autodownload_sha1_activate(
     GtkMenuItem *menuitem, gpointer user_data)
 {
-    search_t *current_search;
+    search_t *search;
 	GtkTreeSelection *selection;
     GSList *sl;
 
-    current_search = search_gui_get_current_search();
-    g_assert(current_search != NULL);
-	selection = gtk_tree_view_get_selection(
-        GTK_TREE_VIEW(current_search->tree_view));
-
+	search = search_gui_get_current_search();
+    g_assert(search != NULL);
+	selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(search->tree_view));
     sl = tree_selection_collect_data(selection, gui_record_sha1_eq);
-    g_slist_foreach(sl, (GFunc) filter_add_download_sha1_rule,
-        current_search->filter);
+    g_slist_foreach(sl, (GFunc) filter_add_download_sha1_rule, search->filter);
     g_slist_free(sl);
 }
 
 void on_popup_search_new_from_selected_activate(
     GtkMenuItem *menuitem, gpointer user_data)
 {
-    search_t *current_search;
+    search_t *search;
 	GtkTreeSelection *selection;
     GSList *sl;
 
-    current_search = search_gui_get_current_search();
-    g_assert(current_search != NULL);
-	selection = gtk_tree_view_get_selection(
-        GTK_TREE_VIEW(current_search->tree_view));
-
+    search = search_gui_get_current_search();
+    g_assert(search != NULL);
+	selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(search->tree_view));
     sl = tree_selection_collect_data(selection, gui_record_sha1_or_name_eq);
-    g_slist_foreach(sl, (GFunc) gui_add_targetted_search,
-        current_search->filter);
+    g_slist_foreach(sl, (GFunc) gui_add_targetted_search, search->filter);
     g_slist_free(sl);
 }
 
@@ -846,55 +807,54 @@ void on_popup_search_duplicate_activate(
     gnet_prop_get_guint32_val(PROP_SEARCH_REISSUE_TIMEOUT, &timeout);
 
     search = search_gui_get_current_search();
+	g_return_if_fail(NULL != search);
+
     /* FIXME: should also duplicate filters! */
     /* FIXME: should call search_duplicate which has to be written. */
     /* FIXME: should properly duplicate passive searches. */
-    if (search)
-        search_gui_new_search_full(search->query,
-            search_get_minimum_speed(search->search_handle), 
-            timeout, 0, NULL);
 
+	search_gui_new_search_full(search->query,
+		search_get_minimum_speed(search->search_handle), 
+		timeout, 0, NULL);
 }
 
 void on_popup_search_restart_activate
     (GtkMenuItem *menuitem, gpointer user_data)
 {
-    search_t *current_search;
+    search_t *search;
 
-    current_search = search_gui_get_current_search();
-        if (current_search)
-                search_gui_restart_search(current_search);
+    search = search_gui_get_current_search();
+	g_return_if_fail(NULL != search);
+	search_gui_restart_search(search);
 }
 
 void on_popup_search_resume_activate(GtkMenuItem * menuitem,
 									 gpointer user_data)
 {
-    search_t *current_search;
+    search_t *search;
 
-    current_search = search_gui_get_current_search();
-	if (current_search) {
-		search_start(current_search->search_handle);
+    search = search_gui_get_current_search();
+	g_return_if_fail(NULL != search);
+	search_start(search->search_handle);
 /*        gtk_clist_set_foreground(
             GTK_CLIST(lookup_widget(main_window, "clist_search")),
             gtk_notebook_get_current_page
                 GTK_NOTEBOOK
                     (lookup_widget(main_window, "notebook_search_results")),
 					NULL);*/
-	}
-
 }
 
-void on_popup_search_stop_activate
-    (GtkMenuItem *menuitem, gpointer user_data)
+void on_popup_search_stop_activate(
+	GtkMenuItem *menuitem, gpointer user_data)
 {
-    search_t *current_search;
+    search_t *search;
 
-    current_search = search_gui_get_current_search();
-	if (current_search) {
+    search = search_gui_get_current_search();
+	g_return_if_fail(NULL != search);
 /*		GtkTreeView *tree_view_search = GTK_TREE_VIEW
 			(lookup_widget(main_window, "tree_view_search"));*/
 
-		search_stop(current_search->search_handle);
+	search_stop(search->search_handle);
 /*        gtk_clist_set_foreground(
             tree_view_search,
             gtk_notebook_get_current_page
@@ -902,26 +862,22 @@ void on_popup_search_stop_activate
                     (lookup_widget(main_window, "notebook_search_results")),
             &gtk_widget_get_style(GTK_WIDGET(clist_search))
                 ->fg[GTK_STATE_INSENSITIVE]);*/
-        }
-
 }
 
 void on_popup_search_config_cols_activate(GtkMenuItem * menuitem,
 										  gpointer user_data)
 {
+	GtkWidget * cc;
     search_t *search;
 
     g_assert(NULL != menuitem);
     search = search_gui_get_current_search();
+	g_return_if_fail(NULL != search);
 
-	if (NULL != search) {
-     	GtkWidget * cc;
+	cc = gtk_column_chooser_new(GTK_WIDGET(search->tree_view));
+   	gtk_menu_popup(GTK_MENU(cc), NULL, NULL, NULL, NULL, 1, 0);
 
-        cc = gtk_column_chooser_new(GTK_WIDGET(search->tree_view));
-        gtk_menu_popup(GTK_MENU(cc), NULL, NULL, NULL, NULL, 1, 0);
-
-        /* GtkColumnChooser takes care of cleaning up itself */
-    }
+	/* GtkColumnChooser takes care of cleaning up itself */
 }
 
 void search_callbacks_shutdown(void)
