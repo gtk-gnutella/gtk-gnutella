@@ -91,7 +91,7 @@ enum dl_file_info_field {
 
 /*
  * The swarming trailer is built within a memory buffer first, to avoid having
- * to issue mutliple write() system calls.  We can't use stdio's buffering
+ * to issue mutliple write() system calls.	We can't use stdio's buffering
  * since we can sometime reuse the download's file descriptor.
  */
 static struct {
@@ -102,8 +102,8 @@ static struct {
 	guint32 size;			/* Current size of arena */
 } tbuf;
 
-#define TBUF_SIZE			512			/* Initial trailing buffer size */
-#define TBUF_GROW_BITS		9			/* Growing chunks */
+#define TBUF_SIZE			512		/* Initial trailing buffer size */
+#define TBUF_GROW_BITS		9		/* Growing chunks */
 
 #define TBUF_GROW			(1 << TBUF_GROW_BITS)
 #define TBUF_GROW_MASK		(TBUF_GROW - 1)
@@ -143,9 +143,9 @@ static struct {
 } while (0)
 
 #define TBUF_GETINT32(x) do {			\
-	if (tbuf.rptr + sizeof(gint32) <= tbuf.end)	{ \
+	if (tbuf.rptr + sizeof(gint32) <= tbuf.end) { \
 		if (int32_aligned(tbuf.rptr))	\
-			*x = *(gint32 *) tbuf.rptr;	\
+			*x = *(gint32 *) tbuf.rptr; \
 		else							\
 			memcpy(x, tbuf.rptr, sizeof(gint32)); \
 		tbuf.rptr += sizeof(gint32);	\
@@ -607,7 +607,7 @@ static struct dl_file_info *file_info_retrieve_binary(gchar *file, gchar *path)
 	fi->refcount = 0;
 	
 	for (;;) {
-		tmpguint = FILE_INFO_FIELD_END;	/* in case read() fails. */
+		tmpguint = FILE_INFO_FIELD_END; /* in case read() fails. */
 		READ_INT32(&tmpguint);				/* Read a field ID */
 		if (tmpguint == FILE_INFO_FIELD_END)
 			break;
@@ -694,6 +694,8 @@ static struct dl_file_info *file_info_retrieve_binary(gchar *file, gchar *path)
 
 	close(fd);
 
+	file_info_merge_adjacent(fi);	/* Update fi->done */
+
 	if (dbg > 3)
 		printf("FILEINFO: good trailer info (v%u, %u bytes) in \"%s\"\n",
 			version, trailer.length, fi_tmp);
@@ -768,14 +770,14 @@ static void file_info_store_one(FILE *f, struct dl_file_info *fi)
  */
 static void file_info_store_list(gpointer key, gpointer val, gpointer x)
 {
-    GSList *l;
-    struct dl_file_info *fi;
-    FILE *f = (FILE *)x;
+	GSList *l;
+	struct dl_file_info *fi;
+	FILE *f = (FILE *)x;
 
-    for (l = (GSList *)val; l; l = l->next) {
-        fi = (struct dl_file_info *) l->data;
-        file_info_store_one(f, fi);
-    }
+	for (l = (GSList *)val; l; l = l->next) {
+		fi = (struct dl_file_info *) l->data;
+		file_info_store_one(f, fi);
+	}
 
 }
 
@@ -815,7 +817,7 @@ void file_info_store(void)
 	fputs("#	<blank line>\n", f);
 	fputs("#\n\n", f);
 
-    g_hash_table_foreach(file_info_size_hash, file_info_store_list, f);
+	g_hash_table_foreach(file_info_size_hash, file_info_store_list, f);
 
 	fclose(f);
 	g_free(file);
@@ -830,8 +832,8 @@ void file_info_store(void)
  */
 void file_info_store_if_dirty(void)
 {
-    if (fileinfo_dirty)
-        file_info_store();
+	if (fileinfo_dirty)
+		file_info_store();
 }
 
 /*
@@ -841,21 +843,21 @@ void file_info_store_if_dirty(void)
  */
 static void file_info_close_list(gpointer key, gpointer val, gpointer x)
 {
-    GSList *l, *list;
-    struct dl_file_info *fi;
+	GSList *l, *list;
+	struct dl_file_info *fi;
 
-    list = (GSList *)val;
-    
-    for (l = list; l; l = l->next) {
-        fi = (struct dl_file_info *) l->data;
+	list = (GSList *)val;
+	
+	for (l = list; l; l = l->next) {
+		fi = (struct dl_file_info *) l->data;
 
-        if (fi->refcount) 
-            g_warning("file_info_close() refcount = %u", fi->refcount);
+		if (fi->refcount) 
+			g_warning("file_info_close_list() refcount = %u", fi->refcount);
 
-        fi_free(fi);
-    }
+		fi_free(fi);
+	}
 
-    g_slist_free(list);
+	g_slist_free(list);
 
 }
 
@@ -866,15 +868,15 @@ static void file_info_close_list(gpointer key, gpointer val, gpointer x)
  */
 void file_info_close(void)
 {
-    file_info_store();
+	file_info_store();
 
-    g_hash_table_foreach(file_info_size_hash, file_info_close_list, NULL);
+	g_hash_table_foreach(file_info_size_hash, file_info_close_list, NULL);
 
-    g_hash_table_destroy(file_info_size_hash);
-    g_hash_table_destroy(file_info_name_hash);
-    g_hash_table_destroy(file_info_sha1_hash);
-    
-    g_free(tbuf.arena);
+	g_hash_table_destroy(file_info_size_hash);
+	g_hash_table_destroy(file_info_name_hash);
+	g_hash_table_destroy(file_info_sha1_hash);
+	
+	g_free(tbuf.arena);
 }
 
 /*
@@ -884,20 +886,20 @@ void file_info_close(void)
  */
 void file_info_hash_insert(struct dl_file_info *fi)
 {
-    GSList *l;
+	GSList *l;
 
-    l = g_hash_table_lookup(file_info_size_hash, &fi->size);
-    if(l) {
-        g_slist_append(l, fi);
-    } else {
-        l = g_slist_append(l, fi);
-        g_hash_table_insert(file_info_size_hash, &fi->size, l);
-    }
+	l = g_hash_table_lookup(file_info_size_hash, &fi->size);
+	if(l) {
+		g_slist_append(l, fi);
+	} else {
+		l = g_slist_append(l, fi);
+		g_hash_table_insert(file_info_size_hash, &fi->size, l);
+	}
 
-    g_hash_table_insert(file_info_name_hash, fi->file_name, fi);
+	g_hash_table_insert(file_info_name_hash, fi->file_name, fi);
 
-    if(fi->sha1)
-        g_hash_table_insert(file_info_sha1_hash, fi->sha1, fi);
+	if(fi->sha1)
+		g_hash_table_insert(file_info_sha1_hash, fi->sha1, fi);
 }
 
 /*
@@ -917,17 +919,17 @@ void file_info_retrieve(void)
 	GHashTable *seen_file = g_hash_table_new(g_str_hash, g_str_equal);
 	gboolean empty = TRUE;
 
-    file_info_name_hash = g_hash_table_new(g_str_hash, g_str_equal);
-    file_info_size_hash = g_hash_table_new(g_int_hash, g_int_equal);
-    file_info_sha1_hash = g_hash_table_new(sha1_hash, sha1_eq);
+	file_info_name_hash = g_hash_table_new(g_str_hash, g_str_equal);
+	file_info_size_hash = g_hash_table_new(g_int_hash, g_int_equal);
+	file_info_sha1_hash = g_hash_table_new(sha1_hash, sha1_eq);
   
 	/*
 	 * We have a complex interaction here: each time a new entry within the
 	 * download mesh is added, file_info_try_to_swarm_with() will be
-	 * called.  Moreover, the download mesh is initialized before us.
+	 * called.	Moreover, the download mesh is initialized before us.
 	 *
 	 * However, we cannot enqueue a download before the download module is
-	 * initialized.  And we know it is initilized because download_init()
+	 * initialized. And we know it is initilized because download_init()
 	 * calls us!
 	 *
 	 *		--RAM, 20/08/2002
@@ -990,7 +992,7 @@ void file_info_retrieve(void)
 				g_hash_table_insert(seen_file, fi->file_name, (gpointer) 0x1);
 
 			/* 
-			 * Check file trailer information.  The main file is only written
+			 * Check file trailer information.	The main file is only written
 			 * infrequently and the file's trailer can have more uptodate
 			 * information.
 			 */
@@ -1014,8 +1016,8 @@ void file_info_retrieve(void)
 				fi_free(dfi);
 			}
 
-            file_info_merge_adjacent(fi);
-            file_info_hash_insert(fi);
+			file_info_merge_adjacent(fi);
+			file_info_hash_insert(fi);
 			empty = FALSE;
 
 		discard:
@@ -1170,7 +1172,7 @@ static struct dl_file_info *file_info_create(
 /*
  * file_info_recreate
  *
- * Existing fileinfo structure is obsolete.  Recreate it from existing
+ * Existing fileinfo structure is obsolete. Recreate it from existing
  * file with no swarming info (i.e. a file with no free holes over its
  * completed range so far).
  */
@@ -1178,20 +1180,46 @@ void file_info_recreate(struct download *d)
 {
 	struct dl_file_info *fi = d->file_info;
 	struct dl_file_info *new_fi;
+	GSList *l;
 
 	/*
 	 * NB: we use d->size, and are not reusing fi->size, because the download
-	 * can be larger than what we thought the file oringally was, so the
+	 * can be larger than what we thought the file originally was, so the
 	 * old fi->size may be incorrect.
 	 *		--RAM, 22/08/2002.
 	 */
 
 	g_assert(d->size >= fi->size);
+	g_assert(d->status == GTA_DL_CONNECTING);
 
-	new_fi = file_info_create(fi->file_name, fi->path, d->size,  fi->sha1);
+	new_fi = file_info_create(fi->file_name, fi->path, d->size, fi->sha1);
+
+	/*
+	 * Copy old alises to new structure.
+	 */
+
+	for (l = fi->alias; l; l = g_slist_next(l)) {
+		gchar *alias = (gchar *) l->data;
+		new_fi->alias = g_slist_append(new_fi->alias, atom_str_get(alias));
+	}
+
+	file_info_hash_insert(new_fi);
+
+	/*
+	 * We change the target's file info on the fly here, because we know this
+	 * download has not started yet, it's only preparing.
+	 */
+
 	file_info_free(fi, FALSE);
 	d->file_info = new_fi;
-    file_info_hash_insert(new_fi);
+
+	/*
+	 * All other downloads bearing the old `fi' are moved to the new one,
+	 * but this will cause all running downloads to be requeued.  That's
+	 * why we changed the target ourselves above.
+	 */
+
+	download_file_info_change_all(fi, new_fi);
 }
 
 /*
@@ -1216,11 +1244,11 @@ struct dl_file_info *file_info_get(
 		 * theorically possible to fetch from a partial file and use it to
 		 * fill our gaps, but for now, require files to be of identical length.
 		 */
-        if (fi->size != size) {
-            g_warning("file_info_get(): size mismatch!? (%u vs %u)",
-                    fi->size, size);
-            continue;
-        }
+		if (fi->size != size) {
+			g_warning("file_info_get(): size mismatch!? (%u vs %u)",
+					fi->size, size);
+			continue;
+		}
 
 		if (sha1 && fi->sha1) {
 
@@ -1242,7 +1270,7 @@ struct dl_file_info *file_info_get(
 			/* Grab the sha1 if we don't have it. */
 			if (sha1 && !fi->sha1) {
 				fi->sha1 = atom_sha1_get(sha1);
-                g_hash_table_insert(file_info_sha1_hash, sha1, fi);
+				g_hash_table_insert(file_info_sha1_hash, sha1, fi);
 				fi->dirty = TRUE;
 			}
 			fi->refcount++;
@@ -1255,9 +1283,9 @@ struct dl_file_info *file_info_get(
 	if ((fi = file_info_retrieve_binary(file, path)) != NULL) {
 		g_warning("file_info_get(): "
 			"successfully retrieved meta info from file \"%s\"", file);
-        fi->refcount++;
-        file_info_hash_insert(fi);
-        return fi;
+		fi->refcount++;
+		file_info_hash_insert(fi);
+		return fi;
 	}
 
 	/* New file; Allocate a new file structure */
@@ -1275,7 +1303,7 @@ struct dl_file_info *file_info_get(
 
 	fi = file_info_create(file, path, size, sha1);
 	
-    file_info_hash_insert(fi);
+	file_info_hash_insert(fi);
 
 	if (sha1)
 		dmesh_multiple_downloads(sha1, size, fi);
@@ -1291,23 +1319,24 @@ struct dl_file_info *file_info_get(
  * and NULL otherwise.
  */
 
-static struct dl_file_info *file_info_has_identical(gchar *file, guint32 size, gchar *sha1)
+static struct dl_file_info *file_info_has_identical(
+	gchar *file, guint32 size, gchar *sha1)
 {
 	GSList *p;
 	struct dl_file_info *fi;
 
-    if (!sha1 && strict_sha1_matching)
-        return NULL;
+	if (!sha1 && strict_sha1_matching)
+		return NULL;
 
 	for (p = g_hash_table_lookup(file_info_size_hash, &size); p; p = p->next) {
-        
+		
 		fi = p->data;
 
 		if (fi->size != size) {
-            g_warning("file_info_has_identical(): size mismatch!? (%u vs %u)",
-                    fi->size, size);
-            continue;
-        }
+			g_warning("file_info_has_identical(): size mismatch!? (%u vs %u)",
+					fi->size, size);
+			continue;
+		}
 
 		/*
 		 * No referencess means file isn't in queue anymore,
@@ -1320,7 +1349,7 @@ static struct dl_file_info *file_info_has_identical(gchar *file, guint32 size, g
 		 * Check whether file needs more data at all.
 		 */
 
-        if (sha1 && fi->sha1) {
+		if (sha1 && fi->sha1) {
 
 			if (memcmp(sha1, fi->sha1, SHA1_RAW_SIZE) == 0)
 				return fi;
@@ -1330,7 +1359,7 @@ static struct dl_file_info *file_info_has_identical(gchar *file, guint32 size, g
 				continue;
 		}
 
-        if (file_info_has_filename(fi, file))
+		if (file_info_has_filename(fi, file))
 			return fi;
 	}
 	return NULL;
@@ -1345,26 +1374,28 @@ static struct dl_file_info *file_info_has_identical(gchar *file, guint32 size, g
 void file_info_check_results_set(struct results_set *rs)
 {
 	GSList *l;
-    struct dl_file_info *fi;
+	struct dl_file_info *fi;
 
 	for (l = rs->records; l; l = l->next) {
 		struct record *rc = (struct record *) l->data;
 
-        if(!g_hash_table_lookup(file_info_size_hash, &rc->size))
-            continue;
-        
-        fi = file_info_has_identical(rc->name, rc->size, rc->sha1);
-        if (fi) {
-            gboolean need_push = (rs->status & ST_FIREWALL) ||
-                !check_valid_host(rs->ip, rs->port);
-            download_auto_new(rc->name, rc->size, rc->index, rs->ip, rs->port,
-                    rs->guid, rc->sha1, rs->stamp, need_push, fi);
+		if(!g_hash_table_lookup(file_info_size_hash, &rc->size))
+			continue;
+		
+		fi = file_info_has_identical(rc->name, rc->size, rc->sha1);
+		if (fi) {
+			gboolean need_push = (rs->status & ST_FIREWALL) ||
+				!check_valid_host(rs->ip, rs->port);
+			download_auto_new(rc->name, rc->size, rc->index, rs->ip, rs->port,
+					rs->guid, rc->sha1, rs->stamp, need_push, fi);
 		}
 	}
 }
 
 void file_info_free(struct dl_file_info *fi, gboolean keep)
 {
+	g_assert(fi->refcount > 0);
+
 	fi->refcount--;
 	fi->keep = keep;
 	return;
@@ -1680,7 +1711,7 @@ enum dl_chunk_status file_info_find_hole(
 
 	/*
 	 * This routine is called each time we start a new download, before
-	 * making the request to the remote server.  If we detect that the
+	 * making the request to the remote server. If we detect that the
 	 * file is "gone", then it means the user manually deleted the file.
 	 * In that case, we need to reset all the chunks and mark the whole
 	 * thing as being EMPTY.
@@ -1765,7 +1796,7 @@ enum dl_chunk_status file_info_find_hole(
  */
 static struct dl_file_info *file_info_active(guchar *sha1)
 {
-    return g_hash_table_lookup(file_info_sha1_hash, sha1);
+	return g_hash_table_lookup(file_info_sha1_hash, sha1);
 }
 
 /*
@@ -1794,6 +1825,7 @@ void file_info_try_to_swarm_with(
 		return;
 
 	download_auto_new(
-		file_name, fi->size, idx, ip, port, blank_guid, sha1, 0, FALSE, fi);
+		file_name, fi->size, idx, ip, port, blank_guid, sha1,
+		time(NULL), FALSE, fi);
 }
 

@@ -47,9 +47,10 @@ struct dl_file_info {
 	GSList *alias;		/* List of file name aliases (atoms) */
 	guint32 size;		/* File size */
 	gchar *sha1;		/* SHA1 (atom) if known, NULL if not. */
-	guint32 refcount;	/* Reference count of file */
+	gint32 refcount;	/* Reference count of file */
 	time_t stamp;		/* Time stamp */
 	time_t last_flush;	/* When last flush to disk occurred */
+	time_t last_dmesh;	/* When last dmesh query was used */
 	guint32 done;		/* Total number of bytes completed */
 	GSList *chunklist;	/* List of ranges within file */
 	guint32 generation;	/* Generation number, incremented on disk update */

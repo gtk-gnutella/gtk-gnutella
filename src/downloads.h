@@ -211,6 +211,8 @@ void download_new(gchar *,
 void download_auto_new(gchar *,
 	guint32, guint32, guint32, guint16, gchar *, gchar *, time_t,
     gboolean, struct dl_file_info *);
+void download_file_info_change_all(
+	struct dl_file_info *old_fi, struct dl_file_info *new_fi);
 void download_queue(struct download *d, const gchar *fmt, ...);
 void download_freeze_queue();
 void download_thaw_queue();

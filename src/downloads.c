@@ -56,9 +56,9 @@
 #include <fcntl.h>
 #include <time.h>			/* For ctime() */
 
-#define DOWNLOAD_RECV_BUFSIZE		114688		/* 112K */
+#define DOWNLOAD_RECV_BUFSIZE	114688		/* 112K */
 
-static GSList *sl_downloads = NULL;	/* All downloads (queued + unqueued) */
+static GSList *sl_downloads = NULL; /* All downloads (queued + unqueued) */
 GSList *sl_unqueued = NULL;			/* Unqueued downloads only */
 static gchar dl_tmp[4096];
 static gint queue_frozen = 0;
@@ -98,7 +98,7 @@ static GHashTable *dl_count_by_sha1 = NULL;
  * IP will not be a private one.
  *
  * Therefore, for each (GUID, IP, port) tuple, where IP is NOT private, we
- * store the (IP, port) => server association as well.  There should be only
+ * store the (IP, port) => server association as well.	There should be only
  * one such entry, ever.  If there is more, it means the server changed its
  * GUID, which is possible, in which case we simply supersede the old entry.
  */
@@ -177,7 +177,7 @@ static guint dl_ip_hash(gconstpointer key)
 	struct dl_ip *k = (struct dl_ip *) key;
 	guint32 hash;
 
-	WRITE_GUINT32_LE(k->ip, &hash);	/* Reverse IP, 192.x.y.z -> z.y.x.192 */
+	WRITE_GUINT32_LE(k->ip, &hash); /* Reverse IP, 192.x.y.z -> z.y.x.192 */
 	hash ^= (k->port << 16) | k->port;
 
 	return (guint) hash;
@@ -597,28 +597,54 @@ void download_remove_file(struct download *d)
 }
 
 /*
+ * download_file_info_change_all
+ *
+ * Change all the fileinfo of downloads from `old_fi' to `new_fi'.
+ *
+ * All running downloads are requeued immediately, since then change means
+ * the underlying file changed.
+ */
+void download_file_info_change_all(
+	struct dl_file_info *old_fi, struct dl_file_info *new_fi)
+{
+	GSList *l;
+
+	for (l = sl_downloads; l; l = l->next) {
+		struct download *d = (struct download *) l->data;
+	
+		if (d->file_info != old_fi) continue;
+
+		if (DOWNLOAD_IS_RUNNING(d))
+			download_queue(d, "Requeued by file info change");
+
+		file_info_free(old_fi, FALSE);
+		d->file_info = new_fi;
+		new_fi->refcount++;
+	}
+}
+
+/*
  * queue_remove_downloads_with_file
  *
  * Removes all downloads that point to the file_info struct.
  * This replaces queue_remove_identical, since downloads can
  * have different file names but still point to the same file.
- *
  */
 static void queue_remove_downloads_with_file(struct dl_file_info *fi)
 {
 	GSList *to_remove = NULL;
 	GSList *l;
-    static gboolean removing = FALSE;
+	static gboolean removing = FALSE;
 
-    if (removing) return;
-    removing = TRUE;
+	if (removing) return;
+	removing = TRUE;
 
 	for (l = sl_downloads; l; l = l->next) {
 		struct download *d = (struct download *) l->data;
 
 		if (d->file_info != fi) continue;
 		
-        if (d->status != GTA_DL_COMPLETED)
+		if (d->status != GTA_DL_COMPLETED)
 			to_remove = g_slist_prepend(to_remove, d);
 	}
 	
@@ -627,7 +653,7 @@ static void queue_remove_downloads_with_file(struct dl_file_info *fi)
 
 	g_slist_free(to_remove);
 
-    removing = FALSE;
+	removing = FALSE;
 }
 
 
@@ -642,7 +668,7 @@ static void queue_remove_downloads_with_file(struct dl_file_info *fi)
  *
  * NB: we don't remove second-order aliases.  For instance, download "a" which
  * has a SHA1 of XA1 is removed.  There is also another "a" in the queue whose
- * SHA1 is XA2.  Then we'll remove all XA1 and XA2, but if we find a "b"
+ * SHA1 is XA2.	Then we'll remove all XA1 and XA2, but if we find a "b"
  * whose SHA1 is also XA2, we won't remove all "b".
  */
 static void queue_remove_identical(
@@ -847,7 +873,7 @@ gint download_remove_all_named(const gchar *name)
  * and abort all conenctions to peer in the active download list.
  * Returns the number of removed downloads.
  * Note: if sha1 is NULL, we do not clear all download with sha1==NULL
- *       but abort instead.
+ *		but abort instead.
  */
 gint download_remove_all_with_sha1(const guchar *sha1)
 {
@@ -1120,6 +1146,8 @@ static void download_set_retry_after(struct download *d, time_t after)
 {
 	struct dl_server *server = d->server;
 
+	g_assert(server != NULL);
+
 	dl_by_time = g_list_remove(dl_by_time, server);
 	server->retry_after = after;
 	dl_by_time = g_list_insert_sorted(dl_by_time, server, dl_server_retry_cmp);
@@ -1329,7 +1357,7 @@ static void download_queue_v(struct download *d, const gchar *fmt, va_list ap)
 	/*
 	 * Put a download in the queue :
 	 * - it's a new download, but we have reached the max number of
-	 *   running downloads
+	 *	running downloads
 	 * - the user requested it with the popup menu "Move back to the queue"
 	 */
 
@@ -1646,7 +1674,7 @@ static gboolean download_start_prepare(struct download *d)
 	 * they are smaller than the existing file.
 	 *
 	 * If the file already exists, and has less than `download_overlap_range'
-	 * bytes, we restart the download from scratch.  Otherwise, we request
+	 * bytes, we restart the download from scratch.	Otherwise, we request
 	 * that amount before the resuming point.
 	 * Later on, in download_write_data(), and as soon as we have read more
 	 * than `download_overlap_range' bytes, we'll check for a match.
@@ -1912,7 +1940,7 @@ void download_pickup_queued(void)
 
 			if (
 				!d->file_info->use_swarming &&
-			  	count_running_downloads_with_name(download_outname(d)) != 0
+				count_running_downloads_with_name(download_outname(d)) != 0
 			)
 				continue;
 
@@ -2089,7 +2117,7 @@ void download_fallback_to_push(struct download *d,
  * escape_filename
  *
  * Lazily replace all '/' if filename with '_': if a substitution needs to
- * be done, a copy of the original argument is made first.  Otherwise,
+ * be done, a copy of the original argument is made first.	Otherwise,
  * no change nor allocation occur.
  *
  * Returns the pointer to the escaped filename, or the original argument if
@@ -2170,18 +2198,18 @@ static void create_download(
 	 * arealdy done by caller.	--RAM, 12/01/2002
 	 */
 
-    if (!file_info) {
-        if (output == NULL)
-            output = escape_filename(file_name);
+	if (!file_info) {
+		if (output == NULL)
+			output = escape_filename(file_name);
 
-        file_info = file_info_get(output, save_file_path, size, sha1);
+		file_info = file_info_get(output, save_file_path, size, sha1);
 
-        if (output != file_name)
-            g_free(output);
-        output = NULL;				/* No longer used */
-    } else {
-        file_info->refcount++;
-    }
+		if (output != file_name)
+			g_free(output);
+		output = NULL;				/* No longer used */
+	} else {
+		file_info->refcount++;
+	}
 
 	/*
 	 * Initialize download, creating new server if needed.
@@ -2259,84 +2287,84 @@ void download_auto_new(gchar *file, guint32 size, guint32 record_index,
 	char *reason;
 	int tmplen;
 
-    /* 
-     * If we already got a file_info pointer, all the testing has been
-     * done somewhere else.
-     */
-    if (!fi) {
-    
-        /*
-         * Make sure we have not got a bigger file in the "download dir".
-         *
-         * Because of swarming, we could have a trailer in the file, hence
-         * we cannot blindly stat() it.  Call a specialized routine that will
-         * figure this out.
-         *		--RAM, 18/08/2002
-         */
+	/* 
+	 * If we already got a file_info pointer, all the testing has been
+	 * done somewhere else.
+	 */
 
-        g_snprintf(dl_tmp, sizeof(dl_tmp), "%s/%s", save_file_path, output_name);
-        dl_tmp[sizeof(dl_tmp)-1] = '\0';
+	if (!fi) {
+	
+		/*
+		 * Make sure we have not got a bigger file in the "download dir".
+		 *
+		 * Because of swarming, we could have a trailer in the file, hence
+		 * we cannot blindly stat() it.	Call a specialized routine that will
+		 * figure this out.
+		 *		--RAM, 18/08/2002
+		 */
 
-        // XXX temporary -- RAM
-        //	if (file_info_filesize(dl_tmp) >= size) {
-        //		reason = "downloaded file bigger";
-        //		goto abort_download;
-        //	}
+		g_snprintf(dl_tmp, sizeof(dl_tmp), "%s/%s", save_file_path, output_name);
+		dl_tmp[sizeof(dl_tmp)-1] = '\0';
 
-        /*
-         * Make sure we have not got a bigger file in the "completed dir".
-         *
-         * We must also check for bigger files bearing our renaming exts,
-         * i.e. .01, .02, etc... and keep going while files exist.
-         */
+		if (file_info_filesize(dl_tmp) > size) {
+			reason = "downloaded file bigger";
+			goto abort_download;
+		}
 
-        g_snprintf(dl_tmp, sizeof(dl_tmp), "%s/%s", move_file_path, output_name);
-        dl_tmp[sizeof(dl_tmp)-1] = '\0';
+		/*
+		 * Make sure we have not got a bigger file in the "completed dir".
+		 *
+		 * We must also check for bigger files bearing our renaming exts,
+		 * i.e. .01, .02, etc... and keep going while files exist.
+		 */
 
-        if (-1 != stat(dl_tmp, &buf) && buf.st_size >= size) {
-            reason = "complete file bigger";
-            goto abort_download;
-        }
+		g_snprintf(dl_tmp, sizeof(dl_tmp), "%s/%s", move_file_path, output_name);
+		dl_tmp[sizeof(dl_tmp)-1] = '\0';
 
-        tmplen = strlen(dl_tmp);
-        if (tmplen >= sizeof(dl_tmp) - 4) {
-            g_warning("'%s' in completed dir is too long for further checks",
-                    output_name);
-        } else {
-            int i;
-            for (i = 1; i < 100; i++) {
-                gchar ext[4];
+		if (-1 != stat(dl_tmp, &buf) && buf.st_size >= size) {
+			reason = "complete file bigger";
+			goto abort_download;
+		}
 
-                g_snprintf(ext, 4, ".%02d", i);
-                dl_tmp[tmplen] = '\0';				/* Ignore prior attempt */
-                strncat(dl_tmp+tmplen, ext, 3);		/* Append .01, .02, ...*/
+		tmplen = strlen(dl_tmp);
+		if (tmplen >= sizeof(dl_tmp) - 4) {
+			g_warning("'%s' in completed dir is too long for further checks",
+					output_name);
+		} else {
+			int i;
+			for (i = 1; i < 100; i++) {
+				gchar ext[4];
 
-                if (-1 == stat(dl_tmp, &buf))
-                    break;							/* No file, stop scanning */
+				g_snprintf(ext, 4, ".%02d", i);
+				dl_tmp[tmplen] = '\0';				/* Ignore prior attempt */
+				strncat(dl_tmp+tmplen, ext, 3);		/* Append .01, .02, ...*/
 
-                if (buf.st_size >= size) {
-                    g_snprintf(dl_tmp, sizeof(dl_tmp),
-                            "alternate complete file #%d bigger", i);
-                    reason = dl_tmp;
-                    goto abort_download;
-                }
-            }
-        }
+				if (-1 == stat(dl_tmp, &buf))
+					break;							/* No file, stop scanning */
 
-    }
+				if (buf.st_size >= size) {
+					g_snprintf(dl_tmp, sizeof(dl_tmp),
+							"alternate complete file #%d bigger", i);
+					reason = dl_tmp;
+					goto abort_download;
+				}
+			}
+		}
 
-    file_name = atom_str_get(file);
-    if (output_name == file)		/* Not duplicated, has no '/' inside */
-        output_name = file_name;	/* So must reuse file_name */
+	}
 
-    create_download(file_name, output_name,
-            size, record_index, ip, port, guid, sha1, stamp, push, FALSE, fi);
-    return;
+	file_name = atom_str_get(file);
+	if (output_name == file)		/* Not duplicated, has no '/' inside */
+		output_name = file_name;	/* So must reuse file_name */
+
+	create_download(file_name, output_name,
+			size, record_index, ip, port, guid, sha1, stamp, push, FALSE, fi);
+	return;
 
 abort_download:
-    if (dbg > 4)
-        printf("ignoring auto download for '%s': %s\n", file, reason);
-    if (output_name != file)		/* Was allocated by escape_filename() */
+	if (dbg > 4)
+		printf("ignoring auto download for '%s': %s\n", file, reason);
+	if (output_name != file)		/* Was allocated by escape_filename() */
 		g_free(output_name);
 	return;
 }
@@ -2405,7 +2433,7 @@ void download_index_changed(guint32 ip, guint16 port, guchar *guid,
 			case GTA_DL_RECEIVING:
 				/*
 				 * Ouch.  Pray and hope that the change occurred after we
-				 * requested the file.  There's nothing we can do now.
+				 * requested the file.	There's nothing we can do now.
 				 */
 				g_warning("Index of '%s' changed during reception",
 					d->file_name);
@@ -2832,7 +2860,7 @@ nextline:
 	case HEAD_MANY_LINES:
 	case HEAD_EOH_REACHED:
 		g_warning("download_header_parse: %s, disconnecting from %s",
-			header_strerror(error),  ip_to_gchar(s->ip));
+			header_strerror(error),	ip_to_gchar(s->ip));
 		fprintf(stderr, "------ Header Dump:\n");
 		header_dump(header, stderr);
 		fprintf(stderr, "------\n");
@@ -3006,7 +3034,7 @@ static gboolean download_overlap_check(struct download *d)
 	}
 
 	/*
-	 * We're now at the overlapping start.  Read the data.
+	 * We're now at the overlapping start.	Read the data.
 	 */
 
 	data = g_malloc(d->overlap_size);
@@ -3033,8 +3061,8 @@ static gboolean download_overlap_check(struct download *d)
 	}
 
 	if (0 != memcmp(s->buffer, data, d->overlap_size)) {
-        download_stop(d, GTA_DL_ERROR, "Resuming data mismatch on pos %lu",
-                d->skip - d->overlap_size);
+		download_stop(d, GTA_DL_ERROR, "Resuming data mismatch on pos %lu",
+				d->skip - d->overlap_size);
 		if (dbg > 3)
 			printf("%d overlapping bytes UNMATCHED at offset %d for \"%s\"\n",
 				d->overlap_size, d->skip - d->overlap_size, d->file_name);
@@ -3294,7 +3322,7 @@ static void download_request(struct download *d, header_t *header)
 
 	buf = header_get(header, "Server");			/* Mandatory */
 	if (!buf)
-		buf = header_get(header, "User-Agent");	/* Maybe they're confused */
+		buf = header_get(header, "User-Agent"); /* Maybe they're confused */
 
 	if (buf) {
 		struct dl_server *server = d->server;
@@ -3331,7 +3359,7 @@ static void download_request(struct download *d, header_t *header)
 	 */
 	
 	if ((buf = header_get(header, "X-Gnutella-Content-Urn"))) {
-		gchar *sha1 = strcasestr(buf, "urn:sha1:");	/* Case-insensitive */
+		gchar *sha1 = strcasestr(buf, "urn:sha1:"); /* Case-insensitive */
 		guchar digest[SHA1_RAW_SIZE];
 		
 		if (sha1) {
@@ -3357,7 +3385,7 @@ static void download_request(struct download *d, header_t *header)
 
 				/*
 				 * Insert record in download mesh if it does not require
-				 * a push.  Since we just got a connection, we use "now"
+				 * a push.	Since we just got a connection, we use "now"
 				 * as the mesh timestamp.
 				 */
 
@@ -3451,9 +3479,9 @@ static void download_request(struct download *d, header_t *header)
 	}
 
 	/*
-	 * We got a success status from the remote servent.  Parse header.
+	 * We got a success status from the remote servent.	Parse header.
 	 *
-	 * Normally, a Content-Length: header is mandatory.  However, if we
+	 * Normally, a Content-Length: header is mandatory.	However, if we
 	 * get a valid Content-Range, relax that constraint a bit.
 	 *		--RAM, 08/01/2002
 	 */
@@ -3480,7 +3508,7 @@ static void download_request(struct download *d, header_t *header)
 				/*
 				 * If the file on the server is greater than what we thought
 				 * it would be, then probably they are sharing a file that
-				 * they still receive.  Because now sevents start doing
+				 * they still receive.	Because now sevents start doing
 				 * swarming, we cannot be sure that the file is complete
 				 * without holes within the range we request.
 				 *
@@ -3808,7 +3836,7 @@ gboolean download_send_request(struct download *d)
 
 		/*
 		 * HUGE specs says that the alternate locations are only defined
-		 * when there is an X-Gnutella-Content-URN present.  When we use
+		 * when there is an X-Gnutella-Content-URN present.	When we use
 		 * the N2R form to retrieve a resource by SHA1, that line is
 		 * redundant.  We only send it if we sent mesh information.
 		 */
@@ -3935,7 +3963,7 @@ static struct download *select_push_download(guint file_index, gchar *hex_guid)
 	 * connected download.
 	 *
 	 * We check two things: that we're not already connected (has a socket)
-	 * and that we're in a state where we can expect a GIV string.  Doing
+	 * and that we're in a state where we can expect a GIV string.	Doing
 	 * the two tests add robustness, since they are overlapping, but not
 	 * completely equivalent (if we're in the queued state, for instance).
 	 */
@@ -4317,7 +4345,7 @@ static void download_retrieve(void)
 	line = recline = 0;
 	d_name = NULL;
 
-	while (fgets(dl_tmp, sizeof(dl_tmp) - 1, in)) {	/* Room for trailing NUL */
+	while (fgets(dl_tmp, sizeof(dl_tmp) - 1, in)) { /* Room for trailing NUL */
 		line++;
 
 		if (dl_tmp[0] == '#')
