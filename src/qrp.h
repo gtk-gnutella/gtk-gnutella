@@ -86,7 +86,8 @@ void qhvec_free(struct query_hashvec *qhvec);
 void qhvec_reset(struct query_hashvec *qhvec);
 void qhvec_add(struct query_hashvec *qhvec, gchar *word, enum query_hsrc src);
 
-GSList *qrt_build_query_target(query_hashvec_t *qhvec, gint hops);
+GSList *qrt_build_query_target(
+	query_hashvec_t *qhvec, gint hops, struct gnutella_node *source);
 void qrt_route_query(struct gnutella_node *n, query_hashvec_t *qhvec);
 
 #endif	/* _qrp_h_ */
