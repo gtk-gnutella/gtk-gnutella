@@ -94,8 +94,7 @@ void node_real_remove(struct gnutella_node *n)
 
 	g_return_if_fail(n);
 
-	row =
-		gtk_clist_find_row_from_data(GTK_CLIST(clist_nodes), (gpointer) n);
+	row = gtk_clist_find_row_from_data(GTK_CLIST(clist_nodes), (gpointer) n);
 	gtk_clist_remove(GTK_CLIST(clist_nodes), row);
 
 	sl_nodes = g_slist_remove(sl_nodes, n);
@@ -281,8 +280,9 @@ struct gnutella_node *node_add(struct gnutella_socket *s, guint32 ip,
 	}
 
 	if (incoming) {				/* Welcome the incoming node */
-		if (write(s->file_desc, gnutella_welcome, strlen(gnutella_welcome))
-			< 0) {
+		if (
+			write(s->file_desc, gnutella_welcome, strlen(gnutella_welcome)) < 0
+		) {
 			node_remove(n, "Write of HELLO failed: %s", g_strerror(errno));
 			return (struct gnutella_node *) NULL;
 		}
@@ -320,7 +320,7 @@ void node_parse(struct gnutella_node *node)
 		/* 
 		 * TODO
 		 * Don't propagate more than a fraction of pongs coming from
-		 * hosts that don't share much.
+		 * hosts that don't share much?
 		 *				--RAM, 09/09/2001
 		 */
 		break;
@@ -361,34 +361,29 @@ void node_parse(struct gnutella_node *node)
 		dropped_messages++;
 	} else if (route_message(&n)) {		/* We have to handle the message */
 		switch (n->header.function) {
-		case GTA_MSG_INIT:{
-				reply_init(n);
-				break;
-			}
-		case GTA_MSG_INIT_RESPONSE:{
-				host_add(n, 0, 0, TRUE);
-				break;
-			}
-		case GTA_MSG_PUSH_REQUEST:{
-				handle_push_request(n);
-				break;
-			}
-		case GTA_MSG_SEARCH:{
-				search_request(n);
-				break;
-			}
-		case GTA_MSG_SEARCH_RESULTS:{
-				search_results(n);
-				break;
-			}
-		default:{
-				message_dump(n);
-			}
+		case GTA_MSG_INIT:
+			reply_init(n);
+			break;
+		case GTA_MSG_INIT_RESPONSE:
+			host_add(n, 0, 0, TRUE);
+			break;
+		case GTA_MSG_PUSH_REQUEST:
+			handle_push_request(n);
+			break;
+		case GTA_MSG_SEARCH:
+			search_request(n);
+			break;
+		case GTA_MSG_SEARCH_RESULTS:
+			search_results(n);
+			break;
+		default:
+			message_dump(n);
+			break;
 		}
 	}
 
 	if (!n)
-		return;					/* The node has been removed during processing */
+		return;				/* The node has been removed during processing */
 
 	n->have_header = FALSE;
 	n->pos = 0;
@@ -396,8 +391,9 @@ void node_parse(struct gnutella_node *node)
 
 void node_init_outgoing(struct gnutella_node *n)
 {
-	if (write(n->socket->file_desc, gnutella_hello, strlen(gnutella_hello))
-		< 0) {
+	if (
+		write(n->socket->file_desc, gnutella_hello, strlen(gnutella_hello)) < 0
+	) {
 		node_remove(n, "Write error: %s", g_strerror(errno));
 	} else {
 		n->status = GTA_NODE_HELLO_SENT;
@@ -430,10 +426,9 @@ gboolean node_enqueue(struct gnutella_node *n, gchar * data, guint32 size)
 	}
 
 	if (!n->gdk_tag) {
-		n->gdk_tag =
-			gdk_input_add(n->socket->file_desc,
-						  GDK_INPUT_WRITE | GDK_INPUT_EXCEPTION,
-						  node_write, (gpointer) n);
+		n->gdk_tag = gdk_input_add(n->socket->file_desc,
+			GDK_INPUT_WRITE | GDK_INPUT_EXCEPTION,
+			node_write, (gpointer) n);
 
 		/* We assume that if this is valid, it is non-zero */
 		assert(n->gdk_tag);
@@ -447,7 +442,6 @@ gboolean node_enqueue(struct gnutella_node *n, gchar * data, guint32 size)
 	}
 
 	memcpy(n->sendq + n->sq_pos, data, size);
-
 	n->sq_pos += size;
 
 	return TRUE;
@@ -461,9 +455,8 @@ void node_enqueue_end_of_packet(struct gnutella_node *n)
 		n->sent++;
 		gui_update_node(n, FALSE);
 	} else {
-		n->end_of_packets =
-			g_slist_append(n->end_of_packets,
-						   (gpointer) (n->sq_pos - n->end_of_last_packet));
+		n->end_of_packets = g_slist_append(n->end_of_packets,
+			(gpointer) (n->sq_pos - n->end_of_last_packet));
 		n->end_of_last_packet = n->sq_pos;
 	}
 }
@@ -500,13 +493,14 @@ void node_write(gpointer data, gint source, GdkInputCondition cond)
 			n->end_of_last_packet -= r;
 
 			/* count all the packets we just wrote */
-			while (n->end_of_packets
-				   && ((guint32) n->end_of_packets->data <= r)) {
+			while (
+				n->end_of_packets &&
+				((guint32) n->end_of_packets->data <= r)
+			) {
 				n->sent++;
 				r -= (guint32) n->end_of_packets->data;
-				n->end_of_packets =
-					g_slist_remove(n->end_of_packets,
-								   n->end_of_packets->data);
+				n->end_of_packets = g_slist_remove(n->end_of_packets,
+					n->end_of_packets->data);
 			}
 
 			if (r && n->end_of_packets)
@@ -644,11 +638,10 @@ void node_read(gpointer data, gint source, GdkInputCondition cond)
 			guint32 maxsize = max_msg_size();	/* Can change dynamically */
 
 			if (maxsize < n->size) {
-				g_warning
-					("got %d byte %s message, should have kicked node\n",
-					 n->size, msg_name[n->header.function]);
+				g_warning("got %d byte %s message, should have kicked node\n",
+					n->size, msg_name[n->header.function]);
 				node_remove(n, "Kicked: %s message too big (%d bytes)",
-							msg_name[n->header.function], n->size);
+					msg_name[n->header.function], n->size);
 				return;
 			}
 
@@ -668,13 +661,13 @@ void node_read(gpointer data, gint source, GdkInputCondition cond)
 
 	if (!r) {
 		node_remove(n, "Failed (EOF in %s message data)",
-					msg_name[n->header.function]);
+			msg_name[n->header.function]);
 		return;
 	} else if (r < 0 && errno == EAGAIN)
 		return;
 	else if (r < 0) {
 		node_remove(n, "Read error in %s message: %s",
-					msg_name[n->header.function], g_strerror(errno));
+			msg_name[n->header.function], g_strerror(errno));
 		return;
 	}
 
@@ -686,8 +679,7 @@ void node_read(gpointer data, gint source, GdkInputCondition cond)
 
 /* Reads an outgoing connecting CONTROL node */
 
-void node_read_connecting(gpointer data, gint source,
-						  GdkInputCondition cond)
+void node_read_connecting(gpointer data, gint source, GdkInputCondition cond)
 {
 	static struct gnutella_socket *s;
 	static gint r;
@@ -700,7 +692,7 @@ void node_read_connecting(gpointer data, gint source,
 	}
 
 	r = read(s->file_desc, s->buffer + s->pos,
-			 gnutella_welcome_length - s->pos);
+		gnutella_welcome_length - s->pos);
 
 	if (!r) {
 		node_remove(s->resource.node, "Failed (EOF)");
@@ -709,7 +701,7 @@ void node_read_connecting(gpointer data, gint source,
 		return;
 	else if (r < 0) {
 		node_remove(s->resource.node, "Read error in HELLO: %s",
-					g_strerror(errno));
+			g_strerror(errno));
 		return;
 	}
 
@@ -722,7 +714,7 @@ void node_read_connecting(gpointer data, gint source,
 		/* The node does not seem to be a valid gnutella server !? */
 
 		g_warning("node %s replied to our HELLO with: \"%.80s\"\n",
-				  ip_port_to_gchar(s->ip, s->port), s->buffer);
+			ip_port_to_gchar(s->ip, s->port), s->buffer);
 		node_remove(s->resource.node, "Failed (Not a gnutella server ?)");
 		return;
 	}
@@ -731,9 +723,9 @@ void node_read_connecting(gpointer data, gint source,
 
 	gdk_input_remove(s->gdk_tag);
 
-	s->gdk_tag =
-		gdk_input_add(s->file_desc, GDK_INPUT_READ | GDK_INPUT_EXCEPTION,
-					  node_read, (gpointer) s->resource.node);
+	s->gdk_tag = gdk_input_add(s->file_desc,
+		GDK_INPUT_READ | GDK_INPUT_EXCEPTION,
+		node_read, (gpointer) s->resource.node);
 
 	/* We assume that if this is valid, it is non-zero */
 	assert(s->gdk_tag);
