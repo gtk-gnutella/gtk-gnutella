@@ -675,32 +675,58 @@ static void queue_remove_downloads_with_file(
  */
 gint download_remove_all_from_peer(const gchar *guid, guint32 ip, guint16 port)
 {
-	struct dl_server *server = get_server((gchar *) guid, ip, port);
-	gint n;
+	static guchar blank_guid[16] = { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 };
+	struct dl_server *server[2];
+	gint n = 0;
 	enum dl_list listnum[] = { DL_LIST_RUNNING, DL_LIST_WAITING };
     GSList *to_remove = NULL;
     GSList *sl;
-    
-	for (n = 0; n < sizeof(listnum) / sizeof(listnum[0]); n++) {
-		enum dl_list idx = listnum[n];
-		GList *l;
+	gint i;
 
-		for (l = server->list[idx]; l; l = g_list_next(l)) {
-			struct download *d = (struct download *) l->data;
+	/*
+	 * There can be two distinct server entries for a given IP:port.
+	 * One with the GUID, and one with a blank GUID.  The latter is
+	 * used when we enqueue entries from the download mesh: we don't
+	 * have the GUID handy at that point.
+	 *
+	 * NB: It is conceivable that a server could change GUID between two
+	 * sessions, and therefore we may miss to remove downloads from the
+	 * same IP:port.  Apart from looping throughout the whole queue,
+	 * there is nothing we can do.
+	 *		--RAM, 15/10/2002.
+	 */
 
-			g_assert(d);
-			g_assert(d->status != GTA_DL_REMOVED);
+	server[0] = get_server((guchar *) guid, ip, port);
+	server[1] = get_server(blank_guid, ip, port);
 
-			n++;
+	if (server[1] == server[0])
+		server[1] = NULL;
 
-            to_remove = g_slist_prepend(to_remove, d);
+	for (i = 0; i < 2; i++) {
+		if (server[i] == NULL)
+			continue;
+
+		for (n = 0; n < sizeof(listnum) / sizeof(listnum[0]); n++) {
+			enum dl_list idx = listnum[n];
+			GList *l;
+
+			for (l = server[i]->list[idx]; l; l = g_list_next(l)) {
+				struct download *d = (struct download *) l->data;
+
+				g_assert(d);
+				g_assert(d->status != GTA_DL_REMOVED);
+
+				n++;
+
+				to_remove = g_slist_prepend(to_remove, d);
+			}
 		}
 	}
 
-    for (sl = to_remove; sl != NULL; sl = g_slist_next(sl))
-        download_abort((struct download *)sl->data);
+	for (sl = to_remove; sl != NULL; sl = g_slist_next(sl))
+		download_abort((struct download *)sl->data);
 
-    g_slist_free(to_remove);
+	g_slist_free(to_remove);
 
 	return n;
 }
@@ -1663,6 +1689,7 @@ static gboolean download_start_prepare(struct download *d)
 					g_warning("moved incomplete \"%s\" back to "
 						"download dir as \"%s\"", dl_dest, fi->file_name);
 					file_info_recreate(d);
+					fi = d->file_info;		/* Refresh private copy */
 				}
 			} else
 				all_done = TRUE;			/* "done" file is larger */
@@ -2589,6 +2616,8 @@ void download_resume(struct download *d)
 	if (DOWNLOAD_IS_RUNNING(d))
 		return;
 
+	d->file_info->lifecount++;
+
 	if (
 		NULL != has_same_download(d->file_name, download_guid(d),
 			download_ip(d), download_port(d))
@@ -2599,7 +2628,6 @@ void download_resume(struct download *d)
 		return;
 	}
 
-	d->file_info->lifecount++;
 	download_start(d, TRUE);
 }
 
