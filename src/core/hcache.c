@@ -152,7 +152,7 @@ start_mass_update(hostcache_t *hc)
 /**
  * End mass update of host cache. If a hostcache has already been freed
  * when this function is called, it will not tigger a property update
- * for that hostcache and all of it's group (ANY, ULTRA, BAD).
+ * for that hostcache and all of its group (ANY, ULTRA, BAD).
  */
 static void
 stop_mass_update(hostcache_t *hc)
@@ -555,8 +555,8 @@ hcache_add(hcache_type_t type, guint32 ip, guint16 port, const gchar *what)
     }
 
     /*
-	 * If host is already known, and it is to be moved to the relevant
-	 * cache for any of the "banning" caches.
+	 * If host is already known, check whether we could not simply move the
+	 * entry from one cache to another.
 	 */
 
 	if (hcache_ht_get(ip, port, &host, &hce)) {
@@ -568,27 +568,42 @@ hcache_add(hcache_type_t type, guint32 ip, guint16 port, const gchar *what)
 		case HCACHE_TIMEOUT:
 		case HCACHE_BUSY:
 		case HCACHE_UNSTABLE:
+			/*
+			 * Move host to the proper cache, if not already in one of the
+			 * "bad" caches.
+			 */
+
+			switch (hce->type) {
+			case HCACHE_TIMEOUT:
+			case HCACHE_BUSY:
+			case HCACHE_UNSTABLE:
+				return TRUE;
+			default:
+				break;				/* Move it */
+			}
 			break;
+
+		case HCACHE_VALID_ULTRA:
+		case HCACHE_FRESH_ULTRA:
+			/*
+			 * Move the host to the "ultra" cache if it's in the "any" ones.
+			 */
+
+			switch (hce->type) {
+			case HCACHE_VALID_ANY:
+			case HCACHE_FRESH_ANY:
+				break;				/* Move it */
+			default:
+				return TRUE;
+			}
+			break;
+
 		default:
 			return TRUE;
 		}
 
 		/*
-		 * Move host to the proper cache, if not already in one of the
-		 * "bad" caches.
-		 */
-
-		switch (hce->type) {
-		case HCACHE_TIMEOUT:
-		case HCACHE_BUSY:
-		case HCACHE_UNSTABLE:
-			return TRUE;
-		default:
-			break;
-		}
-
-		/*
-		 * OK, we can move it.
+		 * OK, we can move it from the `hce->type' cache to the `type' one.
 		 */
 
 		g_assert(hash_list_contains(caches[hce->type]->hostlist, host));
@@ -906,7 +921,6 @@ hcache_expire_all(void)
  * Remove hosts that exceed our maximum.
  *
  * This can be called on HCACHE_FRESH_ANY and on HCACHE_FRESH_ULTRA.
- * Calling this on any other cache will tigger an assertion.
  *
  * If too many hosts are in the cache, then it will prune the HCACHE_FRESH_XXX
  * list. Only after HCACHE_FRESH_XXX is empty HCACHE_VALID_XXX will be moved
@@ -920,15 +934,19 @@ hcache_prune(hcache_type_t type)
 
     g_assert((guint) type < HCACHE_MAX);
 
+	hc = caches[type];
+
     switch (type) {
     case HCACHE_VALID_ANY:
-        hc = caches[HCACHE_FRESH_ANY];
+		if (hc->host_count < caches[HCACHE_FRESH_ANY]->host_count)
+			hc = caches[HCACHE_FRESH_ANY];
         break;
     case HCACHE_VALID_ULTRA:
-        hc = caches[HCACHE_FRESH_ULTRA];
+		if (hc->host_count < caches[HCACHE_FRESH_ULTRA]->host_count)
+			hc = caches[HCACHE_FRESH_ULTRA];
         break;
     default:
-        hc = caches[type];
+        break;
     }
 
     extra = -hcache_slots_left(hc->type);
@@ -1120,6 +1138,7 @@ hcache_get_caught(host_type_t type, guint32 *ip, guint16 *port)
 	gboolean reading;
 	extern guint32 number_local_networks;
 	gnet_host_t *h;
+	gboolean available;
 
     switch(type) {
     case HOST_ANY:
@@ -1136,8 +1155,9 @@ hcache_get_caught(host_type_t type, guint32 *ip, guint16 *port)
         g_error("hcache_get_caught: unknown host type: %d", type);
 
     gnet_prop_get_boolean_val(hc->reading, &reading);
+    available = hcache_require_caught(hc);
 
-    g_assert(hcache_require_caught(hc));
+    g_assert(available);
 
     hcache_update_low_on_pongs();
 
@@ -1374,31 +1394,13 @@ hcache_retrieve(hostcache_t *hc, const gchar *filename)
 }
 
 /**
- * Persist hostcache to disk.
+ * Write all data from cache to supplied file.
  */
 static void
-hcache_store(hcache_type_t type, const gchar *filename, gboolean append)
+hcache_write(FILE *f, hostcache_t *hc)
 {
-	hostcache_t *hc;
-	FILE *f;
-	file_path_t fp;
-	gnet_host_t *h;
 	hash_list_iter_t *iter;
-
-	g_assert((guint) type < HCACHE_MAX);
-	g_assert(caches[type] != NULL);
-
-	hc = caches[type];
-
-	fp.dir = settings_config_dir();
-	fp.name = filename;
-
-	f = append ?
-        file_config_open_append(filename, &fp) :
-        file_config_open_write(filename, &fp);
-
-	if (!f)
-		return;
+	gnet_host_t *h;
 
 	iter = hash_list_iterator(hc->hostlist);
 
@@ -1406,6 +1408,35 @@ hcache_store(hcache_type_t type, const gchar *filename, gboolean append)
 		fprintf(f, "%s\n", ip_port_to_gchar(h->ip, h->port));
 
 	hash_list_release(iter);
+}
+
+/**
+ * Persist hostcache to disk.
+ * If `extra' is not HCACHE_NONE, it is appended after the dump of `type'.
+ */
+static void
+hcache_store(hcache_type_t type, const gchar *filename, hcache_type_t extra)
+{
+	FILE *f;
+	file_path_t fp;
+
+	g_assert((guint) type < HCACHE_MAX);
+	g_assert((guint) extra < HCACHE_MAX);
+	g_assert(caches[type] != NULL);
+	g_assert(extra == HCACHE_NONE || caches[extra] != NULL);
+
+	fp.dir = settings_config_dir();
+	fp.name = filename;
+
+	f = file_config_open_write(filename, &fp);
+
+	if (!f)
+		return;
+
+	hcache_write(f, caches[type]);
+
+	if (extra != HCACHE_NONE)
+		hcache_write(f, caches[extra]);
 
 	file_config_close(f, &fp);
 }
@@ -1550,8 +1581,7 @@ hcache_store_if_dirty(host_type_t type)
 	if (!caches[first]->dirty && !caches[second]->dirty)
 		return;
 
-	hcache_store(first, file, FALSE);
-	hcache_store(second, file, TRUE);
+	hcache_store(first, file, second);
 
 	caches[first]->dirty = caches[second]->dirty = FALSE;
 }
@@ -1602,10 +1632,8 @@ hcache_shutdown(void)
 	if (reading)
 		g_warning("exit() while still reading the hosts file, "
 			"caught hosts not saved!");
-	else {
-		hcache_store(HCACHE_VALID_ANY, "hosts", FALSE);
-		hcache_store(HCACHE_FRESH_ANY, "hosts", TRUE);
-    }
+	else
+		hcache_store(HCACHE_VALID_ANY, "hosts", HCACHE_FRESH_ANY);
 
 	/* Save the caught ultra hosts */
 
@@ -1614,10 +1642,8 @@ hcache_shutdown(void)
 	if (reading)
 		g_warning("exit() while still reading the ultrahosts file, "
 			"caught hosts not saved !");
-	else {
-		hcache_store(HCACHE_VALID_ULTRA, "ultras", FALSE);
-		hcache_store(HCACHE_FRESH_ULTRA, "ultras", TRUE);
-    }
+	else
+		hcache_store(HCACHE_VALID_ULTRA, "ultras", HCACHE_FRESH_ULTRA);
 }
 
 /**
@@ -1641,6 +1667,7 @@ void hcache_close(void)
      * only then we free the hcaches. This is important because 
      * hcache_require_caught will crash if we free certain hostcaches.
      */
+
 	for (i = 0; i < G_N_ELEMENTS(types); i++) {
 		hcache_type_t type = types[i];
 
