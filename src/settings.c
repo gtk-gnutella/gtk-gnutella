@@ -240,7 +240,7 @@ void settings_init(void)
 
 	if (!config_dir) {
 		if (home_dir) {
-			g_snprintf(cfg_tmp, sizeof(cfg_tmp),
+			gm_snprintf(cfg_tmp, sizeof(cfg_tmp),
 				"%s/.gtk-gnutella", home_dir);
 			config_dir = g_strdup(cfg_tmp);
 		} else
@@ -261,7 +261,7 @@ void settings_init(void)
 	if (config_dir) {
 		/* Ensure we're the only instance running */
 
-		g_snprintf(cfg_tmp, sizeof(cfg_tmp), "%s/%s", config_dir, pidfile);
+		gm_snprintf(cfg_tmp, sizeof(cfg_tmp), "%s/%s", config_dir, pidfile);
 		ensure_unicity(cfg_tmp);
 		save_pid(cfg_tmp);
 
@@ -271,7 +271,7 @@ void settings_init(void)
 		hcache_retrieve(HCACHE_ANY);
 		hcache_retrieve(HCACHE_ULTRA);
 
-		g_snprintf(cfg_tmp, sizeof(cfg_tmp), "%s/%s",
+		gm_snprintf(cfg_tmp, sizeof(cfg_tmp), "%s/%s",
 			config_dir, ul_stats_file);
 		upload_stats_load_history(cfg_tmp);	/* Loads the upload statistics */
 	}
@@ -347,7 +347,7 @@ void settings_hostcache_save(void)
  */
 static void settings_upload_stats_save(void)
 {
-	g_snprintf(cfg_tmp, sizeof(cfg_tmp), "%s/%s", config_dir, ul_stats_file);
+	gm_snprintf(cfg_tmp, sizeof(cfg_tmp), "%s/%s", config_dir, ul_stats_file);
 	upload_stats_dump_history(cfg_tmp, TRUE);
 }
 
@@ -358,7 +358,7 @@ static void settings_upload_stats_save(void)
  */
 static void settings_remove_pidfile(void)
 {
-	g_snprintf(cfg_tmp, sizeof(cfg_tmp), "%s/%s", config_dir, pidfile);
+	gm_snprintf(cfg_tmp, sizeof(cfg_tmp), "%s/%s", config_dir, pidfile);
 
 	if (-1 == unlink(cfg_tmp))
 		g_warning("could not remove pidfile \"%s\": %s",
