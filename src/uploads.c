@@ -32,7 +32,7 @@
 #include <fcntl.h>
 #include <time.h>
 
-#ifdef HAVE_SENDFILE_H
+#ifdef HAVE_SYS_SENDFILE_H
 #include <sys/sendfile.h>
 #endif
 
@@ -48,8 +48,11 @@
 #include "version.h"
 #include "nodes.h"
 #include "ioheader.h"
+#include "ban.h"
 
 #include "settings.h"
+
+#define READ_BUF_SIZE	4096		/* Read buffer size, if no sendfile(2) */
 
 GSList *uploads = NULL;
 
@@ -278,6 +281,7 @@ void handle_push_request(struct gnutella_node *n)
 	guint32 ip;
 	guint16 port;
 	guchar *info;
+	gboolean show_banning = FALSE;
 
 	if (0 != memcmp(n->data, guid, 16))		/* Servent ID matches our GUID? */
 		return;								/* No: not for us */
@@ -323,14 +327,37 @@ void handle_push_request(struct gnutella_node *n)
 		return;
 	}
 
-	if (dbg > 4)
-		printf("PUSH (hops=%d, ttl=%d) to %s: %s\n",
+	/*
+	 * Protect from PUSH flood: since each push requires us to connect
+	 * back, it uses resources and could be used to conduct a subtle denial
+	 * of service attack.	-- RAM, 03/11/2002
+	 */
+
+	switch (ban_allow(ip)) {
+	case BAN_OK:				/* Connection authorized */
+		break;
+	case BAN_FIRST:				/* Refused, negative ack (can't do for PUSH) */
+		show_banning = TRUE;
+		/* FALL THROUGH */
+	case BAN_FORCE:				/* Refused, no ack */
+		if (dbg) g_warning("PUSH flood (hops=%d, ttl=%d) to %s [ban %s]: %s\n",
 			n->header.hops, n->header.ttl, ip_port_to_gchar(ip, port),
-			req_file->file_name);
+			short_time(ban_delay(ip)), req_file->file_name);
+		if (!show_banning)
+			return;
+		break;
+	default:
+		g_assert(0);
+	}
 
 	/*
 	 * OK, start the upload by opening a connection to the remote host.
 	 */
+
+	if (dbg > 4)
+		printf("PUSH (hops=%d, ttl=%d) to %s: %s\n",
+			n->header.hops, n->header.ttl, ip_port_to_gchar(ip, port),
+			req_file->file_name);
 
 	s = socket_connect(ip, port, SOCK_TYPE_UPLOAD);
 	if (!s) {
@@ -342,6 +369,11 @@ void handle_push_request(struct gnutella_node *n)
 	u = upload_create(s, TRUE);
 	u->index = file_index;
 	u->name = atom_str_get(req_file->file_name);
+
+	if (show_banning) {
+		upload_remove(u, "Banned for %s", short_time(ban_delay(ip)));
+		return;
+	}
 
 	upload_fire_upload_info_changed(u);
 
@@ -1774,7 +1806,7 @@ static void upload_request(gnutella_upload_t *u, header_t *header)
 
 	u->skip = skip;
 	u->end = end;
-	u->pos = 0;
+	u->pos = skip;
 
 	/*
 	 * If this is a pushed upload, and we are not firewalled, then tell
@@ -1980,20 +2012,31 @@ static void upload_request(gnutella_upload_t *u, header_t *header)
 		return;
 	}
 
+#ifndef HAVE_SENDFILE
+	/* If we got a valid skip amount then jump ahead to that position */
+	if (u->skip > 0) {
+		if (-1 == lseek(u->file_desc, u->skip, SEEK_SET)) {
+			upload_error_remove(u, NULL,
+				500, "File seek error: %s", g_strerror(errno));
+			return;
+		}
+	}
+
+	u->bpos = 0;
+	u->bsize = 0;
+
+	if (!is_followup) {
+		u->buf_size = READ_BUF_SIZE * sizeof(gchar);
+		u->buffer = (gchar *) g_malloc(u->buf_size);
+	}
+#endif	/* !HAVE_SENDFILE */
+
 	/*
 	 * Set remaining upload information
 	 */
 
 	u->start_date = time((time_t *) NULL);
 	u->last_update = time((time_t *) 0);
-
-	if (!is_followup) {
-		u->buf_size = 4096 * sizeof(gchar);
-		u->buffer = (gchar *) g_malloc(u->buf_size);
-	}
-
-	u->bpos = 0;
-	u->bsize = 0;
 
 	/*
 	 * Prepare date and modification time of file.
@@ -2072,14 +2115,15 @@ static void upload_request(gnutella_upload_t *u, header_t *header)
 	ul_stats_file_begin(u);
 }
 
-/* Uplaod Write
- * FIFO type action to deal with low baud rates. If we try to force
- * 4k then the lower speed downloads will be garbled.
+/*
+ * upload_write
+ *
+ * Called when output source can accept more data.
  */
 void upload_write(gpointer up, gint source, GdkInputCondition cond)
 {
 	gnutella_upload_t *u = (gnutella_upload_t *) up;
-	guint32 write_bytes;
+	gint written;
 	guint32 amount;
 	guint32 available;
 
@@ -2092,43 +2136,44 @@ void upload_write(gpointer up, gint source, GdkInputCondition cond)
 		return;
 	}
 
-#ifdef HAVE_SENDFILE_H
-
-	/* If we got a valid skip amount then jump ahead to that position */
-	if (u->pos == 0 && u->skip > 0)
-		u->pos = u->skip;
-
+#ifdef HAVE_SENDFILE
 	/*
 	 * Compute the amount of bytes to send.
 	 * Use the two variables to avoid warnings about unused vars by compiler.
 	 */
 
 	amount = u->end - u->pos + 1;
-	available = amount > u->buf_size ? u->buf_size : amount;
+	available = amount > READ_BUF_SIZE ? READ_BUF_SIZE : amount;
 
-	write_bytes = bio_sendfile(u->bio, u->file_desc, &u->pos, available);
+	g_assert(amount > 0);
 
-#else	/* !HAVE_SENDFILE_H */
+// XXX temporary
+{
+	off_t pos;
 
-	/* If we got a valid skip amount then jump ahead to that position */
-	if (u->pos == 0 && u->skip > 0) {
-		if (lseek(u->file_desc, u->skip, SEEK_SET) == -1) {
-			upload_remove(u, "File seek error: %s", g_strerror(errno));
-			return;
-		}
-		u->pos = u->skip;
-	}
+	pos = u->pos;
+	written = bio_sendfile(u->bio, u->file_desc, &u->pos, available);
 
+	// XXX sendfile() working as expected?
+	if (written >= 0 && written != u->pos - pos)
+		g_warning("BAD SENDFILE for \"%s\": claims to have written %d bytes, "
+			"but startpos=%ld, endpos=%ld (%d bytes)",
+			u->name, written,
+			(glong) pos, (glong) u->pos, (gint) (u->pos - pos));
+} // XXX
+
+#else	/* !HAVE_SENDFILE */
 	/*
 	 * Compute the amount of bytes to send.
 	 */
 
 	amount = u->end - u->pos + 1;
 
+	g_assert(amount > 0);
+
 	/*
 	 * If the buffer position reached the size, then we need to read
-	 * more data from the file. We read in under or equal to the buffer
-	 * memory size
+	 * more data from the file.
 	 */
 
 	if (u->bpos == u->bsize) {
@@ -2149,28 +2194,28 @@ void upload_write(gpointer up, gint source, GdkInputCondition cond)
 
 	g_assert(available > 0);
 
-	write_bytes = bio_write(u->bio, &u->buffer[u->bpos], available);
+	written = bio_write(u->bio, &u->buffer[u->bpos], available);
 
-#endif	/* HAVE_SENDFILE_H */
+#endif	/* HAVE_SENDFILE */
 
-	if (write_bytes == -1) {
+	if (written == -1) {
 		if (errno != EAGAIN)
 			upload_remove(u, "Data write error: %s", g_strerror(errno));
 		return;
-	} else if (write_bytes == 0) {
+	} else if (written == 0) {
 		upload_remove(u, "No bytes written, source may be gone");
 		return;
 	}
 
-#ifndef HAVE_SENDFILE_H
+#ifndef HAVE_SENDFILE
 	/*
 	 * Only required when not using sendfile(), otherwise the u->pos field
 	 * is directly updated by the kernel, and u->bpos is unused.
 	 *		--RAM, 21/02/2002
 	 */
 
-	u->pos += write_bytes;
-	u->bpos += write_bytes;
+	u->pos += written;
+	u->bpos += written;
 #endif
 
 	u->last_update = time((time_t *) NULL);
