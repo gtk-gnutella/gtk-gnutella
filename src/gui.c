@@ -1056,8 +1056,9 @@ void gui_update_queue_frozen()
 {
     static gboolean msg_displayed = FALSE;
 
-    g_message("frozen %i, msg %i", download_queue_is_frozen(),
-              msg_displayed);
+    if (dbg >= 3)
+	printf("frozen %i, msg %i\n", download_queue_is_frozen(),
+	    msg_displayed);
 
     if (download_queue_is_frozen() > 0) {
 		gtk_label_set_text(
