@@ -230,9 +230,8 @@ parent_children_add(GtkCTree *ctree, gpointer key, gint x)
 		g_assert(cnt >= 0);
 		if (cnt > 0)
 			g_hash_table_insert(ht, k, GINT_TO_POINTER(cnt));
-		else {
+		else
 			g_hash_table_remove(ht, k);
-		}
 	}
 
 	return cnt;
