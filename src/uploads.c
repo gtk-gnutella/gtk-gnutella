@@ -51,6 +51,7 @@
 #include "ioheader.h"
 #include "ban.h"
 #include "parq.h"
+#include "file.h"
 
 #include "settings.h"
 
@@ -2704,7 +2705,7 @@ static void upload_request(gnutella_upload_t *u, header_t *header)
 	}
 
 	/* Open the file for reading , READONLY just in case. */
-	if ((u->file_desc = open(fpath, O_RDONLY)) < 0) {
+	if ((u->file_desc = file_open(fpath, O_RDONLY)) < 0) {
 		upload_error_not_found(u, request);
 		return;
 	}

@@ -157,7 +157,7 @@ static void d_start(gpointer h, gpointer ctx, gpointer item)
 	g_return_if_fail(NULL != source);
 
 	md->d = we->d;
-	md->rd = open(source, O_RDONLY);
+	md->rd = file_open(source, O_RDONLY);
 
 	if (md->rd == -1) {
 		g_warning("can't open \"%s\" for reading to copy it into %s: %s",
@@ -186,7 +186,7 @@ static void d_start(gpointer h, gpointer ctx, gpointer item)
 	if (NULL == target)
 		goto abort_read;
 
-	md->wd = open(target, O_WRONLY | O_CREAT | O_TRUNC, buf.st_mode);
+	md->wd = file_create(target, O_WRONLY | O_TRUNC, buf.st_mode);
 
 	if (md->wd == -1) {
 		g_warning("can't create \"%s\": %s", target, g_strerror(errno));

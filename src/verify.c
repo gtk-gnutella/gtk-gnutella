@@ -33,6 +33,7 @@
 
 #include "downloads.h"
 #include "verify.h"
+#include "file.h"
 
 RCSID("$Id$");
 
@@ -104,7 +105,7 @@ static void d_start(gpointer h, gpointer ctx, gpointer item)
 	filename = g_strdup_printf("%s/%s", download_path(d), download_outname(d));
 	g_return_if_fail(NULL != filename);
 
-	vd->fd = open(filename, O_RDONLY);
+	vd->fd = file_open(filename, O_RDONLY);
 
 	if (vd->fd == -1) {
 		g_warning("can't open %s to verify SHA1: %s",

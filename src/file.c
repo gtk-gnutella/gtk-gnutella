@@ -31,6 +31,8 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
+#include "ban.h"
+
 RCSID("$Id$");
 
 static const gchar *orig_ext = ".orig";
@@ -270,3 +272,64 @@ void file_path_set(file_path_t *fp, const char *dir, const char *name)
 	fp->dir = dir;
 	fp->name = name;
 }
+
+/*
+ * do_open
+ *
+ * Open file, returning file descriptor or -1 on error with errno set.
+ */
+static gint do_open(const gchar *path, gint flags, gint mode, gchar *what)
+{
+	gint fd;
+
+	fd = open(path, flags, mode);
+	if (fd >= 0)
+		return fd;
+
+	/*
+	 * If we ran out of file descriptors, try to reclaim one from the
+	 * banning pool and retry.
+	 */
+
+	if ((errno == EMFILE || errno == ENFILE) && ban_reclaim_fd()) {
+		fd = open(path, flags, mode);
+		if (fd >= 0) {
+			g_warning("had to close a banned fd to %s file", what);
+			return fd;
+		}
+	}
+
+	g_warning("can't %s file \"%s\": %s", what, path, g_strerror(errno));
+
+	return -1;
+}
+
+/*
+ * file_open
+ *
+ * Open file, returning file descriptor or -1 on error with errno set.
+ */
+gint file_open(const gchar *path, gint flags)
+{
+	gchar *what;
+
+	if (flags & O_RDONLY)
+		what = "read";
+	else if (flags & O_WRONLY)
+		what = "write into";
+	else
+		what = "open";
+
+	return do_open(path, flags, 0, what);
+}
+
+/*
+ * file_create
+ *
+ * Create file, returning file descriptor or -1 on error with errno set.
+ */
+gint file_create(const gchar *path, gint flags, gint mode)
+{
+	return do_open(path, flags | O_CREAT, mode, "create");
+}
+

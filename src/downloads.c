@@ -54,6 +54,7 @@
 #include "guid.h"
 #include "pproxy.h"
 #include "tm.h"
+#include "file.h"
 
 #include <errno.h>
 #include <sys/types.h>
@@ -4211,7 +4212,7 @@ static gboolean download_overlap_check(struct download *d)
 	if (NULL == path)
 		goto out;
 
-	fd = open(path, O_RDONLY);
+	fd = file_open(path, O_RDONLY);
 	G_FREE_NULL(path);
 	if (fd == -1) {
 		const gchar * error = g_strerror(errno);
@@ -6046,15 +6047,15 @@ static void download_request(
 			return;
 		}
 
-		d->file_desc = open(path, O_WRONLY);
+		d->file_desc = file_open(path, O_WRONLY);
 	} else {
 		if (!fi->use_swarming && d->skip) {
 			download_stop(d, GTA_DL_ERROR, "Cannot resume: file gone");
 			G_FREE_NULL(path);
 			return;
 		}
-		d->file_desc = open(path, O_WRONLY | O_CREAT,
-						S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH); /* 0644 */
+		d->file_desc = file_create(path, O_WRONLY,
+			S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH); /* 0644 */
 	}
 
 	if (d->file_desc == -1) {

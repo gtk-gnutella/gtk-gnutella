@@ -43,6 +43,7 @@
 #include "header.h"
 #include "dmesh.h"
 #include "version.h"
+#include "file.h"
 
 #include "settings.h"
 
@@ -676,7 +677,7 @@ static gboolean open_next_file(struct sha1_computation_context *ctx)
 		ctx->start = time((time_t *) NULL);
 	}
 
-	ctx->fd = open(ctx->file->file_name, O_RDONLY);
+	ctx->fd = file_open(ctx->file->file_name, O_RDONLY);
 
 	if (ctx->fd < 0) {
 		g_warning("Unable to open %s for computing SHA1 hash: %s\n",
