@@ -559,6 +559,7 @@ void share_close(void)
 	free_extensions();
 	share_free();
 	shared_dirs_free();
+	huge_close();
 }
 
 /*
