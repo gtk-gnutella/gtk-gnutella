@@ -201,8 +201,13 @@ gboolean is_directory(const gchar *);
 gboolean is_regular(const gchar *);
 gboolean is_symlink(const gchar *);
 gboolean file_exists(const gchar *);
-gboolean is_pow2(guint32 value);
 guint32 next_pow2(guint32 n);
+
+static inline gboolean is_pow2(guint32 value) G_GNUC_CONST;
+static inline gboolean is_pow2(guint32 value)
+{
+	return value && !(value & (value - 1));
+}
 
 /*
  * Random numbers
@@ -221,7 +226,7 @@ void ascii_strlower(gchar *dst, const gchar *src);
 gint strcmp_delimit(const gchar *a, const gchar *b, const gchar *delimit);
 char *unique_filename(const gchar *path, const gchar *file, const gchar *ext);
 gchar *hex_escape(const gchar *name, gboolean strict);
-gint highest_bit_set(guint32 n);
+gint highest_bit_set(guint32 n) G_GNUC_CONST;
 gfloat force_range(gfloat value, gfloat min, gfloat max);
 gchar *make_pathname(const gchar *dir, const gchar *file);
 
