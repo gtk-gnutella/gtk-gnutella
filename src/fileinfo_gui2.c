@@ -46,6 +46,9 @@ enum {
     C_FI_COLUMNS
 };
 
+static gnet_fi_t last_shown = 0;
+static gboolean  last_shown_valid = FALSE;
+
 static GtkTreeView *treeview_fileinfo = NULL;
 static GtkTreeView *treeview_fi_aliases = NULL;
 static GtkEntry *entry_fi_filename = NULL;
@@ -117,10 +120,15 @@ static void fi_gui_set_details(gnet_fi_t fih)
 	}
     g_strfreev(aliases);
     fi_free_info(fi);
+
+    last_shown = fih;
+    last_shown_valid = TRUE;
 }
 
 static void fi_gui_clear_details(void)
 {
+	last_shown_valid = FALSE;
+
     gtk_entry_set_text(entry_fi_filename, "");
     gtk_label_set_text(label_fi_size, "");
     gtk_tree_store_clear(store_aliases);
@@ -151,6 +159,17 @@ void on_clist_fileinfo_unselect_row(GtkCList *clist, gint row, gint column,
         fi_gui_clear_details();
 }
 #endif
+
+/*
+ * on_button_fi_purge_clicked
+ *
+ * Handle the clicking of the purge button.  Purge the selected file.
+ */
+void on_button_fi_purge_clicked(GtkButton *button, gpointer user_data)
+{
+	if (last_shown_valid)
+		fi_purge(last_shown);
+}
 
 static void fi_gui_append_row(
     GtkTreeStore *store, gnet_fi_t fih, gchar **titles)

@@ -8082,6 +8082,9 @@ create_main_window_downloads_tab (void)
   g_signal_connect ((gpointer) clist_downloads, "button_press_event",
                     G_CALLBACK (on_clist_downloads_button_press_event),
                     NULL);
+	g_signal_connect((gpointer) button_fi_purge, "clicked",
+			 G_CALLBACK (on_button_fi_purge_clicked),
+			 NULL);
   g_signal_connect ((gpointer) button25, "clicked",
                     G_CALLBACK (on_button_config_select_dl_clicked),
                     NULL);
