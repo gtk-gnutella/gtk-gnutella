@@ -101,6 +101,7 @@ void gui_update_global(void)
     nodes_gui_update_nodes_display(now);
     uploads_gui_update_display(now);
     statusbar_gui_clear_timeouts(now);
+    search_gui_flush(now);
 }
 
 static void update_stat(guint32 *max, GtkProgressBar *pg, 

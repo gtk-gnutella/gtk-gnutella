@@ -661,6 +661,7 @@ void main_gui_shutdown(void)
     search_stats_gui_shutdown();
     filter_cb_close();
     monitor_gui_shutdown();
+    search_gui_flush(0);
     search_gui_shutdown(); /* must be done before filter_shutdown! */
  	downloads_gui_shutdown();
 	filter_shutdown();
