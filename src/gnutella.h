@@ -210,7 +210,8 @@ struct gnutella_msg_hsep_data {
 
 /* main.c */
 
-extern struct gnutella_socket *s_listen;
+extern struct gnutella_socket *s_tcp_listen;
+extern struct gnutella_socket *s_udp_listen;
 extern gchar *start_rfc822_date;
 
 #endif							/* _gnutella_h_ */
