@@ -42,7 +42,7 @@ RCSID("$Id$");
 #define PARQ_VERSION_MAJOR	1
 #define PARQ_VERSION_MINOR	0
 
-#define AGRESSIVE 0
+#define AGGRESSIVE 0
 
 #define PARQ_RETRY_SAFETY	40		/* 40 seconds before lifetime */
 #define PARQ_TIMER_BY_POS	30		/* 30 seconds for each queue position */
@@ -1311,10 +1311,14 @@ static void parq_upload_free(struct parq_ul_queued *parq_ul)
 guint32 parq_ul_calc_retry(struct parq_ul_queued *parq_ul)
 {
 	int result = 60 + 45 * (parq_ul->relative_position - 1);
-#if AGRESSIVE
+#if AGGRESSIVE
 	int fast_result;
 	struct parq_ul_queued *parq_ul_prev = NULL;
 	GList *l = NULL;
+	guint avg_bps;
+
+	avg_bps = bsched_avg_bps(bws.out);
+	avg_bps = MAX(1, avg_bps);
 	
 	l = g_list_find(parq_ul->queue->by_rel_pos, parq_ul);
 	
@@ -1329,7 +1333,7 @@ guint32 parq_ul_calc_retry(struct parq_ul_queued *parq_ul)
 	
 		g_assert(parq_ul_prev != NULL);
 		
-		fast_result = parq_ul_prev->chunk_size / bw_http_out;
+		fast_result = parq_ul_prev->chunk_size / avg_bps * max_uploads;
 	
 		result = MIN(result, fast_result);
 	}
@@ -1378,24 +1382,12 @@ static struct parq_ul_queued *parq_upload_create(gnutella_upload_t *u)
 		if (max_uploads <= 0) {
 			eta = (guint) -1;
 		} else if (parq_ul_prev->is_alive) {
-			if (bw_http_out != 0 && bws_out_enabled) {
-				eta += parq_ul_prev->file_size / bw_http_out;
-			} else {
-				if (dbg > 2) {
-					printf("PARQ UL Q %d/%d: Could not calculate ETA\n",
-					g_list_position(ul_parqs, 
-						g_list_find(ul_parqs, parq_ul_prev->queue)),
-						g_list_length(ul_parqs) - 1);
-				}
-				
-				/*
-				 * According to the PARQ specification the ETA should be
-				 * calculated using the maximum upload rate. However the
-				 * maximum upload rate is unknown.
-				 * Pessimistic: 1 bytes / sec
-				 */
-				eta += parq_ul_prev->file_size / max_uploads;
-			}
+			guint avg_bps;
+
+			avg_bps = bsched_avg_bps(bws.out);
+			avg_bps = MAX(1, avg_bps);
+
+			eta += parq_ul_prev->file_size / avg_bps * max_uploads;
 		}
 	}
 	
@@ -2138,7 +2130,7 @@ static gboolean parq_upload_continue(struct parq_ul_queued *uq, gint free_slots)
 	if (slots_free < 0)
 		slots_free = 0;
 
-#if AGRESSIVE
+#if AGGRESSIVE
 #else
 	slots_free = 0;
 #endif
@@ -2468,16 +2460,23 @@ gboolean parq_upload_request(gnutella_upload_t *u, gpointer handle,
 	struct parq_ul_queued *parq_ul = handle_to_queued(handle);
 	time_t now = time((time_t *) NULL);
 	time_t org_retry = parq_ul->retry; 
-	
+#if AGGRESSIVE
+	guint avg_bps;
+#endif
+
 	g_assert(u != NULL);
 	
 	parq_ul->chunk_size = abs(u->skip - u->end);
 	parq_ul->updated = now;
 	parq_ul->retry = now + parq_ul_calc_retry(parq_ul);
 		
-#if AGRESSIVE
+#if AGGRESSIVE
+	avg_bps = bsched_avg_bps(bws.out);
+	avg_bps = MAX(1, avg_bps);
+	
 	/* If the chunk sizes are really small, expire them sooner */
-	parq_ul->expire = parq_ul->retry + parq_ul->chunk_size / bw_http_out;
+	parq_ul->expire = parq_ul->retry +
+		parq_ul->chunk_size / avg_bps * max_uploads;
 	parq_ul->expire = MIN(MIN_LIFE_TIME + parq_ul->retry, parq_ul->expire);
 #else
 	parq_ul->expire = MIN_LIFE_TIME + parq_ul->retry;
