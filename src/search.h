@@ -26,11 +26,16 @@
 
 #include <time.h>
 #include "nodes.h"
+#include "filter.h"
+
+
 
 struct gnutella_search {
 	guchar speed[2];
 	guchar query[0];
 };
+
+
 
 struct gnutella_search_results {
 	guchar num_recs;
@@ -41,6 +46,8 @@ struct gnutella_search_results {
 
 	/* Last 16 bytes = client_id */
 };
+
+
 
 /*
  * A results_set structure factorizes the common information from a Query Hit
@@ -67,6 +74,8 @@ struct results_set {
 	GSList *records;
 };
 
+
+
 /*
  * An individual hit.  It referes to a file entry on the remote servent,
  * as identified by the parent results_set structure that contains this hit.
@@ -76,19 +85,20 @@ struct results_set {
  * can be dispatched to various searches, each record can be inserted in so
  * many different hash tables (one per search).
  */
-struct record {
+typedef struct record {
 	struct results_set *results_set;	/* Parent, containing record */
 	gint refcount;				/* Number of hash tables it has been put to */
 	gchar *name;				/* File name */
 	guint32 size;				/* Size of file, in bytes */
 	guint32 index;				/* Index for GET command */
 	gchar *tag;					/* Optional tag data, NUL terminated */
-};
+} record_t;
+
+
 
 /*
  * Result sets `status' flags.
  */
-
 #define ST_KNOWN_VENDOR			0x8000		/* Found known vendor code */
 #define ST_PARSED_TRAILER		0x4000		/* Was able to parse trailer */
 #define ST_UPLOADED				0x0004		/* Is "stable", people downloaded */
@@ -101,8 +111,12 @@ struct gnutella_msg_search {
 	struct gnutella_search search;
 };
 
-/* Structure for search results */
-struct search {
+
+
+/* 
+ * Structure for search results 
+ */
+typedef struct search {
 	GtkWidget *clist;			/* GtkCList for this search */
 	GtkWidget *scrolled_window; /* GtkScrolledWindow containing the GtkCList */
 	GtkWidget *list_item;		/* The GtkListItem in combo for this search */
@@ -118,8 +132,6 @@ struct search {
 	gint sort_order;			/* Ascending or descending */
 	gboolean sort;				/* Do sorting or not */
 
-	gpointer filter_page;		/* Page of filters in the filters notebook */
-
 	time_t last_update_time;	/* the last time the notebook tab was updated */
 	guint32 last_update_items;	/* Number of items included in last update */
 	gint tab_updating;			/* token for timeout function to be canceled. */
@@ -134,18 +146,19 @@ struct search {
 	GHook *new_node_hook;
 	guint reissue_timeout_id;
 	guint reissue_timeout;		/* timeout per search, 0 = search stopped */
-	GList *filters;
-};
+    struct filter *filter;      /* the filter ruleset bound to this search */
+} search_t;
+
+
 
 /*
  * Global Data
  */
-
 extern GtkWidget *dialog_filters;
 extern gboolean search_results_show_tabs;
 extern guint32 search_passive;
 extern guint32 search_reissue_timeout;
-extern GSList *searches;			/* List of search structs */
+extern GList *searches;			/* List of search structs */
 extern guint32 search_max_results;	/* Max items allowed in GUI results */
 extern struct search *search_selected;
 extern struct search *current_search;	/*	The search currently displayed */
@@ -153,10 +166,11 @@ extern struct search *current_search;	/*	The search currently displayed */
 /* flags for _new_search() */
 #define SEARCH_PASSIVE	 0x01 /* start a passive search */
 
+
+
 /*
  * Global Functions
  */
-
 void search_init(void);
 struct search *new_search(guint16, gchar *);
 struct search *_new_search(guint16, gchar *, guint flags);

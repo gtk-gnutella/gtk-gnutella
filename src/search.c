@@ -21,6 +21,10 @@
  *----------------------------------------------------------------------
  */
 
+#ifdef HAVE_CONFIG_H
+# include <config.h>
+#endif
+
 #include <ctype.h>
 #include <sys/stat.h>
 
@@ -30,16 +34,19 @@
 #include "interface.h"
 #include "misc.h"
 #include "search.h"
-#include "filter.h"
 #include "downloads.h"
 #include "gui.h"
-#include "dialog-filters.h"
 #include "autodownload.h"
 #include "hosts.h"				/* For check_valid_host() */
 #include "nodes.h"				/* For NODE_IS_PONGING_ONLY() */
 #include "callbacks.h"
 #include "routing.h"
 #include "gmsg.h"
+#include "filter.h"
+
+#ifdef USE_SEARCH_XML
+# include "search_xml.h"
+#endif
 
 #define MAKE_CODE(a,b,c,d) ( \
 	((guint32) (a) << 24) | \
@@ -78,40 +85,49 @@
 
 static gchar stmp_2[4096];
 
-GSList *searches = NULL;		/* List of search structs */
+GList *searches = NULL;		/* List of search structs */
 
 /* Need to remove this dependency on GUI further --RAM */
 extern GtkWidget *default_search_clist;
 extern GtkWidget *default_scrolled_window;
 
-struct search *search_selected = NULL;
-struct search *current_search = NULL;	/*	The search currently displayed */
+search_t *search_selected = NULL;
+search_t *current_search = NULL;	/*	The search currently displayed */
 gboolean search_results_show_tabs = TRUE;	/* Display the notebook tabs? */
 guint32 search_max_results = 5000;		/* Max items allowed in GUI results */
 guint32 search_passive = 0;				/* Amount of passive searches */
 
 static gchar *search_file = "searches";	/* File where searches are saved */
 
-static void search_send_packet(struct search *);
-static void search_add_new_muid(struct search *sch);
+/*
+ * Private function prototypes
+ */
+static void search_send_packet(search_t *);
+static void search_add_new_muid(search_t *sch);
 static guint sent_node_hash_func(gconstpointer key);
 static gint sent_node_compare(gconstpointer a, gconstpointer b);
-static void search_free_sent_nodes(struct search *sch);
+static void search_free_sent_nodes(search_t *sch);
 static gboolean search_reissue_timeout_callback(gpointer data);
-static void update_one_reissue_timeout(struct search *sch);
+static void update_one_reissue_timeout(search_t *sch);
 static struct results_set *get_results_set(struct gnutella_node *n);
-static void search_retrieve(void);
+static gboolean search_retrieve_old(void);
+static void search_close(search_t *);
+
+#ifndef USE_SEARCH_XML
+    static void search_store_old(void);
+#endif /* USE_SEARCH_XML */
+
 
 /* ----------------------------------------- */
 
-void search_reissue(struct search *sch)
+void search_reissue(search_t *sch)
 {
 	search_add_new_muid(sch);
 	search_send_packet(sch);
 	update_one_reissue_timeout(sch);
 }
 
-void search_restart(struct search *sch)
+void search_restart(search_t *sch)
 {
 	search_reissue(sch);
 	gtk_clist_clear(GTK_CLIST(sch->clist));
@@ -121,9 +137,21 @@ void search_restart(struct search *sch)
 
 void search_init(void)
 {
-	dialog_filters = create_dialog_filters();
 	gui_search_init();
-	search_retrieve();
+#ifdef USE_SEARCH_XML
+	if (search_retrieve_old()) {
+       	g_snprintf(stmp_2, sizeof(stmp_2), "%s/%s", config_dir, search_file);
+        g_warning(
+            "Found old searches file. Loaded and deleted it.\n"
+            "On exit the searches will be saved in the new XML format");
+   
+        unlink(stmp_2);
+    } else {
+        search_retrieve_xml();
+    }
+#else
+    search_retrieve_old();
+#endif /* USE_SEARCH_XML */
 }
 
 /*
@@ -217,7 +245,7 @@ static void search_free_r_set(struct results_set *rs)
 
 /* Free all the results_set's of a search */
 
-static void search_free_r_sets(struct search *sch)
+static void search_free_r_sets(search_t *sch)
 {
 	GSList *l;
 
@@ -245,24 +273,35 @@ static void dec_records_refcount(gpointer key, gpointer value, gpointer udata)
 	rc->refcount--;
 }
 
-/* Close a search */
-
 void search_close_current(void)
 {
-	GList *glist;
+    search_close(current_search);
+}
+
+/* 
+ * search_close:
+ *
+ * Remove the search from the list of searches and free all 
+ * associated ressources (including filter and gui stuff).
+ */
+void search_close(search_t* sch)
+{
 	GSList *m;
-	struct search *sch = current_search;
-    gboolean sensitive;
-    gint row;
 
-	g_return_if_fail(current_search);
+	g_return_if_fail(sch);
 
-    row = gtk_clist_find_row_from_data(GTK_CLIST(clist_search), sch);
-    gtk_clist_remove(GTK_CLIST(clist_search), row);
+    /*
+     * We remove the search immeditaly from the list of searches,
+     * because some of the following calls (may) depend on 
+     * "searches" holding only the remaining searches. 
+     * We may not free any ressources of "sch" yet, because 
+     * the same calls may still need them!.
+     *      --BLUE 26/05/2002
+     */
+	searches = g_list_remove(searches, (gpointer) sch);
 
-	searches = g_slist_remove(searches, (gpointer) sch);
-
-	gtk_timeout_remove(sch->tab_updating);
+    gui_search_remove(sch);
+	filter_close_search(sch);
 
 	if (!sch->passive) {
 		g_hook_destroy_link(&node_added_hook_list, sch->new_node_hook);
@@ -272,50 +311,13 @@ void search_close_current(void)
 		if (sch->reissue_timeout_id)
 			g_source_remove(sch->reissue_timeout_id);
 
-		for (m = sch->muids; m; m = m->next) {
+		for (m = sch->muids; m; m = m->next)
 			g_free(m->data);
-		}
 
 		g_slist_free(sch->muids);
 		search_free_sent_nodes(sch);
 	} else {
 		search_passive--;
-	}
-
-	filters_close_search(sch);
-
-	if (searches) {				/* Some other searches remain. */
-		gtk_notebook_remove_page(GTK_NOTEBOOK(notebook_search_results),
-			gtk_notebook_page_num(GTK_NOTEBOOK(notebook_search_results),
-				sch->scrolled_window));
-	} else {
-		/*
-		 * Keep the clist of this search, clear it and make it the
-		 * default clist
-		 */
-
-		gtk_clist_clear(GTK_CLIST(sch->clist));
-
-		default_search_clist = sch->clist;
-		default_scrolled_window = sch->scrolled_window;
-
-		search_selected = current_search = NULL;
-
-		gui_search_update_items(NULL);
-
-		gtk_entry_set_text(GTK_ENTRY(combo_entry_searches), "");
-
-        gtk_notebook_set_tab_label_text(GTK_NOTEBOOK(notebook_search_results),
-            default_scrolled_window,
-            "(no search)");
-/* FIXME: remove
-		if (search_results_show_tabs)
-			gtk_notebook_set_show_tabs(GTK_NOTEBOOK(notebook_search_results),
-				FALSE);
-*/
-
-		gtk_widget_set_sensitive(button_search_clear, FALSE);
-		gtk_widget_set_sensitive(popup_search_clear_results, FALSE);
 	}
 
 	/*
@@ -331,18 +333,8 @@ void search_close_current(void)
 
 	search_free_r_sets(sch);
 
-	glist = g_list_prepend(NULL, (gpointer) sch->list_item);
-
-	gtk_list_remove_items(GTK_LIST(GTK_COMBO(combo_searches)->list), glist);
-
 	g_free(sch->query);
 	g_free(sch);
-
-	gtk_widget_set_sensitive(combo_searches, (gboolean) searches);
-	gtk_widget_set_sensitive(button_search_close, (gboolean) searches);
-
-   sensitive = current_search && GTK_CLIST(current_search->clist)->selection;
-   gtk_widget_set_sensitive(button_search_download, sensitive);
 }
 
 static gboolean search_free_sent_node(
@@ -352,13 +344,13 @@ static gboolean search_free_sent_node(
 	return TRUE;
 }
 
-static void search_free_sent_nodes(struct search *sch)
+static void search_free_sent_nodes(search_t *sch)
 {
 	g_hash_table_foreach_remove(sch->sent_nodes, search_free_sent_node, NULL);
 	g_hash_table_destroy(sch->sent_nodes);
 }
 
-static void search_reset_sent_nodes(struct search *sch)
+static void search_reset_sent_nodes(search_t *sch)
 {
 	search_free_sent_nodes(sch);
 	sch->sent_nodes =
@@ -370,7 +362,7 @@ struct sent_node_data {
 	guint16 port;
 };
 
-static void mark_search_sent_to_node(struct search *sch,
+static void mark_search_sent_to_node(search_t *sch,
 									 struct gnutella_node *n)
 {
 	struct sent_node_data *sd = g_new(struct sent_node_data, 1);
@@ -379,7 +371,7 @@ static void mark_search_sent_to_node(struct search *sch,
 	g_hash_table_insert(sch->sent_nodes, sd, (void *) 1);
 }
 
-void mark_search_sent_to_connected_nodes(struct search *sch)
+void mark_search_sent_to_connected_nodes(search_t *sch)
 {
 	GSList *l;
 	struct gnutella_node *n;
@@ -395,7 +387,7 @@ void mark_search_sent_to_connected_nodes(struct search *sch)
 
 /* Create and send a search request packet */
 
-static void __search_send_packet(struct search *sch, struct gnutella_node *n)
+static void __search_send_packet(search_t *sch, struct gnutella_node *n)
 {
 	struct gnutella_msg_search *m;
 	guint32 size;
@@ -444,7 +436,7 @@ static void __search_send_packet(struct search *sch, struct gnutella_node *n)
 	g_free(m);
 }
 
-static void search_add_new_muid(struct search *sch)
+static void search_add_new_muid(search_t *sch)
 {
 	guchar *muid = (guchar *) g_malloc(16);
 
@@ -455,7 +447,7 @@ static void search_add_new_muid(struct search *sch)
 	sch->muids = g_slist_prepend(sch->muids, (gpointer) muid);
 }
 
-static void search_send_packet(struct search *sch)
+static void search_send_packet(search_t *sch)
 {
 	autodownload_init();			/* Reload patterns, if necessary */
 	__search_send_packet(sch, NULL);
@@ -490,12 +482,12 @@ static gint search_hash_key_compare(gconstpointer a, gconstpointer b)
 }
 
 
-struct search *new_search(guint16 speed, gchar * query)
+search_t *new_search(guint16 speed, gchar * query)
 {
 	return _new_search(speed, query, 0);
 }
 
-void search_stop(struct search *sch)
+void search_stop(search_t *sch)
 {
 	if (sch->passive) {
 		g_assert(!sch->frozen);
@@ -511,7 +503,7 @@ void search_stop(struct search *sch)
 	}
 }
 
-void search_resume(struct search *sch)
+void search_resume(search_t *sch)
 {
 	autodownload_init();			/* Reload patterns, if necessary */
 	if (sch->passive) {
@@ -527,7 +519,7 @@ void search_resume(struct search *sch)
 	}
 }
 
-static gboolean search_already_sent_to_node(struct search *sch,
+static gboolean search_already_sent_to_node(search_t *sch,
 											struct gnutella_node *n)
 {
 	struct sent_node_data sd;
@@ -538,7 +530,7 @@ static gboolean search_already_sent_to_node(struct search *sch,
 
 static void node_added_callback(gpointer data)
 {
-	struct search *sch = (struct search *) data;
+	search_t *sch = (search_t *) data;
 	g_assert(node_added);
 	g_assert(data);
 	if (!search_already_sent_to_node(sch, node_added)) {
@@ -567,7 +559,7 @@ static gint sent_node_compare(gconstpointer a, gconstpointer b)
 
 static gboolean search_reissue_timeout_callback(gpointer data)
 {
-	struct search *sch = (struct search *) data;
+	search_t *sch = (search_t *) data;
 
 	if (dbg)
 		printf("reissuing search %s.\n", sch->query);
@@ -576,7 +568,7 @@ static gboolean search_reissue_timeout_callback(gpointer data)
 	return TRUE;
 }
 
-static void update_one_reissue_timeout(struct search *sch)
+static void update_one_reissue_timeout(search_t *sch)
 {
 	g_source_remove(sch->reissue_timeout_id);
 	if (sch->reissue_timeout > 0) {
@@ -595,12 +587,12 @@ static void update_one_reissue_timeout(struct search *sch)
 
 void search_update_reissue_timeout(guint32 timeout)
 {
-	GSList *l;
+	GList *l;
 
 	search_reissue_timeout = timeout;
 
 	for (l = searches; l; l = l->next) {
-		struct search *sch = (struct search *) l->data;
+		search_t *sch = (search_t *) l->data;
 		if (sch->passive)
 			continue;
 		if (sch->reissue_timeout > 0)	/* Not stopped */
@@ -616,7 +608,7 @@ void search_update_reissue_timeout(guint32 timeout)
  * Remove reference to results in our search.
  * Last one to remove it will trigger a free.
  */
-static void search_remove_r_set(struct search *sch, struct results_set *rs)
+static void search_remove_r_set(search_t *sch, struct results_set *rs)
 {
 	sch->r_sets = g_slist_remove(sch->r_sets, rs);
 	search_free_r_set(rs);
@@ -625,17 +617,19 @@ static void search_remove_r_set(struct search *sch, struct results_set *rs)
 
 /* Start a new search */
 
-struct search *_new_search(guint16 speed, gchar * query, guint flags)
+search_t *_new_search(guint16 speed, gchar * query, guint flags)
 {
-	struct search *sch;
+	search_t *sch;
 	GList *glist;
     gchar *titles[3];
     gint row;
 
-	sch = (struct search *) g_malloc0(sizeof(struct search));
+	sch = (search_t *) g_malloc0(sizeof(search_t));
 
 	sch->query = g_strdup(query);
-	sch->speed = minimum_speed;
+	sch->speed = speed;
+
+  	filter_new_for_search(sch);
 
 	if (flags & SEARCH_PASSIVE) {
 		sch->passive = 1;
@@ -730,17 +724,15 @@ struct search *_new_search(guint16 speed, gchar * query, guint flags)
 					   GTK_SIGNAL_FUNC(on_search_selected),
 					   (gpointer) sch);
 
-	on_search_switch(sch);
+	gui_view_search(sch);
 
 	gtk_widget_set_sensitive(combo_searches, TRUE);
 	gtk_widget_set_sensitive(button_search_close, TRUE);
+    gtk_widget_set_sensitive(entry_minimum_speed, TRUE);
 
     gtk_entry_set_text(GTK_ENTRY(entry_search),"");
 
-	searches = g_slist_append(searches, (gpointer) sch);
-
-	filters_new_search(sch);
-
+	searches = g_list_append(searches, (gpointer) sch);
 
 	return sch;
 }
@@ -1066,7 +1058,7 @@ static struct results_set *get_results_set(struct gnutella_node *n)
  *
  * Returns true if the record is a duplicate.
  */
-gboolean search_result_is_dup(struct search * sch, struct record * rc)
+gboolean search_result_is_dup(search_t * sch, struct record * rc)
 {
 	struct record *old_rc;
 	gpointer dummy;
@@ -1114,7 +1106,7 @@ gboolean search_result_is_dup(struct search * sch, struct record * rc)
  * Update the search GUI window by displaying only those records from the
  * result set that pass our filtering criteria.
  */
-static void search_gui_update(struct search *sch, struct results_set *rs)
+static void search_gui_update(search_t *sch, struct results_set *rs)
 {
 	gchar *titles[5];
     GSList* next;
@@ -1269,7 +1261,7 @@ static void search_gui_update(struct search *sch, struct results_set *rs)
 	g_string_free(vinfo, TRUE);
 }
 
-void search_matched(struct search *sch, struct results_set *rs)
+void search_matched(search_t *sch, struct results_set *rs)
 {
 	guint32 old_items = sch->items;
 
@@ -1330,7 +1322,7 @@ void search_matched(struct search *sch, struct results_set *rs)
 	}
 }
 
-gboolean search_has_muid(struct search *sch, guchar * muid)
+gboolean search_has_muid(search_t *sch, guchar * muid)
 {
 	GSList *m;
 
@@ -1348,8 +1340,8 @@ gboolean search_has_muid(struct search *sch, guchar * muid)
 void search_results(struct gnutella_node *n)
 {
 	struct results_set *rs;
-	GSList *selected_searches = NULL;
-	GSList *l;
+	GList *selected_searches = NULL;
+	GList *l;
 	gboolean extract_vendor = FALSE;
 
 	/*
@@ -1372,7 +1364,7 @@ void search_results(struct gnutella_node *n)
 	 */
 
 	for (l = searches; l; l = l->next) {
-		struct search *sch = (struct search *) l->data;
+		search_t *sch = (search_t *) l->data;
 
 		/*
 		 * Candidates are all non-frozen passive searches, and searches
@@ -1383,7 +1375,7 @@ void search_results(struct gnutella_node *n)
 			(sch->passive && !sch->frozen) ||
 			search_has_muid(sch, n->header.muid)
 		)
-			selected_searches = g_slist_append(selected_searches, sch);
+			selected_searches = g_list_append(selected_searches, sch);
 	}
 
 	/*
@@ -1429,7 +1421,7 @@ void search_results(struct gnutella_node *n)
 	 */
 
 	for (l = selected_searches; l; l = l->next) {
-		struct search *sch = (struct search *) l->data;
+		search_t *sch = (search_t *) l->data;
 		search_matched(sch, rs);
 	}
 
@@ -1446,13 +1438,13 @@ void search_results(struct gnutella_node *n)
 
 	if (rs->num_recs == 0) {
 		for (l = selected_searches; l; l = l->next) {
-			struct search *sch = (struct search *) l->data;
+			search_t *sch = (search_t *) l->data;
 			search_remove_r_set(sch, rs);
 		}
 	}
 		
 final_cleanup:
-	g_slist_free(selected_searches);
+	g_list_free(selected_searches);
 }
 
 /*
@@ -1476,14 +1468,15 @@ void search_extract_host(struct gnutella_node *n, guint32 *ip, guint16 *port)
 	*port = hport;
 }
 
+#ifndef USE_SEARCH_XML
 /*
- * search_store
+ * search_store_old
  *
  * Store pending non-passive searches.
  */
-static void search_store(void)
+static void search_store_old(void)
 {
-	GSList *l;
+	GList *l;
 	FILE *out;
 	time_t now = time((time_t *) NULL);
 
@@ -1508,14 +1501,15 @@ static void search_store(void)
 	if (0 != fclose(out))
 		g_warning("Could not flush %s: %s", stmp_2, g_strerror(errno));
 }
+#endif /* USE_SEARCH_XML */
 
 /*
- * search_retrieve
+ * search_retrieve_old
  *
  * Retrieve search list and restart searches.
  * The searches are normally retrieved from ~/.gtk-gnutella/searches.
  */
-static void search_retrieve(void)
+static gboolean search_retrieve_old(void)
 {
 	FILE *in;
 	struct stat buf;
@@ -1523,14 +1517,14 @@ static void search_retrieve(void)
 
 	g_snprintf(stmp_2, sizeof(stmp_2), "%s/%s", config_dir, search_file);
 	if (-1 == stat(stmp_2, &buf))
-		return;
+		return FALSE;
 
 	in = fopen(stmp_2, "r");
 
 	if (!in) {
 		g_warning("Unable to open %s to retrieve searches: %s",
 			stmp_2, g_strerror(errno));
-		return;
+		return FALSE;
 	}
 
 	/*
@@ -1555,38 +1549,20 @@ static void search_retrieve(void)
 	}
 
 	fclose(in);
+
+    return TRUE;
 }
 
 void search_shutdown(void)
 {
-	GSList *l;
+#ifdef USE_SEARCH_XML
+	search_store_xml();
+#else
+    search_store_old();
+#endif
 
-	search_store();
-
-	for (l = searches; l; l = l->next) {
-		struct search *sch = (struct search *) l->data;
-		gtk_timeout_remove(sch->tab_updating);
-		if (!sch->passive) {
-			GSList *m;
-			g_hook_destroy_link(&node_added_hook_list, sch->new_node_hook);
-			if (sch->reissue_timeout_id)
-				g_source_remove(sch->reissue_timeout_id);
-			for (m = sch->muids; m; m = m->next) {
-				g_free(m->data);
-			}
-			g_slist_free(sch->muids);
-			search_free_sent_nodes(sch);
-		}
-		g_hash_table_foreach(sch->dups, dec_records_refcount, NULL);
-		g_hash_table_destroy(sch->dups);
-		sch->dups = NULL;
-		search_free_r_sets(sch);
-		filters_close_search(sch);
-		g_free(sch->query);
-		g_free(sch);
-	}
-
-	g_slist_free(searches);
+    while(searches != NULL)
+        search_close((search_t *)searches->data);
 }
 
 
@@ -1640,16 +1616,17 @@ static void download_selection_of_clist(GtkCList * c)
 }
 
 
+
 void search_download_files(void)
 {
 	/* Download the selected files */
 
 	if (jump_to_downloads) {
 		gtk_notebook_set_page(GTK_NOTEBOOK(notebook_main),
-                NOTEBOOK_MAIN_DOWNLOADS_IDX);
+            nb_main_page_downloads);
         // FIXME: should convert to ctree here. Expand nodes if necessary.
 		gtk_clist_select_row(GTK_CLIST(ctree_menu),
-			NOTEBOOK_MAIN_DOWNLOADS_IDX, 0);
+            nb_main_page_downloads, 0);
 	}
 
 	if (current_search) {
@@ -1659,5 +1636,7 @@ void search_download_files(void)
 		g_warning("search_download_files(): no possible search!\n");
 	}
 }
+
+
 
 /* vi: set ts=4: */
