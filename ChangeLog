@@ -1,5 +1,17 @@
 # since last version
 
+- (2002.05.19 - Richard)
+  * Removed "clear queue" button. This is not necessary. To clear the
+    whole queue, just use a empty regex to select all and then use
+    "abort" from the popup menu. We don't want people to accidentially
+    purge thier queue.
+  * Made non-editable entries sensitive, so that at thier content is
+    copy-pastable.
+  * Increased sleep time during shutdown to 200ms again, but process any
+    pending Gtk events before sleeping.
+  * Made size of sidebar (menu, stats) persistent.
+  * Changed tooltip text for the "local netmask" stuff.
+
 - (2002.05.18 - RAM)
   * Improved shutdown code to avoid segfaults in grace period and deny all
 	pending Gnet connections cleanly.
