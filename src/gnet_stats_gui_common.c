@@ -53,7 +53,7 @@ const gchar *msg_type_str(int value)
 			g_warning("Requested general_type_str %d is invalid", value);
 			return "";
 	}
-};
+}
 
 int msg_type_str_size()
 {
