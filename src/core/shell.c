@@ -597,15 +597,15 @@ shell_exec_horizon(gnutella_shell_t *sh, const gchar *cmd)
     if (tok != NULL) {
 		shell_write(sh, tok);
 		shell_write(sh, "\n");
-		if (0 == strcasecmp(tok, "ALL"))
-			all = 1;
-		else {
+		if (0 == strcasecmp(tok, "ALL")) {
+			all = TRUE;
+		} else {
         	sh->msg = _("Unknown parameter");
 	        goto error;
 		}
+	} else {
+		all = FALSE;
 	}
-	else
-		all = 0;
 
 	sh->msg = "";
 
@@ -621,11 +621,11 @@ shell_exec_horizon(gnutella_shell_t *sh, const gchar *cmd)
 	shell_write(sh, buf);
 	shell_write(sh, "\n\n");
 
-	globalt = (gint64 *) &globaltable[1];
+	globalt = &globaltable[1][0];
 
 	print_hsep_table(sh, globaltable, HSEP_N_MAX, &nonhsep);
 
-	if(all) {
+	if (all) {
 		GSList *sl;
 		hsep_triple table[HSEP_N_MAX + 1];
 
@@ -833,7 +833,6 @@ error:
 static void shell_write_data(gnutella_shell_t *sh)
 {
 	struct gnutella_socket *s;
-
 	ssize_t written;
 
 	g_assert(sh);
@@ -844,22 +843,28 @@ static void shell_write_data(gnutella_shell_t *sh)
 
 	s = sh->socket;
 	written = s->wio.write(&s->wio, sh->outbuf, sh->outpos);
-	if (written < 0) {
-		if (errno == EAGAIN)
+	switch (written) {
+	case (ssize_t) -1:
+		if (errno == EAGAIN || errno == EINTR)
 			return;
 
-		shell_shutdown (sh);
+		/* FALL THRU */
+	case 0:
+		if (!sh->shutdown)
+			shell_shutdown(sh);
 		sh->outpos = 0;
+		break;
+		
+	default:
+		memmove(sh->outbuf, sh->outbuf + written, sh->outpos-written);
+		sh->outpos -= written;
 	}
-
-	memmove(sh->outbuf, sh->outbuf + written, sh->outpos-written);
-	sh->outpos -= written;
 
 	g_assert(sh->outpos >= 0);
 
 	if (sh->outpos == 0) {
 		if (sh->write_tag) {
-			g_assert(inputevt_remove(sh->write_tag));
+			inputevt_remove(sh->write_tag);
 			sh->write_tag = 0;
 		}
 	}
@@ -1091,8 +1096,10 @@ shell_destroy(gnutella_shell_t *s)
 
 	sl_shells = g_slist_remove(sl_shells, s);
 
-	if (s->write_tag)
-		g_assert(inputevt_remove(s->write_tag));
+	if (s->write_tag) {
+		inputevt_remove(s->write_tag);
+		s->write_tag = 0;
+	}
 
 	socket_free(s->socket);
 	s->socket = NULL;
