@@ -18,7 +18,7 @@
 
 # $Id$
 #
-# Generated on Thu Dec  9 07:23:01 MET 2004 [metaconfig 3.0 PL70]
+# Generated on Tue Dec 28 16:26:01 MET 2004 [metaconfig 3.0 PL70]
 
 cat >c1$$ <<EOF
 ARGGGHHHH!!!!!
@@ -6152,6 +6152,32 @@ eval $inlibc
 : see if this is a zlib.h system
 set zlib.h i_zlib
 eval $inhdr
+
+: determine whether sendfile works with 64-bit file support
+echo " "
+case "$i_syssendfile" in
+"$define")
+	echo "Checking whether we can use sendfile() with large file support..." >&4
+	$cat >try.c <<'EOC'
+#include <sys/sendfile.h>
+int main(void)
+{
+	return 0;
+}
+EOC
+	if $cc $ccflags $ldflags -o try try.c >/dev/null 2>&1; then
+		echo "It looks like we can use sendfile()."
+	else
+		echo "Sorry, I'll have to disable sendfile()."
+		i_syssendfile="$undef"
+		d_sendfile="$undef"
+	fi
+	$rm -f try try.c
+	;;
+*)
+	echo "No <sys/sendfile.h>, sendfile() should be safe with large files." >&4
+	;;
+esac
 
 : end of configuration questions
 echo " "
