@@ -1809,9 +1809,7 @@ gnet_search_t search_new(
 	gchar *qdup;
 	gint utf8_len;
 	gint qlen;
-#ifndef USE_ICU
 	gboolean latin_locale = is_latin_locale();
-#endif
 	extern guint compact_query(gchar *search, gint utf8_len);
 
 	sch = g_new0(search_ctrl_t, 1);
