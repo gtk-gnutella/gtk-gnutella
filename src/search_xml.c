@@ -178,7 +178,7 @@ void search_store_xml(void)
 			x_tmp, g_strerror(errno));
     } else {
         if (dbg >= 3)
-            g_message("saved searches file: %s", x_tmp);
+            printf("saved searches file: %s\n", x_tmp);
     }
 
 
@@ -253,7 +253,7 @@ gboolean search_retrieve_xml(void)
      */
 
     if (dbg >= 6)
-        g_message("resolving UIDs");
+        printf("resolving UIDs\n");
 
     for (f = filters; f != NULL; f = f->next) {
         filter_t *filter = (filter_t *)f->data;
@@ -261,7 +261,7 @@ gboolean search_retrieve_xml(void)
         gint n = 0;
 
         if (dbg >= 6) {
-            g_message("\n\nresolving on filter:");
+            printf("\n\nresolving on filter:\n");
             dump_filter(filter);
         }
         
@@ -283,7 +283,7 @@ gboolean search_retrieve_xml(void)
                  * manually here.
                  */
                 if (dbg >= 7)
-                    g_message("increasing refcount on \"%s\" to %d",
+                    printf("increasing refcount on \"%s\" to %d\n",
                         rule->target->name, rule->target->refcount+1);
                 rule->target->refcount ++;
                 n ++;
@@ -291,7 +291,7 @@ gboolean search_retrieve_xml(void)
         }
 
         if (dbg >= 6) {
-            g_message("resolved filter:");
+            printf("resolved filter:\n");
             dump_filter(filter);
         }
     }
@@ -304,16 +304,16 @@ gboolean search_retrieve_xml(void)
         GList *s;
 
         if (dbg >= 6)
-            g_message("verifying bindings...");
+            printf("verifying bindings...\n");
 
         for (s = searches; s != NULL; s = s->next) {
             search_t * search = (search_t *)s->data;
 
             if (search->filter->search == search) {
                 if (dbg >= 6)
-                    g_message("binding ok for: %s", search->query);
+                    printf("binding ok for: %s\n", search->query);
             } else {
-                g_warning("binding broken for: %s", search->query);
+                g_warning("binding broken for: %s\n", search->query);
                 borked = TRUE;
             }
         }
@@ -356,9 +356,9 @@ static void search_to_xml(xmlNodePtr parent, search_t *s)
     g_assert(parent != NULL);
 
     if (dbg >= 6) {
-        g_message("saving search: %s", s->query);
-        g_message("  -- filter is bound to: %p", s->filter->search);
-        g_message("  -- search is         : %p", s);
+        printf("saving search: %s\n", s->query);
+        printf("  -- filter is bound to: %p\n", s->filter->search);
+        printf("  -- search is         : %p\n", s);
     }
 
     newxml = xmlNewChild(parent, NULL, NODE_SEARCH, NULL);
@@ -387,13 +387,13 @@ static void filter_to_xml(xmlNodePtr parent, filter_t *f)
      */
     if ((f == filter_show) || (f == filter_drop) || f->search != NULL) {
         if (dbg >= 7)
-            g_message("not saving bound/builtin: %s", f->name);
+            printf("not saving bound/builtin: %s\n", f->name);
         return;
     }
 
     if (dbg >= 6) {
-        g_message("saving filter: %s", f->name);
-        g_message("  -- bound   : %p", f->search);
+        printf("saving filter: %s\n", f->name);
+        printf("  -- bound   : %p\n", f->search);
     }
 
     newxml = xmlNewChild(parent, NULL, NODE_FILTER, NULL);
@@ -564,7 +564,7 @@ static void xml_to_search(xmlNodePtr xmlnode, gpointer user_data)
     }
 
     if (dbg >= 4)
-        g_message("adding new search: %s", query);
+        printf("adding new search: %s\n", query);
     search = new_search(speed, query);
 
     g_free(query);
@@ -615,7 +615,7 @@ static void xml_to_filter(xmlNodePtr xmlnode, gpointer user_data)
         };
     } else {
         if (dbg >= 4)
-            g_message("adding new filter: %s", name);
+            printf("adding new filter: %s\n", name);
         filter = filter_new(name);
     }
 
@@ -678,7 +678,7 @@ static void xml_to_text_rule(xmlNodePtr xmlnode, gpointer filter)
     rule->valid = FALSE;
 
     if (dbg >= 4)
-        g_message( "added to filter \"%s\" rule with target %p",
+        printf( "added to filter \"%s\" rule with target %p\n",
             ((filter_t *)filter)->name, rule->target);
 
     ((filter_t *) filter)->ruleset =
@@ -724,7 +724,7 @@ static void xml_to_ip_rule(xmlNodePtr xmlnode, gpointer filter)
     rule->valid = FALSE;
 
     if (dbg >= 4)
-        g_message( "added to filter \"%s\" rule with target %p",
+        printf( "added to filter \"%s\" rule with target %p\n",
             ((filter_t *)filter)->name, rule->target);
 
     ((filter_t *) filter)->ruleset =
@@ -768,7 +768,7 @@ static void xml_to_size_rule(xmlNodePtr xmlnode, gpointer filter)
     rule->valid = FALSE;
 
     if (dbg >= 4);
-        g_message( "added to filter \"%s\" rule with target %p",
+        printf( "added to filter \"%s\" rule with target %p\n",
             ((filter_t *)filter)->name, rule->target);
 
     ((filter_t *) filter)->ruleset =
@@ -797,7 +797,7 @@ static void xml_to_jump_rule(xmlNodePtr xmlnode, gpointer filter)
     rule->valid = FALSE;
 
     if (dbg >= 4)
-        g_message( "added to filter \"%s\" rule with target %p",
+        printf( "added to filter \"%s\" rule with target %p\n",
             ((filter_t *)filter)->name, rule->target);
 
     ((filter_t *) filter)->ruleset =
