@@ -1,5 +1,19 @@
 # since last version
 
+- (2003.01.11 - cbiere)
+
+ * Tried to pop non-existent message from statusbar
+ * [Gtk2] New locale_to_utf8: non-convertible characters are replaced by an
+   underscore ('_')
+ * [Gtk2] Downloads: Reenabled multi-selection
+ * [Gtk2] Gnet stats: Save and restore column widths; use pretty alignments
+ * [Gtk2] Nodes: Save and restore column widths
+ * [Gtk2] Search results: Stop autoselecting during shutdown phase;
+   Added status column; Sync column widths (still buggy but harmless);
+   Use highlighting;
+ * [Gtk2] Upload stats: Use custom CellDataFunc instead of invisible columns;
+   prepared save/restore for column widths (not complete yet)
+
 - (2003.01.11 - RAM)
  * New property "node_rx_flowc_ratio".
  * Make sure we're not remotely flow-controlled too often.
