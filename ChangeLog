@@ -6,6 +6,21 @@
    main window is resized and visible.
  * [Gtk1] Added viewport around result details.
 
+- (2004-11-26 - RAM)
+ * (fileinfo.c) Fixed static assert in READ_INT32 for Alpha, where time_t
+   is larger than 32 bits: we just need to know that we're reading into a
+   variable holding at least 32 bits.
+ * Renamed configure as configure.gnu for case-insensitive filesystems.
+
+- (2004-11-22 - RAM)
+ * When sending non "alive" pings, include the "SCP" mark to get packed pongs.
+ * When replying to pings from Gnutella, give them "IPP" packed addresses if
+   they mentionned support for "SCP", even though the request comes via TCP.
+
+- (2004-11-20 - RAM)
+ * Was only storing the freshest hosts from the cache, not the whole cache.
+ * Give priority to UDP host caches.
+
 - (2004-11-14 - RAM)
  * Don't remove a host from the cache whilst iterating over it.
  * Generation of X-Features appended a trailing space after feature name.
