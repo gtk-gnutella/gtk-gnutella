@@ -40,8 +40,8 @@
  */
 
 #define GTA_VERSION 0
-#define GTA_SUBVERSION 17
-#define GTA_REVISION "stable"
+#define GTA_SUBVERSION 18
+#define GTA_REVISION "alpha"
 #define GTA_RELEASE "24.10.2001"
 #define GTA_WEBSITE "http://gtk-gnutella.sourceforge.net/"
 
