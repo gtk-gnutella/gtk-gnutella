@@ -1,5 +1,23 @@
 # since last version
 
+- (2002.05.11 - Richard)
+  * Added a saftey call to disable the tabs of notebook_main even
+    if left on in glade.
+  * Added "local node" information to the main nodes display.
+  * Added boxes around the queue and downloads frames, so the vpaned
+    scales better.
+  * Changed "Remove all matching regex" to "Select all matching regex".
+  * Renamed some config variables and widgets to get better naming
+    consistency.
+  * Changed "Listen port" and "proxy port" to spinbuttons.
+  * Added "Enable autoselect" to search panels. This binds to the
+    search_pick_all config variable.
+  * Made missing checkbutton states persistent.
+  * Added some macro magic to gui.c, config.c and callbacks.c. More readbility,
+    less writing effort.
+  * Moved updating of gui widgets at startup from config_init() to
+    gui_update_all().
+  
 - (2002.05.11 - RAM)
   * Allowed "configure --enable-no-rfc1918" to default to off (was forced on).
   * Exported bsched_disable().
