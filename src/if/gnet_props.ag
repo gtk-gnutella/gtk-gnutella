@@ -2658,7 +2658,7 @@ prop = {
 
 prop = {
 	name = "file_descriptor_runout";
-	desc = "When set, gtk-gnutella has running out of file descriptors, "
+	desc = "When set, gtk-gnutella has run out of file descriptors, "
 		"and operations are necessarily degraded, if not impossible. "
 		"The condition automatically clears itself after 10 minutes past "
 		"the last occurance.";

@@ -4875,7 +4875,7 @@ prop_set_t *gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[225].name = "file_descriptor_runout";
-    gnet_property->props[225].desc = _("When set, gtk-gnutella has running out of file descriptors, and operations are necessarily degraded, if not impossible. The condition automatically clears itself after 10 minutes past the last occurance.");
+    gnet_property->props[225].desc = _("When set, gtk-gnutella has run out of file descriptors, and operations are necessarily degraded, if not impossible. The condition automatically clears itself after 10 minutes past the last occurance.");
     gnet_property->props[225].ev_changed = event_new("file_descriptor_runout_changed");
     gnet_property->props[225].save = FALSE;
     gnet_property->props[225].vector_size = 1;
