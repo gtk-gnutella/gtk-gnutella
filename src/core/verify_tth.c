@@ -49,7 +49,8 @@ RCSID("$Id$");
 #include "lib/walloc.h"
 #include "lib/override.h"		/* Must be the last inclusion */
 
-gpointer tt_internal_hash(gpointer hash1, gpointer hash2)
+gpointer
+tt_internal_hash(gpointer hash1, gpointer hash2)
 {
 	gchar data[TIGERSIZE + TIGERSIZE + 1];
 	gchar *hash = g_malloc(TIGERSIZE);
@@ -61,26 +62,24 @@ gpointer tt_internal_hash(gpointer hash1, gpointer hash2)
 
 	g_assert(data[0] == 0x01);
 
-	tiger((gint64*) data, (gint64)(TIGERSIZE + TIGERSIZE + 1), (gint64 *)hash);
+	tiger((gint64 *) data, TIGERSIZE + TIGERSIZE + 1, (gint64 *) hash);
 
 	return hash;
 }
 
-/*
- * tt_verify_init
- *
+/**
  * Initialises the background task for tigertree verification
  */
-void tt_verify_init()
+void
+tt_verify_init(void)
 {
 }
 
-/*
- * tt_verify_close
- *
+/**
  * Stops the background task for tigertree verification
  */
-void tt_verify_close()
+void
+tt_verify_close(void)
 {
 }
 
@@ -116,7 +115,8 @@ struct tt_computation_context_s {
 	hashtree	*tt_node;
 };
 
-static void tt_computation_context_free(gpointer u)
+static void
+tt_computation_context_free(gpointer u)
 {
 	tt_computation_context_t *ctx = (tt_computation_context_t *) u;
 
@@ -128,7 +128,8 @@ static void tt_computation_context_free(gpointer u)
 	wfree(ctx, sizeof(*ctx));
 }
 
-static bgret_t tigertree_step_compute(gpointer h, gpointer u, gint ticks)
+static bgret_t
+tigertree_step_compute(gpointer h, gpointer u, gint ticks)
 {
 	gint i;
 	ssize_t r;
@@ -238,7 +239,8 @@ static bgret_t tigertree_step_compute(gpointer h, gpointer u, gint ticks)
 
 /* Public functions */
 
-void tt_compute_close() {
+void
+tt_compute_close(void) {
 
 	while (files_to_hash != NULL) {
 		tt_file_to_hash_t *file_to_hash =
@@ -250,7 +252,8 @@ void tt_compute_close() {
 	}
 }
 
-void request_tigertree(struct shared_file *sf)
+void
+request_tigertree(struct shared_file *sf)
 {
 	tt_file_to_hash_t *file_to_hash = walloc0(sizeof(tt_file_to_hash_t));
 
@@ -275,7 +278,8 @@ void request_tigertree(struct shared_file *sf)
 }
 
 
-void tt_parse_header(struct download *d, header_t *header)
+void
+tt_parse_header(struct download *d, header_t *header)
 {
 	gchar *buf = NULL;
 	gchar *uri = NULL;
@@ -325,3 +329,5 @@ void tt_parse_header(struct download *d, header_t *header)
 		FALSE /* PUSH */, NULL /* fi */, NULL /* proxies */);
 
 }
+
+/* vi: set ts=4 sw=4 cindent: */
