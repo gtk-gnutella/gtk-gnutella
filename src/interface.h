@@ -252,6 +252,7 @@ extern GtkWidget *entry_filter_ip_mask;
 extern GtkWidget *entry_filter_name;
 extern GtkWidget *entry_filter_new;
 extern GtkWidget *entry_filter_sha1_hash;
+extern GtkWidget *entry_filter_sha1_origfile;
 extern GtkWidget *entry_filter_text_pattern;
 extern GtkWidget *hpaned_filter_main;
 extern GtkWidget *notebook_filter_detail;

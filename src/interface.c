@@ -257,6 +257,7 @@ GtkWidget *entry_filter_ip_mask;
 GtkWidget *entry_filter_name;
 GtkWidget *entry_filter_new;
 GtkWidget *entry_filter_sha1_hash;
+GtkWidget *entry_filter_sha1_origfile;
 GtkWidget *entry_filter_text_pattern;
 GtkWidget *hpaned_filter_main;
 GtkWidget *notebook_filter_detail;
@@ -5391,6 +5392,8 @@ create_dlg_filters (void)
   GtkWidget *hbox127;
   GtkWidget *table25;
   GtkWidget *label226;
+  GtkWidget *hbox132;
+  GtkWidget *label245;
   GtkWidget *hbox128;
   GtkWidget *frame37;
   GtkWidget *optionmenu_filter_sha1_target_menu;
@@ -6529,7 +6532,7 @@ create_dlg_filters (void)
   gtk_widget_show (hbox127);
   gtk_container_add (GTK_CONTAINER (frame36), hbox127);
 
-  table25 = gtk_table_new (2, 1, FALSE);
+  table25 = gtk_table_new (3, 1, FALSE);
   gtk_widget_ref (table25);
   gtk_object_set_data_full (GTK_OBJECT (dlg_filters), "table25", table25,
                             (GtkDestroyNotify) gtk_widget_unref);
@@ -6558,6 +6561,30 @@ create_dlg_filters (void)
                     (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
   gtk_entry_set_editable (GTK_ENTRY (entry_filter_sha1_hash), FALSE);
+
+  hbox132 = gtk_hbox_new (FALSE, 4);
+  gtk_widget_ref (hbox132);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_filters), "hbox132", hbox132,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (hbox132);
+  gtk_table_attach (GTK_TABLE (table25), hbox132, 0, 1, 2, 3,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (GTK_FILL), 0, 0);
+
+  label245 = gtk_label_new ("Originally obtained from");
+  gtk_widget_ref (label245);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_filters), "label245", label245,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label245);
+  gtk_box_pack_start (GTK_BOX (hbox132), label245, FALSE, FALSE, 0);
+
+  entry_filter_sha1_origfile = gtk_entry_new ();
+  gtk_widget_ref (entry_filter_sha1_origfile);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_filters), "entry_filter_sha1_origfile", entry_filter_sha1_origfile,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (entry_filter_sha1_origfile);
+  gtk_box_pack_start (GTK_BOX (hbox132), entry_filter_sha1_origfile, TRUE, TRUE, 0);
+  gtk_entry_set_editable (GTK_ENTRY (entry_filter_sha1_origfile), FALSE);
 
   hbox128 = gtk_hbox_new (FALSE, 0);
   gtk_widget_ref (hbox128);

@@ -90,30 +90,31 @@ static const gchar NODE_RULE_JUMP[]   = "JumpRule";
 static const gchar NODE_RULE_SHA1[]   = "SHA1Rule";
 static const gchar NODE_RULE_FLAG[]   = "FlagRule";
 
-static const gchar PROP_BUILTIN_SHOW_UID[] = "ShowUID";
-static const gchar PROP_BUILTIN_DROP_UID[] = "DropUID";
-static const gchar PROP_FILTER_NAME[]      = "Name";
-static const gchar PROP_FILTER_GLOBAL[]    = "Global";
-static const gchar PROP_FILTER_UID[]       = "UID";
-static const gchar PROP_FILTER_ACTIVE[]    = "Active";
-static const gchar PROP_SEARCH_QUERY[]     = "Query";
-static const gchar PROP_SEARCH_SPEED[]     = "Speed";
-static const gchar PROP_SEARCH_PASSIVE[]   = "Passive";
-static const gchar PROP_RULE_TEXT_CASE[]   = "Case";
-static const gchar PROP_RULE_TEXT_MATCH[]  = "Match";
-static const gchar PROP_RULE_TEXT_TYPE[]   = "Type";
-static const gchar PROP_RULE_IP_ADDR[]     = "Address";
-static const gchar PROP_RULE_IP_MASK[]     = "Netmask";
-static const gchar PROP_RULE_SIZE_LOWER[]  = "Lower";
-static const gchar PROP_RULE_SIZE_UPPER[]  = "Upper";
-static const gchar PROP_RULE_SHA1_HASH[]   = "Hash";
-static const gchar PROP_RULE_NEGATE[]      = "Negate";
-static const gchar PROP_RULE_ACTIVE[]      = "Active";
-static const gchar PROP_RULE_SOFT[]        = "Soft";
-static const gchar PROP_RULE_TARGET[]      = "Target";
-static const gchar PROP_RULE_FLAG_BUSY[]   = "Busy";
-static const gchar PROP_RULE_FLAG_PUSH[]   = "Push";
-static const gchar PROP_RULE_FLAG_STABLE[] = "Stable";
+static const gchar PROP_BUILTIN_SHOW_UID[]   = "ShowUID";
+static const gchar PROP_BUILTIN_DROP_UID[]   = "DropUID";
+static const gchar PROP_FILTER_NAME[]        = "Name";
+static const gchar PROP_FILTER_GLOBAL[]      = "Global";
+static const gchar PROP_FILTER_UID[]         = "UID";
+static const gchar PROP_FILTER_ACTIVE[]      = "Active";
+static const gchar PROP_SEARCH_QUERY[]       = "Query";
+static const gchar PROP_SEARCH_SPEED[]       = "Speed";
+static const gchar PROP_SEARCH_PASSIVE[]     = "Passive";
+static const gchar PROP_RULE_TEXT_CASE[]     = "Case";
+static const gchar PROP_RULE_TEXT_MATCH[]    = "Match";
+static const gchar PROP_RULE_TEXT_TYPE[]     = "Type";
+static const gchar PROP_RULE_IP_ADDR[]       = "Address";
+static const gchar PROP_RULE_IP_MASK[]       = "Netmask";
+static const gchar PROP_RULE_SIZE_LOWER[]    = "Lower";
+static const gchar PROP_RULE_SIZE_UPPER[]    = "Upper";
+static const gchar PROP_RULE_SHA1_HASH[]     = "Hash";
+static const gchar PROP_RULE_SHA1_FILENAME[] = "OriginalFilename";
+static const gchar PROP_RULE_NEGATE[]        = "Negate";
+static const gchar PROP_RULE_ACTIVE[]        = "Active";
+static const gchar PROP_RULE_SOFT[]          = "Soft";
+static const gchar PROP_RULE_TARGET[]        = "Target";
+static const gchar PROP_RULE_FLAG_BUSY[]     = "Busy";
+static const gchar PROP_RULE_FLAG_PUSH[]     = "Push";
+static const gchar PROP_RULE_FLAG_STABLE[]   = "Stable";
 
 
 
@@ -499,6 +500,8 @@ static void rule_to_xml(xmlNodePtr parent, rule_t *r)
         if (r->u.sha1.hash != NULL)
             xmlSetProp
                 (newxml,PROP_RULE_SHA1_HASH, sha1_base32(r->u.sha1.hash));
+
+        xmlSetProp(newxml, PROP_RULE_SHA1_FILENAME, r->u.sha1.filename);
         
         /*
          * r->u.sha1.hash is NULL, we just omit the hash.
@@ -882,6 +885,7 @@ static void xml_to_jump_rule(xmlNodePtr xmlnode, gpointer filter)
 static void xml_to_sha1_rule(xmlNodePtr xmlnode, gpointer filter)
 {
     guchar *hash = NULL;
+    gchar *filename = NULL;
     gchar *buf;
     rule_t *rule;
     filter_t *target;
@@ -891,6 +895,12 @@ static void xml_to_sha1_rule(xmlNodePtr xmlnode, gpointer filter)
     g_assert(xmlnode->name != NULL);
     g_assert(filter != NULL);
     g_assert(g_strcasecmp(xmlnode->name, NODE_RULE_SHA1) ==0);
+
+    buf = xmlGetProp(xmlnode, PROP_RULE_SHA1_FILENAME);
+    if (buf != NULL)
+        filename = buf;
+    else
+        filename = g_strdup("[Unknown]");
 
     buf = xmlGetProp(xmlnode, PROP_RULE_SHA1_HASH);
     if ((buf != NULL) && (strlen(buf) == SHA1_BASE32_SIZE))
@@ -905,7 +915,7 @@ static void xml_to_sha1_rule(xmlNodePtr xmlnode, gpointer filter)
     g_free(buf);
 
     flags = get_rule_flags_from_xml(xmlnode);
-    rule = filter_new_sha1_rule(hash, target, flags);
+    rule = filter_new_sha1_rule(hash, filename, target, flags);
     clear_flags(rule->flags, RULE_FLAG_VALID);
 
     if (dbg >= 4)

@@ -558,11 +558,13 @@ rule_t *filter_new_jump_rule(filter_t *target, guint16 flags)
 
 
 
-rule_t *filter_new_sha1_rule(gchar *sha1, filter_t *target, guint16 flags)
+rule_t *filter_new_sha1_rule
+    (guchar *sha1, gchar *filename, filter_t *target, guint16 flags)
 {
    	rule_t *f;
 
     g_assert(target != NULL);
+    g_assert(filename != NULL);
 
     f = g_new0(rule_t, 1);
 
@@ -571,6 +573,7 @@ rule_t *filter_new_sha1_rule(gchar *sha1, filter_t *target, guint16 flags)
   	f->target = target;
     if (sha1 != NULL)
         f->u.sha1.hash = g_memdup(sha1, SHA1_RAW_SIZE);
+    f->u.sha1.filename = g_strdup(filename);
     f->flags  = flags;
     set_flags(f->flags, RULE_FLAG_VALID);
 
@@ -879,8 +882,8 @@ gchar *filter_rule_condition_to_gchar(rule_t *r)
         break;
     case RULE_SHA1:
         if (r->u.sha1.hash != NULL) {
-            g_snprintf(tmp, sizeof(tmp), "If urn:sha1 is %s",
-                sha1_base32(r->u.sha1.hash));
+            g_snprintf(tmp, sizeof(tmp), "If urn:sha1 is same as for \"%s\"",
+                r->u.sha1.filename);
         } else 
             g_snprintf(tmp, sizeof(tmp), "If urn:sha1 is not available");
         break;
@@ -1218,6 +1221,7 @@ static void rule_free(rule_t *r)
         break;
     case RULE_SHA1:
         g_free(r->u.sha1.hash);
+        g_free(r->u.sha1.filename);
         break;
     case RULE_SIZE:
     case RULE_JUMP:

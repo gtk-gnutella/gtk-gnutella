@@ -304,6 +304,7 @@ void filter_gui_filter_set
         gtk_widget_set_sensitive(button_filter_add_rule_ip, TRUE);
         gtk_widget_set_sensitive(button_filter_add_rule_size, TRUE);
         gtk_widget_set_sensitive(button_filter_add_rule_jump, TRUE);
+        gtk_widget_set_sensitive(button_filter_add_rule_flag, TRUE);
         gtk_widget_set_sensitive(button_filter_remove, removable);
         gtk_toggle_button_set_active(
             GTK_TOGGLE_BUTTON(checkbutton_filter_enabled),
@@ -326,6 +327,7 @@ void filter_gui_filter_set
         gtk_widget_set_sensitive(button_filter_add_rule_ip, FALSE);
         gtk_widget_set_sensitive(button_filter_add_rule_size, FALSE);
         gtk_widget_set_sensitive(button_filter_add_rule_jump, FALSE);
+        gtk_widget_set_sensitive(button_filter_add_rule_flag, FALSE);
         gtk_widget_set_sensitive(button_filter_remove, FALSE);
         gtk_toggle_button_set_active(
             GTK_TOGGLE_BUTTON(checkbutton_filter_enabled), FALSE);
@@ -620,7 +622,7 @@ void filter_gui_edit_ip_rule(rule_t *r)
 
     if (r == NULL) {
         gtk_entry_set_text(GTK_ENTRY(entry_filter_ip_address), "");
-        gtk_entry_set_text(GTK_ENTRY(entry_filter_ip_mask), "");
+        gtk_entry_set_text(GTK_ENTRY(entry_filter_ip_mask), "255.255.255.255");
         option_menu_select_item_by_data(optionmenu_filter_ip_target,
             (gpointer) DEFAULT_TARGET);
         gtk_toggle_button_set_active
@@ -670,6 +672,7 @@ void filter_gui_edit_sha1_rule(rule_t *r)
 
     if (r == NULL) {
         gtk_entry_set_text(GTK_ENTRY(entry_filter_sha1_hash), "");
+        gtk_entry_set_text(GTK_ENTRY(entry_filter_sha1_origfile), "");
         option_menu_select_item_by_data(optionmenu_filter_sha1_target,
             (gpointer) DEFAULT_TARGET);
         gtk_toggle_button_set_active
@@ -685,6 +688,8 @@ void filter_gui_edit_sha1_rule(rule_t *r)
             sha1_base32(r->u.sha1.hash) : "";
 
         gtk_entry_set_text(GTK_ENTRY(entry_filter_sha1_hash), hash_str);
+        gtk_entry_set_text
+            (GTK_ENTRY(entry_filter_sha1_origfile), r->u.sha1.filename);
         option_menu_select_item_by_data(optionmenu_filter_sha1_target,
             (gpointer) r->target);
         gtk_toggle_button_set_active

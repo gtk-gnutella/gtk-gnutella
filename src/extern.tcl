@@ -266,6 +266,7 @@ set w_main_list {
     entry_filter_name
     entry_filter_new
     entry_filter_sha1_hash
+    entry_filter_sha1_origfile
     entry_filter_text_pattern
     hpaned_filter_main
     notebook_filter_detail

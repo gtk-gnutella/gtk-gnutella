@@ -2737,7 +2737,8 @@ void on_popup_search_drop_sha1_activate(GtkMenuItem * menuitem,
         }
 
         rule = filter_new_sha1_rule(
-            rec->sha1, filter_get_drop_target(), RULE_FLAG_ACTIVE);
+            rec->sha1, rec->name,
+            filter_get_drop_target(), RULE_FLAG_ACTIVE);
 
         filter_append_rule(current_search->filter, rule);
     
@@ -2775,7 +2776,8 @@ void on_popup_search_drop_sha1_global_activate(GtkMenuItem * menuitem,
         }
 
         rule = filter_new_sha1_rule(
-            rec->sha1, filter_get_drop_target(), RULE_FLAG_ACTIVE);
+            rec->sha1, rec->name,
+            filter_get_drop_target(), RULE_FLAG_ACTIVE);
 
         filter_append_rule(filter_get_global_pre(), rule);
     
