@@ -62,7 +62,8 @@ void hsep_timer(void);
 void hsep_notify_shared(guint64 ownfiles, guint64 ownkibibytes);
 void hsep_sanity_check(void);
 gboolean hsep_check_monotony(hsep_triple *table, unsigned int triples);
-unsigned int hsep_triples_to_send(hsep_triple *table, unsigned int triples);
+unsigned int hsep_triples_to_send(const hsep_triple *table,
+	unsigned int triples);
 unsigned int hsep_get_table(hsep_triple *buffer, unsigned int maxtriples);
 unsigned int hsep_get_connection_table(struct gnutella_node *n,
     hsep_triple *buffer, unsigned int maxtriples);

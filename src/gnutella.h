@@ -205,7 +205,7 @@ struct gnutella_msg_vendor {
 
 struct gnutella_msg_hsep_data {
 	struct gnutella_header header;
-	/* payload follows */
+	guint64 triple[3];
 } __attribute__((__packed__));
 
 /* main.c */
