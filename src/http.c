@@ -42,6 +42,7 @@
 #include "bsched.h"
 #include "header.h"
 #include "walloc.h"
+#include "ioheader.h"
 
 #define MAX_HOSTLEN		256		/* Max length for FQDN host */
 
@@ -370,6 +371,65 @@ gint http_status_parse(gchar *line,
 	return code_message_parse(p, msg);
 }
 
+
+/*
+ * http_extract_version
+ *
+ * Extract HTTP version major/minor out of the given request, whose string
+ * length is `len' bytes.
+ *
+ * Returns TRUE when we identified the "HTTP/x.x" trailing string, filling
+ * major and minor accordingly.
+ */
+gboolean http_extract_version(
+	gchar *request, gint len, gint *major, gint *minor)
+{
+	gint limit;
+	gchar *p;
+	gint i;
+
+	/*
+	 * The smallest request would be "GET / HTTP/1.0".
+	 */
+
+	limit = sizeof("GET / HTTP/1.0") - 1;
+
+	if (len < limit)
+		return FALSE;
+
+	/*
+	 * Scan backwards, until we find the first space with the last trailing
+	 * chars.  If we don't, it can't be an HTTP request.
+	 */
+
+	for (p = request + len - 1, i = 0; i < limit; p--, i++) {
+		gint c = *p;
+
+		if (c == ' ')		/* Not isspace(), looking for space only */
+			break;
+	}
+
+	if (i == limit)
+		return FALSE;		/* Reached our limit without finding a space */
+
+	/*
+	 * Here, `p' point to the space character.
+	 */
+
+	g_assert(*p == ' ');
+
+	if (2 != sscanf(p+1, "HTTP/%d.%d", major, minor))
+		return FALSE;
+
+	/*
+	 * We don't check trailing chars after the HTTP/x.x indication.
+	 * There should not be any, but even if there are, we'll just ignore them.
+	 */
+
+	return TRUE;			/* Parsed HTTP/x.x OK */
+}
+
+
 /*
  * http_url_parse
  *
@@ -495,6 +555,10 @@ static gchar *error_str[] = {
 	"Invalid HTTP URL",						/* HTTP_ASYNC_BAD_URL */
 	"Connection failed",					/* HTTP_ASYNC_CONN_FAILED */
 	"I/O error",							/* HTTP_ASYNC_IO_ERROR */
+	"Request too large",					/* HTTP_ASYNC_REQ2BIG */
+	"Header too large",						/* HTTP_ASYNC_HEAD2BIG */
+	"User cancel",							/* HTTP_ASYNC_CANCELLED */
+	"Got EOF",								/* HTTP_ASYNC_EOF */
 };
 
 gint http_async_errno;		/* Used to return error codes during setup */
@@ -519,19 +583,102 @@ gchar *http_async_strerror(gint errnum)
  ***/
 
 enum http_reqtype {
+	HTTP_HEAD = 0,
 	HTTP_GET,
 	HTTP_POST,
+	HTTP_MAX_REQTYPE,
 };
 
+static gchar *http_verb[HTTP_MAX_REQTYPE] = {
+	"HEAD",
+	"GET",
+	"POST",
+};
+
+#define HTTP_ASYNC_MAGIC 0xa91cf3ee
+
 struct http_async {					/* An asynchronous HTTP request */
+	gint magic;						/* Magic number */
 	enum http_reqtype type;			/* Type of request */
 	gchar *path;					/* Path to request (atom) */
 	struct gnutella_socket *socket;	/* Attached socket */
+	http_header_cb_t header_ind;	/* Callback for headers */
 	http_data_cb_t data_ind;		/* Callback for data */
 	http_error_cb_t error_ind;		/* Callback for errors */
-	header_t *header;				/* Parsed HTTP reply header */
 	time_t last_update;				/* Time of last activity */
+	gpointer io_opaque;				/* Opaque I/O callback information */
 };
+
+/*
+ * http_async_free
+ *
+ * Free the HTTP asynchronous request handler, disposing of all its
+ * attached resources.
+ */
+static void http_async_free(struct http_async *ha)
+{
+	socket_free(ha->socket);
+	atom_str_free(ha->path);
+	if (ha->io_opaque)
+		io_free(ha->io_opaque);
+
+	wfree(ha, sizeof(*ha));
+}
+
+/*
+ * http_async_remove
+ *
+ * Cancel request (internal call).
+ */
+static void http_async_remove(gpointer handle, http_errtype_t type, gint code)
+{
+	struct http_async *ha = (struct http_async *) handle;
+
+	g_assert(ha->magic == HTTP_ASYNC_MAGIC);
+
+	(*ha->error_ind)(handle, type, (gpointer) code);
+	http_async_free(ha);
+}
+
+/*
+ * http_async_cancel
+ *
+ * Cancel request (user request).
+ */
+void http_async_cancel(gpointer handle)
+{
+	http_async_remove(handle, HTTP_ASYNC_ERROR, HTTP_ASYNC_CANCELLED);
+}
+
+/*
+ * http_async_error
+ *
+ * Cancel request (internal error).
+ */
+void http_async_error(gpointer handle, gint code)
+{
+	http_async_remove(handle, HTTP_ASYNC_ERROR, code);
+}
+
+/*
+ * http_async_syserr
+ *
+ * Cancel request (system call error).
+ */
+static void http_async_syserr(gpointer handle, gint code)
+{
+	http_async_remove(handle, HTTP_ASYNC_SYSERR, code);
+}
+
+/*
+ * http_async_headerr
+ *
+ * Cancel request (header parsing error).
+ */
+static void http_async_headerr(gpointer handle, gint code)
+{
+	http_async_remove(handle, HTTP_ASYNC_HEADER, code);
+}
 
 /*
  * http_async_get
@@ -548,6 +695,7 @@ struct http_async {					/* An asynchronous HTTP request */
  */
 gpointer http_async_get(
 	gchar *url,
+	http_header_cb_t header_ind,
 	http_data_cb_t data_ind,
 	http_error_cb_t error_ind)
 {
@@ -592,16 +740,42 @@ gpointer http_async_get(
 
 	s->resource.handle = ha;
 
+	ha->magic = HTTP_ASYNC_MAGIC;
 	ha->type = HTTP_GET;
 	ha->path = atom_str_get(path);
 	ha->socket = s;
 	ha->data_ind = data_ind;
 	ha->error_ind = error_ind;
-	ha->header = NULL;
+	ha->io_opaque = NULL;
 	ha->last_update = time(NULL);
 
 	return ha;
 }
+
+/*
+ * http_got_header
+ *
+ * Called when the whole server's reply header was parsed.
+ */
+static void http_got_header(struct http_async *ha, header_t *header)
+{
+	// XXX
+}
+
+/**
+ ** HTTP header parsing dispatching callbacks.
+ **/
+
+static void call_http_got_header(gpointer obj, header_t *header)
+{
+	struct http_async *ha = (struct http_async *) obj;
+
+	g_assert(ha->magic == HTTP_ASYNC_MAGIC);
+
+	http_got_header(ha, header);
+}
+
+static struct io_error http_io_error;
 
 /*
  * http_async_connected
@@ -617,6 +791,7 @@ void http_async_connected(gpointer handle)
 	gint rw;
 	gint sent;
 
+	g_assert(ha->magic == HTTP_ASYNC_MAGIC);
 	g_assert(s);
 	g_assert(s->resource.handle == handle);
 
@@ -629,12 +804,12 @@ void http_async_connected(gpointer handle)
 		"Host: %s\r\n"
 		"User-Agent: %s\r\n"
 		"Connection: close\r\n",
-		ha->type == HTTP_POST ? "POST" : "GET", ha->path,
+		http_verb[ha->type], ha->path,
 		ip_port_to_gchar(s->ip, s->port),
 		version_string);
 
 	if (rw >= sizeof(req)) {
-		http_async_cancel(ha, HTTP_ASYNC_REQ2BIG);
+		http_async_error(ha, HTTP_ASYNC_REQ2BIG);
 		return;
 	}
 
@@ -645,12 +820,12 @@ void http_async_connected(gpointer handle)
 	if (-1 == (sent = bws_write(bws.out, s->file_desc, req, rw))) {
 		g_warning("HTTP request sending to %s failed: %s",
 			ip_port_to_gchar(s->ip, s->port), g_strerror(errno));
-		http_async_cancel(ha, HTTP_ASYNC_IO_ERROR);
+		http_async_syserr(ha, errno);
 		return;
 	} else if (sent < rw) {
 		g_warning("HTTP request sending to %s: only %d of %d bytes sent",
 			ip_port_to_gchar(s->ip, s->port), sent, rw);
-		http_async_cancel(ha, HTTP_ASYNC_IO_ERROR);
+		http_async_error(ha, HTTP_ASYNC_IO_ERROR);
 		return;
 	} else if (dbg > 2) {
 		printf("----Sent HTTP request to %s:\n%.*s----\n",
@@ -664,35 +839,52 @@ void http_async_connected(gpointer handle)
 	 * Prepare to read back the status line and the headers.
 	 */
 
-	// XXXX
+	io_get_header(ha, &ha->io_opaque, bws.in, s, IO_SAVE_FIRST,
+		call_http_got_header, NULL, &http_io_error);
 }
 
-/*
- * http_async_free
- *
- * Free the HTTP asynchronous request handler, disposing of all its
- * attached resources.
- */
-static void http_async_free(struct http_async *ha)
+/***
+ *** I/O header parsing callbacks.
+ ***/
+
+static void err_line_too_long(gpointer obj)
 {
-	socket_free(ha->socket);
-	atom_str_free(ha->path);
-	if (ha->header)
-		header_free(ha->header);
-
-	wfree(ha, sizeof(*ha));
+	http_async_error(obj, HTTP_ASYNC_HEAD2BIG);
 }
 
-/*
- * http_async_cancel
- *
- * Cancel request.
- */
-void http_async_cancel(gpointer handle, gint code)
+static void err_header_error(gpointer obj, gint error)
 {
-	struct http_async *ha = (struct http_async *) handle;
-
-	(*ha->error_ind)(handle, HTTP_ASYNC_ERROR, (gpointer) code);
-	http_async_free(ha);
+	http_async_headerr(obj, error);
 }
+
+static void err_input_exception(gpointer obj)
+{
+	http_async_error(obj, HTTP_ASYNC_IO_ERROR);
+}
+
+static void err_input_buffer_full(gpointer obj)
+{
+	http_async_error(obj, HTTP_ASYNC_IO_ERROR);
+}
+
+static void err_header_read_error(gpointer obj, gint error)
+{
+	http_async_syserr(obj, error);
+}
+
+static void err_header_read_eof(gpointer obj)
+{
+	http_async_error(obj, HTTP_ASYNC_EOF);
+}
+
+static struct io_error http_io_error = {
+	err_line_too_long,
+	NULL,
+	err_header_error,
+	err_input_exception,
+	err_input_buffer_full,
+	err_header_read_error,
+	err_header_read_eof,
+	NULL,
+};
 

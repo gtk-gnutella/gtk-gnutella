@@ -120,7 +120,7 @@ void socket_destroy(struct gnutella_socket *s)
 		upload_remove(s->resource.upload, NULL);
 		return;
 	} else if (s->type == SOCK_TYPE_HTTP && s->resource.handle) {
-		http_async_cancel(s->resource.handle, HTTP_ASYNC_IO_ERROR);
+		http_async_error(s->resource.handle, HTTP_ASYNC_IO_ERROR);
 		return;
 	}
 

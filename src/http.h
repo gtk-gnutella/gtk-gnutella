@@ -33,7 +33,7 @@
 #define HTTP_PORT		80		/* Registered HTTP port */
 
 struct gnutella_socket;
-struct header;;
+struct header;
 
 /*
  * http_send_status() additional header description:
@@ -74,6 +74,13 @@ typedef struct {
 #define he_arg	u.u_cbk.u_arg
 
 /*
+ * http_header_cb_t
+ *
+ * Callback used from asynchronous request to indicate that we got headers.
+ */
+typedef void (*http_header_cb_t)(gpointer h, struct header *header);
+
+/*
  * http_data_cb_t
  *
  * Callback used from asynchronous request to indicate that data is available.
@@ -83,6 +90,7 @@ typedef void (*http_data_cb_t)(gpointer h, gchar *data, gint len);
 typedef enum {				/* Type of error reported by http_error_cb_t */
 	HTTP_ASYNC_SYSERR,		/* System error, value is errno */
 	HTTP_ASYNC_ERROR,		/* Internal error, value is error code */
+	HTTP_ASYNC_HEADER,		/* Internal header error, value is error code */
 	HTTP_ASYNC_HERR,		/* HTTP error, value is http_error_t pointer */
 } http_errtype_t;
 
@@ -109,6 +117,9 @@ typedef void (*http_error_cb_t)(gpointer h, http_errtype_t error, gpointer val);
 #define HTTP_ASYNC_CONN_FAILED	2	/* Connection failed */
 #define HTTP_ASYNC_IO_ERROR		3	/* I/O error */
 #define HTTP_ASYNC_REQ2BIG		4	/* Request too big */
+#define HTTP_ASYNC_HEAD2BIG		5	/* Header too big */
+#define HTTP_ASYNC_CANCELLED	6	/* User cancel */
+#define HTTP_ASYNC_EOF			7	/* Got EOF */
 
 extern gint http_async_errno;
 
@@ -124,12 +135,20 @@ gboolean http_send_status(struct gnutella_socket *s,
 gint http_status_parse(gchar *line,
 	gchar *proto, gchar **msg, gint *major, gint *minor);
 
+gboolean http_extract_version(
+	gchar *request, gint len, gint *major, gint *minor);
+
 gboolean http_url_parse(gchar *url, guint32 *ip, guint16 *port, gchar **res);
 
 gpointer http_async_get(
-	gchar *url, http_data_cb_t data_ind, http_error_cb_t error_ind);
+	gchar *url,
+	http_header_cb_t header_ind,
+	http_data_cb_t data_ind,
+	http_error_cb_t error_ind);
+
 void http_async_connected(gpointer handle);
-void http_async_cancel(gpointer handle, gint code);
+void http_async_cancel(gpointer handle);
+void http_async_error(gpointer handle, gint code);
 
 #endif	/* __http_h__ */
 
