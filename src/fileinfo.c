@@ -911,7 +911,7 @@ static gboolean looks_like_urn(const gchar *filename)
 			break;
 		if (!isalpha(c))
 			break;
-		if (idx >= SHA1_BASE32_SIZE)
+		if (idx >= SHA1_BASE32_SIZE - 1)
 			return TRUE;
 	}
 
