@@ -455,6 +455,7 @@ static GtkWidget *gui_create_dlg_about(void)
         "Michael Gray <mrgray01@louisville.edu>",
         "Nicol\341s Lichtmaier <nick@technisys.com.ar>",
         "Emile le Vivre <emile@struggle.ca>",
+        "Angelo Cano <angelo_cano@fastmail.fm>",
         NULL
     };
     GtkWidget *dlg = create_dlg_about();
@@ -506,13 +507,6 @@ void main_gui_early_init(gint argc, gchar **argv)
 	/* Glade inits */
 
 	gtk_set_locale();
-
-	/*	Force Xft off by default as GTK+ >= 2.2.x has it on by default
-		which can cause a great performance penalty.
-	 */
-	if (NULL == getenv("GDK_USE_XFT"))
-		putenv("GDK_USE_XFT=0");
-	gtk_init(&argc, &argv);
 
 	add_pixmap_directory(PACKAGE_DATA_DIR "/pixmaps");
 #ifdef USE_SOURCE_DIR_AS_FALLBACK
