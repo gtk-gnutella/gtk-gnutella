@@ -239,23 +239,8 @@ gint main(gint argc, gchar ** argv)
 						 (ctree_menu->style->font->ascent +
 						  ctree_menu->style->font->descent + 4) * 8);
 
-	gtk_clist_column_titles_passive(GTK_CLIST(clist_nodes));
-	gtk_clist_column_titles_passive(GTK_CLIST(clist_uploads));
-	gtk_clist_column_titles_passive(GTK_CLIST(clist_downloads));
-	gtk_clist_column_titles_passive(GTK_CLIST(clist_downloads_queue));
-	gtk_clist_column_titles_passive(GTK_CLIST(clist_monitor));
-
-	gtk_clist_set_reorderable(GTK_CLIST(clist_downloads_queue), TRUE);
-
 	titles[0] = NULL;
 
-	for (i = 0; i < 3; i++)
-		gtk_clist_append(GTK_CLIST(clist_connections), titles);
-
-	gtk_widget_set_usize(sw_connections, optimal_width,
-						 (clist_connections->style->font->ascent +
-						  clist_connections->style->font->descent +
-						  4) * 3);
 	gui_update_c_gnutellanet();
 	gui_update_c_uploads();
 	gui_update_c_downloads(0, 0);
