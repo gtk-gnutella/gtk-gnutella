@@ -2919,7 +2919,7 @@ static gboolean node_can_accept_connection(
 			if (
 				handshaking &&
 				node_ultra_count >= ultra_max &&
-				!(n->flags & NODE_F_INCOMING)
+				(n->flags & NODE_F_INCOMING)
 			) {
 				send_node_error(n->socket, 503,
 					"Too many ultra connections (%d max)", ultra_max);
@@ -2943,10 +2943,13 @@ static gboolean node_can_accept_connection(
             if (
 				prefer_compressed_gnet &&
 				!(n->attrs & NODE_A_CAN_INFLATE) &&
-				(((n->flags & NODE_F_INCOMING) && 
-				connected >= up_connections &&
-				connected - compressed_node_cnt > 0) ||
-                (n->flags & NODE_F_LEAF))
+				(
+					((n->flags & NODE_F_INCOMING) && 
+					connected >= up_connections &&
+					connected - compressed_node_cnt > 0)
+					||
+					(n->flags & NODE_F_LEAF)
+				)
 			) {
 				send_node_error(n->socket, 403,
 					"Gnet connection not compressed");
