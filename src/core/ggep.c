@@ -3,8 +3,6 @@
  *
  * Copyright (c) 2002-2003, Raphael Manfredi
  *
- * Gnutella Generic Extension Protocol (GGEP).
- *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
  *
@@ -25,6 +23,12 @@
  *----------------------------------------------------------------------
  */
 
+/**
+ * @file
+ *
+ * Gnutella Generic Extension Protocol (GGEP).
+ */
+
 #include "common.h"
 
 RCSID("$Id$");
@@ -43,16 +47,15 @@ RCSID("$Id$");
 #define MIN_GROW			256		/* Minimum grow size for inflated buffer */
 
 #if 0	/* UNUSED for now */
-/*
- * ggep_inflate
- *
+/**
  * Inflate `len' bytes starting at `buf', up to MAX_PAYLOAD_LEN bytes.
  * The payload `token' is given only in case there is an error to report.
  *
  * Returns the allocated inflated buffer, and its inflated length in `retlen'.
  * Returns NULL on error.
  */
-static gchar *ggep_inflate(gchar *buf, gint len, gint *retlen, gint token)
+static gchar *
+ggep_inflate(gchar *buf, gint len, gint *retlen, gint token)
 {
 	gchar *result;					/* Inflated buffer */
 	gint rsize;						/* Result's buffer size */
@@ -164,18 +167,16 @@ static gchar *ggep_inflate(gchar *buf, gint len, gint *retlen, gint token)
 }
 #endif
 
-/*
- * ggep_inflate_into
- *
+/**
  * Inflate `len' bytes starting at `buf' into the supplied output buffer
  * of `outlen' bytes starting at `out'.
  *
  * The payload `token' is given only in case there is an error to report.
  *
- * Returns inflated length if OK, -1 on error.
+ * @return inflated length if OK, -1 on error.
  */
-static gint ggep_inflate_into(
-	gchar *buf, gint len, gchar *out, gint outlen, gint token)
+static gint
+ggep_inflate_into(gchar *buf, gint len, gchar *out, gint outlen, gint token)
 {
 	z_streamp inz;
 	gint ret;
@@ -239,9 +240,7 @@ static gint ggep_inflate_into(
 	return result;
 }
 
-/*
- * ggep_decode_into
- *
+/**
  * Decode the GGEP payload pointed at by `exv' into `buf' of `len' bytes.
  * If the GGEP payload is neither COBS-encoded nor deflated, the operation
  * is a mere copy.
@@ -250,7 +249,8 @@ static gint ggep_inflate_into(
  *
  * Returns the amount of bytes copied into `buf', -1 on error.
  */
-gint ggep_decode_into(extvec_t *exv, gchar *buf, gint len)
+gint
+ggep_decode_into(extvec_t *exv, gchar *buf, gint len)
 {
 	gchar *pbase;					/* Current payload base */
 	gint plen;						/* Curernt payload length */
@@ -327,36 +327,102 @@ out:
 	return result;
 }
 
-/*
- * ggep_ext_writev
+/**
+ * Initialize a GGEP stream object, capable of receiving multiple GGEP
+ * extensions, written into the supplied buffer.
  *
- * Vectorized version of ggep_ext_write().
+ * @param data		start of buffer where data will be written
+ * @param len		length of supplied buffer
  */
-gint ggep_ext_writev(
-	gchar *buf, gint len,
-	gchar *id, struct iovec *iov, gint iovcnt,
-	guint32 wflags)
+void
+ggep_stream_init(ggep_stream_t *gs, gpointer data, gint len)
+{
+	gs->outbuf = data;
+	gs->end = gs->outbuf + len;
+	gs->o = data;
+	gs->last_fp = gs->fp = gs->lp = NULL;
+	gs->magic_emitted = FALSE;
+	gs->begun = FALSE;
+	gs->zd = NULL;
+}
+
+/**
+ * Called when there is an error during the writing of the payload.
+ * Restore the stream to the state it had before we began.
+ */
+static void
+ggep_stream_cleanup(ggep_stream_t *gs)
+{
+	g_assert(gs->begun);
+
+	gs->begun = FALSE;
+	gs->o = gs->fp;		/* Back to the beginning of the failed extension */
+
+	if (gs->zd) {
+		zlib_deflater_free(gs->zd, TRUE);
+		gs->zd = NULL;
+	}
+}
+
+/**
+ * Append char to the GGEP stream.
+ *
+ * @return FALSE if there's not enough room in the output.
+ */
+static gboolean
+ggep_stream_appendc(ggep_stream_t *gs, gchar c)
+{
+	if (gs->o >= gs->end)
+		return FALSE;
+
+	*(gs->o++) = c;
+
+	return TRUE;
+}
+
+/**
+ * Append data to the GGEP stream.
+ *
+ * @return FALSE if there's not enough room in the output.
+ */
+static gboolean
+ggep_stream_append(ggep_stream_t *gs, gpointer data, gint len)
+{
+	if (gs->o + len > gs->end)
+		return FALSE;
+
+	memcpy(gs->o, data, len);
+	gs->o += len;
+
+	return TRUE;
+}
+
+/**
+ * Begin emission of GGEP extension.
+ *
+ * @param id		the ID of the GGEP extension
+ * @param wflags	whether COBS / deflate should be used.
+ *
+ * @return TRUE if OK, FALSE if there's not enough room in the output.
+ * On error, the stream is left in a clean state.
+ */
+gboolean
+ggep_stream_begin(ggep_stream_t *gs, gchar *id, guint32 wflags)
 {
 	gint idlen;
-	gboolean needs_cobs = FALSE;
-	gchar *p;
-	gint i;
-	gint8 hlen[3];
-	gint slen;
-	gint needed;
 	guint8 flags = 0;
-	struct iovec *xiov;
-	gint plen = 0;
-	gchar *payload = NULL;
-	gint initial_plen = 0;
-	gchar *dpayload = NULL;		/* Deflated payload */
-	gint dplen = 0;				/* Deflated payload length */
 
-	g_assert(buf);
-	g_assert(len > 0);
-	g_assert(id);
-	g_assert(iov);
-	g_assert(iovcnt > 0);
+	g_assert(gs->outbuf != NULL);		/* Stream not closed */
+
+	/*
+	 * Emit leading magic byte if not done already.
+	 */
+
+	if (!gs->magic_emitted) {
+		if (!ggep_stream_appendc(gs, GGEP_MAGIC))
+			return FALSE;
+		gs->magic_emitted = TRUE;
+	}
 
 	idlen = strlen(id);
 
@@ -364,121 +430,320 @@ gint ggep_ext_writev(
 	g_assert(idlen < 16);
 
 	/*
-	 * Begin with deflating if we have to compress data.
+	 * Compute leading flags.
 	 */
+
+	if (wflags & GGEP_W_COBS)
+		flags |= GGEP_F_COBS;
+	if (wflags & GGEP_W_DEFLATE)
+		flags |= GGEP_F_DEFLATE;
+	flags |= idlen & GGEP_F_IDLEN;
+
+	gs->flags = flags;
+
+	/*
+	 * Emit the flags, keeping track of the position where they were
+	 * written.
+	 *
+	 * When the extension ends, we'll perhaps need to come back there and
+	 * update some of the flags, depending on whether we really deflated
+	 * or performed COBS, for instance.  Or to mark the extension as being
+	 * the last one of the GGEP block.
+	 */
+
+	gs->fp = gs->o;			/* Also marks the first byte of the extension */
+
+	if (!ggep_stream_append(gs, &flags, 1))
+		return FALSE;
+
+	/*
+	 * Emit the extension ID.
+	 */
+
+	if (!ggep_stream_append(gs, id, idlen))
+		goto cleanup;
+
+	/*
+	 * We don't know what the size of the extension will end-up being.
+	 * And the size of the extension can be encoded with a variable amount
+	 * of bytes.
+	 *
+	 * We reserve a single byte for the extension length, and save the place
+	 * where it is stored.  Later on, as we write extension data, we'll
+	 * move data around in the buffer should we need more than one byte to
+	 * store the extension length.
+	 */
+
+	gs->lp = gs->o;
+	if (!ggep_stream_appendc(gs, '\0'))
+		goto cleanup;
+
+	/*
+	 * If deflation is needed, but not COBS, then we can allocate a deflation
+	 * stream to write directly into the buffer.  Otherwise, we'll need to
+	 * deflate to a temporary (dynamically allocated) buffer and COBS the
+	 * data later.
+	 */
+
+	g_assert(gs->zd == NULL);
 
 	if (wflags & GGEP_W_DEFLATE) {
-		zlib_deflater_t *zd;
-		gint size = 0;
+		if (wflags & GGEP_W_COBS)
+			gs->zd = zlib_deflater_make(NULL, 0, Z_DEFAULT_COMPRESSION);
+		else
+			gs->zd = zlib_deflater_make_into(NULL, 0,
+				gs->o, gs->end - gs->o, Z_DEFAULT_COMPRESSION);
+	}
 
-		for (i = iovcnt, xiov = iov; i--; xiov++)
-			size += xiov->iov_len;
+	/*
+	 * If we need to COBS data, initialize the COBS stream to perform
+	 * transformation as we write data to the stream.
+	 */
 
-		initial_plen = size;
+	if (wflags & GGEP_W_COBS)
+		cobs_stream_init(&gs->cs, gs->o, gs->end - gs->o);
 
-		/*
-		 * Compress data into dynamically allocated buffer.
-		 */
+	/*
+	 * We successfully begun the extension.
+	 * All the data we'll now be appending count as payload data.
+	 */
 
-		zd = zlib_deflater_make(NULL, size, Z_DEFAULT_COMPRESSION);
+	gs->begun = TRUE;
+
+	return TRUE;
+
+cleanup:
+	gs->o = gs->fp;
+	return FALSE;
+}
+
+/**
+ * The vectorized version of ggep_stream_write().
+ *
+ * @return TRUE if OK.  On error, the stream is brought back to a clean state.
+ */
+gboolean
+ggep_stream_writev(ggep_stream_t *gs, struct iovec *iov, gint iovcnt)
+{
+	gint i;
+	struct iovec *xiov;
+
+	g_assert(gs->begun);
+
+	/*
+	 * If deflation is configured, pass all the data to the deflater.
+	 */
+
+	if (gs->flags & GGEP_F_DEFLATE) {
+		g_assert(gs->zd != NULL);
 
 		for (i = iovcnt, xiov = iov; i--; xiov++) {
-			if (!zlib_deflate_data(zd, xiov->iov_base, xiov->iov_len))
-				goto zlib_error;
+			if (!zlib_deflate_data(gs->zd, xiov->iov_base, xiov->iov_len))
+				goto cleanup;
 		}
 
-		if (!zlib_deflate_close(zd))
-			goto zlib_error;
+		return TRUE;
+	}
+
+	/*
+	 * If COBS is required, filter data through the COBS stream.
+	 */
+
+	if (gs->flags & GGEP_F_COBS) {
+		for (i = iovcnt, xiov = iov; i--; xiov++) {
+			if (!cobs_stream_write(&gs->cs, xiov->iov_base, xiov->iov_len))
+				goto cleanup;
+		}
+
+		return TRUE;
+	}
+
+	/*
+	 * Write data directly into the payload.
+	 */
+
+	for (i = iovcnt, xiov = iov; i--; xiov++) {
+		if (!ggep_stream_append(gs, xiov->iov_base, xiov->iov_len))
+			goto cleanup;
+	}
+
+	return TRUE;
+
+cleanup:
+	ggep_stream_cleanup(gs);
+	return FALSE;
+}
+
+/**
+ * Write data into the payload of the extension begun with ggep_stream_begin().
+ *
+ * @return TRUE if OK.  On error, the stream is brought back to a clean state.
+ */
+gboolean
+ggep_stream_write(ggep_stream_t *gs, gpointer data, gint len)
+{
+	struct iovec iov;
+
+	iov.iov_base = data;
+	iov.iov_len = len;
+
+	return ggep_stream_writev(gs, &iov, 1);
+}
+
+/**
+ * End the extension begun with ggep_stream_begin().
+ *
+ * @return TRUE if OK.  On error, the stream is brought back to a clean state.
+ */
+gboolean
+ggep_stream_end(ggep_stream_t *gs)
+{
+	gint plen = 0;
+	gint8 hlen[3];
+	gint slen;
+
+	g_assert(gs->begun);
+
+	/*
+	 * If we initiated compression, flush the stream.
+	 */
+
+	if (gs->flags & GGEP_F_DEFLATE) {
+		gint ilen;
+
+		g_assert(gs->zd);
+
+		if (!zlib_deflate_close(gs->zd))
+			goto cleanup;
+
+		plen = zlib_deflater_outlen(gs->zd);
 
 		/*
-		 * Extract compressed data.
+		 * If data compress to a larger size than the original input,
+		 * then we don't need compression.  CPU is cheaper than bandwidth,
+		 * so uncompress the data and put them back in.
 		 */
 
-		dpayload = zlib_deflater_out(zd);
-		dplen = zlib_deflater_outlen(zd);
+		ilen = zlib_deflater_inlen(gs->zd);
 
-		zlib_deflater_free(zd, FALSE);		/* Don't free compressed buffer! */
+		if (plen > ilen) {
+			gpointer data;
+			gboolean ok;
+
+			if (ggep_debug)
+				g_warning("GGEP \"%.*s\" not compressing %d bytes into %d",
+					*gs->fp & GGEP_F_IDLEN, gs->fp + 1, ilen, plen);
+
+			data = zlib_uncompress(zlib_deflater_out(gs->zd), plen, ilen);
+			if (data == NULL)
+				goto cleanup;
+
+			/*
+			 * Remove any deflate indication.
+			 */
+
+			gs->flags &= ~GGEP_F_DEFLATE;
+			*gs->fp &= ~GGEP_F_DEFLATE;
+
+			zlib_deflater_free(gs->zd, TRUE);
+			gs->zd = NULL;
+
+			/*
+			 * Rewind stream right after the begin call, and write the
+			 * original data, possibly COBS-ing it on the fly if that
+			 * was requested.
+			 */
+
+			gs->o = gs->lp + 1;		/* Rewind after NUL "length" byte */
+			ok = ggep_stream_write(gs, data, ilen);
+			g_free(data);
+
+			if (!ok)
+				goto cleanup;
+		}
+	}
+
+	/*
+	 * If data was deflated and also requires COBS encoding, then it was
+	 * deflated into a temporary buffer.  We now need to pass it through
+	 * the COBS stream.
+	 */
+
+	if ((gs->flags & GGEP_F_DEFLATE) && (gs->flags & GGEP_F_COBS)) {
+		gchar *deflated = zlib_deflater_out(gs->zd);
+
+		if (!cobs_stream_write(&gs->cs, deflated, plen))
+			goto cleanup;
+	}
+
+	/*
+	 * Get rid of the deflating stream.
+	 */
+
+	if (gs->zd) {
+		zlib_deflater_free(gs->zd, TRUE);
+		gs->zd = NULL;
+	}
+
+	/*
+	 * If data went through COBS, close the COBS stream.
+	 */
+
+	if (gs->flags & GGEP_F_COBS) {
+		gboolean saw_nul;
+
+		plen = cobs_stream_close(&gs->cs, &saw_nul);
+		if (plen == -1)
+			goto cleanup;
 
 		/*
-		 * If the compressed data is larger than the original, don't
-		 * compress the data then!
+		 * If it was not necessary to COBS the data, un-COBS them in place.
 		 */
 
-		if (dplen >= initial_plen) {
-			G_FREE_NULL(dpayload);
-			dplen = 0;
-		}
+		if (!saw_nul) {
+			gint ilen;
 
-		goto cobs_check;
+			if (NULL == cobs_decode(gs->lp + 1, plen, &ilen, TRUE))
+				goto cleanup;
 
-	zlib_error:
-		zlib_deflater_free(zd, TRUE);
-		return -1;
-	}
+			if (ggep_debug)
+				g_warning("GGEP \"%.*s\" no need to COBS %d bytes into %d",
+					*gs->fp & GGEP_F_IDLEN, gs->fp + 1, ilen, plen);
 
-	/*
-	 * If NUL is not allowed, check the payload to see whether we need
-	 * to activate COBS encoding.
-	 */
+			/*
+			 * Remove any COBS indication.
+			 */
 
-cobs_check:
+			gs->flags &= ~GGEP_F_COBS;
+			*gs->fp &= ~GGEP_F_COBS;
 
-	if (wflags & GGEP_W_COBS) {
-		if (dpayload) {
-			for (p = dpayload, i = dplen; i--; p++) {
-				if (*p++ == '\0') {
-					needs_cobs = TRUE;
-					break;
-				}
-			}
-		} else {
-			for (i = iovcnt, xiov = iov; i-- && !needs_cobs; xiov++) {
-				gint j;
+			plen = ilen;
 
-				for (j = xiov->iov_len, p = xiov->iov_base; j--; /**/) {
-					if (*p++ == '\0') {
-						needs_cobs = TRUE;	/* Will break us from outer loop */
-						break;
-					}
-				}
-			}
+			/*
+			 * Adjust stream pointer to point right after the data.
+			 */
+
+			gs->o = gs->lp + (1 + plen);	/* +1 to skip NUL "length" byte */
 		}
 	}
 
 	/*
-	 * Compute initial payload length.
+	 * If there was neither COBS nor deflate, compute the payload length
+	 * by looking at the current output pointer.
 	 */
 
-	if (!dpayload)
-		plen = dplen;
-	else {
-		i = iovcnt;
-		xiov = iov;
-
-		while (i--)
-			plen += (xiov++)->iov_len;
-
-		initial_plen = plen;
-	}
+	if (!(gs->flags & (GGEP_F_COBS|GGEP_F_DEFLATE)))
+		plen = (gs->o - gs->lp) - 1;		/* -1 to skip NUL "length" byte */
 
 	/*
-	 * If COBS is needed, encode into a new buffer.
-	 *
-	 * We don't do this in `buf' directly since we need to encode the
-	 * length of the raw extension data in the header.  And we'll know
-	 * the final length only after COBS is done.
+	 * Now that we have the final payload data in the buffer, we may have
+	 * to shift it to the right to make room for the length bytes, which are
+	 * stored at the beginning.  We only reserved 1 byte for the length.
 	 */
 
-	if (needs_cobs) {
-		if (dpayload)
-			payload = cobs_encode(dpayload, dplen, &plen);
-		else
-			payload = cobs_encodev(iov, iovcnt, &plen);
-	}
-
-	/*
-	 * Encode length.
-	 */
+	if (ggep_debug > 2)
+		printf("GGEP \"%.*s\" payload holds %d byte%s\n",
+			*gs->fp & GGEP_F_IDLEN, gs->fp + 1, plen, plen == 1 ? "" : "s");
 
 	if (plen <= 63) {
 		slen = 1;
@@ -493,101 +758,102 @@ cobs_check:
 		hlen[1] = GGEP_L_CONT | ((plen >> GGEP_L_VSHIFT) & GGEP_L_VALUE);
 		hlen[2] = GGEP_L_LAST | (plen & GGEP_L_VALUE);
 	} else {
-		g_warning("too large GGEP payload length (%d bytes) for \"%s\"",
-			plen, id);
-		goto bad;
+		g_warning("too large GGEP payload length (%d bytes) for \"%.*s\"",
+			plen, *gs->fp & GGEP_F_IDLEN, gs->fp + 1);
+		goto cleanup;
 	}
 
 	/*
-	 * Compute leading flags.
+	 * Shift payload if length is greater than 64, i.e. if we need more than
+	 * the single byte we reserved to write the length.
 	 */
 
-	if (wflags & GGEP_W_LAST)
-		flags |= GGEP_F_LAST;
-	if (needs_cobs)
-		flags |= GGEP_F_COBS;
-	if (dpayload != NULL)
-		flags |= GGEP_F_DEFLATE;
-	flags |= idlen & GGEP_F_IDLEN;
+	gs->o = gs->lp + (plen + 1);		/* Ensure it is correct before move */
 
-	/*
-	 * Now we know how many bytes we need to write.
-	 */
+	if (slen > 1) {
+		gchar *start = gs->lp + 1;
 
-	needed = ((wflags & GGEP_W_FIRST) ? 1 : 0)		/* Leading magic */
-		+ 1					/* Leading flags */
-		+ idlen				/* ID name */
-		+ slen				/* Payload size indication in the header */
-		+ plen;				/* Raw data size to write */
+		if (gs->o + (slen - 1) >= gs->end)
+			goto cleanup;
 
-	/*
-	 * If there's not enough room in the buffer, bail out.
-	 */
-
-	if (dbg)
-		g_warning(
-			"GGEP \"%s\" flags=0x%x payload=%d raw=%d needed=%d avail=%d\n",
-			id, flags, initial_plen, plen, needed, len);
-
-	if (len < needed)
-		goto bad;
-
-	/*
-	 * Copy data into provided buffer.
-	 */
-
-	p = buf;
-
-	if (wflags & GGEP_W_FIRST)
-		*p++ = GGEP_MAGIC;				/* Leading magic byte */
-
-	*p++ = flags;						/* Flags */
-	memcpy(p, id, idlen);				/* ID */
-	p += idlen;
-	memcpy(p, hlen, slen);				/* Size */
-	p += slen;
-
-	if (payload != NULL) {				/* Vector was linearized */
-		memcpy(p, payload, plen);		/* Raw payload */
-		p += plen;
-		G_FREE_NULL(payload);
-	} else if (dpayload != NULL) {		/* Vector was simply compressed */
-		memcpy(p, dpayload, dplen);		/* Raw payload */
-		p += dplen;
-	} else {
-		for (i = iovcnt, xiov = iov; i--; xiov++) {
-			gint xlen = xiov->iov_len;
-
-			memcpy(p, xiov->iov_base, xlen);
-			p += xlen;
-		}
+		memmove(start + (slen - 1), start, plen);
+		gs->o += (slen - 1);
 	}
 
-	if (dpayload)
-		G_FREE_NULL(dpayload);
+	/*
+	 * Copy the length and terminate extension.
+	 */
 
-	g_assert(p - buf == needed);		/* We have not forgotten anything */
+	memcpy(gs->lp, hlen, slen);			/* Size of extension */
+	gs->last_fp = gs->fp;				/* Last successfully written ext. */
 
-	return needed;
+	gs->fp = gs->lp = NULL;
+	gs->begun = FALSE;
 
-bad:
-	if (dpayload)
-		G_FREE_NULL(dpayload);
-	if (needs_cobs)
-		G_FREE_NULL(payload);
-	return -1;
+	g_assert(gs->o <= gs->end);			/* No overwriting */
+
+	return TRUE;
+
+cleanup:
+	ggep_stream_cleanup(gs);
+	return FALSE;
 }
 
-/*
- * ggep_ext_write
+/**
+ * We're done with the stream, close it.
  *
- * Write extension data in memory, within buffer `buf' of `len' bytes.
+ * @return the length of the writen data in the whole stream.
+ */
+gint
+ggep_stream_close(ggep_stream_t *gs)
+{
+	gint len;
+
+	g_assert(!gs->begun);			/* Not in the middle of an extension! */
+	g_assert(gs->outbuf != NULL);	/* Not closed already */
+
+	/*
+	 * If we ever wrote anything, `gs->last_fp' will point to the last
+	 * extension in the block.
+	 */
+
+	if (gs->last_fp == NULL)
+		len = 0;
+	else {
+		*gs->last_fp |= GGEP_F_LAST;
+		len = gs->o - gs->outbuf;
+	}
+
+	gs->outbuf = NULL;				/* Mark stream as closed */
+
+	return len;
+}
+
+/**
+ * The vectorized version of ggep_stream_pack().
+ *
+ * @return TRUE if written successfully.
+ */
+gboolean
+ggep_stream_packv(ggep_stream_t *gs,
+	gchar *id, struct iovec *iov, gint iovcnt, guint32 wflags)
+{
+	if (!ggep_stream_begin(gs, id, wflags))
+		return FALSE;
+
+	if (!ggep_stream_writev(gs, iov, iovcnt))
+		return FALSE;
+
+	if (!ggep_stream_end(gs))
+		return FALSE;
+
+	return TRUE;
+}
+
+/**
+ * Pack extension data in initialized stream.
  * The extension's name is `id' and its payload is represented by `plen'
  * bytes starting at `payload'.
- *
- * If `GGEP_W_LAST' is set, marks the extension as being the last one.
- * Otherwise, you can always mark it as being the last afterwards
- * by calling "ggep_ext_mark_last(buf)" upon successful return.
  *
  * If `GGEP_W_COBS' is set, COBS encoding is attempted if there is a
  * NUL byte within the payload.
@@ -596,38 +862,20 @@ bad:
  * output is larger than the initial size, we emit the original payload
  * instead.
  *
- * If `GGEP_W_FIRST' is set, we emit the leading GGEP_MAGIC byte before
- * the extension.
- *
- * Returns the amount of bytes written, or -1 if the buffer is too short
- * to hold the whole extension.
+ * @return TRUE if written successfully.  On error, the stream is reset as
+ * if the write attempt had not taken place, so one may continue writing
+ * shorter extension, if the error is due to a lack of space in the stream.
  */
-gint ggep_ext_write(
-	gchar *buf, gint len,
-	gchar *id, gchar *payload, gint plen,
-	guint32 wflags)
+gboolean
+ggep_stream_pack(ggep_stream_t *gs,
+	gchar *id, gchar *payload, gint plen, guint32 wflags)
 {
 	struct iovec iov;
 
 	iov.iov_base = payload;
 	iov.iov_len = plen;
 
-	return ggep_ext_writev(buf, len, id, &iov, 1, wflags);
-}
-
-/*
- * ggep_ext_mark_last
- *
- * Mark extension starting at `start' as being the last one.
- */
-void ggep_ext_mark_last(guchar *start)
-{
-	g_assert(start);
-	g_assert(0 == (*start & GGEP_F_MBZ));		/* Sanity checks */
-	g_assert(0 != (*start & GGEP_F_IDLEN));
-	g_assert(!(*start & GGEP_F_LAST));
-
-	*start |= GGEP_F_LAST;
+	return ggep_stream_packv(gs, id, &iov, 1, wflags);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

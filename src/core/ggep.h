@@ -29,6 +29,8 @@
 #define _core_ggep_h_
 
 #include "extensions.h"
+#include "lib/cobs.h"
+#include "lib/zlib_util.h"
 
 #include <glib.h>
 
@@ -75,6 +77,23 @@
 #define GGEP_W_FIRST	0x00000008	/* First extension, write GGEP_MAGIC */
 
 /*
+ * Structure keeping track of incremental GGEP writes.
+ */
+typedef struct ggep_stream {
+	gchar *outbuf;				/* Base address of output buffer */
+	gchar *end;					/* First address beyond output buffer */
+	gchar *o;					/* Where next output should go */
+	gchar *fp;					/* Where flags for current extension are */
+	gchar *lp;					/* Where length should be written when known */
+	gchar *last_fp;				/* Flags of last successfully written ext. */
+	guint8 flags;				/* Extension flags (COBS / DEFLATE) */
+	gboolean magic_emitted;		/* Whether leading magic was emitted */
+	gboolean begun;				/* Whether extension was correctly begun */
+	cobs_stream_t cs;			/* Used if COBS needed */
+	zlib_deflater_t *zd;		/* Allocated and used if deflation needed */
+} ggep_stream_t;
+
+/*
  * Public interface.
  */
 
@@ -82,17 +101,16 @@ struct iovec;
 
 gint ggep_decode_into(extvec_t *exv, gchar *buf, gint len);
 
-gint ggep_ext_write(
-	gchar *buf, gint len,
-	gchar *id, gchar *payload, gint plen,
-	guint32 wflags);
-
-gint ggep_ext_writev(
-	gchar *buf, gint len,
-	gchar *id, struct iovec *iov, gint iovcnt,
-	guint32 wflags);
-
-void ggep_ext_mark_last(guchar *start);
+void ggep_stream_init(ggep_stream_t *gs, gpointer data, gint len);
+gboolean ggep_stream_begin(ggep_stream_t *gs, gchar *id, guint32 wflags);
+gboolean ggep_stream_writev(ggep_stream_t *gs, struct iovec *iov, gint iovcnt);
+gboolean ggep_stream_write(ggep_stream_t *gs, gpointer data, gint len);
+gboolean ggep_stream_end(ggep_stream_t *gs);
+gint ggep_stream_close(ggep_stream_t *gs);
+gboolean ggep_stream_packv(ggep_stream_t *gs,
+	gchar *id, struct iovec *iov, gint iovcnt, guint32 wflags);
+gboolean ggep_stream_pack(ggep_stream_t *gs,
+	gchar *id, gchar *payload, gint plen, guint32 wflags);
 
 #endif	/* _core_ggep_h_ */
 
