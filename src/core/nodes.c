@@ -7286,12 +7286,12 @@ node_crawl(gnutella_node_t *n, gint ucnt, gint lcnt, guint8 features)
 	 * Build an array of candidate nodes.
 	 */
 
-	if (ucnt) {
+	if (ucnt && node_ultra_count) {
 		ultras_len = node_ultra_count * sizeof(gnutella_node_t *);
 		ultras = walloc(ultras_len);
 	}
 
-	if (lcnt) {
+	if (lcnt && node_leaf_count) {
 		leaves_len = node_leaf_count * sizeof(gnutella_node_t *);
 		leaves = walloc(leaves_len);
 	}
