@@ -1,5 +1,16 @@
 # since last version
 
+- (2002.09.19 RAM)
+ * Added COCO to the vendor list.
+ * Check for sendfile() or write() returning 0 in case the underlying file
+   disappears on a non-Unix filesystem such as FAT32.  This avoid endless
+   loops (fixes bug 611537).
+ * Check for the HTTP protocol tag before URL-unescaping the request,
+   which could shift the string backward in the buffer.
+ * Vendor tags are now defined in "vendors.h".
+ * Fixed wrong drop message.
+ * More untested code on asynchronous HTTP requests.
+
 - (2002.09.18 RAM)
  * Factorized asynchronous I/O header parsing code.
  * More embryon of code for asynchronous HTTP requests.
