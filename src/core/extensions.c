@@ -65,23 +65,23 @@ static const struct rwtable ggeptable[] =	/* GGEP extension table (sorted) */
 {
 #define GGEP_ID(x) { #x, EXT_T_GGEP_ ## x }
    	
-	{ "<", EXT_T_GGEP_LIME_XML },
-	GGEP_ID(ALT),
-	GGEP_ID(DU),
-	GGEP_ID(GTKGV1),
-	GGEP_ID(H),
-	GGEP_ID(HNAME),
-	GGEP_ID(IPP),
-	GGEP_ID(LF),
-	GGEP_ID(LOC),
-	GGEP_ID(PHC),
-	GGEP_ID(PUSH),
-	GGEP_ID(SCP),
-	GGEP_ID(T),
-	GGEP_ID(UDPHC),
-	GGEP_ID(UP),
-	GGEP_ID(VC),
-	GGEP_ID(u),
+	{ "<", EXT_T_GGEP_LIME_XML },	/* '<' is less that 'A' */
+	GGEP_ID(ALT),					/* Alt-locs in qhits */
+	GGEP_ID(DU),					/* Average servent uptime */
+	GGEP_ID(GTKGV1),				/* GTKG complete version number (binary) */
+	GGEP_ID(H),						/* Hashes in binary form */
+	GGEP_ID(HNAME),					/* Hostname */
+	GGEP_ID(IPP),					/* IP:port in pongs (UHC) */
+	GGEP_ID(LF),					/* Large file size in qhits */
+	GGEP_ID(LOC),					/* Locale preferences, for clustering  */
+	GGEP_ID(PHC),					/* Packed host caches (UHC) in pongs */
+	GGEP_ID(PUSH),					/* Push proxy info, in qhits */
+	GGEP_ID(SCP),					/* Supports cached pongs, in pings (UHC) */
+	GGEP_ID(T),						/* Textual information in qhits */
+	GGEP_ID(UDPHC),					/* Is an UDP hostcache (UHC) , in pongs */
+	GGEP_ID(UP),					/* Ultrapeer information about free slots */
+	GGEP_ID(VC),					/* Vendor code, in pongs */
+	GGEP_ID(u),						/* HUGE URN in ASCII */
 	
 #undef GGEP_ID
 };
