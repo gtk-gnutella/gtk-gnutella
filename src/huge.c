@@ -710,12 +710,13 @@ static gboolean sha1_timer(gpointer p)
 	gettimeofday(&start, NULL);
 	for(i = credit; i; i--) {
 		if (!current_file && !waiting_for_sha1_computation)
-			break;
+			goto no_adjust;		/* We don't use all our credit, don't adjust */
 		sha1_timer_one_step();
 	}
 	gettimeofday(&end, NULL);
 	adjust_credit(&start, &end);
 
+no_adjust:
 	if (waiting_for_library_build_complete) 
 		try_to_put_sha1_back_into_share_library();
 
