@@ -80,7 +80,11 @@ static GSList *list_uploads = NULL;
 static gint stalled = 0;			/* Counts stalled connections */
 static time_t last_stalled;			/* Time at which last stall occurred */
 
+/* Used to fall back to write() if sendfile() failed */
+static gboolean sendfile_failed = FALSE;
+
 static idtable_t *upload_handle_map = NULL;
+
 
 #define upload_find_by_handle(n) \
     (gnutella_upload_t *) idtable_get_value(upload_handle_map, n)
@@ -2778,7 +2782,7 @@ upload_request(gnutella_upload_t *u, header_t *header)
 	}
 
 #ifdef HAS_SENDFILE
-	use_sendfile = !SOCKET_USES_TLS(u->socket);
+	use_sendfile = !sendfile_failed && !SOCKET_USES_TLS(u->socket);
 #else
 	use_sendfile = FALSE;
 #endif /* HAS_SENDFILE */
@@ -2949,7 +2953,7 @@ upload_write(gpointer up, gint unused_source, inputevt_cond_t cond)
 	}
 
 #ifdef HAS_SENDFILE
-	use_sendfile = !SOCKET_USES_TLS(u->socket);
+	use_sendfile = !sendfile_failed && !SOCKET_USES_TLS(u->socket);
 #else
 	use_sendfile = FALSE;
 #endif
@@ -3007,7 +3011,14 @@ upload_write(gpointer up, gint unused_source, inputevt_cond_t cond)
 	}
 
 	if ((ssize_t) -1 == written) {
-		if (errno != EAGAIN) {
+		gint e = errno;
+		
+		if (use_sendfile && e == EOPNOTSUPP) {
+			g_warning("sendfile() failed: \"%s\"\n"
+					"Disabling sendfile() for this session", strerror(e));
+			sendfile_failed = TRUE;
+		}
+		if (e != EAGAIN) {
 			socket_eof(u->socket);
 			upload_remove(u, "Data write error: %s", g_strerror(errno));
 		}
