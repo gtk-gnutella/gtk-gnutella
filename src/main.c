@@ -189,7 +189,7 @@ void gtk_gnutella_exit(gint n)
 	main_gui_update_coords();
 	main_gui_shutdown();
 
-    hcache_shutdown(); // Save host caches to disk
+    hcache_shutdown(); /* Save host caches to disk */
 	settings_shutdown();
 	socket_shutdown();
 	search_shutdown();
@@ -255,6 +255,7 @@ void gtk_gnutella_exit(gint n)
 	if (dbg)
 		printf("gtk-gnutella shut down cleanly.\n\n");
 
+	show_time_count();
 	gtk_exit(n);
 }
 
