@@ -31,35 +31,24 @@
 void on_spinbutton_search_reissue_timeout_changed(GtkEditable *, gpointer);
 void on_spinbutton_minimum_speed_changed(GtkEditable *, gpointer);
 
-gboolean on_entry_config_proxy_ip_focus_out_event (GtkWidget *widget, GdkEventFocus *event, gpointer user_data);
-void on_entry_config_proxy_ip_activate (GtkEditable *editable, gpointer user_data);
+gboolean on_entry_config_proxy_ip_focus_out_event(GtkWidget *widget, GdkEventFocus *event, gpointer user_data);
+void on_entry_config_proxy_ip_activate(GtkEditable *editable, gpointer user_data);
 
-gboolean on_entry_config_socks_password_focus_out_event (GtkWidget *widget, GdkEventFocus *event, gpointer user_data);
-void on_entry_config_socks_password_activate (GtkEditable *editable, gpointer user_data);
+gboolean on_entry_config_socks_password_focus_out_event(GtkWidget *widget, GdkEventFocus *event, gpointer user_data);
+void on_entry_config_socks_password_activate(GtkEditable *editable, gpointer user_data);
 
 gboolean on_entry_config_socks_username_focus_out_event(GtkWidget *, GdkEventFocus *, gpointer);
 void on_entry_config_socks_username_activate(GtkEditable *, gpointer);
 
-gboolean on_entry_config_extensions_focus_out_event (GtkWidget *widget, GdkEventFocus *event, gpointer user_data);
-void on_entry_config_extensions_activate (GtkEditable *editable, gpointer user_data); 
+gboolean on_entry_config_extensions_focus_out_event(GtkWidget *widget, GdkEventFocus *event, gpointer user_data);
+void on_entry_config_extensions_activate(GtkEditable *editable, gpointer user_data); 
 
-gboolean on_entry_config_path_focus_out_event (GtkWidget *widget, GdkEventFocus *event, gpointer user_data);
-void on_entry_config_path_activate (GtkEditable *editable, gpointer user_data); 
+gboolean on_entry_config_path_focus_out_event(GtkWidget *widget, GdkEventFocus *event, gpointer user_data);
+void on_entry_config_path_activate(GtkEditable *editable, gpointer user_data); 
 
-gboolean on_entry_config_force_ip_focus_out_event (GtkWidget *widget, GdkEventFocus *event, gpointer user_data);
-void on_entry_config_force_ip_activate (GtkEditable *editable, gpointer user_data); 
-void on_entry_config_force_ip_changed (GtkEditable *editable, gpointer user_data);
-
-
-
-void on_checkbutton_config_bw_ul_usage_enabled_toggled(GtkToggleButton *, gpointer);
-void on_checkbutton_queue_regex_case_toggled (GtkToggleButton *togglebutton, gpointer user_data);
-void on_checkbutton_search_pick_all_toggled (GtkToggleButton *togglebutton, gpointer user_data);
-void on_checkbutton_monitor_enable_toggled (GtkToggleButton *togglebutton, gpointer user_data); 
-void on_checkbutton_search_autoselect_ident_toggled (GtkToggleButton *togglebutton, gpointer user_data); 
-void on_checkbutton_search_remove_downloaded_toggled (GtkToggleButton *togglebutton, gpointer user_data);
-void on_checkbutton_search_jump_to_downloads_toggled (GtkToggleButton *togglebutton, gpointer user_data);
-void on_checkbutton_downloads_never_push_toggled (GtkToggleButton *togglebutton, gpointer user_data);
+gboolean on_entry_config_force_ip_focus_out_event(GtkWidget *widget, GdkEventFocus *event, gpointer user_data);
+void on_entry_config_force_ip_activate(GtkEditable *editable, gpointer user_data); 
+void on_entry_config_force_ip_changed(GtkEditable *editable, gpointer user_data);
 
 void on_menu_statusbar_visible_activate(GtkMenuItem * menuitem, gpointer user_data);
 void on_menu_toolbar_visible_activate(GtkMenuItem * menuitem, gpointer user_data);
