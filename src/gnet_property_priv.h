@@ -152,6 +152,10 @@ extern guint32  max_leaves;
 extern guint32  current_peermode;
 extern guint32  sys_nofile;
 extern guint32  sys_physmem;
+extern guint32  dl_queue_count;
+extern guint32  dl_running_count;
+extern guint32  dl_byte_count;
+extern guint32  ul_byte_count;
 
 
 prop_set_t *gnet_prop_init(void);

@@ -156,7 +156,11 @@ typedef enum {
     PROP_MAX_LEAVES,    
     PROP_CURRENT_PEERMODE,    
     PROP_SYS_NOFILE,    
-    PROP_SYS_PHYSMEM,
+    PROP_SYS_PHYSMEM,    
+    PROP_DL_QUEUE_COUNT,    
+    PROP_DL_RUNNING_COUNT,    
+    PROP_DL_BYTE_COUNT,    
+    PROP_UL_BYTE_COUNT,
     GNET_PROPERTY_END
 } gnet_property_t;
 
