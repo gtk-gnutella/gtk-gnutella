@@ -1449,4 +1449,30 @@ vmsg_send_udp_crawler_pong(struct gnutella_node *n, pmsg_t *mb)
 	udp_send_reply(n, m, msgsize);
 }
 
+#if 0
+/**
+ * Send an "UDP Crawler Ping" message to specified node. -- For testing only
+ */
+void
+vmsg_send_udp_crawler_ping(struct gnutella_node *n,
+	guint8 ultras, guint8 leaves, guint8 features)
+{
+	struct gnutella_msg_vendor *m = (struct gnutella_msg_vendor *) v_tmp;
+	guint32 paysize = sizeof(ultras) + sizeof(leaves) + sizeof(features);
+	guint32 msgsize;
+	guchar *payload;
+
+	g_assert(NODE_IS_UDP(n));
+
+	msgsize = vmsg_fill_header(&m->header, paysize, sizeof(v_tmp));
+	payload = vmsg_fill_type(&m->data, T_LIME, 5, 1);
+
+	*payload++ = ultras;
+	*payload++ = leaves;
+	*payload++ = features;
+
+	udp_send_reply(n, m, msgsize);
+}
+#endif
+
 /* vi: set ts=4: */
