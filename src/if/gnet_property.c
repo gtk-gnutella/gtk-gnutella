@@ -351,8 +351,8 @@ guint32  max_ultrapeers     = 3;
 guint32  max_ultrapeers_def = 3;
 guint32  quick_connect_pool_size     = 40;
 guint32  quick_connect_pool_size_def = 40;
-guint32  max_leaves     = 80;
-guint32  max_leaves_def = 80;
+guint32  max_leaves     = 100;
+guint32  max_leaves_def = 100;
 guint32  search_handle_ignored_files     = 0;
 guint32  search_handle_ignored_files_def = 0;
 prop_def_choice_t search_handle_ignored_files_choices[] = { 
@@ -3501,7 +3501,7 @@ prop_set_t *gnet_prop_init(void) {
     gnet_property->props[153].data.guint32.value = &max_leaves;
     gnet_property->props[153].data.guint32.choices = NULL;
     gnet_property->props[153].data.guint32.max   = 1000;
-    gnet_property->props[153].data.guint32.min   = 30;
+    gnet_property->props[153].data.guint32.min   = 50;
 
 
     /*

@@ -1819,8 +1819,8 @@ prop = {
 		"you should reserve 32 bytes of bandwidth per leaf.";
     type = guint32;
     data = {
-        default = 80;
-        min = 30;
+        default = 100;
+        min = 50;
         max = 1000;
     };
 };
