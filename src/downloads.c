@@ -406,6 +406,8 @@ void download_timer(time_t now)
 		struct download *d = (struct download *) l->data;
 		guint32 t;
 
+		g_assert(d != NULL);
+
 		l = l->next;
 
 		switch (d->status) {
@@ -624,6 +626,7 @@ static void remove_proxy(struct dl_server *server, guint32 ip, guint16 port)
 	
 	for (l = server->proxies; l; l = g_slist_next(l)) {
 		struct gnutella_host *h = (struct gnutella_host *) l->data;
+		g_assert(h != NULL);
 
 		if (h->ip == ip && h->port == port) {
 			server->proxies = g_slist_remove_link(server->proxies, l);
@@ -870,6 +873,7 @@ static void change_server_ip(struct dl_server *server, guint32 new_ip)
 
 		for (l = sl_downloads; l; l = g_slist_next(l)) {
 			struct download *d = (struct download *) l->data;
+			g_assert(d != NULL);
 
 			if (d->status == GTA_DL_REMOVED)
 				continue;
@@ -1121,6 +1125,7 @@ void download_remove_file(struct download *d, gboolean reset)
 
 	for (l = sl_downloads; l; l = g_slist_next(l)) {
 		struct download *d = (struct download *) l->data;
+		g_assert(d != NULL);
 
 		if (d->status == GTA_DL_REMOVED)
 			continue;
@@ -1170,6 +1175,7 @@ void download_info_change_all(
 	for (l = sl_downloads; l; l = g_slist_next(l)) {
 		struct download *d = (struct download *) l->data;
 		gboolean is_running;
+		g_assert(d != NULL);
 
 		if (d->status == GTA_DL_REMOVED)
 			continue;
@@ -1279,6 +1285,7 @@ static void queue_suspend_downloads_with_file(
 
 	for (sl = sl_downloads; sl != NULL; sl = g_slist_next(sl)) {
 		struct download *d = (struct download *) sl->data;
+		g_assert(d != NULL);
 
 		switch (d->status) {
 		case GTA_DL_REMOVED:
@@ -1326,6 +1333,8 @@ static void queue_remove_downloads_with_file(
 
 	for (sl = sl_downloads; sl != NULL; sl = g_slist_next(sl)) {
 		struct download *d = (struct download *) sl->data;
+
+		g_assert(d != NULL);
 
 		switch (d->status) {
 		case GTA_DL_REMOVED:
@@ -1449,7 +1458,7 @@ gint download_remove_all_named(const gchar *name)
 	for (sl = sl_downloads; sl != NULL; sl = g_slist_next(sl)) {
 		struct download *d = (struct download *) sl->data;
 
-		g_assert(d);
+		g_assert(d != NULL);
 
 		if (
 			(d->status == GTA_DL_REMOVED) ||
@@ -1500,7 +1509,7 @@ gint download_remove_all_with_sha1(const gchar *sha1)
 	for (sl = sl_downloads; sl != NULL; sl = g_slist_next(sl)) {
 		struct download *d = (struct download *) sl->data;
 
-		g_assert(d);
+		g_assert(d != NULL);
 
 		if (
 			(d->status == GTA_DL_REMOVED) ||
@@ -1577,6 +1586,7 @@ void download_clear_stopped(gboolean complete,
 
 	for (sl = sl_unqueued; sl; sl = g_slist_next(sl)) {
 		struct download *d = (struct download *) sl->data;
+		g_assert(d != NULL);
 
 		if (d->status == GTA_DL_REMOVED)
 			continue;
@@ -2331,6 +2341,7 @@ static void download_push_insert(struct download *d)
 
 		if ((l = g_slist_find(value.list, d))) {
 			struct download *ad = (struct download *) l->data;
+			g_assert(ad != NULL);
 			g_warning("BUG: duplicate push ignored for \"%s\"", ad->file_name);
 			g_warning("BUG: argument is 0x%lx, \"%s\", key = %s, state = %d",
 				(gulong) d, d->file_name, (gchar *) key, d->status);
@@ -3537,6 +3548,7 @@ void download_index_changed(guint32 ip, guint16 port, gchar *guid,
 		for (l = server->list[n]; l; l = g_list_next(l)) {
 			struct download *d = (struct download *) l->data;
 			gboolean push_mode;
+			g_assert(d != NULL);
 
 			if (d->record_index != from)
 				continue;
@@ -3658,6 +3670,7 @@ void download_free_removed(void)
 	for (l = sl_removed; l; l = g_slist_next(l)) {
 		struct download *d = (struct download *) l->data;
 
+		g_assert(d != NULL);
 		g_assert(d->status == GTA_DL_REMOVED);
 
 		download_reclaim_server(d, TRUE);	/* Delays freeing of server */
@@ -6721,6 +6734,7 @@ static struct download *select_push_download(guint file_index, gchar *hex_guid)
 	list = (GSList *) g_hash_table_lookup(pushed_downloads, (gpointer) dl_tmp);
 	if (list) {
 		d = (struct download *) list->data;			/* Take first entry */
+		g_assert(d != NULL);
 		g_assert(d->record_index == file_index);
 	} else if (dbg > 3)
 		printf("got unexpected GIV: nothing pending currently\n");
@@ -6793,6 +6807,8 @@ static struct download *select_push_download(guint file_index, gchar *hex_guid)
 		for (/* empty */; l; l = g_list_next(l)) {
 			struct dl_server *server = (struct dl_server *) l->data;
 			GList *w;
+
+			g_assert(server != NULL);
 
 			/*
 			 * There might be several hosts with the same GUID (Mallory nodes).
@@ -7072,6 +7088,8 @@ static void download_store(void)
 		gchar *id;
 		gchar *guid;
 		const gchar *hostname;
+
+		g_assert(d != NULL);
 
 		if (d->status == GTA_DL_DONE || d->status == GTA_DL_REMOVED)
 			continue;
@@ -7719,6 +7737,8 @@ static void download_resume_bg_tasks(void)
 		struct download *d = (struct download *) l->data;
 		struct dl_file_info *fi = d->file_info;
 
+		g_assert(d != NULL);
+
 		if (d->status == GTA_DL_REMOVED)	/* Pending free, ignore it! */
 			continue;
 
@@ -7817,6 +7837,7 @@ void download_close(void)
 
 	for (l = sl_downloads; l; l = g_slist_next(l)) {
 		struct download *d = (struct download *) l->data;
+		g_assert(d != NULL);
 		if (d->socket)
 			socket_free(d->socket);
 		if (d->push)
