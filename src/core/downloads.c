@@ -3372,7 +3372,7 @@ create_download(gchar *file, gchar *uri, guint32 size, guint32 record_index,
 	d->record_stamp = stamp;
 
 	/*
-	 * If fileinfo is maked with FI_F_SUSPEND, it means we are in the process
+	 * If fileinfo is marked with FI_F_SUSPEND, it means we are in the process
 	 * of verifying the SHA1 of the download.  If it matches with the SHA1
 	 * we got initially, we'll remove the downloads, otherwise we will
 	 * restart it.
@@ -3536,7 +3536,7 @@ download_clone(struct download *d)
 	*cd = *d;						/* Struct copy */
 	cd->src_handle = idtable_new_id(src_handle_map, cd); /* new handle */
 	cd->file_info = NULL;			/* has not been added to fi sources list */
-	file_info_add_source(fi, cd);	/* add clonded source */
+	file_info_add_source(fi, cd);	/* add cloned source */
 
 	g_assert(d->io_opaque == NULL);		/* If cloned, we were receiving! */
 
