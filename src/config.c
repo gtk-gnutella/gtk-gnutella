@@ -38,6 +38,8 @@ gboolean progressbar_downloads_visible = TRUE;
 gboolean progressbar_connections_visible = TRUE;
 gboolean progressbar_bps_in_visible = TRUE;
 gboolean progressbar_bps_out_visible = TRUE;
+gboolean progressbar_bps_in_avg = FALSE;
+gboolean progressbar_bps_out_avg = FALSE;
 gboolean use_netmasks = FALSE;
 
 guint8 max_ttl = 7;
@@ -131,6 +133,7 @@ gint proxy_port = 1080;
 #define SOCKSV5_USER	0
 #define SOCKSV5_PASS	1
 
+gboolean proxy_auth = FALSE;
 static gchar *socksv5[] = { "proxyuser", "proxypass" };
 gchar *socksv5_user = NULL;
 gchar *socksv5_pass = NULL;
@@ -165,7 +168,7 @@ enum {
 	k_widths_search_stats, k_widths_ul_stats, k_show_results_tabs,
 	k_hops_random_factor, k_send_pushes, k_jump_to_downloads,
 	k_max_connections, k_proxy_connections,
-	k_proxy_protocol, k_proxy_ip, k_proxy_port, k_socksv5_user,
+	k_proxy_protocol, k_proxy_ip, k_proxy_port, k_proxy_auth, k_socksv5_user,
 	k_socksv5_pass, k_search_reissue_timeout,
 	k_hard_ttl_limit,
 	k_dbg, k_stop_host_get, k_enable_err_log, k_max_uploads_ip,
@@ -177,8 +180,11 @@ enum {
 	k_search_stats_enabled,
 	k_toolbar_visible, k_statusbar_visible,
 	k_progressbar_uploads_visible, k_progressbar_downloads_visible, 
-	k_progressbar_connections_visible, k_progressbar_bps_in_visible,
+	k_progressbar_connections_visible, 
+	k_progressbar_bps_in_visible,
 	k_progressbar_bps_out_visible,
+	k_progressbar_bps_in_avg,
+	k_progressbar_bps_out_avg,
 	k_use_netmasks,
 	k_local_netmasks,
 	k_end
@@ -253,6 +259,7 @@ static gchar *keywords[] = {
 	"proxy_protocol",
 	"proxy_ip",
 	"proxy_port",
+	"proxy_auth",
 	"socksv5_user",
 	"socksv5_pass",
 	"search_reissue_timeout",
@@ -280,6 +287,8 @@ static gchar *keywords[] = {
 	"progressbar_connections_visible",
 	"progressbar_bps_in_visible",
 	"progressbar_bps_out_visible",
+	"progressbar_bps_in_avg",
+	"progressbar_bps_out_avg",
 	"use_netmasks",
 	"local_netmasks",
 	NULL
@@ -551,6 +560,9 @@ void config_init(void)
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON
 								 (checkbutton_config_proxy_connections),
 								 proxy_connections);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON
+								 (checkbutton_config_proxy_auth),
+								 proxy_auth);
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(radio_config_http),
 								 (proxy_protocol == 1) ? TRUE : FALSE);
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(radio_config_socksv4),
@@ -959,6 +971,10 @@ void config_set_param(guint32 keyword, gchar *value)
 		proxy_port = i;
 		return;
 
+	case k_proxy_auth:
+		proxy_auth = (gboolean) ! g_strcasecmp(value, "true");
+		return;
+
 	case k_socksv5_user:
 		socksv5_user = g_strdup(value);
 		return;
@@ -1073,6 +1089,14 @@ void config_set_param(guint32 keyword, gchar *value)
 	case k_progressbar_bps_out_visible:
 		progressbar_bps_out_visible = (gboolean) ! g_strcasecmp(value, "true");
  		return;
+
+	case k_progressbar_bps_in_avg:
+		progressbar_bps_in_avg = (gboolean) ! g_strcasecmp(value, "true");
+		return;
+
+	case k_progressbar_bps_out_avg:
+		progressbar_bps_out_avg = (gboolean) ! g_strcasecmp(value, "true");
+		return;
 
  	case k_local_netmasks:
  		local_netmasks_string = g_strdup(value);
@@ -1362,6 +1386,10 @@ static void config_save(void)
 			config_boolean(progressbar_bps_in_visible));
 	fprintf(config, "%s = %s\n", keywords[k_progressbar_bps_out_visible],
 			config_boolean(progressbar_bps_out_visible));
+	fprintf(config, "%s = %s\n", keywords[k_progressbar_bps_in_avg],
+			config_boolean(progressbar_bps_in_avg));
+	fprintf(config, "%s = %s\n", keywords[k_progressbar_bps_out_avg],
+			config_boolean(progressbar_bps_out_avg));
 
  	/* Mike Perry's netmask hack */
  	fprintf(config, "%s = %s\n", keywords[k_use_netmasks],
@@ -1514,6 +1542,8 @@ static void config_save(void)
 	fprintf(config, "%s = %u\n", keywords[k_proxy_protocol], proxy_protocol);
 	fprintf(config, "%s = \"%s\"\n", keywords[k_proxy_ip], proxy_ip);
 	fprintf(config, "%s = %u\n", keywords[k_proxy_port], proxy_port);
+	fprintf(config, "%s = %s\n", keywords[k_proxy_auth],
+			config_boolean(proxy_auth));
 	fprintf(config, "%s = \"%s\"\n", keywords[k_socksv5_user], socksv5_user);
 	fprintf(config, "%s = \"%s\"\n", keywords[k_socksv5_pass], socksv5_pass);
 	fprintf(config, "\n");

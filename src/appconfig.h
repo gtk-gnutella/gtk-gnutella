@@ -12,6 +12,8 @@ extern gboolean progressbar_downloads_visible;
 extern gboolean progressbar_connections_visible;
 extern gboolean progressbar_bps_in_visible;
 extern gboolean progressbar_bps_out_visible;
+extern gboolean progressbar_bps_out_avg;
+extern gboolean progressbar_bps_in_avg;
 extern gboolean toolbar_visible;
 extern gboolean statusbar_visible;
 extern gboolean force_local_ip;
@@ -103,7 +105,7 @@ extern gboolean proxy_connections;
 extern gint proxy_protocol;
 extern gchar *proxy_ip;
 extern gint proxy_port;
-
+extern gboolean proxy_auth;
 extern gchar *socksv5_user;
 extern gchar *socksv5_pass;
 
