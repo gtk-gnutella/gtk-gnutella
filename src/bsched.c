@@ -58,7 +58,7 @@ static gint bws_out_ema = 0;
 
 #define BW_OUT_UP_MIN	8192	/* Minimum out bandwidth for becoming ultra */
 #define BW_OUT_GNET_MIN	512		/* Minimum out bandwidth per Gnet connection */
-#define BW_OUT_LEAF_MIN	128		/* Minimum out bandwidth per leaf connection */
+#define BW_OUT_LEAF_MIN	64		/* Minimum out bandwidth per leaf connection */
 
 #define BW_TCP_MSG		40		/* Smallest size of a TCP message */
 
