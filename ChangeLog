@@ -2,6 +2,13 @@ This is the stable 0.93.x branch.
 
 # since last version
 
+- (2004.02.15 - RAM)
+ * Also use "friendly download name" (i.e. non-URN) when renaming completed
+   file locally after a failed copy.
+ * Protect against "errno == 0" on failed open().
+ * Even if we can't start the move/verify thread correctly for an item,
+   invoke the download state change callbacks.
+
 - (2004.02.14 - Richard)
  * [Gtk1] Try to avoid memory corruption during selection in search results due
    to recursive calls of on_ctree_search_results_select_row().
