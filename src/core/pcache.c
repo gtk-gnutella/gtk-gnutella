@@ -46,6 +46,7 @@ RCSID("$Id$");
 #include "gnet_stats.h"
 #include "hostiles.h"
 #include "settings.h"
+#include "udp.h"
 
 #include "if/gnet_property_priv.h"
 
@@ -175,7 +176,9 @@ send_pong(
 	r = build_pong_msg(hops, ttl, muid, ip, port, files, kbytes);
 	n->n_pong_sent++;
 
-	if (control)
+	if (NODE_IS_UDP(n))
+		udp_send_reply(n, r, sizeof(*r));
+	else if (control)
 		gmsg_ctrl_sendto_one(n, (gchar *) r, sizeof(*r));
 	else
 		gmsg_sendto_one(n, (gchar *) r, sizeof(*r));
@@ -1062,6 +1065,8 @@ pcache_udp_ping_received(struct gnutella_node *n)
 		inet_udp_got_unsolicited_incoming(n->ip);
 		return;
 	}
+
+	send_personal_info(n, FALSE);
 }
 
 /**
