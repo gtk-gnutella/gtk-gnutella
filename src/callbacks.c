@@ -474,12 +474,12 @@ void on_button_ul_stats_clear_deleted_clicked(GtkButton * button, gpointer user_
 {
 	ul_stats_prune_nonexistant();
 }
+
+
+
 /***
  *** Downloads pane
  ***/
-
-/* Active downloads clist */
-
 void on_clist_downloads_select_row(GtkCList * clist, gint row, gint column,
 								   GdkEvent * event, gpointer user_data)
 {
@@ -498,8 +498,6 @@ void on_clist_downloads_resize_column(GtkCList * clist, gint column,
 {
 	dl_active_col_widths[column] = width;
 }
-
-/* Active downloads popup menu */
 
 gboolean on_clist_downloads_button_press_event(GtkWidget * widget,
 											   GdkEventButton * event,
@@ -532,9 +530,8 @@ gboolean on_clist_downloads_button_press_event(GtkWidget * widget,
 
 
 /***
- *** popup-downloads
+ *** Popup menu: downloads
  ***/
-
 void on_popup_downloads_push_activate(GtkMenuItem * menuitem,
 								      gpointer user_data)
 {
@@ -690,21 +687,36 @@ void on_popup_queue_start_now_activate(GtkMenuItem * menuitem,
 	} 
 }
 
-
-
-void on_popup_queue_freeze_activate(GtkMenuItem * menuitem,
-										   gpointer user_data) 
-{
-	// FIXME
-}
-
 void on_popup_queue_search_again_activate(GtkMenuItem * menuitem,
 										   gpointer user_data) 
 {
 	// FIXME
 }
 
-void on_popup_queue_remove_named_activate(GtkMenuItem * menuitem,
+void on_popup_queue_abort_activate(GtkMenuItem * menuitem,
+  							       gpointer user_data)
+{
+	GList *l;
+	struct download *d;
+
+	for (l = GTK_CLIST(clist_downloads_queue)->selection; l; 
+         l = GTK_CLIST(clist_downloads_queue)->selection ) {		
+		d = (struct download *) 
+			gtk_clist_get_row_data(GTK_CLIST(clist_downloads_queue),
+                                   (gint) l->data);
+        gtk_clist_unselect_row(GTK_CLIST(clist_downloads_queue), (gint) l->data, 0);
+     
+        if (!d) {
+			g_warning("on_popup_downloads_queue_remove(): row %d has NULL data\n",
+			          (gint) l->data);
+		    continue;
+        }
+		if (d->status == GTA_DL_QUEUED)
+			download_free(d);
+	} 
+}
+
+void on_popup_queue_abort_named_activate(GtkMenuItem * menuitem,
 										  gpointer user_data) 
 {
 	GList *l;
@@ -719,7 +731,7 @@ void on_popup_queue_remove_named_activate(GtkMenuItem * menuitem,
 		gtk_clist_unselect_row(GTK_CLIST(clist_downloads_queue), (gint) l->data, 0);
      
 		if (!d) {
-			g_warning("on_popup_queue_remove_named_activate(): row %d has NULL data\n",
+			g_warning("on_popup_queue_abort_named_activate(): row %d has NULL data\n",
 					  (gint) l->data);
 			continue;
 		}
@@ -727,7 +739,7 @@ void on_popup_queue_remove_named_activate(GtkMenuItem * menuitem,
 	}
 }
 
-void on_popup_queue_remove_host_activate(GtkMenuItem * menuitem,
+void on_popup_queue_abort_host_activate(GtkMenuItem * menuitem,
 										    gpointer user_data) 
 {
 	GList *l;
@@ -742,7 +754,7 @@ void on_popup_queue_remove_host_activate(GtkMenuItem * menuitem,
 		gtk_clist_unselect_row(GTK_CLIST(clist_downloads_queue), (gint) l->data, 0);
      
 		if (!d) {
-			g_warning("on_popup_queue_remove_host_activate(): row %d has NULL data\n",
+			g_warning("on_popup_queue_abort_host_activate(): row %d has NULL data\n",
 					  (gint) l->data);
 			continue;
 		}
@@ -809,13 +821,6 @@ void on_button_downloads_clear_completed_clicked(GtkButton * button,
 									  gpointer user_data)
 {
 	downloads_clear_stopped(TRUE, TRUE);
-}
-
-void on_button_downloads_queue_clear_clicked(GtkButton * button,
-                                   gpointer user_data)
-{
-	// FIXME: should remove all queued downloads.
-	g_warning("on_button_downloads_queue_clear_clicked(): need to be implemented");
 }
 
 void on_checkbutton_downloads_auto_clear_toggled(GtkToggleButton * togglebutton,
@@ -887,15 +892,31 @@ gboolean on_entry_max_host_downloads_focus_out_event(GtkWidget * widget,
 /*** 
  *** Queued downloads
  ***/
+void on_togglebutton_queue_freeze_toggled(GtkToggleButton *togglebutton, 
+										  gpointer user_data) 
+{
+	if (gtk_toggle_button_get_active(togglebutton)) {
+		gtk_label_set_text(GTK_LABEL(GTK_BIN(togglebutton)->child),
+						   "Unfreeze queue");
+		gui_statusbar_push(scid_queue_freezed, "QUEUE FREEZED");
+    } else {
+		gtk_label_set_text(GTK_LABEL(GTK_BIN(togglebutton)->child),
+						   "Freeze queue");
+		gui_statusbar_pop(scid_queue_freezed);
+	}
+
+	download_set_freeze(gtk_toggle_button_get_active(togglebutton));
+}
+
 
 void on_clist_downloads_queue_select_row(GtkCList * clist, gint row,
 										gint column, GdkEvent * event,
 										gpointer user_data)
 {
-	gtk_widget_set_sensitive(button_downloads_queue_remove, TRUE);
-	gtk_widget_set_sensitive(popup_queue_remove, TRUE);
-	gtk_widget_set_sensitive(popup_queue_remove_named, TRUE);
-	gtk_widget_set_sensitive(popup_queue_remove_host, TRUE);
+	//gtk_widget_set_sensitive(button_downloads_queue_remove, TRUE);
+	gtk_widget_set_sensitive(popup_queue_abort, TRUE);
+	gtk_widget_set_sensitive(popup_queue_abort_named, TRUE);
+	gtk_widget_set_sensitive(popup_queue_abort_host, TRUE);
 	// FIXME: enable when code for popup_queue_search_again is written
 	// gtk_widget_set_sensitive(popup_queue_search_again, TRUE);
 
@@ -910,10 +931,10 @@ void on_clist_downloads_queue_unselect_row(GtkCList * clist, gint row,
 {
 	gboolean sensitive = (gboolean) GTK_CLIST(clist_downloads_queue)->selection;
 	
-	gtk_widget_set_sensitive(button_downloads_queue_remove, sensitive);
-	gtk_widget_set_sensitive(popup_queue_remove, sensitive);
-	gtk_widget_set_sensitive(popup_queue_remove_named, sensitive);
-	gtk_widget_set_sensitive(popup_queue_remove_host, sensitive);
+	//gtk_widget_set_sensitive(button_downloads_queue_remove, sensitive);
+	gtk_widget_set_sensitive(popup_queue_abort, sensitive);
+	gtk_widget_set_sensitive(popup_queue_abort_named, sensitive);
+	gtk_widget_set_sensitive(popup_queue_abort_host, sensitive);
 	// FIXME: enable when code for popup_queue_search_again is written
 	//gtk_widget_set_sensitive(popup_queue_search_again, sensitive);
 	
@@ -923,30 +944,12 @@ void on_clist_downloads_queue_unselect_row(GtkCList * clist, gint row,
 	//						   (count_running_downloads() < max_downloads));
 }
 
-void on_button_downloads_queue_remove_clicked(GtkButton * button,
-									   gpointer user_data)
+void on_button_queue_clear_clicked(GtkButton * button,
+                                   gpointer user_data)
 {
-	GList *l;
-	struct download *d;
-
-	for (l = GTK_CLIST(clist_downloads_queue)->selection; l; 
-         l = GTK_CLIST(clist_downloads_queue)->selection ) {		
-		d = (struct download *) 
-			gtk_clist_get_row_data(GTK_CLIST(clist_downloads_queue),
-                                   (gint) l->data);
-        gtk_clist_unselect_row(GTK_CLIST(clist_downloads_queue), (gint) l->data, 0);
-     
-        if (!d) {
-			g_warning("on_popup_downloads_queue_remove(): row %d has NULL data\n",
-			          (gint) l->data);
-		    continue;
-        }
-		if (d->status == GTA_DL_QUEUED)
-			download_free(d);
-	} 
+	// FIXME: should remove all queued downloads.
+	g_warning("on_button_downloads_queue_clear_clicked(): need to be implemented");
 }
-
-
 
 gboolean on_clist_downloads_queue_button_press_event(GtkWidget * widget,
 													GdkEventButton * event,
@@ -1216,6 +1219,28 @@ void on_clist_search_stats_resize_column(GtkCList * clist, gint column,
  ***/ 
 
 /* While downloading, store files to */
+
+void on_spinbutton_config_bps_in_changed(GtkSpinButton *spinbutton, 
+										 gpointer user_data)
+{
+	gint v = gtk_spin_button_get_value_as_int(spinbutton);
+	
+	if( v != input_bandwidth ) {
+		input_bandwidth = v;
+		bsched_set_bandwidth(bws_in, input_bandwidth);
+	}
+}
+
+void on_spinbutton_config_bps_out_changed(GtkSpinButton *spinbutton, 
+										 gpointer user_data)
+{
+	gint v = gtk_spin_button_get_value_as_int(spinbutton);
+	
+	if( v != output_bandwidth ) {
+		output_bandwidth = v;
+		bsched_set_bandwidth(bws_out, output_bandwidth);
+	}
+}
 
 GtkWidget *save_path_filesel = NULL;
 
@@ -1891,6 +1916,8 @@ void on_clist_search_results_select_row(GtkCList * clist, gint row,
 										gint column, GdkEvent * event,
 										gpointer user_data)
 {
+	guint msgid = -1;
+
 	gtk_widget_set_sensitive(button_search_download, TRUE);
 
 	if (search_pick_all && 
@@ -1916,24 +1943,28 @@ void on_clist_search_results_select_row(GtkCList * clist, gint row,
 					}
 			}
 			g_snprintf(c_tmp, sizeof(c_tmp), "%d auto selected", x);
-         gui_set_status(c_tmp);
+			msgid = gui_statusbar_push(scid_search_autoselected, c_tmp);
+			gui_statusbar_add_timeout(scid_search_autoselected, msgid, 15);
 			select_all_lock = 0;		// we are done, un "lock" it
 		}
 	} else {
-     gui_set_status("autoselection disabled");
-   }
+		if(!select_all_lock) {
+			msgid = gui_statusbar_push(scid_search_autoselected, "autoselection disabled");
+			gui_statusbar_add_timeout(scid_search_autoselected, msgid, 15);
+		}
+	}
 }
 
 void on_clist_search_results_unselect_row(GtkCList * clist, gint row,
 										  gint column, GdkEvent * event,
 										  gpointer user_data)
 {
-   gboolean sensitive;
+	gboolean sensitive;
 
 	sensitive = current_search	&& (gboolean) GTK_CLIST(current_search->clist)->selection;
 	gtk_widget_set_sensitive(button_search_download, sensitive);
-	if (search_pick_all || !sensitive)
-     gui_set_status( NULL );
+	//if (search_pick_all || !sensitive)
+	//	gui_set_status( NULL );
 }
 
 void on_clist_search_results_click_column(GtkCList * clist, gint column,
@@ -2178,7 +2209,7 @@ void on_search_switch(struct search *sch)
    // statusbar stack. Fix when we use statusbar_context
    //
    // bluefire
-   gui_set_status( NULL );
+   //gui_set_status( NULL );
 
 	if (sch->items == 0) {
 		gtk_widget_set_sensitive(button_search_clear, FALSE);
@@ -2302,6 +2333,28 @@ void on_menu_connections_visible_activate(GtkMenuItem * menuitem,
 		gtk_widget_show_all( progressbar_connections );
 	} else {
 		gtk_widget_hide_all( progressbar_connections );
+	}
+}
+
+void on_menu_bps_in_visible_activate(GtkMenuItem * menuitem,
+								     gpointer user_data)
+{
+	progressbar_bps_in_visible = GTK_CHECK_MENU_ITEM(menuitem)->active;
+	if( GTK_CHECK_MENU_ITEM(menuitem)->active ) {
+		gtk_widget_show_all( progressbar_bps_in );
+	} else {
+		gtk_widget_hide_all( progressbar_bps_in );
+	}
+}
+
+void on_menu_bps_out_visible_activate(GtkMenuItem * menuitem,
+								      gpointer user_data)
+{
+	progressbar_bps_out_visible = GTK_CHECK_MENU_ITEM(menuitem)->active;
+	if( GTK_CHECK_MENU_ITEM(menuitem)->active ) {
+		gtk_widget_show_all( progressbar_bps_out );
+	} else {
+		gtk_widget_hide_all( progressbar_bps_out );
 	}
 }
 

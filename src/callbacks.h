@@ -65,22 +65,24 @@ void on_button_uploads_clear_completed_clicked (GtkButton *button, gpointer user
 /***
  *** downloads panel
  ***/
+/* active downloads */
 gboolean on_clist_downloads_button_press_event (GtkWidget *widget, GdkEventButton *event, gpointer user_data);
 gboolean on_clist_downloads_queue_button_press_event (GtkWidget *widget, GdkEventButton *event, gpointer user_data);
 void on_button_downloads_abort_clicked (GtkButton *button, gpointer user_data); 
 void on_button_downloads_clear_completed_clicked (GtkButton *button, gpointer user_data);
-void on_button_downloads_queue_clear_clicked(GtkButton *button, gpointer user_data);
-void on_button_downloads_queue_remove_clicked (GtkButton *button, gpointer user_data); 
 void on_checkbutton_downloads_auto_clear_toggled (GtkToggleButton *togglebutton, gpointer user_data);
 void on_clist_downloads_click_column (GtkCList *clist, gint column, gpointer user_data); 
-void on_clist_downloads_queue_click_column (GtkCList *clist, gint column, gpointer user_data);
-void on_clist_downloads_queue_resize_column (GtkCList *clist, gint column, gint width, gpointer user_data);
-void on_clist_downloads_queue_select_row (GtkCList *clist, gint row, gint column, GdkEvent *event, gpointer user_data);
-void on_clist_downloads_queue_unselect_row (GtkCList *clist, gint row, gint column, GdkEvent *event, gpointer user_data);
 void on_clist_downloads_resize_column (GtkCList *clist, gint column, gint width, gpointer user_data);
 void on_clist_downloads_select_row (GtkCList *clist, gint row, gint column, GdkEvent *event, gpointer user_data);
 void on_clist_downloads_unselect_row (GtkCList *clist, gint row, gint column, GdkEvent *event, gpointer user_data);
 void on_button_downloads_resume_clicked (GtkButton *button, gpointer user_data); 
+/* queued downloads */
+void on_clist_downloads_queue_click_column (GtkCList *clist, gint column, gpointer user_data);
+void on_clist_downloads_queue_resize_column (GtkCList *clist, gint column, gint width, gpointer user_data);
+void on_clist_downloads_queue_select_row (GtkCList *clist, gint row, gint column, GdkEvent *event, gpointer user_data);
+void on_clist_downloads_queue_unselect_row (GtkCList *clist, gint row, gint column, GdkEvent *event, gpointer user_data);
+void on_button_queue_clear_clicked(GtkButton *button, gpointer user_data);
+void on_togglebutton_queue_freeze_toggled(GtkToggleButton *togglebutton, gpointer user_data);
 
 
 
@@ -155,6 +157,8 @@ void on_entry_config_speed_activate (GtkEditable *editable, gpointer user_data);
 void on_radio_config_http_toggled (GtkToggleButton *togglebutton, gpointer user_data);
 void on_radio_config_socksv4_toggled (GtkToggleButton *togglebutton, gpointer user_data);
 void on_radio_config_socksv5_toggled (GtkToggleButton *togglebutton, gpointer user_data);
+void on_spinbutton_config_bps_in_changed(GtkSpinButton *spinbutton, gpointer user_data);
+void on_spinbutton_config_bps_out_changed(GtkSpinButton *spinbutton, gpointer user_data);
 
 
 
@@ -214,8 +218,9 @@ void on_popup_downloads_queue_activate (GtkMenuItem *menuitem, gpointer user_dat
 void on_popup_queue_start_now_activate (GtkMenuItem *menuitem, gpointer user_data);
 void on_popup_queue_freeze_activate (GtkMenuItem *menuitem, gpointer user_data);
 void on_popup_queue_search_again_activate (GtkMenuItem *menuitem, gpointer user_data);
-void on_popup_queue_remove_host_activate(GtkMenuItem * menuitem, gpointer user_data); 
-void on_popup_queue_remove_named_activate(GtkMenuItem * menuitem, gpointer user_data);
+void on_popup_queue_abort_host_activate(GtkMenuItem * menuitem, gpointer user_data); 
+void on_popup_queue_abort_named_activate(GtkMenuItem * menuitem, gpointer user_data);
+void on_popup_queue_abort_activate(GtkMenuItem * menuitem, gpointer user_data);
 
 /***
  *** upload stats
@@ -248,5 +253,7 @@ void on_menu_downloads_visible_activate(GtkMenuItem * menuitem, gpointer user_da
 void on_menu_uploads_visible_activate(GtkMenuItem * menuitem, gpointer user_data);
 void on_menu_statusbar_visible_activate(GtkMenuItem * menuitem, gpointer user_data);
 void on_menu_toolbar_visible_activate(GtkMenuItem * menuitem, gpointer user_data);
+void on_menu_bps_in_visible_activate(GtkMenuItem * menuitem, gpointer user_data);
+void on_menu_bps_out_visible_activate(GtkMenuItem * menuitem, gpointer user_data);
 
 #endif	/* __callbacks_h__ */
