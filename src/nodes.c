@@ -2792,9 +2792,9 @@ gboolean node_remove_non_nearby(void)
 
 	/* iterate through nodes list */
 	for (l = sl_nodes; l; l = l->next) {
-		struct gnutella_node *n = sl_nodes->data;
+		struct gnutella_node *n = (struct gnutella_node *) l->data;
 
-		if (NODE_IS_CONNECTED(n) && !host_is_nearby(n->ip)) {
+		if (n->status == GTA_NODE_CONNECTED && !host_is_nearby(n->ip)) {
 			if (NODE_IS_WRITABLE(n))
 				node_bye(n, 202, "Local node preferred");
 			else
