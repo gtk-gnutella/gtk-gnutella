@@ -65,12 +65,8 @@ static const gchar * const bitzi_fj_table[] =
 const gchar *
 bitzi_fjtostring(bitzi_fj_t fj)
 {
-	const gchar *s, *t;
-	
 	g_assert((gint) fj >= 0 && fj < G_N_ELEMENTS(bitzi_fj_table));
-	t = _(bitzi_fj_table[fj]);
-	s = strchr(t, '|');
-	return s ? ++s : t;
+	return Q_(bitzi_fj_table[fj]);
 }
 
 void
