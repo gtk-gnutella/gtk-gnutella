@@ -441,6 +441,7 @@ static void nodes_gui_update_node_flags(gnet_node_t n, gnet_node_flags_t *flags)
 		switch (flags->qrt_state) {
 		case QRT_S_SENT: case QRT_S_RECEIVED:		status[4] = 'Q'; break;
 		case QRT_S_SENDING: case QRT_S_RECEIVING:	status[4] = 'q'; break;
+		case QRT_S_PATCHING:						status[4] = 'p'; break;
 		default:									break;
 		}
 
