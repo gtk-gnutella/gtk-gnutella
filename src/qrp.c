@@ -1447,7 +1447,7 @@ static void qrp_send_patch(struct gnutella_node *n,
 #define QRT_UPDATE_MAGIC	0x15afcc05
 #define QRT_PATCH_LEN		512		/* Send 512 bytes at a time, if we can */
 #define QRT_MAX_SEQSIZE		255		/* Maximum: 255 messages */
-#define QRT_MAX_BANDWIDTH	1024	/* Try to send at most 1 KB/sec */
+#define QRT_MAX_BANDWIDTH	1024	/* Max bandwidth if clogging occurs */
 
 struct qrt_update {
 	guint32 magic;
@@ -1460,6 +1460,7 @@ struct qrt_update {
 	gpointer listener;				/* Listener for default patch being ready */
 	gint chunksize;					/* Amount to send within each PATCH */
 	time_t last;					/* Time at which we sent the last batch */
+	gint last_sent;					/* Amount sent during last batch */
 	gboolean ready;					/* Ready for sending? */
 };
 
@@ -1655,6 +1656,7 @@ gboolean qrt_update_send_next(gpointer handle)
 	time_t now;
 	time_t elapsed;
 	gint len;
+	gint i;
 
 	g_assert(qup->magic == QRT_UPDATE_MAGIC);
 
@@ -1666,7 +1668,8 @@ gboolean qrt_update_send_next(gpointer handle)
 
 	/*
 	 * Make sure we don't exceed the maximum bandwidth allocated for
-	 * the QRP messages.
+	 * the QRP messages if the connection start clogging, i.e. if some
+	 * bytes accumulate in the TX queue.
 	 */
 
 	now = time(NULL);
@@ -1675,30 +1678,48 @@ gboolean qrt_update_send_next(gpointer handle)
 	if (elapsed == 0)				/* We're called once every second */
 		elapsed = 1;				/* So adjust */
 
-	if (qup->chunksize / elapsed > QRT_MAX_BANDWIDTH)
+	if (
+		qup->last_sent / elapsed > QRT_MAX_BANDWIDTH &&
+		NODE_MQUEUE_PENDING(qup->node)
+	)
 		return TRUE;
 
 	/*
-	 * We have to send another message.
+	 * We have to send another message(s).
+	 *
+	 * To flush the QRT patch as quickly as possible, we can send up to
+	 * 5 messages in a row here.  We'll stop if the queue starts to fill up.
 	 */
 
-	qup->last = now;
+	for (qup->last_sent = 0, i = 0; i < 5 && qup->seqno <= qup->seqsize; i++) {
+		len = qup->chunksize;
 
-	len = qup->chunksize;
-	if (qup->offset + len >= qup->patch->len) {
-		len = qup->patch->len - qup->offset;
-		g_assert(qup->seqno == qup->seqsize);	/* Last message */
-		g_assert(len > 0);
-		g_assert(len <= qup->chunksize);
+		if (qup->offset + len >= qup->patch->len) {
+			len = qup->patch->len - qup->offset;
+			g_assert(qup->seqno == qup->seqsize);	/* Last message */
+			g_assert(len > 0);
+			g_assert(len <= qup->chunksize);
+		}
+
+		qrp_send_patch(qup->node, qup->seqno++, qup->seqsize,
+			qup->patch->compressed, qup->patch->entry_bits,
+			qup->patch->arena + qup->offset, len);
+
+		qup->offset += len;
+		qup->last_sent += len;
+
+		g_assert(qup->seqno <= qup->seqsize || qup->offset == qup->patch->len);
+
+		/*
+		 * Break the loop if we did not fully sent the last message, meaning
+		 * the TCP connection has its buffer full.
+		 */
+
+		if (NODE_MQUEUE_COUNT(qup->node))
+			break;
 	}
 
-	qrp_send_patch(qup->node, qup->seqno++, qup->seqsize,
-		qup->patch->compressed, qup->patch->entry_bits,
-		qup->patch->arena + qup->offset, len);
-
-	qup->offset += len;
-
-	g_assert(qup->seqno <= qup->seqsize || qup->offset == qup->patch->len);
+	qup->last = now;
 
 	return qup->seqno <= qup->seqsize;
 }

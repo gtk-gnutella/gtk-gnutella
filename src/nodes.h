@@ -220,6 +220,9 @@ typedef struct gnutella_node {
 #define NODE_MQUEUE_COUNT(n) \
 	((n)->outq ? mq_count((n)->outq) : 0)
 
+#define NODE_MQUEUE_PENDING(n) \
+	((n)->outq ? mq_pending((n)->outq) : 0)
+
 #define NODE_SQUEUE_COUNT(n) \
 	((n)->searchq ? sq_count((n)->searchq) : 0)
 
