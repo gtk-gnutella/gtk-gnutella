@@ -74,6 +74,7 @@ RCSID("$Id$");
 #endif
 
 #define RQST_LINE_LENGTH	256		/* Reasonable estimate for request line */
+#define SOCK_UDP_RECV_BUF	131072	/* 128K -- Large to avoid loosing dgrams */
 
 #define SOCK_ADNS_PENDING	0x01	/* Don't free() the socket too early */
 #define SOCK_ADNS_FAILED	0x02	/* Signals error in the ADNS callback */
@@ -1702,7 +1703,7 @@ socket_udp_listen(guint32 ip, guint16 port)
 	s->pos = 0;
 	s->flags |= SOCK_F_UDP;
 
-	socket_wio_link(s);		/* Link to the I/O functions */
+	socket_wio_link(s);				/* Link to the I/O functions */
 
 	setsockopt(sd, SOL_SOCKET, SO_REUSEADDR, (void *) &option,
 			   sizeof(option));
@@ -1748,6 +1749,13 @@ socket_udp_listen(guint32 ip, guint16 port)
 	s->gdk_tag =
 		inputevt_add(sd, INPUT_EVENT_READ | INPUT_EVENT_EXCEPTION,
 					  socket_udp_accept, s);
+
+	/*
+	 * Enlarge the RX buffer on the UDP socket to avoid loosing incoming
+	 * datagrams if we are not able to read them during some time.
+	 */
+
+	sock_recv_buf(s, SOCK_UDP_RECV_BUF, FALSE);
 
 	return s;
 }
