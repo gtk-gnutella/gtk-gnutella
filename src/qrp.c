@@ -861,7 +861,7 @@ mrg_step_get_list(gpointer h, gpointer u, gint ticks)
 	const GSList *sl;
 	gint max_size = 0;			/* Max # of slots seen in all QRT */
 
-	g_assert(ctx->magic = MERGE_MAGIC);
+	g_assert(MERGE_MAGIC == ctx->magic);
 
 	for (sl = node_all_nodes(); sl; sl = g_slist_next(sl)) {
 		struct gnutella_node *dn = (struct gnutella_node *) sl->data;
@@ -956,7 +956,7 @@ mrg_step_merge_one(gpointer h, gpointer u, gint ticks)
 	struct merge_context *ctx = (struct merge_context *) u;
 	gint ticks_used = 0;
 
-	g_assert(ctx->magic = MERGE_MAGIC);
+	g_assert(MERGE_MAGIC == ctx->magic);
 
 	/*
 	 * If we're no longer running in UP mode, we can end this task
@@ -995,7 +995,7 @@ mrg_step_install_table(gpointer h, gpointer u, gint ticks)
 {
 	struct merge_context *ctx = (struct merge_context *) u;
 
-	g_assert(ctx->magic = MERGE_MAGIC);
+	g_assert(MERGE_MAGIC == ctx->magic);
 
 	/*
 	 * Make sure we're still running in UP mode... otherwise, it does
