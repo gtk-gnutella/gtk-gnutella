@@ -351,6 +351,7 @@ struct search
 	guint32 unseen_items;                /* How many items haven't been seen yet. */
 
 	gboolean passive;                    /* Is this a passive search?  Maybe this would be better done with a magic muid. */
+	gboolean frozen;					 /* True => don't update window */
 	GHashTable *dups; /* keep a record of dups. */
 	GHashTable *sent_nodes; /* keep a record of nodes we've sent this search w/ this muid to. */
 
