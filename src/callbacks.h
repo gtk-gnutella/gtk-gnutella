@@ -286,6 +286,7 @@ void on_popup_search_config_cols_activate (GtkMenuItem *menuitem, gpointer user_
 void on_popup_downloads_push_activate(GtkMenuItem *menuitem, gpointer user_data);
 void on_popup_downloads_abort_named_activate(GtkMenuItem *menuitem, gpointer user_data); 
 void on_popup_downloads_abort_host_activate(GtkMenuItem *menuitem, gpointer user_data); 
+void on_popup_downloads_abort_sha1_activate(GtkMenuItem *menuitem, gpointer user_data); 
 void on_popup_downloads_remove_file_activate(GtkMenuItem *menuitem, gpointer user_data); 
 void on_popup_downloads_search_again_activate(GtkMenuItem *menuitem, gpointer user_data); 
 void on_popup_downloads_queue_activate(GtkMenuItem *menuitem, gpointer user_data);
@@ -305,6 +306,7 @@ void on_popup_queue_freeze_activate (GtkMenuItem *menuitem, gpointer user_data);
 void on_popup_queue_search_again_activate (GtkMenuItem *menuitem, gpointer user_data);
 void on_popup_queue_abort_host_activate(GtkMenuItem * menuitem, gpointer user_data); 
 void on_popup_queue_abort_named_activate(GtkMenuItem * menuitem, gpointer user_data);
+void on_popup_queue_abort_sha1_activate(GtkMenuItem * menuitem, gpointer user_data);
 void on_popup_queue_abort_activate(GtkMenuItem * menuitem, gpointer user_data);
 void on_popup_queue_copy_url_activate(GtkMenuItem *menuitem, gpointer user_data);
 void on_popup_queue_connect_activate(GtkMenuItem *menuitem, gpointer user_data);

@@ -701,8 +701,11 @@ void on_popup_downloads_abort_named_activate(GtkMenuItem * menuitem,
 {
 	GList *l;
 	struct download *d;
+    gint removed = 0;
+    guint msgid;
 
     gtk_clist_freeze(GTK_CLIST(clist_downloads));
+    gtk_clist_freeze(GTK_CLIST(clist_downloads_queue));
 
 	for (l = GTK_CLIST(clist_downloads)->selection; l; 
          l = GTK_CLIST(clist_downloads)->selection ) {		
@@ -717,10 +720,15 @@ void on_popup_downloads_abort_named_activate(GtkMenuItem * menuitem,
 					  (gint) l->data);
 			continue;
 		}
-		download_remove_all_named(d->file_name);
+		removed += download_remove_all_named(d->file_name);
 	}
 
+    gtk_clist_thaw(GTK_CLIST(clist_downloads_queue));
     gtk_clist_thaw(GTK_CLIST(clist_downloads));
+
+	g_snprintf(c_tmp, sizeof(c_tmp), "Removed %u downloads", removed);
+    msgid = gui_statusbar_push(scid_info, c_tmp);
+	gui_statusbar_add_timeout(scid_info, msgid, 15);    
 }
 
 void on_popup_downloads_abort_host_activate(GtkMenuItem * menuitem,
@@ -728,8 +736,11 @@ void on_popup_downloads_abort_host_activate(GtkMenuItem * menuitem,
 {
 	GList *l;
 	struct download *d;
+    gint removed = 0;
+    guint msgid;
 
     gtk_clist_freeze(GTK_CLIST(clist_downloads));
+    gtk_clist_freeze(GTK_CLIST(clist_downloads_queue));
 
 	for (l = GTK_CLIST(clist_downloads)->selection; l; 
          l = GTK_CLIST(clist_downloads)->selection ) {		
@@ -744,10 +755,52 @@ void on_popup_downloads_abort_host_activate(GtkMenuItem * menuitem,
 					  (gint) l->data);
 			continue;
 		}
-		download_remove_all_from_peer(d->guid);
+		removed += download_remove_all_from_peer(d->guid);
 	}
 
+    gtk_clist_thaw(GTK_CLIST(clist_downloads_queue));
     gtk_clist_thaw(GTK_CLIST(clist_downloads));
+
+    g_snprintf(c_tmp, sizeof(c_tmp), "Removed %u downloads", removed);
+    msgid = gui_statusbar_push(scid_info, c_tmp);
+	gui_statusbar_add_timeout(scid_info, msgid, 15);    
+}
+
+void on_popup_downloads_abort_sha1_activate(GtkMenuItem * menuitem,
+										    gpointer user_data) 
+{
+	GList *l;
+	struct download *d;
+    gint removed = 0;
+    guint msgid;
+
+    gtk_clist_freeze(GTK_CLIST(clist_downloads));
+    gtk_clist_freeze(GTK_CLIST(clist_downloads_queue));
+
+	for (l = GTK_CLIST(clist_downloads)->selection; l; 
+         l = GTK_CLIST(clist_downloads)->selection ) {		
+     
+		d = (struct download *) 
+			gtk_clist_get_row_data(GTK_CLIST(clist_downloads),
+								   (gint) l->data);
+		gtk_clist_unselect_row(GTK_CLIST(clist_downloads), (gint) l->data, 0);
+     
+		if (!d) {
+			g_warning("on_popup_downloads_abort_sha1_activate(): row %d has NULL data\n",
+					  (gint) l->data);
+			continue;
+		}
+
+        if (d->sha1 != NULL)
+            removed += download_remove_all_with_sha1(d->sha1);
+	}
+
+    gtk_clist_thaw(GTK_CLIST(clist_downloads_queue));
+    gtk_clist_thaw(GTK_CLIST(clist_downloads));
+
+    g_snprintf(c_tmp, sizeof(c_tmp), "Removed %u downloads", removed);
+    msgid = gui_statusbar_push(scid_info, c_tmp);
+	gui_statusbar_add_timeout(scid_info, msgid, 15);    
 }
 
 void on_popup_downloads_remove_file_activate(GtkMenuItem * menuitem,
@@ -972,8 +1025,11 @@ void on_popup_queue_abort_named_activate(GtkMenuItem * menuitem,
 {
 	GList *l;
 	struct download *d;
+    gint removed = 0;
+    guint msgid;
 
     gtk_clist_freeze(GTK_CLIST(clist_downloads_queue));
+    gtk_clist_freeze(GTK_CLIST(clist_downloads));
 
 	for (l = GTK_CLIST(clist_downloads_queue)->selection; l; 
          l = GTK_CLIST(clist_downloads_queue)->selection ) {		
@@ -988,10 +1044,15 @@ void on_popup_queue_abort_named_activate(GtkMenuItem * menuitem,
 					  (gint) l->data);
 			continue;
 		}
-		download_remove_all_named(d->file_name);
+		removed += download_remove_all_named(d->file_name);
 	}
 
+    gtk_clist_thaw(GTK_CLIST(clist_downloads));
     gtk_clist_thaw(GTK_CLIST(clist_downloads_queue));
+
+    g_snprintf(c_tmp, sizeof(c_tmp), "Removed %u downloads", removed);
+    msgid = gui_statusbar_push(scid_info, c_tmp);
+	gui_statusbar_add_timeout(scid_info, msgid, 15);    
 }
 
 void on_popup_queue_abort_host_activate(GtkMenuItem * menuitem,
@@ -999,8 +1060,11 @@ void on_popup_queue_abort_host_activate(GtkMenuItem * menuitem,
 {
 	GList *l;
 	struct download *d;
+    gint removed = 0;
+    guint msgid;
 
     gtk_clist_freeze(GTK_CLIST(clist_downloads_queue));
+    gtk_clist_freeze(GTK_CLIST(clist_downloads));
 
 	for (l = GTK_CLIST(clist_downloads_queue)->selection; l; 
          l = GTK_CLIST(clist_downloads_queue)->selection ) {		
@@ -1015,10 +1079,52 @@ void on_popup_queue_abort_host_activate(GtkMenuItem * menuitem,
 					  (gint) l->data);
 			continue;
 		}
-		download_remove_all_from_peer(d->guid);
+		removed += download_remove_all_from_peer(d->guid);
 	}
 
+    gtk_clist_thaw(GTK_CLIST(clist_downloads));
     gtk_clist_thaw(GTK_CLIST(clist_downloads_queue));
+
+    g_snprintf(c_tmp, sizeof(c_tmp), "Removed %u downloads", removed);
+    msgid = gui_statusbar_push(scid_info, c_tmp);
+	gui_statusbar_add_timeout(scid_info, msgid, 15);    
+}
+
+void on_popup_queue_abort_sha1_activate(GtkMenuItem * menuitem,
+								        gpointer user_data) 
+{
+	GList *l;
+	struct download *d;
+    gint removed = 0;
+    guint msgid;
+
+    gtk_clist_freeze(GTK_CLIST(clist_downloads_queue));
+    gtk_clist_freeze(GTK_CLIST(clist_downloads));
+
+	for (l = GTK_CLIST(clist_downloads_queue)->selection; l; 
+         l = GTK_CLIST(clist_downloads_queue)->selection ) {		
+     
+		d = (struct download *) 
+			gtk_clist_get_row_data(GTK_CLIST(clist_downloads_queue),
+								   (gint) l->data);
+		gtk_clist_unselect_row(GTK_CLIST(clist_downloads_queue), (gint) l->data, 0);
+     
+		if (!d) {
+			g_warning("on_popup_queue_abort_sha1_activate(): row %d has NULL data\n",
+					  (gint) l->data);
+			continue;
+		}
+
+        if (d->sha1 != NULL)
+            removed += download_remove_all_with_sha1(d->sha1);
+	}
+
+    gtk_clist_thaw(GTK_CLIST(clist_downloads));
+    gtk_clist_thaw(GTK_CLIST(clist_downloads_queue));
+
+    g_snprintf(c_tmp, sizeof(c_tmp), "Removed %u downloads", removed);
+    msgid = gui_statusbar_push(scid_info, c_tmp);
+	gui_statusbar_add_timeout(scid_info, msgid, 15);    
 }
 
 void on_popup_queue_copy_url_activate(GtkMenuItem * menuitem,
@@ -1287,8 +1393,8 @@ void on_entry_queue_regex_activate(GtkEditable *editable,
         char buf[1000];
 		regerror(err, re, buf, 1000);
         g_error("on_entry_queue_regex_activate: regex error %s",buf);
-        msgid = gui_statusbar_push(scid_queue_remove_regex, buf);
-        gui_statusbar_add_timeout(scid_queue_remove_regex, msgid, 15);
+        msgid = gui_statusbar_push(scid_warn, buf);
+        gui_statusbar_add_timeout(scid_warn, msgid, 15);
     } else {
         gtk_clist_unselect_all(GTK_CLIST(clist_downloads_queue));
 
@@ -1315,8 +1421,8 @@ void on_entry_queue_regex_activate(GtkEditable *editable,
         g_snprintf(c_tmp, sizeof(c_tmp), 
                    "Selected %u of %u queued downloads matching \"%s\".", 
                    m, GTK_CLIST(clist_downloads_queue)->rows, regex);
-        msgid = gui_statusbar_push(scid_queue_remove_regex, c_tmp);
-        gui_statusbar_add_timeout(scid_queue_remove_regex, msgid, 15);
+        msgid = gui_statusbar_push(scid_info, c_tmp);
+        gui_statusbar_add_timeout(scid_info, msgid, 15);
     }
 
     gtk_entry_set_text(GTK_ENTRY(entry_queue_regex), "");
