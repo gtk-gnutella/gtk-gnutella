@@ -7,6 +7,15 @@
   * Added "Edit filter" back to search popup
   * Changed header of urn column in search results to "urn:sha1" and
     centered it
+  * Added "Abort all with urn:sha1" to downloads and queue popup.
+  * Made the download_remove_all* return the number of removed downloads
+  * Display the number of removed downloads in the status bar
+  * Freeze queue and downloads list when acting on a "Abort all..."
+  * When a new rule or filter is added, display "new" instead of
+    "none yet" in the stats column to show that this filter will
+    not be used unless the user closes the filter dialog with "Ok".
+  * Started to use scid_info for general temporary information in 
+    the status bar.
 
 - (2002.06.15 - Richard)
   * Added URN column to the search results (hidden by default)
