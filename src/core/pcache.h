@@ -34,13 +34,33 @@
 struct gnutella_node;
 
 /*
+ * Pong metadata that we try to preserve when present.
+ */
+typedef struct pong_meta {
+	guchar vendor[4];		/* Vendor code, from GGEP "VC" */
+	guchar language[2];		/* Node's preferred language, from GGEP "LOC" */
+	guchar country[2];		/* Node's country, from GGEP "LOC" */
+	guint8 guess;			/* Node supports GUESS, from GGEP "GUE" */
+	guint32 daily_uptime;	/* Node's daily uptime, from GGEP "DU" */
+	guint8 up_slots;		/* Free UP slots, from GGEP "UP" */
+	guint8 leaf_slots;		/* Free leaf slots, from GGEP "UP" */
+	guint8 version_up;		/* Ultrapeer version protocol, from GGEP "UP" */
+	guint8 version_ua;		/* Servent version, from GGEP "VC" */
+	guint8 flags;			/* Validation flags */
+} pong_meta_t;
+
+#define PONG_META_HAS_VC	0x01		/* The "VC" fields are valid */
+#define PONG_META_HAS_GUE	0x02		/* The "GUE" fields are valid */
+#define PONG_META_HAS_UP	0x04		/* The "UP" fields are valid */
+#define PONG_META_HAS_LOC	0x08		/* The "LOC" fields are valid */
+#define PONG_META_HAS_DU	0x10		/* The "DU" fields are valid */
+
+/*
  * Global Functions
  */
 
-struct gnutella_msg_init *build_ping_msg(const gchar *muid, guint8 ttl);
-struct gnutella_msg_init_response *build_pong_msg(
-	guint8 hops, guint8 ttl, const gchar *muid,
-	guint32 ip, guint16 port, guint32 files, guint32 kbytes);
+struct gnutella_msg_init *build_ping_msg(
+	const gchar *muid, guint8 ttl, guint32 *size);
 
 /*
  * Public interface.
