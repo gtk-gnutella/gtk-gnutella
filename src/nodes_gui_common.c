@@ -248,13 +248,13 @@ const gchar *nodes_gui_common_status_str(
  * Display a summary of the node flags:
  *
  *    012345678 (offset)
- *    NIrwqTRPFh
+ *    NIrwqxZPFh
  *    ^^^^^^^^^^
  *    |||||||||+ hops flow triggerd (h), or total query flow control (f)
  *    ||||||||+  flow control (F), or pending data in queue (d)
  *    |||||||+   indicates whether we're a push proxy (P) / node is proxy (p)
- *    ||||||+    indicates whether RX is compressed
- *    |||||+     indicates whether TX is compressed
+ *    ||||||+    indicates whether Rx, Tx or both (Z) are compressed
+ *    |||||+     indicates whether we sent our last-hop QRT to remote UP
  *    ||||+      indicates whether we sent/received a QRT, or send/receive one
  *    |||+       indicates whether node is writable
  *    ||+        indicates whether node is readable
@@ -285,8 +285,17 @@ const gchar *nodes_gui_common_flags_str(const gnet_node_flags_t *flags)
 		default:									status[4] = '-';
 	}
 
-	status[5] = flags->tx_compressed ? 'T' : '-';
-	status[6] = flags->rx_compressed ? 'R' : '-';
+	switch (flags->uqrt_state) {
+		case QRT_S_SENT:		status[5] = 'X'; break;
+		case QRT_S_SENDING:		status[5] = 'x'; break;
+		case QRT_S_PATCHING:	status[5] = 'p'; break;
+		default:				status[5] = '-';
+	}
+
+	status[6] = 
+		flags->tx_compressed && flags->rx_compressed ? 'Z' :
+		flags->tx_compressed ? 'T' :
+		flags->rx_compressed ? 'R' : '-';
 
 	if (flags->is_push_proxied)  status[7] = 'P';
 	else if (flags->is_proxying) status[7] = 'p';
