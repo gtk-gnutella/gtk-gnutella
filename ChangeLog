@@ -1,11 +1,23 @@
 # since last version
 
+- (2004.04.11 - RAM)
+ * Renamed parq_is_banned_source() into parq_banned_source_expire() and
+   have it return the expiration date of the banning.
+ * When GTKG rejects an upload with "403 ... removed from PARQ", it will
+   include a Retry-After header to indicate the banning limit, since
+   further requests from the host will be back-holed.
+ * When downloading, treat GTKG's "403 ... removed from PARQ" specially,
+   looking for a possible Retry-After to know when retrying will be possible.
+
 - (2004.04.11 - Hans)
  * [Gtk1] [Gtk2] Fileinfo pane now contains a visual indication of the
    download progress for the selected file.
 	
 - (2004.04.10 - RAM)
  * Will now parse up to 150 hosts in hostfile replies.
+ * Change webcache everytime we want to perform an action, in case we
+   hit a bad cache that ignores our updates silently or replies with
+   bad (static!) data.
 
 - (2004.04.07 - RAM)
  * Added my own web cache, now that I run GhostWhiteCrab/0.1.
