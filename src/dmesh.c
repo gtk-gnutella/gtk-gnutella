@@ -331,11 +331,13 @@ ok:
 		/*
 		 * Verify we're right on the "/N2R?" part, i.e. that we're facing
 		 * an URL with an urn query, and not a get with an index.
-		 * Should they send us a "/get/0/name.txt", we refuse it.
+		 *
+		 * Should they send us a "/get/4294967295/name.txt", we refuse it.
+		  (4294967295 is URN_INDEX in decimal).
 		 */
 
 		if (0 != strncmp(file, "/N2R?", 5))
-			return FALSE;					/* Index 0 is our mark */
+			return FALSE;					/* Index 0xffffffff is our mark */
 		file += 5;							/* Skip "/N2R?" */
 	} else {
 		guchar c;
@@ -703,9 +705,9 @@ gboolean dmesh_add(guchar *sha1,
 	dmesh_urlinfo_t info;
 
 	/*
-	 * Translate the supplied arguments: if idx is 0, then `name' is the
-	 * filename but we must use the urn:sha1 instead, as 0 is our mark
-	 * to indicate an /uri-res/N2R? URL.
+	 * Translate the supplied arguments: if idx is URN_INDEX, then `name'
+	 * is the filename but we must use the urn:sha1 instead, as URN_INDEX
+	 * is our mark to indicate an /uri-res/N2R? URL (with an urn:sha1).
 	 */
 
 	dmesh_fill_info(&info, sha1, ip, port, idx, name);
@@ -1171,12 +1173,39 @@ void dmesh_collect_locations(guchar *sha1, guchar *value)
 			stamp = 0;
 
 		/*
+		 * If we have a /uri-res/N2R?urn:sha1, make sure it's matching
+		 * the SHA1 of the entry for which we're keeping those alternate
+		 * locations.
+		 */
+
+		if (info.idx == URN_INDEX) {
+			guchar digest[SHA1_RAW_SIZE];
+
+			ok = huge_extract_sha1(info.name, digest);
+			if (!ok) {
+				g_warning("malformed /uri-res/N2R? Alternate-Location: %s",
+					info.name);
+				goto skip_add;
+			}
+
+			ok = sha1_eq(sha1, digest);
+			if (!ok) {
+				g_warning("mismatch in /uri-res/N2R? Alternate-Location "
+					"for SHA1=%s: got %s", sha1_base32(sha1), info.name);
+				goto skip_add;
+			}
+
+			/* FALL THROUGH */
+		}
+
+		/*
 		 * Enter URL into mesh.
 		 */
 
 		ok = dmesh_raw_add(
 			sha1, info.ip, info.port, info.idx, info.name, stamp);
 
+	skip_add:
 		if (dbg > 4)
 			printf("MESH %s: %s \"%s\", stamp=%u age=%u\n",
 				sha1_base32(sha1),
