@@ -134,7 +134,7 @@ typedef void (*http_user_free_t)(gpointer data);
  */
 
 typedef gint (*http_op_request_t)(gpointer handle, gchar *buf, gint len,
-	gchar *verb, gchar *path, gchar *host);
+	gchar *verb, gchar *path, gchar *host, guint16 port);
 
 /*
  * Asynchronous request error codes.
@@ -171,6 +171,7 @@ typedef enum {
 	HTTP_URL_BAD_PORT_PARSING,			/* Could not parse port */
 	HTTP_URL_BAD_PORT_RANGE,			/* Port value is out of range */
 	HTTP_URL_HOSTNAME_UNKNOWN,			/* Could not resolve host into IP */
+	HTTP_URL_MISSING_URI,				/* URL has no URI part */
 } http_url_error_t;
 
 extern http_url_error_t http_url_errno;
