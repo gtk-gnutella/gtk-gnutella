@@ -1,5 +1,17 @@
 # since last version
 
+- (2003.05.18 - RAM)
+ * Added the @INTLLIBS@ macro in the linking flags for I18N
+   [From Christian Biere].
+ * Reset some fields to NULL in download_remove().
+ * Must ignore downloads marked as GTA_DL_REMOVED when iterating on the
+   download list.
+ * Don't call download_free_removed() from fi_purge().  That call must be
+   done asynchronously.
+ * Changed status type in uploads to upload_stage_t.
+ * Don't send the PARQ ID on 2xx for HEAD replies and follow-up requests.
+ * Added extra pre-condition to fi_purge().
+
 - (2003.05.17 - RAM)
  * Doubled half period for remote flow control computations to 5 minutes.
  * Don't requeue actively queued downloads or connecting ones when the
@@ -21,6 +33,10 @@
  * Plugged call to parq_upload_add_header_id() to send queue ID on 2xx replies.
  * Renamed upload_push_conf() as upload_connect_conf().
  * Added call to parq_download_parse_queue_status() even on 2xx replies.
+ * Call parq_upload_add_header_id() before upload_http_status() to avoid
+   lacking room in the headers if alternate locations are present.
+ * Remember when a PARQ id was sent, to avoid sending one back on 2xx replies.
+ * Fixed assert failure in ban_force() when only 1 fd is used for banning.
 
 - (2003.05.16 - RAM)
  * Limit clock skew to one day maximum: avoid badly synchronized remote clocks
