@@ -34,7 +34,7 @@
 #include "callbacks.h"
 #include "share_gui.h"
 #include "gui.h"
-#include "search.h"
+#include "search_gui.h"
 #include "share.h"
 #include "sockets.h"
 #include "hosts.h"
@@ -1373,7 +1373,7 @@ void on_button_search_clicked(GtkButton *button, gpointer user_data)
         default_filter = (filter_t *)option_menu_get_selected_data
             (lookup_widget(main_window, "optionmenu_search_filter"));
 
-		search = search_new(e, minimum_speed);
+		search = search_gui_new_search(e, minimum_speed, 0);
 
         /*
          * If we should set a default filter, we do that.
@@ -1420,12 +1420,12 @@ void on_entry_search_changed(GtkEditable * editable, gpointer user_data)
 void on_button_search_close_clicked(GtkButton * button, gpointer user_data)
 {
     if (current_search != NULL)
-        search_close(current_search);
+        search_gui_close_search(current_search);
 }
 
 void on_button_search_download_clicked(GtkButton * button, gpointer user_data)
 {
-    search_download_files();
+    search_gui_download_files();
 }
 
 
@@ -1491,7 +1491,7 @@ void on_popup_monitor_add_search_activate (GtkMenuItem *menuitem,
 
 		g_strstrip(e);
 		if (*e)
-			search_new(e, minimum_speed);
+			search_gui_new_search(e, minimum_speed, 0);
 
 		g_free(e);
 	}	
@@ -1780,7 +1780,7 @@ void on_button_search_passive_clicked(GtkButton * button,
         option_menu_get_selected_data
             (lookup_widget(main_window, "optionmenu_search_filter"));
 
-	search = search_new_passive("Passive", minimum_speed);
+	search = search_gui_new_search("Passive", minimum_speed, SEARCH_PASSIVE);
 
     /*
      * If we should set a default filter, we do that.
@@ -2299,7 +2299,7 @@ void on_popup_search_close_activate(GtkMenuItem * menuitem,
 									gpointer user_data)
 {
 	if (current_search != NULL)
-		search_close(current_search);
+		search_gui_close_search(current_search);
 }
 
 void on_popup_search_config_cols_activate(GtkMenuItem * menuitem,
@@ -2321,11 +2321,11 @@ void on_popup_search_config_cols_activate(GtkMenuItem * menuitem,
 #endif
 }
 
-void on_popup_search_restart_activate(GtkMenuItem * menuitem,
-									  gpointer user_data)
+void on_popup_search_restart_activate
+    (GtkMenuItem *menuitem, gpointer user_data)
 {
 	if (current_search)
-		search_restart(current_search);
+		search_gui_restart_search(current_search);
 }
 
 void on_popup_search_duplicate_activate(GtkMenuItem * menuitem,
@@ -2333,8 +2333,10 @@ void on_popup_search_duplicate_activate(GtkMenuItem * menuitem,
 {
     // FIXME: should also duplicate filters!
     // FIXME: should call search_duplicate which has to be written.
+    // FIXME: should properly duplicate passive searches.
 	if (current_search)
-		search_new(current_search->query, current_search->speed);
+		search_gui_new_search(current_search->query, 
+            search_get_minimum_speed(current_search->search_handle), 0);
 }
 
 void on_popup_search_stop_activate
@@ -2348,7 +2350,7 @@ void on_popup_search_stop_activate
             (lookup_widget(popup_search, "popup_search_stop"), FALSE);
 		gtk_widget_set_sensitive
             (lookup_widget(popup_search, "popup_search_resume"), TRUE);
-		search_stop(current_search);
+		search_stop(current_search->search_handle);
         gtk_clist_set_foreground(
             clist_search,
             gtk_notebook_get_current_page
@@ -2367,7 +2369,7 @@ void on_popup_search_resume_activate(GtkMenuItem * menuitem,
             (lookup_widget(popup_search, "popup_search_stop"), TRUE);
 		gtk_widget_set_sensitive
             (lookup_widget(popup_search, "popup_search_resume"), FALSE);
-		search_resume(current_search);
+		search_start(current_search->search_handle);
 
         gtk_clist_set_foreground(
             GTK_CLIST(lookup_widget(main_window, "clist_search")),
@@ -2385,7 +2387,7 @@ gboolean on_clist_search_results_key_press_event
 
     switch(event->keyval) {
     case GDK_Return:
-        search_download_files();
+        search_gui_download_files();
         return TRUE;
     default:
         return FALSE;
@@ -2424,7 +2426,7 @@ gboolean on_clist_search_results_button_press_event
 					 * correctly.
 					 */
 					gtk_clist_select_row(GTK_CLIST(widget), row, column);
-					search_download_files();
+					search_gui_download_files();
 
                     return TRUE;
 				}
@@ -2475,14 +2477,10 @@ gboolean on_clist_search_results_button_press_event
 		if (current_search) {
 			gtk_widget_set_sensitive(
                 lookup_widget(popup_search, "popup_search_stop"), 
-				current_search->passive ?
-					!current_search->frozen :
-					current_search->reissue_timeout);
+				!search_is_frozen(current_search->search_handle));
 			gtk_widget_set_sensitive(
                 lookup_widget(popup_search, "popup_search_resume"),
-				current_search->passive ?
-					current_search->frozen :
-					!current_search->reissue_timeout);
+				search_is_frozen(current_search->search_handle));
 			if (current_search->passive)
 				gtk_widget_set_sensitive(
                     lookup_widget(popup_search, "popup_search_restart"), 
