@@ -589,9 +589,11 @@ oob_shutdown(void)
 {
 	g_hash_table_foreach(results_by_muid, free_oob_kv, NULL);
 	g_hash_table_destroy(results_by_muid);
+	results_by_muid = NULL;
 
 	g_hash_table_foreach(servent_by_host, free_servent_kv, NULL);
 	g_hash_table_destroy(servent_by_host);
+	servent_by_host = NULL;
 }
 
 /**
