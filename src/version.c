@@ -518,9 +518,9 @@ void version_init(void)
 	}
 
 	gm_snprintf(buf, sizeof(buf),
-		"gtk-gnutella/%s (%s; %s; %s %s %s)",
+		"gtk-gnutella/%s (%s; %s; %s %s)",
 		GTA_VERSION_NUMBER, GTA_RELEASE, GTA_INTERFACE,
-		un.sysname, un.release, un.machine);
+		un.sysname, un.machine);
 
 	version_string = atom_str_get(buf);
 	ok = version_parse(version_string, &our_version);
