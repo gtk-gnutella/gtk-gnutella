@@ -1,0 +1,94 @@
+DEBUGGING GTK-GNUTELLA
+$Id$
+
+1. INTRO
+========
+
+This document gives some information on debugging gtk-gnutella and on
+finding potential bugs, focusing on the particulars of gtk-gnutella.
+
+
+
+2. Using GDB on GTKG
+====================
+
+Using GDB on GTKG works fine in general, but there is one thing to
+keep in mind. The SIGPIPE signal is used within GTKG to determine if a
+connection was lost, so gdb should be instructed not to stop on this
+signal.
+
+    (gdb) handle SIGPIPE nostop noprint
+
+
+
+3. A short primer on memory allocation in GTKG
+==============================================
+
+GTKG uses three different ways to allocate memory.
+
+malloc() is the most general way to allocate memory. It is actually a
+wrapper around g_malloc(). It should be used in particular when you
+don't know or can't know the size of what is going to be freed.
+
+zalloc() is a zone allocator. This should only be used when you are
+planning to allocate and free many objects of the exact same size. 
+
+walloc() is a wrapper around zalloc(). It will call zalloc() on
+privately managed zones is the block is small, and use malloc()
+otherwise. To avoid memory fragmentation it is best to use walloc()
+whenever possible.
+
+
+
+4. Using GTKG-specific memory allocation tracking
+=================================================
+
+GTKG comes with specific memory allocation tracking code which is not
+enabled by default. This code can be enabled by adding the right
+defines to CFLAGS. Make sure to do a 'make clean' after adding them so
+that all GTKG code is compiled with the same set of debugging
+instructions. Otherwise the debugging code will report weird results.
+
+The defines which can be used are:
+
+    TRACK_MALLOC
+        Track allocations made by malloc() and provide a report on
+        memory not freed at the end of program execution. Memory freed
+        twice is reported during program execution.
+
+    TRACK_ZALLOC
+		Track allocations made by zalloc() and provide a report on
+		memory not freed at the end of program execution. Memory freed
+		twice is reported during program execution.
+
+    * note that there is no TRACK_WALLOC because walloc() is a wrapper
+      around both malloc() and zalloc() so all memory allocation with
+      walloc() will be caught with TRACK_MALLOC and either
+      TRACK_ZALLOC or REMAP_ZALLOC.
+
+    TRACK_ATOMS
+        Track the allocation of Atoms used in GTKG. Some values, such
+        as user agent strings, will be used multiple times in
+        GTKG. GTKG uses Atoms for such values so that the actual
+        string or value is only allocated once. Atoms with non-zero
+        life counts are reported at the end of program execution.
+
+    ZONE_SAFE
+        This define allocates more memory when using zone allocations
+        so that the used status can be tracked and double free's can
+        be detected. 
+
+		ZONE_SAFE is automatically turned on when TRACK_ZALLOC is
+		used. When tracking some additional memory is used to track
+		the file and line information as well.
+
+    REMAP_ZALLOC
+        Cause both zalloc and walloc calls to actually use g_malloc. This
+        has the benefit that g_malloc memory allocation tracking can be
+        used for all memory allocations. This is useful if you want to
+        use something like dmalloc to do memory allocation
+        debugging. See http://dmalloc.com/ for more details.
+
+        It does make much sense to use REMAP_ZALLOC together with the
+        TRACK_* defines.
+
