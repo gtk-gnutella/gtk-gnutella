@@ -1,5 +1,25 @@
 # since last version
 
+- (2003.12.26 - RAM)
+ * Don't send QUEUE callbacks for entries we no longer share [Patch from
+   Hans de Graaff].
+ * Changed min/max values for Gnutella message sizes now that they can be
+   configured from the GUI.
+ * Introduced many new GUI properties:
+   . node_show_uptime
+   . node_show_handshake_version
+   . node_show_detailed_info
+   . show_gnet_info_XXX [15 of them]
+ * [GTK1] Added ability to configure Gnutella message sizes in expert mode,
+   as well as the ability to customize some of the columns and info display
+   in the gnutellaNet pane.
+ * Use dynamic configuration to generate the node "Info" column display.
+ * Added symbolic constants to refer to node columns.
+ * Optimize GUI refreshing of nodes and uploads to only perform it when
+   the GUI displays the node or upload page.
+ * Integrated bugfix in random chunk shuffling for PFSP [From Hans de Graaff].
+ * Applied patch to introduce tree-view for downloads [From Emile le Vivre].
+
 - (2003.12.25 - Richard)
  * Increased similarity between gtk1 and gtk2 interfaces.
  * [Gtk1] [Gtk2] More padding fixes.
@@ -14,6 +34,19 @@
    now uses ~/gtkrc for gtk1 and ~/.gtkrc-2.0 for gtkg. This is correct 
    on my Debian system and hopefully also on other systems. (Analogous for
    the rc files in the gtkg config dir.)
+
+- (2003.12.24 - RAM)
+ * Transferred bytes are now shown in short size form, followed by the
+   verbatim value between parenthesis.
+ * Added a short_size64() routine for 64-bit values.
+ * Don't call bsched_clear_active() too often: only once per period.
+ * PARQ will now guard a slot for 45 seconds after a remote disconnect.
+ * Special handling for stalled uploads being replaced in parq_upload_get().
+ * Enforce the maximum uploads per IP after PARQ, since it seems there is
+   a race condition somewhere.
+ * [GTK2] Fix from Russell Francis putting back socket RX buffer size
+   selection into an "expert" frame.
+ * Treat all input exceptions during download as an EOF condition.
 
 - (2003.12.24 - Richard)
  * [Gtk2] Changed lots of paddings and spacings so they are more uniform.
@@ -33,6 +66,13 @@
    when not in ultrapeer mode (default: on).
  * [Gtk1] Fix sidebar resizing when traffic stats are hidden (a hack, but 
    it seems to work)
+
+- (2003.12.21 - RAM)
+ * Don't update drop statistics on high TTL when running as a leaf node and
+   don't bother running through the routing computation for forwarding
+   a message since leaf nodes will never actually route messages.
+ * Don't queue up a new query message in the queue if we already have an
+   unsent message in the queue originating from the same search.
 
 - (2003.12.20 - RAM)
  * PARQ will no longer send QUEUE when uploads are disabled.
