@@ -235,7 +235,7 @@
       <class>GtkHBox</class>
       <name>hbox_main</name>
       <homogeneous>False</homogeneous>
-      <spacing>3</spacing>
+      <spacing>0</spacing>
       <child>
 	<padding>0</padding>
 	<expand>True</expand>
@@ -1920,7 +1920,7 @@
 		    <handler>on_button_ul_stats_clear_deleted_clicked</handler>
 		    <last_modification_time>Thu, 07 Mar 2002 22:10:52 GMT</last_modification_time>
 		  </signal>
-		  <label>Clear onexistant files</label>
+		  <label>Clear nonexistant files</label>
 		  <relief>GTK_RELIEF_NORMAL</relief>
 		  <child>
 		    <padding>0</padding>
@@ -3926,22 +3926,34 @@
 		  <spacing>2</spacing>
 
 		  <widget>
-		    <class>GtkCheckButton</class>
-		    <name>checkbutton_config_proxy_connections</name>
-		    <can_focus>True</can_focus>
-		    <signal>
-		      <name>toggled</name>
-		      <handler>on_checkbutton_config_proxy_connections_toggled</handler>
-		      <last_modification_time>Fri, 29 Mar 2002 18:22:42 GMT</last_modification_time>
-		    </signal>
-		    <label>Use proxy to connect to the internet</label>
-		    <active>False</active>
-		    <draw_indicator>True</draw_indicator>
+		    <class>GtkHBox</class>
+		    <name>hbox87</name>
+		    <homogeneous>False</homogeneous>
+		    <spacing>0</spacing>
 		    <child>
 		      <padding>0</padding>
 		      <expand>False</expand>
 		      <fill>False</fill>
 		    </child>
+
+		    <widget>
+		      <class>GtkCheckButton</class>
+		      <name>checkbutton_config_proxy_connections</name>
+		      <can_focus>True</can_focus>
+		      <signal>
+			<name>toggled</name>
+			<handler>on_checkbutton_config_proxy_connections_toggled</handler>
+			<last_modification_time>Fri, 29 Mar 2002 18:22:42 GMT</last_modification_time>
+		      </signal>
+		      <label>Use proxy to connect to the internet</label>
+		      <active>False</active>
+		      <draw_indicator>True</draw_indicator>
+		      <child>
+			<padding>0</padding>
+			<expand>False</expand>
+			<fill>False</fill>
+		      </child>
+		    </widget>
 		  </widget>
 
 		  <widget>
@@ -4139,22 +4151,34 @@
 		  </widget>
 
 		  <widget>
-		    <class>GtkCheckButton</class>
-		    <name>checkbutton_config_proxy_auth</name>
-		    <can_focus>True</can_focus>
-		    <signal>
-		      <name>toggled</name>
-		      <handler>on_checkbutton_config_proxy_auth_toggled</handler>
-		      <last_modification_time>Sun, 21 Apr 2002 17:32:02 GMT</last_modification_time>
-		    </signal>
-		    <label>Use username and password to authenticate to proxy</label>
-		    <active>False</active>
-		    <draw_indicator>True</draw_indicator>
+		    <class>GtkHBox</class>
+		    <name>hbox88</name>
+		    <homogeneous>False</homogeneous>
+		    <spacing>0</spacing>
 		    <child>
 		      <padding>0</padding>
 		      <expand>False</expand>
 		      <fill>False</fill>
 		    </child>
+
+		    <widget>
+		      <class>GtkCheckButton</class>
+		      <name>checkbutton_config_proxy_auth</name>
+		      <can_focus>True</can_focus>
+		      <signal>
+			<name>toggled</name>
+			<handler>on_checkbutton_config_proxy_auth_toggled</handler>
+			<last_modification_time>Sun, 21 Apr 2002 17:32:02 GMT</last_modification_time>
+		      </signal>
+		      <label>Use username and password to authenticate to proxy</label>
+		      <active>False</active>
+		      <draw_indicator>True</draw_indicator>
+		      <child>
+			<padding>0</padding>
+			<expand>False</expand>
+			<fill>False</fill>
+		      </child>
+		    </widget>
 		  </widget>
 
 		  <widget>
@@ -4718,7 +4742,7 @@ sharing</label>
 		    <widget>
 		      <class>GtkLabel</class>
 		      <name>label125</name>
-		      <label>kBps</label>
+		      <label>K/s</label>
 		      <justify>GTK_JUSTIFY_CENTER</justify>
 		      <wrap>False</wrap>
 		      <xalign>0</xalign>
@@ -4744,7 +4768,7 @@ sharing</label>
 		    <widget>
 		      <class>GtkLabel</class>
 		      <name>label126</name>
-		      <label>kBps</label>
+		      <label>K/s</label>
 		      <justify>GTK_JUSTIFY_CENTER</justify>
 		      <wrap>False</wrap>
 		      <xalign>0</xalign>
@@ -4770,6 +4794,7 @@ sharing</label>
 		    <widget>
 		      <class>GtkSpinButton</class>
 		      <name>spinbutton_config_bps_in</name>
+		      <width>64</width>
 		      <can_focus>True</can_focus>
 		      <signal>
 			<name>activate</name>
@@ -4782,7 +4807,7 @@ sharing</label>
 			<last_modification_time>Sat, 11 May 2002 12:55:05 GMT</last_modification_time>
 		      </signal>
 		      <climb_rate>1</climb_rate>
-		      <digits>0</digits>
+		      <digits>2</digits>
 		      <numeric>True</numeric>
 		      <update_policy>GTK_UPDATE_ALWAYS</update_policy>
 		      <snap>False</snap>
@@ -4812,6 +4837,7 @@ sharing</label>
 		    <widget>
 		      <class>GtkSpinButton</class>
 		      <name>spinbutton_config_bps_out</name>
+		      <width>64</width>
 		      <can_focus>True</can_focus>
 		      <signal>
 			<name>activate</name>
@@ -4824,7 +4850,7 @@ sharing</label>
 			<last_modification_time>Sat, 11 May 2002 12:55:19 GMT</last_modification_time>
 		      </signal>
 		      <climb_rate>1</climb_rate>
-		      <digits>0</digits>
+		      <digits>2</digits>
 		      <numeric>False</numeric>
 		      <update_policy>GTK_UPDATE_ALWAYS</update_policy>
 		      <snap>False</snap>
@@ -5336,6 +5362,28 @@ options</label>
 	  <expand>True</expand>
 	  <fill>True</fill>
 	</child>
+      </widget>
+
+      <widget>
+	<class>GtkEventBox</class>
+	<name>eventbox2</name>
+	<tooltip>gtk-gnutella thinks you host is firewalled</tooltip>
+	<child>
+	  <padding>0</padding>
+	  <expand>False</expand>
+	  <fill>False</fill>
+	</child>
+
+	<widget>
+	  <class>GtkPixmap</class>
+	  <name>pixmap_firewall</name>
+	  <filename>firewall.xpm</filename>
+	  <xalign>0.5</xalign>
+	  <yalign>0.5</yalign>
+	  <xpad>0</xpad>
+	  <ypad>0</ypad>
+	  <build_insensitive>False</build_insensitive>
+	</widget>
       </widget>
 
       <widget>

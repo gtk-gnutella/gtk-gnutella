@@ -170,6 +170,7 @@ GtkWidget *sw_connections;
 GtkWidget *progressbar_connections;
 GtkWidget *entry_nodes_guid;
 GtkWidget *entry_nodes_ip;
+GtkWidget *pixmap_firewall;
 
 /* End of global widgets */
 
@@ -339,6 +340,7 @@ create_main_window (void)
   GtkObject *spinbutton_config_port_adj;
   GtkWidget *frame_proxy_settings;
   GtkWidget *vbox28;
+  GtkWidget *hbox87;
   GtkWidget *hbox59;
   GtkWidget *label90;
   GSList *socks_version_group = NULL;
@@ -346,6 +348,7 @@ create_main_window (void)
   GtkWidget *label91;
   GtkWidget *label92;
   GtkObject *spinbutton_config_proxy_port_adj;
+  GtkWidget *hbox88;
   GtkWidget *hbox61;
   GtkWidget *label93;
   GtkWidget *label94;
@@ -400,6 +403,7 @@ create_main_window (void)
   GtkWidget *label39;
   GtkWidget *label122;
   GtkWidget *label_config;
+  GtkWidget *eventbox2;
   GtkAccelGroup *accel_group;
   GtkTooltips *tooltips;
 
@@ -606,7 +610,7 @@ create_main_window (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (button_quit);
 
-  hbox_main = gtk_hbox_new (FALSE, 3);
+  hbox_main = gtk_hbox_new (FALSE, 0);
   gtk_widget_ref (hbox_main);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "hbox_main", hbox_main,
                             (GtkDestroyNotify) gtk_widget_unref);
@@ -1437,7 +1441,7 @@ create_main_window (void)
   gtk_widget_show (ul_stats_hbox2);
   gtk_box_pack_start (GTK_BOX (vbox19), ul_stats_hbox2, FALSE, TRUE, 0);
 
-  button_ul_stats_clear_deleted = gtk_button_new_with_label ("Clear onexistant files");
+  button_ul_stats_clear_deleted = gtk_button_new_with_label ("Clear nonexistant files");
   gtk_widget_ref (button_ul_stats_clear_deleted);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "button_ul_stats_clear_deleted", button_ul_stats_clear_deleted,
                             (GtkDestroyNotify) gtk_widget_unref);
@@ -2375,12 +2379,19 @@ create_main_window (void)
   gtk_container_add (GTK_CONTAINER (frame_proxy_settings), vbox28);
   gtk_container_set_border_width (GTK_CONTAINER (vbox28), 2);
 
+  hbox87 = gtk_hbox_new (FALSE, 0);
+  gtk_widget_ref (hbox87);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "hbox87", hbox87,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (hbox87);
+  gtk_box_pack_start (GTK_BOX (vbox28), hbox87, FALSE, FALSE, 0);
+
   checkbutton_config_proxy_connections = gtk_check_button_new_with_label ("Use proxy to connect to the internet");
   gtk_widget_ref (checkbutton_config_proxy_connections);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "checkbutton_config_proxy_connections", checkbutton_config_proxy_connections,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (checkbutton_config_proxy_connections);
-  gtk_box_pack_start (GTK_BOX (vbox28), checkbutton_config_proxy_connections, FALSE, FALSE, 0);
+  gtk_box_pack_start (GTK_BOX (hbox87), checkbutton_config_proxy_connections, FALSE, FALSE, 0);
 
   hbox59 = gtk_hbox_new (FALSE, 4);
   gtk_widget_ref (hbox59);
@@ -2459,12 +2470,19 @@ create_main_window (void)
   gtk_widget_set_usize (spinbutton_config_proxy_port, 64, -2);
   gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_config_proxy_port), TRUE);
 
+  hbox88 = gtk_hbox_new (FALSE, 0);
+  gtk_widget_ref (hbox88);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "hbox88", hbox88,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (hbox88);
+  gtk_box_pack_start (GTK_BOX (vbox28), hbox88, FALSE, FALSE, 0);
+
   checkbutton_config_proxy_auth = gtk_check_button_new_with_label ("Use username and password to authenticate to proxy");
   gtk_widget_ref (checkbutton_config_proxy_auth);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "checkbutton_config_proxy_auth", checkbutton_config_proxy_auth,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (checkbutton_config_proxy_auth);
-  gtk_box_pack_start (GTK_BOX (vbox28), checkbutton_config_proxy_auth, FALSE, FALSE, 0);
+  gtk_box_pack_start (GTK_BOX (hbox88), checkbutton_config_proxy_auth, FALSE, FALSE, 0);
 
   hbox61 = gtk_hbox_new (FALSE, 4);
   gtk_widget_ref (hbox61);
@@ -2737,7 +2755,7 @@ create_main_window (void)
   gtk_table_set_row_spacings (GTK_TABLE (table4), 2);
   gtk_table_set_col_spacings (GTK_TABLE (table4), 4);
 
-  label125 = gtk_label_new ("kBps");
+  label125 = gtk_label_new ("K/s");
   gtk_widget_ref (label125);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "label125", label125,
                             (GtkDestroyNotify) gtk_widget_unref);
@@ -2747,7 +2765,7 @@ create_main_window (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label125), 0, 0.5);
 
-  label126 = gtk_label_new ("kBps");
+  label126 = gtk_label_new ("K/s");
   gtk_widget_ref (label126);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "label126", label126,
                             (GtkDestroyNotify) gtk_widget_unref);
@@ -2758,7 +2776,7 @@ create_main_window (void)
   gtk_misc_set_alignment (GTK_MISC (label126), 0, 0.5);
 
   spinbutton_config_bps_in_adj = gtk_adjustment_new (1, 0, 2000, 1, 16, 16);
-  spinbutton_config_bps_in = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_bps_in_adj), 1, 0);
+  spinbutton_config_bps_in = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_bps_in_adj), 1, 2);
   gtk_widget_ref (spinbutton_config_bps_in);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "spinbutton_config_bps_in", spinbutton_config_bps_in,
                             (GtkDestroyNotify) gtk_widget_unref);
@@ -2766,10 +2784,11 @@ create_main_window (void)
   gtk_table_attach (GTK_TABLE (table4), spinbutton_config_bps_in, 1, 2, 0, 1,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
+  gtk_widget_set_usize (spinbutton_config_bps_in, 64, -2);
   gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_config_bps_in), TRUE);
 
   spinbutton_config_bps_out_adj = gtk_adjustment_new (1, 1, 2000, 1, 16, 1024);
-  spinbutton_config_bps_out = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_bps_out_adj), 1, 0);
+  spinbutton_config_bps_out = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_bps_out_adj), 1, 2);
   gtk_widget_ref (spinbutton_config_bps_out);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "spinbutton_config_bps_out", spinbutton_config_bps_out,
                             (GtkDestroyNotify) gtk_widget_unref);
@@ -2777,6 +2796,7 @@ create_main_window (void)
   gtk_table_attach (GTK_TABLE (table4), spinbutton_config_bps_out, 1, 2, 1, 2,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
+  gtk_widget_set_usize (spinbutton_config_bps_out, 64, -2);
 
   checkbutton_config_bps_in = gtk_check_button_new_with_label ("Limit bandwidth for incoming traffic to");
   gtk_widget_ref (checkbutton_config_bps_in);
@@ -2993,6 +3013,22 @@ create_main_window (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (statusbar);
   gtk_box_pack_start (GTK_BOX (hbox_statusbar), statusbar, TRUE, TRUE, 0);
+
+  eventbox2 = gtk_event_box_new ();
+  gtk_widget_ref (eventbox2);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "eventbox2", eventbox2,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (eventbox2);
+  gtk_box_pack_start (GTK_BOX (hbox_statusbar), eventbox2, FALSE, FALSE, 0);
+  gtk_tooltips_set_tip (tooltips, eventbox2, "gtk-gnutella thinks you host is firewalled", NULL);
+
+  pixmap_firewall = create_pixmap (main_window, "firewall.xpm");
+  gtk_widget_ref (pixmap_firewall);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "pixmap_firewall", pixmap_firewall,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (pixmap_firewall);
+  gtk_container_add (GTK_CONTAINER (eventbox2), pixmap_firewall);
+  gtk_pixmap_set_build_insensitive (GTK_PIXMAP (pixmap_firewall), FALSE);
 
   label_statusbar_uptime = gtk_label_new ("Uptime");
   gtk_widget_ref (label_statusbar_uptime);
