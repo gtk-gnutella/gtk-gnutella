@@ -4182,7 +4182,7 @@ static void download_sink_read(gpointer data, gint source, inputevt_cond_t cond)
 
 	g_assert(s);
 
-	if (cond & GDK_INPUT_EXCEPTION) {
+	if (cond & INPUT_EVENT_EXCEPTION) {
 		download_stop(d, GTA_DL_ERROR, "Failed (Input Exception)");
 		return;
 	}
@@ -4895,7 +4895,7 @@ static void download_read(gpointer data, gint source, inputevt_cond_t cond)
 	g_assert(s);
 	g_assert(fi);
 
-	if (cond & GDK_INPUT_EXCEPTION) {
+	if (cond & INPUT_EVENT_EXCEPTION) {
 		download_stop(d, GTA_DL_ERROR, "Failed (Input Exception)");
 		return;
 	}

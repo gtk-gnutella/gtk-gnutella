@@ -33,7 +33,6 @@
 struct iovec;
 
 #include <sys/types.h>		/* For off_t */
-#include <gdk/gdk.h>
 
 /*
  * Bandwidth scheduler.

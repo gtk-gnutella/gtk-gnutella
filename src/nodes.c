@@ -4055,7 +4055,7 @@ static void node_read_connecting(
 
 	g_assert(n->proto_major == 0 && n->proto_minor == 4);
 
-	if (cond & GDK_INPUT_EXCEPTION) {
+	if (cond & INPUT_EVENT_EXCEPTION) {
 		node_remove(n, "Failed (Input Exception)");
 		return;
 	}

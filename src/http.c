@@ -1675,7 +1675,7 @@ static void http_data_read(gpointer data, gint source, inputevt_cond_t cond)
 
 	g_assert(ha->magic == HTTP_ASYNC_MAGIC);
 
-	if (cond & GDK_INPUT_EXCEPTION) {
+	if (cond & INPUT_EVENT_EXCEPTION) {
 		http_async_error(ha, HTTP_ASYNC_IO_ERROR);
 		return;
 	}

@@ -61,7 +61,7 @@ static void is_writable(gpointer data, gint source, inputevt_cond_t cond)
 	g_assert(tx->flags & TX_SERVICE);		/* Servicing enabled */
 	g_assert(n);
 
-	if (cond & GDK_INPUT_EXCEPTION) {
+	if (cond & INPUT_EVENT_EXCEPTION) {
 		node_remove(n, "Write failed (Input Exception)");
 		return;
 	}

@@ -66,7 +66,7 @@ static void is_readable(gpointer data, gint source, inputevt_cond_t cond)
 
 	g_assert(attr->bio);			/* Input enabled */
 
-	if (cond & GDK_INPUT_EXCEPTION) {
+	if (cond & INPUT_EVENT_EXCEPTION) {
 		node_eof(n, "Read failed (Input Exception)");
 		return;
 	}

@@ -216,7 +216,7 @@ static void socket_read(gpointer data, gint source, inputevt_cond_t cond)
 
 	//s->type = 0;
 
-	if (cond & GDK_INPUT_EXCEPTION) {
+	if (cond & INPUT_EVENT_EXCEPTION) {
 		socket_destroy(s, "Input exception");
 		return;
 	}
@@ -392,7 +392,7 @@ static void socket_connected(gpointer data, gint source, inputevt_cond_t cond)
 
 	struct gnutella_socket *s = (struct gnutella_socket *) data;
 
-	if (cond & GDK_INPUT_EXCEPTION) {	/* Error while connecting */
+	if (cond & INPUT_EVENT_EXCEPTION) {	/* Error while connecting */
 		if (s->type == SOCK_TYPE_DOWNLOAD && s->resource.download)
 			download_fallback_to_push(s->resource.download, FALSE, FALSE);
 		else
@@ -400,7 +400,7 @@ static void socket_connected(gpointer data, gint source, inputevt_cond_t cond)
 		return;
 	}
 
-	if (cond & GDK_INPUT_READ) {
+	if (cond & INPUT_EVENT_READ) {
 		if (
 			proxy_protocol != PROXY_NONE
 			&& s->direction == SOCK_CONN_PROXY_OUTGOING
@@ -473,7 +473,7 @@ static void socket_connected(gpointer data, gint source, inputevt_cond_t cond)
 		}
 	}
 
-	if (cond & GDK_INPUT_WRITE) {
+	if (cond & INPUT_EVENT_WRITE) {
 		/* We are just connected to our partner */
 		gint res, option, size = sizeof(gint);
 
@@ -641,7 +641,7 @@ static void socket_accept(gpointer data, gint source,
 	struct gnutella_socket *s = (struct gnutella_socket *) data;
 	struct gnutella_socket *t = NULL;
 
-	if (cond & GDK_INPUT_EXCEPTION) {
+	if (cond & INPUT_EVENT_EXCEPTION) {
 		g_warning("Input Exception for listening socket #%d !!!!\n",
 				  s->file_desc);
 		gtk_gnutella_exit(2);
@@ -652,7 +652,7 @@ static void socket_accept(gpointer data, gint source,
 	case SOCK_TYPE_CONTROL:
 		break;
 	default:
-		g_warning("socket_accept(): Unknown listning socket type %d !\n",
+		g_warning("socket_accept(): Unknown listening socket type %d !\n",
 				  s->type);
 		socket_destroy(s, NULL);
 		return;

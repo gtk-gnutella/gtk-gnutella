@@ -29,9 +29,9 @@
 
 #include <string.h>
 #include <errno.h>
-#include <gdk/gdk.h>
 
 #include "ioheader.h"
+#include "inputevt.h"
 #include "header.h"
 #include "sockets.h"
 #include "bsched.h"
@@ -300,7 +300,7 @@ static void io_read_data(
 
 	g_assert(s->gdk_tag);			/* I/O callback still registered */
 
-	if (cond & GDK_INPUT_EXCEPTION) {
+	if (cond & INPUT_EVENT_EXCEPTION) {
 		(*ih->error->input_exception)(ih->resource);
 		return;
 	}

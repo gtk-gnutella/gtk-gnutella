@@ -25,8 +25,7 @@
 
 #include "gnutella.h"
 
-#include <gdk/gdk.h>
-
+#include "inputevt.h"
 #include "shell.h"
 #include "sockets.h"
 #include "settings.h"
@@ -546,15 +545,15 @@ static void shell_handle_data(
 
     g_assert(sh);
 
-	if (cond & GDK_INPUT_EXCEPTION) {
+	if (cond & INPUT_EVENT_EXCEPTION) {
 		shell_destroy(sh);
 		return;
 	}
 
-    if (cond & GDK_INPUT_WRITE && IS_PROCESSING(sh))
+    if (cond & INPUT_EVENT_WRITE && IS_PROCESSING(sh))
         shell_write_data(sh);
 
-    if (cond & GDK_INPUT_READ)
+    if (cond & INPUT_EVENT_READ)
         shell_read_data(sh);
 }
 
@@ -705,7 +704,7 @@ void shell_add(struct gnutella_socket *s)
     
     g_assert(s->gdk_tag == 0);
     s->gdk_tag = inputevt_add(s->file_desc,
-        GDK_INPUT_READ | GDK_INPUT_EXCEPTION,
+        INPUT_EVENT_READ | INPUT_EVENT_EXCEPTION,
 		shell_handle_data, (gpointer) sh);
 
     sl_shells = g_slist_prepend(sl_shells, sh);
