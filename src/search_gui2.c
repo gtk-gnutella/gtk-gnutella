@@ -1557,6 +1557,7 @@ void search_gui_end_massive_update(search_t *sch)
     gui_search_force_update_tab_label(sch, time(NULL));
 	gtk_tree_view_set_model(GTK_TREE_VIEW(sch->tree_view),
 		GTK_TREE_MODEL(sch->model));
+	g_object_unref(GTK_TREE_MODEL(sch->model));
 }
 
 
