@@ -79,7 +79,7 @@ static gpointer incoming_ev = NULL;		/* Callout queue timer */
  * longer connected.
  */
 
-#define OUTGOING_WINDOW		300			/* Outgoing monitoring window */
+#define OUTGOING_WINDOW		150			/* Outgoing monitoring window */
 
 static guint32 outgoing_connected = 0;	/* Successful connections in period */
 static gpointer outgoing_ev = NULL;		/* Callout queue timer */
