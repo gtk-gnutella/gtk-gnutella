@@ -31,6 +31,7 @@
 
 #include "inet.h"
 #include "settings.h"
+#include "bsched.h"
 
 extern cqueue_t *callout_queue;
 
@@ -264,9 +265,25 @@ static void inet_set_is_connected(gboolean val)
  */
 static void check_outgoing_connection(cqueue_t *cq, gpointer obj)
 {
+	guint32 last_received;
+
 	outgoing_ev = NULL;
 
-	if (outgoing_connected == 0)		/* No success over the period */
+	/*
+	 * If we received data during last second, then we're not really
+	 * disconnected.
+	 */
+
+	last_received = 0;
+
+	if (bws.in)  last_received += bsched_bps(bws.in);
+	if (bws.gin) last_received += bsched_bps(bws.gin);
+
+
+	if (
+		outgoing_connected == 0	&&		/* No success over the period */
+		last_received == 0				/* And no data received last second */
+	)
 		inet_set_is_connected(FALSE);
 
 	outgoing_connected = 0;
