@@ -212,7 +212,7 @@ static gint ext_ggep_parse(
 			if (((b & GGEP_L_XFLAGS) == GGEP_L_XFLAGS) || !(b & GGEP_L_XFLAGS))
 				goto out;
 
-			data_length = (data_length << 6) | (b & GGEP_L_VALUE);
+			data_length = (data_length << GGEP_L_VSHIFT) | (b & GGEP_L_VALUE);
 
 			if (b & GGEP_L_LAST) {
 				length_ended = TRUE;
@@ -520,6 +520,44 @@ static gint ext_none_parse(guchar **retp, gint len, extvec_t *exv, gint exvcnt)
 }
 
 /*
+ * ext_merge_adjacent
+ *
+ * Merge two consecutive extensions `exv' and `next' into one big happy
+ * extension, in `exv'.   The resulting extension type is that of `exv'.
+ */
+static void ext_merge_adjacent(extvec_t *exv, extvec_t *next)
+{
+	guchar *end;
+	guchar *nend;
+	guchar *nbase;
+	guint16 added;
+
+	end = exv->ext_payload + exv->ext_paylen;
+	nbase = ext_base(next);
+	nend = next->ext_payload + next->ext_paylen;
+
+	g_assert(nbase + next->ext_len == nend);
+	g_assert(nend > end);
+
+	/*
+	 * Extensions are adjacent, but can be separated by a single NUL or other
+	 * one byte separator.
+	 */
+
+	g_assert(nbase == end || nbase == (end + 1));
+
+	added = nend - end;			/* Includes any separator between the two */
+
+	/*
+	 * By incrementing the total length and the payload length of `exv',
+	 * we catenate `next' at the tail of `exv'.
+	 */
+
+	exv->ext_len += added;
+	exv->ext_paylen += added;
+}
+
+/*
  * ext_parse
  *
  * Parse extension block of `len' bytes starting at `buf' and fill the
@@ -608,11 +646,27 @@ gint ext_parse(guchar *buf, gint len, extvec_t *exv, gint exvcnt)
 		g_assert(found <= exvcnt);
 		g_assert(p != old_p);
 
+		len -= p - old_p;
+
+		/*
+		 * If we found an "unknown" or "none" extension, and the previous
+		 * extension was "unknown", merge them.  The result will be "unknown".
+		 */
+
+		if (
+			found == 1 && cnt > 0 &&
+			(exv->ext_type == EXT_UNKNOWN || exv->ext_type == EXT_NONE)
+		) {
+			extvec_t *prev = exv - 1;
+			if (prev->ext_type == EXT_UNKNOWN) {
+				ext_merge_adjacent(prev, exv);
+				continue;					/* Don't move `exv' */
+			}
+		}
+
 		exv += found;
 		exvcnt -= found;
 		cnt += found;
-
-		len -= p - old_p;
 	}
 
 out:
