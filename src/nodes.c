@@ -90,6 +90,9 @@ RCSID("$Id$");
 
 #define NODE_MIN_UPTIME			3600	/* Minumum uptime to become an UP */
 #define NODE_MIN_AVG_UPTIME		10800	/* Average uptime to become an UP */
+#define NODE_AVG_LEAF_MEM		262144	/* Average memory used by leaf */
+#define NODE_CASUAL_FD			10		/* # of fds we might use casually */
+#define NODE_AUTO_SWITCH_MIN	1800	/* Don't switch too often UP <-> leaf */
 
 GSList *sl_nodes = (GSList *) NULL;
 
@@ -298,12 +301,39 @@ static void node_extract_host(
 }
 
 /*
+ * can_become_ultra
+ *
+ * Check the Ultrapeer requirements, returning TRUE if we can become an UP.
+ */
+static gboolean can_become_ultra(time_t now)
+{
+	return
+		/* Uptime requirements */
+		average_servent_uptime >= NODE_MIN_AVG_UPTIME &&
+		average_ip_uptime >= NODE_MIN_AVG_UPTIME &&
+		now - start_stamp > NODE_MIN_UPTIME &&
+
+		/* Connectivity requirements */
+		!is_firewalled &&
+
+		/* System requirements */
+		(max_leaves + max_connections + max_uploads + max_downloads
+			+ max_banned_fd + NODE_CASUAL_FD) < sys_nofile &&
+		(max_leaves * NODE_AVG_LEAF_MEM) < 1024 / 2 * sys_physmem &&
+
+		/* Bandwidth requirements */
+		bsched_enough_up_bandwidth();
+}
+
+/*
  * node_slow_timer
  *
  * Low frequency node timer.
  */
 void node_slow_timer(time_t now)
 {
+	time_t last_switch = 0;
+
 	/*
 	 * If we're in "auto" mode and we're still running as a leaf node,
 	 * evaluate our ability to become an ultra node.
@@ -312,14 +342,29 @@ void node_slow_timer(time_t now)
 	if (
 		configured_peermode == NODE_P_AUTO &&
 		current_peermode == NODE_P_LEAF &&
-		average_servent_uptime >= NODE_MIN_AVG_UPTIME &&
-		average_ip_uptime >= NODE_MIN_AVG_UPTIME &&
-		now - start_stamp > NODE_MIN_UPTIME &&
-		!is_firewalled
-		/* XXX add bandwidth requirements */
+		now - last_switch > NODE_AUTO_SWITCH_MIN &&
+		can_become_ultra(now)
 	) {
 		g_warning("being promoted to Ultrapeer status");
 		gnet_prop_set_guint32_val(PROP_CURRENT_PEERMODE, NODE_P_ULTRA);
+		last_switch = now;
+	}
+
+	/*
+	 * If we're in "auto" mode and we've been promoted to an ultra node,
+	 * evaluate how good we are and whether we would not be better off
+	 * running as a leaf node.
+	 */
+
+	if (
+		configured_peermode == NODE_P_AUTO &&
+		current_peermode == NODE_P_ULTRA &&
+		now - last_switch > NODE_AUTO_SWITCH_MIN &&
+		!can_become_ultra(now)
+	) {
+		g_warning("being demoted from Ultrapeer status");
+		gnet_prop_set_guint32_val(PROP_CURRENT_PEERMODE, NODE_P_LEAF);
+		last_switch = now;
 	}
 }
 
@@ -2903,7 +2948,7 @@ static void node_process_handshake_header(
 					mode_changed = TRUE;
 					gnet_prop_set_guint32_val(PROP_CURRENT_PEERMODE,
 						NODE_P_LEAF);
-				} else if (dbg > 2)
+				} else if (dbg > 2 && current_peermode != NODE_P_LEAF)
 					g_warning("denied request from %s <%s> to become a leaf",
 						node_ip(n), node_vendor(n));
 			}
