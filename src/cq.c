@@ -240,8 +240,13 @@ static void ev_link(cqueue_t *cq, cevent_t *ev)
 	mindist = hev->ce_time - trigger;		/* Worst distance we'll find */
 	g_assert(mindist > 0);
 
+	/*
+	 * Start the loop at i=1 and at the next index, since we've just inserted
+	 * the event as the sole item of the current bucket!
+	 */
+
 	for (
-		i = 0, hidx = idx;				/* i counts our iterations */
+		i = 1, hidx = EV_HASH(idx+1);	/* i counts our iterations */
 		mindist && i < HASH_SIZE;		/* mindist == 0 or all buckets seen */
 		i++, hidx = EV_HASH(hidx+1)		/* EV_HASH ensures we wrap around */
 	) {
