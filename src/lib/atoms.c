@@ -504,7 +504,7 @@ gpointer atom_get_track(gint type, gconstpointer key, gchar *file, gint line)
 		a->free = g_hash_table_new(g_str_hash, g_str_equal);
 	}
 
-	gm_snprintf(buf, sizeof(buf), "%s:%d", file, line);
+	gm_snprintf(buf, sizeof(buf), "%s:%d", short_filename(file), line);
 
 	if (g_hash_table_lookup_extended(a->get, buf, &k, &v)) {
 		sp = (struct spot *) v;
@@ -566,7 +566,7 @@ void atom_free_track(gint type, gconstpointer key, gchar *file, gint line)
 		destroy_tracking_table(a->get);
 		destroy_tracking_table(a->free);
 	} else {
-		gm_snprintf(buf, sizeof(buf), "%s:%d", file, line);
+		gm_snprintf(buf, sizeof(buf), "%s:%d", short_filename(file), line);
 
 		if (g_hash_table_lookup_extended(a->free, buf, &k, &v)) {
 			sp = (struct spot *) v;
