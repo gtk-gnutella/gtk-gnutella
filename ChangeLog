@@ -1,4 +1,4 @@
-# Since last version
+# v 0.16   2001.10.03
 
 - Further optimized library lookups to avoid useless matching operations
 - Added two host caches: public.bearshare.net and gnotella.fileflash.com
