@@ -115,7 +115,7 @@ struct servent {
 
 static void results_destroy(cqueue_t *cq, gpointer obj);
 static void servent_free(struct servent *s);
-static void oob_send_reply_number(struct oob_results *r);
+static void oob_send_reply_ind(struct oob_results *r);
 
 /**
  * Create new "struct oob_results" to handle the initial negotiation of
@@ -338,7 +338,7 @@ oob_deliver_hits(struct gnutella_node *n, gchar *muid, guint8 wanted)
 
 	if (r == NULL) {
 		if (query_debug)
-			printf("OOB got spurious LIME/11v2 from %s for %s, "
+			printf("OOB got spurious LIME/11 from %s for %s, "
 				"asking for %d hit%s\n",
 				node_ip(n), guid_hex_str(muid), wanted, wanted == 1 ? "" : "s");
 		return;
@@ -470,7 +470,7 @@ oob_pmsg_free(pmsg_t *mb, gpointer arg)
 			guid_hex_str(r->muid), r->notify_requeued);
 
 	if (++r->notify_requeued < OOB_MAX_RETRY)
-		oob_send_reply_number(r);
+		oob_send_reply_ind(r);
 	else
 		results_free_remove(r);
 }
@@ -479,12 +479,12 @@ oob_pmsg_free(pmsg_t *mb, gpointer arg)
  * Send them a LIME/12v2, monitoring progress in queue via a callback.
  */
 static void
-oob_send_reply_number(struct oob_results *r)
+oob_send_reply_ind(struct oob_results *r)
 {
 	pmsg_t *mb;
 	pmsg_t *emb;
 
-	mb = vmsg_build_oob_reply_number(r->muid, MIN(r->count, 255));
+	mb = vmsg_build_oob_reply_ind(r->muid, MIN(r->count, 255));
 	emb = pmsg_clone_extend(mb, oob_pmsg_free, r);
 	pmsg_free(mb);
 
@@ -525,7 +525,7 @@ oob_got_results(
 	r = results_make(n->header.muid, files, count, &to, use_ggep_h);
 	g_hash_table_insert(results_by_muid, r->muid, r);
 
-	oob_send_reply_number(r);
+	oob_send_reply_ind(r);
 }
 
 /**
