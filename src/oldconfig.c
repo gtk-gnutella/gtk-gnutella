@@ -756,14 +756,11 @@ void config_set_param(keyword_t keyword, gchar *value)
             PROP_FILTER_FILTERS_COL_WIDTHS)
 
     case k_filter_default_policy:
-        /*
-         * Due to changes in the filter code we have to map
-         * 0 to FILTER_PROP_STATE_DONT;
+        /* 
+         * Removed. This can be accomplished by adding respective rules
+         * to global post filter.
+         *     -- Richard, 28/12/2002
          */
-        if (i == 0)
-            i = FILTER_PROP_STATE_DONT;
-
-        gui_prop_set_guint32(PROP_FILTER_DEFAULT_POLICY, &i, 0, 1);
 		return;
 
     case k_guid:
