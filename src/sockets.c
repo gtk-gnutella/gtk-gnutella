@@ -401,6 +401,7 @@ static void socket_read(gpointer data, gint source, inputevt_cond_t cond)
 	guint count;
 	gint parsed;
 	gchar *first;
+	time_t banlimit;
 
 	/* s->type = 0; */
 
@@ -553,10 +554,13 @@ static void socket_read(gpointer data, gint source, inputevt_cond_t cond)
 	 * Check for PARQ banning.
 	 * 		-- JA, 29/07/2003
 	 */
+
+	banlimit = parq_banned_source_expire(s->ip);
 	 
-	if (parq_is_banned_source(s->ip)) {
+	if (banlimit > 0) {
 		if (dbg)
-			g_warning("[sockets] PARQ has banned ip %s", ip_to_gchar(s->ip));
+			g_warning("[sockets] PARQ has banned ip %s until %d",
+				ip_to_gchar(s->ip), (gint) banlimit);
 		ban_force(s);
 		goto cleanup;
 	}
