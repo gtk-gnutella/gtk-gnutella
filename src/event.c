@@ -26,6 +26,7 @@
  */
 
 #include "common.h"
+#include "walloc.h"
 
 RCSID("$Id$");
 
@@ -36,7 +37,7 @@ static inline struct subscriber *subscriber_new(
 
     g_assert(cb != NULL);
 
-    s = g_new0(struct subscriber, 1);
+    s = walloc0(sizeof(*s));
     s->cb = cb;
     s->f_type = t;
     s->f_interval = interval;
@@ -44,9 +45,7 @@ static inline struct subscriber *subscriber_new(
     return s;
 }
 
-#define subscriber_destroy(s) G_FREE_NULL(s)
-
-
+#define subscriber_destroy(s) wfree(s, sizeof(struct subscriber))
 
 inline struct event *event_new(const gchar *name)
 {
@@ -95,18 +94,21 @@ static gint cmp_subscriber_callback(struct subscriber *s, GCallback cb)
 void event_remove_subscriber(struct event *evt, GCallback cb)
 {
     GSList *sl;
+	struct subscriber *s;
 
     g_assert(evt != NULL);
     g_assert(cb != NULL);
     
     sl = g_slist_find_custom(evt->subscribers, (gpointer) cb, 
         (GCompareFunc) cmp_subscriber_callback);
+
     g_assert(sl != NULL);
-    evt->subscribers = g_slist_remove(evt->subscribers, sl->data);
-    subscriber_destroy(sl->data);
+    g_assert(sl->data != NULL);
+
+	s = sl->data;
+    evt->subscribers = g_slist_remove(evt->subscribers, s);
+	subscriber_destroy(s);
 }
-
-
 
 struct event_table *event_table_new(void) 
 {
