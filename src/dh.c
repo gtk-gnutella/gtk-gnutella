@@ -57,6 +57,7 @@ RCSID("$Id$");
  */
 typedef struct dqhit {
 	guint32 msg_recv;		/* Amount of individual messages we got */
+	guint32 msg_queued;		/* XXX # of messages queued */
 	guint32 hits_recv;		/* Total amount of results we saw */
 	guint32 hits_sent;		/* Total amount of results we sent back */
 	guint32 hits_queued;	/* Amount of hits queued */
@@ -146,7 +147,7 @@ dh_locate(gchar *muid)
 }
 
 /**
- * Create new record for query hits for speicifed MUID.
+ * Create new record for query hits for specified MUID.
  * New record is registered in the current table.
  */
 static dqhit_t *
@@ -227,8 +228,10 @@ dh_pmsg_free(pmsg_t *mb, gpointer arg)
 		goto cleanup;
 
 	g_assert(dh->hits_queued >= pmi->hits);
+	g_assert(dh->msg_queued > 0);
 
 	dh->hits_queued -= pmi->hits;
+	dh->msg_queued--;
 
 	if (pmsg_was_sent(mb))
 		dh->hits_sent += pmi->hits;
@@ -386,6 +389,11 @@ dh_route(gnutella_node_t *src, gnutella_node_t *dest, gint count)
 	pmi = walloc(sizeof(*pmi));
 	pmi->hits = count;
 
+	dh->hits_queued += count;
+	dh->msg_queued++;
+
+	g_assert(dh->hits_queued >= count);
+
 	/*
 	 * Magic: we create an extended version of a pmsg_t that contains a
 	 * free routine, which will be invoked when the message queue frees
@@ -399,7 +407,6 @@ dh_route(gnutella_node_t *src, gnutella_node_t *dest, gint count)
 		src->size + sizeof(struct gnutella_header),
 		dh_pmsg_free, pmi);
 
-	dh->hits_queued += count;
 	mq_putq(mq, mb);
 
 	if (dh_debug > 19)
@@ -411,6 +418,7 @@ dh_route(gnutella_node_t *src, gnutella_node_t *dest, gint count)
 drop_flow_control:
 	src->rx_dropped++;
 	gnet_stats_count_dropped(src, MSG_DROP_FLOW_CONTROL);
+	gnet_stats_count_flowc(&src->header);
 	return;
 	
 drop_throttle:
