@@ -49,7 +49,6 @@ typedef struct node_parser {
  * them to be public. They are only needed here. As are
  * global_ruleset_pre and global_ruleset_post.
  */
-extern gchar *rule_to_gchar(rule_t *);
 extern void dump_ruleset(GList *ruleset);
 extern void dump_filter(filter_t *filter);
 
@@ -278,7 +277,7 @@ gboolean search_retrieve_xml(void)
                 new_target = g_hash_table_lookup(id_map, rule->target);
                 if (new_target == NULL)
                     g_error("Failed to resolve rule %d in \"%s\": missing key %p",
-                        n, filter->name, rule_to_gchar(rule));
+                        n, filter->name, filter_rule_to_gchar(rule));
                 rule->target = new_target;
                 set_flags(rule->flags, RULE_FLAG_VALID);
             
@@ -631,6 +630,7 @@ static void xml_to_filter(xmlNodePtr xmlnode, gpointer user_data)
         if (dbg >= 4)
             printf("adding new filter: %s\n", name);
         filter = filter_new(name);
+        filters = g_list_append(filters, filter);
     }
 
     buf = xmlGetProp(xmlnode, PROP_FILTER_ACTIVE);
@@ -642,7 +642,6 @@ static void xml_to_filter(xmlNodePtr xmlnode, gpointer user_data)
         set_flags(filter->flags, FILTER_FLAG_ACTIVE);
     else
         clear_flags(filter->flags, FILTER_FLAG_ACTIVE);
-    
 
     buf = xmlGetProp(xmlnode, PROP_FILTER_UID);
     g_assert(buf);

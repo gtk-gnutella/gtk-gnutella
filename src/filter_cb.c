@@ -27,6 +27,7 @@
 #include "interface.h"
 #include "filter.h"
 #include "filter_cb.h"
+#include "filter_gui.h"
 
 /*
  * on_checkbutton_filter_enabled_toggled:
@@ -87,14 +88,14 @@ void on_button_filter_reset_clicked
 
 
 
-void on_ctree_filter_filters_resize_column(GtkCList * clist, gint column, 
-                                           gint width, gpointer user_data)
+void on_ctree_filter_filters_resize_column
+    (GtkCList * clist, gint column, gint width, gpointer user_data)
 {
     filter_filters_col_widths[column] = width;
 }
 
-void on_clist_filter_rules_resize_column(GtkCList * clist, gint column, 
-                                   gint width, gpointer user_data)
+void on_clist_filter_rules_resize_column
+    (GtkCList * clist, gint column, gint width, gpointer user_data)
 {
     filter_table_col_widths[column] = width;
 }
@@ -114,14 +115,15 @@ void on_clist_filter_rules_select_row(GtkCList * clist, gint row, gint column,
     r = (rule_t *) gtk_clist_get_row_data(clist, row);
     g_assert(r != NULL);
    
-    filter_edit_rule(r);
+    filter_gui_edit_rule(r);
 }
 
-void on_clist_filter_rules_unselect_row(GtkCList * clist, gint row, gint column,
-	  						            GdkEvent * event, gpointer user_data)
+void on_clist_filter_rules_unselect_row
+    (GtkCList * clist, gint row, gint column, 
+    GdkEvent * event, gpointer user_data)
 {
     if (clist->selection == NULL)
-        filter_edit_rule(NULL);
+        filter_gui_edit_rule(NULL);
 }
 
 void on_clist_filter_rules_drag_end(GtkWidget *widget, 
@@ -134,25 +136,25 @@ void on_clist_filter_rules_drag_end(GtkWidget *widget,
 void on_button_filter_add_rule_text_clicked(GtkButton *button, gpointer user_data)
 {
     gtk_clist_unselect_all(GTK_CLIST(clist_filter_rules));
-    filter_edit_text_rule(NULL);
+    filter_gui_edit_text_rule(NULL);
 }
 
 void on_button_filter_add_rule_ip_clicked(GtkButton *button, gpointer user_data)
 {
     gtk_clist_unselect_all(GTK_CLIST(clist_filter_rules));
-    filter_edit_ip_rule(NULL);
+    filter_gui_edit_ip_rule(NULL);
 }
 
 void on_button_filter_add_rule_size_clicked(GtkButton *button, gpointer user_data)
 {
     gtk_clist_unselect_all(GTK_CLIST(clist_filter_rules));
-    filter_edit_size_rule(NULL);
+    filter_gui_edit_size_rule(NULL);
 }
 
 void on_button_filter_add_rule_jump_clicked(GtkButton *button, gpointer user_data)
 {
     gtk_clist_unselect_all(GTK_CLIST(clist_filter_rules));
-    filter_edit_jump_rule(NULL);
+    filter_gui_edit_jump_rule(NULL);
 }
 
 void on_button_filter_ok_clicked(GtkButton *button, gpointer user_data)
@@ -195,9 +197,9 @@ void on_button_filter_ok_clicked(GtkButton *button, gpointer user_data)
             (gint)l->data);
         g_assert(oldrule != NULL);
         
-        filter_replace_rule(work_filter, oldrule, r);
+        filter_replace_rule_in_session(work_filter, oldrule, r);
     } else {
-        filter_append_rule(work_filter, r);   
+        filter_append_rule_to_session(work_filter, r);   
     }
 }
 
@@ -211,7 +213,7 @@ void on_button_filter_cancel_clicked(GtkButton *button, gpointer user_data)
         return;
     }
 
-    filter_edit_rule(NULL);
+    filter_gui_edit_rule(NULL);
 }
 
 void on_button_filter_clear_clicked(GtkButton *button, gpointer user_data)
@@ -225,7 +227,7 @@ void on_button_filter_clear_clicked(GtkButton *button, gpointer user_data)
 
         r = (rule_t *) gtk_clist_get_row_data(clist, 0);
        
-        filter_remove_rule(work_filter, r);
+        filter_remove_rule_from_session(work_filter, r);
     }
 
     gtk_clist_thaw(clist);
@@ -244,7 +246,7 @@ void on_button_filter_remove_rule_clicked(GtkButton *button, gpointer user_data)
     r = (rule_t *) 
         gtk_clist_get_row_data(clist, (gint)clist->selection->data);
        
-    filter_remove_rule(work_filter, r);
+    filter_remove_rule_from_session(work_filter, r);
 
     gtk_notebook_set_page
         (GTK_NOTEBOOK(notebook_filter_detail), nb_filt_page_buttons);
@@ -253,12 +255,8 @@ void on_button_filter_remove_rule_clicked(GtkButton *button, gpointer user_data)
 void on_button_filter_remove_clicked
     (GtkButton *button, gpointer user_data)
 {
-    /*
-     * filter_free removes the filter from display.
-     */
-
     if (work_filter != NULL)
-        filter_free(work_filter);
+        filter_remove_from_session(work_filter);
 }
 
 void on_entry_filter_new_activate 
@@ -270,6 +268,7 @@ void on_entry_filter_new_activate
     g_strstrip(name);
     if (*name) {
         filter = filter_new(name);
+        filter_add_to_session(filter);
         gtk_entry_set_text(GTK_ENTRY(editable), "");
         filter_set(filter);
     }
