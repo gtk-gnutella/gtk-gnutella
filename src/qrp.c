@@ -1299,7 +1299,7 @@ static void qrt_compressed(
 
 	qup->compress = NULL;
 
-	if (status != BGS_OK) {			/* Error during processing */
+	if (status == BGS_ERROR) {		/* Error during processing */
 		g_warning("could not compress query routing patch to send to %s",
 			node_ip(qup->node));
 		goto error;
