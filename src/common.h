@@ -113,7 +113,7 @@ do { \
 #define GTA_PATCHLEVEL 4
 #define GTA_REVISION "unstable"
 #define GTA_REVCHAR "u"
-#define GTA_RELEASE "14/04/2004"
+#define GTA_RELEASE "28/05/2004"
 #define GTA_WEBSITE "http://gtk-gnutella.sourceforge.net/"
 
 #if defined(USE_GTK1)
