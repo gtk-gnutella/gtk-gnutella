@@ -25,7 +25,7 @@
  *----------------------------------------------------------------------
  */
 
-#include "config.h"
+#include "common.h"
 
 #include "gnutella.h"
 #include "gui.h"
@@ -43,6 +43,17 @@ static gboolean icon_visible_fg, icon_close_fg, icon_just_mapped_fg;
 static gint leaf_cnt, norm_cnt, ultra_cnt, con_max;
 static gint up_cnt, up_max;
 static gint down_cnt, down_max;
+
+#if (GTK_MAJOR_VERSION == 2) && (GTK_MINOR_VERSION < 2)
+/* gdk_pixbuf_render_to_drawable is deprecated since GTK+ 2.2.0 */
+static void gdk_draw_pixbuf(GdkDrawable *drawable, GdkGC *gc, GdkPixbuf *pixbuf,
+	gint src_x, gint src_y, gint dest_x, gint dest_y, gint width, gint height,
+	GdkRgbDither dither, gint x_dither, gint y_dither)
+{
+	gdk_pixbuf_render_to_drawable(pixbuf, drawable, gc, src_x, src_y,
+		dest_x, dest_y, width, height, dither, x_dither, y_dither);
+}
+#endif 
 
 /*
  * These macros set the default icon window dimensions.  The
@@ -144,25 +155,22 @@ gboolean on_canvas_expose_event(GtkWidget * widget,
 
     /*   draw connection icon   */
     center_image(&rect, &panel, con_pixbuf);
-    gdk_pixbuf_render_to_drawable(con_pixbuf, canvas->window, NULL, 0, 0,
-                                  rect.x, rect.y, rect.width, rect.height, 0, 0,
-                                  0);
+    gdk_draw_pixbuf(canvas->window, NULL, con_pixbuf, 0, 0,
+		rect.x, rect.y, rect.width, rect.height, GDK_RGB_DITHER_NONE, 0, 0);
 
     panel.y += panel.height;
 
     /*   paint download icon   */
     center_image(&rect, &panel, down_pixbuf);
-    gdk_pixbuf_render_to_drawable(down_pixbuf, canvas->window, NULL, 0, 0,
-                                  rect.x, rect.y, rect.width, rect.height, 0, 0,
-                                  0);
+    gdk_draw_pixbuf(canvas->window, NULL, down_pixbuf, 0, 0,
+		rect.x, rect.y, rect.width, rect.height, GDK_RGB_DITHER_NONE, 0, 0);
 
     panel.y += panel.height;
 
     /*   paint upload icon   */
     center_image(&rect, &panel, up_pixbuf);
-    gdk_pixbuf_render_to_drawable(up_pixbuf, canvas->window, NULL, 0, 0,
-                                  rect.x, rect.y, rect.width, rect.height, 0, 0,
-                                  0);
+    gdk_draw_pixbuf(canvas->window, NULL, up_pixbuf, 0, 0,
+		rect.x, rect.y, rect.width, rect.height, GDK_RGB_DITHER_NONE, 0, 0);
 
     /*   setup bar column   */
     panel.x = XPM_WIDTH + ICON_INSET;
