@@ -194,22 +194,75 @@ gtk_column_chooser_new(GtkWidget *widget)
     return GTK_WIDGET(cc);
 }
 
+#if GTK_CHECK_VERSION(2, 0, 0)
 static void
-gtk_column_chooser_finalize(GtkObject *object)
+gtk_column_chooser_init(GTypeInstance *instance, gpointer unused_g_class)
 {
-    GtkColumnChooser * cc;
+    GtkColumnChooser *cc;
+
+	(void) unused_g_class;
+    g_assert(instance != NULL);
+
+	cc = (GtkColumnChooser *) instance;
+    cc->widget = NULL;
+    cc->col_map = g_hash_table_new(NULL, NULL);
+    cc->closed = FALSE;
+}
+
+static void
+gtk_column_chooser_finalize(GObject *object)
+{
+    GtkColumnChooser *cc;
 
     g_assert(object != NULL);
     g_assert(GTK_IS_COLUMN_CHOOSER(object));
 
     cc = GTK_COLUMN_CHOOSER(object);
     g_hash_table_destroy(cc->col_map);
-#if (GTK_MAJOR_VERSION >= 2)
 	G_OBJECT_CLASS(parent_class)->finalize(G_OBJECT(object));
-#else
-	GTK_OBJECT_CLASS(parent_class)->finalize(object);
-#endif
 }
+
+static void
+gtk_column_chooser_class_init(gpointer g_class, gpointer unused_class_data)
+{
+    GObjectClass *object_class;
+    GtkWidgetClass *widget_class;
+    GtkMenuShellClass *menu_shell_class;
+
+	(void) unused_class_data;
+    g_assert(g_class != NULL);
+
+    parent_class = gtk_type_class(GTK_TYPE_MENU);
+    object_class = G_OBJECT_CLASS(g_class);
+    widget_class = GTK_WIDGET_CLASS(g_class);
+    menu_shell_class = GTK_MENU_SHELL_CLASS(g_class);
+    widget_class->button_press_event = gtk_column_chooser_button_press;
+    menu_shell_class->deactivate = gtk_column_chooser_deactivate;
+	object_class->finalize = gtk_column_chooser_finalize;
+}
+
+GType
+gtk_column_chooser_get_type(void)
+{
+    static GType cct_type;
+
+    if (!cct_type) {
+        static GTypeInfo type_info_zero;
+        GTypeInfo cct_info;
+
+		cct_info = type_info_zero;
+		cct_info.class_size = sizeof(GtkColumnChooserClass);
+		cct_info.class_init = gtk_column_chooser_class_init;
+		cct_info.instance_size = sizeof (GtkColumnChooser);
+		cct_info.instance_init = gtk_column_chooser_init;
+        cct_type = g_type_register_static(GTK_TYPE_MENU,
+					"GtkColumnChooser", &cct_info, 0);
+    }
+
+    return cct_type;
+}
+
+#else
 
 static void
 gtk_column_chooser_init(GtkColumnChooser *cc)
@@ -217,8 +270,21 @@ gtk_column_chooser_init(GtkColumnChooser *cc)
     g_assert(cc != NULL);
 
     cc->widget = NULL;
-    cc->col_map = g_hash_table_new((GHashFunc) NULL, (GCompareFunc) NULL);
+    cc->col_map = g_hash_table_new(NULL, NULL);
     cc->closed = FALSE;
+}
+
+static void
+gtk_column_chooser_finalize(GtkObject *object)
+{
+    GtkColumnChooser *cc;
+
+    g_assert(object != NULL);
+    g_assert(GTK_IS_COLUMN_CHOOSER(object));
+
+    cc = GTK_COLUMN_CHOOSER(object);
+    g_hash_table_destroy(cc->col_map);
+	GTK_OBJECT_CLASS(parent_class)->finalize(object);
 }
 
 static void
@@ -231,29 +297,18 @@ gtk_column_chooser_class_init(GtkColumnChooserClass *klass)
     g_assert(klass != NULL);
 
     parent_class = gtk_type_class(GTK_TYPE_MENU);
-
-#if (GTK_MAJOR_VERSION >= 2)
-    object_class = GTK_OBJECT_CLASS(G_OBJECT_CLASS(klass));
-#else
     object_class = GTK_OBJECT_CLASS(klass);
-#endif
     widget_class = GTK_WIDGET_CLASS(klass);
     menu_shell_class = GTK_MENU_SHELL_CLASS(klass);
-
     widget_class->button_press_event = gtk_column_chooser_button_press;
     menu_shell_class->deactivate = gtk_column_chooser_deactivate;
-#if (GTK_MAJOR_VERSION >= 2)
-	G_OBJECT_CLASS(object_class)->finalize =
-		(gpointer) gtk_column_chooser_finalize;
-#else
 	object_class->finalize = gtk_column_chooser_finalize;
-#endif
 }
 
 GtkType
 gtk_column_chooser_get_type(void)
 {
-    static guint cct_type = 0;
+    static GtkType cct_type;
 
     if (!cct_type) {
         GtkTypeInfo cct_info = {
@@ -271,6 +326,7 @@ gtk_column_chooser_get_type(void)
 
     return cct_type;
 }
+#endif
 
 static void
 gtk_column_chooser_deactivate(GtkMenuShell *menu_shell)
