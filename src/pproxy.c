@@ -488,9 +488,11 @@ static gchar *validate_vendor(gchar *vendor, gchar *token, guint32 ip)
 		gboolean faked = !version_check(vendor, token, ip);
 
 		if (faked) {
-			gchar *name = g_strdup_printf("!%s", vendor);
+			gchar name[1024];
+
+			name[0] = '!';
+			g_strlcpy(&name[1], vendor, sizeof name - 1);
 			result = atom_str_get(name);
-			G_FREE_NULL(name);
 		} else
 			result = atom_str_get(vendor);
 	}
@@ -1129,3 +1131,4 @@ void cproxy_reparent(struct download *d, struct download *cd)
 	g_assert(cd == cd->cproxy->d);
 }
 
+/* vi: set ts=4: */
