@@ -168,7 +168,17 @@ typedef struct gnutella_node {
 	guint alive_period;			/* Period for sending alive pings (secs) */
 
 	wrap_buf_t hello;			/* Spill buffer for GNUTELLA HELLO */
-	
+
+	/*
+	 * Round-trip time (RTT) measurements operated via Time Sync
+	 * (more accuracy than with traditional ping / pong exchanges).
+	 * Figures are in ms.
+	 */
+
+	guint32 tcp_rtt;			/* RTT when exchange takes place over TCP */
+	guint32 udp_rtt;			/* RTT when exchange takes place over UDP  */
+	gpointer tsync_ev;			/* Time sync event */
+
 	/*
 	 * Data structures used by the ping/pong reduction scheme.
 	 *		--RAM, 02/02/2002
@@ -266,6 +276,7 @@ typedef struct gnutella_node {
 #define NODE_F_PROXIED		0x00040000	/* We are the push-proxy of that node */
 #define NODE_F_QRP_SENT		0x00080000	/* Undergone one complete QRP sending */
 #define NODE_F_TLS			0x00100000	/* TLS-tunneled */
+#define NODE_F_TSYNC_WAIT	0x00200000	/* Time sync pending via TCP */
 
 /*
  * Node attributes.
@@ -281,6 +292,7 @@ typedef struct gnutella_node {
 #define NODE_A_NO_ULTRA		0x00000080	/* Node is NOT ultra capable */
 #define NODE_A_UP_QRP		0x00000100	/* Supports intra-UP QRP */
 #define NODE_A_LEAF_GUIDE	0x00000200	/* Supports leaf-guided dyn queries */
+#define NODE_A_TIME_SYNC	0x00000400	/* Supports time sync */
 
 #define NODE_A_CAN_HSEP		0x04000000	/* Node supports HSEP */
 #define NODE_A_CAN_QRP		0x08000000	/* Node supports query routing */
@@ -551,6 +563,8 @@ void node_udp_enable(void);
 void node_udp_disable(void);
 void node_udp_process(struct gnutella_socket *s);
 gnutella_node_t *node_udp_get_ip_port(guint32 ip, guint16 port);
+
+void node_can_tsync(gnutella_node_t *n);
 
 #endif /* _core_nodes_h_ */
 

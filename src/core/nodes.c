@@ -75,6 +75,7 @@ RCSID("$Id$");
 #include "settings.h"
 #include "features.h"
 #include "udp.h"
+#include "tsync.h"
 #ifdef ENABLE_G2
 #include "g2/g2nodes.h"
 #endif
@@ -108,7 +109,7 @@ RCSID("$Id$");
 #define SHUTDOWN_GRACE_DELAY	120	/* Grace period for shutdowning nodes */
 #define BYE_GRACE_DELAY			30	/* Bye sent, give time to propagate */
 #define MAX_WEIRD_MSG			5	/* Close connection after so much weirds */
-#define MAX_TX_RX_RATIO			50	/* Max TX/RX ratio */
+#define MAX_TX_RX_RATIO			70	/* Max TX/RX ratio for shortage */
 #define MIN_TX_FOR_RATIO		500	/* TX packets before enforcing ratio */
 #define ALIVE_PERIOD			20	/* Seconds between each alive ping */
 #define ALIVE_PERIOD_LEAF		120	/* Idem, for leaf nodes <-> ultrapeers */
@@ -122,6 +123,10 @@ RCSID("$Id$");
 #define NODE_CASUAL_FD			10		/* # of fds we might use casually */
 #define NODE_UPLOAD_QUEUE_FD	5		/* # of fds/upload slot we can queue */
 #define NODE_AUTO_SWITCH_MIN	1800	/* Don't switch too often UP <-> leaf */
+
+#define NODE_TSYNC_WAIT_MS		5000	/* Wait time after connecting (5s) */
+#define NODE_TSYNC_PERIOD_MS	300000	/* Synchronize every 5 minutes */
+#define NODE_TSYNC_CHECK		15		/* 15 secs before a timeout */
 
 gchar *start_rfc822_date = NULL;		/* RFC822 format of start_time */
 
@@ -340,6 +345,68 @@ string_table_free(GHashTable *ht)
 
 	g_hash_table_foreach(ht, free_key, NULL);
 	g_hash_table_destroy(ht);
+}
+
+/***
+ *** Time Sync operations.
+ ***/
+
+/**
+ * Send "Time Sync" via UDP if we know the remote IP:port, via TCP otherwise.
+ */
+static void
+node_tsync_udp(cqueue_t *cq, gpointer obj)
+{
+	gnutella_node_t *n = (gnutella_node_t *) obj;
+	gnutella_node_t *udp = NULL;
+
+	g_assert(!NODE_IS_UDP(n));
+	g_assert(n->attrs & NODE_A_TIME_SYNC);
+
+	if (n->gnet_ip)
+		udp = node_udp_get_ip_port(n->gnet_ip, n->gnet_port);
+
+	tsync_send(udp == NULL ? n : udp, n->id);
+
+	/*
+	 * Next sync will occur in NODE_TSYNC_PERIOD_MS milliseconds.
+	 */
+
+	n->tsync_ev =
+		cq_insert(callout_queue, NODE_TSYNC_PERIOD_MS, node_tsync_udp, n);
+}
+
+/**
+ * Invoked when we determined that the node supports Time Sync.
+ */
+void
+node_can_tsync(gnutella_node_t *n)
+{
+	g_assert(!NODE_IS_UDP(n));
+
+	if (n->attrs & NODE_A_TIME_SYNC)
+		return;
+
+	n->attrs |= NODE_A_TIME_SYNC;
+
+	/*
+	 * Schedule a time sync in NODE_TSYNC_WAIT_MS milliseconds.
+	 */
+
+	n->tsync_ev =
+		cq_insert(callout_queue, NODE_TSYNC_WAIT_MS, node_tsync_udp, n);
+}
+
+/**
+ * Sent "probe" time sync via TCP to the specified node to compute the RTT...
+ */
+static void
+node_tsync_tcp(gnutella_node_t *n)
+{
+	g_assert(!NODE_IS_UDP(n));
+	g_assert(n->attrs & NODE_A_TIME_SYNC);
+
+	tsync_send(n, n->id);
 }
 
 /***
@@ -739,6 +806,8 @@ node_timer(time_t now)
 				current_peermode == NODE_P_ULTRA &&
 				NODE_IS_ULTRA(n)
 			) {
+				time_t quiet = delta_time(now, n->last_tx);
+
 				/*
 				 * Ultra node connected to another ultra node.
 				 *
@@ -747,8 +816,9 @@ node_timer(time_t now)
 				 * as they reply to eachother alive pings.
 				 *		--RAM, 11/12/2003
 				 */
+
 				if (
-					delta_time(now, n->last_tx) > node_connected_timeout &&
+					quiet > node_connected_timeout &&
 					NODE_MQUEUE_COUNT(n)
 				) {
                     hcache_add(HCACHE_TIMEOUT, n->ip, 0, 
@@ -775,6 +845,9 @@ node_timer(time_t now)
 		 */
 
 		if (n->status == GTA_NODE_CONNECTED) {
+			time_t tx_quiet = delta_time(now, n->last_tx);
+			time_t rx_quiet = delta_time(now, n->last_rx);
+
 			if (n->n_weird >= MAX_WEIRD_MSG) {
 				node_bye_if_writable(n, 412, "Security violation");
 				return;
@@ -787,6 +860,22 @@ node_timer(time_t now)
 			) {
 				node_bye_if_writable(n, 405, "Reception shortage");
 				return;
+			}
+
+			/*
+			 * If quiet period is nearing timeout and node supports
+			 * time-sync, send them one if none is pending.
+			 */
+
+			if (
+				node_connected_timeout > 2*NODE_TSYNC_CHECK &&
+				MAX(tx_quiet, rx_quiet) >
+					node_connected_timeout - NODE_TSYNC_CHECK &&
+				(n->attrs & NODE_A_TIME_SYNC) &&
+				!(n->flags & NODE_F_TSYNC_WAIT)
+			) {
+				node_tsync_tcp(n);
+				n->flags |= NODE_F_TSYNC_WAIT;
 			}
 
 			/*
@@ -1305,6 +1394,10 @@ node_remove_v(struct gnutella_node *n, const gchar *reason, va_list ap)
 	if (n->alive_pings) {
 		alive_free(n->alive_pings);
 		n->alive_pings = NULL;
+	}
+	if (n->tsync_ev) {
+		cq_cancel(callout_queue, n->tsync_ev);
+		n->tsync_ev = NULL;
 	}
 
 	n->status = GTA_NODE_REMOVING;
@@ -6083,6 +6176,8 @@ node_close(void)
 			string_table_free(n->qrelayed);
 		if (n->qrelayed_old != NULL)
 			string_table_free(n->qrelayed_old);
+		if (n->tsync_ev != NULL)
+			cq_cancel(callout_queue, n->tsync_ev);
 		node_real_remove(n);
 	}
 
@@ -6379,6 +6474,9 @@ node_get_status(const gnet_node_t n, gnet_node_status_t *status)
     status->rx_read     = node->rx_read;
     status->rx_compressed = NODE_RX_COMPRESSED(node);
     status->rx_compression_ratio = NODE_RX_COMPRESSION_RATIO(node);
+
+	status->tcp_rtt = node->tcp_rtt;
+	status->udp_rtt = node->udp_rtt;
 
 	/*
 	 * The UDP node has no RX stack: we direcly receive datagrams from

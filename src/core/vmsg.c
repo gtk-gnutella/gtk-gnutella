@@ -45,11 +45,16 @@ RCSID("$Id$");
 #include "guid.h"			/* For blank_guid[] */
 #include "inet.h"
 #include "oob.h"
+#include "mq.h"
+#include "mq_udp.h"
+#include "clock.h"
+#include "tsync.h"
 
 #include "if/gnet_property_priv.h"
 
 #include "lib/endian.h"
 #include "lib/glib-missing.h"
+#include "lib/tm.h"
 #include "lib/vendors.h"
 #include "lib/override.h"	/* Must be the last header included */
 
@@ -99,6 +104,10 @@ static void handle_oob_reply_ind(struct gnutella_node *n,
 	struct vmsg *vmsg, gchar *payload, gint size);
 static void handle_oob_reply_ack(struct gnutella_node *n,
 	struct vmsg *vmsg, gchar *payload, gint size);
+static void handle_time_sync_req(struct gnutella_node *n,
+	struct vmsg *vmsg, gchar *payload, gint size);
+static void handle_time_sync_reply(struct gnutella_node *n,
+	struct vmsg *vmsg, gchar *payload, gint size);
 
 /*
  * Known vendor-specific messages.
@@ -114,6 +123,8 @@ static struct vmsg vmsg_map[] = {
 	{ T_BEAR, 0x000c, 0x0001, handle_qstat_answer, "Query Status Response" },
 	{ T_GTKG, 0x0007, 0x0001, handle_udp_connect_back, "UDP Connect Back" },
 	{ T_GTKG, 0x0007, 0x0002, handle_udp_connect_back, "UDP Connect Back" },
+	{ T_GTKG, 0x0009, 0x0001, handle_time_sync_req, "Time Sync Request" },
+	{ T_GTKG, 0x000a, 0x0001, handle_time_sync_reply, "Time Sync Reply" },
 	{ T_GTKG, 0x0015, 0x0001, handle_proxy_cancel, "Push-Proxy Cancel" },
 	{ T_LIME, 0x000b, 0x0001, handle_oob_reply_ack, "OOB Reply Ack" },
 	{ T_LIME, 0x000b, 0x0002, handle_oob_reply_ack, "OOB Reply Ack" },
@@ -350,6 +361,9 @@ handle_messages_supported(struct gnutella_node *n,
 	gchar *description;
 	gint expected;
 
+	if (NODE_IS_UDP(n))			/* Don't waste time if we get this via UDP */
+		return;
+
 	READ_GUINT16_LE(payload, count);
 
 	if (vmsg_debug)
@@ -408,6 +422,16 @@ handle_messages_supported(struct gnutella_node *n,
 			vm->handler == handle_qstat_answer
 		)
 			n->attrs |= NODE_A_LEAF_GUIDE;
+
+		/* 
+		 * Time synchronization support.
+		 */
+
+		if (
+			vm->handler == handle_time_sync_req ||
+			vm->handler == handle_time_sync_reply
+		)
+			node_can_tsync(n);
 	}
 }
 
@@ -931,7 +955,7 @@ vmsg_send_proxy_cancel(struct gnutella_node *n)
 /**
  * Handle reception of an "OOB Reply Indication" message, whereby the remote
  * host informs us about the amount of query hits it has for us for a
- * given query.  The message bears the GUID of the query we sent out.
+ * given query.  The message bears the MUID of the query we sent out.
  */
 static void handle_oob_reply_ind(struct gnutella_node *n,
 	struct vmsg *vmsg, gchar *payload, gint size)
@@ -1010,7 +1034,7 @@ vmsg_build_oob_reply_ind(gchar *muid, guint8 hits)
 /**
  * Handle reception of an "OOB Reply Ack" message, whereby the remote
  * host informs us about the amount of query hits it wants delivered
- * for the query identified by the GUID of the message.
+ * for the query identified by the MUID of the message.
  */
 static void handle_oob_reply_ack(struct gnutella_node *n,
 	struct vmsg *vmsg, gchar *payload, gint size)
@@ -1039,7 +1063,7 @@ static void handle_oob_reply_ack(struct gnutella_node *n,
 /**
  * Send an "OOB Reply Ack" message to specified node, informing it that
  * we want the specified amount of hits delivered for the query identified
- * by the GUID of the message we got (the "OOB Reply Indication").
+ * by the MUID of the message we got (the "OOB Reply Indication").
  */
 void
 vmsg_send_oob_reply_ack(struct gnutella_node *n, gchar *muid, guint8 want)
@@ -1062,6 +1086,202 @@ vmsg_send_oob_reply_ack(struct gnutella_node *n, gchar *muid, guint8 want)
 	if (vmsg_debug > 2)
 		printf("sent OOB reply ACK %s to %s for %u hit%s\n",
 			guid_hex_str(muid), node_ip(n), want, want == 1 ? "" : "s");
+}
+
+/** 
+ * Handle reception of a "Time Sync Request" message, indicating a request
+ * from another host about time synchronization.
+ */
+static void handle_time_sync_req(struct gnutella_node *n,
+	struct vmsg *vmsg, gchar *payload, gint size)
+{
+	tm_t got;
+
+	/*
+	 * We have received the message well before, but this is the first
+	 * time we can timestamp it really...  We're not NTP, so the precision
+	 * is not really necessary as long as we stay beneath a second, which
+	 * we should.
+	 */
+
+	tm_now(&got);			/* Mark when we got the message */
+	got.tv_sec = clock_loc2gmt(got.tv_sec);
+
+	if (size != 1) {
+		vmsg_bad_payload(n, vmsg, size, 1);
+		return;
+	}
+
+	tsync_got_request(n, &got);
+}
+
+/** 
+ * Handle reception of a "Time Sync Reply" message, holding the reply from
+ * a previous time synchronization request.
+ */
+static void handle_time_sync_reply(struct gnutella_node *n,
+	struct vmsg *vmsg, gchar *payload, gint size)
+{
+	gboolean ntp;
+	tm_t got;
+	tm_t sent;
+	tm_t replied;
+	tm_t received;
+	gchar *muid;
+	gchar *data;
+
+	tm_now(&got);			/* Mark when we got (to see) the message */
+	got.tv_sec = clock_loc2gmt(got.tv_sec);
+
+	if (size != 9) {
+		vmsg_bad_payload(n, vmsg, size, 9);
+		return;
+	}
+
+	ntp = *payload & 0x1;
+
+	/* 
+	 * Decompile send time.
+	 */
+
+	STATIC_ASSERT(sizeof(sent) == 2 * sizeof(guint32));
+
+	muid = n->header.muid;
+	READ_GUINT32_BE(muid, sent.tv_sec);
+	muid += 4;
+	READ_GUINT32_BE(muid, sent.tv_usec);
+	muid += 4;
+
+	/*
+	 * Decompile replied time.
+	 */
+
+	READ_GUINT32_BE(muid, replied.tv_sec);
+	muid += 4;
+	READ_GUINT32_BE(muid, replied.tv_usec);
+
+	/*
+	 * Decompile the time at which they got the message.
+	 */
+
+	data = payload + 1;
+	READ_GUINT32_BE(data, received.tv_sec);
+	data += 4;
+	READ_GUINT32_BE(data, received.tv_usec);
+
+	tsync_got_reply(n, &sent, &received, &replied, &got, ntp);
+}
+
+/**
+ * Send a "Time Sync Request" message, asking them to echo back their own
+ * time so that we can compute our clock differences and measure round trip
+ * times.  The time at which we send the message is included in the first
+ * half of the MUID.
+ *
+ * If the node is an UDP node, its IP and port indicate to whom we shall
+ * send the message.
+ *
+ * The `sent' parameter is filled with the time at which we sent the message.
+ */
+void
+vmsg_send_time_sync_req(struct gnutella_node *n, gboolean ntp, tm_t *sent)
+{
+	struct gnutella_msg_vendor *m = (struct gnutella_msg_vendor *) v_tmp;
+	guint32 msgsize;
+	guint32 paysize = sizeof(guint8);
+	gchar *payload;
+	gchar *muid;
+	pmsg_t *mb;
+
+	if (!NODE_IS_WRITABLE(n))
+		return;
+
+	msgsize = vmsg_fill_header(&m->header, paysize, sizeof(v_tmp));
+	payload = vmsg_fill_type(&m->data, T_GTKG, 9, 1);
+	*payload = ntp ? 0x1 : 0x0;				/* bit0 indicates NTP */
+
+	mb = gmsg_to_ctrl_pmsg(m, msgsize);		/* Send as quickly as possible */
+	muid = pmsg_start(mb);
+
+	/*
+	 * The first 8 bytes of the MUID are used to store the time at which
+	 * we send the message, and we fill that as late as possible.
+	 */
+
+	tm_now(sent);
+	sent->tv_sec = clock_loc2gmt(sent->tv_sec);
+
+	WRITE_GUINT32_BE(sent->tv_sec, muid);
+	muid += 4;
+	WRITE_GUINT32_BE(sent->tv_usec, muid);
+
+	if (NODE_IS_UDP(n))
+		mq_udp_node_putq(n->outq, mb, n);
+	else
+		mq_putq(n->outq, mb);
+}
+
+/**
+ * Send a "Time Sync Reply" message to the node, including the time at
+ * which we send back the message in the second half of the MUID.
+ * The time in `got' is the time at which we received their request.
+ */
+void
+vmsg_send_time_sync_reply(struct gnutella_node *n, gboolean ntp, tm_t *got)
+{
+	struct gnutella_msg_vendor *m = (struct gnutella_msg_vendor *) v_tmp;
+	guint32 msgsize;
+	guint32 paysize = sizeof(guint8) + 2 * sizeof(guint32);
+	gchar *payload;
+	gchar *muid;
+	tm_t now;
+	pmsg_t *mb;
+
+	if (!NODE_IS_WRITABLE(n))
+		return;
+
+	msgsize = vmsg_fill_header(&m->header, paysize, sizeof(v_tmp));
+	payload = vmsg_fill_type(&m->data, T_GTKG, 10, 1);
+
+	*payload = ntp ? 0x1 : 0x0;			/* bit 0 indicates NTP */
+	payload++;
+
+	/*
+	 * Write time at which we got their message, so they can substract
+	 * the processing time from the computation of the round-trip time.
+	 */
+
+	WRITE_GUINT32_BE(got->tv_sec, payload);
+	payload += 4;
+	WRITE_GUINT32_BE(got->tv_usec, payload);
+
+	mb = gmsg_to_ctrl_pmsg(m, msgsize);		/* Send as quickly as possible */
+	muid = pmsg_start(mb);
+
+	/*
+	 * Propagate first half of the MUID, which is the time at which
+	 * they sent us the message, in their clock time.
+	 *
+	 * The second 8 bytes of the MUID are used to store the time at which
+	 * we send the message, and we fill that as late as possible.
+	 */
+
+	STATIC_ASSERT(sizeof(now) == 2 * sizeof(guint32));
+
+	memcpy(muid, n->header.muid, 8);		/* First half of MUID */
+	muid += 8;
+
+	tm_now(&now);
+	now.tv_sec = clock_loc2gmt(now.tv_sec);
+
+	WRITE_GUINT32_BE(now.tv_sec, muid);		/* Second half of MUID */
+	muid += 4;
+	WRITE_GUINT32_BE(now.tv_usec, muid);
+
+	if (NODE_IS_UDP(n))
+		mq_udp_node_putq(n->outq, mb, n);
+	else
+		mq_putq(n->outq, mb);
 }
 
 /* vi: set ts=4: */

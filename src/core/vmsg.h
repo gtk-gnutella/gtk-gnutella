@@ -30,6 +30,8 @@
 
 #include <glib.h>
 
+#include "lib/tm.h"
+
 struct gnutella_node;
 struct pmsg;
 
@@ -50,6 +52,8 @@ void vmsg_send_qstat_req(struct gnutella_node *n, gchar *muid);
 void vmsg_send_qstat_answer(struct gnutella_node *n, gchar *muid, guint16 hits);
 void vmsg_send_proxy_cancel(struct gnutella_node *n);
 void vmsg_send_oob_reply_ack(struct gnutella_node *n, gchar *muid, guint8 want);
+void vmsg_send_time_sync_req(struct gnutella_node *n, gboolean ntp, tm_t *);
+void vmsg_send_time_sync_reply(struct gnutella_node *n, gboolean ntp, tm_t *);
 
 struct pmsg *vmsg_build_oob_reply_ind(gchar *muid, guint8 hits);
 
