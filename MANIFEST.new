@@ -5,6 +5,18 @@ README
 TODO
 config_h.SH                  Produces config.h
 Configure                    Portability tool
+debian/changelog
+debian/control
+debian/copyright
+debian/dirs
+debian/gtk-gnutella.1
+debian/menu
+debian/README.debian
+debian/rules
+gtk2-gnutella.glade
+gtk-gnutella.glade
+gwcache.boot
+hostiles.txt
 Makefile.SH
 po/es.po
 po/fr.po
