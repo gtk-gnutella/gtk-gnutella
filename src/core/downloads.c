@@ -1304,6 +1304,11 @@ download_info_reget(struct download *d)
 	g_assert(fi->lifecount > 0);
 	g_assert(fi->lifecount <= fi->refcount);
 
+	/* The GUI uses d->file_info internally, so the download must be
+	 * removed from it before changing the d->file_info. */
+	if (DOWNLOAD_IS_VISIBLE(d))
+		gcu_download_gui_remove(d);
+
 	downloads_with_name_dec(fi->file_name);		/* File name can change! */
 	file_info_clear_download(d, TRUE);			/* `d' might be running */
 	file_size_known = fi->file_size_known;		/* This should not change */
