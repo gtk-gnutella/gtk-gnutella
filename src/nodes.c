@@ -3839,8 +3839,8 @@ static void node_process_handshake_header(
 
 	if (node_avoid_monopoly(n)) {
 		send_node_error(n->socket, 403,
-			"Vendor code has already %d%% of our slots", unique_nodes);
-		node_remove(n, "Vendor has already %d%% of our slots", unique_nodes);
+			"Vendor would exceed %d%% of our slots", unique_nodes);
+		node_remove(n, "Vendor would exceed %d%% of our slots", unique_nodes);
 		return;
 	}
 	
