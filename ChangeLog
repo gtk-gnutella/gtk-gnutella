@@ -1,5 +1,16 @@
 # since last version
 
+- (2004.04.18 - Richard)
+ * [Gtk2] Activated 'fixed_height_mode' for the nodes TreeView.
+ * [Gtk1] [Gtk2] Made the search retry timeout an expert setting.
+ * [Gtk1] [Gtk2] Made the autoselection feature an expert setting.
+ * Renamed some of the autoselection properties to assure they are
+   reset an a new start.
+ * [Gtk1] [Gtk2] Changed autoselection policy and moved relevant code
+   to search_gui_common.c
+ * [Gtk1] Reducted number of times results are resorted in
+   download_selection_of_ctree().
+
 - (2004.04.15 - Richard)
  * [Gtk1] [Gtk2] Changed layout of fileinfo pane to integrate progress indicator.
  * Made progess indicator use the complete drawing area.
