@@ -48,6 +48,7 @@ U/packages/remotectrl.U
 U/packages/xmlconfig.U
 U/specific/gtkgversion.U
 config_h.SH                  Produces config.h
+configure                    GNU configure-like wrapper
 debian/README.debian
 debian/changelog
 debian/control

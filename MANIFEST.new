@@ -47,6 +47,8 @@ U/packages/gtkversion.U
 U/packages/remotectrl.U
 U/packages/xmlconfig.U
 U/specific/gtkgversion.U
+config_h.SH                  Produces config.h
+configure                    GNU configure-like wrapper
 debian/README.debian
 debian/changelog
 debian/control
@@ -263,11 +265,11 @@ src/hashtree.c
 src/hashtree.h
 src/hcache.c
 src/hcache.h
-src/hcache_gui_common.c
-src/hcache_gui_common.h
 src/hcache_gui.c
 src/hcache_gui.h
 src/hcache_gui2.c
+src/hcache_gui_common.c
+src/hcache_gui_common.h
 src/header.c
 src/header.h
 src/hostiles.c
@@ -447,4 +449,3 @@ src/zalloc.c
 src/zalloc.h
 src/zlib_util.c
 src/zlib_util.h
-config_h.SH                  Produces config.h
