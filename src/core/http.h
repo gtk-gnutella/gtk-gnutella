@@ -220,14 +220,14 @@ gint http_status_parse(const gchar *line,
 gboolean http_extract_version(
 	gchar *request, gint len, gint *major, gint *minor);
 
-http_buffer_t *http_buffer_alloc(gchar *buf, gint len, gint written);
+http_buffer_t *http_buffer_alloc(gchar *buf, size_t len, size_t written);
 void http_buffer_free(http_buffer_t *b);
 
-guint32 http_range_size(const GSList *list);
+filesize_t http_range_size(const GSList *list);
 void http_range_free(GSList *list);
 GSList *http_range_parse(
-	const gchar *field, gchar *value, guint32 size, const gchar *vendor);
-gboolean http_range_contains(GSList *ranges, guint32 from, guint32 to);
+	const gchar *field, gchar *value, filesize_t size, const gchar *vendor);
+gboolean http_range_contains(GSList *ranges, filesize_t from, filesize_t to);
 
 const gchar *http_url_strerror(http_url_error_t errnum);
 gboolean http_url_parse(
@@ -269,4 +269,4 @@ void http_close(void);
 
 #endif	/* _core_http_h_ */
 
-/* vi: set ts=4: */
+/* vi: set ts=4 sw=4 cindent: */

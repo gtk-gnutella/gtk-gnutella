@@ -265,62 +265,27 @@ http_hostname_add(gchar *buf, gint *retval, gpointer unused_arg, guint32 flags)
  * message.  The pointer to the start of the message is returned in `msg'
  * if it is non-null.
  *
- * Returns status code, -1 on error.
+ * @return status code, -1 on error.
  */
 static gint
 code_message_parse(const gchar *line, const gchar **msg)
 {
-	const gchar *p;
-	gchar code[4];
-	guchar c;
-	gint i;
-	gint status;
+	gchar *ep;
+	guint64 v;
+	gint error;
 
 	/*
 	 * We expect exactly 3 status digits.
 	 */
 
-	for (i = 0, p = line; i < 3; i++, p++) {
-		c = *p;
-		if (!isdigit(c))
-			return -1;
-		code[i] = c;
-	}
-	code[3] = '\0';
-
-	status = atoi(code);
-
-	/*
-	 * Make sure we have at least a space after the code, or that we
-	 * reached the end of the string.
-	 */
-
-	c = *p;
-
-	if (c == '\0') {			/* 3 digits followed by a space */
-		if (msg)
-			*msg = p;			/* Points to the trailing NUL */
-		return status;
-	}
-
-	if (!isspace(c))			/* 3 digits NOT followed by a space */
+	v = parse_uint64(line, &ep, 10, &error);
+	if (error || v > 999 || (*ep != '\0' && !is_ascii_space(*ep)))
 		return -1;
+	
+	if (msg)
+		*msg = skip_ascii_spaces(ep);
 
-	if (!msg)
-		return status;			/* No need to point to start of message */
-
-	/*
-	 * Now skip any further space.
-	 */
-
-	for (c = *(++p); c; c = *(++p)) {
-		if (!isspace(c))
-			break;
-	}
-
-	*msg = p;					/* This is the beginning of the message */
-
-	return status;
+	return v;
 }
 
 /**
@@ -363,10 +328,8 @@ http_status_parse(const gchar *line,
 	 * Skip leading spaces.
 	 */
 
-	for (p = line, c = *p; c; c = *(++p)) {
-		if (!isspace(c))
-			break;
-	}
+	p = skip_ascii_spaces(line);
+	c = *p;
 
 	/*
 	 * If first character is a digit, then we have simply:
@@ -379,7 +342,7 @@ http_status_parse(const gchar *line,
 	if (c == '\0')
 		return -1;					/* Empty line */
 
-	if (isdigit(c)) {
+	if (is_ascii_digit(c)) {
 		if (major)
 			*major = -1;
 		if (minor)
@@ -392,7 +355,7 @@ http_status_parse(const gchar *line,
 	 */
 
 	if (proto) {
-		gint plen = strlen(proto);
+		size_t plen = strlen(proto);
 		if (0 == strncmp(proto, line, plen)) {
 			/*
 			 * Protocol string matches, make sure it ends with a space or
@@ -403,7 +366,7 @@ http_status_parse(const gchar *line,
 			c = *p;					/* Can dereference, at worst it's a NUL */
 			if (c == '\0')			/* Only "protocol" name in status */
 				return -1;
-			if (!isspace(c) && c != '/')
+			if (!is_ascii_space(c) && c != '/')
 				return -1;
 		} else
 			return -1;
@@ -413,7 +376,7 @@ http_status_parse(const gchar *line,
 		 */
 
 		for (/* empty */; c; c = *(++p)) {
-			if (c == '/' || isspace(c))
+			if (c == '/' || is_ascii_space(c))
 				break;
 		}
 	}
@@ -439,7 +402,7 @@ http_status_parse(const gchar *line,
 		}
 
 		for (c = *(++p); c; c = *(++p)) {
-			if (isspace(c))
+			if (is_ascii_space(c))
 				break;
 		}
 
@@ -447,21 +410,16 @@ http_status_parse(const gchar *line,
 			return -1;
 	}
 
-	g_assert(isspace(c));
+	g_assert(is_ascii_space(c));
 
 	/*
 	 * Now strip leading spaces.
 	 */
 
-	for (c = *(++p); c; c = *(++p)) {
-		if (!isspace(c))
-			break;
-	}
+	p = skip_ascii_spaces(++p);
+	c = *p;
 
-	if (c == '\0')
-		return -1;
-
-	if (!isdigit(c))
+	if (c == '\0' || !is_ascii_digit(c))
 		return -1;
 
 	return code_message_parse(p, msg);
@@ -574,6 +532,8 @@ gboolean
 http_url_parse(
 	gchar *url, guint16 *port, gchar **host, gchar **path)
 {
+	static const gchar prefix[] = "http://";
+	static gchar hostname[MAX_HOSTLEN + 1];
 	gchar *host_start;
 	gchar *port_start;
 	gchar *p;
@@ -581,8 +541,7 @@ http_url_parse(
 	gboolean seen_upw = FALSE;
 	gchar s;
 	guint32 portnum;
-	static gchar hostname[MAX_HOSTLEN + 1];
-	char *tmp_host, *tmp_path;
+	gchar *tmp_host, *tmp_path;
 	guint16 tmp_port;
 
 	g_assert(url != NULL);
@@ -590,12 +549,12 @@ http_url_parse(
 	if (!path) path = &tmp_path;
 	if (!port) port = &tmp_port;
 
-	if (0 != strncasecmp(url, "http://", 7)) {
+	if (0 != strncasecmp(url, prefix, CONST_STRLEN(prefix))) {
 		http_url_errno = HTTP_URL_NOT_HTTP;
 		return FALSE;
 	}
 
-	url += 7;
+	url += CONST_STRLEN(prefix);
 
 	/*
 	 * The general URL syntax is (RFC-1738):
@@ -650,7 +609,7 @@ http_url_parse(
 		return FALSE;
 	}
 
-	if ((guint32) (guint16) portnum != portnum) {
+	if ((portnum & 0xffff) != portnum) {
 		http_url_errno = HTTP_URL_BAD_PORT_RANGE;
 		return FALSE;
 	}
@@ -680,7 +639,7 @@ http_url_parse(
 
 	if (dbg > 4) {
 		printf("URL \"%s\" -> host=\"%s\", port=%u, path=\"%s\"\n",
-			url - 7, *host, (unsigned) *port, *path);
+			url - CONST_STRLEN(prefix), *host, (unsigned) *port, *path);
 	}
 
 	http_url_errno = HTTP_URL_OK;
@@ -697,13 +656,13 @@ http_url_parse(
  * and whose `written' bytes have already been sent out.
  */
 http_buffer_t *
-http_buffer_alloc(gchar *buf, gint len, gint written)
+http_buffer_alloc(gchar *buf, size_t len, size_t written)
 {
 	http_buffer_t *b;
 
 	g_assert(buf);
-	g_assert(len > 0);
-	g_assert(written >= 0 && written < len);
+	g_assert(len > 0 && len <= INT_MAX);
+	g_assert((gint) written >= 0 && written < len);
 
 	b = walloc(sizeof(*b));
 	b->hb_arena = walloc(len);		/* Should be small enough for walloc */
@@ -738,12 +697,11 @@ http_buffer_free(http_buffer_t *b)
  *
  * The `field' and `vendor' arguments are only there to log errors, if any.
  *
- * Returns the new head of the list.
- * `ignored' is set to TRUE if range was ignored.
+ * @param`ignored' is set to TRUE if range was ignored.
+ * @return the new head of the list.
  */
 static GSList *
-http_range_add(
-	GSList *list, guint32 start, guint32 end,
+http_range_add(GSList *list, filesize_t start, filesize_t end,
 	const gchar *field, const gchar *vendor, gboolean *ignored)
 {
 	GSList *l;
@@ -774,9 +732,11 @@ http_range_add(
 			if (prev != NULL) {
 				http_range_t *pr = (http_range_t *) prev->data;
 				if (pr->end >= start) {
-					g_warning("vendor <%s> sent us overlapping range %u-%u"
-						" (with previous %u-%u) in the %s header -- ignoring",
-						vendor, start, end, pr->start, pr->end, field);
+					g_warning("vendor <%s> sent us overlapping range %" PRIu64
+						"-%" PRIu64 " (with previous %" PRIu64 "-%" PRIu64
+						") in the %s header -- ignoring",
+						vendor, (guint64) start, (guint64) end,
+						(guint64) pr->start, (guint64) pr->end, field);
 					goto ignored;
 				}
 			}
@@ -786,9 +746,12 @@ http_range_add(
 			if (next != NULL) {
 				http_range_t *nr = (http_range_t *) next->data;
 				if (nr->start <= end) {
-					g_warning("vendor <%s> sent us overlapping range %u-%u"
-						" (with next %u-%u) in the %s header -- ignoring",
-						vendor, start, end, nr->start, nr->end, field);
+					g_warning("vendor <%s> sent us overlapping range %" PRIu64
+						"-%" PRIu64
+						" (with next %" PRIu64 "-%" PRIu64
+						") in the %s header -- ignoring",
+						vendor, (guint64) start, (guint64) end,
+						(guint64) nr->start, (guint64) nr->end, field);
 					goto ignored;
 				}
 			}
@@ -798,9 +761,11 @@ http_range_add(
 		}
 
 		if (r->end >= start) {
-			g_warning("vendor <%s> sent us overlapping range %u-%u"
-				" (with %u-%u) in the %s header -- ignoring",
-				vendor, start, end, r->start, r->end, field);
+			g_warning("vendor <%s> sent us overlapping range %" PRIu64
+				"-%" PRIu64 " (with %" PRIu64 "-%" PRIu64 ") "
+				"in the %s header -- ignoring",
+				vendor, (guint64) start, (guint64) end, (guint64) r->start,
+				(guint64) r->end, field);
 			goto ignored;
 		}
 	}
@@ -839,13 +804,14 @@ ignored:
  */
 GSList *
 http_range_parse(
-	const gchar *field, gchar *value, guint32 size, const gchar *vendor)
+	const gchar *field, gchar *value, filesize_t size, const gchar *vendor)
 {
+	static const gchar unit[] = "bytes";
 	GSList *ranges = NULL;
 	const gchar *str = value;
 	guchar c;
-	guint32 start;
-	guint32 end;
+	filesize_t start;
+	filesize_t end;
 	gboolean request = FALSE;		/* True if 'bytes=' is seen */
 	gboolean has_start;
 	gboolean has_end;
@@ -856,9 +822,9 @@ http_range_parse(
 
 	g_assert(size > 0);
 
-	if (0 == strncmp(str, "bytes", 5)) {
-		c = str[5];
-		if (!isspace(c) && c != '=') {
+	if (0 == strncmp(str, unit, CONST_STRLEN(unit))) {
+		c = str[CONST_STRLEN(unit)];
+		if (!is_ascii_space(c) && c != '=') {
 			g_warning("improper %s header from <%s>: %s", field, vendor, value);
 			return NULL;
 		}
@@ -868,7 +834,7 @@ http_range_parse(
 		return NULL;
 	}
 
-	str += 5;
+	str += CONST_STRLEN(unit);
 
 	/*
 	 * Move to the first non-space char.
@@ -901,7 +867,7 @@ http_range_parse(
 	minus_seen = FALSE;
 
 	while ((c = *str++)) {
-		if (isspace(c))
+		if (is_ascii_space(c))
 			continue;
 
 		if (c == ',') {
@@ -974,8 +940,9 @@ http_range_parse(
 		}
 
 		if (isdigit(c)) {
+			gint error;
 			gchar *dend;
-			guint32 val = strtoul(str - 1, &dend, 10);
+			guint64 val = parse_uint64(str - 1, &dend, 10, &error);
 
 			/* Started with digit! */
 			g_assert(dend != (str - 1));
@@ -984,7 +951,7 @@ http_range_parse(
 
 			if (has_end) {
 				if (dbg) g_warning("weird %s header from <%s>, offset %d "
-					"(spurious boundary %u): %s",
+					"(spurious boundary %" PRIu64 "): %s",
 					field, vendor, (gint) (str - value) - 1, val,
 					value);
 				goto resync;
@@ -992,7 +959,8 @@ http_range_parse(
 
 			if (val >= size) {
 				if (dbg) g_warning("weird %s header from <%s>, offset %d "
-					"(%s boundary %u outside resource range 0-%u): %s",
+					"(%s boundary %" PRIu64 " outside resource range "
+					"0-%" PRIu64 "): %s",
 					field, vendor, (gint) (str - value) - 1,
 					has_start ? "end" : "start", val, size - 1, value);
 				goto resync;
@@ -1001,7 +969,7 @@ http_range_parse(
 			if (has_start) {
 				if (!minus_seen) {
 					if (dbg) g_warning("weird %s header from <%s>, offset %d "
-						"(no '-' before boundary %u): %s",
+						"(no '-' before boundary %" PRIu64 "): %s",
 						field, vendor, (gint) (str - value) - 1, val, value);
 					goto resync;
 				}
@@ -1073,7 +1041,7 @@ final:
 			printf("...retained:\n");
 		for (l = ranges; l; l = g_slist_next(l)) {
 			http_range_t *r = (http_range_t *) l->data;
-			printf("...  %u-%u\n", r->start, r->end);
+			printf("...  %" PRIu64 "-%" PRIu64 "\n", r->start, r->end);
 		}
 	}
 
@@ -1101,11 +1069,11 @@ http_range_free(GSList *list)
 /**
  * Returns total size of all the ranges.
  */
-guint32
+filesize_t
 http_range_size(const GSList *list)
 {
 	const GSList *l;
-	guint32 size = 0;
+	filesize_t size = 0;
 
 	for (l = list; l; l = g_slist_next(l)) {
 		http_range_t *r = (http_range_t *) l->data;
@@ -1123,12 +1091,13 @@ http_range_to_gchar(const GSList *list)
 {
 	static gchar str[4096];
 	const GSList *sl = list;
-	gint rw;
+	size_t rw;
 
 	for (rw = 0; sl && (size_t) rw < sizeof(str); sl = g_slist_next(sl)) {
 		const http_range_t *r = (const http_range_t *) sl->data;
 
-		rw += gm_snprintf(&str[rw], sizeof(str)-rw, "%u-%u", r->start, r->end);
+		rw += gm_snprintf(&str[rw], sizeof(str)-rw, "%" PRIu64 "-%" PRIu64,
+					r->start, r->end);
 
 		if (g_slist_next(sl) != NULL)
 			rw += gm_snprintf(&str[rw], sizeof(str)-rw, ", ");
@@ -1141,7 +1110,7 @@ http_range_to_gchar(const GSList *list)
  * Checks whether range contains the contiguous [from, to] interval.
  */
 gboolean
-http_range_contains(GSList *ranges, guint32 from, guint32 to)
+http_range_contains(GSList *ranges, filesize_t from, filesize_t to)
 {
 	GSList *l;
 
@@ -1197,7 +1166,7 @@ http_range_merge(GSList *old_list, GSList *new_list)
 	GSList *new = new_list;
 	GSList *old = old_list;
 	GSList *result_list = NULL;
-	guint32 highest = 0;
+	filesize_t highest = 0;
 
 	
 	/* 
