@@ -1233,6 +1233,7 @@ again:
 			gchar *mb_start = pmsg_start(mb);
 			guint8 function = gmsg_function(mb_start);
 			sent++;
+			pmsg_mark_sent(mb);
             gnet_stats_count_sent(q->node,
 				function, gmsg_hops(mb_start), pmsg_size(mb));
 			switch (function) {
@@ -1314,6 +1315,7 @@ void mq_putq(mqueue_t *q, pmsg_t *mb)
 	gint size = pmsg_size(mb);
 
 	g_assert(q);
+	g_assert(!pmsg_was_sent(mb));
 
 	if (size == 0) {
 		g_warning("mq_putq: called with empty message");
@@ -1358,6 +1360,7 @@ void mq_putq(mqueue_t *q, pmsg_t *mb)
 		node_add_tx_given(q->node, written);
 
 		if (written == size) {
+			pmsg_mark_sent(mb);
 			node_inc_sent(q->node);
             gnet_stats_count_sent(q->node, function, hops, size);
 			switch (function) {
