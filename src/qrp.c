@@ -41,9 +41,8 @@ RCSID("$Id$");
 
 #define MIN_SPARSE_RATIO	20		/* At most 20% of slots used */
 #define MAX_CONFLICT_RATIO	75		/* At most 75% of insertion conflicts */
-#define MIN_WORD_LENGTH		3		/* Minimal word length */
 #define LOCAL_INFINITY		2		/* We're one hop away, so 2 is infinity */
-#define MIN_TABLE_BITS		14		/* 16 KB */
+#define MIN_TABLE_BITS		16		/* 64 KB */
 #define MAX_TABLE_BITS		21		/* 2 MB */
 
 #define MAX_TABLE_SIZE		(1 << MAX_TABLE_BITS)
@@ -812,13 +811,14 @@ void qrp_add_file(struct shared_file *sf)
 
 		/*
 		 * It is unreasonable to put words of 1 and 2 letters in the QR table.
-		 * Also, all words smaller than MIN_WORD_LENGTH are skipped.
+		 * Also, all words strictly smaller than QRP_MIN_WORD_LENGTH are
+		 * skipped.
 		 */
 
-		if (word[1] == '\0' || word[2] == '\0')
+		if (word[1] == '\0' || word[2] == '\0')		/* Handles lengths 1 & 2 */
 			continue;
 
-		if (MIN_WORD_LENGTH > 3 && strlen(word) < MIN_WORD_LENGTH)
+		if (QRP_MIN_WORD_LENGTH > 3 && strlen(word) < QRP_MIN_WORD_LENGTH)
 			continue;
 
 		/*
