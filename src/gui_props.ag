@@ -691,7 +691,7 @@ prop = {
 
 prop = {
     name = "gnet_stats_bytes";
-    desc = "Show bytes instead of packages in the gnet stats";
+    desc = "Show bytes instead of packets in the gnet stats";
     type = boolean;
     data = {
         default = FALSE;
