@@ -69,6 +69,8 @@ struct vmsg {
 
 static void handle_messages_supported(struct gnutella_node *n,
 	struct vmsg *vmsg, gchar *payload, gint size);
+static void handle_features_supported(struct gnutella_node *n,
+	struct vmsg *vmsg, gchar *payload, gint size);
 static void handle_hops_flow(struct gnutella_node *n,
 	struct vmsg *vmsg, gchar *payload, gint size);
 static void handle_connect_back(struct gnutella_node *n,
@@ -89,6 +91,7 @@ static struct vmsg vmsg_map[] = {
 	/* This list MUST be sorted by vendor, id, version */
 
 	{ T_0000, 0x0000, 0x0000, handle_messages_supported, "Messages Supported" },
+	{ T_0000, 0x000a, 0x0000, handle_features_supported, "Features Supported" },
 	{ T_BEAR, 0x0004, 0x0001, handle_hops_flow, "Hops Flow" },
 	{ T_BEAR, 0x0007, 0x0001, handle_connect_back, "Connect Back" },
 	{ T_BEAR, 0x000b, 0x0001, handle_qstat_req, "Query Status Request" },
@@ -102,7 +105,7 @@ static struct vmsg vmsg_map[] = {
 #define END(v)		(v - 1 + sizeof(v) / sizeof(v[0]))
 
 /*
- * Items in the "Message Supported" vector.
+ * Items in the "Messages Supported" vector.
  */
 struct vms_item {
 	guint32 vendor;
@@ -110,7 +113,17 @@ struct vms_item {
 	guint16 version;
 };
 
-#define VMS_ITEM_SIZE	8		/* Each entry is 8 bytes (4+2+2) */
+#define VMS_ITEM_SIZE		8		/* Each entry is 8 bytes (4+2+2) */
+
+/*
+ * Items in the "Features Supported" vector.
+ */
+struct vms_feature {
+	guint32 vendor;
+	guint16 version;
+};
+
+#define VMS_FEATURE_SIZE	6		/* Each entry is 6 bytes (4+2) */
 
 /**
  * Find message, given vendor code, and id, version.
@@ -422,6 +435,56 @@ vmsg_send_messages_supported(struct gnutella_node *n)
 	}
 
 	gmsg_sendto_one(n, (gchar *) m, msgsize);
+}
+
+/**
+ * Handle the "Features Supported" message.
+ */
+static void
+handle_features_supported(struct gnutella_node *n,
+	struct vmsg *vmsg, gchar *payload, gint size)
+{
+	guint16 count;
+	gint i;
+	gchar *description;
+	gint expected;
+
+	READ_GUINT16_LE(payload, count);
+
+	if (vmsg_debug)
+		printf("VMSG node %s <%s> supports %u extra feature%s\n",
+			node_ip(n), node_vendor(n), count,
+			count == 1 ? "" : "s");
+
+	expected = (gint) sizeof(count) + count * VMS_FEATURE_SIZE;
+
+	if (size != expected) {
+		vmsg_bad_payload(n, vmsg, size, expected);
+		return;
+	}
+
+	description = payload + 2;		/* Skip count */
+
+	/*
+	 * Analyze the supported features.
+	 */
+
+	for (i = 0; i < count; i++) {
+		guint32 vendor;
+		gint version;
+
+		READ_GUINT32_BE(description, vendor);
+		description += 4;
+		READ_GUINT16_LE(description, version);
+		description += 2;
+
+		if (vmsg_debug > 1)
+			printf("VMSG node %s <%s> supports feature %s/%u\n",
+				node_ip(n), node_vendor(n),
+				vendor_code_str(vendor), version);
+
+		/* XXX -- look for specific features not present in handshake */
+	}
 }
 
 /**
