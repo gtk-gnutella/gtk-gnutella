@@ -1329,8 +1329,6 @@ void hcache_get_stats(hcache_stats_t *stats)
  */
 void hcache_timer(void)
 {
-    guint i;
-
     hcache_expire_all();
 
     if (dbg >= 15) {
