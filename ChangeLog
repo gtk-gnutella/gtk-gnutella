@@ -1,5 +1,9 @@
 # since last version
 
+- (2003.05.29 - RAM)
+ * Top makefile did not install "hostiles.txt".
+ * Reset counter of QUEUE requests sent when remote servent replies to one.
+
 # v 0.92   2003.05.25  [candidate]
 
 Candidate 0.92 release.  The following are the main changes since 0.92b2:
