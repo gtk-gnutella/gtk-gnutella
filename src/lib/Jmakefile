@@ -55,6 +55,7 @@ LSRC = \
 	tigertree.c \
 	tm.c \
 	url.c \
+	urn.c \
 	utf8.c \
 	vendors.c \
 	walloc.c \
