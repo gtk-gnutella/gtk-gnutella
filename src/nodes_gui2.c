@@ -179,11 +179,8 @@ void nodes_gui_shutdown(void)
 void nodes_gui_remove_node(gnet_node_t n)
 {
     GtkTreeIter iter;
-    gboolean valid;
 
-    valid = nodes_gui_find_node(n, &iter);
-
-    if (valid)
+	if (nodes_gui_find_node(n, &iter))
         gtk_list_store_remove(nodes_model, &iter);
     else
         g_warning("nodes_gui_remove_node: no matching row found");
@@ -199,7 +196,6 @@ void nodes_gui_add_node(gnet_node_info_t *n, const gchar *type)
     GtkTreeIter iter;
 	gchar proto_tmp[32];
     guint handle;
-	gchar *vendor;
 
     g_assert(n != NULL);
 
@@ -209,18 +205,16 @@ void nodes_gui_add_node(gnet_node_info_t *n, const gchar *type)
 		n->proto_major, n->proto_minor);
     handle = n->node_handle;
 
-	vendor = g_strdup(locale_to_utf8(n->vendor ? n->vendor : "...", -1));
     gtk_list_store_set(nodes_model, &iter, 
         COL_NODE_HOST,    ip_port_to_gchar(n->ip, n->port),
         COL_NODE_TYPE,    "...",
-        COL_NODE_VENDOR,  vendor,
+        COL_NODE_VENDOR,  locale_to_utf8(n->vendor ? n->vendor : "...", 0),
         COL_NODE_VERSION, proto_tmp,
         COL_NODE_CONNECTED, "...",
         COL_NODE_UPTIME,  "...",
         COL_NODE_INFO,    "...",
         COL_NODE_HANDLE,  handle,
         -1);
-	G_FREE_NULL(vendor);
 }
 
 
@@ -328,11 +322,12 @@ void nodes_gui_update_nodes_display(time_t now)
     gboolean valid;
     gnet_node_status_t status;
 
-    if (last_update == now)
+    if (last_update >= (now - 1))
         return;
 
+	last_update = now;
+
     valid = gtk_tree_model_get_iter_first(GTK_TREE_MODEL(nodes_model), &iter);
-    
     while (valid) {
         GValue val = { 0, };
         static gchar timestr[SIZE_FIELD_MAX];
@@ -355,17 +350,13 @@ void nodes_gui_update_nodes_display(time_t now)
     }
 }
 
-void nodes_gui_update_node_info(gnet_node_info_t *n)
+static void nodes_gui_update_node_info(gnet_node_info_t *n)
 {
     GtkTreeIter iter;
-    gboolean valid;
 
     g_assert(n != NULL);
 
-    valid = nodes_gui_find_node(n->node_handle, &iter);
-
-    if (valid) {
-		gchar *vendor;
+    if (nodes_gui_find_node(n->node_handle, &iter)) {
 		static gchar version[32];
         gnet_node_status_t status;
         time_t now = time((time_t *) NULL);
@@ -375,13 +366,11 @@ void nodes_gui_update_node_info(gnet_node_info_t *n)
         gm_snprintf(version, sizeof(version), "%d.%d",
             n->proto_major, n->proto_minor);
 
-		vendor = g_strdup(locale_to_utf8(n->vendor ? n->vendor : "...", -1));
         gtk_list_store_set(nodes_model, &iter, 
-            COL_NODE_VENDOR,  vendor,
+            COL_NODE_VENDOR,  locale_to_utf8(n->vendor ? n->vendor : "...", 0),
             COL_NODE_VERSION, version,
             COL_NODE_INFO,    gui_node_status_str(&status, now),
             -1);
-		G_FREE_NULL(vendor);
     } else
         g_warning("nodes_gui_update_node: no matching row found");
 }
@@ -408,19 +397,16 @@ void nodes_gui_update_node_info(gnet_node_info_t *n)
 static void nodes_gui_update_node_flags(gnet_node_t n, gnet_node_flags_t *flags)
 {
 	gchar status[] = { '-', '-', '-', '-', '-', '-', '-', '-', '-', '\0' };
-    gboolean valid;
     GtkTreeIter iter;
 
-    valid = nodes_gui_find_node(n, &iter);
-
-    if (valid) {
+    if (nodes_gui_find_node(n, &iter)) {
 		switch (flags->peermode) {
 		case NODE_P_UNKNOWN:	break;
 		case NODE_P_ULTRA:		status[0] = 'U'; break;
 		case NODE_P_NORMAL:		status[0] = 'N'; break;
 		case NODE_P_LEAF:		status[0] = 'L'; break;
 		case NODE_P_CRAWLER:	status[0] = 'C'; break;
-		default:				g_assert(0); break;
+		default:				g_assert_not_reached(); break;
 		}
 
 		status[1] = flags->incoming ? 'I' : 'O';
