@@ -83,6 +83,7 @@ SRC = \
 	sockets.c \
 	sq.c \
 	token.c \
+	tsync.c \
 	tx.c \
 	tx_deflate.c \
 	tx_dgram.c \
