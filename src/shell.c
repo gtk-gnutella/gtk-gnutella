@@ -664,10 +664,10 @@ static void shell_write_data(gnutella_shell_t *sh)
 	g_assert(sh->outpos >= 0);
 
 	if (sh->outpos == 0) {
-		g_assert(inputevt_remove(sh->write_tag));
-		sh->write_tag = 0;
-		if (sh->shutdown)
-			shell_destroy(sh);
+		if (sh->write_tag) {
+			g_assert(inputevt_remove(sh->write_tag));
+			sh->write_tag = 0;
+		}
 	}
 }
 
@@ -695,34 +695,42 @@ static void shell_read_data(gnutella_shell_t *sh)
 
 	s = sh->socket;
 
-	rc = read(s->file_desc, s->buffer, sizeof(s->buffer)-1);
-	if (rc <= 0) {
-		if (rc == 0) {
-			g_warning("shell connection closed: EOF");
-			shell_destroy(sh);
-		} else {
-			g_warning("Receiving data failed: %s\n",
-				g_strerror(errno));
+	if (s->pos >= sizeof(s->buffer))
+		g_warning ("Remote shell: Read more than buffer size.\n");
+	else {
+		rc = read(s->file_desc, s->buffer+s->pos,
+				sizeof(s->buffer)-1-s->pos);
+		if (rc <= 0) {
+			if (rc == 0) {
+				if (s->pos == 0) {
+					g_warning("shell connection closed: EOF");
+					shell_destroy(sh);
+				}
+			} else {
+				g_warning("Receiving data failed: %s\n",
+					g_strerror(errno));
+			}
+			return;
 		}
-		return;
+		s->pos += rc;
 	}
 
-	while (rc) {
+	while (s->pos) {
 		guint reply_code;
 		GString *buf; 
 
-		switch (getline_read(s->getline, s->buffer, rc, &parsed)) {
+		switch (getline_read(s->getline, s->buffer, s->pos, &parsed)) {
 		case READ_OVERFLOW:
 			g_warning("Reading buffer overflow from %ul:%d\n",s->ip, s->port);
 			return;
 		case READ_DONE:
-			if (rc != parsed)
-				memmove(s->buffer, s->buffer+parsed, rc-parsed);
-			rc -= parsed;
+			if (s->pos != parsed)
+				memmove(s->buffer, s->buffer+parsed, s->pos-parsed);
+			s->pos -= parsed;
 			break;
 		case READ_MORE:
 		default:
-			g_assert(parsed == rc);
+			g_assert(parsed == s->pos);
 		
 			return;
 		}
@@ -742,6 +750,12 @@ static void shell_read_data(gnutella_shell_t *sh)
 
 		getline_reset(s->getline);
 	}
+
+	if (rc == 0) {
+		g_warning("shell connection closed: EOF");
+		shell_destroy(sh);
+	}
+
 }
 
 /*
@@ -757,6 +771,7 @@ static void shell_handle_data(
 	g_assert(sh);
 
 	if (cond & INPUT_EVENT_EXCEPTION) {
+		g_warning ("shell connection closed: exception\n");
 		shell_destroy(sh);
 		return;
 	}
@@ -764,8 +779,16 @@ static void shell_handle_data(
 	if ((cond & INPUT_EVENT_WRITE) && IS_PROCESSING(sh))
 		shell_write_data(sh);
 
+	if (sh->shutdown) {
+		if (sh->outpos == 0)
+			shell_destroy(sh);
+		else
+			return;
+	}
+
 	if (cond & INPUT_EVENT_READ)
 		shell_read_data(sh);
+
 }
 
 static gboolean shell_write(gnutella_shell_t *sh, const gchar *s)
@@ -790,6 +813,8 @@ static gboolean shell_write(gnutella_shell_t *sh, const gchar *s)
 			INPUT_EVENT_EXCEPTION | INPUT_EVENT_WRITE,
 			shell_handle_data, (gpointer) sh);
 	}
+
+	shell_write_data (sh);
 
 	return TRUE;
 }
@@ -935,6 +960,11 @@ void shell_add(struct gnutella_socket *s)
 	}
 
 	getline_reset(s->getline); /* clear AUTH command from buffer */
+
+	if ((sh->outpos == 0) && sh->shutdown) {
+		shell_destroy(sh);
+	}
+
 }
 
 static void shell_dump_cookie()
