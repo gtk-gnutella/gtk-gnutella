@@ -161,7 +161,7 @@ void on_entry_config_force_ip_activate
         0, -1);
 	g_strstrip(e);
 	ip = gchar_to_ip(e);
-	gnet_prop_set_guint32(PROP_FORCED_LOCAL_IP, &ip, 0, 1);
+	gnet_prop_set_guint32_val(PROP_FORCED_LOCAL_IP, ip);
 	g_free(e);
 }
 FOCUS_TO_ACTIVATE(entry_config_force_ip)

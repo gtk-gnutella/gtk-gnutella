@@ -88,26 +88,47 @@ prop_def_t *[=(. func-prefix)=]_get_def(property_t);
 /*
  * Property-change listeners
  */
-void [=(. func-prefix)=]_add_prop_changed_listener
-    (property_t, prop_changed_listener_t, gboolean);
-void [=(. func-prefix)=]_remove_prop_changed_listener
-    (property_t, prop_changed_listener_t);
+void [=(. func-prefix)=]_add_prop_changed_listener(
+    property_t, prop_changed_listener_t, gboolean);
+void [=(. func-prefix)=]_remove_prop_changed_listener(
+    property_t, prop_changed_listener_t);
 
 /*
  * get/set functions
+ *
+ * The *_val macros are shortcuts for single scalar properties.
  */
-void [=(. func-prefix)=]_set_boolean
-    (property_t, const gboolean *, gsize, gsize);
-gboolean *[=(. func-prefix)=]_get_boolean
-    (property_t, gboolean *, gsize, gsize);
+void [=(. func-prefix)=]_set_boolean(
+    property_t, const gboolean *, gsize, gsize);
+gboolean *[=(. func-prefix)=]_get_boolean(
+    property_t, gboolean *, gsize, gsize);
+
+#define [=(. func-prefix)=]_set_boolean_val(p, v) do { \
+	gboolean value = v; \
+	[=(. func-prefix)=]_set_boolean(p, &value, 0, 1); \
+} while (0)
+
+#define [=(. func-prefix)=]_get_boolean_val(p, v) do { \
+	[=(. func-prefix)=]_get_boolean(p, v, 0, 1); \
+} while (0)
+
 
 void [=(. func-prefix)=]_set_string(property_t, const gchar *);
 gchar *[=(. func-prefix)=]_get_string(property_t, gchar *, gsize);
 
-void [=(. func-prefix)=]_set_guint32
-    (property_t, const guint32 *, gsize, gsize);
-guint32 *[=(. func-prefix)=]_get_guint32
-    (property_t, guint32 *, gsize, gsize);
+void [=(. func-prefix)=]_set_guint32(
+    property_t, const guint32 *, gsize, gsize);
+guint32 *[=(. func-prefix)=]_get_guint32(
+    property_t, guint32 *, gsize, gsize);
+
+#define [=(. func-prefix)=]_set_guint32_val(p, v) do { \
+	guint32 value = v; \
+	[=(. func-prefix)=]_set_guint32(p, &value, 0, 1); \
+} while (0)
+
+#define [=(. func-prefix)=]_get_guint32_val(p, v) do { \
+	[=(. func-prefix)=]_get_guint32(p, v, 0, 1); \
+} while (0)
 
 void [=(. func-prefix)=]_set_storage(property_t, const guint8 *, gsize);
 guint8 *[=(. func-prefix)=]_get_storage(property_t, guint8 *, gsize);
@@ -342,38 +363,38 @@ prop_def_t *[=(. func-prefix)=]_get_def(property_t p)
  * Add a change listener to a given property. If init is TRUE then
  * the listener is immediately called.
  */
-void [=(. func-prefix)=]_add_prop_changed_listener
-    (property_t prop, prop_changed_listener_t l, gboolean init)
+void [=(. func-prefix)=]_add_prop_changed_listener(
+    property_t prop, prop_changed_listener_t l, gboolean init)
 {
     prop_add_prop_changed_listener([=(. prop-set)=], prop, l, init);
 }
 
-void [=(. func-prefix)=]_remove_prop_changed_listener
-    (property_t prop, prop_changed_listener_t l)
+void [=(. func-prefix)=]_remove_prop_changed_listener(
+    property_t prop, prop_changed_listener_t l)
 {
     prop_remove_prop_changed_listener([=(. prop-set)=], prop, l);
 }
 
-void [=(. func-prefix)=]_set_boolean
-    (property_t prop, const gboolean *src, gsize offset, gsize length)
+void [=(. func-prefix)=]_set_boolean(
+    property_t prop, const gboolean *src, gsize offset, gsize length)
 {
     prop_set_boolean([=(. prop-set)=], prop, src, offset, length);
 }
 
-gboolean *[=(. func-prefix)=]_get_boolean
-    (property_t prop, gboolean *t, gsize offset, gsize length)
+gboolean *[=(. func-prefix)=]_get_boolean(
+    property_t prop, gboolean *t, gsize offset, gsize length)
 {
     return prop_get_boolean([=(. prop-set)=], prop, t, offset, length);
 }
 
-void [=(. func-prefix)=]_set_guint32
-    (property_t prop, const guint32 *src, gsize offset, gsize length)
+void [=(. func-prefix)=]_set_guint32(
+    property_t prop, const guint32 *src, gsize offset, gsize length)
 {
     prop_set_guint32([=(. prop-set)=], prop, src, offset, length);
 }
 
-guint32 *[=(. func-prefix)=]_get_guint32
-    (property_t prop, guint32 *t, gsize offset, gsize length)
+guint32 *[=(. func-prefix)=]_get_guint32(
+    property_t prop, guint32 *t, gsize offset, gsize length)
 {
     return prop_get_guint32([=(. prop-set)=], prop, t, offset, length);
 }
@@ -433,3 +454,4 @@ prop_set_stub_t *[=(. func-prefix)=]_get_stub(void)
 
     return stub;
 }
+

@@ -124,6 +124,8 @@ extern gboolean is_inet_connected;
 extern gboolean gnet_compact_query;
 extern gboolean download_optimistic_start;
 extern gboolean mark_ignored;
+extern gboolean library_rebuilding;
+extern gboolean sha1_rebuilding;
 
 
 prop_set_t *gnet_prop_init(void);

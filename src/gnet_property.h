@@ -128,7 +128,9 @@ typedef enum {
     PROP_IS_INET_CONNECTED,    
     PROP_GNET_COMPACT_QUERY,    
     PROP_DOWNLOAD_OPTIMISTIC_START,    
-    PROP_MARK_IGNORED,
+    PROP_MARK_IGNORED,    
+    PROP_LIBRARY_REBUILDING,    
+    PROP_SHA1_REBUILDING,
     GNET_PROPERTY_END
 } gnet_property_t;
 
@@ -145,26 +147,47 @@ prop_def_t *gnet_prop_get_def(property_t);
 /*
  * Property-change listeners
  */
-void gnet_prop_add_prop_changed_listener
-    (property_t, prop_changed_listener_t, gboolean);
-void gnet_prop_remove_prop_changed_listener
-    (property_t, prop_changed_listener_t);
+void gnet_prop_add_prop_changed_listener(
+    property_t, prop_changed_listener_t, gboolean);
+void gnet_prop_remove_prop_changed_listener(
+    property_t, prop_changed_listener_t);
 
 /*
  * get/set functions
+ *
+ * The *_val macros are shortcuts for single scalar properties.
  */
-void gnet_prop_set_boolean
-    (property_t, const gboolean *, gsize, gsize);
-gboolean *gnet_prop_get_boolean
-    (property_t, gboolean *, gsize, gsize);
+void gnet_prop_set_boolean(
+    property_t, const gboolean *, gsize, gsize);
+gboolean *gnet_prop_get_boolean(
+    property_t, gboolean *, gsize, gsize);
+
+#define gnet_prop_set_boolean_val(p, v) do { \
+	gboolean value = v; \
+	gnet_prop_set_boolean(p, &value, 0, 1); \
+} while (0)
+
+#define gnet_prop_get_boolean_val(p, v) do { \
+	gnet_prop_get_boolean(p, v, 0, 1); \
+} while (0)
+
 
 void gnet_prop_set_string(property_t, const gchar *);
 gchar *gnet_prop_get_string(property_t, gchar *, gsize);
 
-void gnet_prop_set_guint32
-    (property_t, const guint32 *, gsize, gsize);
-guint32 *gnet_prop_get_guint32
-    (property_t, guint32 *, gsize, gsize);
+void gnet_prop_set_guint32(
+    property_t, const guint32 *, gsize, gsize);
+guint32 *gnet_prop_get_guint32(
+    property_t, guint32 *, gsize, gsize);
+
+#define gnet_prop_set_guint32_val(p, v) do { \
+	guint32 value = v; \
+	gnet_prop_set_guint32(p, &value, 0, 1); \
+} while (0)
+
+#define gnet_prop_get_guint32_val(p, v) do { \
+	gnet_prop_get_guint32(p, v, 0, 1); \
+} while (0)
 
 void gnet_prop_set_storage(property_t, const guint8 *, gsize);
 guint8 *gnet_prop_get_storage(property_t, guint8 *, gsize);

@@ -227,6 +227,10 @@ gboolean download_optimistic_start     = FALSE;
 gboolean download_optimistic_start_def = FALSE;
 gboolean mark_ignored     = FALSE;
 gboolean mark_ignored_def = FALSE;
+gboolean library_rebuilding     = FALSE;
+gboolean library_rebuilding_def = FALSE;
+gboolean sha1_rebuilding     = FALSE;
+gboolean sha1_rebuilding_def = FALSE;
 
 static prop_set_t *gnet_property = NULL;
 
@@ -2025,6 +2029,40 @@ prop_set_t *gnet_prop_init(void) {
     gnet_property->props[95].type               = PROP_TYPE_BOOLEAN;
     gnet_property->props[95].data.boolean.def   = &mark_ignored_def;
     gnet_property->props[95].data.boolean.value = &mark_ignored;
+
+
+    /*
+     * PROP_LIBRARY_REBUILDING:
+     *
+     * General data:
+     */
+    gnet_property->props[96].name = "library_rebuilding";
+    gnet_property->props[96].desc = "Whether gtk-gnutella is currently rebuilding its library in the background";
+    gnet_property->props[96].prop_changed_listeners = NULL;
+    gnet_property->props[96].save = FALSE;
+    gnet_property->props[96].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[96].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[96].data.boolean.def   = &library_rebuilding_def;
+    gnet_property->props[96].data.boolean.value = &library_rebuilding;
+
+
+    /*
+     * PROP_SHA1_REBUILDING:
+     *
+     * General data:
+     */
+    gnet_property->props[97].name = "sha1_rebuilding";
+    gnet_property->props[97].desc = "Whether gtk-gnutella is currently computing SHA1 of shared files in the background";
+    gnet_property->props[97].prop_changed_listeners = NULL;
+    gnet_property->props[97].save = FALSE;
+    gnet_property->props[97].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[97].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[97].data.boolean.def   = &sha1_rebuilding_def;
+    gnet_property->props[97].data.boolean.value = &sha1_rebuilding;
     return gnet_property;
 }
 
@@ -2060,38 +2098,38 @@ prop_def_t *gnet_prop_get_def(property_t p)
  * Add a change listener to a given property. If init is TRUE then
  * the listener is immediately called.
  */
-void gnet_prop_add_prop_changed_listener
-    (property_t prop, prop_changed_listener_t l, gboolean init)
+void gnet_prop_add_prop_changed_listener(
+    property_t prop, prop_changed_listener_t l, gboolean init)
 {
     prop_add_prop_changed_listener(gnet_property, prop, l, init);
 }
 
-void gnet_prop_remove_prop_changed_listener
-    (property_t prop, prop_changed_listener_t l)
+void gnet_prop_remove_prop_changed_listener(
+    property_t prop, prop_changed_listener_t l)
 {
     prop_remove_prop_changed_listener(gnet_property, prop, l);
 }
 
-void gnet_prop_set_boolean
-    (property_t prop, const gboolean *src, gsize offset, gsize length)
+void gnet_prop_set_boolean(
+    property_t prop, const gboolean *src, gsize offset, gsize length)
 {
     prop_set_boolean(gnet_property, prop, src, offset, length);
 }
 
-gboolean *gnet_prop_get_boolean
-    (property_t prop, gboolean *t, gsize offset, gsize length)
+gboolean *gnet_prop_get_boolean(
+    property_t prop, gboolean *t, gsize offset, gsize length)
 {
     return prop_get_boolean(gnet_property, prop, t, offset, length);
 }
 
-void gnet_prop_set_guint32
-    (property_t prop, const guint32 *src, gsize offset, gsize length)
+void gnet_prop_set_guint32(
+    property_t prop, const guint32 *src, gsize offset, gsize length)
 {
     prop_set_guint32(gnet_property, prop, src, offset, length);
 }
 
-guint32 *gnet_prop_get_guint32
-    (property_t prop, guint32 *t, gsize offset, gsize length)
+guint32 *gnet_prop_get_guint32(
+    property_t prop, guint32 *t, gsize offset, gsize length)
 {
     return prop_get_guint32(gnet_property, prop, t, offset, length);
 }
@@ -2151,3 +2189,4 @@ prop_set_stub_t *gnet_prop_get_stub(void)
 
     return stub;
 }
+

@@ -429,9 +429,8 @@ void version_ancient_warn(void)
 	g_assert(our_version.timestamp > 0);	/* version_init() called */
 
 	if (time(NULL) - our_version.timestamp > 86400*365) {
-        gboolean b = TRUE;
 		g_warning("version of gtk-gnutella is too old, you should upgrade!");
-        gnet_prop_set_boolean(PROP_ANCIENT_VERSION, &b, 0, 1);
+        gnet_prop_set_boolean_val(PROP_ANCIENT_VERSION, TRUE);
 	}
 }
 

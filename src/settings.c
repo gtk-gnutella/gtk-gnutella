@@ -315,7 +315,7 @@ void settings_ip_changed(guint32 new_ip)
 	if (new_ip == local_ip)
 		return;
 
-    gnet_prop_set_guint32(PROP_LOCAL_IP, &new_ip, 0, 1);
+    gnet_prop_set_guint32_val(PROP_LOCAL_IP, new_ip);
 }
 
 /*
@@ -398,11 +398,11 @@ static gboolean up_connections_changed(property_t prop)
     guint32 up_connections;
     guint32 max_connections;
     
-    gnet_prop_get_guint32(PROP_UP_CONNECTIONS, &up_connections, 0, 1);
-    gnet_prop_get_guint32(PROP_MAX_CONNECTIONS, &max_connections, 0, 1);
+    gnet_prop_get_guint32_val(PROP_UP_CONNECTIONS, &up_connections);
+    gnet_prop_get_guint32_val(PROP_MAX_CONNECTIONS, &max_connections);
 
     if (up_connections > max_connections)
-        gnet_prop_set_guint32(PROP_MAX_CONNECTIONS, &up_connections, 0, 1);
+        gnet_prop_set_guint32_val(PROP_MAX_CONNECTIONS, up_connections);
 
     return FALSE;
 }
@@ -412,11 +412,11 @@ static gboolean max_connections_changed(property_t prop)
     guint32 up_connections;
     guint32 max_connections;
     
-    gnet_prop_get_guint32(PROP_UP_CONNECTIONS, &up_connections, 0, 1);
-    gnet_prop_get_guint32(PROP_MAX_CONNECTIONS, &max_connections, 0, 1);
+    gnet_prop_get_guint32_val(PROP_UP_CONNECTIONS, &up_connections);
+    gnet_prop_get_guint32_val(PROP_MAX_CONNECTIONS, &max_connections);
 
     if (up_connections > max_connections)
-        gnet_prop_set_guint32(PROP_UP_CONNECTIONS, &max_connections, 0, 1);
+        gnet_prop_set_guint32_val(PROP_UP_CONNECTIONS, max_connections);
 
     return FALSE;
 }
@@ -426,8 +426,8 @@ static gboolean max_hosts_cached_changed(property_t prop)
     guint32 max_hosts_cached;
     guint32 hosts_in_catcher;
 
-    gnet_prop_get_guint32(PROP_MAX_HOSTS_CACHED, &max_hosts_cached, 0, 1);
-    gnet_prop_get_guint32(PROP_HOSTS_IN_CATCHER, &hosts_in_catcher, 0, 1);
+    gnet_prop_get_guint32_val(PROP_MAX_HOSTS_CACHED, &max_hosts_cached);
+    gnet_prop_get_guint32_val(PROP_HOSTS_IN_CATCHER, &hosts_in_catcher);
 
     if (max_hosts_cached < hosts_in_catcher)
         host_prune_cache();
@@ -440,7 +440,7 @@ static gboolean listen_port_changed(property_t prop)
 	static guint32 old_listen_port = 0;
     guint32 listen_port;
 
-    gnet_prop_get_guint32(prop, &listen_port, 0, 1);
+    gnet_prop_get_guint32_val(prop, &listen_port);
 
 	/*
 	 * If port did not change values, do nothing.
@@ -474,7 +474,7 @@ static gboolean listen_port_changed(property_t prop)
 
     if ((s_listen == NULL) && (listen_port != 0)) {
         old_listen_port = listen_port = 0;
-        gnet_prop_set_guint32(prop, &listen_port, 0, 1);
+        gnet_prop_set_guint32_val(prop, listen_port);
         return TRUE;
     }
 
@@ -485,7 +485,7 @@ static gboolean bw_http_in_enabled_changed(property_t prop)
 {
     gboolean val;
 
-    gnet_prop_get_boolean(prop, &val, 0, 1);
+    gnet_prop_get_boolean_val(prop, &val);
 
     if (val)
         bsched_enable(bws.in);
@@ -499,7 +499,7 @@ static gboolean bw_http_out_enabled_changed(property_t prop)
 {
     gboolean val;
 
-    gnet_prop_get_boolean(prop, &val, 0, 1);
+    gnet_prop_get_boolean_val(prop, &val);
 
     if (val)
         bsched_enable(bws.out);
@@ -513,7 +513,7 @@ static gboolean bw_gnet_in_enabled_changed(property_t prop)
 {
     gboolean val;
 
-    gnet_prop_get_boolean(prop, &val, 0, 1);
+    gnet_prop_get_boolean_val(prop, &val);
 
     if (val)
         bsched_enable(bws.gin);
@@ -527,7 +527,7 @@ static gboolean bw_gnet_out_enabled_changed(property_t prop)
 {
     gboolean val;
 
-    gnet_prop_get_boolean(prop, &val, 0, 1);
+    gnet_prop_get_boolean_val(prop, &val);
 
     if (val)
         bsched_enable(bws.gout);
@@ -542,10 +542,10 @@ static gboolean node_sendqueue_size_changed(property_t prop)
     guint32 val;
     guint32 min = 1.5 * settings_max_msg_size();
 
-    gnet_prop_get_guint32(PROP_NODE_SENDQUEUE_SIZE, &val, 0, 1);
+    gnet_prop_get_guint32_val(PROP_NODE_SENDQUEUE_SIZE, &val);
 
     if (val < min) {
-        gnet_prop_set_guint32(PROP_NODE_SENDQUEUE_SIZE, &min, 0, 1);
+        gnet_prop_set_guint32_val(PROP_NODE_SENDQUEUE_SIZE, min);
         return TRUE;
     }
     
@@ -642,11 +642,11 @@ static gboolean hard_ttl_limit_changed(property_t prop)
     guint32 hard_ttl_limit;
     guint32 max_ttl;
 
-    gnet_prop_get_guint32(PROP_HARD_TTL_LIMIT, &hard_ttl_limit, 0, 1);
-    gnet_prop_get_guint32(PROP_MAX_TTL, &max_ttl, 0, 1);
+    gnet_prop_get_guint32_val(PROP_HARD_TTL_LIMIT, &hard_ttl_limit);
+    gnet_prop_get_guint32_val(PROP_MAX_TTL, &max_ttl);
 
     if (hard_ttl_limit < max_ttl)
-        gnet_prop_set_guint32(PROP_MAX_TTL, &hard_ttl_limit, 0, 1);
+        gnet_prop_set_guint32_val(PROP_MAX_TTL, hard_ttl_limit);
 
     return FALSE;
 }
@@ -656,11 +656,11 @@ static gboolean max_ttl_changed(property_t prop)
     guint32 hard_ttl_limit;
     guint32 max_ttl;
 
-    gnet_prop_get_guint32(PROP_HARD_TTL_LIMIT, &hard_ttl_limit, 0, 1);
-    gnet_prop_get_guint32(PROP_MAX_TTL, &max_ttl, 0, 1);
+    gnet_prop_get_guint32_val(PROP_HARD_TTL_LIMIT, &hard_ttl_limit);
+    gnet_prop_get_guint32_val(PROP_MAX_TTL, &max_ttl);
 
     if (hard_ttl_limit < max_ttl)
-        gnet_prop_set_guint32(PROP_HARD_TTL_LIMIT, &max_ttl, 0, 1);
+        gnet_prop_set_guint32_val(PROP_HARD_TTL_LIMIT, max_ttl);
 
     return FALSE;
 }

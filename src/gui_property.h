@@ -107,26 +107,47 @@ prop_def_t *gui_prop_get_def(property_t);
 /*
  * Property-change listeners
  */
-void gui_prop_add_prop_changed_listener
-    (property_t, prop_changed_listener_t, gboolean);
-void gui_prop_remove_prop_changed_listener
-    (property_t, prop_changed_listener_t);
+void gui_prop_add_prop_changed_listener(
+    property_t, prop_changed_listener_t, gboolean);
+void gui_prop_remove_prop_changed_listener(
+    property_t, prop_changed_listener_t);
 
 /*
  * get/set functions
+ *
+ * The *_val macros are shortcuts for single scalar properties.
  */
-void gui_prop_set_boolean
-    (property_t, const gboolean *, gsize, gsize);
-gboolean *gui_prop_get_boolean
-    (property_t, gboolean *, gsize, gsize);
+void gui_prop_set_boolean(
+    property_t, const gboolean *, gsize, gsize);
+gboolean *gui_prop_get_boolean(
+    property_t, gboolean *, gsize, gsize);
+
+#define gui_prop_set_boolean_val(p, v) do { \
+	gboolean value = v; \
+	gui_prop_set_boolean(p, &value, 0, 1); \
+} while (0)
+
+#define gui_prop_get_boolean_val(p, v) do { \
+	gui_prop_get_boolean(p, v, 0, 1); \
+} while (0)
+
 
 void gui_prop_set_string(property_t, const gchar *);
 gchar *gui_prop_get_string(property_t, gchar *, gsize);
 
-void gui_prop_set_guint32
-    (property_t, const guint32 *, gsize, gsize);
-guint32 *gui_prop_get_guint32
-    (property_t, guint32 *, gsize, gsize);
+void gui_prop_set_guint32(
+    property_t, const guint32 *, gsize, gsize);
+guint32 *gui_prop_get_guint32(
+    property_t, guint32 *, gsize, gsize);
+
+#define gui_prop_set_guint32_val(p, v) do { \
+	guint32 value = v; \
+	gui_prop_set_guint32(p, &value, 0, 1); \
+} while (0)
+
+#define gui_prop_get_guint32_val(p, v) do { \
+	gui_prop_get_guint32(p, v, 0, 1); \
+} while (0)
 
 void gui_prop_set_storage(property_t, const guint8 *, gsize);
 guint8 *gui_prop_get_storage(property_t, guint8 *, gsize);

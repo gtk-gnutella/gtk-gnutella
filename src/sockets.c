@@ -551,10 +551,10 @@ static void guess_local_ip(int sd)
 
 		if (!ip_computed) {
 			if (!local_ip || can_supersede)
-				gnet_prop_set_guint32(PROP_LOCAL_IP, &ip, 0, 1);
+				gnet_prop_set_guint32_val(PROP_LOCAL_IP, ip);
 			ip_computed = TRUE;
 		} else if (can_supersede)
-			gnet_prop_set_guint32(PROP_LOCAL_IP, &ip, 0, 1);
+			gnet_prop_set_guint32_val(PROP_LOCAL_IP, ip);
 	}
 }
 

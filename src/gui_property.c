@@ -1243,38 +1243,38 @@ prop_def_t *gui_prop_get_def(property_t p)
  * Add a change listener to a given property. If init is TRUE then
  * the listener is immediately called.
  */
-void gui_prop_add_prop_changed_listener
-    (property_t prop, prop_changed_listener_t l, gboolean init)
+void gui_prop_add_prop_changed_listener(
+    property_t prop, prop_changed_listener_t l, gboolean init)
 {
     prop_add_prop_changed_listener(gui_property, prop, l, init);
 }
 
-void gui_prop_remove_prop_changed_listener
-    (property_t prop, prop_changed_listener_t l)
+void gui_prop_remove_prop_changed_listener(
+    property_t prop, prop_changed_listener_t l)
 {
     prop_remove_prop_changed_listener(gui_property, prop, l);
 }
 
-void gui_prop_set_boolean
-    (property_t prop, const gboolean *src, gsize offset, gsize length)
+void gui_prop_set_boolean(
+    property_t prop, const gboolean *src, gsize offset, gsize length)
 {
     prop_set_boolean(gui_property, prop, src, offset, length);
 }
 
-gboolean *gui_prop_get_boolean
-    (property_t prop, gboolean *t, gsize offset, gsize length)
+gboolean *gui_prop_get_boolean(
+    property_t prop, gboolean *t, gsize offset, gsize length)
 {
     return prop_get_boolean(gui_property, prop, t, offset, length);
 }
 
-void gui_prop_set_guint32
-    (property_t prop, const guint32 *src, gsize offset, gsize length)
+void gui_prop_set_guint32(
+    property_t prop, const guint32 *src, gsize offset, gsize length)
 {
     prop_set_guint32(gui_property, prop, src, offset, length);
 }
 
-guint32 *gui_prop_get_guint32
-    (property_t prop, guint32 *t, gsize offset, gsize length)
+guint32 *gui_prop_get_guint32(
+    property_t prop, guint32 *t, gsize offset, gsize length)
 {
     return prop_get_guint32(gui_property, prop, t, offset, length);
 }
@@ -1334,3 +1334,4 @@ prop_set_stub_t *gui_prop_get_stub(void)
 
     return stub;
 }
+
