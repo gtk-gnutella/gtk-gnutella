@@ -3,8 +3,6 @@
  *
  * Copyright (c) 2003, Raphael Manfredi
  *
- * Common GUI search routines.
- *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
  *
@@ -24,6 +22,12 @@
  *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *----------------------------------------------------------------------
  */
+/**
+ * @file
+ *
+ * Common GUI search routines.
+ */
+
 
 #include <errno.h>
 
@@ -59,7 +63,7 @@ static gchar tmpstr[1024];
 
 static GSList *accumulated_rs = NULL;
 
-/*
+/**
  * Human readable translation of servent trailer open flags.
  * Decompiled flags are listed in the order of the table.
  */
@@ -78,9 +82,7 @@ void search_gui_forget_current_search(void)		{ current_search = NULL; }
 void search_gui_current_search(search_t *sch)	{ current_search = sch; }
 
 
-/*
- * search_gui_free_alt_locs
- *
+/**
  * Free the alternate locations held within a file record.
  */
 void search_gui_free_alt_locs(record_t *rc)
@@ -95,9 +97,7 @@ void search_gui_free_alt_locs(record_t *rc)
 	rc->alt_locs = NULL;
 }
 
-/*
- * search_gui_free_proxies
- *
+/**
  * Free the push proxies held within a result set.
  */
 void search_gui_free_proxies(results_set_t *rs)
@@ -112,9 +112,7 @@ void search_gui_free_proxies(results_set_t *rs)
 	rs->proxies = NULL;
 }
 
-/*
- * search_gui_free_record
- *
+/**
  * Free one file record.
  *
  * Those records may be inserted into some `dups' tables, at which time they
@@ -144,9 +142,7 @@ void search_gui_free_record(record_t *rc)
 	zfree(rc_zone, rc);
 }
 
-/*
- * search_gui_clean_r_set
- *
+/**
  * This routine must be called when the results_set has been dispatched to
  * all the opened searches.
  *
@@ -183,9 +179,7 @@ void search_gui_clean_r_set(results_set_t *rs)
     g_slist_free(sl_remove);
 }
 
-/*
- * search_gui_free_r_set
- *
+/**
  * Free one results_set.
  *
  * Those records may be shared between several searches.  So while the refcount
@@ -240,9 +234,7 @@ void search_gui_free_r_set(results_set_t *rs)
 	zfree(rs_zone, rs);
 }
 
-/*
- * search_gui_dispose_results
- *
+/**
  * Dispose of an empty search results, whose records have all been
  * unreferenced by the searches.  The results_set is therefore an
  * empty shell, useless.
@@ -274,9 +266,8 @@ void search_gui_dispose_results(results_set_t *rs)
 	rs->refcount = 1;
 	search_gui_free_r_set(rs);
 }
-/*
- * search_gui_ref_record
- *
+
+/**
  * Add a reference to the record but don't dare to redeem it!
  */ 
 void search_gui_ref_record(record_t *rc)
@@ -285,9 +276,7 @@ void search_gui_ref_record(record_t *rc)
 	rc->refcount++;
 }
 
-/*
- * search_gui_unref_record
- *
+/**
  * Remove one reference to a file record.
  *
  * If the record has no more references, remove it from its parent result
@@ -322,8 +311,9 @@ void search_gui_unref_record(record_t *rc)
 		search_gui_dispose_results(rs);
 }
 
-/* Free all the results_set's of a search */
-
+/** 
+ * Free all the results_set's of a search 
+ */
 static inline void free_r_sets_helper(gpointer data, gpointer user_data)
 {
 	results_set_t *rs = data;
@@ -366,9 +356,7 @@ gint search_gui_hash_key_compare(const record_t *rc1, const record_t *rc2)
 				? rc1->sha1 == rc2->sha1 : (0 == strcmp(rc1->name, rc2->name)));
 }
 
-/*
- * search_gui_remove_r_set
- *
+/**
  * Remove reference to results in our search.
  * Last one to remove it will trigger a free.
  */
@@ -378,9 +366,7 @@ void search_gui_remove_r_set(search_t *sch, results_set_t *rs)
 	search_gui_free_r_set(rs);
 }
 
-/*
- * search_gui_result_is_dup
- *
+/**
  * Check to see whether we already have a record for this file.
  * If we do, make sure that the index is still accurate,
  * otherwise inform the interested parties about the change.
@@ -432,9 +418,7 @@ gboolean search_gui_result_is_dup(search_t *sch, record_t *rc)
 	return TRUE;		/* yes, it's a duplicate */
 }
 
-/*
- * search_gui_find:
- *
+/**
  * Returns a pointer to gui_search_t from gui_searches which has
  * sh as search_handle. If none is found, return NULL.
  */
@@ -456,9 +440,7 @@ search_t *search_gui_find(gnet_search_t sh)
     return NULL;
 }
 
-/*
- * search_gui_create_record
- *
+/**
  * Create a new GUI record within `rs' from a Gnutella record.
  */
 record_t *search_gui_create_record(results_set_t *rs, gnet_record_t *r) 
@@ -503,9 +485,7 @@ record_t *search_gui_create_record(results_set_t *rs, gnet_record_t *r)
     return rc;
 }
 
-/*
- * search_gui_create_results_set
- *
+/**
  * Create a new GUI result set from a Gnutella one.
  */
 results_set_t *search_gui_create_results_set(
@@ -551,9 +531,7 @@ results_set_t *search_gui_create_results_set(
     return rs;
 }
 
-/*
- * search_gui_common_init
- *
+/**
  * Initialize common structures.
  */
 void search_gui_common_init(void)
@@ -562,9 +540,7 @@ void search_gui_common_init(void)
 	rc_zone = zget(sizeof(record_t), 1024);
 }
 
-/*
- * search_gui_common_shutdown
- *
+/**
  * Destroy common structures.
  */
 void search_gui_common_shutdown(void)
@@ -575,9 +551,7 @@ void search_gui_common_shutdown(void)
 	rs_zone = rc_zone = NULL;
 }
 
-/*
- * search_gui_check_alt_locs
- *
+/**
  * Check for alternate locations in the result set, and enqueue the downloads
  * if there are any.  Then free the alternate location from the record.
  */
@@ -633,9 +607,7 @@ static void search_store_old(void)
 }
 #endif /* HAS_LIBXML2 */
 
-/*
- * search_gui_store_searches
- *
+/**
  * Persist searches to disk.
  */
 void search_gui_store_searches(void)
@@ -671,9 +643,7 @@ void search_gui_store_searches(void)
 #endif
 }
 
-/*
- * search_retrieve_old
- *
+/**
  * Retrieve search list and restart searches.
  * The searches are normally retrieved from ~/.gtk-gnutella/searches.
  */
@@ -714,9 +684,7 @@ static gboolean search_retrieve_old(void)
     return TRUE;
 }
 
-/*
- * search_gui_retrieve_searches
- *
+/**
  * Retrieve searches from disk.
  */
 void search_gui_retrieve_searches(void)
@@ -737,9 +705,7 @@ void search_gui_retrieve_searches(void)
 #endif /* HAS_LIBXML2 */
 }
 
-/*
- * search_matched
- *
+/**
  * Called to dispatch results to the search window.
  */
 void search_matched(search_t *sch, results_set_t *rs)
@@ -951,9 +917,7 @@ void search_matched(search_t *sch, results_set_t *rs)
 }
 
 
-/*
- * search_gui_autoselect_cmp:
- *
+/**
  * Determines wether two records are equal enough to warrant
  * autoselection. fuzzy_threshold (etc) is an argument to avoid
  * fetching the property too often.
@@ -1006,9 +970,7 @@ gboolean search_gui_autoselect_cmp(record_t *rc, record_t *rc2,
  *** Callbacks
  ***/
 
-/*
- * search_gui_got_results
- *
+/**
  * Called when the core has finished parsing the result set, and the results
  * need to be dispatched to the searches listed in `schl'.
  */
@@ -1029,9 +991,7 @@ void search_gui_got_results(GSList *schl, const gnet_results_set_t *r_set)
     accumulated_rs = g_slist_prepend(accumulated_rs, rs);
 }
 
-/*
- * search_gui_flush
- *
+/**
  * Periodic timer to flush the accumulated hits during the period and
  * dispatch them to the GUI.
  */
@@ -1184,6 +1144,37 @@ gchar *search_gui_extract_ext(gchar *filename)
 	}
 
     return ext;
+}
+
+/**
+ * Creates a new search based on the filename found and adds a filter
+ * to it based on the sha1 hash if it has one or the exact filename if
+ * it hasn't.
+ * 
+ * @author Andrew Meredith <andrew@anvil.org>
+ */
+void search_gui_add_targetted_search(record_t *rec, filter_t *noneed)
+{
+    search_t *new_search;
+    rule_t *rule;
+
+    g_assert(rec != NULL);
+    g_assert(rec->name != NULL);
+
+    /* create new search item with search string set to filename */
+    search_gui_new_search(rec->name, 0, &new_search);
+    g_assert(new_search != NULL);
+
+    if (rec->sha1) {
+        rule = filter_new_sha1_rule(rec->sha1, rec->name,
+            filter_get_download_target(), RULE_FLAG_ACTIVE);
+    } else {
+        rule = filter_new_text_rule(rec->name, RULE_TEXT_EXACT, TRUE,
+            filter_get_download_target(), RULE_FLAG_ACTIVE);
+    }
+    g_assert(rule != NULL);
+
+    filter_append_rule(new_search->filter, rule);
 }
 
 /* vi: set ts=4: */

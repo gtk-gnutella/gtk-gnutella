@@ -146,4 +146,8 @@ gboolean search_gui_autoselect_cmp(record_t *rc, record_t *rc2,
     gboolean search_autoselect_fuzzy, guint32 fuzzy_threshold);
 gchar *search_gui_extract_ext(gchar *filename);
 
+struct filter;
+void search_gui_add_targetted_search(
+    struct record *rec, struct filter *noneed);
+
 #endif /* _search_gui_common_h_ */
