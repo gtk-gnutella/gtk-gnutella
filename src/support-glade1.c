@@ -97,9 +97,6 @@ create_pixmap                          (GtkWidget       *widget,
   GtkWidget *pixmap;
   GList *elem;
 
-  if (!filename || !filename[0])
-      return create_dummy_pixmap (widget);
-
   /* We first try any pixmaps directories set by the application. */
   elem = pixmaps_directories;
   while (elem)
@@ -139,7 +136,7 @@ create_pixmap                          (GtkWidget       *widget,
 }
 
 /* This is an internally used function to check if a pixmap file exists. */
-static gchar*
+gchar*
 check_file_exists                      (const gchar     *directory,
                                         const gchar     *filename)
 {
