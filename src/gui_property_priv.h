@@ -56,6 +56,7 @@ extern guint32  gnet_stats_recv_col_widths[10];
 extern guint32  window_coords[4];
 extern guint32  filter_dlg_coords[4];
 extern guint32  downloads_divider_pos;
+extern guint32  fileinfo_divider_pos;
 extern guint32  main_divider_pos;
 extern guint32  gnet_stats_divider_pos;
 extern guint32  side_divider_pos;
