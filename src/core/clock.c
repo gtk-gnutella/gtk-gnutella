@@ -36,7 +36,6 @@ RCSID("$Id$");
 
 #include "clock.h"
 
-#include "lib/atoms.h"
 #include "lib/cq.h"
 #include "lib/misc.h"
 #include "lib/walloc.h"
@@ -54,7 +53,7 @@ RCSID("$Id$");
 #define CLEAN_STEPS	3			/* Amount of steps to remove off-track data */
 
 struct used_val {
-	guint *ip_atom;				/* The atom used for the key */
+	guint32 ip;					/* The IP address */
 	gint precision;				/* The precision used for the last update */
 	gpointer cq_ev;				/* Scheduled cleanup event */
 };
@@ -91,9 +90,7 @@ static void
 val_free(struct used_val *v)
 {
 	g_assert(v);
-	g_assert(v->ip_atom);
-
-	atom_int_free(v->ip_atom);
+	g_assert(v->ip);
 
 	if (v->cq_ev)
 		cq_cancel(callout_queue, v->cq_ev);
@@ -105,14 +102,15 @@ val_free(struct used_val *v)
  * Called from callout queue when it's time to destroy the record.
  */
 static void
-val_destroy(cqueue_t *cq, gpointer obj)
+val_destroy(cqueue_t *unused_cq, gpointer obj)
 {
 	struct used_val *v = (struct used_val *) obj;
 
+	(void) unused_cq;
 	g_assert(v);
-	g_assert(v->ip_atom);
+	g_assert(v->ip);
 
-	g_hash_table_remove(used, v->ip_atom);
+	g_hash_table_remove(used, GUINT_TO_POINTER(v->ip));
 	v->cq_ev = NULL;
 	val_free(v);
 }
@@ -125,7 +123,7 @@ val_create(guint32 ip, gint precision)
 {
 	struct used_val *v = walloc(sizeof(*v));
 
-	v->ip_atom = atom_int_get(&ip);
+	v->ip = ip;
 	v->precision = precision;
 	v->cq_ev = cq_insert(callout_queue, REUSE_DELAY * 1000, val_destroy, v);
 
@@ -149,15 +147,17 @@ val_reused(struct used_val *v, gint precision)
 void
 clock_init(void)
 {
-	used = g_hash_table_new(g_int_hash, g_int_equal);
+	used = g_hash_table_new(NULL, NULL);
 	datapoints = statx_make();
 }
 
 static void
-used_free_kv(gpointer key, gpointer val, gpointer x)
+used_free_kv(gpointer unused_key, gpointer val, gpointer unused_x)
 {
 	struct used_val *v = (struct used_val *) val;
 
+	(void) unused_key;
+	(void) unused_x;
 	val_free(v);
 }
 
@@ -290,17 +290,17 @@ clock_update(time_t update, gint precision, guint32 ip)
 	 * end is running NTP.
 	 */
 
-	if ((v = g_hash_table_lookup(used, &ip))) {
+	if ((v = g_hash_table_lookup(used, GUINT_TO_POINTER(ip)))) {
 		if (precision && precision >= v->precision)
 			return;
 		val_reused(v, precision);
 	} else {
 		v = val_create(ip, precision);
-		g_hash_table_insert(used, v->ip_atom, v);
+		g_hash_table_insert(used, GUINT_TO_POINTER(v->ip), v);
 	}
 
 	now = time(NULL);
-	delta = update - (now + (gint32) clock_skew);
+	delta = delta_time(update, (now + (gint32) clock_skew));
 
 	statx_add(datapoints, (gdouble) (delta + precision));
 	statx_add(datapoints, (gdouble) (delta - precision));
@@ -338,3 +338,4 @@ clock_gmt2loc(time_t stamp)
 	return stamp - (gint32) clock_skew;
 }
 
+/* vi: set ts=4 sw=4 cindent: */

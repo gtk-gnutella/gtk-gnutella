@@ -145,7 +145,7 @@ ip_record_free(struct ip_record *ipr)
 static void
 ip_record_free_remove(struct ip_record *ipr)
 {
-	g_hash_table_remove(outgoing_udp, &ipr->ip);
+	g_hash_table_remove(outgoing_udp, GUINT_TO_POINTER(ipr->ip));
 	ip_record_free(ipr);
 }
 
@@ -414,7 +414,7 @@ inet_udp_got_incoming(guint32 ip)
 	if (!is_local_ip(ip)) {
 		gpointer ipr;
 
-		ipr = g_hash_table_lookup(outgoing_udp, &ip);
+		ipr = g_hash_table_lookup(outgoing_udp, GUINT_TO_POINTER(ip));
 		inet_udp_got_solicited();
 		if (ipr == NULL)
 			inet_udp_got_unsolicited_incoming();
@@ -430,13 +430,12 @@ inet_udp_record_sent(guint32 ip)
 {
 	struct ip_record *ipr;
 
-	ipr = g_hash_table_lookup(outgoing_udp, &ip);
-
+	ipr = g_hash_table_lookup(outgoing_udp, GUINT_TO_POINTER(ip));
 	if (ipr != NULL)
 		ip_record_touch(ipr);
 	else {
 		ipr = ip_record_make(ip);
-		g_hash_table_insert(outgoing_udp, &ipr->ip, ipr);
+		g_hash_table_insert(outgoing_udp, GUINT_TO_POINTER(ipr->ip), ipr);
 		ipr->timeout_ev = cq_insert(callout_queue, FW_UDP_WINDOW * 1000,
 			ip_record_destroy, ipr);
 	}
@@ -525,6 +524,8 @@ check_outgoing_connection(cqueue_t *cq, gpointer obj)
 	if (bws.in)  last_received += bsched_bps(bws.in);
 	if (bws.gin) last_received += bsched_bps(bws.gin);
 
+	g_message("%s: last_received=%u, outgoing_connected=%d", __func__,
+		(unsigned) last_received, (int) outgoing_connected);
 
 	if (
 		outgoing_connected == 0	&&		/* No success over the period */
@@ -616,7 +617,7 @@ inet_init(void)
 	 * Initialize the table used to record outgoing UDP traffic.
 	 */
 
-	outgoing_udp = g_hash_table_new(g_int_hash, g_int_equal);
+	outgoing_udp = g_hash_table_new(NULL, NULL);
 }
 
 /**
@@ -627,7 +628,7 @@ free_ip_record(gpointer key, gpointer value, gpointer udata)
 {
 	struct ip_record *ipr = (struct ip_record *) value;
 
-	g_assert(&ipr->ip == key);
+	g_assert(ipr->ip == GUINT_TO_POINTER(key));
 	ip_record_free(ipr);
 }
 

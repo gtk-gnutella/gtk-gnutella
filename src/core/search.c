@@ -118,7 +118,7 @@ typedef struct search_ctrl {
 	 */
 
 	GHashTable *sent_nodes;		/* Sent node by ip:port */
-	GHashTable *sent_node_ids;	/* Id (atoms) of nodes to which we sent query */
+	GHashTable *sent_node_ids;	/* IDs of nodes to which we sent query */
 
 	GHook *new_node_hook;
 	guint reissue_timeout_id;
@@ -221,8 +221,11 @@ sent_node_compare(gconstpointer a, gconstpointer b)
 }
 
 static gboolean
-search_free_sent_node(gpointer node, gpointer value, gpointer udata)
+search_free_sent_node(gpointer node,
+	gpointer unused_value, gpointer unused_udata)
 {
+	(void) unused_value;
+	(void) unused_udata;
 	wfree(node, sizeof(struct sent_node_data));
 	return TRUE;
 }
@@ -269,18 +272,9 @@ mark_search_sent_to_connected_nodes(search_ctrl_t *sch)
  *** Management of the "sent_node_ids" hash table.
  ***/
 
-static gboolean
-search_free_sent_node_id(gpointer atom, gpointer value, gpointer udata)
-{
-	atom_int_free(atom);
-	return TRUE;
-}
-
 static void
 search_free_sent_node_ids(search_ctrl_t *sch)
 {
-	g_hash_table_foreach_remove(sch->sent_node_ids,
-		search_free_sent_node_id, NULL);
 	g_hash_table_destroy(sch->sent_node_ids);
 }
 
@@ -288,19 +282,18 @@ static void
 search_reset_sent_node_ids(search_ctrl_t *sch)
 {
 	search_free_sent_node_ids(sch);
-	sch->sent_node_ids = g_hash_table_new(g_int_hash, g_int_equal);
+	sch->sent_node_ids = g_hash_table_new(NULL, NULL);
 }
 
 static void
 mark_search_sent_to_node_id(search_ctrl_t *sch, guint32 node_id)
 {
-	gint *atom;
+	gpointer key = GUINT_TO_POINTER(node_id);
 
-	if (g_hash_table_lookup(sch->sent_node_ids, &node_id))
+	if (g_hash_table_lookup(sch->sent_node_ids, key))
 		return;
 
-	atom = atom_int_get(&node_id);
-	g_hash_table_insert(sch->sent_node_ids, atom, GUINT_TO_POINTER(1));
+	g_hash_table_insert(sch->sent_node_ids, key, GUINT_TO_POINTER(1));
 }
 
 /**
@@ -1665,11 +1658,13 @@ search_send_query_status(search_ctrl_t *sch, guint32 node_id, guint16 kept)
  * -- hash table iterator callback
  */
 static void
-search_send_status(gpointer key, gpointer value, gpointer udata)
+search_send_status(gpointer key, gpointer unused_value, gpointer udata)
 {
-	guint *node_id = (guint *) key;
+	guint node_id = GPOINTER_TO_UINT(key);
 	search_ctrl_t *sch = (search_ctrl_t *) udata;
 	guint16 kept;
+
+	(void) unused_value;
 
 	/*
 	 * The 0xffff value is a magic number telling them to stop the search,
@@ -1678,7 +1673,7 @@ search_send_status(gpointer key, gpointer value, gpointer udata)
 
 	kept = MIN(sch->kept_results, (CLOSED_SEARCH - 1));
 
-	search_send_query_status(sch, *node_id, kept);
+	search_send_query_status(sch, node_id, kept);
 }
 
 /**
@@ -1697,12 +1692,13 @@ search_update_results(search_ctrl_t *sch)
  * -- hash table iterator callback
  */
 static void
-search_send_closed(gpointer key, gpointer value, gpointer udata)
+search_send_closed(gpointer key, gpointer unused_value, gpointer udata)
 {
-	gint *node_id = (gint *) key;
+	guint node_id = GPOINTER_TO_UINT(key);
 	search_ctrl_t *sch = (search_ctrl_t *) udata;
 
-	search_send_query_status(sch, *node_id, CLOSED_SEARCH);
+	(void) unused_value;
+	search_send_query_status(sch, node_id, CLOSED_SEARCH);
 }
 
 /**
@@ -2266,9 +2262,7 @@ search_get_reissue_timeout(gnet_search_t sh)
  * Create a new suspended search and return a handle which identifies it.
  */
 gnet_search_t
-search_new(
-    const gchar *query, guint16 minimum_speed, guint32 reissue_timeout,
-    flag_t flags)
+search_new(const gchar *query, guint32 reissue_timeout, flag_t flags)
 {
 	search_ctrl_t *sch;
 	gchar *qdup;
@@ -2322,7 +2316,7 @@ search_new(
 
 		sch->sent_nodes =
 			g_hash_table_new(sent_node_hash_func, sent_node_compare);
-		sch->sent_node_ids = g_hash_table_new(g_int_hash, g_int_equal);
+		sch->sent_node_ids = g_hash_table_new(NULL, NULL);
 	}
 
 	sl_search_ctrl = g_slist_prepend(sl_search_ctrl, (gpointer) sch);
@@ -2580,4 +2574,4 @@ search_is_passive(gnet_search_t sh)
     return sch->passive;
 }
 
-/* vi: set ts=4: */
+/* vi: set ts=4 sw=4 cindent: */
