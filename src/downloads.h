@@ -141,6 +141,7 @@ struct download {
 #define DL_F_URIRES			0x00000001	/* Tried to GET "/uri-res/N2R?" */
 #define DL_F_PUSH_IGN		0x00000002	/* Trying to ignore push flag */
 #define DL_F_OVERLAPPED		0x00000004	/* We went through overlap checking */
+#define DL_F_REPLIED		0x00000008	/* Servent replied to last request */
 #define DL_F_SUSPENDED		0x40000000	/* Suspended, do not schedule */
 #define DL_F_MARK			0x80000000	/* Marked in traversal */
 

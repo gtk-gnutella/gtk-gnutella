@@ -1562,7 +1562,10 @@ static void download_queue_v(struct download *d, const gchar *fmt, va_list ap)
 		download_move_to_list(d, DL_LIST_WAITING);
 
 	sl_unqueued = g_slist_remove(sl_unqueued, d);
+
 	gnet_prop_set_guint32_val(PROP_DL_QUEUE_COUNT, dl_queue_count + 1);
+	if (d->flags & DL_F_REPLIED)
+		gnet_prop_set_guint32_val(PROP_DL_QALIVE_COUNT, dl_qalive_count + 1);
 
 	download_gui_add(d);
 	gui_update_download(d, TRUE);
@@ -1857,12 +1860,16 @@ static void download_unqueue(struct download *d)
 	g_assert(d);
 	g_assert(DOWNLOAD_IS_QUEUED(d));
 	g_assert(dl_queue_count > 0);
+	g_assert(dl_qalive_count > 0);
 
 	if (DOWNLOAD_IS_VISIBLE(d))
 		download_gui_remove(d);
 
 	sl_unqueued = g_slist_prepend(sl_unqueued, d);
 	gnet_prop_set_guint32_val(PROP_DL_QUEUE_COUNT, dl_queue_count - 1);
+
+	if (d->flags & DL_F_REPLIED)
+		gnet_prop_set_guint32_val(PROP_DL_QALIVE_COUNT, dl_qalive_count - 1);
 
 	d->status = GTA_DL_CONNECTING;		/* Allow download to be stopped */
 }
@@ -2857,7 +2864,11 @@ void download_free(struct download *d)
 
 	if (DOWNLOAD_IS_QUEUED(d)) {
 		g_assert(dl_queue_count > 0);
+		g_assert(dl_qalive_count > 0);
+
 		gnet_prop_set_guint32_val(PROP_DL_QUEUE_COUNT, dl_queue_count - 1);
+		if (d->flags & DL_F_REPLIED)
+			gnet_prop_set_guint32_val(PROP_DL_QALIVE_COUNT, dl_qalive_count - 1);
 	}
 
 	/*
@@ -4010,6 +4021,7 @@ static void download_request(struct download *d, header_t *header, gboolean ok)
 		return;
 
 	d->retries = 0;				/* Retry successful, we managed to connect */
+	d->flags |= DL_F_REPLIED;
 
 	ip = download_ip(d);
 	port = download_port(d);
@@ -4516,6 +4528,8 @@ void download_send_request(struct download *d)
 
 	if (!n2r)
 		d->flags &= ~DL_F_URIRES;		/* Clear if not sending /uri-res/N2R? */
+
+	d->flags &= ~DL_F_REPLIED;			/* Will be set if we get a reply */
 
 	/*
 	 * Build the HTTP request.
