@@ -18196,7 +18196,7 @@ interface</label>
 	  <wrap>False</wrap>
 	  <xalign>0.5</xalign>
 	  <yalign>0.5</yalign>
-	  <xpad>5</xpad>
+	  <xpad>0</xpad>
 	  <ypad>0</ypad>
 	</widget>
       </widget>

@@ -818,8 +818,6 @@ void gtk_widget_fix_width(GtkWidget *w, GtkWidget *l, guint chars, guint extra)
         (pango_font_metrics_get_approximate_digit_width(pfm) * chars)
         + extra);
 
-    g_message("gtk_label_fix_width: width %d", max_width);
-
     gtk_widget_set_size_request(w, max_width, -1);
 
     pango_font_metrics_unref(pfm);

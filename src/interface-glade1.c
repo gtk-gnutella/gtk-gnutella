@@ -11180,7 +11180,6 @@ create_main_window (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (label_statusbar_uptime);
   gtk_container_add (GTK_CONTAINER (frame_statusbar_uptime), label_statusbar_uptime);
-  gtk_misc_set_padding (GTK_MISC (label_statusbar_uptime), 5, 0);
 
   gtk_signal_connect (GTK_OBJECT (main_window), "delete_event",
                       GTK_SIGNAL_FUNC (on_main_window_delete_event),

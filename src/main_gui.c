@@ -565,7 +565,7 @@ void main_gui_run(void)
     gtk_widget_fix_width(
         lookup_widget(main_window, "frame_statusbar_uptime"),
         lookup_widget(main_window, "label_statusbar_uptime"),
-        8, 20);
+        8, 8);
 
     gtk_main();
 }
