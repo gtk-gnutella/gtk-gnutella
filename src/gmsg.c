@@ -119,7 +119,7 @@ static pmsg_t *gmsg_split_to_pmsg(gpointer head, gpointer data, guint32 size)
 	written = pmsg_write(mb, head, HEADER_SIZE);
 	written += pmsg_write(mb, data, size - HEADER_SIZE);
 
-	g_assert(written == size);
+	g_assert((guint32) written == size);
 
 	return mb;
 }
@@ -365,7 +365,7 @@ static void gmsg_split_sendto_all_but_one_ggep(
 	pmsg_t *mb_stripped = NULL;
 
 	g_assert(((struct gnutella_header *) head)->ttl > 0);
-	g_assert(size >= regular_size);
+	g_assert(size >= (guint32) regular_size);
 
 	/* relayed broadcasted message, cannot be sent with hops=0 */
 
@@ -506,7 +506,7 @@ gboolean gmsg_can_drop(gpointer pdu, gint size)
 {
 	struct gnutella_header *head = (struct gnutella_header *) pdu;
 
-	if (size < sizeof(struct gnutella_header))
+	if ((size_t) size < sizeof(struct gnutella_header))
 		return TRUE;
 
 	switch (head->function) {
@@ -707,7 +707,7 @@ gboolean gmsg_check_ggep(struct gnutella_node *n, gint maxsize, gint regsize)
 	gint len;
 	gint i;
 
-	g_assert(n->size > regsize);
+	g_assert(n->size > (guint32) regsize);
 
 	len = n->size - regsize;				/* Extension length */
 
@@ -751,3 +751,4 @@ gboolean gmsg_check_ggep(struct gnutella_node *n, gint maxsize, gint regsize)
 	return TRUE;
 }
 
+/* vi: set ts=4: */
