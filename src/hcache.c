@@ -747,13 +747,20 @@ static bgret_t read_step(gpointer h, gpointer u, gint ticks)
 	count = ticks * HOST_READ_CNT;
 	count = MIN(max_read, count);
 
+	if (dbg > 9)
+		printf("read_step(%s): ticks=%d, count=%d\n", hc->name, ticks, count);
+
 	for (i = 0; i < count; i++) {
 		if (fgets(h_tmp, sizeof(h_tmp) - 1, rctx->fd)) { /* NUL appended */
 			guint32 ip;
 			gint16 port;
 
-			if (gchar_to_ip_port(h_tmp, &ip, &port))
-				host_add(ip, port, FALSE);
+			if (gchar_to_ip_port(h_tmp, &ip, &port)) {
+				if (hc->type == HCACHE_ULTRA)
+					host_add_ultra(ip, port);
+				else
+					host_add(ip, port, FALSE);
+			}
 		} else
 			goto done;
 	}
