@@ -2,6 +2,7 @@
  * $Id$
  *
  * Copyright (c) 2001-2002, Raphael Manfredi
+ * Copyright (c) 2000 Daniel Walker (dwalker@cats.ucsc.edu)
  *
  * Handles upload of our files to others users.
  *
@@ -2360,3 +2361,4 @@ void upload_get_status(gnet_upload_t uh, gnet_upload_status_t *si)
 	if (si->avg_bps == 0)
         si->avg_bps++;
 }
+

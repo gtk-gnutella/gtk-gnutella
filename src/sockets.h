@@ -2,6 +2,7 @@
  * $Id$
  *
  * Copyright (c) 2001-2002, Raphael Manfredi
+ * Copyright (c) 2000 Daniel Walker (dwalker@cats.ucsc.edu)
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
