@@ -51,5 +51,27 @@ void gm_savemain(gint argc, gchar **argv, gchar **env);
 void gm_setproctitle(gchar *title);
 unsigned long gm_atoul(const char *str, char **endptr, int *errorcode);
 
+/* NB: Sub-statement func is evaluated more than once! */
+#define G_LIST_FOREACH(list, func, user_data) \
+	do { \
+		GList *_l = (list); \
+		gpointer _user_data = (user_data); \
+		while (NULL != _l) { \
+			(*(func))(_l->data, _user_data); \
+			_l = g_list_next(_l); \
+		} \
+	} while(0)
+
+/* NB: Sub-statement func is evaluated more than once! */
+#define G_SLIST_FOREACH(slist, func, user_data) \
+	do { \
+		GSList *_sl = (slist); \
+		gpointer _user_data = (user_data); \
+		while (NULL != _sl) { \
+			(*(func))(_sl->data, _user_data); \
+			_sl = g_slist_next(_sl); \
+		} \
+	} while(0)
+
 #endif	/* _glib_missing_h_ */
 
