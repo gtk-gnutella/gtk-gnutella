@@ -82,7 +82,7 @@ typedef struct {
  * Indicates whether we should continue or not, given the HTTP response code.
  */
 typedef gboolean (*http_header_cb_t)(
-	gpointer h, struct header *header, gint code);
+	gpointer h, struct header *header, gint code, const gchar *message);
 
 /*
  * http_data_cb_t
@@ -143,6 +143,8 @@ typedef gint (*http_op_request_t)(gpointer handle, gchar *buf, gint len,
 #define HTTP_ASYNC_TIMEOUT			10	/* Data timeout */
 #define HTTP_ASYNC_NESTED			11	/* Nested redirections */
 #define HTTP_ASYNC_BAD_LOCATION_URI	12	/* Invalid URI in Location header */
+#define HTTP_ASYNC_CLOSED			13	/* Connection was closed, all OK */
+#define HTTP_ASYNC_REDIRECTED		14	/* Redirected, following disabled */
 
 extern guint http_async_errno;
 
@@ -173,6 +175,10 @@ typedef struct http_range {
 
 #define HTTP_OFFSET_MAX	0xffffffff
 
+/*
+ * HTTP request states.
+ */
+
 typedef enum http_state {
 	HTTP_AS_UNKNOWN = 0,		/* No defined state */
 	HTTP_AS_CONNECTING,			/* Connecting to server */
@@ -183,6 +189,13 @@ typedef enum http_state {
 	HTTP_AS_REDIRECTED,			/* Request redirected */
 	HTTP_AS_REMOVED,			/* Removed, pending free */
 } http_state_t;
+
+/*
+ * http_state_change_t
+ *
+ * Callabck to notify about state changes in HTTP request.
+ */
+typedef void (*http_state_change_t)(gpointer handle, http_state_t newstate);
 
 /*
  * HTTP data buffered when it cannot be sent out immediately.
@@ -238,6 +251,14 @@ gpointer http_async_get(
 	http_data_cb_t data_ind,
 	http_error_cb_t error_ind);
 
+gpointer http_async_get_ip(
+	gchar *path,
+	guint32 ip,
+	guint16 port,
+	http_header_cb_t header_ind,
+	http_data_cb_t data_ind,
+	http_error_cb_t error_ind);
+
 const gchar *http_async_strerror(guint errnum);
 const gchar *http_async_info(
 	gpointer handle, const gchar **req, gchar **path,
@@ -252,6 +273,8 @@ void http_async_set_opaque(gpointer handle, gpointer data, http_user_free_t fn);
 gpointer http_async_get_opaque(gpointer handle);
 void http_async_log_error(gpointer handle, http_errtype_t type, gpointer v);
 
+void http_async_on_state_change(gpointer handle, http_state_change_t fn);
+void http_async_allow_redirects(gpointer handle, gboolean allow);
 void http_async_set_op_request(gpointer handle, http_op_request_t op);
 
 void http_close(void);

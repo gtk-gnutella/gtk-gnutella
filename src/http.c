@@ -587,11 +587,8 @@ gboolean http_url_parse(
 			*host = hostname;				/* Static data! */
 	}
 
-	if (dbg > 5)
-		printf("URL \"%s\" -> host=%s, path=%s\n",
-			url,
-			(host != NULL) ? (*host ? *host : "<none>") : "<not remembered>",
-			(path != NULL) ? *path : "<not remembered>");
+	if (dbg > 4)
+		printf("URL \"%s\" -> host=%s, path=%s\n", url, hostname, p);
 
 	http_url_errno = HTTP_URL_OK;
 
@@ -1101,6 +1098,8 @@ static const gchar *error_str[] = {
 	"Data timeout",							/* HTTP_ASYNC_TIMEOUT */
 	"Nested redirection",					/* HTTP_ASYNC_NESTED */
 	"Invalid URI in Location header",		/* HTTP_ASYNC_BAD_LOCATION_URI */
+	"Connection was closed, all OK",		/* HTTP_ASYNC_CLOSED */
+	"Redirected, following disabled",		/* HTTP_ASYNC_REDIRECTED */
 };
 
 guint http_async_errno;		/* Used to return error codes during setup */
@@ -1149,6 +1148,7 @@ struct http_async {					/* An asynchronous HTTP request */
 	http_header_cb_t header_ind;	/* Callback for headers */
 	http_data_cb_t data_ind;		/* Callback for data */
 	http_error_cb_t error_ind;		/* Callback for errors */
+	http_state_change_t state_chg;	/* Optional: callback for state changes */
 	time_t last_update;				/* Time of last activity */
 	gpointer io_opaque;				/* Opaque I/O callback information */
 	bio_source_t *bio;				/* Bandwidth-limited source */
@@ -1156,6 +1156,7 @@ struct http_async {					/* An asynchronous HTTP request */
 	http_user_free_t user_free;		/* Free routine for opaque data */
 	struct http_async *parent;		/* Parent request, for redirections */
 	http_buffer_t *delayed;			/* Delayed data that could not be sent */
+	gboolean allow_redirects;		/* Whether we can follow HTTP redirects */
 	GSList *children;				/* Child requests */
 
 	/*
@@ -1212,14 +1213,14 @@ const gchar *http_async_info(
 /*
  * http_async_set_opaque
  *
- * Set user-defined opaque data, which can be freed via `fn'.
+ * Set user-defined opaque data, which can optionally be freed via `fn' if a
+ * non-NULL function pointer is given.
  */
 void http_async_set_opaque(gpointer handle, gpointer data, http_user_free_t fn)
 {
 	struct http_async *ha = (struct http_async *) handle;
 
 	g_assert(ha->magic == HTTP_ASYNC_MAGIC);
-	g_assert(fn != NULL);
 	g_assert(data != NULL);
 
 	ha->user_opaque = data;
@@ -1284,7 +1285,7 @@ static void http_async_free_recursive(struct http_async *ha)
 
 	ha->magic = 0;				/* Prevent accidental reuse */
 	ha->flags |= HA_F_FREED;	/* Will be freed later */
-	ha->state = HTTP_AS_REMOVED;
+	ha->state = HTTP_AS_REMOVED;	/* Don't notify about state change! */
 
 	sl_ha_freed = g_slist_prepend(sl_ha_freed, ha);
 }
@@ -1457,8 +1458,12 @@ static gint http_async_build_request(gpointer handle, gchar *buf, gint len,
  * The URL to request is given by `url'.
  * The type of HTTP request (GET, POST, ...) is given by `type'.
  *
+ * If `ip' is non-zero, then `url' is supposed to hold a path, and `port'
+ * must also be non-zero.  Otherwise, the IP and port are gathered from
+ * `url', which must start be something like "http://server:port/path".
+ *
  * When all headers are read, optionally call `header_ind' if not-NULL.
- * When data is present, call `data_ind'.
+ * When data is present, optionally call `data_ind' or close the connection.
  * On error condition during the asynchronous processing, call `error_ind',
  * including when the request is explicitly cancelled (but NOT when it is
  * excplicitly closed).
@@ -1468,40 +1473,48 @@ static gint http_async_build_request(gpointer handle, gchar *buf, gint len,
  * Returns the newly created request, or NULL with `http_async_errno' set.
  */
 static struct http_async *http_async_create(
-	gchar *url,
+	gchar *url,						/* Either full URL or path */
+	guint32 ip,						/* Optional: 0 means grab from url */
+	guint16 port,					/* Optional, must be given when IP given */
 	enum http_reqtype type,
 	http_header_cb_t header_ind,
 	http_data_cb_t data_ind,
 	http_error_cb_t error_ind,
 	struct http_async *parent)
 {
-	guint16 port;
 	gchar *path;
 	struct gnutella_socket *s;
 	struct http_async *ha;
-	gchar *host;
+	gchar *host = NULL;
 
 	g_assert(url);
-	g_assert(data_ind);
 	g_assert(error_ind);
+	g_assert(ip == 0 || port != 0);
 
 	/*
 	 * Extract the necessary parameters for the connection.
-	 */
-
-	if (!http_url_parse(url, &port, &host, &path)) {
-		http_async_errno = HTTP_ASYNC_BAD_URL;
-		return NULL;
-	}
-
-	/*
-	 * Attempt asynchronous connection.
-	 *
+	 * 
 	 * When connection is established, http_async_connected() will be called
 	 * from the socket layer.
 	 */
 
-	s = socket_connect_by_name(host, port, SOCK_TYPE_HTTP);
+	if (ip == 0) {
+		guint16 uport;
+
+		if (!http_url_parse(url, &uport, &host, &path)) {
+			http_async_errno = HTTP_ASYNC_BAD_URL;
+			return NULL;
+		}
+
+		g_assert(host != NULL);
+
+		s = socket_connect_by_name(host, uport, SOCK_TYPE_HTTP);
+	} else {
+		host = ip_port_to_gchar(ip, port);
+		path = url;
+
+		s = socket_connect(ip, port, SOCK_TYPE_HTTP);
+	}
 
 	if (s == NULL) {
 		http_async_errno = HTTP_ASYNC_CONN_FAILED;
@@ -1522,11 +1535,12 @@ static struct http_async *http_async_create(
 	ha->flags = 0;
 	ha->url = atom_str_get(url);
 	ha->path = atom_str_get(path);
-	ha->host = host ? atom_str_get(host) : NULL;
+	ha->host = atom_str_get(host);
 	ha->socket = s;
 	ha->header_ind = header_ind;
 	ha->data_ind = data_ind;
 	ha->error_ind = error_ind;
+	ha->state_chg = NULL;
 	ha->io_opaque = NULL;
 	ha->bio = NULL;
 	ha->last_update = time(NULL);
@@ -1535,6 +1549,7 @@ static struct http_async *http_async_create(
 	ha->parent = parent;
 	ha->children = NULL;
 	ha->delayed = NULL;
+	ha->allow_redirects = FALSE;
 	ha->op_request = http_async_build_request;
 
 	sl_outgoing = g_slist_prepend(sl_outgoing, ha);
@@ -1550,6 +1565,20 @@ static struct http_async *http_async_create(
 }
 
 /*
+ * http_async_newstate
+ *
+ * Change the request state, and notify listener if any.
+ */
+static void http_async_newstate(struct http_async *ha, http_state_t state)
+{
+	ha->state = state;
+	ha->last_update = time(NULL);
+
+	if (ha->state_chg != NULL)
+		(*ha->state_chg)(ha, state);
+}
+
+/*
  * http_async_get
  *
  * Starts an asynchronous HTTP GET request on the specified path.
@@ -1557,7 +1586,9 @@ static struct http_async *http_async_create(
  * http_async_errno variable set before returning.
  *
  * When data is available, `data_ind' will be called.  When all data have been
- * read, a final call to `data_ind' is made with no data.
+ * read, a final call to `data_ind' is made with no data.  If there is no
+ * `data_ind' routine, the connection will be closed after reading the
+ * whole header.
  *
  * On error, `error_ind' will be called, and upon return, the request will
  * be automatically cancelled.
@@ -1568,7 +1599,26 @@ gpointer http_async_get(
 	http_data_cb_t data_ind,
 	http_error_cb_t error_ind)
 {
-	return (gpointer) http_async_create(url, HTTP_GET,
+	return (gpointer) http_async_create(url, 0, 0, HTTP_GET,
+		header_ind, data_ind, error_ind,
+		NULL);
+}
+
+/*
+ * http_async_get_ip
+ *
+ * Same as http_async_get(), but a path on the server is given and the
+ * IP and port to contact are given explicitly.
+ */
+gpointer http_async_get_ip(
+	gchar *path,
+	guint32 ip,
+	guint16 port,
+	http_header_cb_t header_ind,
+	http_data_cb_t data_ind,
+	http_error_cb_t error_ind)
+{
+	return (gpointer) http_async_create(path, ip, port, HTTP_GET,
 		header_ind, data_ind, error_ind,
 		NULL);
 }
@@ -1589,13 +1639,42 @@ void http_async_set_op_request(gpointer handle, http_op_request_t op)
 }
 
 /*
+ * http_async_on_state_change
+ *
+ * Defines callback to invoke when the request changes states.
+ */
+void http_async_on_state_change(gpointer handle, http_state_change_t fn)
+{
+	struct http_async *ha = (struct http_async *) handle;
+
+	g_assert(ha->magic == HTTP_ASYNC_MAGIC);
+	g_assert(fn != NULL);
+
+	ha->state_chg = fn;
+}
+
+/*
+ *  http_async_allow_redirects
+ *
+ * Whether we should follow HTTP redirections (FALSE by default).
+ */
+void http_async_allow_redirects(gpointer handle, gboolean allow)
+{
+	struct http_async *ha = (struct http_async *) handle;
+
+	g_assert(ha->magic == HTTP_ASYNC_MAGIC);
+
+	ha->allow_redirects = allow;
+}
+
+/*
  * http_subreq_header_ind
  *
  * Interceptor callback for `header_ind' in child requests.
  * Reroute to parent request.
  */
 static gboolean http_subreq_header_ind(
-	gpointer handle, struct header *header, gint code)
+	gpointer handle, struct header *header, gint code, const gchar *message)
 {
 	struct http_async *ha = (struct http_async *) handle;
 
@@ -1603,7 +1682,7 @@ static gboolean http_subreq_header_ind(
 	g_assert(ha->parent != NULL);
 	g_assert(ha->parent->header_ind);
 
-	return (*ha->parent->header_ind)(ha->parent, header, code);
+	return (*ha->parent->header_ind)(ha->parent, header, code, message);
 }
 
 /*
@@ -1662,9 +1741,10 @@ static gboolean http_async_subrequest(
 	 * the sub-request invisible from the outside.
 	 */
 
-	child = http_async_create(url, type,
+	child = http_async_create(url, 0, 0, type,
 		parent->header_ind ? http_subreq_header_ind : NULL,	/* Optional */
-		http_subreq_data_ind, http_subreq_error_ind,
+		parent->data_ind ? http_subreq_data_ind : NULL,		/* Optional */
+		http_subreq_error_ind,
 		parent);
 
 	/*
@@ -1712,7 +1792,7 @@ static void http_redirect(struct http_async *ha, gchar *url)
 
 	socket_free(ha->socket);
 	ha->socket = NULL;
-	ha->state = HTTP_AS_REDIRECTED;
+	http_async_newstate(ha, HTTP_AS_REDIRECTED);
 
 	/*
 	 * Create sub-request to handle the redirection.
@@ -1824,8 +1904,6 @@ static void http_got_header(struct http_async *ha, header_t *header)
 	gchar *buf;
 	gint http_major = 0, http_minor = 0;
 
-	ha->last_update = time(NULL);		/* Done reading headers */
-
 	if (dbg > 2) {
 		printf("----Got HTTP reply from %s:\n", ip_to_gchar(s->ip));
 		printf("%s\n", status);
@@ -1851,7 +1929,10 @@ static void http_got_header(struct http_async *ha, header_t *header)
 	 * Don't continue if the callback returns FALSE.
 	 */
 
-	if (ha->header_ind && !(*ha->header_ind)(ha, header, ack_code))
+	if (
+		ha->header_ind &&
+		!(*ha->header_ind)(ha, header, ack_code, ack_message)
+	)
 		return;
 
 	/*
@@ -1865,6 +1946,11 @@ static void http_got_header(struct http_async *ha, header_t *header)
 	case 302:					/* Found */
 	case 303:					/* See other */
 	case 307:					/* Moved temporarily */
+		if (!ha->allow_redirects) {
+			http_async_error(ha, HTTP_ASYNC_REDIRECTED);
+			return;
+		}
+
 		buf = header_get(header, "Location");
 		if (buf == NULL) {
 			http_async_error(ha, HTTP_ASYNC_NO_LOCATION);
@@ -1904,6 +1990,15 @@ static void http_got_header(struct http_async *ha, header_t *header)
 	}
 
 	/*
+	 * If there is no callback for data reception, we're done.
+	 */
+
+	if (ha->data_ind == NULL) {
+		http_async_error(ha, HTTP_ASYNC_CLOSED);
+		return;
+	}
+
+	/*
 	 * Prepare reception of data.
 	 */
 
@@ -1918,7 +2013,7 @@ static void http_got_header(struct http_async *ha, header_t *header)
 	 * Give them the data immediately.
 	 */
 
-	ha->state = HTTP_AS_RECEIVING;
+	http_async_newstate(ha, HTTP_AS_RECEIVING);
 
 	if (s->pos > 0)
 		http_got_data(ha, FALSE);
@@ -1989,8 +2084,7 @@ static void http_header_start(gpointer handle)
 	
 	g_assert(ha->magic == HTTP_ASYNC_MAGIC);
 
-	ha->state = HTTP_AS_HEADERS;
-	ha->last_update = time(NULL);
+	http_async_newstate(ha, HTTP_AS_HEADERS);
 }
 
 /*
@@ -2000,8 +2094,7 @@ static void http_header_start(gpointer handle)
  */
 static void http_async_request_sent(struct http_async *ha)
 {
-	ha->state = HTTP_AS_REQ_SENT;
-	ha->last_update = time(NULL);
+	http_async_newstate(ha, HTTP_AS_REQ_SENT);
 
 	/*
 	 * Prepare to read back the status line and the headers.
@@ -2109,8 +2202,7 @@ void http_async_connected(gpointer handle)
 	 * Send the HTTP request.
 	 */
 
-	ha->state = HTTP_AS_REQ_SENDING;
-	ha->last_update = time(NULL);
+	http_async_newstate(ha, HTTP_AS_REQ_SENDING);
 	
 	if (-1 == (sent = bws_write(bws.out, s->file_desc, req, rw))) {
 		g_warning("HTTP request sending to %s failed: %s",
@@ -2169,6 +2261,9 @@ void http_async_log_error(gpointer handle, http_errtype_t type, gpointer v)
 		if (error == HTTP_ASYNC_CANCELLED) {
 			if (dbg > 3)
 				printf("explicitly cancelled \"%s %s\"\n", req, url);
+		} else if (error == HTTP_ASYNC_CANCELLED) {
+			if (dbg > 3)
+				printf("connection closed for \"%s %s\"\n", req, url);
 		} else
 			g_warning("aborting \"%s %s\" on error: %s",
 				req, url, http_async_strerror(error));
