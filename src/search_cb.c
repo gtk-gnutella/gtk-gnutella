@@ -322,15 +322,38 @@ void on_button_search_clicked(GtkButton *button, gpointer user_data)
             &minimum_speed, 0, 1);
 
 		/*
+		 * If the text is a magnet link we extract the SHA1 urn
+		 * and put it back into the search field string so that the
+		 * code for urn searches below can handle it.
+		 *		--DBelius   11/11/2002
+		 */
+
+		if (0 == strncasecmp(e, "magnet:", 7)) {
+			guchar raw[SHA1_RAW_SIZE];
+
+			if (huge_extract_sha1(e, raw)) {
+				gint len = strlen(e);
+				g_assert(len >= SHA1_BASE32_SIZE + 9);
+				g_snprintf(e, len, "urn:sha1:%s", sha1_base32(raw));
+			} else {
+				gdk_beep();		/* Entry refused */
+				goto done;
+			}
+		}
+
+		/*
 		 * If string begins with "urn:sha1:", then it's an URN search.
 		 * Validate the base32 representation, and if not valid, beep
 		 * and refuse the entry.
 		 *		--RAM, 28/06/2002
 		 */
 
-		if (0 == strncmp(e, "urn:sha1:", 9)) {
+		if (0 == strncasecmp(e, "urn:sha1:", 9)) {
 			guchar raw[SHA1_RAW_SIZE];
 			gchar *b = e + 9;
+
+			if (strlen(b) < SHA1_BASE32_SIZE)
+				goto refused;
 
 			if (base32_decode_into(b, SHA1_BASE32_SIZE, raw, sizeof(raw)))
 				goto validated;
@@ -351,6 +374,7 @@ void on_button_search_clicked(GtkButton *button, gpointer user_data)
 			 * Entry refused.
 			 */
 
+		refused:
 			gdk_beep();
 			goto done;
 
