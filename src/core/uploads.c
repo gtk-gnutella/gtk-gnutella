@@ -593,12 +593,14 @@ upload_free_resources(gnutella_upload_t *u)
 		close(u->file_desc);
 		u->file_desc = -1;
 	}
+#ifndef HAS_SENDFILE
 	if (u->sendfile_ctx.map != NULL) {
 		size_t len = u->sendfile_ctx.map_end - u->sendfile_ctx.map_end;
 
 		munmap(u->sendfile_ctx.map, len);
 		u->sendfile_ctx.map = NULL;
 	}
+#endif /* !HAS_SENDFILE */
 	if (u->socket != NULL) {
 		g_assert(u->socket->resource.upload == u);
 		socket_free(u->socket);
