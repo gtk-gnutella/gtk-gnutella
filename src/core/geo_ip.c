@@ -49,8 +49,6 @@ RCSID("$Id$");
 
 #include "lib/override.h"		/* Must be the last header included */
 
-#define THERE	GUINT_TO_POINTER(0x2)
-
 static const gchar gip_file[] = "geo-ip.txt";
 static const gchar gip_what[] = "Geographic IP mappings";
 
@@ -197,7 +195,7 @@ gip_load(FILE *f)
 		end++;			/* Go past the minus, parsing the second IP */
 
 		while ((c = *end)) {
-			if (!isspace(c))
+			if (!is_ascii_space(c))
 				break;
 			end++;
 		}
@@ -223,7 +221,7 @@ gip_load(FILE *f)
 		 */
 
 		while ((c = *end)) {
-			if (!isspace(c))
+			if (!is_ascii_space(c))
 				break;
 			end++;
 		}
@@ -359,10 +357,8 @@ gip_country(guint32 ip)
 	const gchar *code;
 
 	code = iprange_get(geo_db, ip);
-	if (code == NULL)
-		code = "??";
 
-	return code;
+	return code == NULL ? "??" : code;
 }
 
 /* vi: set ts=4: */
