@@ -95,11 +95,18 @@ INCLUDES =  	@GTK_CFLAGS@
 bin_PROGRAMS = gtk-gnutella
 CLEANFILES = interface-glade.c interface-glade.h *.bak
 
+XML_STORE_FILES = search_xml.c search_xml.h
+@ENABLE_XML_STORE_TRUE@XML_STORE = $(XML_STORE_FILES)
+@ENABLE_XML_STORE_FALSE@XML_STORE = 
+@ENABLE_XML_STORE_TRUE@XML_LIBS = `gnome-config --libs xml`
+@ENABLE_XML_STORE_FALSE@XML_LIBS = 
+
 # interface.h must come before any .c files that include it so that it is built.
-gtk_gnutella_SOURCES =  	autodownload.h autodownload.c 	interface.c interface.h 	gnutella.h 	misc.c misc.h 	config.c appconfig.h 	sockets.c sockets.h 	nodes.c nodes.h 	hosts.c hosts.h 	pcache.c pcache.h 	routing.c routing.h 	search.c search.h 	search_stats.c search_stats.h 	filter.c filter.h 	downloads.c downloads.h 	share.c share.h 	uploads.c uploads.h 	upload_stats.c upload_stats.h 	main.c 	gui.c gui.h 	support.c support.h 	matching.c matching.h 	callbacks.c callbacks.h 	dialog-filters.c dialog-filters.h 	getline.c getline.h 	header.c header.h 	url.c url.h 	pmsg.c pmsg.h 	gmsg.c gmsg.h 	cq.c cq.h 	mq.c mq.h 	sq.c sq.h 	bsched.c bsched.h 	tx.c tx.h 	tx_link.c tx_link.h 	tx_deflate.c tx_deflate.h 	rxbuf.c rxbuf.h 	rx.c rx.h 	rx_link.c rx_link.h 	rx_inflate.c rx_inflate.h 	zlib_util.c zlib_util.h 	gtk-missing.c gtk-missing.h 	gtkcolumnchooser.c gtkcolumnchooser.h 	sha1.c sha1.h huge.c huge.h 	base32.c base32.h 	utf8.c utf8.h 	qrp.c qrp.h 	ban.c ban.h 	getdate.y
+gtk_gnutella_SOURCES =  	autodownload.h autodownload.c 	interface.c interface.h 	gnutella.h 	misc.c misc.h 	config.c appconfig.h 	sockets.c sockets.h 	nodes.c nodes.h 	hosts.c hosts.h 	pcache.c pcache.h 	routing.c routing.h 	search.c search.h 	search_stats.c search_stats.h 	downloads.c downloads.h 	share.c share.h 	uploads.c uploads.h 	upload_stats.c upload_stats.h 	main.c 	gui.c gui.h 	support.c support.h 	matching.c matching.h 	callbacks.c callbacks.h 	getline.c getline.h 	header.c header.h 	url.c url.h 	pmsg.c pmsg.h 	gmsg.c gmsg.h 	cq.c cq.h 	mq.c mq.h 	sq.c sq.h 	bsched.c bsched.h 	tx.c tx.h 	tx_link.c tx_link.h 	tx_deflate.c tx_deflate.h 	rxbuf.c rxbuf.h 	rx.c rx.h 	rx_link.c rx_link.h 	rx_inflate.c rx_inflate.h 	zlib_util.c zlib_util.h 	gtk-missing.c gtk-missing.h 	gtkcolumnchooser.c gtkcolumnchooser.h 	sha1.c sha1.h huge.c huge.h 	base32.c base32.h 	utf8.c utf8.h 	filter.c filter.h 	ban.c han.h 	qrp.c qrp.h 	getdate.c getdate.h 	$(XML_STORE)
 
 
-gtk_gnutella_LDADD = @GTK_LIBS@ -lz
+gtk_gnutella_LDFLAGS = $(XML_LIBS)
+gtk_gnutella_LDADD = @GTK_LIBS@ -lz 
 
 GLADE_WARNING1 = "Warning: gtk-gnutella.glade is newer than glade-built files and"
 GLADE_WARNING2 = "  \"glade --write-source\" failed.  To ignore any changes to"
@@ -115,20 +122,34 @@ DEFS = @DEFS@ -I. -I$(srcdir) -I..
 CPPFLAGS = @CPPFLAGS@
 LDFLAGS = @LDFLAGS@
 LIBS = @LIBS@
-gtk_gnutella_OBJECTS =  autodownload.o interface.o misc.o config.o \
-sockets.o nodes.o hosts.o pcache.o routing.o search.o search_stats.o \
-filter.o downloads.o share.o uploads.o upload_stats.o main.o gui.o \
-support.o matching.o callbacks.o dialog-filters.o getline.o header.o \
-url.o pmsg.o gmsg.o cq.o mq.o sq.o bsched.o tx.o tx_link.o tx_deflate.o \
-rxbuf.o rx.o rx_link.o rx_inflate.o zlib_util.o gtk-missing.o \
-gtkcolumnchooser.o sha1.o huge.o base32.o utf8.o qrp.o ban.o getdate.o
+@ENABLE_XML_STORE_TRUE@gtk_gnutella_OBJECTS =  autodownload.o \
+@ENABLE_XML_STORE_TRUE@interface.o misc.o config.o sockets.o nodes.o \
+@ENABLE_XML_STORE_TRUE@hosts.o pcache.o routing.o search.o \
+@ENABLE_XML_STORE_TRUE@search_stats.o downloads.o share.o uploads.o \
+@ENABLE_XML_STORE_TRUE@upload_stats.o main.o gui.o support.o matching.o \
+@ENABLE_XML_STORE_TRUE@callbacks.o getline.o header.o url.o pmsg.o \
+@ENABLE_XML_STORE_TRUE@gmsg.o cq.o mq.o sq.o bsched.o tx.o tx_link.o \
+@ENABLE_XML_STORE_TRUE@tx_deflate.o rxbuf.o rx.o rx_link.o rx_inflate.o \
+@ENABLE_XML_STORE_TRUE@zlib_util.o gtk-missing.o gtkcolumnchooser.o \
+@ENABLE_XML_STORE_TRUE@sha1.o huge.o base32.o utf8.o filter.o ban.o \
+@ENABLE_XML_STORE_TRUE@qrp.o getdate.o search_xml.o
+@ENABLE_XML_STORE_FALSE@gtk_gnutella_OBJECTS =  autodownload.o \
+@ENABLE_XML_STORE_FALSE@interface.o misc.o config.o sockets.o nodes.o \
+@ENABLE_XML_STORE_FALSE@hosts.o pcache.o routing.o search.o \
+@ENABLE_XML_STORE_FALSE@search_stats.o downloads.o share.o uploads.o \
+@ENABLE_XML_STORE_FALSE@upload_stats.o main.o gui.o support.o \
+@ENABLE_XML_STORE_FALSE@matching.o callbacks.o getline.o header.o url.o \
+@ENABLE_XML_STORE_FALSE@pmsg.o gmsg.o cq.o mq.o sq.o bsched.o tx.o \
+@ENABLE_XML_STORE_FALSE@tx_link.o tx_deflate.o rxbuf.o rx.o rx_link.o \
+@ENABLE_XML_STORE_FALSE@rx_inflate.o zlib_util.o gtk-missing.o \
+@ENABLE_XML_STORE_FALSE@gtkcolumnchooser.o sha1.o huge.o base32.o \
+@ENABLE_XML_STORE_FALSE@utf8.o filter.o ban.o qrp.o getdate.o
 gtk_gnutella_DEPENDENCIES = 
-gtk_gnutella_LDFLAGS = 
 CFLAGS = @CFLAGS@
 COMPILE = $(CC) $(DEFS) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
 CCLD = $(CC)
 LINK = $(CCLD) $(AM_CFLAGS) $(CFLAGS) $(LDFLAGS) -o $@
-DIST_COMMON =  Makefile.am Makefile.in TODO getdate.c
+DIST_COMMON =  Makefile.am Makefile.in
 
 
 DISTFILES = $(DIST_COMMON) $(SOURCES) $(HEADERS) $(TEXINFOS) $(EXTRA_DIST)
@@ -137,22 +158,22 @@ TAR = tar
 GZIP_ENV = --best
 DEP_FILES =  .deps/autodownload.P .deps/ban.P .deps/base32.P \
 .deps/bsched.P .deps/callbacks.P .deps/config.P .deps/cq.P \
-.deps/dialog-filters.P .deps/downloads.P .deps/filter.P .deps/getdate.P \
-.deps/getline.P .deps/gmsg.P .deps/gtk-missing.P \
-.deps/gtkcolumnchooser.P .deps/gui.P .deps/header.P .deps/hosts.P \
-.deps/huge.P .deps/interface.P .deps/main.P .deps/matching.P \
-.deps/misc.P .deps/mq.P .deps/nodes.P .deps/pcache.P .deps/pmsg.P \
-.deps/qrp.P .deps/routing.P .deps/rx.P .deps/rx_inflate.P \
-.deps/rx_link.P .deps/rxbuf.P .deps/search.P .deps/search_stats.P \
-.deps/sha1.P .deps/share.P .deps/sockets.P .deps/sq.P .deps/support.P \
-.deps/tx.P .deps/tx_deflate.P .deps/tx_link.P .deps/upload_stats.P \
-.deps/uploads.P .deps/url.P .deps/utf8.P .deps/zlib_util.P
+.deps/downloads.P .deps/filter.P .deps/getdate.P .deps/getline.P \
+.deps/gmsg.P .deps/gtk-missing.P .deps/gtkcolumnchooser.P .deps/gui.P \
+.deps/header.P .deps/hosts.P .deps/huge.P .deps/interface.P \
+.deps/main.P .deps/matching.P .deps/misc.P .deps/mq.P .deps/nodes.P \
+.deps/pcache.P .deps/pmsg.P .deps/qrp.P .deps/routing.P .deps/rx.P \
+.deps/rx_inflate.P .deps/rx_link.P .deps/rxbuf.P .deps/search.P \
+.deps/search_stats.P .deps/search_xml.P .deps/sha1.P .deps/share.P \
+.deps/sockets.P .deps/sq.P .deps/support.P .deps/tx.P \
+.deps/tx_deflate.P .deps/tx_link.P .deps/upload_stats.P .deps/uploads.P \
+.deps/url.P .deps/utf8.P .deps/zlib_util.P
 SOURCES = $(gtk_gnutella_SOURCES)
 OBJECTS = $(gtk_gnutella_OBJECTS)
 
 all: all-redirect
 .SUFFIXES:
-.SUFFIXES: .S .c .o .s .y
+.SUFFIXES: .S .c .o .s
 $(srcdir)/Makefile.in: Makefile.am $(top_srcdir)/configure.in $(ACLOCAL_M4) 
 	cd $(top_srcdir) && $(AUTOMAKE) --gnu src/Makefile
 
@@ -205,13 +226,6 @@ maintainer-clean-compile:
 gtk-gnutella: $(gtk_gnutella_OBJECTS) $(gtk_gnutella_DEPENDENCIES)
 	@rm -f gtk-gnutella
 	$(LINK) $(gtk_gnutella_LDFLAGS) $(gtk_gnutella_OBJECTS) $(gtk_gnutella_LDADD) $(LIBS)
-.y.c:
-	$(YACC) $(AM_YFLAGS) $(YFLAGS) $< && mv y.tab.c $*.c
-	if test -f y.tab.h; then \
-	if cmp -s y.tab.h $*.h; then rm -f y.tab.h; else mv y.tab.h $*.h; fi; \
-	else :; fi
-getdate.h: getdate.c
-
 
 tags: TAGS
 
@@ -331,7 +345,6 @@ distclean-generic:
 	-rm -f config.cache config.log stamp-h stamp-h[0-9]*
 
 maintainer-clean-generic:
-	-test -z "getdatehgetdatec" || rm -f getdateh getdatec
 mostlyclean-am:  mostlyclean-binPROGRAMS mostlyclean-compile \
 		mostlyclean-tags mostlyclean-depend mostlyclean-generic
 
@@ -368,6 +381,10 @@ uninstall-am uninstall all-redirect all-am all installdirs \
 mostlyclean-generic distclean-generic clean-generic \
 maintainer-clean-generic clean mostlyclean distclean maintainer-clean
 
+
+	qrp.c qrp.h \
+	ban.c ban.h \
+	getdate.y
 
 #
 # Glade generates:

@@ -23,11 +23,22 @@
 
 ## Process this file with automake to produce Makefile.in
 
+
 INCLUDES = \
 	@GTK_CFLAGS@
 
 bin_PROGRAMS = gtk-gnutella
 CLEANFILES = interface-glade.c interface-glade.h *.bak
+
+XML_STORE_FILES = search_xml.c search_xml.h
+
+if ENABLE_XML_STORE
+XML_STORE = $(XML_STORE_FILES)
+XML_LIBS = `gnome-config --libs xml`
+else
+XML_STORE =
+XML_LIBS =
+endif
 
 # interface.h must come before any .c files that include it so that it is built.
 gtk_gnutella_SOURCES = \
@@ -43,7 +54,6 @@ gtk_gnutella_SOURCES = \
 	routing.c routing.h \
 	search.c search.h \
 	search_stats.c search_stats.h \
-	filter.c filter.h \
 	downloads.c downloads.h \
 	share.c share.h \
 	uploads.c uploads.h \
@@ -53,7 +63,6 @@ gtk_gnutella_SOURCES = \
 	support.c support.h \
 	matching.c matching.h \
 	callbacks.c callbacks.h \
-	dialog-filters.c dialog-filters.h \
 	getline.c getline.h \
 	header.c header.h \
 	url.c url.h \
@@ -76,11 +85,18 @@ gtk_gnutella_SOURCES = \
 	sha1.c sha1.h huge.c huge.h \
 	base32.c base32.h \
 	utf8.c utf8.h \
+	filter.c filter.h \
+	ban.c han.h \
+	qrp.c qrp.h \
+	getdate.c getdate.h \
+	$(XML_STORE)
+
 	qrp.c qrp.h \
 	ban.c ban.h \
 	getdate.y
 
-gtk_gnutella_LDADD = @GTK_LIBS@ -lz
+gtk_gnutella_LDFLAGS = $(XML_LIBS)
+gtk_gnutella_LDADD = @GTK_LIBS@ -lz 
 
 GLADE_WARNING1 = "Warning: gtk-gnutella.glade is newer than glade-built files and"
 GLADE_WARNING2 = "  \"glade --write-source\" failed.  To ignore any changes to"
