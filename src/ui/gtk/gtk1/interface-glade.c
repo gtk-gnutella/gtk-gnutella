@@ -10051,7 +10051,7 @@ create_dlg_about (void)
                     (GtkAttachOptions) (0), 4, 0);
   gtk_misc_set_alignment (GTK_MISC (label272), 0, 0.5);
 
-  label267 = gtk_label_new (_("Rapha\xc3\xabl Manfredi"));
+  label267 = gtk_label_new (_("Raphael Manfredi"));
   gtk_widget_set_name (label267, "label267");
   gtk_widget_ref (label267);
   gtk_object_set_data_full (GTK_OBJECT (dlg_about), "label267", label267,
@@ -10073,7 +10073,7 @@ create_dlg_about (void)
                     (GtkAttachOptions) (0), 4, 0);
   gtk_misc_set_alignment (GTK_MISC (label265), 0, 0.5);
 
-  label273 = gtk_label_new (_("Rapha\xc3\xabl Manfredi"));
+  label273 = gtk_label_new (_("Raphael Manfredi"));
   gtk_widget_set_name (label273, "label273");
   gtk_widget_ref (label273);
   gtk_object_set_data_full (GTK_OBJECT (dlg_about), "label273", label273,

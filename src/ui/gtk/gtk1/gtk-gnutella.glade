@@ -13424,7 +13424,7 @@ Grace time remaining:</label>
 	<widget>
 	  <class>GtkLabel</class>
 	  <name>label267</name>
-	  <label>Raphaël Manfredi</label>
+	  <label>Raphael Manfredi</label>
 	  <justify>GTK_JUSTIFY_CENTER</justify>
 	  <wrap>False</wrap>
 	  <xalign>0</xalign>
@@ -13476,7 +13476,7 @@ Grace time remaining:</label>
 	<widget>
 	  <class>GtkLabel</class>
 	  <name>label273</name>
-	  <label>Raphaël Manfredi</label>
+	  <label>Raphael Manfredi</label>
 	  <justify>GTK_JUSTIFY_CENTER</justify>
 	  <wrap>False</wrap>
 	  <xalign>0</xalign>
