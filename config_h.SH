@@ -116,12 +116,6 @@ sed <<!GROK!THIS! >config.h -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un-
  */
 #$d_memcpy HAS_MEMCPY	/**/
 
-/* HAS_SOCKET:
- *	This symbol, if defined, indicates that the BSD socket interface is
- *	supported.
- */
-#$d_socket HAS_SOCKET		/**/
-
 /* HASVOLATILE:
  *	This symbol, if defined, indicates that this C compiler knows about
  *	the volatile declaration.
@@ -136,6 +130,11 @@ sed <<!GROK!THIS! >config.h -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un-
  *	include <sys/param.h>.
  */
 #$i_sysparam I_SYS_PARAM		/**/
+
+/* PACKAGE:
+ *	This variable contains the name of the package being built.
+ */
+#define PACKAGE "$package"
 
 /* PRIVLIB_EXP:
  *	This symbol contains the ~name expanded version of PRIVLIB, to be used
@@ -254,6 +253,12 @@ sed <<!GROK!THIS! >config.h -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un-
  */
 #$d_vsnprintf HAS_VSNPRINTF		/**/
 
+/* ENABLE_NLS:
+ *	This symbol, when defines, indicates that the program should enable
+ *	Native Language Support (NLS) for internationalization (I18N).
+ */
+#$d_enablenls ENABLE_NLS	/**/
+
 /* I_LANGINFO:
  *	This symbol, if defined, indicates to the C program that it should
  *	include <langinfo.h>.
@@ -283,6 +288,13 @@ sed <<!GROK!THIS! >config.h -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un-
  *	include <sys/sysctl.h>.
  */
 #$i_syssysctl I_SYS_SYSCTL		/**/
+
+/* LOCALE_EXP:
+ *	This symbol holds the possibly ~name expanded place where localization
+ *	files for the package are expected to be found.
+ *	Only meaningful when ENABLE_NLS is defined.
+ */
+#define LOCALE_EXP "$localeexp"
 
 /* OFFICIAL_BUILD:
  * When defined, the build is "official".  Programs generated for an
