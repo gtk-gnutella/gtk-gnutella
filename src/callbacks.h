@@ -187,6 +187,7 @@ void on_checkbutton_config_bws_out_toggled(GtkToggleButton *togglebutton, gpoint
 void on_checkbutton_config_bws_gin_toggled (GtkToggleButton *togglebutton, gpointer user_data);
 void on_checkbutton_config_bws_gout_toggled(GtkToggleButton *togglebutton, gpointer user_data);
 void on_checkbutton_config_force_ip_toggled (GtkToggleButton *togglebutton, gpointer user_data);
+void on_checkbutton_config_bw_ul_usage_enabled_toggled (GtkToggleButton *togglebutton, gpointer user_data);
 void on_checkbutton_config_proxy_auth_toggled(GtkToggleButton *togglebutton, gpointer user_data);
 void on_checkbutton_config_proxy_connections_toggled (GtkToggleButton *togglebutton, gpointer user_data);
 void on_checkbutton_use_netmasks_toggled(GtkToggleButton * togglebutton, gpointer user_data);
@@ -234,6 +235,7 @@ SPINBUTTON_DECL(config_node_connected_timeout)
 SPINBUTTON_DECL(config_upload_connecting_timeout)
 SPINBUTTON_DECL(config_upload_connected_timeout)
 SPINBUTTON_DECL(config_search_min_speed)
+SPINBUTTON_DECL(config_ul_usage_min_percentage)
 
 
 

@@ -36,6 +36,7 @@ set w_main_list {
     checkbutton_config_bws_out
     checkbutton_config_bws_gin
     checkbutton_config_bws_gout
+    checkbutton_config_bw_ul_usage_enabled
     entry_config_extensions
     entry_config_force_ip 
     entry_config_maxttl 
@@ -58,6 +59,7 @@ set w_main_list {
     spinbutton_config_bws_out
     spinbutton_config_bws_gin
     spinbutton_config_bws_gout
+    spinbutton_config_ul_usage_min_percentage
     spinbutton_config_port
     spinbutton_config_proxy_port
     spinbutton_config_max_high_ttl_radius

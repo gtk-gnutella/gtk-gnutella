@@ -1605,6 +1605,13 @@ void on_clist_search_stats_resize_column(GtkCList * clist, gint column,
  ***/ 
 
 BIND_SPINBUTTON_CALL(
+    spinbutton_config_ul_usage_min_percentage,
+    ul_usage_min_percentage,
+    1,
+    NO_FUNC
+)
+
+BIND_SPINBUTTON_CALL(
     spinbutton_config_search_min_speed,
     minimum_speed,
     1,
@@ -1831,8 +1838,16 @@ BIND_CHECKBUTTON(
         } else {
             bsched_disable(bws.out);
         } 
+    
+        gtk_widget_set_sensitive(
+            GTK_WIDGET(checkbutton_config_bw_ul_usage_enabled),
+            bws_out_enabled);
+        gtk_widget_set_sensitive(
+            GTK_WIDGET(spinbutton_config_ul_usage_min_percentage),
+            bws_out_enabled);
     }
 )
+
 BIND_CHECKBUTTON(
     checkbutton_config_bws_in,
     bws_in_enabled,
@@ -1860,6 +1875,7 @@ BIND_CHECKBUTTON(
         } 
     }
 )
+
 BIND_CHECKBUTTON(
     checkbutton_config_bws_gin,
     bws_gin_enabled,
@@ -1872,6 +1888,12 @@ BIND_CHECKBUTTON(
             bsched_disable(bws.gin);
         }
     }
+)
+
+BIND_CHECKBUTTON(
+    checkbutton_config_bw_ul_usage_enabled,
+    bw_ul_usage_enabled,
+    NO_FUNC
 )
 
 void on_entry_config_netmask_activate(GtkEditable * editable,

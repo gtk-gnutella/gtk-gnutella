@@ -855,8 +855,16 @@ void gui_update_bandwidth_input()
 UPDATE_CHECKBUTTON(
     checkbutton_config_bws_out, 
     bws_out_enabled,
-    gtk_widget_set_sensitive(GTK_WIDGET(spinbutton_config_bws_out),
-                             bws_out_enabled);)
+    {
+        gtk_widget_set_sensitive(
+            GTK_WIDGET(spinbutton_config_bws_out), bws_out_enabled);
+        gtk_widget_set_sensitive(
+            GTK_WIDGET(checkbutton_config_bw_ul_usage_enabled),
+            bws_out_enabled);
+        gtk_widget_set_sensitive(
+            GTK_WIDGET(spinbutton_config_ul_usage_min_percentage),
+            bws_out_enabled);
+    })
 
 void gui_update_bandwidth_output()
 {
