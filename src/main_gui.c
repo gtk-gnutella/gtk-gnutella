@@ -37,6 +37,7 @@
 
 #include "main_gui.h"
 #include "nodes_gui.h"
+#include "hcache_gui.h"
 #include "main_cb.h"
 
 #include "settings.h"	/* Used for settings_home_dir */
@@ -101,6 +102,7 @@ static const struct {
 } menu[] = {
 	{ TRUE,	 N_("GnutellaNet"),		nb_main_page_gnet },
 	{ FALSE, N_("Stats"),			nb_main_page_gnet_stats },
+	{ FALSE, N_("Hostcache"),		nb_main_page_hostcache },
 	{ TRUE,	 N_("Uploads"),			nb_main_page_uploads },
 	{ FALSE, N_("History"), 		nb_main_page_uploads_stats },
 	{ TRUE,	 N_("Downloads"),		nb_main_page_downloads },
@@ -223,6 +225,7 @@ static GtkWidget *gui_create_main_window(void)
 	tab_window[nb_main_page_search_stats] =
 		create_main_window_search_stats_tab();
 	tab_window[nb_main_page_gnet_stats] = create_main_window_gnet_stats_tab();
+	tab_window[nb_main_page_hostcache] = create_main_window_hostcache_tab();
 
 	tab_window[nb_main_page_config_sel] = create_main_window_config_sel_tab();
 	tab_window[nb_main_page_config_net] = create_main_window_config_net_tab();
@@ -518,6 +521,7 @@ void main_gui_init(void)
     vp_gui_init();
     nodes_gui_init();
     gui_init_menu();
+    hcache_gui_init();
     gnet_stats_gui_init();
     search_stats_gui_init();
     uploads_gui_init();
@@ -583,6 +587,7 @@ void main_gui_shutdown(void)
     nodes_gui_shutdown();
     uploads_gui_shutdown();
 	gnet_stats_gui_shutdown();
+    hcache_gui_shutdown();
 }
 
 void main_gui_update_coords(void)
