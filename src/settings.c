@@ -466,6 +466,9 @@ guint32 settings_max_msg_size(void)
 	 * Today, they are fixed at config time, but they will be set via
 	 * GUI tomorrow, so the max size is not fixed in time.
 	 *				--RAM, 15/09/2001
+	 *
+	 * They can be changed via the GUI as of today...
+	 *				-- RAM, 24/12/2003
 	 */
 
 	guint32 maxsize;
