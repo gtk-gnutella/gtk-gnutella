@@ -6502,15 +6502,17 @@ picked:
 		(d->server->attrs & DLS_A_BANNING) ?
 			download_vendor_str(d) : version_string);
 
-	header_features_generate(&xfeatures.downloads, dl_tmp, sizeof(dl_tmp), &rw);
-	
 	if (d->server->attrs & DLS_A_FAKE_G2)
 		rw += gm_snprintf(&dl_tmp[rw], sizeof(dl_tmp)-rw,
 			"X-Features: g2/1.0\r\n");
 
-	if (!(d->server->attrs & DLS_A_BANNING))
+	if (!(d->server->attrs & DLS_A_BANNING)) {
+		header_features_generate(&xfeatures.downloads,
+			dl_tmp, sizeof(dl_tmp), &rw);
+
 		rw += gm_snprintf(&dl_tmp[rw], sizeof(dl_tmp)-rw,
 			"X-Token: %s\r\n", tok_version());
+	}
 	
 	/*
 	 * Add X-Queue / X-Queued information into the header
