@@ -698,7 +698,7 @@ routing_init(void)
 	 *		--RAM, 08/03/2002
 	 */
 
-    gnet_prop_get_storage(PROP_GUID, (guint8 *) guid_buf, sizeof(guid_buf));
+    gnet_prop_get_storage(PROP_GUID, guid_buf, sizeof(guid_buf));
 
 	for (i = 0; i < 15; i++) {		/* Not 16 since byte #15 is a marker */
 		if (guid_buf[i]) {
@@ -723,7 +723,7 @@ retry:
 		goto retry;
 	}
 
-    gnet_prop_set_storage(PROP_GUID, (guint8 *) guid_buf, sizeof(guid_buf));
+    gnet_prop_set_storage(PROP_GUID, guid_buf, sizeof(guid_buf));
 	g_assert(guid_is_gtkg(guid_buf, NULL, NULL, NULL));
 
 	/*
