@@ -29,6 +29,16 @@
 #include <glib.h>
 
 /*
+ * Parsed URL parameters (from query string).
+ */
+typedef struct {
+	GHashTable *params;		/* parameter => value (malloc'ed) */
+	gint count;				/* Amount of parameters */
+} url_params_t;
+
+#define url_params_count(x)	((x)->count)
+
+/*
  * Public interface.
  */
 
@@ -37,6 +47,10 @@ gchar *url_escape_query(gchar *url);
 gint url_escape_into(const gchar *url, gchar *target, gint len);
 gchar *url_escape_cntrl(gchar *url);
 gchar *url_unescape(gchar *url, gboolean inplace);
+
+url_params_t *url_params_parse(gchar *query);
+gchar *url_params_get(url_params_t *up, gchar *name);
+void url_params_free(url_params_t *up);
 
 #endif	/* _url_h_ */
 

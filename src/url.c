@@ -265,3 +265,96 @@ gchar *url_unescape(gchar *url, gboolean inplace)
 	return new;
 }
 
+/*
+ * url_params_parse
+ *
+ * Parse all the parameters in the URL query string.  All parameter values are
+ * stored in their URL-unescaped form, but parameter names are NOT un-escaped.
+ *
+ * Returns an url_params_t object that can be queried for later...
+ */
+url_params_t *url_params_parse(gchar *query)
+{
+	url_params_t *up;
+	gchar *q;
+	gchar *start;
+	gchar *name = NULL;
+	gchar *value = NULL;
+	gboolean in_value = FALSE;
+
+	up = walloc(sizeof(*up));
+	up->params = g_hash_table_new(g_str_hash, g_str_equal);
+	up->count = 0;
+
+	for (q = start = query; /* empty */; q++) {
+		gchar c = *q;
+
+		if (in_value) {
+			if (c == '&' || c == '\0') {		/* End of value */
+				*q = '\0';
+				value = url_unescape(start, FALSE);
+				if (value == start)				/* No unescaping took place */
+					value = g_strdup(start);
+				*q = c;
+				g_hash_table_insert(up->params, name, value);
+				up->count++;
+				in_value = FALSE;
+				name = NULL;
+				value = NULL;
+				start = q + 1;					/* Name will start there */
+			}
+		} else {
+			if (c == '=') {						/* End of parameter name */
+				*q = '\0';
+				name = g_strdup(start);
+				*q = c;
+				in_value = TRUE;
+				start = q + 1;					/* Value will start there */
+			}
+		}
+
+		if (c == '\0')
+			break;
+	}
+
+	g_assert(name == NULL);
+	g_assert(value == NULL);
+
+	return up;
+}
+
+/*
+ * url_params_get
+ *
+ * Get the value of a parameter, or NULL if the parameter is not present.
+ * The value returned has already been URL-unescaped.
+ */
+gchar *url_params_get(url_params_t *up, gchar *name)
+{
+	g_assert(up != NULL);
+	g_assert(up->params != NULL);
+
+	return g_hash_table_lookup(up->params, name);
+}
+
+static void free_params_kv(gpointer key, gpointer value, gpointer udata)
+{
+	g_free(key);
+	g_free(value);
+}
+
+/*
+ * url_params_free
+ *
+ * Dispose of the url_params_t structure.
+ */
+void url_params_free(url_params_t *up)
+{
+	g_assert(up != NULL);
+
+	g_hash_table_foreach(up->params, free_params_kv, NULL);
+	g_hash_table_destroy(up->params);
+
+	wfree(up, sizeof(*up));
+}
+
