@@ -39,13 +39,13 @@ Gtk-Gnutella is a GUI based Gnutella servent. It's based upon the original
 look of Gnutella v0.5.
 
 It's a fully featured Gnutella servent designed to share any type of file
-the user wishes to share.  Gtk-gnutella implements compressed gnutella net 
+the user wishes to share.  Gtk-Gnutella implements compressed gnutella net 
 connections, ultra and leaf nodes, Partial File Sharing, Push Proxies and 
 uses Passive/Active Remote Queueing (PARQ).  
 
 It's a Unix clone, and can be built with either a GTK+ (1.2 or above) or GTK2 
 GUI.  Gnome is not needed but libxml should be available for best performance. 
-Gtk-gnutella is currently developed and tested under Linux (Debian 2.2) and is 
+Gtk-Gnutella is currently developed and tested under Linux (Debian 2.2) and is 
 known to run at least on Linux, FreeBSD, NetBSD, OpenBSD, Darwin/PowerPC, 
 Solaris 8/SPARC, Tru64 Unix/Alpha, SGI IRIX 6.2/mips.  It is released under 
 the GNU Public License (GPL).  
@@ -64,7 +64,7 @@ The Project Page is:
 Open Discussion Forums, try:
     http://www.gnutellaforums.com/
 
-There is an IRC channel for Gtk-gnutella on http://www.freenode.net:
+There is an IRC channel for Gtk-Gnutella on http://www.freenode.net:
     irc.freenode.net #gtk-gnutella
 
 
@@ -180,17 +180,17 @@ share your "done" directory.  When downloaded files are complete, they are
 moved to the done directory and then can be uploaded by others.  Once you have 
 selected your shared directories, click the "Rescan" button.  Sharing is the 
 whole point of the Gnutella network.  Those who don't share are called 
-"leechers" and some people will refuse to share with them.  Gtk-gnutella 
+"leechers" and some people will refuse to share with them.  Gtk-Gnutella 
 offers fine-tuned bandwith control so even if you only have a dialup 
 connection, you should devote some bandwith to sharing.  
 
-Click on "gnutellaNet" in the upper left hand box to see how your connections 
+Click on "GnutellaNet" in the upper left hand box to see how your connections 
 are going.  If you see many connection attempts failing, don't worry, this is 
 normal.  In extreme cases, it could take 10-30 minutes to get stable 
 connections the first time you use gtk-gnutella.  If you don't get a 
 connection, quit the program and restart it to get a few more hosts from the 
 GWebCache server. If you still don't get connected, you may need to check your 
-Internet connection and DNS (etc/resolv.conf) list. If your Netscape or 
+Internet connection and DNS (etc/resolv.conf) list. If your Mozilla or 
 Konqueror web browser isn't working, you have a problem. In normal operations 
 you should be connected within 30 or so seconds.
 

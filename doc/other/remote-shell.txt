@@ -1,6 +1,6 @@
 
 -------------------------------------------------------------------------------
-                          Gtk-gnutella remote shell
+                          Gtk-Gnutella remote shell
 -------------------------------------------------------------------------------
 Date: 17.12.2002
 Author: Richard Eckart
@@ -31,7 +31,7 @@ Authentification
 
     HELO [credential]
 
-  The [credential] is stored in $GTK_GNUTELLA_DIR/auth_cookie.  Gtk-gnutella
+  The [credential] is stored in $GTK_GNUTELLA_DIR/auth_cookie.  Gtk-Gnutella
   creates this file at startup and stores a random base32 value in it.  The
   file is readable only by the owner.
 

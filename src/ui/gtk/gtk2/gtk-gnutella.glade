@@ -1550,7 +1550,7 @@ for all filters</property>
 	  <child>
 	    <widget class="GtkLabel" id="label184">
 	      <property name="visible">True</property>
-	      <property name="label" translatable="yes">Gtk-gnutella is shutting down.
+	      <property name="label" translatable="yes">Gtk-Gnutella is shutting down.
 Sending bye messages to peers.
 
 Grace time remaining:</property>
@@ -3760,7 +3760,7 @@ http://maxmind.com/</property>
 			  <child>
 			    <widget class="GtkLabel" id="label278">
 			      <property name="visible">True</property>
-			      <property name="label" translatable="yes">gnutellaNet traffic</property>
+			      <property name="label" translatable="yes">GnutellaNet traffic</property>
 			      <property name="use_underline">False</property>
 			      <property name="use_markup">False</property>
 			      <property name="justify">GTK_JUSTIFY_LEFT</property>
@@ -4885,7 +4885,7 @@ http://maxmind.com/</property>
 		  <child>
 		    <widget class="GtkLabel" id="label279">
 		      <property name="visible">True</property>
-		      <property name="label" translatable="yes">gnutellaNet connections</property>
+		      <property name="label" translatable="yes">GnutellaNet connections</property>
 		      <property name="use_underline">False</property>
 		      <property name="use_markup">False</property>
 		      <property name="justify">GTK_JUSTIFY_LEFT</property>
@@ -20393,7 +20393,7 @@ http://maxmind.com/</property>
 		  <child>
 		    <widget class="GtkLabel" id="label294">
 		      <property name="visible">True</property>
-		      <property name="label" translatable="yes">gnutellaNet timeouts (all values in seconds)</property>
+		      <property name="label" translatable="yes">GnutellaNet timeouts (all values in seconds)</property>
 		      <property name="use_underline">False</property>
 		      <property name="use_markup">False</property>
 		      <property name="justify">GTK_JUSTIFY_LEFT</property>
@@ -20701,7 +20701,7 @@ http://maxmind.com/</property>
 		  <child>
 		    <widget class="GtkLabel" id="label295">
 		      <property name="visible">True</property>
-		      <property name="label" translatable="yes">gnutellaNet _TTL settings</property>
+		      <property name="label" translatable="yes">GnutellaNet _TTL settings</property>
 		      <property name="use_underline">True</property>
 		      <property name="use_markup">False</property>
 		      <property name="justify">GTK_JUSTIFY_LEFT</property>
@@ -21706,7 +21706,7 @@ before kicking</property>
 		  <child>
 		    <widget class="GtkLabel" id="label775">
 		      <property name="visible">True</property>
-		      <property name="label" translatable="yes">gnutellaNet message size limits</property>
+		      <property name="label" translatable="yes">GnutellaNet message size limits</property>
 		      <property name="use_underline">False</property>
 		      <property name="use_markup">False</property>
 		      <property name="justify">GTK_JUSTIFY_LEFT</property>
@@ -22585,7 +22585,7 @@ before kicking</property>
 		  <child>
 		    <widget class="GtkLabel" id="label290">
 		      <property name="visible">True</property>
-		      <property name="label" translatable="yes">Bandwidth limits for gnutellaNet traffic</property>
+		      <property name="label" translatable="yes">Bandwidth limits for GnutellaNet traffic</property>
 		      <property name="use_underline">True</property>
 		      <property name="use_markup">False</property>
 		      <property name="justify">GTK_JUSTIFY_LEFT</property>
@@ -27670,7 +27670,7 @@ before kicking</property>
 		  <child>
 		    <widget class="GtkLabel" id="label747">
 		      <property name="visible">True</property>
-		      <property name="label" translatable="yes">gnutellaNet display</property>
+		      <property name="label" translatable="yes">GnutellaNet display</property>
 		      <property name="use_underline">False</property>
 		      <property name="use_markup">False</property>
 		      <property name="justify">GTK_JUSTIFY_LEFT</property>

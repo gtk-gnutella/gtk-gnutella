@@ -1022,7 +1022,7 @@
 	      <widget>
 		<class>GtkFrame</class>
 		<name>frame_bws_ginout</name>
-		<label>gnutellaNet traffic</label>
+		<label>GnutellaNet traffic</label>
 		<label_xalign>0.5</label_xalign>
 		<shadow_type>GTK_SHADOW_NONE</shadow_type>
 		<child>
@@ -1204,7 +1204,7 @@
 	    <widget>
 	      <class>GtkFrame</class>
 	      <name>frame5</name>
-	      <label>gnutellaNet connections</label>
+	      <label>GnutellaNet connections</label>
 	      <label_xalign>0</label_xalign>
 	      <shadow_type>GTK_SHADOW_ETCHED_IN</shadow_type>
 	      <child>
@@ -12972,7 +12972,7 @@ for all filters</label>
       <widget>
 	<class>GtkLabel</class>
 	<name>label184</name>
-	<label>Gtk-gnutella is shutting down.
+	<label>Gtk-Gnutella is shutting down.
 Sending bye messages to peers.
 
 Grace time remaining:</label>
@@ -16722,7 +16722,7 @@ Meet us on #gtk-gnutella at irc.freenode.net.</label>
 	    <widget>
 	      <class>GtkFrame</class>
 	      <name>frame_expert_gnet_timeout</name>
-	      <label>gnutellaNet timeouts (all values in seconds)</label>
+	      <label>GnutellaNet timeouts (all values in seconds)</label>
 	      <label_xalign>0</label_xalign>
 	      <shadow_type>GTK_SHADOW_ETCHED_IN</shadow_type>
 	      <child>
@@ -16994,7 +16994,7 @@ Meet us on #gtk-gnutella at irc.freenode.net.</label>
 	      <widget>
 		<class>GtkFrame</class>
 		<name>frame_expert_gnet_ttl</name>
-		<label>gnutellaNet TTL settings</label>
+		<label>GnutellaNet TTL settings</label>
 		<label_xalign>0</label_xalign>
 		<shadow_type>GTK_SHADOW_ETCHED_IN</shadow_type>
 
@@ -18067,7 +18067,7 @@ Meet us on #gtk-gnutella at irc.freenode.net.</label>
 	    <widget>
 	      <class>GtkFrame</class>
 	      <name>frame_expert_gnet_message_size</name>
-	      <label>gnutellaNet message size limits</label>
+	      <label>GnutellaNet message size limits</label>
 	      <label_xalign>0</label_xalign>
 	      <shadow_type>GTK_SHADOW_ETCHED_IN</shadow_type>
 	      <child>
@@ -18824,7 +18824,7 @@ allowed</label>
 	    <widget>
 	      <class>GtkFrame</class>
 	      <name>frame20</name>
-	      <label>Bandwidth control for gnutellaNet traffic</label>
+	      <label>Bandwidth control for GnutellaNet traffic</label>
 	      <label_xalign>0</label_xalign>
 	      <shadow_type>GTK_SHADOW_ETCHED_IN</shadow_type>
 	      <child>
@@ -23393,7 +23393,7 @@ allowed</label>
 	    <widget>
 	      <class>GtkFrame</class>
 	      <name>frame84</name>
-	      <label>gnutellaNet display</label>
+	      <label>GnutellaNet display</label>
 	      <label_xalign>0</label_xalign>
 	      <shadow_type>GTK_SHADOW_ETCHED_IN</shadow_type>
 	      <child>

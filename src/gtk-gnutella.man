@@ -28,7 +28,7 @@ When
 .I gtk-gnutella
 is first started, it will attempt to connect to a well-known hosts
 server for some hosts to connect to. If you know a host you want to
-connect to, you can enter it in the box on the gnutellaNet tab and
+connect to, you can enter it in the box on the GnutellaNet tab and
 push the Add button. When first connecting to the gnutella network, it
 can take a minute or two to establish a stable connection. Be
 patient.
@@ -164,7 +164,7 @@ This is where the cache of all the computed SHA1 is stored.
 This file keeps track of the upload statistics.
 .RE
 .SH ENVIRONMENT
-.I Gtk-gnutella
+.I Gtk-Gnutella
 searches
 .B GTK_GNUTELLA_DIR
 for configuration files. If this variable is not set,
@@ -198,7 +198,7 @@ Additional information about gnutella is available at
 .B http://gnutella.wego.com/
 .SH AUTHORS
 Yann Grossel wrote the original
-.B Gtk-gnutella .
+.B Gtk-Gnutella .
 .PP
 Raphael Manfredi <Raphael_Manfredi@pobox.com> is the current maintainer
 and project leader (since version 0.14, released early September 2001).

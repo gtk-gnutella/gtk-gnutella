@@ -50,7 +50,7 @@ prop = {
 
 prop = {
     name = "new_version_str";
-    desc = "Gtk-gnutella found a newer version on the Gnet and gives "
+    desc = "Gtk-Gnutella found a newer version on the Gnet and gives "
            "information about it here";
     type = string;
     save = FALSE;
@@ -61,7 +61,7 @@ prop = {
 
 prop = {
     name = "up_connections";
-    desc = "Try to keep at least this number of connections to other " 
+    desc = "Try to keep at least this number of connections to other "
            "servents of the same kind as we are (normal or ultra nodes). "
 		   "This should be smaller than the maximum amount "
 		   "of connections to allow incoming connections.  Keep in mind "
@@ -256,7 +256,7 @@ prop = {
     type = ip;
     data = {
         default = 0x00000000;
-    }; 
+    };
 };
 
 prop = {
@@ -615,7 +615,7 @@ prop = {
 		   "to that value.  On Gnutella, the standard is TTL=4, so you "
 		   "cannot set a value lower than that.";
     type = guint32;
-    data = { 
+    data = {
         default = 4;
         min     = 4;
         max     = 5;
@@ -1376,7 +1376,7 @@ prop = {
 		   "if they don't have any extension.  Use with care.";
     type = string;
     data = {
-        default = 
+        default =
           "aac;asf;avi;"
 		  "bin;bz2;"
 		  "cue;"
@@ -1759,7 +1759,7 @@ prop = {
 prop = {
     name = "online_mode";
     desc = "If deactivated, only uploads and downloads will continue. All "
-           "gNet connections are disabled/terminated.";
+           "Gnet connections are disabled/terminated.";
     type = boolean;
     data = {
         default = TRUE;
@@ -2642,7 +2642,7 @@ prop = {
     desc = "Indicates that gtk-gnutella will expire in that many days.";
     type = guint32;
     save = FALSE;
-    data = { 
+    data = {
         default = 365;
     };
 };
