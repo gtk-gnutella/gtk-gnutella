@@ -407,7 +407,7 @@ get_header_value(gchar *const s, gchar const *const attribute, size_t *length)
 		if (end == NULL)
 			end = strchr(header, ',');	/* Active queuing style */
 
-		/* 
+		/*
 		 * If we couldn't find a delimiter, then this value is the last one.
 		 */
 
@@ -1055,7 +1055,7 @@ parq_download_add_header(
 
 	if (!is_firewalled && host_is_valid(listen_ip(), listen_port))
 		*rw += gm_snprintf(&buf[*rw], len - *rw,
-		  	  "X-Node: %s\r\n", 
+		  	  "X-Node: %s\r\n",
 			  ip_port_to_gchar(listen_ip(), listen_port));
 }
 
@@ -2472,7 +2472,7 @@ cleanup:
 }
 
 /**
- * If the download may continue, true is returned. False otherwise (which 
+ * If the download may continue, true is returned. False otherwise (which
  * probably means the upload is queued).
  * Where parq_upload_request honours the number of upload slots, this one
  * is used for dynamic slot allocation.
@@ -3451,7 +3451,7 @@ parq_store(gpointer data, gpointer x)
 
 	/*
 	 * Save all needed parq information. The ip and port information gathered
-	 * from X-Node is saved as XIP and XPORT 
+	 * from X-Node is saved as XIP and XPORT
 	 * The lifetime is saved as a relative value.
 	 */
 	fprintf(f, "QUEUE: %d\n"

@@ -223,7 +223,7 @@ guint32  proxy_port     = 0x0000;
 guint32  proxy_port_def = 0x0000;
 guint32  proxy_protocol     = PROXY_NONE;
 guint32  proxy_protocol_def = PROXY_NONE;
-prop_def_choice_t proxy_protocol_choices[] = { 
+prop_def_choice_t proxy_protocol_choices[] = {
     {"None", PROXY_NONE},
     {"HTTP", PROXY_HTTP},
     {"SOCKS v4", PROXY_SOCKSV4},
@@ -355,7 +355,7 @@ guint32  max_leaves     = 100;
 guint32  max_leaves_def = 100;
 guint32  search_handle_ignored_files     = 0;
 guint32  search_handle_ignored_files_def = 0;
-prop_def_choice_t search_handle_ignored_files_choices[] = { 
+prop_def_choice_t search_handle_ignored_files_choices[] = {
     {"displayed normally", 0},
     {"displayed marked", 1},
     {"not displayed", 2},
@@ -363,7 +363,7 @@ prop_def_choice_t search_handle_ignored_files_choices[] = {
 };
 guint32  configured_peermode     = NODE_P_AUTO;
 guint32  configured_peermode_def = NODE_P_AUTO;
-prop_def_choice_t configured_peermode_choices[] = { 
+prop_def_choice_t configured_peermode_choices[] = {
     {"auto (recommended)", NODE_P_AUTO},
     {"ultra node", NODE_P_ULTRA},
     {"leaf node", NODE_P_LEAF},
@@ -371,7 +371,7 @@ prop_def_choice_t configured_peermode_choices[] = {
 };
 guint32  current_peermode     = 0;
 guint32  current_peermode_def = 0;
-prop_def_choice_t current_peermode_choices[] = { 
+prop_def_choice_t current_peermode_choices[] = {
     {"ultra node", 2},
     {"normal node", 1},
     {"leaf node", 0},
@@ -5074,7 +5074,7 @@ prop_set_t *gnet_prop_init(void) {
 
     gnet_property->byName = g_hash_table_new(g_str_hash, g_str_equal);
     for (n = 0; n < GNET_PROPERTY_NUM; n ++) {
-        g_hash_table_insert(gnet_property->byName, 
+        g_hash_table_insert(gnet_property->byName,
             gnet_property->props[n].name, GINT_TO_POINTER(n+(NO_PROP+1)));
     }
 
@@ -5101,7 +5101,7 @@ void gnet_prop_shutdown(void) {
 			if (*p)
 				G_FREE_NULL(*p);
             if (e)
-                event_destroy(e);    
+                event_destroy(e);
         }
     }
 
@@ -5130,10 +5130,10 @@ void gnet_prop_add_prop_changed_listener(
  * gnet_prop_add_prop_changed_listener_full:
  *
  * Add a change listener to a given property. If init is TRUE then
- * the listener is immediately called. 
+ * the listener is immediately called.
  */
 void gnet_prop_add_prop_changed_listener_full(
-    property_t prop, prop_changed_listener_t l, gboolean init, 
+    property_t prop, prop_changed_listener_t l, gboolean init,
     enum frequency_type freq, guint32 interval)
 {
     prop_add_prop_changed_listener_full(gnet_property, prop, l, init,
@@ -5225,7 +5225,7 @@ property_t gnet_prop_get_by_name(const gchar *name)
  * Returns a new stub struct for this property set. Just g_free it
  * when it is no longer needed. All fields are read only!
  */
-prop_set_stub_t *gnet_prop_get_stub(void) 
+prop_set_stub_t *gnet_prop_get_stub(void)
 {
     prop_set_stub_t *stub;
 
@@ -5236,11 +5236,11 @@ prop_set_stub_t *gnet_prop_get_stub(void)
     stub->get_by_name = gnet_prop_get_by_name;
     stub->to_string = gnet_prop_to_string;
 
-    stub->prop_changed_listener.add = 
+    stub->prop_changed_listener.add =
         gnet_prop_add_prop_changed_listener;
-    stub->prop_changed_listener.add_full = 
+    stub->prop_changed_listener.add_full =
         gnet_prop_add_prop_changed_listener_full;
-    stub->prop_changed_listener.remove = 
+    stub->prop_changed_listener.remove =
         gnet_prop_remove_prop_changed_listener;
 
     stub->boolean.get = gnet_prop_get_boolean;

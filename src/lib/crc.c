@@ -47,8 +47,8 @@ RCSID("$Id$");
  *  this convention results in the CRC remainder being transmitted with
  *  the coefficient of x^31 first and with that of x^0 last (just as
  *  would be done by a hardware shift register mechanization).
- *                                                                      
- *  The table lookup technique was adapted from the algorithm described 
+ *
+ *  The table lookup technique was adapted from the algorithm described
  *  by Avram Perez, Byte-wise CRC Calculations, IEEE Micro 3, 40 (1983).
  */
 

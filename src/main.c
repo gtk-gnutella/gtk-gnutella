@@ -509,7 +509,7 @@ static void log_handler(const gchar *log_domain, GLogLevelFlags log_level,
 
 #if 0
 	/* Define to debug Glib or Gtk problems */
-	if (log_domain && 
+	if (log_domain &&
 		(!strcmp(log_domain, "Gtk") || !strcmp(log_domain, "GLib"))
 	) {
 		raise(SIGTRAP);

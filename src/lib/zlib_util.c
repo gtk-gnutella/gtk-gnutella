@@ -385,7 +385,7 @@ zlib_is_valid_header(gpointer data, gint len)
 	/*
 	 * A deflated buffer starts with:
 	 *
-	 *      0   1  
+	 *      0   1
 	 *    +---+---+
 	 *    |CMF|FLG|   (more-->)
 	 *    +---+---+

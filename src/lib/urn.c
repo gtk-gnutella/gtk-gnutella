@@ -165,7 +165,7 @@ urn_get_sha1_no_prefix(gchar *buf, gchar *digest)
 	return FALSE;
 }
 
-/* 
+/*
  * Emacs stuff:
  * Local Variables: ***
  * c-indentation-style: "bsd" ***

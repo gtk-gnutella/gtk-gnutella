@@ -506,7 +506,7 @@ validate_vendor(gchar *vendor, gchar *token, guint32 ip)
  * the push proxyfication.
  */
 static void
-pproxy_request(struct pproxy *pp, header_t *header) 
+pproxy_request(struct pproxy *pp, header_t *header)
 {
 	struct gnutella_socket *s = pp->socket;
 	gchar *request = getline_str(s->getline);

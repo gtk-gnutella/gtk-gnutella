@@ -546,7 +546,7 @@ inet_connection_attempted(guint32 ip)
 	if (is_local_ip(ip))
 		return;
 
-	/* 
+	/*
 	 * Start timer if not already done.
 	 */
 

@@ -2118,7 +2118,7 @@ upload_request(gnutella_upload_t *u, header_t *header)
 	 * Therefore, it is necessary to re-increment it here.
 	 *
 	 *
-	 * This is for the moment being done if the upload really seems to be 
+	 * This is for the moment being done if the upload really seems to be
 	 * getting an upload slot. This is to avoid messing with active queuing
 	 *		-- JA, 09/05/03
 	 */
@@ -2142,7 +2142,7 @@ upload_request(gnutella_upload_t *u, header_t *header)
 
 	head_only = (request[0] == 'H');
 
-	/* 
+	/*
 	 * Extract User-Agent.
 	 *
 	 * X-Token: GTKG token
@@ -2705,9 +2705,9 @@ upload_request(gnutella_upload_t *u, header_t *header)
 					getline_free(s->getline);
 					s->getline = NULL;
 
-					send_upload_error(u, reqfile, 503, 
-						  "Queued (slot %d, ETA: %s)", 
-						  parq_upload_lookup_position(u), 
+					send_upload_error(u, reqfile, 503,
+						  "Queued (slot %d, ETA: %s)",
+						  parq_upload_lookup_position(u),
 						  short_time(parq_upload_lookup_eta(u)));
 
 					u->error_sent = 0;	/* Any new request should be allowed

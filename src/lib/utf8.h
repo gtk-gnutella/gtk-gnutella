@@ -47,7 +47,7 @@ gint utf8_is_valid_string(const gchar *s, gint len);
 guint32 utf8_decode_char(const gchar *s, gint len, gint *retlen, gboolean warn);
 gint utf8_to_iso8859(gchar *s, gint len, gboolean space);
 
-/* 
+/*
  * Necessary for GTK+ 2.x version because it expects almost any string
  * to be encoded as UTF-8.
  */

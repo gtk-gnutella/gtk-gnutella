@@ -92,7 +92,7 @@ static const gchar *keys_095[] = {
 	"5f9f 1935 9e39 495d 0873 9036 c6ff eaae",
 };
 
-/* 
+/*
  * Describes the keys to use depending on the version.
  */
 struct tokkey {

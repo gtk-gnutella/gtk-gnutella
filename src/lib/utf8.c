@@ -75,7 +75,7 @@ static gboolean latin_locale = FALSE;
 static UConverter *conv_icu_locale = NULL;
 static UConverter *conv_icu_utf8 = NULL;
 #endif /* USE_ICU */
- 
+
 static const gchar *charset = NULL;
 
 static GIConv cd_locale_to_utf8	= (GIConv) -1;
@@ -2638,7 +2638,7 @@ locale_init(void)
 		"ISO-8859-14",
 	};
 	guint i;
-	
+
 	unicode_decompose_init();
 
 	setlocale(LC_ALL, "");

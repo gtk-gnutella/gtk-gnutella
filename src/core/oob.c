@@ -356,7 +356,7 @@ oob_deliver_hits(struct gnutella_node *n, gchar *muid, guint8 wanted)
 
 	/*
 	 * Here's what could happen with proxied OOB queries:
-	 * 
+	 *
 	 *                 query               query
 	 *      Queryier  ------> Proxying UP -------> Server
 	 *               <--TCP--             <--UDP--

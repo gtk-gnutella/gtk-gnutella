@@ -93,8 +93,8 @@ RCSID("$Id$");
 static guint32 search_id = 0;			/* Unique search counter */
 static GHashTable *searches = NULL;		/* All alive searches */
 
-/* 
- * Structure for search results 
+/*
+ * Structure for search results
  */
 typedef struct search_ctrl {
     gnet_search_t search_handle;	/* Search handle */
@@ -168,7 +168,7 @@ search_add_got_results_listener(search_got_results_listener_t l)
 {
     g_assert(l != NULL);
 
-    search_got_results_listeners = 
+    search_got_results_listeners =
         g_slist_append(search_got_results_listeners, (gpointer) l);
 }
 
@@ -1171,7 +1171,7 @@ update_neighbour_info(gnutella_node_t *n, gnet_results_set_t *rs)
 		 * Use vendor tag if needed to guess servent vendor name.
 		 */
 
-		if (n->vendor == NULL && vendor) 
+		if (n->vendor == NULL && vendor)
             node_set_vendor(n, vendor);
 
 		if (vendor == NULL)
@@ -1636,7 +1636,7 @@ update_one_reissue_timeout(search_ctrl_t *sch)
 		g_source_remove(sch->reissue_timeout_id);
 
 	/*
-	 * When a search is frozen or the reissue_timout is zero, all we need 
+	 * When a search is frozen or the reissue_timout is zero, all we need
 	 * to do is to remove the timer.
 	 */
 	if (sch->frozen || (sch->reissue_timeout == 0))

@@ -462,7 +462,7 @@ typedef struct gnutella_node {
  * In "swift" mode, a callback is periodically invoked to drop more traffic
  * if we don't see much progress in the queue backlog.  For a leaf node, it
  * is invoked less often than for a peer.
- * 
+ *
  */
 #define node_flowc_swift_grace(n)	(NODE_IS_LEAF(n) ? 210 : 30)
 #define node_flowc_swift_period(n)	(NODE_IS_LEAF(n) ? 140 : 20)

@@ -1627,7 +1627,7 @@ file_info_free_outname_kv(gpointer key, gpointer val, gpointer unused_x)
      */
 
     event_trigger(
-        fi_events[EV_FI_REMOVED], 
+        fi_events[EV_FI_REMOVED],
         T_NORMAL(fi_listener_t, fi->fi_handle));
     file_info_drop_handle(fi->fi_handle);
 
@@ -2315,7 +2315,7 @@ file_info_retrieve(void)
 				G_FREE_NULL(new_pathname);
 			}
 
-			/* 
+			/*
 			 * Check file trailer information.	The main file is only written
 			 * infrequently and the file's trailer can have more up-to-date
 			 * information.
@@ -2485,7 +2485,7 @@ file_info_retrieve(void)
 			damaged = error || *ep != '\0' || v >= ((guint64) 1UL << 63);
 			fi->size = v;
 			fi->size_atom = atom_uint64_get(&fi->size);
-			break;	
+			break;
 		case FI_TAG_FSKN:
 			v = parse_uint64(value, &ep, 10, &error);
 			damaged = error || *ep != '\0' || v > 1;
@@ -2833,7 +2833,7 @@ file_info_get(gchar *file, const gchar *path, filesize_t size, gchar *sha1,
 			 * NB: if we have a SHA1, we know it's matching at this point.
 			 */
 
-			g_warning("found existing file \"%s\" size=%" PRIu64 
+			g_warning("found existing file \"%s\" size=%" PRIu64
 				", increasing to %" PRIu64,
 				outname, (guint64) fi->size, (guint64) size);
 
@@ -3310,7 +3310,7 @@ file_info_chunk_status(struct dl_file_info *fi, filesize_t from, filesize_t to)
 			return fc->status;
 	}
 
-	/* 
+	/*
 	 * Ending up here will normally mean that the tested range falls over
 	 * multiple chunks in the list. In that case, chances are that it's
 	 * not complete, and that's our assumption...
@@ -3915,7 +3915,7 @@ fi_remove_listener(fi_listener_t cb, gnet_fi_ev_t ev)
 gnet_fi_info_t *
 fi_get_info(gnet_fi_t fih)
 {
-    struct dl_file_info *fi = file_info_find_by_handle(fih); 
+    struct dl_file_info *fi = file_info_find_by_handle(fih);
     gnet_fi_info_t *info;
 	GSList *l;
 
@@ -4142,7 +4142,7 @@ file_info_add_source(struct dl_file_info *fi, struct download *dl)
 	}
 
     event_trigger(
-        fi_events[EV_FI_SRC_ADDED], 
+        fi_events[EV_FI_SRC_ADDED],
         T_NORMAL(fi_src_listener_t, fi->fi_handle, dl->src_handle));
 }
 

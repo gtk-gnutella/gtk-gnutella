@@ -177,7 +177,7 @@ http_send_status(
 	 * Append extra information to the minimal header created above.
 	 */
 
-	/* 
+	/*
 	 * The +3 is there to leave room for "\r\n\0"
 	 *		-- JA, 09/02/2004
 	 */
@@ -1755,7 +1755,7 @@ http_async_create(
 
 	/*
 	 * Extract the necessary parameters for the connection.
-	 * 
+	 *
 	 * When connection is established, http_async_connected() will be called
 	 * from the socket layer.
 	 */

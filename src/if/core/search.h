@@ -36,7 +36,7 @@
  ***/
 typedef guint32 gnet_search_t;
 
-/* 
+/*
  * Flags for search_new()
  */
 #define SEARCH_PASSIVE	 0x01 /* start a passive ssearch */

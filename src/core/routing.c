@@ -1240,7 +1240,7 @@ check_duplicate(struct route_log *log,
 			if (++(sender->n_dups) > min_dup_msg &&
 				!NODE_IS_UDP(sender) &&
 				connected_nodes() > MAX(2, up_connections) &&
-				sender->n_dups > (guint16) 
+				sender->n_dups > (guint16)
 					(((float)min_dup_ratio) / 10000.0 * sender->received)
 			) {
 				node_mark_bad_vendor(sender);

@@ -54,7 +54,7 @@ void huge_collect_locations(gchar *sha1, struct header *header);
 
 #endif	/* _core_huge_h_ */
 
-/* 
+/*
  * Emacs stuff:
  * Local Variables: ***
  * c-indentation-style: "bsd" ***

@@ -367,7 +367,7 @@ uhc_ipp_extract(gnutella_node_t *n, const gchar *payload, gint paylen)
 
 	if (gwc_debug)
 		g_message("extracting %d host%s in UDP IPP pong %s from %s (%s)",
-			cnt, cnt == 1 ? "" : "s", 
+			cnt, cnt == 1 ? "" : "s",
 			guid_hex_str(n->header.muid), node_ip(n),
 			uhc_connecting ? "expected" : "unsollicited");
 

@@ -164,9 +164,9 @@ static const char sha1_persistent_cache_file_header[] =
 
 static char *persistent_cache_file_name = NULL;
 
-/* 
+/*
  * add_persistent_cache_entry
- * 
+ *
  * Add an entry to the persistent cache.
  */
 static void add_persistent_cache_entry(
@@ -390,7 +390,7 @@ struct file_sha1 {
 
 static struct file_sha1 *waiting_for_sha1_computation = NULL;
 
-/* 
+/*
  * When the hash for a file has been computed but cannot be set into the struct
  * shared_file because the function shared_file returned SHARE_REBUILDING (for
  * example), the corresponding struct file_hash is stored into this stack, until
@@ -652,7 +652,7 @@ get_next_file_from_list(void)
 
 /**
  * Open the next file waiting for its hash to be computed.
- * 
+ *
  * @return TRUE if open succeeded, FALSE otherwise.
  */
 static gboolean
@@ -813,7 +813,7 @@ sha1_step_compute(gpointer h, gpointer u, gint ticks)
 			waiting_for_library_build_complete ?
 				waiting_for_library_build_complete->file_index : 0);
 
-	if (waiting_for_library_build_complete) 
+	if (waiting_for_library_build_complete)
 		try_to_put_sha1_back_into_share_library();
 
 	call_again = ctx->file

@@ -203,7 +203,7 @@ udp_transceiver_put_received_fragment(fragment_t *fragment)
 	int partnumber = udp_transceiver_get_partnumber(fragment);
 	int sequencenumber = udp_transceiver_get_sequencenumber(fragment);
 
-	GSList *fragment_list = 
+	GSList *fragment_list =
 		udp_transceiver_lookup_fragments_by_sequencenumber_source(
 			fragment);
 	fragment_t *fragment_tmp;

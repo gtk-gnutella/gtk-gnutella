@@ -90,7 +90,7 @@ gint blocks;
  */
 inline gboolean node_is_leaf_node(node_t *node)
 {
-	return node->left_node == NULL && 
+	return node->left_node == NULL &&
 		  node->right_node == NULL &&
 		  node->level == 0;
 }

@@ -157,7 +157,7 @@ static void base64_encode_exactly(const gchar *buf, guint len,
 	 * are split into groups of 6 bits, each group being encoded as a
 	 * single base64 digit.
 	 *
-	 * input byte       0        1        2     
+	 * input byte       0        1        2
 	 *              +--------+--------+--------+
 	 *              |01234501|23450123|45012345|
 	 *              +--------+--------+--------+

@@ -368,7 +368,7 @@ share_emit_search_request(
 
 /* ----------------------------------------- */
 
-/* 
+/*
  * A query context.
  *
  * We don't want to include the same file several times in a reply (for
@@ -429,7 +429,7 @@ shared_file_already_found(struct query_context *ctx, const shared_file_t *sf)
 static inline void
 shared_file_mark_found(struct query_context *ctx, const shared_file_t *sf)
 {
-	g_hash_table_insert(ctx->found_indices, 
+	g_hash_table_insert(ctx->found_indices,
 		GUINT_TO_POINTER(sf->file_index), GUINT_TO_POINTER(0x1));
 }
 
@@ -469,7 +469,7 @@ static void
 setup_char_map(char_map_t map)
 {
 	const gchar *charset = locale_get_charset();
-	gint c;	
+	gint c;
 
 	for (c = 0; c < 256; c++)	{
 		if (!isupper(c)) {  /* not same than islower, cf ssharp */
@@ -492,7 +492,7 @@ setup_char_map(char_map_t map)
 		gboolean b_iso_8859_1 = FALSE;
 		gboolean b_cp1252 = FALSE;
 		gboolean b_macroman = FALSE;
-		
+
 		if (
 				0 == strcmp(charset, "ISO-8859-1") ||
 				0 == strcmp(charset, "ISO-8859-15")
@@ -726,7 +726,7 @@ shared_dirs_parse(const gchar *str)
 	while (dirs[i]) {
 		if (is_directory(dirs[i]))
 			shared_dirs = g_slist_prepend(shared_dirs, atom_str_get(dirs[i]));
-        else 
+        else
             ret = FALSE;
 		i++;
 	}
@@ -1213,7 +1213,7 @@ compact_query_utf8(gchar *search, gint utf8_len)
 			 */
 			if (!skip_space) {
 				if (word_length < MIN_WORD_LENGTH) {
-					/* 
+					/*
 					 * reached end of very short word in query. drop
 					 * that word by rewinding write position
 					 */
@@ -1399,7 +1399,7 @@ query_set_oob_flag(gnutella_node_t *n, gchar *data)
 }
 
 /**
- * Searches requests (from others nodes) 
+ * Searches requests (from others nodes)
  * Basic matching. The search request is made lowercase and
  * is matched to the filenames in the LL.
  *
@@ -1662,7 +1662,7 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 
 	/*
 	 * When we are not a leaf node, we do two sanity checks here:
-	 * 
+	 *
 	 * 1. We keep track of all the queries sent by the node (hops = 1)
 	 *    and the time by which we saw them.  If they are sent too often,
 	 *    just drop the duplicates.  Since an Ultranode will send queries
@@ -2154,7 +2154,7 @@ finish:
  * SHA1 digest processing
  */
 
-/* 
+/*
  * This tree maps a SHA1 hash (base-32 encoded) onto the corresponding
  * shared_file if we have one.
  */

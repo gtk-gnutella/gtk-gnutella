@@ -134,7 +134,7 @@ static void socket_destroy(struct gnutella_socket *s, const gchar *reason);
 static void socket_connected(gpointer data, gint source, inputevt_cond_t cond);
 static void socket_wio_link(struct gnutella_socket *s);
 
-/* 
+/*
  * SOL_TCP and SOL_IP aren't standards. Some platforms define them, on
  * some it's safe to assume they're the same as IPPROTO_*, but the
  * only way to be portably safe is to use protoent functions.
@@ -553,7 +553,7 @@ connect_http(struct gnutella_socket *s)
 /*
 0: Send
 1: Recv
-.. 
+..
 4: Send
 5: Recv
 

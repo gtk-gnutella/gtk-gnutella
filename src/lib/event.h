@@ -63,10 +63,10 @@ guint event_subscriber_count(struct event *evt);
 gboolean event_subscriber_active(struct event *evt);
 
 /*
- * T_VETO:   breaks trigger chain as soon as a subscriber returns 
+ * T_VETO:   breaks trigger chain as soon as a subscriber returns
  *           a value != 0.
  *
- * T_NORMAL: will call all subscribers in the chain. Use for 
+ * T_NORMAL: will call all subscribers in the chain. Use for
  *           callbacks with a void return type.
  */
 #define T_VETO(sig, ...) if((*((sig)s->cb))(__VA_ARGS__)) break;

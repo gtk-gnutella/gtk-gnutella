@@ -135,7 +135,7 @@ void header_features_generate(struct xfeature_t *xfeatures,
 		cur = g_list_next(cur)
 	) {
 		gchar feature_version[50];
-		struct header_x_feature *feature = 
+		struct header_x_feature *feature =
 			(struct header_x_feature *) cur->data;
 
 		gm_snprintf(feature_version, sizeof(feature_version), "%s/%d.%d",

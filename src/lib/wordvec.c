@@ -144,7 +144,7 @@ word_vec_make(const gchar *query_str, word_vec_t **wovec)
 			*query = '\0';
 
 			/* Only create a hash table if there is more than one word. */
-			if (first) 
+			if (first)
 				np1 = 0;
 			else {
 				if (seen_word == NULL) {
@@ -190,7 +190,7 @@ word_vec_make(const gchar *query_str, word_vec_t **wovec)
 
 				if (first)
 					first = FALSE;
-				else { 
+				else {
 					g_hash_table_insert(seen_word, entry->word,
 						GUINT_TO_POINTER(n));
 				}

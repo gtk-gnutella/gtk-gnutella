@@ -300,7 +300,7 @@ static void prop_parse_storage(const gchar *name,
  * Copy the property definition from the property set and return it.
  * Use the prop_free_def call to free the memory again. A simple g_free
  * won't do, since there are lot's of pointers to allocated memory
- * in the definition structure. 
+ * in the definition structure.
  * The prop_changed_listeners field will always be NULL in the copy.
  */
 prop_def_t *prop_get_def(prop_set_t *ps, property_t p)

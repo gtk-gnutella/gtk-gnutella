@@ -35,8 +35,8 @@
 typedef enum {
 	HCACHE_FRESH_ANY = 0, /**< Fresh hosts to which we did not
                            *   yet try to connect. */
-    HCACHE_VALID_ANY,     /**< All the Gnet nodes to which we were able to 
-                           *   connect and transmit at least one packet 
+    HCACHE_VALID_ANY,     /**< All the Gnet nodes to which we were able to
+                           *   connect and transmit at least one packet
                            *   (indicating a successful handshake). */
 	HCACHE_FRESH_ULTRA,	  /**< Fresh ultra nodes to which we did not
                            *   yet try to connect. (X-Try-Ultrapeer)*/

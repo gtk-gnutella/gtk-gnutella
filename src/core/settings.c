@@ -68,8 +68,8 @@ static gchar *config_dir = NULL;
 
 static prop_set_t *properties = NULL;
 
-/* 
- * For backward compatibility these values are still read, but 
+/*
+ * For backward compatibility these values are still read, but
  * no longer written to the config file:
  *
  * Variable                    Changed at       New name
@@ -192,7 +192,7 @@ settings_getphysmemsize(void)
 	glong pages;
 
 	errno = 0;
-	pages = sysconf(_SC_PHYS_PAGES); 
+	pages = sysconf(_SC_PHYS_PAGES);
 	if ((glong) -1 == pages && 0 != errno) {
 		g_warning("sysconf(_SC_PHYS_PAGES) failed: %s", g_strerror(errno));
 		return 0;
@@ -347,7 +347,7 @@ void settings_init(void)
     settings_callbacks_init();
 	return;
 
-no_config_dir: 
+no_config_dir:
 	g_warning(_("Cannot proceed without valid configuration directory"));
 	exit(EXIT_FAILURE); /* g_error() would dump core, that's ugly. */
 }

@@ -2878,7 +2878,7 @@ node_is_now_connected(struct gnutella_node *n)
 
 	/*
 	 * If node supports vendor-specific messages, advertise the set we support.
-	 * 
+	 *
 	 * If we are firewalled, and remote node supports vendor-specific
 	 * messages, send a connect back, to see whether we are firewalled.
 	 */
@@ -2938,7 +2938,7 @@ static void
 node_got_bye(struct gnutella_node *n)
 {
 	guint16 code;
-	gchar *message = n->data + 2; 
+	gchar *message = n->data + 2;
 	guchar c;
 	guint cnt;
 	gchar *p;
@@ -3785,7 +3785,7 @@ node_process_handshake_ack(struct gnutella_node *n, header_t *head)
 	 */
 
 	if (current_peermode != NODE_P_NORMAL) {
-		/* 
+		/*
 		 * Only BYE them if they finally declared to use a protocol we
 		 * don't support yet, despite their knowing that we only support
 		 * the 0.2 version.
@@ -4131,7 +4131,7 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 		if (up == (time_t) -1)
 			g_warning("cannot parse X-Live-Since \"%s\" from %s (%s)",
 				field, node_ip(n), node_vendor(n));
-		else 
+		else
 			n->up_date = MIN(clock_gmt2loc(up), now);
 	} else {
 		field = header_get(head, "Uptime");

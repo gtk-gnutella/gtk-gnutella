@@ -1605,7 +1605,7 @@ qrp_step_compute(gpointer h, gpointer u, gint unused_ticks)
 			bg_task_exit(h, 0);	/* Abort processing */
 		}
 
-		/* 
+		/*
 		 * OK, we keep the table.
 		 */
 
@@ -3377,7 +3377,7 @@ qrt_handle_patch(
 		 *   x = 90%  -> throw = 6
 		 *   x = 99%  -> throw = 2
 		 *
-		 * throw = 100 * (1 - (x - 0.05)^1/2.5) 
+		 * throw = 100 * (1 - (x - 0.05)^1/2.5)
 		 *
 		 * Function was adjusted to cut at 5% now instead of 1% since we
 		 * now filter SHA1 queries via the QRP, so leaf traffic is far
@@ -3793,7 +3793,7 @@ qrp_can_route(query_hashvec_t *qhv, struct routing_table *rt)
 	for (i = qhv->count, qh = qhv->vec; i > 0; i--, qh++) {
 		guint32 idx = QRP_HASH_RESTRICT(qh->hashcode, rt->bits);
 
-		/* 
+		/*
 		 * If there is an entry in the table and the source is an URN,
 		 * we have to forward the query, as those are OR-ed.
 		 * Otherwise, ALL the keywords must be present.

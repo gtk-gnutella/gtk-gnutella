@@ -287,7 +287,7 @@ gip_retrieve(void)
 	FILE *f;
 	gint idx;
 	gchar *filename;
-#ifndef OFFICIAL_BUILD 
+#ifndef OFFICIAL_BUILD
 	file_path_t fp[3];
 #else
 	file_path_t fp[2];
@@ -295,7 +295,7 @@ gip_retrieve(void)
 
 	file_path_set(&fp[0], settings_config_dir(), gip_file);
 	file_path_set(&fp[1], PRIVLIB_EXP, gip_file);
-#ifndef OFFICIAL_BUILD 
+#ifndef OFFICIAL_BUILD
 	file_path_set(&fp[2], PACKAGE_SOURCE_DIR, gip_file);
 #endif
 

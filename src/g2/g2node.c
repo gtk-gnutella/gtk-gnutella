@@ -41,7 +41,7 @@ g2_node_close()
 	g2_packetstream_close();
 }
 
-gboolean 
+gboolean
 g2_node_read(struct gnutella_node *n, pmsg_t *mb)
 {
 	g2packetstream_t *packetstream = g2_packetstream_get((gpointer) n);

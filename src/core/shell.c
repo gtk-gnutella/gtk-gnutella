@@ -209,7 +209,7 @@ shell_get_token(const gchar *s, gint *pos) {
 	if (*start == '\0')
 		*pos = -1;
 
-	if (*pos == -1) 
+	if (*pos == -1)
 		return NULL; /* nothing more to get */
 
 	end = shell_token_end(start);

@@ -166,7 +166,7 @@ gboolean show_dl_settings     = FALSE;
 gboolean show_dl_settings_def = FALSE;
 guint32  search_stats_mode     = 0;
 guint32  search_stats_mode_def = 0;
-prop_def_choice_t search_stats_mode_choices[] = { 
+prop_def_choice_t search_stats_mode_choices[] = {
     {"disable", 0},
     {"by words", 1},
     {"by whole query", 2},
@@ -191,7 +191,7 @@ gboolean gnet_stats_hops     = FALSE;
 gboolean gnet_stats_hops_def = FALSE;
 guint32  gnet_stats_source     = 0;
 guint32  gnet_stats_source_def = 0;
-prop_def_choice_t gnet_stats_source_choices[] = { 
+prop_def_choice_t gnet_stats_source_choices[] = {
     {"TCP & UDP", GNET_STATS_FULL},
     {"TCP only", GNET_STATS_TCP_ONLY},
     {"UDP only", GNET_STATS_UDP_ONLY},
@@ -261,7 +261,7 @@ guint32  gnet_stats_byte_col_widths[6]     = { 60, 20, 20, 20, 20, 20 };
 guint32  gnet_stats_byte_col_widths_def[6] = { 60, 20, 20, 20, 20, 20 };
 guint32  config_toolbar_style     = 4;
 guint32  config_toolbar_style_def = 4;
-prop_def_choice_t config_toolbar_style_choices[] = { 
+prop_def_choice_t config_toolbar_style_choices[] = {
     {"Icons", 1},
     {"Text", 2},
     {"Both (vertical)", 3},
@@ -2195,7 +2195,7 @@ prop_set_t *gui_prop_init(void) {
 
     gui_property->byName = g_hash_table_new(g_str_hash, g_str_equal);
     for (n = 0; n < GUI_PROPERTY_NUM; n ++) {
-        g_hash_table_insert(gui_property->byName, 
+        g_hash_table_insert(gui_property->byName,
             gui_property->props[n].name, GINT_TO_POINTER(n+1000));
     }
 
@@ -2222,7 +2222,7 @@ void gui_prop_shutdown(void) {
 			if (*p)
 				G_FREE_NULL(*p);
             if (e)
-                event_destroy(e);    
+                event_destroy(e);
         }
     }
 
@@ -2251,10 +2251,10 @@ void gui_prop_add_prop_changed_listener(
  * gui_prop_add_prop_changed_listener_full:
  *
  * Add a change listener to a given property. If init is TRUE then
- * the listener is immediately called. 
+ * the listener is immediately called.
  */
 void gui_prop_add_prop_changed_listener_full(
-    property_t prop, prop_changed_listener_t l, gboolean init, 
+    property_t prop, prop_changed_listener_t l, gboolean init,
     enum frequency_type freq, guint32 interval)
 {
     prop_add_prop_changed_listener_full(gui_property, prop, l, init,
@@ -2346,7 +2346,7 @@ property_t gui_prop_get_by_name(const gchar *name)
  * Returns a new stub struct for this property set. Just g_free it
  * when it is no longer needed. All fields are read only!
  */
-prop_set_stub_t *gui_prop_get_stub(void) 
+prop_set_stub_t *gui_prop_get_stub(void)
 {
     prop_set_stub_t *stub;
 
@@ -2357,11 +2357,11 @@ prop_set_stub_t *gui_prop_get_stub(void)
     stub->get_by_name = gui_prop_get_by_name;
     stub->to_string = gui_prop_to_string;
 
-    stub->prop_changed_listener.add = 
+    stub->prop_changed_listener.add =
         gui_prop_add_prop_changed_listener;
-    stub->prop_changed_listener.add_full = 
+    stub->prop_changed_listener.add_full =
         gui_prop_add_prop_changed_listener_full;
-    stub->prop_changed_listener.remove = 
+    stub->prop_changed_listener.remove =
         gui_prop_remove_prop_changed_listener;
 
     stub->boolean.get = gui_prop_get_boolean;

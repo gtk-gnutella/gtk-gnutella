@@ -396,7 +396,7 @@ adns_reply_callback(gpointer data, gint source, inputevt_cond_t condition)
 	static size_t n = 0;
 	static adns_query_t reply;
 
-	g_assert(NULL == data);	
+	g_assert(NULL == data);
 	g_assert(condition & (INPUT_EVENT_READ | INPUT_EVENT_EXCEPTION));
 	g_assert(sizeof(reply) >= n);
 

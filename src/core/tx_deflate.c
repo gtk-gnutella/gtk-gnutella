@@ -241,7 +241,7 @@ deflate_service(gpointer data)
 	if (dbg > 9)
 		printf("deflate_service: (%s) (buffer #%d, %d bytes held) [%c%c]\n",
 			node_ip(tx->node), attr->send_idx,
-			(gint) (attr->buf[attr->send_idx].wptr - 
+			(gint) (attr->buf[attr->send_idx].wptr -
 					attr->buf[attr->send_idx].rptr),
 			(attr->flags & DF_FLOWC) ? 'C' : '-',
 			(attr->flags & DF_FLUSH) ? 'f' : '-');

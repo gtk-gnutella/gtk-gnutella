@@ -429,7 +429,7 @@ handle_messages_supported(struct gnutella_node *n,
 		)
 			n->attrs |= NODE_A_LEAF_GUIDE;
 
-		/* 
+		/*
 		 * Time synchronization support.
 		 */
 
@@ -1129,7 +1129,7 @@ vmsg_send_oob_reply_ack(struct gnutella_node *n, gchar *muid, guint8 want)
 			guid_hex_str(muid), node_ip(n), want, want == 1 ? "" : "s");
 }
 
-/** 
+/**
  * Handle reception of a "Time Sync Request" message, indicating a request
  * from another host about time synchronization.
  */
@@ -1158,7 +1158,7 @@ static void handle_time_sync_req(struct gnutella_node *n,
 	tsync_got_request(n, &got);
 }
 
-/** 
+/**
  * Handle reception of a "Time Sync Reply" message, holding the reply from
  * a previous time synchronization request.
  */
@@ -1183,7 +1183,7 @@ static void handle_time_sync_reply(struct gnutella_node *n,
 
 	ntp = *payload & 0x1;
 
-	/* 
+	/*
 	 * Decompile send time.
 	 */
 

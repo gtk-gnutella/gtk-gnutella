@@ -1469,7 +1469,7 @@ unique_filename(const gchar *path, const gchar *file, const gchar *ext)
 #define ESCAPE_CHAR		'\\'
 
 /*
- * CHAR_IS_SAFE 
+ * CHAR_IS_SAFE
  *
  * Nearly the same as isprint() but allows additional safe chars if !strict.
  */
@@ -1632,7 +1632,7 @@ make_pathname(const gchar *dir, const gchar *file)
 	l = strlen(dir);
 	if ((l > 0 && dir[l - 1] == G_DIR_SEPARATOR) || file[0] == G_DIR_SEPARATOR)
 		 sep = "";
-	else 
+	else
 		 sep = G_DIR_SEPARATOR_S;
 
 	return GM_STRCONCAT_NULL(dir, sep, file);
@@ -1699,15 +1699,15 @@ create_directory(const gchar *dir)
 			g_assert(path[i] == '\0');
 		}
 
-		g_message("stat(\"%s\")", path); 
+		g_message("stat(\"%s\")", path);
 		if (!is_directory(path)) {
-			g_message("stat() failed: %s", g_strerror(errno)); 
+			g_message("stat() failed: %s", g_strerror(errno));
 			if (errno != ENOENT)
 				goto failure;
 
-			g_message("mkdir(\"%s\")", path); 
+			g_message("mkdir(\"%s\")", path);
 			if (mkdir(path, mode)) {
-				g_message("mkdir() failed: %s", g_strerror(errno)); 
+				g_message("mkdir() failed: %s", g_strerror(errno));
 				goto failure;
 			}
 		}
@@ -1802,7 +1802,7 @@ parse_uint64(const gchar *src, gchar **endptr, gint base, gint *errorptr)
 			error = ERANGE;
 			break;
 		}
-		v = w + d; 
+		v = w + d;
 		if (v < w) {
 			error = ERANGE;
 			break;

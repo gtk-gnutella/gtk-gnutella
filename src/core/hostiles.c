@@ -194,7 +194,7 @@ hostiles_retrieve(void)
 
 	file_path_set(&fp[0], settings_config_dir(), hostiles_file);
 	file_path_set(&fp[1], PRIVLIB_EXP, hostiles_file);
-#ifndef OFFICIAL_BUILD 
+#ifndef OFFICIAL_BUILD
 	file_path_set(&fp[2], PACKAGE_SOURCE_DIR, hostiles_file);
 #endif
 

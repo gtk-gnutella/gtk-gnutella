@@ -284,7 +284,7 @@ host_add(guint32 ip, guint16 port, gboolean do_connect)
 		if (node_keep_missing() > 0)
 				node_add(ip, port);
 		else {
-			/* If we are above the max connections, delete a non-nearby 
+			/* If we are above the max connections, delete a non-nearby
 			 * connection before adding this better one
 			 */
 			if (use_netmasks && host_is_nearby(ip) && node_remove_worst(TRUE))
@@ -328,7 +328,7 @@ void free_networks(void)
 }
 
 /**
- * Break the netmaks string and convert them into network_pair elements in 
+ * Break the netmaks string and convert them into network_pair elements in
  * the local_networks array. IP's are in network order.
  */
 void
@@ -401,7 +401,7 @@ host_is_nearby(guint32 ip)
 	guint i;
 
 	for (i = 0; i < number_local_networks; i++) {
-		if ((ip & local_networks[i].mask.s_addr) == 
+		if ((ip & local_networks[i].mask.s_addr) ==
 				(local_networks[i].net.s_addr & local_networks[i].mask.s_addr))
 			return TRUE;
 	}

@@ -1393,8 +1393,8 @@ bio_sendfile(bio_source_t *bio, gint in_fd, off_t *offset, size_t len)
 	g_assert(bio->flags & BIO_F_WRITE);
 	g_assert(len > 0);
 
-	/* 
-	 * If we don't have any bandwidth, return -1 with errno set to EAGAIN 
+	/*
+	 * If we don't have any bandwidth, return -1 with errno set to EAGAIN
 	 * to signal that we cannot perform any I/O right now.
 	 */
 

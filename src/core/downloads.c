@@ -1091,7 +1091,7 @@ download_actively_queued(struct download *d, gboolean queued)
 
 		d->flags |= DL_F_ACTIVE_QUEUED;
 	        d->file_info->aqueued_count ++;
-	        d->file_info->dirty = TRUE;	
+	        d->file_info->dirty = TRUE;
 		gnet_prop_set_guint32_val(PROP_DL_AQUEUED_COUNT, dl_aqueued_count + 1);
 	} else {
 		if (!(d->flags & DL_F_ACTIVE_QUEUED))	/* Already accounted for */
@@ -1118,7 +1118,7 @@ download_passively_queued(struct download *d, gboolean queued)
 
 		d->flags |= DL_F_PASSIVE_QUEUED;
 	        d->file_info->pqueued_count ++;
-	        d->file_info->dirty = TRUE;	
+	        d->file_info->dirty = TRUE;
 		gnet_prop_set_guint32_val(PROP_DL_PQUEUED_COUNT, dl_pqueued_count + 1);
 	} else {
 		if (!(d->flags & DL_F_PASSIVE_QUEUED))	/* Already accounted for */
@@ -3571,7 +3571,7 @@ gboolean download_new_uri(gchar *file, gchar *uri, filesize_t size,
 			  gchar *sha1, time_t stamp, gboolean push,
 			  struct dl_file_info *fi, gnet_host_vec_t *proxies)
 {
-	return NULL != create_download(file, uri, size, 0, ip, port, 
+	return NULL != create_download(file, uri, size, 0, ip, port,
 		guid, hostname, sha1, stamp, push, TRUE, size != 0 ? TRUE : FALSE, fi,
 		proxies);
 }
@@ -3767,7 +3767,7 @@ download_abort(struct download *d)
 
 	download_forget(d, FALSE);
 
-	/* 
+	/*
 	 * The refcount isn't decreased until "Clear completed", so
 	 * we may very well have a file with a high refcount and no active
 	 * or queued downloads.  This is why we maintain a lifecount.
@@ -4222,7 +4222,7 @@ download_overlap_check(struct download *d)
 				begin = 0;
 			file_info_update(d, begin, end, DL_CHUNK_EMPTY);
 			g_message("Resuming data mismatch on %s, backed out %d bytes block"
-				" from %" PRIu64 " to %" PRIu64, 
+				" from %" PRIu64 " to %" PRIu64,
 				 d->file_name, (gint) backout, (guint64) begin, (guint64) end);
 
 			/*
@@ -5158,7 +5158,7 @@ update_available_ranges(struct download *d, header_t *header)
 
 	d->ranges_size = http_range_size(d->ranges);
 
-	/* 
+	/*
 	 * We should always send an update event for the ranges, even when
 	 * not using swarming or when there are no available ranges. That
 	 * way the receiver of this event can still determine that the
@@ -5702,7 +5702,7 @@ download_request(struct download *d, header_t *header, gboolean ok)
 			if (!d->always_push && d->sha1)
 				dmesh_add(d->sha1, ip, port, d->record_index, d->file_name, 0);
 
-			/* 
+			/*
 			 * We did a fall through on a 503, however, the download could be
 			 * queued remotely. We might want to display this.
 			 *		-- JA, 21/03/2003 (it is spring!)
@@ -5974,7 +5974,7 @@ download_request(struct download *d, header_t *header, gboolean ok)
 			if (end < d->range_end - 1) {
                 if (dbg) {
                     g_message("File '%s' on %s (%s): "
-                        "end byte short: wanted %" PRIu64 
+                        "end byte short: wanted %" PRIu64
 							", got %" PRIu64 " (continuing anyway)",
                         d->file_name,
                         ip_port_to_gchar(download_ip(d), download_port(d)),
@@ -6015,7 +6015,7 @@ download_request(struct download *d, header_t *header, gboolean ok)
 	 */
 
 	if (check_content_range != 0) {
-		g_message("File '%s': expected content of %" PRIu64 
+		g_message("File '%s': expected content of %" PRIu64
 			", server %s (%s) said %" PRIu64,
 			d->file_name, (guint64) requested_size,
 			ip_port_to_gchar(download_ip(d), download_port(d)),
@@ -7889,7 +7889,7 @@ download_close(void)
 		wfree(d, sizeof(*d));
 	}
 
-	/* 
+	/*
 	 * FIXME:
 	 * It would be much cleaner if all downloads would be properly freed
 	 * by calling download_free because thier handles would then be

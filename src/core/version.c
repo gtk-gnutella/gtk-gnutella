@@ -479,7 +479,7 @@ version_check(const gchar *str, const gchar *token, guint32 ip)
 	 * 		-- JA 15/04/2004
 	 */
 
-	/* 
+	/*
 	 * Their version is more recent, but is unstable
 	 */
 	if (their_version.tag == 'u' && cmp < 0)

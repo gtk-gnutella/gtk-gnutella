@@ -898,7 +898,7 @@ ext_parse(gchar *buf, gint len, extvec_t *exv, gint exvcnt)
 
 		g_assert(len > 0);
 
-		/* 
+		/*
 		 * From now on, all new Gnutella extensions will be done via GGEP.
 		 * However, we have to be backward compatible with legacy extensions
 		 * that predate GGEP (HUGE and XML) and were not properly encapsulated.

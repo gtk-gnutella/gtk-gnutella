@@ -1021,7 +1021,7 @@ ping_all_neighbours(time_t now)
 		if (
 			ping_cnt <= MIN_UP_PING ||
 			(selected < MIN_UP_PING && left <= (MIN_UP_PING - selected)) ||
-			random_value(99) < UP_PING_RATIO 
+			random_value(99) < UP_PING_RATIO
 		) {
 			to_ping = g_slist_prepend(to_ping, n);
 			selected++;

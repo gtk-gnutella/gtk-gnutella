@@ -153,7 +153,7 @@ hash_list_free(hash_list_t *hl)
 	}
 	g_hash_table_destroy(hl->ht);
 	g_list_free(hl->l);
-	hl->ht = NULL; 
+	hl->ht = NULL;
 	hl->l = NULL;
 	hl->len = 0;
 	hl->magic = 0;

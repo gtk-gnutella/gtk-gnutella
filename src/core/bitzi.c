@@ -179,7 +179,7 @@ bitzi_host_data_ind(gpointer unused_handle, gchar *data, gint len)
 			g_warning("bitzi_host_data_ind - end, bad xml result %d", result);
 
 		/*
-		 * process what we had and clear up 
+		 * process what we had and clear up
 		 */
 		process_meta_data(current_bitzi_request);
 
@@ -220,7 +220,7 @@ bitzi_host_error_ind(gpointer handle,
 /**
  * Parse (and eventually fill in) the bitzi specific data.
  *
- * The fields are defined at: 
+ * The fields are defined at:
  *	schema: http://bitzi.com/developer/bitzi-ticket.rng
  *	notes: http://bitzi.com/openbits/datadump
  *

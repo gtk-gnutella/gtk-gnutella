@@ -235,7 +235,7 @@ do {				\
 #define GTA_INTERFACE "X11"
 #endif
 
-#define xstr(x) STRINGIFY(x)  
+#define xstr(x) STRINGIFY(x)
 
 #if defined(GTA_PATCHLEVEL) && (GTA_PATCHLEVEL != 0)
 #define GTA_VERSION_NUMBER \

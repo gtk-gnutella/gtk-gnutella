@@ -445,7 +445,7 @@ dq_pmsg_free(pmsg_t *mb, gpointer arg)
 				dq->qid, dq->node_id == NODE_ID_LOCAL ? "(local) " : "",
 				pmi->node_id, pmi->degree, pmi->ttl);
 			printf("DQ[%d] %s(%d secs) queried %d UP%s, "
-				"horizon=%d, results=%d\n", 
+				"horizon=%d, results=%d\n",
 				dq->qid, dq->node_id == NODE_ID_LOCAL ? "local " : "",
 				(gint) (time(NULL) - dq->start),
 				dq->up_sent, dq->up_sent == 1 ? "" :"s",
