@@ -1,5 +1,20 @@
 # since last version
 
+- (2002.05.04 - Richard)
+  * Added "Max uploads to single host" to uploads panel
+  * The usual cleanup of spacings and labels and stuff I came across
+  * Added preliminary designs of a new filter dialog to the glade
+    file. No functionality yet. Will probably be redesigned before
+    actually being integrated.
+  * Fixed bug: search field does not clear when search is added
+  * Fixed bug: search tab headers do not update the result count
+    properly when having "remove downloaded items from list" checked.
+  * Fixed typo: "QUEUE FROZEN" instead of "QUEUE FREEZED"
+  * Note: for autocompletition on a GtkCombo (e.g. search combo), try
+    Alt-Tab. Works in any application.
+  * moved more code from main.c to gui_init
+  * removed clist_connections (old stats) from glade and gui code
+  
 - (2002.05.01 - RAM)
   * Integrated the search queue patch: searches are now sent once every
 	10 seconds on a per-connection basis [From Alex Bennee].
