@@ -381,8 +381,17 @@ static void deflate_nagle_timeout(cqueue_t *cq, gpointer arg)
 		fflush(stdout);
 	}
 
-	if (deflate_flush(tx))
-		deflate_rotate_and_send(tx);
+	/*
+	 * During deflate_flush(), we can fill the current buffer, then call
+	 * deflate_rotate_and_send() and finish the flush.  But it is possible
+	 * that the whole send buffer does not get sent immediately.  Therefore,
+	 * we need to recheck for attr->send_idx.
+	 */
+
+	if (deflate_flush(tx)) {
+		if (attr->send_idx == -1)
+			deflate_rotate_and_send(tx);
+	}
 }
 
 /*
