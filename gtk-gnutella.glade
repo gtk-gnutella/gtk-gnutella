@@ -1709,11 +1709,6 @@
 		    <last_modification_time>Mon, 27 Mar 2000 06:19:34 GMT</last_modification_time>
 		  </signal>
 		  <signal>
-		    <name>click_column</name>
-		    <handler>on_clist_uploads_click_column</handler>
-		    <last_modification_time>Mon, 17 Apr 2000 19:08:57 GMT</last_modification_time>
-		  </signal>
-		  <signal>
 		    <name>button_press_event</name>
 		    <handler>on_clist_uploads_button_press_event</handler>
 		    <last_modification_time>Tue, 02 May 2000 19:52:51 GMT</last_modification_time>
@@ -1723,8 +1718,8 @@
 		    <handler>on_clist_uploads_resize_column</handler>
 		    <last_modification_time>Tue, 09 May 2000 19:18:30 GMT</last_modification_time>
 		  </signal>
-		  <columns>5</columns>
-		  <column_widths>80,60,40,40,60</column_widths>
+		  <columns>6</columns>
+		  <column_widths>80,60,40,40,60,80</column_widths>
 		  <selection_mode>GTK_SELECTION_EXTENDED</selection_mode>
 		  <show_titles>True</show_titles>
 		  <shadow_type>GTK_SHADOW_IN</shadow_type>
@@ -1773,6 +1768,19 @@
 		    <child_name>CList:title</child_name>
 		    <name>label_up_range</name>
 		    <label>Range</label>
+		    <justify>GTK_JUSTIFY_CENTER</justify>
+		    <wrap>False</wrap>
+		    <xalign>0.5</xalign>
+		    <yalign>0.5</yalign>
+		    <xpad>0</xpad>
+		    <ypad>0</ypad>
+		  </widget>
+
+		  <widget>
+		    <class>GtkLabel</class>
+		    <child_name>CList:title</child_name>
+		    <name>label_up_user_agent</name>
+		    <label>User agent</label>
 		    <justify>GTK_JUSTIFY_CENTER</justify>
 		    <wrap>False</wrap>
 		    <xalign>0.5</xalign>
@@ -2252,8 +2260,8 @@
 			<handler>on_clist_downloads_resize_column</handler>
 			<last_modification_time>Mon, 18 Mar 2002 23:34:36 GMT</last_modification_time>
 		      </signal>
-		      <columns>4</columns>
-		      <column_widths>80,80,80,80</column_widths>
+		      <columns>5</columns>
+		      <column_widths>80,80,80,80,80</column_widths>
 		      <selection_mode>GTK_SELECTION_EXTENDED</selection_mode>
 		      <show_titles>True</show_titles>
 		      <shadow_type>GTK_SHADOW_IN</shadow_type>
@@ -2289,6 +2297,19 @@
 			<child_name>CList:title</child_name>
 			<name>label114</name>
 			<label>Size</label>
+			<justify>GTK_JUSTIFY_CENTER</justify>
+			<wrap>False</wrap>
+			<xalign>0.5</xalign>
+			<yalign>0.5</yalign>
+			<xpad>0</xpad>
+			<ypad>0</ypad>
+		      </widget>
+
+		      <widget>
+			<class>GtkLabel</class>
+			<child_name>CList:title</child_name>
+			<name>label_dl_server</name>
+			<label>Server</label>
 			<justify>GTK_JUSTIFY_CENTER</justify>
 			<wrap>False</wrap>
 			<xalign>0.5</xalign>
@@ -2661,8 +2682,8 @@
 			    <handler>on_clist_downloads_queue_drag_end</handler>
 			    <last_modification_time>Thu, 16 May 2002 19:55:34 GMT</last_modification_time>
 			  </signal>
-			  <columns>4</columns>
-			  <column_widths>80,80,80,80</column_widths>
+			  <columns>5</columns>
+			  <column_widths>80,80,80,80,80</column_widths>
 			  <selection_mode>GTK_SELECTION_EXTENDED</selection_mode>
 			  <show_titles>True</show_titles>
 			  <shadow_type>GTK_SHADOW_IN</shadow_type>
@@ -2698,6 +2719,19 @@
 			    <child_name>CList:title</child_name>
 			    <name>label154</name>
 			    <label>Size</label>
+			    <justify>GTK_JUSTIFY_CENTER</justify>
+			    <wrap>False</wrap>
+			    <xalign>0.5</xalign>
+			    <yalign>0.5</yalign>
+			    <xpad>0</xpad>
+			    <ypad>0</ypad>
+			  </widget>
+
+			  <widget>
+			    <class>GtkLabel</class>
+			    <child_name>CList:title</child_name>
+			    <name>label_qu_server</name>
+			    <label>Server</label>
 			    <justify>GTK_JUSTIFY_CENTER</justify>
 			    <wrap>False</wrap>
 			    <xalign>0.5</xalign>
