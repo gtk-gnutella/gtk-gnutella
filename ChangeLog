@@ -1,5 +1,21 @@
 # since last version
 
+- (2004-08-13 - RAM)
+ * Removed the "unrequest reply" drop reason, replaced by "no route".  It was
+   used only by query hits, whilst "no route" was used only by "pushes".
+ * Changed the way the routing table is organized to be able to remember
+   active routes (for query hits or pushes) longer than unused ones.
+
+- (2004-08-12 - RAM)
+ * Increased routing table size to keep at least 30 minutes of traffic.
+ * Handle query hits we don't route, in case they have alt-sources we
+   could peruse.
+ * If query hit is dropped for flow-control reasons, account it as such.
+
+- (2004-08-10 - RAM)
+ * Ensure "size != 0 => file_size_known" in fileinfos and create_download().
+ * Added parsing of GUID for queries with OOB query hit delivery.
+
 - (2004-08-09 - RAM)
  * Whith leaf-guided dynamic queries, adjust the number of kept results when
    comparing to the maximum allowed, since leaves return the total amount
