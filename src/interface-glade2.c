@@ -3266,9 +3266,8 @@ create_main_window (void)
   GtkObject *entry_monitor_adj;
   GtkWidget *entry_monitor;
   GtkWidget *label69;
-  GtkWidget *scrolledwindow23;
-  GtkWidget *clist_monitor;
-  GtkWidget *label335;
+  GtkWidget *scrolledwindow26;
+  GtkWidget *treeview_monitor;
   GtkWidget *label_monitor;
   GtkWidget *vbox12a;
   GtkWidget *hbox67;
@@ -4794,22 +4793,13 @@ create_main_window (void)
   gtk_widget_show (label69);
   gtk_box_pack_start (GTK_BOX (hbox45), label69, FALSE, FALSE, 0);
 
-  scrolledwindow23 = gtk_scrolled_window_new (NULL, NULL);
-  gtk_widget_show (scrolledwindow23);
-  gtk_box_pack_start (GTK_BOX (vbox_monitor), scrolledwindow23, TRUE, TRUE, 0);
+  scrolledwindow26 = gtk_scrolled_window_new (NULL, NULL);
+  gtk_widget_show (scrolledwindow26);
+  gtk_box_pack_start (GTK_BOX (vbox_monitor), scrolledwindow26, TRUE, TRUE, 0);
 
-  clist_monitor = gtk_clist_new (1);
-  gtk_widget_show (clist_monitor);
-  gtk_container_add (GTK_CONTAINER (scrolledwindow23), clist_monitor);
-  gtk_clist_set_column_width (GTK_CLIST (clist_monitor), 0, 80);
-  gtk_clist_set_selection_mode (GTK_CLIST (clist_monitor), GTK_SELECTION_MULTIPLE);
-  gtk_clist_column_titles_show (GTK_CLIST (clist_monitor));
-
-  label335 = gtk_label_new (_("Monitor"));
-  gtk_widget_show (label335);
-  gtk_clist_set_column_widget (GTK_CLIST (clist_monitor), 0, label335);
-  gtk_label_set_justify (GTK_LABEL (label335), GTK_JUSTIFY_LEFT);
-  gtk_misc_set_alignment (GTK_MISC (label335), 0, 0.5);
+  treeview_monitor = gtk_tree_view_new ();
+  gtk_widget_show (treeview_monitor);
+  gtk_container_add (GTK_CONTAINER (scrolledwindow26), treeview_monitor);
 
   label_monitor = gtk_label_new (_("Monitor"));
   gtk_widget_show (label_monitor);
@@ -6185,9 +6175,6 @@ create_main_window (void)
   gtk_signal_connect_after (GTK_OBJECT (entry_monitor), "focus_out_event",
                             GTK_SIGNAL_FUNC (on_entry_monitor_focus_out_event),
                             NULL);
-  gtk_signal_connect (GTK_OBJECT (clist_monitor), "button_press_event",
-                      GTK_SIGNAL_FUNC (on_clist_monitor_button_press_event),
-                      NULL);
   gtk_signal_connect (GTK_OBJECT (checkbutton_search_stats_enable), "toggled",
                       GTK_SIGNAL_FUNC (on_checkbutton_search_stats_enable_toggled),
                       NULL);
@@ -6735,9 +6722,8 @@ create_main_window (void)
   GLADE_HOOKUP_OBJECT (main_window, label68, "label68");
   GLADE_HOOKUP_OBJECT (main_window, entry_monitor, "entry_monitor");
   GLADE_HOOKUP_OBJECT (main_window, label69, "label69");
-  GLADE_HOOKUP_OBJECT (main_window, scrolledwindow23, "scrolledwindow23");
-  GLADE_HOOKUP_OBJECT (main_window, clist_monitor, "clist_monitor");
-  GLADE_HOOKUP_OBJECT (main_window, label335, "label335");
+  GLADE_HOOKUP_OBJECT (main_window, scrolledwindow26, "scrolledwindow26");
+  GLADE_HOOKUP_OBJECT (main_window, treeview_monitor, "treeview_monitor");
   GLADE_HOOKUP_OBJECT (main_window, label_monitor, "label_monitor");
   GLADE_HOOKUP_OBJECT (main_window, vbox12a, "vbox12a");
   GLADE_HOOKUP_OBJECT (main_window, hbox67, "hbox67");

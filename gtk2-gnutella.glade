@@ -9541,7 +9541,7 @@ Grace time remaining:</property>
 		      </child>
 
 		      <child>
-			<widget class="GtkScrolledWindow" id="scrolledwindow23">
+			<widget class="GtkScrolledWindow" id="scrolledwindow26">
 			  <property name="visible">True</property>
 			  <property name="can_focus">True</property>
 			  <property name="hscrollbar_policy">GTK_POLICY_ALWAYS</property>
@@ -9550,31 +9550,13 @@ Grace time remaining:</property>
 			  <property name="window_placement">GTK_CORNER_TOP_LEFT</property>
 
 			  <child>
-			    <widget class="GtkCList" id="clist_monitor">
+			    <widget class="GtkTreeView" id="treeview_monitor">
 			      <property name="visible">True</property>
 			      <property name="can_focus">True</property>
-			      <property name="n_columns">1</property>
-			      <property name="column_widths">80</property>
-			      <property name="selection_mode">GTK_SELECTION_MULTIPLE</property>
-			      <property name="show_titles">True</property>
-			      <property name="shadow_type">GTK_SHADOW_IN</property>
-			      <signal name="button_press_event" handler="on_clist_monitor_button_press_event" last_modification_time="Thu, 04 Jul 2002 11:47:01 GMT"/>
-
-			      <child internal-child="clist_title">
-				<widget class="GtkLabel" id="label335">
-				  <property name="visible">True</property>
-				  <property name="label" translatable="yes">Monitor</property>
-				  <property name="use_underline">False</property>
-				  <property name="use_markup">False</property>
-				  <property name="justify">GTK_JUSTIFY_LEFT</property>
-				  <property name="wrap">False</property>
-				  <property name="selectable">False</property>
-				  <property name="xalign">0</property>
-				  <property name="yalign">0.5</property>
-				  <property name="xpad">0</property>
-				  <property name="ypad">0</property>
-				</widget>
-			      </child>
+			      <property name="headers_visible">True</property>
+			      <property name="rules_hint">False</property>
+			      <property name="reorderable">False</property>
+			      <property name="enable_search">True</property>
 			    </widget>
 			  </child>
 			</widget>
