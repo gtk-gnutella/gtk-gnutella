@@ -843,7 +843,7 @@ static gboolean got_match(struct shared_file *sf)
 	return TRUE;		/* Hit entry accepted */
 }
 
-#define MIN_WORD_LENGTH 2		/* For compaction */
+#define MIN_WORD_LENGTH 1		/* For compaction */
 
 /*
  * compact_query:
@@ -854,7 +854,7 @@ static gboolean got_match(struct shared_file *sf)
  *
  * If `utf8_len' is non-zero, then we're facing an UTF-8 string.
  */
-static guint compact_query(gchar *search, gint utf8_len)
+guint compact_query(gchar *search, gint utf8_len)
 {
 	gchar *s;
 	gchar *w;
@@ -873,17 +873,10 @@ static guint compact_query(gchar *search, gint utf8_len)
 			utf8_decode_char(s, utf8_len, &clen, FALSE) :
 			(guint32) *(guchar *) s)
 	) {
-		switch (c) {
-		/* word delimiters/whitespace*/
-		case '(':  case ')':  case '[':  case ']':  case '^':
-		case '{':  case '}':  case '#':  case '$':  case '%':
-		case '*':  case '.':  case '!':  case '&':  case '|':
-		case '?':  case ',':  case ';':  case '-':  case '_':
-		case '"':  case '/':  case '~':  case ' ':  case '+':
-		case '\\': case '\n': case '\f': case '\r': case '\t':
-		case '\v': case '@':  case '<':  case '>':  case '\'':
-		case '`':
-			/* reduce consecutive spaces to a single space */
+		if (c == ' ') {
+			/*
+			 * Reduce consecutive spaces to a single space.
+			 */
 			if (!skip_space) {
 				if (word_length < MIN_WORD_LENGTH) {
 					/* 
@@ -901,23 +894,20 @@ static guint compact_query(gchar *search, gint utf8_len)
 				word_length = 0; /* count this space to the next word */
 			} else if (dbg > 4)
 				printf("s");
-			break;
-		default:
-			if (c > ' ') {
-				/* within a word now, copy word (except control characters) */
-				skip_space = FALSE;
-				if (utf8_len) {
-					gint i;
-					for (i = 0; i < clen; i++)
-						*w++ = s[i];
-					word_length += clen;	/* Yes, count 3-wide char as 3 */
-				} else {
-					*w++ = c;
-					word_length++;
-				}
-			} else if (dbg > 4)
-				printf("c");
-			break;
+		} else {
+			/*
+			 * Within a word now, copy character.
+			 */
+			skip_space = FALSE;
+			if (utf8_len) {
+				gint i;
+				for (i = 0; i < clen; i++)
+					*w++ = s[i];
+				word_length += clen;	/* Yes, count 3-wide char as 3 */
+			} else {
+				*w++ = c;
+				word_length++;
+			}
 		}
 	
 		/* count the length of the original search string */
@@ -1016,18 +1006,18 @@ gboolean search_request(struct gnutella_node *n)
     }
 
 	/*
-	 * Compact query, if requested.
+	 * Compact query, if requested and we're going to relay that message.
 	 */
 
-	if (gnet_compact_query) {
+	if (gnet_compact_query && n->header.ttl) {
 		guint32 mangled_search_len;
 
 		/*
 		 * Look whether we're facing an UTF-8 query.
 		 */
 
-		utf8_len = utf8_is_valid_string(search, search_len+1);
-		if (utf8_len && utf8_len != (search_len+1))		/* Not pure ASCII */
+		utf8_len = utf8_is_valid_string(search, search_len);
+		if (utf8_len && utf8_len != search_len)			/* Not pure ASCII */
 			gnet_stats_count_general(n, GNR_QUERY_UTF8, 1);
 		else
 			utf8_len = 0;			/* Not fully UTF-8 */
@@ -1230,15 +1220,14 @@ gboolean search_request(struct gnutella_node *n)
 		/*
 		 * If the query string is UTF-8 encoded, decode it and keep only
 		 * the characters in the ISO-8859-1 charset.
-		 * NB: we use `search_len+1' chars to include the trailing NUL.
 		 *		--RAM, 21/05/2002
 		 */
 
 		g_assert(search[search_len] == '\0');
 
 		if (utf8_len == -1) {
-			utf8_len = utf8_is_valid_string(search, search_len+1);
-			if (utf8_len && utf8_len != (search_len+1)) {  /* Not pure ASCII */
+			utf8_len = utf8_is_valid_string(search, search_len);
+			if (utf8_len && utf8_len != search_len) {  /* Not pure ASCII */
 				is_utf8 = TRUE;
 				gnet_stats_count_general(n, GNR_QUERY_UTF8, 1);
 			}
@@ -1249,15 +1238,15 @@ gboolean search_request(struct gnutella_node *n)
 			gint isochars;
 
 			query = stmp_1;
-			memcpy(stmp_1, search, search_len + 1);
-			isochars = utf8_to_iso8859(stmp_1, search_len + 1, TRUE);
+			memcpy(stmp_1, search, search_len + 1);		/* Copy trailing NUL */
+			isochars = utf8_to_iso8859(stmp_1, search_len, TRUE);
 
 			if (isochars != utf8_len)		/* Not fully ISO-8859-1 */
 				ignore = TRUE;
 
 			if (dbg > 4)
-				printf("UTF-8 query, len=%d, chars=%d, iso=%d: \"%s\"\n",
-					search_len, utf8_len-1, isochars-1, search);
+				printf("UTF-8 query, len=%d, utf8-len=%d, iso-len=%d: \"%s\"\n",
+					search_len, utf8_len, isochars, search);
 		} else
 			query = search;
 

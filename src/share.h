@@ -26,7 +26,6 @@
 #ifndef __share_h__
 #define __share_h__
 
-//#include "nodes.h"
 #include "huge.h"
 
 struct gnutella_node;
