@@ -1736,7 +1736,8 @@ static gboolean new_version_str_changed(property_t prop)
     str = gnet_prop_get_string(PROP_NEW_VERSION_STR, NULL, 0);
     statusbar_gui_set_default(str);
 
-    g_free(str);
+	if (str)
+		g_free(str);
 
     return FALSE;
 }

@@ -3118,14 +3118,18 @@ gnet_node_info_t *node_get_info(const gnet_node_t n)
  */
 void node_free_info(gnet_node_info_t *info)
 {
-    g_free(info->vendor);
-    g_free(info->error_str);
-    g_free(info->remove_msg);
+	if (info->vendor)
+		g_free(info->vendor);
+	if (info->error_str)
+		g_free(info->error_str);
+	if (info->remove_msg)
+		g_free(info->remove_msg);
+
     g_free(info);
 }
 
 /*
- * nodes__remove_nodes:
+ * node_remove_nodes_by_handle:
  *
  * Disconnect from the given list of node hanles. The list may not contain
  * NULL elements or duplicate elements.

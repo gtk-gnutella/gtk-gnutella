@@ -230,8 +230,10 @@ void prop_free_def(prop_def_t *d)
         g_free(d->data.guint32.def);
         break;
     case PROP_TYPE_STRING:
-        g_free(*d->data.string.value);
-        g_free(*d->data.string.def);
+		if (*d->data.string.value)
+			g_free(*d->data.string.value);
+		if (*d->data.string.def)
+			g_free(*d->data.string.def);
         g_free(d->data.string.value);
         g_free(d->data.string.def);
         break;
