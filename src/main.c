@@ -118,6 +118,7 @@ gint main(gint argc, gchar **argv)
 	const gchar *menus[] = { "gnutellaNet" , "Uploads", "Downloads", "Search", "  Monitor", "Config", NULL };
 	gchar *titles[5];
 	gchar mtmp[1024];
+	gint optimal_width;
 
 	for (i = 3; i < 256; i++) close(i); /* Just in case */
 
@@ -162,8 +163,12 @@ gint main(gint argc, gchar **argv)
 
 	/* Final interface setup */
 
+	optimal_width = gtk_clist_optimal_column_width(GTK_CLIST(clist_stats), 0);
+
 	for (i = 0; i < 6; i++) gtk_clist_insert(GTK_CLIST(clist_menu), i, (gchar **) &menus[i]);
 	gtk_clist_select_row(GTK_CLIST(clist_menu), 0, 0);
+
+	gtk_widget_set_usize(clist_menu, optimal_width, (clist_menu->style->font->ascent + clist_menu->style->font->descent) * 6);
 
 	gtk_clist_column_titles_passive(GTK_CLIST(clist_nodes));
 	gtk_clist_column_titles_passive(GTK_CLIST(clist_uploads));
@@ -177,6 +182,9 @@ gint main(gint argc, gchar **argv)
 
 	for (i = 0; i < 3; i++) gtk_clist_append(GTK_CLIST(clist_connections), titles);
 	for (i = 0; i < 4; i++) gtk_clist_append(GTK_CLIST(clist_stats), titles);
+
+	gtk_widget_set_usize(clist_connections, optimal_width, (clist_connections->style->font->ascent + clist_connections->style->font->descent) * 3);
+	gtk_widget_set_usize(clist_stats, optimal_width, (clist_stats->style->font->ascent + clist_stats->style->font->descent) * 4);
 
 	gui_update_stats();
 

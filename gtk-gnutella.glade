@@ -49,8 +49,6 @@
       <widget>
 	<class>GtkScrolledWindow</class>
 	<name>sw_menu</name>
-	<width>80</width>
-	<height>102</height>
 	<hscrollbar_policy>GTK_POLICY_NEVER</hscrollbar_policy>
 	<vscrollbar_policy>GTK_POLICY_NEVER</vscrollbar_policy>
 	<hupdate_policy>GTK_UPDATE_CONTINUOUS</hupdate_policy>
@@ -130,8 +128,6 @@
 	<widget>
 	  <class>GtkScrolledWindow</class>
 	  <name>sw_connections</name>
-	  <width>80</width>
-	  <height>51</height>
 	  <hscrollbar_policy>GTK_POLICY_NEVER</hscrollbar_policy>
 	  <vscrollbar_policy>GTK_POLICY_NEVER</vscrollbar_policy>
 	  <hupdate_policy>GTK_UPDATE_CONTINUOUS</hupdate_policy>
@@ -224,8 +220,6 @@
 	<widget>
 	  <class>GtkScrolledWindow</class>
 	  <name>sw_stats</name>
-	  <width>80</width>
-	  <height>68</height>
 	  <hscrollbar_policy>GTK_POLICY_NEVER</hscrollbar_policy>
 	  <vscrollbar_policy>GTK_POLICY_NEVER</vscrollbar_policy>
 	  <hupdate_policy>GTK_UPDATE_CONTINUOUS</hupdate_policy>

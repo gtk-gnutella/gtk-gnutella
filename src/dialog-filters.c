@@ -22,12 +22,15 @@ GtkWidget*
 create_dialog_filters (void)
 {
   GtkWidget *dialog_filters;
-  GtkWidget *vbox1;
-  GtkWidget *notebook1;
-  GtkWidget *label3;
-  GtkWidget *label1;
-  GtkWidget *label4;
-  GtkWidget *label2;
+  GtkWidget *vbox_main;
+  GtkWidget *notebook;
+  GtkWidget *table1;
+  GtkWidget *vseparator1;
+  GtkWidget *hbox1;
+  GtkWidget *button1;
+  GtkWidget *button2;
+  GtkWidget *button3;
+  GtkWidget *label_global;
   GtkWidget *hbuttonbox1;
   GtkWidget *button_apply;
   GtkWidget *button_cancel;
@@ -36,55 +39,80 @@ create_dialog_filters (void)
   gtk_object_set_data (GTK_OBJECT (dialog_filters), "dialog_filters", dialog_filters);
   gtk_window_set_title (GTK_WINDOW (dialog_filters), "Search results filters");
 
-  vbox1 = gtk_vbox_new (FALSE, 0);
-  gtk_widget_ref (vbox1);
-  gtk_object_set_data_full (GTK_OBJECT (dialog_filters), "vbox1", vbox1,
+  vbox_main = gtk_vbox_new (FALSE, 0);
+  gtk_widget_ref (vbox_main);
+  gtk_object_set_data_full (GTK_OBJECT (dialog_filters), "vbox_main", vbox_main,
                             (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (vbox1);
-  gtk_container_add (GTK_CONTAINER (dialog_filters), vbox1);
+  gtk_widget_show (vbox_main);
+  gtk_container_add (GTK_CONTAINER (dialog_filters), vbox_main);
 
-  notebook1 = gtk_notebook_new ();
-  gtk_widget_ref (notebook1);
-  gtk_object_set_data_full (GTK_OBJECT (dialog_filters), "notebook1", notebook1,
+  notebook = gtk_notebook_new ();
+  gtk_widget_ref (notebook);
+  gtk_object_set_data_full (GTK_OBJECT (dialog_filters), "notebook", notebook,
                             (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (notebook1);
-  gtk_box_pack_start (GTK_BOX (vbox1), notebook1, TRUE, TRUE, 0);
+  gtk_widget_show (notebook);
+  gtk_box_pack_start (GTK_BOX (vbox_main), notebook, TRUE, TRUE, 0);
 
-  label3 = gtk_label_new ("Here will be the global filters, applied to all the searches");
-  gtk_widget_ref (label3);
-  gtk_object_set_data_full (GTK_OBJECT (dialog_filters), "label3", label3,
+  table1 = gtk_table_new (2, 3, FALSE);
+  gtk_widget_ref (table1);
+  gtk_object_set_data_full (GTK_OBJECT (dialog_filters), "table1", table1,
                             (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (label3);
-  gtk_container_add (GTK_CONTAINER (notebook1), label3);
-  gtk_misc_set_padding (GTK_MISC (label3), 30, 50);
+  gtk_widget_show (table1);
+  gtk_container_add (GTK_CONTAINER (notebook), table1);
 
-  label1 = gtk_label_new ("Global filters");
-  gtk_widget_ref (label1);
-  gtk_object_set_data_full (GTK_OBJECT (dialog_filters), "label1", label1,
+  vseparator1 = gtk_vseparator_new ();
+  gtk_widget_ref (vseparator1);
+  gtk_object_set_data_full (GTK_OBJECT (dialog_filters), "vseparator1", vseparator1,
                             (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (label1);
-  gtk_notebook_set_tab_label (GTK_NOTEBOOK (notebook1), gtk_notebook_get_nth_page (GTK_NOTEBOOK (notebook1), 0), label1);
+  gtk_widget_show (vseparator1);
+  gtk_table_attach (GTK_TABLE (table1), vseparator1, 1, 2, 0, 2,
+                    (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
+                    (GtkAttachOptions) (GTK_EXPAND | GTK_FILL), 0, 0);
 
-  label4 = gtk_label_new ("Here will be the filters applied to a particular search");
-  gtk_widget_ref (label4);
-  gtk_object_set_data_full (GTK_OBJECT (dialog_filters), "label4", label4,
+  hbox1 = gtk_hbox_new (FALSE, 10);
+  gtk_widget_ref (hbox1);
+  gtk_object_set_data_full (GTK_OBJECT (dialog_filters), "hbox1", hbox1,
                             (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (label4);
-  gtk_container_add (GTK_CONTAINER (notebook1), label4);
+  gtk_widget_show (hbox1);
+  gtk_table_attach (GTK_TABLE (table1), hbox1, 0, 1, 1, 2,
+                    (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_container_set_border_width (GTK_CONTAINER (hbox1), 5);
 
-  label2 = gtk_label_new ("Filters");
-  gtk_widget_ref (label2);
-  gtk_object_set_data_full (GTK_OBJECT (dialog_filters), "label2", label2,
+  button1 = gtk_button_new_with_label ("Add text filter");
+  gtk_widget_ref (button1);
+  gtk_object_set_data_full (GTK_OBJECT (dialog_filters), "button1", button1,
                             (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (label2);
-  gtk_notebook_set_tab_label (GTK_NOTEBOOK (notebook1), gtk_notebook_get_nth_page (GTK_NOTEBOOK (notebook1), 1), label2);
+  gtk_widget_show (button1);
+  gtk_box_pack_start (GTK_BOX (hbox1), button1, FALSE, FALSE, 0);
+
+  button2 = gtk_button_new_with_label ("Add IP filter");
+  gtk_widget_ref (button2);
+  gtk_object_set_data_full (GTK_OBJECT (dialog_filters), "button2", button2,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (button2);
+  gtk_box_pack_start (GTK_BOX (hbox1), button2, FALSE, FALSE, 0);
+
+  button3 = gtk_button_new_with_label ("Add size filter");
+  gtk_widget_ref (button3);
+  gtk_object_set_data_full (GTK_OBJECT (dialog_filters), "button3", button3,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (button3);
+  gtk_box_pack_start (GTK_BOX (hbox1), button3, FALSE, FALSE, 0);
+
+  label_global = gtk_label_new ("Global filters");
+  gtk_widget_ref (label_global);
+  gtk_object_set_data_full (GTK_OBJECT (dialog_filters), "label_global", label_global,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label_global);
+  gtk_notebook_set_tab_label (GTK_NOTEBOOK (notebook), gtk_notebook_get_nth_page (GTK_NOTEBOOK (notebook), 0), label_global);
 
   hbuttonbox1 = gtk_hbutton_box_new ();
   gtk_widget_ref (hbuttonbox1);
   gtk_object_set_data_full (GTK_OBJECT (dialog_filters), "hbuttonbox1", hbuttonbox1,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (hbuttonbox1);
-  gtk_box_pack_start (GTK_BOX (vbox1), hbuttonbox1, FALSE, TRUE, 0);
+  gtk_box_pack_start (GTK_BOX (vbox_main), hbuttonbox1, FALSE, TRUE, 0);
   gtk_container_set_border_width (GTK_CONTAINER (hbuttonbox1), 6);
   gtk_button_box_set_layout (GTK_BUTTON_BOX (hbuttonbox1), GTK_BUTTONBOX_SPREAD);
 

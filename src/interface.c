@@ -275,7 +275,6 @@ create_main_window (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (sw_menu);
   gtk_box_pack_start (GTK_BOX (vbox_left), sw_menu, FALSE, FALSE, 0);
-  gtk_widget_set_usize (sw_menu, 80, 102);
   gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (sw_menu), GTK_POLICY_NEVER, GTK_POLICY_NEVER);
 
   clist_menu = gtk_clist_new (1);
@@ -316,7 +315,6 @@ create_main_window (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (sw_connections);
   gtk_box_pack_start (GTK_BOX (vbox_connections), sw_connections, FALSE, FALSE, 0);
-  gtk_widget_set_usize (sw_connections, 80, 51);
   gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (sw_connections), GTK_POLICY_NEVER, GTK_POLICY_NEVER);
 
   clist_connections = gtk_clist_new (1);
@@ -364,7 +362,6 @@ create_main_window (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (sw_stats);
   gtk_box_pack_start (GTK_BOX (vbox_stats), sw_stats, FALSE, FALSE, 0);
-  gtk_widget_set_usize (sw_stats, 80, 68);
   gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (sw_stats), GTK_POLICY_NEVER, GTK_POLICY_NEVER);
 
   clist_stats = gtk_clist_new (1);
