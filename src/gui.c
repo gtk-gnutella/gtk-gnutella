@@ -414,6 +414,7 @@ void gui_update_all()
     gui_update_upload_connected_timeout();
     gui_update_max_hosts_cached();
     gui_update_stats_frames();
+    gui_address_changed();
 
     if (win_w && win_h) {
 		gtk_widget_set_uposition(main_window, win_x, win_y);
@@ -423,13 +424,13 @@ void gui_update_all()
 	for (i = 0; i < 5; i++)
 		gtk_clist_set_column_width(GTK_CLIST(clist_nodes), i,
 								   nodes_col_widths[i]);
-	for (i = 0; i < 4; i++)
+	for (i = 0; i < 5; i++)
 		gtk_clist_set_column_width(GTK_CLIST(clist_downloads), i,
 								   dl_active_col_widths[i]);
-	for (i = 0; i < 4; i++)
+	for (i = 0; i < 5; i++)
 		gtk_clist_set_column_width(GTK_CLIST(clist_downloads_queue), i,
 								   dl_queued_col_widths[i]);
-	for (i = 0; i < 5; i++)
+	for (i = 0; i < 6; i++)
 		gtk_clist_set_column_width(GTK_CLIST(clist_uploads), i,
 								   uploads_col_widths[i]);
 
@@ -563,7 +564,7 @@ static void gui_statusbar_free_timeout_list()
  * have changed since the last call and displays
  * a notice in case and updates the relevant widgets.
  */
-static void gui_address_changed()
+void gui_address_changed()
 {
     static guint32 old_address = 0;
     static guint16 old_port = 0;
@@ -1541,12 +1542,13 @@ void gui_update_download(struct download *d, gboolean force)
 	if (d->status != GTA_DL_QUEUED) {
 		row = gtk_clist_find_row_from_data(GTK_CLIST(clist_downloads),
 			(gpointer) d);
-		gtk_clist_set_text(GTK_CLIST(clist_downloads), row, 3, a);
+		gtk_clist_set_text(GTK_CLIST(clist_downloads), row, c_dl_status, a);
 	}
     if (d->status == GTA_DL_QUEUED) {
 		row = gtk_clist_find_row_from_data(GTK_CLIST(clist_downloads_queue),
 			(gpointer) d);
-		gtk_clist_set_text(GTK_CLIST(clist_downloads_queue), row, 3, a);
+		gtk_clist_set_text(GTK_CLIST(clist_downloads_queue), 
+                           row, c_dl_status, a);
 	}
 }
 
@@ -1613,7 +1615,7 @@ void gui_update_upload(struct upload *u)
 		gtk_clist_find_row_from_data(GTK_CLIST(clist_uploads),
 									 (gpointer) u);
 
-	gtk_clist_set_text(GTK_CLIST(clist_uploads), row, 4, gui_tmp);
+	gtk_clist_set_text(GTK_CLIST(clist_uploads), row, c_ul_status, gui_tmp);
 }
 
 /* Create a new GtkCList for search results */

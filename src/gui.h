@@ -60,6 +60,40 @@ extern guint scid_queue_remove_regex;
 extern guint scid_warn;
 
 /*
+ * Uploads table columns
+ */
+enum {
+    c_ul_filename = 0,
+    c_ul_host,
+    c_ul_size,
+    c_ul_range,
+    c_ul_agent,
+    c_ul_status
+};
+
+/*
+ * Downloads table columns (and queue, must be same)
+ */
+enum {
+    c_dl_filename = 0,
+    c_dl_host,
+    c_dl_size,
+    c_dl_server,
+    c_dl_status
+};
+
+/*
+ * Searches table columns
+ */
+enum {
+    c_sr_filename = 0,
+    c_sr_size,
+    c_sr_speed,
+    c_sr_host,
+    c_sr_info
+};
+
+/*
  * Macros for accessing the statusbar
  */
 #define gui_statusbar_push(scid, msg)   (gtk_statusbar_push(GTK_STATUSBAR(statusbar), (scid), (msg)))
@@ -180,5 +214,6 @@ void gui_update_max_hosts_cached();
 void gui_update_hosts_in_catcher();
 void gui_update_stats_frames();
 void gui_update_queue_frozen();
+void gui_address_changed();
 
 #endif /* __gui_h__ */
