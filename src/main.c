@@ -293,7 +293,7 @@ gboolean main_timer(gpointer p)
 	for (l = remove; l; l = l->next) {
 		struct upload *u = (struct upload *) l->data;
 		upload_remove(u, UPLOAD_IS_CONNECTING(u) ?
-			"Connect timeout" : "Data timeout");
+			"Request timeout" : "Data timeout");
 	}
 	g_slist_free(remove);
 
