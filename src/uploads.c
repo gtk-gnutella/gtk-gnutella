@@ -1182,10 +1182,10 @@ static struct shared_file *get_file_to_upload_from_index(
 
 			if (escaped != sfn->file_name)
 				g_free(escaped);
-			goto failed;
+			return NULL;
 		} else if (sf == NULL) {
 			upload_error_remove(u, NULL, 404, "URN Not Found (urn:sha1)");
-			goto failed;
+			return NULL;
 		}
 
 		/* FALL THROUGH */
@@ -1230,14 +1230,14 @@ static struct shared_file *get_file_to_upload_from_index(
 
 		if (sfn == NULL) {
 			upload_error_remove(u, NULL, 409, "File index/name mismatch");
-			goto failed;
+			return NULL;
 		} else
 			sf = sfn;
 	}
 
 	if (sf == NULL) {
 		upload_error_not_found(u, uri);
-		goto failed;
+		return NULL;
 	}
 
 found:
@@ -1246,11 +1246,6 @@ found:
 	if (p) *p = ' ';			/* Restore patched space */
 
 	return sf;
-
-failed:
-	if (p) *p = ' ';			/* Restore patched space */
-
-	return NULL;
 }
 
 static const char n2r_query[] = "/uri-res/N2R?";
