@@ -63,6 +63,8 @@ set w_main_list {
 	button_queue_clear
 	button_queue_remove
 	togglebutton_queue_freeze
+    entry_queue_remove_regex
+    checkbutton_queue_regex_case
 
 	button_downloads_abort
 	button_downloads_clear_completed
