@@ -1091,7 +1091,7 @@ static void gwc_update_this(gchar *cache_url)
 
 	if (
 		!is_firewalled &&
-		current_peermode != NODE_P_LEAF &&
+		current_peermode == NODE_P_ULTRA &&
 		host_is_valid(listen_ip(), listen_port)
 	) {
 		rw += gm_snprintf(&gwc_tmp[rw], sizeof(gwc_tmp)-rw,
