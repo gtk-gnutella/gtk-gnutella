@@ -53,7 +53,10 @@ void file_config_preamble(FILE *out, const gchar *what);
 void file_path_set(file_path_t *fp, const char *dir, const char *name);
 
 gint file_open(const gchar *path, gint flags);
+gint file_open_missing(const gchar *path, gint flags);
 gint file_create(const gchar *path, gint flags, gint mode);
+FILE *file_fopen(const gchar *path, const gchar *mode);
+FILE *file_fopen_missing(const gchar *path, const gchar *mode);
 
 #endif /* _file_ */
 

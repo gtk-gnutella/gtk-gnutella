@@ -58,7 +58,6 @@ static FILE *open_read(
 	FILE *in;
 	gchar *path;
 	gchar *path_orig;
-	struct stat buf;
 	const gchar *instead = empty_str;
 
 	g_assert(fv != NULL);
@@ -79,17 +78,14 @@ static FILE *open_read(
 				what, path, path_orig, g_strerror(errno));
 		goto out;
     } else {
-		g_warning("[%s] failed to retrieve from \"%s\": %s", what, path,
-            g_strerror(errno));
+		if (errno != ENOENT) {
+			instead = instead_str;			/* Regular file was present */
+			g_warning("[%s] failed to retrieve from \"%s\": %s", what, path,
+				g_strerror(errno));
+		}
         if (fvcnt > 1)
             g_warning("[%s] trying to load from alternate locations...", what);
     }
-
-	if (-1 != stat(path, &buf)) {
-		instead = instead_str;			/* Regular file was present */
-		g_warning("[%s] unable to open \"%s\": %s",
-			what, path, g_strerror(errno));
-	}
 
 	/*
 	 * Maybe we crashed after having retrieved the file in a previous run
@@ -197,10 +193,9 @@ FILE *file_config_open_write(const gchar *what, const file_path_t *fv)
 	path = g_strdup_printf("%s/%s%s", fv->dir, fv->name, new_ext);
 	g_return_val_if_fail(NULL != path, NULL);
 
-	out = fopen(path, "w");
+	out = file_fopen(path, "w");
 	if (out == NULL)
-		g_warning("unable to create \"%s\" to persist %s: %s",
-			path, what, g_strerror(errno));
+		g_warning("unable to persist %s", what);
 	G_FREE_NULL(path);
 	return out;
 }
@@ -277,14 +272,26 @@ void file_path_set(file_path_t *fp, const char *dir, const char *name)
  * do_open
  *
  * Open file, returning file descriptor or -1 on error with errno set.
+ * Errors are logged as a warning, unless `missing' is true, in which
+ * case no error is logged for ENOENT.
  */
-static gint do_open(const gchar *path, gint flags, gint mode, gchar *what)
+static gint do_open(const gchar *path, gint flags, gint mode, gboolean missing)
 {
 	gint fd;
+	gchar *what;
 
 	fd = open(path, flags, mode);
 	if (fd >= 0)
 		return fd;
+
+	if (flags & O_CREAT)
+		what = "create";
+	else if (flags & O_RDONLY)
+		what = "read";
+	else if (flags & O_WRONLY)
+		what = "write into";
+	else
+		what = "open";
 
 	/*
 	 * If we ran out of file descriptors, try to reclaim one from the
@@ -299,7 +306,8 @@ static gint do_open(const gchar *path, gint flags, gint mode, gchar *what)
 		}
 	}
 
-	g_warning("can't %s file \"%s\": %s", what, path, g_strerror(errno));
+	if (!missing || errno != ENOENT)
+		g_warning("can't %s file \"%s\": %s", what, path, g_strerror(errno));
 
 	return -1;
 }
@@ -308,28 +316,102 @@ static gint do_open(const gchar *path, gint flags, gint mode, gchar *what)
  * file_open
  *
  * Open file, returning file descriptor or -1 on error with errno set.
+ * Errors are logged as a warning.
  */
 gint file_open(const gchar *path, gint flags)
 {
-	gchar *what;
+	return do_open(path, flags, 0, FALSE);
+}
 
-	if (flags & O_RDONLY)
-		what = "read";
-	else if (flags & O_WRONLY)
-		what = "write into";
-	else
-		what = "open";
-
-	return do_open(path, flags, 0, what);
+/*
+ * file_open_missing
+ *
+ * Open file, returning file descriptor or -1 on error with errno set.
+ * Errors are logged as a warning, unless the file is missing, in which
+ * case nothing is logged.
+ */
+gint file_open_missing(const gchar *path, gint flags)
+{
+	return do_open(path, flags, 0, TRUE);
 }
 
 /*
  * file_create
  *
  * Create file, returning file descriptor or -1 on error with errno set.
+ * Errors are logged as a warning.
  */
 gint file_create(const gchar *path, gint flags, gint mode)
 {
-	return do_open(path, flags | O_CREAT, mode, "create");
+	return do_open(path, flags | O_CREAT, mode, FALSE);
+}
+
+/*
+ * file_fopen
+ *
+ * Open file, returning FILE pointer if success or NULL on error.
+ * Errors are logged as a warning, unless error is ENOENT and `missing'
+ * is TRUE.
+ */
+static FILE *do_fopen(const gchar *path, const gchar *mode, gboolean missing)
+{
+	gchar m;
+	FILE *f;
+	gchar *what;
+
+	f = fopen(path, mode);
+	if (f != NULL)
+		return f;
+
+	m = *mode;
+	if (m == 'r')
+		what = "read";
+	else if (m == 'w')
+		what = "write into";
+	else if (m == 'a')
+		what = "append to";
+	else
+		what = "open";
+
+	/*
+	 * If we ran out of file descriptors, try to reclaim one from the
+	 * banning pool and retry.
+	 */
+
+	if ((errno == EMFILE || errno == ENFILE) && ban_reclaim_fd()) {
+		f = fopen(path, mode);
+		if (f != NULL) {
+			g_warning("had to close a banned fd to %s file", what);
+			return f;
+		}
+	}
+
+	if (!missing || errno != ENOENT)
+		g_warning("can't %s file \"%s\": %s", what, path, g_strerror(errno));
+
+	return NULL;
+}
+
+/*
+ * file_fopen
+ *
+ * Open file, returning FILE pointer if success or NULL on error.
+ * Errors are logged as a warning.
+ */
+FILE *file_fopen(const gchar *path, const gchar *mode)
+{
+	return do_fopen(path, mode, FALSE);
+}
+
+/*
+ * file_fopen_missing
+ *
+ * Open file, returning FILE pointer if success or NULL on error.
+ * Errors are logged as a warning, unless the file is missing, in which
+ * case nothing is logged.
+ */
+FILE *file_fopen_missing(const gchar *path, const gchar *mode)
+{
+	return do_fopen(path, mode, TRUE);
 }
 
