@@ -9,6 +9,12 @@ AC_PROG_CC
 AM_PROG_CC_STDC
 AC_HEADER_STDC
 
+dnl Check wether libresolv is needed for inet_aton()
+need_lresolv=yes
+AC_MSG_CHECKING(wether inet_aton needs libresolv)
+AC_TRY_LINK_FUNC(inet_aton, need_lresolv=no, LIBS="$LIBS -lresolv")
+AC_MSG_RESULT($need_lresolv)
+
 AM_PATH_GTK(1.2.0, ,
             AC_MSG_ERROR(Cannot find GTK: Is gtk-config in path?))
 

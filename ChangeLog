@@ -1,5 +1,5 @@
 
-* v 0.13          2000.06.??
+* v 0.13          2000.07.??
 
 - 32 bits overflow when computing the size of all files on the GnutellaNet
   (in the gnutellanet stats) should been fixed
@@ -12,6 +12,7 @@
 - A new option limits the number of downloads from a single GnutellaNet host
 - Users with big default fonts should now see all the menus
 - A quit button has been added
+- gtk-gnutella is now linked against libresolv if needed for inet_aton()
 
 * v 0.12          2000.05.03
 
