@@ -255,11 +255,19 @@ void on_popup_downloads_remove_file_activate(GtkMenuItem * menuitem,
 				GPOINTER_TO_INT(l->data));
 			continue;
 		}
+
+		/*
+		 * We request a resetting of the fileinfo to prevent discarding
+		 * should we relaunch: non-reset fileinfos are discarded if the file
+		 * is missing.
+		 *		--RAM, 04/01/2003.
+		 */
         
-        if (((d->status == GTA_DL_ERROR) ||
-            (d->status == GTA_DL_ABORTED)) &&
-            download_file_exists(d))
-            download_remove_file(d);
+        if (
+			(d->status == GTA_DL_ERROR || d->status == GTA_DL_ABORTED) &&
+            download_file_exists(d)
+		)
+            download_remove_file(d, TRUE);
 	}
 
     gtk_clist_thaw(clist_downloads);

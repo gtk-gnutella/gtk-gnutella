@@ -642,8 +642,13 @@ gboolean download_file_exists(struct download *d)
  * download_remove_file
  *
  * Remove temporary download file.
+ *
+ * Optionally reset the fileinfo if unlinking is successfull and `reset' is
+ * TRUE.  The purpose of resetting on unlink is to prevent the fileinfo
+ * from being discarded at the next relaunch (we discard non-reset fileinfos
+ * when the file is missing).
  */
-void download_remove_file(struct download *d)
+void download_remove_file(struct download *d, gboolean reset)
 {
 	gchar path[2048];
 	struct dl_file_info *fi = d->file_info;
@@ -652,12 +657,15 @@ void download_remove_file(struct download *d)
 
 	if (-1 == unlink(path))
 		g_warning("cannot unlink \"%s\": %s", path, g_strerror(errno));
-	else
+	else {
+		if (reset)
+			file_info_reset(fi);
 		g_warning("unlinked \"%s\" (%u/%u bytes done, %s SHA1%s%s)",
 			fi->file_name, fi->done, fi->size,
 			fi->sha1 ? "with" : "no",
 			fi->sha1 ? ": " : "",
 			fi->sha1 ? sha1_base32(fi->sha1) : "");
+	}
 }
 
 /*
@@ -1830,7 +1838,7 @@ static gboolean download_ignore_requested(struct download *d)
 		file_info_set_discard(d->file_info, TRUE);
 		queue_remove_downloads_with_file(fi, d);
 		if (!FILE_INFO_COMPLETE(fi))
-			download_remove_file(d);
+			download_remove_file(d, FALSE);
 
 		return TRUE;
 	}
@@ -2909,7 +2917,7 @@ void download_abort(struct download *d)
 
 	if (d->file_info->lifecount == 0)
 		if (download_delete_aborted)
-			download_remove_file(d);
+			download_remove_file(d, FALSE);
 }
 
 void download_resume(struct download *d)
