@@ -54,6 +54,7 @@ static GtkTreeView *treeview_nodes = NULL;
 static GtkListStore *nodes_model = NULL;
 static GtkCellRenderer *nodes_gui_cell_renderer = NULL;
 static GHashTable *nodes_handles = NULL;
+static GList *list_nodes = NULL;
 
 /***
  *** Private functions
@@ -117,19 +118,18 @@ static void nodes_gui_remove_selected_helper(
 }
 
 /*
- * nodes_gui_find_node:
+ * find_node:
  *
  * Fetches the GtkTreeIter that points to the row which holds the
  * data about the given node.
  */
-static gboolean nodes_gui_find_node(gnet_node_t n, GtkTreeIter **iter)
+static inline GtkTreeIter *find_node(gnet_node_t n)
 {
-    g_assert(iter != NULL);
-	return g_hash_table_lookup_extended(
-			nodes_handles,
-			GUINT_TO_POINTER(n),
-			NULL,
-			(gpointer) iter);
+	GtkTreeIter *iter = NULL;
+
+	g_hash_table_lookup_extended(nodes_handles, GUINT_TO_POINTER(n),
+				NULL, (gpointer) &iter);
+	return iter;
 }
 
 /*
@@ -139,27 +139,25 @@ static gboolean nodes_gui_find_node(gnet_node_t n, GtkTreeIter **iter)
  */
 static void nodes_gui_update_node_info(gnet_node_info_t *n)
 {
+    time_t now = time((time_t *) NULL);
     GtkTreeIter *iter;
+	static gchar version[32];
+    gnet_node_status_t status;
 
     g_assert(n != NULL);
 
-    if (nodes_gui_find_node(n->node_handle, &iter)) {
-		static gchar version[32];
-        gnet_node_status_t status;
-        time_t now = time((time_t *) NULL);
+	iter = find_node(n->node_handle);
+	g_assert(NULL != iter);
 
-        node_get_status(n->node_handle, &status);
+    node_get_status(n->node_handle, &status);
+    gm_snprintf(version, sizeof(version), "%d.%d",
+		n->proto_major, n->proto_minor);
 
-        gm_snprintf(version, sizeof(version), "%d.%d",
-            n->proto_major, n->proto_minor);
-
-        gtk_list_store_set(nodes_model, iter, 
-            COL_NODE_VENDOR, locale_to_utf8(pretty_node_vendor(n), 0),
-            COL_NODE_VERSION, version,
-            COL_NODE_INFO, nodes_gui_common_status_str(&status, now),
-            -1);
-    } else
-        g_warning("nodes_gui_update_node: no matching row found");
+	gtk_list_store_set(nodes_model, iter, 
+		COL_NODE_VENDOR, locale_to_utf8(pretty_node_vendor(n), 0),
+		COL_NODE_VERSION, version,
+		COL_NODE_INFO, nodes_gui_common_status_str(&status, now),
+		(-1));
 }
 
 /*
@@ -170,11 +168,10 @@ static void nodes_gui_update_node_flags(gnet_node_t n, gnet_node_flags_t *flags)
 {
     GtkTreeIter *iter;
 
-    if (nodes_gui_find_node(n, &iter))
-		gtk_list_store_set(nodes_model, iter, COL_NODE_TYPE,  
+	iter = find_node(n);
+	g_assert(NULL != iter);
+	gtk_list_store_set(nodes_model, iter, COL_NODE_TYPE,  
 			nodes_gui_common_flags_str(flags), (-1));
-    else
-        g_warning("%s: no matching row found", G_GNUC_PRETTY_FUNCTION);
 }
 
 /***
@@ -276,6 +273,8 @@ void nodes_gui_shutdown(void)
 	gtk_tree_view_set_model(treeview_nodes, NULL);
 	g_hash_table_destroy(nodes_handles);
 	nodes_handles = NULL;
+	g_list_free(list_nodes);
+	list_nodes = NULL;
 }
 
 /*
@@ -287,11 +286,11 @@ void nodes_gui_remove_node(gnet_node_t n)
 {
     GtkTreeIter *iter;
 
-	if (nodes_gui_find_node(n, &iter)) {
-        gtk_list_store_remove(nodes_model, iter);
-		g_hash_table_remove(nodes_handles, GUINT_TO_POINTER(n));
-	} else
-        g_warning("nodes_gui_remove_node: no matching row found");
+	iter = find_node(n);
+	g_assert(NULL != iter);
+	gtk_list_store_remove(nodes_model, iter);
+	g_hash_table_remove(nodes_handles, GUINT_TO_POINTER(n));
+	list_nodes = g_list_remove(list_nodes, GUINT_TO_POINTER(n));
 }
 
 /*
@@ -301,15 +300,15 @@ void nodes_gui_remove_node(gnet_node_t n)
  */
 void nodes_gui_add_node(gnet_node_info_t *n, const gchar *type)
 {
-    GtkTreeIter iter;
+    GtkTreeIter *iter = w_tree_iter_new();
 	static gchar proto_tmp[32];
 
     g_assert(n != NULL);
 
    	gm_snprintf(proto_tmp, sizeof(proto_tmp), "%d.%d",
 		n->proto_major, n->proto_minor);
-    gtk_list_store_append(nodes_model, &iter);
-    gtk_list_store_set(nodes_model, &iter, 
+    gtk_list_store_append(nodes_model, iter);
+    gtk_list_store_set(nodes_model, iter, 
         COL_NODE_HOST,    ip_port_to_gchar(n->ip, n->port),
         COL_NODE_TYPE,    NULL,
         COL_NODE_VENDOR,  locale_to_utf8(pretty_node_vendor(n), 0),
@@ -320,7 +319,38 @@ void nodes_gui_add_node(gnet_node_info_t *n, const gchar *type)
         COL_NODE_HANDLE,  n->node_handle,
         (-1));
 	g_hash_table_insert(nodes_handles,
-		GUINT_TO_POINTER(n->node_handle), w_tree_iter_copy(&iter));
+		GUINT_TO_POINTER(n->node_handle), iter);
+	list_nodes = g_list_prepend(list_nodes, GUINT_TO_POINTER(n->node_handle));
+}
+
+
+static inline void update_row(gpointer data, const time_t *now)
+{
+	GtkTreeIter *iter;
+	gnet_node_t n = (gnet_node_t) GPOINTER_TO_UINT(data);
+	gnet_node_status_t status;
+	static gchar timestr[SIZE_FIELD_MAX];
+
+	iter = find_node(n);
+	g_assert(NULL != iter);
+	node_get_status(n, &status);
+
+	if (status.connect_date) {
+		g_strlcpy(timestr, short_uptime(*now - status.connect_date),
+			sizeof(timestr));
+		gtk_list_store_set(nodes_model, iter, 
+			COL_NODE_CONNECTED, timestr,
+			COL_NODE_UPTIME, status.up_date ?
+			short_uptime(*now - status.up_date) : NULL,
+			COL_NODE_INFO, nodes_gui_common_status_str(&status, *now),
+			(-1));
+	} else {
+		gtk_list_store_set(nodes_model, iter,
+			COL_NODE_UPTIME, status.up_date ?
+				short_uptime(*now - status.up_date) : NULL,
+			COL_NODE_INFO, nodes_gui_common_status_str(&status, *now),
+			(-1));
+	}
 }
 
 /*
@@ -339,43 +369,12 @@ void nodes_gui_add_node(gnet_node_info_t *n, const gchar *type)
 void nodes_gui_update_nodes_display(time_t now)
 {
     static time_t last_update = 0;
-    GtkTreeIter iter;
-    gboolean valid;
-    gnet_node_status_t status;
 
     if (last_update >= (now - 1))
         return;
-
 	last_update = now;
 
-    valid = gtk_tree_model_get_iter_first(GTK_TREE_MODEL(nodes_model), &iter);
-    while (valid) {
-        GValue val = { 0, };
-        static gchar timestr[SIZE_FIELD_MAX];
-
-        gtk_tree_model_get_value(GTK_TREE_MODEL(nodes_model),
-            &iter, COL_NODE_HANDLE, &val);
-
-        node_get_status(g_value_get_uint(&val), &status);
-
-		if (status.connect_date) {
-			g_strlcpy(timestr, short_uptime(now - status.connect_date),
-				sizeof(timestr));
-        	gtk_list_store_set(nodes_model, &iter, 
-            	COL_NODE_CONNECTED, timestr,
-            	COL_NODE_UPTIME, status.up_date ?
-					short_uptime(now - status.up_date) : NULL,
-            	COL_NODE_INFO, nodes_gui_common_status_str(&status, now),
-            	-1);
-		} else
-            gtk_list_store_set(nodes_model, &iter,
-                COL_NODE_UPTIME, status.up_date ?
-                    short_uptime(now - status.up_date) : NULL,
-                COL_NODE_INFO, nodes_gui_common_status_str(&status, now),
-                -1);
-
-        valid = gtk_tree_model_iter_next(GTK_TREE_MODEL(nodes_model), &iter);
-    }
+	g_list_foreach(list_nodes, (GFunc) update_row, &now);
 }
 
 /***
