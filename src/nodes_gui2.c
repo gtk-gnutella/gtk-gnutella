@@ -48,8 +48,6 @@ RCSID("$Id$");
 static GHashTable *ht_node_info_changed = NULL;
 static GHashTable *ht_node_flags_changed = NULL;
 
-#define pretty_node_vendor(n) ((n)->vendor != NULL ? (n)->vendor : "...")
-
 static GtkTreeView *treeview_nodes = NULL;
 static GtkListStore *nodes_model = NULL;
 static GtkCellRenderer *nodes_gui_cell_renderer = NULL;
@@ -244,7 +242,7 @@ static inline void nodes_gui_update_node_info(
 		n->proto_major, n->proto_minor);
 
 	gtk_list_store_set(nodes_model, iter, 
-		c_gnet_user_agent, lazy_locale_to_utf8(pretty_node_vendor(n), 0),
+		c_gnet_user_agent, n->vendor ? lazy_locale_to_utf8(n->vendor, 0) : NULL,
 		c_gnet_version, version,
 		c_gnet_info, nodes_gui_common_status_str(&status, now),
 		(-1));
@@ -402,7 +400,7 @@ void nodes_gui_add_node(gnet_node_info_t *n, const gchar *type)
     gtk_list_store_set(nodes_model, iter, 
         c_gnet_host,    ip_port_to_gchar(n->ip, n->port),
         c_gnet_flags,    NULL,
-        c_gnet_user_agent,  lazy_locale_to_utf8(pretty_node_vendor(n), 0),
+        c_gnet_user_agent, n->vendor ? lazy_locale_to_utf8(n->vendor, 0) : NULL,
         c_gnet_version, proto_tmp,
         c_gnet_connected, NULL,
         c_gnet_uptime,  NULL,
