@@ -3213,7 +3213,7 @@ void file_info_add_source(
  * is TRUE, or if the fileinfo has been marked with FI_F_DISCARD.
  * This replaces file_info_free()
  */
-inline void file_info_remove_source(
+void file_info_remove_source(
     struct dl_file_info *fi, struct download *dl, gboolean discard)
 {
     g_assert(dl->file_info != NULL);
@@ -3259,7 +3259,7 @@ static void fi_notify_helper(
         T_NORMAL(fi_listener_t, fi->fi_handle));    
 }
 
-inline void file_info_timer(void)
+void file_info_timer(void)
 {
 	g_hash_table_foreach(fi_by_outname, fi_notify_helper, NULL);
 }

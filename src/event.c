@@ -163,7 +163,7 @@ static gboolean remove_helper(gpointer key, gpointer value, gpointer data)
     return TRUE;
 }
 
-inline void event_table_remove_all(struct event_table *t)
+void event_table_remove_all(struct event_table *t)
 {
     g_assert(t != NULL);
     g_assert(t->events != NULL);
