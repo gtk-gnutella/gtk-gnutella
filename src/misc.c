@@ -52,6 +52,30 @@ RCSID("$Id$");
 static const char *hex_alphabet = "0123456789ABCDEF";
 static const char *hex_alphabet_lower = "0123456789abcdef";
 
+#ifndef HAVE_STRLCPY
+size_t strlcpy(gchar *dst, const gchar *src, size_t dst_size)
+{
+	gchar *d = dst;
+	const gchar *s = src;
+	size_t i = 0;
+
+	g_assert(NULL != dst);
+	g_assert(NULL != src);
+
+	if (dst_size) {
+		while (i < dst_size - 1) {
+			if (!(*d++ = *s++))
+				return i;
+			i++;
+		}
+		dst[dst_size - 1] = '\0';
+	}
+ 	while (*s++)
+		i++;
+	return i;
+}
+#endif /* HAVE_STRLCPY */
+
 /*
  * is_string_ip
  *
@@ -738,30 +762,6 @@ void strlower(gchar *dst, const gchar *src)
 		*dst++ = tolower((const guchar) *src);
 	} while (*src++);
 }
-
-#ifndef HAVE_STRLCPY
-size_t strlcpy(gchar *dst, const gchar *src, size_t dst_size)
-{
-	gchar *d = dst;
-	const gchar *s = src;
-	size_t i = 0;
-
-	g_assert(NULL != dst);
-	g_assert(NULL != src);
-
-	if (dst_size) {
-		while (i < dst_size - 1) {
-			if (!(*d++ = *s++))
-				return i;
-			i++;
-		}
-		dst[dst_size - 1] = '\0';
-	}
- 	while (*s++)
-		i++;
-	return i;
-}
-#endif /* HAVE_STRLCPY */
 
 #ifndef HAVE_STRCASESTR
 /*
