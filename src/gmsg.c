@@ -300,6 +300,18 @@ void gmsg_split_sendto_all_but_one(const GSList *sl, struct gnutella_node *n,
 	gpointer head, gpointer data, guint32 size)
 {
 	pmsg_t *mb = gmsg_split_to_pmsg(head, data, size);
+	gboolean skip_up_with_qrp = FALSE;
+
+	/*
+	 * Special treatment for TTL=1 queries in UP mode.
+	 */
+
+	if (
+		current_peermode == NODE_P_ULTRA &&
+		((struct gnutella_header *) head)->function == GTA_MSG_SEARCH &&
+		((struct gnutella_header *) head)->ttl == 1
+	)
+		skip_up_with_qrp = TRUE;
 
 	g_assert(((struct gnutella_header *) head)->ttl > 0);
 
@@ -310,6 +322,8 @@ void gmsg_split_sendto_all_but_one(const GSList *sl, struct gnutella_node *n,
 		if (dn == n)
 			continue;
 		if (!NODE_IS_ESTABLISHED(dn) || NODE_IS_LEAF(dn))
+			continue;
+		if (skip_up_with_qrp && NODE_UP_QRP(dn))
 			continue;
 		mq_putq(dn->outq, pmsg_clone(mb));
 	}
@@ -355,6 +369,8 @@ void gmsg_split_sendto_leaves(const GSList *sl,
  * its `regular_size' size first.
  *
  * We never broadcast anything to a leaf node.  Those are handled specially.
+ * In UP mode, we never broadcast queries with TTL=1 to ultra nodes that
+ * support the last-hop QRP.
  */
 static void gmsg_split_sendto_all_but_one_ggep(
 	const GSList *sl,
@@ -363,9 +379,21 @@ static void gmsg_split_sendto_all_but_one_ggep(
 {
 	pmsg_t *mb = gmsg_split_to_pmsg(head, data, size);
 	pmsg_t *mb_stripped = NULL;
+	gboolean skip_up_with_qrp = FALSE;
 
 	g_assert(((struct gnutella_header *) head)->ttl > 0);
 	g_assert(size >= (guint32) regular_size);
+
+	/*
+	 * Special treatment for TTL=1 queries in UP mode.
+	 */
+
+	if (
+		current_peermode == NODE_P_ULTRA &&
+		((struct gnutella_header *) head)->function == GTA_MSG_SEARCH &&
+		((struct gnutella_header *) head)->ttl == 1
+	)
+		skip_up_with_qrp = TRUE;
 
 	/* relayed broadcasted message, cannot be sent with hops=0 */
 
@@ -374,6 +402,8 @@ static void gmsg_split_sendto_all_but_one_ggep(
 		if (dn == n)
 			continue;
 		if (!NODE_IS_ESTABLISHED(dn) || NODE_IS_LEAF(dn))
+			continue;
+		if (skip_up_with_qrp && NODE_UP_QRP(dn))
 			continue;
 		if (NODE_CAN_GGEP(dn))
 			mq_putq(dn->outq, pmsg_clone(mb));
