@@ -43,11 +43,9 @@
 #include "downloads.h"
 #include "uploads.h"
 #include "nodes.h"
-#include "misc.h"
 #include "header.h"
 #include "getline.h"
 #include "bsched.h"
-#include "gui.h"			// FIXME: remove this dependency
 #include "ban.h"
 #include "http.h"
 #include "settings.h"
@@ -532,12 +530,10 @@ static void guess_local_ip(int sd)
 
 		if (!ip_computed) {
 			if (!local_ip || can_supersede)
-				local_ip = ip;
+				gnet_prop_set_guint32(PROP_LOCAL_IP, &ip, 0, 1);
 			ip_computed = TRUE;
 		} else if (can_supersede)
-			local_ip = ip;
-
-		gui_update_config_port(FALSE);
+			gnet_prop_set_guint32(PROP_LOCAL_IP, &ip, 0, 1);
 	}
 }
 
