@@ -50,6 +50,8 @@ void host_remove(struct gnutella_host *);
 void host_save_valid(guint32 ip, guint16 port);
 void host_add(guint32, guint16, gboolean);
 void host_prune_cache();
+gboolean host_cache_is_empty(void);
+gint host_cache_size(void);
 void host_add_semi_pong(guint32 ip, guint16 port);
 gint host_fill_caught_array(struct gnutella_host *hosts, gint hcount);
 void host_get_caught(guint32 *ip, guint16 *port);
@@ -58,17 +60,7 @@ void hosts_read_from_file(gchar *, gboolean);
 void hosts_write_to_file(gchar *);
 void host_clear_cache(void);
 void host_close(void);
-struct gnutella_msg_init_response *build_pong_msg(
-	guint8 hops, guint8 ttl, guchar *muid,
-	guint32 ip, guint16 port, guint32 files, guint32 kbytes);
-void send_alive_ping(struct gnutella_node *n);
 
-void pcache_possibly_expired(time_t now);
-void pcache_outgoing_connection(struct gnutella_node *n);
-void pcache_ping_received(struct gnutella_node *n);
-void pcache_pong_received(struct gnutella_node *n);
-void pcache_pong_fake(struct gnutella_node *n, guint32 ip, guint16 port);
-    
 void parse_netmasks(gchar *value);
 gboolean find_nearby_host(guint32 *ip, guint16 *port);
 gboolean host_is_nearby(guint32 ip);

@@ -56,6 +56,7 @@
 #include "rx_link.h"
 #include "rx_inflate.h"
 #include "pmsg.h"
+#include "pcache.h"
 
 #define CONNECT_PONGS_COUNT		10		/* Amoung of pongs to send */
 #define BYE_MAX_SIZE			4096	/* Maximum size for the Bye message */

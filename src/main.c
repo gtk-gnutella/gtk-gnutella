@@ -44,6 +44,7 @@
 #include "bsched.h"
 #include "search_stats.h"
 #include "upload_stats.h"
+#include "pcache.h"
 
 #define SLOW_UPDATE_PERIOD		20	/* Updating period for `main_slow_update' */
 #define EXIT_GRACE				20	/* Seconds to wait before exiting */
