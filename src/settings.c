@@ -28,10 +28,15 @@
 #include "gnutella.h"
 
 #include <sys/types.h>
+
+#if defined(__FreeBSD__) || defined(__NetBSD__) || defined(__OpenBSD__) 
+#include <sys/param.h>
+#include <sys/sysctl.h>
+#endif
+
 #include <sys/stat.h>
 #include <signal.h>
 #include <pwd.h>
-#include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
@@ -150,18 +155,56 @@ static void save_pid(gchar *file)
 
 /* ----------------------------------------- */
 
+#if !defined(_SC_PAGE_SIZE) && defined(_SC_PAGESIZE)
+#define _SC_PAGE_SIZE _SC_PAGESIZE
+#endif
+
+G_INLINE_FUNC glong settings_getpagesize(void)
+{
+#ifdef _SC_PAGE_SIZE
+	return sysconf(_SC_PAGE_SIZE);
+#else
+	return getpagesize(); 
+#endif
+}
+
+/* 
+ * settings_getphysmemsize:
+ *
+ * returns the amount of physical RAM in KB, or zero in case of failure
+ */
+G_INLINE_FUNC glong settings_getphysmemsize(void)
+{
+#if defined(__FreeBSD__) || defined(__NetBSD__) || defined(__OpenBSD__)
+/* There's also HW_PHYSMEM but HW_USERMEM is better for our needs. */
+	int mib[2] = { CTL_HW, HW_USERMEM };
+	int physmem = 0;
+	size_t len = sizeof(physmem);
+
+	if (-1 == sysctl(mib, 2, &physmem, &len, NULL, 0))
+		g_warning("%s: sysctl() for HW_USERMEM failed: %s", __FUNCTION__,
+			g_strerror(errno));
+	return physmem / 1024;
+#else
+
+	#ifdef _SC_PHYS_PAGES
+	guint32 pagesize = settings_getpagesize();
+	return (pagesize >> 10) * sysconf(_SC_PHYS_PAGES);
+	#else
+	g_warning("Unable to determine amount of physical RAM");
+	return 0;
+	#endif
+
+#endif 
+}
+
 void settings_init(void)
 {
     struct passwd *pwd = NULL;
-	guint32 pagesize = (guint32) sysconf(_SC_PAGE_SIZE);
 	guint32 maxfd = (guint32) sysconf(_SC_OPEN_MAX);
-/* FIXME: This is just a hack to make it compile everywhere */
-#ifdef _SC_PHYS_PAGES
-	guint32 physmem = (pagesize >> 10) * sysconf(_SC_PHYS_PAGES);
-#else
-	guint32 physmem = 0;
-#endif
+	guint32 physmem = (guint32) settings_getphysmemsize();
 
+	g_warning("Detected amount of physical RAM: %lu KB", (gulong) physmem);
     properties = gnet_prop_init();
 
 	gnet_prop_set_guint32_val(PROP_SYS_NOFILE, maxfd);
