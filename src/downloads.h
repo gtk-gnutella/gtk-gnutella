@@ -127,6 +127,12 @@ struct download {
 #define GTA_DL_ABORTED			10	/* User used the 'Abort Download' button */
 #define GTA_DL_TIMEOUT_WAIT		11	/* Waiting to try connecting again */
 #define GTA_DL_REMOVED			12	/* Download was removed, pending free */
+#define GTA_DL_VERIFY_WAIT		13	/* Waiting to verify SHA1 */
+#define GTA_DL_VERIFYING		14	/* Computing SHA1 */
+#define GTA_DL_VERIFIED			15	/* Verify of SHA1 done */
+#define GTA_DL_MOVE_WAIT		16	/* Waiting to be moved to "done/bad" dir */
+#define GTA_DL_MOVING			17	/* Being moved to "done/bad" dir */
+#define GTA_DL_DONE				18	/* All done! */
 
 /*
  * Download flags.
@@ -134,6 +140,7 @@ struct download {
 
 #define DL_F_URIRES			0x00000001	/* Tried to GET "/uri-res/N2R?" */
 #define DL_F_PUSH_IGN		0x00000002	/* Trying to ignore push flag */
+#define DL_F_SUSPENDED		0x40000000	/* Suspended, do not schedule */
 #define DL_F_MARK			0x80000000	/* Marked in traversal */
 
 /*
@@ -170,10 +177,16 @@ struct download {
 
 #define DOWNLOAD_IS_QUEUED(d)  ((d)->status == GTA_DL_QUEUED)
 
+#define DOWNLOAD_IS_VERIFYING(d)		 \
+	(  (d)->status == GTA_DL_VERIFY_WAIT \
+	|| (d)->status == GTA_DL_VERIFYING	 \
+	|| (d)->status == GTA_DL_VERIFIED	 )
+
 #define DOWNLOAD_IS_STOPPED(d)			\
 	(  (d)->status == GTA_DL_ABORTED	\
 	|| (d)->status == GTA_DL_ERROR		\
-	|| (d)->status == GTA_DL_COMPLETED	)
+	|| (d)->status == GTA_DL_COMPLETED  \
+	|| DOWNLOAD_IS_VERIFYING(d)         )
 
 #define DOWNLOAD_IS_ACTIVE(d)			\
 	((d)->status == GTA_DL_RECEIVING)
@@ -213,6 +226,8 @@ void download_init(void);
 void download_timer(time_t now);
 void download_info_change_all(
 	struct dl_file_info *old_fi, struct dl_file_info *new_fi);
+void download_orphan_new(
+	gchar *file, guint32 size, guchar *sha1, struct dl_file_info *fi);
 void download_queue(struct download *d, const gchar *fmt, ...);
 void download_freeze_queue();
 void download_thaw_queue();
@@ -238,4 +253,10 @@ gboolean download_file_exists(struct download *d);
 gboolean download_server_nopush(guchar *guid, guint32 ip, guint16 port);
 gchar *build_url_from_download(struct download *d);
 
+void download_verify_start(struct download *d);
+void download_verify_progress(struct download *d, guint32 hashed);
+void download_verify_done(struct download *d, guchar *digest, time_t elapsed);
+void download_verify_error(struct download *d);
+
 #endif /* __downloads_h__ */
+

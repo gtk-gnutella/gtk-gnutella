@@ -43,6 +43,7 @@
 #include "version.h"
 #include "ignore.h"
 #include "ioheader.h"
+#include "verify.h"
 
 #include "settings.h"
 #include "nodes.h"
@@ -73,9 +74,11 @@ static void download_push_remove(struct download *d);
 static void download_push(struct download *d, gboolean on_timeout);
 static void download_store(void);
 static void download_retrieve(void);
+static void download_resume_bg_tasks(void);
 static void download_free_removed(void);
 static void download_incomplete_header(struct download *d);
 static gboolean has_blank_guid(struct download *d);
+static void download_verify_sha1(struct download *d);
 
 /*
  * Download structures.
@@ -118,6 +121,8 @@ static gint dl_active = 0;				/* Active downloads */
 
 #define count_running_downloads()	(dl_establishing + dl_active)
 #define count_running_on_server(s)	(s->count[DL_LIST_RUNNING])
+
+static guchar blank_guid[16] = { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 };
 
 /* ----------------------------------------- */
 
@@ -232,8 +237,17 @@ void download_init(void)
 	dl_by_ip = g_hash_table_new(dl_ip_hash, dl_ip_eq);
 	dl_count_by_name = g_hash_table_new(g_str_hash, g_str_equal);
 	dl_count_by_sha1 = g_hash_table_new(g_str_hash, g_str_equal);
-	file_info_retrieve();
-	download_retrieve();
+
+	/*
+	 * The order of the following calls matters.
+	 */
+
+	file_info_retrieve();					/* Get all fileinfos */
+	file_info_scandir(save_file_path);		/* Pick up orphaned files */
+	download_retrieve();					/* Restore downloads */
+	file_info_spot_completed_orphans();		/* 100% done orphans => fake dl. */
+	download_resume_bg_tasks();				/* Reschedule SHA1 and moving */
+	file_info_store();
 }
 
 /* ----------------------------------------- */
@@ -309,9 +323,14 @@ void download_timer(time_t now)
 			else
 				gui_update_download(d, FALSE);
 			break;
+		case GTA_DL_VERIFYING:
+			gui_update_download(d, FALSE);
+			break;
 		case GTA_DL_COMPLETED:
 		case GTA_DL_ABORTED:
 		case GTA_DL_ERROR:
+		case GTA_DL_VERIFY_WAIT:
+		case GTA_DL_VERIFIED:
 		case GTA_DL_REMOVED:
 			break;
 		case GTA_DL_QUEUED:
@@ -608,6 +627,9 @@ void download_info_change_all(
 		case GTA_DL_COMPLETED:
 		case GTA_DL_ABORTED:
 		case GTA_DL_ERROR:
+		case GTA_DL_VERIFY_WAIT:
+		case GTA_DL_VERIFYING:
+		case GTA_DL_VERIFIED:
 			break;
 		default:
 			g_assert(old_fi->lifecount > 0);
@@ -616,10 +638,14 @@ void download_info_change_all(
 			break;
 		}
 
+		g_assert(old_fi->refcount > 0);
 		old_fi->refcount--;
-		d->file_info = new_fi;
 		new_fi->refcount++;
+		d->file_info = new_fi;
 
+		d->flags &= ~DL_F_SUSPENDED;
+		if (new_fi->flags & FI_F_SUSPEND)
+			d->flags |= DL_F_SUSPENDED;
 	}
 }
 
@@ -649,7 +675,51 @@ static void download_info_reget(struct download *d)
 	fi->refcount++;
 	fi->lifecount++;
 
+	d->flags &= ~DL_F_SUSPENDED;
+	if (fi->flags & FI_F_SUSPEND)
+		d->flags |= DL_F_SUSPENDED;
+
 	downloads_with_name_inc(fi->file_name);
+}
+
+/*
+ * queue_suspend_downloads_with_file
+ *
+ * Mark all downloads that point to the file_info struct as "suspended" if
+ * `suspend' is TRUE, or clear that mark if FALSE.
+ */
+static void queue_suspend_downloads_with_file(
+	struct dl_file_info *fi, gboolean suspend)
+{
+	GSList *sl;
+
+	for (sl = sl_downloads; sl != NULL; sl = g_slist_next(sl)) {
+		struct download *d = (struct download *) sl->data;
+
+		switch (d->status) {
+		case GTA_DL_REMOVED:
+		case GTA_DL_COMPLETED:
+		case GTA_DL_VERIFY_WAIT:
+		case GTA_DL_VERIFYING:
+		case GTA_DL_VERIFIED:
+			continue;
+		default:
+			break;
+		}
+
+		if (d->file_info != fi)
+			continue;
+
+		if (suspend)
+			d->flags |= DL_F_SUSPENDED;		/* Can no longer be scheduled */
+		else
+			d->flags &= ~DL_F_SUSPENDED;
+	}
+
+	if (suspend)
+		fi->flags |= FI_F_SUSPEND;
+	else
+		fi->flags &= ~FI_F_SUSPEND;
 }
 
 /*
@@ -667,12 +737,18 @@ static void queue_remove_downloads_with_file(
 	for (sl = sl_downloads; sl != NULL; sl = g_slist_next(sl)) {
 		struct download *d = (struct download *) sl->data;
 
-		if (
-            (d->status == GTA_DL_REMOVED) ||
-            (d->status == GTA_DL_COMPLETED) ||
-            (d->file_info != fi) ||
-            (d == skip)
-        )
+		switch (d->status) {
+		case GTA_DL_REMOVED:
+		case GTA_DL_COMPLETED:
+		case GTA_DL_VERIFY_WAIT:
+		case GTA_DL_VERIFYING:
+		case GTA_DL_VERIFIED:
+			continue;
+		default:
+			break;
+		}
+
+		if (d->file_info != fi || d == skip)
 			continue;
 
         to_remove = g_slist_prepend(to_remove, d);
@@ -693,7 +769,6 @@ static void queue_remove_downloads_with_file(
  */
 gint download_remove_all_from_peer(const gchar *guid, guint32 ip, guint16 port)
 {
-	static guchar blank_guid[16] = { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 };
 	struct dl_server *server[2];
 	gint n = 0;
 	enum dl_list listnum[] = { DL_LIST_RUNNING, DL_LIST_WAITING };
@@ -962,8 +1037,8 @@ void download_clear_stopped(gboolean all, gboolean now)
 	time_t current_time = 0;
 
 	/*
-	 * If all == TRUE: remove COMPLETED | ERROR | ABORTED,
-	 * else remove only COMPLETED.
+	 * If all == TRUE: remove VERIFIED | ERROR | ABORTED,
+	 * else remove only VERIFIED.
 	 *
 	 * If now == TRUE: remove immediately, else remove only downloads
 	 * idle since at least 3 seconds
@@ -982,10 +1057,13 @@ void download_clear_stopped(gboolean all, gboolean now)
 		if (!DOWNLOAD_IS_STOPPED(d))
 			continue;
 
+		if (DOWNLOAD_IS_VERIFYING(d) && d->status != GTA_DL_VERIFIED)
+			continue;
+
 		if (all) {
 			if (now || (current_time - d->last_update) > 3)
 				download_free(d);
-		} else if (d->status == GTA_DL_COMPLETED) {
+		} else if (d->status == GTA_DL_VERIFIED) {
 			if (now || (current_time - d->last_update) > 3)
 				download_free(d);
 		}
@@ -1616,6 +1694,25 @@ static gboolean download_ignore_requested(struct download *d)
 }
 
 /*
+ * download_unqueue
+ *
+ * Remove download from queue.
+ * It is put in a state where it can be stopped if necessary.
+ */
+static void download_unqueue(struct download *d)
+{
+	g_assert(d);
+	g_assert(DOWNLOAD_IS_QUEUED(d));
+
+	if (DOWNLOAD_IS_VISIBLE(d))
+		download_gui_remove(d);
+
+	sl_unqueued = g_slist_prepend(sl_unqueued, d);
+
+	d->status = GTA_DL_CONNECTING;		/* Allow download to be stopped */
+}
+
+/*
  * download_start_prepare
  *
  * Setup the download structure with proper range offset, and check that the
@@ -1626,8 +1723,6 @@ static gboolean download_ignore_requested(struct download *d)
  */
 static gboolean download_start_prepare(struct download *d)
 {
-	struct stat st;
-	gboolean all_done = FALSE;
 	struct dl_file_info *fi = d->file_info;
 
     g_assert(d != NULL);
@@ -1644,11 +1739,8 @@ static gboolean download_start_prepare(struct download *d)
 	 * If the download is in the queue, we remove it from there.
 	 */
 
-	if (DOWNLOAD_IS_QUEUED(d)) {
-		if (DOWNLOAD_IS_VISIBLE(d))
-			download_gui_remove(d);
-		sl_unqueued = g_slist_prepend(sl_unqueued, d);
-	}
+	if (DOWNLOAD_IS_QUEUED(d))
+		download_unqueue(d);
 
 	d->status = GTA_DL_CONNECTING;	/* Most common state if we succeed */
 
@@ -1660,68 +1752,16 @@ static gboolean download_start_prepare(struct download *d)
 		return FALSE;
 
 	/*
-	 * If the output file already exists, we have to send a partial request
-	 * This is done here so multiple downloads of existing files drop out when
-	 * they are smaller than the existing file.
-	 *
 	 * If the file already exists, and has less than `download_overlap_range'
 	 * bytes, we restart the download from scratch.	Otherwise, we request
 	 * that amount before the resuming point.
 	 * Later on, in download_write_data(), and as soon as we have read more
 	 * than `download_overlap_range' bytes, we'll check for a match.
 	 *		--RAM, 12/01/2002
-	 *
-	 * Now that we have overlapping range checking, we can restore older code
-	 * to move back the file from the "done" directory back to the working
-	 * directory if the to-be-downloaded file is bigger than what we have.
-	 * This means that we started to download s shorter version (incomplete?)
-	 * of that file.
-	 *		--RAM, 13/03/2002
 	 */
-
-	g_snprintf(dl_tmp, sizeof(dl_tmp), "%s/%s", fi->path, fi->file_name);
 
 	d->skip = 0;			/* We're setting it here only if not swarming */
 	d->keep_alive = FALSE;	/* Until proven otherwise by server's reply */
-
-	if (stat(dl_tmp, &st) != -1) {
-		if (!fi->use_swarming && fi->done > download_overlap_range)
-			d->skip = fi->done;	/* Not swarming => file has no holes */
-	} else {
-		gchar dl_dest[4096];
-		gboolean found = FALSE;
-
-		g_snprintf(dl_dest, sizeof(dl_dest), "%s/%s",
-					move_file_path, fi->file_name);
-
-		if (stat(dl_dest, &st) != -1)
-			found = TRUE;
-
-		if (!found) {
-			g_snprintf(dl_dest, sizeof(dl_dest), "%s/%s",
-						move_file_path, d->file_name);
-			if (stat(dl_dest, &st) != -1)
-				found = TRUE;
-		}
-
-		if (found) {						/* File exists in "done" dir */
-			if (st.st_size < download_filesize(d)) {	/* And is smaller */
-				if (-1 == rename(dl_dest, dl_tmp))
-					g_warning("cannot move incomplete \"%s\" back to "
-						"download dir as \"%s\": %s", dl_dest, dl_tmp,
-						g_strerror(errno));
-				else {
-					if (st.st_size > download_overlap_range)
-						d->skip = st.st_size;
-					g_warning("moved incomplete \"%s\" back to "
-						"download dir as \"%s\"", dl_dest, fi->file_name);
-					file_info_recreate(d);
-					fi = d->file_info;		/* Refresh private copy */
-				}
-			} else
-				all_done = TRUE;			/* "done" file is larger */
-		}
-	}
 
 	/*
 	 * If this file is swarming, the overlapping size and skipping offset
@@ -1730,6 +1770,8 @@ static gboolean download_start_prepare(struct download *d)
 	 */
 
 	if (!fi->use_swarming) {
+		if (fi->done > download_overlap_range)
+			d->skip = fi->done;		/* Not swarming => file has no holes */
 		d->pos = d->skip;
 		d->overlap_size = (d->skip == 0 || d->size <= d->pos) ?
 			0 : download_overlap_range;
@@ -1743,11 +1785,11 @@ static gboolean download_start_prepare(struct download *d)
 	 * Is there anything to get at all?
 	 */
 
-	if (all_done || FILE_INFO_COMPLETE(fi)) {
+	if (FILE_INFO_COMPLETE(fi)) {
 		if (!DOWNLOAD_IS_VISIBLE(d))
 			download_gui_add(d);
 		download_stop(d, GTA_DL_ERROR, "Nothing more to get");
-		queue_remove_downloads_with_file(fi, d);
+		download_verify_sha1(d);
 		return FALSE;
 	}
 
@@ -1941,6 +1983,9 @@ retry:
 				continue;
 
 			if ((now - d->last_update) <= d->timeout_delay)
+				continue;
+
+			if (d->flags & DL_F_SUSPENDED)
 				continue;
 
 			download_start(d, FALSE);
@@ -2157,16 +2202,21 @@ static void create_download(
 		return;
 	}
 
-	/*
-	 * Replace all slashes by underscores in the file name, if not
-	 * arealdy done by caller.	--RAM, 12/01/2002
-	 */
-
 	if (!file_info)
 		file_info = file_info_get(file_name, save_file_path, size, sha1);
 
-	file_info->refcount++;
-	file_info->lifecount++;
+	/*
+	 * If fileinfo is maked with FI_F_SUSPEND, it means we are in the process
+	 * of verifying the SHA1 of the download.  If it matches with the SHA1
+	 * we got initially, we'll remove the downloads, otherwise we will
+	 * restart it.
+	 *
+	 * That's why we still accept downloads for that fileinfo, but do not
+	 * schedule them: we wait for the outcome of the SHA1 verification process.
+	 */
+
+	if (file_info->flags & FI_F_SUSPEND)
+		d->flags |= DL_F_SUSPENDED;
 
 	/*
 	 * Initialize download, creating new server if needed.
@@ -2210,6 +2260,8 @@ static void create_download(
 	d->record_stamp = stamp;
 
 	d->file_info = file_info;
+	file_info->refcount++;
+	file_info->lifecount++;
 
 	download_add_to_list(d, DL_LIST_WAITING);
 	sl_downloads = g_slist_prepend(sl_downloads, d);
@@ -2224,12 +2276,14 @@ static void create_download(
 	if (!d->always_push && d->sha1)
 		dmesh_add(d->sha1, ip, port, record_index, file_name, stamp);
 
-	if (
+	if (d->flags & DL_F_SUSPENDED)
+		download_queue(d, "Suspended (SHA1 checking)");
+	else if (
 		count_running_downloads() < max_downloads &&
 		count_running_on_server(d->server) < max_host_downloads &&
 		count_running_downloads_with_name(d->file_info->file_name) == 0
 	) {
-		download_start(d, FALSE);		/* Starts the download immediately */
+		download_start(d, FALSE);		/* Start the download immediately */
 	} else {
 		/* Max number of downloads reached, we have to queue it */
 		download_queue(d, "No download slot");
@@ -2515,6 +2569,19 @@ void download_new(gchar *file, guint32 size, guint32 record_index,
 }
 
 /*
+ * download_orphan_new
+ *
+ * Fake a new download for an existing file that is marked complete in
+ * its fileinfo trailer.
+ */
+void download_orphan_new(
+	gchar *file, guint32 size, guchar *sha1, struct dl_file_info *fi)
+{
+	create_download(file, size, 0, 0, 0, blank_guid, sha1,
+		time(NULL), FALSE, TRUE, fi);
+}
+
+/*
  * download_free_removed
  *
  * Free all downloads listed in the `sl_removed' list.
@@ -2616,10 +2683,7 @@ void download_abort(struct download *d)
 		return;
 
 	if (DOWNLOAD_IS_QUEUED(d)) {
-		if (DOWNLOAD_IS_VISIBLE(d))
-			download_gui_remove(d);
-		sl_unqueued = g_slist_prepend(sl_unqueued, d);
-		d->status = GTA_DL_CONNECTING;		/* Before stopping below */
+		download_unqueue(d);
 		download_gui_add(d);
 	}
 
@@ -2643,6 +2707,14 @@ void download_resume(struct download *d)
 
 	if (DOWNLOAD_IS_RUNNING(d))
 		return;
+
+	switch (d->status) {
+	case GTA_DL_COMPLETED:
+	case GTA_DL_VERIFY_WAIT:
+	case GTA_DL_VERIFYING:
+	case GTA_DL_VERIFIED:
+		return;
+	}
 
 	d->file_info->lifecount++;
 
@@ -3283,9 +3355,7 @@ partial_done:
 
 done:
 	download_stop(d, GTA_DL_COMPLETED, NULL);
-	queue_remove_downloads_with_file(d->file_info, d);
-	download_move_to_completed_dir(d);
-	ignore_add(d->file_name, d->file_info->size, d->file_info->sha1);
+	download_verify_sha1(d);
 
 	gnet_prop_set_guint32_val(PROP_TOTAL_DOWNLOADS, total_downloads + 1);
 }
@@ -4703,7 +4773,7 @@ static void download_store(void)
 		struct download *d = (struct download *) l->data;
 		gchar *escaped;
 
-		if (d->status == GTA_DL_COMPLETED || d->status == GTA_DL_REMOVED)
+		if (d->status == GTA_DL_VERIFIED || d->status == GTA_DL_REMOVED)
 			continue;
 		if (d->always_push)
 			continue;
@@ -4937,6 +5007,210 @@ out:
 
 	fclose(in);
 	download_store();			/* Persist what we have retrieved */
+}
+
+/***
+ *** SHA1 verification routines
+ ***/
+
+/*
+ * download_verify_sha1
+ *
+ * Main entry point for verifying the SHA1 of a completed download.
+ */
+static void download_verify_sha1(struct download * d)
+{
+	g_assert(d);
+	g_assert(FILE_INFO_COMPLETE(d->file_info));
+	g_assert(DOWNLOAD_IS_STOPPED(d));
+	g_assert(!DOWNLOAD_IS_VERIFYING(d));
+
+	/*
+	 * Even if download was aborted or in error, we have a complete file
+	 * anyway, so start verifying its SHA1 and mark it complete.
+	 */
+
+	d->status = GTA_DL_COMPLETED;
+
+	queue_suspend_downloads_with_file(d->file_info, TRUE);
+	verify_queue(d);
+
+	if (!DOWNLOAD_IS_VISIBLE(d))
+		download_gui_add(d);
+
+	gui_update_download(d, TRUE);
+}
+
+/*
+ * download_verify_start
+ *
+ * Called when the verification daemon task starts processing a download.
+ */
+void download_verify_start(struct download *d)
+{
+	g_assert(d->status == GTA_DL_VERIFY_WAIT);
+
+	d->status = GTA_DL_VERIFYING;
+	d->file_info->cha1_hashed = 0;
+
+	gui_update_download(d, TRUE);
+}
+
+/*
+ * download_verify_progress
+ *
+ * Called to register the current verification progress.
+ */
+void download_verify_progress(struct download *d, guint32 hashed)
+{
+	g_assert(d->status == GTA_DL_VERIFYING);
+
+	d->file_info->cha1_hashed = hashed;
+}
+
+/*
+ * download_verify_done
+ *
+ * Called when download verification is finished and digest is known.
+ */
+void download_verify_done(struct download *d, guchar *digest, time_t elapsed)
+{
+	struct dl_file_info *fi;
+	extern gint sha1_eq(gconstpointer a, gconstpointer b);
+
+	g_assert(d->status == GTA_DL_VERIFYING);
+
+	fi = d->file_info;
+	fi->cha1 = atom_sha1_get(digest);
+	fi->cha1_elapsed = elapsed;
+	file_info_store_binary(fi);		/* Resync with computed SHA1 */
+
+	d->status = GTA_DL_VERIFIED;
+
+	ignore_add_sha1(d->file_name, fi->cha1);
+
+	if (fi->sha1 == NULL || sha1_eq(fi->sha1, fi->cha1)) {
+		ignore_add_filesize(d->file_name, d->file_info->size);
+		queue_remove_downloads_with_file(d->file_info, d);
+		download_move_to_completed_dir(d);
+		gui_update_download(d, TRUE);
+	} else {
+		download_move_to_completed_dir(d);	// XXX asynchronous
+		queue_suspend_downloads_with_file(d->file_info, FALSE);	// XXX when moved
+
+		/*
+		 * If it was a faked download, we cannot resume.
+		 */
+
+		if (has_blank_guid(d) && !download_ip(d) && !download_port(d)) {
+			g_warning("SHA1 mismatch for %s, and cannot restart download",
+				download_outname(d));
+			gui_update_download(d, TRUE);
+		} else {
+			g_warning("SHA1 mismatch for %s, will be restarting download",
+				download_outname(d));
+
+			// XXX needs to maybe update some other fileinfo fields?
+			// XXX since file does not exist, swarming will be reset
+			// XXX do we need thos?
+
+			fi->lifecount++;					/* Reactivate download */
+			download_queue(d, "SHA1 mismatch detected");
+		}
+	}
+}
+
+/*
+ * download_verify_error
+ *
+ * Called when we cannot verify the SHA1 for the file (I/O error, etc...).
+ */
+void download_verify_error(struct download *d)
+{
+	g_assert(d->status == GTA_DL_VERIFYING);
+
+	d->status = GTA_DL_VERIFIED;
+
+	ignore_add_filesize(d->file_name, d->file_info->size);
+	queue_remove_downloads_with_file(d->file_info, d);
+	download_move_to_completed_dir(d);
+	gui_update_download(d, TRUE);
+}
+
+/*
+ * download_resume_bg_tasks
+ *
+ * Go through the downloads and check the completed ones that should
+ * be either moved to the "done" directory, or which should have their
+ * SHA1 computed/verified.
+ */
+static void download_resume_bg_tasks(void)
+{
+	GSList *l;
+
+	for (l = sl_downloads; l; l = l->next) {
+		struct download *d = (struct download *) l->data;
+		struct dl_file_info *fi = d->file_info;
+
+		if (fi->flags & FI_F_MARK)		/* Already processed */
+			continue;
+
+		fi->flags |= FI_F_MARK;
+
+		if (!FILE_INFO_COMPLETE(fi))	/* Not complete */
+			continue;
+
+		/*
+		 * Found a complete download.
+		 */
+
+		g_assert(fi->refcount == 1);
+
+		/*
+		 * It is possible that the faked download was scheduled to run, and
+		 * the fact that it was complete was trapped, and the computing of
+		 * its SHA1 started.
+		 *
+		 * In that case, the fileinfo of the file is marked as "suspended".
+		 */
+
+		if (fi->flags & FI_F_SUSPEND)	/* Already computing SHA1 */
+			continue;
+
+		if (DOWNLOAD_IS_QUEUED(d))
+			download_unqueue(d);
+
+		if (!DOWNLOAD_IS_STOPPED(d))
+			download_stop(d, GTA_DL_COMPLETED, NULL);
+
+		/*
+		 * If we don't have the computed SHA1 yet, queue it for SHA1
+		 * computation, and we'll proceed from there.
+		 *
+		 * If the file is still in the "tmp" directory, schedule its
+		 * moving to the done/bad directory.
+		 */
+
+		if (fi->cha1 == NULL)
+			download_verify_sha1(d);
+		else {
+			d->status = GTA_DL_VERIFIED;		/* Does not mean good SHA1 */
+			download_move_to_completed_dir(d);
+		}
+
+		gui_update_download(d, TRUE);
+	}
+
+	/*
+	 * Clear the marks.
+	 */
+
+	for (l = sl_downloads; l; l = l->next) {
+		struct download *d = (struct download *) l->data;
+		struct dl_file_info *fi = d->file_info;
+
+		fi->flags &= ~FI_F_MARK;
+	}
 }
 
 void download_close(void)

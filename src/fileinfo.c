@@ -54,6 +54,7 @@
 #include <fcntl.h>
 #include <time.h>			/* For ctime() */
 #include <netinet/in.h>		/* For ntohl() and friends... */
+#include <dirent.h>
 
 #define FI_MIN_CHUNK_SPLIT	512		/* Smallest chunk we can split */
 
@@ -106,8 +107,8 @@ enum dl_file_info_field {
 	FILE_INFO_FIELD_ALIAS,
 	FILE_INFO_FIELD_SHA1,
 	FILE_INFO_FIELD_CHUNK,
+	FILE_INFO_FIELD_END,		/* Marks end of field section */
 	FILE_INFO_FIELD_CHA1,
-	FILE_INFO_FIELD_END,
 };
 
 #define FI_STORE_DELAY		10	/* Max delay (secs) for flushing fileinfo */
@@ -413,7 +414,7 @@ static void file_info_fd_store_binary(
  * Store a binary record of the file metainformation at the end of the
  * output file, if it exists.
  */
-static void file_info_store_binary(struct dl_file_info *fi)
+void file_info_store_binary(struct dl_file_info *fi)
 {
 	int fd;
 
@@ -895,12 +896,15 @@ static struct dl_file_info *file_info_retrieve_binary(gchar *file, gchar *path)
 		READ_INT32(&tmpguint);				/* Read field data length */
 
 		if (tmpguint == 0) {
-			reason = "zero field size";
+			g_snprintf(tmp, sizeof(tmp), "field #%d has zero size", field);
+			reason = tmp;
 			goto bailout;
 		}
 		
 		if (tmpguint > sizeof(tmp)) {
-			reason = "too long a field";
+			g_snprintf(tmp, sizeof(tmp),
+				"field #%d is too large (%u bytes) ", field, tmpguint);
+			reason = tmp;
 			goto bailout;
 		}
 
@@ -985,7 +989,8 @@ static struct dl_file_info *file_info_retrieve_binary(gchar *file, gchar *path)
 
 bailout:
 
-	g_warning("file_info_retrieve_binary(): %s", reason);
+	g_warning("file_info_retrieve_binary(): %s in %s%s%s",
+		reason, path, path[strlen(path) - 1] == '/' ? "" : "/", file);
 
 eof:
 	if (fi)
@@ -1165,7 +1170,6 @@ static void file_info_free_size_kv(gpointer key, gpointer val, gpointer x)
 
 	/* fi structure in value not freed, shared with other hash tables */
 }
-
 
 /*
  * file_info_free_outname_kv
@@ -1587,7 +1591,7 @@ void file_info_retrieve(void)
 
 			/* 
 			 * Check file trailer information.	The main file is only written
-			 * infrequently and the file's trailer can have more uptodate
+			 * infrequently and the file's trailer can have more up-to-date
 			 * information.
 			 */
 
@@ -1596,9 +1600,19 @@ void file_info_retrieve(void)
 			if (dfi == NULL) {
 				g_snprintf(fi_tmp, sizeof(fi_tmp),
 					"%s/%s", fi->path, fi->file_name);
-				if (-1 != stat(fi_tmp, &buf))
+				if (-1 != stat(fi_tmp, &buf)) {
 					g_warning("got metainfo in fileinfo cache, "
 						"but none in \"%s/%s\"", fi->path, fi->file_name);
+					file_info_store_binary(fi);
+				} else {
+					file_info_merge_adjacent(fi);		/* Compute fi->done */
+					if (fi->done > 0) {
+						g_warning("discarding cached metainfo for \"%s/%s\": "
+							"file had %d bytes downloaded but is now gone!",
+							fi->path, fi->file_name, fi->done);
+						goto discard;
+					}
+				}
 			} else if (dfi->generation > fi->generation) {
 				g_warning("found more recent metainfo in \"%s/%s\"",
 					fi->path, fi->file_name);
@@ -1608,6 +1622,7 @@ void file_info_retrieve(void)
 				g_warning("found OUTDATED metainfo in \"%s/%s\"",
 					fi->path, fi->file_name);
 				fi_free(dfi);
+				file_info_store_binary(fi);
 			} else {
 				g_assert(dfi->generation == fi->generation);
 				fi_free(dfi);
@@ -1702,7 +1717,6 @@ void file_info_retrieve(void)
 	}
 
 	fclose(f);
-	file_info_store();
 }
 
 /*
@@ -1822,7 +1836,7 @@ static struct dl_file_info *file_info_create(
 	g_snprintf(fi_tmp, sizeof(fi_tmp), "%s/%s", fi->path, fi->file_name);
 
 	if (stat(fi_tmp, &st) != -1) {
-		g_warning("file_info_get(): "
+		g_warning("file_info_create(): "
 			"assuming file \"%s\" is complete up to %lu bytes",
 			fi->file_name, (gulong) st.st_size);
 		fc = g_malloc0(sizeof(struct dl_file_chunk));
@@ -1842,11 +1856,11 @@ static struct dl_file_info *file_info_create(
 }
 
 /*
- * file_info_recreate
+ * file_info_recreate		-- UNUSED
  *
  * Existing fileinfo structure is obsolete. Recreate it from existing
- * file with no swarming info (i.e. a file with no free holes over its
- * completed range so far).
+ * file with no swarming info (assuming file has no free holes over its
+ * completed range so far, naturally).
  */
 void file_info_recreate(struct download *d)
 {
@@ -2345,12 +2359,17 @@ void file_info_clear_download(struct download *d)
 /*
  * file_info_reset
  *
- * Reset all chunks to EMPTY.
+ * Reset all chunks to EMPTY, clear computed SHA1 if any.
  */
 static void file_info_reset(struct dl_file_info *fi)
 {
 	GSList *l;
 	struct dl_file_chunk *fc;
+
+	if (fi->cha1) {
+		atom_sha1_free(fi->cha1);
+		fi->cha1 = NULL;
+	}
 
 	for (l = fi->chunklist; l; l = g_slist_next(l)) {
 		fc = (struct dl_file_chunk *) l->data;
@@ -2599,5 +2618,114 @@ void file_info_try_to_swarm_with(
 	download_auto_new(
 		file_name, fi->size, idx, ip, port, blank_guid, sha1,
 		time(NULL), FALSE, fi);
+}
+
+/*
+ * file_info_scandir
+ *
+ * Scan the given directory for files, looking at those bearing a valid
+ * fileinfo trailer, yet which we know nothing about.
+ */
+void file_info_scandir(gchar *dir)
+{
+	DIR *d;
+	struct dirent *dentry;
+	gchar *slash = "/";
+	struct dl_file_info *fi;
+	gchar filename[1024];
+
+	d = opendir(dir);
+	if (d == NULL) {
+		g_warning("can't open directory %s: %s", dir, g_strerror(errno));
+		return;
+	}
+
+	if (dir[strlen(dir) - 1] == '/')
+		slash = "";
+
+	while ((dentry = readdir(d))) {
+		struct stat buf;
+
+		if (dentry->d_name[0] == '.') {
+			if (
+				dentry->d_name[1] == '\0' ||
+				(dentry->d_name[1] == '.' && dentry->d_name[2] == '\0')
+			)
+				continue;					/* Skip "." and ".." */
+		}
+
+		g_snprintf(filename, sizeof(filename),
+			"%s%s%s", dir, slash, dentry->d_name);
+
+		if (-1 == stat(filename, &buf)) {
+			g_warning("cannot stat %s: %s", filename, g_strerror(errno));
+			continue;
+		}
+
+		if (S_ISDIR(buf.st_mode))			/* Skip directories */
+			continue;
+
+		fi = file_info_retrieve_binary(dentry->d_name, dir);
+		if (fi == NULL)
+			continue;
+
+		if (file_info_lookup_dup(fi)) {		/* Already know about this */
+			fi_free(fi);
+			continue;
+		}
+
+		/*
+		 * We found an entry that we do not know about.
+		 */
+
+		file_info_merge_adjacent(fi);		/* Update fi->done */
+		file_info_hash_insert(fi);
+
+		g_warning("reactivated orphan entry (%.02f%% done, %s SHA1): %s",
+			fi->done * 100.0 / (fi->size == 0 ? 1 : fi->size),
+			fi->sha1 ? "with" : "no", filename);
+	}
+
+	closedir(d);
+}
+
+/*
+ * fi_spot_completed_kv
+ *
+ * Callback for hash table iterator. Used by file_info_completed_orphans().
+ */
+static void fi_spot_completed_kv(gpointer key, gpointer val, gpointer x)
+{
+	gchar *name = (gchar *) key;
+	struct dl_file_info *fi = (struct dl_file_info *) val;
+
+	g_assert(name == fi->file_name);	/* name shared with fi's, don't free */
+
+	if (fi->refcount)					/* Attached to a download */
+		return;
+
+	/*
+	 * If the file is 100% done, fake a new download.
+	 *
+	 * It will be trapped by download_resume_bg_tasks() and handled
+	 * as any complete download.
+	 */
+
+	if (FILE_INFO_COMPLETE(fi))
+		download_orphan_new(fi->file_name, fi->size, fi->sha1, fi);
+}
+
+/*
+ * file_info_spot_completed_orphans
+ *
+ * Look through all the known fileinfo structures, looking for orphaned
+ * files that are complete.
+ *
+ * A fake download is created for them, so that download_resume_bg_tasks()
+ * can pick them up.
+ */
+void file_info_spot_completed_orphans(void)
+{
+	g_hash_table_foreach(fi_by_outname, fi_spot_completed_kv, NULL);
 }
 
