@@ -35,14 +35,13 @@ RCSID("$Id$");
 #ifdef ENABLE_NLS
 #include <libintl.h>
 #include <locale.h>
+#endif /* ENABLE_NLS */
 
 #ifdef I_LIBCHARSET
 #include <libcharset.h>
 #else
 #include <langinfo.h>
 #endif /* I_LIBCHARSET */
-
-#endif /* ENABLE_NLS */
 
 #ifndef USE_GLIB2
 #include <iconv.h>
@@ -2563,7 +2562,7 @@ const char *locale_charset(void)
 	}
 	return NULL;
 }
-#endif /* ENABLE_NLS && !I_LIBCHARSET */
+#endif /* !USE_GLIB2 && !I_LIBCHARSET */
 
 const gchar *locale_get_charset(void)
 {
