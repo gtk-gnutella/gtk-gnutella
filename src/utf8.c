@@ -405,8 +405,8 @@ gint utf8_to_iso8859(guchar *s, gint len, gboolean space)
  *
  * Converts the string ``str'' assuming it's encoded in the current
  * locale (see setlocale(3) and LC_CTYPE for details) to a string
- * encoded in UTF-8. If ``len'' is (-1) the length will be calculated
- * using strlen(), otherwise ``len'' MUST have a non-negative value.
+ * encoded in UTF-8. If ``len'' is 0 the length will be calculated
+ * using strlen(), otherwise only ``len'' characters will be converted.
  * The function returns a pointer to a STATIC buffer! If the output
  * string is longer than 4095 characters it will be truncated.
  * Non-convertible characters will be replaced by '_'. In case of an
@@ -417,7 +417,7 @@ gint utf8_to_iso8859(guchar *s, gint len, gboolean space)
  *				strings	e.g., to view strings in the GUI. The conversion
  *				MAY be inappropriate!
  */
-gchar *locale_to_utf8(gchar *str, gssize len)
+gchar *locale_to_utf8(gchar *str, size_t len)
 {
 	static const gchar *local_charset = NULL;
 	static GIConv converter;
@@ -427,10 +427,9 @@ gchar *locale_to_utf8(gchar *str, gssize len)
 	gsize outbytes_left;
 	gchar *inbuf;
 	gchar *outbuf;
-	static gchar outstr[4096];
+	static gchar outstr[4096 + 6]; /* an UTF-8 char is max. 6 bytes large */
 
 	g_assert(NULL != str);
-	g_assert(len >= (gssize) -1);
 	
 	if (!initialized) {
 		g_get_charset(&local_charset);
@@ -446,7 +445,7 @@ gchar *locale_to_utf8(gchar *str, gssize len)
 
 	inbuf = str;
 	outbuf = outstr;
-	inbytes_left = (gssize) -1 == len ? strlen(str) : len;
+	inbytes_left = 0 == len ? strlen(str) : len;
 	outbytes_left = sizeof(outstr) - 7;
 	outstr[0] = '\0';
 

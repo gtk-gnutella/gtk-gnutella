@@ -40,7 +40,7 @@ gint utf8_to_iso8859(guchar *s, gint len, gboolean space);
  * Only necessary for GTK+ 2.x version because it expects almost any string
  * to be encoded as UTF-8.
  */
-gchar *locale_to_utf8(gchar *, gssize);
+gchar *locale_to_utf8(gchar *, size_t);
 #endif
 
 #endif	/* _utf8_h_ */
