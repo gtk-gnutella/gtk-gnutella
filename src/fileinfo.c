@@ -1471,7 +1471,6 @@ static void file_info_hash_insert(struct dl_file_info *fi)
 static void file_info_hash_remove(struct dl_file_info *fi)
 {
 	namesize_t nsk;
-	namesize_t *ns;
 	gpointer x;
 	gboolean found;
 	GSList *l;
@@ -1514,17 +1513,21 @@ static void file_info_hash_remove(struct dl_file_info *fi)
 	nsk.size = fi->size;
 
 	for (l = fi->alias; l; l = l->next) {
+		union { 
+			namesize_t *ns;
+			gpointer ptr;
+		} key;
 		nsk.name = l->data;
 
 		found = g_hash_table_lookup_extended(fi_by_namesize, &nsk,
-			(gpointer *) &ns, &x);
+			&key.ptr, &x);
 
 		g_assert(found);
 		g_assert(x == (gpointer) fi);
-		g_assert(ns->size == fi->size);
+		g_assert(key.ns->size == fi->size);
 
-		g_hash_table_remove(fi_by_namesize, ns);
-		namesize_free(ns);
+		g_hash_table_remove(fi_by_namesize, key.ns);
+		namesize_free(key.ns);
 	}
 
 	/*

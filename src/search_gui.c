@@ -779,12 +779,14 @@ void search_gui_sort_column(search_t *search, gint column)
  */
 static gboolean search_result_is_dup(search_t * sch, struct record * rc)
 {
-	struct record *old_rc;
+	union {
+		struct record *rc;
+		gpointer ptr;
+	} old;
 	gpointer dummy;
 	gboolean found;
 
-	found = g_hash_table_lookup_extended(sch->dups, rc,
-		(gpointer *) &old_rc, &dummy);
+	found = g_hash_table_lookup_extended(sch->dups, rc, &old.ptr, &dummy);
 
 	if (!found)
 		return FALSE;
@@ -803,18 +805,18 @@ static gboolean search_result_is_dup(search_t * sch, struct record * rc)
 	 * XXX change it.  We have a new route anyway, since we just got a match!
 	 */
 
-	if (rc->index != old_rc->index) {
+	if (rc->index != old.rc->index) {
 		if (gui_debug)
 			g_warning("Index changed from %u to %u at %s for %s",
-				old_rc->index, rc->index, guid_hex_str(rc->results_set->guid),
+				old.rc->index, rc->index, guid_hex_str(rc->results_set->guid),
 				rc->name);
 		download_index_changed(
 			rc->results_set->ip,		/* This is for optimizing lookups */
 			rc->results_set->port,
 			rc->results_set->guid,		/* This is for formal identification */
-			old_rc->index,
+			old.rc->index,
 			rc->index);
-		old_rc->index = rc->index;
+		old.rc->index = rc->index;
 	}
 
 	return TRUE;		/* yes, it's a duplicate */

@@ -675,9 +675,9 @@ static gint search_gui_compare_size_func(
     record_t *rec_a = NULL;
 	record_t *rec_b = NULL;
 
-    gtk_tree_model_get(model, a, c_sr_record, &rec_a, -1);
-    gtk_tree_model_get(model, b, c_sr_record, &rec_b, -1);
-	return rec_a->size == rec_b->size ? 0 : rec_a->size > rec_b->size ? 1 : -1;
+    gtk_tree_model_get(model, a, c_sr_record, &rec_a, (-1));
+    gtk_tree_model_get(model, b, c_sr_record, &rec_b, (-1));
+	return SIGN(rec_a->size, rec_b->size);
 }
 
 static gint search_gui_compare_count_func(
@@ -685,26 +685,26 @@ static gint search_gui_compare_count_func(
 {
 	guint m = (guint) gtk_tree_model_iter_n_children(model, a);
 	guint n = (guint) gtk_tree_model_iter_n_children(model, b);
-	return m == n ? 0 : m > n ? 1 : -1;
+	return SIGN(m, n);
 }
 
+#if 0
+/* Who wants to see the IP addresses in the GtkTreeView, anyway? */
 static gint search_gui_compare_host_func(
     GtkTreeModel *model, GtkTreeIter *a, GtkTreeIter *b, gpointer user_data)
 {
     record_t *rec_a = NULL;
 	record_t *rec_b = NULL;
-	guint32 ip_a;
-	guint32 ip_b;
+	gint d;
 
+    gtk_tree_model_get(model, a, c_sr_record, &rec_a, (-1));
+    gtk_tree_model_get(model, b, c_sr_record, &rec_b, (-1));
+	d = SIGN(rec_a->results_set->ip, rec_b->results_set->ip);
 
-    gtk_tree_model_get(model, a, c_sr_record, &rec_a, -1);
-    gtk_tree_model_get(model, b, c_sr_record, &rec_b, -1);
-	ip_a = rec_a->results_set->ip;
-	ip_b = rec_b->results_set->ip;
-
-	return ip_a == ip_b ? rec_b->results_set->port - rec_a->results_set->port
-					: ip_a > ip_b ? 1 : -1;
+	return d != 0
+		? d : SIGN(rec_b->results_set->port, rec_a->results_set->port);
 }
+#endif
 
 /*
  * search_result_is_dup
@@ -717,12 +717,14 @@ static gint search_gui_compare_host_func(
  */
 static gboolean search_result_is_dup(search_t * sch, struct record * rc)
 {
-	struct record *old_rc;
+	union {
+		struct record *rc;
+		gpointer ptr;
+	} old;
 	gpointer dummy;
 	gboolean found;
 
-	found = g_hash_table_lookup_extended(sch->dups, rc,
-		(gpointer *) &old_rc, &dummy);
+	found = g_hash_table_lookup_extended(sch->dups, rc, &old.ptr, &dummy);
 
 	if (!found)
 		return FALSE;
@@ -741,18 +743,18 @@ static gboolean search_result_is_dup(search_t * sch, struct record * rc)
 	 * XXX change it.  We have a new route anyway, since we just got a match!
 	 */
 
-	if (rc->index != old_rc->index) {
+	if (rc->index != old.rc->index) {
 		if (gui_debug) g_warning(
 			"Index changed from %u to %u at %s for %s",
-			old_rc->index, rc->index, guid_hex_str(rc->results_set->guid),
+			old.rc->index, rc->index, guid_hex_str(rc->results_set->guid),
 			rc->name);
 		download_index_changed(
 			rc->results_set->ip,		/* This is for optimizing lookups */
 			rc->results_set->port,
 			rc->results_set->guid,		/* This is for formal identification */
-			old_rc->index,
+			old.rc->index,
 			rc->index);
-		old_rc->index = rc->index;
+		old.rc->index = rc->index;
 	}
 
 	return TRUE;		/* yes, it's a duplicate */

@@ -94,10 +94,13 @@ gchar *hcache_type_to_gchar(hcache_type_t type)
  *** Metadata allocation.
  ***/
 
-static struct hostcache_entry *hce_alloc()
+#if 0 
+/* XXX: Unused */
+static struct hostcache_entry *hce_alloc(void)
 {
 	return walloc0(sizeof(struct hostcache_entry));
 }
+#endif
 
 static void hce_free(struct hostcache_entry *hce)
 {
@@ -253,12 +256,15 @@ static void hcache_ht_add(struct hostcache *hc, struct gnutella_host *host)
  */
 static void hcache_ht_remove(struct hostcache *hc, struct gnutella_host *host)
 {
-	struct hostcache_entry *hce;
+	union {
+		struct hostcache_entry *hce;
+		gpointer ptr;
+	} entry;
 	gpointer key;
 	gboolean found;
 
 	found = g_hash_table_lookup_extended(hc->ht_known_hosts,
-		(gconstpointer) host, &key, (gpointer *) &hce);
+		(gconstpointer) host, &key, &entry.ptr);
 
 	if (!found) {
 		g_warning("attempt to remove missing %s from hostcache list (%s nodes)",
@@ -271,8 +277,8 @@ static void hcache_ht_remove(struct hostcache *hc, struct gnutella_host *host)
 
 	g_assert(hc->host_count >= 0);
 
-	if (hce != NO_METADATA)
-		hce_free(hce);
+	if (entry.hce != NO_METADATA)
+		hce_free(entry.hce);
 
     if (!hc->mass_operation || (hc->host_count & 0x3ff) == 0)
         gnet_prop_set_guint32_val(hc->hosts_in_catcher, hc->host_count);

@@ -1779,8 +1779,11 @@ static gboolean download_retry_no_urires(struct download *d,
  */
 static void download_push_insert(struct download *d)
 {
-	gchar *key;
-	GSList *list;
+	union {
+		GSList *list;
+		gpointer ptr;
+	} value;
+	gpointer key;
 	gboolean found;
 
 	g_assert(!d->push);
@@ -1806,27 +1809,27 @@ static void download_push_insert(struct download *d)
 	 */
 
 	found = g_hash_table_lookup_extended(pushed_downloads, (gpointer) dl_tmp,
-		(gpointer *) &key, (gpointer *) &list);
+				&key, &value.ptr);
 
 	if (!found) {
-		list = g_slist_append(NULL, d);
+		value.list = g_slist_append(NULL, d);
 		key = atom_str_get(dl_tmp);
-		g_hash_table_insert(pushed_downloads, key, list);
+		g_hash_table_insert(pushed_downloads, key, value.list);
 	} else {
 		GSList *l;
 
-		if ((l = g_slist_find(list, d))) {
+		if ((l = g_slist_find(value.list, d))) {
 			struct download *ad = (struct download *) l->data;
 			g_warning("BUG: duplicate push ignored for \"%s\"", ad->file_name);
 			g_warning("BUG: argument is 0x%lx, \"%s\", key = %s, state = %d",
-				(gulong) d, d->file_name, key, d->status);
+				(gulong) d, d->file_name, (gchar *) key, d->status);
 			gm_snprintf(dl_tmp, sizeof(dl_tmp), "%u:%s",
 				ad->record_index, guid_hex_str(download_guid(ad)));
 			g_warning("BUG: in table has 0x%lx \"%s\", key = %s, state = %d",
 				(gulong) ad, ad->file_name, dl_tmp, ad->status);
 		} else {
-			list = g_slist_prepend(list, d);
-			g_hash_table_insert(pushed_downloads, key, list);
+			value.list = g_slist_prepend(value.list, d);
+			g_hash_table_insert(pushed_downloads, key, value.list);
 		}
 	}
 
@@ -1840,8 +1843,11 @@ static void download_push_insert(struct download *d)
  */
 static void download_push_remove(struct download *d)
 {
+	union {
+		GSList *list;
+		gpointer ptr;
+	} value;
 	gpointer key;
-	GSList *list;
 
 	g_assert(d->push);
 
@@ -1850,9 +1856,9 @@ static void download_push_remove(struct download *d)
 
 	if (
 		g_hash_table_lookup_extended(pushed_downloads, (gpointer) dl_tmp,
-			&key, (gpointer *) &list)
+			&key, &value.ptr)
 	) {
-		GSList *l = g_slist_find(list, d);
+		GSList *l = g_slist_find(value.list, d);
 
 		/*
 		 * Value `list' is a list of downloads that share the same key.
@@ -1865,12 +1871,12 @@ static void download_push_remove(struct download *d)
 				(gulong) d, d->file_name, dl_tmp, d->status);
 		} else {
 			g_assert(l->data == (gpointer) d);
-			list = g_slist_remove(list, d);
-			if (list == NULL) {
+			value.list = g_slist_remove(value.list, d);
+			if (value.list == NULL) {
 				g_hash_table_remove(pushed_downloads, key);
 				atom_str_free(key);
 			} else
-				g_hash_table_insert(pushed_downloads, key, list);
+				g_hash_table_insert(pushed_downloads, key, value.list);
 		}
 	} else
 		g_warning("BUG: tried to remove missing push %s", dl_tmp);
