@@ -3891,6 +3891,17 @@ static void download_request(struct download *d, header_t *header, gboolean ok)
 	struct dl_file_info *fi;
 	gchar short_read[80];
 
+	/*
+	 * If `ok' is FALSE, we might not even have fully read the status line,
+	 * in which case `s->getline' will be null.
+	 */
+
+	if (!ok && s->getline == NULL) {
+		download_queue_delay(d, download_retry_busy_delay,
+			"Timeout reading HTTP status");
+		return;
+	}
+
 	g_assert(s->getline);				/* Being in the header reading phase */
 
 	status = getline_str(s->getline);
