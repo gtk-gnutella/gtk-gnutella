@@ -92,7 +92,7 @@ gint ggep_ext_writev(
 	gchar *id, struct iovec *iov, gint iovcnt,
 	guint32 wflags);
 
-void ggep_mark_last(gchar *start);
+void ggep_ext_mark_last(guchar *start);
 
 #endif	/* _ggep_h_ */
 
