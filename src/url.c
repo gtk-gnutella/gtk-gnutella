@@ -315,6 +315,8 @@ url_params_t *url_params_parse(gchar *query)
 				*q = '\0';
 				value = url_unescape(start, FALSE);
 				if (!value) {
+					if (name)
+						G_FREE_NULL(name);
 					url_params_free(up);
 					return NULL;
 				}
