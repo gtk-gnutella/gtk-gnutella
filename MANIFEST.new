@@ -7,7 +7,6 @@ ChangeLog
 Configure                    Portability tool
 Jmakefile
 Makefile.SH
-U/modified/Config_sh.U
 U/modified/End.U
 U/modified/Loc.U
 U/modified/Myinit.U
