@@ -59,6 +59,7 @@ enum {
 	c_gnet_connected,
 	c_gnet_uptime,
 	c_gnet_info,
+#define NODES_VISIBLE_COLUMNS ((guint) c_gnet_info + 1)
 #ifdef USE_GTK2
 	c_gnet_handle,
 	c_gnet_fg,
@@ -199,7 +200,7 @@ enum {
     c_sr_info,
 #ifdef USE_GTK2
 	c_sr_ext,
-#define SEARCH_GUI2_VISIBLE_COLUMNS ((guint) c_sr_ext + 1)
+#define SEARCH_RESULTS_VISIBLE_COLUMNS ((guint) c_sr_ext + 1)
 
 	c_sr_fg, /* invisible, holds the foreground color for the row */
 	c_sr_bg, /* invisible, holds the background color for the row */
@@ -251,6 +252,7 @@ enum {
     c_sl_name = 0,
     c_sl_hit,
     c_sl_new,
+#define SEARCH_LIST_VISIBLE_COLUMNS ((guint) c_sl_new + 1)
 #ifdef USE_GTK2
     c_sl_fg,
     c_sl_bg,
