@@ -368,14 +368,14 @@ upload_timer(time_t now)
 		gnutella_upload_t *u = (gnutella_upload_t *) sl->data;
 		if (UPLOAD_IS_CONNECTING(u)) {
 			if (u->status == GTA_UL_PUSH_RECEIVED || u->status == GTA_UL_QUEUE)
-				upload_remove(u, "Connect back timeout");
+				upload_remove(u, _("Connect back timeout"));
 			else
-				upload_error_remove(u, NULL, 408, "Request timeout");
+				upload_error_remove(u, NULL, 408, _("Request timeout"));
 		} else if (UPLOAD_IS_SENDING(u))
 			upload_remove(u, "Data timeout after %" PRIu64 " byte%s",
 				(guint64) u->sent, u->sent == 1 ? "" : "s");
 		else
-			upload_remove(u, "Lifetime expired");
+			upload_remove(u, _("Lifetime expired"));
 	}
 	g_slist_free(to_remove);
 }
@@ -455,9 +455,9 @@ upload_send_giv(guint32 ip, guint16 port, guint8 hops, guint8 ttl,
 	if (banning) {
 		gchar *msg = ban_message(ip);
 		if (msg != NULL)
-			upload_remove(u, "Banned: %s", msg);
+			upload_remove(u, _("Banned: %s"), msg);
 		else
-			upload_remove(u, "Banned for %s", short_time(ban_delay(ip)));
+			upload_remove(u, _("Banned for %s"), short_time(ban_delay(ip)));
 		return;
 	}
 
@@ -3112,7 +3112,7 @@ upload_kill(gnet_upload_t upload)
 
     if (!UPLOAD_IS_COMPLETE(u)) {
 		parq_upload_force_remove(u);
-        upload_remove(u, "Explicitly killed");
+        upload_remove(u, _("Explicitly killed"));
 	}
 }
 
@@ -3138,7 +3138,7 @@ upload_kill_ip(guint32 ip)
 		gnutella_upload_t *u = (gnutella_upload_t *) (sl->data);
 
 		parq_upload_force_remove(u);
-		upload_remove(u, "IP denying uploads");
+		upload_remove(u, _("IP denying uploads"));
 	}
 	g_slist_free(to_remove);
 }

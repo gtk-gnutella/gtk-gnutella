@@ -1352,7 +1352,7 @@ gui_update_download(download_t *d, gboolean force)
 			if (guc_get_parq_dl_position(d) > 0) {
 
 				rw += gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
-					" (slot %d",		/* ) */
+					_(" (slot %d"),		/* ) */
 					guc_get_parq_dl_position(d));
 
 				if (guc_get_parq_dl_queue_length(d) > 0) {
@@ -1362,7 +1362,7 @@ gui_update_download(download_t *d, gboolean force)
 
 				if (guc_get_parq_dl_eta(d)  > 0) {
 					rw += gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
-						", ETA: %s",
+						_(", ETA: %s"),
 						short_time((guc_get_parq_dl_eta(d)
 							- elapsed)));
 				}

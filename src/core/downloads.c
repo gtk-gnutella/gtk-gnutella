@@ -2540,7 +2540,7 @@ download_pick_chunk(struct download *d)
 
 	} else if (status == DL_CHUNK_BUSY) {
 
-		download_queue_delay(d, 10, "Waiting for a free chunk");
+		download_queue_delay(d, 10, _("Waiting for a free chunk"));
 		return FALSE;
 
 	} else if (status == DL_CHUNK_DONE) {
@@ -2741,7 +2741,7 @@ download_start(struct download *d, gboolean check_allowed)
 
 			if (file_descriptor_runout && banned_count == 0) {
 				download_queue_delay(d, download_retry_busy_delay,
-					"Connection failed (Out of file descriptors?)");
+					_("Connection failed (Out of file descriptors?)"));
 				return;
 			}
 
@@ -3529,7 +3529,7 @@ download_index_changed(guint32 ip, guint16 port, gchar *guid,
 	for (sl = to_stop; sl; sl = g_slist_next(sl)) {
 		struct download *d = (struct download *) sl->data;
 		download_queue_delay(d, download_retry_stopped_delay,
-			"Stopped (Index changed)");
+			_("Stopped (Index changed)"));
 	}
 
 	/*
@@ -4004,10 +4004,10 @@ err_header_read_error(gpointer o, gint error)
 	if (error == ECONNRESET) {
 		if (d->retries++ < download_max_retries)
 			download_queue_delay(d, download_retry_stopped_delay,
-				"Stopped (%s)", g_strerror(error));
+				_("Stopped (%s)"), g_strerror(error));
 		else
 			download_unavailable(d, GTA_DL_ERROR,
-				"Too many attempts (%d)", d->retries - 1);
+				_("Too many attempts (%d)"), d->retries - 1);
 	} else
 		download_stop(d, GTA_DL_ERROR, "Failed (Read error: %s)",
 			g_strerror(error));
@@ -4038,11 +4038,11 @@ err_header_read_eof(gpointer o)
 
 	if (d->retries++ < download_max_retries)
 		download_queue_delay(d, download_retry_stopped_delay,
-			d->keep_alive ? "Connection not kept-alive (EOF)" :
-			"Stopped (EOF)");
+			d->keep_alive ? _("Connection not kept-alive (EOF)") :
+			_("Stopped (EOF)"));
 	else
 		download_unavailable(d, GTA_DL_ERROR,
-			"Too many attempts (%d)", d->retries - 1);
+			_("Too many attempts (%d)"), d->retries - 1);
 }
 
 static struct io_error download_io_error = {
@@ -4156,7 +4156,7 @@ download_overlap_check(struct download *d)
 			"(now %" PRIu64 ", but was %" PRIu64 ")",
 			fi->file_name, (guint64) buf.st_size, (guint64) d->skip);
 		download_queue_delay(d, download_retry_stopped_delay,
-			"Stopped (Output file size changed)");
+			_("Stopped (Output file size changed)"));
 		goto out;
 	}
 
@@ -4349,7 +4349,7 @@ download_write_data(struct download *d)
 		g_message("Tried to write(%d, %p, %d)",
 			  (int) d->file_desc, s->buffer, (int) s->pos);
 		download_queue_delay(d, download_retry_busy_delay,
-			"Can't save data: %s", error);
+			_("Can't save data: %s"), error);
 		return;
 	}
 
@@ -4957,12 +4957,13 @@ check_content_urn(struct download *d, header_t *header)
 
 				if (d->overlap_size == 0) {
 					download_queue_delay(d, download_retry_busy_delay,
-						"No URN on server, waiting for overlap");
+						_("No URN on server, waiting for overlap"));
 					return FALSE;
 				}
 			} else {
 				download_bad_source(d);
-				download_stop(d, GTA_DL_ERROR, "No URN on server to validate");
+				download_stop(d, GTA_DL_ERROR,
+					_("No URN on server to validate"));
 				return FALSE;
 			}
 		}
@@ -5236,7 +5237,7 @@ download_sink_read(gpointer data, gint unused_source, inputevt_cond_t cond)
 	if (cond & INPUT_EVENT_EXCEPTION) {		/* Treat as EOF */
 		socket_eof(s);
 		download_queue_delay(d, download_retry_busy_delay,
-			"Stopped data (EOF)");
+			_("Stopped data (EOF)"));
 		return;
 	}
 
@@ -5244,7 +5245,7 @@ download_sink_read(gpointer data, gint unused_source, inputevt_cond_t cond)
 	if (r == 0) {
 		socket_eof(s);
 		download_queue_delay(d, download_retry_busy_delay,
-			"Stopped data (EOF)");
+			_("Stopped data (EOF)"));
 		return;
 	} else if ((ssize_t) -1 == r) {
 		if (errno != EAGAIN) {
@@ -5627,7 +5628,7 @@ download_request(struct download *d, header_t *header, gboolean ok)
 				/* Server has nothing for us yet, give it time */
 				download_queue_delay(d,
 					MAX(delay, download_retry_refused_delay),
-					"Partial file on server, waiting");
+					_("Partial file on server, waiting"));
 			}
 
 			return;
@@ -5727,7 +5728,7 @@ download_request(struct download *d, header_t *header, gboolean ok)
 				download_passively_queued(d, TRUE);
 				download_queue_delay(d,
 					delay ? delay : download_retry_busy_delay,
-						"Queued (slot %d/%d) ETA: %s",
+						_("Queued (slot %d/%d) ETA: %s"),
 							get_parq_dl_position(d),
 							get_parq_dl_queue_length(d),
 							short_time(get_parq_dl_eta(d))
@@ -6113,7 +6114,7 @@ download_request(struct download *d, header_t *header, gboolean ok)
 		g_assert(d->flags & DL_F_SHRUNK_REPLY);
 		download_queue_delay(d,
 			MAX(delay, download_retry_busy_delay),
-			"Partial file on server, waiting");
+			_("Partial file on server, waiting"));
 		return;
 	}
 
@@ -6133,7 +6134,7 @@ download_request(struct download *d, header_t *header, gboolean ok)
 				", but was %" PRIu64 ")",
 					fi->file_name, (guint64) fi->done, (guint64) d->skip);
 			download_queue_delay(d, download_retry_stopped_delay,
-				"Stopped (Output file size changed)");
+				_("Stopped (Output file size changed)"));
 			G_FREE_NULL(path);
 			return;
 		}
@@ -6264,7 +6265,7 @@ download_read(gpointer data, gint unused_source, inputevt_cond_t cond)
 	if (cond & INPUT_EVENT_EXCEPTION) {		/* Treat as EOF */
 		socket_eof(s);
 		download_queue_delay(d, download_retry_stopped_delay,
-			"Stopped data (EOF)");
+			_("Stopped data (EOF)"));
 		return;
 	}
 
@@ -6272,7 +6273,7 @@ download_read(gpointer data, gint unused_source, inputevt_cond_t cond)
 
 	if (s->pos == sizeof(s->buffer)) {
 		download_queue_delay(d, download_retry_stopped_delay,
-			"Stopped (Read buffer full)");
+			_("Stopped (Read buffer full)"));
 		return;
 	}
 
@@ -6304,17 +6305,17 @@ download_read(gpointer data, gint unused_source, inputevt_cond_t cond)
 	if (r == 0) {
 		socket_eof(s);
 		download_queue_delay(d, download_retry_busy_delay,
-				"Stopped data (EOF)");
+				_("Stopped data (EOF)"));
 		return;
 	} else if ((ssize_t) -1 == r) {
 		if (errno != EAGAIN) {
 			socket_eof(s);
 			if (errno == ECONNRESET)
 				download_queue_delay(d, download_retry_busy_delay,
-					"Stopped data (%s)", g_strerror(errno));
+					_("Stopped data (%s)"), g_strerror(errno));
 			else
 				download_stop(d, GTA_DL_ERROR,
-					"Failed (Read error: %s)", g_strerror(errno));
+					_("Failed (Read error: %s)"), g_strerror(errno));
 		}
 		return;
 	}

@@ -824,7 +824,7 @@ node_timer(time_t now)
 				}
 			} else if (NODE_IS_CONNECTING(n)) {
 				if (delta_time(now, n->last_update) > node_connecting_timeout) {
-					node_remove(n, "Timeout");
+					node_remove(n, _("Timeout"));
                     hcache_add(HCACHE_TIMEOUT, n->ip, 0, "timeout");
 				}
 			} else if (n->status == GTA_NODE_SHUTDOWN) {
@@ -832,7 +832,7 @@ node_timer(time_t now)
 					gchar reason[1024];
 
 					g_strlcpy(reason, n->error_str, sizeof reason);
-					node_remove(n, "Shutdown (%s)", reason);
+					node_remove(n, _("Shutdown (%s)"), reason);
 				}
 			} else if (
 				current_peermode == NODE_P_ULTRA &&
