@@ -2355,7 +2355,7 @@ sock_set_intern(gint fd, gint option, gint size, gchar *type, gboolean shrink)
 {
 	gint old_len = 0;
 	gint new_len = 0;
-	gint len;
+	socklen_t len;
 
 	size = (size + 1) & ~0x1;	/* Must be even, round to upper boundary */
 
