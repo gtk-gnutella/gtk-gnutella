@@ -65,7 +65,7 @@ all:: .FORCE_DEPEND
 ########################################################################
 # Start of Jmakefile
 
-# $X-Id: Jmakefile,v 1.28 2004/08/18 18:49:45 rmanfredi Exp $
+# $X-Id: Jmakefile,v 1.1 2004/08/25 05:40:39 rmanfredi Exp $
 
 depend::
 	@case '${MFLAGS}' in *[ik]*) set +e;; esac; \
@@ -90,10 +90,12 @@ local_realclean::
 properties: gnet_property.c gui_property.c
 
 gnet_property_priv.h gnet_property.c gnet_property.h: gnet_props.ag props.tpl
-	autogen gnet_props.ag
+	-autogen gnet_props.ag
+	touch gnet_property_priv.h gnet_property.c gnet_property.h
 
 gui_property_priv.h gui_property.c gui_property.h: gui_props.ag props.tpl
-	autogen gui_props.ag
+	-autogen gui_props.ag
+	touch gui_property_priv.h gui_property.c gui_property.h
 
 depend:: ../../mkdep
 
@@ -110,10 +112,6 @@ depend::
 	cp Makefile Makefile.bak
 	cp Makefile.new Makefile
 	$(RM) Makefile.new
-
-local_clean::
-	$(RM) -f gnet_property.[ch] gnet_property_priv.h
-	$(RM) -f gui_property.[ch] gui_property_priv.h
 
 ########################################################################
 # Common rules for all Makefiles -- do not edit

@@ -82,7 +82,7 @@ all:: .FORCE_DEPEND
 ########################################################################
 # Start of Jmakefile
 
-# $X-Id: Jmakefile,v 1.28 2004/08/18 18:49:45 rmanfredi Exp $
+# $X-Id: Jmakefile,v 1.1 2004/08/25 05:40:40 rmanfredi Exp $
 
 LSRC = \
 	downloads_common.c \
@@ -154,8 +154,6 @@ $(IF)/$(GNET_PROPS): .FORCE
 
 libgtk-common.a:  $(IF)/$(GNET_PROPS)
 
-#>SUBDIRS
-
 all:: libgtk-common.a
 
 local_realclean::
@@ -210,8 +208,6 @@ LIBRARY = libgtk2.a
 	;;
 esac
 $spitshell >>Makefile <<'!NO!SUBS!'
-
-#SUBDIRS = $(SDIR)
 
 $(SDIR)/support-glade.h: .FORCE
 	@echo "Checking "support-glade.h" in "$(SDIR)"..."

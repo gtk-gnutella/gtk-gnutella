@@ -83,7 +83,7 @@ all:: .FORCE_DEPEND
 ########################################################################
 # Start of Jmakefile
 
-# $X-Id: Jmakefile,v 1.28 2004/08/18 18:49:45 rmanfredi Exp $
+# $X-Id: Jmakefile,v 1.1 2004/08/25 05:40:40 rmanfredi Exp $
 
 # Those files lie in the ../gtk-shared directory
 REMOTE_GLADE_C = callbacks.c
@@ -161,6 +161,7 @@ $(GLADE_GEN): $(GLADEFILE) $(REMOTE_GLADE)
 	$(CHMOD) 0644 $(REMOTE_GLADE)
 	-$(GLADE) --write-source $(GLADEFILE)
 	$(CHMOD) 0444 $(REMOTE_GLADE)
+	touch $(GLADE_GEN)
 
 GTK_SHARED = ../gtk-shared
 
