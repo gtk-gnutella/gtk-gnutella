@@ -1478,7 +1478,7 @@ unique_filename(const gchar *path, const gchar *file, const gchar *ext)
 
 
 /**
- * Escape all non-printable chars into the hexadecimal \xhh form.
+ * Escape all non-printable chars into the hexadecimal "\xhh" form.
  * Returns new escaped string, or the original string if no escaping occurred.
  */
 gchar *
@@ -1854,7 +1854,7 @@ find_common_leading(guint32 ip1, guint32 ip2)
  *
  * @param lower_ip	the lower-bound IP
  * @param upper_ip	the upper-bound IP
- * @param callback	the callback, invoked as callback(ip, bits, udata)
+ * @param cb		the callback, invoked as callback(ip, bits, udata)
  * @param udata		the trailing parameter passed as-is to the callbacks
  */
 void

@@ -90,7 +90,7 @@ on_button_press_event(GtkWidget *unused_widget, GdkEventButton *event,
  * @param cell The cell renderer for the column.
  * @param model The model holding the upload stats info.
  * @param iter The iter of the row we are working with.
- * @param data user data passed to the function.
+ * @param unused_data user data passed to the function.
  *
  */
 static void
@@ -119,7 +119,7 @@ cell_render_size_func(GtkTreeViewColumn *column, GtkCellRenderer *cell,
  * @param cell The cell renderer for the column.
  * @param model The model holding the upload stats info.
  * @param iter The iter of the row we are working with.
- * @param data user data passed to the function.
+ * @param unused_data user data passed to the function.
  *
  */
 static void

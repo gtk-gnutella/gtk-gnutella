@@ -1056,7 +1056,7 @@ static bgstep_cb_t merge_steps[] = {
 /**
  * Launch asynchronous merging of the leaf node QRT tables.
  *
- * @param cb is the routine to invoke when merging is done.  If NULL, then
+ * @param done_cb is the routine to invoke when merging is done.  If NULL, then
  * no routine is called.
  */
 static void

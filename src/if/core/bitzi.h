@@ -51,7 +51,7 @@ typedef enum {
 } bitzi_fj_t;
 
 /**
- * @struct
+ * @struct bitzi_data_t
  */
 typedef struct {
 	gchar		*urnsha1;		/* pointer to urnsha1 atom */

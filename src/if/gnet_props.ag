@@ -976,7 +976,7 @@ prop = {
 
 prop = {
     name = "allow_private_network_connection";
-    desc =	"Check this button if you want to use GTK-Gnutella on your "
+    desc =	"Check this button if you want to use Gtk-Gnutella on your "
 			"Local Area Network. RFC1918 will be ignored.";
     type = boolean;
     data = {
@@ -986,7 +986,7 @@ prop = {
 
 prop = {
     name = "use_ip_tos";
-    desc =	"Check this button if you want GTK-Gnutella to use IP TOS to "
+    desc =	"Check this button if you want Gtk-Gnutella to use IP TOS to "
 			"differentiate interactive, normal and bulk data. This is "
 			"probably a good idea in most cases, and can particularly help "
 			"with badly misconfigured hosts, LANs, and ISPs.";

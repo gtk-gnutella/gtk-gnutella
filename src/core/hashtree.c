@@ -357,7 +357,7 @@ node_t *find_free_node(node_t *node)
  * Builds a new hashtree until node->depth == 0. Only the nodes at the left are
  * build, all right nodes are NULL.
  *
- * @param node is a pointer to the node to which the new tree should be build.
+ * @param start_node is a pointer to the node to which the new tree should be build.
  *        this function will use node->depth to determine how deep the tree
  *        should be build.
  */

@@ -206,7 +206,7 @@ oob_proxy_create(gnutella_node_t *n)
  * @param n the remote node which has results for us
  * @param muid the MUID of the search
  * @param hits the amount of hits available (255 mean 255+ hits).
- * @param udp_firewalled the remote host is UDP-firewalled and cannot
+ * @param uu_udp_firewalled the remote host is UDP-firewalled and cannot
  * receive unsolicited UDP traffic.
  *
  * @return whether we know about OOB-proxied query `muid'.
