@@ -1696,6 +1696,11 @@ gboolean on_clist_search_results_button_press_event(GtkWidget * widget,
 
 	switch (event->button) {
 	case 1:
+		if (event->type == GDK_2BUTTON_PRESS) {
+			gtk_signal_emit_stop_by_name(GTK_OBJECT(widget),
+				"button_press_event");
+			return FALSE;
+		}
 		if (event->type == GDK_BUTTON_PRESS) {
 			if ((event->time - click_time) <= 250) {
 				/*
@@ -1708,7 +1713,15 @@ gboolean on_clist_search_results_button_press_event(GtkWidget * widget,
 					gtk_clist_get_selection_info(GTK_CLIST(widget), event->x,
 						event->y, &row, &column)
 				) {
+					/*
+					 * Manually reselect to force the autoselection to behave
+					 * correctly.
+					 */
+					gtk_clist_select_row(GTK_CLIST(widget), row, column);
 					search_download_files();
+
+					/* Remove focus from the List widget. Purely aesthetic. */
+					gtk_widget_grab_focus(GTK_WIDGET(button_search_download));
 					return TRUE;
 				}
 			} else {
