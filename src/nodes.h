@@ -339,6 +339,7 @@ gboolean node_sent_ttl0(struct gnutella_node *n);
 void node_disableq(struct gnutella_node *n);
 void node_enableq(struct gnutella_node *n);
 void node_flushq(struct gnutella_node *n);
+void node_tx_service(struct gnutella_node *n, gboolean on);
 void node_tx_enter_flowc(struct gnutella_node *n);
 void node_tx_leave_flowc(struct gnutella_node *n);
 void node_bye_all(void);

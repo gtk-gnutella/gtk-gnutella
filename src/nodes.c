@@ -3527,6 +3527,16 @@ void node_flushq(struct gnutella_node *n)
 }
 
 /*
+ * node_tx_service
+ *
+ * Called when the queue service routine is switched ON/OFF.
+ */
+void node_tx_service(struct gnutella_node *n, gboolean on)
+{
+    node_fire_node_flags_changed(n);
+}
+
+/*
  * node_tx_enter_flowc
  *
  * Called by message queue when the node enters TX flow control.

@@ -181,8 +181,10 @@ void mq_clear(mqueue_t *q)
 	 * messages, we must disable it: there is nothing more to service.
 	 */
 
-	if (q->count == 0)
+	if (q->count == 0) {
 		tx_srv_disable(q->tx_drv);
+		node_tx_service(q->node, FALSE);
+	}
 }
 
 /*
@@ -401,8 +403,10 @@ static gboolean make_room(mqueue_t *q, pmsg_t *mb, gint needed)
 	 *		--RAM, 22/03/2002
 	 */
 
-	if (q->count == 0)
+	if (q->count == 0) {
 		tx_srv_disable(q->tx_drv);
+		node_tx_service(q->node, FALSE);
+	}
 
 	return needed <= 0;		/* Can be 0 if we broke out loop above */
 }
@@ -567,6 +571,9 @@ static void mq_puthere(mqueue_t *q, pmsg_t *mb, gint msize)
 
 	mq_update_flowc(q);
 	tx_srv_enable(q->tx_drv);
+
+	if (q->count == 1)
+		node_tx_service(q->node, TRUE);		/* Only on first message queued */
 }
 
 /*
@@ -700,6 +707,7 @@ update_servicing:
 	if (q->size == 0) {
 		g_assert(q->count == 0);
 		tx_srv_disable(q->tx_drv);
+		node_tx_service(q->node, FALSE);
 	} else
 		node_flushq(q->node);		/* Need to flush kernel buffers faster */
 }
