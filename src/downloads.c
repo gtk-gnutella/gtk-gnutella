@@ -1587,7 +1587,10 @@ void download_clear_stopped(gboolean complete,
 	GSList *sl;
 	time_t current_time = 0;
 
-	if (sl_unqueued && !now)
+	if (sl_unqueued == NULL)
+		return;
+
+	if (!now)
 		current_time = time(NULL);
 
 	for (sl = sl_unqueued; sl; sl = g_slist_next(sl)) {
@@ -1631,7 +1634,6 @@ void download_clear_stopped(gboolean complete,
 	gui_update_download_abort_resume();
 	gui_update_download_clear();
 }
-
 
 /*
  * Downloads management
