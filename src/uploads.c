@@ -83,6 +83,7 @@ struct upload *upload_add(struct gnutella_socket *s)
 	gchar *buf;
 	gint rqst_len;
 	gchar *titles[3];
+	guchar c;
 
 	titles[0] = titles[1] = titles[2] = NULL;
 
@@ -169,12 +170,35 @@ struct upload *upload_add(struct gnutella_socket *s)
 		}
 
 		for (files = shared_files; files; files = files->next)
-			if ((((struct shared_file *) (*files).data)->file_index ==
-				 index))
-				requested_file = (struct shared_file *) (*files).data;
+			if ((((struct shared_file *) files->data)->file_index == index))
+				requested_file = (struct shared_file *) files->data;
 
 		if (requested_file == NULL)
 			goto not_found;
+
+		/*
+		 * We must be cautious about file index changing between two scans,
+		 * which may happen when files are moved around on the local library.
+		 * If we serve the wrong file, and it's a resuming request, this will
+		 * result in a corrupted file!
+		 *		--RAM, 26/09/2001
+		 */
+
+		buf = s->buffer + sizeof("GET /get/");
+		while ((c = *(guchar *) buf++) && c != '/')
+			/* empty */;
+		if (c == '/' && 0 != strncmp(buf,
+				requested_file->file_name, requested_file->file_name_len)
+		) {
+			rw = g_snprintf(http_response, sizeof(http_response),
+				"HTTP/1.0 409 File index/name mismatch\r\n"
+				"Server: gtk-gnutella/%d.%d\r\n\r\n",
+				GTA_VERSION, GTA_SUBVERSION);
+			write(s->file_desc, http_response, rw);
+			g_warning("file index/name mismatch from %s for %d/%s",
+				ip_to_gchar(s->ip), index, requested_file->file_name);
+			return NULL;
+		}
 
 		/*
 		 * Range: bytes=10453-
