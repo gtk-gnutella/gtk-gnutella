@@ -82,7 +82,8 @@ gboolean is_latin_locale(void);
 
 #ifdef USE_ICU
 
-int to_icu_conv(const gchar *in, int lenin, UChar *out, int lenout);
+int locale_to_icu_conv(const gchar *in, int lenin, UChar *out, int lenout);
+int utf8_to_icu_conv(const gchar *in, int lenin, UChar *out, int lenout);
 int icu_to_utf8_conv(const UChar *in, int lenin, gchar *out, int lenout);
 
 int unicode_NFC(const UChar *source, gint32 len, UChar *result, gint32 rlen);
