@@ -1163,8 +1163,8 @@ inline static void
 dump_hex_header(FILE *out)
 {
 	fprintf(out, "%s%s\n",
-		"Offset  0  1  2  3  4  5  6  7  8  9  a  b  c  d  e  f  ",
-		hex_alphabet_lower);
+		"Offset  0  1  2  3  4  5  6  7   8  9  a  b  c  d  e  f  ",
+		"01234567 89abcdef");
 }
 
 /**
@@ -1192,13 +1192,15 @@ dump_hex(FILE *out, const gchar *title, gconstpointer data, gint b)
 
 	i = x = end = 0;
 	for (;;) {
-		if ((x & 0xff) == 0) {					/* i%256 == 0 */
+		if ((x & 0xff) == 0) {					/* x%256 == 0 */
 			if (x > 0)
 				fputc('\n', out);				/* break after 256 byte chunk */
 			dump_hex_header(out);
 		}
 		if (i == 0)
 			fprintf(out, "%5d  ", x & 0xffff);	/* offset, lowest 16 bits */
+		if ((x & 0x07) == 0 && (x & 0x08))		/* x == 8 modulo 16 */
+			fputc(' ', out);
 		if (end) {
 			fputs("   ", out);
 			temp[i] = ' ';
@@ -1212,6 +1214,8 @@ dump_hex(FILE *out, const gchar *title, gconstpointer data, gint b)
 		if (++i >= 16) {
 			fputc(' ', out);
 			for (y = 0; y < 16; y++) {	/* do 16 bytes ASCII */
+				if (y == 8)
+					fputc(' ', out);
 				fputc(temp[y], out);
 			}
 			fputc('\n', out);
