@@ -374,6 +374,11 @@ gint main(gint argc, gchar **argv, gchar **env)
 {
 	gint i;
 
+	if (0 == getuid() || 0 == geteuid()) {
+		fprintf(stderr, "Never ever run this as root!\n");
+		exit(EXIT_FAILURE); 
+	}
+
 	for (i = 3; i < 256; i++)
 		close(i);				/* Just in case */
 
