@@ -938,7 +938,7 @@ void gui_update_download(struct download *d, gboolean force)
 		if (d->last_update != d->start_date) {
 			guint32 spent = d->last_update - d->start_date;
 
-			gfloat rate = ((d->size - d->skip + d->overlap_size) /
+			gfloat rate = ((d->range_end - d->skip + d->overlap_size) /
 				1024.0) / spent;
 			g_snprintf(gui_tmp, sizeof(gui_tmp), "Completed (%.1f k/s) %s",
 				rate, short_time(spent));
@@ -970,14 +970,15 @@ void gui_update_download(struct download *d, gboolean force)
 				guint32 s;
 				gfloat bs;
 
-                if(d->size > (d->pos - d->skip))
+                if (d->size > (d->pos - d->skip))
                     s = (d->size - (d->pos - d->skip)) / avg_bps;
                 else
                     s=0;
 
 				bs = bps / 1024.0;
 
-				slen = g_snprintf(gui_tmp, sizeof(gui_tmp), "%.02f%% / %.02f%% ", p, pt);
+				slen = g_snprintf(gui_tmp, sizeof(gui_tmp),
+					"%.02f%% / %.02f%% ", p, pt);
 
 				if (now - d->last_update > IO_STALLED)
 					slen += g_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
