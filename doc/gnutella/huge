@@ -1,0 +1,840 @@
+
+
+Gnutella Developer Forum                                         G. Mohr
+                                                             Bitzi, Inc.
+                                                          April 30, 2002
+
+
+               Hash/URN Gnutella Extensions (HUGE) v0.94
+
+
+Abstract
+
+   HUGE is a collection of incremental extensions to the Gnutella
+   protocol (v 0.4) which allow files to be identified and located by
+   Uniform Resource Names (URNs) -- reliable, persistent, location-
+   independent names, such as those provided by secure hash values.
+
+Table of Contents
+
+   1.    HUGE in a Nutshell . . . . . . . . . . . . . . . . . . . . .  2
+   2.    Background . . . . . . . . . . . . . . . . . . . . . . . . .  3
+   2.1   Motivation and Goals . . . . . . . . . . . . . . . . . . . .  3
+   2.2   Status of this Document  . . . . . . . . . . . . . . . . . .  4
+   2.3   Hash and URN Conventions . . . . . . . . . . . . . . . . . .  5
+   2.4   Gnutella Version . . . . . . . . . . . . . . . . . . . . . .  6
+   3.    HUGE General Extension Mechanism (GEM) . . . . . . . . . . .  6
+   4.    Query Extensions . . . . . . . . . . . . . . . . . . . . . .  8
+   5.    QueryHit Extensions  . . . . . . . . . . . . . . . . . . . . 10
+   6.    Download Extensions  . . . . . . . . . . . . . . . . . . . . 10
+   6.1   URN-based Request-URI  . . . . . . . . . . . . . . . . . . . 10
+   6.2   Headers  . . . . . . . . . . . . . . . . . . . . . . . . . . 11
+   6.2.1 X-Gnutella-Content-URN . . . . . . . . . . . . . . . . . . . 11
+   6.2.2 X-Gnutella-Alternate-Location  . . . . . . . . . . . . . . . 11
+   7.    Implementation Recommendations . . . . . . . . . . . . . . . 13
+   8.    Experimental: HUGE in GGEP . . . . . . . . . . . . . . . . . 13
+   9.    Acknowledgements . . . . . . . . . . . . . . . . . . . . . . 14
+         References . . . . . . . . . . . . . . . . . . . . . . . . . 14
+         Author's Address . . . . . . . . . . . . . . . . . . . . . . 15
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Mohr                                                            [Page 1]
+
+The GDF                        HUGE v0.94                     April 2002
+
+
+1. HUGE in a Nutshell
+
+   If you would like to receive URNs, such as hashes, reported on the
+   hits for any other Query, insert a null-terminated string indicating
+   the prefix of the kind(s) of URNs you'd like to receive after the
+   first null, within the Query payload.  For example:
+
+     QUERY:
+       STD-HEADER:
+        [23 bytes]
+       QUERY-SEARCH-STRING:
+        Gnutella Protocol[0x00]urn:[0x00]
+
+   Meaning: "Find files with the keywords 'Gnutella Protocol', and if
+   possible, label the results with any 'urn:' identifiers available."
+
+   If you would like to Query for files by hash value, leave the
+   standard search-string empty, and insert a valid URN between-the-
+   nulls.  For example:
+
+     QUERY:
+       STD-HEADER:
+        [23 bytes]
+       QUERY-SEARCH-STRING:
+        [0x00]urn:sha1:PLSTHIPQGSSZTS5FJUPAKUZWUGYQYPFB[0x00]
+
+   Meaning: "Find files with exactly this SHA1 hash." (In the case of
+   the SHA1 URN type, that is 20 raw bytes, Base32-encoded.)
+
+   When you receive a QueryHit that requests URNs, or if you choose to
+   always include URNs, report them by inserting the valid URN between
+   the two nulls which mark the end of each distinct result.  For
+   example:
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Mohr                                                            [Page 2]
+
+The GDF                        HUGE v0.94                     April 2002
+
+
+     QUERYHIT:
+       STD-HEADER:
+        [23 bytes]
+       QUERY-HIT-HEADER:
+        [11 bytes]
+       EACH-RESULT:
+        INDEX:
+         [4 bytes]
+        LEN:
+         [4 bytes]
+        FILENAME:
+         GnutellaProtocol04.pdf[0x00]
+        EXTRA:
+         urn:sha1:PLSTHIPQGSSZTS5FJUPAKUZWUGYQYPFB[0x00]
+       SERVENT-IDENTIFIER:
+       [16 bytes]
+
+   Meaning: "Here's a file which matches your Query, and here also is
+   its SHA1 hash."
+
+   If you return such an URN, you must also accept it in an HTTP file-
+   request, in accordance with the following Request-URI syntax:
+
+     GET /uri-res/N2R?urn:sha1:PLSTHIPQGSSZTS5FJUPAKUZWUGYQYPFB HTTP/1.0
+
+   This syntax is in addition to, not in place of, the traditional file-
+   index/filename based GET convention.
+
+   To be in compliance with this specification, you should support at
+   least the SHA1 hash algorithm and format reflected here, and be able
+   to downconvert the related "bitprint" format in requests and reports
+   to SHA1.  Other URN namespaces are optional and should be gracefully
+   ignored if not understood.  Please refer to the rest of this document
+   for other important details.
+
+2. Background
+
+2.1 Motivation and Goals
+
+   By enabling the GnutellaNet to identify and locate files by hash/URN,
+   a number of features could be offered with the potential to greatly
+   enhance end-user experience.  These include:
+
+   o  Folding together the display of query results which represent the
+      exact same file -- even if those identical files have different
+      filenames.
+
+   o  Parallel downloading from multiple sources ("swarming") with final
+
+
+
+Mohr                                                            [Page 3]
+
+The GDF                        HUGE v0.94                     April 2002
+
+
+      assurance that the complete file assembled matches the remote
+      source files.
+
+   o  Safe "resume from alternate location" functionality, again with
+      final assurance of file integrity.
+
+   o  Cross-indexing GnutellaNet content against external catalogs (e.g.
+      Bitzi) or foreign P2P systems (e.g.  FastTrack, EDonkey2000,
+      OpenCola, MojoNation, Freenet, etc.)
+
+   The goal of these extensions, termed the "Hash/URN Gnutella
+   Extensions" ("HUGE"), is to enable cooperating servents to identify
+   and search for files by hash or other URN.  This is to be done in a
+   way that does not interfere with the operation of older servents,
+   servents which choose not to implement these features, or other
+   Gnutella-extension proposals.
+
+   The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT",
+   "SHOULD", "SHOULD NOT", "RECOMMENDED",  "MAY", and "OPTIONAL" in the
+   rest of this document are to be interpreted as described in RFC 2119.
+
+2.2 Status of this Document
+
+   A number of commercial and non-commercial clients have expressed
+   support for and substantially implemented this specification's
+   sections from Section 2.3 through Section 6.  These sections of the
+   specification have received wide support in discussions and informal
+   polls among Gnutella developers, but this specification as a whole
+   has not yet passed through any formal GDF ratification procedure.
+
+   Section 8 is an experimental recommendation for how HUGE capabilities
+   could be communicated in the GGEP [1] style.  This approach is
+   offered as grounds for discussion and trial implementations of GGEP,
+   if desired.  It should not be considered a reflection of a consensus,
+   prevailing practice, or an imminent replacement of the functioning
+   and deployed hash/URN sharing mechanisms described in the rest of
+   this document.
+
+   In addition to a number of minor corrections and clarifications, the
+   major changes in this version of the HUGE specification are:
+
+   o  Recognition of the prevailing practice of supplying URNs even when
+      not explicitly requested (Section 4 and Section 5).
+
+   o  Specification of the W3C's ISO8601 date-time format as the
+      required format for optional alternate-location timestamping.
+      (Section 6.2.2).
+
+
+
+
+Mohr                                                            [Page 4]
+
+The GDF                        HUGE v0.94                     April 2002
+
+
+   o  Discussion of coexistence of HUGE extension strings and GGEP
+      (Section 3) and an experimental HUGE-inside-GGEP recommendation
+      (Section 8).
+
+
+2.3 Hash and URN Conventions
+
+   URN syntax was originally defined in RFC2141 [2]; a procedure for
+   registering URN namespaces is described in RFC2611 [3].  URNs follow
+   the general syntax:
+
+     urn:[Namespace-ID]:[Namespace-Specific-String]
+
+   All examples in this version of this document presume the Namespace-
+   ID "sha1", which is not yet officially registered, and a Namespace-
+   Specific-String which is a 32-character Base32-encoding of a 20-byte
+   SHA1 hash value.  For example:
+
+     urn:sha1:PLSTHIPQGSSZTS5FJUPAKUZWUGYQYPFB
+
+   Case is unimportant for these identifiers, although other URN-schemes
+   will sometimes have case-sensitive Namespace-Specific-Strings.
+   Formal documentation and registration of this namespace and encoding
+   will proceed in separate documents, and this document will be updated
+   with references when possible.  The Base32 encoding to be used is the
+   one described as "Canonical" in the Simon Josefsson-editted Internet-
+   Draft, "Base Encodings" [4].  However, the encoded output should not
+   include any stray intervening characters or end-padding.
+
+   A nutshell description of how to calculate such Base32 encodings from
+   binary data is:
+
+   o  Take bits in groups of 5, most-significant-bits first.
+
+   o  Append zeroes if necessary to pad the last group to 5 bits.
+
+   o  Replace each group with the corresponding value from the following
+      digit-set, which leaves out the digits [0,1], for 5-bit values 0
+      through 31:
+
+       ABCDEFGHIJKLMNOPQRSTUVWXYZ  234567
+
+   For example, taking the two bytes 0x0F 0xF5:
+
+     00001111 11110101 -> 00001 11111 11010 1[0000] -> B72Q (Base32)
+
+   Another related URN Namespace which will be mentioned is that of
+   "urn:bitprint".  This namespace, also pending formal documentation
+
+
+
+Mohr                                                            [Page 5]
+
+The GDF                        HUGE v0.94                     April 2002
+
+
+   and registration, features a 32-character SHA1 value, a connecting
+   period, then a 39-character TigerTree value.  This creates an
+   identifier which is likely to remain robust against intentional
+   manipulation further into the future than SHA1 alone, and offers
+   other benefits for subrange verification.
+
+   Any "bitprint" identifier which begins with 32 characters terminated
+   by a period can be converted to a "sha1" value by truncating its
+   Namespace-Specific-String to the first 32-characters.  That is,
+
+     urn:bitprint:[32-character-SHA1].[39-character-TigerTree]
+
+   ...can become...
+
+     urn:sha1:[32-character-SHA1]
+
+   All servents compliant with this specification MUST be capable of
+   calculating and reporting SHA1 values when appropriate.  Further,
+   servents which choose not to calculate extended "urn:bitprint" values
+   SHOULD down-convert such values and requests, whenever received, to
+   SHA1 values and requests.
+
+2.4 Gnutella Version
+
+   HUGE is designed as an extension to the Gnutella Protocol version
+   0.4, as documented by Clip2,  revision 1.2 [5].  That document was
+   available as a PDF on 2002-04-30 from the Clip2 website:
+
+     http://www.clip2.com/GnutellaProtocol04.pdf
+     urn:sha1:PLSTHIPQGSSZTS5FJUPAKUZWUGYQYPFB
+
+   The HUGE extensions are completely independent of, and thus perfectly
+   compatible with, the Gnutella version 0.6 capability-negotiation
+   handshake.
+
+3. HUGE General Extension Mechanism (GEM)
+
+   At its heart, HUGE requires that new, distinct information be
+   included in Query messages and the QueryHit responses.  The general
+   mechanism used is to insert additional strings "between the nulls" --
+   the paired NULL characters which appear in Gnutella messages at end
+   of Query search-strings and QueryHit results.
+
+   However, numerous potential Gnutella extensions might all wish to use
+   that same space, even at the same time.  Thus a facility is required
+   to segment and distinguish independent extensions.  This section
+   describes one such facility, the HUGE "General Extension Mechanism"
+   (GEM).
+
+
+
+Mohr                                                            [Page 6]
+
+The GDF                        HUGE v0.94                     April 2002
+
+
+   Servents compliant with this proposal MUST be able to interpret the
+   space between NULs in Queries and QueryHit results as zero or more
+   independent extension strings, separated by ASCII character 28 -- FS,
+   "file separator", 0x1C.  (This character will not appear in any
+   human-readable strings, and is also expressly illegal in XML.) As
+   many extension strings as will fit inside a legal Gnutella message
+   are allowed.
+
+   Any future document specifying the format and behavior of certain
+   extension strings MUST provide a clear rule for identifying which
+   strings are covered by its specification, based on one or more unique
+   prefixes.  Servents MUST ignore any individual extension strings they
+   do not understand.
+
+   Any extension strings beginning with "urn:" (case-insensitive) MUST
+   be interpreted as per this specification.  Future extensions using
+   this GEM approach SHOULD NOT introduce ambiguities as to the
+   interpretation of any given previously-documented extension string,
+   and thus SHOULD NOT claim to cover any prefixes which are substrings
+   or extensions of "urn:".  (For example, "u", "ur", "urn", "urn:blah",
+   etc.)
+
+   So, a Query with two extension strings would fit the following
+   general format:
+
+     QUERY:
+       STD-HEADER:
+        [23 bytes]
+       QUERY-SEARCH-STRING:
+        traditional search string[0x00]
+       EXTRA
+        extension1[0x1C]extension2[0x00]
+
+   A QueryHit with two extension strings would look like:
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Mohr                                                            [Page 7]
+
+The GDF                        HUGE v0.94                     April 2002
+
+
+     QUERYHIT:
+       STD-HEADER:
+        [23 bytes]
+       QUERY-HIT-HEADER:
+        [11 bytes]
+       EACH-RESULT:
+        INDEX:
+         [4 bytes]
+        LEN:
+         [4 bytes]
+        FILENAME:
+         Filename[0x00]
+        EXTRA:
+         extension1[0x1C]extension2[0x00]
+       SERVENT-IDENTIFIER:
+       [16 bytes]
+
+   Since the original version of this document appeared, the "Gnutella
+   Generic Extension Protocol", or GGEP [1], has gained wide support as
+   a general way to include labelled extension fields in every kind of
+   Gnutella message, not just Queries and QueryHits.  At the time of
+   this writing, the GGEP specification is at document revision 0.51.
+   That specification's method of separating and labelling extensions
+   differs from HUGE GEM, but its Appendix B, "Peaceful Coexistence",
+   recommends a workable strategy for disambiguating HUGE GEM strings
+   from GGEP extension blocks.  Servents implementing both HUGE and GEM
+   MUST follow those recommendations, and servents implementing just
+   HUGE MUST consider any apparent extension string which begins with
+   the GGEP magic number byte, 0xC3, as being the start of a data area
+   not described to this HUGE GEM specification.
+
+   The availability of GGEP, and its ability to coexist with deployed
+   HUGE hash/URN GEM strings, makes it very possible that no further
+   GEM-style extensions will be defined in the future.
+
+   (Section 8 of this specification describes an experimental embedding
+   of the HUGE data inside GGEP-formatted extension blocks.  Servent
+   developers who are including GGEP functionality MAY wish to implement
+   this embedding as a GGEP practice case, or as a step towards a
+   potential future with a uniform extension mechanism.  However, to
+   ensure the widest compatibility with working and deployed code,
+   servents MUST also retain the ability to issue and respond to HUGE
+   GEM style extension strings to be compliant with this version of the
+   HUGE specification.)
+
+4. Query Extensions
+
+   HUGE adds two new Query capabilities: the ability to request that
+
+
+
+Mohr                                                            [Page 8]
+
+The GDF                        HUGE v0.94                     April 2002
+
+
+   URNs be included on returned search results, and the ability to
+   Query-by-URN.
+
+   To explicitly request that URNs be attached to search results,
+   servents MUST include either the generic string "urn:" or namespace-
+   specific URN prefixes, such as "urn:sha1:", as Query GEM extension
+   strings.
+
+   For example:
+
+     QUERY:
+       STD-HEADER:
+        [23 bytes]
+       QUERY-SEARCH-STRING:
+        Gnutella Protocol[0x00]urn:[0x00]
+
+   Servents MAY request multiple specific URN types, but use of the
+   generic "urn:" is recommended unless a servent has special
+   requirements.
+
+   When answering a Query which includes such URN requests, a remote
+   servent SHOULD include any URNs it can provide that meet the request.
+   In the generic "urn:" case, this means one or more URNs of the
+   responder's choosing.  When specific namespaces like "urn:sha1:" are
+   requested, those URNs should be provided if possible.  A servent MUST
+   still return otherwise-valid hits, even if it cannot supply requested
+   URNs.
+
+   A servent MAY include URNs on Query answers even when URNs have not
+   been specifically requrested.
+
+   To search for a file with a specific URN, servents MUST include the
+   whole URN as a Query GEM extension string.  Servents may include
+   multiple URNs as separate extension strings, and/or include a non-
+   empty traditional search string.  Any Query for a specific URN is
+   also an implicit request that the same sort of URN appear on all
+   search results.
+
+   For example:
+
+     QUERY:
+       STD-HEADER:
+        [23 bytes]
+       QUERY-SEARCH-STRING:
+        [0x00]urn:sha1:PLSTHIPQGSSZTS5FJUPAKUZWUGYQYPFB[0x00]
+
+   When answering a Query message, a servent SHOULD return any file
+   matching any of the included URNs, or matching the traditional search
+
+
+
+Mohr                                                            [Page 9]
+
+The GDF                        HUGE v0.94                     April 2002
+
+
+   string, if present.  (That is, any Query message is a request for
+   files matching the traditional query-string, if present, OR any one
+   or more of the supplied URNs, if present.)
+
+5. QueryHit Extensions
+
+   When providing URNs on QueryHit results, either because the Query
+   requested URNs or because you choose to provide URNs by default,
+   place the URNs as a GEM extension string or strings inside each
+   individual result.
+
+   For example:
+
+     QUERYHIT:
+       STD-HEADER:
+        [23 bytes]
+       QUERY-HIT-HEADER:
+        [11 bytes]
+       EACH-RESULT:
+        INDEX:
+         [4 bytes]
+        LEN:
+         [4 bytes]
+        FILENAME:
+         GnutellaProtocol04.pdf[0x00]
+        EXTRA:
+         urn:sha1:PLSTHIPQGSSZTS5FJUPAKUZWUGYQYPFB[0x00]
+       SERVENT-IDENTIFIER:
+       [16 bytes]
+
+
+6. Download Extensions
+
+6.1 URN-based Request-URI
+
+   Servents which report URNs MUST support a new syntax for requesting
+   files, based on their URN rather than their filename and local "file
+   index".  This syntax is adopted from RFC2169 [6].
+
+   Traditional Gnutella GETs are of the form:
+
+     GET /get/[file-index]/[file-name] HTTP/1.0
+
+   Servents reporting URNs must also accept requests of the form:
+
+     GET /uri-res/N2R?[URN] HTTP/1.0
+
+   For example:
+
+
+
+Mohr                                                           [Page 10]
+
+The GDF                        HUGE v0.94                     April 2002
+
+
+     GET /uri-res/N2R?urn:sha1:PLSTHIPQGSSZTS5FJUPAKUZWUGYQYPFB HTTP/1.0
+
+   (The PUSH/GIV facilities are unaffected by the HUGE extensions.)
+
+6.2 Headers
+
+   Two new headers, for inclusion on HTTP requests and responses, are
+   defined to assist servents in ascertaining that certain files are
+   exact duplicates of each other, and in finding alternate locations
+   for identical files.
+
+6.2.1 X-Gnutella-Content-URN
+
+   When responding to any GET, servents compliant with this
+   specification SHOULD use the "X-Gnutella-Content-URN" header whenever
+   possible to report a reliable URN for the file they are providing (or
+   in some cases, the file they recognize is being requested but that
+   cannot currently be provided).  The URN MUST be for the full file,
+   even when responding to "Range" requests.
+
+   For example:
+
+     X-Gnutella-Content-URN: urn:sha1:PLSTHIPQGSSZTS5FJUPAKUZWUGYQYPFB
+
+   When initiating a GET, servents MAY use the "X-Gnutella-Content-URN"
+   header to indicate the URN of the content they are attempting to
+   retrieve, regardless of the Request-URI used.  If the responder is
+   certain that the given URN does not apply to the resource it would
+   otherwise return, it may respond with a 404 Not Found error.
+
+   Multiple comma-separated URNs MAY be supplied in the "X-Gnutella-
+   Content-URN" header, if they are all valid URNs for the same file.
+   As per the HTTP header rules (RFC2616 [7], section 4.2), each value
+   in this list may also be equivalently reported as multiple headers
+   with the same "X-Gnutella-Content-URN" field-name.
+
+6.2.2 X-Gnutella-Alternate-Location
+
+   This header only has a defined meaning when used in conjunction with
+   "X-Gnutella-Content-URN".  Servents SHOULD use this header to
+   suggest, either in responses OR requests, a list of other locations
+   at which a file with same URN may be found.
+
+   Each alternate-location given must include at least a full URL from
+   which the file may be retrieved.
+
+   After this full URL, separated by at least one white space, a date
+   and time MAY be supplied, indicating when that location was last
+
+
+
+Mohr                                                           [Page 11]
+
+The GDF                        HUGE v0.94                     April 2002
+
+
+   known to be valid (i.e.  used for a successful fetch of any sort).
+   The date and time MUST be supplied in the date-time format given by
+   the W3C's profile  of ISO8601 [8]:
+
+   http://www.w3.org/TR/NOTE-datetime
+
+   This header MAY include multiple alternate locations (URLs with
+   optional timestamps), separated by commas.  As per the HTTP header
+   rules (RFC2616 [7], section 4.2), this comma-separated list may also
+   be equivalently represented as multiple occurences of a message-
+   header with the same "X-Gnutella-Alternate-Location" field-name.  As
+   per the HTTP header-folding rules (RFC2616 [7], section 2.2), a
+   header value may span multiple lines if subsequent lines begin with a
+   space or horizontal tab.
+
+   This header MAY be provided on "not found" and "busy" responses, when
+   it is possible to suggest other locations more likely to yield
+   success.
+
+   For example:
+
+     X-Gnutella-Content-URN: urn:sha1:PLSTHIPQGSSZTS5FJUPAKUZWUGYQYPFB
+     X-Gnutella-Alternate-Location:
+      http://www.clip2.com/GnutellaProtocol04.pdf
+     X-Gnutella-Alternate-Location:
+      http://10.0.0.10:6346/get/2468/GnutellaProtocol04.pdf
+     X-Gnutella-Alternate-Location:
+      http://10.0.0.25:6346/uri-res/N2R?urn:sha1:PLSTHIPQGSSZTS5FJUPAKUZWUGYQYPFB
+      2002-04-30T08:30Z
+
+   This indicates 3 known potential alternate sources for the same file,
+   with only the third bearing a known-valid timestamp.
+
+   Note that even places which already have a file may learn of new
+   alternate locations on inbound requests.
+
+   If the "X-Gnutella-Alternate-Location" header is encountered without
+   a corresponding "X-Gnutella-Content-URN" header, then its meaning is
+   undefined by this specification, and it will likely be appropriate to
+   double-check the appropriateness of any locations so provided.
+
+   Implementations SHOULD be tolerant of additional whitespace-separated
+   tokens after each alternate-location, gracefully ignoring values that
+   are not understood, since  future revisions of this alternate-
+   location mechanism may tag locations with additional information.
+
+
+
+
+
+
+Mohr                                                           [Page 12]
+
+The GDF                        HUGE v0.94                     April 2002
+
+
+7. Implementation Recommendations
+
+   While full compliance with this document is recommended,
+   functionality can be adopted in stages, without adversely affecting
+   other servents.  In particular, the facilities of this document can
+   be addressed according to the following logical ordering:
+
+   1.  Accept extension strings, gracefully ignoring unknown extensions,
+       passing along even traditionally "empty" Query messages if they
+       have extensions.  With these steps, HUGE traffic will not cause
+       any degradation in normal behavior.
+
+   2.  Report URNs and accept URN GETs, and use the Content-URN header.
+       After these steps, remote servents can begin to improve their
+       downloading features, even before making any changes to search
+       features.
+
+   3.  Request URNs on generated Query messages, so that local
+       downloading behavior can be improved.
+
+   4.  Remember -- and share -- alternate-locations via headers.  At
+       this stage, even normal downloading activity helps build
+       redundant source-meshes.
+
+   5.  Generate exact URN Queries for local needs -- for example, safe
+       resuming -- or in reaction to user choices  -- such as clicks
+       inside file-listings or web-pages.  After this step, servents
+       will be able to safely resume downloads, even days after they
+       began, or give users the ability to request exact files.
+
+
+8. Experimental: HUGE in GGEP
+
+   Servent developers who are adopting GGEP support may find it helpful
+   to consider the following recommendations for communicating HUGE
+   hash/URN information as GGEP extensions
+
+   This approach is offered as grounds for discussion and trial
+   implementations in GGEP, if desired.  It should not be considered a
+   reflection of a consensus, of prevailing practices, or as an
+   indication that the functioning and deployed hash/URN sharing
+   mechanisms described in the rest of this document will be replaced
+   anytime soon.
+
+   The proposed one-character GGEP extension-identifier for HUGE info is
+   'u'.  This can be thought of as an abbrieviation of "urn:", as this
+   GGEP extension-identifier takes the place of the "urn:" prefix which
+   identifies every HUGE GEM extension string.  Note that this proposed
+
+
+
+Mohr                                                           [Page 13]
+
+The GDF                        HUGE v0.94                     April 2002
+
+
+   identifier assignment has not been approved by the GDF.
+
+   Every place you would use a HUGE GEM string, use a HUGE GGEP block
+   instead.  As the GGEP extension data, use the same string as would
+   have been used in HUGE GEM, without the (now redundant) leading
+   "urn:" part.  When you receive such strings, assume the implied
+   "urn:" was present, to create legally formatted URNs whenever
+   necessary.
+
+   Examples:
+
+   o  If you were going to attach the GEM extension string "urn:" to a
+      Query, to make a blanket request for URNs on responses, instead
+      attach a GGEP block of type 'u' with a zero-length payload.
+
+   o  If you were going to attach the GEM extension string
+      "urn:sha1:PLSTHIPQGSSZTS5FJUPAKUZWUGYQYPFB" to a Query, to search
+      for an exact file, instead attach a GGEP block of type 'u' with
+      payload "sha1:PLSTHIPQGSSZTS5FJUPAKUZWUGYQYPFB".
+
+   o  If you were going to attach the GEM extension string
+      "urn:sha1:PLSTHIPQGSSZTS5FJUPAKUZWUGYQYPFB" to a QueryHit
+      response, to report an  exact file URN, instead attach a GGEP
+      block to the response of type 'u' with payload
+      "sha1:PLSTHIPQGSSZTS5FJUPAKUZWUGYQYPFB".
+
+   This approach maximizes the similarity between the HUGE GEM and GGEP
+   encapsulations, preserving the capability for 'u' extensions to
+   include new labelled URN-types in the future.
+
+   The current  deployment of working HUGE GEM code means that even if
+   HUGE-in-GGEP becomes popular, most servents for the forseeable future
+   will still want to (1) emit GEM-style Queries and (2) be able to
+   reply to GEM-style Queries with GEM-style QueryHits.  However, adding
+   a latent ability to respond to GGEP-style queries would lay the
+   groundwork for a potential future switchover to pure HUGE-in-GGEP, if
+   that ever becomes necessary or desirable.
+
+9. Acknowledgements
+
+   Thanks go to Robert Kaye, Mike Linksvayer, Oscar Boykin, Justin
+   Chapweske, Tony Kimball, Greg Bildson, Lucas Gonze, Raphael Manfredi,
+   Tor Klingberg and all discussion participants in the Gnutella
+   Developer Forum for their contributions, ideas, and comments which
+   helped shape and improve this proposal.
+
+References
+
+
+
+
+Mohr                                                           [Page 14]
+
+The GDF                        HUGE v0.94                     April 2002
+
+
+   [1]  Thomas, J., "Gnutella Generic Extension Protocol (GGEP)",
+        February 2002, <http://groups.yahoo.com/group/the_gdf/files/
+        Proposals/GGEP/GnutellaGenericExtensionProtocol.0.51.html>.
+
+   [2]  Moats, R., "URN Syntax", RFC 2141, May 1997.
+
+   [3]  Daigle, L., van Gulik, D., Iannella, R. and P. Faltstrom, "URN
+        Namespace Definition Mechanisms", BCP 33, RFC 2611, June 1999.
+
+   [4]  Josefsson, S., "Base Encodings", draft-josefsson-base-encoding-
+        03 (work in progress), November 2001.
+
+   [5]  Clip2, "The Gnutella Protocol Specification v0.4, Document
+        Revision 1.2", <http://www.clip2.com/GnutellaProtocol04.pdf>.
+
+   [6]  Daniel, R., "A Trivial Convention for using HTTP in URN
+        Resolution", RFC 2169, June 1997.
+
+   [7]  Fielding, R., Gettys, J., Mogul, J., Nielsen, H., Masinter, L.,
+        Leach, P. and T. Berners-Lee, "Hypertext Transfer Protocol --
+        HTTP/1.1", RFC 2616, June 1999.
+
+   [8]  Wolf, M. and C. Wicksteed, "W3C Note on Date and Time Formats",
+        September 1997, <http://www.w3.org/TR/NOTE-datetime>.
+
+
+Author's Address
+
+   Gordon Mohr
+   Bitzi, Inc.
+
+   EMail: gojomo@bitzi.com
+   URI:   http://bitzi.com/
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Mohr                                                           [Page 15]
+
