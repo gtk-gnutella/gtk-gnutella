@@ -3787,6 +3787,7 @@ gint file_info_available_ranges(struct dl_file_info *fi, gchar *buf, gint size)
 		gint j = random_value(nleft - 1);
 		struct dl_file_chunk *fc = fc_ary[j];
 		gint rw;
+		gint len;
 
 		g_assert(j >= 0 && j < nleft);
 		g_assert(fc->status == DL_CHUNK_DONE);
@@ -3794,7 +3795,12 @@ gint file_info_available_ranges(struct dl_file_info *fi, gchar *buf, gint size)
 		rw = gm_snprintf(range, sizeof(range), "%s%u-%u",
 			is_first ? "bytes " : "", fc->from, fc->to - 1);
 
-		if (header_fmt_length(fmt) + rw + 2 < maxfmt) {
+		len = header_fmt_length(fmt);
+
+		if (len + sizeof("bytes 0-512\r\n") >= maxfmt)
+			break;			/* No more room, no need to continue */
+
+		if (len + rw + 2 < maxfmt) {
 			header_fmt_append(fmt, range, ", ");
 			is_first = FALSE;
 		}
