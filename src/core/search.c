@@ -86,7 +86,7 @@ RCSID("$Id$");
 #define MUID_MAX			4		/* Max amount of MUID we keep per search */
 #define SEARCH_MIN_RETRY	1800	/* Minimum search retry timeout */
 
-struct sent_node_data {
+struct sent_node_data {		/* XXX replace by gnet_host_t */
 	guint32 ip;
 	guint16 port;
 };
@@ -457,8 +457,13 @@ get_results_set(gnutella_node_t *n, gboolean validate_only)
 	 * own IP address yet or is firewalled.
 	 */
 
-	if (NODE_IS_UDP(n) && n->ip != rs->ip && !is_private_ip(rs->ip))
-		gnet_stats_count_general(n, GNR_OOB_HITS_WITH_ALIEN_IP, 1);
+	if (NODE_IS_UDP(n)) {
+		rs->udp_ip = n->ip;
+		rs->status |= ST_UDP;
+
+		if (n->ip != rs->ip && !is_private_ip(rs->ip))
+			gnet_stats_count_general(n, GNR_OOB_HITS_WITH_ALIEN_IP, 1);
+	}
 
 	/* Check for hostile IP addresses */
 
@@ -798,9 +803,6 @@ get_results_set(gnutella_node_t *n, gboolean validate_only)
 	/*
 	 * Compute status bits, decompile trailer info, if present
 	 */
-
-	if (NODE_IS_UDP(n))
-		rs->status |= ST_UDP;
 
 	if (trailer) {
 		guint32 t;

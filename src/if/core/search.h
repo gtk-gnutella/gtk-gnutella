@@ -89,6 +89,7 @@ typedef struct gnet_results_set {
     flag_t  flags;
 	gnet_host_vec_t *proxies;	/* Optional: known push proxies */
 	gchar *hostname;			/* Optional: server's hostname */
+	guint32 udp_ip;				/* IP of delivering node, if hit from UDP */
 
 	GSList *records;
 	guint32 num_recs;

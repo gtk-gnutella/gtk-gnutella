@@ -82,7 +82,6 @@ static struct {
 	{ ST_UPLOADED,		N_("stable") },		/* Allows uploads -> stable */
 	{ ST_FIREWALL,		N_("push") },
 	{ ST_PUSH_PROXY,	N_("proxy") },
-	{ ST_UDP,			N_("udp") },
 };
 
 search_t *search_gui_get_current_search(void)	{ return current_search; }
@@ -542,6 +541,7 @@ search_gui_create_results_set(GSList *schl, const gnet_results_set_t *r_set)
     memcpy(rs->vendor, r_set->vendor, sizeof(rs->vendor));
 	rs->version = r_set->version ? atom_str_get(r_set->version) : NULL;
 	rs->hostname = r_set->hostname ? atom_str_get(r_set->hostname) : NULL;
+	rs->udp_ip = r_set->udp_ip;
 
     rs->num_recs = 0;
     rs->records = NULL;
@@ -797,9 +797,13 @@ search_matched(search_t *sch, results_set_t *rs)
 		g_string_append(vinfo, _("<unparsed>"));
 	}
 
-	if (rs->status & ST_UDP)
+	if (rs->status & ST_UDP) {
 		sch->udp_qhits++;
-	else
+		if (vinfo->len)
+			g_string_append(vinfo, ", ");
+		g_string_append(vinfo, "UDP ");
+		g_string_append(vinfo, ip_to_gchar(rs->udp_ip));
+	} else
 		sch->tcp_qhits++;
 
 	/*

@@ -60,6 +60,7 @@ typedef struct results_set {
 	gchar *version;				/* Version information (atom) */
 	gnet_host_vec_t *proxies;	/* Optional: known push proxies */
 	gchar *hostname;			/* Optional: server's hostname */
+	guint32 udp_ip;				/* IP of delivering node, if hit from UDP */
 
 	guint32 num_recs;
 	GSList *records;
