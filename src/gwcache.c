@@ -100,6 +100,8 @@ static gint current_reused = 0;				/* Amount of times we reused it */
 #define URL_RETRY_MS	(20 * 1000)			/* Retry timer for urlfile, in ms */
 #define REFRESH_MS		(8 * HOUR_MS)		/* Refresh every 8 hours */
 
+#define CLIENT_INFO "client=GTKG&version=" GTA_VERSION_NUMBER
+
 static const gchar *gwc_file = "gwcache";
 static const gchar *gwc_bootfile = "gwcache.boot";
 static const gchar *gwc_what = "web cache URLs";
@@ -107,7 +109,6 @@ static const gchar *gwc_what = "web cache URLs";
 static gpointer hourly_update_ev = NULL;
 static gpointer periodic_refresh_ev = NULL;
 static gpointer urlfile_retry_ev = NULL;
-static gchar *client_info;
 static gboolean gwc_file_dirty = FALSE;
 
 static void gwc_get_urls(void);
@@ -356,8 +357,6 @@ void gwc_init(void)
 {
 	gwc_known_url = g_hash_table_new(g_str_hash, g_str_equal);
 
-	client_info = g_strdup_printf("client=GTKG&version=%s", version_number);
-
 	/*
 	 * The following URLs are there for bootstrapping purposes only.
 	 */
@@ -438,7 +437,6 @@ void gwc_close(void)
 	cq_cancel(callout_queue, periodic_refresh_ev);
 	if (urlfile_retry_ev)
 		cq_cancel(callout_queue, urlfile_retry_ev);
-	g_free(client_info);
 
 	gwc_store();
 	g_hash_table_destroy(gwc_known_url);
@@ -698,7 +696,7 @@ static void gwc_get_urls(void)
 		return;
 
 	gm_snprintf(gwc_tmp, sizeof(gwc_tmp),
-		"%s?urlfile=1&%s", current_url, client_info);
+		"%s?urlfile=1&%s", current_url, CLIENT_INFO);
 
 	if (dbg > 2)
 		printf("GWC URL request: %s\n", gwc_tmp);
@@ -819,7 +817,7 @@ void gwc_get_hosts(void)
 		return;
 
 	gm_snprintf(gwc_tmp, sizeof(gwc_tmp),
-		"%s?hostfile=1&%s", current_url, client_info);
+		"%s?hostfile=1&%s", current_url, CLIENT_INFO);
 
 	if (dbg > 2)
 		printf("GWC host request: %s\n", gwc_tmp);
@@ -972,8 +970,7 @@ static void gwc_update_this(gchar *cache_url)
 	 * Finally, append our client/version information.
 	 */
 
-	rw += gm_snprintf(&gwc_tmp[rw], sizeof(gwc_tmp)-rw, "%s", client_info);
-	
+	g_strlcpy(&gwc_tmp[rw], CLIENT_INFO, sizeof(gwc_tmp)-rw);
 
 	if (dbg > 2)
 		printf("GWC update request: %s\n", gwc_tmp);
