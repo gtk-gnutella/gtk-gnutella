@@ -189,7 +189,7 @@ static inline GtkTreeIter *find_parent_with_fi_handle(
 	return iter;
 }
 
-static GtkTreeIter *find_download(download_t *d)
+static inline GtkTreeIter *find_download(download_t *d)
 {
     GtkTreeIter *iter = NULL;
 
