@@ -183,7 +183,8 @@ gtk_gnutella_SOURCES = \
 	inputevt.c inputevt.h \
 	vmsg.c vmsg.h \
 	parq.c parq.h \
-	adns.c adns.h
+	adns.c adns.h \
+	event.c event.h
 
 GLADE_WARNING1 = "Warning: gtk-gnutella.glade is newer than glade-built files and"
 GLADE_WARNING2 = "  \"glade --write-source\" failed.  To ignore any changes to"
