@@ -153,7 +153,7 @@ void node_timer(time_t now)
 					node_real_remove(n);
 					continue;
 				}
-			} else if (NODE_IS_CONNECTING(n)) {
+			} else if (NODE_IS_CONNECTING(n) || n->received == 0) {
 				if (now - n->last_update > node_connecting_timeout)
 					node_remove(n, "Timeout");
 			} else if (n->status == GTA_NODE_SHUTDOWN) {
