@@ -612,6 +612,15 @@ pcache_init(void)
 	local_meta.version_up = 0x2;	/* X-Query-Routing: 0.2 */
 
 	/*
+	 * Until we can supersede those default settings from the GUI and
+	 * enable locale preferencing from there, leave this out.
+	 *		--RAM, 2004-11-14
+	 */
+
+	(void) lang;	/* Avoid warnings whilst the following is disabled */
+
+#if 0	/* Disabled for 0.95 */
+	/*
 	 * Derive the locale if we can.
 	 */
 
@@ -660,6 +669,7 @@ pcache_init(void)
 			local_meta.language, local_meta.country);
 	} else
 		g_warning("unable to figure out locale preferences");
+#endif
 
 	for (h = 0; h < PONG_CACHE_SIZE; h++)
 		pong_cache[h].hops = h;
