@@ -824,16 +824,18 @@ static void __search_send_packet(search_ctrl_t *sch, gnutella_node_t *n)
 		 * of the URN query, plus a trailing NUL.
 		 */
 		qlen = 0;
-		size = sizeof(struct gnutella_msg_search) + 9+32 + 2;		/* 2 NULs */
+		size = sizeof(struct gnutella_msg_search) + 9+32 + 2;	/* 2 NULs */
 	} else {
 		/*
-		 * We're adding "urn:" after the NUL to request the SHA1 hash
-		 * (4 chars), and terminate that string with a NUL.
-		 *		-- RAM, 05/06/2002
+		 * We're adding a trailing NUL after the query text.
+		 *
+		 * Starting 24/09/2002, we no longer send the trailing "urn:\0" as
+		 * most servents will now send any SHA1 they have, unsollicited,
+		 * as we always did ourselves.
 		 */
 
 		qlen = strlen(sch->query);
-		size = sizeof(struct gnutella_msg_search) + qlen + 4 + 2;	/* 2 NULs */
+		size = sizeof(struct gnutella_msg_search) + qlen + 1;	/* 1 NUL */
 	}
 
 	plen = size - sizeof(struct gnutella_header);	/* Payload length */
@@ -860,7 +862,7 @@ static void __search_send_packet(search_ctrl_t *sch, gnutella_node_t *n)
 
 	if (is_urn_search) {
 		*m->search.query = '\0';
-		strncpy(m->search.query + 1, sch->query, 9+32);	/* urn:sha1:32bytes */
+		strncpy(m->search.query + 1, sch->query, 9+32+1); /* urn:sha1:32bytes */
 	} else {
 		strcpy(m->search.query, sch->query);
 		strcpy(m->search.query + qlen + 1, "urn:");
