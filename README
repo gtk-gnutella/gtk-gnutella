@@ -119,13 +119,29 @@ following is a list of commonly used options with the defaults.
 -D official='false'
 -D remotectrl='true'
 
-To disable nls:
+To disable NLS (National Language Support) i.e., nationalized text in the
+user interface:
+
 -U d_enablenls
 
-For example, a fairly typical configuration for linux x86, gtk2 gui:
+The option "official" should be set to "true" unless you want to test
+Gtk-Gnutella from CVS or are a developer. Currently, an "inofficial" build
+will access files in the sources directory to ease the process of testing.
+However, the meaning of this option might change at any time.  Therefore,
+software distributions and admins are urged to provide "official" builds
+only.
 
-    ./Configure -D prefix=/usr -D privlib=/usr/share/gtk-gnutella -D cc=gcc \
-	 -D ccflags='-Wall' -D optimize='-O2' -D gtkversion=2 -d -e -r -s
+For example, a fairly typical configuration for Linux x86, Gtk+ 2.x UI:
+
+    ./Configure \
+        -Oders \
+        -D prefix=/usr \
+        -D privlib=/usr/share/gtk-gnutella \
+        -D cc=gcc \
+        -D ccflags='-W -Wall -Wformat=2' \
+        -D optimize='-O2 -g' \
+        -D gtkversion=2 \
+        -D official=true
 
 If you're used to Autoconf with CFLAGS and LDFLAGS, you can use
 -D ccflags="$CFLAGS" respectively -D ldflags="$LDFLAGS" for Configure.
@@ -303,4 +319,4 @@ patches, you should include them also.  Before starting a big project, you may
 want to ask the list if anyone else is working on that fix so you don't 
 duplicate work.
 
-
+/* vi: set et: */
