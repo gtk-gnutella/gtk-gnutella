@@ -1860,7 +1860,6 @@ static void download_unqueue(struct download *d)
 	g_assert(d);
 	g_assert(DOWNLOAD_IS_QUEUED(d));
 	g_assert(dl_queue_count > 0);
-	g_assert(dl_qalive_count > 0);
 
 	if (DOWNLOAD_IS_VISIBLE(d))
 		download_gui_remove(d);
@@ -1870,6 +1869,8 @@ static void download_unqueue(struct download *d)
 
 	if (d->flags & DL_F_REPLIED)
 		gnet_prop_set_guint32_val(PROP_DL_QALIVE_COUNT, dl_qalive_count - 1);
+
+	g_assert(dl_qalive_count >= 0);
 
 	d->status = GTA_DL_CONNECTING;		/* Allow download to be stopped */
 }
@@ -2864,11 +2865,12 @@ void download_free(struct download *d)
 
 	if (DOWNLOAD_IS_QUEUED(d)) {
 		g_assert(dl_queue_count > 0);
-		g_assert(dl_qalive_count > 0);
 
 		gnet_prop_set_guint32_val(PROP_DL_QUEUE_COUNT, dl_queue_count - 1);
 		if (d->flags & DL_F_REPLIED)
 			gnet_prop_set_guint32_val(PROP_DL_QALIVE_COUNT, dl_qalive_count - 1);
+
+		g_assert(dl_qalive_count >= 0);
 	}
 
 	/*
