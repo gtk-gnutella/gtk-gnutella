@@ -1,5 +1,12 @@
 # since last version
 
+- (2002.06.25 - RAM)
+  * Did not include proper gui.c version in 0.90 beta.
+  * Do not abort when regular expression in queue matching is invalid!
+  * Avoid using all file descriptors for banning.  Now configurable via two
+	new config variables, namely ban_max_fds and ban_ratio_fds.
+  * Fixed bug in dmesh_url_parse(), caused by buggy sscanf(), grrr...
+
 # v 0.90   2002.06.24  [beta]
 
 Highlight of changes (user-visible):
