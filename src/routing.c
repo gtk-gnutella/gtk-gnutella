@@ -11,6 +11,12 @@
 #include <stdarg.h>
 #include <assert.h>
 
+/*
+ * Flags for GUID[15] tagging.
+ */
+
+#define GUID_PONG_CACHING	0x01
+#define GUID_PERSISTENT		0x02
 
 struct gnutella_node *fake_node;		/* Our fake node */
 
@@ -181,13 +187,14 @@ static void patch_muid_for_modern_node(guchar *muid)
 	 */
 
 	muid[8] = 0xff;
-	muid[15] = 1;		/* Now capable of ping/pong reduction */
+	muid[15] = GUID_PONG_CACHING | GUID_PERSISTENT;
 }
 
 /* Init function */
 void routing_init(void)
 {
 	guint32 i;
+	gboolean need_guid = TRUE;
 
 	/*
 	 * Make sure it segfaults if we try to access it, but it must be
@@ -199,9 +206,39 @@ void routing_init(void)
 
 	srand(time((time_t *) NULL));
 
-	for (i = 0; i < 15; i++)
-		guid[i] = rand() & 0xff;
+	/*
+	 * Only generate a new GUID for this servent if all entries are 0.
+	 * The empty initialization happens in config_init(), but it can be
+	 * overridden by the GUID read from the configuration file
+	 * (persistent GUID).
+	 *		--RAM, 08/03/2002
+	 */
+
+	for (i = 0; i < 15; i++) {
+		if (guid[i]) {
+			need_guid = FALSE;
+			break;
+		}
+	}
+
+	if (need_guid) {
+		for (i = 0; i < 15; i++)
+			guid[i] = random_value(0xff);
+	}
+
+	/*
+	 * We *always* patch the GUID, even a persistent one.  This means the
+	 * last byte can change when new features are supported.  Since it's not
+	 * something that happens on a regular basis, we'll achieve a fairly
+	 * long-lived GUID anyway.
+	 *		--RAM, 08/03/2002
+	 */
+
 	patch_muid_for_modern_node(guid);
+
+	/*
+	 * Initialize message type array for routing logs.
+	 */
 
 	for (i = 0; i < 256; i++)
 		debug_msg[i] = "UNKN ";
@@ -244,7 +281,7 @@ void generate_new_muid(guchar *muid, gboolean modern)
 
 	for (i = 0; i < 12; i += 2) {
 		gint k = (i < 4) ? i : (i + 4);
-		(*((guint16 *) (muid + k))) = (guint16) (rand() & 0xffff);
+		(*((guint16 *) (muid + k))) = (guint16) random_value(0xffff);
 	}
 
 	*((guint32 *) (muid + 4)) = muid_cnt++;
