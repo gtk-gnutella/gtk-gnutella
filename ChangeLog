@@ -5,6 +5,7 @@
  * When seeking to get the fileinfo trailer, don't use SEEK_END with a
    negative offset, but use SEEK_SET with an explicit positive value to
    avoid problems when off_t is 8-byte wide [From Christian Biere].
+ * When doing SEEK_SET, check that lseek() returns the right offset.
  * Be sure to not truncate the headers for crawler replies in the middle
    of an IP address [From Christian Biere].
  * Fixed final cleanup in pcache.c to also discard the recent pong cache.
@@ -15,6 +16,9 @@
  * Made sure `n' is no greater than INT_MAX for gm_*snprintf() calls.
  * Don't forget to reset str[0] to NUL in case we have to strlen(str) within
    the gm_*snprintf() calls.
+ * First experimental support for PARQ (active queuing only, client-side)
+   [From Jeroen Asselman].
+
 
 - (2003.02.01 - RAM)
  * Limit lifetime of download mesh entries to 1 day.
