@@ -131,7 +131,6 @@ static void gwc_seed_cache(gchar *cache_url);
 
 static const gchar * const boot_url[] = {
 	"http://gwebcache.bearshare.net/gcache.php",
-	"http://www.rodage.net/gnetcache/gcache.php",
 	"http://gwebcache2.limewire.com:9000/gwc",
 	"http://cache.kicks-ass.net:8000/",
 };
