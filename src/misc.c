@@ -603,7 +603,7 @@ inline gint hex2dec(guchar c)
 	return c >= '0' && c <= '9' ? c - '0'
 		 : c >= 'a' && c <= 'f' ? c - 'a' + 10
 		 : c >= 'A' && c <= 'F' ? c - 'A' + 10
-		 : g_assert_not_reached(), -1;
+		 : (g_assert_not_reached(), -1);
 }
 
 /*
