@@ -173,42 +173,42 @@ static struct {
  * High-level write macros.
  */
 
-#define WRITE_INT32(a) do {				\
-		gint32 val = htonl(a);			\
-		TBUF_PUTINT32(val);				\
-		file_info_checksum(&checksum, (guchar *) &val, sizeof(val)); \
+#define WRITE_INT32(a) do {			\
+	gint32 val = htonl(a);			\
+	TBUF_PUTINT32(val);				\
+	file_info_checksum(&checksum, (guchar *) &val, sizeof(val)); \
 } while(0)
 
-#define WRITE_STR(a, b) do {			\
-		TBUF_WRITE(a, b);				\
-		file_info_checksum(&checksum, (guchar *) a, b); \
+#define WRITE_STR(a, b) do {		\
+	TBUF_WRITE(a, b);				\
+	file_info_checksum(&checksum, (guchar *) a, b); \
 } while(0)
 
 /*
  * High-level read macros.
  */
 
-#define READ_INT32(a) do {				\
-		gint32 val;						\
-		TBUF_GETINT32(&val);			\
-		*a = ntohl(val);				\
-		file_info_checksum(&checksum, (guchar *) &val, sizeof(val)); \
+#define READ_INT32(a) do {			\
+	gint32 val;						\
+	TBUF_GETINT32(&val);			\
+	*a = ntohl(val);				\
+	file_info_checksum(&checksum, (guchar *) &val, sizeof(val)); \
 } while(0)
 
-#define READ_STR(a, b) do {				\
-		TBUF_READ(a, b);				\
-		file_info_checksum(&checksum, (guchar *) a, b); \
+#define READ_STR(a, b) do {			\
+	TBUF_READ(a, b);				\
+	file_info_checksum(&checksum, (guchar *) a, b); \
 } while(0)
 
 /*
  * Addition of a variable-size trailer field.
  */
 
-#define FIELD_ADD(a,b,c) do {			\
-		guint32 len = (b);				\
-		WRITE_INT32(a);					\
-		WRITE_INT32(len);				\
-		WRITE_STR(c, len);				\
+#define FIELD_ADD(a,b,c) do {		\
+	guint32 len = (b);				\
+	WRITE_INT32(a);					\
+	WRITE_INT32(len);				\
+	WRITE_STR(c, len);				\
 } while(0)
 
 /*
