@@ -5944,8 +5944,6 @@ static void download_retrieve(void)
 		if (parq_id != NULL) {
 			d->queue_status = parq_dl_create(d);
 			parq_dl_add_id(d, parq_id);
-			g_free(parq_id);
-			parq_id = NULL;
 		}
 
 		/*
@@ -5956,6 +5954,10 @@ static void download_retrieve(void)
 		d_name = NULL;
 		recline = 0;				/* Mark the end */
 		has_sha1 = FALSE;
+		if (parq_id != NULL) {
+			g_free(parq_id);
+			parq_id = NULL;
+		}
 	}
 
 out:
