@@ -1,5 +1,13 @@
 # since last version
 
+- (2004-08-07 - RAM)
+ * Forgot to call node_inc_sent() when sending a queued message, as opposed
+   to one immediately written at mq_putq() time.
+ * Added "n->last_tx" and use that when detecting activity timeouts, making
+   sure that there is something in the queue (or it would not be updated).
+ * Reverted changes made to node_reserve_slot() and node_avoid_monopoly()
+   which tried to make a distinction for UPs between incoming and outgoing.
+
 - (2004-08-06 - RAM)
  * Fixed some of the "file_size_known" madness.
  * Whether the file size is known or not is now persisted in the fileinfo,
