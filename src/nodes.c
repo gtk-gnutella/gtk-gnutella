@@ -76,7 +76,6 @@ RCSID("$Id$");
 #define MAX_MSG_SIZE			65536	/* Absolute maximum message length */
 #define MAX_HOP_COUNT			255		/* Architecturally defined maximum */
 
-#define NODE_ERRMSG_TIMEOUT		5	/* Time to leave erorr messages displayed */
 #define SHUTDOWN_GRACE_DELAY	120	/* Grace period for shutdowning nodes */
 #define BYE_GRACE_DELAY			30	/* Bye sent, give time to propagate */
 #define MAX_WEIRD_MSG			5	/* Close connection after so much weirds */
@@ -91,8 +90,6 @@ RCSID("$Id$");
 #define NODE_AVG_LEAF_MEM		262144	/* Average memory used by leaf */
 #define NODE_CASUAL_FD			10		/* # of fds we might use casually */
 #define NODE_AUTO_SWITCH_MIN	1800	/* Don't switch too often UP <-> leaf */
-
-#define QRELAYED_HALF_LIFE		5	/* Rotate `qrelayed' every 5 seconds */
 
 static GSList *sl_nodes = NULL;
 
@@ -236,8 +233,7 @@ void node_remove_node_flags_changed_listener(node_flags_changed_listener_t l)
     LISTENER_REMOVE(node_flags_changed, (gpointer) l);
 }
 
-static void node_fire_node_added(
-    gnutella_node_t *n, const gchar *type)
+static void node_fire_node_added(gnutella_node_t *n, const gchar *type)
 {
     n->last_update = time((time_t *)NULL);
     LISTENER_EMIT(node_added, n->node_handle, type);
@@ -249,14 +245,12 @@ static void node_fire_node_removed(gnutella_node_t *n)
     LISTENER_EMIT(node_removed, n->node_handle);
 }
 
-static void node_fire_node_info_changed
-    (gnutella_node_t *n)
+static void node_fire_node_info_changed(gnutella_node_t *n)
 {
     LISTENER_EMIT(node_info_changed, n->node_handle);
 }
 
-static void node_fire_node_flags_changed
-    (gnutella_node_t *n)
+static void node_fire_node_flags_changed(gnutella_node_t *n)
 {
     LISTENER_EMIT(node_flags_changed, n->node_handle);
 }
@@ -397,8 +391,8 @@ static gboolean can_become_ultra(time_t now)
 	gchar *no = "-- NO --";
 
 	/* Uptime requirements */
-	avg_servent_uptime = average_servent_uptime >= NODE_MIN_AVG_UPTIME;
-	avg_ip_uptime = average_ip_uptime >= NODE_MIN_AVG_UPTIME;
+	avg_servent_uptime = get_average_servent_uptime(now) >= NODE_MIN_AVG_UPTIME;
+	avg_ip_uptime = get_average_ip_lifetime(now) >= NODE_MIN_AVG_UPTIME;
 	node_uptime = now - start_stamp > NODE_MIN_UPTIME;
 
 	/* Connectivity requirements */
@@ -587,7 +581,7 @@ void node_timer(time_t now)
 
 		if (!(in_shutdown || stop_host_get)) {
 			if (n->status == GTA_NODE_REMOVING) {
-				if (now - n->last_update > NODE_ERRMSG_TIMEOUT) {
+				if (now - n->last_update > entry_removal_timeout) {
 					node_real_remove(n);
 					continue;
 				}
@@ -752,7 +746,7 @@ void node_timer(time_t now)
 
 		if (
 			n->qrelayed != NULL &&
-			now - n->qrelayed_created >= QRELAYED_HALF_LIFE
+			now - n->qrelayed_created >= node_queries_half_life
 		) {
 			GHashTable *new;
 
@@ -2410,8 +2404,10 @@ static void node_is_now_connected(struct gnutella_node *n)
 		if (NODE_IS_LEAF(n))
 			n->qseen = g_hash_table_new(g_str_hash, g_str_equal);
 		else {
-			n->qrelayed = g_hash_table_new(g_str_hash, g_str_equal);
-			n->qrelayed_created = time(NULL);
+			if (node_watch_similar_queries) {
+				n->qrelayed = g_hash_table_new(g_str_hash, g_str_equal);
+				n->qrelayed_created = time(NULL);
+			}
 		}
 	}
 
