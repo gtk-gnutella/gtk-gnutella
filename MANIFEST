@@ -222,10 +222,17 @@ src/glib-missing.h
 src/gmsg.c
 src/gmsg.h
 src/gnet.h
+src/gnet_downloads.h
+src/gnet_filters.h
+src/gnet_hcache.h
+src/gnet_net-stats.h
+src/gnet_nodes.h
 src/gnet_property.c
 src/gnet_property.h
 src/gnet_property_priv.h
 src/gnet_props.ag
+src/gnet_search.h
+src/gnet_share.h
 src/gnet_stats.c
 src/gnet_stats.h
 src/gnet_stats_gui.c
@@ -233,6 +240,7 @@ src/gnet_stats_gui.h
 src/gnet_stats_gui2.c
 src/gnet_stats_gui_common.c
 src/gnet_stats_gui_common.h
+src/gnet_uploads.h
 src/gnutella.h
 src/gtk-gnutella.man
 src/gtk-missing.c
