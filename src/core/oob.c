@@ -319,10 +319,11 @@ servent_free(struct servent *s)
  * Hit is enqueued in the FIFO, for slow delivery.
  */
 static void
-oob_record_hit(gpointer data, gint len, gpointer udata)
+oob_record_hit(gpointer data, size_t len, gpointer udata)
 {
 	struct servent *s = (struct servent *) udata;
 
+	g_assert(len <= INT_MAX);
 	fifo_put(s->fifo, gmsg_to_pmsg(data, len));
 }
 
