@@ -109,7 +109,6 @@ static void send_pproxy_error_v(
 {
 	gchar reason[1024];
 	gchar extra[1024];
-	gint slen = 0;
 	http_extra_desc_t hev[1];
 	gint hevcnt = 0;
 
@@ -132,7 +131,7 @@ static void send_pproxy_error_v(
 	 */
 
 	if (ext) {
-		slen = g_strlcpy(extra, ext, sizeof(extra));
+		size_t slen = g_strlcpy(extra, ext, sizeof(extra));
 		
 		if (slen < sizeof(extra)) {
 			hev[hevcnt].he_type = HTTP_EXTRA_LINE;
@@ -257,24 +256,24 @@ static void pproxy_error_remove(
  */
 void pproxy_timer(time_t now)
 {
-	GSList *l;
+	GSList *sl;
 	GSList *to_remove = NULL;
 
-	for (l = pproxies; l; l = g_slist_next(l)) {
-		struct pproxy *pp = (struct pproxy *) l->data;
+	for (sl = pproxies; sl; sl = g_slist_next(sl)) {
+		struct pproxy *pp = (struct pproxy *) sl->data;
 		
 		/*
 		 * We can't call pproxy_remove() since it will remove the structure
 		 * from the list we are traversing.
 		 */
 
-		if (now - pp->last_update > upload_connecting_timeout) {
+		if (delta_time(now, pp->last_update) > upload_connecting_timeout) {
 			to_remove = g_slist_prepend(to_remove, pp);
 		}
 	}
 
-	for (l = to_remove; l; l = g_slist_next(l)) {
-		struct pproxy *pp = (struct pproxy *) l->data;
+	for (sl = to_remove; sl; sl = g_slist_next(sl)) {
+		struct pproxy *pp = (struct pproxy *) sl->data;
 		pproxy_error_remove(pp, 408, "Request timeout");
 	}
 
@@ -324,7 +323,7 @@ static gboolean get_params(struct pproxy *pp, gchar *request,
 	 */
 
 	uri = request + ((request[0] == 'G') ? sizeof("GET") : sizeof("HEAD"));
-	while (*uri == ' ' || *uri == '\t')
+	while (is_ascii_blank(*uri))
 		uri++;
 
 	/*
@@ -780,7 +779,7 @@ static gint cproxy_build_request(gpointer handle, gchar *buf, gint len,
 	gchar *verb, gchar *path, gchar *host, guint16 port);
 static void cproxy_http_newstate(gpointer handle, http_state_t newstate);
 
-#define CPROXY_MAGIC	0xc8301
+#define CPROXY_MAGIC	0xc8301U
 
 /*
  * Operating flags.
