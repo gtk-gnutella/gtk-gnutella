@@ -1469,6 +1469,9 @@ static void file_info_hash_insert(struct dl_file_info *fi)
 
 	fi->hashed = TRUE;
     fi->fi_handle = file_info_request_handle(fi);
+
+	gnet_prop_set_guint32_val(PROP_FI_ALL_COUNT, fi_all_count + 1);
+
     event_trigger(
         fi_events[EV_FI_ADDED], 
         T_NORMAL(fi_listener_t, fi->fi_handle));    
@@ -1499,14 +1502,18 @@ static void file_info_hash_remove(struct dl_file_info *fi)
 	}
 
     /*
-     * Notify interested parties that file info is being removed and free
-     * it's handle.
+     * Notify interested parties that file info is being removed and
+	 * free its handle.
      */
 
     event_trigger(
         fi_events[EV_FI_REMOVED], 
         T_NORMAL(fi_listener_t, fi->fi_handle));    
+
     file_info_drop_handle(fi->fi_handle);
+
+	gnet_prop_set_guint32_val(PROP_FI_ALL_COUNT, fi_all_count - 1);
+	g_assert(fi_all_count >= 0);
 
 	/*
 	 * Remove from plain hash tables: by output name, and by SHA1.
@@ -3194,6 +3201,12 @@ void file_info_add_source(
     dl->file_info = fi;
     fi->sources = g_slist_prepend(fi->sources, dl);
 
+	if (fi->refcount == 1) {
+		gnet_prop_set_guint32_val(PROP_FI_WITH_SOURCE_COUNT,
+			fi_with_source_count + 1);
+		g_assert(fi_with_source_count <= fi_all_count);
+	}
+
     event_trigger(
         fi_events[EV_FI_SRC_ADDED], 
         T_NORMAL(fi_src_listener_t, fi->fi_handle, dl->src_handle));    
@@ -3232,9 +3245,15 @@ void file_info_remove_source(
 	 * as soon as this happens.
 	 */
 
-    if (fi->refcount == 0 && (discard || (fi->flags & FI_F_DISCARD))) {
-		file_info_hash_remove(fi);
-		fi_free(fi);
+    if (fi->refcount == 0) {
+		gnet_prop_set_guint32_val(PROP_FI_WITH_SOURCE_COUNT,
+			fi_with_source_count - 1);
+		g_assert(fi_with_source_count >= 0);
+
+		if (discard || (fi->flags & FI_F_DISCARD)) {
+			file_info_hash_remove(fi);
+			fi_free(fi);
+		}
     }
 }
 
