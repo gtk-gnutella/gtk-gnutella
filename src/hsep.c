@@ -75,6 +75,14 @@
 
 RCSID("$Id$");
 
+#if G_BYTE_ORDER == G_BIG_ENDIAN
+#define guint64_to_LE(x)	GUINT64_SWAP_LE_BE(x)
+#elif G_BYTE_ORDER == G_LITTLE_ENDIAN
+#define guint64_to_LE(x)	x
+#else
+#error "Byte order not supported"
+#endif
+
 /* global HSEP table */
 hsep_triple hsep_global_table[HSEP_N_MAX+1];
 
@@ -294,20 +302,15 @@ void hsep_process_msg(struct gnutella_node *n)
 	 * if native byte order is little endian, do nothing
 	 */
 
-	#if G_BYTE_ORDER == G_BIG_ENDIAN
-		for (i = max; i > 0; i--)
-		{
-			*messaget = GUINT64_SWAP_LE_BE(*messaget);
-			messaget++;
-			*messaget = GUINT64_SWAP_LE_BE(*messaget);
-			messaget++;
-			*messaget = GUINT64_SWAP_LE_BE(*messaget);
-			messaget++;
-		}
-	#elif G_BYTE_ORDER == G_LITTLE_ENDIAN
-	#else
-		#error "Byte order not supported"
-	#endif
+	for (i = max; i > 0; i--) {
+		*messaget = guint64_to_LE(*messaget);
+		messaget++;
+		*messaget = guint64_to_LE(*messaget);
+		messaget++;
+		*messaget = guint64_to_LE(*messaget);
+		messaget++;
+	}
+	messaget -= 3;			/* Back to front */
 
 	/* sanity check */
 
@@ -414,31 +417,23 @@ void hsep_send_msg(struct gnutella_node *n)
 	/*
 	 * Collect HSEP data to send.
 	 */
-	
-	for (i = 0; i < triples; i++) {
-		#if G_BYTE_ORDER == G_BIG_ENDIAN
-			*messaget++ = GUINT64_SWAP_LE_BE(*ownt++ +
-			    *globalt++ - *connectiont++);
-			*messaget++ = GUINT64_SWAP_LE_BE(*ownt++ +
-			    *globalt++ - *connectiont++);
-			*messaget++ = GUINT64_SWAP_LE_BE(*ownt++ +
-			    *globalt++ - *connectiont++);
-		#elif G_BYTE_ORDER == G_LITTLE_ENDIAN
-			*messaget++ = *ownt++ + *globalt++ - *connectiont++;
-			*messaget++ = *ownt++ + *globalt++ - *connectiont++;
-			*messaget++ = *ownt++ + *globalt++ - *connectiont++;
-		#else
-			#error "Byte order not supported"
-		#endif
 
+	for (i = 0; i < triples; i++) {
+		guint64 val;
+		val = *ownt++ + *globalt++ - *connectiont++;
+		*messaget++ = guint64_to_LE(val);
+		val = *ownt++ + *globalt++ - *connectiont++;
+		*messaget++ = guint64_to_LE(val);
+		val = *ownt++ + *globalt++ - *connectiont++;
+		*messaget++ = guint64_to_LE(val);
 		ownt -= 3;  /* back to start of own triple */
 	}
 
 	/* check if the table differs from the previously sent table */
 	if (0 == memcmp((char *) ((&m->header) + 1), 
 					(char *) n->hsep_sent_table, 
-					triples * 24))
-	{
+					triples * 24)
+	) {
 		G_FREE_NULL(m);
 		goto charge_timer;
 	}
@@ -504,7 +499,7 @@ charge_timer:
 void hsep_notify_shared(guint64 ownfiles, guint64 ownkibibytes)
 {
 	/* check for change */
-	if(ownfiles != hsep_own[HSEP_IDX_FILES] ||
+	if (ownfiles != hsep_own[HSEP_IDX_FILES] ||
 		ownkibibytes != hsep_own[HSEP_IDX_KIB])
 	{
 		printf("HSEP: Shared files changed to %llu (%llu KiB)\n",
@@ -666,7 +661,7 @@ gboolean hsep_check_monotony(hsep_triple *table, unsigned int triples)
 
 	g_assert(table);
 
-	if(triples < 2)  /* handle special case */
+	if (triples < 2)  /* handle special case */
 		return TRUE;
 	
 	prev = (guint64 *) table;
@@ -742,7 +737,7 @@ unsigned int hsep_get_table(hsep_triple *buffer, unsigned int maxtriples)
 
 	g_assert(buffer);
 
-	if(maxtriples > HSEP_N_MAX + 1)
+	if (maxtriples > HSEP_N_MAX + 1)
 		maxtriples = HSEP_N_MAX + 1;
 
 	for (i = 0; i < maxtriples; i++)
@@ -777,11 +772,10 @@ unsigned int hsep_get_connection_table(struct gnutella_node *n,
 
 	src = (guint64 *) n->hsep_table;
 
-	if(maxtriples > HSEP_N_MAX + 1)
+	if (maxtriples > HSEP_N_MAX + 1)
 		maxtriples = HSEP_N_MAX + 1;
 
-	for (i = 0; i < maxtriples; i++)
-	{
+	for (i = 0; i < maxtriples; i++) {
 		*dest++ = *src++;
 		*dest++ = *src++;
 		*dest++ = *src++;
