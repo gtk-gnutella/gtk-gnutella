@@ -1,5 +1,15 @@
 # since last version
 
+- (2003.05.11 - Richard)
+ * [Gtk1] Added clock skew to gui (calculation seems broken).
+ * [Gtk1] Added PROP_RUNS_NTP to gui.
+ * [Gtk1] Reordered connection settings in gnet pane.
+ * [Gtk1] Updated list of contributors in about dialog.
+ * Show all connection settings on gnet pane in leaf and ultra mode and hide
+   ultrapeer setting in legacy mode.
+ * Changed displayed info when failing to load config files.
+ * Properly update PROP_CLOCK_SKEW instead of modifying the variable directly.
+
 - (2003.05.11 - RAM)
  * Updated PARQ to revision 1.0.a of the specs.
  * Added flags to record whether a QUEUE is pending.
