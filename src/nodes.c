@@ -4798,19 +4798,22 @@ gboolean node_sent_ttl0(struct gnutella_node *n)
 {
 	g_assert(n->header.ttl == 0);
 
+	/*
+	 * Ignore if we're a leaf node -- we'll even handle the message.
+	 */
+
+	if (current_peermode == NODE_P_LEAF)
+		return FALSE;
+
 	gnet_stats_count_dropped(n, MSG_DROP_TTL0);
 
 	/*
-	 * Don't disconnect if we're a leaf node.
 	 * Some broken Ultrapeers out there do forward TTL=0 messages to their
 	 * leaves.  The harm is limited, since leaves don't forward messages.
 	 *		--RAM, 12/01/2003
 	 */
 
-	if (
-		current_peermode != NODE_P_LEAF &&
-		connected_nodes() > MAX(2, up_connections)
-	) {
+	if (connected_nodes() > MAX(2, up_connections)) {
 		node_bye(n, 408, "%s %s message with TTL=0",
 			n->header.hops ? "Relayed" : "Sent",
 			gmsg_name(n->header.function));
