@@ -28,6 +28,11 @@
 
 #include <gtk/gtk.h>
 
+/*
+ * GtkProgressBar
+ *
+ * Make Gtk1 and Gtk2 versions useable using the same interface.
+ */
 #ifndef USE_GTK2
 #define gtk_progress_bar_set_text(pb, t)            \
     gtk_progress_set_format_string(GTK_PROGRESS(pb), t)
@@ -36,23 +41,69 @@
 gint gtk_paned_get_position(GtkPaned *paned);
 #endif
 
+/*
+ * GtkSpinButton
+ */
 #ifndef USE_GTK2
 #define gtk_spin_button_get_value(w) \
     _gtk_spin_button_get_value(w)
 #endif
+gdouble _gtk_spin_button_get_value(GtkSpinButton *);
 
+/*
+ * GtkCList
+ */
+#ifdef USE_GTK1
 void gtk_clist_set_column_name(GtkCList * clist, gint col, gchar * t);
-gint gtk_main_flush(void);
+GSList *clist_collect_data(GtkCList *clist, gboolean allow_null,
+    GCompareFunc cfn);
+#endif /* USE_GTK1 */
+
+/*
+ * GtkCTree
+ */
+#ifdef USE_GTK1
+void gtk_ctree_fast_move (GtkCTree *ctree, GtkCTreeNode *node,
+	GtkCTreeNode *new_sibling);
+#define GTK_CTREE_NODE_SIBLING(n) \
+    ((n) ? (GTK_CTREE_ROW(n)->sibling) : (NULL))
+#endif /* USE_GTK1 */
+
+/*
+ * GtkLabel
+ */
+void gtk_label_printf(GtkLabel *label, const gchar * format, ...);
+
+/*
+ * GtkEntry
+ */
+void gtk_entry_printf(GtkEntry *entry, const gchar * format, ...);
+
+/*
+ * GtkEditable
+ */
+guint32 gtk_editable_get_value_as_uint(GtkEditable *editable);
+
+/*
+ * GtkCombo
+ */
+void gtk_combo_init_choices(
+    GtkCombo* combo, GtkSignalFunc func, prop_def_t *def, gpointer user_data);
+
+/*
+ * GtkOptionMenu
+ */
 void option_menu_select_item_by_data(GtkWidget *m, gpointer *d);
 gpointer option_menu_get_selected_data(GtkWidget *m);
-GtkWidget *menu_new_item_with_data(GtkMenu *m, gchar *l, gpointer d );
-GtkWidget *radiobutton_get_active_in_group(GtkRadioButton *rb);
-void gtk_entry_printf(GtkEntry *entry, const gchar * format, ...);
-void gtk_label_printf(GtkLabel *label, const gchar * format, ...);
-void gtk_mass_widget_set_sensitive(GtkWidget *tl, gchar *list[], gboolean b);
-GSList *clist_collect_data(GtkCList *clist, gboolean allow_null, 
-    GCompareFunc cfn);
 
+/*
+ * GtkWidget
+ */
+void gtk_mass_widget_set_sensitive(GtkWidget *tl, gchar *list[], gboolean b);
+
+/* 
+ * GtkTreeView
+ */
 #ifdef USE_GTK2
 GtkTreeIter *w_tree_iter_new(void);
 GtkTreeIter *w_tree_iter_copy(GtkTreeIter *iter);
@@ -61,15 +112,10 @@ GSList *tree_selection_collect_data(GtkTreeSelection *tsel, GCompareFunc cfn);
 void tree_view_save_widths(GtkTreeView *treeview, property_t prop);
 #endif /* USE_GTK2 */
 
-#ifdef USE_GTK1
-void gtk_ctree_fast_move (GtkCTree *ctree, GtkCTreeNode *node,
-	GtkCTreeNode *new_sibling);
-#endif /* USE_GTK1 */
 
-gdouble _gtk_spin_button_get_value(GtkSpinButton *);
-guint32 gtk_editable_get_value_as_uint(GtkEditable *editable);
-void gtk_combo_init_choices(
-    GtkCombo* combo, GtkSignalFunc func, prop_def_t *def, gpointer user_data);
+gint gtk_main_flush(void);
+GtkWidget *menu_new_item_with_data(GtkMenu *m, gchar *l, gpointer d );
+GtkWidget *radiobutton_get_active_in_group(GtkRadioButton *rb);
 
 
 #endif	/* _gtk_missing_h_ */
