@@ -51,6 +51,7 @@ RCSID("$Id$");
 #include "lib/fuzzy.h"
 #include "lib/file.h"
 #include "lib/vendors.h"
+#include "lib/utf8.h"
 #include "lib/zalloc.h"
 #include "lib/walloc.h"
 #include "lib/override.h"	/* Must be the last header included */
@@ -458,11 +459,20 @@ record_t *search_gui_create_record(results_set_t *rs, gnet_record_t *r)
     rc->results_set = rs;
     rc->refcount = 0;
 
-    rc->name = atom_str_get(r->name);
 #ifdef USE_GTK2
+    rc->name = atom_str_get(r->name);
     /* Gtk2 extracts this in search_gui2.c because of UTF8 issues. */
     rc->ext  = NULL; 
 #else
+	rc->name = NULL;
+	if (!is_ascii_string(r->name)) {
+		size_t len;
+
+		len = strlen(r->name);
+		if (utf8_is_valid_string(r->name, len))
+    		rc->name = utf8_to_locale(r->name, len);
+	}
+	rc->name = atom_str_get(rc->name ? rc->name : r->name);
     rc->ext  = atom_str_get(search_gui_extract_ext(rc->name));
 #endif
     rc->size = r->size;
@@ -1190,4 +1200,4 @@ void search_gui_add_targetted_search(record_t *rec, filter_t *noneed)
     filter_append_rule(new_search->filter, rule);
 }
 
-/* vi: set ts=4: */
+/* vi: set ts=4 sw=4 cindent: */
