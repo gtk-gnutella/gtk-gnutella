@@ -2073,6 +2073,14 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 		memcpy(stmp_1, search + offset, search_len + 1);
 
 #ifdef USE_ICU
+		
+		if (!is_utf8)
+			ignore = TRUE;
+		
+/* XXX: Don't handle ISO-8859-1 encoded queries graciously any longer. UTF-8
+ * is the _only_ valid encoding.
+ *			- cbiere, 2004-12-06 */
+#if 0
 		if (!is_utf8) {
 			const gchar *stmp_2;
 
@@ -2085,6 +2093,7 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 				use_map_on_query(stmp_1, search_len);
 			}
 		}
+#endif
 
 		/*
 		 * Here we suppose that the peer has the same NFKD/NFC keyword algo
@@ -2092,6 +2101,11 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 		 * (It must anyway, for compatibility with the QRP)
 		 */
 #else
+
+/* XXX: Why should search strings be limited to ASCII or ISO-8859-1?
+ *		This doesn't make any sense. Thus, disabled.
+ *			- cbiere, 2004-12-06 */
+#if 0
 		if (is_utf8) {
 			gint isochars;
 
@@ -2104,6 +2118,8 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 				printf("UTF-8 query, len=%d, utf8-len=%d, iso-len=%d: \"%s\"\n",
 					search_len, utf8_len, isochars, stmp_1);
 		}
+#endif
+
 #endif
 
 		if (!ignore)
