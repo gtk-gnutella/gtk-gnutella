@@ -46,6 +46,7 @@ RCSID("$Id$");
 #include "guid.h"
 #include "hostiles.h"
 #include "qhit.h"
+#include "oob.h"
 #include "fileinfo.h"
 
 #include "if/gnet_property.h"
@@ -559,6 +560,7 @@ share_init(void)
 	st_initialize(&search_table, query_map);
 	qrp_init(query_map);
 	qhit_init();
+	oob_init();
 
 	/*
 	 * We allocate an empty search_table, which will be de-allocated when we
@@ -1180,6 +1182,7 @@ share_close(void)
 	shared_dirs_free();
 	huge_close();
 	qrp_close();
+	oob_close();
 	qhit_close();
 }
 
@@ -1365,6 +1368,23 @@ compact_query(gchar *search)
 		memmove(search, search + offset, mangled_search_len);
 
 	return mangled_search_len;
+}
+
+/**
+ * Remove the OOB delivery flag by patching the query message inplace.
+ */
+void
+query_strip_oob_flag(gnutella_node_t *n, gchar *data)
+{
+	guint16 speed;
+
+	READ_GUINT16_LE(data, speed);
+	speed &= ~QUERY_SPEED_OOB_REPLY;
+	WRITE_GUINT16_LE(speed, data);
+
+	if (query_debug)
+		printf("QUERY from node %s <%s>: removed OOB delivery (speed = 0x%x)\n",
+			node_ip(n), node_vendor(n), speed);
 }
 
 /**
@@ -1756,8 +1776,6 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 	} else
 		share_emit_search_request(QUERY_STRING, search, n->ip, n->port);
 
-	READ_GUINT16_LE(n->data, req_speed);
-
 	/*
 	 * Special processing for the "connection speed" field of queries.
 	 *
@@ -1781,6 +1799,47 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 	 * interpretation. --RAM
 	 */
 
+	READ_GUINT16_LE(n->data, req_speed);
+
+	oob = (req_speed & QUERY_SPEED_MARK) && (req_speed & QUERY_SPEED_OOB_REPLY);
+
+	/*
+	 * If OOB reply is wanted, we have the IP/port of the querier.
+	 * Verify against the hotile IP addresses...
+	 */
+
+	if (oob) {
+		guint32 ip;
+		guint16 port;
+
+		guid_oob_get_ip_port(n->header.muid, &ip, &port);
+
+		if (hostiles_check(ip)) {
+			gnet_stats_count_dropped(n, MSG_DROP_HOSTILE_IP);
+			return TRUE;		/* Drop the message! */
+		}
+
+		/*
+		 * If it's a neighbouring query, make sure the IP:port for results
+		 * matches what we know about the listening IP:port for the node.
+		 */
+
+		if (
+			n->header.hops == 1 && (
+			(n->gnet_ip && ip != n->gnet_ip) ||
+			(n->gnet_port && port != n->gnet_port))
+		) {
+			query_strip_oob_flag(n, n->data);
+			oob = FALSE;
+
+			if (query_debug)
+				printf("QUERY node %s <%s>: removed OOB flag "
+					"(return address mismatch: %s, node: %s)\n",
+					node_ip(n), node_vendor(n),
+					ip_port_to_gchar(ip, port), node_gnet_ip(n));
+		}
+	}
+
 	use_ggep_h = FALSE;
 
 	if (req_speed & QUERY_SPEED_MARK) {
@@ -1790,8 +1849,6 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 		if (req_speed & QUERY_SPEED_GGEP_H)
 			use_ggep_h = TRUE;
 	}
-
-	oob = (req_speed & QUERY_SPEED_OOB_REPLY) != 0;
 
 	/*
 	 * If we aren't going to let the searcher download anything, then
@@ -1829,22 +1886,6 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 				printf("GTKG %squery from %d.%d%s\n",
 					guid_is_requery(n->header.muid) ? "re-" : "",
 					major, minor, release ? "" : "u");
-		}
-	}
-
-	/*
-	 * If OOB reply is wanted, we have the IP/port of the querier.
-	 * Verify against the hotile IP addresses...
-	 */
-
-	if (oob) {
-		guint32 ip;
-
-		guid_oob_get_ip_port(n->header.muid, &ip, NULL);
-
-		if (hostiles_check(ip)) {
-			gnet_stats_count_dropped(n, MSG_DROP_HOSTILE_IP);
-			return TRUE;		/* Drop the message! */
 		}
 	}
 
@@ -1973,9 +2014,19 @@ finish:
 		}
 	}
 
-// XXX check for OOB
+	/*
+	 * If we got a query marked for OOB results delivery, send them
+	 * a reply out-of-band but only if the query's hops is > 1.  Otherwise,
+	 * we have a direct link to the queryier.
+	 */
 
-	qhit_send_results(n, qctx->files, qctx->found, use_ggep_h);
+	if (qctx->found) {
+		if (oob && process_oob_queries && enable_udp && n->header.hops > 1)
+			oob_got_results(n, qctx->files, qctx->found, use_ggep_h);
+		else
+			qhit_send_results(n, qctx->files, qctx->found, use_ggep_h);
+	}
+
 	share_query_context_free(qctx);
 
 	return drop_it;

@@ -101,6 +101,7 @@ gboolean shared_dirs_parse(const gchar *);
 gint get_file_size(gint);
 
 guint compact_query(gchar *search);
+void query_strip_oob_flag(struct gnutella_node *n, gchar *data);
 
 void set_sha1(struct shared_file *, const gchar *sha1_digest);
 gboolean sha1_hash_available(const struct shared_file *);
