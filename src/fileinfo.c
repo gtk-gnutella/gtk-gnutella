@@ -1643,12 +1643,15 @@ static void file_info_hash_remove(struct dl_file_info *fi)
 		namesize_t *ns;
 		GSList *list;
 		GSList *head;
+		gpointer key, value;
 
 		nsk.name = l->data;
 
 		found = g_hash_table_lookup_extended(fi_by_namesize, &nsk,
-			(gpointer *) &ns, (gpointer *) &list);
+					&key, &value);
 
+		ns = key;
+		list = value;
 		g_assert(found);
 		g_assert(list != NULL);
 		g_assert(ns->size == fi->size);
