@@ -51,9 +51,11 @@
 #include "version.h"
 #include "fuzzy.h"
 
+#include "gnet.h"
 #include "gnet_property_priv.h"
 #include "settings.h"
 #include "nodes.h"
+#include "search_gui.h" // FIXME: I think this is backend... remove?
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -1371,7 +1373,7 @@ static struct dl_file_info *file_info_has_identical(
  * Check a results_set for matching entries in the download queue,
  * and generate new entries if we find a match.
  */
-void file_info_check_results_set(struct results_set *rs)
+void file_info_check_results_set(gnet_results_set_t *rs)
 {
 	GSList *l;
 	struct dl_file_info *fi;
