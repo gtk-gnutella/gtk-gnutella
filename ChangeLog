@@ -1,5 +1,9 @@
 # since last version
 
+- (2003.10.29 - Jeroen)
+ * Fixed some incossistent code. This should make the code even more
+   portable
+
 - (2003.10.28 - RAM)
  * When checking for an up-to-date SHA1 in a partial file, don't bother
    verifying whether the file is still present on the disk.
