@@ -462,7 +462,7 @@ static void gnet_stats_gui_horizon_init(void)
 				c_horizon_size, "-",
 				(-1));
 		}
-		add_column(treeview, n, width[n], (gfloat) (n != 0), titles[n]);
+		add_column(treeview, n, width[n], (gfloat) (n != 0), _(titles[n]));
 	}
 	G_FREE_NULL(width);
 	gtk_tree_view_set_model(treeview, model);
@@ -600,7 +600,7 @@ static void gnet_stats_gui_messages_init(void)
 				PROP_GNET_STATS_MSG_COL_WIDTHS, NULL, 0, 0);
 	for (n = 0; (guint) n < G_N_ELEMENTS(msg_stats_label); n++)
 		add_column(treeview, n, width[n], (gfloat) (n != 0),
-			msg_stats_label[n]);
+			_(msg_stats_label[n]));
 	G_FREE_NULL(width);
 
 	gtk_tree_view_set_model(treeview, model);
