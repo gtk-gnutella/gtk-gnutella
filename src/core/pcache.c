@@ -286,7 +286,7 @@ build_pong_msg(
 	}
 
 	/*
-	 * If we're replying to an UDP node, and they sent an "SPP" in their
+	 * If we're replying to an UDP node, and they sent an "SCP" in their
 	 * ping, then we're acting as an UDP host cache.  Give them some
 	 * fresh pongs of hosts with free slots.
 	 */
@@ -1759,6 +1759,11 @@ pcache_udp_pong_received(struct gnutella_node *n)
 	gint i;
 
 	g_assert(NODE_IS_UDP(n));
+
+	/*
+	 * We pretty much ignore pongs we get from UDP, unless they bear
+	 * the GGEP "IPP" extension, containing a packed set of IP:port.
+	 */
 
 	for (i = 0; i < n->extcount; i++) {
 		extvec_t *e = &n->extvec[i];
