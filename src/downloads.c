@@ -91,6 +91,7 @@ static GHashTable *dl_by_host = NULL;
 static GList *dl_by_time = NULL;
 static GHashTable *dl_count_by_name = NULL;
 static GHashTable *dl_count_by_sha1 = NULL;
+static gint dl_by_time_change = 0;
 
 /*
  * To handle download meshes, where we only know the IP/port of the host and
@@ -367,6 +368,7 @@ static struct dl_server *allocate_server(guchar *guid, guint32 ip, guint16 port)
 
 	g_hash_table_insert(dl_by_host, key, server);
 	dl_by_time = g_list_insert_sorted(dl_by_time, server, dl_server_retry_cmp);
+	dl_by_time_change++;
 
 	/*
 	 * If host is reacheable directly, its GUID does not matter much to
@@ -403,6 +405,8 @@ static void free_server(struct dl_server *server)
 	struct dl_ip ipk;
 
 	dl_by_time = g_list_remove(dl_by_time, server);
+	dl_by_time_change++;
+
 	g_hash_table_remove(dl_by_host, server->key);
 	if (server->vendor)
 		atom_str_free(server->vendor);
@@ -1151,6 +1155,8 @@ static void download_set_retry_after(struct download *d, time_t after)
 	dl_by_time = g_list_remove(dl_by_time, server);
 	server->retry_after = after;
 	dl_by_time = g_list_insert_sorted(dl_by_time, server, dl_server_retry_cmp);
+
+	dl_by_time_change++;
 }
 
 /*
@@ -1900,6 +1906,7 @@ void download_pickup_queued(void)
 	GList *l;
 	time_t now = time((time_t *) NULL);
 	gint running = count_running_downloads();
+	gint last_change;
 
 	/*
 	 * To select downloads, we iterate over the sorted `dl_by_time' list and
@@ -1909,6 +1916,9 @@ void download_pickup_queued(void)
 	 * things to schedule on the same host: It's better to spread load among
 	 * all hosts first.
 	 */
+
+retry:
+	last_change = dl_by_time_change;
 
 	for (l = dl_by_time; l && running < max_downloads; l = g_list_next(l)) {
 		struct dl_server *server = (struct dl_server *) l->data;
@@ -1954,6 +1964,17 @@ void download_pickup_queued(void)
 
 			break;			/* Don't schedule all files on same host at once */
 		}
+
+		/*
+		 * It's possible that download_start() ended-up changing the
+		 * dl_by_time list we're iterating over.  That's why all changes
+		 * to that list update the dl_by_time_change variable, which we
+		 * snapshot upon entry into the loop.
+		 *		--RAM, 24/08/2002.
+		 */
+
+		if (last_change != dl_by_time_change)
+			goto retry;
 	}
 
 	/*
@@ -3945,6 +3966,7 @@ static struct download *select_push_download(guint file_index, gchar *hex_guid)
 	GSList *list;
 	guchar rguid[16];		/* Remote GUID */
 	GList *l;
+	gint last_change;
 
 	g_strdown(hex_guid);
 	g_snprintf(dl_tmp, sizeof(dl_tmp), "%u:%s", file_index, hex_guid);
@@ -4015,6 +4037,9 @@ static struct download *select_push_download(guint file_index, gchar *hex_guid)
 	 * Look for a queued download on this host that we could request.
 	 */
 
+retry:
+	last_change = dl_by_time_change;
+
 	for (l = dl_by_time; l; l = l->next) {
 		struct dl_server *server = (struct dl_server *) l->data;
 		extern gint guid_eq(gconstpointer a, gconstpointer b);
@@ -4068,6 +4093,14 @@ static struct download *select_push_download(guint file_index, gchar *hex_guid)
 
 				return d;
 			}
+
+			/*
+			 * If download_start_prepare() requeued something with a delay,
+			 * the dl_by_time list has changed and we must restart the loop.
+			 *		--RAM, 24/08/2002.
+			 */
+			if (last_change != dl_by_time_change)
+				goto retry;
 		}
 	}
 
