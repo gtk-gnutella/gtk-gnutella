@@ -220,8 +220,8 @@ static void send_personal_info(struct gnutella_node *n, gboolean control)
 	 *				--RAM, 15/09/2001
 	 */
 
-	send_pong(n, control, 0, MIN(n->header.hops + 1, max_ttl), n->header.muid,
-		listen_ip(), listen_port, files_scanned, kbytes);
+	send_pong(n, control, 0, MIN((guint) n->header.hops + 1, max_ttl),
+		n->header.muid, listen_ip(), listen_port, files_scanned, kbytes);
 }
 
 /*
@@ -408,7 +408,7 @@ gboolean pcache_get_recent(host_type_t type, guint32 *ip, guint16 *port)
 	struct cached_pong *cp;
 	struct recent *rec;
 
-	g_assert(type >= 0 && type < HOST_MAX);
+	g_assert((guint) type < HOST_MAX);
 
 	rec = &recent_pongs[type];
 
@@ -611,11 +611,11 @@ static void pcache_expire(void)
 void pcache_close(void)
 {
 	static host_type_t types[] = { HOST_ANY, HOST_ULTRA };
-	gint i;
+	guint i;
 
 	pcache_expire();
 
-	for (i = 0; i < sizeof(types) / sizeof(types[0]); i++) {
+	for (i = 0; i < G_N_ELEMENTS(types); i++) {
 		host_type_t type = types[i];
 
 		pcache_clear_recent(type);
@@ -705,7 +705,7 @@ static void ping_all_neighbours(time_t now)
  */
 void pcache_possibly_expired(time_t now)
 {
-	if (now >= pcache_expire_time) {
+	if (delta_time(now, pcache_expire_time) >= 0) {
 		pcache_expire();
 		pcache_expire_time = now + cache_lifespan(current_peermode);
 		ping_all_neighbours(now);
@@ -799,12 +799,13 @@ static gboolean iterate_on_cached_line(
 	GSList *start, GSList *end, gboolean strict)
 {
 	gint hops = cl->hops;
-	GSList *l;
+	GSList *sl;
 
-	for (l = start; l && l != end && n->pong_missing; l = g_slist_next(l)) {
-		struct cached_pong *cp = (struct cached_pong *) l->data;
+	sl = start;
+	for (; sl && sl != end && n->pong_missing; sl = g_slist_next(sl)) {
+		struct cached_pong *cp = (struct cached_pong *) sl->data;
 
-		cl->cursor = l;
+		cl->cursor = sl;
 
 		/*
 		 * We never send a cached pong to the node from which it came along.
@@ -991,7 +992,7 @@ static void pong_random_leaf(struct cached_pong *cp, guint8 hops, guint8 ttl)
 		leaves++;
 		threshold = (gint) (1000.0 / leaves);
 
-		if (random_value(999) < threshold)
+		if ((gint) random_value(999) < threshold)
 			leaf = cn;
 	}
 
@@ -1175,7 +1176,7 @@ void pcache_ping_received(struct gnutella_node *n)
 	 * We first try to send pongs on a per-hop basis, based on pong_needed[].
 	 */
 
-	ttl = MIN(n->header.hops + 1, max_ttl);
+	ttl = MIN((guint) n->header.hops + 1, max_ttl);
 
 	for (h = 0; n->pong_missing && h < n->header.ttl; h++) {
 		struct cache_line *cl = &pong_cache[CACHE_HOP_IDX(h)];
