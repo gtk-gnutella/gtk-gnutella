@@ -132,6 +132,8 @@ static gint dl_active = 0;				/* Active downloads */
 
 static guchar blank_guid[16] = { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 };
 
+extern gint sha1_eq(gconstpointer a, gconstpointer b);
+
 /* ----------------------------------------- */
 
 #ifdef USE_GTK2
@@ -258,7 +260,6 @@ static gboolean is_faked_download(struct download *d)
 static gboolean has_good_sha1(struct download *d)
 {
 	struct dl_file_info *fi = d->file_info;
-	extern gint sha1_eq(gconstpointer a, gconstpointer b);
 
 	return fi->sha1 == NULL || sha1_eq(fi->sha1, fi->cha1);
 }
@@ -579,13 +580,13 @@ static void downloads_with_name_dec(const gchar *name)
 /*
  * has_same_download
  *
- * Check whether we already have an identical (same file, same host)
+ * Check whether we already have an identical (same file, same SHA1, same host)
  * running or queued download.
  *
  * Returns found active download, or NULL if we have no such download yet.
  */
 static struct download *has_same_download(
-	gchar *file, gchar *guid, guint32 ip, guint16 port)
+	gchar *file, guchar *sha1, gchar *guid, guint32 ip, guint16 port)
 {
 	struct dl_server *server = get_server(guid, ip, port);
 	GList *l;
@@ -598,7 +599,11 @@ static struct download *has_same_download(
 	for (n = 0; n < sizeof(listnum) / sizeof(listnum[0]); n++) {
 		for (l = server->list[n]; l; l = l->next) {
 			struct download *d = (struct download *) l->data;
+
 			g_assert(!DOWNLOAD_IS_STOPPED(d));
+
+			if (sha1 && d->sha1 && sha1_eq(d->sha1, sha1))
+				return d;
 			if (0 == strcmp(file, d->file_name))
 				return d;
 		}
@@ -1495,6 +1500,7 @@ void download_stop(struct download *d, guint32 new_status,
 	}
 
 	file_info_clear_download(d, FALSE);
+	gnet_prop_set_guint32_val(PROP_DL_RUNNING_COUNT, count_running_downloads());
 
 	gui_update_c_downloads(dl_active, dl_establishing + dl_active);
 }
@@ -1541,6 +1547,7 @@ static void download_queue_v(struct download *d, const gchar *fmt, va_list ap)
 		download_move_to_list(d, DL_LIST_WAITING);
 
 	sl_unqueued = g_slist_remove(sl_unqueued, d);
+	gnet_prop_set_guint32_val(PROP_DL_QUEUE_COUNT, dl_queue_count + 1);
 
 	download_gui_add(d);
 	gui_update_download(d, TRUE);
@@ -1834,11 +1841,13 @@ static void download_unqueue(struct download *d)
 {
 	g_assert(d);
 	g_assert(DOWNLOAD_IS_QUEUED(d));
+	g_assert(dl_queue_count > 0);
 
 	if (DOWNLOAD_IS_VISIBLE(d))
 		download_gui_remove(d);
 
 	sl_unqueued = g_slist_prepend(sl_unqueued, d);
+	gnet_prop_set_guint32_val(PROP_DL_QUEUE_COUNT, dl_queue_count - 1);
 
 	d->status = GTA_DL_CONNECTING;		/* Allow download to be stopped */
 }
@@ -2081,6 +2090,8 @@ void download_start(struct download *d, gboolean check_allowed)
 
 		download_push(d, FALSE);
 	}
+
+	gnet_prop_set_guint32_val(PROP_DL_RUNNING_COUNT, count_running_downloads());
 
 	gui_update_download(d, TRUE);
 	gui_update_c_downloads(dl_active, dl_establishing + dl_active);
@@ -2357,7 +2368,7 @@ static void create_download(
 	 * Refuse to queue the same download twice. --RAM, 04/11/2001
 	 */
 
-	if ((d = has_same_download(file_name, guid, ip, port))) {
+	if ((d = has_same_download(file_name, sha1, guid, ip, port))) {
 		if (interactive)
 			g_warning("rejecting duplicate download for %s", file_name);
 		atom_str_free(file_name);
@@ -2829,6 +2840,11 @@ void download_free(struct download *d)
 	if (DOWNLOAD_IS_VISIBLE(d))
 		download_gui_remove(d);
 
+	if (DOWNLOAD_IS_QUEUED(d)) {
+		g_assert(dl_queue_count > 0);
+		gnet_prop_set_guint32_val(PROP_DL_QUEUE_COUNT, dl_queue_count - 1);
+	}
+
 	/*
 	 * Abort running download (which will decrement the lifecount), otherwise
 	 * make sure we decrement it here (e.g. if the download was queued).
@@ -2911,8 +2927,8 @@ void download_resume(struct download *d)
 	d->file_info->lifecount++;
 
 	if (
-		NULL != has_same_download(d->file_name, download_guid(d),
-			download_ip(d), download_port(d))
+		NULL != has_same_download(d->file_name, d->sha1,
+			download_guid(d), download_ip(d), download_port(d))
 	) {
 		d->status = GTA_DL_CONNECTING;		/* So we may call download_stop */
 		download_move_to_list(d, DL_LIST_RUNNING);
@@ -3298,6 +3314,7 @@ static void download_write_data(struct download *d)
 	}
 
 	file_info_update(d, d->pos, d->pos + written, DL_CHUNK_DONE);
+	gnet_prop_set_guint32_val(PROP_DL_BYTE_COUNT, dl_byte_count + written);
 
 	if (written < s->pos) {
 		g_warning("partial write of %d out of %d bytes to file '%s'",
@@ -3611,7 +3628,8 @@ static gboolean download_convert_to_urires(struct download *d)
 	name = atom_str_get(sha1_base32(d->sha1));
 
 	if (dbg > 2)
-		g_warning("download at %s \"%u/%s\" becomes \"/uri-res/N2R?%s\"",
+		g_warning("download at %s \"%u/%s\" becomes "
+			"\"/uri-res/N2R?urn:sha1:%s\"",
 			ip_port_to_gchar(download_ip(d), download_port(d)),
 			d->record_index, d->file_name, name);
 	
@@ -3624,7 +3642,7 @@ static gboolean download_convert_to_urires(struct download *d)
 	 */
 
 	if (
-		has_same_download(name,
+		has_same_download(name, d->sha1,
 			download_guid(d), download_ip(d), download_port(d))
 	) {
 		download_stop(d, GTA_DL_ERROR, "Was a duplicate");
@@ -3822,7 +3840,6 @@ static gboolean check_content_urn(struct download *d, header_t *header)
 			 */
 
 			if (d->file_info->sha1) {
-				extern gint sha1_eq(gconstpointer a, gconstpointer b);
 				g_assert(!sha1_eq(d->file_info->sha1, d->sha1));
 
 				download_info_reget(d);
@@ -4288,6 +4305,7 @@ static void download_request(struct download *d, header_t *header, gboolean ok)
 	dl_active++;
 	g_assert(dl_establishing >= 0);
 
+	gnet_prop_set_guint32_val(PROP_DL_RUNNING_COUNT, count_running_downloads());
 	gui_update_download(d, TRUE);
 	gui_update_c_downloads(dl_active, dl_establishing + dl_active);
 
@@ -5364,7 +5382,6 @@ void download_move_error(struct download *d)
 	gchar *ext;
 	gchar src_name[2048];
 	gchar *dest_name;
-	extern gint sha1_eq(gconstpointer a, gconstpointer b);
 
 	g_assert(d->status == GTA_DL_MOVING);
 
@@ -5461,7 +5478,6 @@ void download_verify_progress(struct download *d, guint32 hashed)
 void download_verify_done(struct download *d, guchar *digest, time_t elapsed)
 {
 	struct dl_file_info *fi;
-	extern gint sha1_eq(gconstpointer a, gconstpointer b);
 
 	g_assert(d->status == GTA_DL_VERIFYING);
 
