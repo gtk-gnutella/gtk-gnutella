@@ -95,9 +95,6 @@ static void add_column(
 		attr, column_id, 
 		"foreground-gdk", c_gnet_fg,
 		NULL);
-	g_object_set(G_OBJECT(nodes_gui_cell_renderer),
-		     "foreground-set", TRUE,
-		     NULL);
 	g_object_set(G_OBJECT(column),
 		"fixed-width", 1,
 		"min-width", 1,
@@ -150,6 +147,8 @@ static void nodes_gui_create_treeview_nodes(void)
 	GtkTreeView *tree;
 	guint i;
 
+	STATIC_ASSERT(NODES_VISIBLE_COLUMNS == G_N_ELEMENTS(columns));
+
     /*
      * Create a model.  We are using the store model for now, though we
      * could use any other GtkTreeModel
@@ -185,8 +184,11 @@ static void nodes_gui_create_treeview_nodes(void)
 	nodes_gui_cell_renderer = gtk_cell_renderer_text_new();
 	gtk_cell_renderer_text_set_fixed_height_from_font(
 		GTK_CELL_RENDERER_TEXT(nodes_gui_cell_renderer), 1);
-	g_object_set(nodes_gui_cell_renderer,
-		"ypad", GUI_CELL_RENDERER_YPAD, NULL);
+	g_object_set(G_OBJECT(nodes_gui_cell_renderer),
+	     "foreground-set", TRUE,
+	     "xpad", GUI_CELL_RENDERER_XPAD,
+	     "ypad", GUI_CELL_RENDERER_YPAD,
+	     NULL);
 
 	for (i = 0; i < G_N_ELEMENTS(columns); i++) {
 		add_column(tree, columns[i].id, _(columns[i].title), columns[i].attr);
