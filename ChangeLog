@@ -68,6 +68,25 @@
 - Ensure we do not launch two copies of gtk-gnutella backed by the same
   configuration, and protect any configuration change made whilst the
   program was running by saving a copy of the old configuration if needed.
+- Fixed push bug, by allowing several downloads to be recorded for the
+  same (index, GUID) tuple.  This can happen if we don't notice a re-indexing
+  on the remote host.
+- Fobid the multicast IP range, and also the new 169.254/16 private range.
+  Downloads at those addresses will be pushed.
+- Don't remove queued downloads whose size is greater than the one we completed.
+- When downloading a file bigger than the one in the done directory,
+  and provided it's on the same filesystem as the tmp directory, move it out
+  for resuming.  This is safe now that we perform range overlapping.
+- Changed error message "Route lost" into "Push route lost".
+- Don't abort with "Push route lost" when we only fell back to push, but the
+  address does not seem to be private and there was no push indication in the
+  query hit.
+- Added upload statistics pane [From Michael Tesch, patch #529294].
+- Attempt to flush upload statistics on a regular basis when changed.
+- Try to flush queued messages on nodes as fast as possible by turning
+  on TCP_NODELAY to disable Nagle's algorithm.
+- Reworked on the shutdowning/bye code to maximize chances of proper delivery
+  of the BYE indication.
 
 # v 0.80   2002.01.31  [stable]
 # v 0.80   2002.01.22  [beta2]
