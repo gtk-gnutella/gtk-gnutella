@@ -244,6 +244,15 @@ static gint tx_dgram_pending(txdrv_t *tx)
 }
 
 /*
+ * tx_dgram_flush
+ *
+ * Nothing to do.
+ */
+static void tx_dgram_flush(txdrv_t *tx)
+{
+}
+
+/*
  * tx_dgram_bio_source
  */
 static struct bio_source *tx_dgram_bio_source(txdrv_t *tx)
@@ -262,6 +271,7 @@ static const struct txdrv_ops tx_dgram_ops = {
 	tx_dgram_enable,		/* enable */
 	tx_dgram_disable,		/* disable */
 	tx_dgram_pending,		/* pending */
+	tx_dgram_flush,			/* flush */
 	tx_dgram_bio_source,	/* bio_source */
 };
 

@@ -54,6 +54,7 @@ RCSID("$Id$");
 #define TX_DISABLE(o)		((o)->ops->disable((o)))
 #define TX_PENDING(o)		((o)->ops->pending((o)))
 #define TX_BIO_SOURCE(o)	((o)->ops->bio_source((o)))
+#define TX_FLUSH(o)			((o)->ops->flush((o)))
 
 /**
  * Create a new network driver, equipped with the `ops' operations and
@@ -181,6 +182,17 @@ tx_bio_source(txdrv_t *tx)
 	g_assert(tx);
 
 	return TX_BIO_SOURCE(tx);
+}
+
+/**
+ * Request that data be sent immediately.
+ */
+void
+tx_flush(txdrv_t *tx)
+{
+	g_assert(tx);
+
+	return TX_FLUSH(tx);
 }
 
 /**

@@ -256,10 +256,7 @@ static void tx_link_disable(txdrv_t *tx)
 	 *		--RAM, 15/03/2002
 	 */
 
-	if (n->flags & NODE_F_NODELAY) {
-		sock_nodelay(n->socket, FALSE);
-		n->flags &= ~NODE_F_NODELAY;
-	}
+	node_unflushq(n);
 }
 
 /*
@@ -270,6 +267,16 @@ static void tx_link_disable(txdrv_t *tx)
 static gint tx_link_pending(txdrv_t *tx)
 {
 	return 0;
+}
+
+/*
+ * tx_link_flush
+ *
+ * No data buffered at this level, nothing to do.
+ */
+static void tx_link_flush(txdrv_t *tx)
+{
+	/* Data, if any, is in the TCP layer */
 }
 
 /*
@@ -291,6 +298,7 @@ static const struct txdrv_ops tx_link_ops = {
 	tx_link_enable,		/* enable */
 	tx_link_disable,	/* disable */
 	tx_link_pending,	/* pending */
+	tx_link_flush,		/* flush */
 	tx_link_bio_source,	/* bio_source */
 };
 

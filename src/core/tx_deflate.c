@@ -814,6 +814,21 @@ static gint tx_deflate_pending(txdrv_t *tx)
 }
 
 /*
+ * tx_deflate_flush
+ *
+ * Trigger the Nagle timeout immediately, if registered.
+ */
+static void tx_deflate_flush(txdrv_t *tx)
+{
+	struct attr *attr = (struct attr *) tx->opaque;
+
+	if (attr->flags & DF_NAGLE) {
+		g_assert(attr->tm_ev != NULL);
+		cq_expire(callout_queue, attr->tm_ev);
+	}
+}
+
+/*
  * tx_deflate_bio_source
  *
  * Fetch the I/O source of the network driver.
@@ -834,6 +849,7 @@ static const struct txdrv_ops tx_deflate_ops = {
 	tx_deflate_enable,		/* enable */
 	tx_deflate_disable,		/* disable */
 	tx_deflate_pending,		/* pending */
+	tx_deflate_flush,		/* flush */
 	tx_deflate_bio_source,	/* bio_source */
 };
 

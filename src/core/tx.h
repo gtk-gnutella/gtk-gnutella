@@ -70,6 +70,7 @@ struct txdrv_ops {
 	void (*enable)(txdrv_t *tx);
 	void (*disable)(txdrv_t *tx);
 	gint (*pending)(txdrv_t *tx);
+	void (*flush)(txdrv_t *tx);
 	struct bio_source *(*bio_source)(txdrv_t *tx);
 };
 
@@ -91,6 +92,7 @@ struct bio_source *tx_bio_source(txdrv_t *tx);
 gint tx_no_write(txdrv_t *tx, gpointer data, gint len);
 gint tx_no_writev(txdrv_t *tx, struct iovec *iov, gint iovcnt);
 gint tx_no_sendto(txdrv_t *tx, gnet_host_t *to, gpointer data, gint len);
+void tx_flush(txdrv_t *d);
 
 #endif	/* _core_tx_h_ */
 
