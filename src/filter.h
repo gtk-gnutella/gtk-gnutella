@@ -59,13 +59,29 @@ typedef struct filter {
 } filter_t;
 
 
+
+#define RULE_FLAG_NEGATE (1 << 0)
+#define RULE_FLAG_VALID  (1 << 1)
+#define RULE_FLAG_ACTIVE (1 << 2)
+#define RULE_FLAG_SOFT   (1 << 3)
+
+#define RULE_IS_VALID(r) ((r != NULL) && (r->flags & RULE_FLAG_VALID))
+#define RULE_IS_NEGATED(r) ((r != NULL) && (r->flags & RULE_FLAG_NEGATE))
+#define RULE_IS_ACTIVE(r) ((r != NULL) && (r->flags & RULE_FLAG_ACTIVE))
+#define RULE_IS_SOFT(r) ((r != NULL) && (r->flags & RULE_FLAG_SOFT))
+
+#define rule_set_flags(r,f) (r->flags = r->flags | (f))
+#define rule_clear_flags(r,f) (r->flags = r->flags & ~(f))
+
+
 /* 
  * Definition of a filter rule
  */
 typedef struct rule {
     enum rule_type type;	            /* type of rule, see above */
-    gboolean negate;
-    gboolean valid;
+    guint16 flags;
+    guint32 match_count;
+    guint32 fail_count;
     filter_t *target;
     union {
         struct _f_text {
@@ -115,10 +131,10 @@ extern filter_t *work_filter;
  * Public interface.
  */
 
-rule_t *filter_new_ip_rule(guint32, guint32, filter_t *, gboolean);
-rule_t *filter_new_size_rule(size_t, size_t, filter_t *, gboolean);
-rule_t *filter_new_text_rule(gchar *, gint, gboolean, filter_t *,gboolean);
-rule_t *filter_new_jump_rule(filter_t *);
+rule_t *filter_new_ip_rule(guint32, guint32, filter_t *, guint16);
+rule_t *filter_new_size_rule(size_t, size_t, filter_t *, guint16);
+rule_t *filter_new_text_rule(gchar *, gint, gboolean, filter_t *, guint16);
+rule_t *filter_new_jump_rule(filter_t *,guint16);
 filter_t *filter_new(gchar *);
 gboolean filter_record(struct search *, struct record *);
 rule_t *filter_get_rule();
