@@ -424,19 +424,23 @@ static void guess_local_ip(int sd)
 	guint32 ip;
 
 	if (-1 != getsockname(sd, (struct sockaddr *) &addr, &len)) {
+		gboolean can_supersede;
 		ip = g_ntohl(addr.sin_addr.s_addr);
 
 		/*
-		 * If local IP was unknown, or if we have never computed it since we
-		 * started, keep what we got here, even if it's a private IP.
-		 * Otherwise, we discard private IPs unless the previous IP was private.
-		 *		--RAM, 07/05/2002
+		 * If local IP was unknown, keep what we got here, even if it's a
+		 * private IP. Otherwise, we discard private IPs unless the previous
+		 * IP was private.
+		 *		--RAM, 17/05/2002
 		 */
 
-		if (!ip_computed || !local_ip) {
-			local_ip = ip;
+		can_supersede = !is_private_ip(ip) || is_private_ip(local_ip);
+
+		if (!ip_computed) {
+			if (!local_ip || can_supersede)
+				local_ip = ip;
 			ip_computed = TRUE;
-		} else if (!is_private_ip(ip) || is_private_ip(local_ip))
+		} else if (can_supersede)
 			local_ip = ip;
 
 		gui_update_config_port(FALSE);
