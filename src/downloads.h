@@ -159,6 +159,7 @@ struct download {
 	gboolean push;			/* Currently in push mode */
 	gboolean always_push;	/* Always use the push method for this download */
 	gboolean got_giv;		/* Whether download created from GIV reception */
+	gboolean unavailable;	/* Set on Timout, Push route lost */
 
 	struct cproxy *cproxy;	/* Push proxy being used currently */
 
@@ -288,7 +289,7 @@ void download_remove(struct download *);
 void download_push_ack(struct gnutella_socket *);
 void download_fallback_to_push(struct download *, gboolean, gboolean);
 void download_pickup_queued(void);
-void download_clear_stopped(gboolean, gboolean, gboolean);
+void download_clear_stopped(gboolean, gboolean, gboolean, gboolean);
 void download_forget(struct download *);
 void download_abort(struct download *);
 void download_resume(struct download *);

@@ -499,6 +499,7 @@ void download_timer(time_t now)
 	download_clear_stopped(
         clear_complete_downloads, 
         clear_failed_downloads,
+        clear_unavailable_downloads,
         FALSE);
 
 	download_free_removed();
@@ -1364,13 +1365,14 @@ gint download_remove_all_with_sha1(const gchar *sha1)
  * download_clear_stopped:
  * 
  * Remove stopped downloads. 
- * complete == TRUE: removes DONE | COMPLETED
- * failed == TRUE:   removes ERROR | ABORTED 
- * now == TRUE:      remove immediately, else remove only downloads
- *                   idle since at least 3 seconds 
+ * complete == TRUE:    removes DONE | COMPLETED
+ * failed == TRUE:      removes ERROR | ABORTED without `unavailable' set
+ * unavailable == TRUE: removes ERROR | ABORTED with `unavailable' set
+ * now == TRUE:         remove immediately, else remove only downloads
+ *                      idle since at least 3 seconds 
  */
-
-void download_clear_stopped(gboolean complete, gboolean failed, gboolean now)
+void download_clear_stopped(gboolean complete,
+	gboolean failed, gboolean unavailable, gboolean now)
 {
 	GSList *sl;
 	time_t current_time = 0;
@@ -1394,18 +1396,25 @@ void download_clear_stopped(gboolean complete, gboolean failed, gboolean now)
 			continue;
 		}
 
-        if (now || (current_time - d->last_update) > 3) {
-            if (
-                (complete && (
-                    d->status == GTA_DL_DONE || 
-                    d->status == GTA_DL_COMPLETED)) 
-                ||
-                (failed && (
-                    d->status == GTA_DL_ERROR ||
-                    d->status == GTA_DL_ABORTED ))
-            )
+		if (now || (current_time - d->last_update) > 3) {
+			if (
+				complete && (
+					d->status == GTA_DL_DONE || 
+					d->status == GTA_DL_COMPLETED) 
+			) {
 				download_remove(d);
-        }
+			}
+			else if (
+				d->status == GTA_DL_ERROR ||
+				d->status == GTA_DL_ABORTED
+			) {
+				if (
+					(failed && !d->unavailable) ||
+					(unavailable && d->unavailable)
+				)
+					download_remove(d);
+			}
+		}
 	}
 
 	gui_update_download_abort_resume();
@@ -1670,12 +1679,12 @@ void download_redirect_to_server(struct download *d, guint32 ip, guint16 port)
 }
 
 /*
- * download_stop
+ * download_stop_v
  *
- * Stop an active download, close its socket and its data file descriptor.
+ * Vectorized version common to download_stop() and download_unavailable().
  */
-void download_stop(struct download *d, guint32 new_status,
-				   const gchar * reason, ...)
+static void download_stop_v(struct download *d, guint32 new_status,
+				   const gchar * reason, va_list ap)
 {
 	gboolean store_queue = FALSE;		/* Shall we call download_store()? */
 	enum dl_list list_target;
@@ -1726,11 +1735,8 @@ void download_stop(struct download *d, guint32 new_status,
 	}
 
 	if (reason) {
-		va_list args;
-		va_start(args, reason);
-		gm_vsnprintf(d->error_str, sizeof(d->error_str), reason, args);
+		gm_vsnprintf(d->error_str, sizeof(d->error_str), reason, ap);
 		d->error_str[sizeof(d->error_str) - 1] = '\0';	/* May be truncated */
-		va_end(args);
 		d->remove_msg = d->error_str;
 	} else
 		d->remove_msg = NULL;
@@ -1806,6 +1812,40 @@ void download_stop(struct download *d, guint32 new_status,
 
 	gnet_prop_set_guint32_val(PROP_DL_RUNNING_COUNT, count_running_downloads());
 	gnet_prop_set_guint32_val(PROP_DL_ACTIVE_COUNT, dl_active);
+}
+
+/*
+ * download_stop
+ *
+ * Stop an active download, close its socket and its data file descriptor.
+ */
+void download_stop(struct download *d, guint32 new_status,
+				   const gchar * reason, ...)
+{
+	va_list args;
+
+	d->unavailable = FALSE;
+
+	va_start(args, reason);
+	download_stop_v(d, new_status, reason, args);
+	va_end(args);
+}
+
+/*
+ * download_unavailable
+ *
+ * Like download_stop(), but flag the download as "unavailable".
+ */
+static void download_unavailable(struct download *d, guint32 new_status,
+				   const gchar * reason, ...)
+{
+	va_list args;
+
+	d->unavailable = TRUE;
+
+	va_start(args, reason);
+	download_stop_v(d, new_status, reason, args);
+	va_end(args);
 }
 
 /*
@@ -2507,7 +2547,7 @@ void download_start(struct download *d, gboolean check_allowed)
 			download_gui_add(d);
 
 		if (!d->socket) {
-			download_stop(d, GTA_DL_ERROR, "Connection failed");
+			download_unavailable(d, GTA_DL_ERROR, "Connection failed");
 			return;
 		}
 
@@ -2687,7 +2727,7 @@ static void download_push(struct download *d, gboolean on_timeout)
 		 */
 
 		if (!host_is_valid(download_ip(d), download_port(d))) {
-			download_stop(d, GTA_DL_ERROR, "Push route lost");
+			download_unavailable(d, GTA_DL_ERROR, "Push route lost");
 			download_remove_all_from_peer(
 				download_guid(d), download_ip(d), download_port(d));
 		} else {
@@ -2730,7 +2770,8 @@ attempt_retry:
 			 * Abort the download, and remove all the ones for the same host.
 			 */
 
-			download_stop(d, GTA_DL_ERROR, "Can't reach host (Push or Direct)");
+			download_unavailable(d, GTA_DL_ERROR,
+				"Can't reach host (Push or Direct)");
 			download_remove_all_from_peer(
 				download_guid(d), download_ip(d), download_port(d));
 		} else
@@ -2753,7 +2794,7 @@ attempt_retry:
 		 * the ones queued for the same host.
 		 */
 
-		download_stop(d, GTA_DL_ERROR, "Timeout (%d retr%s)",
+		download_unavailable(d, GTA_DL_ERROR, "Timeout (%d retr%s)",
 				d->retries, d->retries == 1 ? "y" : "ies");
 
 		download_remove_all_from_peer(
@@ -3711,7 +3752,7 @@ static void err_header_read_error(gpointer o, gint error)
 			download_queue_delay(d, download_retry_stopped_delay,
 				"Stopped (%s)", g_strerror(error));
 		else
-			download_stop(d, GTA_DL_ERROR,
+			download_unavailable(d, GTA_DL_ERROR,
 				"Too many attempts (%d)", d->retries - 1);
 	} else
 		download_stop(d, GTA_DL_ERROR, "Failed (Read error: %s)",
@@ -3771,7 +3812,7 @@ static void err_header_read_eof(gpointer o)
 			d->keep_alive ? "Connection not kept-alive (EOF)" :
 			"Stopped (EOF)");
 	else
-		download_stop(d, GTA_DL_ERROR,
+		download_unavailable(d, GTA_DL_ERROR,
 			"Too many attempts (%d)", d->retries - 1);
 }
 
