@@ -127,6 +127,7 @@ gchar *short_uptime(time_t s);
  * Size string conversions
  */
 gchar *short_size(guint32);
+gchar *short_size64(guint64 size);
 gchar *short_kb_size(guint32);
 gchar *compact_size(guint32 size);
 

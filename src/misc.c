@@ -380,6 +380,25 @@ gchar *short_size(guint32 size)
 	return b;
 }
 
+gchar *short_size64(guint64 size)
+{
+	static gchar b[SIZE_FIELD_MAX];
+
+	if (size < 1024)
+		gm_snprintf(b, sizeof(b), "%u Bytes", size);
+	else if (size < 1048576)
+		gm_snprintf(b, sizeof(b), "%.1f KB", (float) size / 1024.0);
+	else if (size < 1073741824)
+		gm_snprintf(b, sizeof(b), "%.1f MB", (float) size / 1048576.0);
+	else if ((size >> 10) < 1073741824)
+		gm_snprintf(b, sizeof(b), "%.1f GB", (float) size / 1073741824.0);
+	else
+		gm_snprintf(b, sizeof(b), "%.1f TB",
+			(float) (size >> 10) / 1073741824.0);
+
+	return b;
+}
+
 /* Returns a number of kbytes in a more readable form */
 
 gchar *short_kb_size(guint32 size)

@@ -2945,7 +2945,7 @@ static gboolean update_byte_size_entry(property_t prop)
 	gnet_prop_get_guint64_val(prop, &value);
 
 	gm_snprintf(buf, sizeof(buf), "%s (%s)",
-		short_size(value), stub->to_string(prop));
+		short_size64(value), stub->to_string(prop));
 
     gtk_entry_set_text(GTK_ENTRY(w), buf);
 
