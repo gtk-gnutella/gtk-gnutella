@@ -90,8 +90,8 @@
 - Now parses the Query Hit packets only once, no matter how many searches open.
 - Integrated filtering patch [From Robert Bihlmeyer].  You may now apply
   filters to your searches.
-- Double-clicking on a file in the search window will request downloading of
-  that file only, despite multiple selections. [From Noel T.Nunkovich]
+- Double-clicking on a file in the search window will request downloading
+  of the selected files. [From Noel T.Nunkovich]
 - Removed useless and memory hog host catcher list in the gnutellaNet screen:
   saves 2 MB of RAM plus avoids cost of updating it [From Mark Schreiber].
 - Be tolerant on servents that do not send a Content-Length but send
@@ -107,6 +107,12 @@
 - Added X-Live-Since: to all our HTTP replies.
 - Added download queue persistence.
 - Download resuming now checks for proper file via an overlap of 512 bytes.
+- Split hostcache into two distinct lists: the reserve, and the list of
+  nodes we tried and are known to be valid Gnutella servers.  In an attempt
+  to limit the tendency of the hostcache to remove hosts rapidly.
+- Will now automatically determine that the forced local IP is obsolete
+  and change it on the fly, provided we're connecting to modern servents,
+  which make use of the Remote-IP header during handshaking.
 
 # v 0.18   2001.11.19
 
