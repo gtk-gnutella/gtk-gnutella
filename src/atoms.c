@@ -30,6 +30,7 @@
 #include <string.h>
 
 #include "atoms.h"
+#include "misc.h"
 
 /*
  * Atoms are ref-counted.
@@ -46,6 +47,7 @@ struct atom {
 #define ARENA_OFFSET	G_STRUCT_OFFSET(struct atom, arena)
 
 typedef gint (*len_func_t)(gconstpointer v);
+typedef gchar *(*str_func_t)(gconstpointer v);
 
 /*
  * Description of atom types.
@@ -56,17 +58,21 @@ struct table_desc {
 	GHashFunc hash_func;		/* Hashing function for atoms */
 	GCompareFunc eq_func;		/* Atom equality function */
 	len_func_t len_func;		/* Atom length function */
+	str_func_t str_func;		/* Atom to human-readable string */
 };
 
 #define public
 
 static gint str_len(gconstpointer v);
+static gchar *str_str(gconstpointer v);
 public guint guid_hash(gconstpointer key);
 public gint guid_eq(gconstpointer a, gconstpointer b);
 static gint guid_len(gconstpointer v);
+static gchar *guid_str(gconstpointer v);
 public guint sha1_hash(gconstpointer key);
 public gint sha1_eq(gconstpointer a, gconstpointer b);
 static gint sha1_len(gconstpointer v);
+static gchar *sha1_str(gconstpointer v);
 
 #undef public
 
@@ -74,9 +80,9 @@ static gint sha1_len(gconstpointer v);
  * The set of all atom types we know about.
  */
 struct table_desc atoms[] = {
-	{ "String",	NULL,	g_str_hash,	g_str_equal, str_len	},	/* 0 */
-	{ "GUID",	NULL,	guid_hash,	guid_eq,	 guid_len	},	/* 1 */
-	{ "SHA1",	NULL,	sha1_hash,	sha1_eq,	 sha1_len	},	/* 2 */
+	{ "String",	NULL,	g_str_hash,	g_str_equal, str_len,	str_str	},	/* 0 */
+	{ "GUID",	NULL,	guid_hash,	guid_eq,	 guid_len,	guid_str},	/* 1 */
+	{ "SHA1",	NULL,	sha1_hash,	sha1_eq,	 sha1_len,	sha1_str},	/* 2 */
 };
 
 #define COUNT(x)	(sizeof(x) / sizeof(x[0]))
@@ -94,6 +100,16 @@ static gint str_len(gconstpointer v)
 		/* empty */;
 
 	return p - (gchar *) v;
+}
+
+/*
+ * str_str
+ *
+ * Returns printable form of a string, i.e. self.
+ */
+static gchar *str_str(gconstpointer v)
+{
+	return (gchar *) v;
 }
 
 /*
@@ -153,6 +169,16 @@ static gint guid_len(gconstpointer v)
 }
 
 /*
+ * guid_str
+ *
+ * Returns printable form of a GUID, as pointer to static data.
+ */
+static gchar *guid_str(gconstpointer v)
+{
+	return guid_hex_str((guchar *) v);
+}
+
+/*
  * sha1_hash
  *
  * Hash a SHA1 (20 bytes).
@@ -186,6 +212,15 @@ static gint sha1_len(gconstpointer v)
 	return 20;
 }
 
+/*
+ * sha1_str
+ *
+ * Returns printable form of a SHA1, as pointer to static data.
+ */
+static gchar *sha1_str(gconstpointer v)
+{
+	return sha1_base32((guchar *) v);
+}
 
 /*
  * atoms_init
@@ -303,9 +338,10 @@ void atom_free(gint type, gconstpointer key)
 static gboolean atom_warn_free(gpointer key, gpointer value, gpointer udata)
 {
 	struct atom *a = (struct atom *) (key - ARENA_OFFSET);
+	struct table_desc *td = (struct table_desc *) udata;
 
-	g_warning("freeing remaining %s atom 0x%lx, refcnt=%d",
-		(gchar *) udata, (glong) key, a->refcnt);
+	g_warning("freeing remaining %s atom 0x%lx, refcnt=%d: \"%s\"",
+		td->type, (glong) key, a->refcnt, (*td->str_func)(key));
 
 	g_free(a);
 
