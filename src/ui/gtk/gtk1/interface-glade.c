@@ -9742,7 +9742,7 @@ create_dlg_about (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label266), 1, 0.5);
 
-  label267 = gtk_label_new (_("Rapha\353l Manfredi"));
+  label267 = gtk_label_new (_("Rapha\\353l Manfredi"));
   gtk_widget_set_name (label267, "label267");
   gtk_widget_ref (label267);
   gtk_object_set_data_full (GTK_OBJECT (dlg_about), "label267", label267,
@@ -9786,7 +9786,7 @@ create_dlg_about (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label291), 1, 0.5);
 
-  label273 = gtk_label_new (_("Rapha\353l Manfredi"));
+  label273 = gtk_label_new (_("Rapha\\353l Manfredi"));
   gtk_widget_set_name (label273, "label273");
   gtk_widget_ref (label273);
   gtk_object_set_data_full (GTK_OBJECT (dlg_about), "label273", label273,
@@ -11165,7 +11165,7 @@ create_dlg_prefs (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label441), 0, 0.5);
 
-  label442 = gtk_label_new (_("Max % of file descriptors used"));
+  label442 = gtk_label_new (_("Max. percentage  of file descriptors used"));
   gtk_widget_set_name (label442, "label442");
   gtk_widget_ref (label442);
   gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "label442", label442,
@@ -13484,7 +13484,7 @@ create_dlg_prefs (void)
   gtk_table_attach (GTK_TABLE (table4), spinbutton_config_ul_usage_min_percentage, 1, 2, 2, 3,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
-  gtk_tooltips_set_tip (tooltips, spinbutton_config_ul_usage_min_percentage, _("Until xx% of outgoing HTTP bandwidth is in use, open additional upload slots on request."), NULL);
+  gtk_tooltips_set_tip (tooltips, spinbutton_config_ul_usage_min_percentage, _("Until the configured percentage of outgoing HTTP bandwidth is in use, open additional upload slots on request."), NULL);
   gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_config_ul_usage_min_percentage), TRUE);
 
   label210 = gtk_label_new (_("%"));
