@@ -6494,6 +6494,17 @@ picked:
 	g_assert(d->overlap_size <= sizeof(s->buffer));
 
 	/*
+	 * We can have a SHA1 for this download (information gathered from
+	 * the query hit, or from a previous interaction with the server),
+	 * or from the fileinfo metadata (if we don't have d->sha1 yet, it means
+	 * we assigned the fileinfo based on name only).
+	 */
+
+	sha1 = d->sha1;
+	if (sha1 == NULL)
+		sha1 = fi->sha1;
+
+	/*
 	 * When we have a SHA1, the remote host normally supports HUGE, and
 	 * therefore should understand our "GET /uri-res/N2R?" query.
 	 * However, I'm suspicious, so we track our attempts and don't send
@@ -6511,7 +6522,7 @@ picked:
 	 *		--RAM, 20/08/2002
 	 */
 
-	if (d->sha1) {
+	if (sha1) {
 		if (!(d->server->attrs & DLS_A_NO_URIRES)) {
 			d->flags |= DL_F_URIRES;
 			n2r = TRUE;
@@ -6548,7 +6559,7 @@ picked:
 	} else if (n2r) {
 		rw = gm_snprintf(dl_tmp, sizeof(dl_tmp),
 			"GET /uri-res/N2R?urn:sha1:%s HTTP/1.1\r\n",
-			sha1_base32(d->sha1));
+			sha1_base32(sha1));
 	} else {
 		gchar *escaped = url_escape(d->file_name);
 
@@ -6556,9 +6567,8 @@ picked:
 			"GET /get/%u/%s HTTP/1.1\r\n",
 			d->record_index, escaped);
 
-		if (escaped != d->file_name) {
+		if (escaped != d->file_name)
 			G_FREE_NULL(escaped);
-		}
 	}
 
 	/*
@@ -6633,18 +6643,9 @@ picked:
 	g_assert(rw + 3U < sizeof(dl_tmp));		/* Should not have filled yet! */
 
 	/*
-	 * We can have a SHA1 for this download (information gathered from
-	 * the query hit, or from a previous interaction with the server),
-	 * or from the fileinfo metadata (if we don't have d->sha1 yet, it means
-	 * we assigned the fileinfo based on name only).
-	 *
 	 * In any case, if we know a SHA1, we need to send it over.  If the server
 	 * sees a mismatch, it will abort.
 	 */
-
-	sha1 = d->sha1;
-	if (sha1 == NULL)
-		sha1 = fi->sha1;
 
 	if (sha1 != NULL) {
 		gint wmesh;
