@@ -529,7 +529,7 @@ static void bg_task_terminate(struct bgtask *bt)
 	 * execution status.
 	 */
 
-	if (status != BGS_OK && bt->done_cb != NULL)
+	if (status != BGS_OK && bt->done_cb == NULL)
 		bt->flags |= TASK_F_ZOMBIE;
 
 	/*
