@@ -294,7 +294,6 @@ gint ban_allow(guint32 ip)
  * have `max_banned_fd' entries in the FIFO, start closing the oldest one.
  */
 
-static gint max_banned_fd = 0;
 #define SOCK_BUFFER		512				/* Reduced socket buffer */
 
 static GList *banned_head = NULL;
@@ -369,19 +368,30 @@ gint ban_delay(guint32 ip)
  */
 void ban_init(void)
 {
-	gint maxopen = sysconf(_SC_OPEN_MAX);
-
 	info = g_hash_table_new(g_direct_hash, 0);
 	decay_coeff = (gfloat) MAX_REQUEST / MAX_PERIOD;
 	ipf_zone = zget(sizeof(struct ip_info), 0);
 
-	max_banned_fd = MIN(ban_max_fds, maxopen * ban_ratio_fds / 100);
-	if (max_banned_fd == 0)
-		max_banned_fd = 1;
+	ban_max_recompute();
+}
+
+/*
+ * ban_max_recompute
+ *
+ * Recompute the maximum amount of file descriptors we dedicate to banning.
+ */
+void ban_max_recompute(void)
+{
+	guint32 max;
+
+	max = MIN(ban_max_fds, sys_nofile * ban_ratio_fds / 100);
+	max = MAX(1, max);
 
 	if (dbg)
 		printf("will use at most %d file descriptor%s for banning\n",
-			max_banned_fd, max_banned_fd == 1 ? "" : "s");
+			max, max == 1 ? "" : "s");
+
+	gnet_prop_set_guint32_val(PROP_MAX_BANNED_FD, max);
 }
 
 static void free_info(gpointer key, gpointer value, gpointer udata)
