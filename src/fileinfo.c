@@ -66,6 +66,7 @@
 static GSList *sl_file_info = NULL;
 static gchar *file_info_file = "fileinfo";
 static gboolean fileinfo_dirty = FALSE;
+static gboolean can_swarm = FALSE;		/* Set by file_info_retrieve() */
 
 static gchar fi_tmp[4096];
 
@@ -852,6 +853,20 @@ void file_info_retrieve(void)
 	GHashTable *seen_file = g_hash_table_new(g_str_hash, g_str_equal);
 	gboolean empty = TRUE;
 
+	/*
+	 * We have a complex interaction here: each time a new entry within the
+	 * download mesh is added, file_info_try_to_swarm_with() will be
+	 * called.  Moreover, the download mesh is initialized before us.
+	 *
+	 * However, we cannot enqueue a download before the download module is
+	 * initialized.  And we know it is initilized because download_init()
+	 * calls us!
+	 *
+	 *		--RAM, 20/08/2002
+	 */
+
+	can_swarm = TRUE;			/* Allows file_info_try_to_swarm_with() */
+
 	g_snprintf(fi_tmp, sizeof(fi_tmp), "%s/%s", config_dir, file_info_file);
 
 	f = fopen(fi_tmp, "r");
@@ -1144,6 +1159,9 @@ struct dl_file_info *file_info_get(
 	}
 
 	sl_file_info = g_slist_append(sl_file_info, fi);
+
+	if (sha1)
+		dmesh_multiple_downloads(sha1, size);
 
 	return fi;
 }
@@ -1554,5 +1572,54 @@ enum dl_chunk_status file_info_find_hole(
 	
 	/* No holes found. */
 	return (fi->done == fi->size) ? DL_CHUNK_DONE : DL_CHUNK_BUSY;
+}
+
+/*
+ * file_info_active
+ *
+ * Return a dl_file_info if there's an active one with the same sha1.
+ */
+static struct dl_file_info *file_info_active(guchar *sha1)
+{
+	struct dl_file_info *fi;
+	GSList *l;
+	
+
+	for (l = sl_file_info; l; l = l->next) {
+		fi = (struct dl_file_info *) l->data;
+		if (fi->sha1 && 0 == memcmp(fi->sha1, sha1, SHA1_RAW_SIZE))
+			return fi;
+	}
+
+	return NULL;
+}
+
+/*
+ * file_info_try_to_swarm_with
+ *
+ * Called when we add something to the dmesh. Add the corresponding file to the
+ * download list if we're swarming on it.
+ *
+ * file_name: the remote file name (as in the GET query).
+ * idx: the remote file index (as in the GET query)
+ * ip: the remote servent ip
+ * port: the remote servent port
+ * sha1: the SHA1 of the file
+ */
+void file_info_try_to_swarm_with(
+	gchar *file_name, guint32 idx, guint32 ip, guint32 port, guchar *sha1)
+{
+	static guchar blank_guid[16] = { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 };
+	struct dl_file_info *fi;
+
+	if (!can_swarm)				/* Downloads not initialized yet */
+		return;
+
+	fi = file_info_active(sha1);
+	if (!fi)
+		return;
+
+	download_auto_new(
+		file_name, fi->size, idx, ip, port, blank_guid, sha1, 0, FALSE);
 }
 

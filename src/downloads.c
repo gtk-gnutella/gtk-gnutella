@@ -93,6 +93,24 @@ static GList *dl_by_time = NULL;
 static GHashTable *dl_count_by_name = NULL;
 static GHashTable *dl_count_by_sha1 = NULL;
 
+/*
+ * To handle download meshes, where we only know the IP/port of the host and
+ * not its GUID, we need to be able to locate the server.  We know that the
+ * IP will not be a private one.
+ *
+ * Therefore, for each (GUID, IP, port) tuple, where IP is NOT private, we
+ * store the (IP, port) => server association as well.  There should be only
+ * one such entry, ever.  If there is more, it means the server changed its
+ * GUID, which is possible, in which case we simply supersede the old entry.
+ */
+
+static GHashTable *dl_by_ip = NULL;
+
+struct dl_ip {				/* Keys in the `dl_by_ip' table. */
+	guint32 ip;				/* IP address of server */
+	guint16 port;			/* Port of server */
+};
+
 static gint dl_establishing = 0;		/* Establishing downloads */
 static gint dl_active = 0;				/* Active downloads */
 
@@ -151,6 +169,35 @@ static gint dl_key_eq(gconstpointer a, gconstpointer b)
 }
 
 /*
+ * dl_ip_hash
+ *
+ * Hashing of a `dl_ip' structure.
+ */
+static guint dl_ip_hash(gconstpointer key)
+{
+	struct dl_ip *k = (struct dl_ip *) key;
+	guint32 hash;
+
+	WRITE_GUINT32_LE(k->ip, &hash);	/* Reverse IP, 192.x.y.z -> z.y.x.192 */
+	hash ^= (k->port << 16) | k->port;
+
+	return (guint) hash;
+}
+
+/*
+ * dl_ip_eq
+ *
+ * Comparison of `dl_ip' structures.
+ */
+static gint dl_ip_eq(gconstpointer a, gconstpointer b)
+{
+	struct dl_ip *ak = (struct dl_ip *) a;
+	struct dl_ip *bk = (struct dl_ip *) b;
+
+	return ak->ip == bk->ip && ak->port == bk->port;
+}
+
+/*
  * dl_server_retry_cmp
  *
  * Compare two `dl_server' structures based on the `retry_after' field.
@@ -178,6 +225,7 @@ void download_init(void)
 {
 	pushed_downloads = g_hash_table_new(g_str_hash, g_str_equal);
 	dl_by_host = g_hash_table_new(dl_key_hash, dl_key_eq);
+	dl_by_ip = g_hash_table_new(dl_ip_hash, dl_ip_eq);
 	dl_count_by_name = g_hash_table_new(g_str_hash, g_str_equal);
 	dl_count_by_sha1 = g_hash_table_new(g_str_hash, g_str_equal);
 	file_info_retrieve();
@@ -322,6 +370,28 @@ static struct dl_server *allocate_server(guchar *guid, guint32 ip, guint16 port)
 	g_hash_table_insert(dl_by_host, key, server);
 	dl_by_time = g_list_insert_sorted(dl_by_time, server, dl_server_retry_cmp);
 
+	/*
+	 * If host is reacheable directly, its GUID does not matter much to
+	 * identify the server as the (IP, port) should be unique.
+	 */
+
+	if (check_valid_host(ip, port)) {
+		struct dl_ip *ipk;
+		gpointer ipkey;
+		gpointer x;					/* Don't care about freeing values */
+		gboolean existed;
+
+		ipk = g_malloc(sizeof(*ipk));
+		ipk->ip = ip;
+		ipk->port = port;
+
+		existed = g_hash_table_lookup_extended(dl_by_ip, ipk, &ipkey, &x);
+		g_hash_table_insert(dl_by_ip, ipk, server);
+
+		if (existed)
+			g_free(ipkey);			/* Old key superseded by new one */
+	}
+
 	return server;
 }
 
@@ -332,11 +402,31 @@ static struct dl_server *allocate_server(guchar *guid, guint32 ip, guint16 port)
  */
 static void free_server(struct dl_server *server)
 {
+	struct dl_ip ipk;
+
 	dl_by_time = g_list_remove(dl_by_time, server);
 	g_hash_table_remove(dl_by_host, server->key);
 	if (server->vendor)
 		atom_str_free(server->vendor);
 	atom_guid_free(server->key->guid);
+
+	/*
+	 * We only inserted the server in the `dl_ip' table if it was "reachable".
+	 */
+
+	ipk.ip = server->key->ip;
+	ipk.port = server->key->port;
+
+	if (check_valid_host(ipk.ip, ipk.port)) {
+		gpointer ipkey;
+		gpointer x;					/* Don't care about freeing values */
+
+		if (g_hash_table_lookup_extended(dl_by_ip, &ipk, &ipkey, &x)) {
+			g_hash_table_remove(dl_by_ip, &ipk);
+			g_free(ipkey);
+		}
+	}
+
 	g_free(server->key);
 	g_free(server);
 }
@@ -344,14 +434,23 @@ static void free_server(struct dl_server *server)
 /*
  * get_server
  *
- * Fetch server entry identified by GUID, IP:port.
+ * Fetch server entry identified by IP:port first, then GUID+IP:port.
  * Returns NULL if not found.
  */
 static struct dl_server *get_server(guchar *guid, guint32 ip, guint16 port)
 {
+	struct dl_ip ikey;
 	struct dl_key key;
+	struct dl_server *server;
 
 	g_assert(guid);
+
+	ikey.ip = ip;
+	ikey.port = port;
+
+	server = (struct dl_server *) g_hash_table_lookup(dl_by_ip, &ikey);
+	if (server)
+		return server;
 
 	key.guid = guid;
 	key.ip = ip;
@@ -1996,6 +2095,11 @@ static gchar *escape_filename(gchar *file)
  * When `interactive' is false, we assume that `file' was already duped,
  * and take ownership of the pointer.
  * If `output' is not NULL, we also take ownership.
+ *
+ * NB: If `record_index' == 0, and a `sha1' is also supplied, then
+ * this is our convention for expressing a /uri-res/N2R? download URL.
+ * However, we don't forbid 0 as a valid record index if it does not
+ * have a SHA1.
  */
 static void create_download(
 	gchar *file, gchar *output, guint32 size, guint32 record_index,
@@ -3093,19 +3197,6 @@ static gboolean download_moved_permanently(struct download *d, header_t *header)
 		//downloads_with_name_dec(d->file_name);
 		//downloads_with_name_inc(info.name);
 
-		/*
-		 * About to free the d->file_name atom, but maybe the output_name
-		 * was also the same.  In that case, we have to duplicate it, as if
-		 * we had escaped '/' in the output file name.
-		 *
-		 * NB: This means the download will still be written to the previous
-		 * filename, and therefore the actual filename displayed in the GUI
-		 * will not be the targetted file on the disk.
-		 */
-
-		//if (d->output_name == d->file_name)
-		//	d->output_name = g_strdup(d->file_name);
-
 		atom_str_free(d->file_name);
 		d->file_name = info.name;			/* Already an atom */
 	} else
@@ -3115,7 +3206,14 @@ static gboolean download_moved_permanently(struct download *d, header_t *header)
 	 * Update download structure.
 	 */
 
+	if (d->push)
+		download_push_remove(d);			/* About to change index */
+
 	d->record_index = info.idx;
+
+	if (d->push)
+		download_push_insert(d);
+
 	download_redirect_to_server(d, info.ip, info.port);
 
 	return TRUE;
@@ -3597,11 +3695,21 @@ gboolean download_send_request(struct download *d)
 	 * not understood and request the file.
 	 *
 	 *		--RAM, 14/06/2002
+	 *
+	 * If `record_index' is 0, we only have the /uri-res/N2R? query, and
+	 * therefore we don't flag the download with DL_F_URIRES: if the server
+	 * does not understand those URLs, we won't have any fallback to use.
+	 *
+	 *		--RAM, 20/08/2002
 	 */
 
-	if (d->sha1 && !d->push && !(d->server->attrs & DLS_A_NO_URIRES)) {
-		d->flags |= DL_F_URIRES;
-		n2r = TRUE;
+	if (d->sha1) {
+		if (d->record_index == 0)
+			n2r = TRUE;
+		else if (!d->push && !(d->server->attrs & DLS_A_NO_URIRES)) {
+			d->flags |= DL_F_URIRES;
+			n2r = TRUE;
+		}
 	}
 
 	/*
@@ -4320,6 +4428,7 @@ void download_close(void)
 	file_info_close();
 
 	// XXX free & check other hash tables as well.
+	// dl_by_ip, dl_by_host
 }
 
 /* vi: set ts=4: */

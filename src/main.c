@@ -389,14 +389,14 @@ gint main(gint argc, gchar ** argv)
 	bsched_init();
 	network_init();
 	routing_init();
-	filter_init();	/* Must come before search_init() for retrieval */
+	filter_init();			/* Must come before search_init() for retrieval */
 	search_init();
     filter_update_targets(); /* Make sure the default filters are ok */
 	share_init();
+	dmesh_init();			/* Muse be done BEFORE download_init() */
 	download_init();
 	upload_init();
 	ban_init();
-	dmesh_init();
 
     main_gui_init();
 

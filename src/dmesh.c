@@ -68,8 +68,8 @@ struct dmesh_entry {
 	dmesh_urlinfo_t url;	/* URL info */
 };
 
-#define MAX_LIFETIME	172800		/* 2 days */
-#define MAX_ENTRIES		32			/* Max amount of entries kept in list */
+#define MAX_LIFETIME	604800		/* 7 days */
+#define MAX_ENTRIES		64			/* Max amount of entries kept in list */
 #define MAX_STAMP		0xffffffff	/* Unsigned int, 32 bits */
 
 static gchar *dmesh_file = "dmesh";
@@ -498,6 +498,14 @@ gboolean dmesh_add(guchar *sha1,
 			dme = NULL;
 	} else
 		dm->count++;
+
+	/*
+	 * We got a new entry that could be used for swarming if we are
+	 * downloading that file.
+	 */
+
+	if (dme != NULL)
+		file_info_try_to_swarm_with(name, idx, ip, port, sha1);
 
 	return dme != NULL;			/* TRUE means we added the entry */
 }
@@ -951,6 +959,76 @@ void dmesh_collect_locations(guchar *sha1, guchar *value)
 			return;
 
 		p++;						/* Skip separator */
+	}
+}
+
+/*
+ * dmesh_alt_loc_fill
+ *
+ * Fill buffer with at most `count' alternative locations for sha1.
+ * Returns the amount of locations inserted.
+ */
+static gint dmesh_alt_loc_fill(guchar *sha1, dmesh_urlinfo_t *buf, gint count)
+{
+	struct dmesh *dm;
+	GSList *l;
+	gint i;
+
+	g_assert(sha1);
+	g_assert(buf);
+	g_assert(count > 0);
+
+	dm = (struct dmesh *) g_hash_table_lookup(mesh, sha1);
+
+	if (dm == NULL)					/* SHA1 unknown */
+		return 0;
+
+	for (i = 0, l = dm->entries; l && i < count; l = l->next) {
+		struct dmesh_entry *dme = (struct dmesh_entry *) l->data;
+		dmesh_urlinfo_t *from, *to;
+
+		g_assert(i < MAX_ENTRIES);
+
+		from = &dme->url;
+		to = &buf[i++];
+
+		to->ip = from->ip;
+		to->port = from->port;
+		to->idx = from->idx;
+		to->name = from->name;
+	}
+
+	return i;
+}
+
+#define DMESH_MAX	MAX_ENTRIES
+
+/*
+ * dmesh_multiple_downloads
+ *
+ * This is called when swarming is first requested to get a list of all the
+ * servers with the requested file known by dmesh.
+ * It creates a new download for every server found.
+ *
+ * `sha1': (atom) the SHA1 of the file
+ * `size': the original file size
+ */
+void dmesh_multiple_downloads(guchar *sha1, guint32 size)
+{
+	dmesh_urlinfo_t buffer[DMESH_MAX];
+	dmesh_urlinfo_t *p;
+	gint n;
+	static guchar blank_guid[16] = { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 };
+
+	n = dmesh_alt_loc_fill(sha1, buffer, DMESH_MAX);
+
+	for (p = buffer; n; n--, p++) {
+		if (dbg > 2)
+			printf("ALT-LOC queuing from MESH: %s\n",
+				dmesh_urlinfo_to_gchar(p));
+
+		download_auto_new(p->name, size, p->idx, p->ip, p->port,
+			blank_guid, sha1, 0, FALSE);
 	}
 }
 

@@ -77,6 +77,8 @@ void file_info_update(
 	struct download *d, guint32 from, guint32 to, enum dl_chunk_status status);
 enum dl_chunk_status file_info_pos_status(struct dl_file_info *fi, guint32 pos);
 void file_info_close(void);
+void file_info_try_to_swarm_with(
+	gchar *file_name, guint32 idx, guint32 ip, guint32 port, guchar *sha1);
 
 #endif /* __fileinfo_h__ */
 
