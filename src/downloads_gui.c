@@ -647,7 +647,7 @@ void download_gui_add(struct download *d)
 		titles[c_dl_status] = "";
 		titles[c_dl_size] = short_size(d->file_info->size);
 		titles[c_dl_range] = "";
-        titles[c_dl_host] = g_strdup(download_gui_get_hostname(d));
+        titles[c_dl_host] = download_gui_get_hostname(d);
 		
 		ctree_downloads = GTK_CTREE
 			(lookup_widget(main_window, "ctree_downloads"));
@@ -662,8 +662,7 @@ void download_gui_add(struct download *d)
 				drecord = gtk_ctree_node_get_row_data(ctree_downloads, 
 					parent);		
 
-				if (DL_GUI_IS_HEADER != (guint32) drecord)/*not a header entry*/
-				{
+				if (DL_GUI_IS_HEADER != (guint32) drecord) {
 					/* No header entry so we will create one */
 					/* Copy the old parents info into a new node */
 					
