@@ -55,7 +55,8 @@ RCSID("$Id$");
 static const char hex_alphabet[] = "0123456789ABCDEF";
 
 #ifndef HAS_STRLCPY
-size_t strlcpy(gchar *dst, const gchar *src, size_t dst_size)
+size_t
+strlcpy(gchar *dst, const gchar *src, size_t dst_size)
 {
 	gchar *d = dst;
 	const gchar *s = src;
@@ -79,13 +80,12 @@ size_t strlcpy(gchar *dst, const gchar *src, size_t dst_size)
 }
 #endif /* HAS_STRLCPY */
 
-/*
- * is_string_ip
- *
+/**
  * Checks whether the given string contains a valid IP address. If the
  * string is NULL returns FALSE.
  */
-gboolean is_string_ip(const gchar *s)
+gboolean
+is_string_ip(const gchar *s)
 {
     if (s == NULL)
         return FALSE;
@@ -93,7 +93,11 @@ gboolean is_string_ip(const gchar *s)
     return 0 != gchar_to_ip(s);
 }
 
-gboolean file_exists(const gchar *f)
+/**
+ * Check for file existence.
+ */
+gboolean
+file_exists(const gchar *f)
 {
   	struct stat st;
 
@@ -101,7 +105,8 @@ gboolean file_exists(const gchar *f)
     return stat(f, &st) != -1;
 }
 
-gchar *ip_to_gchar(guint32 ip)
+gchar *
+ip_to_gchar(guint32 ip)
 {
 	static gchar a[32];
 	struct in_addr ia;
@@ -110,7 +115,8 @@ gchar *ip_to_gchar(guint32 ip)
 	return a;
 }
 
-gchar *ip2_to_gchar(guint32 ip)
+gchar *
+ip2_to_gchar(guint32 ip)
 {
 	static gchar a[32];
 	struct in_addr ia;
@@ -119,7 +125,8 @@ gchar *ip2_to_gchar(guint32 ip)
 	return a;
 }
 
-gchar *ip_port_to_gchar(guint32 ip, guint16 port)
+gchar *
+ip_port_to_gchar(guint32 ip, guint16 port)
 {
 	static gchar a[32];
 	size_t len;
@@ -132,7 +139,8 @@ gchar *ip_port_to_gchar(guint32 ip, guint16 port)
 	return a;
 }
 
-gchar *hostname_port_to_gchar(const gchar *hostname, guint16 port)
+gchar *
+hostname_port_to_gchar(const gchar *hostname, guint16 port)
 {
 	static gchar a[300];
 
@@ -141,11 +149,12 @@ gchar *hostname_port_to_gchar(const gchar *hostname, guint16 port)
 }
 
 #ifndef HAS_INET_ATON
-/* 
+/**
  * Copied from icecast.
  * Fixed to returns 0 on failure, 1 on success --RAM, 12/01/2002.
  */
-int inet_aton(const char *s, struct in_addr *addr)
+int
+inet_aton(const char *s, struct in_addr *addr)
 {
 	int a, b, c, d;
 
@@ -164,7 +173,8 @@ int inet_aton(const char *s, struct in_addr *addr)
 #endif /* !HAS_INET_ATON */
 
 
-guint32 gchar_to_ip(const gchar *str)
+guint32
+gchar_to_ip(const gchar *str)
 {
 	/* Returns 0 if str is not a valid IP */
 
@@ -181,9 +191,7 @@ guint32 gchar_to_ip(const gchar *str)
 	return 0;
 }
 
-/*
- * gchar_to_ip_strict
- *
+/**
  * A strict string to IP address conversion; when other stuff from misc.[ch]
  * is not sufficient.
  *
@@ -193,8 +201,8 @@ guint32 gchar_to_ip(const gchar *str)
  * byte order and ``*endptr'' will point to the character after the
  * IPv4 address. ``addr'' and ``endptr'' may be NULL.
  */
-gboolean gchar_to_ip_strict(const gchar *s, guint32 *addr,
-	gchar const **endptr)
+gboolean
+gchar_to_ip_strict(const gchar *s, guint32 *addr, gchar const **endptr)
 {
 	const gchar *p = s;
 	gboolean is_valid = TRUE;
@@ -234,14 +242,12 @@ gboolean gchar_to_ip_strict(const gchar *s, guint32 *addr,
 	return is_valid;
 }
 
-
-/*
- * gchar_to_ip_port
- *
+/**
  * Decompiles ip:port into ip and port.  Leading spaces are ignored.
  * Returns TRUE if it parsed correctly, FALSE otherwise.
  */
-gboolean gchar_to_ip_port(const gchar *str, guint32 *ip, guint16 *port)
+gboolean
+gchar_to_ip_port(const gchar *str, guint32 *ip, guint16 *port)
 {
 	gint a, b, c, d;
 	gint iport;
@@ -263,7 +269,8 @@ gboolean gchar_to_ip_port(const gchar *str, guint32 *ip, guint16 *port)
 	return TRUE;
 }
 
-guint32 host_to_ip(const gchar *host)
+guint32
+host_to_ip(const gchar *host)
 {
 	struct hostent *he = gethostbyname(host);
 
@@ -293,12 +300,11 @@ guint32 host_to_ip(const gchar *host)
 	return 0;
 }
 
-/*
- * host_name
- *
+/**
  * Returns local host name, as pointer to static data.
  */
-gchar *host_name(void)
+gchar *
+host_name(void)
 {
 	static gchar name[256 + 1];
 
@@ -309,13 +315,12 @@ gchar *host_name(void)
 	return name;
 }
 
-/*
- * ip_is_valid
- *
+/**
  * Check whether host can be reached from the Internet.
  * We rule out IPs of private networks, plus some other invalid combinations.
  */
-gboolean ip_is_valid(guint32 ip)
+gboolean
+ip_is_valid(guint32 ip)
 {
 	if ((!ip) ||			/* IP == 0 */
 		(is_private_ip(ip)) ||
@@ -336,16 +341,15 @@ gboolean ip_is_valid(guint32 ip)
 	return TRUE;
 }
 
-/*
- * str_chomp
- *
+/**
  * Remove antepenultimate char of string if it is a "\r" followed by "\n".
  * Remove final char of string if it is a "\n" or "\r".
  * If len is 0, compute it.
  *
  * Returns new string length.
  */
-gint str_chomp(gchar *str, gint len)
+gint
+str_chomp(gchar *str, gint len)
 {
 	if (len == 0) {
 		len = strlen(str);
@@ -365,10 +369,11 @@ gint str_chomp(gchar *str, gint len)
 		return len;
 }
 
-/*
+/**
  * Checks for RFC1918 private addresses; returns TRUE if is a private address.
  */
-gboolean is_private_ip(guint32 ip)
+gboolean
+is_private_ip(guint32 ip)
 {
 	/* 10.0.0.0 -- (10/8 prefix) */
 	if ((ip & 0xff000000) == 0xa000000)
@@ -389,8 +394,11 @@ gboolean is_private_ip(guint32 ip)
 	return FALSE;
 }
 
-/* Check whether path is a directory */
-gboolean is_directory(const gchar *path)
+/**
+ * Check whether path is a directory
+ */
+gboolean
+is_directory(const gchar *path)
 {
 	struct stat st;
 	if (stat(path, &st) == -1)
@@ -398,18 +406,23 @@ gboolean is_directory(const gchar *path)
 	return S_ISDIR(st.st_mode);
 }
 
-/* Check whether path points to a regular file */
-gboolean is_regular(const gchar *path)
+/**
+ * Check whether path points to a regular file
+ */
+gboolean
+is_regular(const gchar *path)
 {
 	struct stat st;
-	if (stat(path, &st) == -1) {
+	if (stat(path, &st) == -1)
 		return FALSE;
-	}
 	return S_ISREG(st.st_mode);
 }
 
-/* Check whether path is a symbolic link */
-gboolean is_symlink(const gchar *path)
+/**
+ * Check whether path is a symbolic link
+ */
+gboolean
+is_symlink(const gchar *path)
 {
 	struct stat st;
 	if (-1 == lstat(path, &st))
@@ -417,9 +430,11 @@ gboolean is_symlink(const gchar *path)
 	return (st.st_mode & S_IFMT) == S_IFLNK;
 }
 
-/* Returns a number of bytes in a more readable form */
-
-gchar *short_size(guint32 size)
+/**
+ * Returns a number of bytes in a more readable form
+ */
+gchar *
+short_size(guint32 size)
 {
 	static gchar b[SIZE_FIELD_MAX];
 
@@ -435,7 +450,8 @@ gchar *short_size(guint32 size)
 	return b;
 }
 
-gchar *short_size64(guint64 size)
+gchar *
+short_size64(guint64 size)
 {
 	static gchar b[SIZE_FIELD_MAX];
 
@@ -460,9 +476,11 @@ gchar *short_size64(guint64 size)
 	return b;
 }
 
-/* Returns a number of kbytes in a more readable form */
-
-gchar *short_kb_size(guint32 size)
+/**
+ * Returns a number of kbytes in a more readable form
+ */
+gchar *
+short_kb_size(guint32 size)
 {
 	static gchar b[SIZE_FIELD_MAX];
 
@@ -478,7 +496,8 @@ gchar *short_kb_size(guint32 size)
 	return b;
 }
 
-gchar *short_kb_size64(guint64 size)
+gchar *
+short_kb_size64(guint64 size)
 {
 	static gchar b[SIZE_FIELD_MAX];
 
@@ -503,9 +522,11 @@ gchar *short_kb_size64(guint64 size)
 	return b;
 }
 
-/* Returns a number of bytes in a compact readable form */
-
-gchar *compact_size(guint32 size)
+/**
+ * Returns a number of bytes in a compact readable form
+ */
+gchar *
+compact_size(guint32 size)
 {
 	static gchar b[64];
 
@@ -531,7 +552,8 @@ gchar *compact_size(guint32 size)
 	return b;
 }
 
-gchar *compact_size64(guint64 size)
+gchar *
+compact_size64(guint64 size)
 {
 	static gchar b[64];
 
@@ -562,9 +584,11 @@ gchar *compact_size64(guint64 size)
 	return b;
 }
 
-/* Returns a number of Kbytes in a compact readable form */
-
-gchar *compact_kb_size(guint32 size)
+/**
+ * Returns a number of Kbytes in a compact readable form
+ */
+gchar *
+compact_kb_size(guint32 size)
 {
 	static gchar b[64];
 
@@ -590,9 +614,11 @@ gchar *compact_kb_size(guint32 size)
 	return b;
 }
 
-/* Return time spent in seconds in a consise short readable form */
-
-gchar *short_time(gint t)
+/**
+ * Return time spent in seconds in a consise short readable form
+ */
+gchar *
+short_time(gint t)
 {
 	static gchar b[SIZE_FIELD_MAX];
 	gint s = MAX(t, 0);
@@ -609,9 +635,11 @@ gchar *short_time(gint t)
 	return b;
 }
 
-/* Alternate time formatter for uptime*/
-
-gchar *short_uptime(gint uptime)
+/**
+ * Alternate time formatter for uptime.
+ */
+gchar *
+short_uptime(gint uptime)
 {
 	static gchar b[SIZE_FIELD_MAX];
 	gint s = MAX(uptime, 0);
@@ -628,12 +656,11 @@ gchar *short_uptime(gint uptime)
 	return b;
 }
 
-/*
- * guid_hex_str
- *
+/**
  * Returns hexadecimal string representing given GUID.
  */
-gchar *guid_hex_str(const gchar *guid)
+gchar *
+guid_hex_str(const gchar *guid)
 {
 	static gchar buf[33];
 	gulong i;
@@ -648,12 +675,11 @@ gchar *guid_hex_str(const gchar *guid)
 	return buf;
 }
 
-/*
- * hex2dec
- *
+/**
  * Convert an hexadecimal char (0-9, A-F, a-f) into decimal.
  */
-inline gint hex2dec(guchar c)
+inline gint
+hex2dec(guchar c)
 {
 	return c >= '0' && c <= '9' ? c - '0'
 		 : c >= 'a' && c <= 'f' ? c - 'a' + 10
@@ -661,13 +687,12 @@ inline gint hex2dec(guchar c)
 		 : (g_assert_not_reached(), -1);
 }
 
-/*
- * hex_to_guid
- *
+/**
  * Converts hexadecimal string into a GUID.
  * Returns true if OK.
  */
-gboolean hex_to_guid(const gchar *hexguid, gchar *guid)
+gboolean
+hex_to_guid(const gchar *hexguid, gchar *guid)
 {
 	gulong i;
 
@@ -684,13 +709,12 @@ gboolean hex_to_guid(const gchar *hexguid, gchar *guid)
 	return TRUE;
 }
 
-/*
- * guid_base32_str
- *
+/**
  * Converts GUID into its base32 representation, without the trailing padding.
  * Returns pointer to static data.
  */
-gchar *guid_base32_str(const gchar *guid)
+gchar *
+guid_base32_str(const gchar *guid)
 {
 	static gchar guid_b32[26 + 1];		/* 26 chars needed for a GUID */
 
@@ -699,13 +723,12 @@ gchar *guid_base32_str(const gchar *guid)
 	return guid_b32;
 }
 
-/*
- * base32_to_guid
- *
+/**
  * Decode the base32 representation of a GUID.
  * Returns pointer to static data, or NULL if the input was not valid base32.
  */
-gchar *base32_to_guid(const gchar *base32)
+gchar *
+base32_to_guid(const gchar *base32)
 {
 	static gchar guid[20];	/* Needs 20 chars to decode, last 4 will be 0 */
 
@@ -718,13 +741,12 @@ gchar *base32_to_guid(const gchar *base32)
 	return guid;
 }
 
-/*
- * sha1_base32
- *
+/**
  * Convert binary SHA1 into a base32 string.
  * Returns pointer to static data.
  */
-gchar *sha1_base32(const gchar *sha1)
+gchar *
+sha1_base32(const gchar *sha1)
 {
 	static gchar digest_b32[SHA1_BASE32_SIZE + 1];
 
@@ -734,13 +756,12 @@ gchar *sha1_base32(const gchar *sha1)
 	return digest_b32;
 }
 
-/*
- * base32_sha1
- *
+/**
  * Convert base32 string into binary SHA1.
  * Returns pointer to static data.
  */
-gchar *base32_sha1(const gchar *base32)
+gchar *
+base32_sha1(const gchar *base32)
 {
 	static gchar digest_sha1[SHA1_RAW_SIZE];
 
@@ -750,13 +771,12 @@ gchar *base32_sha1(const gchar *base32)
 	return digest_sha1;
 }
 
-/*
- * date_to_iso_gchar
- *
+/**
  * Convert time to ISO style date, e.g. "2002-06-09T14:54:42Z".
  * Returns pointer to static data.
  */
-gchar *date_to_iso_gchar(time_t date)
+gchar *
+date_to_iso_gchar(time_t date)
 {
 	static gchar buf[80];
 	struct tm *tm;
@@ -769,13 +789,12 @@ gchar *date_to_iso_gchar(time_t date)
 }
 
 
-/*
- * tm_diff
- *
+/**
  * Compute the difference in seconds between two tm structs (a - b).
  * Comes from glibc-2.2.5.
  */
-static gint tm_diff(const struct tm *a, const struct tm * b)
+static gint
+tm_diff(const struct tm *a, const struct tm * b)
 {
 	/*
 	 * Compute intervening leap days correctly even if year is negative.
@@ -809,12 +828,11 @@ static const gchar months[12][4] = {
 	"Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
 };
 
-/*
- * date_to_rfc822
- *
+/**
  * Convert time to RFC-822 style date, into supplied string buffer.
  */
-static void date_to_rfc822(time_t date, gchar *buf, gint len)
+static void
+date_to_rfc822(time_t date, gchar *buf, gint len)
 {
 	struct tm *tm;
 	struct tm gmt_tm;
@@ -859,13 +877,12 @@ static void date_to_rfc822(time_t date, gchar *buf, gint len)
 	buf[len - 1] = '\0';		/* Be really sure */
 }
 
-/*
- * date_to_rfc822_gchar
- *
+/**
  * Convert time to RFC-822 style date.
  * Returns pointer to static data.
  */
-gchar *date_to_rfc822_gchar(time_t date)
+gchar *
+date_to_rfc822_gchar(time_t date)
 {
 	static gchar buf[80];
 
@@ -873,13 +890,12 @@ gchar *date_to_rfc822_gchar(time_t date)
 	return buf;
 }
 
-/*
- * date_to_rfc822_gchar2
- *
+/**
  * Same as date_to_rfc822_gchar(), to be able to use the two in the same
  * printf() line.
  */
-gchar *date_to_rfc822_gchar2(time_t date)
+gchar *
+date_to_rfc822_gchar2(time_t date)
 {
 	static gchar buf[80];
 
@@ -887,12 +903,11 @@ gchar *date_to_rfc822_gchar2(time_t date)
 	return buf;
 }
 
-/*
- * date_to_rfc1123
- *
+/**
  * Convert time to RFC-1123 style date, into supplied string buffer.
  */
-static void date_to_rfc1123(time_t date, gchar *buf, gint len)
+static void
+date_to_rfc1123(time_t date, gchar *buf, gint len)
 {
 	const struct tm *tm;
 
@@ -903,13 +918,12 @@ static void date_to_rfc1123(time_t date, gchar *buf, gint len)
 		tm->tm_hour, tm->tm_min, tm->tm_sec);
 }
 
-/*
- * date_to_rfc1123_gchar
- *
+/**
  * Convert time to RFC-1123 style date.
  * Returns pointer to static data.
  */
-gchar *date_to_rfc1123_gchar(time_t date)
+gchar *
+date_to_rfc1123_gchar(time_t date)
 {
 	static gchar buf[80];
 
@@ -917,13 +931,12 @@ gchar *date_to_rfc1123_gchar(time_t date)
 	return buf;
 }
 
-/*
- * next_pow2
- *
+/**
  * Returns the closest power of two greater or equal to `n'.
  * next_pow2(0) and next_pow2(0x8.......) return 0.
  */
-guint32 next_pow2(guint32 n)
+guint32
+next_pow2(guint32 n)
 {
 	n--;
 
@@ -936,12 +949,11 @@ guint32 next_pow2(guint32 n)
 	return n + 1;
 }
 
-/*
- * highest_bit_set
- *
+/**
  * Determine the highest bit set in `n', -1 if value was 0.
  */
-gint highest_bit_set(guint32 n)
+gint
+highest_bit_set(guint32 n)
 {
 	gint h = 0;
 	guint32 r = n;
@@ -955,9 +967,7 @@ gint highest_bit_set(guint32 n)
 	return h;
 }
 
-/*
- * force_range
- *
+/**
  * Enforce range boundaries on a given floating point
  * number.
  *
@@ -967,7 +977,8 @@ gint highest_bit_set(guint32 n)
  * @return The new value of val which will be between
  *         min and max.
  */
-gfloat force_range(gfloat val, gfloat min, gfloat max)
+gfloat
+force_range(gfloat val, gfloat min, gfloat max)
 {
 	g_assert(min <= max);
 
@@ -977,12 +988,11 @@ gfloat force_range(gfloat val, gfloat min, gfloat max)
 		val;
 }
 
-/*
- * random_value:
- *
+/**
  * Return random value between (0..max).
  */
-guint32 random_value(guint32 max)
+guint32
+random_value(guint32 max)
 {
 	return (guint32)
 		((max + 1.0) * (random() & RANDOM_MASK) / (RANDOM_MAXV + 1.0));
@@ -1093,23 +1103,23 @@ random_init(void)
 	srandom(seed);
 }
 
-/* Display header line for hex dumps */
-
-inline static void dump_hex_header(FILE *out)
+/**
+ * Display header line for hex dumps
+ */
+inline static void
+dump_hex_header(FILE *out)
 {
 	fprintf(out, "%s%s\n",
 		"Offset  0  1  2  3  4  5  6  7  8  9  a  b  c  d  e  f  ",
 		hex_alphabet_lower);
 }
 
-/* 
- * dump_hex:
- *
+/**
  * Displays hex & ascii lines to the terminal (for debug)
  * Displays the "title" then the characters in "s", # of bytes to print in "b"
  */
-
-void dump_hex(FILE *out, const gchar *title, gconstpointer data, gint b)
+void
+dump_hex(FILE *out, const gchar *title, gconstpointer data, gint b)
 {
 	int i, x, y, z, end;
 	gchar *s = (gchar *) data;
@@ -1165,28 +1175,28 @@ done:
 	fflush(out);
 }
 
-/*
- * strlower
- *
- * NB: Bad name because it might clash with <string.h>.
- *
+/**
  * Copies ``src'' to ``dst'', converting all upper-case characters to
  * lower-case. ``dst'' and ``src'' may point to the same object.
+ *
+ * NB: Bad name because it might clash with <string.h>.
  */
-void strlower(gchar *dst, const gchar *src)
+void
+strlower(gchar *dst, const gchar *src)
 {
 	do {
 		*dst++ = tolower((const guchar) *src);
 	} while (*src++);
 }
 
-/* 
+/**
  * ascii_strlower
  *
  * Copies ``src'' to ``dst'', converting all ASCII upper-case characters to
  * ASCII lower-case. ``dst'' and ``src'' may point to the same object.
  */
-void ascii_strlower(gchar *dst, const gchar *src)
+void
+ascii_strlower(gchar *dst, const gchar *src)
 {
 	gint c;
 
@@ -1206,12 +1216,11 @@ void ascii_strlower(gchar *dst, const gchar *src)
 
 
 #ifndef HAS_STRCASESTR
-/*
- * strcasestr
- *
+/**
  * Same as strstr() but case-insensitive.
  */
-gchar *strcasestr(const gchar *haystack, const gchar *needle)
+gchar *
+strcasestr(const gchar *haystack, const gchar *needle)
 {
 	guint32 delta[256];
 	size_t nlen = strlen(needle);
@@ -1261,12 +1270,11 @@ gchar *strcasestr(const gchar *haystack, const gchar *needle)
 }
 #endif	/* HAS_STRCASESTR */
 
-/*
- * strcmp_delimit
- *
+/**
  * Compare two strings up to the specified delimiters.
  */
-gint strcmp_delimit(const gchar *a, const gchar *b, const gchar *delimit)
+gint
+strcmp_delimit(const gchar *a, const gchar *b, const gchar *delimit)
 {
 	gboolean is_delimit[256];
 	gint i;
@@ -1412,13 +1420,12 @@ unique_filename(const gchar *path, const gchar *file, const gchar *ext)
 	(isprint((c)) || (!(strict) && ((c) == ' ' || (c) == '\t' || (c) == '\n')))
 
 
-/*
- * hex_escape
- *
+/**
  * Escape all non-printable chars into the hexadecimal \xhh form.
  * Returns new escaped string, or the original string if no escaping occurred.
  */
-gchar *hex_escape(const gchar *name, gboolean strict)
+gchar *
+hex_escape(const gchar *name, gboolean strict)
 {
 	const gchar *p;
 	gchar *q;
@@ -1450,9 +1457,7 @@ gchar *hex_escape(const gchar *name, gboolean strict)
 	return new;
 }
 
-/*
- * gchar_to_ip_and_mask:
- *
+/**
  * Extracts the IP address into `ip' and the netmask into `netmask'.
  * Returns whether the supplied string represents a valid ip/mask combination.
  *
@@ -1463,7 +1468,8 @@ gchar *hex_escape(const gchar *name, gboolean strict)
  *
  * If the IP address or the netmask is zero, the function will return FALSE.
  */
-gboolean gchar_to_ip_and_mask(const gchar *str, guint32 *ip, guint32 *netmask)
+gboolean
+gchar_to_ip_and_mask(const gchar *str, guint32 *ip, guint32 *netmask)
 {
 	const gchar *ep, *s = str;
 	gint error;
@@ -1502,12 +1508,11 @@ gboolean gchar_to_ip_and_mask(const gchar *str, guint32 *ip, guint32 *netmask)
 
 gint do_errno;
 
-/*
- * do_stat
- *
+/**
  * Wrapper for the stat() system call.
  */
-gint do_stat(const gchar *path, struct stat *buf)
+gint
+do_stat(const gchar *path, struct stat *buf)
 {
 	gint ret;
 
@@ -1554,7 +1559,8 @@ gint do_stat(const gchar *path, struct stat *buf)
 	return ret;
 }
 
-gchar *make_pathname(const gchar *dir, const gchar *file)
+gchar *
+make_pathname(const gchar *dir, const gchar *file)
 {
 	const gchar *sep;
 	size_t l;
@@ -1569,6 +1575,19 @@ gchar *make_pathname(const gchar *dir, const gchar *file)
 		 sep = G_DIR_SEPARATOR_S;
 
 	return GM_STRCONCAT_NULL(dir, sep, file);
+}
+
+/**
+ * Determine stripped down path, removing SRC_PREFIX if present.
+ * Returns pointer within supplied string.
+ */
+gchar *
+short_filename(gchar *fullname)
+{
+	if (0 == strncmp(fullname, SRC_PREFIX, sizeof(SRC_PREFIX) - 1))
+		return fullname + (sizeof(SRC_PREFIX) - 1);
+
+	return fullname;
 }
 
 /* vi: set ts=4: */

@@ -228,6 +228,7 @@ gchar *hex_escape(const gchar *name, gboolean strict);
 gint highest_bit_set(guint32 n) G_GNUC_CONST;
 gfloat force_range(gfloat value, gfloat min, gfloat max);
 gchar *make_pathname(const gchar *dir, const gchar *file);
+gchar *short_filename(gchar *fullname);
 
 #ifdef HAVE_STRCASESTR
 char *strcasestr(const char *haystack, const char *needle);
