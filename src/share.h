@@ -41,7 +41,7 @@ struct extension {
 
 typedef struct shared_file {
 	gchar *file_path;		/* The full path of the file */
-	gchar *file_name;		/* Pointer within file_path at start of filename */
+	const gchar *file_name;	/* Pointer within file_path at start of filename */
 	guint32 file_index;		/* the files index within our local DB */
 	guint32 file_size;		/* File size in Bytes */
 	guint32 flags;			/* See below for definition */
@@ -107,4 +107,5 @@ gboolean sha1_hash_is_uptodate(struct shared_file *sf);
 gboolean is_latin_locale(void);
 void use_map_on_query(gchar *query, int len);
 
+/* vi: set ts=4: */
 #endif /* _share_h_ */
