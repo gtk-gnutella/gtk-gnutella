@@ -816,7 +816,7 @@ gboolean parq_download_parse_queue_status(struct download *d, header_t *header)
 	if (retry < parq_dl->retry_delay)
 		retry = parq_dl->retry_delay;
 
-	if (dbg)
+	if (dbg > 2)
 		printf("Queue version: %d.%d, position %d out of %d,"
 			" retry in %ds within [%d, %d]\n",
 			major, minor, parq_dl->position, parq_dl->length,
@@ -1133,7 +1133,7 @@ static void parq_upload_free(struct parq_ul_queued *parq_ul)
 	wfree(parq_ul, sizeof(*parq_ul));
 	parq_ul = NULL;
 	
-	if (dbg > 2)
+	if (dbg > 3)
 		printf("PARQ UL: Entry freed from memory\n");
 }
 
@@ -1256,7 +1256,7 @@ static struct parq_ul_queued *parq_upload_create(gnutella_upload_t *u)
 	parq_ul_queue->by_rel_pos = 
 		g_list_append(parq_ul_queue->by_rel_pos, parq_ul);	
 	
-	if (dbg) {
+	if (dbg > 3) {
 		printf("PARQ UL Q %d/%d (%3d[%3d]/%3d): New: %s \"%s\"; ID=\"%s\"\n",
 			g_list_position(ul_parqs, 
 				g_list_find(ul_parqs, parq_ul->queue)) + 1,
@@ -1600,7 +1600,7 @@ void parq_upload_timer(time_t now)
 				!parq_ul->has_slot &&
 				!(parq_ul->flags & PARQ_UL_QUEUE)	/* No timeout if pending */
 			) {
-				if (dbg) 
+				if (dbg > 3) 
 					printf("PARQ UL Q %d/%d (%3d[%3d]/%3d): Timeout: %s '%s'\n",
 						g_list_position(ul_parqs, 
 							g_list_find(ul_parqs, parq_ul->queue)) + 1,
@@ -1741,7 +1741,7 @@ gboolean parq_upload_queue_full(gnutella_upload_t *u)
 	g_assert(q_ul->size >= parq_max_upload_size);
 	g_assert(q_ul->by_date_dead != NULL);
 	
-	if (dbg)
+	if (dbg > 2)
 		printf("PARQ UL: Removing a 'dead' upload\n");
 	
 	parq_ul = (struct parq_ul_queued *) g_list_first(q_ul->by_date_dead)->data;
@@ -1957,7 +1957,7 @@ gpointer parq_upload_get(gnutella_upload_t *u, header_t *header)
 
 		g_assert(parq_ul != NULL);
 
-		if (dbg)
+		if (dbg > 3)
 			printf("PARQ UL Q %d/%d (%3d[%3d]/%3d) ETA: %s Added: %s '%s'\n",
 				g_list_position(ul_parqs,
 					g_list_find(ul_parqs, parq_ul->queue)) + 1,
@@ -2151,7 +2151,7 @@ void parq_upload_busy(gnutella_upload_t *u, gpointer handle)
 	
 	g_assert(parq_ul != NULL);
 	
-	if (dbg) {
+	if (dbg > 2) {
 		printf("PARQ UL: Upload %d[%d] is busy\n",
 		  	  parq_ul->position, parq_ul->relative_position);
 	}
@@ -2220,7 +2220,7 @@ void parq_upload_remove(gnutella_upload_t *u)
 	 *		--RAM, 17/05/2003
 	 */
 
-	if (dbg && (parq_ul->flags & PARQ_UL_QUEUE_SENT))
+	if (dbg > 2 && (parq_ul->flags & PARQ_UL_QUEUE_SENT))
 		printf("PARQ UL Q %d/%d: QUEUE #%d sent [refused=%d], u->status = %d\n",
 			g_list_position(ul_parqs, 
 				g_list_find(ul_parqs, parq_ul->queue)) + 1,
@@ -2251,7 +2251,7 @@ void parq_upload_remove(gnutella_upload_t *u)
 		u->last_update = parq_ul->updated;
 	}
 	
-	if (dbg)
+	if (dbg > 3)
 		printf("PARQ UL Q %d/%d: Upload removed\n",
 			g_list_position(ul_parqs, 
 				g_list_find(ul_parqs, parq_ul->queue)) + 1,
@@ -2260,7 +2260,7 @@ void parq_upload_remove(gnutella_upload_t *u)
 	if (parq_ul->has_slot) {
 		GList *lnext = NULL;
 		
-		if (dbg)
+		if (dbg > 2)
 			printf("PARQ UL: Freed an upload slot\n");
 
 		parq_ul->queue->active_uploads--;
