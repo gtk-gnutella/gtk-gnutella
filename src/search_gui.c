@@ -857,7 +857,7 @@ gint search_gui_analyze_col_data(GtkCTree *ctree, gint sort_col)
      */
 	for (
         cur_node = GTK_CTREE_NODE_SIBLING(prev_node), i = 0; 
-        i < 50, NULL != cur_node; 
+        i < 50 && NULL != cur_node; 
         i++, prev_node = cur_node, cur_node = GTK_CTREE_NODE_SIBLING(cur_node)
     ) {	
 
