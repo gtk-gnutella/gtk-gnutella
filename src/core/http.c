@@ -687,6 +687,58 @@ http_buffer_free(http_buffer_t *b)
 	wfree(b, sizeof(*b));
 }
 
+/**
+ * Parses the value of a Content-Range header.
+ *
+ * @param start will be set to the ``start'' offset
+ * @param end will be set to the ``end'' offset
+ * @param total will be set to the ``total'' size of the requested object.
+ * @return -1 on error, zero on success.
+ */
+gint
+http_content_range_parse(const gchar *buf,
+		filesize_t *start, filesize_t *end, filesize_t *total)
+{
+	static const gchar unit[] = "bytes";
+	const gchar *s = buf, *ep;
+	gint error;
+	
+	/*
+	 * HTTP/1.1 -- RFC 2616 -- 3.12 Range Units
+	 *
+	 *		bytes SP start '-' end '/' total
+	 *
+	 * HTTP/1.1 -- RFC 2616 -- 14.35.1 Byte Ranges
+	 *
+	 * This is wrong but used by some (legacy?) servers:
+	 *
+	 *		bytes '=' start '-' end '/' total
+	 */
+
+	if (0 != strncasecmp(s, unit, CONST_STRLEN(unit)))
+		return -1;
+	
+	s += CONST_STRLEN(unit);
+	if (*s != ' ' && *s != '=')
+		return -1;
+	
+	s++;
+	s = skip_ascii_spaces(s);
+	*start = parse_uint64(s, (gchar **) &ep, 10, &error);
+	if (error || *ep++ != '-')
+		return -1;
+	
+	s = skip_ascii_spaces(ep);
+	*end = parse_uint64(s, (gchar **) &ep, 10, &error);
+	if (error || *ep++ != '/')
+		return -1;
+	
+	s = skip_ascii_spaces(ep);
+	*total = parse_uint64(s, (gchar **) &ep, 10, &error);
+	
+	return error ? -1 : 0;
+}
+	
 /***
  *** HTTP range parsing.
  ***/

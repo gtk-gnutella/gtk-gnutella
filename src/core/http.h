@@ -223,6 +223,10 @@ gboolean http_extract_version(
 http_buffer_t *http_buffer_alloc(gchar *buf, size_t len, size_t written);
 void http_buffer_free(http_buffer_t *b);
 
+gint
+http_content_range_parse(const gchar *buf,
+		filesize_t *start, filesize_t *end, filesize_t *total);
+
 filesize_t http_range_size(const GSList *list);
 void http_range_free(GSList *list);
 GSList *http_range_parse(
