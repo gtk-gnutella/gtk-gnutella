@@ -145,6 +145,7 @@ GtkWidget *popup_dl_queued;
 GtkWidget *popup_queue_abort;
 GtkWidget *popup_queue_abort_named;
 GtkWidget *popup_queue_abort_host;
+GtkWidget *popup_queue_abort_sha1;
 GtkWidget *popup_queue_search_again;
 GtkWidget *popup_queue_start_now;
 GtkWidget *popup_queue_search_again;
@@ -154,6 +155,7 @@ GtkWidget *popup_dl_active;
 GtkWidget *popup_downloads_abort;
 GtkWidget *popup_downloads_abort_named;
 GtkWidget *popup_downloads_abort_host;
+GtkWidget *popup_downloads_abort_sha1;
 GtkWidget *popup_downloads_resume;
 GtkWidget *popup_downloads_push;
 GtkWidget *popup_downloads_queue;
@@ -4791,6 +4793,13 @@ create_popup_dl_active (void)
   gtk_widget_show (popup_downloads_abort_host);
   gtk_container_add (GTK_CONTAINER (popup_dl_active), popup_downloads_abort_host);
 
+  popup_downloads_abort_sha1 = gtk_menu_item_new_with_label ("Abort all with urn:sha1");
+  gtk_widget_ref (popup_downloads_abort_sha1);
+  gtk_object_set_data_full (GTK_OBJECT (popup_dl_active), "popup_downloads_abort_sha1", popup_downloads_abort_sha1,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (popup_downloads_abort_sha1);
+  gtk_container_add (GTK_CONTAINER (popup_dl_active), popup_downloads_abort_sha1);
+
   popup_downloads_remove_file = gtk_menu_item_new_with_label ("Remove file");
   gtk_widget_ref (popup_downloads_remove_file);
   gtk_object_set_data_full (GTK_OBJECT (popup_dl_active), "popup_downloads_remove_file", popup_downloads_remove_file,
@@ -4879,6 +4888,9 @@ create_popup_dl_active (void)
   gtk_signal_connect (GTK_OBJECT (popup_downloads_abort_host), "activate",
                       GTK_SIGNAL_FUNC (on_popup_downloads_abort_host_activate),
                       NULL);
+  gtk_signal_connect (GTK_OBJECT (popup_downloads_abort_sha1), "activate",
+                      GTK_SIGNAL_FUNC (on_popup_downloads_abort_sha1_activate),
+                      NULL);
   gtk_signal_connect (GTK_OBJECT (popup_downloads_remove_file), "activate",
                       GTK_SIGNAL_FUNC (on_popup_downloads_remove_file_activate),
                       NULL);
@@ -4949,6 +4961,13 @@ create_popup_dl_queued (void)
   gtk_container_add (GTK_CONTAINER (popup_dl_queued), popup_queue_abort_host);
   gtk_tooltips_set_tip (tooltips, popup_queue_abort_host, "Abort and dequeue all downloads from selected hosts", NULL);
 
+  popup_queue_abort_sha1 = gtk_menu_item_new_with_label ("Abort all with urn:sha1");
+  gtk_widget_ref (popup_queue_abort_sha1);
+  gtk_object_set_data_full (GTK_OBJECT (popup_dl_queued), "popup_queue_abort_sha1", popup_queue_abort_sha1,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (popup_queue_abort_sha1);
+  gtk_container_add (GTK_CONTAINER (popup_dl_queued), popup_queue_abort_sha1);
+
   separator8 = gtk_menu_item_new ();
   gtk_widget_ref (separator8);
   gtk_object_set_data_full (GTK_OBJECT (popup_dl_queued), "separator8", separator8,
@@ -4997,6 +5016,9 @@ create_popup_dl_queued (void)
                       NULL);
   gtk_signal_connect (GTK_OBJECT (popup_queue_abort_host), "activate",
                       GTK_SIGNAL_FUNC (on_popup_queue_abort_host_activate),
+                      NULL);
+  gtk_signal_connect (GTK_OBJECT (popup_queue_abort_sha1), "activate",
+                      GTK_SIGNAL_FUNC (on_popup_queue_abort_sha1_activate),
                       NULL);
   gtk_signal_connect (GTK_OBJECT (popup_queue_search_again), "activate",
                       GTK_SIGNAL_FUNC (on_popup_queue_search_again_activate),

@@ -7908,6 +7908,18 @@ settings</label>
 
   <widget>
     <class>GtkMenuItem</class>
+    <name>popup_downloads_abort_sha1</name>
+    <signal>
+      <name>activate</name>
+      <handler>on_popup_downloads_abort_sha1_activate</handler>
+      <last_modification_time>Sun, 16 Jun 2002 16:49:30 GMT</last_modification_time>
+    </signal>
+    <label>Abort all with urn:sha1</label>
+    <right_justify>False</right_justify>
+  </widget>
+
+  <widget>
+    <class>GtkMenuItem</class>
     <name>popup_downloads_remove_file</name>
     <signal>
       <name>activate</name>
@@ -8061,6 +8073,18 @@ settings</label>
       <last_modification_time>Thu, 11 Apr 2002 16:45:55 GMT</last_modification_time>
     </signal>
     <label>Abort all from host</label>
+    <right_justify>False</right_justify>
+  </widget>
+
+  <widget>
+    <class>GtkMenuItem</class>
+    <name>popup_queue_abort_sha1</name>
+    <signal>
+      <name>activate</name>
+      <handler>on_popup_queue_abort_sha1_activate</handler>
+      <last_modification_time>Sun, 16 Jun 2002 16:50:24 GMT</last_modification_time>
+    </signal>
+    <label>Abort all with urn:sha1</label>
     <right_justify>False</right_justify>
   </widget>
 
