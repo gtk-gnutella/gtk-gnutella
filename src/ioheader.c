@@ -25,20 +25,16 @@
  *----------------------------------------------------------------------
  */
 
+#include "gnutella.h"
+
 #include <string.h>
 #include <errno.h>
 #include <gdk/gdk.h>
 
 #include "ioheader.h"
-#include "walloc.h"
 #include "header.h"
-#include "getline.h"
 #include "sockets.h"
-#include "misc.h"
 #include "bsched.h"
-
-#include "gnet_property.h"
-#include "gnet_property_priv.h"
 
 /*
  * This structure is used to encapsulate the various arguments required

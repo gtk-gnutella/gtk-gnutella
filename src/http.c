@@ -40,9 +40,7 @@
 #include "http.h"
 #include "sockets.h"
 #include "bsched.h"
-#include "getline.h"
 #include "header.h"
-#include "walloc.h"
 #include "ioheader.h"
 #include "version.h"
 

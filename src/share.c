@@ -40,7 +40,6 @@
 #include "gmsg.h"
 #include "huge.h"
 #include "gtk-missing.h" // FIXME: remove this dependency
-#include "utf8.h"
 #include "qrp.h"
 #include "extensions.h"
 #include "nodes.h"
@@ -48,9 +47,6 @@
 #include "gnet_stats.h"
 #include "settings.h"
 #include "ggep.h"
-#include "guid.h"
-
-#include "gnet_property.h"
 
 #define QHIT_SIZE_THRESHOLD	2016	/* Flush query hits larger than this */
 #define QHIT_MAX_RESULTS	255		/* Maximum amount of hits in a query hit */

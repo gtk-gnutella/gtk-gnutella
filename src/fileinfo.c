@@ -33,7 +33,6 @@
 #include "sockets.h"
 #include "downloads.h"
 #include "hosts.h"
-#include "getline.h"
 #include "header.h"
 #include "routing.h"
 #include "routing.h"
@@ -42,9 +41,6 @@
 #include "regex.h"
 #include "huge.h"
 #include "dmesh.h"
-#include "namesize.h"
-#include "guid.h"
-#include "misc.h"
 
 #include "settings.h"
 #include "nodes.h"
