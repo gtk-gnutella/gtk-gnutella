@@ -763,8 +763,10 @@ hcache_remove_all(hostcache_t *hc)
 {
 	gnet_host_t *h;
 
-    if (hc->host_count == 0)
+    if (hc->host_count == 0) {
+		g_assert(hash_list_length(hc->hostlist) == 0);
         return;
+	}
 
     /* FIXME: may be possible to do this faster */
 
