@@ -29,6 +29,7 @@
 #define _gmsg_h_
 
 #include "gnutella.h"
+#include "pmsg.h"
 
 struct gnutella_node;
 struct gnutella_header;
@@ -44,11 +45,18 @@ struct route_dest;
 void gmsg_init(void);
 const gchar *gmsg_name(guint function);
 
+pmsg_t *gmsg_split_to_pmsg(gpointer head, gpointer data, guint32 size);
+
+void gmsg_mb_sendto_all(const GSList *sl, pmsg_t *mb);
+void gmsg_mb_sendto_one(struct gnutella_node *n, pmsg_t *mb);
+
 void gmsg_sendto_one(struct gnutella_node *n, gchar *msg, guint32 size);
 void gmsg_ctrl_sendto_one(struct gnutella_node *n, gchar *msg, guint32 size);
 void gmsg_split_sendto_one(struct gnutella_node *n,
 	gpointer head, gpointer data, guint32 size);
 void gmsg_sendto_all(const GSList *l, gchar *msg, guint32 size);
+void gmsg_split_sendto_all(const GSList *l,
+	gpointer head, gpointer data, guint32 size);
 void gmsg_split_sendto_all_but_one(const GSList *l, struct gnutella_node *n,
 	gpointer head, gpointer data, guint32 size);
 void gmsg_sendto_route(struct gnutella_node *n, struct route_dest *rt);
@@ -64,9 +72,6 @@ void gmsg_log_bad(struct gnutella_node *n,
 gboolean gmsg_check_ggep(struct gnutella_node *n, gint maxsize, gint regsize);
 void gmsg_sendto_route_ggep(
 	struct gnutella_node *n, struct route_dest *rt, gint regular_size);
-
-void gmsg_split_sendto_leaves(const GSList *l,
-	gpointer head, gpointer data, guint32 size);
 
 void gmsg_search_sendto_one(
 	struct gnutella_node *n, gnet_search_t sh, gchar *msg, guint32 size);

@@ -110,7 +110,7 @@ static pmsg_t *gmsg_to_pmsg(gint prio, gpointer msg, guint32 size)
  *
  * Construct PDU from header and data.
  */
-static pmsg_t *gmsg_split_to_pmsg(gpointer head, gpointer data, guint32 size)
+pmsg_t *gmsg_split_to_pmsg(gpointer head, gpointer data, guint32 size)
 {
 	pmsg_t *mb;
 	gint written;
@@ -134,6 +134,51 @@ static pmsg_t *gmsg_split_to_pmsg(gpointer head, gpointer data, guint32 size)
  *** our RX stack received some Gnutella traffic (for outgoing connections)
  *** or that we got the 3rd handshake (for incoming connections).
  ***/
+
+/*
+ * gmsg_mb_sendto_all
+ *
+ * Broadcast message to all nodes in the list.
+ *
+ * The supplied mb is cloned for each node to which it is sent. It is up
+ * to the caller to free that mb, if needed, upon return.
+ */
+void gmsg_mb_sendto_all(const GSList *sl, pmsg_t *mb)
+{
+	g_assert(((struct gnutella_header *) pmsg_start(mb))->ttl > 0);
+
+	if (dbg > 5 && gmsg_hops(pmsg_start(mb)) == 0)
+		gmsg_dump(stdout, pmsg_start(mb), pmsg_size(mb));
+
+	for (/* empty */; sl; sl = g_slist_next(sl)) {
+		struct gnutella_node *dn = (struct gnutella_node *) sl->data;
+		if (!NODE_IS_ESTABLISHED(dn))
+			continue;
+		mq_putq(dn->outq, pmsg_clone(mb));
+	}
+}
+
+/*
+ * gmsg_mb_sendto_one
+ *
+ * Send message to one node.
+ *
+ * The supplied mb is NOT cloned, it is up to the caller to ensure that
+ * a private instance is supplied.
+ */
+void gmsg_mb_sendto_one(struct gnutella_node *n, pmsg_t *mb)
+{
+	g_assert(!pmsg_was_sent(mb));
+	g_assert(((struct gnutella_header *) pmsg_start(mb))->ttl > 0);
+
+	if (!NODE_IS_WRITABLE(n))
+		return;
+
+	if (dbg > 5 && gmsg_hops(pmsg_start(mb)) == 0)
+		gmsg_dump(stdout, pmsg_start(mb), pmsg_size(mb));
+
+	mq_putq(n->outq, mb);
+}
 
 /*
  * gmsg_sendto_one
@@ -332,11 +377,11 @@ void gmsg_split_sendto_all_but_one(const GSList *sl, struct gnutella_node *n,
 }
 
 /*
- * gmsg_split_sendto_leaves
+ * gmsg_split_sendto_all
  *
- * Send message consisting of header and data to all the leaves in the list.
+ * Send message consisting of header and data to all the nodes in the list.
  */
-void gmsg_split_sendto_leaves(const GSList *sl,
+void gmsg_split_sendto_all(const GSList *sl,
 	gpointer head, gpointer data, guint32 size)
 {
 	pmsg_t *mb = gmsg_split_to_pmsg(head, data, size);
