@@ -47,6 +47,7 @@ RCSID("$Id$");
 #include "hostiles.h"
 #include "settings.h"
 #include "udp.h"
+#include "uhc.h"
 #include "extensions.h"
 #include "ggep.h"
 #include "ggep_type.h"
@@ -96,9 +97,12 @@ send_ping(struct gnutella_node *n, guint8 ttl)
 	struct gnutella_msg_init *m;
 	guint32 size;
 
-	m = build_ping_msg(NULL, ttl, &size);
+
+	m = build_ping_msg(NULL, ttl, FALSE, &size);
 
 	if (n) {
+		g_assert(!NODE_IS_UDP(n));
+
 		if (NODE_IS_WRITABLE(n)) {
 			n->n_ping_sent++;
 			gmsg_sendto_one_ggep(n, (gchar *) m, size, sizeof(*m));
@@ -126,12 +130,16 @@ send_ping(struct gnutella_node *n, guint8 ttl)
 /**
  * Build ping message, bearing given TTL and MUID.
  * By construction, hops=0 for all pings.
- * If the MUID is NULL, a random one is assigned.
+ *
+ * @param muid	the MUID to use.  If NULL, a random one will be assigned.
+ * @param ttl	the TTL to use in the generated ping.
+ * @param uhc	whether to generate an "UHC" ping for a host cache
+ * @param size	where the size of the generated message is written.
  *
  * @return pointer to static data, and the size of the message in `size'.
  */
 struct gnutella_msg_init *
-build_ping_msg(const gchar *muid, guint8 ttl, guint32 *size)
+build_ping_msg(const gchar *muid, guint8 ttl, gboolean uhc, guint32 *size)
 {
 	static gchar buf[256];
 	struct gnutella_msg_init *m = (struct gnutella_msg_init *) buf;
@@ -151,9 +159,32 @@ build_ping_msg(const gchar *muid, guint8 ttl, guint32 *size)
 	m->header.ttl = ttl;
 	m->header.hops = 0;
 
-	sz = 0;			/* Payload size */
+	sz = 0;			/* Payload size if no extensions */
 
-	WRITE_GUINT32_LE(0, m->header.size);
+	/*
+	 * Add GGEP information if we're building an UDP host cache ping.
+	 */
+
+	if (uhc) {
+		ggep_stream_t gs;
+		pong_meta_t *meta = &local_meta;
+		guint8 spp;
+
+		ggep_stream_init(&gs, &m->ggep, sizeof(buf) - sizeof(*m));
+
+		ggep_stream_begin(&gs, "VC", 0) &&
+		ggep_stream_write(&gs, meta->vendor, sizeof(meta->vendor)) &&
+		ggep_stream_write(&gs, &meta->version_ua, 1) &&
+		ggep_stream_end(&gs);
+
+		spp = (current_peermode == NODE_P_LEAF) ? 0x0 : 0x1;
+			
+		ggep_stream_pack(&gs, "SCP", &spp, sizeof(spp), 0);
+
+		sz += ggep_stream_close(&gs);
+	}
+
+	WRITE_GUINT32_LE(sz, m->header.size);
 
 	if (size)
 		*size = sz + GTA_HEADER_SIZE;
@@ -205,9 +236,7 @@ build_pong_msg(
 
 	if (meta != NULL) {
 		if (meta->flags & PONG_META_HAS_VC) {	/* Vendor code */
-			gboolean ok;
-
-			ok = ggep_stream_begin(&gs, "VC", 0) &&
+			ggep_stream_begin(&gs, "VC", 0) &&
 			ggep_stream_write(&gs, meta->vendor, sizeof(meta->vendor)) &&
 			ggep_stream_write(&gs, &meta->version_ua, 1) &&
 			ggep_stream_end(&gs);
@@ -217,9 +246,7 @@ build_pong_msg(
 			ggep_stream_pack(&gs, "GUE", &meta->guess, 1, 0);
 
 		if (meta->flags & PONG_META_HAS_UP) {	/* Ultrapeer info */
-			gboolean ok;
-
-			ok = ggep_stream_begin(&gs, "UP", 0) &&
+			ggep_stream_begin(&gs, "UP", 0) &&
 			ggep_stream_write(&gs, &meta->version_up, 1) &&
 			ggep_stream_write(&gs, &meta->up_slots, 1) &&
 			ggep_stream_write(&gs, &meta->leaf_slots, 1) &&
@@ -251,7 +278,7 @@ build_pong_msg(
 
 	/*
 	 * If we're replying to an UDP node, and they sent an "SPP" in their
-	 * ping, then we're acting as an UDP host cache.  Given them some
+	 * ping, then we're acting as an UDP host cache.  Give them some
 	 * fresh pongs of hosts with free slots.
 	 */
 
@@ -331,7 +358,7 @@ send_pong(
 	g_assert(!control || size == sizeof(*r));	/* control => no extensions */
 
 	if (NODE_IS_UDP(n))
-		udp_send_reply(n, r, size);
+		udp_send_msg(n, r, size);
 	else if (control)
 		gmsg_ctrl_sendto_one(n, (gchar *) r, sizeof(*r));
 	else
@@ -1683,6 +1710,45 @@ pcache_ping_received(struct gnutella_node *n)
 }
 
 /**
+ * Called when an UDP pong is received.
+ */
+static void
+pcache_udp_pong_received(struct gnutella_node *n)
+{
+	gint i;
+
+	g_assert(NODE_IS_UDP(n));
+
+	for (i = 0; i < n->extcount; i++) {
+		extvec_t *e = &n->extvec[i];
+		guint16 paylen;
+		const gchar *payload;
+
+		switch (e->ext_token) {
+		case EXT_T_GGEP_IPP:
+			paylen = ext_paylen(e);
+			payload = ext_payload(e);
+
+			if (paylen % 6) {
+				g_warning("%s (UDP): bad length for GGEP \"%s\" (%d byte%s)",
+					gmsg_infostr(&n->header), ext_ggep_id_str(e),
+					paylen, paylen == 1 ? "" : "s");
+			} else
+				uhc_ipp_extract(n, payload, paylen);
+			break;
+		default:
+			if (ggep_debug && e->ext_type == EXT_GGEP) {
+				paylen = ext_paylen(e);
+				g_warning("%s (UDP): unhandled GGEP \"%s\" (%d byte%s)",
+					gmsg_infostr(&n->header), ext_ggep_id_str(e),
+					paylen, paylen == 1 ? "" : "s");
+			}
+			break;
+		}
+	}
+}
+
+/**
  * Called when a pong is received from a node.
  *
  * + Record node in the main host catching list.
@@ -1706,8 +1772,10 @@ pcache_pong_received(struct gnutella_node *n)
 
 	n->n_pong_received++;
 
-	if (NODE_IS_UDP(n))
-		return;							/* XXX UDP PONG ignored for now */
+	if (NODE_IS_UDP(n)) {
+		pcache_udp_pong_received(n);
+		return;
+	}
 
 	/*
 	 * Decompile the pong information.
