@@ -733,7 +733,7 @@ void node_timer(time_t now)
 
 		if (
 			n->qrelayed != NULL &&
-			now - n->qrelayed_created > QRELAYED_HALF_LIFE
+			now - n->qrelayed_created >= QRELAYED_HALF_LIFE
 		) {
 			GHashTable *new;
 
@@ -1224,6 +1224,37 @@ static enum node_bad node_is_bad(struct gnutella_node *n)
 }
 
 /*
+ * node_mark_bad_ip
+ *
+ * Record that the node's IP is bad and that connection should no longer
+ * be attempted towards that IP.
+ */
+static void node_mark_bad_ip(struct gnutella_node *n)
+{
+	struct node_bad_ip *bad_ip = NULL;
+
+	if (in_shutdown || !node_monitor_unstable_ip)
+		return;
+
+	g_assert(n != NULL);
+	g_assert(n->ip != 0);
+
+	bad_ip = g_hash_table_lookup(unstable_ip, GUINT_TO_POINTER(n->ip));
+	if (bad_ip == NULL) {
+		bad_ip = walloc0(sizeof(*bad_ip));
+		bad_ip->ip = n->ip;
+		bad_ip->time_added = time(NULL);
+		
+		g_hash_table_insert(unstable_ip, GUINT_TO_POINTER(n->ip), bad_ip);
+		unstable_ips = g_slist_prepend(unstable_ips, bad_ip);
+
+		if (dbg)
+			g_warning("[nodes up] Marked ip %s (%s) as a bad host",
+				ip_to_gchar(n->ip), node_vendor(n));
+	}	
+}
+
+/*
  * node_mark_bad
  *
  * Gives a specific vendor a bad mark. If a vendor + version gets to many
@@ -1233,11 +1264,10 @@ void node_mark_bad(struct gnutella_node *n)
 {
 	struct node_bad_client *bad_client = NULL;
 	struct node_bad_ip *bad_ip = NULL;
-	time_t now = time((time_t *) NULL);
+	time_t now;
 	
-	if (in_shutdown) {
+	if (in_shutdown)
 		return;
-	}
 	
 	if (!node_monitor_unstable_ip)
 		/*
@@ -1266,6 +1296,8 @@ void node_mark_bad(struct gnutella_node *n)
 		 */
 		return;
 
+	now = time((time_t *) NULL);
+
 	/* Don't mark a node as bad with whom we could stay a long time */
 	if (
 		now - n->connect_date >
@@ -1280,21 +1312,8 @@ void node_mark_bad(struct gnutella_node *n)
 		return;
 	}
 	
-	bad_ip = g_hash_table_lookup(unstable_ip, GUINT_TO_POINTER(n->ip));
-	if (bad_ip == NULL) {
-		bad_ip = walloc0(sizeof(*bad_ip));
-		bad_ip->ip = n->ip;
-		bad_ip->time_added = time(NULL);
-		
-		g_hash_table_insert(unstable_ip, GUINT_TO_POINTER(n->ip), bad_ip);
-		unstable_ips = g_slist_prepend(unstable_ips, bad_ip);
+	node_mark_bad_ip(n);
 
-		if (dbg)
-			g_warning("[nodes up] Marked ip %s (%s) as a bad host",
-				ip_to_gchar(n->ip),
-				NULL != n->vendor ? n->vendor : "<unknown>");
-	}	
-	
 	if (!node_monitor_unstable_servents)
 		/* The user doesn't want us to monitor unstable servents. */
 		return;
@@ -2703,6 +2722,7 @@ static gboolean analyse_status(struct gnutella_node *n, gint *code)
 				g_warning("node %s gave a 0.4 reply to our 0.6 HELLO, dropping",
 					node_ip(n));
 		}
+		node_mark_bad_ip(n);
 	} else {
 		ack_ok = TRUE;
 		n->flags |= NODE_F_VALID;		/* This is a Gnutella node */
@@ -2730,6 +2750,8 @@ static gboolean analyse_status(struct gnutella_node *n, gint *code)
 	if (!ack_ok)
 		node_remove(n, "Weird HELLO %s", what);
 	else if (ack_code < 200 || ack_code >= 300) {
+		if (ack_code == 401)		/* Unauthorized */
+			node_mark_bad_ip(n);
 		node_remove(n, "HELLO %s error %d (%s)", what, ack_code, ack_message);
 		ack_ok = FALSE;
 	}
