@@ -1804,6 +1804,7 @@ GtkWidget *filter_gui_create_dlg_filters(void)
     /*
      * First create the filter dialog without the tab contents.
      */
+
     dialog = create_dlg_filters();
     notebook = lookup_widget(dialog, "notebook_filter_detail");
 

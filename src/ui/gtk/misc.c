@@ -104,13 +104,19 @@ static void update_stat(guint32 *max, GtkProgressBar *pg,
     gfloat frac = 0;
     guint32 high_limit;
     guint32 current;
-    
+	guint32 max_bw = *max;
+
     current = avg_mode ? stats->average : stats->current;
-    if (*max < current)
-        *max = current;
+    if (max_bw < current)
+        max_bw = *max = current;
+	else {
+		guint32 new_max = stats->average + (stats->average >> 1);	/* 1.5 */
+		if (max_bw > new_max)
+			max_bw = *max = new_max;
+	}
 
     high_limit = MAX(
-        stats->enabled ? stats->limit : *max,
+        stats->enabled ? stats->limit : max_bw,
         current);
     frac = (high_limit == 0) ? 0 : (gfloat) current / high_limit;
 
