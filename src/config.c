@@ -808,7 +808,10 @@ void config_read(void)
 	config = fopen(cfg_tmp, "r");
 
 	/* Try to open settings file in local directory first */
-	if ((config = fopen(config_file, "r")) != NULL)
+	if (
+		!is_directory(config_file) &&
+		(config = fopen(config_file, "r")) != NULL
+	)
 		cfg_use_local_file = 1; /* We're using a local config file */
 	else
 		config = fopen(cfg_tmp, "r");	/* The normal file */
