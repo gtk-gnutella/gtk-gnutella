@@ -385,6 +385,8 @@ hash_list_next(hash_list_iter_t *i)
 	if (i->pos++ >= 0)					/* Special case if "before" first */
 		i->l = g_list_next(i->l);
 
+	g_assert(i->l != NULL || i->pos >= i->hl->len);
+
 	return NULL != i->l ? i->l->data : NULL;
 }
 
@@ -418,6 +420,8 @@ hash_list_previous(hash_list_iter_t *i)
 
 	if (i->pos-- < i->hl->len)			/* Special case if "after" last */
 		i->l = g_list_previous(i->l);
+
+	g_assert(i->l != NULL || i->pos < 0);
 
 	return NULL != i->l ? i->l->data : NULL;
 }
