@@ -67,7 +67,7 @@ void gnet_stats_init(void)
 
 }
 
-void gnet_stats_count_recieved(gnutella_node_t *n)
+void gnet_stats_count_received(gnutella_node_t *n)
 {
     n->received++;
     msg_recv_total++;
@@ -80,6 +80,12 @@ void gnet_stats_count_sent(gnutella_node_t *n)
     msg_sent_total++;
 
     stats_sent[stats_lut[n->header.function]]++;
+}
+
+void gnet_stats_count_sent_type(gnutella_node_t *n, guint8 type)
+{
+    msg_sent_total++;
+    stats_sent[stats_lut[type]]++;
 }
 
 void gnet_stats_count_expired(gnutella_node_t *n)

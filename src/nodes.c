@@ -2810,7 +2810,7 @@ static gboolean node_read(struct gnutella_node *n, pmsg_t *mb)
 
 		n->have_header = TRUE;
 
-        gnet_stats_count_recieved(n);
+        gnet_stats_count_received(n);
 
 		node_emit_node_changed(n, FALSE);
 

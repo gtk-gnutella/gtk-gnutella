@@ -31,7 +31,10 @@
 #include "gnutella.h"
 
 struct gnutella_node;
+struct gnutella_header;
 struct route_dest;
+
+#define gmsg_function(p) (((struct gnutella_header *) p)->function)
 
 /*
  * Public interface
