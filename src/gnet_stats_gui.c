@@ -393,7 +393,7 @@ void gnet_stats_gui_update(time_t now)
     GtkCList *clist_stats_fc_hops;
     gint n;
     gnet_stats_t stats;
-    hsep_triple hsep_table[HSEP_N_MAX + 1];
+	static time_t last_horizon_update = 0;
 
     gint current_page;
 
@@ -423,7 +423,6 @@ void gnet_stats_gui_update(time_t now)
 
     gtk_clist_freeze(clist_reason);
     gtk_clist_freeze(clist_general);
-    gtk_clist_freeze(clist_horizon);
     gtk_clist_freeze(clist_stats_msg);
     gtk_clist_freeze(clist_stats_fc_ttl);
     gtk_clist_freeze(clist_stats_fc_hops);
@@ -471,24 +470,35 @@ void gnet_stats_gui_update(time_t now)
     for (n = 0; n < GNR_TYPE_COUNT; n ++)
         gtk_clist_set_text(clist_general, n, 1, general_stat_str(&stats, n));
 
-    hsep_get_global_table(hsep_table, HSEP_N_MAX + 1);
+	/*
+	 * Update horizon statistics table, but only if the values have changed.
+	 *		-- TNT 09/06/2004 
+	 */
 
-    for (n = 0; n < HSEP_N_MAX; n ++) {
-        /* 
-		 * Note that we output hsep_table[1..HSEP_N_MAX] 
-		 *		-- TNT 2/6/2004 
-		 */
-        gtk_clist_set_text(clist_horizon, n, 1,
-		    horizon_stat_str(hsep_table, n + 1, 1));
-        gtk_clist_set_text(clist_horizon, n, 2,
-		    horizon_stat_str(hsep_table, n + 1, 2));
-        gtk_clist_set_text(clist_horizon, n, 3,
-		    horizon_stat_str(hsep_table, n + 1, 3));
-    }
+	if (hsep_has_global_table_changed(last_horizon_update)) {
+		hsep_triple hsep_table[HSEP_N_MAX + 1];
+
+		gtk_clist_freeze(clist_horizon);
+		hsep_get_global_table(hsep_table, HSEP_N_MAX + 1);
+
+		for (n = 0; n < HSEP_N_MAX; n ++) {
+			/* 
+			 * Note that we output hsep_table[1..HSEP_N_MAX] 
+			 *		-- TNT 02/06/2004 
+			 */
+			gtk_clist_set_text(clist_horizon, n, 1,
+			    horizon_stat_str(hsep_table, n + 1, 1));
+			gtk_clist_set_text(clist_horizon, n, 2,
+			    horizon_stat_str(hsep_table, n + 1, 2));
+			gtk_clist_set_text(clist_horizon, n, 3,
+			    horizon_stat_str(hsep_table, n + 1, 3));
+		}
+		last_horizon_update = now;
+		gtk_clist_thaw(clist_horizon);
+	}
 
     gtk_clist_thaw(clist_reason);
     gtk_clist_thaw(clist_general);
-    gtk_clist_thaw(clist_horizon);
     gtk_clist_thaw(clist_stats_msg);
     gtk_clist_thaw(clist_stats_fc_ttl);
     gtk_clist_thaw(clist_stats_fc_hops);

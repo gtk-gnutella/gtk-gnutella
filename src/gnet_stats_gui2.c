@@ -411,20 +411,29 @@ static void gnet_stats_update_horizon(void)
 	GtkTreeIter iter;
 	gint n;
 	hsep_triple hsep_table[HSEP_N_MAX + 1];
+	static time_t last_horizon_update = 0;
 
-	hsep_get_global_table(hsep_table, G_N_ELEMENTS(hsep_table));
+	/*
+	 * Update horizon statistics table, but only if the values have changed.
+	 *      -- TNT 09/06/2004
+	 */
 
-	store = GTK_LIST_STORE(gtk_tree_view_get_model(treeview));
-	gtk_tree_model_get_iter_first(GTK_TREE_MODEL(store), &iter);
+    if (hsep_has_global_table_changed(last_horizon_update)) {
+		hsep_get_global_table(hsep_table, G_N_ELEMENTS(hsep_table));
 
-	/* Skip the first element */
-	for (n = 1; n < G_N_ELEMENTS(hsep_table); n++) {
-		gtk_list_store_set(store, &iter,
-			c_horizon_nodes, horizon_stat_str(hsep_table, n, c_horizon_nodes),
-		    c_horizon_files, horizon_stat_str(hsep_table, n, c_horizon_files),
-		    c_horizon_size,	 horizon_stat_str(hsep_table, n, c_horizon_size),
-			(-1));
-		gtk_tree_model_iter_next(GTK_TREE_MODEL(store), &iter);
+		store = GTK_LIST_STORE(gtk_tree_view_get_model(treeview));
+		gtk_tree_model_get_iter_first(GTK_TREE_MODEL(store), &iter);
+
+		/* Skip the first element */
+		for (n = 1; n < G_N_ELEMENTS(hsep_table); n++) {
+			gtk_list_store_set(store, &iter,
+				c_horizon_nodes, horizon_stat_str(hsep_table, n, c_horizon_nodes),
+			    c_horizon_files, horizon_stat_str(hsep_table, n, c_horizon_files),
+			    c_horizon_size,	 horizon_stat_str(hsep_table, n, c_horizon_size),
+				(-1));
+			gtk_tree_model_iter_next(GTK_TREE_MODEL(store), &iter);
+		}
+		last_horizon_update = time(NULL);
 	}
 }
 
