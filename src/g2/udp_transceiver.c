@@ -17,45 +17,58 @@ GSList *received_fragments_list;
 typedef struct fragment_s fragment_t;
 struct fragment_s
 {
-        char *fragment;
-        int   fragment_length;
-
-        time_t initial_transmitted;
-        time_t last_transmitted;
-
-        guint32 ipaddress;
-        guint16 port;
+	char *fragment;
+	int   fragment_length;
+	
+	time_t initial_transmitted;
+	time_t last_transmitted;
+	
+	guint32 ipaddress;
+	guint16 port;
 };
 
 void udp_transceiver_timer(time_t now)
 {
-        // Fragments waiting for acknowledge > receive_packet_expiry?
-        // Remove acknowledge packets.
-
-        // Fragments waiting for acknowledge?
-        // Time to retransmit?
-        // Retransmit to be acknowledged packets
-
-        // Fragments to be send?
-        // Send a few fragments. No more then udp_bandwith_out / MTU
+	/* Fragments waiting for acknowledge > receive_packet_expiry?
+	 * Remove acknowledge packets.
+	
+	 * Fragments waiting for acknowledge?
+	 * Time to retransmit?
+	 * Retransmit to be acknowledged packets
+	
+	 * Fragments to be send?
+	 * Send a few fragments. No more then udp_bandwith_out / MTU
+	 */
 }
 
 /***
  *** Building and sending
  ***/
-gboolean udp_transceiver_can_handle_received_fragment(char *buf, int length)
+ 
+/**
+ * Wether the udp transceiver might be able to handle this received fragment.
+ */
+gboolean 
+udp_transceiver_can_handle_received_fragment(char *buf, int length)
 {
         return length > header_length &&
                 buf[0] == 'G' && buf[1] == 'N' && buf[2] == 'D';
 }
 
-static void udp_transceiver_put_send_fragment(fragment_t *fragment)
+/**
+ * Put fragment in the to send list.
+ */
+static void 
+udp_transceiver_put_send_fragment(fragment_t *fragment)
 {
         // glist_prepend fragment
 }
 
-
-static void udp_transceiver_send_fragment(fragment_t *fragment,
+/**
+ * Send the fragment.
+ */
+static void 
+udp_transceiver_send_fragment(fragment_t *fragment,
                                                                                  gboolean deflate, 
                                                                                  gboolean acknowledge)
 {
@@ -67,7 +80,11 @@ static void udp_transceiver_send_fragment(fragment_t *fragment,
         }
 }
 
-void udp_transceiver_free_fragment(fragment_t *fragment)
+/**
+ * Free the fragment and all its associated memory.
+ */
+void 
+udp_transceiver_free_fragment(fragment_t *fragment)
 {
         if (fragment->fragment != NULL)
                 free(fragment->fragment);
@@ -75,12 +92,16 @@ void udp_transceiver_free_fragment(fragment_t *fragment)
         free(fragment);
 }
 
-fragment_t *udp_transceiver_build_fragment(char *buffer, int length,
-                                                                                   int sequencenumber,
-                                                                                   int partnumber,
-                                                                                   int fragments,
-                                                                                   gboolean deflate,
-                                                                                   gboolean acknowledge)
+/**
+ * Build a fragment.
+ */
+fragment_t *
+udp_transceiver_build_fragment(char *buffer, int length,
+								int sequencenumber,
+								int partnumber,
+								int fragments,
+								gboolean deflate,
+								gboolean acknowledge)
 {
         fragment_t *fragment = (fragment_t *) malloc(sizeof(fragment_t));
         fragment->fragment_length = length + header_length;
@@ -102,9 +123,13 @@ fragment_t *udp_transceiver_build_fragment(char *buffer, int length,
         return fragment;
 }
 
-void udp_transceiver_send(char *buffer, int length, gboolean deflate, 
-                                                  gboolean acknowledge,
-                                                  guint32 address, guint16 port)
+/**
+ * Send a fragment to the specified address.
+ */
+void 
+udp_transceiver_send(char *buffer, int length, gboolean deflate, 
+							gboolean acknowledge,
+							guint32 address, guint16 port)
 {
         // Create fragments.
         int fragments = (int) ceil((double)length / (double) MTU);
@@ -130,28 +155,49 @@ void udp_transceiver_send(char *buffer, int length, gboolean deflate,
  *** Receiving and parsing
  ***/
 
-inline int udp_transceiver_get_sequencenumber(fragment_t *fragment)
+/**
+ * Get the sequence number from a fragment.
+ */
+inline int 
+udp_transceiver_get_sequencenumber(fragment_t *fragment)
 {
         return (fragment->fragment[4] << 8) + fragment->fragment[5];
 }
 
-inline int udp_transceiver_get_partnumber(fragment_t *fragment)
+/**
+ * Get the part number from a fragment.
+ */
+inline int 
+udp_transceiver_get_partnumber(fragment_t *fragment)
 {
         return fragment->fragment[6];
 }
 
-inline int udp_transceiver_get_fragments(fragment_t *fragment)
+/**
+ * Get the number of fragments from a datagram fragment.
+ */
+inline int 
+udp_transceiver_get_fragments(fragment_t *fragment)
 {
         return fragment->fragment[7];
 }
 
-static GSList *udp_transceiver_lookup_fragments_by_sequencenumber_source(
+/**
+ * Gets previously received fragments from the given source with matching
+ * sequencenumber.
+ */
+static GSList *
+udp_transceiver_lookup_fragments_by_sequencenumber_source(
         fragment_t *fragment)
 {
 	return NULL;
 }
 
-static void udp_transceiver_put_received_fragment(fragment_t *fragment)
+/**
+ * Puts a received datagram fragment in a to handle list.
+ */
+static void 
+udp_transceiver_put_received_fragment(fragment_t *fragment)
 {
         int fragments = udp_transceiver_get_fragments(fragment);
         int partnumber = udp_transceiver_get_partnumber(fragment);
@@ -182,7 +228,12 @@ static void udp_transceiver_put_received_fragment(fragment_t *fragment)
         /* All fragments received */
 }
 
-static gboolean udp_transceiver_put_received_datagram(char *buf, int length,
+/**
+ * Parses a datagram and if it is a fragment it will be handed over to
+ * udp_transceiver_put_received_fragment.
+ */
+static gboolean 
+udp_transceiver_put_received_datagram(char *buf, int length,
                                                                                                   guint32 ip, guint16 port)
 {
         fragment_t *fragment_received;
@@ -200,7 +251,11 @@ static gboolean udp_transceiver_put_received_datagram(char *buf, int length,
         udp_transceiver_put_received_fragment(fragment_received);
 }
 
-gboolean udp_transceiver_receive(char **buffer, int *length)
+/**
+ * Handle receiving of data
+ */
+gboolean 
+udp_transceiver_receive(char **buffer, int *length)
 {
         // for bla in fragments_received
 //        *length += fragment->fragment_length - header_length;
