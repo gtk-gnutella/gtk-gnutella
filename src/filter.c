@@ -195,7 +195,8 @@ static shadow_t *shadow_new(filter_t *f)
     g_assert(f != NULL);
     g_assert(f->name != NULL);
 
-    g_message("creating shadow for: %s", f->name);
+    if (dbg >= 6)
+        g_message("creating shadow for: %s", f->name);
 
     shadow = g_new0(shadow_t, 1);
 
@@ -336,7 +337,7 @@ static void filter_rebuild_target_combos()
     /*
 
      * Prepare a list of unbound filters and also leave
-     * out the global filters.
+     * out the global and builtin filters.
      */
     for (l = filters; l != NULL; l = l->next) {
         filter_t *filter = (filter_t *)l->data;
@@ -985,16 +986,18 @@ void filter_update_filters()
         filter_t *r = (filter_t *) l->data;
         GtkWidget *w;
 
-        w = menu_new_item_with_data(GTK_MENU(m), r->name, r);
-        gtk_signal_connect
-            (GTK_OBJECT(w), "activate", on_filter_filters_activate, r);
-
-        if (work_filter == r) {
-            work_filter_exists = TRUE;
-            active_item = item_count;
-        }
+        if (!IS_BUILTIN(r)) {
+            w = menu_new_item_with_data(GTK_MENU(m), r->name, r);
+            gtk_signal_connect
+                (GTK_OBJECT(w), "activate", on_filter_filters_activate, r);
     
-        item_count ++;
+            if (work_filter == r) {
+                work_filter_exists = TRUE;
+                active_item = item_count;
+            }
+    
+            item_count ++;
+        }
     }
         
     gtk_option_menu_set_menu
@@ -1037,7 +1040,10 @@ void filter_set(filter_t *f)
     if (filter_dialog == NULL)
         return;
 
-    shadow = shadow_find(f);
+    if (f != NULL)
+        shadow = shadow_find(f);
+    else
+        shadow = NULL;
 
     gtk_widget_set_sensitive(button_filter_add_rule_text, is_work);
     gtk_widget_set_sensitive(button_filter_add_rule_ip, is_work);
@@ -1323,6 +1329,8 @@ void filter_new_for_search(search_t *s)
     f = filter_new(s->query);
     f->search = s;
     s->filter = f;
+
+    filter_update_filters();
 }
 
 
@@ -1733,7 +1741,7 @@ static int filter_apply(filter_t *filter, struct record *rec)
     if (filter == filter_drop) {
         return 0;
     }
-
+  
     /*
      * We only try to prevent circles.
      */
