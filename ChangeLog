@@ -1,5 +1,22 @@
 # since last version
 
+- (2002.11.02 RAM)
+ * Added asychronous SHA1 verification routines.
+ * Extended the background task model to also support "daemon" tasks, which
+   are tasks that sleep in the background and are woken up when work is to
+   be performed.
+ * Plugged in SHA1 verification when a download is complete.
+ * Display SHA1 computation status in the download window.
+ * At startup, scan the download "tmp" dir for orphan files and reintegrate
+   them into the fileinfo database, moving complete files to "done".
+ * Only send urlfile requests to web caches once every 8 hours.
+ * Split ignore_add() into ignore_add_sha1() and ignore_add_filesize().
+ * Old code that could move back a file from the "done" directory to the "tmp"
+   directory was removed.  We now have stricter file management with SHA1.
+ * Fixed routing_log() which was not logging anything.
+ * Removed spurious checks in get_file_to_upload_from_index(), replacing
+   them with assertions.
+
 - (2002.10.30 RAM)
  * Raised logging level for some innermost traces in bg.c.
  * Moved check for "no GUID to use PUSH" to download_push() to avoid seeing
