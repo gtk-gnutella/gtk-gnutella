@@ -31,6 +31,7 @@
 
 #include "version.h"
 
+gchar *version_number = NULL;
 gchar *version_string = NULL;
 
 /*
@@ -377,6 +378,9 @@ void version_check(guchar *str)
 
 	/*
 	 * Signal new version to user.
+	 *
+	 * Unless they run a development version, don't signal development
+	 * updates to them: they're probably not interested.
 	 */
 
 	version =  version_str(&their_version);
@@ -385,7 +389,10 @@ void version_check(guchar *str)
 		target_version == &last_dev_version ? "development" : "released",
 		version);
 
-	version_new_found(version, target_version == &last_rel_version);
+	if (target_version == &last_rel_version)
+		version_new_found(version, TRUE);
+	else if (our_version.tag == 'u')
+		version_new_found(version, FALSE);
 }
  
 /*
@@ -398,13 +405,25 @@ void version_init(void)
 	struct utsname un;
 	gchar buf[128];
 	gboolean ok;
+	gchar patch[80];
+
+#ifdef GTA_PATCHLEVEL
+	g_snprintf(patch, sizeof(patch), ".%u", GTA_PATCHLEVEL);
+#else
+	patch[0] = '\0';
+#endif
 
 	(void) uname(&un);
 
 	g_snprintf(buf, sizeof(buf) - 1,
-		"gtk-gnutella/%u.%u%s (%s; %s; %s %s %s)",
-		GTA_VERSION, GTA_SUBVERSION, GTA_REVCHAR, GTA_RELEASE,
-		GTA_INTERFACE, un.sysname, un.release, un.machine);
+		"%u.%u%s%s", GTA_VERSION, GTA_SUBVERSION, patch, GTA_REVCHAR);
+
+	version_number = atom_str_get(buf);
+
+	g_snprintf(buf, sizeof(buf) - 1,
+		"gtk-gnutella/%s (%s; %s; %s %s %s)",
+		version_number, GTA_RELEASE, GTA_INTERFACE,
+		un.sysname, un.release, un.machine);
 
 	version_string = atom_str_get(buf);
 
@@ -441,6 +460,7 @@ void version_ancient_warn(void)
  */
 void version_close(void)
 {
+	atom_str_free(version_number);
 	atom_str_free(version_string);
 
 	if (version_cmp(&our_version, &last_rel_version) < 0)
