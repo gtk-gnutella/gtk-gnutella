@@ -70,7 +70,6 @@ static void auto_connect(void)
 	 */
 
 	static gchar *host_catcher[] = {
-		"router.limewire.com",
 		"connect1.gnutellanet.com",
 		"gnotella.fileflash.com",
 		"connect2.gnutellanet.com",
