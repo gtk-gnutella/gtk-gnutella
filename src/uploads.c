@@ -13,11 +13,25 @@
 #include "share.h"
 #include "gui.h"
 #include "misc.h"
+#include "getline.h"
+#include "header.h"
 
 GSList *uploads = NULL;
 gint running_uploads = 0;
 
 guint32 count_uploads = 0;
+
+/*
+ * This structure is used to encapsulate the various arguments required
+ * by the header parsing I/O callback.
+ */
+struct io_header {
+	struct upload *upload;
+	header_t *header;
+	getline_t *getline;
+};
+
+static void upload_request(struct upload *u, header_t *header);
 
 /*
  * TODO: Make sure we do all the following:
@@ -31,10 +45,18 @@ guint32 count_uploads = 0;
 
 void handle_push_request(struct gnutella_node *n)
 {
+	/* TODO:
+	 * Deal with push request, just setup the upload structure but don't
+	 * send anything?
+	 */
 }
 
 void upload_real_remove(void)
 {
+	// XXX UNUSED
+	// XXX Currently, we remove failed uploads from the list, but we should
+	// XXX do as we do for downloads, and have an extra option to remove
+	// XXX failed uploads immediately.	--RAM, 24/12/2001
 }
 
 static void upload_free_resources(struct upload *u)
@@ -54,12 +76,80 @@ static void upload_free_resources(struct upload *u)
 	}
 }
 
-void upload_remove(struct upload *u, gchar * reason)
+/*
+ * send_upload_error
+ *
+ * Send error message to node.
+ */
+static void send_upload_error(struct upload *u, int code, guchar *msg, ...)
+{
+	struct gnutella_socket *s = u->socket;
+	gchar http_response[1024];
+	gchar reason[1024];
+	gint rw;
+	va_list args;
+
+	va_start(args, msg);
+	g_vsnprintf(reason, sizeof(reason), msg, args);
+	reason[sizeof(reason) - 1] = '\0';		/* May be truncated */
+	va_end(args);
+
+	rw = g_snprintf(http_response, sizeof(http_response),
+		"HTTP/1.0 %d %s\r\n"
+		"Server: gtk-gnutella/%d.%d\r\n"
+		"\r\n",
+		code, reason, GTA_VERSION, GTA_SUBVERSION);
+
+	// XXX mark partial writes
+
+	if (-1 == write(s->file_desc, http_response, rw))
+		g_warning("Unable to send back HTTP error %d (%s) to node %s: %s",
+			code, reason, ip_to_gchar(s->ip), g_strerror(errno));
+	else if (dbg > 4) {
+		printf("----Sent HTTP Error to %s:\n%.*s----\n",
+			ip_to_gchar(s->ip), rw, http_response);
+		fflush(stdout);
+	}
+}
+
+void upload_remove(struct upload *u, const gchar *reason, ...)
 {
 	gint row;
+	gchar errbuf[1024];
 
-	if (u->status != GTA_UL_COMPLETE) {
-		/* if UL_COMPLETE, we've already decremented it. */
+	if (reason && dbg > 1) {
+		va_list args;
+		va_start(args, reason);
+		g_vsnprintf(errbuf, sizeof(errbuf), reason, args);
+		errbuf[sizeof(errbuf) - 1] = '\0';		/* May be truncated */
+		va_end(args);
+
+		if (u->name) {
+			if (dbg) printf("Cancelling upload for %s from %s: %s\n",
+				u->name, ip_to_gchar(u->socket->ip), errbuf);
+		} else {
+			if (dbg) printf("Cancelling upload from %s: %s\n",
+				ip_to_gchar(u->socket->ip), errbuf);
+		}
+	}
+
+	/*
+	 * If the upload is still connecting, we have not started sending
+	 * any data yet, so we send an HTTP error code before closing the
+	 * connection.
+	 *		--RAM, 24/12/2001
+	 */
+
+	if (UPLOAD_IS_CONNECTING(u))
+		send_upload_error(u, 400, reason ? errbuf : "Bad Request");
+
+	/*
+	 * If COMPLETE, we've already decremented it.
+	 * Moreover, if it's still connecting, then we've not even
+	 * incremented the counter yet.
+	 */
+
+	if (!UPLOAD_IS_COMPLETE(u) && !UPLOAD_IS_CONNECTING(u)) {
 		running_uploads--;
 		gui_update_c_uploads();
 	}
@@ -72,38 +162,285 @@ void upload_remove(struct upload *u, gchar * reason)
 	uploads = g_slist_remove(uploads, (gpointer) u);
 }
 
-struct upload *upload_add(struct gnutella_socket *s)
+/*
+ * upload_header_parse
+ *
+ * This routine is called to parse the input buffer, a line at a time,
+ * until EOH is reached.
+ */
+static void upload_header_parse(struct io_header *ih)
 {
+	struct upload *u = ih->upload;
+	struct gnutella_socket *s = u->socket;
+	getline_t *getline = ih->getline;
+	header_t *header = ih->header;
+	guint parsed;
+	gint error;
 
-	/* TODO:
-	 * Deal with push request, just setup the upload structure but don't
-	 * send anything
+	/*
+	 * Read header a line at a time.  We have exacly s->pos chars to handle.
+	 * NB: we're using a goto label to loop over.
 	 */
-	struct upload *new_upload = NULL;
+
+nextline:
+	switch (getline_read(getline, s->buffer, s->pos, &parsed)) {
+	case READ_OVERFLOW:
+		g_warning("upload_header_parse: line too long, disconnecting from %s",
+			ip_to_gchar(s->ip));
+		dump_hex(stderr, "Leading Data", s->buffer, MIN(s->pos, 256));
+		upload_remove(u, "Failed (Header line too long)");
+		goto final_cleanup;
+		/* NOTREACHED */
+	case READ_DONE:
+		if (s->pos != parsed)
+			memmove(s->buffer, s->buffer + parsed, s->pos - parsed);
+		s->pos -= parsed;
+		break;
+	case READ_MORE:		/* ok, but needs more data */
+	default:
+		g_assert(parsed == s->pos);
+		s->pos = 0;
+		return;
+	}
+
+	/*
+	 * We come here everytime we get a full header line.
+	 */
+
+	error = header_append(header,
+		getline_str(getline), getline_length(getline));
+
+	switch (error) {
+	case HEAD_OK:
+		getline_reset(getline);
+		goto nextline;			/* Go process other lines we may have read */
+		/* NOTREACHED */
+	case HEAD_EOH:				/* We reached the end of the header */
+		break;
+	case HEAD_TOO_LARGE:
+	case HEAD_MANY_LINES:
+	case HEAD_EOH_REACHED:
+		g_warning("upload_header_parse: %s, disconnecting from %s",
+			header_strerror(error),  ip_to_gchar(s->ip));
+		fprintf(stderr, "------ Header Dump:\n");
+		header_dump(header, stderr);
+		fprintf(stderr, "------\n");
+		dump_hex(stderr, "Header Line", getline_str(getline),
+			MIN(getline_length(getline), 128));
+		upload_remove(u, "Failed (%s)", header_strerror(error));
+		goto final_cleanup;
+		/* NOTREACHED */
+	default:					/* Error, but try to continue */
+		g_warning("upload_header_parse: %s, from %s",
+			header_strerror(error), ip_to_gchar(s->ip));
+		dump_hex(stderr, "Header Line",
+			getline_str(getline), getline_length(getline));
+		getline_reset(getline);
+		goto nextline;			/* Go process other lines we may have read */
+	}
+
+	/*
+	 * We reached the end of headers.  Make sure there's no more data.
+	 */
+
+	if (s->pos) {
+		g_warning("remote %s sent extra bytes after HTTP headers",
+			ip_to_gchar(s->ip));
+		dump_hex(stderr, "Extra Data", s->buffer, MIN(s->pos, 256));
+		upload_remove(u, "Failed (Extra HTTP header data)");
+		goto final_cleanup;
+	}
+
+	/*
+	 * OK, we got the whole headers.
+	 *
+	 * Free up the I/O callback structure, remove the input callback and
+	 * initialize the upload.  NB: the initial HTTP request on the first
+	 * line is still held in the s->getline structure.
+	 */
+
+	getline_free(ih->getline);
+	g_free(ih);
+
+	gdk_input_remove(s->gdk_tag);
+	s->gdk_tag = 0;
+
+	u->last_update = time((time_t *) 0);	/* Done reading headers */
+	upload_request(u, header);
+	return;
+
+	/*
+	 * When we come here, we're done with the parsing structures, we can
+	 * free them.
+	 */
+
+final_cleanup:
+	header_free(ih->header);
+	getline_free(ih->getline);
+	g_free(ih);
+}
+
+/*
+ * upload_header_read
+ *
+ * This routine is installed as an input callback to read the HTTP headers
+ * of the request.
+ */
+static void upload_header_read(
+	gpointer data, gint source, GdkInputCondition cond)
+{
+	struct io_header *ih = (struct io_header *) data;
+	struct upload *u = ih->upload;
+	struct gnutella_socket *s = u->socket;
+	guint count;
+	gint r;
+
+	if (cond & GDK_INPUT_EXCEPTION) {
+		upload_remove(u, "Failed (Input Exception)");
+		goto final_cleanup;
+	}
+
+	count = sizeof(s->buffer) - s->pos - 1;		/* -1 to allow trailing NUL */
+	if (count <= 0) {
+		g_warning("upload_header_read: incoming buffer full, "
+			"disconnecting from %s", ip_to_gchar(s->ip));
+		dump_hex(stderr, "Leading Data", s->buffer, MIN(s->pos, 256));
+		upload_remove(u, "Failed (Input buffer full)");
+		goto final_cleanup;
+	}
+
+	r = read(s->file_desc, s->buffer + s->pos, count);
+	if (r == 0) {
+		upload_remove(u, "Failed (EOF)");
+		goto final_cleanup;
+	} else if (r < 0 && errno == EAGAIN)
+		return;
+	else if (r < 0) {
+		upload_remove(u, "Failed (Input error: %s)", g_strerror(errno));
+		goto final_cleanup;
+	}
+
+	/*
+	 * During the header reading phase, we don't update "u->last_update"
+	 * on purpose.  The timeout is defined for the whole connection phase,
+	 * i.e. until we read the end of the headers.
+	 */
+
+	s->pos += r;
+
+	upload_header_parse(ih);
+	return;
+
+	/*
+	 * When we come here, we're done with the parsing structures, we can
+	 * free them.
+	 */
+
+final_cleanup:
+	header_free(ih->header);
+	getline_free(ih->getline);
+	g_free(ih);
+}
+
+/*
+ * upload_add
+ *
+ * Create a new upload request, and begin reading HTTP headers.
+ * If `head_only' is true, the request was a HEAD and we're only going
+ * to send back the headers.
+ */
+void upload_add(struct gnutella_socket *s, gboolean head_only)
+{
+	struct upload *u;
+	struct io_header *ih;
+
+	u = (struct upload *) g_malloc0(sizeof(struct upload));
+
+	s->type = GTA_TYPE_UPLOAD;
+
+	u->socket = s;
+	u->status = GTA_UL_HEADERS;
+	u->push = FALSE;
+	u->last_update = time((time_t *) 0);
+	u->file_desc = -1;
+	u->head_only = head_only;
+	s->resource.upload = u;
+
+	/*
+	 * Prepare callback argument used during the header reading phase.
+	 */
+
+	ih = (struct io_header *) g_malloc(sizeof(struct io_header));
+	ih->upload = u;
+	ih->header = header_make();
+	ih->getline = getline_make();
+
+	g_assert(s->gdk_tag == 0);
+
+	s->gdk_tag = gdk_input_add(s->file_desc,
+		(GdkInputCondition) GDK_INPUT_READ | GDK_INPUT_EXCEPTION,
+		upload_header_read, (gpointer) ih);
+
+	/*
+	 * Add the upload structure to the upload slist, so it's monitored
+	 * from now on within the main loop for timeouts.
+	 */
+
+	g_assert(u);
+	uploads = g_slist_append(uploads, u);
+
+	/*
+	 * There may be pending input in the socket buffer, so go handle
+	 * it immediately.
+	 */
+
+	upload_header_parse(ih);
+}
+
+/*
+ * upload_request
+ *
+ * Called to initiate the upload once all the HTTP headers have been
+ * read.  Validate the request, and begin processing it if all OK.
+ * Otherwise cancel the upload.
+ */
+static void upload_request(struct upload *u, header_t *header)
+{
+	struct gnutella_socket *s = u->socket;
 	struct shared_file *requested_file = NULL;
-	GSList *t_uploads = NULL;
 	guint index = 0, skip = 0, rw = 0, row = 0, upcount = 0;
 	gchar http_response[1024], *fpath = NULL, sl[] = "/\0";
 	gchar *user_agent = 0;
 	gchar *buf;
-	gint rqst_len;
 	gchar *titles[3];
-	guchar c;
+	gchar *request = getline_str(s->getline);
+	GSList *l;
+	gint sent;
 
 	titles[0] = titles[1] = titles[2] = NULL;
 
-	/*
-	 * In any case, we must ensure sscanf() and other strstr() are bound to
-	 * the buffer.	Force latest byte to NULL. -- RAM
-	 */
-
-	s->buffer[sizeof(s->buffer) - 1] = '\0';	/* Should not override data */
-
 	if (dbg > 4) {
-		printf("---Incoming Request from %s:\n%s----\n",
-			ip_to_gchar(s->ip), s->buffer);
+		printf("----Incoming Request from %s:\n", ip_to_gchar(s->ip));
+		printf("%s\n", request);
+		header_dump(header, stdout);
+		printf("----\n");
 		fflush(stdout);
 	}
+
+	/*
+	 * Technically, we have not started sending anything yet, but this
+	 * also serves as a marker in case we need to call upload_remove().
+	 * It will not send an HTTP reply by itself.
+	 */
+
+	u->status = GTA_UL_SENDING;
+
+	/*
+	 * If we remove the upload in upload_remove(), we'll decrement
+	 * running_uploads.
+	 */
+
+	running_uploads++;
 
 	/*
 	 * IDEA
@@ -120,7 +457,7 @@ struct upload *upload_add(struct gnutella_socket *s)
 	 * many file descriptors that way, so we trade CPU time for another scarce
 	 * resource.  However, if someone is hammering us with connections,
 	 * he would have to wait for our reply before knowing the failure, and
-	 * it would slow him down, even if he retries immediately.
+	 * it would slow him down, even if he retried immediately.
 	 *
 	 * Alternatively, instead of differing the 503 reply, we could send a
 	 * "403 Forbidden to bad citizens" instead, and chances are that servents
@@ -129,18 +466,9 @@ struct upload *upload_add(struct gnutella_socket *s)
 	 *				--RAM, 09/09/2001
 	 */
 
-	rqst_len = strlen(s->buffer);
-	if (rqst_len < 5
-		|| 0 != strncmp(&s->buffer[rqst_len - 4], "\r\n\r\n", 4)) {
-		rw = g_snprintf(http_response, sizeof(http_response),
-						"HTTP/1.0 400 Bad Request\r\n"
-						"Server: gtk-gnutella/%d.%d\r\n\r\n", GTA_VERSION,
-						GTA_SUBVERSION);
-		write(s->file_desc, http_response, rw);
-		return NULL;
-	}
+	if (sscanf(request, "GET /get/%u/", &index)) {
+		guchar c;
 
-	if (sscanf(s->buffer, "GET /get/%u/", &index)) {
 		/*
 		 * We must be cautious about file index changing between two scans,
 		 * which may happen when files are moved around on the local library.
@@ -153,20 +481,19 @@ struct upload *upload_add(struct gnutella_socket *s)
 		if (requested_file == NULL)
 			goto not_found;
 
-		buf = s->buffer + sizeof("GET /get/");
+		buf = request + sizeof("GET /get/");
 		while ((c = *(guchar *) buf++) && c != '/')
 			/* empty */;
 		if (c == '/' && 0 != strncmp(buf,
 				requested_file->file_name, requested_file->file_name_len)
 		) {
-			rw = g_snprintf(http_response, sizeof(http_response),
-				"HTTP/1.0 409 File index/name mismatch\r\n"
-				"Server: gtk-gnutella/%d.%d\r\n\r\n",
-				GTA_VERSION, GTA_SUBVERSION);
-			write(s->file_desc, http_response, rw);
-			g_warning("file index/name mismatch from %s for %d/%s",
+			gchar *error = "File index/name mismatch";
+			header_free(header);
+			send_upload_error(u, 409, error);
+			g_warning("%s from %s for %d/%s", error,
 				ip_to_gchar(s->ip), index, requested_file->file_name);
-			return NULL;
+			upload_remove(u, error);
+			return;
 		}
 
 		/*
@@ -177,14 +504,11 @@ struct upload *upload_add(struct gnutella_socket *s)
 		 *		--RAM, 15/12/2001
 		 */
 
-		if (running_uploads >= max_uploads) {
-			rw = g_snprintf(http_response, sizeof(http_response),
-				"HTTP/1.0 503 Too many uploads; try again later\r\n"
-				"Server: gtk-gnutella/%d.%d\r\n\r\n",
-				GTA_VERSION, GTA_SUBVERSION);
-			write(s->file_desc, http_response, rw);
-
-			return NULL;
+		if (running_uploads > max_uploads) {
+			header_free(header);
+			send_upload_error(u, 503, "Too many uploads; try again later");
+			upload_remove(u, "All %d slots used", max_uploads);
+			return;
 		}
 
 		/*
@@ -192,27 +516,28 @@ struct upload *upload_add(struct gnutella_socket *s)
 		 * that they don't get beyond the max authorized downloads per IP.
 		 */
 
-		for (t_uploads = uploads; t_uploads; t_uploads = t_uploads->next) {
-			struct upload *u = (struct upload *) (t_uploads->data);
-			if (u->status != GTA_UL_SENDING)
+		for (l = uploads; l; l = l->next) {
+			struct upload *up = (struct upload *) (l->data);
+			g_assert(up);
+			if (up == u)
+				continue;				/* Current upload is already in list */
+			if (up->status != GTA_UL_SENDING)
 				continue;
-			if (u->index == index && u->socket->ip == s->ip) {
-				rw = g_snprintf(http_response, sizeof(http_response),
-					"HTTP/1.0 409 Already downloading that file\r\n"
-					"Server: gtk-gnutella/%d.%d\r\n\r\n",
-					GTA_VERSION, GTA_SUBVERSION);
-				write(s->file_desc, http_response, rw);
-				return NULL;
+			if (up->index == index && up->socket->ip == s->ip) {
+				guchar *error = "Already downloading that file";
+				header_free(header);
+				send_upload_error(u, 409, error);
+				upload_remove(u, error);
+				return;
 			}
-			if (u->socket->ip == s->ip && ++upcount >= max_uploads_ip) {
-				rw = g_snprintf(http_response, sizeof(http_response),
-					"HTTP/1.0 503 Only %u download%s per IP address\r\n"
-					"Server: gtk-gnutella/%d.%d\r\n\r\n",
-					max_uploads_ip,
-					max_uploads_ip == 1 ? "" : "s",
-					GTA_VERSION, GTA_SUBVERSION);
-				write(s->file_desc, http_response, rw);
-				return NULL;
+			if (up->socket->ip == s->ip && ++upcount >= max_uploads_ip) {
+				header_free(header);
+				send_upload_error(u, 503,
+					"Only %u download%s per IP address",
+					max_uploads_ip, max_uploads_ip == 1 ? "" : "s");
+				upload_remove(u, "All %u slot%s for that IP used",
+					max_uploads_ip, max_uploads_ip == 1 ? "" : "s");
+				return;
 			}
 		}
 
@@ -222,38 +547,34 @@ struct upload *upload_add(struct gnutella_socket *s)
 		 * Server: whatever (in case no User-Agent)
 		 */
 
-		buf = strstr(s->buffer, "\nRange:");	/* XXX could be range: */
+		buf = header_get(header, "Range");
 		if (buf)
-			sscanf(buf, "\nRange: bytes=%u-", &skip);
+			sscanf(buf, "bytes=%u-", &skip);
 
-		buf = strstr(s->buffer, "\nUser-Agent:"); /* XXX could be user-agent: */
-
-		/* Not portable */
-		if (buf)
-			sscanf(buf, "\nUser-Agent: %a[^\r]\r\n", &user_agent);
+		user_agent = header_get(header, "User-Agent");
 
 		/* Maybe they sent a Server: line, thinking they're a server? */
-		if (!user_agent) {
-			buf = strstr(s->buffer, "\nServer:");
-			if (buf)
-				sscanf(buf, "\nServer: %a[^\r]\r\n", &user_agent);
-		}
+		if (!user_agent)
+			user_agent = header_get(header, "Server");
 
 		if (user_agent) {
 			/* XXX match against web user agents, possibly */
-			free(user_agent);
 		}
 
 		/*
-		 * Build uploading reply...
+		 * We no longer need to keep around the HTTP header.
 		 */
 
-		new_upload = (struct upload *) g_malloc0(sizeof(struct upload));
+		header_free(header);
+		header = NULL;
+
+		/*
+		 * We're accepting the upload.  Setup accordingly.
+		 */
 
 		/* Set the full path to the file */
 		if (requested_file->
-			file_directory[strlen(requested_file->file_directory) - 1] ==
-			sl[0])
+			file_directory[strlen(requested_file->file_directory) - 1] == sl[0])
 			fpath =
 				g_strconcat(requested_file->file_directory,
 							requested_file->file_name, NULL);
@@ -263,38 +584,35 @@ struct upload *upload_add(struct gnutella_socket *s)
 							requested_file->file_name, NULL);
 
 		/* Open the file for reading , READONLY just in case. */
-		if ((new_upload->file_desc = open(fpath, O_RDONLY)) < 0)
+		if ((u->file_desc = open(fpath, O_RDONLY)) < 0)
 			goto not_found;
 
-		/* Set all the upload information in our newly created upload struct */
-		new_upload->index = index;
-		new_upload->name = requested_file->file_name;
+		g_free(fpath);
 
-		s->type = GTA_TYPE_UPLOAD;
+		/* Set all the upload information */
+		u->index = index;
+		u->name = requested_file->file_name;
 
-		new_upload->socket = s;
-		new_upload->skip = skip;
-		new_upload->pos = 0;
-		new_upload->status = GTA_UL_SENDING;
-		new_upload->push = FALSE;
-		new_upload->file_size = requested_file->file_size;
-		new_upload->start_date = time((time_t *) NULL);
-		new_upload->last_update = 0;
+		u->skip = skip;
+		u->pos = 0;
+		u->file_size = requested_file->file_size;
+		u->start_date = time((time_t *) NULL);
+		u->last_update = time((time_t *) 0);
 
-		new_upload->buf_size = 4096 * sizeof(gchar);
-		new_upload->buffer = (gchar *) g_malloc(new_upload->buf_size);
-		new_upload->bpos = 0;
-		new_upload->bsize = 0;
+		u->buf_size = 4096 * sizeof(gchar);
+		u->buffer = (gchar *) g_malloc(u->buf_size);
+		u->bpos = 0;
+		u->bsize = 0;
 
-		titles[0] = new_upload->name;
+		titles[0] = u->name;
 		titles[1] = g_strdup(ip_to_gchar(s->ip));
 		titles[2] = "";
-
 
 		/*
 		 * Setup and write the HTTP 200 header , including the file size.
 		 * If partial content (range request), emit a 206 reply.
 		 */
+
 		if (skip)
 			rw = g_snprintf(http_response, sizeof(http_response),
 				"HTTP/1.0 206 Partial Content\r\n"
@@ -303,20 +621,29 @@ struct upload *upload_add(struct gnutella_socket *s)
 				"Content-length: %i\r\n"
 				"Content-Range: bytes %u-%u/%u\r\n\r\n",
 				GTA_VERSION, GTA_SUBVERSION,
-				new_upload->file_size - new_upload->skip,
-				new_upload->skip, new_upload->file_size - 1,
-				new_upload->file_size);
+				u->file_size - u->skip,
+				u->skip, u->file_size - 1, u->file_size);
 		else
 			rw = g_snprintf(http_response, sizeof(http_response),
 				"HTTP/1.0 200 OK\r\n"
 				"Server: gtk-gnutella/%d.%d\r\n"
 				"Content-type: application/binary\r\n"
 				"Content-length: %i\r\n\r\n",
-				GTA_VERSION, GTA_SUBVERSION,
-				new_upload->file_size);
+				GTA_VERSION, GTA_SUBVERSION, u->file_size);
 
-		/* XXX must protect write against EAGAIN, partial write, etc... */
-		write(new_upload->socket->file_desc, http_response, rw);
+		sent = write(s->file_desc, http_response, rw);
+		if (sent == -1) {
+			gint errcode = errno;
+			g_warning("Unable to send back HTTP OK reply to %s: %s",
+				ip_to_gchar(s->ip), g_strerror(errcode));
+			upload_remove(u, "Cannot send ACK: %s", g_strerror(errcode));
+			return;
+		} else if (sent < rw) {
+			g_warning("Could only send %d out of %d HTTP OK bytes to %s",
+				sent, rw, ip_to_gchar(s->ip));
+			upload_remove(u, "Cannot send whole ACK");
+			return;
+		}
 
 		if (dbg > 4) {
 			printf("----Sent Reply to %s:\n%.*s----\n",
@@ -324,42 +651,46 @@ struct upload *upload_add(struct gnutella_socket *s)
 			fflush(stdout);
 		}
 
-		/* add the upload structure to the upload slist */
-		uploads = g_slist_append(uploads, new_upload);
+		/*
+		 * If we need to send only the HEAD, we're done. --RAM, 26/12/2001
+		 */
 
+		if (u->head_only) {
+			upload_remove(u, NULL);		/* No message, everything was OK */
+			return;
+		}
+
+		/*
+		 * Install the output callback.
+		 */
+
+		g_assert(s->gdk_tag == 0);
+		s->gdk_tag = gdk_input_add(s->file_desc,
+			(GdkInputCondition) GDK_INPUT_WRITE | GDK_INPUT_EXCEPTION,
+			upload_write, (gpointer) u);
 
 		/* add upload to the gui */
 		row = gtk_clist_append(GTK_CLIST(clist_uploads), titles);
-		gtk_clist_set_row_data(GTK_CLIST(clist_uploads), row,
-							   (gpointer) new_upload);
+		gtk_clist_set_row_data(GTK_CLIST(clist_uploads), row, (gpointer) u);
 
-		running_uploads++;
 		gui_update_c_uploads();
 
-		g_free(fpath);
-
-		return new_upload;
+		return;
 	}
 
   not_found:
 
 	/* What?  Either the sscanf() failed or we don't have the file. */
-	rw = g_snprintf(http_response, sizeof(http_response),
-		"HTTP/1.0 404 Not Found\r\n"
-		"Server: gtk-gnutella/%d.%d\r\n\r\n",
-		GTA_VERSION, GTA_SUBVERSION);
 
-	write(s->file_desc, http_response, rw);
+	send_upload_error(u, 404, "Not Found");
+	g_warning("bad request from %s: %s\n", ip_to_gchar(s->ip), request);
 
-	g_warning("bad request from %s:\n---\n%s---\n",
-			  ip_to_gchar(s->ip), s->buffer);
-
-	if (new_upload)
-		g_free(new_upload);
+	if (header)
+		header_free(header);
 	if (fpath)
 		g_free(fpath);
 
-	return NULL;
+	upload_remove(u, "File not found");
 }
 
 /* Uplaod Write
@@ -378,7 +709,7 @@ void upload_write(gpointer up, gint source, GdkInputCondition cond)
 		if (dbg)
 			printf("upload_write(); Condition %i, Exception = %i\n",
 				   cond, GDK_INPUT_EXCEPTION);
-		socket_destroy(current_upload->socket);
+		upload_remove(current_upload, "Write exception");
 		return;
 	}
 
@@ -387,7 +718,8 @@ void upload_write(gpointer up, gint source, GdkInputCondition cond)
 		if (lseek
 			(current_upload->file_desc, current_upload->skip,
 			 SEEK_SET) == -1) {
-			socket_destroy(current_upload->socket);
+			upload_remove(current_upload,
+				"File seek error: %s", g_strerror(errno));
 			return;
 		}
 		current_upload->pos = current_upload->skip;
@@ -404,7 +736,8 @@ void upload_write(gpointer up, gint source, GdkInputCondition cond)
 		if ((current_upload->bsize =
 			 read(current_upload->file_desc, current_upload->buffer,
 				  current_upload->buf_size)) == -1) {
-			socket_destroy(current_upload->socket);
+			upload_remove(current_upload,
+				"File read error: %s", g_strerror(errno));
 			return;
 		}
 
@@ -412,7 +745,8 @@ void upload_write(gpointer up, gint source, GdkInputCondition cond)
 		 write(current_upload->socket->file_desc,
 			   &current_upload->buffer[current_upload->bpos],
 			   (current_upload->bsize - current_upload->bpos))) == -1) {
-		socket_destroy(current_upload->socket);
+		upload_remove(current_upload,
+			"Data write error: %s", g_strerror(errno));
 		return;
 	}
 
