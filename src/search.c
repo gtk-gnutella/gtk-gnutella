@@ -1350,6 +1350,7 @@ static void update_one_reissue_timeout(search_ctrl_t *sch)
 	guint32 max_items;
 	guint percent;
 	guint factor;
+	guint32 tm;
 
     g_assert(sch != NULL);
     g_assert(!sch->passive);
@@ -1373,6 +1374,9 @@ static void update_one_reissue_timeout(search_ctrl_t *sch)
 	percent = sch->items * 100 / max_items;
 	factor = (percent < 40) ? 1 : 2 + (percent - 40) * (percent - 40) / 250;
 
+    tm = (guint32) sch->reissue_timeout;
+	tm = MAX(tm, SEARCH_MIN_RETRY) * factor;
+
     /*
      * Otherwise we also add a new timer. If the search was stopped, this
      * will restart the search, otherwise is will simply reset the timer
@@ -1380,13 +1384,10 @@ static void update_one_reissue_timeout(search_ctrl_t *sch)
      */
 
 	if (dbg > 3)
-		printf("updating search \"%s\" with timeout %u.\n", sch->query,
-		   sch->reissue_timeout * factor * 1000);
+		printf("updating search \"%s\" with timeout %u.\n", sch->query, tm);
 
     sch->reissue_timeout_id = g_timeout_add(
-        sch->reissue_timeout * factor * 1000, 
-        search_reissue_timeout_callback,
-        sch);
+		tm * 1000, search_reissue_timeout_callback, sch);
 }
 
 /*
@@ -1771,7 +1772,7 @@ void search_set_reissue_timeout(gnet_search_t sh, guint32 timeout)
         return;
     }
 
-    sch->reissue_timeout = MAX(timeout, SEARCH_MIN_RETRY);
+    sch->reissue_timeout = timeout;
     update_one_reissue_timeout(sch);
 }
 
@@ -1834,7 +1835,7 @@ gnet_search_t search_new(
 		sch->new_node_hook->func = (gpointer) node_added_callback;
 		g_hook_prepend(&node_added_hook_list, sch->new_node_hook);
 
-		sch->reissue_timeout = MAX(reissue_timeout, SEARCH_MIN_RETRY);
+		sch->reissue_timeout = reissue_timeout;
 	}
 
 	sl_search_ctrl = g_slist_prepend(sl_search_ctrl, (gpointer) sch);
