@@ -1,3 +1,9 @@
+gtk-gnutella (0.92.1-0) unstable; urgency=low
+
+  * 0.92.1 stable
+
+ -- Raphael Manfredi <Raphael_Manfredi@pobox.com>  Thu, 14 Aug 2003 22:31:00 +0200
+
 gtk-gnutella (0.92.0-0) unstable; urgency=low
 
   * 0.92 stable

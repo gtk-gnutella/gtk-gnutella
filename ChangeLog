@@ -1,5 +1,48 @@
 # since last version
 
+# v 0.92.1 2003.08.20 [stable]
+
+These are some of the changes made since 0.92 stable:
+
+ * Support for push proxies was added which reduces problems with
+   firewalled servents.
+ * Support for pre-0.90 configuration files has been dropped.
+ * Improved PARQ and fixed some problems with it.
+ * The default directories for downloads are now set to $HOME.
+ * A lot of minor bugfixes and code clean-ups so that it compiles on
+   even more platforms and with other (C99) compilers.
+ * GTKG can now monitor unstable IP addresses and unstable servents, to
+   avoid keeping connecting to bad nodes.
+ * The download pane now shows how many items are actively and passively
+   queued.
+ * The search pane allows one to hide hits that are either ignored or
+   which have been already queued up by the core due to a matching SHA1
+   or filename.
+ * The "Purge" button could be hidden due to long filenames (#770625).
+ * A duplicate free() problem was fixed in _search_send_packet() (#706014).
+ * The "Purge" button doesn't cause crashes any longer (#757276).
+ * The bug which could cause a crash when resuming a download was fixed
+   (#739262).
+
+The following changes affect only the GTK+ 2.x front-end:
+
+ * XFT support is not turned off by default.
+ * The node and the uploads panel have been tuned (a little).
+ * No more crashes if the uploads are sorted by status.
+ * Non-UTF-8 encoded strings were passed to GTK+ 2.x causing warnings
+   (#769342).
+
+The following changes affect the build system:
+
+ * Switched to metaconfig, and abandonned autoconf/automake.  There may
+   be some portability issues introduced on non-linux system since there
+   are lots of new metaconfig units that had to be developped for the
+   configuration of GTKG.  In the long run, it will catch up.
+ * The "intl" directory containing GNU gettext() is no longer supported,
+   because it is currently only configurable via autoconf.  If you don't
+   have proper GNU gettext() support on your system, you might have to
+   disable NLS support to be able to compile.
+
 - (2003.08.10 - RAM)
  * Replacement inet_aton() was using same parameter and local variable names.
  * [GTK2] Integrated GUI update from Andrew Barnert, propagating changes
