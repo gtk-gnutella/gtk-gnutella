@@ -34,7 +34,8 @@
 enum {
     NO_SEARCH_STATS,
     WORD_SEARCH_STATS,
-    WHOLE_SEARCH_STATS
+    WHOLE_SEARCH_STATS,
+    ROUTED_SEARCH_STATS
 };
 
 void search_stats_gui_init(void);

@@ -65,7 +65,8 @@ delete_hash_entry(gpointer key, gpointer val, gpointer data)
 static gchar *type_str[] = {
     "disable search stats",
     "search stats by words",
-    "search stats by whole query"
+    "search stats by whole query",
+    "searches by router"
 };
 
 static gboolean callback_registered = FALSE;
@@ -88,7 +89,8 @@ static void on_search_stats_type_selected(GtkItem *i, gpointer data)
     gui_prop_set_guint32(PROP_SEARCH_STATS_MODE, &val, 0, 1);
 }
 
-static void search_stats_notify_word(query_type_t type, const gchar *search)
+static void search_stats_notify_word(
+    query_type_t type, const gchar *search, guint32 ip, guint16 port)
 {
     word_vec_t *wovec;
     guint wocnt;
@@ -110,7 +112,7 @@ static void search_stats_notify_word(query_type_t type, const gchar *search)
 }
 
 static void search_stats_notify_whole(
-    query_type_t type, const gchar *search)
+    query_type_t type, const gchar *search, guint32 ip, guint16 port)
 {
     word_vec_t wovec;
 
@@ -124,6 +126,21 @@ static void search_stats_notify_whole(
     search_stats_tally(&wovec);
 
     g_free(wovec.word);
+}
+
+static void search_stats_notify_routed(
+    query_type_t type, const gchar *search, guint32 ip, guint16 port)
+{
+    word_vec_t wovec;
+
+/*    if (type == QUERY_SHA1)
+        return;*/
+
+    wovec.word = ip_port_to_gchar(ip, port);
+    wovec.len = strlen(wovec.word);
+    wovec.amount = 1;
+
+    search_stats_tally(&wovec);
 }
 
 /***
@@ -281,6 +298,9 @@ void search_stats_gui_set_type(gint type)
     case WHOLE_SEARCH_STATS:
         search_stats_gui_enable(search_stats_notify_whole);
         break;
+    case ROUTED_SEARCH_STATS:
+        search_stats_gui_enable(search_stats_notify_routed);
+        break;
     default:
         g_assert_not_reached();
     };
@@ -303,7 +323,7 @@ void search_stats_gui_init(void)
      */
     original_mode = search_stats_mode;
 
-    for (n = 0; n < 3; n ++) {
+    for (n = 0; n < 4; n ++) {
         GtkWidget *list_item;
         GList *l;
 

@@ -175,9 +175,10 @@ void share_remove_search_request_listener(search_request_listener_t l)
     LISTENER_REMOVE(search_request, l);
 }
 
-static void share_emit_search_request(query_type_t type, const gchar *query)
+static void share_emit_search_request(
+    query_type_t type, const gchar *query, guint32 ip, guint16 port)
 {
-    LISTENER_EMIT(search_request, type, query);
+    LISTENER_EMIT(search_request, type, query, ip, port);
 }
 
 /*
@@ -1172,7 +1173,7 @@ gboolean search_request(struct gnutella_node *n)
             type = QUERY_SHA1;
         }
 
-        share_emit_search_request(type, str);
+        share_emit_search_request(type, str, n->ip, n->port);
     }
 
 	READ_GUINT16_LE(n->data, req_speed);
