@@ -59,6 +59,8 @@ SRC = \
 	matching.c \
 	move.c \
 	mq.c \
+	mq_tcp.c \
+	mq_udp.c \
 	namesize.c \
 	nodes.c \
 	parq.c \
@@ -80,6 +82,7 @@ SRC = \
 	token.c \
 	tx.c \
 	tx_deflate.c \
+	tx_dgram.c \
 	tx_link.c \
 	udp.c \
 	upload_stats.c \
