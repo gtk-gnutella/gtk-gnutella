@@ -223,12 +223,13 @@ static void handle_hops_flow(struct gnutella_node *n,
 void vmsg_send_hops_flow(struct gnutella_node *n, guint8 hops)
 {
 	struct gnutella_msg_vendor *hflow = (struct gnutella_msg_vendor *) v_tmp;
-	guint32 msgsize = 1 + sizeof(*hflow);
+	guint32 paysize = sizeof(hops) + sizeof(hflow->data);
+	guint32 msgsize = paysize + sizeof(hflow->header);
 	guchar *payload;
 
 	g_assert(sizeof(v_tmp) >= msgsize);
 
-	vmsg_fill_header(&hflow->header, msgsize);
+	vmsg_fill_header(&hflow->header, paysize);
 	payload = vmsg_fill_type(&hflow->data, T_BEAR, 4, 1);
 	*payload = hops;
 
@@ -256,8 +257,35 @@ static void handle_connect_back(struct gnutella_node *n,
 
 	READ_GUINT16_LE(payload, port);
 
-	// XXX
-	// node_connect_back(n, port);
-	g_warning("handle_connect_bacl not implemented yet!");
+	if (port == 0) {
+		g_warning("got improper port #%d in Connect Back from %s <%s>",
+			port, node_ip(n), n->vendor ? n->vendor : "????");
+		return;
+	}
+
+	node_connect_back(n, port);
+}
+
+/*
+ * vmsg_send_connect_back
+ *
+ * Send an "Connect Back" message to specified node, telling it to connect
+ * back to us on the specified port.
+ */
+void vmsg_send_connect_back(struct gnutella_node *n, guint16 port)
+{
+	struct gnutella_msg_vendor *cbak = (struct gnutella_msg_vendor *) v_tmp;
+	guint32 paysize = sizeof(port) + sizeof(cbak->data);
+	guint32 msgsize = paysize + sizeof(cbak->header);
+	guchar *payload;
+
+	g_assert(sizeof(v_tmp) >= msgsize);
+
+	vmsg_fill_header(&cbak->header, paysize);
+	payload = vmsg_fill_type(&cbak->data, T_BEAR, 7, 1);
+
+	WRITE_GUINT16_LE(port, payload);
+
+	gmsg_ctrl_sendto_one(n, (guchar *) cbak, msgsize);
 }
 

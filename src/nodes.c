@@ -1343,6 +1343,14 @@ static void node_is_now_connected(struct gnutella_node *n)
 		pcache_outgoing_connection(n);	/* Will send proper handshaking ping */
 
 	/*
+	 * If we are firewalled, and remote node supports vendor-specific
+	 * messages, send a connect back, to see whether we are firewalled.
+	 */
+
+	if (is_firewalled && (n->attrs & NODE_A_CAN_VENDOR))
+		vmsg_send_connect_back(n, listen_port);
+
+	/*
 	 * Update the GUI.
 	 */
 
@@ -1927,7 +1935,7 @@ static void node_process_handshake_header(
 
 	/* Vendor-Messages -- support for vendor-specific messages */
 
-	field = header_get(head, "vendor-messages");
+	field = header_get(head, "Vendor-Messages");
 	if (field) {
 		guint major, minor;
 		sscanf(field, "%u.%u", &major, &minor);
@@ -3781,7 +3789,7 @@ void node_remove_nodes_by_handle(GSList *node_list)
  ***/
 
 /* 
- * node_ip:
+ * node_ip
  *
  * Returns the ip:port of a node 
  */
@@ -3796,6 +3804,50 @@ gchar *node_ip(gnutella_node_t *n)
 	ia.s_addr = g_htonl(n->ip);
 	g_snprintf(a, sizeof(a), "%s:%u", inet_ntoa(ia), n->port);
 	return a;
+}
+
+/*
+ * node_connect_back
+ *
+ * Connect back to node on specified port and emit a "\n\n" sequence.
+ *
+ * This is called when a "Connect Back" vendor-specific message (BEAR/7v1)
+ * is received.  This scheme is used by servents to detect whether they
+ * are firewalled.
+ */
+void node_connect_back(gnutella_node_t *n, guint16 port)
+{
+	struct gnutella_socket *s;
+
+	/*
+	 * Attempt asynchronous connection.
+	 *
+	 * When connection is established, node_connected_back() will be called
+	 * from the socket layer.
+	 */
+
+	s = socket_connect(n->ip, port, SOCK_TYPE_CONNBACK);
+
+	if (s == NULL)
+		return;
+
+	/*
+	 * There is no specific resource attached to the socket.
+	 */
+}
+
+/*
+ * node_connected_back
+ *
+ * Callback invoked from the socket layer when we are finally connected.
+ */
+void node_connected_back(struct gnutella_socket *s)
+{
+	if (dbg > 4)
+		printf("Connected back to %s\n", ip_port_to_gchar(s->ip, s->port));
+
+	(void) bws_write(bws.out, s->file_desc, "\n\n", 2);
+	socket_free(s);
 }
 
 /* vi: set ts=4: */

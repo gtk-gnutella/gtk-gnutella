@@ -49,6 +49,7 @@
 #include "http.h"
 #include "settings.h"
 #include "inet.h"
+#include "walloc.h"
 
 #ifdef USE_REMOTE_SHELL
 #include "shell.h"
@@ -170,7 +171,8 @@ void socket_free(struct gnutella_socket *s)
 			sock_cork(s, FALSE);
 		close(s->file_desc);
 	}
-	g_free(s);
+
+	wfree(s, sizeof(*s));
 }
 
 /* ----------------------------------------- */
@@ -342,8 +344,10 @@ static void socket_read(gpointer data, gint source, inputevt_cond_t cond)
 unknown:
 	if (dbg) {
 		gint len = getline_length(s->getline);
-		g_warning("socket_read(): got unknown incoming connection, dropping!");
-		dump_hex(stderr, "First Line", first, MIN(len, 160));
+		g_warning("socket_read(): got unknown incoming connection from %s, "
+			"dropping!", ip_to_gchar(s->ip));
+		if (len > 0)
+			dump_hex(stderr, "First Line", first, MIN(len, 160));
 	}
 	if (strstr(first, "HTTP"))
 		http_send_status(s, 501, NULL, 0, "Method Not Implemented");
@@ -544,11 +548,17 @@ static void socket_connected(gpointer data, gint source, inputevt_cond_t cond)
 		case SOCK_TYPE_HTTP:
 			http_async_connected(s->resource.handle);
 			break;
+
+		case SOCK_TYPE_CONNBACK:
+			node_connected_back(s);
+			break;
+
 #ifdef USE_REMOTE_SHELL
         case SOCK_TYPE_SHELL:
             g_assert_not_reached(); // FIXME: add code here?
             break;
 #endif
+
 		default:
 			g_warning("socket_connected(): Unknown socket type %d !", s->type);
 			socket_destroy(s, NULL);		/* ? */
@@ -642,7 +652,7 @@ static void socket_accept(gpointer data, gint source,
 
 	fcntl(sd, F_SETFL, O_NONBLOCK);	/* Set the file descriptor non blocking */
 
-	t = (struct gnutella_socket *) g_malloc0(sizeof(struct gnutella_socket));
+	t = (struct gnutella_socket *) walloc0(sizeof(struct gnutella_socket));
 
 	t->file_desc = sd;
 	t->ip = g_ntohl(addr.sin_addr.s_addr);
@@ -714,7 +724,7 @@ struct gnutella_socket *socket_connect(
 		return NULL;
 	}
 
-	s = (struct gnutella_socket *) g_malloc0(sizeof(struct gnutella_socket));
+	s = (struct gnutella_socket *) walloc0(sizeof(struct gnutella_socket));
 
 	s->type = type;
 	s->direction = SOCK_CONN_OUTGOING;
@@ -815,7 +825,7 @@ struct gnutella_socket *socket_listen(
 		return NULL;
 	}
 
-	s = (struct gnutella_socket *) g_malloc0(sizeof(struct gnutella_socket));
+	s = (struct gnutella_socket *) walloc0(sizeof(struct gnutella_socket));
 
 	s->type = type;
 	s->direction = SOCK_CONN_LISTENING;

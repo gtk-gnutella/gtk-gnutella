@@ -337,5 +337,8 @@ void node_set_online_mode(gboolean on);
 void node_set_current_peermode(guint32 mode);
 gchar *node_ip(gnutella_node_t *n);
 
+void node_connect_back(gnutella_node_t *n, guint16 port);
+void node_connected_back(struct gnutella_socket *s);
+
 #endif /* _nodes_h_ */
 
