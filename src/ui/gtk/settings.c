@@ -5400,6 +5400,9 @@ void settings_gui_shutdown(void)
     *(guint32 *) &gnet_stats_divider_pos = 
         gtk_paned_get_position(GTK_PANED
             (lookup_widget(main_window, "hpaned_gnet_stats")));
+    *(guint32 *) &results_divider_pos = 
+        gtk_paned_get_position(GTK_PANED
+            (lookup_widget(main_window, "vpaned_results")));
 
     /*
      * Save properties to file
