@@ -414,7 +414,7 @@ nodes_gui_init(void)
 		main_window, "treeview_nodes"));
 	tree = treeview_nodes;
 
-#if (GTK_MAJOR_VERSION > 2 || GTK_MINOR_VERSION >= 4) /* GTK+ >= 2.4.0 */
+#if GTK_CHECK_VERSION(2, 4, 0)
     g_object_set(tree, "fixed_height_mode", TRUE, NULL);
 #endif /* GTK+ >= 2.4.0 */
 

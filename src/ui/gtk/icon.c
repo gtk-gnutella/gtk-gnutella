@@ -45,7 +45,7 @@ static gint leaf_cnt, norm_cnt, ultra_cnt, con_max;
 static gint up_cnt, up_max;
 static gint down_cnt, down_max;
 
-#if (GTK_MAJOR_VERSION == 2) && (GTK_MINOR_VERSION < 2)
+#if GTK_CHECK_VERSION(2, 0, 0) && !GTK_CHECK_VERSION(2, 2, 0)
 /* gdk_pixbuf_render_to_drawable is deprecated since GTK+ 2.2.0 */
 static void gdk_draw_pixbuf(GdkDrawable *drawable, GdkGC *gc, GdkPixbuf *pixbuf,
 	gint src_x, gint src_y, gint dest_x, gint dest_y, gint width, gint height,
