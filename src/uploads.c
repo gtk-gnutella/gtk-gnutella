@@ -997,6 +997,7 @@ void upload_add(struct gnutella_socket *s)
 	gnutella_upload_t *u;
 
 	s->type = SOCK_TYPE_UPLOAD;
+	socket_tos_default(s);			/* Set proper Type of Service */
 
 	u = upload_create(s, FALSE);
 

@@ -190,7 +190,7 @@ static void socket_tos_throughput(struct gnutella_socket *s)
  * Pick an appropriate default TOS for packets on the socket, based
  * on the socket's type.
  */
-static void socket_tos_default(struct gnutella_socket *s)
+void socket_tos_default(struct gnutella_socket *s)
 {
 	switch (s->type) {
 	case SOCK_TYPE_CONTROL:
@@ -205,7 +205,10 @@ static void socket_tos_default(struct gnutella_socket *s)
 	}
 }
 #else
-#define socket_tos_default(s) /* */
+void socket_tos_default(struct gnutella_socket *s)
+{
+	/* Empty */
+}
 #endif /* HAVE_IP_TOS */
 
 
@@ -489,12 +492,7 @@ static void socket_read(gpointer data, gint source, inputevt_cond_t cond)
     else
 		goto unknown;
 
-	/*
-	 * Set the proper IP TOS bits for this socket type, now that we really
-	 * know what the socket is going to be used for.
-	 */
-
-	socket_tos_default(s);
+	/* Socket might be free'ed now */
 
 	return;
 

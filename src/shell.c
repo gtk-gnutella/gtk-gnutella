@@ -699,6 +699,7 @@ void shell_add(struct gnutella_socket *s)
         ip_port_to_gchar(s->ip, s->port));
 
 	s->type = SOCK_TYPE_SHELL;
+	socket_tos_default(s);			/* Set proper Type of Service */
 
 	sh = shell_new(s);
     

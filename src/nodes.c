@@ -3235,6 +3235,8 @@ void node_add_socket(struct gnutella_socket *s, guint32 ip, guint16 port)
 		n->status = (major > 0 || minor > 4) ?
 			GTA_NODE_RECEIVING_HELLO : GTA_NODE_WELCOME_SENT;
 
+		socket_tos_default(s);	/* Set proper Type of Service */
+
 		/*
 		 * We need to create a temporary connection, flagging it a "ponging"
 		 * because we have to read the initial GUID of the handshaking ping
