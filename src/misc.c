@@ -252,8 +252,8 @@ gboolean host_is_valid(guint32 ip, guint16 port)
 		((ip & (guint32) 0xFF000000) == (guint32) 0x7F000000) ||
 		/* 192.0.2.0 -- (192.0.2/24 prefix) TEST-NET [RFC 3330] */
 		((ip & 0xFFFFFF00) == 0xC0000200) ||
-		/* 255.255.255.0 / 24 */
-		((ip & (guint32) 0xFFFFFF00) == (guint32) 0xFFFFFF00))
+		/* 255.0.0.0 / 8 */
+		((ip & (guint32) 0xFF000000) == (guint32) 0xFF000000))
 			return FALSE;
 
 	return TRUE;
@@ -299,6 +299,10 @@ gboolean is_private_ip(guint32 ip)
 
 	/* 172.16.0.0 -- (172.16/12 prefix) */
 	if ((ip & 0xfff00000) == 0xac100000)
+		return TRUE;
+
+	/* 172.31.0.0 -- (172.31/12 prefix) */
+	if ((ip & 0xfff00000) == 0xac1f0000)
 		return TRUE;
 
 	/* 169.254.0.0 -- (169.254/16 prefix) -- since Jan 2001 */
