@@ -788,8 +788,8 @@ void on_popup_search_duplicate_activate(
 		search->enabled ? SEARCH_ENABLED : 0, NULL);
 }
 
-void on_popup_search_restart_activate
-    (GtkMenuItem *menuitem, gpointer user_data)
+void on_popup_search_restart_activate(
+	GtkMenuItem *menuitem, gpointer user_data)
 {
     search_t *search;
 
