@@ -895,7 +895,7 @@ gint bio_sendfile(bio_source_t *bio, gint in_fd, off_t *offset, gint len)
 		off_t start = *offset;
 		off_t written;
 
-		r = sendfile(bio->fd, in_fd, start, amount, NULL, &written, 0);
+		r = sendfile(in_fd, bio->fd, start, amount, NULL, &written, 0);
 
 		if (r == -1) {
 			if (errno == EAGAIN)
