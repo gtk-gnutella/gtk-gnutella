@@ -28,6 +28,7 @@
 
 #include "gnutella.h"
 #include "matching.h"
+#include "misc.h"
 
 /*
  * Needed stuff from search.h
@@ -56,6 +57,9 @@ typedef struct filter {
     struct search *search;
     gboolean visited;
     gint32 refcount;
+    flag_t flags;
+    guint32 match_count;
+    guint32 fail_count;
 } filter_t;
 
 
@@ -65,21 +69,23 @@ typedef struct filter {
 #define RULE_FLAG_ACTIVE (1 << 2)
 #define RULE_FLAG_SOFT   (1 << 3)
 
+#define FILTER_FLAG_ACTIVE (1 << 0)
+
 #define RULE_IS_VALID(r) ((r != NULL) && (r->flags & RULE_FLAG_VALID))
 #define RULE_IS_NEGATED(r) ((r != NULL) && (r->flags & RULE_FLAG_NEGATE))
 #define RULE_IS_ACTIVE(r) ((r != NULL) && (r->flags & RULE_FLAG_ACTIVE))
 #define RULE_IS_SOFT(r) ((r != NULL) && (r->flags & RULE_FLAG_SOFT))
 
-#define rule_set_flags(r,f) (r->flags = r->flags | (f))
-#define rule_clear_flags(r,f) (r->flags = r->flags & ~(f))
 
+#define filter_is_active(f) ((f != NULL) && (f->flags & FILTER_FLAG_ACTIVE))
+#define filter_is_bound(f) (f->search != NULL)
 
 /* 
  * Definition of a filter rule
  */
 typedef struct rule {
     enum rule_type type;	            /* type of rule, see above */
-    guint16 flags;
+    flag_t flags;
     guint32 match_count;
     guint32 fail_count;
     filter_t *target;
@@ -141,7 +147,7 @@ rule_t *filter_get_rule();
 void filter_adapt_order(void);
 void filter_append_rule(filter_t *, rule_t *);
 void filter_cancel_changes();
-void filter_close_dialog();
+void filter_close_dialog(gboolean);
 void filter_close_search(struct search *);
 void filter_commit_changes();
 void filter_edit_ip_rule(rule_t *);
@@ -157,5 +163,11 @@ void filter_remove_rule(filter_t *, rule_t *);
 void filter_replace_rule(filter_t *, rule_t *, rule_t *);
 void filter_set(filter_t *);
 void filter_shutdown(void);
-void filter_update_filters(void);
+void filter_timer(void);
+inline void filter_reset_stats(filter_t *filter);
+inline void filter_rule_reset_stats(rule_t *rule);
+void filter_set_enabled(filter_t *filter, gboolean active);
+inline gboolean filter_is_global(filter_t *f);
+inline gboolean filter_is_builtin(filter_t *f);
+void filter_update_targets(void);
 #endif /* __filter_h__ */

@@ -27,6 +27,7 @@
 #include <arpa/inet.h>
 
 #include "filter.h"
+#include "filter_gui.h"
 #include "misc.h"
 #include "interface.h"
 #include "gtk-missing.h"
@@ -34,7 +35,6 @@
 
 #define BIT_TO_BOOL(m) ((m == 0) ? FALSE : TRUE)
 #define DEFAULT_TARGET (filter_drop)
-#define IS_BOUND(r) (r->search != NULL)
 #define IS_GLOBAL(r) ((r == filter_global_pre) || (r == filter_global_post))
 #define IS_BUILTIN(r) ((r == filter_show) || (r == filter_drop))
 
@@ -44,6 +44,9 @@ typedef struct shadow {
     GList *removed;
     GList *added;
     gint32 refcount;
+    guint16 flags;
+    guint32 match_count;
+    guint32 fail_count;
 } shadow_t;
 
 
@@ -63,21 +66,11 @@ static void rule_free(rule_t *f);
 gchar *rule_to_gchar(rule_t *f);
 static gchar *rule_condition_to_gchar(rule_t *);
 static int filter_apply(filter_t *, struct record *rec);
-static void on_filter_filters_activate(GtkMenuItem *, gpointer);
-static void filter_rebuild_target_combos();
 
 /*
  * Public variables
  */
 filter_t *work_filter = NULL;
-
-gchar * rule_text_type_labels[] = {
-    "starts with",
-    "contains the words",
-    "ends with",
-    "contains the substring",
-    "matches regex"
-};
 
 
 
@@ -85,7 +78,6 @@ gchar * rule_text_type_labels[] = {
  * Private variables
  */
 static GList *shadow_filters = NULL;
-static GtkWidget *filter_dialog = NULL;
 static gchar f_tmp[1024];
 
 /* not static because needed in search_xml. */
@@ -203,6 +195,7 @@ static shadow_t *shadow_new(filter_t *f)
     shadow->added    = NULL;
     shadow->removed  = NULL;
     shadow->refcount = f->refcount;
+    shadow->flags    = f->flags;
 
     shadow_filters = g_list_append(shadow_filters, shadow);
 
@@ -297,6 +290,8 @@ static void shadow_commit(shadow_t *shadow)
      * refcount.
      */
     shadow->filter->refcount = shadow->refcount;
+
+    shadow->filter->flags = shadow->flags; 
     
     /* 
      * Now that we have actually commited the changes for this
@@ -319,121 +314,36 @@ static void shadow_commit(shadow_t *shadow)
 
 
 
-static void filter_rebuild_target_combos()
-{
-    GtkMenu *m;
-    GList *l;
-    GList *buf = NULL;
-    GtkWidget *opt_menus[] = {
-        optionmenu_filter_text_target,
-        optionmenu_filter_ip_target,
-        optionmenu_filter_size_target,
-        optionmenu_filter_jump_target,
-        NULL };
-    gpointer bufptr;
-    gint i;
-    
-    /*
-     * Prepare a list of unbound filters and also leave
-     * out the global and builtin filters.
-     */
-    for (l = filters; l != NULL; l = l->next) {
-        filter_t *filter = (filter_t *)l->data;
-
-        if (!IS_BOUND(filter) && !IS_GLOBAL(filter))
-            buf = g_list_append(buf, filter);
-    }
-
-    /*
-     * These can only be updated if there is a dialog.
-     */
-    if (filter_dialog != NULL) {
-        for (i = 0; opt_menus[i] != NULL; i ++) {
-            m = GTK_MENU(gtk_menu_new());
-    
-            for (l = buf; l != NULL; l = l->next) {
-                filter_t *filter = (filter_t *)l->data;
-                if (filter != work_filter)
-                    menu_new_item_with_data(m, filter->name, filter);
-            }
-    
-            gtk_option_menu_set_menu
-                (GTK_OPTION_MENU(opt_menus[i]), GTK_WIDGET(m));
-        }
-    }
-
-    /*
-     * The following is in the main window and should always be
-     * updateable.
-     */
-    bufptr = option_menu_get_selected_data(optionmenu_search_filter);
-
-    m = GTK_MENU(gtk_menu_new());
-
-    menu_new_item_with_data(m, "no default filter", NULL);
-    for (l = buf; l != NULL; l = l->next) {
-        filter_t *filter = (filter_t *)l->data;
-        /*
-         * This is no need to create a query which should not
-         * display anything.
-         */
-        if ((filter != filter_drop) && (filter != filter_show))
-            menu_new_item_with_data(m, filter->name, filter);
-    }
-
-    gtk_option_menu_set_menu
-        (GTK_OPTION_MENU(optionmenu_search_filter), GTK_WIDGET(m));
-
-    option_menu_select_item_by_data(optionmenu_search_filter, bufptr);
-
-    g_list_free(buf);
-}
-
-
 void filter_open_dialog() {
-    if (filter_dialog == NULL) {
-        GtkMenu *m;
-        gint i;
+    GList *l;
 
+    if (filter_dialog == NULL) {
         filter_dialog = create_dlg_filters();
         g_assert(filter_dialog != NULL);
-
-        gtk_notebook_set_show_tabs
-            (GTK_NOTEBOOK(notebook_filter_detail), FALSE);
-
-       	gtk_clist_set_reorderable(GTK_CLIST(clist_filter_rules), TRUE);
-        for (i = 0; i < 4; i++)
-            gtk_clist_set_column_width(GTK_CLIST(clist_filter_rules), i,
-                filter_table_col_widths[i]);
    
-        m = GTK_MENU(gtk_menu_new());
-        menu_new_item_with_data
-            (m, rule_text_type_labels[RULE_TEXT_PREFIX], 
-                (gpointer) RULE_TEXT_PREFIX);
-        menu_new_item_with_data
-            (m, rule_text_type_labels[RULE_TEXT_WORDS], 
-                (gpointer) RULE_TEXT_WORDS);
-        menu_new_item_with_data
-            (m, rule_text_type_labels[RULE_TEXT_SUFFIX], 
-                (gpointer)RULE_TEXT_SUFFIX);
-        menu_new_item_with_data
-            (m, rule_text_type_labels[RULE_TEXT_SUBSTR], 
-                (gpointer) RULE_TEXT_SUBSTR);
-        menu_new_item_with_data
-            (m, rule_text_type_labels[RULE_TEXT_REGEXP], 
-                (gpointer) RULE_TEXT_REGEXP);
-        gtk_option_menu_set_menu
-            (GTK_OPTION_MENU(optionmenu_filter_text_type), GTK_WIDGET(m));
-
-        m = GTK_MENU(gtk_menu_new());
-        menu_new_item_with_data(m, "display", (gpointer) 1);
-        menu_new_item_with_data(m, "don't display", (gpointer) 0);
-        gtk_option_menu_set_menu
-            (GTK_OPTION_MENU(optionmenu_filter_default_policy), GTK_WIDGET(m));
+        filter_gui_init();
     }
 
-  	gtk_window_set_default_size(GTK_WINDOW(filter_dialog), 
-        flt_dlg_w, flt_dlg_h);
+    filter_gui_filter_clear_list();
+    for (l = filters; l != NULL; l = l->next) {
+        filter_t *filter = (filter_t *)l->data;
+        shadow_t *shadow;
+        GList *ruleset;
+        gboolean enabled;
+    
+        if (IS_BUILTIN(filter))
+            continue;
+                        
+        shadow = shadow_find(filter);
+        ruleset = (shadow != NULL) ? shadow->current : filter->ruleset;
+        enabled = (shadow != NULL) ? 
+            filter_is_active(shadow) : 
+            filter_is_active(filter);
+                    
+        filter_gui_filter_add(filter, ruleset);
+        filter_gui_filter_set_enabled(filter, enabled);
+    }
+
 
     if (current_search != NULL) {
         filter_set(current_search->filter);
@@ -441,9 +351,7 @@ void filter_open_dialog() {
         filter_set(NULL);
     }
 
-    option_menu_select_item_by_data(
-        optionmenu_filter_default_policy, 
-        (gpointer)filter_default_policy);
+    filter_gui_set_default_policy(filter_default_policy);
    
     gtk_widget_show(filter_dialog);
     gdk_window_raise(filter_dialog->window);
@@ -467,15 +375,18 @@ void filter_close_dialog(gboolean commit)
         filter_cancel_changes();
 
     if (filter_dialog != NULL) {
-        //gtk_object_destroy(GTK_OBJECT(filter_dialog));
-        //filter_dialog = NULL;
-
         gdk_window_get_root_origin
             (filter_dialog->window, &flt_dlg_x, &flt_dlg_y);
         gdk_window_get_size
             (filter_dialog->window, &flt_dlg_w, &flt_dlg_h);
         
+        filter_main_divider_pos =
+            gtk_paned_get_position(GTK_PANED(hpaned_filter_main));
+
         gtk_widget_hide(filter_dialog);
+
+        //gtk_object_destroy(GTK_OBJECT(filter_dialog));
+        //filter_dialog = NULL;
     }
 }
 
@@ -760,7 +671,7 @@ rule_t *filter_new_text_rule(gchar * match, gint type,
     r->u.text.case_sensitive = case_sensitive;
     r->u.text.type           = type;
     r->u.text.match          = g_strdup(match);
-    rule_set_flags(r, RULE_FLAG_VALID);
+    set_flags(r->flags, RULE_FLAG_VALID);
 
     if (!r->u.text.case_sensitive)
         strlower(r->u.text.match, r->u.text.match);
@@ -826,7 +737,7 @@ rule_t *filter_new_ip_rule
 	r->u.ip.addr &= r->u.ip.mask;
     r->target     = target;
     r->flags      = flags;
-    rule_set_flags(r, RULE_FLAG_VALID);
+    set_flags(r->flags, RULE_FLAG_VALID);
 
     return r;
 }
@@ -854,7 +765,7 @@ rule_t *filter_new_size_rule
 
   	f->target = target;
     f->flags  = flags;
-    rule_set_flags(f, RULE_FLAG_VALID);
+    set_flags(f->flags, RULE_FLAG_VALID);
 
     return f;
 }
@@ -874,7 +785,7 @@ rule_t *filter_new_jump_rule(filter_t *target, guint16 flags)
 
   	f->target = target;
     f->flags  = flags;
-    rule_set_flags(f, RULE_FLAG_VALID);
+    set_flags(f->flags, RULE_FLAG_VALID);
 
     return f;
 }
@@ -1058,69 +969,6 @@ static rule_t *filter_get_jump_rule()
 
 
 /*
- * filter_update_filters:
- *
- * Update the filters. Selects the current work filter in the
- * option menu. If the work_filter does no longer exists, it
- * looks for another filter to display. If none is left, it
- * blocks the buttons.
- */
-void filter_update_filters() 
-{
-    GList *l;
-    gboolean work_filter_exists = FALSE;
-    GtkWidget *m;
-    gint active_item = -1;
-    gint item_count = 0;
-
-    filter_rebuild_target_combos();
-
-    if(filter_dialog == NULL)
-        return;
-
-    m = gtk_menu_new();
-     
-    for (l = filters; l != NULL; l = l->next) {
-        filter_t *r = (filter_t *) l->data;
-        GtkWidget *w;
-
-        if (!IS_BUILTIN(r)) {
-            w = menu_new_item_with_data(GTK_MENU(m), r->name, r);
-            gtk_signal_connect
-                (GTK_OBJECT(w), "activate", on_filter_filters_activate, r);
-    
-            if (work_filter == r) {
-                work_filter_exists = TRUE;
-                active_item = item_count;
-            }
-    
-            item_count ++;
-        }
-    }
-        
-    gtk_option_menu_set_menu
-        (GTK_OPTION_MENU(optionmenu_filter_filters), m);
-    if (active_item != -1)
-        gtk_option_menu_set_history
-            (GTK_OPTION_MENU(optionmenu_filter_filters), active_item);
-
-    /*
-     * If the current filter no longer exists, look for 
-     * an other one and switch to that if possible.
-     */
-    if (!work_filter_exists) {
-        filter_t *r = NULL;
-    
-        if (filters != NULL)
-            r = option_menu_get_selected_data(optionmenu_filter_filters);
-
-        filter_set((filter_t *) r);
-    }
-}
-
-
-
-/*
  * filter_set:
  *
  * Start working on the given filter. Set this filter as 
@@ -1132,36 +980,46 @@ void filter_set(filter_t *f)
     gboolean is_work;
     shadow_t *shadow;
 
-    work_filter = f;
-    is_work = work_filter != NULL;
-
     if (filter_dialog == NULL)
         return;
 
-    if (f != NULL)
-        shadow = shadow_find(f);
-    else
-        shadow = NULL;
+    work_filter = f;
+    is_work = work_filter != NULL;
 
+    shadow = is_work ? shadow_find(work_filter) : NULL;
+
+    gtk_widget_set_sensitive(checkbutton_filter_enabled, is_work);
+    gtk_toggle_button_set_active(
+        GTK_TOGGLE_BUTTON(checkbutton_filter_enabled),
+        shadow == NULL ? filter_is_active(work_filter) :
+            filter_is_active(shadow));
+
+    gtk_widget_set_sensitive(button_filter_reset, is_work);
     gtk_widget_set_sensitive(button_filter_add_rule_text, is_work);
     gtk_widget_set_sensitive(button_filter_add_rule_ip, is_work);
     gtk_widget_set_sensitive(button_filter_add_rule_size, is_work);
+    gtk_widget_set_sensitive(button_filter_add_rule_jump, is_work);
     gtk_widget_set_sensitive(button_filter_remove, 
-        (f != NULL) && !IS_BOUND(f) && !IS_GLOBAL(f) && !IS_BUILTIN(f) &&
-        (shadow == NULL || shadow->refcount == 0) && (f->refcount == 0));
+        (work_filter != NULL) && 
+        !filter_is_bound(work_filter) && 
+        !IS_GLOBAL(work_filter) && 
+        !IS_BUILTIN(work_filter) &&
+        (shadow == NULL || 
+            shadow->refcount == 0) && 
+            (work_filter->refcount == 0));
  
     filter_edit_rule(NULL);
 
-    if (f == NULL) {
+    if (work_filter == NULL) {
+        gtk_entry_set_text(GTK_ENTRY(entry_filter_name), "");
         filter_set_ruleset(NULL);
+        filter_gui_filter_set_enabled(NULL, FALSE);
     } else {
-        shadow_t *shadow;
         /*
          * Check if there already is a shadow for this filter, if not,
          * allocate one.
          */
-        
-        shadow = shadow_find(f);
+
         if (shadow == NULL)
             shadow = shadow_new(f);
 
@@ -1172,13 +1030,17 @@ void filter_set(filter_t *f)
         if (dbg >= 5)
             printf("showing ruleset for filter: %s\n", f->name);
         filter_set_ruleset(shadow->current);
+
+        gtk_entry_set_text(GTK_ENTRY(entry_filter_name), f->name);
+        filter_gui_filter_set_enabled
+            (work_filter, filter_is_active(shadow));
     }
 
     /* 
      * don't want the work_filter to be selectable as a target
      * so we changed it... we have to rebuild.
      */
-    filter_update_filters();
+    filter_gui_rebuild_target_combos(filters);
 }
 
 
@@ -1196,10 +1058,11 @@ void filter_close_search(search_t *s)
     if (dbg >= 6)
         printf("closing search (freeing filter): %s\n", s->query);
 
+    /*
+     * filter_free removes the filter from display.
+     */
     filter_free(s->filter);
     s->filter = NULL;
-
-    filter_update_filters();
 }
 
 
@@ -1264,27 +1127,22 @@ static void filter_set_ruleset(GList *ruleset)
 
     color = &(gtk_widget_get_style(GTK_WIDGET(clist_filter_rules))
                 ->bg[GTK_STATE_INSENSITIVE]);
+
+    gtk_widget_set_sensitive
+        (GTK_WIDGET(button_filter_reset_all_rules), ruleset != NULL);
         
     for (l = ruleset; l != NULL; l = l->next) {
         rule_t *r = (rule_t *)l->data;
         gchar *titles[4];
         gint row;
-        guint buf;
 
         g_assert(r != NULL);
         count ++;
         titles[0] = RULE_IS_NEGATED(r) ? "X" : "";
         titles[1] = rule_condition_to_gchar(r);
         titles[2] = r->target->name;
+        titles[3] = "...";
         
-        buf = r->match_count+r->fail_count;
-        if (buf != 0) {
-            g_snprintf(f_tmp, sizeof(f_tmp), "%d (%d%%)",
-                r->match_count, (gint)((float)r->match_count/buf*100));
-            titles[3] = f_tmp;
-        } else {
-            titles[3] = "none yet";
-        }
         row = gtk_clist_append(GTK_CLIST(clist_filter_rules), titles);
         if (!RULE_IS_ACTIVE(r))
              gtk_clist_set_foreground(GTK_CLIST(clist_filter_rules), row,
@@ -1451,8 +1309,11 @@ filter_t *filter_new(gchar *name)
     f->ruleset = NULL;
     f->search = NULL;
     f->visited = FALSE;
+    set_flags(f->flags, FILTER_FLAG_ACTIVE);
 
     filters = g_list_append(filters, f);
+    
+    filter_gui_filter_add(f, f->ruleset);
 
     return f;
 }
@@ -1471,11 +1332,23 @@ void filter_new_for_search(search_t *s)
     g_assert(s != NULL);
     g_assert(s->query != NULL);
 
-    f = filter_new(s->query);
+    f = g_new0(filter_t, 1);
+    f->name = g_strdup(s->query);
+    f->ruleset = NULL;
+    f->search = NULL;
+    f->visited = FALSE;
+    set_flags(f->flags, FILTER_FLAG_ACTIVE);
+
+    filters = g_list_append(filters, f);
+
     f->search = s;
     s->filter = f;
 
-    filter_update_filters();
+    /*
+     * It's important to add the filter here, because it was not
+     * bound before and would have been sorted in as a free filter.
+     */
+    filter_gui_filter_add(f, f->ruleset);
 }
 
 
@@ -1513,6 +1386,8 @@ void filter_free(filter_t *f)
     }
 
     filter_commit_changes();
+
+    filter_gui_filter_remove(f);
 
     g_free(f->name);
     f->name = NULL;
@@ -1879,9 +1754,9 @@ static int filter_apply(filter_t *filter, struct record *rec)
     g_assert(rec != NULL);
 
     /*
-     * We only try to prevent circles.
+     * We only try to prevent circles or the filter is inactive.
      */
-    if ((filter->visited == TRUE)) {
+    if ((filter->visited == TRUE) || !filter_is_active(filter)) {
         return -1;
     }
 
@@ -1992,10 +1867,15 @@ static int filter_apply(filter_t *filter, struct record *rec)
     
             if (r->target == filter_show) {
                 val = 1;
+                filter->match_count ++;
             } else if (r->target == filter_drop) {
                 val = RULE_IS_SOFT(r) ? 2 : 0;
-            } else
+                filter->match_count ++;
+            } else {
                 val = filter_apply(r->target, rec);
+                if (val != -1)
+                    filter->fail_count ++;
+            }
 
             /*
              * If a decision could be reached, we return.
@@ -2017,6 +1897,7 @@ static int filter_apply(filter_t *filter, struct record *rec)
     g_free(l_name);
 
     filter->visited = FALSE;
+    filter->fail_count ++;
     return -1;
 }
 
@@ -2031,6 +1912,7 @@ static int filter_apply(filter_t *filter, struct record *rec)
 gboolean filter_record(search_t *sch, struct record *rec)
 {
     gint r;
+    gboolean filtered;
 
     g_assert(sch != NULL);
     g_assert(rec != NULL);
@@ -2041,20 +1923,20 @@ gboolean filter_record(search_t *sch, struct record *rec)
 		// XXX for now -- RAM
 	}
 
+    filtered =  
+        ((sch->filter->ruleset != NULL) && 
+            filter_is_active(sch->filter)) ||
+        ((filter_global_pre->ruleset != NULL) && 
+            filter_is_active(filter_global_pre)) ||
+        ((filter_global_post->ruleset != NULL) &&
+            filter_is_active(sch->filter));
 
 
     /*
      * Default to "display" if there is no filter defined or to
      * global_policy if there is.
      */
-    if (
-        (sch->filter->ruleset == NULL) && 
-        (filter_global_pre->ruleset == NULL) &&
-        (filter_global_post->ruleset == NULL)
-    )
-        r = 1;
-    else
-        r = -1;
+    r = filtered ? -1 : 1;
 
     /*
      * If it has not yet been decided, try the global filter
@@ -2083,10 +1965,7 @@ gboolean filter_record(search_t *sch, struct record *rec)
     if (dbg >= 5) {
         printf("result %d for search \"%s\" matching \"%s\" (%s)\n",
             r, sch->query, rec->name, 
-            ((sch->filter->ruleset == NULL) && 
-            (filter_global_pre->ruleset == NULL) &&
-            (filter_global_post->ruleset == NULL)) ?
-                "unfiltered" : "filtered");
+            filtered ? "filtered" : "unfiltered");
     }
 
 	return r;
@@ -2159,25 +2038,107 @@ void filter_init(void)
     filter_global_post = filter_new("Global (post)");
     filter_drop        = filter_new("don't display");
     filter_show        = filter_new("display");
-
-    /*
-     * Acutally filter_drop and filter_show can stay empty.
-     */
 }
 
+
+
 /*
- * on_filter_filters_activate:
+ * filter_update_targets:
  *
- * Callback for option menu to select filters.
+ * Trigger a rebuild of the target combos.
  */
-static void on_filter_filters_activate
-    (GtkMenuItem * menuitem, gpointer user_data)
+void filter_update_targets(void)
 {
-    filter_t *filter = (filter_t *) option_menu_get_selected_data
-        (optionmenu_filter_filters);
+    filter_gui_rebuild_target_combos(filters);
+}
+
+
+
+/*
+ * filter_timer:
+ *
+ * Periodically update the filter display with current data
+ */
+void filter_timer(void)
+{
+    filter_gui_update_filter_stats();
+    filter_gui_update_rule_stats();
+}
+
+
+
+/*
+ * filter_rule_reset_stats:
+ *
+ * Reset the rule stats for a given rule.
+ */
+inline void filter_rule_reset_stats(rule_t *rule)
+{
+    g_assert(rule != NULL);
+
+    rule->match_count = rule->fail_count = 0;
+}
+
+
+
+/*
+ * filter_reset_stats:
+ *
+ * Reset the stats for a given filter.
+ */
+inline void filter_reset_stats(filter_t *filter)
+{
+    g_assert(filter != NULL);
+
+    filter->match_count = filter->fail_count = 0;
+}
+
+
+
+/*
+ * filter_set_enabled:
+ *
+ * Change the "enabled" flag of a filter.
+ */
+void filter_set_enabled(filter_t *filter, gboolean active)
+{
+    shadow_t *shadow;
+    static gboolean locked = FALSE;
+    flag_t *flags;
 
     g_assert(filter != NULL);
 
-    filter_set(filter);
+    if (locked)
+        return;
+
+    locked = TRUE;
+
+    shadow = shadow_find(filter);
+    if (shadow != NULL) {
+        flags = &shadow->flags;
+    } else {
+        flags = &filter->flags;
+    }   
+
+    if (active) {
+        set_flags(*flags, FILTER_FLAG_ACTIVE);
+    } else {
+        clear_flags(*flags, FILTER_FLAG_ACTIVE);
+    }
+
+    filter_gui_filter_set_enabled(work_filter, active);
+
+    locked = FALSE;
 }
 
+
+
+inline gboolean filter_is_global(filter_t *f)
+{
+    return IS_GLOBAL(f);
+}
+
+inline gboolean filter_is_builtin(filter_t *f)
+{
+    return IS_BUILTIN(f);
+}
