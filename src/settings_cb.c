@@ -27,6 +27,7 @@
 
 #include "gui.h"
 
+#include "adns.h"
 #include "settings_cb.h"
 #include "settings_gui.h"
 #include "search_gui.h"
@@ -95,14 +96,17 @@ void on_spinbutton_minimum_speed_changed
         gtk_spin_button_get_value(GTK_SPIN_BUTTON(editable)));
 }
 
+void on_entry_config_proxy_ip_activate_helper(guint32 ip, gpointer user_data)
+{
+    gnet_prop_set_guint32(PROP_PROXY_IP, &ip, 0, 1);
+}
+
 void on_entry_config_proxy_ip_activate
     (GtkEditable *editable, gpointer user_data)
 {
    	gchar *e = g_strstrip(gtk_editable_get_chars(editable, 0, -1));
-    guint32 ip = host_to_ip(e);
 
-    gnet_prop_set_guint32(PROP_PROXY_IP, &ip, 0, 1);
-
+	adns_resolve(e, &on_entry_config_proxy_ip_activate_helper, NULL);
 	g_free(e);
 }
 FOCUS_TO_ACTIVATE(entry_config_proxy_ip)

@@ -729,6 +729,16 @@ void strlower(gchar *dst, gchar *src)
 	} while (*src++);
 }
 
+#ifndef USE_GTK2
+/* FIXME: Use autoconf and HAVE_STRLCPY
+ * (g_)strlcpy would return strlen(src)
+ */
+gsize g_strlcpy(gchar *dest, const gchar *src, gsize dest_size)
+{
+	return gm_snprintf(dest, dest_size, "%s", src);
+}
+#endif
+
 #ifndef HAVE_STRCASESTR
 /*
  * strcasestr

@@ -100,6 +100,8 @@ extern gboolean is_firewalled;
 
 void socket_free(struct gnutella_socket *);
 struct gnutella_socket *socket_connect(guint32, guint16, enum socket_type);
+struct gnutella_socket *socket_connect_by_name(
+	const gchar *host, guint16, enum socket_type);
 struct gnutella_socket *socket_listen(guint32, guint16, enum socket_type);
 
 void sock_cork(struct gnutella_socket *s, gboolean on);

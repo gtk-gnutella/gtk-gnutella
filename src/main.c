@@ -28,6 +28,7 @@
 
 #include <signal.h>
 #include <locale.h>
+#include <ctype.h>
 
 #include "search.h"
 #include "share.h"
@@ -53,6 +54,7 @@
 #include "move.h"
 #include "extensions.h"
 #include "inet.h"
+#include "adns.h"
 
 #ifdef USE_REMOTE_SHELL
 #include "shell.h"
@@ -150,6 +152,7 @@ void gtk_gnutella_exit(gint n)
 	bg_close();
 	atom_str_free(start_rfc822_date);
 	atoms_close();
+	adns_close();
 	wdestroy();
 
 	if (dbg)
@@ -357,6 +360,7 @@ gint main(gint argc, gchar ** argv)
 
 	/* Our inits */
 	log_init();
+	adns_init();
 	atoms_init();
 	version_init();
 	random_init();

@@ -795,7 +795,9 @@ static void node_recursive_shutdown_v(
  */
 void node_remove_by_handle(gnet_node_t n)
 {
-    gnutella_node_t *node = node_find_by_handle(n);
+    gnutella_node_t *node;
+
+	node = node_find_by_handle(n);
 
     g_assert(node != NULL);
 
@@ -3074,7 +3076,8 @@ static void call_node_04_connected(gpointer obj, header_t *header)
 
 void node_add(guint32 ip, guint16 port)
 {
-    node_add_socket(NULL, ip, port);
+	if (0 != ip && 0 != port)
+    	node_add_socket(NULL, ip, port);
 }
 
 void node_add_socket(struct gnutella_socket *s, guint32 ip, guint16 port)

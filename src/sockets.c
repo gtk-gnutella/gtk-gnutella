@@ -50,6 +50,7 @@
 #include "settings.h"
 #include "inet.h"
 #include "walloc.h"
+#include "adns.h"
 
 #ifdef USE_REMOTE_SHELL
 #include "shell.h"
@@ -170,6 +171,7 @@ void socket_free(struct gnutella_socket *s)
 		if (s->corked)
 			sock_cork(s, FALSE);
 		close(s->file_desc);
+		s->file_desc = -1;
 	}
 
 	wfree(s, sizeof(*s));
@@ -701,6 +703,34 @@ static void socket_accept(gpointer data, gint source,
  */
 
 /*
+ * socket_connect_finalize
+ *
+ * Called to finalize the creation of the socket connection, which is done
+ * in two steps since DNS resolving is asynchronous.
+ */
+static struct gnutella_socket *socket_connect_finalize(
+	struct gnutella_socket *s)
+{
+	s->local_port = socket_local_port(s);
+
+	/* Set the file descriptor non blocking */
+	fcntl(s->file_desc, s->file_desc, F_SETFL, O_NONBLOCK);
+
+	g_assert(s->gdk_tag == 0);
+
+	if (proxy_protocol != PROXY_NONE)
+		s->gdk_tag = inputevt_add(s->file_desc,
+			INPUT_EVENT_READ | INPUT_EVENT_WRITE | INPUT_EVENT_EXCEPTION,
+			socket_connected, s);
+	else
+		s->gdk_tag = inputevt_add(s->file_desc,
+			INPUT_EVENT_WRITE | INPUT_EVENT_EXCEPTION,
+			socket_connected, s);
+
+	return s;
+}
+
+/*
  * socket_connect
  *
  * Creates a connected socket with an attached resource of `type'.
@@ -785,20 +815,116 @@ struct gnutella_socket *socket_connect(
 		return NULL;
 	}
 
-	s->local_port = socket_local_port(s);
+	return socket_connect_finalize(s);
+}
 
-	fcntl(sd, F_SETFL, O_NONBLOCK);	/* Set the file descriptor non blocking */
+/*
+ * socket_connect_by_name_helper
+ *
+ * Called when we got a reply from the ADNS process.
+ */
+void socket_connect_by_name_helper(guint32 ip_addr, gpointer user_data)
+{
+	struct sockaddr_in addr, lcladdr;
+	struct gnutella_socket *s = user_data;
+	gint res;
 
-	g_assert(s->gdk_tag == 0);
+	g_assert(NULL != s);
 
-	if (proxy_protocol != PROXY_NONE)
-		s->gdk_tag = inputevt_add(sd,
-			INPUT_EVENT_READ | INPUT_EVENT_WRITE | INPUT_EVENT_EXCEPTION,
-			socket_connected, s);
-	else
-		s->gdk_tag = inputevt_add(sd,
-			INPUT_EVENT_WRITE | INPUT_EVENT_EXCEPTION,
-			socket_connected, s);
+	if (0 == ip_addr) {
+		socket_destroy(s, "Could resolve address");
+		return; 
+	}
+
+	s->ip = ip_addr;
+	addr.sin_family = AF_INET;
+	addr.sin_addr.s_addr = g_htonl(s->ip);
+	addr.sin_port = g_htons(s->port);
+
+	inet_connection_attempted(s->ip);
+
+	/*
+	 * Now we check if we're forcing a local IP, and make it happen if so.
+	 *   --JSL
+	 */
+	if (force_local_ip) {
+		lcladdr.sin_family = AF_INET;
+		lcladdr.sin_addr.s_addr = g_htonl(forced_local_ip);
+		lcladdr.sin_port = g_htons(0);
+
+		/*
+		 * Note: we ignore failures: it will be automatic at connect()
+		 * It's useful only for people forcing the IP without being
+		 * behind a masquerading firewall --RAM.
+		 */
+		(void) bind(s->file_desc, (struct sockaddr *) &lcladdr,
+			sizeof(struct sockaddr_in));
+	}
+
+	if (proxy_protocol != PROXY_NONE) {
+		lcladdr.sin_family = AF_INET;
+		lcladdr.sin_port = INADDR_ANY;
+
+		(void) bind(s->file_desc, (struct sockaddr *) &lcladdr,
+			sizeof(struct sockaddr_in));
+
+		s->direction = SOCK_CONN_PROXY_OUTGOING;
+		res = proxy_connect(s->file_desc, (struct sockaddr *) &addr,
+			sizeof(struct sockaddr_in));
+	} else
+		res = connect(s->file_desc, (struct sockaddr *) &addr,
+			sizeof(struct sockaddr_in));
+
+	if (res == -1 && errno != EINPROGRESS) {
+		g_warning("Unable to connect to %s: (%s)",
+			ip_port_to_gchar(s->ip, s->port), g_strerror(errno));
+		socket_destroy(s, "Connection failed");
+		return;
+	}
+
+	socket_connect_finalize(s);
+}
+
+/*
+ * socket_connect_by_name
+ *
+ * Like socket_connect() but the remote address is not known and must be
+ * resolved through async DNS calls.
+ */
+struct gnutella_socket *socket_connect_by_name(
+	const gchar *host, guint16 port, enum socket_type type)
+{
+	gint sd, option = 1;
+	struct gnutella_socket *s;
+
+	/* Create a socket and try to connect it to host:port */
+
+	g_assert(NULL != host);
+
+	sd = socket(AF_INET, SOCK_STREAM, 0);
+
+	if (sd == -1) {
+		g_warning("Unable to create a socket (%s)", g_strerror(errno));
+		return NULL;
+	}
+
+	s = (struct gnutella_socket *) walloc0(sizeof(struct gnutella_socket));
+
+	s->type = type;
+	s->direction = SOCK_CONN_OUTGOING;
+	s->file_desc = sd;
+	s->ip = 0; /* The IP is not known, yet */
+	s->port = port;
+
+	setsockopt(s->file_desc, SOL_SOCKET, SO_KEEPALIVE, (void *) &option,
+			   sizeof(option));
+	setsockopt(s->file_desc, SOL_SOCKET, SO_REUSEADDR, (void *) &option,
+			   sizeof(option));
+
+	/* Set the file descriptor non blocking */
+	fcntl(s->file_desc, F_SETFL, O_NONBLOCK);
+
+	adns_resolve(host, &socket_connect_by_name_helper, s);
 
 	return s;
 }

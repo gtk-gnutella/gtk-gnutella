@@ -47,8 +47,6 @@
 
 RCSID("$Id$");
 
-#define MAX_HOSTLEN		256		/* Max length for FQDN host */
-
 http_url_error_t http_url_errno;		/* Error from http_url_parse() */
 
 static GSList *sl_outgoing = NULL;		/* To spot reply timeouts */
@@ -473,15 +471,13 @@ gchar *http_url_strerror(http_url_error_t errnum)
  * Parse HTTP url and extract the IP/port we need to connect to.
  * Also identifies the start of the path to request on the server.
  *
- * Returns TRUE if the URL was correctly parsed, with `ip', `port', 'host'
+ * Returns TRUE if the URL was correctly parsed, with `port', 'host'
  * and `path' filled if they are non-NULL, FALSE otherwise.
  * The variable `http_url_errno' is set accordingly.
  *
- * NOTE: `host' is only filled if a non-numeric host was given in the URL,
- * and the pointer returned is to STATIC data.
  */
 gboolean http_url_parse(
-	gchar *url, guint32 *ip, guint16 *port, gchar **host, gchar **path)
+	gchar *url, guint16 *port, gchar **host, gchar **path)
 {
 	gchar *host_start;
 	gchar *port_start;
@@ -491,7 +487,6 @@ gboolean http_url_parse(
 	gchar s;
 	guint32 portnum;
 	static gchar hostname[MAX_HOSTLEN + 1];
-	gboolean numeric_host = FALSE;
 
 	g_assert(url != NULL);
 
@@ -561,27 +556,9 @@ gboolean http_url_parse(
 	if (port != NULL)
 		*port = (guint16) portnum;
 
-	/*
-	 * Validate the host.
-	 */
-
-	if (isdigit((guchar) *host_start)) {
-		guint lsb, b2, b3, msb;
-		if (
-			5 == sscanf(host_start, "%u.%u.%u.%u%c", &msb, &b3, &b2, &lsb, &s)
-			&& (s == '/' || s == ':')
-		) {
-			if (ip != NULL)
-				*ip = lsb + (b2 << 8) + (b3 << 16) + (msb << 24);
-			if (host != NULL)
-				*host = NULL;				/* No hostnmae */
-			numeric_host = TRUE;			/* Host given as IP address */
-		}
-	}
-
 	hostname[0] = '\0';
 
-	if (!numeric_host) {
+	{
 		gchar *q = hostname;
 		gchar *end = hostname + sizeof(hostname);
 
@@ -598,24 +575,13 @@ gboolean http_url_parse(
 			*q++ = c;
 		}
 		hostname[MAX_HOSTLEN] = '\0';
-
-		if (ip != NULL) {
-			*ip = host_to_ip(hostname);
-			if (*ip == 0) {					/* Unable to resolve name */
-				http_url_errno = HTTP_URL_HOSTNAME_UNKNOWN;
-				return FALSE;
-			}
-		}
-
 		if (host != NULL)
 			*host = hostname;				/* Static data! */
 	}
 
 	if (dbg > 5)
-		printf("URL \"%s\" -> IP=%s, host=%s, path=%s\n",
+		printf("URL \"%s\" -> host=%s, path=%s\n",
 			url,
-			(ip != NULL && port != NULL) ?
-				ip_port_to_gchar(*ip, *port) : "<not remembered>",
 			(host != NULL) ? (*host ? *host : "<none>") : "<not remembered>",
 			(path != NULL) ? *path : "<not remembered>");
 
@@ -1392,6 +1358,7 @@ static void http_async_http_error(
 	http_async_remove(handle, HTTP_ASYNC_HTTP, &he);
 }
 
+
 /*
  * http_async_create
  *
@@ -1418,7 +1385,6 @@ static struct http_async *http_async_create(
 	http_error_cb_t error_ind,
 	struct http_async *parent)
 {
-	guint32 ip;
 	guint16 port;
 	gchar *path;
 	struct gnutella_socket *s;
@@ -1433,7 +1399,7 @@ static struct http_async *http_async_create(
 	 * Extract the necessary parameters for the connection.
 	 */
 
-	if (!http_url_parse(url, &ip, &port, &host, &path)) {
+	if (!http_url_parse(url, &port, &host, &path)) {
 		http_async_errno = HTTP_ASYNC_BAD_URL;
 		return NULL;
 	}
@@ -1445,7 +1411,7 @@ static struct http_async *http_async_create(
 	 * from the socket layer.
 	 */
 
-	s = socket_connect(ip, port, SOCK_TYPE_HTTP);
+	s = socket_connect_by_name(host, port, SOCK_TYPE_HTTP);
 
 	if (s == NULL) {
 		http_async_errno = HTTP_ASYNC_CONN_FAILED;
@@ -1808,7 +1774,7 @@ static void http_got_header(struct http_async *ha, header_t *header)
 			 * RFC-2616 (HTTP/1.1 specs).
 			 */
 
-			if (!http_url_parse(buf, NULL, NULL, NULL, NULL)) {
+			if (!http_url_parse(buf, NULL, NULL, NULL)) {
 				http_async_error(ha, HTTP_ASYNC_BAD_LOCATION_URI);
 				return;
 			}

@@ -31,6 +31,8 @@
 #include <glib.h>
 
 #define HTTP_PORT		80		/* Registered HTTP port */
+#define MAX_HOSTLEN		256		/* Max length for FQDN host */
+
 
 struct gnutella_socket;
 struct header;
@@ -188,7 +190,7 @@ gboolean http_range_contains(GSList *ranges, guint32 from, guint32 to);
 
 gchar *http_url_strerror(http_url_error_t errnum);
 gboolean http_url_parse(
-	gchar *url, guint32 *ip, guint16 *port, gchar **host, gchar **path);
+	gchar *url, guint16 *port, gchar **host, gchar **path);
 
 gpointer http_async_get(
 	gchar *url,

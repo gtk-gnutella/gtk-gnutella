@@ -27,6 +27,7 @@
 
 #include "gui.h"
 
+#include "adns.h"
 #include "nodes_cb.h"
 #include "settings_gui.h"
 #include "statusbar_gui.h"
@@ -34,7 +35,7 @@
 RCSID("$Id$");
 
 /*
- * nodes_ctrl_connect_by_name:
+ * nodes_cb_connect_by_name:
  *
  * Try to connect to the node given by the addr string in the form
  * [ip]:[port]. Port may be omitted.
@@ -66,10 +67,7 @@ static void nodes_cb_connect_by_name(const gchar *addr)
 	if (port < 1 || port > 65535) {
         statusbar_gui_warning(15, "Port must be between 1 and 65535");
     } else {
-		guint32 ip = host_to_ip(e);
-		if (ip) {
-            node_add(ip, port);
-        }
+		adns_resolve(e, &node_add, GUINT_TO_POINTER((guint) port));
 	}
 
     g_free(e);

@@ -331,12 +331,15 @@ gboolean dmesh_url_parse(gchar *url, dmesh_urlinfo_t *info)
 	guint16 port;
 	guint idx;
 	guchar q;
-	gchar *file;
+	gchar *file = NULL;
+	gchar *host = NULL;
 
-	if (!http_url_parse(url, &ip, &port, NULL, &file)) {
+	if (!http_url_parse(url, &port, &host, &file)) {
 		dmesh_url_errno = DMESH_URL_HTTP_PARSER;
 		return FALSE;
 	}
+
+	ip = host_to_ip(host);
 
 	/*
 	 * Test the first form of resource naming:
