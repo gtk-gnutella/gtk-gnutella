@@ -3669,6 +3669,21 @@ void file_info_timer(void)
 }
 
 /*
+ * fi_purge_by_handle_list
+ *
+ * Purge all handles contained in list.
+ */
+void fi_purge_by_handle_list(GSList *list)
+{
+	GSList *sl;
+
+	for (sl = list; sl; sl = g_slist_next(sl)) {
+		gnet_fi_t fih = (gnet_fi_t) sl->data;
+		fi_purge(fih);
+	}
+}
+
+/*
  * fi_purge:
  *
  * Kill all downloads associated with a fi and remove the fi itself.
