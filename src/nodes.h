@@ -95,9 +95,12 @@ typedef struct gnutella_node {
 	guint32 pos;			/* write position in data */
 
 	guchar status;			/* See possible values below */
-	guint8 hops_flow;		/* Don't send queries with a >= hop count */
 	guint32 flags;			/* See possible values below */
 	guint32 attrs;			/* See possible values below */
+
+	guint8 hops_flow;		/* Don't send queries with a >= hop count */
+	guint8 max_ttl;			/* Value of their advertised X-Max-TTL */
+	guint16 degree;			/* Value of their advertised X-Degree */
 
 	GHashTable *qseen;			/* Queries seen from this leaf node */
 	GHashTable *qrelayed;		/* Queries relayed from this node */
@@ -424,6 +427,8 @@ extern gboolean route_exists_for_reply(gchar *muid, guint8 function);
 
 #define GNUTELLA_HELLO "GNUTELLA CONNECT/"
 #define GNUTELLA_HELLO_LENGTH	(sizeof(GNUTELLA_HELLO) - 1)
+
+#define NODE_ID_LOCAL	0x0U		/* ID for "local node" (ourselves) */
 
 extern GHookList node_added_hook_list;
 extern struct gnutella_node *node_added;

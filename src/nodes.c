@@ -64,6 +64,7 @@
 #include "hostiles.h"
 #include "clock.h"
 #include "hsep.h"
+#include "dq.h"
 
 #include "settings.h"
 #include "override.h"		/* Must be the last header included */
@@ -77,6 +78,8 @@ RCSID("$Id$");
 #define MAX_GGEP_PAYLOAD		1024	/* In ping, pong, push */
 #define MAX_MSG_SIZE			65536	/* Absolute maximum message length */
 #define MAX_HOP_COUNT			255		/* Architecturally defined maximum */
+#define NODE_LEGACY_DEGREE		8		/* Older node without X-Degree */
+#define NODE_LEGACY_TTL			7		/* Older node without X-Max-TTL */
 
 #define SHUTDOWN_GRACE_DELAY	120	/* Grace period for shutdowning nodes */
 #define BYE_GRACE_DELAY			30	/* Bye sent, give time to propagate */
@@ -129,7 +132,7 @@ static idtable_t *node_handle_map = NULL;
 
 
 static guint32 shutdown_nodes = 0;
-static guint32 node_id = 0;
+static guint32 node_id = 1;				/* Reserve 0 for the local node */
 
 static gboolean allow_gnet_connections = FALSE;
 
@@ -1155,8 +1158,22 @@ static void node_remove_v(
 		qrt_unref(n->recv_query_table);
 		n->recv_query_table = NULL;
 
-		if (NODE_IS_LEAF(n))		/* Lost a leaf with a QRT... */
-			qrp_leaf_changed();		/* Might change the inter-UP QRT */
+		/*
+		 * I decided to NOT call qrp_leaf_changed() here even if
+		 * the node was a leaf node.  Why?  Because that could cause
+		 * the regeneration of the last-hop QRP table and all we could
+		 * do is clear some slots in the table to get less entries.
+		 * Entries that could be filled by the next leaf that will come
+		 * to fill the free leaf slot.
+		 *
+		 * Since having less slots means we'll get less queries, but
+		 * having a new table means generating a patch and therefore
+		 * consuming network resources, it's not clear what the gain
+		 * would be.  Better wait for the new leaf to have sent its
+		 * patch to update.
+		 *
+		 *		--RAM, 2004-08-04
+		 */
 	}
 
 	if (n->sent_query_table) {
@@ -1251,6 +1268,9 @@ static void node_remove_v(
 		string_table_free(n->qrelayed_old);
 		n->qrelayed_old = NULL;
 	}
+
+	if (NODE_IS_LEAF(n))
+		dq_node_removed(n->id);		/* Purge dynamic queries for that node */
 
     node_fire_node_info_changed(n);
     node_fire_node_flags_changed(n);
@@ -2313,7 +2333,8 @@ static void node_is_now_connected(struct gnutella_node *n)
 	}
 
 	/*
-	 * Terminate crawler connection.
+	 * Terminate crawler connection that goes through the whole 3-way
+	 * handshaking protocol.
 	 */
 
 	if (n->flags & NODE_F_CRAWLER) {
@@ -3333,7 +3354,7 @@ static void node_process_handshake_ack(struct gnutella_node *n, header_t *head)
 
 	field = header_get(head, "X-Query-Routing");
 	if (field) {
-		guint major, minor;
+		guint major = 0, minor = 0;
 		sscanf(field, "%u.%u", &major, &minor);
 		if (major >= n->qrp_major || minor >= n->qrp_minor)
 			if (dbg) g_warning("node %s <%s> now claims QRP version %u.%u, "
@@ -3791,7 +3812,7 @@ static void node_process_handshake_header(
 
 	field = header_get(head, "X-Query-Routing");
 	if (field) {
-		guint major, minor;
+		guint major = 0, minor = 0;
 		sscanf(field, "%u.%u", &major, &minor);
 		if (major > 0 || minor > 2)
 			if (dbg) g_warning("node %s <%s> claims QRP version %u.%u",
@@ -3806,7 +3827,7 @@ static void node_process_handshake_header(
 
 	field = header_get(head, "X-Ultrapeer-Query-Routing");
 	if (field) {
-		guint major, minor;
+		guint major = 0, minor = 0;
 		sscanf(field, "%u.%u", &major, &minor);
 		if (major > 0 || minor > 1)
 			if (dbg) g_warning("node %s <%s> claims Ultra QRP version %u.%u",
@@ -3814,11 +3835,38 @@ static void node_process_handshake_header(
 		n->uqrp_major = (guint8) major;
 		n->uqrp_minor = (guint8) minor;
 		if (n->attrs & NODE_A_ULTRA)
-			n->attrs |= NODE_A_UP_QRP;
-		else if (dbg)
-			g_warning("non-ultra node %s <%s> claims Ultra QRP version %u.%u",
-				node_ip(n), node_vendor(n), major, minor);
+			n->attrs |= NODE_A_UP_QRP;	/* Only makes sense for ultra nodes */
 	}
+
+	/* X-Max-TTL -- max initial TTL for dynamic querying */
+
+	field = header_get(head, "X-Max-Ttl");		/* Needs normalized case */
+	if (field) {
+		guint value = 0;
+		sscanf(field, "%u", &value);
+		if (value < 1 || value > 255) {
+			if (dbg) g_warning("node %s <%s> request bad Max-TTL %s, using %u",
+				node_ip(n), node_vendor(n), field, my_ttl);
+			value = my_ttl;
+		}
+		n->max_ttl = my_ttl;
+	} else if (n->attrs & NODE_A_ULTRA)
+		n->max_ttl = NODE_LEGACY_TTL;
+
+	/* X-Degree -- their enforced outdegree (# of connections) */
+
+	field = header_get(head, "X-Degree");
+	if (field) {
+		guint value = 0;
+		sscanf(field, "%u", &value);
+		if (value < 1 || value > 200) {
+			if (dbg) g_warning("node %s <%s> advertises weird degree %s",
+				node_ip(n), node_vendor(n), field);
+			value = max_connections;	/* Assume something reasonable! */
+		}
+		n->degree = value;
+	} else if (n->attrs & NODE_A_ULTRA)
+		n->degree = NODE_LEGACY_DEGREE;
 
 	/*
 	 * Check that remote host speaks a protocol we can accept.
@@ -3977,6 +4025,33 @@ static void node_process_handshake_header(
 				"\r\n",
 				version_string, node_crawler_headers(n), start_rfc822_date);
 		else {
+			gchar degree[80];
+
+			/*
+			 * Special hack for LimeWire, which really did not find anything
+			 * smarter than looking for new headers to detect "modern leaves".
+			 * As if it mattered for the ultra node!
+			 *
+			 * Oh well, emit specially tailored headers for them to consider
+			 * us good enough.
+			 *
+			 *		--RAM, 2004-08-05
+			 */
+
+			if (current_peermode == NODE_P_ULTRA)
+				gm_snprintf(degree, sizeof(degree),
+					"X-Degree: %d\r\n"
+					"X-Max-TTL: %d\r\n",
+					(up_connections + max_connections - normal_connections) / 2,
+					my_ttl);
+			else if (0 == strncmp(node_vendor(n), "LimeWire", 8))
+				gm_snprintf(degree, sizeof(degree),
+					"X-Ultrapeer-Query-Routing: 0.1\r\n"
+					"X-Degree: 32\r\n"
+					"X-Max-TTL: 4\r\n");
+			else
+				degree[0] = '\0';
+
 			rw = gm_snprintf(gnet_response, sizeof(gnet_response),
 				"GNUTELLA/0.6 200 OK\r\n"
 				"User-Agent: %s\r\n"
@@ -3991,6 +4066,7 @@ static void node_process_handshake_header(
 				"%s"		/* X-Ultrapeer-Needed */
 				"%s"		/* X-Query-Routing */
 				"%s"		/* X-Ultrapeer-Query-Routing */
+				"%s"		/* X-Degree + X-Max-TTL */
 				"X-Token: %s\r\n"
 				"X-Live-Since: %s\r\n",
 				version_string, ip_to_gchar(n->socket->ip),
@@ -4007,6 +4083,7 @@ static void node_process_handshake_header(
 					node_query_routing_header(n) : "",
 				current_peermode == NODE_P_ULTRA ?
 					"X-Ultrapeer-Query-Routing: 0.1\r\n" : "",
+				degree,
 				tok_version(), start_rfc822_date);
 				
 			header_features_generate(&xfeatures.connections,
@@ -4097,7 +4174,10 @@ static void err_header_error(gpointer obj, gint error)
 
 static void err_input_exception(gpointer obj)
 {
-	node_remove(NODE(obj), "Failed (Input Exception)");
+	struct gnutella_node *n = NODE(obj);
+
+	node_remove(n, (n->flags & NODE_F_CRAWLER) ?
+		"Sent crawling info" : "Failed (Input Exception)");
 }
 
 static void err_input_buffer_full(gpointer obj)
@@ -4678,7 +4758,18 @@ static void node_parse(struct gnutella_node *node)
 		goto clean_dest;	/* The node has been removed during processing */
 
 	if (!drop) {
-		if (current_peermode != NODE_P_LEAF) {
+		if (qhv != NULL && n->header.hops == 0) {
+			/*
+			 * A query with hops = 0 needs to be handled via the dynamic
+			 * query mechanism.  It is only possible to get one from the
+			 * network if we have leaves (due to the decrement done above),
+			 * which means we're in ultra mode.
+			 */
+
+			g_assert(current_peermode == NODE_P_ULTRA);
+			dq_launch_net(n, qhv);
+
+		} else if (current_peermode != NODE_P_LEAF) {
 			/*
 			 * Propagate message, if needed
 			 */
@@ -4722,8 +4813,32 @@ void node_init_outgoing(struct gnutella_node *n)
 	gchar buf[MAX_LINE_SIZE];
 	size_t len;
 	ssize_t sent;
+	gchar degree[80];
 
 	g_assert(s->gdk_tag == 0);
+
+	/*
+	 * Special hack for LimeWire, which insists on the presence of dynamic
+	 * querying headers and high outdegree to consider a leaf "good".
+	 * They should fix their clueless code instead of forcing everyone to
+	 * emit garbage.
+	 *
+	 * Oh well, contend them with totally bogus (fixed) headers.
+	 *
+	 *		--RAM, 2004-08-05
+	 */
+
+	if (current_peermode == NODE_P_ULTRA)
+		gm_snprintf(degree, sizeof(degree),
+			"X-Degree: %d\r\n"
+			"X-Max-TTL: %d\r\n",
+			(up_connections + max_connections - normal_connections) / 2,
+			my_ttl);
+	else
+		gm_snprintf(degree, sizeof(degree),
+			"X-Ultrapeer-Query-Routing: 0.1\r\n"
+			"X-Degree: 32\r\n"
+			"X-Max-TTL: 4\r\n");
 
 	len = gm_snprintf(buf, sizeof(buf),
 		"%s%d.%d\r\n"
@@ -4739,7 +4854,8 @@ void node_init_outgoing(struct gnutella_node *n)
 		"X-Live-Since: %s\r\n"
 		"%s"		/* X-Ultrapeer */
 		"%s"		/* X-Query-Routing */
-		"%s",		/* X-Ultrapeer-Query-Routing */
+		"%s"		/* X-Ultrapeer-Query-Routing */
+		"%s",		/* X-Degree + X-Max-TTL */
 		GNUTELLA_HELLO,
 		n->proto_major, n->proto_minor,
 		ip_port_to_gchar(listen_ip(), listen_port),
@@ -4750,7 +4866,8 @@ void node_init_outgoing(struct gnutella_node *n)
 			"X-Ultrapeer: False\r\n": "X-Ultrapeer: True\r\n",
 		current_peermode != NODE_P_NORMAL ? "X-Query-Routing: 0.2\r\n" : "",
 		current_peermode == NODE_P_ULTRA ?
-			"X-Ultrapeer-Query-Routing: 0.1\r\n" : ""
+			"X-Ultrapeer-Query-Routing: 0.1\r\n" : "",
+		degree
 	);
 
 	header_features_generate(&xfeatures.connections, buf, sizeof(buf), &len);
