@@ -554,12 +554,12 @@ void uploads_gui_update_display(time_t now)
     locked = TRUE;
 
 	/* Remove all rows with `removed' uploads. */
-	G_SLIST_FOREACH(sl_removed_uploads, (GFunc) remove_row, &ctx);
+	G_SLIST_FOREACH(sl_removed_uploads, remove_row, &ctx);
 	g_slist_free(sl_removed_uploads);
 	sl_removed_uploads = ctx.sl_remaining;
 
 	/* Update the status column for all active uploads. */ 
-	G_LIST_FOREACH(list_uploads, (GFunc) update_row, &now);
+	G_LIST_FOREACH(list_uploads, update_row, &now);
        
 	if (NULL == sl_removed_uploads)
 		gtk_widget_set_sensitive(button_uploads_clear_completed, FALSE);
@@ -578,7 +578,7 @@ static gboolean uploads_clear_helper(gpointer user_data)
 
 	/* Remove all rows with `removed' uploads. */
 
-	G_SLIST_FOREACH(sl_removed_uploads, (GFunc) remove_row, &ctx);
+	G_SLIST_FOREACH(sl_removed_uploads, remove_row, &ctx);
 	g_slist_free(sl_removed_uploads);
 	sl_removed_uploads = ctx.sl_remaining;
 
@@ -632,10 +632,10 @@ void uploads_gui_shutdown(void)
 
 	g_hash_table_destroy(upload_handles);
 	upload_handles = NULL;
-	G_LIST_FOREACH(list_uploads, (GFunc) free_row_data, NULL);
+	G_LIST_FOREACH(list_uploads, free_row_data, NULL);
 	g_list_free(list_uploads);
 	list_uploads = NULL;
-	G_SLIST_FOREACH(sl_removed_uploads, (GFunc) free_row_data, NULL);
+	G_SLIST_FOREACH(sl_removed_uploads, free_row_data, NULL);
 	g_slist_free(sl_removed_uploads);
 	sl_removed_uploads = NULL;
 }

@@ -521,7 +521,7 @@ void nodes_gui_update_nodes_display(time_t now)
     	gtk_tree_view_set_model(treeview_nodes, NULL);
 	}
 
-	G_LIST_FOREACH(list_nodes, (GFunc) update_row, &now);
+	G_LIST_FOREACH(list_nodes, update_row, &now);
 
 	if (do_freeze) {
     	/* "Thaw" view */
