@@ -1967,12 +1967,12 @@ static gchar *formatted_connection_pongs(gchar *field, hcache_type_t htype)
 
 	if (hcount) {
 		gint i;
-		gpointer fmt = header_fmt_make(field,
+		gpointer fmt = header_fmt_make(field, ", ",
 			PONG_LEN * CONNECT_PONGS_COUNT + 30);
 
 		for (i = 0; i < hcount; i++) {
 			gchar *ipstr = ip_port_to_gchar(hosts[i].ip, hosts[i].port);
-			header_fmt_append(fmt, ipstr, ", ");
+			header_fmt_append_value(fmt, ipstr);
 		}
 
 		header_fmt_end(fmt);
@@ -5751,7 +5751,7 @@ void node_http_proxies_add(
 	gint length = *retval;		/* Space available, starting at `buf' */
 
 	if (is_firewalled && sl_proxies != NULL) {
-		gpointer fmt = header_fmt_make("X-Push-Proxies", 0);
+		gpointer fmt = header_fmt_make("X-Push-Proxies", ", ", 0);
 		GSList *sl;
 		gint len;
 
@@ -5762,7 +5762,7 @@ void node_http_proxies_add(
 			g_assert(n->proxy_ip);		/* Must be non-null if it's our proxy */
 
 			ipstr = ip_port_to_gchar(n->proxy_ip, n->proxy_port);
-			header_fmt_append(fmt, ipstr, ", ");
+			header_fmt_append_value(fmt, ipstr);
 		}
 
 		header_fmt_end(fmt);
