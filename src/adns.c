@@ -392,7 +392,7 @@ static void adns_query_callback(
 		gpointer buf = (gchar *) query + n;
 		ssize_t ret;
 
-		ret = write(dest, buf, sizeof(*query)-n);
+		ret = write(dest, buf, sizeof(*query) - n);
 		
 		if (0 == ret) {
 			errno = ECONNRESET;	
@@ -503,6 +503,7 @@ prefork_failure:
 gboolean adns_resolve(
 	const gchar *hostname, adns_callback_t user_callback, gpointer user_data)
 {
+	gsize len;
 	static struct adns_query_t query;
 	static struct adns_reply_t reply;
 
@@ -517,12 +518,23 @@ gboolean adns_resolve(
 		return FALSE; /* synchronous */
 	}
 
-	if (adns_helper_alive && 0 == adns_query_event_id) {	
+	if (adns_helper_alive && 0 == adns_query_event_id) {
 		static struct adns_query_t q;
+		/* ``q'' must be static as it's used in a callback.
+		 * It's ``protected'' by ``adns_query_event_id''. Never used it
+		 * with multithreading unless you change it to a malloc'd buffer.
+	     */
 
 		q.user_callback = user_callback;
 		q.user_data = user_data;
-		g_strlcpy(q.hostname, hostname, sizeof(q.hostname));
+
+		len = g_strlcpy(q.hostname, hostname, sizeof(q.hostname));
+		if (len >= sizeof(q.hostname)) {
+			/* truncation detected */
+			q.user_callback(0, q.user_data);
+			return FALSE; /* synchronous */
+		}
+
 		g_assert(0 == adns_query_event_id);
 		adns_query_event_id = inputevt_add(adns_query_fd,
 			INPUT_EVENT_WRITE | INPUT_EVENT_EXCEPTION,
@@ -531,6 +543,11 @@ gboolean adns_resolve(
 	}
 	/* FALL THROUGH */
 	g_strlcpy(query.hostname, hostname, sizeof(query.hostname));
+	if (len >= sizeof(query.hostname)) {
+		/* truncation detected */
+		query.user_callback(0, query.user_data);
+		return FALSE; /* synchronous */
+	}
 	adns_fallback(adns_cache, &query);
 	return FALSE; /* synchronous */
 }
