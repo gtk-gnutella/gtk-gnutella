@@ -2986,8 +2986,11 @@ static void download_free_removed(void)
  * `sl_removed' list where it will be reclaimed later on via
  * download_free_removed().
  */
+// FIXME: this should be called "download_remove"
 void download_free(struct download *d)
 {
+    struct dl_file_info *fi;
+
 	g_assert(d);
 	g_assert(d->status != GTA_DL_REMOVED);		/* Not already freed */
 
@@ -3033,7 +3036,9 @@ void download_free(struct download *d)
 	d->status = GTA_DL_REMOVED;
 
 	atom_str_free(d->file_name);
-	file_info_free(d->file_info, FALSE);		/* Keep fileinfo around */
+    fi = d->file_info;
+    file_info_remove_source(d->file_info, d);
+	file_info_free(fi, FALSE);		/* Keep fileinfo around */
 
     idtable_free_id(src_handle_map, d->src_handle);
 
