@@ -60,7 +60,7 @@ gchar *zlib_strerror(gint errnum)
  * zlib_deflater_make
  *
  * Creates an incremental zlib deflater for `len' bytes starting at `data',
- * with specified compression `level'.  If `level' is 0, the default is used.
+ * with specified compression `level'.
  *
  * Returns new deflater, or NULL if error.
  */
@@ -70,12 +70,14 @@ zlib_deflater_t *zlib_deflater_make(gpointer data, gint len, gint level)
 	z_streamp outz;
 	gint ret;
 
+	g_assert(level == Z_DEFAULT_COMPRESSION || (level >= 0 && level <= 9));
+
 	outz = walloc(sizeof(*outz));
 	outz->zalloc = (alloc_func) NULL;
 	outz->zfree = (free_func) NULL;
 	outz->opaque = NULL;
 
-	ret = deflateInit(outz, level ? level : Z_DEFAULT_COMPRESSION);
+	ret = deflateInit(outz, level);
 
 	if (ret != Z_OK) {
 		wfree(outz, sizeof(*outz));
