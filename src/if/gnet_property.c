@@ -1323,7 +1323,7 @@ prop_set_t *gnet_prop_init(void) {
     gnet_property->props[38].data.guint32.value = &search_reissue_timeout;
     gnet_property->props[38].data.guint32.choices = NULL;
     gnet_property->props[38].data.guint32.max   = 9999;
-    gnet_property->props[38].data.guint32.min   = 600;
+    gnet_property->props[38].data.guint32.min   = 0;
 
 
     /*
