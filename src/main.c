@@ -546,6 +546,7 @@ gint main(gint argc, gchar **argv, gchar **env)
 	eval_init();
 	version_init();
 	random_init();
+	socket_init();
 	gnet_stats_init();
 	main_gui_early_init(argc, argv);
 	callout_queue = cq_make(0);
