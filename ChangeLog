@@ -1,11 +1,25 @@
 # since last version
 
+- (2004.02.16 - Emile)
+ * [GTK1] When a parent node is downloaded from the search tab (but not its
+   children), GTKG will now correctly update parent hashtable
+   (fixes bug #892593).
+ * [GTK1] When search results are sorted by count, GTKG will now correctly
+   re-sort column if a single node is downloaded
+
 - (2004.02.15 - RAM)
  * Also use "friendly download name" (i.e. non-URN) when renaming completed
    file locally after a failed copy.
  * Protect against "errno == 0" on failed open().
  * Even if we can't start the move/verify thread correctly for an item,
    invoke the download state change callbacks.
+ * Must use integer arg when calling ctype functions (fixes bug #897252).
+ * Must count two file descriptors per upload slot and active download: one
+   for the socket and one for the file being read/written.
+ * New properties "file_descriptor_shortage" and "file_descriptor_runout".
+ * Activate "file_descriptor_shortage" each time we call ban_reclaim_fd()
+   and we succeed.  We set "file_descriptor_runout" when there is nothing
+   more to reclaim.  Both properties are reset after 10 minutes.
 
 - (2004.02.14 - Richard)
  * [Gtk1] Try to avoid memory corruption during selection in search results due
