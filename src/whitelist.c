@@ -39,8 +39,7 @@ GSList *sl_whitelist = NULL;
 
 static const gchar *whitelist_file = "whitelist";
 static time_t whitelist_mtime, whitelist_checked;
-
-static gchar wl_tmp[1024];
+static gchar *whitelist_path = NULL;
 
 /*
  * whitelist_retrieve
@@ -56,25 +55,15 @@ static void whitelist_retrieve(void)
     FILE *f;
     struct stat st;
     int linenum = 0;
+	const file_path_t fp = { settings_config_dir(), whitelist_file };
 
-    gm_snprintf(wl_tmp, sizeof(wl_tmp), "%s/%s",
-		settings_config_dir(), whitelist_file);
+	f = file_config_open_read("whitelist", &fp, 1);
+	if (!f)
+		return; 
 
-    if (stat(wl_tmp, &st) == -1) {
-        if(dbg)
-            printf("whitelist_retrieve(): error stat()ing whitelist file.\n");
-        return;
-    }
-
+	fstat(fileno(f), &st);
     whitelist_checked = time(NULL);
     whitelist_mtime = st.st_mtime;
-
-    f = fopen(wl_tmp, "r");
-    if (!f) {
-        if(dbg)
-            printf("whitelist_retrieve(): error opening whitelist file.");
-        return;
-    }
 
     while (fgets(line, sizeof(line), f)) {
         linenum++;
@@ -173,7 +162,10 @@ int whitelist_connect(void)
  */
 void whitelist_init(void)
 {
+	whitelist_path = g_strdup_printf("%s/%s",
+						settings_config_dir(), whitelist_file);
     whitelist_retrieve();
+
 }
 
 /*
@@ -190,6 +182,7 @@ void whitelist_close(void)
 
     g_slist_free(sl_whitelist);
     sl_whitelist = NULL;
+	G_FREE_NULL(whitelist_path);
 }
 
 /*
@@ -224,9 +217,7 @@ gboolean whitelist_check(guint32 ip)
 
         whitelist_checked = now;
 
-        gm_snprintf(wl_tmp, sizeof(wl_tmp), "%s/%s",
-			settings_config_dir(), whitelist_file);
-        if (stat(wl_tmp, &st) != -1) {
+        if (NULL != whitelist_path && stat(whitelist_path, &st) != -1) {
             if (st.st_mtime != whitelist_mtime) {
                 g_warning("whitelist_check(): "
 					"Whitelist changed on disk. Reloading.");
