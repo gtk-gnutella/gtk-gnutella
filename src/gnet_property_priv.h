@@ -72,6 +72,7 @@ extern guint32  node_connecting_timeout;
 extern guint32  node_connected_timeout;
 extern guint32  node_sendqueue_size;
 extern guint32  node_tx_flowc_timeout;
+extern guint32  node_rx_flowc_ratio;
 extern guint32  max_ttl;
 extern guint32  my_ttl;
 extern guint32  hard_ttl_limit;

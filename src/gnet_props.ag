@@ -512,6 +512,20 @@ prop = {
 };
 
 prop = {
+    name = "node_rx_flowc_ratio";
+    desc = "Maximum percentage of time over 5 minutes that our node can remain "
+           "in flow control remotely before dropping the connection.  This "
+		   "only works with nodes that will send us an hops-flow message when "
+		   "they are flow-controlling us.";
+    type = guint32;
+    data = {
+        default = 50;
+        min     = 10;
+        max     = 100;
+    };
+};
+
+prop = {
     name = "max_ttl";
     desc = "Maximum TTL we allow in messages we broadcast.  If a message "
 		   "comes in with a TTL greater than that, it will be trimmed down "
