@@ -83,6 +83,89 @@ RCSID("$Id$");
 struct gnutella_socket *s_tcp_listen = NULL;
 struct gnutella_socket *s_udp_listen = NULL;
 
+typedef union socket_addr {
+	struct sockaddr_in inet4;
+#if USE_IPV6_HACK
+	/* The IPv6 hack might be useful for machines with IPv6 only. It is a
+	 * hack because it will only work with IPv4 addresses that are mapped
+	 * to IPv6 i.e., "::FFFF:<IPv4 address>". It is not tested so far.
+	 */
+#define SOCKET_AF AF_INET6
+	struct sockaddr_in6 inet6;
+#else
+#define SOCKET_AF AF_INET
+#endif
+} socket_addr_t;
+
+/**
+ * Initializes addr with an IPv4 address and a port number.
+ *
+ * @param addr a pointer to a socket_addr_t
+ * @param ip an IPv4 address in host(!) byte order
+ * @param port a 16-bit port number in host byte order
+ */
+static void
+socket_addr_set(socket_addr_t *addr, guint32 ip, guint16 port)
+{
+	static socket_addr_t zero_addr;
+
+	g_assert(addr != NULL);
+
+	*addr = zero_addr;
+	
+#if USE_IPV6_HACK
+	addr->inet6.sin6_family = AF_INET6;	/* host byte order */
+	addr->inet6.sin6_port = htons(port);
+	addr->inet6.sin6_addr.s6_addr[10] = 0xff;
+	addr->inet6.sin6_addr.s6_addr[11] = 0xff;
+	WRITE_GUINT32_BE(ip, &addr->inet6.sin6_addr.s6_addr[12]);
+#else
+	addr->inet4.sin_family = AF_INET;	/* host byte order */
+	addr->inet4.sin_port = htons(port);
+	addr->inet4.sin_addr.s_addr = htonl(ip);
+#endif
+}
+
+/**
+ * Retrieves the IPv4 address from a socket_addr_t.
+ *
+ * @param addr a pointer to an initialized socket_addr_t
+ * @return the IPv4 address in host(!) byte order
+ */
+static inline guint32
+socket_addr_get_ip(const socket_addr_t *addr)
+{
+	guint32 ip;
+
+	g_assert(addr != NULL);
+	
+#if USE_IPV6_HACK
+	READ_GUINT32_BE(&addr->inet6.sin6_addr.s6_addr[12], ip);
+#else
+	ip = htonl(addr->inet4.sin_addr.s_addr);
+#endif
+
+	return ip;
+}
+
+/**
+ * Retrieves the port number from a socket_addr_t.
+ *
+ * @param addr a pointer to an initialized socket_addr_t
+ * @return the port number in host byte order
+ */
+static inline guint16
+socket_addr_get_port(const socket_addr_t *addr)
+{
+	g_assert(addr != NULL);
+
+#if USE_IPV6_HACK
+	return ntohs(addr->inet6.sin6_port);
+#else
+	return ntohs(addr->inet4.sin_port);
+#endif
+}
+
 /*
  * In order to avoid having a dependency between sockets.c and ban.c,
  * we have ban.c register a callback to reclaim file descriptors
@@ -315,7 +398,7 @@ static int
 proxy_connect(int fd)
 {
 	static gboolean in_progress = FALSE;
-	struct sockaddr_in server;
+	socket_addr_t server;
 
 	if (!proxy_ip &&
 		proxy_port != 0 &&
@@ -338,11 +421,7 @@ proxy_connect(int fd)
 		return -1;
 	}
 
-	/* Construct the addr for the socks server */
-	memset(&server, 0, sizeof server);
-	server.sin_family = AF_INET;	/* host byte order */
-	server.sin_addr.s_addr = htonl(proxy_ip);
-	server.sin_port = htons(proxy_port);
+	socket_addr_set(&server, proxy_ip, proxy_port);
 
 	return connect(fd, (struct sockaddr *) &server, sizeof server);
 }
@@ -1611,13 +1690,14 @@ socket_connected(gpointer data, gint source, inputevt_cond_t cond)
 static void
 guess_local_ip(int sd)
 {
-	struct sockaddr_in addr;
+	socket_addr_t addr;
 	socklen_t len = sizeof addr;
 	guint32 ip;
 
 	if (-1 != getsockname(sd, (struct sockaddr *) &addr, &len)) {
 		gboolean can_supersede;
-		ip = ntohl(addr.sin_addr.s_addr);
+		
+		ip = socket_addr_get_ip(&addr);
 
 		/*
 		 * If local IP was unknown, keep what we got here, even if it's a
@@ -1643,13 +1723,13 @@ guess_local_ip(int sd)
 static int
 socket_local_port(struct gnutella_socket *s)
 {
-	struct sockaddr_in addr;
+	socket_addr_t addr;
 	socklen_t len = sizeof addr;
 
 	if (getsockname(s->file_desc, (struct sockaddr *) &addr, &len) == -1)
 		return -1;
 
-	return (guint16) ntohs(addr.sin_port);
+	return socket_addr_get_port(&addr);
 }
 
 /**
@@ -1658,7 +1738,7 @@ socket_local_port(struct gnutella_socket *s)
 static void
 socket_accept(gpointer data, gint unused_source, inputevt_cond_t cond)
 {
-	struct sockaddr_in addr;
+	socket_addr_t addr;
 	socklen_t len = sizeof addr;
 	struct gnutella_socket *s = (struct gnutella_socket *) data;
 	struct gnutella_socket *t = NULL;
@@ -1717,8 +1797,8 @@ accepted:
 	t = (struct gnutella_socket *) walloc0(sizeof *t);
 
 	t->file_desc = sd;
-	t->ip = ntohl(addr.sin_addr.s_addr);
-	t->port = ntohs(addr.sin_port);
+	t->ip = socket_addr_get_ip(&addr);
+	t->port = socket_addr_get_port(&addr);
 	t->direction = SOCK_CONN_INCOMING;
 	t->type = s->type;
 	t->local_port = s->local_port;
@@ -1780,7 +1860,7 @@ socket_udp_accept(gpointer data, gint unused_source, inputevt_cond_t cond)
 {
 	struct gnutella_socket *s = (struct gnutella_socket *) data;
 	struct udp_addr *addr;
-	struct sockaddr_in *inaddr;
+	const socket_addr_t *inaddr;
 	ssize_t r;
 
 	(void) unused_source;
@@ -1817,10 +1897,9 @@ socket_udp_accept(gpointer data, gint unused_source, inputevt_cond_t cond)
 
 	g_assert(addr->ud_addrlen == sizeof(*inaddr));
 
-	inaddr = (struct sockaddr_in *) &addr->ud_addr;
-
-	s->ip = ntohl(inaddr->sin_addr.s_addr);
-	s->port = ntohs(inaddr->sin_port);
+	inaddr = (const socket_addr_t *) &addr->ud_addr;
+	s->ip = socket_addr_get_ip(inaddr);
+	s->port = socket_addr_get_port(inaddr);
 
 	/*
 	 * Signal reception of a datagram to the UDP layer.
@@ -1843,7 +1922,7 @@ socket_connect_prepare(guint16 port, enum socket_type type)
 	struct gnutella_socket *s;
 	gint sd, option = 1;
 
-	sd = socket(AF_INET, SOCK_STREAM, 0);
+	sd = socket(SOCKET_AF, SOCK_STREAM, 0);
 
 	if (sd == -1) {
 		/*
@@ -1855,7 +1934,7 @@ socket_connect_prepare(guint16 port, enum socket_type type)
 			(errno == EMFILE || errno == ENFILE) &&
 			reclaim_fd != NULL && (*reclaim_fd)()
 		) {
-			sd = socket(AF_INET, SOCK_STREAM, 0);
+			sd = socket(SOCKET_AF, SOCK_STREAM, 0);
 			if (sd >= 0) {
 				g_warning("had to close a banned fd to prepare new connection");
 				goto created;
@@ -1904,7 +1983,7 @@ static struct gnutella_socket *
 socket_connect_finalize(struct gnutella_socket *s, guint32 ip_addr)
 {
 	gint res = 0;
-	struct sockaddr_in addr;
+	socket_addr_t addr;
 
 	g_assert(NULL != s);
 
@@ -1915,10 +1994,7 @@ socket_connect_finalize(struct gnutella_socket *s, guint32 ip_addr)
 	}
 
 	s->ip = ip_addr;
-	memset(&addr, 0, sizeof(addr));
-	addr.sin_family = AF_INET;
-	addr.sin_addr.s_addr = htonl(s->ip);
-	addr.sin_port = htons(s->port);
+	socket_addr_set(&addr, s->ip, s->port);
 
 	inet_connection_attempted(s->ip);
 
@@ -1927,12 +2003,9 @@ socket_connect_finalize(struct gnutella_socket *s, guint32 ip_addr)
 	 *   --JSL
 	 */
 	if (force_local_ip) {
-		struct sockaddr_in lcladdr;
+		socket_addr_t lcladdr;
 
-		memset(&lcladdr, 0, sizeof(lcladdr));
-		lcladdr.sin_family = AF_INET;
-		lcladdr.sin_addr.s_addr = htonl(forced_local_ip);
-		lcladdr.sin_port = htons(0);
+		socket_addr_set(&lcladdr, forced_local_ip, 0);
 
 		/*
 		 * Note: we ignore failures: it will be automatic at connect()
@@ -2082,13 +2155,13 @@ socket_tcp_listen(guint32 ip, guint16 port, enum socket_type type)
 	/* Create a socket, then bind() and listen() it */
 
 	int sd, option = 1;
-	struct sockaddr_in addr;
+	socket_addr_t addr;
 	struct gnutella_socket *s;
 
  	if (port < 1024)
 		return NULL;
 	
-	sd = socket(AF_INET, SOCK_STREAM, 0);
+	sd = socket(SOCKET_AF, SOCK_STREAM, 0);
 	if (sd == -1) {
 		g_warning("Unable to create a socket (%s)", g_strerror(errno));
 		return NULL;
@@ -2109,10 +2182,7 @@ socket_tcp_listen(guint32 ip, guint16 port, enum socket_type type)
 
 	fcntl(sd, F_SETFL, O_NONBLOCK);	/* Set the file descriptor non blocking */
 
-	memset(&addr, 0, sizeof addr);
-	addr.sin_family = AF_INET;
-	addr.sin_addr.s_addr = ip ? htonl(ip) : INADDR_ANY;
-	addr.sin_port = htons(port);
+	socket_addr_set(&addr, ip ? ip : INADDR_ANY, port);
 
 	/* bind() the socket */
 
@@ -2143,7 +2213,7 @@ socket_tcp_listen(guint32 ip, guint16 port, enum socket_type type)
 			return NULL;
 		}
 
-		s->local_port = ntohs(addr.sin_port);
+		s->local_port = socket_addr_get_port(&addr);
 	} else
 		s->local_port = port;
 
@@ -2166,10 +2236,10 @@ socket_udp_listen(guint32 ip, guint16 port)
 	/* Create a socket, then bind() it */
 
 	int sd, option = 1;
-	struct sockaddr_in addr;
+	socket_addr_t addr;
 	struct gnutella_socket *s;
 
-	sd = socket(AF_INET, SOCK_DGRAM, 0);
+	sd = socket(SOCKET_AF, SOCK_DGRAM, 0);
 	if (sd == -1) {
 		g_warning("Unable to create a socket (%s)", g_strerror(errno));
 		return NULL;
@@ -2189,10 +2259,7 @@ socket_udp_listen(guint32 ip, guint16 port)
 
 	fcntl(sd, F_SETFL, O_NONBLOCK);	/* Set the file descriptor non blocking */
 
-	memset(&addr, 0, sizeof addr);
-	addr.sin_family = AF_INET;
-	addr.sin_addr.s_addr = ip ? htonl(ip) : INADDR_ANY;
-	addr.sin_port = htons(port);
+	socket_addr_set(&addr, ip ? ip : INADDR_ANY, port);
 
 	/* bind() the socket */
 
@@ -2222,7 +2289,7 @@ socket_udp_listen(guint32 ip, guint16 port)
 			return NULL;
 		}
 
-		s->local_port = ntohs(addr.sin_port);
+		s->local_port = socket_addr_get_port(&addr);
 	} else
 		s->local_port = port;
 
@@ -2434,16 +2501,13 @@ socket_plain_sendto(
 	struct wrap_io *wio, gnet_host_t *to, gconstpointer buf, size_t size)
 {
 	struct gnutella_socket *s = wio->ctx;
-	struct sockaddr_in addr;
+	socket_addr_t addr;
 
 #ifdef USE_TLS
 	g_assert(!SOCKET_USES_TLS(s));
 #endif
 
-	memset(&addr, 0, sizeof addr);
-	addr.sin_family = AF_INET;
-	addr.sin_addr.s_addr = htonl(to->ip);
-	addr.sin_port = htons(to->port);
+	socket_addr_set(&addr, to->ip, to->port);
 
 	return sendto(s->file_desc, buf, size, MSG_DONTWAIT,
 		(const struct sockaddr *) &addr, sizeof addr);
