@@ -1,5 +1,16 @@
 # since last version
 
+- (2003.05.16 - RAM)
+ * Limit clock skew to one day maximum: avoid badly synchronized remote clocks
+   to let the skew deviate out of proportions.
+ * Avoid issuing a connection to a node we're already connected to
+   [From Rafael R. Reilova].
+ * GTKG could loop in malloc(): block was freed twice in the case a config
+   file was retrieved from the .orig version.
+ * Ignore SIGQUIT in the adns process, so that CTRL-\ makes GTKG dump a core.
+ * Must call parq_init() before retrieving the downloads now that PARQ IDs
+   are stored.
+
 - (2003.05.15 - RAM)
  * Allow server to give a smaller range than the one we're requesting.
  * Reject download when range end is greater than what we asked for.
