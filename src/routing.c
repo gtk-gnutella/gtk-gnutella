@@ -106,14 +106,13 @@ GHashTable *ht_banned_push = NULL;
 
 void routing_log(gchar * fmt, ...)
 {
-	static gchar t[4096];
 	va_list va;
 
 	if (dbg <= 8)
 		return;
 
 	va_start(va, fmt);
-	g_vsnprintf(t, sizeof(t), fmt, va);
+	vprintf(fmt, va);
 	va_end(va);
 }
 
