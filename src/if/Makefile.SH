@@ -36,7 +36,9 @@ DIR = $DIR
 ########################################################################
 # Parameters set by Configure -- edit config.sh if changes are needed
 
+CC = $cc
 CTAGS = ctags
+JCFLAGS = \$(CFLAGS) $optimize $ccflags $large
 MKDEP = $mkdep \$(DPFLAGS) --
 MV = $mv
 RM = $rm -f
@@ -47,7 +49,14 @@ SED = $sed
 
 SUBDIRS = bridge
 USRINC = $usrinc
+SOURCES =  gnet_property.c gui_property.c
 GLIB_CFLAGS =  $glibcflags
+
+########################################################################
+# New suffixes and associated building rules -- edit with care
+
+.c.o:
+	\$(CC) -c \$(JCFLAGS) \$<
 
 !GROK!THIS!
 $spitshell >>Makefile <<'!NO!SUBS!'
@@ -65,7 +74,7 @@ all:: .FORCE_DEPEND
 ########################################################################
 # Start of Jmakefile
 
-# $X-Id: Jmakefile,v 1.1 2004/08/25 05:40:39 rmanfredi Exp $
+# $X-Id: Jmakefile,v 1.2 2004/08/27 15:32:07 rmanfredi Exp $
 
 depend::
 	@case '${MFLAGS}' in *[ik]*) set +e;; esac; \
@@ -82,11 +91,6 @@ DPFLAGS = $(CFLAGS)
 
 all:: properties
 
-all:: gnet_property.o gui_property.o
-
-local_realclean::
-	$(RM) gnet_property.o gui_property.o
-
 properties: gnet_property.c gui_property.c
 
 gnet_property_priv.h gnet_property.c gnet_property.h: gnet_props.ag props.tpl
@@ -97,6 +101,16 @@ gui_property_priv.h gui_property.c gui_property.h: gui_props.ag props.tpl
 	-autogen gui_props.ag
 	touch gui_property_priv.h gui_property.c gui_property.h
 
+all:: gnet_property.o
+
+local_realclean::
+	$(RM) gnet_property.o
+
+all:: gui_property.o
+
+local_realclean::
+	$(RM) gui_property.o
+
 depend:: ../../mkdep
 
 ../../mkdep:
@@ -106,8 +120,8 @@ depend::
 	($(SED) '/^# DO NOT DELETE/q' Makefile && \
 	$(MKDEP) $(SOURCES) | \
 	$(SED) -e 's:/usr/lib[^ ]*::g; s:$(USRINC)[^ ]*::g; ' \
-		-e '/: / b print' -e 'H; d; n; : print' -e 'x; s/\\\n//g' \
-		-e 's/  */ /g; s/ :/:/;' -e '/: *$$/d' \
+		-e '/: / b print' -e '$$ b print' -e 'H; d; n; : print' \
+		-e 'x; s/\\$$//; s/\\\n//g; s/  */ /g; s/ :/:/;' -e '/: *$$/d' \
 	) > Makefile.new
 	cp Makefile Makefile.bak
 	cp Makefile.new Makefile

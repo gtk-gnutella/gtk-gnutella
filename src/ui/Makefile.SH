@@ -54,7 +54,7 @@ $spitshell >>Makefile <<'!NO!SUBS!'
 ########################################################################
 # Start of Jmakefile
 
-# $X-Id: Jmakefile,v 1.6 2004/01/11 11:55:11 rmanfredi Exp $
+# $X-Id: Jmakefile,v 1.1 2004/08/25 05:40:39 rmanfredi Exp $
 
 all::
 

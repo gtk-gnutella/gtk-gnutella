@@ -78,7 +78,7 @@ all:: .FORCE_DEPEND
 ########################################################################
 # Start of Jmakefile
 
-# $X-Id: Jmakefile,v 1.28 2004/08/18 18:49:45 rmanfredi Exp $
+# $X-Id: Jmakefile,v 1.1 2004/08/25 05:40:38 rmanfredi Exp $
 
 SRC = \
 	alive.c \
@@ -241,8 +241,8 @@ depend::
 	($(SED) '/^# DO NOT DELETE/q' Makefile && \
 	$(MKDEP) $(SOURCES) | \
 	$(SED) -e 's:/usr/lib[^ ]*::g; s:$(USRINC)[^ ]*::g; ' \
-		-e '/: / b print' -e 'H; d; n; : print' -e 'x; s/\\\n//g' \
-		-e 's/  */ /g; s/ :/:/;' -e '/: *$$/d' \
+		-e '/: / b print' -e '$$ b print' -e 'H; d; n; : print' \
+		-e 'x; s/\\$$//; s/\\\n//g; s/  */ /g; s/ :/:/;' -e '/: *$$/d' \
 	) > Makefile.new
 	cp Makefile Makefile.bak
 	cp Makefile.new Makefile

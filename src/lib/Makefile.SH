@@ -85,7 +85,7 @@ all:: .FORCE_DEPEND
 ########################################################################
 # Start of Jmakefile
 
-# $X-Id: Jmakefile,v 1.28 2004/08/18 18:49:45 rmanfredi Exp $
+# $X-Id: Jmakefile,v 1.2 2004/08/27 15:35:38 rmanfredi Exp $
 
 LSRC = \
 	adns.c \
@@ -115,6 +115,7 @@ LSRC = \
 	tigertree.c \
 	tm.c \
 	url.c \
+	urn.c \
 	utf8.c \
 	vendors.c \
 	walloc.c \
@@ -150,6 +151,7 @@ LOBJ = \
 	tigertree.o \
 	tm.o \
 	url.o \
+	urn.o \
 	utf8.o \
 	vendors.o \
 	walloc.o \
@@ -185,8 +187,8 @@ depend::
 	($(SED) '/^# DO NOT DELETE/q' Makefile && \
 	$(MKDEP) $(SOURCES) | \
 	$(SED) -e 's:/usr/lib[^ ]*::g; s:$(USRINC)[^ ]*::g; ' \
-		-e '/: / b print' -e 'H; d; n; : print' -e 'x; s/\\\n//g' \
-		-e 's/  */ /g; s/ :/:/;' -e '/: *$$/d' \
+		-e '/: / b print' -e '$$ b print' -e 'H; d; n; : print' \
+		-e 'x; s/\\$$//; s/\\\n//g; s/  */ /g; s/ :/:/;' -e '/: *$$/d' \
 	) > Makefile.new
 	cp Makefile Makefile.bak
 	cp Makefile.new Makefile

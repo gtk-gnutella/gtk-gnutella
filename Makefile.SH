@@ -59,7 +59,7 @@ $spitshell >>Makefile <<'!NO!SUBS!'
 ########################################################################
 # Start of Jmakefile
 
-# $X-Id: Jmakefile,v 1.6 2004/01/11 11:55:11 rmanfredi Exp $
+# $X-Id: Jmakefile,v 1.7 2004/08/25 05:52:33 rmanfredi Exp $
 
 EXTRA_FILES = \
 	gwcache.boot \
@@ -119,7 +119,8 @@ realclean: sub_realclean local_realclean
 clobber: sub_clobber local_clobber
 
 local_clean::
-	$(RM) core *~ *.o
+	if test -f core; then $(RM) core; fi
+	$(RM) *~ *.o
 
 local_realclean:: local_clean
 	$(RM) -r UU

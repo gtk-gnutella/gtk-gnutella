@@ -36,7 +36,9 @@ DIR = $DIR
 ########################################################################
 # Parameters set by Configure -- edit config.sh if changes are needed
 
+CC = $cc
 CTAGS = ctags
+JCFLAGS = \$(CFLAGS) $optimize $ccflags $large
 MKDEP = $mkdep \$(DPFLAGS) --
 MV = $mv
 RM = $rm -f
@@ -46,7 +48,14 @@ SED = $sed
 # Automatically generated parameters -- do not edit
 
 USRINC = $usrinc
+SOURCES =  c2ui.c ui2c.c
 GLIB_CFLAGS =  $glibcflags
+
+########################################################################
+# New suffixes and associated building rules -- edit with care
+
+.c.o:
+	\$(CC) -c \$(JCFLAGS) \$<
 
 !GROK!THIS!
 $spitshell >>Makefile <<'!NO!SUBS!'
@@ -64,7 +73,7 @@ all:: .FORCE_DEPEND
 ########################################################################
 # Start of Jmakefile
 
-# $X-Id: Jmakefile,v 1.28 2004/08/18 18:49:45 rmanfredi Exp $
+# $X-Id: Jmakefile,v 1.2 2004/08/27 15:34:50 rmanfredi Exp $
 
 SRC = c2ui.c ui2c.c
 OBJ = \
@@ -75,11 +84,6 @@ OBJ = \
 CFLAGS = -I$(TOP) -I../.. $(GLIB_CFLAGS)
 DPFLAGS = -I$(TOP) -I../.. $(GLIB_CFLAGS)
 
-all:: $(OBJ)
-
-local_realclean::
-	$(RM) $(OBJ)
-
 depend:: ../../../mkdep
 
 ../../../mkdep:
@@ -89,12 +93,22 @@ depend::
 	($(SED) '/^# DO NOT DELETE/q' Makefile && \
 	$(MKDEP) $(SOURCES) | \
 	$(SED) -e 's:/usr/lib[^ ]*::g; s:$(USRINC)[^ ]*::g; ' \
-		-e '/: / b print' -e 'H; d; n; : print' -e 'x; s/\\\n//g' \
-		-e 's/  */ /g; s/ :/:/;' -e '/: *$$/d' \
+		-e '/: / b print' -e '$$ b print' -e 'H; d; n; : print' \
+		-e 'x; s/\\$$//; s/\\\n//g; s/  */ /g; s/ :/:/;' -e '/: *$$/d' \
 	) > Makefile.new
 	cp Makefile Makefile.bak
 	cp Makefile.new Makefile
 	$(RM) Makefile.new
+
+all:: c2ui.o
+
+local_realclean::
+	$(RM) c2ui.o
+
+all:: ui2c.o
+
+local_realclean::
+	$(RM) ui2c.o
 
 .FORCE:
 
