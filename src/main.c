@@ -47,6 +47,7 @@
 #include "filter.h"
 #include "cq.h"
 #include "ban.h"
+#include "atoms.h"
 
 #define SLOW_UPDATE_PERIOD		20	/* Updating period for `main_slow_update' */
 #define EXIT_GRACE				30	/* Seconds to wait before exiting */
@@ -136,8 +137,9 @@ void gtk_gnutella_exit(gint n)
 	config_close();
 	ban_close();
 	cq_free(callout_queue);
-	g_free(version_string);
-	g_free(start_rfc822_date);
+	atom_str_free(version_string);
+	atom_str_free(start_rfc822_date);
+	atoms_close();
 
 	if (dbg)
 		printf("gtk-gnutella shut down cleanly.\n\n");
@@ -153,16 +155,19 @@ static void sig_terminate(int n)
 static void init_constants(void)
 {
 	struct utsname un;
+	gchar buf[128];
 
 	(void) uname(&un);
 
-	version_string = g_strdup_printf(
+	g_snprintf(buf, sizeof(buf) - 1,
 		"gtk-gnutella/%u.%u%s (%s; %s; %s %s %s)",
 		GTA_VERSION, GTA_SUBVERSION, GTA_REVCHAR, GTA_RELEASE,
 		GTA_INTERFACE, un.sysname, un.release, un.machine);
 
 	start_time = time((time_t *) NULL);
-	start_rfc822_date = g_strdup(date_to_rfc822_gchar(start_time));
+
+	version_string = atom_str_get(buf);
+	start_rfc822_date = atom_str_get(date_to_rfc822_gchar(start_time));
 }
 
 static void slow_main_timer(time_t now)
@@ -276,6 +281,7 @@ gint main(gint argc, gchar ** argv)
 
 	/* Our inits */
 
+	atoms_init();
 	callout_queue = cq_make(0);
 	gui_init();
 	init_constants();

@@ -39,6 +39,7 @@
 #include "bsched.h"
 #include "regex.h"
 #include "getdate.h"
+#include "atoms.h"
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -896,7 +897,7 @@ static void download_push_insert(struct download *d)
 
 	if (!found) {
 		list = g_slist_append(NULL, d);
-		key = g_strdup(dl_tmp);
+		key = atom_str_get(dl_tmp);
 		g_hash_table_insert(pushed_downloads, key, list);
 	} else {
 		GSList *l;
@@ -954,7 +955,7 @@ static void download_push_remove(struct download *d)
 			list = g_slist_remove(list, d);
 			if (list == NULL) {
 				g_hash_table_remove(pushed_downloads, key);
-				g_free(key);
+				atom_str_free(key);
 			} else
 				g_hash_table_insert(pushed_downloads, key, list);
 		}
@@ -1275,7 +1276,7 @@ static gchar *escape_filename(gchar *file)
  * 
  * Create a new download
  *
- * When `interactive' is true, we assume that `file' was already duped,
+ * When `interactive' is false, we assume that `file' was already duped,
  * and take ownership of the pointer.
  * If `output' is not NULL, we also take ownership.
  */
@@ -1285,7 +1286,7 @@ static void create_download(
 	gboolean interactive)
 {
 	struct download *d;
-	gchar *file_name = interactive ? g_strdup(file) : file;
+	gchar *file_name = interactive ? atom_str_get(file) : file;
 
 	/*
 	 * Refuse to queue the same download twice. --RAM, 04/11/2001
@@ -1302,7 +1303,7 @@ static void create_download(
 				file_name, ip_port_to_gchar(ip, port));
 		}
 
-		g_free(file_name);
+		atom_str_free(file_name);
 		return;
 	}
 
@@ -1316,7 +1317,7 @@ static void create_download(
 
 	d = (struct download *) g_malloc0(sizeof(struct download));
 
-	d->path = g_strdup(save_file_path);
+	d->path = atom_str_get(save_file_path);
 	d->output_name = output;
 	d->file_name = file_name;
 	d->size = size;
@@ -1412,7 +1413,7 @@ void auto_download_new(gchar * file, guint32 size, guint32 record_index,
 		}
 	}
 
-	file_name = g_strdup(file);
+	file_name = atom_str_get(file);
 	if (output_name == file)		/* Not duplicated, has no '/' inside */
 		output_name = file_name;	/* So must reuse file_name */
 
@@ -1544,10 +1545,10 @@ void download_free(struct download *d)
 		download_push_remove(d);
 
 	if (d->server)
-		g_free(d->server);
+		atom_str_free(d->server);
 
-	g_free(d->path);
-	g_free(d->file_name);
+	atom_str_free(d->path);
+	atom_str_free(d->file_name);
 	if (d->output_name != d->file_name)
 		g_free(d->output_name);
 	g_free(d);
@@ -2210,10 +2211,10 @@ static void download_request(struct download *d, header_t *header)
 
 	if (buf) {
 		if (d->server == NULL)
-			d->server = g_strdup(buf);
+			d->server = atom_str_get(buf);
 		else if (0 != strcmp(d->server, buf)) {	/* Server name changed? */
-			g_free(d->server);
-			d->server = g_strdup(buf);
+			atom_str_free(d->server);
+			d->server = atom_str_get(buf);
 		}
 	}
 
@@ -3018,9 +3019,8 @@ static void download_retrieve(void)
 		switch (recline) {
 		case 1:						/* The file name */
 			(void) str_chomp(dl_tmp, 0);
-			d_name = url_unescape(dl_tmp, FALSE);	/* Would like new string */
-			if (d_name == dl_tmp)					/* Nothing to unescape */
-				d_name = g_strdup(dl_tmp);
+			(void) url_unescape(dl_tmp, TRUE);	/* Un-escape in place */
+			d_name = atom_str_get(dl_tmp);
 			continue;
 		case 2:						/* Other information */
 			break;
@@ -3071,7 +3071,7 @@ out:
 	retrieving = FALSE;			/* Re-enable download_store() runs */
 
 	if (d_name)
-		g_free(d_name);
+		atom_str_free(d_name);
 
 	fclose(in);
 	download_store();			/* Persist what we have retrieved */
@@ -3095,9 +3095,9 @@ void download_close(void)
 		if (d->bio)
 			bsched_source_remove(d->bio);
 		if (d->server)
-			g_free(d->server);
-		g_free(d->path);
-		g_free(d->file_name);
+			atom_str_free(d->server);
+		atom_str_free(d->path);
+		atom_str_free(d->file_name);
 		if (d->output_name != d->file_name)
 			g_free(d->output_name);
 		g_free(d);
