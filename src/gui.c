@@ -418,12 +418,18 @@ void gui_update_download(struct download *d, gboolean force)
 			a = (gchar *) ((d->remove_msg)? d->remove_msg : "Unknown Error");
 			break;
 
+		case GTA_DL_TIMEOUT_WAIT:
+			g_snprintf(gui_tmp, sizeof(gui_tmp), "Timeout -- Waiting to retry (%lds)",
+				d->timeout_delay - (time((time_t *) NULL) - d->last_update) );
+			a = gui_tmp;
+			break;
 		default:
 			g_snprintf(gui_tmp, sizeof(gui_tmp), "UNKNOWN STATUS %u", d->status);
 			a = gui_tmp;
 	}
 
-	d->last_update = time((time_t *) NULL);
+	if (d->status != GTA_DL_TIMEOUT_WAIT)
+		d->last_update = time((time_t *) NULL);
 
 	if (d->status != GTA_DL_QUEUED)
 	{

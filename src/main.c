@@ -82,12 +82,23 @@ gboolean main_timer(gpointer p)
 
 				if (time((time_t *) NULL) - d->last_update > t)
 				{
-					if (d->status == GTA_DL_CONNECTING) download_fallback_to_push(d, FALSE);
-					else download_stop(d, GTA_DL_ERROR, "Timeout");
+					if (d->status == GTA_DL_CONNECTING)
+						download_fallback_to_push(d, FALSE);
+					else {
+						if (++d->retries <= download_max_retries) download_retry(d);
+						else download_stop(d, GTA_DL_ERROR, "Timeout");
+					}
 				}
 
 				break;
-			}
+		  }
+		  case GTA_DL_TIMEOUT_WAIT:
+		  {
+				if (time((time_t *) NULL) - d->last_update > d->timeout_delay)
+					 download_start(d);
+				else gui_update_download(d,FALSE);
+				break;
+		  }
 		}
 	}
 

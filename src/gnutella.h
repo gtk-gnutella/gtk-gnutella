@@ -65,6 +65,7 @@
 #define GTA_DL_COMPLETED	8			/* Download is completed */
 #define GTA_DL_ERROR			9			/* Download is stopped due to error */
 #define GTA_DL_ABORTED		10			/* User clicked the 'Abort Download' button */
+#define GTA_DL_TIMEOUT_WAIT 11		/* Waiting to try connecting again */
 
 /* Structures ------------------------------------------------------------------------------------- */
 
@@ -242,6 +243,8 @@ struct download
 
 	time_t start_date;
 	time_t last_update;
+	guint32 retries;
+	guint32 timeout_delay;
 
 	const gchar *remove_msg;
 
@@ -281,6 +284,9 @@ extern guint32 forced_local_ip;
 extern guint32 download_connecting_timeout;
 extern guint32 download_push_sent_timeout;
 extern guint32 download_connected_timeout;
+extern guint32 download_retry_timeout_min;
+extern guint32 download_retry_timeout_max;
+extern guint32 download_max_retries;
 extern guint32 node_connected_timeout;
 extern guint32 node_connecting_timeout;
 extern guint32 node_sendqueue_size;
@@ -466,6 +472,7 @@ void download_start(struct download *);
 void download_kill(struct download *);
 void download_queue_back(struct download *);
 gboolean download_send_request(struct download *);
+void download_retry(struct download *);
 
 /* uploads.c */
 

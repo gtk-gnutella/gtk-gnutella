@@ -31,7 +31,8 @@ void send_push_request(gchar *, guint32, guint16);
 		|| (d)->status == GTA_DL_FALLBACK \
 		|| (d)->status == GTA_DL_REQ_SENT \
 		|| (d)->status == GTA_DL_HEADERS \
-		|| (d)->status == GTA_DL_RECEIVING  )
+		|| (d)->status == GTA_DL_RECEIVING \
+	   || (d)->status == GTA_DL_TIMEOUT_WAIT  )
 
 #define IS_DOWNLOAD_IN_PUSH_MODE(d) (d->push)
 
@@ -175,7 +176,7 @@ void download_stop(struct download *d, guint32 new_status, const gchar *reason)
 		return;
 	}
 
-	if (new_status != GTA_DL_ERROR && new_status != GTA_DL_ABORTED && new_status != GTA_DL_COMPLETED)
+	if (new_status != GTA_DL_ERROR && new_status != GTA_DL_ABORTED && new_status != GTA_DL_COMPLETED && new_status != GTA_DL_TIMEOUT_WAIT)
 	{
 		g_warning("download_stop(): unexpected new status %d !\n", new_status);
 		return;
@@ -610,6 +611,7 @@ void download_read(gpointer data, gint source, GdkInputCondition cond)
 	else if (r < 0 && errno == EAGAIN) return;
 	else if (r < 0) { download_stop(d, GTA_DL_ERROR, "Failed (Read Error)"); return; }
 
+	d->retries=0; /* successful read means our retry was successful */
 	s->pos += r;
 
 	switch (d->status)
@@ -755,5 +757,26 @@ void download_read(gpointer data, gint source, GdkInputCondition cond)
 	gui_update_download(d, FALSE);
 }
 
+void download_retry(struct download *d)
+{
+	/* download_stop() sets the time, so all we need to do is set the delay */
+
+	if (d->timeout_delay == 0) 
+		d->timeout_delay = download_retry_timeout_min;
+	else {
+		d->timeout_delay *= 2;
+		if (d->start_date) {
+			/* We forgive a little while the download is working */
+			d->timeout_delay -= (time((time_t *)NULL) - d->start_date) / 10;
+			if (d->timeout_delay < download_retry_timeout_min)
+				d->timeout_delay = download_retry_timeout_min;
+			if (d->timeout_delay > download_retry_timeout_max)
+				d->timeout_delay = download_retry_timeout_max;
+		}
+	}
+	
+	download_stop(d, GTA_DL_TIMEOUT_WAIT, NULL);
+}
+   
 /* vi: set ts=3: */
 
