@@ -1,0 +1,14 @@
+Source: gtk-gnutella
+Build-Depends: debmake, glade, tclsh
+Section: net
+Priority: optional
+Maintainer: Matthias Kabel <mkabel@debian.org>
+Standards-Version: 3.1.1
+
+Package: gtk-gnutella
+Architecture: any
+Depends: ${shlibs:Depends}
+Description: shares files in a peer to peer network
+ gtk-Gnutella is a real-time search, peer-based file-sharing
+ client that allows a user running a Gnutella client to search
+ for and download files from other Gnutella users.

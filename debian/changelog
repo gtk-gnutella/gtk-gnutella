@@ -1,0 +1,114 @@
+gtk-gnutella (0.13.3-4) unstable; urgency=low
+
+  * build-dependecies corrected closes: Bug#92775, #87252
+
+ -- Matthias Kabel <mkabel@debian.org>  Son, 15 Jul 2001 18:13:44 +0100
+
+
+gtk-gnutella (0.13.3-3) unstable; urgency=low
+
+  * build-dependecies corrected closes: Bug#104625
+
+ -- Matthias Kabel <mkabel@debian.org>  Sat, 14 Jul 2001 21:23:52 +0100
+
+gtk-gnutella (0.13.3-2) unstable; urgency=low
+
+  * New manpage by Andras BALI <drewie@bigfoot.com>
+  * corrected description field
+
+    closes: Bug#103671
+
+ -- Matthias Kabel <mkabel@debian.org>  Mon, 9 Jul 2001 20:33:12 +0100
+
+gtk-gnutella (0.13.3-1) unstable; urgency=low
+
+  * new upstream cvs
+  * revoced part of the non socks proxy code
+  * requeue on error and timeout (indefinetly)
+  * start at most one download per second
+  * cvs checkout is now orig.tar.gz
+
+    closes: Bug#88035
+
+ -- Goswin Brederlow <goswin.brederlow@student.uni-tuebingen.de>  Wed, 28 Feb 2001 21:43:42 +0100
+
+gtk-gnutella (0.13-2cvs-patch7-mrvn1) unstable; urgency=low
+
+  * patched "bug in max connections" by Thorben Thuermer
+    <thorbenthuermer@gmx.net> at Sun, 18 Feb 2001 19:39:45 +0100
+  * patched "download fix" by Thorben Thuermer
+    <thorbenthuermer@gmx.net> at Sun, 18 Feb 2001 22:49:12 +0100
+  * removed obsolete HTPP 404 checking
+  * correctly handle non resuming hosts, overwrite existing file (but
+    don't delete)
+  * warn about unknown headers, stop download unless http status was
+    good
+  * catch buggy clients that send a "busy" page with a HTTP 200 header
+    by comparing sizes
+  * resume old completed downlaods, move them back to the incomplete
+    dir
+  * proxy (non socks) support, changes to the html requests and
+    parsing
+  * changed parsing of http get for uploads to understand
+    GET http://<host>:<ip>/get/<index>/<file>
+
+ -- Goswin Brederlow <goswin.brederlow@student.uni-tuebingen.de>  Wed, 21 Feb 2001 06:58:42 +0100
+
+gtk-gnutella (0.13-2cvs-patch7) unstable; urgency=low
+
+  * patch #103819 included (fixed failures)
+
+ -- Goswin Brederlow <goswin.brederlow@student.uni-tuebingen.de>  Wed, 21 Feb 2001 05:55:42 +0100
+
+gtk-gnutella (0.13-2cvs-patch6) unstable; urgency=low
+
+  * patch #103828 included (fixed failues)
+
+ -- Goswin Brederlow <goswin.brederlow@student.uni-tuebingen.de>  Wed, 21 Feb 2001 05:39:42 +0100
+
+gtk-gnutella (0.13-2cvs-patch5) unstable; urgency=low
+
+  * patch #103209 included
+
+ -- Goswin Brederlow <goswin.brederlow@student.uni-tuebingen.de>  Wed, 21 Feb 2001 05:38:42 +0100
+
+gtk-gnutella (0.13-2cvs-patch4) unstable; urgency=low
+
+  * patch #103208 included (patched by hand)
+
+ -- Goswin Brederlow <goswin.brederlow@student.uni-tuebingen.de>  Wed, 21 Feb 2001 05:36:42 +0100
+
+gtk-gnutella (0.13-2cvs-patch3) unstable; urgency=low
+
+  * patch #103207 included
+
+ -- Goswin Brederlow <goswin.brederlow@student.uni-tuebingen.de>  Wed, 21 Feb 2001 05:33:42 +0100
+
+gtk-gnutella (0.13-2cvs-patch2) unstable; urgency=low
+
+  * patch #103130 included
+
+ -- Goswin Brederlow <goswin.brederlow@student.uni-tuebingen.de>  Wed, 21 Feb 2001 05:31:42 +0100
+
+gtk-gnutella (0.13-2.1) unstable; urgency=low
+
+  * various fixes (see Changelog)
+
+ -- Goswin Brederlow <goswin.brederlow@student.uni-tuebingen.de>  Sat, 10 Feb 2001 23:51:23 +0100
+
+gtk-gnutella (0.13-2) unstable; urgency=low
+
+  * new upstream version (cvs snapshot)
+
+ -- Goswin Brederlow <goswin.brederlow@student.uni-tuebingen.de>  Sat, 10 Feb 2001 20:00:11 +0100
+
+gtk-gnutella (0.12-3) unstable; urgency=low
+
+
+  * added menu-entry for App/Net
+
+ -- Matthias Kabel <mkabel@debian.org>  Tue, 31 Oct 2000 22:10:11 +0200
+
+Local variables:
+mode: debian-changelog
+End:

@@ -1,0 +1,2 @@
+?package(gtk-gnutella):needs=X11 section=Apps/Net title="gtk-gnutella" \
+  longtitle="Gnutella (GTK)" command="/usr/bin/gtk-gnutella"
