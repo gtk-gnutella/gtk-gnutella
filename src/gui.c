@@ -212,9 +212,10 @@ void gui_update_scan_extensions(void)
 	*gui_tmp = 0;
 
 	for (l = extensions; l; l = l->next) {
+		struct extension *e = (struct extension *) l->data;
 		if (*gui_tmp)
 			strcat(gui_tmp, ";");
-		strcat(gui_tmp, (gchar *) l->data);
+		strcat(gui_tmp, (gchar *) e->str);
 	}
 
 	scan_extensions = g_strdup(gui_tmp);
