@@ -58,8 +58,9 @@ static gboolean dirty = FALSE;
 static gchar *stats_file = NULL;
 static GList *upload_stats_list = NULL;
 
-static void upload_stats_add(const gchar *filename,
-	guint32 size, guint32 attempts, guint32 complete, guint64 ul_bytes)
+static void
+upload_stats_add(const gchar *filename,
+	filesize_t size, guint32 attempts, guint32 complete, guint64 ul_bytes)
 {
 	struct ul_stats *stat;
 
@@ -74,7 +75,8 @@ static void upload_stats_add(const gchar *filename,
 	gcu_upload_stats_gui_add(stat);
 }
 
-void upload_stats_load_history(const gchar *ul_history_file_name)
+void
+upload_stats_load_history(const gchar *ul_history_file_name)
 {
 	FILE *upload_stats_file;
 	gchar line[FILENAME_MAX + 64];
@@ -153,12 +155,11 @@ done:
 	return;
 }
 
-/*
- * upload_stats_dump_history
- *
+/**
  * Save upload statistics to file.
  */
-static void upload_stats_dump_history(const gchar *ul_history_file_name)
+static void
+upload_stats_dump_history(const gchar *ul_history_file_name)
 {
 	FILE *out;
 	time_t now = time((time_t *) NULL);
@@ -205,13 +206,12 @@ static void upload_stats_dump_history(const gchar *ul_history_file_name)
 	fclose(out);
 }
 
-/*
- * upload_stats_flush_if_dirty
- *
+/**
  * Called on a periodic basis to flush the statistics to disk if changed
  * since last call.
  */
-void upload_stats_flush_if_dirty(void)
+void
+upload_stats_flush_if_dirty(void)
 {
 	if (!dirty)
 		return;
@@ -224,7 +224,8 @@ void upload_stats_flush_if_dirty(void)
 		g_warning("can't save upload statistics: no file name recorded");
 }
 
-static struct ul_stats *upload_stats_find(const gchar *name, guint64 size)
+static struct ul_stats *
+upload_stats_find(const gchar *name, guint64 size)
 {
     GList *l;
 
@@ -239,10 +240,11 @@ static struct ul_stats *upload_stats_find(const gchar *name, guint64 size)
 	return NULL;
 }
 
-/*
+/**
  * Called when an upload starts
  */
-void upload_stats_file_begin(const struct upload *u)
+void
+upload_stats_file_begin(const struct upload *u)
 {
 	struct ul_stats *stat;
 
@@ -260,17 +262,16 @@ void upload_stats_file_begin(const struct upload *u)
 	dirty = TRUE;		/* Request asynchronous save of stats */
 }
 
-/*
- * upload_stats_file_add
- *
+/**
  * Add `comp' to the current completed count, and update the amount of
  * bytes transferred.  Note that `comp' can be zero.
  *
  * If the row does not exist (race condition: deleted since upload started),
  * recreate one.
  */
-static void upload_stats_file_add(
-	const gchar *name, guint64 size, gint comp, guint sent)
+static void
+upload_stats_file_add(const gchar *name, filesize_t size,
+	gint comp, guint64 sent)
 {
 	struct ul_stats *stat;
 
@@ -293,12 +294,11 @@ static void upload_stats_file_add(
 	dirty = TRUE;		/* Request asynchronous save of stats */
 }
 
-/*
- * upload_stats_file_aborted
- *
+/**
  * Called when an upload is aborted, to update the amount of bytes transferred.
  */
-void upload_stats_file_aborted(const struct upload *u)
+void
+upload_stats_file_aborted(const struct upload *u)
 {
 	if (u->pos > u->skip) {
 		upload_stats_file_add(u->name, u->file_size, 0, u->pos - u->skip);
@@ -306,26 +306,24 @@ void upload_stats_file_aborted(const struct upload *u)
 	}
 }
 
-/*
- * upload_stats_file_complete
- *
+/**
  * Called when an upload completes
  */
-void upload_stats_file_complete(const struct upload *u)
+void
+upload_stats_file_complete(const struct upload *u)
 {
 	upload_stats_file_add(u->name, u->file_size, 1, u->end - u->skip + 1);
 }
 
-void upload_stats_prune_nonexistent(void)
+void
+upload_stats_prune_nonexistent(void)
 {
 	/* XXX */
 	/* for each row, get the filename, check if filename is ? */
 	g_warning("upload_stats_prune_nonexistent: not implemented!");
 }
 
-/*
- * upload_stats_free_all
- *
+/**
  * Clear all the upload stats data structure
  */
 static void upload_stats_free_all(void)
@@ -342,9 +340,7 @@ static void upload_stats_free_all(void)
 	dirty = TRUE;
 }
 
-/*
- * upload_stats_clear_all
- *
+/**
  * Like upload_stats_free_all() but also clears the GUI.
  */
 void upload_stats_clear_all(void)
@@ -353,16 +349,15 @@ void upload_stats_clear_all(void)
 	upload_stats_free_all();
 }
 
-/*
- * upload_stats_close
- *
+/**
  * Called at shutdown time.
  */
-void upload_stats_close(void)
+void
+upload_stats_close(void)
 {
 	upload_stats_dump_history(stats_file);
 	upload_stats_free_all();
 	G_FREE_NULL(stats_file);
 }
 
-/* vi: set ts=4: */
+/* vi: set ts=4 sw=4 cindent: */
