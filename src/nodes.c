@@ -99,6 +99,7 @@ struct gnutella_node *node_added;
 static gint32 connected_node_cnt = 0;
 static gint pending_byes = 0;			/* Used when shutdowning servent */
 static gboolean in_shutdown = FALSE;
+static gboolean no_gnutella_04 = FALSE;
 
 /*
  * This structure is used to encapsulate the various arguments required
@@ -196,6 +197,7 @@ void network_init(void)
 	g_hook_list_init(&node_added_hook_list, sizeof(GHook));
 	node_added_hook_list.seq_id = 1;
 	node_added = NULL;
+	no_gnutella_04 = time(NULL) >= 1057010400;	/* Tue Jul  1 00:00:00 2003 */
 }
 
 /*
@@ -1917,6 +1919,11 @@ void node_add(struct gnutella_socket *s, guint32 ip, guint16 port)
 	}
 #endif
 
+	if (s && no_gnutella_04 && major == 0 && minor < 6) {
+		socket_destroy(s);
+		return;
+	}
+
 	/*
 	 * Check wether we have already a connection to this node.
 	 */
@@ -2371,7 +2378,8 @@ void node_init_outgoing(struct gnutella_node *n)
 		 * Prepare parsing of the expected 0.6 reply.
 		 */
 
-		n->flags |= NODE_F_RETRY_04;		/* On failure, retry at 0.4 */
+		if (!no_gnutella_04)
+			n->flags |= NODE_F_RETRY_04;	/* On failure, retry at 0.4 */
 
 		ih = (struct io_header *) g_malloc(sizeof(struct io_header));
 		ih->node = n;
