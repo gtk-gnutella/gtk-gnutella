@@ -1,5 +1,23 @@
 # since last version
 
+- (2002.08.14 - Richard)
+ * Updated scan extensions (Affects 583093)
+ * Changed label of the "remove downloaded" checkbutton to explain that
+   we only mean to remove items manually selected for download. 
+   (Closes 594503)
+ * Changed tooltip texts of "firewalled" and "not firewalled" icons.
+ * Added preliminary configuration interface and properties for swarming.
+ * Made callbacks for GtkToggleButtons and GtkSpinButtons automatic and
+   generic when connecting them to the property system. Callbacks for those
+   widgets are not defined within Glade, but added automatically when the
+   widget is bound to a property.
+ * Always update vendor and protocol information when updating node information.
+ * Removed all spinbutton callbacks which modify a property from settings_cb
+   and from the glade file and add callbacks for them manually in
+   settings_config_widget(). All call a common callback function which makes
+   use of the property map in settings_gui. Some special cases are filtered
+   out in this common callback function (spinbutton_adjustment_value_changed).
+	
 - (2002.08.13 - Richard)
  * Introduced property system. A property can be monitored for changes.
    They are defined in the gui_props.ag and gnet_props.ag files. From those
@@ -65,6 +83,17 @@
  * Refactored download scheduling queue for scalability.
  * Optimized pattern matching and searches further.
  * Remove assert in gmsg_cmp(), a routine called many times!
+
+- (2002.07.11 - Richard)
+  * Fixed segfault when creating new IP rule
+  * Fixed some widget names in filter_gui.c which caused the wrong
+    widgets to be updated when editing a size or text rule.
+  * Fixed "widget not found: popup nodes remove" warning
+
+- (2002.07.10 - Richard)
+  * Fixed two serious typos in filter_gui.c causing removed filters
+    to be removed from dialog. Gtk-gnutella would crash when selecting
+    such a filter.
 
 - (2002.07.09 - Richard)
   * Have two versions of share_gui (API compatible), one for Gtk1 using
