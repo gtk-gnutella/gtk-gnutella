@@ -229,6 +229,7 @@ static gboolean update_label_date(property_t prop);
 static gboolean update_label_yes_or_no(property_t prop);
 static gboolean update_toggle_node_watch_similar_queries(property_t prop);
 static gboolean update_spinbutton_ultranode(property_t prop);
+static gboolean update_toggle_remove_on_mismatch(property_t prop);
 
 /* FIXME:
  * move to separate file and autogenerate from high-level description.
@@ -1068,9 +1069,17 @@ static prop_map_t property_map[] = {
     {
         get_main_window,
         PROP_DL_REMOVE_FILE_ON_MISMATCH,
-        update_togglebutton,
+        update_toggle_remove_on_mismatch,
         TRUE,
         "checkbutton_dl_remove_file_on_mismatch",
+        FREQ_UPDATES, 0
+    },
+    {
+        get_main_window,
+        PROP_DL_MISMATCH_BACKOUT,
+        update_spinbutton,
+        TRUE,
+        "spinbutton_mismatch_backout",
         FREQ_UPDATES, 0
     },
     {
@@ -3431,6 +3440,22 @@ static gboolean update_toggle_search_autoselect(property_t prop)
 		value);
 
 	return ret;
+}
+
+static gboolean update_toggle_remove_on_mismatch(property_t prop)
+{
+    gboolean value;
+    gboolean ret;
+    
+    ret = update_togglebutton(prop);
+    gnet_prop_get_boolean_val(prop, &value);
+
+    gtk_widget_set_sensitive(
+			     lookup_widget(main_window,
+					   "spinbutton_mismatch_backout"),
+			     value ? FALSE : TRUE);
+
+    return ret;
 }
 
 static gboolean update_node_column_visibility(property_t prop, gint col)

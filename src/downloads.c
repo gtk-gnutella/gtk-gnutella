@@ -4174,6 +4174,9 @@ static gboolean download_overlap_check(struct download *d)
 	gchar *data = NULL;
 	gint r;
 	off_t offset;
+	off_t begin;
+	off_t end;
+	guint32 backout;
 
 	path = g_strdup_printf("%s/%s",
 				d->file_info->path, d->file_info->file_name);
@@ -4241,6 +4244,10 @@ static gboolean download_overlap_check(struct download *d)
 	}
 
 	if (0 != memcmp(s->buffer, data, d->overlap_size)) {
+		if (dbg > 3)
+			printf("%d overlapping bytes UNMATCHED at offset %d for \"%s\"\n",
+				d->overlap_size, d->skip - d->overlap_size, d->file_name);
+
 		download_bad_source(d);
 		if (dl_remove_file_on_mismatch) {
 			download_queue(d, "Resuming data mismatch @ %lu",
@@ -4249,9 +4256,29 @@ static gboolean download_overlap_check(struct download *d)
 		} else
 			download_stop(d, GTA_DL_ERROR, "Resuming data mismatch @ %lu",
 				d->skip - d->overlap_size);
-		if (dbg > 3)
-			printf("%d overlapping bytes UNMATCHED at offset %d for \"%s\"\n",
-				d->overlap_size, d->skip - d->overlap_size, d->file_name);
+
+		/*
+		 * It is most likely that we have a mismatch because
+		 * the other guy's data is not in order, but we could
+		 * also have received bad data ourselves. Just to be
+		 * sure we back out some of our data. Eventually we
+		 * should find a host with good data, or we have
+		 * backed out enough times for our data to be good
+		 * again. This really is a stop-gap measure that TTH
+		 * will fill in a more permanent way.
+		 */
+
+		end = d->skip + 1;
+		gnet_prop_get_guint32_val(PROP_DL_MISMATCH_BACKOUT, &backout);
+		if (end - backout > 0)
+		    begin = end - backout;
+		else
+		    begin = 0;
+		file_info_update(d, begin, end, DL_CHUNK_EMPTY);
+		g_warning("Resuming data mismatch on %s, backed out %d bytes block "
+			"from %u to %u\n", 
+			 d->file_name, backout, (guint32) begin, (guint32) end);
+
 		goto out;
 	}
 

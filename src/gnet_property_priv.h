@@ -190,6 +190,7 @@ extern guint32  clock_skew;
 extern gboolean node_monitor_unstable_ip;
 extern gboolean node_monitor_unstable_servents;
 extern gboolean dl_remove_file_on_mismatch;
+extern guint32  dl_mismatch_backout;
 extern gchar   *server_hostname;
 extern gboolean give_server_hostname;
 extern guint32  reserve_gtkg_nodes;

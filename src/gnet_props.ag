@@ -1929,6 +1929,22 @@ prop = {
 };
 
 prop = {
+    name = "dl_mismatch_backout";
+    desc = "The amount of bytes which gtk-gnutella will strip off the "
+		"already downloaded bytes after a resming mismatch, in the hope "
+		"that only this amount was corrupted, preventing proper resuming. "
+		"Most of the times a resuming mismatch indicates bad data on the "
+		"server, but if the already downloaded data is bad then backing "
+		"out some of it may allow us to recover from the problem.";
+    type = guint32;
+    data = {
+        default = 50000;
+		min = 0;
+		max = 250000;
+    };
+};
+
+prop = {
     name = "server_hostname";
     desc = "The hostname of the server that can be used by downloaders "
 		"to find the IP address via a DNS resolution.  If you have a "
