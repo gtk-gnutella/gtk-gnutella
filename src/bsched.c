@@ -275,25 +275,45 @@ void bsched_close(void)
  * Adapt the overall Gnet/HTTP bandwidth repartition depending on the current
  * peermode.
  *
- * This routine is called each time the peermode changes.
+ * This routine is called each time the peermode changes or each time the
+ * settings for the traffic shapers changes.
  */
 void bsched_set_peermode(node_peer_t mode)
 {
+	guint32 steal;
+
 	switch (mode) {
 	case NODE_P_NORMAL:
 	case NODE_P_LEAF:
-		bsched_set_bandwidth(bws.glin, 0);
-		bsched_set_bandwidth(bws.glout, 0);
-		bsched_set_bandwidth(bws.in, bw_gnet_lin + bw_http_in);
-		bsched_set_bandwidth(bws.out, bw_gnet_lout + bw_http_out);
-		break;
-	case NODE_P_ULTRA:
-		bsched_set_bandwidth(bws.glin, bw_gnet_lin);
-		bsched_set_bandwidth(bws.glout, bw_gnet_lout);
-		/* XXX take leaf bandwidth OUT of HTTP, up to the maximum. */
-		/* XXX if no more bandwidth OUT, disable sharing. */
+		bsched_set_bandwidth(bws.glin, 1);		/* 0 would disable it */
+		bsched_set_bandwidth(bws.glout, 1);
 		bsched_set_bandwidth(bws.in, bw_http_in);
 		bsched_set_bandwidth(bws.out, bw_http_out);
+		break;
+	case NODE_P_ULTRA:
+		/*
+		 * If leaf traffic shaper is enabled, steal bandwidth from HTTP.
+		 * Otherwise, bandwidth is unlimited.
+		 */
+
+		steal = MIN(bw_http_in, bw_gnet_lin);
+		if (bws_glin_enabled && steal) {
+			bsched_set_bandwidth(bws.glin, steal);
+			bsched_set_bandwidth(bws.in, MAX(1, bw_http_in - steal));
+		} else {
+			bsched_set_bandwidth(bws.glin, 0);			/* Disables */
+			bsched_set_bandwidth(bws.in, bw_http_in);
+		}
+
+		steal = MIN(bw_http_out, bw_gnet_lout);
+		if (bws_glout_enabled && steal) {
+			bsched_set_bandwidth(bws.glout, steal);
+			bsched_set_bandwidth(bws.out, MAX(1, bw_http_out - steal));
+		} else {
+			bsched_set_bandwidth(bws.glout, 0);			/* Disables */
+			bsched_set_bandwidth(bws.out, bw_http_out);
+		}
+
 		if (bws.glin->bw_per_second && bws_glin_enabled)
 			bsched_enable(bws.glin);
 		if (bws.glout->bw_per_second && bws_glout_enabled)

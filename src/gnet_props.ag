@@ -1029,9 +1029,9 @@ prop = {
      name = "bw_gnet_lin";
      cfgvar = "input_gnet_leaf_bandwidth";
      desc = "Bandwidth limit for incoming gNet leaf traffic in bytes/sec. "
-			"When not running as an ultra node, this bandwidth is given "
-			"to the regular HTTP traffic, whether or not the shaper for "
-			"leaves is enabled.";
+			"When running as an ultra node, this bandwidth is stolen "
+			"from the regular HTTP traffic if the shaper for leaves is "
+			"enabled.";
      type = guint32;
      data = {
         default = 3072;
@@ -1044,9 +1044,9 @@ prop = {
     name = "bw_gnet_lout";
     cfgvar = "output_gnet_leaf_bandwidth";
     desc = "Bandwidth limit for outgoing gNet leaf traffic in bytes/sec. "
-			"When not running as an ultra node, this bandwidth is given "
-			"to the regular HTTP traffic, whether or not the shaper for "
-			"leaves is enabled.";
+			"When running as an ultra node, this bandwidth is stolen "
+			"from the regular HTTP traffic, if the shaper for leaves is "
+			"enabled.";
     type = guint32;
     data = {
         default = 2048;

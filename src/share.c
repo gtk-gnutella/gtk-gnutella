@@ -1585,7 +1585,7 @@ gboolean search_request(struct gnutella_node *n, query_hashvec_t *qhv)
      *      -- Richard, 9/9/2002
 	 */
 
-	if ((max_uploads == 0) || (files_scanned == 0))
+	if (files_scanned == 0 || !upload_is_enabled())
 		return FALSE;
 
 	/*

@@ -96,6 +96,7 @@ extern guint32 count_uploads;
  * Global Functions
  */
 
+gboolean upload_is_enabled(void);
 void upload_timer(time_t now);
 void upload_remove(struct upload *, const gchar *, ...);
 void handle_push_request(struct gnutella_node *);

@@ -56,6 +56,7 @@
 RCSID("$Id$");
 
 #define READ_BUF_SIZE	4096		/* Read buffer size, if no sendfile(2) */
+#define BW_OUT_MIN		256			/* Minimum bandwidth to enable uploads */
 
 GSList *uploads = NULL;
 
@@ -1947,7 +1948,7 @@ static void upload_request(gnutella_upload_t *u, header_t *header)
 	 * Also, if they request something wrong, they ought to know it ASAP.
 	 */
 
-	if (max_uploads == 0) {
+	if (!upload_is_enabled()) {
 		upload_error_remove(u, NULL, 503, "Sharing currently disabled");
 		return;
 	}
@@ -2054,7 +2055,7 @@ static void upload_request(gnutella_upload_t *u, header_t *header)
 		 	*/
 
 			if (
-				max_uploads &&
+				upload_is_enabled() &&
 				bw_ul_usage_enabled &&
 				bws_out_enabled &&
 				bsched_pct(bws.out) < ul_usage_min_percentage &&
@@ -2371,7 +2372,7 @@ static void upload_write(gpointer up, gint source, inputevt_cond_t cond)
 }
 
 /*
- * upload_kill:
+ * upload_kill
  *
  * Kill a running upload.
  */
@@ -2383,6 +2384,22 @@ void upload_kill(gnet_upload_t upload)
 
     if (!UPLOAD_IS_COMPLETE(u))
         upload_remove(u, "Explicitly killed");
+}
+
+/*
+ * upload_is_enabled
+ *
+ * Check whether uploading is enabled: we have slots, and bandwidth.
+ */
+gboolean upload_is_enabled(void)
+{
+	if (max_uploads == 0)
+		return FALSE;
+
+	if (bsched_bwps(bws.out) < BW_OUT_MIN)
+		return FALSE;
+
+	return TRUE;
 }
 
 /*
