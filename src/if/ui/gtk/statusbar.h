@@ -23,33 +23,44 @@
  *----------------------------------------------------------------------
  */
 
-#ifndef _gtk_statusbar_h_
-#define _gtk_statusbar_h_
+#ifndef _if_ui_gtk_statusbar_h_
+#define _if_ui_gtk_statusbar_h_
 
-#include "common.h"
+#include <glib.h>
 
-#include "if/ui/gtk/statusbar.h"
+typedef enum {
+    SB_MESSAGE,
+    SB_WARNING
+} sb_types_t;
 
-/* 
- * Context ids for the status bar 
- */
-extern guint scid_hostsfile;
-extern guint scid_search_autoselected;
-extern guint scid_queue_freezed;
-extern guint scid_ip_changed;
+typedef struct {
+    guint scid;
+    guint msgid;
+} statusbar_msgid_t;
 
 /*
- * Public interface.
+ * Public interface, visible from the bridge.
  */
 
-void statusbar_gui_init(void);
-void statusbar_gui_shutdown(void);
+#ifdef GUI_SOURCES
 
-void statusbar_gui_clear_timeouts(time_t now);
+/*
+ * Context ids for the status bar.
+ */
 
-void statusbar_gui_set_default(const gchar *, ...) G_GNUC_PRINTF(1, 2);
-void statusbar_gui_remove(statusbar_msgid_t);
+extern guint scid_info;
+extern guint scid_warn;
 
-#endif /* _gtk_statusbar_h_ */
+#define statusbar_gui_message(t, ...) \
+	statusbar_gui_push(SB_MESSAGE, scid_info, t, __VA_ARGS__)
+
+#define statusbar_gui_warning(t, ...) \
+	statusbar_gui_push(SB_WARNING, scid_warn, t, __VA_ARGS__)
+
+statusbar_msgid_t statusbar_gui_push
+    (sb_types_t, guint, guint, const gchar *, ...) G_GNUC_PRINTF(4, 5);
+
+#endif /* GUI_SOURCES */
+#endif /* _if_ui_gtk_statusbar_h_ */
 
 /* vi: set ts=4: */

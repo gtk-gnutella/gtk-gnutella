@@ -40,6 +40,7 @@
 #include "if/ui/gtk/downloads.h"
 #include "if/ui/gtk/misc.h"
 #include "if/ui/gtk/search.h"
+#include "if/ui/gtk/statusbar.h"
 #include "if/ui/gtk/upload_stats.h"
 
 /*
@@ -143,5 +144,11 @@ void gcu_upload_stats_gui_update(const gchar *name, guint64 size)
 void gcu_upload_stats_gui_clear_all(void)
 {
 	upload_stats_gui_clear_all();	
+}
+
+/*	statusbar interface functions (CORE -> UI)*/
+void gcu_statusbar_warning(const gchar *message)
+{
+	statusbar_gui_warning(15, message);
 }
 

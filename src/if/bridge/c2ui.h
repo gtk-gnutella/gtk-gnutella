@@ -64,6 +64,9 @@ gint gcu_gtk_main_flush(void);
 /* search interface functions */
 gboolean gcu_search_gui_new_search(const gchar *query, flag_t flags);
 
+/* statusbar interface functions */
+void gcu_statusbar_warning(const gchar *message);
+
 /* upload interface functions */
 void gcu_upload_stats_gui_add(struct ul_stats *stat);
 void gcu_upload_stats_gui_update(const gchar *name, guint64 size);
