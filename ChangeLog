@@ -1,6 +1,11 @@
 # since last version
 
 - (2002.09.23 - Richard)
+ * fixed memory leak in:
+   - search_xml.x (config_comment)
+   - hosts.c (parse_netmasks)
+   - settings.c (move_file_path_changed)
+   - settings.c (save_file_path_changed)
  * Gui/core separation for uploads
  * Better monitoring of the gtk-gnutella internal server activity including
    monitoring of failed upload attempts and connections that are being kept
