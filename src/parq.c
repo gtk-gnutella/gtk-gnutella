@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2003, Jeroen Asselman & Raphael Manfredi
+ * Copyright (c) 2003 - 2004, Jeroen Asselman & Raphael Manfredi
  *
  * Passive/Active Remote Queuing.
  *
