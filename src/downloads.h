@@ -265,7 +265,7 @@ void download_freeze_queue(void);
 void download_thaw_queue(void);
 gint download_queue_is_frozen(void);
 void download_stop(struct download *, guint32, const gchar *, ...);
-void download_free(struct download *);
+void download_remove(struct download *);
 void download_push_ack(struct gnutella_socket *);
 void download_fallback_to_push(struct download *, gboolean, gboolean);
 void download_pickup_queued(void);

@@ -458,7 +458,7 @@ void on_popup_queue_abort_activate(GtkMenuItem * menuitem,
 		    continue;
         }
 		if (d->status == GTA_DL_QUEUED)
-			download_free(d);
+			download_remove(d);
 	} 
 
     gtk_clist_thaw(GTK_CLIST(clist_downloads_queue));

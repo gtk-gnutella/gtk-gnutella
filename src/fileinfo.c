@@ -3273,7 +3273,7 @@ void fi_purge(gnet_fi_t fih)
     for(sl = csl; sl != NULL; sl = g_slist_next(sl)) {
         struct download *dl = (struct download *) sl->data;
         download_abort(dl);
-        download_free(dl);
+        download_remove(dl);
     }
 
     download_free_removed();
