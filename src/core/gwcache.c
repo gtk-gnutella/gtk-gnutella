@@ -46,6 +46,7 @@ RCSID("$Id$");
 
 #include "if/gnet_property_priv.h"
 #include "if/core/nodes.h"
+#include "if/bridge/c2ui.h"
 
 #include "lib/override.h"		/* Must be the last header included */
 
@@ -893,6 +894,23 @@ gwc_host_eof(struct parse_context *ctx)
 		printf("GWC host all done (%d/%d lines processed)\n",
 			ctx->processed, ctx->lines);
 
+	/*
+	 * Provide GUI feedback.
+	 */
+
+	if (ctx->processed == 1)
+		gm_snprintf(gwc_tmp, sizeof(gwc_tmp), "Got %d host from %s",
+			ctx->processed, current_url);
+	else
+		gm_snprintf(gwc_tmp, sizeof(gwc_tmp), "Got %d hosts from %s",
+			ctx->processed, current_url);
+
+	gcu_statusbar_message(gwc_tmp);
+
+	/*
+	 * If we did not get enough addresses, try to feed the cache with ours.
+	 */
+
 	if (ctx->processed < MIN_IP_LINES) {
 		gwc_seed_cache(current_url);
 		clear_current_url(FALSE);			/* Move to another cache */
@@ -962,15 +980,24 @@ gwc_get_hosts(void)
 	if (!check_current_url())
 		return;
 
+	/*
+	 * Give some GUI feedback.
+	 */
+
+	gm_snprintf(gwc_tmp, sizeof(gwc_tmp),
+		"Connecting to web cache %s", current_url);
+
+	gcu_statusbar_message(gwc_tmp);
+
+	/*
+	 * Launch the asynchronous request and attach parsing information.
+	 */
+
 	gm_snprintf(gwc_tmp, sizeof(gwc_tmp),
 		"%s?hostfile=1&%s", current_url, CLIENT_INFO);
 
 	if (gwc_debug > 2)
 		printf("GWC host request: %s\n", gwc_tmp);
-
-	/*
-	 * Launch the asynchronous request and attach parsing information.
-	 */
 
 	handle = http_async_get(gwc_tmp,
 		NULL, gwc_host_data_ind, gwc_host_error_ind);
@@ -1132,6 +1159,13 @@ gwc_update_this(gchar *cache_url)
 		return;
 	}
 
+	/*
+	 * Provide GUI feedback in the statusbar.
+	 */
+
+	gm_snprintf(gwc_tmp, sizeof(gwc_tmp), "Updated web cache %s", cache_url);
+	gcu_statusbar_message(gwc_tmp);
+
 	parse_context_set(handle, MAX_OK_LINES);
 }
 
@@ -1161,6 +1195,7 @@ gwc_update_ip_url(void)
 {
 	if (!check_current_url())
 		return;
+
 	gwc_update_this(current_url);
 }
 
