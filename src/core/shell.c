@@ -734,7 +734,7 @@ print_hsep_table(gnutella_shell_t *sh, hsep_triple *table,
 
 	shell_write(sh, "\n");
 
-	t = (gint64 *) &table[1];
+	t = (guint64 *) &table[1];
 
 	for (i = 0; i < triples; i++) {
 		gm_snprintf(buf, sizeof(buf), "%*d  %*" PRIu64 "  %*" PRIu64 "  %*s\n",
@@ -874,7 +874,7 @@ static void shell_write_data(gnutella_shell_t *sh)
 static void shell_read_data(gnutella_shell_t *sh)
 {
 	struct gnutella_socket *s;
-	guint parsed;
+	gint parsed;
 	ssize_t rc = -1;
 
 	g_assert(sh);
@@ -922,13 +922,13 @@ static void shell_read_data(gnutella_shell_t *sh)
 			shell_destroy(sh);
 			return;
 		case READ_DONE:
-			if (s->pos != parsed)
-				memmove(s->buffer, s->buffer+parsed, s->pos-parsed);
+			if (s->pos != (size_t) parsed)
+				memmove(s->buffer, &s->buffer[parsed], s->pos - parsed);
 			s->pos -= parsed;
 			break;
 		case READ_MORE:
 		default:
-			g_assert(parsed == s->pos);
+			g_assert((size_t) parsed == s->pos);
 
 			return;
 		}
