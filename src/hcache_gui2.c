@@ -36,11 +36,11 @@ RCSID("$Id$");
 static GtkTreeView *treeview_hcache = NULL;
 static GtkNotebook *notebook_main = NULL;
 
-static const gchar *hcache_col_labels[] = {
-	"Cache contains",
-	"Hosts",
-	"Hits",
-	"Misses"
+static const gchar * const hcache_col_labels[] = {
+	N_("Cache contains"),
+	N_("Hosts"),
+	N_("Hits"),
+	N_("Misses")
 };
 
 /***
@@ -104,13 +104,13 @@ void hcache_gui_init(void)
             c_hcs_host_count, 0,
             c_hcs_hits,       0,
             c_hcs_misses,     0,
-            -1);
+            (-1));
 	}
 
 	width = gui_prop_get_guint32(PROP_HCACHE_COL_WIDTHS, NULL, 0, 0);
-	for (n = 0; n < G_N_ELEMENTS(hcache_col_labels); n++)
+	for (n = 0; (guint) n < G_N_ELEMENTS(hcache_col_labels); n++)
 		add_column(treeview_hcache, n, width[n], (gfloat) (n != 0),
-			hcache_col_labels[n]);
+			_(hcache_col_labels[n]));
 	G_FREE_NULL(width);
 
     gtk_tree_view_set_model(treeview_hcache, model);
@@ -154,7 +154,7 @@ void hcache_gui_update(time_t now)
             c_hcs_host_count, stats[n].host_count,
             c_hcs_hits,       stats[n].hits,
             c_hcs_misses,     stats[n].misses,
-            -1);
+            (-1));
 
 		gtk_tree_model_iter_next(GTK_TREE_MODEL(store), &iter);
 	}
