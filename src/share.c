@@ -336,7 +336,7 @@ static struct shared_file **file_table = NULL;
 static search_table_t search_table;
 static GHashTable *file_basenames = NULL;
 
-gchar stmp_1[4096];
+static gchar stmp_1[4096];
 
 /***
  *** Callbacks
@@ -581,11 +581,11 @@ static void setup_char_map(char_map_t map)
  * Apply the proper charset mapping on the query, depending on their
  * locale, so that the query has no accent.
  */
-void use_map_on_query(guchar *query, int len)
+void use_map_on_query(gchar *query, int len)
 {
 	query += len - 1;
 	for (/* empty */; len > 0; len--) {
-		*query = query_map[*query];
+		*query = query_map[(guchar) *query];
 		query--;
 	}
 }
