@@ -1560,6 +1560,24 @@ static void upload_request(gnutella_upload_t *u, header_t *header)
 	if (!upload_request_is_ok(u, header, request, getline_length(s->getline)))
 		return;
 
+	/* 
+	 * Extract User-Agent.
+	 */
+
+	user_agent = header_get(header, "User-Agent");
+
+	/* Maybe they sent a Server: line, thinking they're a server? */
+	if (!user_agent)
+		user_agent = header_get(header, "Server");
+
+	if (user_agent) {
+		version_check(user_agent);
+		/* XXX match against web user agents, possibly */
+	}
+
+	if (!is_followup && user_agent)
+		u->user_agent = atom_str_get(user_agent);
+
 	/*
 	 * IDEA
 	 *
@@ -1593,6 +1611,109 @@ static void upload_request(gnutella_upload_t *u, header_t *header)
 
 	index = reqfile->file_index;
 	sha1 = sha1_hash_available(reqfile) ? reqfile->sha1_digest : NULL;
+
+	/*
+	 * If we pushed this upload, and they are not requesting the same
+	 * file, that's OK, but warn.
+	 *		--RAM, 31/12/2001
+	 */
+
+	if (u->push && index != u->index)
+		g_warning("Host %s sent PUSH for %u (%s), now requesting %u (%s)",
+			ip_to_gchar(u->ip), u->index, u->name, index, reqfile->file_name);
+
+	/*
+	 *
+	 * When comming from a push request, we already have a non-NULL
+	 * u->name in the structure.  However, even if the index is the same,
+	 * it's not a 100% certainety that the filename matches (the library
+	 * could have been rebuilt).  Most of the time, it will, so it
+	 * pays to strcmp() it.
+	 *		--RAM, 25/03/2002, memory leak found by Michael Tesch
+	 */
+
+	u->index = index;
+	if (!u->sha1 && sha1)
+		u->sha1 = atom_sha1_get(sha1);	/* Identify file for followup reqs */
+
+	if (u->push && 0 != strcmp(u->name, reqfile->file_name)) {
+		atom_str_free(u->name);
+		u->name = NULL;
+	}
+
+	if (u->name == NULL)
+		u->name = atom_str_get(reqfile->file_name);
+
+	/*
+	 * Range: bytes=10453-23456
+	 * User-Agent: whatever
+	 * Server: whatever (in case no User-Agent)
+	 */
+
+	buf = header_get(header, "Range");
+	if (buf) {
+		if (strchr(buf, ',')) {
+			upload_error_remove(u, NULL,
+				500, "Multiple Range requests unsupported");
+			return;
+		} else if (2 == sscanf(buf, "bytes=%u-%u", &skip, &end)) {
+			has_end = TRUE;
+			if (skip > end) {
+				upload_error_remove(u, NULL, 400, "Malformed Range request");
+				return;
+			}
+		} else if (1 == sscanf(buf, "bytes=-%u", &skip)) {
+			/*
+			 * Backwards specification -- they want latest `skip' bytes.
+			 */
+			if (skip >= reqfile->file_size)
+				skip = 0;
+			else
+				skip = reqfile->file_size - skip;
+		} else
+			(void) sscanf(buf, "bytes=%u", &skip);
+	}
+
+	/*
+	 * Validate the requested range.
+	 */
+
+	fpath = reqfile->file_path;
+	u->file_size = reqfile->file_size;
+
+	if (!has_end)
+		end = u->file_size - 1;
+
+	u->skip = skip;
+	u->end = end;
+	u->pos = 0;
+
+	/*
+	 * When requested range is invalid, the HTTP 416 reply should contain
+	 * a Content-Range header giving the total file size, so that they
+	 * know the limits of what they can request.
+	 */
+
+	if (skip >= u->file_size || end >= u->file_size) {
+		gchar *msg = "Requested range not satisfiable";
+
+		cb_arg.u = u;
+		cb_arg.sf = reqfile;
+
+		hev.he_type = HTTP_EXTRA_CALLBACK;
+		hev.he_cb = upload_416_extra;
+		hev.he_arg = &cb_arg;
+
+		(void) http_send_status(u->socket, 416, &hev, 1, msg);
+		upload_remove(u, msg);
+		return;
+	}
+
+	/*
+	 * We now have enough information to display the request in the GUI.
+	 */
+
+	upload_fire_upload_info_changed(u);
 
 	/*
 	 * A follow-up request must be for the same file, since the slot is
@@ -1701,83 +1822,6 @@ static void upload_request(gnutella_upload_t *u, header_t *header)
 			u->keep_alive = TRUE;
 	}
 
-	/*
-	 * Range: bytes=10453-23456
-	 * User-Agent: whatever
-	 * Server: whatever (in case no User-Agent)
-	 */
-
-	buf = header_get(header, "Range");
-	if (buf) {
-		if (strchr(buf, ',')) {
-			upload_error_remove(u, NULL,
-				400, "Multiple Range requests unsupported");
-			return;
-		} else if (2 == sscanf(buf, "bytes=%u-%u", &skip, &end)) {
-			has_end = TRUE;
-			if (skip > end) {
-				upload_error_remove(u, NULL, 400, "Malformed Range request");
-				return;
-			}
-		} else if (1 == sscanf(buf, "bytes=-%u", &skip)) {
-			/*
-			 * Backwards specification -- they want latest `skip' bytes.
-			 */
-			if (skip >= reqfile->file_size)
-				skip = 0;
-			else
-				skip = reqfile->file_size - skip;
-		} else
-			(void) sscanf(buf, "bytes=%u", &skip);
-	}
-
-	/* 
-	 * Extract User-Agent.
-	 */
-
-	user_agent = header_get(header, "User-Agent");
-
-	/* Maybe they sent a Server: line, thinking they're a server? */
-	if (!user_agent)
-		user_agent = header_get(header, "Server");
-
-	if (user_agent) {
-		version_check(user_agent);
-		/* XXX match against web user agents, possibly */
-	}
-
-	/*
-	 * We're accepting the upload.  Setup accordingly.
-	 * Validate the rquested range.
-	 */
-
-	fpath = reqfile->file_path;
-	u->file_size = reqfile->file_size;
-
-	if (!has_end)
-		end = u->file_size - 1;
-
-	/*
-	 * When requested range is invalid, the HTTP 416 reply should contain
-	 * a Content-Range header giving the total file size, so that they
-	 * know the limits of what they can request.
-	 */
-
-	if (skip >= u->file_size || end >= u->file_size) {
-		gchar *msg = "Requested range not satisfiable";
-
-		cb_arg.u = u;
-		cb_arg.sf = reqfile;
-
-		hev.he_type = HTTP_EXTRA_CALLBACK;
-		hev.he_cb = upload_416_extra;
-		hev.he_arg = &cb_arg;
-
-		(void) http_send_status(u->socket, 416, &hev, 1, msg);
-		upload_remove(u, msg);
-		return;
-	}
-
 	if (-1 == stat(fpath, &statbuf)) {
 		upload_error_not_found(u, request);
 		return;
@@ -1805,52 +1849,15 @@ static void upload_request(gnutella_upload_t *u, header_t *header)
 	}
 
 	/*
-	 * If we pushed this upload, and they are not requesting the same
-	 * file, that's OK, but warn.
-	 *		--RAM, 31/12/2001
+	 * Set remaining upload information
 	 */
 
-	if (u->push && index != u->index)
-		g_warning("Host %s sent PUSH for %u (%s), now requesting %u (%s)",
-			ip_to_gchar(s->ip),
-			u->index, u->name, index, reqfile->file_name);
-
-	/*
-	 * Set all the upload information
-	 *
-	 * When comming from a push request, we already have a non-NULL
-	 * u->name in the structure.  However, even if the index is the same,
-	 * it's not a 100% certainety that the filename matches (the library
-	 * could have been rebuilt).  Most of the time, it will, so it
-	 * pays to strcmp() it.
-	 *		--RAM, 25/03/2002, memory leak found by Michael Tesch
-	 */
-
-	u->index = index;
-	if (!u->sha1 && sha1)
-		u->sha1 = atom_sha1_get(sha1);	/* Identify file for followup reqs */
-
-	if (u->push && 0 != strcmp(u->name, reqfile->file_name)) {
-		atom_str_free(u->name);
-		u->name = NULL;
-	}
-
-	if (u->name == NULL)
-		u->name = atom_str_get(reqfile->file_name);
-
-//	u->ip = s->ip; // FIXME: we do that in upload_create now, remove here
-	u->skip = skip;
-	u->end = end;
-	u->pos = 0;
 	u->start_date = time((time_t *) NULL);
 	u->last_update = time((time_t *) 0);
 
 	if (!is_followup) {
 		u->buf_size = 4096 * sizeof(gchar);
 		u->buffer = (gchar *) g_malloc(u->buf_size);
-
-		if (user_agent)
-			u->user_agent = atom_str_get(user_agent);
 	}
 
 	u->bpos = 0;
@@ -1929,8 +1936,6 @@ static void upload_request(gnutella_upload_t *u, header_t *header)
 	
 	u->bio = bsched_source_add(bws.out, s->file_desc,
 		BIO_F_WRITE, upload_write, (gpointer) u);
-
-    upload_fire_upload_info_changed(u);
 
 	ul_stats_file_begin(u);
 }
@@ -2131,7 +2136,7 @@ gnet_upload_info_t *upload_get_info(gnet_upload_t uh)
 
     info = g_new(gnet_upload_info_t, 1);
 
-    info->name          = g_strdup(u->name);
+    info->name          = u->name ? g_strdup(u->name) : NULL;
     info->ip            = u->ip;
     info->file_size     = u->file_size;
     info->range_start   = u->skip;
@@ -2147,8 +2152,11 @@ void upload_free_info(gnet_upload_info_t *info)
 {
     g_assert(info != NULL);
 
-    g_free(info->user_agent);
-    g_free(info->name);
+	if (info->user_agent)
+		g_free(info->user_agent);
+	if (info->name)
+		g_free(info->name);
+
     g_free(info);
 }
 
