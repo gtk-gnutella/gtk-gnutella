@@ -1060,7 +1060,9 @@ void hsep_get_non_hsep_triple(hsep_triple *tripledest)
  */
 const gchar *hsep_get_static_str(gint row, gint column)
 {
-	static gchar buf[21];
+	static gchar buf1[21];
+	static gchar buf2[21];
+	static gchar buf3[21];
 	hsep_triple hsep_table[HSEP_N_MAX + 1];
 	hsep_triple *other = walloc(sizeof(hsep_triple));
 
@@ -1069,30 +1071,30 @@ const gchar *hsep_get_static_str(gint row, gint column)
 
     switch (column) {
     case HSEP_IDX_NODES:
-		gm_snprintf(buf, sizeof(buf), "%" PRIu64,
+		gm_snprintf(buf1, sizeof(buf1), "%" PRIu64,
 		    hsep_table[row][HSEP_IDX_NODES] + other[0][HSEP_IDX_NODES]);
-		break;
+		wfree(other, sizeof(hsep_triple));
+  		return buf1;
 	
     case HSEP_IDX_FILES:
 
-		gm_snprintf(buf, sizeof(buf), "%" PRIu64,
+		gm_snprintf(buf2, sizeof(buf2), "%" PRIu64,
 		    hsep_table[row][HSEP_IDX_FILES] + other[0][HSEP_IDX_FILES]);
-		break;
+		wfree(other, sizeof(hsep_triple));
+  		return buf2;
 	
 	case HSEP_IDX_KIB:
 		/* Make a copy because concurrent usage of short_kb_size64()
 	 	 * could be hard to discover. */
-		g_strlcpy(buf, short_kb_size64(hsep_table[row][HSEP_IDX_KIB] +
-		    other[0][HSEP_IDX_KIB]), sizeof buf);	
-		break;
+		g_strlcpy(buf3, short_kb_size64(hsep_table[row][HSEP_IDX_KIB] +
+		    other[0][HSEP_IDX_KIB]), sizeof buf3);	
+		wfree(other, sizeof(hsep_triple));
+  		return buf3;
 
 	default:
 		g_assert_not_reached();
 	    return NULL;
     }
-	
-	wfree(other, sizeof(hsep_triple));
-  	return buf;
 }
 
 /*
