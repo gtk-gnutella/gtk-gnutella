@@ -235,7 +235,7 @@ void settings_init(void)
 	struct rlimit lim;
 	char *path = NULL;
 
-	g_warning("Detected amount of physical RAM: %lu KB", (gulong) amount);
+	g_message("Detected amount of physical RAM: %lu KB", (gulong) amount);
 
 	if (-1 != getrlimit(RLIMIT_DATA, &lim)) {
 		guint32 maxdata = lim.rlim_cur >> 10;
