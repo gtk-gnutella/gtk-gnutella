@@ -80,10 +80,10 @@ RCSID("$Id$");
 
 static struct {
 	guchar *d;					/* data */
-	gint l;						/* data length */
-	gint s;						/* size used by current search hit */
+	size_t l;					/* data length */
+	size_t s;					/* size used by current search hit */
 	gint files;					/* amount of file entries */
-	gint max_size;				/* max query hit size */
+	size_t max_size;			/* max query hit size */
 	gboolean use_ggep_h;		/* whether to use GGEP "H" to send SHA1 */
 	gchar *muid;				/* the MUID to put in all query hits */
 	qhit_process_t process;		/* processor once query hit is built */
@@ -92,19 +92,22 @@ static struct {
 
 #define FOUND_CHUNK		1024	/* Minimal growing memory amount unit */
 
-#define FOUND_ENSURE(left) do {						\
-	gint missing;									\
-	missing = (left) - found_data.l;				\
-	if (missing > 0) {								\
-		missing = MAX(missing, FOUND_CHUNK);		\
-		found_data.l += missing;					\
-		found_data.d = (guchar *) g_realloc(found_data.d,	\
-			found_data.l * sizeof(guchar));			\
+#define FOUND_ENSURE(left) do {							\
+	size_t left_intern = (left);						\
+	if (left_intern > found_data.l) {					\
+		size_t missing = left_intern - found_data.l;	\
+		missing = MAX(missing, FOUND_CHUNK);			\
+		found_data.l += missing;						\
+		found_data.d = g_realloc(found_data.d, found_data.l);	\
 	}												\
 } while (0)
 
 #define FOUND_GROW(len) do {						\
-	found_data.s += (len);							\
+	size_t s_intern, len_intern = (len);			\
+	g_assert(len <= INT_MAX);						\
+	s_intern = found_data.s + len_intern;			\
+	g_assert(s_intern >= found_data.s);				\
+	found_data.s = s_intern;						\
 	FOUND_ENSURE(found_data.s);						\
 } while (0)
 
@@ -566,9 +569,10 @@ add_file(struct shared_file *sf)
  */
 static void
 found_reset(
-	gint max_size, gchar *muid,
+	size_t max_size, gchar *muid,
 	gboolean use_ggep_h, qhit_process_t process, gpointer udata)
 {
+	g_assert(max_size <= INT_MAX);
 	FOUND_INIT(max_size, muid, use_ggep_h, process, udata);
 	FOUND_RESET();
 }
