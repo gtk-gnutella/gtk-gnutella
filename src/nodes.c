@@ -707,17 +707,17 @@ void node_timer(time_t now)
 
 		if (!(in_shutdown || stop_host_get)) {
 			if (n->status == GTA_NODE_REMOVING) {
-				if (now - n->last_update > entry_removal_timeout) {
+				if (delta_time(now, n->last_update) > entry_removal_timeout) {
 					node_real_remove(n);
 					continue;
 				}
 			} else if (NODE_IS_CONNECTING(n)) {
-				if (now - n->last_update > node_connecting_timeout) {
+				if (delta_time(now, n->last_update) > node_connecting_timeout) {
 					node_remove(n, "Timeout");
 					node_mark_bad_ip(n);		/* So we don't retry too soon */
 				}
 			} else if (n->status == GTA_NODE_SHUTDOWN) {
-				if (now - n->shutdown_date > n->shutdown_delay) {
+				if (delta_time(now, n->shutdown_date) > n->shutdown_delay) {
 					gchar reason[1024];
 
 					g_strlcpy(reason, n->error_str, sizeof reason);
@@ -735,7 +735,7 @@ void node_timer(time_t now)
 				 * as they reply to eachother alive pings.
 				 *		--RAM, 11/12/2003
 				 */
-				if (now - n->last_update > node_connected_timeout) {
+				if (delta_time(now, n->last_update) > node_connected_timeout) {
 					node_mark_bad_ip(n);
 					node_bye_if_writable(n, 405, "Activity timeout");
 				} else if (
@@ -799,7 +799,7 @@ void node_timer(time_t now)
 				period = MAX(n->alive_period, last);
 
 				if (
-					now - n->last_alive_ping > period &&
+					delta_time(now, n->last_alive_ping) > period &&
 					!alive_send_ping(n->alive_pings)
 				) {
 					node_bye(n, 406, "No reply to alive pings");
@@ -821,7 +821,10 @@ void node_timer(time_t now)
 			if (n->rxfc != NULL) {
 				struct node_rxfc_mon *rxfc = n->rxfc;
 
-				if (now - rxfc->start_half_period > NODE_RX_FC_HALF_PERIOD) {
+				if (
+					delta_time(now, rxfc->start_half_period)
+						> NODE_RX_FC_HALF_PERIOD
+				) {
 					time_t total;
 					gdouble fc_ratio;
 					guint32 max_ratio;
@@ -838,7 +841,7 @@ void node_timer(time_t now)
 						node_rx_flowc_ratio;
 
 					if (rxfc->fc_start) {		/* In flow control */
-						rxfc->fc_accumulator += now - rxfc->fc_start;
+						rxfc->fc_accumulator += delta_time(now, rxfc->fc_start);
 						rxfc->fc_start = now;
 					}
 
@@ -1541,7 +1544,7 @@ static gboolean node_avoid_monopoly(struct gnutella_node *n)
 	if (!n->vendor || (n->flags & NODE_F_CRAWLER) || unique_nodes == 100)
 		return FALSE;
 
-	for (sl = sl_nodes; sl; sl = sl->next) {
+	for (sl = sl_nodes; sl; sl = g_slist_next(sl)) {
 		struct gnutella_node *node = (struct gnutella_node *) sl->data;
 		
 		if (node->status != GTA_NODE_CONNECTED || node->vendor == NULL)
@@ -3836,8 +3839,8 @@ static void node_process_handshake_header(
 
 	if (node_avoid_monopoly(n)) {
 		send_node_error(n->socket, 403,
-			"Vendor code already has %d%% of our slots", unique_nodes);
-		node_remove(n, "Vendor already has %d%% of our slots", unique_nodes);
+			"Vendor code has already %d%% of our slots", unique_nodes);
+		node_remove(n, "Vendor has already %d%% of our slots", unique_nodes);
 		return;
 	}
 	
