@@ -64,6 +64,7 @@ struct vendor {
     { T_PHEX, "Phex" },
     { T_QTEL, "Qtella" },
     { T_RAZA, "Shareaza" },
+    { T_SHNB, "Shinobu" },
     { T_SNUT, "SwapNut" },
     { T_SWAP, "Swapper" },
     { T_SWFT, "Swift" },

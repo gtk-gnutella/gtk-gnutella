@@ -67,6 +67,7 @@
 #define T_PHEX	MAKE_CODE('P','H','E','X')
 #define T_QTEL	MAKE_CODE('Q','T','E','L')
 #define T_RAZA	MAKE_CODE('R','A','Z','A')
+#define T_SHNB	MAKE_CODE('S','H','N','B')
 #define T_SNUT	MAKE_CODE('S','N','U','T')
 #define T_SWAP	MAKE_CODE('S','W','A','P')
 #define T_SWFT	MAKE_CODE('S','W','F','T')
