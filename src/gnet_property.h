@@ -170,7 +170,8 @@ typedef enum {
     PROP_DL_RUNNING_COUNT,    
     PROP_DL_QALIVE_COUNT,    
     PROP_DL_BYTE_COUNT,    
-    PROP_UL_BYTE_COUNT,
+    PROP_UL_BYTE_COUNT,    
+    PROP_CRAWLER_VISIT_COUNT,
     GNET_PROPERTY_END
 } gnet_property_t;
 

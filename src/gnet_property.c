@@ -322,6 +322,8 @@ guint32  dl_byte_count     = 0;
 guint32  dl_byte_count_def = 0;
 guint32  ul_byte_count     = 0;
 guint32  ul_byte_count_def = 0;
+guint32  crawler_visit_count     = 0;
+guint32  crawler_visit_count_def = 0;
 
 static prop_set_t *gnet_property = NULL;
 
@@ -2940,6 +2942,26 @@ prop_set_t *gnet_prop_init(void) {
     gnet_property->props[135].data.guint32.choices = NULL;
     gnet_property->props[135].data.guint32.max   = 0xFFFFFFFF;
     gnet_property->props[135].data.guint32.min   = 0x00000000;
+
+
+    /*
+     * PROP_CRAWLER_VISIT_COUNT:
+     *
+     * General data:
+     */
+    gnet_property->props[136].name = "crawler_visit_count";
+    gnet_property->props[136].desc = "Number of crawler visits during this session";
+    gnet_property->props[136].prop_changed_listeners = NULL;
+    gnet_property->props[136].save = FALSE;
+    gnet_property->props[136].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[136].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[136].data.guint32.def   = &crawler_visit_count_def;
+    gnet_property->props[136].data.guint32.value = &crawler_visit_count;
+    gnet_property->props[136].data.guint32.choices = NULL;
+    gnet_property->props[136].data.guint32.max   = 0xFFFFFFFF;
+    gnet_property->props[136].data.guint32.min   = 0x00000000;
     return gnet_property;
 }
 

@@ -1670,6 +1670,13 @@ static prop_map_t property_map[] = {
         TRUE,
         "combo_config_toolbar_style"
     },
+    {
+        get_main_window,
+        PROP_CRAWLER_VISIT_COUNT,
+        update_entry,
+        TRUE,
+        "entry_crawler_visit_count"
+    },
 #endif
 };
 

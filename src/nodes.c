@@ -2650,8 +2650,11 @@ static void node_process_handshake_header(
 	 */
 
 	field = header_get(head, "Crawler");
-	if (field)
+	if (field) {
 		n->flags |= NODE_F_CRAWLER;
+        gnet_prop_set_guint32_val(PROP_CRAWLER_VISIT_COUNT,
+            crawler_visit_count + 1);
+	}
 
 	/*
 	 * Vendor-specific banning.

@@ -4000,7 +4000,7 @@ create_dlg_about (void)
   gtk_misc_set_alignment (GTK_MISC (label492), 0, 0.5);
   gtk_misc_set_padding (GTK_MISC (label492), 10, 0);
 
-  label493 = gtk_label_new ("RaphaÃ«l Manfredi");
+  label493 = gtk_label_new ("Rapha\303«l Manfredi");
   gtk_widget_set_name (label493, "label493");
   gtk_widget_show (label493);
   gtk_box_pack_start (GTK_BOX (vbox88), label493, FALSE, FALSE, 0);
@@ -4008,7 +4008,7 @@ create_dlg_about (void)
   gtk_misc_set_alignment (GTK_MISC (label493), 0, 0.5);
   gtk_misc_set_padding (GTK_MISC (label493), 10, 0);
 
-  label494 = gtk_label_new ("RaphaÃ«l Manfredi");
+  label494 = gtk_label_new ("Rapha\303«l Manfredi");
   gtk_widget_set_name (label494, "label494");
   gtk_widget_show (label494);
   gtk_box_pack_start (GTK_BOX (vbox88), label494, FALSE, FALSE, 0);
@@ -4060,7 +4060,7 @@ create_dlg_about (void)
   gtk_text_view_set_left_margin (GTK_TEXT_VIEW (textview1), 4);
   gtk_text_view_set_right_margin (GTK_TEXT_VIEW (textview1), 4);
   gtk_text_buffer_set_text (gtk_text_view_get_buffer (GTK_TEXT_VIEW (textview1)),
-	"Yann Grossel <olrick@users.sourceforge.net>\nSteven Wilcoxon <swilcoxon@users.sourceforge.net>\nJason Lingohr <lingman@users.sourceforge.net>\nBrian St Pierre <bstpierre@users.sourceforge.net>\nChuck Homic <homic@users.sourceforge.net>\nIngo Saitz <salz@users.sourceforge.net>\nBen Hochstedler <hochstrb@users.sourceforge.net>\nDaniel Walker <axiom@users.sourceforge.net>\nPaul Cassella <pwc@users.sourceforge.net> \nJared Mauch <jaredmauch@users.sourceforge.net>\nNate E <web1 (at) users dot sourceforge dot net>\nRaphaÃ«l Manfredi <Raphael_Manfredi@pobox.com>\nKenn Brooks Hamm <khamm@andrew.cmu.edu>\nMark Schreiber <mark7@andrew.cmu.edu>\nSam Varshavchik <mrsam@courier-mta.com>\nVladimir Klebanov <unny@rz.uni-karlsruhe.de>\nRoman Shterenzon <roman@xpert.com>\nRobert Bihlmeyer <robbe@orcus.priv.at>\nNoel T.Nunkovich <ntnunk@earthlink.net>\nMichael Tesch <tesch@users.sourceforge.net>\nMarkus 'guruz' Goetz <guruz@guruz.info>\nRichard Eckart <wyldfire@users.sourceforge.net>\nChristophe Tronche <ch.tronche@computer.org>\nAlex Bennee <alex@bennee.com>\nMike Perry <mikepery@fscked.org>\nZygo Blaxell <zblaxell@feedme.hungrycats.org>\nVidar Madsen <vidar@gimp.org>\nChristian Biere <christianbiere@gmx.de>\nko <junkpile@free.fr>", -1);
+	"Yann Grossel <olrick@users.sourceforge.net>\nSteven Wilcoxon <swilcoxon@users.sourceforge.net>\nJason Lingohr <lingman@users.sourceforge.net>\nBrian St Pierre <bstpierre@users.sourceforge.net>\nChuck Homic <homic@users.sourceforge.net>\nIngo Saitz <salz@users.sourceforge.net>\nBen Hochstedler <hochstrb@users.sourceforge.net>\nDaniel Walker <axiom@users.sourceforge.net>\nPaul Cassella <pwc@users.sourceforge.net> \nJared Mauch <jaredmauch@users.sourceforge.net>\nNate E <web1 (at) users dot sourceforge dot net>\nRapha\303«l Manfredi <Raphael_Manfredi@pobox.com>\nKenn Brooks Hamm <khamm@andrew.cmu.edu>\nMark Schreiber <mark7@andrew.cmu.edu>\nSam Varshavchik <mrsam@courier-mta.com>\nVladimir Klebanov <unny@rz.uni-karlsruhe.de>\nRoman Shterenzon <roman@xpert.com>\nRobert Bihlmeyer <robbe@orcus.priv.at>\nNoel T.Nunkovich <ntnunk@earthlink.net>\nMichael Tesch <tesch@users.sourceforge.net>\nMarkus 'guruz' Goetz <guruz@guruz.info>\nRichard Eckart <wyldfire@users.sourceforge.net>\nChristophe Tronche <ch.tronche@computer.org>\nAlex Bennee <alex@bennee.com>\nMike Perry <mikepery@fscked.org>\nZygo Blaxell <zblaxell@feedme.hungrycats.org>\nVidar Madsen <vidar@gimp.org>\nChristian Biere <christianbiere@gmx.de>\nko <junkpile@free.fr>\nT'aZ <tazdev@altern.org>", -1);
 
   label302 = gtk_label_new ("Contributors");
   gtk_widget_set_name (label302, "label302");
@@ -4623,10 +4623,10 @@ create_main_window (void)
   GtkWidget *spinbutton_config_incoming_connecting_timeout;
   GtkObject *spinbutton_config_node_connected_timeout_adj;
   GtkWidget *spinbutton_config_node_connected_timeout;
-  GtkObject *spinbutton_config_node_connecting_timeout_adj;
-  GtkWidget *spinbutton_config_node_connecting_timeout;
   GtkObject *spinbutton_config_node_tx_flowc_timeout_adj;
   GtkWidget *spinbutton_config_node_tx_flowc_timeout;
+  GtkObject *spinbutton_config_node_connecting_timeout_adj;
+  GtkWidget *spinbutton_config_node_connecting_timeout;
   GtkWidget *label294;
   GtkWidget *frame_expert_gnet_ttl;
   GtkWidget *table9;
@@ -4906,7 +4906,7 @@ create_main_window (void)
   GtkWidget *entry_force_leaf;
   GtkWidget *entry_sys_nofile;
   GtkWidget *entry_sys_physmem;
-  GtkWidget *entry_dl_qalive_count;
+  GtkWidget *entry_crawler_visit_count;
   GtkWidget *entry_reading_ultrafile;
   GtkWidget *entry_node_leaf_count;
   GtkWidget *entry_node_normal_count;
@@ -7367,6 +7367,7 @@ create_main_window (void)
   gtk_widget_set_name (table43, "table43");
   gtk_widget_show (table43);
   gtk_container_add (GTK_CONTAINER (frame_expert_nw_misc), table43);
+  gtk_container_set_border_width (GTK_CONTAINER (table43), 2);
 
   spinbutton_config_ban_max_fds_adj = gtk_adjustment_new (0, 0, 100, 1, 10, 10);
   spinbutton_config_ban_max_fds = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_ban_max_fds_adj), 1, 0);
@@ -7499,6 +7500,7 @@ create_main_window (void)
   gtk_widget_set_name (table61, "table61");
   gtk_widget_show (table61);
   gtk_container_add (GTK_CONTAINER (frame78), table61);
+  gtk_container_set_border_width (GTK_CONTAINER (table61), 2);
   gtk_table_set_row_spacings (GTK_TABLE (table61), 2);
   gtk_table_set_col_spacings (GTK_TABLE (table61), 4);
 
@@ -7705,15 +7707,6 @@ create_main_window (void)
                     (GtkAttachOptions) (0), 5, 0);
   gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_config_node_connected_timeout), TRUE);
 
-  spinbutton_config_node_connecting_timeout_adj = gtk_adjustment_new (1, 1, 100000, 1, 10, 10);
-  spinbutton_config_node_connecting_timeout = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_node_connecting_timeout_adj), 1, 0);
-  gtk_widget_set_name (spinbutton_config_node_connecting_timeout, "spinbutton_config_node_connecting_timeout");
-  gtk_widget_show (spinbutton_config_node_connecting_timeout);
-  gtk_table_attach (GTK_TABLE (table10), spinbutton_config_node_connecting_timeout, 1, 2, 0, 1,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 4, 0);
-  gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_config_node_connecting_timeout), TRUE);
-
   spinbutton_config_node_tx_flowc_timeout_adj = gtk_adjustment_new (1, 1, 100000, 1, 10, 10);
   spinbutton_config_node_tx_flowc_timeout = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_node_tx_flowc_timeout_adj), 1, 0);
   gtk_widget_set_name (spinbutton_config_node_tx_flowc_timeout, "spinbutton_config_node_tx_flowc_timeout");
@@ -7722,6 +7715,15 @@ create_main_window (void)
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 5, 0);
   gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_config_node_tx_flowc_timeout), TRUE);
+
+  spinbutton_config_node_connecting_timeout_adj = gtk_adjustment_new (1, 1, 100000, 1, 10, 10);
+  spinbutton_config_node_connecting_timeout = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_node_connecting_timeout_adj), 1, 0);
+  gtk_widget_set_name (spinbutton_config_node_connecting_timeout, "spinbutton_config_node_connecting_timeout");
+  gtk_widget_show (spinbutton_config_node_connecting_timeout);
+  gtk_table_attach (GTK_TABLE (table10), spinbutton_config_node_connecting_timeout, 1, 2, 0, 1,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 5, 0);
+  gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_config_node_connecting_timeout), TRUE);
 
   label294 = gtk_label_new ("gnutellaNet timeouts (all values in seconds)");
   gtk_widget_set_name (label294, "label294");
@@ -7955,6 +7957,7 @@ create_main_window (void)
   gtk_widget_set_name (table51, "table51");
   gtk_widget_show (table51);
   gtk_container_add (GTK_CONTAINER (frame_expert_gnet_other), table51);
+  gtk_container_set_border_width (GTK_CONTAINER (table51), 2);
 
   spinbutton_config_hops_random_factor_adj = gtk_adjustment_new (0, 0, 100, 1, 10, 10);
   spinbutton_config_hops_random_factor = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_hops_random_factor_adj), 1, 0);
@@ -9422,7 +9425,7 @@ create_main_window (void)
   gtk_label_set_justify (GTK_LABEL (label571), GTK_JUSTIFY_LEFT);
   gtk_misc_set_alignment (GTK_MISC (label571), 0, 0.5);
 
-  label572 = gtk_label_new ("PROP_DL_QALIVE_COUNT");
+  label572 = gtk_label_new ("PROP_CRAWLER_VISIT_COUNT");
   gtk_widget_set_name (label572, "label572");
   gtk_widget_show (label572);
   gtk_table_attach (GTK_TABLE (table60), label572, 0, 1, 13, 14,
@@ -9455,13 +9458,13 @@ create_main_window (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_editable_set_editable (GTK_EDITABLE (entry_sys_physmem), FALSE);
 
-  entry_dl_qalive_count = gtk_entry_new ();
-  gtk_widget_set_name (entry_dl_qalive_count, "entry_dl_qalive_count");
-  gtk_widget_show (entry_dl_qalive_count);
-  gtk_table_attach (GTK_TABLE (table60), entry_dl_qalive_count, 1, 2, 13, 14,
+  entry_crawler_visit_count = gtk_entry_new ();
+  gtk_widget_set_name (entry_crawler_visit_count, "entry_crawler_visit_count");
+  gtk_widget_show (entry_crawler_visit_count);
+  gtk_table_attach (GTK_TABLE (table60), entry_crawler_visit_count, 1, 2, 13, 14,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
-  gtk_editable_set_editable (GTK_EDITABLE (entry_dl_qalive_count), FALSE);
+  gtk_editable_set_editable (GTK_EDITABLE (entry_crawler_visit_count), FALSE);
 
   entry_reading_ultrafile = gtk_entry_new ();
   gtk_widget_set_name (entry_reading_ultrafile, "entry_reading_ultrafile");
@@ -10511,8 +10514,8 @@ create_main_window (void)
   GLADE_HOOKUP_OBJECT (main_window, label584, "label584");
   GLADE_HOOKUP_OBJECT (main_window, spinbutton_config_incoming_connecting_timeout, "spinbutton_config_incoming_connecting_timeout");
   GLADE_HOOKUP_OBJECT (main_window, spinbutton_config_node_connected_timeout, "spinbutton_config_node_connected_timeout");
-  GLADE_HOOKUP_OBJECT (main_window, spinbutton_config_node_connecting_timeout, "spinbutton_config_node_connecting_timeout");
   GLADE_HOOKUP_OBJECT (main_window, spinbutton_config_node_tx_flowc_timeout, "spinbutton_config_node_tx_flowc_timeout");
+  GLADE_HOOKUP_OBJECT (main_window, spinbutton_config_node_connecting_timeout, "spinbutton_config_node_connecting_timeout");
   GLADE_HOOKUP_OBJECT (main_window, label294, "label294");
   GLADE_HOOKUP_OBJECT (main_window, frame_expert_gnet_ttl, "frame_expert_gnet_ttl");
   GLADE_HOOKUP_OBJECT (main_window, table9, "table9");
@@ -10756,7 +10759,7 @@ create_main_window (void)
   GLADE_HOOKUP_OBJECT (main_window, entry_force_leaf, "entry_force_leaf");
   GLADE_HOOKUP_OBJECT (main_window, entry_sys_nofile, "entry_sys_nofile");
   GLADE_HOOKUP_OBJECT (main_window, entry_sys_physmem, "entry_sys_physmem");
-  GLADE_HOOKUP_OBJECT (main_window, entry_dl_qalive_count, "entry_dl_qalive_count");
+  GLADE_HOOKUP_OBJECT (main_window, entry_crawler_visit_count, "entry_crawler_visit_count");
   GLADE_HOOKUP_OBJECT (main_window, entry_reading_ultrafile, "entry_reading_ultrafile");
   GLADE_HOOKUP_OBJECT (main_window, entry_node_leaf_count, "entry_node_leaf_count");
   GLADE_HOOKUP_OBJECT (main_window, entry_node_normal_count, "entry_node_normal_count");
