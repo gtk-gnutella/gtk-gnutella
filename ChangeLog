@@ -32,6 +32,27 @@
   sudden death whilst saving.
 - Turn on TCP_CORK for uploads, to optimize outgoing bandwidth.
 - Makes use of sendfile(2) if available.
+- Huge cleanup in routing.c: function renaming, signature changes, assertion
+  cleanup and comment additions.  In particular, removed a wrong assertion,
+  known as "m->nodes" when failing.
+- Trace user interface, OS type, OS version and CPU type in User-Agent.
+- In the "Config" page, show total size of files shared.
+- Adapted proxy_connect() signature to be able to get it to compile on IRIX.
+- Now detects and handles the situation wereby time goes backwards or forwards
+  due to time synchronization (NTP deaemon).
+- Display the time spent uploading or downloading when entry is completed.
+- TCP reception buffer is raised to 112K for downloads.
+- The default node queue size is now 96K (150% of 64K, the max message size).
+- Added support for higher-priority control messages.
+- Node statistics now show amount of messages in queue, and percentage of
+  the send queue filled with messages.
+- Alive pings are now replied to with a higher priority pong.
+- Tuned flow control to avoid too many memory allocation/free, and saturation
+  of the queue (lowered high watermark to 50%).
+- Now also emits the Remote-IP header when connecting to other nodes.
+- Node statistics are now updated once per second on the GUI.
+- Added Morpheus (MRPH) to the list of vendor codes.
+- Fixed bugs #524773, #524987, #523762, #524988.
 
 # v 0.80   2002.01.31  [stable]
 # v 0.80   2002.01.22  [beta2]
