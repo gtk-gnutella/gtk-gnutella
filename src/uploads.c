@@ -531,7 +531,8 @@ static void send_upload_error(
  *
  * The vectorized (message-wise) version of upload_remove().
  */
-static void upload_remove_v(gnutella_upload_t *u, const gchar *reason, va_list ap)
+static void upload_remove_v(
+	gnutella_upload_t *u, const gchar *reason, va_list ap)
 {
 	gchar errbuf[1024];
 
@@ -2061,8 +2062,12 @@ void upload_write(gpointer up, gint source, GdkInputCondition cond)
 		if (u->keep_alive) {
 			gnutella_upload_t *cu = upload_clone(u);
 			upload_wait_new_request(cu);
-//			registered_uploads++;
-//			running_uploads++;			/* Still using the same slot */
+			/*
+			 * Don't decrement counters, we're still using the same slot.
+			 */
+		} else {
+			registered_uploads--;
+			running_uploads--;
 		}
 
 		upload_remove(u, NULL);
