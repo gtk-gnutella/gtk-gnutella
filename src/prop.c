@@ -117,13 +117,20 @@ static void prop_parse_guint64_vector(const gchar *name,
 
 	for (i = 0; i < size; i++) {
 		int error;
+		gulong v;
+
 		if (!h[i])
 			break;
-		
-		t[i] = gm_atoul(h[i], NULL, &error);
-		if (error)
+	
+		/* TODO: long is most likely a 32-bit integer! */	
+		v = gm_atoul(h[i], NULL, &error);
+		if (error) {
 			g_warning("prop_parse_guint64_vector: (prop=\"%s\") "
 				"h[i]=\"%s\": \"%s\"", name, h[i], g_strerror(error));
+			continue;
+		}
+
+		t[i] = v;
 	}
 
 	if (i < size)
@@ -153,14 +160,23 @@ static void prop_parse_guint32_vector(const gchar *name,
 
 	for (i = 0; i < size; i++) {
 		int error;
+		gulong v;
+
 		if (!h[i])
 			break;
 		
-		t[i] = gm_atoul(h[i], NULL, &error);
-		if (error)
+		v = gm_atoul(h[i], NULL, &error);
+		if (!error && (guint32) v != v)
+			error = ERANGE;
+
+		if (error) {
 			g_warning("prop_parse_guint32_vector: "
 				"(prop=\"%s\") h[i]=\"%s\": \"%s\"",
 				name, h[i], g_strerror(error));
+			continue;
+		}
+
+		t[i] = v;
 	}
 
 	if (i < size)
@@ -599,7 +615,8 @@ void prop_set_guint64(
 					newval = PROP(ps,prop).data.guint64.min;
 	
 				g_warning("prop_set_guint64: [%s] new value out of bounds "
-					"(%llu/%llu): %llu (adjusting to %llu)",
+					"(%" PRIu64 "/%" PRIu64 "): %" PRIu64
+						" (adjusting to %" PRIu64 ")",
 					PROP(ps,prop).name,
 					PROP(ps,prop).data.guint64.min,
 					PROP(ps,prop).data.guint64.max,
@@ -623,7 +640,7 @@ void prop_set_guint64(
 					PROP(ps,prop).data.guint64.value[n]),
 					(n < (PROP(ps,prop).vector_size-1)) ? "," : "");
 			} else {
-				printf("%llu%s ", PROP(ps,prop).data.guint64.value[n],
+				printf("%" PRIu64 "%s ", PROP(ps,prop).data.guint64.value[n],
 					(n < (PROP(ps,prop).vector_size-1)) ? "," : "");
 			}
 		}
@@ -1022,7 +1039,7 @@ gchar *prop_to_string(prop_set_t *ps, property_t prop)
 		
 			prop_get_guint64(ps, prop, &val, 0, 1);
 
-			gm_snprintf(s, sizeof(s), "%llu", val);
+			gm_snprintf(s, sizeof(s), "%" PRIu64, val);
 			break;
 		}
 		case PROP_TYPE_STRING: {
@@ -1275,7 +1292,7 @@ void prop_save_to_file(
 			break;
 		case PROP_TYPE_GUINT64:
 			for (i = 0; i < p->vector_size; i++) {
-				gm_snprintf(sbuf, sizeof(sbuf), "%llu", 
+				gm_snprintf(sbuf, sizeof(sbuf), "%" PRIu64, 
 						p->data.guint64.value[i]);
 				if (p->data.guint64.value[i] != p->data.guint64.def[i])
 					defaultvalue = FALSE;
