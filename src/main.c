@@ -114,8 +114,10 @@ void gtk_gnutella_exit(gint n)
 
     main_gui_shutdown();
 
-	if (s_listen)
+	if (s_listen) {
 		socket_free(s_listen);
+		s_listen = NULL;
+	}
 	socket_shutdown();
 	search_shutdown(); 
 	bsched_shutdown();
@@ -366,22 +368,6 @@ static void log_init(void)
 gint main(gint argc, gchar **argv, gchar **env)
 {
 	gint i;
-	gchar buf[8];
-
-	memcpy(buf, "01234567", sizeof(buf));
-	g_assert(0 == memcmp(buf, "01234567", sizeof(buf)));
-	g_assert(1 == g_strlcpy(buf, "x", 0));
-	g_assert(0 == memcmp(buf, "01234567", sizeof(buf)));
-	g_assert(3 == g_strlcpy(buf, "bla", 0));
-	g_assert(0 == memcmp(buf, "01234567", sizeof(buf)));
-	g_assert(3 == g_strlcpy(buf, "bla", 1));
-	g_assert(0 == memcmp(buf, "\0001234567", sizeof(buf)));
-	g_assert(0 == strlcpy(buf, "\000", 3));
-	g_assert(0 == memcmp(buf, "\0001234567", sizeof(buf)));
-	g_assert(3 == g_strlcpy(buf, "bla", 7));
-	g_assert(0 == memcmp(buf, "bla\0004567", sizeof(buf)));
-	g_assert(0 == strlcpy(buf, "", 2));
-	g_assert(0 == memcmp(buf, "\000la\0004567", sizeof(buf)));
 
 	for (i = 3; i < 256; i++)
 		close(i);				/* Just in case */
