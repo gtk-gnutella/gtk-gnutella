@@ -299,6 +299,7 @@ create_main_window (void)
   GtkWidget *frame76;
   GtkWidget *vbox109;
   GtkWidget *vpaned_fileinfo;
+  GtkWidget *viewport48;
   GtkWidget *vbox111;
   GtkWidget *hbox196;
   GtkWidget *label656;
@@ -3088,13 +3089,22 @@ create_main_window (void)
   gtk_paned_set_gutter_size (GTK_PANED (vpaned_fileinfo), 10);
   gtk_paned_set_position (GTK_PANED (vpaned_fileinfo), 305);
 
+  viewport48 = gtk_viewport_new (NULL, NULL);
+  gtk_widget_set_name (viewport48, "viewport48");
+  gtk_widget_ref (viewport48);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "viewport48", viewport48,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (viewport48);
+  gtk_paned_pack1 (GTK_PANED (vpaned_fileinfo), viewport48, FALSE, TRUE);
+  gtk_viewport_set_shadow_type (GTK_VIEWPORT (viewport48), GTK_SHADOW_NONE);
+
   vbox111 = gtk_vbox_new (FALSE, 2);
   gtk_widget_set_name (vbox111, "vbox111");
   gtk_widget_ref (vbox111);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "vbox111", vbox111,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (vbox111);
-  gtk_paned_pack1 (GTK_PANED (vpaned_fileinfo), vbox111, FALSE, TRUE);
+  gtk_container_add (GTK_CONTAINER (viewport48), vbox111);
 
   hbox196 = gtk_hbox_new (FALSE, 4);
   gtk_widget_set_name (hbox196, "hbox196");
@@ -10041,7 +10051,7 @@ create_dlg_about (void)
                     (GtkAttachOptions) (0), 4, 0);
   gtk_misc_set_alignment (GTK_MISC (label272), 0, 0.5);
 
-  label267 = gtk_label_new (_("Rapha\353l Manfredi"));
+  label267 = gtk_label_new (_("Rapha\xc3\xabl Manfredi"));
   gtk_widget_set_name (label267, "label267");
   gtk_widget_ref (label267);
   gtk_object_set_data_full (GTK_OBJECT (dlg_about), "label267", label267,
@@ -10063,7 +10073,7 @@ create_dlg_about (void)
                     (GtkAttachOptions) (0), 4, 0);
   gtk_misc_set_alignment (GTK_MISC (label265), 0, 0.5);
 
-  label273 = gtk_label_new (_("Rapha\353l Manfredi"));
+  label273 = gtk_label_new (_("Rapha\xc3\xabl Manfredi"));
   gtk_widget_set_name (label273, "label273");
   gtk_widget_ref (label273);
   gtk_object_set_data_full (GTK_OBJECT (dlg_about), "label273", label273,
