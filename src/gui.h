@@ -28,16 +28,6 @@
 #include "uploads.h"
 #include "search.h"
 
-#define NOTEBOOK_MAIN_GNUTELLANET_IDX		0
-#define NOTEBOOK_MAIN_UPLOADS_IDX			1
-#define NOTEBOOK_MAIN_UPLOAD_STATS_IDX		2
-#define NOTEBOOK_MAIN_DOWNLOADS_IDX			3
-#define NOTEBOOK_MAIN_SEARCH_IDX			4
-#define NOTEBOOK_MAIN_SEARCH_MONITOR_IDX	5
-#define NOTEBOOK_MAIN_SEARCH_STATS_IDX		6
-#define NOTEBOOK_MAIN_CONFIG_IDX			7
-
-#define NOTEBOOK_MAIN_IDX_MAX				7
 
 
 /*
@@ -49,15 +39,18 @@ typedef struct statusbar_timeout {
 	time_t timeout; /* time after which the message should be removed */
 } statusbar_timeout_t;
 
+
+
 /* 
  * Context ids for the status bar 
  */
-
 extern guint scid_hostsfile;
 extern guint scid_search_autoselected;
 extern guint scid_queue_freezed;
 extern guint scid_queue_remove_regex;
 extern guint scid_warn;
+
+
 
 /*
  * Uploads table columns
@@ -71,6 +64,8 @@ enum {
     c_ul_status
 };
 
+
+
 /*
  * Downloads table columns (and queue, must be same)
  */
@@ -81,6 +76,8 @@ enum {
     c_dl_server,
     c_dl_status
 };
+
+
 
 /*
  * Searches table columns
@@ -93,6 +90,8 @@ enum {
     c_sr_info
 };
 
+
+
 /*
  * Searches overview table columns
  */
@@ -101,6 +100,8 @@ enum {
     c_sl_hit,
     c_sl_new
 };
+
+
 
 /*
  * Notebook tabs in the main notebook.
@@ -116,6 +117,8 @@ enum {
     nb_main_page_config
 };
 
+
+
 /*
  * Macros for accessing the statusbar
  */
@@ -126,9 +129,18 @@ enum {
               
 
 /*
+ * Public variables.
+ */
+extern GtkWidget *main_window;
+extern GtkWidget *shutdown_window;
+extern GtkWidget *main_window;
+extern GtkWidget *shutdown_window;
+
+
+
+/*
  * Public interface.
  */
-
 gboolean gui_search_update_tab_label(struct search *sch);
 void gui_init(void);
 void gui_update_all(void);
@@ -164,7 +176,7 @@ void gui_update_max_host_downloads(void);
 void gui_update_max_ttl(void);
 void gui_update_max_uploads(void);
 void gui_update_max_host_uploads(void);
-void gui_update_minimum_speed(guint32);
+void gui_update_minimum_speed(void);
 void gui_update_monitor_max_items(void);
 void gui_update_move_file_path(void);
 void gui_update_my_ttl(void);
@@ -239,6 +251,7 @@ void gui_update_hosts_in_catcher();
 void gui_update_stats_frames();
 void gui_update_queue_frozen();
 void gui_address_changed();
+void gui_search_remove(search_t *);
+void gui_view_search(search_t *sch);
 void gui_allow_rescan_dir(gboolean flag);
-
 #endif /* __gui_h__ */

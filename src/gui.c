@@ -34,6 +34,7 @@
 #include "misc.h"
 #include "callbacks.h"
 #include "gtk-missing.h"
+#include "filter.h"
 
 #include <netinet/in.h>
 #include <arpa/inet.h>
@@ -76,18 +77,17 @@
 
 #define IO_STALLED		60		/* If nothing exchanged after that many secs */
 
-/*
- * Private function declarations:
- */
-//static void gui_init_menu();
-
 static gchar gui_tmp[4096];
 
-/* If no search are currently allocated */
+/*
+ * If no search are currently allocated 
+ */
 GtkWidget *default_search_clist = NULL;
 GtkWidget *default_scrolled_window = NULL;
 
-/* statusbar context ids */
+/*
+ * statusbar context ids 
+ */
 guint scid_bottom              = -1;
 guint scid_hostsfile           = -1;
 guint scid_search_autoselected = -1;
@@ -96,13 +96,27 @@ guint scid_queue_remove_regex  = -1;
 guint scid_ip_changed          = -1;
 guint scid_warn                = -1;
 
-/* List with timeout entries for statusbar messages */
+/* 
+ * List with timeout entries for statusbar messages 
+ */
 static GSList *sl_statusbar_timeouts = NULL;
 
 static GList *sl_search_history = NULL;
 
+/*
+ * Windows
+ */
+GtkWidget * main_window = NULL;
+GtkWidget * shutdown_window = NULL;
+
+/*
+ * Private functions
+ */
 static void gui_init_menu();
 
+/*
+ * Implementation
+ */
 void gui_init(void)
 {
 	/* popup menus */
@@ -156,6 +170,7 @@ void gui_init(void)
 	gtk_widget_set_sensitive(popup_downloads_search_again, FALSE);
 	// FIXME: end
 
+    gtk_widget_set_sensitive(entry_minimum_speed, FALSE);
 	gtk_widget_set_sensitive(popup_downloads_remove_file, FALSE);
     gtk_widget_set_sensitive(popup_downloads_copy_url, FALSE);
     gtk_widget_set_sensitive(popup_nodes_remove, FALSE);
@@ -273,7 +288,6 @@ static void gui_init_menu()
 						  ctree_menu->style->font->descent + 4) * 8);
 
 #ifdef GTA_REVISION
-
 	g_snprintf(gui_tmp, sizeof(gui_tmp), "gtk-gnutella %u.%u %s", GTA_VERSION,
 			   GTA_SUBVERSION, GTA_REVISION);
 #else
@@ -299,7 +313,7 @@ void gui_update_all()
 	gui_update_count_downloads();
 	gui_update_count_uploads();
 
-	gui_update_minimum_speed(minimum_speed);
+	gui_update_minimum_speed();
 	gui_update_up_connections();
 	gui_update_max_connections();
 	gui_update_config_port(TRUE);
@@ -435,6 +449,8 @@ void gui_update_all()
     gui_update_max_hosts_cached();
     gui_update_stats_frames();
     gui_address_changed();
+
+    filter_update_filters();
 
     if (win_w && win_h) {
 		gtk_widget_set_uposition(main_window, win_x, win_y);
@@ -677,12 +693,6 @@ void gui_update_search_reissue_timeout()
 	gtk_entry_set_text(GTK_ENTRY(entry_search_reissue_timeout), gui_tmp);
 }
 
-void gui_update_minimum_speed(guint32 s)
-{
-	g_snprintf(gui_tmp, sizeof(gui_tmp), "%u", s);
-	gtk_entry_set_text(GTK_ENTRY(entry_minimum_speed), gui_tmp);
-}
-
 void gui_update_count_downloads(void)
 {
 	g_snprintf(gui_tmp, sizeof(gui_tmp), "%u", count_downloads);
@@ -803,6 +813,11 @@ void gui_update_search_reissue_timeout(GtkEntry *
 	gtk_entry_set_text(entry_search_reissue_timeout, gui_tmp);
 }
 #endif
+
+UPDATE_SPINBUTTON(
+    spinbutton_config_search_min_speed,
+    minimum_speed,
+    NO_FUNC)
 
 UPDATE_ENTRY(
     entry_config_proxy_ip,
@@ -1420,6 +1435,8 @@ void gui_update_download_abort_resume(void)
     gtk_widget_set_sensitive(popup_downloads_queue, queue);
 }
 
+
+
 void gui_update_upload_kill(void)
 {
 	GList *l = NULL;
@@ -1437,6 +1454,7 @@ void gui_update_upload_kill(void)
 
 	gtk_widget_set_sensitive(button_uploads_kill, d ? 1 : 0);
 }
+
 
 
 void gui_update_download_clear(void)
@@ -1762,8 +1780,6 @@ void gui_search_init(void)
 					   NULL);
 	gtk_signal_connect(GTK_OBJECT(notebook_search_results), "switch_page",
 					   GTK_SIGNAL_FUNC(on_search_notebook_switch), NULL);
-	gtk_window_set_position(GTK_WINDOW(dialog_filters),
-							GTK_WIN_POS_CENTER);
 }
 
 /* Like search_update_tab_label but always update the label */
@@ -1909,5 +1925,143 @@ void gui_update_stats_frames()
     }
 }
 
+/*
+ * gui_search_remove:
+ *
+ * Remove the search from the gui and update all widget accordingly.
+ */
+void gui_search_remove(search_t * sch)
+{
+    gint row;
+    GList *glist;
+    gboolean sensitive;
+
+    g_assert(sch != NULL);
+
+   	glist = g_list_prepend(NULL, (gpointer) sch->list_item);
+	gtk_list_remove_items(GTK_LIST(GTK_COMBO(combo_searches)->list), glist);
+
+    row = gtk_clist_find_row_from_data(GTK_CLIST(clist_search), sch);
+    gtk_clist_remove(GTK_CLIST(clist_search), row);
+
+    gtk_timeout_remove(sch->tab_updating);
+
+    if (searches) {				/* Some other searches remain. */
+		gtk_notebook_remove_page(GTK_NOTEBOOK(notebook_search_results),
+			gtk_notebook_page_num(GTK_NOTEBOOK(notebook_search_results),
+				sch->scrolled_window));
+	} else {
+		/*
+		 * Keep the clist of this search, clear it and make it the
+		 * default clist
+		 */
+
+		gtk_clist_clear(GTK_CLIST(sch->clist));
+
+		default_search_clist = sch->clist;
+		default_scrolled_window = sch->scrolled_window;
+
+        search_selected = current_search = NULL;
+
+		gui_search_update_items(NULL);
+
+		gtk_entry_set_text(GTK_ENTRY(combo_entry_searches), "");
+
+        gtk_notebook_set_tab_label_text(GTK_NOTEBOOK(notebook_search_results),
+            default_scrolled_window,
+            "(no search)");
+
+		gtk_widget_set_sensitive(button_search_clear, FALSE);
+		gtk_widget_set_sensitive(popup_search_clear_results, FALSE);
+        gtk_widget_set_sensitive(entry_minimum_speed, FALSE);
+        gtk_entry_set_text(GTK_ENTRY(entry_minimum_speed), "");
+	}
+    
+	gtk_widget_set_sensitive(combo_searches, searches != NULL);
+	gtk_widget_set_sensitive(button_search_close, searches != NULL);
+
+    sensitive = current_search && GTK_CLIST(current_search->clist)->selection;
+    gtk_widget_set_sensitive(button_search_download, sensitive);
+}
+
+void gui_view_search(search_t *sch) 
+{
+	search_t *old_sch = current_search;
+    GtkCTreeNode * node;
+    gint row;
+    static gboolean locked = FALSE;
+
+	g_return_if_fail(sch);
+
+    if (locked)
+        return;
+
+    locked = TRUE;
+
+	current_search = sch;
+	sch->unseen_items = 0;
+
+	if (old_sch)
+		gui_search_force_update_tab_label(old_sch);
+	gui_search_force_update_tab_label(sch);
+
+	gui_search_update_items(sch);
+    g_snprintf(gui_tmp, sizeof(gui_tmp), "%u", sch->speed);
+    gtk_entry_set_text(GTK_ENTRY(entry_minimum_speed), gui_tmp);
+
+	gtk_widget_set_sensitive
+        (button_search_download, GTK_CLIST(sch->clist)->selection != NULL);
+
+	if (sch->items == 0) {
+		gtk_widget_set_sensitive(button_search_clear, FALSE);
+		gtk_widget_set_sensitive(popup_search_clear_results, FALSE);
+	} else {
+		gtk_widget_set_sensitive(button_search_clear, TRUE);
+		gtk_widget_set_sensitive(popup_search_clear_results, TRUE);
+	}
+
+	gtk_widget_set_sensitive(popup_search_restart, !sch->passive);
+	gtk_widget_set_sensitive(popup_search_duplicate, !sch->passive);
+	gtk_widget_set_sensitive(popup_search_stop, sch->passive ?
+							 !sch->frozen : sch->reissue_timeout);
+	gtk_widget_set_sensitive(popup_search_resume, sch->passive ?
+							 sch->frozen : sch->reissue_timeout);
+
+    /*
+     * Sidebar searches list.
+     */
+    row = gtk_clist_find_row_from_data(GTK_CLIST(clist_search), sch);
+    gtk_clist_select_row(GTK_CLIST(clist_search),row,0);
+    
+
+    /*
+     * Combo "Active searches"
+     */
+  	gtk_list_item_select(GTK_LIST_ITEM(sch->list_item));
+
+    /*
+     * Search results notebook
+     */
+    gtk_notebook_set_page(GTK_NOTEBOOK(notebook_search_results),
+						  gtk_notebook_page_num(GTK_NOTEBOOK
+												(notebook_search_results),
+												sch->scrolled_window));
+
+    /*
+     * Tree menu
+     */
+    node = gtk_ctree_find_by_row_data(
+        GTK_CTREE(ctree_menu),
+        gtk_ctree_node_nth(GTK_CTREE(ctree_menu),0),
+        (gpointer) nb_main_page_search);
+
+    /*
+     * Can happen during initialistion.
+     */
+    if (node != NULL)
+        gtk_ctree_select(GTK_CTREE(ctree_menu),node);
+
+    locked = FALSE;
+}
 
 /* vi: set ts=4: */
