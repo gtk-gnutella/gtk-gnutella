@@ -210,12 +210,12 @@ Ladies and gentleman, here's the
      more than once.  This prevents typedefs from being evaluated twice,
      and shuts compiler warning for possible macro redefinition:
 
-        #ifndef __filename_h__
-        #define __filename_h__
+        #ifndef _filename_h_
+        #define _filename_h_
         ...
         include file definitions goes here.
         ...
-        #endif /* __filename_h__ */
+        #endif /* _filename_h_ */
 
 8.2  Always enclose macros that behave as statements within a do {} while (0)
      to make them real statements.  Leave the trailing ";" off, so that
