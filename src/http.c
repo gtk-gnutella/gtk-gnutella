@@ -586,6 +586,7 @@ static gchar *error_str[] = {
 	"Unparseable HTTP status",				/* HTTP_ASYNC_BAD_STATUS */
 	"Got moved status, but no location",	/* HTTP_ASYNC_NO_LOCATION */
 	"Data timeout",							/* HTTP_ASYNC_TIMEOUT */
+	"Nested redirection",					/* HTTP_ASYNC_NESTED */
 };
 
 gint http_async_errno;		/* Used to return error codes during setup */
@@ -639,6 +640,8 @@ struct http_async {					/* An asynchronous HTTP request */
 	bio_source_t *bio;				/* Bandwidth-limited source */
 	gpointer user_opaque;			/* User opaque data */
 	http_user_free_t user_free;		/* Free routine for opaque data */
+	struct http_async *parent;		/* Parent request, for redirections */
+	GSList *children;				/* Child requests */
 };
 
 /*
@@ -698,16 +701,20 @@ gpointer http_async_get_opaque(gpointer handle)
 }
 
 /*
- * http_async_free
+ * http_async_free_recursive
  *
- * Free the HTTP asynchronous request handler, disposing of all its
- * attached resources.
+ * Free this HTTP asynchronous request handler, disposing of all its
+ * attached resources, recursively.
  */
-static void http_async_free(struct http_async *ha)
+static void http_async_free_recursive(struct http_async *ha)
 {
+	GSList *l;
+
 	g_assert(sl_outgoing);
 
-	socket_free(ha->socket);
+	if (ha->socket)
+		socket_free(ha->socket);
+
 	atom_str_free(ha->url);
 	atom_str_free(ha->path);
 
@@ -722,7 +729,43 @@ static void http_async_free(struct http_async *ha)
 
 	sl_outgoing = g_slist_remove(sl_outgoing, ha);
 
+	/*
+	 * Recursively free the children requests.
+	 */
+
+	for (l = ha->children; l; l = l->next) {
+		struct http_async *cha = (struct http_async *) l->data;
+		http_async_free_recursive(cha);
+	}
+
 	wfree(ha, sizeof(*ha));
+}
+
+/*
+ * http_async_free
+ *
+ * Free the root of the HTTP asynchronous request handler, disposing
+ * of all its attached resources.
+ */
+static void http_async_free(struct http_async *ha)
+{
+	struct http_async *hax;
+
+	g_assert(sl_outgoing);
+
+	/*
+	 * Find the root of the hierearchy into `hax'.
+	 */
+
+	for (hax = ha;; hax = hax->parent) {
+		if (!hax->parent)
+			break;
+	}
+
+	g_assert(hax != NULL);
+	g_assert(hax->parent == NULL);
+
+	http_async_free_recursive(hax);
 }
 
 /*
@@ -813,23 +856,30 @@ static void http_async_http_error(
 }
 
 /*
- * http_async_get
+ * http_async_create
  *
- * Starts an asynchronous HTTP GET request on the specified path.
- * Returns a handle on the request if OK, NULL on error with the
- * http_async_errno variable set before returning.
+ * Internal creation routine for HTTP asynchronous requests.
  *
- * When data is available, `data_ind' will be called.  When all data have been
- * read, a final call to `data_ind' is made with no data.
+ * The URL to request is given by `url'.
+ * The type of HTTP request (GET, POST, ...) is given by `type'.
  *
- * On error, `error_ind' will be called, and upon return, the request will
- * be automatically cancelled.
+ * When all headers are read, optionally call `header_ind' if not-NULL.
+ * When data is present, call `data_ind'.
+ * On error condition during the asynchronous processing, call `error_ind',
+ * including when the request is explicitly cancelled (but NOT when it is
+ * excplicitly closed).
+ *
+ * If `parent' is not NULL, then this request is a child request.
+ *
+ * Returns the newly created request, or NULL with `http_async_errno' set.
  */
-gpointer http_async_get(
+static struct http_async *http_async_create(
 	gchar *url,
+	enum http_reqtype type,
 	http_header_cb_t header_ind,
 	http_data_cb_t data_ind,
-	http_error_cb_t error_ind)
+	http_error_cb_t error_ind,
+	struct http_async *parent)
 {
 	guint32 ip;
 	guint16 port;
@@ -874,7 +924,7 @@ gpointer http_async_get(
 	s->resource.handle = ha;
 
 	ha->magic = HTTP_ASYNC_MAGIC;
-	ha->type = HTTP_GET;
+	ha->type = type;
 	ha->url = atom_str_get(url);
 	ha->path = atom_str_get(path);
 	ha->host = host ? atom_str_get(host) : NULL;
@@ -887,10 +937,119 @@ gpointer http_async_get(
 	ha->last_update = time(NULL);
 	ha->user_opaque = NULL;
 	ha->user_free = NULL;
+	ha->parent = parent;
+	ha->children = NULL;
 
 	sl_outgoing = g_slist_prepend(sl_outgoing, ha);
 
+	/*
+	 * If request has a parent, insert in parent's children list.
+	 */
+
+	if (parent)
+		parent->children = g_slist_prepend(parent->children, ha);
+
 	return ha;
+}
+
+/*
+ * http_async_get
+ *
+ * Starts an asynchronous HTTP GET request on the specified path.
+ * Returns a handle on the request if OK, NULL on error with the
+ * http_async_errno variable set before returning.
+ *
+ * When data is available, `data_ind' will be called.  When all data have been
+ * read, a final call to `data_ind' is made with no data.
+ *
+ * On error, `error_ind' will be called, and upon return, the request will
+ * be automatically cancelled.
+ */
+gpointer http_async_get(
+	gchar *url,
+	http_header_cb_t header_ind,
+	http_data_cb_t data_ind,
+	http_error_cb_t error_ind)
+{
+	return (gpointer) http_async_create(url, HTTP_GET,
+		header_ind, data_ind, error_ind,
+		NULL);
+}
+
+/*
+ * http_subreq_header_ind
+ *
+ * Interceptor callback for `header_ind' in child requests.
+ * Reroute to parent request.
+ */
+static gboolean http_subreq_header_ind(
+	gpointer handle, struct header *header, gint code)
+{
+	struct http_async *ha = (struct http_async *) handle;
+
+	g_assert(ha->magic == HTTP_ASYNC_MAGIC);
+	g_assert(ha->parent != NULL);
+	g_assert(ha->parent->header_ind);
+
+	return (*ha->parent->header_ind)(ha->parent, header, code);
+}
+
+/*
+ * http_subreq_data_ind
+ *
+ * Interceptor callback for `data_ind' in child requests.
+ * Reroute to parent request.
+ */
+static void http_subreq_data_ind(
+	gpointer handle, gchar *data, gint len)
+{
+	struct http_async *ha = (struct http_async *) handle;
+
+	g_assert(ha->magic == HTTP_ASYNC_MAGIC);
+	g_assert(ha->parent != NULL);
+	g_assert(ha->parent->data_ind);
+
+	(*ha->parent->data_ind)(ha->parent, data, len);
+}
+
+/*
+ * http_subreq_error_ind
+ *
+ * Interceptor callback for `error_ind' in child requests.
+ * Reroute to parent request.
+ */
+static void http_subreq_error_ind(
+	gpointer handle, http_errtype_t error, gpointer val)
+{
+	struct http_async *ha = (struct http_async *) handle;
+
+	g_assert(ha->magic == HTTP_ASYNC_MAGIC);
+	g_assert(ha->parent != NULL);
+	g_assert(ha->parent->error_ind);
+
+	(*ha->parent->error_ind)(ha->parent, error, val);
+}
+
+/*
+ * http_async_subrequest
+ *
+ * Create a child request, to follow redirection transparently.
+ * All callbacks will be rerouted to the parent request, as if they came
+ * from the original parent.
+ */
+static struct http_async *http_async_subrequest(
+	struct http_async *parent, gchar *url, enum http_reqtype type)
+{
+	/*
+	 * We're installing our own callbacks to transparently reroute them
+	 * to the user-supplied callbacks for the parent request, hence making
+	 * the sub-request invisible from the outside.
+	 */
+
+	return http_async_create(url, type,
+		parent->header_ind ? http_subreq_header_ind : NULL,	/* Optional */
+		http_subreq_data_ind, http_subreq_error_ind,
+		parent);
 }
 
 /*
@@ -900,10 +1059,31 @@ gpointer http_async_get(
  */
 static void http_redirect(struct http_async *ha, gchar *url)
 {
-	// XXX
-	g_warning("HTTP redirect not implemented yet!");
-	http_async_error(ha, HTTP_ASYNC_BAD_STATUS);
-	// XXX
+	/*
+	 * If this request already has a parent, then we're already
+	 * a redirection.  We're currently not allowing it.  When we do, it
+	 * will have to be limited anyway to avoid endless redirections.
+	 */
+
+	if (ha->parent) {
+		http_async_error(ha, HTTP_ASYNC_NESTED);
+		return;
+	}
+
+	/*
+	 * Close connection of parent request.
+	 */
+
+	g_assert(ha->socket);
+
+	socket_free(ha->socket);
+	ha->socket = NULL;
+
+	/*
+	 * Create sub-request to handle the redirection.
+	 */
+
+	(void) http_async_subrequest(ha, url, ha->type);
 }
 
 /*
@@ -1023,14 +1203,30 @@ static void http_got_header(struct http_async *ha, header_t *header)
 	switch (ack_code) {
 	case 200:					/* OK */
 		break;
-	case 301:					/* Moved */
+	case 301:					/* Moved permanently */
+	case 302:					/* Found */
+	case 303:					/* See other */
+	case 307:					/* Moved temporarily */
 		buf = header_get(header, "Location");
 		if (buf == NULL) {
 			http_async_error(ha, HTTP_ASYNC_NO_LOCATION);
 			return;
 		}
-		http_redirect(ha, buf);
-		return;
+		/*
+		 * On 302, we can only blindly follow the redirection if the original
+		 * request was a GET or a HEAD.
+		 */
+		if (
+			ack_code != 302 ||
+			(ack_code == 302 && (ha->type == HTTP_GET || ha->type == HTTP_HEAD))
+		) {
+			if (dbg > 2)
+				printf("HTTP %s redirect %d (%s): \"%s\" -> \"%s\"\n",
+					http_verb[ha->type], ack_code, ack_message, ha->url, buf);
+			http_redirect(ha, buf);
+			return;
+		}
+		/* FALL THROUGH */
 	default:					/* Error */
 		http_async_http_error(ha, header, ack_code, ack_message);
 		return;

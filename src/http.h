@@ -132,6 +132,7 @@ typedef void (*http_user_free_t)(gpointer data);
 #define HTTP_ASYNC_BAD_STATUS	8	/* Unparseable HTTP status */
 #define HTTP_ASYNC_NO_LOCATION	9	/* Got moved status, but no location */
 #define HTTP_ASYNC_TIMEOUT		10	/* Data timeout */
+#define HTTP_ASYNC_NESTED		11	/* Nested redirections */
 
 extern gint http_async_errno;
 
