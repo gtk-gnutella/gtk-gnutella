@@ -1,0 +1,137 @@
+                                                            _W3C_ NOTE-datetime
+
+ 
+
+
+                             Date and Time Formats
+
+                           _Status_of_this_Document_
+
+                       Submitted_to_W3C_15_September_1997
+
+
+
+  This version:
+      http://www.w3.org/TR/1998/NOTE-datetime-19980827
+
+  Newest version:
+      http://www.w3.org/TR/NOTE-datetime
+
+  Authors:
+      Misha Wolf <misha.wolf@reuters.com>
+      Charles Wicksteed <charles.wicksteed@reuters.com>
+
+  Document_Status
+
+
+Status of this document
+
+This document is a NOTE made available by the W3 Consortium for discussion
+only. This indicates no endorsement of its content, nor that the Consortium
+has, is, or will be allocating any resources to the issues addressed by the
+NOTE.
+This document is a submission to W3C from Reuters Limited. Please see
+Acknowledged_Submissions_to_W3C regarding its disposition.
+Comments on this document should be sent to datetime-comments@w3.org.
+-------------------------------------------------------------------------------
+
+Abstract
+
+This document defines a profile of ISO 8601, the International Standard for the
+representation of dates and times. ISO 8601 describes a large number of date/
+time formats. To reduce the scope for error and the complexity of software, it
+is useful to restrict the supported formats to a small number. This profile
+defines a few date/time formats, likely to satisfy most requirements.
+-------------------------------------------------------------------------------
+
+Introduction
+
+The International Standard for the representation of dates and times is ISO
+8601. Its full reference number is ISO 8601 : 1988 (E), and its title is "Data
+elements and interchange formats - Information interchange - Representation of
+dates and times". A discussion of ISO 8601 has been written by Markus Kuhn.
+ISO 8601 describes a large number of date/time formats. For example it defines
+Basic Format, without punctuation, and Extended Format, with punctuation, and
+it allows elements to be omitted. This profile defines a restricted range of
+formats, all of which are valid ISO 8601 dates and times. The aim is to
+simplify the use of ISO 8601 in World Wide Web-related standards, and to avoid
+the need for the developers and users of these standards to obtain copies of
+ISO 8601 itself.
+A particular problem with ISO 8601 is that it allows the century to be omitted
+from years, which is likely to cause trouble as we approach the year 2000. This
+profile avoids the problem by expressing the year as four digits in all cases.
+This profile may be adopted by standards which require an unambiguous
+representation of dates and times. As different standards have their own
+requirements regarding granularity and flexibility, this profile offers a
+number of options. An adopting standard must specify which of these options it
+permits.
+-------------------------------------------------------------------------------
+
+Formats
+
+Different standards may need different levels of granularity in the date and
+time, so this profile defines six levels. Standards that reference this profile
+should specify one or more of these granularities. If a given standard allows
+more than one granularity, it should specify the meaning of the dates and times
+with reduced precision, for example, the result of comparing two dates with
+different precisions.
+The formats are as follows. Exactly the components shown here must be present,
+with exactly this punctuation. Note that the "T" appears literally in the
+string, to indicate the beginning of the time element, as specified in ISO
+8601.
+
+     Year:
+        YYYY (eg 1997)
+     Year and month:
+        YYYY-MM (eg 1997-07)
+     Complete date:
+        YYYY-MM-DD (eg 1997-07-16)
+     Complete date plus hours and minutes:
+        YYYY-MM-DDThh:mmTZD (eg 1997-07-16T19:20+01:00)
+     Complete date plus hours, minutes and seconds:
+        YYYY-MM-DDThh:mm:ssTZD (eg 1997-07-16T19:20:30+01:00)
+     Complete date plus hours, minutes, seconds and a decimal fraction of a
+  second
+        YYYY-MM-DDThh:mm:ss.sTZD (eg 1997-07-16T19:20:30.45+01:00)
+
+where:
+
+       YYYY = four-digit year
+       MM   = two-digit month (01=January, etc.)
+       DD   = two-digit day of month (01 through 31)
+       hh   = two digits of hour (00 through 23) (am/pm NOT allowed)
+       mm   = two digits of minute (00 through 59)
+       ss   = two digits of second (00 through 59)
+       s    = one or more digits representing a decimal fraction of a second
+       TZD  = time zone designator (Z or +hh:mm or -hh:mm)
+
+This profile does not specify how many digits may be used to represent the
+decimal fraction of a second. An adopting standard that permits fractions of a
+second must specify both the minimum number of digits (a number greater than or
+equal to one) and the maximum number of digits (the maximum may be stated to be
+"unlimited").
+This profile defines two ways of handling time zone offsets:
+
+  1. Times are expressed in UTC (Coordinated Universal Time), with a special
+     UTC designator ("Z").
+  2. Times are expressed in local time, together with a time zone offset in
+     hours and minutes. A time zone offset of "+hh:mm" indicates that the date/
+     time uses a local time zone which is "hh" hours and "mm" minutes ahead of
+     UTC. A time zone offset of "-hh:mm" indicates that the date/time uses a
+     local time zone which is "hh" hours and "mm" minutes behind UTC.
+
+A standard referencing this profile should permit one or both of these ways of
+handling time zone offsets.
+-------------------------------------------------------------------------------
+
+Examples
+
+1994-11-05T08:15:30-05:00 corresponds to November 5, 1994, 8:15:30 am, US
+Eastern Standard Time.
+1994-11-05T13:15:30Z corresponds to the same instant.
+-------------------------------------------------------------------------------
+
+Acknowledgments
+
+This document draws on Chris Newman's Internet Draft "Date and Time on the
+Internet" (draft-newman-datetime-01.txt).
