@@ -213,6 +213,7 @@ prop_set_t *gui_prop_init(void) {
     gui_property->mtime  = 0;
     gui_property->props  = g_new(prop_def_t, GUI_PROPERTY_NUM);
     gui_property->get_stub = gui_prop_get_stub;
+    gui_property->dirty = FALSE;
     gui_property->byName = NULL;
 
 
@@ -1682,6 +1683,18 @@ guint32 *gui_prop_get_guint32(
     return prop_get_guint32(gui_property, prop, t, offset, length);
 }
 
+void gui_prop_set_guint64(
+    property_t prop, const guint64 *src, gsize offset, gsize length)
+{
+    prop_set_guint64(gui_property, prop, src, offset, length);
+}
+
+guint64 *gui_prop_get_guint64(
+    property_t prop, guint64 *t, gsize offset, gsize length)
+{
+    return prop_get_guint64(gui_property, prop, t, offset, length);
+}
+
 void gui_prop_set_string(property_t prop, const gchar *val)
 {
     prop_set_string(gui_property, prop, val);
@@ -1749,6 +1762,9 @@ prop_set_stub_t *gui_prop_get_stub(void)
     stub->guint32.get = gui_prop_get_guint32;
     stub->guint32.set = gui_prop_set_guint32;
 
+    stub->guint64.get = gui_prop_get_guint64;
+    stub->guint64.set = gui_prop_set_guint64;
+
     stub->string.get = gui_prop_get_string;
     stub->string.set = gui_prop_set_string;
 
@@ -1757,4 +1773,3 @@ prop_set_stub_t *gui_prop_get_stub(void)
 
     return stub;
 }
-

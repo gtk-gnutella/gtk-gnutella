@@ -396,6 +396,7 @@ prop_set_t *gnet_prop_init(void) {
     gnet_property->mtime  = 0;
     gnet_property->props  = g_new(prop_def_t, GNET_PROPERTY_NUM);
     gnet_property->get_stub = gnet_prop_get_stub;
+    gnet_property->dirty = FALSE;
     gnet_property->byName = NULL;
 
 

@@ -275,6 +275,7 @@ prop_set_t *[=(. func-prefix)=]_init(void) {
     [=(. prop-set)=]->mtime  = 0;
     [=(. prop-set)=]->props  = g_new(prop_def_t, [=(. prop-num)=]);
     [=(. prop-set)=]->get_stub = [=(. func-prefix)=]_get_stub;
+    [=(. prop-set)=]->dirty = FALSE;
     [=(. prop-set)=]->byName = NULL;[=
 
 FOR prop =][=

@@ -169,6 +169,20 @@ guint32 *gui_prop_get_guint32(
 	gui_prop_get_guint32(p, v, 0, 1); \
 } while (0)
 
+void gui_prop_set_guint64(
+    property_t, const guint64 *, gsize, gsize);
+guint64 *gui_prop_get_guint64(
+    property_t, guint64 *, gsize, gsize);
+
+#define gui_prop_set_guint64_val(p, v) do { \
+	guint64 value = v; \
+	gui_prop_set_guint64(p, &value, 0, 1); \
+} while (0)
+
+#define gui_prop_get_guint64_val(p, v) do { \
+	gui_prop_get_guint64(p, v, 0, 1); \
+} while (0)
+
 void gui_prop_set_storage(property_t, const guint8 *, gsize);
 guint8 *gui_prop_get_storage(property_t, guint8 *, gsize);
 

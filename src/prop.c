@@ -386,6 +386,9 @@ static void prop_emit_prop_changed(prop_set_t *ps, property_t prop)
     event_trigger(
         PROP(ps,prop).ev_changed, 
         T_VETO(prop_changed_listener_t, prop));
+
+	if (PROP(ps,prop).save)
+		ps->dirty = TRUE;
 }
 
 void prop_set_boolean(
@@ -1043,7 +1046,22 @@ static gchar *config_comment(const gchar *s)
 }
 
 /*
- * prop_save_to_file:
+ * prop_save_to_file_if_dirty
+ *
+ * Like prop_save_to_file(), but only perform when dirty, i.e. when at least
+ * one persisted property changed since the last time we saved.
+ */
+void prop_save_to_file_if_dirty(
+	prop_set_t *ps, const gchar *dir, const gchar *filename)
+{
+	if (!ps->dirty)
+		return;
+
+	prop_save_to_file(ps, dir, filename);
+}
+
+/*
+ * prop_save_to_file
  *
  * Read the all properties from the given property set and stores them
  * along with thier description to the given file in the given directory.
@@ -1051,8 +1069,8 @@ static gchar *config_comment(const gchar *s)
  * startup, the modifies file will be renamed to [filename].old before
  * saving.
  */
-void prop_save_to_file
-    (prop_set_t *ps, const gchar *dir, const gchar *_filename)
+void prop_save_to_file(
+	prop_set_t *ps, const gchar *dir, const gchar *_filename)
 {
 	FILE *config;
 	time_t mtime = 0;
@@ -1217,6 +1235,7 @@ void prop_save_to_file
 	 */
 
 	if (0 == fclose(config)) {
+		ps->dirty = FALSE;
 		if (-1 == rename(newfile, filename))
 			g_warning("could not rename %s as %s: %s",
 				newfile, filename, g_strerror(errno));

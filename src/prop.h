@@ -209,6 +209,7 @@ typedef struct prop_set {
     prop_def_t *props; /* Pointer to first item in array of prop_def_t */
     GHashTable *byName;/* hashtable to quickly look up props by name */
     time_t mtime;      /* modification time of the associated file */
+	gboolean dirty;    /* property set needs flushing to disk */
     prop_set_get_stub_t get_stub;
 } prop_set_t;
 
@@ -233,6 +234,8 @@ void prop_add_prop_changed_listener_full(
 void prop_remove_prop_changed_listener(
     prop_set_t *, property_t, prop_changed_listener_t);
 
+void prop_save_to_file_if_dirty(
+    prop_set_t *ps, const gchar *dir, const gchar *filename);
 void prop_save_to_file(
     prop_set_t *ps, const gchar *dir, const gchar *filename);
 void prop_load_from_file(
