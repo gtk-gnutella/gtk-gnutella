@@ -197,31 +197,6 @@ size_t gm_snprintf(gchar *str, size_t n, gchar const *fmt, ...)
 	return retval;
 }
 
-/*
- * gm_strconcatv
- *
- * The vectorized version of g_strconcat().
- */
-gchar *gm_strconcatv(const gchar *s, va_list args)
-{
-	gchar *res;
-	gchar *add;
-	gint size;
-
-	size = strlen(s) + 1;
-	res = g_malloc(size);
-	memcpy(res, s, size);
-
-	while ((add = va_arg(args, gchar *))) {
-		gint len = strlen(add);
-		res = g_realloc(res, size + len);
-		memcpy(res + size - 1, add, len + 1);	/* Includes trailing NULL */
-		size += len;
-	}
-
-	return res;
-}
-
 static gint orig_argc;
 static gchar **orig_argv;
 static gchar **orig_env;
