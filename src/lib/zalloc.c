@@ -361,8 +361,10 @@ static zone_t *zn_create(zone_t *zone, gint size, gint hint)
 	hint = (hint == 0) ? DEFAULT_HINT : hint;
 	asked = size * hint;
 
-	if (asked > MAX_ZONE_SIZE)
-		asked = (MAX_ZONE_SIZE / size) * size;
+	if (asked > MAX_ZONE_SIZE) {
+		hint = MAX_ZONE_SIZE / size;
+		asked = size * hint;
+	}
 
 	g_assert(asked <= MAX_ZONE_SIZE);
 
