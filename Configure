@@ -18,7 +18,7 @@
 
 # $Id$
 #
-# Generated on Mon Feb 16 19:21:19 MET 2004 [metaconfig 3.0 PL70]
+# Generated on Wed Jun 16 21:08:04 MEST 2004 [metaconfig 3.0 PL70]
 
 cat >c1$$ <<EOF
 ARGGGHHHH!!!!!
@@ -4338,7 +4338,7 @@ yes)
 		else tval=false;
 		fi;;
 	*)
-		echo "extern char $1$tdc; int main() { return &$1$tc == 0; }" > t.c;
+		echo "extern char $1$tdc; int main() { return &$1$tc + 2; }" > t.c;
 		if $cc $ccflags $ldflags -o t t.c $libs >/dev/null 2>&1;
 		then tval=true;
 		else tval=false;
