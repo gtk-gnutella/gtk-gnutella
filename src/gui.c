@@ -345,7 +345,7 @@ static void gui_steal_widget_dict_recursive(
 
 	name = gtk_widget_get_name(widget);
 	if (name != NULL) {
-		gpointer *data = g_object_steal_data(G_OBJECT(params->source), name);
+		gpointer data = g_object_steal_data(G_OBJECT(params->source), name);
 		if (data != NULL)
 			g_object_set_data_full(G_OBJECT(params->target), name,
 				data, (GDestroyNotify) gtk_widget_unref);
