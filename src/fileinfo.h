@@ -52,7 +52,8 @@ struct dl_file_info {
 	gint *size_atom;		/* File size (atom -- points to value in memory) */
 	guchar *sha1;			/* server SHA1 (atom) if known, NULL if not. */
 	guchar *cha1;			/* computed SHA1 (atom) if known, NULL if not. */
-	gint32 refcount;		/* Reference count of file */
+	gint32 refcount;		/* Reference count of file (number of sources)*/
+    GSList *sources;        /* list of sources (struct download *)*/
 	gint32 lifecount;		/* Amount of "alive" downloads referencing us */
 	time_t stamp;			/* Time stamp */
 	time_t last_flush;		/* When last flush to disk occurred */
@@ -125,8 +126,10 @@ void file_info_close(void);
 void file_info_try_to_swarm_with(
 	gchar *file_name, guint32 idx, guint32 ip, guint32 port, guchar *sha1);
 void file_info_spot_completed_orphans(void);
-inline void file_info_ref(struct dl_file_info *fi);
-inline void file_info_unref(struct dl_file_info *fi);
+inline void file_info_add_source(
+    struct dl_file_info *fi, struct download *dl);
+inline void file_info_remove_source(
+    struct dl_file_info *fi, struct download *dl);
 inline void file_info_timer(void);
 
 #endif /* _fileinfo_h_ */

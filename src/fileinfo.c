@@ -2085,7 +2085,7 @@ void file_info_recreate(struct download *d)
 	 */
 
 	d->file_info = new_fi;			/* Don't decrement refcount on fi yet */
-    file_info_ref(new_fi);
+    file_info_add_source(new_fi, d);
 	new_fi->lifecount++;
 
 	/*
@@ -3179,16 +3179,57 @@ void fi_get_status(gnet_fi_t fih, gnet_fi_status_t *s)
     s->size           = fi->size;
 }
 
-inline void file_info_ref(struct dl_file_info *fi)
+
+/*
+ * fi_get_aliases:
+ *
+ * O(2n) - n: number of aliases
+ *
+ * Return NULL terminated array of gchar * pointing to the aliases.
+ * You can easily free the returned array with g_strfreev().
+ */
+gchar **fi_get_aliases(gnet_fi_t fih)
 {
-    fi->refcount ++;
-    fi->dirty_status = TRUE;
+    gchar **a;
+    guint len;
+    GSList *sl;
+    guint n;
+    struct dl_file_info *fi = file_info_find_by_handle(fih); 
+
+    len = g_slist_length(fi->alias);
+
+    a = g_new(gchar *, len+1);
+    a[len] = NULL; /* terminate with NULL */;
+
+    for(sl = fi->alias, n = 0; sl != NULL; sl = g_slist_next(sl), n++) {
+        g_assert(n < len);
+        a[n] = g_strdup((gchar *)sl->data);
+    }
+
+    return a;
 }
 
-inline void file_info_unref(struct dl_file_info *fi)
+inline void file_info_add_source(
+    struct dl_file_info *fi, struct download *dl)
 {
+    g_assert(dl->file_info == NULL);
+
+    fi->refcount ++;
+    fi->dirty_status = TRUE;
+    dl->file_info = fi;
+    fi->sources = g_slist_prepend(fi->sources, dl);
+}
+
+inline void file_info_remove_source(
+    struct dl_file_info *fi, struct download *dl)
+{
+    g_assert(dl->file_info != NULL);
+    g_assert(fi->refcount > 0);
+    
     fi->refcount --;
     fi->dirty_status = TRUE;
+    dl->file_info = NULL;
+    fi->sources = g_slist_remove(fi->sources, dl);
 }
 
 static void fi_notify_helper(
