@@ -31,8 +31,9 @@
 /***
  *** General main window actions
  ***/
-void on_button_quit_clicked (GtkButton *button, gpointer user_data);
-gboolean on_main_window_delete_event (GtkWidget *widget, GdkEvent *event, gpointer user_data);
+void on_button_quit_clicked(GtkButton *button, gpointer user_data);
+gboolean on_main_window_delete_event(
+    GtkWidget *widget, GdkEvent *event, gpointer user_data);
 
 /***
  *** Menu bar
@@ -44,7 +45,16 @@ void on_menu_about_activate(GtkMenuItem * menuitem, gpointer user_data);
  *** About dialog
  ***/
 void on_button_about_close_clicked(GtkButton *button, gpointer user_data);
-gboolean on_dlg_about_delete_event(GtkWidget *widget, GdkEvent *event, gpointer user_data);
+gboolean on_dlg_about_delete_event(
+    GtkWidget *widget, GdkEvent *event, gpointer user_data);
 
+
+/***
+ *** Quit dialog
+ ***/
+void on_button_really_quit_clicked(GtkButton *button,gpointer user_data);
+void on_button_abort_quit_clicked(GtkButton *button, gpointer user_data);
+gboolean on_dlg_quit_delete_event(
+    GtkWidget *widget, GdkEvent *event, gpointer user_data);
 
 #endif /* __main_cb_h__ */

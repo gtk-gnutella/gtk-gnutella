@@ -29,19 +29,35 @@
 #include "main_gui.h"
 
 /***
+ *** Private functions
+ ***/
+
+static void quit(gboolean force)
+{
+    gboolean confirm;
+
+    gui_prop_get_boolean(PROP_CONFIRM_QUIT, &confirm, 0, 1);
+
+    if (force || !confirm)
+       	gtk_gnutella_exit(0);
+    else
+        gtk_widget_show(dlg_quit);
+}
+
+/***
  *** Main window
  ***/
 
 gboolean on_main_window_delete_event
     (GtkWidget *widget, GdkEvent *event, gpointer user_data)
 {
-	gtk_gnutella_exit(0);
+    quit(FALSE);
 	return TRUE;
 }
 
 void on_button_quit_clicked(GtkButton * button, gpointer user_data)
 {
-	gtk_gnutella_exit(0);
+    quit(FALSE);
 }
 
 
@@ -72,4 +88,28 @@ gboolean on_dlg_about_delete_event
 {
 	gtk_widget_hide(dlg_about);
 	return TRUE;
+}
+
+
+
+/***
+ *** Quit dialog
+ ***/
+void on_button_really_quit_clicked(GtkButton *button,gpointer user_data)
+{
+    gtk_widget_hide(dlg_quit);
+	quit(TRUE);
+}
+
+
+void on_button_abort_quit_clicked(GtkButton *button, gpointer user_data)
+{
+    gtk_widget_hide(dlg_quit);
+}
+
+gboolean on_dlg_quit_delete_event(
+    GtkWidget *widget, GdkEvent *event, gpointer user_data)
+{
+    gtk_widget_hide(dlg_quit);
+    return TRUE;
 }
