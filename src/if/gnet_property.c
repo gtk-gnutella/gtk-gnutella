@@ -223,7 +223,7 @@ guint32  proxy_port     = 0x0000;
 guint32  proxy_port_def = 0x0000;
 guint32  proxy_protocol     = PROXY_NONE;
 guint32  proxy_protocol_def = PROXY_NONE;
-prop_def_choice_t proxy_protocol_choices[] = {
+prop_def_choice_t proxy_protocol_choices[] = { 
     {"None", PROXY_NONE},
     {"HTTP", PROXY_HTTP},
     {"SOCKS v4", PROXY_SOCKSV4},
@@ -355,7 +355,7 @@ guint32  max_leaves     = 100;
 guint32  max_leaves_def = 100;
 guint32  search_handle_ignored_files     = 0;
 guint32  search_handle_ignored_files_def = 0;
-prop_def_choice_t search_handle_ignored_files_choices[] = {
+prop_def_choice_t search_handle_ignored_files_choices[] = { 
     {"displayed normally", 0},
     {"displayed marked", 1},
     {"not displayed", 2},
@@ -363,7 +363,7 @@ prop_def_choice_t search_handle_ignored_files_choices[] = {
 };
 guint32  configured_peermode     = NODE_P_AUTO;
 guint32  configured_peermode_def = NODE_P_AUTO;
-prop_def_choice_t configured_peermode_choices[] = {
+prop_def_choice_t configured_peermode_choices[] = { 
     {"auto (recommended)", NODE_P_AUTO},
     {"ultra node", NODE_P_ULTRA},
     {"leaf node", NODE_P_LEAF},
@@ -371,7 +371,7 @@ prop_def_choice_t configured_peermode_choices[] = {
 };
 guint32  current_peermode     = 0;
 guint32  current_peermode_def = 0;
-prop_def_choice_t current_peermode_choices[] = {
+prop_def_choice_t current_peermode_choices[] = { 
     {"ultra node", 2},
     {"normal node", 1},
     {"leaf node", 0},
@@ -612,7 +612,7 @@ prop_set_t *gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[3].name = "new_version_str";
-    gnet_property->props[3].desc = _("Gtk-gnutella found a newer version on the Gnet and gives information about it here");
+    gnet_property->props[3].desc = _("Gtk-Gnutella found a newer version on the Gnet and gives information about it here");
     gnet_property->props[3].ev_changed = event_new("new_version_str_changed");
     gnet_property->props[3].save = FALSE;
     gnet_property->props[3].vector_size = 1;
@@ -2145,7 +2145,7 @@ prop_set_t *gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[82].name = "allow_private_network_connection";
-    gnet_property->props[82].desc = _("Check this button if you want to use GTK-Gnutella on your Local Area Network. RFC1918 will be ignored.");
+    gnet_property->props[82].desc = _("Check this button if you want to use Gtk-Gnutella on your Local Area Network. RFC1918 will be ignored.");
     gnet_property->props[82].ev_changed = event_new("allow_private_network_connection_changed");
     gnet_property->props[82].save = TRUE;
     gnet_property->props[82].vector_size = 1;
@@ -2162,7 +2162,7 @@ prop_set_t *gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[83].name = "use_ip_tos";
-    gnet_property->props[83].desc = _("Check this button if you want GTK-Gnutella to use IP TOS to differentiate interactive, normal and bulk data. This is probably a good idea in most cases, and can particularly help with badly misconfigured hosts, LANs, and ISPs.");
+    gnet_property->props[83].desc = _("Check this button if you want Gtk-Gnutella to use IP TOS to differentiate interactive, normal and bulk data. This is probably a good idea in most cases, and can particularly help with badly misconfigured hosts, LANs, and ISPs.");
     gnet_property->props[83].ev_changed = event_new("use_ip_tos_changed");
     gnet_property->props[83].save = TRUE;
     gnet_property->props[83].vector_size = 1;
@@ -3399,7 +3399,7 @@ prop_set_t *gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[148].name = "online_mode";
-    gnet_property->props[148].desc = _("If deactivated, only uploads and downloads will continue. All gNet connections are disabled/terminated.");
+    gnet_property->props[148].desc = _("If deactivated, only uploads and downloads will continue. All Gnet connections are disabled/terminated.");
     gnet_property->props[148].ev_changed = event_new("online_mode_changed");
     gnet_property->props[148].save = TRUE;
     gnet_property->props[148].vector_size = 1;

@@ -1280,7 +1280,7 @@ create_shutdown_window (void)
   gtk_container_add (GTK_CONTAINER (frame30), vbox44);
   gtk_container_set_border_width (GTK_CONTAINER (vbox44), 30);
 
-  label184 = gtk_label_new (_("Gtk-gnutella is shutting down.\nSending bye messages to peers.\n\nGrace time remaining:"));
+  label184 = gtk_label_new (_("Gtk-Gnutella is shutting down.\nSending bye messages to peers.\n\nGrace time remaining:"));
   gtk_widget_set_name (label184, "label184");
   gtk_widget_show (label184);
   gtk_box_pack_start (GTK_BOX (vbox44), label184, FALSE, FALSE, 0);
@@ -2552,7 +2552,7 @@ create_main_window (void)
   gtk_tooltips_set_tip (tooltips, progressbar_bws_gout, _("Click to toggle display."), NULL);
   gtk_widget_set_events (progressbar_bws_gout, GDK_BUTTON_PRESS_MASK);
 
-  label278 = gtk_label_new (_("gnutellaNet traffic"));
+  label278 = gtk_label_new (_("GnutellaNet traffic"));
   gtk_widget_set_name (label278, "label278");
   gtk_widget_show (label278);
   gtk_frame_set_label_widget (GTK_FRAME (frame_bws_ginout), label278);
@@ -3310,7 +3310,7 @@ create_main_window_gnet_tab (void)
   gtk_box_pack_start (GTK_BOX (hbox265), label852, FALSE, FALSE, 0);
   gtk_misc_set_padding (GTK_MISC (label852), 5, 0);
 
-  label279 = gtk_label_new (_("gnutellaNet connections"));
+  label279 = gtk_label_new (_("GnutellaNet connections"));
   gtk_widget_set_name (label279, "label279");
   gtk_widget_show (label279);
   gtk_frame_set_label_widget (GTK_FRAME (frame5), label279);
@@ -4586,6 +4586,8 @@ create_main_window_downloads_tab (void)
   gtk_widget_set_name (label_fi_sha1, "label_fi_sha1");
   gtk_widget_show (label_fi_sha1);
   gtk_container_add (GTK_CONTAINER (frame128), label_fi_sha1);
+  GTK_WIDGET_SET_FLAGS (label_fi_sha1, GTK_CAN_FOCUS);
+  gtk_label_set_selectable (GTK_LABEL (label_fi_sha1), TRUE);
   gtk_misc_set_alignment (GTK_MISC (label_fi_sha1), 0, 0.5);
 
   frame108 = gtk_frame_new (NULL);
@@ -5021,8 +5023,6 @@ create_main_window_search_tab (void)
   GtkWidget *label665;
   GtkWidget *label666;
   GtkWidget *label667;
-  GtkWidget *viewport66;
-  GtkWidget *entry_result_info_sha1;
   GtkWidget *viewport65;
   GtkWidget *entry_result_info_size;
   GtkWidget *viewport58;
@@ -5038,6 +5038,8 @@ create_main_window_search_tab (void)
   GtkWidget *viewport67;
   GtkWidget *entry_result_info_filename;
   GtkWidget *label662;
+  GtkWidget *viewport66;
+  GtkWidget *entry_result_info_sha1;
   GtkWidget *viewport60;
   GtkWidget *entry_result_info_tag;
   GtkWidget *label669;
@@ -5395,22 +5397,6 @@ create_main_window_search_tab (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label667), 1, 0.5);
 
-  viewport66 = gtk_viewport_new (NULL, NULL);
-  gtk_widget_set_name (viewport66, "viewport66");
-  gtk_widget_show (viewport66);
-  gtk_table_attach (GTK_TABLE (table66), viewport66, 1, 2, 1, 2,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (GTK_FILL), 0, 0);
-  gtk_viewport_set_shadow_type (GTK_VIEWPORT (viewport66), GTK_SHADOW_ETCHED_IN);
-
-  entry_result_info_sha1 = gtk_entry_new ();
-  gtk_widget_set_name (entry_result_info_sha1, "entry_result_info_sha1");
-  gtk_widget_show (entry_result_info_sha1);
-  gtk_container_add (GTK_CONTAINER (viewport66), entry_result_info_sha1);
-  gtk_editable_set_editable (GTK_EDITABLE (entry_result_info_sha1), FALSE);
-  gtk_entry_set_has_frame (GTK_ENTRY (entry_result_info_sha1), FALSE);
-  gtk_entry_set_width_chars (GTK_ENTRY (entry_result_info_sha1), 32);
-
   viewport65 = gtk_viewport_new (NULL, NULL);
   gtk_widget_set_name (viewport65, "viewport65");
   gtk_widget_show (viewport65);
@@ -5425,7 +5411,6 @@ create_main_window_search_tab (void)
   gtk_container_add (GTK_CONTAINER (viewport65), entry_result_info_size);
   gtk_editable_set_editable (GTK_EDITABLE (entry_result_info_size), FALSE);
   gtk_entry_set_has_frame (GTK_ENTRY (entry_result_info_size), FALSE);
-  gtk_entry_set_width_chars (GTK_ENTRY (entry_result_info_size), 20);
 
   viewport58 = gtk_viewport_new (NULL, NULL);
   gtk_widget_set_name (viewport58, "viewport58");
@@ -5441,7 +5426,6 @@ create_main_window_search_tab (void)
   gtk_container_add (GTK_CONTAINER (viewport58), entry_result_info_index);
   gtk_editable_set_editable (GTK_EDITABLE (entry_result_info_index), FALSE);
   gtk_entry_set_has_frame (GTK_ENTRY (entry_result_info_index), FALSE);
-  gtk_entry_set_width_chars (GTK_ENTRY (entry_result_info_index), 12);
 
   viewport59 = gtk_viewport_new (NULL, NULL);
   gtk_widget_set_name (viewport59, "viewport59");
@@ -5526,11 +5510,26 @@ create_main_window_search_tab (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label662), 1, 0.5);
 
+  viewport66 = gtk_viewport_new (NULL, NULL);
+  gtk_widget_set_name (viewport66, "viewport66");
+  gtk_widget_show (viewport66);
+  gtk_table_attach (GTK_TABLE (table66), viewport66, 1, 2, 1, 2,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (GTK_FILL), 0, 0);
+  gtk_viewport_set_shadow_type (GTK_VIEWPORT (viewport66), GTK_SHADOW_ETCHED_IN);
+
+  entry_result_info_sha1 = gtk_entry_new ();
+  gtk_widget_set_name (entry_result_info_sha1, "entry_result_info_sha1");
+  gtk_widget_show (entry_result_info_sha1);
+  gtk_container_add (GTK_CONTAINER (viewport66), entry_result_info_sha1);
+  gtk_editable_set_editable (GTK_EDITABLE (entry_result_info_sha1), FALSE);
+  gtk_entry_set_has_frame (GTK_ENTRY (entry_result_info_sha1), FALSE);
+
   viewport60 = gtk_viewport_new (NULL, NULL);
   gtk_widget_set_name (viewport60, "viewport60");
   gtk_widget_show (viewport60);
   gtk_table_attach (GTK_TABLE (table66), viewport60, 1, 2, 4, 5,
-                    (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
+                    (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (GTK_FILL), 0, 0);
   gtk_viewport_set_shadow_type (GTK_VIEWPORT (viewport60), GTK_SHADOW_ETCHED_IN);
 
@@ -5776,8 +5775,6 @@ create_main_window_search_tab (void)
   GLADE_HOOKUP_OBJECT (main_window_search_tab, label665, "label665");
   GLADE_HOOKUP_OBJECT (main_window_search_tab, label666, "label666");
   GLADE_HOOKUP_OBJECT (main_window_search_tab, label667, "label667");
-  GLADE_HOOKUP_OBJECT (main_window_search_tab, viewport66, "viewport66");
-  GLADE_HOOKUP_OBJECT (main_window_search_tab, entry_result_info_sha1, "entry_result_info_sha1");
   GLADE_HOOKUP_OBJECT (main_window_search_tab, viewport65, "viewport65");
   GLADE_HOOKUP_OBJECT (main_window_search_tab, entry_result_info_size, "entry_result_info_size");
   GLADE_HOOKUP_OBJECT (main_window_search_tab, viewport58, "viewport58");
@@ -5793,6 +5790,8 @@ create_main_window_search_tab (void)
   GLADE_HOOKUP_OBJECT (main_window_search_tab, viewport67, "viewport67");
   GLADE_HOOKUP_OBJECT (main_window_search_tab, entry_result_info_filename, "entry_result_info_filename");
   GLADE_HOOKUP_OBJECT (main_window_search_tab, label662, "label662");
+  GLADE_HOOKUP_OBJECT (main_window_search_tab, viewport66, "viewport66");
+  GLADE_HOOKUP_OBJECT (main_window_search_tab, entry_result_info_sha1, "entry_result_info_sha1");
   GLADE_HOOKUP_OBJECT (main_window_search_tab, viewport60, "viewport60");
   GLADE_HOOKUP_OBJECT (main_window_search_tab, entry_result_info_tag, "entry_result_info_tag");
   GLADE_HOOKUP_OBJECT (main_window_search_tab, label669, "label669");
@@ -9604,7 +9603,7 @@ create_dlg_wizard (void)
 
   dlg_wizard = gtk_dialog_new ();
   gtk_widget_set_name (dlg_wizard, "dlg_wizard");
-  gtk_window_set_title (GTK_WINDOW (dlg_wizard), _("GTK-Gnutella Configuration Wizard"));
+  gtk_window_set_title (GTK_WINDOW (dlg_wizard), _("Gtk-Gnutella Configuration Wizard"));
   gtk_window_set_type_hint (GTK_WINDOW (dlg_wizard), GDK_WINDOW_TYPE_HINT_DIALOG);
 
   dialog_vbox2 = GTK_DIALOG (dlg_wizard)->vbox;
@@ -9616,7 +9615,7 @@ create_dlg_wizard (void)
   gtk_widget_show (vbox137);
   gtk_box_pack_start (GTK_BOX (dialog_vbox2), vbox137, FALSE, TRUE, 0);
 
-  label863 = gtk_label_new (_("<span weight=\"heavy\" size=\"xx-large\">Welcome to GTK-Gnutella!</span>"));
+  label863 = gtk_label_new (_("<span weight=\"heavy\" size=\"xx-large\">Welcome to Gtk-Gnutella!</span>"));
   gtk_widget_set_name (label863, "label863");
   gtk_widget_show (label863);
   gtk_box_pack_start (GTK_BOX (vbox137), label863, TRUE, TRUE, 4);
@@ -10362,7 +10361,7 @@ create_dlg_prefs_net_tab (void)
   gtk_widget_set_name (checkbutton_config_no_rfc1918, "checkbutton_config_no_rfc1918");
   gtk_widget_show (checkbutton_config_no_rfc1918);
   gtk_box_pack_start (GTK_BOX (hbox77), checkbutton_config_no_rfc1918, FALSE, FALSE, 0);
-  gtk_tooltips_set_tip (tooltips, checkbutton_config_no_rfc1918, _("Check this button if you want to use GTK-Gnutella on your Local Area Network. RFC1918 will be ignored."), NULL);
+  gtk_tooltips_set_tip (tooltips, checkbutton_config_no_rfc1918, _("Check this button if you want to use Gtk-Gnutella on your Local Area Network. RFC1918 will be ignored."), NULL);
 
   hbox78 = gtk_hbox_new (FALSE, 4);
   gtk_widget_set_name (hbox78, "hbox78");
@@ -11625,7 +11624,7 @@ create_dlg_prefs_gnet_tab (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_config_incoming_connecting_timeout), TRUE);
 
-  label294 = gtk_label_new (_("gnutellaNet timeouts (all values in seconds)"));
+  label294 = gtk_label_new (_("GnutellaNet timeouts (all values in seconds)"));
   gtk_widget_set_name (label294, "label294");
   gtk_widget_show (label294);
   gtk_frame_set_label_widget (GTK_FRAME (frame_expert_gnet_timeout), label294);
@@ -11742,7 +11741,7 @@ create_dlg_prefs_gnet_tab (void)
   gtk_label_set_justify (GTK_LABEL (label85), GTK_JUSTIFY_CENTER);
   gtk_misc_set_alignment (GTK_MISC (label85), 7.45058e-09, 0.5);
 
-  label295 = gtk_label_new_with_mnemonic (_("gnutellaNet _TTL settings"));
+  label295 = gtk_label_new_with_mnemonic (_("GnutellaNet _TTL settings"));
   gtk_widget_set_name (label295, "label295");
   gtk_widget_show (label295);
   gtk_frame_set_label_widget (GTK_FRAME (frame_expert_gnet_ttl), label295);
@@ -12109,7 +12108,7 @@ create_dlg_prefs_gnet_tab (void)
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
 
-  label775 = gtk_label_new (_("gnutellaNet message size limits"));
+  label775 = gtk_label_new (_("GnutellaNet message size limits"));
   gtk_widget_set_name (label775, "label775");
   gtk_widget_show (label775);
   gtk_frame_set_label_widget (GTK_FRAME (frame_expert_gnet_message_size), label775);
@@ -12709,7 +12708,7 @@ create_dlg_prefs_bw_tab (void)
   gtk_widget_show (label578);
   gtk_frame_set_label_widget (GTK_FRAME (frame79), label578);
 
-  label290 = gtk_label_new_with_mnemonic (_("Bandwidth limits for gnutellaNet traffic"));
+  label290 = gtk_label_new_with_mnemonic (_("Bandwidth limits for GnutellaNet traffic"));
   gtk_widget_set_name (label290, "label290");
   gtk_widget_show (label290);
   gtk_frame_set_label_widget (GTK_FRAME (frame20), label290);
@@ -15280,7 +15279,7 @@ create_dlg_prefs_ui_tab (void)
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 4, 0);
 
-  label747 = gtk_label_new (_("gnutellaNet display"));
+  label747 = gtk_label_new (_("GnutellaNet display"));
   gtk_widget_set_name (label747, "label747");
   gtk_widget_show (label747);
   gtk_frame_set_label_widget (GTK_FRAME (frame94), label747);

@@ -166,7 +166,7 @@ gboolean show_dl_settings     = FALSE;
 gboolean show_dl_settings_def = FALSE;
 guint32  search_stats_mode     = 0;
 guint32  search_stats_mode_def = 0;
-prop_def_choice_t search_stats_mode_choices[] = {
+prop_def_choice_t search_stats_mode_choices[] = { 
     {"disable", 0},
     {"by words", 1},
     {"by whole query", 2},
@@ -191,7 +191,7 @@ gboolean gnet_stats_hops     = FALSE;
 gboolean gnet_stats_hops_def = FALSE;
 guint32  gnet_stats_source     = 0;
 guint32  gnet_stats_source_def = 0;
-prop_def_choice_t gnet_stats_source_choices[] = {
+prop_def_choice_t gnet_stats_source_choices[] = { 
     {"TCP & UDP", GNET_STATS_FULL},
     {"TCP only", GNET_STATS_TCP_ONLY},
     {"UDP only", GNET_STATS_UDP_ONLY},
@@ -261,7 +261,7 @@ guint32  gnet_stats_byte_col_widths[6]     = { 60, 20, 20, 20, 20, 20 };
 guint32  gnet_stats_byte_col_widths_def[6] = { 60, 20, 20, 20, 20, 20 };
 guint32  config_toolbar_style     = 4;
 guint32  config_toolbar_style_def = 4;
-prop_def_choice_t config_toolbar_style_choices[] = {
+prop_def_choice_t config_toolbar_style_choices[] = { 
     {"Icons", 1},
     {"Text", 2},
     {"Both (vertical)", 3},
