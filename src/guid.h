@@ -44,5 +44,8 @@ void guid_random_fill(gchar *xuid);
 void guid_random_muid(gchar *muid);
 void guid_ping_muid(gchar *muid);
 void guid_query_muid(gchar *muid, gboolean initial);
+gboolean guid_query_muid_is_gtkg(const gchar *guid,
+	gboolean oob, guint8 *majp, guint8 *minp, gboolean *relp);
+void guid_oob_get_ip_port(const gchar *guid, guint32 *ip, guint16 *port);
 
 #endif /* _guid_h_ */

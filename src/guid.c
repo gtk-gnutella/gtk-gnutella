@@ -3,12 +3,6 @@
  *
  * Copyright (c) 2002-2003, Raphael Manfredi
  *
- * Globally Unique ID (GUID) manager.
- *
- * HEC generation code is courtesy of Charles Michael Heard (initially
- * written for ATM, but adapted for GTKG, with leading coset leader
- * changed).
- *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
  *
@@ -28,7 +22,18 @@
  *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *----------------------------------------------------------------------
  */
+ 
+/**
+ * @file
+ *
+ * Globally Unique ID (GUID) manager.
+ *
+ * HEC generation code is courtesy of Charles Michael Heard (initially
+ * written for ATM, but adapted for GTKG, with leading coset leader
+ * changed).
+ */
 
+#include "gnutella.h"
 #include "common.h"
 #include "guid.h"
 #include "override.h"		/* Must be the last header included */
@@ -60,12 +65,11 @@ gchar blank_guid[16] = { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 };
 static guint8 syndrome_table[256];
 static guint16 gtkg_version_mark;
 
-/*
- * guid_gen_syndrome_table
- *
+/**
  * Generate a table of CRC-8 syndromes for all possible input bytes.
  */
-static void guid_gen_syndrome_table(void)
+static void
+guid_gen_syndrome_table(void)
 {
 	guint i;
 	guint j;
@@ -81,13 +85,12 @@ static void guid_gen_syndrome_table(void)
 	}
 }
 
-/*
- * guid_gtkg_encode_version
- *
+/**
  * Encode major/minor version into 16 bits.
  * If `rel' is true, we're a release, otherwise we're unstable or a beta.
  */
-static guint16 guid_gtkg_encode_version(guint major, guint minor, gboolean rel)
+static guint16
+guid_gtkg_encode_version(guint major, guint minor, gboolean rel)
 {
 	guint8 low;
 	guint8 high;
@@ -117,12 +120,11 @@ static guint16 guid_gtkg_encode_version(guint major, guint minor, gboolean rel)
 	return (high << 8) | low;
 }
 
-/*
- * guid_hec
- *
+/**
  * Compute GUID's HEC over bytes 1..15
  */
-static guint8 guid_hec(const gchar *xuid)
+static guint8
+guid_hec(const gchar *xuid)
 {
 	gint i;
 	guint8 hec = 0;
@@ -133,12 +135,11 @@ static guint8 guid_hec(const gchar *xuid)
 	return hec ^ HEC_GTKG_MASK;
 }
 
-/*
- * guid_init
- *
+/**
  * Initialize GUID management.
  */
-void guid_init(void)
+void
+guid_init(void)
 {
 	gchar *rev = GTA_REVCHAR;		/* Empty string means stable release */
 
@@ -151,13 +152,12 @@ void guid_init(void)
 		printf("GTKG version mark is 0x%x\n", gtkg_version_mark);
 }
 
-/*
- * guid_flag_modern
- *
+/**
  * Make sure the MUID we use in initial handshaking pings are marked
  * specially to indicate we're modern nodes.
  */
-static void guid_flag_modern(gchar *muid)
+static void
+guid_flag_modern(gchar *muid)
 {
 	/*
 	 * We're a "modern" client, meaning we're not Gnutella 0.56.
@@ -171,29 +171,26 @@ static void guid_flag_modern(gchar *muid)
 	muid[15] = GUID_PONG_CACHING | GUID_PERSISTENT;
 }
 
-/*
- * guid_flag_gtkg
- *
+/**
  * Flag a GUID/MUID as being from GTKG, by patching `xuid' in place.
  *
  * Bytes 2/3 become the GTKG version mark.
  * Byte 0 becomes the HEC of the remaining 15 bytes.
  */
-static void guid_flag_gtkg(gchar *xuid)
+static void
+guid_flag_gtkg(gchar *xuid)
 {
 	xuid[2] = gtkg_version_mark >> 8;
 	xuid[3] = gtkg_version_mark & 0xff;
 	xuid[0] = guid_hec(xuid);
 }
 
-/*
- * guid_is_gtkg
- *
+/**
  * Test whether GUID is that of GTKG, and extract version major/minor, along
  * with release status provided the `majp', `minp' and `relp' are non-NULL.
  */
-gboolean guid_is_gtkg(
-	const gchar *guid, guint8 *majp, guint8 *minp, gboolean *relp)
+gboolean
+guid_is_gtkg(const gchar *guid, guint8 *majp, guint8 *minp, gboolean *relp)
 {
 	guint8 major;
 	guint8 minor;
@@ -227,22 +224,20 @@ gboolean guid_is_gtkg(
 	return TRUE;
 }
 
-/*
- * guid_is_requery
- *
+/**
  * Test whether a GTKG MUID in a Query is marked as being a retry.
  */
-gboolean guid_is_requery(const gchar *xuid)
+gboolean
+guid_is_requery(const gchar *xuid)
 {
 	return (xuid[15] & GUID_REQUERY) ? TRUE : FALSE;
 }
 
-/*
- * guid_random_fill
- *
+/**
  * Generate a new random GUID within given `xuid'.
  */
-void guid_random_fill(gchar *xuid)
+void
+guid_random_fill(gchar *xuid)
 {
 	gint i;
 	guint32 v;
@@ -253,36 +248,33 @@ void guid_random_fill(gchar *xuid)
 	}
 }
 
-/*
- * guid_random_muid
- *
+/**
  * Generate a new random GUID, flagged as GTKG.
  */
-void guid_random_muid(gchar *muid)
+void
+guid_random_muid(gchar *muid)
 {
 	guid_random_fill(muid);
 	guid_flag_gtkg(muid);		/* Mark as being from GTKG */
 }
 
-/*
- * guid_ping_muid
- *
+/**
  * Generate a new random (modern) message ID for pings.
  */
-void guid_ping_muid(gchar *muid)
+void
+guid_ping_muid(gchar *muid)
 {
 	guid_random_fill(muid);
 	guid_flag_modern(muid);
 	guid_flag_gtkg(muid);		/* Mark as being from GTKG */
 }
 
-/*
- * guid_query_muid
- *
+/**
  * Generate a new random message ID for queries.
  * If `initial' is false, this is a requery.
  */
-void guid_query_muid(gchar *muid, gboolean initial)
+void
+guid_query_muid(gchar *muid, gboolean initial)
 {
 	guid_random_fill(muid);
 
@@ -292,6 +284,52 @@ void guid_query_muid(gchar *muid, gboolean initial)
 		muid[15] |= GUID_REQUERY;
 
 	guid_flag_gtkg(muid);		/* Mark as being from GTKG */
+}
+
+/**
+ * Check whether the MUID of a query is that of GTKG.
+ *
+ * GTKG uses GUID tagging, but unfortunately, the bytes uses to store the
+ * IP and port for OOB query hit delivery conflict with the bytes used for
+ * the tagging.  Hence the need for a special routine.
+ *
+ * @param guid	the MUID of the message
+ * @param oob	whether the query requests OOB query hit delivery
+ * @param majp	where the major release version is written, if GTKG
+ * @param minp	where the minor release version is written, if GTKG
+ * @param relp	where the release indicator gets written, if GTKG
+ */
+gboolean
+guid_query_muid_is_gtkg(
+	const gchar *guid, gboolean oob, guint8 *majp, guint8 *minp, gboolean *relp)
+{
+	// XXX change when GTKG generates OOB queries
+	if (oob)
+		return FALSE;
+
+	return guid_is_gtkg(guid, majp, minp, relp);	/* Plain old markup */
+}
+
+/**
+ * Extract the IP and port number from the GUID of queries marked for OOB
+ * query hit delivery.
+ *
+ * Bytes 0 to 3 of the guid are the 4 octet bytes of the IP address.
+ * Bytes 13 and 14 are the little endian representation of the port.
+ */
+void
+guid_oob_get_ip_port(const gchar *guid, guint32 *ip, guint16 *port)
+{
+	if (ip) {
+		guint32 i;
+		READ_GUINT32_BE(&guid[0], i);
+		*ip = i;
+	}
+	if (port) {
+		guint16 p;
+		READ_GUINT16_LE(&guid[13], p);
+		*port = p;
+	}
 }
 
 /* vi: set ts=4: */
