@@ -327,6 +327,8 @@ void share_init(void)
 
 	found_data.l = FOUND_CHUNK;		/* must be > size after found_reset */
 	found_data.d = (guchar *) g_malloc(found_data.l * sizeof(guchar));
+
+    share_gui_init();
 }
 
 /*
