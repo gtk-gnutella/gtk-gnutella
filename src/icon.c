@@ -29,17 +29,11 @@
 #include "config.h"
 #endif
 
-#include <gtk/gtk.h>
-/* Check whether we use GTK+ 2.2.0 or newer */
-#if (GTK_MAJOR_VERSION > 2) || \
-	(GTK_MAJOR_VERSION == 2 && GTK_MINOR_VERSION >= 2)
-
-#include <gdk/gdk.h>
-#include <gdk-pixbuf/gdk-pixbuf.h>
-
 #include "gnutella.h"
 #include "gui.h"
 #include "icon.h"
+
+#if USE_GTK2
 
 static GtkWidget *icon;
 static GtkWidget *canvas;
@@ -149,22 +143,25 @@ gboolean on_canvas_expose_event(GtkWidget * widget,
 
     /*   draw connection icon   */
     center_image(&rect, &panel, con_pixbuf);
-    gdk_draw_pixbuf(canvas->window, NULL, con_pixbuf, 0, 0,
-                    rect.x, rect.y, rect.width, rect.height, 0, 0, 0);
+    gdk_pixbuf_render_to_drawable(con_pixbuf, canvas->window, NULL, 0, 0,
+                                  rect.x, rect.y, rect.width, rect.height, 0, 0,
+                                  0);
 
     panel.y += panel.height;
 
     /*   paint download icon   */
-    center_image(&rect, &panel, up_pixbuf);
-    gdk_draw_pixbuf(canvas->window, NULL, down_pixbuf, 0, 0,
-                    rect.x, rect.y, rect.width, rect.height, 0, 0, 0);
+    center_image(&rect, &panel, down_pixbuf);
+    gdk_pixbuf_render_to_drawable(down_pixbuf, canvas->window, NULL, 0, 0,
+                                  rect.x, rect.y, rect.width, rect.height, 0, 0,
+                                  0);
 
     panel.y += panel.height;
 
     /*   paint upload icon   */
-    center_image(&rect, &panel, down_pixbuf);
-    gdk_draw_pixbuf(canvas->window, NULL, up_pixbuf, 0, 0,
-                    rect.x, rect.y, rect.width, rect.height, 0, 0, 0);
+    center_image(&rect, &panel, up_pixbuf);
+    gdk_pixbuf_render_to_drawable(up_pixbuf, canvas->window, NULL, 0, 0,
+                                  rect.x, rect.y, rect.width, rect.height, 0, 0,
+                                  0);
 
     /*   setup bar column   */
     panel.x = XPM_WIDTH + ICON_INSET;
@@ -365,14 +362,12 @@ void icon_close(void)
     gtk_widget_destroy(icon);
 }
 
-#else                           /*   GTK+ < 2.2.0  */
+#else                           /*   !USE_GTK2  */
 
-/*
- * Right now, I haven't found a good way of setting any kind of
- * icon with GTK < 2.0 without using the Xlib directly.
- */
+#include "support-glade1.h"
 
-#include "icon.h"
+static GdkPixmap *icon_map;
+static GdkBitmap *icon_mask;
 
 void icon_timer(void)
 {
@@ -381,6 +376,10 @@ void icon_timer(void)
 
 void icon_init(void)
 {
+    GtkPixmap *pixmap;
+    pixmap = (GtkPixmap *) create_pixmap(main_window, "icon.xpm");
+    gtk_pixmap_get(pixmap, &icon_map, &icon_mask);
+    gdk_window_set_icon(main_window->window, NULL, icon_map, icon_mask);
     return;
 }
 
@@ -389,27 +388,4 @@ void icon_close(void)
     return;
 }
 
-#endif                          /* GTK+ >= 2.2.0 */
-
-#if 0
-/*
- * XRenderQuerySubpixelOrder
- *
- * I have only "indirectly" installed the gnome-2.0 desktop
- * environment since I really don't use it.  One of the problems
- * this causes is that the shared library libXft.so, which is
- * needed by libpangoxft-1.0.so, which is needed for the gettext
- * functions, can't find this function on my system.  Since I
- * couldn't find a version of libXft.so that would work, and
- * the only recourse seems to be to rebuild the entire xfree
- * package again (of which I don't have the source code right now),
- * I simply define the function here.  Everyone else probably
- * won't need this function.
- */
-int XRenderQuerySubpixelOrder(int x,
-                              int y)
-{
-    return 0;
-}
-#endif
-
+#endif                          /*   USE_GTK2   */
