@@ -109,9 +109,9 @@ typedef struct node_bad_client {
 	char *vendor;
 } node_bad_client_t;
 
-static int node_error_threshold = 12;	/* This requires an average uptime of
+static int node_error_threshold = 6;	/* This requires an average uptime of
 										 * 2 hours for an ultrapeer */
-static time_t node_error_cleanup_timer = 24 * 60 * 60;	/* 1 day */
+static time_t node_error_cleanup_timer = 12 * 60 * 60;	/* half day */
 
 static GSList *sl_proxies = NULL;	/* Our push proxies */
 static idtable_t *node_handle_map = NULL;
@@ -1190,7 +1190,7 @@ void node_remove_by_handle(gnet_node_t n)
 }
 
 /*
- * ip_is_bad
+ * node_ip_is_bad
  *
  * True when a certain IP has proven to be unstable
  */
@@ -5476,6 +5476,14 @@ void node_get_status(const gnet_node_t n, gnet_node_status_t *status)
 
 	status->connect_date = node->connect_date;
 	status->up_date      = node->up_date;
+
+	if (node->gnet_ip != 0) {
+		/* Got a pong from this node, library info should be accurate */
+		status->gnet_files_count  = node->gnet_files_count;
+		status->gnet_kbytes_count = node->gnet_kbytes_count;
+		status->gnet_info_known = TRUE;
+	} else
+		status->gnet_info_known = FALSE;
 
     status->sent       = node->sent;
     status->received   = node->received;

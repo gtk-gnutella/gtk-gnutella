@@ -163,6 +163,25 @@ const gchar *nodes_gui_common_status_str(
 					/* '(' */ ")");
 			}
 
+			if (show_gnet_info_shared_size || show_gnet_info_shared_files) {
+				gboolean is_first = TRUE;
+
+				slen += gm_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
+					" Lib(" /* ')' */);
+
+				if (show_gnet_info_shared_size && n->gnet_info_known) {
+					slen += gm_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
+						"%s", compact_kb_size(n->gnet_kbytes_count));
+					is_first = FALSE;
+				}
+				if (show_gnet_info_shared_files && n->gnet_info_known)
+					slen += gm_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
+						"%s#=%u", is_first ? "" : ", ", n->gnet_files_count);
+
+				slen += gm_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
+					/* '(' */ "%s)", n->gnet_info_known ? "" : "?");
+			}
+
 			if (show_gnet_info_qrp_stats) {
 				if (n->has_qrp)
 					slen += gm_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,

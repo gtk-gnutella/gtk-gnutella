@@ -1740,6 +1740,22 @@ static prop_map_t property_map[] = {
     },
     {
         get_main_window,
+        PROP_SHOW_GNET_INFO_SHARED_SIZE,
+        update_togglebutton,
+        TRUE,
+        "checkbutton_gnet_info_shared_size",
+        FREQ_UPDATES, 0
+    },
+    {
+        get_main_window,
+        PROP_SHOW_GNET_INFO_SHARED_FILES,
+        update_togglebutton,
+        TRUE,
+        "checkbutton_gnet_info_shared_files",
+        FREQ_UPDATES, 0
+    },
+    {
+        get_main_window,
         PROP_NODE_LAST_ULTRA_CHECK,
         update_label_date,
         TRUE,
