@@ -42,6 +42,7 @@ void tsync_init(void);
 void tsync_close(void);
 
 void tsync_send(struct gnutella_node *n, guint32 node_id);
+void tsync_send_timestamp(tm_t *orig, tm_t *final);
 void tsync_got_request(struct gnutella_node *n, tm_t *got);
 void tsync_got_reply(struct gnutella_node *n,
 	tm_t *sent, tm_t *received, tm_t *replied, tm_t *got, gboolean ntp);

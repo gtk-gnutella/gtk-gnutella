@@ -107,18 +107,65 @@ tsync_send(struct gnutella_node *n, guint32 node_id)
 		return;
 
 	ts = walloc(sizeof(*ts));
-	vmsg_send_time_sync_req(n, host_runs_ntp, &ts->sent);
+	tm_now(&ts->sent);
+	ts->sent.tv_sec = clock_loc2gmt(ts->sent.tv_sec);
+	ts->node_id = node_id;
 
 	/*
 	 * As far as time synchronization goes, we must get the reply within
 	 * the next TSYNC_EXPIRE_MS millisecs.
 	 */
 
-	ts->node_id = node_id;
 	ts->expire_ev = cq_insert(callout_queue, TSYNC_EXPIRE_MS,
 		tsync_expire, ts);
 
 	g_hash_table_insert(tsync_by_time, &ts->sent, ts);
+
+	vmsg_send_time_sync_req(n, host_runs_ntp, &ts->sent);
+}
+
+/**
+ * Called when final "T1" timestamp was written to the request, which
+ * superseded the original timestamp we had.
+ *
+ * Note that this routine will be called each time the message is scheduled
+ * for writing, which does not mean it will get written, especially
+ * when enqueued in a TCP message queue with lower stages flow-controlling...
+ */
+void
+tsync_send_timestamp(tm_t *orig, tm_t *final)
+{
+	struct tsync *ts;
+
+	if (dbg > 1) {
+		tm_t elapsed = *final;
+		tm_sub(&elapsed, orig);
+		printf("TSYNC request %d.%d sent at %d.%d (delay = %.6f secs)\n",
+			(gint) orig->tv_sec, (gint) orig->tv_usec,
+			(gint) final->tv_sec, (gint) final->tv_usec,
+			tm2f(&elapsed));
+	}
+
+	ts = g_hash_table_lookup(tsync_by_time, orig);
+	if (ts == NULL) {
+		if (dbg > 1)
+			printf("TSYNC request %d.%d not found, expired already?\n",
+				(gint) orig->tv_sec, (gint) orig->tv_usec);
+		return;
+	}
+
+	g_hash_table_remove(tsync_by_time, orig);
+	ts->sent = *final;
+	g_hash_table_insert(tsync_by_time, &ts->sent, ts);
+
+	/*
+	 * Now that we sent the message, expect a reply in TSYNC_EXPIRE_MS
+	 * or less to be able to synchronize our clock.
+	 */
+
+	g_assert(ts->expire_ev != NULL);
+
+	cq_resched(callout_queue, ts->expire_ev, TSYNC_EXPIRE_MS);
 }
 
 /**
@@ -148,23 +195,18 @@ tsync_got_reply(struct gnutella_node *n,
 	 * Compute the delay.
 	 *
 	 * The delay for the round-trip is: (got - sent) + (received - replied)
-	 * Since we know we can't compute the reception time accurately, we
-	 * multiply the remote (negative) processing time "received - replied" by 3.
 	 */
 
 	delay = *got;				/* Struct copy */
 	tm_sub(&delay, sent);
 	tm_add(&delay, received);
-	tm_add(&delay, received);
-	tm_add(&delay, received);
-	tm_sub(&delay, replied);
-	tm_sub(&delay, replied);
 	tm_sub(&delay, replied);
 
 	rtt = tm2f(&delay);
 
 	if (dbg > 1)
-		printf("TSYNC RTT with %s via %s is: %.6lf secs\n",
+		printf("TSYNC RTT for %d.%d with %s via %s is: %.6lf secs\n",
+			(gint) sent->tv_sec, (gint) sent->tv_usec,
 			node_ip(n), NODE_IS_UDP(n) ? "UDP" : "TCP", rtt);
 
 	/*
@@ -196,7 +238,7 @@ tsync_got_reply(struct gnutella_node *n,
 
 		if (dbg > 1)
 			printf("TSYNC offset between %s clock at %s and ours: %.6lf secs\n",
-				ntp ? "regular" : "NTP", node_ip(n), clock_offset);
+				ntp ? "NTP" : "regular", node_ip(n), clock_offset);
 
 		/*
 		 * If the node is still connected (which we can't know easily if
