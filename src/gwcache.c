@@ -452,6 +452,8 @@ void gwc_close(void)
 
 	cq_cancel(callout_queue, hourly_update_ev);
 	cq_cancel(callout_queue, hourly_refresh_ev);
+	if (urlfile_retry_ev)
+		cq_cancel(callout_queue, urlfile_retry_ev);
 	g_free(client_info);
 
 	gwc_store();
