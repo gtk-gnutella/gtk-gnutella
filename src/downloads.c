@@ -24,8 +24,6 @@
 
 #define DOWNLOAD_RECV_BUFSIZE		114688		/* 112K */
 
-// struct download *selected_queued_download = (struct download *) NULL;
-
 GSList *sl_downloads = NULL;
 guint32 count_downloads = 0;
 gboolean send_pushes = TRUE;
@@ -719,25 +717,6 @@ void download_stop(struct download *d, guint32 new_status,
 	//download_pickup_queued();	/* Can recurse to here via download_stop() */
 	count_running_downloads();
 }
-
-/*
-void download_kill(struct download *d)
-{
-	// Kill a active download: remove it from the GUI, and unlink() the file
-
-	g_return_if_fail(d);
-
-	if (DOWNLOAD_IS_QUEUED(d)) {
-		g_warning("download_kill(): Download is already queued ?!");
-		return;
-	}
-
-	g_snprintf(dl_tmp, sizeof(dl_tmp), "%s/%s", d->path, d->output_name);
-	unlink(dl_tmp);
-
-	download_free(d);
-}
-*/    
 
 void download_queue(struct download *d)
 {

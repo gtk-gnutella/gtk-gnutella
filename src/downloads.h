@@ -126,7 +126,6 @@ void downloads_clear_stopped(gboolean, gboolean);
 void download_abort(struct download *);
 void download_resume(struct download *);
 void download_start(struct download *, gboolean);
-void download_kill(struct download *);
 void download_queue_back(struct download *);
 gboolean download_send_request(struct download *);
 void download_retry(struct download *);
