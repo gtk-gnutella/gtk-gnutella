@@ -1,0 +1,26 @@
+/* XPM */
+static char *dsc_xpm[] = {
+/* width height num_colors chars_per_pixel */
+"    11    11        8            1",
+/* colors */
+". c #222222",
+"# c #414141",
+"a c #616161",
+"b c none",
+"c c #9f9f9f",
+"d c #bebebe",
+"e c #dddddd",
+"f c #fdfdfd",
+/* pixels */
+"bbbbbbbbbbb",
+"b.......acb",
+"b#abbbbbefb",
+"ba#bbbbdfeb",
+"bb#abbbefdb",
+"bba#bbdfebb",
+"bbb#abefdbb",
+"bbba#dfebbb",
+"bbbb#dfdbbb",
+"bbbbacebbbb",
+"bbbbbbbbbbb"
+};
