@@ -60,7 +60,7 @@ static GSList *fuzzy_make_word_list(const char *n)
 
 	while (*n) {
 		len = 2;
-		while (!isalnum((guchar) *n)) n++;
+		while (*n && !isalnum((guchar) *n)) n++;
 		p = n;
 		while (isalnum((guchar) *n)) {
 			n++;
