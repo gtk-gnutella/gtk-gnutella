@@ -1064,8 +1064,10 @@ static void node_remove_v(
 		n->qrt_info = NULL;
 	}
 
-	if (n->rxfc)
+	if (n->rxfc) {
 		wfree(n->rxfc, sizeof(*n->rxfc));
+		n->rxfc = NULL;
+	}
 
 	if (n->status == GTA_NODE_CONNECTED) {		/* Already did if shutdown */
 		connected_node_cnt--;
