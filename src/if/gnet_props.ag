@@ -606,15 +606,15 @@ prop = {
 
 prop = {
     name = "max_ttl";
-    desc = "Maximum TTL we allow in messages we broadcast.  If a message "
+    desc = "Maximum TTL we allow in messages we broadcast.  If a query "
 		   "comes in with a TTL greater than that, it will be trimmed down "
 		   "to that value.  On Gnutella, the standard is TTL=4, so you "
 		   "cannot set a value lower than that.";
     type = guint32;
     data = { 
-        default = 7;
+        default = 4;
         min     = 4;
-        max     = 12;
+        max     = 5;
     };
 };
 
@@ -628,7 +628,7 @@ prop = {
     data = {
         default = 4;
         min     = 1;
-        max     = 7;
+        max     = 4;
     };
 };
 

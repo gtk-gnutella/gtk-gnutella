@@ -137,8 +137,8 @@ guint32  node_tx_flowc_timeout     = 180;
 guint32  node_tx_flowc_timeout_def = 180;
 guint32  node_rx_flowc_ratio     = 70;
 guint32  node_rx_flowc_ratio_def = 70;
-guint32  max_ttl     = 7;
-guint32  max_ttl_def = 7;
+guint32  max_ttl     = 4;
+guint32  max_ttl_def = 4;
 guint32  my_ttl     = 4;
 guint32  my_ttl_def = 4;
 guint32  hard_ttl_limit     = 15;
@@ -1530,7 +1530,7 @@ prop_set_t *gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[49].name = "max_ttl";
-    gnet_property->props[49].desc = _("Maximum TTL we allow in messages we broadcast.  If a message comes in with a TTL greater than that, it will be trimmed down to that value.  On Gnutella, the standard is TTL=4, so you cannot set a value lower than that.");
+    gnet_property->props[49].desc = _("Maximum TTL we allow in messages we broadcast.  If a query comes in with a TTL greater than that, it will be trimmed down to that value.  On Gnutella, the standard is TTL=4, so you cannot set a value lower than that.");
     gnet_property->props[49].ev_changed = event_new("max_ttl_changed");
     gnet_property->props[49].save = TRUE;
     gnet_property->props[49].vector_size = 1;
@@ -1540,7 +1540,7 @@ prop_set_t *gnet_prop_init(void) {
     gnet_property->props[49].data.guint32.def   = &max_ttl_def;
     gnet_property->props[49].data.guint32.value = &max_ttl;
     gnet_property->props[49].data.guint32.choices = NULL;
-    gnet_property->props[49].data.guint32.max   = 12;
+    gnet_property->props[49].data.guint32.max   = 5;
     gnet_property->props[49].data.guint32.min   = 4;
 
 
@@ -1560,7 +1560,7 @@ prop_set_t *gnet_prop_init(void) {
     gnet_property->props[50].data.guint32.def   = &my_ttl_def;
     gnet_property->props[50].data.guint32.value = &my_ttl;
     gnet_property->props[50].data.guint32.choices = NULL;
-    gnet_property->props[50].data.guint32.max   = 7;
+    gnet_property->props[50].data.guint32.max   = 4;
     gnet_property->props[50].data.guint32.min   = 1;
 
 
