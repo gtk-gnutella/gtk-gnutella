@@ -3,9 +3,8 @@
 
 #include "gnutella.h"
 
-#include "interface.h"
-
 #include "search.h"
+#include "filter.h"
 
 
 gboolean filter_record(struct search *sch, struct record *rec)
@@ -15,5 +14,4 @@ gboolean filter_record(struct search *sch, struct record *rec)
 
 	return TRUE;
 }
-
 

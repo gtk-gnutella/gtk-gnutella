@@ -20,9 +20,11 @@ GtkWidget *default_scrolled_window = NULL;	/* If no search are currently allocat
 
 struct search *current_search = NULL;			/*	The search currently displayed */
 
-GtkWidget *dialog_filters = NULL;
-
 gboolean search_results_show_tabs = FALSE;	/* Do we have to display the notebook tabs */
+
+void search_free_r_sets(struct search *);
+void search_send_packet(struct search *);
+void search_update_items(struct search *);
 
 /* --------------------------------------------------------------------------------------------------------- */
 
@@ -86,7 +88,7 @@ void on_clist_search_results_click_column (GtkCList *clist, gint column, gpointe
 	current_search->sort = TRUE;
 }
 
-/* Search results popup menu */
+/* Search results popup menu (glade puts funcs prototypes in callbacks.h) */
 
 void on_popup_search_stop_sorting_activate (GtkMenuItem *menuitem, gpointer user_data)
 {
@@ -95,7 +97,7 @@ void on_popup_search_stop_sorting_activate (GtkMenuItem *menuitem, gpointer user
 
 void on_popup_search_filters_activate (GtkMenuItem *menuitem, gpointer user_data)
 {
-	if (current_search) search_open_filters_dialog();
+	filters_open_dialog();
 }
 
 void on_popup_search_close_activate (GtkMenuItem *menuitem, gpointer user_data)
@@ -108,12 +110,31 @@ void on_popup_search_toggle_tabs_activate (GtkMenuItem *menuitem, gpointer user_
 	gtk_notebook_set_show_tabs(GTK_NOTEBOOK(notebook_search_results), (search_results_show_tabs = !search_results_show_tabs));
 }
 
+void on_popup_search_restart_activate (GtkMenuItem *menuitem, gpointer user_data)
+{
+	if (current_search)
+	{
+		search_free_r_sets(current_search);
+		gtk_clist_clear(GTK_CLIST(current_search->clist));
+		current_search->items = current_search->displayed = 0;
+		search_send_packet(current_search);
+		search_update_items(current_search);
+	}
+}
+
+void on_popup_search_duplicate_activate (GtkMenuItem *menuitem, gpointer user_data)
+{
+	if (current_search) new_search(current_search->speed, current_search->query);
+}
+
 gboolean on_clist_search_results_button_press_event(GtkWidget *widget, GdkEventButton *event, gpointer user_data)
 {
 	if (event->button != 3) return FALSE;
 
 	gtk_widget_set_sensitive(popup_search_toggle_tabs, (gboolean) searches);
 	gtk_widget_set_sensitive(popup_search_close, (gboolean) searches);
+	gtk_widget_set_sensitive(popup_search_restart, (gboolean) searches);
+	gtk_widget_set_sensitive(popup_search_duplicate, (gboolean) searches);
 
 	if (current_search)
 	{
@@ -253,8 +274,6 @@ void search_init(void)
 	gtk_notebook_append_page(GTK_NOTEBOOK(notebook_search_results), default_scrolled_window, NULL);
 	gtk_signal_connect(GTK_OBJECT(GTK_COMBO(combo_searches)->popwin), "hide", GTK_SIGNAL_FUNC(on_search_popdown_switch), NULL);
 	gtk_signal_connect(GTK_OBJECT(notebook_search_results), "switch_page", GTK_SIGNAL_FUNC(on_search_notebook_switch), NULL);
-	dialog_filters = create_dialog_filters();
-	gtk_window_set_position(GTK_WINDOW(dialog_filters), GTK_WIN_POS_CENTER);
 }
 
 /* Free records sets */
@@ -283,6 +302,8 @@ void search_free_r_sets(struct search *sch)
 		search_free_r_set((struct results_set *) l->data);
 
 	g_slist_free(sch->r_sets);
+
+	sch->r_sets = NULL;
 }
 
 /* Close a search */
@@ -330,23 +351,14 @@ void search_close_current(void)
 	gtk_widget_set_sensitive(button_search_close, (gboolean) searches);
 }
 
-/* Start a new search */
+/* Create and send a search request packet */
 
-void new_search(guint16 speed, gchar *query)
+void search_send_packet(struct search *sch)
 {
 	struct  gnutella_msg_search *m;
-	struct  search *sch;
 	guint32 size;
-	GList   *glist;
 
-	sch = (struct search *) g_malloc0(sizeof(struct search));
-
-	sch->query = g_strdup(query);
-	sch->speed = minimum_speed;
-
-	/* Create and send the search request */
-
-	size = sizeof(struct gnutella_msg_search) + strlen(query) + 1;
+	size = sizeof(struct gnutella_msg_search) + strlen(sch->query) + 1;
 
 	m = (struct gnutella_msg_search *) g_malloc(size);
 
@@ -362,13 +374,28 @@ void new_search(guint16 speed, gchar *query)
 
 	WRITE_GUINT16_LE(minimum_speed, m->search.speed);
 
-	strcpy(m->search.query, query);
+	strcpy(m->search.query, sch->query);
 
 	message_add(m->header.muid, GTA_MSG_SEARCH, NULL);
 
 	sendto_all((guchar *) m, NULL, size);
 
 	g_free(m);
+}
+
+/* Start a new search */
+
+void new_search(guint16 speed, gchar *query)
+{
+	struct  search *sch;
+	GList   *glist;
+
+	sch = (struct search *) g_malloc0(sizeof(struct search));
+
+	sch->query = g_strdup(query);
+	sch->speed = minimum_speed;
+
+	search_send_packet(sch);
 
 	/* Create the list item */
 
@@ -420,14 +447,6 @@ void new_search(guint16 speed, gchar *query)
 	gtk_entry_set_text(GTK_ENTRY(entry_search), "");
 
 	searches = g_slist_append(searches, (gpointer) sch);
-}
-
-/* Filters dialog */
-
-void search_open_filters_dialog(void)
-{
-	gtk_widget_show(dialog_filters);
-	gdk_window_raise(dialog_filters->window);
 }
 
 /* Searches results */

@@ -104,13 +104,7 @@ void on_clist_nodes_resize_column (GtkCList *clist, gint column, gint width, gpo
 void on_clist_uploads_resize_column (GtkCList *clist, gint column, gint width, gpointer user_data);
 void on_clist_downloads_resize_column (GtkCList *clist, gint column, gint width, gpointer user_data);
 void on_clist_download_queue_resize_column (GtkCList *clist, gint column, gint width, gpointer user_data);
-
-gboolean
-on_entry_max_host_downloads_focus_out_event
-                                        (GtkWidget       *widget,
-                                        GdkEventFocus   *event,
-                                        gpointer         user_data);
-
-void
-on_entry_max_host_downloads_activate   (GtkEditable     *editable,
-                                        gpointer         user_data);
+gboolean on_entry_max_host_downloads_focus_out_event (GtkWidget *widget, GdkEventFocus *event, gpointer user_data);
+void on_entry_max_host_downloads_activate (GtkEditable *editable, gpointer user_data);
+void on_popup_search_restart_activate (GtkMenuItem *menuitem, gpointer user_data);
+void on_popup_search_duplicate_activate (GtkMenuItem *menuitem, gpointer user_data);

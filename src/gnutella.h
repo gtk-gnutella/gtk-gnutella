@@ -501,7 +501,6 @@ void search_close_current(void);
 gint search_results_compare_size(GtkCList *, gconstpointer, gconstpointer);
 gint search_results_compare_speed(GtkCList *, gconstpointer, gconstpointer);
 gint search_results_compare_ip(GtkCList *, gconstpointer, gconstpointer);
-void search_open_filters_dialog(void);
 
 #endif	/* __gnutella_h__ */
 

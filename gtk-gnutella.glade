@@ -3605,6 +3605,18 @@
 
   <widget>
     <class>GtkMenuItem</class>
+    <name>popup_search_restart</name>
+    <signal>
+      <name>activate</name>
+      <handler>on_popup_search_restart_activate</handler>
+      <last_modification_time>Sun, 21 May 2000 08:49:51 GMT</last_modification_time>
+    </signal>
+    <label>Restart this search</label>
+    <right_justify>False</right_justify>
+  </widget>
+
+  <widget>
+    <class>GtkMenuItem</class>
     <name>popup_search_close</name>
     <signal>
       <name>activate</name>
@@ -3612,6 +3624,18 @@
       <last_modification_time>Mon, 08 May 2000 14:09:18 GMT</last_modification_time>
     </signal>
     <label>Close this search</label>
+    <right_justify>False</right_justify>
+  </widget>
+
+  <widget>
+    <class>GtkMenuItem</class>
+    <name>popup_search_duplicate</name>
+    <signal>
+      <name>activate</name>
+      <handler>on_popup_search_duplicate_activate</handler>
+      <last_modification_time>Sun, 21 May 2000 08:50:32 GMT</last_modification_time>
+    </signal>
+    <label>Duplicate this search</label>
     <right_justify>False</right_justify>
   </widget>
 

@@ -24,8 +24,7 @@ gtk_gnutella_SOURCES = \
 	support.c support.h \
 	interface.c interface.h \
 	callbacks.c callbacks.h \
-	dialog-filters.c dialog-filters.h \
-	callbacks-filters.c callbacks-filters.h
+	dialog-filters.c dialog-filters.h
 
 gtk_gnutella_LDADD = @GTK_LIBS@
 

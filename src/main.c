@@ -6,6 +6,9 @@
 #include "interface.h"
 #include "support.h"
 
+#include "search.h"
+#include "filter.h"
+
 /* */
 
 GtkWidget *main_window;
@@ -150,6 +153,7 @@ gint main(gint argc, gchar **argv)
 	routing_init();
 	search_init();
 	share_init();
+	filters_init();
 
 	/* Some signal handlers */
 

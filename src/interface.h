@@ -99,6 +99,8 @@ extern GtkWidget *popup_search_stop_sorting;
 extern GtkWidget *popup_search_filters;
 extern GtkWidget *popup_search_close;
 extern GtkWidget *popup_search_toggle_tabs;
+extern GtkWidget *popup_search_restart;
+extern GtkWidget *popup_search_duplicate;
 extern GtkWidget *popup_monitor;
 extern GtkWidget *popup_monitor_title;
 extern GtkWidget *popup_nodes;
