@@ -1,6 +1,8 @@
 # since last version
 
 - (2002.10.11 Richard)
+ * Option to visually mark ignored files in the search results.
+ * Update local address displays when listen port is changes (closes 622020).
  * Optionally accept the first chunk of a file from a source that does not
    supply a urn to match against. This dramatically reduces the number of
    "No URN on server". This only helps in cases where you never get a file
