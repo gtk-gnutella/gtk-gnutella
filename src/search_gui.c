@@ -935,7 +935,8 @@ static guint download_selection_of_clist(GtkCList * c, guint *selected)
 		)
 			created++;
 
-		search_gui_check_alt_locs(rc, rs->stamp);
+		if (rc->alt_locs != NULL)
+			search_gui_check_alt_locs(rc, rs->stamp);
 
         /*
          * I'm not totally sure why we have to determine the row again,

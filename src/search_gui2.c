@@ -822,7 +822,8 @@ static void download_selected_file(
 	download_new(rc->name, rc->size, rc->index, rs->ip, rs->port,
 		rs->guid, rc->sha1, rs->stamp, need_push, NULL);
 
-	search_gui_check_alt_locs(rc, rs->stamp);
+	if (rc->alt_locs != NULL)
+		search_gui_check_alt_locs(rc, rs->stamp);
 
 	if (data != NULL) {
 		GSList	**iter_list = (GSList **)data;
