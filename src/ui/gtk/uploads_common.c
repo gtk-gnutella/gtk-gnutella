@@ -104,32 +104,28 @@ uploads_gui_status_str(const gnet_upload_status_t *u,
         return _("Got push, connecting back...");
 
     case GTA_UL_COMPLETE:
-		if (u->last_update != data->start_date) {
+		{
 	        filesize_t requested = data->range_end - data->range_start + 1;
-			gint t = u->last_update - data->start_date;
+			gint t = delta_time(u->last_update, data->start_date);
 			
 			gm_snprintf(tmpstr, sizeof(tmpstr),
 				_("Completed (%s) %s"),
-				compact_rate(requested / t),
-				short_time(t));
-		} else
-			g_strlcpy(tmpstr, _("Completed (< 1s)"), sizeof(tmpstr));
+				t > 0 ? compact_rate(requested / t) : "< 1s",
+				t > 0 ? short_time(t) : "");
+		}
         break;
 
     case GTA_UL_SENDING:
 		{
 			/* Time Remaining at the current rate, in seconds  */
-			filesize_t tr = (data->range_end + 1 - u->pos) / u->avg_bps;
+			filesize_t tr = (data->range_end + 1 - u->pos) / MAX(1, u->avg_bps);
 			gint slen = gm_snprintf(tmpstr, sizeof(tmpstr), "%.02f%%",
 							uploads_gui_progress(u, data) * 100.0);
+			time_t now = time(NULL);
+			gboolean stalled = delta_time(now, u->last_update) > IO_STALLED;
 
-			if (time((time_t *) NULL) - u->last_update > IO_STALLED) {
-				slen += gm_snprintf(&tmpstr[slen], sizeof(tmpstr)-slen, " %s",
-							_("(stalled)"));
-			} else {
-				slen += gm_snprintf(&tmpstr[slen], sizeof(tmpstr)-slen,
-					" (%s)", compact_rate(u->bps));
-			}
+			slen += gm_snprintf(&tmpstr[slen], sizeof(tmpstr)-slen, " %s",
+							stalled ? _("(stalled)") : compact_rate(u->bps));
 
 			gm_snprintf(&tmpstr[slen], sizeof(tmpstr)-slen,
 				" TR: %s", short_time(tr));
