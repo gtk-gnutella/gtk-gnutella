@@ -1770,6 +1770,8 @@ static void download_queue_delay(struct download *d, guint32 delay,
 	 */
 
 	d->last_update = now;
+	d->retry_after = now + delay;
+
 	if (server->retry_after > (now + delay))
 		download_set_retry_after(d, now + delay);
 }
