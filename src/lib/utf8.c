@@ -2213,7 +2213,7 @@ strlcpy_utf8(gchar *dst, const gchar *src, size_t dst_size)
 		size_t i = 0;
 
 		while (i < dst_size) {
-			gint clen;
+			size_t clen;
 
 			if ('\0' == *s)
 				return i;
