@@ -420,8 +420,8 @@ guint32  search_queue_size     = 256;
 guint32  search_queue_size_def = 256;
 guint32  search_queue_spacing     = 10;
 guint32  search_queue_spacing_def = 10;
-gboolean enable_shell     = TRUE;
-gboolean enable_shell_def = TRUE;
+gboolean enable_shell     = FALSE;
+gboolean enable_shell_def = FALSE;
 guint32  entry_removal_timeout     = 5;
 guint32  entry_removal_timeout_def = 5;
 gboolean node_watch_similar_queries     = TRUE;
@@ -3881,7 +3881,7 @@ prop_set_t *gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[180].name = "node_watch_similar_queries";
-    gnet_property->props[180].desc = _("Whether gtk-gnutella should actively monitor query strings by TTL and hop count and drop duplicates.  Only applies when not running as a leaf node, and only for queries with hop count > 0, i.e. not from our immediate neighbour.  Dropped queries will be accounted for in the 'Message throttle' counter");
+    gnet_property->props[180].desc = _("Whether gtk-gnutella should actively monitor query strings by TTL and hop count and drop duplicates.  Only applies when not running as a leaf node, and only for queries with hop count > 0, i.e. not from our immediate neighbour.  Dropped queries will be accounted for in the 'Message throttle' counter.");
     gnet_property->props[180].ev_changed = event_new("node_watch_similar_queries_changed");
     gnet_property->props[180].save = TRUE;
     gnet_property->props[180].vector_size = 1;

@@ -2148,7 +2148,7 @@ prop = {
 		"interface should be allowed.";
 	type = boolean;
 	data = {
-		default = TRUE;
+		default = FALSE;
 	};
 };
 
