@@ -496,6 +496,12 @@ static void handle_proxy_ack(struct gnutella_node *n,
 	payload += 4;
 	READ_GUINT16_LE(payload, port);
 
+	// XXX
+	if (dbg)
+		g_warning("got proxy ACK from %s <%s>: proxy at %s",
+			node_ip(n), node_vendor(n), ip_port_to_gchar(ip, port));
+
+
 	if (!host_is_valid(ip, port)) {
 		g_warning("got improper address %s in %s from %s <%s>",
 			ip_port_to_gchar(ip, port), vmsg->name,
@@ -504,10 +510,6 @@ static void handle_proxy_ack(struct gnutella_node *n,
 	}
 
 	node_proxy_add(n, ip, port);
-
-	// XXX
-	if (dbg)
-		g_warning("got proxy ACK from %s <%s>", node_ip(n), node_vendor(n));
 }
 
 /*
@@ -528,6 +530,7 @@ void vmsg_send_proxy_ack(struct gnutella_node *n, gchar *muid)
 	payload = vmsg_fill_type(&m->data, T_LIME, 22, 2);
 
 	WRITE_GUINT16_BE(listen_ip(), payload);
+	payload += 4;
 	WRITE_GUINT16_LE(listen_port, payload);
 
 	/*
