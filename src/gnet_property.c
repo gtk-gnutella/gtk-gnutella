@@ -3488,7 +3488,7 @@ prop_set_t *gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[161].name = "reserve_gtkg_nodes";
-    gnet_property->props[161].desc = _("Percentage of the number of connections we should reserve for gtk-gnutella nodes.");
+    gnet_property->props[161].desc = _("Percentage of the number of connections we should reserve for gtk-gnutella nodes. Should be less than 100, unless special circumstances arise, such as testing or clustering.");
     gnet_property->props[161].ev_changed = event_new("reserve_gtkg_nodes_changed");
     gnet_property->props[161].save = TRUE;
     gnet_property->props[161].vector_size = 1;
@@ -3508,7 +3508,7 @@ prop_set_t *gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[162].name = "unique_nodes";
-    gnet_property->props[162].desc = _("Maximum percentage of slots a vendor can occupy");
+    gnet_property->props[162].desc = _("Maximum percentage of connection slots a vendor can occupy. Setting this too low may cause problems, especially in leaf mode.");
     gnet_property->props[162].ev_changed = event_new("unique_nodes_changed");
     gnet_property->props[162].save = TRUE;
     gnet_property->props[162].vector_size = 1;

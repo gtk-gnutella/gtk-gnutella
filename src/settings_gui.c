@@ -2166,6 +2166,20 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     },
 #endif
+    {
+        get_main_window,
+        PROP_RESERVE_GTKG_NODES,
+        update_spinbutton,
+        TRUE,
+        "spinbutton_config_reserve_gtkg_nodes"
+    },
+    {
+        get_main_window,
+        PROP_UNIQUE_NODES,
+        update_spinbutton,
+        TRUE,
+        "spinbutton_config_unique_nodes"
+    },
 };
 
 /***
@@ -3510,8 +3524,9 @@ static gboolean expert_mode_changed(property_t prop)
         "frame_expert_gnet_timeout",
         "frame_expert_gnet_ttl",
         "frame_expert_gnet_quality",
+        "frame_expert_gnet_connections",
         "frame_expert_gnet_other",
-		"frame_expert_dl_timeout",
+        "frame_expert_dl_timeout",
         "frame_expert_ul_timeout",
         "frame_expert_dl_source_quality",
         "frame_expert_unmapped",

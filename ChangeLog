@@ -1,5 +1,8 @@
 # since last version
 
+- (2003.12.13 - Jeroen)
+ * Intergrated patch from Clayton, adds vendor preferencing to the gui 
+
 - (2003.12.11 - RAM)
  * Changed compact_size() to display an even more compact string when the
    size is an even multiple of Kbytes, Mbytes, etc...
