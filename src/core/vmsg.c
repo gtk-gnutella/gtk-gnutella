@@ -134,7 +134,9 @@ static struct vmsg vmsg_map[] = {
 	{ T_LIME, 0x000b, 0x0002, handle_oob_reply_ack, "OOB Reply Ack" },
 	{ T_LIME, 0x000c, 0x0001, handle_oob_reply_ind, "OOB Reply Indication" },
 	{ T_LIME, 0x000c, 0x0002, handle_oob_reply_ind, "OOB Reply Indication" },
+	{ T_LIME, 0x0015, 0x0001, handle_proxy_req, "Push-Proxy Request" },
 	{ T_LIME, 0x0015, 0x0002, handle_proxy_req, "Push-Proxy Request" },
+	{ T_LIME, 0x0016, 0x0001, handle_proxy_ack, "Push-Proxy Acknowledgment" },
 	{ T_LIME, 0x0016, 0x0002, handle_proxy_ack, "Push-Proxy Acknowledgment" },
 
 	/* Above line intentionally left blank (for "!}sort" in vi) */
@@ -733,10 +735,12 @@ handle_proxy_req(struct gnutella_node *n,
 	/*
 	 * Add proxying info for this node.  On successful completion,
 	 * we'll send an acknowledgement.
+	 *
+	 * We'll reply with a message at the same version as the one we got.
 	 */
 
 	if (node_proxying_add(n, n->header.muid))	/* MUID is the node's GUID */
-		vmsg_send_proxy_ack(n, n->header.muid);
+		vmsg_send_proxy_ack(n, n->header.muid, vmsg->version);
 }
 
 /**
@@ -763,6 +767,9 @@ vmsg_send_proxy_req(struct gnutella_node *n, const gchar *muid)
 
 /**
  * Handle reception of the "Push Proxy Acknowledgment" message.
+ *
+ * Version 1 only bears the port.  The IP address must be gathered from n->ip.
+ * Version 2 holds both the IP and port of our push-proxy.
  */
 static void
 handle_proxy_ack(struct gnutella_node *n,
@@ -770,16 +777,21 @@ handle_proxy_ack(struct gnutella_node *n,
 {
 	guint32 ip;
 	guint16 port;
+	gint expected_size;
 
-	g_assert(vmsg->version >= 2);
+	expected_size = (vmsg->version < 2) ? 2 : 6;
 
-	if (size != 6) {
-		vmsg_bad_payload(n, vmsg, size, 6);
+	if (size != expected_size) {
+		vmsg_bad_payload(n, vmsg, size, expected_size);
 		return;
 	}
 
-	READ_GUINT32_BE(payload, ip);
-	payload += 4;
+	if (vmsg->version >= 2) {
+		READ_GUINT32_BE(payload, ip);
+		payload += 4;
+	} else
+		ip = n->ip;
+
 	READ_GUINT16_LE(payload, port);
 
 	if (vmsg_debug > 2)
@@ -800,21 +812,33 @@ handle_proxy_ack(struct gnutella_node *n,
 /**
  * Send a "Push Proxy Acknowledgment" message to specified node, using
  * supplied `muid' as the message ID (which is the target node's GUID).
+ *
+ * The version 1 of this message did not have the listening IP, only the
+ * port: the recipient was supposed to gather the IP address from the
+ * connected socket.
+ *
+ * The version 2 includes both our IP and port.
  */
 void
-vmsg_send_proxy_ack(struct gnutella_node *n, gchar *muid)
+vmsg_send_proxy_ack(struct gnutella_node *n, gchar *muid, gint version)
 {
 	struct gnutella_msg_vendor *m = (struct gnutella_msg_vendor *) v_tmp;
 	guint32 paysize = sizeof(guint32) + sizeof(guint16);
 	guint32 msgsize;
 	guchar *payload;
 
+	if (version == 1)
+		paysize -= sizeof(guint32);		/* No IP address for v1 */
+
 	msgsize = vmsg_fill_header(&m->header, paysize, sizeof(v_tmp));
 	memcpy(m->header.muid, muid, 16);
-	payload = vmsg_fill_type(&m->data, T_LIME, 22, 2);
+	payload = vmsg_fill_type(&m->data, T_LIME, 22, version);
 
-	WRITE_GUINT32_BE(listen_ip(), payload);
-	payload += 4;
+	if (version >= 2) {
+		WRITE_GUINT32_BE(listen_ip(), payload);
+		payload += 4;
+	}
+
 	WRITE_GUINT16_LE(listen_port, payload);
 
 	/*
