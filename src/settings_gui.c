@@ -209,6 +209,13 @@ static gboolean downloads_count_changed(property_t prop);
 static gboolean current_peermode_changed(property_t prop);
 static gboolean clock_skew_changed(property_t prop);
 static gboolean update_monitor_unstable_ip(property_t prop);
+static gboolean spinbutton_input_bw_changed(property_t prop);
+static gboolean spinbutton_output_bw_changed(property_t prop);
+static void update_output_bw_display(void);
+static void update_input_bw_display(void);
+#ifdef USE_GTK1
+static gboolean dl_http_latency_changed(property_t prop);
+#endif
 
 /* FIXME:
  * move to separate file and autogenerate from high-level description.
@@ -1094,7 +1101,7 @@ static prop_map_t property_map[] = {
     {
         get_main_window,
         PROP_BW_HTTP_IN,
-        update_bandwidth_spinbutton,
+        spinbutton_input_bw_changed,
         TRUE,
         "spinbutton_config_bws_in",
         FREQ_UPDATES, 0
@@ -1102,7 +1109,7 @@ static prop_map_t property_map[] = {
     {
         get_main_window,
         PROP_BW_HTTP_OUT,
-        update_bandwidth_spinbutton,
+        spinbutton_output_bw_changed,
         TRUE,
         "spinbutton_config_bws_out",
         FREQ_UPDATES, 0
@@ -1110,7 +1117,7 @@ static prop_map_t property_map[] = {
     {
         get_main_window,
         PROP_BW_GNET_IN,
-        update_bandwidth_spinbutton,
+        spinbutton_input_bw_changed,
         TRUE,
         "spinbutton_config_bws_gin",
         FREQ_UPDATES, 0
@@ -1118,7 +1125,7 @@ static prop_map_t property_map[] = {
     {
         get_main_window,
         PROP_BW_GNET_OUT,
-        update_bandwidth_spinbutton,
+        spinbutton_output_bw_changed,
         TRUE,
         "spinbutton_config_bws_gout",
         FREQ_UPDATES, 0
@@ -1972,6 +1979,16 @@ static prop_map_t property_map[] = {
         "label_fi_with_source_count",
         FREQ_UPDATES, 0
     },
+#ifdef USE_GTK1
+    {
+        get_main_window,
+        PROP_DL_HTTP_LATENCY,
+        dl_http_latency_changed,
+        TRUE,
+        "label_dl_http_latency",
+        FREQ_SECS, 1
+    },
+#endif
     {
         get_main_window,
         PROP_SEARCH_MAX_RESULTS,
@@ -1999,7 +2016,7 @@ static prop_map_t property_map[] = {
     {
         get_main_window,
         PROP_BW_GNET_LIN,
-        update_bandwidth_spinbutton,
+        spinbutton_input_bw_changed,
         TRUE,
         "spinbutton_config_bws_glin",
         FREQ_UPDATES, 0
@@ -2007,7 +2024,7 @@ static prop_map_t property_map[] = {
     {
         get_main_window,
         PROP_BW_GNET_LOUT,
-        update_bandwidth_spinbutton,
+        spinbutton_output_bw_changed,
         TRUE,
         "spinbutton_config_bws_glout",
         FREQ_UPDATES, 0
@@ -2710,6 +2727,7 @@ static gboolean bw_gnet_lin_enabled_changed(property_t prop)
     gnet_prop_get_boolean_val(prop, &val);
     gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(w), val);
     gtk_widget_set_sensitive(s, val);
+	update_input_bw_display();
 
     return FALSE;
 }
@@ -2727,6 +2745,7 @@ static gboolean bw_gnet_lout_enabled_changed(property_t prop)
 
     gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(w), val);
     gtk_widget_set_sensitive(s, val);
+	update_output_bw_display();
 
     return FALSE;
 }
@@ -2744,6 +2763,7 @@ static gboolean bw_http_in_enabled_changed(property_t prop)
 
     gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(w), val);
     gtk_widget_set_sensitive(s, val);
+	update_input_bw_display();
 
     return FALSE;
 }
@@ -2761,6 +2781,7 @@ static gboolean bw_gnet_in_enabled_changed(property_t prop)
 
     gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(w), val);
     gtk_widget_set_sensitive(s, val);
+	update_input_bw_display();
 
     return FALSE;
 }
@@ -2778,6 +2799,7 @@ static gboolean bw_gnet_out_enabled_changed(property_t prop)
 
     gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(w), val);
     gtk_widget_set_sensitive(s, val);
+	update_output_bw_display();
 
     return FALSE;
 }
@@ -2825,6 +2847,7 @@ static gboolean bw_http_out_enabled_changed(property_t prop)
     gtk_widget_set_sensitive(s2, val);
     gtk_widget_set_sensitive(c, val);
     gtk_widget_set_sensitive(s1, val && val2);
+	update_output_bw_display();
 
     return FALSE;
 }
@@ -3448,6 +3471,94 @@ static gboolean _update_address_information(void)
     return FALSE;
 }
 
+static void update_input_bw_display(void)
+{
+	gboolean enabled;
+	guint32 val = 0;
+	guint32 bw;
+
+#ifdef USE_GTK1
+	gnet_prop_get_boolean_val(PROP_BW_GNET_LEAF_IN_ENABLED, &enabled);
+	if (enabled) {
+		gnet_prop_get_guint32_val(PROP_BW_GNET_LIN, &bw);
+		val += bw;
+	}
+	gnet_prop_get_boolean_val(PROP_BW_HTTP_IN_ENABLED, &enabled);
+	if (enabled) {
+		gnet_prop_get_guint32_val(PROP_BW_HTTP_IN, &bw);
+		val += bw;
+		/* Leaf bandwidth is taken from HTTP traffic, when enabled */
+		gnet_prop_get_boolean_val(PROP_BW_GNET_LEAF_IN_ENABLED, &enabled);
+		if (enabled) {
+			gnet_prop_get_guint32_val(PROP_BW_GNET_LIN, &bw);
+			val -= bw;
+		}
+	}
+	gnet_prop_get_boolean_val(PROP_BW_GNET_IN_ENABLED, &enabled);
+	if (enabled) {
+		gnet_prop_get_guint32_val(PROP_BW_GNET_IN, &bw);
+		val += bw;
+	}
+
+	gtk_label_printf(
+		GTK_LABEL(lookup_widget(main_window, "label_input_bw_limit")),
+		"%.2f", val / 1024.0);
+#endif
+}
+
+static gboolean spinbutton_input_bw_changed(property_t prop)
+{
+	gboolean ret;
+
+	ret = update_bandwidth_spinbutton(prop);
+	update_input_bw_display();
+	return ret;
+}
+
+static void update_output_bw_display(void)
+{
+	gboolean enabled;
+	guint32 val = 0;
+	guint32 bw;
+
+#ifdef USE_GTK1
+	gnet_prop_get_boolean_val(PROP_BW_GNET_LEAF_OUT_ENABLED, &enabled);
+	if (enabled) {
+		gnet_prop_get_guint32_val(PROP_BW_GNET_LOUT, &bw);
+		val += bw;
+	}
+	gnet_prop_get_boolean_val(PROP_BW_HTTP_OUT_ENABLED, &enabled);
+	if (enabled) {
+		gnet_prop_get_guint32_val(PROP_BW_HTTP_OUT, &bw);
+		val += bw;
+		/* Leaf bandwidth is taken from HTTP traffic, when enabled */
+		gnet_prop_get_boolean_val(PROP_BW_GNET_LEAF_OUT_ENABLED, &enabled);
+		if (enabled) {
+			gnet_prop_get_guint32_val(PROP_BW_GNET_LOUT, &bw);
+			val -= bw;
+		}
+	}
+	gnet_prop_get_boolean_val(PROP_BW_GNET_OUT_ENABLED, &enabled);
+	if (enabled) {
+		gnet_prop_get_guint32_val(PROP_BW_GNET_OUT, &bw);
+		val += bw;
+	}
+
+	gtk_label_printf(
+		GTK_LABEL(lookup_widget(main_window, "label_output_bw_limit")),
+		"%.2f", val / 1024.0);
+#endif
+}
+
+static gboolean spinbutton_output_bw_changed(property_t prop)
+{
+	gboolean ret;
+
+	ret = update_bandwidth_spinbutton(prop);
+	update_output_bw_display();
+	return ret;
+}
+
 static gboolean force_local_ip_changed(property_t prop)
 {
     update_togglebutton(prop);
@@ -3644,6 +3755,18 @@ static gboolean dl_active_count_changed(property_t prop)
 		_("%u active"), val);
 
 	downloads_count_changed(prop);
+
+	return FALSE;
+}
+
+static gboolean dl_http_latency_changed(property_t prop)
+{
+	guint32 val;
+
+    gnet_prop_get_guint32_val(prop, &val);
+	gtk_label_printf(
+		GTK_LABEL(lookup_widget(main_window, "label_dl_http_latency")),
+		"%.3lf", val / 1000.0);
 
 	return FALSE;
 }

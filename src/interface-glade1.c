@@ -473,6 +473,18 @@ create_main_window (void)
   GtkWidget *checkbutton_config_bw_allow_stealing;
   GtkWidget *checkbutton_prefer_compressed_gnet;
   GtkWidget *checkbutton_config_use_ip_tos;
+  GtkWidget *hbox176;
+  GtkWidget *label558;
+  GtkWidget *label_input_bw_limit;
+  GtkWidget *label560;
+  GtkWidget *hbox177;
+  GtkWidget *label561;
+  GtkWidget *label_output_bw_limit;
+  GtkWidget *label563;
+  GtkWidget *hbox178;
+  GtkWidget *label564;
+  GtkWidget *label_dl_http_latency;
+  GtkWidget *label566;
   GtkWidget *frame20;
   GtkWidget *vbox105;
   GtkWidget *table13;
@@ -492,6 +504,8 @@ create_main_window (void)
   GtkWidget *spinbutton_config_bws_glin;
   GtkObject *spinbutton_config_bws_glout_adj;
   GtkWidget *spinbutton_config_bws_glout;
+  GtkWidget *label556;
+  GtkWidget *label557;
   GtkWidget *frame12;
   GtkWidget *table4;
   GtkWidget *label126;
@@ -4853,7 +4867,7 @@ create_main_window (void)
   gtk_widget_show (frame70);
   gtk_box_pack_start (GTK_BOX (vbox29), frame70, FALSE, TRUE, 0);
 
-  table49 = gtk_table_new (3, 1, FALSE);
+  table49 = gtk_table_new (4, 3, FALSE);
   gtk_widget_set_name (table49, "table49");
   gtk_widget_ref (table49);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "table49", table49,
@@ -4862,7 +4876,7 @@ create_main_window (void)
   gtk_container_add (GTK_CONTAINER (frame70), table49);
   gtk_container_set_border_width (GTK_CONTAINER (table49), 2);
   gtk_table_set_row_spacings (GTK_TABLE (table49), 2);
-  gtk_table_set_col_spacings (GTK_TABLE (table49), 4);
+  gtk_table_set_col_spacings (GTK_TABLE (table49), 6);
 
   checkbutton_config_bw_allow_stealing = gtk_check_button_new_with_label (_("Use surplus bandwidth"));
   gtk_widget_set_name (checkbutton_config_bw_allow_stealing, "checkbutton_config_bw_allow_stealing");
@@ -4893,6 +4907,108 @@ create_main_window (void)
   gtk_table_attach (GTK_TABLE (table49), checkbutton_config_use_ip_tos, 0, 1, 2, 3,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
+
+  hbox176 = gtk_hbox_new (FALSE, 0);
+  gtk_widget_set_name (hbox176, "hbox176");
+  gtk_widget_ref (hbox176);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "hbox176", hbox176,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (hbox176);
+  gtk_table_attach (GTK_TABLE (table49), hbox176, 0, 1, 3, 4,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (GTK_EXPAND | GTK_FILL), 0, 0);
+
+  label558 = gtk_label_new (_("Total input bandwidth limit: "));
+  gtk_widget_set_name (label558, "label558");
+  gtk_widget_ref (label558);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label558", label558,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label558);
+  gtk_box_pack_start (GTK_BOX (hbox176), label558, FALSE, FALSE, 0);
+
+  label_input_bw_limit = gtk_label_new (_("[input]"));
+  gtk_widget_set_name (label_input_bw_limit, "label_input_bw_limit");
+  gtk_widget_ref (label_input_bw_limit);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label_input_bw_limit", label_input_bw_limit,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label_input_bw_limit);
+  gtk_box_pack_start (GTK_BOX (hbox176), label_input_bw_limit, FALSE, FALSE, 0);
+
+  label560 = gtk_label_new (_(" K/s"));
+  gtk_widget_set_name (label560, "label560");
+  gtk_widget_ref (label560);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label560", label560,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label560);
+  gtk_box_pack_start (GTK_BOX (hbox176), label560, FALSE, FALSE, 0);
+
+  hbox177 = gtk_hbox_new (FALSE, 0);
+  gtk_widget_set_name (hbox177, "hbox177");
+  gtk_widget_ref (hbox177);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "hbox177", hbox177,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (hbox177);
+  gtk_table_attach (GTK_TABLE (table49), hbox177, 1, 2, 3, 4,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (GTK_FILL), 0, 0);
+
+  label561 = gtk_label_new (_("Total output bandwidth limit: "));
+  gtk_widget_set_name (label561, "label561");
+  gtk_widget_ref (label561);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label561", label561,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label561);
+  gtk_box_pack_start (GTK_BOX (hbox177), label561, FALSE, FALSE, 0);
+
+  label_output_bw_limit = gtk_label_new (_("[output]"));
+  gtk_widget_set_name (label_output_bw_limit, "label_output_bw_limit");
+  gtk_widget_ref (label_output_bw_limit);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label_output_bw_limit", label_output_bw_limit,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label_output_bw_limit);
+  gtk_box_pack_start (GTK_BOX (hbox177), label_output_bw_limit, FALSE, FALSE, 0);
+
+  label563 = gtk_label_new (_(" K/s"));
+  gtk_widget_set_name (label563, "label563");
+  gtk_widget_ref (label563);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label563", label563,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label563);
+  gtk_box_pack_start (GTK_BOX (hbox177), label563, FALSE, FALSE, 0);
+
+  hbox178 = gtk_hbox_new (FALSE, 0);
+  gtk_widget_set_name (hbox178, "hbox178");
+  gtk_widget_ref (hbox178);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "hbox178", hbox178,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (hbox178);
+  gtk_table_attach (GTK_TABLE (table49), hbox178, 2, 3, 3, 4,
+                    (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
+                    (GtkAttachOptions) (GTK_FILL), 0, 0);
+
+  label564 = gtk_label_new (_("Measured HTTP latency: "));
+  gtk_widget_set_name (label564, "label564");
+  gtk_widget_ref (label564);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label564", label564,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label564);
+  gtk_box_pack_start (GTK_BOX (hbox178), label564, FALSE, FALSE, 0);
+
+  label_dl_http_latency = gtk_label_new (_("[latency]"));
+  gtk_widget_set_name (label_dl_http_latency, "label_dl_http_latency");
+  gtk_widget_ref (label_dl_http_latency);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label_dl_http_latency", label_dl_http_latency,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label_dl_http_latency);
+  gtk_box_pack_start (GTK_BOX (hbox178), label_dl_http_latency, FALSE, FALSE, 0);
+
+  label566 = gtk_label_new (_(" secs"));
+  gtk_widget_set_name (label566, "label566");
+  gtk_widget_ref (label566);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label566", label566,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label566);
+  gtk_box_pack_start (GTK_BOX (hbox178), label566, FALSE, FALSE, 0);
 
   frame20 = gtk_frame_new (_("Bandwidth control for gnutellaNet traffic"));
   gtk_widget_set_name (frame20, "frame20");
@@ -4997,7 +5113,7 @@ create_main_window (void)
   gtk_widget_show (frame74);
   gtk_box_pack_start (GTK_BOX (vbox105), frame74, TRUE, TRUE, 0);
 
-  table58 = gtk_table_new (2, 2, FALSE);
+  table58 = gtk_table_new (2, 3, FALSE);
   gtk_widget_set_name (table58, "table58");
   gtk_widget_ref (table58);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "table58", table58,
@@ -5053,6 +5169,28 @@ create_main_window (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_widget_set_usize (spinbutton_config_bws_glout, 64, -2);
   gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_config_bws_glout), TRUE);
+
+  label556 = gtk_label_new (_("K/s"));
+  gtk_widget_set_name (label556, "label556");
+  gtk_widget_ref (label556);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label556", label556,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label556);
+  gtk_table_attach (GTK_TABLE (table58), label556, 2, 3, 0, 1,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label556), 0, 0.5);
+
+  label557 = gtk_label_new (_("K/s"));
+  gtk_widget_set_name (label557, "label557");
+  gtk_widget_ref (label557);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label557", label557,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label557);
+  gtk_table_attach (GTK_TABLE (table58), label557, 2, 3, 1, 2,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label557), 0, 0.5);
 
   frame12 = gtk_frame_new (_("Bandwidth control for HTTP traffic"));
   gtk_widget_set_name (frame12, "frame12");
@@ -8158,7 +8296,7 @@ create_main_window (void)
   gtk_widget_show (checkbutton_gnet_stats_drop_perc);
   gtk_box_pack_start (GTK_BOX (vbox82), checkbutton_gnet_stats_drop_perc, FALSE, FALSE, 0);
 
-  label346 = gtk_label_new (_("gNet stats"));
+  label346 = gtk_label_new ("");
   gtk_widget_set_name (label346, "label346");
   gtk_widget_ref (label346);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "label346", label346,
