@@ -115,9 +115,20 @@ void hostiles_retrieve(void)
 		if (*line == '\0' || *line == '#')
 			continue;
 	
-		p = line + strlen(line);	
-		while (isspace((guchar) *(--p)))
+		/*
+		 * Remove any spaces from the input stream.
+		 * Don't check the last character in the stream for a space, as
+		 * this is \0 anyway
+		 *		-- JA 12/02/2003
+		 */
+		p = line + strlen(line) - 1;	
+		while (isspace( (guchar) *(p) )) {
+			if (p-- == line)
+				break;
+			
+			g_assert(p >= line);
 			*p = '\0';
+		}
 
 		if ('\0' == *line)
 			continue;

@@ -2,6 +2,12 @@ This is the stable 0.93.x branch.
 
 # since last version
 
+- (2004.02.13 - Jeroen)
+ * Added assert to avoid memory corruption by ICU in utf8
+ * Don't call unicode canonize if the string is not an utf8 string
+ * Don't allow unicode_canonize to be called if the string is not a valid
+   utf8 string
+
 - (2004.02.06 - Jeroen)
  * Fixed compiler warnings
  * Fixed a possible segfault when using ICU and iconv_open failed

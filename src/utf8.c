@@ -1027,6 +1027,8 @@ gchar *unicode_canonize(const gchar *in)
 	gchar	*out;
 	gboolean latin_locale = is_latin_locale();
 
+	g_assert( utf8_is_valid_string(in, strlen(in)) );
+	
 	len = strlen(in);
 	maxlen = len * 6; /* Max 6 bytes for one char in utf8 */
 

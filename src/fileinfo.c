@@ -677,6 +677,7 @@ static void fi_alias(struct dl_file_info *fi, gchar *name, gboolean record)
 static gboolean file_info_get_trailer(
 	gint fd, struct trailer *tb, const gchar *name)
 {
+	ssize_t r;
 	guint32 tr[FI_TRAILER_INT];
 	struct stat buf;
 	off_t offset;
@@ -707,12 +708,21 @@ static gboolean file_info_get_trailer(
 		return FALSE;
 	}
 
-	if (-1 == read(fd, tr, sizeof(tr))) {
+	if (-1 == (r = read(fd, tr, sizeof(tr)))) {
 		g_warning("file_info_get_trailer(): "
 			"error reading trailer in  \"%s\": %s", name, g_strerror(errno));
 		return FALSE;
 	}
 
+
+	/*
+	 * Don't continue if the number of bytes read is smaller then
+	 * the minimum number of bytes needed.
+	 *		-- JA 12/02/2004
+	 */
+	if (r < sizeof(tr))
+		return FALSE;
+		
 	tb->filesize	= ntohl(tr[0]);
 	tb->generation	= ntohl(tr[1]);
 	tb->length		= ntohl(tr[2]);
@@ -909,7 +919,7 @@ static gboolean looks_like_urn(const gchar *filename)
 		idx++;
 		if (isspace(c) || c == '_')
 			break;
-		if (!isalpha(c))
+		if (!isalnum(c))
 			break;
 		if (idx >= SHA1_BASE32_SIZE)
 			return TRUE;
