@@ -38,7 +38,6 @@ DIR = $DIR
 
 AR = ar rc
 CC = $cc
-CHMOD = $chmod
 CP = $cp
 CTAGS = ctags
 JCFLAGS = \$(CFLAGS) $optimize $ccflags $large
@@ -83,7 +82,7 @@ all:: .FORCE_DEPEND
 ########################################################################
 # Start of Jmakefile
 
-# $X-Id: Jmakefile,v 1.2 2004/08/28 06:36:27 rmanfredi Exp $
+# $X-Id: Jmakefile,v 1.4 2005/01/24 19:39:59 rmanfredi Exp $
 
 # Those files lie in the ../gtk-shared directory
 REMOTE_GLADE_C = callbacks.c
@@ -156,20 +155,18 @@ GLADEFILE = gtk-gnutella.glade
 # We allow the target to fail since we're distribute the generated files
 # with the sources, so even if they don't have glade, it will work.
 $(GLADE_GEN): $(GLADEFILE) $(REMOTE_GLADE)
-	$(CHMOD) 0644 $(REMOTE_GLADE)
 	-$(GLADE) --write-source $(GLADEFILE)
-	$(CHMOD) 0444 $(REMOTE_GLADE)
 	touch $(GLADE_GEN)
 
 GTK_SHARED = ../gtk-shared
 
 callbacks.c: $(GTK_SHARED)/callbacks.c
 	$(RM) callbacks.c
-	$(CP) $(GTK_SHARED)/callbacks.c . && $(CHMOD) 0444 callbacks.c
+	$(CP) $(GTK_SHARED)/callbacks.c .
 
 callbacks.h: $(GTK_SHARED)/callbacks.h
 	$(RM) callbacks.h
-	$(CP) $(GTK_SHARED)/callbacks.h . && $(CHMOD) 0444 callbacks.h
+	$(CP) $(GTK_SHARED)/callbacks.h .
 
 
 depend:: $(REMOTE_GLADE)
