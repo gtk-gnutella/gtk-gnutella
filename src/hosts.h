@@ -34,7 +34,6 @@ struct gnutella_host {
  */
 
 extern GList *sl_caught_hosts;
-extern struct ping_req *pr_ref;
 extern gint hosts_idle_func;
 extern guint32 hosts_in_catcher;
 extern gboolean host_low_on_pongs;

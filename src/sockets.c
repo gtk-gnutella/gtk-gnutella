@@ -989,7 +989,7 @@ struct socksent {
 	struct in_addr localip;
 	struct in_addr localnet;
 	struct socksent *next;
-};
+} __attribute__((__packed__));
 
 struct sockreq {
 	int8_t version;
@@ -997,14 +997,14 @@ struct sockreq {
 	int16_t dstport;
 	int32_t dstip;
 	/* A null terminated username goes here */
-};
+} __attribute__((__packed__));
 
 struct sockrep {
 	int8_t version;
 	int8_t result;
 	int16_t ignore1;
 	int32_t ignore2;
-};
+} __attribute__((__packed__));
 
 int send_socks(struct gnutella_socket *s)
 {
@@ -1103,14 +1103,15 @@ int connect_http(struct gnutella_socket *s)
 
 	switch (s->pos) {
 	case 0:
-		sprintf(s->buffer, "CONNECT %s HTTP/1.0\r\n\r\n",
+		g_snprintf(s->buffer, sizeof(s->buffer),
+			"CONNECT %s HTTP/1.0\r\n\r\n",
 			ip_port_to_gchar(s->ip, s->port));
 		if (
 			(rc = send(s->file_desc, (void *)s->buffer,
 				strlen(s->buffer), 0)) < 0
 		) {
-			show_error("Error %d attempting to send info to HTTP proxy\n",
-				errno);
+			show_error("Sending info to HTTP proxy failed: %s\n",
+				g_strerror(errno));
 			return -1;
 		}
 		s->pos++;
@@ -1118,13 +1119,14 @@ int connect_http(struct gnutella_socket *s)
 	case 1:
 		rc = read(s->file_desc, s->buffer, sizeof(s->buffer)-1);
 		if (rc < 0) {
-			show_error("Error %d receving answer from HTTP proxy\n", errno);
+			show_error("Receiving answer from HTTP proxy faild: %s\n",
+				g_strerror(errno));
 			return -1;
 		}
 		s->getline = getline_make();
 		switch (getline_read(s->getline, s->buffer, rc, &parsed)) {
 		case READ_OVERFLOW:
-			show_error("Reading buffer overflow");
+			show_error("Reading buffer overflow\n");
 			return -1;
 		case READ_DONE:
 			if (rc != parsed)
@@ -1151,7 +1153,7 @@ int connect_http(struct gnutella_socket *s)
 			getline_reset(s->getline);
 			switch (getline_read(s->getline, s->buffer, rc, &parsed)) {
 			case READ_OVERFLOW:
-				show_error("Reading buffer overflow");
+				show_error("Reading buffer overflow\n");
 				return -1;
 			case READ_DONE:
 				if (rc != parsed)
@@ -1174,14 +1176,15 @@ int connect_http(struct gnutella_socket *s)
 	case 2:
 		rc = read(s->file_desc, s->buffer, sizeof(s->buffer)-1);
 		if (rc < 0) {
-			show_error("Error %d receving answer from HTTP proxy\n", errno);
+			show_error("Receiving answer from HTTP proxy failed: %s\n",
+				g_strerror(errno));
 			return -1;
 		}
 		while (rc) {
 			getline_reset(s->getline);
 			switch (getline_read(s->getline, s->buffer, rc, &parsed)) {
 			case READ_OVERFLOW:
-				show_error("Reading buffer overflow");
+				show_error("Reading buffer overflow\n");
 				return -1;
 			case READ_DONE:
 				if (rc != parsed)
@@ -1235,8 +1238,8 @@ int connect_socksv5(struct gnutella_socket *s)
 	case 0:
 		/* Now send the method negotiation */
 		if ((rc = send(sockid, (void *) verstring, 4, 0)) < 0) {
-			show_error("Error %d attempting to send SOCKS "
-					   "method negotiation\n", errno);
+			show_error("Sending SOCKS method negotiation failed: %s\n",
+				g_strerror(errno));
 			return (-1);
 		}
 		s->pos++;
@@ -1245,8 +1248,8 @@ int connect_socksv5(struct gnutella_socket *s)
 	case 1:
 		/* Now receive the reply as to which method we're using */
 		if ((rc = recv(sockid, (void *) buf, 2, 0)) < 0) {
-			show_error("Error %d attempting to receive SOCKS "
-					   "method negotiation reply\n", errno);
+			show_error("Receiving SOCKS method negotiation reply failed: %s\n",
+				g_strerror(errno));
 			rc = ECONNREFUSED;
 			return (rc);
 		}
@@ -1283,13 +1286,13 @@ int connect_socksv5(struct gnutella_socket *s)
 		if (((uname = socks_user) == NULL) &&
 			((uname =
 			  (nixuser == NULL ? NULL : nixuser->pw_name)) == NULL)) {
-			show_error("No Username to authenticate with.");
+			show_error("No Username to authenticate with.\n");
 			rc = ECONNREFUSED;
 			return (rc);
 		}
 
 		if (((upass = socks_pass) == NULL)) {
-			show_error("No Password to authenticate with.");
+			show_error("No Password to authenticate with.\n");
 			rc = ECONNREFUSED;
 			return (rc);
 		}
@@ -1308,8 +1311,8 @@ int connect_socksv5(struct gnutella_socket *s)
 
 		/* Send out the authentication */
 		if ((rc = send(sockid, (void *) buf, offset, 0)) < 0) {
-			show_error("Error %d attempting to send SOCKS "
-					   "authentication\n", errno);
+			show_error("Sending SOCKS authentication failed: %s\n",
+				g_strerror(errno));
 			return (-1);
 		}
 
@@ -1319,8 +1322,8 @@ int connect_socksv5(struct gnutella_socket *s)
 	case 3:
 		/* Receive the authentication response */
 		if ((rc = recv(sockid, (void *) buf, 2, 0)) < 0) {
-			show_error("Error %d attempting to receive SOCKS "
-					   "authentication reply\n", errno);
+			show_error("Receiving SOCKS authentication reply failed: %s\n",
+				g_strerror(errno));
 			rc = ECONNREFUSED;
 			return (rc);
 		}
@@ -1350,8 +1353,8 @@ int connect_socksv5(struct gnutella_socket *s)
 
 		/* Now send the connection */
 		if ((rc = send(sockid, (void *) buf, 10, 0)) <= 0) {
-			show_error("Error %d attempting to send SOCKS "
-					   "connect command\n", errno);
+			show_error("Send SOCKS connect command failed: %s\n",
+				g_strerror(errno));
 			return (-1);
 		}
 
@@ -1360,8 +1363,8 @@ int connect_socksv5(struct gnutella_socket *s)
 	case 5:
 		/* Now receive the reply to see if we connected */
 		if ((rc = recv(sockid, (void *) buf, 10, 0)) < 0) {
-			show_error("Error %d attempting to receive SOCKS "
-					   "connection reply\n", errno);
+			show_error("Receiving SOCKS connection reply failed: %s\n",
+				g_strerror(errno));
 			rc = ECONNREFUSED;
 			return (rc);
 		}

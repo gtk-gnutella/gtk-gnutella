@@ -80,6 +80,10 @@
  * Structures
  */
 
+#if !defined(__GNUC__) && !defined(__attribute__)
+#define __attribute__(p)
+#endif
+
 /* Messages structures */
 
 struct gnutella_header {
@@ -88,52 +92,42 @@ struct gnutella_header {
 	guchar ttl;
 	guchar hops;
 	guchar size[4];
-};
+} __attribute__((__packed__));
 
 struct gnutella_msg_init {
 	struct gnutella_header header;
-};
+} __attribute__((__packed__));
 
 struct gnutella_init_response {
 	guchar host_port[2];
 	guchar host_ip[4];
 	guchar files_count[4];
 	guchar kbytes_count[4];
-};
+} __attribute__((__packed__));
 
 struct gnutella_msg_init_response {
 	struct gnutella_header header;
 	struct gnutella_init_response response;
-};
+} __attribute__((__packed__));
 
 struct gnutella_push_request {
 	guchar guid[16];
 	guchar file_id[4];
 	guchar host_ip[4];
 	guchar host_port[2];
-};
+} __attribute__((__packed__));
 
 struct gnutella_msg_push_request {
 	struct gnutella_header header;
 	struct gnutella_push_request request;
-};
+} __attribute__((__packed__));
 
 struct gnutella_bye {
 	guchar code[2];
 	guchar message[0];
-};
+} __attribute__((__packed__));
 
 /* */
-
-struct ping_req {
-	struct timeval tv;			/* Date of the ping */
-	guchar muid[16];			/* muid of the ping */
-	guint32 hosts;				/* Number of hosts that replied */
-	guint32 files;				/* Number of shared files of all the hosts */
-	guint64 kbytes;				/* Number of K-bytes of all the files */
-
-	guint64 delay;				/* Total of reply delay for this request */
-};
 
 /*
  * Variables
