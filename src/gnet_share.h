@@ -21,26 +21,30 @@
  *----------------------------------------------------------------------
  */
 
-#ifndef _gnet_h_
-#define _gnet_h_
+#ifndef _gnet_share_h_
+#define _gnet_share_h_
+
+#include "common.h"
 
 /***
- *** Proxy protocols
+ *** Sharing
  ***/
-enum {
-    PROXY_NONE    = 0,
-    PROXY_HTTP    = 1,
-    PROXY_SOCKSV4 = 4,
-    PROXY_SOCKSV5 = 5
-};
 
-#include "gnet_property.h"
-#include "gnet_nodes.h"
-#include "gnet_share.h"
-#include "gnet_search.h"
-#include "gnet_filters.h"
-#include "gnet_net_stats.h"
-#include "gnet_downloads.h"
-#include "gnet_uploads.h"
+/*
+ * Search query types
+ */
+typedef enum {
+    QUERY_STRING,
+    QUERY_SHA1
+} query_type_t;
 
-#endif /* _gnet_h_ */
+/*
+ * Sharing callbacks
+ */
+typedef void (*search_request_listener_t) (
+    query_type_t, const gchar *query, guint32, guint16);
+
+void share_add_search_request_listener(search_request_listener_t l);
+void share_remove_search_request_listener(search_request_listener_t l);
+
+#endif /* _gnet_share_h_ */
