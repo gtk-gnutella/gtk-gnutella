@@ -380,7 +380,7 @@ dist-hook:
 	fi
 
 build-glade:
-	glade --write-source gtk-gnutella.glade
+	cd src; $(MAKE) glade_files
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.
