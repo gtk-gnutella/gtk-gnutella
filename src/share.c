@@ -731,6 +731,7 @@ static void reinit_sha1_table();
 
 void share_scan(void)
 {
+	GSList *dirs;
 	GSList *l;
 	gint i;
 	static gboolean in_share_scan = FALSE;
@@ -762,8 +763,27 @@ void share_scan(void)
 	st_create(&search_table);
 	file_basenames = g_hash_table_new(g_str_hash, g_str_equal);
 
-	for (l = shared_dirs; l; l = l->next)
-		recurse_scan(l->data, l->data);
+	/*
+	 * Clone the `shared_dirs' list so that we don't behave strangely
+	 * should they update the list of shared directories in the GUI
+	 * whilst we're recursing!
+	 *		--RAM, 30/01/2003
+	 */
+
+	for (dirs = NULL, l = shared_dirs; l; l = l->next)
+		dirs = g_slist_append(dirs, atom_str_get(l->data));
+
+	for (l = dirs; l; l = l->next)			/* Recurse on the cloned list... */
+		recurse_scan(l->data, l->data);		/* ...since this updates the GUI! */
+
+	for (l = dirs; l; l = l->next)
+		atom_str_free(l->data);
+
+	g_slist_free(dirs);
+
+	/*
+	 * Done scanning all the files.
+	 */
 
 	st_compact(&search_table);
 
