@@ -36,7 +36,6 @@
 #include "search.h"
 #include "downloads.h"
 #include "gui.h"
-#include "autodownload.h"
 #include "hosts.h"				/* For check_valid_host() */
 #include "nodes.h"				/* For NODE_IS_PONGING_ONLY() */
 #include "callbacks.h"
@@ -561,7 +560,6 @@ static void search_add_new_muid(search_t *sch)
 
 static void search_send_packet(search_t *sch)
 {
-	autodownload_init();			/* Reload patterns, if necessary */
 	__search_send_packet(sch, NULL);
 }
 
@@ -617,7 +615,6 @@ void search_stop(search_t *sch)
 
 void search_resume(search_t *sch)
 {
-	autodownload_init();			/* Reload patterns, if necessary */
 	if (sch->passive) {
 		g_assert(sch->frozen);
 		sch->frozen = FALSE;
@@ -746,7 +743,6 @@ search_t *_new_search(guint16 speed, gchar * query, guint flags)
 	if (flags & SEARCH_PASSIVE) {
 		sch->passive = 1;
 		search_passive++;
-		autodownload_init();		/* Reload patterns, if necessary */
 	} else {
 		search_add_new_muid(sch);
 		sch->sent_nodes =
@@ -1525,7 +1521,7 @@ void search_matched(search_t *sch, struct results_set *rs)
          */
         if (flt_result->props[FILTER_PROP_DOWNLOAD].state ==
             FILTER_PROP_STATE_DO) {
-            download_new(rc->name, rc->size, rc->index, rs->ip, rs->port,
+            download_auto_new(rc->name, rc->size, rc->index, rs->ip, rs->port,
                 rs->guid, rc->sha1, rs->stamp, need_push);
             downloaded = TRUE;
         }
@@ -1550,14 +1546,6 @@ void search_matched(search_t *sch, struct results_set *rs)
             search_gui_add_record(sch, rc, vinfo, 
                 downloaded ? download_color :  NULL,
                 mark ? mark_color : NULL);
-        }
-
-        if (use_autodownload && 
-            (flt_result->props[FILTER_PROP_DISPLAY].state ==
-            FILTER_PROP_STATE_DO)) {
-            /* Attempt to autodownload each result if desirable. */
-			autodownload_notify(rc->name, rc->size, rc->index, rs->ip,
-				rs->port, rs->guid, rc->sha1, rs->stamp, need_push);
         }
 
         filter_free_result(flt_result);

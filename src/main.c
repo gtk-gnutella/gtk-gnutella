@@ -37,7 +37,6 @@
 #include "downloads.h"
 #include "hosts.h"
 #include "misc.h"
-#include "autodownload.h"
 #include "gmsg.h"
 #include "bsched.h"
 #include "search_stats.h"
@@ -306,7 +305,6 @@ gint main(gint argc, gchar ** argv)
     filter_update_targets(); /* Make sure the default filters are ok */
 	share_init();
 	download_init();
-	autodownload_init();
 	ban_init();
 	dmesh_init();
 

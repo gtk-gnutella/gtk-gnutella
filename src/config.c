@@ -41,7 +41,6 @@
 #include "hosts.h"
 #include "share.h"
 #include "gui.h"
-#include "autodownload.h"
 #include "search_stats.h"
 #include "upload_stats.h"
 #include "filter.h"
@@ -292,7 +291,6 @@ typedef enum {
 	k_search_pick_all,
 	k_max_high_ttl_msg, k_max_high_ttl_radius,
 	k_min_dup_msg, k_min_dup_ratio, k_max_hosts_cached,
-	k_use_auto_download, k_auto_download_file, 
 	k_search_stats_update_interval, k_search_stats_delcoef,
 	k_search_stats_enabled,
 	k_toolbar_visible, k_statusbar_visible,
@@ -424,8 +422,6 @@ static gchar *keywords[k_end] = {
 	"min_dup_msg",
 	"min_dup_ratio",
 	"max_hosts_cached",
-	"use_auto_download",
-	"auto_download_file",
 	"search_stats_update_interval",
 	"search_stats_delcoef",
 	"search_stats_enabled",
@@ -979,14 +975,6 @@ void config_set_param(keyword_t keyword, gchar *value)
 		if (min_dup_ratio > 100.0) min_dup_ratio = 100.0;
 		return;
 
-	case k_use_auto_download:
-		use_autodownload = i ? TRUE : FALSE;
-		return;
-
-	case k_auto_download_file:
-		auto_download_file = g_strdup(value);
-		return;
-
  	case k_local_netmasks:
  		local_netmasks_string = g_strdup(value);
  		parse_netmasks(value);
@@ -1455,20 +1443,12 @@ static void config_save(void)
             "downloads screen when a new download is selected.\n"
 			"%s = %u\n", keywords[k_jump_to_downloads],
 			jump_to_downloads);  
-       	fprintf(config, "# Whether auto downloading should be enabled.\n"
-			"%s = %u\n\n", keywords[k_use_auto_download],
-			use_autodownload);
         fprintf(config, "# Set to 1 to select all same filenames with "
             "greater or equal size\n"
 			"%s = %u\n\n", keywords[k_search_pick_all], search_pick_all);
 
 
         CONFIG_SUBSECTION("non configurable") {
-          	fprintf(config, "# Name of file with auto-download strings "
-                "(relative is taken from launch dir)\n%s = \"%s\"\n\n",
-                keywords[k_auto_download_file],
-                auto_download_file);
-            
             fprintf(config, "# Max search results to show "
                 "(avoids running out of memory in passive searches)\n%s = %u\n\n",
                 keywords[k_search_max_results],

@@ -1470,7 +1470,7 @@ static void create_download(
 
 /* Automatic download request */
 
-void auto_download_new(gchar *file, guint32 size, guint32 record_index,
+void download_auto_new(gchar *file, guint32 size, guint32 record_index,
 					   guint32 ip, guint16 port, gchar *guid, gchar *sha1,
 					   time_t stamp, gboolean push)
 {

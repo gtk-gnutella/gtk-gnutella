@@ -154,9 +154,8 @@ void download_init(void);
 void download_timer(time_t now);
 void download_new(gchar *,
 	guint32, guint32, guint32, guint16, gchar *, gchar *, time_t, gboolean);
-void auto_download_new(
-	gchar *, guint32, guint32, guint32, guint16, gchar *, gchar *, time_t,
-	gboolean);
+void download_auto_new(gchar *,
+	guint32, guint32, guint32, guint16, gchar *, gchar *, time_t, gboolean);
 void download_queue(struct download *d, const gchar *fmt, ...);
 void download_freeze_queue();
 void download_thaw_queue();

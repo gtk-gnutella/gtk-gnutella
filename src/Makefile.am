@@ -42,7 +42,6 @@ endif
 # interface.h must come before any .c files that include it so that it is built.
 gtk_gnutella_SOURCES = \
 	$(XML_STORE) \
-	autodownload.h autodownload.c \
 	interface.c interface.h \
 	gnutella.h \
 	misc.c misc.h \

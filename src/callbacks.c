@@ -37,7 +37,6 @@
 #include "hosts.h"
 #include "downloads.h"
 #include "misc.h"
-#include "autodownload.h"
 #include "search_stats.h"
 #include "upload_stats.h"
 #include "regex.h"
