@@ -1646,10 +1646,11 @@ prop = {
 			"purpose of this filtering is to remove entries whose names "
 			"are too different to be sensibly part of the same mesh. "
 			"When activated, your mesh will probably be more consistent "
-			"at the cost of some small extra CPU time.";
+			"at the cost of extra CPU time, and at the cost of loosing "
+			"some valid entries in the process.";
     type = boolean;
     data = {
-        default = TRUE;
+        default = FALSE;
     };
 };
 

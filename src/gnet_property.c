@@ -326,8 +326,8 @@ gboolean pfsp_server     = TRUE;
 gboolean pfsp_server_def = TRUE;
 guint32  pfsp_first_chunk     = 524288;
 guint32  pfsp_first_chunk_def = 524288;
-gboolean fuzzy_filter_dmesh     = TRUE;
-gboolean fuzzy_filter_dmesh_def = TRUE;
+gboolean fuzzy_filter_dmesh     = FALSE;
+gboolean fuzzy_filter_dmesh_def = FALSE;
 guint32  crawler_visit_count     = 0;
 guint32  crawler_visit_count_def = 0;
 
@@ -2993,7 +2993,7 @@ prop_set_t *gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[138].name = "fuzzy_filter_dmesh";
-    gnet_property->props[138].desc = "Whether to apply a fuzzy filter on download mesh entries.  Thepurpose of this filtering is to remove entries whose names are too different to be sensibly part of the same mesh. When activated, your mesh will probably be more consistent at the cost of some small extra CPU time.";
+    gnet_property->props[138].desc = "Whether to apply a fuzzy filter on download mesh entries.  Thepurpose of this filtering is to remove entries whose names are too different to be sensibly part of the same mesh. When activated, your mesh will probably be more consistent at the cost of extra CPU time, and at the cost of loosing some valid entries in the process.";
     gnet_property->props[138].prop_changed_listeners = NULL;
     gnet_property->props[138].save = TRUE;
     gnet_property->props[138].vector_size = 1;
