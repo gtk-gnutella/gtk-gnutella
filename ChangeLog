@@ -24,6 +24,14 @@
 - Include Date and Last-Modified headers in our HTTP success replies.
 - Switched to real-time download/upload transfer rate and ETA computations.
 - Fixed number of columns in search table to 5.
+- Fixed bug in handling node_bye() for ponging-only connections (#518822).
+- When current transfer rates are too low, switch to average rate for
+  estimating time remaining.
+- More cleanup in the routing code, which fixes a potentially harmful bug.
+- Ensure original downloads are saved in downloads.orig, and protect against
+  sudden death whilst saving.
+- Turn on TCP_CORK for uploads, to optimize outgoing bandwidth.
+- Makes use of sendfile(2) if available.
 
 # v 0.80   2002.01.31  [stable]
 # v 0.80   2002.01.22  [beta2]
