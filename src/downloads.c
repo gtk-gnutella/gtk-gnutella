@@ -4757,6 +4757,8 @@ static gboolean download_convert_to_urires(struct download *d)
 			d->record_index, d->file_name, name);
 	
 	atom_str_free(d->file_name);
+	if (d->escaped_name != d->file_name)
+		g_free(d->escaped_name);
 	d->record_index = URN_INDEX;
 	d->file_name = name;
 	d->escaped_name = url_escape_cntrl(name);
