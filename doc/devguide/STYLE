@@ -67,6 +67,8 @@ Ladies and gentleman, here's the
       if (cond)  RIGHT
       if(cond)   WRONG
 
+      This applies while and for, too.
+
 3.4  There is no space in structure access operators:
 
         a->b    RIGHT
@@ -79,7 +81,7 @@ Ladies and gentleman, here's the
 
 4. MISCELLANEOUS FORMATTING CONVENTIONS ********************************
 
-4.1  Unecessary parentheses should be avoided, for example:
+4.1  Unnecessary parentheses should be avoided, for example:
 
         return expression       RIGHT
         return (expression) WRONG
@@ -247,4 +249,8 @@ Ladies and gentleman, here's the
     error:
         close(fd);
         return ERROR;
+
+9.3  Use the macro G_FREE_NULL() instead of g_free(). This macro sets the
+     pointer to NULL after calling g_free(). Along with NULL-pointer checks,
+     this prevents usage of deallocated memory and helps to trigger bugs.
 
