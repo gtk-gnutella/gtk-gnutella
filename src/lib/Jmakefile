@@ -52,6 +52,7 @@ LSRC = \
 	pattern.c \
 	prop.c \
 	sha1.c \
+	stats.c \
 	tiger.c \
 	tigertree.c \
 	tm.c \
