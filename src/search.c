@@ -721,12 +721,12 @@ static void search_send_packet(struct search *sch)
 static guint search_hash_func(gconstpointer key)
 {
 	struct record *rc = (struct record *) key;
+	/* Must use same fields as search_hash_key_compare() --RAM */
 	return
 		g_str_hash(rc->name) ^
 		g_int_hash(&rc->size) ^
 		g_int_hash(&rc->index) ^
 		g_int_hash(&rc->results_set->ip) ^
-		g_int_hash(&rc->results_set->speed) ^
 		g_int_hash(&rc->results_set->port);
 }
 
@@ -762,6 +762,8 @@ gint search_hash_key_compare(gconstpointer a, gconstpointer b)
 {
 	struct record *this_record = (struct record *) a;
 	struct record *rc = (struct record *) b;
+
+	/* Must compare same fields as search_hash_func() --RAM */
 	return !strcmp(rc->name, this_record->name)
 		&& rc->index == this_record->index
 		/*
