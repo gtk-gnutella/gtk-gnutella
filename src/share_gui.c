@@ -29,6 +29,12 @@
 
 static guint32 monitor_items = 0;
 
+void share_gui_init()
+{
+    gtk_clist_column_titles_passive
+        (GTK_CLIST(lookup_widget(main_window, "clist_monitor")));  
+}
+
 void share_gui_append_to_monitor(gchar * item)
 {
     char *titles[1];
@@ -55,7 +61,7 @@ void share_gui_append_to_monitor(gchar * item)
 }
 
 /*
- * share_gui_trim_monitor:
+ * share_gui_clear_monitor:
  *
  * Remove all but the first n items from the monitor.
  */
@@ -67,4 +73,15 @@ void share_gui_clear_monitor(void)
 
     gtk_clist_clear(GTK_CLIST(clist_monitor));
 	monitor_items = 0;
+}
+
+/*
+ * share_gui_enable_monitor:
+ *
+ * Enable/disable monitor.
+ */
+void share_gui_enable_monitor(gboolean b)
+{
+	gtk_widget_set_sensitive
+        (lookup_widget(main_window, "clist_monitor"), !b);
 }

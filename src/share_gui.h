@@ -26,7 +26,9 @@
 
 #include "gui.h"
 
+void share_gui_init(void);
 void share_gui_append_to_monitor(gchar * item);
 void share_gui_clear_monitor(void);
+void share_gui_enable_monitor(gboolean b);
 
 #endif /* __share_gui_h__ */
