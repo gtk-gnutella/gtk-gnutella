@@ -1001,6 +1001,14 @@ static prop_map_t property_map[] = {
     },
     {
         get_main_window,
+        PROP_SEARCH_HIDE_DOWNLOADED,
+        update_togglebutton,
+        TRUE,
+        "checkbutton_search_hide_downloaded",
+        FREQ_UPDATES, 0
+    },
+    {
+        get_main_window,
         PROP_DOWNLOAD_DELETE_ABORTED,
         update_togglebutton,
         TRUE,
@@ -2030,6 +2038,22 @@ static prop_map_t property_map[] = {
         update_togglebutton,
         TRUE,
         "checkbutton_host_runs_ntp",
+        FREQ_UPDATES, 0
+    },
+    {
+        get_main_window,
+        PROP_NODE_MONITOR_UNSTABLE_IP,
+        update_togglebutton,
+        TRUE,
+        "checkbutton_gnet_monitor_ip",
+        FREQ_UPDATES, 0
+    },
+    {
+        get_main_window,
+        PROP_NODE_MONITOR_UNSTABLE_SERVENTS,
+        update_togglebutton,
+        TRUE,
+        "checkbutton_gnet_monitor_servents",
         FREQ_UPDATES, 0
     },
 #ifdef USE_GTK2
