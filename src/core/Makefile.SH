@@ -78,7 +78,7 @@ all:: .FORCE_DEPEND
 ########################################################################
 # Start of Jmakefile
 
-# $X-Id: Jmakefile,v 1.5 2004/09/11 12:04:22 rmanfredi Exp $
+# $X-Id: Jmakefile,v 1.6 2004/09/19 21:59:28 rmanfredi Exp $
 
 SRC = \
 	alive.c \
@@ -117,6 +117,7 @@ SRC = \
 	namesize.c \
 	nodes.c \
 	oob.c \
+	oob_proxy.c \
 	parq.c \
 	pcache.c \
 	pmsg.c \
@@ -185,6 +186,7 @@ OBJ = \
 	namesize.o \
 	nodes.o \
 	oob.o \
+	oob_proxy.o \
 	parq.o \
 	pcache.o \
 	pmsg.o \
