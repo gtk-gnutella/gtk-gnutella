@@ -420,7 +420,7 @@ prop = {
     desc = "Maximum number of results to show in any search";
     type = guint32;
     data = {
-        default = 5000;
+        default = 1000;
         min     = 10;
         max     = 100000;
     };
