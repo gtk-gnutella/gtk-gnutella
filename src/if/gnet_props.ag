@@ -2696,4 +2696,21 @@ prop = {
 	};
 };
 
+prop = {
+	name = "proxy_oob_queries";
+	desc = "Whether gtk-gnutella should, when running as ultra node, act as "
+		"a proxy for leaf queries that are not requesting out-of-band "
+		"delivery of query hits: gtk-gnutella will claim the hits from the "
+		"remote nodes and forward the hits to the proper leaf.  This is "
+		"extremely beneficial for the leaves, but can cause huge bursts of "
+		"UDP traffic coming back to your ultra node.  You may choose to "
+		"disable this, but all the ultra nodes you are connected to will have "
+		"to support the burden of relaying the hits, possibly dropping other "
+		"query messages and lowering the efficiency of the search network.";
+	type = boolean;
+	data = {
+		default = TRUE;
+	};
+};
+
 /* vi: set ts=4: */

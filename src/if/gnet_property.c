@@ -519,6 +519,8 @@ gboolean process_oob_queries     = TRUE;
 gboolean process_oob_queries_def = TRUE;
 gboolean send_oob_queries     = TRUE;
 gboolean send_oob_queries_def = TRUE;
+gboolean proxy_oob_queries     = TRUE;
+gboolean proxy_oob_queries_def = TRUE;
 
 static prop_set_t *gnet_property = NULL;
 
@@ -4891,6 +4893,23 @@ prop_set_t *gnet_prop_init(void) {
     gnet_property->props[227].type               = PROP_TYPE_BOOLEAN;
     gnet_property->props[227].data.boolean.def   = &send_oob_queries_def;
     gnet_property->props[227].data.boolean.value = &send_oob_queries;
+
+
+    /*
+     * PROP_PROXY_OOB_QUERIES:
+     *
+     * General data:
+     */
+    gnet_property->props[228].name = "proxy_oob_queries";
+    gnet_property->props[228].desc = _("Whether gtk-gnutella should, when running as ultra node, act as a proxy for leaf queries that are not requesting out-of-band delivery of query hits: gtk-gnutella will claim the hits from the remote nodes and forward the hits to the proper leaf.  This is extremely beneficial for the leaves, but can cause huge bursts of UDP traffic coming back to your ultra node.  You may choose to disable this, but all the ultra nodes you are connected to will have to support the burden of relaying the hits, possibly dropping other query messages and lowering the efficiency of the search network.");
+    gnet_property->props[228].ev_changed = event_new("proxy_oob_queries_changed");
+    gnet_property->props[228].save = TRUE;
+    gnet_property->props[228].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[228].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[228].data.boolean.def   = &proxy_oob_queries_def;
+    gnet_property->props[228].data.boolean.value = &proxy_oob_queries;
 
     gnet_property->byName = g_hash_table_new(g_str_hash, g_str_equal);
     for (n = 0; n < GNET_PROPERTY_NUM; n ++) {

@@ -262,6 +262,7 @@ extern const gboolean gnet_deflate_enabled;
 extern const gboolean enable_udp;
 extern const gboolean process_oob_queries;
 extern const gboolean send_oob_queries;
+extern const gboolean proxy_oob_queries;
 
 
 prop_set_t *gnet_prop_init(void);
