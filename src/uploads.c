@@ -437,8 +437,6 @@ static void upload_free_resources(gnutella_upload_t *u)
 		atom_sha1_free(u->sha1);
 		u->sha1 = NULL;
 	}
-
-	u->parq_opaque = NULL;
 	
     upload_free_handle(u->upload_handle);
 }

@@ -2190,6 +2190,8 @@ void parq_upload_upload_got_freed(gnutella_upload_t *u)
 	
 	parq_ul = parq_upload_find(u);
 	
+	u->parq_opaque = NULL;
+	
 	/* The parq_ul allready might have been removed. So check this first */
 	if (parq_ul != NULL)	
 		parq_ul->u = NULL;
@@ -2254,6 +2256,9 @@ gpointer parq_upload_get(gnutella_upload_t *u, header_t *header)
 cleanup:
 	g_assert(parq_ul != NULL);
 
+	if (parq_ul->u != NULL)
+		g_assert(parq_ul->u == u);
+
 	if (parq_ul->queue->by_date_dead != NULL &&
 		  g_list_find(parq_ul->queue->by_date_dead, parq_ul) != NULL)
 		parq_ul->queue->by_date_dead = 
@@ -2301,7 +2306,7 @@ cleanup:
 		if (buf != NULL && gchar_to_ip_port(buf, &parq_ul->ip, &parq_ul->port))
 			parq_ul->flags &= ~PARQ_UL_NOQUEUE;
 	}
-	
+		
 	parq_ul->u = u;	/* Save pointer to structure. Don't forget to move it too
 	                   the cloned upload or remove the pointer when the struct
 	                   is freed */
