@@ -2,7 +2,7 @@
 ?RCS:
 ?RCS: @COPYRIGHT@
 ?RCS:
-?MAKE:xmlconfig xmlcflags xmlldflags d_libxml2: awk
+?MAKE:xmlconfig xmlcflags xmlldflags d_libxml2: awk sed
 ?MAKE:	-pick add $@ %<
 ?S:xmlconfig:
 ?S:	This variable holds the command to use to grab information about libxml2.
@@ -58,6 +58,12 @@ case "$version" in
 		xmlcflags=`$xmlconfig --cflags`
 		xmlldflags=`$xmlconfig --libs`
 		d_libxml2="$define"
+		case " $xmlldflags " in
+		*" -lpthread "*)
+			echo "(Removing unneeded -lpthread from the list of libraries.)"
+			xmlldflags=`echo "$xmlldflags " | $sed -e 's/-lpthread //'`
+			;;
+		esac
 	fi
 	;;
 esac
