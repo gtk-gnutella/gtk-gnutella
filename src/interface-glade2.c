@@ -3917,27 +3917,27 @@ create_dlg_about (void)
   GtkWidget *vbox67;
   GtkWidget *frame44;
   GtkWidget *label_about_title;
-  GtkWidget *hseparator7;
-  GtkWidget *table28;
-  GtkWidget *label265;
-  GtkWidget *label264;
-  GtkWidget *label266;
-  GtkWidget *label267;
-  GtkWidget *frame45;
-  GtkWidget *table29;
-  GtkWidget *label269;
-  GtkWidget *label270;
-  GtkWidget *label271;
-  GtkWidget *label272;
-  GtkWidget *label273;
-  GtkWidget *label274;
-  GtkWidget *label_d268;
-  GtkWidget *label275;
-  GtkWidget *label268;
+  GtkWidget *hbox208;
+  GtkWidget *vbox87;
+  GtkWidget *label501;
+  GtkWidget *label497;
+  GtkWidget *label498;
+  GtkWidget *label499;
+  GtkWidget *label500;
+  GtkWidget *vbox88;
+  GtkWidget *label492;
+  GtkWidget *label493;
+  GtkWidget *label494;
+  GtkWidget *label495;
+  GtkWidget *label496;
   GtkWidget *frame46;
   GtkWidget *scrolledwindow18;
   GtkWidget *textview1;
   GtkWidget *label302;
+  GtkWidget *label488;
+  GtkWidget *label489;
+  GtkWidget *label490;
+  GtkWidget *label491;
   GtkWidget *hbox137;
   GtkWidget *button_about_close;
 
@@ -3954,7 +3954,6 @@ create_dlg_about (void)
   gtk_widget_set_name (frame44, "frame44");
   gtk_widget_show (frame44);
   gtk_box_pack_start (GTK_BOX (vbox67), frame44, FALSE, FALSE, 0);
-  gtk_container_set_border_width (GTK_CONTAINER (frame44), 10);
 
   label_about_title = gtk_label_new ("[name and version]");
   gtk_widget_set_name (label_about_title, "label_about_title");
@@ -3962,134 +3961,100 @@ create_dlg_about (void)
   gtk_container_add (GTK_CONTAINER (frame44), label_about_title);
   gtk_misc_set_padding (GTK_MISC (label_about_title), 10, 10);
 
-  hseparator7 = gtk_hseparator_new ();
-  gtk_widget_set_name (hseparator7, "hseparator7");
-  gtk_widget_show (hseparator7);
-  gtk_box_pack_start (GTK_BOX (vbox67), hseparator7, FALSE, TRUE, 0);
+  hbox208 = gtk_hbox_new (TRUE, 0);
+  gtk_widget_set_name (hbox208, "hbox208");
+  gtk_widget_show (hbox208);
+  gtk_box_pack_start (GTK_BOX (vbox67), hbox208, FALSE, FALSE, 0);
 
-  table28 = gtk_table_new (2, 2, FALSE);
-  gtk_widget_set_name (table28, "table28");
-  gtk_widget_show (table28);
-  gtk_box_pack_start (GTK_BOX (vbox67), table28, FALSE, TRUE, 0);
-  gtk_container_set_border_width (GTK_CONTAINER (table28), 4);
-  gtk_table_set_row_spacings (GTK_TABLE (table28), 2);
-  gtk_table_set_col_spacings (GTK_TABLE (table28), 4);
+  vbox87 = gtk_vbox_new (FALSE, 0);
+  gtk_widget_set_name (vbox87, "vbox87");
+  gtk_widget_show (vbox87);
+  gtk_box_pack_start (GTK_BOX (hbox208), vbox87, TRUE, TRUE, 0);
 
-  label265 = gtk_label_new ("Yann Grossel <olrick@users.sourceforge.net>");
-  gtk_widget_set_name (label265, "label265");
-  gtk_widget_show (label265);
-  gtk_table_attach (GTK_TABLE (table28), label265, 1, 2, 0, 1,
-                    (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-  gtk_misc_set_alignment (GTK_MISC (label265), 0, 0.5);
+  label501 = gtk_label_new ("Original author:");
+  gtk_widget_set_name (label501, "label501");
+  gtk_widget_show (label501);
+  gtk_box_pack_start (GTK_BOX (vbox87), label501, FALSE, FALSE, 0);
+  gtk_label_set_justify (GTK_LABEL (label501), GTK_JUSTIFY_RIGHT);
+  gtk_misc_set_alignment (GTK_MISC (label501), 1, 0.5);
+  gtk_misc_set_padding (GTK_MISC (label501), 10, 0);
 
-  label264 = gtk_label_new ("Original author");
-  gtk_widget_set_name (label264, "label264");
-  gtk_widget_show (label264);
-  gtk_table_attach (GTK_TABLE (table28), label264, 0, 1, 0, 1,
-                    (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-  gtk_misc_set_alignment (GTK_MISC (label264), 0, 0.5);
+  label497 = gtk_label_new ("Project leader:");
+  gtk_widget_set_name (label497, "label497");
+  gtk_widget_show (label497);
+  gtk_box_pack_start (GTK_BOX (vbox87), label497, FALSE, FALSE, 0);
+  gtk_label_set_justify (GTK_LABEL (label497), GTK_JUSTIFY_RIGHT);
+  gtk_misc_set_alignment (GTK_MISC (label497), 1, 0.5);
+  gtk_misc_set_padding (GTK_MISC (label497), 10, 0);
 
-  label266 = gtk_label_new ("Current maintainer");
-  gtk_widget_set_name (label266, "label266");
-  gtk_widget_show (label266);
-  gtk_table_attach (GTK_TABLE (table28), label266, 0, 1, 1, 2,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-  gtk_misc_set_alignment (GTK_MISC (label266), 0, 0.5);
+  label498 = gtk_label_new ("Core development:");
+  gtk_widget_set_name (label498, "label498");
+  gtk_widget_show (label498);
+  gtk_box_pack_start (GTK_BOX (vbox87), label498, FALSE, FALSE, 0);
+  gtk_label_set_justify (GTK_LABEL (label498), GTK_JUSTIFY_RIGHT);
+  gtk_misc_set_alignment (GTK_MISC (label498), 1, 0.5);
+  gtk_misc_set_padding (GTK_MISC (label498), 10, 0);
 
-  label267 = gtk_label_new_with_mnemonic ("Raphaël Manfredi <Raphael__Manfredi@pobox.com>");
-  gtk_widget_set_name (label267, "label267");
-  gtk_widget_show (label267);
-  gtk_table_attach (GTK_TABLE (table28), label267, 1, 2, 1, 2,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-  gtk_misc_set_alignment (GTK_MISC (label267), 0, 0.5);
+  label499 = gtk_label_new ("GUI development:");
+  gtk_widget_set_name (label499, "label499");
+  gtk_widget_show (label499);
+  gtk_box_pack_start (GTK_BOX (vbox87), label499, FALSE, FALSE, 0);
+  gtk_label_set_justify (GTK_LABEL (label499), GTK_JUSTIFY_RIGHT);
+  gtk_misc_set_alignment (GTK_MISC (label499), 1, 0.5);
+  gtk_misc_set_padding (GTK_MISC (label499), 10, 0);
 
-  frame45 = gtk_frame_new (NULL);
-  gtk_widget_set_name (frame45, "frame45");
-  gtk_widget_show (frame45);
-  gtk_box_pack_start (GTK_BOX (vbox67), frame45, FALSE, FALSE, 0);
-  gtk_container_set_border_width (GTK_CONTAINER (frame45), 3);
+  label500 = gtk_label_new ("Swarming development:");
+  gtk_widget_set_name (label500, "label500");
+  gtk_widget_show (label500);
+  gtk_box_pack_start (GTK_BOX (vbox87), label500, FALSE, FALSE, 0);
+  gtk_label_set_justify (GTK_LABEL (label500), GTK_JUSTIFY_RIGHT);
+  gtk_misc_set_alignment (GTK_MISC (label500), 1, 0.5);
+  gtk_misc_set_padding (GTK_MISC (label500), 10, 0);
 
-  table29 = gtk_table_new (4, 2, FALSE);
-  gtk_widget_set_name (table29, "table29");
-  gtk_widget_show (table29);
-  gtk_container_add (GTK_CONTAINER (frame45), table29);
-  gtk_container_set_border_width (GTK_CONTAINER (table29), 2);
-  gtk_table_set_row_spacings (GTK_TABLE (table29), 2);
-  gtk_table_set_col_spacings (GTK_TABLE (table29), 4);
+  vbox88 = gtk_vbox_new (FALSE, 0);
+  gtk_widget_set_name (vbox88, "vbox88");
+  gtk_widget_show (vbox88);
+  gtk_box_pack_start (GTK_BOX (hbox208), vbox88, TRUE, TRUE, 0);
 
-  label269 = gtk_label_new ("Chief architect");
-  gtk_widget_set_name (label269, "label269");
-  gtk_widget_show (label269);
-  gtk_table_attach (GTK_TABLE (table29), label269, 0, 1, 1, 2,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-  gtk_misc_set_alignment (GTK_MISC (label269), 0, 0.5);
+  label492 = gtk_label_new ("Yann Grossel");
+  gtk_widget_set_name (label492, "label492");
+  gtk_widget_show (label492);
+  gtk_box_pack_start (GTK_BOX (vbox88), label492, FALSE, FALSE, 0);
+  gtk_label_set_justify (GTK_LABEL (label492), GTK_JUSTIFY_LEFT);
+  gtk_misc_set_alignment (GTK_MISC (label492), 0, 0.5);
+  gtk_misc_set_padding (GTK_MISC (label492), 10, 0);
 
-  label270 = gtk_label_new ("Core development");
-  gtk_widget_set_name (label270, "label270");
-  gtk_widget_show (label270);
-  gtk_table_attach (GTK_TABLE (table29), label270, 0, 1, 2, 3,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-  gtk_misc_set_alignment (GTK_MISC (label270), 0, 0.5);
+  label493 = gtk_label_new ("Raphaël Manfredi");
+  gtk_widget_set_name (label493, "label493");
+  gtk_widget_show (label493);
+  gtk_box_pack_start (GTK_BOX (vbox88), label493, FALSE, FALSE, 0);
+  gtk_label_set_justify (GTK_LABEL (label493), GTK_JUSTIFY_LEFT);
+  gtk_misc_set_alignment (GTK_MISC (label493), 0, 0.5);
+  gtk_misc_set_padding (GTK_MISC (label493), 10, 0);
 
-  label271 = gtk_label_new ("GUI development");
-  gtk_widget_set_name (label271, "label271");
-  gtk_widget_show (label271);
-  gtk_table_attach (GTK_TABLE (table29), label271, 0, 1, 3, 4,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-  gtk_misc_set_alignment (GTK_MISC (label271), 0, 0.5);
+  label494 = gtk_label_new ("Raphaël Manfredi");
+  gtk_widget_set_name (label494, "label494");
+  gtk_widget_show (label494);
+  gtk_box_pack_start (GTK_BOX (vbox88), label494, FALSE, FALSE, 0);
+  gtk_label_set_justify (GTK_LABEL (label494), GTK_JUSTIFY_LEFT);
+  gtk_misc_set_alignment (GTK_MISC (label494), 0, 0.5);
+  gtk_misc_set_padding (GTK_MISC (label494), 10, 0);
 
-  label272 = gtk_label_new ("Richard Eckart");
-  gtk_widget_set_name (label272, "label272");
-  gtk_widget_show (label272);
-  gtk_table_attach (GTK_TABLE (table29), label272, 1, 2, 3, 4,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-  gtk_misc_set_alignment (GTK_MISC (label272), 0, 0.5);
+  label495 = gtk_label_new ("Richard Eckart, Christian Biere");
+  gtk_widget_set_name (label495, "label495");
+  gtk_widget_show (label495);
+  gtk_box_pack_start (GTK_BOX (vbox88), label495, FALSE, FALSE, 0);
+  gtk_label_set_justify (GTK_LABEL (label495), GTK_JUSTIFY_LEFT);
+  gtk_misc_set_alignment (GTK_MISC (label495), 0, 0.5);
+  gtk_misc_set_padding (GTK_MISC (label495), 10, 0);
 
-  label273 = gtk_label_new ("Raphaël Manfredi");
-  gtk_widget_set_name (label273, "label273");
-  gtk_widget_show (label273);
-  gtk_table_attach (GTK_TABLE (table29), label273, 1, 2, 2, 3,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-  gtk_misc_set_alignment (GTK_MISC (label273), 0, 0.5);
-
-  label274 = gtk_label_new ("Raphaël Manfredi");
-  gtk_widget_set_name (label274, "label274");
-  gtk_widget_show (label274);
-  gtk_table_attach (GTK_TABLE (table29), label274, 1, 2, 1, 2,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-  gtk_misc_set_alignment (GTK_MISC (label274), 0, 0.5);
-
-  label_d268 = gtk_label_new ("Project management");
-  gtk_widget_set_name (label_d268, "label_d268");
-  gtk_widget_show (label_d268);
-  gtk_table_attach (GTK_TABLE (table29), label_d268, 0, 1, 0, 1,
-                    (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-  gtk_misc_set_alignment (GTK_MISC (label_d268), 0, 0.5);
-
-  label275 = gtk_label_new ("Raphaël Manfredi");
-  gtk_widget_set_name (label275, "label275");
-  gtk_widget_show (label275);
-  gtk_table_attach (GTK_TABLE (table29), label275, 1, 2, 0, 1,
-                    (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-  gtk_misc_set_alignment (GTK_MISC (label275), 0, 0.5);
-
-  label268 = gtk_label_new ("Current roles");
-  gtk_widget_set_name (label268, "label268");
-  gtk_widget_show (label268);
-  gtk_frame_set_label_widget (GTK_FRAME (frame45), label268);
-  gtk_label_set_justify (GTK_LABEL (label268), GTK_JUSTIFY_LEFT);
+  label496 = gtk_label_new ("Vidar Madsen");
+  gtk_widget_set_name (label496, "label496");
+  gtk_widget_show (label496);
+  gtk_box_pack_start (GTK_BOX (vbox88), label496, FALSE, FALSE, 0);
+  gtk_label_set_justify (GTK_LABEL (label496), GTK_JUSTIFY_LEFT);
+  gtk_misc_set_alignment (GTK_MISC (label496), 0, 0.5);
+  gtk_misc_set_padding (GTK_MISC (label496), 10, 0);
 
   frame46 = gtk_frame_new (NULL);
   gtk_widget_set_name (frame46, "frame46");
@@ -4108,11 +4073,13 @@ create_dlg_about (void)
   gtk_widget_show (textview1);
   gtk_container_add (GTK_CONTAINER (scrolledwindow18), textview1);
   gtk_text_view_set_editable (GTK_TEXT_VIEW (textview1), FALSE);
+  gtk_text_view_set_justification (GTK_TEXT_VIEW (textview1), GTK_JUSTIFY_CENTER);
+  gtk_text_view_set_wrap_mode (GTK_TEXT_VIEW (textview1), GTK_WRAP_WORD);
   gtk_text_view_set_cursor_visible (GTK_TEXT_VIEW (textview1), FALSE);
   gtk_text_view_set_left_margin (GTK_TEXT_VIEW (textview1), 4);
   gtk_text_view_set_right_margin (GTK_TEXT_VIEW (textview1), 4);
   gtk_text_buffer_set_text (gtk_text_view_get_buffer (GTK_TEXT_VIEW (textview1)),
-	"Steven Wilcoxon <swilcoxon@users.sourceforge.net>\nJason Lingohr <lingman@users.sourceforge.net>\nBrian St Pierre <bstpierre@users.sourceforge.net>\nChuck Homic <homic@users.sourceforge.net>\nIngo Saitz <salz@users.sourceforge.net>\nBen Hochstedler <hochstrb@users.sourceforge.net>\nDaniel Walker <axiom@users.sourceforge.net>\nPaul Cassella <pwc@users.sourceforge.net> \nJared Mauch <jaredmauch@users.sourceforge.net>\nNate E <web1 (at) users dot sourceforge dot net>\nRaphaël Manfredi <Raphael_Manfredi@pobox.com>\nKenn Brooks Hamm <khamm@andrew.cmu.edu>\nMark Schreiber <mark7@andrew.cmu.edu>\nSam Varshavchik <mrsam@courier-mta.com>\nVladimir Klebanov <unny@rz.uni-karlsruhe.de>\nRoman Shterenzon <roman@xpert.com>\nRobert Bihlmeyer <robbe@orcus.priv.at>\nNoel T.Nunkovich <ntnunk@earthlink.net>\nMichael Tesch <tesch@users.sourceforge.net>\nMarkus 'guruz' Goetz <guruz@guruz.info>\nRichard Eckart <wyldfire@users.sourceforge.net>\nChristophe Tronche <ch.tronche@computer.org>\nAlex Bennee <alex@bennee.com>\nVidar Madsen <vidar@gimp.org>", -1);
+	"Yann Grossel <olrick@users.sourceforge.net>\nSteven Wilcoxon <swilcoxon@users.sourceforge.net>\nJason Lingohr <lingman@users.sourceforge.net>\nBrian St Pierre <bstpierre@users.sourceforge.net>\nChuck Homic <homic@users.sourceforge.net>\nIngo Saitz <salz@users.sourceforge.net>\nBen Hochstedler <hochstrb@users.sourceforge.net>\nDaniel Walker <axiom@users.sourceforge.net>\nPaul Cassella <pwc@users.sourceforge.net> \nJared Mauch <jaredmauch@users.sourceforge.net>\nNate E <web1 (at) users dot sourceforge dot net>\nRaphaël Manfredi <Raphael_Manfredi@pobox.com>\nKenn Brooks Hamm <khamm@andrew.cmu.edu>\nMark Schreiber <mark7@andrew.cmu.edu>\nSam Varshavchik <mrsam@courier-mta.com>\nVladimir Klebanov <unny@rz.uni-karlsruhe.de>\nRoman Shterenzon <roman@xpert.com>\nRobert Bihlmeyer <robbe@orcus.priv.at>\nNoel T.Nunkovich <ntnunk@earthlink.net>\nMichael Tesch <tesch@users.sourceforge.net>\nMarkus 'guruz' Goetz <guruz@guruz.info>\nRichard Eckart <wyldfire@users.sourceforge.net>\nChristophe Tronche <ch.tronche@computer.org>\nAlex Bennee <alex@bennee.com>\nMike Perry <mikepery@fscked.org>\nZygo Blaxell <zblaxell@feedme.hungrycats.org>\nVidar Madsen <vidar@gimp.org>\nChristian Biere <christianbiere@gmx.de>", -1);
 
   label302 = gtk_label_new ("Contributors");
   gtk_widget_set_name (label302, "label302");
@@ -4120,16 +4087,43 @@ create_dlg_about (void)
   gtk_frame_set_label_widget (GTK_FRAME (frame46), label302);
   gtk_label_set_justify (GTK_LABEL (label302), GTK_JUSTIFY_LEFT);
 
+  label488 = gtk_label_new ("==&gt; We are looking for people who want to contribute to this fine tool.&lt;==");
+  gtk_widget_set_name (label488, "label488");
+  gtk_widget_show (label488);
+  gtk_box_pack_start (GTK_BOX (vbox67), label488, FALSE, FALSE, 0);
+  gtk_label_set_use_markup (GTK_LABEL (label488), TRUE);
+
+  label489 = gtk_label_new ("Visit http://gtk-gnutella.sourceforge.net.");
+  gtk_widget_set_name (label489, "label489");
+  gtk_widget_show (label489);
+  gtk_box_pack_start (GTK_BOX (vbox67), label489, FALSE, FALSE, 0);
+  GTK_WIDGET_SET_FLAGS (label489, GTK_CAN_FOCUS);
+  gtk_label_set_justify (GTK_LABEL (label489), GTK_JUSTIFY_LEFT);
+  gtk_label_set_selectable (GTK_LABEL (label489), TRUE);
+
+  label490 = gtk_label_new ("Join the users or developers mailing lists.");
+  gtk_widget_set_name (label490, "label490");
+  gtk_widget_show (label490);
+  gtk_box_pack_start (GTK_BOX (vbox67), label490, FALSE, FALSE, 0);
+  gtk_label_set_justify (GTK_LABEL (label490), GTK_JUSTIFY_LEFT);
+
+  label491 = gtk_label_new ("Meet us on #gtk-gnutella at irc.freenode.org.");
+  gtk_widget_set_name (label491, "label491");
+  gtk_widget_show (label491);
+  gtk_box_pack_start (GTK_BOX (vbox67), label491, FALSE, FALSE, 0);
+  GTK_WIDGET_SET_FLAGS (label491, GTK_CAN_FOCUS);
+  gtk_label_set_selectable (GTK_LABEL (label491), TRUE);
+
   hbox137 = gtk_hbox_new (FALSE, 0);
   gtk_widget_set_name (hbox137, "hbox137");
   gtk_widget_show (hbox137);
   gtk_box_pack_start (GTK_BOX (vbox67), hbox137, FALSE, TRUE, 0);
 
-  button_about_close = gtk_button_new_with_mnemonic ("Close");
+  button_about_close = gtk_button_new_with_mnemonic ("_Close");
   gtk_widget_set_name (button_about_close, "button_about_close");
   gtk_widget_show (button_about_close);
   gtk_box_pack_start (GTK_BOX (hbox137), button_about_close, TRUE, TRUE, 0);
-  gtk_container_set_border_width (GTK_CONTAINER (button_about_close), 5);
+  gtk_container_set_border_width (GTK_CONTAINER (button_about_close), 6);
   GTK_WIDGET_SET_FLAGS (button_about_close, GTK_CAN_DEFAULT);
 
   g_signal_connect ((gpointer) dlg_about, "delete_event",
@@ -4144,27 +4138,27 @@ create_dlg_about (void)
   GLADE_HOOKUP_OBJECT (dlg_about, vbox67, "vbox67");
   GLADE_HOOKUP_OBJECT (dlg_about, frame44, "frame44");
   GLADE_HOOKUP_OBJECT (dlg_about, label_about_title, "label_about_title");
-  GLADE_HOOKUP_OBJECT (dlg_about, hseparator7, "hseparator7");
-  GLADE_HOOKUP_OBJECT (dlg_about, table28, "table28");
-  GLADE_HOOKUP_OBJECT (dlg_about, label265, "label265");
-  GLADE_HOOKUP_OBJECT (dlg_about, label264, "label264");
-  GLADE_HOOKUP_OBJECT (dlg_about, label266, "label266");
-  GLADE_HOOKUP_OBJECT (dlg_about, label267, "label267");
-  GLADE_HOOKUP_OBJECT (dlg_about, frame45, "frame45");
-  GLADE_HOOKUP_OBJECT (dlg_about, table29, "table29");
-  GLADE_HOOKUP_OBJECT (dlg_about, label269, "label269");
-  GLADE_HOOKUP_OBJECT (dlg_about, label270, "label270");
-  GLADE_HOOKUP_OBJECT (dlg_about, label271, "label271");
-  GLADE_HOOKUP_OBJECT (dlg_about, label272, "label272");
-  GLADE_HOOKUP_OBJECT (dlg_about, label273, "label273");
-  GLADE_HOOKUP_OBJECT (dlg_about, label274, "label274");
-  GLADE_HOOKUP_OBJECT (dlg_about, label_d268, "label_d268");
-  GLADE_HOOKUP_OBJECT (dlg_about, label275, "label275");
-  GLADE_HOOKUP_OBJECT (dlg_about, label268, "label268");
+  GLADE_HOOKUP_OBJECT (dlg_about, hbox208, "hbox208");
+  GLADE_HOOKUP_OBJECT (dlg_about, vbox87, "vbox87");
+  GLADE_HOOKUP_OBJECT (dlg_about, label501, "label501");
+  GLADE_HOOKUP_OBJECT (dlg_about, label497, "label497");
+  GLADE_HOOKUP_OBJECT (dlg_about, label498, "label498");
+  GLADE_HOOKUP_OBJECT (dlg_about, label499, "label499");
+  GLADE_HOOKUP_OBJECT (dlg_about, label500, "label500");
+  GLADE_HOOKUP_OBJECT (dlg_about, vbox88, "vbox88");
+  GLADE_HOOKUP_OBJECT (dlg_about, label492, "label492");
+  GLADE_HOOKUP_OBJECT (dlg_about, label493, "label493");
+  GLADE_HOOKUP_OBJECT (dlg_about, label494, "label494");
+  GLADE_HOOKUP_OBJECT (dlg_about, label495, "label495");
+  GLADE_HOOKUP_OBJECT (dlg_about, label496, "label496");
   GLADE_HOOKUP_OBJECT (dlg_about, frame46, "frame46");
   GLADE_HOOKUP_OBJECT (dlg_about, scrolledwindow18, "scrolledwindow18");
   GLADE_HOOKUP_OBJECT (dlg_about, textview1, "textview1");
   GLADE_HOOKUP_OBJECT (dlg_about, label302, "label302");
+  GLADE_HOOKUP_OBJECT (dlg_about, label488, "label488");
+  GLADE_HOOKUP_OBJECT (dlg_about, label489, "label489");
+  GLADE_HOOKUP_OBJECT (dlg_about, label490, "label490");
+  GLADE_HOOKUP_OBJECT (dlg_about, label491, "label491");
   GLADE_HOOKUP_OBJECT (dlg_about, hbox137, "hbox137");
   GLADE_HOOKUP_OBJECT (dlg_about, button_about_close, "button_about_close");
 
