@@ -140,7 +140,7 @@ GtkWidget * gtk_column_chooser_new(GtkWidget *widget)
          * has to call to get data from.
          */
         signal_connect(GTK_OBJECT(menuitem), "toggled",
-			(gpointer) on_column_popup_toggled, (gpointer) cc);
+			GTK_SIGNAL_FUNC(on_column_popup_toggled), (gpointer) cc);
 
 #if (GTK_MAJOR_VERSION >= 2) 
 		if (0 == i)
@@ -172,7 +172,7 @@ GtkWidget * gtk_column_chooser_new(GtkWidget *widget)
      * has to call to get data from.
      */
     signal_connect(GTK_OBJECT(menuitem), "activate",
-		(gpointer) on_column_popup_activate, (gpointer) cc);
+		GTK_SIGNAL_FUNC(on_column_popup_activate), (gpointer) cc);
 
     gtk_widget_show(menuitem);
     gtk_menu_append(menu, menuitem);
@@ -184,7 +184,8 @@ GtkWidget * gtk_column_chooser_new(GtkWidget *widget)
      * grab when it's displayed, the application has not much
      * to say anyway.
      */
-    signal_connect(GTK_OBJECT(cc), "hide", (gpointer) on_popup_hide, NULL);
+    signal_connect(GTK_OBJECT(cc), "hide",
+		GTK_SIGNAL_FUNC(on_popup_hide), NULL);
 
     return GTK_WIDGET(cc);
 }
@@ -210,7 +211,7 @@ static void gtk_column_chooser_init(GtkColumnChooser * cc)
     g_assert(cc != NULL);
 
     cc->widget = NULL;
-    cc->col_map = g_hash_table_new(NULL, NULL);
+    cc->col_map = g_hash_table_new((GHashFunc) NULL, (GCompareFunc) NULL);
     cc->closed = FALSE;
 }
 
