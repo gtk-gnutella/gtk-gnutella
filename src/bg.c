@@ -880,9 +880,9 @@ static void bg_task_ended(struct bgtask *bt)
 void bg_sched_timer(void)
 {
 	struct bgtask *bt;
-	gint remain = MAX_LIFE;
+	volatile gint remain = MAX_LIFE;
 	gint target;
-	gint ticks;
+	volatile gint ticks;
 	bgret_t ret;
 
 	g_assert(current_task == NULL);
