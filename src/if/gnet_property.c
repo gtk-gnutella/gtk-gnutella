@@ -663,7 +663,7 @@ prop_set_t *gnet_prop_init(void) {
     gnet_property->props[5].data.guint32.def   = &normal_connections_def;
     gnet_property->props[5].data.guint32.value = &normal_connections;
     gnet_property->props[5].data.guint32.choices = NULL;
-    gnet_property->props[5].data.guint32.max   = 100;
+    gnet_property->props[5].data.guint32.max   = 1;
     gnet_property->props[5].data.guint32.min   = 0;
 
 
