@@ -3706,7 +3706,12 @@ static gboolean expert_mode_changed(property_t prop)
         "frame_expert_ul_timeout",
         "frame_expert_dl_source_quality",
         "frame_expert_unmapped",
+        "button_search_passive",
+        "frame_expert_node_info",
+        "notebook_expert_stats_hosts",
+#ifdef USE_GTK1
         "frame_expert_rx_buffers",
+#endif
         NULL
     };
     gint n;
