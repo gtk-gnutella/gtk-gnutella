@@ -368,37 +368,37 @@ void search_free_proxies(gnet_results_set_t *rs);
  *** Filters
  ***/
 enum rule_type {
-    RULE_TEXT = 0,
-    RULE_IP,
-    RULE_SIZE,
-    RULE_JUMP,
-    RULE_SHA1,
-    RULE_FLAG,
-    RULE_STATE
+	RULE_TEXT = 0,
+	RULE_IP,
+	RULE_SIZE,
+	RULE_JUMP,
+	RULE_SHA1,
+	RULE_FLAG,
+	RULE_STATE
 };
 
 enum rule_text_type {
-    RULE_TEXT_PREFIX,
-    RULE_TEXT_WORDS,
-    RULE_TEXT_SUFFIX,
-    RULE_TEXT_SUBSTR,
-    RULE_TEXT_REGEXP,
-    RULE_TEXT_EXACT
+	RULE_TEXT_PREFIX,
+	RULE_TEXT_WORDS,
+	RULE_TEXT_SUFFIX,
+	RULE_TEXT_SUBSTR,
+	RULE_TEXT_REGEXP,
+	RULE_TEXT_EXACT
 };
 
 enum rule_flag_action {
-    RULE_FLAG_SET = 0,
-    RULE_FLAG_UNSET = 1,
-    RULE_FLAG_IGNORE = 2
+	RULE_FLAG_SET = 0,
+	RULE_FLAG_UNSET = 1,
+	RULE_FLAG_IGNORE = 2
 };
 
 /*
  * MAX_FILTER_PROP is used to know how many FILTER_PROPS there are.
  */
 typedef enum filter_prop {
-    FILTER_PROP_DISPLAY = 0,
-    FILTER_PROP_DOWNLOAD,
-    MAX_FILTER_PROP
+	FILTER_PROP_DISPLAY = 0,
+	FILTER_PROP_DOWNLOAD,
+	MAX_FILTER_PROP
 } filter_prop_t;
 
 /*
@@ -409,11 +409,11 @@ typedef enum filter_prop {
  * that allow to act only on one property and ignores the other.
  */
 typedef enum filter_prop_state {
-    FILTER_PROP_STATE_UNKNOWN = 0,
-    FILTER_PROP_STATE_DO,
-    FILTER_PROP_STATE_DONT,
-    MAX_FILTER_PROP_STATE,
-    FILTER_PROP_STATE_IGNORE
+	FILTER_PROP_STATE_UNKNOWN = 0,
+	FILTER_PROP_STATE_DO,
+	FILTER_PROP_STATE_DONT,
+	MAX_FILTER_PROP_STATE,
+	FILTER_PROP_STATE_IGNORE
 } filter_prop_state_t;
 
 
@@ -423,110 +423,111 @@ typedef enum filter_prop_state {
  ***/
 
 enum {
-    MSG_UNKNOWN = 0,
-    MSG_INIT,
-    MSG_INIT_RESPONSE,
-    MSG_BYE,
-    MSG_QRP,
-    MSG_VENDOR,
-    MSG_STANDARD,
-    MSG_PUSH_REQUEST,
-    MSG_SEARCH,
-    MSG_SEARCH_RESULTS,
-    MSG_TOTAL,     /* allways counted (for all the above types) */
-    MSG_TYPE_COUNT /* number of known message types */
+	MSG_UNKNOWN = 0,
+	MSG_INIT,
+	MSG_INIT_RESPONSE,
+	MSG_BYE,
+	MSG_QRP,
+	MSG_VENDOR,
+	MSG_STANDARD,
+	MSG_PUSH_REQUEST,
+	MSG_SEARCH,
+	MSG_SEARCH_RESULTS,
+	MSG_TOTAL,     /* allways counted (for all the above types) */
+	MSG_TYPE_COUNT /* number of known message types */
 };
 
 typedef enum msg_drop_reason {
-    MSG_DROP_BAD_SIZE,
-    MSG_DROP_TOO_SMALL,
-    MSG_DROP_TOO_LARGE,
-    MSG_DROP_WAY_TOO_LARGE,
-    MSG_DROP_UNKNOWN_TYPE,
+	MSG_DROP_BAD_SIZE = 0,
+	MSG_DROP_TOO_SMALL,
+	MSG_DROP_TOO_LARGE,
+	MSG_DROP_WAY_TOO_LARGE,
+	MSG_DROP_UNKNOWN_TYPE,
 	MSG_DROP_UNEXPECTED,
-    MSG_DROP_TTL0,
-    MSG_DROP_MAX_TTL_EXCEEDED,
-    MSG_DROP_THROTTLE,
+	MSG_DROP_TTL0,
+	MSG_DROP_IMPROPER_HOPS_TTL,
+	MSG_DROP_MAX_TTL_EXCEEDED,
+	MSG_DROP_THROTTLE,
 	MSG_DROP_PONG_UNUSABLE,
-    MSG_DROP_HARD_TTL_LIMIT,
-    MSG_DROP_MAX_HOP_COUNT,
-    MSG_DROP_UNREQUESTED_REPLY,
-    MSG_DROP_ROUTE_LOST,
-    MSG_DROP_NO_ROUTE,
-    MSG_DROP_DUPLICATE,
-    MSG_DROP_BANNED,
-    MSG_DROP_SHUTDOWN,
-    MSG_DROP_FLOW_CONTROL,
-    MSG_DROP_QUERY_NO_NUL,
-    MSG_DROP_QUERY_TOO_SHORT,
-    MSG_DROP_QUERY_OVERHEAD,
-    MSG_DROP_MALFORMED_SHA1,
-    MSG_DROP_MALFORMED_UTF_8,
-    MSG_DROP_BAD_RESULT,
+	MSG_DROP_HARD_TTL_LIMIT,
+	MSG_DROP_MAX_HOP_COUNT,
+	MSG_DROP_UNREQUESTED_REPLY,
+	MSG_DROP_ROUTE_LOST,
+	MSG_DROP_NO_ROUTE,
+	MSG_DROP_DUPLICATE,
+	MSG_DROP_BANNED,
+	MSG_DROP_SHUTDOWN,
+	MSG_DROP_FLOW_CONTROL,
+	MSG_DROP_QUERY_NO_NUL,
+	MSG_DROP_QUERY_TOO_SHORT,
+	MSG_DROP_QUERY_OVERHEAD,
+	MSG_DROP_MALFORMED_SHA1,
+	MSG_DROP_MALFORMED_UTF_8,
+	MSG_DROP_BAD_RESULT,
 	MSG_DROP_HOSTILE_IP,
-    MSG_DROP_REASON_COUNT /* number of known reasons to drop a message */
+	MSG_DROP_REASON_COUNT /* number of known reasons to drop a message */
 } msg_drop_reason_t;
 
 enum {
-    GNR_ROUTING_ERRORS,
-    GNR_LOCAL_SEARCHES,
-    GNR_LOCAL_HITS,
-    GNR_QUERY_COMPACT_COUNT,
-    GNR_QUERY_COMPACT_SIZE,
-    GNR_QUERY_UTF8,
-    GNR_QUERY_SHA1,
+	GNR_ROUTING_ERRORS,
+	GNR_LOCAL_SEARCHES,
+	GNR_LOCAL_HITS,
+	GNR_QUERY_COMPACT_COUNT,
+	GNR_QUERY_COMPACT_SIZE,
+	GNR_QUERY_UTF8,
+	GNR_QUERY_SHA1,
 	GNR_BROADCASTED_PUSHES,
-    GNR_TYPE_COUNT /* number of general stats */
+	GNR_TYPE_COUNT /* number of general stats */
 };
 
 #define STATS_FLOWC_COLUMNS 10 /* Type, 0..7, 8+ */
 #define STATS_RECV_COLUMNS 10 /* -"- */
 
 typedef struct gnet_stat {
-    guint32 drop_reason[MSG_DROP_REASON_COUNT][MSG_TYPE_COUNT];
+	guint32 drop_reason[MSG_DROP_REASON_COUNT][MSG_TYPE_COUNT];
 
-    struct {
-        guint32 received[MSG_TYPE_COUNT];
-        guint32 generated[MSG_TYPE_COUNT];
-        guint32 relayed[MSG_TYPE_COUNT];
-        guint32 dropped[MSG_TYPE_COUNT];
-        guint32 expired[MSG_TYPE_COUNT];
+	struct {
+		guint32 received[MSG_TYPE_COUNT];
+		guint32 generated[MSG_TYPE_COUNT];
+		guint32 relayed[MSG_TYPE_COUNT];
+		guint32 dropped[MSG_TYPE_COUNT];
+		guint32 expired[MSG_TYPE_COUNT];
 		guint32 received_hops[STATS_RECV_COLUMNS][MSG_TYPE_COUNT];
 		guint32 received_ttl[STATS_RECV_COLUMNS][MSG_TYPE_COUNT];
 		guint32 flowc_hops[STATS_FLOWC_COLUMNS][MSG_TYPE_COUNT];
 		guint32 flowc_ttl[STATS_FLOWC_COLUMNS][MSG_TYPE_COUNT];
-    } pkg;
+	} pkg;
 
-    struct {
-        guint32 received[MSG_TYPE_COUNT];
-        guint32 generated[MSG_TYPE_COUNT];
-        guint32 relayed[MSG_TYPE_COUNT];
-        guint32 dropped[MSG_TYPE_COUNT];
-        guint32 expired[MSG_TYPE_COUNT];
+	struct {
+		guint32 received[MSG_TYPE_COUNT];
+		guint32 generated[MSG_TYPE_COUNT];
+		guint32 relayed[MSG_TYPE_COUNT];
+		guint32 dropped[MSG_TYPE_COUNT];
+		guint32 expired[MSG_TYPE_COUNT];
 		guint32 received_hops[STATS_RECV_COLUMNS][MSG_TYPE_COUNT];
 		guint32 received_ttl[STATS_RECV_COLUMNS][MSG_TYPE_COUNT];
 		guint32 flowc_hops[STATS_FLOWC_COLUMNS][MSG_TYPE_COUNT];
 		guint32 flowc_ttl[STATS_FLOWC_COLUMNS][MSG_TYPE_COUNT];
-    } byte;
+	} byte;
 
 
-    guint32 general[GNR_TYPE_COUNT];
+	guint32 general[GNR_TYPE_COUNT];
 } gnet_stats_t;
 
 typedef enum {
-    BW_GNET_IN,
-    BW_GNET_OUT,
-    BW_HTTP_IN,
-    BW_HTTP_OUT,
-    BW_LEAF_IN,
-    BW_LEAF_OUT
+	BW_GNET_IN,
+	BW_GNET_OUT,
+	BW_HTTP_IN,
+	BW_HTTP_OUT,
+	BW_LEAF_IN,
+	BW_LEAF_OUT
 } gnet_bw_source;
 
 typedef struct gnet_bw_stats {
-    gboolean enabled;
-    guint32  current;
-    guint32  average;
-    guint32  limit;
+	gboolean enabled;
+	guint32  current;
+	guint32  average;
+	guint32  limit;
 } gnet_bw_stats_t;
 
 void gnet_stats_get(gnet_stats_t *stats);
@@ -563,26 +564,26 @@ typedef guint32 gnet_upload_t;
  */
 
 typedef enum {
-    GTA_UL_PUSH_RECEIVED    = 1,    /* We got a push request */
-    GTA_UL_COMPLETE         = 2,    /* The file has been sent completely */
-    GTA_UL_SENDING          = 3,    /* We are sending data */
-    GTA_UL_HEADERS          = 4,    /* Receiving the HTTP request headers */
-    GTA_UL_WAITING          = 5,    /* Waiting new HTTP request */
-    GTA_UL_ABORTED          = 6,    /* Upload removed during operation */
-    GTA_UL_CLOSED           = 7,    /* Upload removed while waiting */
-    GTA_UL_QUEUED           = 8,    /* Upload is queued */
-    GTA_UL_QUEUE            = 9,    /* Send a queue (Similar to push) */
-    GTA_UL_QUEUE_WAITING    = 10,   /* Connect back with GTA_UL_QUEUE was
-                                       success now waiting for a response */
-    GTA_UL_PFSP_WAITING     = 11,   /* Requested range unavailable, retry... */
+	GTA_UL_PUSH_RECEIVED    = 1,    /* We got a push request */
+	GTA_UL_COMPLETE         = 2,    /* The file has been sent completely */
+	GTA_UL_SENDING          = 3,    /* We are sending data */
+	GTA_UL_HEADERS          = 4,    /* Receiving the HTTP request headers */
+	GTA_UL_WAITING          = 5,    /* Waiting new HTTP request */
+	GTA_UL_ABORTED          = 6,    /* Upload removed during operation */
+	GTA_UL_CLOSED           = 7,    /* Upload removed while waiting */
+	GTA_UL_QUEUED           = 8,    /* Upload is queued */
+	GTA_UL_QUEUE            = 9,    /* Send a queue (Similar to push) */
+	GTA_UL_QUEUE_WAITING    = 10,   /* Connect back with GTA_UL_QUEUE was
+									   success now waiting for a response */
+	GTA_UL_PFSP_WAITING     = 11,   /* Requested range unavailable, retry... */
 } upload_stage_t;
 
 typedef struct gnet_upload_status {
-    upload_stage_t status;
+	upload_stage_t status;
 	off_t   pos;		 /* Read position in file we're sending */
-    guint32 bps;         /* Current transfer rate */
-    guint32 avg_bps;     /* Average transfer rate */
-    time_t  last_update;
+	guint32 bps;         /* Current transfer rate */
+	guint32 avg_bps;     /* Average transfer rate */
+	time_t  last_update;
 	
 	guint	parq_position;
 	guint	parq_size;
@@ -592,19 +593,19 @@ typedef struct gnet_upload_status {
 } gnet_upload_status_t;
 
 typedef struct gnet_upload_info {
-    gnet_upload_t upload_handle;
+	gnet_upload_t upload_handle;
 
-    gchar  *name;        /* Name of requested file */
+	gchar  *name;        /* Name of requested file */
 
-    guint32 ip;          /* remote IP address */
+	guint32 ip;          /* remote IP address */
 
-    guint32 file_size;   /* Size of requested file */
-    guint32 range_start; /* First byte to send, inclusive */
-    guint32 range_end;   /* Last byte to send, inclusive */
+	guint32 file_size;   /* Size of requested file */
+	guint32 range_start; /* First byte to send, inclusive */
+	guint32 range_end;   /* Last byte to send, inclusive */
 
-    time_t  start_date;
+	time_t  start_date;
 
-    gchar  *user_agent;  /* remote user agent */
+	gchar  *user_agent;  /* remote user agent */
 	gboolean push;       /* Whether we're pushing or not */
 	gboolean partial;    /* Whether it's a partial file */
 } gnet_upload_info_t;
@@ -689,11 +690,11 @@ typedef guint32 gnet_src_t;
 
 typedef void (*src_listener_t) (gnet_src_t);
 typedef enum {
-    EV_SRC_ADDED = 0,
-    EV_SRC_REMOVED,
-    EV_SRC_INFO_CHANGED,
-    EV_SRC_STATUS_CHANGED,
-    EV_SRC_EVENTS /* Number of events in this domain */
+	EV_SRC_ADDED = 0,
+	EV_SRC_REMOVED,
+	EV_SRC_INFO_CHANGED,
+	EV_SRC_STATUS_CHANGED,
+	EV_SRC_EVENTS /* Number of events in this domain */
 } gnet_src_ev_t;
 
 void src_add_listener(src_listener_t, gnet_src_ev_t, frequency_t, guint32);
@@ -708,31 +709,30 @@ void src_remove_listener(src_listener_t, gnet_src_ev_t);
 typedef guint32 gnet_fi_t;
 
 typedef struct gnet_fi_info {
-    gnet_fi_t fi_handle;
-
-    gchar    *file_name;        /* Name of the file on disk */
+	gnet_fi_t fi_handle;
+	gchar    *file_name;        /* Name of the file on disk */
 } gnet_fi_info_t;
 
 typedef struct gnet_fi_status {
-    guint32  recvcount;
-    guint32  refcount;
-    guint32  lifecount;
-    guint32  size;
-    guint32  done;
-    guint32  recv_last_rate;
+	guint32  recvcount;
+	guint32  refcount;
+	guint32  lifecount;
+	guint32  size;
+	guint32  done;
+	guint32  recv_last_rate;
 } gnet_fi_status_t;
 
 typedef void (*fi_listener_t) (gnet_fi_t);
 typedef void (*fi_src_listener_t) (gnet_fi_t, gnet_src_t);
 
 typedef enum {
-    EV_FI_ADDED = 0,       /* fi_listener */
-    EV_FI_REMOVED,         /* fi_listener */
-    EV_FI_INFO_CHANGED,    /* fi_listener */
-    EV_FI_STATUS_CHANGED,  /* fi_listener */
-    EV_FI_SRC_ADDED,       /* fi_src_listener */
-    EV_FI_SRC_REMOVED,     /* fi_src_listener */
-    EV_FI_EVENTS           /* Number of events in this domain */
+	EV_FI_ADDED = 0,       /* fi_listener */
+	EV_FI_REMOVED,         /* fi_listener */
+	EV_FI_INFO_CHANGED,    /* fi_listener */
+	EV_FI_STATUS_CHANGED,  /* fi_listener */
+	EV_FI_SRC_ADDED,       /* fi_src_listener */
+	EV_FI_SRC_REMOVED,     /* fi_src_listener */
+	EV_FI_EVENTS           /* Number of events in this domain */
 } gnet_fi_ev_t;
 
 void fi_add_listener(GCallback, gnet_fi_ev_t, frequency_t, guint32);
