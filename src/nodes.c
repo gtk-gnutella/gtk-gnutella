@@ -5477,7 +5477,7 @@ void node_get_status(const gnet_node_t n, gnet_node_status_t *status)
 	status->connect_date = node->connect_date;
 	status->up_date      = node->up_date;
 
-	if (node->gnet_ip != 0) {
+	if (node->gnet_pong_ip != 0) {
 		/* Got a pong from this node, library info should be accurate */
 		status->gnet_files_count  = node->gnet_files_count;
 		status->gnet_kbytes_count = node->gnet_kbytes_count;

@@ -1193,7 +1193,14 @@ void pcache_pong_received(struct gnutella_node *n)
 	 */
 
 	if (n->header.hops == 0) {
-		if (!n->gnet_ip && (n->flags & NODE_F_INCOMING)) {
+		/*
+		 * For an incoming connection, we might not know the GNet IP address
+		 * of the remote node yet (we know the remote endpoint, but it could
+		 * be a proxy for a firewalled node).  The information from the pong
+		 * may help us fill this gap.
+		 */
+
+		if (n->gnet_ip == 0 && (n->flags & NODE_F_INCOMING)) {
 			if (ip == n->ip) {
 				n->gnet_ip = ip;		/* Signals: we have figured it out */
 				n->gnet_port = port;
@@ -1205,8 +1212,19 @@ void pcache_pong_received(struct gnutella_node *n)
 			}
 		}
 
-		n->gnet_files_count = files_count;
-		n->gnet_kbytes_count = kbytes_count;
+		/*
+		 * Only record library stats for the node if it is the first pong
+		 * we receive from it (likely to be a reply to our handshaking ping)
+		 * or if it comes from the node's IP.
+		 * Indeed, LimeWire suffers from a bug where it will forward foreign
+		 * pongs with hops=0 even though they are not coming from the node.
+		 *		--RAM, 11/01/2004.
+		 */
+
+		if (n->n_pong_received == 1 || ip == n->gnet_ip) {
+			n->gnet_files_count = files_count;
+			n->gnet_kbytes_count = kbytes_count;
+		}
 
 		/*
 		 * Spot any change in the pong's IP address.  We try to avoid messages
