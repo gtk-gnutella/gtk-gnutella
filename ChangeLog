@@ -14,6 +14,7 @@
  * Drop ping/pongs/pushes that are smaller than their normal size.
  * Added support for initial advertising of supported vendor messages.
  * Count unhandled vendor-specific messages as being of an "unknown type".
+ * Was wrongly putting a trailing 's' to the Vendor-Message header.
 
 - (2003.01.03 - RAM)
  * Added support for vendor-specific messages.
