@@ -85,7 +85,7 @@ gboolean on_clist_nodes_button_press_event
 		return FALSE;
 
 	gtk_widget_set_sensitive(
-		lookup_widget(popup_search, "popup_nodes_remove"),
+		lookup_widget(popup_nodes, "popup_nodes_remove"),
 		clist_nodes->selection != NULL);
 
     if (!gtk_clist_get_selection_info
