@@ -122,6 +122,9 @@ void mq_clear(mqueue_t *q)
 
 	g_assert(q);
 
+	if (q->count == 0)
+		return;					/* Queue is empty */
+
 	while ((l = q->qhead)) {
 		pmsg_t *mb = (pmsg_t *) l->data;
 		if (mb->m_rptr != pmsg_start(mb))	/* Started to write this message */
@@ -132,6 +135,14 @@ void mq_clear(mqueue_t *q)
 	g_assert(q->count >= 0 && q->count <= 1);	/* At most one message */
 
 	mq_update_flowc(q);
+
+	/*
+	 * Queue was not empty (hence enabled). If we removed all its
+	 * messages, we must disable it: there is nothing more to service.
+	 */
+
+	if (q->count == 0)
+		node_disableq(q->node);
 }
 
 /*
