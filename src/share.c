@@ -736,6 +736,7 @@ void search_request(struct gnutella_node *n)
 	struct query_extensions query_extension;
 	guint32 max_replies;
 	gint urn_match = 0;
+	gboolean skip_file_search = FALSE;
 
 	/*
 	 * Make sure search request is NUL terminated... --RAM, 06/10/2001
@@ -850,25 +851,24 @@ void search_request(struct gnutella_node *n)
 
 	/*
 	 * When an URN search is present, there can be an empty search string.
+	 *
+	 * If requester if farther than 3 hops. save bandwidth when returning
+	 * lots of hits from short queries, which are not specific enough.
+	 * The idea here is to give some response, but not too many.
+	 *
+	 * Notes from RAM, 09/09/2001:
+	 * 1) The hop amount must be made configurable.
+	 * 2) We can add a config option to forbid forwarding of such queries.
 	 */
 
-	if (!query_extension.urn) {
-		if (search_len <= 1)
-			return;
+	if (
+		search_len <= 1 ||
+		(search_len < 5 && n->header.hops > 3)
+	)
+		skip_file_search = TRUE;
 
-		/*
-		 * If requester if farther than 3 hops. save bandwidth when returning
-		 * lots of hits from short queries, which are not specific enough.
-		 * The idea here is to give some response, but not too many.
-		 *
-		 * Notes from RAM, 09/09/2001:
-		 * 1) The hop amount must be made configurable.
-		 * 2) We can add a config option to forbid forwarding of such queries.
-		 */
-
-		if (search_len < 5 && n->header.hops > 3)
-			return;
-	}
+	if (!query_extension.urn && skip_file_search)
+		return;
 
 	/*
 	 * Perform search...
@@ -893,13 +893,14 @@ void search_request(struct gnutella_node *n)
         }
 	}
 
-	found_files = urn_match +
-		st_search(&search_table, search, got_match, max_replies);
+	found_files = urn_match + skip_file_search ?
+		0 : st_search(&search_table, search, got_match, max_replies);
 
 	if (found_files > 0) {
 
 		if (dbg > 3) {
-			printf("Share HIT %u files '%s' ", (gint) found_files, search);
+			printf("Share HIT %u files '%s'%s ", (gint) found_files, search,
+				skip_file_search ? " (skipped)" : "");
 			if (query_extension.urn)
 				printf("%c(%s) ", urn_match ? '+' : '-', query_extension.urn);
 			printf("req_speed=%u ttl=%u hops=%u\n",
