@@ -149,6 +149,103 @@ static void add_download_name_filter(record_t *rec, filter_t *filter)
     filter_append_rule(filter, rule);
 }
 
+static void refresh_popup(void)
+{
+	gboolean sensitive;
+    search_t *current_search;
+
+    current_search = search_gui_get_current_search();
+
+	sensitive = current_search && 
+        (gboolean) GTK_CLIST(current_search->clist)->selection;
+	gtk_widget_set_sensitive
+        (lookup_widget(main_window, "button_search_download"), sensitive);
+    gtk_widget_set_sensitive
+        (lookup_widget(popup_search, "popup_search_drop_name"), sensitive);
+    gtk_widget_set_sensitive
+        (lookup_widget(popup_search, "popup_search_drop_sha1"), sensitive);
+    gtk_widget_set_sensitive
+        (lookup_widget(popup_search, "popup_search_drop_host"), sensitive);
+    gtk_widget_set_sensitive(
+        lookup_widget(popup_search, "popup_search_drop_name_global"), 
+        sensitive);
+    gtk_widget_set_sensitive(
+        lookup_widget(popup_search, "popup_search_drop_sha1_global"), 
+        sensitive);   
+    gtk_widget_set_sensitive(
+        lookup_widget(popup_search, "popup_search_drop_host_global"), 
+        sensitive);   
+    gtk_widget_set_sensitive(
+        lookup_widget(popup_search, "popup_search_autodownload_name"), 
+        sensitive);
+    gtk_widget_set_sensitive(
+        lookup_widget(popup_search, "popup_search_autodownload_sha1"), 
+        sensitive);   
+    gtk_widget_set_sensitive(
+        lookup_widget(popup_search, "popup_search_new_from_selected"), 
+        sensitive);   
+
+    gtk_widget_set_sensitive(
+        lookup_widget(popup_search, "popup_search_restart"), 
+        (gboolean) current_search);
+    gtk_widget_set_sensitive(
+        lookup_widget(popup_search, "popup_search_duplicate"), 
+        (gboolean) current_search);
+
+    if (current_search) {
+        gtk_widget_set_sensitive(
+            lookup_widget(popup_search, "popup_search_stop"), 
+			!search_is_frozen(current_search->search_handle));
+		gtk_widget_set_sensitive(
+            lookup_widget(popup_search, "popup_search_resume"),
+			search_is_frozen(current_search->search_handle));
+		if (current_search->passive)
+            gtk_widget_set_sensitive(
+                lookup_widget(popup_search, "popup_search_restart"), 
+                FALSE);
+    } else {
+        gtk_widget_set_sensitive(
+            lookup_widget(popup_search, "popup_search_stop"), FALSE);
+	    gtk_widget_set_sensitive(
+            lookup_widget(popup_search, "popup_search_resume"), FALSE);
+    }
+}
+
+/*
+ * add_targetted_search:
+ *
+ * Creates a new search based on the filename found and adds a filter 
+ * to it based on the sha1 hash if it has one or the exact filename if 
+ * it hasn't. 
+ * (patch by Andrew Meredith <andrew@anvil.org>)   
+ */
+static void add_targetted_search(record_t *rec, filter_t *noneed)
+{
+    guint32 minimum_speed;   /* minimum speed value from props */
+    search_t *new_search;
+    rule_t *rule;
+
+    g_assert(rec != NULL);
+    g_assert(rec->name != NULL);
+
+    /* fetch value for minimum_speed from props */
+    gui_prop_get_guint32(PROP_DEFAULT_MINIMUM_SPEED, &minimum_speed, 0, 1);
+
+    /* create new search item with search string set to filename */
+    new_search = search_gui_new_search(rec->name, minimum_speed, 0);
+    g_assert(new_search != NULL);
+
+    if (rec->sha1) {
+        rule = filter_new_sha1_rule(rec->sha1, rec->name,
+            filter_get_download_target(), RULE_FLAG_ACTIVE);
+    } else {
+        rule = filter_new_text_rule(rec->name, RULE_TEXT_EXACT, TRUE, 
+            filter_get_download_target(), RULE_FLAG_ACTIVE);
+    }
+    g_assert(rule != NULL);
+
+    filter_append_rule(new_search->filter, rule);
+}
 
 
 /***
@@ -330,9 +427,6 @@ void on_button_search_clear_clicked(GtkButton * button, gpointer user_data)
 
 	gtk_widget_set_sensitive
         (lookup_widget(main_window, "button_search_clear"), FALSE);
-	gtk_widget_set_sensitive
-        (lookup_widget(popup_search, "popup_search_clear_results"), FALSE);
-
 }
 
 void on_button_search_close_clicked(GtkButton * button, gpointer user_data)
@@ -412,58 +506,8 @@ gboolean on_clist_search_results_button_press_event
    
 	case 3:
         /* right click section (popup menu) */
-        {
-            gboolean sensitive;
+        refresh_popup();
 
-            sensitive = current_search && 
-                (gboolean) GTK_CLIST(current_search->clist)->selection;
-
-            gtk_widget_set_sensitive(
-                lookup_widget(popup_search, "popup_search_drop_name"), 
-                sensitive);
-            gtk_widget_set_sensitive(
-                lookup_widget(popup_search, "popup_search_drop_sha1"), 
-                sensitive);
-            gtk_widget_set_sensitive(
-                lookup_widget(popup_search, "popup_search_drop_name_global"), 
-                sensitive);
-            gtk_widget_set_sensitive(
-                lookup_widget(popup_search, "popup_search_drop_sha1_global"), 
-                sensitive);
-            gtk_widget_set_sensitive(
-                lookup_widget(popup_search, "popup_search_autodownload_name"),
-                sensitive);
-            gtk_widget_set_sensitive(
-                lookup_widget(popup_search, "popup_search_autodownload_sha1"),
-                sensitive);
-            gtk_widget_set_sensitive(
-                lookup_widget(popup_search, "popup_search_close"), 
-                (gboolean) searches);
-            gtk_widget_set_sensitive(
-                lookup_widget(popup_search, "popup_search_restart"), 
-                (gboolean) searches);
-            gtk_widget_set_sensitive(
-                lookup_widget(popup_search, "popup_search_duplicate"), 
-                (gboolean) searches);
-        }
-
-		if (current_search) {
-			gtk_widget_set_sensitive(
-                lookup_widget(popup_search, "popup_search_stop"), 
-				!search_is_frozen(current_search->search_handle));
-			gtk_widget_set_sensitive(
-                lookup_widget(popup_search, "popup_search_resume"),
-				search_is_frozen(current_search->search_handle));
-			if (current_search->passive)
-				gtk_widget_set_sensitive(
-                    lookup_widget(popup_search, "popup_search_restart"), 
-                    FALSE);
-		} else {
-			gtk_widget_set_sensitive
-                (lookup_widget(popup_search, "popup_search_stop"), FALSE);
-			gtk_widget_set_sensitive
-                (lookup_widget(popup_search, "popup_search_resume"), FALSE);
-		}
 
         {
             gboolean search_results_show_tabs;
@@ -607,20 +651,7 @@ void on_clist_search_results_select_row(
         GTK_SIGNAL_FUNC(on_clist_search_results_select_row),
         NULL);
 
-	gtk_widget_set_sensitive
-        (lookup_widget(main_window, "button_search_download"), TRUE);
-    gtk_widget_set_sensitive
-        (lookup_widget(popup_search, "popup_search_drop_name"), TRUE);
-    gtk_widget_set_sensitive
-        (lookup_widget(popup_search, "popup_search_drop_sha1"), TRUE);
-    gtk_widget_set_sensitive
-        (lookup_widget(popup_search, "popup_search_drop_name_global"), TRUE);
-    gtk_widget_set_sensitive
-        (lookup_widget(popup_search, "popup_search_drop_sha1_global"), TRUE);
-    gtk_widget_set_sensitive
-        (lookup_widget(popup_search, "popup_search_autodownload_name"), TRUE);
-    gtk_widget_set_sensitive
-        (lookup_widget(popup_search, "popup_search_autodownload_sha1"), TRUE);
+    refresh_popup();
 
     gtk_clist_freeze(clist);
 
@@ -721,30 +752,7 @@ void on_clist_search_results_select_row(
 void on_clist_search_results_unselect_row(
     GtkCList * clist, gint row, gint col, GdkEvent * event, gpointer data)
 {
-	gboolean sensitive;
-    search_t *current_search;
-
-    current_search = search_gui_get_current_search();
-
-	sensitive = current_search	&& (gboolean) GTK_CLIST(current_search->clist)->selection;
-	gtk_widget_set_sensitive
-        (lookup_widget(main_window, "button_search_download"), sensitive);
-    gtk_widget_set_sensitive
-        (lookup_widget(popup_search, "popup_search_drop_name"), sensitive);
-    gtk_widget_set_sensitive
-        (lookup_widget(popup_search, "popup_search_drop_sha1"), sensitive);   
-    gtk_widget_set_sensitive(
-        lookup_widget(popup_search, "popup_search_drop_name_global"), 
-        sensitive);
-    gtk_widget_set_sensitive(
-        lookup_widget(popup_search, "popup_search_drop_sha1_global"), 
-        sensitive);   
-    gtk_widget_set_sensitive(
-        lookup_widget(popup_search, "popup_search_autodownload_name"), 
-        sensitive);
-    gtk_widget_set_sensitive(
-        lookup_widget(popup_search, "popup_search_autodownload_sha1"), 
-        sensitive);   
+    refresh_popup();
 }
 
 void on_clist_search_results_resize_column(
@@ -985,31 +993,34 @@ void on_popup_search_autodownload_sha1_activate(
     gtk_clist_thaw(GTK_CLIST(current_search->clist));
 }
 
+void on_popup_search_new_from_selected_activate(
+    GtkMenuItem *menuitem, gpointer user_data)
+{
+    GSList *sl = NULL;
+    search_t *current_search;
+
+    /* grab current search pointer to extract selected items */
+    current_search = search_gui_get_current_search();
+
+    g_assert(current_search != NULL);
+
+    gtk_clist_freeze(GTK_CLIST(current_search->clist));
+
+    sl = clist_collect_data(GTK_CLIST(current_search->clist), 
+        FALSE, rec_sha1_eq);
+
+    g_slist_foreach(sl, 
+        (GFunc) add_targetted_search, current_search->filter);
+
+    g_slist_free(sl);
+
+    gtk_clist_thaw(GTK_CLIST(current_search->clist));
+}
+
 void on_popup_search_edit_filter_activate(GtkMenuItem * menuitem,
 									gpointer user_data)
 {
     filter_open_dialog();
-}
-
-void on_popup_search_clear_results_activate(GtkMenuItem * menuitem,
-									        gpointer user_data)
-{
-    gui_search_clear_results();
-
-	gtk_widget_set_sensitive
-        (lookup_widget(main_window, "button_search_clear"), FALSE);
-	gtk_widget_set_sensitive
-        (lookup_widget(popup_search, "popup_search_clear_results"), FALSE);
-}
-
-void on_popup_search_close_activate(GtkMenuItem * menuitem,
-									gpointer user_data)
-{
-    search_t *current_search;
-
-    current_search = search_gui_get_current_search();
-	if (current_search != NULL)
-		search_gui_close_search(current_search);
 }
 
 void on_popup_search_duplicate_activate(GtkMenuItem * menuitem,
