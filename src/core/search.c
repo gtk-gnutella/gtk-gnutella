@@ -2018,6 +2018,13 @@ search_close(gnet_search_t sh)
 
 	g_return_if_fail(sch);
 
+	/*
+	 * This needs to be done before the handle of the search is reclaimed.
+	 */
+
+	if (!sch->passive)
+		search_dequeue_all_nodes(sh);
+
     /*
      * We remove the search immeditaly from the list of searches,
      * because some of the following calls (may) depend on 
@@ -2047,7 +2054,6 @@ search_close(gnet_search_t sh)
 
 		search_free_sent_nodes(sch);
 		search_free_sent_node_ids(sch);
-		search_dequeue_all_nodes(sh);
 	} else {
 		search_passive--;
 	}
