@@ -47,7 +47,9 @@ RCSID("$Id$");
 #include "hostiles.h"
 #include "qhit.h"
 #include "oob.h"
+#include "oob_proxy.h"
 #include "fileinfo.h"
+#include "settings.h"
 
 #include "if/gnet_property.h"
 #include "if/gnet_property_priv.h"
@@ -561,6 +563,7 @@ share_init(void)
 	qrp_init(query_map);
 	qhit_init();
 	oob_init();
+	oob_proxy_init();
 
 	/*
 	 * We allocate an empty search_table, which will be de-allocated when we
@@ -1182,6 +1185,7 @@ share_close(void)
 	shared_dirs_free();
 	huge_close();
 	qrp_close();
+	oob_proxy_close();
 	oob_close();
 	qhit_close();
 }
@@ -1388,6 +1392,23 @@ query_strip_oob_flag(gnutella_node_t *n, gchar *data)
 }
 
 /**
+ * Set the OOB delivery flag by patching the query message inplace.
+ */
+void
+query_set_oob_flag(gnutella_node_t *n, gchar *data)
+{
+	guint16 speed;
+
+	READ_GUINT16_LE(data, speed);
+	speed |= QUERY_SPEED_OOB_REPLY | QUERY_SPEED_MARK;
+	WRITE_GUINT16_LE(speed, data);
+
+	if (query_debug)
+		printf("QUERY %s from node %s <%s>: set OOB delivery (speed = 0x%x)\n",
+			guid_hex_str(n->header.muid), node_ip(n), node_vendor(n), speed);
+}
+
+/**
  * Searches requests (from others nodes) 
  * Basic matching. The search request is made lowercase and
  * is matched to the filenames in the LL.
@@ -1419,6 +1440,7 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 	gboolean oob = FALSE;		/* Wants out-of-band query hit delivery? */
 	gboolean use_ggep_h = FALSE;
 	struct query_context *qctx;
+	gboolean tagged_speed = FALSE;
 
 	/*
 	 * Make sure search request is NUL terminated... --RAM, 06/10/2001
@@ -1801,11 +1823,15 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 
 	READ_GUINT16_LE(n->data, req_speed);
 
-	oob = (req_speed & QUERY_SPEED_MARK) && (req_speed & QUERY_SPEED_OOB_REPLY);
+	tagged_speed = (req_speed & QUERY_SPEED_MARK) ? TRUE : FALSE;
+	oob = tagged_speed && (req_speed & QUERY_SPEED_OOB_REPLY);
 
 	/*
-	 * If OOB reply is wanted, we have the IP/port of the querier.
-	 * Verify against the hotile IP addresses...
+	 * If OOB reply is wanted, validate a few things.
+	 *
+	 * We may either drop the query, or reset the OOB flag if it's
+	 * obviously misconfigured.  Then we can re-enable the OOB flag
+	 * if we're allowed to perform OOB-proxying for leaf queries.
 	 */
 
 	if (oob) {
@@ -1813,6 +1839,10 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 		guint16 port;
 
 		guid_oob_get_ip_port(n->header.muid, &ip, &port);
+
+		/*
+		 * Verify against the hotile IP addresses...
+		 */
 
 		if (hostiles_check(ip)) {
 			gnet_stats_count_dropped(n, MSG_DROP_HOSTILE_IP);
@@ -1849,16 +1879,66 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 			oob = FALSE;
 
 			if (query_debug)
-				printf("QUERY node %s <%s>: removed OOB flag "
+				printf("QUERY %s node %s <%s>: removed OOB flag "
 					"(invalid return address: %s)\n",
-					node_ip(n), node_vendor(n),
+					guid_hex_str(n->header.muid), node_ip(n), node_vendor(n),
 					ip_port_to_gchar(ip, port));
 		}
+
+		/*
+		 * If the query comes from a leaf node and has the "firewalled"
+		 * bit set, chances are the leaf is UDP-firewalled as well.
+		 * Clear the OOB flag.
+		 */
+
+		if (oob && NODE_IS_LEAF(n) && (req_speed & QUERY_SPEED_FIREWALLED)) {
+			query_strip_oob_flag(n, n->data);
+			oob = FALSE;
+
+			if (query_debug)
+				printf("QUERY %s node %s <%s>: removed OOB flag "
+					"(leaf node is TCP-firewalled)\n",
+					guid_hex_str(n->header.muid), node_ip(n), node_vendor(n));
+		}
+
+		/*
+		 * If the leaf node is not guiding the query, yet requests out-of-band
+		 * replies, clear that flag so that we can monitor how much hits
+		 * are delivered.
+		 */
+
+		if (
+			oob && NODE_IS_LEAF(n) &&
+			!(NODE_GUIDES_QUERY(n) || (req_speed & QUERY_SPEED_LEAF_GUIDED))
+		) {
+			query_strip_oob_flag(n, n->data);
+			oob = FALSE;
+
+			if (query_debug)
+				printf("QUERY %s node %s <%s>: removed OOB flag "
+					"(no leaf guidance)\n",
+					guid_hex_str(n->header.muid), node_ip(n), node_vendor(n));
+		}
+	}
+
+	/*
+	 * If the query does not have an OOB mark, comes from a leaf node and
+	 * they allow us to be an OOB-proxy, then replace the IP:port of the
+	 * query with ours, so that we are the ones to get the UDP replies.
+	 */
+
+	if (
+		!oob && enable_udp && proxy_oob_queries && !is_udp_firewalled &&
+		NODE_IS_LEAF(n) && host_is_valid(listen_ip(), listen_port)
+	) {
+		oob_proxy_create(n);
+		oob = TRUE;
+		gnet_stats_count_general(n, GNR_OOB_PROXIED_QUERIES, 1);
 	}
 
 	use_ggep_h = FALSE;
 
-	if (req_speed & QUERY_SPEED_MARK) {
+	if (tagged_speed) {
 		if ((req_speed & QUERY_SPEED_FIREWALLED) && is_firewalled)
 			return FALSE;			/* Both servents are firewalled */
 
