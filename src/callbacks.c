@@ -18,6 +18,72 @@
 #include "dialog-filters.h"
 #include "search_stats.h"
 #include "upload_stats.h"
+#include "regex.h"
+
+#define NO_FUNC
+
+/* 
+ * Create a function for the focus out signal and make it call
+ * the callback for the activate signal.
+ */
+#define FOCUS_TO_ACTIVATE(a)\
+    gboolean on_##a##_focus_out_event (GtkWidget * widget,\
+				 GdkEventFocus * event,\
+				 gpointer user_data)\
+    {\
+    on_##a##_activate(GTK_EDITABLE(widget), NULL);\
+	return TRUE;\
+    }
+
+/*
+ * Creates a callback function for radiobutton w to change the
+ * value of the variable v to the value i. f executed afterwards.
+ */
+#define BIND_RADIOBUTTON(w,v,i,f)\
+    void on_##w##_toggled(GtkToggleButton * togglebutton,\
+						  gpointer user_data)\
+    {\
+    if(gtk_toggle_button_get_active(togglebutton))\
+        v = i;\
+    f;\
+    }
+    
+/*
+ * Creates a callback function for checkbutton w to change the
+ * value of the gboolean v. f is executed afterwards
+ */
+#define BIND_CHECKBUTTON(w,v,f)\
+    void on_##w##_toggled(GtkToggleButton * togglebutton,\
+						  gpointer user_data)\
+    {\
+    v = gtk_toggle_button_get_active(togglebutton);\
+    f;\
+    }
+
+/*
+ * Creates a callback function for checkbutton w to change the
+ * value of the gboolean v. f is executed afterwards
+ */
+#define BIND_CHECKBUTTON_CALL(w,v,f)\
+    void on_##w##_toggled(GtkToggleButton * togglebutton,\
+						  gpointer user_data)\
+    {\
+    v = gtk_toggle_button_get_active(togglebutton);\
+    f;\
+    }
+
+/*
+ * Creates a callback function for spinbutton w to change the
+ * value of the gboolean v. f is executed afterwards
+ */
+#define BIND_SPINBUTTON_CALL(w,v,f)\
+    void on_##w##_activate(GtkEditable * editable,\
+						   gpointer user_data)\
+    {\
+    v = gtk_spin_button_get_value_as_int(\
+            GTK_SPIN_BUTTON(editable));\
+    f;\
+    }
 
 static gchar c_tmp[2048];
 static gint select_all_lock = 0;
@@ -179,18 +245,8 @@ void on_entry_up_connections_activate(GtkEditable * editable,
 		gui_update_max_connections();
 	}
 }
+FOCUS_TO_ACTIVATE(entry_up_connections)
 
-gboolean on_entry_up_connections_focus_out_event(GtkWidget * widget,
-												 GdkEventFocus * event,
-												 gpointer user_data)
-{
-    /*
-     * Delegate to: on_entry_up_connections_activate
-     *      --BLUE, 23/04/2002
-     */
-    on_entry_up_connections_activate(GTK_EDITABLE(widget), NULL);
-	return TRUE;
-}
 
 /*** 
  *** Popup menu: nodes
@@ -447,18 +503,7 @@ void on_spinbutton_uploads_max_ip_activate(GtkEditable *editable,
     max_uploads_ip = 
         gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(editable));
 }
-
-gboolean on_spinbutton_uploads_max_ip_focus_out_event(GtkWidget *widget, 
-                                                      GdkEventFocus *event,
-                                                      gpointer user_data)
-{
-    /*
-     * Delegate to: on_entry_max_downloads_activate.
-     *      --BLUE, 01/05/2002
-     */
-    on_spinbutton_uploads_max_ip_activate(GTK_EDITABLE(widget), NULL);
-	return TRUE;
-}
+FOCUS_TO_ACTIVATE(spinbutton_uploads_max_ip)
 
 void on_clist_ul_stats_click_column(GtkCList * clist, gint column,
 				    gpointer user_data)
@@ -967,18 +1012,7 @@ void on_entry_max_downloads_activate(GtkEditable * editable,
 
 	gui_update_max_downloads();
 }
-
-gboolean on_entry_max_downloads_focus_out_event(GtkWidget * widget,
-												GdkEventFocus * event,
-												gpointer user_data)
-{
-    /*
-     * Delegate to: on_entry_max_downloads_activate.
-     *      --BLUE, 23/04/2002
-     */
-    on_entry_max_downloads_activate(GTK_EDITABLE(widget), NULL);
-	return TRUE;
-}
+FOCUS_TO_ACTIVATE(entry_max_downloads)
 
 void on_entry_max_host_downloads_activate(GtkEditable * editable,
 										  gpointer user_data)
@@ -997,18 +1031,7 @@ void on_entry_max_host_downloads_activate(GtkEditable * editable,
 
 	gui_update_max_host_downloads();
 }
-
-gboolean on_entry_max_host_downloads_focus_out_event(GtkWidget * widget,
-													 GdkEventFocus * event,
-													 gpointer user_data)
-{
-    /*
-     * Delegate to: on_entry_max_host_downloads_activate.
-     *      --BLUE, 23/04/2002
-     */
-    on_entry_max_host_downloads_activate(GTK_EDITABLE(widget), NULL);
-	return TRUE;
-}
+FOCUS_TO_ACTIVATE(entry_max_host_downloads)
 
 /*** 
  *** Queued downloads
@@ -1077,12 +1100,73 @@ void on_button_queue_clear_clicked(GtkButton * button,
     on_popup_queue_abort_activate(NULL, NULL);
 }
 
-void on_entry_queue_remove_regex_activate(GtkEditable *editable, 
-                                          gpointer user_data)
+void on_entry_queue_regex_activate(GtkEditable *editable, 
+                                   gpointer user_data)
 {
+    gint i;
+  	gint n;
+    gint m = 0;
+    guint msgid = -1;
+    gint  err;
+	regex_t *re;
+    gchar * regex;
+	struct download *d;
+
+    regex = gtk_entry_get_text(GTK_ENTRY(entry_queue_regex));
+
+	g_return_if_fail(regex);
+	
+	//g_snprintf(c_tmp, sizeof(c_tmp), "%s", regex);
+    
+    re = g_new(regex_t, 1);
+
+    g_return_if_fail(re);
+
+    err = regcomp(re, 
+                  regex,
+                  REG_NOSUB|(queue_regex_case ? 0 : REG_ICASE));
+
+   	if (err) {
+        char buf[1000];
+		regerror(err, re, buf, 1000);
+        g_error("on_entry_queue_regex_activate: regex error %s",buf);
+        msgid = gui_statusbar_push(scid_queue_remove_regex, buf);
+        gui_statusbar_add_timeout(scid_queue_remove_regex, msgid, 15);
+    } else {
+        for (i = 0; i < GTK_CLIST(clist_downloads_queue)->rows; i ++) {
+
+            d = (struct download *) 
+                gtk_clist_get_row_data(GTK_CLIST(clist_downloads_queue), i);
+
+            if (!d) {
+                g_warning("on_entry_queue_regex_activate: row %d has NULL data\n",
+                          i);
+                continue;
+            }
+
+            if ((n = regexec(re, d->file_name,0, NULL, 0)) == 0) {
+                gtk_clist_select_row(GTK_CLIST(clist_downloads_queue), i, 0);
+                m ++;
+            }
+            
+            if (n == REG_ESPACE)
+                g_warning("on_entry_queue_regex_activate: regexp memory overflow");
+        }
+  
+        g_snprintf(c_tmp, sizeof(c_tmp), 
+                   "Selected %u of %u queued downloads matching \"%s\".", 
+                   m, GTK_CLIST(clist_downloads_queue)->rows, regex);
+        msgid = gui_statusbar_push(scid_queue_remove_regex, c_tmp);
+        gui_statusbar_add_timeout(scid_queue_remove_regex, msgid, 15);
+    }
+
+    gtk_entry_set_text(GTK_ENTRY(entry_queue_regex), "");
+
+    /*
     download_remove_all_regex
-        (gtk_entry_get_text(GTK_ENTRY(entry_queue_remove_regex)));
+        (gtk_entry_get_text(GTK_ENTRY(entry_queue_regex)));
     gtk_entry_set_text(GTK_ENTRY(entry_queue_remove_regex), "");
+    */
 }
 
 void on_checkbutton_queue_regex_case_toggled(GtkToggleButton *togglebutton,
@@ -1136,18 +1220,7 @@ void on_entry_minimum_speed_activate(GtkEditable * editable,
 	/* XXX The minimum speed is now on a per search basis */
 	gui_update_minimum_speed(minimum_speed);
 }
-
-gboolean on_entry_minimum_speed_focus_out_event(GtkWidget * widget,
-												GdkEventFocus * event,
-												gpointer user_data)
-{
-    /*
-     * Delegate to: on_entry_minimum_speed_activate.
-     *      --BLUE, 23/04/2002
-     */
-    on_entry_minimum_speed_activate(GTK_EDITABLE(widget), NULL);
-	return TRUE;
-}
+FOCUS_TO_ACTIVATE(entry_minimum_speed)
 
 void on_button_search_clicked(GtkButton * button, gpointer user_data)
 {
@@ -1236,18 +1309,7 @@ void on_entry_monitor_activate(GtkEditable * editable, gpointer user_data)
 	gui_update_monitor_max_items();
 	g_free(e);
 }
-
-gboolean on_entry_monitor_focus_out_event(GtkWidget * widget,
-										  GdkEventFocus * event,
-										  gpointer user_data)
-{
-    /*
-     * Delegate to: on_entry_monitor_activate.
-     *      --BLUE, 23/04/2002
-     */
-    on_entry_monitor_activate(GTK_EDITABLE(widget), NULL);
-	return TRUE;
-}
+FOCUS_TO_ACTIVATE(entry_monitor)
 
 /***
  *** Monitor popup menu
@@ -1331,17 +1393,7 @@ void on_entry_search_stats_update_interval_activate(GtkEditable * editable,
 	gui_update_search_stats_update_interval();
 	g_free(e);
 }
-
-gboolean on_entry_search_stats_update_interval_focus_out_event
-    (GtkWidget * widget, GdkEventFocus * event, gpointer user_data)
-{
-    /*
-     * Delegate to: on_entry_search_stats_update_interval_activate.
-     *      --BLUE, 23/04/2002
-     */
-    on_entry_search_stats_update_interval_activate(GTK_EDITABLE(widget), NULL);
-	return TRUE;
-}
+FOCUS_TO_ACTIVATE(entry_search_stats_update_interval)
 
 void on_entry_search_stats_delcoef_activate(GtkEditable * editable,
                                             gpointer user_data)
@@ -1355,17 +1407,7 @@ void on_entry_search_stats_delcoef_activate(GtkEditable * editable,
 	gui_update_search_stats_delcoef();
 	g_free(e);
 }
-
-gboolean on_entry_search_stats_delcoef_focus_out_event
-    (GtkWidget * widget, GdkEventFocus * event, gpointer user_data)
-{
-    /*
-     * Delegate to: on_entry_search_stats_delcoef_activate.
-     *      --BLUE, 23/04/2002
-     */
-    on_entry_search_stats_delcoef_activate(GTK_EDITABLE(widget), NULL);
-	return TRUE;
-}
+FOCUS_TO_ACTIVATE(entry_search_stats_delcoef)
 
 void on_clist_search_stats_resize_column(GtkCList * clist, gint column,
 										   gint width, gpointer user_data)
@@ -1377,29 +1419,27 @@ void on_clist_search_stats_resize_column(GtkCList * clist, gint column,
  *** Config pane
  ***/ 
 
+BIND_SPINBUTTON_CALL(
+    spinbutton_config_bps_in,
+    input_bandwidth,
+    {
+        input_bandwidth = input_bandwidth * 1024;
+        bsched_set_bandwidth(bws_in, input_bandwidth);
+    }
+)
+FOCUS_TO_ACTIVATE(spinbutton_config_bps_in)
+
+BIND_SPINBUTTON_CALL(
+    spinbutton_config_bps_out,
+    output_bandwidth,
+    {
+        output_bandwidth = output_bandwidth * 1024;
+        bsched_set_bandwidth(bws_out, output_bandwidth);
+    }
+)
+FOCUS_TO_ACTIVATE(spinbutton_config_bps_out)
+
 /* While downloading, store files to */
-
-void on_spinbutton_config_bps_in_changed(GtkSpinButton *spinbutton, 
-										 gpointer user_data)
-{
-	gint v = gtk_spin_button_get_value_as_int(spinbutton);
-	
-	if (v != input_bandwidth) {
-		input_bandwidth = v;
-		bsched_set_bandwidth(bws_in, input_bandwidth);
-	}
-}
-
-void on_spinbutton_config_bps_out_changed(GtkSpinButton *spinbutton, 
-										 gpointer user_data)
-{
-	gint v = gtk_spin_button_get_value_as_int(spinbutton);
-	
-	if (v != output_bandwidth) {
-		output_bandwidth = v;
-		bsched_set_bandwidth(bws_out, output_bandwidth);
-	}
-}
 
 GtkWidget *save_path_filesel = NULL;
 
@@ -1578,18 +1618,36 @@ void on_entry_config_path_activate(GtkEditable * editable,
     shared_dirs_parse(gtk_entry_get_text(GTK_ENTRY(entry_config_path)));
 	gui_update_shared_dirs();
 }
+FOCUS_TO_ACTIVATE(entry_config_path)
 
-gboolean on_entry_config_path_focus_out_event(GtkWidget * widget,
-											  GdkEventFocus * event,
-											  gpointer user_data)
-{
-    /*
-     * Delegate to: on_entry_config_path_activate.
-     *      --BLUE, 23/04/2002
-     */
-    on_entry_config_path_activate(GTK_EDITABLE(widget), NULL);
-	return TRUE;
-}
+BIND_CHECKBUTTON(
+    checkbutton_config_bps_out, 
+    bps_out_enabled,
+    {
+        gtk_widget_set_sensitive(GTK_WIDGET(spinbutton_config_bps_out),
+                                 bps_out_enabled);
+        if (bps_out_enabled) {
+            bsched_enable(bws_out);
+        } else {
+            bsched_disable(bws_out);
+        } 
+    }
+)
+BIND_CHECKBUTTON(
+    checkbutton_config_bps_in,
+    bps_in_enabled,
+    {
+        gtk_widget_set_sensitive(GTK_WIDGET(spinbutton_config_bps_in),
+                                 bps_in_enabled);
+        if (bps_in_enabled) {
+            bsched_enable(bws_in);
+        } else {
+            bsched_disable(bws_in);
+        }
+    }
+)
+
+
 
 /***
  *** Netmaks
@@ -1603,18 +1661,7 @@ void on_entry_config_netmask_activate(GtkEditable * editable,
 	local_netmasks_string = g_strdup(gtk_entry_get_text(GTK_ENTRY(editable)));
 	parse_netmasks(gtk_entry_get_text(GTK_ENTRY(editable)));
 }
-
-gboolean on_entry_config_netmask_focus_out_event(GtkWidget * widget,
-													GdkEventFocus * event,
-													gpointer user_data)
-{
-    /*
-     * Delegate to: on_entry_config_netmask_activate.
-     *      --BLUE, 23/04/2002
-     */
-    on_entry_config_netmask_activate(GTK_EDITABLE(widget), NULL);
-	return TRUE;
-}
+FOCUS_TO_ACTIVATE(entry_config_netmask)
 
 void on_checkbutton_use_netmasks_toggled(GtkToggleButton * togglebutton,
 											gpointer user_data)
@@ -1630,18 +1677,7 @@ void on_entry_config_extensions_activate(GtkEditable * editable,
 					 (GTK_ENTRY(entry_config_extensions)));
 	gui_update_scan_extensions();
 }
-
-gboolean on_entry_config_extensions_focus_out_event(GtkWidget * widget,
-													GdkEventFocus * event,
-													gpointer user_data)
-{
-    /*
-     * Delegate to: on_entry_config_extensions_activate.
-     *      --BLUE, 23/04/2002
-     */
-    on_entry_config_extensions_activate(GTK_EDITABLE(widget), NULL);
-	return TRUE;
-}
+FOCUS_TO_ACTIVATE(entry_config_extensions)
 
 void on_checkbutton_config_force_ip_toggled(GtkToggleButton * togglebutton,
 											gpointer user_data)
@@ -1675,26 +1711,14 @@ void on_entry_config_force_ip_activate(GtkEditable * editable,
 	gui_update_config_port();
 	g_free(e);
 }
+FOCUS_TO_ACTIVATE(entry_config_force_ip)
 
-gboolean on_entry_config_force_ip_focus_out_event(GtkWidget * widget,
-												  GdkEventFocus * event,
-												  gpointer user_data)
-{
-    /*
-     * Delegate to: on_entry_config_force_ip_activate.
-     *      --BLUE, 23/04/2002
-     */
-    on_entry_config_force_ip_activate(GTK_EDITABLE(widget), NULL);
-	return TRUE;
-}
-
-void on_entry_config_port_activate(GtkEditable * editable,
-								   gpointer user_data)
+void on_spinbutton_config_port_activate(GtkEditable * editable,
+								        gpointer user_data)
 {
 	guint16 p;
-	gchar *e = g_strdup(gtk_entry_get_text(GTK_ENTRY(entry_config_port)));
-	g_strstrip(e);
-	p = atoi(e);
+	p = gtk_spin_button_get_value_as_int(
+            GTK_SPIN_BUTTON(spinbutton_config_port));
 	if (listen_port != p) {
 		if (s_listen)
 			socket_destroy(s_listen);
@@ -1708,20 +1732,8 @@ void on_entry_config_port_activate(GtkEditable * editable,
 			listen_port = 0;
 	}
 	gui_update_config_port();
-	g_free(e);
 }
-
-gboolean on_entry_config_port_focus_out_event(GtkWidget * widget,
-											  GdkEventFocus * event,
-											  gpointer user_data)
-{
-    /*
-     * Delegate to: on_entry_config_port_activate.
-     *      --BLUE, 23/04/2002
-     */
-    on_entry_config_port_activate(GTK_EDITABLE(widget), NULL);
-	return TRUE;
-}
+FOCUS_TO_ACTIVATE(spinbutton_config_port)
 
 void on_entry_config_maxttl_activate(GtkEditable * editable,
 									 gpointer user_data)
@@ -1736,18 +1748,7 @@ void on_entry_config_maxttl_activate(GtkEditable * editable,
 	gui_update_max_ttl();
 	g_free(e);
 }
-
-gboolean on_entry_config_maxttl_focus_out_event(GtkWidget * widget,
-												GdkEventFocus * event,
-												gpointer user_data)
-{
-    /*
-     * Delegate to: on_entry_config_maxttl_activate.
-     *      --BLUE, 23/04/2002
-     */
-    on_entry_config_maxttl_activate(GTK_EDITABLE(widget), NULL);
-	return TRUE;
-}
+FOCUS_TO_ACTIVATE(entry_config_maxttl)
 
 void on_entry_config_myttl_activate(GtkEditable * editable,
 									gpointer user_data)
@@ -1761,18 +1762,7 @@ void on_entry_config_myttl_activate(GtkEditable * editable,
 	gui_update_my_ttl();
 	g_free(e);
 }
-
-gboolean on_entry_config_myttl_focus_out_event(GtkWidget * widget,
-											   GdkEventFocus * event,
-											   gpointer user_data)
-{
-    /*
-     * Delegate to: on_entry_config_myttl_activate.
-     *      --BLUE, 23/04/2002
-     */
-    on_entry_config_myttl_activate(GTK_EDITABLE(widget), NULL);
-	return TRUE;
-}
+FOCUS_TO_ACTIVATE(entry_config_myttl)
 
 void on_entry_config_speed_activate(GtkEditable * editable,
 									gpointer user_data)
@@ -1786,18 +1776,7 @@ void on_entry_config_speed_activate(GtkEditable * editable,
 	gui_update_connection_speed();
 	g_free(e);
 }
-
-gboolean on_entry_config_speed_focus_out_event(GtkWidget * widget,
-											   GdkEventFocus * event,
-											   gpointer user_data)
-{
-    /*
-     * Delegate to: on_entry_config_speed_activate.
-     *      --BLUE, 23/04/2002
-     */
-    on_entry_config_speed_activate(GTK_EDITABLE(widget), NULL);
-	return TRUE;
-}
+FOCUS_TO_ACTIVATE(entry_config_speed)
 
 void on_entry_config_search_items_activate(GtkEditable * editable,
 										   gpointer user_data)
@@ -1812,19 +1791,7 @@ void on_entry_config_search_items_activate(GtkEditable * editable,
 	gui_update_search_max_items();
 	g_free(e);
 }
-
-gboolean on_entry_config_search_items_focus_out_event(GtkWidget * widget,
-						    						  GdkEventFocus *
-													  event,
-													  gpointer user_data)
-{
-    /*
-     * Delegate to: on_entry_config_search_items_activate.
-     *      --BLUE, 23/04/2002
-     */
-    on_entry_config_search_items_activate(GTK_EDITABLE(widget), NULL);
-	return TRUE;
-}
+FOCUS_TO_ACTIVATE(entry_config_search_items)
 
 void on_button_search_passive_clicked(GtkButton * button,
 									  gpointer user_data)
@@ -1871,18 +1838,7 @@ void on_entry_max_uploads_activate(GtkEditable * editable,
 
 	gui_update_max_uploads();
 }
-
-gboolean on_entry_max_uploads_focus_out_event(GtkWidget * widget,
-											  GdkEventFocus * event,
-											  gpointer user_data)
-{
-    /*
-     * Delegate to: on_entry_config_max_uploads_activate.
-     *      --BLUE, 23/04/2002
-     */
-    on_entry_max_uploads_activate(GTK_EDITABLE(widget), NULL);
-	return TRUE;
-}
+FOCUS_TO_ACTIVATE(entry_max_uploads)
 
 static void search_reissue_timeout_changed(GtkEntry * entry)
 {
@@ -1904,23 +1860,13 @@ void on_entry_search_reissue_timeout_activate(GtkEditable * editable,
 {
 	search_reissue_timeout_changed(GTK_ENTRY(editable));
 }
-
-gboolean on_entry_search_reissue_timeout_focus_out_event(GtkWidget *
-														 widget,
-														 GdkEventFocus *
-														 event,
-														 gpointer
-														 user_data)
-{
-	search_reissue_timeout_changed(GTK_ENTRY(widget));
-	return TRUE;
-}
+FOCUS_TO_ACTIVATE(entry_search_reissue_timeout)
 
 void on_entry_config_socks_host_activate(GtkEditable * editable,
 										 gpointer user_data)
 {
    	gchar *e =
-		g_strdup(gtk_entry_get_text(GTK_ENTRY(entry_config_socks_host)));
+		g_strdup(gtk_entry_get_text(GTK_ENTRY(entry_config_proxy_ip)));
 	g_strstrip(e);
 
 
@@ -1931,43 +1877,26 @@ void on_entry_config_socks_host_activate(GtkEditable * editable,
 		g_free(e);
 	}
 }
+FOCUS_TO_ACTIVATE(entry_config_socks_host)
 
-gboolean on_entry_config_socks_host_focus_out_event(GtkWidget * widget,
-													GdkEventFocus * event,
-													gpointer user_data)
-{
-     /*
-     * Delegate to: on_entry_config_socks_host_activate.
-     *      --BLUE, 23/04/2002
-     */
-    on_entry_config_socks_host_activate(GTK_EDITABLE(widget), NULL);
-	return TRUE;
-}
+BIND_SPINBUTTON_CALL(
+    spinbutton_config_proxy_port,
+    proxy_port,
+    NO_FUNC)
 
+/*
 void on_entry_config_socks_port_activate(GtkEditable * editable,
 										 gpointer user_data)
 {
     gint16 v;
-	gchar *e =
-		g_strdup(gtk_entry_get_text(GTK_ENTRY(entry_config_socks_port)));
-	g_strstrip(e);
+	v = gtk_spin_button_get_value_as_int(
+            GTK_SPIN_BUTTON(spinbutton_config_proxy_port));
 
-	v = atoi(e);
 	if (v >= -1 && v < 32000)
 		proxy_port = v;
 }
-
-gboolean on_entry_config_socks_port_focus_out_event(GtkWidget * widget,
-													GdkEventFocus * event,
-													gpointer user_data)
-{
-    /*
-     * Delegate to: on_entry_config_socks_port_activate.
-     *      --BLUE, 23/04/2002
-     */
-    on_entry_config_socks_port_activate(GTK_EDITABLE(widget), NULL);
-	return TRUE;
-}
+*/
+FOCUS_TO_ACTIVATE(spinbutton_config_proxy_port)
 
 void on_entry_config_socks_username_activate(GtkEditable * editable,
 											 gpointer user_data)
@@ -1977,22 +1906,11 @@ void on_entry_config_socks_username_activate(GtkEditable * editable,
 				 (GTK_ENTRY(entry_config_socks_username)));
 	g_strstrip(e);
 
-	socksv5_user = g_strdup(e);
+	socks_user = g_strdup(e);
 
 	g_free(e);
 }
-
-gboolean on_entry_config_socks_username_focus_out_event(GtkWidget * widget,
-														GdkEventFocus * event,
-														gpointer user_data)
-{
-    /*
-     * Delegate to: on_entry_config_socks_username_activate.
-     *      --BLUE, 23/04/2002
-     */
-    on_entry_config_socks_username_activate(GTK_EDITABLE(widget), NULL);
-	return TRUE;
-}
+FOCUS_TO_ACTIVATE(entry_config_socks_username)
 
 void on_entry_config_socks_password_activate(GtkEditable * editable,
 											 gpointer user_data)
@@ -2002,59 +1920,21 @@ void on_entry_config_socks_password_activate(GtkEditable * editable,
 				 (GTK_ENTRY(entry_config_socks_password)));
 	g_strstrip(e);
 
-	socksv5_pass = g_strdup(e);
+	socks_pass = g_strdup(e);
 
 	g_free(e);
 }
+FOCUS_TO_ACTIVATE(entry_config_socks_password)
 
-gboolean on_entry_config_socks_password_focus_out_event(GtkWidget * widget,
-														GdkEventFocus * event,
-														gpointer user_data)
-{
-    /*
-     * Delegate to: on_entry_config_socks_password_activate.
-     *      --BLUE, 23/04/2002
-     */
-    on_entry_config_socks_password_activate(GTK_EDITABLE(widget), NULL);
-	return TRUE;
-}
+BIND_CHECKBUTTON(checkbutton_config_proxy_connections, 
+                 proxy_connections, NO_FUNC)
 
+BIND_CHECKBUTTON(checkbutton_config_proxy_auth,
+                 proxy_auth, NO_FUNC)
 
-void on_checkbutton_config_proxy_connections_toggled(GtkToggleButton *
-											         togglebutton,
-											         gpointer user_data)
-{
-	proxy_connections = gtk_toggle_button_get_active(togglebutton);
-	
-}
-
-void on_checkbutton_config_proxy_auth_toggled(GtkToggleButton *
-											  togglebutton,
-											  gpointer user_data)
-{
-	proxy_auth = gtk_toggle_button_get_active(togglebutton);
-}
-
-void on_radio_config_http_toggled(GtkToggleButton * togglebutton,
-							  gpointer user_data)
-{
-	if (gtk_toggle_button_get_active(togglebutton))
-		proxy_protocol = 1;
-}
-
-void on_radio_config_socksv4_toggled(GtkToggleButton * togglebutton,
-							  gpointer user_data)
-{
-	if (gtk_toggle_button_get_active(togglebutton))
-		proxy_protocol = 4;
-}
-
-void on_radio_config_socksv5_toggled(GtkToggleButton * togglebutton,
-							  gpointer user_data)
-{
-	if (gtk_toggle_button_get_active(togglebutton))
-		proxy_protocol = 5;
-}
+BIND_RADIOBUTTON(radio_config_http,    proxy_protocol, 1, NO_FUNC)
+BIND_RADIOBUTTON(radio_config_socksv4, proxy_protocol, 4, NO_FUNC)
+BIND_RADIOBUTTON(radio_config_socksv5, proxy_protocol, 5, NO_FUNC)
 
 void on_entry_max_connections_activate(GtkEditable * editable,
 									   gpointer user_data)
@@ -2069,18 +1949,8 @@ void on_entry_max_connections_activate(GtkEditable * editable,
 		max_connections = v;
 	gui_update_max_connections();
 }
+FOCUS_TO_ACTIVATE(entry_max_connections)
 
-gboolean on_entry_max_connections_focus_out_event(GtkWidget * widget,
-												  GdkEventFocus * event,
-												  gpointer user_data)
-{
-    /*
-     * Delegate to: on_entry_max_connections_activate.
-     *      --BLUE, 23/04/2002
-     */
-    on_entry_max_connections_activate(GTK_EDITABLE(widget), NULL);
-	return TRUE;
-}
 
 /*** 
  *** Search pane
@@ -2121,6 +1991,13 @@ static gint search_results_compare_host(GtkCList * clist, gconstpointer ptr1,
 	else
 		return (rs1->ip > rs2->ip) ? +1 : -1;
 }
+
+BIND_CHECKBUTTON_CALL(
+    checkbutton_search_pick_all,
+    search_pick_all,
+    NO_FUNC)
+
+
 
 /**
  * on_clist_search_results_select_row:
