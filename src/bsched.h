@@ -95,6 +95,7 @@ typedef struct bsched {
 #define BS_BW_MAX			(2*1024*1024)
 
 #define bsched_bps(b)		((b)->bw_last_period * 1000 / (b)->period)
+#define bsched_pct(b)		(bsched_bps(b) * 100 / (1+(b)->bw_per_second))
 #define bsched_avg_bps(b)	((b)->bw_ema * 1000 / (b)->period)
 #define bsched_avg_pct(b)	(bsched_avg_bps(b) * 100 / (1+(b)->bw_per_second))
 

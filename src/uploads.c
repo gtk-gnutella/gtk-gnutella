@@ -1673,12 +1673,12 @@ static void upload_request(struct upload *u, header_t *header)
 				max_uploads &&
 				bw_ul_usage_enabled &&
 				bws_out_enabled &&
-				bsched_avg_pct(bws.out) < ul_usage_min_percentage
+				bsched_pct(bws.out) < ul_usage_min_percentage
 			) {
 				if (dbg > 4)
 					printf("Overriden slot limit because u/l b/w used at %d%% "
 						"(minimum set to %d%%)\n",
-						bsched_avg_pct(bws.out), ul_usage_min_percentage);
+						bsched_pct(bws.out), ul_usage_min_percentage);
 			} else {
 				upload_error_remove(u, reqfile,
 					503, "Too many uploads (%d max)", max_uploads);
