@@ -210,7 +210,7 @@ guint32 idtable_new_id(idtable_t *tbl, gpointer value)
  * idtable_new_id_value
  *
  * Request a special id for a given value. If the id must not be already in 
- * use.Best check wether the id is already in use with the idtable_is_id_used
+ * use.Best check whether the id is already in use with the idtable_is_id_used
  * call. If the id is outside the current id range, the table is extend
  * until the id is in range.
  */

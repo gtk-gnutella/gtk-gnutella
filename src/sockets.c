@@ -717,7 +717,7 @@ static void socket_connected(gpointer data, gint source, inputevt_cond_t cond)
 		g_source_remove(s->gdk_tag);
 		s->gdk_tag = 0;
 
-		/* Check wether the socket is really connected */
+		/* Check whether the socket is really connected */
 
 		res = getsockopt(s->file_desc, SOL_SOCKET, SO_ERROR,
 					   (void *) &option, &size);

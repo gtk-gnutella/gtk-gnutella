@@ -81,7 +81,7 @@ size_t strlcpy(gchar *dst, const gchar *src, size_t dst_size)
 /*
  * is_string_ip
  *
- * Checks wether the given string contains a valid IP address. If the
+ * Checks whether the given string contains a valid IP address. If the
  * string is NULL returns FALSE.
  */
 gboolean is_string_ip(const gchar *s)

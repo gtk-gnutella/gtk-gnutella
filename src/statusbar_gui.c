@@ -240,7 +240,8 @@ static void statusbar_gui_free_timeout(struct statusbar_timeout * t)
 /*
  * statusbar_gui_clear_timeouts
  *
- * Check wether statusbar items have expired and remove them from the statusbar.
+ * Check whether statusbar items have expired and remove them from the
+ * statusbar.
  */
 void statusbar_gui_clear_timeouts(time_t now)
 {

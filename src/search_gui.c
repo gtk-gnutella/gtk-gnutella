@@ -699,7 +699,7 @@ void search_matched(search_t *sch, results_set_t *rs)
         flt_result = filter_record(sch, rc);
 
         /*
-         * Check wether this record was already scheduled for
+         * Check whether this record was already scheduled for
          * download by the backend.
          */
         downloaded = rc->flags & SR_DOWNLOADED;
@@ -746,7 +746,7 @@ void search_matched(search_t *sch, results_set_t *rs)
 
             if (rc->flags & SR_IGNORED) {
                 /*
-                 * Check wether this record will be ignored by the backend.
+                 * Check whether this record will be ignored by the backend.
                  */
                 fg_color = ignore_color;
             } else if (downloaded) {

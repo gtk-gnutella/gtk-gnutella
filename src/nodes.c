@@ -648,6 +648,8 @@ void node_init(void)
 {
 	rxbuf_init();
 
+	g_assert(sizeof(struct gnutella_header) == 23);
+
     node_handle_map = idtable_new(32, 32);
 
 	g_hook_list_init(&node_added_hook_list, sizeof(GHook));
@@ -3645,7 +3647,7 @@ void node_add_socket(struct gnutella_socket *s, guint32 ip, guint16 port)
 	}
 
 	/*
-	 * Check wether we have already a connection to this node.
+	 * Check whether we have already a connection to this node.
 	 */
 
 	incoming = s != NULL;
@@ -4411,7 +4413,7 @@ static gboolean node_read(struct gnutella_node *n, pmsg_t *mb)
 			return TRUE;		/* There may be more to come */
 		}
 
-		/* Check wether the message is not too big */
+		/* Check whether the message is not too big */
 
 		switch (n->header.function) {
 		case GTA_MSG_BYE:

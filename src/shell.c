@@ -588,7 +588,7 @@ static gboolean shell_write(gnutella_shell_t *sh, const gchar *s)
 /*
  * shell_auth:
  *
- * Takes a HELO command string and checks wether the connection
+ * Takes a HELO command string and checks whether the connection
  * is allowed using the specified credentials. Returns true if
  * the connection is allowed.
  */

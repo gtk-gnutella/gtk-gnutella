@@ -140,7 +140,7 @@ struct parq_ul_queued {
 	guint position;			/* Current position in the queue */
 	guint relative_position; /* Relative position in the queue, if 'not alive' 
 							  uploads are taken into account */
-	gboolean active_queued;	/* Wether the current upload is actively queued */
+	gboolean active_queued;	/* Whether the current upload is actively queued */
 	gboolean has_slot;		/* Whether the items is currently uploading */
 	gboolean had_slot;		/* If an upload had an upload slot it is not allowed
 							   to reuse the id for another upload	*/
@@ -2156,7 +2156,7 @@ static gboolean parq_upload_continue(struct parq_ul_queued *uq, gint free_slots)
 	 * Step 3. Check if current upload may have this slot
 	 *         That is when the current upload is the first upload in its
 	 *         queue which has no upload slot. Or if a earlier queued item is
-	 *		   allready downloading something in another queue.
+	 *		   already downloading something in another queue.
 	 */
 	
 	for (l = g_list_first(uq->queue->by_rel_pos); l; l = l->next) {
@@ -2186,7 +2186,7 @@ static gboolean parq_upload_continue(struct parq_ul_queued *uq, gint free_slots)
 	
 	/* We should never make it here */
 	g_warning("PARQ UL: "
-		"Error while determining wether an upload should continue");
+		"Error while determining whether an upload should continue");
 	
 	return FALSE;
 }
@@ -2300,7 +2300,7 @@ gpointer parq_upload_get(gnutella_upload_t *u, header_t *header)
 	/*
 	 * Try to locate by ID first. If this fails, try to locate by IP and file
 	 * name. We want to locate on ID first as a client may reuse an ID.
-	 * Avoid abusing an PARQ entry by reusing an ID which allready finished
+	 * Avoid abusing an PARQ entry by reusing an ID which already finished
 	 * uploading.
 	 */
 	
@@ -2475,7 +2475,7 @@ gboolean parq_upload_request(gnutella_upload_t *u, gpointer handle,
 	) {
 		/*
 		 * Bad bad client, re-requested within the Retry-After interval.
-		 * we are not going to allow this download. Wether it could get an
+		 * we are not going to allow this download. Whether it could get an
 		 * upload slot or not. Neither are we going to active queue it.
 		 */
 		g_warning("[PARQ UL] "
@@ -3350,7 +3350,7 @@ static void parq_store(gpointer data, gpointer x)
 	gchar ip[32];
 	
 	if (parq_ul->had_slot && !parq_ul->has_slot)
-		/* We are not saving uploads which allready finished an upload */
+		/* We are not saving uploads which already finished an upload */
 		return;
 	
 	g_assert(NULL != f);

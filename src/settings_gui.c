@@ -3651,12 +3651,12 @@ static void spinbutton_adjustment_value_changed
             (map_entry->prop == PROP_MAX_HOST_DOWNLOADS)
         ) {
             /*
-             * XXX If the user modifies the max simulteneous download 
+             * XXX If the user modifies the max simultaneous download 
              * XXX and click on a queued download, gtk-gnutella segfaults 
              * XXX in some cases. This unselected_all() is a first attempt
              * XXX to work around the problem.
              *
-             * It's unknown wether this ancient workaround is still
+             * It's unknown whether this ancient workaround is still
              * needed.
              *      -- Richard, 13/08/2002
              */             

@@ -251,7 +251,7 @@ void gtk_mass_widget_set_sensitive
  * Fetch data from the selection of a clist. Returns a GSList containing
  * the user_data pointers from the selected rows. If allow_null is TRUE,
  * the returned list may contain NULL pointers. If cfn != NULL, it will
- * be used to determine wether two entries are equal and drop all duplicate
+ * be used to determine whether two entries are equal and drop all duplicate
  * items from the result list. Using cfn will significantly increase runtime.
  */
 GSList *clist_collect_data(GtkCList *clist, gboolean allow_null, 
@@ -389,7 +389,7 @@ static void tree_selection_unselect_helper(gpointer data, gpointer user_data)
  *
  * Fetch data from the selection of a treeview. Returns a GSList containing
  * the user_data pointers from the selected rows. If cfn != NULL, it will
- * be used to determine wether two entries are equal and drop all duplicate
+ * be used to determine whether two entries are equal and drop all duplicate
  * items from the result list. Using cfn will significantly increase runtime.
  */
 

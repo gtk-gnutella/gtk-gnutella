@@ -210,7 +210,7 @@ GLADE_WARNING4 = "  touch interface-glade.c interface-glade.h support.h support.
 #	interface-glade[12].c interface-glade[12].h
 #   support-glade[12].c support-glade[12].h
 #
-# Depending on wether we compile for Gtk 1.2 or Gtk 2, the ones the others
+# Depending on whether we compile for Gtk 1.2 or Gtk 2, the ones the others
 # will be linked and included. This can be tested by checking if USE_GTK2
 # is defined in the sourcecode files.
 # We let glade directly handle the callbacks.[ch] files so we can do without

@@ -443,7 +443,7 @@ void on_clist_search_results_select_row(
 
         /* 
          * Rows with NULL data can appear when inserting new rows
-         * because the selection is resynced and the row data can not
+         * because the selection is resynced and the row data cannot
          * be set until insertion (and therefore also selection syncing
          * is done.
          *      --BLUE, 20/06/2002

@@ -9289,7 +9289,7 @@ create_dlg_filters (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (button_filter_remove);
   gtk_box_pack_start (GTK_BOX (hbox97), button_filter_remove, FALSE, FALSE, 0);
-  gtk_tooltips_set_tip (tooltips, button_filter_remove, "A filter can not be removed if it is bound to a search or if it is in use (used as a target in a rule).", NULL);
+  gtk_tooltips_set_tip (tooltips, button_filter_remove, "A filter cannot be removed if it is bound to a search or if it is in use (used as a target in a rule).", NULL);
 
   scrolledwindow14 = gtk_scrolled_window_new (NULL, NULL);
   gtk_widget_set_name (scrolledwindow14, "scrolledwindow14");

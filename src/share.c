@@ -1793,8 +1793,8 @@ gboolean search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 
     /*
      * Reorderd the checks: if we drop the packet, we won't notify any
-     * listeners. We first check wether we want to drop the packet and
-     * later decide wether we are eligible for answering the query:
+     * listeners. We first check whether we want to drop the packet and
+     * later decide whether we are eligible for answering the query:
      * 1) try top drop
      * 2) notify listeners
      * 3) bail out if not eligible for a local search

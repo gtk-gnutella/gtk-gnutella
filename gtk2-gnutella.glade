@@ -987,7 +987,7 @@
 		  <child>
 		    <widget class="GtkButton" id="button_filter_remove">
 		      <property name="visible">True</property>
-		      <property name="tooltip" translatable="yes">A filter can not be removed if it is bound to a search or if it is in use (used as a target in a rule).</property>
+		      <property name="tooltip" translatable="yes">A filter cannot be removed if it is bound to a search or if it is in use (used as a target in a rule).</property>
 		      <property name="can_focus">True</property>
 		      <property name="label" translatable="yes">Remove filter</property>
 		      <property name="use_underline">True</property>

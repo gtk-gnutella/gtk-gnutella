@@ -61,7 +61,7 @@ static const char hex_alphabet[] = "0123456789ABCDEF";
  * url_escape_mask
  *
  * Escape undesirable characters using %xx, where xx is an hex code.
- * `mask' tells us wether we're escaping an URL path or a query string.
+ * `mask' tells us whether we're escaping an URL path or a query string.
  *
  * Returns argument if no escaping is necessary, or a new string otherwise.
  */

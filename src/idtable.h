@@ -32,7 +32,7 @@
  * refer to an array row in the table. The table starts with an initial size
  * and if full is extended by a definable number of rows. Initial size and
  * extend size are internally rounded up to a multiple of 32. There is no
- * limitation to the value and is can be queried wether a given id is in
+ * limitation to the value and is can be queried whether a given id is in
  * use. 
  * You can also request special id/value combinations, but you need to keep
  * in mind that the ids are row numbers. The table is then automatically

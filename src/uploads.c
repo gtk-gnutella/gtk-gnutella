@@ -2165,7 +2165,7 @@ static void upload_request(gnutella_upload_t *u, header_t *header)
 			/*
 		 	* Support for bandwith-dependent number of upload slots.
 		 	* The upload bandwith limitation has to be enabled, otherwise
-		 	* we can not be sure that we have reasonable values for the
+		 	* we cannot be sure that we have reasonable values for the
 		 	* outgoing bandwith set.
 		 	*		--TF 30/05/2002
 		 	*
