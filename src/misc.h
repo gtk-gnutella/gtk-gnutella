@@ -128,7 +128,9 @@ gchar *  ip_port_to_gchar(guint32, guint16);
 gchar *hostname_port_to_gchar(const gchar *hostname, guint16 port);
 guint32  host_to_ip(const gchar *);
 gchar *  host_name(void);
-gboolean host_is_valid(guint32, guint16);
+#define port_is_valid(port) (port != 0)
+#define host_is_valid(ip,port) (ip_is_valid(ip) && port != 0)
+gboolean ip_is_valid(guint32);
 
 /*
  * Date string conversions

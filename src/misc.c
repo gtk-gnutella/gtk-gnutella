@@ -255,14 +255,14 @@ gchar *host_name(void)
 }
 
 /*
- * host_is_valid
+ * ip_is_valid
  *
  * Check whether host can be reached from the Internet.
  * We rule out IPs of private networks, plus some other invalid combinations.
  */
-gboolean host_is_valid(guint32 ip, guint16 port)
+gboolean ip_is_valid(guint32 ip)
 {
-	if ((!ip || !port) ||			/* IP == 0 || Port == 0 */
+	if ((!ip) ||			/* IP == 0 */
 		(is_private_ip(ip)) ||
 		/* 1.2.3.4 || 1.1.1.1 */
 		(ip == (guint32) 0x01020304 || ip == (guint32) 0x01010101) ||
