@@ -123,10 +123,9 @@ extern GtkWidget *dialog_filters;
 extern guint32 search_passive;
 extern guint32 search_reissue_timeout;
 extern GList *searches;			/* List of search structs */
-extern struct search *search_selected;
-extern struct search *current_search;	/*	The search currently displayed */
 extern GtkWidget *default_search_clist;
 extern time_t tab_update_time;
+extern search_t *search_selected;
 
 
 

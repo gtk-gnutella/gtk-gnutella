@@ -380,6 +380,10 @@ void filter_refresh_display(GList *filters)
  * Open and initialize the filter dialog.
  */
 void filter_open_dialog() {
+    search_t *current_search;
+
+    current_search = search_gui_get_current_search();
+
     if (filter_dialog == NULL) {
         filter_dialog = create_dlg_filters();
         g_assert(filter_dialog != NULL);

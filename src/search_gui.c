@@ -25,28 +25,28 @@
  *----------------------------------------------------------------------
  */
 
-#include "gnutella.h"
+#ifdef HAVE_CONFIG_H
+# include <config.h>
+#endif
+
 #include "search_gui.h"
 #include "search_cb.h"
 #include "gtk-missing.h"
 #include "gui_property.h"
 #include "gui_property_priv.h"
 #include "atoms.h"
-#include "callbacks.h"
 #include "hosts.h" // FIXME: remove this dependency
 #include "misc.h"
 #include "settings.h" // FIXME: remove this dependency
-#include "sq.h"
 #include "zalloc.h"
 
 #include <ctype.h>
 #include <gtk/gtk.h>
 #include <sys/stat.h>
 
-
 #ifdef USE_SEARCH_XML
 # include "search_xml.h"
-# include "libxml/parser.h"
+# include <libxml/parser.h>
 #endif
 
 // FIXME: duplicate in search.c
@@ -96,8 +96,8 @@ GList *searches = NULL;		/* List of search structs */
 extern GtkWidget *default_search_clist;
 extern GtkWidget *default_scrolled_window;
 
+static search_t *current_search  = NULL; /*	The search currently displayed */
 search_t *search_selected = NULL;
-search_t *current_search  = NULL;	/*	The search currently displayed */
 
 static gchar *search_file = "searches";	/* File where searches are saved */
 

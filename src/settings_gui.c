@@ -2349,6 +2349,9 @@ void settings_gui_shutdown(void)
 {
     GtkCList *clist;
     gint n;
+    search_t *current_search;
+
+    current_search = search_gui_get_current_search();
 
     /*
      * Remove the listeners

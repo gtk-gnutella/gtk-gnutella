@@ -1235,7 +1235,9 @@ void gui_search_force_update_tab_label(struct search *sch)
         (lookup_widget(main_window, "notebook_search_results"));
     GtkCList *clist_search = GTK_CLIST
         (lookup_widget(main_window, "clist_search"));
+    search_t *current_search;
 
+    current_search = search_gui_get_current_search();
 
 	if (sch == current_search || sch->unseen_items == 0)
 		g_snprintf(gui_tmp, sizeof(gui_tmp), "%s\n(%d)", sch->query,
@@ -1283,6 +1285,9 @@ gboolean gui_search_update_tab_label(struct search *sch)
 
 void gui_search_clear_results(void)
 {
+    search_t *current_search;
+
+    current_search = search_gui_get_current_search();
 	gtk_clist_clear(GTK_CLIST(current_search->clist));
 	search_gui_clear_search(current_search);
 	gui_search_force_update_tab_label(current_search);
