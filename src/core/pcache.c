@@ -1053,13 +1053,13 @@ pcache_udp_ping_received(struct gnutella_node *n)
 	/*
 	 * If we got a PING whose MUID is our node's GUID, then it's a reply
 	 * to our "UDP Connect Back" message.  Record that we can receive
-	 * unsollicited UDP traffic.
+	 * unsolicited UDP traffic.
 	 */
 
 	if (guid_eq(guid, n->header.muid)) {
 		if (udp_debug > 19)
-			printf("UDP got unsollicited PING matching our GUID!\n");
-		inet_udp_got_unsollicited_incoming(n->ip);
+			printf("UDP got unsolicited PING matching our GUID!\n");
+		inet_udp_got_unsolicited_incoming(n->ip);
 		return;
 	}
 }

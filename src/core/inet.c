@@ -242,13 +242,13 @@ inet_udp_got_incoming(guint32 ip)
 }
 
 /**
- * Called when we got an incoming unsollicited datagram from another
+ * Called when we got an incoming unsolicited datagram from another
  * computer at `ip', i.e. the datagram was sent directly to our listening
  * socket port, and not to a masqueraded port on the firewall opened because
  * we previously sent out an UDP datagram to a host and got its reply.
  */
 void
-inet_udp_got_unsollicited_incoming(guint32 ip)
+inet_udp_got_unsolicited_incoming(guint32 ip)
 {
 	inet_udp_got_incoming(ip);
 

@@ -2659,7 +2659,7 @@ prop = {
 	name = "send_oob_queries";
 	desc = "Whether gtk-gnutella should send queries requesting out-of-band "
 		"delivery of query hits via UDP.  This setting is ignored if you "
-		"appear to be UDP-firewalled, i.e. cannot receive unsollicited UDP "
+		"appear to be UDP-firewalled, i.e. cannot receive unsolicited UDP "
 		"traffic.  You need to enable UDP support first.  This can cause "
 		"the reception of vast quantities of UDP replies (negotiated normally "
 		"by your node, but still) and that is why it is disabled by default.";

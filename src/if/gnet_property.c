@@ -4838,7 +4838,7 @@ prop_set_t *gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[225].name = "send_oob_queries";
-    gnet_property->props[225].desc = _("Whether gtk-gnutella should send queries requesting out-of-band delivery of query hits via UDP.  This setting is ignored if you appear to be UDP-firewalled, i.e. cannot receive unsollicited UDP traffic.  You need to enable UDP support first.  This can cause the reception of vast quantities of UDP replies (negotiated normally by your node, but still) and that is why it is disabled by default.");
+    gnet_property->props[225].desc = _("Whether gtk-gnutella should send queries requesting out-of-band delivery of query hits via UDP.  This setting is ignored if you appear to be UDP-firewalled, i.e. cannot receive unsolicited UDP traffic.  You need to enable UDP support first.  This can cause the reception of vast quantities of UDP replies (negotiated normally by your node, but still) and that is why it is disabled by default.");
     gnet_property->props[225].ev_changed = event_new("send_oob_queries_changed");
     gnet_property->props[225].save = TRUE;
     gnet_property->props[225].vector_size = 1;

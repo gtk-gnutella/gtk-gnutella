@@ -1222,7 +1222,7 @@ build_search_msg(search_ctrl_t *sch, gint *len, gint *sizep)
 		 * We're adding a trailing NUL after the query text.
 		 *
 		 * Starting 24/09/2002, we no longer send the trailing "urn:\0" as
-		 * most servents will now send any SHA1 they have, unsollicited,
+		 * most servents will now send any SHA1 they have, unsolicited,
 		 * as we always did ourselves.
 		 */
 
@@ -1565,7 +1565,7 @@ search_alive(search_ctrl_t *sch, guint32 id)
 #define CLOSED_SEARCH	0xffff
 
 /**
- * Send an unsollicited "Query Status Response" to the specified node ID,
+ * Send an unsolicited "Query Status Response" to the specified node ID,
  * bearing the amount of kept results.  The 0xffff value is a special
  * marker to indicate the search was closed.
  */
@@ -1592,7 +1592,7 @@ search_send_query_status(search_ctrl_t *sch, guint32 node_id, guint16 kept)
 
 
 /**
- * Send an unsollicited "Query Status Response" to the specified node ID
+ * Send an unsolicited "Query Status Response" to the specified node ID
  * about the results we kept so far for the relevant search.
  * -- hash table iterator callback
  */
@@ -1624,7 +1624,7 @@ search_update_results(search_ctrl_t *sch)
 }
 
 /**
- * Send an unsollicited "Query Status Response" to the specified node ID
+ * Send an unsolicited "Query Status Response" to the specified node ID
  * informing it that the search was closed.
  * -- hash table iterator callback
  */
