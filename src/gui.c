@@ -1054,6 +1054,8 @@ void gui_update_download_server(struct download *d)
 
 void gui_update_download_range(struct download *d)
 {
+	guint32 len;
+	gchar *and_more = "";
 	gint rw;
 	gint row;
     GtkCList *clist_downloads = GTK_CLIST
@@ -1062,8 +1064,17 @@ void gui_update_download_range(struct download *d)
 	g_assert(d);
 	g_assert(d->status != GTA_DL_QUEUED);
 
-	rw = g_snprintf(gui_tmp, sizeof(gui_tmp), "%s",
-		compact_size(d->range_end - d->skip + d->overlap_size));
+	if (d->file_info->use_swarming) {
+		len = d->size;
+		if (d->range_end > d->skip + d->size)
+			and_more = "+";
+	} else
+		len = d->range_end - d->skip;
+
+	len += d->overlap_size;
+
+	rw = g_snprintf(gui_tmp, sizeof(gui_tmp), "%s%s",
+		compact_size(len), and_more);
 
 	if (d->skip)
 		g_snprintf(&gui_tmp[rw], sizeof(gui_tmp)-rw, " @ %s",
