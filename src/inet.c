@@ -30,7 +30,7 @@
 #include <stdio.h>
 
 #include "inet.h"
-#include "nodes.h"	/* For node_become_firewalled() */
+#include "nodes.h"		/* For node_beaome_firewalled() */
 #include "settings.h"
 #include "bsched.h"
 
@@ -124,7 +124,7 @@ void inet_firewalled(void)
 		incoming_ev = NULL;
 	}
 
-	node_become_firewalled();
+	node_became_firewalled();
 }
 
 /*

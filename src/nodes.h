@@ -401,8 +401,9 @@ void node_connected_back(struct gnutella_socket *s);
 gboolean node_proxying_add(gnutella_node_t *n, gchar *guid);
 void node_proxy_add(gnutella_node_t *n, guint32 ip, guint16 port);
 void node_http_proxies_add(gchar *buf, gint *retval, gpointer arg);
+GSList *node_push_proxies(void);
 
-void node_become_firewalled(void);
+void node_became_firewalled(void);
 
 #endif /* _nodes_h_ */
 
