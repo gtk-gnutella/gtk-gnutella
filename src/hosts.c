@@ -138,8 +138,6 @@ gboolean check_valid_host(guint32 ip, guint16 port)
 
 void host_add(struct gnutella_node *n, guint32 t_ip, guint16 t_port, gboolean connect)
 {
-	static time_t last_time = 0;
-
 	struct gnutella_host *host;
 	gchar *titles[2];
 	gint row;
@@ -182,22 +180,19 @@ void host_add(struct gnutella_node *n, guint32 t_ip, guint16 t_port, gboolean co
 	 * to the connection list.
 	 *
 	 * Note: we're not using `nodes_in_list' for the comparison with
-	 * `up_connections' but connected_nodes().  The node_add() routine will
+	 * `up_connections' but connected_nodes().  The node_add() routine also
 	 * compare `nodes_in_list' with `max_connections' to ensure we don't
-	 * launch too many connections, that, if they all succeeded, would bring
-	 * us above the configured maximum.  However, during bootstrap, this
-	 * lets us issue connection requests faster.
-	 *		--RAM, 08/09/2001
+	 * launch too many connections, but comparing here as well may help
+	 * avoid useless call to connected_nodes() and/or node_add().
+	 *		--RAM, 20/09/2001
 	 */
 
 	if (
 		connect &&
-		connected_nodes() < up_connections &&
-		(time((time_t *) NULL) - last_time) > 2
-	) {
+		nodes_in_list < max_connections &&
+		connected_nodes() < up_connections
+	)
 		node_add(NULL, host->ip, host->port);
-		time(&last_time);
-	}
 
 	/* Add the host to the hosts catcher list */
 
