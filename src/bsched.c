@@ -507,7 +507,7 @@ static void bsched_heartbeat(bsched_t *bs, struct timeval *tv)
 	 * Recompute bandwidth for the next period.
 	 */
 
-	theoric = bs->bw_per_second * 1000 / delay;
+	theoric = bs->bw_per_second * delay / 1000;
 	overused = bs->bw_actual - theoric;
 	bs->bw_delta += overused;
 
