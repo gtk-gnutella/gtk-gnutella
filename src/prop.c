@@ -29,6 +29,7 @@
 #include "prop.h"
 #include "common.h"
 #include "version.h"
+#include "file.h"
 
 RCSID("$Id$");
 
@@ -1124,6 +1125,7 @@ void prop_save_to_file(
 	/*
 	 * Rename old config file if they changed it whilst we were running.
 	 */
+
 	if (ps->mtime && mtime > ps->mtime) {
 		gchar *old = g_strconcat(filename, ".old", NULL);
 		g_warning("config file \"%s\" changed whilst I was running", filename);
@@ -1136,19 +1138,14 @@ void prop_save_to_file(
 
 	/*
 	 * Create new file, which will be renamed at the end, so we don't
-	 * clobber a good configuration file should we fail abrupbtly.
+	 * clobber a good configuration file should we fail abruptly.
 	 */
+
 	newfile = g_strconcat(filename, ".new", NULL);
+	config = file_fopen(newfile, "w");
 
-	config = fopen(newfile, "w");
-
-	if (!config) {
-		fprintf(stderr, "\nfopen(): %s\n"
-			"\nUnable to write your configuration in %s\n"
-			"Preferences have not been saved.\n\n",
-				g_strerror(errno), newfile);
+	if (config == NULL)
 		goto end;
-	}
 
 	fprintf(config,
 			"#\n# Gtk-Gnutella %s%s (%s) by Olrick & Co.\n# %s\n#\n",
@@ -1374,7 +1371,7 @@ void prop_load_from_file(
 	path = g_strdup_printf("%s/%s", dir, filename);
 	g_return_if_fail(NULL != path);
 
-	config = fopen(path, "r");
+	config = file_fopen(path, "r");
 	if (!config) {
 		G_FREE_NULL(path);
 		return;

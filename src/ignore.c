@@ -36,6 +36,7 @@
 #include "ignore.h"
 #include "huge.h"
 #include "share.h"
+#include "file.h"
 
 #include "settings.h"
 
@@ -102,12 +103,7 @@ static FILE *open_read_stamp(const gchar *file, time_t *stamp)
 	if (stamp)
 		*stamp = buf.st_mtime;
 
-	f = fopen(path, "r");
-
-	if (!f) {
-		g_warning("unable to open \"%s\" for reading: %s",
-			path, g_strerror(errno));
-	}
+	f = file_fopen(path, "r");
 
 	G_FREE_NULL(path);
 	return f;
@@ -126,12 +122,7 @@ static FILE *open_append(const gchar *file)
 	path = g_strdup_printf("%s/%s", settings_config_dir(), file);
 	g_return_val_if_fail(NULL != path, NULL);
 
-	f = fopen(path, "a");
-
-	if (!f) {
-		g_warning("unable to open \"%s\" for appending: %s",
-			path, g_strerror(errno));
-	}
+	f = file_fopen(path, "a");
 
 	G_FREE_NULL(path);
 	return f;

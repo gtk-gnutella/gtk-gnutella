@@ -160,8 +160,8 @@ static void d_start(gpointer h, gpointer ctx, gpointer item)
 	md->rd = file_open(source, O_RDONLY);
 
 	if (md->rd == -1) {
-		g_warning("can't open \"%s\" for reading to copy it into %s: %s",
-			source, we->dest, g_strerror(errno));
+		md->error = errno;
+		g_warning("can't copy \"%s\" into \"%s\"", source, we->dest);
 		G_FREE_NULL(source);
 		return;
 	}
@@ -188,10 +188,8 @@ static void d_start(gpointer h, gpointer ctx, gpointer item)
 
 	md->wd = file_create(target, O_WRONLY | O_TRUNC, buf.st_mode);
 
-	if (md->wd == -1) {
-		g_warning("can't create \"%s\": %s", target, g_strerror(errno));
+	if (md->wd == -1)
 		goto abort_read;
-	}
 
 	md->start = time(NULL);
 	md->size = (off_t) download_filesize(d);

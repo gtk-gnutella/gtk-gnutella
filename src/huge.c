@@ -177,13 +177,10 @@ static void add_persistent_cache_entry(
 	if (!persistent_cache_file_name)
 		return;
 
-	persistent_cache = fopen(persistent_cache_file_name, "a");
+	persistent_cache = file_fopen(persistent_cache_file_name, "a");
 
-	if (!persistent_cache) {
-		g_warning("Unable to open persistent SHA1 cache file: %s",
-			strerror(errno));
+	if (persistent_cache == NULL)
 		return;
-	}
 
 	/*
 	 * If we're adding the very first entry (file empty), then emit header.
@@ -225,13 +222,10 @@ static void dump_cache(void)
 {
 	FILE *persistent_cache;
 
-	persistent_cache = fopen(persistent_cache_file_name, "w");
+	persistent_cache = file_fopen(persistent_cache_file_name, "w");
 
-	if (!persistent_cache) {
-		g_warning("Dump cache: unable to open persistent SHA1 cache file: %s",
-			strerror(errno));
+	if (persistent_cache == NULL)
 		return;
-	}
 
 	fputs(sha1_persistent_cache_file_header, persistent_cache);
 	g_hash_table_foreach(sha1_cache,
@@ -342,10 +336,8 @@ static void sha1_read_cache(void)
 		settings_config_dir());
 	persistent_cache_file_name = g_strdup(buffer);
 	  
-	persistent_cache_file = fopen(persistent_cache_file_name, "r");
-	if (!persistent_cache_file) {
-		g_warning("Unable to open SHA1 persistent cache %s: %s", 
-			persistent_cache_file_name, strerror(errno));
+	persistent_cache_file = file_fopen(persistent_cache_file_name, "r");
+	if (persistent_cache_file == NULL) {
 		cache_dirty = TRUE;
 		return;
 	}
@@ -680,8 +672,8 @@ static gboolean open_next_file(struct sha1_computation_context *ctx)
 	ctx->fd = file_open(ctx->file->file_name, O_RDONLY);
 
 	if (ctx->fd < 0) {
-		g_warning("Unable to open %s for computing SHA1 hash: %s\n",
-			ctx->file->file_name, g_strerror(errno));
+		g_warning("Unable to open \"%s\" for computing SHA1 hash\n",
+			ctx->file->file_name);
 		close_current_file(ctx);
 		return FALSE;
 	}

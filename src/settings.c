@@ -60,6 +60,7 @@
 #include "inet.h"
 #include "hcache.h"
 #include "downloads.h"
+#include "file.h"
 
 RCSID("$Id$");
 
@@ -113,7 +114,7 @@ static void ensure_unicity(const gchar *file)
 	glong  pid_value = 0; 
 	gchar buf[16];
 
-	fd = fopen(file, "r");
+	fd = file_fopen(file, "r");
 	if (fd == NULL)
 		return;				/* Assume it's missing if can't be opened */
 
@@ -153,13 +154,10 @@ static void save_pid(const gchar *file)
 {
 	FILE *fd;
 
-	fd = fopen(file, "w");
+	fd = file_fopen(file, "w");
 
-	if (fd == NULL) {
-		g_warning("unable to create pidfile \"%s\": %s",
-			file, g_strerror(errno));
+	if (fd == NULL)
 		return;
-	}
 
 	fprintf(fd, "%d\n", (gint) getpid());
 

@@ -6060,7 +6060,6 @@ static void download_request(
 
 	if (d->file_desc == -1) {
 		const gchar *error = g_strerror(errno);
-		g_warning("Unable to open file '%s' for writing! (%s)", path, error);
 		download_stop(d, GTA_DL_ERROR, "Cannot write into file: %s", error);
 		G_FREE_NULL(path);
 		return;
