@@ -224,7 +224,7 @@ prop_def_t *prop_get_def(prop_set_t *ps, property_t p)
 
 	g_assert(ps != NULL);
 
-	if(!prop_in_range(ps, p))
+	if (!prop_in_range(ps, p))
 		g_error("prop_get_def: unknown property %d", p);
 
 	buf = g_memdup(&PROP(ps, p), sizeof(prop_def_t));
@@ -404,9 +404,9 @@ void prop_set_boolean(
 	g_assert(ps != NULL);
 	g_assert(src != NULL);
 
-	if(!prop_in_range(ps, prop))
+	if (!prop_in_range(ps, prop))
 		g_error("prop_set_boolean: unknown property %d", prop);
-	if(PROP(ps,prop).type != PROP_TYPE_BOOLEAN)
+	if (PROP(ps,prop).type != PROP_TYPE_BOOLEAN)
 		g_error("Type mismatch setting value for [%s] of type" 
 			" %s when %s was expected",
 			PROP(ps,prop).name,
@@ -456,9 +456,9 @@ gboolean *prop_get_boolean(
 
 	g_assert(ps != NULL);
 
-	if(!prop_in_range(ps, prop))
+	if (!prop_in_range(ps, prop))
 		g_error("prop_get_boolean: unknown property %d", prop);
-	if(PROP(ps,prop).type != PROP_TYPE_BOOLEAN)
+	if (PROP(ps,prop).type != PROP_TYPE_BOOLEAN)
 		g_error("Type mismatch setting value for [%s] of type" 
 			" %s when %s was expected",
 			PROP(ps,prop).name,
@@ -489,9 +489,9 @@ void prop_set_guint64(
 	g_assert(ps != NULL);
 	g_assert(src != NULL);
 
-	if(!prop_in_range(ps, prop))
+	if (!prop_in_range(ps, prop))
 		g_error("prop_set_guint64: unknown property %d", prop);
-	if((PROP(ps,prop).type != PROP_TYPE_GUINT64) )
+	if ((PROP(ps,prop).type != PROP_TYPE_GUINT64) )
 		g_error("Type mismatch setting value for [%s] of type" 
 			" %s when %s was expected",
 			PROP(ps,prop).name,
@@ -575,9 +575,9 @@ guint64 *prop_get_guint64(
 
 	g_assert(ps != NULL);
 
-	if(!prop_in_range(ps, prop))
+	if (!prop_in_range(ps, prop))
 		g_error("prop_get_guint64: unknown property %d", prop);
-	if((PROP(ps,prop).type != PROP_TYPE_GUINT64))
+	if ((PROP(ps,prop).type != PROP_TYPE_GUINT64))
 		g_error("Type mismatch setting value for [%s] of type" 
 			" %s when %s was expected",
 			PROP(ps,prop).name,
@@ -608,9 +608,9 @@ void prop_set_guint32(
 	g_assert(ps != NULL);
 	g_assert(src != NULL);
 
-	if(!prop_in_range(ps, prop))
+	if (!prop_in_range(ps, prop))
 		g_error("prop_set_guint32: unknown property %d", prop);
-	if((PROP(ps,prop).type != PROP_TYPE_GUINT32) &&
+	if ((PROP(ps,prop).type != PROP_TYPE_GUINT32) &&
 	   (PROP(ps,prop).type != PROP_TYPE_IP) &&
 	   (PROP(ps,prop).type != PROP_TYPE_MULTICHOICE) )
 		g_error("Type mismatch setting value for [%s] of type" 
@@ -723,9 +723,9 @@ guint32 *prop_get_guint32(
 
 	g_assert(ps != NULL);
 
-	if(!prop_in_range(ps, prop))
+	if (!prop_in_range(ps, prop))
 		g_error("prop_get_guint32: unknown property %d", prop);
-	if((PROP(ps,prop).type != PROP_TYPE_GUINT32) &&
+	if ((PROP(ps,prop).type != PROP_TYPE_GUINT32) &&
 	   (PROP(ps,prop).type != PROP_TYPE_IP) &&
 	   (PROP(ps,prop).type != PROP_TYPE_MULTICHOICE) )
 		g_error("Type mismatch setting value for [%s] of type" 
@@ -759,9 +759,9 @@ void prop_set_storage(
 	g_assert(ps != NULL);
 	g_assert(src != NULL);
 
-	if(!prop_in_range(ps, prop))
+	if (!prop_in_range(ps, prop))
 		g_error("prop_set_storage: unknown property %d", prop);
-	if(PROP(ps,prop).type != PROP_TYPE_STORAGE)
+	if (PROP(ps,prop).type != PROP_TYPE_STORAGE)
 		g_error("Type mismatch setting value for [%s] of type" 
 			" %s when %s was expected",
 			PROP(ps,prop).name,
@@ -821,9 +821,9 @@ void prop_set_string(prop_set_t *ps, property_t prop, const gchar *val)
 
 	g_assert(ps != NULL);
 
-	if(!prop_in_range(ps, prop))
+	if (!prop_in_range(ps, prop))
 		g_error("prop_get_gchar: unknown property %d", prop);
-	if(PROP(ps,prop).type != PROP_TYPE_STRING)
+	if (PROP(ps,prop).type != PROP_TYPE_STRING)
 		g_error("Type mismatch getting value for [%s] of type" 
 			" %s when %s was expected",
 			PROP(ps,prop).name,
@@ -871,7 +871,7 @@ void prop_set_string(prop_set_t *ps, property_t prop, const gchar *val)
  * (t != NULL), then this is used. The size indicates the size of the given
  * string buffer and may not be 0 in this case. The pointer which is 
  * returned will point to the given buffer.
- * If no string buffer isgiven (t == NULL), new memory is allocated and 
+ * If no string buffer is given (t == NULL), new memory is allocated and 
  * returned. This memory must be free'ed later. The size parameter has
  * no effect in this case.
  */
@@ -885,9 +885,9 @@ gchar *prop_get_string(prop_set_t *ps, property_t prop, gchar *t, guint32 size)
 	if (t != NULL)
 		g_assert(size > 0);
 
-	if(!prop_in_range(ps, prop))
+	if (!prop_in_range(ps, prop))
 		g_error("prop_get_gchar: unknown property %d", prop);
-	if(PROP(ps,prop).type != PROP_TYPE_STRING)
+	if (PROP(ps,prop).type != PROP_TYPE_STRING)
 		g_error("Type mismatch getting value for [%s] of type" 
 			" %s when %s was expected",
 			PROP(ps,prop).name,
@@ -938,7 +938,7 @@ gchar *prop_to_string(prop_set_t *ps, property_t prop)
 
 	g_assert(ps != NULL);
 
-	if(!prop_in_range(ps, prop))
+	if (!prop_in_range(ps, prop))
 		g_error("prop_get_gchar: unknown property %d", prop);
 
 	switch (PROP(ps,prop).type) {
