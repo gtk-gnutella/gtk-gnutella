@@ -1,5 +1,13 @@
 # since last version
 
+- (2002.06.23 - RAM)
+  * Forgot to clear callout queue callback info before freeing structure
+	(fixes bug # 572800).
+  * Fixed root cause of GTK critical warnings regarding progress bar.
+  * Forgot to include Alex Bennee in AUTHORS.
+  * Make sure we detect a duplicate node connection before dropping a node
+	in favour of a local one (fixes bug # 572748).
+
 - (2002.06.23 - Richard)
   * Also set foreground color for root nodes and builtin targets in 
     filter dialog
