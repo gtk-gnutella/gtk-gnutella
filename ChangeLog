@@ -8,7 +8,19 @@
    directory and gtk-gnutella config directory
  * Intergrated and somewhat adjusted patch from Paco Arjonilla. 
    Added internationalization for the gnutellaNetstats tab messages.
-
+ * Changed the following default settings:
+   - max_connections 			4 -> 9
+   - node_connecting_timeout 		10 -> 30 seconds
+   - node_connected_timeout  		45 -> 90 seconds
+   - node_tx_flowc_timeout		60 -> 180 seconds
+   - scan_extensions added: 		xvid
+   - strict_sha1_matching    		FALSE -> TRUE
+   - prefer_compressed_gnet  		FALSE -> TRUE
+   - download_require_server_name 	FALSE -> TRUE
+   - max_leaves				15 -> 100
+   - node_monitor_unstable_servents	FALSE -> TRUE
+   - unique_nodes			67	-> 50
+   
 - (2003.12.09 - RAM)
  * Allow them to issue a duplicate upload if the original began to stall.
    The new upload will simply replace the previous one.

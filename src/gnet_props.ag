@@ -90,7 +90,7 @@ prop = {
            "advisable that you set this to a value larger than 10.";
     type = guint32;
     data = {
-        default = 4;
+        default = 9;
         min     = 0;
         max     = 100;
     };
@@ -522,7 +522,7 @@ prop = {
             "out if no connection can be established";
     type = guint32;
     data = {
-        default = 10;
+        default = 30;
         min     = 1;
         max     = 100000;
     };
@@ -534,7 +534,7 @@ prop = {
             "if no data is transmitted";
     type = guint32;
     data = {
-        default = 45;
+        default = 90;
         min     = 1;
         max     = 100000;
     };
@@ -558,7 +558,7 @@ prop = {
            "control before being kicked out.";
     type = guint32;
     data = {
-        default = 60;
+        default = 180;
         min     = 5;
         max     = 100000;
     };
@@ -1214,7 +1214,7 @@ prop = {
 		  "tar;tgz;torrent;txt;"
 		  "vob;voc;vqf;"
 		  "wav;wma;wmv;"
-		  "xm;"
+		  "xm;xvid;"
 		  "zip";
     };
 };
@@ -1425,7 +1425,7 @@ prop = {
 			"will be sufficient";
     type = boolean;
     data = {
-	    default = FALSE;
+	    default = TRUE;
     };
 };
 
@@ -1554,7 +1554,7 @@ prop = {
 	   "allows for one non-compressed connection.";
     type = boolean;
     data = {
-        default = FALSE;
+        default = TRUE;
     };
 };
 
@@ -1587,7 +1587,7 @@ prop = {
            "back a non-empty identifying token.";
     type = boolean;
     data = {
-        default = FALSE;
+        default = TRUE;
     };
 };
 
@@ -1607,7 +1607,7 @@ prop = {
     desc = "Maximum amount of leaves we can accept.";
     type = guint32;
     data = {
-        default = 15;
+        default = 100;
         min = 5;
         max = 1000;
     };
@@ -1896,7 +1896,7 @@ prop = {
 		"already keeps track of unstable IP addresses.";
     type = boolean;
     data = {
-        default = FALSE;
+        default = TRUE;
     };
 };
 
@@ -1951,7 +1951,7 @@ prop = {
 	desc = "Maximum percentage of slots a vendor can occupy";
 	type = guint32;
 	data = {
-		default = 67;
+		default = 50;
 		min = 0;
 		max = 100;
 	};
