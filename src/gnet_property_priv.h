@@ -164,6 +164,7 @@ extern gboolean force_ultrapeer;
 extern gboolean force_leaf;
 extern guint32  max_ultrapeers;
 extern guint32  max_leaves;
+extern guint32  configured_peermode;
 extern guint32  current_peermode;
 extern guint32  sys_nofile;
 extern guint32  sys_physmem;

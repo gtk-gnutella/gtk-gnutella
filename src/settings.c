@@ -1005,6 +1005,20 @@ static gboolean local_ip_changed(property_t prop)
     return FALSE;
 }
 
+static gboolean configured_peermode_changed(property_t prop)
+{
+    guint32 val;
+
+    gnet_prop_get_guint32_val(prop, &val);
+
+	if (val == NODE_P_AUTO)
+		return FALSE;
+
+	gnet_prop_set_guint32_val(PROP_CURRENT_PEERMODE, val);
+
+    return FALSE;
+}
+
 static gboolean current_peermode_changed(property_t prop)
 {
     guint32 val;
@@ -1200,6 +1214,11 @@ static prop_map_t property_map[] = {
 	{
 		PROP_LOCAL_IP,
 		local_ip_changed,
+		TRUE,
+	},
+	{
+		PROP_CONFIGURED_PEERMODE,
+		configured_peermode_changed,
 		TRUE,
 	},
 	{

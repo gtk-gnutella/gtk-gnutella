@@ -153,7 +153,6 @@ static gboolean update_window_geometry(property_t prop);
 #ifdef USE_GTK2
 static gboolean update_treeview_col_widths(property_t prop);
 #endif
-static gboolean current_peermode_changed(property_t prop);
 static gboolean bw_gnet_lin_enabled_changed(property_t prop);
 static gboolean bw_gnet_lout_enabled_changed(property_t prop);
 static gboolean bw_http_in_enabled_changed(property_t prop);
@@ -1737,14 +1736,6 @@ static prop_map_t property_map[] = {
     },
     {
         get_main_window,
-        PROP_CURRENT_PEERMODE,
-        current_peermode_changed,
-        TRUE,
-        "combo_config_peermode",
-        FREQ_UPDATES, 0
-    },
-    {
-        get_main_window,
         PROP_LIB_DEBUG,
         update_spinbutton,
         TRUE,
@@ -2668,37 +2659,6 @@ static gboolean proxy_ip_changed(property_t prop)
 
     return FALSE;
 }
-
-static gboolean current_peermode_changed(property_t prop)
-{
-	GtkWidget *hbox_leaf;
-	GtkWidget *hbox_normal_ultrapeer;
-	guint32 val;
-
-	hbox_normal_ultrapeer = lookup_widget(
-        main_window, "hbox_normal_or_ultrapeer");
-	hbox_leaf = lookup_widget(main_window, "hbox_leaf");
-
-	update_multichoice(prop);
-
-	gnet_prop_get_guint32(prop, &val, 0, 1);
-
-	switch (val) {
-	case NODE_P_LEAF:
-		gtk_widget_show(hbox_leaf);
-		gtk_widget_hide(hbox_normal_ultrapeer);
-		break;
-	case NODE_P_NORMAL:
-	case NODE_P_ULTRA:
-		gtk_widget_show(hbox_normal_ultrapeer);
-		gtk_widget_hide(hbox_leaf);
-		break;
-	default:
-		g_assert_not_reached();
-	};
-
-	return FALSE;
-};
 
 static gboolean is_firewalled_changed(property_t prop)
 {

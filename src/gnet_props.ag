@@ -1592,14 +1592,39 @@ prop = {
 };
 
 prop = {
-    name = "current_peermode";
-    desc = "Current peer mode for gtk-gnutella";
+    name = "configured_peermode";
+    desc = "The peer mode you want to operate as for gtk-gnutella.  When auto "
+		"is selected, gtk-gnutella will start as a leaf node and may be "
+		"promoted to an ultra node if bandwidth and uptime permits, provided "
+		"that you are not firewalled.";
     type = multichoice;
     data = {
-        default = 1;
+        default = 3;
     };
     choice = {
-        name = "ultra node (experimental)";
+        name = "auto (recommended)";
+        value = 3;
+    };
+    choice = {
+        name = "ultra node";
+        value = 2;
+    };
+    choice = {
+        name = "leaf node";
+        value = 0;
+    };
+};
+
+prop = {
+    name = "current_peermode";
+    desc = "Current peer mode for gtk-gnutella";
+	save = FALSE;
+    type = multichoice;
+    data = {
+        default = 0;
+    };
+    choice = {
+        name = "ultra node";
         value = 2;
     };
     choice = {
