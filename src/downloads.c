@@ -84,8 +84,8 @@ static void download_incomplete_header(struct download *d);
  * All `dl_server' structures are also inserted in the `dl_by_time' sorted list,
  * where hosts to try first are listed at the head.
  *
- * The `dl_count_by_name' and `dl_count_by_sha1' hash tables are indexed
- * resepectively by name and sha1, and count the amount of downloads scheduled.
+ * The `dl_count_by_name' hash tables is indexed by name, and counts the
+ * amount of downloads scheduled with that name.
  */
 
 static GHashTable *dl_by_host = NULL;
@@ -493,16 +493,6 @@ static void downloads_with_name_dec(const gchar *name)
 			(gchar *) name, (gpointer) (val - 1));
 	else
 		g_hash_table_remove(dl_count_by_name, name);
-}
-
-/*
- * count_running_downloads_with_sha1		-- XXX UNUSED for now
- *
- * How many downloads with same SHA1 are running (active or establishing)?
- */
-static guint32 count_running_downloads_with_sha1(const guchar *sha1)
-{
-	return (guint) g_hash_table_lookup(dl_count_by_sha1, sha1);
 }
 
 /*
@@ -2107,16 +2097,6 @@ static void create_download(
 	if ((d = has_same_download(file_name, guid, ip, port))) {
 		if (interactive)
 			g_warning("rejecting duplicate download for %s", file_name);
-
-#if 0		// XXX cannot do that anymore
-		if (ip != d->ip || port != d->port) {
-			d->ip = ip;
-			d->port = port;
-			g_warning("updated IP:port for %s to %s",
-				file_name, ip_port_to_gchar(ip, port));
-		}
-#endif
-
 		atom_str_free(file_name);
 		return;
 	}
