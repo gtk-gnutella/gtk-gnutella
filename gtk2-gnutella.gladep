@@ -5,7 +5,6 @@
   <name>Gtk-gnutella-current</name>
   <program_name>gtk-gnutella-current</program_name>
   <gnome_support>FALSE</gnome_support>
-  <gettext_support>FALSE</gettext_support>
   <use_widget_names>TRUE</use_widget_names>
   <output_main_file>FALSE</output_main_file>
   <output_build_files>FALSE</output_build_files>

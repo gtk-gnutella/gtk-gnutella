@@ -1,6 +1,6 @@
-# Makefile.in generated automatically by automake 1.4-p6 from Makefile.am
+# Makefile.in generated automatically by automake 1.4-p4 from Makefile.am
 
-# Copyright (C) 1994, 1995-8, 1999, 2001 Free Software Foundation, Inc.
+# Copyright (C) 1994, 1995-8, 1999 Free Software Foundation, Inc.
 # This Makefile.in is free software; the Free Software Foundation
 # gives unlimited permission to copy and/or distribute it,
 # with or without modifications, as long as this notice is preserved.
@@ -80,37 +80,67 @@ POST_INSTALL = :
 NORMAL_UNINSTALL = :
 PRE_UNINSTALL = :
 POST_UNINSTALL = :
+host_alias = @host_alias@
+host_triplet = @host@
+BUILD_INCLUDED_LIBINTL = @BUILD_INCLUDED_LIBINTL@
+CATALOGS = @CATALOGS@
+CATOBJEXT = @CATOBJEXT@
 CC = @CC@
 CPP = @CPP@
+DATADIRNAME = @DATADIRNAME@
+GENCAT = @GENCAT@
+GLIBC21 = @GLIBC21@
 GLIB_CFLAGS = @GLIB_CFLAGS@
 GLIB_CONFIG = @GLIB_CONFIG@
 GLIB_LIBS = @GLIB_LIBS@
+GMOFILES = @GMOFILES@
+GMSGFMT = @GMSGFMT@
 GTK_CFLAGS = @GTK_CFLAGS@
 GTK_CONFIG = @GTK_CONFIG@
 GTK_GNUTELLA_CFLAGS = @GTK_GNUTELLA_CFLAGS@
 GTK_LIBS = @GTK_LIBS@
+INSTOBJEXT = @INSTOBJEXT@
+INTLBISON = @INTLBISON@
+INTLLIBS = @INTLLIBS@
+INTLOBJS = @INTLOBJS@
+INTL_LIBTOOL_SUFFIX_PREFIX = @INTL_LIBTOOL_SUFFIX_PREFIX@
+LIBICONV = @LIBICONV@
 LIBXML2_REQUIRED = @LIBXML2_REQUIRED@
 MAINT = @MAINT@
 MAKEINFO = @MAKEINFO@
+MKINSTALLDIRS = @MKINSTALLDIRS@
+MSGFMT = @MSGFMT@
 PACKAGE = @PACKAGE@
 PKG_CONFIG = @PKG_CONFIG@
+POFILES = @POFILES@
+POSUB = @POSUB@
+RANLIB = @RANLIB@
+USE_INCLUDED_LIBINTL = @USE_INCLUDED_LIBINTL@
+USE_NLS = @USE_NLS@
 VERSION = @VERSION@
 XML_CFLAGS = @XML_CFLAGS@
 XML_CONFIG = @XML_CONFIG@
 XML_LIBS = @XML_LIBS@
 YACC = @YACC@
 
-SUBDIRS = src
-EXTRA_DIST = gtk-gnutella.spec		gwcache.boot 	debian/README.debian			debian/changelog				debian/control					debian/copyright				debian/dirs						debian/gtk-gnutella.1			debian/menu						debian/rules					debian/substvars
+SUBDIRS = src po intl
+
+EXTRA_GTK2 =  	src/monitor_gui2.c 	src/monitor_cb2.c 	src/nodes_gui2.c 	src/nodes_cb2.c 	src/nodes_cb2.h 	src/search_gui2.c 	src/search_cb2.c 	src/search_cb2.h 	src/uploads_gui2.c 	src/upload_stats_gui2.c 	src/gnet_stats_gui2.c 	src/search_stats_gui2.c 	src/interface-glade2.c 	src/interface-glade2.h 	src/support-glade2.c 	src/support-glade2.h
+
+
+EXTRA_SHELL =  	src/shell.c 	src/shell.h
+
+
+EXTRA_DIST = gtk-gnutella.spec		gwcache.boot 	debian/README.debian			debian/changelog				debian/control					debian/copyright				debian/dirs						debian/gtk-gnutella.1			debian/menu						debian/rules					debian/substvars				$(EXTRA_GTK2) 	$(EXTRA_SHELL)
 
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs
 CONFIG_HEADER = config.h
 CONFIG_CLEAN_FILES =  gtk-gnutella.spec
-DIST_COMMON =  README ./stamp-h.in AUTHORS COPYING ChangeLog INSTALL \
-Makefile.am Makefile.in NEWS TODO acconfig.h aclocal.m4 config.h.in \
-configure configure.in gtk-gnutella.spec.in install-sh missing \
-mkinstalldirs
+DIST_COMMON =  README ./stamp-h.in ABOUT-NLS AUTHORS COPYING ChangeLog \
+INSTALL Makefile.am Makefile.in NEWS TODO acconfig.h aclocal.m4 \
+config.guess config.h.in config.sub configure configure.in \
+gtk-gnutella.spec.in install-sh missing mkinstalldirs
 
 
 DISTFILES = $(DIST_COMMON) $(SOURCES) $(HEADERS) $(TEXINFOS) $(EXTRA_DIST)
@@ -129,7 +159,7 @@ Makefile: $(srcdir)/Makefile.in  $(top_builddir)/config.status $(BUILT_SOURCES)
 $(ACLOCAL_M4): @MAINTAINER_MODE_TRUE@ configure.in 
 	cd $(srcdir) && $(ACLOCAL)
 
-config.status: $(srcdir)/configure $(CONFIG_STATUS_DEPENDENCIES)
+config.status: $(srcdir)/configure.in $(CONFIG_STATUS_DEPENDENCIES)
 	$(SHELL) ./config.status --recheck
 $(srcdir)/configure: @MAINTAINER_MODE_TRUE@$(srcdir)/configure.in $(ACLOCAL_M4) $(CONFIGURE_DEPENDENCIES)
 	cd $(srcdir) && $(AUTOCONF)
@@ -200,7 +230,7 @@ maintainer-clean-recursive:
 	dot_seen=no; \
 	rev=''; list='$(SUBDIRS)'; for subdir in $$list; do \
 	  rev="$$subdir $$rev"; \
-	  test "$$subdir" != "." || dot_seen=yes; \
+	  test "$$subdir" = "." && dot_seen=yes; \
 	done; \
 	test "$$dot_seen" = "no" && rev=". $$rev"; \
 	target=`echo $@ | sed s/-recursive//`; \
@@ -242,7 +272,7 @@ TAGS: tags-recursive $(HEADERS) $(SOURCES) config.h.in $(TAGS_DEPENDENCIES) $(LI
 	  awk '    { files[$$0] = 1; } \
 	       END { for (i in files) print i; }'`; \
 	test -z "$(ETAGS_ARGS)config.h.in$$unique$(LISP)$$tags" \
-	  || (cd $(srcdir) && etags -o $$here/TAGS $(ETAGS_ARGS) $$tags config.h.in $$unique $(LISP))
+	  || (cd $(srcdir) && etags $(ETAGS_ARGS) $$tags config.h.in $$unique $(LISP) -o $$here/TAGS)
 
 mostlyclean-tags:
 
@@ -266,7 +296,7 @@ distcheck: dist
 	mkdir $(distdir)/=inst
 	dc_install_base=`cd $(distdir)/=inst && pwd`; \
 	cd $(distdir)/=build \
-	  && ../configure --srcdir=.. --prefix=$$dc_install_base \
+	  && ../configure --with-included-gettext --srcdir=.. --prefix=$$dc_install_base \
 	  && $(MAKE) $(AM_MAKEFLAGS) \
 	  && $(MAKE) $(AM_MAKEFLAGS) dvi \
 	  && $(MAKE) $(AM_MAKEFLAGS) check \
@@ -296,7 +326,7 @@ distdir: $(DISTFILES)
 	distdir=`cd $(distdir) && pwd`; \
 	cd $(top_srcdir) \
 	  && $(AUTOMAKE) --include-deps --build-dir=$$here --srcdir-name=$(top_srcdir) --output-dir=$$top_distdir --gnu Makefile
-	$(mkinstalldirs) $(distdir)/debian
+	$(mkinstalldirs) $(distdir)/debian $(distdir)/src
 	@for file in $(DISTFILES); do \
 	  d=$(srcdir); \
 	  if test -d $$d/$$file; then \
@@ -416,10 +446,10 @@ dist-hook:
 	fi
 
 glade_files:
-	cd src; $(MAKE) glade_files
+	$(MAKE) -C src glade_files
 
 properties:
-	cd src; $(MAKE) properties
+	$(MAKE) -C src gui_property.c gnet_property.c
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.

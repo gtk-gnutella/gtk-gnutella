@@ -23,6 +23,8 @@
 
 ## Process this file with automake to produce Makefile.in
 
+SUBDIRS = src po intl
+
 EXTRA_GTK2 = \
 	src/monitor_gui2.c \
 	src/monitor_cb2.c \
@@ -46,7 +48,6 @@ EXTRA_SHELL = \
 	src/shell.c \
 	src/shell.h
 
-SUBDIRS = src
 EXTRA_DIST = gtk-gnutella.spec	\
 	gwcache.boot \
 	debian/README.debian		\
@@ -84,7 +85,7 @@ dist-hook:
 	fi
 
 glade_files:
-	cd src; $(MAKE) glade_files
+	$(MAKE) -C src glade_files
 
 properties:
-	cd src; $(MAKE) properties
+	$(MAKE) -C src gui_property.c gnet_property.c

@@ -14,6 +14,9 @@ AC_PROG_YACC
 AC_C_INLINE
 AC_C_CONST
 
+ALL_LINGUAS="es"
+AM_GNU_GETTEXT([external])
+
 dnl ---------------------------------------------------------------------------
 dnl Check configure command line options
 dnl ---------------------------------------------------------------------------
@@ -224,7 +227,7 @@ else
     have_tos=no
 fi
 
-AC_OUTPUT([
+AC_OUTPUT([ po/Makefile.in intl/Makefile
 Makefile
 src/Makefile
 gtk-gnutella.spec

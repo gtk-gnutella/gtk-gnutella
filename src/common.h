@@ -113,7 +113,7 @@ typedef void (*GCallback) (void);
 #define GTA_REVISION "unstable"
 #define GTA_REVCHAR "u"
 #define GTA_INTERFACE "X11"
-#define GTA_RELEASE "09/04/2003"
+#define GTA_RELEASE "13/04/2003"
 #define GTA_WEBSITE "http://gtk-gnutella.sourceforge.net/"
 
 /* If we compile from CVS (aka "unstable") we want to run from $srcdir
@@ -148,9 +148,9 @@ void gtk_gnutella_exit(gint);
 #ifdef ENABLE_NLS
 #  include <libintl.h>
 #  undef _
-#  define _(String) dgettext (PACKAGE, String)
+#  define _(String) dgettext(PACKAGE, String)
 #  ifdef gettext_noop
-#    define N_(String) gettext_noop (String)
+#    define N_(String) gettext_noop(String)
 #  else
 #    define N_(String) (String)
 #  endif

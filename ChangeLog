@@ -1,5 +1,10 @@
 # since last version
 
+- (2003.04.13 - RAM)
+ * Forgot to update node's timestamp after having sent the Gnutella hello.
+ * Added files created by gettext for internationalization (i18n).
+ * Integrated i18n patch [From Nicolas Lichtmaier].
+
 - (2003.04.09 - RAM)
  * Be sure to requeue all active downloads that were referencing a file
    we are removing.
