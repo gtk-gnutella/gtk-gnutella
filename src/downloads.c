@@ -3121,8 +3121,14 @@ static gboolean send_push_request(gchar *guid, guint32 file_id, guint16 port)
 
 	message_set_muid(&(m.header), GTA_MSG_PUSH_REQUEST);
 
+	/*
+	 * NB: we send the PUSH message with max_ttl, not my_ttl, in case the
+	 * message needs to be alternatively routed (the path the query hit used
+	 * has been broken).
+	 */
+
 	m.header.function = GTA_MSG_PUSH_REQUEST;
-	m.header.ttl = my_ttl;
+	m.header.ttl = max_ttl;
 	m.header.hops = 0;
 
 	WRITE_GUINT32_LE(sizeof(struct gnutella_push_request), m.header.size);
