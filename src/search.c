@@ -33,6 +33,7 @@
 #include "downloads.h"
 #include "guid.h"
 #include "gnet_stats.h"
+#include "utf8.h"
 
 #include <ctype.h>
 
@@ -1298,13 +1299,32 @@ gnet_search_t search_new(
     flag_t flags)
 {
 	search_ctrl_t *sch;
+	gchar *qdup;
+	gint qlen;
+	gint utf8_len;
+	extern guint compact_query(gchar *search, gint utf8_len);
 
 	sch = g_new0(search_ctrl_t, 1);
     sch->search_handle = search_request_handle(sch);
 
-	sch->query = atom_str_get(query);
+	/*
+	 * Canonicalize the query we're sending.
+	 */
+
+	qdup = g_strdup(query);
+	qlen = strlen(qdup);
+
+	utf8_len = utf8_is_valid_string(qdup, qlen);
+	if (utf8_len && utf8_len == qlen)
+		utf8_len = 0;						/* Uses ASCII only */
+
+	compact_query(qdup, utf8_len);
+
+	sch->query = atom_str_get(qdup);
 	sch->speed = minimum_speed;
     sch->frozen = TRUE;
+
+	g_free(qdup);
 
 	if (flags & SEARCH_PASSIVE) {
 		sch->passive = TRUE;
