@@ -48,15 +48,6 @@ prop = {
 };
 
 prop = {
-    name = "search_autoselect";
-    desc = "Autoselect similar files in searches";
-    type = boolean;
-    data = {
-        default = TRUE;
-    };
-};
-    
-prop = {
     name = "search_hide_downloaded";
     desc = "Whether to hide hits that have been considered "
 		"for auto-downloading based on the SHA1 or your filters.";
@@ -557,16 +548,6 @@ prop = {
 };
 
 prop = {
-    name = "search_autoselect_ident";
-    desc = "When enabled autoselection only takes place if filesize "
-           "matches exactly, otherwise it must be equal or greater";
-    type = boolean;
-    data = {
-        default = TRUE;
-    };
-};
-
-prop = {
     name = "search_sort_casesense";
     desc = "Do a case sensitive sorting.";
     type = boolean;
@@ -590,6 +571,25 @@ prop = {
     type = boolean;
     data = {
         default = FALSE;
+    };
+};
+
+prop = {
+    name = "search_autoselect_similar";
+    desc = "Autoselect similar files in searches";
+    type = boolean;
+    data = {
+        default = FALSE;
+    };
+};
+
+prop = {
+    name = "search_autoselect_samesize";
+    desc = "When enabled autoselection only takes place if filesize "
+           "matches exactly, otherwise it must be equal or greater";
+    type = boolean;
+    data = {
+        default = TRUE;
     };
 };
 
