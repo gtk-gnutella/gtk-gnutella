@@ -46,9 +46,11 @@ uses Passive/Active Remote Queueing (PARQ).
 It's a Unix clone, and can be built with either a GTK+ (1.2 or above) or GTK2 
 GUI.  Gnome is not needed but libxml should be available for best performance. 
 Gtk-Gnutella is currently developed and tested under Linux (Debian 2.2) and is 
-known to run at least on Linux, FreeBSD, NetBSD, OpenBSD, Darwin/PowerPC, 
-Solaris 8/SPARC, Tru64 Unix/Alpha, SGI IRIX 6.2/mips.  It is released under 
-the GNU Public License (GPL).  
+known to run at least on Linux, FreeBSD, NetBSD, OpenBSD, Darwin, Solaris,
+Tru64 Unix (OSF1), SGI IRIX, BeOS whereas CPU architectures include x86, AMD64,
+PowerPC, SPARC, MIPS.
+
+It is released under the GNU Public License (GPL).  
 
 For further information on Gnutella, try:
     http://gnutella.wego.com
