@@ -49,6 +49,7 @@ size_t gm_snprintf(gchar *str, size_t n, gchar const *fmt, ...)
 
 void gm_savemain(gint argc, gchar **argv, gchar **env);
 void gm_setproctitle(gchar *title);
+unsigned long gm_atoul(const char *str, char **endptr, int *errorcode);
 
 #endif	/* _glib_missing_h_ */
 

@@ -261,3 +261,40 @@ void gm_setproctitle(gchar *title)
 		orig_argv[i] = NULL;
 }
 
+/*
+ * gm_atoul
+ *
+ * Returns the nul-terminated string `str' converted to an unsigned long.
+ * If successful `errorcode' will be set to 0 (zero), otherwise it will
+ * contain an errno(2) code and the function returns 0 (zero).
+ * If endptr is not NULL it will point to the first invalid character.
+ * See strtoul(3) for more details about valid and invalid inputs. 
+ */
+unsigned long gm_atoul(const char *str, char **endptr, int *errorcode)
+{
+	char *ep;
+	unsigned long ret;
+	int old_errno = errno;
+
+	g_assert(NULL != str);
+	g_assert(NULL != errorcode);
+
+	errno = 0;
+	ret = strtoul(str, &ep, 10);
+	if (str == ep) {
+		*errorcode = EINVAL;
+		ret = 0;
+	} else {
+		if (0 != errno) {
+			*errorcode = ERANGE;
+			ret = 0;
+		} else
+			*errorcode = 0;
+	}
+
+	if (NULL != endptr)
+		*endptr = ep;
+	errno = old_errno;
+	return ret;
+}
+
