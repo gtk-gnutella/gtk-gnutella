@@ -269,8 +269,8 @@ static void search_free_r_set(gnet_results_set_t *rs)
  * Returns a structure describing the whole result set, or NULL if we
  * were unable to parse it properly.
  */
-static gnet_results_set_t *get_results_set
-    (gnutella_node_t *n, gboolean validate_only)
+static gnet_results_set_t *get_results_set(
+	gnutella_node_t *n, gboolean validate_only)
 {
 	gnet_results_set_t *rs;
 	gnet_record_t *rc = NULL;
@@ -1042,6 +1042,7 @@ gboolean search_results(gnutella_node_t *n)
 	 * Look for all the searches, and put the ones we need to possibly
 	 * dispatch the results to into the selected_searches list.
 	 */
+
 	for (sl = sl_search_ctrl; sl != NULL; sl = g_slist_next(sl)) {
 		search_ctrl_t *sch = (search_ctrl_t *) sl->data;
 
@@ -1066,6 +1067,7 @@ gboolean search_results(gnutella_node_t *n)
 	 * If we're not going to dispatch it to any search, the packet is only
 	 * parsed for validation.
 	 */
+
 	rs = get_results_set(n, selected_searches == NULL);
 	if (rs == NULL) {
         /*
@@ -1083,12 +1085,14 @@ gboolean search_results(gnutella_node_t *n)
 	 *
 	 * NB: route_message() increases hops by 1 for messages we handle.
 	 */
+
 	if (n->header.hops == 1)
 		update_neighbour_info(n, rs);
 
     /*
      * Look for records that match entries in the download queue.
      */
+
     if (auto_download_identical)
         file_info_check_results_set(rs);
 
@@ -1096,6 +1100,7 @@ gboolean search_results(gnutella_node_t *n)
     /*
      * Look for records that match entries in the download queue.
      */
+
     if (mark_ignored) {
         for (sl = rs->records; sl != NULL; sl = g_slist_next(sl)) {
             gnet_record_t *rc = (gnet_record_t *) sl->data;
@@ -1110,6 +1115,7 @@ gboolean search_results(gnutella_node_t *n)
 	/*
 	 * Dispatch the results to the selected searches.
 	 */
+
      if (selected_searches != NULL)
         search_fire_got_results(selected_searches, rs);
 		
@@ -1152,6 +1158,7 @@ void search_close(gnet_search_t sh)
      * the same calls may still need them!.
      *      --BLUE 26/05/2002
      */
+
 	sl_search_ctrl = g_slist_remove(sl_search_ctrl, (gpointer) sch);
     search_drop_handle(sch->search_handle);
 
