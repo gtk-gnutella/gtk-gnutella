@@ -502,7 +502,7 @@ static void gnet_stats_gui_flowc_init(void)
 		gm_snprintf(buf, sizeof(buf), "%d%c", n - 1,
 				n + 1 < STATS_FLOWC_COLUMNS ? '\0' : '+');
 		add_column(treeview, n, width[n], (gfloat) (n != 0),
-			n == 0 ? "Type" : buf);
+			n == 0 ? _("Type") : buf);
 	}
 	G_FREE_NULL(width);
 	gtk_tree_view_set_model(treeview, model);
@@ -533,7 +533,7 @@ static void gnet_stats_gui_drop_reasons_init(void)
 		}
 
 		add_column(treeview, n, width[n], (gfloat) (n != 0),
-			n == 0 ? N_("Type") : N_("Count"));
+			n == 0 ? _("Type") : _("Count"));
 	}
 	G_FREE_NULL(width);
 	gtk_tree_view_set_model(treeview, model);
@@ -564,7 +564,7 @@ static void gnet_stats_gui_general_init(void)
 				0, general_type_str(i), 1, "-", (-1));
 		}
 		add_column(treeview, n, width[n], (gfloat) (n != 0),
-			n == 0 ? N_("Type") : N_("Count"));
+			n == 0 ? _("Type") : _("Count"));
 	}
 	G_FREE_NULL(width);
 	gtk_tree_view_set_model(treeview, model);
@@ -629,7 +629,7 @@ static void gnet_stats_gui_recv_init(void)
 		gm_snprintf(buf, sizeof(buf), "%d%c", n - 1,
 				n + 1 < STATS_RECV_COLUMNS ? '\0' : '+');
 		add_column(treeview, n, width[n], (gfloat) (n != 0),
-			n == 0 ? N_("Type") : buf);
+			n == 0 ? _("Type") : buf);
 	}
 	G_FREE_NULL(width);
 
