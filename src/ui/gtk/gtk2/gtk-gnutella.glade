@@ -22965,7 +22965,7 @@ before kicking</property>
 			  <child>
 			    <widget class="GtkCheckButton" id="checkbutton_config_bw_ul_usage_enabled">
 			      <property name="visible">True</property>
-			      <property name="tooltip" translatable="yes">Until xx% of outgoing HTTP bandwidth is in use, open additional upload slots on request.</property>
+			      <property name="tooltip" translatable="yes">Until the configured percentage of outgoing HTTP bandwidth is in use, open additional upload slots on request.</property>
 			      <property name="can_focus">True</property>
 			      <property name="label" translatable="yes">Enable dynamic upload slots _allocation</property>
 			      <property name="use_underline">True</property>
