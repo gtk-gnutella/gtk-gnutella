@@ -510,10 +510,13 @@ static void node_is_now_connected(struct gnutella_node *n)
 
 	/*
 	 * If we have an incoming connection, send an "alive" ping.
+	 * Otherwise, send a "handshaking" ping.
 	 */
 
 	if (n->flags & NODE_F_INCOMING)
 		send_alive_ping(n);
+	else
+		pcache_outgoing_connection(n);	/* Will send proper handshaking ping */
 
 	/*
 	 * Update the GUI.
@@ -1080,7 +1083,6 @@ static void node_process_handshake_header(struct io_header *ih)
 		s->gdk_tag = 0;
 
 		node_is_now_connected(n);
-		pcache_outgoing_connection(n);	/* Will send proper handshaking ping */
 
 		/* FALL THROUGH */
 	}
@@ -2112,7 +2114,6 @@ void node_read_connecting(gpointer data, gint source, GdkInputCondition cond)
 	s->gdk_tag = 0;
 
 	node_is_now_connected(n);
-	pcache_outgoing_connection(n);	/* Will send proper handshaking ping */
 }
 
 /*
