@@ -1,0 +1,95 @@
+?X:
+?X: Modified for better path stripping routine which can allow situations
+?X: like vi='/usr/bin/nvi' which will strip down to vi='nvi'.
+?X:
+?RCS: $Id$
+?RCS:
+?RCS: @COPYRIGHT@
+?RCS:
+?RCS: $Log$
+?RCS: Revision 1.1  2003/12/27 22:23:20  rmanfredi
+?RCS: Better path stripping version.
+?RCS:
+?RCS: Revision 3.0.1.3  1997/02/28  14:57:53  ram
+?RCS: patch61: added support for src.U
+?RCS:
+?RCS: Revision 3.0.1.2  1995/01/11  14:53:31  ram
+?RCS: patch45: moved path stripping from d_portable.U to end of Configure
+?RCS:
+?RCS: Revision 3.0.1.1  1994/10/29  15:50:37  ram
+?RCS: patch36: added ?F: line for metalint file checking
+?RCS:
+?RCS: Revision 3.0  1993/08/18  12:04:48  ram
+?RCS: Baseline for dist 3.0 netwide release.
+?RCS:
+?X: 
+?X: This unit ends up producing the config.sh script, which contains all the
+?X: definitions figured out by Configure.  The add.Config_sh command knows
+?X: which variables need to be remembered.  It also adds the EOT (ends the
+?X: here document redirection with variable substitution).
+?X: 
+?MAKE:Config_sh: cf_time cf_by test spitshell startsh myuname Myread \
+	End Obsol_sh Loc +d_portable package src
+?MAKE:	-pick add.Config_sh $@ %<
+?MAKE:	-pick add $@ ./Obsol_sh
+?MAKE:	-pick close.Config_sh $@ %<
+?F:!config.over
+?T:file sfile
+?LINT:unclosed EOT
+: back to where it started
+if test -d ../UU; then
+	cd ..
+fi
+
+: configuration may be patched via a 'config.over' file
+if $test -f config.over; then
+	echo " "
+	dflt=y
+	rp='I see a config.over file.  Do you wish to load it?'
+	. UU/myread
+	case "$ans" in
+	n*) echo "OK, I'll ignore it.";;
+	*)	. ./config.over
+		echo "Configuration override changes have been loaded."
+		;;
+	esac
+fi
+
+@if d_portable
+: in case they want portability, strip down executable paths
+?X:
+?X: Strip down paths in located executables. For each file, e.g. vi, there
+?X: is a $vi variable whose value is for instance '/usr/bin/vi'. By resetting
+?X: $vi to 'vi', we rely on the PATH variable to locate the executable...
+?X:
+case "$d_portable" in
+"$define")
+	echo " "
+	echo "Stripping down executable paths..." >&4
+	for file in $loclist $trylist; do
+		eval sfile="\$$file"
+		sfile=`echo $sfile | sed -e 's,.*/\(.*\),\1,'`
+		eval $file="$sfile"
+	done
+	;;
+esac
+
+@end
+: create config.sh file
+echo " "
+echo "Creating config.sh..." >&4
+$spitshell <<EOT >config.sh
+$startsh
+#
+# This file was produced by running the Configure script. It holds all the
+# definitions figured out by Configure. Should you modify one of these values,
+# do not forget to propagate your changes by running "Configure -der". You may
+# instead choose to run each of the .SH files by yourself, or "Configure -S".
+#
+
+# Package name      : $package
+# Source directory  : $src
+# Configuration time: $cf_time
+# Configured by     : $cf_by
+# Target system     : $myuname
+

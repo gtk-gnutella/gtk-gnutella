@@ -20,7 +20,7 @@
 
 # $Id$
 #
-# Generated on Sat Dec 27 22:41:46 MET 2003 [metaconfig 3.0 PL70]
+# Generated on Sat Dec 27 23:19:38 MET 2003 [metaconfig 3.0 PL70]
 
 cat >/tmp/c1$$ <<EOF
 ARGGGHHHH!!!!!
@@ -5036,7 +5036,9 @@ case "$d_portable" in
 	echo " "
 	echo "Stripping down executable paths..." >&4
 	for file in $loclist $trylist; do
-		eval $file="\$file"
+		eval sfile="\$$file"
+		sfile=`echo $sfile | sed -e 's,.*/\(.*\),\1,'`
+		eval $file="$sfile"
 	done
 	;;
 esac
