@@ -1587,14 +1587,14 @@ create_dlg_about (void)
   gtk_misc_set_alignment (GTK_MISC (label492), 0, 0.5);
   gtk_misc_set_padding (GTK_MISC (label492), 10, 0);
 
-  label493 = gtk_label_new (_("Rapha\303\253l Manfredi"));
+  label493 = gtk_label_new (_("Raphaël Manfredi"));
   gtk_widget_set_name (label493, "label493");
   gtk_widget_show (label493);
   gtk_box_pack_start (GTK_BOX (vbox88), label493, FALSE, FALSE, 0);
   gtk_misc_set_alignment (GTK_MISC (label493), 0, 0.5);
   gtk_misc_set_padding (GTK_MISC (label493), 10, 0);
 
-  label494 = gtk_label_new (_("Rapha\303\253l Manfredi"));
+  label494 = gtk_label_new (_("Raphaël Manfredi"));
   gtk_widget_set_name (label494, "label494");
   gtk_widget_show (label494);
   gtk_box_pack_start (GTK_BOX (vbox88), label494, FALSE, FALSE, 0);
@@ -3819,6 +3819,9 @@ create_main_window_config_gnet_tab (void)
   GtkWidget *label_up_req_not_firewalled;
   GtkWidget *viewport82;
   GtkWidget *label_up_req_enough_mem;
+  GtkWidget *viewport107;
+  GtkWidget *label_up_req_enough_conn;
+  GtkWidget *label868;
   GtkWidget *label751;
   GtkWidget *label739;
   GtkWidget *frame_searches;
@@ -4323,6 +4326,29 @@ create_main_window_config_gnet_tab (void)
   gtk_label_set_justify (GTK_LABEL (label_up_req_enough_mem), GTK_JUSTIFY_CENTER);
   gtk_misc_set_alignment (GTK_MISC (label_up_req_enough_mem), 1, 0.5);
   gtk_misc_set_padding (GTK_MISC (label_up_req_enough_mem), 5, 0);
+
+  viewport107 = gtk_viewport_new (NULL, NULL);
+  gtk_widget_set_name (viewport107, "viewport107");
+  gtk_widget_show (viewport107);
+  gtk_table_attach (GTK_TABLE (table84), viewport107, 4, 5, 3, 4,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (GTK_FILL), 0, 0);
+
+  label_up_req_enough_conn = gtk_label_new (_("[no]"));
+  gtk_widget_set_name (label_up_req_enough_conn, "label_up_req_enough_conn");
+  gtk_widget_show (label_up_req_enough_conn);
+  gtk_container_add (GTK_CONTAINER (viewport107), label_up_req_enough_conn);
+  gtk_label_set_justify (GTK_LABEL (label_up_req_enough_conn), GTK_JUSTIFY_CENTER);
+  gtk_misc_set_alignment (GTK_MISC (label_up_req_enough_conn), 1, 0.5);
+  gtk_misc_set_padding (GTK_MISC (label_up_req_enough_conn), 5, 0);
+
+  label868 = gtk_label_new (_("Enough min # of connections"));
+  gtk_widget_set_name (label868, "label868");
+  gtk_widget_show (label868);
+  gtk_table_attach (GTK_TABLE (table84), label868, 3, 4, 3, 4,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label868), 0, 0.5);
 
   label751 = gtk_label_new (_("Ultrapeer promotion statistics"));
   gtk_widget_set_name (label751, "label751");
@@ -5100,6 +5126,9 @@ create_main_window_config_gnet_tab (void)
   GLADE_HOOKUP_OBJECT (main_window_config_gnet_tab, label_up_req_not_firewalled, "label_up_req_not_firewalled");
   GLADE_HOOKUP_OBJECT (main_window_config_gnet_tab, viewport82, "viewport82");
   GLADE_HOOKUP_OBJECT (main_window_config_gnet_tab, label_up_req_enough_mem, "label_up_req_enough_mem");
+  GLADE_HOOKUP_OBJECT (main_window_config_gnet_tab, viewport107, "viewport107");
+  GLADE_HOOKUP_OBJECT (main_window_config_gnet_tab, label_up_req_enough_conn, "label_up_req_enough_conn");
+  GLADE_HOOKUP_OBJECT (main_window_config_gnet_tab, label868, "label868");
   GLADE_HOOKUP_OBJECT (main_window_config_gnet_tab, label751, "label751");
   GLADE_HOOKUP_OBJECT (main_window_config_gnet_tab, label739, "label739");
   GLADE_HOOKUP_OBJECT (main_window_config_gnet_tab, frame_searches, "frame_searches");

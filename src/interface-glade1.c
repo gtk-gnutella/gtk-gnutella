@@ -614,6 +614,9 @@ create_main_window (void)
   GtkWidget *label_up_req_not_firewalled;
   GtkWidget *frame115;
   GtkWidget *label_up_req_enough_mem;
+  GtkWidget *label681;
+  GtkWidget *frame132;
+  GtkWidget *label_up_req_enough_conn;
   GtkWidget *frame_searches;
   GtkWidget *hbox188;
   GtkWidget *alignment31;
@@ -6448,6 +6451,38 @@ create_main_window (void)
   gtk_container_add (GTK_CONTAINER (frame115), label_up_req_enough_mem);
   gtk_misc_set_alignment (GTK_MISC (label_up_req_enough_mem), 1, 0.5);
   gtk_misc_set_padding (GTK_MISC (label_up_req_enough_mem), 5, 0);
+
+  label681 = gtk_label_new (_("Enough min # of connections"));
+  gtk_widget_set_name (label681, "label681");
+  gtk_widget_ref (label681);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label681", label681,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label681);
+  gtk_table_attach (GTK_TABLE (table74), label681, 3, 4, 3, 4,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label681), 0, 0.5);
+
+  frame132 = gtk_frame_new (NULL);
+  gtk_widget_set_name (frame132, "frame132");
+  gtk_widget_ref (frame132);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "frame132", frame132,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (frame132);
+  gtk_table_attach (GTK_TABLE (table74), frame132, 4, 5, 3, 4,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (GTK_FILL), 0, 0);
+  gtk_frame_set_shadow_type (GTK_FRAME (frame132), GTK_SHADOW_IN);
+
+  label_up_req_enough_conn = gtk_label_new (_("[no]"));
+  gtk_widget_set_name (label_up_req_enough_conn, "label_up_req_enough_conn");
+  gtk_widget_ref (label_up_req_enough_conn);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label_up_req_enough_conn", label_up_req_enough_conn,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label_up_req_enough_conn);
+  gtk_container_add (GTK_CONTAINER (frame132), label_up_req_enough_conn);
+  gtk_misc_set_alignment (GTK_MISC (label_up_req_enough_conn), 1, 0.5);
+  gtk_misc_set_padding (GTK_MISC (label_up_req_enough_conn), 5, 0);
 
   frame_searches = gtk_frame_new (_("Searches"));
   gtk_widget_set_name (frame_searches, "frame_searches");
