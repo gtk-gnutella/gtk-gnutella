@@ -951,6 +951,9 @@ static void qrp_cancel_computation(void)
 	if (ht_seen_words)
 		dispose_ht_seen_words();
 
+	if (qrp_ctx->table)
+		g_free(qrp_ctx->table);
+
 	g_source_remove(qrp_ctx->timer_id);
 	qrp_context_free(qrp_ctx);
 	qrp_ctx = NULL;
@@ -1080,8 +1083,13 @@ static gint qrp_step_compute(struct qrp_context *ctx)
 // XXX
 static void compressed(gpointer arg, gboolean cancelled)
 {
+	struct routing_patch *rp = (struct routing_patch *) arg;
+
 	printf("GOT QRP COMPRESSED CALLBACK (%s)!\n",
 		cancelled ? "cancelled" : "OK");
+
+	g_free(rp->arena);
+	g_free(rp);
 }
 
 /*
@@ -1104,10 +1112,7 @@ static gint qrp_step_install(struct qrp_context *ctx)
 // XXX
 	{
 		struct routing_patch *rp = qrt_diff_4(NULL, routing_table);
-		qrt_patch_compress(rp, compressed, 0);
-		
-		g_free(rp->arena);
-		g_free(rp);
+		qrt_patch_compress(rp, compressed, rp);
 	}
 
 	return 0;			/* Done! */
@@ -1185,6 +1190,8 @@ static gboolean qrp_compute_timer(gpointer arg)
  */
 void qrp_close(void)
 {
+	qrp_cancel_computation();
+
 	if (routing_table)
 		qrt_unref(routing_table);
 
