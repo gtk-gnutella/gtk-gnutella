@@ -170,6 +170,9 @@ void gui_init(void)
 	gtk_clist_column_titles_passive(GTK_CLIST(clist_monitor));
 
 	gtk_clist_set_reorderable(GTK_CLIST(clist_downloads_queue), TRUE);
+   	gtk_clist_set_use_drag_icons(GTK_CLIST(clist_downloads_queue), FALSE);
+    
+   
     
     /* 
      * Just hide the tabs so we can keep them displayed in glade
@@ -447,6 +450,9 @@ void gui_update_all()
 
     gtk_paned_set_position(GTK_PANED(vpaned_downloads),
                            downloads_divider_pos);
+    
+    gtk_paned_set_position(GTK_PANED(hpaned_main),
+                           main_divider_pos);
 }
 
 void gui_nodes_remove_selected(void)
@@ -1785,6 +1791,8 @@ void gui_shutdown(void)
 {
     downloads_divider_pos =
         gtk_paned_get_position(GTK_PANED(vpaned_downloads));
+    main_divider_pos = 
+        gtk_paned_get_position(GTK_PANED(hpaned_main));
 } 
 
 void gui_update_search_stats_update_interval(void)
