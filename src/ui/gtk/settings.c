@@ -4244,6 +4244,14 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
+        NULL,
+        PROP_IS_UDP_FIREWALLED,
+        is_firewalled_changed,
+        TRUE,
+        NULL,
+        FREQ_UPDATES, 0
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_WINDOW_COORDS,
         update_window_geometry,
@@ -5085,6 +5093,14 @@ static prop_map_t property_map[] = {
         update_spinbutton,
         TRUE,
         "spinbutton_config_qrp_debug",
+        FREQ_UPDATES, 0
+    ),
+    PROP_ENTRY(
+        get_prefs_dialog,
+        PROP_QUERY_DEBUG,
+        update_spinbutton,
+        TRUE,
+        "spinbutton_config_query_debug",
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
