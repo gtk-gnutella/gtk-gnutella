@@ -39,8 +39,10 @@ PIXMAPS = \
 	exit.xpm \
 	filter.xpm \
 	firewall.xpm \
+	firewall_punchable.xpm \
 	firewall_tcp.xpm \
 	firewall_udp.xpm \
+	firewall_udp_punchable.xpm \
 	freeze.xpm \
 	icon.xpm \
 	leaf.xpm \
@@ -53,7 +55,8 @@ PIXMAPS = \
 	stock_form-time-field-16.xpm \
 	thaw.xpm \
 	ultra.xpm \
-	upload.xpm
+	upload.xpm \
+	warning.xpm
 
 all::
 
