@@ -411,10 +411,16 @@ static gboolean can_become_ultra(time_t now)
 	 * descriptors out of the banned pool if we run short of fd.  We need to
 	 * provision for possible PARQ active queuing, which is why we scale the
 	 * `max_uploads' parameter.
+	 *
+	 * Likewise, we assume that at most 1/4th of the downloads will actually
+	 * be active at one time (meaning one fd for the connection and one fd
+	 * for the file being written to).  We count "max_uploads" twice because
+	 * those have one also two fd (for the connection and the file).
 	 */
 
-	enough_fd = (max_leaves + max_connections + max_downloads
-			+ (max_uploads * (1 + NODE_UPLOAD_QUEUE_FD))
+	enough_fd = (max_leaves + max_connections
+			+ max_downloads + (max_downloads / 4)
+			+ (max_uploads * (1 + NODE_UPLOAD_QUEUE_FD)) + max_uploads
 			+ (max_banned_fd / 10) + NODE_CASUAL_FD) < sys_nofile;
 	enough_mem = (max_leaves * NODE_AVG_LEAF_MEM +
 		(max_leaves + max_connections) * node_sendqueue_size)
