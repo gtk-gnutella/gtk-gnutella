@@ -150,16 +150,14 @@ static void sig_terminate(int n)
 
 static void init_constants(void)
 {
-	gchar buf[128];
 	struct utsname un;
 
 	(void) uname(&un);
 
-	g_snprintf(buf, sizeof(buf), "gtk-gnutella/%u.%u%s (%s; %s; %s %s %s)",
+	version_string = g_strdup_printf(
+		"gtk-gnutella/%u.%u%s (%s; %s; %s %s %s)",
 		GTA_VERSION, GTA_SUBVERSION, GTA_REVCHAR, GTA_RELEASE,
 		GTA_INTERFACE, un.sysname, un.release, un.machine);
-
-	version_string = g_strdup(buf);
 
 	start_time = time((time_t *) NULL);
 	start_rfc822_date = g_strdup(date_to_rfc822_gchar(start_time));
@@ -368,9 +366,6 @@ gint main(gint argc, gchar ** argv)
 	gtk_timeout_add(1000, (GtkFunction) main_timer, NULL);
 
 	/* Okay, here we go */
-
-	if (search_stats_enabled)
-		enable_search_stats();
 
 	bsched_enable_all();
 	gtk_main();

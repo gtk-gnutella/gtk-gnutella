@@ -51,6 +51,7 @@ struct term_counts {
 
 gboolean search_stats_enabled = FALSE;
 static guint32 stat_count;
+static gint stats_tag = 0;
 
 static GHashTable *stat_hash = NULL;
 
@@ -78,7 +79,12 @@ static void empty_hash_table()
 	g_hash_table_foreach_remove(stat_hash, delete_hash_entry, NULL);
 }
 
-void enable_search_stats()
+/*
+ * search_stats_enable
+ *
+ * Enable search stats.
+ */
+void search_stats_enable(void)
 {
 	if (!stat_hash) {
 		stat_hash = g_hash_table_new(g_str_hash, g_str_equal);
@@ -89,10 +95,20 @@ void enable_search_stats()
 			GTK_SORT_DESCENDING);
 	}
 
-	g_timeout_add(1000 * search_stats_update_interval,
+	g_assert(stats_tag == 0);
+
+	stats_tag = g_timeout_add(1000 * search_stats_update_interval,
 		update_search_stats_display, NULL);
 }
 
+void search_stats_disable(void)
+{
+	if (!stats_tag)
+		return;
+
+	g_source_remove(stats_tag);
+	stats_tag = 0;
+}
 
 /*
  * helper func for stats_display -
@@ -153,13 +169,7 @@ static int update_search_stats_display(gpointer data)
 	static guint32 last_update_interval;
 	char tmpstr[32];
 
-	/* if search_stats were disabled during this interval, 
-	 * enable the enable button, it was disabled when search stats
-	 * were turned off. */
-	if (!search_stats_enabled) {
-		gtk_widget_set_sensitive(checkbutton_search_stats_enable, TRUE);
-		return FALSE;
-	}
+	g_assert(stats_tag);
 
 	stat_count = 0;
 	gtk_clist_freeze(GTK_CLIST(clist_search_stats));
@@ -178,7 +188,8 @@ static int update_search_stats_display(gpointer data)
 	/* reschedule? */
 	if (last_update_interval != search_stats_update_interval) {
 		last_update_interval = search_stats_update_interval;
-		g_timeout_add(100 * search_stats_update_interval,
+		g_source_remove(stats_tag);
+		stats_tag = g_timeout_add(1000 * search_stats_update_interval,
 					  update_search_stats_display, NULL);
 		return FALSE;
 	}
@@ -186,9 +197,11 @@ static int update_search_stats_display(gpointer data)
 }
 
 /*
+ * search_stats_reset
+ *
  * Clear the list, empty the hash table.
  */
-void reset_search_stats()
+void search_stats_reset(void)
 {
 	empty_hash_table();
 	gtk_clist_clear(GTK_CLIST(clist_search_stats));
@@ -203,7 +216,7 @@ void reset_search_stats()
 /*
  * Count a word that has been seen.
  */
-void tally_search_stats(const word_vec_t * vec)
+void search_stats_tally(const word_vec_t * vec)
 {
 	struct term_counts *val;
 	gpointer key;

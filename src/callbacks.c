@@ -1400,19 +1400,16 @@ void on_checkbutton_search_stats_enable_toggled(GtkToggleButton * togglebutton,
                                                 gpointer user_data)
 {
 	search_stats_enabled = gtk_toggle_button_get_active(togglebutton);
-	/* if stats have been disabled, disable the toggle button too,
-	 * it will be re-enabled again by update_search_stats_display()
-	 * when the current stat timer expires.  this prevents multiple
-	 * scheduling of the search statistics update function */
+
 	if (search_stats_enabled)
-		enable_search_stats();
+		search_stats_enable();
 	else
-		gtk_widget_set_sensitive(checkbutton_search_stats_enable, FALSE);
+		search_stats_disable();
 }
 
 void on_button_search_stats_reset_clicked(GtkButton * button, gpointer user_data)
 {
-	reset_search_stats();
+	search_stats_reset();
 }
 
 void on_entry_search_stats_update_interval_activate(GtkEditable * editable,

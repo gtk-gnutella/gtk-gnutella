@@ -599,7 +599,7 @@ gint st_search(
 	 */
 	if (search_stats_enabled)
 	    for (i = 0; i < wocnt; i++)
-		tally_search_stats(&wovec[i]);
+		search_stats_tally(&wovec[i]);
 
 	pattern = (cpattern_t **) g_malloc(wocnt * sizeof(cpattern_t *));
 

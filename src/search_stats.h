@@ -28,9 +28,10 @@
 
 #include "matching.h"
 
-void enable_search_stats();
-void reset_search_stats();
-void tally_search_stats(const word_vec_t *);
+void search_stats_enable(void);
+void search_stats_disable(void);
+void search_stats_reset(void);
+void search_stats_tally(const word_vec_t *);
 
 #endif
 
