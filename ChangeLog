@@ -1,5 +1,12 @@
 # since last version
 
+- (2003.10.31 - Jeroen)
+ * Added support for X-Features header parsing.
+ * Added support for X-Features generation.
+ * PARQ now also accepts the X-Features: Queue/1.0 as a queue enabled indicator
+ * PARQ now also emits queuing capabilities in the X-Features header.
+ * Don't add the X-Features header when the header would be empty
+
 - (2003.10.29 - RAM)
  * No longer emit the X-Try header during Gnutella handshaking unless we're
    runnning in normal (legacy) mode.
