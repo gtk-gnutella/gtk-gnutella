@@ -135,7 +135,7 @@ static const gchar * const boot_url[] = {
 	"http://gwebcache.bearshare.net/gcache.php",
 	"http://gwebcache2.limewire.com:9000/gwc",
 	"http://kisama.ath.cx:8080/",
-	"http://gcache.shacknet.nu:8088/gwc",
+	"http://krill.shacknet.nu:20095/gwc",
 };
 
 /**
