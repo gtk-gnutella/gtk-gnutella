@@ -44,6 +44,7 @@
 #include "header.h"
 #include "walloc.h"
 #include "ioheader.h"
+#include "version.h"
 
 #define MAX_HOSTLEN		256		/* Max length for FQDN host */
 

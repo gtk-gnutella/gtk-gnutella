@@ -39,6 +39,9 @@ void version_close(void);
 void version_ancient_warn(void);
 void version_check(guchar *str);
 
+extern gchar *version_string;
+extern gchar *version_number;
+
 #endif	/* __version_h__ */
 
 /* vi: set ts=4: */

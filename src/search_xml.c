@@ -35,6 +35,7 @@
 
 #include "settings_gui.h"
 #include "search_gui.h"
+#include "version.h"
 
 #define GLOBAL_PRE 0
 #define GLOBAL_POST 1
@@ -169,8 +170,7 @@ void search_store_xml(void)
     xmlDocSetRootElement(doc, root);
     xmlSetProp(root,"Time", ctime(&now));
 
-	g_snprintf(x_tmp, sizeof(x_tmp), "%u.%u", 
-        GTA_VERSION, GTA_SUBVERSION);
+	g_snprintf(x_tmp, sizeof(x_tmp), "%s", version_number);
     xmlSetProp(root,"Version", x_tmp);
 
     /*

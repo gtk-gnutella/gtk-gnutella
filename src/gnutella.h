@@ -155,7 +155,6 @@ struct msg_vendor {
 /* main.c */
 
 extern struct gnutella_socket *s_listen;
-extern gchar *version_string;
 extern time_t start_time;
 extern gchar *start_rfc822_date;
 

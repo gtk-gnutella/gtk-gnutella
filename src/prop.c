@@ -28,6 +28,7 @@
 
 #include "prop.h"
 #include "common.h"
+#include "version.h"
 
 #define debug 0
 
@@ -782,13 +783,12 @@ void prop_save_to_file
 
 #ifdef GTA_REVISION
 	fprintf(config,
-			"#\n# Gtk-Gnutella %u.%u %s (%s) by Olrick & Co.\n# %s\n#\n",
-			GTA_VERSION, GTA_SUBVERSION, GTA_REVISION, GTA_RELEASE,
-			GTA_WEBSITE);
+			"#\n# Gtk-Gnutella %s %s (%s) by Olrick & Co.\n# %s\n#\n",
+			version_number, GTA_REVISION, GTA_RELEASE, GTA_WEBSITE);
 #else
 	fprintf(config,
-			"#\n# Gtk-Gnutella %u.%u (%s) by Olrick & Co.\n# %s\n#\n",
-			GTA_VERSION, GTA_SUBVERSION, GTA_RELEASE, GTA_WEBSITE);
+			"#\n# Gtk-Gnutella %s (%s) by Olrick & Co.\n# %s\n#\n",
+			version_number, GTA_RELEASE, GTA_WEBSITE);
 #endif
 
     fprintf(config, "#\n# Description of contents\n");

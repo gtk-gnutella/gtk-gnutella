@@ -39,6 +39,7 @@
 #include "hosts.h"
 #include "cq.h"
 #include "url.h"
+#include "version.h"
 
 #include "gnet_property.h"
 #include "gnet_property_priv.h"
@@ -376,8 +377,7 @@ void gwc_init(void)
 {
 	gwc_known_url = g_hash_table_new(g_str_hash, g_str_equal);
 
-	client_info = g_strdup_printf("client=GTKG&version=%u.%u%s",
-		GTA_VERSION, GTA_SUBVERSION, GTA_REVCHAR);
+	client_info = g_strdup_printf("client=GTKG&version=%s", version_number);
 
 	/*
 	 * The following URLs are there for bootstrapping purposes only.

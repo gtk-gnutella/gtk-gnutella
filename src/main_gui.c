@@ -36,6 +36,7 @@
 #include "gnet_stats_gui.h"
 #include "uploads_gui.h"
 #include "downloads_gui.h"
+#include "version.h"
 
 #include "filter_cb.h"
 
@@ -213,11 +214,10 @@ static void gui_init_menu()
 		gtk_clist_optimal_column_width(GTK_CLIST(ctree_menu), 0);
 
 #ifdef GTA_REVISION
-	g_snprintf(tmpstr, sizeof(tmpstr), "gtk-gnutella %u.%u %s", GTA_VERSION,
-			   GTA_SUBVERSION, GTA_REVISION);
+	g_snprintf(tmpstr, sizeof(tmpstr),
+		"gtk-gnutella %s %s", version_number, GTA_REVISION);
 #else
-	g_snprintf(tmpstr, sizeof(tmpstr), "gtk-gnutella %u.%u", GTA_VERSION,
-			   GTA_SUBVERSION);
+	g_snprintf(tmpstr, sizeof(tmpstr), "gtk-gnutella %s", version_number);
 #endif
 
 	gtk_window_set_title(GTK_WINDOW(main_window), tmpstr);
@@ -267,11 +267,10 @@ void main_gui_early_init(gint argc, gchar **argv)
 
     /* about box */
 #ifdef GTA_REVISION
-	g_snprintf(tmpstr, sizeof(tmpstr), "gtk-gnutella %u.%u %s", GTA_VERSION,
-			   GTA_SUBVERSION, GTA_REVISION);
+	g_snprintf(tmpstr, sizeof(tmpstr),
+		"gtk-gnutella %s %s", version_number, GTA_REVISION);
 #else
-	g_snprintf(tmpstr, sizeof(tmpstr), "gtk-gnutella %u.%u", GTA_VERSION,
-			   GTA_SUBVERSION);
+	g_snprintf(tmpstr, sizeof(tmpstr), "gtk-gnutella %s", version_number);
 #endif
     gtk_label_set_text
         (GTK_LABEL(lookup_widget(dlg_about, "label_about_title")), tmpstr);
