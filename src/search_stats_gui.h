@@ -28,4 +28,19 @@
 
 #include "gui.h"
 
+/*
+ * Stats types for search_stats_gui_set_type()
+ */
+enum {
+    NO_SEARCH_STATS,
+    WORD_SEARCH_STATS,
+    WHOLE_SEARCH_STATS
+};
+
+void search_stats_gui_init(void);
+void search_stats_gui_shutdown(void);
+void search_stats_gui_reset(void);
+void search_stats_gui_set_type(gint type);
+
+
 #endif /* __search_stats_gui_h__ */
