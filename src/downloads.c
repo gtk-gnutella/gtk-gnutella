@@ -83,7 +83,6 @@ static void download_push(struct download *d, gboolean on_timeout);
 static void download_store(void);
 static void download_retrieve(void);
 static void download_resume_bg_tasks(void);
-static void download_free_removed(void);
 static void download_incomplete_header(struct download *d);
 static gboolean has_blank_guid(const struct download *d);
 static void download_verify_sha1(struct download *d);
@@ -2951,7 +2950,7 @@ void download_orphan_new(
  *
  * Free all downloads listed in the `sl_removed' list.
  */
-static void download_free_removed(void)
+void download_free_removed(void)
 {
 	GSList *l;
 
