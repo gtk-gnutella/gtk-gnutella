@@ -63,9 +63,11 @@ static struct rwtable urntable[] =	/* URN name table (sorted) */
 
 static struct rwtable ggeptable[] =	/* GGEP extension table (sorted) */
 {
+	{ "ALT",			EXT_T_GGEP_ALT },
 	{ "GTKGV1",			EXT_T_GGEP_GTKGV1 },
 	{ "H",				EXT_T_GGEP_H },
-	{ "ALT",			EXT_T_GGEP_ALT },
+	{ "T",				EXT_T_GGEP_T },
+	{ "u",				EXT_T_GGEP_u },
 };
 
 #define END(v)		(v - 1 + sizeof(v) / sizeof(v[0]))

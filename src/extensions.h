@@ -102,6 +102,8 @@ typedef struct extvec {
 #define EXT_T_OVERHEAD			6	/* Pure overhead */
 #define EXT_T_GGEP_GTKGV1		7	/* GTKG version indication #1 */
 #define EXT_T_GGEP_ALT			8	/* Alternate locations in query hits */
+#define EXT_T_GGEP_u			9	/* HUGE URN in ASCII */
+#define EXT_T_GGEP_T			10	/* Textual information in query hits */
 
 /*
  * Public interface.
