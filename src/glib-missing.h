@@ -55,6 +55,7 @@ gchar *gm_strconcatv(const gchar *s, va_list args);
 void gm_savemain(gint argc, gchar **argv, gchar **env);
 void gm_setproctitle(gchar *title);
 unsigned long gm_atoul(const char *str, char **endptr, int *errorcode);
+gchar *gm_sanitize_filename(const gchar *filename);
 
 #define GM_STRCONCAT_NULL(x, ...) g_strconcat(x, ## __VA_ARGS__, NULL)
 

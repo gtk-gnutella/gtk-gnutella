@@ -341,4 +341,53 @@ unsigned long gm_atoul(const char *str, char **endptr, int *errorcode)
 	return ret;
 }
 
-/* vi: set ts=4: */
+/**
+ * Creates a valid and sanitized filename from the supplied string. This is
+ * necessary for platforms which have certain requirements for filenames. For
+ * most Unix-like platforms anything goes but for security reasons, shell
+ * meta characters are replaced by harmless characters.
+ *
+ * @param filename the suggested filename.
+ *
+ * @returns a newly allocated string or ``filename'' if it was a valid filename
+ *		    already.
+ */
+gchar *
+gm_sanitize_filename(const gchar *filename)
+{
+	gint c;
+	gchar *q = NULL;
+	const gchar *p, *s = filename;
+	gboolean no_spaces;
+	
+	g_assert(filename != NULL);
+
+	gnet_prop_get_boolean_val(PROP_CONVERT_SPACES, &no_spaces);
+	
+#if defined(__APPLE__) && defined(__MACH__) /* Mac OS X*/
+	s = g_locale_to_utf8_nfd(filename, len);
+	q = s;
+#endif /* Mac OS X */
+
+	/* Replace shell meta characters and likely problematic characters */
+	for (p = s; (c = *(guchar *) p) != '\0'; ++p) {
+		static const gchar evil[] = "$&*/\\`:;<>?|~\177";
+		
+		if (c < 32
+				|| is_ascii_cntrl(c)
+				|| c == G_DIR_SEPARATOR
+				|| (c == ' ' && no_spaces)
+				|| (p == s && c == '.')
+				|| NULL != strchr(evil, c)
+		) {
+			if (!q) {
+				q = g_strdup(s);
+			}
+			q[p - s] = '_';
+		}
+	}
+
+	return q ? q : (gchar *) s; /* Override const */
+}
+
+/* vi: set ts=4 sw=4 cindent: */
