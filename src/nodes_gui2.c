@@ -175,13 +175,13 @@ static void nodes_gui_create_treeview_nodes(void)
 	g_object_set(nodes_gui_cell_renderer,
 		"ypad", GUI_CELL_RENDERER_YPAD, NULL);
 
-	nodes_gui_add_column(tree, c_gnet_host, 1, N_("Host"), "text");
-	nodes_gui_add_column(tree, c_gnet_flags, 1, N_("Flags"), "markup");
-	nodes_gui_add_column(tree, c_gnet_user_agent, 1, N_("User-Agent"), "text");
-	nodes_gui_add_column(tree, c_gnet_version, 1, N_("Ver"), "text");
-	nodes_gui_add_column(tree, c_gnet_connected, 1, N_("Connected"), "text");
-	nodes_gui_add_column(tree, c_gnet_uptime, 1, N_("Uptime"), "text");
-	nodes_gui_add_column(tree, c_gnet_info, 1, N_("Info"), "text");
+	nodes_gui_add_column(tree, c_gnet_host, 1, _("Host"), "text");
+	nodes_gui_add_column(tree, c_gnet_flags, 1, _("Flags"), "markup");
+	nodes_gui_add_column(tree, c_gnet_user_agent, 1, _("User-Agent"), "text");
+	nodes_gui_add_column(tree, c_gnet_version, 1, _("Ver"), "text");
+	nodes_gui_add_column(tree, c_gnet_connected, 1, _("Connected"), "text");
+	nodes_gui_add_column(tree, c_gnet_uptime, 1, _("Uptime"), "text");
+	nodes_gui_add_column(tree, c_gnet_info, 1, _("Info"), "text");
 }
 
 static inline void nodes_gui_remove_selected_helper(
