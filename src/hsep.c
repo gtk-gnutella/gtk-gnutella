@@ -50,6 +50,9 @@
  *   listener for global HSEP table changes.
  * - hsep_has_global_table_changed(since) can be used to check if the
  *   global HSEP table has changed since the specified point in time.
+ * - hsep_get_non_hsep_triple(tripledest) can be used to determine the
+ *   reachable resources contributed by non-HSEP nodes (this is what direct
+ *   neighbors that don't support HSEP tell us they're sharing).
  *
  * Obtaining horizon size information on demand:
  *
@@ -62,7 +65,7 @@
  * consider other nodes (i.e. exclude what we share ourselves), so the array
  * index 0 always contains zeros. Note also that each triple represents the
  * reachable resources *within* the number of hops, not at *exactly* the number
- * of hops. To get the values for exactly the number of hops, simply subtrac
+ * of hops. To get the values for exactly the number of hops, simply subtract
  * the preceeding triple from the desired triple.
  *
  * Obtaining horizon size information using event-driven callbacks (only
@@ -73,6 +76,11 @@
  * On change of the global HSEP table the callback will be called with a pointer
  * to a copy of the HSEP table and the number of provided triples. You must
  * remove the listener later using hsep_remove_global_table_listener(...).
+ *
+ * Note: To support exchanging information about clients that don't support
+ * HSEP, these clients' library sizes (from PONG messages) are taken into
+ * account when HSEP messages are sent (that info is added to what we see
+ * in a distance of >= 1 hop).
  */
 
 #include "common.h"
@@ -503,6 +511,7 @@ void hsep_send_msg(struct gnutella_node *n)
 	guint64 *messaget;
 	struct gnutella_msg_hsep_data *m;
 	hsep_triple tmp[HSEP_N_MAX];
+	hsep_triple other;
 
 	g_assert(n);
 
@@ -541,13 +550,19 @@ void hsep_send_msg(struct gnutella_node *n)
 	 * little endian byte order.
 	 */
 
+	/* determine what we know about non-HSEP nodes in 1 hop distance */
+	hsep_get_non_hsep_triple(&other);
+
 	for (i = 0; i < triples; i++) {
 		guint64 val;
-		val = *ownt++ + *globalt++ - *connectiont++;
+		val = *ownt++ + *globalt++ - *connectiont++ +
+		    (i > 0 ? other[HSEP_IDX_NODES] : 0);
 		*messaget++ = guint64_to_LE(val);
-		val = *ownt++ + *globalt++ - *connectiont++;
+		val = *ownt++ + *globalt++ - *connectiont++ +
+		    (i > 0 ? other[HSEP_IDX_FILES] : 0);
 		*messaget++ = guint64_to_LE(val);
-		val = *ownt++ + *globalt++ - *connectiont++;
+		val = *ownt++ + *globalt++ - *connectiont++ +
+		    (i > 0 ? other[HSEP_IDX_KIB] : 0);
 		*messaget++ = guint64_to_LE(val);
 		ownt -= 3;  /* back to start of own triple */
 	}
@@ -958,6 +973,56 @@ void hsep_fire_global_table_changed(void)
 gboolean hsep_has_global_table_changed(time_t since)
 {
 	return hsep_last_global_table_change > since;
+}
+
+/*
+ * hsep_get_non_hsep_triple
+ *
+ * Gets a HSEP-compatible triple for all non-HSEP nodes.
+ * The number of nodes is just the number of established non-HSEP
+ * connections, the number of shared files and KiB is the
+ * sum of the known PONG-based library sizes of those connections.
+ * Note that this takes only direct neighbor connections into
+ * account. Also note that the shared library size in KiB is
+ * not accurate due to Gnutella protocol limitations.
+ *
+ * The determined values are stored in the provided triple address.
+ */
+
+void hsep_get_non_hsep_triple(hsep_triple *tripledest)
+{
+	GSList *sl;
+	guint64 other_nodes = 0;      /* # of non-HSEP nodes */
+	guint64 other_files = 0;      /* what non-HSEP nodes share (files) */
+	guint64 other_kib = 0;        /* what non-HSEP nodes share (KiB) */
+
+	g_assert(tripledest);
+
+	/*
+	 * Iterate over all established non-HSEP nodes and count these nodes and
+	 * sum up what they share (PONG-based library size).
+	 */
+
+	for (sl = (GSList *) node_all_nodes() ; sl; sl = g_slist_next(sl)) {
+		struct gnutella_node *n = (struct gnutella_node *) sl->data;
+		gnet_node_status_t status;
+
+		if ((!NODE_IS_ESTABLISHED(n)) || n->attrs & NODE_A_CAN_HSEP)
+			continue;
+
+		other_nodes++;
+
+		node_get_status(n->node_handle, &status);
+
+		if (status.gnet_info_known) {
+			other_files += status.gnet_files_count;
+			other_kib += status.gnet_kbytes_count;
+		}
+	}
+
+	tripledest[0][HSEP_IDX_NODES] = other_nodes;
+	tripledest[0][HSEP_IDX_FILES] = other_files;
+	tripledest[0][HSEP_IDX_KIB] = other_kib;
 }
 
 /* vi: set ts=4: */
