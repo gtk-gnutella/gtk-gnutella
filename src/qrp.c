@@ -1121,6 +1121,10 @@ static bgret_t qrp_step_compute(gpointer h, gpointer u, gint ticks)
 		 * If they are identical, discard the new one.
 		 */
 
+// XXX can't do memcmp!!  The routing table can be compacted, and not
+// XXX the new one.  We need a dedicated comparison routine.
+// XXX For now, disable: suboptimal, but safe -- RAM, 19/07/2003
+#if 0
 		if (
 			routing_table &&
 			routing_table->slots == slots &&
@@ -1131,6 +1135,7 @@ static bgret_t qrp_step_compute(gpointer h, gpointer u, gint ticks)
 			g_free(table);
 			bg_task_exit(h, 0);	/* Abort processing */
 		}
+#endif
 
 		/* 
 		 * OK, we keep the table.
