@@ -430,6 +430,24 @@ GSList *tree_selection_collect_data(GtkTreeSelection *selection,
 
     return cdata.results;
 }
+
+void tree_view_save_widths(GtkTreeView *treeview, property_t prop)
+{
+	gint i;
+
+	for (i = 0; /* empty */ ; i++) {
+		GtkTreeViewColumn *column;
+		guint32 width;
+
+		column = gtk_tree_view_get_column(treeview, i);
+		if (NULL == column)
+			break;
+
+		width = gtk_tree_view_column_get_width(column);
+		gui_prop_set_guint32(prop, &width, i, 1);
+	}
+}
+
 #endif /* USE_GTK2 */
 
 gdouble _gtk_spin_button_get_value(GtkSpinButton *spinbutton)

@@ -57,6 +57,7 @@ GtkTreeIter *w_tree_iter_new(void);
 GtkTreeIter *w_tree_iter_copy(GtkTreeIter *iter);
 void w_tree_iter_free(GtkTreeIter *iter);
 GSList *tree_selection_collect_data(GtkTreeSelection *tsel, GCompareFunc cfn);
+void tree_view_save_widths(GtkTreeView *treeview, property_t prop);
 #endif
 gdouble _gtk_spin_button_get_value(GtkSpinButton *);
 guint32 gtk_editable_get_value_as_uint(GtkEditable *editable);
