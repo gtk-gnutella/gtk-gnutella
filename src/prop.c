@@ -1172,6 +1172,7 @@ void prop_save_to_file(
 		gchar sbuf[1024];
 		gchar *val = NULL;
 		gboolean quotes = FALSE;
+		gboolean defaultvalue = TRUE;
 
 		if (p->save == FALSE)
 			continue;
@@ -1186,6 +1187,8 @@ void prop_save_to_file(
 			for (i = 0; i < p->vector_size; i++) {
 				g_strlcpy(sbuf, config_boolean(p->data.boolean.value[i]),
 					sizeof(sbuf));
+				if (p->data.boolean.value[i] != p->data.boolean.def[i])
+					defaultvalue = FALSE;
 				vbuf[i] = g_strdup(sbuf);
 			}
 			vbuf[p->vector_size] = NULL;
@@ -1197,6 +1200,8 @@ void prop_save_to_file(
 			for (i = 0; i < p->vector_size; i++) {
 				gm_snprintf(sbuf, sizeof(sbuf), "%u", 
 						p->data.guint32.value[i]);
+				if (p->data.guint32.value[i] != p->data.guint32.def[i])
+					defaultvalue = FALSE;
 				vbuf[i] = g_strdup(sbuf);
 			}
 			vbuf[p->vector_size] = NULL;
@@ -1207,6 +1212,8 @@ void prop_save_to_file(
 			for (i = 0; i < p->vector_size; i++) {
 				gm_snprintf(sbuf, sizeof(sbuf), "%llu", 
 						p->data.guint64.value[i]);
+				if (p->data.guint64.value[i] != p->data.guint64.def[i])
+					defaultvalue = FALSE;
 				vbuf[i] = g_strdup(sbuf);
 			}
 			vbuf[p->vector_size] = NULL;
@@ -1215,12 +1222,20 @@ void prop_save_to_file(
 			break;
 		case PROP_TYPE_STRING:
 			val = g_strdup(*p->data.string.value);
+			if (
+				(val == NULL && *p->data.string.def != NULL) ||
+				(val != NULL && *p->data.string.def == NULL) ||
+				0 != strcmp(val, *p->data.string.def)
+			)
+				defaultvalue = FALSE;
 			quotes = TRUE;
 			break;
 		case PROP_TYPE_IP:
 			for (i = 0; i < p->vector_size; i++) {
 				g_strlcpy(sbuf, ip_to_gchar(p->data.guint32.value[i]),
 					sizeof(sbuf));
+				if (p->data.guint32.value[i] != p->data.guint32.def[i])
+					defaultvalue = FALSE;
 				vbuf[i] = g_strdup(sbuf);
 			}
 			vbuf[p->vector_size] = NULL;
@@ -1236,8 +1251,14 @@ void prop_save_to_file(
 			 * a byte is not 8 bits. Also see guid_hex_str in misc.c
 			 *	  -- Richard, 12/08/200
 			 */
-			for (i = 0; i < p->vector_size; i++)
+			for (i = 0; i < p->vector_size; i++) {
 				gm_snprintf(&val[(i*2)], 3, "%02x", p->data.storage.value[i]);
+        
+				/* 
+                 * No default values for storage type properties.
+                 */
+				defaultvalue = FALSE;
+			}
 	
 			val[(p->vector_size*2)] = '\0';
 			quotes = TRUE;
@@ -1246,8 +1267,8 @@ void prop_save_to_file(
 
 		g_assert(val != NULL);
 
-		fprintf(config, "%s = %s%s%s\n\n", p->name, 
-			quotes ? "\"" : "", val, quotes ? "\"" : "");
+		fprintf(config, "%s%s = %s%s%s\n\n", defaultvalue ? "#" : "",
+			p->name, quotes ? "\"" : "", val, quotes ? "\"" : "");
 	
 		g_free(val);
 		g_strfreev(vbuf);
