@@ -46,6 +46,8 @@
 #include "gnet_stats.h"
 #include "settings.h"
 
+#define QHIT_SIZE_THRESHOLD	2016	/* Flush query hits larger than this */
+
 static guchar iso_8859_1[96] = {
 	' ', 			/* 160 - NO-BREAK SPACE */
 	' ', 			/* 161 - INVERTED EXCLAMATION MARK */
@@ -196,9 +198,10 @@ static void share_emit_search_request(
  */
 
 struct {
-	guchar *d;		/* data */
-	guint32 l;		/* data length */
-	guint32 s;		/* size used by current search hit */
+	guchar *d;					/* data */
+	guint32 l;					/* data length */
+	guint32 s;					/* size used by current search hit */
+	guint files;				/* amount of file entries */
 } found_data;
 
 #define FOUND_CHUNK		1024	/* Minimal growing memory amount unit */
@@ -215,6 +218,16 @@ struct {
 	}												\
 } while (0)
 
+#define FOUND_RESET() do {							\
+	found_data.s = sizeof(struct gnutella_header) +	\
+		sizeof(struct gnutella_search_results_out);	\
+	found_data.files = 0;							\
+} while (0)
+
+#define FOUND_BUF	found_data.d
+#define FOUND_SIZE	found_data.s
+#define FOUND_FILES	found_data.files
+
 /* 
  * We don't want to include the same file several times in a reply (for
  * example, once because it matches an URN query and once because the file name
@@ -224,6 +237,7 @@ struct {
 
 static GTree *index_of_found_files = NULL;
 static gint index_of_found_files_count = 0;
+static struct gnutella_node *issuing_node;
 
 /* 
  * compare_indexes
@@ -271,10 +285,10 @@ static void put_shared_file_into_found_set(struct shared_file *sf)
  * the data found section in the query hit packet and the index_of_found_files
  * GTree is reset.
  */
-static void found_reset()
+static void found_reset(struct gnutella_node *n)
 {
-	found_data.s = sizeof(struct gnutella_header) +	
-		sizeof(struct gnutella_search_results_out);
+	FOUND_RESET();
+	issuing_node = n;
 
 	/*
 	 * We only destroy and recreate a new tree if we inserted something
@@ -290,9 +304,6 @@ static void found_reset()
 	if (index_of_found_files == NULL)
 		index_of_found_files = g_tree_new((GCompareFunc) compare_indexes);
 }
-
-#define FOUND_BUF	found_data.d
-#define FOUND_SIZE	found_data.s
 
 /*
  * Minimal trailer length is our code NAME, the open flags, and the GUID.
@@ -783,6 +794,83 @@ void share_close(void)
 }
 
 /*
+ * flush_match
+ *
+ * Flush pending search request to the network.
+ */
+static void flush_match(void)
+{
+	struct gnutella_node *n = issuing_node;		/* XXX -- global! */
+	gchar trailer[10];
+	guint32 pos, pl;
+	struct gnutella_header *packet_head;
+	struct gnutella_search_results_out *search_head;
+
+	if (dbg > 3)
+		printf("flushing query hit (%d entr%s, %d bytes sofar)\n",
+			FOUND_FILES, FOUND_FILES == 1 ? "y" : "ies", FOUND_SIZE);
+
+	/*
+	 * Build Gtk-gnutella trailer.
+	 * It is compatible with BearShare's one in the "open data" section.
+	 */
+
+	strncpy(trailer, "GTKG", 4);	/* Vendor code */
+	trailer[4] = 2;					/* Open data size */
+	trailer[5] = 0x04 | 0x08;		/* Valid flags we set */
+	trailer[6] = 0x01;				/* Our flags (valid firewall bit) */
+
+	if (running_uploads >= max_uploads)
+		trailer[6] |= 0x04;			/* Busy flag */
+	if (count_uploads > 0)
+		trailer[6] |= 0x08;			/* One file uploaded, at least */
+	if (is_firewalled)
+		trailer[5] |= 0x01;			/* Firewall bit set in enabling byte */
+
+	pos = FOUND_SIZE;
+	FOUND_GROW(16 + 7);
+	memcpy(&FOUND_BUF[pos], trailer, 7);	/* Store trailer */
+	memcpy(&FOUND_BUF[pos+7], guid, 16);	/* Store the GUID */
+
+	/* Payload size including the search results header, actual results */
+	pl = FOUND_SIZE - sizeof(struct gnutella_header);
+
+	packet_head = (struct gnutella_header *) FOUND_BUF;
+	memcpy(&packet_head->muid, &n->header.muid, 16);
+
+	/*
+	 * We limit the TTL to the minimal possible value, then add a margin
+	 * of 5 to account for re-routing abilities some day.  We then trim
+	 * at our configured hard TTL limit.  Replies are precious packets,
+	 * it would be a pity if they did not make it back to their source.
+	 *
+	 *			 --RAM, 02/02/2001
+	 */
+
+	if (n->header.hops == 0) {
+		g_warning
+			("search_request(): hops=0, bug in route_message()?\n");
+		n->header.hops++;	/* Can't send message with TTL=0 */
+	}
+
+	packet_head->function = GTA_MSG_SEARCH_RESULTS;
+	packet_head->ttl = MIN(n->header.hops + 5, hard_ttl_limit);
+	packet_head->hops = 0;
+	WRITE_GUINT32_LE(pl, packet_head->size);
+
+	search_head = (struct gnutella_search_results_out *)
+		&FOUND_BUF[sizeof(struct gnutella_header)];
+
+	search_head->num_recs = FOUND_FILES;	/* One byte, little endian! */
+
+	WRITE_GUINT16_LE(listen_port, search_head->host_port);
+	WRITE_GUINT32_BE(listen_ip(), search_head->host_ip);
+	WRITE_GUINT32_LE(connection_speed, search_head->host_speed);
+
+	gmsg_sendto_one(n, FOUND_BUF, FOUND_SIZE);
+}
+
+/*
  * Callback from st_search(), for each matching file.	--RAM, 06/10/2001
  *
  * Returns TRUE if we inserted the record, FALSE if we refused it due to
@@ -840,6 +928,17 @@ static gboolean got_match(struct shared_file *sf)
 	}
 
 	FOUND_BUF[pos++] = '\0';
+	FOUND_FILES++;
+
+	/*
+	 * If we have reached our size limit for query hits, flush what
+	 * we have so far.
+	 */
+
+	if (FOUND_SIZE >= QHIT_SIZE_THRESHOLD) {
+		flush_match();
+		FOUND_RESET();
+	}
 
 	return TRUE;		/* Hit entry accepted */
 }
@@ -954,20 +1053,18 @@ guint compact_query(gchar *search, gint utf8_len)
 gboolean search_request(struct gnutella_node *n)
 {
 	guchar found_files = 0;
-	guint32 pos, pl;
 	guint16 req_speed;
 	gchar *search;
-	struct gnutella_header *packet_head;
-	struct gnutella_search_results_out *search_head;
 	guint32 search_len;
-	gchar trailer[10];
 	guint32 max_replies;
-	gint urn_match = 0;
 	gboolean skip_file_search = FALSE;
 	extvec_t exv[MAX_EXTVEC];
 	gint exvcnt = 0;
-	guchar *sha1_query = NULL;
-	gchar sha1_digest[SHA1_RAW_SIZE];
+	struct {
+		gchar sha1_digest[SHA1_RAW_SIZE];
+		gboolean matched;
+	} exv_sha1[MAX_EXTVEC];
+	gint exv_sha1cnt = 0;
 	gint utf8_len = -1;
 
 	/*
@@ -1082,32 +1179,39 @@ gboolean search_request(struct gnutella_node *n)
 		for (i = 0; i < exvcnt; i++) {
 			extvec_t *e = &exv[i];
 
+			if (e->ext_token == EXT_T_OVERHEAD) {
+				if (dbg > 6)
+					dump_hex(stderr, "Query Packet (BAD: has overhead)",
+						search, MIN(n->size - 2, 256));
+				gnet_stats_count_dropped(n, MSG_DROP_QUERY_OVERHEAD);
+				return TRUE;			/* Drop message! */
+			}
+
 			if (e->ext_token == EXT_T_URN_SHA1) {
+				gchar *sha1_digest = exv_sha1[exv_sha1cnt].sha1_digest;
+
 				if (e->ext_paylen == 0)
 					continue;				/* A simple "urn:sha1:" */
-
-				if (sha1_query) {
-					g_warning("%s has multiple SHA1 URNs, dropped",
-						gmsg_infostr(&n->header));
-                    gnet_stats_count_dropped(n, MSG_DROP_MULTIPLE_SHA1);
-					return TRUE;			/* Drop message! */
-				}
 
 				if (
 					!huge_sha1_extract32(e->ext_payload, e->ext_paylen,
 						sha1_digest, &n->header, FALSE)
                 ) {
-                    gnet_stats_count_dropped(n, MSG_DROP_MISFORMED_SHA1_QUERY);
+                    gnet_stats_count_dropped(n, MSG_DROP_MALFORMED_SHA1_QUERY);
 					return TRUE;			/* Drop message! */
                 }
 
-				if (dbg > 4)
-					printf("Valid SHA1 in query: %32s\n", e->ext_payload);
+				exv_sha1[exv_sha1cnt].matched = FALSE;
+				exv_sha1cnt++;
 
-                gnet_stats_count_general(n, GNR_QUERY_SHA1, 1);
-				sha1_query = e->ext_payload;
+				if (dbg > 4)
+					printf("Valid SHA1 #%d in query: %32s\n",
+						exv_sha1cnt, e->ext_payload);
 			}
 		}
+
+		if (exv_sha1cnt)
+			gnet_stats_count_general(n, GNR_QUERY_SHA1, 1);
 	}
 
     /*
@@ -1156,7 +1260,7 @@ gboolean search_request(struct gnutella_node *n)
 	)
 		skip_file_search = TRUE;
 
-    if (!sha1_query && skip_file_search) {
+    if (0 == exv_sha1cnt && skip_file_search) {
         gnet_stats_count_dropped(n, MSG_DROP_QUERY_TOO_SHORT);
 		return TRUE;					/* Drop this search message */
     }
@@ -1164,17 +1268,14 @@ gboolean search_request(struct gnutella_node *n)
     /*
      * Push the query string to interested ones.
      */
-    {
-        gchar *str = search;
-        query_type_t type = QUERY_STRING;
 
-        if (!*str && sha1_query) {
-            str = sha1_query;
-            type = QUERY_SHA1;
-        }
-
-        share_emit_search_request(type, str, n->ip, n->port);
-    }
+	if (!*search && exv_sha1cnt) {
+		gint i;
+		for (i = 0; i < exv_sha1cnt; i++)
+			share_emit_search_request(QUERY_SHA1,
+				sha1_base32(exv_sha1[i].sha1_digest), n->ip, n->port);
+	} else
+		share_emit_search_request(QUERY_STRING, search, n->ip, n->port);
 
 	READ_GUINT16_LE(n->data, req_speed);
 	if (connection_speed < req_speed)
@@ -1197,21 +1298,28 @@ gboolean search_request(struct gnutella_node *n)
 	 */
 
     gnet_stats_count_general(n, GNR_LOCAL_SEARCHES, 1);
-	found_reset();
+	found_reset(n);
 
 	max_replies = (search_max_items == -1) ? 255 : search_max_items;
 
-	if (sha1_query) {
-		struct shared_file *sf = shared_file_by_sha1(sha1_digest);
+	/*
+	 * Search each SHA1.
+	 */
 
-		if (sf) {
-			got_match(sf);
-			max_replies--;
-			urn_match++;
+	if (exv_sha1cnt) {
+		gint i;
+
+		for (i = 0; i < exv_sha1cnt && max_replies > 0; i++) {
+			struct shared_file *sf;
+
+			sf = shared_file_by_sha1(exv_sha1[i].sha1_digest);
+			if (sf) {
+				got_match(sf);
+				max_replies--;
+				found_files++;
+			}
 		}
 	}
-
-	found_files = urn_match;
 
 	if (!skip_file_search) {
 		gboolean is_utf8 = FALSE;
@@ -1263,77 +1371,26 @@ gboolean search_request(struct gnutella_node *n)
 	}
 
 	if (found_files > 0) {
-
         gnet_stats_count_general(n, GNR_LOCAL_HITS, found_files);
+
+		if (FOUND_FILES)			/* Still some unflushed results */
+			flush_match();			/* Send last packet */
 
 		if (dbg > 3) {
 			printf("Share HIT %u files '%s'%s ", (gint) found_files, search,
 				skip_file_search ? " (skipped)" : "");
-			if (sha1_query)
-				printf("%c(%32s) ", urn_match ? '+' : '-', sha1_query);
+			if (exv_sha1cnt) {
+				gint i;
+				for (i = 0; i < exv_sha1cnt; i++)
+					printf("\n\t%c(%32s)",
+						exv_sha1[i].matched ? '+' : '-',
+						sha1_base32(exv_sha1[i].sha1_digest));
+				printf("\n\t");
+			}
 			printf("req_speed=%u ttl=%u hops=%u\n",
 				   req_speed, (gint) n->header.ttl, (gint) n->header.hops);
 			fflush(stdout);
 		}
-
-		/*
-		 * Build Gtk-gnutella trailer.
-		 * It is compatible with BearShare's one in the "open data" section.
-		 */
-
-		strncpy(trailer, "GTKG", 4);	/* Vendor code */
-		trailer[4] = 2;					/* Open data size */
-		trailer[5] = 0x04 | 0x08;		/* Valid flags we set */
-		trailer[6] = 0x01;				/* Our flags (valid firewall bit) */
-
-		if (running_uploads >= max_uploads)
-			trailer[6] |= 0x04;			/* Busy flag */
-		if (count_uploads > 0)
-			trailer[6] |= 0x08;			/* One file uploaded, at least */
-		if (is_firewalled)
-			trailer[5] |= 0x01;			/* Firewall bit set in enabling byte */
-
-		pos = FOUND_SIZE;
-		FOUND_GROW(16 + 7);
-		memcpy(&FOUND_BUF[pos], trailer, 7);	/* Store trailer */
-		memcpy(&FOUND_BUF[pos+7], guid, 16);	/* Store the GUID */
-
-		/* Payload size including the search results header, actual results */
-		pl = FOUND_SIZE - sizeof(struct gnutella_header);
-
-		packet_head = (struct gnutella_header *) FOUND_BUF;
-		memcpy(&packet_head->muid, &n->header.muid, 16);
-
-		/*
-		 * We limit the TTL to the minimal possible value, then add a margin
-		 * of 5 to account for re-routing abilities some day.  We then trim
-		 * at our configured hard TTL limit.  Replies are precious packets,
-		 * it would be a pity if they did not make it back to their source.
-		 *
-		 *			 --RAM, 02/02/2001
-		 */
-
-		if (n->header.hops == 0) {
-			g_warning
-				("search_request(): hops=0, bug in route_message()?\n");
-			n->header.hops++;	/* Can't send message with TTL=0 */
-		}
-
-		packet_head->function = GTA_MSG_SEARCH_RESULTS;
-		packet_head->ttl = MIN(n->header.hops + 5, hard_ttl_limit);
-		packet_head->hops = 0;
-		WRITE_GUINT32_LE(pl, packet_head->size);
-
-		search_head = (struct gnutella_search_results_out *)
-			&FOUND_BUF[sizeof(struct gnutella_header)];
-
-		search_head->num_recs = found_files;	/* One byte, little endian! */
-
-		WRITE_GUINT16_LE(listen_port, search_head->host_port);
-		WRITE_GUINT32_BE(listen_ip(), search_head->host_ip);
-		WRITE_GUINT32_LE(connection_speed, search_head->host_speed);
-
-		gmsg_sendto_one(n, FOUND_BUF, FOUND_SIZE);
 	}
 
 	return FALSE;		/* Can propagate this message if needed */
