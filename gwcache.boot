@@ -27,4 +27,7 @@ http://multiisocom.com/GWebCache/gcache.php
 http://nodecache.dyndns.org/cgi-bin/perlgcache.cgi
 http://terrorist.host.sk/gnutella-cache/gwcii.php
 http://xbmodder.us/perlgwebcache/perlgcache.cgi
+http://starscream.dynalias.com/
+http://krill.shacknet.nu:20095/gwc
+http://kisama.ath.cx:8080/
 
