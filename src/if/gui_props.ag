@@ -9,6 +9,8 @@ func_prefix  = "gui_prop";
 offset       = 1000;
 private_src  = "GUI_SOURCES";
 
+uses = "if/ui/gtk/gnet_stats.h";
+
 prop = {
     name = "monitor_enabled";
     desc = "Search monitor enabled";
@@ -782,11 +784,32 @@ prop = {
 };
 
 prop = {
+    name = "gnet_stats_source";
+    desc = "Choose source of stats to be displayed";
+    type = multichoice;
+    data = {
+        default = 0;
+    };
+	choice = {
+		name = "TCP & UDP";
+		value = GNET_STATS_FULL;
+	};
+	choice = {
+		name = "TCP only";
+		value = GNET_STATS_TCP_ONLY;
+	};
+	choice = {
+		name = "UDP only";
+		value = GNET_STATS_UDP_ONLY;
+	};
+};
+
+prop = {
     name = "gnet_stats_with_headers";
-    desc = "Add the headers to the volume";
+    desc = "Include Gnutella packet header size to the volume";
     type = boolean;
     data = {
-        default = FALSE;
+        default = TRUE;
     };
 };
 
