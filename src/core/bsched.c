@@ -1376,25 +1376,25 @@ bio_sendto(bio_source_t *bio, gnet_host_t *to, gconstpointer data, size_t len)
  * errno set to EAGAIN.
  */
 ssize_t
-bio_sendfile(bio_source_t *bio, gint in_fd, off_t *offset, size_t len)
+bio_sendfile(sendfile_ctx_t *ctx, bio_source_t *bio, gint in_fd, off_t *offset,
+	size_t len)
 {
-#ifndef HAS_SENDFILE
-	(void) bio;
-	(void) in_fd;
-	(void) offset;
-	(void) len;
-	g_error("missing sendfile(2), should not have been called");
-	return EOPNOTSUPP;		/* g_error() is fatal, just shut warnings */
-#else
 	size_t available;
 	size_t amount;
-	ssize_t r;
-	off_t start = *offset;
+	ssize_t r = (ssize_t) -1;
+	gint out_fd;
+	off_t start;
 
+	g_assert(ctx);
 	g_assert(bio);
+	g_assert(bio->wio);
 	g_assert(bio->flags & BIO_F_WRITE);
+	g_assert(offset);
 	g_assert(len > 0);
 
+	out_fd = bio->wio->fd(bio->wio);
+	start = *offset;
+	
 	/*
 	 * If we don't have any bandwidth, return -1 with errno set to EAGAIN
 	 * to signal that we cannot perform any I/O right now.
@@ -1413,6 +1413,47 @@ bio_sendfile(bio_source_t *bio, gint in_fd, off_t *offset, size_t len)
 		printf("bsched_write(fd=%d, len=%d) available=%d\n",
 			bio->wio->fd(bio->wio), (gint) len, (gint) available);
 
+#ifndef HAS_SENDFILE
+	{
+		if (
+			ctx->map == NULL ||
+			start < ctx->map_start ||
+			start + amount > ctx->map_end
+		) {
+			size_t len;
+
+			if (ctx->map != NULL) {
+				munmap(ctx->map, ctx->map_end - ctx->map_start);
+				ctx->map = NULL;
+			}
+			len = MAX(amount, 256 * 1024U);
+			ctx->map_start = start;
+			ctx->map_end = ctx->map_start + len;
+			ctx->map = mmap(NULL, len, PROT_READ, MAP_PRIVATE, in_fd,
+							ctx->map_start);
+			if (MAP_FAILED == ctx->map) {
+				ctx->map = NULL;
+				ctx->map_start = 0;
+				ctx->map_end = 0;
+				r = (ssize_t) -1;
+			} else {
+				madvise(ctx->map, len, MADV_SEQUENTIAL);
+			}
+		}
+		if (ctx->map != NULL) {
+			const gchar *data;
+		
+			data = ctx->map;
+			r = write(out_fd, &data[start - ctx->map_start], amount);
+			if (r > 0)
+				*offset = start + r;
+		}
+		if (0 == r && ctx->map != NULL) {
+			munmap(ctx->map, amount);
+			ctx->map = NULL;
+		}
+	}
+#else
 #ifdef USE_BSD_SENDFILE
 	/*
 	 * The BSD semantics for sendfile() differ from the Linux one:
@@ -1429,22 +1470,22 @@ bio_sendfile(bio_source_t *bio, gint in_fd, off_t *offset, size_t len)
 	{
 		off_t written;
 
-		r = sendfile(in_fd, bio->wio->fd(bio->wio), start, amount, NULL,
+		r = sendfile(in_fd, out_fd, start, amount, NULL,
 				&written, 0);
 
 		if ((ssize_t) -1 == r) {
 			if (errno == EAGAIN)
 				r = (ssize_t) written;
-		} else
+		} else {
 			r = amount;			/* Everything written, but returns 0 if OK */
-
-		if (r > 0)
-			*offset = start + r;
+			if (r > 0)
+				*offset = start + r;
+		}
 	}
 
 #else	/* !USE_BSD_SENDFILE */
 
-	r = sendfile(bio->wio->fd(bio->wio), in_fd, offset, amount);
+	r = sendfile(out_fd, in_fd, offset, amount);
 
 	if (r >= 0 && *offset != start + r) {		/* Paranoid, as usual */
 		g_warning("FIXED SENDFILE returned offset: "
@@ -1452,10 +1493,12 @@ bio_sendfile(bio_source_t *bio, gint in_fd, off_t *offset, size_t len)
 			(guint64) *offset, (guint64) (start + r),
 			(gint) r, r == 1 ? "" : "s");
 		*offset = start + r;
-	} else if ((ssize_t) -1 == r)
+	} else if ((ssize_t) -1 == r) {
 		*offset = start;	/* Paranoid: in case sendfile() touched it */
+	}
 
 #endif	/* USE_BSD_SENDFILE */
+#endif	/* HAVE_SENDFILE */
 
 	if (r > 0) {
 		bsched_bw_update(bio->bs, r, amount);
@@ -1463,7 +1506,6 @@ bio_sendfile(bio_source_t *bio, gint in_fd, off_t *offset, size_t len)
 	}
 
 	return r;
-#endif	/* HAVE_SENDFILE */
 }
 
 /**

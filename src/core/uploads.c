@@ -400,6 +400,7 @@ upload_create(struct gnutella_socket *s, gboolean push)
 	u->status = push ? GTA_UL_PUSH_RECEIVED : GTA_UL_HEADERS;
 	u->last_update = time((time_t *) 0);
 	u->file_desc = -1;
+	u->sendfile_ctx.map = NULL;
 
 	/*
 	 * Record pending upload in the GUI.
@@ -592,6 +593,12 @@ upload_free_resources(gnutella_upload_t *u)
 		close(u->file_desc);
 		u->file_desc = -1;
 	}
+	if (u->sendfile_ctx.map != NULL) {
+		size_t len = u->sendfile_ctx.map_end - u->sendfile_ctx.map_end;
+
+		munmap(u->sendfile_ctx.map, len);
+		u->sendfile_ctx.map = NULL;
+	}
 	if (u->socket != NULL) {
 		g_assert(u->socket->resource.upload == u);
 		socket_free(u->socket);
@@ -643,6 +650,7 @@ upload_clone(gnutella_upload_t *u)
     cu->upload_handle = upload_new_handle(cu); /* fetch new handle */
 	cu->bio = NULL;						/* Recreated on each transfer */
 	cu->file_desc = -1;					/* File re-opened each time */
+	cu->sendfile_ctx.map = NULL;		/* File re-opened each time */
 	cu->socket->resource.upload = cu;	/* Takes ownership of socket */
 	cu->accounted = FALSE;
     cu->skip = 0;
@@ -2784,13 +2792,9 @@ upload_request(gnutella_upload_t *u, header_t *header)
 		return;
 	}
 
-#ifdef HAS_SENDFILE
 	use_sendfile = !sendfile_failed && !SOCKET_USES_TLS(u->socket);
-#else
-	use_sendfile = FALSE;
-#endif /* HAS_SENDFILE */
-
 	if (!use_sendfile) {
+		
 		/* If we got a valid skip amount then jump ahead to that position */
 		if (u->skip > 0) {
 			if (-1 == lseek(u->file_desc, u->skip, SEEK_SET)) {
@@ -2955,12 +2959,6 @@ upload_write(gpointer up, gint unused_source, inputevt_cond_t cond)
 		return;
 	}
 
-#ifdef HAS_SENDFILE
-	use_sendfile = !sendfile_failed && !SOCKET_USES_TLS(u->socket);
-#else
-	use_sendfile = FALSE;
-#endif
-
    /*
  	* Compute the amount of bytes to send.
  	*/
@@ -2968,6 +2966,7 @@ upload_write(gpointer up, gint unused_source, inputevt_cond_t cond)
 	amount = u->end - u->pos + 1;
 	g_assert(amount > 0);
 
+	use_sendfile = !sendfile_failed && !SOCKET_USES_TLS(u->socket);
 	if (use_sendfile) {
 		off_t pos, before;			/* For sendfile() sanity checks */
 		/*
@@ -2976,9 +2975,10 @@ upload_write(gpointer up, gint unused_source, inputevt_cond_t cond)
 		 * compiler.
 	 	 */
 
-		available = amount > READ_BUF_SIZE ? READ_BUF_SIZE : amount;
+		available = MIN(amount, READ_BUF_SIZE);
 		before = pos = u->pos;
-		written = bio_sendfile(u->bio, u->file_desc, &pos, available);
+		written = bio_sendfile(&u->sendfile_ctx, u->bio, u->file_desc,
+					&pos, available);
 
 		g_assert((ssize_t) -1 == written || (off_t) written == pos - before);
 		u->pos = pos;
@@ -3032,13 +3032,15 @@ upload_write(gpointer up, gint unused_source, inputevt_cond_t cond)
 			e != EINTR &&
 			e != EAGAIN &&
 			e != EPIPE &&
-			e != ECONNRESET
+			e != ECONNRESET &&
+			e != ENOTCONN &&
+			e != ENOBUFS
 		) {
 			g_warning("sendfile() failed: \"%s\"\n"
 				"Disabling sendfile() for this session", g_strerror(e));
 			sendfile_failed = TRUE;
 		}
-		if (e != EAGAIN) {
+		if (e != EAGAIN && e != EINTR) {
 			socket_eof(u->socket);
 			upload_remove(u, "Data write error: %s", g_strerror(e));
 		}

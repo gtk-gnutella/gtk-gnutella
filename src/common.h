@@ -87,7 +87,12 @@
 #else	/* !I_SYS_SENDFILE */
 #ifdef HAS_SENDFILE
 #define USE_BSD_SENDFILE	/* No <sys/sendfile.h>, assume BSD version */
+#else
+#include <sys/mman.h>
+#ifndef MAP_FAILED
+#define MAP_FAILED ((void *) -1)
 #endif
+#endif	/* HAS_SENDFILE */
 #endif	/* I_SYS_SENDFILE_H */
 
 #if defined(USE_IP_TOS) && defined(I_NETINET_IP)
