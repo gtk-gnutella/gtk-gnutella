@@ -1,0 +1,54 @@
+
+* v 0.12          2000.05.03
+
+- All C++ style comments have been replaced by C style comments
+- Incoming connections are now accepted again (lame bug created in 0.11 fixed)
+- Slashes are replaced by backslashes in downloaded files names
+- Downloaded files are no more created before we actually receive data for them
+- Queued downloads can now be reordered by drag and drop
+- Queued downloads can now be started at any time (using right mouse button on
+  them)
+- Active downloads can now be forced to push mode, moved back to the queue,
+  or killed (with the output file removed) using right mouse button on them
+- Preferences and configuration are now saved in a directory instead of a
+  single file. You can choose the path of the directory to be used by setting
+  the GTA_GNUTELLA_DIR environment variable before running gtk-gnutella.
+  By default it will be ~/.gtk-gnutella/ 
+- Estimated TR (Time Remaining) is displayed while downloading files
+- Catched hosts are now saved in clear text in a separate file:
+  GTA_GNUTELLA_DIR/hosts
+- Catched hosts can be imported from and exported to any text file (using
+  right mouse button on the gnutella host catcher)
+- Gtk-Gnutella should now compile (using gcc) and run on more processors
+- A few memory leaks removed, but some remain (I don't know where yet)
+- Serious bug that made Gtk-Gnutella send garbage when the sendqueue for slow
+  nodes excedeed 1024 bytes has been fixed
+- Completed download files are now moved to a different directory, that can be
+  choosen in the config screen
+- Gtk-Gnutella now remembers the position and the size of the window
+- Automatic sorting of search results can be stopped by right clicking in the
+  search results list (GTK doesn't seem to handle well auto sorting)
+
+
+* v 0.11          2000.04.19
+
+- Sizes of files in the gnutellanet stats, in search results and in downloads
+  lists are now displayed in B, KB, MB or GB. By the way, the gnutellanet
+  stats will display the right number of shared bytes...
+- Search results can now be sorted by File name, Size, or Speed.
+- Buttons 'abort selected', 'resume selected' and 'clear completed' in the
+  download section should be less randomly active / unactive.
+- The numbers of active and completed downloads should be more accurate.
+- The number of routing errors should be more accurate too.
+- Some warnings about malformed packets have been removed (that happens too
+  often to be displayed...)
+- Do not allow more than one incoming connection from the same IP, to prevent
+  connect flood attacks (Somebody tried to establish more than 32 simultaneous
+  connections (from the same IP) to my client today...)
+- Catched hosts are now saved, and reloaded next time Gtk-Gnutella is started.
+
+
+* v 0.1           2000.04.16
+
+- First release of Gtk-Gnutella :)
+
