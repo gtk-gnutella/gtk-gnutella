@@ -338,7 +338,7 @@ gint ggep_ext_writev(
 	gboolean needs_cobs = FALSE;
 	gchar *p;
 	gint i;
-	gint8 hlen[2];
+	gint8 hlen[3];
 	gint slen;
 	gint needed;
 	guint8 flags = 0;
