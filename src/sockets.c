@@ -162,20 +162,25 @@ void socket_free(struct gnutella_socket *s)
 	if (s->last_update) {
 		g_assert(sl_incoming);
 		sl_incoming = g_slist_remove(sl_incoming, s);
+		s->last_update = 0;
 	}
-	if (s->gdk_tag)
+	if (s->gdk_tag) {
 		g_source_remove(s->gdk_tag);
-	if (s->getline)
+		s->gdk_tag = 0;
+	}
+	if (s->adns_pending) {
+		s->type = SOCK_TYPE_DESTROYING;
+		return;
+	}
+	if (s->getline) {
 		getline_free(s->getline);
+		s->getline = NULL;
+	}
 	if (s->file_desc != -1) {
 		if (s->corked)
 			sock_cork(s, FALSE);
 		close(s->file_desc);
 		s->file_desc = -1;
-	}
-	if (s->adns_pending) {
-		s->type = SOCK_TYPE_DESTROYING;
-		return;
 	}
 	wfree(s, sizeof(*s));
 }
