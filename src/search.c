@@ -225,6 +225,7 @@ void search_close_current(void)
 	GList *glist;
 	GSList *m;
 	struct search *sch = current_search;
+   gboolean sensitive;
 
 	g_return_if_fail(current_search);
 
@@ -279,7 +280,6 @@ void search_close_current(void)
 
 		gtk_widget_set_sensitive(button_search_clear, FALSE);
 		gtk_widget_set_sensitive(popup_search_clear_results, FALSE);
-
 	}
 
 	/*
@@ -304,6 +304,14 @@ void search_close_current(void)
 
 	gtk_widget_set_sensitive(combo_searches, (gboolean) searches);
 	gtk_widget_set_sensitive(button_search_close, (gboolean) searches);
+
+   sensitive = current_search && GTK_CLIST(current_search->clist)->selection;
+   gtk_widget_set_sensitive(button_search_download, sensitive);
+   // FIXME: needs only to remove the "autoselected" message from the
+   // statusbar stack. Fix when we use statusbar_context
+   //
+   // bluefire
+   gui_set_status( NULL );
 }
 
 static gboolean search_free_sent_node(
@@ -1478,8 +1486,9 @@ void search_download_files(void)
 
 	if (jump_to_downloads) {
 		gtk_notebook_set_page(GTK_NOTEBOOK(notebook_main),
-			NOTEBOOK_MAIN_DOWNLOADS_IDX);
-		gtk_clist_select_row(GTK_CLIST(clist_menu),
+                NOTEBOOK_MAIN_DOWNLOADS_IDX);
+        // FIXME: should convert to ctree here. Expand nodes if necessary.
+		gtk_clist_select_row(GTK_CLIST(ctree_menu),
 			NOTEBOOK_MAIN_DOWNLOADS_IDX, 0);
 	}
 
