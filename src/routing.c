@@ -838,7 +838,6 @@ gboolean route_message(struct gnutella_node **node, struct route_dest *dest)
 							0.0);
 					(*node) = NULL;
 				} else {
-					sender->n_bad++;
 					if (dbg > 2)
 						gmsg_log_bad(sender, "dup message ID %s from same node",
 							guid_hex_str(sender->header.muid));
