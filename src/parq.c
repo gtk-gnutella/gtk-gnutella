@@ -330,6 +330,12 @@ void parq_init(void)
  ***  The following section contains download PARQ functions
  ***/
 
+/*
+ * get_parq_dl_id
+ *
+ * Retreives the PARQ ID associated with an download.
+ * Returns a gchar pointer to the ID, or NULL if no ID is available.
+ */
 gchar *get_parq_dl_id(const struct download *d)
 {
 	g_assert(d != NULL);
@@ -340,6 +346,13 @@ gchar *get_parq_dl_id(const struct download *d)
 	return ((struct parq_dl_queued *) d->queue_status)->id;
 }
 
+/*
+ * get_parq_dl_position
+ *
+ * Retreives the remote queued position associated with an download.
+ * Returns the remote queued position or 0 if download is not queued or queuing
+ *     status is unknown
+ */
 gint get_parq_dl_position(const struct download *d)
 {
 	g_assert(d != NULL);
@@ -350,6 +363,13 @@ gint get_parq_dl_position(const struct download *d)
 	return ((struct parq_dl_queued *) d->queue_status)->position;
 }
 
+/*
+ * get_parq_dl_queue_length
+ *
+ * Retreives the remote queue size associated with an download.
+ * Returns the remote queue size or 0 if download is not queued or queueing 
+ *     status is unknown.
+ */
 gint get_parq_dl_queue_length(const struct download *d)
 {
 	g_assert(d != NULL);
@@ -360,6 +380,13 @@ gint get_parq_dl_queue_length(const struct download *d)
 	return ((struct parq_dl_queued *) d->queue_status)->length;
 }
 
+/*
+ * get_parq_dl_eta
+ *
+ * Retreives the estimated time of arival for a queued download.
+ * Returns the relative eta or 0 if download is not queued or queuing status is
+ *     unknown.
+ */
 gint get_parq_dl_eta(const struct download *d)
 {
 	g_assert(d != NULL);
@@ -370,6 +397,13 @@ gint get_parq_dl_eta(const struct download *d)
 	return ((struct parq_dl_queued *) d->queue_status)->eta;
 }
 
+/*
+ * get_parq_dl_retry_delay
+ * 
+ * Retreives the retry rate at which a queued download should retry.
+ * Returns the retry rate or 0 if download is not queued or queueing status is
+ *     unknown.
+ */
 gint get_parq_dl_retry_delay(const struct download *d)
 {
 	g_assert(d != NULL);
@@ -438,13 +472,23 @@ static gint get_integer(const gchar *buf)
 	return (gint) val;
 }
 
-
+/*
+ * parq_dl_remove
+ *
+ * Tells the parq logic that a download has been removed. If parq has
+ * associated a queue structure with this download it will be freed.
+ */
 void parq_dl_remove(struct download *d)
 {
 	if (d->queue_status != NULL)
 		parq_dl_free(d);
 }
 
+/*
+ * parq_dl_free
+ * 
+ * Removes the queue information for a download from memory.
+ */
 void parq_dl_free(struct download *d)
 {
 	struct parq_dl_queued* parq_dl = NULL;
@@ -464,6 +508,12 @@ void parq_dl_free(struct download *d)
 	g_assert(d->queue_status == NULL);
 }
 
+/*
+ * parq_dl_create
+ *
+ * Creates a queue structure for a download.
+ * Returns a parq_dl_queued pointer to the newly created structure.
+ */
 struct parq_dl_queued* parq_dl_create(struct download *d)
 {
 	struct parq_dl_queued* parq_dl = NULL;
@@ -760,6 +810,15 @@ void parq_download_add_header(
 			  ip_port_to_gchar(listen_ip(), listen_port));
 }
 
+/*
+ * parq_download_queue_ack
+ *
+ * PARQ enabled servers send a 'QUEUE' command when the lifetime of the download
+ * (upload from the servers point of view) is about to expire, or if the 
+ * download has retreived an download slot (upload slot from the servers point
+ * of view). This function looksup the ID associated with the QUEUE command
+ * and prepares the download to continue.
+ */
 void parq_download_queue_ack(struct gnutella_socket *s)
 {
 	gchar *queue;
@@ -834,9 +893,7 @@ void parq_download_queue_ack(struct gnutella_socket *s)
 
 /*
  * TODO:
- * - Caculate better liftime
- * - Active queueing
- * - 1 active download from the same IP at once.
+ * Send QUEUE when upload reaches an upload slot
  */
 
 /*
@@ -912,6 +969,12 @@ static void parq_upload_free(struct parq_ul_queued *parq_ul)
 		printf("PARQ UL: Entry freed from memory\r\n");
 }
 
+/*
+ * parq_ul_calc_retry
+ *
+ * Calculates the retry delay for an upload
+ * Returns the recommended retry delay.
+ */
 guint32 parq_ul_calc_retry(struct parq_ul_queued *parq_ul)
 {
 	int result = 30 + 20 * (parq_ul->relative_position - 1);
@@ -1507,6 +1570,13 @@ static void parq_upload_update_ip_and_name(struct parq_ul_queued *parq_ul,
 
 }
 
+/*
+ * parq_ul_rel_pos_cmp
+ * 
+ * Function used to keep the relative position list sorted by relative position.
+ * It should never be possible for 2 downloads to have the same relative
+ * position in the same queue.
+ */
 static gint parq_ul_rel_pos_cmp(gconstpointer a, gconstpointer b)
 {
 	const struct parq_ul_queued *as = (const struct parq_ul_queued *) a;
@@ -1650,7 +1720,7 @@ gboolean parq_upload_request(gnutella_upload_t *u, gpointer handle,
 		return TRUE;
 	else {
 		if (parq_ul->relative_position <= parq_upload_active_size) {
-			if (parq_ul->minor > 0)
+			if (parq_ul->minor > 0 || parq_ul->major > 0)
 				u->status = GTA_UL_QUEUED;
 		}
 		u->parq_status = TRUE;		/* XXX would violate encapsulation */
@@ -1885,7 +1955,7 @@ guint parq_upload_lookup_eta(gnutella_upload_t *u)
 /*
  * parq_upload_lookup_size
  *
- * Returns the current upload queue size.
+ * Returns the current upload queue size of alive uploads.
  */
 guint parq_upload_lookup_size(gnutella_upload_t *u)
 {
@@ -1905,7 +1975,7 @@ guint parq_upload_lookup_size(gnutella_upload_t *u)
 		 * XXX be removed when PARQ has proven stable */
 		g_assert(parq_max_upload_size >= parq_ul->queue->size);
 		
-		return parq_ul->queue->size;
+		return parq_ul->queue->alive;
 	} else {
 		/* No queue created yet */
 		return 0;
