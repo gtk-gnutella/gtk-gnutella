@@ -1,11 +1,23 @@
 # since last version
 
+- (2002.11.07 RAM)
+ * Fixed memory leak in search_stats_notify_word() [From Christian Biere].
+ * Added new property "bad_file_path" to indicate where files which do not
+   match their advertised SHA1 should be moved.
+ * Was wrongly testing for queued download instead of running one in
+   queue_suspend_downloads_with_file(), which could mess up with lifecount.
+ * Will now retry downloads for which the SHA1 did not match.
+ * When unlinking a file, display its SHA1 (if any) and the done/size info
+   to stderr.
+ * The BSD sendfile() has different signature and semantics.  Emulate the
+   Linux behaviour on those systems.
+
 - (2002.11.07 Richard)
  * [Gtk2] Added new icons from Gtk1 and"prefer compressed" switch.
  * [Gtk2] Columns in gnet panel automatically grow in width again
  * [Gtk2] Fixed bug showing status information in version row on gnet panel.
- * Fixed sizeof issue (memory corruption?). Thanks Christian Biere for
-   pointing out.
+ * Fixed sizeof issue (memory corruption?). Thanks to Christian Biere for
+   pointing it out.
 
 - (2002.11.06 RAM)
  * More tweakings with fileinfos: will now physically remove files that are
