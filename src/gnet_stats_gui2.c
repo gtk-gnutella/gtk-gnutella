@@ -29,7 +29,16 @@
 
 RCSID("$Id$");
 
-gchar *msg_type_str[MSG_TYPE_COUNT] = {
+static GtkTreeView *treeview_gnet_stats_messages = NULL;
+static GtkTreeView *treeview_gnet_stats_drop_reasons = NULL;
+static GtkTreeView *treeview_gnet_stats_flowc = NULL;
+static GtkTreeView *treeview_gnet_stats_recv = NULL;
+static GtkTreeView *treeview_gnet_stats_general = NULL;
+static GtkNotebook *notebook_main = NULL;
+static GtkNotebook *notebook_gnet_stats = NULL;
+static GtkCombo *combo_gnet_stats_type = NULL;
+
+static gchar *msg_type_str[MSG_TYPE_COUNT] = {
     "Unknown",
     "Ping",
     "Pong",
@@ -43,7 +52,7 @@ gchar *msg_type_str[MSG_TYPE_COUNT] = {
     "Total"
 };
 
-gchar *msg_drop_str[MSG_DROP_REASON_COUNT] = {
+static gchar *msg_drop_str[MSG_DROP_REASON_COUNT] = {
     "Bad size",
     "Too small",
     "Too large",
@@ -72,7 +81,7 @@ gchar *msg_drop_str[MSG_DROP_REASON_COUNT] = {
     "Query hit had bad SHA1"
 };
 
-gchar *general_type_str[GNR_TYPE_COUNT] = {
+static gchar *general_type_str[GNR_TYPE_COUNT] = {
     "Routing errors",
     "Searches to local DB",
     "Hits on local DB",
@@ -82,7 +91,7 @@ gchar *general_type_str[GNR_TYPE_COUNT] = {
     "SHA1 queries"
 };
 
-gchar *msg_stats_label[] = {
+static gchar *msg_stats_label[] = {
 	"Type",
 	"Received",
 	"Expired",
@@ -304,14 +313,12 @@ static void add_column(
 
 static void gnet_stats_update_general(const gnet_stats_t *stats)
 {
-    GtkTreeView *treeview;
+    GtkTreeView *treeview = treeview_gnet_stats_general;
     GtkListStore *store;
     GtkTreeIter iter;
     gint n;
 	static gchar str[32];
 
-    treeview = GTK_TREE_VIEW(
-        lookup_widget(main_window, "treeview_gnet_stats_general"));
 	store = GTK_LIST_STORE(gtk_tree_view_get_model(treeview));
 	gtk_tree_model_get_iter_first(GTK_TREE_MODEL(store), &iter);
 
@@ -325,14 +332,12 @@ static void gnet_stats_update_general(const gnet_stats_t *stats)
 static void gnet_stats_update_drop_reasons(
 	const gnet_stats_t *stats)
 {
-    GtkTreeView *treeview;
+    GtkTreeView *treeview = treeview_gnet_stats_drop_reasons;
     GtkListStore *store;
     GtkTreeIter iter;
     gint n;
 	static gchar str[32];
 
-    treeview = GTK_TREE_VIEW(
-        lookup_widget(main_window, "treeview_gnet_stats_drop_reasons"));
 	store = GTK_LIST_STORE(gtk_tree_view_get_model(treeview));
 	gtk_tree_model_get_iter_first(GTK_TREE_MODEL(store), &iter);
 
@@ -347,7 +352,7 @@ static void gnet_stats_update_drop_reasons(
 
 static void gnet_stats_update_messages(const gnet_stats_t *stats)
 {
-    GtkTreeView *treeview;
+    GtkTreeView *treeview = treeview_gnet_stats_messages;
     GtkListStore *store;
     GtkTreeIter iter;
     gint n;
@@ -359,8 +364,6 @@ static void gnet_stats_update_messages(const gnet_stats_t *stats)
 	gui_prop_get_boolean_val(PROP_GNET_STATS_PERC, &perc);
 	gui_prop_get_boolean_val(PROP_GNET_STATS_BYTES, &bytes);
 
-    treeview = GTK_TREE_VIEW(
-        lookup_widget(main_window, "treeview_gnet_stats_messages"));
 	store = GTK_LIST_STORE(gtk_tree_view_get_model(treeview));
 	gtk_tree_model_get_iter_first(GTK_TREE_MODEL(store), &iter);
 
@@ -464,11 +467,9 @@ static void gnet_stats_update_flowc(const gnet_stats_t *stats)
 {
 	const guint32 (*byte_counters)[MSG_TYPE_COUNT];
 	const guint32 (*pkg_counters)[MSG_TYPE_COUNT];
-	GtkTreeView *treeview;
+	GtkTreeView *treeview = treeview_gnet_stats_flowc;
 	gboolean hops = FALSE;
 
-    treeview = GTK_TREE_VIEW(
-		lookup_widget(main_window, "treeview_gnet_stats_flowc"));
 	gui_prop_get_boolean_val(PROP_GNET_STATS_HOPS, &hops);
 	if (hops) {
 		pkg_counters = stats->pkg.flowc_hops;
@@ -486,11 +487,9 @@ static void gnet_stats_update_recv(const gnet_stats_t *stats)
 {
 	const guint32 (*byte_counters)[MSG_TYPE_COUNT];
 	const guint32 (*pkg_counters)[MSG_TYPE_COUNT];
-	GtkTreeView *treeview;
+	GtkTreeView *treeview = treeview_gnet_stats_recv;
 	gboolean hops = FALSE;
 	
-    treeview = GTK_TREE_VIEW(
-		lookup_widget(main_window, "treeview_gnet_stats_recv"));
 	gui_prop_get_boolean_val(PROP_GNET_STATS_HOPS, &hops);
 	if (hops) {
 		pkg_counters = stats->pkg.received_hops;
@@ -516,7 +515,11 @@ void gnet_stats_gui_init(void)
     gint n;
 	guint32 *width;
 
-    treeview = GTK_TREE_VIEW(
+	notebook_main = GTK_NOTEBOOK(
+		lookup_widget(main_window, "notebook_main"));
+	notebook_gnet_stats = GTK_NOTEBOOK(
+		lookup_widget(main_window, "gnet_stats_notebook"));
+    treeview = treeview_gnet_stats_messages = GTK_TREE_VIEW(
         lookup_widget(main_window, "treeview_gnet_stats_messages"));
 	model = GTK_TREE_MODEL(gtk_list_store_new(6,
 							G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING,
@@ -542,7 +545,7 @@ void gnet_stats_gui_init(void)
     gtk_tree_view_set_model(treeview, model);
 	g_object_unref(model);
 
-    treeview = GTK_TREE_VIEW(
+    treeview = treeview_gnet_stats_flowc = GTK_TREE_VIEW(
         lookup_widget(main_window, "treeview_gnet_stats_flowc"));
 	model = GTK_TREE_MODEL(
 		gtk_list_store_new(STATS_FLOWC_COLUMNS,
@@ -579,7 +582,7 @@ void gnet_stats_gui_init(void)
      * Initialize stats tables.
      */
 
-    combo = GTK_COMBO(
+    combo = combo_gnet_stats_type = GTK_COMBO(
         lookup_widget(main_window, "combo_gnet_stats_type"));
 
     for (n = 0; n < MSG_TYPE_COUNT; n ++) {
@@ -604,7 +607,7 @@ void gnet_stats_gui_init(void)
 
 	/* ----------------------------------------- */
 
-    treeview = GTK_TREE_VIEW(
+    treeview = treeview_gnet_stats_drop_reasons = GTK_TREE_VIEW(
         lookup_widget(main_window, "treeview_gnet_stats_drop_reasons"));
 	model = GTK_TREE_MODEL(
 		gtk_list_store_new(2, G_TYPE_STRING, G_TYPE_STRING));
@@ -631,7 +634,7 @@ void gnet_stats_gui_init(void)
 
 	/* ----------------------------------------- */
 
-    treeview = GTK_TREE_VIEW(
+    treeview = treeview_gnet_stats_general = GTK_TREE_VIEW(
         lookup_widget(main_window, "treeview_gnet_stats_general"));
 	model = GTK_TREE_MODEL(
 		gtk_list_store_new(2, G_TYPE_STRING, G_TYPE_STRING));
@@ -657,7 +660,7 @@ void gnet_stats_gui_init(void)
 
 	/* ----------------------------------------- */
 
-    treeview = GTK_TREE_VIEW(
+    treeview = treeview_gnet_stats_recv = GTK_TREE_VIEW(
         lookup_widget(main_window, "treeview_gnet_stats_recv"));
 	model = GTK_TREE_MODEL(
 		gtk_list_store_new(STATS_RECV_COLUMNS,
@@ -701,15 +704,13 @@ void gnet_stats_gui_update(void)
 	if (!g_static_mutex_trylock(&mutex))
 		return;
 	
-    current_page = gtk_notebook_get_current_page(
-        GTK_NOTEBOOK(lookup_widget(main_window, "notebook_main")));
+    current_page = gtk_notebook_get_current_page(notebook_main);
     if (current_page != nb_main_page_gnet_stats)
 		goto cleanup;
 
     gnet_stats_get(&stats);
 
-    current_page = gtk_notebook_get_current_page(
-        GTK_NOTEBOOK(lookup_widget(main_window, "gnet_stats_notebook")));
+    current_page = gtk_notebook_get_current_page(notebook_gnet_stats);
 
 	gnet_stats_update_general(&stats);
 	gnet_stats_update_drop_reasons(&stats);
