@@ -316,7 +316,8 @@ static void gwc_retrieve(void)
  */
 static void gwc_hourly_update(cqueue_t *cq, gpointer obj)
 {
-	gwc_update_ip_url();
+	if (is_inet_connected)
+		gwc_update_ip_url();
 
 	hourly_update_ev = cq_insert(callout_queue,
 		HOUR_MS, gwc_hourly_update, NULL);
@@ -330,17 +331,19 @@ static void gwc_hourly_update(cqueue_t *cq, gpointer obj)
  */
 static void gwc_periodic_refresh(cqueue_t *cq, gpointer obj)
 {
-	/*
-	 * Disable retry timer, since we are about to retry now based on our
-	 * regular background periodic refreshing.
-	 */
+	if (is_inet_connected) {
+		/*
+		 * Disable retry timer, since we are about to retry now based
+		 * on our regular background periodic refreshing.
+		 */
 
-	if (urlfile_retry_ev) {
-		cq_cancel(callout_queue, urlfile_retry_ev);
-		urlfile_retry_ev = NULL;
+		if (urlfile_retry_ev) {
+			cq_cancel(callout_queue, urlfile_retry_ev);
+			urlfile_retry_ev = NULL;
+		}
+
+		gwc_get_urls();
 	}
-
-	gwc_get_urls();
 
 	periodic_refresh_ev = cq_insert(callout_queue,
 		REFRESH_MS, gwc_periodic_refresh, NULL);
