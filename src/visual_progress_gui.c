@@ -31,6 +31,10 @@
  *
  * Display more information.
  * Automatically move the fastest download to the top of the display.
+ *
+ * FIXME: instead of using -1 as "unallocated fih", there should be
+ *        a separate flag stating if a fih is valid or not. There is
+ *        no guarantee that fih can not become -1.
  */
 
 #include "gui.h"
@@ -38,8 +42,8 @@
 
 RCSID("$Id$");
 
-#define VP_PIXELS_PER_ROW 35
-#define VP_H_OFFSET 35
+#define VP_PIXELS_PER_ROW   35
+#define VP_H_OFFSET         35
 #define VP_LINE_BELOW_CHARS 3
 
 /*
@@ -68,11 +72,11 @@ typedef struct vp_info {
 
 GHashTable *vp_info_hash;  /* Hash table with our cached fileinfo info */
 
-GdkFont *vp_font = NULL;          /* Font to be used in our graphics data */
-GdkColor done;           /* Pre-filled color (green) for DONE chunks */
-GdkColor done_old;       /* Pre-filled color (dull green) for DONE chunks from previous sessions */
-GdkColor busy;           /* Pre-filled color (yellow) for BUSY chunks */
-GdkColor empty;              /* Pre-filled color (red) for EMPTY chunks */
+GdkFont *vp_font = NULL;   /* Font to be used in our graphics data */
+GdkColor done;             /* Pre-filled color (green) for DONE chunks */
+GdkColor done_old;         /* Pre-filled color (dull green) for DONE chunks from previous sessions */
+GdkColor busy;             /* Pre-filled color (yellow) for BUSY chunks */
+GdkColor empty;            /* Pre-filled color (red) for EMPTY chunks */
 GdkColor black;            /* Pre-filled color (black) for general drawing */
 static int vp_height = 0;  /* Height of drawing area */
 
@@ -93,14 +97,15 @@ void vp_draw_chunk (gpointer data, gpointer user_data)
     guint32 bpp;
 
     if (DL_CHUNK_EMPTY == chunk->status)
-	gdk_gc_set_foreground(v->context->gc, &empty);
+        gdk_gc_set_foreground(v->context->gc, &empty);
     if (DL_CHUNK_BUSY == chunk->status)
-	gdk_gc_set_foreground(v->context->gc, &busy);
+        gdk_gc_set_foreground(v->context->gc, &busy);
     if (DL_CHUNK_DONE == chunk->status) {
-	if (chunk->old)
-	    gdk_gc_set_foreground(v->context->gc, &done_old);
-	else 
-	    gdk_gc_set_foreground(v->context->gc, &done);
+        if (chunk->old) {
+            gdk_gc_set_foreground(v->context->gc, &done_old);
+        } else {
+            gdk_gc_set_foreground(v->context->gc, &done);
+        }
     }
 
     g_assert( v->context->width );
@@ -110,8 +115,8 @@ void vp_draw_chunk (gpointer data, gpointer user_data)
     
     /* horizontal offset was 10 */
     gdk_draw_rectangle(v->context->drawable, v->context->gc, TRUE, 
-		       s_from + v->context->offset_hor, v->context->offset_ver, 
-		       s_to - s_from, 10);
+        s_from + v->context->offset_hor, v->context->offset_ver, 
+		s_to - s_from, 10);
 }
 
 void vp_draw_fi (gpointer key, gpointer value, gpointer user_data)
@@ -131,7 +136,8 @@ void vp_draw_fi (gpointer key, gpointer value, gpointer user_data)
     v->context->offset_ver = VP_PIXELS_PER_ROW * v->row + VP_H_OFFSET + VP_LINE_BELOW_CHARS;
 
     gdk_gc_set_foreground(v->context->gc, &black);
-    gdk_draw_string(v->context->drawable, vp_font, v->context->gc, 10, VP_H_OFFSET + VP_PIXELS_PER_ROW * v->row, fakename->str);
+    gdk_draw_string(v->context->drawable, vp_font, v->context->gc, 10, 
+        VP_H_OFFSET + VP_PIXELS_PER_ROW * v->row, fakename->str);
     g_string_free(fakename, TRUE);
 
     g_slist_foreach(v->chunks_list, &vp_draw_chunk, v);
@@ -154,15 +160,15 @@ void vp_draw_fi_progress(gnet_fi_t fih)
     fi_context.fih = fih;
 
     if (fih != -1) {
-	gboolean found;
+        gboolean found;
 
-	found = g_hash_table_lookup_extended(vp_info_hash, &fih, &atom, (gpointer *)&v);
-	g_assert( found );
-	g_assert( v );
+        found = g_hash_table_lookup_extended(vp_info_hash, &fih, &atom, (gpointer *)&v);
+        g_assert( found );
+        g_assert( v );
 
-	v->context = &fi_context;
+        v->context = &fi_context;
 
-	g_slist_foreach(v->chunks_list, &vp_draw_chunk, v);
+        g_slist_foreach(v->chunks_list, &vp_draw_chunk, v);
     }
 }
 
@@ -276,7 +282,8 @@ on_visual_progress_expose_event        (GtkWidget       *widget,
      * sure it will remain
      */
     gdk_gc_set_foreground(vp_context->gc, &black);
-    gdk_draw_string(vp_context->drawable, vp_font, vp_context->gc, 10, 15, "Legend: dark green=done    bright green=done recently   white=active   red=empty");
+    gdk_draw_string(vp_context->drawable, vp_font, vp_context->gc, 10, 15, 
+        "Legend: dark green=done    bright green=done recently   white=active   grey=empty");
 
     g_hash_table_foreach(vp_info_hash, &vp_draw_fi, NULL);
 
@@ -330,10 +337,8 @@ static void vp_gui_fi_removed(gnet_fi_t fih)
 
     g_hash_table_remove(vp_info_hash, &fih);
     atom_int_free(atom);
-    /* 
-     * TODO: Should also probably free the chunks in the list
-     */
-    g_slist_free( ((vp_info_t *) v)->chunks_list );
+    fi_free_chunks( ((vp_info_t *) v)->chunks_list );
+    
     wfree(v, sizeof(vp_info_t));
 
     /* 
@@ -371,43 +376,46 @@ static void vp_gui_fi_status_changed(gnet_fi_t fih)
      * trees in parallel to make this check, freeing the old list on
      * the way.
      */
+
+    // FIXME: maybe use fi_chunks_free here too?
     old = v->chunks_list;
     new = fi_get_chunks(fih);
     keep_new = new;
     while (old || new) {
-	if (old && new) {
-	    old_chunk = (gnet_fi_chunks_t *) old->data;
-	    new_chunk = (gnet_fi_chunks_t *) new->data;
-	    if (old_chunk->from == new_chunk->from) {
-		if (old_chunk->to == new_chunk->to)
-		    new_chunk->old = old_chunk->old;
-		else
-		    new_chunk->old = FALSE;
-		wfree(old->data, sizeof(gnet_fi_chunks_t));
-		old = g_slist_next(old);
-		new = g_slist_next(new);
-	    } else {
-		if (old_chunk->from < new_chunk->from) {
-		    wfree(old->data, sizeof(gnet_fi_chunks_t));
-		    old = g_slist_next(old);
-		} else {
-		    new_chunk->old = FALSE;
-		    new = g_slist_next(new);
-		}
-	    }		    
-	} else {
-	    /*
-	     * Only one list still has nodes, so we just select the
-	     * proper next one to advance that list to the end.
-	     */
-	    if (old) {
-		wfree(old->data, sizeof(gnet_fi_chunks_t));
-		old = g_slist_next(old);
-	    }
-	    if (new)
-		new = g_slist_next(new);
-	}
+        if (old && new) {
+            old_chunk = (gnet_fi_chunks_t *) old->data;
+            new_chunk = (gnet_fi_chunks_t *) new->data;
+            if (old_chunk->from == new_chunk->from) {
+                if (old_chunk->to == new_chunk->to)
+                    new_chunk->old = old_chunk->old;
+                else
+                    new_chunk->old = FALSE;
+                wfree(old->data, sizeof(gnet_fi_chunks_t));
+                old = g_slist_next(old);
+                new = g_slist_next(new);
+            } else {
+                if (old_chunk->from < new_chunk->from) {
+                    wfree(old->data, sizeof(gnet_fi_chunks_t));
+                    old = g_slist_next(old);
+                } else {
+                    new_chunk->old = FALSE;
+                    new = g_slist_next(new);
+                }
+            }		    
+        } else {
+            /*
+             * Only one list still has nodes, so we just select the
+             * proper next one to advance that list to the end.
+             */
+            if (old) {
+                wfree(old->data, sizeof(gnet_fi_chunks_t));
+                old = g_slist_next(old);
+            }
+            if (new)
+                new = g_slist_next(new);
+        }
     }
+
     g_slist_free(v->chunks_list);
     v->chunks_list = keep_new;
 
@@ -415,7 +423,7 @@ static void vp_gui_fi_status_changed(gnet_fi_t fih)
      * If the graphics have already been set up then also draw the update
      */
     if (vp_context)
-	vp_draw_fi(atom, v, NULL);
+        vp_draw_fi(atom, v, NULL);
 }
 
 void vp_free_key_value (gpointer key, gpointer value, gpointer user_data)
@@ -449,13 +457,13 @@ void vp_gui_init(void)
      */
     cmap = gdk_colormap_get_system();
     g_assert( cmap );
-    g_assert(gdk_color_parse("#62ac62", &done_old));
+    g_assert(gdk_color_parse("#00CC00", &done_old));
     g_assert(gdk_colormap_alloc_color(cmap, &done_old, FALSE, TRUE));
-    g_assert(gdk_color_parse("#62db62", &done));
+    g_assert(gdk_color_parse("#00FF00", &done));
     g_assert(gdk_colormap_alloc_color(cmap, &done, FALSE, TRUE));
     g_assert(gdk_color_parse("white", &busy));
     g_assert(gdk_colormap_alloc_color(cmap, &busy, FALSE, TRUE));
-    g_assert(gdk_color_parse("#d98664", &empty));
+    g_assert(gdk_color_parse("#AAAAAA", &empty));
     g_assert(gdk_colormap_alloc_color(cmap, &empty, FALSE, TRUE));
     g_assert(gdk_color_parse("black", &black));
     g_assert(gdk_colormap_alloc_color(cmap, &black, FALSE, TRUE));

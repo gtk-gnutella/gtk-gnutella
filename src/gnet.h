@@ -772,6 +772,7 @@ gnet_fi_info_t *fi_get_info(gnet_fi_t);
 void fi_free_info(gnet_fi_info_t *);
 void fi_get_status(gnet_fi_t, gnet_fi_status_t *);
 GSList *fi_get_chunks(gnet_fi_t);
+void fi_free_chunks(GSList *chunks);
 gchar **fi_get_aliases(gnet_fi_t fih);
 
 void fi_purge_by_handle_list(GSList *list);

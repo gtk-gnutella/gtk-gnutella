@@ -3592,18 +3592,33 @@ GSList *fi_get_chunks(gnet_fi_t fih)
     g_assert( fi );
 
     for (l = fi->chunklist; l != NULL; l = g_slist_next(l)) {
-	struct dl_file_chunk *fc = l->data;
-	chunk = (gnet_fi_chunks_t *) walloc(sizeof(gnet_fi_chunks_t));
-	chunk->from = fc->from;
-	chunk->to = fc->to;
-	chunk->status = fc->status;
-	chunk->old = TRUE;
+        struct dl_file_chunk *fc = l->data;
+        chunk = (gnet_fi_chunks_t *) walloc(sizeof(gnet_fi_chunks_t));
+        chunk->from   = fc->from;
+        chunk->to     = fc->to;
+        chunk->status = fc->status;
+        chunk->old    = TRUE;
 
-	chunks = g_slist_append(chunks, chunk);
+        chunks = g_slist_prepend(chunks, chunk); /* FIXME: prepend? */
     }
 
     return chunks;
 }
+
+/*
+ * Free chunk list got by calling fi_get_chunks.
+ */
+void fi_free_chunks(GSList *chunks)
+{
+    GSList *sl;
+
+    for (sl = chunks; NULL != sl; sl = g_slist_next(sl)) {
+        G_FREE_NULL(sl->data);
+    }
+
+    g_slist_free(chunks);
+}
+
 
 
 /*

@@ -5,6 +5,10 @@
  * [Gtk1] [Gtk2] Added icons for PROP_FILE_DESCRITOR_SHORTAGE and
    PROP_FILE_DESCRIPTOR_RUNOUT
  * Updated filter.xpm
+ * [Gtk1] [Gtk2] Tried to fix memory lead in visual progress indicator. 
+   Small leak is still reported but probably due to the gui never being 
+   actually destroyed.
+ * [Gtk1] [Gtk2] Adjusted colors in progress indicator.
 
 - (2004.04.11 - RAM)
  * Renamed parq_is_banned_source() into parq_banned_source_expire() and
