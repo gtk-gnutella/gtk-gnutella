@@ -1386,7 +1386,6 @@ static struct shared_file *get_file_to_upload_from_index(
 	guint idx)
 {
 	struct shared_file *sf;
-	gchar c;
 	gchar *buf;
 	gchar *basename;
 	gboolean sent_sha1 = FALSE;
@@ -1419,20 +1418,24 @@ static struct shared_file *get_file_to_upload_from_index(
 	 */
 
 	buf = uri + sizeof("/get/");		/* Go after first index char */
-	(void) url_unescape(buf, TRUE);		/* Index is escape-safe anyway */
-
-	while ((c = *buf++) && c != '/')
-		/* empty */;
-
-	if (c != '/') {
-		g_warning("malformed Gnutella HTTP URI: %s", uri);
+	if (!url_unescape(buf, TRUE)) {		/* Index is escape-safe anyway */
 		upload_error_remove(u, NULL, 400, "Malformed Gnutella HTTP request");
+		return NULL;
+	}
+
+	buf = strchr(buf, '/');
+	p = buf++;
+
+	if (!p) {
+		g_warning("Invalid encoded Gnutella HTTP URI: %s", uri);
+		upload_error_remove(u, NULL, 400,
+			"Invalid encoded Gnutella HTTP request");
 		return NULL;
 	}
 
 	/*
 	 * Go patch the first space we encounter before HTTP to be a NUL.
-	 * Indeed, the requesst shoud be "GET /get/12/foo.txt HTTP/1.0".
+	 * Indeed, the request shoud be "GET /get/12/foo.txt HTTP/1.0".
 	 *
 	 * Note that if we don't find HTTP/ after the space, it's not an
 	 * error: they're just sending an HTTP/0.9 request, which is awkward
