@@ -1375,7 +1375,7 @@ static void _sock_set(gint fd, gint option, gint size,
 			type, fd, g_strerror(errno));
 
 /* XXX needs to add metaconfig test */
-#if linux
+#ifdef LINUX_SYSTEM
 	old_len >>= 1;		/* Linux returns twice the real amount */
 #endif
 
@@ -1395,7 +1395,7 @@ static void _sock_set(gint fd, gint option, gint size,
 		g_warning("cannot read new %s buffer length on fd #%d: %s",
 			type, fd, g_strerror(errno));
 
-#if linux
+#ifdef LINUX_SYSTEM
 	new_len >>= 1;		/* Linux returns twice the real amount */
 #endif
 
