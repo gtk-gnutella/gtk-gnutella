@@ -116,10 +116,10 @@ static gboolean can_swarm = FALSE;		/* Set by file_info_retrieve() */
 
 static gchar fi_tmp[4096];
 
-typedef enum {
-	FILE_INFO_MAGIC32 = 0xD1BB1ED0U,
-	FILE_INFO_MAGIC64 = 0X91E63640U
-} fi_magic_t;
+#define	FILE_INFO_MAGIC32 0xD1BB1ED0U
+#define	FILE_INFO_MAGIC64 0X91E63640U
+
+typedef guint32 fi_magic_t;
 
 #define FILE_INFO_VERSION	6
 
@@ -1220,7 +1220,12 @@ file_info_retrieve_binary(const gchar *file, const gchar *path)
 	gboolean t64;
 	GSList *chunklist = NULL;
 
-#define BAILOUT(x) do { reason = (x); goto bailout; } while (0)
+#define BAILOUT(x)			\
+do {						\
+	reason = (x);			\
+	goto bailout;			\
+	g_assert_not_reached();	\
+} while (0)
 
 	g_assert(NULL != file);
 	g_assert(NULL != path);
