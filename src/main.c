@@ -89,6 +89,7 @@ static gboolean exiting = FALSE;
 static gboolean from_atexit = FALSE;
 static gint signal_received = 0;
 static jmp_buf atexit_env;
+static volatile gchar *exit_step = "gtk_gnutella_exit";
 
 /*
  * sig_alarm
@@ -122,7 +123,7 @@ static void gtk_gnutella_atexit()
 		from_atexit = TRUE;
 		signal(SIGALRM, sig_alarm);
 		if (setjmp(atexit_env)) {
-			g_warning("cleanup aborted.");
+			g_warning("cleanup aborted while in %s().", exit_step);
 			return;
 		}
 		alarm(ATEXIT_TIMEOUT);
@@ -151,20 +152,22 @@ void gtk_gnutella_exit(gint n)
 
 	exiting = TRUE;
 
+#define DO(fn) 	do { exit_step = STRINGIFY(fn); fn(); } while (0)
+
 #ifdef USE_REMOTE_CTRL
-    shell_close();
+    DO(shell_close);
 #endif
 
-	node_bye_all();
-	upload_close();		/* Done before upload_stats_close() for stats update */
-	upload_stats_close();
-	parq_close();
-	download_close();
-	pproxy_close();
-	http_close();
-	gwc_close();
-	verify_close();
-	move_close();
+	DO(node_bye_all);
+	DO(upload_close);	/* Done before upload_stats_close() for stats update */
+	DO(upload_stats_close);
+	DO(parq_close);
+	DO(download_close);
+	DO(pproxy_close);
+	DO(http_close);
+	DO(gwc_close);
+	DO(verify_close);
+	DO(move_close);
 
 	/*
 	 * When coming from atexit(), there is a sense of urgency.
@@ -172,11 +175,13 @@ void gtk_gnutella_exit(gint n)
 	 * the properties and exit.
 	 */
 
-	settings_save_if_dirty();
-	settings_gui_save_if_dirty();
+	DO(settings_save_if_dirty);
+	DO(settings_gui_save_if_dirty);
 
 	if (from_atexit)
 		return;
+
+#undef DO
 
 	main_gui_update_coords();
     main_gui_shutdown();
