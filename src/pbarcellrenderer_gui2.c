@@ -124,7 +124,7 @@ static gpointer parent_class;
  * @return A unique GtkType id
  */
 GtkType
-gtk_cell_renderer_progress_get_type (void)
+gtk_cell_renderer_progress_get_type(void)
 {
 	static GtkType cell_progress_type = 0;
 
@@ -163,10 +163,10 @@ gtk_cell_renderer_progress_get_type (void)
  * @return nothing
  */
 static void
-gtk_cell_renderer_progress_init (GtkCellRendererProgress *cellprogress)
+gtk_cell_renderer_progress_init(GtkCellRendererProgress *cellprogress)
 {
     cellprogress->priv = 
-		(GtkCellRendererProgressPriv*)g_new0(GtkCellRendererProgressPriv, 1);
+		(GtkCellRendererProgressPriv*) g_new0(GtkCellRendererProgressPriv, 1);
     
 	cellprogress->priv->value = 0;
 }
@@ -182,10 +182,10 @@ gtk_cell_renderer_progress_init (GtkCellRendererProgress *cellprogress)
 static void
 gtk_cell_renderer_progress_class_init (GtkCellRendererProgressClass *class)
 {
-	GObjectClass *object_class = G_OBJECT_CLASS (class);
-	GtkCellRendererClass *cell_class = GTK_CELL_RENDERER_CLASS (class);
+	GObjectClass *object_class = G_OBJECT_CLASS(class);
+	GtkCellRendererClass *cell_class = GTK_CELL_RENDERER_CLASS(class);
 
-	parent_class = g_type_class_peek_parent (class);
+	parent_class = g_type_class_peek_parent(class);
   
 	object_class->finalize = gtk_cell_renderer_progress_finalize;
   
@@ -195,7 +195,7 @@ gtk_cell_renderer_progress_class_init (GtkCellRendererProgressClass *class)
 	cell_class->get_size = gtk_cell_renderer_progress_get_size;
 	cell_class->render = gtk_cell_renderer_progress_render;
   
-	g_object_class_install_property (
+	g_object_class_install_property(
 		object_class,
 		PROP_VALUE,
 		g_param_spec_float (
@@ -220,21 +220,20 @@ gtk_cell_renderer_progress_class_init (GtkCellRendererProgressClass *class)
  * @return nothing
  */
 static void
-gtk_cell_renderer_progress_get_property (
+gtk_cell_renderer_progress_get_property(
 	GObject *object,
 	guint param_id,
 	GValue *value,
 	GParamSpec *pspec)
 {
-	GtkCellRendererProgress *cellprogress =
-		GTK_CELL_RENDERER_PROGRESS(object);
+	GtkCellRendererProgress *cellprogress = GTK_CELL_RENDERER_PROGRESS(object);
 
 	switch (param_id) {
 	case PROP_VALUE:
-		g_value_set_float (value, cellprogress->priv->value);
+		g_value_set_float(value, cellprogress->priv->value);
 		break;
 	default:
-		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, param_id, pspec);
+		G_OBJECT_WARN_INVALID_PROPERTY_ID(object, param_id, pspec);
 	}
 }
 
@@ -252,21 +251,20 @@ gtk_cell_renderer_progress_get_property (
  * @return nothing
  */
 static void
-gtk_cell_renderer_progress_set_property (
+gtk_cell_renderer_progress_set_property(
 	GObject *object,
 	guint param_id,
 	const GValue *value,
 	GParamSpec *pspec)
 {
-	GtkCellRendererProgress *cellprogress = 
-        GTK_CELL_RENDERER_PROGRESS (object);
+	GtkCellRendererProgress *cellprogress = GTK_CELL_RENDERER_PROGRESS(object);
 
 	switch (param_id) {
 	case PROP_VALUE:
-		cellprogress->priv->value = g_value_get_float (value);
+		cellprogress->priv->value = g_value_get_float(value);
 		break;
 	default:
-		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, param_id, pspec);
+		G_OBJECT_WARN_INVALID_PROPERTY_ID(object, param_id, pspec);
 	}
 	g_object_notify (object, "value");
 }
@@ -287,7 +285,7 @@ gtk_cell_renderer_progress_set_property (
  * @return nothing
  */ 
 static void
-gtk_cell_renderer_progress_get_size (
+gtk_cell_renderer_progress_get_size(
 	GtkCellRenderer *cell,
 	GtkWidget       *widget,
 	GdkRectangle    *cell_area,
@@ -318,7 +316,7 @@ gtk_cell_renderer_progress_get_size (
  *
  */
 GtkCellRenderer*
-gtk_cell_renderer_progress_new (void)
+gtk_cell_renderer_progress_new(void)
 {
 	return GTK_CELL_RENDERER(
 		g_object_new(gtk_cell_renderer_progress_get_type(), NULL));
@@ -341,7 +339,7 @@ gtk_cell_renderer_progress_new (void)
  * @return nothing
  */
 static void
-gtk_cell_renderer_progress_render (
+gtk_cell_renderer_progress_render(
 	GtkCellRenderer *cell,
 	GdkWindow *window,
 	GtkWidget *widget,
@@ -357,8 +355,9 @@ gtk_cell_renderer_progress_render (
 	PangoRectangle logical_rect;
 	char text[32]; 
 	int x, y, w, h, perc_w, pos;
+	int val;
 	
-	gc = gdk_gc_new (window);
+	gc = gdk_gc_new(window);
 
 	x = cell_area->x + 4;
 	y = cell_area->y + 2;
@@ -374,11 +373,12 @@ gtk_cell_renderer_progress_render (
 	perc_w = (int)((w - 4) * cellprogress->priv->value);
 	gdk_draw_rectangle(window, gc, TRUE, x + 2, y + 2, perc_w, h - 4);
 	
-	gm_snprintf(text, sizeof text, "%.0f", cellprogress->priv->value * 100);
+	val = cellprogress->priv->value * 100;
+	gm_snprintf(text, sizeof text, "%d", val);
 	layout = gtk_widget_create_pango_layout(widget, text);
 	pango_layout_get_pixel_extents(layout, NULL, &logical_rect);
 	g_object_unref(G_OBJECT (layout));
-	gm_snprintf(text, sizeof text, "%.0f %%", cellprogress->priv->value * 100);
+	gm_snprintf(text, sizeof text, "%d %%", val);
 	layout = gtk_widget_create_pango_layout(widget, text);
 	
 	pos = (w - logical_rect.width) / 2;
@@ -415,8 +415,7 @@ gtk_cell_renderer_progress_render (
 static void
 gtk_cell_renderer_progress_finalize(GObject *object)
 {
-	GtkCellRendererProgress *cellprogress =
-		GTK_CELL_RENDERER_PROGRESS (object);
+	GtkCellRendererProgress *cellprogress = GTK_CELL_RENDERER_PROGRESS(object);
 	G_FREE_NULL(cellprogress->priv);
 	(*G_OBJECT_CLASS(parent_class)->finalize)(object);
 }
