@@ -4740,7 +4740,7 @@ create_main_window (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label129), 0, 0.5);
 
-  label35 = gtk_label_new (_("Default: 6346, Disable: 0"));
+  label35 = gtk_label_new (_("Default: 6346, Random: 0"));
   gtk_widget_set_name (label35, "label35");
   gtk_widget_ref (label35);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "label35", label35,
