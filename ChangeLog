@@ -1,6 +1,13 @@
 # since last version
 
-- (2003.04.29 - Richard)
+- (2003.03.31 - RAM)
+ * Optimized sha1_eq() and guid_eq() when pointers are identical.
+ * Added Retry-After header in parq_upload_add_header().
+ * Be more stringent when generating the QRP table: no more than 1% full.
+ * Integrated PARQ patch #14 [From Jeroen Asselman].
+ * Integrated IP TOS patch [From Mike Mestnik].
+
+- (2003.03.29 - Richard)
  * downloads.c:
    - Added some skeletons for having events on the downloads (sources).
    - Added handles to downloads.
@@ -34,6 +41,14 @@
  * [Gtk1] gui modifications:
    - Download settings on download pane hidable.
    - Added detail panel to fileinfo pane.
+
+- (2003.03.28 - RAM)
+ * Integrated PARQ patch #13 [From Jeroen Asselman].
+ * Abort all downloads from a host to which we can't connect.
+
+- (2003.03.27 - RAM)
+ * Added inclusion of <sys/time.h> before <sys/resource.h> for FreeBSD.
+ * Added handle_to_queued() to verify the PARQ_UL_MAGIC magic whilst casting.
 
 - (2003.03.26 - RAM)
  * Split parq_upload_request() into two to avoid assertion failures.
