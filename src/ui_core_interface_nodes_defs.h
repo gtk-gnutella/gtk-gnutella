@@ -160,6 +160,8 @@ typedef struct gnutella_node {
 	time_t last_alive_ping;		/* Last time we sent an alive ping */
 	guint alive_period;			/* Period for sending alive pings (secs) */
 
+	wrap_buf_t hello;			/* Spill buffer for GNUTELLA HELLO */
+	
 	/*
 	 * Data structures used by the ping/pong reduction scheme.
 	 *		--RAM, 02/02/2002
@@ -255,6 +257,7 @@ typedef struct gnutella_node {
 #define NODE_F_FAKE_NAME	0x00010000	/* Was unable to validate GTKG name */
 #define NODE_F_PROXY		0x00020000	/* Sent a push-proxy request */
 #define NODE_F_QRP_SENT		0x00040000	/* Undergone one complete QRP sending */
+#define NODE_F_TLS			0x00080000	/* TLS-tunneled */
 
 /*
  * Node attributes.
@@ -447,5 +450,7 @@ extern gboolean route_exists_for_reply(gchar *muid, guint8 function);
 
 #define NODE_ID_LOCAL	0x0U		/* ID for "local node" (ourselves) */
 
-
+	
 #endif
+
+/* vi: set ts=4 sw=4 cindent: */

@@ -162,9 +162,10 @@ typedef struct gnet_node_flags {
 	gboolean mqueue_empty;
 	gboolean mqueue_above_lowat;
 	gboolean in_tx_flow_control;
-    gboolean in_tx_swift_control;
+	gboolean in_tx_swift_control;
 	gboolean is_push_proxied;
 	gboolean is_proxying;
+	gboolean tls;
 } gnet_node_flags_t;
 
 /*
@@ -196,3 +197,4 @@ typedef void (*node_flags_changed_listener_t) (gnet_node_t);
 
 
 #endif
+/* vi: set ts=4 sw=4 cindent: */

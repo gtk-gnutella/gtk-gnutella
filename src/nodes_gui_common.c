@@ -250,23 +250,24 @@ const gchar *nodes_gui_common_status_str(
  *
  * Display a summary of the node flags:
  *
- *    012345678 (offset)
- *    NIrwqxZPFh
- *    ^^^^^^^^^^
- *    |||||||||+ hops flow triggerd (h), or total query flow control (f)
- *    ||||||||+  flow control (F), or pending data in queue (d)
- *    |||||||+   indicates whether we're a push proxy (P) / node is proxy (p)
- *    ||||||+    indicates whether Rx, Tx or both (Z) are compressed
- *    |||||+     indicates whether we sent our last-hop QRT to remote UP
- *    ||||+      indicates whether we sent/received a QRT, or send/receive one
- *    |||+       indicates whether node is writable
- *    ||+        indicates whether node is readable
- *    |+         indicates connection type (Incoming, Outgoing, Ponging)
- *    +          indicates peer mode (Normal, Ultra, Leaf)
+ *    012345678AB (offset)
+ *    NIrwqxZPFhT
+ *    ^^^^^^^^^^^
+ *    ||||||||||+ T indicates a TLS-tunneled connection
+ *    |||||||||+  hops flow triggerd (h), or total query flow control (f)
+ *    ||||||||+   flow control (F), or pending data in queue (d)
+ *    |||||||+    indicates whether we're a push proxy (P) / node is proxy (p)
+ *    ||||||+     indicates whether Rx, Tx or both (Z) are compressed
+ *    |||||+      indicates whether we sent our last-hop QRT to remote UP
+ *    ||||+       indicates whether we sent/received a QRT, or send/receive one
+ *    |||+        indicates whether node is writable
+ *    ||+         indicates whether node is readable
+ *    |+          indicates connection type (Incoming, Outgoing, Ponging)
+ *    +           indicates peer mode (Normal, Ultra, Leaf)
  */
 const gchar *nodes_gui_common_flags_str(const gnet_node_flags_t *flags)
 {
-	static gchar status[] = "NIrwqTRPFh";
+	static gchar status[] = "NIrwqTRPFhS";
 
 	switch (flags->peermode) {
 		case NODE_P_UNKNOWN:	status[0] = '-'; break;
@@ -317,8 +318,10 @@ const gchar *nodes_gui_common_flags_str(const gnet_node_flags_t *flags)
 	else
 		status[9] = '-';
 
+	status[10] = flags->tls ? 'T' : '-';
+
 	status[sizeof(status) - 1] = '\0';
 	return status;
 }
 
-/* vi: set ts=4: */
+/* vi: set ts=4 sw=4 cindent: */
