@@ -164,16 +164,6 @@ void filter_gui_init(void)
             (lookup_widget(filter_dialog, "optionmenu_filter_text_type")), 
         GTK_WIDGET(m));
 
-    m = GTK_MENU(gtk_menu_new());
-        menu_new_item_with_data(m, "DISPLAY", 
-        (gpointer) FILTER_PROP_STATE_DO);
-    menu_new_item_with_data(m, "DON'T DISPLAY", 
-        (gpointer) FILTER_PROP_STATE_DONT);
-    gtk_option_menu_set_menu(
-        GTK_OPTION_MENU
-            (lookup_widget(filter_dialog, "optionmenu_filter_default_policy")), 
-        GTK_WIDGET(m));
-
     /*
      * The user_data set here is later relevant for filter_gui_get_flag_rule()
      */
@@ -798,23 +788,6 @@ void filter_gui_rebuild_target_combos(GList *filters)
     option_menu_select_item_by_data(optionmenu_search_filter, bufptr);
 
     g_list_free(buf);
-}
-
-
-
-/*
- * filter_gui_set_default_policy:
- *
- * Display the given filter as default policy in the gui.
- */
-void filter_gui_set_default_policy(gint pol)
-{
-    if (filter_dialog == NULL)
-        return;
-
-    option_menu_select_item_by_data(
-        lookup_widget(filter_dialog, "optionmenu_filter_default_policy"), 
-        GINT_TO_POINTER(pol));
 }
 
 

@@ -393,8 +393,6 @@ void filter_open_dialog() {
         filter_set(NULL);
     }
 
-    filter_gui_set_default_policy(filter_default_policy);
-   
     filter_gui_show_dialog();
 }
 
@@ -410,8 +408,6 @@ void filter_close_dialog(gboolean commit)
 {
     if (commit) {
         filter_apply_changes();
-        filter_default_policy = GPOINTER_TO_INT(option_menu_get_selected_data
-            (lookup_widget(filter_dialog, "optionmenu_filter_default_policy")));
     } else
         filter_revert_changes();
 
@@ -2262,7 +2258,7 @@ filter_result_t *filter_record(search_t *sch, record_t *rec)
         case FILTER_PROP_DISPLAY:
             if (!result->props[i].state) {
                 result->props[i].state = 
-                    filter_default_policy;
+                    FILTER_PROP_STATE_DO;
                 result->props_set ++;
             }
             break;
