@@ -1,5 +1,24 @@
 # since last version
 
+- (2002.08.11 - RAM)
+ * We know that gtk-gnutella hosts support /uri-res if they returned HUGE data.
+ * Renamed socket_monitor_incoming() as socket_timer().
+ * HTTP server now at the 1.1 level, supporting persistent connections.
+
+- (2002.08.10 - RAM)
+ * Added RCS Id expansion to all source files.
+ * Fixed display of hosts in cache (fixes bug #585830).
+ * Fixed display of servent ID in the Info column, vectorized flags procesing.
+
+- (2002.08.09 - RAM)
+ * Forgot to update filename counters when server replied with 301.
+ * All protocol exchanges now logged at dbg=3.
+ * When closing node connection, don't log EOF as a failure: stick to the
+   original BYE condition.
+
+- (2002.07.27 - RAM)
+ * Finished writing download_redirect_to_server().
+
 - (2002.07.13 - RAM)
  * Forgot to initialize GUID in results_set after switching to new
    zone allocators (fixes bug #580817).
