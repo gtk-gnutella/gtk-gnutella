@@ -154,6 +154,7 @@ gtk_gnutella_SOURCES = \
 	sha1.c sha1.h huge.c huge.h \
 	base32.c base32.h \
 	base64.c base64.h \
+	crc.c crc.h \
 	utf8.c utf8.h \
 	ban.c ban.h \
 	inet.c inet.h \

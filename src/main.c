@@ -55,6 +55,7 @@
 #include "extensions.h"
 #include "inet.h"
 #include "adns.h"
+#include "crc.h"
 
 #ifdef USE_REMOTE_SHELL
 #include "shell.h"
@@ -398,6 +399,7 @@ gint main(gint argc, gchar ** argv)
     whitelist_init();
 	ext_init();
 	inet_init();
+	crc_init();
 
     main_gui_init();
 
