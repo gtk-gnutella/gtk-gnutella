@@ -1786,7 +1786,7 @@ void gui_search_update_items(struct search *sch)
             g_snprintf(tmpstr, sizeof(tmpstr), "%s%u item%s found", 
                 str, sch->items, (sch->items > 1) ? "s" : "");
         else
-            g_snprintf(tmpstr, sizeof(tmpstr), "%sNo item found", str);
+            g_snprintf(tmpstr, sizeof(tmpstr), "%sNo items found", str);
     } else
         g_snprintf(tmpstr, sizeof(tmpstr), "No search");
 
