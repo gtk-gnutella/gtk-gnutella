@@ -1,5 +1,9 @@
 # since last version
 
+- (2003.01.08 - RAM)
+ * Forgot to check for alternate locations on 503 replies.
+ * Also compare SHA1 of requested files when checking for upload duplicates.
+
 - (2003.01.05 - cbiere)
  * [Gtk2] gnutellaNet: Nodes can be removed manually	
  * [Gtk2] Enable proper sorting of upload stats by size and normalized
