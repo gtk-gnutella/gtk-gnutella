@@ -3567,8 +3567,21 @@ static void node_process_handshake_header(
 
 	if (!force_local_ip) {
 		guint32 ip = extract_my_ip(head);
-		if (ip && ip != local_ip)
-            settings_ip_changed(ip);
+		if (ip && ip != local_ip) {
+			if (dbg > 0) {
+				const gchar *ua;
+
+				ua = header_get(head, "User-Agent");
+				if (!ua)
+					ua = header_get(head, "Server");
+				if (!ua)
+					ua = "Unknown";
+			
+				g_message("Peer %s reported different IP address: %s (%s)\n",
+					ip_to_gchar(n->ip), ip2_to_gchar(ip), ua);
+			}
+            settings_ip_changed(ip, n->ip);
+		}
 	}
 
 	/* X-Live-Since -- time at which the remote node started. */
