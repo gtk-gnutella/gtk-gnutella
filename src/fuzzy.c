@@ -38,40 +38,39 @@ typedef struct word_entry {
 
 static char *fuzzy_strlower(char *dst, const char *src, size_t len)
 {
-	const guchar *p;
-	guchar *q;
-	size_t i;
+	guchar *p = dst;
+	size_t i = 0;
 
 	g_assert(len > 0);
 	g_assert(NULL != dst);
 
-	for (p = src, q = dst, i = 0; '\0' != *p && i < len; p++, q++, i++)
-		*q = tolower(*p);
-	
-	dst[len - 1] = '\0'; 
+	len--;
+	while ('\0' != (*p++ = tolower(*src++)) && i++ < len)
+		;
+
 	return dst;
 }
 
-static GSList *fuzzy_make_word_list(const char *n)
+static GSList *fuzzy_make_word_list(const char *str)
 {
 	GSList *l = NULL;
 	const char *p;
-	size_t len;
+	size_t size;
 
-	while (*n) {
-		len = 2;
-		while (*n && !isalnum((guchar) *n)) n++;
-		p = n;
-		while (isalnum((guchar) *n)) {
-			n++;
-			len++;
+	while (*str) {
+		while (*str && !isalnum((guchar) *str)) str++;
+		p = str;
+		size = 1;
+		while (isalnum((guchar) *str)) {
+			str++;
+			size++;
 		}
 		if (*p) {
-			size_t n = G_STRUCT_OFFSET(word_entry_t, s) + len;
+			size_t n = G_STRUCT_OFFSET(word_entry_t, s) + size;
 			word_entry_t *w = walloc(n);
 		
 			w->len = n;
-			fuzzy_strlower(w->s, p, len);
+			fuzzy_strlower(w->s, p, size);
 			l = g_slist_append(l, w);
 		}
 	}
