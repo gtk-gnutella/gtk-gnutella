@@ -1399,7 +1399,7 @@ create_main_window (void)
   gtk_progress_set_show_text (GTK_PROGRESS (progressbar_bws_out), TRUE);
   gtk_progress_set_format_string (GTK_PROGRESS (progressbar_bws_out), _("bws out"));
 
-  frame_bws_ginout = gtk_frame_new (_("gnutellaNet traffic"));
+  frame_bws_ginout = gtk_frame_new (_("GnutellaNet traffic"));
   gtk_widget_set_name (frame_bws_ginout, "frame_bws_ginout");
   gtk_widget_ref (frame_bws_ginout);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "frame_bws_ginout", frame_bws_ginout,
@@ -1504,7 +1504,7 @@ create_main_window (void)
   gtk_container_add (GTK_CONTAINER (notebook_main), vbox_gnutellanet);
   gtk_container_set_border_width (GTK_CONTAINER (vbox_gnutellanet), 2);
 
-  frame5 = gtk_frame_new (_("gnutellaNet connections"));
+  frame5 = gtk_frame_new (_("GnutellaNet connections"));
   gtk_widget_set_name (frame5, "frame5");
   gtk_widget_ref (frame5);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "frame5", frame5,
@@ -1575,7 +1575,7 @@ create_main_window (void)
   gtk_widget_show (label14);
   gtk_clist_set_column_widget (GTK_CLIST (clist_nodes), 2, label14);
 
-  label_node_vendor = gtk_label_new (_("User-agent"));
+  label_node_vendor = gtk_label_new (_("User-Agent"));
   gtk_widget_set_name (label_node_vendor, "label_node_vendor");
   gtk_widget_ref (label_node_vendor);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "label_node_vendor", label_node_vendor,
@@ -2063,7 +2063,7 @@ create_main_window (void)
   gtk_widget_show (label_up_range);
   gtk_clist_set_column_widget (GTK_CLIST (clist_uploads), 4, label_up_range);
 
-  label_up_user_agent = gtk_label_new (_("User agent"));
+  label_up_user_agent = gtk_label_new (_("User-Agent"));
   gtk_widget_set_name (label_up_user_agent, "label_up_user_agent");
   gtk_widget_ref (label_up_user_agent);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "label_up_user_agent", label_up_user_agent,
@@ -9578,7 +9578,7 @@ create_shutdown_window (void)
   gtk_container_add (GTK_CONTAINER (frame30), vbox44);
   gtk_container_set_border_width (GTK_CONTAINER (vbox44), 30);
 
-  label184 = gtk_label_new (_("Gtk-gnutella is shutting down.\nSending bye messages to peers.\n\nGrace time remaining:"));
+  label184 = gtk_label_new (_("Gtk-Gnutella is shutting down.\nSending bye messages to peers.\n\nGrace time remaining:"));
   gtk_widget_set_name (label184, "label184");
   gtk_widget_ref (label184);
   gtk_object_set_data_full (GTK_OBJECT (shutdown_window), "label184", label184,
@@ -12251,7 +12251,7 @@ create_dlg_prefs (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_widget_set_usize (spinbutton_search_queue_size, 59, -2);
 
-  frame_expert_gnet_timeout = gtk_frame_new (_("gnutellaNet timeouts (all values in seconds)"));
+  frame_expert_gnet_timeout = gtk_frame_new (_("GnutellaNet timeouts (all values in seconds)"));
   gtk_widget_set_name (frame_expert_gnet_timeout, "frame_expert_gnet_timeout");
   gtk_widget_ref (frame_expert_gnet_timeout);
   gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "frame_expert_gnet_timeout", frame_expert_gnet_timeout,
@@ -12372,7 +12372,7 @@ create_dlg_prefs (void)
   gtk_widget_show (alignment26);
   gtk_box_pack_start (GTK_BOX (vbox25), alignment26, FALSE, TRUE, 0);
 
-  frame_expert_gnet_ttl = gtk_frame_new (_("gnutellaNet TTL settings"));
+  frame_expert_gnet_ttl = gtk_frame_new (_("GnutellaNet TTL settings"));
   gtk_widget_set_name (frame_expert_gnet_ttl, "frame_expert_gnet_ttl");
   gtk_widget_ref (frame_expert_gnet_ttl);
   gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "frame_expert_gnet_ttl", frame_expert_gnet_ttl,
@@ -12844,7 +12844,7 @@ create_dlg_prefs (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_config_hops_random_factor), TRUE);
 
-  frame_expert_gnet_message_size = gtk_frame_new (_("gnutellaNet message size limits"));
+  frame_expert_gnet_message_size = gtk_frame_new (_("GnutellaNet message size limits"));
   gtk_widget_set_name (frame_expert_gnet_message_size, "frame_expert_gnet_message_size");
   gtk_widget_ref (frame_expert_gnet_message_size);
   gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "frame_expert_gnet_message_size", frame_expert_gnet_message_size,
@@ -13110,7 +13110,7 @@ create_dlg_prefs (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label558), 7.45058e-09, 0.5);
 
-  label560 = gtk_label_new (_(" K/s"));
+  label560 = gtk_label_new (_("K/s"));
   gtk_widget_set_name (label560, "label560");
   gtk_widget_ref (label560);
   gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "label560", label560,
@@ -13131,7 +13131,7 @@ create_dlg_prefs (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label561), 7.45058e-09, 0.5);
 
-  label563 = gtk_label_new (_(" K/s"));
+  label563 = gtk_label_new (_("K/s"));
   gtk_widget_set_name (label563, "label563");
   gtk_widget_ref (label563);
   gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "label563", label563,
@@ -13152,7 +13152,7 @@ create_dlg_prefs (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label564), 7.45058e-09, 0.5);
 
-  label566 = gtk_label_new (_(" secs"));
+  label566 = gtk_label_new (_("secs"));
   gtk_widget_set_name (label566, "label566");
   gtk_widget_ref (label566);
   gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "label566", label566,
@@ -13222,7 +13222,7 @@ create_dlg_prefs (void)
   gtk_misc_set_alignment (GTK_MISC (label_input_bw_limit), 1, 0.5);
   gtk_misc_set_padding (GTK_MISC (label_input_bw_limit), 5, 0);
 
-  frame20 = gtk_frame_new (_("Bandwidth control for gnutellaNet traffic"));
+  frame20 = gtk_frame_new (_("Bandwidth control for GnutellaNet traffic"));
   gtk_widget_set_name (frame20, "frame20");
   gtk_widget_ref (frame20);
   gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "frame20", frame20,
@@ -15564,7 +15564,7 @@ create_dlg_prefs (void)
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
 
-  frame84 = gtk_frame_new (_("gnutellaNet display"));
+  frame84 = gtk_frame_new (_("GnutellaNet display"));
   gtk_widget_set_name (frame84, "frame84");
   gtk_widget_ref (frame84);
   gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "frame84", frame84,
