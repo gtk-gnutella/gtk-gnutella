@@ -12434,6 +12434,7 @@ Grace time remaining:</label>
       <widget>
 	<class>GtkScrolledWindow</class>
 	<name>scrolledwindow18</name>
+	<border_width>2</border_width>
 	<hscrollbar_policy>GTK_POLICY_NEVER</hscrollbar_policy>
 	<vscrollbar_policy>GTK_POLICY_ALWAYS</vscrollbar_policy>
 	<hupdate_policy>GTK_UPDATE_CONTINUOUS</hupdate_policy>

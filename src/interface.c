@@ -7780,6 +7780,7 @@ create_dlg_about (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (scrolledwindow18);
   gtk_container_add (GTK_CONTAINER (frame46), scrolledwindow18);
+  gtk_container_set_border_width (GTK_CONTAINER (scrolledwindow18), 2);
   gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolledwindow18), GTK_POLICY_NEVER, GTK_POLICY_ALWAYS);
 
   text1 = gtk_text_new (NULL, NULL);
