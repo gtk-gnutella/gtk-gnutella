@@ -1,5 +1,15 @@
 # since last version
 
+- (2002.06.23 - Richard)
+  * Added builtin targets to filter tree to have the stats (not selectable)
+  * Added stats to builtin targets
+  * Remember node state in filter tree
+  * BEEP if user tries to create filter with invalid name (empty or filter
+    with same name does already exist) It's not a problem to have two
+    searches for exactly the same though.
+  * added filter_find_by_name_in_session routine to filter.c (used to 
+    determine wether a filter name is valid, i.e. does not exist)
+
 - (2002.06.22 - RAM)
   * Fixed memory leak in search queues.
   * Fixed possible use of uninitialized value in analyse_status().
