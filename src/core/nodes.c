@@ -1359,9 +1359,11 @@ node_remove_by_handle(gnet_node_t n)
 
     g_assert(node != NULL);
 
-    if (NODE_IS_WRITABLE(node)) {
+	if (node == udp_node)
+		gnet_prop_set_boolean_val(PROP_ENABLE_UDP, FALSE);
+	else if (NODE_IS_WRITABLE(node))
         node_bye(node, 201, "User manual removal");
-    } else if (node != udp_node) {
+	else {
         node_remove(node, NULL);
         node_real_remove(node);
     }
