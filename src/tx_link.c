@@ -125,6 +125,40 @@ static void tx_link_destroy(txdrv_t *tx)
 	wfree(attr, sizeof(*attr));
 }
 
+static inline gint tx_link_write_error(txdrv_t *tx, const char *func)
+{	
+	switch (errno) {
+	case EAGAIN:
+	case EINTR:
+	case ENOBUFS:
+		return 0;
+	case EPIPE:
+	case ENOSPC:
+#ifdef EDQUOT
+	case EDQUOT:
+#endif /* EDQUOT */
+	case EFBIG:
+	case EIO:
+	case ECONNRESET:
+	case ENETDOWN:
+	case ENETUNREACH:
+	case ETIMEDOUT:
+		node_shutdown(tx->node, "Write failed: %s", g_strerror(errno));
+		return -1;
+	default:
+		{
+			int terr = errno;
+			time_t t = time(NULL);
+			gint fd = ((struct attr *) tx->opaque)->fd;
+			g_error("%s  gtk-gnutella: %s: "
+				"write failed on fd #%d with unexpected errno: %d (%s)\n",
+				ctime(&t), func, fd, terr, g_strerror(terr));
+		}
+	}
+
+	return 0;		/* Just in case */
+}
+
 /*
  * tx_link_write
  *
@@ -142,30 +176,7 @@ static gint tx_link_write(txdrv_t *tx, gpointer data, gint len)
 		node_add_tx_written(tx->node, r);
 		return r;
 	}
-
-	switch (errno) {
-	case EAGAIN:
-	case EINTR:
-		return 0;
-	case EPIPE:
-	case ENOSPC:
-	case EIO:
-	case ECONNRESET:
-	case ETIMEDOUT:
-		node_shutdown(tx->node, "Write failed: %s", g_strerror(errno));
-		return -1;
-	default:
-		{
-			int terr = errno;
-			time_t t = time(NULL);
-			gint fd = ((struct attr *) tx->opaque)->fd;
-			g_error("%s  gtk-gnutella: node_write: "
-				"write failed on fd #%d with unexpected errno: %d (%s)\n",
-				ctime(&t), fd, terr, g_strerror(terr));
-		}
-	}
-
-	return 0;		/* Just in case */
+	return tx_link_write_error(tx, "tx_link_write");
 }
 
 /*
@@ -185,30 +196,7 @@ static gint tx_link_writev(txdrv_t *tx, struct iovec *iov, gint iovcnt)
 		node_add_tx_written(tx->node, r);
 		return r;
 	}
-
-	switch (errno) {
-	case EAGAIN:
-	case EINTR:
-		return 0;
-	case EPIPE:
-	case ENOSPC:
-	case EIO:
-	case ECONNRESET:
-	case ETIMEDOUT:
-		node_shutdown(tx->node, "Write failed: %s", g_strerror(errno));
-		return -1;
-	default:
-		{
-			int terr = errno;
-			time_t t = time(NULL);
-			gint fd = ((struct attr *) tx->opaque)->fd;
-			g_error("%s  gtk-gnutella: node_writev: "
-				"write failed on fd #%d with unexpected errno: %d (%s)\n",
-				ctime(&t), fd, terr, g_strerror(terr));
-		}
-	}
-
-	return 0;		/* Just in case */
+	return tx_link_write_error(tx, "tx_link_writev");
 }
 
 /*
