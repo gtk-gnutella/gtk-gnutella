@@ -38,8 +38,6 @@
 #define IS_GLOBAL(r) ((r == filter_global_pre) || (r == filter_global_post))
 #define IS_BUILTIN(r) ((r == filter_show) || (r == filter_drop))
 
-
-
 typedef struct shadow {
     filter_t *filter;
     GList *current;
@@ -108,32 +106,32 @@ void dump_ruleset(GList *ruleset)
     gint n = 0;
 
     for (r = ruleset; r != NULL; r=r->next)
-        g_message("       rule %3d : %s", n, rule_to_gchar(r->data));
+        printf("       rule %3d : %s\n", n, rule_to_gchar(r->data));
 }
 
 void dump_filter(filter_t *filter)
 {
     g_assert(filter != NULL);
-    g_message("Filter name     : %s", filter->name);
-    g_message("       bound    : %p", filter->search);
-    g_message("       refcount : %d", filter->refcount);
+    printf("Filter name     : %s\n", filter->name);
+    printf("       bound    : %p\n", filter->search);
+    printf("       refcount : %d\n", filter->refcount);
     dump_ruleset(filter->ruleset);
 }
 
 void dump_shadow(shadow_t *shadow)
 {
     g_assert(shadow != NULL);
-    g_message("Shadow for filt : %s", shadow->filter->name);
-    g_message("       bound    : %p", shadow->filter->search);
-    g_message("       refcount : %d", shadow->refcount);
-    g_message("       flt. ref : %d", shadow->filter->refcount);
-    g_message("  Added:");
+    printf("Shadow for filt : %s\n", shadow->filter->name);
+    printf("       bound    : %p\n", shadow->filter->search);
+    printf("       refcount : %d\n", shadow->refcount);
+    printf("       flt. ref : %d\n", shadow->filter->refcount);
+    printf("  Added:\n");
     dump_ruleset(shadow->added);
-    g_message("  Removed:");
+    printf("  Removed:\n");
     dump_ruleset(shadow->removed);
-    g_message("  Current:");
+    printf("  Current:\n");
     dump_ruleset(shadow->current);
-    g_message("  Original:");
+    printf("  Original:\n");
     dump_ruleset(shadow->filter->ruleset);
 }
 
@@ -171,11 +169,11 @@ static shadow_t *shadow_find(filter_t *f)
 
     if (l != NULL) {
         if (dbg >= 6)
-            g_message("shadow found for: %s", f->name);
+            printf("shadow found for: %s\n", f->name);
         return l->data;
     } else {
         if (dbg >= 6)
-            g_message("no shadow found for: %s", f->name);
+            printf("no shadow found for: %s\n", f->name);
         return NULL;
     }
 }
@@ -196,7 +194,7 @@ static shadow_t *shadow_new(filter_t *f)
     g_assert(f->name != NULL);
 
     if (dbg >= 6)
-        g_message("creating shadow for: %s", f->name);
+        printf("creating shadow for: %s\n", f->name);
 
     shadow = g_new0(shadow_t, 1);
 
@@ -231,7 +229,7 @@ static void shadow_cancel(shadow_t *shadow)
     g_assert(shadow->filter != NULL);
 
     if (dbg >= 6)
-        g_message("cancel shadow for filter: %s", shadow->filter->name);
+        printf("cancel shadow for filter: %s\n", shadow->filter->name);
 
     for (r = shadow->added; r != NULL; r = r->next)
         rule_free(r->data);
@@ -269,7 +267,7 @@ static void shadow_commit(shadow_t *shadow)
     realf = shadow->filter;
 
     if (dbg >= 6) {
-        g_message("committing shadow for filter:");
+        printf("committing shadow for filter:\n");
         dump_shadow(shadow);
     }
 
@@ -314,7 +312,7 @@ static void shadow_commit(shadow_t *shadow)
     g_free(shadow);
 
     if (dbg >= 6) {
-        g_message("after commit filter looks like this");
+        printf("after commit filter looks like this\n");
         dump_filter(realf);
     }
 }
@@ -692,7 +690,7 @@ rule_t *filter_get_rule()
     };
 
     if ((r != NULL) && (dbg >= 5))
-        g_message("got rule: %s", rule_to_gchar(r));
+        printf("got rule: %s\n", rule_to_gchar(r));
 
     return r;
 }
@@ -800,8 +798,14 @@ rule_t *filter_new_size_rule
 
     f->type = RULE_SIZE;
 
-    f->u.size.lower = lower;
-    f->u.size.upper = upper;
+    if (lower > upper) {
+        f->u.size.lower = upper;
+        f->u.size.upper = lower;
+    } else {
+        f->u.size.lower = lower;
+        f->u.size.upper = upper;
+    }
+
   	f->target       = target;
     f->negate       = negate;
     f->valid        = TRUE;
@@ -1072,7 +1076,7 @@ void filter_set(filter_t *f)
          * shadow.
          */
         if (dbg >= 5)
-            g_message("showing ruleset for filter: %s", f->name);
+            printf("showing ruleset for filter: %s\n", f->name);
         filter_set_ruleset(shadow->current);
     }
 
@@ -1096,7 +1100,7 @@ void filter_close_search(search_t *s)
     g_assert(s != NULL);
 
     if (dbg >= 6)
-        g_message("closing search (freeing filter): %s", s->query);
+        printf("closing search (freeing filter): %s\n", s->query);
 
     filter_free(s->filter);
     s->filter = NULL;
@@ -1182,7 +1186,7 @@ static void filter_set_ruleset(GList *ruleset)
     gtk_widget_set_sensitive(button_filter_clear, count != 0);
 
     if (dbg >= 5)
-        g_message("updated %d items", count);
+        printf("updated %d items\n", count);
 }
 
 
@@ -1398,7 +1402,7 @@ static void rule_free(rule_t *r)
     g_assert(r != NULL);
 
     if (dbg >= 6)
-        g_message("freeing rule: %s", rule_to_gchar(r));
+        printf("freeing rule: %s\n", rule_to_gchar(r));
 
 	if (r->type == RULE_TEXT) {
         g_free(r->u.text.match);
@@ -1445,7 +1449,7 @@ void filter_append_rule(filter_t *f, rule_t *r)
     g_assert(f != NULL);
 
     if (dbg >= 4)
-        g_message("appending rule to filter: %s <- %s (%p)",
+        printf("appending rule to filter: %s <- %s (%p)\n",
             f->name, rule_to_gchar(r), r->target);
 
     /*
@@ -1477,7 +1481,7 @@ void filter_append_rule(filter_t *f, rule_t *r)
 
     target_shadow->refcount ++;
     if (dbg >= 6)
-        g_message("increased refcount on \"%s\" to %d",
+        printf("increased refcount on \"%s\" to %d\n",
             target_shadow->filter->name, target_shadow->refcount);
 
     /*
@@ -1507,7 +1511,7 @@ void filter_remove_rule(filter_t *f, rule_t *r)
     g_assert(f != NULL);
 
     if (dbg >= 4)
-        g_message("removing rule in filter: %s -> %s", 
+        printf("removing rule in filter: %s -> %s\n", 
             f->name, rule_to_gchar(r));
 
     /*
@@ -1527,7 +1531,7 @@ void filter_remove_rule(filter_t *f, rule_t *r)
          * and free the ressources.
          */
         if (dbg >= 4)
-            g_message("while removing from %s: removing from added: %s",
+            printf("while removing from %s: removing from added: %s\n",
                 f->name, rule_to_gchar(r));
         shadow->added = g_list_remove(shadow->added, r);
         rule_free(r);
@@ -1539,7 +1543,7 @@ void filter_remove_rule(filter_t *f, rule_t *r)
         g_assert(g_list_find(shadow->removed, r) == NULL);
 
         if (dbg >= 4)
-            g_message("while removing from %s: adding to removed: %s",
+            printf("while removing from %s: adding to removed: %s\n",
                 f->name, rule_to_gchar(r));
       
         shadow->removed = g_list_append(shadow->removed, r);
@@ -1556,7 +1560,7 @@ void filter_remove_rule(filter_t *f, rule_t *r)
 
     target_shadow->refcount --;
     if (dbg >= 6)
-        g_message("decreased refcount on \"%s\" to %d",
+        printf("decreased refcount on \"%s\" to %d\n",
             target_shadow->filter->name, target_shadow->refcount);
 
     /*
@@ -1608,7 +1612,7 @@ void filter_replace_rule(filter_t *f,
         gchar * f1 = g_strdup(rule_to_gchar(old_rule));
         gchar * f2 = g_strdup(rule_to_gchar(new_rule));
 
-        g_message("replacing rules (old <- new): %s <- %s", f1, f2);
+        printf("replacing rules (old <- new): %s <- %s\n", f1, f2);
 
         g_free(f1);
         g_free(f2);
@@ -1644,7 +1648,7 @@ void filter_replace_rule(filter_t *f,
 
     target_shadow->refcount --;
     if (dbg >= 6)
-        g_message("decreased refcount on \"%s\" to %d",
+        printf("decreased refcount on \"%s\" to %d\n",
             target_shadow->filter->name, target_shadow->refcount);
      
     /*
@@ -1663,7 +1667,7 @@ void filter_replace_rule(filter_t *f,
 
     target_shadow->refcount ++;
     if (dbg >= 6)
-        g_message("increased refcount on \"%s\" to %d",
+        printf("increased refcount on \"%s\" to %d\n",
             target_shadow->filter->name, target_shadow->refcount);
         
     /*
@@ -1777,7 +1781,7 @@ static int filter_apply(filter_t *filter, struct record *rec)
 
         r = (rule_t *)list->data;
         if (dbg >= 6)
-            g_message("trying to match against: %s", rule_to_gchar(r));
+            printf("trying to match against: %s\n", rule_to_gchar(r));
 
 		switch (r->type) {
         case RULE_JUMP:
@@ -1864,7 +1868,7 @@ static int filter_apply(filter_t *filter, struct record *rec)
              */
             if (val != -1) {
                 if(dbg >= 6)
-                    g_message("matched rule: %s", rule_to_gchar(r));
+                    printf("matched rule: %s\n", rule_to_gchar(r));
 
                 g_free(l_name); 
                 filter->visited = FALSE; 
@@ -1941,7 +1945,7 @@ gboolean filter_record(search_t *sch, struct record *rec)
         r = filter_default_policy;
 
     if (dbg >= 5) {
-        g_message("result %d for search \"%s\" matching \"%s\" (%s)",
+        printf("result %d for search \"%s\" matching \"%s\" (%s)\n",
             r, sch->query, rec->name, 
             ((sch->filter->ruleset == NULL) && 
             (filter_global_pre->ruleset == NULL) &&
@@ -1966,7 +1970,7 @@ void filter_shutdown(void)
     filter_close_dialog(FALSE);
 
     if (dbg >= 5)
-        g_message("shutting down filters");
+        printf("shutting down filters\n");
 
     /*
      * It is important that all searches have already been closed.
