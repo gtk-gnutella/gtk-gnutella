@@ -28,8 +28,6 @@
 #ifndef _gwcache_h_
 #define _gwcache_h_
 
-#include <glib.h>
-
 /*
  * Public interface.
  */
