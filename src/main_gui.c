@@ -574,7 +574,8 @@ void main_gui_run(void)
 		dx = (gint) coord[0] - x;
 		dy = (gint) coord[1] - y;
 		if (dx || dy) {
-        	gtk_window_move(GTK_WINDOW(main_window), x + dx, y + dy);
+        	gtk_window_move(GTK_WINDOW(main_window),
+				coord[0] + dx, coord[1] + dy);
 		}
 	}
 #else
@@ -592,7 +593,7 @@ void main_gui_run(void)
 		dx = (gint) coord[0] - x;
 		dy = (gint) coord[1] - y;
 		if (dx || dy)
-        	gdk_window_move(main_window->window, x + dx, y + dy);
+        	gdk_window_move(main_window->window, coord[0] + dx, coord[1] + dy);
 	}
 #endif
 
