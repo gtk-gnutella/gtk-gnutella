@@ -141,8 +141,10 @@ pixmaps/download.xpm
 pixmaps/exit.xpm
 pixmaps/filter.xpm
 pixmaps/firewall.xpm
+pixmaps/firewall_punchable.xpm
 pixmaps/firewall_tcp.xpm
 pixmaps/firewall_udp.xpm
+pixmaps/firewall_udp_punchable.xpm
 pixmaps/freeze.xpm
 pixmaps/icon.xpm
 pixmaps/leaf.xpm
@@ -156,6 +158,7 @@ pixmaps/stock_form-time-field-16.xpm
 pixmaps/thaw.xpm
 pixmaps/ultra.xpm
 pixmaps/upload.xpm
+pixmaps/warning.xpm
 po/LINGUAS
 po/Makefile.SH
 po/Makevars
