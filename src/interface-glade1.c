@@ -11628,6 +11628,8 @@ create_dlg_about (void)
   GtkWidget *vbox67;
   GtkWidget *frame44;
   GtkWidget *vbox98;
+  GtkWidget *hbox170;
+  GtkWidget *pixmap4;
   GtkWidget *label_about_title;
   GtkWidget *label_about_rcsid;
   GtkWidget *hseparator7;
@@ -11683,13 +11685,30 @@ create_dlg_about (void)
   gtk_container_add (GTK_CONTAINER (frame44), vbox98);
   gtk_container_set_border_width (GTK_CONTAINER (vbox98), 10);
 
+  hbox170 = gtk_hbox_new (FALSE, 4);
+  gtk_widget_set_name (hbox170, "hbox170");
+  gtk_widget_ref (hbox170);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_about), "hbox170", hbox170,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (hbox170);
+  gtk_box_pack_start (GTK_BOX (vbox98), hbox170, TRUE, TRUE, 0);
+
+  pixmap4 = create_pixmap (dlg_about, "icon.xpm");
+  gtk_widget_set_name (pixmap4, "pixmap4");
+  gtk_widget_ref (pixmap4);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_about), "pixmap4", pixmap4,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (pixmap4);
+  gtk_box_pack_start (GTK_BOX (hbox170), pixmap4, FALSE, TRUE, 0);
+  gtk_pixmap_set_build_insensitive (GTK_PIXMAP (pixmap4), FALSE);
+
   label_about_title = gtk_label_new ("[name and version]");
   gtk_widget_set_name (label_about_title, "label_about_title");
   gtk_widget_ref (label_about_title);
   gtk_object_set_data_full (GTK_OBJECT (dlg_about), "label_about_title", label_about_title,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (label_about_title);
-  gtk_box_pack_start (GTK_BOX (vbox98), label_about_title, FALSE, FALSE, 0);
+  gtk_box_pack_start (GTK_BOX (hbox170), label_about_title, TRUE, TRUE, 0);
 
   label_about_rcsid = gtk_label_new ("$Id$");
   gtk_widget_set_name (label_about_rcsid, "label_about_rcsid");
