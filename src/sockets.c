@@ -331,10 +331,6 @@ void socket_connected(gpointer data, gint source, GdkInputCondition cond)
 				struct gnutella_node *n = s->resource.node;
 
 				g_assert(n->socket == s);
-
-				s->gdk_tag = gdk_input_add(s->file_desc,
-					  GDK_INPUT_READ | GDK_INPUT_EXCEPTION,
-					  node_read_connecting, (gpointer) n);
 				node_init_outgoing(n);
 			}
 			break;

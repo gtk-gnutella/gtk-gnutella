@@ -7,6 +7,7 @@
 #include <fcntl.h>
 #include <sys/types.h>
 #include <string.h>
+#include <ctype.h>		/* For isspace() */
 
 #include <netinet/in.h>
 #include <arpa/inet.h>
@@ -168,8 +169,6 @@ void node_real_remove(struct gnutella_node *n)
 
 void node_remove(struct gnutella_node *n, const gchar * reason, ...)
 {
-	gboolean on;
-
 	g_return_if_fail(n);
 
 	if (n->status == GTA_NODE_REMOVING)
@@ -242,11 +241,6 @@ void node_remove(struct gnutella_node *n, const gchar * reason, ...)
 
 	gui_update_c_gnutellanet();
 	gui_update_node(n, TRUE);
-
-	on = on_the_net();
-
-	if (!on)
-		gtk_widget_set_sensitive(button_search, FALSE);
 }
 
 gboolean node_connected(guint32 ip, guint16 port, gboolean incoming)
@@ -362,22 +356,95 @@ static void send_connection_pongs(struct gnutella_node *n, guchar *muid)
 }
 
 /*
+ * formatted_connection_pongs
+ *
+ * Build CONNECT_PONGS_COUNT pongs to emit as an X-Try header.
+ * We stick to strict formatting rules: no line of more than 76 chars.
+ *
+ * Returns a pointer to static data.
+ *
+ * XXX Refactoring note: there is a need for generic header formatting
+ * routines, and especially the dumping routing, which could be taught
+ * basic formatting and splitting so that very long lines are dumped using
+ * continuations. --RAM, 10/01/2002
+ */
+static gchar *formatted_connection_pongs(gchar *field)
+{
+	static gchar fmt_line[MAX_LINE_SIZE];
+	struct gnutella_host hosts[CONNECT_PONGS_COUNT];
+	gint hcount;
+
+	hcount = host_fill_caught_array(hosts, CONNECT_PONGS_COUNT);
+	g_assert(hcount >= 0 && hcount <= CONNECT_PONGS_COUNT);
+
+	/*
+	 * XXX temporary implementation, until I find the time to write the
+	 * XXX generic formatting routines in "header.c" --RAM.
+	 */
+
+/* The most a pong can take is "xxx.xxx.xxx.xxx:yyyyy, ", i.e. 23 */
+#define PONG_LEN 23
+#define LINE_LENGTH	72
+
+	if (hcount) {
+		GString *line = g_string_sized_new(PONG_LEN * CONNECT_PONGS_COUNT + 30);
+		gint i;
+		gint curlen;
+
+		g_string_append(line, field);
+		g_string_append(line, ": ");
+		curlen = line->len;
+
+		for (i = 0; i < hcount; i++) {
+			gchar *ipstr = ip_port_to_gchar(hosts[i].ip, hosts[i].port);
+			gint plen = strlen(ipstr);
+			
+			if (curlen + plen + 2 > LINE_LENGTH) {	/* 2 for ", " */
+				g_string_append(line, ",\r\n    ");
+				curlen = 4;
+			} else {
+				g_string_append(line, ", ");
+				curlen += 2;
+			}
+			g_string_append(line, ipstr);
+			curlen += plen;
+		}
+		g_string_append(line, "\r\n");
+
+		strncpy(fmt_line, line->str, line->len);
+	} else
+		fmt_line[0] = '\0';		/* Nothing */
+
+#undef PONG_LEN
+#undef LINE_LENGTH
+
+	return fmt_line;		/* Pointer to static data */
+}
+
+/*
  * send_node_error
  *
  * Send error message to node.
  */
 static void send_node_error(struct gnutella_socket *s, int code, guchar *msg)
 {
-	gchar gnet_response[1024];
+	gchar gnet_response[2048];
 	gint rw;
 	gint sent;
 
-	// XXX if 503, add X-Try:
+	/*
+	 * When sending a 503 (Busy) error to a node, send some hosts from
+	 * our cache list as well.
+	 */
 
 	rw = g_snprintf(gnet_response, sizeof(gnet_response),
 		"GNUTELLA/0.6 %d %s\r\n"
-		"User-Agent: %s\r\n\r\n",
-		code, msg, version_string);
+		"User-Agent: %s\r\n"
+		"X-Live-Since: %s\r\n"
+		"%s"
+		"\r\n",
+		code, msg, version_string, start_rfc822_date,
+		code == 503 ? formatted_connection_pongs("X-Try") : "");
 
 	if (-1 == (sent = write(s->file_desc, gnet_response, rw)))
 		g_warning("Unable to send back error %d (%s) to node %s: %s",
@@ -495,52 +562,176 @@ static gint membuf_read(gint fd, gpointer buf, gint len)
 }
 
 /*
- * node_process_handshake_ack
+ * downgrade_handshaking
  *
- * This routine is called to process the whole 0.6+ handshake header
- * acknowledgement we get back after welcoming a node.
+ * For an outgoing *removed* node, retry the outgoing connection using
+ * a 0.4 handshaking this time.
  */
-static void node_process_handshake_ack(struct io_header *ih)
+static void downgrade_handshaking(struct gnutella_node *n)
 {
-	struct gnutella_node *n = ih->node;
+	struct gnutella_socket *s;
+
+	g_assert(n->status == GTA_NODE_REMOVING);
+	g_assert(!(n->flags & NODE_F_INCOMING));
+
+	if (dbg > 4)
+		printf("handshaking with %s failed, retrying at 0.4\n",
+			node_ip(n));
+
+	s = socket_connect(n->ip, n->port, GTA_TYPE_CONTROL);
+	n->flags &= ~NODE_F_RETRY_04;
+
+	if (s) {
+		n->status = GTA_NODE_CONNECTING;
+		s->resource.node = n;
+		n->socket = s;
+		n->proto_major = 0;
+		n->proto_minor = 4;
+		nodes_in_list++;
+	} else
+		n->remove_msg = "Re-connection failed";
+}
+
+/*
+ * extract_field_pongs
+ *
+ * Extract host:port information out of a header field and add those to our
+ * pong cache.
+ *
+ * Returns the amount of valid pongs we parsed.
+ *
+ * The syntax we expect is:
+ *
+ *   X-Try: host1:port1, host2:port2; host3:port3
+ *
+ * i.e. we're very flexible about the separators which can be "," or ";".
+ * We also allow for the port to be missing, in which case 6346 is used.
+ */
+static gint extract_field_pongs(guchar *field)
+{
+	guchar *tok;
+	gint pong = 0;
+
+	for (tok = strtok(field, ",;"); tok; tok = strtok(NULL, ",;")) {
+		guchar *s = tok;
+		guint16 port;
+		guint32 ip;
+		gint c;
+
+		while ((c = *tok)) {		/* Skip leading spaces */
+			if (!isspace(c))
+				break;
+			tok++;
+		}
+
+		while (*s && *s != ':')		/* Go to start of port */
+			s++;
+		port = (*s) ? atoi(s+1) : 6346;
+		c = *s;
+		*s = '\0';
+		ip = gchar_to_ip(tok);
+		*s = c;
+
+		if (ip) {
+			host_add(ip, port, FALSE);
+			pong++;
+		}
+	}
+
+	return pong;
+}
+
+/*
+ * extract_header_pongs
+ *
+ * Extract the header pongs from the header (X-Try lines).
+ * The node is only given for tracing purposes.
+ */
+static void extract_header_pongs(header_t *header, struct gnutella_node *n)
+{
+	gchar *field;
+	gint pong;
+
+	/*
+	 * The X-Try line refers to regular nodes.
+	 */
+
+	field = header_get(header, "X-Try");
+	if (field) {
+		pong = extract_field_pongs(field);
+		if (dbg > 4)
+			printf("Node %s sent us %d pong%s in header\n",
+				node_ip(n), pong, pong == 1 ? "" : "s");
+	}
+
+	/*
+	 * The X-Try-Ultrapeers line refers to ultra-nodes.
+	 * For now, we don't handle ultranodes, so store that as regular pongs.
+	 */
+
+	field = header_get(header, "X-Try-Ultrapeers");
+	if (field) {
+		pong = extract_field_pongs(field);
+		if (dbg > 4)
+			printf("Node %s sent us %d ultranode pong%s in header\n",
+				node_ip(n), pong, pong == 1 ? "" : "s");
+	}
+}
+
+/*
+ * analyse_status
+ *
+ * Analyses status lines we get from incoming handshakes (final ACK) or
+ * outgoing handshakes (inital REPLY, after our HELLO)
+ *
+ * Returns TRUE if acknowledgment was OK, FALSE if an error occurred, in
+ * which case the node was removed with proper status.
+ *
+ * If `code' is not NULL, it is filled with the returned code, or -1 if
+ * we were unable to parse the status.
+ */
+static gboolean analyse_status(struct gnutella_node *n, gint *code)
+{
 	struct gnutella_socket *s = n->socket;
 	gchar *status;
 	gint ack_code;
 	gint major, minor;
 	gchar *ack_message = "";
 	gboolean ack_ok = FALSE;
+	gboolean incoming = (n->flags & NODE_F_INCOMING) ? TRUE : FALSE;
+	gchar *what = incoming ? "acknowledgment" : "reply";
 
 	status = getline_str(s->getline);
-
-	if (dbg) {
-		printf("Got incoming acknowledgment headers from node %s:\n",
-			ip_to_gchar(n->ip));
-		dump_hex(stdout, "Status Line", status,
-			MIN(getline_length(s->getline), 80));
-		header_dump(ih->header, stdout);
-		fflush(stdout);
-	}
 
 	ack_code = parse_status_line(status, "GNUTELLA",
 		&ack_message, &major, &minor);
 
+	if (code)
+		*code = ack_code;
+
 	if (dbg) {
-		printf("ACK: code=%d, message=\"%s\", proto=%d.%d\n", ack_code,
-			ack_message, major, minor);
+		printf("%s: code=%d, message=\"%s\", proto=%d.%d\n",
+			incoming ? "ACK" : "REPLY",
+			ack_code, ack_message, major, minor);
 		fflush(stdout);
 	}
 	if (ack_code == -1) {
-		g_warning("weird GNUTELLA acknowledgment status line from %s",
-			ip_to_gchar(n->ip));
+		g_warning("weird GNUTELLA %s status line from %s",
+			what, ip_to_gchar(n->ip));
 		dump_hex(stderr, "Status Line", status,
 			MIN(getline_length(s->getline), 80));
 	} else
 		ack_ok = TRUE;
 
 	if (ack_ok && (major != n->proto_major || minor != n->proto_minor)) {
-		g_warning("node %s handshaked at %d.%d and now acks at %d.%d, "
-			"adjusting", ip_to_gchar(n->ip), n->proto_major, n->proto_minor,
-			major, minor);
+		if (incoming)
+			g_warning("node %s handshaked at %d.%d and now acks at %d.%d, "
+				"adjusting", ip_to_gchar(n->ip), n->proto_major, n->proto_minor,
+				major, minor);
+		else
+			g_warning("node %s was sent %d.%d HELLO but supports %d.%d only, "
+				"adjusting", ip_to_gchar(n->ip), n->proto_major, n->proto_minor,
+				major, minor);
 		n->proto_major = major;
 		n->proto_minor = minor;
 	}
@@ -550,11 +741,45 @@ static void node_process_handshake_ack(struct io_header *ih)
 	 */
 
 	if (!ack_ok)
-		node_remove(n, "Weird HELLO acknowlegment");
+		node_remove(n, "Weird HELLO %s", what);
 	else if (ack_code < 200 || ack_code >= 300) {
-		node_remove(n, "HELLO error %d (%s)", ack_code, ack_message);
+		n->flags &= ~NODE_F_RETRY_04;	/* If outgoing, don't retry */
+		node_remove(n, "HELLO %s error %d (%s)", what, ack_code, ack_message);
 		ack_ok = FALSE;
 	}
+	else if (!incoming && ack_code == 204) {
+		n->flags &= ~NODE_F_RETRY_04;	/* Don't retry */
+		node_remove(n, "Shielded node");
+		ack_ok = FALSE;
+	}
+
+	return ack_ok;
+}
+
+/*
+ * node_process_handshake_ack
+ *
+ * This routine is called to process the whole 0.6+ final handshake header
+ * acknowledgement we get back after welcoming an incoming node.
+ */
+static void node_process_handshake_ack(struct io_header *ih)
+{
+	struct gnutella_node *n = ih->node;
+	struct gnutella_socket *s = n->socket;
+	gboolean ack_ok;
+
+	if (dbg) {
+		printf("Got final acknowledgment headers from node %s:\n",
+			ip_to_gchar(n->ip));
+		dump_hex(stdout, "Status Line", getline_str(s->getline),
+			MIN(getline_length(s->getline), 80));
+		printf("------ Header Dump:\n");
+		header_dump(ih->header, stdout);
+		printf("\n------\n");
+		fflush(stdout);
+	}
+
+	ack_ok = analyse_status(n, NULL);
 
 	/*
 	 * We can now dispose of the io_header structure.
@@ -661,8 +886,10 @@ static void node_process_handshake_ack(struct io_header *ih)
 /*
  * node_process_handshake_header
  *
- * This routine is called to process the whole 0.6+ handshake header
- * and to either accept (welcoming the remote node) or deny the connection.
+ * This routine is called to process a 0.6+ handshake header
+ * It is either called to process the reply to our sending a 0.6 handshake
+ * (outgoing connections) or to parse te initial 0.6 headers (incoming
+ * connections).
  */
 static void node_process_handshake_header(struct io_header *ih)
 {
@@ -671,15 +898,24 @@ static void node_process_handshake_header(struct io_header *ih)
 	gint rw;
 	gint sent;
 	gchar *field;
+	gboolean incoming = (n->flags & NODE_F_INCOMING) ? TRUE : FALSE;
+	gchar *what = incoming ? "HELLO reply" : "HELLO acknowledgment";
 
 	if (dbg) {
-		printf("Got incoming handshaking headers from node %s:\n",
+		printf("Got %s handshaking headers from node %s:\n",
+			incoming ? "incoming" : "outgoing",
 			ip_to_gchar(n->ip));
+		if (!incoming)
+			dump_hex(stdout, "Status Line", getline_str(n->socket->getline),
+				MIN(getline_length(n->socket->getline), 80));
+		printf("------ Header Dump:\n");
 		header_dump(ih->header, stdout);
+		printf("\n------\n");
+		fflush(stdout);
 	}
 
 	/*
-	 * Handle common header fields.
+	 * Handle common header fields, non servent-specific.
 	 */
 
 	field = header_get(ih->header, "Pong-Caching");
@@ -693,38 +929,74 @@ static void node_process_handshake_header(struct io_header *ih)
 	}
 
 	/*
-	 * Welcome the incoming node.
+	 * If this is an outgoing connection, we're processing the remote
+	 * acknowledgment to our initial handshake.
 	 */
 
-	rw = g_snprintf(gnet_response, sizeof(gnet_response),
-		"GNUTELLA/0.6 200 OK\r\n"
-		"User-Agent: %s\r\n"
-		"Pong-Caching: 0.1\r\n"
-		"X-Comment: This is still experimental\r\n"
-		"\r\n",
-		version_string);
+	if (!(n->flags & NODE_F_INCOMING)) {
+		if (!analyse_status(n, NULL)) {
+			/*
+			 * If we have the "retry at 0.4" flag set, re-initiate the
+			 * connection at the 0.4 level.
+			 *
+			 * If the flag is not set, we got a valid 0.6 reply, but the
+			 * connection was denied.  Check the header nonetheless for
+			 * possible pongs.
+			 */
+
+			if (n->flags & NODE_F_RETRY_04)
+				downgrade_handshaking(n);
+			else
+				extract_header_pongs(ih->header, n);
+
+			goto final_cleanup;		/* node_remove() has freed s->getline */
+		}
+
+		/*
+		 * Prepare our final acknowledgment.
+		 */
+
+		rw = g_snprintf(gnet_response, sizeof(gnet_response),
+			"GNUTELLA/0.6 200 OK\r\n"
+			"\r\n");
+		
+	} else {
+		/*
+		 * Welcome the incoming node.
+		 */
+
+		rw = g_snprintf(gnet_response, sizeof(gnet_response),
+			"GNUTELLA/0.6 200 OK\r\n"
+			"User-Agent: %s\r\n"
+			"Pong-Caching: 0.1\r\n"
+			"Remote-IP: %s\r\n"
+			"X-Live-Since: %s\r\n"
+			"X-Comment: This is still experimental\r\n"
+			"\r\n",
+			version_string, ip_to_gchar(n->socket->ip), start_rfc822_date);
+	}
 
 	/*
-	 * When sending a handshake reply, we might not be able to transmit the
-	 * whole thing in one shot.  This should be rare, so we're not handling
-	 * the case for now.  Simply log it and close the connection.
+	 * We might not be able to transmit the reply atomically.
+	 * This should be rare, so we're not handling the case for now.
+	 * Simply log it and close the connection.
 	 */
 
 	if (-1 == (sent = write(n->socket->file_desc, gnet_response, rw))) {
 		int errcode = errno;
-		g_warning("Unable to send back handshake reply to node %s: %s",
-			ip_to_gchar(n->ip), g_strerror(errcode));
-		node_remove(n, "Failed (Cannot reply to HELLO: %s)",
-			g_strerror(errcode));
+		g_warning("Unable to send back %s to node %s: %s",
+			what, ip_to_gchar(n->ip), g_strerror(errcode));
+		node_remove(n, "Failed (Cannot send %s: %s)",
+			what, g_strerror(errcode));
 		goto final_cleanup;
 	} else if (sent < rw) {
-		g_warning("Could only send %d out of %d bytes of reply to node %s",
-			sent, rw, ip_to_gchar(n->ip));
-		node_remove(n, "Failed (Cannot send HELLO reply atomically)");
+		g_warning("Could only send %d out of %d bytes of %s to node %s",
+			sent, rw, what, ip_to_gchar(n->ip));
+		node_remove(n, "Failed (Cannot send %s atomically)", what);
 		goto final_cleanup;
 	} else if (dbg > 4) {
-		printf("----Sent OK handshake reply to %s:\n%.*s----\n",
-			ip_to_gchar(n->ip), rw, gnet_response);
+		printf("----Sent OK %s to %s:\n%.*s----\n",
+			what, ip_to_gchar(n->ip), rw, gnet_response);
 		fflush(stdout);
 	}
 
@@ -732,20 +1004,38 @@ static void node_process_handshake_header(struct io_header *ih)
 	 * Now that we got all the headers, we may update the `last_update' field.
 	 */
 
-	n->status = GTA_NODE_WELCOME_SENT;
 	n->last_update = time((time_t *) 0);
 
 	/*
-	 * The remote node is expected to send us an acknowledgement.
-	 * The I/O callback installed is still node_header_read(), but
-	 * we need to configure a different callback when the header
-	 * is collected.
+	 * If this is an incoming connection, we need to wait for the final ack.
+	 * If this is an outgoing connection, we're now connected on Gnet.
 	 */
 
-	header_reset(ih->header);
-	ih->flags |= IO_EXTRA_DATA_OK | IO_STATUS_LINE;
-	ih->process_header = node_process_handshake_ack;
-	return;
+	if (n->flags & NODE_F_INCOMING) {
+		/*
+		 * The remote node is expected to send us an acknowledgement.
+		 * The I/O callback installed is still node_header_read(), but
+		 * we need to configure a different callback when the header
+		 * is collected.
+		 */
+
+		n->status = GTA_NODE_WELCOME_SENT;
+
+		header_reset(ih->header);
+		ih->flags |= IO_EXTRA_DATA_OK | IO_STATUS_LINE;
+		ih->process_header = node_process_handshake_ack;
+		return;
+	} else {
+		struct gnutella_socket *s = n->socket;
+
+		gdk_input_remove(s->gdk_tag);
+		s->gdk_tag = 0;
+
+		node_is_now_connected(n);
+		pcache_outgoing_connection(n);	/* Will send proper handshaking ping */
+
+		/* FALL THROUGH */
+	}
 
 	/*
 	 * When we come here, we're done with the parsing structures, we can
@@ -862,7 +1152,8 @@ nextline:
 	 */
 
 	if (s->pos && !(ih->flags & IO_EXTRA_DATA_OK)) {
-		g_warning("incoming node %s sent extra bytes after HELLO",
+		g_warning("%s node %s sent extra bytes after HELLO",
+			(n->flags & NODE_F_INCOMING) ? "incoming" : "outgoing",
 			ip_to_gchar(s->ip));
 		dump_hex(stderr, "Extra HELLO Data", s->buffer, MIN(s->pos, 256));
 		node_remove(n, "Failed (Extra HELLO data)");
@@ -876,6 +1167,7 @@ nextline:
 	 */
 
 	if (n->proto_major == 0 && n->proto_minor == 4) {
+		g_assert(n->flags & NODE_F_INCOMING);
 		gdk_input_remove(s->gdk_tag);
 		s->gdk_tag = 0;
 		node_is_now_connected(n);
@@ -886,13 +1178,18 @@ nextline:
 	 * We're dealing with a 0.6+ handshake.
 	 *
 	 * If this is our first call, we'll go to node_process_handshake_header().
-	 * We need to welcome the node, and it will reply after our welcome,
-	 * so we don't free the io_header structure and the getline/header
-	 * objects yet.
 	 *
-	 * If this is our second call, we'll go to node_process_handshake_ack().
-	 * This will terminate the handshaking process, and cleanup the header
-	 * parsing structure, then install the data handling callback.
+	 * For incoming connections:
+	 * . We need to welcome the node, and it will reply after our welcome,
+	 *   so we don't free the io_header structure and the getline/header
+	 *   objects yet.
+	 *
+	 * . If this is our second call, we'll go to node_process_handshake_ack().
+	 *   This will terminate the handshaking process, and cleanup the header
+	 *   parsing structure, then install the data handling callback.
+	 *
+	 * For outgoing connections: we simply need to parse their reply and
+	 * accept/deny the connection.
 	 */
 
 	getline_reset(ih->getline);		/* Ensure it's empty, ready for reuse */
@@ -915,7 +1212,7 @@ final_cleanup:
  * node_header_read
  *
  * This routine is installed as an input callback to read the hanshaking
- * header.
+ * headers.
  */
 static void node_header_read(
 	gpointer data, gint source, GdkInputCondition cond)
@@ -968,6 +1265,15 @@ static void node_header_read(
 	 */
 
 final_cleanup:
+
+	/*
+	 * For an outgoing connection, the remote end probably did not
+	 * like our 0.6 handshake and closed the connection.  Retry at 0.4.
+	 */
+
+	if ((n->flags & (NODE_F_INCOMING|NODE_F_RETRY_04)) == NODE_F_RETRY_04)
+		downgrade_handshaking(n);
+
 	header_free(ih->header);
 	getline_free(ih->getline);
 	g_free(ih);
@@ -1074,6 +1380,8 @@ void node_add(struct gnutella_socket *s, guint32 ip, guint16 port)
 			n->socket = s;
 			n->gnet_ip = ip;
 			n->gnet_port = port;
+			n->proto_major = 0;
+			n->proto_minor = 6;				/* Handshake at 0.6 intially */
 		} else {
 			n->status = GTA_NODE_REMOVING;
 			n->remove_msg = "Connection failed";
@@ -1326,24 +1634,88 @@ reset_header:
 	n->pos = 0;
 }
 
+/*
+ * node_init_outgoing
+ *
+ * Called when asynchronous connection to an outgoing node is established.
+ */
 void node_init_outgoing(struct gnutella_node *n)
 {
+	struct gnutella_socket *s = n->socket;
 	gchar buf[MAX_LINE_SIZE];
 	gint len;
 	gint sent;
+	gboolean old_handshake = FALSE;
 
-	n->proto_major = 0;
-	n->proto_minor = 4;
-	len = g_snprintf(buf, sizeof(buf), "%s%d.%d\n\n", gnutella_hello, 0, 4);
+	g_assert(s->gdk_tag == 0);
 
-	if (-1 == (sent = write(n->socket->file_desc, buf, len)))
+	if (n->proto_major == 0 && n->proto_minor == 4) {
+		old_handshake = TRUE;
+		len = g_snprintf(buf, sizeof(buf), "%s%d.%d\n\n", gnutella_hello, 0, 4);
+	} else
+		len = g_snprintf(buf, sizeof(buf),
+			"GNUTELLA CONNECT/%d.%d\r\n"
+			"User-Agent: %s\r\n"
+			"Pong-Caching: 0.1\r\n"
+			"X-Live-Since: %s\r\n"
+			"X-Comment: This is still experimental\r\n"
+			"\r\n",
+			n->proto_major, n->proto_minor, version_string, start_rfc822_date);
+
+	/*
+	 * We don't retry a connection from 0.6 to 0.4 if we fail to write the
+	 * initial HELLO.
+	 */
+
+	if (-1 == (sent = write(n->socket->file_desc, buf, len))) {
 		node_remove(n, "Write error during HELLO: %s", g_strerror(errno));
-	else if (sent < len)
+		return;
+	} else if (sent < len) {
 		node_remove(n, "Partial write during HELLO");
-	else {
+		return;
+	} else {
 		n->status = GTA_NODE_HELLO_SENT;
 		gui_update_node(n, TRUE);
+
+		if (dbg > 4) {
+			printf("----Sent HELLO request to %s:\n%.*s----\n",
+				ip_to_gchar(n->ip), len, buf);
+			fflush(stdout);
+		}
 	}
+
+	/*
+	 * Setup I/O callback to read the reply to our HELLO.
+	 */
+
+	if (old_handshake) {
+		s->gdk_tag = gdk_input_add(s->file_desc,
+			GDK_INPUT_READ | GDK_INPUT_EXCEPTION,
+			node_read_connecting, (gpointer) n);
+	} else {
+		struct io_header *ih;
+
+		/*
+		 * Prepare parsing of the expected 0.6 reply.
+		 */
+
+		n->flags |= NODE_F_RETRY_04;		/* On failure, retry at 0.4 */
+
+		ih = (struct io_header *) g_malloc(sizeof(struct io_header));
+		ih->node = n;
+		ih->header = header_make();
+		ih->getline = getline_make();
+		ih->process_header = node_process_handshake_header;
+		ih->flags = IO_STATUS_LINE;
+
+		g_assert(s->gdk_tag == 0);
+
+		s->gdk_tag = gdk_input_add(s->file_desc,
+			(GdkInputCondition) GDK_INPUT_READ | GDK_INPUT_EXCEPTION,
+			node_header_read, (gpointer) ih);
+	}
+
+	g_assert(s->gdk_tag != 0);		/* Leave with an I/O callback set */
 }
 
 gboolean node_enqueue(struct gnutella_node *n, gchar * data, guint32 size)
@@ -1616,13 +1988,18 @@ void node_read(gpointer data, gint source, GdkInputCondition cond)
 		node_parse(n);
 }
 
-/* Reads an outgoing connecting CONTROL node */
-
+/*
+ * node_read_connecting
+ *
+ * Reads an outgoing connecting CONTROL node handshaking at the 0.4 level.
+ */
 void node_read_connecting(gpointer data, gint source, GdkInputCondition cond)
 {
 	struct gnutella_node *n = (struct gnutella_node *) data;
 	struct gnutella_socket *s = n->socket;
 	gint r;
+
+	g_assert(n->proto_major == 0 && n->proto_minor == 4);
 
 	if (cond & GDK_INPUT_EXCEPTION) {
 		node_remove(n, "Failed (Input Exception)");
@@ -1666,7 +2043,7 @@ void node_read_connecting(gpointer data, gint source, GdkInputCondition cond)
 	}
 
 	/*
-	 * Okay, we are now really connected to a gnutella node
+	 * Okay, we are now really connected to a Gnutella node at the 0.4 level.
 	 */
 
 	s->pos = 0;

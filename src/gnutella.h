@@ -117,6 +117,8 @@ guchar guid[16];				/* ID of our client for this session */
 extern struct gnutella_socket *s_listen;
 extern GtkWidget *main_window;
 extern gchar *version_string;
+extern time_t start_time;
+extern gchar *start_rfc822_date;
 
 /*
  * Functions

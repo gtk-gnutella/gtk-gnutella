@@ -26,8 +26,9 @@
 - Proxy connection errors were not reported (show_error() was not implemented).
 - Now parses HTTP headers correctly.
 - Handles HTTP "HEAD" requests correctly.
-- Handles incoming Gnet handshaking at the 0.6 level
-  (but does not issue outgoing 0.6 handshakes yet).
+- Handles Gnet handshaking at the 0.6 level.  All handshakes are now made at
+  the 0.6 level, and upon failure, retried at 0.4.  As for incoming
+  connections, both 0.4 and 0.6 are supported.
 - Cancelled uploads are now logged with details, since they don't appear
   in the GUI currently.
 - Mark upload/download as stalled if no I/O within the last minute
@@ -98,6 +99,9 @@
 - Accept searches even though we might not be connected to the net yet
   [From Mark Schreiber].
 - Added Host indication in the download screen [From Mark Schreiber].
+- Fixed buglet in has_same_active_download() where "waiting" downloads
+  were not considered when looking for duplicates, which could lead to
+  assertion failures for pushes later on.
 
 # v 0.18   2001.11.19
 

@@ -112,6 +112,7 @@ struct gnutella_node {
 #define NODE_F_TMP			0x00000004	/* Temporary, until we send pongs */
 #define NODE_F_INCOMING		0x00000008	/* Incoming (permanent) connection */
 #define NODE_F_PING_ALIEN	0x00000010	/* We don't know the limiting algo */
+#define NODE_F_RETRY_04		0x00000020	/* Retry handshake at 0.4 on failure */
 
 /*
  * Node states.

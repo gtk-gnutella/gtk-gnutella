@@ -26,6 +26,8 @@ GtkWidget *main_window;
 
 struct gnutella_socket *s_listen = NULL;
 gchar *version_string = NULL;
+time_t start_time;
+gchar *start_rfc822_date = NULL;		/* RFC822 format of start_time */
 
 static guint main_slow_update = 0;
 
@@ -51,6 +53,7 @@ void gtk_gnutella_exit(gint n)
 	upload_close();
 	gui_close();
 	g_free(version_string);
+	g_free(start_rfc822_date);
 
 	gtk_exit(n);
 }
@@ -65,7 +68,7 @@ static void SIG_Ignore(int n)
 	return;
 }
 
-static void init_version_string(void)
+static void init_constants(void)
 {
 	gchar buf[128];
 
@@ -73,6 +76,9 @@ static void init_version_string(void)
 		GTA_VERSION, GTA_SUBVERSION, GTA_REVISION);
 
 	version_string = g_strdup(buf);
+
+	start_time = time((time_t *) NULL);
+	start_rfc822_date = g_strdup(date_to_rfc822_gchar(start_time));
 }
 
 static void auto_connect(void)
@@ -337,7 +343,7 @@ gint main(gint argc, gchar ** argv)
 
 	/* Our inits */
 
-	init_version_string();
+	init_constants();
 	config_init();
 	host_init();
 	network_init();

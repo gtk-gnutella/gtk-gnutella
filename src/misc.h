@@ -1,6 +1,7 @@
 #ifndef __misc_h__
 #define __misc_h__
 
+#include <time.h>
 #include "nodes.h"
 
 /*
@@ -16,6 +17,7 @@ gchar *node_ip(struct gnutella_node *);
 void message_dump(struct gnutella_node *);
 gboolean is_directory(gchar *);
 gchar *guid_hex_str(guchar *guid);
+gchar *date_to_rfc822_gchar(time_t date);
 void dump_hex(FILE *, gchar *, gchar *, gint);
 gchar *short_size(guint32);
 void strlower(gchar *, gchar *);

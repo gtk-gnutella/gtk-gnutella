@@ -156,6 +156,21 @@ gchar *guid_hex_str(guchar *guid)
 	return buf;
 }
 
+/*
+ * date_to_rfc822_gchar
+ */
+gchar *date_to_rfc822_gchar(time_t date)
+{
+	static gchar buf[80];
+	struct tm *tm;
+
+	tm = localtime(&date);
+	strftime(buf, sizeof(buf), "%a, %d %b %Y %H:%M:%S %z", tm);
+	buf[sizeof(buf)-1] = '\0';		/* Be really sure */
+
+	return buf;
+}
+
 /* Dumps a gnutella message (debug) */
 
 void message_dump(struct gnutella_node *n)
