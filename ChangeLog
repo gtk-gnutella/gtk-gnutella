@@ -8,6 +8,9 @@ This is the stable 0.93.x branch.
  * Protect against "errno == 0" on failed open().
  * Even if we can't start the move/verify thread correctly for an item,
    invoke the download state change callbacks.
+ * Must use integer arg when calling ctype functions (fixes bug #897252).
+ * Must count two file descriptors per upload slot and active download: one
+   for the socket and one for the file being read/written.
 
 - (2004.02.14 - Richard)
  * [Gtk1] Try to avoid memory corruption during selection in search results due
