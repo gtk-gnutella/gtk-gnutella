@@ -1777,7 +1777,8 @@ done:
 	routing_log_flush(&log);
 
 	sender->header.hops++;				/* Mark passage through our node */
-	sender->header.ttl--;
+	if (sender->header.ttl)
+		sender->header.ttl--;
 
 	return !duplicate && handle_it;		/* Don't handle duplicates */
 }
