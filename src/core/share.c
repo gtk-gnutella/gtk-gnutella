@@ -1981,18 +1981,6 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 	}
 
 	/*
-	 * If we aren't going to let the searcher download anything, then
-	 * don't waste bandwidth and his time by giving him search results.
-	 *		--Mark Schreiber, 11/01/2002
-     *
-     * Also don't waste any time if we don't share a file.
-     *      -- Richard, 9/9/2002
-	 */
-
-	if (files_scanned == 0 || !upload_is_enabled())
-		return FALSE;
-
-	/*
 	 * Perform search...
 	 */
 
