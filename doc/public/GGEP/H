@@ -30,12 +30,18 @@ The payload format is:
 
 The currently supported hash types are:
 
-    Type    Hash        Digest length   URN scheme
-    ----    --------    -------------   -------------
-    0x01    sha1        20              urn:sha1:
-    0x02    bitprint    20+24=44 (a)    urn:bitprint:
-    0x03    md5         16              urn:md5:
-    0x04    uuid        16 (b)          uuid:
+    Type    Hash        Digest length   URN scheme      Encoding
+    ----    --------    -------------   -------------   --------
+    0x01    sha1        20              urn:sha1:       base32
+    0x02    bitprint    20+24=44 (a)    urn:bitprint:   base32
+    0x03    md5         16              urn:md5:        base64
+    0x04    uuid        16 (b)          uuid:           base16
+    0x05    md4         16              urn:md4:        base64
+
+(the URN scheme given is only an indication of a possible use of the hash
+value to rebuild one URN, with the associated encoding -- see RFC-3548
+for a formal definition of each encoding).
+
 
 The whole payload can be COBS-encoded in the case where the hash digest
 contains NUL bytes and the GGEP extension is used in Query Hits.  It does
