@@ -1564,8 +1564,9 @@ static void bsched_stealbeat(bsched_t *bs)
 
 	underused -= bs->bw_unwritten;
 
-	// XXX Remove that for now -- we don't know if the untriggered sources
-	// XXX had anything to write or not. -- RAM, 11/05/2003
+	/* XXX: Remove that for now -- we don't know if the untriggered sources
+	 *		had anything to write or not. -- RAM, 11/05/2003 */
+
 #if 0
 	/*
 	 * That's not enough for writing schedulers: some sources have no

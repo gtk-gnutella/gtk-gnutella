@@ -170,8 +170,10 @@ static void src_close(void)
 {
     guint n;
 
-    // See FIXME in download_close()!!
-    //g_assert(idtable_ids(src_handle_map) == 0);
+    /* See FIXME in download_close()!! */
+#if 0
+    g_assert(idtable_ids(src_handle_map) == 0);
+#endif
     idtable_destroy(src_handle_map);
 
     for (n = 0; n < G_N_ELEMENTS(src_events); n ++)
