@@ -184,7 +184,7 @@ void host_timer(void)
             if ((to_add + count) > (max_pool))
                 to_add = max_pool - count;
 
-            /* if (dbg > 10) */ {
+            if (dbg > 10) {
                 g_message("host_timer - connecting - add: %d fan:%d  miss:%d "
                      "max_hosts:%d   count:%d   extra:%d",
 					 to_add, fan, missing, max_nodes, count,
