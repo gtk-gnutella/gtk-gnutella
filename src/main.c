@@ -343,13 +343,15 @@ static gboolean scan_files_once(gpointer p)
 static void log_handler(const gchar *log_domain, GLogLevelFlags log_level,
 	const gchar *message, gpointer user_data)
 {
+	static time_t last = 0;
 	time_t now;
+	time_t delta;
 	struct tm *ct;
 	const char *level;
 	gchar *safer;
 
-	now = time((time_t *) NULL);
-	ct = localtime(&now);
+	now = time(NULL);
+	delta = now - last;
 
 	switch (log_level) {
 	case G_LOG_LEVEL_CRITICAL:
@@ -361,15 +363,29 @@ static void log_handler(const gchar *log_domain, GLogLevelFlags log_level,
 	case G_LOG_LEVEL_WARNING:
 		level = "WARNING"; 
 		break;
+	case G_LOG_LEVEL_MESSAGE:
+		level = "M"; 
+		break;
+	case G_LOG_LEVEL_INFO:
+		level = "I"; 
+		break;
+	case G_LOG_LEVEL_DEBUG:
+		level = "D"; 
+		break;
 	default:
 		level = "UNKNOWN";
 	}
 
 	safer = hex_escape(message, FALSE); /* non-strict escaping */
 
-	fprintf(stderr, "%.2d/%.2d/%.2d %.2d:%.2d:%.2d (%s): %s\n",
-		ct->tm_year % 100, ct->tm_mon + 1, ct->tm_mday,
-		ct->tm_hour, ct->tm_min, ct->tm_sec, level, safer);
+	if (delta >= 60) {
+		last = now;
+		ct = localtime(&now);
+		fprintf(stderr, "%.2d/%.2d/%.2d %.2d:%.2d:%.2d (%s): %s\n",
+			ct->tm_year % 100, ct->tm_mon + 1, ct->tm_mday,
+			ct->tm_hour, ct->tm_min, ct->tm_sec, level, safer);
+	} else
+		fprintf(stderr, "%+2.2d (%s): %s\n", (int) delta, level, safer);
 
 	if (safer != message)
 		G_FREE_NULL(safer);
@@ -378,8 +394,9 @@ static void log_handler(const gchar *log_domain, GLogLevelFlags log_level,
 static void log_init(void)
 {
 	g_log_set_handler(G_LOG_DOMAIN,
-		G_LOG_LEVEL_ERROR | G_LOG_LEVEL_WARNING | G_LOG_LEVEL_CRITICAL,
-		&log_handler, NULL);
+		G_LOG_LEVEL_ERROR | G_LOG_LEVEL_CRITICAL | G_LOG_LEVEL_WARNING |
+		G_LOG_LEVEL_MESSAGE | G_LOG_LEVEL_INFO | G_LOG_LEVEL_DEBUG,
+		log_handler, NULL);
 }
 
 gint main(gint argc, gchar **argv, gchar **env)
