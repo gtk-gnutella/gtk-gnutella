@@ -33,6 +33,8 @@ static gchar gui_tmp[4096];
 
 static void nodes_gui_update_meter(guint32 cnodes, guint32 nodes);
 static void nodes_gui_update_node_info(gnet_node_info_t *n);
+static void nodes_gui_update_node_flags(
+	gnet_node_t n, gnet_node_flags_t *flags);
 
 
 /***
@@ -86,15 +88,25 @@ static void nodes_gui_node_added(
  */
 static void nodes_gui_node_info_changed(gnet_node_t n)
 {
-    gnet_node_info_t *info;
+    gnet_node_info_t info;
     
-    info = node_get_info(n);
-
-    nodes_gui_update_node_info(info);
-    
-    node_free_info(info);
+    node_fill_info(n, &info);
+    nodes_gui_update_node_info(&info);
+    node_clear_info(&info);
 }
 
+/*
+ * nodes_gui_node_flags_changed
+ *
+ * Callback invoked when the node's user-visible flags are changed.
+ */
+static void nodes_gui_node_flags_changed(gnet_node_t n)
+{
+    gnet_node_flags_t flags;
+
+    node_fill_flags(n, &flags);
+    nodes_gui_update_node_flags(n, &flags);
+}
 
 
 /***
@@ -232,7 +244,53 @@ static void nodes_gui_update_node_info(gnet_node_info_t *n)
     }
 }
 
+/*
+ * nodes_gui_update_node_flags
+ *
+ * Display a summary of the node flags:
+ *
+ *    0123456 (offset)
+ *    NIrwTRF
+ *    ^^^^^^^
+ *    ||||||+ flow control
+ *    |||||+  indicates whether RX is compressed
+ *    ||||+   indicates whether TX is compressed
+ *    |||+    indicates whether node is writable
+ *    ||+     indicates whether node is readable
+ *    |+      indicates connection type (Incoming, Outgoing, Ponging)
+ *    +       indicates peer mode (Normal, Ultra, Leaf)
+ */
+static void nodes_gui_update_node_flags(gnet_node_t n, gnet_node_flags_t *flags)
+{
+	gint row;
+	gchar status[] = { '-', '-', '-', '-', '-', '-', '-', '\0' };
+    GtkCList *clist = GTK_CLIST
+        (lookup_widget(main_window, "clist_nodes"));
 
+	row = gtk_clist_find_row_from_data(clist, GUINT_TO_POINTER(n));
+
+    if (row != -1) {
+		switch (flags->peermode) {
+		case NODE_P_UNKNOWN:	break;
+		case NODE_P_ULTRA:		status[0] = 'U'; break;
+		case NODE_P_NORMAL:		status[0] = 'N'; break;
+		case NODE_P_LEAF:		status[0] = 'L'; break;
+		default:				g_assert(0); break;
+		}
+
+		status[1] = flags->incoming ? 'I' : 'O';
+		if (flags->temporary) status[1] = 'P';
+		if (flags->readable) status[2] = 'r';
+		if (flags->writable) status[3] = 'w';
+		if (flags->tx_compressed) status[4] = 'T';
+		if (flags->rx_compressed) status[5] = 'R';
+		if (flags->in_tx_flow_control) status[6] = 'F';
+
+        gtk_clist_set_text(clist, row, 1, status);
+    } else {
+        g_warning("%s: no matching row found", G_GNUC_PRETTY_FUNCTION);
+    }
+}
 
 
 /***
@@ -267,6 +325,7 @@ void nodes_gui_init(void)
     node_add_node_added_listener(nodes_gui_node_added);
     node_add_node_removed_listener(nodes_gui_node_removed);
     node_add_node_info_changed_listener(nodes_gui_node_info_changed);
+    node_add_node_flags_changed_listener(nodes_gui_node_flags_changed);
 }
 
 /*
@@ -319,7 +378,7 @@ void nodes_gui_add_node(gnet_node_info_t *n, const gchar *type)
 		n->proto_major, n->proto_minor);
 
     titles[0] = ip_port_to_gchar(n->ip, n->port);
-    titles[1] = g_strdup(type);
+    titles[1] = "...";
     titles[2] = n->vendor ? n->vendor : "...";
     titles[3] = proto_tmp;
     titles[4] = "...";
@@ -330,8 +389,6 @@ void nodes_gui_add_node(gnet_node_info_t *n, const gchar *type)
 
     row = gtk_clist_append(clist_nodes, titles);
     gtk_clist_set_row_data(clist_nodes, row, GUINT_TO_POINTER(n->node_handle));
-    
-    g_free(titles[1]);
 }
 
 

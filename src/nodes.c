@@ -134,6 +134,7 @@ static void call_node_process_handshake_ack(gpointer obj, header_t *header);
 static listeners_t node_added_listeners   = NULL;
 static listeners_t node_removed_listeners = NULL;
 static listeners_t node_info_changed_listeners = NULL;
+static listeners_t node_flags_changed_listeners = NULL;
 
 void node_add_node_added_listener(node_added_listener_t l)
 {
@@ -165,6 +166,16 @@ void node_remove_node_info_changed_listener(node_info_changed_listener_t l)
     LISTENER_REMOVE(node_info_changed, l);
 }
 
+void node_add_node_flags_changed_listener(node_flags_changed_listener_t l)
+{
+    LISTENER_ADD(node_flags_changed, l);
+}
+
+void node_remove_node_flags_changed_listener(node_flags_changed_listener_t l)
+{
+    LISTENER_REMOVE(node_flags_changed, l);
+}
+
 static void node_fire_node_added(
     gnutella_node_t *n, const gchar *type)
 {
@@ -185,6 +196,13 @@ static void node_fire_node_info_changed
 {
     LISTENER_EMIT(node_info_changed, n->node_handle);
 }
+
+static void node_fire_node_flags_changed
+    (gnutella_node_t *n)
+{
+    LISTENER_EMIT(node_flags_changed, n->node_handle);
+}
+
 
 /***
  *** Private functions
@@ -554,6 +572,7 @@ static void node_remove_v(
 		pending_byes--;
 
     node_fire_node_info_changed(n);
+    node_fire_node_flags_changed(n);
 }
 
 /*
@@ -700,6 +719,7 @@ static void node_shutdown_mode(struct gnutella_node *n, guint32 delay)
 	shutdown_nodes++;
 
     node_fire_node_info_changed(n);
+    node_fire_node_flags_changed(n);
 }
 
 /*
@@ -1168,6 +1188,7 @@ static void node_is_now_connected(struct gnutella_node *n)
 		n->socket->getline = NULL;
 	}
 
+	n->peermode = NODE_P_NORMAL;	/* XXX */
 	n->status = GTA_NODE_CONNECTED;
 	n->flags |= NODE_F_VALID | NODE_F_READABLE;
 	n->last_update = n->connect_date = time((time_t *) NULL);
@@ -1231,7 +1252,9 @@ static void node_is_now_connected(struct gnutella_node *n)
 	/*
 	 * Update the GUI.
 	 */
+
     node_fire_node_info_changed(n);
+    node_fire_node_flags_changed(n);
 
 	node_added = n;
 	g_hook_list_invoke(&node_added_hook_list, TRUE);
@@ -2199,6 +2222,7 @@ void node_add_socket(struct gnutella_socket *s, guint32 ip, guint16 port)
 	n->port = port;
 	n->proto_major = major;
 	n->proto_minor = minor;
+	n->peermode = NODE_P_UNKNOWN;		/* Until end of handshaking */
 
 	n->routing_data = NULL;
 	n->flags = NODE_F_HDSK_PING;
@@ -2268,6 +2292,7 @@ void node_add_socket(struct gnutella_socket *s, guint32 ip, guint16 port)
 	}
 
     node_fire_node_added(n, connection_type);
+    node_fire_node_flags_changed(n);
 
 	/*
 	 * Insert node in lists, before checking `already_connected', since
@@ -2655,6 +2680,7 @@ void node_flushq(struct gnutella_node *n)
 void node_tx_enter_flowc(struct gnutella_node *n)
 {
 	n->tx_flowc_date = time((time_t *) NULL);
+    node_fire_node_flags_changed(n);
 }
 
 /*
@@ -2670,6 +2696,8 @@ void node_tx_leave_flowc(struct gnutella_node *n)
 		printf("node %s spent %d second%s in TX FLOWC\n",
 			node_ip(n), spent, spent == 1 ? "" : "s");
 	}
+
+    node_fire_node_flags_changed(n);
 }
 
 /*
@@ -2686,6 +2714,8 @@ static void node_disable_read(struct gnutella_node *n)
 
 	n->flags |= NODE_F_NOREAD;
 	rx_disable(n->rx);
+
+    node_fire_node_flags_changed(n);
 }
 
 /*
@@ -3166,20 +3196,21 @@ __inline__ void node_set_vendor(gnutella_node_t *n, const gchar *vendor)
  */
 gnet_node_info_t *node_get_info(const gnet_node_t n)
 {
-    gnutella_node_t  *node = node_find_by_handle(n); 
     gnet_node_info_t *info = g_new(gnet_node_info_t, 1);
 
-    info->node_handle = n;
-
-    info->proto_major = node->proto_major;
-    info->proto_minor = node->proto_minor;
-    info->vendor = node->vendor ? g_strdup(node->vendor) : NULL;
-    memcpy(info->vcode, node->vcode, 4);
-
-    info->ip   = node->ip;
-    info->port = node->port;
-
+	node_fill_info(n, info);
     return info;
+}
+
+/*
+ * node_clear_info
+ *
+ * Clear dynamically allocated information from the info structure.
+ */
+void node_clear_info(gnet_node_info_t *info)
+{
+	if (info->vendor)
+		atom_str_free(info->vendor);
 }
 
 /*
@@ -3189,9 +3220,47 @@ gnet_node_info_t *node_get_info(const gnet_node_t n)
  */
 void node_free_info(gnet_node_info_t *info)
 {
-	if (info->vendor)
-        g_free(info->vendor);
+	node_clear_info(info);
     g_free(info);
+}
+
+/*
+ * node_fill_info
+ *
+ * Fill in supplied info structure.
+ */
+void node_fill_info(const gnet_node_t n, gnet_node_info_t *info)
+{
+    gnutella_node_t  *node = node_find_by_handle(n); 
+
+    info->node_handle = n;
+
+    info->proto_major = node->proto_major;
+    info->proto_minor = node->proto_minor;
+    info->vendor = node->vendor ? atom_str_get(node->vendor) : NULL;
+    memcpy(info->vcode, node->vcode, 4);
+
+    info->ip   = node->ip;
+    info->port = node->port;
+}
+
+/*
+ * node_fill_flags
+ *
+ * Fill in supplied flags structure.
+ */
+void node_fill_flags(const gnet_node_t n, gnet_node_flags_t *flags)
+{
+	gnutella_node_t *node = node_find_by_handle(n); 
+
+	flags->peermode = node->peermode;
+	flags->incoming = node->flags & NODE_F_INCOMING;
+	flags->temporary = node->flags & NODE_F_TMP;
+	flags->writable = NODE_IS_WRITABLE(node);
+	flags->readable = NODE_IS_READABLE(node);
+    flags->tx_compressed = NODE_TX_COMPRESSED(node);
+    flags->in_tx_flow_control  = NODE_IN_TX_FLOW_CONTROL(node);
+    flags->rx_compressed = NODE_RX_COMPRESSED(node);
 }
 
 void node_get_status(const gnet_node_t n, gnet_node_status_t *status)

@@ -45,6 +45,7 @@
 
 typedef struct gnutella_node {
     gnet_node_t node_handle;    /* Handle of this node */
+	node_peer_t peermode;		/* Operating mode (leaf, ultra, normal) */
 
 	gchar error_str[256];		/* To sprintf() error strings with vars */
 	struct gnutella_socket *socket;		/* Socket of the node */
@@ -63,7 +64,6 @@ typedef struct gnutella_node {
 	guint32 pos;			/* write position in data */
 
 	guchar status;			/* See possible values below */
-	guchar peermode;		/* See possible values below */
 	guint32 flags;			/* See possible values below */
 	guint32 attrs;			/* See possible values below */
 
@@ -170,14 +170,6 @@ typedef struct gnutella_node {
 #define NODE_A_TX_DEFLATE	0x00000020	/* Sending compressed data */
 
 #define NODE_A_CAN_INFLATE	0x80000000	/* Node capable of inflating */
-
-/*
- * Peer modes.
- */
-
-#define NODE_P_LEAF					0	/* Leaf node */
-#define NODE_P_NORMAL				1	/* Normal legacy node */
-#define NODE_P_ULTRA				2	/* Ultra node */
 
 /*
  * State inspection macros.

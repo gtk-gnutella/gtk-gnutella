@@ -110,6 +110,28 @@ typedef struct gnet_node_info {
 } gnet_node_info_t;
 
 /*
+ * Peer modes.
+ */
+
+typedef enum {
+	NODE_P_LEAF = 0,					/* Leaf node */
+	NODE_P_NORMAL,						/* Normal legacy node */
+	NODE_P_ULTRA,						/* Ultra node */
+	NODE_P_UNKNOWN,						/* Unknown mode yet */
+} node_peer_t;
+
+typedef struct gnet_node_flags {
+	node_peer_t peermode;
+	gboolean incoming;
+	gboolean temporary;
+	gboolean writable;
+	gboolean readable;
+	gboolean tx_compressed;
+	gboolean rx_compressed;
+	gboolean in_tx_flow_control;
+} gnet_node_flags_t;
+
+/*
  * Node states.
  */
 #define GTA_NODE_CONNECTING			1	/* Making outgoing connection */
@@ -128,6 +150,7 @@ typedef void (*node_added_listener_t) (
 typedef void (*node_removed_listener_t) (
     gnet_node_t, guint32, guint32);
 typedef void (*node_info_changed_listener_t) (gnet_node_t);
+typedef void (*node_flags_changed_listener_t) (gnet_node_t);
 
 #define node_add_listener(signal, callback) \
     node_add_##signal##_listener(callback);
@@ -141,6 +164,7 @@ void node_add_node_removed_listener(node_removed_listener_t);
 void node_remove_node_removed_listener(node_removed_listener_t);
 void node_add_node_info_changed_listener(node_info_changed_listener_t);
 void node_remove_node_info_changed_listener(node_info_changed_listener_t);
+void node_add_node_flags_changed_listener(node_flags_changed_listener_t);
 
 /*
  * Nodes public interface
@@ -150,7 +174,10 @@ void node_remove_by_handle(gnet_node_t n);
 void node_remove_nodes_by_handle(GSList *node_list);
 void node_get_status(const gnet_node_t n, gnet_node_status_t *s);
 gnet_node_info_t *node_get_info(const gnet_node_t n);
+void node_clear_info(gnet_node_info_t *info);
 void node_free_info(gnet_node_info_t *info);
+void node_fill_flags(gnet_node_t n, gnet_node_flags_t *flags);
+void node_fill_info(const gnet_node_t n, gnet_node_info_t *info);
 
 /***
  *** Sharing
