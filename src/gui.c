@@ -44,35 +44,7 @@ static gchar gui_tmp[4096];
 
 void gui_update_all() 
 {
-    guint32 proxy_protocol;
-
-    gnet_prop_get_guint32(PROP_PROXY_PROTOCOL, &proxy_protocol, 0, 1);
-
-    /* update gui setting from config variables */
-
 	gui_update_files_scanned();
-
-    gtk_toggle_button_set_active(
-        GTK_TOGGLE_BUTTON
-            (lookup_widget(main_window, "radio_config_http")),
-        (proxy_protocol == 1) ? TRUE : FALSE);
-	gtk_toggle_button_set_active(
-        GTK_TOGGLE_BUTTON
-            (lookup_widget(main_window, "radio_config_socksv4")),
-        (proxy_protocol == 4) ? TRUE : FALSE);
-	gtk_toggle_button_set_active(
-        GTK_TOGGLE_BUTTON
-            (lookup_widget(main_window, "radio_config_socksv5")),
-		(proxy_protocol == 5) ? TRUE : FALSE);
-
-    gtk_notebook_set_page(    
-        GTK_NOTEBOOK(lookup_widget(main_window, "notebook_sidebar")),
-        search_results_show_tabs ? 1 : 0);
-
-    gtk_notebook_set_show_tabs(
-        GTK_NOTEBOOK(lookup_widget(main_window, "notebook_search_results")),
-        search_results_show_tabs);
-
     gui_update_stats_frames();
 
     {
