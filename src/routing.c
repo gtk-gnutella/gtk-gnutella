@@ -996,7 +996,10 @@ route_message(struct gnutella_node **node, struct route_dest *dest)
 		 *		--RAM, 06/01/2002
 		 */
 
-		if (sender->header.function == GTA_MSG_SEARCH_RESULTS) {
+		if (
+			sender->header.function == GTA_MSG_SEARCH_RESULTS &&
+			!NODE_IS_UDP(sender)
+		) {
 			gchar *guid = sender->data + sender->size - 16;
 			g_assert(sender->size >= 16);
 
@@ -1119,6 +1122,13 @@ route_message(struct gnutella_node **node, struct route_dest *dest)
 
 		routing_log("[%c] ", handle_it ? 'H' : ' ');
 
+		/*
+		 * If we got a message from UDP, we don't have to route it.
+		 */
+
+		if (NODE_IS_UDP(sender))	/* Don't forward hits we got from UDP */
+			return handle_it;
+
 		/* We only have to forward the message the target node */
 
 		/*
@@ -1202,6 +1212,7 @@ route_message(struct gnutella_node **node, struct route_dest *dest)
 				/* XXX max_dup_msg & max_dup_ratio XXX ***/
 
 				if (++(sender->n_dups) > min_dup_msg &&
+					!NODE_IS_UDP(sender) &&
 					connected_nodes() > MAX(2, up_connections) &&
 					sender->n_dups > (guint16) 
                         (((float)min_dup_ratio) / 10000.0 * sender->received)
@@ -1328,6 +1339,13 @@ route_message(struct gnutella_node **node, struct route_dest *dest)
 				sender->rx_dropped++;
 				return FALSE;
 			}
+
+			/*
+			 * If the message comes from UDP, it's not going to go anywhere.
+			 */
+
+			if (NODE_IS_UDP(sender))
+				return TRUE;			/* Process it, but don't route */
 
 			/* If the node is flow-controlled on TX, then it is preferable
 			 * to drop queries immediately: the traffic the replies may
