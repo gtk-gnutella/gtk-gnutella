@@ -77,6 +77,7 @@
 #include "lib/pattern.h"
 #include "lib/utf8.h"
 #include "lib/walloc.h"
+#include "lib/watcher.h"
 #include "lib/wordvec.h"
 #include "ui/gtk/drop.h"
 #include "ui/gtk/gui.h"
@@ -271,6 +272,7 @@ void gtk_gnutella_exit(gint n)
 	whitelist_close();
 	features_close();
 	clock_close();
+	watcher_close();
 	cq_close();
 	word_vec_close();
 	pattern_close();
@@ -547,6 +549,7 @@ gint main(gint argc, gchar **argv, gchar **env)
 	gnet_stats_init();
 	main_gui_early_init(argc, argv);
 	cq_init();
+	watcher_init();
 	hcache_init(); /* before settings_init() */
 	settings_init();
     hcache_retrieve_all(); /* after settings_init() */
