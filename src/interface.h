@@ -9,6 +9,7 @@ GtkWidget* create_popup_search (void);
 GtkWidget* create_popup_monitor (void);
 GtkWidget* create_popup_nodes (void);
 GtkWidget* create_popup_uploads (void);
+GtkWidget* create_dlg_filters (void);
 
 /* Global Widgets (added by extern.tcl) */
 
@@ -54,6 +55,7 @@ extern GtkWidget *entry_hosts_in_catcher;
 extern GtkWidget *button_uploads_kill;
 extern GtkWidget *button_uploads_clear_completed;
 extern GtkWidget *checkbutton_uploads_auto_clear;
+extern GtkWidget *spinbutton_uploads_max_ip;
 extern GtkWidget *clist_uploads;
 extern GtkWidget *clist_downloads_queue;
 extern GtkWidget *button_queue_clear;
@@ -120,7 +122,6 @@ extern GtkWidget *button_ul_stats_clear_all;
 extern GtkWidget *button_ul_stats_clear_deleted;
 extern GtkWidget *checkbutton_autodownload;
 extern GtkWidget *checkbutton_search_stats_enable;
-extern GtkWidget *clist_connections;
 extern GtkWidget *clist_nodes;
 extern GtkWidget *clist_search_stats;
 extern GtkWidget *clist_ul_stats;
