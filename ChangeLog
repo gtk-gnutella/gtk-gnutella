@@ -1,5 +1,10 @@
 # Since last release:
 
+- Can now stop and resume passive searches as well.
+- Only resort to host catchers when host catch is empty
+- Now uses 4 host catchers: router.limewire.com, connect[1..3].gnutellanet.com
+- Fixed improper GUI dependency between min/max node connection settings
+- Identify as a "modern" client in the GUID, handling protocol 0.4.
 - Allocate node reception buffer once, not each time a >4K message is received.
 - Avoid dropping replies on high TTL, adjust the field down
 - Send back pongs and query hits using the hop count of request as TTL
