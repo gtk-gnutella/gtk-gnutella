@@ -3297,7 +3297,7 @@ void download_fallback_to_push(struct download *d,
  * When `interactive' is false, we assume that `file' was already duped,
  * and take ownership of the pointer.
  *
- * NB: If `record_index' == 0, and a `sha1' is also supplied, then
+ * NB: If `record_index' == URN_INDEX, and a `sha1' is also supplied, then
  * this is our convention for expressing a /uri-res/N2R? download URL.
  * However, we don't forbid 0 as a valid record index if it does not
  * have a SHA1.
@@ -5218,9 +5218,16 @@ static void check_push_proxies(struct download *d, header_t *header)
 		guint32 ip;
 		guint16 port;
 
-		if (gchar_to_ip_port(tok, &ip, &port)) {
-			gnet_host_t *host = walloc(sizeof(*host));
+		if (!gchar_to_ip_port(tok, &ip, &port))
+			continue;
 
+
+		if (is_private_ip(ip)) {
+			g_message("Host %s [%s] sent a private IP address as Push-Proxy.",
+				ip_port_to_gchar(download_ip(d), download_port(d)),
+				download_vendor_str(d));
+		} else {
+			gnet_host_t *host = walloc(sizeof(*host));
 			host->ip = ip;
 			host->port = port;
 
@@ -6591,6 +6598,8 @@ picked:
 	d->status = GTA_DL_REQ_SENDING;
 	d->last_update = time((time_t *) 0);
 
+	if (!DOWNLOAD_IS_VISIBLE(d))
+		download_gui_add(d);
 	gui_update_download_range(d);
 	gui_update_download(d, TRUE);
 
@@ -7563,7 +7572,7 @@ static void download_move(
 	gchar *dest = NULL;
 	gchar *src = NULL;
 	gboolean common_dir;
-	gchar *name;
+	const gchar *name;
 
 	g_assert(d);
 	g_assert(FILE_INFO_COMPLETE(d->file_info));
@@ -7714,7 +7723,7 @@ void download_move_error(struct download *d)
 	const gchar *ext;
 	gchar *src;
 	gchar *dest;
-	gchar *name;
+	const gchar *name;
 
 	g_assert(d->status == GTA_DL_MOVING);
 
@@ -7818,7 +7827,7 @@ void download_verify_progress(struct download *d, guint32 hashed)
 void download_verify_done(struct download *d, gchar *digest, time_t elapsed)
 {
 	struct dl_file_info *fi = d->file_info;
-	gchar *name = file_info_readable_filename(fi);
+	const gchar *name = file_info_readable_filename(fi);
 
 	g_assert(d->status == GTA_DL_VERIFYING);
 	g_assert(d->list_idx == DL_LIST_STOPPED);
@@ -7850,7 +7859,7 @@ void download_verify_done(struct download *d, gchar *digest, time_t elapsed)
 void download_verify_error(struct download *d)
 {
 	struct dl_file_info *fi = d->file_info;
-	gchar *name = file_info_readable_filename(fi);
+	const gchar *name = file_info_readable_filename(fi);
 
 	g_assert(d->status == GTA_DL_VERIFYING);
 
@@ -8059,7 +8068,7 @@ const gchar *build_url_from_download(struct download *d)
 
 	g_return_val_if_fail(d, NULL);
    
-	if (d->record_index == URN_INDEX && d->sha1) {
+	if (d->sha1) {
 		gm_snprintf(url_tmp, sizeof(url_tmp),
 			"http://%s/uri-res/N2R?urn:sha1:%s",
 			 ip_port_to_gchar(download_ip(d), download_port(d)),
