@@ -971,7 +971,20 @@ gboolean search_request(struct gnutella_node *n)
     /*
      * Push the query string to interested ones.
      */
-    share_emit_search_request(n->data+2);
+    if (search_request_listeners) {
+
+        gchar tmpstr[100];
+        gchar *str = n->data + 2;
+
+        if (!*str && sha1_query) {
+            /* If the query is empty and we have a SHA1 extension,
+             * we print a urn:sha1-query instead. */
+            g_snprintf(tmpstr, sizeof(tmpstr), "urn:sha1:%s", sha1_query);
+            str = tmpstr;
+        }
+
+        share_emit_search_request(str);
+    }
 
 	READ_GUINT16_LE(n->data, req_speed);
 
