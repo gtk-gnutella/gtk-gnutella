@@ -48,7 +48,8 @@ enum rule_text_type {
     RULE_TEXT_WORDS,
     RULE_TEXT_SUFFIX,
     RULE_TEXT_SUBSTR,
-    RULE_TEXT_REGEXP
+    RULE_TEXT_REGEXP,
+    RULE_TEXT_EXACT
 };
 
 typedef struct filter {
@@ -137,37 +138,38 @@ extern filter_t *work_filter;
  * Public interface.
  */
 
-rule_t *filter_new_ip_rule(guint32, guint32, filter_t *, guint16);
-rule_t *filter_new_size_rule(size_t, size_t, filter_t *, guint16);
-rule_t *filter_new_text_rule(gchar *, gint, gboolean, filter_t *, guint16);
-rule_t *filter_new_jump_rule(filter_t *,guint16);
 filter_t *filter_new(gchar *);
 gboolean filter_record(struct search *, struct record *);
+gchar *filter_rule_condition_to_gchar(rule_t *r);
+gchar *filter_rule_to_gchar(rule_t *f);
+inline gboolean filter_is_builtin(filter_t *f);
+inline gboolean filter_is_global(filter_t *f);
+inline void filter_reset_stats(filter_t *filter);
+inline void filter_rule_reset_stats(rule_t *rule);
 rule_t *filter_get_rule();
+rule_t *filter_new_ip_rule(guint32, guint32, filter_t *, guint16);
+rule_t *filter_new_jump_rule(filter_t *,guint16);
+rule_t *filter_new_size_rule(size_t, size_t, filter_t *, guint16);
+rule_t *filter_new_text_rule(gchar *, gint, gboolean, filter_t *, guint16);
 void filter_adapt_order(void);
-void filter_append_rule(filter_t *, rule_t *);
+void filter_append_rule(filter_t *f, rule_t *r);
+void filter_append_rule_to_session(filter_t *, rule_t *);
 void filter_cancel_changes();
 void filter_close_dialog(gboolean);
 void filter_close_search(struct search *);
 void filter_commit_changes();
-void filter_edit_ip_rule(rule_t *);
-void filter_edit_rule(rule_t *f);
-void filter_edit_size_rule(rule_t *);
-void filter_edit_text_rule(rule_t *);
-void filter_edit_jump_rule(rule_t *);
-void filter_free(filter_t *r);
+void filter_add_to_session(filter_t *f);
+void filter_remove_from_session(filter_t *f);
 void filter_init(void);
 void filter_new_for_search(struct search *s);
 void filter_open_dialog();
-void filter_remove_rule(filter_t *, rule_t *);
-void filter_replace_rule(filter_t *, rule_t *, rule_t *);
+void filter_remove_rule_from_session(filter_t *, rule_t *);
+void filter_replace_rule_in_session(filter_t *, rule_t *, rule_t *);
 void filter_set(filter_t *);
+void filter_set_enabled(filter_t *filter, gboolean active);
 void filter_shutdown(void);
 void filter_timer(void);
-inline void filter_reset_stats(filter_t *filter);
-inline void filter_rule_reset_stats(rule_t *rule);
-void filter_set_enabled(filter_t *filter, gboolean active);
-inline gboolean filter_is_global(filter_t *f);
-inline gboolean filter_is_builtin(filter_t *f);
 void filter_update_targets(void);
+inline filter_t *filter_get_drop_target(void);
+inline filter_t *filter_get_show_target(void);
 #endif /* __filter_h__ */
