@@ -405,7 +405,8 @@ gint utf8_to_iso8859(guchar *s, gint len, gboolean space)
  *
  * If ``len'' is 0 the length will be calculated using strlen(), otherwise
  * only ``len'' characters will be converted.
- * The function returns a pointer to a STATIC buffer! If the output
+ * If the string is already valid UTF-8 it will be returned "as-is".
+ * The function might return a pointer to a STATIC buffer! If the output
  * string is longer than 4095 characters it will be truncated.
  * Non-convertible characters will be replaced by '_'. In case of an
  * unrecoverable error, a special string will be returned. The returned
@@ -427,7 +428,12 @@ gchar *convert_to_utf8(gchar *str, size_t len, const char *charset)
 	static gchar outstr[4096 + 6]; /* an UTF-8 char is max. 6 bytes large */
 
 	g_assert(NULL != str);
-	
+
+    if (0 == len)
+        len = strlen(str);
+    if (len == utf8_is_valid_string(str, len))
+        return str;
+
 	if (!initialized) {
 		converter = g_iconv_open("UTF-8", charset);
 		if ((GIConv) -1 == converter) {
@@ -441,7 +447,7 @@ gchar *convert_to_utf8(gchar *str, size_t len, const char *charset)
 
 	inbuf = str;
 	outbuf = outstr;
-	inbytes_left = 0 == len ? strlen(str) : len;
+	inbytes_left = len;
 	outbytes_left = sizeof(outstr) - 7;
 	outstr[0] = '\0';
 
