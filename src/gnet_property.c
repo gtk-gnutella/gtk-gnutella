@@ -166,8 +166,14 @@ guint32  proxy_ip     = 0x00000000;
 guint32  proxy_ip_def = 0x00000000;
 guint32  proxy_port     = 0x0000;
 guint32  proxy_port_def = 0x0000;
-guint32  proxy_protocol     = PROXY_SOCKSV4;
-guint32  proxy_protocol_def = PROXY_SOCKSV4;
+guint32  proxy_protocol     = 0x0000;
+guint32  proxy_protocol_def = 0x0000;
+prop_def_choice_t proxy_protocol_choices[] = { 
+    {"HTTP", PROXY_HTTP},
+    {"SOCKS v4", PROXY_SOCKSV4},
+    {"SOCKS v5", PROXY_SOCKSV5},
+    {NULL, 0}
+};
 guint32  max_hosts_cached     = 20480;
 guint32  max_hosts_cached_def = 20480;
 guint32  hosts_in_catcher     = 0;
@@ -1547,12 +1553,12 @@ prop_set_t *gnet_prop_init(void) {
     gnet_property->props[64].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[64].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[64].type               = PROP_TYPE_MULTICHOICE;
     gnet_property->props[64].data.guint32.def   = &proxy_protocol_def;
     gnet_property->props[64].data.guint32.value = &proxy_protocol;
-    gnet_property->props[64].data.guint32.choices = NULL;
-    gnet_property->props[64].data.guint32.max   = 0x5;
-    gnet_property->props[64].data.guint32.min   = 0x1;
+    gnet_property->props[64].data.guint32.max   = 0xFFFFFFFF;
+    gnet_property->props[64].data.guint32.min   = 0x00000000;
+    gnet_property->props[64].data.guint32.choices = proxy_protocol_choices;
 
 
     /*

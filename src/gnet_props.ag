@@ -747,11 +747,21 @@ prop = {
 prop = {
     name = "proxy_protocol";
     desc = "Protocol the proxy uses";
-    type = guint32;
+    type = multichoice;
     data = {
         default = PROXY_SOCKSV4;
-        min     = 0x1;
-        max     = 0x5;
+    };
+    choice = {
+        name = "HTTP";
+        value = PROXY_HTTP;
+    };
+    choice = {
+        name = "SOCKS v4";
+        value = PROXY_SOCKSV4;
+    };
+    choice = {
+        name = "SOCKS v5";
+        value = PROXY_SOCKSV5;
     };
 };
 

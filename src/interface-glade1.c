@@ -330,10 +330,8 @@ create_main_window (void)
   GtkWidget *checkbutton_config_proxy_connections;
   GtkWidget *hbox59;
   GtkWidget *label90;
-  GSList *socks_version_group = NULL;
-  GtkWidget *radio_config_http;
-  GtkWidget *radio_config_socksv4;
-  GtkWidget *radio_config_socksv5;
+  GtkWidget *combo_config_proxy_protocol;
+  GtkWidget *combo_entry3;
   GtkWidget *hbox60;
   GtkWidget *label91;
   GtkWidget *entry_config_proxy_ip;
@@ -366,6 +364,9 @@ create_main_window (void)
   GtkWidget *scrolledwindow33;
   GtkWidget *viewport4;
   GtkWidget *vbox29;
+  GtkWidget *frame70;
+  GtkWidget *table49;
+  GtkWidget *checkbutton_config_bw_allow_stealing;
   GtkWidget *frame20;
   GtkWidget *table13;
   GtkWidget *checkbutton_config_bws_gin;
@@ -377,7 +378,6 @@ create_main_window (void)
   GtkObject *spinbutton_config_bws_gout_adj;
   GtkWidget *spinbutton_config_bws_gout;
   GtkWidget *frame12;
-  GtkWidget *vbox27;
   GtkWidget *table4;
   GtkWidget *label126;
   GtkObject *spinbutton_config_bws_in_adj;
@@ -390,12 +390,12 @@ create_main_window (void)
   GtkObject *spinbutton_config_ul_usage_min_percentage_adj;
   GtkWidget *spinbutton_config_ul_usage_min_percentage;
   GtkWidget *label210;
-  GtkWidget *hseparator8;
   GtkWidget *label125;
   GtkWidget *label156;
   GtkObject *spinbutton_config_speed_adj;
   GtkWidget *spinbutton_config_speed;
   GtkWidget *label36;
+  GtkWidget *hseparator8;
   GtkWidget *label121;
   GtkWidget *scrolledwindow19;
   GtkWidget *viewport5;
@@ -716,7 +716,7 @@ create_main_window (void)
   tmp_key = gtk_label_parse_uline (GTK_LABEL (GTK_BIN (menu_file)->child),
                                    "_File");
   gtk_widget_add_accelerator (menu_file, "activate_item", accel_group,
-                              tmp_key, GDK_MOD1_MASK, (GtkAccelFlags) 0);
+                              tmp_key, GDK_MOD1_MASK, 0);
   gtk_widget_set_name (menu_file, "menu_file");
   gtk_widget_ref (menu_file);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "menu_file", menu_file,
@@ -751,7 +751,7 @@ create_main_window (void)
   tmp_key = gtk_label_parse_uline (GTK_LABEL (GTK_BIN (menu_view)->child),
                                    "_View");
   gtk_widget_add_accelerator (menu_view, "activate_item", accel_group,
-                              tmp_key, GDK_MOD1_MASK, (GtkAccelFlags) 0);
+                              tmp_key, GDK_MOD1_MASK, 0);
   gtk_widget_set_name (menu_view, "menu_view");
   gtk_widget_ref (menu_view);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "menu_view", menu_view,
@@ -922,7 +922,7 @@ create_main_window (void)
   tmp_key = gtk_label_parse_uline (GTK_LABEL (GTK_BIN (menu_about)->child),
                                    "_About");
   gtk_widget_add_accelerator (menu_about, "activate_item", accel_group,
-                              tmp_key, GDK_MOD1_MASK, (GtkAccelFlags) 0);
+                              tmp_key, GDK_MOD1_MASK, 0);
   gtk_widget_set_name (menu_about, "menu_about");
   gtk_widget_ref (menu_about);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "menu_about", menu_about,
@@ -994,7 +994,7 @@ create_main_window (void)
   gtk_object_set_data_full (GTK_OBJECT (main_window), "vpaned_sidebar", vpaned_sidebar,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (vpaned_sidebar);
-  gtk_paned_pack1 (GTK_PANED (hpaned_main), vpaned_sidebar, FALSE, TRUE);
+  gtk_container_add (GTK_CONTAINER (hpaned_main), vpaned_sidebar);
   gtk_paned_set_handle_size (GTK_PANED (vpaned_sidebar), 8);
   gtk_paned_set_gutter_size (GTK_PANED (vpaned_sidebar), 8);
   gtk_paned_set_position (GTK_PANED (vpaned_sidebar), 114);
@@ -1005,7 +1005,7 @@ create_main_window (void)
   gtk_object_set_data_full (GTK_OBJECT (main_window), "sw_menu", sw_menu,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (sw_menu);
-  gtk_paned_pack1 (GTK_PANED (vpaned_sidebar), sw_menu, FALSE, TRUE);
+  gtk_container_add (GTK_CONTAINER (vpaned_sidebar), sw_menu);
   gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (sw_menu), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
 
   ctree_menu = gtk_ctree_new (1, 0);
@@ -1033,7 +1033,7 @@ create_main_window (void)
   gtk_object_set_data_full (GTK_OBJECT (main_window), "vbox46", vbox46,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (vbox46);
-  gtk_paned_pack2 (GTK_PANED (vpaned_sidebar), vbox46, TRUE, TRUE);
+  gtk_container_add (GTK_CONTAINER (vpaned_sidebar), vbox46);
 
   notebook_sidebar = gtk_notebook_new ();
   gtk_widget_set_name (notebook_sidebar, "notebook_sidebar");
@@ -1264,7 +1264,7 @@ create_main_window (void)
   gtk_object_set_data_full (GTK_OBJECT (main_window), "vbox_right", vbox_right,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (vbox_right);
-  gtk_paned_pack2 (GTK_PANED (hpaned_main), vbox_right, TRUE, TRUE);
+  gtk_container_add (GTK_CONTAINER (hpaned_main), vbox_right);
 
   notebook_main = gtk_notebook_new ();
   gtk_widget_set_name (notebook_main, "notebook_main");
@@ -2075,7 +2075,7 @@ create_main_window (void)
   gtk_object_set_data_full (GTK_OBJECT (main_window), "vbox36", vbox36,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (vbox36);
-  gtk_paned_pack1 (GTK_PANED (vpaned_downloads), vbox36, FALSE, TRUE);
+  gtk_container_add (GTK_CONTAINER (vpaned_downloads), vbox36);
 
   frame3 = gtk_frame_new ("Active downloads");
   gtk_widget_set_name (frame3, "frame3");
@@ -2287,7 +2287,7 @@ create_main_window (void)
   gtk_object_set_data_full (GTK_OBJECT (main_window), "scrolledwindow12", scrolledwindow12,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (scrolledwindow12);
-  gtk_paned_pack2 (GTK_PANED (vpaned_downloads), scrolledwindow12, TRUE, TRUE);
+  gtk_container_add (GTK_CONTAINER (vpaned_downloads), scrolledwindow12);
   gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolledwindow12), GTK_POLICY_NEVER, GTK_POLICY_NEVER);
 
   viewport1 = gtk_viewport_new (NULL, NULL);
@@ -2678,7 +2678,6 @@ create_main_window (void)
   gtk_table_attach (GTK_TABLE (table34), checkbutton_search_autoselect, 0, 1, 0, 1,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
-  gtk_tooltips_set_tip (tooltips, checkbutton_search_autoselect, "Automatically select all other results with the same name or urn:sha1.", NULL);
 
   checkbutton_search_autoselect_ident = gtk_check_button_new_with_label ("Autoselect identical");
   gtk_widget_set_name (checkbutton_search_autoselect_ident, "checkbutton_search_autoselect_ident");
@@ -2689,7 +2688,6 @@ create_main_window (void)
   gtk_table_attach (GTK_TABLE (table34), checkbutton_search_autoselect_ident, 1, 2, 0, 1,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
-  gtk_tooltips_set_tip (tooltips, checkbutton_search_autoselect_ident, "If on autoselection only takes place if filesize matches exactly, if off filesize must be equals or greater.", NULL);
 
   checkbutton_search_autoselect_fuzzy = gtk_check_button_new_with_label ("Use fuzzy matching");
   gtk_widget_set_name (checkbutton_search_autoselect_fuzzy, "checkbutton_search_autoselect_fuzzy");
@@ -3343,33 +3341,21 @@ create_main_window (void)
   gtk_widget_show (label90);
   gtk_box_pack_start (GTK_BOX (hbox59), label90, FALSE, FALSE, 0);
 
-  radio_config_http = gtk_radio_button_new_with_label (socks_version_group, "http");
-  socks_version_group = gtk_radio_button_group (GTK_RADIO_BUTTON (radio_config_http));
-  gtk_widget_set_name (radio_config_http, "radio_config_http");
-  gtk_widget_ref (radio_config_http);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "radio_config_http", radio_config_http,
+  combo_config_proxy_protocol = gtk_combo_new ();
+  gtk_widget_set_name (combo_config_proxy_protocol, "combo_config_proxy_protocol");
+  gtk_widget_ref (combo_config_proxy_protocol);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "combo_config_proxy_protocol", combo_config_proxy_protocol,
                             (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (radio_config_http);
-  gtk_box_pack_start (GTK_BOX (hbox59), radio_config_http, FALSE, FALSE, 0);
+  gtk_widget_show (combo_config_proxy_protocol);
+  gtk_box_pack_start (GTK_BOX (hbox59), combo_config_proxy_protocol, FALSE, FALSE, 0);
 
-  radio_config_socksv4 = gtk_radio_button_new_with_label (socks_version_group, "v4");
-  socks_version_group = gtk_radio_button_group (GTK_RADIO_BUTTON (radio_config_socksv4));
-  gtk_widget_set_name (radio_config_socksv4, "radio_config_socksv4");
-  gtk_widget_ref (radio_config_socksv4);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "radio_config_socksv4", radio_config_socksv4,
+  combo_entry3 = GTK_COMBO (combo_config_proxy_protocol)->entry;
+  gtk_widget_set_name (combo_entry3, "combo_entry3");
+  gtk_widget_ref (combo_entry3);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "combo_entry3", combo_entry3,
                             (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (radio_config_socksv4);
-  gtk_box_pack_start (GTK_BOX (hbox59), radio_config_socksv4, FALSE, FALSE, 0);
-  gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (radio_config_socksv4), TRUE);
-
-  radio_config_socksv5 = gtk_radio_button_new_with_label (socks_version_group, "v5");
-  socks_version_group = gtk_radio_button_group (GTK_RADIO_BUTTON (radio_config_socksv5));
-  gtk_widget_set_name (radio_config_socksv5, "radio_config_socksv5");
-  gtk_widget_ref (radio_config_socksv5);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "radio_config_socksv5", radio_config_socksv5,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (radio_config_socksv5);
-  gtk_box_pack_start (GTK_BOX (hbox59), radio_config_socksv5, FALSE, FALSE, 0);
+  gtk_widget_show (combo_entry3);
+  gtk_entry_set_editable (GTK_ENTRY (combo_entry3), FALSE);
 
   hbox60 = gtk_hbox_new (FALSE, 4);
   gtk_widget_set_name (hbox60, "hbox60");
@@ -3504,7 +3490,6 @@ create_main_window (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (checkbutton_config_use_netmasks);
   gtk_box_pack_start (GTK_BOX (hbox77), checkbutton_config_use_netmasks, FALSE, FALSE, 0);
-  gtk_tooltips_set_tip (tooltips, checkbutton_config_use_netmasks, "This option can give peformance boosts to those on a large network with many peers by trying to locate files on the local networks first.", NULL);
 
   hbox78 = gtk_hbox_new (FALSE, 4);
   gtk_widget_set_name (hbox78, "hbox78");
@@ -3629,6 +3614,35 @@ create_main_window (void)
   gtk_container_add (GTK_CONTAINER (viewport4), vbox29);
   gtk_container_set_border_width (GTK_CONTAINER (vbox29), 2);
 
+  frame70 = gtk_frame_new ("General");
+  gtk_widget_set_name (frame70, "frame70");
+  gtk_widget_ref (frame70);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "frame70", frame70,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (frame70);
+  gtk_box_pack_start (GTK_BOX (vbox29), frame70, FALSE, TRUE, 0);
+
+  table49 = gtk_table_new (1, 1, FALSE);
+  gtk_widget_set_name (table49, "table49");
+  gtk_widget_ref (table49);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "table49", table49,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (table49);
+  gtk_container_add (GTK_CONTAINER (frame70), table49);
+  gtk_container_set_border_width (GTK_CONTAINER (table49), 2);
+  gtk_table_set_row_spacings (GTK_TABLE (table49), 2);
+  gtk_table_set_col_spacings (GTK_TABLE (table49), 4);
+
+  checkbutton_config_bw_allow_stealing = gtk_check_button_new_with_label ("Use surplus bandwidth");
+  gtk_widget_set_name (checkbutton_config_bw_allow_stealing, "checkbutton_config_bw_allow_stealing");
+  gtk_widget_ref (checkbutton_config_bw_allow_stealing);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "checkbutton_config_bw_allow_stealing", checkbutton_config_bw_allow_stealing,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (checkbutton_config_bw_allow_stealing);
+  gtk_table_attach (GTK_TABLE (table49), checkbutton_config_bw_allow_stealing, 0, 1, 0, 1,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+
   frame20 = gtk_frame_new ("Bandwidth control for gnutellaNet traffic");
   gtk_widget_set_name (frame20, "frame20");
   gtk_widget_ref (frame20);
@@ -3724,22 +3738,13 @@ create_main_window (void)
   gtk_widget_show (frame12);
   gtk_box_pack_start (GTK_BOX (vbox29), frame12, FALSE, TRUE, 0);
 
-  vbox27 = gtk_vbox_new (FALSE, 2);
-  gtk_widget_set_name (vbox27, "vbox27");
-  gtk_widget_ref (vbox27);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "vbox27", vbox27,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (vbox27);
-  gtk_container_add (GTK_CONTAINER (frame12), vbox27);
-  gtk_container_set_border_width (GTK_CONTAINER (vbox27), 2);
-
   table4 = gtk_table_new (5, 3, FALSE);
   gtk_widget_set_name (table4, "table4");
   gtk_widget_ref (table4);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "table4", table4,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (table4);
-  gtk_box_pack_start (GTK_BOX (vbox27), table4, TRUE, TRUE, 0);
+  gtk_container_add (GTK_CONTAINER (frame12), table4);
   gtk_container_set_border_width (GTK_CONTAINER (table4), 2);
   gtk_table_set_row_spacings (GTK_TABLE (table4), 2);
   gtk_table_set_col_spacings (GTK_TABLE (table4), 4);
@@ -3810,7 +3815,6 @@ create_main_window (void)
   gtk_table_attach (GTK_TABLE (table4), checkbutton_config_bw_ul_usage_enabled, 0, 1, 2, 3,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
-  gtk_tooltips_set_tip (tooltips, checkbutton_config_bw_ul_usage_enabled, "Until xx% of outgoing HTTP bandwidth is in use, open additional upload slots on request.", NULL);
 
   spinbutton_config_ul_usage_min_percentage_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 10);
   spinbutton_config_ul_usage_min_percentage = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_ul_usage_min_percentage_adj), 1, 0);
@@ -3835,16 +3839,6 @@ create_main_window (void)
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label210), 0, 0.5);
-
-  hseparator8 = gtk_hseparator_new ();
-  gtk_widget_set_name (hseparator8, "hseparator8");
-  gtk_widget_ref (hseparator8);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "hseparator8", hseparator8,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (hseparator8);
-  gtk_table_attach (GTK_TABLE (table4), hseparator8, 0, 3, 3, 4,
-                    (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
-                    (GtkAttachOptions) (GTK_EXPAND | GTK_FILL), 0, 0);
 
   label125 = gtk_label_new ("K/s");
   gtk_widget_set_name (label125, "label125");
@@ -3892,6 +3886,16 @@ create_main_window (void)
                     (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label36), 7.45058e-09, 0.5);
+
+  hseparator8 = gtk_hseparator_new ();
+  gtk_widget_set_name (hseparator8, "hseparator8");
+  gtk_widget_ref (hseparator8);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "hseparator8", hseparator8,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (hseparator8);
+  gtk_table_attach (GTK_TABLE (table4), hseparator8, 0, 3, 3, 4,
+                    (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
+                    (GtkAttachOptions) (GTK_FILL), 0, 0);
 
   label121 = gtk_label_new ("Bandwidth\ncontrol");
   gtk_widget_set_name (label121, "label121");
@@ -5571,7 +5575,7 @@ create_main_window (void)
   gtk_object_set_data_full (GTK_OBJECT (main_window), "vbox90", vbox90,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (vbox90);
-  gtk_paned_pack1 (GTK_PANED (hpaned_gnet_stats), vbox90, FALSE, TRUE);
+  gtk_container_add (GTK_CONTAINER (hpaned_gnet_stats), vbox90);
 
   frame69 = gtk_frame_new ("Message/flow control stats");
   gtk_widget_set_name (frame69, "frame69");
@@ -5994,7 +5998,7 @@ create_main_window (void)
   gtk_object_set_data_full (GTK_OBJECT (main_window), "vbox93", vbox93,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (vbox93);
-  gtk_paned_pack2 (GTK_PANED (hpaned_gnet_stats), vbox93, TRUE, TRUE);
+  gtk_container_add (GTK_CONTAINER (hpaned_gnet_stats), vbox93);
 
   frame56 = gtk_frame_new ("Drop reasons");
   gtk_widget_set_name (frame56, "frame56");
@@ -6114,7 +6118,6 @@ create_main_window (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (togglebutton_online);
   gtk_box_pack_start (GTK_BOX (hbox_statusbar), togglebutton_online, FALSE, FALSE, 0);
-  gtk_button_set_relief (GTK_BUTTON (togglebutton_online), GTK_RELIEF_NONE);
 
   hbox145 = gtk_hbox_new (FALSE, 0);
   gtk_widget_set_name (hbox145, "hbox145");
@@ -6503,15 +6506,6 @@ create_main_window (void)
                       NULL);
   gtk_signal_connect (GTK_OBJECT (entry_config_force_ip), "focus_out_event",
                       GTK_SIGNAL_FUNC (on_entry_config_force_ip_focus_out_event),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (radio_config_http), "toggled",
-                      GTK_SIGNAL_FUNC (on_radio_config_http_toggled),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (radio_config_socksv4), "toggled",
-                      GTK_SIGNAL_FUNC (on_radio_config_socksv4_toggled),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (radio_config_socksv5), "toggled",
-                      GTK_SIGNAL_FUNC (on_radio_config_socksv5_toggled),
                       NULL);
   gtk_signal_connect (GTK_OBJECT (entry_config_proxy_ip), "activate",
                       GTK_SIGNAL_FUNC (on_entry_config_proxy_ip_activate),
@@ -7551,7 +7545,7 @@ create_dlg_filters (void)
   gtk_object_set_data_full (GTK_OBJECT (dlg_filters), "vbox59", vbox59,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (vbox59);
-  gtk_paned_pack1 (GTK_PANED (hpaned_filter_main), vbox59, FALSE, TRUE);
+  gtk_container_add (GTK_CONTAINER (hpaned_filter_main), vbox59);
 
   hbox111 = gtk_hbox_new (FALSE, 4);
   gtk_widget_set_name (hbox111, "hbox111");
@@ -7630,7 +7624,7 @@ create_dlg_filters (void)
   gtk_object_set_data_full (GTK_OBJECT (dlg_filters), "vbox32", vbox32,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (vbox32);
-  gtk_paned_pack2 (GTK_PANED (hpaned_filter_main), vbox32, TRUE, TRUE);
+  gtk_container_add (GTK_CONTAINER (hpaned_filter_main), vbox32);
 
   hbox97 = gtk_hbox_new (FALSE, 4);
   gtk_widget_set_name (hbox97, "hbox97");
@@ -10207,8 +10201,9 @@ create_dlg_about (void)
   gtk_widget_show (text1);
   gtk_container_add (GTK_CONTAINER (scrolledwindow18), text1);
   gtk_widget_set_usize (text1, 213, -2);
+  gtk_widget_realize (text1);
   gtk_text_insert (GTK_TEXT (text1), NULL, NULL, NULL,
-                   "Yann Grossel <olrick@users.sourceforge.net>\nSteven Wilcoxon <swilcoxon@users.sourceforge.net>\nJason Lingohr <lingman@users.sourceforge.net>\nBrian St Pierre <bstpierre@users.sourceforge.net>\nChuck Homic <homic@users.sourceforge.net>\nIngo Saitz <salz@users.sourceforge.net>\nBen Hochstedler <hochstrb@users.sourceforge.net>\nDaniel Walker <axiom@users.sourceforge.net>\nPaul Cassella <pwc@users.sourceforge.net> \nJared Mauch <jaredmauch@users.sourceforge.net>\nNate E <web1 (at) users dot sourceforge dot net>\nRaphaël Manfredi <Raphael_Manfredi@pobox.com>\nKenn Brooks Hamm <khamm@andrew.cmu.edu>\nMark Schreiber <mark7@andrew.cmu.edu>\nSam Varshavchik <mrsam@courier-mta.com>\nVladimir Klebanov <unny@rz.uni-karlsruhe.de>\nRoman Shterenzon <roman@xpert.com>\nRobert Bihlmeyer <robbe@orcus.priv.at>\nNoel T.Nunkovich <ntnunk@earthlink.net>\nMichael Tesch <tesch@users.sourceforge.net>\nMarkus 'guruz' Goetz <guruz@guruz.info>\nRichard Eckart <wyldfire@users.sourceforge.net>\nChristophe Tronche <ch.tronche@computer.org>\nAlex Bennee <alex@bennee.com>\nMike Perry <mikepery@fscked.org>\nZygo Blaxell <zblaxell@feedme.hungrycats.org>\nVidar Madsen <vidar@gimp.org>\nChristian Biere <christianbiere@gmx.de>", -1);
+                   "Yann Grossel <olrick@users.sourceforge.net>\nSteven Wilcoxon <swilcoxon@users.sourceforge.net>\nJason Lingohr <lingman@users.sourceforge.net>\nBrian St Pierre <bstpierre@users.sourceforge.net>\nChuck Homic <homic@users.sourceforge.net>\nIngo Saitz <salz@users.sourceforge.net>\nBen Hochstedler <hochstrb@users.sourceforge.net>\nDaniel Walker <axiom@users.sourceforge.net>\nPaul Cassella <pwc@users.sourceforge.net> \nJared Mauch <jaredmauch@users.sourceforge.net>\nNate E <web1 (at) users dot sourceforge dot net>\nRaphaël Manfredi <Raphael_Manfredi@pobox.com>\nKenn Brooks Hamm <khamm@andrew.cmu.edu>\nMark Schreiber <mark7@andrew.cmu.edu>\nSam Varshavchik <mrsam@courier-mta.com>\nVladimir Klebanov <unny@rz.uni-karlsruhe.de>\nRoman Shterenzon <roman@xpert.com>\nRobert Bihlmeyer <robbe@orcus.priv.at>\nNoel T.Nunkovich <ntnunk@earthlink.net>\nMichael Tesch <tesch@users.sourceforge.net>\nMarkus 'guruz' Goetz <guruz@guruz.info>\nRichard Eckart <wyldfire@users.sourceforge.net>\nChristophe Tronche <ch.tronche@computer.org>\nAlex Bennee <alex@bennee.com>\nMike Perry <mikepery@fscked.org>\nZygo Blaxell <zblaxell@feedme.hungrycats.org>\nVidar Madsen <vidar@gimp.org>\nChristian Biere <christianbiere@gmx.de>", 1182);
 
   label408 = gtk_label_new ("==> We are looking for people who want to contribute to this fine tool. <==\nVisit http://gtk-gnutella.sourceforge.net.\nJoin the users or developers mailing lists.\nMeet us on #gtk-gnutella at irc.freenode.net.");
   gtk_widget_set_name (label408, "label408");

@@ -1478,7 +1478,21 @@ static prop_map_t property_map[] = {
         update_spinbutton,
         TRUE,
         "spinbutton_config_ban_ratio_fds"
-    }
+    },
+    {
+        get_main_window,
+        PROP_PROXY_PROTOCOL,
+        update_multichoice,
+        TRUE,
+        "combo_config_proxy_protocol"
+    },
+    {
+        get_main_window,
+        PROP_BW_ALLOW_STEALING,
+        update_togglebutton,
+        TRUE,
+        "checkbutton_config_bw_allow_stealing"
+    },
 };
 
 /***

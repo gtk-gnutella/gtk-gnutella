@@ -40,17 +40,6 @@
         return FALSE;                                                   \
     }
 
-/*
- * Creates a callback function for radiobutton w to change the
- * value of the gnet-property v to the value i. f executed afterwards.
- */
-#define BIND_RADIOBUTTON(w,v,i)                                         \
-    void on_##w##_toggled(GtkToggleButton * togglebutton,               \
-						  gpointer user_data)                           \
-    {                                                                   \
-        if (gtk_toggle_button_get_active(togglebutton))                 \
-            gnet_prop_set_guint32_val(v, i);                            \
-    }
 
 static GtkWidget *add_dir_filesel = NULL;
 
@@ -397,15 +386,6 @@ void on_entry_config_netmask_activate(GtkEditable *editable, gpointer data)
     g_free(buf);
 }
 FOCUS_TO_ACTIVATE(entry_config_netmask)
-
-
-
-
-
-BIND_RADIOBUTTON(radio_config_http,    PROP_PROXY_PROTOCOL, 1)
-BIND_RADIOBUTTON(radio_config_socksv4, PROP_PROXY_PROTOCOL, 4)
-BIND_RADIOBUTTON(radio_config_socksv5, PROP_PROXY_PROTOCOL, 5)
-
 
 
 
