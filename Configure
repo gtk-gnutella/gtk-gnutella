@@ -18,7 +18,7 @@
 
 # $Id$
 #
-# Generated on Mon Nov  8 11:07:22 MET 2004 [metaconfig 3.0 PL70]
+# Generated on Mon Nov  8 12:30:23 MET 2004 [metaconfig 3.0 PL70]
 
 cat >c1$$ <<EOF
 ARGGGHHHH!!!!!
@@ -364,9 +364,6 @@ d_icu=''
 icu=''
 install=''
 installdir=''
-intsize=''
-longsize=''
-shortsize=''
 issymlink=''
 libc=''
 libnames=''
@@ -5410,46 +5407,6 @@ case "$installdir" in
 *) echo "As you already told me, '$installdir' should work.";;
 esac
 
-: check for lengths of integral types
-echo " "
-case "$intsize" in
-'')
-	echo "Checking to see how big your integers are..." >&4
-	$cat >intsize.c <<'EOCP'
-#include <stdio.h>
-int main()
-{
-	printf("intsize=%d;\n", sizeof(int));
-	fflush(stdout);
-	exit(0);
-}
-EOCP
-#	If $libs contains -lsfio, and sfio is mis-configured, then it
-#	sometimes (apparently) runs and exits with a 0 status, but with no
-#	output!.  Thus we check with test -s whether we actually got any
-#	output.  I think it has to do with sfio's use of _exit vs. exit,
-#	but I don't know for sure.  --Andy Dougherty  1/27/97.
-	if $cc $optimize $ccflags $ldflags -o intsize intsize.c $libs >/dev/null 2>&1 &&
-	./intsize > intsize.out 2>/dev/null && test -s intsize.out ; then
-		eval `$cat intsize.out`
-		echo "Your integers are $intsize bytes long."
-	else
-		$cat >&4 <<EOM
-!
-Help! I can't compile and run the intsize test program: please enlighten me!
-(This is probably a misconfiguration in your system or libraries, and
-you really ought to fix it.  Still, I'll try anyway.)
-!
-EOM
-		dflt=4
-		rp="What is the size of an integer (in bytes)?"
-		. ./myread
-		intsize="$ans"
-	fi
-	;;
-esac
-$rm -f intsize intsize.[co] intsize.out
-
 : see what memory models we can support
 case "$models" in
 '')
@@ -6448,7 +6405,6 @@ installbin='$installbin'
 installdir='$installdir'
 installmansrc='$installmansrc'
 installprivlib='$installprivlib'
-intsize='$intsize'
 issymlink='$issymlink'
 ksh='$ksh'
 large='$large'
@@ -6472,7 +6428,6 @@ locale='$locale'
 localeexp='$localeexp'
 locincpth='$locincpth'
 loclibpth='$loclibpth'
-longsize='$longsize'
 lp='$lp'
 lpr='$lpr'
 ls='$ls'
@@ -6527,7 +6482,6 @@ sendmail='$sendmail'
 sh='$sh'
 shar='$shar'
 sharpbang='$sharpbang'
-shortsize='$shortsize'
 shsharp='$shsharp'
 sleep='$sleep'
 smail='$smail'
