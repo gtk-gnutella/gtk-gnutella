@@ -153,7 +153,7 @@ ggept_status_t ggept_alt_extract(extvec_t *exv,
 	if (tlen % 6 != 0)
 		return GGEP_INVALID;
 
-	cnt = tlen % 6;
+	cnt = tlen / 6;
 	vec = walloc(cnt * sizeof(struct gnutella_host));
 
 	for (i = 0, h = vec; i < cnt; i++, h++) {
