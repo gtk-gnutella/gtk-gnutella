@@ -415,6 +415,8 @@ src/tx_deflate.c
 src/tx_deflate.h
 src/tx_link.c
 src/tx_link.h
+src/udp.c
+src/udp.h
 src/upload_stats.c
 src/upload_stats.h
 src/upload_stats_cb.c
