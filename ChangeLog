@@ -1,4 +1,36 @@
 # since last version
+
+# v 0.95	2004.11.27	[stable]
+
+- GUI updates:
+ * [GTK2] Enable drag and drop for magnet links
+ * Visual progress indicator correctly shows newly downloaded
+   fragments, shows fragments currently available for download more
+   accurately, and active downloads are marked with arrows.
+ * The maximum amount of search results has been lowered to 1000.  
+   Please use filters or more specific queries to find what you are
+   looking for if you get many search results.
+ * A detailed view has been added to the search results to show all
+   available information for a search result.
+- Bitzi support has been added to retrieve additional information on
+  possible downloads. See http://bitzi.com/ for details.
+- The geographic location of hosts can now be shown courtesy of MaxMind.
+- Recently developed features of the Gnutella network are now
+  supported:
+ * High outdegree provides better connectivity between Gnutella hosts.
+ * Last-hop QRP 
+ * Dynamic querying
+ * OOB (out of band) query hits lets other servents deliver search
+   results directly to you instead of going through the Gnutella network.
+- UDP is now also supported as a transport protocol in addition to
+  TCP. You may need to make changes to your firewall settings to take
+  advantage of this.
+- Support for very old Gnutella features has been removed or
+  deprecated to keep the network healthy.
+- Japanese translation added.
+- French and German translation updated.
+
+
 - (2004-11-21 - Richard)
  * Merge most of hache_remove into hcache_unlink_host and made the first
    use the latter.
