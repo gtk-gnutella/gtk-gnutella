@@ -874,6 +874,62 @@ static void pong_all_neighbours_but_one(
 }
 
 /*
+ * pong_random_leaf
+ *
+ * We received an ultra pong.
+ * Send it to one randomly selected leaf, which is not already missing pongs.
+ */
+static void pong_random_leaf(struct cached_pong *cp, guint8 hops, guint8 ttl)
+{
+	GSList *l;
+	gint leaves;
+	struct gnutella_node *leaf = NULL;
+
+	g_assert(current_peermode == NODE_P_ULTRA);
+
+	for (l = sl_nodes, leaves = 0; l; l = l->next) {
+		struct gnutella_node *cn = (struct gnutella_node *) l->data;
+		gint threshold;
+
+		if (cn->pong_missing)	/* A job for pong_all_neighbours_but_one() */
+			continue;
+
+		if (!NODE_IS_LEAF(cn))
+			continue;
+
+		/*
+		 * Randomly select one leaf.
+		 *
+		 * As we go along, the probability that we retain the current leaf
+		 * decreases.  It is 1 for the first leaf, 1/2 for the second leaf,
+		 * 1/3 for the third leaf, etc...
+		 */
+
+		leaves++;
+		threshold = (gint) (1000.0 / leaves);
+
+		if (random_value(999) < threshold)
+			leaf = cn;
+	}
+
+	/*
+	 * Send the pong to the selected leaf, if any.
+	 *
+	 * NB: If the leaf never sent a ping before, leaf->ping_guid will
+	 * be a zero GUID.  That's OK.
+	 */
+
+	if (leaf != NULL) {
+		send_pong(leaf, FALSE, hops + 1, ttl, leaf->ping_guid,
+			cp->ip, cp->port, cp->files_count, cp->kbytes_count);
+
+		if (dbg > 7)
+			printf("pong_random_leaf: sent pong %s (hops=%d, TTL=%d) to %s\n",
+				ip_port_to_gchar(cp->ip, cp->port), hops, ttl, node_ip(leaf));
+	}
+}
+
+/*
  * record_fresh_pong
  *
  * Add pong from node `n' to our cache of recent pongs.
@@ -1205,6 +1261,18 @@ void pcache_pong_received(struct gnutella_node *n)
 
 	if (current_peermode != NODE_P_LEAF)
 		pong_all_neighbours_but_one(n,
+			cp, CACHE_HOP_IDX(n->header.hops), MAX(1, n->header.ttl));
+
+	/*
+	 * If we're in ultra mode, send 33% of all the ultra pongs we get
+	 * to one random leaf.
+	 */
+
+	if (
+		current_peermode == NODE_P_ULTRA &&
+		ptype == HCACHE_ULTRA && random_value(99) < 33
+	)
+		pong_random_leaf(
 			cp, CACHE_HOP_IDX(n->header.hops), MAX(1, n->header.ttl));
 }
 
