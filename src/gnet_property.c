@@ -1637,7 +1637,7 @@ prop_set_t *gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[74].name = "min_dup_ratio";
-    gnet_property->props[74].desc = "Minimum ratio of dups on received messages, per node (beween 0.00 and 100.00) (also see [min_dup_msg]) Note: the value is stored between 0 (0.0) and 10000 (100.0) in the config file";
+    gnet_property->props[74].desc = "Minimum ratio of dups on received messages, per node (between 0.00 and 100.00) (also see [min_dup_msg]) Note: the value is stored between 0 (0.0) and 10000 (100.0) in the config file";
     gnet_property->props[74].prop_changed_listeners = NULL;
     gnet_property->props[74].save = TRUE;
     gnet_property->props[74].vector_size = 1;
