@@ -433,9 +433,13 @@ gpointer string_record(const gchar *s, gchar *file, gint line)
 
 #if defined(TRACK_MALLOC) || defined(TRACK_ZALLOC)
 
+struct leak_record {		/* Informations about leak at some place */
+	guint32 size;			/* Total size allocated there */
+	guint32 count;			/* Amount of allocations */
+};
+
 struct leak_set {
-	GHashTable *places;		/* Maps "file:4" -> total bytes */
-	GHashTable *counts;		/* Maps "file:4" -> # of times seen */
+	GHashTable *places;		/* Maps "file:4" -> leak_record */
 };
 
 /*
@@ -449,7 +453,6 @@ gpointer leak_init(void)
 
 	ls = malloc(sizeof(struct leak_set));
 	ls->places = g_hash_table_new(g_str_hash, g_str_equal);
-	ls->counts = g_hash_table_new(g_str_hash, g_str_equal);
 
 	return ls;
 }
@@ -462,6 +465,7 @@ gpointer leak_init(void)
 static gboolean leak_free_kv(gpointer key, gpointer value, gpointer user)
 {
 	free(key);
+	free(value);
 	return TRUE;
 }
 
@@ -474,13 +478,8 @@ void leak_close(gpointer o)
 {
 	struct leak_set *ls = (struct leak_set *) o;
 
-	/*
-	 * Key strings are shared between the `places' and `counts' hash tables.
-	 */
-
 	g_hash_table_foreach_remove(ls->places, leak_free_kv, NULL);
 	g_hash_table_destroy(ls->places);
-	g_hash_table_destroy(ls->counts);
 
 	free(ls);
 }
@@ -494,33 +493,29 @@ void leak_add(gpointer o, guint32 size, gchar *file, gint line)
 {
 	struct leak_set *ls = (struct leak_set *) o;
 	gchar *key = g_strdup_printf("%s:%d", file, line);
+	struct leak_record *lr;
 	gboolean found;
 	gpointer k;
 	gpointer v;
 
 	found = g_hash_table_lookup_extended(ls->places, key, &k, &v);
 
-	/*
-	 * NB: keys are shared between the two hash tables.
-	 */
-
 	if (found) {
-		guint32 leaked = size + GPOINTER_TO_UINT(v);
-		guint32 count = GPOINTER_TO_UINT(g_hash_table_lookup(ls->counts, key));
-		g_hash_table_insert(ls->places, k, GUINT_TO_POINTER(leaked));
-		count++;
-		g_hash_table_insert(ls->counts, k, GUINT_TO_POINTER(count));
+		lr = (struct leak_record *) v;
+		lr->size += size;
+		lr->count++;
 		g_free(key);
 	} else {
-		g_hash_table_insert(ls->places, key, GUINT_TO_POINTER(size));
-		g_hash_table_insert(ls->counts, key, GUINT_TO_POINTER(1));
+		lr = malloc(sizeof(*lr));
+		lr->size = size;
+		lr->count = 1;
+		g_hash_table_insert(ls->places, key, lr);
 	}
 }
 
 struct leak {			/* A memory leak, for sorting purposes */
 	gchar *place;
-	guint32 size;
-	guint count;
+	struct leak_record *lr;
 };
 
 /*
@@ -531,8 +526,8 @@ struct leak {			/* A memory leak, for sorting purposes */
  */
 static gint leak_size_cmp(const void *p1, const void *p2)
 {
-	guint32 i1 = ((struct leak *) p1)->size;
-	guint32 i2 = ((struct leak *) p2)->size;
+	guint32 i1 = ((struct leak *) p1)->lr->size;
+	guint32 i2 = ((struct leak *) p2)->lr->size;
 
 	return
 		i1 == i2 ?  0 :
@@ -543,7 +538,6 @@ struct filler {			/* Used by hash table iterator to fill leak array */
 	struct leak *leaks;
 	gint count;			/* Size of `leaks' array */
 	gint idx;			/* Next index to be filled */
-	GHashTable *counts;	/* Hash table yielding amount of blocks leaked */
 };
 
 /*
@@ -555,13 +549,13 @@ static void fill_array(gpointer key, gpointer value, gpointer user)
 {
 	struct filler *filler = (struct filler *) user;
 	struct leak *l;
+	struct leak_record *lr = (struct leak_record *) value;
 
 	g_assert(filler->idx < filler->count);
 
 	l = &filler->leaks[filler->idx++];
 	l->place = (gchar *) key;
-	l->size = GPOINTER_TO_UINT(value);
-	l->count = GPOINTER_TO_UINT(g_hash_table_lookup(filler->counts, key));
+	l->lr = lr;
 }
 
 /*
@@ -584,7 +578,6 @@ void leak_dump(gpointer o)
 	filler.leaks = (struct leak *) malloc(sizeof(struct leak) * count);
 	filler.count = count;
 	filler.idx = 0;
-	filler.counts = ls->counts;
 
 	/*
 	 * Linearize hash table into an array before sorting it by
@@ -602,8 +595,8 @@ void leak_dump(gpointer o)
 
 	for (i = 0; i < count; i++) {
 		struct leak *l = &filler.leaks[i];
-		g_warning("%u bytes (%u block%s) from \"%s\"", l->size,
-			l->count, l->count == 1 ? "" : "s", l->place);
+		g_warning("%u bytes (%u block%s) from \"%s\"", l->lr->size,
+			l->lr->count, l->lr->count == 1 ? "" : "s", l->place);
 	}
 
 	free(filler.leaks);
