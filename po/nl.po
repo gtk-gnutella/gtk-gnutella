@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.92c\n"
 "POT-Creation-Date: 2003-06-07 21:33+0200\n"
-"PO-Revision-Date: 2003-06-10 21:37--100\n"
+"PO-Revision-Date: 2003-06-22 17:12--100\n"
 "Last-Translator: Jeroen Asselman <jeroen@asselman.com>\n"
 "Language-Team: nl <jeroen@asselman.com>\n"
 "MIME-Version: 1.0\n"
@@ -273,7 +273,7 @@ msgstr "Tijd in seconden dat een node in 'verzenden bandbreedte beheer' kan blij
 
 #: gnet_property.c:1295
 msgid "Maximum percentage of time over 5 minutes that our node can remain in flow control remotely before dropping the connection.  This only works with nodes that will send us an hops-flow message when they are flow-controlling us."
-msgstr ""
+msgstr "Maximale percentage over 5 minuten tijd dat deze node in flow control modus mag blijven bij een remote host voordat de connectie wordt verbroken. Dit zal echter alleen werken als de remote node waarmee we verbonden zijn hops-flow berichten stuurt als we worden geflow-controlled"
 
 #: gnet_property.c:1315
 msgid "Maximum TTL we allow in messages we broadcast.  If a message comes in with a TTL greater than that, it will be trimmed down to that value.  On Gnutella, the standard is TTL=7, so you cannot set a value lower than that."
@@ -488,23 +488,23 @@ msgstr "Alleen de bestanden met deze extensie zullen worden gedeelt. De speciale
 
 #: gnet_property.c:2298
 msgid "Ignore symbolically linked directories when scanning files to share."
-msgstr ""
+msgstr "Negeer symbolic links directories wanneer er gezocht wordt naar bestanden om te delen."
 
 #: gnet_property.c:2315
 msgid "Ignore symbolically linked regular files when scanning files to share."
-msgstr ""
+msgstr "Negeer normale symbolic linked bestanden wanneer er gezocht wordt naar bestanden om te delen."
 
 #: gnet_property.c:2332
 msgid "Store incomplete files in this directory"
-msgstr ""
+msgstr "Bewaar incomplete bestanden in deze directory"
 
 #: gnet_property.c:2353
 msgid "Move complete files to this directory. If this is set to the SAME directory as the incomplete or corrupted files, files will be renamed with a trailing .OK"
-msgstr ""
+msgstr "Verplaatste afgeronde downloads naar deze directorie. Als deze directory hetzelfde is als de directory voor incomplete en corrupte bestanden, dan zullen de afgeronden downloads worden hernoemd met een .OK als extensie"
 
 #: gnet_property.c:2374
 msgid "Move corrupted, downloaded files to this directory. If this is set to the SAME directory as the incomplete or completed files, files will be renamed with a trailing .BAD"
-msgstr ""
+msgstr "Verplaats gedownloade bestanden die corrupt zijn naar deze directory. Als deze directory hetzelfde is als de directory voor incomplete en corrupte bestanden, dan zullen de corrupte bestanden worden hernoemd met als extensie .BAD"
 
 #: gnet_property.c:2395
 msgid "Directories which contain shared files"
@@ -512,7 +512,7 @@ msgstr "Directories waar gedeelde bestanden staan"
 
 #: gnet_property.c:2416
 msgid "List of networks considered local.  This is a list of IP addresses, separated by ';'.  The IP address can be given out fully, as in 192.168.0.1, or be optionally followed by '/' and a network mask prefix length. For instance, 192.168.0.1/24 would represent the whole 192.168.0.* network."
-msgstr ""
+msgstr "Lijst met netwerken welken als lokaal worden beschouwd. Dit is een lijst met IP adressen, gescheiden door een ';'. Het IP adres mag volledig worden gegeven, bijvoorbeeld 192.168.0.1. Eventueel kan het gevolgd  worden met een netwerk mask lengte. Bijvoorbeeld: 192.168.0.1/24 staat voor het hele 192.168.0.* netwerk."
 
 #: gnet_property.c:2437
 msgid "Total number of completed downloads in this session"
@@ -564,7 +564,7 @@ msgstr "Gebruik 'fuzzy' bestandsnaam vergelijking (dit wordt afgeraden; vertrouw
 
 #: gnet_property.c:2659
 msgid "Fuzziness threshold for filename matching (higher = stricter). A value of 100 means the filenames must be 100% identical.  A value of 0 means any two filenames will always be considered to be identical.  The minimum is 50%."
-msgstr ""
+msgstr "Wazigheids grens voor het bepalen of een bestandsnaam overeenkomt met een andere bestandsnaam, hoe hoger de waarde, hoe strikter deze vergelijking is. Een waarde van 100 betekent dat de bestandsnaam 100% identiek moet zijn. Een waarde van 0 betekent dat 2 verschillende bestandsnamen altijd als gelijkt worden beschouwd. Het minimum is 50%."
 
 #: gnet_property.c:2679
 msgid "Whether gtk-gnutella thinks we're currently firewalled"
@@ -576,39 +576,39 @@ msgstr "Of gtk-gnutella denkt dat deze host met het internet verbonden is of nie
 
 #: gnet_property.c:2713
 msgid "Remove unnecessary ballast from query string before processing or forwarding them. Reduces traffic at the cost of little CPU time"
-msgstr ""
+msgstr "Verwijder onnodige ballast van een query string voordat deze wordt verwerkt of wordt doorgestuurd. Dit reduceert het gnutella verkeer ten koste van een klein beetje CPU tijd."
 
 #: gnet_property.c:2730
 msgid "Also use sources that don't provide a SHA1 value for the first chunk of a file. This dramatically reduces the 'No URN on server' messages, but may result in overlap problems later if the first chunk was actually from a different file. Use with caution."
-msgstr ""
+msgstr "Gebruik ook de bronnen waarvoor geen SHA1 waarde bekend is voor het eerste fragment van een bestand. Dit vermindert het aantal \"Geen URN op de server\" drastisch, maar dit kan later tot problemen leiden als blijkt dat het eerste fragment eigenlijk een ander bestands was. Denk goed na voordat je deze optie gebruikt."
 
 #: gnet_property.c:2747
 msgid "Mark files that would be ignored when downloaded. This uses a little additional CPU power so it's off by default. If you don't have a very slow box, you might want to turn this on."
-msgstr ""
+msgstr "Markeer bestanden die genegeerd zullen worden wanneer ze worden geselecteerd om te downloaden. Dit gebruikt een klein beetje CPY tijd, dit is tevens de reden waarom dit standaard uit staan. Je kan dit aanzetten als je gtk-gnutella op een iets snellere pc draait."
 
 #: gnet_property.c:2764
 msgid "Whether gtk-gnutella is currently rebuilding its library in the background"
-msgstr ""
+msgstr "Of gtk-gnutella momenteel in de achtergrond bezig is met het opnieuw opbouwen van zijn library"
 
 #: gnet_property.c:2781
 msgid "Whether gtk-gnutella is currently computing SHA1 of shared files in the background"
-msgstr ""
+msgstr "Of gtk-gnutella momenteel in de achtergrond bezig is met het berekenen van de SHA1 waarden van de gedeelde bestanden."
 
 #: gnet_property.c:2798
 msgid "Whether gtk-gnutella is currently verifying SHA1 of downloaded files in the background"
-msgstr ""
+msgstr "Of gtk-gnutella momenteel in de achtergrond bezig is met het verifiveren van de SHA1 waarde van een afgeronde download."
 
 #: gnet_property.c:2815
 msgid "Whether gtk-gnutella is currently moving files across filesystems or simply copying in the background"
-msgstr ""
+msgstr "Of gtk-gnutella momenteel in de achtergrond bezig is met het verplaatsen van bestanden tussen verschillende bestandssystemen."
 
 #: gnet_property.c:2832
 msgid "If active, only compressed incoming connections are allowed after the minimum number of connections has been established. Always allows for one non-compressed connection."
-msgstr ""
+msgstr "Sta alleen gecomprimeerde inkomende connecties toe. Er wordt altijd 1 niet gecomprimeerde connectie toegestaan."
 
 #: gnet_property.c:2849
 msgid "If deactivated, only uploads and downloads will continue. All gNet connections are disabled/terminated."
-msgstr ""
+msgstr "Alle gNet verbindingen zullen worden verbroken als dit wordt gedeactiveerd. Alle uploads en downloads zullen gewoon doorgaan."
 
 #: gnet_property.c:2866
 msgid "Whether gtk-gnutella should make sure the server confirms the URN of the file we're requesting when it is known locally and a traditional request by name is used (i.e. gtk-gnutella is not issuing a /uri-res/N2R? request).  When set, it supersedes the optimistic first chunk setting."
@@ -693,28 +693,28 @@ msgstr ""
 #: gui.c:73
 #, c-format
 msgid "%u file shared (%s)"
-msgstr ""
+msgstr "%u bestand gedeeld (%s)"
 
 #: gui.c:73
 #, c-format
 msgid "%u files shared (%s)"
-msgstr ""
+msgstr "%u bestanden gedeeld (%s)"
 
 #: gui.c:124
 msgid "in"
-msgstr ""
+msgstr "inkomend"
 
 #: gui.c:124
 msgid "out"
-msgstr ""
+msgstr "uitgaand"
 
 #: gui.c:125
 msgid "(avg)"
-msgstr ""
+msgstr "(gem)"
 
 #: gui_property.c:224
 msgid "Search monitor enabled"
-msgstr ""
+msgstr "Zoek monitor geactiveerd"
 
 #: gui_property.c:241
 msgid "Maximum number of queries visible in search monitor"
@@ -796,115 +796,115 @@ msgstr ""
 
 #: gui_property.c:655
 msgid "Position and size of the main window"
-msgstr ""
+msgstr "De grootte an de positie van het hoofd venster"
 
 #: gui_property.c:675
 msgid "Position and size of the filter dialog"
-msgstr ""
+msgstr "De grootte en de positie van het filter dialoog"
 
 #: gui_property.c:695
 msgid "Position of the divider in the downloads panel"
-msgstr ""
+msgstr "Positie van de scheidingsmarkering in het download paneel"
 
 #: gui_property.c:715
 msgid "Size of the sidebar"
-msgstr ""
+msgstr "Grootte van het zijpaneel"
 
 #: gui_property.c:735
 msgid "Position of the divider in the gnet stats pane"
-msgstr ""
+msgstr "Positie van de scheidingsmarkering in het gNet statistieken paneel"
 
 #: gui_property.c:755
 msgid "Size of the menu in the sidebar"
-msgstr ""
+msgstr "Grootte van het menu in het zijpaneel"
 
 #: gui_property.c:775
 msgid "Position of the divider in the search results pane"
-msgstr ""
+msgstr "Positie van de scheidingsmarkering in het paneel met de zoekresultaten"
 
 #: gui_property.c:795
 msgid "Maximum number of results to show in any search"
-msgstr ""
+msgstr "Het maximum aantal resultaten dat weergegeven mag worden bij een zoekopdracht"
 
 #: gui_property.c:815
 msgid "Debug level for the gui"
-msgstr ""
+msgstr "Debug level voor de GUI"
 
 #: gui_property.c:835
 msgid "Size of the filter tree in the filter dialog"
-msgstr ""
+msgstr "Grootte van de filter boom in het filter dialoog"
 
 #: gui_property.c:855
 msgid "Show tabs or search list"
-msgstr ""
+msgstr "Gebruik tabs of een zoek lijst"
 
 #: gui_property.c:872
 msgid "Display toolbar"
-msgstr ""
+msgstr "Werkbalk tonen"
 
 #: gui_property.c:889
 msgid "Display statusbar"
-msgstr ""
+msgstr "Statusbalk tonen"
 
 #: gui_property.c:906
 msgid "Display upload statistics in sidebar"
-msgstr ""
+msgstr "Upload statistieken in het zijpaneel tonen"
 
 #: gui_property.c:923
 msgid "Display download statistics in sidebar"
-msgstr ""
+msgstr "Download statistieken in het zijpanel tonen"
 
 #: gui_property.c:940
 msgid "Display connection statistics in sidebar"
-msgstr ""
+msgstr "Connectie statistieken in het zijpaneel tonen"
 
 #: gui_property.c:957
 msgid "Display incoming HTTP traffic bandwidth usage"
-msgstr ""
+msgstr "Bandbreedte gebruik voor het inkomend HTTP verkeer tonen"
 
 #: gui_property.c:974
 msgid "Display outgoing HTTP traffic bandwidth usage"
-msgstr ""
+msgstr "Bandbreedte gebruik voor het uitgaand HTTP verkeer tonen"
 
 #: gui_property.c:991
 msgid "Display incoming gNet traffic bandwidth usage"
-msgstr ""
+msgstr "Bandbreedte gebruik voor het inkomend gNet verkeer tonen"
 
 #: gui_property.c:1008
 msgid "Display outgoing gNet traffic bandwidth usage"
-msgstr ""
+msgstr "Bandbreedte gebruik voor het uitgaand gNet verkeer tonen"
 
 #: gui_property.c:1025
 msgid "Display incoming gNet leaf traffic bandwidth usage"
-msgstr ""
+msgstr "Bandbreedte gebruik voor het inkomende gNet leaf verkeer tonen"
 
 #: gui_property.c:1042
 msgid "Display outgoing gNet leaf traffic bandwidth usage"
-msgstr ""
+msgstr "Bandbreedte gebruik voor het uitgaand gNet leaf verkeer tonen"
 
 #: gui_property.c:1059
 msgid "Display incoming HTTP traffic bandwidth average"
-msgstr ""
+msgstr "Toon het gemiddelde bandbreedte verkeer voor het inkomend HTTP verkeer"
 
 #: gui_property.c:1076
 msgid "Display outgoing HTTP traffic bandwidth average"
-msgstr ""
+msgstr "Toon het gemiddelde bandbreedte verkeer voor het uitgaand HTTP verkeer"
 
 #: gui_property.c:1093
 msgid "Display incoming gNet traffic bandwidth average"
-msgstr ""
+msgstr "Toon het gemiddelde bandbreedte verbruik voor het inkomend gNet verkeer"
 
 #: gui_property.c:1110
 msgid "Display outgoing gNet traffic bandwidth average"
-msgstr ""
+msgstr "Toon het gemiddelde bandbreedte verbruik voor uitgaand gNet verkeer"
 
 #: gui_property.c:1127
 msgid "Display incoming gNet leaf traffic bandwidth average"
-msgstr ""
+msgstr "Toon het gemiddelde bandbreedte verbruik voor inkomend gNet leaf verkeer"
 
 #: gui_property.c:1144
 msgid "Display outgoing gNet leaf traffic bandwidth average"
-msgstr ""
+msgstr "Toon het gemiddelde bandbreedte verbruik voor gNet leaf verkeer"
 
 #: gui_property.c:1161
 msgid "When enabled autoselection only takes place if filesize matches exactly, otherwise it must be equal or greater"
@@ -1181,7 +1181,7 @@ msgstr ""
 
 #: interface-glade2.c:935
 msgid "!"
-msgstr ""
+msgstr "!"
 
 #: interface-glade2.c:941
 msgid "Condition"
@@ -1256,7 +1256,7 @@ msgstr "Over gtk-gnutella"
 
 #: interface-glade2.c:1336
 msgid "[name and version]"
-msgstr ""
+msgstr "[naam en versie]"
 
 #: interface-glade2.c:1354
 msgid "Original author:"
@@ -1284,28 +1284,28 @@ msgstr "PARQ ontwikkeling:"
 
 #: interface-glade2.c:1407
 msgid "Yann Grossel"
-msgstr ""
+msgstr "Yann Grossel"
 
 #: interface-glade2.c:1415
 #: interface-glade2.c:1423
 msgid "Raphal Manfredi"
-msgstr ""
+msgstr "Raphal Manfredi"
 
 #: interface-glade2.c:1431
 msgid "Richard Eckart (GTK+ 1.2), Christian Biere (GTK+ 2.x)"
-msgstr ""
+msgstr "Richard Eckart (GTK+ 1.2), Christian Biere (GTK+ 2.x)"
 
 #: interface-glade2.c:1439
 msgid "Vidar Madsen"
-msgstr ""
+msgstr "Vidar Madsen"
 
 #: interface-glade2.c:1447
 msgid "Jeroen Asselman"
-msgstr ""
+msgstr "Jeroen Asselman"
 
 #: interface-glade2.c:1484
 msgid "Contributors"
-msgstr ""
+msgstr "Contributors"
 
 #: interface-glade2.c:1490
 msgid "==&gt; We are looking for people who want to contribute to this fine tool.&lt;=="
@@ -1445,7 +1445,7 @@ msgstr ""
 #: interface-glade2.c:12676
 #: interface-glade2.c:12685
 msgid " "
-msgstr ""
+msgstr " "
 
 #: interface-glade2.c:2082
 msgid "Filters"
@@ -1453,11 +1453,11 @@ msgstr "Filters"
 
 #: interface-glade2.c:2155
 msgid "label187"
-msgstr ""
+msgstr "label187"
 
 #: interface-glade2.c:2165
 msgid "label188"
-msgstr ""
+msgstr "label188"
 
 #: interface-glade2.c:2202
 msgid "gNet connections"
@@ -1631,11 +1631,11 @@ msgstr ""
 #: interface-glade2.c:3163
 #: interface-glade2.c:5644
 msgid "Miscellaneous"
-msgstr ""
+msgstr "Overige"
 
 #: interface-glade2.c:3378
 msgid "window2"
-msgstr ""
+msgstr "window2"
 
 #: interface-glade2.c:3425
 msgid "Configured peermode"
@@ -1728,7 +1728,7 @@ msgstr ""
 
 #: interface-glade2.c:3748
 msgid "Max _TTL"
-msgstr ""
+msgstr "Max _TTL"
 
 #: interface-glade2.c:3756
 msgid "Max # of _high TTL msg"
@@ -1736,19 +1736,19 @@ msgstr ""
 
 #: interface-glade2.c:3764
 msgid "H_ard TTL limit"
-msgstr ""
+msgstr "H_arde TTL limiet"
 
 #: interface-glade2.c:3772
 msgid "M_y TTL"
-msgstr ""
+msgstr "M_ijn TTL"
 
 #: interface-glade2.c:3780
 msgid "from _nodes within a"
-msgstr ""
+msgstr "van _nodes binnen een"
 
 #: interface-glade2.c:3788
 msgid "gnutellaNet _TTL settings"
-msgstr ""
+msgstr "gnutellaNet _TTL instellingen"
 
 #: interface-glade2.c:3807
 msgid "messages"
@@ -1758,7 +1758,7 @@ msgstr "berichten"
 #: interface-glade2.c:3863
 #: interface-glade2.c:4368
 msgid "%"
-msgstr ""
+msgstr "%"
 
 #: interface-glade2.c:3843
 msgid "Ratio of tolerable duplicate messages per node"
@@ -1790,7 +1790,7 @@ msgstr "Anders"
 
 #: interface-glade2.c:4095
 msgid "window3"
-msgstr ""
+msgstr "window3"
 
 #: interface-glade2.c:4127
 msgid "Use surplus bandwidth"
@@ -1816,7 +1816,7 @@ msgstr "Algemeen"
 #: interface-glade2.c:4314
 #: interface-glade2.c:4322
 msgid "K/s"
-msgstr ""
+msgstr "K/s"
 
 #: interface-glade2.c:4207
 #: interface-glade2.c:4384
@@ -1838,7 +1838,7 @@ msgstr ""
 
 #: interface-glade2.c:4283
 msgid "Ultrapeer mode"
-msgstr ""
+msgstr "Ultrapeer modus"
 
 #: interface-glade2.c:4289
 msgid "Bandwidth control for gnutellaNet traffic"
@@ -1872,25 +1872,25 @@ msgstr ""
 
 #: interface-glade2.c:4589
 msgid "window4"
-msgstr ""
+msgstr "window4"
 
 #: interface-glade2.c:4646
 #: interface-glade2.c:4695
 #: interface-glade2.c:4744
 msgid "_Browse"
-msgstr ""
+msgstr "_Bladeren"
 
 #: interface-glade2.c:4652
 msgid "Keep downloading/incomplete files in"
-msgstr ""
+msgstr "Bewaar bestanden die momenteel gedownload worden en incompleet zijn in"
 
 #: interface-glade2.c:4701
 msgid "Move completely downloaded files to"
-msgstr ""
+msgstr "Verplaats afgeronde downloads naar"
 
 #: interface-glade2.c:4750
 msgid "Move corrupted downloaded files to"
-msgstr ""
+msgstr "Verplaats corrupte downloads naar"
 
 #: interface-glade2.c:4769
 msgid "_Overlap when resuming"
@@ -1904,7 +1904,7 @@ msgstr ""
 #: interface-glade2.c:10393
 #: interface-glade2.c:10401
 msgid "bytes"
-msgstr ""
+msgstr "bytes"
 
 #: interface-glade2.c:4801
 msgid "Amount of bytes to overlap when resuming download"
@@ -1932,7 +1932,7 @@ msgstr ""
 
 #: interface-glade2.c:4853
 msgid "Source quality"
-msgstr ""
+msgstr "Kwaliteit van een bron"
 
 #: interface-glade2.c:4872
 msgid "Retry stopped delay"
@@ -2049,19 +2049,19 @@ msgstr ""
 
 #: interface-glade2.c:5319
 msgid "window5"
-msgstr ""
+msgstr "window5"
 
 #: interface-glade2.c:5381
 msgid "_Add"
-msgstr ""
+msgstr "Voeg toe"
 
 #: interface-glade2.c:5387
 msgid "Files scanned"
-msgstr ""
+msgstr "Bestanden gevonden"
 
 #: interface-glade2.c:5413
 msgid "_Rescan"
-msgstr ""
+msgstr "Opnieuw zoeken"
 
 #: interface-glade2.c:5424
 msgid "Search _extensions"
@@ -2085,7 +2085,7 @@ msgstr ""
 
 #: interface-glade2.c:5573
 msgid "window6"
-msgstr ""
+msgstr "window6"
 
 #: interface-glade2.c:5606
 msgid "Toolbar style"
@@ -2105,11 +2105,11 @@ msgstr ""
 
 #: interface-glade2.c:5668
 msgid "Expert mode"
-msgstr ""
+msgstr "Geavanceerde modus."
 
 #: interface-glade2.c:5743
 msgid "window7"
-msgstr ""
+msgstr "window7"
 
 #: interface-glade2.c:5795
 msgid "_Core debug level"
@@ -2640,7 +2640,7 @@ msgstr ""
 
 #: interface-glade2.c:8819
 msgid "secs   "
-msgstr ""
+msgstr "seconden"
 
 #: interface-glade2.c:8825
 msgid "Minimum connection _speed (kbps)"
@@ -2648,7 +2648,7 @@ msgstr ""
 
 #: interface-glade2.c:9001
 msgid "window13"
-msgstr ""
+msgstr "window13"
 
 #: interface-glade2.c:9015
 msgid "Search _monitor enabled"
@@ -2660,11 +2660,11 @@ msgstr ""
 
 #: interface-glade2.c:9037
 msgid "searches"
-msgstr ""
+msgstr "zoek opdrachten"
 
 #: interface-glade2.c:9104
 msgid "window14"
-msgstr ""
+msgstr "window14"
 
 #: interface-glade2.c:9129
 msgid "_Update interval (sec)"
@@ -2688,7 +2688,7 @@ msgstr ""
 
 #: interface-glade2.c:9346
 msgid "_Messages"
-msgstr ""
+msgstr "Berichten"
 
 #: interface-glade2.c:9367
 msgid "Flow _control"
@@ -2696,7 +2696,7 @@ msgstr ""
 
 #: interface-glade2.c:9388
 msgid "_Received"
-msgstr ""
+msgstr "Ontvangen"
 
 #: interface-glade2.c:9401
 #: interface-glade2.c:9462
@@ -3161,7 +3161,7 @@ msgstr "bezig met laden..."
 
 #: settings_gui.c:2799
 msgid "Reading host cache..."
-msgstr ""
+msgstr "Bezig met het lezen van de host cache..."
 
 #: settings_gui.c:2815
 msgid "*** RUNNING AN OLD VERSION! ***"
@@ -3179,7 +3179,7 @@ msgstr ""
 
 #: settings_gui.c:3484
 msgid "no sources active"
-msgstr ""
+msgstr "geen bronnen actief"
 
 #: settings_gui.c:3488
 #, c-format

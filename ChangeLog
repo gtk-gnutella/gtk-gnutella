@@ -1,5 +1,12 @@
 # since last version
 
+- (2003.06.25 - Jeroen)
+ * PARQ: QUEUE callback should now also 'help' activly queued downloads (untested)
+
+- (2003.06.22 - Jeroen)
+ * PARQ: Only sends one QUEUE command per IP at once. And aborts any other pending
+         QUEUE callback for that IP if the first one can't connect
+
 - (2003.06.19 - RAM)
  * Optimized server banning test.
  * Don't send pong-cache pings on a flow-controlled connection.
