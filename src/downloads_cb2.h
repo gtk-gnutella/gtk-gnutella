@@ -32,11 +32,15 @@ gboolean on_treeview_downloads_button_press_event(
 	GtkWidget *widget, GdkEventButton *event, gpointer user_data);
 void on_treeview_downloads_select_row(
 	GtkTreeView *tree_view, gpointer user_data);
+void on_popup_downloads_config_cols_activate(GtkMenuItem *menuitem,
+	gpointer user_data);
 
 gboolean on_treeview_downloads_queue_button_press_event(
 	GtkWidget *widget, GdkEventButton *event, gpointer user_data);
 void on_treeview_downloads_queue_select_row(
 	GtkTreeView *tree_view, gpointer user_data);
+void on_popup_queue_config_cols_activate(GtkMenuItem *menuitem,
+	gpointer user_data);
 
 /***
  *** downloads panel

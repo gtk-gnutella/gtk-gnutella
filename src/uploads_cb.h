@@ -31,21 +31,24 @@
 /***
  *** uploads panel
  ***/
-void on_button_uploads_kill_clicked (GtkButton *button, gpointer user_data);
-void on_button_uploads_remove_clicked (GtkButton *button, gpointer user_data); 
-void on_clist_uploads_click_column (GtkCList *clist, gint column, gpointer user_data); 
-void on_clist_uploads_resize_column (GtkCList *clist, gint column, gint width, gpointer user_data);
-void on_clist_uploads_select_row (GtkCList *clist, gint row, gint column, GdkEvent *event, gpointer user_data); 
-void on_clist_uploads_unselect_row (GtkCList *clist, gint row, gint column, GdkEvent *event, gpointer user_data);
-void on_button_uploads_clear_completed_clicked (GtkButton *button, gpointer user_data);
-gboolean on_clist_uploads_button_press_event (GtkWidget *widget, GdkEventButton *event, gpointer user_data);
 
+void on_button_uploads_kill_clicked(GtkButton *, gpointer);
+void on_button_uploads_remove_clicked(GtkButton *, gpointer); 
+void on_button_uploads_clear_completed_clicked(GtkButton *, gpointer);
 
+#ifdef USE_GTK1
+void on_clist_uploads_click_column(GtkCList *, gint, gpointer); 
+void on_clist_uploads_resize_column(GtkCList *, gint, gint, gpointer);
+void on_clist_uploads_select_row(GtkCList *, gint, gint, GdkEvent *, gpointer);
+void on_clist_uploads_unselect_row(GtkCList *, gint, gint, GdkEvent *,
+	gpointer);
+gboolean on_clist_uploads_button_press_event(GtkWidget *, GdkEventButton *,
+	gpointer);
+void on_popup_uploads_title_activate (GtkMenuItem *, gpointer);
+#endif /* USE_GTK1 */
 
-/***
- *** popup-uploads 
- ***/
-void on_popup_uploads_title_activate (GtkMenuItem *menuitem, gpointer user_data);
-
+#ifdef USE_GTK2
+void on_popup_uploads_config_cols_activate(GtkMenuItem *, gpointer);
+#endif /* USE_GTK2 */
 
 #endif /* _uploads_cb_h_ */

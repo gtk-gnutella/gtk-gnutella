@@ -25,6 +25,8 @@
 
 #include "uploads_cb.h"
 #include "uploads_gui.h"
+#include "gtkcolumnchooser.h"
+
 #include "upload_stats.h"	/* FIXME: remove this dependency */
 #include "override.h"			/* Must be the last header included */
 
@@ -49,6 +51,13 @@ static void kill_upload(upload_row_data_t *d, gpointer user_data)
  *** Public functions
  ***/
 
+void on_button_uploads_clear_completed_clicked(
+    GtkButton *button, gpointer user_data)
+{
+    uploads_gui_clear_completed();
+}
+
+#ifdef USE_GTK1
 void on_clist_uploads_select_row(GtkCList *clist, 
     gint row, gint column, GdkEvent *event, gpointer user_data)
 {
@@ -76,30 +85,6 @@ void on_clist_uploads_resize_column(GtkCList * clist,
 	uploads_col_widths[column] = width;
 }
 
-#ifdef USE_GTK2
-static void uploads_kill_helper(
-    GtkTreeModel *model, GtkTreePath *path, GtkTreeIter *iter, gpointer data)
-{
-	upload_row_data_t *d = NULL;
-
-	gtk_tree_model_get(model, iter, c_ul_data, &d, (-1));
-	g_assert(NULL != d);
-	kill_upload(d, NULL);
-}
-
-void on_button_uploads_kill_clicked(GtkButton *button, gpointer user_data)
-{
-    GtkTreeView *treeview;
-    GtkTreeSelection *selection;
-
-    treeview = GTK_TREE_VIEW(lookup_widget(main_window, "treeview_uploads"));
-    selection = gtk_tree_view_get_selection(treeview);
-    gtk_tree_selection_selected_foreach(selection,
-        (GtkTreeSelectionForeachFunc) uploads_kill_helper, NULL);
-}
-
-#else
-
 void on_button_uploads_kill_clicked(GtkButton *button, gpointer user_data)
 {
     GSList *sl = NULL;
@@ -114,13 +99,6 @@ void on_button_uploads_kill_clicked(GtkButton *button, gpointer user_data)
     g_slist_free(sl);
 
     gtk_clist_thaw(clist);
-}
-#endif
-
-void on_button_uploads_clear_completed_clicked(
-    GtkButton *button, gpointer user_data)
-{
-    uploads_gui_clear_completed();
 }
 
 /* uploads popup menu */
@@ -153,4 +131,39 @@ void on_popup_uploads_title_activate (GtkMenuItem *menuitem, gpointer user_data)
 {
 	/* FIXME */
 }
+#endif /* USE_GTK1 */
 
+
+#ifdef USE_GTK2
+void on_popup_uploads_config_cols_activate(
+	GtkMenuItem *menuitem, gpointer user_data)
+{
+    GtkWidget *cc;
+
+    cc = gtk_column_chooser_new(lookup_widget(main_window, "treeview_uploads"));
+    gtk_menu_popup(GTK_MENU(cc), NULL, NULL, NULL, NULL, 1, 0);
+}
+
+static void uploads_kill_helper(
+    GtkTreeModel *model, GtkTreePath *path, GtkTreeIter *iter, gpointer data)
+{
+	upload_row_data_t *d = NULL;
+
+	gtk_tree_model_get(model, iter, c_ul_data, &d, (-1));
+	g_assert(NULL != d);
+	kill_upload(d, NULL);
+}
+
+void on_button_uploads_kill_clicked(GtkButton *button, gpointer user_data)
+{
+    GtkTreeView *treeview;
+    GtkTreeSelection *selection;
+
+    treeview = GTK_TREE_VIEW(lookup_widget(main_window, "treeview_uploads"));
+    selection = gtk_tree_view_get_selection(treeview);
+    gtk_tree_selection_selected_foreach(selection,
+        (GtkTreeSelectionForeachFunc) uploads_kill_helper, NULL);
+}
+#endif /* USE_GTK2 */
+
+/* vi: set ts=4 sw=4: */

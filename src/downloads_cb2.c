@@ -34,6 +34,8 @@ RCSID("$Id$");
 #include "downloads_gui.h"
 #include "downloads_gui_common.h"
 #include "statusbar_gui.h"
+#include "gtkcolumnchooser.h"
+
 #include "downloads.h"	/* FIXME: remove this dependency */
 #include "override.h"		/* Must be the last header included */
 
@@ -684,6 +686,16 @@ void on_button_downloads_resume_clicked(GtkButton *button, gpointer user_data)
 	gui_update_download_clear();
 }
 
+void on_popup_downloads_config_cols_activate(GtkMenuItem *menuitem,
+	gpointer user_data)
+{
+    GtkWidget *cc;
+
+    cc = gtk_column_chooser_new(
+			GTK_WIDGET(lookup_widget(main_window, "treeview_downloads")));
+    gtk_menu_popup(GTK_MENU(cc), NULL, NULL, NULL, NULL, 1, 0);
+}
+
 
 
 /*** 
@@ -972,6 +984,16 @@ void on_popup_queue_collapse_all_activate(GtkMenuItem *menuitem,
 		(lookup_widget(main_window, "treeview_downloads_queue"));
 	
 	downloads_gui_collapse_all(tree_view);	
+}
+
+void on_popup_queue_config_cols_activate(GtkMenuItem *menuitem,
+	gpointer user_data)
+{
+    GtkWidget *cc;
+
+    cc = gtk_column_chooser_new(
+			GTK_WIDGET(lookup_widget(main_window, "treeview_downloads_queue")));
+    gtk_menu_popup(GTK_MENU(cc), NULL, NULL, NULL, NULL, 1, 0);
 }
 
 /* vi: set ts=4: */
