@@ -93,6 +93,9 @@ typedef guint16 flag_t;
 #define SORT_NONE 0
 #define SORT_NO_COL 0		/* On search creation, no column chosen for sort */
 
+/* SIGN() returns whether a is smaller (-1), equal (0) or greater (1) than b */
+#define SIGN(a, b) ((a) == (b) ? 0 : (a) > (b) ? 1 : (-1))
+
 /*
  * Network related string routines
  */

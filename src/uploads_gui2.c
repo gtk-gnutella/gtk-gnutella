@@ -39,14 +39,36 @@ static gboolean uploads_shutting_down = FALSE;
 static GtkTreeView *treeview_uploads = NULL;
 static GtkListStore *store_uploads = NULL;
 static GtkWidget *button_uploads_clear_completed = NULL;
+
+/* hash table for fast handle -> GtkTreeIter mapping */
 static GHashTable *upload_handles = NULL;
+/* list of all *active* uploads; contains the handles */
 static GList *list_uploads = NULL;
+/* list of all *removed* uploads; contains the handles */
 static GSList *sl_removed_uploads = NULL;
 
 static inline upload_row_data_t *find_upload(gnet_upload_t u);
 
-static void uploads_gui_update_upload_info(gnet_upload_info_t *u);
+static void uploads_gui_update_upload_info(const gnet_upload_info_t *u);
 static void uploads_gui_add_upload(gnet_upload_info_t *u);
+
+
+static const char *column_titles[UPLOADS_GUI_VISIBLE_COLUMNS] = {
+	N_("Filename"),
+	N_("Host"),
+	N_("Size"),
+	N_("Range"),
+	N_("User-Agent"),
+	N_("Status")
+};
+
+typedef struct remove_row_ctx {
+	gboolean force;			/* If false, rows will only be removed, if 
+							 * their `REMOVE_DELAY' has expired. */
+	time_t now; 			/* Current time, used to decide whether row
+							 * should be finally removed. */
+	GSList *sl_remaining;	/* Contains row data for not yet removed rows. */	
+} remove_row_ctx_t;
 
 
 /***
@@ -77,6 +99,7 @@ static void upload_removed(
 	sl_removed_uploads = g_slist_prepend(sl_removed_uploads, rd);
 	g_hash_table_remove(upload_handles, GUINT_TO_POINTER(uh));
 	list_uploads = g_list_remove(list_uploads, rd);
+	/* NB: rd MUST NOT be freed yet because it contains the GtkTreeIter! */
 }
 
 
@@ -129,6 +152,36 @@ static void on_column_resized(
 	gui_prop_set_guint32(PROP_UPLOADS_COL_WIDTHS, &width, column_id, 1);
 }
 
+#define COMPARE_FUNC(field, code) \
+static gint compare_ ##field## _func( \
+	GtkTreeModel *model, GtkTreeIter *a, GtkTreeIter *b, gpointer user_data) \
+{ \
+	const upload_row_data_t *rd_a = NULL; \
+	const upload_row_data_t *rd_b = NULL; \
+	\
+	gtk_tree_model_get(model, a, c_ul_data, &rd_a, (-1)); \
+	gtk_tree_model_get(model, b, c_ul_data, &rd_b, (-1)); \
+	code \
+} \
+
+COMPARE_FUNC(hosts, {
+	guint32 ip_a = GUINT32_FROM_LE(rd_a->ip);
+	guint32 ip_b = GUINT32_FROM_LE(rd_b->ip);
+	return SIGN(ip_a, ip_b);
+});
+
+COMPARE_FUNC(sizes, {
+	return SIGN(rd_a->size, rd_b->size);
+});
+
+COMPARE_FUNC(ranges, {
+	guint32 u = rd_a->range_end - rd_a->range_start;
+	guint32 v = rd_b->range_end - rd_b->range_start;
+	gint s = SIGN(u, v); 
+	return 0 != s ? s : SIGN(rd_a->range_start, rd_b->range_start);
+});
+
+
 /***
  *** Private functions
  ***/
@@ -141,73 +194,107 @@ static void on_column_resized(
  */
 static inline upload_row_data_t *find_upload(gnet_upload_t u)
 {
-	upload_row_data_t *rd = NULL; 
+	union {
+		upload_row_data_t *rd; 
+		gpointer ptr;
+	} key;
 	gboolean found;
 
+	key.rd = NULL;
 	found = g_hash_table_lookup_extended(upload_handles, GUINT_TO_POINTER(u),
-				NULL, (gpointer) &rd);
+				NULL, &key.ptr);
 	g_assert(found);
 
-	g_assert(NULL != rd);
-	g_assert(rd->valid);
-	g_assert(rd->handle == u);
+	g_assert(NULL != key.rd);
+	g_assert(key.rd->valid);
+	g_assert(key.rd->handle == u);
 
-	return rd;
+	return key.rd;
 }
 
-static void uploads_gui_update_upload_info(gnet_upload_info_t *u)
+static void uploads_gui_update_upload_info(const gnet_upload_info_t *u)
 {
 	GdkColor *color = NULL;
     upload_row_data_t *rd = NULL;
 	gnet_upload_status_t status;
-	static gchar size_tmp[256];
-	static gchar range_tmp[256];
-	static gchar agent[256];
 	gint range_len;
 
 	rd = find_upload(u->upload_handle);
 	g_assert(NULL != rd);
  
-	rd->range_start  = u->range_start;
-	rd->range_end    = u->range_end;
-	rd->start_date   = u->start_date;
-	rd->last_update  = time((time_t *) NULL);	
+	rd->last_update  = time(NULL);	
 
-	if (u->range_start == 0 && u->range_end == 0) {
-		g_strlcpy(size_tmp, "...", sizeof(size_tmp));
-		g_strlcpy(range_tmp, "...", sizeof(range_tmp));
-	} else {
-		g_strlcpy(size_tmp, short_size(u->file_size), sizeof(size_tmp));
-		range_len = gm_snprintf(range_tmp, sizeof(range_tmp), "%s",
-			compact_size(u->range_end - u->range_start + 1));
-
-		if (u->range_start)
-			range_len += gm_snprintf(
-				&range_tmp[range_len], sizeof(range_tmp)-range_len,
-					" @ %s", compact_size(u->range_start));
-
-		g_assert(range_len < sizeof(range_tmp));
+	if (u->ip != rd->ip) {
+		rd->ip = u->ip;
+		gtk_list_store_set(store_uploads, &rd->iter,
+			c_ul_host, ip_to_gchar(rd->ip), (-1));
 	}
+
+	if (u->range_start != rd->range_start || u->range_end != rd->range_end) {
+		static gchar str[256];
+
+		rd->range_start  = u->range_start;
+		rd->range_end  = u->range_end;
+
+		if (u->range_start == 0 && u->range_end == 0)
+			g_strlcpy(str, "...", sizeof(str));
+		else {
+			range_len = g_strlcpy(str,
+							compact_size(u->range_end - u->range_start + 1),
+							sizeof(str));
+
+			if (range_len < sizeof(str)) {
+				if (u->range_start)
+					range_len += gm_snprintf(&str[range_len],
+									sizeof(str)-range_len,
+									" @ %s", compact_size(u->range_start));
+				g_assert(range_len < sizeof(str));
+			}
+		}
+
+		gtk_list_store_set(store_uploads, &rd->iter, c_ul_range, str, (-1));
+	}
+
+	if (u->file_size != rd->size) {
+		rd->size = u->file_size;
+		gtk_list_store_set(store_uploads, &rd->iter,
+			c_ul_size, short_size(rd->size), (-1));
+	}
+
+	/* Exploit that u->name is an atom! */ 
+	if (u->name != rd->name) {
+		g_assert(NULL != u->name);
+		if (NULL != rd->name)
+			atom_str_free(rd->name);
+		rd->name = atom_str_get(u->name);
+		gtk_list_store_set(store_uploads, &rd->iter,
+			c_ul_filename, locale_to_utf8(rd->name, 0),
+			(-1));
+	}
+
+	/* Exploit that u->user_agent is an atom! */ 
+	if (u->user_agent != rd->user_agent) {
+		g_assert(NULL != u->user_agent);
+		if (NULL != rd->user_agent)
+			atom_str_free(rd->user_agent);
+		rd->user_agent = atom_str_get(u->user_agent);
+		gtk_list_store_set(store_uploads, &rd->iter,
+			c_ul_agent, locale_to_utf8(rd->user_agent, 0),
+			(-1));
+	}
+
 	upload_get_status(u->upload_handle, &status);
 	rd->status = status.status;
 
-	if (u->push)
- 		color = &(gtk_widget_get_style(GTK_WIDGET(treeview_uploads))
-			->fg[GTK_STATE_INSENSITIVE]);
-
-	g_strlcpy(agent,
-		NULL != u->user_agent ? locale_to_utf8(u->user_agent, 0) : "...",
-		sizeof(agent));
-
 	gtk_list_store_set(store_uploads, &rd->iter,
-		c_ul_size, size_tmp,
-		c_ul_range, range_tmp,
-		c_ul_filename, NULL != u->name ? locale_to_utf8(u->name, 0) : "...",
-		c_ul_host, ip_to_gchar(u->ip),
-		c_ul_agent, agent,	
-		c_ul_status, uploads_gui_status_str(&status, rd),
-		c_ul_fg, color,
-		(-1));
+		c_ul_status, uploads_gui_status_str(&status, rd), (-1));
+
+	if (u->push != rd->push) {
+		rd->push = u->push;
+ 		color = rd->push ? &(gtk_widget_get_style(GTK_WIDGET(treeview_uploads))
+			->fg[GTK_STATE_INSENSITIVE]) : NULL;
+		gtk_list_store_set(store_uploads, &rd->iter, c_ul_fg, color, (-1));
+	}
 }
 
 
@@ -219,19 +306,34 @@ static void uploads_gui_update_upload_info(gnet_upload_info_t *u)
  */
 void uploads_gui_add_upload(gnet_upload_info_t *u)
 {
-	static gchar agent[256];
- 	static gchar size_tmp[256];
-	static gchar range_tmp[256];
 	gint range_len;
-	gchar *titles[6];
-    upload_row_data_t *rd;
+	const gchar *titles[UPLOADS_GUI_VISIBLE_COLUMNS];
+    upload_row_data_t *rd = walloc(sizeof(*rd));
 	gnet_upload_status_t status;
 
 	memset(titles, 0, sizeof(titles));
 
-    if ((u->range_start == 0) && (u->range_end == 0)) {
+    rd->handle      = u->upload_handle;
+    rd->range_start = u->range_start;
+    rd->range_end   = u->range_end;
+	rd->size		= u->file_size;
+    rd->start_date  = u->start_date;
+	rd->ip			= u->ip;
+	rd->name		= NULL != u->name ? atom_str_get(u->name) : NULL;
+	rd->user_agent	= NULL != u->user_agent
+						? atom_str_get(u->user_agent) : NULL;
+	rd->push		= u->push;
+	rd->valid		= TRUE;
+
+	upload_get_status(u->upload_handle, &status);
+    rd->status = status.status;
+
+    if (u->range_start == 0 && u->range_end == 0) {
         titles[c_ul_size] = titles[c_ul_range] =  "...";
     } else {
+		static gchar range_tmp[256];	/* MUST be static! */
+ 		static gchar size_tmp[256];		/* MUST be static! */
+
         g_strlcpy(size_tmp, short_size(u->file_size), sizeof(size_tmp)); 
         range_len = gm_snprintf(range_tmp, sizeof(range_tmp), "%s",
             compact_size(u->range_end - u->range_start + 1));
@@ -243,28 +345,27 @@ void uploads_gui_add_upload(gnet_upload_info_t *u)
     
         g_assert(range_len < sizeof(range_tmp));
 
-        titles[c_ul_size]     = size_tmp;
-        titles[c_ul_range]    = range_tmp;
+        titles[c_ul_size] = size_tmp;
+        titles[c_ul_range] = range_tmp;
     }
 
-	g_strlcpy(agent,
-		NULL != u->user_agent ? locale_to_utf8(u->user_agent, 0) : "...",
-		sizeof(agent));
-	titles[c_ul_filename] = NULL != u->name ?
-								locale_to_utf8(u->name, 0) : "...";
+	if (NULL != u->user_agent) {
+		static gchar str[256];	/* MUST be static! */
+		gchar *agent;
+
+		agent = locale_to_utf8(u->user_agent, 0);
+		if (u->user_agent != agent) {
+			g_strlcpy(str, agent, sizeof(str));
+			agent = str;
+		}
+    	titles[c_ul_agent] = agent;
+	} else
+		titles[c_ul_agent] = "...";
+
+	titles[c_ul_filename] = NULL != u->name
+								? locale_to_utf8(u->name, 0) : "...";
 	titles[c_ul_host]     = ip_to_gchar(u->ip);
-    titles[c_ul_agent]    = agent;
-	titles[c_ul_status]   = "...";
-
-    rd = walloc(sizeof(*rd));
-    rd->handle      = u->upload_handle;
-    rd->range_start = u->range_start;
-    rd->range_end   = u->range_end;
-    rd->start_date  = u->start_date;
-	rd->valid		  = TRUE;
-
-	upload_get_status(u->upload_handle, &status);
-    rd->status = status.status;
+	titles[c_ul_status] = uploads_gui_status_str(&status, rd);
 
     gtk_list_store_append(store_uploads, &rd->iter);
     gtk_list_store_set(store_uploads, &rd->iter,
@@ -281,25 +382,26 @@ void uploads_gui_add_upload(gnet_upload_info_t *u)
 	list_uploads = g_list_prepend(list_uploads, rd);
 }
 
-static void add_column(
-        GtkTreeView *treeview,
-        gint column_id,
-        gint width,
-        gfloat xalign,
-        const gchar *label)
+static void add_column(gint column_id, GtkTreeIterCompareFunc sortfunc)
 {
 	GtkTreeViewColumn *column;
 	GtkCellRenderer *renderer;
+	guint32 width;
 
+	g_assert(column_id >= 0 && column_id < UPLOADS_GUI_VISIBLE_COLUMNS);
+	g_assert(NULL != treeview_uploads);
+	g_assert(NULL != store_uploads);
+
+	gui_prop_get_guint32(PROP_UPLOADS_COL_WIDTHS, &width, column_id, 1);
 	renderer = gtk_cell_renderer_text_new();
 	gtk_cell_renderer_text_set_fixed_height_from_font(
 		GTK_CELL_RENDERER_TEXT(renderer), 1);
 	g_object_set(renderer,
-		"xalign", xalign,
+		"xalign", (gfloat) 0.0,
 		"ypad", GUI_CELL_RENDERER_YPAD,
 		NULL);
 	column = gtk_tree_view_column_new_with_attributes(
-		label, renderer, "text", column_id, NULL);
+		column_titles[column_id], renderer, "text", column_id, NULL);
 	g_object_set(G_OBJECT(column),
 		"min-width", 1,
 		"fixed-width", MAX(1, width),
@@ -308,10 +410,14 @@ static void add_column(
 		"sizing", GTK_TREE_VIEW_COLUMN_FIXED,
 		NULL);
 	gtk_tree_view_column_set_sort_column_id(column, column_id);
-	gtk_tree_view_append_column(treeview, column);
+	gtk_tree_view_append_column(treeview_uploads, column);
 	g_object_notify(G_OBJECT(column), "width");
 	g_signal_connect(G_OBJECT(column), "notify::width",
 		G_CALLBACK(on_column_resized), GINT_TO_POINTER(column_id));
+
+	if (NULL != sortfunc)
+		gtk_tree_sortable_set_sort_func(GTK_TREE_SORTABLE(store_uploads),
+			column_id, sortfunc, GINT_TO_POINTER(column_id), NULL);
 }
 
 /***
@@ -326,7 +432,6 @@ void uploads_gui_early_init(void)
 void uploads_gui_init(void)
 {
 	GtkTreeView *treeview;
-	guint32 *width;
 
 	button_uploads_clear_completed = lookup_widget(main_window,
 		"button_uploads_clear_completed");
@@ -343,14 +448,12 @@ void uploads_gui_init(void)
 		G_TYPE_POINTER);
 	gtk_tree_view_set_model(treeview, GTK_TREE_MODEL(store_uploads));
 
-	width = gui_prop_get_guint32(PROP_UPLOADS_COL_WIDTHS, NULL, 0, 0);
-	add_column(treeview, c_ul_filename, width[c_ul_filename], 0.0, "Filename");
-	add_column(treeview, c_ul_host, width[c_ul_host], 0.0, "Host");
-	add_column(treeview, c_ul_size, width[c_ul_size], 0.0, "Size");
-	add_column(treeview, c_ul_range, width[c_ul_range], 0.0, "Range");
-	add_column(treeview, c_ul_agent, width[c_ul_agent], 0.0, "User-agent");
-	add_column(treeview, c_ul_status, width[c_ul_status], 0.0, "Status");
-	G_FREE_NULL(width);
+	add_column(c_ul_filename, NULL);
+	add_column(c_ul_host, compare_hosts_func);
+	add_column(c_ul_size, compare_sizes_func);
+	add_column(c_ul_range, compare_ranges_func);
+	add_column(c_ul_agent, NULL);
+	add_column(c_ul_status, NULL);
 
 	upload_handles = g_hash_table_new(NULL, NULL);
 
@@ -359,54 +462,25 @@ void uploads_gui_init(void)
     upload_add_upload_info_changed_listener(upload_info_changed);
 }
 
-static inline void free_row_data(
-	gpointer key, upload_row_data_t *rd, gpointer user_data)
+static inline void free_row_data(upload_row_data_t *rd, gpointer user_data)
 {
+	if (NULL != rd->user_agent) {
+		atom_str_free(rd->user_agent);
+		rd->user_agent = NULL;
+	}
+	if (NULL != rd->name) {
+		atom_str_free(rd->name);
+		rd->user_agent = NULL;
+	}
 	wfree(rd, sizeof(*rd));
 }
-
-/*
- * uploads_gui_shutdown:
- *
- * Unregister callbacks in the backend and clean up.
- */
-void uploads_gui_shutdown(void) 
-{
-    GtkTreeViewColumn *c;
-    gint i;
-
-	uploads_shutting_down = TRUE;
-
-	for (i = 0; (c = gtk_tree_view_get_column(treeview_uploads, i)); i++)
-        g_signal_handlers_disconnect_by_func(c, on_column_resized,
-            GINT_TO_POINTER(i));
-
-    upload_remove_upload_added_listener(upload_added);
-    upload_remove_upload_removed_listener(upload_removed);
-    upload_remove_upload_info_changed_listener(upload_info_changed);
-	g_hash_table_foreach(upload_handles, (GHFunc) free_row_data, NULL);
-	g_hash_table_destroy(upload_handles);
-	upload_handles = NULL;
-	g_list_free(list_uploads);
-	list_uploads = NULL;
-}
-
-typedef struct remove_row_ctx {
-	gboolean force;			/* If false, rows will only be removed, if 
-							 * their `REMOVE_DELAY' has expired. */
-	time_t now; 			/* Current time, used to decide whether row
-							 * should be finally removed. */
-	GSList *sl_remaining;	/* Contains row data for not yet removed rows. */	
-} remove_row_ctx_t;
 
 static inline void remove_row(upload_row_data_t *rd, remove_row_ctx_t *ctx)
 {
 	g_assert(NULL != rd);
 	if (ctx->force || upload_should_remove(ctx->now, rd)) {
     	gtk_list_store_remove(store_uploads, &rd->iter);
-		g_hash_table_remove(upload_handles, rd);
-		list_uploads = g_list_remove(list_uploads, rd);
-		wfree(rd, sizeof(*rd));
+		free_row_data(rd, NULL);
 	} else
 		ctx->sl_remaining = g_slist_prepend(ctx->sl_remaining, rd);
 }
@@ -444,12 +518,12 @@ void uploads_gui_update_display(time_t now)
     locked = TRUE;
 
 	/* Remove all rows with `removed' uploads. */
-	g_slist_foreach(sl_removed_uploads, (GFunc) remove_row, &ctx);
+	G_SLIST_FOREACH(sl_removed_uploads, (GFunc) remove_row, &ctx);
 	g_slist_free(sl_removed_uploads);
 	sl_removed_uploads = ctx.sl_remaining;
 
 	/* Update the status column for all active uploads. */ 
-	g_list_foreach(list_uploads, (GFunc) update_row, &now);
+	G_LIST_FOREACH(list_uploads, (GFunc) update_row, &now);
        
 	if (NULL == sl_removed_uploads)
 		gtk_widget_set_sensitive(button_uploads_clear_completed, FALSE);
@@ -468,7 +542,7 @@ static gboolean uploads_clear_helper(gpointer user_data)
 
 	/* Remove all rows with `removed' uploads. */
 
-	g_slist_foreach(sl_removed_uploads, (GFunc) remove_row, &ctx);
+	G_SLIST_FOREACH(sl_removed_uploads, (GFunc) remove_row, &ctx);
 	g_slist_free(sl_removed_uploads);
 	sl_removed_uploads = ctx.sl_remaining;
 
@@ -482,7 +556,7 @@ static gboolean uploads_clear_helper(gpointer user_data)
 		}
     }
 	/* The elements' data has been freed or is now referenced
-	 * by ctx->not_removed. */
+	 * by ctx->remaining. */
 	g_slist_free(sl_removed_uploads);
 	sl_removed_uploads = g_slist_concat(ctx.sl_remaining, sl_remaining);
 		
@@ -502,3 +576,36 @@ void uploads_gui_clear_completed(void)
 		gtk_timeout_add(100, uploads_clear_helper, store_uploads); 
 	}
 }
+
+/*
+ * uploads_gui_shutdown:
+ *
+ * Unregister callbacks in the backend and clean up.
+ */
+void uploads_gui_shutdown(void) 
+{
+    GtkTreeViewColumn *c;
+    gint i;
+
+	uploads_shutting_down = TRUE;
+	
+	for (i = 0; (c = gtk_tree_view_get_column(treeview_uploads, i)); i++)
+        g_signal_handlers_disconnect_by_func(c, on_column_resized,
+            GINT_TO_POINTER(i));
+
+    upload_remove_upload_added_listener(upload_added);
+    upload_remove_upload_removed_listener(upload_removed);
+    upload_remove_upload_info_changed_listener(upload_info_changed);
+
+	gtk_list_store_clear(store_uploads);
+
+	g_hash_table_destroy(upload_handles);
+	upload_handles = NULL;
+	G_LIST_FOREACH(list_uploads, (GFunc) free_row_data, NULL);
+	g_list_free(list_uploads);
+	list_uploads = NULL;
+	G_SLIST_FOREACH(sl_removed_uploads, (GFunc) free_row_data, NULL);
+	g_slist_free(sl_removed_uploads);
+	sl_removed_uploads = NULL;
+}
+

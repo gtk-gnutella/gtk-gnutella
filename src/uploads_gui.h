@@ -41,6 +41,11 @@ typedef struct upload_row_data {
     upload_stage_t status;      /* last known status */
 #ifdef USE_GTK2
     GtkTreeIter   iter;
+	guint32       ip;
+	guint32       size;
+	gboolean      push; 
+	gchar         *user_agent;	/* atom */
+	gchar         *name;		/* atom */
 #endif
 } upload_row_data_t;
 
