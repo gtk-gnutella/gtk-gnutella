@@ -881,6 +881,7 @@ static void flush_match(void)
 	struct gnutella_node *n = issuing_node;		/* XXX -- global! */
 	gchar trailer[10];
 	guint32 pos, pl;
+	guint32 ip;
 	struct gnutella_header *packet_head;
 	struct gnutella_search_results_out *search_head;
 	gchar version[24];
@@ -987,7 +988,7 @@ static void flush_match(void)
 			) {
 				struct gnutella_node *n = (struct gnutella_node *) l->data;
 				
-				WRITE_GUINT16_BE(n->proxy_ip, p);
+				memcpy(p, &n->proxy_ip, 4);
 				p += 4;
 				WRITE_GUINT16_LE(n->proxy_port, p);
 				p += 2;
@@ -1066,7 +1067,8 @@ static void flush_match(void)
 	search_head->num_recs = FOUND_FILES;	/* One byte, little endian! */
 
 	WRITE_GUINT16_LE(listen_port, search_head->host_port);
-	WRITE_GUINT32_BE(listen_ip(), search_head->host_ip);
+	ip = listen_ip();
+	memcpy(search_head->host_ip, &ip, 4);
 	WRITE_GUINT32_LE(connection_speed, search_head->host_speed);
 
 	gmsg_sendto_one(n, (gchar *) FOUND_BUF, FOUND_SIZE);
