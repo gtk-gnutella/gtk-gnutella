@@ -1464,6 +1464,7 @@ struct qrt_update {
 	time_t last;					/* Time at which we sent the last batch */
 	gint last_sent;					/* Amount sent during last batch */
 	gboolean ready;					/* Ready for sending? */
+	gboolean reset_needed;			/* Is the initial RESET needed? */
 };
 
 /*
@@ -1514,13 +1515,15 @@ static void qrt_compressed(
 	g_assert(msgcount <= QRT_MAX_SEQSIZE);
 
 	/*
-	 * Initialize sequence, then send a RESET message.
+	 * Initialize sequence, then send a RESET message if needed.
 	 */
 
 	qup->seqno = 1;					/* Numbering starts at 1 */
 	qup->seqsize = msgcount;
 
-	qrp_send_reset(qup->node, routing_table->slots, routing_table->infinity);
+	if (qup->reset_needed)
+		qrp_send_reset(qup->node,
+			routing_table->slots, routing_table->infinity);
 
 	return;
 
@@ -1573,16 +1576,34 @@ static void qrt_patch_available(gpointer arg, struct routing_patch *rp)
 gpointer qrt_update_create(struct gnutella_node *n, gpointer query_table)
 {
 	struct qrt_update *qup;
+	gpointer old_table = query_table;
 
 	g_assert(routing_table != NULL);
+
+	/*
+	 * If the old routing table and the new one do not have the same amount
+	 * of slots, then we need to send the whole table again, meaning we'll
+	 * need a RESET message to send the new table size.
+	 */
+
+	if (old_table != NULL) {
+		struct routing_table *old = (struct routing_table *) old_table;
+		if (old->slots != routing_table->slots) {
+			if (dbg)
+				g_warning("old QRT for %s had %d slots, new one has %d",
+					node_ip(n), old->slots, routing_table->slots);
+			old_table = NULL;
+		}
+	}
 
 	qup = walloc0(sizeof(*qup));
 
 	qup->magic = QRT_UPDATE_MAGIC;
 	qup->node = n;
 	qup->ready = FALSE;
+	qup->reset_needed = (old_table == NULL);	/* RESET only the first time */
 
-	if (query_table == NULL) {
+	if (old_table == NULL) {
 		/*
 		 * If routing_patch is not NULL, it is ready, no need to compute it.
 		 * Otherwise, it means it is being computed, so enqueue a
@@ -1610,7 +1631,7 @@ gpointer qrt_update_create(struct gnutella_node *n, gpointer query_table)
 		 * When compression is done, `qup->compress' will be set to NULL.
 		 */
 
-		qup->patch = qrt_diff_4(query_table, routing_table);
+		qup->patch = qrt_diff_4(old_table, routing_table);
 		qup->compress = qrt_patch_compress(qup->patch, qrt_compressed, qup);
 	}
 
