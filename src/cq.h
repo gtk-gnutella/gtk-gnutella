@@ -44,7 +44,7 @@ typedef struct cevent {
 	struct cevent *ce_bprev;	/* Prev item in hash bucket */
 	cq_service_t ce_fn;			/* Callback routine */
 	gpointer ce_arg;			/* Argument to pass to said callback */
-	guint32 ce_time;			/* Absolute trigger time */
+	time_t ce_time;			/* Absolute trigger time */
 	gint ce_magic;				/* Magic number */
 } cevent_t;
 
@@ -78,7 +78,7 @@ struct chash {
 
 typedef struct cqueue {
 	struct chash *cq_hash;		/* Array of buckets for hash list */
-	guint32 cq_time;			/* "current time" */
+	time_t cq_time;			/* "current time" */
 	gint cq_items;				/* Amount of recorded events */
 	gint cq_last_bucket;		/* Last bucket slot we were at */
 } cqueue_t;
@@ -87,7 +87,7 @@ typedef struct cqueue {
  * Interface routines.
  */
 
-cqueue_t *cq_make(guint32 now);
+cqueue_t *cq_make(time_t now);
 void cq_free(cqueue_t *cq);
 gpointer cq_insert(cqueue_t *cq, gint delay, cq_service_t fn, gpointer arg);
 void cq_cancel(cqueue_t *cq, gpointer handle);

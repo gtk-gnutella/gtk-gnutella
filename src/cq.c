@@ -51,7 +51,7 @@ RCSID("$Id$");
  * Create a new callout queue object. The 'now' parameter is used to
  * initialize the "current time". Use zero if you don't care...
  */
-cqueue_t *cq_make(guint32 now)
+cqueue_t *cq_make(time_t now)
 {
 	cqueue_t *cq;
 
@@ -102,7 +102,7 @@ void cq_free(cqueue_t *cq)
 static void ev_link(cqueue_t *cq, cevent_t *ev)
 {
 	struct chash *ch;			/* Hashing bucket */
-	guint32 trigger;			/* Trigger time */
+	time_t trigger;			/* Trigger time */
 	cevent_t *hev;				/* To loop through the hash bucket */
 
 	g_assert(valid_ptr(cq));
@@ -314,7 +314,7 @@ static void cq_expire(cqueue_t *cq, cevent_t *ev)
  */
 void cq_clock(cqueue_t *cq, gint elapsed)
 {
-	guint32 now;
+	time_t now;
 	gint bucket;
 	gint last_bucket;
 	struct chash *ch;
@@ -374,4 +374,3 @@ void cq_clock(cqueue_t *cq, gint elapsed)
 
 	} while (bucket != last_bucket);
 }
-
