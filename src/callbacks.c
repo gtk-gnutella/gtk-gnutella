@@ -447,6 +447,10 @@ void on_clist_ul_stats_click_column(GtkCList * clist, gint column,
 		gtk_clist_set_compare_func(GTK_CLIST(clist_ul_stats),
 					   compare_ul_complete);
 		break;
+	case UL_STATS_NORM_IDX:		/* Normalized uploads */
+		gtk_clist_set_compare_func(GTK_CLIST(clist_ul_stats),
+					   compare_ul_norm);
+		break;
 	default:
 		g_assert(0);
 	}

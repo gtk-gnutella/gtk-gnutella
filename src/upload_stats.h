@@ -8,6 +8,7 @@
 gint compare_ul_size(GtkCList *, gconstpointer, gconstpointer);
 gint compare_ul_attempts(GtkCList *, gconstpointer, gconstpointer);
 gint compare_ul_complete(GtkCList *, gconstpointer, gconstpointer);
+gint compare_ul_norm(GtkCList *, gconstpointer, gconstpointer);
 void ul_stats_load_history(const gchar *);
 void ul_stats_dump_history(const gchar *filename, gboolean cleanup);
 void ul_flush_stats_if_dirty(void);
@@ -24,5 +25,6 @@ void ul_stats_clear_all();
 #define UL_STATS_SIZE_IDX		1
 #define UL_STATS_ATTEMPTS_IDX	2
 #define UL_STATS_COMPLETE_IDX	3
+#define UL_STATS_NORM_IDX		4
 
 #endif

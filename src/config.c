@@ -105,7 +105,7 @@ guint32 dl_queued_col_widths[] = { 320, 80, 80 };
 guint32 uploads_col_widths[] = { 200, 120, 36, 80, 80 };
 guint32 search_results_col_widths[] = { 210, 80, 50, 140, 140 };
 guint32 search_stats_col_widths[] = { 200, 80, 80 };
-guint32 ul_stats_col_widths[] = { 383, 40, 80, 80 };
+guint32 ul_stats_col_widths[] = { 200, 80, 80, 80, 80 };
 
 gboolean jump_to_downloads = TRUE;
 
@@ -554,7 +554,7 @@ void config_init(void)
 	for (i = 0; i < 3; i++)
 		gtk_clist_set_column_width(GTK_CLIST(clist_search_stats), i,
 								   search_stats_col_widths[i]);
-	for (i = 0; i < 4; i++)
+	for (i = 0; i < 5; i++)
 		gtk_clist_set_column_width(GTK_CLIST(clist_ul_stats), i,
 								   ul_stats_col_widths[i]);
 
@@ -861,8 +861,8 @@ void config_set_param(guint32 keyword, gchar *value)
 		return;
 
 	case k_widths_ul_stats:
-		if ((a = config_parse_array(value, 4)))
-			for (i = 0; i < 4; i++)
+		if ((a = config_parse_array(value, 5)))
+			for (i = 0; i < 5; i++)
 				ul_stats_col_widths[i] = a[i];
 		return;
 
@@ -1249,10 +1249,11 @@ static void config_save(void)
 			keywords[k_widths_search_stats],
 			search_stats_col_widths[0], search_stats_col_widths[1],
 			search_stats_col_widths[2]);
-	fprintf(config, "%s = %u,%u,%u,%u\n",
+	fprintf(config, "%s = %u,%u,%u,%u,%u\n",
 			keywords[k_widths_ul_stats],
 			ul_stats_col_widths[0], ul_stats_col_widths[1],
-			ul_stats_col_widths[2], ul_stats_col_widths[3]);
+			ul_stats_col_widths[2], ul_stats_col_widths[3],
+			ul_stats_col_widths[4]);
 
 	fprintf(config, "\n\n#\n# The following variables cannot "
 		"yet be configured with the GUI.\n#\n\n");
