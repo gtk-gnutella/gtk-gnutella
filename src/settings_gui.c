@@ -198,7 +198,7 @@ static gboolean dl_queue_count_changed(property_t prop);
 static gboolean dl_running_count_changed(property_t prop);
 static gboolean config_toolbar_style_changed(property_t prop);
 
-// FIXME: move to separate file and autoegenerate from high-level
+// FIXME: move to separate file and autogenerate from high-level
 //        description.
 static prop_map_t property_map[] = {
     {
@@ -2150,7 +2150,8 @@ static gboolean reading_hostfile_changed(property_t prop)
         id = statusbar_gui_message(0, "Reading host cache...");
     } else {
     	hosts_in_catcher_changed(PROP_HOSTS_IN_CATCHER);
-       	statusbar_gui_remove(id);
+		if (0 != id.scid)
+       		statusbar_gui_remove(id);
     }
     return FALSE;
 }
