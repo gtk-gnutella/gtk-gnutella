@@ -1204,7 +1204,7 @@ static void search_gui_update(struct search * sch, struct results_set * rs,
 		struct record *rc = (struct record *) l->data;
 		next = l->next;
 
-        if(dbg > 4)
+        if (dbg > 7)
             printf("%s(): adding %s (%s)\n", __FUNCTION__,
                    rc->name, vinfo->str);
 
@@ -1402,8 +1402,8 @@ void search_matched(struct search *sch, struct results_set *rs)
 					rs->port, rs->guid);
 			}
 		}
-	} else
-        search_gui_update(sch, rs, info, vinfo);
+	}
+	search_gui_update(sch, rs, info, vinfo);
 
 	g_string_free(info, TRUE);
 	g_string_free(vinfo, TRUE);

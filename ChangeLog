@@ -1,5 +1,7 @@
 # since last release
 
+- Made auto-download.txt case sensitive, and leading '#' is treated as comment
+- Auto-download flag made persistent, and file name set via config file
 - Integrated auto-download.txt patch from Brian St. Pierre
 - Integrated patch from Brian St. Pierre to burst gnutella.h into small files
 

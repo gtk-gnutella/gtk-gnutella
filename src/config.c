@@ -17,6 +17,7 @@
 #include "hosts.h"
 #include "share.h"
 #include "gui.h"
+#include "autodownload.h"
 
 static gchar *config_file = "config";
 static gchar *host_file = "hosts";
@@ -135,6 +136,7 @@ enum {
 	k_search_strict_and, k_search_pick_all,
 	k_max_high_ttl_msg, k_max_high_ttl_radius,
 	k_min_dup_msg, k_min_dup_ratio, k_max_hosts_cached,
+	k_use_auto_download, k_auto_download_file,
 	k_end
 };
 
@@ -206,6 +208,8 @@ gchar *keywords[] = {
 	"min_dup_msg",
 	"min_dup_ratio",
 	"max_hosts_cached",
+	"use_auto_download",
+	"auto_download_file",
 	NULL
 };
 
@@ -356,6 +360,9 @@ void config_init(void)
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON
 								 (checkbutton_jump_to_downloads),
 								 jump_to_downloads);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON
+								 (checkbutton_autodownload),
+								 use_autodownload);
 
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON
 								 (checkbutton_proxy_connections),
@@ -751,6 +758,14 @@ void config_set_param(guint32 keyword, gchar *value)
 	case k_max_hosts_cached:
 		if (i >= 100) max_hosts_cached = i;
 		return;
+
+	case k_use_auto_download:
+		use_autodownload = i ? TRUE : FALSE;
+		return;
+
+	case k_auto_download_file:
+		auto_download_file = g_strdup(value);
+		return;
 	}
 }
 
@@ -966,6 +981,11 @@ void config_save(void)
 	fprintf(config, "\n\n# The following variables cannot "
 		"yet be configured with the GUI.\n\n");
 
+	fprintf(config, "# Name of file with auto-download strings "
+		"(relative is taken from launch dir)\n%s = %s\n\n",
+			keywords[k_auto_download_file],
+			auto_download_file);
+
 	fprintf(config, "# Number of seconds before timeout "
 		"for a connecting download\n%s = %u\n\n",
 			keywords[k_download_connecting_timeout],
@@ -1025,6 +1045,10 @@ void config_save(void)
 		"downloads screen when a new download is selected.\n"
 			"%s = %u\n\n", keywords[k_jump_to_downloads],
 			jump_to_downloads);
+
+	fprintf(config, "# Whether auto downloading should be enabled.\n"
+			"%s = %u\n\n", keywords[k_use_auto_download],
+			use_autodownload);
 
 	fprintf(config, "# Maximum uploads per IP address\n"
 			"%s = %u\n\n", keywords[k_max_uploads_ip], max_uploads_ip);
