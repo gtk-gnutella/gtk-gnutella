@@ -179,6 +179,7 @@ void search_gui_store_searches(void);
 static void slow_main_timer(time_t now)
 {
 	static gint i = 0;
+	static time_t last_warn = 0;
 
 	switch (i) {
 	case 0:
@@ -201,10 +202,15 @@ static void slow_main_timer(time_t now)
 		g_assert(0);
 	}
 
-	ignore_timer(now);
-
 	if (++i > 4)
 		i = 0;
+
+	ignore_timer(now);
+
+	if (now - last_warn > 600) {
+		version_ancient_warn();
+		last_warn = now;
+	}
 }
 
 static gboolean main_timer(gpointer p)
@@ -294,18 +300,16 @@ static gboolean scan_files_once(gpointer p)
 gint main(gint argc, gchar ** argv)
 {
 	gint i;
-	static gchar *lc_time = "LC_TIME=C";
 
 	for (i = 3; i < 256; i++)
 		close(i);				/* Just in case */
 
-    gnet_stats_init();
-    main_gui_early_init(argc, argv);
-    
 	/* Our inits */
-	random_init();
 	atoms_init();
 	version_init();
+	random_init();
+    gnet_stats_init();
+    main_gui_early_init(argc, argv);
 	callout_queue = cq_make(0);
 	init_constants();
 	settings_init();
@@ -351,9 +355,7 @@ gint main(gint argc, gchar ** argv)
 	/* Okay, here we go */
 
 	bsched_enable_all();
-
 	version_ancient_warn();
-
     main_gui_run();
 
 	return 0;
