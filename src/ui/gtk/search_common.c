@@ -801,8 +801,12 @@ search_matched(search_t *sch, results_set_t *rs)
 		sch->udp_qhits++;
 		if (vinfo->len)
 			g_string_append(vinfo, ", ");
-		g_string_append(vinfo, "UDP ");
-		g_string_append(vinfo, ip_to_gchar(rs->udp_ip));
+		if (rs->ip == rs->udp_ip)
+			g_string_append(vinfo, "udp");
+		else {
+			g_string_append(vinfo, "udp ");
+			g_string_append(vinfo, ip_to_gchar(rs->udp_ip));
+		}
 	} else
 		sch->tcp_qhits++;
 
