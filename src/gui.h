@@ -94,6 +94,29 @@ enum {
 };
 
 /*
+ * Searches overview table columns
+ */
+enum {
+    c_sl_name = 0,
+    c_sl_hit,
+    c_sl_new
+};
+
+/*
+ * Notebook tabs in the main notebook.
+ */
+enum {
+    nb_main_page_gnutellaNet = 0,
+    nb_main_page_uploads,
+    nb_main_page_uploads_stats,
+    nb_main_page_downloads,
+    nb_main_page_search,
+    nb_main_page_monitor,
+    nb_main_page_search_stats,
+    nb_main_page_config
+};
+
+/*
  * Macros for accessing the statusbar
  */
 #define gui_statusbar_push(scid, msg)   (gtk_statusbar_push(GTK_STATUSBAR(statusbar), (scid), (msg)))
@@ -134,6 +157,7 @@ void gui_update_download_abort_resume(void);
 void gui_update_download_clear(void);
 void gui_update_files_scanned(void);
 void gui_update_global(void);
+void gui_update_traffic_stats(void);
 void gui_update_max_connections(void);
 void gui_update_max_downloads(void);
 void gui_update_max_host_downloads(void);
