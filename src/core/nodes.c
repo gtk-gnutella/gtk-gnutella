@@ -108,6 +108,7 @@ RCSID("$Id$");
 #define MAX_HOP_COUNT			255		/* Architecturally defined maximum */
 #define NODE_LEGACY_DEGREE		8		/* Older node without X-Degree */
 #define NODE_LEGACY_TTL			7		/* Older node without X-Max-TTL */
+#define NODE_USELESS_GRACE		20		/* Don't kick if condition too recent */
 
 #define SHUTDOWN_GRACE_DELAY	120	/* Grace period for shutdowning nodes */
 #define BYE_GRACE_DELAY			30	/* Bye sent, give time to propagate */
@@ -2279,6 +2280,24 @@ formatted_connection_pongs(gchar *field, hcache_type_t htype)
 }
 
 /**
+ * qsort() callback for sorting GTKG nodes at the front.
+ */
+static gint
+node_gtkg_cmp(const void *np1, const void *np2)
+{
+	gnutella_node_t *n1 = *(gnutella_node_t **) np1;
+	gnutella_node_t *n2 = *(gnutella_node_t **) np2;
+
+	if (n1->flags & NODE_F_GTKG)
+		return (n2->flags & NODE_F_GTKG) ? 0 : -1;
+
+	if (n2->flags & NODE_F_GTKG)
+		return (n1->flags & NODE_F_GTKG) ? 0 : +1;
+
+	return 0;
+}
+
+/**
  * Generate the "Peers:" and "Leaves:" headers in a static buffer.
  * Returns ready-to-insert header chunk, with all lines ending with "\r\n".
  */
@@ -2286,10 +2305,58 @@ static gchar *
 node_crawler_headers(struct gnutella_node *n)
 {
 	static gchar buf[8192];		/* 8 KB */
+	gnutella_node_t **ultras = NULL;	/* Array of ultra nodes */
+	gnutella_node_t **leaves = NULL;	/* Array of leaves */
+	gint ultras_len = 0;				/* Size of `ultras' */
+	gint leaves_len = 0;				/* Size of `leaves' */
+	gint ux = 0;						/* Index in `ultras' */
+	gint lx = 0;						/* Index in `leaves' */
 	GSList *sl;
 	gint maxsize;
 	gint rw;
 	gint count;
+
+	if (node_ultra_count) {
+		ultras_len = node_ultra_count * sizeof(gnutella_node_t *);
+		ultras = walloc(ultras_len);
+	}
+
+	if (node_leaf_count) {
+		leaves_len = node_leaf_count * sizeof(gnutella_node_t *);
+		leaves = walloc(leaves_len);
+	}
+
+	for (sl = sl_nodes; sl; sl = g_slist_next(sl)) {
+		gnutella_node_t *cn = sl->data;
+
+		if (!NODE_IS_ESTABLISHED(cn))
+			continue;
+
+		if (cn->gnet_ip == 0)		/* No information yet */
+			continue;
+
+		if (NODE_IS_ULTRA(cn)) {
+			g_assert(ux < node_ultra_count);
+			ultras[ux++] = cn;
+			continue;
+		}
+
+		if (NODE_IS_LEAF(cn)) {
+			g_assert(lx < node_leaf_count);
+			leaves[lx++] = cn;
+			continue;
+		}
+	}
+
+	/*
+	 * Put gtk-gnutella nodes at the front of the array, so that their
+	 * addresses are listed first, in case we cannot list everyone.
+	 */
+
+	if (ux)
+		qsort(ultras, ux, sizeof(gnutella_node_t *), node_gtkg_cmp);
+	if (lx)
+		qsort(leaves, lx, sizeof(gnutella_node_t *), node_gtkg_cmp);
 
 	/*
 	 * Avoid sending an incomplete trailing IP address by roughly avoiding
@@ -2304,19 +2371,10 @@ node_crawler_headers(struct gnutella_node *n)
 
 	rw = gm_snprintf(buf, sizeof(buf), "Peers: ");
 
-	for (count = 0, sl = sl_nodes; sl && rw < maxsize; sl = g_slist_next(sl)) {
-		struct gnutella_node *cn = (struct gnutella_node *) sl->data;
+	for (count = 0; count < ux && rw < maxsize; count++) {
+		struct gnutella_node *cn = ultras[count];
 
 		if (cn == n)				/* Don't show the crawler itself */
-			continue;
-
-		if (!NODE_IS_WRITABLE(cn))	/* No longer (or not yet) connected */
-			continue;
-
-		if (NODE_IS_LEAF(cn))
-			continue;
-
-		if (cn->gnet_ip == 0)		/* No information yet */
 			continue;
 
 		if (count > 0)
@@ -2324,14 +2382,12 @@ node_crawler_headers(struct gnutella_node *n)
 
 		rw += gm_snprintf(&buf[rw], sizeof(buf)-rw, "%s",
 			ip_port_to_gchar(cn->gnet_ip, cn->gnet_port));
-
-		count++;
 	}
 
 	rw += gm_snprintf(&buf[rw], sizeof(buf)-rw, "\r\n");
 
 	if (current_peermode != NODE_P_ULTRA || rw >= maxsize)
-		return buf;
+		goto cleanup;
 
 	/*
 	 * We're an ultranode, list our leaves.
@@ -2339,19 +2395,10 @@ node_crawler_headers(struct gnutella_node *n)
 
 	rw += gm_snprintf(&buf[rw], sizeof(buf)-rw, "Leaves: ");
 
-	for (count = 0, sl = sl_nodes; sl && rw < maxsize; sl = g_slist_next(sl)) {
-		struct gnutella_node *cn = (struct gnutella_node *) sl->data;
+	for (count = 0; count < lx && rw < maxsize; count++) {
+		struct gnutella_node *cn = leaves[count];
 
 		if (cn == n)				/* Don't show the crawler itself */
-			continue;
-
-		if (!NODE_IS_WRITABLE(cn))	/* No longer (or not yet) connected */
-			continue;
-
-		if (!NODE_IS_LEAF(cn))
-			continue;
-
-		if (cn->gnet_ip == 0)		/* No information yet */
 			continue;
 
 		if (count > 0)
@@ -2359,11 +2406,17 @@ node_crawler_headers(struct gnutella_node *n)
 
 		rw += gm_snprintf(&buf[rw], sizeof(buf)-rw, "%s",
 			ip_port_to_gchar(cn->gnet_ip, cn->gnet_port));
-
-		count++;
 	}
 
 	rw += gm_snprintf(&buf[rw], sizeof(buf)-rw, "\r\n");
+
+	/* FALL THROUGH */
+
+cleanup:
+	if (ultras)
+		wfree(ultras, ultras_len);
+	if (leaves)
+		wfree(leaves, leaves_len);
 
 	return buf;
 }
@@ -2754,6 +2807,20 @@ node_is_now_connected(struct gnutella_node *n)
 	}
 
 	/*
+	 * Spot remote GTKG nodes.
+	 */
+
+	if (n->vendor != NULL) {
+		const gchar gtkg_vendor[] = "gtk-gnutella/";
+		gint len = sizeof(gtkg_vendor) - 1;		/* Without trailing NUL */
+		if (
+			0 == strncmp(gtkg_vendor, n->vendor, len) ||
+			(*n->vendor == '!' && 0 == strncmp(gtkg_vendor, n->vendor + 1, len))
+		)
+			n->flags |= NODE_F_GTKG;
+	}
+
+	/*
 	 * Update the GUI.
 	 */
 
@@ -2771,7 +2838,7 @@ node_is_now_connected(struct gnutella_node *n)
 }
 
 /**
- * Received a Bye message from remote node.
+ * Received a Bye message from remote node.
  */
 static void
 node_got_bye(struct gnutella_node *n)
@@ -6065,7 +6132,7 @@ node_remove_useless_leaf(void)
 		time_t target = 0;
 		gint diff;
 
-		if (n->status != GTA_NODE_CONNECTED)
+		if (!NODE_IS_ESTABLISHED(n))
 			continue;
 
 		if (!NODE_IS_LEAF(n))
@@ -6090,6 +6157,10 @@ node_remove_useless_leaf(void)
 			continue;
 
 		diff = delta_time(now, target);
+
+		if (diff < NODE_USELESS_GRACE)
+			continue;
+
 		if (diff > greatest) {
 			greatest = diff;
 			worst = n;
@@ -7136,6 +7207,20 @@ node_ua_cmp(const void *np1, const void *np2)
 	gnutella_node_t *n1 = *(gnutella_node_t **) np1;
 	gnutella_node_t *n2 = *(gnutella_node_t **) np2;
 
+	/*
+	 * Put gtk-gnutella nodes at the beginning of the array.
+	 */
+
+	if (n1->flags & NODE_F_GTKG)
+		return (n2->flags & NODE_F_GTKG) ? strcmp(n1->vendor, n2->vendor) : -1;
+
+	if (n2->flags & NODE_F_GTKG)
+		return (n1->flags & NODE_F_GTKG) ? strcmp(n1->vendor, n2->vendor) : +1;
+
+	/*
+	 * Nodes without user-agent are put at the end of the array.
+	 */
+
 	if (n1->vendor == NULL)
 		return (n2->vendor == NULL) ? 0 : +1;
 
@@ -7190,7 +7275,7 @@ node_crawl_append_vendor(GString *ua, gchar *vendor)
 static gint
 node_crawl_fill(pmsg_t *mb,
 	gnutella_node_t **ary, gint start, gint len, gint want,
-	guint8 features, time_t now, GString *ua)
+	guint8 features, time_t now, GString *ua, gboolean gtkg)
 {
 	gint i;
 	gint n;
@@ -7205,12 +7290,15 @@ node_crawl_fill(pmsg_t *mb,
 		gnutella_node_t *n = ary[i];
 		gchar addr[6];
 
+		if (!gtkg != !(n->flags & NODE_F_GTKG))
+			continue;
+
 		/*
 		 * Add node's address (IP:port).
 		 */
 
-		WRITE_GUINT32_BE(n->ip, &addr[0]);
-		WRITE_GUINT16_LE(n->port, &addr[4]);
+		WRITE_GUINT32_BE(n->gnet_ip, &addr[0]);
+		WRITE_GUINT16_LE(n->gnet_port, &addr[4]);
 
 		if (sizeof(addr) != pmsg_write(mb, addr, sizeof(addr)))
 			break;
@@ -7298,23 +7386,26 @@ node_crawl(gnutella_node_t *n, gint ucnt, gint lcnt, guint8 features)
 	}
 
 	for (sl = sl_nodes; sl; sl = g_slist_next(sl)) {
-		gnutella_node_t *n = sl->data;
+		gnutella_node_t *cn = sl->data;
 
-		if (!NODE_IS_ESTABLISHED(n))
+		if (!NODE_IS_ESTABLISHED(cn))
 			continue;
 
-		if (crawlable_only && !(n->attrs & NODE_A_CRAWLABLE))
+		if (cn->gnet_ip == 0)		/* No information about node yet */
 			continue;
 
-		if (ucnt && NODE_IS_ULTRA(n)) {
+		if (crawlable_only && !(cn->attrs & NODE_A_CRAWLABLE))
+			continue;
+
+		if (ucnt && NODE_IS_ULTRA(cn)) {
 			g_assert(ux < node_ultra_count);
-			ultras[ux++] = n;
+			ultras[ux++] = cn;
 			continue;
 		}
 
-		if (lcnt && NODE_IS_LEAF(n)) {
+		if (lcnt && NODE_IS_LEAF(cn)) {
 			g_assert(lx < node_leaf_count);
-			leaves[lx++] = n;
+			leaves[lx++] = cn;
 			continue;
 		}
 	}
@@ -7382,10 +7473,28 @@ node_crawl(gnutella_node_t *n, gint ucnt, gint lcnt, guint8 features)
 	if (features & NODE_CR_USER_AGENT)
 		agents = g_string_sized_new((un + ln) * 15);
 
-	if (ux)
-		ui = node_crawl_fill(mb, ultras, ui, ux, un, features, now, agents);
-	if (lx)
-		li = node_crawl_fill(mb, leaves, li, lx, ln, features, now, agents);
+	/*
+	 * Insert GTKG nodes first, and if there is room, non-GTKG nodes starting
+	 * from the selected random place if we have to put less than we have.
+	 */
+
+	if (ux) {
+		gint w;
+		w = node_crawl_fill(mb, ultras, 0, ux, un, features, now, agents, TRUE);
+		if (w < un)
+			w += node_crawl_fill(
+				mb, ultras, ui, ux, un - w, features, now, agents, FALSE);
+		ui = w;
+	}
+
+	if (lx) {
+		gint w;
+		w = node_crawl_fill(mb, leaves, 0, lx, ln, features, now, agents, TRUE);
+		if (w < ln)
+			w += node_crawl_fill(
+				mb, leaves, li, lx, ln - w, features, now, agents, FALSE);
+		li = w;
+	}
 
 	if (ui != un) {
 		g_assert(ui < un);

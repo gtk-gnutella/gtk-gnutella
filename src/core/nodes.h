@@ -283,6 +283,7 @@ typedef struct gnutella_node {
 #define NODE_F_TLS			0x00100000	/* TLS-tunneled */
 #define NODE_F_TSYNC_WAIT	0x00200000	/* Time sync pending via TCP */
 #define NODE_F_TSYNC_TCP	0x00400000	/* No replies via UDP, use TCP */
+#define NODE_F_GTKG			0x00800000	/* Node is another gtk-gnutella */
 
 /*
  * Node attributes.
