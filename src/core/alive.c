@@ -134,7 +134,7 @@ alive_send_ping(gpointer obj)
 
 	g_assert(a->count == 0 || a->pings != NULL);
 
-	if (a->count == a->maxcount)
+	if (a->count >= a->maxcount)
 		return FALSE;
 
 	send_alive_ping(a->node, muid);
