@@ -15500,6 +15500,9 @@ create_dlg_prefs_dbg_tab (void)
   GtkWidget *label894;
   GtkObject *spinbutton_config_ggep_debug_adj;
   GtkWidget *spinbutton_config_ggep_debug;
+  GtkWidget *label896;
+  GtkObject *spinbutton_config_pcache_debug_adj;
+  GtkWidget *spinbutton_config_pcache_debug;
   GtkWidget *label883;
   GtkWidget *label375;
   GtkWidget *frame_expert_unmapped;
@@ -15519,6 +15522,8 @@ create_dlg_prefs_dbg_tab (void)
   GtkWidget *entry_sys_physmem;
   GtkWidget *entry_crawler_visit_count;
   GtkWidget *label870;
+  GtkWidget *label895;
+  GtkWidget *entry_udp_crawler_visit_count;
   GtkWidget *label558;
 
   dlg_prefs_dbg_tab = gtk_window_new (GTK_WINDOW_TOPLEVEL);
@@ -15864,6 +15869,22 @@ create_dlg_prefs_dbg_tab (void)
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
 
+  label896 = gtk_label_new (_("Pong caching"));
+  gtk_widget_set_name (label896, "label896");
+  gtk_widget_show (label896);
+  gtk_table_attach (GTK_TABLE (table98), label896, 4, 5, 1, 2,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label896), 0, 0.5);
+
+  spinbutton_config_pcache_debug_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 10);
+  spinbutton_config_pcache_debug = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_pcache_debug_adj), 1, 0);
+  gtk_widget_set_name (spinbutton_config_pcache_debug, "spinbutton_config_pcache_debug");
+  gtk_widget_show (spinbutton_config_pcache_debug);
+  gtk_table_attach (GTK_TABLE (table98), spinbutton_config_pcache_debug, 5, 6, 1, 2,
+                    (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+
   label883 = gtk_label_new (_("Functionality"));
   gtk_widget_set_name (label883, "label883");
   gtk_widget_show (label883);
@@ -16007,6 +16028,22 @@ create_dlg_prefs_dbg_tab (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label870), 0, 0.5);
 
+  label895 = gtk_label_new (_("PRPO_UDP_CRAWLER_VISIT_COUNT"));
+  gtk_widget_set_name (label895, "label895");
+  gtk_widget_show (label895);
+  gtk_table_attach (GTK_TABLE (table60), label895, 0, 1, 7, 8,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label895), 0, 0.5);
+
+  entry_udp_crawler_visit_count = gtk_entry_new ();
+  gtk_widget_set_name (entry_udp_crawler_visit_count, "entry_udp_crawler_visit_count");
+  gtk_widget_show (entry_udp_crawler_visit_count);
+  gtk_table_attach (GTK_TABLE (table60), entry_udp_crawler_visit_count, 1, 2, 7, 8,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_editable_set_editable (GTK_EDITABLE (entry_udp_crawler_visit_count), FALSE);
+
   label558 = gtk_label_new (_("Unmapped stuff"));
   gtk_widget_set_name (label558, "label558");
   gtk_widget_show (label558);
@@ -16071,6 +16108,8 @@ create_dlg_prefs_dbg_tab (void)
   GLADE_HOOKUP_OBJECT (dlg_prefs_dbg_tab, spinbutton_config_routing_debug, "spinbutton_config_routing_debug");
   GLADE_HOOKUP_OBJECT (dlg_prefs_dbg_tab, label894, "label894");
   GLADE_HOOKUP_OBJECT (dlg_prefs_dbg_tab, spinbutton_config_ggep_debug, "spinbutton_config_ggep_debug");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_dbg_tab, label896, "label896");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_dbg_tab, spinbutton_config_pcache_debug, "spinbutton_config_pcache_debug");
   GLADE_HOOKUP_OBJECT (dlg_prefs_dbg_tab, label883, "label883");
   GLADE_HOOKUP_OBJECT (dlg_prefs_dbg_tab, label375, "label375");
   GLADE_HOOKUP_OBJECT (dlg_prefs_dbg_tab, frame_expert_unmapped, "frame_expert_unmapped");
@@ -16090,6 +16129,8 @@ create_dlg_prefs_dbg_tab (void)
   GLADE_HOOKUP_OBJECT (dlg_prefs_dbg_tab, entry_sys_physmem, "entry_sys_physmem");
   GLADE_HOOKUP_OBJECT (dlg_prefs_dbg_tab, entry_crawler_visit_count, "entry_crawler_visit_count");
   GLADE_HOOKUP_OBJECT (dlg_prefs_dbg_tab, label870, "label870");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_dbg_tab, label895, "label895");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_dbg_tab, entry_udp_crawler_visit_count, "entry_udp_crawler_visit_count");
   GLADE_HOOKUP_OBJECT (dlg_prefs_dbg_tab, label558, "label558");
 
   return dlg_prefs_dbg_tab;

@@ -4777,6 +4777,14 @@ static prop_map_t property_map[] = {
     ),
     PROP_ENTRY(
         get_prefs_dialog,
+        PROP_UDP_CRAWLER_VISIT_COUNT,
+        update_entry,
+        TRUE,
+        "entry_udp_crawler_visit_count",
+        FREQ_UPDATES, 0
+    ),
+    PROP_ENTRY(
+        get_prefs_dialog,
         PROP_CLOCK_SKEW,
         clock_skew_changed,
         TRUE,
@@ -5088,6 +5096,14 @@ static prop_map_t property_map[] = {
         update_spinbutton,
         TRUE,
         "spinbutton_config_ggep_debug",
+        FREQ_UPDATES, 0
+    ),
+    PROP_ENTRY(
+        get_prefs_dialog,
+        PROP_PCACHE_DEBUG,
+        update_spinbutton,
+        TRUE,
+        "spinbutton_config_pcache_debug",
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
