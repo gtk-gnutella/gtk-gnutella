@@ -43,6 +43,7 @@
 #include "routing.h"
 #include "gmsg.h"
 #include "filter.h"
+#include "atoms.h"
 
 #ifdef USE_SEARCH_XML
 # include "search_xml.h"
@@ -172,9 +173,9 @@ static void search_free_record(struct record *rc)
 {
 	g_assert(rc->refcount == 0);
 
-	g_free(rc->name);
+	atom_str_free(rc->name);
 	if (rc->tag)
-		g_free(rc->tag);
+		atom_str_free(rc->tag);
 	g_free(rc);
 }
 
@@ -335,7 +336,7 @@ void search_close(search_t* sch)
 
 	search_free_r_sets(sch);
 
-	g_free(sch->query);
+	atom_str_free(sch->query);
 	g_free(sch);
 }
 
@@ -393,6 +394,8 @@ static void __search_send_packet(search_t *sch, struct gnutella_node *n)
 {
 	struct gnutella_msg_search *m;
 	guint32 size;
+	gint plen;				/* Length of payload */
+	gint qlen;				/* Length of query text */
 
 	/*
 	 * Don't send on a temporary connection.
@@ -405,7 +408,21 @@ static void __search_send_packet(search_t *sch, struct gnutella_node *n)
 	if (n && NODE_IS_PONGING_ONLY(n))
 		return;
 
-	size = sizeof(struct gnutella_msg_search) + strlen(sch->query) + 1;
+	/*
+	 * We're adding "urn:" after the NUL to request the SHA1 hash (4 chars),
+	 * and terminate that string with a NUL.
+	 *		-- RAM, 05/06/2002
+	 */
+
+	qlen = strlen(sch->query);
+	size = sizeof(struct gnutella_msg_search) + qlen + 4 + 2;	/* 2 NULs */
+	plen = size - sizeof(struct gnutella_header);
+
+	if (plen > search_queries_forward_size) {
+		g_warning("not sending query \"%s\": larger than max query size (%d)",
+			sch->query, search_queries_forward_size);
+		return;
+	}
 
 	m = (struct gnutella_msg_search *) g_malloc(size);
 
@@ -418,12 +435,11 @@ static void __search_send_packet(search_t *sch, struct gnutella_node *n)
 	if (m->header.ttl + m->header.hops > hard_ttl_limit)
 		m->header.ttl = hard_ttl_limit - m->header.hops;
 
-	WRITE_GUINT32_LE(size - sizeof(struct gnutella_header),
-					 m->header.size);
-
+	WRITE_GUINT32_LE(plen, m->header.size);
 	WRITE_GUINT16_LE(minimum_speed, m->search.speed);
 
 	strcpy(m->search.query, sch->query);
+	strcpy(m->search.query + qlen + 1, "urn:");
 
 	message_add(m->header.muid, GTA_MSG_SEARCH, NULL);
 
@@ -628,7 +644,7 @@ search_t *_new_search(guint16 speed, gchar * query, guint flags)
 
 	sch = (search_t *) g_malloc0(sizeof(search_t));
 
-	sch->query = g_strdup(query);
+	sch->query = atom_str_get(query);
 	sch->speed = speed;
 
   	filter_new_for_search(sch);
@@ -949,8 +965,8 @@ static struct results_set *get_results_set(struct gnutella_node *n)
 		rc = (struct record *) g_malloc0(sizeof(struct record));
 		rc->index = index;
 		rc->size = size;
-		rc->name = g_strdup(fname);
-		rc->tag = tag ? g_strdup(tag) : NULL;
+		rc->name = atom_str_get(fname);
+		rc->tag = tag ? atom_str_get(tag) : NULL;
 
 		rc->results_set = rs;
 		rs->records = g_slist_prepend(rs->records, (gpointer) rc);
@@ -1162,8 +1178,8 @@ static void search_gui_update(search_t *sch, struct results_set *rs)
 		next = l->next;
 
         if (dbg > 7)
-            printf("search_gui_update: adding %s (%s)\n",
-				rc->name, vinfo->str);
+            printf("search_gui_update: [%s] considering %s (%s)\n",
+				sch->query, rc->name, vinfo->str);
 
 		/*
 		 * If we have too many results in this search already,
@@ -1413,7 +1429,7 @@ void search_results(struct gnutella_node *n)
 		gchar *vendor = extract_vendor_name(rs);
 
 		if (vendor) {
-			n->vendor = g_strdup(vendor);
+			n->vendor = atom_str_get(vendor);
 			gui_update_node_vendor(n);
 		} else
 			n->attrs |= NODE_A_QHD_NO_VTAG;		/* No vendor tag in QHD */
