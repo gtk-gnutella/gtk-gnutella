@@ -892,11 +892,11 @@ on_popup_search_metadata_activate(GtkMenuItem *unused_menuitem,
 
 		/* set the feedback */
 		parent = find_parent_with_sha1(search->parents, rec->sha1);
-		g_assert(parent != NULL);
-		gtk_tree_store_set(GTK_TREE_STORE(search->model), parent,
-			c_sr_meta, _("Query queued..."),
-			(-1));
-
+		if (parent != NULL) {
+			gtk_tree_store_set(GTK_TREE_STORE(search->model), parent,
+				c_sr_meta, _("Query queued..."),
+				(-1));
+		}
     }
 
 	g_slist_free(sl_records);
