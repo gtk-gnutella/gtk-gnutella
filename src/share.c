@@ -47,6 +47,7 @@
 #include "gnet_stats.h"
 #include "settings.h"
 #include "ggep.h"
+#include "guid.h"
 
 #include "gnet_property.h"
 
@@ -234,6 +235,8 @@ struct {
 #define FOUND_FILES	found_data.files
 
 #define FOUND_LEFT(x)	(found_data.l - (x))
+
+static gboolean use_ggep_h;		/* Can we use GGEP "H" for this query? */
 
 /* 
  * We don't want to include the same file several times in a reply (for
@@ -969,35 +972,34 @@ static gboolean got_match(struct shared_file *sf)
 	FOUND_BUF[pos++] = '\0';
 
 	if (sha1_available) {
-		gchar *b32 = sha1_base32(sf->sha1_digest);
-		memcpy(&FOUND_BUF[pos], "urn:sha1:", 9);
-		pos += 9;
-		memcpy(&FOUND_BUF[pos], b32, SHA1_BASE32_SIZE);
-		pos += SHA1_BASE32_SIZE;
+		if (use_ggep_h) {
+			/* Modern way: GGEP "H" for binary URN */
+			guint8 type = GGEP_H_SHA1;
+			struct iovec iov[2];
+			gint w;
+
+			iov[0].iov_base = &type;
+			iov[0].iov_len = 1;
+
+			iov[1].iov_base = sf->sha1_digest;
+			iov[1].iov_len = SHA1_RAW_SIZE;
+
+			w = ggep_ext_writev(&FOUND_BUF[pos], FOUND_LEFT(pos),
+					"H", iov, 2, GGEP_W_FIRST|GGEP_W_LAST|GGEP_W_COBS);
+
+			if (w == -1)
+				g_warning("could not write GGEP \"H\" extension in query hit");
+			else
+				pos += w;			/* Could be COBS-encoded, we don't know */
+		} else {
+			/* Good old way: ASCII URN */
+			gchar *b32 = sha1_base32(sf->sha1_digest);
+			memcpy(&FOUND_BUF[pos], "urn:sha1:", 9);
+			pos += 9;
+			memcpy(&FOUND_BUF[pos], b32, SHA1_BASE32_SIZE);
+			pos += SHA1_BASE32_SIZE;
+		}
 	}
-
-#if 0
-	// GGEP H version -- deactivated for 0.91 -- RAM, 15/10/2002
-	if (sha1_available) {
-		guint8 type = GGEP_H_SHA1;
-		struct iovec iov[2];
-		gint w;
-
-		iov[0].iov_base = &type;
-		iov[0].iov_len = 1;
-
-		iov[1].iov_base = sf->sha1_digest;
-		iov[1].iov_len = SHA1_RAW_SIZE;
-
-		w = ggep_ext_writev(&FOUND_BUF[pos], FOUND_LEFT(pos),
-				"H", iov, 2, GGEP_W_FIRST|GGEP_W_LAST|GGEP_W_COBS);
-
-		if (w == -1)
-			g_warning("could not write GGEP \"H\" extension in query hit");
-		else
-			pos += w;			/* Could be COBS-encoded, we don't know */
-	}
-#endif
 
 	FOUND_BUF[pos++] = '\0';
 	FOUND_FILES++;
@@ -1448,6 +1450,32 @@ gboolean search_request(struct gnutella_node *n)
 
 	if ((max_uploads == 0) || (files_scanned == 0))
 		return FALSE;
+
+	/*
+	 * If query comes from GTKG 0.91 or later, it understands GGEP "H".
+	 * Otherwise, it's an old servent or one unwilling to support this new
+	 * extension, so it will get its SHA1 URNs in ASCII form.
+	 *		--RAM, 17/11/2002
+	 */
+
+	{
+		guint8 major, minor;
+		gboolean release;
+
+		use_ggep_h = FALSE;
+
+		if (
+			guid_is_gtkg(n->header.muid, &major, &minor, &release) && 
+			(major >= 1 || minor > 91 || (minor == 91 && release))
+		) {
+			use_ggep_h = TRUE;
+
+			if (dbg > 3)
+				printf("GTKG %squery from %d.%d%s\n",
+					guid_is_requery(n->header.muid) ? "re-" : "",
+					major, minor, release ? "" : "u");
+		}
+	}
 
 	/*
 	 * Perform search...
