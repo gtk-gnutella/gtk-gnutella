@@ -60,6 +60,7 @@ typedef struct mqueue {
 	gint lowat;				/* Low watermark */
 	gint size;				/* Current amount of bytes queued */
 	gint flags;				/* Status flags */
+	gint last_written;		/* Amount last written by service routine */
 } mqueue_t;
 
 /*

@@ -37,10 +37,12 @@
 #include "gmsg.h"
 #include "tx.h"
 #include "gnet_stats.h"
+#include "walloc.h"
 
 RCSID("$Id$");
 
-#define MQ_MAXIOV	256		/* Our limit on the I/O vectors we build */
+#define MQ_MAXIOV		256		/* Our limit on the I/O vectors we build */
+#define MQ_MINIOV		2		/* Minimum amount of I/O vectors in service */
 
 static void qlink_free(mqueue_t *q);
 static void mq_service(gpointer data);
@@ -55,7 +57,7 @@ mqueue_t *mq_make(gint maxsize, struct gnutella_node *n, struct txdriver *nd)
 {
 	mqueue_t *q;
 
-	q = g_malloc0(sizeof(*q));
+	q = walloc0(sizeof(*q));
 
 	q->node = n;
 	q->tx_drv = nd;
@@ -89,7 +91,7 @@ void mq_free(mqueue_t *q)
 		qlink_free(q);
 
 	g_list_free(q->qhead);
-	g_free(q);
+	wfree(q, sizeof(*q));
 }
 
 /*
@@ -129,6 +131,8 @@ static void mq_update_flowc(mqueue_t *q)
 		if (q->size <= q->lowat) {
 			q->flags &= ~MQ_FLOWC;			/* Under low watermark, clear */
 			node_tx_leave_flowc(q->node);	/* Signal end flow control */
+			if (q->qlink)
+				qlink_free(q);
 			if (dbg > 4)
 				printf("leaving FLOWC for node %s (%d bytes queued)\n",
 					node_ip(q->node), q->size);
@@ -173,6 +177,9 @@ void mq_clear(mqueue_t *q)
 	}
 
 	g_assert(q->count >= 0 && q->count <= 1);	/* At most one message */
+
+	if (q->qlink)
+		qlink_free(q);
 
 	mq_update_flowc(q);
 
@@ -269,14 +276,240 @@ static void qlink_free(mqueue_t *q)
 }
 
 /*
+ * qlink_insert_before
+ *
+ * Insert linkable `l' within the sorted qlink array of linkables for the queue,
+ * before the position indicated by `hint'.
+ */
+static void qlink_insert_before(mqueue_t *q, gint hint, GList *l)
+{
+	g_assert(hint >= 0 && hint < q->qlink_count);
+	g_assert(qlink_cmp(&q->qlink[hint], &l) >= 0);	/* `hint' >= `l' */
+
+	/*
+	 * Lookup before the message for a NULL entry that we could fill.
+	 */
+
+	if (hint > 0 && q->qlink[hint-1] == NULL) {
+		q->qlink[hint-1] = l;
+		return;
+	}
+
+	/*
+	 * Extend the array then, and insert right at `hint' in the new array.
+	 */
+
+	q->qlink = g_realloc(q->qlink, ++q->qlink_count * sizeof(GList *));
+
+	memmove(&q->qlink[hint+1], &q->qlink[hint],
+		(q->qlink_count - hint - 1) * sizeof(GList *));	/* Shift right */
+
+	q->qlink[hint] = l;
+}
+
+/*
+ * qlink_insert
+ *
+ * Insert linkable `l' within the sorted qlink array of linkables.
+ */
+static void qlink_insert(mqueue_t *q, GList *l)
+{
+	gint low = 0;
+	gint high = q->qlink_count - 1;
+	GList **qlink = q->qlink;
+
+	/*
+	 * If lower than the beginning, insert at the head.
+	 */
+
+	if (qlink[low] != NULL && qlink_cmp(&l, &qlink[low]) <= 0) {
+		qlink_insert_before(q, low, l);
+		return;
+	}
+
+	/*
+	 * If higher than the tail, insert at the tail.
+	 */
+
+	if (qlink[high] != NULL && qlink_cmp(&l, &qlink[high]) >= 0) {
+		q->qlink = g_realloc(q->qlink, ++q->qlink_count * sizeof(GList *));
+		q->qlink[q->qlink_count - 1] = l;
+		return;
+	}
+
+	/*
+	 * The array is sorted, so we're going to use a dichotomic search
+	 * to find the right insertion point.  However, there can be NULLified
+	 * entries in the array, so this is not a plain dichotomic search.
+	 */
+
+	while (low <= high) {
+		gint mid = low + (high - low) / 2;
+		gint c;
+
+		/*
+		 * If we end up in a NULL spot, inspect the [low, high] range.
+		 */
+
+		if (qlink[mid] == NULL) {
+			gint n;
+			gint lowest_non_null = -1;
+			gint highest_non_null = -1;
+
+			/*
+			 * Go back towards `low' to find a non-NULL entry.
+			 */
+
+			for (n = mid - 1; n >= low; n--) {
+				if (qlink[n] != NULL) {
+					lowest_non_null = n;
+					break;
+				}
+			}
+
+			/*
+			 * Go forward towards `high' to find a non-NULL entry.
+			 */
+
+			for (n = mid + 1; n <= high; n++) {
+				if (qlink[n] != NULL) {
+					highest_non_null = n;
+					break;
+				}
+			}
+
+			/*
+			 * If both `lowest_non_null' and `highest_non_null' are -1, we
+			 * have only NULLs, and the boundaries are NULL as well.
+			 */
+
+			if (lowest_non_null == -1) {
+				if (highest_non_null == -1) {
+					qlink[mid] = l;
+					return;
+				}
+				low = mid + 1;
+				continue;
+			} else if (highest_non_null == -1) {
+				high = mid - 1;
+				continue;
+			}
+
+			/*
+			 * We know that the final insertion point will be after `low'
+			 * and before `high'.  If there are only NULL entries between
+			 * the two, we're done...
+			 */
+
+			if (lowest_non_null <= low + 1 && highest_non_null >= high - 1) {
+				qlink[mid] = l;			/* Insert at the middle of the range */
+				return;
+			}
+
+			if (qlink_cmp(&l, &qlink[lowest_non_null]) < 0) {
+				high = lowest_non_null - 1;
+				continue;
+			}
+
+			if (qlink_cmp(&l, &qlink[highest_non_null]) > 0) {
+				low = highest_non_null + 1;
+				continue;
+			}
+
+			/*
+			 * `lowest_non_null' <= `l' <= `highest_non_null'
+			 */
+
+			low = lowest_non_null + 1;
+			high = highest_non_null - 1;
+
+			continue;
+		}
+
+		/*
+		 * Regular dichotomic case.
+		 */
+
+		c = qlink_cmp(&qlink[mid], &l);
+
+		if (c == 0) {
+			qlink_insert_before(q, mid, l);
+			return;
+		} else if (c < 0)
+			low = mid + 1;
+		else
+			high = mid - 1;
+	}
+
+	if (qlink[low] == NULL) {
+		qlink[low] = l;
+		return;
+	}
+
+	qlink_insert_before(q, low, l);
+}
+
+/*
+ * qlink_remove
+ *
+ * Remove the entry in the `qlink' linkable array.
+ */
+static void qlink_remove(mqueue_t *q, GList *l)
+{
+	GList **qlink = q->qlink;
+	gint n = q->qlink_count;
+
+	g_assert(qlink);
+	g_assert(n > 0);
+
+	/*
+	 * If more entries in `qlink' than 3 times the amount of queued messages,
+	 * we have too many NULL in the array.
+	 */
+
+	if  (n > q->count * 3) {
+		GList **dest = qlink;
+		gint copied = 0;
+		gboolean found = FALSE;
+
+		while (n-- > 0) {
+			GList *entry = *qlink++;;
+			if (l == entry || entry == NULL) {
+				if (entry == l)
+					found = TRUE;
+				continue;
+			}
+			*dest++ = entry;
+			copied++;
+		}
+
+		q->qlink_count = copied;
+
+		g_assert(found);
+
+	} else {
+		while (n-- > 0) {
+			if (l == *qlink++) {
+				*(--qlink) = NULL;
+				return;
+			}
+		}
+
+		g_assert(0);		/* Must have been found */
+	}
+}
+
+/*
  * make_room
  *
  * Remove from the queue enough messages that are less prioritary than
  * the current one, so as to make sure we can enqueue it.
  *
  * Returns TRUE if we were able to make enough room.
+ * Sets `offset' with the offset within qlink where the message immediately
+ * more prioritary than `mb' can be found.
  */
-static gboolean make_room(mqueue_t *q, pmsg_t *mb, gint needed)
+static gboolean make_room(mqueue_t *q, pmsg_t *mb, gint needed, gint *offset)
 {
 	gchar *mb_start = pmsg_start(mb);
 	gint mb_prio = pmsg_prio(mb);
@@ -302,30 +535,36 @@ static gboolean make_room(mqueue_t *q, pmsg_t *mb, gint needed)
 	 * Note that we try to prune at least one byte more than needed, hence
 	 * we stay in the loop even when needed reaches 0.
 	 *
-	 * XXXX
 	 * To avoid freeing the qlink array every time we drop something, we
-	 * should write NULLs at the entries we drop (which should be ignored
-	 * in the loop below).  Then, when we break out because we found a
-	 * more prioritary message, we should remember the index and return it
+	 * write NULLs at the entries we drop (which are then ignored
+	 * in the loop below).  When we break out because we found a more
+	 * prioritary message, we remember the index in the array and return it
 	 * to the caller.  If the message is finally inserted in the queue,
-	 * we can insert it right before that index (but we insert GList links,
-	 * not messages).
-	 * We must also remember the size of the array, in order to be able
-	 * to extend it to splice the new entry in in case we don't have holes
-	 * (NULLs) somewhere.  And we must write a new routine to do that
-	 * splicing.
+	 * we can insert its GList link right before that index.
+	 *
 	 * This adds some complexity but it will avoid millions of calls to
 	 * qlink_cmp(), which is costly.
-	 * We'd free qlink when we leave flow control.  In FC, we'd need to
-	 * find the messages we're removing after writing them to the network,
-	 * so we can NULLify the corresponding slot in the qlink array.
-	 * XXXX
+	 *
+	 * The qlink array is freed when we leave flow control.  During FC, we
+	 * need to find the messages we're removing after writing them to the
+	 * network, so we can NULLify the corresponding slot in the qlink array.
 	 */
 
 	for (n = 0; needed >= 0 && n < q->qlink_count; n++) {
-		pmsg_t *cmb = (pmsg_t *) q->qlink[n]->data;
-		gchar *cmb_start = pmsg_start(cmb);
+		GList *item = q->qlink[n];
+		pmsg_t *cmb;
+		gchar *cmb_start;
 		gint cmb_size;
+
+		/*
+		 * If slot was NULLified, skip it.
+		 */
+
+		if (item == NULL)
+			continue;
+
+		cmb = (pmsg_t *) item->data;
+		cmb_start = pmsg_start(cmb);
 
 		/*
 		 * Any partially written message, however unimportant, cannot be
@@ -344,8 +583,10 @@ static gboolean make_room(mqueue_t *q, pmsg_t *mb, gint needed)
 		 * (it's necessarily >= 0 if we're in the loop)
 		 */
 
-		if (gmsg_cmp(cmb_start, mb_start) >= 0)
+		if (gmsg_cmp(cmb_start, mb_start) >= 0) {
+			*offset = n;
 			break;
+		}
 
 		/*
 		 * If we reach a message whose priority is higher than ours, stop.
@@ -353,8 +594,10 @@ static gboolean make_room(mqueue_t *q, pmsg_t *mb, gint needed)
 		 * even if its embedded Gnet message is deemed less important.
 		 */
 
-		if (pmsg_prio(cmb) > mb_prio)
+		if (pmsg_prio(cmb) > mb_prio) {
+			*offset = n;
 			break;
+		}
 
 		/*
 		 * Drop message.
@@ -370,17 +613,12 @@ static gboolean make_room(mqueue_t *q, pmsg_t *mb, gint needed)
 
 		needed -= cmb_size;
 		(void) mq_rmlink_prev(q, q->qlink[n], cmb_size);
+		q->qlink[n] = NULL;
 		dropped++;
 	}
 
-	/*
-	 * We dispose of the `qlink' array only if we dropped something.
-	 */
-
-	if (dropped) {
+	if (dropped)
 		node_add_txdrop(q->node, dropped);	/* Dropped during TX */
-		qlink_free(q);
-	}
 
 	if (dbg > 5)
 		printf("FLOWC end purge: %d bytes (count=%d) for node %s, need=%d\n",
@@ -419,6 +657,9 @@ static gboolean make_room(mqueue_t *q, pmsg_t *mb, gint needed)
 static void mq_puthere(mqueue_t *q, pmsg_t *mb, gint msize)
 {
 	gint needed;
+	gint qlink_offset = -1;
+	GList *new = NULL;
+	gboolean make_room_called = FALSE;
 	gboolean has_normal_prio = (pmsg_prio(mb) == PMSG_P_DATA);
 
 	/*
@@ -431,7 +672,8 @@ static void mq_puthere(mqueue_t *q, pmsg_t *mb, gint msize)
 		(q->flags & MQ_FLOWC) &&
 		has_normal_prio &&
 		gmsg_can_drop(pmsg_start(mb), msize) &&
-		!make_room(q, mb, msize)
+		((make_room_called = TRUE)) &&			/* Call make_room() once only */
+		!make_room(q, mb, msize, &qlink_offset)
 	) {
 		if (dbg > 4)
 			gmsg_log_dropped(pmsg_start(mb),
@@ -452,8 +694,10 @@ static void mq_puthere(mqueue_t *q, pmsg_t *mb, gint msize)
 
 	needed = q->size + msize - q->maxsize;
 
-	if (needed > 0 && !make_room(q, mb, needed)) {
-
+	if (
+		needed > 0 &&
+		(make_room_called || !make_room(q, mb, needed, &qlink_offset))
+	) {
 		/*
 		 * Close the connection only if the message is a prioritary one
 		 * and yet there is no less prioritary message to remove!
@@ -501,7 +745,7 @@ static void mq_puthere(mqueue_t *q, pmsg_t *mb, gint msize)
 	 */
 
 	if (has_normal_prio) {
-		q->qhead = g_list_prepend(q->qhead, mb);
+		new = q->qhead = g_list_prepend(q->qhead, mb);
 		if (q->qtail == NULL)
 			q->qtail = q->qhead;
 	} else {
@@ -526,7 +770,7 @@ static void mq_puthere(mqueue_t *q, pmsg_t *mb, gint msize)
 				 * we are, then leave the loop.
 				 */
 
-				GList *new = g_list_alloc();
+				new = g_list_alloc();
 
 				new->data = mb;
 				new->prev = l;
@@ -553,7 +797,7 @@ static void mq_puthere(mqueue_t *q, pmsg_t *mb, gint msize)
 		if (!inserted) {
 			g_assert(l == NULL);
 
-			q->qhead = g_list_prepend(q->qhead, mb);
+			new = q->qhead = g_list_prepend(q->qhead, mb);
 			if (q->qtail == NULL)
 				q->qtail = q->qhead;
 		}
@@ -563,11 +807,28 @@ static void mq_puthere(mqueue_t *q, pmsg_t *mb, gint msize)
 	q->count++;
 
 	/*
-	 * Update flow control indication, and enable node.
+	 * If `qlink' is not NULL, insert `new' within it.
+	 *
+	 * We have two options: we called make_room() and have `qlink_offset'
+	 * set to something other than -1.  In that case, this is the offset
+	 * of the message more prioritary that us.
+	 *
+	 * We have not called make_room() yet: we need to scan the `qlink' array
+	 * to find the proper insertion place.
 	 */
 
-	if (q->qlink)			/* Inserted something, `qlink' is stale */
-		qlink_free(q);
+	if (q->qlink) {			/* Inserted something, `qlink' is stale */
+		g_assert(new != NULL);
+
+		if (qlink_offset != -1)
+			qlink_insert_before(q, qlink_offset, new);
+		else
+			qlink_insert(q, new);
+	}
+
+	/*
+	 * Update flow control indication, and enable node.
+	 */
 
 	mq_update_flowc(q);
 	tx_srv_enable(q->tx_drv);
@@ -591,19 +852,32 @@ static void mq_service(gpointer data)
 	gint r;
 	GList *l;
 	gint dropped = 0;
+	gint maxsize;
 
 	g_assert(q->count);		/* Queue is serviced, we must have something */
 
 	/*
 	 * Build I/O vector.
+	 *
+	 * Optimize our time: don't spend time building too much if we're
+	 * not likely to send anything.  We limit to 1.5 times the amount we
+	 * last wrote last time we were called, with a minimum of 2 entries.
 	 */
 
 	iovsize = MIN(MQ_MAXIOV, q->count);
+	maxsize = q->last_written + (q->last_written >> 1);		/* 1.5 times */
 
 	for (l = q->qtail; l && iovsize > 0; iovsize--) {
 		struct iovec *ie;
 		pmsg_t *mb = (pmsg_t *) l->data;
 		gchar *mbs = pmsg_start(mb);
+
+		/*
+		 * Don't build too much.
+		 */
+
+		if (iovcnt > MQ_MINIOV && maxsize < 0)
+			break;
 
 		/*
 		 * Honour hops-flow.
@@ -615,8 +889,11 @@ static void mq_service(gpointer data)
 			ie = &iov[iovcnt++];
 			ie->iov_base = mb->m_rptr;
 			ie->iov_len = pmsg_size(mb);
+			maxsize -= ie->iov_len;
 		} else {
 			gnet_stats_count_flowc(mbs);	/* Done before message freed */
+			if (q->qlink)
+				qlink_remove(q, l);
 
 			/* drop the message, will be freed by mq_rmlink_prev() */
 			l = mq_rmlink_prev(q, l, pmsg_size(mb));
@@ -631,13 +908,10 @@ static void mq_service(gpointer data)
 
 	g_assert(iovcnt > 0 || dropped > 0);
 
-	if (dropped > 0) {
+	if (dropped > 0)
 		node_add_txdrop(q->node, dropped);	/* Dropped during TX */
-		if (q->qlink)
-			qlink_free(q);			/* Removed something, `qlink' is stale */
-	}
 
-	if (iovcnt == 0)				/* Nothing to send */
+	if (iovcnt == 0)						/* Nothing to send */
 		goto update_servicing;
 
 	/*
@@ -650,6 +924,7 @@ static void mq_service(gpointer data)
 		return;
 
 	node_add_tx_given(q->node, r);
+	q->last_written = r;
 
 	/*
 	 * Determine which messages we wrote.
@@ -668,6 +943,8 @@ static void mq_service(gpointer data)
             gnet_stats_count_sent(q->node,
 				gmsg_function(mb_start), gmsg_hops(mb_start), pmsg_size(mb));
 			r -= ie->iov_len;
+			if (q->qlink)
+				qlink_remove(q, l);
 			l = mq_rmlink_prev(q, l, ie->iov_len);
 		} else {
 			g_assert(r > 0 && r < pmsg_size(mb));
@@ -682,11 +959,8 @@ static void mq_service(gpointer data)
 	g_assert(r == 0 || iovsize > 0);
 	g_assert(q->size >= 0 && q->count >= 0);
 
-	if (sent) {
+	if (sent)
 		node_add_sent(q->node, sent);
-		if (q->qlink)			/* Sent something, `qlink' is stale */
-			qlink_free(q);
-	}
 
 update_servicing:
 	/*
