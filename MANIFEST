@@ -52,7 +52,6 @@ src/fileinfo.c
 src/fileinfo_gui2.c
 src/fileinfo_gui.c
 src/fileinfo_gui.h
-src/fileinfo_gui.o
 src/fileinfo.h
 src/filter.c
 src/filter_cb.c
