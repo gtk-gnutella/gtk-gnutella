@@ -63,6 +63,7 @@ RCSID("$Id$");
 #define DOWNLOAD_MIN_OVERLAP	64			/* Minimum overlap for safety */
 #define DOWNLOAD_SHORT_DELAY	2			/* Shortest retry delay */
 #define DOWNLOAD_MAX_SINK		16384		/* Max amount of data to sink */
+#define DOWNLOAD_SERVER_HOLD	15			/* Space requests to same server */
 
 static GSList *sl_downloads = NULL; /* All downloads (queued + unqueued) */
 GSList *sl_unqueued = NULL;			/* Unqueued downloads only */
@@ -1398,8 +1399,11 @@ static void download_move_to_list(struct download *d, enum dl_list idx)
  * download_server_retry_after
  *
  * Change the `retry_after' field of the host where this download runs.
+ * If a non-zero `hold' is specified, make sure nothing will be scheduled
+ * from this server before the next `hold' seconds.
  */
-static void download_server_retry_after(struct dl_server *server)
+static void download_server_retry_after(
+	struct dl_server *server, time_t now, time_t hold)
 {
 	struct download *d;
 	time_t after;
@@ -1420,6 +1424,27 @@ static void download_server_retry_after(struct dl_server *server)
 
 	d = (struct download *) server->list[DL_LIST_WAITING]->data;
 	after = d->retry_after;
+
+	/*
+	 * We impose a minimum of DOWNLOAD_SERVER_HOLD seconds between retries.
+	 * If we have some entries passively queued, well, we have some grace time
+	 * before the entry expires.  And even if it expires, we won't loose the
+	 * slot.  People having 100 entries passively queued on the same host with
+	 * low retry rates will have problems, but if they requested too often,
+	 * they would get banned anyway.  Let the system regulate itself via chaos.
+	 *		--RAM, 17/07/2003
+	 */
+
+	if (after < now + DOWNLOAD_SERVER_HOLD)
+		after = now + DOWNLOAD_SERVER_HOLD;
+
+	/*
+	 * If server was given a "hold" period (e.g. requests to it were
+	 * timeouting) then put it on hold now and reset the holding period.
+	 */
+
+	if (hold != 0)
+		after = MAX(after, now + hold);
 
 	if (server->retry_after != after) {
 		dl_by_time_remove(server);
@@ -1788,16 +1813,15 @@ gint download_queue_is_frozen(void)
 }
 
 /*
- * download_queue_delay
+ * download_queue_hold_delay_v
  *
- * Put download back to queue, but don't reconsider it for starting
- * before the next `delay' seconds. -- RAM, 03/09/2001
+ * Common vectorized code for download_queue_delay() and download_queue_hold().
  */
-static void download_queue_delay(struct download *d, guint32 delay,
-	const gchar *fmt, ...)
+static void download_queue_hold_delay_v(struct download *d,
+	time_t delay, time_t hold,
+	const gchar *fmt, va_list ap)
 {
 	time_t now = time((time_t *) NULL);
-	va_list args;
 
 	/*
 	 * Must update `retry_after' before enqueuing, since the "waiting" list
@@ -1807,11 +1831,41 @@ static void download_queue_delay(struct download *d, guint32 delay,
 	d->last_update = now;
 	d->retry_after = now + delay;
 
-	va_start(args, fmt);
-	download_queue_v(d, fmt, args);
-	va_end(args);
+	download_queue_v(d, fmt, ap);
+	download_server_retry_after(d->server, now, hold);
+}
 
-	download_server_retry_after(d->server);
+/*
+ * download_queue_delay
+ *
+ * Put download back to queue, but don't reconsider it for starting
+ * before the next `delay' seconds. -- RAM, 03/09/2001
+ */
+static void download_queue_delay(struct download *d, guint32 delay,
+	const gchar *fmt, ...)
+{
+	va_list args;
+
+	va_start(args, fmt);
+	download_queue_hold_delay_v(d, (time_t) delay, 0, fmt, args);
+	va_end(args);
+}
+
+/*
+ * download_queue_hold
+ *
+ * Same as download_queue_delay(), but make sure we don't consider
+ * scheduling any currently queued download to this server before
+ * the holding delay.
+ */
+static void download_queue_hold(struct download *d, guint32 hold,
+	const gchar *fmt, ...)
+{
+	va_list args;
+
+	va_start(args, fmt);
+	download_queue_hold_delay_v(d, (time_t) hold, (time_t) hold, fmt, args);
+	va_end(args);
 }
 
 /*
@@ -2562,17 +2616,17 @@ attempt_retry:
 			download_remove_all_from_peer(
 				download_guid(d), download_ip(d), download_port(d));
 		} else
-			download_queue_delay(d, download_retry_refused_delay,
+			download_queue_hold(d, download_retry_refused_delay,
 				"No direct connection yet (%d retr%s)",
 				d->retries, d->retries == 1 ? "y" : "ies");
 	} else if (d->retries < download_max_retries) {
 		d->retries++;
 		if (on_timeout)
-			download_queue_delay(d, download_retry_timeout_delay,
+			download_queue_hold(d, download_retry_timeout_delay,
 				"Timeout (%d retr%s)",
 				d->retries, d->retries == 1 ? "y" : "ies");
 		else
-			download_queue_delay(d, download_retry_refused_delay,
+			download_queue_hold(d, download_retry_refused_delay,
 				"Connection refused %s(%d retr%s)",
 				ignore_push ? "[No Push] " : "",
 				d->retries, d->retries == 1 ? "y" : "ies");
@@ -4862,13 +4916,13 @@ static void download_request(
 							short_time(get_parq_dl_eta(d))
 				);
 			else 
-				/* No hammering */
-				download_queue_delay(d,
+				/* No hammering -- hold further requests on server */
+				download_queue_hold(d,
 					delay ? delay : download_retry_busy_delay,
 					"%sHTTP %d %s", short_read, ack_code, ack_message);
 			return;
 		case 550:				/* Banned */
-			download_queue_delay(d,
+			download_queue_hold(d,
 				delay ? delay : download_retry_refused_delay,
 				"%sHTTP %d %s", short_read, ack_code, ack_message);
 			return;
