@@ -443,6 +443,38 @@ file_info_checksum(guint32 *checksum, gchar *d, int len)
 }
 
 /**
+ * Checks the chunklist of fi.
+ *
+ * @param fi the fileinfo struct to check.
+ * @return TRUE if chunklist is consistent, FALSE otherwise.
+ */
+static gboolean 
+file_info_check_chunklist(struct dl_file_info *fi)
+{
+	GSList *sl;
+	filesize_t last = 0;
+
+	g_assert(fi != NULL);
+
+	for (sl = fi->chunklist; NULL != sl; sl = g_slist_next(sl)) {
+		struct dl_file_chunk *fc = sl->data;
+
+		if (
+				last != fc->from ||
+				fc->from >= fc->to ||
+				fc->from >= fi->size ||
+				fc->to > fi->size
+		) {
+			return FALSE;
+		}
+		
+		last = fc->to;
+	}
+
+	return TRUE;
+}
+
+/**
  * Store a binary record of the file metainformation at the end of the
  * supplied file descriptor, opened for writing.
  *
@@ -507,6 +539,7 @@ file_info_fd_store_binary(struct dl_file_info *fi, int fd, gboolean force)
 			FIELD_ADD(FILE_INFO_FIELD_ALIAS, len, a->data);
 	}
 
+	g_assert(file_info_check_chunklist(fi));
 	for (fclist = fi->chunklist; fclist; fclist = g_slist_next(fclist)) {
 		struct dl_file_chunk *fc = fclist->data;
 		guint64 from_hi = fc->from >> 32, to_hi = fc->to >> 32;
@@ -660,6 +693,7 @@ fi_free(struct dl_file_info *fi)
 	if (fi->cha1)
 		atom_sha1_free(fi->cha1);
 	if (fi->chunklist) {
+		g_assert(file_info_check_chunklist(fi));
 		for (l = fi->chunklist; l; l = l->next)
 			wfree(l->data, sizeof(struct dl_file_chunk));
 		g_slist_free(fi->chunklist);
@@ -690,7 +724,9 @@ fi_resize(struct dl_file_info *fi, filesize_t size)
 	fc->from = fi->size;
 	fc->to = size;
 	fc->status = DL_CHUNK_EMPTY;
+	g_assert(file_info_check_chunklist(fi));
 	fi->chunklist = g_slist_append(fi->chunklist, fc);
+	g_assert(file_info_check_chunklist(fi));
 
 	/*
 	 * Don't remove/re-insert `fi' from hash tables: when this routine is
@@ -1150,7 +1186,6 @@ file_info_retrieve_binary(const gchar *file, const gchar *path)
 	guint32 tmpguint;
 	guint32 checksum = 0;
 	struct dl_file_info *fi = NULL;
-	struct dl_file_chunk *fc;
 	enum dl_file_info_field field;
 	gchar tmp[FI_MAX_FIELD_LEN + 1];	/* +1 for trailing NUL on strings */
 	gchar *reason;
@@ -1160,7 +1195,10 @@ file_info_retrieve_binary(const gchar *file, const gchar *path)
 	struct trailer trailer;
 	struct stat;
 	gboolean t64;
+	GSList *chunklist = NULL;
 
+#define BAILOUT(x) do { reason = (x); goto bailout; } while (0) 
+	
 	g_assert(NULL != file);
 	g_assert(NULL != path);
 
@@ -1174,8 +1212,7 @@ file_info_retrieve_binary(const gchar *file, const gchar *path)
 	}
 
 	if (!file_info_get_trailer(fd, &trailer, pathname)) {
-		reason = "could not find trailer";
-		goto bailout;
+		BAILOUT("could not find trailer");
 	}
 	t64 = trailer_is_64bit(&trailer);
 
@@ -1241,15 +1278,13 @@ file_info_retrieve_binary(const gchar *file, const gchar *path)
 
 		if (tmpguint == 0) {
 			gm_snprintf(tmp, sizeof(tmp), "field #%d has zero size", field);
-			reason = tmp;
-			goto bailout;
+			BAILOUT(tmp);
 		}
 
 		if (tmpguint > FI_MAX_FIELD_LEN) {
 			gm_snprintf(tmp, sizeof(tmp),
 				"field #%d is too large (%u bytes) ", field, (guint) tmpguint);
-			reason = tmp;
-			goto bailout;
+			BAILOUT(tmp);
 		}
 
 		g_assert(tmpguint < sizeof(tmp));
@@ -1279,52 +1314,60 @@ file_info_retrieve_binary(const gchar *file, const gchar *path)
 			fi->cha1 = atom_sha1_get(tmp);
 			break;
 		case FILE_INFO_FIELD_CHUNK:
-			memcpy(tmpchunk, tmp, sizeof(tmpchunk));
-			fc = walloc0(sizeof(*fc));
+			{
+				struct dl_file_chunk *fc;
+			
+				memcpy(tmpchunk, tmp, sizeof(tmpchunk));
+				fc = walloc0(sizeof(*fc));
 
-			if (!t64) {
-				g_assert(version < 6);
+				if (!t64) {
+					g_assert(version < 6);
 
-				/*
-			 	 * In version 1, fields were written in native form.
-			 	 * Starting with version 2, they are written in network order.
-			 	 */
+					/*
+			 	 	 * In version 1, fields were written in native form.
+			 	 	 * Starting with version 2, they are written in network
+					 * order.
+			 	 	 */
 
-			   	if (version == 1) {
-					fc->from = tmpchunk[0];
-					fc->to = tmpchunk[1];
-					fc->status = tmpchunk[2];
+			   		if (version == 1) {
+						fc->from = tmpchunk[0];
+						fc->to = tmpchunk[1];
+						fc->status = tmpchunk[2];
+					} else {
+						fc->from = ntohl(tmpchunk[0]);
+						fc->to = ntohl(tmpchunk[1]);
+						fc->status = ntohl(tmpchunk[2]);
+					}
 				} else {
-					fc->from = ntohl(tmpchunk[0]);
-					fc->to = ntohl(tmpchunk[1]);
-					fc->status = ntohl(tmpchunk[2]);
+					guint64 hi, lo;
+
+					g_assert(version >= 6);
+					hi = ntohl(tmpchunk[0]);
+					lo = ntohl(tmpchunk[1]);
+					fc->from = (hi << 32) | lo;
+					hi = ntohl(tmpchunk[2]);
+					lo = ntohl(tmpchunk[3]);
+					fc->to = (hi << 32) | lo;
+					fc->status = ntohl(tmpchunk[4]);
 				}
-			} else {
-				guint64 hi, lo;
 
-				g_assert(version >= 6);
-				hi = ntohl(tmpchunk[0]);
-				lo = ntohl(tmpchunk[1]);
-				fc->from = (hi << 32) | lo;
-				hi = ntohl(tmpchunk[2]);
-				lo = ntohl(tmpchunk[3]);
-				fc->to = (hi << 32) | lo;
-				fc->status = ntohl(tmpchunk[4]);
+				if (fc->status == DL_CHUNK_BUSY)
+					fc->status = DL_CHUNK_EMPTY;
+
+				/* Prepend now and reverse later for better efficiency */
+				chunklist = g_slist_prepend(chunklist, fc);
 			}
-
-			/*
-			 * XXX: Isn't it mandatory to verify that ``from'' <= ``to''?
-			 */
-
-			if (fc->status == DL_CHUNK_BUSY)
-				fc->status = DL_CHUNK_EMPTY;
-			fi->chunklist = g_slist_append(fi->chunklist, fc);
 			break;
 		default:
 			g_warning("file_info_retrieve_binary(): "
 				"unhandled field ID %u", field);
 			break;
 		}
+	}
+
+	fi->chunklist = g_slist_reverse(chunklist);
+	if (!file_info_check_chunklist(fi)) {
+		BAILOUT("File contains inconsistent chunk list");
 	}
 
 	/*
@@ -1365,8 +1408,7 @@ file_info_retrieve_binary(const gchar *file, const gchar *path)
 	READ_INT32(&tmpguint);			/* trailer length */
 
 	if (checksum != trailer.checksum) {
-		reason = "checksum mismatch";
-		goto bailout;
+		BAILOUT("checksum mismatch");
 	}
 
 	close(fd);
@@ -1396,6 +1438,7 @@ eof:
 	close(fd);
 
 	return NULL;
+#undef BAILOUT
 }
 
 /**
@@ -1467,6 +1510,7 @@ file_info_store_one(FILE *f, struct dl_file_info *fi)
 		(guint64) fi->ntime,
 		fi->use_swarming ? 1 : 0);
 
+	g_assert(file_info_check_chunklist(fi));
 	for (fclist = fi->chunklist; fclist; fclist = g_slist_next(fclist)) {
 		fc = fclist->data;
 		fprintf(f, "CHNK %" PRIu64 " %" PRIu64 " %" PRIu64 "\n",
@@ -2259,7 +2303,7 @@ file_info_retrieve(void)
 			 *
 			 * If for instance the partition where temporary files are held
 			 * is lost, a single "grep -v ^CHNK fileinfo > fileinfo.new"
-			 * will be enough to restart without lossing the collected
+			 * will be enough to restart without losing the collected
 			 * files.
 			 *
 			 *		--RAM, 31/12/2003
@@ -2282,6 +2326,7 @@ file_info_retrieve(void)
 					fi->cha1 = NULL;
 				}
 			}
+			g_assert(file_info_check_chunklist(fi));
 
 			/*
 			 * If `old_filename' is not NULL, then we need to rename
@@ -2399,7 +2444,7 @@ file_info_retrieve(void)
 			if (fi->alias) {
 				GSList *aliases, *sl;
 
-				/* For efficency each alias has been prepended to
+				/* For efficiency each alias has been prepended to
 				 * the list. To preserve the order between sessions,
 				 * the original list order is restored here. */
 				aliases = g_slist_reverse(fi->alias);
@@ -2548,7 +2593,11 @@ file_info_retrieve(void)
 				guint32 status;
 
 				from = v = parse_uint64(value, &ep, 10, &error);
-				damaged = error || *ep != ' ' || v >= ((guint64) 1UL << 63);
+				damaged = error
+					|| *ep != ' '
+					|| v >= ((guint64) 1UL << 63)
+					|| from > fi->size;
+
 				if (!damaged) {
 					const gchar *s = &ep[1];
 
@@ -2556,7 +2605,8 @@ file_info_retrieve(void)
 					damaged = error
 						|| *ep != ' '
 						|| v >= ((guint64) 1UL << 63)
-						|| v < from;
+						|| v < from
+						|| to > fi->size;
 				}
 				if (!damaged) {
 					const gchar *s = &ep[1];
@@ -2565,7 +2615,7 @@ file_info_retrieve(void)
 					damaged = error || *ep != '\0' || v > 2U;
 				}
 				if (!damaged) {
-					struct dl_file_chunk *fc;
+					struct dl_file_chunk *fc, *prev;
 
 					fc = walloc0(sizeof(struct dl_file_chunk));
 					fc->from = from;
@@ -2573,7 +2623,15 @@ file_info_retrieve(void)
 					if (status == DL_CHUNK_BUSY)
 						status = DL_CHUNK_EMPTY;
 					fc->status = status;
-					fi->chunklist = g_slist_append(fi->chunklist, fc);
+					prev = fi->chunklist
+						? g_slist_last(fi->chunklist)->data : NULL;
+					if (prev && prev->to != fc->from) {
+						g_warning("Chunklist is inconsistent "
+							"(fi->size=%" PRIu64 ")", (guint64) fi->size);
+						damaged = TRUE;
+					} else {
+						fi->chunklist = g_slist_append(fi->chunklist, fc);
+					}
 				}
 			}
 			break;
@@ -2735,6 +2793,7 @@ file_info_create(gchar *file, const gchar *path, filesize_t size,
 		fi->dirty = TRUE;
 	}
 	G_FREE_NULL(pathname);
+	g_assert(file_info_check_chunklist(fi));
 
 	fi->size_atom = atom_uint64_get(&fi->size);	/* Set now, for fi_resize() */
 
@@ -3003,8 +3062,10 @@ file_info_merge_adjacent(struct dl_file_info *fi)
 	GSList *fclist;
 	struct dl_file_chunk *fc1, *fc2;
 	gboolean restart = TRUE;
-	filesize_t done;
+	filesize_t done = 0;
 
+	g_assert(file_info_check_chunklist(fi));
+	
 	while (restart) {
 		restart = FALSE;
 		done = 0;
@@ -3032,6 +3093,7 @@ file_info_merge_adjacent(struct dl_file_info *fi)
 		}
 	}
 	fi->done = done;
+	g_assert(file_info_check_chunklist(fi));
 }
 
 /**
@@ -3057,6 +3119,7 @@ file_info_update(struct download *d, filesize_t from, filesize_t to,
 
 	g_assert(fi->refcount > 0);
 	g_assert(fi->lifecount > 0);
+	g_assert(file_info_check_chunklist(fi));
 
 	fi->stamp = time((time_t *)NULL);
 
@@ -3067,7 +3130,7 @@ again:
 
 	/* I think the algorithm is safe now, but hey... */
 	if (++againcount > 10) {
-		g_warning("Eek! Internal error! "
+		g_error("Eek! Internal error! "
 			"file_info_update(%" PRIu64 ", %" PRIu64 ", %d) "
 			"is looping for \"%s\"! Man battle stations!",
 			(guint64) from, (guint64) to, status, d->file_name);
@@ -3223,6 +3286,8 @@ again:
 	if (need_merging)
 		file_info_merge_adjacent(fi);		/* Also updates fi->done */
 
+	g_assert(file_info_check_chunklist(fi));
+
 	/*
 	 * When status is DL_CHUNK_DONE, we're coming from an "active" download,
 	 * i.e. we are writing to it, therefore we can reuse its file descriptor.
@@ -3253,6 +3318,7 @@ file_info_clear_download(struct download *d, gboolean lifecount)
 	struct dl_file_info *fi = d->file_info;
 	gint busy;			/* For assertions only */
 
+	g_assert(file_info_check_chunklist(fi));
 	for (fclist = fi->chunklist, busy = 0; fclist; fclist = fclist->next) {
 		fc = fclist->data;
 		if (fc->status == DL_CHUNK_BUSY)
@@ -3285,6 +3351,8 @@ file_info_reset(struct dl_file_info *fi)
 {
 	GSList *l;
 	struct dl_file_chunk *fc;
+
+	g_assert(file_info_check_chunklist(fi));
 
 	if (fi->cha1) {
 		atom_sha1_free(fi->cha1);
@@ -3327,6 +3395,8 @@ file_info_chunk_status(struct dl_file_info *fi, filesize_t from, filesize_t to)
 	GSList *fclist;
 	struct dl_file_chunk *fc;
 
+	g_assert(file_info_check_chunklist(fi));
+
 	for (fclist = fi->chunklist; fclist; fclist = g_slist_next(fclist)) {
 		fc = fclist->data;
 		if ((from >= fc->from) && (to <= fc->to))
@@ -3351,6 +3421,8 @@ file_info_pos_status(struct dl_file_info *fi, filesize_t pos)
 {
 	GSList *fclist;
 	struct dl_file_chunk *fc;
+
+	g_assert(file_info_check_chunklist(fi));
 
 	for (fclist = fi->chunklist; fclist; fclist = g_slist_next(fclist)) {
 		fc = fclist->data;
@@ -3403,6 +3475,8 @@ fi_busy_count(struct dl_file_info *fi, struct download *d)
 	GSList *l;
 	gint count = 0;
 
+	g_assert(file_info_check_chunklist(fi));
+
 	for (l = fi->chunklist; l; l = g_slist_next(l)) {
 		struct dl_file_chunk *fc = l->data;
 
@@ -3429,6 +3503,8 @@ list_clone_shift(struct dl_file_info *fi)
 	GSList *clone;
 	GSList *l;
 	GSList *tail;
+
+	g_assert(file_info_check_chunklist(fi));
 
 	fc = fi->chunklist->data;		/* First chunk */
 
@@ -3484,6 +3560,8 @@ list_clone_shift(struct dl_file_info *fi)
 				break;
 			}
 		}
+		
+		g_assert(file_info_check_chunklist(fi));
 	}
 
 	/*
@@ -3535,6 +3613,7 @@ file_info_find_hole(struct download *d, filesize_t *from, filesize_t *to)
 	g_assert(fi->refcount > 0);
 	g_assert(fi->lifecount > 0);
 	g_assert(0 == fi_busy_count(fi, d));	/* No reservation for `d' yet */
+	g_assert(file_info_check_chunklist(fi));
 
 	/*
 	 * Ensure the file has not disappeared.
@@ -3660,6 +3739,8 @@ file_info_find_hole(struct download *d, filesize_t *from, filesize_t *to)
 
 selected:	/* Selected a hole to download */
 
+	g_assert(file_info_check_chunklist(fi));
+
 	if (cloned)
 		g_slist_free(cklist);
 
@@ -3688,6 +3769,7 @@ file_info_find_available_hole(
 	g_assert(ranges);
 
 	fi = d->file_info;
+	g_assert(file_info_check_chunklist(fi));
 
 	/*
 	 * Ensure the file has not disappeared.
@@ -4007,7 +4089,8 @@ fi_get_chunks(gnet_fi_t fih)
     GSList *chunks = NULL;
     GSList *tail = NULL;
 
-    g_assert( fi );
+    g_assert(fi);
+	g_assert(file_info_check_chunklist(fi));
 
     for (l = fi->chunklist; l != NULL; l = g_slist_next(l)) {
         struct dl_file_chunk *fc = l->data;
@@ -4326,6 +4409,7 @@ file_info_available_ranges(struct dl_file_info *fi, gchar *buf, gint size)
 	gint length;
 
 	g_assert(size >= 0);
+	g_assert(file_info_check_chunklist(fi));
 	fmt = header_fmt_make("X-Available-Ranges", ", ", size);
 
 	if (header_fmt_length(fmt) + sizeof("bytes 0-512\r\n") >= (size_t) size)
@@ -4453,6 +4537,8 @@ file_info_restrict_range(struct dl_file_info *fi,
 		filesize_t start, filesize_t *end)
 {
 	GSList *l;
+
+	g_assert(file_info_check_chunklist(fi));
 
 	for (l = fi->chunklist; l != NULL; l = g_slist_next(l)) {
 		struct dl_file_chunk *fc = l->data;
