@@ -692,7 +692,7 @@ void on_popup_downloads_push_activate(GtkMenuItem * menuitem,
      	download_fallback_to_push(d, FALSE, TRUE);
 	}
 
-    gtk_clist_freeze(GTK_CLIST(clist_downloads));
+    gtk_clist_thaw(GTK_CLIST(clist_downloads));
 }
 
 void on_popup_downloads_abort_named_activate(GtkMenuItem * menuitem,
