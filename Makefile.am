@@ -23,7 +23,7 @@
 
 ## Process this file with automake to produce Makefile.in
 
-SUBDIRS = src po intl
+SUBDIRS = intl po src
 
 EXTRA_GTK2 = \
 	src/monitor_gui2.c \
