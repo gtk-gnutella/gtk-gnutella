@@ -33,18 +33,13 @@
 
 RCSID("$Id$");
 
-/* Big endian: */
-#if !(defined(__alpha) || defined(__i386__) || defined(__vax__))
-#	define BIG_ENDIAN
-#endif
-
 /*
  * The following macro denotes that an optimization 
- * for Alpha is required. It is used only for
+ * for 64-bit CPUs is required. It is used only for
  * optimization of time. Otherwise it does nothing.
  */
-#ifdef __alpha
-#	define OPTIMIZE_FOR_ALPHA
+#if G_MAXULONG >= G_MAXUINT64
+#	define OPTIMIZE_FOR_64BIT
 #endif
 
 /*
@@ -62,7 +57,7 @@ RCSID("$Id$");
  */
 #define PASSES 3
 
-gint64 table[4 * 256];
+guint64 table[4 * 256];
 
 #define t1 (table)
 #define t2 (table + 256)
@@ -74,7 +69,7 @@ gint64 table[4 * 256];
 	bb = b; \
 	cc = c;
 
-#ifdef OPTIMIZE_FOR_ALPHA
+#ifdef OPTIMIZE_FOR_64BIT
 	/* This is the official definition of round */
 	
 #	define round(a, b, c, x, mul) \
@@ -136,7 +131,7 @@ gint64 table[4 * 256];
 	b -= bb; \
 	c += cc;
 
-#ifdef OPTIMIZE_FOR_ALPHA
+#ifdef OPTIMIZE_FOR_64BIT
 
 	/* The loop is unrolled: works better on Alpha */
 #	define compress \
@@ -167,10 +162,10 @@ gint64 table[4 * 256];
 
 #define tiger_compress_macro(str, state) \
 { \
-	register gint64 a, b, c, tmpa; \
-	gint64 aa, bb, cc; \
-	register gint64 x0, x1, x2, x3, x4, x5, x6, x7; \
-	int pass_no; \
+	register guint64 a, b, c, tmpa; \
+	guint64 aa, bb, cc; \
+	register guint64 x0, x1, x2, x3, x4, x5, x6, x7; \
+	long pass_no; \
 \
 	a = state[0]; \
 	b = state[1]; \
@@ -187,12 +182,12 @@ gint64 table[4 * 256];
 }
 
 /* The compress function is a function. Requires smaller cache?    */
-void tiger_compress(gint64 *str, gint64 state[3])
+void tiger_compress(guint64 *str, guint64 state[3])
 {
-	tiger_compress_macro(((gint64 *) str), ((gint64 *) state));
+	tiger_compress_macro(((guint64 *) str), ((guint64 *) state));
 }
 
-#ifdef OPTIMIZE_FOR_ALPHA
+#ifdef OPTIMIZE_FOR_64BIT
 
 	/*
 	 * The compress function is inlined: works better on Alpha.
@@ -201,30 +196,33 @@ void tiger_compress(gint64 *str, gint64 state[3])
 	 */
 
 #	define tiger_compress(str, state) \
-		tiger_compress_macro(((gint64 *) str), ((gint64 *) state))
+		tiger_compress_macro(((guint64 *) str), ((guint64 *) state))
 #endif
 
-void tiger(gint64 *str, gint64 length, gint64 res[3])
+void tiger(guint64 *str, guint64 length, guint64 res[3])
 {
-	register gint64 i, j;
-	unsigned char temp[64];
+	register guint64 i, j;
+	guint64 temp64[8];
+	unsigned char *temp = (unsigned char *) temp64;
 
 	res[0] = 0x0123456789ABCDEFLL;
 	res[1] = 0xFEDCBA9876543210LL;
 	res[2] = 0xF096A5B4C3B2E187LL;
 
 	for(i = length; i >= 64; i -= 64) {
-#ifdef BIG_ENDIAN
+#if G_BYTE_ORDER == G_BIG_ENDIAN
 		for(j = 0; j < 64; j++)
 			temp[j ^ 7] = ((gint8 *) str) [j];
-		tiger_compress(((gint64 *) temp), res);
-#else
+		tiger_compress(temp64, res);
+#elif G_BYTE_ORDER == G_LITTLE_ENDIAN
 		tiger_compress(str, res);
+#else
+#error Byteorder not supported!
 #endif
 		str += 8;
 	}
 
-#ifdef BIG_ENDIAN
+#if G_BYTE_ORDER == G_BIG_ENDIAN
 	
 	for(j = 0; j < i; j++)
 		temp[j ^ 7] = ((gint8 *) str) [j];
@@ -234,7 +232,7 @@ void tiger(gint64 *str, gint64 length, gint64 res[3])
 	
 	for(; j & 7; j++)
 		temp[j^7] = 0;
-#else
+#elif G_BYTE_ORDER == G_LITTLE_ENDIAN
 	
 	for(j = 0; j < i; j++)
 		temp[j] = ((gint8 *) str) [j];
@@ -243,17 +241,19 @@ void tiger(gint64 *str, gint64 length, gint64 res[3])
 	
 	for(; j & 7; j++)
 		temp[j] = 0;
+#else
+#error Byteorder not supported!
 #endif
 	
 	if(j>56) {
 		for(; j < 64; j++)
 			temp[j] = 0;
-		tiger_compress(((gint64 *) temp), res);
+		tiger_compress(temp64, res);
 		j=0;
 	}
 
 	for(; j < 56; j++)
 		temp[j] = 0;
-	((gint64 *) (&(temp[56]))) [0] = ((gint64) length) << 3;
-	tiger_compress(((gint64 *) temp), res);
+	temp64[7] = length << 3;
+	tiger_compress(temp64, res);
 }

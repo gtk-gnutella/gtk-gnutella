@@ -3,6 +3,6 @@
 
 #include <glib.h>
 
-void tiger(gint64 *str, gint64 length, gint64 res[3]);
+void tiger(guint64 *str, guint64 length, guint64 res[3]);
 
 #endif
