@@ -587,7 +587,7 @@ void gui_update_node_display(struct gnutella_node *n, time_t now)
 			if (remain < 0)
 				remain = 0;
 			g_snprintf(gui_tmp, sizeof(gui_tmp),
-				"Shutdowning: %s [Stop in %ds] RX=%d Q=%d,%d%%",
+				"Closing: %s [Stop in %ds] RX=%d Q=%d,%d%%",
 				n->error_str, remain, n->received,
 				NODE_MQUEUE_COUNT(n), NODE_MQUEUE_PERCENT_USED(n));
 			a = gui_tmp;
