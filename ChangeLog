@@ -1,5 +1,28 @@
 # since last version
 
+- (2003.10.11 - RAM)
+ [This batch of changes implements server-side PFSP]
+ * Add ourselves to the sent alternate locations when server-side PFSP is on
+   and we have some data for a partially downloaded file.
+ * Tell the mesh to include ourselves in the alternate locations when
+   downloading a file for which we have data (PFSP).
+ * Adapted the "shared file" structure and the lookup routines to handle
+   partially downloaded files: a fileinfo can now contain a "shared file" and
+   the "shared file" is marked as being partial by referencing its associated
+   fileinfo.
+ * New upload state GTA_UL_PFSP_WAITING entered when they request an
+   unavailable range and we give them one more chance to get a correct chunk
+   by retrying on the kept-alive connection.
+ * Emit header continuations with leading "\t" instead of 4 spaces.
+ * Raised HTTP reply size to 2.5K to give room to available ranges.
+ * Don't ignore files for which shared_file_by_sha1() returns something but
+   which are actually partial files.
+ * Remember in each upload whether the previous request was for an unavailable
+   range.
+ * Return a 416 to uploaders requesting an unavailable range, keeping the
+   connection alive to give them a chance to re-request the proper range
+   immediately without loosing the connection.
+
 - (2003.10.06 - RAM)
  * The property system now remembers when a saved property is changed, and
    supports a new prop_save_to_file_if_dirty() call that will perform a
