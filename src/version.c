@@ -242,8 +242,14 @@ static gint version_tagcmp(guchar a, guchar b)
 	if (a == '\0')			/* Stable release has no tag */
 		return +1;
 
+	if (b == '\0')			/* Stable release has no tag */
+		return -1;
+
 	if (a == 'u')			/* Unstable from CVS */
 		return -1;
+
+	if (b == 'u')			/* Unstable from CVS */
+		return +1;
 
 	return a < b ? -1 : +1;	/* 'a' or 'b' for Alpha / Beta */
 }
