@@ -40,7 +40,7 @@ extern guint32 track_props;
  */
 #define prop_in_range(ps, p) ((p >= ps->offset) && (p < ps->size+ps->offset))
 
-gchar *prop_type_str[] = {
+const gchar *prop_type_str[] = {
     "boolean",
     "guint32",
     "string",
@@ -104,10 +104,14 @@ void prop_parse_guint32_vector(const gchar *str, gsize size, guint32 *t)
     h = g_strsplit(str, ",", size + 1);
 
 	for (i = 0; i < size; i++) {
+        int error;
 		if (!h[i])
 			break;
-
-		t[i] = atol(h[i]);
+        
+		t[i] = gm_atoul(h[i], NULL, &error);
+        if (error)
+            g_warning("prop_parse_guint32_vector: h[i]=\"%s\": \"%s\"",
+                h[i], g_strerror(error));
 	}
 
     if (i < size)
