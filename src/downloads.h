@@ -144,6 +144,7 @@ struct download {
 #define DLS_A_PUSH_IGN		0x00000002	/* Ignore pushes and connect directly */
 #define DLS_A_NO_KEEPALIVE	0x00000004	/* No persistent connection */
 #define DLS_A_HTTP_1_1		0x00000008	/* Server supports HTTP/1.1 */
+#define DLS_A_REMOVED		0x80000000	/* Server marked for removal */
 
 /*
  * Access macros.

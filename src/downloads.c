@@ -56,6 +56,7 @@
 static GSList *sl_downloads = NULL; /* All downloads (queued + unqueued) */
 GSList *sl_unqueued = NULL;			/* Unqueued downloads only */
 GSList *sl_removed = NULL;			/* Removed downloads only */
+GSList *sl_removed_servers = NULL;	/* Removed servers only */
 static gchar dl_tmp[4096];
 static gint queue_frozen = 0;
 
@@ -1032,8 +1033,9 @@ static void download_set_retry_after(struct download *d, time_t after)
  * download_reclaim_server
  *
  * Reclaim download's server if it is no longer holding anything.
+ * If `delayed' is true, we're performing a batch free of downloads.
  */
-static void download_reclaim_server(struct download *d)
+static void download_reclaim_server(struct download *d, gboolean delayed)
 {
 	struct dl_server *server;
 
@@ -1044,12 +1046,27 @@ static void download_reclaim_server(struct download *d)
 	server = d->server;
 	d->server = NULL;
 
+	/*
+	 * We cannot reclaim the server structure immediately if `delayed' is set,
+	 * because we can be removing physically several downloads that all
+	 * pointed to the same server, and which have all been removed from it.
+	 * Therefore, the server structure appears empty but is still referenced.
+	 */
+
 	if (
 		server->count[DL_LIST_RUNNING] == 0 &&
 		server->count[DL_LIST_WAITING] == 0 &&
 		server->count[DL_LIST_STOPPED] == 0
-	)
-		free_server(server);
+	) {
+		if (delayed) {
+			if (!(server->attrs & DLS_A_REMOVED)) {
+				server->attrs |= DLS_A_REMOVED;		/* Insert once in list */
+				sl_removed_servers =
+					g_slist_prepend(sl_removed_servers, server);
+			}
+		} else
+			free_server(server);
+	}
 }
 
 /*
@@ -1074,8 +1091,10 @@ static void download_remove_from_server(struct download *d, gboolean reclaim)
 	server->list[idx] = g_list_remove(server->list[idx], d);
 	server->count[idx]--;
 
+	g_assert(server->count[idx] >= 0);
+
 	if (reclaim)
-		download_reclaim_server(d);
+		download_reclaim_server(d, FALSE);
 }
 
 /*
@@ -1525,6 +1544,29 @@ static void download_push_remove(struct download *d)
 }
 
 /*
+ * download_ignore_requested
+ *
+ * Check whether download should be ignored, and stop it immediately if it is.
+ * Returns whether download was stopped (i.e. if it must be ignored).
+ */
+static gboolean download_ignore_requested(struct download *d)
+{
+	enum ignore_val reason;
+	struct dl_file_info *fi = d->file_info;
+
+	if ((reason = ignore_is_requested(fi->file_name, fi->size, fi->sha1))) {
+		if (!DOWNLOAD_IS_VISIBLE(d))
+			download_gui_add(d);
+		download_stop(d, GTA_DL_ERROR, "Ignoring requested (%s)",
+			reason == IGNORE_SHA1 ? "SHA1" : "Name & Size");
+		queue_remove_downloads_with_file(fi, d);
+		return TRUE;
+	}
+
+	return FALSE;
+}
+
+/*
  * download_start_prepare
  *
  * Setup the download structure with proper range offset, and check that the
@@ -1538,7 +1580,6 @@ static gboolean download_start_prepare(struct download *d)
 	struct stat st;
 	gboolean all_done = FALSE;
 	struct dl_file_info *fi = d->file_info;
-	enum ignore_val reason;
 
     g_assert(d != NULL);
 	g_assert(d->list_idx != DL_LIST_RUNNING);
@@ -1565,14 +1606,8 @@ static gboolean download_start_prepare(struct download *d)
 	 * If we were asked to ignore this download, abort now.
 	 */
 
-	if ((reason = ignore_is_requested(fi->file_name, fi->size, fi->sha1))) {
-		if (!DOWNLOAD_IS_VISIBLE(d))
-			download_gui_add(d);
-		download_stop(d, GTA_DL_ERROR, "Ignoring requested (%s)",
-			reason == IGNORE_SHA1 ? "SHA1" : "Name & Size");
-		queue_remove_downloads_with_file(fi, d);
+	if (download_ignore_requested(d))
 		return FALSE;
-	}
 
 	/*
 	 * If the output file already exists, we have to send a partial request
@@ -2487,7 +2522,8 @@ static void download_free_removed(void)
 
 		g_assert(d->status == GTA_DL_REMOVED);
 
-		download_reclaim_server(d);
+		download_reclaim_server(d, TRUE);	/* Delays freeing of server */
+
 		sl_downloads = g_slist_remove(sl_downloads, d);
 		sl_unqueued = g_slist_remove(sl_unqueued, d);
 
@@ -2496,6 +2532,14 @@ static void download_free_removed(void)
 
 	g_slist_free(sl_removed);
 	sl_removed = NULL;
+
+	for (l = sl_removed_servers; l; l = l->next) {
+		struct dl_server *s = (struct dl_server *) l->data;
+		free_server(s);
+	}
+
+	g_slist_free(sl_removed_servers);
+	sl_removed_servers = NULL;
 }
 
 /*
@@ -3567,11 +3611,16 @@ static void download_request(struct download *d, header_t *header)
 				// XXX for now, warn if the fileinfo has the wrong SHA1.
 				// XXX		-RAM, 25/08/2002
 
-				if (d->file_info->sha1 != d->sha1)
+				if (d->file_info->sha1 != d->sha1) {
 					g_warning("discovered SHA1 %s on the fly for %s "
 						"(fileinfo has %s)",
 						sha1_base32(d->sha1), download_outname(d),
 						d->file_info->sha1 ? "another" : "none");
+
+					// XXX inform fileinfo about the SHA1, if we had none
+					// XXX call download_ignore_requested() if we got a SHA1
+					// XXX to check whether we already have it and should stop.
+				}
 
 				download_store();		/* Save SHA1 */
 				file_info_store();
