@@ -916,7 +916,21 @@ void gtk_widget_fix_width(GtkWidget *w, GtkWidget *l, guint chars, guint extra)
 
     pango_font_metrics_unref(pfm);
 }
+
+void
+set_tooltips_keyboard_mode(GtkWidget *widget, gboolean on)
+{
+	GtkWidget *toplevel;
+
+	toplevel = gtk_widget_get_toplevel(widget);
+	if (!GTK_IS_WINDOW(toplevel))
+		return;
+	
+	g_object_set_data(G_OBJECT(toplevel),
+			"gtk-tooltips-keyboard-mode", GUINT_TO_POINTER(on));
+}
+
 #endif
 
 
-/* vi: set ts=4: */
+/* vi: set ts=4 sw=4 cindent: */
