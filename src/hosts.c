@@ -170,16 +170,27 @@ void host_timer(void)
     if (!stop_host_get) {
         if (missing > 0) {
             guint fan;
+            guint max_pool = MAX(quick_connect_pool_size, max_nodes);
+            guint to_add;
 
+//            fan = max_pool / ((max_nodes - missing) + 1);
             fan = (missing * quick_connect_pool_size) / max_nodes;
-            missing = fan;
-            if ((missing + count) > (quick_connect_pool_size))
-                missing = quick_connect_pool_size - count;
+            to_add = fan;
 
-/*      
-            g_message("host_timer - connecting - fan:%d   miss:%d   max_hosts:%d   count:%d   extra:%d",
-                fan, missing, max_nodes, count, quick_connect_pool_size);
-*/
+            /*
+             * Make sure that we never use more connections then the
+             * quick pool or the maximum number of hosts allow.
+             */
+            if ((to_add + count) > (max_pool))
+                to_add = max_pool - count;
+
+            if (dbg > 10) {
+                g_message("host_timer - connecting - add: %d fan:%d   miss:%d"
+                     "max_hosts:%d   count:%d   extra:%d", to_add, fan, missing, 
+                     max_nodes, count, quick_connect_pool_size);
+            }
+
+            missing = to_add;
 
 			while (hcache_size(htype) && missing-- > 0) {
 				hcache_get_caught(htype, &ip, &port);
