@@ -8,6 +8,8 @@
    alternate names between different fileinfo for the "same" file (albeit
    bearing disctint SHA1).  Non-SHA1 matching of query hits will now autoselect
    an entry for downloading only if there is one known entry by (name, size).
+ * When a download is done, try to rename it using one of the non URN-like
+   aliases we have for it.
 
 - (2003.10.29 - Jeroen)
  * Fixed some inconsistent code. This should make the code even more
