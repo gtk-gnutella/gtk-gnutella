@@ -77,6 +77,8 @@ struct route_data * get_routing_data(struct gnutella_node *n)
 void init_routing_data(struct gnutella_node *node)
 {
 	struct route_data *route;
+
+	g_assert(node->routing_data == NULL);
 	
 	/* wow, this node hasn't sent any messages before.
 	   Allocate and link some routing data to it */
@@ -208,15 +210,17 @@ void routing_init(void)
 static void free_routing_data(gpointer key, gpointer value, gpointer udata)
 {
 	decrement_message_counters(((struct message *)value)->nodes);
+	g_slist_free(((struct message *)value)->nodes);
+	((struct message *)value)->nodes = NULL;
 }
 
-static gboolean global_destruction;	/* XXX temporary hack -- RAM, 11/02/2002 */
 void routing_close(void)
 {
-	global_destruction = TRUE;	/* XXX temporary hack -- RAM, 11/02/2002 */
-
+	g_assert(messages_hashed);
+	
 	g_hash_table_foreach(messages_hashed, free_routing_data, NULL);
 	g_hash_table_destroy(messages_hashed);
+	messages_hashed = NULL;
 }
 
 /*
@@ -267,21 +271,17 @@ static void remove_one_message_reference(GSList * cur)
 {
 	struct route_data *rd = (struct route_data *) cur->data;
 
-	if (global_destruction && !rd)
-		return;		/* XXX Shouldn't happen, but does! -- RAM, 11/01/2002 */
-
 	g_assert(rd);
 
 	if (rd->node != fake_node) {
-		g_assert(rd->saved_messages >= 0);
-
+		g_assert(rd->saved_messages > 0);
+		rd->saved_messages--;
 		/* if we have no more messages from this node, and our
 		   node has already died, wipe its routing data */
-		if (rd->node == NULL && rd->saved_messages == 1) {
+		if (rd->node == NULL && rd->saved_messages == 0) {
 			g_free(rd);
 			cur->data = NULL;	/* Mark as freed, don't try again --RAM */
-		} else if (rd->saved_messages > 0)
-			rd->saved_messages--;
+		}
 	}
 }
 
@@ -305,18 +305,18 @@ void routing_node_remove(struct gnutella_node *node)
 	route = get_routing_data(node);
 
 	g_assert(route);
-
+	g_assert(route->node == node);
 	route->node->routing_data = NULL;
+
+	/* make sure that any future references to this routing
+	   data know that we are not connected to a node */
+	route->node = NULL;
 	
 	/* if no messages remain, we have no reason to keep the
 	   route_data around any more */
 
 	if (route->saved_messages == 0)
 		g_free(route);
-	else
-		/* make sure that any future references to this routing
-		   data know that we are not connected to a node */
-		route->node = NULL;
 }
 
 /* Adds a new message in the routing tables */
