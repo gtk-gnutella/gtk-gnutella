@@ -15,6 +15,14 @@
 	use sig_ignore also for SIGXFSZ
  * host_to_ip(): declare hostname as const
  * upload_write(): Hide variable "pos" if HAVE_SENDFILE is undefined
+ * adns.c:
+		* Added caching; caching happens server-side, if the server dies
+		* caching will be started client-side;
+		* Fixed typo (children -> child);
+		* Debug warnings depend on dbg > 1 or dbg > 2, now;
+		* Declared larger variables as static;
+		* adns_resolve(): usage of fallback is only reported once
+ * [GTK2] locale_to_utf8: moved function from misc.[ch] to utf8.[ch]
 
 - (2003.02.23 - RAM)
  * Forgot to negate the return of version_check().
