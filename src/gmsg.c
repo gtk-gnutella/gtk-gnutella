@@ -36,8 +36,13 @@
 #include "mq.h"
 #include "routing.h"
 
+#define HEADER_SIZE	sizeof(struct gnutella_header)
+
 static gchar *msg_name[256];
 static gint msg_weight[256];		/* For gmsg_cmp() */
+
+static void gmsg_dump(FILE *out, guchar *data, guint32 size);
+static void gmsg_split_dump(FILE *out, guchar *head, guchar *data, guint32 size);
 
 /*
  * gmsg_init
@@ -106,8 +111,8 @@ static pmsg_t *gmsg_split_to_pmsg(guchar *head, guchar *data, guint32 size)
 	gint written;
 
 	mb = pmsg_new(0, NULL, size);
-	written = pmsg_write(mb, head, sizeof(struct gnutella_header));
-	written += pmsg_write(mb, data, size - sizeof(struct gnutella_header));
+	written = pmsg_write(mb, head, HEADER_SIZE);
+	written += pmsg_write(mb, data, size - HEADER_SIZE);
 
 	g_assert(written == size);
 
@@ -130,6 +135,9 @@ void gmsg_sendto_one(struct gnutella_node *n, guchar *msg, guint32 size)
 	if (!NODE_IS_WRITABLE(n))
 		return;
 
+	if (dbg > 5 && gmsg_hops(msg) == 0)
+		gmsg_dump(stdout, msg, size);
+
 	mq_putq(n->outq, gmsg_to_pmsg(PMSG_P_DATA, msg, size));
 }
 
@@ -145,6 +153,9 @@ void gmsg_search_sendto_one(struct gnutella_node *n, guchar *msg, guint32 size)
 
 	if (!NODE_IS_WRITABLE(n))
 		return;
+
+	if (dbg > 5 && gmsg_hops(msg) == 0)
+		gmsg_dump(stdout, msg, size);
 
 	sq_putq(n->searchq, gmsg_to_pmsg(PMSG_P_DATA, msg, size));
 }
@@ -163,6 +174,9 @@ void gmsg_ctrl_sendto_one(struct gnutella_node *n, guchar *msg, guint32 size)
 	if (!NODE_IS_WRITABLE(n))
 		return;
 
+	if (dbg > 6 && gmsg_hops(msg) == 0)
+		gmsg_dump(stdout, msg, size);
+
 	mq_putq(n->outq, gmsg_to_pmsg(PMSG_P_CONTROL, msg, size));
 }
 
@@ -179,6 +193,9 @@ void gmsg_split_sendto_one(struct gnutella_node *n,
 	if (!NODE_IS_WRITABLE(n))
 		return;
 
+	if (dbg > 6)
+		gmsg_split_dump(stdout, head, data, size);
+
 	mq_putq(n->outq, gmsg_split_to_pmsg(head, data, size));
 }
 
@@ -192,6 +209,9 @@ void gmsg_sendto_all(GSList *l, guchar *msg, guint32 size)
 	pmsg_t *mb = gmsg_to_pmsg(PMSG_P_DATA, msg, size);
 
 	g_assert(((struct gnutella_header *) msg)->ttl > 0);
+
+	if (dbg > 5 && gmsg_hops(msg) == 0)
+		gmsg_dump(stdout, msg, size);
 
 	for (/* empty */; l; l = l->next) {
 		struct gnutella_node *dn = (struct gnutella_node *) l->data;
@@ -215,6 +235,9 @@ void gmsg_search_sendto_all(GSList *l, guchar *msg, guint32 size)
 	g_assert(((struct gnutella_header *) msg)->ttl > 0);
 	g_assert(((struct gnutella_header *) msg)->hops <= hops_random_factor);
 
+	if (dbg > 5 && gmsg_hops(msg) == 0)
+		gmsg_dump(stdout, msg, size);
+
 	for (/* empty */; l; l = l->next) {
 		struct gnutella_node *dn = (struct gnutella_node *) l->data;
 		if (!NODE_IS_WRITABLE(dn))
@@ -237,6 +260,8 @@ void gmsg_split_sendto_all_but_one(GSList *l, struct gnutella_node *n,
 	pmsg_t *mb = gmsg_split_to_pmsg(head, data, size);
 
 	g_assert(((struct gnutella_header *) head)->ttl > 0);
+
+	/* relayed broadcasted message, cannot be sent with hops=0 */
 
 	for (/* empty */; l; l = l->next) {
 		struct gnutella_node *dn = (struct gnutella_node *) l->data;
@@ -262,13 +287,14 @@ void gmsg_sendto_route(struct gnutella_node *n, struct route_dest *rt)
 		break;
 	case ROUTE_ONE:
 		gmsg_split_sendto_one(rt->node,
-			(guchar *) &n->header, n->data,
-			n->size + sizeof(struct gnutella_header));
+			(guchar *) &n->header, n->data, n->size + HEADER_SIZE);
 		break;
 	case ROUTE_ALL_BUT_ONE:
 		gmsg_split_sendto_all_but_one(sl_nodes, rt->node,
-			(guchar *) &n->header, n->data,
-			n->size + sizeof(struct gnutella_header));
+			(guchar *) &n->header, n->data, n->size + HEADER_SIZE);
+		break;
+	default:
+		g_error("unknown route destination: %d", rt->type);
 	}
 }
 
@@ -428,5 +454,29 @@ void gmsg_log_bad(struct gnutella_node *n, gchar *reason, ...)
 	}
 
 	fputc('\n', stdout);
+}
+
+/*
+ * gmsg_dump
+ *
+ * Log an hexadecimal dump of the message `data', tagged with:
+ *
+ *     msg_type (payload length) [hops=x, TTL=x]
+ *
+ * to the specified file descriptor.
+ */
+static void gmsg_dump(FILE *out, guchar *data, guint32 size)
+{
+	dump_hex(out, gmsg_infostr(data), data + HEADER_SIZE, size - HEADER_SIZE);
+}
+
+/*
+ * gmsg_split_dump
+ *
+ * Same as gmsg_dump(), but the header and the PDU data are separated.
+ */
+static void gmsg_split_dump(FILE *out, guchar *head, guchar *data, guint32 size)
+{
+	dump_hex(out, gmsg_infostr(head), data, size - HEADER_SIZE);
 }
 
