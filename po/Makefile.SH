@@ -60,7 +60,7 @@ GMSGFMT = $gmsgfmt
 MSGFMT = $msgfmt
 XGETTEXT = $xgettext
 MSGMERGE = $msgmerge
-MSGMERGE_UPDATE = $msgmerge --update
+MSGMERGE_UPDATE = $msgmerge_update
 !GROK!THIS!
 
 : In the following dollars and backticks do not need the extra backslash.
