@@ -1,5 +1,8 @@
 # since last version
 
+- (2003.07.03 - Jeroen)
+ * PARQ: Should only actively queue one upload per ip
+
 - (2003.06.25 - RAM)
  * Don't pick a suspended download in download_find_waiting_unparq().
  * Asserted that a verifying download must be in DL_LIST_STOPPED.

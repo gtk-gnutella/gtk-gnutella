@@ -107,6 +107,7 @@ struct parq_ul_queue {
 struct parq_ul_queued_by_ip {
 	gint	uploading;		/* Number of uploads uploading */
 	gint	total;			/* Total queued items for this ip */
+	gint 	active_queued;	/* Total actively queued items for this ip */
 	guint32 ip;
 	
 	time_t	last_queue_sent;
@@ -122,6 +123,7 @@ struct parq_ul_queued {
 	guint position;			/* Current position in the queue */
 	guint relative_position; /* Relative position in the queue, if 'not alive' 
 							  uploads are taken into account */
+	gboolean active_queued;	/* Wether the current upload is actively queued */
 	gboolean has_slot;		/* Whether the items is currently uploading */
 	gboolean had_slot;		/* If an upload had an upload slot it is not allowed
 							   to reuse the id for another upload	*/
@@ -1353,6 +1355,7 @@ static struct parq_ul_queued *parq_upload_create(gnutella_upload_t *u)
 	parq_ul->port = 0;
 	parq_ul->major = 0;
 	parq_ul->minor = 0;
+	parq_ul->active_queued = FALSE;
 	parq_ul->is_alive = TRUE;
 	parq_ul->had_slot =  FALSE;
 	parq_ul->queue->alive++;
@@ -2374,8 +2377,19 @@ gboolean parq_upload_request(gnutella_upload_t *u, gpointer handle,
 		return TRUE;
 	else {
 		if (parq_ul->relative_position <= parq_upload_active_size) {
-			if (parq_ul->minor > 0 || parq_ul->major > 0)
-				u->status = GTA_UL_QUEUED;
+			if (parq_ul->minor > 0 || parq_ul->major > 0) {
+				if (!parq_ul->active_queued) {
+					if (parq_ul->by_ip->active_queued == 0) {
+						u->status = GTA_UL_QUEUED;
+					
+						parq_ul->active_queued = TRUE;
+						parq_ul->by_ip->active_queued++;
+					}			
+				} else
+					u->status = GTA_UL_QUEUED;
+
+				g_assert(parq_ul->by_ip->active_queued == 1);
+			}
 		}
 		u->parq_status = TRUE;		/* XXX would violate encapsulation */
 		return FALSE;
@@ -2507,6 +2521,13 @@ gboolean parq_upload_remove(gnutella_upload_t *u)
 	if (u->status == GTA_UL_QUEUED && u->last_update > now) {
 		u->last_update = parq_ul->updated;
 	}
+	
+	if (u->status == GTA_UL_QUEUED) {
+		parq_ul->by_ip->active_queued--;
+		g_assert(parq_ul->by_ip->active_queued >= 0);
+	}
+	
+	parq_ul->active_queued = FALSE;
 	
 	if (dbg > 3)
 		printf("PARQ UL Q %d/%d: Upload removed\n",
