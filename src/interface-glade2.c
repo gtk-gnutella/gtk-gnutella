@@ -1859,7 +1859,6 @@ create_main_window (void)
   main_window = gtk_window_new (GTK_WINDOW_TOPLEVEL);
   gtk_widget_set_name (main_window, "main_window");
   gtk_window_set_title (GTK_WINDOW (main_window), _("gtk-gnutella"));
-  gtk_window_set_position (GTK_WINDOW (main_window), GTK_WIN_POS_MOUSE);
   main_window_icon_pixbuf = create_pixbuf ("icon.xpm");
   if (main_window_icon_pixbuf)
     {
@@ -2554,7 +2553,6 @@ create_main_window (void)
   gtk_widget_set_name (hbox_statusbar, "hbox_statusbar");
   gtk_widget_show (hbox_statusbar);
   gtk_box_pack_start (GTK_BOX (vbox12), hbox_statusbar, FALSE, TRUE, 0);
-  gtk_container_set_border_width (GTK_CONTAINER (hbox_statusbar), 2);
 
   togglebutton_online = gtk_toggle_button_new ();
   gtk_widget_set_name (togglebutton_online, "togglebutton_online");
@@ -2717,6 +2715,9 @@ create_main_window (void)
                     NULL);
   g_signal_connect ((gpointer) button_search_passive, "clicked",
                     G_CALLBACK (on_button_search_passive_clicked),
+                    NULL);
+  g_signal_connect ((gpointer) hb_searches, "child_detached",
+                    G_CALLBACK (on_hb_searches_child_detached),
                     NULL);
   g_signal_connect ((gpointer) progressbar_bws_in, "button_press_event",
                     G_CALLBACK (on_progressbar_bws_in_button_press_event),

@@ -2282,10 +2282,9 @@ Grace time remaining:</property>
 </widget>
 
 <widget class="GtkWindow" id="main_window">
-  <property name="visible">True</property>
   <property name="title" translatable="yes">gtk-gnutella</property>
   <property name="type">GTK_WINDOW_TOPLEVEL</property>
-  <property name="window_position">GTK_WIN_POS_MOUSE</property>
+  <property name="window_position">GTK_WIN_POS_NONE</property>
   <property name="modal">False</property>
   <property name="resizable">True</property>
   <property name="destroy_with_parent">False</property>
@@ -3201,6 +3200,7 @@ Grace time remaining:</property>
 			  <property name="shadow_type">GTK_SHADOW_OUT</property>
 			  <property name="handle_position">GTK_POS_TOP</property>
 			  <property name="snap_edge">GTK_POS_LEFT</property>
+			  <signal name="child_detached" handler="on_hb_searches_child_detached" last_modification_time="Thu, 17 Jun 2004 01:21:38 GMT"/>
 
 			  <child>
 			    <widget class="GtkScrolledWindow" id="scrolledwindow62">
@@ -3793,7 +3793,6 @@ Grace time remaining:</property>
 
       <child>
 	<widget class="GtkHBox" id="hbox_statusbar">
-	  <property name="border_width">2</property>
 	  <property name="visible">True</property>
 	  <property name="homogeneous">False</property>
 	  <property name="spacing">2</property>

@@ -110,8 +110,16 @@ void on_clist_search_stats_resize_column(GtkCList * clist, gint column, gint wid
 /***
  *** search list (sidebar)
  ***/
+#ifdef USE_GTK1
 void on_clist_search_resize_column(GtkCList * clist, gint column, gint width, gpointer user_data);
+#endif /* USE_GTK1 */
 
+#ifdef USE_GTK2
+void
+on_hb_searches_child_detached          (GtkHandleBox    *handlebox,
+                                        GtkWidget       *widget,
+                                        gpointer         user_data);
+#endif /* USE_GTK2 */
 
 void
 on_menu_faq_activate                   (GtkMenuItem     *menuitem,
@@ -151,3 +159,4 @@ on_button_config_select_dbg_clicked    (GtkButton       *button,
                                         gpointer         user_data);
 
 #endif	/* _callbacks_h_ */
+

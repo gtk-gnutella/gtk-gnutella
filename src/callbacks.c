@@ -514,4 +514,23 @@ on_button_config_select_dbg_clicked    (GtkButton       *button,
 		nb_main_page_config_dbg);
 }
 
+void
+on_hb_searches_child_detached          (GtkHandleBox    *handlebox,
+                                        GtkWidget       *widget,
+                                        gpointer         user_data)
+{
+	gint width, height;
+
+	/*
+	 * Before the GtkHandleBox is detached, request the current size
+	 * of the widget inside to preserve dimensions. Otherwise, the
+	 * detached GtkHandleBox becomes pretty small.
+	 */
+
+	width = widget->allocation.width;
+	height = widget->allocation.height;
+	gtk_widget_set_size_request(widget, width, height);
+}
+
 #endif /* USE_GTK2 */
+
