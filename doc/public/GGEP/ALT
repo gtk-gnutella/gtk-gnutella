@@ -13,8 +13,19 @@ Deflate: Maybe
 
 The "ALT" extension is used to carry alternate locations on a file entry
 basis.  It is used only for servers that can understand
-"/uri-res/N2R?urn:sha1:" requests, and for files that have a known SHA1,
+"/uri-res/N2R?" requests, and for files that have a known hash,
 so that the servent may construct the URLs manually.
+
+The hash is given in the query hit, either as a HUGE urn: or via a GGEP "H"
+extension.  The issuer of the entry in the "ALT" extension MUST ensure that
+the server will understand the request for the hash given: if a SHA1 hash is
+given, then the server must understand "/uri-res/N2R?urn:sha1:" requests.
+When a bitprint hash is given, the downloader may specify a SHA1 URN in the
+request, since a bitprint contains the SHA1.
+
+In case multiple hashes were handed out for the file entry, the SHA1 hash is
+preferred, then the bitprint.  If neither is handed out, then the recipient
+can try the N2R resolver with the supplied URN, as given in the query hit.
 
 The payload is an array of 6-byte entries.  The first 4 bytes encode
 the IP of the server (in little-endian, watch out!), and the remaining
