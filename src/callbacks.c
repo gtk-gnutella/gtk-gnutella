@@ -150,8 +150,11 @@ gboolean on_progressbar_bws_in_button_press_event(GtkWidget *widget,
 											      GdkEventButton *event, 
 											      gpointer user_data)
 {
-	progressbar_bws_in_avg = !progressbar_bws_in_avg;
-	gui_update_global();
+    gboolean val;
+    
+    gui_prop_get_boolean(PROP_PROGRESSBAR_BWS_IN_AVG, &val, 0, 1);
+    val = !val;
+    gui_prop_set_boolean(PROP_PROGRESSBAR_BWS_IN_AVG, &val, 0, 1);
 	return TRUE;
 }
 
@@ -159,8 +162,11 @@ gboolean on_progressbar_bws_out_button_press_event(GtkWidget *widget,
 											       GdkEventButton *event, 
 											       gpointer user_data)
 {
-	progressbar_bws_out_avg = !progressbar_bws_out_avg;	
-	gui_update_global();
+    gboolean val;
+    
+    gui_prop_get_boolean(PROP_PROGRESSBAR_BWS_OUT_AVG, &val, 0, 1);
+    val = !val;
+    gui_prop_set_boolean(PROP_PROGRESSBAR_BWS_OUT_AVG, &val, 0, 1);
 	return TRUE;
 }
 
@@ -168,8 +174,11 @@ gboolean on_progressbar_bws_gin_button_press_event(GtkWidget *widget,
 											      GdkEventButton *event, 
 											      gpointer user_data)
 {
-	progressbar_bws_gin_avg = !progressbar_bws_gin_avg;
-	gui_update_global();
+    gboolean val;
+    
+    gui_prop_get_boolean(PROP_PROGRESSBAR_BWS_GIN_AVG, &val, 0, 1);
+    val = !val;
+    gui_prop_set_boolean(PROP_PROGRESSBAR_BWS_GIN_AVG, &val, 0, 1);
 	return TRUE;
 }
 
@@ -177,8 +186,11 @@ gboolean on_progressbar_bws_gout_button_press_event(GtkWidget *widget,
 											       GdkEventButton *event, 
 											       gpointer user_data)
 {
-	progressbar_bws_gout_avg = !progressbar_bws_gout_avg;	
-	gui_update_global();
+    gboolean val;
+    
+    gui_prop_get_boolean(PROP_PROGRESSBAR_BWS_GOUT_AVG, &val, 0, 1);
+    val = !val;
+    gui_prop_set_boolean(PROP_PROGRESSBAR_BWS_GOUT_AVG, &val, 0, 1);
 	return TRUE;
 }
 
@@ -2584,30 +2596,3 @@ gboolean on_dlg_about_delete_event(GtkWidget *widget, GdkEvent *event,
 }
 
 /* vi: set ts=4: */
-
-void
-on_spinbutton_search_stats_defcoef_changed
-                                        (GtkEditable     *editable,
-                                        gpointer         user_data)
-{
-
-}
-
-
-void
-on_spinbutton_config_min_dup_msg_changed
-                                        (GtkEditable     *editable,
-                                        gpointer         user_data)
-{
-
-}
-
-
-void
-on_spinbutton_config_min_dup_ratio_changed
-                                        (GtkEditable     *editable,
-                                        gpointer         user_data)
-{
-
-}
-
