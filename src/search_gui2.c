@@ -506,13 +506,7 @@ void search_gui_add_record(
 		 *				--RAM, 09/09/2001
 		 */
 
-		if (len > MAX_TAG_SHOWN) {
-            gchar saved = rc->tag[MAX_TAG_SHOWN];
-			rc->tag[MAX_TAG_SHOWN] = '\0';
-			g_string_append(info, rc->tag);
-			rc->tag[MAX_TAG_SHOWN] = saved;
-		} else
-			g_string_append(info, rc->tag);
+		g_string_append_len(info, rc->tag, MIN(len, MAX_TAG_SHOWN));
 	}
 	if (vinfo->len) {
 		if (info->len)
