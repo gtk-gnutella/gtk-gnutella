@@ -8532,7 +8532,6 @@ create_main_window_gnet_tab (void)
   GtkWidget *label279;
   GtkWidget *vbox33;
   GtkWidget *frame115;
-  GtkWidget *alignment98;
   GtkWidget *table55;
   GtkWidget *label549;
   GtkWidget *label550;
@@ -8781,16 +8780,10 @@ create_main_window_gnet_tab (void)
   gtk_box_pack_start (GTK_BOX (vbox33), frame115, FALSE, TRUE, 0);
   gtk_frame_set_shadow_type (GTK_FRAME (frame115), GTK_SHADOW_IN);
 
-  alignment98 = gtk_alignment_new (0.5, 0.5, 1, 1);
-  gtk_widget_set_name (alignment98, "alignment98");
-  gtk_widget_show (alignment98);
-  gtk_container_add (GTK_CONTAINER (frame115), alignment98);
-  gtk_alignment_set_padding (GTK_ALIGNMENT (alignment98), 0, 0, 12, 0);
-
   table55 = gtk_table_new (3, 3, FALSE);
   gtk_widget_set_name (table55, "table55");
   gtk_widget_show (table55);
-  gtk_container_add (GTK_CONTAINER (alignment98), table55);
+  gtk_container_add (GTK_CONTAINER (frame115), table55);
   gtk_container_set_border_width (GTK_CONTAINER (table55), 2);
   gtk_table_set_row_spacings (GTK_TABLE (table55), 2);
   gtk_table_set_col_spacings (GTK_TABLE (table55), 4);
@@ -8992,7 +8985,6 @@ create_main_window_gnet_tab (void)
   GLADE_HOOKUP_OBJECT (main_window_gnet_tab, label279, "label279");
   GLADE_HOOKUP_OBJECT (main_window_gnet_tab, vbox33, "vbox33");
   GLADE_HOOKUP_OBJECT (main_window_gnet_tab, frame115, "frame115");
-  GLADE_HOOKUP_OBJECT (main_window_gnet_tab, alignment98, "alignment98");
   GLADE_HOOKUP_OBJECT (main_window_gnet_tab, table55, "table55");
   GLADE_HOOKUP_OBJECT (main_window_gnet_tab, label549, "label549");
   GLADE_HOOKUP_OBJECT (main_window_gnet_tab, label550, "label550");
@@ -15210,7 +15202,6 @@ create_main_window_hostcache_tab (void)
   GtkWidget *treeview_hcache;
   GtkWidget *label842;
   GtkWidget *frame114;
-  GtkWidget *alignment97;
   GtkWidget *hbox266;
   GtkWidget *vbox134;
   GtkWidget *progressbar_hosts_in_catcher;
@@ -15276,16 +15267,10 @@ create_main_window_hostcache_tab (void)
   gtk_box_pack_start (GTK_BOX (vbox133), frame114, FALSE, TRUE, 0);
   gtk_container_set_border_width (GTK_CONTAINER (frame114), 2);
 
-  alignment97 = gtk_alignment_new (0.5, 0.5, 1, 1);
-  gtk_widget_set_name (alignment97, "alignment97");
-  gtk_widget_show (alignment97);
-  gtk_container_add (GTK_CONTAINER (frame114), alignment97);
-  gtk_alignment_set_padding (GTK_ALIGNMENT (alignment97), 0, 0, 12, 0);
-
   hbox266 = gtk_hbox_new (TRUE, 4);
   gtk_widget_set_name (hbox266, "hbox266");
   gtk_widget_show (hbox266);
-  gtk_container_add (GTK_CONTAINER (alignment97), hbox266);
+  gtk_container_add (GTK_CONTAINER (frame114), hbox266);
   gtk_container_set_border_width (GTK_CONTAINER (hbox266), 2);
 
   vbox134 = gtk_vbox_new (FALSE, 2);
@@ -15414,7 +15399,6 @@ create_main_window_hostcache_tab (void)
   GLADE_HOOKUP_OBJECT (main_window_hostcache_tab, treeview_hcache, "treeview_hcache");
   GLADE_HOOKUP_OBJECT (main_window_hostcache_tab, label842, "label842");
   GLADE_HOOKUP_OBJECT (main_window_hostcache_tab, frame114, "frame114");
-  GLADE_HOOKUP_OBJECT (main_window_hostcache_tab, alignment97, "alignment97");
   GLADE_HOOKUP_OBJECT (main_window_hostcache_tab, hbox266, "hbox266");
   GLADE_HOOKUP_OBJECT (main_window_hostcache_tab, vbox134, "vbox134");
   GLADE_HOOKUP_OBJECT (main_window_hostcache_tab, progressbar_hosts_in_catcher, "progressbar_hosts_in_catcher");
