@@ -4,6 +4,12 @@
  * [Gtk1] Added "Configure columns" to nodes pane
  * [Gtk1] [Gtk2] Removed nodes column configuration checkboxes
 
+- (2004-10-19 - RAM)
+ * Added workaround for GnucDNA bug in BYE messages.
+ * [GTK1] Added bottom information for selected hits.
+   Removed Host, SHA1 and Speed columns for search results.
+   This now matches the GTK2 font-end presentation.
+
 - (2004-10-18 - RAM)
  * Fixed small memory leak in core/uploads.c.
  * Remember IP of stalling uploads for a while, via the new "aging" table,
