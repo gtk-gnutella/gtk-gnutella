@@ -213,7 +213,6 @@ void on_popup_search_toggle_tabs_activate (GtkMenuItem *menuitem, gpointer user_
 /***
  *** popup-downloads
  ***/
-void on_popup_downloads_kill_activate(GtkMenuItem *menuitem, gpointer user_data);
 void on_popup_downloads_push_activate(GtkMenuItem *menuitem, gpointer user_data);
 void on_popup_downloads_abort_named_activate(GtkMenuItem *menuitem, gpointer user_data); 
 void on_popup_downloads_abort_host_activate(GtkMenuItem *menuitem, gpointer user_data); 
