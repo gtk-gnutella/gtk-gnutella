@@ -62,7 +62,7 @@ void whitelist_retrieve(void)
 
     if (stat(wl_tmp, &st) == -1) {
         if(dbg)
-            printf("whitelist_retrieve(): error stat()ing whitelist file.");
+            printf("whitelist_retrieve(): error stat()ing whitelist file.\n");
         return;
     }
 
