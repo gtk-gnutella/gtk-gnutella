@@ -133,7 +133,7 @@ prop = {
 		   "Others will remain in the queue waiting for a download slot.";
     type = guint32;
     data = {
-        default = 10;
+        default = 50;
         min     = 0;
         max     = 999;
     };
