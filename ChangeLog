@@ -1,5 +1,6 @@
 # since last version
 
+- Missed out to hide notebook tabs after modifing the gui. 
 - Rearranged widgets to reduce minimum window size. On my box this means
   604x503 (sorry 640x480 guys... maybe later). 
   Enabled both scrollbars on nodes list
