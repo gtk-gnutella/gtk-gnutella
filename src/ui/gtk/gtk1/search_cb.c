@@ -44,6 +44,7 @@ RCSID("$Id$");
 
 #include "lib/glib-missing.h"
 #include "lib/iso3166.h"
+#include "lib/utf8.h"
 #include "lib/vendors.h"
 #include "lib/override.h"		/* Must be the last header included */
 
@@ -184,7 +185,7 @@ search_gui_set_details(record_t *rc)
 		return;
 	}
 
-	gtk_entry_set_text(info_filename, rc->name);
+	gtk_entry_set_text(info_filename, lazy_locale_to_utf8(rc->name, 0));
 	gtk_entry_set_text(info_sha1,
 		rc->sha1 != NULL ? sha1_base32(rc->sha1) : _("<none>"));
 	if (rc->results_set->hostname)
@@ -215,7 +216,8 @@ search_gui_set_details(record_t *rc)
 	gtk_entry_set_text(info_vendor, tmpstr);
 	gm_snprintf(tmpstr, sizeof(tmpstr), "%lu", (gulong) rc->index);
 	gtk_entry_set_text(info_index, tmpstr);
-	gtk_entry_set_text(info_tag, rc->tag ? rc->tag : "");
+	gtk_entry_set_text(info_tag,
+		rc->tag ? lazy_locale_to_utf8(rc->tag, 0) : "");
 	gm_snprintf(tmpstr, sizeof(tmpstr), "%u", rc->results_set->speed);
 	gtk_entry_set_text(info_speed, tmpstr);
 }
