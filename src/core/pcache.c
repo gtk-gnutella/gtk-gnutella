@@ -1398,7 +1398,7 @@ pong_extract_metadata(struct gnutella_node *n)
 			if (ggep_debug && e->ext_type == EXT_GGEP) {
 				paylen = ext_paylen(e);
 				g_warning("%s: unhandled GGEP \"%s\" (%d byte%s)",
-					gmsg_infostr(&n->header), ext_ggep_idname(e),
+					gmsg_infostr(&n->header), ext_ggep_id_str(e),
 					paylen, paylen == 1 ? "" : "s");
 			}
 			break;
