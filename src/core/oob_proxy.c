@@ -40,6 +40,7 @@ RCSID("$Id$");
 #include "settings.h"
 #include "dq.h"
 #include "dh.h"
+#include "gnet_stats.h"
 #include "vmsg.h"
 
 #include "if/gnet_property_priv.h"
@@ -59,6 +60,7 @@ RCSID("$Id$");
 struct oob_proxy_rec {
 	const gchar *leaf_muid;		/* Original MUID, set by leaf (atom) */
 	const gchar *proxied_muid;	/* Proxied MUID (atom) */
+	guint32 node_id;			/* The ID of the node leaf */
 	gpointer expire_ev;			/* Expire event, to clear this record */
 };
 
@@ -91,13 +93,15 @@ static GHashTable *proxied_queries = NULL;	/* New MUID => oob_proxy_rec */
  * Allocate new OOB proxy record to keep track of the MUID remapping.
  */
 static struct oob_proxy_rec *
-oob_proxy_rec_make(const gchar *leaf_muid, const gchar *proxied_muid)
+oob_proxy_rec_make(
+	const gchar *leaf_muid, const gchar *proxied_muid, guint32 node_id)
 {
 	struct oob_proxy_rec *opr;
 
 	opr = walloc0(sizeof(*opr));
 	opr->leaf_muid = atom_guid_get(leaf_muid);
 	opr->proxied_muid = atom_guid_get(proxied_muid);
+	opr->node_id = node_id;
 
 	return opr;
 }
@@ -153,6 +157,8 @@ oob_proxy_create(gnutella_node_t *n)
 	struct oob_proxy_rec *opr;
 
 	g_assert(n->header.function == GTA_MSG_SEARCH);
+	g_assert(NODE_IS_LEAF(n));
+	g_assert(n->header.hops == 1);
 
 	/*
 	 * Mangle the MUID of the query to insert our own IP:port.
@@ -166,7 +172,7 @@ oob_proxy_create(gnutella_node_t *n)
 	 * Record the mapping, and make sure it expires in PROXY_EXPIRE_MS.
 	 */
 
-	opr = oob_proxy_rec_make(n->header.muid, proxied_muid);
+	opr = oob_proxy_rec_make(n->header.muid, proxied_muid, n->id);
 	g_hash_table_insert(proxied_queries, (gchar *) opr->proxied_muid, opr);
 
 	opr->expire_ev = cq_insert(callout_queue, PROXY_EXPIRE_MS,
@@ -208,21 +214,14 @@ oob_proxy_pending_results(
 	gnutella_node_t *n, gchar *muid, gint hits, gboolean udp_firewalled)
 {
 	struct oob_proxy_rec *opr;
+	struct gnutella_node *leaf;
 	guint32 wanted;
+	gchar *msg = NULL;
 
 	g_assert(NODE_IS_UDP(n));
 
 	opr = g_hash_table_lookup(proxied_queries, muid);
 	if (opr == NULL)
-		return FALSE;
-
-	/*
-	 * Lookup the dynamic query, to see whether it has not already
-	 * received the maximum amout of results, or whether the search
-	 * was not cancelled by the leaf.
-	 */
-
-	if (!dq_get_results_wanted(muid, &wanted))
 		return FALSE;
 
 	/*
@@ -233,15 +232,53 @@ oob_proxy_pending_results(
 	cq_resched(callout_queue, opr->expire_ev, PROXY_EXPIRE_MS);
 
 	/*
-	 * Claim the results (all of it) if something is wanted.
+	 * Fetch the leaf node.
 	 */
 
-	if (wanted)
-		vmsg_send_oob_reply_ack(n, muid, MAX(hits, 254));
+	leaf = node_active_by_id(opr->node_id);
+	if (leaf == NULL) {
+		msg = "leaf gone";
+		goto ignore;		/* Leaf gone, drop the message */
+	}
+
+	/*
+	 * Lookup the dynamic query, to see whether it has not already
+	 * received the maximum amout of results, or whether the search
+	 * was not cancelled by the leaf.
+	 */
+
+	if (!dq_get_results_wanted(muid, &wanted)) {
+		msg = "dynamic query expired";
+		goto ignore;
+	}
+
+	/*
+	 * Claim the results (all of it) if something is wanted and the
+	 * leaf's TX queue is not in flow-control already.
+	 */
+
+	if (!wanted) {
+		msg = "nothing wanted";
+		goto ignore;
+	}
+
+	if (NODE_IN_TX_FLOW_CONTROL(leaf)) {
+		msg = "leaf in TX flow-control";
+		goto ignore;
+	}
+
+	vmsg_send_oob_reply_ack(n, muid, MAX(hits, 254));
 
 	if (query_debug > 5)
 		printf("QUERY OOB-proxied %s notified of %d hits at %s, wants %u\n",
 			guid_hex_str(muid), hits, node_ip(n), wanted);
+
+	return TRUE;
+
+ignore:
+	if (query_debug > 5)
+		printf("QUERY OOB-proxied %s notified of %d hits at %s, ignored (%s)\n",
+			guid_hex_str(muid), hits, node_ip(n), msg);
 
 	return TRUE;
 }
@@ -261,7 +298,7 @@ gboolean
 oob_proxy_got_results(gnutella_node_t *n, gint results)
 {
 	struct oob_proxy_rec *opr;
-	struct route_dest dest;
+	struct gnutella_node *leaf;
 
 	g_assert(n->header.function == GTA_MSG_SEARCH_RESULTS);
 	g_assert(results > 0);
@@ -269,6 +306,25 @@ oob_proxy_got_results(gnutella_node_t *n, gint results)
 	opr = g_hash_table_lookup(proxied_queries, n->header.muid);
 	if (opr == NULL)
 		return FALSE;
+
+	/*
+	 * Delay the expiration timer: we still get results for the proxied query.
+	 */
+
+	g_assert(opr->expire_ev != NULL);
+	cq_resched(callout_queue, opr->expire_ev, PROXY_EXPIRE_MS);
+
+	/*
+	 * Fetch the leaf node.
+	 */
+
+	leaf = node_active_by_id(opr->node_id);
+	if (leaf == NULL) {
+		gnet_stats_count_dropped(n, MSG_DROP_ROUTE_LOST);
+		return TRUE;		/* Leaf gone, drop the message */
+	}
+
+	g_assert(NODE_IS_LEAF(leaf));		/* By construction */
 
 	/*
 	 * Let the DH layer know we got the hits, using the original MUID.
@@ -279,49 +335,23 @@ oob_proxy_got_results(gnutella_node_t *n, gint results)
 
 	/*
 	 * Replace the MUID of the message with the original one that
-	 * the leaf sent us, and compute the route for the message.
-	 *
-	 * NB: the message already passed through route_message() once
-	 * already, so we need to compensate for the hops/ttl before calling
-	 * it again or it might wrongfully get an "expired" status.
+	 * the leaf sent us.
 	 */
 
-	g_assert(n->header.hops > 0);	/* Went through route_message() already */
-
 	memcpy(n->header.muid, opr->leaf_muid, 16);
-	n->header.hops--;
-	n->header.ttl++;
-
-	(void) route_message(&n, &dest);
 
 	/*
 	 * Route message to leaf node.
 	 */
 
-	switch (dest.type) {
-	case ROUTE_NONE:
-		break;				/* Node probably disconnected, no more route */
-	case ROUTE_ONE:
-		g_assert(NODE_IS_LEAF(dest.ur.u_node));		/* By construction */
-		dh_route(n, dest.ur.u_node, results);
+	g_assert(n->header.hops > 0);	/* Went through route_message() already */
 
-		if (query_debug > 5)
-			printf("QUERY OOB-proxied %s routed %d hits to %s <%s> from %s\n",
-				guid_hex_str(opr->proxied_muid), results,
-				node_ip(dest.ur.u_node), node_vendor(dest.ur.u_node),
-				NODE_IS_UDP(n) ? "UDP" : "TCP");
+	dh_route(n, leaf, results);
 
-		break;
-	default:
-		g_error("invalid destination for query hit: %d", dest.type);
-	}
-
-	/*
-	 * Delay the expiration timer.
-	 */
-
-	g_assert(opr->expire_ev != NULL);
-	cq_resched(callout_queue, opr->expire_ev, PROXY_EXPIRE_MS);
+	if (query_debug > 5)
+		printf("QUERY OOB-proxied %s routed %d hit%s to %s <%s> from %s\n",
+			guid_hex_str(opr->proxied_muid), results, results == 1 ? "" : "s",
+			node_ip(leaf), node_vendor(leaf), NODE_IS_UDP(n) ? "UDP" : "TCP");
 
 	return TRUE;			/* We routed the message */
 }
