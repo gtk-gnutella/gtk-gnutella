@@ -348,7 +348,7 @@ static struct dl_server *get_server(guchar *guid, guint32 ip, guint16 port)
  *
  * How many downloads with same filename are running (active or establishing)?
  */
-static guint32 count_running_downloads_with_name(const char *name)
+static guint count_running_downloads_with_name(const char *name)
 {
 	return (guint) g_hash_table_lookup(dl_count_by_name, name);
 }
@@ -2806,6 +2806,27 @@ static gboolean download_moved_permanently(struct download *d, header_t *header)
 		g_warning("file \"%s\" was renamed \"%s\" on %s",
 			d->file_name, info.name, ip_port_to_gchar(info.ip, info.port));
 
+		/*
+		 * If name changed, we must update the global hash counting downloads.
+		 * We ensure the current download is in the running list, since only
+		 * those can be stored in the hash.
+		 */
+
+		g_assert(d->list_idx == DL_LIST_RUNNING);
+
+		downloads_with_name_dec(d->file_name);
+		downloads_with_name_inc(info.name);
+
+		/*
+		 * About to free the d->file_name atom, but maybe the output_name
+		 * was also the same.  In that case, we have to duplicate it, as if
+		 * we had escaped '/' in the output file name.
+		 *
+		 * NB: This means the download will still be written to the previous
+		 * filename, and therefore the actual filename displayed in the GUI
+		 * will not be the targetted file on the disk.
+		 */
+
 		if (d->output_name == d->file_name)
 			d->output_name = g_strdup(d->file_name);
 
@@ -2846,7 +2867,7 @@ static void download_request(struct download *d, header_t *header)
 
 	d->last_update = time(NULL);	/* Done reading headers */
 
-	if (dbg > 4) {
+	if (dbg > 2) {
 		printf("----Got reply from %s:\n", ip_to_gchar(s->ip));
 		printf("%s\n", status);
 		header_dump(header, stdout);
@@ -3364,7 +3385,7 @@ gboolean download_send_request(struct download *d)
 		download_stop(d, GTA_DL_ERROR, "Partial write: wrote %d of %d bytes",
 			sent, rw);
 		return FALSE;
-	} else if (dbg > 4) {
+	} else if (dbg > 2) {
 		printf("----Sent Request to %s:\n%.*s----\n",
 			ip_port_to_gchar(download_ip(d), download_port(d)),
 				(int) rw, dl_tmp);
