@@ -1,5 +1,24 @@
 # since last version
 
+- (2004.01.18 - RAM)
+ * Changed minimum for "node_connected_timeout" to 120 and the default to 180,
+   since we must account for possible flow-control, both at the node and TCP
+   level.
+ * Try to account for PARQ active upload slots when looking whether we have
+   enough file descriptors to become an UP, but lower the impact of banned
+   fd since we can now steal them when we run out of available ones.
+ * Lowered banned IP timeout to 6 hours, and mark IP as bad on connect timeout.
+ * Fixed default returned value for add_host_to_cache() to FALSE.
+ * (downloads_gui.c) Optimized to do without the costly count_node_children()
+   routine.
+ * Routine gui_update_download_clear() now only records that we need to
+   figure out the sensitivity of "Clear Stopped".  However the real change is
+   only performed once per second via gui_update_download_clear_now().
+ * Must perform downloads_gui_init() before settings_gui_init() due to
+   the use of property callbacks that can trigger GUI code, and because we
+   now cache the results of lookup_widget() in downloads_gui.c.
+ * Periodically call gui_update_download_clear_now() from download_timer().
+
 - (2004.01.18 - Richard)
  * Count number of unstable nodes and hits on node_is_bad and node_ip_is_bad.
    Numbers are reported if core debug level is > 1.
@@ -7,14 +26,26 @@
  * [Gtk1] Disable "expand all" and "collapse all" when no search is open.
  * [Gtk1] Fix possible crash if sorting on less then 50 results (Thanks Emile).
 
+- (2004.01.17 - RAM)
+ * Allow 6 unanswered "alive pings" in a row instead of 4 for UP connections.
+ * Fixed incorrect list_delete_link_track() implementation causing memory havoc.
+ * (search_gui.c) Removed needless atom_str_get() calls.
+ * Redirect big walloc() calls to malloc_track() under TRACK_MALLOC,
+   instead of g_malloc(), to not lose the source of the leak.
+ * (dmesh.c) Made sure we cleanup the banned mesh by IP at close time.
+ * Added g_string_*() trapping when -DTRACK_MALLOC.
+ * Fixed stupid (recent?) typo preventing proper recording of the user-agent
+   for uploads.
+ * (downloads.c) Fixed memory leak.
+
 - (2004.01.17 - Richard)
  * Cleaned up gtk-missing.h.
  * [Gtk1] Hopefully fixed sorting when any node in the results was expanded
    by iterating only over the top-level nodes when sorting. Refactored
    some of the code in the process and added a couple of FIXMEs for later
    releases.
- * [Gtk1] Hopefully fixed a few memory leaks in the download pane probably caused 
-   by calling g_list_free() not on the first element of a GList.
+ * [Gtk1] Hopefully fixed a few memory leaks in the download pane probably
+   caused by calling g_list_free() not on the first element of a GList.
  * [Gtk1] In the search pane two more leaks reported by the leak detection 
    code should be fixed.
  * [Gtk1] Fixed crash when "expand all" or "collapse all" was pressed and
