@@ -30,7 +30,7 @@ patient.
 Click "Search" to switch to the search tab. Type what you are searching
 for into the edit box at the top of the window and either press Enter
 or push the "New Search" button. A new tab, labeled with your search
-tem, will appear in the window, with files that are found listed in
+term, will appear in the window, with files that are found listed in
 the list below.
 .PP
 You can have multiple searches running at once. To start another
@@ -44,6 +44,11 @@ select the search by clicking on its tab and click the "Close this
 search" button. If you want to clear the list for a particular search,
 but want to continue to see new files that are received for this
 search, click the "Clear results" button.
+.PP
+You can also switch from the default tab to a nice list where all
+your searches appear on the left side, but you need to have a big-enough
+screen to benefit from that.  To enable it, right-click in the search
+window and select "Show search list".
 .PP
 By entering a number in the "Minimum connection speed" box, you can
 limit search results to only those files that are shared by hosts with
@@ -147,9 +152,6 @@ are displayed on the search monitor tab when monitor_enabled is
 true. If monitor_enabled is false, this variable has no effect. Set
 this to a value between 1 and 511. 
 .TP
-.BI save_downloaded_files_to
-This is deprecated, don't use it.
-.TP
 .BI shared_files_extensions
 This is on the config tab.
 This is a semicolon-separated list of extensions. When scanning for
@@ -189,10 +191,9 @@ above).
 This is on the config tab.
 If force_local_ip is "true", this is the IP address that we are
 pretending to have. All packets originating from this node will have
-the source IP address set to this value. This is useful if you want to
-hide your true IP address, but beware that it won't completely cloak
-your identity.
-This variable may not be implemented.
+the source IP address set to this value. This is useful if gtk-gnutella
+cannot correctly determine your IP address.  Usually, it's best to
+leave this field alone, unless you know what you are doing.
 .TP
 .BI connection_speed
 This is on the config tab.
@@ -210,18 +211,29 @@ since that would irremediably obsolete all the gnet:// URLs gathered so far
 for your shared files.
 .TP
 .BI output_bandwidth
-This can not be set through the GUI.
 The maximum allowed output bandwidth, in bytes per second.  If set to 0,
 then there is no throttling.  The maximum value is 2097152, or 2 MB/sec.
 In effect, this variable allows to limit the speed of the uploads.
-The Gnet traffic is not accounted for.
+The Gnet traffic is not accounted for.  Use
+.BI output_gnet_bandwidth
+for that.
 .TP
 .BI input_bandwidth
 This can not be set through the GUI.
 The maximum allowed input bandwidth, in bytes per second.  If set to 0,
 then there is no throttling.  The maximum value is 2097152, or 2 MB/sec.
 In effect, this variable allows to limit the speed of the downloads.
-The Gnet traffic is not accounted for.
+The Gnet traffic is not accounted for. Use
+.BI input_gnet_bandwidth
+for that.
+.TP
+.BI output_gnet_bandwidth
+The maximum allowed output bandwidth for Gnet traffic.  Same rules as for
+.BI output_bandwidth .
+.TP
+.BI input_gnet_bandwidth
+The maximum allowed input bandwidth for Gnet traffic.  Same rules as for
+.BI input_bandwidth .
 .TP
 .BI limit_search_results
 This is on the config tab.
@@ -239,84 +251,64 @@ maximum, as long as you have RAM and CPU.
 .BI force_local_ip
 This is on the config tab.
 If this is true, then forced_local_ip is used (see above).
-This variable may not be implemented.
-.TP
-.BI hc
-You shouldn't need to use this.
 .TP
 .BI download_connecting_timeout
-This can not be set through the GUI.
 The number of seconds before timing out for a connecting download.
 .TP
 .BI download_push_sent_timeout
-This can not be set through the GUI.
 The number of seconds before timing out for a 'push sent' download.
 .TP
 .BI download_connected_timeout
-This can not be set through the GUI.
 The number of seconds before timing out for a connected download.
 .TP
 .BI download_retry_timeout_min
-This can not be set through the GUI.
 The minimum amout of seconds to wait on auto-retry when a push times out.
 .TP
 .BI download_retry_timeout_max
-This can not be set through the GUI.
 The maximum amout of seconds to wait on auto-retry when a push times out.
 .TP
 .BI download_max_retries
-This can not be set through the GUI.
 The maximum attempts to make, not counting HTTP busy indications.  Only
 timeouts and refused connections are counted.
 .TP
 .BI download_retry_timeout_delay
-This can not be set through the GUI.
 Delay in seconds to wait after a download connection timeout before retrying.
 .TP
 .BI download_retry_busy_delay
-This can not be set through the GUI.
 Delay in seconds to wait after an HTTP busy indication before retrying
 download.
 .TP
 .BI download_retry_refused_delay
-This can not be set through the GUI.
 Delay in seconds to wait after a download connection was unable to complete,
 probably refused due to no listening port opened on the remote side.
 .TP
 .BI download_retry_stopped
-This can not be set through the GUI.
 Delay in seconds to wait before re-issuing a stopped download.  A download
 stops when it hits an unexpected EOF condition, or a remote connection reset.
 .TP
 .BI download_overlap_range
-This can not be set through the GUI.
 Amount of bytes to request prior the resuming point, to ensure that the
 file is the same as the one we partially got, and that we're resuming at
 the proper offset.  If the file on disk is smaller than that value, the
 whole file is requested again.
 .TP
 .BI upload_connecting_timeout
-This can not be set through the GUI.
 The number of seconds before timing out for a connecting upload,
 whilst we receive the HTTP headers.  This is the maximum amount
 of time allowed to receive the entire set of headers.
 .TP
 .BI upload_connected_timeout
-This can not be set through the GUI.
 The number of seconds before timing out for a connected upload,
 whilst we send data.  This is the maximum amount of time before
 two consecutive data sending.
 .TP
 .BI node_connected_timeout
-This can not be set through the GUI.
 The number of seconds before timing out for a connected node.
 .TP
 .BI node_connecting_timeout
-This can not be set through the GUI.
 The number of seconds before timing out for a connecting node.
 .TP
 .BI node_sendqueue_size
-This can not be set through the GUI.
 The maximum size of the sendqueue for the nodes (in bytes).
 .TP
 .BI node_tx_flowc_timeout
@@ -358,55 +350,10 @@ This is the name of the directory where completed downloads are
 stored. By setting this and store_downloading_files_to to different
 directories, you can avoid cluttering this directory with partially
 completed files.
-.TP
-.PD 0
-.BI window_x
-.TP
-.BI window_y
-.TP
-.BI window_w
-.TP
-.BI window_h
-These can not be set through the GUI.
-These four values control the window geometry.
-These may not be implemented.
-.PD
-.TP
-.BI window_coords
-This can not be set through the GUI.
-This is an alternate way of specifying window_x, window_y, window_h,
-and window_w.
-This may not be implemented.
-.TP
-.BI widths_nodes
-These are the widths of the columns in the active hosts list in the
-gnutellaNet tab.
-.TP
-.BI widths_uploads
-These are the widths of the columns in the active uploads list in the
-uploads tab.
-.TP
-.BI widths_dl_active
-These are the widths of the columns in the active downloads list in the
-downloads tab.
-.TP
-.BI widths_dl_queued
-These are the widths of the columns in the queued downloads list in the
-downloads tab.
-.TP
-.BI widths_search_results
-These are the widths of the columns in the search results list in the
-search tab.
-.TP
-.BI widths_search_stats
-These are the widths of the columns in the search stats list in the
-search stats tab.
-.TP
 .BI show_results_tabs
-This can not be set through the GUI.
 If this is "true" (the default setting), multiple search tabs will be
-shown in the search tab. This will allow you to have several searches
-in progress at once (as described above in SEARCHING).
+shown in the search tab. When "false", a search list is displayed, but
+you need a wider screen for it to be truly useful.
 .TP
 .BI hops_random_factor
 Don't worry about this.
@@ -446,6 +393,7 @@ These settings are in the config tab. They are for setting up
 .I gtk-gnutella
 to work with a proxy server. If you need these, hopefully you know
 more about proxies and socks than I do.
+.PD
 .TP
 .BI search_reissue_timeout
 When a search is running, the search request packet is sent out to the
@@ -468,15 +416,10 @@ If this is set to an integer value greater than 0, varying levels of
 debugging messages will be sent to the console. Set this to an integer
 between 0 and 20.
 .TP
-.PD 0
-.BI stop_host_get
-.TP
-.BI enable_err_log
-.TP
-.BI search_strict_and
-.TP
 .BI search_pick_all
+Whether auto-selection is active in the search tab.
 .TP
+.PD 0
 .BI max_high_ttl_msg
 .TP
 .BI max_high_ttl_radius
@@ -484,15 +427,14 @@ between 0 and 20.
 .BI min_dup_msg
 .TP
 .BI min_dup_ratio
-The above can not be set through the GUI and are undocumented.
+The above are undocumented at this stage.
 .PD
 .TP
 .BI max_hosts_cached
-This can not be set through the GUI.
 This is the max number of hosts that will be cached in the host cache.
 .TP
 .BI search_stats_update_interval
-The updating interval, in 1/10th of a second, for the search statistics.
+The updating interval, in seconds, for the search statistics.
 .TP
 .BI search_stats_delcoef
 A deletion coefficient, so that small non-significant results can be dropped.
@@ -506,6 +448,12 @@ Per-user configuration file. This can be edited.
 saves this file every time the program is exited normally.
 .RE
 .TP
+.I $GTK_GNUTELLA_DIR/dmesh
+.RS
+This is where the download mesh is persisted.  You don't need to worry
+about this.
+.RE
+.TP
 .I $GTK_GNUTELLA_DIR/downloads
 .RS
 This is where the download queue is persisted.  Only the direct downloads
@@ -517,6 +465,22 @@ This is where the download queue is persisted.  Only the direct downloads
 This is the host cache. This is saved by
 .B gtk-gnutella
 on exit and should not be edited by hand.
+.RE
+.TP
+.I $GTK_GNUTELLA_DIR/searches.xml
+.RS
+This is where the open searches and all the search filters are saved.
+.RE
+.TP
+.I $GTK_GNUTELLA_DIR/sha1_cache
+.RS
+This is where the cache of all the computed SHA1 is stored.
+.RE
+.TP
+.I $GTK_GNUTELLA_DIR/upload_stats
+.RS
+This file keeps track of the upload statistics.
+.RE
 .SH ENVIRONMENT
 .I Gtk-gnutella
 searches
@@ -536,9 +500,6 @@ See http://sourceforge.net/mail/?group_id=4467 for more info.
 .I gtk-gnutella
 is beta-quality software, and still has bugs and incomplete or missing
 features.  But which software doesn't for its authors?
-.PP
-Gnutella protocol v0.6 is not currently supported, but work
-is in progress.
 .PP
 There are probably other missing features that should
 be listed here.
@@ -560,18 +521,18 @@ Yann Grossel wrote the original
 .PP
 Raphael Manfredi <Raphael_Manfredi@pobox.com> is the current maintainer
 (since version 0.14, released early September 2001).
+.br
+Richard Eckart <wyldfire@users.sourceforge.net> is actively working
+on GUI issues.
 .PP
-Contributors include Steven Wilcoxon, Jason Lingohr, Brian St Pierre,
-Chuck Homic, Ingo Saitz, Ben Hochstedler, Daniel Walker, Paul
-Cassella, Jared Mauch, Raphael Manfredi, Kenn Brooks Hamm, and Mark
-Schreiber.
+For a full list of contributors, open the "About" menu.
 .PP
 Brian St. Pierre <bstpierre@bstpierre.org> wrote the initial version
 of this manpage.
 .SH COPYRIGHT
 .I gtk-gnutella
 is Copyright (c) 2000, Yann Grossel, with additional copyrights held
-by other contributors 2000 and 2001.
+by other contributors 2000, 2001 and 2002.
 .PP
 License to use and copy
 .I gtk-gnutella
