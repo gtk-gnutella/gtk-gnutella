@@ -37,6 +37,7 @@ RCSID("$Id$");
 #include "gtk/columns.h"
 #include "gtk/notebooks.h"
 #include "gtk/settings.h"
+#include "gtk/statusbar.h"
 
 #include "if/gui_property.h"
 #include "if/gui_property_priv.h"
@@ -292,30 +293,37 @@ static void
 host_lookup_callback(const gchar *hostname, gpointer data)
 {
 	gnet_node_t n;
-	gnet_node_info_t *info;
 	GtkTreeIter *iter;
 	GtkListStore *store;
 	GtkTreeView *tv;
-	gchar host[512];
+	guint32 ip;
+	guint16 port;
+	gchar buf[512];
 
-	if (!hostname) {
-		g_warning("Lookup failed");
-		return;
-	}
-	
 	tv = GTK_TREE_VIEW(lookup_widget(main_window, "treeview_nodes"));
 	store = GTK_LIST_STORE(gtk_tree_view_get_model(tv));
 	n = GPOINTER_TO_UINT(data);	
     iter = find_node(n);
-	if (!iter)
+	if (!iter) {
 		return;
+	} else {
+		gnet_node_info_t *info;
+		
+   		info = guc_node_get_info(n);
+		ip = info->ip;
+		port = info->port;
+		guc_node_free_info(info);
+	}
 
-   	info = guc_node_get_info(n);
-	gm_snprintf(host, sizeof host, "%s (%s)",
-		lazy_locale_to_utf8(hostname, 0),
-		ip_port_to_gchar(info->ip, info->port));
-	gtk_list_store_set(store, iter, c_gnet_host, host, (-1));
-	guc_node_free_info(info);
+	if (hostname) {
+		gm_snprintf(buf, sizeof buf, "%s (%s)",
+			lazy_locale_to_utf8(hostname, 0), ip_port_to_gchar(ip, port));
+	} else {
+		statusbar_gui_warning(10,
+			_("Reverse lookup for %s failed"), ip_to_gchar(ip));
+		gm_snprintf(buf, sizeof buf, "%s", ip_port_to_gchar(ip, port));
+	}
+	gtk_list_store_set(store, iter, c_gnet_host, buf, (-1));
 }
 
 static void
