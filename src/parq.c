@@ -2305,7 +2305,7 @@ gboolean parq_upload_remove(gnutella_upload_t *u)
 		/* Client disconnects to often. This could block our upload
 		 * slots. Sorry, but we are going to remove this upload */
 		g_warning("[parq ul] "
-			"Removing %s (%s) for to many disconnections \"%s\" %d secs early",
+			"Removing %s (%s) for too many disconnections \"%s\" %d secs early",
 			ip_port_to_gchar(u->socket->ip, u->socket->port), 
 			upload_vendor_str(u),
 			u->name, (gint) (parq_ul->disc_timeout - now));
