@@ -51,6 +51,32 @@ static GSList *hostiles_wild = NULL;	/* Addresses with mask less than /8 */
 static GSList *hostiles_narrow[256];	/* Indexed by FIRST byte */
 
 /*
+ * hostile_hash
+ *
+ * Hash an hostile structure.
+ */
+static guint hostile_hash(gconstpointer key)
+{
+	const struct hostile *h = key;
+	guint32 hash;
+
+	return (guint) (h->ip_masked ^ h->netmask);
+}
+
+/*
+ * hostile_eq
+ *
+ * Check whether two hostile structures are equal.
+ */
+static gint hostile_eq(gconstpointer a, gconstpointer b)
+{
+	const struct hostile *ha = a;
+	const struct hostile *hb = b;
+
+	return ha->ip_masked == hb->ip_masked && ha->netmask == hb->netmask;
+}
+
+/*
  * hostiles_retrieve
  *
  * Loads the hostiles.txt into memory.
@@ -69,15 +95,19 @@ void hostiles_retrieve(void)
 #else
 	file_path_t fp[2];
 #endif
+	GHashTable *seen;
 
 	file_path_set(&fp[0], settings_config_dir(), hostiles_file);
 	file_path_set(&fp[1], PRIVLIB_EXP, hostiles_file);
 #ifndef OFFICIAL_BUILD 
 	file_path_set(&fp[2], PACKAGE_SOURCE_DIR, hostiles_file);
 #endif
+
 	f = file_config_open_read_norename(hostiles_what, fp, G_N_ELEMENTS(fp));
 	if (!f)
 	   return;
+
+	seen = g_hash_table_new(hostile_hash, hostile_eq);
 
 	while (fgets(line, sizeof(line), f)) {
 		linenum++;
@@ -101,9 +131,20 @@ void hostiles_retrieve(void)
 		n->ip_masked = ip & netmask;
 		n->netmask = netmask;
 
+		if (g_hash_table_lookup(seen, n)) {
+			g_warning("hostiles_retrieve(): line %d: "
+				"ignoring duplicate entry \"%s\" (%s/%s)",
+				linenum, line, ip_to_gchar(ip), ip2_to_gchar(netmask));
+			wfree(n, sizeof(*n));
+			continue;
+		}
+
+		g_hash_table_insert(seen, n, n);
 		sl_hostiles = g_slist_append(sl_hostiles, n);
 		count++;
 	}
+
+	g_hash_table_destroy(seen);		/* Keys/values are in `sl_hostiles' */
 
 	if (dbg)
 		printf("Loaded %d hostile IP addresses/netmasks\n", count);
