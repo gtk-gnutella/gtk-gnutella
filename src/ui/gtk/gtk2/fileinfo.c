@@ -43,7 +43,6 @@ RCSID("$Id$");
 #include "lib/glib-missing.h"
 #include "lib/override.h"		/* Must be the last header included */
 
-
 static gnet_fi_t last_shown = 0;
 static gboolean  last_shown_valid = FALSE;
 
@@ -458,7 +457,7 @@ drag_begin(GtkWidget *widget, GdkDragContext *drag_ctx, gpointer udata)
 					G_FREE_NULL(pathname);
 
 				*url_ptr = g_strdup_printf("file://%s", escaped);
-				gtk_drag_set_icon_stock(drag_ctx, GTK_STOCK_FILE, 0, 0);
+				gtk_drag_set_icon_stock(drag_ctx, "gtk-file", 0, 0);
 
 				G_FREE_NULL(escaped);
 			}
