@@ -322,9 +322,7 @@ zlib_deflate_close(zlib_deflater_t *zd)
 	return zlib_deflate_step(zd, 1, TRUE) == 0 ? TRUE : FALSE;
 }
 
-/*
- * zlib_deflater_free
- *
+/**
  * Dispose of the incremental deflater.
  * If `output' is true, also free the output buffer.
  */
@@ -347,9 +345,7 @@ void zlib_deflater_free(zlib_deflater_t *zd, gboolean output)
 	wfree(zd, sizeof(*zd));
 }
 
-/*
- * zlib_uncompress
- *
+/**
  * Inflate data, whose final uncompressed size is known.
  * Return allocated uncompressed data if OK, NULL on error.
  */
@@ -372,6 +368,45 @@ gpointer zlib_uncompress(gpointer data, gint len, gint uncompressed_len)
 	G_FREE_NULL(out);
 
 	return NULL;
+}
+
+/**
+ * Check whether first bytes of data make up a valid zlib marker.
+ */
+gboolean
+zlib_valid_header(gpointer data, gint len)
+{
+	guchar *p = data;
+	guint16 check;
+
+	if (len < 2)
+		return FALSE;
+
+	/*
+	 * A deflated buffer starts with:
+	 *
+	 *      0   1  
+	 *    +---+---+
+	 *    |CMF|FLG|   (more-->)
+	 *    +---+---+
+	 *
+	 * With:
+	 *
+	 * CMF: bit 0-3 = CM (compression method)
+	 * CMF: bit 4-7 = CINFO (compression info)
+	 *
+	 * FLG: bit 0-4 = FCHECK (check bits for CMF and FLG)
+	 * FLG: bit 5   = FDICT (preset dictionary)
+	 * FLG: bit 6-7 = FLEVEL (compression level)
+	 *
+	 * The FCHECK value must be such that CMF and FLG, when viewed as a
+	 * 16-bit unsigned integer, stored in MSB order (CMF*256 + FLG), is
+	 * a multiple of 31.
+	 */
+
+	check = (p[0] << 8) | p[1];
+
+	return (0 == check % 31) ? TRUE : FALSE;
 }
 
 /* vi: set ts=4 sw=4 cindent: */

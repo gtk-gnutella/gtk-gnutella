@@ -60,6 +60,7 @@ gboolean zlib_deflate_close(zlib_deflater_t *zd);
 void zlib_deflater_free(zlib_deflater_t *zd, gboolean output);
 
 gpointer zlib_uncompress(gpointer data, gint len, gint uncompressed_len);
+gboolean zlib_valid_header(gpointer data, gint len);
 
 #endif	/* _zlib_util_h_ */
 
