@@ -37,7 +37,7 @@ all::		/* So that default target is not clobber! */
 
 SetSubdirs(src pixmaps)
 DependDirs(src)
-AddedByConfigure(install)
+AddedByConfigure(install gtk-gnutella.spec)
 
 >PRIVLIB	/* Grrr... figure this one automatically */
 

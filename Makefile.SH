@@ -60,7 +60,7 @@ $spitshell >>Makefile <<'!NO!SUBS!'
 ########################################################################
 # Start of Jmakefile
 
-# $X-Id: Jmakefile,v 1.2 2003/08/09 22:38:30 rmanfredi Exp $
+# $X-Id: Jmakefile,v 1.3 2003/08/10 23:04:33 rmanfredi Exp $
 
 EXTRA_FILES = \
 	gwcache.boot \
@@ -77,7 +77,7 @@ depend::
 	done
 
 local_clobber::
-	$(RM) install
+	$(RM) install gtk-gnutella.spec
 
 local_install::
 	@for dir in $(PRIVLIB); do \
