@@ -47,7 +47,7 @@ struct io_header {
 #define IO_STATUS_LINE		0x00000002	/* First line is a status line */
 
 static void upload_request(struct upload *u, header_t *header);
-static void send_upload_error(struct upload *u, int code, guchar *msg, ...);
+static void upload_error_remove(struct upload *u, int code, guchar *msg, ...);
 
 /*
  * upload_timer
@@ -89,9 +89,7 @@ void upload_timer(time_t now)
 	for (l = remove; l; l = l->next) {
 		struct upload *u = (struct upload *) l->data;
 		if (UPLOAD_IS_CONNECTING(u)) {
-			gchar *msg = "Request timeout";
-			send_upload_error(u, 408, msg);
-			upload_remove(u, msg);
+			upload_error_remove(u, 408, "Request timeout");
 		} else
 			upload_remove(u, "Data timeout");
 	}
@@ -135,7 +133,7 @@ static struct upload *upload_create(struct gnutella_socket *s, gboolean push)
 	s->resource.upload = u;
 
 	u->push = push;
-	u->status = push ? GTA_UL_PUSH_RECIEVED : GTA_UL_HEADERS;
+	u->status = push ? GTA_UL_PUSH_RECEIVED : GTA_UL_HEADERS;
 	u->last_update = time((time_t *) 0);
 	u->file_desc = -1;
 
@@ -277,6 +275,32 @@ static void upload_free_resources(struct upload *u)
 }
 
 /*
+ * send_upload_error_v
+ *
+ * The vectorized (message-wise) version of send_upload_error().
+ */
+static void send_upload_error_v(
+	struct upload *u, int code, guchar *msg, va_list ap)
+{
+	gchar reason[1024];
+
+	if (msg) {
+		g_vsnprintf(reason, sizeof(reason), msg, ap);
+		reason[sizeof(reason) - 1] = '\0';		/* May be truncated */
+	} else
+		reason[0] = '\0';
+
+	if (u->error_sent) {
+		g_warning("Already sent an error %d to %s, not sending %d (%s)",
+			u->error_sent, ip_to_gchar(u->socket->ip), code, reason);
+		return;
+	}
+
+	socket_http_error(u->socket, code, reason);
+	u->error_sent = code;
+}
+
+/*
  * send_upload_error
  *
  * Send error message to requestor.
@@ -284,67 +308,38 @@ static void upload_free_resources(struct upload *u)
  */
 static void send_upload_error(struct upload *u, int code, guchar *msg, ...)
 {
-	struct gnutella_socket *s = u->socket;
-	gchar http_response[1024];
-	gchar reason[1024];
-	gint rw;
-	gint sent;
 	va_list args;
 
 	va_start(args, msg);
-	g_vsnprintf(reason, sizeof(reason), msg, args);
-	reason[sizeof(reason) - 1] = '\0';		/* May be truncated */
+	send_upload_error_v(u, code, msg, args);
 	va_end(args);
-
-	if (u->error_sent) {
-		g_warning("Already sent an error %d to %s, not sending %d (%s)",
-			u->error_sent, ip_to_gchar(s->ip), code, reason);
-		return;
-	}
-
-	rw = g_snprintf(http_response, sizeof(http_response),
-		"HTTP/1.0 %d %s\r\n"
-		"Server: %s\r\n"
-		"Connection: close\r\n"
-		"X-Live-Since: %s\r\n"
-		"\r\n",
-		code, reason, version_string, start_rfc822_date);
-
-	if (-1 == (sent = bws_write(bws_out, s->file_desc, http_response, rw)))
-		g_warning("Unable to send back HTTP error %d (%s) to %s: %s",
-			code, reason, ip_to_gchar(s->ip), g_strerror(errno));
-	else if (sent < rw)
-		g_warning("Only sent %d out of %d bytes of error %d (%s) to %s: %s",
-			sent, rw, code, reason, ip_to_gchar(s->ip), g_strerror(errno));
-	else if (dbg > 4) {
-		printf("----Sent HTTP Error to %s:\n%.*s----\n",
-			ip_to_gchar(s->ip), rw, http_response);
-		fflush(stdout);
-	}
-
-	u->error_sent = code;
 }
 
-void upload_remove(struct upload *u, const gchar *reason, ...)
+/*
+ * upload_remove_v
+ *
+ * The vectorized (message-wise) version of upload_remove().
+ */
+static void upload_remove_v(struct upload *u, const gchar *reason, va_list ap)
 {
 	gint row;
 	gchar errbuf[1024];
 
-	if (reason && dbg > 1) {
-		va_list args;
-		va_start(args, reason);
-		g_vsnprintf(errbuf, sizeof(errbuf), reason, args);
+	if (reason) {
+		g_vsnprintf(errbuf, sizeof(errbuf), reason, ap);
 		errbuf[sizeof(errbuf) - 1] = '\0';		/* May be truncated */
-		va_end(args);
 
-		if (u->name) {
-			if (dbg) printf("Cancelling upload for %s from %s: %s\n",
-				u->name, ip_to_gchar(u->socket->ip), errbuf);
-		} else {
-			if (dbg) printf("Cancelling upload from %s: %s\n",
-				ip_to_gchar(u->socket->ip), errbuf);
+		if (dbg > 1) {
+			if (u->name) {
+				if (dbg) printf("Cancelling upload for %s from %s: %s\n",
+					u->name, ip_to_gchar(u->socket->ip), errbuf);
+			} else {
+				if (dbg) printf("Cancelling upload from %s: %s\n",
+					ip_to_gchar(u->socket->ip), errbuf);
+			}
 		}
-	}
+	} else
+		errbuf[0] = '\0';
 
 	/*
 	 * If the upload is still connecting, we have not started sending
@@ -353,14 +348,14 @@ void upload_remove(struct upload *u, const gchar *reason, ...)
 	 *		--RAM, 24/12/2001
 	 *
 	 * Push requests still connecting don't have anything to send, hence
-	 * we check explicitely for GTA_UL_PUSH_RECIEVED.
+	 * we check explicitely for GTA_UL_PUSH_RECEIVED.
 	 *		--RAM, 31/12/2001
 	 */
 
 	if (
 		UPLOAD_IS_CONNECTING(u) &&
 		!u->error_sent &&
-		u->status != GTA_UL_PUSH_RECIEVED
+		u->status != GTA_UL_PUSH_RECEIVED
 	)
 		send_upload_error(u, 400, reason ? errbuf : "Bad Request");
 
@@ -388,6 +383,38 @@ void upload_remove(struct upload *u, const gchar *reason, ...)
 	row = gtk_clist_find_row_from_data(GTK_CLIST(clist_uploads), (gpointer) u);
 	gtk_clist_remove(GTK_CLIST(clist_uploads), row);
 	uploads = g_slist_remove(uploads, (gpointer) u);
+}
+
+/*
+ * upload_remove
+ *
+ * Remove upload entry, log reason.
+ *
+ * If no status has been sent back on the HTTP stream yet, give them
+ * a 400 error with the reason.
+ */
+void upload_remove(struct upload *u, const gchar *reason, ...)
+{
+	va_list args;
+
+	va_start(args, reason);
+	upload_remove_v(u, reason, args);
+	va_end(args);
+}
+
+/*
+ * upload_error_remove
+ *
+ * Utility routine.  Cancel the upload, sending back the HTTP eerror message.
+ */
+static void upload_error_remove(struct upload *u, int code, guchar *msg, ...)
+{
+	va_list args;
+
+	va_start(args, msg);
+	send_upload_error_v(u, code, msg, args);
+	upload_remove_v(u, msg, args);
+	va_end(args);
 }
 
 /***
@@ -426,11 +453,10 @@ static void upload_header_parse(struct io_header *ih)
 nextline:
 	switch (getline_read(getline, s->buffer, s->pos, &parsed)) {
 	case READ_OVERFLOW:
-		send_upload_error(u, 413, "Header too large");
 		g_warning("upload_header_parse: line too long, disconnecting from %s",
 			ip_to_gchar(s->ip));
 		dump_hex(stderr, "Leading Data", s->buffer, MIN(s->pos, 256));
-		upload_remove(u, "Failed (Header too large)");
+		upload_error_remove(u, 413, "Header too large");
 		return;
 		/* NOTREACHED */
 	case READ_DONE:
@@ -786,9 +812,7 @@ static void upload_request(struct upload *u, header_t *header)
 		 */
 
 		if (max_uploads == 0) {
-			gchar *error = "Sharing currently disabled";
-			send_upload_error(u, 410, error);
-			upload_remove(u, error);
+			upload_error_remove(u, 410, "Sharing currently disabled");
 			return;
 		}
 
@@ -806,9 +830,8 @@ static void upload_request(struct upload *u, header_t *header)
 		requested_file = shared_file(index);
 
 		if (requested_file == SHARE_REBUILDING) {
-			gchar *error = "Library being rebuilt";
-			send_upload_error(u, 503, error);		/* Is retry-able by user */
-			upload_remove(u, error);
+			/* Retry-able by user, hence 503 */
+			upload_error_remove(u, 503, "Library being rebuilt");
 			return;
 		}
 
@@ -826,10 +849,9 @@ static void upload_request(struct upload *u, header_t *header)
 				requested_file->file_name, requested_file->file_name_len)
 		) {
 			gchar *error = "File index/name mismatch";
-			send_upload_error(u, 409, error);
 			g_warning("%s from %s for %d/%s", error,
 				ip_to_gchar(s->ip), index, requested_file->file_name);
-			upload_remove(u, error);
+			upload_error_remove(u, 409, error);
 			return;
 		}
 
@@ -842,8 +864,8 @@ static void upload_request(struct upload *u, header_t *header)
 		 */
 
 		if (running_uploads > max_uploads) {
-			send_upload_error(u, 503, "Too many uploads; try again later");
-			upload_remove(u, "All %d slots used", max_uploads);
+			upload_error_remove(u,
+				503, "Too many uploads (%d max)", max_uploads);
 			return;
 		}
 
@@ -860,16 +882,12 @@ static void upload_request(struct upload *u, header_t *header)
 			if (up->status != GTA_UL_SENDING)
 				continue;
 			if (up->index == index && up->socket->ip == s->ip) {
-				guchar *error = "Already downloading that file";
-				send_upload_error(u, 409, error);
-				upload_remove(u, error);
+				upload_error_remove(u, 409, "Already downloading that file");
 				return;
 			}
 			if (up->socket->ip == s->ip && ++upcount >= max_uploads_ip) {
-				send_upload_error(u, 503,
-					"Only %u download%s per IP address",
-					max_uploads_ip, max_uploads_ip == 1 ? "" : "s");
-				upload_remove(u, "All %u slot%s for that IP used",
+				upload_error_remove(u,
+					503, "Only %u download%s per IP address",
 					max_uploads_ip, max_uploads_ip == 1 ? "" : "s");
 				return;
 			}
@@ -883,12 +901,15 @@ static void upload_request(struct upload *u, header_t *header)
 
 		buf = header_get(header, "Range");
 		if (buf) {
-			if (2 == sscanf(buf, "bytes=%u-%u", &skip, &end)) {
+			if (strchr(buf, ',')) {
+				char *msg = "Multiple Range requests unsupported";
+				send_upload_error(u, 400, msg);
+				upload_remove(u, msg);
+				return;
+			} else if (2 == sscanf(buf, "bytes=%u-%u", &skip, &end)) {
 				has_end = TRUE;
 				if (skip > end) {
-					char *msg = "Malformed Range request";
-					send_upload_error(u, 400, msg);
-					upload_remove(u, msg);
+					upload_error_remove(u, 400, "Malformed Range request");
 					return;
 				}
 			} else if (1 == sscanf(buf, "bytes=-%u", &skip)) {
@@ -938,9 +959,7 @@ static void upload_request(struct upload *u, header_t *header)
 			end = u->file_size - 1;
 
 		if (skip >= u->file_size || end >= u->file_size) {
-			char *msg = "Requested range not satisfiable";
-			send_upload_error(u, 416, msg);
-			upload_remove(u, msg);
+			upload_error_remove(u, 416, "Requested range not satisfiable");
 			return;
 		}
 
@@ -1121,13 +1140,12 @@ static void upload_request(struct upload *u, header_t *header)
 
 	/* What?  Either the sscanf() failed or we don't have the file. */
 
-	send_upload_error(u, 404, "Not Found");
 	g_warning("bad request from %s: %s\n", ip_to_gchar(s->ip), request);
 
 	if (fpath)
 		g_free(fpath);
 
-	upload_remove(u, "File not found");
+	upload_error_remove(u, 404, "Not Found");
 }
 
 /* Uplaod Write

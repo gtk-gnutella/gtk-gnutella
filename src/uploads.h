@@ -39,7 +39,7 @@ struct upload {
  */
 
 #define GTA_UL_CONNECTED		1	/* Someone has connected to us	*/
-#define GTA_UL_PUSH_RECIEVED	2	/* We got a push request */
+#define GTA_UL_PUSH_RECEIVED	2	/* We got a push request */
 #define GTA_UL_COMPLETE			3	/* The file has been sent completely */
 #define GTA_UL_SENDING			4	/* We are sending data */
 #define GTA_UL_HEADERS			5	/* Receiving the HTTP request headers */
@@ -50,7 +50,7 @@ struct upload {
 
 #define UPLOAD_IS_CONNECTING(u)						\
 	(	(u)->status == GTA_UL_HEADERS				\
-	||	(u)->status == GTA_UL_PUSH_RECIEVED	)
+	||	(u)->status == GTA_UL_PUSH_RECEIVED	)
 
 #define UPLOAD_IS_COMPLETE(u)	\
 	((u)->status == GTA_UL_COMPLETE)
