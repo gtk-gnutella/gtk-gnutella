@@ -621,8 +621,12 @@ void hcache_get_caught(hcache_type_t type, guint32 *ip, guint16 *port)
 	hc = caches[type];
     gnet_prop_get_boolean_val(hc->reading, &reading);
 
-	g_assert(hc->sl_caught_hosts);		/* Must not call if no host in list */
+	if (hc->sl_caught_hosts == NULL) {
+		hc->sl_caught_hosts = hc->sl_valid_hosts;
+		hc->sl_valid_hosts = NULL;
+	}
 
+	g_assert(hc->sl_caught_hosts);		/* Must not call if no host in list */
 
 	if (type == HCACHE_ANY)
 		host_low_on_pongs = (hc->host_count < (max_hosts_cached >> 3));
