@@ -1,4 +1,26 @@
-# since last version
+# v 0.85   2002.03.23  [beta1]
+
+Summary of changes (user-visible):
+
+- Now support Gnutella traffic prioritization and flow-control for enhanced
+  stability of connections.
+- Can now use an HTTP proxy for outgoing connections, in addition to SOCKS
+  v4 and v5 proxies.
+- When "Force local IP" is ticked, gtk-gnutella will try to automatically
+  update the value if it detects a change in your IP address.
+- Added search statistics.
+- Added persistent upload statistics, keeping track of which files were
+  uploaded by users, and how many times.
+- Will now show the size of the uploaded file and the requested range,
+  under the form "request @ offset" in the Range column.
+- Node servent names are now displayed in the gnutellaNet window, if known.
+- Bandwidth management for input and output traffic is now possible.  It can
+  only be configured via the config file though, not via the GUI.  It only
+  accounts upload/download traffic, not Gnet traffic.
+- Displayed transfer rates are now instantaneous transfer rates, not average.
+- Upon completion, uploads and downloads show the time spent in transfer.
+
+Detailed changes:
 
 - Node send queue is now managed as a real queue.
 - Added node transmission flow control.
