@@ -376,6 +376,17 @@ typedef enum msg_drop_reason {
     MSG_DROP_REASON_COUNT /* number of known reasons to drop a message */
 } msg_drop_reason_t;
 
+enum {
+    GNR_ROUTING_ERRORS,
+    GNR_LOCAL_SEARCHES,
+    GNR_LOCAL_HITS,
+    GNR_QUERY_COMPACT_COUNT,
+    GNR_QUERY_COMPACT_SIZE,
+    GNR_QUERY_UTF8,
+    GNR_QUERY_SHA1,
+    GNR_TYPE_COUNT /* number of general stats */
+};
+
 typedef struct gnet_stats {
     guint32 drop_reason[MSG_DROP_REASON_COUNT][MSG_TYPE_COUNT];
 
@@ -395,9 +406,7 @@ typedef struct gnet_stats {
         guint32 expired[MSG_TYPE_COUNT];
     } byte;
 
-    guint32 routing_errors;
-    guint32 local_searches;
-    guint32 local_hits;
+    guint32 general[GNR_TYPE_COUNT];
 } gnet_stats_t;
 
 typedef struct gnet_bw_stats {
