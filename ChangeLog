@@ -1,5 +1,13 @@
 # since last version
 
+- (2002.10.11 Richard)
+ * Optionally accept the first chunk of a file from a source that does not
+   supply a urn to match against. This dramatically reduces the number of
+   "No URN on server". This only helps in cases where you never get a file
+   because the only source you have does not provide a urn.
+ * Add a viewport to all config panes so they can be scrolled if the window
+   too small to show them completely.
+
 - (2002.09.25 RAM)
  * Added ACQX and EVIL vendor codes.
  * Shuffled code around in upload_request() to gather as much information from
