@@ -85,27 +85,30 @@ static void ignore_namesize_load(const guchar *file, time_t *stamp);
 static FILE *open_read_stamp(const guchar *file, time_t *stamp)
 {
 	FILE *f;
+	char *path;
 	struct stat buf;
-
-	gm_snprintf(ign_tmp, sizeof(ign_tmp), "%s/%s",
-		settings_config_dir(), file);
+	
+	path = g_strdup_printf("%s/%s", settings_config_dir(), file);
+	g_return_val_if_fail(NULL != path, NULL);
 		
-	if (-1 == stat(ign_tmp, &buf)) {
+	if (-1 == stat(path, &buf)) {
 		if (stamp)
 			*stamp = time(NULL);
+		G_FREE_NULL(path);
 		return NULL;
 	}
 
 	if (stamp)
 		*stamp = buf.st_mtime;
 
-	f = fopen(ign_tmp, "r");
+	f = fopen(path, "r");
 
 	if (!f) {
 		g_warning("unable to open \"%s\" for reading: %s",
-			ign_tmp, g_strerror(errno));
+			path, g_strerror(errno));
 	}
 
+	G_FREE_NULL(path);
 	return f;
 }
 
@@ -117,16 +120,19 @@ static FILE *open_read_stamp(const guchar *file, time_t *stamp)
 static FILE *open_append(const guchar *file)
 {
 	FILE *f;
+	char *path;
 
-	gm_snprintf(ign_tmp, sizeof(ign_tmp), "%s/%s", settings_config_dir(), file);
+	path = g_strdup_printf("%s/%s", settings_config_dir(), file);
+	g_return_val_if_fail(NULL != path, NULL);
 
-	f = fopen(ign_tmp, "a");
+	f = fopen(path, "a");
 
 	if (!f) {
 		g_warning("unable to open \"%s\" for appending: %s",
-			ign_tmp, g_strerror(errno));
+			path, g_strerror(errno));
 	}
 
+	G_FREE_NULL(path);
 	return f;
 }
 
