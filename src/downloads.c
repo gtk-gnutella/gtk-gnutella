@@ -50,7 +50,6 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <regex.h>
-#include <time.h>			/* For ctime() */
 
 RCSID("$Id$");
 
