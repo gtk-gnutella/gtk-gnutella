@@ -1,5 +1,12 @@
 # since last version
 
+- (2003.02.25 - RAM)
+ * Added CRC32 code.
+ * Fixed the base32/base64 code to correctly process padding, and return the
+   amount of decoded bytes, padding not included.
+ * Some servents send X-Try headers at every handshaking step, so process them.
+ * Added token level.
+
 - (2003.02.23 - cbiere)
  * adns_do_transfer(): forgot to rename write to do_write
  * adns_gethostbyname(): use host_to_ip() instead of gethostbyname()
@@ -28,6 +35,8 @@
  * Forgot to negate the return of version_check().
  * Partially validate version whose token is given.
  * Avoid always polling at the minimum specified by the download server.
+ * Applied Christian's patch fixing the type of gtk_tag and inputevt_add().
+ * Forgot to use network order when writing token's timestamp.
 
 - (2003.02.22 - guruz)
  * Added MLDonkey vendor code (MLDK)
