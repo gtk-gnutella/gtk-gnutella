@@ -327,20 +327,24 @@ gip_init(void)
 void
 gip_close(void)
 {
-	iprange_free_each(geo_db, NULL);
-	geo_db = NULL;
+	if (geo_db) {
+		iprange_free_each(geo_db, NULL);
+		geo_db = NULL;
+	}
 }
 
 /**
- * Returns the country mapped to this IP address, as an numerical encoded country code,
- * or -1 when unknown.
+ * Retrieves the country an IP address is assigned to.
+ *
+ * @return the country mapped to this IP address as an numerical encoded
+ * country code, * or -1 when unknown.
  */
 gint
 gip_country(guint32 ip)
 {
 	gpointer code;
 
-	code = iprange_get(geo_db, ip);
+	code = geo_db != NULL && iprange_get(geo_db, ip);
 	return NULL != code ? (GPOINTER_TO_INT(code) >> 1) - 1 : -1;
 }
 

@@ -171,7 +171,7 @@ bogons_changed(const gchar *filename, gpointer unused_udata)
  *
  *    ~/.gtk-gnutella/bogons.txt
  *    /usr/share/gtk-gnutella/bogons.txt
- *    /home/src/gtk-gnutella/bogons.txt
+ *    PACKAGE_SOURCE_DIR/bogons.txt
  *
  * The selected file will then be monitored and a reloading will occur
  * shortly after a modification.
@@ -218,18 +218,20 @@ bogons_init(void)
 void
 bogons_close(void)
 {
-	iprange_free_each(bogons_db, NULL);
-	bogons_db = NULL;
+	if (bogons_db) {
+		iprange_free_each(bogons_db, NULL);
+		bogons_db = NULL;
+	}
 }
 
 /**
- * Check the given IP agains the entries in the bogus IP database.
+ * Check the given IP against the entries in the bogus IP database.
  * Returns TRUE if found, and FALSE if not.
  */
 gboolean
 bogons_check(guint32 ip)
 {
-	return THERE == iprange_get(bogons_db, ip);
+	return bogons_db != NULL && THERE == iprange_get(bogons_db, ip);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

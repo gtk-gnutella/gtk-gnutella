@@ -228,18 +228,20 @@ hostiles_init(void)
 void
 hostiles_close(void)
 {
-	iprange_free_each(hostile_db, NULL);
-	hostile_db = NULL;
+	if (hostile_db) {
+		iprange_free_each(hostile_db, NULL);
+		hostile_db = NULL;
+	}
 }
 
 /**
- * Check the given IP agains the entries in the hostiles.
+ * Check the given IP against the entries in the hostiles.
  * Returns TRUE if found, and FALSE if not.
  */
 gboolean
 hostiles_check(guint32 ip)
 {
-	return THERE == iprange_get(hostile_db, ip);
+	return hostile_db != NULL && THERE == iprange_get(hostile_db, ip);
 }
 
-/* vi: set ts=4: */
+/* vi: set ts=4 sw=4 cindent: */
