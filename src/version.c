@@ -299,6 +299,9 @@ void version_check(guchar *str)
 	if (their_version.timestamp < last_version.timestamp)
 		return;
 
+	if (their_version.timestamp == our_version.timestamp)
+		return;
+
 	/*
 	 * We found a more recent version than the last version seen.
 	 */
