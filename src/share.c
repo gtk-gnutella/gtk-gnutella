@@ -1213,7 +1213,6 @@ gboolean search_request(struct gnutella_node *n)
 	found_files = urn_match;
 
 	if (!skip_file_search) {
-		gchar *query;
 		gboolean is_utf8 = FALSE;
 		gboolean ignore = FALSE;
 
@@ -1234,11 +1233,19 @@ gboolean search_request(struct gnutella_node *n)
 		} else
 			is_utf8 = utf8_len > 0;
 
+		/*
+		 * Because st_search() will apply a character map over the string,
+		 * we always need to copy the query string to avoid changing the
+		 * data inplace.
+		 *
+		 * `stmp_1' is a static buffer.
+		 */
+
+		memcpy(stmp_1, search, search_len + 1);		/* Copy trailing NUL */
+
 		if (is_utf8) {
 			gint isochars;
 
-			query = stmp_1;
-			memcpy(stmp_1, search, search_len + 1);		/* Copy trailing NUL */
 			isochars = utf8_to_iso8859(stmp_1, search_len, TRUE);
 
 			if (isochars != utf8_len)		/* Not fully ISO-8859-1 */
@@ -1247,12 +1254,11 @@ gboolean search_request(struct gnutella_node *n)
 			if (dbg > 4)
 				printf("UTF-8 query, len=%d, utf8-len=%d, iso-len=%d: \"%s\"\n",
 					search_len, utf8_len, isochars, search);
-		} else
-			query = search;
+		}
 
 		if (!ignore)
 			found_files +=
-				st_search(&search_table, query, got_match, max_replies);
+				st_search(&search_table, stmp_1, got_match, max_replies);
 	}
 
 	if (found_files > 0) {
