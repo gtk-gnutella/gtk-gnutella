@@ -5244,6 +5244,7 @@ download_request(struct download *d, header_t *header, gboolean ok)
 	struct dl_file_info *fi = d->file_info;
 	gchar short_read[80];
 	guint delay;
+	guint hold = 0;
 	gchar *path = NULL;
 	gboolean refusing;
 
@@ -5737,8 +5738,10 @@ download_request(struct download *d, header_t *header, gboolean ok)
 					d->server->attrs |= DLS_A_BANNING;	/* Probably */
 				break;
 			case 403:
-				if (0 == strncmp(ack_message, "Network Disabled", 16))
+				if (0 == strncmp(ack_message, "Network Disabled", 16)) {
 					d->server->attrs |= DLS_A_FAKE_G2;
+					hold = MAX(delay, 320);				/* To be safe */
+				}
 				d->server->attrs |= DLS_A_BANNING;		/* Probably */
 				break;
 			case 404:
@@ -5758,9 +5761,13 @@ download_request(struct download *d, header_t *header, gboolean ok)
 					download_vendor_str(d),
 					ip_port_to_gchar(download_ip(d), download_port(d)));
 
-				download_queue_delay(d,
-					delay ? delay : download_retry_busy_delay,
-					"%sHTTP %d %s", short_read, ack_code, ack_message);
+				if (hold)
+					download_queue_hold(d, hold,
+						"%sHTTP %d %s", short_read, ack_code, ack_message);
+				else
+					download_queue_delay(d,
+						delay ? delay : download_retry_busy_delay,
+						"%sHTTP %d %s", short_read, ack_code, ack_message);
 
 				return;
 			}
