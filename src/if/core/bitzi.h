@@ -75,8 +75,8 @@ typedef struct {
  * from within the core. They do not generate notification events
  */
 
-void *bitzi_query_byurnsha1(gchar *urnsha1);
-bitzi_data_t *bitzi_querycache_byurnsha1(gchar *urnsha1);
+gpointer bitzi_query_byurnsha1(const gchar *urnsha1);
+bitzi_data_t *bitzi_querycache_byurnsha1(const gchar *urnsha1);
 
 #endif /* CORE_SOURCES */
 
