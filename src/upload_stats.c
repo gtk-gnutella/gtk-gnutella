@@ -45,7 +45,6 @@
 #include "gnutella.h"
 
 #include <sys/types.h>
-#include <sys/stat.h>
 #include <stdio.h>
 #include <errno.h>
 #include <time.h>		/* For ctime() */
@@ -85,8 +84,9 @@ void upload_stats_load_history(const gchar *ul_history_file_name)
 	upload_stats_file = fopen(ul_history_file_name, "r");
 
 	if (!upload_stats_file) {
-		g_warning("Unable to open file %s (%s)\n", ul_history_file_name,
-				  g_strerror(errno));
+		if (ENOENT != errno)
+			g_warning("Unable to open file %s (%s)\n", ul_history_file_name,
+				  	g_strerror(errno));
 		goto done;
 	}
 
@@ -102,7 +102,7 @@ void upload_stats_load_history(const gchar *ul_history_file_name)
 			continue;
 
 		name_end = strchr(line, '\t');
-		if (name_end == NULL)
+		if (NULL == name_end)
 			goto corrupted;
 		*name_end++ = '\0';		/* line is now the URL-escaped file name */
 
@@ -221,7 +221,7 @@ void upload_stats_flush_if_dirty(void)
 
 	dirty = FALSE;
 
-	if (stats_file)
+	if (NULL != stats_file)
 		upload_stats_dump_history(stats_file, FALSE);
 	else
 		g_warning("can't save upload statistics: no file name recorded");
