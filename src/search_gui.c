@@ -446,8 +446,8 @@ search_t *search_gui_new_search
  *
  * Create a new search and start it.
  */
-search_t *search_gui_new_search_full
-    (const gchar *query, guint16 speed, guint32 reissue_timeout, flag_t flags)
+search_t *search_gui_new_search_full(
+	const gchar *query, guint16 speed, guint32 reissue_timeout, flag_t flags)
 {
 	search_t *sch;
 	GList *glist;
@@ -666,8 +666,8 @@ gboolean search_result_is_dup(search_t * sch, struct record * rc)
 	return TRUE;		/* yes, it's a duplicate */
 }
 
-static void search_gui_add_record
-    (search_t *sch, record_t *rc, GString *vinfo, GdkColor *fg, GdkColor *bg)
+static void search_gui_add_record(
+	search_t *sch, record_t *rc, GString *vinfo, GdkColor *fg, GdkColor *bg)
 {
   	GString *info = g_string_sized_new(80);
   	gchar *titles[6];
