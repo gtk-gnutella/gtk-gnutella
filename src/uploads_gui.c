@@ -477,6 +477,8 @@ void uploads_gui_clear_completed(void)
     GSList *sl;
     gint row = 0;
     GtkCList *clist = GTK_CLIST(lookup_widget(main_window, "clist_uploads"));
+
+    gtk_clist_freeze(clist);
    
     for (l = clist->row_list; l != NULL; l = g_list_next(l)) {
 		upload_row_data_t *rd = (upload_row_data_t *) 
@@ -495,5 +497,6 @@ void uploads_gui_clear_completed(void)
 
 	gtk_widget_set_sensitive(
         lookup_widget(main_window, "button_uploads_clear_completed"), FALSE);
+    gtk_clist_thaw(clist);
 }
 
