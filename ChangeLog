@@ -5,6 +5,10 @@
     filter dialog
   * Removed "search again" items from download/queue popups
   * Correctly unselect when doing a "connect to host" on download/queue popup
+  * Don't display RETURN target in filter tree. Stats don't work properly
+    and it's actually a metatarget which is not intersting to see.
+  * Removed coloring of builtin targets in filter dialog because I can't set
+    the foreground of the leave node.
 
 - (2002.06.23 - RAM)
   * Fixed size computation problems when generating alternate location header.
