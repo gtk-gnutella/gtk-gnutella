@@ -104,8 +104,8 @@ void gui_update_download(struct download *d, gboolean force)
 
 				if (get_parq_dl_eta(d)  > 0) {
 					rw += gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
-						", ETA: %ds",
-						(gint) (get_parq_dl_eta(d)  - elapsed));
+						", ETA: %s",
+						short_time((get_parq_dl_eta(d)  - elapsed)));
 				}
 
 				rw += gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw, /* ( */ ")");
