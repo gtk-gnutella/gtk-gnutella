@@ -525,6 +525,9 @@ static gnet_results_set_t *get_results_set(
 
 		READ_GUINT32_BE(trailer, t);
 
+		if (open_size == 4)
+			open_parsing_size = 2;		/* We ignore XML data size */
+
 		switch (t) {
 		case T_NAPS:
 			/*
@@ -537,13 +540,6 @@ static gnet_results_set_t *get_results_set(
 				rs->status |= ST_PARSED_TRAILER;
 			}
 			break;
-		case T_ACQX:
-		case T_LIME:
-		case T_SWAP:
-		case T_RAZA:
-			if (open_size == 4)
-				open_parsing_size = 2;		/* We ignore XML data size */
-				/* Fall through */
 		default:
 			if (open_parsing_size == 2) {
 				guint32 status = enabler_mask & flags_mask;
