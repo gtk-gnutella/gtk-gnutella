@@ -29,21 +29,10 @@
  * Bandwidth scheduling.
  */
 
+#include "common.h"
 #include "gnutella.h"
 
-#include <stdio.h>
-#include <errno.h>
-#include <unistd.h>
-#include <sys/types.h>
-#include <sys/uio.h>	/* struct iovec */
-
-#ifdef I_SYS_SENDFILE
-#include <sys/sendfile.h>
-#else	/* !I_SYS_SENDFILE */
-#ifdef HAS_SENDFILE
-#define USE_BSD_SENDFILE		/* No <sys/sendfile.h>, assume BSD version */
-#endif
-#endif	/* I_SYS_SENDFILE_H */
+#include "ui_core_interface_socket_defs.h"		/* wrapped_io_t */
 
 #include "bsched.h"
 #include "override.h"		/* Must be the last header included */
@@ -87,7 +76,7 @@ static gint bws_out_ema = 0;
  * MAX_IOV_COUNT entries at a time.
  */
 static gint
-safe_writev(gint fd, struct iovec *iov, gint iovcnt)
+safe_writev(wrap_io_t *wio, struct iovec *iov, gint iovcnt)
 {
 	gint sent = 0;
 	struct iovec *end = iov + iovcnt;
@@ -106,7 +95,7 @@ safe_writev(gint fd, struct iovec *iov, gint iovcnt)
 			siovcnt = MAX_IOV_COUNT;
 		g_assert(siovcnt > 0);
 		
-		r = writev(fd, siov, siovcnt);
+		r = wio->writev(wio, siov, siovcnt);
 
 		if (r <= 0) {
 			if (r == 0 || sent)
@@ -410,7 +399,7 @@ bio_enable(bio_source_t *bio)
 	g_assert(bio->io_tag == 0);
 	g_assert(bio->io_callback);		/* "passive" sources not concerned */
 
-	bio->io_tag = inputevt_add(bio->fd,
+	bio->io_tag = inputevt_add(bio->wio->fd(bio->wio),
 		(inputevt_cond_t) INPUT_EVENT_EXCEPTION |
 			((bio->flags & BIO_F_READ) ? INPUT_EVENT_READ : INPUT_EVENT_WRITE),
 		bio->io_callback, bio->io_arg);
@@ -669,7 +658,7 @@ bsched_bio_remove(bsched_t *bs, bio_source_t *bio)
  */
 bio_source_t *
 bsched_source_add(
-	bsched_t *bs, int fd, guint32 flags,
+	bsched_t *bs, wrap_io_t *wio, guint32 flags,
 	inputevt_handler_t callback, gpointer arg)
 {
 	bio_source_t *bio;
@@ -687,7 +676,7 @@ bsched_source_add(
 	bio = (bio_source_t *) g_malloc0(sizeof(*bio));
 
 	bio->bs = bs;
-	bio->fd = fd;
+	bio->wio = wio;
 	bio->flags = flags;
 	bio->io_callback = callback;
 	bio->io_arg = arg;
@@ -800,7 +789,8 @@ bw_available(bio_source_t *bio, gint len)
 	if (dbg > 8)
 		printf("bw_available: "
 			"[fd #%d] max=%d, stolen=%d, actual=%d => avail=%d\n",
-			bio->fd, bs->bw_max, bs->bw_stolen, bs->bw_actual, available);
+			bio->wio->fd(bio->wio), bs->bw_max, bs->bw_stolen, bs->bw_actual,
+			available);
 
 	if (available > bs->bw_max) {
 		available = bs->bw_max;
@@ -1050,10 +1040,10 @@ bio_write(bio_source_t *bio, gconstpointer data, gint len)
 	amount = len > available ? available : len;
 
 	if (dbg > 7)
-		printf("bsched_write(fd=%d, len=%d) available=%d\n",
-			bio->fd, len, available);
+		printf("bsched_write(wio=%d, len=%d) available=%d\n",
+			bio->wio->fd(bio->wio), len, available);
 
-	r = write(bio->fd, data, amount);
+	r = bio->wio->write(bio->wio, data, amount);
 
 	/*
 	 * XXX hack for broken libc, which can return -1 with errno = 0!
@@ -1064,8 +1054,8 @@ bio_write(bio_source_t *bio, gconstpointer data, gint len)
 	 */
 
 	if (r == -1 && errno == 0) {
-		g_warning("write(fd=%d, len=%d) returned -1 with errno = 0, "
-			"assuming EAGAIN", bio->fd, len);
+		g_warning("wio->write(fd=%d, len=%d) returned -1 with errno = 0, "
+			"assuming EAGAIN", bio->wio->fd(bio->wio), len);
 		errno = EAGAIN;
 	}
 
@@ -1162,12 +1152,12 @@ bio_writev(bio_source_t *bio, struct iovec *iov, gint iovcnt)
 
 	if (dbg > 7)
 		printf("bsched_writev(fd=%d, len=%d) available=%d\n",
-			bio->fd, len, available);
+			bio->wio->fd(bio->wio), len, available);
 
 	if (iovcnt > MAX_IOV_COUNT)
-		r = safe_writev(bio->fd, iov, iovcnt);
+		r = safe_writev(bio->wio, iov, iovcnt);
 	else
-		r = writev(bio->fd, iov, iovcnt);
+		r = bio->wio->writev(bio->wio, iov, iovcnt);
 
 	/*
 	 * XXX hack for broken libc, which can return -1 with errno = 0!
@@ -1179,7 +1169,7 @@ bio_writev(bio_source_t *bio, struct iovec *iov, gint iovcnt)
 
 	if (r == -1 && errno == 0) {
 		g_warning("writev(fd=%d, len=%d) returned -1 with errno = 0, "
-			"assuming EAGAIN", bio->fd, len);
+			"assuming EAGAIN", bio->wio->fd(bio->wio), len);
 		errno = EAGAIN;
 	}
 
@@ -1325,9 +1315,9 @@ bio_read(bio_source_t *bio, gpointer data, gint len)
 
 	if (dbg > 7)
 		printf("bsched_read(fd=%d, len=%d) available=%d\n",
-			bio->fd, len, available);
+			bio->wio->fd(bio->wio), len, available);
 
-	r = read(bio->fd, data, amount);
+	r = bio->wio->read(bio->wio, data, amount);
 
 	if (r > 0) {
 		bsched_bw_update(bio->bs, r, amount);
@@ -1341,16 +1331,18 @@ bio_read(bio_source_t *bio, gpointer data, gint len)
  * Write at most `len' bytes from `buf' to specified fd, and account the
  * bandwidth used.  Any overused bandwidth will be tracked, so that on
  * average, we stick to the requested bandwidth rate.
+ *
+ * @return The amount of bytes written or (-1) if an error occurred.
  */
 gint
-bws_write(bsched_t *bs, gint fd, gconstpointer data, gint len)
+bws_write(bsched_t *bs, wrap_io_t *wio, gconstpointer data, gint len)
 {
 	gint r;
 
 	g_assert(bs);
 	g_assert(bs->flags & BS_F_WRITE);
 
-	r = write(fd, data, len);
+	r = wio->write(wio, data, len);
 
 	if (r > 0)
 		bsched_bw_update(bs, r, len);
@@ -1364,14 +1356,14 @@ bws_write(bsched_t *bs, gint fd, gconstpointer data, gint len)
  * average, we stick to the requested bandwidth rate.
  */
 gint
-bws_read(bsched_t *bs, gint fd, gpointer data, gint len)
+bws_read(bsched_t *bs, wrap_io_t *wio, gpointer data, gint len)
 {
 	gint r;
 
 	g_assert(bs);
 	g_assert(bs->flags & BS_F_READ);
 
-	r = read(fd, data, len);
+	r = wio->read(wio, data, len);
 
 	if (r > 0)
 		bsched_bw_update(bs, r, len);

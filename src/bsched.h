@@ -49,10 +49,12 @@ void bsched_set_peermode(node_peer_t mode);
 void bsched_enable(bsched_t *bs);
 void bsched_disable(bsched_t *bs);
 void bsched_enable_all(void);
-bio_source_t *bsched_source_add(bsched_t *bs, int fd, guint32 flags,
+bio_source_t *bsched_source_add(bsched_t *bs, wrap_io_t *wio, guint32 flags,
 	inputevt_handler_t callback, gpointer arg);
 void bsched_source_remove(bio_source_t *bio);
 void bsched_set_bandwidth(bsched_t *bs, gint bandwidth);
+bio_source_t *bsched_source_add(bsched_t *bs, wrap_io_t *wio, guint32 flags,
+	inputevt_handler_t callback, gpointer arg);
 void bio_add_callback(bio_source_t *bio,
 	inputevt_handler_t callback, gpointer arg);
 void bio_remove_callback(bio_source_t *bio);
@@ -60,8 +62,8 @@ gint bio_write(bio_source_t *bio, gconstpointer data, gint len);
 gint bio_writev(bio_source_t *bio, struct iovec *iov, gint iovcnt);
 gint bio_sendfile(bio_source_t *bio, gint in_fd, off_t *offset, gint len);
 gint bio_read(bio_source_t *bio, gpointer data, gint len);
-gint bws_write(bsched_t *bs, gint fd, gconstpointer data, gint len);
-gint bws_read(bsched_t *bs, gint fd, gpointer data, gint len);
+gint bws_write(bsched_t *bs, wrap_io_t *wio, gconstpointer data, gint len);
+gint bws_read(bsched_t *bs, wrap_io_t *wio, gpointer data, gint len);
 void bsched_timer(void);
 
 void bws_sock_connect(enum socket_type type);
