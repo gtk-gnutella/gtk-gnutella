@@ -43,6 +43,7 @@
 #include "header.h"
 #include "ioheader.h"
 #include "version.h"
+#include "glib-missing.h"
 
 RCSID("$Id$");
 
@@ -621,6 +622,398 @@ gboolean http_url_parse(
 	http_url_errno = HTTP_URL_OK;
 
 	return TRUE;
+}
+
+/***
+ *** HTTP range parsing.
+ ***/
+
+/*
+ * http_range_add
+ *
+ * Add a new http_range_t object within the sorted list.
+ * Refuse to add the range if it is overlapping existing ranges.
+ *
+ * The `field' and `vendor' arguments are only there to log errors, if any.
+ *
+ * Returns the new head of the list.
+ * `ignored' is set to TRUE if range was ignored.
+ */
+static GSList *http_range_add(
+	GSList *list, guint32 start, guint32 end,
+	gchar *field, gchar *vendor, gboolean *ignored)
+{
+	GSList *l;
+	GSList *prev;
+	http_range_t *item;
+
+	g_assert(start <= end);		/* 0-0 is a 1-byte range containing byte 0 */
+
+	item = walloc(sizeof(*item));
+	item->start = start;
+	item->end = end;
+
+	*ignored = FALSE;
+
+	for (l = list, prev = NULL; l; prev = l, l = g_slist_next(l)) {
+		http_range_t *r = (http_range_t *) l->data;
+
+		/*
+		 * The list is sorted and there should be no overlapping between
+		 * the items, so as soon as we find a range that starts after "end",
+		 * we know we have to insert before.
+		 */
+
+		if (r->start > end) {
+			/* Ensure range is not overlapping with previous */
+			if (prev != NULL) {
+				http_range_t *pr = (http_range_t *) prev->data;
+				if (pr->end >= start) {
+					g_warning("vendor <%s> sent us overlapping range %u-%u"
+						" (with previous %u-%u) in the %s header -- ignoring",
+						vendor, start, end, pr->start, pr->end, field);
+					goto ignored;
+				}
+			}
+
+			/* Insert after `prev' (which may be NULL) */
+			return gm_slist_insert_after(list, prev, item);
+		}
+
+		if (r->end >= start) {
+			g_warning("vendor <%s> sent us overlapping range %u-%u"
+				" (with %u-%u) in the %s header -- ignoring",
+				vendor, start, end, r->start, r->end, field);
+			goto ignored;
+		}
+	}
+
+	/*
+	 * Insert at the tail of the list.
+	 *
+	 * NB: the following call works as expected is list == NULL, because
+	 * then prev == NULL and we insert `item' as the first and only entry.
+	 */
+
+	return gm_slist_insert_after(list, prev, item);
+
+ignored:
+	*ignored = TRUE;
+	wfree(item, sizeof(*item));		/* Item was not inserted */
+	return list;					/* No change in list */
+}
+
+/*
+ * http_range_parse
+ *
+ * Parse a Range: header in the request, returning the list of ranges
+ * that are enumerated.  Invalid ranges are ignored.
+ *
+ * Only "bytes" ranges are supported.
+ *
+ * When parsing a "bytes=" style, it means it's a request, so we allow
+ * negative ranges.  Otherwise, for "bytes " specifications, it's a reply
+ * and we ignore negative ranges.
+ *
+ * `size' gives the length of the resource, to resolve negative ranges and
+ * make sure we don't have ranges that extend past that size.
+ *
+ * The `field' and `vendor' arguments are only there to log errors, if any.
+ *
+ * Returns a sorted list of http_range_t objects.
+ */
+GSList *http_range_parse(
+	gchar *field, gchar *value, guint32 size, gchar *vendor)
+{
+	GSList *ranges = NULL;
+	guchar *str = value;
+	guchar c;
+	guint32 start;
+	guint32 end;
+	gboolean request = FALSE;		/* True if 'bytes=' is seen */
+	gboolean has_start;
+	gboolean has_end;
+	gboolean skipping;
+	gboolean minus_seen;
+	gboolean ignored;
+	gint count = 0;
+
+	g_assert(size > 0);
+
+	if (0 == strncmp(str, "bytes", 5)) {
+		c = str[5];
+		if (!isspace(c) && c != '=') {
+			g_warning("improper %s header from <%s>: %s", field, vendor, value);
+			return NULL;
+		}
+	} else {
+		g_warning("improper %s header from <%s> (not bytes?): %s",
+			field, vendor, value);
+		return NULL;
+	}
+
+	str += 5;
+
+	/*
+	 * Move to the first non-space char.
+	 * Meanwhile, if we see a '=', we know it's a request-type range header.
+	 */
+
+	while ((c = *str)) {
+		if (c == '=') {
+			if (request) {
+				g_warning("improper %s header from <%s> (multiple '='): %s",
+					field, vendor, value);
+				return NULL;
+			}
+			request = TRUE;
+			str++;
+			continue;
+		}
+		if (isspace(c)) {
+			str++;
+			continue;
+		}
+		break;
+	}
+
+	start = 0;
+	has_start = FALSE;
+	has_end = FALSE;
+	end = size - 1;
+	skipping = FALSE;
+	minus_seen = FALSE;
+
+	while ((c = *str++)) {
+		if (isspace(c))
+			continue;
+
+		if (c == ',') {
+			if (skipping) {
+				skipping = FALSE;		/* ',' is a resynch point */
+				continue;
+			}
+
+			if (!minus_seen) {
+				g_warning("weird %s header from <%s>, offset %d (no range?): "
+					"%s", field, vendor, ((gchar *) str - value) - 1, value);
+				goto reset;
+			}
+
+			if (start == HTTP_OFFSET_MAX && !has_end) {	/* Bad negative range */
+				g_warning("weird %s header from <%s>, offset %d "
+					"(incomplete negative range): %s",
+					field, vendor, ((gchar *) str - value) - 1, value);
+				goto reset;
+			}
+
+			ranges = http_range_add(ranges,
+				start, end, field, vendor, &ignored);
+			count++;
+
+			if (ignored)
+				g_warning("weird %s header from <%s>, offset %d "
+					"(ignored range #%d): %s",
+					field, vendor, ((gchar *) str - value) - 1, count, value);
+
+			goto reset;
+		}
+
+		if (skipping)				/* Waiting for a ',' */
+			continue;
+
+		if (c == '-') {
+			if (minus_seen) {
+				g_warning("weird %s header from <%s>, offset %d "
+					"(spurious '-'): %s",
+					field, vendor, ((gchar *) str - value) - 1, value);
+				goto resync;
+			}
+			minus_seen = TRUE;
+			if (!has_start) {		/* Negative range */
+				if (!request) {
+					g_warning("weird %s header from <%s>, offset %d "
+						"(negative range in reply): %s",
+						field, vendor, ((gchar *) str - value) - 1, value);
+					goto resync;
+				}
+				start = HTTP_OFFSET_MAX;	/* Indicates negative range */
+				has_start = TRUE;
+			}
+			continue;
+		}
+
+		if (isdigit(c)) {
+			gchar *dend;
+			guint32 val = strtoul(str - 1, &dend, 10);
+
+			g_assert((guchar *) dend != (str - 1));	/* Started with digit! */
+
+			str = (guchar *) dend;		/* Skip number */
+
+			if (has_end) {
+				g_warning("weird %s header from <%s>, offset %d "
+					"(spurious boundary %u): %s",
+					field, vendor, ((gchar *) str - value) - 1, val, value);
+				goto resync;
+			}
+
+			if (val >= size) {
+				g_warning("weird %s header from <%s>, offset %d "
+					"(%s boundary %u outside resource range 0-%u): %s",
+					field, vendor, ((gchar *) str - value) - 1,
+					has_start ? "end" : "start", val, size - 1, value);
+				goto resync;
+			}
+
+			if (has_start) {
+				if (!minus_seen) {
+					g_warning("weird %s header from <%s>, offset %d "
+						"(no '-' before boundary %u): %s",
+						field, vendor, ((gchar *) str - value) - 1, val, value);
+					goto resync;
+				}
+				if (start == HTTP_OFFSET_MAX) {			/* Negative range */
+					start = (val > size) ? 0 : size - val;	/* Last bytes */
+					end = size - 1;
+				} else
+					end = val;
+				has_end = TRUE;
+			} else {
+				start = val;
+				has_start = TRUE;
+			}
+			continue;
+		}
+
+		g_warning("weird %s header from <%s>, offset %d "
+			"(unexpected char '%c'): %s",
+			field, vendor, ((gchar *) str - value) - 1, c, value);
+
+		/* FALL THROUGH */
+
+	resync:
+		skipping = TRUE;
+	reset:
+		start = 0;
+		has_start = FALSE;
+		has_end = FALSE;
+		minus_seen = FALSE;
+		end = size - 1;
+	}
+
+	/*
+	 * Handle trailing range, if needed.
+	 */
+
+	if (minus_seen) {
+		if (start == HTTP_OFFSET_MAX && !has_end) {	/* Bad negative range */
+			g_warning("weird %s header from <%s>, offset %d "
+				"(incomplete trailing negative range): %s",
+				field, vendor, ((gchar *) str - value) - 1, value);
+			goto final;
+		}
+
+		ranges = http_range_add(ranges, start, end, field, vendor, &ignored);
+		count++;
+
+		if (ignored)
+			g_warning("weird %s header from <%s>, offset %d "
+				"(ignored final range #%d): %s",
+				field, vendor, ((gchar *) str - value) - 1, count, value);
+	}
+
+final:
+
+	if (dbg > 4) {
+		GSList *l;
+		printf("Saw %d ranges in %s %s: %s\n",
+			count, request ? "request" : "reply", field, value);
+		if (ranges)
+			printf("...retained:\n");
+		for (l = ranges; l; l = g_slist_next(l)) {
+			http_range_t *r = (http_range_t *) l->data;
+			printf("...  %u-%u\n", r->start, r->end);
+		}
+	}
+
+	if (ranges == NULL)
+		g_warning("retained no ranges in %s header from <%s>: %s",
+			field, vendor, value);
+
+	return ranges;
+}
+
+/*
+ * http_range_free
+ *
+ * Free list of http_range_t objects.
+ */
+void http_range_free(GSList *list)
+{
+	GSList *l;
+
+	for (l = list; l; l = g_slist_next(l))
+		wfree(l->data, sizeof(http_range_t));
+
+	g_slist_free(list);
+}
+
+/*
+ * http_range_to_gchar
+ *
+ * Returns a pointer to static data, containing the available ranges.
+ */
+gchar *http_range_to_gchar(GSList *list)
+{
+	static gchar str[2048];
+	GSList *l;
+	gint rw;
+
+	for (l = list, rw = 0; l && rw < sizeof(str); l = g_slist_next(l)) {
+		http_range_t *r = (http_range_t *) l->data;
+
+		rw += g_snprintf(&str[rw], sizeof(str)-rw, "%u-%u", r->start, r->end);
+
+		if (g_slist_next(l) != NULL)
+			rw += g_snprintf(&str[rw], sizeof(str)-rw, ", ");
+	}
+
+	return str;
+}
+
+/*
+ * http_range_contains
+ *
+ * Checks whether range contains the contiguous [from, to] interval.
+ */
+gboolean http_range_contains(GSList *ranges, guint32 from, guint32 to)
+{
+	GSList *l;
+
+	/*
+	 * The following relies on the fact that the `ranges' list is sorted
+	 * and that it contains disjoint intervals.
+	 */
+
+	for (l = ranges; l; l = g_slist_next(l)) {
+		http_range_t *r = (http_range_t *) l->data;
+
+		if (from > r->end)
+			continue;
+
+		if (from < r->start)
+			break;			/* `from' outside of any following interval */
+
+		/* `from' is within `r' */
+
+		if (to <= r->end)
+			return TRUE;
+
+		break;				/* No other interval can contain `from' */
+	}
+
+	return FALSE;
 }
 
 /***

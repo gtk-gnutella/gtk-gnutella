@@ -154,6 +154,17 @@ typedef enum {
 extern http_url_error_t http_url_errno;
 
 /*
+ * HTTP range description.
+ */
+
+typedef struct http_range {
+	guint32 start;
+	guint32 end;						/* HTTP_OFFSET_MAX if unbounded */
+} http_range_t;
+
+#define HTTP_OFFSET_MAX	0xffffffff
+
+/*
  * Public interface
  */
 
@@ -167,6 +178,12 @@ gint http_status_parse(gchar *line,
 
 gboolean http_extract_version(
 	gchar *request, gint len, gint *major, gint *minor);
+
+gchar *http_range_to_gchar(GSList *list);
+void http_range_free(GSList *list);
+GSList *http_range_parse(
+	gchar *field, gchar *value, guint32 size, gchar *vendor);
+gboolean http_range_contains(GSList *ranges, guint32 from, guint32 to);
 
 gchar *http_url_strerror(http_url_error_t errnum);
 gboolean http_url_parse(
