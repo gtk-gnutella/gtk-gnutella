@@ -2228,7 +2228,7 @@ void dmesh_check_results_set(gnet_results_set_t *rs)
  * `size': the original file size
  */
 void dmesh_multiple_downloads(
-	gchar *sha1, guint32 size, gboolean file_size_known, struct dl_file_info *fi)
+	gchar *sha1, guint32 size, struct dl_file_info *fi)
 {
 	dmesh_urlinfo_t buffer[DMESH_MAX];
 	dmesh_urlinfo_t *p;
@@ -2246,12 +2246,9 @@ void dmesh_multiple_downloads(
 			printf("ALT-LOC queuing from MESH: %s\n",
 				dmesh_urlinfo_to_gchar(p));
 
-		if (file_size_known)
-			download_auto_new(p->name, size, p->idx, p->ip, p->port,
-				blank_guid, NULL, sha1, now, FALSE, TRUE, fi, NULL);
-		else	
-			download_auto_new(p->name, size, p->idx, p->ip, p->port,
-				blank_guid, NULL, sha1, now, FALSE, FALSE, fi, NULL);
+		download_auto_new(p->name, size, p->idx, p->ip, p->port,
+			blank_guid, NULL, sha1, now, FALSE,
+			fi->file_size_known, fi, NULL);
 	}
 }
 
