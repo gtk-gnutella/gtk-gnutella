@@ -28,6 +28,7 @@
 #ifndef __header_h__
 #define __header_h__
 
+#include <stdio.h>
 #include <glib.h>
 
 /*

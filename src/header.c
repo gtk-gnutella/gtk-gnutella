@@ -56,7 +56,7 @@ static char *error_str[] = {
 	"End of header",						/* HEAD_EOH */
 };
 
-static gint max_errnum = sizeof(error_str) / sizeof(error_str[0]) - 1;
+#define MAX_ERRNUM (sizeof(error_str) / sizeof(error_str[0]) - 1)
 
 /*
  * header_strerror
@@ -65,7 +65,7 @@ static gint max_errnum = sizeof(error_str) / sizeof(error_str[0]) - 1;
  */
 gchar *header_strerror(gint errnum)
 {
-	if (errnum < 0 || errnum > max_errnum)
+	if (errnum < 0 || errnum > MAX_ERRNUM)
 		return "Invalid error code";
 
 	return error_str[errnum];
