@@ -877,6 +877,7 @@ static void _search_send_packet(search_ctrl_t *sch, gnutella_node_t *n)
 	gint plen;				/* Length of payload */
 	gint qlen;				/* Length of query text */
 	gboolean is_urn_search = FALSE;
+	guint16 speed;
 	query_hashvec_t *qhv;
 
     g_assert(sch != NULL);
@@ -982,7 +983,21 @@ static void _search_send_packet(search_ctrl_t *sch, gnutella_node_t *n)
 		m->header.ttl = hard_ttl_limit - m->header.hops;
 
 	WRITE_GUINT32_LE(plen, m->header.size);
-	WRITE_GUINT16_LE(sch->speed, m->search.speed);
+
+	/*
+	 * The search speed is no longer used by most servents as a raw indication
+	 * of speed.  There is now a special marking for the speed field in the
+	 * upper byte, the lower byte being kept for speed indication, but not
+	 * defined yet -> use zeros (since this is a min speed).
+	 *
+	 * It is too soon though, as GTKG before 0.92 did honour that field.
+	 * The next major version will use a tailored speed field.
+	 *		--RAM, 19/01/2003
+	 */
+
+	speed = sch->speed;					// XXX until version 0.93
+
+	WRITE_GUINT16_LE(speed, m->search.speed);
 
 	if (is_urn_search) {
 		*m->search.query = '\0';

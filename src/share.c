@@ -49,6 +49,7 @@
 #include "gnet_stats.h"
 #include "settings.h"
 #include "ggep.h"
+#include "search.h"		/* For QUERY_SPEED_MARK */
 
 RCSID("$Id$");
 
@@ -1530,7 +1531,29 @@ gboolean search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 		share_emit_search_request(QUERY_STRING, search, n->ip, n->port);
 
 	READ_GUINT16_LE(n->data, req_speed);
-	if (connection_speed < req_speed)
+
+	/*
+	 * Special processing for the "connection speed" field of queries.
+	 *
+	 * Unless bit 15 is set, process as a speed.
+	 * Otherwise if bit 15 is set:
+	 *
+	 * 1. If the firewall bit (bit 8) is set, the remote servent is firewalled.
+	 *    Therefore, if we are also firewalled, don't reply.
+	 *
+	 * 2. If the XML bit (bit 9) is cleared and we support XML meta data, don't
+	 *    include them in the result set [GTKG does not support XML meta data]
+	 *
+	 * 3. We should not reply if we are busy and have no alt-loc for the hits.
+	 *    [GTKG always replies, but the set of results is limited anyway]
+	 *
+	 *		--RAM, 19/01/2003
+	 */
+
+	if (req_speed & QUERY_SPEED_MARK) {
+		if ((req_speed & QUERY_SPEED_FIREWALLED) && is_firewalled)
+			return FALSE;			/* Both servents are firewalled */
+	} else if (connection_speed < req_speed)
 		return FALSE;				/* We're not fast enough */
 
 	/*
