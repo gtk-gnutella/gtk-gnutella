@@ -159,7 +159,7 @@ guchar *strcasestr(const guchar *haystack, const guchar *needle);
 
 /* Only necessary for GTk+ 2 version */
 #ifdef USE_GTK2
-gchar *locale_to_utf8(const gchar *, gssize);
+gchar *locale_to_utf8(gchar *, gssize);
 #endif
 
 #endif /* _misc_h_ */

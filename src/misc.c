@@ -984,27 +984,62 @@ guchar *hex_escape(guchar *name)
 }
 
 #ifdef USE_GTK2
-gchar *locale_to_utf8(const gchar *str, gssize len)
+gchar *locale_to_utf8(gchar *str, gssize len)
 {
-	GError *error = NULL;
-	const gchar *local_charset = NULL;
-	gchar *ret;
-	gsize *bytes_read = 0;
-	gsize *bytes_written = 0;
-	
-	g_get_charset(&local_charset);
-	ret = g_convert_with_fallback(str, len, "UTF-8", local_charset, NULL,
-		bytes_read, bytes_written, &error);
-    if (NULL != error) {
-        g_warning(
-			"locale_to_utf8 failed: %s (read=%lu, written=%lu, charset=%s)",
-			error->message, (gulong) bytes_read, (gulong) bytes_written,
-			local_charset);
-        g_clear_error(&error);
+	static const gchar *local_charset = NULL;
+	static GIConv converter;
+	static gboolean initialized = FALSE;
+	size_t ret;
+	gsize inbytes_left;
+	gsize outbytes_left;
+	gchar *inbuf;
+	gchar *outbuf;
+	static gchar outstr[4096];
+
+	g_assert(NULL != str);
+	if (!initialized) {
+		g_get_charset(&local_charset);
+		converter = g_iconv_open("UTF-8", local_charset);
+		if ((GIConv) -1 == converter) {
+			g_warning("locale_to_utf8: g_iconv_open() failed: charset=\"%s\"",
+				local_charset);
+			goto error;
+		} else
+			initialized = TRUE;
 	}
-	if (NULL == ret)
-		ret = g_strdup("<Cannot convert to UTF-8>");
-	g_assert(NULL != ret);
-	return ret;
+
+	inbuf = str;
+	outbuf = outstr;
+	inbytes_left = (gssize) -1 == len ? strlen(str) : len;
+	outbytes_left = sizeof(outstr) - 7;
+	outstr[0] = '\0';
+
+	while (inbytes_left > 0 && outbytes_left > 0) {
+		ret = g_iconv(converter,
+				&inbuf, &inbytes_left, &outbuf, &outbytes_left);
+		if ((size_t) -1 == ret) {
+			switch (errno) {
+				case EILSEQ:
+				case EINVAL:
+					g_warning("locale_to_utf8: g_iconv() failed soft: %s",
+						strerror(errno));
+					*outbuf = '_';
+					outbuf++;
+					outbytes_left--;
+					inbuf++;
+					inbytes_left--;
+					break;
+				default:
+					g_warning("locale_to_utf8: g_iconv() failed hard: %s",
+						strerror(errno));
+					goto error;
+			}
+		}
+	}
+	*outbuf = '\0';
+	return outstr;
+
+error:
+	return "<Cannot convert to UTF-8>";
 }
 #endif
