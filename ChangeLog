@@ -1,11 +1,19 @@
 # since last version
 
+- (2004.03.15 - RAM)
+ * [GTK1] Added anti-crash countermeasures for memory corruption in GUI
+   search results data.  Does NOT fix the root cause!
+
 - (2004.03.14 - Richard)
  * [Gtk1] [Gtk2] No longer clear "Select" field in the download queue
    after pressing [enter].
  * [Gtk1] Add filtering to fileinfo pane.
  * [Gtk1] Minor layout change on the downloads pane.
  * Really remove file from disk when pressing "Purge" in the fileinfo page.
+
+- (2004.03.10 - RAM)
+ * Increased size of gnet header response for better Crawler replies, since
+   GTKG can support 200+ leaves.
 
 - (2004.03.09 - RAM)
  * Don't call make_room() with "needed <= 0".
