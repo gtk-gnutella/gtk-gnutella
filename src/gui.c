@@ -39,6 +39,7 @@
 #include "nodes_gui.h"
 #include "statusbar_gui.h"
 #include "nodes.h"
+#include "fileinfo.h"
 
 #include <netinet/in.h>
 #include <arpa/inet.h>
@@ -940,10 +941,12 @@ void gui_update_download(struct download *d, gboolean force)
 
 			gfloat rate = ((d->range_end - d->skip + d->overlap_size) /
 				1024.0) / spent;
-			g_snprintf(gui_tmp, sizeof(gui_tmp), "Completed (%.1f k/s) %s",
+			g_snprintf(gui_tmp, sizeof(gui_tmp), "%s (%.1f k/s) %s",
+				FILE_INFO_COMPLETE(d->file_info) ? "Completed" : "Chunk done",
 				rate, short_time(spent));
 		} else {
-			g_snprintf(gui_tmp, sizeof(gui_tmp), "Completed (< 1s)");
+			g_snprintf(gui_tmp, sizeof(gui_tmp), "%s (< 1s)",
+				FILE_INFO_COMPLETE(d->file_info) ? "Completed" : "Chunk done");
 		}
 		a = gui_tmp;
 		break;
