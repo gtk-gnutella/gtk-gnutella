@@ -291,6 +291,10 @@ void bsched_set_peermode(node_peer_t mode)
 		bsched_set_bandwidth(bws.glout, bw_gnet_lout);
 		bsched_set_bandwidth(bws.gin, bw_gnet_in);
 		bsched_set_bandwidth(bws.gout, bw_gnet_out);
+		if (bws.glin->bw_per_second && bws_glin_enabled)
+			bsched_enable(bws.glin);
+		if (bws.glout->bw_per_second && bws_glout_enabled)
+			bsched_enable(bws.glout);
 		break;
 	default:
 		g_error("unhandled peer mode %d", mode);
@@ -1324,7 +1328,7 @@ static void bsched_stealbeat(bsched_t *bs)
 			if (xbs->bw_max == 0)
 				continue;
 
-			amount = (gdouble) underused * all_bw_count / (gdouble) xbs->bw_max;
+			amount = (gdouble) underused * (gdouble) xbs->bw_max / all_bw_count;
 
 			if ((gdouble) xbs->bw_stolen + amount > (gdouble) BS_BW_MAX)
 				xbs->bw_stolen = BS_BW_MAX;
