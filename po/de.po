@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.94u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2004-07-06 23:08+0200\n"
-"PO-Revision-Date: 2004-07-06 23:08+0100\n"
+"POT-Creation-Date: 2004-07-09 19:36+0200\n"
+"PO-Revision-Date: 2004-07-09 19:41+0100\n"
 "Last-Translator: Thomas Schuerger <thomas@schuerger.com>\n"
 "Language-Team: German <gtk-gnutella-devel@lists.sourceforge.net>\n"
 "MIME-Version: 1.0\n"
@@ -110,7 +110,7 @@ msgstr "%d Downloads vergessen"
 #: src/downloads_cb2.c:785
 #, c-format
 msgid "Selected %u of %u queued downloads matching \"%s\"."
-msgstr ""
+msgstr "%u von %u Downloads passend auf \"%s\" ausgewählt."
 
 #: src/downloads_gui2.c:413 src/downloads_gui2.c:465
 #: src/interface-glade1.c:2530 src/interface-glade1.c:2731
@@ -126,7 +126,7 @@ msgstr "Dateiname"
 #: src/interface-glade1.c:6585 src/interface-glade1.c:10549
 #: src/interface-glade1.c:13629 src/interface-glade2.c:4430
 #: src/search_gui.c:2177 src/search_gui.c:2183 src/search_gui2.c:1211
-#: src/shell.c:586 src/upload_stats_gui2.c:252 src/uploads_gui2.c:60
+#: src/shell.c:589 src/upload_stats_gui2.c:252 src/uploads_gui2.c:60
 msgid "Size"
 msgstr "Größe"
 
@@ -1254,7 +1254,7 @@ msgid ""
 "filenames will always be considered to be identical. The minimum is 50%."
 msgstr ""
 "Unschärfefaktor für den Dateinamenvergleich (höher = genauer). Bei einem "
-"Wert von 100 müssen zwei die Dateinamen identisch sein, bei einem Wert von 0 "
+"Wert von 100 müssen die zwei Dateinamen identisch sein, bei einem Wert von 0 "
 "werden zwei Dateinamen immer als identisch betrachtet. Der Mindestwert ist "
 "50%."
 
@@ -1997,17 +1997,17 @@ msgstr "Weitergeleitet"
 msgid "Generated"
 msgstr "Erzeugt"
 
-#: src/gnet_stats_gui2.c:454 src/interface-glade1.c:10522 src/shell.c:583
+#: src/gnet_stats_gui2.c:454 src/interface-glade1.c:10522 src/shell.c:586
 msgid "Hops"
 msgstr ""
 
-#: src/gnet_stats_gui2.c:455 src/interface-glade1.c:10531 src/shell.c:584
+#: src/gnet_stats_gui2.c:455 src/interface-glade1.c:10531 src/shell.c:587
 msgid "Nodes"
 msgstr "Knoten"
 
 #: src/gnet_stats_gui2.c:456 src/interface-glade1.c:2396
 #: src/interface-glade1.c:3904 src/interface-glade1.c:10540
-#: src/interface-glade2.c:10326 src/shell.c:585
+#: src/interface-glade2.c:10326 src/shell.c:588
 msgid "Files"
 msgstr "Dateien"
 
@@ -6657,71 +6657,71 @@ msgstr ""
 #: src/settings_gui.c:4734
 #, c-format
 msgid "%u/%u upload%s"
-msgstr ""
+msgstr "%u/%u Upload%s"
 
 #: src/settings_gui.c:4756
 #, c-format
 msgid "%u/%u download%s"
-msgstr ""
+msgstr "%u/%u Download%s"
 
-#: src/shell.c:261
+#: src/shell.c:264
 msgid "Node added"
 msgstr "Knoten hinzugefügt"
 
-#: src/shell.c:264
+#: src/shell.c:267
 msgid "Invalid IP/Port"
 msgstr "IP/Port fehlerhaft"
 
-#: src/shell.c:270 src/shell.c:317
+#: src/shell.c:273 src/shell.c:320
 msgid "Unknown operation"
 msgstr "Unbekannte Operation"
 
-#: src/shell.c:281 src/shell.c:328 src/shell.c:385 src/shell.c:497
-#: src/shell.c:565
+#: src/shell.c:284 src/shell.c:331 src/shell.c:388 src/shell.c:500
+#: src/shell.c:568
 msgid "Malformed command"
 msgstr "Fehlerhaftes Kommando"
 
-#: src/shell.c:305
+#: src/shell.c:308
 msgid "Query string missing"
 msgstr "Suchanfrage fehlt"
 
-#: src/shell.c:312
+#: src/shell.c:315
 msgid "Search added"
 msgstr "Suche hinzugefügt"
 
-#: src/shell.c:352 src/shell.c:411 src/shell.c:527
+#: src/shell.c:355 src/shell.c:414 src/shell.c:530
 msgid "Property missing"
 msgstr "Eigenschaft fehlt"
 
-#: src/shell.c:365 src/shell.c:424 src/shell.c:540
+#: src/shell.c:368 src/shell.c:427 src/shell.c:543
 msgid "Unknown property"
 msgstr "Unbekannte Eigenschaft"
 
-#: src/shell.c:369
+#: src/shell.c:372
 msgid "Value: "
 msgstr "Wert:"
 
-#: src/shell.c:373
+#: src/shell.c:376
 msgid "Value found and displayed"
 msgstr "Wert gefunden und angezeigt"
 
-#: src/shell.c:435
+#: src/shell.c:438
 msgid "Value missing"
 msgstr "Wert fehlt"
 
-#: src/shell.c:479
+#: src/shell.c:482
 msgid "Type not supported"
 msgstr "Typ nicht unterstützt"
 
-#: src/shell.c:483
+#: src/shell.c:486
 msgid "Value found and set"
 msgstr "Wert gefunden und gesetzt"
 
-#: src/shell.c:548
+#: src/shell.c:551
 msgid "Help: "
 msgstr "Hilfe:"
 
-#: src/shell.c:598
+#: src/shell.c:601
 #, c-format
 msgid ""
 "Horizon size (%u/%u nodes support HSEP):\n"
@@ -6730,11 +6730,11 @@ msgstr ""
 "Horizontgröße (%u/%u Knoten unterstützen HSEP):\n"
 "\n"
 
-#: src/shell.c:692
+#: src/shell.c:695
 msgid "Good bye"
 msgstr "Auf Wiedersehen"
 
-#: src/shell.c:725
+#: src/shell.c:728
 msgid "Unknown command"
 msgstr "Unbekanntes Kommando"
 
