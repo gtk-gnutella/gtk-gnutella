@@ -1,5 +1,13 @@
 # since last version
 
+- (2002.09.12 RAM)
+ * Was mistakenly going through routing_log() formatting even if the debug
+   level did not justify it.
+ * Query compacting is now UTF-8 safe.
+ * No longer transform UTF-8 queries into ISO-8859 inplace: we now let UTF-8
+   queries go through as-is.
+ * utf8_to_iso8859() forgot to decrement length of original string.
+
 - (2002.09.12 Richard)
  * Renamed share_gui2.c to monitor_gui2.c
  * Added checkbutton to config-UI panel to toggle expert mode
@@ -12,6 +20,13 @@
  * Reordered result processing in share.c: first check wether results
    should be dropped, then notify listeners (search monitor/stats), 
    then check wether to perform a local search.
+
+- (2002.09.11 RAM)
+ * Make sure we leave enough room in the reply HTTP header for final "\r\n".
+ * Re-organized download_request(), with better detection and handling
+   of header timeouts.
+
+- (2002.09.10 Richard)
  * Expanded gnet statistics
  * Added percentage display for gnet statistics
  * Moved "(globally) drop..." do submenus. More to come
