@@ -73,6 +73,8 @@ guint32 qrp_hashcode(gchar *x);
 void qrp_init(char_map_t map);
 void qrp_close(void);
 
+void qrp_leaf_changed(void);
+
 void qrp_prepare_computation(void);
 void qrp_add_file(struct shared_file *sf);
 void qrp_finalize_computation(void);
@@ -97,7 +99,7 @@ void qhvec_reset(struct query_hashvec *qhvec);
 void qhvec_add(struct query_hashvec *qhvec, gchar *word, enum query_hsrc src);
 
 GSList *qrt_build_query_target(
-	query_hashvec_t *qhvec, gint hops, struct gnutella_node *source);
+	query_hashvec_t *qhvec, gint hops, gint ttl, struct gnutella_node *source);
 void qrt_route_query(struct gnutella_node *n, query_hashvec_t *qhvec);
 
 #endif	/* _qrp_h_ */
