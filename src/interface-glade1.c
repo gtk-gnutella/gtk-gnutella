@@ -492,13 +492,13 @@ create_main_window (void)
   GtkWidget *checkbutton_config_use_alternate_sources;
   GtkWidget *checkbutton_config_strict_sha1_matching;
   GtkWidget *checkbutton_config_use_fuzzy_matching;
-  GtkWidget *label286;
+  GtkObject *spinbutton_dl_maxchunksize_adj;
+  GtkWidget *spinbutton_dl_maxchunksize;
   GtkObject *spinbutton_config_fuzzy_threshold_adj;
   GtkWidget *spinbutton_config_fuzzy_threshold;
   GtkObject *spinbutton_dl_minchunksize_adj;
   GtkWidget *spinbutton_dl_minchunksize;
-  GtkObject *spinbutton_dl_maxchunksize_adj;
-  GtkWidget *spinbutton_dl_maxchunksize;
+  GtkWidget *label286;
   GtkWidget *label161;
   GtkWidget *vbox40;
   GtkWidget *frame_path_to_files;
@@ -533,6 +533,11 @@ create_main_window (void)
   GtkWidget *label287;
   GtkWidget *label_config;
   GtkWidget *hbox_statusbar;
+  GtkWidget *hbox145;
+  GtkWidget *eventbox4;
+  GtkWidget *image_online;
+  GtkWidget *eventbox5;
+  GtkWidget *image_offline;
   GtkWidget *statusbar;
   GtkWidget *hbox89;
   GtkWidget *eventbox2;
@@ -3671,9 +3676,10 @@ create_main_window (void)
   gtk_table_attach (GTK_TABLE (table30), spinbutton_config_min_dup_msg, 1, 2, 0, 1,
                     (GtkAttachOptions) (0),
                     (GtkAttachOptions) (0), 0, 0);
+  gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_config_min_dup_msg), TRUE);
 
   spinbutton_config_min_dup_ratio_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 10);
-  spinbutton_config_min_dup_ratio = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_min_dup_ratio_adj), 1, 0);
+  spinbutton_config_min_dup_ratio = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_min_dup_ratio_adj), 1, 2);
   gtk_widget_ref (spinbutton_config_min_dup_ratio);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "spinbutton_config_min_dup_ratio", spinbutton_config_min_dup_ratio,
                             (GtkDestroyNotify) gtk_widget_unref);
@@ -3681,13 +3687,14 @@ create_main_window (void)
   gtk_table_attach (GTK_TABLE (table30), spinbutton_config_min_dup_ratio, 1, 2, 1, 2,
                     (GtkAttachOptions) (0),
                     (GtkAttachOptions) (0), 0, 0);
+  gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_config_min_dup_ratio), TRUE);
 
   frame50 = gtk_frame_new ("Other");
   gtk_widget_ref (frame50);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "frame50", frame50,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (frame50);
-  gtk_box_pack_start (GTK_BOX (vbox25), frame50, TRUE, TRUE, 0);
+  gtk_box_pack_start (GTK_BOX (vbox25), frame50, FALSE, TRUE, 0);
 
   table33 = gtk_table_new (1, 2, FALSE);
   gtk_widget_ref (table33);
@@ -3718,6 +3725,7 @@ create_main_window (void)
   gtk_table_attach (GTK_TABLE (table33), spinbutton_config_hops_random_factor, 1, 2, 0, 1,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
+  gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_config_hops_random_factor), TRUE);
 
   label122 = gtk_label_new ("GnutellaNet\noptions");
   gtk_widget_ref (label122);
@@ -4177,16 +4185,16 @@ create_main_window (void)
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
 
-  label286 = gtk_label_new ("These settings have no effect yet. Preparation for the swarming patch.");
-  gtk_widget_ref (label286);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "label286", label286,
+  spinbutton_dl_maxchunksize_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 10);
+  spinbutton_dl_maxchunksize = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_dl_maxchunksize_adj), 1, 0);
+  gtk_widget_ref (spinbutton_dl_maxchunksize);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "spinbutton_dl_maxchunksize", spinbutton_dl_maxchunksize,
                             (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (label286);
-  gtk_table_attach (GTK_TABLE (table31), label286, 2, 3, 0, 7,
+  gtk_widget_show (spinbutton_dl_maxchunksize);
+  gtk_table_attach (GTK_TABLE (table31), spinbutton_dl_maxchunksize, 1, 2, 2, 3,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
-  gtk_label_set_line_wrap (GTK_LABEL (label286), TRUE);
-  gtk_misc_set_alignment (GTK_MISC (label286), 0, 0.5);
+  gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_dl_maxchunksize), TRUE);
 
   spinbutton_config_fuzzy_threshold_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 10);
   spinbutton_config_fuzzy_threshold = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_fuzzy_threshold_adj), 1, 0);
@@ -4195,8 +4203,9 @@ create_main_window (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (spinbutton_config_fuzzy_threshold);
   gtk_table_attach (GTK_TABLE (table31), spinbutton_config_fuzzy_threshold, 1, 2, 6, 7,
-                    (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
+                    (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
+  gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_config_fuzzy_threshold), TRUE);
 
   spinbutton_dl_minchunksize_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 10);
   spinbutton_dl_minchunksize = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_dl_minchunksize_adj), 1, 0);
@@ -4205,18 +4214,20 @@ create_main_window (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (spinbutton_dl_minchunksize);
   gtk_table_attach (GTK_TABLE (table31), spinbutton_dl_minchunksize, 1, 2, 1, 2,
-                    (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
+                    (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
+  gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_dl_minchunksize), TRUE);
 
-  spinbutton_dl_maxchunksize_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 10);
-  spinbutton_dl_maxchunksize = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_dl_maxchunksize_adj), 1, 0);
-  gtk_widget_ref (spinbutton_dl_maxchunksize);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "spinbutton_dl_maxchunksize", spinbutton_dl_maxchunksize,
+  label286 = gtk_label_new ("These settings have no effect yet. Preparation for the swarming patch.");
+  gtk_widget_ref (label286);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label286", label286,
                             (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (spinbutton_dl_maxchunksize);
-  gtk_table_attach (GTK_TABLE (table31), spinbutton_dl_maxchunksize, 1, 2, 2, 3,
+  gtk_widget_show (label286);
+  gtk_table_attach (GTK_TABLE (table31), label286, 2, 3, 0, 7,
                     (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
+  gtk_label_set_line_wrap (GTK_LABEL (label286), TRUE);
+  gtk_misc_set_alignment (GTK_MISC (label286), 0, 0.5);
 
   label161 = gtk_label_new ("Download\nsettings");
   gtk_widget_ref (label161);
@@ -4425,6 +4436,7 @@ create_main_window (void)
   gtk_table_attach (GTK_TABLE (table32), spinbutton_config_dbg, 1, 2, 0, 1,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
+  gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_config_dbg), TRUE);
 
   spinbutton_config_gui_debug_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 10);
   spinbutton_config_gui_debug = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_gui_debug_adj), 1, 0);
@@ -4435,6 +4447,7 @@ create_main_window (void)
   gtk_table_attach (GTK_TABLE (table32), spinbutton_config_gui_debug, 1, 2, 1, 2,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
+  gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_config_gui_debug), TRUE);
 
   checkbutton_config_stop_host_get = gtk_check_button_new_with_label ("Stop collecting hosts in host catcher");
   gtk_widget_ref (checkbutton_config_stop_host_get);
@@ -4466,6 +4479,46 @@ create_main_window (void)
   gtk_widget_show (hbox_statusbar);
   gtk_box_pack_start (GTK_BOX (vbox12), hbox_statusbar, FALSE, TRUE, 0);
 
+  hbox145 = gtk_hbox_new (FALSE, 0);
+  gtk_widget_ref (hbox145);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "hbox145", hbox145,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (hbox145);
+  gtk_box_pack_start (GTK_BOX (hbox_statusbar), hbox145, FALSE, FALSE, 0);
+
+  eventbox4 = gtk_event_box_new ();
+  gtk_widget_ref (eventbox4);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "eventbox4", eventbox4,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (eventbox4);
+  gtk_box_pack_start (GTK_BOX (hbox145), eventbox4, FALSE, FALSE, 0);
+  gtk_widget_set_sensitive (eventbox4, FALSE);
+  gtk_tooltips_set_tip (tooltips, eventbox4, "Connected to the internet", NULL);
+
+  image_online = create_pixmap (main_window, "online.xpm");
+  gtk_widget_ref (image_online);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "image_online", image_online,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (image_online);
+  gtk_container_add (GTK_CONTAINER (eventbox4), image_online);
+  gtk_pixmap_set_build_insensitive (GTK_PIXMAP (image_online), FALSE);
+
+  eventbox5 = gtk_event_box_new ();
+  gtk_widget_ref (eventbox5);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "eventbox5", eventbox5,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (eventbox5);
+  gtk_box_pack_start (GTK_BOX (hbox145), eventbox5, FALSE, FALSE, 0);
+  gtk_tooltips_set_tip (tooltips, eventbox5, "Not connected to the internet.", NULL);
+
+  image_offline = create_pixmap (main_window, "offline.xpm");
+  gtk_widget_ref (image_offline);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "image_offline", image_offline,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (image_offline);
+  gtk_container_add (GTK_CONTAINER (eventbox5), image_offline);
+  gtk_pixmap_set_build_insensitive (GTK_PIXMAP (image_offline), FALSE);
+
   statusbar = gtk_statusbar_new ();
   gtk_widget_ref (statusbar);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "statusbar", statusbar,
@@ -4478,14 +4531,14 @@ create_main_window (void)
   gtk_object_set_data_full (GTK_OBJECT (main_window), "hbox89", hbox89,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (hbox89);
-  gtk_box_pack_start (GTK_BOX (hbox_statusbar), hbox89, FALSE, FALSE, 0);
+  gtk_box_pack_start (GTK_BOX (hbox_statusbar), hbox89, FALSE, TRUE, 0);
 
   eventbox2 = gtk_event_box_new ();
   gtk_widget_ref (eventbox2);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "eventbox2", eventbox2,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (eventbox2);
-  gtk_box_pack_start (GTK_BOX (hbox89), eventbox2, TRUE, TRUE, 0);
+  gtk_box_pack_start (GTK_BOX (hbox89), eventbox2, FALSE, TRUE, 0);
   gtk_tooltips_set_tip (tooltips, eventbox2, "Gtk-gnutella thinks you're firewalled. Nobody has connected to you so far. You will not see any push results which may prevent you from seeing a large amount of results.", NULL);
 
   image_firewall = create_pixmap (main_window, "firewall.xpm");
@@ -4501,7 +4554,7 @@ create_main_window (void)
   gtk_object_set_data_full (GTK_OBJECT (main_window), "eventbox3", eventbox3,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (eventbox3);
-  gtk_box_pack_start (GTK_BOX (hbox89), eventbox3, TRUE, TRUE, 0);
+  gtk_box_pack_start (GTK_BOX (hbox89), eventbox3, FALSE, TRUE, 0);
   gtk_tooltips_set_tip (tooltips, eventbox3, "People can connect to you. Push should work.", NULL);
 
   image_no_firewall = create_pixmap (main_window, "no_firewall.xpm");
@@ -4510,6 +4563,7 @@ create_main_window (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (image_no_firewall);
   gtk_container_add (GTK_CONTAINER (eventbox3), image_no_firewall);
+  gtk_pixmap_set_build_insensitive (GTK_PIXMAP (image_no_firewall), FALSE);
 
   label_statusbar_uptime = gtk_label_new ("Uptime");
   gtk_widget_ref (label_statusbar_uptime);
