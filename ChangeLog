@@ -1,5 +1,15 @@
 # since last version
 
+- (2002.11.17 RAM)
+ * Added support for urn:bitprint:, although only its SHA1 part is processed.
+ * Always verify that we have 32 chars before calling base32_decode_into()
+   to decode an urn:sha1.
+ * Now understands "magnet:" URIs in search [Patch from David Belius].
+ * Will now use GGEP "H" in query hits when replying to a query from GTKG 0.91
+   or better, since we're sure the querying host will understand it.
+ * Clearing of completed uploads now done "incrementally" to avoid freezing
+   the GUI when there is a lot to clear [Patch from Christian Biere].
+
 - (2002.11.15 RAM)
  * Servers understanding /uri-res/N2R? may not send X-Gnutella-Content-URN.
  * No need to unlink the file in download_move_done().
