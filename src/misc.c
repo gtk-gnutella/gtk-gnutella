@@ -242,8 +242,29 @@ void hex_to_guid(gchar *hexguid, guchar *guid)
 
 /*
  * date_to_rfc822_gchar
+ *
+ * Convert time to RFC-822 style date.
+ * Returns pointer to static data.
  */
 gchar *date_to_rfc822_gchar(time_t date)
+{
+	static gchar buf[80];
+	struct tm *tm;
+
+	tm = localtime(&date);
+	strftime(buf, sizeof(buf), "%a, %d %b %Y %H:%M:%S %z", tm);
+	buf[sizeof(buf)-1] = '\0';		/* Be really sure */
+
+	return buf;
+}
+
+/*
+ * date_to_rfc822_gchar2
+ *
+ * Same as date_to_rfc822_gchar(), to be able to use the two in the same
+ * printf() line.
+ */
+gchar *date_to_rfc822_gchar2(time_t date)
 {
 	static gchar buf[80];
 	struct tm *tm;

@@ -756,6 +756,9 @@ static void upload_request(struct upload *u, header_t *header)
 		sscanf(request, "HEAD /get/%u/", &index)
 	) {
 		guchar c;
+		time_t now;
+		time_t mtime;
+		struct stat statbuf;
 
 		/*
 		 * If we don't share, abort immediately. --RAM, 11/01/2002
@@ -906,6 +909,9 @@ static void upload_request(struct upload *u, header_t *header)
 			return;
 		}
 
+		if (-1 == stat(fpath, &statbuf))
+			goto not_found;
+
 		/* Open the file for reading , READONLY just in case. */
 		if ((u->file_desc = open(fpath, O_RDONLY)) < 0)
 			goto not_found;
@@ -939,6 +945,15 @@ static void upload_request(struct upload *u, header_t *header)
 		u->bsize = 0;
 
 		/*
+		 * Prepare date and modification time of file.
+		 */
+
+		now = time((time_t *) NULL);
+		mtime = statbuf.st_mtime;
+		if (mtime > now)
+			mtime = now;			/* Clock skew on file server */
+
+		/*
 		 * Setup and write the HTTP 200 header , including the file size.
 		 * If partial content (range request), emit a 206 reply.
 		 */
@@ -947,23 +962,30 @@ static void upload_request(struct upload *u, header_t *header)
 			rw = g_snprintf(http_response, sizeof(http_response),
 				"HTTP/1.0 206 Partial Content\r\n"
 				"Server: %s\r\n"
-				"Connection: close\r\n"
 				"X-Live-Since: %s\r\n"
+				"Connection: close\r\n"
+				"Date: %s\r\n"
+				"Last-Modified: %s\r\n"
 				"Content-type: application/binary\r\n"
 				"Content-length: %u\r\n"
 				"Content-Range: bytes %u-%u/%u\r\n\r\n",
 				version_string, start_rfc822_date,
+				date_to_rfc822_gchar(now), date_to_rfc822_gchar2(mtime),
 				u->end - u->skip + 1,
 				u->skip, u->end, u->file_size);
 		else
 			rw = g_snprintf(http_response, sizeof(http_response),
 				"HTTP/1.0 200 OK\r\n"
 				"Server: %s\r\n"
-				"Connection: close\r\n"
 				"X-Live-Since: %s\r\n"
+				"Connection: close\r\n"
+				"Date: %s\r\n"
+				"Last-Modified: %s\r\n"
 				"Content-type: application/binary\r\n"
 				"Content-length: %u\r\n\r\n",
-				version_string, start_rfc822_date, u->file_size);
+				version_string, start_rfc822_date,
+				date_to_rfc822_gchar(now), date_to_rfc822_gchar2(mtime),
+				u->file_size);
 
 		sent = bws_write(bws_out, s->file_desc, http_response, rw);
 		if (sent == -1) {

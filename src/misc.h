@@ -22,6 +22,7 @@ gchar *guid_hex_str(guchar *guid);
 gint hex2dec(gchar c);
 void hex_to_guid(gchar *hexguid, guchar *guid);
 gchar *date_to_rfc822_gchar(time_t date);
+gchar *date_to_rfc822_gchar2(time_t date);
 void dump_hex(FILE *, gchar *, gchar *, gint);
 gchar *short_size(guint32);
 void strlower(gchar *, gchar *);
