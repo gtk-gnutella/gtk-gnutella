@@ -42,21 +42,23 @@ struct dl_file_chunk {
 };
 
 struct dl_file_info {
-	gchar *file_name;	/* Output file name (atom) */
-	gchar *path;		/* Output file path (atom) */
-	GSList *alias;		/* List of file name aliases (atoms) */
-	guint32 size;		/* File size */
-	gchar *sha1;		/* SHA1 (atom) if known, NULL if not. */
-	gint32 refcount;	/* Reference count of file */
-	time_t stamp;		/* Time stamp */
-	time_t last_flush;	/* When last flush to disk occurred */
-	time_t last_dmesh;	/* When last dmesh query was used */
-	guint32 done;		/* Total number of bytes completed */
-	GSList *chunklist;	/* List of ranges within file */
-	guint32 generation;	/* Generation number, incremented on disk update */
-	gboolean use_swarming; /* Use swarming? */
-	gboolean keep;		/* Can the entry be skipped at exit? */
-	gboolean dirty;		/* Does it need saving? */
+	gchar *file_name;		/* Output file name (atom) */
+	gchar *path;			/* Output file path (atom) */
+	GSList *alias;			/* List of file name aliases (atoms) */
+	guint32 size;			/* File size */
+	gint *size_atom;		/* File size (atom -- points to value in memory) */
+	guchar *sha1;			/* SHA1 (atom) if known, NULL if not. */
+	gint32 refcount;		/* Reference count of file */
+	gint32 lifecount;		/* Amount of "alive" downloads referencing us */
+	time_t stamp;			/* Time stamp */
+	time_t last_flush;		/* When last flush to disk occurred */
+	time_t last_dmesh;		/* When last dmesh query was used */
+	guint32 done;			/* Total number of bytes completed */
+	GSList *chunklist;		/* List of ranges within file */
+	guint32 generation;		/* Generation number, incremented on disk update */
+	gboolean use_swarming;	/* Use swarming? */
+	gboolean dirty;			/* Does it need saving? */
+	gboolean hashed;		/* In hash tables? */
 };
 
 #define FILE_INFO_COMPLETE(x)	((x)->done == (x)->size)
@@ -75,8 +77,9 @@ enum dl_chunk_status file_info_chunk_status(
 void file_info_recreate(struct download *d);
 struct dl_file_info *file_info_get(
 	gchar *file, gchar *path, guint32 size, gchar *sha1);
-void file_info_free(struct dl_file_info *fi, gboolean keep);
+void file_info_free(struct dl_file_info *fi);
 void file_info_strip_binary(struct dl_file_info *fi);
+gboolean file_info_got_sha1(struct dl_file_info *fi, guchar *sha1);
 void file_info_update(
 	struct download *d, guint32 from, guint32 to, enum dl_chunk_status status);
 enum dl_chunk_status file_info_pos_status(struct dl_file_info *fi, guint32 pos);

@@ -42,8 +42,9 @@
 #include "regex.h"
 #include "huge.h"
 #include "dmesh.h"
-#include "http.h"
-#include "version.h"
+#include "namesize.h"
+#include "guid.h"
+#include "misc.h"
 
 #include "settings.h"
 #include "nodes.h"
@@ -54,14 +55,42 @@
 #include <time.h>			/* For ctime() */
 #include <netinet/in.h>		/* For ntohl() and friends... */
 
+#define FI_MIN_CHUNK_SPLIT	512		/* Smallest chunk we can split */
+
 /* made visible for us by atoms.c */
 extern guint sha1_hash(gconstpointer key);
 extern gint sha1_eq(gconstpointer a, gconstpointer b);
 
+/*
+ * File information is uniquely describing an output file in the download
+ * directory.  There is a many-to-one relationship between downloads and
+ * file information (fileinfo or fi for short): several downloads can point
+ * to the same fi, in which case they write data to the SAME file.
+ *
+ * Files are uniquely indexed by their SHA1 hash.  If two files bear the
+ * same SHA1, then they MUST be identical, whatever their reported size.
+ * We assume the largest entry is the right one.  Servers should always report
+ * the full filesize in hits, but some broken servers will not, hence the
+ * possible divergence in file size.
+ *
+ * When we don't have a SHA1 to identify a file, we use the tuple (name, size)
+ * to uniquely identify a file.  The name alone is not enough, since it is
+ * conceivable that two equal names could have different sizes, because
+ * they are just underlying different files.
+ *
+ * To lookup for possible aliases, we also keep track of all our fi structs
+ * by size in a table indexed solely by filesize and listing all the currently
+ * recorded fi structs for that size.
+ *
+ * The `fi_by_sha1' hash table keeps track of the SHA1 -> fi association.
+ * The `fi_by_namesize' hash table keeps track of the (name, size) -> fi one.
+ * The `fi_by_outname' table keeps track of the "output name" -> fi link.
+ */
 
-static GHashTable *file_info_size_hash = NULL;
-static GHashTable *file_info_name_hash = NULL;
-static GHashTable *file_info_sha1_hash = NULL;
+static GHashTable *fi_by_sha1 = NULL;
+static GHashTable *fi_by_namesize = NULL;
+static GHashTable *fi_by_size = NULL;
+static GHashTable *fi_by_outname = NULL;
 
 static gchar *file_info_file = "fileinfo";
 static gboolean fileinfo_dirty = FALSE;
@@ -70,10 +99,10 @@ static gboolean can_swarm = FALSE;		/* Set by file_info_retrieve() */
 static gchar fi_tmp[4096];
 
 #define FILE_INFO_MAGIC		0xD1BB1ED0
-#define FILE_INFO_VERSION	2
+#define FILE_INFO_VERSION	3
 
 enum dl_file_info_field {
-	FILE_INFO_FIELD_NAME = 1,
+	FILE_INFO_FIELD_NAME = 1,	/* No longer used in version >= 3 */
 	FILE_INFO_FIELD_ALIAS,
 	FILE_INFO_FIELD_SHA1,
 	FILE_INFO_FIELD_CHUNK,
@@ -281,6 +310,11 @@ void file_info_init(void)
 {
 	tbuf.arena = g_malloc(TBUF_SIZE);
 	tbuf.size = TBUF_SIZE;
+
+	fi_by_sha1     = g_hash_table_new(sha1_hash, sha1_eq);
+	fi_by_namesize = g_hash_table_new(namesize_hash, namesize_eq);
+	fi_by_size     = g_hash_table_new(g_int_hash, g_int_equal);
+	fi_by_outname  = g_hash_table_new(g_str_hash, g_str_equal);
 }
 
 static inline void file_info_checksum(guint32 *checksum, guchar *d, int len)
@@ -327,8 +361,6 @@ static void file_info_fd_store_binary(
 
 	TBUF_INIT_WRITE();
 	WRITE_INT32(FILE_INFO_VERSION);
-
-	FIELD_ADD(FILE_INFO_FIELD_NAME, strlen(fi->file_name)+1, fi->file_name);
 
 	if (fi->sha1)
 		FIELD_ADD(FILE_INFO_FIELD_SHA1, SHA1_RAW_SIZE, fi->sha1);
@@ -421,6 +453,11 @@ static void fi_free(struct dl_file_info *fi)
 {
 	GSList *l;
 
+	g_assert(fi);
+	g_assert(!fi->hashed);
+	g_assert(fi->size_atom);
+
+	atom_int_free(fi->size_atom);
 	if (fi->file_name)
 		atom_str_free(fi->file_name);
 	if (fi->path)
@@ -438,6 +475,82 @@ static void fi_free(struct dl_file_info *fi)
 		g_slist_free(fi->alias);
 	}
 	g_free(fi);
+}
+
+/*
+ * fi_resize
+ *
+ * Resize fileinfo to be `size' bytes, by adding empty chunk at the tail.
+ */
+static void fi_resize(struct dl_file_info *fi, guint32 size)
+{
+	struct dl_file_chunk *fc;
+
+	g_assert(fi);
+	g_assert(fi->size < size);
+	g_assert(!fi->hashed);
+
+	fc = g_malloc0(sizeof(*fc));
+	fc->from = fi->size;
+	fc->to = size;
+	fc->status = DL_CHUNK_EMPTY;
+	fi->chunklist = g_slist_append(fi->chunklist, fc);
+
+	/*
+	 * Don't remove/re-insert `fi' from hash tables: when this routine is
+	 * called, `fi' has not been inserted yet.
+	 */
+
+	g_assert(fi->size_atom);
+
+	atom_int_free(fi->size_atom);
+	fi->size = size;
+	fi->size_atom = atom_int_get(&size);
+}
+
+/*
+ * fi_alias
+ *
+ * Add `name' as an alias for `fi' if not already known.
+ * If `record' is TRUE, also record new alias entry in `fi_by_namesize'.
+ */
+static void fi_alias(struct dl_file_info *fi, gchar *name, gboolean record)
+{
+	namesize_t nsk;
+	struct dl_file_info *xfi;
+
+	g_assert(fi);
+	g_assert(!record || fi->hashed);	/* record => fi->hahsed */
+
+	/*
+	 * The fastest way to know if this alias exists is to lookup the
+	 * fi_by_namesize table, since all the aliases are inserted into
+	 * that table.
+	 */
+
+	nsk.name = name;
+	nsk.size = fi->size;
+
+	xfi = g_hash_table_lookup(fi_by_namesize, &nsk);
+
+	if (xfi != NULL && xfi != fi) {
+		if (dbg) g_warning("ignoring alias \"%s\" for \"%s\" (%u bytes): "
+			"conflicts with \"%s\" (%u bytes)",
+			name, fi->file_name, fi->size, xfi->file_name, xfi->size);
+		return;
+	} else if (xfi == fi)
+		return;					/* Alias already known */
+
+	/*
+	 * Insert new alias for `fi'.
+	 */
+
+	fi->alias = g_slist_append(fi->alias, atom_str_get(name));
+
+	if (record) {
+		namesize_t *ns = namesize_make(nsk.name, nsk.size);
+		g_hash_table_insert(fi_by_namesize, ns, fi);
+	}
 }
 
 /*
@@ -532,6 +645,133 @@ plainsize:
 }
 
 /*
+ * file_info_has_filename
+ *
+ * Returns TRUE if a file_info struct has a matching file name or alias,
+ * and FALSE if not.
+ */
+static gboolean file_info_has_filename(struct dl_file_info *fi, gchar *file)
+{
+	GSList *a;
+
+	for (a = fi->alias; a; a = a->next) {
+		if (0 == strcasecmp((gchar *)a->data, file))
+			return TRUE;
+	}
+
+	if (use_fuzzy_matching) {
+		for (a = fi->alias; a; a = a->next) {
+			gint score = 100 * fuzzy_compare(a->data, file);
+			if (score >= fuzzy_threshold) {
+				g_warning("fuzzy: \"%s\"  ==  \"%s\" (score %f)",
+					(gchar *) a->data, file, score / 100.0);
+				fi_alias(fi, file, TRUE);
+				return TRUE;
+			}
+		}
+	}
+	
+	return FALSE;
+}
+
+/*
+ * file_info_lookup
+ *
+ * Lookup our existing fileinfo structs to see if we can spot one
+ * referencing the supplied file `name' and `size', as well as the
+ * optional `sha1' hash.
+ *
+ * Returns the fileinfo structure if found, NULL otherwise.
+ */
+static struct dl_file_info *file_info_lookup(
+	guchar *name, guint32 size, guchar *sha1)
+{
+	struct dl_file_info *fi;
+	struct namesize nsk;
+	GSList *list;
+	GSList *l;
+
+	/*
+	 * If we have a SHA1, this is our unique key.
+	 */
+
+	if (sha1 != NULL) {
+		fi = g_hash_table_lookup(fi_by_sha1, sha1);
+
+		if (fi)
+			return fi;
+
+		/*
+		 * No need to continue if strict SHA1 matching is enabled.
+		 * If the entry is not found in the `fi_by_sha1' table, then
+		 * nothing can be found for this SHA1.
+		 */
+
+		if (strict_sha1_matching)
+			return NULL;
+	}
+
+	/*
+	 * Look for a matching (name, size) tuple.
+	 */
+
+	nsk.name = name;
+	nsk.size = size;
+
+	fi = g_hash_table_lookup(fi_by_namesize, &nsk);
+
+	if (fi) {
+		g_assert(fi->size == size);
+		return fi;
+	}
+
+	/*
+	 * Look for a matching name, given the size.
+	 */
+
+	list = g_hash_table_lookup(fi_by_size, &size);
+
+	for (l = list; l; l = l->next) {
+		fi = l->data;
+
+		g_assert(fi->size == size);
+
+		if (file_info_has_filename(fi, name))
+			return fi;
+	}
+
+	return NULL;
+}
+
+/*
+ * file_info_lookup_dup
+ *
+ * Given a fileinfo structure, look for any other known duplicate.
+ * Returns the duplicate found, or NULL if no duplicate was found.
+ */
+static struct dl_file_info *file_info_lookup_dup(struct dl_file_info *fi)
+{
+	struct dl_file_info *dfi;
+
+	dfi = g_hash_table_lookup(fi_by_outname, fi->file_name);
+
+	if (dfi)
+		return dfi;
+
+	/*
+	 * If `fi' has a SHA1, find any other entry bearing the same SHA1.
+	 */
+
+	if (fi->sha1) {
+		dfi = g_hash_table_lookup(fi_by_sha1, fi->sha1);
+		if (dfi)
+			return dfi;
+	}
+
+	return NULL;
+}
+
+/*
  * file_info_retrieve_binary
  *
  * Reads the file metainfo from the trailer of a file, if it exists.
@@ -595,6 +835,7 @@ static struct dl_file_info *file_info_retrieve_binary(gchar *file, gchar *path)
 	fi->file_name = atom_str_get(file);
 	fi->path = atom_str_get(path);
 	fi->size = trailer.filesize;
+	fi->size_atom = atom_int_get(&fi->size);
 	fi->generation = trailer.generation;
 	fi->use_swarming = 1;					/* Must assume swarming */
 	fi->refcount = 0;
@@ -622,19 +863,18 @@ static struct dl_file_info *file_info_retrieve_binary(gchar *file, gchar *path)
 
 		switch(field) {
 		case FILE_INFO_FIELD_NAME:
-			/* Verify that the name is as expected, and warn if not. */
-			if (strcmp(fi->file_name, tmp) != 0) {
-				g_warning("file_info_retrieve_binary(): conflicting "
-					"names in file info. preserving actual name.");
-				g_warning("file_info_retrieve_binary(): name1 = %s",
-					fi->file_name);
-				g_warning("file_info_retrieve_binary(): name2 = %s", tmp);
-				/* Add reported name as an alias instead. */
-				fi->alias = g_slist_append(fi->alias, atom_str_get(tmp));
-			}
+			/*
+			 * Starting with version 3, the file name is added as an alias.
+			 * We don't really need to carry the filename in the file itself!
+			 */
+			if (version >= 3)
+				g_warning("found NAME field in fileinfo v%u for \"%s\"",
+					version, file);
+			else
+				fi_alias(fi, tmp, FALSE);	/* Pre-v3 lacked NAME in ALIA */
 			break;
 		case FILE_INFO_FIELD_ALIAS:
-			fi->alias = g_slist_append(fi->alias, atom_str_get(tmp));
+			fi_alias(fi, tmp, FALSE);
 			break;
 		case FILE_INFO_FIELD_SHA1:
 			fi->sha1 = atom_sha1_get(tmp);
@@ -644,7 +884,7 @@ static struct dl_file_info *file_info_retrieve_binary(gchar *file, gchar *path)
 			fc = g_malloc0(sizeof(*fc));
 			/*
 			 * In version 1, fields were written in native form.
-			 * Starting at version 2, they are written in network order.
+			 * Starting with version 2, they are written in network order.
 			 */
 			if (version == 1) {
 				fc->from = tmpchunk[0];
@@ -723,7 +963,7 @@ static void file_info_store_one(FILE *f, struct dl_file_info *fi)
 	if (fi->use_swarming && fi->dirty)
 		file_info_store_binary(fi);
 
-	if (!fi->keep && fi->refcount == 0) {
+	if (fi->refcount == 0) {
 		struct stat st;
 
 		g_snprintf(fi_tmp, sizeof(fi_tmp), "%s/%s", fi->path, fi->file_name);
@@ -767,8 +1007,9 @@ static void file_info_store_list(gpointer key, gpointer val, gpointer x)
 	struct dl_file_info *fi;
 	FILE *f = (FILE *)x;
 
-	for (l = (GSList *)val; l; l = l->next) {
+	for (l = (GSList *) val; l; l = l->next) {
 		fi = (struct dl_file_info *) l->data;
+		g_assert(fi->size == *(guint32 *) key);
 		file_info_store_one(f, fi);
 	}
 
@@ -806,11 +1047,12 @@ void file_info_store(void)
 	fputs("#	SIZE <size>\n", f);
 	fputs("#	SHA1 <sha1>\n", f);
 	fputs("#	DONE <bytes done>\n", f);
+	fputs("#	TIME <last update stamp>\n", f);
 	fputs("#	SWRM <boolean; use_swarming>\n", f);
 	fputs("#	<blank line>\n", f);
 	fputs("#\n\n", f);
 
-	g_hash_table_foreach(file_info_size_hash, file_info_store_list, f);
+	g_hash_table_foreach(fi_by_size, file_info_store_list, f);
 
 	fclose(f);
 	g_free(file);
@@ -830,28 +1072,76 @@ void file_info_store_if_dirty(void)
 }
 
 /*
- * file_info_close_list
+ * file_info_free_sha1_kv
  *
  * Callback for hash table iterator. Used by file_info_close().
  */
-static void file_info_close_list(gpointer key, gpointer val, gpointer x)
+static void file_info_free_sha1_kv(gpointer key, gpointer val, gpointer x)
 {
-	GSList *l, *list;
-	struct dl_file_info *fi;
+	guchar *sha1 = (guchar *) key;
+	struct dl_file_info *fi = (struct dl_file_info *) val;
 
-	list = (GSList *)val;
-	
-	for (l = list; l; l = l->next) {
-		fi = (struct dl_file_info *) l->data;
+	g_assert(sha1 == fi->sha1);		/* SHA1 shared with fi's, don't free */
 
-		if (fi->refcount) 
-			g_warning("file_info_close_list() refcount = %u", fi->refcount);
+	/* fi structure in value not freed, shared with other hash tables */
+}
 
-		fi_free(fi);
-	}
+/*
+ * file_info_free_namesize_kv
+ *
+ * Callback for hash table iterator. Used by file_info_close().
+ */
+static void file_info_free_namesize_kv(gpointer key, gpointer val, gpointer x)
+{
+	namesize_t *ns = (namesize_t *) key;
+
+	namesize_free(ns);
+
+	/* fi structure in value not freed, shared with other hash tables */
+}
+
+/*
+ * file_info_free_size_kv
+ *
+ * Callback for hash table iterator. Used by file_info_close().
+ */
+static void file_info_free_size_kv(gpointer key, gpointer val, gpointer x)
+{
+	GSList *list = (GSList *) val;
 
 	g_slist_free(list);
 
+	/* fi structure in value not freed, shared with other hash tables */
+}
+
+
+/*
+ * file_info_free_outname_kv
+ *
+ * Callback for hash table iterator. Used by file_info_close().
+ */
+static void file_info_free_outname_kv(gpointer key, gpointer val, gpointer x)
+{
+	gchar *name = (gchar *) key;
+	struct dl_file_info *fi = (struct dl_file_info *) val;
+
+	g_assert(name == fi->file_name);	/* name shared with fi's, don't free */
+
+	/*
+	 * This table is the last one to be freed, and it is also guaranteed to
+	 * contain ALL fileinfo, and only ONCE, by definition.  Thus freeing
+	 * happens here.
+	 *
+	 * Note that normally all fileinfo structures should have been collected
+	 * during the freeing of downloads, so if we come here, something is
+	 * wrong with our memory management.
+	 */
+
+	g_warning("file_info_free_outname_kv() refcount = %u for \"%s\"",
+		fi->refcount, name);
+
+	fi->hashed = FALSE;			/* Since we're clearing them! */
+	fi_free(fi);
 }
 
 /*
@@ -861,13 +1151,21 @@ static void file_info_close_list(gpointer key, gpointer val, gpointer x)
  */
 void file_info_close(void)
 {
-	file_info_store();
+	/*
+	 * Freeing callbacks expect that the freeing of the `fi_by_outname'
+	 * table will free the referenced `fi' (since that table MUST contain
+	 * all the known `fi' structs by definition).
+	 */
 
-	g_hash_table_foreach(file_info_size_hash, file_info_close_list, NULL);
+	g_hash_table_foreach(fi_by_sha1, file_info_free_sha1_kv, NULL);
+	g_hash_table_foreach(fi_by_namesize, file_info_free_namesize_kv, NULL);
+	g_hash_table_foreach(fi_by_size, file_info_free_size_kv, NULL);
+	g_hash_table_foreach(fi_by_outname, file_info_free_outname_kv, NULL);
 
-	g_hash_table_destroy(file_info_size_hash);
-	g_hash_table_destroy(file_info_name_hash);
-	g_hash_table_destroy(file_info_sha1_hash);
+	g_hash_table_destroy(fi_by_sha1);
+	g_hash_table_destroy(fi_by_namesize);
+	g_hash_table_destroy(fi_by_size);
+	g_hash_table_destroy(fi_by_outname);
 	
 	g_free(tbuf.arena);
 }
@@ -877,22 +1175,258 @@ void file_info_close(void)
  *
  * Inserts a file_info struct into the hash tables.
  */
-void file_info_hash_insert(struct dl_file_info *fi)
+static void file_info_hash_insert(struct dl_file_info *fi)
 {
+	struct dl_file_info *xfi;
+	namesize_t nsk;
 	GSList *l;
 
-	l = g_hash_table_lookup(file_info_size_hash, &fi->size);
-	if(l) {
+	g_assert(fi);
+	g_assert(!fi->hashed);
+	g_assert(fi->size_atom);
+
+	if (dbg > 4) {
+		printf("FILEINFO insert 0x%lx \"%s\" (%u/%u bytes done) sha1=%s\n",
+			(gulong) fi, fi->file_name, fi->done, fi->size,
+			fi->sha1 ? sha1_base32(fi->sha1) : "none");
+		fflush(stdout);
+	}
+
+	/*
+	 * If an entry already exists in the `fi_by_outname' table, then it
+	 * is for THIS fileinfo.  Otherwise, there's a structural assertion
+	 * that has been broken somewhere!
+	 *		--RAM, 01/09/2002
+	 */
+
+	xfi = g_hash_table_lookup(fi_by_outname, fi->file_name);
+
+	if (xfi != NULL && xfi != fi)			/* See comment above */
+		g_error("xfi = 0x%lx, fi = 0x%lx", (gulong) xfi, (gulong) fi);
+
+	if (xfi == NULL)
+		g_hash_table_insert(fi_by_outname, fi->file_name, fi);
+
+	/*
+	 * Likewise, there can be only ONE entry per given SHA1, but the SHA1
+	 * may not be already present at this time, so the entry is optional.
+	 * If it exists, it must be unique though.
+	 *		--RAM, 01/09/2002
+	 */
+
+	if (fi->sha1) {
+		xfi = g_hash_table_lookup(fi_by_sha1, fi->sha1);
+
+		if (xfi != NULL && xfi != fi)		/* See comment above */
+			g_error("xfi = 0x%lx, fi = 0x%lx", (gulong) xfi, (gulong) fi);
+
+		if (xfi == NULL)
+			g_hash_table_insert(fi_by_sha1, fi->sha1, fi);
+	}
+
+	/*
+	 * The (name, size) tuples must also point to ONE entry, the current
+	 * one, for each of the name aliases.
+	 */
+
+	nsk.size = fi->size;
+
+	for (l = fi->alias; l; l = l->next) {
+		nsk.name = l->data;
+
+		xfi = g_hash_table_lookup(fi_by_namesize, &nsk);
+
+		if (xfi != NULL && xfi != fi)		/* See comment above */
+			g_error("xfi = 0x%lx, fi = 0x%lx", (gulong) xfi, (gulong) fi);
+
+		if (xfi == NULL) {
+			namesize_t *ns = namesize_make(nsk.name, nsk.size);
+			g_hash_table_insert(fi_by_namesize, ns, fi);
+		}
+	}
+
+	/*
+	 * Finally, for a given size, maintain a list of fi's.
+	 *
+	 * NB: the key used here is the size_atom, as it must be shared accross
+	 * all the `fi' structs with the same size!
+	 */
+
+	g_assert(fi->size == *(guint32 *) fi->size_atom);
+
+	l = g_hash_table_lookup(fi_by_size, fi->size_atom);
+
+	if (l != NULL) {
 		g_slist_append(l, fi);
 	} else {
 		l = g_slist_append(l, fi);
-		g_hash_table_insert(file_info_size_hash, &fi->size, l);
+		g_assert(l != NULL);
+		g_hash_table_insert(fi_by_size, fi->size_atom, l);
 	}
 
-	g_hash_table_insert(file_info_name_hash, fi->file_name, fi);
+	fi->hashed = TRUE;
+}
 
-	if(fi->sha1)
-		g_hash_table_insert(file_info_sha1_hash, fi->sha1, fi);
+/*
+ * file_info_hash_remove
+ *
+ * Remove fileinfo data from all the hash tables.
+ */
+static void file_info_hash_remove(struct dl_file_info *fi)
+{
+	namesize_t nsk;
+	namesize_t *ns;
+	gpointer x;
+	gboolean found;
+	GSList *l;
+	GSList *newl;
+
+	g_assert(fi);
+	g_assert(fi->hashed);
+	g_assert(fi->size_atom);
+
+	if (dbg > 4) {
+		printf("FILEINFO remove 0x%lx \"%s\" (%u/%u bytes done) sha1=%s\n",
+			(gulong) fi, fi->file_name, fi->done, fi->size,
+			fi->sha1 ? sha1_base32(fi->sha1) : "none");
+		fflush(stdout);
+	}
+
+	/*
+	 * Remove from plain hash tables: by output name, and by SHA1.
+	 */
+
+	g_hash_table_remove(fi_by_outname, fi->file_name);
+
+	if (fi->sha1)
+		g_hash_table_remove(fi_by_sha1, fi->sha1);
+
+	/*
+	 * Remove all the aliases from the (name, size) table.
+	 */
+
+	nsk.size = fi->size;
+
+	for (l = fi->alias; l; l = l->next) {
+		nsk.name = l->data;
+
+		found = g_hash_table_lookup_extended(fi_by_namesize, &nsk,
+			(gpointer *) &ns, &x);
+
+		g_assert(found);
+		g_assert(x == (gpointer) fi);
+
+		g_hash_table_remove(fi_by_namesize, ns);
+		namesize_free(ns);
+	}
+
+	/*
+	 * Remove from the "by filesize" table.
+	 *
+	 * NB: the key used here is the size_atom, as it must be shared accross
+	 * all the `fi' structs with the same size (in case we free `fi' now)!
+	 */
+
+	g_assert(fi->size == *(guint32 *) fi->size_atom);
+
+	l = g_hash_table_lookup(fi_by_size, &fi->size);
+
+	g_assert(l != NULL);
+
+	newl = g_slist_remove(l, fi);
+
+	if (newl == NULL)
+		g_hash_table_remove(fi_by_size, &fi->size);
+	else if (newl != l)
+		g_hash_table_insert(fi_by_size, fi->size_atom, newl);
+
+	fi->hashed = FALSE;
+}
+
+/*
+ * file_info_reparent_all
+ *
+ * Reparent all downloads using `from' as a fileinfo, so they use `to' now.
+ */
+static void file_info_reparent_all(
+	struct dl_file_info *from, struct dl_file_info *to)
+{
+	g_assert(from->done == 0);
+	g_assert(0 != strcmp(from->file_name, to->file_name));
+
+	g_snprintf(fi_tmp, sizeof(fi_tmp), "%s/%s", from->path, from->file_name);
+
+	if (-1 == unlink(fi_tmp))
+		g_warning("cannot unlink \"%s\": %s", fi_tmp, g_strerror(errno));
+
+	download_info_change_all(from, to);
+}
+
+/*
+ * file_info_got_sha1
+ *
+ * Called when we discover the SHA1 of a running download.
+ * Make sure there is no other entry already bearing that SHA1, and record
+ * the information.
+ *
+ * Returns TRUE if OK, FALSE if a duplicate record with the same SHA1 exists.
+ */
+gboolean file_info_got_sha1(struct dl_file_info *fi, guchar *sha1)
+{
+	struct dl_file_info *xfi;
+
+	g_assert(fi);
+	g_assert(sha1);
+	g_assert(fi->sha1 == NULL);
+
+	xfi = g_hash_table_lookup(fi_by_sha1, sha1);
+
+	if (xfi == NULL) {
+		fi->sha1 = atom_sha1_get(sha1);
+		g_hash_table_insert(fi_by_sha1, fi->sha1, fi);
+		return TRUE;
+	}
+
+	/*
+	 * Found another entry with the same SHA1.
+	 *
+	 * If either download has not started yet, we can keep the active one
+	 * and reparent the other.  Otherwise, we have to abort the current
+	 * download, which will be done when we return FALSE.
+	 *
+	 * XXX we could abort the download with less data downloaded already,
+	 * XXX or we could reconciliate the chunks from both files, but this
+	 * XXX will cost I/Os and cannot be done easily in our current
+	 * XXX mono-threaded model.
+	 * XXX		--RAM, 05/09/2002
+	 */
+
+	if (dbg > 3)
+		printf("CONFLICT found same SHA1 %s in "
+			"\"%s\" (%u/%u bytes done) and \"%s\" (%u/%u bytes done)\n",
+			sha1_base32(sha1),
+			xfi->file_name, xfi->done, xfi->size,
+			fi->file_name, fi->done, fi->size);
+
+	if (fi->done && xfi->done) {
+		g_warning("found same SHA1 %s in "
+			"\"%s\" (%u/%u bytes done) and \"%s\" (%u/%u bytes done) "
+			"-- aborting last one",
+			sha1_base32(sha1),
+			xfi->file_name, xfi->done, xfi->size,
+			fi->file_name, fi->done, fi->size);
+		return FALSE;
+	}
+
+	if (fi->done) {
+		g_assert(xfi->done == 0);
+		file_info_reparent_all(xfi, fi);	/* All `xfi' replaced by `fi' */
+	} else {
+		g_assert(fi->done == 0);
+		file_info_reparent_all(fi, xfi);	/* All `fi' replaced by `xfi' */
+	}
+
+	return TRUE;
 }
 
 /*
@@ -909,20 +1443,16 @@ void file_info_retrieve(void)
 	struct dl_file_info *fi = NULL;
 	gchar filename[1024];
 	struct stat buf;
-	GHashTable *seen_file = g_hash_table_new(g_str_hash, g_str_equal);
 	gboolean empty = TRUE;
+	GSList *aliases = NULL;
 
-	file_info_name_hash = g_hash_table_new(g_str_hash, g_str_equal);
-	file_info_size_hash = g_hash_table_new(g_int_hash, g_int_equal);
-	file_info_sha1_hash = g_hash_table_new(sha1_hash, sha1_eq);
-  
 	/*
 	 * We have a complex interaction here: each time a new entry within the
 	 * download mesh is added, file_info_try_to_swarm_with() will be
 	 * called.	Moreover, the download mesh is initialized before us.
 	 *
 	 * However, we cannot enqueue a download before the download module is
-	 * initialized. And we know it is initilized because download_init()
+	 * initialized. And we know it is initialized now because download_init()
 	 * calls us!
 	 *
 	 *		--RAM, 20/08/2002
@@ -965,24 +1495,31 @@ void file_info_retrieve(void)
 			line[strlen(line)-1] = '\0';
 
 		if ((*line == '\0') && fi && fi->file_name) {
+			GSList *l;
 			struct dl_file_info *dfi;
-			gboolean already_seen;
 
 			/*
-			 * If we already have an entry for this filename, then we have
-			 * a bug somewhere because we listed the same fileinfo twice.
+			 * We could not add the aliases immediately because the file
+			 * is formatted with ALIA coming before SIZE.  To let fi_alias()
+			 * detect conflicting entries, we need to have a valid fi->size.
 			 */
 
-			already_seen = (gboolean)
-				g_hash_table_lookup(seen_file, (gconstpointer) fi->file_name);
+			for (l = aliases; l; l = l->next) {
+				fi_alias(fi, (gchar *) l->data, FALSE);
+				atom_str_free((gchar *) l->data);
+			}
+			g_slist_free(aliases);
 
-			if (already_seen) {
-				g_warning("discarding duplicate fileinfo entry for \"%s\"",
+			/*
+			 * There can't be duplicates!
+			 */
+
+			dfi = g_hash_table_lookup(fi_by_outname, fi->file_name);
+			if (dfi != NULL) {
+				g_warning("discarding DUPLICATE fileinfo entry for \"%s\"",
 					fi->file_name);
-				fi_free(fi);
 				goto discard;
-			} else
-				g_hash_table_insert(seen_file, fi->file_name, (gpointer) 0x1);
+			}
 
 			/* 
 			 * Check file trailer information.	The main file is only written
@@ -1009,11 +1546,28 @@ void file_info_retrieve(void)
 				fi_free(dfi);
 			}
 
+			/*
+			 * Check whether entry is not another's duplicate.
+			 */
+
+			dfi = file_info_lookup_dup(fi);
+
+			if (dfi != NULL) {
+				g_warning("found DUPLICATE entry for \"%s\" (%u bytes) "
+					"with \"%s\" (%u bytes)",
+					fi->file_name, fi->size, dfi->file_name, dfi->size);
+				goto discard;
+			}
+
 			file_info_merge_adjacent(fi);
 			file_info_hash_insert(fi);
 			empty = FALSE;
+			fi = NULL;
+
+			continue;
 
 		discard:
+			fi_free(fi);
 			fi = NULL;
 			continue;
 		}
@@ -1021,6 +1575,7 @@ void file_info_retrieve(void)
 		if (!fi) {
 			fi = g_malloc0(sizeof(struct dl_file_info));
 			fi->refcount = 0;
+			aliases = NULL;
 		}
 
 		if (!strncmp(line, "NAME ", 5))
@@ -1028,12 +1583,13 @@ void file_info_retrieve(void)
 		else if (!strncmp(line, "PATH ", 5))
 			fi->path = atom_str_get(line + 5);
 		else if (!strncmp(line, "ALIA ", 5))
-			fi->alias = g_slist_append(fi->alias, atom_str_get(line + 5));
+			aliases = g_slist_append(aliases, atom_str_get(line + 5));
 		else if (!strncmp(line, "GENR ", 5))
 			fi->generation = atoi(line + 5);
-		else if (!strncmp(line, "SIZE ", 5))
+		else if (!strncmp(line, "SIZE ", 5)) {
 			fi->size = atoi(line + 5);
-		else if (!strncmp(line, "TIME ", 5))
+			fi->size_atom = atom_int_get(&fi->size);
+		} else if (!strncmp(line, "TIME ", 5))
 			fi->stamp = atoi(line + 5);
 		else if (!strncmp(line, "DONE ", 5))
 			fi->done = atoi(line + 5);
@@ -1060,8 +1616,6 @@ void file_info_retrieve(void)
 		}
 	}
 
-	g_hash_table_destroy(seen_file);	/* Key pointers belong to vector */
-
 	if (fi) {
 		fi_free(fi);
 		if (!empty)
@@ -1073,43 +1627,94 @@ void file_info_retrieve(void)
 }
 
 /*
- * file_info_has_filename
+ * escape_filename
  *
- * Returns TRUE if a file_info struct has a matching file name or alias,
- * and FALSE if not.
+ * Lazily replace all '/' if filename with '_': if a substitution needs to
+ * be done, a copy of the original argument is made first.	Otherwise,
+ * no change nor allocation occur.
+ *
+ * Returns the pointer to the escaped filename, or the original argument if
+ * no escaping needed to be performed.
  */
-static gboolean file_info_has_filename(struct dl_file_info *fi, gchar *file)
+static gchar *escape_filename(gchar *file)
 {
-	GSList *a;
+	gchar *escaped = NULL;
+	gchar *s;
+	gchar c;
 
-	if (0 == strcasecmp(fi->file_name, file))
-		return TRUE;
-
-	for (a = fi->alias; a; a = a->next) {
-		if (0 == strcasecmp((gchar *)a->data, file))
-			return TRUE;
-	}
-
-	if (use_fuzzy_matching) {
-		int score = 100 * fuzzy_compare(fi->file_name, file);
-		if (score >= fuzzy_threshold) {
-			g_warning("fuzzy: \"%s\"  ==  \"%s\" (score %f)",
-				fi->file_name, file, score / 100.0);
-			fi->alias = g_slist_append(fi->alias, atom_str_get(file));
-			return TRUE;
-		}
-		for (a = fi->alias; a; a = a->next) {
-			score = 100 * fuzzy_compare(a->data, file);
-			if (score >= fuzzy_threshold) {
-				g_warning("fuzzy: \"%s\"  ==  \"%s\" (score %f)",
-					(gchar *) a->data, file, score / 100.0);
-				fi->alias = g_slist_append(fi->alias, atom_str_get(file));
-				return TRUE;
+	s = file;
+	while ((c = *s)) {
+		if (c == '/') {
+			if (escaped == NULL) {
+				escaped = g_strdup(file);
+				s = escaped + (s - file);	/* s now refers to escaped string */
+				g_assert(*s == '/');
 			}
+			*s = '_';
+		}
+		s++;
+	}
+
+	return escaped == NULL ? file : escaped;
+}
+
+/*
+ * file_info_new_outname
+ *
+ * Allocate unique output name for file `name'.
+ * Returns filename atom.
+ */
+static guchar *file_info_new_outname(guchar *name)
+{
+	gint i;
+	guchar xuid[16];
+	gint flen;
+	guchar *escaped = escape_filename(name);
+	guchar *result;
+
+	/*
+	 * If `name' (escaped form) is not taken yet, it will do.
+	 */
+
+	if (NULL == g_hash_table_lookup(fi_by_outname, escaped)) {
+		result = atom_str_get(escaped);
+		goto ok;
+	}
+
+	/*
+	 * OK, try with .01 extension, then .02, etc...
+	 */
+
+	flen = g_snprintf(fi_tmp, sizeof(fi_tmp), "%s", escaped);
+
+	for (i = 1; i < 100; i++) {
+		g_snprintf(&fi_tmp[flen], sizeof(fi_tmp)-flen, ".%02d", i);
+		if (NULL == g_hash_table_lookup(fi_by_outname, fi_tmp)) {
+			result = atom_str_get(fi_tmp);
+			goto ok;
 		}
 	}
-	
-	return FALSE;
+
+	/*
+	 * No luck, allocate random GUID and append it.
+	 */
+
+	guid_random_fill(xuid);
+
+	g_snprintf(&fi_tmp[flen], sizeof(fi_tmp)-flen, "-%s", guid_hex_str(xuid));
+	if (NULL == g_hash_table_lookup(fi_by_outname, fi_tmp)) {
+		result = atom_str_get(fi_tmp);
+		goto ok;
+	}
+
+	g_error("no luck with random number generator");	/* Should NOT happen */
+	return NULL;
+
+ok:
+	if (escaped != name)
+		g_free(escaped);
+
+	return result;
 }
 
 /*
@@ -1125,15 +1730,13 @@ static struct dl_file_info *file_info_create(
 	struct dl_file_info *fi;
 	struct dl_file_chunk *fc;
 	struct stat st;
-	guint32 pos = 0;
 
 	fi = g_malloc0(sizeof(struct dl_file_info));
-	fi->refcount = 1;
-	fi->file_name = atom_str_get(file);
+	fi->file_name = file_info_new_outname(file);	/* Get unique file name */
 	fi->path = atom_str_get(path);
 	if (sha1)
 		fi->sha1 = atom_sha1_get(sha1);
-	fi->size = size;
+	fi->size = 0;							/* Will be updated below */
 	fi->done = 0;
 	fi->use_swarming = use_swarming;
 
@@ -1145,19 +1748,16 @@ static struct dl_file_info *file_info_create(
 			fi->file_name, st.st_size);
 		fc = g_malloc0(sizeof(struct dl_file_chunk));
 		fc->from = 0;
-		pos = fc->to = st.st_size;
+		fi->size = fc->to = st.st_size;
 		fc->status = DL_CHUNK_DONE;
 		fi->chunklist = g_slist_append(fi->chunklist, fc);
 		fi->dirty = TRUE;
 	} 
 
-	if (size > pos) {	
-		fc = g_malloc0(sizeof(struct dl_file_chunk));
-		fc->from = pos;
-		fc->to = size;
-		fc->status = DL_CHUNK_EMPTY;
-		fi->chunklist = g_slist_append(fi->chunklist, fc);
-	}
+	fi->size_atom = atom_int_get(&fi->size);	/* Set now, for fi_resize() */
+
+	if (size > fi->size)
+		fi_resize(fi, size);
 
 	return fi;
 }
@@ -1177,6 +1777,13 @@ void file_info_recreate(struct download *d)
 
 	g_assert(d->status == GTA_DL_CONNECTING);
 
+	/*
+	 * Before creating new fileinfo, we must remove the old structure
+	 * from the hash table.  This will also ensure that the output name be
+	 * freed and available for immediate reuse.
+	 */
+
+	file_info_hash_remove(fi);
 	new_fi = file_info_create(fi->file_name, fi->path, fi->size, fi->sha1);
 
 	/*
@@ -1195,8 +1802,7 @@ void file_info_recreate(struct download *d)
 	 * download has not started yet, it's only preparing.
 	 */
 
-	file_info_free(fi, FALSE);
-	d->file_info = new_fi;
+	d->file_info = new_fi;			/* Don't decrement refcount yet */
 
 	/*
 	 * All other downloads bearing the old `fi' are moved to the new one,
@@ -1204,7 +1810,11 @@ void file_info_recreate(struct download *d)
 	 * why we changed the target ourselves above.
 	 */
 
-	download_file_info_change_all(fi, new_fi);
+	download_info_change_all(fi, new_fi);
+
+	g_assert(fi->refcount == 1);	/* We did not decrement refcount on `d' */
+
+	fi_free(fi);					/* Last reference removed */
 }
 
 /*
@@ -1212,81 +1822,101 @@ void file_info_recreate(struct download *d)
  *
  * Returns a pointer to file_info struct that matches the given file
  * name, size and/or SHA1. A new struct will be allocated if necessary.
+ *
+ * `file' is the file name on the server.
  */ 
 struct dl_file_info *file_info_get(
 	gchar *file, gchar *path, guint32 size, gchar *sha1)
 {
-	GSList *p;
 	struct dl_file_info *fi;
+	guchar *outname;
 
-	/* See if we know anything about the file already. */
-	for (p = g_hash_table_lookup(file_info_size_hash, &size); p; p = p->next) {
+	/*
+	 * See if we know anything about the file already.
+	 */
 
-		fi = p->data;
+	fi = file_info_lookup(file, size, sha1);
 
-		/*
-		 * I'm not sure if size should be tested for here, since it's
-		 * theorically possible to fetch from a partial file and use it to
-		 * fill our gaps, but for now, require files to be of identical length.
-		 */
-		if (fi->size != size) {
-			g_warning("file_info_get(): size mismatch!? (%u vs %u)",
-					fi->size, size);
-			continue;
-		}
+	if (fi && sha1 && fi->sha1 && !sha1_eq(sha1, fi->sha1))
+		fi = NULL;
 
-		if (sha1 && fi->sha1) {
-
-			if (memcmp(sha1, fi->sha1, SHA1_RAW_SIZE) == 0) {
-				if (!file_info_has_filename(fi, file)) {
-					fi->alias = g_slist_append(fi->alias, atom_str_get(file));
-					fi->dirty = TRUE;
-				}
-				fi->refcount++;
-				return fi;
-			}
-			
-			/* In strict mode, we require the SHA1s to be identical. */
-			if (strict_sha1_matching)
-				continue;
-		}
-
-		if (file_info_has_filename(fi, file)) {
-			/* Grab the sha1 if we don't have it. */
-			if (sha1 && !fi->sha1) {
-				fi->sha1 = atom_sha1_get(sha1);
-				g_hash_table_insert(file_info_sha1_hash, sha1, fi);
-				fi->dirty = TRUE;
-			}
-			fi->refcount++;
-			return fi;
-		}
-
-	}
-
-	/* Check if the file exists and has embedded meta info. */
-	if ((fi = file_info_retrieve_binary(file, path)) != NULL) {
-		g_warning("file_info_get(): "
-			"successfully retrieved meta info from file \"%s\"", file);
-		fi->refcount++;
-		file_info_hash_insert(fi);
+	if (fi) {
+		fi_alias(fi, file, TRUE);	/* Add alias if not conflicting */
 		return fi;
 	}
 
-	/* New file; Allocate a new file structure */
+	/*
+	 * Compute new output name.  If the filename is not taken yet, this
+	 * will be exactly `file'.  Otherwise, it will be a variant.
+	 */
+
+	outname = file_info_new_outname(file);
 
 	/*
+	 * Check whether the file exists and has embedded meta info.
+	 * Note that we use the new `outname', not `file'.
+	 */
+
+	if ((fi = file_info_retrieve_binary(outname, path)) != NULL) {
+		/*
+		 * File exists, and is NOT currently in use, otherwise `outname' would
+		 * not have been selected as an output name.
+		 *
+		 * If filename has a SHA1, and either:
+		 *
+		 * 1. we don't have a SHA1 for the new download (the `sha1' parameter)
+		 * 2. we have a SHA1 but it differs
+		 *
+		 * then the file is "dead": we cannot use it.
+		 */
+
+		if (fi->sha1 != NULL && (sha1 == NULL || !sha1_eq(sha1, fi->sha1))) {
+			guchar dead[1024];
+
+			g_warning("found DEAD file \"%s\" bearing SHA1 %s",
+				outname, sha1_base32(fi->sha1));
+
+			g_snprintf(fi_tmp, sizeof(fi_tmp), "%s/%s", path, outname);
+			g_snprintf(dead, sizeof(dead), "%s/%s.DEAD", path, outname);
+
+			if (-1 == rename(fi_tmp, dead))
+				g_warning("cannot rename \"%s\" as \"%s\": %s",
+					fi_tmp, dead, g_strerror(errno));
+
+			fi_free(fi);
+			fi = NULL;
+		}
+		else if (fi->size < size) {
+			/*
+			 * Existing file is smaller than the total size of this file.
+			 * Trust the larger size, because it's the only sane thing to do.
+			 * NB: if we have a SHA1, we know it's matching at this point.
+			 */
+
+			g_warning("found existing file \"%s\" size=%u, increasing to %u",
+				outname, fi->size, size);
+
+			fi_resize(fi, size);
+		}
+	}
+
+	/*
+	 * If we don't have a `fi', then it is a new file.
+	 *
 	 * Potential problem situations:
 	 *
 	 *	- File exists, but we have no file_info struct for it.
 	 * => Assume the file is complete up to filesize bytes.
 	 *
 	 *	- File with same name as another, but with a different size.
-	 * => Use an alternative output name (fixme)
-	 *
+	 * => We have no way to detect it, sorry.  All new files should have a
+	 *    metainfo trailer anyway, so we'll handle it above the next time.
 	 */
 
-	fi = file_info_create(file, path, size, sha1);
+	if (fi == NULL) {
+		fi = file_info_create(outname, path, size, sha1);
+		fi_alias(fi, file, FALSE);
+	}
 	
 	file_info_hash_insert(fi);
 
@@ -1303,50 +1933,52 @@ struct dl_file_info *file_info_get(
  * identical to the given properties in the download queue already,
  * and NULL otherwise.
  */
-
 static struct dl_file_info *file_info_has_identical(
-	gchar *file, guint32 size, gchar *sha1)
+	gchar *file, guint32 size, gchar *sha1, GSList *sizelist)
 {
 	GSList *p;
 	struct dl_file_info *fi;
+	namesize_t nsk;
 
-	if (!sha1 && strict_sha1_matching)
-		return NULL;
+	if (strict_sha1_matching) {
+		if (!sha1)
+			return NULL;
+		return file_info_lookup(file, size, sha1);
+	}
 
-	for (p = g_hash_table_lookup(file_info_size_hash, &size); p; p = p->next) {
-		
-		fi = p->data;
+	nsk.name = file;
+	nsk.size = size;
 
-		if (fi->size != size) {
-			g_warning("file_info_has_identical(): size mismatch!? (%u vs %u)",
-					fi->size, size);
+	fi = g_hash_table_lookup(fi_by_namesize, &nsk);
+
+	if (fi && sha1 && fi->sha1 && sha1_eq(sha1, fi->sha1))
+		return fi;
+
+	/*
+	 * Look up by similar filenames.  We go through the list of all the
+	 * known fileinfo entries with an identical filesize.
+	 */
+
+	for (p = sizelist; p; p = p->next) {
+		fi = (struct dl_file_info *) p->data;
+
+		g_assert(fi->size == size);
+		g_assert(fi->refcount >= 0);
+
+		if (fi->refcount == 0)			/* No longer used by any download */
 			continue;
-		}
-
-		/*
-		 * No referencess means file isn't in queue anymore,
-		 * and we won't start new ones from here.
-		 */
-
-		if (fi->refcount == 0) continue;
-
-		/*
-		 * Check whether file needs more data at all.
-		 */
 
 		if (sha1 && fi->sha1) {
-
-			if (memcmp(sha1, fi->sha1, SHA1_RAW_SIZE) == 0)
+			if (sha1_eq(sha1, fi->sha1))
 				return fi;
-
-			/* In strict mode, we require the SHA1s to be identical. */
-			if (strict_sha1_matching)
-				continue;
+			else
+				continue;				/* SHA1 mismatch, not identical! */
 		}
 
 		if (file_info_has_filename(fi, file))
 			return fi;
 	}
+
 	return NULL;
 }
 
@@ -1359,15 +1991,18 @@ static struct dl_file_info *file_info_has_identical(
 void file_info_check_results_set(gnet_results_set_t *rs)
 {
 	GSList *l;
+	GSList *list;
 	struct dl_file_info *fi;
 
 	for (l = rs->records; l; l = l->next) {
 		gnet_record_t *rc = (gnet_record_t *) l->data;
 
-		if(!g_hash_table_lookup(file_info_size_hash, &rc->size))
+		list = g_hash_table_lookup(fi_by_size, &rc->size);
+		if (list == NULL)
 			continue;
-		
-		fi = file_info_has_identical(rc->name, rc->size, rc->sha1);
+
+		fi = file_info_has_identical(rc->name, rc->size, rc->sha1, list);
+
 		if (fi) {
 			gboolean need_push = (rs->status & ST_FIREWALL) ||
 				!check_valid_host(rs->ip, rs->port);
@@ -1377,13 +2012,21 @@ void file_info_check_results_set(gnet_results_set_t *rs)
 	}
 }
 
-void file_info_free(struct dl_file_info *fi, gboolean keep)
+/*
+ * file_info_free
+ *
+ * Free fileinfo, removing one reference.
+ * When nobody references the fileinfo structure, discard it.
+ */
+void file_info_free(struct dl_file_info *fi)
 {
 	g_assert(fi->refcount > 0);
+	g_assert(fi->hashed);
 
-	fi->refcount--;
-	fi->keep = keep;
-	return;
+	if (fi->refcount-- == 1) {
+		file_info_hash_remove(fi);
+		fi_free(fi);
+	}
 }
 
 /*
@@ -1693,6 +2336,7 @@ enum dl_chunk_status file_info_find_hole(
 	struct dl_file_info *fi = d->file_info;
 	guint32 chunksize;
 	struct stat buf;
+	guint busy = 0;
 
 	/*
 	 * This routine is called each time we start a new download, before
@@ -1719,11 +2363,10 @@ enum dl_chunk_status file_info_find_hole(
 		}
 	}
 
-	/* fixme: find a decent chunksize strategy */
-	//chunksize = (d->file_info->size - d->file_info->done) /
-	//		(d->file_info->refcount + 3);
-	//chunksize = d->file_info->size / 3;
-	chunksize = d->file_info->size / (d->file_info->refcount + 1);
+	g_assert(fi->size >= d->file_size);
+	g_assert(fi->lifecount > 0);
+
+	chunksize = fi->size / fi->lifecount;
 
 	if (chunksize < dl_minchunksize) chunksize = dl_minchunksize;
 	if (chunksize > dl_maxchunksize) chunksize = dl_maxchunksize;
@@ -1731,7 +2374,11 @@ enum dl_chunk_status file_info_find_hole(
 	for (fclist = fi->chunklist; fclist; fclist = g_slist_next(fclist)) {
 		fc = fclist->data;
 
-		if (fc->status != DL_CHUNK_EMPTY) continue;
+		if (fc->status != DL_CHUNK_EMPTY) {
+			if (fc->status == DL_CHUNK_BUSY)
+				busy++;		/* Will be used by aggressive code below */
+			continue;
+		}
 
 		*from = fc->from;
 		*to = fc->to;
@@ -1745,14 +2392,32 @@ enum dl_chunk_status file_info_find_hole(
 	}
 
 	if (use_aggressive_swarming) {
-
 		guint32 longest_from = 0, longest_to = 0;
+		gint starving;
+		guint32 minchunk;
+
+		/*
+		 * Compute minimum chunk size for splitting.  When we're told to
+		 * be aggressive and we need to be, we don't really want to honour
+		 * the dl_minchunksize setting!
+		 *
+		 * There are fi->lifecount active downloads (queued or running) for
+		 * this file, and `busy' chunks.  The difference is the amount of
+		 * starving downloads...
+		 */
+
+		g_assert(fi->lifecount > busy);		/* Or we'd found a chunk before */
+
+		starving = fi->lifecount - busy;	/* Starving downloads */
+		minchunk = MIN(dl_minchunksize, fi->size - fi->done) / (2 * starving);
+		if (minchunk < FI_MIN_CHUNK_SPLIT)
+			minchunk = FI_MIN_CHUNK_SPLIT;
 
 		for (fclist = fi->chunklist; fclist; fclist = g_slist_next(fclist)) {
 			fc = fclist->data;
 
 			if (fc->status != DL_CHUNK_BUSY) continue;
-			if ((fc->to - fc->from) < dl_minchunksize) continue;
+			if ((fc->to - fc->from) < minchunk) continue;
 
 			if ((fc->to - fc->from) > (longest_to - longest_from)) {
 				longest_from = fc->from;
@@ -1781,7 +2446,7 @@ enum dl_chunk_status file_info_find_hole(
  */
 static struct dl_file_info *file_info_active(guchar *sha1)
 {
-	return g_hash_table_lookup(file_info_sha1_hash, sha1);
+	return g_hash_table_lookup(fi_by_sha1, sha1);
 }
 
 /*

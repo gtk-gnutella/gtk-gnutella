@@ -602,14 +602,14 @@ void download_remove_file(struct download *d)
 }
 
 /*
- * download_file_info_change_all
+ * download_info_change_all
  *
  * Change all the fileinfo of downloads from `old_fi' to `new_fi'.
  *
- * All running downloads are requeued immediately, since then change means
- * the underlying file changed.
+ * All running downloads are requeued immediately, since a change means
+ * the underlying file we're writing to can change.
  */
-void download_file_info_change_all(
+void download_info_change_all(
 	struct dl_file_info *old_fi, struct dl_file_info *new_fi)
 {
 	GSList *l;
@@ -626,10 +626,59 @@ void download_file_info_change_all(
 		if (DOWNLOAD_IS_RUNNING(d))
 			download_queue(d, "Requeued by file info change");
 
-		file_info_free(old_fi, FALSE);
+		switch (d->status) {
+		case GTA_DL_COMPLETED:
+		case GTA_DL_ABORTED:
+		case GTA_DL_ERROR:
+			break;
+		default:
+			g_assert(old_fi->lifecount > 0);
+			old_fi->lifecount--;
+			new_fi->lifecount++;
+			break;
+		}
+
+		file_info_free(old_fi);
 		d->file_info = new_fi;
 		new_fi->refcount++;
+
 	}
+}
+
+/*
+ * download_info_invalidate
+ *
+ * Invalidate improper fileinfo for the download.
+ *
+ * This usually happens when we discover the SHA1 of the file on the remote
+ * server, and see that it does not match the one for the associated file on
+ * disk, as described in `file_info'.
+ */
+static void download_info_invalidate(struct download *d)
+{
+	struct dl_file_info *fi = d->file_info;
+
+	g_assert(fi);
+	g_assert(fi->lifecount > 0);
+
+	fi->lifecount--;
+	file_info_free(fi);
+	d->file_info = NULL;
+}
+
+/*
+ * download_info_get
+ *
+ * Reget proper fileinfo for download, after an invalidation.
+ */
+static void download_info_get(struct download *d)
+{
+	g_assert(d);
+	g_assert(d->file_info == NULL);
+
+	d->file_info = file_info_get(
+		d->file_name, save_file_path, d->file_size, d->sha1);
+	d->file_info->refcount++;
 }
 
 /*
@@ -690,15 +739,7 @@ gint download_remove_all_from_peer(const gchar *guid, guint32 ip, guint16 port)
 			g_assert(d->status != GTA_DL_REMOVED);
 
 			n++;
-			switch (d->status) {
-			case GTA_DL_QUEUED:
-			case GTA_DL_TIMEOUT_WAIT:
-				download_free(d);
-				break;
-			default:
-				download_abort(d);
-				break;
-			}
+			download_abort(d);
 		}
 	}
 
@@ -731,15 +772,7 @@ gint download_remove_all_named(const gchar *name)
 
 		if (0 == strcmp(dl_tmp, d->file_name))  {
 			n++;
-			switch (d->status) {
-			case GTA_DL_QUEUED:
-			case GTA_DL_TIMEOUT_WAIT:
-				download_free(d);
-				break;
-			default:
-				download_abort(d);
-				break;
-			}
+			download_abort(d);
 		}
 	}
 
@@ -772,15 +805,7 @@ gint download_remove_all_with_sha1(const guchar *sha1)
 
 		if ((d->sha1 != NULL) && (0 == memcmp(sha1, d->sha1, SHA1_RAW_SIZE))) {
 			n++;
-			switch (d->status) {
-			case GTA_DL_QUEUED:
-			case GTA_DL_TIMEOUT_WAIT:
-				download_free(d);
-				break;
-			default:
-				download_abort(d);
-				break;
-			}
+			download_abort(d);
 		}
 	}
 
@@ -1152,7 +1177,7 @@ static void download_redirect_to_server(struct download *d,
 /*
  * download_stop
  *
- * Stop running download.
+ * Stop an active download, close its socket and its data file descriptor.
  */
 void download_stop(struct download *d, guint32 new_status,
 				   const gchar * reason, ...)
@@ -1160,27 +1185,12 @@ void download_stop(struct download *d, guint32 new_status,
 	gboolean store_queue = FALSE;		/* Shall we call download_store()? */
 	enum dl_list list_target;
 
-	/* Stop an active download, close its socket and its data file descriptor */
-
-	g_return_if_fail(d);
-
-	if (DOWNLOAD_IS_QUEUED(d)) {
-		g_warning("download_stop() called on queued download '%s'!",
-				  d->file_name);
-		return;
-	}
-
-	if (DOWNLOAD_IS_STOPPED(d)) {
-		g_warning("download_stop() called on stopped download '%s'!",
-				  d->file_name);
-		return;
-	}
-
-	if (d->status == new_status) {
-		g_warning("download_stop(): download '%s' already in state %d",
-				  d->file_name, new_status);
-		return;
-	}
+	g_assert(d);
+	g_assert(!DOWNLOAD_IS_QUEUED(d));
+	g_assert(!DOWNLOAD_IS_STOPPED(d));
+	g_assert(d->status != new_status);
+	g_assert(d->file_info);
+	g_assert(d->file_info->refcount);
 
 	switch (new_status) {
 	case GTA_DL_COMPLETED:
@@ -1195,8 +1205,19 @@ void download_stop(struct download *d, guint32 new_status,
 		list_target = DL_LIST_WAITING;
 		break;
 	default:
-		g_warning("download_stop(): unexpected new status %d !", new_status);
+		g_error("unexpected new status %d !", new_status);
 		return;
+	}
+
+	switch (new_status) {
+	case GTA_DL_COMPLETED:
+	case GTA_DL_ABORTED:
+	case GTA_DL_ERROR:
+		g_assert(d->file_info->lifecount > 0);
+		d->file_info->lifecount--;
+		break;
+	default:
+		break;
 	}
 
 	if (reason) {
@@ -1271,11 +1292,7 @@ static void download_queue_v(struct download *d, const gchar *fmt, va_list ap)
 	 */
 
 	g_assert(d);
-
-	if (DOWNLOAD_IS_QUEUED(d)) {
-		g_warning("download_queue(): Download is already queued ?!");
-		return;
-	}
+	g_assert(!DOWNLOAD_IS_QUEUED(d));
 
 	if (fmt) {
 		g_vsnprintf(d->error_str, sizeof(d->error_str), fmt, ap);
@@ -1602,6 +1619,9 @@ static gboolean download_start_prepare(struct download *d)
 
 	d->status = GTA_DL_CONNECTING;	/* Most common state if we succeed */
 
+	if (d->file_info == NULL)		/* Could have been invalidated */
+		download_info_get(d);
+
 	/*
 	 * If we were asked to ignore this download, abort now.
 	 */
@@ -1765,6 +1785,9 @@ void download_start(struct download *d, gboolean check_allowed)
 
 	g_assert(d);
 	g_assert(d->list_idx != DL_LIST_RUNNING);	/* Waiting or stopped */
+	g_assert(d->file_info);
+	g_assert(d->file_info->refcount > 0);
+	g_assert(d->file_info->lifecount > 0);
 
 	/*
 	 * If caller did not check whether we were allowed to start downloading
@@ -1778,7 +1801,7 @@ void download_start(struct download *d, gboolean check_allowed)
 			count_running_downloads_with_name(d->file_info->file_name) != 0))
 	) {
 		if (!DOWNLOAD_IS_QUEUED(d))
-			download_queue(d, NULL);
+			download_queue(d, "No download slot");
 		return;
 	}
 
@@ -2065,38 +2088,6 @@ void download_fallback_to_push(struct download *d,
 }
 
 /*
- * escape_filename
- *
- * Lazily replace all '/' if filename with '_': if a substitution needs to
- * be done, a copy of the original argument is made first.	Otherwise,
- * no change nor allocation occur.
- *
- * Returns the pointer to the escaped filename, or the original argument if
- * no escaping needed to be performed.
- */
-static gchar *escape_filename(gchar *file)
-{
-	gchar *escaped = NULL;
-	gchar *s;
-	gchar c;
-
-	s = file;
-	while ((c = *s)) {
-		if (c == '/') {
-			if (escaped == NULL) {
-				escaped = g_strdup(file);
-				s = escaped + (s - file);	/* s now refers to escaped string */
-				g_assert(*s == '/');
-			}
-			*s = '_';
-		}
-		s++;
-	}
-
-	return escaped == NULL ? file : escaped;
-}
-
-/*
  * Downloads creation and destruction
  */
 
@@ -2107,7 +2098,6 @@ static gchar *escape_filename(gchar *file)
  *
  * When `interactive' is false, we assume that `file' was already duped,
  * and take ownership of the pointer.
- * If `output' is not NULL, we also take ownership.
  *
  * NB: If `record_index' == 0, and a `sha1' is also supplied, then
  * this is our convention for expressing a /uri-res/N2R? download URL.
@@ -2115,7 +2105,7 @@ static gchar *escape_filename(gchar *file)
  * have a SHA1.
  */
 static void create_download(
-	gchar *file, gchar *output, guint32 size, guint32 record_index,
+	gchar *file, guint32 size, guint32 record_index,
 	guint32 ip, guint16 port, gchar *guid, gchar *sha1, time_t stamp,
 	gboolean push, gboolean interactive, struct dl_file_info *file_info)
 {
@@ -2149,18 +2139,11 @@ static void create_download(
 	 * arealdy done by caller.	--RAM, 12/01/2002
 	 */
 
-	if (!file_info) {
-		if (output == NULL)
-			output = escape_filename(file_name);
+	if (!file_info)
+		file_info = file_info_get(file_name, save_file_path, size, sha1);
 
-		file_info = file_info_get(output, save_file_path, size, sha1);
-
-		if (output != file_name)
-			g_free(output);
-		output = NULL;				/* No longer used */
-	} else {
-		file_info->refcount++;
-	}
+	file_info->refcount++;
+	file_info->lifecount++;
 
 	/*
 	 * Initialize download, creating new server if needed.
@@ -2190,7 +2173,8 @@ static void create_download(
 	 * if we use swarming.
 	 */
 
-	d->size = size;
+	d->file_size = size;			/* Never changes */
+	d->size = size;					/* Will be changed if range requested */
 	d->record_index = record_index;
 	d->file_desc = -1;
 	d->always_push = push;
@@ -2225,7 +2209,7 @@ static void create_download(
 		download_start(d, FALSE);		/* Starts the download immediately */
 	} else {
 		/* Max number of downloads reached, we have to queue it */
-		download_queue(d, NULL);
+		download_queue(d, "No download slot");
 	}
 }
 
@@ -2233,23 +2217,24 @@ static void create_download(
 /* Automatic download request */
 
 void download_auto_new(gchar *file, guint32 size, guint32 record_index,
-					   guint32 ip, guint16 port, gchar *guid, gchar *sha1,
+					   guint32 ip, guint16 port, gchar *guid, guchar *sha1,
 					   time_t stamp, gboolean push, struct dl_file_info *fi)
 {
-	gchar dl_tmp[4096];
-	gchar *output_name = escape_filename(file);
 	gchar *file_name;
-	struct stat buf;
 	char *reason;
-	int tmplen;
 	enum ignore_val ign_reason;
 
+#if 0	/* DISABLED for now -- not sure we need it as-is any longer --RAM */
 	/* 
 	 * If we already got a file_info pointer, all the testing has been
 	 * done somewhere else.
 	 */
 
 	if (!fi) {
+		gint tmplen;
+		struct stat buf;
+		gchar dl_tmp[4096];
+
 		/*
 		 * Make sure we have not got a bigger file in the "download dir".
 		 *
@@ -2307,13 +2292,14 @@ void download_auto_new(gchar *file, guint32 size, guint32 record_index,
 			}
 		}
 	}
+#endif	/* DISABLED */
 
 	/*
 	 * Make sure we're not prevented from downloading that file.
 	 */
 
 	ign_reason = ignore_is_requested(
-		fi ? fi->file_name : output_name,
+		fi ? fi->file_name : file,
 		fi ? fi->size : size,
 		fi ? fi->sha1 : sha1);
 
@@ -2333,18 +2319,14 @@ void download_auto_new(gchar *file, guint32 size, guint32 record_index,
 	 */
 
 	file_name = atom_str_get(file);
-	if (output_name == file)		/* Not duplicated, has no '/' inside */
-		output_name = file_name;	/* So must reuse file_name */
 
-	create_download(file_name, output_name,
-			size, record_index, ip, port, guid, sha1, stamp, push, FALSE, fi);
+	create_download(file_name, size, record_index, ip, port,
+		guid, sha1, stamp, push, FALSE, fi);
 	return;
 
 abort_download:
 	if (dbg > 4)
-		printf("ignoring auto download for '%s': %s\n", file, reason);
-	if (output_name != file)		/* Was allocated by escape_filename() */
-		g_free(output_name);
+		printf("ignoring auto download for \"%s\": %s\n", file, reason);
 	return;
 }
 
@@ -2370,6 +2352,7 @@ static struct download *download_clone(struct download *d)
 	cd->file_desc = -1;					/* File re-opened each time */
 	cd->socket->resource.download = cd;	/* Takes ownership of socket */
 	cd->file_info->refcount++;			/* Clone and original share same info */
+	cd->file_info->lifecount++;			/* Both are still "alive" for now */
 	cd->list_idx = -1;
 	cd->file_name = atom_str_get(d->file_name);
 	cd->visible = FALSE;
@@ -2498,10 +2481,10 @@ void download_index_changed(guint32 ip, guint16 port, guchar *guid,
 /* Create a new download */
 
 void download_new(gchar *file, guint32 size, guint32 record_index,
-				  guint32 ip, guint16 port, gchar *guid, gchar *sha1,
+				  guint32 ip, guint16 port, gchar *guid, guchar *sha1,
 				  time_t stamp, gboolean push, struct dl_file_info *fi)
 {
-	create_download(file, NULL, size, record_index, ip, port, guid, sha1,
+	create_download(file, size, record_index, ip, port, guid, sha1,
 		stamp, push, TRUE, fi);
 }
 
@@ -2559,12 +2542,24 @@ static void download_free_removed(void)
 void download_free(struct download *d)
 {
 	g_assert(d);
+	g_assert(d->status != GTA_DL_REMOVED);		/* Not already freed */
 
 	if (DOWNLOAD_IS_VISIBLE(d))
 		download_gui_remove(d);
 
+	/*
+	 * Abort running download (which will decrement the lifecount), otherwise
+	 * make sure we decrement it here (e.g. if the download was queued).
+	 */
+
 	if (DOWNLOAD_IS_RUNNING(d))
 		download_stop(d, GTA_DL_ABORTED, NULL);
+	else if (DOWNLOAD_IS_STOPPED(d))
+		/* nothing, lifecount already decremented */;
+	else {
+		g_assert(d->file_info->lifecount > 0);
+		d->file_info->lifecount--;
+	}
 
 	g_assert(d->io_opaque == NULL);
 
@@ -2578,7 +2573,7 @@ void download_free(struct download *d)
 	d->status = GTA_DL_REMOVED;
 
 	atom_str_free(d->file_name);
-	file_info_free(d->file_info, FALSE);
+	file_info_free(d->file_info);
 
 	sl_removed = g_slist_prepend(sl_removed, d);
 
@@ -2589,43 +2584,47 @@ void download_free(struct download *d)
 
 void download_abort(struct download *d)
 {
-	g_return_if_fail(d);
-
-	if (DOWNLOAD_IS_QUEUED(d)) {
-		g_warning("download_abort() called on queued download '%s'!",
-				  d->file_name);
-		return;
-	}
+	g_assert(d);
 
 	if (DOWNLOAD_IS_STOPPED(d))
 		return;
 
+	if (DOWNLOAD_IS_QUEUED(d)) {
+		if (DOWNLOAD_IS_VISIBLE(d))
+			download_gui_remove(d);
+		sl_unqueued = g_slist_prepend(sl_unqueued, d);
+		d->status = GTA_DL_CONNECTING;		/* Before stopping below */
+		download_gui_add(d);
+	}
+
 	download_stop(d, GTA_DL_ABORTED, NULL);
 
 	/* 
-	 * Fixme! The refcount isn't decreased until "Clear completed", so
+	 * The refcount isn't decreased until "Clear completed", so
 	 * we may very well have a file with a high refcount and no active
-	 * or queued downloads. ;-/
-	 *
-	 * So, the following doesn't really work;
+	 * or queued downloads.  This is why we maintain a lifecount.
 	 */
-	if (d->file_info->refcount == 1)
-	if (download_delete_aborted)
-		download_remove_file(d);
+
+	if (d->file_info->lifecount == 0)
+		if (download_delete_aborted)
+			download_remove_file(d);
 }
 
 void download_resume(struct download *d)
 {
-	g_return_if_fail(d);
-
-	if (DOWNLOAD_IS_QUEUED(d)) {
-		g_warning("download_resume() called on queued download '%s'!",
-				  d->file_name);
-		return;
-	}
+	g_assert(d);
+	g_assert(!DOWNLOAD_IS_QUEUED(d));
 
 	if (DOWNLOAD_IS_RUNNING(d))
 		return;
+
+	/*
+	 * We can invalidate an improper file_info after stopping a download.
+	 * Recreate the association now if needed.
+	 */
+
+	if (d->file_info == NULL)
+		download_info_get(d);
 
 	if (
 		NULL != has_same_download(d->file_name, download_guid(d),
@@ -2637,6 +2636,7 @@ void download_resume(struct download *d)
 		return;
 	}
 
+	d->file_info->lifecount++;
 	download_start(d, TRUE);
 }
 
@@ -3225,7 +3225,7 @@ static void download_write_data(struct download *d)
 		-1 == lseek(d->file_desc, d->pos, SEEK_SET)
 	) {
 		const char *error = g_strerror(errno);
-		g_warning("download_read(): failed to seek at offset %u (%s)",
+		g_warning("download_write_data(): failed to seek at offset %u (%s)",
 			d->pos, error);
 		download_stop(d, GTA_DL_ERROR, "Can't seek to offset %u: %s",
 			d->pos, error);
@@ -3604,12 +3604,10 @@ static void download_request(struct download *d, header_t *header)
 			if (d->sha1 == NULL) {
 				d->sha1 = atom_sha1_get(digest);
 
-				// XXX need to inform fileinfo about the new SHA1
-				// XXX also, we may be pointing to the wrong fileinfo, so
-				// XXX we might need to switch fileinfos at this point.
-				// XXX there can be only ONE fileinfo with a given SHA1
-				// XXX for now, warn if the fileinfo has the wrong SHA1.
-				// XXX		-RAM, 25/08/2002
+				/*
+				 * The following test for equality works because both SHA1
+				 * are atoms.
+				 */
 
 				if (d->file_info->sha1 != d->sha1) {
 					g_warning("discovered SHA1 %s on the fly for %s "
@@ -3617,9 +3615,43 @@ static void download_request(struct download *d, header_t *header)
 						sha1_base32(d->sha1), download_outname(d),
 						d->file_info->sha1 ? "another" : "none");
 
-					// XXX inform fileinfo about the SHA1, if we had none
-					// XXX call download_ignore_requested() if we got a SHA1
-					// XXX to check whether we already have it and should stop.
+					/*
+					 * If the SHA1 does not match that of the fileinfo,
+					 * abort the download.
+					 */
+
+					if (d->file_info->sha1) {
+						extern gint sha1_eq(gconstpointer a, gconstpointer b);
+						g_assert(!sha1_eq(d->file_info->sha1, d->sha1));
+
+						download_queue(d, "URN fileinfo mismatch");
+						download_info_invalidate(d);
+
+						return;
+					}
+
+					g_assert(d->file_info->sha1 == NULL);
+
+					/*
+					 * Record SHA1 in the fileinfo structure, and make sure
+					 * we're not asked to ignore this download, now that we
+					 * got the SHA1.
+					 *
+					 * WARNING: d->file_info can change underneath during
+					 * this call, and the current download can be requeued!
+					 */
+
+					if (!file_info_got_sha1(d->file_info, d->sha1)) {
+						download_queue(d, "Discovered dup SHA1");
+						download_info_invalidate(d);
+						return;
+					}
+
+					if (DOWNLOAD_IS_QUEUED(d))		/* Queued by call above */
+						return;
+
+					if (download_ignore_requested(d))
+						return;
 				}
 
 				download_store();		/* Save SHA1 */
@@ -3641,6 +3673,17 @@ static void download_request(struct download *d, header_t *header)
 			 */
 
 			huge_collect_locations(d->sha1, header);
+		}
+	} else {
+		/*
+		 * We don't have any X-Gnutella-Content-URN header on this server.
+		 * If fileinfo has a SHA1, we must stop, as we cannot be sure we're
+		 * writing to the SAME file.  Doing so could prevent resuming later.
+		 */
+
+		if (d->file_info->sha1) {
+			download_stop(d, GTA_DL_ERROR, "No URN on server to validate");
+			return;
 		}
 	}
 
@@ -3947,14 +3990,22 @@ static void download_read(gpointer data, gint source, GdkInputCondition cond)
 
 	r = bio_read(d->bio, s->buffer + s->pos, to_read);
 
+	/*
+	 * Don't hammer remote server if we get an EOF during data reception.
+	 * The servent may have shutdown, or the user killed our download.
+	 * The latter is not nice, but it's the user's choice.
+	 *
+	 * Therefore, we use the "busy" delay instead of the "stopped" delay.
+	 */
+
 	if (r <= 0) {
 		if (r == 0) {
-			download_queue_delay(d, download_retry_stopped_delay,
-				"Stopped (EOF)");
+			download_queue_delay(d, download_retry_busy_delay,
+				"Stopped data (EOF)");
 		} else if (errno != EAGAIN) {
 			if (errno == ECONNRESET)
-				download_queue_delay(d, download_retry_stopped_delay,
-					"Stopped (%s)", g_strerror(errno));
+				download_queue_delay(d, download_retry_busy_delay,
+					"Stopped data (%s)", g_strerror(errno));
 			else
 				download_stop(d, GTA_DL_ERROR,
 					"Failed (Read error: %s)", g_strerror(errno));
@@ -4766,7 +4817,7 @@ static void download_retrieve(void)
 		 * old and the entry does not get added to the download mesh yet.
 		 */
 
-		create_download(d_name, NULL, d_size, d_index, d_ip, d_port, d_guid,
+		create_download(d_name, d_size, d_index, d_ip, d_port, d_guid,
 			has_sha1 ? sha1_digest : NULL, 1, FALSE, FALSE, NULL);
 
 		/*
@@ -4794,6 +4845,7 @@ void download_close(void)
 	GSList *l;
 
 	download_store();			/* Save latest copy */
+	file_info_store();
 	download_freeze_queue(TRUE);
 
 	download_free_removed();
@@ -4810,7 +4862,7 @@ void download_close(void)
 			bsched_source_remove(d->bio);
 		if (d->sha1)
 			atom_sha1_free(d->sha1);
-		file_info_free(d->file_info, FALSE);
+		file_info_free(d->file_info);
 		download_remove_from_server(d, TRUE);
 		atom_str_free(d->file_name);
 

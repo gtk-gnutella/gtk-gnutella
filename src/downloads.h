@@ -79,9 +79,9 @@ struct download {
 	struct dl_file_info *file_info;
 	guint32 record_index;	/* Index of the file on the Gnutella server */
 	gchar *file_name;		/* Name of the file on the Gnutella server */
+	guint32 file_size;		/* Total size of the file, in bytes */
 
-	guint32 size;			/* Total size of the file, in bytes */
-
+	guint32 size;			/* Total size of the next request, in bytes */
 	guint32 skip;			/* Number of bytes for file we had before start */
 	guint32 pos;			/* Number of bytes of the file we currently have */
 	guint32 range_end;		/* First byte offset AFTER the requested range */
@@ -100,7 +100,7 @@ struct download {
 
 	const gchar *remove_msg;
 
-	gchar *sha1;			/* Known SHA1 (binary atom), NULL if none */
+	guchar *sha1;			/* Known SHA1 (binary atom), NULL if none */
 	guint32 last_dmesh;		/* Time when last download mesh was sent */
 
 	guint32 flags;
@@ -178,8 +178,7 @@ struct download {
 	((d)->status == GTA_DL_RECEIVING)
 
 #define DOWNLOAD_IS_WAITING(d)			\
-	(  (d)->status == GTA_DL_STOPPED 	\
-	|| (d)->status == GTA_DL_TIMEOUT_WAIT)
+	(  (d)->status == GTA_DL_TIMEOUT_WAIT)
 
 #define DOWNLOAD_IS_ESTABLISHING(d)		\
 	(  (d)->status == GTA_DL_CONNECTING \
@@ -212,12 +211,12 @@ extern GSList *sl_unqueued;
 void download_init(void);
 void download_timer(time_t now);
 void download_new(gchar *,
-	guint32, guint32, guint32, guint16, gchar *, gchar *, time_t,
+	guint32, guint32, guint32, guint16, gchar *, guchar *, time_t,
     gboolean, struct dl_file_info *);
 void download_auto_new(gchar *,
-	guint32, guint32, guint32, guint16, gchar *, gchar *, time_t,
+	guint32, guint32, guint32, guint16, gchar *, guchar *, time_t,
     gboolean, struct dl_file_info *);
-void download_file_info_change_all(
+void download_info_change_all(
 	struct dl_file_info *old_fi, struct dl_file_info *new_fi);
 void download_queue(struct download *d, const gchar *fmt, ...);
 void download_freeze_queue();
