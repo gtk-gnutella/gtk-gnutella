@@ -608,7 +608,7 @@ vp_gui_fi_status_changed(gnet_fi_t fih)
 					 * whether nc->to is larger than oc->to.
 					 */
 					v->chunks_list = g_slist_append(v->chunks_list,
-						vp_create_chunk(oc->from, nc->to, nc->status, TRUE));
+						vp_create_chunk(nc->from, nc->to, nc->status, TRUE));
 					highest = nc->to;
 					new = g_slist_next(new);
 					continue;
