@@ -176,7 +176,7 @@ void gui_update_config_port(void)
 
 	g_snprintf(gui_tmp, sizeof(gui_tmp), "%u", listen_port);
 	gtk_entry_set_text(GTK_ENTRY(entry_config_port), gui_tmp);
-	g_snprintf(gui_tmp, sizeof(gui_tmp), "Current IP:port : %s", iport);
+	g_snprintf(gui_tmp, sizeof(gui_tmp), "%s", iport);
 	gtk_label_set(GTK_LABEL(label_current_port), gui_tmp);
 }
 
@@ -461,6 +461,25 @@ void gui_update_global(void)
 	gtk_label_set_text(GTK_LABEL(label_statusbar_uptime), gui_tmp);
 
 	/*
+	 * Since gtk_progress does not give us enough control over the format
+     * of the displayed values, we have regenerate the value string on each
+     * update.
+	 *      --BLUE, 21/04/2002
+	 */
+	
+	g_snprintf(gui_tmp, sizeof(gui_tmp), "%s/s in %s", 
+			   compact_size(progressbar_bps_in_avg ? bsched_avg_bps(bws_in) : 
+										             bsched_bps(bws_in)),
+			   progressbar_bps_in_avg ? "(avg)" : "");
+	gtk_progress_set_format_string(GTK_PROGRESS(progressbar_bps_in), gui_tmp);
+
+	g_snprintf(gui_tmp, sizeof(gui_tmp), "%s/s in %s", 
+			   compact_size(progressbar_bps_out_avg ? bsched_avg_bps(bws_out) :
+										              bsched_bps(bws_out)),
+			   progressbar_bps_out_avg ? "(avg)" : "");
+	gtk_progress_set_format_string(GTK_PROGRESS(progressbar_bps_out), gui_tmp);
+
+	/*
 	 * If the bandwidth usage peaks above the maximum, then GTK will not
 	 * update the progress bar, so we have to cheat and limit the value
 	 * displayed.
@@ -468,11 +487,15 @@ void gui_update_global(void)
 	 */
 
 	gtk_progress_configure(GTK_PROGRESS(progressbar_bps_in), 
-    	MIN(bsched_bps(bws_in), bws_in->bw_per_second),
+    	MIN(progressbar_bps_in_avg ? bsched_avg_bps(bws_in) : 
+									 bsched_bps(bws_in), 
+			bws_in->bw_per_second),
 		0, bws_in->bw_per_second);
 
 	gtk_progress_configure(GTK_PROGRESS(progressbar_bps_out), 
-    	MIN(bsched_bps(bws_out), bws_out->bw_per_second),
+    	MIN(progressbar_bps_out_avg ? bsched_avg_bps(bws_out) :
+									  bsched_bps(bws_out), 
+			bws_out->bw_per_second),
 		0, bws_out->bw_per_second);
 }
 
