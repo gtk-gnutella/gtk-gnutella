@@ -1960,7 +1960,7 @@ static gboolean node_can_accept_connection(
 			if (handshaking && node_leaf_count >= max_leaves) {
 				send_node_error(n->socket, 503,
 					"Too many leaf connections (%d max)", max_leaves);
-				node_remove(n, "Too many leaves");
+				node_remove(n, "Too many leaves (%d max)", max_leaves);
 				return FALSE;
 			}
 			if (!handshaking && node_leaf_count > max_leaves) {
@@ -1980,7 +1980,7 @@ static gboolean node_can_accept_connection(
 			) {
 				send_node_error(n->socket, 503,
 					"Too many ultra connections (%d max)", ultra_max);
-				node_remove(n, "Too many ultra nodes");
+				node_remove(n, "Too many ultra nodes (%d max)", ultra_max);
 				return FALSE;
 			}
 			if (!handshaking && node_ultra_count > ultra_max) {
@@ -2025,7 +2025,7 @@ static gboolean node_can_accept_connection(
 					"Too many normal nodes (%d max)", normal_connections);
 			else
 				send_node_error(n->socket, 403, "Normal nodes refused");
-			node_remove(n, "Rejected normal node");
+			node_remove(n, "Rejected normal node (%d max)", normal_connections);
 			return FALSE;
 		}
 
@@ -2043,7 +2043,7 @@ static gboolean node_can_accept_connection(
 			if (connected >= max_connections) {
 				send_node_error(n->socket, 503,
 					"Too many Gnet connections (%d max)", max_connections);
-				node_remove(n, "Sent busy indication");
+				node_remove(n, "Too many nodes (%d max)", max_connections);
 				return FALSE;
 			}
 			if (
@@ -2091,7 +2091,7 @@ static gboolean node_can_accept_connection(
 			if (node_ultra_count >= max_ultrapeers) {
 				send_node_error(n->socket, 503,
 					"Too many ultra connections (%d max)", max_ultrapeers);
-				node_remove(n, "Too many ultra nodes");
+				node_remove(n, "Too many ultra nodes (%d max)", max_ultrapeers);
 				return FALSE;
 			}
 		} else if (node_ultra_count > max_ultrapeers) {
