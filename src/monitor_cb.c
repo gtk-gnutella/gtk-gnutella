@@ -76,14 +76,8 @@ void on_popup_monitor_add_search_activate
 		e = g_strdup(titles[0]);
 
 		g_strstrip(e);
-		if (*e) {
-            guint32 minimum_speed;
-        
-            gui_prop_get_guint32(PROP_DEFAULT_MINIMUM_SPEED, 
-                &minimum_speed, 0, 1);
-
-			search_gui_new_search(e, minimum_speed, 0, NULL);
-        }
+		if (*e)
+            search_gui_new_search(e, 0, NULL);
 
 		g_free(e);
 	}	

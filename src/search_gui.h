@@ -140,7 +140,7 @@ void search_gui_init(void);
 void search_gui_shutdown(void);
 
 gboolean search_gui_new_search(
-	const gchar *, guint16, flag_t flags, search_t **search);
+	const gchar *, flag_t flags, search_t **search);
 gboolean search_gui_new_search_full(
 	const gchar *query, guint16 speed, guint32 reissue_timeout, flag_t flags,
 	search_t **search);

@@ -431,16 +431,21 @@ static void search_remove_r_set(search_t *sch, results_set_t *rs)
  * Create a new search and start it. Use default reissue timeout.
  */
 gboolean search_gui_new_search(
-	const gchar *query, guint16 speed, flag_t flags, search_t **search)
+	const gchar *query, flag_t flags, search_t **search)
 {
     guint32 search_reissue_timeout;
+    guint32 minimum_speed;
+
+    gui_prop_get_guint32(
+        PROP_DEFAULT_MINIMUM_SPEED,
+        &minimum_speed, 0, 1);
     
     gnet_prop_get_guint32(
         PROP_SEARCH_REISSUE_TIMEOUT,
         &search_reissue_timeout, 0, 1);
 
 	return search_gui_new_search_full
-        (query, speed, search_reissue_timeout, flags, search);
+        (query, minimum_speed, search_reissue_timeout, flags, search);
 }
 
 /* 
@@ -1387,7 +1392,6 @@ static gboolean search_retrieve_old(void)
 	FILE *in;
 	struct stat buf;
 	gint line;				/* File line number */
-    guint32 minimum_speed;
 
 	g_snprintf(tmpstr, sizeof(tmpstr), "%s/%s", gui_config_dir, search_file);
 	if (-1 == stat(tmpstr, &buf))
@@ -1407,8 +1411,6 @@ static gboolean search_retrieve_old(void)
 
 	line = 0;
 
-    gui_prop_get_guint32(PROP_DEFAULT_MINIMUM_SPEED, &minimum_speed, 0, 1);
-
 	while (fgets(tmpstr, sizeof(tmpstr) - 1, in)) {	/* Room for trailing NUL */
 		line++;
 
@@ -1420,7 +1422,7 @@ static gboolean search_retrieve_old(void)
 
 		(void) str_chomp(tmpstr, 0);	/* The search string */
 
-		search_gui_new_search(tmpstr, minimum_speed, 0, NULL);
+		search_gui_new_search(tmpstr, 0, NULL);
 		tmpstr[0] = 0;
 	}
 

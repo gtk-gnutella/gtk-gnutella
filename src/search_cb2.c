@@ -242,7 +242,6 @@ static void refresh_popup(void)
 static void add_targetted_search(
 	GtkTreeModel *model, GtkTreePath *path, GtkTreeIter *iter, gpointer data)
 {
-    guint32 minimum_speed;   /* minimum speed value from props */
     search_t *new_search;
 	record_t *rec;
     rule_t *rule;
@@ -251,11 +250,8 @@ static void add_targetted_search(
     g_assert(rec != NULL);
     g_assert(rec->name != NULL);
 
-    /* fetch value for minimum_speed from props */
-    gui_prop_get_guint32(PROP_DEFAULT_MINIMUM_SPEED, &minimum_speed, 0, 1);
-
     /* create new search item with search string set to filename */
-    search_gui_new_search(rec->name, minimum_speed, 0, &new_search);
+    search_gui_new_search(rec->name, 0, &new_search);
     g_assert(new_search != NULL);
 
     if (rec->sha1) {
@@ -357,12 +353,7 @@ void on_button_search_clicked(GtkButton *button, gpointer user_data)
     if (*e) {
         filter_t *default_filter;
         search_t *search;
-        guint32 minimum_speed;
         gboolean res;
-
-
-        gui_prop_get_guint32(PROP_DEFAULT_MINIMUM_SPEED,
-            &minimum_speed, 0, 1);
 
 		/*
 		 * It's important gui_search_history_add is called before
@@ -381,7 +372,7 @@ void on_button_search_clicked(GtkButton *button, gpointer user_data)
 		default_filter = (filter_t *)option_menu_get_selected_data
 				(lookup_widget(main_window, "optionmenu_search_filter"));
 
-		res = search_gui_new_search(e, minimum_speed, 0, &search);
+		res = search_gui_new_search(e, 0, &search);
 
 		/*
 		 * If we should set a default filter, we do that.
@@ -719,9 +710,6 @@ void on_button_search_passive_clicked(
 {
     filter_t *default_filter;
         search_t *search;
-    guint32 minimum_speed;
-
-    gui_prop_get_guint32(PROP_DEFAULT_MINIMUM_SPEED, &minimum_speed, 0, 1);
 
     /*
      * We have to capture the selection here already, because
@@ -732,7 +720,7 @@ void on_button_search_passive_clicked(
         option_menu_get_selected_data
             (lookup_widget(main_window, "optionmenu_search_filter"));
 
-	search_gui_new_search("Passive", minimum_speed, SEARCH_PASSIVE, &search);
+	search_gui_new_search("Passive", SEARCH_PASSIVE, &search);
 
     /*
      * If we should set a default filter, we do that.
@@ -923,14 +911,21 @@ void on_popup_search_duplicate_activate(GtkMenuItem * menuitem,
 										gpointer user_data)
 {
     search_t *current_search;
+    guint32 search_reissue_timeout;
+
+    gnet_prop_get_guint32(
+        PROP_SEARCH_REISSUE_TIMEOUT,
+        &search_reissue_timeout, 0, 1);
 
     current_search = search_gui_get_current_search();
     // FIXME: should also duplicate filters!
     // FIXME: should call search_duplicate which has to be written.
     // FIXME: should properly duplicate passive searches.
-        if (current_search)
-                search_gui_new_search(current_search->query,
-            search_get_minimum_speed(current_search->search_handle), 0, NULL);
+    if (current_search)
+        search_gui_new_search_full(current_search->query,
+            search_get_minimum_speed(current_search->search_handle), 
+            search_reissue_timeout,
+            0, NULL);
 
 }
 
