@@ -1103,7 +1103,7 @@ void node_mark_bad(struct gnutella_node *n)
 {
 	struct node_bad_client *bad_client = NULL;
 	struct node_bad_ip *bad_ip = NULL;
-	time_t now = time(NULL);
+	time_t now = time((time_t *) NULL);
 	
 	if (in_shutdown) {
 		return;
@@ -1119,6 +1119,14 @@ void node_mark_bad(struct gnutella_node *n)
 		 */
 		return;
 	
+
+	if (n->connect_date == 0)
+		/*
+		 * Do not mark nodes as bad with which we did not connect at all, we 
+		 * don't know it's behaviour in this case.
+		 */
+		return;
+
 	/* Don't mark a node as bad with whom we could stay a long time */
 	if (
 		now - n->connect_date >
@@ -4718,31 +4726,6 @@ void node_bye_all(void)
 
 	in_shutdown = TRUE;
 	host_shutdown();
-
-	for (sl = unstable_servents; sl != NULL; sl = g_slist_next(sl)) {
-		node_bad_client_t *bad_node = (node_bad_client_t *) sl->data;
-			
-		g_hash_table_remove(unstable_servent, bad_node->vendor);
-		atom_str_free(bad_node->vendor);
-		wfree(bad_node, sizeof(*bad_node));
-	}
-	g_slist_free(unstable_servents);
-	unstable_servents = NULL;
-		
-	for (sl = unstable_ips; sl != NULL; sl = g_slist_next(sl)) {
-		node_bad_ip_t *bad_ip = (node_bad_ip_t *) sl->data;
-
-		g_hash_table_remove(unstable_ip, GUINT_TO_POINTER(bad_ip->ip));
-		wfree(bad_ip, sizeof(*bad_ip));
-	}
-	g_slist_free(unstable_ips);
-	unstable_ips = NULL;
-
-	g_hash_table_destroy(unstable_servent);
-	unstable_servent = NULL;
-	g_hash_table_destroy(unstable_ip);
-	unstable_ip = NULL;
-	
 	
 	for (sl = sl_nodes; sl; sl = g_slist_next(sl)) {
 		struct gnutella_node *n = sl->data;
@@ -4977,6 +4960,36 @@ void node_qrt_changed(gpointer query_table)
 
 void node_close(void)
 {
+	GSList *sl;
+	
+	/*
+	 * Clean up memory used for determining unstable ips / servents
+	 */
+	for (sl = unstable_servents; sl != NULL; sl = g_slist_next(sl)) {
+		node_bad_client_t *bad_node = (node_bad_client_t *) sl->data;
+			
+		g_hash_table_remove(unstable_servent, bad_node->vendor);
+		atom_str_free(bad_node->vendor);
+		wfree(bad_node, sizeof(*bad_node));
+	}
+	g_slist_free(unstable_servents);
+	unstable_servents = NULL;
+		
+	for (sl = unstable_ips; sl != NULL; sl = g_slist_next(sl)) {
+		node_bad_ip_t *bad_ip = (node_bad_ip_t *) sl->data;
+
+		g_hash_table_remove(unstable_ip, GUINT_TO_POINTER(bad_ip->ip));
+		wfree(bad_ip, sizeof(*bad_ip));
+	}
+	g_slist_free(unstable_ips);
+	unstable_ips = NULL;
+
+	g_hash_table_destroy(unstable_servent);
+	unstable_servent = NULL;
+	g_hash_table_destroy(unstable_ip);
+	unstable_ip = NULL;
+	
+	/* Clean up node info */
 	while (sl_nodes) {
 		struct gnutella_node *n = sl_nodes->data;
 		if (n->socket) {
