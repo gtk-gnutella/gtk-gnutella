@@ -48,6 +48,7 @@
 #include "cq.h"
 #include "ban.h"
 #include "atoms.h"
+#include "dmesh.h"
 
 #define SLOW_UPDATE_PERIOD		20	/* Updating period for `main_slow_update' */
 #define EXIT_GRACE				30	/* Seconds to wait before exiting */
@@ -136,6 +137,7 @@ void gtk_gnutella_exit(gint n)
 	gui_close();
 	config_close();
 	ban_close();
+	dmesh_close();
 	cq_free(callout_queue);
 	atom_str_free(version_string);
 	atom_str_free(start_rfc822_date);
@@ -172,7 +174,14 @@ static void init_constants(void)
 
 static void slow_main_timer(time_t now)
 {
-	ul_flush_stats_if_dirty();
+	static gint i = 0;
+
+	i++;
+
+	if (i & 0x1)
+		ul_flush_stats_if_dirty();
+	else
+		dmesh_store();
 }
 
 static gboolean main_timer(gpointer p)
@@ -299,6 +308,7 @@ gint main(gint argc, gchar ** argv)
 	download_init();
 	autodownload_init();
 	ban_init();
+	dmesh_init();
 
    	gui_update_all();
 
