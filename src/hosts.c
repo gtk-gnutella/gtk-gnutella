@@ -172,7 +172,7 @@ static gboolean host_is_connected(guint32 ip, guint16 port)
 
 	/* Check the nodes -- this is a small list, OK to traverse */
 
-	for (l = sl_nodes; l; l = l->next) {
+	for (l = sl_nodes; l; l = g_slist_next(l)) {
 		struct gnutella_node *node = (struct gnutella_node *) l->data;
 		if (NODE_IS_REMOVING(node))
 			continue;
@@ -317,7 +317,8 @@ void parse_netmasks(gchar * str)
     if (!masks)
         return;
 
-	for (i = 0; masks[i]; i++);
+	for (i = 0; masks[i]; i++)
+		/* just count */ ;
 
 	number_local_networks = i;
 
@@ -326,7 +327,8 @@ void parse_netmasks(gchar * str)
 		return;
     }
 
-	local_networks = (struct network_pair *)g_malloc(sizeof(*local_networks)*i);
+	local_networks =
+		(struct network_pair *) g_malloc(i * sizeof(*local_networks));
 
 	for (i = 0; masks[i]; i++) {
 		/* Network is of the form ip/mask or ip/bits */
@@ -336,7 +338,7 @@ void parse_netmasks(gchar * str)
 			if (strchr(p, '.')) {
 				/* get the network address from the user */
 				if (inet_aton(p, &local_networks[i].mask) == 0)
-					perror("inet_nota on netmasks");
+					perror("inet_aton on netmasks");
 			}
 			else {
 				errno = 0;
@@ -347,8 +349,8 @@ void parse_netmasks(gchar * str)
 				if (errno)
 					perror("netmask_div");
 				else
-					*(unsigned long *)&local_networks[i].mask = 
-						htonl(~((1<<(32-mask_div)) - 1));
+					WRITE_GUINT32_BE(~((1 << (32 - mask_div)) - 1),
+						&local_networks[i].mask.s_addr);
 			}
 		}
 		else {
