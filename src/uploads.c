@@ -1043,25 +1043,28 @@ static struct shared_file *get_file_to_upload_from_index(
 	 */
 
 	if (sha1) {
-		sf = shared_file_by_sha1(digest);
-		if (sf) {
+		struct shared_file *sfn = shared_file_by_sha1(digest);
+		if (sfn && sf != sfn) {
 			gchar location[1024];
-			gchar *escaped = url_escape(sf->file_name);
+			gchar *escaped = url_escape(sfn->file_name);
 
 			g_snprintf(location, sizeof(location),
 				"Location: http://%s/get/%d/%s\r\n",
 				ip_port_to_gchar(listen_ip(), listen_port),
-				sf->file_index, escaped);
+				sfn->file_index, escaped);
 
-			upload_error_remove_ext(u, sf, location,
+			upload_error_remove_ext(u, sfn, location,
 				301, "Moved Permanently");
 
-			if (escaped != sf->file_name)
+			if (escaped != sfn->file_name)
 				g_free(escaped);
-		} else
+			goto failed;
+		} else if (sf == NULL) {
 			upload_error_remove(u, NULL, 404, "URN Not Found (urn:sha1)");
+			goto failed;
+		}
 
-		goto failed;
+		/* FALL THROUGH */
 	}
 
 	/*
