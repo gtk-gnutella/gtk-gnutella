@@ -251,13 +251,13 @@ void uploads_gui_add_upload(gnet_upload_info_t *u)
 	gchar range_tmp[256];
 	guint range_len;
     gint row;
-	gchar *titles[6];
+	gchar *titles[UPLOADS_GUI_VISIBLE_COLUMNS];
     GtkWidget *clist_uploads;
     upload_row_data_t *data;
 
     clist_uploads = lookup_widget(main_window, "clist_uploads");
 
-	titles[0] = titles[1] = titles[2] = titles[3] = titles[4] = NULL;
+	memset(titles, 0, sizeof(titles));
 
     if ((u->range_start == 0) && (u->range_end == 0)) {
         titles[c_ul_size] = titles[c_ul_range] =  "...";
@@ -281,6 +281,7 @@ void uploads_gui_add_upload(gnet_upload_info_t *u)
 
 	titles[c_ul_filename] = (u->name != NULL) ? u->name : "...";
 	titles[c_ul_host]     = ip_to_gchar(u->ip);
+	titles[c_ul_loc]      = u->country;
     titles[c_ul_agent]    = (u->user_agent != NULL) ? u->user_agent : "...";
 	titles[c_ul_status]   = "...";
 
