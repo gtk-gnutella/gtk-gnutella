@@ -675,6 +675,13 @@ void search_matched(search_t *sch, results_set_t *rs)
 
             downloaded = TRUE;
         }
+
+		/*
+		 * Don't show something we downloaded if they don't want it.
+		 */
+
+		if (downloaded && search_hide_downloaded)
+			continue;
     
         /*
          * We start with FILTER_PROP_DISPLAY:
