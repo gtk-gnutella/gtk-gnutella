@@ -136,6 +136,7 @@ static void dl_action(GtkTreeModel *model, GtkTreePath *path,
 		if (DL_GUI_IS_HEADER == d)
 			return;
 
+
 		ctx->sl = g_slist_prepend(ctx->sl, d);
 		return;
 
@@ -195,13 +196,12 @@ static void dl_action(GtkTreeModel *model, GtkTreePath *path,
 	case DL_ACTION_QUEUED_ABORT:
 
 		gtk_tree_model_get(model, iter, c_queue_record, &d, (-1));
-   		if (d) {
+   		if (!d) {
 			g_warning("popup_dl_action(): row has NULL data");
 			return;
 		}
 		if (DL_GUI_IS_HEADER == d)
 			return;
-
 		if (d->status == GTA_DL_QUEUED)
 			ctx->sl = g_slist_prepend(ctx->sl, d);
 
