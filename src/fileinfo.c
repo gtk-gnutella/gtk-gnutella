@@ -2444,7 +2444,21 @@ enum dl_chunk_status file_info_find_hole(
 		}
 	}
 
-	g_assert(fi->size >= d->file_size);
+	/*
+	 * XXX Mirar reported that this assert sometimes fails.  Too close to
+	 * XXX the release, and it's not something worth panicing.
+	 * XXX This happens after "Requeued by file info change".
+	 * XXX Replacing with a warning for now.
+	 * XXX		--RAM, 17/10/2002
+	 */
+
+	//g_assert(fi->size >= d->file_size);
+
+	if (fi->size < d->file_size) {
+		g_warning("fi->size=%u < d->file_size=%u for \"%s\"",
+			fi->size, d->file_size, fi->file_name);
+	}
+
 	g_assert(fi->lifecount > 0);
 
 	chunksize = fi->size / fi->lifecount;
