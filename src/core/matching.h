@@ -56,9 +56,11 @@
  *    -- KBH, 2001-10-03
  */
 
+struct shared_file;
+
 struct st_entry {
 	gchar *string;
-	void *data;
+	struct shared_file *data;
 	guint32 mask;
 };
 
@@ -84,18 +86,19 @@ guint match_map_string(char_map_t map, gchar *string);
 void st_initialize(search_table_t *, char_map_t);
 void st_create(search_table_t *table);
 void st_destroy(search_table_t *);
-void st_insert_item(search_table_t *, const gchar *, void *);
+void st_insert_item(search_table_t *, const gchar *, struct shared_file *);
 void st_compact(search_table_t *);
 
 struct shared_file;
 
 /* FIXME: The type of this callback is too specific. */
-typedef gboolean (*st_search_callback)(struct shared_file *);
+typedef void (*st_search_callback)(gpointer ctx, struct shared_file *sf);
 
-gint st_search(
+void st_search(
 	search_table_t *table,
 	gchar *search,
 	st_search_callback callback,
+	gpointer ctx,
 	gint max_res,
 	struct query_hashvec *qhv);
 

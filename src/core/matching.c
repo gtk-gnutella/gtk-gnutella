@@ -82,7 +82,11 @@ RCSID("$Id$");
 
 static void destroy_entry(struct st_entry *entry)
 {
+	g_assert(entry != NULL);
+
 	G_FREE_NULL(entry->string);
+	shared_file_unref(entry->data);
+	wfree(entry, sizeof(*entry));
 }
 
 /* initialize a bin */
@@ -220,7 +224,7 @@ void st_destroy(search_table_t *table)
 	if (table->all_entries.vals) {
 		for (i = 0; i < table->all_entries.nvals; i++) {
 			destroy_entry(table->all_entries.vals[i]);
-			G_FREE_NULL(table->all_entries.vals[i]);
+			table->all_entries.vals[i] = NULL;
 		}
 		bin_destroy(&table->all_entries);
 	}
@@ -260,7 +264,8 @@ inline gint st_key(search_table_t *table, gchar k[2])
 
 /* insert an item into the search_table
  * one-char strings are silently ignored */
-void st_insert_item(search_table_t *table, const gchar *s, void *data)
+void
+st_insert_item(search_table_t *table, const gchar *s, struct shared_file *sf)
 {
 	guint i;
 	guint len;
@@ -278,9 +283,9 @@ void st_insert_item(search_table_t *table, const gchar *s, void *data)
 
 	seen_keys = g_hash_table_new(g_direct_hash, 0);
 	
-	entry = g_malloc(sizeof(*entry));
+	entry = walloc(sizeof(*entry));
 	entry->string = string;
-	entry->data = data;
+	entry->data = shared_file_ref(sf);
 	entry->mask = mask_hash(string);
 	
 	for (i = 0; i < len - 1; i++) {
@@ -355,10 +360,11 @@ static gboolean entry_match(
 }
 
 /* do an actual search */
-gint st_search(
+void st_search(
 	search_table_t *table,
 	gchar *search,
-	gboolean (*callback)(shared_file_t *),
+	void (*callback)(gpointer, shared_file_t *),
+	gpointer ctx,
 	gint max_res,
 	query_hashvec_t *qhv)
 {
@@ -387,7 +393,7 @@ gint st_search(
 	 */
 
 	if (len < 2)
-		return 0;
+		return;
 
 	for (i = 0; i < len - 1; i++) {
 		struct st_bin *bin;
@@ -424,7 +430,7 @@ gint st_search(
 		 */
 
 		if (qhv == NULL)
-			return 0;
+			return;
 	}
 
 	/*
@@ -447,7 +453,7 @@ gint st_search(
 	if (wocnt == 0 || best_bin == NULL) {
 		if (wocnt > 0)
 			word_vec_free(wovec, wocnt);
-		return 0;
+		return;
 	}
 
 	g_assert(best_bin_size > 0);	/* Allocated bin, it must hold something */
@@ -493,7 +499,7 @@ gint st_search(
 
 	while (nres < max_res && vcnt-- > 0) {
 		struct st_entry *e = *vals++;
-		struct shared_file *sf = (struct shared_file *)  e->data;
+		struct shared_file *sf = e->data;
 
 		if ((e->mask & search_mask) != search_mask)
 			continue;		/* Can't match */
@@ -506,11 +512,7 @@ gint st_search(
 		if (entry_match(e->string, sf->file_name_len, pattern, wovec, wocnt)) {
 			if (dbg > 5)
 				printf("MATCH: %s\n", sf->file_name);
-			if (!(*callback)(sf)) {
-				g_warning("stopping matching at %d entr%s, packet too large",
-					nres, nres == 1 ? "y" : "ies");
-				break;
-			}
+			(*callback)(ctx, sf);
 			nres++;
 		}
 	}
@@ -525,8 +527,6 @@ gint st_search(
 
 	G_FREE_NULL(pattern);
 	word_vec_free(wovec, wocnt);
-
-	return nres;
 }
 
 /* vi: set ts=4: */
