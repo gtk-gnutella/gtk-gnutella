@@ -60,6 +60,7 @@
 #include "regex.h"
 #include "sha1.h"
 #include "idtable.h"
+#include "bg.h"
 
 #include "../config.h"
 
@@ -87,7 +88,7 @@
 #define GTA_REVISION "unstable"
 #define GTA_REVCHAR "u"
 #define GTA_INTERFACE "X11"
-#define GTA_RELEASE "24/10/2002"
+#define GTA_RELEASE "29/10/2002"
 #define GTA_WEBSITE "http://gtk-gnutella.sourceforge.net/"
 
 /*

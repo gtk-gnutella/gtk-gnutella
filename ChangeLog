@@ -1,5 +1,21 @@
 # since last version
 
+- (2002.10.29 RAM)
+ * New background task layer.
+ * Added X-Host: support to specify non-firewalled server's IP address to
+   pushed uploads.  A pushed download seeing X-Host in the reply knows that
+   the server is not firewalled and that a direct connection can be made.
+ * Added provision for storing computed SHA1 in fileinfo trailer.
+ * Plugged background task timer.
+ * Converted existing SHA1 and QRP computation code to new background tasks.
+ * Integrated random() support from Christian Biere.
+ * Added Christian Biere to AUTHORS.
+
+- (2002.10.26 RAM)
+ * varargs copying fixes from Michel Daenzer for powerpc platforms.
+ * Raised size of the search queue to 256 entries.
+ * Integrated portability fixes from Christian Biere for NetBSD.
+
 - (2002.10.24 RAM)
  * Opening version 0.92u.
  * Stricter banning policy: ban after 5 reqs/minute instead of 10.
