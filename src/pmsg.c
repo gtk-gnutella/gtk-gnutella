@@ -26,11 +26,34 @@
 #include <string.h>		/* For memcpy() */
 
 #include "pmsg.h"
+#include "zalloc.h"
 
 #define implies(a,b)	(!(a) || (b))
 #define valid_ptr(a)	(((gulong) (a)) > 100L)
 
 #define EMBEDDED_OFFSET	G_STRUCT_OFFSET(pdata_t, d_embedded)
+
+static zone_t *mb_zone = NULL;
+
+/*
+ * pmsg_init
+ *
+ * Allocate internal variables.
+ */
+void pmsg_init(void)
+{
+	mb_zone = zget(sizeof(pmsg_t), 1024);
+}
+
+/*
+ * pmsg_close
+ *
+ * Free internal variables
+ */
+void pmsg_close(void)
+{
+	zdestroy(mb_zone);
+}
 
 /*
  * pmsg_size
@@ -68,7 +91,7 @@ pmsg_t *pmsg_new(gint prio, void *buf, gint len)
 	g_assert(len > 0);
 	g_assert(implies(buf, valid_ptr(buf)));
 
-	mb = (pmsg_t *) g_malloc0(sizeof(pmsg_t));
+	mb = (pmsg_t *) zalloc(mb_zone);
 	db = pdata_new(len);
 
 	mb->m_data = db;
@@ -105,7 +128,7 @@ pmsg_t *pmsg_alloc(gint prio, pdata_t *db, gint roff, gint woff)
 	g_assert(woff >= 0 && woff <= pdata_len(db));
 	g_assert(woff >= roff);
 
-	mb = (pmsg_t *) g_malloc0(sizeof(pmsg_t));
+	mb = (pmsg_t *) zalloc(mb_zone);
 
 	mb->m_data = db;
 	mb->m_prio = prio;
@@ -124,7 +147,7 @@ pmsg_t *pmsg_alloc(gint prio, pdata_t *db, gint roff, gint woff)
  */
 pmsg_t *pmsg_clone(pmsg_t *mb)
 {
-	pmsg_t *nmb = (pmsg_t *) g_malloc0(sizeof(pmsg_t));
+	pmsg_t *nmb = (pmsg_t *) zalloc(mb_zone);
 	
 	*nmb = *mb;			/* Struct copy */
 	pdata_addref(nmb->m_data);
@@ -143,7 +166,7 @@ void pmsg_free(pmsg_t *mb)
 	do {
 		g_assert(valid_ptr(mb));
 		pdata_unref(mb->m_data);
-		g_free(mb);
+		zfree(mb_zone, mb);
 	} while (0);
 }
 

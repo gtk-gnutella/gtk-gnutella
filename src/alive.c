@@ -30,6 +30,7 @@
 #include "atoms.h"
 #include "nodes.h"
 #include "misc.h"
+#include "walloc.h"
 
 #define INFINITY	0xffffffff
 
@@ -61,7 +62,7 @@ static struct alive_ping *ap_make(guchar *muid)
 {
 	struct alive_ping *ap;
 
-	ap = g_malloc(sizeof(*ap));
+	ap = walloc(sizeof(*ap));
 
 	ap->muid = atom_guid_get(muid);
 	gettimeofday(&ap->sent, NULL);
@@ -77,7 +78,7 @@ static struct alive_ping *ap_make(guchar *muid)
 static void ap_free(struct alive_ping *ap)
 {
 	atom_guid_free(ap->muid);
-	g_free(ap);
+	wfree(ap, sizeof(*ap));
 }
 
 /*

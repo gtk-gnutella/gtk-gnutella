@@ -47,6 +47,8 @@
 #include "dmesh.h"
 #include "filter_cb.h"
 #include "version.h"
+#include "matching.h"
+#include "walloc.h"
 
 #define SLOW_UPDATE_PERIOD		20	/* Updating period for `main_slow_update' */
 #define EXIT_GRACE				30	/* Seconds to wait before exiting */
@@ -141,9 +143,12 @@ void gtk_gnutella_exit(gint n)
 	config_close();
 	ban_close();
 	cq_free(callout_queue);
+	matching_close();
+	pmsg_close();
 	version_close();
 	atom_str_free(start_rfc822_date);
 	atoms_close();
+	wdestroy();
 
 	if (dbg)
 		printf("gtk-gnutella shut down cleanly.\n\n");
@@ -313,7 +318,9 @@ gint main(gint argc, gchar ** argv)
 	gui_init();
 	init_constants();
 	config_init();
+	matching_init();
 	host_init();
+	pmsg_init();
 	gmsg_init();
 	bsched_init();
 	network_init();

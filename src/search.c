@@ -45,6 +45,8 @@
 #include "extensions.h"
 #include "base32.h"
 #include "sq.h"
+#include "walloc.h"
+#include "zalloc.h"
 
 #ifdef USE_SEARCH_XML
 # include "search_xml.h"
@@ -104,6 +106,9 @@ guint32 search_passive = 0;				/* Amount of passive searches */
 
 static gchar *search_file = "searches";	/* File where searches are saved */
 
+static zone_t *rs_zone;		/* Allocation of results_set */
+static zone_t *rc_zone;		/* Allocation of record */
+
 /*
  * Private function prototypes
  */
@@ -143,6 +148,9 @@ void search_restart(search_t *sch)
 
 void search_init(void)
 {
+	rs_zone = zget(sizeof(struct results_set), 1024);
+	rc_zone = zget(sizeof(struct record), 1024);
+
 	gui_search_init();
 #ifdef USE_SEARCH_XML
     LIBXML_TEST_VERSION
@@ -181,7 +189,7 @@ static void search_free_record(struct record *rc)
 		atom_str_free(rc->tag);
 	if (rc->sha1)
 		atom_sha1_free(rc->sha1);
-	g_free(rc);
+	zfree(rc_zone, rc);
 }
 
 /*
@@ -287,7 +295,7 @@ static void search_free_r_set(struct results_set *rs)
 		atom_guid_free(rs->guid);
 
 	g_slist_free(rs->records);
-	g_free(rs);
+	zfree(rs_zone, rs);
 }
 
 /*
@@ -557,7 +565,7 @@ static void __search_send_packet(search_t *sch, struct gnutella_node *n)
 		return;
 	}
 
-	m = (struct gnutella_msg_search *) g_malloc(size);
+	m = (struct gnutella_msg_search *) walloc(size);
 
 	/* Use the first one on the list */
 	memcpy(m->header.muid, sch->muids->data, 16);
@@ -589,7 +597,7 @@ static void __search_send_packet(search_t *sch, struct gnutella_node *n)
 		gmsg_search_sendto_all(sl_nodes, (guchar *) m, size);
 	}
 
-	g_free(m);
+	wfree(m, size);
 }
 
 static void search_add_new_muid(search_t *sch)
@@ -1072,7 +1080,12 @@ static struct results_set *get_results_set(
 	if (!validate_only)
 		info = g_string_sized_new(80);
 
-	rs = (struct results_set *) g_malloc0(sizeof(struct results_set));
+	rs = (struct results_set *) zalloc(rs_zone);
+
+	rs->vendor[0] = '\0';
+	rs->refcount = 0;
+	rs->records = NULL;
+
 	r = (struct gnutella_search_results *) n->data;
 
 	/* Transfer the Query Hit info to our internal results_set struct */
@@ -1149,8 +1162,10 @@ static struct results_set *get_results_set(
 		nr++;
 
 		if (!validate_only) {
-			rc = (struct record *) g_malloc0(sizeof(struct record));
+			rc = (struct record *) zalloc(rc_zone);
 
+			rc->refcount = 0;
+			rc->sha1 = rc->tag = NULL;
 			rc->index = index;
 			rc->size = size;
 			rc->name = atom_str_get(fname);
@@ -2040,6 +2055,10 @@ void search_shutdown(void)
 
     while (searches != NULL)
         search_close((search_t *)searches->data);
+
+	zdestroy(rs_zone);
+	zdestroy(rc_zone);
+	rs_zone = rc_zone = NULL;
 }
 
 /* ----------------------------------------- */

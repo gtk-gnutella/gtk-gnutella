@@ -95,6 +95,9 @@ typedef struct pmsg {
  * Public interface
  */
 
+void pmsg_init(void);
+void pmsg_close(void);
+
 gint pmsg_size(pmsg_t *mb);
 pmsg_t *pmsg_new(gint prio, void *buf, gint len);
 pmsg_t *pmsg_alloc(gint prio, pdata_t *db, gint roff, gint woff);

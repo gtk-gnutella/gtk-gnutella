@@ -33,6 +33,7 @@
 #include "cq.h"
 #include "sockets.h"
 #include "misc.h"			/* For debug printf() only */
+#include "zalloc.h"
 
 /*
  * We keep a hash table, indexed by IP address, which records all the
@@ -50,6 +51,7 @@
 
 static GHashTable *info;		/* Info by IP address */
 static gfloat decay_coeff;		/* Decay coefficient, per second */
+static zone_t *ipf_zone;		/* Zone for ip_info allocation */
 
 extern cqueue_t *callout_queue;
 extern gint dbg;
@@ -77,7 +79,7 @@ static struct ip_info *ipf_make(guint32 ip, time_t now)
 {
 	struct ip_info *ipf;
 
-	ipf = g_malloc(sizeof(*ipf));
+	ipf = zalloc(ipf_zone);
 
 	ipf->counter = 1.0;
 	ipf->ip = ip;
@@ -111,7 +113,7 @@ static void ipf_free(struct ip_info *ipf)
 	if (ipf->cq_ev)
 		cq_cancel(callout_queue, ipf->cq_ev);
 
-	g_free(ipf);
+	zfree(ipf_zone, ipf);
 }
 
 /*
@@ -370,6 +372,7 @@ void ban_init(void)
 
 	info = g_hash_table_new(g_direct_hash, 0);
 	decay_coeff = (gfloat) MAX_REQUEST / MAX_PERIOD;
+	ipf_zone = zget(sizeof(struct ip_info), 0);
 
 	max_banned_fd = MIN(ban_max_fds, maxopen * ban_ratio_fds / 100);
 	if (max_banned_fd == 0)
@@ -401,5 +404,6 @@ void ban_close(void)
 		(void) close((gint) l->data);		/* Reclaim fd */
 
 	g_list_free(banned_head);
+	zdestroy(ipf_zone);
 }
 

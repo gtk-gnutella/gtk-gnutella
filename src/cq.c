@@ -24,6 +24,7 @@
  */
 
 #include "cq.h"
+#include "walloc.h"
 
 #define HASH_SIZE	1024			/* Hash list size, must be power of 2 */
 #define HASH_MASK	(HASH_SIZE - 1)
@@ -114,7 +115,7 @@ void cq_free(cqueue_t *cq)
 
 	for (ev = cq->cq_head; ev; ev = ev_next) {
 		ev_next = ev->ce_next;
-		g_free(ev);
+		wfree(ev, sizeof(*ev));
 	}
 
 	g_free(cq->cq_hash);
@@ -385,7 +386,7 @@ gpointer cq_insert(cqueue_t *cq, gint delay, cq_service_t fn, gpointer arg)
 	g_assert(valid_ptr(fn));
 	g_assert(delay > 0);
 
-	ev = (cevent_t *) g_malloc(sizeof(*ev));
+	ev = (cevent_t *) walloc(sizeof(*ev));
 
 	ev->ce_magic = EV_MAGIC;
 	ev->ce_time = cq->cq_time + delay;
@@ -417,7 +418,7 @@ void cq_cancel(cqueue_t *cq, gpointer handle)
 
 	ev_unlink(cq, ev);
 	ev->ce_magic = 0;			/* Prevent further use as a valid event */
-	g_free(ev);
+	wfree(ev, sizeof(*ev));
 }
 
 /*
