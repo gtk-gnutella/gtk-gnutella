@@ -125,6 +125,7 @@ static gboolean main_timer(gpointer p)
 gint main(gint argc, gchar ** argv)
 {
 	gint i;
+
 	const gchar *menus[] = {
 		"gnutellaNet",
 		"Uploads",
@@ -138,11 +139,13 @@ gint main(gint argc, gchar ** argv)
 	};
 
     const gint menutabs[] = { 0, 1, 2, 3, 4, 5, 6, 7, -1 };
-	gchar *titles[5];
+
 	gchar mtmp[1024];
+
 	gint optimal_width;
     GtkCTreeNode * parent_node = NULL;    
     GtkCTreeNode * last_node = NULL;
+
 
 	g_assert(sizeof(menus) / sizeof(menus[0]) - 2 == NOTEBOOK_MAIN_IDX_MAX);
 
@@ -261,8 +264,6 @@ gint main(gint argc, gchar ** argv)
 	gtk_widget_set_usize(sw_menu, optimal_width,
 						 (ctree_menu->style->font->ascent +
 						  ctree_menu->style->font->descent + 4) * 8);
-
-	titles[0] = NULL;
 
 	gui_update_c_gnutellanet();
 	gui_update_c_uploads();
