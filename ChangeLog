@@ -1,5 +1,17 @@
 # since last version
 
+- (2003.12.09 - RAM)
+ * Allow them to issue a duplicate upload if the original began to stall.
+   The new upload will simply replace the previous one.
+ * Added "[weird #n]" tagging string to all debugging warnings emitted when
+   we increase the weird message count for a node.
+ * Was misparsing HUGE URNs followed by GGEP extensions, causing spurious
+   "Security Violations" disconnections from GTKG peers.
+
+- (2003.12.07 - RAM)
+ * Count the amount of bytes actually sent back for each upload request.
+   This amount is displayed when a data timeout occurs.
+
 - (2003.12.04 - RAM)
  * Don't attempt QUEUE callback if we don't have enough bandwidth left to
    issue a connection.
