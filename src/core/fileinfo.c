@@ -2279,12 +2279,12 @@ file_info_retrieve(void)
 		value = strchr(line, ' ');
 		if (!value) {
 			if (*line)
-				g_warning("ignoring fileinfo line: %s", line);
+				g_warning("ignoring fileinfo line: \"%s\"", line);
 			continue;
 		}
 		*value++ = '\0'; /* Skip space and point to value */
 		if (value[0] == '\0') {
-			g_warning("empty value in fileinfo line: %s %s", line, value);
+			g_warning("empty value in fileinfo line: \"%s %s\"", line, value);
 			continue;
 		}
 
@@ -2369,11 +2369,11 @@ file_info_retrieve(void)
 			break;
 		case FI_TAG_SHA1:
 			fi->sha1 = extract_sha1(value);
-			damaged = fi->sha1 != NULL;
+			damaged = NULL == fi->sha1;
 			break;
 		case FI_TAG_CHA1:
 			fi->cha1 = extract_sha1(value);
-			damaged = fi->cha1 != NULL;
+			damaged = NULL == fi->cha1;
 			break;
 		case FI_TAG_CHNK:
 			from = v = parse_uint64(value, &ep, 10, &error);
@@ -2407,14 +2407,14 @@ file_info_retrieve(void)
 			break;
 		case FI_TAG_UNKNOWN:
 			if (*line)
-				g_warning("ignoring fileinfo line: %s %s", line, value);
+				g_warning("ignoring fileinfo line: \"%s %s\"", line, value);
 			break;
 		case NUM_FI_TAGS:
 			g_assert_not_reached();
 		}
 
 		if (damaged)
-			g_warning("damaged entry in fileinfo line: %s %s", line, value);
+			g_warning("damaged entry in fileinfo line: \"%s %s\"", line, value);
 	}
 
 	if (fi) {
