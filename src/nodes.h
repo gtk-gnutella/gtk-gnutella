@@ -392,8 +392,8 @@ extern gboolean route_exists_for_reply(gchar *muid, guint8 function);
  * is invoked less often than for a peer.
  * 
  */
-#define node_flowc_swift_grace(n)	(NODE_IS_LEAF(n) ? 120 : 30)
-#define node_flowc_swift_period(n)	(NODE_IS_LEAF(n) ?  60 : 20)
+#define node_flowc_swift_grace(n)	(NODE_IS_LEAF(n) ? 210 : 30)
+#define node_flowc_swift_period(n)	(NODE_IS_LEAF(n) ? 140 : 20)
 
 /*
  * Global Data
