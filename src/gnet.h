@@ -608,7 +608,6 @@ void upload_kill(gnet_upload_t);
 
 
 /* FIXME: temporarily located here: */
-
 struct ul_stats {
 	gchar  *filename;
 	guint32 size;
@@ -619,6 +618,9 @@ struct ul_stats {
 } ul_stats_t;
 
 
+/***
+ *** Fileinfo
+ ***/
 
 typedef guint32 gnet_fi_t;
 
@@ -651,6 +653,7 @@ void fi_remove_fi_status_changed_listener(fi_listener_t);
 gnet_fi_info_t *fi_get_info(gnet_fi_t);
 void fi_free_info(gnet_fi_info_t *);
 void fi_get_status(gnet_fi_t, gnet_fi_status_t *);
+gchar **fi_get_aliases(gnet_fi_t fih);
 
 #endif /* _gnet_h_ */
 
