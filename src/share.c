@@ -1150,7 +1150,22 @@ gboolean search_request(struct gnutella_node *n)
 			return TRUE;		/* Drop the message! */
 		}
 		/* We can now use `search' safely as a C string: it embeds a NUL */
+
+		/*
+		 * Drop the "QTRAX2_CONNECTION" queries as being "overhead".
+		 */
+
+		if (
+			search_len == sizeof("QTRAX2_CONNECTION")-1 &&
+			search[0] == 'Q' &&
+			search[1] == 'T' &&
+			0 == strcmp(search, "QTRAX2_CONNECTION")
+		) {
+            gnet_stats_count_dropped(n, MSG_DROP_QUERY_OVERHEAD);
+			return TRUE;		/* Drop the message! */
+		}
     }
+
 
 	/*
 	 * Compact query, if requested and we're going to relay that message.
