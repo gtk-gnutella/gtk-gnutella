@@ -237,9 +237,10 @@ create_main_window (void)
   GtkWidget *table34;
   GtkWidget *checkbutton_search_autoselect;
   GtkWidget *checkbutton_search_autoselect_ident;
+  GtkWidget *checkbutton_search_autoselect_fuzzy;
   GtkWidget *checkbutton_search_jump_to_downloads;
   GtkWidget *checkbutton_search_remove_downloaded;
-  GtkWidget *checkbutton_search_autoselect_fuzzy;
+  GtkWidget *checkbutton_search_mark_ignored;
   GtkWidget *hbox147;
   GtkWidget *viewport_fix_flashing_1;
   GtkWidget *label_items_found;
@@ -2480,7 +2481,7 @@ create_main_window (void)
   gtk_widget_show (frame_search_results_settings);
   gtk_box_pack_start (GTK_BOX (vbox76), frame_search_results_settings, FALSE, TRUE, 0);
 
-  table34 = gtk_table_new (2, 3, FALSE);
+  table34 = gtk_table_new (3, 3, FALSE);
   gtk_widget_set_name (table34, "table34");
   gtk_widget_ref (table34);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "table34", table34,
@@ -2513,13 +2514,23 @@ create_main_window (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_tooltips_set_tip (tooltips, checkbutton_search_autoselect_ident, "If on autoselection only takes place if filesize matches exactly, if off filesize must be equals or greater.", NULL);
 
+  checkbutton_search_autoselect_fuzzy = gtk_check_button_new_with_label ("Use fuzzy matching");
+  gtk_widget_set_name (checkbutton_search_autoselect_fuzzy, "checkbutton_search_autoselect_fuzzy");
+  gtk_widget_ref (checkbutton_search_autoselect_fuzzy);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "checkbutton_search_autoselect_fuzzy", checkbutton_search_autoselect_fuzzy,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (checkbutton_search_autoselect_fuzzy);
+  gtk_table_attach (GTK_TABLE (table34), checkbutton_search_autoselect_fuzzy, 2, 3, 0, 1,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+
   checkbutton_search_jump_to_downloads = gtk_check_button_new_with_label ("Jump to downloads");
   gtk_widget_set_name (checkbutton_search_jump_to_downloads, "checkbutton_search_jump_to_downloads");
   gtk_widget_ref (checkbutton_search_jump_to_downloads);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "checkbutton_search_jump_to_downloads", checkbutton_search_jump_to_downloads,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (checkbutton_search_jump_to_downloads);
-  gtk_table_attach (GTK_TABLE (table34), checkbutton_search_jump_to_downloads, 0, 1, 1, 2,
+  gtk_table_attach (GTK_TABLE (table34), checkbutton_search_jump_to_downloads, 0, 3, 1, 2,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
 
@@ -2529,17 +2540,17 @@ create_main_window (void)
   gtk_object_set_data_full (GTK_OBJECT (main_window), "checkbutton_search_remove_downloaded", checkbutton_search_remove_downloaded,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (checkbutton_search_remove_downloaded);
-  gtk_table_attach (GTK_TABLE (table34), checkbutton_search_remove_downloaded, 1, 3, 1, 2,
+  gtk_table_attach (GTK_TABLE (table34), checkbutton_search_remove_downloaded, 0, 2, 2, 3,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
 
-  checkbutton_search_autoselect_fuzzy = gtk_check_button_new_with_label ("Use fuzzy matching");
-  gtk_widget_set_name (checkbutton_search_autoselect_fuzzy, "checkbutton_search_autoselect_fuzzy");
-  gtk_widget_ref (checkbutton_search_autoselect_fuzzy);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "checkbutton_search_autoselect_fuzzy", checkbutton_search_autoselect_fuzzy,
+  checkbutton_search_mark_ignored = gtk_check_button_new_with_label ("Mark ignored files");
+  gtk_widget_set_name (checkbutton_search_mark_ignored, "checkbutton_search_mark_ignored");
+  gtk_widget_ref (checkbutton_search_mark_ignored);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "checkbutton_search_mark_ignored", checkbutton_search_mark_ignored,
                             (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (checkbutton_search_autoselect_fuzzy);
-  gtk_table_attach (GTK_TABLE (table34), checkbutton_search_autoselect_fuzzy, 2, 3, 0, 1,
+  gtk_widget_show (checkbutton_search_mark_ignored);
+  gtk_table_attach (GTK_TABLE (table34), checkbutton_search_mark_ignored, 2, 3, 2, 3,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
 

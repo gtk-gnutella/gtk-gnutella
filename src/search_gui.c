@@ -28,8 +28,6 @@
 #include "gui.h"
 
 #include "hosts.h" // FIXME: remove this dependency
-//#include "downloads.h" // FIXME: remove this dependency
-
 
 /* GUI includes  */
 #include "search_gui.h"
@@ -38,11 +36,12 @@
 #include "gui_property.h"
 #include "gui_property_priv.h"
 #include "settings_gui.h"
+
 #ifdef USE_SEARCH_XML
 # include "search_xml.h"
 # include <libxml/parser.h>
 #endif
-#include "vendors.h"
+
 
 /* System includes */
 #include <ctype.h>
@@ -50,6 +49,8 @@
 #include <sys/stat.h>
 
 #define MAX_TAG_SHOWN	60		/* Show only first chars of tag */
+
+#define gui_debug 6
 
 static gchar tmpstr[4096];
 
@@ -768,8 +769,9 @@ void search_matched(search_t *sch, results_set_t *rs)
 	gboolean skip_records;		/* Shall we skip those records? */
 	GString *vinfo = g_string_sized_new(40);
 	gchar *vendor;
-    GdkColor *mark_color;
     GdkColor *download_color;
+    GdkColor *ignore_color;
+    GdkColor *mark_color;
     GSList *l;
     gboolean send_pushes;
     gboolean is_firewalled;
@@ -780,6 +782,9 @@ void search_matched(search_t *sch, results_set_t *rs)
 
     mark_color = &(gtk_widget_get_style(GTK_WIDGET(sch->clist))
         ->bg[GTK_STATE_INSENSITIVE]);
+
+    ignore_color = &(gtk_widget_get_style(GTK_WIDGET(sch->clist))
+        ->fg[GTK_STATE_INSENSITIVE]);
 
     download_color =  &(gtk_widget_get_style(GTK_WIDGET(sch->clist))
         ->fg[GTK_STATE_ACTIVE]);
@@ -824,7 +829,6 @@ void search_matched(search_t *sch, results_set_t *rs)
   	for (l = rs->records; l && !skip_records; l = l->next) {
 		record_t *rc = (record_t *) l->data;
         filter_result_t *flt_result;
-        gboolean mark;
         gboolean downloaded = FALSE;
 
         if (gui_debug > 7)
@@ -847,15 +851,15 @@ void search_matched(search_t *sch, results_set_t *rs)
 			rc->size == 0
 		)
 			continue;
-        
+
         flt_result = filter_record(sch, rc);
 
         /*
-         * Check wether this record was already scheduled for download by
-         * the backend.
+         * Check wether this record was already scheduled for
+         * download by the backend.
          */
         downloaded = rc->flags & SR_DOWNLOADED;
-
+        
         /*
          * Now we check for the different filter result properties.
          */
@@ -879,17 +883,31 @@ void search_matched(search_t *sch, results_set_t *rs)
             (flt_result->props[FILTER_PROP_DISPLAY].user_data == 0)) &&
             (sch->items < search_max_results))
         {
+            GdkColor *fg_color = NULL;
+            gboolean mark;
             sch->items++;
             g_hash_table_insert(sch->dups, rc, (void *) 1);
             rc->refcount++;
 
-            mark = (flt_result->props[FILTER_PROP_DISPLAY].state == 
+            mark = 
+                (flt_result->props[FILTER_PROP_DISPLAY].state == 
                     FILTER_PROP_STATE_DONT) &&
                 (flt_result->props[FILTER_PROP_DISPLAY].user_data == 
                     (gpointer) 1);
 
+            if (rc->flags & SR_IGNORED) {
+                /*
+                 * Check wether this record will be ignored by the backend.
+                 */
+                fg_color = ignore_color;
+            } else if (downloaded) {
+                fg_color = download_color;
+            } else {
+                fg_color = NULL;
+            }
+
             search_gui_add_record(sch, rc, vinfo, 
-                downloaded ? download_color :  NULL,
+                fg_color,
                 mark ? mark_color : NULL);
         }
 

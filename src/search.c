@@ -35,6 +35,7 @@
 #include "gnet_stats.h"
 #include "utf8.h"
 #include "vendors.h"
+#include "ignore.h"
 
 #include <ctype.h>
 
@@ -1034,16 +1035,15 @@ gboolean search_results(gnutella_node_t *n)
 {
 	gnet_results_set_t *rs;
 	GSList *selected_searches = NULL;
-	GSList *l;
+	GSList *sl;
 	gboolean drop_it = FALSE;
 
 	/*
 	 * Look for all the searches, and put the ones we need to possibly
 	 * dispatch the results to into the selected_searches list.
 	 */
-
-	for (l = sl_search_ctrl; l; l = l = g_slist_next(l)) {
-		search_ctrl_t *sch = (search_ctrl_t *) l->data;
+	for (sl = sl_search_ctrl; sl != NULL; sl = g_slist_next(sl)) {
+		search_ctrl_t *sch = (search_ctrl_t *) sl->data;
 
 		/*
 		 * Candidates are all non-frozen searches that are either
@@ -1091,11 +1091,26 @@ gboolean search_results(gnutella_node_t *n)
      */
     if (auto_download_identical)
         file_info_check_results_set(rs);
-    
+
+
+    /*
+     * Look for records that match entries in the download queue.
+     */
+    if (mark_ignored) {
+        for (sl = rs->records; sl != NULL; sl = g_slist_next(sl)) {
+            gnet_record_t *rc = (gnet_record_t *) sl->data;
+            enum ignore_val ival;
+
+            ival = ignore_is_requested(rc->name, rc->size, rc->sha1);
+            if (ival != IGNORE_FALSE)
+                set_flags(rc->flags, SR_IGNORED);
+		}
+	}
+
 	/*
 	 * Dispatch the results to the selected searches.
 	 */
-    if (selected_searches != NULL)
+     if (selected_searches != NULL)
         search_fire_got_results(selected_searches, rs);
 		
     search_free_r_set(rs);

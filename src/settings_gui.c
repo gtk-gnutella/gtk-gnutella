@@ -1241,6 +1241,13 @@ static prop_map_t property_map[] = {
         TRUE,
         "checkbutton_config_download_optimistic_start"
     },
+    {
+        get_main_window,
+        PROP_MARK_IGNORED,
+        update_togglebutton,
+        TRUE,
+        "checkbutton_search_mark_ignored"
+    },
 };
 
 /***

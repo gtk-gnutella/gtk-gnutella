@@ -3018,7 +3018,7 @@
 		<class>GtkTable</class>
 		<name>table34</name>
 		<border_width>2</border_width>
-		<rows>2</rows>
+		<rows>3</rows>
 		<columns>3</columns>
 		<homogeneous>False</homogeneous>
 		<row_spacing>2</row_spacing>
@@ -3074,6 +3074,29 @@
 
 		<widget>
 		  <class>GtkCheckButton</class>
+		  <name>checkbutton_search_autoselect_fuzzy</name>
+		  <can_focus>True</can_focus>
+		  <label>Use fuzzy matching</label>
+		  <active>False</active>
+		  <draw_indicator>True</draw_indicator>
+		  <child>
+		    <left_attach>2</left_attach>
+		    <right_attach>3</right_attach>
+		    <top_attach>0</top_attach>
+		    <bottom_attach>1</bottom_attach>
+		    <xpad>0</xpad>
+		    <ypad>0</ypad>
+		    <xexpand>False</xexpand>
+		    <yexpand>False</yexpand>
+		    <xshrink>False</xshrink>
+		    <yshrink>False</yshrink>
+		    <xfill>True</xfill>
+		    <yfill>False</yfill>
+		  </child>
+		</widget>
+
+		<widget>
+		  <class>GtkCheckButton</class>
 		  <name>checkbutton_search_jump_to_downloads</name>
 		  <can_focus>True</can_focus>
 		  <label>Jump to downloads</label>
@@ -3081,7 +3104,7 @@
 		  <draw_indicator>True</draw_indicator>
 		  <child>
 		    <left_attach>0</left_attach>
-		    <right_attach>1</right_attach>
+		    <right_attach>3</right_attach>
 		    <top_attach>1</top_attach>
 		    <bottom_attach>2</bottom_attach>
 		    <xpad>0</xpad>
@@ -3103,10 +3126,10 @@
 		  <active>False</active>
 		  <draw_indicator>True</draw_indicator>
 		  <child>
-		    <left_attach>1</left_attach>
-		    <right_attach>3</right_attach>
-		    <top_attach>1</top_attach>
-		    <bottom_attach>2</bottom_attach>
+		    <left_attach>0</left_attach>
+		    <right_attach>2</right_attach>
+		    <top_attach>2</top_attach>
+		    <bottom_attach>3</bottom_attach>
 		    <xpad>0</xpad>
 		    <ypad>0</ypad>
 		    <xexpand>False</xexpand>
@@ -3120,16 +3143,16 @@
 
 		<widget>
 		  <class>GtkCheckButton</class>
-		  <name>checkbutton_search_autoselect_fuzzy</name>
+		  <name>checkbutton_search_mark_ignored</name>
 		  <can_focus>True</can_focus>
-		  <label>Use fuzzy matching</label>
+		  <label>Mark ignored files</label>
 		  <active>False</active>
 		  <draw_indicator>True</draw_indicator>
 		  <child>
 		    <left_attach>2</left_attach>
 		    <right_attach>3</right_attach>
-		    <top_attach>0</top_attach>
-		    <bottom_attach>1</bottom_attach>
+		    <top_attach>2</top_attach>
+		    <bottom_attach>3</bottom_attach>
 		    <xpad>0</xpad>
 		    <ypad>0</ypad>
 		    <xexpand>False</xexpand>

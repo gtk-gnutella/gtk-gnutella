@@ -1078,3 +1078,14 @@ prop = {
         default = FALSE;
     };
 };
+
+prop = {
+    name = "mark_ignored";
+    desc = "Mark files that would be ignored when downloaded. This uses a "
+           "little additional CPU power so it's off by default. If you "
+           "don't have a very slow box, you might want to turn this on.";
+    type = boolean;
+    data = {
+        default = FALSE;
+    };
+};

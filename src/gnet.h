@@ -224,6 +224,7 @@ typedef struct gnet_results_set {
  * Result record flags
  */
 #define SR_DOWNLOADED 1
+#define SR_IGNORED    2
 
 /*
  * An individual hit.  It referes to a file entry on the remote servent,
@@ -233,7 +234,7 @@ typedef struct gnet_record {
 	gchar  *name;				/* File name */
 	guint32 size;				/* Size of file, in bytes */
 	guint32 index;				/* Index for GET command */
-	gchar  *sha1;				/* SHA1 URN (binary form, atom) */
+	guchar *sha1;				/* SHA1 URN (binary form, atom) */
 	gchar  *tag;				/* Optional tag data string (atom) */
     flag_t  flags;
 } gnet_record_t;

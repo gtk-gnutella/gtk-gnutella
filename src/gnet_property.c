@@ -225,6 +225,8 @@ gboolean gnet_compact_query     = TRUE;
 gboolean gnet_compact_query_def = TRUE;
 gboolean download_optimistic_start     = FALSE;
 gboolean download_optimistic_start_def = FALSE;
+gboolean mark_ignored     = FALSE;
+gboolean mark_ignored_def = FALSE;
 
 static prop_set_t *gnet_property = NULL;
 
@@ -2006,6 +2008,23 @@ prop_set_t *gnet_prop_init(void) {
     gnet_property->props[94].type               = PROP_TYPE_BOOLEAN;
     gnet_property->props[94].data.boolean.def   = &download_optimistic_start_def;
     gnet_property->props[94].data.boolean.value = &download_optimistic_start;
+
+
+    /*
+     * PROP_MARK_IGNORED:
+     *
+     * General data:
+     */
+    gnet_property->props[95].name = "mark_ignored";
+    gnet_property->props[95].desc = "Mark files that would be ignored when downloaded. This uses a little additional CPU power so it's off by default. If you don't have a very slow box, you might want to turn this on.";
+    gnet_property->props[95].prop_changed_listeners = NULL;
+    gnet_property->props[95].save = TRUE;
+    gnet_property->props[95].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[95].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[95].data.boolean.def   = &mark_ignored_def;
+    gnet_property->props[95].data.boolean.value = &mark_ignored;
     return gnet_property;
 }
 
