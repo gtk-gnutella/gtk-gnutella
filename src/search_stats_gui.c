@@ -56,7 +56,7 @@ static guint32 stat_count;
 static GHashTable *stat_hash = NULL;
 
 static gboolean delete_hash_entry(gpointer key, gpointer val, gpointer data);
-static void empty_hash_table();
+static void empty_hash_table(void);
 static gboolean stats_hash_to_clist(
 	gpointer key, gpointer value, gpointer userdata);
 
@@ -139,7 +139,7 @@ static void search_stats_notify_routed(
  ***/
 
 /* this sucks -- too slow */
-static void empty_hash_table()
+static void empty_hash_table(void)
 {
 	if (!stat_hash)
 		return;
@@ -375,7 +375,7 @@ void search_stats_gui_update(time_t now)
     GtkWidget *clist_search_stats;
     GtkWidget *label_search_stats_count;
 
-    if (last_update + search_stats_update_interval > now)
+    if (delta_time(now, last_update) > search_stats_update_interval)
         return;
 
     last_update = now;
