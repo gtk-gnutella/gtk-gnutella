@@ -5192,12 +5192,12 @@ gchar *gnet_prop_get_string(property_t prop, gchar *t, gsize size)
     return prop_get_string(gnet_property, prop, t, size);
 }
 
-void gnet_prop_set_storage(property_t p, const guint8 *v, gsize l)
+void gnet_prop_set_storage(property_t p, const gchar *v, gsize l)
 {
     prop_set_storage(gnet_property, p, v, l);
 }
 
-guint8 *gnet_prop_get_storage(property_t p, guint8 *t, gsize l)
+gchar *gnet_prop_get_storage(property_t p, gchar *t, gsize l)
 {
     return prop_get_storage(gnet_property, p, t, l);
 }

@@ -159,8 +159,8 @@ guint64 *[=(. func-prefix)=]_get_guint64(
 	[=(. func-prefix)=]_get_guint64(p, v, 0, 1); \
 } while (0)
 
-void [=(. func-prefix)=]_set_storage(property_t, const guint8 *, gsize);
-guint8 *[=(. func-prefix)=]_get_storage(property_t, guint8 *, gsize);
+void [=(. func-prefix)=]_set_storage(property_t, const gchar *, gsize);
+gchar *[=(. func-prefix)=]_get_storage(property_t, gchar *, gsize);
 
 gchar *[=(. func-prefix)=]_to_string(property_t prop);
 
@@ -539,12 +539,12 @@ gchar *[=(. func-prefix)=]_get_string(property_t prop, gchar *t, gsize size)
     return prop_get_string([=(. prop-set)=], prop, t, size);
 }
 
-void [=(. func-prefix)=]_set_storage(property_t p, const guint8 *v, gsize l)
+void [=(. func-prefix)=]_set_storage(property_t p, const gchar *v, gsize l)
 {
     prop_set_storage([=(. prop-set)=], p, v, l);
 }
 
-guint8 *[=(. func-prefix)=]_get_storage(property_t p, guint8 *t, gsize l)
+gchar *[=(. func-prefix)=]_get_storage(property_t p, gchar *t, gsize l)
 {
     return prop_get_storage([=(. prop-set)=], p, t, l);
 }

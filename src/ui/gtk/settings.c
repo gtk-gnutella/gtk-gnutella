@@ -2048,7 +2048,7 @@ guid_changed(property_t prop)
 {
     gchar guid_buf[16];
 
-    gnet_prop_get_storage(prop, (guint8 *) guid_buf, sizeof(guid_buf));
+    gnet_prop_get_storage(prop, guid_buf, sizeof(guid_buf));
 
 #ifdef USE_GTK2
 	{
