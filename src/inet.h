@@ -34,6 +34,8 @@
  * Public interface.
  */
 
+void inet_init(void);
+
 void inet_firewalled(void);
 void inet_got_incoming(guint32 ip);
 gboolean inet_can_answer_ping(void);

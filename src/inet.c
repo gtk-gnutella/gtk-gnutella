@@ -334,5 +334,22 @@ void inet_connection_succeeded(guint32 ip)
 		inet_set_is_connected(TRUE);
 }
 
+/*
+ * inet_init
+ *
+ * Initialization code.
+ */
+void inet_init(void)
+{
+	/*
+	 * If we persisted "is_firewalled" to FALSE, arm the no-connection timer.
+	 */
+
+	if (!is_firewalled)
+		incoming_ev = cq_insert(
+			callout_queue, FW_INCOMING_WINDOW * 1000,
+			got_no_connection, NULL);
+}
+
 /* vi: set ts=4: */
 

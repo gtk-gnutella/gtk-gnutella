@@ -52,6 +52,7 @@
 #include "verify.h"
 #include "move.h"
 #include "extensions.h"
+#include "inet.h"
 
 #ifdef USE_REMOTE_SHELL
 #include "shell.h"
@@ -350,6 +351,7 @@ gint main(gint argc, gchar ** argv)
 	ban_init();
     whitelist_init();
 	ext_init();
+	inet_init();
 
     main_gui_init();
 
