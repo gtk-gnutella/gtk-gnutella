@@ -152,6 +152,11 @@ guint32 gchar_to_ip(const gchar *str)
 
 	struct in_addr ia;
 	gint r;
+
+	/* Skip leading spaces */
+	while (isspace((const guchar) *str))
+		str++;
+
 	r = inet_aton(str, &ia);
 	if (r)
 		return ntohl(ia.s_addr);
