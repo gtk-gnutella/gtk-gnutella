@@ -79,9 +79,9 @@ struct dl_file_info {
 	 * This group of fields is used by the background SHA1 and moving daemons.
 	 */
 
-	time_t cha1_elapsed;	/* Time spent to compute the SHA1 */
+	guint cha1_elapsed;	/* Time spent to compute the SHA1 */
 	guint32 cha1_hashed;	/* Amount of bytes hashed so far */
-	time_t copy_elapsed;	/* Time spent to copy the file */
+	guint copy_elapsed;	/* Time spent to copy the file */
 	guint32 copied;			/* Amount of bytes copied so far */
 };
 
