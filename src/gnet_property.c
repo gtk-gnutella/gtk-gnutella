@@ -41,8 +41,8 @@ gboolean reading_hostfile     = FALSE;
 gboolean reading_hostfile_def = FALSE;
 gboolean ancient_version     = FALSE;
 gboolean ancient_version_def = FALSE;
-gchar   *new_version_str     = "No new version available";
-gchar   *new_version_str_def = "No new version available";
+gchar   *new_version_str     = NULL;
+gchar   *new_version_str_def = NULL;
 guint32  up_connections     = 4;
 guint32  up_connections_def = 4;
 guint32  max_connections     = 4;
@@ -57,8 +57,8 @@ guint32  max_uploads_ip     = 2;
 guint32  max_uploads_ip_def = 2;
 guint32  local_ip     = 0x00000000;
 guint32  local_ip_def = 0x00000000;
-guint32  listen_port     = 6436;
-guint32  listen_port_def = 6436;
+guint32  listen_port     = 6346;
+guint32  listen_port_def = 6346;
 guint32  forced_local_ip     = 0x00000000;
 guint32  forced_local_ip_def = 0x00000000;
 guint32  minimum_speed     = 0;
@@ -293,8 +293,10 @@ prop_set_t *gnet_prop_init(void) {
     gnet_property->props[2].type               = PROP_TYPE_STRING;
     gnet_property->props[2].data.string.def    = &new_version_str_def;
     gnet_property->props[2].data.string.value  = &new_version_str;
-    *gnet_property->props[2].data.string.value =
-        g_strdup(*gnet_property->props[2].data.string.def);
+    if (gnet_property->props[2].data.string.def) {
+        *gnet_property->props[2].data.string.value =
+            g_strdup(*gnet_property->props[2].data.string.def);
+    }
 
 
     /*
@@ -1272,8 +1274,10 @@ prop_set_t *gnet_prop_init(void) {
     gnet_property->props[55].type               = PROP_TYPE_STRING;
     gnet_property->props[55].data.string.def    = &socks_user_def;
     gnet_property->props[55].data.string.value  = &socks_user;
-    *gnet_property->props[55].data.string.value =
-        g_strdup(*gnet_property->props[55].data.string.def);
+    if (gnet_property->props[55].data.string.def) {
+        *gnet_property->props[55].data.string.value =
+            g_strdup(*gnet_property->props[55].data.string.def);
+    }
 
 
     /*
@@ -1291,8 +1295,10 @@ prop_set_t *gnet_prop_init(void) {
     gnet_property->props[56].type               = PROP_TYPE_STRING;
     gnet_property->props[56].data.string.def    = &socks_pass_def;
     gnet_property->props[56].data.string.value  = &socks_pass;
-    *gnet_property->props[56].data.string.value =
-        g_strdup(*gnet_property->props[56].data.string.def);
+    if (gnet_property->props[56].data.string.def) {
+        *gnet_property->props[56].data.string.value =
+            g_strdup(*gnet_property->props[56].data.string.def);
+    }
 
 
     /*
@@ -1688,8 +1694,10 @@ prop_set_t *gnet_prop_init(void) {
     gnet_property->props[77].type               = PROP_TYPE_STRING;
     gnet_property->props[77].data.string.def    = &scan_extensions_def;
     gnet_property->props[77].data.string.value  = &scan_extensions;
-    *gnet_property->props[77].data.string.value =
-        g_strdup(*gnet_property->props[77].data.string.def);
+    if (gnet_property->props[77].data.string.def) {
+        *gnet_property->props[77].data.string.value =
+            g_strdup(*gnet_property->props[77].data.string.def);
+    }
 
 
     /*
@@ -1707,8 +1715,10 @@ prop_set_t *gnet_prop_init(void) {
     gnet_property->props[78].type               = PROP_TYPE_STRING;
     gnet_property->props[78].data.string.def    = &save_file_path_def;
     gnet_property->props[78].data.string.value  = &save_file_path;
-    *gnet_property->props[78].data.string.value =
-        g_strdup(*gnet_property->props[78].data.string.def);
+    if (gnet_property->props[78].data.string.def) {
+        *gnet_property->props[78].data.string.value =
+            g_strdup(*gnet_property->props[78].data.string.def);
+    }
 
 
     /*
@@ -1726,8 +1736,10 @@ prop_set_t *gnet_prop_init(void) {
     gnet_property->props[79].type               = PROP_TYPE_STRING;
     gnet_property->props[79].data.string.def    = &move_file_path_def;
     gnet_property->props[79].data.string.value  = &move_file_path;
-    *gnet_property->props[79].data.string.value =
-        g_strdup(*gnet_property->props[79].data.string.def);
+    if (gnet_property->props[79].data.string.def) {
+        *gnet_property->props[79].data.string.value =
+            g_strdup(*gnet_property->props[79].data.string.def);
+    }
 
 
     /*
@@ -1745,8 +1757,10 @@ prop_set_t *gnet_prop_init(void) {
     gnet_property->props[80].type               = PROP_TYPE_STRING;
     gnet_property->props[80].data.string.def    = &shared_dirs_paths_def;
     gnet_property->props[80].data.string.value  = &shared_dirs_paths;
-    *gnet_property->props[80].data.string.value =
-        g_strdup(*gnet_property->props[80].data.string.def);
+    if (gnet_property->props[80].data.string.def) {
+        *gnet_property->props[80].data.string.value =
+            g_strdup(*gnet_property->props[80].data.string.def);
+    }
 
 
     /*
@@ -1764,8 +1778,10 @@ prop_set_t *gnet_prop_init(void) {
     gnet_property->props[81].type               = PROP_TYPE_STRING;
     gnet_property->props[81].data.string.def    = &local_netmasks_string_def;
     gnet_property->props[81].data.string.value  = &local_netmasks_string;
-    *gnet_property->props[81].data.string.value =
-        g_strdup(*gnet_property->props[81].data.string.def);
+    if (gnet_property->props[81].data.string.def) {
+        *gnet_property->props[81].data.string.value =
+            g_strdup(*gnet_property->props[81].data.string.def);
+    }
 
 
     /*
