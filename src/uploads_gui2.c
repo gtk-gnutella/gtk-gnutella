@@ -67,11 +67,11 @@ static void upload_removed(
 {
     GtkTreeIter iter;
     upload_row_data_t *data;
-
+	
     /* Invalidate row and remove it from the gui if autoclear is on */
     if (find_row(&iter, uh, &data)) {
-        data->valid = FALSE;
-        gtk_widget_set_sensitive(button_uploads_clear_completed, TRUE);
+		data->valid = FALSE;
+       	gtk_widget_set_sensitive(button_uploads_clear_completed, TRUE);
         if (reason != NULL)
             gtk_list_store_set(store_uploads, &iter,
 				c_ul_status, reason, (-1));
@@ -179,11 +179,27 @@ static gchar *uploads_gui_status_str(
 		 *		-- JA, 06/02/2003
 		 */
 	case GTA_UL_QUEUED:
-		gm_snprintf(tmpstr, sizeof(tmpstr),
-			"Queued (slot %d / %d) ETA: %ds", 
-			u->parq_position,
-			u->parq_size,
-			u->parq_ETA);
+		if (u->parq_position == 1) {
+		/* position 1 should always get an upload slot */
+			gm_snprintf(tmpstr, sizeof(tmpstr),
+				"Waiting (%4d/ %4d) lifetime: %s", 
+				u->parq_position,
+				u->parq_size,
+				short_time(u->parq_lifetime));
+		} else
+		if (u->parq_retry > 0)
+			gm_snprintf(tmpstr, sizeof(tmpstr),
+				"Queued (slot %4d / %4d) %ds, lifetime: %s", 
+				u->parq_position,
+				u->parq_size,
+				u->parq_retry, 
+				short_time(u->parq_lifetime));
+		else
+			gm_snprintf(tmpstr, sizeof(tmpstr),
+				"Queued (slot %4d / %4d) lifetime: %s", 
+				u->parq_position,
+				u->parq_size,
+				short_time(u->parq_lifetime));
         break;
     case GTA_UL_ABORTED:
         return "Transmission aborted";

@@ -58,6 +58,8 @@ RCSID("$Id$");
 #define READ_BUF_SIZE	4096		/* Read buffer size, if no sendfile(2) */
 #define BW_OUT_MIN		256			/* Minimum bandwidth to enable uploads */
 
+#define RQST_LINE_LENGTH	256		/* Reasonable estimate for request line */
+
 GSList *uploads = NULL;
 
 static idtable_t *upload_handle_map = NULL;
@@ -184,7 +186,7 @@ void upload_timer(time_t now)
 {
 	GSList *l;
 	GSList *to_remove = NULL;
-	guint32 t;
+	time_t t;
 
 	for (l = uploads; l; l = l->next) {
 		gnutella_upload_t *u = (gnutella_upload_t *) l->data;
@@ -412,8 +414,10 @@ static void upload_free_resources(gnutella_upload_t *u)
 		g_free(u->buffer);
 		u->buffer = NULL;
 	}
-	if (u->io_opaque)				/* I/O data */
+	if (u->io_opaque) {				/* I/O data */
 		io_free(u->io_opaque);
+		g_assert(u->io_opaque == NULL);
+	}
 	if (u->bio != NULL) {
 		bsched_source_remove(u->bio);
 		u->bio = NULL;
@@ -618,6 +622,8 @@ static void upload_remove_v(
 	 */
 	gint previous_running = running_uploads;
 
+	g_assert(u != NULL);
+
 	if (reason) {
 		gm_vsnprintf(errbuf, sizeof(errbuf), reason, ap);
 		errbuf[sizeof(errbuf) - 1] = '\0';		/* May be truncated */
@@ -725,7 +731,9 @@ static void upload_remove_v(
 void upload_remove(gnutella_upload_t *u, const gchar *reason, ...)
 {
 	va_list args;
-
+	
+	g_assert(u != NULL);
+	
 	va_start(args, reason);
 	upload_remove_v(u, reason, args);
 	va_end(args);
@@ -743,6 +751,8 @@ static void upload_error_remove(
 	const guchar *msg, ...)
 {
 	va_list args, errargs;
+
+	g_assert(u != NULL);
 
 	va_start(args, msg);
 
@@ -769,14 +779,15 @@ static void upload_error_remove_ext(
 {
 	va_list args, errargs;
 
+	g_assert(u != NULL);
+
 	va_start(args, msg);
 
 	VA_COPY(errargs, args);
 	send_upload_error_v(u, sf, ext, code, msg, errargs);
 	va_end(errargs);
 
-	if (u->status != GTA_UL_QUEUED)
-		upload_remove_v(u, msg, args);
+	upload_remove_v(u, msg, args);
 	
 	va_end(args);
 }
@@ -1001,6 +1012,7 @@ static guint32 mi_get_stamp(guint32 ip, const guchar *sha1, time_t now)
 	return 0;			/* Don't remember sending info about this file */
 }
 
+
 /*
  * upload_add
  *
@@ -1014,7 +1026,7 @@ void upload_add(struct gnutella_socket *s)
 	socket_tos_default(s);			/* Set proper Type of Service */
 
 	u = upload_create(s, FALSE);
-
+		
 	/*
 	 * Read HTTP headers fully, then call upload_request() when done.
 	 */
@@ -1695,14 +1707,15 @@ static void upload_request(gnutella_upload_t *u, header_t *header)
 	gboolean head_only;
 	gboolean has_end = FALSE;
 	struct stat statbuf;
-	time_t mtime, now;
+	time_t mtime, now = time((time_t *) NULL);
 	struct upload_http_cb cb_arg;
 	gint http_code;
 	const gchar *http_msg;
 	http_extra_desc_t hev[2];
 	gint hevcnt = 0;
 	guchar *sha1;
-	gboolean is_followup = u->status == GTA_UL_WAITING;
+	gboolean is_followup = 
+		u->status == GTA_UL_WAITING;
 	gboolean faked = FALSE;
 	gchar *token;
 	gpointer parq_handle = NULL;
@@ -2094,10 +2107,34 @@ static void upload_request(gnutella_upload_t *u, header_t *header)
 						bsched_avg_pct(bws.out), ul_usage_min_percentage);
 			} else {
 				if (u->status == GTA_UL_QUEUED) {
-					upload_error_remove(u, reqfile,	503, 
-						"Active queued (slot %d, ETA: %s)", 
-						parq_upload_lookup_position(u), 
-						short_time(parq_upload_lookup_eta(u)));
+					/*
+					 * Cleanup data structures.
+					 */
+
+					io_free(u->io_opaque);
+					g_assert(u->io_opaque == NULL);
+
+					getline_free(s->getline);
+					s->getline = NULL;
+
+					u->error_sent = FALSE;
+
+					send_upload_error(u, reqfile, 503, 
+						  "Queued (slot %d, ETA: %s)", 
+						  parq_upload_lookup_position(u), 
+						  short_time(parq_upload_lookup_eta(u)));
+	
+					running_uploads--;	/* will get increased next time
+										   upload_request is called */
+
+					/* Avoid data timeout */
+					u->socket->last_update = 
+						  parq_upload_lookup_lifetime(u) -
+						  upload_connected_timeout;
+					u->last_update = u->socket->last_update;
+
+					expect_http_header(u, GTA_UL_QUEUED);
+					return;
 				} else
 				if (parq_upload_queue_full(u)) {
 					upload_error_remove(u, reqfile, 503, "Queue full");
@@ -2189,7 +2226,6 @@ static void upload_request(gnutella_upload_t *u, header_t *header)
 	 * Prepare date and modification time of file.
 	 */
 
-	now = time((time_t *) NULL);
 	mtime = statbuf.st_mtime;
 	if (mtime > now)
 		mtime = now;			/* Clock skew on file server */
@@ -2233,6 +2269,7 @@ static void upload_request(gnutella_upload_t *u, header_t *header)
 	 */
 
 	io_free(u->io_opaque);
+	u->io_opaque = NULL;
 
 	getline_free(s->getline);
 	s->getline = NULL;
@@ -2461,7 +2498,6 @@ void upload_close(void)
 
 	g_hash_table_foreach(mesh_info, mi_free_kv, NULL);
 	g_hash_table_destroy(mesh_info);
-
 }
 
 gnet_upload_info_t *upload_get_info(gnet_upload_t uh)
@@ -2480,7 +2516,7 @@ gnet_upload_info_t *upload_get_info(gnet_upload_t uh)
     info->user_agent    = u->user_agent ? atom_str_get(u->user_agent) : NULL;
     info->upload_handle = u->upload_handle;
 	info->push          = u->push;
-
+	
     return info;
 }
 
@@ -2499,7 +2535,7 @@ void upload_free_info(gnet_upload_info_t *info)
 void upload_get_status(gnet_upload_t uh, gnet_upload_status_t *si)
 {
     gnutella_upload_t *u = upload_find_by_handle(uh); 
-
+	time_t now = time((time_t *) NULL);
     g_assert(si != NULL); 
 
     si->status      = u->status;
@@ -2507,6 +2543,11 @@ void upload_get_status(gnet_upload_t uh, gnet_upload_status_t *si)
     si->bps         = 1;
     si->avg_bps     = 1;
     si->last_update = u->last_update;
+
+	si->parq_position = parq_upload_lookup_position(u);
+	si->parq_size = parq_upload_lookup_size(u);
+	si->parq_lifetime = MAX(0, (gint32) (parq_upload_lookup_lifetime(u) - now));
+	si->parq_retry = MAX(0, (gint32) (parq_upload_lookup_retry(u) - now));
 
     if (u->bio) {
         si->bps = bio_bps(u->bio);

@@ -523,7 +523,8 @@ typedef struct gnet_upload_status {
 	
 	guint	parq_position;
 	guint	parq_size;
-	guint	parq_ETA;
+	guint32	parq_lifetime;
+	guint32	parq_retry;
 } gnet_upload_status_t;
 
 typedef struct gnet_upload_info {
@@ -698,4 +699,3 @@ void fi_purge(gnet_fi_t fih);
 
 
 #endif /* _gnet_h_ */
-

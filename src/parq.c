@@ -42,6 +42,8 @@ RCSID("$Id$");
 #define PARQ_RETRY_SAFETY	40		/* 40 seconds before lifetime */
 #define PARQ_TIMER_BY_POS	30		/* 30 seconds for each queue position */
 #define PARQ_UL_RETRY_DELAY 300		/* 5 minutes timeout. XXX -- hardwired!! */
+#define MIN_LIFE_TIME 90
+
 #define MIBI (1024 * 1024)
 /*
  * Queues:
@@ -55,7 +57,7 @@ RCSID("$Id$");
 #define PARQ_UL_MAGIC	0x6a3900a1
 
 guint parq_max_upload_size = 4000;
-guint parq_upload_active_size = 0; /* Number of active upload slots per queue */
+guint parq_upload_active_size = 20; /* Number of active upload slots per queue*/
 static const gchar *file_parq_file = "parq";
 
 static GList *ul_parqs = NULL;
@@ -94,7 +96,7 @@ struct parq_ul_queued {
 	guint eta;				/* Expected time in seconds till an upload slot is
 							   reached */
 
-	time_t expire;			/* Max interval before loosing queue position */
+	time_t expire;			/* Time at which the queue position will be lost*/
 	time_t retry;			/* Time at which the first retry-after is expected*/
 	time_t enter;			/* Time upload entered parq */
 	time_t updated;			/* Time last upload request was sent */
@@ -910,6 +912,11 @@ static void parq_upload_free(struct parq_ul_queued *parq_ul)
 		printf("PARQ UL: Entry freed from memory\r\n");
 }
 
+guint32 parq_ul_calc_retry(struct parq_ul_queued *parq_ul)
+{
+	return 30 + 20 * (parq_ul->relative_position - 1);
+}
+
 /*
  * parq_upload_create
  *
@@ -994,7 +1001,6 @@ static struct parq_ul_queued *parq_upload_create(gnutella_upload_t *u)
 	parq_ul->eta = eta;
 	parq_ul->enter = now;
 	parq_ul->updated = now;
-	parq_ul->expire = now + PARQ_UL_RETRY_DELAY;
 	parq_ul->file_size = u->file_size;
 	parq_ul->queue = parq_ul_queue;
 	parq_ul->has_slot = FALSE;
@@ -1004,6 +1010,8 @@ static struct parq_ul_queued *parq_upload_create(gnutella_upload_t *u)
 	parq_ul->minor = 0;
 	parq_ul->is_alive = TRUE;
 	parq_ul->queue->alive++;
+	parq_ul->retry = now + parq_ul_calc_retry(parq_ul);
+	parq_ul->expire = parq_ul->retry + MIN_LIFE_TIME;
 	
 	/* Save into hash table so we can find the current parq ul later */
 	g_hash_table_insert(ul_all_parq_by_id, parq_ul->id, parq_ul);
@@ -1255,7 +1263,8 @@ void parq_upload_timer(time_t now)
 				parq_upload_send_queue(parq_ul);
 			}
 			
-			if (parq_ul->is_alive && parq_ul->expire + 90 < now && !parq_ul->has_slot) {
+			if (parq_ul->is_alive && parq_ul->expire + 90 < 
+				  now && !parq_ul->has_slot) {
 				if (dbg) 
 					printf("PARQ UL Q %d/%d (%3d[%3d]/%3d): Timeout:'%s'\n\r",
 						g_list_position(ul_parqs, 
@@ -1460,6 +1469,9 @@ static gboolean parq_upload_continue(struct parq_ul_queued *uq, gint free_slots)
 		}
 
 		if (uq->relative_position == pos) {
+			g_assert(uq->relative_position <= max_uploads);
+			g_assert(uq->queue->active_uploads <= max_uploads);
+			
 			if (dbg)
 				printf("PARQ UL: Upload %d[%d] is allowed to continue\r\n",
 					  uq->position, uq->relative_position);
@@ -1567,7 +1579,7 @@ cleanup:
 	 */
 
 	parq_upload_update_ip_and_name(parq_ul, u);
-
+	
 	if (!parq_ul->is_alive) {
 		parq_ul->queue->alive++;
 		parq_ul->is_alive = TRUE;
@@ -1611,7 +1623,12 @@ gboolean parq_upload_request(gnutella_upload_t *u, gpointer handle,
 	time_t now = time((time_t *) NULL);
 	
 	parq_ul->updated = now;
-	parq_ul->expire = now + PARQ_UL_RETRY_DELAY;
+	parq_ul->retry = now + parq_ul_calc_retry(parq_ul);
+	
+	g_assert(parq_ul->eta - now > 0);
+	
+	parq_ul->expire = 
+		  MIN_LIFE_TIME + u->file_size / MIBI / 2 + parq_ul->retry;
 	
 	/*
 	 * Client was already downloading a segment, segment was finished and 
@@ -1746,6 +1763,7 @@ void parq_upload_add_header(gchar *buf, gint *retval, gpointer arg)
 {	
 	gint rw = 0;
 	gint length = *retval;
+	time_t now = time((time_t *) NULL);
 	struct upload_http_cb *a = (struct upload_http_cb *) arg;
 
 	g_assert(buf != NULL);
@@ -1753,33 +1771,50 @@ void parq_upload_add_header(gchar *buf, gint *retval, gpointer arg)
 	g_assert(a->u != NULL);
 	
 	if (parq_upload_queued(a->u)) {
-		gint lifetime = parq_upload_lookup_lifetime(a->u);
-
-		g_assert(length > 0);
-		rw = gm_snprintf(buf, length,
-			"X-Queue: %d.%d\r\n"
-			"X-Queued: position=%d; ID=%s; length=%d; ETA=%d; lifetime=%d\r\n"
-			"Retry-After: %d\r\n",
-			PARQ_VERSION_MAJOR, PARQ_VERSION_MINOR,
-			parq_upload_lookup_position(a->u),
-			parq_upload_lookup_id(a->u),
-			parq_upload_lookup_size(a->u),
-			parq_upload_lookup_eta(a->u),
-			lifetime,
-			MAX(30, lifetime - 30));
-
-		/*
-		 * If we filled all the buffer, try with a shorter string, bearing
-		 * only the minimal amount of information.
-		 */
-		g_assert(length > 0);	
-		if (rw == length - 1 && buf[rw - 1] != '\n')
+		struct parq_ul_queued *parq_ul = 
+			(struct parq_ul_queued *) parq_upload_find(a->u);
+				
+		if (parq_ul->major == 0 && parq_ul->minor == 1 && 
+				  a->u->status == GTA_UL_QUEUED) {
+			g_assert(length > 0);
+			rw = gm_snprintf(buf, length,
+				"X-Queue: "
+				"position=%d,length=%d,limit=%d,pollMin=%d,pollMax=%d\r\n",
+				parq_ul->relative_position,
+				parq_ul->queue->size,
+				1,
+				MAX((gint32) (parq_ul->retry - now), 0), 
+				MAX((gint32) (parq_ul->expire - now), 0));
+		} else {
+			gint lifetime = MAX(0, parq_upload_lookup_lifetime(a->u) - now);
+		
+			g_assert(length > 0);
 			rw = gm_snprintf(buf, length,
 				"X-Queue: %d.%d\r\n"
-				"X-Queued: ID=%s; lifetime=%d\r\n",
+				"X-Queued: position=%d; ID=%s; length=%d; ETA=%d; lifetime=%d"
+					  "\r\n"
+				"Retry-After: %d\r\n",
 				PARQ_VERSION_MAJOR, PARQ_VERSION_MINOR,
-				parq_upload_lookup_id(a->u),
-				lifetime);
+				parq_ul->relative_position,
+				parq_ul->id,
+				parq_ul->queue->size,
+				parq_ul->eta,
+				MAX((gint32) (parq_ul->expire - now), 0),
+				MAX((gint32)  (parq_ul->retry - now ), 0));
+		
+			/*
+			 * If we filled all the buffer, try with a shorter string, bearing
+			 * only the minimal amount of information.
+			 */
+			g_assert(length > 0);	
+			if (rw == length - 1 && buf[rw - 1] != '\n')
+				rw = gm_snprintf(buf, length,
+					"X-Queue: %d.%d\r\n"
+					"X-Queued: ID=%s; lifetime=%d\r\n",
+					PARQ_VERSION_MAJOR, PARQ_VERSION_MINOR,
+					parq_upload_lookup_id(a->u),
+					lifetime);
+		}
 	}
 
 	g_assert(rw < length);
@@ -1880,7 +1915,7 @@ guint parq_upload_lookup_size(gnutella_upload_t *u)
  *
  * Returns the lifetime of a queued upload
  */
-guint parq_upload_lookup_lifetime(gnutella_upload_t *u)
+time_t parq_upload_lookup_lifetime(gnutella_upload_t *u)
 {
 	struct parq_ul_queued *parq_ul = NULL;
 	
@@ -1892,7 +1927,7 @@ guint parq_upload_lookup_lifetime(gnutella_upload_t *u)
 	parq_ul = parq_upload_find(u);
 	
 	if (parq_ul != NULL) {
-		return PARQ_UL_RETRY_DELAY;
+		return parq_ul->expire;
 	} else {
 		/* No queue created yet */
 		return 0;
@@ -1900,13 +1935,37 @@ guint parq_upload_lookup_lifetime(gnutella_upload_t *u)
 }
 
 /*
+ * parq_upload_lookup_retry
+ *
+ * Returns the time_t at which the next retry is expected
+ */
+time_t parq_upload_lookup_retry(gnutella_upload_t *u)
+{
+	struct parq_ul_queued *parq_ul = NULL;
+	
+	/*
+	 * There can be multiple queues. Find the queue in which the upload is
+	 * queued.
+	 */
+	
+	parq_ul = parq_upload_find(u);
+	
+	if (parq_ul != NULL) {
+		return parq_ul->retry;
+	} else {
+		/* No queue created yet */
+		return 0;
+	}	
+}
+/*
  * parq_upload_update_relative_position
  *
  * Updates the relative position of all queued after the given queued
  * item
  */
 
-static void parq_upload_update_relative_position(struct parq_ul_queued *cur_parq_ul)
+static void parq_upload_update_relative_position(
+	  struct parq_ul_queued *cur_parq_ul)
 {
 	GList *l = NULL;
 	guint rel_pos = cur_parq_ul->relative_position;
@@ -1953,7 +2012,8 @@ static void parq_upload_decrease_all_after(struct parq_ul_queued *cur_parq_ul)
 	
 	/* XXX This assert will actually prevent dynamic parq sizes. This will
 	 * XXX be removed when PARQ has proven stable */
-	g_assert(g_list_length(cur_parq_ul->queue->by_position) <= parq_max_upload_size);
+	g_assert(g_list_length(cur_parq_ul->queue->by_position) <= 
+		  parq_max_upload_size);
 	
 	l = g_list_find(cur_parq_ul->queue->by_position, cur_parq_ul);
 	pos_cnt = ((struct parq_ul_queued *) l->data)->position;

@@ -85,6 +85,7 @@ gboolean http_send_status(
 	gint i;
 	va_list args;
 	gchar *conn_close = "Connection: close\r\n";
+	gchar *no_content = "Content-Length: 0\r\n";
 
 	va_start(args, reason);
 	gm_vsnprintf(status_msg, sizeof(status_msg)-1,  reason, args);
@@ -93,14 +94,18 @@ gboolean http_send_status(
 	if (code < 300 || keep_alive)
 		conn_close = "";		/* Keep HTTP connection */
 
+	if (code < 300 || !keep_alive) 
+		no_content = "";
+		
 	rw = gm_snprintf(header, sizeof(header),
 		"HTTP/1.1 %d %s\r\n"
 		"Server: %s\r\n"
 		"%s"			/* Connection */
 		"X-Token: %s\r\n"
-		"X-Live-Since: %s\r\n",
+		"X-Live-Since: %s\r\n"
+		"%s",			/* Content length */
 		code, status_msg, version_string, conn_close,
-		tok_version(), start_rfc822_date);
+		tok_version(), start_rfc822_date, no_content);
 
 	mrw = rw;		/* Minimal header length */
 
