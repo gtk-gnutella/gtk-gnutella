@@ -37,6 +37,8 @@ void gui_update_download_clear(void);
 void gui_update_c_downloads(gint, gint);
 void gui_update_queue_frozen(void);
 
+gchar *download_gui_get_hostname(struct download *d);
+
 void on_button_downloads_clear_stopped_clicked(
 	GtkButton *button, gpointer user_data);
 void on_popup_downloads_selection_get(GtkWidget *widget,

@@ -391,12 +391,14 @@ gboolean downloads_gui_update_parent_status(
     GtkCTree *ctree_downloads = GTK_CTREE
             (lookup_widget(main_window, "ctree_downloads"));
 
-	if (NULL != d->file_info) {
-			
+
+    if (NULL != d->file_info) {
+
 		key = &d->file_info->fi_handle;
 		parent = find_parent_with_fi_handle(parents, key);
 
 		if (NULL != parent) {
+
 			changed = TRUE;
 			gtk_ctree_node_set_text(ctree_downloads, parent,
 				c_dl_status, new_status);
@@ -413,6 +415,39 @@ gboolean downloads_gui_update_parent_status(
 
 	return changed;
 }
+
+
+// FIXME: insteadof this download_gui should pull a listener on 
+//        fileinfo status changes, but since the downloads gui
+//        has to be overhauled for better fileinfo integration anyway,
+//        I didn't do this now.
+//     --BLUE, 10/1/2004
+/*
+void gui_update_download_hostcount(struct download *d)
+{
+	gpointer key;
+	GtkCTreeNode *parent;
+    GtkCTree *ctree_downloads = GTK_CTREE
+            (lookup_widget(main_window, "ctree_downloads"));
+
+    if (NULL != d->file_info) {
+
+		key = &d->file_info->fi_handle;
+		parent = find_parent_with_fi_handle(parents, key);
+
+		if (NULL != parent) {
+            guint32 n;
+
+			n = count_node_children(ctree_downloads, parent);
+			gm_snprintf(tmpstr, sizeof(tmpstr), 
+                "%u hosts", n);
+
+			gtk_ctree_node_set_text(ctree_downloads,  parent,
+                c_dl_host, tmpstr);
+        }
+    }
+}
+*/
 
 
 /*
@@ -495,10 +530,7 @@ void download_gui_add(struct download *d)
     titles[c_queue_server] = vendor;
 	titles[c_queue_status] = "";
 	titles[c_queue_size] = short_size(d->file_info->size);
-	titles[c_queue_host] = is_faked_download(d) ? "" :
-		d->server->hostname == NULL ?
-		ip_port_to_gchar(download_ip(d), download_port(d)) :
-		hostname_port_to_gchar(d->server->hostname, download_port(d));
+	titles[c_queue_host] = download_gui_get_hostname(d);
 
 
 	if (DOWNLOAD_IS_QUEUED(d)) {
@@ -547,7 +579,6 @@ void download_gui_add(struct download *d)
 					if (drecord->always_push)
 						 gtk_ctree_node_set_foreground(ctree_downloads_queue, 
 							new_node, color);
-
 
 					/* Clear old values in parent, turn it into a header */
 					gtk_ctree_node_set_text(ctree_downloads_queue, parent, 
@@ -616,10 +647,7 @@ void download_gui_add(struct download *d)
 		titles[c_dl_status] = "";
 		titles[c_dl_size] = short_size(d->file_info->size);
 		titles[c_dl_range] = "";
-		titles[c_dl_host] = is_faked_download(d) ? "" :
-			d->server->hostname == NULL ?
-				ip_port_to_gchar(download_ip(d), download_port(d)) :
-				hostname_port_to_gchar(d->server->hostname, download_port(d));
+        titles[c_dl_host] = g_strdup(download_gui_get_hostname(d));
 		
 		ctree_downloads = GTK_CTREE
 			(lookup_widget(main_window, "ctree_downloads"));
@@ -655,20 +683,19 @@ void download_gui_add(struct download *d)
 			        titles_parent[c_dl_server] = server;
        				titles_parent[c_dl_status] = status;
 					titles_parent[c_dl_size] = "\"";
-        			titles_parent[c_dl_host] = host;
+					titles_parent[c_dl_host] = host;
         			titles_parent[c_dl_range] = range;
-					
+
 					new_node = gtk_ctree_insert_node(ctree_downloads, 
 						parent, NULL, titles_parent, DL_GUI_TREE_SPACE, NULL, 
 						NULL, NULL, NULL, FALSE, FALSE);
-	
+
 					gtk_ctree_node_set_row_data(ctree_downloads, new_node, 
 						(gpointer) drecord);
 
 					if (DOWNLOAD_IS_IN_PUSH_MODE(d))
 						 gtk_ctree_node_set_foreground(ctree_downloads, 
 							new_node, color);
-
 
 					/* Clear old values in parent, turn it into a header */
 					gtk_ctree_node_set_text(ctree_downloads, parent, 
@@ -707,12 +734,8 @@ void download_gui_add(struct download *d)
 					 gtk_ctree_node_set_foreground(ctree_downloads, 
 						new_node, color);
 				
-// BLUEFIRE			
 				n = count_node_children(ctree_downloads, parent);
-				gm_snprintf(tmpstr, sizeof(tmpstr), 
-                    "%u hosts (%u)",
-                    d->file_info->recvcount, 
-                    n - d->file_info->recvcount);
+				gm_snprintf(tmpstr, sizeof(tmpstr), "%u hosts", n);
 
 				gtk_ctree_node_set_text(ctree_downloads, parent, 
 					c_queue_host, tmpstr);
@@ -822,10 +845,7 @@ void gui_update_download_host(struct download *d)
 	g_assert(d);
 	g_assert(d->status != GTA_DL_QUEUED);
 
-	text = is_faked_download(d) ? "" :
-		d->server->hostname == NULL ?
-			ip_port_to_gchar(download_ip(d), download_port(d)) :
-			hostname_port_to_gchar(d->server->hostname, download_port(d));
+    text = download_gui_get_hostname(d);
 
 	node = gtk_ctree_find_by_row_data(ctree_downloads, NULL, (gpointer) d);
 	if (NULL != node)
@@ -1664,9 +1684,7 @@ void download_gui_remove(struct download *d)
 						
 					if (2 < n){
 						gm_snprintf(tmpstr, sizeof(tmpstr), 
-                            "%u hosts (%u)",
-                            d->file_info->recvcount, 
-                            n - d->file_info->recvcount - 1);
+                            "%u hosts", n-1);
 
 						gtk_ctree_node_set_text(ctree_downloads,  parent,
 							c_dl_host, tmpstr);

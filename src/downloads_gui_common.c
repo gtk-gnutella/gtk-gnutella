@@ -203,3 +203,11 @@ void on_togglebutton_queue_freeze_toggled(GtkToggleButton *togglebutton,
         download_thaw_queue();
     }
 }
+
+gchar *download_gui_get_hostname(struct download *d) 
+{
+    return is_faked_download(d) ? "" :
+		d->server->hostname == NULL ?
+		ip_port_to_gchar(download_ip(d), download_port(d)) :
+		hostname_port_to_gchar(d->server->hostname, download_port(d));    
+}

@@ -819,9 +819,7 @@ void download_gui_add(struct download *d)
 				n = (guint) gtk_tree_model_iter_n_children(
 					(GtkTreeModel *) model, parent);
 
-				gm_snprintf(tmpstr, sizeof(tmpstr), "%u hosts (%u)", 
-                    d->file_info->recvcount, 
-                    n - d->file_info->recvcount);
+				gm_snprintf(tmpstr, sizeof(tmpstr), "%u hosts", n);
 
 				gtk_tree_store_set(model, parent,
 			  		c_dl_host, tmpstr, (-1));
@@ -1072,9 +1070,7 @@ void download_gui_remove(struct download *d)
 
 					if (2 < n){
 						gm_snprintf(tmpstr, sizeof(tmpstr), 
-                            "%u hosts (%u)",
-                            d->file_info->recvcount, 
-                            n - d->file_info->recvcount - 1);
+                            "%u hosts (%u)", n-1);
 
 						gtk_tree_store_set(model, parent,
 			  				c_dl_host, tmpstr,
