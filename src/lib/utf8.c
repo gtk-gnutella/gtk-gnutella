@@ -34,10 +34,6 @@ RCSID("$Id$");
 
 #ifdef ENABLE_NLS
 #include <libintl.h>
-#endif /* ENABLE_NLS */
-
-#if !defined(USE_GLIB2) || defined(ENABLE_NLS)
-#include <iconv.h>
 #include <locale.h>
 
 #ifdef I_LIBCHARSET
@@ -46,7 +42,14 @@ RCSID("$Id$");
 #include <langinfo.h>
 #endif /* I_LIBCHARSET */
 
-#endif /* !USE_GLIB2 || ENABLE_NLS */
+#endif /* ENABLE_NLS */
+
+#ifndef USE_GLIB2
+#include <iconv.h>
+#define GIConv iconv_t
+#define g_iconv_open(t, f) iconv_open(t, f) 
+#define g_iconv(c, i, n, o, m) iconv(c, i, n, o, m)
+#endif /* !USE_GLIB2 */
 
 #include "utf8.h"
 #include "misc.h"
@@ -64,13 +67,9 @@ size_t utf32_to_utf8(const guint32 *in, gchar *out, size_t size);
 #ifdef USE_ICU
 static  UConverter *conv_icu_locale = NULL;
 static  UConverter *conv_icu_utf8 = NULL;
-#endif
+#endif /* USE_ICU */
  
-#ifndef USE_GLIB2
-#define GIConv iconv_t
-#define g_iconv_open(t, f) iconv_open(t, f) 
-#define g_iconv(c, i, n, o, m) iconv(c, i, n, o, m)
-#endif /* !USE_GLIB2 */
+static const gchar *charset = NULL;
 
 static GIConv cd_locale_to_utf8	= (GIConv) -1;
 static GIConv cd_utf8_to_locale	= (GIConv) -1;
@@ -2566,14 +2565,12 @@ const char *locale_charset(void)
 }
 #endif /* ENABLE_NLS && !I_LIBCHARSET */
 
-static const gchar *charset = NULL;
-
 const gchar *locale_get_charset(void)
 {
 	return charset;
 }
 
-static void textdomain_init(const char *charset)
+static void textdomain_init(const char *codeset)
 {
 #ifdef ENABLE_NLS
 	bindtextdomain(PACKAGE, LOCALE_EXP);
@@ -2581,10 +2578,10 @@ static void textdomain_init(const char *charset)
 #ifdef HAS_BIND_TEXTDOMAIN_CODESET
 
 #ifdef USE_GLIB2	
-	charset = "UTF-8";
+	codeset = "UTF-8";
 #endif /* USE_GLIB2*/
 
-	bind_textdomain_codeset(PACKAGE, charset);
+	bind_textdomain_codeset(PACKAGE, codeset);
 
 #endif /* HAS_BIND_TEXTDOMAIN_CODESET */
 
@@ -2609,12 +2606,18 @@ void locale_init(void)
 	charset = locale_charset();
 #endif /* I_LANGINFO || I_LIBCHARSET */
 
+#endif /* USE_GLIB2 */
+
 	if (charset == NULL) {
-		charset = "ISO-8859-1";		/* Default locale codeset */
+		/* Default locale codeset */
+#if defined(__APPLE__) && defined(__MACH__) /* Mac OS X */
+		charset = "UTF-8";
+#else
+		charset = "ISO-8859-1";
+#endif
 		g_warning("locale_init: Using default codeset %s as fallback.",
 			charset);
 	}
-#endif /* USE_GLIB2 */
 
 	g_message("using charset \"%s\"", charset);
 	textdomain_init(charset);
