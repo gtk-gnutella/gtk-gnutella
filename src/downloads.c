@@ -5379,6 +5379,10 @@ static void download_write_request(
 	/*
 	 * HTTP request was completely sent.
 	 */
+
+	if (dbg)
+		g_warning("flushed partially written HTTP request to %s (%d bytes)",
+			ip_port_to_gchar(download_ip(d), download_port(d)), d->req->len);
 	 
 	g_source_remove(s->gdk_tag);
 	s->gdk_tag = 0;
