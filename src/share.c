@@ -1005,9 +1005,12 @@ gboolean search_request(struct gnutella_node *n)
 	 * If we aren't going to let the searcher download anything, then
 	 * don't waste bandwidth and his time by giving him search results.
 	 *		--Mark Schreiber, 11/01/2002
+     *
+     * Also don't waste any time if we don't share a file.
+     *      -- Richard, 9/9/2002
 	 */
 
-	if (max_uploads == 0)
+	if ((max_uploads == 0) || (files_scanned == 0))
 		return FALSE;
 
 	/*
@@ -1085,6 +1088,8 @@ gboolean search_request(struct gnutella_node *n)
 	}
 
 	if (found_files > 0) {
+
+        gnet_stats_count_local_hit(n, found_files);
 
 		if (dbg > 3) {
 			printf("Share HIT %u files '%s'%s ", (gint) found_files, search,
