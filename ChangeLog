@@ -1,5 +1,7 @@
 # Since last release
 
+- Shortened default connecting timeouts, especially to other nodes
+- Index shared files in an array for faster retrieval
 - Enforce strict NUL termination of Query packets we process
 - Integrated search table bin categorization patch from Kenn Brooks Hamm
 
