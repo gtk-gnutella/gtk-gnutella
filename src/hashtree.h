@@ -37,6 +37,9 @@
  *----------------------------------------------------------------------
  */
 
+#ifndef _hashtree_h_
+#define _hashtree_h_
+
 /*
  * Usage: Create a new hash tree with hash_tree_new, save the returned
  *        pointer as the parent. Add new leaf nodes to the hash tree using
@@ -74,3 +77,5 @@ hashtree	*hashtree_new(gpointer hash_func);
 void		 hashtree_append_leaf_node(hashtree *parent, gpointer hash);
 void		 hashtree_finish(hashtree *parent);
 void		 hashtree_destroy(hashtree *tree);
+
+#endif	/* _hashtree_h_ */
