@@ -36,6 +36,7 @@
 #include "gnutella.h"
 
 #include "downloads.h"
+#include "uploads.h"		/* For upload_is_enabled() */
 #include "dmesh.h"
 #include "huge.h"
 #include "http.h"
@@ -1214,7 +1215,10 @@ no_nalt:
 	 * at the first position.
 	 */
 
-	if (fi != NULL && fi->done != 0 && pfsp_server && !is_firewalled) {
+	if (
+		fi != NULL && fi->done != 0 && pfsp_server &&
+		!is_firewalled && upload_is_enabled()
+	) {
 		gint url_len;
 		struct dmesh_entry ourselves;
 		time_t now = time(NULL);
