@@ -100,6 +100,9 @@ void hcache_gui_init(void)
     for (n = 0; n < HCACHE_MAX; n ++) {
         gint row;
 
+		if (n == HCACHE_NONE)
+			continue;
+
         titles[0] = get_hcache_name(n);
 
 	/* Override const */
@@ -144,6 +147,9 @@ void hcache_gui_update(time_t now)
     gtk_clist_freeze(clist_hcache);
 
     for (n = 0; n < HCACHE_MAX; n ++) {
+		if (n == HCACHE_NONE)
+			continue;
+
         gtk_clist_set_text( clist_hcache, n, 
             c_hcs_host_count, guint_to_str(stats[n].host_count));
 

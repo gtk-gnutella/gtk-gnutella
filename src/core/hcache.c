@@ -119,7 +119,8 @@ static const gchar * const names[HCACHE_MAX] = {
     N_("valid ultra"),
     N_("timeout"),
     N_("busy"),
-    N_("unstable")
+    N_("unstable"),
+    "none",
 };
 
 static const gchar * const host_type_names[HOST_MAX] = { 
@@ -500,6 +501,8 @@ hcache_slots_left(hcache_type_t type)
         return max_ultra_hosts_cached - 
             caches[HCACHE_FRESH_ULTRA]->host_count -
             caches[HCACHE_VALID_ULTRA]->host_count;
+	case HCACHE_NONE:
+		g_assert_not_reached();
     default:
         return max_bad_hosts_cached - caches[type]->host_count;
     }
@@ -525,7 +528,7 @@ hcache_add(hcache_type_t type, guint32 ip, guint16 port, const gchar *what)
 	hostcache_t *hc;
 	hostcache_entry_t *hce;
 
-	g_assert((guint) type < HCACHE_MAX);
+	g_assert((guint) type < HCACHE_MAX && type != HCACHE_NONE);
 
     if ((type == HCACHE_UNSTABLE) && (!node_monitor_unstable_ip)) {
         return FALSE;
@@ -1420,7 +1423,7 @@ hcache_store(hcache_type_t type, const gchar *filename, hcache_type_t extra)
 	FILE *f;
 	file_path_t fp;
 
-	g_assert((guint) type < HCACHE_MAX);
+	g_assert((guint) type < HCACHE_MAX && type != HCACHE_NONE);
 	g_assert((guint) extra < HCACHE_MAX);
 	g_assert(caches[type] != NULL);
 	g_assert(extra == HCACHE_NONE || caches[extra] != NULL);
@@ -1452,6 +1455,8 @@ hcache_get_stats(hcache_stats_t *stats)
     guint n;
 
     for (n = 0; n < HCACHE_MAX; n++) {
+		if (n == HCACHE_NONE)
+			continue;
         stats[n].host_count = caches[n]->host_count;
         stats[n].hits       = caches[n]->hits;
         stats[n].misses     = caches[n]->misses;

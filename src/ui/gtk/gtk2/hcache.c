@@ -102,6 +102,9 @@ void hcache_gui_init(void)
 	for (n = 0; n < HCACHE_MAX; n++) {
 		GtkTreeIter iter;
 
+		if (n == HCACHE_NONE)
+			continue;
+
 		gtk_list_store_append(GTK_LIST_STORE(model), &iter);
         gtk_list_store_set(GTK_LIST_STORE(model), &iter,
             c_hcs_name,       get_hcache_name(n),
@@ -150,6 +153,9 @@ void hcache_gui_update(time_t now)
 	gtk_tree_model_get_iter_first(GTK_TREE_MODEL(store), &iter);
 
 	for (n = 0; n < HCACHE_MAX; n++) {
+		if (n == HCACHE_NONE)
+			continue;
+
         gtk_list_store_set(store, &iter,
             c_hcs_host_count, stats[n].host_count,
             c_hcs_hits,       stats[n].hits,
