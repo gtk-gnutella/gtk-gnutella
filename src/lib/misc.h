@@ -51,20 +51,6 @@
 #define SIZE_FIELD_MAX 64		/* Max size of sprintf-ed size quantity */
 
 /*
- * STATIC_ASSERT() can be used to verify conditions at compile-time e.g., that
- * an array has a minimum size. This is better than a run-time * assertion
- * because the condition is checked even if the code would seldomly or never
- * reached at run-time. However, this can only be used for static conditions
- * which can verified at compile-time.
- *
- * N.B.: The trick is using a switch case, if the term is false
- *	 there are two cases for zero - which is invalid C. This cannot be
- *	 used outside a function.
- */
-#define STATIC_ASSERT(x) \
-	do { switch (0) { case ((x) ? 1 : 0): case 0: break; } } while(0)
-
-/*
  * Needs to be defined if we are not using Glib 2
  */
 #ifndef USE_GLIB2
