@@ -1,0 +1,21 @@
+?RCS: $Id$
+?RCS:
+?RCS: @COPYRIGHT@
+?RCS:
+?MAKE:d_gettext: Inlibc
+?MAKE:	-pick add $@ %<
+?S:d_gettext:
+?S:	This variable conditionally defines the HAS_GETTEXT symbol, which
+?S:	indicates to the C program that the gettext() routine is available.
+?S:.
+?C:HAS_GETTEXT:
+?C:	This symbol, if defined, indicates that the gettext routine is
+?C:	available.
+?C:.
+?H:#$d_gettext HAS_GETTEXT		/**/
+?H:.
+?LINT:set d_gettext
+: see if gettext exists
+set gettext d_gettext
+eval $inlibc
+
