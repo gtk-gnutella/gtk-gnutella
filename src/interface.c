@@ -44,6 +44,7 @@ GtkWidget *checkbutton_config_bws_in;
 GtkWidget *checkbutton_config_bws_out;
 GtkWidget *checkbutton_config_bws_gin;
 GtkWidget *checkbutton_config_bws_gout;
+GtkWidget *checkbutton_config_bw_ul_usage_enabled;
 GtkWidget *entry_config_extensions;
 GtkWidget *entry_config_force_ip;
 GtkWidget *entry_config_maxttl;
@@ -66,6 +67,7 @@ GtkWidget *spinbutton_config_bws_in;
 GtkWidget *spinbutton_config_bws_out;
 GtkWidget *spinbutton_config_bws_gin;
 GtkWidget *spinbutton_config_bws_gout;
+GtkWidget *spinbutton_config_ul_usage_min_percentage;
 GtkWidget *spinbutton_config_port;
 GtkWidget *spinbutton_config_proxy_port;
 GtkWidget *spinbutton_config_max_high_ttl_radius;
@@ -463,6 +465,8 @@ create_main_window (void)
   GtkWidget *label126;
   GtkObject *spinbutton_config_bws_in_adj;
   GtkObject *spinbutton_config_bws_out_adj;
+  GtkObject *spinbutton_config_ul_usage_min_percentage_adj;
+  GtkWidget *label210;
   GtkWidget *label121;
   GtkWidget *vbox25;
   GtkWidget *frame_connection_speed;
@@ -3077,7 +3081,7 @@ create_main_window (void)
   gtk_container_add (GTK_CONTAINER (frame12), vbox27);
   gtk_container_set_border_width (GTK_CONTAINER (vbox27), 2);
 
-  table4 = gtk_table_new (2, 3, FALSE);
+  table4 = gtk_table_new (3, 3, FALSE);
   gtk_widget_ref (table4);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "table4", table4,
                             (GtkDestroyNotify) gtk_widget_unref);
@@ -3148,6 +3152,38 @@ create_main_window (void)
   gtk_table_attach (GTK_TABLE (table4), checkbutton_config_bws_out, 0, 1, 1, 2,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
+
+  checkbutton_config_bw_ul_usage_enabled = gtk_check_button_new_with_label ("Enable dynamic upload slots allocation");
+  gtk_widget_ref (checkbutton_config_bw_ul_usage_enabled);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "checkbutton_config_bw_ul_usage_enabled", checkbutton_config_bw_ul_usage_enabled,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (checkbutton_config_bw_ul_usage_enabled);
+  gtk_table_attach (GTK_TABLE (table4), checkbutton_config_bw_ul_usage_enabled, 0, 1, 2, 3,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_tooltips_set_tip (tooltips, checkbutton_config_bw_ul_usage_enabled, "If less then xx% of uploads bandwidth is unused, then a additional slot will be opened.", NULL);
+
+  spinbutton_config_ul_usage_min_percentage_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 10);
+  spinbutton_config_ul_usage_min_percentage = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_ul_usage_min_percentage_adj), 1, 0);
+  gtk_widget_ref (spinbutton_config_ul_usage_min_percentage);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "spinbutton_config_ul_usage_min_percentage", spinbutton_config_ul_usage_min_percentage,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (spinbutton_config_ul_usage_min_percentage);
+  gtk_table_attach (GTK_TABLE (table4), spinbutton_config_ul_usage_min_percentage, 1, 2, 2, 3,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_tooltips_set_tip (tooltips, spinbutton_config_ul_usage_min_percentage, "If less then xx% of uploads bandwidth is unused, then a additional slot will be opened.", NULL);
+  gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_config_ul_usage_min_percentage), TRUE);
+
+  label210 = gtk_label_new ("%");
+  gtk_widget_ref (label210);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label210", label210,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label210);
+  gtk_table_attach (GTK_TABLE (table4), label210, 2, 3, 2, 3,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label210), 0, 0.5);
 
   label121 = gtk_label_new ("Bandwidth\ncontrol");
   gtk_widget_ref (label121);
@@ -4488,6 +4524,15 @@ create_main_window (void)
   gtk_signal_connect (GTK_OBJECT (checkbutton_config_bws_out), "toggled",
                       GTK_SIGNAL_FUNC (on_checkbutton_config_bws_out_toggled),
                       NULL);
+  gtk_signal_connect (GTK_OBJECT (checkbutton_config_bw_ul_usage_enabled), "toggled",
+                      GTK_SIGNAL_FUNC (on_checkbutton_config_bw_ul_usage_enabled_toggled),
+                      NULL);
+  gtk_signal_connect (GTK_OBJECT (spinbutton_config_ul_usage_min_percentage), "activate",
+                      GTK_SIGNAL_FUNC (on_spinbutton_config_ul_usage_min_percentage_activate),
+                      NULL);
+  gtk_signal_connect (GTK_OBJECT (spinbutton_config_ul_usage_min_percentage), "focus_out_event",
+                      GTK_SIGNAL_FUNC (on_spinbutton_config_ul_usage_min_percentage_focus_out_event),
+                      NULL);
   gtk_signal_connect_after (GTK_OBJECT (entry_config_speed), "activate",
                             GTK_SIGNAL_FUNC (on_entry_config_speed_activate),
                             NULL);
@@ -5192,10 +5237,14 @@ create_dlg_filters (void)
   GtkWidget *hbox103;
   GtkWidget *button_filter_ok;
   GtkWidget *button_filter_cancel;
+  GtkTooltips *tooltips;
+
+  tooltips = gtk_tooltips_new ();
 
   dlg_filters = gtk_window_new (GTK_WINDOW_DIALOG);
   gtk_object_set_data (GTK_OBJECT (dlg_filters), "dlg_filters", dlg_filters);
   gtk_window_set_title (GTK_WINDOW (dlg_filters), "Ruleset editor");
+  gtk_window_set_position (GTK_WINDOW (dlg_filters), GTK_WIN_POS_CENTER);
   gtk_window_set_default_size (GTK_WINDOW (dlg_filters), 450, 300);
 
   vbox32 = gtk_vbox_new (FALSE, 0);
@@ -5213,7 +5262,7 @@ create_dlg_filters (void)
   gtk_box_pack_start (GTK_BOX (vbox32), hbox97, FALSE, TRUE, 0);
   gtk_container_set_border_width (GTK_CONTAINER (hbox97), 2);
 
-  label183 = gtk_label_new ("Edit filter ruleset");
+  label183 = gtk_label_new ("Edit filter");
   gtk_widget_ref (label183);
   gtk_object_set_data_full (GTK_OBJECT (dlg_filters), "label183", label183,
                             (GtkDestroyNotify) gtk_widget_unref);
@@ -5242,6 +5291,7 @@ create_dlg_filters (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (button_filter_remove);
   gtk_box_pack_start (GTK_BOX (hbox97), button_filter_remove, FALSE, FALSE, 0);
+  gtk_tooltips_set_tip (tooltips, button_filter_remove, "A filter can not be removed if it is bound to a search or if it is in use (used as a target in a rule).", NULL);
 
   scrolledwindow14 = gtk_scrolled_window_new (NULL, NULL);
   gtk_widget_ref (scrolledwindow14);
@@ -5389,7 +5439,7 @@ create_dlg_filters (void)
                     (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
 
-  label206 = gtk_label_new ("Rules are matched in order. When a matching rule is found, matching will end with the given result. To avoid circles a filter will never be jumped to twice. If no rule matches, the default policy will be applied.");
+  label206 = gtk_label_new ("Rules are matched in order. Matching will end when \"display\" or \"don't display\" is reached. To avoid circles a filter will never be jumped to twice. If no rule matches, the default policy will be applied.");
   gtk_widget_ref (label206);
   gtk_object_set_data_full (GTK_OBJECT (dlg_filters), "label206", label206,
                             (GtkDestroyNotify) gtk_widget_unref);
@@ -5860,7 +5910,7 @@ create_dlg_filters (void)
   gtk_box_pack_start (GTK_BOX (vbox54), frame29, FALSE, TRUE, 0);
   gtk_container_set_border_width (GTK_CONTAINER (frame29), 2);
 
-  label209 = gtk_label_new ("There is no condition. When this rule is reached, the matching will continue in the specified target filter.");
+  label209 = gtk_label_new ("There is no condition. When this rule is reached, the matching will continue in the specified target filter. That's also why you can't invert this condition. If you could, this rule would just be ignored.");
   gtk_widget_ref (label209);
   gtk_object_set_data_full (GTK_OBJECT (dlg_filters), "label209", label209,
                             (GtkDestroyNotify) gtk_widget_unref);
@@ -6004,6 +6054,8 @@ create_dlg_filters (void)
                       GTK_SIGNAL_FUNC (on_button_filter_cancel_clicked),
                       NULL);
 
+  gtk_object_set_data (GTK_OBJECT (dlg_filters), "tooltips", tooltips);
+
   return dlg_filters;
 }
 
@@ -6011,6 +6063,7 @@ GtkWidget*
 create_shutdown_window (void)
 {
   GtkWidget *shutdown_window;
+  GtkWidget *frame30;
   GtkWidget *vbox44;
   GtkWidget *label184;
 
@@ -6020,12 +6073,20 @@ create_shutdown_window (void)
   gtk_window_set_position (GTK_WINDOW (shutdown_window), GTK_WIN_POS_CENTER);
   gtk_window_set_policy (GTK_WINDOW (shutdown_window), FALSE, FALSE, FALSE);
 
+  frame30 = gtk_frame_new (NULL);
+  gtk_widget_ref (frame30);
+  gtk_object_set_data_full (GTK_OBJECT (shutdown_window), "frame30", frame30,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (frame30);
+  gtk_container_add (GTK_CONTAINER (shutdown_window), frame30);
+  gtk_container_set_border_width (GTK_CONTAINER (frame30), 6);
+
   vbox44 = gtk_vbox_new (FALSE, 0);
   gtk_widget_ref (vbox44);
   gtk_object_set_data_full (GTK_OBJECT (shutdown_window), "vbox44", vbox44,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (vbox44);
-  gtk_container_add (GTK_CONTAINER (shutdown_window), vbox44);
+  gtk_container_add (GTK_CONTAINER (frame30), vbox44);
   gtk_container_set_border_width (GTK_CONTAINER (vbox44), 30);
 
   label184 = gtk_label_new ("Gtk-gnutella is shutting down.\nSending bye messages to peers.\n\nGrace time remaining:");
