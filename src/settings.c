@@ -1215,6 +1215,24 @@ static gboolean file_descriptor_x_changed(property_t prop)
     return FALSE;
 }
 
+/* XXX: This is only necessary to migrate the old PROP_PROXY_IP to PROP_PROXY_HOSTNAME
+ *		and should be removed in a future release. -- cbiere, 2004-06-29
+ */
+static gboolean proxy_ip_changed(property_t prop)
+{
+	guint32 ip;
+
+	gnet_prop_get_guint32_val(prop, &ip);
+	if (ip) {
+		gchar *hostname = gnet_prop_get_string(PROP_PROXY_HOSTNAME, NULL, 0);
+
+		if (hostname[0] == '\0')
+			gnet_prop_set_string(PROP_PROXY_HOSTNAME, ip_to_gchar(ip));
+    	G_FREE_NULL(hostname);
+	}
+    return FALSE;
+}
+
 /***
  *** Property-to-callback map
  ***/
@@ -1422,6 +1440,11 @@ static prop_map_t property_map[] = {
 		PROP_FILE_DESCRIPTOR_RUNOUT,
 		file_descriptor_x_changed,
 		FALSE,
+	},
+	{
+		PROP_PROXY_IP,
+		proxy_ip_changed,
+		TRUE,
 	}
 };
 

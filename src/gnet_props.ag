@@ -909,6 +909,15 @@ prop = {
 };
 
 prop = {
+    name = "proxy_hostname";
+    desc = "Hostname of the proxy";
+    type = string;
+    data = {
+        default = "";
+    };
+};
+
+prop = {
     name = "proxy_port";
     desc = "TCP Port the proxy is listening on";
     type = guint32;

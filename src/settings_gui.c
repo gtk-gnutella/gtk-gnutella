@@ -168,7 +168,6 @@ static gboolean bw_gnet_in_enabled_changed(property_t prop);
 static gboolean bw_gnet_out_enabled_changed(property_t prop);
 static gboolean bw_ul_usage_enabled_changed(property_t prop);
 static gboolean bw_http_out_enabled_changed(property_t prop);
-static gboolean proxy_ip_changed(property_t prop);
 static gboolean monitor_enabled_changed(property_t prop);
 static gboolean ancient_version_changed(property_t prop);
 static gboolean ancient_version_left_days_changed(property_t prop);
@@ -765,10 +764,10 @@ static prop_map_t property_map[] = {
     ),
     PROP_ENTRY(
         get_main_window,
-        PROP_PROXY_IP,
-        proxy_ip_changed,
+        PROP_PROXY_HOSTNAME,
+        update_entry,
         TRUE,
-        "entry_config_proxy_ip",
+        "entry_config_proxy_hostname",
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
@@ -3253,18 +3252,6 @@ static gboolean bw_http_out_enabled_changed(property_t prop)
     gtk_widget_set_sensitive(c, val);
     gtk_widget_set_sensitive(s1, val && val2);
 	update_output_bw_display();
-
-    return FALSE;
-}
-
-static gboolean proxy_ip_changed(property_t prop)
-{
-    GtkWidget *w = lookup_widget(main_window, "entry_config_proxy_ip");
-    guint32 val;
-
-    gnet_prop_get_guint32_val(prop, &val);
-
-    gtk_entry_set_text(GTK_ENTRY(w), ip_to_gchar(val));
 
     return FALSE;
 }

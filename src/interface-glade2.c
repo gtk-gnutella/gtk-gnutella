@@ -3034,7 +3034,7 @@ create_main_window_config_net_tab (void)
   GtkWidget *frame_proxy_settings;
   GtkWidget *vbox28;
   GtkWidget *table47;
-  GtkWidget *entry_config_proxy_ip;
+  GtkWidget *entry_config_proxy_hostname;
   GtkWidget *combo_config_proxy_protocol;
   GtkWidget *combo_entry4;
   GtkWidget *label92;
@@ -3242,10 +3242,10 @@ create_main_window_config_net_tab (void)
   gtk_table_set_row_spacings (GTK_TABLE (table47), 2);
   gtk_table_set_col_spacings (GTK_TABLE (table47), 4);
 
-  entry_config_proxy_ip = gtk_entry_new ();
-  gtk_widget_set_name (entry_config_proxy_ip, "entry_config_proxy_ip");
-  gtk_widget_show (entry_config_proxy_ip);
-  gtk_table_attach (GTK_TABLE (table47), entry_config_proxy_ip, 1, 2, 1, 2,
+  entry_config_proxy_hostname = gtk_entry_new ();
+  gtk_widget_set_name (entry_config_proxy_hostname, "entry_config_proxy_hostname");
+  gtk_widget_show (entry_config_proxy_hostname);
+  gtk_table_attach (GTK_TABLE (table47), entry_config_proxy_hostname, 1, 2, 1, 2,
                     (GtkAttachOptions) (GTK_SHRINK | GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
 
@@ -3641,11 +3641,11 @@ create_main_window_config_net_tab (void)
   g_signal_connect ((gpointer) entry_server_hostname, "activate",
                     G_CALLBACK (on_entry_server_hostname_activate),
                     NULL);
-  g_signal_connect ((gpointer) entry_config_proxy_ip, "activate",
-                    G_CALLBACK (on_entry_config_proxy_ip_activate),
+  g_signal_connect ((gpointer) entry_config_proxy_hostname, "activate",
+                    G_CALLBACK (on_entry_config_proxy_hostname_activate),
                     NULL);
-  g_signal_connect ((gpointer) entry_config_proxy_ip, "focus_out_event",
-                    G_CALLBACK (on_entry_config_proxy_ip_focus_out_event),
+  g_signal_connect ((gpointer) entry_config_proxy_hostname, "focus_out_event",
+                    G_CALLBACK (on_entry_config_proxy_hostname_focus_out_event),
                     NULL);
   g_signal_connect ((gpointer) entry_config_socks_username, "activate",
                     G_CALLBACK (on_entry_config_socks_username_activate),
@@ -3669,7 +3669,7 @@ create_main_window_config_net_tab (void)
   gtk_label_set_mnemonic_widget (GTK_LABEL (label129), spinbutton_config_port);
   gtk_label_set_mnemonic_widget (GTK_LABEL (label92), spinbutton_config_proxy_port);
   gtk_label_set_mnemonic_widget (GTK_LABEL (label90), combo_entry4);
-  gtk_label_set_mnemonic_widget (GTK_LABEL (label91), entry_config_proxy_ip);
+  gtk_label_set_mnemonic_widget (GTK_LABEL (label91), entry_config_proxy_hostname);
   gtk_label_set_mnemonic_widget (GTK_LABEL (label93), entry_config_socks_username);
   gtk_label_set_mnemonic_widget (GTK_LABEL (label94), entry_config_socks_password);
   gtk_label_set_mnemonic_widget (GTK_LABEL (label126_2), entry_config_netmasks);
@@ -3697,7 +3697,7 @@ create_main_window_config_net_tab (void)
   GLADE_HOOKUP_OBJECT (main_window_config_net_tab, frame_proxy_settings, "frame_proxy_settings");
   GLADE_HOOKUP_OBJECT (main_window_config_net_tab, vbox28, "vbox28");
   GLADE_HOOKUP_OBJECT (main_window_config_net_tab, table47, "table47");
-  GLADE_HOOKUP_OBJECT (main_window_config_net_tab, entry_config_proxy_ip, "entry_config_proxy_ip");
+  GLADE_HOOKUP_OBJECT (main_window_config_net_tab, entry_config_proxy_hostname, "entry_config_proxy_hostname");
   GLADE_HOOKUP_OBJECT (main_window_config_net_tab, combo_config_proxy_protocol, "combo_config_proxy_protocol");
   GLADE_HOOKUP_OBJECT (main_window_config_net_tab, combo_entry4, "combo_entry4");
   GLADE_HOOKUP_OBJECT (main_window_config_net_tab, label92, "label92");
@@ -7794,7 +7794,6 @@ create_main_window_config_ui_tab (void)
 
   label553 = gtk_label_new (_("Toolbar style"));
   gtk_widget_set_name (label553, "label553");
-  gtk_widget_show (label553);
   gtk_table_attach (GTK_TABLE (table35), label553, 0, 1, 2, 3,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
@@ -7813,7 +7812,6 @@ create_main_window_config_ui_tab (void)
   g_object_set_data (G_OBJECT (GTK_COMBO (combo_config_toolbar_style)->popwin),
                      "GladeParentKey", combo_config_toolbar_style);
   gtk_widget_set_name (combo_config_toolbar_style, "combo_config_toolbar_style");
-  gtk_widget_show (combo_config_toolbar_style);
   gtk_table_attach (GTK_TABLE (table35), combo_config_toolbar_style, 1, 3, 2, 3,
                     (GtkAttachOptions) (GTK_SHRINK | GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
@@ -7823,7 +7821,7 @@ create_main_window_config_ui_tab (void)
   gtk_widget_show (combo_entry5);
   gtk_editable_set_editable (GTK_EDITABLE (combo_entry5), FALSE);
 
-  checkbutton_config_show_tooltips = gtk_check_button_new_with_mnemonic (_("Show _tootips (does not affect all tooltips yet)"));
+  checkbutton_config_show_tooltips = gtk_check_button_new_with_mnemonic (_("Show _tooltips (does not affect all tooltips yet)"));
   gtk_widget_set_name (checkbutton_config_show_tooltips, "checkbutton_config_show_tooltips");
   gtk_widget_show (checkbutton_config_show_tooltips);
   gtk_table_attach (GTK_TABLE (table35), checkbutton_config_show_tooltips, 0, 3, 1, 2,

@@ -83,21 +83,24 @@ void on_spinbutton_search_reissue_timeout_changed
     lock = FALSE;
 }
 
-static void on_entry_config_proxy_ip_activate_helper(
+static void on_entry_config_proxy_hostname_activate_helper(
 	guint32 ip, gpointer user_data)
 {
     gnet_prop_set_guint32_val(PROP_PROXY_IP, ip);
 }
 
-void on_entry_config_proxy_ip_activate
+void on_entry_config_proxy_hostname_activate
     (GtkEditable *editable, gpointer user_data)
 {
    	gchar *e = g_strstrip(STRTRACK(gtk_editable_get_chars(editable, 0, -1)));
 
-	adns_resolve(e, &on_entry_config_proxy_ip_activate_helper, NULL);
+    gnet_prop_set_string(PROP_PROXY_HOSTNAME, e);
+	if (e[0] != '\0') {
+		adns_resolve(e, &on_entry_config_proxy_hostname_activate_helper, NULL);
+	}
 	g_free(e);
 }
-FOCUS_TO_ACTIVATE(entry_config_proxy_ip)
+FOCUS_TO_ACTIVATE(entry_config_proxy_hostname)
 
 void on_entry_config_socks_username_activate
     (GtkEditable *editable, gpointer user_data)

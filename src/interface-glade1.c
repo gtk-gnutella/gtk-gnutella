@@ -443,7 +443,7 @@ create_main_window (void)
   GtkWidget *label90;
   GtkObject *spinbutton_config_proxy_port_adj;
   GtkWidget *spinbutton_config_proxy_port;
-  GtkWidget *entry_config_proxy_ip;
+  GtkWidget *entry_config_proxy_hostname;
   GtkWidget *combo_config_proxy_protocol;
   GtkWidget *combo_entry3;
   GtkWidget *table54;
@@ -4858,13 +4858,13 @@ create_main_window (void)
   gtk_widget_set_usize (spinbutton_config_proxy_port, 64, -2);
   gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_config_proxy_port), TRUE);
 
-  entry_config_proxy_ip = gtk_entry_new ();
-  gtk_widget_set_name (entry_config_proxy_ip, "entry_config_proxy_ip");
-  gtk_widget_ref (entry_config_proxy_ip);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "entry_config_proxy_ip", entry_config_proxy_ip,
+  entry_config_proxy_hostname = gtk_entry_new ();
+  gtk_widget_set_name (entry_config_proxy_hostname, "entry_config_proxy_hostname");
+  gtk_widget_ref (entry_config_proxy_hostname);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "entry_config_proxy_hostname", entry_config_proxy_hostname,
                             (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (entry_config_proxy_ip);
-  gtk_table_attach (GTK_TABLE (table53), entry_config_proxy_ip, 1, 2, 1, 2,
+  gtk_widget_show (entry_config_proxy_hostname);
+  gtk_table_attach (GTK_TABLE (table53), entry_config_proxy_hostname, 1, 2, 1, 2,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
 
@@ -11443,11 +11443,11 @@ create_main_window (void)
   gtk_signal_connect (GTK_OBJECT (entry_server_hostname), "focus_out_event",
                       GTK_SIGNAL_FUNC (on_entry_server_hostname_focus_out_event),
                       NULL);
-  gtk_signal_connect (GTK_OBJECT (entry_config_proxy_ip), "activate",
-                      GTK_SIGNAL_FUNC (on_entry_config_proxy_ip_activate),
+  gtk_signal_connect (GTK_OBJECT (entry_config_proxy_hostname), "activate",
+                      GTK_SIGNAL_FUNC (on_entry_config_proxy_hostname_activate),
                       NULL);
-  gtk_signal_connect (GTK_OBJECT (entry_config_proxy_ip), "focus_out_event",
-                      GTK_SIGNAL_FUNC (on_entry_config_proxy_ip_focus_out_event),
+  gtk_signal_connect (GTK_OBJECT (entry_config_proxy_hostname), "focus_out_event",
+                      GTK_SIGNAL_FUNC (on_entry_config_proxy_hostname_focus_out_event),
                       NULL);
   gtk_signal_connect (GTK_OBJECT (entry_config_socks_password), "activate",
                       GTK_SIGNAL_FUNC (on_entry_config_socks_password_activate),

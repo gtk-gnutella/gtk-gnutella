@@ -84,7 +84,7 @@ static gboolean ip_computed = FALSE;
 static GSList *sl_incoming = (GSList *) NULL;	/* To spot inactive sockets */
 
 static void guess_local_ip(int sd);
-static void socket_destroy(struct gnutella_socket *s, gchar *reason);
+static void socket_destroy(struct gnutella_socket *s, const gchar *reason);
 
 /* 
  * SOL_TCP and SOL_IP aren't standards. Some platforms define them, on
@@ -288,7 +288,7 @@ void socket_shutdown(void)
  * If there is an attached resource, call the resource's termination routine
  * with the supplied reason.
  */
-static void socket_destroy(struct gnutella_socket *s, gchar *reason)
+static void socket_destroy(struct gnutella_socket *s, const gchar *reason)
 {
 	g_assert(s);
 
@@ -403,7 +403,11 @@ static void socket_read(gpointer data, gint source, inputevt_cond_t cond)
 	gchar *first;
 	time_t banlimit;
 
-	/* s->type = 0; */
+	(void) source;
+
+#if 0
+	s->type = 0;
+#endif
 
 	if (cond & INPUT_EVENT_EXCEPTION) {
 		socket_destroy(s, "Input exception");
@@ -661,6 +665,8 @@ static void socket_connected(gpointer data, gint source, inputevt_cond_t cond)
 
 	struct gnutella_socket *s = (struct gnutella_socket *) data;
 
+	(void) source;
+
 	if (cond & INPUT_EVENT_EXCEPTION) {	/* Error while connecting */
 		bws_sock_connect_failed(s->type);
 		if (s->type == SOCK_TYPE_DOWNLOAD && s->resource.download)
@@ -913,13 +919,14 @@ static int socket_local_port(struct gnutella_socket *s)
  *
  * Someone is connecting to us.
  */
-static void socket_accept(gpointer data, gint source,
-						  inputevt_cond_t cond)
+static void socket_accept(gpointer data, gint source, inputevt_cond_t cond)
 {
 	struct sockaddr_in addr;
 	gint sd, len = sizeof(struct sockaddr_in);
 	struct gnutella_socket *s = (struct gnutella_socket *) data;
 	struct gnutella_socket *t = NULL;
+
+	(void) source;
 
 	if (cond & INPUT_EVENT_EXCEPTION) {
 		g_warning("Input Exception for listening socket #%d !!!!",
@@ -1130,8 +1137,15 @@ static struct gnutella_socket *socket_connect_finalize(
 			sizeof(struct sockaddr_in));
 
 	if (res == -1 && errno != EINPROGRESS) {
+		if (!proxy_ip || !proxy_port) {
+			g_warning("Proxy isn't properly configured (%s)",
+				ip_port_to_gchar(proxy_ip, proxy_port));
+			socket_destroy(s, "Check the proxy configuration");
+			return NULL;
+		}
+
 		g_warning("Unable to connect to %s: (%s)",
-			ip_port_to_gchar(s->ip, s->port), g_strerror(errno));
+				ip_port_to_gchar(s->ip, s->port), g_strerror(errno));
 	
 		if (s->adns & SOCK_ADNS_PENDING)
 			s->adns_msg = "Connection failed";
@@ -1356,6 +1370,9 @@ void sock_cork(struct gnutella_socket *s, gboolean on)
 #else
 	static gboolean warned = FALSE;
 
+	(void) s;
+	(void) on;
+
 	if (!warned)
 		g_warning("TCP_CORK is not implemented on this system");
 
@@ -1477,12 +1494,15 @@ int proxy_connect(int fd, const struct sockaddr *addr, guint len)
 	struct sockaddr_in *connaddr;
 	void **kludge;
 	struct sockaddr_in server;
+	int rc;
 
-	int rc = 0;
-
+	if (len != sizeof(struct sockaddr_in) || !proxy_ip || !proxy_port) {
+		errno = EINVAL;
+		return -1;
+	}
 
 	if (!inet_aton(ip_to_gchar(proxy_ip), &server.sin_addr)) {
-		g_warning("The SOCKS server (%s) in configuration "
+		g_warning("The proxy server (%s) in configuration "
 				   "file is invalid", ip_to_gchar(proxy_ip));
 	} else {
 		/* Construct the addr for the socks server */
@@ -1622,19 +1642,22 @@ int connect_http(struct gnutella_socket *s)
 
 	switch (s->pos) {
 	case 0:
-		gm_snprintf(s->buffer, sizeof(s->buffer),
-			"CONNECT %s HTTP/1.0\r\n\r\n",
-			ip_port_to_gchar(s->ip, s->port));
-		if (
-			(rc = send(s->file_desc, (void *)s->buffer,
-				strlen(s->buffer), 0)) < 0
-		) {
-			g_warning("Sending info to HTTP proxy failed: %s",
-				g_strerror(errno));
-			return -1;
+		{
+			const gchar *host = ip_port_to_gchar(s->ip, s->port);
+
+			gm_snprintf(s->buffer, sizeof(s->buffer),
+				"CONNECT %s HTTP/1.0\r\nHost: %s\r\n\r\n", host, host);
+			if (
+				(rc = send(s->file_desc, (void *)s->buffer,
+					strlen(s->buffer), 0)) < 0
+			) {
+				g_warning("Sending info to HTTP proxy failed: %s",
+					g_strerror(errno));
+				return -1;
+			}
+			s->pos++;
+			break;
 		}
-		s->pos++;
-		break;
 	case 1:
 		rc = read(s->file_desc, s->buffer, sizeof(s->buffer)-1);
 		if (rc < 0) {
@@ -1663,7 +1686,7 @@ int connect_http(struct gnutella_socket *s)
 			return -1;
 		}
 		if ((status / 100) != 2) {
-			g_warning("%s", str);
+			g_warning("Cannot use HTTP proxy: \"%s\"", str);
 			return -1;
 		}
 		s->pos++;

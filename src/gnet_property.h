@@ -112,6 +112,7 @@ typedef enum {
     PROP_SOCKS_USER,    
     PROP_SOCKS_PASS,    
     PROP_PROXY_IP,    
+    PROP_PROXY_HOSTNAME,    
     PROP_PROXY_PORT,    
     PROP_PROXY_PROTOCOL,    
     PROP_HOSTS_IN_CATCHER,    

@@ -107,6 +107,7 @@ extern gboolean proxy_auth;
 extern gchar   *socks_user;
 extern gchar   *socks_pass;
 extern guint32  proxy_ip;
+extern gchar   *proxy_hostname;
 extern guint32  proxy_port;
 extern guint32  proxy_protocol;
 extern guint32  hosts_in_catcher;

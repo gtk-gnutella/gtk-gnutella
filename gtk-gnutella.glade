@@ -6234,16 +6234,16 @@
 
 			<widget>
 			  <class>GtkEntry</class>
-			  <name>entry_config_proxy_ip</name>
+			  <name>entry_config_proxy_hostname</name>
 			  <can_focus>True</can_focus>
 			  <signal>
 			    <name>activate</name>
-			    <handler>on_entry_config_proxy_ip_activate</handler>
+			    <handler>on_entry_config_proxy_hostname_activate</handler>
 			    <last_modification_time>Mon, 08 Jul 2002 12:17:08 GMT</last_modification_time>
 			  </signal>
 			  <signal>
 			    <name>focus_out_event</name>
-			    <handler>on_entry_config_proxy_ip_focus_out_event</handler>
+			    <handler>on_entry_config_proxy_hostname_focus_out_event</handler>
 			    <last_modification_time>Mon, 08 Jul 2002 12:17:24 GMT</last_modification_time>
 			  </signal>
 			  <editable>True</editable>
