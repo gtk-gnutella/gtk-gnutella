@@ -1,8 +1,5 @@
 # since last version
 
-
-
-
 - made reissue timeout spinbutton on search-pane wider. (Richard)
 - made config pane a tabbed pane. (Richard)
 - added bandwidth control to config pane. (Richard)
@@ -64,11 +61,14 @@
 - Updated Debian's control file.
 - Now accounts for bytes transferred in interrupted uploads as well, and in
   particular at servent shutdown time.
-- When not sharing, return HTTP error 500 instead of 410, since it is a
+- When not sharing, return HTTP error 503 instead of 410, since it is a
   server-side problem, not a client-side problem.
 - When facing an HTTP/1.1 request, make sure there is a Host: header.
 - Added routines for on-the-fly bandwidth settings, and access macros for
   getting the instantaneous and average bandwidth usage per second.
+- Refactoring of network TX layer.
+- Display the uptime as either "HH:MM:SS" or "d HH:MM" with blinking ":".
+- Optionally favor local Gnet hosts over remote ones, per netmask [Mike Perry].
 
 # v 0.85   2002.04.04  [stable]
 
