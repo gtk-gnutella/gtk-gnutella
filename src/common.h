@@ -111,7 +111,7 @@ typedef void (*GCallback) (void);
 #define GTA_REVISION "unstable"
 #define GTA_REVCHAR "u"
 #define GTA_INTERFACE "X11"
-#define GTA_RELEASE "05/06/2003"
+#define GTA_RELEASE "09/06/2003"
 #define GTA_WEBSITE "http://gtk-gnutella.sourceforge.net/"
 
 /* If we compile from CVS (aka "unstable") we want to run from $srcdir
@@ -121,7 +121,6 @@ typedef void (*GCallback) (void);
 #if 1
 #define USE_SOURCE_DIR_AS_FALLBACK
 #endif
-
 
 /*
  * Forbidden glib calls.

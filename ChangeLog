@@ -1,18 +1,33 @@
 # since last version
 
+- (2003.06.09 - RAM)
+ * Raised default amount of downloads from 10 to 50.
+ * Doubled max PARQ retry time, and lowered retry frequency for queued entries.
+ * Fixed English: SHRINKED -> SHRUNK.
+ * Avoid endless request/sinking loops: only allow one sinking per session.
+ * Added some extra assertions in PARQ, little cleanup.
+
 - (2003.06.09 - Jeroen)
  * PARQ: PARQ IP entries are now stored using their dotted notation.
+ * PARQ: Fixed: Slots by IP didn't work yet
+ * PARQ: Also preference by IP and not just by filename only. If client has
+		 2 files A (pos 1) and B (pos 66) and it is requesting file B it will
+		 still be allowed to upload. file A will have to wait for file B though.
 
 - (2003.06.08 - Jeroen)
  * Prefer compressed connections should now also work in Ultrapeer mode
- * PARQ: Should not block anymore when a queued upload is not allowed to continue
-         due to 'max allowed uploads per ip'
+ * PARQ: Should not block anymore when a queued upload is not allowed to
+		 continue due to 'max allowed uploads per ip'
 
-- (2004.06.05 - RAM)
+- (2003.06.07 - RAM)
+ * Decode base32 case-insensitively.
+ * Fixed stupid memory leak: pmsg_free() called in a debug block.
+
+- (2003.06.05 - RAM)
  * Don't parse incoming X-Node headers for PARQ if requestor did not advertise
    support for PARQ, since X-Node is not necessarily PARQ-specific.
 
-- (2004.06.03 - RAM)
+- (2003.06.03 - RAM)
  * Append a trailing '-' in the download range size indication when the server
    is answering us with less data than we requested.  The amount shown then
    reflects what the server is giving.
