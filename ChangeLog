@@ -1,5 +1,17 @@
 # since last version
 
+- (2004-11-12 - RAM)
+ * Properly echo UDP crawler's ping MUID in the pong.
+ * LimeWire added the user-agent of the node replying at the tail of the
+   user-agent vector in the UDP crawler pong.
+ * Made GGEP parsing more robust, in case we parse garbage: avoid creating
+   needless extensions.  Limit GGEP IDs to ASCII strings.
+ * Forgot to emit the X-Dynamic-Querying header to signal we're issuing
+   dynamic queries.
+ * Trim down TTL of queries coming from "older" hosts not performing dynamic
+   querying if the hops+TTL is larger than the TTL at which we're broadcasting.
+ * Set default for max_ttl to 4.  Cannot set a my_ttl greater than 4.
+
 - (2004-11-11 - RAM)
  * Refactored decoding of GGEP extensions: this is now done transparently
    for compressed / COBS encoded extensions.  All accesses to payload length
