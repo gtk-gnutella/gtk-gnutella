@@ -98,8 +98,8 @@ static guint get_width(const GdkRectangle * rect,
 {
     guint r;
 
-    r = (guint) ((float)rect->width * ((float)cnt / (float)mx));
-    return (r < rect->width) ? r : rect->width;
+    r = (guint) ((gfloat)rect->width * ((gfloat) cnt / (gfloat) mx));
+    return (r < (guint) rect->width) ? r : (guint) rect->width;
 }
 
 /*
@@ -390,4 +390,5 @@ void icon_close(void)
     return;
 }
 
+/* vi: set ts=4: */
 #endif                          /*   USE_GTK2   */
