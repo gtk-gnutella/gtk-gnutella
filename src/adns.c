@@ -256,6 +256,7 @@ static void adns_helper(gint fd_in, gint fd_out)
 	static struct adns_cache_t *cache; 
 
 	g_set_prgname("DNS-helper for gtk-gnutella");
+	gm_setproctitle("DNS helper for gtk-gnutella");
 	cache = adns_cache_init();
 
 	for (;;) {
