@@ -62,13 +62,6 @@ delete_hash_entry(gpointer key, gpointer val, gpointer data)
 	return TRUE;
 }
 
-static gchar *type_str[] = {
-    "disable search stats",
-    "search stats by words",
-    "search stats by whole query",
-    "searches by router"
-};
-
 static gboolean callback_registered = FALSE;
 static gint selected_type = NO_SEARCH_STATS;
 
@@ -84,7 +77,7 @@ static void search_stats_tally(const word_vec_t * vec);
 
 static void on_search_stats_type_selected(GtkItem *i, gpointer data)
 {
-    guint32 val = GPOINTER_TO_UINT(data);
+    guint32 val = GPOINTER_TO_UINT(gtk_object_get_user_data(GTK_OBJECT(i)));
 
     gui_prop_set_guint32(PROP_SEARCH_STATS_MODE, &val, 0, 1);
 }
@@ -318,11 +311,20 @@ void search_stats_gui_init(void)
     GtkCombo *combo_types;
     GtkWidget *clist_search_stats = 
         lookup_widget(main_window, "clist_search_stats");
-    gint n;
-    guint32 original_mode;
+    prop_def_t *search_stats_mode_def;
 
     combo_types = GTK_COMBO(
         lookup_widget(main_window, "combo_search_stats_type"));
+
+#if 0
+    search_stats_mode_def = gui_prop_get_def(PROP_SEARCH_STATS_MODE);
+
+    gtk_combo_init_choices(
+        combo_types, 
+        GTK_SIGNAL_FUNC(on_search_stats_type_selected),
+        search_stats_mode_def);
+
+    prop_free_def(search_stats_mode_def);
 
     /*
      * Save search_stats_mode because it will be overridden
@@ -330,26 +332,27 @@ void search_stats_gui_init(void)
      */
     original_mode = search_stats_mode;
 
-    for (n = 0; n < 4; n ++) {
+    n = 0;
+    while (search_stats_mode->data.guint32.choices[n].title != NULL) {
         GtkWidget *list_item;
         GList *l;
 
         list_item = gtk_list_item_new_with_label(type_str[n]);
-
         gtk_widget_show(list_item);
-
+        
         gtk_signal_connect(
             GTK_OBJECT(list_item), "select",
             GTK_SIGNAL_FUNC(on_search_stats_type_selected),
-            GINT_TO_POINTER(n));
+            GINT_TO_POINTER(search_stats_mode->data.guint32.choices[n].value));
 
         l = g_list_prepend(NULL, (gpointer) list_item);
         gtk_list_append_items(GTK_LIST(GTK_COMBO(combo_types)->list), l);
 
-        if (n == original_mode)
+        if (search_stats_mode->data.guint32.choices[n].value == original_mode)
             gtk_list_select_child(
                 GTK_LIST(GTK_COMBO(combo_types)->list), list_item);
     }
+#endif
 
     /* set up the clist to be sorted properly */
 	gtk_clist_set_sort_column(GTK_CLIST(clist_search_stats), c_st_total);
@@ -357,6 +360,7 @@ void search_stats_gui_init(void)
 		GTK_SORT_DESCENDING);
 
 	stat_hash = g_hash_table_new(g_str_hash, g_str_equal);
+
 }
 
 void search_stats_gui_shutdown(void)
