@@ -35,6 +35,8 @@
 #include "getline.h"
 #include "http.h"
 #include "hosts.h"
+#include "cq.h"
+#include "url.h"
 
 #include "gnet_property.h"
 #include "gnet_property_priv.h"
@@ -64,10 +66,19 @@ static gchar *current_url = NULL;			/* Cache we're currently using */
 
 #define MAX_URL_LINES	50					/* Max lines on a urlfile req */
 #define MAX_IP_LINES	50					/* Max lines on a hostfile req */
+#define MAX_OK_LINES	3					/* Max lines when expecting OK */
+#define HOUR_MS			(3600 * 1000)		/* Callout queue time in ms */
 
 static gchar *gwc_file = "gwcache";
+static gpointer hourly_update_ev = NULL;
+static gpointer hourly_refresh_ev = NULL;
+static gchar *client_info;
+static gboolean gwc_file_dirty = FALSE;
 
 static void gwc_get_urls(void);
+static void gwc_update_ip_url(void);
+
+extern cqueue_t *callout_queue;
 
 /*
  * gwc_add
@@ -118,6 +129,7 @@ static void gwc_add(gchar *url)
 	}
 
 	gwc_url[gwc_url_slot] = url_atom;
+	gwc_file_dirty = TRUE;
 }
 
 /*
@@ -144,7 +156,7 @@ static gchar *gwc_pick(void)
  * Store known GWC URLs.
  * They are normally saved in ~/.gtk-gnutella/gwcache.
  */
-void gwc_store(void)
+static void gwc_store(void)
 {
 	FILE *out;
 	time_t now = time((time_t *) NULL);
@@ -175,8 +187,20 @@ void gwc_store(void)
 		if (-1 == rename(tmp, gwc_tmp))
 			g_warning("could not rename %s as %s: %s",
 				tmp, gwc_tmp, g_strerror(errno));
+		gwc_file_dirty = FALSE;
 	} else
 		g_warning("could not flush %s: %s", tmp, g_strerror(errno));
+}
+
+/*
+ * gwc_store_if_dirty
+ *
+ * Store known GWC URLs if dirty.
+ */
+void gwc_store_if_dirty(void)
+{
+	if (gwc_file_dirty)
+		gwc_store();
 }
 
 /*
@@ -241,6 +265,34 @@ static void gwc_retrieve(void)
 }
 
 /*
+ * gwc_hourly_update
+ *
+ * Hourly web cache update.
+ * Scheduled as a callout queue event.
+ */
+static void gwc_hourly_update(cqueue_t *cq, gpointer obj)
+{
+	gwc_update_ip_url();
+
+	hourly_update_ev = cq_insert(callout_queue,
+		HOUR_MS, gwc_hourly_update, NULL);
+}
+
+/*
+ * gwc_hourly_refresh
+ *
+ * Hourly web cache refresh.
+ * Scheduled as a callout queue event.
+ */
+static void gwc_hourly_refresh(cqueue_t *cq, gpointer obj)
+{
+	gwc_get_urls();
+
+	hourly_refresh_ev = cq_insert(callout_queue,
+		HOUR_MS, gwc_hourly_refresh, NULL);
+}
+
+/*
  * gwc_init
  *
  * Initialize web cache.
@@ -248,6 +300,9 @@ static void gwc_retrieve(void)
 void gwc_init(void)
 {
 	gwc_known_url = g_hash_table_new(g_str_hash, g_str_equal);
+
+	client_info = g_strdup_printf("client=GTKG&version=%u.%u%s",
+		GTA_VERSION, GTA_SUBVERSION, GTA_REVCHAR);
 
 	/*
 	 * The following two URLs are there for bootstrapping purposes only.
@@ -258,6 +313,18 @@ void gwc_init(void)
 
 	gwc_retrieve();
 	gwc_get_urls();
+
+	/*
+	 * Schedule hourly updates, starting our first in 10 minutes:
+	 * It is hoped that by then, we'll have a stable IP and will know
+	 * whether we're firewalled or not.
+	 */
+
+	hourly_update_ev = cq_insert(callout_queue,
+		HOUR_MS / 6, gwc_hourly_update, NULL);
+
+	hourly_refresh_ev = cq_insert(callout_queue,
+		HOUR_MS, gwc_hourly_refresh, NULL);
 }
 
 /*
@@ -268,6 +335,10 @@ void gwc_init(void)
 void gwc_close(void)
 {
 	gint i;
+
+	cq_cancel(callout_queue, hourly_update_ev);
+	cq_cancel(callout_queue, hourly_refresh_ev);
+	g_free(client_info);
 
 	gwc_store();
 	g_hash_table_destroy(gwc_known_url);
@@ -292,7 +363,8 @@ struct parse_context {
 	gint processed;				/* User callback can count retained lines */
 };
 
-typedef void (parse_dispatch_t)(struct parse_context *c, gchar *buf, gint len);
+typedef gboolean (parse_dispatch_t)
+	(struct parse_context *c, gchar *buf, gint len);
 typedef void (parse_eof_t)(struct parse_context *c);
 
 /*
@@ -391,7 +463,8 @@ static void parse_dispatch_lines(
 
 		linep = getline_str(getline);
 		linelen = str_chomp(linep, getline_length(getline));
-		(*cb)(ctx, linep, linelen);
+		if (!(*cb)(ctx, linep, linelen))
+			return;
 
 		/*
 		 * Make sure we don't process lines ad infinitum.
@@ -419,8 +492,9 @@ static void parse_dispatch_lines(
  * gwc_url_line
  *
  * Called from parse_dispatch_lines() for each complete line of output.
+ * Returns FALSE to stop processing of any remaining data.
  */
-static void gwc_url_line(struct parse_context *ctx, gchar *buf, gint len)
+static gboolean gwc_url_line(struct parse_context *ctx, gchar *buf, gint len)
 {
 	if (dbg > 4)
 		printf("GWC URL line (%d bytes): %s\n", len, buf);
@@ -429,17 +503,19 @@ static void gwc_url_line(struct parse_context *ctx, gchar *buf, gint len)
 		g_warning("GWC cache \"%s\" returned %s",
 			http_async_info(ctx->handle, NULL, NULL, NULL, NULL), buf);
 		http_async_cancel(ctx->handle);
-		return;
+		return FALSE;
 	}
 
 	// XXX -- Ignore "chunked" output
 	if (len && !(*buf == 'h' || *buf == 'H'))
-		return;
+		return TRUE;
 
 	if (len) {
 		ctx->processed++;
 		gwc_add(buf);		/* Add URL to cache */
 	}
+
+	return TRUE;
 }
 
 /*
@@ -498,10 +574,7 @@ static void gwc_get_urls(void)
 		current_url = gwc_pick();
 
 	g_snprintf(gwc_tmp, sizeof(gwc_tmp),
-		"%s?urlfile=1"
-		"&client=GTKG"
-		"&version=%u.%u%s",
-		current_url, GTA_VERSION, GTA_SUBVERSION, GTA_REVCHAR);
+		"%s?urlfile=1&%s", current_url, client_info);
 
 	if (dbg > 3)
 		printf("GWC URL request: %s\n", gwc_tmp);
@@ -512,6 +585,11 @@ static void gwc_get_urls(void)
 
 	handle = http_async_get(gwc_tmp,
 		NULL, gwc_url_data_ind, gwc_url_error_ind);
+
+	if (!handle) {
+		g_warning("could not launch a \"GET %s\" request", gwc_tmp);
+		return;
+	}
 
 	parse_context_set(handle, MAX_URL_LINES);
 }
@@ -526,8 +604,9 @@ static gboolean hostfile_running = FALSE;
  * gwc_host_line
  *
  * Called from parse_dispatch_lines() for each complete line of output.
+ * Returns FALSE to stop processing of any remaining data.
  */
-static void gwc_host_line(struct parse_context *ctx, gchar *buf, gint len)
+static gboolean gwc_host_line(struct parse_context *ctx, gchar *buf, gint len)
 {
 	if (dbg > 4)
 		printf("GWC host line (%d bytes): %s\n", len, buf);
@@ -536,7 +615,7 @@ static void gwc_host_line(struct parse_context *ctx, gchar *buf, gint len)
 		g_warning("GWC cache \"%s\" returned %s",
 			http_async_info(ctx->handle, NULL, NULL, NULL, NULL), buf);
 		http_async_cancel(ctx->handle);
-		return;
+		return FALSE;
 	}
 
 	if (len) {
@@ -548,6 +627,8 @@ static void gwc_host_line(struct parse_context *ctx, gchar *buf, gint len)
 			host_add(ip, port, FALSE);
 		}
 	}
+
+	return TRUE;
 }
 
 /*
@@ -608,10 +689,7 @@ void gwc_get_hosts(void)
 		current_url = gwc_pick();
 
 	g_snprintf(gwc_tmp, sizeof(gwc_tmp),
-		"%s?hostfile=1"
-		"&client=GTKG"
-		"&version=%u.%u%s",
-		current_url, GTA_VERSION, GTA_SUBVERSION, GTA_REVCHAR);
+		"%s?hostfile=1&%s", current_url, client_info);
 
 	if (dbg > 3)
 		printf("GWC host request: %s\n", gwc_tmp);
@@ -623,7 +701,160 @@ void gwc_get_hosts(void)
 	handle = http_async_get(gwc_tmp,
 		NULL, gwc_host_data_ind, gwc_host_error_ind);
 
+	if (!handle) {
+		g_warning("could not launch a \"GET %s\" request", gwc_tmp);
+		return;
+	}
+
 	parse_context_set(handle, MAX_IP_LINES);
 	hostfile_running = TRUE;
+}
+
+/***
+ *** GET ...?ip=....&url=....
+ ***/
+
+/*
+ * gwc_update_line
+ *
+ * Called from parse_dispatch_lines() for each complete line of output.
+ * Returns FALSE to stop processing of any remaining data.
+ */
+static gboolean gwc_update_line(struct parse_context *ctx, gchar *buf, gint len)
+{
+	if (dbg > 4)
+		printf("GWC update line (%d bytes): %s\n", len, buf);
+
+	if (0 == strncmp(buf, "OK", 2)) {
+		if (dbg > 3)
+			printf("GWC update OK for \"%s\"\n",
+				http_async_info(ctx->handle, NULL, NULL, NULL, NULL));
+		http_async_close(ctx->handle);		/* OK, don't read more */
+		return FALSE;
+	}
+	else if (0 == strncmp(buf, "ERROR", 5)) {
+		g_warning("GWC cache \"%s\" returned %s",
+			http_async_info(ctx->handle, NULL, NULL, NULL, NULL), buf);
+		http_async_cancel(ctx->handle);
+		return FALSE;
+	}
+
+	return TRUE;
+}
+
+/*
+ * gwc_update_data_ind
+ *
+ * Populate callback: more data available.
+ */
+static void gwc_update_data_ind(gpointer handle, gchar *data, gint len)
+{
+	parse_dispatch_lines(handle, data, len, gwc_update_line, NULL);
+}
+
+/*
+ * gwc_host_error_ind
+ *
+ * HTTP request is being stopped.
+ */
+static void gwc_update_error_ind(
+	gpointer handle, http_errtype_t type, gpointer v)
+{
+	http_async_log_error(handle, type, v);
+	current_url = NULL;				/* This webcache is not good */
+}
+
+/*
+ * gwc_update_ip_url
+ *
+ * Publish our IP to the web cache and propagate one random URL.
+ */
+static void gwc_update_ip_url(void)
+{
+	gpointer handle;
+	gchar *url;
+	gboolean found_alternate = FALSE;
+	gboolean has_data = FALSE;
+	gint rw;
+	gint i;
+
+	if (current_url == NULL)
+		current_url = gwc_pick();
+
+	rw = g_snprintf(gwc_tmp, sizeof(gwc_tmp), "%s?", current_url);
+
+	/*
+	 * Choose another URL randomly.
+	 */
+
+	for (i = 0; i < MAX_GWC_URLS; i++) {
+		url = gwc_pick();
+		if (0 != strcmp(url, current_url)) {
+			found_alternate = TRUE;
+			break;
+		}
+	}
+
+	/*
+	 * If we found an URL different from the cache we're going to update,
+	 * publish the escaped URL in the request.
+	 */
+
+	if (found_alternate) {
+		gchar *escaped_url = url_escape_query(url);		/* For query string */
+
+		rw += g_snprintf(&gwc_tmp[rw], sizeof(gwc_tmp)-rw,
+			"url=%s&", escaped_url);
+
+		if (escaped_url != url)
+			g_free(escaped_url);
+
+		has_data = TRUE;		/* We have something to submit */
+	}
+
+	/*
+	 * Send our IP:port information if we're connectible and we are
+	 * not firewalled.
+	 */
+
+	if (!is_firewalled && check_valid_host(listen_ip(), listen_port)) {
+		rw += g_snprintf(&gwc_tmp[rw], sizeof(gwc_tmp)-rw,
+			"ip=%s&", ip_port_to_gchar(listen_ip(), listen_port));
+		has_data = TRUE;
+	}
+
+	/*
+	 * If we don't have anything to submit, we're done.
+	 */
+
+	if (!has_data) {
+		if (dbg > 3)
+			printf("GWC update has nothing to send\n");
+		return;
+	}
+
+	/*
+	 * Finally, append our client/version information.
+	 */
+
+	rw += g_snprintf(&gwc_tmp[rw], sizeof(gwc_tmp)-rw, "%s", client_info);
+	
+
+	if (dbg > 3)
+		printf("GWC update request: %s\n", gwc_tmp);
+
+	/*
+	 * Launch the asynchronous request and attach parsing information.
+	 */
+
+	handle = http_async_get(gwc_tmp,
+		NULL, gwc_update_data_ind, gwc_update_error_ind);
+
+	if (!handle) {
+		g_warning("could not launch a \"GET %s\" request", gwc_tmp);
+		return;
+	}
+
+	parse_context_set(handle, MAX_OK_LINES);
 }
 
