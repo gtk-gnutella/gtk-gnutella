@@ -30,6 +30,7 @@
 #include <stdio.h>
 
 #include "inet.h"
+#include "nodes.h"	/* For node_become_firewalled() */
 #include "settings.h"
 #include "bsched.h"
 
