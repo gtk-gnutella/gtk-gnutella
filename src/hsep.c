@@ -132,7 +132,7 @@ void hsep_init(void)
 	hsep_global_table_changed_event =
 	    event_new("hsep_global_table_changed");
 
- 	hsep_fire_global_table_changed();
+ 	hsep_fire_global_table_changed(time(NULL));
 }
 
 /*
@@ -213,7 +213,7 @@ void hsep_reset(void)
 		 * to all HSEP connections the next time it is called.
 		 */
 	}
-	hsep_fire_global_table_changed();
+	hsep_fire_global_table_changed(time(NULL));
 }
 
 /*
@@ -254,7 +254,7 @@ void hsep_connection_init(struct gnutella_node *n)
 
 	hsep_sanity_check();
 
-	hsep_fire_global_table_changed();
+	hsep_fire_global_table_changed(time(NULL));
 }
 
 /*
@@ -265,12 +265,12 @@ void hsep_connection_init(struct gnutella_node *n)
  * (e.g. every second or every few seconds).
  */
 
-void hsep_timer(void)
+void hsep_timer(time_t now)
 {
-	time_t now = time(NULL);
 	GSList *sl;
 	gboolean scanning_shared;
-	
+	static time_t last_sent = 0;
+
 	/* update number of shared files and KiB */
 
 	gnet_prop_get_boolean_val(PROP_LIBRARY_REBUILDING, &scanning_shared);
@@ -298,7 +298,20 @@ void hsep_timer(void)
 
 		/* the -900 is used to react to changes in system time */
 		if (diff >= HSEP_MSG_INTERVAL || diff < -900)
-			hsep_send_msg(n);
+			hsep_send_msg(n, now);
+	}
+
+	/*
+	 * Quick'n dirty hack to update the horizon stats in the
+	 * statusbar at least once every 3 seconds.
+	 *
+	 * TODO: remove this and implement it properly in the
+	 * statusbar code.
+	 */
+
+	if (delta_time(now, last_sent) >= 3) {
+		hsep_fire_global_table_changed(now);
+		last_sent = now;
 	}
 }
 
@@ -342,7 +355,7 @@ void hsep_connection_close(struct gnutella_node *n)
 	if (dbg > 1)
 		hsep_dump_table();
 
-	hsep_fire_global_table_changed();
+	hsep_fire_global_table_changed(time(NULL));
 }
 
 /*
@@ -352,7 +365,7 @@ void hsep_connection_close(struct gnutella_node *n)
  * connection's and the global HSEP table.
  */
 
-void hsep_process_msg(struct gnutella_node *n)
+void hsep_process_msg(struct gnutella_node *n,time_t now)
 {
 	unsigned int length;
 	unsigned int i, max, msgmax;
@@ -482,12 +495,12 @@ void hsep_process_msg(struct gnutella_node *n)
 	n->hsep_msgs_received++;
 	n->hsep_triples_received += msgmax;
 
-	n->hsep_last_received = time(NULL);
+	n->hsep_last_received = now;
 
 	if (dbg > 1)
 		hsep_dump_table();
 
-	hsep_fire_global_table_changed();
+	hsep_fire_global_table_changed(now);
 }
 
 /*
@@ -499,7 +512,7 @@ void hsep_process_msg(struct gnutella_node *n)
  * hsep_connection_init(). Node must be HSEP-capable.
  */
 
-void hsep_send_msg(struct gnutella_node *n)
+void hsep_send_msg(struct gnutella_node *n,time_t now)
 {
 	unsigned int i;
 	unsigned int msglen;
@@ -634,7 +647,7 @@ charge_timer:
 	 * random skew.
 	 */
 
-	n->hsep_last_sent = time(NULL) +
+	n->hsep_last_sent = now +
 		(time_t) random_value(2 * HSEP_MSG_SKEW) - (time_t) HSEP_MSG_SKEW;
 }
 
@@ -939,10 +952,10 @@ void hsep_close(void)
  * Fires a change event for the global HSEP table.
  */
 
-void hsep_fire_global_table_changed(void)
+void hsep_fire_global_table_changed(time_t now)
 {
 	/* store global table change time */
-	hsep_last_global_table_change = time(NULL);
+	hsep_last_global_table_change = now;
 
 	/* do nothing if we don't have any listeners */
 
