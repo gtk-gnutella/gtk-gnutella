@@ -99,7 +99,9 @@ void search_gui_sort_column(search_t *search, gint column);
 gint search_gui_compare_records(
 	gint sort_col, const record_t *r1, const record_t *r2);
 
-void search_matched(search_t *sch, results_set_t *rs);
+void search_gui_add_record(
+	search_t *sch, record_t *rc, GString *vinfo, GdkColor *fg, GdkColor *bg);
+
 gboolean gui_search_update_tab_label(struct search *);
 void gui_search_clear_results(void);
 void gui_search_history_add(gchar *s);
@@ -112,6 +114,8 @@ void gui_search_force_update_tab_label(struct search *);
 #endif
 void gui_search_update_items(struct search *);
 const GList *search_gui_get_searches(void);
+
+void search_gui_set_clear_button_sensitive(gboolean flag);
 
 /*
  * Callbacks

@@ -31,6 +31,8 @@
 
 #include "gnet.h"
 
+#define TAB_UPDATE_TIME	5		/* Update search tabs after 5 seconds */
+
 /*
  * A results_set structure factorizes the common information from a Query Hit
  * packet, and then has a list of individual records, one for each hit.
@@ -100,11 +102,15 @@ typedef struct record {
     flag_t  flags;              /* same flags as in gnet_record_t */
 } record_t;
 
+extern struct search *current_search;
+
 /*
  * Global Functions
  */
 
 typedef struct search search_t;
+
+void search_matched(search_t *sch, results_set_t *rs);
 
 void search_gui_common_init(void);
 void search_gui_common_shutdown(void);

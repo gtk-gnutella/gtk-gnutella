@@ -41,12 +41,27 @@
 
 RCSID("$Id$");
 
+search_t *current_search  = NULL;	/* The search currently displayed */
+
 static zone_t *rs_zone;		/* Allocation of results_set */
 static zone_t *rc_zone;		/* Allocation of record */
 
 static const gchar search_file[] = "searches"; /* "old" file to searches */
 
 static gchar tmpstr[1024];
+
+/*
+ * Human readable translation of servent trailer open flags.
+ * Decompiled flags are listed in the order of the table.
+ */
+static struct {
+	guint32 flag;
+	const gchar *status;
+} open_flags[] = {
+	{ ST_BUSY,		N_("busy") },
+	{ ST_UPLOADED,	N_("stable") },		/* Allows uploads -> stable */
+	{ ST_FIREWALL,	N_("push") },
+};
 
 /*
  * search_gui_free_alt_locs
@@ -683,6 +698,213 @@ void search_gui_retrieve_searches(void)
 #endif /* HAS_LIBXML2 */
 }
 
+/*
+ * search_matched
+ *
+ * Called to dispatch results to the search window.
+ */
+void search_matched(search_t *sch, results_set_t *rs)
+{
+	guint32 old_items = sch->items;
+   	gboolean need_push;			/* Would need a push to get this file? */
+	gboolean skip_records;		/* Shall we skip those records? */
+	GString *vinfo = g_string_sized_new(40);
+	gchar *vendor;
+    GdkColor *download_color;
+    GdkColor *ignore_color;
+    GdkColor *mark_color;
+    GSList *l;
+    gboolean send_pushes;
+    gboolean is_firewalled;
+	gint i;
+
+    g_assert(sch != NULL);
+    g_assert(rs != NULL);
+
+    mark_color = &(gtk_widget_get_style(GTK_WIDGET(sch->clist))
+        ->bg[GTK_STATE_INSENSITIVE]);
+
+    ignore_color = &(gtk_widget_get_style(GTK_WIDGET(sch->clist))
+        ->fg[GTK_STATE_INSENSITIVE]);
+
+    download_color =  &(gtk_widget_get_style(GTK_WIDGET(sch->clist))
+        ->fg[GTK_STATE_ACTIVE]);
+
+    vendor = lookup_vendor_name(rs->vendor);
+
+   	if (vendor) {
+		g_string_append(vinfo, vendor);
+		if (rs->version) {
+			g_string_append(vinfo, "/");
+			g_string_append(vinfo, rs->version);
+		}
+	}
+
+	for (i = 0; i < G_N_ELEMENTS(open_flags); i++) {
+		if (rs->status & open_flags[i].flag) {
+			if (vinfo->len)
+				g_string_append(vinfo, ", ");
+			g_string_append(vinfo, gettext(open_flags[i].status));
+		}
+	}
+
+	if (vendor && !(rs->status & ST_PARSED_TRAILER)) {
+		if (vinfo->len)
+			g_string_append(vinfo, ", ");
+		g_string_append(vinfo, _("<unparsed>"));
+	}
+
+	/*
+	 * If we're firewalled, or they don't want to send pushes, then don't
+	 * bother displaying results if they need a push request to succeed.
+	 *		--RAM, 10/03/2002
+	 */
+    gnet_prop_get_boolean(PROP_SEND_PUSHES, &send_pushes, 0, 1);
+    gnet_prop_get_boolean(PROP_IS_FIREWALLED, &is_firewalled, 0, 1);
+
+	need_push = (rs->status & ST_FIREWALL) || !host_is_valid(rs->ip, rs->port);
+	skip_records = (!send_pushes || is_firewalled) && need_push;
+
+	if (gui_debug > 6)
+		printf("search_matched: [%s] got hit with %d record%s (from %s) "
+			"need_push=%d, skipping=%d\n",
+			sch->query, rs->num_recs, rs->num_recs == 1 ? "" : "s",
+			ip_port_to_gchar(rs->ip, rs->port), need_push, skip_records);
+
+  	for (l = rs->records; l && !skip_records; l = l->next) {
+		record_t *rc = (record_t *) l->data;
+        filter_result_t *flt_result;
+        gboolean downloaded = FALSE;
+
+        if (gui_debug > 7)
+            printf("search_matched: [%s] considering %s (%s)\n",
+				sch->query, rc->name, vinfo->str);
+
+        /*
+	     * If the size is zero bytes,
+		 * or we don't send pushes and it's a private IP,
+		 * or if this is a duplicate search result,
+		 *
+		 * Note that we pass ALL records through search_gui_result_is_dup(),
+		 * to be able to update the index/GUID of our records correctly, when
+		 * we detect a change.
+		 */
+
+       	if (
+			search_gui_result_is_dup(sch, rc)	||
+			skip_records 	                    ||
+			rc->size == 0
+		)
+			continue;
+
+        flt_result = filter_record(sch, rc);
+
+        /*
+         * Check whether this record was already scheduled for
+         * download by the backend.
+         */
+        downloaded = rc->flags & SR_DOWNLOADED;
+        
+        /*
+         * Now we check for the different filter result properties.
+         */
+
+        /*
+         * Check for FILTER_PROP_DOWNLOAD:
+         */
+        if (!downloaded &&
+            (flt_result->props[FILTER_PROP_DOWNLOAD].state ==
+				FILTER_PROP_STATE_DO)
+		) {
+            download_auto_new(rc->name, rc->size, rc->index, rs->ip, rs->port,
+                rs->guid, rs->hostname, rc->sha1, rs->stamp, need_push,
+				NULL, rs->proxies);
+
+			if (rs->proxies != NULL)
+				search_gui_free_proxies(rs);
+
+            downloaded = TRUE;
+        }
+
+		/*
+		 * Don't show something we downloaded if they don't want it.
+		 */
+
+		if (downloaded && search_hide_downloaded)
+			continue;
+    
+        /*
+         * We start with FILTER_PROP_DISPLAY:
+         */
+        if (!((flt_result->props[FILTER_PROP_DISPLAY].state == 
+                FILTER_PROP_STATE_DONT) &&
+            (flt_result->props[FILTER_PROP_DISPLAY].user_data == 0)) &&
+            (sch->items < search_max_results))
+        {
+            GdkColor *fg_color = NULL;
+            gboolean mark;
+
+            sch->items++;
+            g_hash_table_insert(sch->dups, rc, GINT_TO_POINTER(1));
+            search_gui_ref_record(rc);
+
+            mark = 
+                (flt_result->props[FILTER_PROP_DISPLAY].state == 
+                    FILTER_PROP_STATE_DONT) &&
+                (flt_result->props[FILTER_PROP_DISPLAY].user_data == 
+					GINT_TO_POINTER(1));
+
+            if (rc->flags & SR_IGNORED) {
+                /*
+                 * Check whether this record will be ignored by the backend.
+                 */
+                fg_color = ignore_color;
+            } else if (downloaded)
+                fg_color = download_color;
+            else
+                fg_color = NULL;
+
+            search_gui_add_record(sch, rc, vinfo, fg_color,
+                mark ? mark_color : NULL);
+        }
+
+        filter_free_result(flt_result);
+    }
+
+    /*
+     * A result set may not be added more then once to a search!
+     */
+
+	if (NULL != sch->r_sets)
+    	g_assert(!hash_list_contains(sch->r_sets, rs));
+	else
+		sch->r_sets = hash_list_new(); 
+
+	/* Adds the set to the list */
+	hash_list_prepend(sch->r_sets, (gpointer) rs);
+	rs->refcount++;
+   	g_assert(hash_list_contains(sch->r_sets, rs));
+	g_assert(hash_list_first(sch->r_sets) == rs);
+
+	if (old_items == 0 && sch == current_search && sch->items > 0)
+		search_gui_set_clear_button_sensitive(TRUE);
+
+	/*
+	 * XXX When not for current_search, unseen_items is increased even if
+	 * XXX we're not at the search pane.  Is this a problem?
+	 */
+
+	if (sch == current_search) {
+		gui_search_update_items(sch);
+	} else {
+		sch->unseen_items += sch->items - old_items;
+	}
+
+	if (time(NULL) - sch->last_update_time < TAB_UPDATE_TIME)
+		gui_search_update_tab_label(sch);
+
+  	g_string_free(vinfo, TRUE);
+}
 /***
  *** Callbacks
  ***/
