@@ -3396,6 +3396,8 @@ create_main_window_config_gnet_tab (void)
   GtkObject *spinbutton_config_node_rx_flowc_ratio_adj;
   GtkWidget *spinbutton_config_node_rx_flowc_ratio;
   GtkWidget *label573;
+  GtkWidget *checkbutton_gnet_monitor_ip;
+  GtkWidget *checkbutton_gnet_monitor_servents;
   GtkWidget *label429;
   GtkWidget *frame_expert_gnet_other;
   GtkWidget *table51;
@@ -3831,7 +3833,7 @@ create_main_window_config_gnet_tab (void)
   gtk_widget_show (frame_expert_gnet_quality);
   gtk_box_pack_start (GTK_BOX (vbox25), frame_expert_gnet_quality, FALSE, TRUE, 0);
 
-  table37 = gtk_table_new (3, 3, FALSE);
+  table37 = gtk_table_new (5, 3, FALSE);
   gtk_widget_set_name (table37, "table37");
   gtk_widget_show (table37);
   gtk_container_add (GTK_CONTAINER (frame_expert_gnet_quality), table37);
@@ -3922,6 +3924,22 @@ create_main_window_config_gnet_tab (void)
   gtk_label_set_justify (GTK_LABEL (label573), GTK_JUSTIFY_LEFT);
   gtk_misc_set_alignment (GTK_MISC (label573), 0, 0.5);
   gtk_misc_set_padding (GTK_MISC (label573), 5, 0);
+
+  checkbutton_gnet_monitor_ip = gtk_check_button_new_with_mnemonic (_("Monitor bad node IP addresses"));
+  gtk_widget_set_name (checkbutton_gnet_monitor_ip, "checkbutton_gnet_monitor_ip");
+  gtk_widget_show (checkbutton_gnet_monitor_ip);
+  gtk_table_attach (GTK_TABLE (table37), checkbutton_gnet_monitor_ip, 0, 1, 3, 4,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 5, 0);
+  gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (checkbutton_gnet_monitor_ip), TRUE);
+
+  checkbutton_gnet_monitor_servents = gtk_check_button_new_with_mnemonic (_("Monitor and auto-ban unstable servent types"));
+  gtk_widget_set_name (checkbutton_gnet_monitor_servents, "checkbutton_gnet_monitor_servents");
+  gtk_widget_show (checkbutton_gnet_monitor_servents);
+  gtk_table_attach (GTK_TABLE (table37), checkbutton_gnet_monitor_servents, 0, 1, 4, 5,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 5, 0);
+  gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (checkbutton_gnet_monitor_servents), TRUE);
 
   label429 = gtk_label_new (_("Quality management"));
   gtk_widget_set_name (label429, "label429");
@@ -4051,6 +4069,8 @@ create_main_window_config_gnet_tab (void)
   GLADE_HOOKUP_OBJECT (main_window_config_gnet_tab, label574, "label574");
   GLADE_HOOKUP_OBJECT (main_window_config_gnet_tab, spinbutton_config_node_rx_flowc_ratio, "spinbutton_config_node_rx_flowc_ratio");
   GLADE_HOOKUP_OBJECT (main_window_config_gnet_tab, label573, "label573");
+  GLADE_HOOKUP_OBJECT (main_window_config_gnet_tab, checkbutton_gnet_monitor_ip, "checkbutton_gnet_monitor_ip");
+  GLADE_HOOKUP_OBJECT (main_window_config_gnet_tab, checkbutton_gnet_monitor_servents, "checkbutton_gnet_monitor_servents");
   GLADE_HOOKUP_OBJECT (main_window_config_gnet_tab, label429, "label429");
   GLADE_HOOKUP_OBJECT (main_window_config_gnet_tab, frame_expert_gnet_other, "frame_expert_gnet_other");
   GLADE_HOOKUP_OBJECT (main_window_config_gnet_tab, table51, "table51");

@@ -5907,7 +5907,7 @@ Grace time remaining:</property>
 		    <widget class="GtkTable" id="table37">
 		      <property name="border_width">2</property>
 		      <property name="visible">True</property>
-		      <property name="n_rows">3</property>
+		      <property name="n_rows">5</property>
 		      <property name="n_columns">3</property>
 		      <property name="homogeneous">False</property>
 		      <property name="row_spacing">2</property>
@@ -6119,6 +6119,50 @@ Grace time remaining:</property>
 			  <property name="right_attach">1</property>
 			  <property name="top_attach">2</property>
 			  <property name="bottom_attach">3</property>
+			  <property name="x_options">fill</property>
+			  <property name="y_options"></property>
+			</packing>
+		      </child>
+
+		      <child>
+			<widget class="GtkCheckButton" id="checkbutton_gnet_monitor_ip">
+			  <property name="visible">True</property>
+			  <property name="can_focus">True</property>
+			  <property name="label" translatable="yes">Monitor bad node IP addresses</property>
+			  <property name="use_underline">True</property>
+			  <property name="relief">GTK_RELIEF_NORMAL</property>
+			  <property name="active">True</property>
+			  <property name="inconsistent">False</property>
+			  <property name="draw_indicator">True</property>
+			</widget>
+			<packing>
+			  <property name="left_attach">0</property>
+			  <property name="right_attach">1</property>
+			  <property name="top_attach">3</property>
+			  <property name="bottom_attach">4</property>
+			  <property name="x_padding">5</property>
+			  <property name="x_options">fill</property>
+			  <property name="y_options"></property>
+			</packing>
+		      </child>
+
+		      <child>
+			<widget class="GtkCheckButton" id="checkbutton_gnet_monitor_servents">
+			  <property name="visible">True</property>
+			  <property name="can_focus">True</property>
+			  <property name="label" translatable="yes">Monitor and auto-ban unstable servent types</property>
+			  <property name="use_underline">True</property>
+			  <property name="relief">GTK_RELIEF_NORMAL</property>
+			  <property name="active">True</property>
+			  <property name="inconsistent">False</property>
+			  <property name="draw_indicator">True</property>
+			</widget>
+			<packing>
+			  <property name="left_attach">0</property>
+			  <property name="right_attach">1</property>
+			  <property name="top_attach">4</property>
+			  <property name="bottom_attach">5</property>
+			  <property name="x_padding">5</property>
 			  <property name="x_options">fill</property>
 			  <property name="y_options"></property>
 			</packing>
