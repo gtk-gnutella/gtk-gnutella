@@ -32,7 +32,7 @@ guint32 gnutella_welcome_length = 0;
 static gint32 connected_node_cnt = 0;
 static gchar *msg_name[256];
 
-/* Network init ----------------------------------------------------------------------------------- */
+/* Network init ----------------------------------- */
 
 void network_init(void)
 {
@@ -50,7 +50,7 @@ void network_init(void)
 	msg_name[GTA_MSG_SEARCH_RESULTS]      = "query hit";
 }
 
-/* Nodes ------------------------------------------------------------------------------------------ */
+/* Nodes ------------------------------------------ */
 
 gboolean on_the_net(void)
 {
@@ -60,6 +60,23 @@ gboolean on_the_net(void)
 gint32 connected_nodes(void)
 {
 	return connected_node_cnt;
+}
+
+static guint32 max_msg_size(void)
+{
+	/*
+	 * Maximum message payload size we are configured to handle.
+	 * Today, they are fixed at config time, but they will be set via
+	 * GUI tomorrow, so the max size is not fixed in time.
+	 *		--RAM, 15/09/2001
+	 */
+
+	guint32 maxsize;
+
+	maxsize = MAX(search_queries_kick_size, search_answers_kick_size);
+	maxsize = MAX(maxsize, other_messages_kick_size);
+
+	return maxsize;
 }
 
 void node_real_remove(struct gnutella_node *n)
@@ -97,8 +114,8 @@ void node_remove(struct gnutella_node *n, const gchar *reason, ...)
 	}
 
 	if (n->gdk_tag)		gdk_input_remove(n->gdk_tag);
-	if (n->allocated)	g_free(n->data);
-	if (n->sendq)		g_free(n->sendq);
+	if (n->allocated)	{ g_free(n->data); n->allocated = 0; }
+	if (n->sendq)		{ g_free(n->sendq); n->sendq = NULL; }
 
 	n->status = GTA_NODE_REMOVING;
 	n->last_update = time((time_t *) NULL);
@@ -311,10 +328,6 @@ void node_parse(struct gnutella_node *node)
 
 	n->have_header = FALSE;
 	n->pos = 0;
-
-	if (n->allocated) { g_free(n->data); n->allocated = FALSE; }
-
-	n->data = (guchar *) NULL;
 }
 
 void node_init_outgoing(struct gnutella_node *n)
@@ -526,18 +539,26 @@ void node_read(gpointer data, gint source, GdkInputCondition cond)
 
 		n->pos = 0;
 		
-		if (n->size < sizeof(n->socket->buffer))
-		{
-			/* The socket buffer is large enough to handle all the packet data */
-		
-			n->data = n->socket->buffer;
-		}
-		else
-		{
-			/* We need to allocate the data buffer */
+		if (n->size > n->allocated) {
+			/*
+			 * We need to grow the allocated data buffer
+			 */
 
-			n->allocated = TRUE;
-			n->data = (guchar *) g_malloc0(n->size);
+			guint32 maxsize = max_msg_size();	/* Can change dynamically */
+
+			if (maxsize < n->size) {
+				g_warning("got %d byte %s message, should have kicked node\n",
+					n->size, msg_name[n->header.function]);
+				node_remove(n, "Kicked: %s message too big (%d bytes)",
+					msg_name[n->header.function], n->size);
+				return;
+			}
+
+			if (n->allocated)
+				n->data = (guchar *) g_realloc(n->data, maxsize);
+			else
+				n->data = (guchar *) g_malloc0(maxsize);
+			n->allocated = maxsize;
 		}
 
 		return;
@@ -547,10 +568,15 @@ void node_read(gpointer data, gint source, GdkInputCondition cond)
 
 	r = read(n->socket->file_desc, n->data + n->pos, n->size - n->pos);
 
-	if (!r) { node_remove(n, "Failed (EOF in message data)"); return; }
+	if (!r) {
+		node_remove(n, "Failed (EOF in %s message data)",
+			msg_name[n->header.function]);
+		return;
+	}
 	else if (r < 0 && errno == EAGAIN) return;
 	else if (r < 0) {
-		node_remove(n, "Read error in message: %s", g_strerror(errno));
+		node_remove(n, "Read error in %s message: %s",
+			msg_name[n->header.function], g_strerror(errno));
 		return;
 	}
 
