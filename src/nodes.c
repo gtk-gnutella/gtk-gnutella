@@ -512,11 +512,6 @@ void node_init(void)
  * Nodes
  */
 
-gboolean on_the_net(void)
-{
-	return connected_node_cnt > 0 ? TRUE : FALSE;
-}
-
 gint32 connected_nodes(void)
 {
 	return connected_node_cnt;

@@ -331,7 +331,6 @@ extern struct gnutella_node *node_added;
 void node_init(void);
 void node_slow_timer(time_t now);
 void node_timer(time_t now);
-gboolean on_the_net(void);
 gint32 connected_nodes(void);
 gint32 node_count(void);
 gint node_keep_missing(void);
