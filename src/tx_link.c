@@ -131,7 +131,18 @@ static inline gint tx_link_write_error(txdrv_t *tx, const char *func)
 	case EAGAIN:
 	case EINTR:
 	case ENOBUFS:
+		return 0;
+	/*
+	 * The following are probably due to bugs in the libc, but this is in
+	 * the same vein as write() failing with -1 whereas errno == 0!  Be more
+	 * robust against bugs in the components we rely on. --RAM, 09/10/2003
+	 */
 	case EINPROGRESS:		/* Weird, but seen it -- RAM, 07/10/2003 */
+	{
+		struct attr *attr = (struct attr *) tx->opaque;
+		g_warning("%s(fd=%d) failed with weird errno = %d (%s), "
+			"assuming EAGAIN", func, attr->fd, errno, g_strerror(errno));
+	}
 		return 0;
 	case EPIPE:
 	case ENOSPC:
