@@ -122,6 +122,17 @@ static void update_stat(guint32 *max, GtkProgressBar *pg,
     gtk_progress_bar_set_fraction(pg, frac);
 }
 
+/**
+ * Sum `dest' and `other', putting results in `dest'.
+ */
+static void
+gnet_bw_stats_sum(gnet_bw_stats_t *dest, gnet_bw_stats_t *other)
+{
+	dest->current += other->current;
+	dest->average += other->average;
+	dest->limit += other->limit;
+}
+
 /* FIXME: stats that are turned off need not be calculated! */
 void gui_update_traffic_stats(void)
 {
@@ -132,6 +143,7 @@ void gui_update_traffic_stats(void)
     static guint32 leaf_in_max = 0;
     static guint32 leaf_out_max = 0;
     gnet_bw_stats_t s;
+    gnet_bw_stats_t s2;
 
     GtkProgressBar *pg_http_in = GTK_PROGRESS_BAR
         (lookup_widget(main_window, "progressbar_bws_in"));
@@ -165,8 +177,12 @@ void gui_update_traffic_stats(void)
     guc_gnet_get_bw_stats(BW_HTTP_OUT, &s);
     update_stat(&http_out_max, pg_http_out, &s, progressbar_bws_out_avg, 0);
     guc_gnet_get_bw_stats(BW_GNET_IN, &s);
+    guc_gnet_get_bw_stats(BW_GNET_UDP_IN, &s2);
+	gnet_bw_stats_sum(&s, &s2);
     update_stat(&gnet_in_max, pg_gnet_in, &s, progressbar_bws_gin_avg, 1);
     guc_gnet_get_bw_stats(BW_GNET_OUT, &s);
+    guc_gnet_get_bw_stats(BW_GNET_UDP_OUT, &s2);
+	gnet_bw_stats_sum(&s, &s2);
     update_stat(&gnet_out_max, pg_gnet_out, &s, progressbar_bws_gout_avg, 0);
     guc_gnet_get_bw_stats(BW_LEAF_IN, &s);
     update_stat(&leaf_in_max, pg_leaf_in, &s, progressbar_bws_glin_avg, 1);
