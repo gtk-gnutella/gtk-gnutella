@@ -312,6 +312,7 @@ retry:
 	debug_msg[GTA_MSG_SEARCH]         = "Query";
 	debug_msg[GTA_MSG_SEARCH_RESULTS] = "Q-Hit";
 	debug_msg[GTA_MSG_PUSH_REQUEST]   = "Push ";
+	debug_msg[GTA_MSG_VENDOR]         = "Vndor";
 
 	/*
 	 * Should be around for life of program, so should *never*

@@ -57,6 +57,7 @@ void gmsg_init(void)
 	msg_name[GTA_MSG_SEARCH_RESULTS]	= "query hit";
 	msg_name[GTA_MSG_PUSH_REQUEST]		= "push";
 	msg_name[GTA_MSG_QRP]				= "QRP";
+	msg_name[GTA_MSG_VENDOR]			= "vendor";
 
 	for (i = 0; i < 256; i++)
 		msg_weight[i] = 0;
@@ -67,6 +68,7 @@ void gmsg_init(void)
 	msg_weight[GTA_MSG_SEARCH_RESULTS]	= 4;
 	msg_weight[GTA_MSG_PUSH_REQUEST]	= 5;
 	msg_weight[GTA_MSG_QRP]				= 6;
+	msg_weight[GTA_MSG_VENDOR]			= 7;	/* deemed important */
 }
 
 /*
