@@ -130,5 +130,7 @@ gboolean download_send_request(struct download *);
 void download_retry(struct download *);
 void download_index_changed(guint32, guint16, guchar *, guint32, guint32);
 void download_close(void);
+void download_remove_all_from_peer(const gchar *guid);
+void download_remove_all_named(const gchar *name);
 
 #endif /* __downloads_h__ */
