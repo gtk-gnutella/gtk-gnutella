@@ -2479,7 +2479,7 @@ static gboolean node_can_accept_connection(
 	 */
 
 	if ((n->attrs & NODE_A_ULTRA) && (bad = node_is_bad(n)) != NODE_BAD_OK) {
-		gchar *msg;
+		gchar *msg = NULL;
 
 		switch (bad) {
 		case NODE_BAD_OK:
