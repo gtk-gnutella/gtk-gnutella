@@ -30,7 +30,7 @@
 
 #include <glib.h>
 
-#define ZALLOC_ALIGNBYTES	8		/* Would need metaconfig check */
+#define ZALLOC_ALIGNBYTES	MEM_ALIGNBYTES
 
 /*
  * Object size rounding.
