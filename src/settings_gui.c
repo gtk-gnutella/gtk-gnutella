@@ -194,6 +194,8 @@ static gboolean sha1_rebuilding_changed(property_t prop);
 static gboolean library_rebuilding_changed(property_t prop);
 static gboolean sha1_verifying_changed(property_t prop);
 static gboolean file_moving_changed(property_t prop);
+static gboolean dl_queue_count_changed(property_t prop);
+static gboolean dl_running_count_changed(property_t prop);
 
 // FIXME: move to separate file and autoegenerate from high-level
 //        description.
@@ -1437,6 +1439,34 @@ static prop_map_t property_map[] = {
         hosts_in_ultra_catcher_changed,
         TRUE,
         "progressbar_hosts_in_ultra_catcher"
+    },
+    {
+        get_main_window,
+        PROP_UL_BYTE_COUNT,
+        update_entry,
+        TRUE,
+        "entry_ul_byte_count"
+    },
+    {
+        get_main_window,
+        PROP_DL_BYTE_COUNT,
+        update_entry,
+        TRUE,
+        "entry_dl_byte_count"
+    },
+    {
+        get_main_window,
+        PROP_DL_QUEUE_COUNT,
+        dl_queue_count_changed,
+        TRUE,
+        "label_dl_queue_count"
+    },
+    {
+        get_main_window,
+        PROP_DL_RUNNING_COUNT,
+        dl_running_count_changed,
+        TRUE,
+        "label_dl_running_count"
     },
 #endif
 };
@@ -2687,7 +2717,43 @@ static gboolean file_moving_changed(property_t prop)
 	return FALSE;
 }
 
+static gboolean dl_queue_count_changed(property_t prop)
+{
+	guint32 val;
 
+    gnet_prop_get_guint32(prop, &val, 0, 1);
+
+    if (val == 0) {
+        gtk_label_printf(
+            GTK_LABEL(lookup_widget(main_window, "label_dl_queue_count")),
+            "queue empty");
+    } else {
+        gtk_label_printf(
+            GTK_LABEL(lookup_widget(main_window, "label_dl_queue_count")),
+            "%u source%s queued", val, (val != 1) ? "s" : "");
+    }
+
+	return FALSE;
+}
+
+static gboolean dl_running_count_changed(property_t prop)
+{
+	guint32 val;
+
+    gnet_prop_get_guint32(prop, &val, 0, 1);
+
+    if (val == 0) {
+        gtk_label_printf(
+            GTK_LABEL(lookup_widget(main_window, "label_dl_running_count")),
+            "no sources active");
+    } else {
+        gtk_label_printf(
+            GTK_LABEL(lookup_widget(main_window, "label_dl_running_count")),
+            "%u source%s active", val, (val != 1) ? "s" : "");
+    }
+
+	return FALSE;
+}
 
 /***
  *** V.  Control functions.
