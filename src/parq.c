@@ -1001,11 +1001,19 @@ gboolean parq_download_is_passive_queued(struct download *d)
 void parq_download_add_header(
 	gchar *buf, gint len, gint *rw, struct download *d)
 {
+	gint major = PARQ_VERSION_MAJOR;
+	gint minor = PARQ_VERSION_MINOR;
+
 	g_assert(d != NULL);
 	g_assert(len >= 0 && *rw >= 0 && len >= *rw);
 
+	if (d->server->attrs & DLS_A_FAKE_G2) {
+		major = 0;
+		minor = 1;
+	}
+
 	*rw += gm_snprintf(&buf[*rw], len - *rw,
-		"X-Queue: %d.%d\r\n", PARQ_VERSION_MAJOR, PARQ_VERSION_MINOR);
+		"X-Queue: %d.%d\r\n", major, minor);
 
 	/*
 	 * Only add X-Queued header if server really supports X-Queue: 1.x. Don't
