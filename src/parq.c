@@ -204,19 +204,6 @@ static void parq_upload_do_send_queue(struct parq_ul_queued *parq_ul);
  ***/
 
 /*
- * ip_eq
- *
- * Comparison of `ip' structures.
- */
-static gint ip_eq(gconstpointer a, gconstpointer b)
-{
-	guint32 aip = * (guint32 *) a;
-	guint32 bip = * (guint32 *) b;
-
-	return aip == bip;
-}
-
-/*
  * get_header_version
  * 
  * Extract the version from a given header. EG:
@@ -375,7 +362,7 @@ static gchar *get_header_value(
 void parq_init(void)
 {
 	ul_all_parq_by_ip_and_name = g_hash_table_new(g_str_hash, g_str_equal);
-	ul_all_parq_by_ip = g_hash_table_new(g_str_hash, ip_eq);
+	ul_all_parq_by_ip = g_hash_table_new(g_int_hash, g_int_equal);
 	ul_all_parq_by_id = g_hash_table_new(g_str_hash, g_str_equal);
 	dl_all_parq_by_id = g_hash_table_new(g_str_hash, g_str_equal);
 
@@ -807,12 +794,12 @@ gboolean parq_download_parse_queue_status(struct download *d, header_t *header)
 		buf = header_get(header, "X-Queued");
 
 		if (buf == NULL) {
-			g_warning(__FILE__ "host %s advertised PARQ %d.%d but did not"
+			g_warning("[PARQ DL] host %s advertised PARQ %d.%d but did not"
 				" send X-Queued",
 				ip_port_to_gchar(download_ip(d), download_port(d)),
 				major, minor);
 			if (dbg) {
-				g_warning(__FILE__ ": header dump:");
+				g_warning("[PARQ DL]: header dump:");
 				header_dump(header, stderr);
 			}
 			return FALSE;
@@ -826,7 +813,7 @@ gboolean parq_download_parse_queue_status(struct download *d, header_t *header)
 		/* Someone might not be playing nicely. */
 		if (parq_dl->lifetime < parq_dl->retry_delay) {
 			parq_dl->lifetime = MAX(300, parq_dl->retry_delay );
-			g_warning(__FILE__ ": PARQ: Invalid lifetime, using: %d",
+			g_warning("[PARQ DL] Invalid lifetime, using: %d",
 				  parq_dl->lifetime);
 		}
 		
@@ -840,7 +827,7 @@ gboolean parq_download_parse_queue_status(struct download *d, header_t *header)
 		}
 		break;
 	default:
-		g_warning(__FILE__ ": unhandled queuing version %d.%d from %s <%s>",
+		g_warning("[PARQ DL] unhandled queuing version %d.%d from %s <%s>",
 			major, minor, ip_port_to_gchar(download_ip(d), download_port(d)),
 			download_vendor_str(d));
 		return FALSE;
@@ -1015,7 +1002,7 @@ void parq_download_queue_ack(struct gnutella_socket *s)
 	ip_str = strchr(id, ' ');
 
 	if (ip_str == NULL || !gchar_to_ip_port(ip_str + 1, &ip, &port)) {
-		g_warning(__FILE__ ": missing IP:port in \"%s\" from %s",
+		g_warning("[PARQ DL] missing IP:port in \"%s\" from %s",
 			queue, ip_to_gchar(s->ip));
 		has_ip_port = FALSE;
 	}
@@ -1036,14 +1023,14 @@ void parq_download_queue_ack(struct gnutella_socket *s)
 	 */
 
 	if (dl == NULL) {
-		g_warning(__FILE__ ": could not locate QUEUE id '%s' from %s",
+		g_warning("[PARQ DL] could not locate QUEUE id '%s' from %s",
 			id, ip_port_to_gchar(ip, port));
 
 		if (has_ip_port) {
 			dl = download_find_waiting_unparq(ip, port);
 
 			if (dl != NULL) {
-				g_warning(__FILE__ ": elected '%s' from %s for QUEUE id '%s'",
+				g_warning("[PARQ DL] elected '%s' from %s for QUEUE id '%s'",
 					dl->file_name, ip_port_to_gchar(ip, port), id);
 
 				g_assert(dl->queue_status == NULL);		/* unparq'ed */
@@ -1063,7 +1050,7 @@ void parq_download_queue_ack(struct gnutella_socket *s)
 	}
 
 	if (dl->list_idx == DL_LIST_RUNNING) {
-		g_warning(__FILE__ ": PARQ UL: Watch it! Download already running.");
+		g_warning("[PARQ DL] Watch it! Download already running.");
 		g_assert(s->resource.download == NULL); /* Hence socket_free() */
 		socket_free(s);
 		return;
@@ -1137,7 +1124,6 @@ inline struct parq_ul_queued *handle_to_queued(gpointer handle)
 static void parq_upload_free(struct parq_ul_queued *parq_ul)
 {		
 	g_assert(parq_ul != NULL);
-	g_assert(parq_ul->by_ip != NULL);
 	g_assert(parq_ul->ip_and_name != NULL);
 	g_assert(parq_ul->queue != NULL);
 	g_assert(parq_ul->queue->size > 0);
@@ -1145,7 +1131,7 @@ static void parq_upload_free(struct parq_ul_queued *parq_ul)
 	g_assert(parq_ul->by_ip != NULL);
 	g_assert(parq_ul->by_ip->total > 0);
 	g_assert(parq_ul->by_ip->uploading <= parq_ul->by_ip->total);
-	g_assert(g_list_length(parq_ul->by_ip->list) > 0);
+	g_assert(g_list_length(parq_ul->by_ip->list) == parq_ul->by_ip->total);
 	
 	parq_upload_decrease_all_after(parq_ul);	
 
@@ -1159,16 +1145,19 @@ static void parq_upload_free(struct parq_ul_queued *parq_ul)
 	if (parq_ul->by_ip->total == 0) {
 		g_assert(parq_ul->remote_ip == parq_ul->by_ip->ip);
 		g_assert(g_list_length(parq_ul->by_ip->list) == 0);
-		
+
 		/* No more uploads from this ip, cleaning up */
 		g_hash_table_remove(ul_all_parq_by_ip, &parq_ul->remote_ip);
-		
 		g_list_free(parq_ul->by_ip->list);
 		parq_ul->by_ip->list = NULL;
-		
+	
 		wfree(parq_ul->by_ip, sizeof(*parq_ul->by_ip));
-		parq_ul->by_ip = NULL;
+		
+		g_assert(g_hash_table_lookup(ul_all_parq_by_ip,
+			  &parq_ul->remote_ip) == NULL);
 	}
+
+	parq_ul->by_ip = NULL;
 
 	/*
 	 * Tell parq_upload_update_relative_position not to take this
@@ -1351,10 +1340,13 @@ static struct parq_ul_queued *parq_upload_create(gnutella_upload_t *u)
 			parq_ul->id);
 	}	
 	
+	/* Check if the requesting client has allready other PARQ entries */
 	parq_ul->by_ip = (struct parq_ul_queued_by_ip *)
 		g_hash_table_lookup(ul_all_parq_by_ip, &parq_ul->remote_ip);
 	
 	if (parq_ul->by_ip == NULL) {
+		/* The requesting client has no other PARQ entries yet, create an ip
+		 * reference structure */
 		parq_ul->by_ip = walloc0(sizeof(*parq_ul->by_ip));
 		g_hash_table_insert(
 			ul_all_parq_by_ip, &parq_ul->remote_ip, parq_ul->by_ip);
@@ -1593,9 +1585,9 @@ static struct parq_ul_queued *parq_upload_find_id(gnutella_upload_t *u,
 		gchar *id = get_header_value(buf, "ID", &length);
 
 		if (id == NULL) {
-			g_warning(__FILE__ ": missing ID in PARQ request");
+			g_warning("[PARQ UL] missing ID in PARQ request");
 			if (dbg) {
-				g_warning(__FILE__ ": header dump:");
+				g_warning("[PARQ UL] header dump:");
 				header_dump(header, stderr);
 			}
 			return NULL;
@@ -1910,7 +1902,7 @@ static gboolean parq_upload_continue(struct parq_ul_queued *uq, gint free_slots)
 		struct parq_ul_queue *queue = (struct parq_ul_queue *) l->data;
 		if (!queue->active && queue->alive > 0) {
 			if (uq->queue->active) {
-				g_warning(__FILE__ ": PARQ UL: Upload in inactive queue first");
+				g_warning("[PARQ UL] Upload in inactive queue first");
 				return FALSE;
 			}
 		}
@@ -2870,7 +2862,7 @@ void parq_upload_do_send_queue(struct parq_ul_queued *parq_ul)
 	s = socket_connect(parq_ul->ip, parq_ul->port, SOCK_TYPE_UPLOAD);
 	
 	if (!s) {
-		g_warning(__FILE__ ":could not send QUEUE #%d to %s (can't connect)",
+		g_warning("[PARQ UL] could not send QUEUE #%d to %s (can't connect)",
 			parq_ul->queue_sent, ip_port_to_gchar(parq_ul->ip, parq_ul->port));
 		return;
 	}
@@ -2917,11 +2909,11 @@ void parq_upload_send_queue_conf(gnutella_upload_t *u)
 	s = u->socket;
 
 	if (-1 == (sent = bws_write(bws.out, s->file_desc, queue, rw))) {
-		g_warning(__FILE__ ": PARQ UL: "
+		g_warning("[PARQ UL] "
 			"Unable to send back QUEUE for \"%s\" to %s: %s",
 			  u->name, ip_port_to_gchar(s->ip, s->port), g_strerror(errno));
 	} else if (sent < rw) {
-		g_warning(__FILE__ ": PARQ UL: "
+		g_warning("[PARQ UL] "
 			"Only sent %d out of %d bytes of QUEUE for \"%s\" to %s: %s",
 			  sent, rw, u->name, ip_port_to_gchar(s->ip, s->port),
 			  g_strerror(errno));
@@ -2965,7 +2957,7 @@ void parq_upload_save_queue()
 	f = fopen(file, "w");	
 
 	if (!f) {
-		g_warning(__FILE__ ":parq_upload_save_queue(): "
+		g_warning("[PARQ UL] parq_upload_save_queue(): "
 			  "unable to open file \"%s\" for writing: %s",
 			  file, g_strerror(errno));
 		g_free(file);
@@ -3002,6 +2994,8 @@ static void parq_store(gpointer data, gpointer x)
 	FILE *f = (FILE *)x;
 	time_t now = time((time_t *) NULL);
 	struct parq_ul_queued *parq_ul = (struct parq_ul_queued *) data;
+	gchar xip[32];
+	gchar ip[32];
 	
 	if (parq_ul->had_slot && !parq_ul->has_slot)
 		/* We are not saving uploads which allready finished an upload */
@@ -3020,6 +3014,8 @@ static void parq_store(gpointer data, gpointer x)
 			  ip_to_gchar(parq_ul->remote_ip),
 			  parq_ul->name);
 	
+	strncpy(ip, ip_to_gchar(parq_ul->remote_ip), sizeof(ip));
+	strncpy(xip, ip_to_gchar(parq_ul->ip), sizeof(xip));
 	/*
 	 * Save all needed parq information. The ip and port information gathered
 	 * from X-Node is saved as XIP and XPORT 
@@ -3031,9 +3027,9 @@ static void parq_store(gpointer data, gpointer x)
 		  "EXPIRE: %d\n"
 		  "ID: %s\n"
 		  "SIZE: %d\n"
-		  "XIP: %u\n"
+		  "XIP: %s\n"
 		  "XPORT: %d\n"
-		  "IP: %u\n"
+		  "IP: %s\n"
 		  "NAME: %s\n\n", 
 		  g_list_position(ul_parqs, g_list_find(ul_parqs, parq_ul->queue)) + 1,
 		  parq_ul->position,
@@ -3041,9 +3037,9 @@ static void parq_store(gpointer data, gpointer x)
 		  (gint) parq_ul->expire - (gint) now,
 		  parq_ul->id,
 		  parq_ul->file_size,
-		  parq_ul->ip,
+		  xip,
 		  parq_ul->port,
-		  parq_ul->remote_ip,
+		  ip,
 		  parq_ul->name);
 }
 
@@ -3073,6 +3069,8 @@ static void parq_upload_load_queue(void)
 	gint32 signed_ip = 0;
 	char name[1024];
 	char id[1024];
+	gchar ip_copy[32];
+	int ip1, ip2, ip3, ip4;
 	
 	// XXX need to use the file routines -- RAM
 	file = g_strdup_printf("%s/%s", settings_config_dir(), file_parq_file);
@@ -3080,7 +3078,7 @@ static void parq_upload_load_queue(void)
 
 	f = fopen(file, "r");
 	if (!f) {
-		g_warning(__FILE__ ": parq_upload_load_queue(): "
+		g_warning("[PARQ UL] parq_upload_load_queue(): "
 			"unable to open file \"%s\" for reading: %s",
 			file, g_strerror(errno));
 		G_FREE_NULL(file);
@@ -3091,7 +3089,7 @@ static void parq_upload_load_queue(void)
 	u = walloc(sizeof(gnutella_upload_t));
 	
 	if (dbg)
-		g_warning(__FILE__ ": Loading queue information");
+		g_warning("[PARQ UL] Loading queue information");
 
 	line[sizeof(line)-1] = '\0';
 
@@ -3099,22 +3097,51 @@ static void parq_upload_load_queue(void)
 		/* Skip comments */
 		if (*line == '#') continue;
 	
-		// XXX legacy -- remove after 0.92 is out -- RAM, 11/05/2003
-		if (sscanf(line, "IP: -%u\n", &ip)) {
-			sscanf(line, "IP: %d\n", &signed_ip);
-			ip = (guint32) signed_ip;
-			g_warning(__FILE__ ": PARQ: Legacy import of IP: %d", signed_ip);
-		} else
-			sscanf(line, "IP: %u\n", &ip);
-
-		// XXX legacy -- remove after 0.92 is out -- RAM, 11/05/2003
-		if (sscanf(line, "XIP: -%u\n", &xip)) {
-			sscanf(line, "XIP: %d\n", &signed_ip);
-			xip = (guint32) signed_ip;
-			g_warning(__FILE__ ": PARQ: Legacy import of XIP: %d", signed_ip);
-		} else
-			sscanf(line, "XIP: %u\n", &xip);
-
+		if (!strncmp(line, "IP: ", 4)) {
+			// XXX legacy -- remove after 0.92 is out -- RAM, 11/05/2003
+			if (sscanf(line, "IP: -%u\n", &ip)) {
+				sscanf(line, "IP: %d\n", &signed_ip);
+				ip = (guint32) signed_ip;
+				g_warning("[PARQ UL] Legacy import of IP: %d", signed_ip);
+			} else {
+				strncpy(ip_copy, line + sizeof("IP:"), sizeof(ip_copy));
+				if (strchr(ip_copy, '\n') != NULL) {
+					*strchr(ip_copy, '\n') = '\0';
+					ip_copy[31] = '\0';
+					if (sscanf(ip_copy, "%d.%d.%d.%d\n",
+						  &ip1, &ip2, &ip3, &ip4) == 4) {
+						ip = gchar_to_ip(ip_copy);
+					} else {
+						sscanf(line, "IP: %u\n", &ip);
+						g_warning("[PARQ UL] "
+							"Pre 0.92 (cvs only) import of IP: %u", ip);
+					}
+				}
+			}
+		}
+		
+		if (!strncmp(line, "XIP: ", 5)) {
+			// XXX legacy -- remove after 0.92 is out -- RAM, 11/05/2003
+			if (sscanf(line, "XIP: -%u\n", &xip)) {
+				sscanf(line, "XIP: %d\n", &signed_ip);
+				xip = (guint32) signed_ip;
+				g_warning("[PARQ UL] Legacy import of XIP: %d", signed_ip);
+			} else {
+				strncpy(ip_copy, line + sizeof("XIP:"), sizeof(ip_copy));
+				if (strchr(ip_copy, '\n') != NULL) {
+					*strchr(ip_copy, '\n') = '\0';
+					ip_copy[31] = '\0';
+					if (sscanf(ip_copy, "%d.%d.%d.%d",
+						  &ip1, &ip2, &ip3, &ip4) == 4) {
+						xip = gchar_to_ip(ip_copy);
+					} else {
+						sscanf(line, "XIP: %u\n", &xip);
+						g_warning("[PARQ UL] "
+							"Pre 0.92 (cvs only) import of XIP: %u", xip);
+					}
+				}
+			}
+		}
 
 		sscanf(line, "QUEUE: %d", &queue);
 		sscanf(line, "POS: %d\n", &position);
