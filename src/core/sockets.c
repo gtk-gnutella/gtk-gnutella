@@ -1231,6 +1231,7 @@ accepted:
 	t->type = s->type;
 	t->local_port = s->local_port;
 	t->getline = getline_make(MAX_LINE_SIZE);
+	t->flags |= SOCK_F_TCP;
 	
 #ifdef USE_TLS
 	t->tls.enabled = s->tls.enabled; /* Inherit from listening socket */
@@ -1694,6 +1695,8 @@ socket_udp_listen(guint32 ip, guint16 port)
 	s->file_desc = sd;
 	s->pos = 0;
 	s->flags |= SOCK_F_UDP;
+
+	socket_wio_link(s);		/* Link to the I/O functions */
 
 	setsockopt(sd, SOL_SOCKET, SO_REUSEADDR, (void *) &option,
 			   sizeof(option));
@@ -2368,6 +2371,7 @@ static ssize_t
 socket_plain_write(struct wrap_io *wio, gconstpointer buf, size_t size)
 {
 	struct gnutella_socket *s = wio->ctx;
+
 #ifdef USE_TLS
 	g_assert(!SOCKET_USES_TLS(s));
 #endif
@@ -2379,6 +2383,7 @@ static ssize_t
 socket_plain_read(struct wrap_io *wio, gpointer buf, size_t size)
 {
 	struct gnutella_socket *s = wio->ctx;
+
 #ifdef USE_TLS
 	g_assert(!SOCKET_USES_TLS(s));
 #endif
@@ -2390,6 +2395,7 @@ static ssize_t
 socket_plain_writev(struct wrap_io *wio, const struct iovec *iov, int iovcnt)
 {
 	struct gnutella_socket *s = wio->ctx;
+
 #ifdef USE_TLS
 	g_assert(!SOCKET_USES_TLS(s));
 #endif
@@ -2401,13 +2407,56 @@ static ssize_t
 socket_plain_readv(struct wrap_io *wio, struct iovec *iov, int iovcnt)
 {
 	struct gnutella_socket *s = wio->ctx;
+
 #ifdef USE_TLS
 	g_assert(!SOCKET_USES_TLS(s));
 #endif
 
 	return readv(s->file_desc, iov, iovcnt);
 }
-	
+
+static ssize_t
+socket_plain_sendto(
+	struct wrap_io *wio, gnet_host_t *to, gconstpointer buf, size_t size)
+{
+	struct gnutella_socket *s = wio->ctx;
+	struct sockaddr_in addr;
+	gint alen = sizeof(addr);
+
+#ifdef USE_TLS
+	g_assert(!SOCKET_USES_TLS(s));
+#endif
+
+	addr.sin_family = AF_INET;
+	addr.sin_addr.s_addr = htonl(to->ip);
+	addr.sin_port = htons(to->port);
+
+	return sendto(s->file_desc, buf, size, MSG_DONTWAIT,
+		(const struct sockaddr *) &addr, alen);
+}
+
+static ssize_t
+socket_no_sendto(
+	struct wrap_io *wio, gnet_host_t *to, gconstpointer buf, size_t size)
+{
+	g_error("no sendto() routine allowed");
+	return -1;
+}
+
+static ssize_t
+socket_no_write(struct wrap_io *wio, gconstpointer buf, size_t size)
+{
+	g_error("no write() routine allowed");
+	return -1;
+}
+
+static ssize_t
+socket_no_writev(struct wrap_io *wio, const struct iovec *iov, int iovcnt)
+{
+	g_error("no writev() routine allowed");
+	return -1;
+}
+
 #ifdef USE_TLS
 static ssize_t
 socket_tls_write(struct wrap_io *wio, gconstpointer buf, size_t size)
@@ -2649,6 +2698,8 @@ socket_tls_readv(struct wrap_io *wio, struct iovec *iov, int iovcnt)
 static void
 socket_wio_link(struct gnutella_socket *s)
 {
+	g_assert(s->flags & (SOCK_F_TCP | SOCK_F_UDP));
+
 	s->wio.ctx = s;
 	s->wio.fd = socket_get_fd;
 	
@@ -2658,13 +2709,21 @@ socket_wio_link(struct gnutella_socket *s)
 		s->wio.read = socket_tls_read;
 		s->wio.writev = socket_tls_writev;
 		s->wio.readv = socket_tls_readv;
+		s->wio.sendto = socket_no_sendto;
 	} else
 #endif /* USE_TLS */
-	{
+	if (s->flags & SOCK_F_TCP) {
 		s->wio.write = socket_plain_write;
 		s->wio.read = socket_plain_read;
 		s->wio.writev = socket_plain_writev;
 		s->wio.readv = socket_plain_readv;
+		s->wio.sendto = socket_no_sendto;
+	} else if (s->flags & SOCK_F_UDP) {
+		s->wio.write = socket_no_write;
+		s->wio.read = socket_plain_read;
+		s->wio.writev = socket_no_writev;
+		s->wio.readv = socket_plain_readv;
+		s->wio.sendto = socket_plain_sendto;
 	}
 }
 
