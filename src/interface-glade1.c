@@ -242,6 +242,13 @@ create_main_window (void)
   GtkWidget *notebook_search_results;
   GtkWidget *empty_notebook_page;
   GtkWidget *label190;
+  GtkWidget *frame_search_results_settings;
+  GtkWidget *table34;
+  GtkWidget *checkbutton_search_autoselect;
+  GtkWidget *checkbutton_search_autoselect_ident;
+  GtkWidget *checkbutton_search_jump_to_downloads;
+  GtkWidget *checkbutton_search_remove_downloaded;
+  GtkWidget *checkbutton_search_autoselect_fuzzy;
   GtkWidget *hbox147;
   GtkWidget *label_items_found;
   GtkWidget *search_reissue_label;
@@ -252,13 +259,6 @@ create_main_window (void)
   GtkObject *spinbutton_minimum_speed_adj;
   GtkWidget *spinbutton_minimum_speed;
   GtkWidget *label293;
-  GtkWidget *frame_search_results_settings;
-  GtkWidget *table34;
-  GtkWidget *checkbutton_search_autoselect;
-  GtkWidget *checkbutton_search_autoselect_ident;
-  GtkWidget *checkbutton_search_jump_to_downloads;
-  GtkWidget *checkbutton_search_remove_downloaded;
-  GtkWidget *checkbutton_search_autoselect_fuzzy;
   GtkWidget *hbox52;
   GtkWidget *button_search_download;
   GtkWidget *button_search_clear;
@@ -2311,70 +2311,6 @@ create_main_window (void)
   gtk_widget_show (label190);
   gtk_notebook_set_tab_label (GTK_NOTEBOOK (notebook_search_results), gtk_notebook_get_nth_page (GTK_NOTEBOOK (notebook_search_results), 0), label190);
 
-  hbox147 = gtk_hbox_new (FALSE, 4);
-  gtk_widget_ref (hbox147);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "hbox147", hbox147,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (hbox147);
-  gtk_box_pack_start (GTK_BOX (vbox76), hbox147, FALSE, TRUE, 0);
-
-  label_items_found = gtk_label_new ("No item found");
-  gtk_widget_ref (label_items_found);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "label_items_found", label_items_found,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (label_items_found);
-  gtk_box_pack_start (GTK_BOX (hbox147), label_items_found, TRUE, TRUE, 0);
-  gtk_misc_set_alignment (GTK_MISC (label_items_found), 7.45058e-09, 0.5);
-
-  search_reissue_label = gtk_label_new ("Retry search every");
-  gtk_widget_ref (search_reissue_label);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "search_reissue_label", search_reissue_label,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (search_reissue_label);
-  gtk_box_pack_start (GTK_BOX (hbox147), search_reissue_label, FALSE, FALSE, 0);
-  gtk_misc_set_alignment (GTK_MISC (search_reissue_label), 1, 0.5);
-
-  spinbutton_search_reissue_timeout_adj = gtk_adjustment_new (600, 600, 100000, 60, 600, 600);
-  spinbutton_search_reissue_timeout = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_search_reissue_timeout_adj), 1, 0);
-  gtk_widget_ref (spinbutton_search_reissue_timeout);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "spinbutton_search_reissue_timeout", spinbutton_search_reissue_timeout,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (spinbutton_search_reissue_timeout);
-  gtk_box_pack_start (GTK_BOX (hbox147), spinbutton_search_reissue_timeout, FALSE, TRUE, 0);
-  gtk_widget_set_usize (spinbutton_search_reissue_timeout, 70, -2);
-  gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_search_reissue_timeout), TRUE);
-
-  label246 = gtk_label_new ("secs   ");
-  gtk_widget_ref (label246);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "label246", label246,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (label246);
-  gtk_box_pack_start (GTK_BOX (hbox147), label246, FALSE, FALSE, 0);
-
-  label30 = gtk_label_new ("Minimum connection speed");
-  gtk_widget_ref (label30);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "label30", label30,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (label30);
-  gtk_box_pack_start (GTK_BOX (hbox147), label30, FALSE, FALSE, 0);
-
-  spinbutton_minimum_speed_adj = gtk_adjustment_new (0, 0, 2e+06, 1, 10, 10);
-  spinbutton_minimum_speed = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_minimum_speed_adj), 1, 0);
-  gtk_widget_ref (spinbutton_minimum_speed);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "spinbutton_minimum_speed", spinbutton_minimum_speed,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (spinbutton_minimum_speed);
-  gtk_box_pack_start (GTK_BOX (hbox147), spinbutton_minimum_speed, FALSE, TRUE, 0);
-  gtk_widget_set_sensitive (spinbutton_minimum_speed, FALSE);
-  gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_minimum_speed), TRUE);
-
-  label293 = gtk_label_new ("kbps");
-  gtk_widget_ref (label293);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "label293", label293,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (label293);
-  gtk_box_pack_start (GTK_BOX (hbox147), label293, FALSE, FALSE, 0);
-
   frame_search_results_settings = gtk_frame_new ("General search settings (affect all searches)");
   gtk_widget_ref (frame_search_results_settings);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "frame_search_results_settings", frame_search_results_settings,
@@ -2438,6 +2374,70 @@ create_main_window (void)
   gtk_table_attach (GTK_TABLE (table34), checkbutton_search_autoselect_fuzzy, 2, 3, 0, 1,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
+
+  hbox147 = gtk_hbox_new (FALSE, 4);
+  gtk_widget_ref (hbox147);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "hbox147", hbox147,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (hbox147);
+  gtk_box_pack_start (GTK_BOX (vbox76), hbox147, FALSE, TRUE, 0);
+
+  label_items_found = gtk_label_new ("No item found");
+  gtk_widget_ref (label_items_found);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label_items_found", label_items_found,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label_items_found);
+  gtk_box_pack_start (GTK_BOX (hbox147), label_items_found, TRUE, TRUE, 0);
+  gtk_misc_set_alignment (GTK_MISC (label_items_found), 7.45058e-09, 0.5);
+
+  search_reissue_label = gtk_label_new ("Retry search every");
+  gtk_widget_ref (search_reissue_label);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "search_reissue_label", search_reissue_label,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (search_reissue_label);
+  gtk_box_pack_start (GTK_BOX (hbox147), search_reissue_label, FALSE, FALSE, 0);
+  gtk_misc_set_alignment (GTK_MISC (search_reissue_label), 1, 0.5);
+
+  spinbutton_search_reissue_timeout_adj = gtk_adjustment_new (600, 600, 100000, 60, 600, 600);
+  spinbutton_search_reissue_timeout = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_search_reissue_timeout_adj), 1, 0);
+  gtk_widget_ref (spinbutton_search_reissue_timeout);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "spinbutton_search_reissue_timeout", spinbutton_search_reissue_timeout,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (spinbutton_search_reissue_timeout);
+  gtk_box_pack_start (GTK_BOX (hbox147), spinbutton_search_reissue_timeout, FALSE, TRUE, 0);
+  gtk_widget_set_usize (spinbutton_search_reissue_timeout, 70, -2);
+  gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_search_reissue_timeout), TRUE);
+
+  label246 = gtk_label_new ("secs   ");
+  gtk_widget_ref (label246);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label246", label246,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label246);
+  gtk_box_pack_start (GTK_BOX (hbox147), label246, FALSE, FALSE, 0);
+
+  label30 = gtk_label_new ("Minimum connection speed");
+  gtk_widget_ref (label30);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label30", label30,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label30);
+  gtk_box_pack_start (GTK_BOX (hbox147), label30, FALSE, FALSE, 0);
+
+  spinbutton_minimum_speed_adj = gtk_adjustment_new (0, 0, 2e+06, 1, 10, 10);
+  spinbutton_minimum_speed = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_minimum_speed_adj), 1, 0);
+  gtk_widget_ref (spinbutton_minimum_speed);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "spinbutton_minimum_speed", spinbutton_minimum_speed,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (spinbutton_minimum_speed);
+  gtk_box_pack_start (GTK_BOX (hbox147), spinbutton_minimum_speed, FALSE, TRUE, 0);
+  gtk_widget_set_sensitive (spinbutton_minimum_speed, FALSE);
+  gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_minimum_speed), TRUE);
+
+  label293 = gtk_label_new ("kbps");
+  gtk_widget_ref (label293);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label293", label293,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label293);
+  gtk_box_pack_start (GTK_BOX (hbox147), label293, FALSE, FALSE, 0);
 
   hbox52 = gtk_hbox_new (FALSE, 4);
   gtk_widget_ref (hbox52);
