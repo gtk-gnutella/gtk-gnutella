@@ -36,3 +36,10 @@ Contributors:
 	Michael Tesch <tesch@users.sourceforge.net>
 	Markus 'guruz' Goetz <guruz@guruz.info>
 	Richard Eckart <wyldfire@users.sourceforge.net>
+
+Artwork:
+	Taken from the gtop package:
+	arrow_up.xpm, arrow_down.xpm
+	
+	Original art by Richard Eckart created using the Gimp:
+	firewall.xpm, no_firewall.xpm
