@@ -1395,8 +1395,12 @@ dq_got_query_status(gchar *muid, guint32 node_id, guint16 kept)
 		if (dq_debug > 19)
 			printf("DQ[%d] terminating at user's request\n", dq->qid);
 
-		if (!(dq->flags & DQ_F_LINGER))
+		if (!(dq->flags & DQ_F_LINGER)) {
+			if (dq->results_ev)
+				cq_cancel(callout_queue, dq->results_ev);
+			dq->results_ev = NULL;
 			dq_terminate(dq);
+		}
 		return;
 	}
 
