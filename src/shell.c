@@ -613,7 +613,7 @@ static guint shell_exec_horizon(gnutella_shell_t *sh, const gchar *cmd)
 		return REPLY_READY;
 	}
 	
-	hsep_get_global_table(globaltable, HSEP_N_MAX + 1);	
+	hsep_get_global_table(globaltable, G_N_ELEMENTS(globaltable));	
 	globalt = (gint64 *) &globaltable[1];
 
 	/*
