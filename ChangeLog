@@ -1,5 +1,29 @@
 # since last version
 
+- (2002.06.13 - RAM)
+  * Added rigorous extension parsing.
+  * Fixed hash table init for GUID/SHA1 atoms.
+  * Make sure we use POSIX extended regular expressions.
+  * Added strcasestr() routine to misc.c.
+  * Now extracts SHA1 out of query hits for each record.
+  * Now validates SHA1 representation in queries, dropping bad queries.
+  * Fixed handling of GET /uri-res/N2R: the "urn:sha1:" part is a
+    case-insensitive string.  Likewise when extracting SHA1 from HTTP headers.
+
+- (2002.06.11 - Richard)
+  * Fixed bug: default filter not set on passive searches.
+  * Fixed bug: rule editor not properly cleared when work_filter
+    gets removed because it's bound search got removed
+  * Fixed bug: filter dialog size not remembered correctly
+  * More clean up of the filter api
+  * More moving gtk code to from filter.c to filter_gui.c
+  * Adding/removing of filters is also shadowed now (meaning you can
+    cancel it in the dialog)
+  * Added calls to bypass shadowing for adding and removing rules.
+  * Added "Don't show selected" to search popup. This adds a drop rule to
+    the search filter for all files which match exactly the filenames from
+    the selected records. It does not jet check for duplicates.
+
 - (2002.06.08 - Richard)
   * Remove optionmenu widget for selecting filters from filter dialog
     and added a tree instead.
@@ -19,27 +43,27 @@
   * Added atoms, allowing sharing of common constants.
   * Made callbacks.c use new gui_allow_rescan_dir().
   * Raised default TTL to 7 (was 5) and default max TTL to 10 (was 7) to
-	match what appears to be a common setting in other servents.
+    match what appears to be a common setting in other servents.
   * Plugged in atom strings for downloads.c, huge.c, main.c, search.c,
-	share.c and uploads.c.
+    share.c and uploads.c.
   * Moved Gnutella query message definitions from search.h to gnutella.h.
   * When non-local nodes are removed to favor local ones, send BYE 202 messages.
   * Second stab at QRP: Computes routing table patches incrementally.
   * Now requests URNs in all our queries.
   * Reworked library scanning to use atoms, and in particular store the full
-	file path as an atom (shared with huge.c in the SHA1 cache).
+    file path as an atom (shared with huge.c in the SHA1 cache).
   * Added support for transparent index remapping for older servents sending
-	a request with an incorrect index.
+    a request with an incorrect index.
   * Made common warnings in sockets.c silent unless debugging enabled.
   * Fixed improper dump of incoming data on first long lines.
   * Send a 301 Moved with proper Location redirection when requesting a file
-	with an improper index and an X-Gnutella-Content-URN is given and does
-	not match the request, but another file we have.
+    with an improper index and an X-Gnutella-Content-URN is given and does
+    not match the request, but another file we have.
   * Added incremental deflating routines for QRP patch compression.
 
 - (2002.06.03 - RAM)
   * Fixed improper semantics of the "contains words" filter.  ALL the
-	words must be present for a match to occur.
+    words must be present for a match to occur.
 
 - (2002.06.02 - Richard) 
   * Format of RULE_SIZE display string changed.
@@ -56,7 +80,7 @@
   * Information about how often a rule matched is displayed in the
     filter dialog (but not updated periodically)
   * Fixed default filter selection when adding a new search.
-	
+    
 - (2002.06.02 - RAM)
   * Added build dependency on libxml2-dev in debian control.
   * Force --enable-xml-store in debian's build.
@@ -108,7 +132,7 @@
   * Fixed ipf_unban() to test rounded integer counter and not float in removal.
   * Was not properly updating SHA1 info when library was being rebuilt.
   * Was not properly sending back urn:sha1 in query hits (truncating the
-	':' separator).
+    ':' separator).
   * All SHA1 digests are now stored in binary internally.
   * Added padding chars to base32 encoding, and "const" in the signatures.
 
@@ -119,7 +143,7 @@
   * Scan library after GUI is brought up.
   * Was not accounting Gnet header traffic as Gnet bandwidth.
   * Added anti-hammering feature, that will ban users sending more
-	than 10 requests per minute (sliding window).
+    than 10 requests per minute (sliding window).
   * Always honour HEAD requests, even when busy, provided no hammering.
 
 - (2002.05.24 - Richard)
