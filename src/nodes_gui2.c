@@ -74,7 +74,7 @@ void on_popup_nodes_config_cols_activate(
  * Create a column, associating the "text" attribute of the
  * cell_renderer to the first column of the model
  */
-static void add_column(
+static void nodes_gui_add_column(
 	GtkTreeView *tree, gint column_id, gint width, const gchar *title)
 {
     GtkTreeViewColumn *column;
@@ -89,6 +89,79 @@ static void add_column(
 		"sizing", GTK_TREE_VIEW_COLUMN_FIXED,
 		NULL);
     gtk_tree_view_append_column(GTK_TREE_VIEW (tree), column);
+}
+
+/*
+ * nodes_gui_set_column_width
+ *
+ * Sets the specified column, from the specified tree to the
+ * specified width.
+ */
+static void nodes_gui_set_column_width(
+	GtkTreeView *tree, gint column_id, gint width)
+{
+	GtkTreeViewColumn *column;
+
+	column = gtk_tree_view_get_column(tree, column_id);
+	gtk_tree_view_column_set_fixed_width (column, MAX(1, width));
+}
+
+/*
+ * nodes_gui_create_treeview_nodes
+ *
+ * Sets up the treeview_nodes object for use by
+ * settings_gui. (Uses a default width of one; actual
+ * widths are set during nodes_gui_init. This
+ * component must be able to be initialized before
+ * width settings are initialized.)
+ */
+static void nodes_gui_create_treeview_nodes(void)
+{
+	GtkTreeView *tree;
+
+    /*
+     * Create a model.  We are using the store model for now, though we
+     * could use any other GtkTreeModel
+     */
+    nodes_model = gtk_list_store_new(c_gnet_num,
+        G_TYPE_STRING,   /* c_gnet_host */
+        G_TYPE_STRING,   /* c_gnet_flags */
+        G_TYPE_STRING,   /* c_gnet_user_agent */
+        G_TYPE_STRING,   /* c_gnet_version */
+        G_TYPE_STRING,   /* c_gnet_connected */
+        G_TYPE_STRING,   /* c_gnet_uptime */
+        G_TYPE_STRING,   /* c_gnet_info */
+        G_TYPE_UINT);    /* c_gnet_handle */
+
+    /*
+     * Get the monitor widget
+     */
+	treeview_nodes = GTK_TREE_VIEW(lookup_widget(
+		main_window, "treeview_nodes"));
+	tree = treeview_nodes;
+
+	gtk_tree_view_set_model(tree, GTK_TREE_MODEL(nodes_model));
+
+    /*
+     * The view now holds a reference.  We can get rid of our own
+     * reference
+     */
+	gtk_tree_selection_set_mode(gtk_tree_view_get_selection(tree),
+		GTK_SELECTION_MULTIPLE);
+
+	nodes_gui_cell_renderer = gtk_cell_renderer_text_new();
+	gtk_cell_renderer_text_set_fixed_height_from_font(
+		GTK_CELL_RENDERER_TEXT(nodes_gui_cell_renderer), 1);
+	g_object_set(nodes_gui_cell_renderer,
+		"ypad", GUI_CELL_RENDERER_YPAD, NULL);
+
+	nodes_gui_add_column(tree, c_gnet_host, 1, "Host");
+	nodes_gui_add_column(tree, c_gnet_flags, 1, "Flags");
+	nodes_gui_add_column(tree, c_gnet_user_agent, 1, "User-agent");
+	nodes_gui_add_column(tree, c_gnet_version, 1, "Ver");
+	nodes_gui_add_column(tree, c_gnet_connected, 1, "Connected");
+	nodes_gui_add_column(tree, c_gnet_uptime, 1, "Uptime");
+	nodes_gui_add_column(tree, c_gnet_info, 1, "Info");
 }
 
 static inline void nodes_gui_remove_selected_helper(
@@ -167,11 +240,13 @@ static inline void nodes_gui_update_node_flags(
 /*
  * nodes_gui_early_init:
  *
- * Initialized the widgets.
+ * Initialize the widgets. Include creation of the actual treeview for
+ * other init functions that manipulate it, notably settings_gui_init.
  */
 void nodes_gui_early_init(void)
 {
     popup_nodes = create_popup_nodes();
+    nodes_gui_create_treeview_nodes();
 }
 
 /*
@@ -184,45 +259,19 @@ void nodes_gui_init(void)
     GtkTreeView *tree;
 	guint32 *width;
 
-    /* Create a model.  We are using the store model for now, though we
-     * could use any other GtkTreeModel */
-    nodes_model = gtk_list_store_new(c_gnet_num, 
-        G_TYPE_STRING,   /* c_gnet_host */
-        G_TYPE_STRING,   /* c_gnet_flags */
-        G_TYPE_STRING,   /* c_gnet_user_agent */
-        G_TYPE_STRING,   /* c_gnet_version */
-        G_TYPE_STRING,   /* c_gnet_connected */
-        G_TYPE_STRING,   /* c_gnet_uptime */
-        G_TYPE_STRING,   /* c_gnet_info */
-        G_TYPE_UINT);    /* c_gnet_handle */
-
-    /* Get the monitor widget */
 	treeview_nodes = GTK_TREE_VIEW(lookup_widget(
 		main_window, "treeview_nodes"));
 	tree = treeview_nodes;
-	
-	gtk_tree_view_set_model(tree, GTK_TREE_MODEL(nodes_model));
-
-    /* The view now holds a reference.  We can get rid of our own
-     * reference */
-	gtk_tree_selection_set_mode(gtk_tree_view_get_selection(tree),
-		GTK_SELECTION_MULTIPLE);
-
-    nodes_gui_cell_renderer = gtk_cell_renderer_text_new();
-	gtk_cell_renderer_text_set_fixed_height_from_font(
-		GTK_CELL_RENDERER_TEXT(nodes_gui_cell_renderer), 1);
-    g_object_set(nodes_gui_cell_renderer,
-		"ypad", GUI_CELL_RENDERER_YPAD, NULL);
 
 	width = gui_prop_get_guint32(PROP_NODES_COL_WIDTHS, NULL, 0, 0);
-    add_column(tree, c_gnet_host, width[c_gnet_host], "Host");
-    add_column(tree, c_gnet_flags, width[c_gnet_flags], "Flags");
-    add_column(tree, c_gnet_user_agent, width[c_gnet_user_agent], "User-agent");
-    add_column(tree, c_gnet_version, width[c_gnet_version], "Ver");
-    add_column(tree, c_gnet_connected, width[c_gnet_connected],
-		"Connected");
-    add_column(tree, c_gnet_uptime, width[c_gnet_uptime], "Uptime");
-    add_column(tree, c_gnet_info, width[c_gnet_info], "Info");
+    nodes_gui_set_column_width(tree, c_gnet_host, width[c_gnet_host]);
+    nodes_gui_set_column_width(tree, c_gnet_flags, width[c_gnet_flags]);
+    nodes_gui_set_column_width(tree, c_gnet_user_agent,
+        width[c_gnet_user_agent]);
+    nodes_gui_set_column_width(tree, c_gnet_version, width[c_gnet_version]);
+    nodes_gui_set_column_width(tree, c_gnet_connected, width[c_gnet_connected]);
+    nodes_gui_set_column_width(tree, c_gnet_uptime, width[c_gnet_uptime]);
+    nodes_gui_set_column_width(tree, c_gnet_info, width[c_gnet_info]);
 	G_FREE_NULL(width);
 
 	nodes_handles = g_hash_table_new_full(
@@ -238,7 +287,7 @@ void nodes_gui_init(void)
  *
  * Unregister callbacks in the backend and clean up.
  */
-void nodes_gui_shutdown(void) 
+void nodes_gui_shutdown(void)
 {
 	tree_view_save_widths(treeview_nodes, PROP_NODES_COL_WIDTHS);
     node_remove_node_added_listener(nodes_gui_node_added);
