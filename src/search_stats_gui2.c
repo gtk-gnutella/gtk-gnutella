@@ -158,7 +158,6 @@ static void empty_hash_table()
 static gboolean stats_hash_to_treeview(
     gpointer key, gpointer value, gpointer userdata)
 {
-	GtkListStore *store; 
 	GtkTreeIter iter;
 	struct term_counts *val = (struct term_counts *) value;
 
@@ -174,8 +173,8 @@ static gboolean stats_hash_to_treeview(
 		((gfloat) val->total_cnt / (val->periods + 2.0)) * 100 <
 			search_stats_delcoef
 	) {
-		g_free(key);
-		g_free(val);
+		G_FREE_NULL(key);
+		G_FREE_NULL(val);
 		return TRUE;
 	}
 
@@ -293,6 +292,7 @@ void search_stats_gui_set_type(gint type)
     };
 }
 
+/* FIXME: merge all `add_column' functions into one */
 static void add_column(
     GtkTreeView *treeview,
     gint column_id,
@@ -425,6 +425,7 @@ void search_stats_gui_update(time_t now)
 	g_object_thaw_notify(G_OBJECT(treeview));
 
 	/* update the counter */
-	g_snprintf(tmpstr, sizeof(tmpstr), "%u terms counted", stat_count);
+	g_snprintf(tmpstr, sizeof(tmpstr), "%lu terms counted",
+		(gulong) stat_count);
 	gtk_label_set_text(GTK_LABEL(label_search_stats_count), tmpstr);
 }
