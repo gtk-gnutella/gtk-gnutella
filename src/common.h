@@ -39,6 +39,16 @@
 #include <string.h>
 #include <sys/types.h>
 #include <sys/socket.h>
+
+#ifdef USE_GTK2
+#define G_DISABLE_DEPRECATED
+#define GDK_DISABLE_DEPRECATED
+#if 0
+/* This isn't possible due to use of GtkCombo */
+#define GTK_DISABLE_DEPRECATED
+#endif
+#endif
+
 #include <glib.h>
 #include <stdarg.h>
 #include <regex.h>
@@ -97,11 +107,12 @@ typedef void (*GCallback) (void);
  * Other common macros.
  */
 
-#define G_FREE_NULL(p) \
-do { \
-	if (p != NULL) \
-		g_free(p); \
-	p = NULL; \
+#define G_FREE_NULL(p)		\
+do {				\
+	if (p) {		\
+		g_free(p);	\
+		p = NULL;	\
+	}			\
 } while (0)
 
 /*
