@@ -338,7 +338,7 @@ void handle_push_request(struct gnutella_node *n)
 	info = n->data + 16;					/* Start of file information */
 
 	READ_GUINT32_LE(info, file_index);
-	READ_GUINT32_BE(info + 4, ip);
+	memcpy(&ip, info + 4, 4);
 	READ_GUINT16_LE(info + 8, port);
 
 	/*
