@@ -1,6 +1,17 @@
 # since last version
 
+- (2002.06.28 - RAM)
+  * Portability fix in socks v5 code [From Bruce Momjian, patch #574919].
+  * Portability fixes for FreeBSD [From Aron, patch #574111].
+  * Can now enter an urn:sha1: search directly (will beep if invalid).
+  * Simplified URL parsing, and accept leading http:// case-insensitively.
+  * Raised BYE grace period to 30 seconds to be compatible with shutdown grace.
+  * Don't flag as new a version bearing the same timestamp as ours.
+  * Don't throw away node from hostcache if we can't connect due to lack
+	of file descriptor.
+
 - (2002.06.27 - RAM)
+  * Stop all processing for 0.4 handshaking after Tue Jul  1 00:00:00 2003.
   * Added configure check for glib >= 1.2.10 [From Richard].
   * Make sure GUI configuration for download overlap does not exceed the
 	size of the socket's buffer [From Richard].
