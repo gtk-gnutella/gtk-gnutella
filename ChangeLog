@@ -10,6 +10,14 @@
    UDP hole punching.
  * [GTK1] [GTK2] Will now show a warning if uploads are stalling abnormally,
    and a firewall with a green hole if we can perform UDP hole punching.
+ * Count UDP hits bearing a different IP address from where they're sent from.
+ * Have shell announce the program's version.
+ * [GTK1] Frame where icons are displayed will now properly shrink when an
+   icon is hidden.
+ * Named frame where icons are displayed to be able to shrink it.
+ * Setting of OOB queries is now an "expert" frame.
+ * Don't send PUSHes too often.  Just because we don't get a reply immediately
+   does not mean the PUSH is not travelling its way.
 
 - (2004-09-21 - RAM)
  * Added dh_would_route() for the OOB-proxying layer to be able to determine
