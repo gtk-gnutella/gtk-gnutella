@@ -124,7 +124,7 @@ int SHA1Reset(SHA1Context *context)
  *
  */
 int SHA1Result( SHA1Context *context,
-                uint8_t Message_Digest[SHA1HashSize])
+                guint8 Message_Digest[SHA1HashSize])
 {
     int i;
 
@@ -181,7 +181,7 @@ int SHA1Result( SHA1Context *context,
  *
  */
 int SHA1Input(    SHA1Context    *context,
-                  const uint8_t  *message_array,
+                  const guint8  *message_array,
                   unsigned       length)
 {
     if (!length)
@@ -253,16 +253,16 @@ int SHA1Input(    SHA1Context    *context,
  */
 void SHA1ProcessMessageBlock(SHA1Context *context)
 {
-    const uint32_t K[] =    {       /* Constants defined in SHA-1   */
+    const guint32 K[] =    {       /* Constants defined in SHA-1   */
                             0x5A827999,
                             0x6ED9EBA1,
                             0x8F1BBCDC,
                             0xCA62C1D6
                             };
     int           t;                 /* Loop counter                */
-    uint32_t      temp;              /* Temporary word value        */
-    uint32_t      W[80];             /* Word sequence               */
-    uint32_t      A, B, C, D, E;     /* Word buffers                */
+    guint32      temp;              /* Temporary word value        */
+    guint32      W[80];             /* Word sequence               */
+    guint32      A, B, C, D, E;     /* Word buffers                */
 
     /*
      *  Initialize the first 16 words in the array W

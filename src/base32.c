@@ -24,6 +24,7 @@
  */
 
 #include <glib.h>
+#include <string.h>
 
 #include "base32.h"
 

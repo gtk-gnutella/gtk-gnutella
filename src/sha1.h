@@ -26,14 +26,18 @@
 #ifndef _SHA1_H_
 #define _SHA1_H_
 
-#include <stdint.h>
+// Not needed in gtk-gnutella, we use <glib.h> instead
+// #include <stdint.h>
+
+#include <glib.h>
+
 /*
  * If you do not have the ISO standard stdint.h header file, then you
  * must typdef the following:
  *    name              meaning
- *  uint32_t         unsigned 32 bit integer
- *  uint8_t          unsigned 8 bit integer (i.e., unsigned char)
- *  int_least16_t    integer of >= 16 bits
+ *  guint32         unsigned 32 bit integer
+ *  guint8          unsigned 8 bit integer (i.e., unsigned char)
+ *  gint    		integer of >= 16 bits
  *
  */
 
@@ -55,14 +59,14 @@ enum
  */
 typedef struct SHA1Context
 {
-    uint32_t Intermediate_Hash[SHA1HashSize/4]; /* Message Digest  */
+    guint32 Intermediate_Hash[SHA1HashSize/4]; /* Message Digest  */
 
-    uint32_t Length_Low;            /* Message length in bits      */
-    uint32_t Length_High;           /* Message length in bits      */
+    guint32 Length_Low;            /* Message length in bits      */
+    guint32 Length_High;           /* Message length in bits      */
 
                                /* Index into message block array   */
-    int_least16_t Message_Block_Index;
-    uint8_t Message_Block[64];      /* 512-bit message blocks      */
+    gint Message_Block_Index;
+    guint8 Message_Block[64];      /* 512-bit message blocks      */
 
     int Computed;               /* Is the digest computed?         */
     int Corrupted;             /* Is the message digest corrupted? */
@@ -75,9 +79,9 @@ typedef struct SHA1Context
 
 int SHA1Reset(  SHA1Context *);
 int SHA1Input(  SHA1Context *,
-                const uint8_t *,
+                const guint8 *,
                 unsigned int);
 int SHA1Result( SHA1Context *,
-                uint8_t Message_Digest[SHA1HashSize]);
+                guint8 Message_Digest[SHA1HashSize]);
 
 #endif
