@@ -51,7 +51,7 @@ void pcache_outgoing_connection(struct gnutella_node *n);
 void pcache_ping_received(struct gnutella_node *n);
 void pcache_pong_received(struct gnutella_node *n);
 void pcache_pong_fake(struct gnutella_node *n, guint32 ip, guint16 port);
-gboolean pcache_get_recent(hcache_type_t type, guint32 *ip, guint16 *port);
-void pcache_clear_recent(hcache_type_t type);
+gboolean pcache_get_recent(host_type_t type, guint32 *ip, guint16 *port);
+void pcache_clear_recent(host_type_t type);
     
 #endif /* _pcache_h_ */
