@@ -365,8 +365,6 @@ void search_gui_close_search(search_t *sch)
 {
     g_assert(sch != NULL);
 
-    search_close(sch->search_handle);
-
     /*
      * We remove the search immeditaly from the list of searches,
      * because some of the following calls (may) depend on 
@@ -383,6 +381,7 @@ void search_gui_close_search(search_t *sch)
 	g_hash_table_destroy(sch->dups);
 	sch->dups = NULL;
 
+    search_close(sch->search_handle);
 	atom_str_free(sch->query);
 
 	g_free(sch);
