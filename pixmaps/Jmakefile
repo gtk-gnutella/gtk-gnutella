@@ -55,8 +55,6 @@ PIXMAPS = \
 	ultra.xpm \
 	upload.xpm
 
->PRIVLIB		/* Grr... should be automated somehow */
-
 all::
 
 INSTALLFLAGS = -m 444
