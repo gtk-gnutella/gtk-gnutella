@@ -1490,6 +1490,8 @@ create_dlg_about (void)
   GtkWidget *label489;
   GtkWidget *label490;
   GtkWidget *label491;
+  GtkWidget *hseparator14;
+  GtkWidget *label892;
   GtkWidget *hbox137;
   GtkWidget *button_about_close;
   GtkWidget *label538;
@@ -1701,6 +1703,17 @@ create_dlg_about (void)
   gtk_label_set_justify (GTK_LABEL (label491), GTK_JUSTIFY_CENTER);
   gtk_label_set_selectable (GTK_LABEL (label491), TRUE);
 
+  hseparator14 = gtk_hseparator_new ();
+  gtk_widget_set_name (hseparator14, "hseparator14");
+  gtk_widget_show (hseparator14);
+  gtk_box_pack_start (GTK_BOX (vbox67), hseparator14, TRUE, TRUE, 0);
+
+  label892 = gtk_label_new (_("This product includes GeoIP data created by MaxMind, available from\nhttp://maxmind.com/"));
+  gtk_widget_set_name (label892, "label892");
+  gtk_widget_show (label892);
+  gtk_box_pack_start (GTK_BOX (vbox67), label892, FALSE, FALSE, 2);
+  gtk_label_set_justify (GTK_LABEL (label892), GTK_JUSTIFY_CENTER);
+
   hbox137 = gtk_hbox_new (FALSE, 0);
   gtk_widget_set_name (hbox137, "hbox137");
   gtk_widget_show (hbox137);
@@ -1756,6 +1769,8 @@ create_dlg_about (void)
   GLADE_HOOKUP_OBJECT (dlg_about, label489, "label489");
   GLADE_HOOKUP_OBJECT (dlg_about, label490, "label490");
   GLADE_HOOKUP_OBJECT (dlg_about, label491, "label491");
+  GLADE_HOOKUP_OBJECT (dlg_about, hseparator14, "hseparator14");
+  GLADE_HOOKUP_OBJECT (dlg_about, label892, "label892");
   GLADE_HOOKUP_OBJECT (dlg_about, hbox137, "hbox137");
   GLADE_HOOKUP_OBJECT (dlg_about, button_about_close, "button_about_close");
   GLADE_HOOKUP_OBJECT (dlg_about, label538, "label538");
