@@ -117,6 +117,7 @@ static gboolean main_timer(gpointer p)
 	 * GUI update
 	 */
 
+	gui_statusbar_clear_timeouts(now);
 	gui_update_global();
 
 	/* Update for things that change slowly */
@@ -168,17 +169,9 @@ gint main(gint argc, gchar ** argv)
 
 	main_window = create_main_window();
 
-	create_popup_nodes();
-	create_popup_search();
-	create_popup_monitor();
-	create_popup_uploads();
-	create_popup_dl_active();
-	create_popup_dl_queued();
-
-	gui_set_status(NULL);
-
 	/* Our inits */
 
+	gui_init();
 	init_constants();
 	config_init();
 	host_init();
@@ -289,9 +282,9 @@ gint main(gint argc, gchar ** argv)
 	// FIXME: end
 
     gtk_widget_set_sensitive(popup_nodes_remove, FALSE);
-	gtk_widget_set_sensitive(popup_queue_remove, FALSE);
-	gtk_widget_set_sensitive(popup_queue_remove_named, FALSE);
-	gtk_widget_set_sensitive(popup_queue_remove_host, FALSE);
+	gtk_widget_set_sensitive(popup_queue_abort, FALSE);
+	gtk_widget_set_sensitive(popup_queue_abort_named, FALSE);
+	gtk_widget_set_sensitive(popup_queue_abort_host, FALSE);
 	// FIXME: enable when code for popup_queue_search_again is written
 	//gtk_widget_set_sensitive(popup_queue_search_again, FALSE);
     gtk_widget_set_sensitive(popup_downloads_push, 
