@@ -149,6 +149,6 @@ void gcu_upload_stats_gui_clear_all(void)
 /*	statusbar interface functions (CORE -> UI)*/
 void gcu_statusbar_warning(const gchar *message)
 {
-	statusbar_gui_warning(15, message);
+	statusbar_gui_warning(15, "%s", message);
 }
 
