@@ -1,5 +1,9 @@
 # since last version
 
+- (2002.11.15 RAM)
+ * Servers understanding /uri-res/N2R? may not send X-Gnutella-Content-URN.
+ * No need to unlink the file in download_move_done().
+
 - (2002.11.12 RAM)
  * New file moving code was not properly stripping trailing fileinfo.
 
