@@ -1,5 +1,12 @@
 # since last version
 
+- (2004.02.15 - RAM)
+ * Also use "friendly download name" (i.e. non-URN) when renaming completed
+   file locally after a failed copy.
+ * Protect against "errno == 0" on failed open().
+ * Even if we can't start the move/verify thread correctly for an item,
+   invoke the download state change callbacks.
+
 - (2004.02.14 - Richard)
  * [Gtk1] Try to avoid memory corruption during selection in search results due
    to recursive calls of on_ctree_search_results_select_row(). 
@@ -15,6 +22,9 @@
    g_string_printfa in malloc.h.
  * Number of leaks is now reported in the leak summary.
  * [Gtk1] Small GUI layout fixed in the downloads and fileinfo panes.
+
+- (2004.02.13 - RAM)
+ * Don't call unicode_canonize() on non-UTF8 strings.
 
 - (2004.02.06 - Jeroen)
  * I am back, so lets start with tiny things ;)
