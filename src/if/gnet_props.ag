@@ -1008,6 +1008,7 @@ prop = {
 prop = {
     name = "proxy_ip";
     desc = "IP address of the proxy";
+    save = FALSE;
     type = ip;
     data = {
         default = 0x00000000;

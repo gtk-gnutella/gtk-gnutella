@@ -2209,7 +2209,7 @@ prop_set_t *gnet_prop_init(void) {
     gnet_property->props[86].name = "proxy_ip";
     gnet_property->props[86].desc = _("IP address of the proxy");
     gnet_property->props[86].ev_changed = event_new("proxy_ip_changed");
-    gnet_property->props[86].save = TRUE;
+    gnet_property->props[86].save = FALSE;
     gnet_property->props[86].vector_size = 1;
 
     /* Type specific data: */
