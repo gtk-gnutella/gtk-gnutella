@@ -108,6 +108,7 @@ static GList *sl_search_history = NULL;
  */
 GtkWidget * main_window = NULL;
 GtkWidget * shutdown_window = NULL;
+GtkWidget * dlg_about = NULL;
 
 /*
  * Private functions
@@ -128,6 +129,16 @@ void gui_init(void)
 	create_popup_dl_queued();	
 
     gui_init_menu();
+
+    /* about box */
+#ifdef GTA_REVISION
+	g_snprintf(gui_tmp, sizeof(gui_tmp), "gtk-gnutella %u.%u %s", GTA_VERSION,
+			   GTA_SUBVERSION, GTA_REVISION);
+#else
+	g_snprintf(gui_tmp, sizeof(gui_tmp), "gtk-gnutella %u.%u", GTA_VERSION,
+			   GTA_SUBVERSION);
+#endif
+    gtk_label_set_text(GTK_LABEL(label_about_title), gui_tmp);
 
 	/* statusbar stuff */
 	scid_bottom    = 

@@ -136,6 +136,7 @@ extern GtkWidget *main_window;
 extern GtkWidget *shutdown_window;
 extern GtkWidget *main_window;
 extern GtkWidget *shutdown_window;
+extern GtkWidget *dlg_about;
 
 
 
