@@ -76,13 +76,12 @@ static void send_pproxy_error(struct pproxy *pp, int code,
 static void pproxy_error_remove(struct pproxy *pp, int code,
 	const gchar *msg, ...) G_GNUC_PRINTF(3, 4);
 
-/*
- * pproxy_free_resources
- *
+/**
  * Get rid of all the resources attached to the push-proxy struct.
  * But not the structure itself.
  */
-static void pproxy_free_resources(struct pproxy *pp)
+static void
+pproxy_free_resources(struct pproxy *pp)
 {
 	if (pp->guid != NULL) {
 		atom_guid_free(pp->guid);
@@ -103,12 +102,11 @@ static void pproxy_free_resources(struct pproxy *pp)
 	}
 }
 
-/*
- * send_pproxy_error_v
- *
+/**
  * The vectorized (message-wise) version of send_pproxy_error().
  */
-static void send_pproxy_error_v(
+static void
+send_pproxy_error_v(
 	struct pproxy *pp,
 	const gchar *ext,
 	int code,
@@ -154,14 +152,12 @@ static void send_pproxy_error_v(
 	pp->error_sent = code;
 }
 
-/*
- * send_pproxy_error
- *
+/**
  * Send error message to requestor.
  * This can only be done once per connection.
  */
-static void send_pproxy_error(
-	struct pproxy *pp, int code, const gchar *msg, ...)
+static void
+send_pproxy_error(struct pproxy *pp, int code, const gchar *msg, ...)
 {
 	va_list args;
 
@@ -170,13 +166,11 @@ static void send_pproxy_error(
 	va_end(args);
 }
 
-/*
- * pproxy_remove_v
- *
+/**
  * The vectorized (message-wise) version of pproxy_remove().
  */
-static void pproxy_remove_v(
-	struct pproxy *pp, const gchar *reason, va_list ap)
+static void
+pproxy_remove_v(struct pproxy *pp, const gchar *reason, va_list ap)
 {
 	const gchar *logreason;
 	gchar errbuf[1024];
@@ -215,15 +209,14 @@ static void pproxy_remove_v(
 	pproxies = g_slist_remove(pproxies, (gpointer) pp);
 }
 
-/*
- * pproxy_remove
- *
+/**
  * Remove push proxy entry, log reason.
  *
  * If no status has been sent back on the HTTP stream yet, give
  * them a 400 error with the reason.
  */
-void pproxy_remove(struct pproxy *pp, const gchar *reason, ...)
+void
+pproxy_remove(struct pproxy *pp, const gchar *reason, ...)
 {
 	va_list args;
 	
@@ -234,13 +227,11 @@ void pproxy_remove(struct pproxy *pp, const gchar *reason, ...)
 	va_end(args);
 }
 
-/*
- * pproxy_error_remove
- *
+/**
  * Utility routine.  Cancel the request, sending back the HTTP error message.
  */
-static void pproxy_error_remove(
-	struct pproxy *pp, int code, const gchar *msg, ...)
+static void
+pproxy_error_remove(struct pproxy *pp, int code, const gchar *msg, ...)
 {
 	va_list args, errargs;
 
@@ -256,12 +247,11 @@ static void pproxy_error_remove(
 	va_end(args);
 }
 
-/*
- * pproxy_timer
- *
+/**
  * Push proxy timer.
  */
-void pproxy_timer(time_t now)
+void
+pproxy_timer(time_t now)
 {
 	GSList *sl;
 	GSList *to_remove = NULL;
@@ -287,10 +277,11 @@ void pproxy_timer(time_t now)
 	g_slist_free(to_remove);
 }
 
-/*
+/**
  * pproxy_create
  */
-static struct pproxy *pproxy_create(struct gnutella_socket *s)
+static struct pproxy *
+pproxy_create(struct gnutella_socket *s)
 {
 	struct pproxy *pp;
 
@@ -303,9 +294,7 @@ static struct pproxy *pproxy_create(struct gnutella_socket *s)
 	return pp;
 }
 
-/*
- * get_params
- *
+/**
  * Extract GUID for push-proxyfication from the HTTP request line.
  * Extract file index if present (otherwise 0 will be used).
  *
@@ -314,7 +303,8 @@ static struct pproxy *pproxy_create(struct gnutella_socket *s)
  * Returns TRUE if OK, FALSE if we could not figure it out, in which case
  * we also return an error to the calling party.
  */
-static gboolean get_params(struct pproxy *pp, gchar *request,
+static gboolean
+get_params(struct pproxy *pp, gchar *request,
 	gchar **guid_atom, guint32 *file_idx)
 {
 	gchar *uri;
@@ -463,14 +453,13 @@ error:
 	return FALSE;
 }
 
-/*
- * build_push
- *
+/**
  * Build a push request to send.  We set TTL=max_ttl-1 and hops=1 since
  * it does not come from our node really.  The file ID may be set to 0, but
  * it should be ignored when the GIV is received anyway.
  */
-static void build_push(struct gnutella_msg_push_request *m,
+static void
+build_push(struct gnutella_msg_push_request *m,
 	gchar *guid, guint32 ip, guint16 port, guint32 file_idx)
 {
 	message_set_muid(&m->header, GTA_MSG_PUSH_REQUEST);
@@ -488,13 +477,13 @@ static void build_push(struct gnutella_msg_push_request *m,
 	WRITE_GUINT16_LE(port, m->request.host_port);
 }
 
-/*
- * validate_vendor
- *
+/**
  * Validate vendor.
- * Returns atom, or NULL.
+ *
+ * @return atom, or NULL.
  */
-static gchar *validate_vendor(gchar *vendor, gchar *token, guint32 ip)
+static gchar *
+validate_vendor(gchar *vendor, gchar *token, guint32 ip)
 {
 	gchar *result = NULL;
 
@@ -514,13 +503,12 @@ static gchar *validate_vendor(gchar *vendor, gchar *token, guint32 ip)
 	return result;
 }
 
-/*
- * pproxy_request
- *
+/**
  * Called once all the HTTP headers have been read to proceed with
  * the push proxyfication.
  */
-static void pproxy_request(struct pproxy *pp, header_t *header) 
+static void
+pproxy_request(struct pproxy *pp, header_t *header) 
 {
 	struct gnutella_socket *s = pp->socket;
 	gchar *request = getline_str(s->getline);
@@ -676,47 +664,55 @@ static void pproxy_request(struct pproxy *pp, header_t *header)
 
 #define PPROXY(x)	((struct pproxy *) (x))
 
-static void err_line_too_long(gpointer obj)
+static void
+err_line_too_long(gpointer obj)
 {
 	pproxy_error_remove(PPROXY(obj), 413, "Header too large");
 }
 
-static void err_header_error_tell(gpointer obj, gint error)
+static void
+err_header_error_tell(gpointer obj, gint error)
 {
 	send_pproxy_error(PPROXY(obj), 413, "%s", header_strerror(error));
 }
 
-static void err_header_error(gpointer obj, gint error)
+static void
+err_header_error(gpointer obj, gint error)
 {
 	pproxy_remove(PPROXY(obj), "Failed (%s)", header_strerror(error));
 }
 
-static void err_input_exception(gpointer obj)
+static void
+err_input_exception(gpointer obj)
 {
 	pproxy_remove(PPROXY(obj), "Failed (Input Exception)");
 }
 
-static void err_input_buffer_full(gpointer obj)
+static void
+err_input_buffer_full(gpointer obj)
 {
 	pproxy_error_remove(PPROXY(obj), 500, "Input buffer full");
 }
 
-static void err_header_read_error(gpointer obj, gint error)
+static void
+err_header_read_error(gpointer obj, gint error)
 {
 	pproxy_remove(PPROXY(obj), "Failed (Input error: %s)", g_strerror(error));
 }
 
-static void err_header_read_eof(gpointer obj)
+static void
+err_header_read_eof(gpointer obj)
 {
 	pproxy_remove(PPROXY(obj), "Failed (EOF)");
 }
 
-static void err_header_extra_data(gpointer obj)
+static void
+err_header_extra_data(gpointer obj)
 {
 	pproxy_error_remove(PPROXY(obj), 400, "Extra data after HTTP header");
 }
 
-static struct io_error pproxy_io_error = {
+static const struct io_error pproxy_io_error = {
 	err_line_too_long,
 	err_header_error_tell,
 	err_header_error,
@@ -727,19 +723,19 @@ static struct io_error pproxy_io_error = {
 	err_header_extra_data,
 };
 
-static void call_pproxy_request(gpointer obj, header_t *header)
+static void
+call_pproxy_request(gpointer obj, header_t *header)
 {
 	pproxy_request(PPROXY(obj), header);
 }
 
 #undef PPROXY
 
-/*
- * pproxy_add
- *
+/**
  * Create new push-proxy request and begin reading HTTP headers.
  */
-void pproxy_add(struct gnutella_socket *s)
+void
+pproxy_add(struct gnutella_socket *s)
 {
 	struct pproxy *pp;
 
@@ -756,12 +752,11 @@ void pproxy_add(struct gnutella_socket *s)
 		call_pproxy_request, NULL, &pproxy_io_error);
 }
 
-/*
- * pproxy_close
- *
+/**
  * Called a shutdown time.
  */
-void pproxy_close(void)
+void
+pproxy_close(void)
 {
 	GSList *l;
 
@@ -779,11 +774,11 @@ void pproxy_close(void)
  *** Client-side of push-proxy
  ***/
 
-// XXX needed only because of the temporary hack below -- RAM, 05/08/2003
+/* XXX needed only because of the temporary hack below -- RAM, 05/08/2003 */
 static gboolean cproxy_http_header_ind(
 	gpointer handle, header_t *header, gint code, const gchar *message);
-static gint cproxy_build_request(gpointer handle, gchar *buf, gint len,
-	gchar *verb, gchar *path, gchar *host, guint16 port);
+static size_t cproxy_build_request(gpointer handle, gchar *buf, size_t len,
+	const gchar *verb, const gchar *path, const gchar *host, guint16 port);
 static void cproxy_http_newstate(gpointer handle, http_state_t newstate);
 
 #define CPROXY_MAGIC	0xc8301U
@@ -794,12 +789,11 @@ static void cproxy_http_newstate(gpointer handle, http_state_t newstate);
 
 #define CP_F_SWAPPED_IP	0x00000001		/* Tried to swap IP address */
 
-/*
- * cproxy_free
- *
+/**
  * Free the structure and all its dependencies.
  */
-void cproxy_free(struct cproxy *cp)
+void
+cproxy_free(struct cproxy *cp)
 {
 	g_assert(cp->magic == CPROXY_MAGIC);
 
@@ -820,13 +814,11 @@ void cproxy_free(struct cproxy *cp)
 	wfree(cp, sizeof(*cp));
 }
 
-/*
- * cproxy_http_error_ind
- *
+/**
  * HTTP async callback for error notifications.
  */
-static void cproxy_http_error_ind(
-	gpointer handle, http_errtype_t type, gpointer v)
+static void
+cproxy_http_error_ind(gpointer handle, http_errtype_t type, gpointer v)
 {
 	struct cproxy *cp = (struct cproxy *) http_async_get_opaque(handle);
 	guint32 new_ip;
@@ -857,8 +849,7 @@ static void cproxy_http_error_ind(
 		static gchar path[128];
 
 		(void) gm_snprintf(path, sizeof(path),
-			"/gnutella/push-proxy?ServerId=%s&file=%u",
-			guid_base32_str(cp->guid), cp->file_idx);
+			"/gnutella/push-proxy?ServerId=%s", guid_base32_str(cp->guid));
 
 		cp->flags |= CP_F_SWAPPED_IP;
 		cp->http_handle = http_async_get_ip(path, new_ip, cp->port,
@@ -900,14 +891,13 @@ static void cproxy_http_error_ind(
 	download_proxy_failed(cp->d);
 }
 
-/*
- * cproxy_http_header_ind
- *
+/**
  * HTTP async callback for header reception notification.
  * Returns whether processing can continue.
  */
-static gboolean cproxy_http_header_ind(
-	gpointer handle, header_t *header, gint code, const gchar *message)
+static gboolean
+cproxy_http_header_ind(gpointer handle, header_t *header,
+	gint code, const gchar *message)
 {
 	struct cproxy *cp = (struct cproxy *) http_async_get_opaque(handle);
 	gchar *token;
@@ -981,19 +971,18 @@ static gboolean cproxy_http_header_ind(
 	return FALSE;		/* Don't continue -- handle invalid now anyway */
 }
 
-/*
- * cproxy_build_request
- *
+/**
  * Redefines the HTTP request building.
  *
  * See http_async_build_request() for the model and details about
  * the various parameters.
  *
- * Returns length of generated request.
+ * @return length of generated request.
  */
-static gint
-cproxy_build_request(gpointer unused_handle, gchar *buf, gint len,
-	gchar *verb, gchar *path, gchar *unused_host, guint16 unused_port)
+static size_t
+cproxy_build_request(gpointer unused_handle, gchar *buf, size_t len,
+	const gchar *verb, const gchar *path, const gchar *unused_host,
+	guint16 unused_port)
 {
 	/*
 	 * Note that we send an HTTP/1.0 request here, hence we need neither
@@ -1003,6 +992,7 @@ cproxy_build_request(gpointer unused_handle, gchar *buf, gint len,
 	(void) unused_handle;
 	(void) unused_host;
 	(void) unused_port;
+	g_assert(len <= INT_MAX);
 
 	return gm_snprintf(buf, len,
 		"%s %s HTTP/1.0\r\n"
@@ -1015,12 +1005,11 @@ cproxy_build_request(gpointer unused_handle, gchar *buf, gint len,
 		ip_port_to_gchar(listen_ip(), listen_port));
 }
 
-/*
- * cproxy_http_newstate
- *
+/**
  * Invoked when the state of the HTTP async request changes.
  */
-static void cproxy_http_newstate(gpointer handle, http_state_t newstate)
+static void
+cproxy_http_newstate(gpointer handle, http_state_t newstate)
 {
 	struct cproxy *cp = (struct cproxy *) http_async_get_opaque(handle);
 
@@ -1032,14 +1021,14 @@ static void cproxy_http_newstate(gpointer handle, http_state_t newstate)
 	download_proxy_newstate(cp->d);
 }
 
-/*
- * cproxy_create
- *
+/**
  * Create client proxy.
- * Returns NULL if problem during connection.
+ *
+ * @returns NULL if problem during connection.
  */
-struct cproxy *cproxy_create(struct download *d,
-	guint32 ip, guint16 port, gchar *guid, guint32 file_idx)
+struct cproxy *
+cproxy_create(struct download *d, guint32 ip, guint16 port,
+	gchar *guid, guint32 file_idx)
 {
 	struct cproxy *cp;
 	gpointer handle;
@@ -1047,8 +1036,7 @@ struct cproxy *cproxy_create(struct download *d,
 	gboolean swapped = FALSE;
 
 	(void) gm_snprintf(path, sizeof(path),
-		"/gnutella/push-proxy?ServerId=%s&file=%u",
-		guid_base32_str(guid), file_idx);
+		"/gnutella/push-proxy?ServerId=%s", guid_base32_str(guid));
 
 	/*
 	 * Try to connect immediately: if we can't connect, no need to continue.
@@ -1114,13 +1102,12 @@ struct cproxy *cproxy_create(struct download *d,
 	return cp;
 }
 
-/*
- * cproxy_reparent
- *
+/**
  * Updates the proxy structures to point to the right download when a download
  * was cloned.
  */
-void cproxy_reparent(struct download *d, struct download *cd)
+void
+cproxy_reparent(struct download *d, struct download *cd)
 {
 	g_assert(d != cd);
 	g_assert(d->cproxy != NULL);
@@ -1136,4 +1123,4 @@ void cproxy_reparent(struct download *d, struct download *cd)
 	g_assert(cd == cd->cproxy->d);
 }
 
-/* vi: set ts=4: */
+/* vi: set ts=4 sw=4 cindent: */
