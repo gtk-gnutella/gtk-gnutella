@@ -106,7 +106,7 @@ struct parq_ul_queued_by_ip {
 	gint	uploading;		/* Number of uploads uploading */
 	gint	total;			/* Total queued items for this ip */
 	guint32 ip;
-	GList	*list;		/* List or queued items for this ip */
+	GList	*list;			/* List or queued items for this ip */
 };
 
 /* Contains the queued upload */
@@ -1139,18 +1139,14 @@ static void parq_upload_free(struct parq_ul_queued *parq_ul)
 		ul_parq_queue = g_list_remove(ul_parq_queue, parq_ul);
 		
 	parq_ul->by_ip->list = g_list_remove(parq_ul->by_ip->list, parq_ul);
-	
 	parq_ul->by_ip->total--;
 
 	if (parq_ul->by_ip->total == 0) {
 		g_assert(parq_ul->remote_ip == parq_ul->by_ip->ip);
-		g_assert(g_list_length(parq_ul->by_ip->list) == 0);
+		g_assert(parq_ul->by_ip->list == NULL);
 
 		/* No more uploads from this ip, cleaning up */
 		g_hash_table_remove(ul_all_parq_by_ip, &parq_ul->by_ip->ip);
-		g_list_free(parq_ul->by_ip->list);
-		parq_ul->by_ip->list = NULL;
-	
 		wfree(parq_ul->by_ip, sizeof(*parq_ul->by_ip));
 		
 		g_assert(g_hash_table_lookup(ul_all_parq_by_ip,
@@ -1340,7 +1336,7 @@ static struct parq_ul_queued *parq_upload_create(gnutella_upload_t *u)
 			parq_ul->id);
 	}	
 	
-	/* Check if the requesting client has allready other PARQ entries */
+	/* Check if the requesting client has already other PARQ entries */
 	parq_ul->by_ip = (struct parq_ul_queued_by_ip *)
 		g_hash_table_lookup(ul_all_parq_by_ip, &parq_ul->remote_ip);
 	
@@ -2281,6 +2277,7 @@ void parq_upload_busy(gnutella_upload_t *u, gpointer handle)
 	 */
 	
 	g_assert(parq_ul->by_ip != NULL);
+	g_assert(parq_ul->by_ip->ip == parq_ul->remote_ip);
 	
 	if (!parq_ul->has_slot)
 		parq_ul->by_ip->uploading++;
@@ -2394,9 +2391,9 @@ gboolean parq_upload_remove(gnutella_upload_t *u)
 
 		g_assert(parq_ul->by_ip != NULL);
 		g_assert(parq_ul->by_ip->uploading > 0);
+		g_assert(parq_ul->by_ip->ip == parq_ul->remote_ip);
 
 		parq_ul->by_ip->uploading--;
-
 		parq_ul->queue->active_uploads--;
 		
 		/* Tell next waiting upload that a slot is available, using QUEUE */
