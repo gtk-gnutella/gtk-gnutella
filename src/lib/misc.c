@@ -509,19 +509,19 @@ short_size(guint64 size)
 	if (size < 1024)
 		gm_snprintf(b, sizeof(b), "%u Bytes", (guint) size);
 	else if (size < 1048576)
-		gm_snprintf(b, sizeof(b), "%.2f KB", (gfloat) size / 1024.0);
+		gm_snprintf(b, sizeof(b), "%.2f KiB", (gfloat) size / 1024.0);
 	else if (size < 1073741824)
-		gm_snprintf(b, sizeof(b), "%.2f MB", (gfloat) size / 1048576.0);
+		gm_snprintf(b, sizeof(b), "%.2f MiB", (gfloat) size / 1048576.0);
 	else if ((size >> 10) < 1073741824)
-		gm_snprintf(b, sizeof(b), "%.2f GB", (gfloat) size / 1073741824.0);
+		gm_snprintf(b, sizeof(b), "%.2f GiB", (gfloat) size / 1073741824.0);
 	else if ((size >> 20) < 1073741824)
-		gm_snprintf(b, sizeof(b), "%.2f TB",
+		gm_snprintf(b, sizeof(b), "%.2f TiB",
 			(gfloat) (size >> 10) / 1073741824.0);
 	else if ((size >> 30) < 1073741824)
-		gm_snprintf(b, sizeof(b), "%.2f PB",
+		gm_snprintf(b, sizeof(b), "%.2f PiB",
 			(gfloat) (size >> 20) / 1073741824.0);
 	else
-		gm_snprintf(b, sizeof(b), "%.2f EB",
+		gm_snprintf(b, sizeof(b), "%.2f EiB",
 			(gfloat) (size >> 30) / 1073741824.0);
 
 	return b;
@@ -533,56 +533,75 @@ short_kb_size(guint64 size)
 	static gchar b[SIZE_FIELD_MAX];
 
 	if (size < 1024)
-		gm_snprintf(b, sizeof(b), "%u KB", (guint) size);
+		gm_snprintf(b, sizeof(b), "%u KiB", (guint) size);
 	else if (size < 1048576)
-		gm_snprintf(b, sizeof(b), "%.2f MB", (gfloat) size / 1024.0);
+		gm_snprintf(b, sizeof(b), "%.2f MiB", (gfloat) size / 1024.0);
 	else if (size < 1073741824)
-		gm_snprintf(b, sizeof(b), "%.2f GB", (gfloat) size / 1048576.0);
+		gm_snprintf(b, sizeof(b), "%.2f GiB", (gfloat) size / 1048576.0);
 	else if ((size >> 10) < 1073741824)
-		gm_snprintf(b, sizeof(b), "%.2f TB", (gfloat) size / 1073741824.0);
+		gm_snprintf(b, sizeof(b), "%.2f TiB", (gfloat) size / 1073741824.0);
 	else if ((size >> 20) < 1073741824)
-		gm_snprintf(b, sizeof(b), "%.2f PB",
+		gm_snprintf(b, sizeof(b), "%.2f PiB",
 			(gfloat) (size >> 10) / 1073741824.0);
 	else if ((size >> 30) < 1073741824)
-		gm_snprintf(b, sizeof(b), "%.2f EB",
+		gm_snprintf(b, sizeof(b), "%.2f EiB",
 			(gfloat) (size >> 20) / 1073741824.0);
 	else
-		gm_snprintf(b, sizeof(b), "%.2f ZB",
+		gm_snprintf(b, sizeof(b), "%.2f ZiB",
 			(gfloat) (size >> 30) / 1073741824.0);
 
 	return b;
 }
 
+gchar *
+compact_value(gchar *buf, size_t size, guint64 v)
+{
+	if (v < 1024) {
+		gm_snprintf(buf, size, "%u", (guint) v);
+	} else if (v < 1048576) {
+		if (v & 0x3ff)
+			gm_snprintf(buf, size, "%.1fKi",
+				(gfloat) (guint32) v / 1024.0);
+		else
+			gm_snprintf(buf, size, "%uKi", (guint32) v >> 10);
+	} else if (v < 1073741824) {
+		if (v & 0xfffff)
+			gm_snprintf(buf, size, "%.1fMi",
+				(gfloat) (guint32) v / 1048576.0);
+		else
+			gm_snprintf(buf, size, "%uMi", (guint32) v >> 20);
+	} else if ((v >> 10) < 1073741824) {
+		if (v & 0x3fffffff)
+			gm_snprintf(buf, size, "%.1fGi", (gfloat) v / 1073741824.0);
+		else
+			gm_snprintf(buf, size, "%uGi", (guint32) (v >> 30));
+	} else {
+		gm_snprintf(buf, size, "%.1fTi", (gfloat) (v >> 10) / 1073741824.0);
+	}
+
+	return buf;
+}
+
 const gchar *
 compact_size(guint64 size)
 {
-	static gchar b[64];
+	static gchar buf[64];
+	gchar sizebuf[48];
 
-	if (size < 1024)
-		gm_snprintf(b, sizeof(b), "%uB", (guint) size);
-	else if (size < 1048576) {
-		if (size & 0x3ff)
-			gm_snprintf(b, sizeof(b), "%.1fK",
-				(gfloat) (guint32) size / 1024.0);
-		else
-			gm_snprintf(b, sizeof(b), "%uK", (guint32) size >> 10);
-	} else if (size < 1073741824) {
-		if (size & 0xfffff)
-			gm_snprintf(b, sizeof(b), "%.1fM",
-				(gfloat) (guint32) size / 1048576.0);
-		else
-			gm_snprintf(b, sizeof(b), "%uM", (guint32) size >> 20);
-	} else if ((size >> 10) < 1073741824) {
-		if (size & 0x3fffffff)
-			gm_snprintf(b, sizeof(b), "%.1fG", (gfloat) size / 1073741824.0);
-		else
-			gm_snprintf(b, sizeof(b), "%uG", (guint32) (size >> 30));
-	} else {
-		gm_snprintf(b, sizeof(b), "%.1fT",
-			(gfloat) (size >> 10) / 1073741824.0);
-	}
+	gm_snprintf(buf, sizeof buf, "%s%s",
+		compact_value(sizebuf, sizeof sizebuf, size), size < 1024 ? "B" : "");
+	return buf;
+}
 
-	return b;
+const gchar *
+compact_rate(guint64 rate)
+{
+	static gchar buf[64];
+	gchar ratebuf[48];
+
+	gm_snprintf(buf, sizeof buf, "%sB/s",
+		compact_value(ratebuf, sizeof ratebuf, rate));
+	return buf;
 }
 
 /**
@@ -594,22 +613,22 @@ compact_kb_size(guint32 size)
 	static gchar b[64];
 
 	if (size < 1024)
-		gm_snprintf(b, sizeof(b), "%uK", size);
+		gm_snprintf(b, sizeof(b), "%uKi", size);
 	else if (size < 1048576) {
 		if (size & 0x3ff)
-			gm_snprintf(b, sizeof(b), "%.1fM", (gfloat) size / 1024.0);
+			gm_snprintf(b, sizeof(b), "%.1fMi", (gfloat) size / 1024.0);
 		else
-			gm_snprintf(b, sizeof(b), "%dM", size >> 10);
+			gm_snprintf(b, sizeof(b), "%dMi", size >> 10);
 	} else if (size < 1073741824)
 		if (size & 0xfffff)
-			gm_snprintf(b, sizeof(b), "%.1fG", (gfloat) size / 1048576.0);
+			gm_snprintf(b, sizeof(b), "%.1fGi", (gfloat) size / 1048576.0);
 		else
-			gm_snprintf(b, sizeof(b), "%dG", size >> 20);
+			gm_snprintf(b, sizeof(b), "%dGi", size >> 20);
 	else {
 		if (size & 0x3fffffff)
-			gm_snprintf(b, sizeof(b), "%.1fT", (gfloat) size / 1073741824.0);
+			gm_snprintf(b, sizeof(b), "%.1fTi", (gfloat) size / 1073741824.0);
 		else
-			gm_snprintf(b, sizeof(b), "%dT", size >> 30);
+			gm_snprintf(b, sizeof(b), "%dTi", size >> 30);
 	}
 
 	return b;
