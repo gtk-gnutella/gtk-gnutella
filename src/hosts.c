@@ -554,7 +554,7 @@ done:
 	hosts_r_file = (FILE *) NULL;
 	hosts_idle_func = 0;
 
-	gui_set_status(NULL);
+	gui_statusbar_pop(scid_hostsfile);
 
 	return FALSE;
 }
@@ -574,7 +574,7 @@ void hosts_read_from_file(gchar * path, gboolean quiet)
 
 	hosts_idle_func = gtk_idle_add(hosts_reading_func, (gpointer) NULL);
 
-	gui_set_status("Reading caught host file...");
+	gui_statusbar_push(scid_hostsfile, "Reading caught host file...");
 }
 
 void hosts_write_to_file(gchar *path)

@@ -307,11 +307,6 @@ void search_close_current(void)
 
    sensitive = current_search && GTK_CLIST(current_search->clist)->selection;
    gtk_widget_set_sensitive(button_search_download, sensitive);
-   // FIXME: needs only to remove the "autoselected" message from the
-   // statusbar stack. Fix when we use statusbar_context
-   //
-   // bluefire
-   gui_set_status( NULL );
 }
 
 static gboolean search_free_sent_node(
