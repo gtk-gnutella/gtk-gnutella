@@ -46,6 +46,7 @@
 
 #ifdef USE_SEARCH_XML
 # include "search_xml.h"
+# include "libxml/parser.h"
 #endif
 
 #define MAKE_CODE(a,b,c,d) ( \
@@ -96,6 +97,7 @@ search_t *current_search = NULL;	/*	The search currently displayed */
 gboolean search_results_show_tabs = TRUE;	/* Display the notebook tabs? */
 guint32 search_max_results = 5000;		/* Max items allowed in GUI results */
 guint32 search_passive = 0;				/* Amount of passive searches */
+gboolean filter_testing = FALSE;
 
 static gchar *search_file = "searches";	/* File where searches are saved */
 
@@ -139,6 +141,7 @@ void search_init(void)
 {
 	gui_search_init();
 #ifdef USE_SEARCH_XML
+    LIBXML_TEST_VERSION
 	if (search_retrieve_old()) {
        	g_snprintf(stmp_2, sizeof(stmp_2), "%s/%s", config_dir, search_file);
         g_warning(
@@ -1152,6 +1155,7 @@ static void search_gui_update(search_t *sch, struct results_set *rs)
 
 	for (l = rs->records; l; l = next) {
 		struct record *rc = (struct record *) l->data;
+        gint filter_result;
 		next = l->next;
 
         if (dbg > 7)
@@ -1174,12 +1178,15 @@ static void search_gui_update(search_t *sch, struct results_set *rs)
 			search_result_is_dup(sch, rc)    ||
 			skip_records                     ||
 			sch->items >= search_max_results ||
-			rc->size == 0                    ||
-			!filter_record(sch, rc)
+			rc->size == 0
 		)
 			continue;
 
-		sch->items++;
+        filter_result = filter_record(sch, rc);
+        if (!filter_result && !filter_testing)
+            continue;
+
+        sch->items++;
 		g_hash_table_insert(sch->dups, rc, (void *) 1);
 		rc->refcount++;
 
@@ -1251,6 +1258,10 @@ static void search_gui_update(search_t *sch, struct results_set *rs)
 
 		}
 
+        if (!filter_result && filter_testing)
+            gtk_clist_set_foreground(GTK_CLIST(sch->clist), row,
+                &gtk_widget_get_style(GTK_WIDGET(sch->clist))
+                ->bg[GTK_STATE_INSENSITIVE]);
 		gtk_clist_set_row_data(GTK_CLIST(sch->clist), row, (gpointer) rc);
 		g_string_truncate(info, 0);
 	}
