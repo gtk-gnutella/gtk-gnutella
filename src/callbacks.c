@@ -1822,9 +1822,9 @@ void on_button_config_add_dir_clicked(GtkButton * button,
 void on_button_config_rescan_dir_clicked(GtkButton * button,
 										 gpointer user_data)
 {
-	gtk_widget_set_sensitive(button_config_rescan_dir, FALSE);
+	gui_allow_rescan_dir(FALSE);
 	share_scan();
-	gtk_widget_set_sensitive(button_config_rescan_dir, TRUE);
+	gui_allow_rescan_dir(TRUE);
 }
 
 void on_entry_config_path_activate(GtkEditable * editable,
