@@ -1083,6 +1083,14 @@ void pcache_ping_received(struct gnutella_node *n)
 	/*
 	 * Handle "alive" pings and "crawler" pings specially.
 	 * Besides, we always accept them.
+	 *
+	 * If we get a TTL=0 ping, assume it's used to ack an "alive ping" we
+	 * sent earlier.  Don't event log we got a message with TTL=0, we're
+	 * getting way too many of them and nobody on the GDF seems to care.
+	 * BearShare is known to do this, and they admitted it publicly like
+	 * it was a good idea!
+	 *
+	 *		--RAM, 2004-08-09
 	 */
 
 	if (n->header.hops == 0 && n->header.ttl <= 2) {
@@ -1093,7 +1101,7 @@ void pcache_ping_received(struct gnutella_node *n)
 			if (current_peermode != NODE_P_LEAF)
 				send_neighbouring_info(n);
 		} else
-			node_sent_ttl0(n);
+			alive_ack_first(n->alive_pings, n->header.muid);
 		return;
 	}
 

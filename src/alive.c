@@ -3,8 +3,6 @@
  *
  * Copyright (c) 2002-2003, Raphael Manfredi
  *
- * Alive status checking ping/pongs.
- *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
  *
@@ -23,6 +21,12 @@
  *  Foundation, Inc.:
  *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *----------------------------------------------------------------------
+ */
+
+/**
+ * @file
+ *
+ * Alive status checking ping/pongs.
  */
 
 #include "gnutella.h"
@@ -55,12 +59,11 @@ struct alive_ping {
 	GTimeVal sent;				/* Time at which we sent the message */
 };
 
-/*
- * ap_make
- *
+/**
  * Create an alive_ping, with proper message ID.
  */
-static struct alive_ping *ap_make(gchar *muid)
+static struct alive_ping *
+ap_make(gchar *muid)
 {
 	struct alive_ping *ap;
 
@@ -72,24 +75,22 @@ static struct alive_ping *ap_make(gchar *muid)
 	return ap;
 }
 
-/*
- * ap_free
- *
+/**
  * Free an alive_ping.
  */
-static void ap_free(struct alive_ping *ap)
+static void
+ap_free(struct alive_ping *ap)
 {
 	atom_guid_free(ap->muid);
 	wfree(ap, sizeof(*ap));
 }
 
-/*
- * alive_make
- *
+/**
  * Create the alive structure.
  * Returned as an opaque pointer.
  */
-gpointer alive_make(struct gnutella_node *n, gint max)
+gpointer
+alive_make(struct gnutella_node *n, gint max)
 {
 	struct alive *a;
 
@@ -101,12 +102,11 @@ gpointer alive_make(struct gnutella_node *n, gint max)
 	return a;
 }
 
-/*
- * alive_free
- *
+/**
  * Dispose the alive structure.
  */
-void alive_free(gpointer obj)
+void
+alive_free(gpointer obj)
 {
 	struct alive *a = (struct alive *) obj;
 	GSList *l;
@@ -118,13 +118,12 @@ void alive_free(gpointer obj)
 	G_FREE_NULL(a);
 }
 
-/*
- * alive_send_ping
- *
+/**
  * Send new "alive" ping to node.
  * Returns TRUE if we sent it, FALSE if there are too many ACK-pending pings.
  */
-gboolean alive_send_ping(gpointer obj)
+gboolean
+alive_send_ping(gpointer obj)
 {
 	struct alive *a = (struct alive *) obj;
 	gchar muid[16];
@@ -146,12 +145,11 @@ gboolean alive_send_ping(gpointer obj)
 	return TRUE;
 }
 
-/*
- * ap_ack
- *
+/**
  * Acknowledge alive_ping `ap', and update roundtrip statistics in `a'.
  */
-static void ap_ack(struct alive_ping *ap, struct alive *a)
+static void
+ap_ack(struct alive_ping *ap, struct alive *a)
 {
 	GTimeVal now;
 	gint delay;					/* Between sending and reception, in ms */
@@ -189,12 +187,11 @@ static void ap_ack(struct alive_ping *ap, struct alive *a)
 			a->last_rt, a->min_rt, a->max_rt, a->avg_rt, a->count);
 }
 
-/*
- * alive_trim_upto
- *
+/**
  * Trim list of pings upto the specified linkable `item', included.
  */
-static void alive_trim_upto(struct alive *a, GSList *item)
+static void
+alive_trim_upto(struct alive *a, GSList *item)
 {
 	GSList *l;
 
@@ -215,13 +212,12 @@ static void alive_trim_upto(struct alive *a, GSList *item)
 	g_assert(0);				/* Must have found the item */
 }
 
-/*
- * alive_ack_ping
- *
+/**
  * Got a pong that could be an acknowledge to one of our alive pings.
  * Return TRUE if it was indeed an ACK for a ping we sent.
  */
-gboolean alive_ack_ping(gpointer obj, gchar *muid)
+gboolean
+alive_ack_ping(gpointer obj, gchar *muid)
 {
 	struct alive *a = (struct alive *) obj;
 	GSList *l;
@@ -242,13 +238,49 @@ gboolean alive_ack_ping(gpointer obj, gchar *muid)
 	return FALSE;		/* Was a true regular "connectible" pong */
 }
 
-/*
- * alive_get_roundtrip_ms
- *
+/**
+ * Got a ping with TTL=0, that some servents decided to use when
+ * replying to an alive ping.
+ */
+void
+alive_ack_first(gpointer obj, gchar *muid)
+{
+	struct alive *a = (struct alive *) obj;
+	GSList *l;
+	struct alive_ping *ap;
+
+	g_assert(a->count == 0 || a->pings != NULL);
+
+	/*
+	 * Maybe they're reusing the same MUID we used for our "alive ping"?
+	 */
+
+	if (alive_ack_ping(obj, muid))
+		return;
+
+	/*
+	 * Assume they're replying to the first ping we sent, ignore otherwise.
+	 */
+
+	l = a->pings;		/* First ping we sent, chronologically */
+
+	if (l == NULL)
+		return;
+
+	ap = (struct alive_ping *) l->data;
+	ap_ack(ap, a);
+
+	a->pings = g_slist_remove_link(a->pings, l);
+	a->count--;
+	ap_free(ap);
+}
+
+/**
  * Returns the average/last ping/pong roundtrip time into supplied pointers.
  * Values are expressed in milliseconds.
  */
-void alive_get_roundtrip_ms(gpointer obj, guint32 *avg, guint32 *last)
+void
+alive_get_roundtrip_ms(gpointer obj, guint32 *avg, guint32 *last)
 {
 	const struct alive *a = (const struct alive *) obj;
 
