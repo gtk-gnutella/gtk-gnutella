@@ -59,7 +59,7 @@ void gui_update_download_clear(void)
 	}
 
 	gtk_widget_set_sensitive(
-        lookup_widget(main_window, "button_downloads_clear_completed"), 
+        lookup_widget(main_window, "button_downloads_clear_stopped"), 
         clear);
 }
 

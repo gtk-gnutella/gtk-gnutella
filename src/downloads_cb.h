@@ -35,7 +35,7 @@
 gboolean on_clist_downloads_button_press_event (GtkWidget *widget, GdkEventButton *event, gpointer user_data);
 gboolean on_clist_downloads_queue_button_press_event (GtkWidget *widget, GdkEventButton *event, gpointer user_data);
 void on_button_downloads_abort_clicked (GtkButton *button, gpointer user_data); 
-void on_button_downloads_clear_completed_clicked (GtkButton *button, gpointer user_data);
+void on_button_downloads_clear_stopped_clicked (GtkButton *button, gpointer user_data);
 void on_clist_downloads_click_column (GtkCList *clist, gint column, gpointer user_data); 
 void on_clist_downloads_resize_column (GtkCList *clist, gint column, gint width, gpointer user_data);
 void on_clist_downloads_select_row (GtkCList *clist, gint row, gint column, GdkEvent *event, gpointer user_data);
