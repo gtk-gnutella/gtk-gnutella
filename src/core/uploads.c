@@ -1333,8 +1333,8 @@ upload_connect_conf(gnutella_upload_t *u)
 {
 	gchar giv[MAX_LINE_SIZE];
 	struct gnutella_socket *s;
-	gint rw;
-	gint sent;
+	size_t rw;
+	ssize_t sent;
 
 	g_assert(u);
 
@@ -1358,18 +1358,20 @@ upload_connect_conf(gnutella_upload_t *u)
 		u->index, guid_hex_str((gchar *) guid), u->name);
 	
 	s = u->socket;
-	if (-1 == (sent = bws_write(bws.out, &s->wio, giv, rw))) {
+	sent = bws_write(bws.out, &s->wio, giv, rw);
+	if ((ssize_t) -1 == sent) {
 		g_warning("Unable to send back GIV for \"%s\" to %s: %s",
 			u->name, ip_to_gchar(s->ip), g_strerror(errno));
-	} else if (sent < rw) {
+	} else if ((size_t) sent < rw) {
 		g_warning("Only sent %d out of %d bytes of GIV for \"%s\" to %s: %s",
-			sent, rw, u->name, ip_to_gchar(s->ip), g_strerror(errno));
+			(gint) sent, (gint) rw, u->name, ip_to_gchar(s->ip),
+			g_strerror(errno));
 	} else if (dbg > 2) {
-		printf("----Sent GIV to %s:\n%.*s----\n", ip_to_gchar(s->ip), rw, giv);
-		fflush(stdout);
+		g_message("----Sent GIV to %s:\n%.*s----\n", ip_to_gchar(s->ip),
+			(gint) rw, giv);
 	}
 
-	if (sent != rw) {
+	if ((size_t) sent != rw) {
 		upload_remove(u, "Unable to send GIV");
 		return;
 	}
@@ -1598,7 +1600,7 @@ get_file_to_upload_from_index(
 			escaped = url_escape(sfn->file_name);
 
 			gm_snprintf(location, sizeof(location),
-				"Location: http://%s/get/%d/%s\r\n",
+				"Location: http://%s/get/%u/%s\r\n",
 				ip_port_to_gchar(listen_ip(), listen_port),
 				sfn->file_index, escaped);
 
@@ -2633,7 +2635,7 @@ upload_request(gnutella_upload_t *u, header_t *header)
 			if (parq_upload_lookup_position(u) == (guint) -1) {
 				time_t expire = parq_banned_source_expire(u->ip);
 				gchar retry_after[80];
-				time_t delay = expire - time(NULL);
+				gint delay = delta_time(expire, time(NULL));
 
 				if (delay <= 0)
 					delay = 60;		/* Let them retry in a minute, only */
@@ -2795,7 +2797,7 @@ upload_request(gnutella_upload_t *u, header_t *header)
 		u->bsize = 0;
 
 		if (!is_followup) {
-			u->buf_size = READ_BUF_SIZE * sizeof(gchar);
+			u->buf_size = READ_BUF_SIZE;
 			u->buffer = (gchar *) g_malloc(u->buf_size);
 		}
 	}
@@ -2932,9 +2934,9 @@ static void
 upload_write(gpointer up, gint unused_source, inputevt_cond_t cond)
 {
 	gnutella_upload_t *u = (gnutella_upload_t *) up;
-	gint written;
-	guint32 amount;
-	guint32 available;
+	ssize_t written;
+	filesize_t amount;
+	size_t available;
 	gboolean use_sendfile;
 
 	(void) unused_source;
@@ -2952,6 +2954,13 @@ upload_write(gpointer up, gint unused_source, inputevt_cond_t cond)
 	use_sendfile = FALSE;
 #endif
 
+   /*
+ 	* Compute the amount of bytes to send.
+ 	*/
+
+	amount = u->end - u->pos + 1;
+	g_assert(amount > 0);
+
 	if (use_sendfile) {
 		off_t pos;				/* For sendfile() sanity checks */
 		/*
@@ -2960,24 +2969,12 @@ upload_write(gpointer up, gint unused_source, inputevt_cond_t cond)
 		 * compiler.
 	 	 */
 
-		amount = u->end - u->pos + 1;
 		available = amount > READ_BUF_SIZE ? READ_BUF_SIZE : amount;
-
-		g_assert(amount > 0);
-
 		pos = u->pos;
 		written = bio_sendfile(u->bio, u->file_desc, &u->pos, available);
 
-		g_assert(written == -1 || (guint64) written == u->pos - pos);
+		g_assert((ssize_t) -1 == written || (guint64) written == u->pos - pos);
 	} else {
-		/*
-	 	* Compute the amount of bytes to send.
-	 	*/
-
-		amount = u->end - u->pos + 1;
-
-		g_assert(amount > 0);
-
 		/*
 	 	 * If the buffer position reached the size, then we need to read
 	 	 * more data from the file.
@@ -3004,12 +3001,12 @@ upload_write(gpointer up, gint unused_source, inputevt_cond_t cond)
 		if (available > amount)
 			available = amount;
 
-		g_assert(available > 0);
+		g_assert(available > 0 && available <= INT_MAX);
 
 		written = bio_write(u->bio, &u->buffer[u->bpos], available);
 	}
 
-	if (written == -1) {
+	if ((ssize_t) -1 == written) {
 		if (errno != EAGAIN) {
 			socket_eof(u->socket);
 			upload_remove(u, "Data write error: %s", g_strerror(errno));
