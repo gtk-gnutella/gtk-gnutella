@@ -3,6 +3,9 @@
 html: manual.xml
 	docbook2html --nochunks manual.xml
 
+dvi: manual.xml
+	docbook2dvi manual.xml
+
 pdf: manual.xml
 	docbook2pdf manual.xml
 
