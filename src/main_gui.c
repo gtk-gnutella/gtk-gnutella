@@ -31,6 +31,7 @@
 #include "settings_gui.h"
 #include "search_gui.h"
 #include "monitor_gui.h"
+#include "search_stats.h"
 
 #include "filter_cb.h"
 
@@ -101,6 +102,17 @@ void load_legacy_settings(void)
 
 void main_gui_init(void)
 {
+    gtk_clist_set_column_justification(
+        GTK_CLIST(lookup_widget(main_window, "clist_search_stats")),
+        c_st_period, GTK_JUSTIFY_RIGHT);
+    gtk_clist_set_column_justification(
+        GTK_CLIST(lookup_widget(main_window, "clist_search_stats")),
+        c_st_total, GTK_JUSTIFY_RIGHT);
+    gtk_clist_column_titles_passive(
+        GTK_CLIST(lookup_widget(main_window, "clist_search_stats")));
+
+    gtk_clist_column_titles_passive(
+        GTK_CLIST(lookup_widget(main_window, "clist_search")));
     gtk_clist_column_titles_passive
         (GTK_CLIST(lookup_widget(main_window, "clist_nodes")));
 	gtk_clist_column_titles_passive
@@ -179,6 +191,7 @@ void main_gui_shutdown(void)
      */
     filter_close_dialog(FALSE);
 
+    search_stats_disable();
     filter_cb_close();
     monitor_gui_shutdown();
     search_gui_shutdown(); /* must be done before filter_shutdown! */
