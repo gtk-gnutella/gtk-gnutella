@@ -308,7 +308,7 @@ ac_includes_default="\
 # include <unistd.h>
 #endif"
 
-ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS INSTALL_PROGRAM INSTALL_SCRIPT INSTALL_DATA PACKAGE VERSION ACLOCAL AUTOCONF AUTOMAKE AUTOHEADER MAKEINFO SET_MAKE MAINTAINER_MODE_TRUE MAINTAINER_MODE_FALSE MAINT CC CFLAGS LDFLAGS CPPFLAGS ac_ct_CC EXEEXT OBJEXT CPP EGREP YACC MKINSTALLDIRS USE_NLS MSGFMT GMSGFMT XGETTEXT MSGMERGE build build_cpu build_vendor build_os host host_cpu host_vendor host_os LIBICONV LTLIBICONV INTLLIBS LIBINTL LTLIBINTL POSUB GTK_CONFIG GTK_CFLAGS GTK_LIBS GLIB_CONFIG GLIB_CFLAGS GLIB_LIBS PKG_CONFIG GTK_GNUTELLA_CFLAGS GTK_GNUTELLA_LIBS ENABLE_GTK2_TRUE ENABLE_GTK2_FALSE XML_CONFIG XML_LIBS XML_CFLAGS LIBXML2_REQUIRED ENABLE_XML_STORE_TRUE ENABLE_XML_STORE_FALSE ENABLE_REMOTE_SHELL_TRUE ENABLE_REMOTE_SHELL_FALSE LIBOBJS LTLIBOBJS'
+ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS INSTALL_PROGRAM INSTALL_SCRIPT INSTALL_DATA PACKAGE VERSION ACLOCAL AUTOCONF AUTOMAKE AUTOHEADER MAKEINFO SET_MAKE MAINTAINER_MODE_TRUE MAINTAINER_MODE_FALSE MAINT CC CFLAGS LDFLAGS CPPFLAGS ac_ct_CC EXEEXT OBJEXT CPP EGREP YACC MKINSTALLDIRS MSGFMT GMSGFMT XGETTEXT MSGMERGE build build_cpu build_vendor build_os host host_cpu host_vendor host_os USE_NLS LIBICONV LTLIBICONV INTLLIBS LIBINTL LTLIBINTL POSUB GTK_CONFIG GTK_CFLAGS GTK_LIBS GLIB_CONFIG GLIB_CFLAGS GLIB_LIBS PKG_CONFIG GTK_GNUTELLA_CFLAGS GTK_GNUTELLA_LIBS ENABLE_GTK2_TRUE ENABLE_GTK2_FALSE XML_CONFIG XML_LIBS XML_CFLAGS LIBXML2_REQUIRED ENABLE_XML_STORE_TRUE ENABLE_XML_STORE_FALSE ENABLE_REMOTE_SHELL_TRUE ENABLE_REMOTE_SHELL_FALSE LIBOBJS LTLIBOBJS'
 ac_subst_files=''
 
 # Initialize some variables set by options.
@@ -850,8 +850,8 @@ Optional Features:
   --enable-FEATURE[=ARG]  include FEATURE [ARG=yes]
   --enable-maintainer-mode enable make rules and dependencies not useful
                           (and sometimes confusing) to the casual installer
-  --disable-nls           do not use Native Language Support
   --disable-rpath         do not hardcode runtime library paths
+  --disable-nls           do not use Native Language Support
 
   --enable-xml-store              save searches and filters in XML (default=on)
 
@@ -867,9 +867,9 @@ Optional Packages:
   --with-PACKAGE[=ARG]    use PACKAGE [ARG=yes]
   --without-PACKAGE       do not use PACKAGE (same as --with-PACKAGE=no)
   --with-gnu-ld           assume the C compiler uses GNU ld default=no
-  --with-libiconv-prefix[=DIR]  search for libiconv in DIR/include and DIR/lib
+  --with-libiconv-prefix=DIR  search for libiconv in DIR/include and DIR/lib
   --without-libiconv-prefix     don't search for libiconv in includedir and libdir
-  --with-libintl-prefix[=DIR]  search for libintl in DIR/include and DIR/lib
+  --with-libintl-prefix=DIR  search for libintl in DIR/include and DIR/lib
   --without-libintl-prefix     don't search for libintl in includedir and libdir
   --with-gtk-prefix=PFX   Prefix where GTK is installed (optional)
   --with-gtk-exec-prefix=PFX Exec prefix where GTK is installed (optional)
@@ -1294,6 +1294,7 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 rm -f config.cache
 
+am__api_version="1.4"
 ac_aux_dir=
 for ac_dir in $srcdir $srcdir/.. $srcdir/../..; do
   if test -f $ac_dir/install-sh; then
@@ -1506,17 +1507,17 @@ _ACEOF
 
 
 missing_dir=`cd $ac_aux_dir && pwd`
-echo "$as_me:$LINENO: checking for working aclocal" >&5
-echo $ECHO_N "checking for working aclocal... $ECHO_C" >&6
+echo "$as_me:$LINENO: checking for working aclocal-${am__api_version}" >&5
+echo $ECHO_N "checking for working aclocal-${am__api_version}... $ECHO_C" >&6
 # Run test in a subshell; some versions of sh will print an error if
 # an executable is not found, even if stderr is redirected.
 # Redirect stdin to placate older versions of autoconf.  Sigh.
-if (aclocal --version) < /dev/null > /dev/null 2>&1; then
-   ACLOCAL=aclocal
+if (aclocal-${am__api_version} --version) < /dev/null > /dev/null 2>&1; then
+   ACLOCAL=aclocal-${am__api_version}
    echo "$as_me:$LINENO: result: found" >&5
 echo "${ECHO_T}found" >&6
 else
-   ACLOCAL="$missing_dir/missing aclocal"
+   ACLOCAL="$missing_dir/missing aclocal-${am__api_version}"
    echo "$as_me:$LINENO: result: missing" >&5
 echo "${ECHO_T}missing" >&6
 fi
@@ -1536,17 +1537,17 @@ else
 echo "${ECHO_T}missing" >&6
 fi
 
-echo "$as_me:$LINENO: checking for working automake" >&5
-echo $ECHO_N "checking for working automake... $ECHO_C" >&6
+echo "$as_me:$LINENO: checking for working automake-${am__api_version}" >&5
+echo $ECHO_N "checking for working automake-${am__api_version}... $ECHO_C" >&6
 # Run test in a subshell; some versions of sh will print an error if
 # an executable is not found, even if stderr is redirected.
 # Redirect stdin to placate older versions of autoconf.  Sigh.
-if (automake --version) < /dev/null > /dev/null 2>&1; then
-   AUTOMAKE=automake
+if (automake-${am__api_version} --version) < /dev/null > /dev/null 2>&1; then
+   AUTOMAKE=automake-${am__api_version}
    echo "$as_me:$LINENO: result: found" >&5
 echo "${ECHO_T}found" >&6
 else
-   AUTOMAKE="$missing_dir/missing automake"
+   AUTOMAKE="$missing_dir/missing automake-${am__api_version}"
    echo "$as_me:$LINENO: result: missing" >&5
 echo "${ECHO_T}missing" >&6
 fi
@@ -3917,10 +3918,7 @@ ALL_LINGUAS="es fr nl"
 
         MKINSTALLDIRS=
   if test -n "$ac_aux_dir"; then
-    case "$ac_aux_dir" in
-      /*) MKINSTALLDIRS="$ac_aux_dir/mkinstalldirs" ;;
-      *) MKINSTALLDIRS="\$(top_builddir)/$ac_aux_dir/mkinstalldirs" ;;
-    esac
+    MKINSTALLDIRS="$ac_aux_dir/mkinstalldirs"
   fi
   if test -z "$MKINSTALLDIRS"; then
     MKINSTALLDIRS="\$(top_srcdir)/mkinstalldirs"
@@ -3928,52 +3926,9 @@ ALL_LINGUAS="es fr nl"
 
 
 
-  echo "$as_me:$LINENO: checking whether NLS is requested" >&5
-echo $ECHO_N "checking whether NLS is requested... $ECHO_C" >&6
-    # Check whether --enable-nls or --disable-nls was given.
-if test "${enable_nls+set}" = set; then
-  enableval="$enable_nls"
-  USE_NLS=$enableval
-else
-  USE_NLS=yes
-fi;
-  echo "$as_me:$LINENO: result: $USE_NLS" >&5
-echo "${ECHO_T}$USE_NLS" >&6
 
 
-
-
-
-
-# Prepare PATH_SEPARATOR.
-# The user is always right.
-if test "${PATH_SEPARATOR+set}" != set; then
-  echo "#! /bin/sh" >conf$$.sh
-  echo  "exit 0"   >>conf$$.sh
-  chmod +x conf$$.sh
-  if (PATH="/nonexistent;."; conf$$.sh) >/dev/null 2>&1; then
-    PATH_SEPARATOR=';'
-  else
-    PATH_SEPARATOR=:
-  fi
-  rm -f conf$$.sh
-fi
-
-# Find out how to test for executable files. Don't use a zero-byte file,
-# as systems may use methods other than mode bits to determine executability.
-cat >conf$$.file <<_ASEOF
-#! /bin/sh
-exit 0
-_ASEOF
-chmod +x conf$$.file
-if test -x conf$$.file >/dev/null 2>&1; then
-  ac_executable_p="test -x"
-else
-  ac_executable_p="test -f"
-fi
-rm -f conf$$.file
-
-# Extract the first word of "msgfmt", so it can be a program name with args.
+        # Extract the first word of "msgfmt", so it can be a program name with args.
 set dummy msgfmt; ac_word=$2
 echo "$as_me:$LINENO: checking for $ac_word" >&5
 echo $ECHO_N "checking for $ac_word... $ECHO_C" >&6
@@ -3981,27 +3936,24 @@ if test "${ac_cv_path_MSGFMT+set}" = set; then
   echo $ECHO_N "(cached) $ECHO_C" >&6
 else
   case "$MSGFMT" in
-  [\\/]* | ?:[\\/]*)
-    ac_cv_path_MSGFMT="$MSGFMT" # Let the user override the test with a path.
-    ;;
+  /*)
+  ac_cv_path_MSGFMT="$MSGFMT" # Let the user override the test with a path.
+  ;;
   *)
-    ac_save_IFS="$IFS"; IFS=$PATH_SEPARATOR
-    for ac_dir in $PATH; do
-      IFS="$ac_save_IFS"
-      test -z "$ac_dir" && ac_dir=.
-      for ac_exec_ext in '' $ac_executable_extensions; do
-        if $ac_executable_p "$ac_dir/$ac_word$ac_exec_ext"; then
-          if $ac_dir/$ac_word --statistics /dev/null >/dev/null 2>&1 &&
+  IFS="${IFS= 	}"; ac_save_ifs="$IFS"; IFS="${IFS}:"
+  for ac_dir in $PATH; do
+    test -z "$ac_dir" && ac_dir=.
+    if test -f $ac_dir/$ac_word; then
+      if $ac_dir/$ac_word --statistics /dev/null >/dev/null 2>&1 &&
      (if $ac_dir/$ac_word --statistics /dev/null 2>&1 >/dev/null | grep usage >/dev/null; then exit 1; else exit 0; fi); then
-            ac_cv_path_MSGFMT="$ac_dir/$ac_word$ac_exec_ext"
-            break 2
-          fi
-        fi
-      done
-    done
-    IFS="$ac_save_IFS"
+	ac_cv_path_MSGFMT="$ac_dir/$ac_word"
+	break
+      fi
+    fi
+  done
+  IFS="$ac_save_ifs"
   test -z "$ac_cv_path_MSGFMT" && ac_cv_path_MSGFMT=":"
-    ;;
+  ;;
 esac
 fi
 MSGFMT="$ac_cv_path_MSGFMT"
@@ -4054,36 +4006,7 @@ echo "${ECHO_T}no" >&6
 fi
 
 
-
-# Prepare PATH_SEPARATOR.
-# The user is always right.
-if test "${PATH_SEPARATOR+set}" != set; then
-  echo "#! /bin/sh" >conf$$.sh
-  echo  "exit 0"   >>conf$$.sh
-  chmod +x conf$$.sh
-  if (PATH="/nonexistent;."; conf$$.sh) >/dev/null 2>&1; then
-    PATH_SEPARATOR=';'
-  else
-    PATH_SEPARATOR=:
-  fi
-  rm -f conf$$.sh
-fi
-
-# Find out how to test for executable files. Don't use a zero-byte file,
-# as systems may use methods other than mode bits to determine executability.
-cat >conf$$.file <<_ASEOF
-#! /bin/sh
-exit 0
-_ASEOF
-chmod +x conf$$.file
-if test -x conf$$.file >/dev/null 2>&1; then
-  ac_executable_p="test -x"
-else
-  ac_executable_p="test -f"
-fi
-rm -f conf$$.file
-
-# Extract the first word of "xgettext", so it can be a program name with args.
+        # Extract the first word of "xgettext", so it can be a program name with args.
 set dummy xgettext; ac_word=$2
 echo "$as_me:$LINENO: checking for $ac_word" >&5
 echo $ECHO_N "checking for $ac_word... $ECHO_C" >&6
@@ -4091,27 +4014,24 @@ if test "${ac_cv_path_XGETTEXT+set}" = set; then
   echo $ECHO_N "(cached) $ECHO_C" >&6
 else
   case "$XGETTEXT" in
-  [\\/]* | ?:[\\/]*)
-    ac_cv_path_XGETTEXT="$XGETTEXT" # Let the user override the test with a path.
-    ;;
+  /*)
+  ac_cv_path_XGETTEXT="$XGETTEXT" # Let the user override the test with a path.
+  ;;
   *)
-    ac_save_IFS="$IFS"; IFS=$PATH_SEPARATOR
-    for ac_dir in $PATH; do
-      IFS="$ac_save_IFS"
-      test -z "$ac_dir" && ac_dir=.
-      for ac_exec_ext in '' $ac_executable_extensions; do
-        if $ac_executable_p "$ac_dir/$ac_word$ac_exec_ext"; then
-          if $ac_dir/$ac_word --omit-header --copyright-holder= --msgid-bugs-address= /dev/null >/dev/null 2>&1 &&
-     (if $ac_dir/$ac_word --omit-header --copyright-holder= --msgid-bugs-address= /dev/null 2>&1 >/dev/null | grep usage >/dev/null; then exit 1; else exit 0; fi); then
-            ac_cv_path_XGETTEXT="$ac_dir/$ac_word$ac_exec_ext"
-            break 2
-          fi
-        fi
-      done
-    done
-    IFS="$ac_save_IFS"
+  IFS="${IFS= 	}"; ac_save_ifs="$IFS"; IFS="${IFS}:"
+  for ac_dir in $PATH; do
+    test -z "$ac_dir" && ac_dir=.
+    if test -f $ac_dir/$ac_word; then
+      if $ac_dir/$ac_word --omit-header --copyright-holder= /dev/null >/dev/null 2>&1 &&
+     (if $ac_dir/$ac_word --omit-header --copyright-holder= /dev/null 2>&1 >/dev/null | grep usage >/dev/null; then exit 1; else exit 0; fi); then
+	ac_cv_path_XGETTEXT="$ac_dir/$ac_word"
+	break
+      fi
+    fi
+  done
+  IFS="$ac_save_ifs"
   test -z "$ac_cv_path_XGETTEXT" && ac_cv_path_XGETTEXT=":"
-    ;;
+  ;;
 esac
 fi
 XGETTEXT="$ac_cv_path_XGETTEXT"
@@ -4125,36 +4045,7 @@ fi
 
     rm -f messages.po
 
-
-# Prepare PATH_SEPARATOR.
-# The user is always right.
-if test "${PATH_SEPARATOR+set}" != set; then
-  echo "#! /bin/sh" >conf$$.sh
-  echo  "exit 0"   >>conf$$.sh
-  chmod +x conf$$.sh
-  if (PATH="/nonexistent;."; conf$$.sh) >/dev/null 2>&1; then
-    PATH_SEPARATOR=';'
-  else
-    PATH_SEPARATOR=:
-  fi
-  rm -f conf$$.sh
-fi
-
-# Find out how to test for executable files. Don't use a zero-byte file,
-# as systems may use methods other than mode bits to determine executability.
-cat >conf$$.file <<_ASEOF
-#! /bin/sh
-exit 0
-_ASEOF
-chmod +x conf$$.file
-if test -x conf$$.file >/dev/null 2>&1; then
-  ac_executable_p="test -x"
-else
-  ac_executable_p="test -f"
-fi
-rm -f conf$$.file
-
-# Extract the first word of "msgmerge", so it can be a program name with args.
+    # Extract the first word of "msgmerge", so it can be a program name with args.
 set dummy msgmerge; ac_word=$2
 echo "$as_me:$LINENO: checking for $ac_word" >&5
 echo $ECHO_N "checking for $ac_word... $ECHO_C" >&6
@@ -4162,26 +4053,23 @@ if test "${ac_cv_path_MSGMERGE+set}" = set; then
   echo $ECHO_N "(cached) $ECHO_C" >&6
 else
   case "$MSGMERGE" in
-  [\\/]* | ?:[\\/]*)
-    ac_cv_path_MSGMERGE="$MSGMERGE" # Let the user override the test with a path.
-    ;;
+  /*)
+  ac_cv_path_MSGMERGE="$MSGMERGE" # Let the user override the test with a path.
+  ;;
   *)
-    ac_save_IFS="$IFS"; IFS=$PATH_SEPARATOR
-    for ac_dir in $PATH; do
-      IFS="$ac_save_IFS"
-      test -z "$ac_dir" && ac_dir=.
-      for ac_exec_ext in '' $ac_executable_extensions; do
-        if $ac_executable_p "$ac_dir/$ac_word$ac_exec_ext"; then
-          if $ac_dir/$ac_word --update -q /dev/null /dev/null >/dev/null 2>&1; then
-            ac_cv_path_MSGMERGE="$ac_dir/$ac_word$ac_exec_ext"
-            break 2
-          fi
-        fi
-      done
-    done
-    IFS="$ac_save_IFS"
+  IFS="${IFS= 	}"; ac_save_ifs="$IFS"; IFS="${IFS}:"
+  for ac_dir in $PATH; do
+    test -z "$ac_dir" && ac_dir=.
+    if test -f $ac_dir/$ac_word; then
+      if $ac_dir/$ac_word --update -q /dev/null /dev/null >/dev/null 2>&1; then
+	ac_cv_path_MSGMERGE="$ac_dir/$ac_word"
+	break
+      fi
+    fi
+  done
+  IFS="$ac_save_ifs"
   test -z "$ac_cv_path_MSGMERGE" && ac_cv_path_MSGMERGE=":"
-    ;;
+  ;;
 esac
 fi
 MSGMERGE="$ac_cv_path_MSGMERGE"
@@ -4207,8 +4095,8 @@ echo "${ECHO_T}found $GMSGFMT program is not GNU msgfmt; ignore it" >&6
   fi
 
       if test "$XGETTEXT" != ":"; then
-            if $XGETTEXT --omit-header --copyright-holder= --msgid-bugs-address= /dev/null >/dev/null 2>&1 &&
-       (if $XGETTEXT --omit-header --copyright-holder= --msgid-bugs-address= /dev/null 2>&1 >/dev/null | grep usage >/dev/null; then exit 1; else exit 0; fi); then
+            if $XGETTEXT --omit-header --copyright-holder= /dev/null >/dev/null 2>&1 &&
+       (if $XGETTEXT --omit-header --copyright-holder= /dev/null 2>&1 >/dev/null | grep usage >/dev/null; then exit 1; else exit 0; fi); then
       : ;
     else
       echo "$as_me:$LINENO: result: found xgettext program is not GNU xgettext; ignore it" >&5
@@ -4299,19 +4187,6 @@ if test "${with_gnu_ld+set}" = set; then
 else
   with_gnu_ld=no
 fi;
-# Prepare PATH_SEPARATOR.
-# The user is always right.
-if test "${PATH_SEPARATOR+set}" != set; then
-  echo "#! /bin/sh" >conf$$.sh
-  echo  "exit 0"   >>conf$$.sh
-  chmod +x conf$$.sh
-  if (PATH="/nonexistent;."; conf$$.sh) >/dev/null 2>&1; then
-    PATH_SEPARATOR=';'
-  else
-    PATH_SEPARATOR=:
-  fi
-  rm -f conf$$.sh
-fi
 ac_prog=ld
 if test "$GCC" = yes; then
   # Check if gcc -print-prog-name=ld gives a path.
@@ -4427,6 +4302,8 @@ echo "${ECHO_T}$acl_cv_rpath" >&6
   hardcode_libdir_separator="$acl_cv_hardcode_libdir_separator"
   hardcode_direct="$acl_cv_hardcode_direct"
   hardcode_minus_L="$acl_cv_hardcode_minus_L"
+  sys_lib_search_path_spec="$acl_cv_sys_lib_search_path_spec"
+  sys_lib_dlsearch_path_spec="$acl_cv_sys_lib_dlsearch_path_spec"
     # Check whether --enable-rpath or --disable-rpath was given.
 if test "${enable_rpath+set}" = set; then
   enableval="$enable_rpath"
@@ -4833,7 +4710,6 @@ fi;
 
 
 
-
   echo "$as_me:$LINENO: checking whether NLS is requested" >&5
 echo $ECHO_N "checking whether NLS is requested... $ECHO_C" >&6
     # Check whether --enable-nls or --disable-nls was given.
@@ -4845,7 +4721,6 @@ else
 fi;
   echo "$as_me:$LINENO: result: $USE_NLS" >&5
 echo "${ECHO_T}$USE_NLS" >&6
-
 
 
 
@@ -5542,8 +5417,7 @@ echo "${ECHO_T}$gt_cv_func_gnugettext1_libintl" >&6
 
                                         if test "$gt_cv_func_gnugettext1_libc" = "yes" \
            || { test "$gt_cv_func_gnugettext1_libintl" = "yes" \
-                && test "$PACKAGE" != gettext-runtime \
-                && test "$PACKAGE" != gettext-tools; }; then
+                && test "$PACKAGE" != gettext; }; then
           gt_use_preinstalled_gnugettext=yes
         else
                     LIBINTL=
@@ -5563,26 +5437,6 @@ _ACEOF
     else
       USE_NLS=no
     fi
-  fi
-
-  echo "$as_me:$LINENO: checking whether to use NLS" >&5
-echo $ECHO_N "checking whether to use NLS... $ECHO_C" >&6
-  echo "$as_me:$LINENO: result: $USE_NLS" >&5
-echo "${ECHO_T}$USE_NLS" >&6
-  if test "$USE_NLS" = "yes"; then
-    echo "$as_me:$LINENO: checking where the gettext function comes from" >&5
-echo $ECHO_N "checking where the gettext function comes from... $ECHO_C" >&6
-    if test "$gt_use_preinstalled_gnugettext" = "yes"; then
-      if test "$gt_cv_func_gnugettext1_libintl" = "yes"; then
-        gt_source="external libintl"
-      else
-        gt_source="libc"
-      fi
-    else
-      gt_source="included intl directory"
-    fi
-    echo "$as_me:$LINENO: result: $gt_source" >&5
-echo "${ECHO_T}$gt_source" >&6
   fi
 
   if test "$USE_NLS" = "yes"; then
@@ -9385,7 +9239,7 @@ cat >>$CONFIG_STATUS <<_ACEOF
 # Capture the value of obsolete ALL_LINGUAS because we need it to compute
     # POFILES, GMOFILES, UPDATEPOFILES, DUMMYPOFILES, CATALOGS. But hide it
     # from automake.
-    eval 'OBSOLETE_ALL_LINGUAS''="$ALL_LINGUAS"'
+    eval 'ALL_LINGUAS''="$ALL_LINGUAS"'
     # Capture the value of LINGUAS because we need it to compute CATALOGS.
     LINGUAS="${LINGUAS-%UNSET%}"
 
@@ -9517,7 +9371,6 @@ s,@CPP@,$CPP,;t t
 s,@EGREP@,$EGREP,;t t
 s,@YACC@,$YACC,;t t
 s,@MKINSTALLDIRS@,$MKINSTALLDIRS,;t t
-s,@USE_NLS@,$USE_NLS,;t t
 s,@MSGFMT@,$MSGFMT,;t t
 s,@GMSGFMT@,$GMSGFMT,;t t
 s,@XGETTEXT@,$XGETTEXT,;t t
@@ -9530,6 +9383,7 @@ s,@host@,$host,;t t
 s,@host_cpu@,$host_cpu,;t t
 s,@host_vendor@,$host_vendor,;t t
 s,@host_os@,$host_os,;t t
+s,@USE_NLS@,$USE_NLS,;t t
 s,@LIBICONV@,$LIBICONV,;t t
 s,@LTLIBICONV@,$LTLIBICONV,;t t
 s,@INTLLIBS@,$INTLLIBS,;t t
@@ -10065,22 +9919,17 @@ echo "$as_me: executing $ac_dest commands" >&6;}
           rm -f "$ac_dir/POTFILES"
           test -n "$as_me" && echo "$as_me: creating $ac_dir/POTFILES" || echo "creating $ac_dir/POTFILES"
           cat "$ac_given_srcdir/$ac_dir/POTFILES.in" | sed -e "/^#/d" -e "/^[ 	]*\$/d" -e "s,.*,     $top_srcdir/& \\\\," | sed -e "\$s/\(.*\) \\\\/\1/" > "$ac_dir/POTFILES"
-          POMAKEFILEDEPS="POTFILES.in"
           # ALL_LINGUAS, POFILES, GMOFILES, UPDATEPOFILES, DUMMYPOFILES depend
           # on $ac_dir but don't depend on user-specified configuration
           # parameters.
           if test -f "$ac_given_srcdir/$ac_dir/LINGUAS"; then
             # The LINGUAS file contains the set of available languages.
-            if test -n "$OBSOLETE_ALL_LINGUAS"; then
+            if test -n "$ALL_LINGUAS"; then
               test -n "$as_me" && echo "$as_me: setting ALL_LINGUAS in configure.in is obsolete" || echo "setting ALL_LINGUAS in configure.in is obsolete"
             fi
             ALL_LINGUAS_=`sed -e "/^#/d" "$ac_given_srcdir/$ac_dir/LINGUAS"`
             # Hide the ALL_LINGUAS assigment from automake.
             eval 'ALL_LINGUAS''=$ALL_LINGUAS_'
-            POMAKEFILEDEPS="$POMAKEFILEDEPS LINGUAS"
-          else
-            # The set of available languages was given in configure.in.
-            eval 'ALL_LINGUAS''=$OBSOLETE_ALL_LINGUAS'
           fi
           case "$ac_given_srcdir" in
             .) srcdirpre= ;;
@@ -10129,7 +9978,7 @@ echo "$as_me: executing $ac_dest commands" >&6;}
             done
           fi
           test -n "$as_me" && echo "$as_me: creating $ac_dir/Makefile" || echo "creating $ac_dir/Makefile"
-          sed -e "/^POTFILES =/r $ac_dir/POTFILES" -e "/^# Makevars/r $ac_given_srcdir/$ac_dir/Makevars" -e "s|@POFILES@|$POFILES|g" -e "s|@GMOFILES@|$GMOFILES|g" -e "s|@UPDATEPOFILES@|$UPDATEPOFILES|g" -e "s|@DUMMYPOFILES@|$DUMMYPOFILES|g" -e "s|@CATALOGS@|$CATALOGS|g" -e "s|@POMAKEFILEDEPS@|$POMAKEFILEDEPS|g" "$ac_dir/Makefile.in" > "$ac_dir/Makefile"
+          sed -e "/^POTFILES =/r $ac_dir/POTFILES" -e "/^# Makevars/r $ac_given_srcdir/$ac_dir/Makevars" -e "s|@POFILES@|$POFILES|g" -e "s|@GMOFILES@|$GMOFILES|g" -e "s|@UPDATEPOFILES@|$UPDATEPOFILES|g" -e "s|@DUMMYPOFILES@|$DUMMYPOFILES|g" -e "s|@CATALOGS@|$CATALOGS|g" "$ac_dir/Makefile.in" > "$ac_dir/Makefile"
           for f in "$ac_given_srcdir/$ac_dir"/Rules-*; do
             if test -f "$f"; then
               case "$f" in
