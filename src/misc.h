@@ -42,6 +42,7 @@
 
 #include <time.h>
 #include <stdio.h>
+#include <ctype.h>
 
 #include "config.h"				/* Needed for FreeBSD compiles */
 
@@ -70,6 +71,23 @@ size_t strlcpy(gchar *dst, const gchar *src, size_t dst_size);
 #define g_string_printf g_string_sprintf
 #define g_strlcpy strlcpy
 #endif
+
+/* Wrappers for ctype functions that allow only ASCII characters whereas
+ * the locale would allow others.
+ * GLib 2.x has similar macros/functions but defines only a subset.
+ */
+#define is_ascii_alnum(c) (isascii(c) && isalnum(c))
+#define is_ascii_alpha(c) (isascii(c) && isalpha(c))
+#define is_ascii_blank(c) (isascii(c) && isblank(c))
+#define is_ascii_cntrl(c) (isascii(c) && iscntrl(c))
+#define is_ascii_digit(c) (isascii(c) && isdigit(c))
+#define is_ascii_graph(c) (isascii(c) && isgraph(c))
+#define is_ascii_lower(c) (isascii(c) && islower(c))
+#define is_ascii_print(c) (isascii(c) && isprint(c))
+#define is_ascii_punct(c) (isascii(c) && ispunct(c))
+#define is_ascii_space(c) (isascii(c) && isspace(c))
+#define is_ascii_upper(c) (isascii(c) && isupper(c))
+#define is_ascii_xdigit(c) (isascii(c) && isxdigit(c))
 
 /*
  * Array size determination
