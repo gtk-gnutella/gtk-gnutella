@@ -948,8 +948,12 @@ void download_gui_add(struct download *d)
         titles[c_queue_server] = download_vendor_str(d);
         titles[c_queue_status] = "";
 		titles[c_queue_size] = short_size(d->file_info->size);
-        titles[c_queue_host] = 
-            ip_port_to_gchar(download_ip(d), download_port(d));
+        if (download_ip(d) != 0) {
+            titles[c_queue_host] = 
+                ip_port_to_gchar(download_ip(d), download_port(d));
+        } else {
+            titles[c_queue_host] = "";
+        }
 
 		clist_downloads_queue = GTK_CLIST
 			(lookup_widget(main_window, "clist_downloads_queue"));
@@ -966,8 +970,12 @@ void download_gui_add(struct download *d)
 		titles[c_dl_status] = "";
 		titles[c_dl_size] = short_size(d->file_info->size);
 		titles[c_dl_range] = "";
-		titles[c_dl_host] = 
-			ip_port_to_gchar(download_ip(d), download_port(d));
+        if (download_ip(d) != 0) {
+            titles[c_dl_host] = 
+                ip_port_to_gchar(download_ip(d), download_port(d));
+        } else {
+            titles[c_dl_host] = "";
+        }
 
 		row = gtk_clist_append(clist_downloads, titles);
 		gtk_clist_set_row_data(clist_downloads, row, (gpointer) d);
