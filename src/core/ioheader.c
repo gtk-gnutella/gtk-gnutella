@@ -341,8 +341,8 @@ io_read_data(gpointer data, gint unused_source, inputevt_cond_t cond)
 {
 	struct io_header *ih = (struct io_header *) data;
 	struct gnutella_socket *s = ih->socket;
-	guint count;
-	gint r;
+	size_t count;
+	ssize_t r;
 
 	(void) unused_source;
 	g_assert(s != NULL);
@@ -369,14 +369,16 @@ io_read_data(gpointer data, gint unused_source, inputevt_cond_t cond)
 	 * never happen.
 	 */
 
-	count = sizeof(s->buffer) - s->pos - 1;		/* -1 to allow trailing NUL */
-	if (count <= 0) {
+	g_assert(sizeof(s->buffer) >= s->pos);
+	count = sizeof(s->buffer) - s->pos;
+	if (count < 1) {
 		g_warning("ih_header_read: incoming buffer full, "
 			"disconnecting from %s", ip_to_gchar(s->ip));
 		dump_hex(stderr, "Leading Data", s->buffer, MIN(s->pos, 256));
 		(*ih->error->input_buffer_full)(ih->resource);
 		return;
 	}
+	count--; /* -1 to allow trailing NUL */
 
 	/*
 	 * Ignore interrupted read syscall (EAGAIN), but signal EOF and other
@@ -388,11 +390,11 @@ io_read_data(gpointer data, gint unused_source, inputevt_cond_t cond)
 		socket_eof(s);
 		(*ih->error->header_read_eof)(ih->resource);
 		return;
-	} else if (r < 0 && errno == EAGAIN) {
-		return;
-	} else if (r < 0) {
-		socket_eof(s);
-		(*ih->error->header_read_error)(ih->resource, errno);
+	} else if ((ssize_t) -1 == r) {
+	  	if (errno != EAGAIN) {
+			socket_eof(s);
+			(*ih->error->header_read_error)(ih->resource, errno);
+		}
 		return;
 	}
 
