@@ -1,0 +1,22 @@
+The 'HNAME' GGEP Extension
+======================
+
+Name: HNAME
+Where: Query Hit trailer
+Status: Experimental
+Date: Sun Oct 26 20:08:29 MET 2003
+Format: <string>
+COBS-Encoding: Never
+Deflate: Maybe
+
+The 'HNAME' extension is a standard extension that carries the servent's
+host name.  It appears in the extension trailer of the Query Hits.
+
+Servents should ask their users whether they want to advertise a symbolic
+hostname, for instance "foo.example.com".  This will enable the readers
+of query hits to contact back the servent in case it has a dynamic IP, but
+where the symbolic hostname always resolves to the current IP address.
+
+The payload format is a single string, without the trailing NUL.
+
+The payload is never COBS-encoded, but may be deflated if really long.
