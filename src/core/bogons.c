@@ -182,17 +182,13 @@ bogons_retrieve(void)
 	FILE *f;
 	gint idx;
 	gchar *filename;
+	file_path_t fp[] = {
+		{ settings_config_dir(), bogons_file },
+		{ PRIVLIB_EXP, bogons_file },
 #ifndef OFFICIAL_BUILD 
-	file_path_t fp[3];
-#else
-	file_path_t fp[2];
+		{ PACKAGE_SOURCE_DIR, bogons_file }
 #endif
-
-	file_path_set(&fp[0], settings_config_dir(), bogons_file);
-	file_path_set(&fp[1], PRIVLIB_EXP, bogons_file);
-#ifndef OFFICIAL_BUILD 
-	file_path_set(&fp[2], PACKAGE_SOURCE_DIR, bogons_file);
-#endif
+	};
 
 	f = file_config_open_read_norename_chosen(
 			bogons_what, fp, G_N_ELEMENTS(fp), &idx);
@@ -236,4 +232,4 @@ bogons_check(guint32 ip)
 	return THERE == iprange_get(bogons_db, ip);
 }
 
-/* vi: set ts=4: */
+/* vi: set ts=4 sw=4 cindent: */
