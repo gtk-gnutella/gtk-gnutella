@@ -56,6 +56,7 @@ void gmsg_init(void)
 	msg_name[GTA_MSG_SEARCH]			= "query";
 	msg_name[GTA_MSG_SEARCH_RESULTS]	= "query hit";
 	msg_name[GTA_MSG_PUSH_REQUEST]		= "push";
+	msg_name[GTA_MSG_QRP]				= "QRP";
 
 	for (i = 0; i < 256; i++)
 		msg_weight[i] = 0;
@@ -65,6 +66,7 @@ void gmsg_init(void)
 	msg_weight[GTA_MSG_INIT_RESPONSE]	= 3;
 	msg_weight[GTA_MSG_SEARCH_RESULTS]	= 4;
 	msg_weight[GTA_MSG_PUSH_REQUEST]	= 5;
+	msg_weight[GTA_MSG_QRP]				= 6;
 }
 
 /*
@@ -338,6 +340,7 @@ gint gmsg_cmp(gpointer pdu1, gpointer pdu2)
 	switch (h1->function) {
 	case GTA_MSG_INIT:
 	case GTA_MSG_SEARCH:
+	case GTA_MSG_QRP:
 		return h1->hops > h2->hops ? -1 : +1;
 	default:
 		return h1->hops < h2->hops ? -1 : +1;
