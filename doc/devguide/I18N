@@ -1,0 +1,128 @@
+SHORT GUIDE ABOUT TRANSLATING MESSAGES
+$Id$
+
+1. INTRO
+========
+
+This is a short summary of the gettext documenation. See the
+APPENDIX if this information isn't sufficient for you.
+
+
+2. Extract the translatable strings from the source files:
+==========================================================
+
+ $ cd src
+ $ xgettext --keyword=_ --keyword=N_ *.c *.h
+
+You should now have a file called ``messages.po''. If you look
+at the source files, you'll find many strings which are not
+marked as translatable. The reason for this is that these strings
+are only used internally or they are only interesting for
+developers i.e., for debugging.
+
+
+3. Prepare the POT file:
+========================
+
+Use your favourite editor and edit the first lines of 
+``messages.po'' to match these:
+
+"Project-Id-Version: gtk-gnutella VERSION\n"
+"POT-Creation-Date: 2003-04-15 23:20+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+Replace VERSION, YEAR, MO etc. with reasonable values. It's important
+that you use ``charset=UTF-8'' as above. If your editor doesn't
+support UTF-8 don't mind, you can convert that later.
+
+
+4. Translate the messages:
+==========================
+
+You'll find something like this:
+
+#: main.c:42
+msgid "Hello world"
+msgstr ""
+
+If you want to translate to German, you would change the 3rd line
+to the following:
+
+msgstr "Hallo Welt"
+
+Don't touch the string behind ``msgid''! If you find typos or
+the like, this string must be corrected in the source file.
+If you see a string with a ``%'' in it, then leave the part with
+``%'' as-is and don't change the order of these ``words''.
+Also keep the character after an backslash ``\'' as-is.
+For example:
+
+msgid "%-8s are %d time faster than %s.\n"
+msgstr "%-8s sind %d mal schneller als %s.\n"
+
+See man printf(3) for details about the syntax, if you have
+problems with it.
+
+You don't have to translate every message. If you cannot or don't
+want to translate a message just leave ``msgstr ""'' as-is. Don't
+copy the string of msgid!
+
+ 
+5. Convert the output to UTF-8 (if it's not already UTF-8 encoded):
+===================================================================
+
+iconv -f CHARSET -t UTF-8 messages.po > utf8.po
+
+Replace CHARSET by the one you use e.g., if your from Western Europe
+it's probably ISO-8859-1. Otherwise see what echo $LC_CTYPE says,
+and strip the part up to the . (dot). For example:
+
+ $ echo $LC_CTYPE
+ ja_JP.eucJP
+ $ iconv -f eucJP -t UTF-8 messages.po > utf8.po
+
+
+6. Install the POT file:
+========================
+
+First, verify that your POT file is correct:
+
+ $ msgfmt --check --strict utf8.po -o output.mo
+
+You should get no warnings but find a file ``output.mo'' which is
+binary version of the ``utf8.po'' which will be installed by the
+application during its installation.
+ 
+Copy utf8.po with the appropriate name into the po directory:
+
+The part before ``.po'' is simply the country code (ISO 3166). For
+example, if you are from the Netherlands:
+
+ $ cp utf8.po ../po/nl.po
+
+
+7. Stay tuned!
+==============
+
+The messages may be changed from release to release and with growing
+functionality there will be more messages that should be translated.
+Thus, translation isn't something static. Every few month there will
+be a few more sentences to be translated. 
+
+
+8. APPENDIX
+===========
+  
+The complete GNU gettext manual:
+http://www.gnu.org/manual/gettext/index.html
+
+A good online English<->German dictionary:
+http://dict.leo.org/
+
+Country codes as standardized by the UNO (United Nations Organizations):
+http://ftp.ics.uci.edu/pub/websoft/wwwstat/country-codes.txt
