@@ -90,6 +90,7 @@ gboolean guc_download_new_unknown_size(gchar *file,
 			gchar *hostname, gchar *sha1, time_t stamp, gboolean push,
 			struct dl_file_info *fi, gnet_host_vec_t *proxies);
 const gchar *guc_download_get_hostname(const struct download *d);
+const gchar *guc_download_get_country(const struct download *d);
 gfloat guc_download_source_progress(struct download *d);
 gfloat guc_download_total_progress(struct download *d);
 gboolean guc_download_something_to_clear(void);

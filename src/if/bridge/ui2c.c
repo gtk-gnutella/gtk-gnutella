@@ -191,6 +191,11 @@ const gchar *guc_download_get_hostname(const struct download *d)
 	return download_get_hostname(d);
 }
 
+const gchar *guc_download_get_country(const struct download *d)
+{
+	return download_country(d);
+}
+
 gfloat guc_download_source_progress(struct download *d)
 {
 	return download_source_progress(d);
