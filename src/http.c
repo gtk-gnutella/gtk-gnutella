@@ -972,6 +972,7 @@ static struct http_async *http_async_create(
 
 	ha->magic = HTTP_ASYNC_MAGIC;
 	ha->type = type;
+	ha->flags = 0;
 	ha->url = atom_str_get(url);
 	ha->path = atom_str_get(path);
 	ha->host = host ? atom_str_get(host) : NULL;
