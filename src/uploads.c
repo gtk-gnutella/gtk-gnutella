@@ -722,14 +722,19 @@ static void upload_remove_v(
 	if (!UPLOAD_IS_COMPLETE(u))
 		registered_uploads--;
 
-	if (u->status != GTA_UL_QUEUED) {
+	switch (u->status) {
+	case GTA_UL_QUEUED:
+	case GTA_UL_PFSP_WAITING:
+		/* running_uploads was already decremented */
+		break;
+	default:
 		if (!UPLOAD_IS_COMPLETE(u) && !UPLOAD_IS_CONNECTING(u)) {
 			running_uploads--;
 		} else if (u->keep_alive && UPLOAD_IS_CONNECTING(u)) {
 			running_uploads--;
 		}
+		break;
 	}
-	
 	
 	/*
 	 * If we were sending data, and we have not accounted the download yet,
@@ -1774,7 +1779,8 @@ static void upload_request(gnutella_upload_t *u, header_t *header)
 	http_extra_desc_t hev[3];
 	gint hevcnt = 0;
 	gchar *sha1;
-	gboolean is_followup = u->status == GTA_UL_WAITING;
+	gboolean is_followup =
+		(u->status == GTA_UL_WAITING || u->status == GTA_UL_PFSP_WAITING);
 	gboolean was_actively_queued = u->status == GTA_UL_QUEUED;
 	gboolean faked = FALSE;
 	gboolean range_unavailable = FALSE;
@@ -1792,6 +1798,25 @@ static void upload_request(gnutella_upload_t *u, header_t *header)
 	}
 
 	/*
+	 * If we remove the upload in upload_remove(), we'll decrement
+	 * running_uploads.  However, for followup-requests, the upload slot
+	 * is already accounted for.
+	 *
+	 * Exceptions:
+	 * We decremented `running_uploads' when moving to the GTA_UL_PFSP_WAITING
+	 * state, since we don't know whether they will re-emit something.
+	 * Therefore, it is necessary to re-increment it here.
+	 *
+	 *
+	 * This is for the moment being done if the upload really seems to be 
+	 * getting an upload slot. This is to avoid messing with active queuing
+	 *		-- JA, 09/05/03
+	 */
+
+	if (!is_followup || u->status == GTA_UL_PFSP_WAITING)
+		running_uploads++;
+
+	/*
 	 * Technically, we have not started sending anything yet, but this
 	 * also serves as a marker in case we need to call upload_remove().
 	 * It will not send an HTTP reply by itself.
@@ -1799,19 +1824,6 @@ static void upload_request(gnutella_upload_t *u, header_t *header)
 
 	u->status = GTA_UL_SENDING;
 	u->last_update = time((time_t *) 0);	/* Done reading headers */
-
-	/*
-	 * If we remove the upload in upload_remove(), we'll decrement
-	 * running_uploads.  However, for followup-requests, the upload slot
-	 * is already accounted for.
-	 */
-
-	/* This is for the moment being done if the upload really seems to be 
-	 * getting an upload slot. This is to avoid messing with active queuing
-	 *		-- JA, 09/05/03
-	 */
-	if (!is_followup)
-		running_uploads++;
 
 	/*
 	 * If `head_only' is true, the request was a HEAD and we're only going
@@ -2162,6 +2174,7 @@ static void upload_request(gnutella_upload_t *u, header_t *header)
 
 			u->unavailable_range = TRUE;
 			(void) http_send_status(u->socket, 416, TRUE, hev, hevcnt, msg);
+			running_uploads--;		/* Re-incremented if they ever come back */
 			expect_http_header(u, GTA_UL_PFSP_WAITING);
 		} else {
 			(void) http_send_status(u->socket, 416, FALSE, hev, hevcnt, msg);
