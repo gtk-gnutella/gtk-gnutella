@@ -389,6 +389,24 @@ vp_print_chunk(gnet_fi_chunks_t *c, gboolean show_old)
 			c->from, c->to, c->status);
 }
 
+/*
+ * For debugging: print chunk list.
+ */
+static void
+vp_print_chunk_list(GSList *list, gchar *title)
+{
+	GSList *l;
+
+	printf("Chunk list \"%s\":\n", title);
+
+	for (l = list; l; l = g_slist_next(l)) {
+		gnet_fi_chunks_t *c = l->data;
+		vp_print_chunk(c, FALSE);
+	}
+
+	printf("End of list \"%s\".\n", title);
+}
+
 /**
  * Allocate a new chunk based on the parameters.
  *
@@ -429,29 +447,13 @@ vp_assert_chunks_list(GSList *list)
 
 	for (l = list; l; l = g_slist_next(l)) {
 		chunk = (gnet_fi_chunks_t *) l->data;
-		if (last != chunk->from)
-			printf("--> %d <--\n\n", last);
-		g_assert(last == chunk->from);
+		if (last != chunk->from) {
+			printf("**** Chunks list is not consistent! Please tell hans@degraaff.org\n");
+			vp_print_chunk_list(list, "Chunks list");
+			break;
+		}
 		last = chunk->to;
 	}
-}
-
-/*
- * For debugging: print chunk list.
- */
-static void
-vp_print_chunk_list(GSList *list, gchar *title)
-{
-	GSList *l;
-
-	printf("Chunk list \"%s\":\n", title);
-
-	for (l = list; l; l = g_slist_next(l)) {
-		gnet_fi_chunks_t *c = l->data;
-		vp_print_chunk(c, FALSE);
-	}
-
-	printf("End of list \"%s\".\n", title);
 }
 
 /** 
