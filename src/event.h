@@ -66,8 +66,8 @@ void event_remove_subscriber(struct event *evt, GCallback cb);
  * T_NORMAL: will call all subscribers in the chain. Use for 
  *           callbacks with a void return type.
  */
-#define T_VETO(sig, args...) if((*((sig)s->cb))(args)) break;
-#define T_NORMAL(sig, args...) (*((sig)s->cb))(args);
+#define T_VETO(sig, ...) if((*((sig)s->cb))(__VA_ARGS__)) break;
+#define T_NORMAL(sig, ...) (*((sig)s->cb))(__VA_ARGS__);
 
 #define event_trigger(evt, type) G_STMT_START {                    \
     GSList *sl;                                                    \

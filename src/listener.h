@@ -53,12 +53,12 @@ typedef GSList *listeners_t;
     g_assert(callback != NULL);                                        \
     signal##_listeners = g_slist_remove(signal##_listeners, callback);
 
-#define LISTENER_EMIT(signal, args...)                                 \
+#define LISTENER_EMIT(signal, ...)                                     \
     {                                                                  \
         GSList *l;                                                     \
         for (l = signal##_listeners; l != NULL; l = g_slist_next(l)) { \
             signal##_listener_t fn = (signal##_listener_t) l->data;    \
-            (*fn)(args);                                               \
+            (*fn)(__VA_ARGS__);                                        \
         }                                                              \
     }
 
