@@ -1183,7 +1183,6 @@ static void download_selection_of_tree_view(GtkTreeView * tree_view)
 		g_slist_free(iter_list);
 	}
 
-//    gtk_clist_freeze(c);
 /*
 	for (l = c->selection; l; 
          l = c->selection) {
@@ -1229,30 +1228,63 @@ static void download_selection_of_tree_view(GtkTreeView * tree_view)
             gtk_clist_unselect_row(c, row, 0);
 	}
 */    
- //   gtk_clist_thaw(c);
 
     gui_search_force_update_tab_label(current_search);
     gui_search_update_items(current_search);
 }
 
+struct menu_helper {
+	gint page;
+	GtkTreeIter iter;
+};
 
+static gboolean search_gui_menu_select_helper(
+	GtkTreeModel *model,
+	GtkTreePath *path,
+	GtkTreeIter *iter,
+	gpointer data)
+{
+	gint page = -1;
+	struct menu_helper *mh = data;
+
+	gtk_tree_model_get(model, iter, 1, &page, -1);
+	if (page == mh->page) {
+		mh->iter = *iter;
+		return TRUE;
+	}
+	return FALSE;
+}
+
+static void search_gui_menu_select(gint page)
+{
+	GtkTreeView *treeview;
+	GtkTreeModel *model;
+	GtkTreeSelection *selection;
+	struct menu_helper mh = {.page = page};
+
+	treeview = GTK_TREE_VIEW(
+		lookup_widget(main_window, "treeview_menu"));
+	model = GTK_TREE_MODEL(gtk_tree_view_get_model(treeview));
+	gtk_tree_model_foreach(
+		model, (gpointer) search_gui_menu_select_helper, &mh);
+	selection = gtk_tree_view_get_selection(treeview);
+	gtk_tree_selection_select_iter(selection, &mh.iter);
+}
 
 void search_gui_download_files(void)
 {
-    GtkWidget *notebook_main;
-    GtkWidget *ctree_menu;
+    GtkTreeSelection *selection;
 
-    notebook_main = lookup_widget(main_window, "notebook_main");
-    ctree_menu = lookup_widget(main_window, "ctree_menu");
+	selection = gtk_tree_view_get_selection(
+		GTK_TREE_VIEW(lookup_widget(main_window, "treeview_menu")));
 
 	/* Download the selected files */
 
 	if (jump_to_downloads) {
-		gtk_notebook_set_page(GTK_NOTEBOOK(notebook_main),
-            nb_main_page_downloads);
-        // FIXME: should convert to ctree here. Expand nodes if necessary.
-		gtk_clist_select_row(GTK_CLIST(ctree_menu),
-            nb_main_page_downloads, 0);
+		gtk_notebook_set_page(
+			GTK_NOTEBOOK(lookup_widget(main_window, "notebook_main")),
+			nb_main_page_downloads);
+		search_gui_menu_select(nb_main_page_downloads);
 	}
 
 	if (current_search) {
@@ -1736,7 +1768,6 @@ void search_gui_remove_search(search_t * sch)
 void search_gui_set_current_search(search_t *sch) 
 {
 	search_t *old_sch = current_search;
-    GtkCTreeNode * node;
     GtkWidget *spinbutton_minimum_speed;
     GtkWidget *spinbutton_reissue_timeout;
     GtkTreeView *tree_view_search;
@@ -1853,22 +1884,7 @@ void search_gui_set_current_search(search_t *sch)
                   sch->scrolled_window));
     }
 
-    /*
-     * Tree menu
-     */
-    {
-        GtkCTree *ctree_menu = GTK_CTREE
-            (lookup_widget(main_window, "ctree_menu"));
-
-        node = gtk_ctree_find_by_row_data(
-            ctree_menu,
-            gtk_ctree_node_nth(ctree_menu,0),
-            (gpointer) nb_main_page_search);
-    
-        if (node != NULL)
-            gtk_ctree_select(ctree_menu,node);
-    }
-
+	search_gui_menu_select(nb_main_page_search);
     locked = FALSE;
 }
 
