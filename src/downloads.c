@@ -402,8 +402,10 @@ void download_timer(time_t now)
 {
 	GSList *l = sl_unqueued;		/* Only downloads not in the queue */
 
-	if (queue_frozen > 0)
+	if (queue_frozen > 0) {
+		gui_update_download_clear_now();
 		return;
+	}
 
 	while (l) {
 		struct download *d = (struct download *) l->data;
@@ -538,6 +540,7 @@ void download_timer(time_t now)
 		FALSE);
 
 	download_free_removed();
+	gui_update_download_clear_now();
 
 	/* Dequeuing */
 	if (is_inet_connected)
