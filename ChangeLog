@@ -1,5 +1,11 @@
 # since last version
 
+- (2002.05.07 - RAM)
+  * Now that local_ip is persistent, we need to refresh it regularily in case
+    it changes from one invocation to the other, and not always trust its
+    persisted settings.
+  * Changed "Shutdowning" -> "Closing".
+
 - (2002.05.07 - Richard)
   * Added "Remove all matching regex from queue" to downloads panel
     (case sensitivity is not persistent yet)
