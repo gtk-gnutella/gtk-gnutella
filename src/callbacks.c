@@ -1468,7 +1468,8 @@ void on_entry_search_changed(GtkEditable * editable, gpointer user_data)
 
 void on_button_search_close_clicked(GtkButton * button, gpointer user_data)
 {
-	search_close_current();
+    if (current_search != NULL)
+        search_close(current_search);
 }
 
 void on_button_search_download_clicked(GtkButton * button, gpointer user_data)
@@ -2156,9 +2157,36 @@ BIND_SPINBUTTON_CALL(
 void on_button_search_passive_clicked(GtkButton * button,
 									  gpointer user_data)
 {
-	search_t *sch;
-	sch = _new_search(minimum_speed, "Passive", SEARCH_PASSIVE);
-	gtk_widget_grab_focus(ctree_menu);
+    filter_t *default_filter;
+	search_t *search;
+
+    /*
+     * We have to capture the selection here already, because
+     * new_search will trigger a rebuild of the menu as a
+     * side effect.
+     */
+    default_filter = (filter_t *)
+        option_menu_get_selected_data(optionmenu_search_filter);
+
+	search = _new_search(minimum_speed, "Passive", SEARCH_PASSIVE);
+
+    /*
+     * If we should set a default filter, we do that.
+     */
+    if (default_filter != NULL) {
+        rule_t *rule = filter_new_jump_rule
+            (default_filter, RULE_FLAG_ACTIVE);
+            
+        /*
+         * Since we don't want to distrub the shadows and
+         * do a "force commit" without the user having pressed
+         * the "ok" button in the dialog, we add the rule
+         * manually.
+         */
+        search->filter->ruleset = 
+            g_list_append(search->filter->ruleset, rule);
+        rule->target->refcount ++;
+    }
 }
 
 void on_checkbutton_downloads_never_push_toggled(GtkToggleButton * togglebutton,
@@ -2533,8 +2561,8 @@ void on_popup_search_filters_activate(GtkMenuItem * menuitem,
 void on_popup_search_close_activate(GtkMenuItem * menuitem,
 									gpointer user_data)
 {
-	if (current_search)
-		search_close_current();
+	if (current_search != NULL)
+		search_close(current_search);
 }
 
 void on_popup_search_toggle_tabs_activate(GtkMenuItem * menuitem,
