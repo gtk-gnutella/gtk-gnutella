@@ -1256,6 +1256,13 @@ static prop_map_t property_map[] = {
     },
     {
         get_main_window,
+        PROP_GNET_STATS_FC_PERC,
+        update_togglebutton,
+        TRUE,
+        "checkbutton_gnet_stats_fc_perc"
+    },
+    {
+        get_main_window,
         PROP_GNET_STATS_DROP_PERC,
         update_togglebutton,
         TRUE,

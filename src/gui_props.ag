@@ -190,6 +190,17 @@ prop = {
 };
 
 prop = {
+    name = "gnet_stats_fc_col_widths";
+    cfgvar = "widths_gnet_stats_fc";
+    desc = "Widths of the columns in the gnet flow control stats table";
+    type = guint32;
+    vector_size = 10;
+    data = {
+        default = "{ 60, 20, 20, 20, 20, 20, 20, 20, 20, 20 }";
+    };
+};
+
+prop = {
     name = "gnet_stats_drop_reasons_col_widths";
     cfgvar = "widths_gnet_stats_drop_reasons";
     desc = "Widths of the columns in the gnet stats drop reasons table";
@@ -562,6 +573,16 @@ prop = {
     name = "gnet_stats_byte_perc";
     desc = "Show percentages instead of absolute values in the gnet stats "
            "(bytes display)";
+    type = boolean;
+    data = {
+        default = FALSE;
+    };
+};
+
+prop = {
+    name = "gnet_stats_fc_perc";
+    desc = "Show percentages instead of absolute values in the gnet stats "
+           "(flow control display)";
     type = boolean;
     data = {
         default = FALSE;
