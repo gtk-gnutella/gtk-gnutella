@@ -43,10 +43,13 @@ extern guint32  ul_stats_col_widths[5];
 extern guint32  uploads_col_widths[6];
 extern guint32  filter_rules_col_widths[4];
 extern guint32  filter_filters_col_widths[3];
+extern guint32  gnet_stats_col_widths[5];
+extern guint32  gnet_stats_drop_reasons_col_widths[2];
 extern guint32  window_coords[4];
 extern guint32  filter_dlg_coords[4];
 extern guint32  downloads_divider_pos;
 extern guint32  main_divider_pos;
+extern guint32  gnet_stats_divider_pos;
 extern guint32  side_divider_pos;
 extern guint32  search_max_results;
 extern guint32  gui_debug;
@@ -74,6 +77,8 @@ extern guint32  default_minimum_speed;
 extern gboolean search_stats_enabled;
 extern guint32  search_stats_update_interval;
 extern guint32  search_stats_delcoef;
+extern gboolean confirm_quit;
+extern gboolean show_tooltips;
 
 
 prop_set_t *gui_prop_init(void);

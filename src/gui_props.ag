@@ -168,6 +168,28 @@ prop = {
 };
 
 prop = {
+    name = "gnet_stats_col_widths";
+    cfgvar = "widths_gnet_stats";
+    desc = "Widths of the columns in the gnet stats table";
+    type = guint32;
+    vector_size = 5;
+    data = {
+        default = "{ 60, 20, 20, 20, 20 }";
+    };
+};
+
+prop = {
+    name = "gnet_stats_drop_reasons_col_widths";
+    cfgvar = "widths_gnet_stats_drop_reasons";
+    desc = "Widths of the columns in the gnet stats drop reasons table";
+    type = guint32;
+    vector_size = 2;
+    data = {
+        default = "{ 60, 20 }";
+    };
+};
+
+prop = {
     name = "window_coords";
     desc = "Position and size of the main window";
     type = guint32;
@@ -204,7 +226,18 @@ prop = {
     desc = "Size of the sidebar";
     type = guint32;
     data = {
-        default = 0x0000;
+        default = 120;
+        min     = 0x0000;
+        max     = 0xFFFF;
+    };
+};
+
+prop = {
+    name = "gnet_stats_divider_pos";
+    desc = "Position of the divider in the gnet stats pane";
+    type = guint32;
+    data = {
+        default = 300;
         min     = 0x0000;
         max     = 0xFFFF;
     };
@@ -215,7 +248,7 @@ prop = {
     desc = "Size of the menu in the sidebar";
     type = guint32;
     data = {
-        default = 0x0000;
+        default = 100;
         min     = 0x0000;
         max     = 0xFFFF;
     };
@@ -468,5 +501,24 @@ prop = {
         default = 25;
         min     = 0;
         max     = 100;
+    };
+};
+
+prop = {
+    name = "confirm_quit";
+    desc = "Show confirmation dialog when leaving gtk-gnutella";
+    type = boolean;
+    data = {
+        default = TRUE;
+    };
+};
+
+prop = {
+    name = "show_tooltips";
+    desc = "Show a helpful message when the mouse pointer lingers "
+           "over a widget";
+    type = boolean;
+    data = {
+        default = TRUE;
     };
 };
