@@ -813,6 +813,8 @@ static void recurse_scan(gchar *dir, const gchar *basedir)
 	GSList *files = NULL;
 	GSList *directories = NULL;
 	gchar *dir_slash = NULL;
+	gboolean in_tmpdir = FALSE;
+	gint tmpdir_len;
 	GSList *l;
 	gint i;
 
@@ -851,11 +853,44 @@ static void recurse_scan(gchar *dir, const gchar *basedir)
 		}
 	}
 
+	/*
+	 * Look whether we are under the "tmp" directory where downloaded
+	 * files are shared.
+	 */
+
+	tmpdir_len = strlen(save_file_path);
+
+	if (0 == strncmp(dir_slash, save_file_path, tmpdir_len)) {
+		/*
+		 * Need additional check in case the "tmp" directory does not end
+		 * with a "/".  We could have dir_slash="/a/bc/" and the tmp dir set
+		 * to "/a/b" only.  That would make the above test true, but we
+		 * would not be under the tmp directory.
+		 */
+
+		if (save_file_path[tmpdir_len - 1] != '/')
+			in_tmpdir = (dir_slash[tmpdir_len] == '/');
+		else
+			in_tmpdir = TRUE;		/* Was ending with "/", so we're sure */
+	}
+
 	for (i = 0, l = files; l; i++, l = l->next) {
 		gchar *name;
 		gint name_len;
 
 		full = (gchar *) l->data;
+
+		/*
+		 * In the "tmp" directory, don't share files that have a trailer.
+		 * It's probably a file being downloaded, and which is not complete yet.
+		 * This check is necessary in case they choose to share their
+		 * downloading directory...
+		 */
+
+		if (in_tmpdir && file_info_has_trailer(full)) {
+			g_warning("will not share partial file \"%s\"", full);
+			continue;
+		}
 
 		name = strrchr(full, '/');
 		g_assert(name);
