@@ -41,7 +41,6 @@ INSTALLDIR = $INSTALLDIR
 # Parameters set by Configure -- edit config.sh if changes are needed
 
 CTAGS = ctags
-$make_set_make
 MV = $mv
 PRIVLIB = $installprivlib
 RM = $rm -f
@@ -50,12 +49,12 @@ RM = $rm -f
 $spitshell >>Makefile <<'!NO!SUBS!'
 ########################################################################
 # Jmake rules for building libraries, programs, scripts, and data files
-# $X-Id: Jmake.rules,v 3.0.1.6 1997/02/28 14:56:01 ram Exp ram $
+# $X-Id: Jmake.rules,v 3.0.1.7 2004/08/22 08:28:58 ram Exp ram $
 
 ########################################################################
 # Start of Jmakefile
 
-# $X-Id: Jmakefile,v 1.4 2004/04/15 12:20:35 rmanfredi Exp $
+# $X-Id: Jmakefile,v 1.6 2004/09/12 13:03:26 rmanfredi Exp $
 
 PIXMAPS = \
 	arrow_down.xpm \
@@ -69,6 +68,8 @@ PIXMAPS = \
 	exit.xpm \
 	filter.xpm \
 	firewall.xpm \
+	firewall_tcp.xpm \
+	firewall_udp.xpm \
 	freeze.xpm \
 	icon.xpm \
 	leaf.xpm \
@@ -88,6 +89,7 @@ all::
 INSTALLFLAGS = -m 444
 
 local_install::
+
 	@case '${MFLAGS}' in *[i]*) set +e;; esac; \
 	for dir in $(PRIVLIB)/pixmaps; do	\
 	(set -x; test -d $(INSTALL_PREFIX)$$dir || \
@@ -95,6 +97,7 @@ local_install::
 	done
 
 local_deinstall::
+
 	@case '${MFLAGS}' in *[i]*) set +e;; esac; \
 	for dir in $(PRIVLIB)/pixmaps; do \
 		(set -x; test -d $$dir && $(RM) -r $(INSTALL_PREFIX)$$dir); \
@@ -124,7 +127,8 @@ realclean: local_realclean
 clobber: local_clobber
 
 local_clean::
-	$(RM) core *~ *.o
+	if test -f core; then $(RM) core; fi
+	$(RM) *~ *.o
 
 local_realclean:: local_clean
 
