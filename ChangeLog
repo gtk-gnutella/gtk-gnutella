@@ -13,6 +13,8 @@
 	the file we have does not match.
   * Will now send back X-Gnutella-Content-URN in the HTTP reply with the SHA1
     (if we have it) on 503 Busy errors.
+  * Applied cleanup patch #557071 [From Uros Bizjak].
+  * Applied Solaris compile patch #558202 [From Uros Bizjak].
 
 - (2002.05.20 - Richard)
   * Added "User agent" column to uploads
