@@ -358,7 +358,7 @@ create_main_window (void)
   GtkWidget *label190;
   GtkWidget *frame_search_results_settings;
   GtkWidget *hbox182;
-  GtkWidget *frame81;
+  GtkWidget *frame_expert_search_autoselect;
   GtkWidget *vbox114;
   GtkWidget *checkbutton_search_autoselect;
   GtkWidget *checkbutton_search_autoselect_ident;
@@ -379,6 +379,7 @@ create_main_window (void)
   GtkWidget *viewport_fix_flashing_1;
   GtkWidget *hbox167;
   GtkWidget *label_items_found;
+  GtkWidget *hbox_expert_search_timeout;
   GtkWidget *search_reissue_label;
   GtkObject *spinbutton_search_reissue_timeout_adj;
   GtkWidget *spinbutton_search_reissue_timeout;
@@ -1095,6 +1096,8 @@ create_main_window (void)
   GtkWidget *image_offline;
   GtkWidget *alignment25;
   GtkWidget *statusbar;
+  GtkWidget *frame123;
+  GtkWidget *hbox199;
   GtkWidget *eventbox_image_fd_shortage;
   GtkWidget *image_fd_shortage;
   GtkWidget *eventbox_image_fd_runout;
@@ -1119,6 +1122,7 @@ create_main_window (void)
   GtkWidget *image_legacy;
   GtkWidget *eventbox_image_ultra;
   GtkWidget *image_ultra;
+  GtkWidget *frame124;
   GtkWidget *label_statusbar_uptime;
   GtkAccelGroup *accel_group;
   GtkTooltips *tooltips;
@@ -1539,7 +1543,7 @@ create_main_window (void)
   gtk_widget_show (hbox179);
   gtk_box_pack_start (GTK_BOX (vbox113), hbox179, TRUE, TRUE, 0);
 
-  label204 = gtk_label_new (_("Search:"));
+  label204 = gtk_label_new (_("New search:"));
   gtk_widget_set_name (label204, "label204");
   gtk_widget_ref (label204);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "label204", label204,
@@ -1563,7 +1567,7 @@ create_main_window (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (entry_search);
 
-  hbox180 = gtk_hbox_new (FALSE, 0);
+  hbox180 = gtk_hbox_new (FALSE, 4);
   gtk_widget_set_name (hbox180, "hbox180");
   gtk_widget_ref (hbox180);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "hbox180", hbox180,
@@ -4113,14 +4117,14 @@ create_main_window (void)
   gtk_container_add (GTK_CONTAINER (frame_search_results_settings), hbox182);
   gtk_container_set_border_width (GTK_CONTAINER (hbox182), 2);
 
-  frame81 = gtk_frame_new (_("Autoselection"));
-  gtk_widget_set_name (frame81, "frame81");
-  gtk_widget_ref (frame81);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "frame81", frame81,
+  frame_expert_search_autoselect = gtk_frame_new (_("Autoselection"));
+  gtk_widget_set_name (frame_expert_search_autoselect, "frame_expert_search_autoselect");
+  gtk_widget_ref (frame_expert_search_autoselect);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "frame_expert_search_autoselect", frame_expert_search_autoselect,
                             (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (frame81);
-  gtk_box_pack_start (GTK_BOX (hbox182), frame81, FALSE, TRUE, 0);
-  gtk_frame_set_shadow_type (GTK_FRAME (frame81), GTK_SHADOW_OUT);
+  gtk_widget_show (frame_expert_search_autoselect);
+  gtk_box_pack_start (GTK_BOX (hbox182), frame_expert_search_autoselect, FALSE, TRUE, 0);
+  gtk_frame_set_shadow_type (GTK_FRAME (frame_expert_search_autoselect), GTK_SHADOW_OUT);
 
   vbox114 = gtk_vbox_new (FALSE, 2);
   gtk_widget_set_name (vbox114, "vbox114");
@@ -4128,7 +4132,7 @@ create_main_window (void)
   gtk_object_set_data_full (GTK_OBJECT (main_window), "vbox114", vbox114,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (vbox114);
-  gtk_container_add (GTK_CONTAINER (frame81), vbox114);
+  gtk_container_add (GTK_CONTAINER (frame_expert_search_autoselect), vbox114);
   gtk_container_set_border_width (GTK_CONTAINER (vbox114), 2);
 
   checkbutton_search_autoselect = gtk_check_button_new_with_label (_("Enable autoselect"));
@@ -4301,13 +4305,21 @@ create_main_window (void)
   gtk_misc_set_alignment (GTK_MISC (label_items_found), 7.45058e-09, 0.5);
   gtk_misc_set_padding (GTK_MISC (label_items_found), 5, 0);
 
+  hbox_expert_search_timeout = gtk_hbox_new (FALSE, 4);
+  gtk_widget_set_name (hbox_expert_search_timeout, "hbox_expert_search_timeout");
+  gtk_widget_ref (hbox_expert_search_timeout);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "hbox_expert_search_timeout", hbox_expert_search_timeout,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (hbox_expert_search_timeout);
+  gtk_box_pack_start (GTK_BOX (hbox147), hbox_expert_search_timeout, FALSE, FALSE, 0);
+
   search_reissue_label = gtk_label_new (_("Retry search every"));
   gtk_widget_set_name (search_reissue_label, "search_reissue_label");
   gtk_widget_ref (search_reissue_label);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "search_reissue_label", search_reissue_label,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (search_reissue_label);
-  gtk_box_pack_start (GTK_BOX (hbox147), search_reissue_label, FALSE, FALSE, 0);
+  gtk_box_pack_start (GTK_BOX (hbox_expert_search_timeout), search_reissue_label, FALSE, FALSE, 0);
   gtk_misc_set_alignment (GTK_MISC (search_reissue_label), 1, 0.5);
 
   spinbutton_search_reissue_timeout_adj = gtk_adjustment_new (600, 600, 100000, 60, 600, 600);
@@ -4317,7 +4329,7 @@ create_main_window (void)
   gtk_object_set_data_full (GTK_OBJECT (main_window), "spinbutton_search_reissue_timeout", spinbutton_search_reissue_timeout,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (spinbutton_search_reissue_timeout);
-  gtk_box_pack_start (GTK_BOX (hbox147), spinbutton_search_reissue_timeout, FALSE, TRUE, 0);
+  gtk_box_pack_start (GTK_BOX (hbox_expert_search_timeout), spinbutton_search_reissue_timeout, TRUE, TRUE, 0);
   gtk_widget_set_usize (spinbutton_search_reissue_timeout, 70, -2);
   gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_search_reissue_timeout), TRUE);
 
@@ -4327,7 +4339,7 @@ create_main_window (void)
   gtk_object_set_data_full (GTK_OBJECT (main_window), "label246", label246,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (label246);
-  gtk_box_pack_start (GTK_BOX (hbox147), label246, FALSE, FALSE, 0);
+  gtk_box_pack_start (GTK_BOX (hbox_expert_search_timeout), label246, FALSE, FALSE, 0);
 
   hbox181 = gtk_hbox_new (FALSE, 4);
   gtk_widget_set_name (hbox181, "hbox181");
@@ -10668,13 +10680,30 @@ create_main_window (void)
   gtk_widget_show (statusbar);
   gtk_container_add (GTK_CONTAINER (alignment25), statusbar);
 
+  frame123 = gtk_frame_new (NULL);
+  gtk_widget_set_name (frame123, "frame123");
+  gtk_widget_ref (frame123);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "frame123", frame123,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (frame123);
+  gtk_box_pack_start (GTK_BOX (hbox_statusbar), frame123, FALSE, TRUE, 0);
+  gtk_frame_set_shadow_type (GTK_FRAME (frame123), GTK_SHADOW_IN);
+
+  hbox199 = gtk_hbox_new (FALSE, 0);
+  gtk_widget_set_name (hbox199, "hbox199");
+  gtk_widget_ref (hbox199);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "hbox199", hbox199,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (hbox199);
+  gtk_container_add (GTK_CONTAINER (frame123), hbox199);
+
   eventbox_image_fd_shortage = gtk_event_box_new ();
   gtk_widget_set_name (eventbox_image_fd_shortage, "eventbox_image_fd_shortage");
   gtk_widget_ref (eventbox_image_fd_shortage);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "eventbox_image_fd_shortage", eventbox_image_fd_shortage,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (eventbox_image_fd_shortage);
-  gtk_box_pack_start (GTK_BOX (hbox_statusbar), eventbox_image_fd_shortage, FALSE, TRUE, 0);
+  gtk_box_pack_start (GTK_BOX (hbox199), eventbox_image_fd_shortage, TRUE, TRUE, 0);
 
   image_fd_shortage = create_pixmap (main_window, "clanbomber_yellow.xpm");
   gtk_widget_set_name (image_fd_shortage, "image_fd_shortage");
@@ -10691,7 +10720,7 @@ create_main_window (void)
   gtk_object_set_data_full (GTK_OBJECT (main_window), "eventbox_image_fd_runout", eventbox_image_fd_runout,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (eventbox_image_fd_runout);
-  gtk_box_pack_start (GTK_BOX (hbox_statusbar), eventbox_image_fd_runout, FALSE, TRUE, 0);
+  gtk_box_pack_start (GTK_BOX (hbox199), eventbox_image_fd_runout, TRUE, TRUE, 0);
 
   image_fd_runout = create_pixmap (main_window, "clanbomber_red.xpm");
   gtk_widget_set_name (image_fd_runout, "image_fd_runout");
@@ -10708,7 +10737,7 @@ create_main_window (void)
   gtk_object_set_data_full (GTK_OBJECT (main_window), "eventbox_image_ancient", eventbox_image_ancient,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (eventbox_image_ancient);
-  gtk_box_pack_start (GTK_BOX (hbox_statusbar), eventbox_image_ancient, FALSE, TRUE, 0);
+  gtk_box_pack_start (GTK_BOX (hbox199), eventbox_image_ancient, TRUE, TRUE, 0);
 
   image_ancient = create_pixmap (main_window, "stock_form-time-field-16.xpm");
   gtk_widget_set_name (image_ancient, "image_ancient");
@@ -10724,7 +10753,7 @@ create_main_window (void)
   gtk_object_set_data_full (GTK_OBJECT (main_window), "eventbox_image_save", eventbox_image_save,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (eventbox_image_save);
-  gtk_box_pack_start (GTK_BOX (hbox_statusbar), eventbox_image_save, FALSE, TRUE, 0);
+  gtk_box_pack_start (GTK_BOX (hbox199), eventbox_image_save, TRUE, TRUE, 0);
 
   image_save = create_pixmap (main_window, "save.xpm");
   gtk_widget_set_name (image_save, "image_save");
@@ -10741,7 +10770,7 @@ create_main_window (void)
   gtk_object_set_data_full (GTK_OBJECT (main_window), "eventbox_image_sha", eventbox_image_sha,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (eventbox_image_sha);
-  gtk_box_pack_start (GTK_BOX (hbox_statusbar), eventbox_image_sha, FALSE, FALSE, 0);
+  gtk_box_pack_start (GTK_BOX (hbox199), eventbox_image_sha, TRUE, TRUE, 0);
 
   image_sha = create_pixmap (main_window, "booksha.xpm");
   gtk_widget_set_name (image_sha, "image_sha");
@@ -10758,7 +10787,7 @@ create_main_window (void)
   gtk_object_set_data_full (GTK_OBJECT (main_window), "eventbox_image_shav", eventbox_image_shav,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (eventbox_image_shav);
-  gtk_box_pack_start (GTK_BOX (hbox_statusbar), eventbox_image_shav, FALSE, TRUE, 0);
+  gtk_box_pack_start (GTK_BOX (hbox199), eventbox_image_shav, TRUE, TRUE, 0);
 
   image_shav = create_pixmap (main_window, "bookshav.xpm");
   gtk_widget_set_name (image_shav, "image_shav");
@@ -10774,7 +10803,7 @@ create_main_window (void)
   gtk_object_set_data_full (GTK_OBJECT (main_window), "eventbox_image_lib", eventbox_image_lib,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (eventbox_image_lib);
-  gtk_box_pack_start (GTK_BOX (hbox_statusbar), eventbox_image_lib, FALSE, TRUE, 0);
+  gtk_box_pack_start (GTK_BOX (hbox199), eventbox_image_lib, TRUE, TRUE, 0);
 
   image_lib = create_pixmap (main_window, "booklib.xpm");
   gtk_widget_set_name (image_lib, "image_lib");
@@ -10791,7 +10820,7 @@ create_main_window (void)
   gtk_object_set_data_full (GTK_OBJECT (main_window), "eventbox_image_firewall", eventbox_image_firewall,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (eventbox_image_firewall);
-  gtk_box_pack_start (GTK_BOX (hbox_statusbar), eventbox_image_firewall, FALSE, TRUE, 0);
+  gtk_box_pack_start (GTK_BOX (hbox199), eventbox_image_firewall, TRUE, TRUE, 0);
   gtk_tooltips_set_tip (tooltips, eventbox_image_firewall, _("Gtk-gnutella thinks you're firewalled. Nobody has connected to you so far. You will not see any push results which may prevent you from seeing a large amount of results."), NULL);
 
   image_firewall = create_pixmap (main_window, "firewall.xpm");
@@ -10810,7 +10839,7 @@ create_main_window (void)
   gtk_object_set_data_full (GTK_OBJECT (main_window), "eventbox_image_no_firewall", eventbox_image_no_firewall,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (eventbox_image_no_firewall);
-  gtk_box_pack_start (GTK_BOX (hbox_statusbar), eventbox_image_no_firewall, FALSE, FALSE, 0);
+  gtk_box_pack_start (GTK_BOX (hbox199), eventbox_image_no_firewall, TRUE, TRUE, 0);
   gtk_tooltips_set_tip (tooltips, eventbox_image_no_firewall, _("People can connect to you. Push should work."), NULL);
 
   image_no_firewall = create_pixmap (main_window, "no_firewall.xpm");
@@ -10829,7 +10858,7 @@ create_main_window (void)
   gtk_object_set_data_full (GTK_OBJECT (main_window), "eventbox_image_leaf", eventbox_image_leaf,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (eventbox_image_leaf);
-  gtk_box_pack_start (GTK_BOX (hbox_statusbar), eventbox_image_leaf, FALSE, FALSE, 0);
+  gtk_box_pack_start (GTK_BOX (hbox199), eventbox_image_leaf, TRUE, TRUE, 0);
   gtk_tooltips_set_tip (tooltips, eventbox_image_leaf, _("Running in leaf mode."), NULL);
 
   image_leaf = create_pixmap (main_window, "leaf.xpm");
@@ -10847,7 +10876,7 @@ create_main_window (void)
   gtk_object_set_data_full (GTK_OBJECT (main_window), "eventbox_image_legacy", eventbox_image_legacy,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (eventbox_image_legacy);
-  gtk_box_pack_start (GTK_BOX (hbox_statusbar), eventbox_image_legacy, FALSE, FALSE, 0);
+  gtk_box_pack_start (GTK_BOX (hbox199), eventbox_image_legacy, TRUE, TRUE, 0);
   gtk_tooltips_set_tip (tooltips, eventbox_image_legacy, _("Running in legacy mode. Consider switching to auto mode (Config->gNet settings->Current peermode)"), NULL);
 
   image_legacy = create_pixmap (main_window, "legacy.xpm");
@@ -10865,7 +10894,7 @@ create_main_window (void)
   gtk_object_set_data_full (GTK_OBJECT (main_window), "eventbox_image_ultra", eventbox_image_ultra,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (eventbox_image_ultra);
-  gtk_box_pack_start (GTK_BOX (hbox_statusbar), eventbox_image_ultra, FALSE, TRUE, 0);
+  gtk_box_pack_start (GTK_BOX (hbox199), eventbox_image_ultra, TRUE, TRUE, 0);
   gtk_tooltips_set_tip (tooltips, eventbox_image_ultra, _("Running in ultrapeer mode"), NULL);
 
   image_ultra = create_pixmap (main_window, "ultra.xpm");
@@ -10877,13 +10906,22 @@ create_main_window (void)
   gtk_container_add (GTK_CONTAINER (eventbox_image_ultra), image_ultra);
   gtk_pixmap_set_build_insensitive (GTK_PIXMAP (image_ultra), FALSE);
 
+  frame124 = gtk_frame_new (NULL);
+  gtk_widget_set_name (frame124, "frame124");
+  gtk_widget_ref (frame124);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "frame124", frame124,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (frame124);
+  gtk_box_pack_start (GTK_BOX (hbox_statusbar), frame124, FALSE, FALSE, 0);
+  gtk_frame_set_shadow_type (GTK_FRAME (frame124), GTK_SHADOW_IN);
+
   label_statusbar_uptime = gtk_label_new (_("Uptime"));
   gtk_widget_set_name (label_statusbar_uptime, "label_statusbar_uptime");
   gtk_widget_ref (label_statusbar_uptime);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "label_statusbar_uptime", label_statusbar_uptime,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (label_statusbar_uptime);
-  gtk_box_pack_start (GTK_BOX (hbox_statusbar), label_statusbar_uptime, FALSE, FALSE, 0);
+  gtk_container_add (GTK_CONTAINER (frame124), label_statusbar_uptime);
   gtk_misc_set_padding (GTK_MISC (label_statusbar_uptime), 5, 0);
 
   gtk_signal_connect (GTK_OBJECT (main_window), "delete_event",
@@ -15206,5 +15244,18 @@ create_dlg_quit (void)
 
   gtk_widget_grab_default (button_abort_quit);
   return dlg_quit;
+}
+
+GtkWidget*
+create_window1 (void)
+{
+  GtkWidget *window1;
+
+  window1 = gtk_window_new (GTK_WINDOW_TOPLEVEL);
+  gtk_widget_set_name (window1, "window1");
+  gtk_object_set_data (GTK_OBJECT (window1), "window1", window1);
+  gtk_window_set_title (GTK_WINDOW (window1), _("window1"));
+
+  return window1;
 }
 

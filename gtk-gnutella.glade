@@ -466,7 +466,7 @@
 	      <widget>
 		<class>GtkLabel</class>
 		<name>label204</name>
-		<label>Search:</label>
+		<label>New search:</label>
 		<justify>GTK_JUSTIFY_CENTER</justify>
 		<wrap>False</wrap>
 		<xalign>0.5</xalign>
@@ -522,7 +522,7 @@
 	      <class>GtkHBox</class>
 	      <name>hbox180</name>
 	      <homogeneous>False</homogeneous>
-	      <spacing>0</spacing>
+	      <spacing>4</spacing>
 	      <child>
 		<padding>0</padding>
 		<expand>True</expand>
@@ -4978,7 +4978,7 @@
 
 		  <widget>
 		    <class>GtkFrame</class>
-		    <name>frame81</name>
+		    <name>frame_expert_search_autoselect</name>
 		    <label>Autoselection</label>
 		    <label_xalign>0</label_xalign>
 		    <shadow_type>GTK_SHADOW_OUT</shadow_type>
@@ -5311,67 +5311,79 @@
 		</widget>
 
 		<widget>
-		  <class>GtkLabel</class>
-		  <name>search_reissue_label</name>
-		  <label>Retry search every</label>
-		  <justify>GTK_JUSTIFY_CENTER</justify>
-		  <wrap>False</wrap>
-		  <xalign>1</xalign>
-		  <yalign>0.5</yalign>
-		  <xpad>0</xpad>
-		  <ypad>0</ypad>
+		  <class>GtkHBox</class>
+		  <name>hbox_expert_search_timeout</name>
+		  <homogeneous>False</homogeneous>
+		  <spacing>4</spacing>
 		  <child>
 		    <padding>0</padding>
 		    <expand>False</expand>
 		    <fill>False</fill>
 		  </child>
-		</widget>
 
-		<widget>
-		  <class>GtkSpinButton</class>
-		  <name>spinbutton_search_reissue_timeout</name>
-		  <width>70</width>
-		  <can_focus>True</can_focus>
-		  <signal>
-		    <name>changed</name>
-		    <handler>on_spinbutton_search_reissue_timeout_changed</handler>
-		    <after>True</after>
-		    <last_modification_time>Thu, 18 Jul 2002 03:17:08 GMT</last_modification_time>
-		  </signal>
-		  <climb_rate>1</climb_rate>
-		  <digits>0</digits>
-		  <numeric>True</numeric>
-		  <update_policy>GTK_UPDATE_ALWAYS</update_policy>
-		  <snap>False</snap>
-		  <wrap>False</wrap>
-		  <value>600</value>
-		  <lower>600</lower>
-		  <upper>100000</upper>
-		  <step>60</step>
-		  <page>600</page>
-		  <page_size>600</page_size>
-		  <child>
-		    <padding>0</padding>
-		    <expand>False</expand>
-		    <fill>True</fill>
-		  </child>
-		</widget>
+		  <widget>
+		    <class>GtkLabel</class>
+		    <name>search_reissue_label</name>
+		    <label>Retry search every</label>
+		    <justify>GTK_JUSTIFY_CENTER</justify>
+		    <wrap>False</wrap>
+		    <xalign>1</xalign>
+		    <yalign>0.5</yalign>
+		    <xpad>0</xpad>
+		    <ypad>0</ypad>
+		    <child>
+		      <padding>0</padding>
+		      <expand>False</expand>
+		      <fill>False</fill>
+		    </child>
+		  </widget>
 
-		<widget>
-		  <class>GtkLabel</class>
-		  <name>label246</name>
-		  <label>secs   </label>
-		  <justify>GTK_JUSTIFY_CENTER</justify>
-		  <wrap>False</wrap>
-		  <xalign>0.5</xalign>
-		  <yalign>0.5</yalign>
-		  <xpad>0</xpad>
-		  <ypad>0</ypad>
-		  <child>
-		    <padding>0</padding>
-		    <expand>False</expand>
-		    <fill>False</fill>
-		  </child>
+		  <widget>
+		    <class>GtkSpinButton</class>
+		    <name>spinbutton_search_reissue_timeout</name>
+		    <width>70</width>
+		    <can_focus>True</can_focus>
+		    <signal>
+		      <name>changed</name>
+		      <handler>on_spinbutton_search_reissue_timeout_changed</handler>
+		      <after>True</after>
+		      <last_modification_time>Thu, 18 Jul 2002 03:17:08 GMT</last_modification_time>
+		    </signal>
+		    <climb_rate>1</climb_rate>
+		    <digits>0</digits>
+		    <numeric>True</numeric>
+		    <update_policy>GTK_UPDATE_ALWAYS</update_policy>
+		    <snap>False</snap>
+		    <wrap>False</wrap>
+		    <value>600</value>
+		    <lower>600</lower>
+		    <upper>100000</upper>
+		    <step>60</step>
+		    <page>600</page>
+		    <page_size>600</page_size>
+		    <child>
+		      <padding>0</padding>
+		      <expand>True</expand>
+		      <fill>True</fill>
+		    </child>
+		  </widget>
+
+		  <widget>
+		    <class>GtkLabel</class>
+		    <name>label246</name>
+		    <label>secs   </label>
+		    <justify>GTK_JUSTIFY_CENTER</justify>
+		    <wrap>False</wrap>
+		    <xalign>0.5</xalign>
+		    <yalign>0.5</yalign>
+		    <xpad>0</xpad>
+		    <ypad>0</ypad>
+		    <child>
+		      <padding>0</padding>
+		      <expand>False</expand>
+		      <fill>False</fill>
+		    </child>
+		  </widget>
 		</widget>
 	      </widget>
 
@@ -17598,8 +17610,10 @@ interface</label>
       </widget>
 
       <widget>
-	<class>GtkEventBox</class>
-	<name>eventbox_image_fd_shortage</name>
+	<class>GtkFrame</class>
+	<name>frame123</name>
+	<label_xalign>0</label_xalign>
+	<shadow_type>GTK_SHADOW_IN</shadow_type>
 	<child>
 	  <padding>0</padding>
 	  <expand>False</expand>
@@ -17607,83 +17621,275 @@ interface</label>
 	</child>
 
 	<widget>
-	  <class>GtkPixmap</class>
-	  <name>image_fd_shortage</name>
-	  <filename>clanbomber_yellow.xpm</filename>
-	  <xalign>0.5</xalign>
-	  <yalign>0.5</yalign>
-	  <xpad>0</xpad>
-	  <ypad>0</ypad>
-	  <build_insensitive>False</build_insensitive>
+	  <class>GtkHBox</class>
+	  <name>hbox199</name>
+	  <homogeneous>False</homogeneous>
+	  <spacing>0</spacing>
+
+	  <widget>
+	    <class>GtkEventBox</class>
+	    <name>eventbox_image_fd_shortage</name>
+	    <child>
+	      <padding>0</padding>
+	      <expand>True</expand>
+	      <fill>True</fill>
+	    </child>
+
+	    <widget>
+	      <class>GtkPixmap</class>
+	      <name>image_fd_shortage</name>
+	      <filename>clanbomber_yellow.xpm</filename>
+	      <xalign>0.5</xalign>
+	      <yalign>0.5</yalign>
+	      <xpad>0</xpad>
+	      <ypad>0</ypad>
+	      <build_insensitive>False</build_insensitive>
+	    </widget>
+	  </widget>
+
+	  <widget>
+	    <class>GtkEventBox</class>
+	    <name>eventbox_image_fd_runout</name>
+	    <child>
+	      <padding>0</padding>
+	      <expand>True</expand>
+	      <fill>True</fill>
+	    </child>
+
+	    <widget>
+	      <class>GtkPixmap</class>
+	      <name>image_fd_runout</name>
+	      <filename>clanbomber_red.xpm</filename>
+	      <xalign>0.5</xalign>
+	      <yalign>0.5</yalign>
+	      <xpad>0</xpad>
+	      <ypad>0</ypad>
+	      <build_insensitive>False</build_insensitive>
+	    </widget>
+	  </widget>
+
+	  <widget>
+	    <class>GtkEventBox</class>
+	    <name>eventbox_image_ancient</name>
+	    <child>
+	      <padding>0</padding>
+	      <expand>True</expand>
+	      <fill>True</fill>
+	    </child>
+
+	    <widget>
+	      <class>GtkPixmap</class>
+	      <name>image_ancient</name>
+	      <filename>stock_form-time-field-16.xpm</filename>
+	      <xalign>0.5</xalign>
+	      <yalign>0.5</yalign>
+	      <xpad>0</xpad>
+	      <ypad>0</ypad>
+	      <build_insensitive>True</build_insensitive>
+	    </widget>
+	  </widget>
+
+	  <widget>
+	    <class>GtkEventBox</class>
+	    <name>eventbox_image_save</name>
+	    <child>
+	      <padding>0</padding>
+	      <expand>True</expand>
+	      <fill>True</fill>
+	    </child>
+
+	    <widget>
+	      <class>GtkPixmap</class>
+	      <name>image_save</name>
+	      <filename>save.xpm</filename>
+	      <xalign>0.5</xalign>
+	      <yalign>0.5</yalign>
+	      <xpad>1</xpad>
+	      <ypad>0</ypad>
+	      <build_insensitive>True</build_insensitive>
+	    </widget>
+	  </widget>
+
+	  <widget>
+	    <class>GtkEventBox</class>
+	    <name>eventbox_image_sha</name>
+	    <child>
+	      <padding>0</padding>
+	      <expand>True</expand>
+	      <fill>True</fill>
+	    </child>
+
+	    <widget>
+	      <class>GtkPixmap</class>
+	      <name>image_sha</name>
+	      <filename>booksha.xpm</filename>
+	      <xalign>0.5</xalign>
+	      <yalign>0.5</yalign>
+	      <xpad>1</xpad>
+	      <ypad>0</ypad>
+	      <build_insensitive>True</build_insensitive>
+	    </widget>
+	  </widget>
+
+	  <widget>
+	    <class>GtkEventBox</class>
+	    <name>eventbox_image_shav</name>
+	    <child>
+	      <padding>0</padding>
+	      <expand>True</expand>
+	      <fill>True</fill>
+	    </child>
+
+	    <widget>
+	      <class>GtkPixmap</class>
+	      <name>image_shav</name>
+	      <filename>bookshav.xpm</filename>
+	      <xalign>0.5</xalign>
+	      <yalign>0.5</yalign>
+	      <xpad>0</xpad>
+	      <ypad>0</ypad>
+	      <build_insensitive>True</build_insensitive>
+	    </widget>
+	  </widget>
+
+	  <widget>
+	    <class>GtkEventBox</class>
+	    <name>eventbox_image_lib</name>
+	    <child>
+	      <padding>0</padding>
+	      <expand>True</expand>
+	      <fill>True</fill>
+	    </child>
+
+	    <widget>
+	      <class>GtkPixmap</class>
+	      <name>image_lib</name>
+	      <filename>booklib.xpm</filename>
+	      <xalign>0.5</xalign>
+	      <yalign>0.5</yalign>
+	      <xpad>1</xpad>
+	      <ypad>0</ypad>
+	      <build_insensitive>True</build_insensitive>
+	    </widget>
+	  </widget>
+
+	  <widget>
+	    <class>GtkEventBox</class>
+	    <name>eventbox_image_firewall</name>
+	    <tooltip>Gtk-gnutella thinks you're firewalled. Nobody has connected to you so far. You will not see any push results which may prevent you from seeing a large amount of results.</tooltip>
+	    <child>
+	      <padding>0</padding>
+	      <expand>True</expand>
+	      <fill>True</fill>
+	    </child>
+
+	    <widget>
+	      <class>GtkPixmap</class>
+	      <name>image_firewall</name>
+	      <filename>firewall.xpm</filename>
+	      <xalign>0.5</xalign>
+	      <yalign>0.5</yalign>
+	      <xpad>1</xpad>
+	      <ypad>0</ypad>
+	      <build_insensitive>False</build_insensitive>
+	    </widget>
+	  </widget>
+
+	  <widget>
+	    <class>GtkEventBox</class>
+	    <name>eventbox_image_no_firewall</name>
+	    <tooltip>People can connect to you. Push should work.</tooltip>
+	    <child>
+	      <padding>0</padding>
+	      <expand>True</expand>
+	      <fill>True</fill>
+	    </child>
+
+	    <widget>
+	      <class>GtkPixmap</class>
+	      <name>image_no_firewall</name>
+	      <filename>no_firewall.xpm</filename>
+	      <xalign>0.5</xalign>
+	      <yalign>0.5</yalign>
+	      <xpad>1</xpad>
+	      <ypad>0</ypad>
+	      <build_insensitive>False</build_insensitive>
+	    </widget>
+	  </widget>
+
+	  <widget>
+	    <class>GtkEventBox</class>
+	    <name>eventbox_image_leaf</name>
+	    <tooltip>Running in leaf mode.</tooltip>
+	    <child>
+	      <padding>0</padding>
+	      <expand>True</expand>
+	      <fill>True</fill>
+	    </child>
+
+	    <widget>
+	      <class>GtkPixmap</class>
+	      <name>image_leaf</name>
+	      <filename>leaf.xpm</filename>
+	      <xalign>0.5</xalign>
+	      <yalign>0.5</yalign>
+	      <xpad>0</xpad>
+	      <ypad>0</ypad>
+	      <build_insensitive>False</build_insensitive>
+	    </widget>
+	  </widget>
+
+	  <widget>
+	    <class>GtkEventBox</class>
+	    <name>eventbox_image_legacy</name>
+	    <tooltip>Running in legacy mode. Consider switching to auto mode (Config-&gt;gNet settings-&gt;Current peermode)</tooltip>
+	    <child>
+	      <padding>0</padding>
+	      <expand>True</expand>
+	      <fill>True</fill>
+	    </child>
+
+	    <widget>
+	      <class>GtkPixmap</class>
+	      <name>image_legacy</name>
+	      <filename>legacy.xpm</filename>
+	      <xalign>0.5</xalign>
+	      <yalign>0.5</yalign>
+	      <xpad>0</xpad>
+	      <ypad>0</ypad>
+	      <build_insensitive>False</build_insensitive>
+	    </widget>
+	  </widget>
+
+	  <widget>
+	    <class>GtkEventBox</class>
+	    <name>eventbox_image_ultra</name>
+	    <tooltip>Running in ultrapeer mode</tooltip>
+	    <child>
+	      <padding>0</padding>
+	      <expand>True</expand>
+	      <fill>True</fill>
+	    </child>
+
+	    <widget>
+	      <class>GtkPixmap</class>
+	      <name>image_ultra</name>
+	      <filename>ultra.xpm</filename>
+	      <xalign>0.5</xalign>
+	      <yalign>0.5</yalign>
+	      <xpad>0</xpad>
+	      <ypad>0</ypad>
+	      <build_insensitive>False</build_insensitive>
+	    </widget>
+	  </widget>
 	</widget>
       </widget>
 
       <widget>
-	<class>GtkEventBox</class>
-	<name>eventbox_image_fd_runout</name>
-	<child>
-	  <padding>0</padding>
-	  <expand>False</expand>
-	  <fill>True</fill>
-	</child>
-
-	<widget>
-	  <class>GtkPixmap</class>
-	  <name>image_fd_runout</name>
-	  <filename>clanbomber_red.xpm</filename>
-	  <xalign>0.5</xalign>
-	  <yalign>0.5</yalign>
-	  <xpad>0</xpad>
-	  <ypad>0</ypad>
-	  <build_insensitive>False</build_insensitive>
-	</widget>
-      </widget>
-
-      <widget>
-	<class>GtkEventBox</class>
-	<name>eventbox_image_ancient</name>
-	<child>
-	  <padding>0</padding>
-	  <expand>False</expand>
-	  <fill>True</fill>
-	</child>
-
-	<widget>
-	  <class>GtkPixmap</class>
-	  <name>image_ancient</name>
-	  <filename>stock_form-time-field-16.xpm</filename>
-	  <xalign>0.5</xalign>
-	  <yalign>0.5</yalign>
-	  <xpad>0</xpad>
-	  <ypad>0</ypad>
-	  <build_insensitive>True</build_insensitive>
-	</widget>
-      </widget>
-
-      <widget>
-	<class>GtkEventBox</class>
-	<name>eventbox_image_save</name>
-	<child>
-	  <padding>0</padding>
-	  <expand>False</expand>
-	  <fill>True</fill>
-	</child>
-
-	<widget>
-	  <class>GtkPixmap</class>
-	  <name>image_save</name>
-	  <filename>save.xpm</filename>
-	  <xalign>0.5</xalign>
-	  <yalign>0.5</yalign>
-	  <xpad>1</xpad>
-	  <ypad>0</ypad>
-	  <build_insensitive>True</build_insensitive>
-	</widget>
-      </widget>
-
-      <widget>
-	<class>GtkEventBox</class>
-	<name>eventbox_image_sha</name>
+	<class>GtkFrame</class>
+	<name>frame124</name>
+	<label_xalign>0</label_xalign>
+	<shadow_type>GTK_SHADOW_IN</shadow_type>
 	<child>
 	  <padding>0</padding>
 	  <expand>False</expand>
@@ -17691,184 +17897,16 @@ interface</label>
 	</child>
 
 	<widget>
-	  <class>GtkPixmap</class>
-	  <name>image_sha</name>
-	  <filename>booksha.xpm</filename>
+	  <class>GtkLabel</class>
+	  <name>label_statusbar_uptime</name>
+	  <label>Uptime</label>
+	  <justify>GTK_JUSTIFY_CENTER</justify>
+	  <wrap>False</wrap>
 	  <xalign>0.5</xalign>
 	  <yalign>0.5</yalign>
-	  <xpad>1</xpad>
+	  <xpad>5</xpad>
 	  <ypad>0</ypad>
-	  <build_insensitive>True</build_insensitive>
 	</widget>
-      </widget>
-
-      <widget>
-	<class>GtkEventBox</class>
-	<name>eventbox_image_shav</name>
-	<child>
-	  <padding>0</padding>
-	  <expand>False</expand>
-	  <fill>True</fill>
-	</child>
-
-	<widget>
-	  <class>GtkPixmap</class>
-	  <name>image_shav</name>
-	  <filename>bookshav.xpm</filename>
-	  <xalign>0.5</xalign>
-	  <yalign>0.5</yalign>
-	  <xpad>0</xpad>
-	  <ypad>0</ypad>
-	  <build_insensitive>True</build_insensitive>
-	</widget>
-      </widget>
-
-      <widget>
-	<class>GtkEventBox</class>
-	<name>eventbox_image_lib</name>
-	<child>
-	  <padding>0</padding>
-	  <expand>False</expand>
-	  <fill>True</fill>
-	</child>
-
-	<widget>
-	  <class>GtkPixmap</class>
-	  <name>image_lib</name>
-	  <filename>booklib.xpm</filename>
-	  <xalign>0.5</xalign>
-	  <yalign>0.5</yalign>
-	  <xpad>1</xpad>
-	  <ypad>0</ypad>
-	  <build_insensitive>True</build_insensitive>
-	</widget>
-      </widget>
-
-      <widget>
-	<class>GtkEventBox</class>
-	<name>eventbox_image_firewall</name>
-	<tooltip>Gtk-gnutella thinks you're firewalled. Nobody has connected to you so far. You will not see any push results which may prevent you from seeing a large amount of results.</tooltip>
-	<child>
-	  <padding>0</padding>
-	  <expand>False</expand>
-	  <fill>True</fill>
-	</child>
-
-	<widget>
-	  <class>GtkPixmap</class>
-	  <name>image_firewall</name>
-	  <filename>firewall.xpm</filename>
-	  <xalign>0.5</xalign>
-	  <yalign>0.5</yalign>
-	  <xpad>1</xpad>
-	  <ypad>0</ypad>
-	  <build_insensitive>False</build_insensitive>
-	</widget>
-      </widget>
-
-      <widget>
-	<class>GtkEventBox</class>
-	<name>eventbox_image_no_firewall</name>
-	<tooltip>People can connect to you. Push should work.</tooltip>
-	<child>
-	  <padding>0</padding>
-	  <expand>False</expand>
-	  <fill>False</fill>
-	</child>
-
-	<widget>
-	  <class>GtkPixmap</class>
-	  <name>image_no_firewall</name>
-	  <filename>no_firewall.xpm</filename>
-	  <xalign>0.5</xalign>
-	  <yalign>0.5</yalign>
-	  <xpad>1</xpad>
-	  <ypad>0</ypad>
-	  <build_insensitive>False</build_insensitive>
-	</widget>
-      </widget>
-
-      <widget>
-	<class>GtkEventBox</class>
-	<name>eventbox_image_leaf</name>
-	<tooltip>Running in leaf mode.</tooltip>
-	<child>
-	  <padding>0</padding>
-	  <expand>False</expand>
-	  <fill>False</fill>
-	</child>
-
-	<widget>
-	  <class>GtkPixmap</class>
-	  <name>image_leaf</name>
-	  <filename>leaf.xpm</filename>
-	  <xalign>0.5</xalign>
-	  <yalign>0.5</yalign>
-	  <xpad>0</xpad>
-	  <ypad>0</ypad>
-	  <build_insensitive>False</build_insensitive>
-	</widget>
-      </widget>
-
-      <widget>
-	<class>GtkEventBox</class>
-	<name>eventbox_image_legacy</name>
-	<tooltip>Running in legacy mode. Consider switching to auto mode (Config-&gt;gNet settings-&gt;Current peermode)</tooltip>
-	<child>
-	  <padding>0</padding>
-	  <expand>False</expand>
-	  <fill>False</fill>
-	</child>
-
-	<widget>
-	  <class>GtkPixmap</class>
-	  <name>image_legacy</name>
-	  <filename>legacy.xpm</filename>
-	  <xalign>0.5</xalign>
-	  <yalign>0.5</yalign>
-	  <xpad>0</xpad>
-	  <ypad>0</ypad>
-	  <build_insensitive>False</build_insensitive>
-	</widget>
-      </widget>
-
-      <widget>
-	<class>GtkEventBox</class>
-	<name>eventbox_image_ultra</name>
-	<tooltip>Running in ultrapeer mode</tooltip>
-	<child>
-	  <padding>0</padding>
-	  <expand>False</expand>
-	  <fill>True</fill>
-	</child>
-
-	<widget>
-	  <class>GtkPixmap</class>
-	  <name>image_ultra</name>
-	  <filename>ultra.xpm</filename>
-	  <xalign>0.5</xalign>
-	  <yalign>0.5</yalign>
-	  <xpad>0</xpad>
-	  <ypad>0</ypad>
-	  <build_insensitive>False</build_insensitive>
-	</widget>
-      </widget>
-
-      <widget>
-	<class>GtkLabel</class>
-	<name>label_statusbar_uptime</name>
-	<label>Uptime</label>
-	<justify>GTK_JUSTIFY_CENTER</justify>
-	<wrap>False</wrap>
-	<xalign>0.5</xalign>
-	<yalign>0.5</yalign>
-	<xpad>5</xpad>
-	<ypad>0</ypad>
-	<child>
-	  <padding>0</padding>
-	  <expand>False</expand>
-	  <fill>False</fill>
-	</child>
       </widget>
     </widget>
   </widget>
@@ -23106,6 +23144,22 @@ Meet us on #gtk-gnutella at irc.freenode.net.</label>
 	<ypad>10</ypad>
       </widget>
     </widget>
+  </widget>
+</widget>
+
+<widget>
+  <class>GtkWindow</class>
+  <name>window1</name>
+  <title>window1</title>
+  <type>GTK_WINDOW_TOPLEVEL</type>
+  <position>GTK_WIN_POS_NONE</position>
+  <modal>False</modal>
+  <allow_shrink>False</allow_shrink>
+  <allow_grow>True</allow_grow>
+  <auto_shrink>False</auto_shrink>
+
+  <widget>
+    <class>Placeholder</class>
   </widget>
 </widget>
 

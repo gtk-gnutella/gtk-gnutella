@@ -10565,7 +10565,7 @@ create_main_window_search_tab (void)
   GtkWidget *frame_search_results_settings;
   GtkWidget *hbox245;
   GtkWidget *vbox131;
-  GtkWidget *frame90;
+  GtkWidget *frame_expert_search_autoselect;
   GtkWidget *vbox113;
   GtkWidget *checkbutton_search_autoselect_ident;
   GtkWidget *checkbutton_search_autoselect_fuzzy;
@@ -10618,6 +10618,7 @@ create_main_window_search_tab (void)
   GtkWidget *hbox215;
   GtkWidget *viewport56;
   GtkWidget *label_items_found;
+  GtkWidget *hbox_expert_search_timeout;
   GtkWidget *label655;
   GtkObject *spinbutton_search_reissue_timeout_adj;
   GtkWidget *spinbutton_search_reissue_timeout;
@@ -10772,16 +10773,16 @@ create_main_window_search_tab (void)
   gtk_widget_show (vbox131);
   gtk_box_pack_start (GTK_BOX (hbox245), vbox131, FALSE, TRUE, 0);
 
-  frame90 = gtk_frame_new (NULL);
-  gtk_widget_set_name (frame90, "frame90");
-  gtk_widget_show (frame90);
-  gtk_box_pack_start (GTK_BOX (vbox131), frame90, FALSE, TRUE, 0);
-  gtk_frame_set_shadow_type (GTK_FRAME (frame90), GTK_SHADOW_OUT);
+  frame_expert_search_autoselect = gtk_frame_new (NULL);
+  gtk_widget_set_name (frame_expert_search_autoselect, "frame_expert_search_autoselect");
+  gtk_widget_show (frame_expert_search_autoselect);
+  gtk_box_pack_start (GTK_BOX (vbox131), frame_expert_search_autoselect, FALSE, TRUE, 0);
+  gtk_frame_set_shadow_type (GTK_FRAME (frame_expert_search_autoselect), GTK_SHADOW_OUT);
 
   vbox113 = gtk_vbox_new (FALSE, 2);
   gtk_widget_set_name (vbox113, "vbox113");
   gtk_widget_show (vbox113);
-  gtk_container_add (GTK_CONTAINER (frame90), vbox113);
+  gtk_container_add (GTK_CONTAINER (frame_expert_search_autoselect), vbox113);
   gtk_container_set_border_width (GTK_CONTAINER (vbox113), 2);
 
   checkbutton_search_autoselect_ident = gtk_check_button_new_with_mnemonic (_("Autoselect _identical"));
@@ -10798,7 +10799,7 @@ create_main_window_search_tab (void)
   checkbutton_search_autoselect = gtk_check_button_new_with_mnemonic (_("Enable _autoselect"));
   gtk_widget_set_name (checkbutton_search_autoselect, "checkbutton_search_autoselect");
   gtk_widget_show (checkbutton_search_autoselect);
-  gtk_frame_set_label_widget (GTK_FRAME (frame90), checkbutton_search_autoselect);
+  gtk_frame_set_label_widget (GTK_FRAME (frame_expert_search_autoselect), checkbutton_search_autoselect);
   gtk_container_set_border_width (GTK_CONTAINER (checkbutton_search_autoselect), 2);
   gtk_tooltips_set_tip (tooltips, checkbutton_search_autoselect, _("Automatically select all other results with the same name or urn:sha1."), NULL);
 
@@ -11142,10 +11143,15 @@ create_main_window_search_tab (void)
   gtk_misc_set_alignment (GTK_MISC (label_items_found), 7.45058e-09, 0.5);
   gtk_misc_set_padding (GTK_MISC (label_items_found), 5, 0);
 
+  hbox_expert_search_timeout = gtk_hbox_new (FALSE, 4);
+  gtk_widget_set_name (hbox_expert_search_timeout, "hbox_expert_search_timeout");
+  gtk_widget_show (hbox_expert_search_timeout);
+  gtk_box_pack_start (GTK_BOX (hbox215), hbox_expert_search_timeout, FALSE, FALSE, 0);
+
   label655 = gtk_label_new_with_mnemonic (_("Re_try search every"));
   gtk_widget_set_name (label655, "label655");
   gtk_widget_show (label655);
-  gtk_box_pack_start (GTK_BOX (hbox215), label655, FALSE, FALSE, 0);
+  gtk_box_pack_start (GTK_BOX (hbox_expert_search_timeout), label655, FALSE, FALSE, 0);
   gtk_label_set_justify (GTK_LABEL (label655), GTK_JUSTIFY_CENTER);
   gtk_misc_set_alignment (GTK_MISC (label655), 1, 0.5);
 
@@ -11153,13 +11159,13 @@ create_main_window_search_tab (void)
   spinbutton_search_reissue_timeout = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_search_reissue_timeout_adj), 1, 0);
   gtk_widget_set_name (spinbutton_search_reissue_timeout, "spinbutton_search_reissue_timeout");
   gtk_widget_show (spinbutton_search_reissue_timeout);
-  gtk_box_pack_start (GTK_BOX (hbox215), spinbutton_search_reissue_timeout, FALSE, FALSE, 0);
+  gtk_box_pack_start (GTK_BOX (hbox_expert_search_timeout), spinbutton_search_reissue_timeout, TRUE, TRUE, 0);
   gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_search_reissue_timeout), TRUE);
 
   label656 = gtk_label_new (_("secs   "));
   gtk_widget_set_name (label656, "label656");
   gtk_widget_show (label656);
-  gtk_box_pack_start (GTK_BOX (hbox215), label656, FALSE, FALSE, 0);
+  gtk_box_pack_start (GTK_BOX (hbox_expert_search_timeout), label656, FALSE, FALSE, 0);
 
   hbox154 = gtk_hbox_new (FALSE, 4);
   gtk_widget_set_name (hbox154, "hbox154");
@@ -11321,7 +11327,7 @@ create_main_window_search_tab (void)
   GLADE_HOOKUP_OBJECT (main_window_search_tab, frame_search_results_settings, "frame_search_results_settings");
   GLADE_HOOKUP_OBJECT (main_window_search_tab, hbox245, "hbox245");
   GLADE_HOOKUP_OBJECT (main_window_search_tab, vbox131, "vbox131");
-  GLADE_HOOKUP_OBJECT (main_window_search_tab, frame90, "frame90");
+  GLADE_HOOKUP_OBJECT (main_window_search_tab, frame_expert_search_autoselect, "frame_expert_search_autoselect");
   GLADE_HOOKUP_OBJECT (main_window_search_tab, vbox113, "vbox113");
   GLADE_HOOKUP_OBJECT (main_window_search_tab, checkbutton_search_autoselect_ident, "checkbutton_search_autoselect_ident");
   GLADE_HOOKUP_OBJECT (main_window_search_tab, checkbutton_search_autoselect_fuzzy, "checkbutton_search_autoselect_fuzzy");
@@ -11373,6 +11379,7 @@ create_main_window_search_tab (void)
   GLADE_HOOKUP_OBJECT (main_window_search_tab, hbox215, "hbox215");
   GLADE_HOOKUP_OBJECT (main_window_search_tab, viewport56, "viewport56");
   GLADE_HOOKUP_OBJECT (main_window_search_tab, label_items_found, "label_items_found");
+  GLADE_HOOKUP_OBJECT (main_window_search_tab, hbox_expert_search_timeout, "hbox_expert_search_timeout");
   GLADE_HOOKUP_OBJECT (main_window_search_tab, label655, "label655");
   GLADE_HOOKUP_OBJECT (main_window_search_tab, spinbutton_search_reissue_timeout, "spinbutton_search_reissue_timeout");
   GLADE_HOOKUP_OBJECT (main_window_search_tab, label656, "label656");
