@@ -50,8 +50,6 @@
 
 #define MAX_TAG_SHOWN	60		/* Show only first chars of tag */
 
-#define gui_debug 6
-
 static gchar tmpstr[4096];
 
 GList *searches = NULL;		/* List of search structs */
