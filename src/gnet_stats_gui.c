@@ -68,6 +68,7 @@ gchar *msg_drop_str[MSG_DROP_REASON_COUNT] = {
     "Malformed UTF-8 Query",
     "Malformed Query Hit",
     "Query hit had bad SHA1",
+	"Hostile IP address",
 };
 
 gchar *general_type_str[GNR_TYPE_COUNT] = {

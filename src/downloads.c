@@ -46,6 +46,7 @@
 #include "nodes.h"
 #include "parq.h"
 #include "token.h"
+#include "hostiles.h"
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -1854,14 +1855,21 @@ static void download_push_remove(struct download *d)
  */
 static gboolean download_ignore_requested(struct download *d)
 {
-	enum ignore_val reason;
+	enum ignore_val reason = IGNORE_FALSE;
 	struct dl_file_info *fi = d->file_info;
 
-	if ((reason = ignore_is_requested(fi->file_name, fi->size, fi->sha1))) {
+	if (hostiles_check(download_ip(d)))
+		reason = IGNORE_HOSTILE;
+
+	if (reason == IGNORE_FALSE)
+		reason = ignore_is_requested(fi->file_name, fi->size, fi->sha1);
+
+	if (reason != IGNORE_FALSE) {
 		if (!DOWNLOAD_IS_VISIBLE(d))
 			download_gui_add(d);
 
 		download_stop(d, GTA_DL_ERROR, "Ignoring requested (%s)",
+			reason == IGNORE_HOSTILE ? "Hostile IP" :
 			reason == IGNORE_SHA1 ? "SHA1" :
 			reason == IGNORE_LIBRARY ? "Already Owned" : "Name & Size");
 
@@ -2748,6 +2756,8 @@ void download_auto_new(gchar *file, guint32 size, guint32 record_index,
 	case IGNORE_LIBRARY:
 		reason = "SHA1 is already in library";
 		goto abort_download;
+	default:
+		g_error("ignore_is_requested() returned unexpected %d", ign_reason);
 	}
 
 	/*

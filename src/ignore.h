@@ -38,6 +38,7 @@ enum ignore_val {
 	IGNORE_SHA1 = 1,		/* Ignore because of SHA1 */
 	IGNORE_NAMESIZE = 2,	/* Ignore because of Name & Size */
 	IGNORE_LIBRARY = 3,		/* Ignore because SHA1 present in library */
+	IGNORE_HOSTILE = 4,		/* Ignore because IP address is hostile */
 };
 
 void ignore_timer(time_t now);

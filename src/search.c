@@ -37,6 +37,7 @@
 #include "version.h"
 #include "qrp.h"
 #include "search.h"
+#include "hostiles.h"
 
 #include <ctype.h>
 
@@ -289,7 +290,8 @@ static gnet_results_set_t *get_results_set(
 	gnet_results_set_t *rs;
 	gnet_record_t *rc = NULL;
 	gchar *e, *s, *fname, *tag;
-	guint32 nr, size, idx, taglen;
+	guint32 nr = 0;
+	guint32 size, idx, taglen;
 	struct gnutella_search_results *r;
 	GString *info = NULL;
 	gint sha1_errors = 0;
@@ -326,11 +328,18 @@ static gnet_results_set_t *get_results_set(
 	READ_GUINT16_LE(r->host_port, rs->port);	/* Port */
 	READ_GUINT32_LE(r->host_speed, rs->speed);	/* Connection speed */
 
+	/* Check for hostile IP addresses */
+
+	if (hostiles_check(rs->ip)) {
+		g_warning("dropping query hit from hostile IP %s", ip_to_gchar(rs->ip));
+		gnet_stats_count_dropped(n, MSG_DROP_HOSTILE_IP);
+		goto bad_packet;
+	}
+
 	/* Now come the result set, and the servent ID will close the packet */
 
 	s = r->records;				/* Start of the records */
 	e = s + n->size - 11 - 16;	/* End of the records, less header, GUID */
-	nr = 0;
 
 	if (dbg > 7)
 		dump_hex(stdout, "Query Hit Data", n->data, n->size);
@@ -348,7 +357,7 @@ static gnet_results_set_t *get_results_set(
 			s++;				/* move s up to the next double NUL */
 
 		if (s >= (e-1))	{		/* There cannot be two NULs: end of packet! */
-            gnet_stats_count_dropped(n, MSG_DROP_BAD_RESULT);
+			gnet_stats_count_dropped(n, MSG_DROP_BAD_RESULT);
 			goto bad_packet;
         }
 

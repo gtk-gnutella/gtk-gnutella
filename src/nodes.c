@@ -64,6 +64,7 @@
 #include "qrp.h"
 #include "vmsg.h"
 #include "token.h"
+#include "hostiles.h"
 
 #include "settings.h"
 
@@ -3199,7 +3200,7 @@ static void call_node_04_connected(gpointer obj, header_t *header)
 
 void node_add(guint32 ip, guint16 port)
 {
-	if (0 != ip && 0 != port)
+	if (0 != ip && 0 != port && !hostiles_check(ip))
     	node_add_socket(NULL, ip, port);
 }
 

@@ -57,6 +57,7 @@
 #include "inet.h"
 #include "walloc.h"
 #include "adns.h"
+#include "hostiles.h"
 
 #ifdef USE_REMOTE_SHELL
 #include "shell.h"
@@ -438,7 +439,8 @@ static void socket_read(gpointer data, gint source, inputevt_cond_t cond)
 	first = getline_str(s->getline);
 
 	/*
-	 * Always authorize replies for our PUSH requests!
+	 * Always authorize replies for our PUSH requests.
+	 * Likewise for PARQ download resuming.
 	 */
 
 	if (0 == strncmp(first, "GIV ", 4)) {
@@ -481,6 +483,25 @@ static void socket_read(gpointer data, gint source, inputevt_cond_t cond)
 		goto cleanup;
 	default:
 		g_assert(0);			/* Not reached */
+	}
+
+	/*
+	 * Deny connections from hostile IP addresses.
+	 *
+	 * We do this after banning checks so that if they hammer us, they
+	 * get banned silently.
+	 */
+
+	if (hostiles_check(s->ip)) {
+		gchar *msg = "Hostile IP address banned";
+
+		g_warning("denying connection from hostile %s: \"%s\"",
+			ip_to_gchar(s->ip), first);
+		if (0 == strncmp(first, gnutella_hello, gnutella_hello_length))
+			send_node_error(s, 550, msg);
+		else
+			http_send_status(s, 550, FALSE, NULL, 0, msg);
+		goto cleanup;
 	}
 
 	/*
@@ -774,11 +795,14 @@ static int socket_local_port(struct gnutella_socket *s)
 	return ntohs(addr.sin_port);
 }
 
+/*
+ * socket_accept
+ *
+ * Someone is connecting to us.
+ */
 static void socket_accept(gpointer data, gint source,
 						  inputevt_cond_t cond)
 {
-	/* Someone is connecting to us */
-
 	struct sockaddr_in addr;
 	gint sd, len = sizeof(struct sockaddr_in);
 	struct gnutella_socket *s = (struct gnutella_socket *) data;

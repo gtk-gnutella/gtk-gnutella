@@ -46,6 +46,7 @@
 #include "alive.h"
 #include "inet.h"
 #include "gnet_stats.h"
+#include "hostiles.h"
 
 #include "settings.h"
 
@@ -1208,6 +1209,15 @@ void pcache_pong_received(struct gnutella_node *n)
 
 	if (!host_is_valid(ip, port)) {
 		gnet_stats_count_dropped(n, MSG_DROP_PONG_UNUSABLE);
+		return;
+	}
+
+	/*
+	 * If pong points to an hostile IP address, discard it.
+	 */
+
+	if (!hostiles_check(ip)) {
+		gnet_stats_count_dropped(n, MSG_DROP_HOSTILE_IP);
 		return;
 	}
 
