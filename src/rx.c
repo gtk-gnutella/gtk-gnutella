@@ -132,11 +132,10 @@ void rx_free(rxdrv_t *rx)
 {
 	g_assert(rx);
 
-	RX_DESTROY(rx);
-
 	if (rx->lower)
 		rx_free(rx->lower);
 
+	RX_DESTROY(rx);
 	g_free(rx);
 }
 
