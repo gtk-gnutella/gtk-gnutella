@@ -119,9 +119,10 @@ static void search_stats_notify_whole(
     word_vec_t wovec;
 
     if (type == QUERY_SHA1)
-        return;
+        wovec.word = g_strdup_printf("urn:sha1:%s", search);
+    else
+        wovec.word = g_strdup_printf("[%s]", search);
 
-    wovec.word = g_strdup_printf("[%s]", search);
     wovec.len = strlen(wovec.word);
     wovec.amount = 1;
 
