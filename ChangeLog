@@ -1,6 +1,6 @@
 # since last version
 
-- (2002.10.11 Richard)
+- (2002.10.12 Richard)
  * Option to visually mark ignored files in the search results.
  * Update local address displays when listen port is changes (closes 622020).
  * Optionally accept the first chunk of a file from a source that does not
