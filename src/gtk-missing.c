@@ -813,9 +813,6 @@ void gtk_widget_fix_width(GtkWidget *w, GtkWidget *l, guint chars, guint extra)
         }
     }
 
-    g_message("gtk_label_fix_width: width %d (%d)", 
-        max_width, (max_width * chars) + extra);
-
     max_width = max_width * chars + extra;
  
     gtk_widget_set_usize(w, max_width, -1);
