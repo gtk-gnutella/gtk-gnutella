@@ -549,7 +549,16 @@ static void qrt_patch_compress_done(
 
 	g_assert(ctx->magic == QRT_COMPRESS_MAGIC);
 
-	sl_compress_tasks = g_slist_remove(sl_compress_tasks, h);
+	/*
+	 * When status is BGS_KILLED, the task is being cancelled.
+	 * This means we're iterating on the `sl_compress_tasks' list
+	 * so don't alter it.
+	 *		--RAM, 29/01/2003
+	 */
+
+	if (status != BGS_KILLED)
+		sl_compress_tasks = g_slist_remove(sl_compress_tasks, h);
+
 	(*ctx->usr_done)(h, u, status, ctx->usr_arg);
 }
 
@@ -1636,7 +1645,7 @@ static void qrt_patch_available(gpointer arg, struct routing_patch *rp)
 	g_assert(qup->magic == QRT_UPDATE_MAGIC);
 
 	if (dbg > 2)
-		printf("QRP global routing patch % (node %s)\n",
+		printf("QRP global routing patch %s (node %s)\n",
 			rp == NULL ? "computation was cancelled" : "is now available",
 			node_ip(qup->node));
 
