@@ -136,7 +136,7 @@ static struct tokkey *find_tokkey(time_t now)
 static gchar *random_key(time_t now, gint *idx)
 {
 	static gboolean warned = FALSE;
-	gint random;
+	gint random_idx;
 	struct tokkey *tk;
 
 	tk = find_tokkey(now);
@@ -150,10 +150,10 @@ static gchar *random_key(time_t now, gint *idx)
 		tk = &token_keys[0];	/* They'll have problems with their token */
 	}
 
-	random = random_value(tk->count - 1);
-	*idx = random;
+	random_idx = random_value(tk->count - 1);
+	*idx = random_idx;
 
-	return tk->keys[random];
+	return tk->keys[random_idx];
 }
 
 /*
@@ -198,7 +198,7 @@ guchar *tok_version(void)
 	seed[2] = random_value(0xff) & 0xe0;	/* Upper 3 bits only */
 	seed[2] |= idx;							/* Has 5 bits for the index */
 
-	now32 = (guint32) now;
+	now32 = (guint32) g_htonl((guint32) now);
 	memcpy(digest, &now32, 4);
 	memcpy(digest + 4, &seed, 3);
 
@@ -244,7 +244,14 @@ tok_error_t tok_version_valid(gchar *version, guchar *tokenb64, gint len)
 		return TOK_BAD_ENCODING;
 
 	memcpy(&stamp32, token, 4);
-	stamp = (time_t) stamp32;
+	stamp = (time_t) g_ntohl(stamp32);
+
+	/*
+	 * Versions before 24/02/2003 did not use network order for timestamp.
+	 */
+
+	if (ABS(stamp - now) > TOKEN_CLOCK_SKEW)	// XXX temporary
+		stamp = (time_t) stamp32;
 
 	if (ABS(stamp - now) > TOKEN_CLOCK_SKEW)
 		return TOK_BAD_STAMP;
