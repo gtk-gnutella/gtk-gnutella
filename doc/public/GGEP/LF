@@ -33,9 +33,13 @@ values and detect too large values that cannot be handled by them.
 There is no need to indicate support for this feature at any stage. This
 extension is defined as follows:
 
-Due to the location of the LF extension, there must be no NUL bytes in the
-the GGEP data. Therefore, the payload must be COBS encoded if it contains
-any NUL bytes. The ordering of the bytes is little-endian.
+Due to the location of the LF extension, there must be no NUL bytes in the the
+GGEP data. Therefore, the payload must be COBS encoded if it contains any NUL
+bytes. The ordering of the bytes is little-endian. To save space, the value is
+encoded as a Variable-Length Integer. The byte length is equal to the GGEP
+payload size. Trailing zeros must be discarded. If the last byte is a NUL
+character, the encoding is invalid. Thus, zero is not a valid filesize in the
+context of the GGEP LF extension.
 
 4. EXAMPLE CODE
 
