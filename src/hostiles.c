@@ -37,8 +37,8 @@
 
 GSList *sl_hostiles = NULL;
 
-static gchar *hostiles_file = "hostiles.txt";
-static gchar *hostiles_what = "hostile IP addresses";
+static const gchar *hostiles_file = "hostiles.txt";
+static const gchar *hostiles_what = "hostile IP addresses";
 
 /*
  * Pre-sorted addresses to match against.
@@ -228,10 +228,6 @@ gboolean hostiles_check(guint32 ip)
 	GSList *l;
 	struct hostile *h;
 	gint i;
-
-static GSList *hostiles_exact[256];		/* Indexed by LAST byte */
-static GSList *hostiles_wild;			/* Addresses with mask less than /8 */
-static GSList *hostiles_narrow[256];	/* Indexed by FIRST byte */
 
 	/*
 	 * Look for an exact match.
