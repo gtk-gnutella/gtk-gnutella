@@ -290,7 +290,7 @@ void download_requeue(struct download *);
 void download_send_request(struct download *);
 void download_retry(struct download *);
 void download_close(void);
-gint download_remove_all_from_peer(const gchar *guid, guint32 ip, guint16 port);
+gint download_remove_all_from_peer(gchar *guid, guint32 ip, guint16 port);
 gint download_remove_all_named(const gchar *name);
 gint download_remove_all_with_sha1(const guchar *sha1);
 void download_remove_file(struct download *d, gboolean reset);

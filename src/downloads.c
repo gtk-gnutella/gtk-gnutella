@@ -612,7 +612,7 @@ static void downloads_with_name_inc(const gchar *name)
  *
  * Remove one from the amount of downloads running and bearing the filename.
  */
-static void downloads_with_name_dec(const gchar *name)
+static void downloads_with_name_dec(gchar *name)
 {
 	guint val;
 
@@ -906,7 +906,7 @@ static void queue_remove_downloads_with_file(
  * and abort all connections to peer in the active download list.
  * Return the number of removed downloads.
  */
-gint download_remove_all_from_peer(const gchar *guid, guint32 ip, guint16 port)
+gint download_remove_all_from_peer(gchar *guid, guint32 ip, guint16 port)
 {
 	struct dl_server *server[2];
 	gint n = 0;
@@ -929,7 +929,7 @@ gint download_remove_all_from_peer(const gchar *guid, guint32 ip, guint16 port)
 	 *		--RAM, 15/10/2002.
 	 */
 
-	server[0] = get_server((const guchar *) guid, ip, port);
+	server[0] = get_server(guid, ip, port);
 	server[1] = get_server(blank_guid, ip, port);
 
 	if (server[1] == server[0])
