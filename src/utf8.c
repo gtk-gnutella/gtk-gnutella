@@ -2907,6 +2907,26 @@ unicode_decompose_init(void)
 }
 
 /**
+ * This is a highly specialized function (read: don't use it if you don't
+ * understand what it does and how it's used) to be used with
+ * utf8_decode_char().
+ * It's purpose is to determine the maximum possible length in bytes of
+ * current UTF-8 character that ``s'' points to.
+ *
+ * @param s a UTF-8 encoded string.
+ * @param len number of bytes pending to be decoded.
+ *
+ * @returns the maximum length in bytes of the current UTF-8 character.
+ */
+static inline size_t
+utf8_decode_lookahead(const gchar *s, size_t len)
+{
+	while (len < 6 && s[len] != '\0')
+		len++;
+	return len;
+}
+
+/**
  * Converts a UTF-8 encoded string to a UTF-32 encoded string. The
  * target string ``out'' is always be zero-terminated unless ``size''
  * is zero.
@@ -2926,17 +2946,15 @@ utf8_to_utf32(const gchar *in, guint32 *out, size_t size)
 	const gchar *s = in;
 	guint32 *p = out;
 	guint retlen;
-	size_t len;
+	size_t len = 0;
 
 	g_assert(in != NULL);	
 	g_assert(out != NULL);	
 	g_assert(size <= INT_MAX);
 
-	len = strlen(in);
-	g_assert(len <= INT_MAX);
-
 	if (size > 0) {
 		while (*s != '\0' && --size > 0) {
+			len = utf8_decode_lookahead(s, len);
 			*p++ = utf8_decode_char(s, len, &retlen, TRUE);
 			s += retlen;
 			len -= retlen;
@@ -2945,6 +2963,7 @@ utf8_to_utf32(const gchar *in, guint32 *out, size_t size)
 	}
 
 	while (*s != '\0') {
+		len = utf8_decode_lookahead(s, len);
 		utf8_decode_char(s, len, &retlen, TRUE);
 		s += retlen;
 		len -= retlen;
@@ -3202,22 +3221,20 @@ utf8_decompose_nfd(const gchar *in, gchar *out, size_t size)
 	const gchar *s = in;
 	gchar *p = out;
 	guint32 uc;
-	size_t len, d_len;
+	size_t len = 0, d_len;
 	guint retlen;
 	gchar utf8_buf[7];
 
 	g_assert(in != NULL);
 	g_assert(out != NULL);
 	g_assert(size <= INT_MAX);
-
-	len = strlen(in);
-	g_assert(len <= INT_MAX);
 	
 	if (size-- > 0) {
 		while (*s != '\0') {
 			size_t utf8_len;
 			gchar buf[256], *q;
 			
+			len = utf8_decode_lookahead(s, len);
 			uc = utf8_decode_char(s, len, &retlen, TRUE);
 			d = utf32_decompose_nfd_char(uc, &d_len);
 			q = buf;
@@ -3243,6 +3260,7 @@ utf8_decompose_nfd(const gchar *in, gchar *out, size_t size)
 	}
 	
 	while (*s != '\0') {
+		len = utf8_decode_lookahead(s, len);
 		uc = utf8_decode_char(s, len, &retlen, TRUE);
 		d = utf32_decompose_nfd_char(uc, &d_len);
 		while (d_len-- > 0) {
