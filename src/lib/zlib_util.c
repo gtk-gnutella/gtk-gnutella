@@ -205,7 +205,7 @@ zlib_deflate_step(zlib_deflater_t *zd, gint amount, gboolean may_close)
 	g_assert(remaining >= 0);
 
 	process = MIN(remaining, amount);
-	finishing = process < amount && may_close;
+	finishing = process == remaining && may_close;
 
 	/*
 	 * Process data.
