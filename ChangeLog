@@ -53,6 +53,11 @@
 - Node statistics are now updated once per second on the GUI.
 - Added Morpheus (MRPH) to the list of vendor codes.
 - Fixed bugs #524773, #524987, #523762, #524988.
+- Added Size/Range columns to the upload screen.
+- Added Vendor and protocol Ver(sion) columns in the node screen.
+- The GUID of a servent is now made persistent and flagged as such, in order
+  to prepare the possible implementation of gnet: URLs.
+- Factorized generation of random numbers into random_value().
 
 # v 0.80   2002.01.31  [stable]
 # v 0.80   2002.01.22  [beta2]
