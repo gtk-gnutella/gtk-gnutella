@@ -102,16 +102,6 @@ static GHashTable *ht_connected_nodes   = NULL;
 static guint32     connected_node_count = 0;
 #define NO_METADATA			((gpointer) 0x1)	/* No metadata for host */
 
-
-static GHashTable *unstable_ip   = NULL;
-static GSList *    unstable_ips  = NULL;
-static guint32     unstable_hits = 0;
-
-typedef struct node_bad_ip {
-	guint32 ip;
-	time_t time_added;
-} node_bad_ip_t;
-
 static GHashTable *unstable_servent = NULL;
 static GSList *unstable_servents = NULL;
 
@@ -188,9 +178,7 @@ static void node_bye_flags(guint32 mask, gint code, gchar *message);
 static void node_bye_all_but_one(
 	struct gnutella_node *nskip, gint code, gchar *message);
 static void node_set_current_peermode(node_peer_t mode);
-static gboolean node_ip_is_bad(guint32 ip);
 static enum node_bad node_is_bad(struct gnutella_node *n);
-static void node_mark_bad_ip(struct gnutella_node *n);
 
 extern gint guid_eq(gconstpointer a, gconstpointer b);
 
@@ -561,37 +549,7 @@ static gboolean can_become_ultra(time_t now)
 void node_slow_timer(time_t now)
 {
 	time_t last_switch = (time_t) node_last_ultra_leaf_switch;	/* Property */
-	GSList *sl;
-	GSList *to_remove = NULL;
-    guint32 expunged = 0;
 
-	for (sl = unstable_ips; sl != NULL; sl = g_slist_next(sl)) {
-		node_bad_ip_t *bad_ip = (node_bad_ip_t *) sl->data;
-		
-		if (bad_ip->time_added + node_error_cleanup_timer < now) {
-			to_remove = g_slist_prepend(to_remove, bad_ip);
-		} else
-			break; /* Should be sorted by time. */
-	}
-
-	for (sl = to_remove; sl != NULL; sl = g_slist_next(sl)) {
-		node_bad_ip_t *bad_ip = (node_bad_ip_t *) sl->data;		
-	
-		g_hash_table_remove(unstable_ip, GUINT_TO_POINTER(bad_ip->ip));
-		unstable_ips = g_slist_remove(unstable_ips, bad_ip);
-		
-		wfree(bad_ip, sizeof(*bad_ip));
-        expunged ++;
-	}
-	g_slist_free(to_remove);
-	to_remove = NULL;
-
-	if (dbg > 1)
-		printf("unstable ips: %d (hits %d, expunged %d)",
-			g_slist_length(unstable_ips), unstable_hits, expunged);
-
-    unstable_hits = 0;
-	
 	/*
 	 * If we're in "auto" mode and we're still running as a leaf node,
 	 * evaluate our ability to become an ultra node.
@@ -714,7 +672,7 @@ void node_timer(time_t now)
 			} else if (NODE_IS_CONNECTING(n)) {
 				if (delta_time(now, n->last_update) > node_connecting_timeout) {
 					node_remove(n, "Timeout");
-					node_mark_bad_ip(n);		/* So we don't retry too soon */
+                    hcache_add(HCACHE_TIMEOUT, n->ip, 0, "timeout");
 				}
 			} else if (n->status == GTA_NODE_SHUTDOWN) {
 				if (delta_time(now, n->shutdown_date) > n->shutdown_delay) {
@@ -736,13 +694,15 @@ void node_timer(time_t now)
 				 *		--RAM, 11/12/2003
 				 */
 				if (delta_time(now, n->last_update) > node_connected_timeout) {
-					node_mark_bad_ip(n);
+                    hcache_add(HCACHE_TIMEOUT, n->ip, 0, 
+                        "activity timeout");
 					node_bye_if_writable(n, 405, "Activity timeout");
 				} else if (
 					NODE_IN_TX_FLOW_CONTROL(n) &&
 					now - n->tx_flowc_date > node_tx_flowc_timeout
 				) {
-					node_mark_bad_ip(n);
+                    hcache_add(HCACHE_UNSTABLE, n->ip, 0, 
+                        "flow-controlled too long");
 					node_bye(n, 405, "Flow-controlled for too long (%d sec%s)",
 						node_tx_flowc_timeout,
 						node_tx_flowc_timeout == 1 ? "" : "s");
@@ -915,7 +875,6 @@ void node_init(void)
 	query_hashvec = qhvec_alloc(128);		/* Max: 128 unique words / URNs! */
 	
 	unstable_servent   = g_hash_table_new(NULL, NULL);
-	unstable_ip        = g_hash_table_new(NULL, NULL);
     ht_connected_nodes = g_hash_table_new(host_hash, host_eq);
 }
 
@@ -1092,16 +1051,15 @@ void node_real_remove(gnutella_node_t *node)
 
 	/*
 	 * Now that the node was removed from the list of known nodes, we
-	 * can call host_save_valid() iff the node was marked NODE_F_VALID,
+	 * can add the host to HL_VALID iff the node was marked NODE_F_VALID,
 	 * meaning we identified it as a Gnutella server, even though we
 	 * might not have been granted a full connection.
 	 *		--RAM, 13/01/2002
 	 */
 
 	if (!NODE_IS_LEAF(node) && node->gnet_ip && (node->flags & NODE_F_VALID))
-		hcache_save_valid(
-			(node->attrs & NODE_A_ULTRA) ? HCACHE_ULTRA : HCACHE_ANY,
-			node->gnet_ip, node->gnet_port);
+		hcache_add_valid((node->attrs & NODE_A_ULTRA) ? HOST_ULTRA : HOST_ANY,
+            node->gnet_ip, node->gnet_port, "save valid");
 
 	/*
 	 * The io_opaque structure is not freed by node_remove(), so that code
@@ -1329,32 +1287,6 @@ void node_remove_by_handle(gnet_node_t n)
 }
 
 /*
- * node_ip_is_bad
- *
- * True when a certain IP has proven to be unstable
- */
-static gboolean node_ip_is_bad(guint32 ip) {
-	node_bad_ip_t *bad_ip = NULL;
-	
-	g_assert(ip != 0);
-	
-	if (!node_monitor_unstable_ip)
-		/* User disabled monitoring of unstable IPs. */
-		return FALSE;
-	
-	bad_ip = g_hash_table_lookup(unstable_ip, GUINT_TO_POINTER(ip));
-	
-	if (bad_ip != NULL) {
-		if (dbg)
-			g_warning("[nodes up] Unstable ip %s", ip_to_gchar(ip));
-        unstable_hits ++;
-		return TRUE;
-	}
-		
-	return FALSE;
-}
-
-/*
  * node_is_bad
  *
  * Check whether node has been identified as having a bad IP or vendor string.
@@ -1363,7 +1295,7 @@ static gboolean node_ip_is_bad(guint32 ip) {
 static enum node_bad node_is_bad(struct gnutella_node *n)
 {
 	node_bad_client_t *bad_client = NULL;
-	node_bad_ip_t *bad_ip = NULL;
+    gnet_host_t host;
 	
 	g_assert(n != NULL);
 	
@@ -1379,72 +1311,43 @@ static enum node_bad node_is_bad(struct gnutella_node *n)
 	
 	g_assert(n->vendor != NULL);
 	g_assert(n->ip != 0);
-	
-	bad_ip = g_hash_table_lookup(unstable_ip, GUINT_TO_POINTER(n->ip));
-	if (bad_ip != NULL) {
+
+    host.ip = n->ip;
+    host.port = 0;
+
+    if (hcache_node_is_bad(n->ip)) {
 		if (dbg)
 			g_warning("[nodes up] Unstable ip %s (%s)", 
 				ip_to_gchar(n->ip),
 				n->vendor);
-        unstable_hits ++;
 		return NODE_BAD_IP;
-	} else {
-		if (!node_monitor_unstable_servents)
-			/* User doesn't want us to monitor unstable servents */
-			return FALSE;
+    }
+	
+	if (!node_monitor_unstable_servents)
+		/* User doesn't want us to monitor unstable servents */
+		return FALSE;
 		
-		bad_client = g_hash_table_lookup(unstable_servent, n->vendor);
+	bad_client = g_hash_table_lookup(unstable_servent, n->vendor);
 	
-		if (bad_client == NULL)
-			return NODE_BAD_OK;
+	if (bad_client == NULL)
+		return NODE_BAD_OK;
 	
-		if (bad_client->errors > node_error_threshold) {
-			if (dbg)
-				g_warning("[nodes up] Banned client: %s", n->vendor);
-			return NODE_BAD_VENDOR;
-		}
+	if (bad_client->errors > node_error_threshold) {
+		if (dbg)
+			g_warning("[nodes up] Banned client: %s", n->vendor);
+		return NODE_BAD_VENDOR;
 	}
+
 	return NODE_BAD_OK;
 }
 
 /*
- * node_mark_bad_ip
- *
- * Record that the node's IP is bad and that connection should no longer
- * be attempted towards that IP.
- */
-static void node_mark_bad_ip(struct gnutella_node *n)
-{
-	struct node_bad_ip *bad_ip = NULL;
-
-	if (in_shutdown || !node_monitor_unstable_ip)
-		return;
-
-	g_assert(n != NULL);
-	g_assert(n->ip != 0);
-
-	bad_ip = g_hash_table_lookup(unstable_ip, GUINT_TO_POINTER(n->ip));
-	if (bad_ip == NULL) {
-		bad_ip = walloc0(sizeof(*bad_ip));
-		bad_ip->ip = n->ip;
-		bad_ip->time_added = time(NULL);
-		
-		g_hash_table_insert(unstable_ip, GUINT_TO_POINTER(n->ip), bad_ip);
-		unstable_ips = g_slist_prepend(unstable_ips, bad_ip);
-
-		if (dbg)
-			g_warning("[nodes up] Marked ip %s (%s) as a bad host",
-				ip_to_gchar(n->ip), node_vendor(n));
-	}	
-}
-
-/*
- * node_mark_bad
+ * node_mark_bad_vendor
  *
  * Gives a specific vendor a bad mark. If a vendor + version gets to many
  * marks, we won't try to connect to it anymore.
  */
-void node_mark_bad(struct gnutella_node *n)
+void node_mark_bad_vendor(struct gnutella_node *n)
 {
 	struct node_bad_client *bad_client = NULL;
 	time_t now;
@@ -1495,7 +1398,7 @@ void node_mark_bad(struct gnutella_node *n)
 		return;
 	}
 	
-	node_mark_bad_ip(n);
+    hcache_add(HCACHE_UNSTABLE, n->ip, 0, "vendor banned");
 
 	if (!node_monitor_unstable_servents)
 		/* The user doesn't want us to monitor unstable servents. */
@@ -1746,7 +1649,7 @@ void node_eof(struct gnutella_node *n, const gchar *reason, ...)
 	 */
 
 	if (n->flags & NODE_F_ESTABLISHED)
-		node_mark_bad(n);
+		node_mark_bad_vendor(n);
 
 	va_start(args, reason);
 
@@ -2275,7 +2178,7 @@ void send_node_error(
 		current_peermode == NODE_P_LEAF ?
 			"X-Ultrapeer: False\r\n": "X-Ultrapeer: True\r\n",
 		(current_peermode == NODE_P_NORMAL && (code == 503 || code == 403)) ?
-			formatted_connection_pongs("X-Try", HCACHE_ANY) : "");
+			formatted_connection_pongs("X-Try", HOST_ANY) : "");
 
 	header_features_generate(&xfeatures.connections,
 		gnet_response, sizeof(gnet_response), &rw);
@@ -2285,7 +2188,7 @@ void send_node_error(
 		"\r\n",
 		(current_peermode != NODE_P_NORMAL &&
 				(code == 503 || code == 403 || code == 204)) ?
-			formatted_connection_pongs("X-Try-Ultrapeers", HCACHE_ULTRA) : "");
+			formatted_connection_pongs("X-Try-Ultrapeers", HOST_ULTRA) : "");
 
 	g_assert(rw < sizeof(gnet_response));
 
@@ -2789,24 +2692,19 @@ static void node_set_current_peermode(node_peer_t mode)
  *
  * i.e. we're very flexible about the separators which can be "," or ";".
  */
-static gint extract_field_pongs(gchar *field, hcache_type_t type)
+static gint extract_field_pongs(gchar *field, host_type_t type)
 {
 	const gchar *tok;
 	gint pong = 0;
+
+    g_assert((type >= 0) && (type < HOST_MAX));
 
 	for (tok = strtok(field, ",;"); tok; tok = strtok(NULL, ",;")) {
 		guint16 port;
 		guint32 ip;
 
-		if (
-            gchar_to_ip_port(tok, &ip, &port) && 
-            host_is_valid(ip, port) &&
-            !node_ip_is_bad(ip)
-        ) {
-			if (type == HCACHE_ULTRA)
-				host_add_ultra(ip, port);
-            else
-				host_add(ip, port, FALSE);
+		if (gchar_to_ip_port(tok, &ip, &port)) {
+            hcache_add_caught(type, ip, port, "pong");
 			pong++;
 		}
 	}
@@ -2834,7 +2732,7 @@ static void extract_header_pongs(header_t *header, struct gnutella_node *n)
 	if (!field) field = header_get(header, "Try");
 
 	if (field) {
-		pong = extract_field_pongs(field, HCACHE_ANY);
+		pong = extract_field_pongs(field, HOST_ANY);
 		if (dbg > 4)
 			printf("Node %s sent us %d pong%s in header\n",
 				node_ip(n), pong, pong == 1 ? "" : "s");
@@ -2853,7 +2751,7 @@ static void extract_header_pongs(header_t *header, struct gnutella_node *n)
 	if (!field) field = header_get(header, "Try-Ultrapeers");
 
 	if (field) {
-		pong = extract_field_pongs(field, HCACHE_ULTRA);
+		pong = extract_field_pongs(field, HOST_ULTRA);
 		if (dbg > 4)
 			printf("Node %s sent us %d ultranode pong%s in header\n",
 				node_ip(n), pong, pong == 1 ? "" : "s");
@@ -2929,7 +2827,7 @@ static gboolean analyse_status(struct gnutella_node *n, gint *code)
 				g_warning("node %s gave a 0.4 reply to our 0.6 HELLO, dropping",
 					node_ip(n));
 		}
-		node_mark_bad_ip(n);
+        hcache_add(HCACHE_UNSTABLE, n->ip, 0, "bad ack_node");
 	} else {
 		ack_ok = TRUE;
 		n->flags |= NODE_F_VALID;		/* This is a Gnutella node */
@@ -2957,8 +2855,16 @@ static gboolean analyse_status(struct gnutella_node *n, gint *code)
 	if (!ack_ok)
 		node_remove(n, "Weird HELLO %s", what);
 	else if (ack_code < 200 || ack_code >= 300) {
-		if (ack_code == 401)		/* Unauthorized */
-			node_mark_bad_ip(n);
+		if (ack_code == 401) {
+            /* Unauthorized */
+            hcache_add(HCACHE_UNSTABLE, n->ip, 0, "unauthorized");
+        }
+
+        if (ack_code == 503) {
+            /* Busy */
+            hcache_add(HCACHE_BUSY, n->ip, 0, "ack_code 503");
+        }
+
 		node_remove(n, "HELLO %s error %d (%s)", what, ack_code, ack_message);
 		ack_ok = FALSE;
 	}
@@ -4116,7 +4022,7 @@ static void err_header_read_eof(gpointer obj)
 	struct gnutella_node *n = NODE(obj);
 
 	if (!(n->flags & NODE_F_CRAWLER))
-		node_mark_bad(n);
+		node_mark_bad_vendor(n);
 
 	node_remove(n, (n->flags & NODE_F_CRAWLER) ?
 		"Sent crawling info" : "Failed (EOF)");
@@ -4152,7 +4058,7 @@ static void call_node_process_handshake_ack(gpointer obj, header_t *header)
 
 void node_add(guint32 ip, guint16 port)
 {
-	if (!ip || !port || hostiles_check(ip) || node_ip_is_bad(ip))
+	if (!ip || !port || hostiles_check(ip) || hcache_node_is_bad(ip))
 		return;
 	
    	node_add_socket(NULL, ip, port);
@@ -5431,19 +5337,9 @@ void node_close(void)
 	g_slist_free(unstable_servents);
 	unstable_servents = NULL;
 		
-	for (sl = unstable_ips; sl != NULL; sl = g_slist_next(sl)) {
-		node_bad_ip_t *bad_ip = (node_bad_ip_t *) sl->data;
-
-		g_hash_table_remove(unstable_ip, GUINT_TO_POINTER(bad_ip->ip));
-		wfree(bad_ip, sizeof(*bad_ip));
-	}
-	g_slist_free(unstable_ips);
-	unstable_ips = NULL;
 
 	g_hash_table_destroy(unstable_servent);
 	unstable_servent = NULL;
-	g_hash_table_destroy(unstable_ip);
-	unstable_ip = NULL;
 	
 	/* Clean up node info */
 	while (sl_nodes) {
