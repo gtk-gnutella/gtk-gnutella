@@ -71,7 +71,8 @@ enum {
     CMD_SEARCH,
     CMD_NODE,
     CMD_ADD,
-    CMD_HELP
+    CMD_HELP,
+    CMD_PRINT
 };
 
 static struct {
@@ -82,7 +83,8 @@ static struct {
     {CMD_SEARCH, "SEARCH"},
     {CMD_NODE,   "NODE"},
     {CMD_ADD,    "ADD"},
-    {CMD_HELP,   "HELP"}
+    {CMD_HELP,   "HELP"},
+    {CMD_PRINT,  "PRINT"}
 };
 
 
@@ -312,6 +314,62 @@ error:
     return REPLY_ERROR;
 }
 
+static guint shell_exec_print(gnutella_shell_t *sh, const gchar *cmd) 
+{
+    gchar *tok_prop;
+    gint pos = 0;
+    guint reply_code = REPLY_ERROR;
+    prop_set_stub_t *stub = NULL;
+    property_t prop;
+    prop_set_get_stub_t stub_getter[] = {
+        gui_prop_get_stub,
+        gnet_prop_get_stub,
+        NULL
+    };
+    guint n;
+
+    g_assert(sh);
+    g_assert(cmd);
+    g_assert(!IS_PROCESSING(sh));
+
+    tok_prop = shell_get_token(cmd, &pos);
+    if (!tok_prop) {
+        sh->msg = "Property missing";
+        goto error;
+    }
+
+    n = 0; prop = NO_PROP;
+    while((stub_getter[n] != NULL) && (prop == NO_PROP)) {
+        G_FREE_NULL(stub);
+        stub = (stub_getter[n])();
+        prop = stub->get_by_name(tok_prop);
+        n ++;
+    }
+            
+    if (prop == NO_PROP) {
+        sh->msg = "Unknown property";
+        goto error;
+    }
+
+    shell_write(sh, "Value: ");
+    shell_write(sh, stub->to_string(prop));
+    shell_write(sh, "\n");
+
+    sh->msg = "Value found and displayed";
+    reply_code = REPLY_READY;
+
+    G_FREE_NULL(stub);
+    G_FREE_NULL(tok_prop);
+    return reply_code;
+
+error:
+    G_FREE_NULL(stub);
+    G_FREE_NULL(tok_prop);
+    if (sh->msg == NULL)
+        sh->msg = "Malformed command";
+    return REPLY_ERROR;
+}
+
 /*
  * shell_exec:
  *
@@ -337,6 +395,7 @@ static guint shell_exec(gnutella_shell_t *sh, const gchar *cmd)
             "100-Help:\n"
             "100-SEARCH ADD <query>\n"
             "100-NODE ADD <ip> [port]\n"
+            "100-PRINT [property]\n"
             "100-QUIT\n"
             "100-HELP\n");
         reply_code = REPLY_READY;
@@ -351,6 +410,9 @@ static guint shell_exec(gnutella_shell_t *sh, const gchar *cmd)
         break;
     case CMD_NODE:
         reply_code = shell_exec_node(sh, cmd+pos);
+        break;
+    case CMD_PRINT:
+        reply_code = shell_exec_print(sh, cmd+pos);
         break;
     default:
         goto error;
@@ -541,7 +603,7 @@ static gboolean shell_auth(const gchar *str)
     tok_helo = shell_get_token(str, &pos);
     tok_cookie = shell_get_token(str, &pos);
 
-    g_warning("auth: [%s] [%s]", tok_helo, tok_cookie);
+    g_warning("auth: [%s] [<cookie not displayed>]", tok_helo);
 
     if (tok_helo && tok_cookie) {
         ok = 
@@ -641,6 +703,7 @@ void shell_add(struct gnutella_socket *s)
 
 	sh = shell_new(s);
     
+    g_assert(s->gdk_tag == 0);
     s->gdk_tag = gdk_input_add(s->file_desc,
         GDK_INPUT_READ | GDK_INPUT_EXCEPTION,
 		shell_handle_data, (gpointer) sh);
