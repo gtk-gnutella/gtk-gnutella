@@ -1732,6 +1732,14 @@ static prop_map_t property_map[] = {
     ),
     PROP_ENTRY(
         get_main_window,
+        PROP_UP_REQ_ENOUGH_CONN,
+        update_label_yes_or_no,
+        TRUE,
+        "label_up_req_enough_conn",
+        FREQ_UPDATES, 0
+    ),
+    PROP_ENTRY(
+        get_main_window,
         PROP_UP_REQ_ENOUGH_FD,
         update_label_yes_or_no,
         TRUE,
