@@ -1,12 +1,22 @@
 # since last version
 
+- (2002.09.25 RAM)
+ * Added ACQX and EVIL vendor codes.
+ * Shuffled code around in upload_request() to gather as much information from
+   the request as early as possible for GUI display purposes in case of error.
+ * Now recognizes UTF-8 queries starting with Byte Order Mark tag.
+ * Drop and count malformed UTF-8 queries we encounter.
+ * Removed unused count_running_downloads_with_sha1().
+ * Added my own cache to the bootstrap list.
+ * Fixed the _shutdown() routine in property template to avoid freeing NULL.
+ * Vendor ACQX can include XML payload in query hits.
+
 - (2002.09.24 - Richard)
  * Cleant up search_xml.c a little
  * Fixed another memory leak in search_xml.c
  * Partially fixed: Uploads and downloads won't abort (#612374)
    Should work for uploads, "abort by SHA1" and "abort by name". The
-   "abort by host" was optimized by Raphael and I dont see the bug right
-   now.
+   "abort by host" was optimized by Raphael and I dont see the bug right now.
 
 - (2002.09.24 RAM)
  * Added the EXT_NONE extension to hold separator overhead.
