@@ -975,12 +975,22 @@ gchar *unique_filename(gchar *path, gchar *file, gchar *ext)
 static char *hex_alphabet = "0123456789ABCDEF";
 
 /*
+ * char_is_safe 
+ *
+ * Nearly the same as isprint() but allows additional safe chars if !strict.
+ */
+G_INLINE_FUNC gboolean char_is_safe(guchar c, gboolean strict)
+{
+	return isprint(c) || (!strict && (c == ' ' || c == '\t' || c == '\n'));
+}
+
+/*
  * hex_escape
  *
  * Escape all non-printable chars into the hexadecimal \xhh form.
  * Returns new escaped string, or the original string if no escaping occurred.
  */
-guchar *hex_escape(const guchar *name)
+guchar *hex_escape(const guchar *name, gboolean strict)
 {
 	const guchar *p;
 	guchar *q;
@@ -989,16 +999,16 @@ guchar *hex_escape(const guchar *name)
 	guchar *new;
 
 	for (p = name, c = *p++; c; c = *p++)
-		if (!isprint(c))
+		if (!char_is_safe(c, strict))
 			need_escape++;
 
 	if (need_escape == 0)
-		return name;
+		return *(guchar **) &name; /* suppress compiler warning */
 
 	new = g_malloc(p - name + 3 * need_escape);
 
 	for (p = name, q = new, c = *p++; c; c = *p++) {
-		if (isprint(c))
+		if (char_is_safe(c, strict))
 			*q++ = c;
 		else {
 			*q++ = ESCAPE_CHAR;

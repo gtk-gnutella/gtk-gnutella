@@ -149,7 +149,7 @@ void hex_to_guid(gchar *hexguid, guchar *guid);
 void dump_hex(FILE *, gchar *, gchar *, gint);
 void strlower(gchar *, gchar *);
 gchar *unique_filename(gchar *path, gchar *file, gchar *ext);
-guchar *hex_escape(const guchar *name);
+guchar *hex_escape(const guchar *name, gboolean strict);
 gint highest_bit_set(guint32 n);
 
 #ifdef HAVE_STRCASESTR
