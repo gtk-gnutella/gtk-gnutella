@@ -61,6 +61,13 @@ struct node_rxfc_mon {
 
 #define CACHE_HOP_IDX(h)	(((h) > MAX_CACHE_HOPS) ? MAX_CACHE_HOPS : (h))
 
+/*
+ * Throttle periods for ping reception, depending on the peer mode.
+ * This is applicable for regular pings, not alive pings.
+ */
+#define PING_REG_THROTTLE		3		/* seconds, regular peer */
+#define PING_LEAF_THROTTLE		60		/* seconds, peer is leaf node */
+
 typedef struct gnutella_node {
     gnet_node_t node_handle;    /* Handle of this node */
 	node_peer_t peermode;		/* Operating mode (leaf, ultra, normal) */
@@ -132,6 +139,7 @@ typedef struct gnutella_node {
 	 */
 
 	gint32 id;					/* Unique internal ID */
+	guint ping_throttle;		/* Period for accepting new pings (secs) */
 	time_t ping_accept;			/* Time after which we accept new pings */
 	time_t next_ping;			/* When to send a ping, for "OLD" clients */
 	guchar ping_guid[16];		/* The GUID of the last accepted ping */

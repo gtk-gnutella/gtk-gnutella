@@ -1582,17 +1582,21 @@ static void node_is_now_connected(struct gnutella_node *n)
 	connected_node_cnt++;
 
 	/*
-	 * Determine the frequency at which we will send "alive pings".
+	 * Determine the frequency at which we will send "alive pings", and at
+	 * which we shall accept regular pings on that connection.
 	 */
+
+	n->ping_throttle = PING_REG_THROTTLE;
 
 	switch (current_peermode) {
 	case NODE_P_NORMAL:
 		n->alive_period = ALIVE_PERIOD;
 		break;
 	case NODE_P_ULTRA:
-		if (n->peermode == NODE_P_LEAF)
+		if (n->peermode == NODE_P_LEAF) {
 			n->alive_period = ALIVE_PERIOD_LEAF;
-		else
+			n->ping_throttle = PING_LEAF_THROTTLE;
+		} else
 			n->alive_period = ALIVE_PERIOD;
 		break;
 	case NODE_P_LEAF:

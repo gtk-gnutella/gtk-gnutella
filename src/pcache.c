@@ -320,7 +320,6 @@ static struct cache_line pong_cache[PONG_CACHE_SIZE];
 static struct recent recent_pongs[HCACHE_MAX];
 
 #define CACHE_LIFESPAN		5		/* seconds */
-#define PING_THROTTLE		3		/* seconds */
 #define MAX_PONGS			10		/* Max pongs returned per ping */
 #define OLD_PING_PERIOD		45		/* Pinging period for "old" clients */
 #define OLD_CACHE_RATIO		20		/* % of pongs from "old" clients we cache */
@@ -979,7 +978,7 @@ static struct cached_pong *record_fresh_pong(
  * Called when a ping is received from a node.
  *
  * + If current time is less than what `ping_accept' says, drop the ping.
- *   Otherwise, accept the ping and increment `ping_accept' by PING_THROTTLE.
+ *   Otherwise, accept the ping and increment `ping_accept' by n->ping_throttle.
  * + If cache expired, call pcache_expire() and broadcast a new ping to all
  *   the "new" clients (i.e. those flagged NODE_A_PONG_CACHING).  For "old"
  *   clients, do so only if "next_ping" time was reached.
@@ -1046,7 +1045,7 @@ void pcache_ping_received(struct gnutella_node *n)
 		return;
 	} else {
 		n->n_ping_accepted++;
-		n->ping_accept = now + PING_THROTTLE;	/* Drop more ones until then */
+		n->ping_accept = now + n->ping_throttle;	/* Drop all until then */
 	}
 
 	/*
