@@ -1995,7 +1995,7 @@ gboolean bsched_enough_up_bandwidth(void)
 
 	if (
 		bws_out_ema <
-			(BW_OUT_GNET_MIN * max_connections + BW_OUT_GNET_MIN * max_leaves)
+			(BW_OUT_GNET_MIN * max_connections + BW_OUT_LEAF_MIN * max_leaves)
 	)
 		return FALSE;		/* 4. */
 
