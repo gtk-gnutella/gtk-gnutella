@@ -6,6 +6,7 @@
 #include <unistd.h>
 #include <dirent.h>
 #include <string.h>
+#include <ctype.h>		/* tolower() */
 
 #include "gnutella.h"
 #include "interface.h"
@@ -25,6 +26,13 @@ gchar stmp_1[4096];
 gchar stmp_2[4096];
 
 guint32 monitor_items = 0;
+
+/*
+ * Masks for mask_hash().
+ */
+
+#define MASK_LETTER(x)		(1 << (x))		/* bits 0 to 25 */
+#define MASK_DIGIT			0x80000000
 
 /*
  * Buffer where query hit packet is built.
@@ -75,6 +83,33 @@ void share_init(void)
 	share_scan();
 	found_data.l = FOUND_CHUNK;		/* must be > size after FOUND_RESET */
 	found_data.d = (guchar *) g_malloc(found_data.l * sizeof(guchar));
+}
+
+/*
+ * mask_hash
+ *
+ * Compute character mask "hash", using one bit per letter of the alphabet,
+ * plus one for any digit.
+ */
+static guint32 mask_hash(guchar *str) {
+	guchar *s = str;
+	guchar c;
+	guint32 mask = 0;
+
+	while ((c = *s++)) {
+		guchar lc = tolower(c);
+		if (isspace(c))
+			continue;
+		else if (isdigit(c))
+			mask |= MASK_DIGIT;
+		else {
+			gint idx = lc - 'a';
+			if (idx >= 0 && idx < 26)
+				mask |= MASK_LETTER(idx);
+		}
+	}
+
+	return mask;
 }
 
 /* ----------------------------------------- */
@@ -262,6 +297,7 @@ void recurse_scan(gchar * dir, gchar * basedir)
 				found->file_directory_path = file_directory_path;
 				found->file_size = file_stat.st_size;
 				found->file_index = ++files_scanned;
+				found->file_mask_hash = mask_hash(dir_entry->d_name);
 
 				shared_files = g_slist_append(shared_files, found);
 
@@ -334,7 +370,7 @@ void share_close(void)
  * Remove non-ascii characters (replacing them with spaces) inplace.
  * Returns string length.
  */
-static guint32 dejunk(guchar * str)
+static guint32 dejunk(guchar *str)
 {
 	guchar *s = str;
 	guint32 len = 0;
@@ -354,7 +390,6 @@ static guint32 dejunk(guchar * str)
 
 	return len;
 }
-
 
 /*
  * Apply pattern matching on text, matching at the *beginning* of words.
@@ -400,6 +435,7 @@ void search_request(struct gnutella_node *n)
 	struct gnutella_header *packet_head;
 	struct gnutella_search_results_out *search_head;
 	gchar *last_dir = NULL;
+	guint32 search_mask;
 	guint32 search_len;
 	gchar trailer[10];
 
@@ -408,6 +444,7 @@ void search_request(struct gnutella_node *n)
 	word_vec_t *wovec;
 	guint wocnt;
 	cpattern_t **pattern;
+	gint scanned_files = 0;		/* Tracing statistics */
 
 	global_searches++;
 
@@ -486,13 +523,34 @@ void search_request(struct gnutella_node *n)
 	for (i = 0; i < wocnt; i++)
 		pattern[i] = pattern_compile(wovec[i].word);
 
+	/*
+	 * Prepare matching optimization, an idea from Mike Green.
+	 *
+	 * At library building time, we computed a mask hash, made from the
+	 * lowercased file name, using one bit per different letter, roughly
+	 * (see mask_hash() for the exact algorigthm).
+	 *
+	 * We're now going to compute the same mask on the query, and compare
+	 * it bitwise with the mask for each file.  If the file does not hold
+	 * at least all the chars present in the query, it's no use applying
+	 * the pattern matching algorithm, it won't match at all.
+	 *
+	 *		--RAM, 01/10/2001
+	 */
+
+	search_mask = mask_hash(search);
+
+	/*
+	 * Perform search...
+	 */
+
 	FOUND_RESET();
 	pos = FOUND_SIZE;			/* Not zero: has packet + search headers */
 
 	for (files = shared_files; files; files = files->next) {
 		struct shared_file *sf = (struct shared_file *) files->data;
 
-		if (dbg > 7)
+		if (dbg > 8)
 			printf("search %s, directory %s\n",
 				   search,
 				   ((struct shared_file *) (*files).data)->file_directory);
@@ -513,8 +571,17 @@ void search_request(struct gnutella_node *n)
 			last_dir = sf->file_directory_path;
 
 		/*
+		 * First compare masks --RAM, 01/10/2001
+		 */
+
+		if ((sf->file_mask_hash & search_mask) != search_mask)
+			continue;		/* Can't match */
+
+		/*
 		 * Apply pattern matching --RAM, 11/09/2001
 		 */
+
+		scanned_files++;
 
 		if (share_match(sf->file_name_lowercase, sf->file_name_len,
 						pattern, wovec, wocnt)
@@ -564,9 +631,9 @@ void search_request(struct gnutella_node *n)
 	if (found_files > 0) {
 
 		if (dbg > 3) {
-			printf("Share HIT %u files '%s' words=%d "
+			printf("Share HIT %u files '%s' (scanned %d) words=%d "
 				   "req_speed=%u ttl=%u hops=%u\n",
-				   (gint) found_files, search, wocnt, req_speed,
+				   (gint) found_files, search, scanned_files, wocnt, req_speed,
 				   (gint) n->header.ttl, (gint) n->header.hops);
 			fflush(stdout);
 		}
