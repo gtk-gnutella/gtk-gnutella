@@ -822,7 +822,6 @@ static void cproxy_http_error_ind(
 	struct cproxy *cp = (struct cproxy *) http_async_get_opaque(handle);
 	guint32 new_ip;
 
-
 	g_assert(cp != NULL);
 	g_assert(cp->magic == CPROXY_MAGIC);
 
@@ -846,7 +845,6 @@ static void cproxy_http_error_ind(
 		GPOINTER_TO_INT(v) == HTTP_ASYNC_CONN_TIMEOUT &&
 		host_is_valid(new_ip, cp->port)
 	) {
-		guint32 new_ip = swap_ip(cp->ip);
 		static gchar path[128];
 
 		(void) gm_snprintf(path, sizeof(path),
