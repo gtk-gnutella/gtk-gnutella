@@ -54,6 +54,8 @@
 #include "shell.h"
 #endif
 
+RCSID("$Id$");
+
 #if !defined(SOL_TCP) && defined(IPPROTO_TCP)
 #define SOL_TCP IPPROTO_TCP
 #endif
@@ -377,13 +379,13 @@ static void socket_connected(gpointer data, gint source, inputevt_cond_t cond)
 
 	if (cond & GDK_INPUT_READ) {
 		if (
-			proxy_connections
+			proxy_protocol != PROXY_NONE
 			&& s->direction == SOCK_CONN_PROXY_OUTGOING
 		) {
 			g_source_remove(s->gdk_tag);
 			s->gdk_tag = 0;
 
-			if (proxy_protocol == 4) {
+			if (proxy_protocol == PROXY_SOCKSV4) {
 				if (recv_socks(s) != 0) {
 					socket_destroy(s, "Error receiving from SOCKS 4 proxy");
 					return;
@@ -397,7 +399,7 @@ static void socket_connected(gpointer data, gint source, inputevt_cond_t cond)
 								  INPUT_EVENT_EXCEPTION, socket_connected,
 								  (gpointer) s);
 				return;
-			} else if (proxy_protocol == 5) {
+			} else if (proxy_protocol == PROXY_SOCKSV5) {
 				if (connect_socksv5(s) != 0) {
 					socket_destroy(s, "Error conneting to SOCKS 5 proxy");
 					return;
@@ -422,7 +424,7 @@ static void socket_connected(gpointer data, gint source, inputevt_cond_t cond)
 
 				return;
 
-			} else if (proxy_protocol == 1) {
+			} else if (proxy_protocol == PROXY_HTTP) {
 				if (connect_http(s) != 0) {
 					socket_destroy(s, "Unable to connect to HTTP proxy");
 					return;
@@ -468,21 +470,21 @@ static void socket_connected(gpointer data, gint source, inputevt_cond_t cond)
 			return;
 		}
 
-		if (proxy_connections
+		if (proxy_protocol != PROXY_NONE
 			&& s->direction == SOCK_CONN_PROXY_OUTGOING) {
-			if (proxy_protocol == 4) {
+			if (proxy_protocol == PROXY_SOCKSV4) {
 
 				if (send_socks(s) != 0) {
-					socket_destroy(s, "Error sending to SOCKS proxy");
+					socket_destroy(s, "Error sending to SOCKS 4 proxy");
 					return;
 				}
-			} else if (proxy_protocol == 5) {
+			} else if (proxy_protocol == PROXY_SOCKSV5) {
 				if (connect_socksv5(s) != 0) {
 					socket_destroy(s, "Error connecting to SOCKS 5 proxy");
 					return;
 				}
 
-			} else if (proxy_protocol == 1) {
+			} else if (proxy_protocol == PROXY_HTTP) {
 				if (connect_http(s) != 0) {
 					socket_destroy(s, "Error connecting to HTTP proxy");
 					return;
@@ -751,7 +753,7 @@ struct gnutella_socket *socket_connect(
 			sizeof(struct sockaddr_in));
 	}
 
-	if (proxy_connections) {
+	if (proxy_protocol != PROXY_NONE) {
 		lcladdr.sin_family = AF_INET;
 		lcladdr.sin_port = INADDR_ANY;
 
@@ -779,7 +781,7 @@ struct gnutella_socket *socket_connect(
 
 	g_assert(s->gdk_tag == 0);
 
-	if (proxy_connections)
+	if (proxy_protocol != PROXY_NONE)
 		s->gdk_tag = inputevt_add(sd,
 			INPUT_EVENT_READ | INPUT_EVENT_WRITE | INPUT_EVENT_EXCEPTION,
 			socket_connected, s);
