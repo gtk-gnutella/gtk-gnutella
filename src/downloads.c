@@ -877,12 +877,13 @@ static gboolean download_start_prepare(struct download *d)
 		g_snprintf(dl_dest, sizeof(dl_dest), "%s/%s",
 			move_file_path, d->output_name);
 
-		if (stat(dl_dest, &st) != -1 && st.st_size > download_overlap_range) {
+		if (stat(dl_dest, &st) != -1 && st.st_size < d->size) {
 			if (-1 == rename(dl_dest, dl_tmp))
 				g_warning("cannot move incomplete \"%s\" back to "
 					"download dir: %s", dl_dest, g_strerror(errno));
 			else {
-				d->skip = st.st_size;
+				if (st.st_size > download_overlap_range)
+					d->skip = st.st_size;
 				g_warning("moved incomplete \"%s\" back to download dir",
 					d->output_name);
 			}
@@ -904,7 +905,7 @@ static gboolean download_start_prepare(struct download *d)
 		d->status = GTA_DL_CONNECTING;
 		if (!DOWNLOAD_IS_VISIBLE(d))
 			download_gui_add(d);
-		download_stop(d, GTA_DL_COMPLETED, "Nothing more to get");
+		download_stop(d, GTA_DL_ERROR, "Nothing more to get");
 		return FALSE;
 	}
 
