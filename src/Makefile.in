@@ -107,7 +107,7 @@ XML_STORE_FILES = search_xml.c search_xml.h
 @ENABLE_XML_STORE_FALSE@XML_STORE = 
 
 # interface.h must come before any .c files that include it so that it is built.
-gtk_gnutella_SOURCES =  	$(XML_STORE) 	interface.c interface.h 	gnutella.h 	misc.c misc.h 	config.c appconfig.h 	sockets.c sockets.h 	nodes.c nodes.h 	hosts.c hosts.h 	pcache.c pcache.h 	routing.c routing.h 	search.c search.h 	search_stats.c search_stats.h 	downloads.c downloads.h 	share.c share.h 	uploads.c uploads.h 	upload_stats.c upload_stats.h 	main.c 	gui.c gui.h 	support.c support.h 	matching.c matching.h 	callbacks.c callbacks.h 	getline.c getline.h 	header.c header.h 	url.c url.h 	pmsg.c pmsg.h 	gmsg.c gmsg.h 	cq.c cq.h 	mq.c mq.h 	sq.c sq.h 	bsched.c bsched.h 	tx.c tx.h 	tx_link.c tx_link.h 	tx_deflate.c tx_deflate.h 	rxbuf.c rxbuf.h 	rx.c rx.h 	rx_link.c rx_link.h 	rx_inflate.c rx_inflate.h 	zlib_util.c zlib_util.h 	gtk-missing.c gtk-missing.h 	gtkcolumnchooser.c gtkcolumnchooser.h 	sha1.c sha1.h huge.c huge.h 	base32.c base32.h 	utf8.c utf8.h 	filter.c filter.h filter_cb.c filter_cb.h filter_gui.c filter_gui.h 	ban.c ban.h 	qrp.c qrp.h 	getdate.y getdate.h 	atoms.c atoms.h 	extensions.c extensions.h ggep.h 	dmesh.c dmesh.h 	http.c http.h 	version.c version.h
+gtk_gnutella_SOURCES =  	$(XML_STORE) 	interface.c interface.h 	gnutella.h 	misc.c misc.h 	config.c appconfig.h 	sockets.c sockets.h 	nodes.c nodes.h 	hosts.c hosts.h 	pcache.c pcache.h 	routing.c routing.h 	search.c search.h 	search_stats.c search_stats.h 	downloads.c downloads.h 	share.c share.h 	uploads.c uploads.h 	upload_stats.c upload_stats.h 	main.c 	gui.c gui.h 	support.c support.h 	matching.c matching.h 	callbacks.c callbacks.h 	getline.c getline.h 	header.c header.h 	url.c url.h 	pmsg.c pmsg.h 	gmsg.c gmsg.h 	cq.c cq.h 	mq.c mq.h 	sq.c sq.h 	bsched.c bsched.h 	tx.c tx.h 	tx_link.c tx_link.h 	tx_deflate.c tx_deflate.h 	rxbuf.c rxbuf.h 	rx.c rx.h 	rx_link.c rx_link.h 	rx_inflate.c rx_inflate.h 	zlib_util.c zlib_util.h 	gtk-missing.c gtk-missing.h 	gtkcolumnchooser.c gtkcolumnchooser.h 	sha1.c sha1.h huge.c huge.h 	base32.c base32.h 	utf8.c utf8.h 	filter.c filter.h filter_cb.c filter_cb.h filter_gui.c filter_gui.h 	ban.c ban.h 	qrp.c qrp.h 	getdate.y getdate.h 	atoms.c atoms.h 	extensions.c extensions.h ggep.h 	dmesh.c dmesh.h 	http.c http.h 	version.c version.h 	alive.c alive.h
 
 
 gtk_gnutella_LDADD = @GTK_LIBS@ -lz @XML_LIBS@
@@ -137,7 +137,7 @@ LIBS = @LIBS@
 @ENABLE_XML_STORE_TRUE@gtk-missing.o gtkcolumnchooser.o sha1.o huge.o \
 @ENABLE_XML_STORE_TRUE@base32.o utf8.o filter.o filter_cb.o \
 @ENABLE_XML_STORE_TRUE@filter_gui.o ban.o qrp.o getdate.o atoms.o \
-@ENABLE_XML_STORE_TRUE@extensions.o dmesh.o http.o version.o
+@ENABLE_XML_STORE_TRUE@extensions.o dmesh.o http.o version.o alive.o
 @ENABLE_XML_STORE_FALSE@gtk_gnutella_OBJECTS =  interface.o misc.o \
 @ENABLE_XML_STORE_FALSE@config.o sockets.o nodes.o hosts.o pcache.o \
 @ENABLE_XML_STORE_FALSE@routing.o search.o search_stats.o downloads.o \
@@ -149,7 +149,7 @@ LIBS = @LIBS@
 @ENABLE_XML_STORE_FALSE@gtk-missing.o gtkcolumnchooser.o sha1.o huge.o \
 @ENABLE_XML_STORE_FALSE@base32.o utf8.o filter.o filter_cb.o \
 @ENABLE_XML_STORE_FALSE@filter_gui.o ban.o qrp.o getdate.o atoms.o \
-@ENABLE_XML_STORE_FALSE@extensions.o dmesh.o http.o version.o
+@ENABLE_XML_STORE_FALSE@extensions.o dmesh.o http.o version.o alive.o
 gtk_gnutella_DEPENDENCIES = 
 gtk_gnutella_LDFLAGS = 
 CFLAGS = @CFLAGS@
@@ -163,19 +163,19 @@ DISTFILES = $(DIST_COMMON) $(SOURCES) $(HEADERS) $(TEXINFOS) $(EXTRA_DIST)
 
 TAR = tar
 GZIP_ENV = --best
-DEP_FILES =  .deps/atoms.P .deps/ban.P .deps/base32.P .deps/bsched.P \
-.deps/callbacks.P .deps/config.P .deps/cq.P .deps/dmesh.P \
-.deps/downloads.P .deps/extensions.P .deps/filter.P .deps/filter_cb.P \
-.deps/filter_gui.P .deps/getdate.P .deps/getline.P .deps/gmsg.P \
-.deps/gtk-missing.P .deps/gtkcolumnchooser.P .deps/gui.P .deps/header.P \
-.deps/hosts.P .deps/http.P .deps/huge.P .deps/interface.P .deps/main.P \
-.deps/matching.P .deps/misc.P .deps/mq.P .deps/nodes.P .deps/pcache.P \
-.deps/pmsg.P .deps/qrp.P .deps/routing.P .deps/rx.P .deps/rx_inflate.P \
-.deps/rx_link.P .deps/rxbuf.P .deps/search.P .deps/search_stats.P \
-.deps/search_xml.P .deps/sha1.P .deps/share.P .deps/sockets.P \
-.deps/sq.P .deps/support.P .deps/tx.P .deps/tx_deflate.P \
-.deps/tx_link.P .deps/upload_stats.P .deps/uploads.P .deps/url.P \
-.deps/utf8.P .deps/version.P .deps/zlib_util.P
+DEP_FILES =  .deps/alive.P .deps/atoms.P .deps/ban.P .deps/base32.P \
+.deps/bsched.P .deps/callbacks.P .deps/config.P .deps/cq.P \
+.deps/dmesh.P .deps/downloads.P .deps/extensions.P .deps/filter.P \
+.deps/filter_cb.P .deps/filter_gui.P .deps/getdate.P .deps/getline.P \
+.deps/gmsg.P .deps/gtk-missing.P .deps/gtkcolumnchooser.P .deps/gui.P \
+.deps/header.P .deps/hosts.P .deps/http.P .deps/huge.P \
+.deps/interface.P .deps/main.P .deps/matching.P .deps/misc.P .deps/mq.P \
+.deps/nodes.P .deps/pcache.P .deps/pmsg.P .deps/qrp.P .deps/routing.P \
+.deps/rx.P .deps/rx_inflate.P .deps/rx_link.P .deps/rxbuf.P \
+.deps/search.P .deps/search_stats.P .deps/search_xml.P .deps/sha1.P \
+.deps/share.P .deps/sockets.P .deps/sq.P .deps/support.P .deps/tx.P \
+.deps/tx_deflate.P .deps/tx_link.P .deps/upload_stats.P .deps/uploads.P \
+.deps/url.P .deps/utf8.P .deps/version.P .deps/zlib_util.P
 SOURCES = $(gtk_gnutella_SOURCES)
 OBJECTS = $(gtk_gnutella_OBJECTS)
 
