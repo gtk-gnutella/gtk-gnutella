@@ -352,6 +352,15 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  */
 #$d_official OFFICIAL_BUILD	/**/
 
+/* USE_GLIB1:
+ * This symbol is defined when compiling for glib 1.x.
+ */
+/* USE_GLIB2:
+ * This symbol is defined when compiling for glib 2.x.
+ */
+#$d_useglib1 USE_GLIB1    /**/
+#$d_useglib2 USE_GLIB2    /**/
+
 /* USE_GTK1:
  * This symbol is defined when compiling for the GTK1 toolkit.
  */
