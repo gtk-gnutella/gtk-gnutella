@@ -2917,6 +2917,21 @@ void download_start(struct download *d, gboolean check_allowed)
 
 		if (!d->socket) {
 			/*
+			 * If we ran out of file descriptors, requeue this download.
+			 * We don't want to loose the source.  We can't be sure, but
+			 * if we see a banned_count of 0 and file_descriptor_runout set,
+			 * then the lack of connection is probably due to a lack of
+			 * descriptors.
+			 *		--RAM, 2004-06-21
+			 */
+
+			if (file_descriptor_runout && banned_count == 0) {
+				download_queue_delay(d, download_retry_busy_delay,
+					"Connection failed (Out of file descriptors?)");
+				return;
+			}
+
+			/*
 			 * If DNS lookup was attempted, and we fail immediately, it
 			 * means either the address returned by the DNS was invalid or
 			 * there was no successful (synchronous) resolution for this
