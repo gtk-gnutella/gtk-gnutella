@@ -360,7 +360,7 @@ void version_check(guchar *str)
 		target_version = &last_dev_version;
 	}
 
-	if (their_version.timestamp < target_version->timestamp)
+	if (their_version.timestamp <= target_version->timestamp)
 		return;
 
 	if (their_version.timestamp == our_version.timestamp)
