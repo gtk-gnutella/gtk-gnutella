@@ -1,5 +1,19 @@
 # since last version
 
+- (2004-08-08 - RAM)
+ * To allow safe data access to the free routine invoked for extended messages,
+   we must not unref the data before calling the free routine in case we were
+   holding the last reference to those data.
+ * Refactored the single monolithic message_array[] routing table into
+   a dynamic set of smaller chunks, to ensure we will keep routes at least
+   20 minutes.
+ * Fixed unfortunate bug in token.c that prevents an older version from
+   validating the token from a more recent version if the recent version
+   has more keys to compute the level with than the older can check for.
+ * Fixed assert failure on reception of query hits that is handled
+   locally but not routed.
+ * Added support for leaf-guided dynamic queries (client and server sides).
+
 - (2004-08-07 - RAM)
  * Forgot to call node_inc_sent() when sending a queued message, as opposed
    to one immediately written at mq_putq() time.
