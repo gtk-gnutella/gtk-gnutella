@@ -1,18 +1,20 @@
 # since last version
 
 - gtk-gnutella.spec now generated at configure time thanks to a patch
-  from Sam Varshavchik -- Problem: always generated for version 0.1.
+  from Sam Varshavchik -- Problem: always generated for version 0.1
   (don't know how to fix this)
 - LimeWire shut down their router.limewire.com pong cache
-- Trace IP of HTTP requests/replies we send or receive.
+- Trace IP of HTTP requests/replies we send or receive
 - Check for valid index/name combination before checking for upload slots
-- Automatically and silently ignore 0-byte files in search results.
+- Automatically and silently ignore 0-byte files in search results
 - Silentlently ignore files located in private IPs if we don't send pushes
   (this is a temporary hack until someone adds a radio button to achieve this)
 - Detect changes in indices for files we already found, and update the
   download queue accordingly (patch from Vladimir Klebanov)
-- Improved hex dumping routine and use it to dump data on connection problems.
-- Don't send user/password to proxy if none was configured.
+- Improved hex dumping routine and use it to dump data on connection problems
+- Don't send user/password to proxy if none was configured
+- Assume we're firewalled and advertise so until we get an incoming connection
+- Try to parse all extended Query Hit Data (the open part) assuming BS compat.
 
 # v 0.18   2001.11.19
 
