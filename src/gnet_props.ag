@@ -36,7 +36,7 @@ prop = {
   
 prop = {
     name = "new_version_str";
-    desc = "Gtk-gnutella found a newer version on the gNet and gives"
+    desc = "Gtk-gnutella found a newer version on the gNet and gives "
            "information about it here";
     type = string;
     save = FALSE;
@@ -47,8 +47,9 @@ prop = {
 
 prop = {
     name = "up_connections";
-    desc = "Try to keep at least this number of connections to other" 
-           "servents.";
+    desc = "Try to keep at least this number of connections to other " 
+           "servents.  This should be smaller than the maximum amount "
+		   "of connections to allow incoming connections.";
     type = guint32;
     data = {
         default = 3;
@@ -59,8 +60,8 @@ prop = {
 
 prop = {
     name = "max_connections";
-    desc = "Don't allow more that this number of connections to other"
-           "servents. As a rule of thumb you should resevere 1kb/s "
+    desc = "Don't allow more that this number of connections to other "
+           "servents.  As a rule of thumb you should resevere 1kb/s "
 	   "bandwidth per connection. Never use up all your bandwidth, "
 	   "leave a little space for TCP/IP overhead.";
     type = guint32;
@@ -73,7 +74,8 @@ prop = {
 prop = {
     name ="max_downloads";
     cfgvar = "max_simultaneous_downloads";
-    desc = "Don't start more than this number of parallel downloads";
+    desc = "Don't start more than this number of parallel downloads.  "
+		   "Others will remain in the queue waiting for a download slot.";
     type = guint32;
     data = {
         default = 10;
@@ -86,7 +88,8 @@ prop = {
     name = "max_host_downloads";
     cfgvar = "max_simultaneous_host_downloads";
     desc = "Don't make more connections than given here to a single host "
-           "to download a file";
+           "to download a file.  Be nice to others, and leave that at "
+		   "the default value (1).";
     type = guint32;
     data = {
         default = 1;
@@ -165,13 +168,15 @@ prop = {
 prop = {
     name = "query_response_max_items";
     cfgvar = "limit_search_results";
-    desc = "Return at most this number of results in a query response";
+    desc = "Return at most this number of results to a query, using as many "
+		   "query hit packets as necessary.  To avoid network flooding, keep "
+		   "this to a reasonable value.";
     type = guint32;
     data = { 
         default = 50;
         value   = search_max_items;
         min     = 1;
-        max     = 255;
+        max     = 500;
     };
 };
 
@@ -191,7 +196,7 @@ prop = {
 prop = {
     name = "download_connecting_timeout";
     desc = "Number of seconds before a download connect attempt "
-           "times out";
+		   "times out";
     type = guint32; 
     data = {
         default = 30;
@@ -214,7 +219,7 @@ prop = {
 prop = {
     name = "download_connected_timeout";
     desc = "Number of seconds before a download times out if no data "
-           "is recieved";
+           "is received";
     type = guint32;
     data = {
         default = 60;
@@ -297,7 +302,7 @@ prop = {
     name = "download_retry_stopped_delay";
     cfgvar = "download_retry_stopped";
     desc = "Delay in seconds before retrying after a retry stopped "
-           "(timed out, connection reset by peer, etc.)";
+           "(timed out, connection reset by peer, etc...)";
     type = guint32;
     data = {
         default = 15;
@@ -308,11 +313,14 @@ prop = {
 
 prop = {
     name = "download_overlap_range";
-    desc = "Ammount of bytes to overlap when resuming a download";
+    desc = "Ammount of bytes to overlap when resuming a download. "
+		   "It should be at least 64 bytes for safe resuming, otherwise "
+		   "gtk-gnutella will not accept to resume a file for which we "
+		   "had no SHA1 known, after a server gives one back.";
     type = guint32;
     data = {
         default = 512;
-        min     = 1;
+        min     = 0;
         max     = SOCK_BUFSZ;
     };
 };
@@ -320,7 +328,9 @@ prop = {
 prop = {
     name = "upload_connecting_timeout";
     desc =  "Number of seconds before an upload times out if no "
-            "connection can be established during a push";
+            "connection can be established during a push.  It is "
+			"also the maximum amount of time we wait to get the "
+			"whole HTTP request.";
     type = guint32;
     data = {
         default = 60;
@@ -331,7 +341,7 @@ prop = {
 
 prop = {
     name = "upload_connected_timeout";
-    desc = "Number of seconds before an upload times out if no data "
+    desc = "Number of seconds after which an upload times out if no data "
            "is transmitted";
     type = guint32;
     data = {
@@ -344,10 +354,12 @@ prop = {
 prop = {
     name = "search_reissue_timeout";
     desc = "Ammount of seconds to wait before a search is issued again "
-           "to see if new results are available";
+           "to see if new results are available.  Be very careful with "
+		   "that parameter, and do not set it too low or you will damage "
+		   "the Gnutella network.  A delay of half an hour is fine.";
     type = guint32;
     data = {
-        default = 600;
+        default = 1800;
         min     = 600;
         max     = 9999;
     };
@@ -355,7 +367,11 @@ prop = {
 
 prop = {
     name = "ban_ratio_fds";
-    desc = "Maximum ratio of file descriptors reserved for banning";
+    desc = "Maximum ratio of file descriptors reserved for banning. "
+		   "For instance, if your OS gives your 350 file descriptors, "
+		   "a ratio of 10 will reserve at most 35 file descriptors.  You "
+		   "should ensure you have around 100 file descriptors for "
+		   "efficient banning.";
     type = guint32;
     data = {
         default = 25;
@@ -366,7 +382,7 @@ prop = {
 
 prop = {
     name = "ban_max_fds";
-    desc =  "Maximum number of file descriptors reserved for banning";
+    desc = "Maximum number of file descriptors reserved for banning";
     type = guint32;
     data = {
         default = 100;
@@ -378,7 +394,7 @@ prop = {
 prop = {
     name = "incoming_connecting_timeout";
     desc =  "Number of seconds an incoming connection has "  
-            "to send out its request";
+            "to start sending out its request";
     type = guint32;
     data = {
         default = 30;
@@ -389,7 +405,7 @@ prop = {
 
 prop = {
     name = "node_connecting_timeout";
-    desc =  "Number of seconds before a gNet connect attempt times "  
+    desc =  "Number of seconds before a Gnet connect attempt times "  
             "out if no connection can be established";
     type = guint32;
     data = {
@@ -401,7 +417,7 @@ prop = {
 
 prop = {
     name = "node_connected_timeout";
-    desc =  "Number of seconds before a gNet connection times out "
+    desc =  "Number of seconds before a Gnet connection times out "
             "if no data is transmitted";
     type = guint32;
     data = {
@@ -425,46 +441,58 @@ prop = {
 
 prop = {
     name = "node_tx_flowc_timeout";
-    desc = "Maximum number of seconds a node can remain in transit flow "
-           "control";
+    desc = "Maximum number of seconds a node can remain in transmit flow "
+           "control before being kicked out.";
     type = guint32;
     data = {
         default = 60;
-        min     = 1;
+        min     = 5;
         max     = 100000;
     };
 };
 
 prop = {
     name = "max_ttl";
-    desc = "[unknown, please provide description in gnet_props.ag]";
+    desc = "Maximum TTL we allow in messages we broadcast.  If a message "
+		   "comes in with a TTL greater than that, it will be trimmed down "
+		   "to that value.  On Gnutella, the standard is TTL=7, so you "
+		   "cannot set a value lower than that.";
     type = guint32;
     data = { 
         default = 10;
-        min     = 1;
-        max     = 99;
+        min     = 7;
+        max     = 20;
     };
 };
 
 prop = {
     name = "my_ttl";
-    desc = "[unknown, please provide description in gnet_props.ag]";
+    desc = "The TTL we use in messages we generate.  The default on "
+		   "Gnutella is TTL=7.  If you set it to too large a value, you "
+		   "run the risk of being trimmed down by fellow gtk-gnutella "
+		   "nodes, or kicked out by some other servent.";
     type = guint32;
     data = {
         default = 7;
         min     = 1;
-        max     = 99;
+        max     = 15;
     };
 };
 
 prop = {
     name = "hard_ttl_limit";
-    desc = "Maximum hard TTL limit (hop+ttl) on message";
+    desc = "Maximum hard TTL limit (hops + TTL) on message we relay.  This "
+		   "should be greater than the standard TTL=7, because it also "
+		   "applied to routed-back messages (query hits) that could be "
+		   "re-routed in case a connection is lost.  Standard broadcasted "
+		   "messages have their TTL limited by the maximum TTL you configure, "
+		   "and that limit should be much lower than the value of this "
+		   "parameter.";
     type = guint32;
     data = {
-        default = 10;
-        min     = 1;
-        max     = 99;
+        default = 15;
+        min     = 9;
+        max     = 25;
     };
 };
 
@@ -513,7 +541,7 @@ prop = {
 prop = {
     name = "bw_gnet_in_enabled";
     cfgvar = "bandwidth_ginput_limit";
-    desc = "Enable bandwidth limitation for incoming gNet traffic";
+    desc = "Enable bandwidth limitation for incoming Gnet traffic";
     type = boolean;
     data = {
         default = FALSE;
@@ -524,7 +552,7 @@ prop = {
 prop = {
     name = "bw_gnet_out_enabled";
     cfgvar = "bandwidth_goutput_limit";
-    desc = "Enable bandwidth limitation for outgoing gNet traffic";
+    desc = "Enable bandwidth limitation for outgoing Gnet traffic";
     type = boolean;
     data = {
         default = FALSE;
@@ -682,7 +710,7 @@ prop = {
 
 prop = {
     name = "max_high_ttl_msg";
-    desc = "Amount of tolerable messages abot hard TTL limit per node. "
+    desc = "Amount of tolerable messages above hard TTL limit per node. "
            "See also MAX_HIGH_TTL_RADIUS";
     type = guint32;
     data = {
@@ -759,8 +787,8 @@ prop = {
     type = guint32;
     data = {
         default = 256;
-        min     = 65;
-        max     = 65534;
+        min     = 64;
+        max     = 65536;
     };
 };
 
@@ -771,8 +799,8 @@ prop = {
     type = guint32;
     data = {
         default = 1024;
-        min     = 513;
-        max     = 65534;
+        min     = 128;
+        max     = 65536;
     };
 };
 
@@ -783,8 +811,8 @@ prop = {
     type = guint32;
     data = {
         default = 65536;
-        min     = 513;
-        max     = 1048575;
+        min     = 2048;
+        max     = 65536;
     };
 };
 
@@ -795,20 +823,20 @@ prop = {
     type = guint32;
     data = {
         default = 65536;
-        min     = 513;
-        max     = 1048575;
+        min     = 2048;
+        max     = 65536;
     };
 };
 
 prop = {
     name = "other_messages_kick_size";
-    desc = "Maximum size of unknown messages we allow, otherwise close the"
+    desc = "Maximum size of unknown messages we allow, otherwise close the "
            "connection (in bytes)";
     type = guint32;
     data = {
         default = 40960;
-        min     = 513;
-        max     = 1048575;
+        min     = 256;
+        max     = 65536;
     };
 };
 
@@ -826,7 +854,10 @@ prop = {
 
 prop = {
     name = "send_pushes";
-    desc = "Wether or not to send push requests";
+    desc = "Whether or not to send push requests.  If you are firewalled, "
+		   "gtk-gnutella will never send push requests anyway.  If you "
+		   "don't let gtk-gnutella send pushes, it will not show search "
+		   "results that would require a push.";
     type = boolean;
     data = {
         default = TRUE;
@@ -848,8 +879,8 @@ prop = {
 prop = {
     name = "min_dup_ratio";
     desc = "Minimum ratio of dups on received messages, per node "
-           "(between 0.00 and 100.00) (also see [min_dup_msg])"
-           "Note: the value is stored between 0 (0.0) and 10000 (100.0)"
+           "(between 0.00 and 100.00) (also see [min_dup_msg]) "
+           "Note: the value is stored between 0 (0.0) and 10000 (100.0) "
            "in the config file";
     type = guint32;
     data = {
@@ -862,7 +893,9 @@ prop = {
 prop = {
     name = "scan_extensions";
     cfgvar = "shared_files_extensions";
-    desc = "Only files with the given extensions will be shared";
+    desc = "Only files with the given extensions will be shared. "
+		   "The special --all-- extension matches all files, even "
+		   "if they don't have any extension.  Use with care.";
     type = string;
     data = {
         default = 
@@ -901,10 +934,14 @@ prop = {
 prop = {
     name = "move_file_path";
     cfgvar = "move_downloading_files_to";
-    desc = "Move complete files to this directory";
+    desc = "Move complete files to this directory.  It should be on "
+		   "the same filesystemt as the directory where incomplete "
+		   "files are saved, because the move of files between the "
+		   "two is a synchronous operation that will take a looong time "
+		   "if the kernel needs to physically copy the file...";
     type = string;
     data = {
-        default = ".";
+        default = "/tmp";
     };
 };
 
@@ -961,7 +998,7 @@ prop = {
 
 prop = {
     name = "use_swarming";
-    desc = "Wether or not to use swarming";
+    desc = "Wether or not to use swarming (recommended = YES)";
     type = boolean;
     data = {
         default = TRUE;
@@ -970,7 +1007,8 @@ prop = {
 
 prop = {
     name = "use_aggressive_swarming";
-    desc = "Wether or not to launch competing downloads when swarming";
+    desc = "Whether or not to launch competing downloads when swarming and "
+		   "there are many sources available with a few chunks left.";
     type = boolean;
     data = {
         default = TRUE;
@@ -979,11 +1017,13 @@ prop = {
 
 prop = {
     name = "dl_minchunksize";
-    desc = "Minimum chunk size when swarming";
+    desc = "Minimum chunk size when swarming.  This is only a hint "
+		   "as gtk-gnutella will download less if you only have a few "
+		   "bytes to get for a file...";
     type = guint32;
     data = {
 	    min = "64*1024";
-	    max = "10*1024*1024";
+	    max = "100*1024*1024";
         default = "512*1024";
     };
 };
@@ -994,8 +1034,8 @@ prop = {
     type = guint32;
     data = {
 	    min = "64*1024";
-	    max = "10*1024*1024";
-        default = "5*1024*1024";
+	    max = "1000*1024*1024";
+        default = "10*1024*1024";
     };
 };
 
@@ -1012,7 +1052,8 @@ prop = {
 
 prop = {
     name = "strict_sha1_matching";
-    desc = "When enabled, SHA1s must match. Otherwise, name and size will be sufficient";
+    desc = "When enabled, SHA1s must match. Otherwise, name and size "
+			"will be sufficient";
     type = boolean;
     data = {
 	    default = FALSE;
@@ -1021,7 +1062,8 @@ prop = {
 
 prop = {
     name = "use_fuzzy_matching";
-    desc = "Use fuzzy file name matching";
+    desc = "Use fuzzy file name matching (recommended = NO; only rely on "
+		   "SHA1 matching to be safe)";
     type = boolean;
     data = {
 	    default = FALSE;
@@ -1030,11 +1072,14 @@ prop = {
 
 prop = {
     name = "fuzzy_threshold";
-    desc = "Fuzziness threshold for filename matching (higher = stricter)";
+    desc = "Fuzziness threshold for filename matching (higher = stricter). "
+		   "A value of 100 means the filenames must be 100% identical.  A "
+		   "value of 0 means any two filenames will always be considered to "
+		   "be identical.  The minimum is 50%.";
     type = guint32;
     data = {
 	    default = 70;
-	    min = 0;
+	    min = 50;
 	    max = 100;
     };
 };
@@ -1125,3 +1170,4 @@ prop = {
         default = FALSE;
     };
 };
+

@@ -92,8 +92,8 @@ guint32  upload_connecting_timeout     = 60;
 guint32  upload_connecting_timeout_def = 60;
 guint32  upload_connected_timeout     = 180;
 guint32  upload_connected_timeout_def = 180;
-guint32  search_reissue_timeout     = 600;
-guint32  search_reissue_timeout_def = 600;
+guint32  search_reissue_timeout     = 1800;
+guint32  search_reissue_timeout_def = 1800;
 guint32  ban_ratio_fds     = 25;
 guint32  ban_ratio_fds_def = 25;
 guint32  ban_max_fds     = 100;
@@ -112,8 +112,8 @@ guint32  max_ttl     = 10;
 guint32  max_ttl_def = 10;
 guint32  my_ttl     = 7;
 guint32  my_ttl_def = 7;
-guint32  hard_ttl_limit     = 10;
-guint32  hard_ttl_limit_def = 10;
+guint32  hard_ttl_limit     = 15;
+guint32  hard_ttl_limit_def = 15;
 guint32  dbg     = 0;
 guint32  dbg_def = 0;
 gboolean stop_host_get     = FALSE;
@@ -190,8 +190,8 @@ gchar   *scan_extensions     = "asf;avi;bin;bz2;cue;deb;divx;flc;fli;gif;gz;ifo;
 gchar   *scan_extensions_def = "asf;avi;bin;bz2;cue;deb;divx;flc;fli;gif;gz;ifo;iso;it;jpeg;jpg;mjpg;mod;mov;mpa;mpg;mpeg;mpega;mp4;mp3;mp2;mp1:mpv;ogg;qt;png;ps;pdf;ram;rm;rar;rpm;s3m;stm;tar;tgz;txt;vob;voc;vqf;wav;wma;wmv;xm;zip";
 gchar   *save_file_path     = "/tmp";
 gchar   *save_file_path_def = "/tmp";
-gchar   *move_file_path     = ".";
-gchar   *move_file_path_def = ".";
+gchar   *move_file_path     = "/tmp";
+gchar   *move_file_path_def = "/tmp";
 gchar   *shared_dirs_paths     = "";
 gchar   *shared_dirs_paths_def = "";
 gchar   *local_netmasks_string     = "";
@@ -207,8 +207,8 @@ gboolean use_aggressive_swarming     = TRUE;
 gboolean use_aggressive_swarming_def = TRUE;
 guint32  dl_minchunksize     = 512*1024;
 guint32  dl_minchunksize_def = 512*1024;
-guint32  dl_maxchunksize     = 5*1024*1024;
-guint32  dl_maxchunksize_def = 5*1024*1024;
+guint32  dl_maxchunksize     = 10*1024*1024;
+guint32  dl_maxchunksize_def = 10*1024*1024;
 gboolean auto_download_identical     = TRUE;
 gboolean auto_download_identical_def = TRUE;
 gboolean strict_sha1_matching     = FALSE;
@@ -287,7 +287,7 @@ prop_set_t *gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[2].name = "new_version_str";
-    gnet_property->props[2].desc = "Gtk-gnutella found a newer version on the gNet and givesinformation about it here";
+    gnet_property->props[2].desc = "Gtk-gnutella found a newer version on the gNet and gives information about it here";
     gnet_property->props[2].prop_changed_listeners = NULL;
     gnet_property->props[2].save = FALSE;
     gnet_property->props[2].vector_size = 1;
@@ -308,7 +308,7 @@ prop_set_t *gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[3].name = "up_connections";
-    gnet_property->props[3].desc = "Try to keep at least this number of connections to otherservents.";
+    gnet_property->props[3].desc = "Try to keep at least this number of connections to other servents.  This should be smaller than the maximum amount of connections to allow incoming connections.";
     gnet_property->props[3].prop_changed_listeners = NULL;
     gnet_property->props[3].save = TRUE;
     gnet_property->props[3].vector_size = 1;
@@ -327,7 +327,7 @@ prop_set_t *gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[4].name = "max_connections";
-    gnet_property->props[4].desc = "Don't allow more that this number of connections to otherservents. As a rule of thumb you should resevere 1kb/s bandwidth per connection. Never use up all your bandwidth, leave a little space for TCP/IP overhead.";
+    gnet_property->props[4].desc = "Don't allow more that this number of connections to other servents.  As a rule of thumb you should resevere 1kb/s bandwidth per connection. Never use up all your bandwidth, leave a little space for TCP/IP overhead.";
     gnet_property->props[4].prop_changed_listeners = NULL;
     gnet_property->props[4].save = TRUE;
     gnet_property->props[4].vector_size = 1;
@@ -346,7 +346,7 @@ prop_set_t *gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[5].name = "max_simultaneous_downloads";
-    gnet_property->props[5].desc = "Don't start more than this number of parallel downloads";
+    gnet_property->props[5].desc = "Don't start more than this number of parallel downloads.  Others will remain in the queue waiting for a download slot.";
     gnet_property->props[5].prop_changed_listeners = NULL;
     gnet_property->props[5].save = TRUE;
     gnet_property->props[5].vector_size = 1;
@@ -365,7 +365,7 @@ prop_set_t *gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[6].name = "max_simultaneous_host_downloads";
-    gnet_property->props[6].desc = "Don't make more connections than given here to a single host to download a file";
+    gnet_property->props[6].desc = "Don't make more connections than given here to a single host to download a file.  Be nice to others, and leave that at the default value (1).";
     gnet_property->props[6].prop_changed_listeners = NULL;
     gnet_property->props[6].save = TRUE;
     gnet_property->props[6].vector_size = 1;
@@ -498,7 +498,7 @@ prop_set_t *gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[13].name = "limit_search_results";
-    gnet_property->props[13].desc = "Return at most this number of results in a query response";
+    gnet_property->props[13].desc = "Return at most this number of results to a query, using as many query hit packets as necessary.  To avoid network flooding, keep this to a reasonable value.";
     gnet_property->props[13].prop_changed_listeners = NULL;
     gnet_property->props[13].save = TRUE;
     gnet_property->props[13].vector_size = 1;
@@ -507,7 +507,7 @@ prop_set_t *gnet_prop_init(void) {
     gnet_property->props[13].type               = PROP_TYPE_GUINT32;
     gnet_property->props[13].data.guint32.def   = &search_max_items_def;
     gnet_property->props[13].data.guint32.value = &search_max_items;
-    gnet_property->props[13].data.guint32.max   = 255;
+    gnet_property->props[13].data.guint32.max   = 500;
     gnet_property->props[13].data.guint32.min   = 1;
 
 
@@ -574,7 +574,7 @@ prop_set_t *gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[17].name = "download_connected_timeout";
-    gnet_property->props[17].desc = "Number of seconds before a download times out if no data is recieved";
+    gnet_property->props[17].desc = "Number of seconds before a download times out if no data is received";
     gnet_property->props[17].prop_changed_listeners = NULL;
     gnet_property->props[17].save = TRUE;
     gnet_property->props[17].vector_size = 1;
@@ -707,7 +707,7 @@ prop_set_t *gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[24].name = "download_retry_stopped";
-    gnet_property->props[24].desc = "Delay in seconds before retrying after a retry stopped (timed out, connection reset by peer, etc.)";
+    gnet_property->props[24].desc = "Delay in seconds before retrying after a retry stopped (timed out, connection reset by peer, etc...)";
     gnet_property->props[24].prop_changed_listeners = NULL;
     gnet_property->props[24].save = TRUE;
     gnet_property->props[24].vector_size = 1;
@@ -726,7 +726,7 @@ prop_set_t *gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[25].name = "download_overlap_range";
-    gnet_property->props[25].desc = "Ammount of bytes to overlap when resuming a download";
+    gnet_property->props[25].desc = "Ammount of bytes to overlap when resuming a download. It should be at least 64 bytes for safe resuming, otherwise gtk-gnutella will not accept to resume a file for which we had no SHA1 known, after a server gives one back.";
     gnet_property->props[25].prop_changed_listeners = NULL;
     gnet_property->props[25].save = TRUE;
     gnet_property->props[25].vector_size = 1;
@@ -736,7 +736,7 @@ prop_set_t *gnet_prop_init(void) {
     gnet_property->props[25].data.guint32.def   = &download_overlap_range_def;
     gnet_property->props[25].data.guint32.value = &download_overlap_range;
     gnet_property->props[25].data.guint32.max   = SOCK_BUFSZ;
-    gnet_property->props[25].data.guint32.min   = 1;
+    gnet_property->props[25].data.guint32.min   = 0;
 
 
     /*
@@ -745,7 +745,7 @@ prop_set_t *gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[26].name = "upload_connecting_timeout";
-    gnet_property->props[26].desc = "Number of seconds before an upload times out if no connection can be established during a push";
+    gnet_property->props[26].desc = "Number of seconds before an upload times out if no connection can be established during a push.  It is also the maximum amount of time we wait to get the whole HTTP request.";
     gnet_property->props[26].prop_changed_listeners = NULL;
     gnet_property->props[26].save = TRUE;
     gnet_property->props[26].vector_size = 1;
@@ -764,7 +764,7 @@ prop_set_t *gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[27].name = "upload_connected_timeout";
-    gnet_property->props[27].desc = "Number of seconds before an upload times out if no data is transmitted";
+    gnet_property->props[27].desc = "Number of seconds after which an upload times out if no data is transmitted";
     gnet_property->props[27].prop_changed_listeners = NULL;
     gnet_property->props[27].save = TRUE;
     gnet_property->props[27].vector_size = 1;
@@ -783,7 +783,7 @@ prop_set_t *gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[28].name = "search_reissue_timeout";
-    gnet_property->props[28].desc = "Ammount of seconds to wait before a search is issued again to see if new results are available";
+    gnet_property->props[28].desc = "Ammount of seconds to wait before a search is issued again to see if new results are available.  Be very careful with that parameter, and do not set it too low or you will damage the Gnutella network.  A delay of half an hour is fine.";
     gnet_property->props[28].prop_changed_listeners = NULL;
     gnet_property->props[28].save = TRUE;
     gnet_property->props[28].vector_size = 1;
@@ -802,7 +802,7 @@ prop_set_t *gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[29].name = "ban_ratio_fds";
-    gnet_property->props[29].desc = "Maximum ratio of file descriptors reserved for banning";
+    gnet_property->props[29].desc = "Maximum ratio of file descriptors reserved for banning. For instance, if your OS gives your 350 file descriptors, a ratio of 10 will reserve at most 35 file descriptors.  You should ensure you have around 100 file descriptors for efficient banning.";
     gnet_property->props[29].prop_changed_listeners = NULL;
     gnet_property->props[29].save = TRUE;
     gnet_property->props[29].vector_size = 1;
@@ -840,7 +840,7 @@ prop_set_t *gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[31].name = "incoming_connecting_timeout";
-    gnet_property->props[31].desc = "Number of seconds an incoming connection has to send out its request";
+    gnet_property->props[31].desc = "Number of seconds an incoming connection has to start sending out its request";
     gnet_property->props[31].prop_changed_listeners = NULL;
     gnet_property->props[31].save = TRUE;
     gnet_property->props[31].vector_size = 1;
@@ -859,7 +859,7 @@ prop_set_t *gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[32].name = "node_connecting_timeout";
-    gnet_property->props[32].desc = "Number of seconds before a gNet connect attempt times out if no connection can be established";
+    gnet_property->props[32].desc = "Number of seconds before a Gnet connect attempt times out if no connection can be established";
     gnet_property->props[32].prop_changed_listeners = NULL;
     gnet_property->props[32].save = TRUE;
     gnet_property->props[32].vector_size = 1;
@@ -878,7 +878,7 @@ prop_set_t *gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[33].name = "node_connected_timeout";
-    gnet_property->props[33].desc = "Number of seconds before a gNet connection times out if no data is transmitted";
+    gnet_property->props[33].desc = "Number of seconds before a Gnet connection times out if no data is transmitted";
     gnet_property->props[33].prop_changed_listeners = NULL;
     gnet_property->props[33].save = TRUE;
     gnet_property->props[33].vector_size = 1;
@@ -916,7 +916,7 @@ prop_set_t *gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[35].name = "node_tx_flowc_timeout";
-    gnet_property->props[35].desc = "Maximum number of seconds a node can remain in transit flow control";
+    gnet_property->props[35].desc = "Maximum number of seconds a node can remain in transmit flow control before being kicked out.";
     gnet_property->props[35].prop_changed_listeners = NULL;
     gnet_property->props[35].save = TRUE;
     gnet_property->props[35].vector_size = 1;
@@ -926,7 +926,7 @@ prop_set_t *gnet_prop_init(void) {
     gnet_property->props[35].data.guint32.def   = &node_tx_flowc_timeout_def;
     gnet_property->props[35].data.guint32.value = &node_tx_flowc_timeout;
     gnet_property->props[35].data.guint32.max   = 100000;
-    gnet_property->props[35].data.guint32.min   = 1;
+    gnet_property->props[35].data.guint32.min   = 5;
 
 
     /*
@@ -935,7 +935,7 @@ prop_set_t *gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[36].name = "max_ttl";
-    gnet_property->props[36].desc = "[unknown, please provide description in gnet_props.ag]";
+    gnet_property->props[36].desc = "Maximum TTL we allow in messages we broadcast.  If a message comes in with a TTL greater than that, it will be trimmed down to that value.  On Gnutella, the standard is TTL=7, so you cannot set a value lower than that.";
     gnet_property->props[36].prop_changed_listeners = NULL;
     gnet_property->props[36].save = TRUE;
     gnet_property->props[36].vector_size = 1;
@@ -944,8 +944,8 @@ prop_set_t *gnet_prop_init(void) {
     gnet_property->props[36].type               = PROP_TYPE_GUINT32;
     gnet_property->props[36].data.guint32.def   = &max_ttl_def;
     gnet_property->props[36].data.guint32.value = &max_ttl;
-    gnet_property->props[36].data.guint32.max   = 99;
-    gnet_property->props[36].data.guint32.min   = 1;
+    gnet_property->props[36].data.guint32.max   = 20;
+    gnet_property->props[36].data.guint32.min   = 7;
 
 
     /*
@@ -954,7 +954,7 @@ prop_set_t *gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[37].name = "my_ttl";
-    gnet_property->props[37].desc = "[unknown, please provide description in gnet_props.ag]";
+    gnet_property->props[37].desc = "The TTL we use in messages we generate.  The default on Gnutella is TTL=7.  If you set it to too large a value, you run the risk of being trimmed down by fellow gtk-gnutella nodes, or kicked out by some other servent.";
     gnet_property->props[37].prop_changed_listeners = NULL;
     gnet_property->props[37].save = TRUE;
     gnet_property->props[37].vector_size = 1;
@@ -963,7 +963,7 @@ prop_set_t *gnet_prop_init(void) {
     gnet_property->props[37].type               = PROP_TYPE_GUINT32;
     gnet_property->props[37].data.guint32.def   = &my_ttl_def;
     gnet_property->props[37].data.guint32.value = &my_ttl;
-    gnet_property->props[37].data.guint32.max   = 99;
+    gnet_property->props[37].data.guint32.max   = 15;
     gnet_property->props[37].data.guint32.min   = 1;
 
 
@@ -973,7 +973,7 @@ prop_set_t *gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[38].name = "hard_ttl_limit";
-    gnet_property->props[38].desc = "Maximum hard TTL limit (hop+ttl) on message";
+    gnet_property->props[38].desc = "Maximum hard TTL limit (hops + TTL) on message we relay.  This should be greater than the standard TTL=7, because it also applied to routed-back messages (query hits) that could be re-routed in case a connection is lost.  Standard broadcasted messages have their TTL limited by the maximum TTL you configure, and that limit should be much lower than the value of this parameter.";
     gnet_property->props[38].prop_changed_listeners = NULL;
     gnet_property->props[38].save = TRUE;
     gnet_property->props[38].vector_size = 1;
@@ -982,8 +982,8 @@ prop_set_t *gnet_prop_init(void) {
     gnet_property->props[38].type               = PROP_TYPE_GUINT32;
     gnet_property->props[38].data.guint32.def   = &hard_ttl_limit_def;
     gnet_property->props[38].data.guint32.value = &hard_ttl_limit;
-    gnet_property->props[38].data.guint32.max   = 99;
-    gnet_property->props[38].data.guint32.min   = 1;
+    gnet_property->props[38].data.guint32.max   = 25;
+    gnet_property->props[38].data.guint32.min   = 9;
 
 
     /*
@@ -1062,7 +1062,7 @@ prop_set_t *gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[43].name = "bandwidth_ginput_limit";
-    gnet_property->props[43].desc = "Enable bandwidth limitation for incoming gNet traffic";
+    gnet_property->props[43].desc = "Enable bandwidth limitation for incoming Gnet traffic";
     gnet_property->props[43].prop_changed_listeners = NULL;
     gnet_property->props[43].save = TRUE;
     gnet_property->props[43].vector_size = 1;
@@ -1079,7 +1079,7 @@ prop_set_t *gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[44].name = "bandwidth_goutput_limit";
-    gnet_property->props[44].desc = "Enable bandwidth limitation for outgoing gNet traffic";
+    gnet_property->props[44].desc = "Enable bandwidth limitation for outgoing Gnet traffic";
     gnet_property->props[44].prop_changed_listeners = NULL;
     gnet_property->props[44].save = TRUE;
     gnet_property->props[44].vector_size = 1;
@@ -1369,7 +1369,7 @@ prop_set_t *gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[60].name = "max_high_ttl_msg";
-    gnet_property->props[60].desc = "Amount of tolerable messages abot hard TTL limit per node. See also MAX_HIGH_TTL_RADIUS";
+    gnet_property->props[60].desc = "Amount of tolerable messages above hard TTL limit per node. See also MAX_HIGH_TTL_RADIUS";
     gnet_property->props[60].prop_changed_listeners = NULL;
     gnet_property->props[60].save = TRUE;
     gnet_property->props[60].vector_size = 1;
@@ -1492,8 +1492,8 @@ prop_set_t *gnet_prop_init(void) {
     gnet_property->props[66].type               = PROP_TYPE_GUINT32;
     gnet_property->props[66].data.guint32.def   = &search_queries_forward_size_def;
     gnet_property->props[66].data.guint32.value = &search_queries_forward_size;
-    gnet_property->props[66].data.guint32.max   = 65534;
-    gnet_property->props[66].data.guint32.min   = 65;
+    gnet_property->props[66].data.guint32.max   = 65536;
+    gnet_property->props[66].data.guint32.min   = 64;
 
 
     /*
@@ -1511,8 +1511,8 @@ prop_set_t *gnet_prop_init(void) {
     gnet_property->props[67].type               = PROP_TYPE_GUINT32;
     gnet_property->props[67].data.guint32.def   = &search_queries_kick_size_def;
     gnet_property->props[67].data.guint32.value = &search_queries_kick_size;
-    gnet_property->props[67].data.guint32.max   = 65534;
-    gnet_property->props[67].data.guint32.min   = 513;
+    gnet_property->props[67].data.guint32.max   = 65536;
+    gnet_property->props[67].data.guint32.min   = 128;
 
 
     /*
@@ -1530,8 +1530,8 @@ prop_set_t *gnet_prop_init(void) {
     gnet_property->props[68].type               = PROP_TYPE_GUINT32;
     gnet_property->props[68].data.guint32.def   = &search_answers_forward_size_def;
     gnet_property->props[68].data.guint32.value = &search_answers_forward_size;
-    gnet_property->props[68].data.guint32.max   = 1048575;
-    gnet_property->props[68].data.guint32.min   = 513;
+    gnet_property->props[68].data.guint32.max   = 65536;
+    gnet_property->props[68].data.guint32.min   = 2048;
 
 
     /*
@@ -1549,8 +1549,8 @@ prop_set_t *gnet_prop_init(void) {
     gnet_property->props[69].type               = PROP_TYPE_GUINT32;
     gnet_property->props[69].data.guint32.def   = &search_answers_kick_size_def;
     gnet_property->props[69].data.guint32.value = &search_answers_kick_size;
-    gnet_property->props[69].data.guint32.max   = 1048575;
-    gnet_property->props[69].data.guint32.min   = 513;
+    gnet_property->props[69].data.guint32.max   = 65536;
+    gnet_property->props[69].data.guint32.min   = 2048;
 
 
     /*
@@ -1559,7 +1559,7 @@ prop_set_t *gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[70].name = "other_messages_kick_size";
-    gnet_property->props[70].desc = "Maximum size of unknown messages we allow, otherwise close theconnection (in bytes)";
+    gnet_property->props[70].desc = "Maximum size of unknown messages we allow, otherwise close the connection (in bytes)";
     gnet_property->props[70].prop_changed_listeners = NULL;
     gnet_property->props[70].save = TRUE;
     gnet_property->props[70].vector_size = 1;
@@ -1568,8 +1568,8 @@ prop_set_t *gnet_prop_init(void) {
     gnet_property->props[70].type               = PROP_TYPE_GUINT32;
     gnet_property->props[70].data.guint32.def   = &other_messages_kick_size_def;
     gnet_property->props[70].data.guint32.value = &other_messages_kick_size;
-    gnet_property->props[70].data.guint32.max   = 1048575;
-    gnet_property->props[70].data.guint32.min   = 513;
+    gnet_property->props[70].data.guint32.max   = 65536;
+    gnet_property->props[70].data.guint32.min   = 256;
 
 
     /*
@@ -1597,7 +1597,7 @@ prop_set_t *gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[72].name = "send_pushes";
-    gnet_property->props[72].desc = "Wether or not to send push requests";
+    gnet_property->props[72].desc = "Whether or not to send push requests.  If you are firewalled, gtk-gnutella will never send push requests anyway.  If you don't let gtk-gnutella send pushes, it will not show search results that would require a push.";
     gnet_property->props[72].prop_changed_listeners = NULL;
     gnet_property->props[72].save = TRUE;
     gnet_property->props[72].vector_size = 1;
@@ -1633,7 +1633,7 @@ prop_set_t *gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[74].name = "min_dup_ratio";
-    gnet_property->props[74].desc = "Minimum ratio of dups on received messages, per node (between 0.00 and 100.00) (also see [min_dup_msg])Note: the value is stored between 0 (0.0) and 10000 (100.0)in the config file";
+    gnet_property->props[74].desc = "Minimum ratio of dups on received messages, per node (between 0.00 and 100.00) (also see [min_dup_msg]) Note: the value is stored between 0 (0.0) and 10000 (100.0) in the config file";
     gnet_property->props[74].prop_changed_listeners = NULL;
     gnet_property->props[74].save = TRUE;
     gnet_property->props[74].vector_size = 1;
@@ -1652,7 +1652,7 @@ prop_set_t *gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[75].name = "shared_files_extensions";
-    gnet_property->props[75].desc = "Only files with the given extensions will be shared";
+    gnet_property->props[75].desc = "Only files with the given extensions will be shared. The special --all-- extension matches all files, even if they don't have any extension.  Use with care.";
     gnet_property->props[75].prop_changed_listeners = NULL;
     gnet_property->props[75].save = TRUE;
     gnet_property->props[75].vector_size = 1;
@@ -1694,7 +1694,7 @@ prop_set_t *gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[77].name = "move_downloading_files_to";
-    gnet_property->props[77].desc = "Move complete files to this directory";
+    gnet_property->props[77].desc = "Move complete files to this directory.  It should be on the same filesystemt as the directory where incomplete files are saved, because the move of files between the two is a synchronous operation that will take a looong time if the kernel needs to physically copy the file...";
     gnet_property->props[77].prop_changed_listeners = NULL;
     gnet_property->props[77].save = TRUE;
     gnet_property->props[77].vector_size = 1;
@@ -1812,7 +1812,7 @@ prop_set_t *gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[83].name = "use_swarming";
-    gnet_property->props[83].desc = "Wether or not to use swarming";
+    gnet_property->props[83].desc = "Wether or not to use swarming (recommended = YES)";
     gnet_property->props[83].prop_changed_listeners = NULL;
     gnet_property->props[83].save = TRUE;
     gnet_property->props[83].vector_size = 1;
@@ -1829,7 +1829,7 @@ prop_set_t *gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[84].name = "use_aggressive_swarming";
-    gnet_property->props[84].desc = "Wether or not to launch competing downloads when swarming";
+    gnet_property->props[84].desc = "Whether or not to launch competing downloads when swarming and there are many sources available with a few chunks left.";
     gnet_property->props[84].prop_changed_listeners = NULL;
     gnet_property->props[84].save = TRUE;
     gnet_property->props[84].vector_size = 1;
@@ -1846,7 +1846,7 @@ prop_set_t *gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[85].name = "dl_minchunksize";
-    gnet_property->props[85].desc = "Minimum chunk size when swarming";
+    gnet_property->props[85].desc = "Minimum chunk size when swarming.  This is only a hint as gtk-gnutella will download less if you only have a few bytes to get for a file...";
     gnet_property->props[85].prop_changed_listeners = NULL;
     gnet_property->props[85].save = TRUE;
     gnet_property->props[85].vector_size = 1;
@@ -1855,7 +1855,7 @@ prop_set_t *gnet_prop_init(void) {
     gnet_property->props[85].type               = PROP_TYPE_GUINT32;
     gnet_property->props[85].data.guint32.def   = &dl_minchunksize_def;
     gnet_property->props[85].data.guint32.value = &dl_minchunksize;
-    gnet_property->props[85].data.guint32.max   = 10*1024*1024;
+    gnet_property->props[85].data.guint32.max   = 100*1024*1024;
     gnet_property->props[85].data.guint32.min   = 64*1024;
 
 
@@ -1874,7 +1874,7 @@ prop_set_t *gnet_prop_init(void) {
     gnet_property->props[86].type               = PROP_TYPE_GUINT32;
     gnet_property->props[86].data.guint32.def   = &dl_maxchunksize_def;
     gnet_property->props[86].data.guint32.value = &dl_maxchunksize;
-    gnet_property->props[86].data.guint32.max   = 10*1024*1024;
+    gnet_property->props[86].data.guint32.max   = 1000*1024*1024;
     gnet_property->props[86].data.guint32.min   = 64*1024;
 
 
@@ -1918,7 +1918,7 @@ prop_set_t *gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[89].name = "use_fuzzy_matching";
-    gnet_property->props[89].desc = "Use fuzzy file name matching";
+    gnet_property->props[89].desc = "Use fuzzy file name matching (recommended = NO; only rely on SHA1 matching to be safe)";
     gnet_property->props[89].prop_changed_listeners = NULL;
     gnet_property->props[89].save = TRUE;
     gnet_property->props[89].vector_size = 1;
@@ -1935,7 +1935,7 @@ prop_set_t *gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[90].name = "fuzzy_threshold";
-    gnet_property->props[90].desc = "Fuzziness threshold for filename matching (higher = stricter)";
+    gnet_property->props[90].desc = "Fuzziness threshold for filename matching (higher = stricter). A value of 100 means the filenames must be 100% identical.  A value of 0 means any two filenames will always be considered to be identical.  The minimum is 50%.";
     gnet_property->props[90].prop_changed_listeners = NULL;
     gnet_property->props[90].save = TRUE;
     gnet_property->props[90].vector_size = 1;
@@ -1945,7 +1945,7 @@ prop_set_t *gnet_prop_init(void) {
     gnet_property->props[90].data.guint32.def   = &fuzzy_threshold_def;
     gnet_property->props[90].data.guint32.value = &fuzzy_threshold;
     gnet_property->props[90].data.guint32.max   = 100;
-    gnet_property->props[90].data.guint32.min   = 0;
+    gnet_property->props[90].data.guint32.min   = 50;
 
 
     /*
