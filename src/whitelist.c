@@ -99,7 +99,8 @@ void whitelist_retrieve(void)
 
         ip = host_to_ip(line);
         if (!ip) {
-            g_warning("whitelist_retrieve(): Line %d: Invalid IP \"%s\"", linenum, line);
+            g_warning("whitelist_retrieve(): "
+				"Line %d: Invalid IP \"%s\"", linenum, line);
             continue;
         }
         
@@ -117,7 +118,9 @@ void whitelist_retrieve(void)
             }
             if(!netmask) {
                 netmask = 0xffffffff;
-                g_warning("whitelist_retrieve(): Line %d: Invalid netmask \"%s\", using 255.255.255.255 instead.", linenum, snetmask);
+                g_warning("whitelist_retrieve(): "
+					"Line %d: Invalid netmask \"%s\", "
+					"using 255.255.255.255 instead.", linenum, snetmask);
             }
         } else
             netmask = 0xffffffff;
@@ -224,7 +227,8 @@ gboolean whitelist_check(guint32 ip)
         g_snprintf(wl_tmp, sizeof(wl_tmp), "%s/%s", config_dir, whitelist_file);
         if (stat(wl_tmp, &st) != -1) {
             if (st.st_mtime != whitelist_mtime) {
-                g_warning("whitelist_check(): Whitelist changed on disk. Reloading.");
+                g_warning("whitelist_check(): "
+					"Whitelist changed on disk. Reloading.");
                 whitelist_reload();
             }
         }
@@ -235,6 +239,7 @@ gboolean whitelist_check(guint32 ip)
         if ((ip & n->netmask) == (n->ip & n->netmask))
             return TRUE;
     }
+
     return FALSE;
 }
 

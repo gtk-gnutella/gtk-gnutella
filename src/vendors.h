@@ -31,6 +31,7 @@
 /***
  *** Known gnutella vendor codes
  ***/
+
 #define MAKE_CODE(a,b,c,d) ( \
 	((guint32) (a) << 24) | \
 	((guint32) (b) << 16) | \
@@ -71,4 +72,5 @@
 gchar *lookup_vendor_name(guchar code[4]);
 gboolean is_vendor_known(guchar code[4]);
 
-#endif /* __monitor_gui_h__ */
+#endif /* __vendors_h__ */
+
