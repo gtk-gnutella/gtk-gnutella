@@ -213,6 +213,7 @@ extern const guint32  pfsp_first_chunk;
 extern const gboolean fuzzy_filter_dmesh;
 extern const guint32  crawler_visit_count;
 extern const gboolean host_runs_ntp;
+extern const gboolean ntp_detected;
 extern const guint32  clock_skew;
 extern const gboolean node_monitor_unstable_ip;
 extern const gboolean node_monitor_unstable_servents;

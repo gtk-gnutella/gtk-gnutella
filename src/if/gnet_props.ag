@@ -2056,6 +2056,16 @@ prop = {
 };
 
 prop = {
+    name = "ntp_detected";
+    desc = "Whether a running NTP daemon was detected locally.";
+	save = FALSE;
+    type = boolean;
+    data = {
+        default = FALSE;
+    };
+};
+
+prop = {
     name = "clock_skew";
     desc = "The signed clock skew of this host compared to absolute time. "
 		"Adding this skew to the host clock should give the true time.";
@@ -2165,14 +2175,14 @@ prop = {
 	name = "download_rx_size";
 	desc = "Size of the RX socket buffer to be used for downloads, in kbytes. "
 		"If you wish to avoid Gnutella downloads using up all your "
-		"bandwidth, set it to a low value (default is 8K, which is fine). "
+		"bandwidth, set it to a low value (default is 64K, which is fine). "
 		"If you don't mind sucking up all the available bandwidth, "
 		"increasing your connection latency, set it to a greater value. "
 		"Remember: the smaller the value, the more you will be able to "
 		"precisely control the incoming rate.";
 	type = guint32;
 	data = {
-		default = 8;
+		default = 64;
 		min = 2;
 		max = 128;
 	};
@@ -2186,7 +2196,7 @@ prop = {
 		"be the case if you limit the incoming bandwidth.";
 	type = guint32;
 	data = {
-		default = 4;
+		default = 16;
 		min = 2;
 		max = 128;
 	};
