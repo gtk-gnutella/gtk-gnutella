@@ -2416,16 +2416,17 @@ static struct download *download_clone(struct download *d)
 	cd->list_idx = -1;
 	cd->file_name = atom_str_get(d->file_name);
 	cd->visible = FALSE;
+	cd->push = FALSE;
 
 	download_add_to_list(cd, DL_LIST_WAITING);
 
 	sl_downloads = g_slist_prepend(sl_downloads, cd);
 	sl_unqueued = g_slist_prepend(sl_unqueued, cd);
 
-	if (d->push)
+	if (d->push) {
 		download_push_remove(d);
-	if (cd->push)
 		download_push_insert(cd);
+	}
 
 	/*
 	 * The following have been copied and appropriated by the cloned download.
@@ -3272,10 +3273,12 @@ static void download_write_data(struct download *d)
 			else
 				download_queue(d, "Requeued by competing download");
 			break;
-		case DL_CHUNK_BUSY:			/* Still within requested chunk */
-			g_assert(d->pos < d->range_end);
-			g_assert(!trimmed);
-			break;
+		case DL_CHUNK_BUSY:
+			if (d->pos < d->range_end) {	/* Still within requested chunk */
+				g_assert(!trimmed);
+				break;
+			}
+			/* FALL THROUGH -- going past our own busy-chunk and competing */
 		case DL_CHUNK_EMPTY:
 			/*
 			 * We're done with our busy-chunk.
@@ -3300,7 +3303,7 @@ static void download_write_data(struct download *d)
 
 			break;					/* Go on... */
 		}
-	} else if (d->file_info->done == d->file_info->size)
+	} else if (FILE_INFO_COMPLETE(d->file_info))
 		goto done;
 	else
 		gui_update_download(d, FALSE);
