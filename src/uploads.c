@@ -1991,18 +1991,24 @@ static void upload_request(gnutella_upload_t *u, header_t *header)
 			 *		--TF 30/05/2002
 			 *
 			 * NB: if max_uploads is 0, then we disable sharing, period.
+			 *
+			 * Require that BOTH the average and "instantaneous" usage be
+			 * lower than the minimum to trigger the override.  This will
+			 * make it more robust when bandwidth stealing is enabled.
+			 *		--RAM, 27/01/2003
 			 */
 
 			if (
 				max_uploads &&
 				bw_ul_usage_enabled &&
 				bws_out_enabled &&
-				bsched_pct(bws.out) < ul_usage_min_percentage
+				bsched_pct(bws.out) < ul_usage_min_percentage &&
+				bsched_avg_pct(bws.out) < ul_usage_min_percentage
 			) {
 				if (dbg > 4)
 					printf("Overriden slot limit because u/l b/w used at %d%% "
 						"(minimum set to %d%%)\n",
-						bsched_pct(bws.out), ul_usage_min_percentage);
+						bsched_avg_pct(bws.out), ul_usage_min_percentage);
 			} else {
 				upload_error_remove(u, reqfile,
 					503, "Too many uploads (%d max)", max_uploads);
