@@ -179,6 +179,9 @@ static gboolean progressbar_connections_visible_changed(property_t prop);
 static gboolean search_results_show_tabs_changed(property_t prop);
 static gboolean autoclear_completed_downloads_changed(property_t prop);
 static gboolean autoclear_failed_downloads_changed(property_t prop);
+#ifdef USE_GTK1
+static gboolean autoclear_unavailable_downloads_changed(property_t prop);
+#endif
 static gboolean socks_user_changed(property_t prop);
 static gboolean socks_pass_changed(property_t prop);
 static gboolean traffic_stats_mode_changed(property_t prop);
@@ -1146,6 +1149,16 @@ static prop_map_t property_map[] = {
         "checkbutton_dl_clear_failed",
         FREQ_UPDATES, 0
     },
+#ifdef USE_GTK1		/* XXX not in GTK2 yet */
+    {
+        get_main_window,
+        PROP_AUTOCLEAR_UNAVAILABLE_DOWNLOADS,
+        autoclear_unavailable_downloads_changed,
+        TRUE,
+        "checkbutton_dl_clear_unavailable",
+        FREQ_UPDATES, 0
+    },
+#endif
     {
         get_main_window,
         PROP_FORCE_LOCAL_IP,
@@ -3192,7 +3205,7 @@ static gboolean autoclear_completed_downloads_changed(property_t prop)
         (lookup_widget(top, map_entry->wid)), val);
 
     if(val)
-        download_clear_stopped(TRUE, FALSE, TRUE);
+        download_clear_stopped(TRUE, FALSE, FALSE, TRUE);
 
     return FALSE;
 }
@@ -3210,10 +3223,30 @@ static gboolean autoclear_failed_downloads_changed(property_t prop)
         (lookup_widget(top, map_entry->wid)), val);
 
     if(val)
-        download_clear_stopped(FALSE, TRUE, TRUE);
+        download_clear_stopped(FALSE, TRUE, FALSE, TRUE);
 
     return FALSE;
 }
+
+#ifdef USE_GTK1
+static gboolean autoclear_unavailable_downloads_changed(property_t prop)
+{
+    gboolean val;
+    prop_map_t *map_entry = settings_gui_get_map_entry(prop);
+    prop_set_stub_t *stub = map_entry->stub;
+    GtkWidget *top = map_entry->fn_toplevel();
+
+    stub->boolean.get(prop, &val, 0, 1);
+
+    gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON
+        (lookup_widget(top, map_entry->wid)), val);
+
+    if(val)
+        download_clear_stopped(FALSE, FALSE, TRUE, TRUE);
+
+    return FALSE;
+}
+#endif
 
 static gboolean traffic_stats_mode_changed(property_t prop)
 {
