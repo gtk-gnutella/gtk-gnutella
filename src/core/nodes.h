@@ -301,6 +301,7 @@ typedef struct gnutella_node {
 #define NODE_A_LEAF_GUIDE	0x00000200	/* Supports leaf-guided dyn queries */
 #define NODE_A_TIME_SYNC	0x00000400	/* Supports time sync */
 #define NODE_A_CRAWLABLE	0x00000800	/* Node can be UDP-crawled */
+#define NODE_A_DYN_QUERY	0x00001000	/* Node can perform dynamic queries */
 
 #define NODE_A_CAN_HSEP		0x04000000	/* Node supports HSEP */
 #define NODE_A_CAN_QRP		0x08000000	/* Node supports query routing */

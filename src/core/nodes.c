@@ -4201,6 +4201,21 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 			n->attrs |= NODE_A_UP_QRP;	/* Only makes sense for ultra nodes */
 	}
 
+	/*
+	 * X-Dynamic-Querying -- ability of ultra nodes to perform dynamic querying
+	 */
+
+	field = header_get(head, "X-Dynamic-Querying");
+	if (field) {
+		guint major = 0, minor = 0;
+		sscanf(field, "%u.%u", &major, &minor);
+		if (major > 0 || minor > 1)
+			if (dbg) g_warning("node %s <%s> claims dynamic querying version %u.%u",
+				node_ip(n), node_vendor(n), major, minor);
+		if (n->attrs & NODE_A_ULTRA)
+			n->attrs |= NODE_A_DYN_QUERY;	/* Only makes sense for ultra nodes */
+	}
+
 	/* X-Max-TTL -- max initial TTL for dynamic querying */
 
 	field = header_get(head, "X-Max-Ttl");		/* Needs normalized case */
@@ -4398,7 +4413,7 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 				"\r\n",
 				version_string, node_crawler_headers(n), start_rfc822_date);
 		else {
-			gchar degree[80];
+			gchar degree[100];
 
 			/*
 			 * Special hack for LimeWire, which really did not find anything
@@ -4419,6 +4434,7 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 					my_ttl);
 			else if (0 == strncmp(node_vendor(n), "LimeWire", 8))
 				gm_snprintf(degree, sizeof(degree),
+					"X-Dynamic-Querying: 0.1\r\n"
 					"X-Ultrapeer-Query-Routing: 0.1\r\n"
 					"X-Degree: 32\r\n"
 					"X-Max-TTL: 4\r\n");
@@ -4442,6 +4458,7 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 				"%s"		/* X-Query-Routing */
 				"%s"		/* X-Ultrapeer-Query-Routing */
 				"%s"		/* X-Degree + X-Max-TTL */
+				"%s"		/* X-Dynamic-Querying */
 				"X-Token: %s\r\n"
 				"X-Live-Since: %s\r\n",
 				version_string,
@@ -4466,6 +4483,8 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 				current_peermode == NODE_P_ULTRA ?
 					"X-Ultrapeer-Query-Routing: 0.1\r\n" : "",
 				degree,
+				current_peermode == NODE_P_ULTRA ?
+					"X-Dynamic-Querying: 0.1\r\n" : "",
 				tok_version(), start_rfc822_date);
 				
 			header_features_generate(&xfeatures.connections,
@@ -5549,7 +5568,7 @@ node_init_outgoing(struct gnutella_node *n)
 {
 	struct gnutella_socket *s = n->socket;
 	ssize_t sent;
-	gchar degree[80];
+	gchar degree[100];
 
 	/*
 	 * Special hack for LimeWire, which insists on the presence of dynamic
@@ -5581,6 +5600,7 @@ node_init_outgoing(struct gnutella_node *n)
 				my_ttl);
 		else
 			gm_snprintf(degree, sizeof(degree),
+				"X-Dynamic-Querying: 0.1\r\n"
 				"X-Ultrapeer-Query-Routing: 0.1\r\n"
 				"X-Degree: 32\r\n"
 				"X-Max-TTL: 4\r\n");
@@ -5601,7 +5621,8 @@ node_init_outgoing(struct gnutella_node *n)
 			"%s"		/* X-Ultrapeer */
 			"%s"		/* X-Query-Routing */
 			"%s"		/* X-Ultrapeer-Query-Routing */
-			"%s",		/* X-Degree + X-Max-TTL */
+			"%s"		/* X-Degree + X-Max-TTL */
+			"%s",		/* X-Dynamic-Querying */
 			GNUTELLA_HELLO,
 			n->proto_major, n->proto_minor,
 			ip_port_to_gchar(listen_ip(), listen_port),
@@ -5617,7 +5638,9 @@ node_init_outgoing(struct gnutella_node *n)
 			current_peermode != NODE_P_NORMAL ? "X-Query-Routing: 0.2\r\n" : "",
 			current_peermode == NODE_P_ULTRA ?
 				"X-Ultrapeer-Query-Routing: 0.1\r\n" : "",
-			degree
+			degree,
+			current_peermode == NODE_P_ULTRA ?
+				"X-Dynamic-Querying: 0.1\r\n" : ""
 		);
 
 		header_features_generate(&xfeatures.connections,
