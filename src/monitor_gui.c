@@ -25,20 +25,25 @@
  *----------------------------------------------------------------------
  */
 
+#include "gui.h"
+
 #include "gnet.h"
-#include "share_gui.h"
-#include "misc.h"
+#include "monitor_gui.h"
 #include "gui_property_priv.h"
+
+/***
+ *** Private variables
+ ***/
 
 static guint32 monitor_items = 0;
 
-void share_gui_init()
-{
-    gtk_clist_column_titles_passive
-        (GTK_CLIST(lookup_widget(main_window, "clist_monitor")));  
-}
 
-void share_gui_append_to_monitor(const gchar *item)
+
+/***
+ *** Callbacks
+ ***/
+
+static void monitor_gui_append_to_monitor(const gchar *item)
 {
     char *titles[1];
     static GtkWidget *clist_monitor = NULL;
@@ -65,12 +70,30 @@ void share_gui_append_to_monitor(const gchar *item)
     g_free(titles[0]);
 }
 
+
+
+
+/***
+ *** Public functions
+ ***/
+
+void monitor_gui_init()
+{
+    gtk_clist_column_titles_passive
+        (GTK_CLIST(lookup_widget(main_window, "clist_monitor")));  
+}
+
+void monitor_gui_shutdown()
+{
+    monitor_gui_enable_monitor(FALSE);
+}
+
 /*
- * share_gui_clear_monitor:
+ * monitor_gui_clear_monitor:
  *
  * Remove all but the first n items from the monitor.
  */
-void share_gui_clear_monitor(void) 
+void monitor_gui_clear_monitor(void) 
 {
     GtkWidget *clist_monitor;
 
@@ -81,11 +104,11 @@ void share_gui_clear_monitor(void)
 }
 
 /*
- * share_gui_enable_monitor:
+ * monitor_gui_enable_monitor:
  *
  * Enable/disable monitor.
  */
-void share_gui_enable_monitor(const gboolean val)
+void monitor_gui_enable_monitor(const gboolean val)
 {
     static gboolean registered = FALSE;
     gtk_widget_set_sensitive
@@ -94,10 +117,10 @@ void share_gui_enable_monitor(const gboolean val)
     if (val != registered) {
         if (val) {
             share_add_search_request_listener
-                (share_gui_append_to_monitor);
+                (monitor_gui_append_to_monitor);
         } else {
             share_remove_search_request_listener
-                (share_gui_append_to_monitor);
+                (monitor_gui_append_to_monitor);
         }
         registered = val;
     }

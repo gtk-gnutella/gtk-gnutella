@@ -23,14 +23,12 @@
  *----------------------------------------------------------------------
  */
 
-#ifndef __share_gui_h__
-#define __share_gui_h__
+#ifndef __monitor_gui_h__
+#define __monitor_gui_h__
 
-#include "gui.h"
+void monitor_gui_init(void);
+void monitor_gui_shutdown(void);
+void monitor_gui_clear_monitor(void);
+void monitor_gui_enable_monitor(gboolean b);
 
-void share_gui_init(void);
-void share_gui_append_to_monitor(const gchar *item);
-void share_gui_clear_monitor(void);
-void share_gui_enable_monitor(gboolean b);
-
-#endif /* __share_gui_h__ */
+#endif /* __monitor_gui_h__ */
