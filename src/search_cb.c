@@ -108,6 +108,19 @@ static void add_drop_name_filter(record_t *rec, filter_t *filter)
     filter_append_rule(filter, rule);
 }
 
+static void add_drop_host_filter(record_t *rec, filter_t *filter)
+{
+    rule_t *rule;
+
+    g_assert(rec != NULL);
+    g_assert(filter != NULL);
+
+    rule = filter_new_ip_rule(rec->results_set->ip, 0xFFFFFFFF,
+        filter_get_drop_target(), RULE_FLAG_ACTIVE);
+
+    filter_append_rule(filter, rule);
+}
+
 static void add_download_sha1_filter(record_t *rec, filter_t *filter)
 {
     g_assert(rec != NULL);
@@ -834,6 +847,29 @@ void on_popup_search_drop_sha1_activate(
     gtk_clist_thaw(GTK_CLIST(current_search->clist));
 }
 
+void on_popup_search_drop_host_activate(
+    GtkMenuItem *menuitem, gpointer user_data)
+{
+    GSList *sl = NULL;
+    search_t *current_search;
+
+    current_search = search_gui_get_current_search();
+
+    g_assert(current_search != NULL);
+
+    gtk_clist_freeze(GTK_CLIST(current_search->clist));
+
+    sl = clist_collect_data(GTK_CLIST(current_search->clist), 
+        FALSE, rec_sha1_eq);
+
+    g_slist_foreach(sl, 
+        (GFunc) add_drop_host_filter, current_search->filter);
+
+    g_slist_free(sl);
+
+    gtk_clist_thaw(GTK_CLIST(current_search->clist));
+}
+
 void on_popup_search_drop_name_global_activate
     (GtkMenuItem *menuitem, gpointer user_data)
 {
@@ -874,6 +910,29 @@ void on_popup_search_drop_sha1_global_activate
 
     g_slist_foreach(sl, 
         (GFunc) add_drop_sha1_filter, filter_get_global_pre());
+
+    g_slist_free(sl);
+
+    gtk_clist_thaw(GTK_CLIST(current_search->clist));
+}
+
+void on_popup_search_drop_host_global_activate
+    (GtkMenuItem *menuitem, gpointer user_data)
+{
+    GSList *sl = NULL;
+    search_t *current_search;
+
+    current_search = search_gui_get_current_search();
+
+    g_assert(current_search != NULL);
+
+    gtk_clist_freeze(GTK_CLIST(current_search->clist));
+
+    sl = clist_collect_data(GTK_CLIST(current_search->clist), 
+        FALSE, rec_sha1_eq);
+
+    g_slist_foreach(sl, 
+        (GFunc) add_drop_host_filter, filter_get_global_pre());
 
     g_slist_free(sl);
 
