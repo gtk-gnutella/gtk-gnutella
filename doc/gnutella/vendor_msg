@@ -139,6 +139,14 @@ sent back.
 Here is a sample definition for a REAL vendor-specific message, known
 as BEAR/4v1, but also as "Hops Flow".
 
+    Name: Hops Flow
+    Vendor: BEAR
+    ID: 4
+    Version: 1
+    TTL: 1
+    Payload:
+        unsigned byte: hop value
+
 This message carries a single 8-bit unsigned integer representing the
 upper bound value for hops that a servent wishes to see in queries
 from its neighbors.  Only queries whose hops are STRICLY lesser than
