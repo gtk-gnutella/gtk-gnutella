@@ -287,6 +287,8 @@ static void adns_helper(gint fd_in, gint fd_out)
 	g_set_prgname("DNS-helper for gtk-gnutella");
 	gm_setproctitle("DNS helper for gtk-gnutella");
 
+	signal(SIGQUIT, SIG_IGN);		/* Avoid core dumps on SIGQUIT */
+
 	is_helper = TRUE;
 
 	for (;;) {
