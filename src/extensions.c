@@ -163,7 +163,7 @@ static gchar *ext_name_atom(gchar *name)
 	 */
 
 	key = g_strdup(name);
-	atom = hex_escape(key);
+	atom = hex_escape(key, TRUE); /* strict escaping */
 
 	g_hash_table_insert(ext_names, key, atom);
 
