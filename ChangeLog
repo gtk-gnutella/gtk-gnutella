@@ -1,5 +1,34 @@
 # since last version
 
+- (2003.07.20 - Jeroen)
+ * Try to avoid to connect to unstable ultrapeer hosts. An ultrapeer
+   is marked unstable when we are unable to connect to it for less
+   than 2 hours
+
+# v 0.92.1c 2003.06.20 [candidate]
+These are some changes since 0.92 stable:
+
+ * Support for push proxies was added which reduces problems with
+   firewalled servents.
+ * Support for pre-0.90 configuration files has been dropped.
+ * Improved PARQ and fixed some problems with it.
+ * The default directories for downloads are now set to $HOME.
+ * A lot of minor bugfixes and code clean-ups so that it compiles on
+   even more platforms and with other (C99) compilers.
+ * The "Purge" button could be hidden due to long filenames (#770625).
+ * A duplicate free() problem was fixed in _search_send_packet() (#706014).
+ * The "Purge" button doesn't cause crashes any longer (#757276).
+ * The bug which could cause a crash when resuming a download was fixed
+   (#739262).
+
+The following changes affect only the GTK+ 2.x front-end:
+
+ * XFT support is not turned off by default.
+ * The node and the uploads panel have been tuned (a little).
+ * No more crashes if the uploads are sorted by status.
+ * Non-UTF-8 encoded strings were passed to GTK+ 2.x causing warnings
+   (#769342).
+
 - (2003.07.19 - RAM)
  * Added server-side push-proxy support.
  * New routine base32_encode_str_into().
@@ -113,7 +142,6 @@
  * Handle partial sending of the HTTP request, instead of stopping.
  * Fixed encoding of saved strings [Patch from Stephane Corbe, fixes #747501].
 
->>>>>>> 1.419
 - (2003.07.13 - Jeroen)
  * PARQ won't assert on bad behaving clients anymore
 
