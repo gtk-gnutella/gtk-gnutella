@@ -57,6 +57,7 @@ enum socket_type {
 	SOCK_TYPE_HTTP,
     SOCK_TYPE_SHELL,
     SOCK_TYPE_CONNBACK,
+    SOCK_TYPE_DESTROYING,
 };
 
 struct gnutella_socket {
@@ -67,6 +68,7 @@ struct gnutella_socket {
 	enum socket_direction direction;
 	enum socket_type type;
 	gboolean corked;
+	gboolean adns_pending;
 
 	guint32 ip;				/* IP	of our partner */
 	guint16 port;			/* Port of our partner */
