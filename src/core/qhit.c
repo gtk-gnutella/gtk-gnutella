@@ -417,13 +417,13 @@ add_file(struct shared_file *sf)
 	FOUND_GROW(needed);
 
 	/*
-	 * If size is greater than 2^32-1, we store ~0 as the file size and will
+	 * If size is greater than 2^31-1, we store ~0 as the file size and will
 	 * use the "LF" GGEP extension to hold the real size.
 	 */
 
-	fs32 = sf->file_size > ((((guint64) 1U) << 32) - 1) ? ~0U : sf->file_size;
+	fs32 = sf->file_size > ((1U << 31) - 1) ? ~0U : sf->file_size;
 	WRITE_GUINT32_LE(sf->file_index, &FOUND_BUF[pos]); pos += 4;
-	WRITE_GUINT32_LE(fs32, &FOUND_BUF[pos]);  pos += 4;
+	WRITE_GUINT32_LE(fs32, &FOUND_BUF[pos]); pos += 4;
 
 	memcpy(&FOUND_BUF[pos], sf->file_name, sf->file_name_len);
 	pos += sf->file_name_len;
@@ -455,6 +455,10 @@ add_file(struct shared_file *sf)
 
 	ggep_stream_init(&gs, &FOUND_BUF[pos], FOUND_LEFT(pos));
 
+	/*
+	 * Emit the SHA1 as GGEP "H" if they said they understand it.
+	 */
+
 	if (sha1_available && FOUND_GGEP_H) {
 		/* Modern way: GGEP "H" for binary URN */
 		guint8 type = GGEP_H_SHA1;
@@ -469,7 +473,12 @@ add_file(struct shared_file *sf)
 			g_warning("could not write GGEP \"H\" extension in query hit");
 	}
 
-	if (sf->file_size > ((1U << 31) - 1)) {
+	/*
+	 * If the 32-bit size is the magic ~0 escape value, we need to emit
+	 * the real size in the "LF" extension.
+	 */
+
+	if (fs32 == ~0U) {
 		guint8 buf[sizeof(guint64)];
 		gint len;
 
