@@ -1,7 +1,7 @@
 /*
  * $Id$
  *
- * Copyright (c) 2003, Christian Biere
+ * Copyright (c) 2004, Christian Biere
  *
  * Asynchronous DNS lookup.
  *
