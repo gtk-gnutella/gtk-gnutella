@@ -434,11 +434,11 @@ gint main(gint argc, gchar **argv, gchar **env)
 	inet_init();
 	crc_init();
 	hostiles_init();
+	parq_init();
 
     main_gui_init();
 
     download_restore_state();
-	parq_init();
 
 	/* Some signal handlers */
 
