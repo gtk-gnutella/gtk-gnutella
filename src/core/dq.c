@@ -64,14 +64,16 @@ RCSID("$Id$");
 #define DQ_TIMEOUT_ADJUST	100		/* 100 ms at each connection */
 #define DQ_MIN_TIMEOUT		1500	/* 1.5 s at least between queries */
 #define DQ_LINGER_TIMEOUT	120000	/* 2 minutes, in ms */
-#define DQ_STATUS_TIMEOUT	20000	/* 20 s, in ms, to reply to query status */
+#define DQ_STATUS_TIMEOUT	30000	/* 30 s, in ms, to reply to query status */
+#define DQ_MAX_PENDING		3		/* Max pending queries we allow */
 
 #define DQ_LEAF_RESULTS		50		/* # of results targetted for leaves */
 #define DQ_LOCAL_RESULTS	150		/* # of results for local queries */
 #define DQ_PROBE_UP			3		/* Amount of UPs for initial probe */
 #define DQ_MAX_HORIZON		500000	/* Stop search after that many UP queried */
 #define DQ_MIN_HORIZON		3000	/* Min horizon before timeout adjustment */
-#define DQ_MAX_RESULTS		10		/* After DQ_MIN_HORIZON queried for adj. */
+#define DQ_LOW_RESULTS		10		/* After DQ_MIN_HORIZON queried for adj. */
+#define DQ_PERCENT_KEPT		5		/* Assume 5% of results kept, worst case */
 
 #define DQ_MAX_TTL			5		/* Max TTL we can use */
 #define DQ_AVG_ULTRA_NODES	2		/* Average # of ultranodes a leaf queries */
@@ -101,6 +103,8 @@ typedef struct dquery {
 	guint32 up_sent;		/* # of UPs to which we really sent our query */
 	guint32 pending;		/* Pending query messages not ACK'ed yet by mq */
 	guint32 max_results;	/* Max results we're targetting for */
+	guint32 fin_results;	/* # of results terminating leaf-guided query */
+	guint32 oob_results;	/* Amount of unclaimed OOB results reported */
 	guint32 results;		/* Results we got so far for the query */
 	guint32 linger_results;	/* Results we got whilst lingering */
 	guint32 new_results;	/* New we got since last query status request */
@@ -1048,8 +1052,9 @@ dq_send_next(dquery_t *dq)
 	 */
 
 	if (current_peermode != NODE_P_ULTRA) {
-		dq_terminate(dq);
-		return;
+		if (dq_debug > 19)
+			printf("DQ[%d] terminating (no longer an ultra node)\n", dq->qid);
+		goto terminate;
 	}
 
 	dq->flags &= ~DQ_F_GOT_GUIDANCE;	/* Clear flag */
@@ -1062,8 +1067,26 @@ dq_send_next(dquery_t *dq)
 	results = dq_kept_results(dq);
 
 	if (dq->horizon >= DQ_MAX_HORIZON || results >= dq->max_results) {
-		dq_terminate(dq);
-		return;
+		if (dq_debug > 19)
+			printf("DQ[%d] terminating (horizon=%u >= %d, results=%u >= %u)\n",
+				dq->qid, dq->horizon, DQ_MAX_HORIZON, results, dq->max_results);
+		goto terminate;
+	}
+
+	/*
+	 * Even if the query is leaf-guided, they have to keep some amount
+	 * of results, or we're wasting our energy collecting results for
+	 * something that has too restrictives filters.
+	 *
+	 * If they don't do leaf-guidance, the above test will trigger first!
+	 */
+
+	if (dq->results + dq->oob_results > dq->fin_results) {
+		if (dq_debug > 19)
+			printf("DQ[%d] terminating (seen=%u + OOB=%u >= %u -- kept=%u)\n",
+				dq->qid, dq->results, dq->oob_results, dq->fin_results,
+				results);
+		goto terminate;
 	}
 
 	/*
@@ -1072,7 +1095,25 @@ dq_send_next(dquery_t *dq)
 	 */
 
 	if (dq->up_sent >= max_connections - normal_connections) {
-		dq_terminate(dq);
+		if (dq_debug > 19)
+			printf("DQ[%d] terminating (queried UPs=%u >= %u)\n",
+				dq->qid, dq->up_sent, max_connections - normal_connections);
+		goto terminate;
+	}
+
+	/*
+	 * If we have reached the maximum amount of pending queries (messages
+	 * queued but not sent yet), then wait.  Otherwise, we might select
+	 * another node, and be suddenly overwhelmed by replies if the pending
+	 * queries are finally sent and the query was popular...
+	 */
+
+	if (dq->pending >= DQ_MAX_PENDING) {
+		if (dq_debug > 19)
+			printf("DQ[%d] waiting for %u ms (pending=%u)\n",
+				dq->qid, dq->result_timeout, dq->pending);
+		dq->results_ev = cq_insert(callout_queue,
+			dq->result_timeout, dq_results_expired, dq);
 		return;
 	}
 
@@ -1136,7 +1177,7 @@ dq_send_next(dquery_t *dq)
 
 	if (
 		dq->horizon > DQ_MIN_HORIZON &&
-		results < (DQ_MAX_RESULTS * dq->horizon / DQ_MIN_HORIZON)
+		results < (DQ_LOW_RESULTS * dq->horizon / DQ_MIN_HORIZON)
 	) {
 		dq->result_timeout -= DQ_TIMEOUT_ADJUST;
 		dq->result_timeout = MAX(DQ_MIN_TIMEOUT, dq->result_timeout);
@@ -1159,6 +1200,10 @@ dq_send_next(dquery_t *dq)
 
 cleanup:
 	wfree(nv, ncount * sizeof(struct next_up));
+	return;
+
+terminate:
+	dq_terminate(dq);
 }
 
 /**
@@ -1305,8 +1350,9 @@ dq_common_init(dquery_t *dq, query_hashvec_t *qhv)
 
 	if (dq_debug > 19)
 		printf("DQ[%d] created for node #%d: TTL=%d max_results=%d "
-			"MUID=%s q=\"%s\"\n",
+			"guidance=%s MUID=%s q=\"%s\"\n",
 			dq->qid, dq->node_id, dq->ttl, dq->max_results,
+			(dq->flags & DQ_F_LEAF_GUIDED) ? "yes" : "no",
 			guid_hex_str(head->muid), QUERY_TEXT(pmsg_start(dq->mb)));
 }
 
@@ -1330,6 +1376,7 @@ dq_launch_net(gnutella_node_t *n, query_hashvec_t *qhv)
 		n->size + sizeof(struct gnutella_header));
 	dq->qhv = qhvec_clone(qhv);
 	dq->max_results = DQ_LEAF_RESULTS;
+	dq->fin_results = DQ_LEAF_RESULTS * 100 / DQ_PERCENT_KEPT;
 	dq->ttl = MIN(n->header.ttl, DQ_MAX_TTL);
 	dq->alive = n->alive_pings;
 
@@ -1357,9 +1404,10 @@ dq_launch_net(gnutella_node_t *n, query_hashvec_t *qhv)
 		dq->flags |= DQ_F_LEAF_GUIDED;
 
 	if (dq_debug > 19)
-		printf("DQ node #%d %s <%s> (%s leaf-guidance) queries \"%s\"\n",
+		printf("DQ node #%d %s <%s> (%s leaf-guidance) %squeries \"%s\"\n",
 			n->id, node_ip(n), node_vendor(n),
 			(dq->flags & DQ_F_LEAF_GUIDED) ? "with" : "no",
+			tagged_speed && (req_speed & QUERY_SPEED_OOB_REPLY) ? "OOB-" : "",
 			QUERY_TEXT(pmsg_start(dq->mb)));
 
 	gnet_stats_count_general(NULL, GNR_LEAF_DYN_QUERIES, 1);
@@ -1405,6 +1453,7 @@ dq_launch_local(gnet_search_t handle, pmsg_t *mb, query_hashvec_t *qhv)
 	dq->qhv = qhv;
 	dq->sh = handle;
 	dq->max_results = DQ_LOCAL_RESULTS;
+	dq->fin_results = DQ_LOCAL_RESULTS * 100 / DQ_PERCENT_KEPT;
 	dq->ttl = MIN(my_ttl, DQ_MAX_TTL);
 	dq->alive = NULL;
 
@@ -1450,16 +1499,19 @@ dq_node_removed(guint32 node_id)
 }
 
 /**
- * Called every time we successfully parsed a query hit from the network.
- * If we have a dynamic query registered for the MUID, increase the result
- * count.
+ * Common code to count the results.
  *
- * @return FALSE if the query was explicitly cancelled by the user and
- * results should be dropped, TRUE otherwise.  In other words, returns
- * whether we should forward the results.
+ * @param muid is the dynamic query's MUID, i.e. the MUID used to send out
+ * the query on the network (important for OOB-proxied queries).
+ * @param count is the amount of results we received or got notified about
+ * @param oob if TRUE indicates that we just got notified about OOB results
+ * awaiting, but which have not been claimed yet.  If FALSE, the results
+ * have been validated and will be sent to the queryier.
+ *
+ * @return FALSE if the query was explicitly cancelled by the user
  */
-gboolean
-dq_got_results(gchar *muid, gint count)
+static gboolean
+dq_count_results(gchar *muid, gint count, gboolean oob)
 {
 	dquery_t *dq;
 
@@ -1472,6 +1524,8 @@ dq_got_results(gchar *muid, gint count)
 
 	if (dq->flags & DQ_F_LINGER)
 		dq->linger_results += count;
+	else if (oob)
+		dq->oob_results += count;	/* Not yet claimed */
 	else {
 		dq->results += count;
 		dq->new_results += count;
@@ -1482,19 +1536,80 @@ dq_got_results(gchar *muid, gint count)
 			dq->kept_results = search_get_kept_results_by_handle(dq->sh);
 		if (dq->flags & DQ_F_LINGER)
 			printf("DQ[%d] %s(%d secs; +%d secs) "
-				"+%d linger_results=%d kept=%d\n",
+				"+%d %slinger_results=%d kept=%d\n",
 				dq->qid, dq->node_id == NODE_ID_LOCAL ? "local " : "",
 				(gint) (time(NULL) - dq->start),
 				(gint) (time(NULL) - dq->stop),
-				count, dq->linger_results, dq->kept_results);
+				count, oob ? "OOB " : "",
+				dq->linger_results, dq->kept_results);
 		else
-			printf("DQ[%d] %s(%d secs) +%d results=%d new=%d kept=%d\n",
+			printf("DQ[%d] %s(%d secs) "
+				"+%d %sresults=%d new=%d kept=%d oob=%d\n",
 				dq->qid, dq->node_id == NODE_ID_LOCAL ? "local " : "",
 				(gint) (time(NULL) - dq->start),
-				count, dq->results, dq->new_results, dq->kept_results);
+				count, oob ? "OOB " : "",
+				dq->results, dq->new_results, dq->kept_results,
+				dq->oob_results);
 	}
 
 	return (dq->flags & DQ_F_USR_CANCELLED) ? FALSE : TRUE;
+}
+
+/**
+ * Called every time we successfully parsed a query hit from the network.
+ * If we have a dynamic query registered for the MUID, increase the result
+ * count.
+ *
+ * @return FALSE if the query was explicitly cancelled by the user and
+ * results should be dropped, TRUE otherwise.  In other words, returns
+ * whether we should forward the results.
+ */
+gboolean
+dq_got_results(gchar *muid, gint count)
+{
+	return dq_count_results(muid, count, FALSE);
+}
+
+/**
+ * Called every time we get notified about the presence of some OOB hits.
+ * The hits have not yet been claimed.
+ *
+ * @return FALSE if the query was explicitly cancelled by the user and
+ * results should not be claimed.
+ */
+gboolean
+dq_oob_results_ind(gchar *muid, gint count)
+{
+	return dq_count_results(muid, count, TRUE);
+}
+
+/**
+ * Called when OOB results were received, after dq_got_results() was
+ * called to record them.  We need to undo the accounting made when
+ * dq_oob_results_ind() was called (to register unclaimed hits, which
+ * were finally claimed and parsed).
+ */
+void
+dq_oob_results_got(const gchar *muid, gint count)
+{
+	dquery_t *dq;
+
+	g_assert(count > 0);		/* Query hits with no result are bad! */
+
+	dq = g_hash_table_lookup(by_muid, muid);
+
+	if (dq == NULL)
+		return;
+
+	/*
+	 * Don't assert, as a remote node could lie and advertise n hits,
+	 * yet deliver m with m > n.
+	 */
+
+	if (dq->oob_results > count)
+		dq->oob_results -= count;	/* Claimed them! */
+	else
+		dq->oob_results = 0;
 }
 
 /**
