@@ -3316,7 +3316,7 @@ prop_set_t *gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[152].name = "fuzzy_filter_dmesh";
-    gnet_property->props[152].desc = _("Whether to apply a fuzzy filter on download mesh entries.  Thepurpose of this filtering is to remove entries whose names are too different to be sensibly part of the same mesh. When activated, your mesh will probably be more consistent at the cost of extra CPU time, and at the cost of losing some valid entries in the process.");
+    gnet_property->props[152].desc = _("Whether to apply a fuzzy filter on download mesh entries.  The purpose of this filtering is to remove entries whose names are too different to be sensibly part of the same mesh. When activated, your mesh will probably be more consistent at the cost of extra CPU time, and at the cost of losing some valid entries in the process.");
     gnet_property->props[152].ev_changed = event_new("fuzzy_filter_dmesh_changed");
     gnet_property->props[152].save = TRUE;
     gnet_property->props[152].vector_size = 1;

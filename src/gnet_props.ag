@@ -1835,7 +1835,7 @@ prop = {
 
 prop = {
     name = "fuzzy_filter_dmesh";
-    desc = "Whether to apply a fuzzy filter on download mesh entries.  The"
+    desc = "Whether to apply a fuzzy filter on download mesh entries.  The "
 			"purpose of this filtering is to remove entries whose names "
 			"are too different to be sensibly part of the same mesh. "
 			"When activated, your mesh will probably be more consistent "
