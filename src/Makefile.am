@@ -87,7 +87,7 @@ gtk_gnutella_SOURCES = \
 	filter.c filter.h filter_cb.c filter_cb.h filter_gui.c filter_gui.h\
 	ban.c ban.h \
 	qrp.c qrp.h \
-	getdate.y \
+	getdate.y getdate.h \
 	atoms.c atoms.h \
 	extensions.c extensions.h ggep.h \
 	dmesh.c dmesh.h \
