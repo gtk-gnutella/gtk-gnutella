@@ -346,6 +346,7 @@ gboolean node_remove_worst(gboolean non_local);
 
 void node_qrt_changed(gpointer query_table);
 void node_qrt_discard(struct gnutella_node *n);
+void node_qrt_install(struct gnutella_node *n, gpointer query_table);
 
 void send_node_error(struct gnutella_socket *s, int code, guchar *msg, ...);
 

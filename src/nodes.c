@@ -580,6 +580,9 @@ static void node_remove_v(
 	if (n->qrt_update)
 		qrt_update_free(n->qrt_update);
 
+	if (n->qrt_receive)
+		qrt_receive_free(n->qrt_receive);
+
 	if (n->query_table)
 		qrt_unref(n->query_table);
 
@@ -2867,6 +2870,16 @@ static void node_parse(struct gnutella_node *node)
 		}
 	}
 
+	/*
+	 * If node is a leaf, it MUST send its messages with hops = 0.
+	 */
+
+	if (NODE_IS_LEAF(n) && n->header.hops > 0) {
+		node_bye_if_writable(n, 414, "Leaf node relayed %s",
+			gmsg_name(n->header.function));
+		return;
+	}
+
 	/* First some simple checks */
 
 	switch (n->header.function) {
@@ -2934,6 +2947,15 @@ static void node_parse(struct gnutella_node *node)
 		}
 		break;
 
+	case GTA_MSG_QRP:			/* Leaf -> Ultrapeer, never routed */
+		if (current_peermode != NODE_P_ULTRA) {
+			drop = TRUE;
+			gnet_stats_count_dropped(n, MSG_DROP_UNEXPECTED);
+			if (dbg)
+				gmsg_log_bad(n, "unexpected QRP message");
+			n->n_bad++;
+		}
+		break;
 	default:					/* Unknown message type - we drop it */
 		drop = TRUE;
         gnet_stats_count_dropped(n, MSG_DROP_UNKNOWN_TYPE);
@@ -3005,6 +3027,22 @@ static void node_parse(struct gnutella_node *node)
 		vmsg_handle(n);
 		goto reset_header;
 		/* NOTREACHED */
+	case GTA_MSG_QRP:				/* Query Routing table propagation */
+		if (n->qrt_receive == NULL) {
+			n->qrt_receive = qrt_receive_create(n, n->query_table);
+			node_fire_node_flags_changed(n);
+		}
+		if (n->qrt_receive != NULL) {
+			gboolean done;
+			if (!qrt_receive_next(n->qrt_receive, &done))
+				return;				/* Node BYE-ed */
+			if (done) {
+				qrt_receive_free(n->qrt_receive);
+				n->qrt_receive = NULL;
+				node_fire_node_flags_changed(n);
+			}
+		}
+		break;
 	case GTA_MSG_SEARCH_RESULTS:	/* "semi-pongs" */
 		if (host_low_on_pongs) {
 			guint32 ip;
@@ -3032,6 +3070,17 @@ static void node_parse(struct gnutella_node *node)
              * the message was dropped.
              */
 			drop = search_request(n);
+
+			/*
+			 * If node is a leaf, undo decrement of TTL: act as if we were
+			 * sending the search.  When the results arrives, we'll forward
+			 * it to the leaf even if its TTL is zero when it reaches us
+			 * (handled by route_message() directly).
+			 */
+			if (NODE_IS_LEAF(n)) {
+				n->header.ttl++;
+				n->header.hops--;
+			}
 			break;
 		case GTA_MSG_SEARCH_RESULTS:
             /*
@@ -3061,6 +3110,17 @@ static void node_parse(struct gnutella_node *node)
 				gmsg_sendto_route_ggep(n, &dest, regular_size);
 			else
 				gmsg_sendto_route(n, &dest);
+
+			/*
+			 * If message was a query, route it to the appropriate leaves.
+			 */
+
+			if (
+				current_peermode == NODE_P_ULTRA &&
+				n->header.function == GTA_MSG_SEARCH
+			)
+				// XXX gmsg_query_route(n);
+				/* empty */;
 		}
 	} else {
 		if (dbg > 3)
@@ -3769,12 +3829,29 @@ void node_qrt_discard(struct gnutella_node *n)
 		qrt_unref(n->query_table);
 		n->query_table = NULL;
 	}
+
+    node_fire_node_flags_changed(n);
+}
+
+/*
+ * node_qrt_install
+ *
+ * Invoked for ultra nodes to install new Query Routing Table.
+ */
+void node_qrt_install(struct gnutella_node *n, gpointer query_table)
+{
+	g_assert(NODE_IS_LEAF(n));
+	g_assert(n->query_table == NULL);
+
+	n->query_table = qrt_ref(query_table);
+
+    node_fire_node_flags_changed(n);
 }
 
 /*
  * node_qrt_changed
  *
- * Invoked when our Query Routing Table changed.
+ * Invoked for leaf nodes when our Query Routing Table changed.
  */
 void node_qrt_changed(gpointer query_table)
 {
@@ -3913,9 +3990,12 @@ void node_set_hops_flow(gnutella_node_t *n, guint8 hops)
 		n->rxfc->start_half_period = time(NULL);
 	}
 
-	g_assert(n->rxfc != NULL);
+	g_assert(n->rxfc != NULL || hops >= GTA_NORMAL_TTL);
 
 	rxfc = n->rxfc;
+
+	if (rxfc == NULL)
+		goto fire;
 
 	if (hops < GTA_NORMAL_TTL) {
 		/* Entering hops-flow control */
@@ -4024,7 +4104,11 @@ void node_fill_flags(const gnet_node_t n, gnet_node_flags_t *flags)
 
 	flags->qrt_state = QRT_S_NONE;
 	if (node->peermode == NODE_P_LEAF) {
-		// XXX
+		if (node->qrt_receive != NULL) {
+			flags->qrt_state = node->query_table != NULL ?
+				QRT_S_PATCHING : QRT_S_RECEIVING;
+		} else if (node->query_table != NULL)
+			flags->qrt_state = QRT_S_RECEIVED;
 	} else if (node->peermode == NODE_P_ULTRA) {
 		if (node->qrt_update != NULL)
 			flags->qrt_state = QRT_S_SENDING;
