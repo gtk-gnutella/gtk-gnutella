@@ -158,7 +158,7 @@ void search_store_xml(void)
 	time_t now = time((time_t *) NULL);
     xmlDocPtr doc;
     xmlNodePtr root;
-	gchar filename[1024];
+	gchar *filename_new;
 
     /* 
      * Create new xml document with version 1.0 
@@ -200,23 +200,38 @@ void search_store_xml(void)
      */
 
     xmlKeepBlanksDefault(0);
-    gm_snprintf(x_tmp, sizeof(x_tmp), "%s/%s.new", 
-        settings_gui_config_dir(), search_file_xml);
+    filename_new = g_strdup_printf("%s/%s.new",
+						settings_gui_config_dir(), search_file_xml);
 
-    if (xmlSaveFormatFile(x_tmp, doc, TRUE) == -1) {
+    if (
+		NULL == filename_new ||
+		xmlSaveFormatFile(filename_new, doc, TRUE) == -1
+	) {
         g_warning("Unable to create %s to persist search: %s",
-			x_tmp, g_strerror(errno));
+			filename_new, g_strerror(errno));
     } else {
+		gchar *filename;
+
         if (gui_debug >= 3)
             printf("saved searches file: %s\n", x_tmp);
 
-		gm_snprintf(filename, sizeof(filename), "%s/%s",
-			settings_gui_config_dir(), search_file_xml);
+		filename = g_strdup_printf("%s/%s",
+						settings_gui_config_dir(), search_file_xml);
 
-		if (-1 == rename(x_tmp, filename))
+		if (
+			NULL == filename ||
+			NULL == filename_new ||
+			-1 == rename(filename_new, filename)
+		)
 			g_warning("could not rename %s as %s: %s",
-				x_tmp, filename, g_strerror(errno));
+				filename_new, filename, g_strerror(errno));
+
+		if (NULL != filename)
+			G_FREE_NULL(filename);
     }
+
+	if (NULL != filename_new)
+		G_FREE_NULL(filename_new);
 
 	xmlFreeDoc(doc);
 }
@@ -234,29 +249,34 @@ gboolean search_retrieve_xml(void)
     xmlNodePtr node;
     xmlNodePtr root;
     GList *f;
+	gchar *path;
     
-  	gm_snprintf(x_tmp, sizeof(x_tmp), "%s/%s",
-		settings_gui_config_dir(), search_file_xml);
-
+  	path = g_strdup_printf("%s/%s", settings_gui_config_dir(),
+			search_file_xml);
+	g_return_val_if_fail(NULL != path, FALSE);
+	
 	/* 
      * if the file doesn't exist 
      */
-	if(!file_exists(x_tmp)) {
-        g_warning("Searches file does not exist: %s", x_tmp);
+	if (!file_exists(path)) {
+        g_warning("Searches file does not exist: %s", path);
+		G_FREE_NULL(path);
 		return FALSE;
     }
+	
 
 	/* 
      * parse the new file and put the result into newdoc 
      */
-	doc = xmlParseFile(x_tmp);
+	doc = xmlParseFile(path);
     root = xmlDocGetRootElement(doc);
 
 	/* 
      * in case something went wrong 
      */
     if(!doc) {
-        g_warning("Error parsing searches file: %s", x_tmp);
+        g_warning("Error parsing searches file: %s", path);
+		G_FREE_NULL(path);
 		return FALSE;
     }
 
@@ -267,10 +287,12 @@ gboolean search_retrieve_xml(void)
 	    /* if it isn't a Genealogy node */
 	    g_ascii_strcasecmp(root->name ,"Searches") != 0
     ) {
-        g_warning("Searches file has invalid format: %s", x_tmp);
+        g_warning("Searches file has invalid format: %s", path);
 		xmlFreeDoc(doc);
+		G_FREE_NULL(path);
 		return FALSE;
 	}
+	G_FREE_NULL(path);
 
     id_map = g_hash_table_new(NULL, NULL);
 
