@@ -57,7 +57,7 @@ void header_features_add(struct xfeature_t *xfeatures,
 void header_features_cleanup(struct xfeature_t *xfeatures);
 void features_close();
 void header_features_generate(struct xfeature_t *xfeatures, 
-	gchar *buf, gint len, gint *rw);
+	gchar *buf, size_t len, size_t *rw);
 
 #endif	/* _core_features_h_ */
 

@@ -112,16 +112,16 @@ void header_features_cleanup(struct xfeature_t *xfeatures)
  * *rw is changed too *rw + bytes written
  */
 void header_features_generate(struct xfeature_t *xfeatures,
-	gchar *buf, gint len, gint *rw)
+	gchar *buf, size_t len, size_t *rw)
 {
 	static const char hdr[] = "X-Features";
 	GList *cur;
 	gpointer fmt;
 
-	g_assert(len >= 0);
-	g_assert(*rw >= 0);
+	g_assert(len <= INT_MAX);
+	g_assert(*rw <= INT_MAX);
 
-	if ((size_t) (len - *rw) < (sizeof(hdr) + sizeof(": \r\n") - 1))
+	if (len - *rw < (sizeof(hdr) + sizeof(": \r\n") - 1))
 		return;
 		
 	if (g_list_first(xfeatures->features) == NULL)
