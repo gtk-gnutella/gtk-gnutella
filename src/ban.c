@@ -360,12 +360,14 @@ static GList *banned_head = NULL;
 static GList *banned_tail = NULL;
 
 /*
- * ban_reclaim_fd
+ * reclaim_fd
+ *
+ * Internal version of ban_reclaim_fd().
  *
  * Reclaim a file descriptor used for banning.
  * Returns TRUE if we did reclaim something, FALSE if there was nothing.
  */
-gboolean ban_reclaim_fd(void)
+static gboolean reclaim_fd(void)
 {
 	GList *prev;
 
@@ -394,6 +396,37 @@ gboolean ban_reclaim_fd(void)
 }
 
 /*
+ * ban_reclaim_fd
+ *
+ * Reclaim a file descriptor used for banning.
+ *
+ * This routine is called when there is a shortage of file descriptors, so
+ * we activate the "file_descriptor_shortage" property.  However, if we have
+ * nothing to reclaim, we activate the "file_descriptor_runout" property
+ * instead, which signifies that processing will be degraded.
+ *
+ * Returns TRUE if we did reclaim something, FALSE if there was nothing.
+ */
+gboolean ban_reclaim_fd(void)
+{
+	gboolean reclaimed;
+
+	reclaimed = reclaim_fd();
+
+	/*
+	 * Those properties will be cleared if more than 10 minutes elapse
+	 * after their last setting to TRUE.
+	 */
+
+	if (reclaimed)
+		gnet_prop_set_boolean_val(PROP_FILE_DESCRIPTOR_SHORTAGE, TRUE);
+	else
+		gnet_prop_set_boolean_val(PROP_FILE_DESCRIPTOR_RUNOUT, TRUE);
+
+	return reclaimed;
+}
+
+/*
  * ban_force
  *
  * Force banning of the connection.
@@ -408,7 +441,7 @@ void ban_force(struct gnutella_socket *s)
 		g_assert(banned_tail);
 		g_assert(max_banned_fd <= 1 || (banned_tail != banned_head));
 
-		ban_reclaim_fd();
+		reclaim_fd();
 	}
 
 	/*

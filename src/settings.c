@@ -99,6 +99,7 @@ static void settings_callbacks_init(void);
 static void settings_callbacks_shutdown(void);
 static void update_servent_uptime(void);
 
+extern cqueue_t *callout_queue;
 
 /* ----------------------------------------- */
 
@@ -1189,6 +1190,78 @@ static gboolean proxy_protocol_changed(property_t prop)
     return TRUE;
 }
 
+/*
+ * Automatically reset properties have a callout queue entry associated
+ * with them.  When the entry fires, the property is cleared.  Each time
+ * the property is set, the callout entry is reactivated some time in the
+ * future.
+ */
+
+static gpointer ev_file_descriptor_shortage = NULL;
+static gpointer ev_file_descriptor_runout = NULL;
+
+#define RESET_PROP_TM	(10*60*1000)	/* 10 minutes in ms */
+
+/*
+ * reset_property_cb	-- callout queue callback
+ *
+ * Reset the property.
+ */
+static void reset_property_cb(cqueue_t *cq, gpointer obj)
+{
+	property_t prop = (property_t) obj;
+
+	switch (prop) {
+	case PROP_FILE_DESCRIPTOR_SHORTAGE:
+		ev_file_descriptor_shortage = NULL;
+		break;
+	case PROP_FILE_DESCRIPTOR_RUNOUT:
+		ev_file_descriptor_runout = NULL;
+		break;
+	default:
+		g_error("unhandled property #%d", prop);
+		break;
+	}
+
+	gnet_prop_set_boolean_val(prop, FALSE);
+}
+
+static gboolean file_descriptor_x_changed(property_t prop)
+{
+	gboolean state;
+	gpointer *ev = NULL;
+
+	gnet_prop_get_boolean_val(prop, &state);
+	if (!state)
+		return FALSE;
+
+	/*
+	 * Property is set to TRUE: arm callback to reset it in 10 minutes.
+	 */
+
+	switch (prop) {
+	case PROP_FILE_DESCRIPTOR_SHORTAGE:
+		ev = &ev_file_descriptor_shortage;
+		break;
+	case PROP_FILE_DESCRIPTOR_RUNOUT:
+		ev = &ev_file_descriptor_runout;
+		break;
+	default:
+		g_error("unhandled property #%d", prop);
+		break;
+	}
+
+	g_assert(ev != NULL);
+
+	if (*ev == NULL)
+		*ev = cq_insert(callout_queue, RESET_PROP_TM, reset_property_cb,
+			GUINT_TO_POINTER(prop));
+	else
+		cq_resched(callout_queue, *ev, RESET_PROP_TM);
+
+    return FALSE;
+}
+
 /***
  *** Property-to-callback map
  ***/
@@ -1383,6 +1456,16 @@ static prop_map_t property_map[] = {
 		TRUE,
 	},
 	{
+		PROP_FILE_DESCRIPTOR_SHORTAGE,
+		file_descriptor_x_changed,
+		FALSE,
+	},
+	{
+		PROP_FILE_DESCRIPTOR_RUNOUT,
+		file_descriptor_x_changed,
+		FALSE,
+	},
+	{
 		/*
 		 * This is used for a quirk which relies on the order
 		 * of PROP_PROXY_CONNECTIONS and PROP_PROXY_PROTOCOL.
@@ -1447,6 +1530,15 @@ static void settings_callbacks_shutdown(void)
 {
     gint n;
 
+	if (ev_file_descriptor_shortage != NULL) {
+		cq_cancel(callout_queue, ev_file_descriptor_shortage);
+		ev_file_descriptor_shortage = NULL;
+	}
+	if (ev_file_descriptor_runout != NULL) {
+		cq_cancel(callout_queue, ev_file_descriptor_runout);
+		ev_file_descriptor_runout = NULL;
+	}
+	
     for (n = 0; n < PROPERTY_MAP_SIZE; n ++) {
         if (property_map[n].cb != IGNORE) {
             gnet_prop_remove_prop_changed_listener(
