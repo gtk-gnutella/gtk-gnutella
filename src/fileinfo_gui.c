@@ -194,6 +194,8 @@ static void fi_gui_fill_status(
         gm_snprintf(fi_status, sizeof(fi_status), 
             "Downloading (%.1f k/s)", s.recv_last_rate / 1024.0);
         titles[C_FI_STATUS] = fi_status;
+    } else if (s.done == s.size){
+        titles[C_FI_STATUS] = "Finished";
     } else {
         titles[C_FI_STATUS] = s.lifecount ? "Waiting" : "No sources";
     }
@@ -260,9 +262,12 @@ static void fi_gui_fi_status_changed(gnet_fi_t fih)
 
 void fi_gui_init(void) 
 {
-    fi_add_fi_added_listener(fi_gui_fi_added);
-    fi_add_fi_removed_listener(fi_gui_fi_removed);
-    fi_add_fi_status_changed_listener(fi_gui_fi_status_changed);
+    fi_add_listener((GCallback)fi_gui_fi_added, 
+        EV_FI_ADDED, FREQ_SECS, 0);
+    fi_add_listener((GCallback)fi_gui_fi_removed, 
+        EV_FI_REMOVED, FREQ_SECS, 0);
+    fi_add_listener((GCallback)fi_gui_fi_status_changed, 
+        EV_FI_STATUS_CHANGED, FREQ_SECS, 0);
 
     gtk_clist_set_column_justification(
         GTK_CLIST(lookup_widget(main_window, "clist_fileinfo")),
@@ -271,9 +276,9 @@ void fi_gui_init(void)
 
 void fi_gui_shutdown(void)
 {
-    fi_remove_fi_removed_listener(fi_gui_fi_removed);
-    fi_remove_fi_added_listener(fi_gui_fi_added);
-    fi_remove_fi_status_changed_listener(fi_gui_fi_status_changed);
+    fi_remove_listener((GCallback)fi_gui_fi_removed, EV_FI_REMOVED);
+    fi_remove_listener((GCallback)fi_gui_fi_added, EV_FI_ADDED);
+    fi_remove_listener((GCallback)fi_gui_fi_status_changed, EV_FI_STATUS_CHANGED);
 }
 
 /*
