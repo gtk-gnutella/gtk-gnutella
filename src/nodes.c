@@ -69,7 +69,7 @@
 
 #define NODE_ERRMSG_TIMEOUT		5	/* Time to leave erorr messages displayed */
 #define SHUTDOWN_GRACE_DELAY	120	/* Grace period for shutdowning nodes */
-#define BYE_GRACE_DELAY			20	/* Bye sent, give time to propagate */
+#define BYE_GRACE_DELAY			30	/* Bye sent, give time to propagate */
 
 GSList *sl_nodes = (GSList *) NULL;
 
