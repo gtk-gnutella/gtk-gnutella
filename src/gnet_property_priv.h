@@ -59,6 +59,7 @@ extern guint32  upload_connected_timeout;
 extern guint32  search_reissue_timeout;
 extern guint32  ban_ratio_fds;
 extern guint32  ban_max_fds;
+extern guint32  incoming_connecting_timeout;
 extern guint32  node_connecting_timeout;
 extern guint32  node_connected_timeout;
 extern guint32  node_sendqueue_size;

@@ -80,8 +80,7 @@ void socket_timer(time_t now)
 	for (l = sl_incoming; l; l = l->next) {
 		struct gnutella_socket *s = (struct gnutella_socket *) l->data;
 		g_assert(s->last_update);
-		/* We reuse the `node_connecting_timeout' parameter, need a new one? */
-		if (now - s->last_update > node_connecting_timeout) {
+		if (now - s->last_update > incoming_connecting_timeout) {
 			if (dbg) {
 				g_warning("connection from %s timed out (%d bytes read)",
 						  ip_to_gchar(s->ip), s->pos);

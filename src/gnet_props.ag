@@ -374,6 +374,18 @@ prop = {
 };
 
 prop = {
+    name = "incoming_connecting_timeout";
+    desc =  "Number of seconds an incoming connection has "  
+            "to send out its request";
+    type = guint32;
+    data = {
+        default = 30;
+        min     = 5;
+        max     = 300;
+    };
+};
+
+prop = {
     name = "node_connecting_timeout";
     desc =  "Number of seconds before a gNet connect attempt times "  
             "out if no connection can be established";
