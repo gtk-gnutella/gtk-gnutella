@@ -20,6 +20,7 @@ extern GtkWidget *menu_uploads_visible;
 extern GtkWidget *menu_downloads_visible;
 extern GtkWidget *menu_connections_visible;
 extern GtkWidget *hbox_statusbar;
+extern GtkWidget *label_statusbar_uptime;
 extern GtkWidget *button_config_move_path;
 extern GtkWidget *button_config_rescan_dir;
 extern GtkWidget *button_config_save_path;

@@ -27,6 +27,7 @@ GtkWidget *menu_uploads_visible;
 GtkWidget *menu_downloads_visible;
 GtkWidget *menu_connections_visible;
 GtkWidget *hbox_statusbar;
+GtkWidget *label_statusbar_uptime;
 GtkWidget *button_config_move_path;
 GtkWidget *button_config_rescan_dir;
 GtkWidget *button_config_save_path;
@@ -2576,6 +2577,13 @@ create_main_window (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (statusbar);
   gtk_box_pack_start (GTK_BOX (hbox_statusbar), statusbar, TRUE, TRUE, 0);
+
+  label_statusbar_uptime = gtk_label_new ("Uptime");
+  gtk_widget_ref (label_statusbar_uptime);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label_statusbar_uptime", label_statusbar_uptime,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label_statusbar_uptime);
+  gtk_box_pack_start (GTK_BOX (hbox_statusbar), label_statusbar_uptime, FALSE, FALSE, 0);
 
   gtk_signal_connect (GTK_OBJECT (main_window), "delete_event",
                       GTK_SIGNAL_FUNC (on_main_window_delete_event),

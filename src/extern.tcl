@@ -18,6 +18,7 @@ set w_main_list {
 	menu_connections_visible
 
 	hbox_statusbar
+	label_statusbar_uptime
 
 	button_config_move_path
 	button_config_rescan_dir
