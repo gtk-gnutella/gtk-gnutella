@@ -33,7 +33,17 @@
   in the GUI currently
 - Mark upload/download as stalled if no I/O within the last minute
 - The amount of seconds between two automatic re-queries of the network
-  now has to be at least of 600 seconds.
+  now has to be at least of 300 seconds
+- Fixed memory leak in uploads (found by Nate)
+- Connection statistics now show two figures, as "x/y": x is the amount of
+  connected sockets, and y is the amount of attempts made in the background
+  but not yet fully connected at the application level
+- Node connections statistics are dumped for debugging
+- Downloads now use the new HTTP header parsing code
+  (but push support was broken, for now)
+- Don't hammer host caches, allow a reasonable delay between two consecutive
+  connection attemps to the same host
+- Now uses fresh pongs when the saved caught host list has been re-read
 
 # v 0.18   2001.11.19
 
