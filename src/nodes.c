@@ -587,11 +587,12 @@ void node_timer(time_t now)
 			 */
 
 			if (NODE_IS_WRITABLE(n) && now - n->last_rx > n->alive_period) {
-				guint32 last_latency;
+				guint32 last;
+				guint32 avg;
 				guint32 period;
 
 				/*
-				 * Take the round-trip time of the last ping as a base for
+				 * Take the round-trip time of the ping/pongs as a base for
 				 * computing the time we should space our pings.  Indeed,
 				 * if the round-trip is 90s (taking an extreme example) due
 				 * to queuing and TCP/IP clogging and we send pings every 20
@@ -600,9 +601,9 @@ void node_timer(time_t now)
 				 *		-RAM, 01/11/2003
 				 */
 
-				alive_get_roundtrip_ms(n->alive_pings, NULL, &last_latency);
-				last_latency /= 1000;		/* Convert ms to seconds */
-				period = MAX(n->alive_period, last_latency);
+				alive_get_roundtrip_ms(n->alive_pings, &avg, &last);
+				last = MAX(avg, last) / 1000;	/* Convert ms to seconds */
+				period = MAX(n->alive_period, last);
 
 				if (
 					now - n->last_alive_ping > period &&
