@@ -484,7 +484,6 @@ void search_gui_add_record(
   	gchar *info_utf8;
 	GtkTreeIter *parent;
 	GtkTreeIter iter;
-	GtkTreeView *tree_view = GTK_TREE_VIEW(sch->tree_view);
 	GtkTreeStore *model = GTK_TREE_STORE(sch->model);
 
 	/*
