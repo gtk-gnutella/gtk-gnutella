@@ -1,5 +1,16 @@
 # since last version
 
+- (2003.08.16 - RAM)
+ * Updated metaconfig so that the generated config.h can compile properly
+   with the broken gcc 3.x pre-processor.
+ * Added size of arrays in external declations from gnet_stats_gui_common.h.
+ * [GTK1] Added new download auto-clear option: unavailable downloads only.
+ * New property "autoclear_unavailable_downloads" to clear unavailble
+   downloads only.  TRUE by default.
+ * Renamed "Clear completed" button as "Clear stopped".
+ * All downloads that timeout or for which the push route is lost are
+   stopped via download_unavailable().
+
 - (2003.08.15 - RAM)
  * Moved the manual page from debian/ to src/.
  * [GTK1] Added display of the amount of fileinfo entries, and which have
