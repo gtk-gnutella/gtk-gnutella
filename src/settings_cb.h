@@ -40,6 +40,18 @@ void on_entry_config_socks_password_activate (GtkEditable *editable, gpointer us
 gboolean on_entry_config_socks_username_focus_out_event(GtkWidget *, GdkEventFocus *, gpointer);
 void on_entry_config_socks_username_activate(GtkEditable *, gpointer);
 
+gboolean on_entry_config_extensions_focus_out_event (GtkWidget *widget, GdkEventFocus *event, gpointer user_data);
+void on_entry_config_extensions_activate (GtkEditable *editable, gpointer user_data); 
+
+gboolean on_entry_config_path_focus_out_event (GtkWidget *widget, GdkEventFocus *event, gpointer user_data);
+void on_entry_config_path_activate (GtkEditable *editable, gpointer user_data); 
+
+gboolean on_entry_config_force_ip_focus_out_event (GtkWidget *widget, GdkEventFocus *event, gpointer user_data);
+void on_entry_config_force_ip_activate (GtkEditable *editable, gpointer user_data); 
+void on_entry_config_force_ip_changed (GtkEditable *editable, gpointer user_data);
+
+
+
 void on_checkbutton_config_bw_ul_usage_enabled_toggled(GtkToggleButton *, gpointer);
 void on_checkbutton_queue_regex_case_toggled (GtkToggleButton *togglebutton, gpointer user_data);
 void on_checkbutton_search_pick_all_toggled (GtkToggleButton *togglebutton, gpointer user_data);
@@ -60,6 +72,7 @@ void on_menu_bws_gin_visible_activate(GtkMenuItem * menuitem, gpointer user_data
 void on_menu_bws_gout_visible_activate(GtkMenuItem * menuitem, gpointer user_data);
 
 void on_popup_search_toggle_tabs_activate (GtkMenuItem *menuitem, gpointer user_data);
+
 
 
 

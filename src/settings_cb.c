@@ -110,6 +110,60 @@ void on_entry_config_socks_password_activate
 }
 FOCUS_TO_ACTIVATE(entry_config_socks_password)
 
+void on_entry_config_extensions_activate(GtkEditable *editable, gpointer data)
+{
+    gchar *ext;
+
+    ext = gtk_editable_get_chars(editable, 0, -1);
+   
+   	parse_extensions(ext);
+	gui_update_scan_extensions();
+
+    g_free(ext);
+}
+FOCUS_TO_ACTIVATE(entry_config_extensions)
+
+void on_entry_config_path_activate(GtkEditable *editable, gpointer user_data)
+{
+    gchar *path;
+
+    path = gtk_editable_get_chars(editable, 0, -1);
+
+    gnet_prop_set_string(PROP_SHARED_DIRS_PATHS, path);
+
+    g_free(path);
+}
+FOCUS_TO_ACTIVATE(entry_config_path)
+
+void on_entry_config_force_ip_activate
+    (GtkEditable *editable, gpointer user_data)
+{
+   	gchar *e;
+	guint32 ip;
+	e = gtk_editable_get_chars(
+        GTK_EDITABLE(lookup_widget(main_window, "entry_config_force_ip")), 
+        0, -1);
+	g_strstrip(e);
+	ip = gchar_to_ip(e);
+	gnet_prop_set_guint32(PROP_FORCED_LOCAL_IP, &ip, 0, 1);
+	g_free(e);
+}
+FOCUS_TO_ACTIVATE(entry_config_force_ip)
+
+void on_entry_config_force_ip_changed
+    (GtkEditable *editable,  gpointer user_data)
+{
+    gchar *e = gtk_editable_get_chars(editable, 0, -1);
+
+	g_strstrip(e);
+
+	gtk_widget_set_sensitive(
+        lookup_widget(main_window, "checkbutton_config_force_ip"),
+        is_string_ip(e));
+
+	g_free(e);
+}
+
 void on_menu_toolbar_visible_activate
     (GtkMenuItem *menuitem, gpointer user_data)
 {
@@ -173,3 +227,4 @@ void on_popup_search_toggle_tabs_activate
     val = !val;
     gui_prop_set_boolean(PROP_SEARCH_RESULTS_SHOW_TABS, &val, 0, 1);
 }
+
