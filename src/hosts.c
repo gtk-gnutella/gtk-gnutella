@@ -809,8 +809,9 @@ struct gnutella_msg_init_response *build_pong_msg(
  * send_pong
  *
  * Send pong message back to node.
+ * If `control' is true, send it as a higher priority message.
  */
-static void send_pong(struct gnutella_node *n,
+static void send_pong(struct gnutella_node *n, gboolean control,
 	guint8 hops, guint8 ttl, guchar *muid,
 	guint32 ip, guint16 port, guint32 files, guint32 kbytes)
 {
@@ -821,7 +822,11 @@ static void send_pong(struct gnutella_node *n,
 
 	r = build_pong_msg(hops, ttl, muid, ip, port, files, kbytes);
 	n->n_pong_sent++;
-	gmsg_sendto_one(n, (guchar *) r, sizeof(*r));
+
+	if (control)
+		gmsg_ctrl_sendto_one(n, (guchar *) r, sizeof(*r));
+	else
+		gmsg_sendto_one(n, (guchar *) r, sizeof(*r));
 }
 
 /*
@@ -830,8 +835,10 @@ static void send_pong(struct gnutella_node *n,
  * Send info about us back to node, using the hopcount information present in
  * the header of the node structure to construct the TTL of the pong we
  * send.
+ *
+ * If `control' is true, send it as a higher priority message.
  */
-static void send_personal_info(struct gnutella_node *n)
+static void send_personal_info(struct gnutella_node *n, gboolean control)
 {
 	g_assert(n->header.function == GTA_MSG_INIT);	/* Replying to a ping */
 
@@ -845,7 +852,7 @@ static void send_personal_info(struct gnutella_node *n)
 	 *				--RAM, 15/09/2001
 	 */
 
-	send_pong(n, 0, MIN(n->header.hops + 1, max_ttl), n->header.muid,
+	send_pong(n, control, 0, MIN(n->header.hops + 1, max_ttl), n->header.muid,
 		listen_ip(), listen_port, files_scanned, kbytes_scanned);
 }
 
@@ -880,7 +887,8 @@ static void send_neighbouring_info(struct gnutella_node *n)
 		if (cn->gnet_ip == 0)
 			continue;				/* No information yet */
 
-		send_pong(n, 1, 1, n->header.muid,		/* hops = 1, TTL = 1 */
+		send_pong(n, FALSE,
+			1, 1, n->header.muid,			/* hops = 1, TTL = 1 */
 			cn->gnet_ip, cn->gnet_port,
 			cn->gnet_files_count, cn->gnet_kbytes_count);
 
@@ -1322,7 +1330,7 @@ static gboolean iterate_on_cached_line(
 			continue;
 		cp->last_sent_id = n->id;
 
-		send_pong(n, hops, ttl, n->ping_guid,
+		send_pong(n, FALSE, hops, ttl, n->ping_guid,
 			cp->ip, cp->port, cp->files_count, cp->kbytes_count);
 
 		n->pong_missing--;
@@ -1412,7 +1420,7 @@ static void pong_all_neighbours_but_one(
 		cn->pong_missing--;
 		cn->pong_needed[hops]--;
 
-		send_pong(cn, hops, ttl, cn->ping_guid,
+		send_pong(cn, FALSE, hops, ttl, cn->ping_guid,
 			cp->ip, cp->port, cp->files_count, cp->kbytes_count);
 
 		if (dbg > 7)
@@ -1487,7 +1495,7 @@ void pcache_ping_received(struct gnutella_node *n)
 	if (n->header.hops == 0 && n->header.ttl <= 2) {
 		n->n_ping_special++;
 		if (n->header.ttl == 1)
-			send_personal_info(n);
+			send_personal_info(n, TRUE);	/* Control message, prioritary */
 		else if (n->header.ttl == 2)
 			send_neighbouring_info(n);
 		else
@@ -1549,7 +1557,7 @@ void pcache_ping_received(struct gnutella_node *n)
 	 */
 
 	if (node_count() < max_connections && !is_firewalled) {
-		send_personal_info(n);
+		send_personal_info(n, FALSE);
 		if (!NODE_IS_CONNECTED(n))	/* Can be removed if send queue is full */
 			return;
 	}
