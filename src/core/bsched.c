@@ -1432,7 +1432,7 @@ bio_sendfile(bio_source_t *bio, gint in_fd, off_t *offset, size_t len)
 
 		if ((ssize_t) -1 == r) {
 			if (errno == EAGAIN)
-				r = (gint) written;
+				r = (ssize_t) written;
 		} else
 			r = amount;			/* Everything written, but returns 0 if OK */
 
@@ -1446,8 +1446,9 @@ bio_sendfile(bio_source_t *bio, gint in_fd, off_t *offset, size_t len)
 
 	if (r >= 0 && *offset != start + r) {		/* Paranoid, as usual */
 		g_warning("FIXED SENDFILE returned offset: "
-			"was set to %ld instead of %ld (%d byte%s written)",
-			(glong) *offset, (glong) (start + r), (gint) r, r == 1 ? "" : "s");
+			"was set to %" PRIu64 " instead of %" PRIu64 " (%d byte%s written)",
+			(guint64) *offset, (guint64) (start + r),
+			(gint) r, r == 1 ? "" : "s");
 		*offset = start + r;
 	} else if ((ssize_t) -1 == r)
 		*offset = start;	/* Paranoid: in case sendfile() touched it */
@@ -1518,6 +1519,7 @@ bws_write(bsched_t *bs, wrap_io_t *wio, gconstpointer data, size_t len)
 	g_assert(bs);
 	g_assert(bs->flags & BS_F_WRITE);
 
+	g_assert(len <= INT_MAX);
 	r = wio->write(wio, data, len);
 	if (r > 0)
 		bsched_bw_update(bs, r, len);
@@ -1538,6 +1540,7 @@ bws_read(bsched_t *bs, wrap_io_t *wio, gpointer data, size_t len)
 	g_assert(bs);
 	g_assert(bs->flags & BS_F_READ);
 
+	g_assert(len <= INT_MAX);
 	r = wio->read(wio, data, len);
 	if (r > 0)
 		bsched_bw_update(bs, r, len);
