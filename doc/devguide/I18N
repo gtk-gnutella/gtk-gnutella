@@ -79,6 +79,30 @@ You don't have to translate every message. If you cannot or don't
 want to translate a message just leave ``msgstr ""'' as-is. Don't
 copy the string of msgid!
 
+There are sometimes strings that are not meant to be translated
+(e.g., "window14" or the like) but appear in the PO file nonetheless.
+This is caused by glade which tags all strings translatable. Also
+as a rule of thumb, strings that contain underscores are usually
+used as internal place holders.
+
+4.1 Translation Context:
+========================
+
+The GUI often uses single words or short word combinations. When
+used as a frame title a colon is appended the English to disambiguate
+its meaning. Another possibility to disambiguate especially short
+strings is using the character '|' as separator. If the English text
+contains this character, the part up to the '|' may contain a comment
+for translator and/or simply declare a namespace so that the word can
+be translated in a certain meaning even if the same word is used with
+different meanings in other places. For example:
+
+	msgid "Bitzi File Judgement|Complete"
+	msgstr "Komplett"
+
+In the translated string discard everything up to the first '|' and
+translate the rest only.
+ 
  
 5. Convert the output to UTF-8 (if it's not already UTF-8 encoded):
 ===================================================================
