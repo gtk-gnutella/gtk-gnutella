@@ -539,8 +539,10 @@ void gwc_close(void)
 {
 	gint i;
 
-	cq_cancel(callout_queue, hourly_update_ev);
-	cq_cancel(callout_queue, periodic_refresh_ev);
+	if (hourly_update_ev)
+		cq_cancel(callout_queue, hourly_update_ev);
+	if (periodic_refresh_ev)
+		cq_cancel(callout_queue, periodic_refresh_ev);
 	if (urlfile_retry_ev)
 		cq_cancel(callout_queue, urlfile_retry_ev);
 
