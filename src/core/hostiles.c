@@ -155,6 +155,45 @@ hostiles_load(FILE *f)
 }
 
 /**
+ * Pre-compile addresses so that we don't have to check too many rules
+ * each time to see if an address is part of the hostile set:
+ */
+static void
+hostiles_compile(void)
+{
+	GSList *sl;
+	gint i;
+
+	/*
+	 * The addresses whose mask is /32 are put in a special array, indexed by
+	 * the LAST byte of the address: `hostiles_exact'.
+	 *
+	 * The addresses with /8 or less are put in a special list that is
+	 * parsed in the second place: `hostiles_wild'.  There should not be
+	 * much in there.
+	 *
+	 * All remaining addresses are places in an array, indexed by the FIRST byte
+	 * of the address: `hostiles_narrow'.
+	 */
+
+	for (i = 0; i < 256; i++)
+		hostiles_exact[i] = hostiles_narrow[i] = NULL;
+
+	for (sl = sl_hostiles; sl; sl = g_slist_next(sl)) {
+		struct hostile *h = (struct hostile *) sl->data;
+		if (h->netmask == 0xffffffff) {
+			i = h->ip_masked & 0x000000ff;
+			hostiles_exact[i] = g_slist_prepend(hostiles_exact[i], h);
+		} else if (h->netmask < 0xff000000)
+			hostiles_wild = g_slist_prepend(hostiles_wild, h);
+		else {
+			i = (h->ip_masked & 0xff000000) >> 24;
+			hostiles_narrow[i] = g_slist_prepend(hostiles_narrow[i], h);
+		}
+	}
+}
+
+/**
  * Watcher callback, invoked when the file from which we read the hostile
  * addresses changed.
  */
@@ -171,6 +210,7 @@ hostiles_changed(const gchar *filename, gpointer udata)
 
 	hostiles_close();
 	count = hostiles_load(f);
+	hostiles_compile();
 
 	gm_snprintf(buf, sizeof(buf), "Reloaded %d hostile IP addresses.", count);
 	gcu_statusbar_message(buf);
@@ -215,6 +255,7 @@ hostiles_retrieve(void)
 	watcher_register(filename, hostiles_changed, NULL);
 
 	hostiles_load(f);
+	hostiles_compile();
 }
 
 /**
@@ -223,41 +264,7 @@ hostiles_retrieve(void)
 void
 hostiles_init(void)
 {
-	GSList *sl;
-	gint i;
-
 	hostiles_retrieve();
-
-	/*
-	 * Pre-compile addresses so that we don't have to check too many rules
-	 * each time to see if an address is part of the hostile set:
-	 *
-	 * The addresses whose mask is /32 are put in a special array, indexed by
-	 * the LAST byte of the address: `hostiles_exact'.
-	 *
-	 * The addresses with /8 or less are put in a special list that is
-	 * parsed in the second place: `hostiles_wild'.  There should not be
-	 * much in there.
-	 *
-	 * All remaining addresses are places in an array, indexed by the FIRST byte
-	 * of the address: `hostiles_narrow'.
-	 */
-
-	for (i = 0; i < 256; i++)
-		hostiles_exact[i] = hostiles_narrow[i] = NULL;
-
-	for (sl = sl_hostiles; sl; sl = g_slist_next(sl)) {
-		struct hostile *h = (struct hostile *) sl->data;
-		if (h->netmask == 0xffffffff) {
-			i = h->ip_masked & 0x000000ff;
-			hostiles_exact[i] = g_slist_prepend(hostiles_exact[i], h);
-		} else if (h->netmask < 0xff000000)
-			hostiles_wild = g_slist_prepend(hostiles_wild, h);
-		else {
-			i = (h->ip_masked & 0xff000000) >> 24;
-			hostiles_narrow[i] = g_slist_prepend(hostiles_narrow[i], h);
-		}
-	}
 }
 
 /**
