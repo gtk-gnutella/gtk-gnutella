@@ -254,7 +254,8 @@ struct trailer {
 	guint32 magic;			/* Magic number */
 };
 
-static struct dl_file_info *file_info_retrieve_binary(gchar *file, gchar *path);
+static struct dl_file_info *file_info_retrieve_binary(
+	const gchar *file, const gchar *path);
 static void fi_free(struct dl_file_info *fi);
 static void file_info_hash_remove(struct dl_file_info *fi);
 
@@ -448,8 +449,10 @@ static void file_info_fd_store_binary(
 void file_info_store_binary(struct dl_file_info *fi)
 {
 	int fd;
+	char *path;
 
-	gm_snprintf(fi_tmp, sizeof(fi_tmp), "%s/%s", fi->path, fi->file_name);
+	path = g_strdup_printf("%s/%s", fi->path, fi->file_name);
+	g_return_if_fail(NULL != path);
 
 	/*
 	 * We don't create the file if it does not already exist.  That way,
@@ -457,16 +460,18 @@ void file_info_store_binary(struct dl_file_info *fi)
 	 * since then we'll go directly to file_info_fd_store_binary().
 	 */
 
-	fd = open(fi_tmp, O_WRONLY);
+	fd = open(path, O_WRONLY);
 
 	if (fd < 0) {
 		if (errno != ENOENT)
 			g_warning("file_info_store_binary(): "
 				"can't open \"%s\" for writing: %s",
-				fi_tmp, g_strerror(errno));
+				path, g_strerror(errno));
+		G_FREE_NULL(path);
 		return;
 	}
 
+	G_FREE_NULL(path);
 	fi->stamp = time(NULL);
 	file_info_fd_store_binary(fi, fd, TRUE);	/* Force flush */
 	close(fd);
@@ -479,11 +484,15 @@ void file_info_store_binary(struct dl_file_info *fi)
  */
 void file_info_strip_binary(struct dl_file_info *fi)
 {
-	gm_snprintf(fi_tmp, sizeof(fi_tmp), "%s/%s", fi->path, fi->file_name);
+	char *path;
 
-	if (-1 == truncate(fi_tmp, fi->size))
+	path = g_strdup_printf("%s/%s", fi->path, fi->file_name);
+	g_return_if_fail(NULL != path);
+
+	if (-1 == truncate(path, fi->size))
 		g_warning("could not chop fileinfo trailer off \"%s\": %s",
-			fi_tmp, g_strerror(errno));
+			path, g_strerror(errno));
+	G_FREE_NULL(path);
 }
 
 /*
@@ -676,7 +685,8 @@ static void fi_alias(struct dl_file_info *fi, gchar *name, gboolean record)
  *
  * Returns TRUE if the trailer is "validated", FALSE otherwise.
  */
-static gboolean file_info_get_trailer(gint fd, struct trailer *tb, gchar *name)
+static gboolean file_info_get_trailer(
+	gint fd, struct trailer *tb, const gchar *name)
 {
 	guint32 tr[5];
 	struct stat buf;
@@ -739,7 +749,7 @@ static gboolean file_info_get_trailer(gint fd, struct trailer *tb, gchar *name)
  * Computes the real size of a file: if it has no trailer, it is its real size.
  * If it has a trailer, then fetch the filesize within.
  */
-off_t file_info_filesize(gchar *path)
+off_t file_info_filesize(const gchar *path)
 {
 	gint fd;
 	struct stat buf;
@@ -902,7 +912,8 @@ static struct dl_file_info *file_info_lookup_dup(struct dl_file_info *fi)
  * Reads the file metainfo from the trailer of a file, if it exists.
  * Returns a pointer to the info structure if found, and NULL otherwise.
  */
-static struct dl_file_info *file_info_retrieve_binary(gchar *file, gchar *path)
+static struct dl_file_info *file_info_retrieve_binary(
+	const gchar *file, const gchar *path)
 {
 	guint32 tmpchunk[3];
 	guint32 tmpguint;
@@ -912,28 +923,31 @@ static struct dl_file_info *file_info_retrieve_binary(gchar *file, gchar *path)
 	enum dl_file_info_field field;
 	gchar tmp[FI_MAX_FIELD_LEN + 1];	/* +1 for trailing NUL on strings */
 	gchar *reason;
+	gchar *pathname;
 	gint fd;
 	guint32 version;
 	struct trailer trailer;
 
-	gm_snprintf(fi_tmp, sizeof(fi_tmp), "%s/%s", path, file);
+	pathname = g_strdup_printf("%s/%s", path, file);
+	g_return_val_if_fail(NULL != pathname, NULL);
 	
-	fd = open(fi_tmp, O_RDONLY);
+	fd = open(pathname, O_RDONLY);
 	if (fd < 0) {
 		if (errno != ENOENT)
 			g_warning("can't open \"%s\" for reading: %s",
-				fi_tmp, g_strerror(errno));
+				pathname, g_strerror(errno));
+		G_FREE_NULL(pathname);
 		return NULL;
 	}
 
-	if (!file_info_get_trailer(fd, &trailer, fi_tmp)) {
+	if (!file_info_get_trailer(fd, &trailer, pathname)) {
 		reason = "could not find trailer";
 		goto bailout;
 	}
 
-	if (-1 == lseek(fd, trailer.filesize, SEEK_SET)) {
+	if (trailer.filesize != lseek(fd, trailer.filesize, SEEK_SET)) {
 		g_warning("seek to position %u within \"%s\" failed: %s",
-			trailer.filesize, fi_tmp, g_strerror(errno));
+			trailer.filesize, pathname, g_strerror(errno));
 		goto eof;
 	}
 
@@ -944,7 +958,7 @@ static struct dl_file_info *file_info_retrieve_binary(gchar *file, gchar *path)
 	if (-1 == tbuf_read(fd, trailer.length)) {
 		g_warning("file_info_retrieve_binary(): "
 			"unable to read whole trailer (%d bytes) from \"%s\": %s",
-			trailer.filesize, fi_tmp, g_strerror(errno));
+			trailer.filesize, pathname, g_strerror(errno));
 		goto eof;
 	}
 
@@ -1065,8 +1079,9 @@ static struct dl_file_info *file_info_retrieve_binary(gchar *file, gchar *path)
 
 	if (dbg > 3)
 		printf("FILEINFO: good trailer info (v%u, %u bytes) in \"%s\"\n",
-			version, trailer.length, fi_tmp);
+			version, trailer.length, pathname);
 
+	G_FREE_NULL(pathname);
 	return fi;
 
 bailout:
@@ -1075,6 +1090,8 @@ bailout:
 		reason, path, path[strlen(path) - 1] == '/' ? "" : "/", file);
 
 eof:
+	if (NULL != pathname)
+		G_FREE_NULL(pathname);
 	if (fi)
 		fi_free(fi);
 
@@ -1099,11 +1116,16 @@ static void file_info_store_one(FILE *f, struct dl_file_info *fi)
 		file_info_store_binary(fi);
 
 	if (fi->refcount == 0) {
+		gchar *path;
 		struct stat st;
 
-		gm_snprintf(fi_tmp, sizeof(fi_tmp), "%s/%s", fi->path, fi->file_name);
-		if (-1 == stat(fi_tmp, &st))
+		path = g_strdup_printf("%s/%s", fi->path, fi->file_name);
+		g_return_if_fail(NULL != path);
+		if (-1 == stat(path, &st)) {
+			G_FREE_NULL(path);
 			return; 	/* Skip: not referenced, and file no longer exists */
+		}
+		G_FREE_NULL(path);
 	}
 	
 	fprintf(f, "# refcount %u\n", fi->refcount);
@@ -1159,12 +1181,13 @@ void file_info_store(void)
 	time_t now = time((time_t *)NULL);
 
 	file = g_strdup_printf("%s/%s", settings_config_dir(), file_info_file);
+	g_return_if_fail(NULL != file);
 	f = fopen(file, "w");
 	if (!f) {
 		g_warning("file_info_store(): "
 			"unable to open file \"%s\" for writing: %s",
 			file, g_strerror(errno));
-		g_free(file);
+		G_FREE_NULL(file);
 		return;
 	}
 
@@ -1188,7 +1211,7 @@ void file_info_store(void)
 	g_hash_table_foreach(fi_by_size, file_info_store_list, f);
 
 	fclose(f);
-	g_free(file);
+	G_FREE_NULL(file);
 
 	fileinfo_dirty = FALSE;
 }
@@ -1527,18 +1550,21 @@ static void file_info_hash_remove(struct dl_file_info *fi)
 static void file_info_reparent_all(
 	struct dl_file_info *from, struct dl_file_info *to)
 {
+	char *path;
+
 	g_assert(from->done == 0);
 	g_assert(0 != strcmp(from->file_name, to->file_name));
 
-	gm_snprintf(fi_tmp, sizeof(fi_tmp), "%s/%s", from->path, from->file_name);
+	path = g_strdup_printf("%s/%s", from->path, from->file_name);
+	g_return_if_fail(NULL != path);
 
-	if (-1 == unlink(fi_tmp)) {
+	if (-1 == unlink(path)) {
 		/*
 		 * File may not exist yet if we have not started downloading anything.
 		 */
 
 		if (from->done)
-			g_warning("cannot unlink \"%s\": %s", fi_tmp, g_strerror(errno));
+			g_warning("cannot unlink \"%s\": %s", path, g_strerror(errno));
 	} else
 		g_warning("reparenting unlinked \"%s\" (%u/%u bytes done, %s SHA1%s%s)",
 			from->file_name, from->done, from->size,
@@ -1557,6 +1583,7 @@ static void file_info_reparent_all(
 
 	file_info_hash_remove(from);
 	fi_free(from);
+	G_FREE_NULL(path);
 }
 
 /*
@@ -1661,11 +1688,11 @@ void file_info_retrieve(void)
 	gchar line[1024];
 	guint32 from, to, status;
 	struct dl_file_info *fi = NULL;
-	gchar filename[1024];
 	struct stat buf;
 	gboolean empty = TRUE;
 	GSList *aliases = NULL;
 	gboolean last_was_truncated = FALSE;
+	const file_path_t fp = { settings_config_dir(), file_info_file };
 
 	/*
 	 * We have a complex interaction here: each time a new entry within the
@@ -1681,34 +1708,9 @@ void file_info_retrieve(void)
 
 	can_swarm = TRUE;			/* Allows file_info_try_to_swarm_with() */
 
-	gm_snprintf(fi_tmp, sizeof(fi_tmp), "%s/%s", settings_config_dir(),
-		file_info_file);
-
-	f = fopen(fi_tmp, "r");
-
-	gm_snprintf(filename, sizeof(filename), "%s/%s.orig",
-		settings_config_dir(), file_info_file);
-
-	if (f) {
-		if (rename(fi_tmp, filename) == -1)
-			g_warning("could not rename %s as %s: %s",
-				fi_tmp, filename, g_strerror(errno));
-	} else {
-		const gchar *error = g_strerror(errno);
-		gchar *instead = " instead";
-
-		if (-1 == stat(fi_tmp, &buf))
-			instead = "";
-		else
-			g_warning("unable to open \"%s\" to retrieve file info: %s",
-				fi_tmp, error);
-
-		f = fopen(filename, "r");
-		if (!f)
-			return;
-
-		g_warning("retrieving file info from \"%s\"%s", filename, instead);
-	}
+	f = file_config_open_read("fileinfo file", &fp, 1);
+	if (!f)
+		return;
 
 	line[sizeof(line)-1] = '\0';
 
@@ -2003,6 +2005,7 @@ static struct dl_file_info *file_info_create(
 	struct dl_file_info *fi;
 	struct dl_file_chunk *fc;
 	struct stat st;
+	char *pathname;
 
 	fi = walloc0(sizeof(struct dl_file_info));
 	fi->file_name = file_info_new_outname(file);	/* Get unique file name */
@@ -2013,12 +2016,12 @@ static struct dl_file_info *file_info_create(
 	fi->done = 0;
 	fi->use_swarming = use_swarming;
 
-	gm_snprintf(fi_tmp, sizeof(fi_tmp), "%s/%s", fi->path, fi->file_name);
-
-	if (stat(fi_tmp, &st) != -1) {
+	pathname = g_strdup_printf("%s/%s", fi->path, fi->file_name);
+	if (NULL != pathname && stat(pathname, &st) != -1) {
 		g_warning("file_info_create(): "
 			"assuming file \"%s\" is complete up to %lu bytes",
-			fi->file_name, (gulong) st.st_size);
+			pathname, (gulong) st.st_size);
+		G_FREE_NULL(pathname);
 		fc = walloc0(sizeof(struct dl_file_chunk));
 		fc->from = 0;
 		fi->size = fc->to = st.st_size;
@@ -2026,6 +2029,8 @@ static struct dl_file_info *file_info_create(
 		fi->chunklist = g_slist_append(fi->chunklist, fc);
 		fi->dirty = TRUE;
 	} 
+	if (NULL != pathname)
+		G_FREE_NULL(pathname);
 
 	fi->size_atom = atom_int_get(&fi->size);	/* Set now, for fi_resize() */
 
@@ -2167,18 +2172,27 @@ struct dl_file_info *file_info_get(
 		 */
 
 		if (fi->sha1 != NULL && (sha1 == NULL || !sha1_eq(sha1, fi->sha1))) {
-			guchar dead[1024];
+			char *dead;
+			char *pathname;
 
 			g_warning("found DEAD file \"%s\" bearing SHA1 %s",
 				outname, sha1_base32(fi->sha1));
 
-			gm_snprintf(fi_tmp, sizeof(fi_tmp), "%s/%s", path, outname);
-			gm_snprintf(dead, sizeof(dead), "%s/%s.DEAD", path, outname);
+			pathname = g_strdup_printf("%s/%s", path, outname);
+			dead = g_strdup_printf("%s/%s.DEAD", path, outname);
 
-			if (-1 == rename(fi_tmp, dead))
+			if (
+				NULL != pathname &&
+				NULL != dead &&
+				-1 == rename(pathname, dead)
+			)
 				g_warning("cannot rename \"%s\" as \"%s\": %s",
-					fi_tmp, dead, g_strerror(errno));
+					pathname, dead, g_strerror(errno));
 
+			if (NULL != dead)
+				G_FREE_NULL(dead);
+			if (NULL != pathname)
+				G_FREE_NULL(pathname);
 			fi_free(fi);
 			fi = NULL;
 		}
@@ -2664,6 +2678,7 @@ enum dl_chunk_status file_info_pos_status(struct dl_file_info *fi, guint32 pos)
  */
 static void fi_check_file(struct dl_file_info *fi)
 {
+	char *path;
 	struct stat buf;
 
 	g_assert(fi->done);			/* Or file will not exist */
@@ -2672,12 +2687,14 @@ static void fi_check_file(struct dl_file_info *fi)
 	 * File should exist since fi->done > 0, and it was not completed.
 	 */
 
-	gm_snprintf(fi_tmp, sizeof(fi_tmp), "%s/%s", fi->path, fi->file_name);
+	path = g_strdup_printf("%s/%s", fi->path, fi->file_name);
+	g_return_if_fail(path);
 
-	if (-1 == stat(fi_tmp, &buf)) {
-		g_warning("file %s removed, resetting swarming", fi_tmp);
+	if (-1 == stat(path, &buf) && ENOENT == errno) {
+		g_warning("file %s removed, resetting swarming", path);
 		file_info_reset(fi);
 	}
+	G_FREE_NULL(path);
 }
 
 /*
@@ -2960,13 +2977,12 @@ void file_info_try_to_swarm_with(
  * Scan the given directory for files, looking at those bearing a valid
  * fileinfo trailer, yet which we know nothing about.
  */
-void file_info_scandir(gchar *dir)
+void file_info_scandir(const gchar *dir)
 {
 	DIR *d;
 	struct dirent *dentry;
 	gchar *slash = "/";
 	struct dl_file_info *fi;
-	gchar filename[1024];
 
 	d = opendir(dir);
 	if (d == NULL) {
@@ -2979,6 +2995,10 @@ void file_info_scandir(gchar *dir)
 
 	while ((dentry = readdir(d))) {
 		struct stat buf;
+		gchar *filename = NULL;
+		
+		if (NULL != filename)
+			G_FREE_NULL(filename);
 
 		if (dentry->d_name[0] == '.') {
 			if (
@@ -2988,8 +3008,9 @@ void file_info_scandir(gchar *dir)
 				continue;					/* Skip "." and ".." */
 		}
 
-		gm_snprintf(filename, sizeof(filename),
-			"%s%s%s", dir, slash, dentry->d_name);
+		filename = g_strdup_printf("%s%s%s", dir, slash, dentry->d_name);
+		if (NULL == filename)
+			continue;
 
 		if (-1 == stat(filename, &buf)) {
 			g_warning("cannot stat %s: %s", filename, g_strerror(errno));
@@ -3018,6 +3039,8 @@ void file_info_scandir(gchar *dir)
 		g_warning("reactivated orphan entry (%.02f%% done, %s SHA1): %s",
 			fi->done * 100.0 / (fi->size == 0 ? 1 : fi->size),
 			fi->sha1 ? "with" : "no", filename);
+		if (NULL != filename)
+			G_FREE_NULL(filename);
 	}
 
 	closedir(d);
