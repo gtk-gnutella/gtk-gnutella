@@ -106,27 +106,19 @@ void upload_stats_load_history(const gchar *ul_history_file_name)
 			goto corrupted;
 		*name_end++ = '\0';		/* line is now the URL-escaped file name */
 
-		/*
-		 * The following is temporary code to assist migration of the
-		 * existing upload stats for the users of 0.85 unstable.  It will
-		 * be removed in the future.
-		 *		--RAM, 21/03/2002
-		 */
-
 		if (
 			5 == sscanf(name_end, "%lu\t%lu\t%lu\t%lu\t%lu\n",
 				&size, &attempt, &complete, &ulbytes_high, &ulbytes_low)
 		)
 			ulbytes = (((guint64) ulbytes_high) << 32) | ulbytes_low;
-		else if (
-			3 == sscanf(name_end, "%lu\t%lu\t%lu\n", &size, &attempt, &complete)
-		)
-			ulbytes = size * complete;		/* fake reasonable count */
 		else
 			goto corrupted;
 
-		upload_stats_add(url_unescape(line, TRUE),
-			size, attempt, complete, ulbytes);
+		/* URL-unescape in-place */
+		if (!url_unescape(line, TRUE))
+			goto corrupted;
+
+		upload_stats_add(line, size, attempt, complete, ulbytes);
 
 		continue;
 
@@ -351,3 +343,4 @@ void upload_stats_close(void)
 	G_FREE_NULL(stats_file);
 }
 
+/* vi: set ts=4: */
