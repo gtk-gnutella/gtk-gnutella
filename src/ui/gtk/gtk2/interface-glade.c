@@ -1805,6 +1805,10 @@ create_main_window (void)
   GtkWidget *hbox147;
   GtkWidget *eventbox_image_firewall;
   GtkWidget *image_firewall;
+  GtkWidget *eventbox_image_tcp_firewall;
+  GtkWidget *image_tcp_firewall;
+  GtkWidget *eventbox_image_udp_firewall;
+  GtkWidget *image_udp_firewall;
   GtkWidget *eventbox_image_no_firewall;
   GtkWidget *image_no_firewall;
   GtkWidget *hbox228;
@@ -2197,7 +2201,7 @@ create_main_window (void)
   gtk_widget_set_name (eventbox_image_firewall, "eventbox_image_firewall");
   gtk_widget_show (eventbox_image_firewall);
   gtk_box_pack_start (GTK_BOX (hbox147), eventbox_image_firewall, FALSE, TRUE, 0);
-  gtk_tooltips_set_tip (tooltips, eventbox_image_firewall, _("Gtk-gnutella thinks you're firewalled. Nobody has connected to you so far. You will not see any push results which may prevent you from seeing a large amount of results. "), NULL);
+  gtk_tooltips_set_tip (tooltips, eventbox_image_firewall, _("You appear to be firewalled, both TCP-wise and UDP-wise. You will not see any push results, which may prevent you from seeing a large amount of results. You will not be able to send queries requesting out-of-band delivery of query hits."), NULL);
 
   image_firewall = create_pixmap (main_window, "firewall.xpm");
   gtk_widget_set_name (image_firewall, "image_firewall");
@@ -2205,12 +2209,36 @@ create_main_window (void)
   gtk_container_add (GTK_CONTAINER (eventbox_image_firewall), image_firewall);
   gtk_widget_set_size_request (image_firewall, 16, 16);
 
+  eventbox_image_tcp_firewall = gtk_event_box_new ();
+  gtk_widget_set_name (eventbox_image_tcp_firewall, "eventbox_image_tcp_firewall");
+  gtk_widget_show (eventbox_image_tcp_firewall);
+  gtk_box_pack_start (GTK_BOX (hbox147), eventbox_image_tcp_firewall, TRUE, TRUE, 0);
+  gtk_tooltips_set_tip (tooltips, eventbox_image_tcp_firewall, _("You appear to be TCP-firewalled, i.e. others cannot connect to you to download files. You will not see push results, which may prevent you from seeing a large amount of results."), NULL);
+
+  image_tcp_firewall = create_pixmap (main_window, "firewall_tcp.xpm");
+  gtk_widget_set_name (image_tcp_firewall, "image_tcp_firewall");
+  gtk_widget_show (image_tcp_firewall);
+  gtk_container_add (GTK_CONTAINER (eventbox_image_tcp_firewall), image_tcp_firewall);
+  gtk_widget_set_size_request (image_tcp_firewall, 16, 16);
+
+  eventbox_image_udp_firewall = gtk_event_box_new ();
+  gtk_widget_set_name (eventbox_image_udp_firewall, "eventbox_image_udp_firewall");
+  gtk_widget_show (eventbox_image_udp_firewall);
+  gtk_box_pack_start (GTK_BOX (hbox147), eventbox_image_udp_firewall, TRUE, TRUE, 0);
+  gtk_tooltips_set_tip (tooltips, eventbox_image_udp_firewall, _("You appear to be UDP-firewalled, i.e. you cannot receive unsolicited traffic via UDP. You will not be able to send queries requesting out-of-band delivery of query hits."), NULL);
+
+  image_udp_firewall = create_pixmap (main_window, "firewall_udp.xpm");
+  gtk_widget_set_name (image_udp_firewall, "image_udp_firewall");
+  gtk_widget_show (image_udp_firewall);
+  gtk_container_add (GTK_CONTAINER (eventbox_image_udp_firewall), image_udp_firewall);
+  gtk_widget_set_size_request (image_udp_firewall, 16, 16);
+
   eventbox_image_no_firewall = gtk_event_box_new ();
   gtk_widget_set_name (eventbox_image_no_firewall, "eventbox_image_no_firewall");
   gtk_widget_show (eventbox_image_no_firewall);
   gtk_box_pack_start (GTK_BOX (hbox147), eventbox_image_no_firewall, FALSE, TRUE, 0);
   gtk_widget_set_size_request (eventbox_image_no_firewall, 16, 16);
-  gtk_tooltips_set_tip (tooltips, eventbox_image_no_firewall, _("People can connect to you. Push should work."), NULL);
+  gtk_tooltips_set_tip (tooltips, eventbox_image_no_firewall, _("People can connect to you, using both TCP and UDP. Push should work and you will be able to receive out-of-band results for your queries."), NULL);
 
   image_no_firewall = create_pixmap (main_window, "no_firewall.xpm");
   gtk_widget_set_name (image_no_firewall, "image_no_firewall");
@@ -2863,6 +2891,10 @@ create_main_window (void)
   GLADE_HOOKUP_OBJECT (main_window, hbox147, "hbox147");
   GLADE_HOOKUP_OBJECT (main_window, eventbox_image_firewall, "eventbox_image_firewall");
   GLADE_HOOKUP_OBJECT (main_window, image_firewall, "image_firewall");
+  GLADE_HOOKUP_OBJECT (main_window, eventbox_image_tcp_firewall, "eventbox_image_tcp_firewall");
+  GLADE_HOOKUP_OBJECT (main_window, image_tcp_firewall, "image_tcp_firewall");
+  GLADE_HOOKUP_OBJECT (main_window, eventbox_image_udp_firewall, "eventbox_image_udp_firewall");
+  GLADE_HOOKUP_OBJECT (main_window, image_udp_firewall, "image_udp_firewall");
   GLADE_HOOKUP_OBJECT (main_window, eventbox_image_no_firewall, "eventbox_image_no_firewall");
   GLADE_HOOKUP_OBJECT (main_window, image_no_firewall, "image_no_firewall");
   GLADE_HOOKUP_OBJECT (main_window, hbox228, "hbox228");
@@ -4983,12 +5015,12 @@ create_main_window_search_tab (void)
   GtkWidget *label557;
   GtkWidget *label707;
   GtkWidget *checkbutton_search_hide_downloaded;
-  GtkWidget *combo_search_handle_ignored_files;
-  GtkWidget *combo_entry6;
   GtkWidget *checkbutton_search_remove_downloaded;
   GtkWidget *alignment90;
   GtkObject *spinbutton_search_max_results_adj;
   GtkWidget *spinbutton_search_max_results;
+  GtkWidget *combo_search_handle_ignored_files;
+  GtkWidget *combo_entry6;
   GtkWidget *label738;
   GtkWidget *label358;
   GtkWidget *viewport106;
@@ -5271,19 +5303,6 @@ create_main_window_search_tab (void)
                     (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
 
-  combo_search_handle_ignored_files = gtk_combo_new ();
-  g_object_set_data (G_OBJECT (GTK_COMBO (combo_search_handle_ignored_files)->popwin),
-                     "GladeParentKey", combo_search_handle_ignored_files);
-  gtk_widget_set_name (combo_search_handle_ignored_files, "combo_search_handle_ignored_files");
-  gtk_widget_show (combo_search_handle_ignored_files);
-  gtk_table_attach (GTK_TABLE (table78), combo_search_handle_ignored_files, 1, 2, 1, 2,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-
-  combo_entry6 = GTK_COMBO (combo_search_handle_ignored_files)->entry;
-  gtk_widget_set_name (combo_entry6, "combo_entry6");
-  gtk_widget_show (combo_entry6);
-
   checkbutton_search_remove_downloaded = gtk_check_button_new_with_mnemonic (_("_Remove manually downloaded files"));
   gtk_widget_set_name (checkbutton_search_remove_downloaded, "checkbutton_search_remove_downloaded");
   gtk_widget_show (checkbutton_search_remove_downloaded);
@@ -5304,6 +5323,19 @@ create_main_window_search_tab (void)
   gtk_widget_show (spinbutton_search_max_results);
   gtk_container_add (GTK_CONTAINER (alignment90), spinbutton_search_max_results);
   gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_search_max_results), TRUE);
+
+  combo_search_handle_ignored_files = gtk_combo_new ();
+  g_object_set_data (G_OBJECT (GTK_COMBO (combo_search_handle_ignored_files)->popwin),
+                     "GladeParentKey", combo_search_handle_ignored_files);
+  gtk_widget_set_name (combo_search_handle_ignored_files, "combo_search_handle_ignored_files");
+  gtk_widget_show (combo_search_handle_ignored_files);
+  gtk_table_attach (GTK_TABLE (table78), combo_search_handle_ignored_files, 1, 2, 1, 2,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+
+  combo_entry6 = GTK_COMBO (combo_search_handle_ignored_files)->entry;
+  gtk_widget_set_name (combo_entry6, "combo_entry6");
+  gtk_widget_show (combo_entry6);
 
   label738 = gtk_label_new (_("Displaying"));
   gtk_widget_set_name (label738, "label738");
@@ -5777,11 +5809,11 @@ create_main_window_search_tab (void)
   GLADE_HOOKUP_OBJECT (main_window_search_tab, label557, "label557");
   GLADE_HOOKUP_OBJECT (main_window_search_tab, label707, "label707");
   GLADE_HOOKUP_OBJECT (main_window_search_tab, checkbutton_search_hide_downloaded, "checkbutton_search_hide_downloaded");
-  GLADE_HOOKUP_OBJECT (main_window_search_tab, combo_search_handle_ignored_files, "combo_search_handle_ignored_files");
-  GLADE_HOOKUP_OBJECT (main_window_search_tab, combo_entry6, "combo_entry6");
   GLADE_HOOKUP_OBJECT (main_window_search_tab, checkbutton_search_remove_downloaded, "checkbutton_search_remove_downloaded");
   GLADE_HOOKUP_OBJECT (main_window_search_tab, alignment90, "alignment90");
   GLADE_HOOKUP_OBJECT (main_window_search_tab, spinbutton_search_max_results, "spinbutton_search_max_results");
+  GLADE_HOOKUP_OBJECT (main_window_search_tab, combo_search_handle_ignored_files, "combo_search_handle_ignored_files");
+  GLADE_HOOKUP_OBJECT (main_window_search_tab, combo_entry6, "combo_entry6");
   GLADE_HOOKUP_OBJECT (main_window_search_tab, label738, "label738");
   GLADE_HOOKUP_OBJECT (main_window_search_tab, label358, "label358");
   GLADE_HOOKUP_OBJECT (main_window_search_tab, viewport106, "viewport106");
@@ -6148,10 +6180,14 @@ create_main_window_gnet_stats_tab (void)
   GtkWidget *treeview_gnet_stats_recv;
   GtkWidget *label509;
   GtkWidget *table49;
-  GtkWidget *checkbutton_gnet_stats_perc;
-  GtkWidget *checkbutton_gnet_stats_bytes;
   GtkWidget *checkbutton_gnet_stats_hops;
   GtkWidget *checkbutton_gnet_stats_with_headers;
+  GtkWidget *checkbutton_gnet_stats_bytes;
+  GtkWidget *checkbutton_gnet_stats_perc;
+  GtkWidget *hbox288;
+  GtkWidget *label889;
+  GtkWidget *combo_gnet_stats_source;
+  GtkWidget *entry1;
   GtkWidget *label840;
   GtkWidget *frame111;
   GtkWidget *scrolledwindow74;
@@ -6342,26 +6378,12 @@ create_main_window_gnet_stats_tab (void)
   gtk_widget_show (label509);
   gtk_notebook_set_tab_label (GTK_NOTEBOOK (gnet_stats_notebook), gtk_notebook_get_nth_page (GTK_NOTEBOOK (gnet_stats_notebook), 2), label509);
 
-  table49 = gtk_table_new (2, 2, FALSE);
+  table49 = gtk_table_new (2, 3, FALSE);
   gtk_widget_set_name (table49, "table49");
   gtk_widget_show (table49);
   gtk_box_pack_start (GTK_BOX (vbox101), table49, FALSE, FALSE, 0);
   gtk_table_set_row_spacings (GTK_TABLE (table49), 2);
   gtk_table_set_col_spacings (GTK_TABLE (table49), 4);
-
-  checkbutton_gnet_stats_perc = gtk_check_button_new_with_mnemonic (_("Show percentages"));
-  gtk_widget_set_name (checkbutton_gnet_stats_perc, "checkbutton_gnet_stats_perc");
-  gtk_widget_show (checkbutton_gnet_stats_perc);
-  gtk_table_attach (GTK_TABLE (table49), checkbutton_gnet_stats_perc, 0, 1, 0, 1,
-                    (GtkAttachOptions) (GTK_SHRINK | GTK_FILL),
-                    (GtkAttachOptions) (0), 5, 0);
-
-  checkbutton_gnet_stats_bytes = gtk_check_button_new_with_mnemonic (_("Show bytes"));
-  gtk_widget_set_name (checkbutton_gnet_stats_bytes, "checkbutton_gnet_stats_bytes");
-  gtk_widget_show (checkbutton_gnet_stats_bytes);
-  gtk_table_attach (GTK_TABLE (table49), checkbutton_gnet_stats_bytes, 1, 2, 0, 1,
-                    (GtkAttachOptions) (GTK_SHRINK | GTK_FILL),
-                    (GtkAttachOptions) (0), 5, 0);
 
   checkbutton_gnet_stats_hops = gtk_check_button_new_with_mnemonic (_("Columns show hops"));
   gtk_widget_set_name (checkbutton_gnet_stats_hops, "checkbutton_gnet_stats_hops");
@@ -6370,12 +6392,50 @@ create_main_window_gnet_stats_tab (void)
                     (GtkAttachOptions) (GTK_SHRINK | GTK_FILL),
                     (GtkAttachOptions) (0), 5, 0);
 
-  checkbutton_gnet_stats_with_headers = gtk_check_button_new_with_mnemonic (_("Add headers"));
+  checkbutton_gnet_stats_with_headers = gtk_check_button_new_with_mnemonic (_("Headers"));
   gtk_widget_set_name (checkbutton_gnet_stats_with_headers, "checkbutton_gnet_stats_with_headers");
   gtk_widget_show (checkbutton_gnet_stats_with_headers);
   gtk_table_attach (GTK_TABLE (table49), checkbutton_gnet_stats_with_headers, 1, 2, 1, 2,
                     (GtkAttachOptions) (GTK_SHRINK | GTK_FILL),
                     (GtkAttachOptions) (0), 5, 0);
+
+  checkbutton_gnet_stats_bytes = gtk_check_button_new_with_mnemonic (_("Show bytes"));
+  gtk_widget_set_name (checkbutton_gnet_stats_bytes, "checkbutton_gnet_stats_bytes");
+  gtk_widget_show (checkbutton_gnet_stats_bytes);
+  gtk_table_attach (GTK_TABLE (table49), checkbutton_gnet_stats_bytes, 1, 2, 0, 1,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 5, 0);
+
+  checkbutton_gnet_stats_perc = gtk_check_button_new_with_mnemonic (_("Show percentages"));
+  gtk_widget_set_name (checkbutton_gnet_stats_perc, "checkbutton_gnet_stats_perc");
+  gtk_widget_show (checkbutton_gnet_stats_perc);
+  gtk_table_attach (GTK_TABLE (table49), checkbutton_gnet_stats_perc, 0, 1, 0, 1,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 5, 0);
+
+  hbox288 = gtk_hbox_new (FALSE, 0);
+  gtk_widget_set_name (hbox288, "hbox288");
+  gtk_widget_show (hbox288);
+  gtk_table_attach (GTK_TABLE (table49), hbox288, 2, 3, 0, 1,
+                    (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
+                    (GtkAttachOptions) (GTK_FILL), 0, 0);
+
+  label889 = gtk_label_new (_("show"));
+  gtk_widget_set_name (label889, "label889");
+  gtk_widget_show (label889);
+  gtk_box_pack_start (GTK_BOX (hbox288), label889, FALSE, FALSE, 0);
+
+  combo_gnet_stats_source = gtk_combo_new ();
+  g_object_set_data (G_OBJECT (GTK_COMBO (combo_gnet_stats_source)->popwin),
+                     "GladeParentKey", combo_gnet_stats_source);
+  gtk_widget_set_name (combo_gnet_stats_source, "combo_gnet_stats_source");
+  gtk_widget_show (combo_gnet_stats_source);
+  gtk_box_pack_end (GTK_BOX (hbox288), combo_gnet_stats_source, FALSE, FALSE, 0);
+  gtk_widget_set_size_request (combo_gnet_stats_source, 105, -1);
+
+  entry1 = GTK_COMBO (combo_gnet_stats_source)->entry;
+  gtk_widget_set_name (entry1, "entry1");
+  gtk_widget_show (entry1);
 
   label840 = gtk_label_new (_("Message/flow control stats"));
   gtk_widget_set_name (label840, "label840");
@@ -6439,10 +6499,14 @@ create_main_window_gnet_stats_tab (void)
   GLADE_HOOKUP_OBJECT (main_window_gnet_stats_tab, treeview_gnet_stats_recv, "treeview_gnet_stats_recv");
   GLADE_HOOKUP_OBJECT (main_window_gnet_stats_tab, label509, "label509");
   GLADE_HOOKUP_OBJECT (main_window_gnet_stats_tab, table49, "table49");
-  GLADE_HOOKUP_OBJECT (main_window_gnet_stats_tab, checkbutton_gnet_stats_perc, "checkbutton_gnet_stats_perc");
-  GLADE_HOOKUP_OBJECT (main_window_gnet_stats_tab, checkbutton_gnet_stats_bytes, "checkbutton_gnet_stats_bytes");
   GLADE_HOOKUP_OBJECT (main_window_gnet_stats_tab, checkbutton_gnet_stats_hops, "checkbutton_gnet_stats_hops");
   GLADE_HOOKUP_OBJECT (main_window_gnet_stats_tab, checkbutton_gnet_stats_with_headers, "checkbutton_gnet_stats_with_headers");
+  GLADE_HOOKUP_OBJECT (main_window_gnet_stats_tab, checkbutton_gnet_stats_bytes, "checkbutton_gnet_stats_bytes");
+  GLADE_HOOKUP_OBJECT (main_window_gnet_stats_tab, checkbutton_gnet_stats_perc, "checkbutton_gnet_stats_perc");
+  GLADE_HOOKUP_OBJECT (main_window_gnet_stats_tab, hbox288, "hbox288");
+  GLADE_HOOKUP_OBJECT (main_window_gnet_stats_tab, label889, "label889");
+  GLADE_HOOKUP_OBJECT (main_window_gnet_stats_tab, combo_gnet_stats_source, "combo_gnet_stats_source");
+  GLADE_HOOKUP_OBJECT (main_window_gnet_stats_tab, entry1, "entry1");
   GLADE_HOOKUP_OBJECT (main_window_gnet_stats_tab, label840, "label840");
   GLADE_HOOKUP_OBJECT (main_window_gnet_stats_tab, frame111, "frame111");
   GLADE_HOOKUP_OBJECT (main_window_gnet_stats_tab, scrolledwindow74, "scrolledwindow74");

@@ -2854,7 +2854,7 @@ Grace time remaining:</property>
 		      <child>
 			<widget class="GtkEventBox" id="eventbox_image_firewall">
 			  <property name="visible">True</property>
-			  <property name="tooltip" translatable="yes">Gtk-gnutella thinks you're firewalled. Nobody has connected to you so far. You will not see any push results which may prevent you from seeing a large amount of results. </property>
+			  <property name="tooltip" translatable="yes">You appear to be firewalled, both TCP-wise and UDP-wise. You will not see any push results, which may prevent you from seeing a large amount of results. You will not be able to send queries requesting out-of-band delivery of query hits.</property>
 			  <property name="visible_window">True</property>
 			  <property name="above_child">False</property>
 
@@ -2879,11 +2879,65 @@ Grace time remaining:</property>
 		      </child>
 
 		      <child>
+			<widget class="GtkEventBox" id="eventbox_image_tcp_firewall">
+			  <property name="visible">True</property>
+			  <property name="tooltip" translatable="yes">You appear to be TCP-firewalled, i.e. others cannot connect to you to download files. You will not see push results, which may prevent you from seeing a large amount of results.</property>
+			  <property name="visible_window">True</property>
+			  <property name="above_child">False</property>
+
+			  <child>
+			    <widget class="GtkImage" id="image_tcp_firewall">
+			      <property name="width_request">16</property>
+			      <property name="height_request">16</property>
+			      <property name="visible">True</property>
+			      <property name="pixbuf">firewall_tcp.xpm</property>
+			      <property name="xalign">0.5</property>
+			      <property name="yalign">0.5</property>
+			      <property name="xpad">0</property>
+			      <property name="ypad">0</property>
+			    </widget>
+			  </child>
+			</widget>
+			<packing>
+			  <property name="padding">0</property>
+			  <property name="expand">True</property>
+			  <property name="fill">True</property>
+			</packing>
+		      </child>
+
+		      <child>
+			<widget class="GtkEventBox" id="eventbox_image_udp_firewall">
+			  <property name="visible">True</property>
+			  <property name="tooltip" translatable="yes">You appear to be UDP-firewalled, i.e. you cannot receive unsolicited traffic via UDP. You will not be able to send queries requesting out-of-band delivery of query hits.</property>
+			  <property name="visible_window">True</property>
+			  <property name="above_child">False</property>
+
+			  <child>
+			    <widget class="GtkImage" id="image_udp_firewall">
+			      <property name="width_request">16</property>
+			      <property name="height_request">16</property>
+			      <property name="visible">True</property>
+			      <property name="pixbuf">firewall_udp.xpm</property>
+			      <property name="xalign">0.5</property>
+			      <property name="yalign">0.5</property>
+			      <property name="xpad">0</property>
+			      <property name="ypad">0</property>
+			    </widget>
+			  </child>
+			</widget>
+			<packing>
+			  <property name="padding">0</property>
+			  <property name="expand">True</property>
+			  <property name="fill">True</property>
+			</packing>
+		      </child>
+
+		      <child>
 			<widget class="GtkEventBox" id="eventbox_image_no_firewall">
 			  <property name="width_request">16</property>
 			  <property name="height_request">16</property>
 			  <property name="visible">True</property>
-			  <property name="tooltip" translatable="yes">People can connect to you. Push should work.</property>
+			  <property name="tooltip" translatable="yes">People can connect to you, using both TCP and UDP. Push should work and you will be able to receive out-of-band results for your queries.</property>
 			  <property name="visible_window">True</property>
 			  <property name="above_child">False</property>
 
@@ -8368,46 +8422,6 @@ Grace time remaining:</property>
 				      </child>
 
 				      <child>
-					<widget class="GtkCombo" id="combo_search_handle_ignored_files">
-					  <property name="visible">True</property>
-					  <property name="value_in_list">False</property>
-					  <property name="allow_empty">True</property>
-					  <property name="case_sensitive">False</property>
-					  <property name="enable_arrow_keys">True</property>
-					  <property name="enable_arrows_always">False</property>
-
-					  <child internal-child="entry">
-					    <widget class="GtkEntry" id="combo-entry6">
-					      <property name="visible">True</property>
-					      <property name="can_focus">True</property>
-					      <property name="editable">True</property>
-					      <property name="visibility">True</property>
-					      <property name="max_length">0</property>
-					      <property name="text" translatable="yes"></property>
-					      <property name="has_frame">True</property>
-					      <property name="invisible_char" translatable="yes">*</property>
-					      <property name="activates_default">False</property>
-					    </widget>
-					  </child>
-
-					  <child internal-child="list">
-					    <widget class="GtkList" id="combo-list6">
-					      <property name="visible">True</property>
-					      <property name="selection_mode">GTK_SELECTION_BROWSE</property>
-					    </widget>
-					  </child>
-					</widget>
-					<packing>
-					  <property name="left_attach">1</property>
-					  <property name="right_attach">2</property>
-					  <property name="top_attach">1</property>
-					  <property name="bottom_attach">2</property>
-					  <property name="x_options">fill</property>
-					  <property name="y_options"></property>
-					</packing>
-				      </child>
-
-				      <child>
 					<widget class="GtkCheckButton" id="checkbutton_search_remove_downloaded">
 					  <property name="visible">True</property>
 					  <property name="can_focus">True</property>
@@ -8459,6 +8473,46 @@ Grace time remaining:</property>
 					  <property name="right_attach">2</property>
 					  <property name="top_attach">0</property>
 					  <property name="bottom_attach">1</property>
+					  <property name="x_options">fill</property>
+					  <property name="y_options"></property>
+					</packing>
+				      </child>
+
+				      <child>
+					<widget class="GtkCombo" id="combo_search_handle_ignored_files">
+					  <property name="visible">True</property>
+					  <property name="value_in_list">False</property>
+					  <property name="allow_empty">True</property>
+					  <property name="case_sensitive">False</property>
+					  <property name="enable_arrow_keys">True</property>
+					  <property name="enable_arrows_always">False</property>
+
+					  <child internal-child="entry">
+					    <widget class="GtkEntry" id="combo-entry6">
+					      <property name="visible">True</property>
+					      <property name="can_focus">True</property>
+					      <property name="editable">True</property>
+					      <property name="visibility">True</property>
+					      <property name="max_length">0</property>
+					      <property name="text" translatable="yes"></property>
+					      <property name="has_frame">True</property>
+					      <property name="invisible_char" translatable="yes">*</property>
+					      <property name="activates_default">False</property>
+					    </widget>
+					  </child>
+
+					  <child internal-child="list">
+					    <widget class="GtkList" id="combo-list6">
+					      <property name="visible">True</property>
+					      <property name="selection_mode">GTK_SELECTION_BROWSE</property>
+					    </widget>
+					  </child>
+					</widget>
+					<packing>
+					  <property name="left_attach">1</property>
+					  <property name="right_attach">2</property>
+					  <property name="top_attach">1</property>
+					  <property name="bottom_attach">2</property>
 					  <property name="x_options">fill</property>
 					  <property name="y_options"></property>
 					</packing>
@@ -10448,56 +10502,10 @@ Grace time remaining:</property>
 		    <widget class="GtkTable" id="table49">
 		      <property name="visible">True</property>
 		      <property name="n_rows">2</property>
-		      <property name="n_columns">2</property>
+		      <property name="n_columns">3</property>
 		      <property name="homogeneous">False</property>
 		      <property name="row_spacing">2</property>
 		      <property name="column_spacing">4</property>
-
-		      <child>
-			<widget class="GtkCheckButton" id="checkbutton_gnet_stats_perc">
-			  <property name="visible">True</property>
-			  <property name="can_focus">True</property>
-			  <property name="label" translatable="yes">Show percentages</property>
-			  <property name="use_underline">True</property>
-			  <property name="relief">GTK_RELIEF_NORMAL</property>
-			  <property name="focus_on_click">True</property>
-			  <property name="active">False</property>
-			  <property name="inconsistent">False</property>
-			  <property name="draw_indicator">True</property>
-			</widget>
-			<packing>
-			  <property name="left_attach">0</property>
-			  <property name="right_attach">1</property>
-			  <property name="top_attach">0</property>
-			  <property name="bottom_attach">1</property>
-			  <property name="x_padding">5</property>
-			  <property name="x_options">shrink|fill</property>
-			  <property name="y_options"></property>
-			</packing>
-		      </child>
-
-		      <child>
-			<widget class="GtkCheckButton" id="checkbutton_gnet_stats_bytes">
-			  <property name="visible">True</property>
-			  <property name="can_focus">True</property>
-			  <property name="label" translatable="yes">Show bytes</property>
-			  <property name="use_underline">True</property>
-			  <property name="relief">GTK_RELIEF_NORMAL</property>
-			  <property name="focus_on_click">True</property>
-			  <property name="active">False</property>
-			  <property name="inconsistent">False</property>
-			  <property name="draw_indicator">True</property>
-			</widget>
-			<packing>
-			  <property name="left_attach">1</property>
-			  <property name="right_attach">2</property>
-			  <property name="top_attach">0</property>
-			  <property name="bottom_attach">1</property>
-			  <property name="x_padding">5</property>
-			  <property name="x_options">shrink|fill</property>
-			  <property name="y_options"></property>
-			</packing>
-		      </child>
 
 		      <child>
 			<widget class="GtkCheckButton" id="checkbutton_gnet_stats_hops">
@@ -10526,7 +10534,7 @@ Grace time remaining:</property>
 			<widget class="GtkCheckButton" id="checkbutton_gnet_stats_with_headers">
 			  <property name="visible">True</property>
 			  <property name="can_focus">True</property>
-			  <property name="label" translatable="yes">Add headers</property>
+			  <property name="label" translatable="yes">Headers</property>
 			  <property name="use_underline">True</property>
 			  <property name="relief">GTK_RELIEF_NORMAL</property>
 			  <property name="focus_on_click">True</property>
@@ -10542,6 +10550,127 @@ Grace time remaining:</property>
 			  <property name="x_padding">5</property>
 			  <property name="x_options">shrink|fill</property>
 			  <property name="y_options"></property>
+			</packing>
+		      </child>
+
+		      <child>
+			<widget class="GtkCheckButton" id="checkbutton_gnet_stats_bytes">
+			  <property name="visible">True</property>
+			  <property name="can_focus">True</property>
+			  <property name="label" translatable="yes">Show bytes</property>
+			  <property name="use_underline">True</property>
+			  <property name="relief">GTK_RELIEF_NORMAL</property>
+			  <property name="focus_on_click">True</property>
+			  <property name="active">False</property>
+			  <property name="inconsistent">False</property>
+			  <property name="draw_indicator">True</property>
+			</widget>
+			<packing>
+			  <property name="left_attach">1</property>
+			  <property name="right_attach">2</property>
+			  <property name="top_attach">0</property>
+			  <property name="bottom_attach">1</property>
+			  <property name="x_padding">5</property>
+			  <property name="x_options">fill</property>
+			  <property name="y_options"></property>
+			</packing>
+		      </child>
+
+		      <child>
+			<widget class="GtkCheckButton" id="checkbutton_gnet_stats_perc">
+			  <property name="visible">True</property>
+			  <property name="can_focus">True</property>
+			  <property name="label" translatable="yes">Show percentages</property>
+			  <property name="use_underline">True</property>
+			  <property name="relief">GTK_RELIEF_NORMAL</property>
+			  <property name="focus_on_click">True</property>
+			  <property name="active">False</property>
+			  <property name="inconsistent">False</property>
+			  <property name="draw_indicator">True</property>
+			</widget>
+			<packing>
+			  <property name="left_attach">0</property>
+			  <property name="right_attach">1</property>
+			  <property name="top_attach">0</property>
+			  <property name="bottom_attach">1</property>
+			  <property name="x_padding">5</property>
+			  <property name="x_options">fill</property>
+			  <property name="y_options"></property>
+			</packing>
+		      </child>
+
+		      <child>
+			<widget class="GtkHBox" id="hbox288">
+			  <property name="visible">True</property>
+			  <property name="homogeneous">False</property>
+			  <property name="spacing">0</property>
+
+			  <child>
+			    <widget class="GtkLabel" id="label889">
+			      <property name="visible">True</property>
+			      <property name="label" translatable="yes">show</property>
+			      <property name="use_underline">False</property>
+			      <property name="use_markup">False</property>
+			      <property name="justify">GTK_JUSTIFY_LEFT</property>
+			      <property name="wrap">False</property>
+			      <property name="selectable">False</property>
+			      <property name="xalign">0.5</property>
+			      <property name="yalign">0.5</property>
+			      <property name="xpad">0</property>
+			      <property name="ypad">0</property>
+			    </widget>
+			    <packing>
+			      <property name="padding">0</property>
+			      <property name="expand">False</property>
+			      <property name="fill">False</property>
+			    </packing>
+			  </child>
+
+			  <child>
+			    <widget class="GtkCombo" id="combo_gnet_stats_source">
+			      <property name="width_request">105</property>
+			      <property name="visible">True</property>
+			      <property name="value_in_list">False</property>
+			      <property name="allow_empty">True</property>
+			      <property name="case_sensitive">False</property>
+			      <property name="enable_arrow_keys">True</property>
+			      <property name="enable_arrows_always">False</property>
+
+			      <child internal-child="entry">
+				<widget class="GtkEntry" id="entry1">
+				  <property name="visible">True</property>
+				  <property name="can_focus">True</property>
+				  <property name="editable">True</property>
+				  <property name="visibility">True</property>
+				  <property name="max_length">0</property>
+				  <property name="text" translatable="yes"></property>
+				  <property name="has_frame">True</property>
+				  <property name="invisible_char" translatable="yes">*</property>
+				  <property name="activates_default">False</property>
+				</widget>
+			      </child>
+
+			      <child internal-child="list">
+				<widget class="GtkList" id="list1">
+				  <property name="visible">True</property>
+				  <property name="selection_mode">GTK_SELECTION_BROWSE</property>
+				</widget>
+			      </child>
+			    </widget>
+			    <packing>
+			      <property name="padding">0</property>
+			      <property name="expand">False</property>
+			      <property name="fill">False</property>
+			      <property name="pack_type">GTK_PACK_END</property>
+			    </packing>
+			  </child>
+			</widget>
+			<packing>
+			  <property name="left_attach">2</property>
+			  <property name="right_attach">3</property>
+			  <property name="top_attach">0</property>
+			  <property name="bottom_attach">1</property>
+			  <property name="y_options">fill</property>
 			</packing>
 		      </child>
 		    </widget>

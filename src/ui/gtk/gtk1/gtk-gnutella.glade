@@ -6555,29 +6555,18 @@
 		    </widget>
 
 		    <widget>
-		      <class>GtkHBox</class>
-		      <name>hbox163</name>
+		      <class>GtkTable</class>
+		      <name>table93</name>
+		      <rows>2</rows>
+		      <columns>3</columns>
 		      <homogeneous>False</homogeneous>
-		      <spacing>0</spacing>
+		      <row_spacing>0</row_spacing>
+		      <column_spacing>0</column_spacing>
 		      <child>
 			<padding>0</padding>
 			<expand>False</expand>
 			<fill>False</fill>
 		      </child>
-
-		      <widget>
-			<class>GtkCheckButton</class>
-			<name>checkbutton_gnet_stats_perc</name>
-			<can_focus>True</can_focus>
-			<label>show percentages</label>
-			<active>False</active>
-			<draw_indicator>True</draw_indicator>
-			<child>
-			  <padding>0</padding>
-			  <expand>False</expand>
-			  <fill>False</fill>
-			</child>
-		      </widget>
 
 		      <widget>
 			<class>GtkCheckButton</class>
@@ -6587,10 +6576,131 @@
 			<active>False</active>
 			<draw_indicator>True</draw_indicator>
 			<child>
-			  <padding>0</padding>
-			  <expand>False</expand>
-			  <fill>False</fill>
+			  <left_attach>0</left_attach>
+			  <right_attach>1</right_attach>
+			  <top_attach>0</top_attach>
+			  <bottom_attach>1</bottom_attach>
+			  <xpad>0</xpad>
+			  <ypad>0</ypad>
+			  <xexpand>False</xexpand>
+			  <yexpand>False</yexpand>
+			  <xshrink>False</xshrink>
+			  <yshrink>False</yshrink>
+			  <xfill>True</xfill>
+			  <yfill>False</yfill>
 			</child>
+		      </widget>
+
+		      <widget>
+			<class>GtkCheckButton</class>
+			<name>checkbutton_gnet_stats_perc</name>
+			<can_focus>True</can_focus>
+			<label>show percentages</label>
+			<active>False</active>
+			<draw_indicator>True</draw_indicator>
+			<child>
+			  <left_attach>0</left_attach>
+			  <right_attach>1</right_attach>
+			  <top_attach>1</top_attach>
+			  <bottom_attach>2</bottom_attach>
+			  <xpad>0</xpad>
+			  <ypad>0</ypad>
+			  <xexpand>False</xexpand>
+			  <yexpand>False</yexpand>
+			  <xshrink>False</xshrink>
+			  <yshrink>False</yshrink>
+			  <xfill>True</xfill>
+			  <yfill>False</yfill>
+			</child>
+		      </widget>
+
+		      <widget>
+			<class>GtkCheckButton</class>
+			<name>checkbutton_gnet_stats_with_headers</name>
+			<can_focus>True</can_focus>
+			<label>with headers</label>
+			<active>False</active>
+			<draw_indicator>True</draw_indicator>
+			<child>
+			  <left_attach>1</left_attach>
+			  <right_attach>2</right_attach>
+			  <top_attach>0</top_attach>
+			  <bottom_attach>1</bottom_attach>
+			  <xpad>0</xpad>
+			  <ypad>0</ypad>
+			  <xexpand>False</xexpand>
+			  <yexpand>False</yexpand>
+			  <xshrink>False</xshrink>
+			  <yshrink>False</yshrink>
+			  <xfill>True</xfill>
+			  <yfill>False</yfill>
+			</child>
+		      </widget>
+
+		      <widget>
+			<class>GtkHBox</class>
+			<name>hbox207</name>
+			<homogeneous>False</homogeneous>
+			<spacing>0</spacing>
+			<child>
+			  <left_attach>1</left_attach>
+			  <right_attach>2</right_attach>
+			  <top_attach>1</top_attach>
+			  <bottom_attach>2</bottom_attach>
+			  <xpad>0</xpad>
+			  <ypad>0</ypad>
+			  <xexpand>False</xexpand>
+			  <yexpand>False</yexpand>
+			  <xshrink>False</xshrink>
+			  <yshrink>False</yshrink>
+			  <xfill>True</xfill>
+			  <yfill>True</yfill>
+			</child>
+
+			<widget>
+			  <class>GtkLabel</class>
+			  <name>label697</name>
+			  <label>  show </label>
+			  <justify>GTK_JUSTIFY_CENTER</justify>
+			  <wrap>False</wrap>
+			  <xalign>0.5</xalign>
+			  <yalign>0.5</yalign>
+			  <xpad>0</xpad>
+			  <ypad>0</ypad>
+			  <child>
+			    <padding>0</padding>
+			    <expand>False</expand>
+			    <fill>False</fill>
+			  </child>
+			</widget>
+
+			<widget>
+			  <class>GtkCombo</class>
+			  <name>combo_gnet_stats_source</name>
+			  <value_in_list>False</value_in_list>
+			  <ok_if_empty>True</ok_if_empty>
+			  <case_sensitive>False</case_sensitive>
+			  <use_arrows>True</use_arrows>
+			  <use_arrows_always>False</use_arrows_always>
+			  <items></items>
+			  <child>
+			    <padding>0</padding>
+			    <expand>False</expand>
+			    <fill>True</fill>
+			  </child>
+
+			  <widget>
+			    <class>GtkEntry</class>
+			    <child_name>GtkCombo:entry</child_name>
+			    <name>combo-entry6</name>
+			    <width>70</width>
+			    <can_focus>True</can_focus>
+			    <editable>False</editable>
+			    <text_visible>True</text_visible>
+			    <text_max_length>0</text_max_length>
+			    <text></text>
+			  </widget>
+			</widget>
 		      </widget>
 		    </widget>
 		  </widget>
@@ -7488,7 +7598,7 @@
 	  <widget>
 	    <class>GtkEventBox</class>
 	    <name>eventbox_image_firewall</name>
-	    <tooltip>Gtk-gnutella thinks you're firewalled. Nobody has connected to you so far. You will not see any push results which may prevent you from seeing a large amount of results.</tooltip>
+	    <tooltip>You appear to be firewalled, both TCP-wise and UDP-wise. You will not see any push results, which may prevent you from seeing a large amount of results. You will not be able to send queries requesting out-of-band delivery of query hits.</tooltip>
 	    <child>
 	      <padding>0</padding>
 	      <expand>True</expand>
@@ -7509,8 +7619,52 @@
 
 	  <widget>
 	    <class>GtkEventBox</class>
+	    <name>eventbox_image_tcp_firewall</name>
+	    <tooltip>You appear to be TCP-firewalled, i.e. others cannot connect to you to download files. You will not see push results, which may prevent you from seeing a large amount of results.</tooltip>
+	    <child>
+	      <padding>0</padding>
+	      <expand>True</expand>
+	      <fill>True</fill>
+	    </child>
+
+	    <widget>
+	      <class>GtkPixmap</class>
+	      <name>image_tcp_firewall</name>
+	      <filename>firewall_tcp.xpm</filename>
+	      <xalign>0.5</xalign>
+	      <yalign>0.5</yalign>
+	      <xpad>0</xpad>
+	      <ypad>0</ypad>
+	      <build_insensitive>False</build_insensitive>
+	    </widget>
+	  </widget>
+
+	  <widget>
+	    <class>GtkEventBox</class>
+	    <name>eventbox_image_udp_firewall</name>
+	    <tooltip>You appear to be UDP-firewalled, i.e. you cannot receive unsolicited traffic via UDP. You will not be able to send queries requesting out-of-band delivery of query hits.</tooltip>
+	    <child>
+	      <padding>0</padding>
+	      <expand>True</expand>
+	      <fill>True</fill>
+	    </child>
+
+	    <widget>
+	      <class>GtkPixmap</class>
+	      <name>image_udp_firewall</name>
+	      <filename>firewall_udp.xpm</filename>
+	      <xalign>0.5</xalign>
+	      <yalign>0.5</yalign>
+	      <xpad>0</xpad>
+	      <ypad>0</ypad>
+	      <build_insensitive>False</build_insensitive>
+	    </widget>
+	  </widget>
+
+	  <widget>
+	    <class>GtkEventBox</class>
 	    <name>eventbox_image_no_firewall</name>
-	    <tooltip>People can connect to you. Push should work.</tooltip>
+	    <tooltip>People can connect to you, using both TCP and UDP. Push should work and you will be able to receive out-of-band results for your queries.</tooltip>
 	    <child>
 	      <padding>0</padding>
 	      <expand>True</expand>

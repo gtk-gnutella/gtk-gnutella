@@ -480,9 +480,14 @@ create_main_window (void)
   GtkWidget *label431;
   GtkWidget *label432;
   GtkWidget *label438;
-  GtkWidget *hbox163;
-  GtkWidget *checkbutton_gnet_stats_perc;
+  GtkWidget *table93;
   GtkWidget *checkbutton_gnet_stats_bytes;
+  GtkWidget *checkbutton_gnet_stats_perc;
+  GtkWidget *checkbutton_gnet_stats_with_headers;
+  GtkWidget *hbox207;
+  GtkWidget *label697;
+  GtkWidget *combo_gnet_stats_source;
+  GtkWidget *combo_entry6;
   GtkWidget *frame125;
   GtkWidget *vbox125;
   GtkWidget *scrolledwindow45;
@@ -556,6 +561,10 @@ create_main_window (void)
   GtkWidget *image_lib;
   GtkWidget *eventbox_image_firewall;
   GtkWidget *image_firewall;
+  GtkWidget *eventbox_image_tcp_firewall;
+  GtkWidget *image_tcp_firewall;
+  GtkWidget *eventbox_image_udp_firewall;
+  GtkWidget *image_udp_firewall;
   GtkWidget *eventbox_image_no_firewall;
   GtkWidget *image_no_firewall;
   GtkWidget *eventbox_image_leaf;
@@ -4598,21 +4607,13 @@ create_main_window (void)
   gtk_widget_show (label438);
   gtk_notebook_set_tab_label (GTK_NOTEBOOK (notebook3), gtk_notebook_get_nth_page (GTK_NOTEBOOK (notebook3), 2), label438);
 
-  hbox163 = gtk_hbox_new (FALSE, 0);
-  gtk_widget_set_name (hbox163, "hbox163");
-  gtk_widget_ref (hbox163);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "hbox163", hbox163,
+  table93 = gtk_table_new (2, 3, FALSE);
+  gtk_widget_set_name (table93, "table93");
+  gtk_widget_ref (table93);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "table93", table93,
                             (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (hbox163);
-  gtk_box_pack_start (GTK_BOX (vbox97), hbox163, FALSE, FALSE, 0);
-
-  checkbutton_gnet_stats_perc = gtk_check_button_new_with_label (_("show percentages"));
-  gtk_widget_set_name (checkbutton_gnet_stats_perc, "checkbutton_gnet_stats_perc");
-  gtk_widget_ref (checkbutton_gnet_stats_perc);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "checkbutton_gnet_stats_perc", checkbutton_gnet_stats_perc,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (checkbutton_gnet_stats_perc);
-  gtk_box_pack_start (GTK_BOX (hbox163), checkbutton_gnet_stats_perc, FALSE, FALSE, 0);
+  gtk_widget_show (table93);
+  gtk_box_pack_start (GTK_BOX (vbox97), table93, FALSE, FALSE, 0);
 
   checkbutton_gnet_stats_bytes = gtk_check_button_new_with_label (_("show bytes"));
   gtk_widget_set_name (checkbutton_gnet_stats_bytes, "checkbutton_gnet_stats_bytes");
@@ -4620,7 +4621,64 @@ create_main_window (void)
   gtk_object_set_data_full (GTK_OBJECT (main_window), "checkbutton_gnet_stats_bytes", checkbutton_gnet_stats_bytes,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (checkbutton_gnet_stats_bytes);
-  gtk_box_pack_start (GTK_BOX (hbox163), checkbutton_gnet_stats_bytes, FALSE, FALSE, 0);
+  gtk_table_attach (GTK_TABLE (table93), checkbutton_gnet_stats_bytes, 0, 1, 0, 1,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+
+  checkbutton_gnet_stats_perc = gtk_check_button_new_with_label (_("show percentages"));
+  gtk_widget_set_name (checkbutton_gnet_stats_perc, "checkbutton_gnet_stats_perc");
+  gtk_widget_ref (checkbutton_gnet_stats_perc);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "checkbutton_gnet_stats_perc", checkbutton_gnet_stats_perc,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (checkbutton_gnet_stats_perc);
+  gtk_table_attach (GTK_TABLE (table93), checkbutton_gnet_stats_perc, 0, 1, 1, 2,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+
+  checkbutton_gnet_stats_with_headers = gtk_check_button_new_with_label (_("with headers"));
+  gtk_widget_set_name (checkbutton_gnet_stats_with_headers, "checkbutton_gnet_stats_with_headers");
+  gtk_widget_ref (checkbutton_gnet_stats_with_headers);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "checkbutton_gnet_stats_with_headers", checkbutton_gnet_stats_with_headers,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (checkbutton_gnet_stats_with_headers);
+  gtk_table_attach (GTK_TABLE (table93), checkbutton_gnet_stats_with_headers, 1, 2, 0, 1,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+
+  hbox207 = gtk_hbox_new (FALSE, 0);
+  gtk_widget_set_name (hbox207, "hbox207");
+  gtk_widget_ref (hbox207);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "hbox207", hbox207,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (hbox207);
+  gtk_table_attach (GTK_TABLE (table93), hbox207, 1, 2, 1, 2,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (GTK_FILL), 0, 0);
+
+  label697 = gtk_label_new (_("  show "));
+  gtk_widget_set_name (label697, "label697");
+  gtk_widget_ref (label697);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label697", label697,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label697);
+  gtk_box_pack_start (GTK_BOX (hbox207), label697, FALSE, FALSE, 0);
+
+  combo_gnet_stats_source = gtk_combo_new ();
+  gtk_widget_set_name (combo_gnet_stats_source, "combo_gnet_stats_source");
+  gtk_widget_ref (combo_gnet_stats_source);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "combo_gnet_stats_source", combo_gnet_stats_source,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (combo_gnet_stats_source);
+  gtk_box_pack_start (GTK_BOX (hbox207), combo_gnet_stats_source, FALSE, TRUE, 0);
+
+  combo_entry6 = GTK_COMBO (combo_gnet_stats_source)->entry;
+  gtk_widget_set_name (combo_entry6, "combo_entry6");
+  gtk_widget_ref (combo_entry6);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "combo_entry6", combo_entry6,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (combo_entry6);
+  gtk_widget_set_usize (combo_entry6, 70, -2);
+  gtk_entry_set_editable (GTK_ENTRY (combo_entry6), FALSE);
 
   frame125 = gtk_frame_new (_("Horizon stats"));
   gtk_widget_set_name (frame125, "frame125");
@@ -5222,7 +5280,7 @@ create_main_window (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (eventbox_image_firewall);
   gtk_box_pack_start (GTK_BOX (hbox199), eventbox_image_firewall, TRUE, TRUE, 0);
-  gtk_tooltips_set_tip (tooltips, eventbox_image_firewall, _("Gtk-gnutella thinks you're firewalled. Nobody has connected to you so far. You will not see any push results which may prevent you from seeing a large amount of results."), NULL);
+  gtk_tooltips_set_tip (tooltips, eventbox_image_firewall, _("You appear to be firewalled, both TCP-wise and UDP-wise. You will not see any push results, which may prevent you from seeing a large amount of results. You will not be able to send queries requesting out-of-band delivery of query hits."), NULL);
 
   image_firewall = create_pixmap (main_window, "firewall.xpm");
   gtk_widget_set_name (image_firewall, "image_firewall");
@@ -5234,6 +5292,42 @@ create_main_window (void)
   gtk_misc_set_padding (GTK_MISC (image_firewall), 1, 0);
   gtk_pixmap_set_build_insensitive (GTK_PIXMAP (image_firewall), FALSE);
 
+  eventbox_image_tcp_firewall = gtk_event_box_new ();
+  gtk_widget_set_name (eventbox_image_tcp_firewall, "eventbox_image_tcp_firewall");
+  gtk_widget_ref (eventbox_image_tcp_firewall);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "eventbox_image_tcp_firewall", eventbox_image_tcp_firewall,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (eventbox_image_tcp_firewall);
+  gtk_box_pack_start (GTK_BOX (hbox199), eventbox_image_tcp_firewall, TRUE, TRUE, 0);
+  gtk_tooltips_set_tip (tooltips, eventbox_image_tcp_firewall, _("You appear to be TCP-firewalled, i.e. others cannot connect to you to download files. You will not see push results, which may prevent you from seeing a large amount of results."), NULL);
+
+  image_tcp_firewall = create_pixmap (main_window, "firewall_tcp.xpm");
+  gtk_widget_set_name (image_tcp_firewall, "image_tcp_firewall");
+  gtk_widget_ref (image_tcp_firewall);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "image_tcp_firewall", image_tcp_firewall,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (image_tcp_firewall);
+  gtk_container_add (GTK_CONTAINER (eventbox_image_tcp_firewall), image_tcp_firewall);
+  gtk_pixmap_set_build_insensitive (GTK_PIXMAP (image_tcp_firewall), FALSE);
+
+  eventbox_image_udp_firewall = gtk_event_box_new ();
+  gtk_widget_set_name (eventbox_image_udp_firewall, "eventbox_image_udp_firewall");
+  gtk_widget_ref (eventbox_image_udp_firewall);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "eventbox_image_udp_firewall", eventbox_image_udp_firewall,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (eventbox_image_udp_firewall);
+  gtk_box_pack_start (GTK_BOX (hbox199), eventbox_image_udp_firewall, TRUE, TRUE, 0);
+  gtk_tooltips_set_tip (tooltips, eventbox_image_udp_firewall, _("You appear to be UDP-firewalled, i.e. you cannot receive unsolicited traffic via UDP. You will not be able to send queries requesting out-of-band delivery of query hits."), NULL);
+
+  image_udp_firewall = create_pixmap (main_window, "firewall_udp.xpm");
+  gtk_widget_set_name (image_udp_firewall, "image_udp_firewall");
+  gtk_widget_ref (image_udp_firewall);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "image_udp_firewall", image_udp_firewall,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (image_udp_firewall);
+  gtk_container_add (GTK_CONTAINER (eventbox_image_udp_firewall), image_udp_firewall);
+  gtk_pixmap_set_build_insensitive (GTK_PIXMAP (image_udp_firewall), FALSE);
+
   eventbox_image_no_firewall = gtk_event_box_new ();
   gtk_widget_set_name (eventbox_image_no_firewall, "eventbox_image_no_firewall");
   gtk_widget_ref (eventbox_image_no_firewall);
@@ -5241,7 +5335,7 @@ create_main_window (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (eventbox_image_no_firewall);
   gtk_box_pack_start (GTK_BOX (hbox199), eventbox_image_no_firewall, TRUE, TRUE, 0);
-  gtk_tooltips_set_tip (tooltips, eventbox_image_no_firewall, _("People can connect to you. Push should work."), NULL);
+  gtk_tooltips_set_tip (tooltips, eventbox_image_no_firewall, _("People can connect to you, using both TCP and UDP. Push should work and you will be able to receive out-of-band results for your queries."), NULL);
 
   image_no_firewall = create_pixmap (main_window, "no_firewall.xpm");
   gtk_widget_set_name (image_no_firewall, "image_no_firewall");
