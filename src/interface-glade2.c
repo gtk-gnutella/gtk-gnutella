@@ -4160,6 +4160,7 @@ create_main_window (void)
   GtkWidget *main_window;
   GtkWidget *vbox12;
   GtkWidget *handlebox1;
+  GtkWidget *hbox210;
   GtkWidget *menubar1;
   GtkWidget *menu_file;
   GtkWidget *menu_file_menu;
@@ -4185,6 +4186,21 @@ create_main_window (void)
   GtkWidget *menu_help_menu;
   GtkWidget *menu_about;
   GtkWidget *image5;
+  GtkWidget *hbox211;
+  GtkWidget *eventbox_image_sha;
+  GtkWidget *image_sha;
+  GtkWidget *eventbox_image_shav;
+  GtkWidget *image_shav;
+  GtkWidget *eventbox_image_lib;
+  GtkWidget *image_lib;
+  GtkWidget *eventbox_image_save;
+  GtkWidget *image_save;
+  GtkWidget *hbox147;
+  GtkWidget *eventbox2;
+  GtkWidget *image_firewall;
+  GtkWidget *eventbox3;
+  GtkWidget *image_no_firewall;
+  GtkWidget *label_statusbar_uptime;
   GtkWidget *hb_toolbar;
   GtkWidget *toolbar_main;
   GtkWidget *tmp_toolbar_icon;
@@ -4882,21 +4898,6 @@ create_main_window (void)
   GtkWidget *hbox170;
   GtkWidget *image_offline;
   GtkWidget *image_online;
-  GtkWidget *eventbox_image_save;
-  GtkWidget *image_save;
-  GtkWidget *eventbox_image_sha;
-  GtkWidget *image_sha;
-  GtkWidget *eventbox_image_shav;
-  GtkWidget *image_shav;
-  GtkWidget *eventbox_image_lib;
-  GtkWidget *image_lib;
-  GtkWidget *hbox147;
-  GtkWidget *eventbox2;
-  GtkWidget *image_firewall;
-  GtkWidget *eventbox3;
-  GtkWidget *image_no_firewall;
-  GtkWidget *label_statusbar_uptime;
-  GtkWidget *alignment68;
   GtkWidget *statusbar;
   GtkAccelGroup *accel_group;
   GtkTooltips *tooltips;
@@ -4920,10 +4921,15 @@ create_main_window (void)
   gtk_widget_show (handlebox1);
   gtk_box_pack_start (GTK_BOX (vbox12), handlebox1, FALSE, FALSE, 0);
 
+  hbox210 = gtk_hbox_new (FALSE, 4);
+  gtk_widget_set_name (hbox210, "hbox210");
+  gtk_widget_show (hbox210);
+  gtk_container_add (GTK_CONTAINER (handlebox1), hbox210);
+
   menubar1 = gtk_menu_bar_new ();
   gtk_widget_set_name (menubar1, "menubar1");
   gtk_widget_show (menubar1);
-  gtk_container_add (GTK_CONTAINER (handlebox1), menubar1);
+  gtk_box_pack_start (GTK_BOX (hbox210), menubar1, TRUE, TRUE, 0);
 
   menu_file = gtk_menu_item_new_with_mnemonic ("_File");
   gtk_widget_set_name (menu_file, "menu_file");
@@ -5052,6 +5058,91 @@ create_main_window (void)
   gtk_widget_set_name (image5, "image5");
   gtk_widget_show (image5);
   gtk_image_menu_item_set_image (GTK_IMAGE_MENU_ITEM (menu_about), image5);
+
+  hbox211 = gtk_hbox_new (FALSE, 4);
+  gtk_widget_set_name (hbox211, "hbox211");
+  gtk_widget_show (hbox211);
+  gtk_box_pack_start (GTK_BOX (hbox210), hbox211, FALSE, TRUE, 0);
+  gtk_container_set_border_width (GTK_CONTAINER (hbox211), 2);
+
+  eventbox_image_sha = gtk_event_box_new ();
+  gtk_widget_set_name (eventbox_image_sha, "eventbox_image_sha");
+  gtk_widget_show (eventbox_image_sha);
+  gtk_box_pack_start (GTK_BOX (hbox211), eventbox_image_sha, TRUE, TRUE, 0);
+
+  image_sha = create_pixmap (main_window, "booksha.xpm");
+  gtk_widget_set_name (image_sha, "image_sha");
+  gtk_widget_show (image_sha);
+  gtk_container_add (GTK_CONTAINER (eventbox_image_sha), image_sha);
+
+  eventbox_image_shav = gtk_event_box_new ();
+  gtk_widget_set_name (eventbox_image_shav, "eventbox_image_shav");
+  gtk_widget_show (eventbox_image_shav);
+  gtk_box_pack_start (GTK_BOX (hbox211), eventbox_image_shav, TRUE, TRUE, 0);
+
+  image_shav = create_pixmap (main_window, "bookshav.xpm");
+  gtk_widget_set_name (image_shav, "image_shav");
+  gtk_widget_show (image_shav);
+  gtk_container_add (GTK_CONTAINER (eventbox_image_shav), image_shav);
+  gtk_misc_set_padding (GTK_MISC (image_shav), 1, 0);
+
+  eventbox_image_lib = gtk_event_box_new ();
+  gtk_widget_set_name (eventbox_image_lib, "eventbox_image_lib");
+  gtk_widget_show (eventbox_image_lib);
+  gtk_box_pack_start (GTK_BOX (hbox211), eventbox_image_lib, TRUE, TRUE, 0);
+
+  image_lib = create_pixmap (main_window, "booklib.xpm");
+  gtk_widget_set_name (image_lib, "image_lib");
+  gtk_widget_show (image_lib);
+  gtk_container_add (GTK_CONTAINER (eventbox_image_lib), image_lib);
+  gtk_misc_set_padding (GTK_MISC (image_lib), 1, 0);
+
+  eventbox_image_save = gtk_event_box_new ();
+  gtk_widget_set_name (eventbox_image_save, "eventbox_image_save");
+  gtk_widget_show (eventbox_image_save);
+  gtk_box_pack_start (GTK_BOX (hbox211), eventbox_image_save, TRUE, TRUE, 0);
+
+  image_save = create_pixmap (main_window, "save.xpm");
+  gtk_widget_set_name (image_save, "image_save");
+  gtk_container_add (GTK_CONTAINER (eventbox_image_save), image_save);
+  gtk_misc_set_padding (GTK_MISC (image_save), 1, 0);
+
+  hbox147 = gtk_hbox_new (FALSE, 0);
+  gtk_widget_set_name (hbox147, "hbox147");
+  gtk_widget_show (hbox147);
+  gtk_box_pack_start (GTK_BOX (hbox211), hbox147, FALSE, TRUE, 0);
+
+  eventbox2 = gtk_event_box_new ();
+  gtk_widget_set_name (eventbox2, "eventbox2");
+  gtk_widget_show (eventbox2);
+  gtk_box_pack_start (GTK_BOX (hbox147), eventbox2, FALSE, TRUE, 0);
+  gtk_tooltips_set_tip (tooltips, eventbox2, "Gtk-gnutella thinks you're firewalled. Nobody has connected to you so far. You will not see any push results which may prevent you from seeing a large amount of results. ", NULL);
+
+  image_firewall = create_pixmap (main_window, "firewall.xpm");
+  gtk_widget_set_name (image_firewall, "image_firewall");
+  gtk_widget_show (image_firewall);
+  gtk_container_add (GTK_CONTAINER (eventbox2), image_firewall);
+  gtk_misc_set_padding (GTK_MISC (image_firewall), 1, 0);
+
+  eventbox3 = gtk_event_box_new ();
+  gtk_widget_set_name (eventbox3, "eventbox3");
+  gtk_widget_show (eventbox3);
+  gtk_box_pack_start (GTK_BOX (hbox147), eventbox3, FALSE, TRUE, 0);
+  gtk_tooltips_set_tip (tooltips, eventbox3, "People can connect to you. Push should work.", NULL);
+
+  image_no_firewall = create_pixmap (main_window, "no_firewall.xpm");
+  gtk_widget_set_name (image_no_firewall, "image_no_firewall");
+  gtk_widget_show (image_no_firewall);
+  gtk_container_add (GTK_CONTAINER (eventbox3), image_no_firewall);
+  gtk_misc_set_padding (GTK_MISC (image_no_firewall), 1, 0);
+
+  label_statusbar_uptime = gtk_label_new ("[uptime]");
+  gtk_widget_set_name (label_statusbar_uptime, "label_statusbar_uptime");
+  gtk_widget_show (label_statusbar_uptime);
+  gtk_box_pack_start (GTK_BOX (hbox210), label_statusbar_uptime, FALSE, TRUE, 20);
+  gtk_label_set_justify (GTK_LABEL (label_statusbar_uptime), GTK_JUSTIFY_LEFT);
+  gtk_misc_set_alignment (GTK_MISC (label_statusbar_uptime), 1, 0.5);
+  gtk_misc_set_padding (GTK_MISC (label_statusbar_uptime), 4, 0);
 
   hb_toolbar = gtk_handle_box_new ();
   gtk_widget_set_name (hb_toolbar, "hb_toolbar");
@@ -9207,7 +9298,7 @@ create_main_window (void)
   togglebutton_online = gtk_toggle_button_new ();
   gtk_widget_set_name (togglebutton_online, "togglebutton_online");
   gtk_widget_show (togglebutton_online);
-  gtk_box_pack_start (GTK_BOX (hbox_statusbar), togglebutton_online, FALSE, FALSE, 0);
+  gtk_box_pack_start (GTK_BOX (hbox_statusbar), togglebutton_online, FALSE, TRUE, 0);
   GTK_WIDGET_UNSET_FLAGS (togglebutton_online, GTK_CAN_FOCUS);
   gtk_button_set_relief (GTK_BUTTON (togglebutton_online), GTK_RELIEF_NONE);
 
@@ -9215,105 +9306,22 @@ create_main_window (void)
   gtk_widget_set_name (hbox170, "hbox170");
   gtk_widget_show (hbox170);
   gtk_container_add (GTK_CONTAINER (togglebutton_online), hbox170);
+  gtk_widget_set_size_request (hbox170, 28, 6);
 
   image_offline = create_pixmap (main_window, "offline.xpm");
   gtk_widget_set_name (image_offline, "image_offline");
   gtk_widget_show (image_offline);
-  gtk_box_pack_start (GTK_BOX (hbox170), image_offline, TRUE, TRUE, 0);
+  gtk_box_pack_start (GTK_BOX (hbox170), image_offline, FALSE, TRUE, 0);
 
   image_online = create_pixmap (main_window, "online.xpm");
   gtk_widget_set_name (image_online, "image_online");
   gtk_widget_show (image_online);
-  gtk_box_pack_start (GTK_BOX (hbox170), image_online, TRUE, TRUE, 0);
-
-  eventbox_image_save = gtk_event_box_new ();
-  gtk_widget_set_name (eventbox_image_save, "eventbox_image_save");
-  gtk_widget_show (eventbox_image_save);
-  gtk_box_pack_start (GTK_BOX (hbox_statusbar), eventbox_image_save, FALSE, FALSE, 0);
-
-  image_save = create_pixmap (main_window, "save.xpm");
-  gtk_widget_set_name (image_save, "image_save");
-  gtk_container_add (GTK_CONTAINER (eventbox_image_save), image_save);
-  gtk_misc_set_padding (GTK_MISC (image_save), 1, 0);
-
-  eventbox_image_sha = gtk_event_box_new ();
-  gtk_widget_set_name (eventbox_image_sha, "eventbox_image_sha");
-  gtk_widget_show (eventbox_image_sha);
-  gtk_box_pack_start (GTK_BOX (hbox_statusbar), eventbox_image_sha, FALSE, FALSE, 0);
-
-  image_sha = create_pixmap (main_window, "booksha.xpm");
-  gtk_widget_set_name (image_sha, "image_sha");
-  gtk_widget_show (image_sha);
-  gtk_container_add (GTK_CONTAINER (eventbox_image_sha), image_sha);
-  gtk_misc_set_padding (GTK_MISC (image_sha), 1, 0);
-
-  eventbox_image_shav = gtk_event_box_new ();
-  gtk_widget_set_name (eventbox_image_shav, "eventbox_image_shav");
-  gtk_widget_show (eventbox_image_shav);
-  gtk_box_pack_start (GTK_BOX (hbox_statusbar), eventbox_image_shav, FALSE, TRUE, 0);
-
-  image_shav = create_pixmap (main_window, "bookshav.xpm");
-  gtk_widget_set_name (image_shav, "image_shav");
-  gtk_widget_show (image_shav);
-  gtk_container_add (GTK_CONTAINER (eventbox_image_shav), image_shav);
-  gtk_misc_set_padding (GTK_MISC (image_shav), 1, 0);
-
-  eventbox_image_lib = gtk_event_box_new ();
-  gtk_widget_set_name (eventbox_image_lib, "eventbox_image_lib");
-  gtk_widget_show (eventbox_image_lib);
-  gtk_box_pack_start (GTK_BOX (hbox_statusbar), eventbox_image_lib, FALSE, TRUE, 0);
-
-  image_lib = create_pixmap (main_window, "booklib.xpm");
-  gtk_widget_set_name (image_lib, "image_lib");
-  gtk_widget_show (image_lib);
-  gtk_container_add (GTK_CONTAINER (eventbox_image_lib), image_lib);
-  gtk_misc_set_padding (GTK_MISC (image_lib), 1, 0);
-
-  hbox147 = gtk_hbox_new (FALSE, 0);
-  gtk_widget_set_name (hbox147, "hbox147");
-  gtk_widget_show (hbox147);
-  gtk_box_pack_start (GTK_BOX (hbox_statusbar), hbox147, FALSE, TRUE, 0);
-
-  eventbox2 = gtk_event_box_new ();
-  gtk_widget_set_name (eventbox2, "eventbox2");
-  gtk_widget_show (eventbox2);
-  gtk_box_pack_start (GTK_BOX (hbox147), eventbox2, FALSE, TRUE, 0);
-  gtk_tooltips_set_tip (tooltips, eventbox2, "Gtk-gnutella thinks you're firewalled. Nobody has connected to you so far. You will not see any push results which may prevent you from seeing a large amount of results. ", NULL);
-
-  image_firewall = create_pixmap (main_window, "firewall.xpm");
-  gtk_widget_set_name (image_firewall, "image_firewall");
-  gtk_widget_show (image_firewall);
-  gtk_container_add (GTK_CONTAINER (eventbox2), image_firewall);
-  gtk_misc_set_padding (GTK_MISC (image_firewall), 1, 0);
-
-  eventbox3 = gtk_event_box_new ();
-  gtk_widget_set_name (eventbox3, "eventbox3");
-  gtk_widget_show (eventbox3);
-  gtk_box_pack_start (GTK_BOX (hbox147), eventbox3, FALSE, TRUE, 0);
-  gtk_tooltips_set_tip (tooltips, eventbox3, "People can connect to you. Push should work.", NULL);
-
-  image_no_firewall = create_pixmap (main_window, "no_firewall.xpm");
-  gtk_widget_set_name (image_no_firewall, "image_no_firewall");
-  gtk_widget_show (image_no_firewall);
-  gtk_container_add (GTK_CONTAINER (eventbox3), image_no_firewall);
-  gtk_misc_set_padding (GTK_MISC (image_no_firewall), 1, 0);
-
-  label_statusbar_uptime = gtk_label_new ("[uptime]");
-  gtk_widget_set_name (label_statusbar_uptime, "label_statusbar_uptime");
-  gtk_widget_show (label_statusbar_uptime);
-  gtk_box_pack_start (GTK_BOX (hbox_statusbar), label_statusbar_uptime, FALSE, FALSE, 0);
-  gtk_label_set_justify (GTK_LABEL (label_statusbar_uptime), GTK_JUSTIFY_LEFT);
-
-  alignment68 = gtk_alignment_new (0.5, 0.5, 1, 0);
-  gtk_widget_set_name (alignment68, "alignment68");
-  gtk_widget_show (alignment68);
-  gtk_box_pack_start (GTK_BOX (hbox_statusbar), alignment68, TRUE, TRUE, 0);
+  gtk_box_pack_start (GTK_BOX (hbox170), image_online, FALSE, TRUE, 0);
 
   statusbar = gtk_statusbar_new ();
   gtk_widget_set_name (statusbar, "statusbar");
   gtk_widget_show (statusbar);
-  gtk_container_add (GTK_CONTAINER (alignment68), statusbar);
-  gtk_container_set_border_width (GTK_CONTAINER (statusbar), 4);
+  gtk_box_pack_start (GTK_BOX (hbox_statusbar), statusbar, TRUE, TRUE, 0);
 
   g_signal_connect ((gpointer) main_window, "delete_event",
                     G_CALLBACK (on_main_window_delete_event),
@@ -9585,6 +9593,7 @@ create_main_window (void)
   GLADE_HOOKUP_OBJECT_NO_REF (main_window, main_window, "main_window");
   GLADE_HOOKUP_OBJECT (main_window, vbox12, "vbox12");
   GLADE_HOOKUP_OBJECT (main_window, handlebox1, "handlebox1");
+  GLADE_HOOKUP_OBJECT (main_window, hbox210, "hbox210");
   GLADE_HOOKUP_OBJECT (main_window, menubar1, "menubar1");
   GLADE_HOOKUP_OBJECT (main_window, menu_file, "menu_file");
   GLADE_HOOKUP_OBJECT (main_window, menu_file_menu, "menu_file_menu");
@@ -9610,6 +9619,21 @@ create_main_window (void)
   GLADE_HOOKUP_OBJECT (main_window, menu_help_menu, "menu_help_menu");
   GLADE_HOOKUP_OBJECT (main_window, menu_about, "menu_about");
   GLADE_HOOKUP_OBJECT (main_window, image5, "image5");
+  GLADE_HOOKUP_OBJECT (main_window, hbox211, "hbox211");
+  GLADE_HOOKUP_OBJECT (main_window, eventbox_image_sha, "eventbox_image_sha");
+  GLADE_HOOKUP_OBJECT (main_window, image_sha, "image_sha");
+  GLADE_HOOKUP_OBJECT (main_window, eventbox_image_shav, "eventbox_image_shav");
+  GLADE_HOOKUP_OBJECT (main_window, image_shav, "image_shav");
+  GLADE_HOOKUP_OBJECT (main_window, eventbox_image_lib, "eventbox_image_lib");
+  GLADE_HOOKUP_OBJECT (main_window, image_lib, "image_lib");
+  GLADE_HOOKUP_OBJECT (main_window, eventbox_image_save, "eventbox_image_save");
+  GLADE_HOOKUP_OBJECT (main_window, image_save, "image_save");
+  GLADE_HOOKUP_OBJECT (main_window, hbox147, "hbox147");
+  GLADE_HOOKUP_OBJECT (main_window, eventbox2, "eventbox2");
+  GLADE_HOOKUP_OBJECT (main_window, image_firewall, "image_firewall");
+  GLADE_HOOKUP_OBJECT (main_window, eventbox3, "eventbox3");
+  GLADE_HOOKUP_OBJECT (main_window, image_no_firewall, "image_no_firewall");
+  GLADE_HOOKUP_OBJECT (main_window, label_statusbar_uptime, "label_statusbar_uptime");
   GLADE_HOOKUP_OBJECT (main_window, hb_toolbar, "hb_toolbar");
   GLADE_HOOKUP_OBJECT (main_window, toolbar_main, "toolbar_main");
   GLADE_HOOKUP_OBJECT (main_window, button_quit, "button_quit");
@@ -10245,21 +10269,6 @@ create_main_window (void)
   GLADE_HOOKUP_OBJECT (main_window, hbox170, "hbox170");
   GLADE_HOOKUP_OBJECT (main_window, image_offline, "image_offline");
   GLADE_HOOKUP_OBJECT (main_window, image_online, "image_online");
-  GLADE_HOOKUP_OBJECT (main_window, eventbox_image_save, "eventbox_image_save");
-  GLADE_HOOKUP_OBJECT (main_window, image_save, "image_save");
-  GLADE_HOOKUP_OBJECT (main_window, eventbox_image_sha, "eventbox_image_sha");
-  GLADE_HOOKUP_OBJECT (main_window, image_sha, "image_sha");
-  GLADE_HOOKUP_OBJECT (main_window, eventbox_image_shav, "eventbox_image_shav");
-  GLADE_HOOKUP_OBJECT (main_window, image_shav, "image_shav");
-  GLADE_HOOKUP_OBJECT (main_window, eventbox_image_lib, "eventbox_image_lib");
-  GLADE_HOOKUP_OBJECT (main_window, image_lib, "image_lib");
-  GLADE_HOOKUP_OBJECT (main_window, hbox147, "hbox147");
-  GLADE_HOOKUP_OBJECT (main_window, eventbox2, "eventbox2");
-  GLADE_HOOKUP_OBJECT (main_window, image_firewall, "image_firewall");
-  GLADE_HOOKUP_OBJECT (main_window, eventbox3, "eventbox3");
-  GLADE_HOOKUP_OBJECT (main_window, image_no_firewall, "image_no_firewall");
-  GLADE_HOOKUP_OBJECT (main_window, label_statusbar_uptime, "label_statusbar_uptime");
-  GLADE_HOOKUP_OBJECT (main_window, alignment68, "alignment68");
   GLADE_HOOKUP_OBJECT (main_window, statusbar, "statusbar");
   GLADE_HOOKUP_OBJECT_NO_REF (main_window, tooltips, "tooltips");
 
