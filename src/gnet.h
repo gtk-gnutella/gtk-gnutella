@@ -136,6 +136,7 @@ typedef enum {
 typedef struct gnet_node_flags {
 	node_peer_t peermode;
 	qrt_state_t qrt_state;
+	guint8 hops_flow;
 	gboolean incoming;
 	gboolean temporary;
 	gboolean writable;
