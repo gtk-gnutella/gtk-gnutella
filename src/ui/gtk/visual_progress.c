@@ -198,7 +198,7 @@ vp_draw_arrow(vp_info_t *v, guint32 at)
 	s_at = (gfloat) at * v->context->widget->allocation.width / v->file_size;
 
 	gdk_gc_set_foreground(v->context->gc, &arrow);
-	for (i = VP_ARROW_HEIGHT + 1; i--; i > 0) {
+	for (i = VP_ARROW_HEIGHT + 1; i > 0; i--) {
 		gdk_draw_line(v->context->drawable, v->context->gc,
 		    s_at - i, VP_ARROW_HEIGHT - i, s_at + i, VP_ARROW_HEIGHT - i);
 	}
