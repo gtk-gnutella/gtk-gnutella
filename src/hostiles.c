@@ -35,6 +35,8 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
+RCSID("$Id$");
+
 GSList *sl_hostiles = NULL;
 
 static const gchar *hostiles_file = "hostiles.txt";
