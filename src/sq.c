@@ -323,6 +323,7 @@ retry:
 	item = g_list_first(sq->searches);
 	sb = (smsg_t *) item->data;
 
+	g_assert(sq->count > 0);
 	sq->count--;
 
 	/*
@@ -337,7 +338,7 @@ retry:
 		 */
 
 		if (dbg > 2)
-			printf("sq for node %s, sent \"%s\" (%d left, %d sent)\n",
+			printf("sq for node %s, sent \"%s\" (%u left, %d sent)\n",
 				node_ip(n), QUERY_TEXT(pmsg_start(sb->mb)),
 				sq->count, sq->n_sent);
 
@@ -347,7 +348,7 @@ retry:
 		sent = TRUE;
 	} else {
 		if (dbg > 4)
-			printf("sq for node %s, ignored \"%s\" (%d left, %d sent)\n",
+			printf("sq for node %s, ignored \"%s\" (%u left, %d sent)\n",
 				node_ip(n), QUERY_TEXT(pmsg_start(sb->mb)),
 				sq->count, sq->n_sent);
 		pmsg_free(sb->mb);
@@ -381,11 +382,12 @@ static void cap_queue(squeue_t *sq)
 
 		sq->searches = g_list_remove_link(sq->searches, item);
 
+		g_assert(sq->count > 0);
 		sq->count--;
 		sq->n_dropped++;
 
 		if (dbg > 4)
-			printf("sq for node %s, dropped \"%s\" (%d left, %d dropped)\n",
+			printf("sq for node %s, dropped \"%s\" (%u left, %d dropped)\n",
 				node_ip(sq->node), QUERY_TEXT(pmsg_start(sb->mb)),
 				sq->count, sq->n_dropped);
 
@@ -410,16 +412,17 @@ void sq_search_closed(squeue_t *sq, gnet_search_t sh)
 	for (l = sq->searches; l; l = next) {
 		smsg_t *sb = (smsg_t *) l->data;
 
-		next = l->next;
+		next = g_list_next(l);
 
 		if (sb->shandle != sh)
 			continue;
 
+		g_assert(sq->count > 0);
 		sq->count--;
 		sq->searches = g_list_remove_link(sq->searches, l);
 
 		if (dbg > 4)
-			printf("sq for node %s, dropped \"%s\" on search close (%d left)\n",
+			printf("sq for node %s, dropped \"%s\" on search close (%u left)\n",
 				node_ip(sq->node), QUERY_TEXT(pmsg_start(sb->mb)), sq->count);
 
 		pmsg_free(sb->mb);

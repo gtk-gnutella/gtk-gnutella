@@ -46,7 +46,7 @@ typedef struct search_queue {
 	GHashTable *handles;		/* Keeps track of search handles in queue */
 	struct gnutella_node *node;	/* Node owning this search queue */
 	time_t last_sent;    		/* Time last msg was sent */
-	gint count;					/* Count of number in queue */
+	guint count;					/* Count of number in queue */
 	/* stats */
 	gint n_sent;				/* Number of searches sent */
 	gint n_dropped;				/* Number dropped due to flow control */
@@ -66,5 +66,6 @@ void sq_putq(squeue_t *sq, gnet_search_t sh, pmsg_t *mb);
 void sq_process(squeue_t *sq, time_t now);
 void sq_search_closed(squeue_t *sq, gnet_search_t sh);
 
+/* vi: set ts=4: */
 #endif /* _sq_h_ */
 
