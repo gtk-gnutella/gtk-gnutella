@@ -480,7 +480,7 @@ hcache_type_to_gchar(hcache_type_t type)
  * Convert host type to string.
  */
 const gchar *
-host_type_to_gchar(hcache_type_t type)
+host_type_to_gchar(host_type_t type)
 {
 	g_assert((guint) type < HOST_MAX);
 

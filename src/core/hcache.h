@@ -46,7 +46,7 @@ void hcache_retrieve_all(void);
 
 void hcache_timer(void);
 
-const gchar *host_type_to_gchar(hcache_type_t type);
+const gchar *host_type_to_gchar(host_type_t type);
 const gchar *hcache_type_to_gchar(hcache_type_t type);
 
 gboolean hcache_add(
