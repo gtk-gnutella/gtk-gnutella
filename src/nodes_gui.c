@@ -329,12 +329,14 @@ static void nodes_gui_node_added(
 static void nodes_gui_node_changed(
     gnet_node_t n, gboolean force, guint32 connected, guint32 total)
 {
-    gnet_node_info_t *info;
+    if (force) {
+        gnet_node_info_t *info;
+    
+        info = node_get_info(n);
 
-    info = node_get_info(n);
-
-    nodes_gui_update_node(info, force);
-    if (force)
+        nodes_gui_update_node(info, force);
         gui_update_c_gnutellanet(connected, total);
-    node_free_info(info);
+
+        node_free_info(info);
+    }
 }
