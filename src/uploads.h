@@ -125,7 +125,7 @@ void upload_close(void);
 void upload_kill_ip(guint32 ip);
 void upload_stop_all(struct dl_file_info *fi, const gchar *reason);
 void upload_send_giv(guint32 ip, guint16 port, guint8 hops, guint8 ttl,
-	guint32 file_index, gchar *file_name, gboolean banning);
+	guint32 file_index, const gchar *file_name, gboolean banning);
 gnutella_upload_t *upload_create(struct gnutella_socket *s, gboolean push);
 void upload_fire_upload_info_changed(gnutella_upload_t *n);
 void expect_http_header(gnutella_upload_t *u, upload_stage_t new_status);
