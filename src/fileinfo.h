@@ -131,7 +131,7 @@ void file_info_add_source(
 void file_info_remove_source(
     struct dl_file_info *fi, struct download *dl, gboolean discard);
 void file_info_timer(void);
-gchar *file_info_readable_filename(struct dl_file_info *fi);
+const gchar *file_info_readable_filename(struct dl_file_info *fi);
 void file_info_unlink(struct dl_file_info *fi);
 void file_info_upload_stop(struct dl_file_info *fi, const gchar *reason);
 
