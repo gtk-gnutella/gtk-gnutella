@@ -40,10 +40,25 @@ RCSID("$Id$");
 
 static gchar gui_tmp[4096];
 
-static void nodes_gui_update_node_info(gnet_node_info_t *n);
+static GHashTable *ht_nodes_changed = NULL;
+
+static void nodes_gui_update_node_info(gnet_node_info_t *n, gint row);
 static void nodes_gui_update_node_flags(
 	gnet_node_t n, gnet_node_flags_t *flags);
 
+
+static gboolean nodes_gui_is_visible(void)
+{
+	static GtkNotebook *notebook = NULL;
+	gint current_page;
+
+	if (notebook == NULL)
+		notebook = GTK_NOTEBOOK(lookup_widget(main_window, "notebook_main"));
+
+	current_page = gtk_notebook_get_current_page(notebook);
+
+	return current_page == nb_main_page_gnet;
+}
 
 /***
  *** Callbacks
@@ -73,14 +88,14 @@ static void nodes_gui_node_removed(gnet_node_t n)
  */
 static void nodes_gui_node_added(gnet_node_t n, const gchar *t)
 {
-    gnet_node_info_t *info;
+    gnet_node_info_t info;
 
     if (gui_debug >= 5)
         printf("nodes_gui_node_added(%u, %s)\n", n, t);
 
-    info = node_get_info(n);
-    nodes_gui_add_node(info, t);
-    node_free_info(info);
+    node_fill_info(n, &info);
+    nodes_gui_add_node(&info, t);
+    node_clear_info(&info);
 }
 
 /*
@@ -94,8 +109,18 @@ static void nodes_gui_node_info_changed(gnet_node_t n)
 {
     gnet_node_info_t info;
 
+    /* 
+     * Only record update if pane is not visible. Since a GHashTable
+     * can not contain multiple instances of a key, we can just insert.
+     */
+    if (!nodes_gui_is_visible()) {
+        g_hash_table_insert(ht_nodes_changed, 
+            GUINT_TO_POINTER(n), (gpointer) 0x1);
+        return;
+    }
+
     node_fill_info(n, &info);
-    nodes_gui_update_node_info(&info);
+    nodes_gui_update_node_info(&info, -1);
     node_clear_info(&info);
 }
 
@@ -117,15 +142,23 @@ static void nodes_gui_node_flags_changed(gnet_node_t n)
  *** Private functions
  ***/
 
-static void nodes_gui_update_node_info(gnet_node_info_t *n)
+/*
+ * nodes_gui_update_node_info:
+ *
+ * Update the row with the given nodeinfo. If row is -1 the row number
+ * is determined by the node_handle contained in the gnet_node_info_t.
+ */
+static void nodes_gui_update_node_info(gnet_node_info_t *n, gint row)
 {
-	gint row;
     GtkCList *clist = GTK_CLIST
         (lookup_widget(main_window, "clist_nodes"));
 
     g_assert(n != NULL);
 
-	row = gtk_clist_find_row_from_data(clist, GUINT_TO_POINTER(n->node_handle));
+    if (row == -1) {
+        row = gtk_clist_find_row_from_data(
+            clist, GUINT_TO_POINTER(n->node_handle));
+    }
 
     if (row != -1) {
         gnet_node_status_t status;
@@ -207,6 +240,8 @@ void nodes_gui_init(void)
     gtk_widget_set_sensitive
         (lookup_widget(popup_nodes, "popup_nodes_remove"), FALSE);
 
+    ht_nodes_changed = g_hash_table_new(g_direct_hash, g_direct_equal);
+
     node_add_node_added_listener(nodes_gui_node_added);
     node_add_node_removed_listener(nodes_gui_node_removed);
     node_add_node_info_changed_listener(nodes_gui_node_info_changed);
@@ -223,6 +258,9 @@ void nodes_gui_shutdown()
     node_remove_node_added_listener(nodes_gui_node_added);
     node_remove_node_removed_listener(nodes_gui_node_removed);
     node_remove_node_info_changed_listener(nodes_gui_node_info_changed);
+
+    g_hash_table_destroy(ht_nodes_changed);
+    ht_nodes_changed = NULL;
 }
 
 /*
@@ -236,6 +274,12 @@ void nodes_gui_remove_node(gnet_node_t n)
     gint row;
 
     clist_nodes = lookup_widget(main_window, "clist_nodes");
+
+    /* 
+     * Make sure node is remove from the "changed" hash table so
+     * we don't try an update. 
+     */
+    g_hash_table_remove(ht_nodes_changed, GUINT_TO_POINTER(n));
 
 	row = gtk_clist_find_row_from_data(GTK_CLIST(clist_nodes),
 		GUINT_TO_POINTER(n));
@@ -290,13 +334,14 @@ void nodes_gui_add_node(gnet_node_info_t *n, const gchar *type)
  */
 void nodes_gui_update_nodes_display(time_t now)
 {
-    static time_t last_update = 0;
 	GtkCList *clist;
 	GList *l;
 	gint row = 0;
     gnet_node_status_t status;
-	gint current_page;
-	static GtkNotebook *notebook = NULL;
+    static time_t last_update = 0;
+
+    if (last_update == now)
+        return;
 
 	/*
 	 * Usually don't perform updates if nobody is watching.  However,
@@ -305,19 +350,10 @@ void nodes_gui_update_nodes_display(time_t now)
 	 * at least.
 	 *		--RAM, 28/12/2003
 	 */
-
-	if (notebook == NULL)
-		notebook = GTK_NOTEBOOK(lookup_widget(main_window, "notebook_main"));
-
-	current_page = gtk_notebook_get_current_page(notebook);
-	if (current_page != nb_main_page_gnet && now - last_update < UPDATE_MIN)
+	if (!nodes_gui_is_visible() && now - last_update < UPDATE_MIN)
 		return;
 
-    if (last_update == now)
-        return;
-
     last_update = now;
-
 
     clist = GTK_CLIST(lookup_widget(main_window, "clist_nodes"));
     gtk_clist_freeze(clist);
@@ -328,10 +364,21 @@ void nodes_gui_update_nodes_display(time_t now)
 
         node_get_status(n, &status);
 
+        /* 
+         * Update the info too if it has recorded changes.
+         */
+        if (g_hash_table_lookup(ht_nodes_changed, GUINT_TO_POINTER(n))) {
+            gnet_node_info_t info;
+
+            g_hash_table_remove(ht_nodes_changed, GUINT_TO_POINTER(n));
+            node_fill_info(n, &info);
+            nodes_gui_update_node_info(&info, row);
+            node_clear_info(&info);
+        }
+
 		/*
 		 * Don't update times if we've already disconnected.
 		 */
-
 		if (status.status == GTA_NODE_CONNECTED) {
 	        gtk_clist_set_text(clist, row, c_gnet_connected, 
         			short_uptime(now - status.connect_date));
