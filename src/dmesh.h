@@ -79,7 +79,7 @@ gboolean dmesh_add(
 	gchar *sha1, guint32 ip, guint16 port, guint idx, gchar *name,
 	guint32 stamp);
 
-void dmesh_remove(
+gboolean dmesh_remove(
 	const gchar *sha1, guint32 ip, guint16 port, guint idx, gchar *name);
 
 gboolean dmesh_collect_sha1(gchar *value, gchar *digest);

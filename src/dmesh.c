@@ -1,5 +1,4 @@
-/* -*- mode: cc-mode; tab-width:4; -*-
- *
+/* 
  * $Id$
  *
  * Copyright (c) 2002-2003, Raphael Manfredi
@@ -49,11 +48,13 @@
 
 RCSID("$Id$");
 
+// FIXME: extern variables are even more horrible -- BLUE
 extern cqueue_t *callout_queue;
 
 /* made visible for us by atoms.c */
-extern guint sha1_hash(gconstpointer key);
+// FIXME: extern functions are horrible -- BLUE
 extern gint sha1_eq(gconstpointer a, gconstpointer b);
+extern guint sha1_hash(gconstpointer key);
 
 dmesh_url_error_t dmesh_url_errno;		/* Error from dmesh_url_parse() */
 
@@ -322,7 +323,12 @@ static void dmesh_ban_add(const gchar *sha1,
 
 			dmb->sha1 = atom_sha1_get(sha1);
 
-			// XXX replace this by a hash_list to avoid duplicate IP entries
+			/*
+             * Don't fear for duplicates here. The dmb lookup above
+             * makes sure that if a XNalt with the IP already exists,
+             * the appropriate dmb will be updates (else-case below).
+             *     -- BLUE 16/01/2004
+             */
 			by_ip = (GSList *) g_hash_table_lookup(ban_mesh_by_sha1, sha1);
 			existed = by_ip != NULL;
 			by_ip = g_slist_append(by_ip, dmb);
@@ -493,7 +499,7 @@ ok:
 		gchar *unescaped = url_unescape(file, FALSE);
 		info->name = atom_str_get(unescaped);
 		if (unescaped != file)
-			g_free(unescaped);
+			G_FREE_NULL(unescaped);
 	} else
 		info->name = atom_str_get(file);
 
@@ -651,7 +657,7 @@ static void dmesh_fill_info(dmesh_urlinfo_t *info,
  *
  * Remove entry from mesh due to a failed download attempt.
  */
-void dmesh_remove(const gchar *sha1,
+gboolean dmesh_remove(const gchar *sha1,
 	guint32 ip, guint16 port, guint idx, gchar *name)
 {
 	struct dmesh *dm;
@@ -672,7 +678,7 @@ void dmesh_remove(const gchar *sha1,
 	dm = (struct dmesh *) g_hash_table_lookup(mesh, sha1);
 
 	if (dm == NULL)				/* Nothing for this SHA1 key */
-		return;
+		return FALSE;
 
 	(void) dm_remove(dm, ip, port, idx, info.name, MAX_STAMP);
 
@@ -684,6 +690,8 @@ void dmesh_remove(const gchar *sha1,
 		g_assert(dm->entries == NULL);
 		dmesh_dispose(sha1);
 	}
+
+    return TRUE;
 }
 
 /*
