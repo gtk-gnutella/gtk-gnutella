@@ -51,8 +51,8 @@ void udp_transceiver_timer(time_t now)
 gboolean 
 udp_transceiver_can_handle_received_fragment(char *buf, int length)
 {
-        return length > header_length &&
-                buf[0] == 'G' && buf[1] == 'N' && buf[2] == 'D';
+	return length > header_length &&
+		buf[0] == 'G' && buf[1] == 'N' && buf[2] == 'D';
 }
 
 /**
@@ -61,7 +61,7 @@ udp_transceiver_can_handle_received_fragment(char *buf, int length)
 static void 
 udp_transceiver_put_send_fragment(fragment_t *fragment)
 {
-        // glist_prepend fragment
+	/* FIXME: glist_prepend fragment */
 }
 
 /**
@@ -69,15 +69,15 @@ udp_transceiver_put_send_fragment(fragment_t *fragment)
  */
 static void 
 udp_transceiver_send_fragment(fragment_t *fragment,
-                                                                                 gboolean deflate, 
-                                                                                 gboolean acknowledge)
+							  gboolean deflate, 
+							  gboolean acknowledge)
 {
-        // Send fragment over socket.
-
-        if (acknowledge)
-        {
-                // Add fragment to waiting_for_acknowledge list
-        }
+	/* FIXME: Send fragment over socket. */
+	
+	if (acknowledge)
+	{
+	    /* FIXME: Add fragment to waiting_for_acknowledge list */
+	}
 }
 
 /**
@@ -86,10 +86,10 @@ udp_transceiver_send_fragment(fragment_t *fragment,
 void 
 udp_transceiver_free_fragment(fragment_t *fragment)
 {
-        if (fragment->fragment != NULL)
-                free(fragment->fragment);
-
-        free(fragment);
+	if (fragment->fragment != NULL)
+		free(fragment->fragment);
+	
+	free(fragment);
 }
 
 /**
@@ -103,24 +103,24 @@ udp_transceiver_build_fragment(char *buffer, int length,
 								gboolean deflate,
 								gboolean acknowledge)
 {
-        fragment_t *fragment = (fragment_t *) malloc(sizeof(fragment_t));
-        fragment->fragment_length = length + header_length;
-        fragment->fragment = (char *) malloc(fragment->fragment_length);
-
-        /* Build identifier */
-        fragment->fragment[0] = 'G';
-        fragment->fragment[1] = 'N';
-        fragment->fragment[2] = 'D';
-
-        /* Endian doesn't matter */
-        fragment->fragment[4] = (sequencenumber & 0x00FF);
-        fragment->fragment[5] = (sequencenumber >> 8);
-        fragment->fragment[6] = partnumber;
-        fragment->fragment[7] = fragments;
-
-        memcpy(fragment->fragment + header_length, buffer, length);
-
-        return fragment;
+	fragment_t *fragment = (fragment_t *) malloc(sizeof(fragment_t));
+	fragment->fragment_length = length + header_length;
+	fragment->fragment = (char *) malloc(fragment->fragment_length);
+	
+	/* Build identifier */
+	fragment->fragment[0] = 'G';
+	fragment->fragment[1] = 'N';
+	fragment->fragment[2] = 'D';
+	
+	/* Endian doesn't matter */
+	fragment->fragment[4] = (sequencenumber & 0x00FF);
+	fragment->fragment[5] = (sequencenumber >> 8);
+	fragment->fragment[6] = partnumber;
+	fragment->fragment[7] = fragments;
+	
+	memcpy(fragment->fragment + header_length, buffer, length);
+	
+	return fragment;
 }
 
 /**
@@ -131,24 +131,24 @@ udp_transceiver_send(char *buffer, int length, gboolean deflate,
 							gboolean acknowledge,
 							guint32 address, guint16 port)
 {
-        // Create fragments.
-        int fragments = (int) ceil((double)length / (double) MTU);
-        int offset = 0;
-		int i;
+	/* Create fragments. */
+	int fragments = (int) ceil((double)length / (double) MTU);
+	int offset = 0;
+	int i;
+	
+	sequencenumber++;
+	
+	for (i = 0; i < fragments; i++) {
+		fragment_t *fragment = udp_transceiver_build_fragment(
+			buffer + offset, length - offset > MTU ? MTU : length - offset, 
+			sequencenumber, i, fragments, deflate, acknowledge);
 		
-        sequencenumber++;
-
-        for (i = 0; i < fragments; i++) {
-                fragment_t *fragment = udp_transceiver_build_fragment(
-                        buffer + offset, length - offset > MTU ? MTU : length - offset, 
-                        sequencenumber, i, fragments, deflate, acknowledge);
-
-                fragment->ipaddress = address;
-                fragment->port = port;
-
-                udp_transceiver_send_fragment(fragment, deflate, acknowledge);
-                offset += MTU;
-        }
+		fragment->ipaddress = address;
+		fragment->port = port;
+		
+		udp_transceiver_send_fragment(fragment, deflate, acknowledge);
+		offset += MTU;
+	}
 }
 
 /***
@@ -161,7 +161,7 @@ udp_transceiver_send(char *buffer, int length, gboolean deflate,
 inline int 
 udp_transceiver_get_sequencenumber(fragment_t *fragment)
 {
-        return (fragment->fragment[4] << 8) + fragment->fragment[5];
+	return (fragment->fragment[4] << 8) + fragment->fragment[5];
 }
 
 /**
@@ -170,7 +170,7 @@ udp_transceiver_get_sequencenumber(fragment_t *fragment)
 inline int 
 udp_transceiver_get_partnumber(fragment_t *fragment)
 {
-        return fragment->fragment[6];
+	return fragment->fragment[6];
 }
 
 /**
@@ -179,7 +179,7 @@ udp_transceiver_get_partnumber(fragment_t *fragment)
 inline int 
 udp_transceiver_get_fragments(fragment_t *fragment)
 {
-        return fragment->fragment[7];
+	return fragment->fragment[7];
 }
 
 /**
@@ -199,33 +199,34 @@ udp_transceiver_lookup_fragments_by_sequencenumber_source(
 static void 
 udp_transceiver_put_received_fragment(fragment_t *fragment)
 {
-        int fragments = udp_transceiver_get_fragments(fragment);
-        int partnumber = udp_transceiver_get_partnumber(fragment);
-        int sequencenumber = udp_transceiver_get_sequencenumber(fragment);
-
-        GSList *fragment_list = udp_transceiver_lookup_fragments_by_sequencenumber_source(
-                fragment);
-        fragment_t *fragment_tmp;
-
-        if (fragment_list == NULL)
-        {
-                // Create new fragment list (array?) with size fragments;
-        }
-
-        // fragment_tmp = gslist_at(fragment_list, partnumber);
-        if (fragment_tmp == NULL)
-        {
-                // gslist_insert_at(fragment_list, partnumber, fragment_received)
-        }
-        else
-        {
-                udp_transceiver_free_fragment(fragment);
-        }
-
-        /* Check if all fragments are received */
-        // for bla bla bla
-
-        /* All fragments received */
+	int fragments = udp_transceiver_get_fragments(fragment);
+	int partnumber = udp_transceiver_get_partnumber(fragment);
+	int sequencenumber = udp_transceiver_get_sequencenumber(fragment);
+	
+	GSList *fragment_list = 
+		udp_transceiver_lookup_fragments_by_sequencenumber_source(
+			fragment);
+	fragment_t *fragment_tmp;
+	
+	if (fragment_list == NULL)
+	{
+		/* FIXME: Create new fragment list (array?) with size fragments */
+	}
+	
+	/* fragment_tmp = gslist_at(fragment_list, partnumber) */
+	if (fragment_tmp == NULL)
+	{
+		/* FIXME:
+		 * gslist_insert_at(fragment_list, partnumber, fragment_received) */
+	}
+	else
+	{
+		/* FIXME: udp_transceiver_free_fragment(fragment) */
+	}
+	
+	/* FIXME: Check if all fragments are received */
+	
+	/* All fragments received */
 }
 
 /**
@@ -236,19 +237,19 @@ static gboolean
 udp_transceiver_put_received_datagram(char *buf, int length,
                                                                                                   guint32 ip, guint16 port)
 {
-        fragment_t *fragment_received;
-
-        if (!udp_transceiver_can_handle_received_fragment(buf, length))
-                return FALSE;
-
-        fragment_received = (fragment_t *) malloc(sizeof(fragment_t));
-        fragment_received->fragment = (char *) malloc(length);
-        memcpy(fragment_received->fragment, buf, length);
-        fragment_received->fragment_length = length;
-        fragment_received->ipaddress = ip;
-        fragment_received->port = port;
-
-        udp_transceiver_put_received_fragment(fragment_received);
+	fragment_t *fragment_received;
+	
+	if (!udp_transceiver_can_handle_received_fragment(buf, length))
+		return FALSE;
+	
+	fragment_received = (fragment_t *) malloc(sizeof(fragment_t));
+	fragment_received->fragment = (char *) malloc(length);
+	memcpy(fragment_received->fragment, buf, length);
+	fragment_received->fragment_length = length;
+	fragment_received->ipaddress = ip;
+	fragment_received->port = port;
+	
+	udp_transceiver_put_received_fragment(fragment_received);
 }
 
 /**
@@ -257,9 +258,9 @@ udp_transceiver_put_received_datagram(char *buf, int length,
 gboolean 
 udp_transceiver_receive(char **buffer, int *length)
 {
-        // for bla in fragments_received
-//        *length += fragment->fragment_length - header_length;
+    /* FIXME: for bla in fragments_received
+	/* *length += fragment->fragment_length - header_length */
 
-  //      return false;
+	return FALSE;
 }
 

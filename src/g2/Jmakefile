@@ -1,5 +1,6 @@
 G2_SRC = \
 	packet.c \
+	packetstream.c \
 	udp_transceiver.c 
 
 G2_OBJ = \

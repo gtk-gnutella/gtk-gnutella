@@ -23,37 +23,26 @@
  *----------------------------------------------------------------------
  */
  
-#include "../common.h"		/* For -DUSE_DMALLOC */
-
 #include <glib.h>
+#include <stdlib.h>
+#include <string.h>
+#include <stdio.h>
 
-typedef struct G2Packet_s G2Packet_t;
-struct G2Packet_s
-{
-	gboolean     compound;
-	gboolean     has_children;
-	gboolean     big_endian;
+#include "packet.h"
 
-	char	 control;
-	int		 name_length;
-	char	*name;
-	char	*payload;
-	char	*orig_payload;
-	int		 payload_length;
-};
-
-char *g2_packet_pack(G2Packet_t *packet, int *length);
-int g2_packet_calc_new_length(G2Packet_t *packet);
+char *g2_packet_pack(g2packet_t *packet, int *length);
+int g2_packet_calc_new_length(g2packet_t *packet);
+void g2_packet2buf(g2packet_t *packet, char *destination);
 
 /**
  * G2 New Packet. 
  *
  * Creates a new G2 packet.
  */
-G2Packet_t * 
+g2packet_t * 
 g2_new_packet()
 {
-	return (G2Packet_t *) malloc(sizeof(G2Packet_t));
+	return (g2packet_t *) malloc(sizeof(g2packet_t));
 }
 
 /**
@@ -63,7 +52,7 @@ g2_new_packet()
  * free a payload assigned.
  */
 void 
-g2_free_packet(G2Packet_t *packet)
+g2_free_packet(g2packet_t *packet)
 {
 	if (packet->name != NULL)
 		free(packet->name);
@@ -84,7 +73,7 @@ g2_free_packet(G2Packet_t *packet)
  * Parse the packet header to extract length information.
  */
 void
-g2_parse_header(char **buffer, G2Packet_t *packet)
+g2_parse_header(char **buffer, g2packet_t *packet)
 {
 	char *source	= *buffer;
 	char len_length	= ( *source & 0xC0 ) >> 6;
@@ -130,7 +119,7 @@ g2_parse_header(char **buffer, G2Packet_t *packet)
  * Parse the g2 packet to retreive the start of the payload/children
  */
 void
-g2_parse_packet(char **buffer, G2Packet_t *packet)
+g2_parse_packet(char **buffer, g2packet_t *packet)
 {
 	char *source = *buffer;
 	
@@ -157,7 +146,7 @@ g2_parse_packet(char **buffer, G2Packet_t *packet)
  * @return a name string.
  */
 char *
-g2_packet_get_name(G2Packet_t *packet)
+g2_packet_get_name(g2packet_t *packet)
 {
 	return packet->name;
 }
@@ -171,10 +160,10 @@ g2_packet_get_name(G2Packet_t *packet)
  * 
  * @return the child packet or NULL if no (more) child packets are available.
  */
-G2Packet_t *
-g2_packet_get_next_child(G2Packet_t *basepacket)
+g2packet_t *
+g2_packet_get_next_child(g2packet_t *basepacket)
 {
-	G2Packet_t *packet = NULL;
+	g2packet_t *packet = NULL;
 	char *before = basepacket->payload;
 	
 	if (!basepacket->compound) 
@@ -197,9 +186,9 @@ g2_packet_get_next_child(G2Packet_t *basepacket)
  * fast skip them
  */
 char *
-g2_packet_get_payload(G2Packet_t *packet, int *length)
+g2_packet_get_payload(g2packet_t *packet, int *length)
 {
-	G2Packet_t *packet_parser = g2_new_packet();
+	g2packet_t *packet_parser = g2_new_packet();
 	
 	/* Skip any children */
 	while (packet->compound)
@@ -220,7 +209,7 @@ g2_packet_get_payload(G2Packet_t *packet, int *length)
 			return NULL;
 		}
 		
-		if (*packet->payload = '\0' || packet->payload_length == 0)
+		if (*packet->payload == '\0' || packet->payload_length == 0)
 		        packet->compound = FALSE;
 	}
 	
@@ -248,7 +237,7 @@ g2_packet_get_payload(G2Packet_t *packet, int *length)
  * @param child is a pointer to the packet to add.
  */
 void 
-g2_packet_add_child(G2Packet_t *packet, G2Packet_t *child)
+g2_packet_add_child(g2packet_t *packet, g2packet_t *child)
 {
 	char *buffer = NULL;
 	int length;
@@ -288,7 +277,7 @@ g2_packet_add_child(G2Packet_t *packet, G2Packet_t *child)
  * @param length is the length of the payload to add.
  */
 void 
-g2_packet_add_payload(G2Packet_t *packet, char *payload, int length)
+g2_packet_add_payload(g2packet_t *packet, char *payload, int length)
 {
 	if (packet->orig_payload != NULL) {
 		int diff = packet->payload - packet->orig_payload;
@@ -325,7 +314,7 @@ g2_packet_add_payload(G2Packet_t *packet, char *payload, int length)
  * @return a pointer to the buffer containing the packed G2Packet.
  */
 char *
-g2_packet_pack(G2Packet_t *packet, int *length)
+g2_packet_pack(g2packet_t *packet, int *length)
 {
 	*length = g2_packet_calc_new_length(packet);
 	char *buffer = (char *) malloc(*length);
@@ -361,7 +350,7 @@ g2_packet_calc_lenlength(int length)
  * @return the length of the G2Packet when transformed to a buffer.
  */
 int 
-g2_packet_calc_new_length(G2Packet_t *packet)
+g2_packet_calc_new_length(g2packet_t *packet)
 {
 	/* Control byte */
 	int length = 1; 
@@ -387,11 +376,9 @@ g2_packet_calc_new_length(G2Packet_t *packet)
  * g2_packet_calc_new_length(packet).
  */
 void 
-g2_packet2buf(G2Packet_t *packet, char *destination)
+g2_packet2buf(g2packet_t *packet, char *destination)
 {
-	int tmp_length = packet->payload_length;
 	char len_length;
-	char flags;
 	int i;
 	
 	len_length =  g2_packet_calc_lenlength(packet->payload_length);
