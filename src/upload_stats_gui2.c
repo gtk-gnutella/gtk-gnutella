@@ -48,6 +48,8 @@
 #include "upload_stats_gui.h" 
 #include "upload_stats.h"
 
+RCSID("$Id$");
+
 /* Private variables */
 static GtkTreeView *upload_stats_treeview = NULL;
 
@@ -76,6 +78,7 @@ static void upload_stats_gui_add_column(
     gtk_tree_view_column_set_sizing(column, GTK_TREE_VIEW_COLUMN_FIXED);
     gtk_tree_view_column_set_min_width(column, 0);
     gtk_tree_view_column_set_fixed_width(column, 100);
+   	gtk_tree_view_column_set_sort_column_id(column, column_id);
     gtk_tree_view_append_column(GTK_TREE_VIEW(tree), column);
 }
 
@@ -109,13 +112,9 @@ void upload_stats_gui_add(struct ul_stats *stat)
     GtkListStore *store;
 	GtkTreeIter iter;
 	gchar size_tmp[16];
-	gchar attempts_tmp[16];
-	gchar complete_tmp[16];
 	gchar norm_tmp[16];
 
 	g_snprintf(size_tmp, sizeof(size_tmp), "%s", short_size(stat->size));
-	g_snprintf(attempts_tmp, sizeof(attempts_tmp), "%u", stat->attempts);
-	g_snprintf(complete_tmp, sizeof(complete_tmp), "%u", stat->complete);
 	g_snprintf(norm_tmp, sizeof(norm_tmp), "%.3f", stat->norm);
 
 	upload_stats_gui_init();
@@ -125,8 +124,8 @@ void upload_stats_gui_add(struct ul_stats *stat)
 	gtk_list_store_set(store, &iter,
 		c_us_filename, stat->filename,
 		c_us_size, size_tmp,
-		c_us_attempts, attempts_tmp,
-		c_us_complete, complete_tmp,
+		c_us_attempts, GUINT_TO_POINTER(stat->attempts),
+		c_us_complete, GUINT_TO_POINTER(stat->complete),
 		c_us_norm, norm_tmp,
 		c_us_stat, stat,
 		-1);
@@ -143,8 +142,8 @@ void upload_stats_gui_init(void)
 	model = GTK_TREE_MODEL(gtk_list_store_new(6,
 		G_TYPE_STRING,
 		G_TYPE_STRING,
-		G_TYPE_STRING,
-		G_TYPE_STRING,
+		G_TYPE_UINT,
+		G_TYPE_UINT,
 		G_TYPE_STRING,
 		G_TYPE_POINTER)); 
 	upload_stats_treeview = GTK_TREE_VIEW(
@@ -170,8 +169,6 @@ void upload_stats_gui_update(const gchar *name, guint64 size)
 	GtkTreeModel *model;
 	GtkTreeIter iter;
 	struct ul_stats *stat; 
-	gchar attempts_tmp[16];
-	gchar complete_tmp[16];
 	gchar norm_tmp[16];
 
 	g_assert(NULL != name);
@@ -179,14 +176,11 @@ void upload_stats_gui_update(const gchar *name, guint64 size)
 	model = GTK_TREE_MODEL(gtk_tree_view_get_model(upload_stats_treeview));
 	stat = upload_stats_gui_find(name, size, model, &iter);
 	g_assert(NULL != stat);
-
-	g_snprintf(attempts_tmp, sizeof(attempts_tmp), "%u", stat->attempts);
-	g_snprintf(complete_tmp, sizeof(complete_tmp), "%u", stat->complete);
 	g_snprintf(norm_tmp, sizeof(norm_tmp), "%.3f", stat->norm);
 
 	gtk_list_store_set(GTK_LIST_STORE(model), &iter,
-		c_us_attempts, attempts_tmp,
-		c_us_complete, complete_tmp,
+		c_us_attempts, GUINT_TO_POINTER(stat->attempts),
+		c_us_complete, GUINT_TO_POINTER(stat->complete),
 		c_us_norm, norm_tmp,
 		-1);
 }
