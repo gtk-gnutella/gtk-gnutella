@@ -11,6 +11,7 @@ http://broneer.free.fr/gcache/gcache.php
 http://cache.mynapster.com/index.php
 http://cgi.rz.tu-ilmenau.de/~mifl-ii/gcache.php
 http://cs-people.bu.edu/leith/gnuCache/gcache.php
+http://cmt.homeip.net/gwebcache-0.7.5/gcache.php
 http://deftone.free.fr/elinul/gcache.php
 http://dlaikar.de/gcache/gcache.php
 http://ds.tranzision.com/cache/gcache.php
@@ -48,8 +49,10 @@ http://moby.sis.it/~marchino/gcache.php
 http://mparaz.com/gwebcache/gcache.php
 http://muchotraffic.afraid.org/gc/
 http://napshare.sourceforge.net/cache/gcache.php
+http://nickstallman.net/lynn/
 http://nocilla.boimorto.com/cgi-bin/gnocilla.pl
 http://olympus.het.brown.edu/gwebcache-0.7.5/gcache.php
+http://rainbow.cs.unipi.gr/~p02161/gwebcache-0.7.5/gcache.php
 http://raphael.manfredi.free.fr/gwc/gcache.php
 http://se.vatavia.net/gcache.php
 http://server925.gisol.com/~enhance/search/files/cache/gcache.php
@@ -57,6 +60,7 @@ http://theccu.org/webservices/gnucache/index.php
 http://tv2knet.basm.be/gcache.php
 http://unknown.pingtime.com/gwebcache/gcache.php
 http://utenti.lycos.it/gcache/gcache.php
+http://www.allforwebmaster.net/gnutella/gcache.php
 http://www.apexo.de/gnucache/gcache.php
 http://www.arach.net.au/~holmesd6/gcache.php
 http://www.asiinfo.net/gwebcache/gcache.php
