@@ -514,10 +514,10 @@ static hcache_type_t pong_type(struct gnutella_init_response *pong)
 
 	/*
 	 * Ultra pongs are marked by having their kbytes count be an
-	 * exact power of two.
+	 * exact power of two, and greater than 8.
 	 */
 
-	return is_pow2(kbytes) ? HCACHE_ULTRA : HCACHE_ANY;
+	return (kbytes >= 8 && is_pow2(kbytes)) ? HCACHE_ULTRA : HCACHE_ANY;
 }
 
 /*
