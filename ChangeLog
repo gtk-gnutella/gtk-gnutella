@@ -1,5 +1,38 @@
 # since last version
 
+- (2003.12.31 - RAM)
+ * Added "emergency fixing" code: if the downloading partition gets trashed,
+   one can now reconstruct a fileinfo with "grep -v ^CHNK fileinfo", and
+   gtk-gnutella will correctly reset the entries on startup (all empty, but
+   kept; otherwise gtk-gnutella would delete entries for missing files).
+ * Moved periodic refreshing of fi->recv_last_rate into the core, where
+   it belongs.
+ * Wrote qrt_eq() to check whether the new table we've built is identical
+   to the previous one: don't install if no change.
+ * If the incremental routing patch is larger than the default one against an
+   empty table, discard it in favor of a RESET plus the default patch.
+ * Filter SHA1 queries differently: don't forward them blindly if there's no
+   matching in the QRP table, and don't forward them to leaves in TX flow
+   control.
+ * [GTK2] Fix time remaining and k/s status for grouped downloads: now
+   uses the core-computed fi->recv_last_rate value [From Emile le Vivre].
+ * A series of patches from Emile le Vivre:
+   [GTK2] Fixes the memory leaks introduce by Emile's grouped downloads patch.
+   [GTK2] Fixes quirky behaviour for abort popups.
+   [GTK2] Aborted grouped downloads now update status column correctly.
+ * Apply socket RX buffer changes for downloads and nodes immediately to all
+   existing connections.
+ * Now advertises Query-Routing 0.2.
+ * Now that we no longer forward all SHA1 queries to leaves, the bandwidth
+   requirement per leaf has dropped significantly.  Increased the default
+   number of leaves and halved b/w requirement to 32 bytes/sec/leaf.
+
+- (2003.12.29 - RAM)
+ * Removed logical negation causing extra ultranode connections to be rejected
+   with "Reserved slot" instead of the appropriate "Too many ultra nodes".
+ * [GTK2] Fixed column selection in gnet pane: it's a tree in GTK2, not
+   a clist [From Clayton Rollins].
+
 # v 0.93.1   2003.12.28  [stable -- 2nd version]
 
 - (2003.12.29 - RAM)
