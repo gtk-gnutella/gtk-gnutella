@@ -364,11 +364,11 @@ void node_qrt_install(struct gnutella_node *n, gpointer query_table);
 
 void send_node_error(struct gnutella_socket *s, int code, guchar *msg, ...);
 
-G_INLINE_FUNC void node_add_sent(gnutella_node_t *n, gint x);
-G_INLINE_FUNC void node_add_txdrop(gnutella_node_t *n, gint x);
-G_INLINE_FUNC void node_add_rxdrop(gnutella_node_t *n, gint x);
+inline void node_add_sent(gnutella_node_t *n, gint x);
+inline void node_add_txdrop(gnutella_node_t *n, gint x);
+inline void node_add_rxdrop(gnutella_node_t *n, gint x);
 
-G_INLINE_FUNC void node_set_vendor(gnutella_node_t *n, const gchar *vendor);
+inline void node_set_vendor(gnutella_node_t *n, const gchar *vendor);
 
 void node_set_hops_flow(gnutella_node_t *n, guint8 hops);
 void node_set_online_mode(gboolean on);

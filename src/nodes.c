@@ -4558,32 +4558,25 @@ void node_close(void)
 	rxbuf_close();
 }
 
-/* XXX
- * XXX Those used to be declared inline, via G_INLINE_FUNC
- * XXX However, inlined functions seem to be statically defined only
- * XXX Removing the G_INLINE_FUNC attribute.
- * XXX		--RAM, 01/01/2003
- */ 
-
-void node_add_sent(gnutella_node_t *n, gint x)
+inline void node_add_sent(gnutella_node_t *n, gint x)
 {
     n->last_update = time((time_t *)NULL);
 	n->sent += x; 
 }
 
-void node_add_txdrop(gnutella_node_t *n, gint x)
+inline void node_add_txdrop(gnutella_node_t *n, gint x)
 {
     n->last_update = time((time_t *)NULL);
 	n->tx_dropped += x;
 }
 
-void node_add_rxdrop(gnutella_node_t *n, gint x)
+inline void node_add_rxdrop(gnutella_node_t *n, gint x)
 {
     n->last_update = time((time_t *)NULL);
 	n->rx_dropped += x; 
 }
 
-void node_set_vendor(gnutella_node_t *n, const gchar *vendor)
+inline void node_set_vendor(gnutella_node_t *n, const gchar *vendor)
 {
 	if (n->flags & NODE_F_FAKE_NAME) {
 		gchar *name = g_strdup_printf("!%s", vendor);
