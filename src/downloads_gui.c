@@ -196,7 +196,7 @@ void gui_update_download(struct download *d, gboolean force)
 		break;
 
 	case GTA_DL_ABORTED:
-		a = "Aborted";
+		a = d->unavailable ? "Aborted (Server down)" : "Aborted";
 		break;
 
 	case GTA_DL_COMPLETED:
