@@ -4110,7 +4110,7 @@ create_dlg_about (void)
   gtk_box_pack_start (GTK_BOX (vbox67), label490, FALSE, FALSE, 0);
   gtk_label_set_justify (GTK_LABEL (label490), GTK_JUSTIFY_LEFT);
 
-  label491 = gtk_label_new ("Meet us on #gtk-gnutella at irc.freenode.org.");
+  label491 = gtk_label_new ("Meet us on #gtk-gnutella at irc.freenode.net.");
   gtk_widget_set_name (label491, "label491");
   gtk_widget_show (label491);
   gtk_box_pack_start (GTK_BOX (vbox67), label491, FALSE, FALSE, 0);
@@ -4334,12 +4334,7 @@ create_main_window (void)
   GtkWidget *frame7;
   GtkWidget *vbox19;
   GtkWidget *scrolledwindow19;
-  GtkWidget *clist_ul_stats;
-  GtkWidget *label312;
-  GtkWidget *label313;
-  GtkWidget *label314;
-  GtkWidget *label315;
-  GtkWidget *label316;
+  GtkWidget *treeview_ul_stats;
   GtkWidget *ul_stats_hbox2;
   GtkWidget *button_ul_stats_clear_deleted;
   GtkWidget *alignment38;
@@ -5835,47 +5830,12 @@ create_main_window (void)
   gtk_box_pack_start (GTK_BOX (vbox19), scrolledwindow19, TRUE, TRUE, 0);
   gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolledwindow19), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
 
-  clist_ul_stats = gtk_clist_new (5);
-  gtk_widget_set_name (clist_ul_stats, "clist_ul_stats");
-  gtk_widget_show (clist_ul_stats);
-  gtk_container_add (GTK_CONTAINER (scrolledwindow19), clist_ul_stats);
-  gtk_clist_set_column_width (GTK_CLIST (clist_ul_stats), 0, 80);
-  gtk_clist_set_column_width (GTK_CLIST (clist_ul_stats), 1, 80);
-  gtk_clist_set_column_width (GTK_CLIST (clist_ul_stats), 2, 80);
-  gtk_clist_set_column_width (GTK_CLIST (clist_ul_stats), 3, 80);
-  gtk_clist_set_column_width (GTK_CLIST (clist_ul_stats), 4, 80);
-  gtk_clist_column_titles_show (GTK_CLIST (clist_ul_stats));
-
-  label312 = gtk_label_new ("Filename");
-  gtk_widget_set_name (label312, "label312");
-  gtk_widget_show (label312);
-  gtk_clist_set_column_widget (GTK_CLIST (clist_ul_stats), 0, label312);
-  gtk_label_set_justify (GTK_LABEL (label312), GTK_JUSTIFY_LEFT);
-  gtk_misc_set_alignment (GTK_MISC (label312), 0, 0.5);
-
-  label313 = gtk_label_new ("Size");
-  gtk_widget_set_name (label313, "label313");
-  gtk_widget_show (label313);
-  gtk_clist_set_column_widget (GTK_CLIST (clist_ul_stats), 1, label313);
-  gtk_label_set_justify (GTK_LABEL (label313), GTK_JUSTIFY_LEFT);
-
-  label314 = gtk_label_new ("Attempts");
-  gtk_widget_set_name (label314, "label314");
-  gtk_widget_show (label314);
-  gtk_clist_set_column_widget (GTK_CLIST (clist_ul_stats), 2, label314);
-  gtk_label_set_justify (GTK_LABEL (label314), GTK_JUSTIFY_LEFT);
-
-  label315 = gtk_label_new ("Complete");
-  gtk_widget_set_name (label315, "label315");
-  gtk_widget_show (label315);
-  gtk_clist_set_column_widget (GTK_CLIST (clist_ul_stats), 3, label315);
-  gtk_label_set_justify (GTK_LABEL (label315), GTK_JUSTIFY_LEFT);
-
-  label316 = gtk_label_new ("Normalized");
-  gtk_widget_set_name (label316, "label316");
-  gtk_widget_show (label316);
-  gtk_clist_set_column_widget (GTK_CLIST (clist_ul_stats), 4, label316);
-  gtk_label_set_justify (GTK_LABEL (label316), GTK_JUSTIFY_LEFT);
+  treeview_ul_stats = gtk_tree_view_new ();
+  gtk_widget_set_name (treeview_ul_stats, "treeview_ul_stats");
+  gtk_widget_show (treeview_ul_stats);
+  gtk_container_add (GTK_CONTAINER (scrolledwindow19), treeview_ul_stats);
+  gtk_tree_view_set_reorderable (GTK_TREE_VIEW (treeview_ul_stats), TRUE);
+  gtk_tree_view_set_enable_search (GTK_TREE_VIEW (treeview_ul_stats), FALSE);
 
   ul_stats_hbox2 = gtk_hbox_new (FALSE, 4);
   gtk_widget_set_name (ul_stats_hbox2, "ul_stats_hbox2");
@@ -9180,12 +9140,6 @@ create_main_window (void)
   g_signal_connect ((gpointer) button_uploads_clear_completed, "clicked",
                     G_CALLBACK (on_button_uploads_clear_completed_clicked),
                     NULL);
-  g_signal_connect ((gpointer) clist_ul_stats, "click_column",
-                    G_CALLBACK (on_clist_ul_stats_click_column),
-                    NULL);
-  g_signal_connect ((gpointer) clist_ul_stats, "resize_column",
-                    G_CALLBACK (on_clist_ul_stats_resize_column),
-                    NULL);
   g_signal_connect ((gpointer) button_ul_stats_clear_deleted, "clicked",
                     G_CALLBACK (on_button_ul_stats_clear_deleted_clicked),
                     NULL);
@@ -9526,12 +9480,7 @@ create_main_window (void)
   GLADE_HOOKUP_OBJECT (main_window, frame7, "frame7");
   GLADE_HOOKUP_OBJECT (main_window, vbox19, "vbox19");
   GLADE_HOOKUP_OBJECT (main_window, scrolledwindow19, "scrolledwindow19");
-  GLADE_HOOKUP_OBJECT (main_window, clist_ul_stats, "clist_ul_stats");
-  GLADE_HOOKUP_OBJECT (main_window, label312, "label312");
-  GLADE_HOOKUP_OBJECT (main_window, label313, "label313");
-  GLADE_HOOKUP_OBJECT (main_window, label314, "label314");
-  GLADE_HOOKUP_OBJECT (main_window, label315, "label315");
-  GLADE_HOOKUP_OBJECT (main_window, label316, "label316");
+  GLADE_HOOKUP_OBJECT (main_window, treeview_ul_stats, "treeview_ul_stats");
   GLADE_HOOKUP_OBJECT (main_window, ul_stats_hbox2, "ul_stats_hbox2");
   GLADE_HOOKUP_OBJECT (main_window, button_ul_stats_clear_deleted, "button_ul_stats_clear_deleted");
   GLADE_HOOKUP_OBJECT (main_window, alignment38, "alignment38");
