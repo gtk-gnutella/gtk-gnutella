@@ -513,6 +513,18 @@ void gnet_get_bw_stats(gnet_bw_source type, gnet_bw_stats_t *s)
         s->average  = bsched_avg_bps(bws.gout);
         s->limit    = bws.gout->bw_per_second;
         break;
+    case BW_GNET_UDP_IN:
+        s->enabled  = bws_gin_enabled;
+        s->current  = bsched_bps(bws.gin_udp);
+        s->average  = bsched_avg_bps(bws.gin_udp);
+        s->limit    = bws.gin_udp->bw_per_second;
+        break;
+    case BW_GNET_UDP_OUT:
+        s->enabled  = bws_gout_enabled;
+        s->current  = bsched_bps(bws.gout_udp);
+        s->average  = bsched_avg_bps(bws.gout_udp);
+        s->limit    = bws.gout_udp->bw_per_second;
+        break;
     case BW_HTTP_IN:
         s->enabled  = bws_in_enabled;
         s->current  = bsched_bps(bws.in);
