@@ -1609,11 +1609,25 @@ static void settings_config_widget(prop_map_t *map, prop_def_t *def)
             if (top && GTK_IS_SPIN_BUTTON(w)) {
                 GtkAdjustment *adj =
                     gtk_spin_button_get_adjustment(GTK_SPIN_BUTTON(w));
-
+            
                 switch(def->type) {
                 case PROP_TYPE_GUINT32:
-                    adj->lower = def->data.guint32.min;
-                    adj->upper = def->data.guint32.max;
+                    /*
+                     * Bandwidth spinbuttons need the value divided by
+                     * 1024.
+                     */
+                    if (
+                        (map->prop == PROP_BW_HTTP_IN) ||
+                        (map->prop == PROP_BW_HTTP_OUT) ||
+                        (map->prop == PROP_BW_GNET_IN) ||
+                        (map->prop == PROP_BW_GNET_OUT)
+                    ) {
+                        adj->lower = def->data.guint32.min / 1024;
+                        adj->upper = def->data.guint32.max / 1024;
+                    } else {
+                        adj->lower = def->data.guint32.min;
+                        adj->upper = def->data.guint32.max;
+                    }
                     gtk_adjustment_changed(adj);
                     break;
                 default:
