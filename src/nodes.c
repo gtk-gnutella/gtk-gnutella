@@ -2907,9 +2907,9 @@ static void node_process_handshake_header(
 					"X-Ultrapeer: False\r\n" :
 					"X-Ultrapeer: True\r\n",
 				current_peermode != NODE_P_ULTRA ? "" :
-				node_ultra_count < ultra_max ?
-					"X-Ultrapeer-Needed: True\r\n" :
-					"X-Ultrapeer-Needed: False\r\n",
+				node_ultra_count < ultra_max ? "X-Ultrapeer-Needed: True\r\n" :
+				node_leaf_count < max_leaves ? "X-Ultrapeer-Needed: False\r\n" :
+					"",
 				current_peermode != NODE_P_NORMAL ?
 					"X-Query-Routing: 0.1\r\n" : "",
 				start_rfc822_date);
