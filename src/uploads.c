@@ -1941,6 +1941,7 @@ static void upload_request(gnutella_upload_t *u, header_t *header)
 		/*
 		 * Ensure that noone tries to download the same file twice, and
 		 * that they don't get beyond the max authorized downloads per IP.
+		 * NB: SHA1 are atoms, so it's OK to compare their addresses.
 		 */
 
 		for (l = uploads; l; l = l->next) {
@@ -1950,7 +1951,10 @@ static void upload_request(gnutella_upload_t *u, header_t *header)
 				continue;				/* Current upload is already in list */
 			if (!UPLOAD_IS_SENDING(up))
 				continue;
-			if (up->index == index && up->socket->ip == s->ip) {
+			if (
+				up->socket->ip == s->ip &&
+				(up->index == index || (u->sha1 && up->sha1 == u->sha1))
+			) {
 				upload_error_remove(u, NULL, 503,
 					"Already downloading that file");
 				return;
