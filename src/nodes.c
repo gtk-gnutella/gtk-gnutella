@@ -3275,15 +3275,16 @@ node_process_handshake_ack(struct gnutella_node *n, header_t *head)
 		field = header_get(head, "Content-Type");
 		if (field) {
 			if (strstr(field, "application/x-gnutella2")) {
-					if (enable_g2_support) {
-						n->protocol_type = PROTOCOL_TYPE_G2;
-						g_warning("*** Enabling G2 support for node %s <%s>", node_ip(n), node_vendor(n));
-					} else {
-						node_bye(n, 206, "G2 not supported");
-					}
+				if (enable_g2_support) {
+					n->protocol_type = PROTOCOL_TYPE_G2;
+					g_warning("*** Enabling G2 support for node %s <%s>",
+						node_ip(n), node_vendor(n));
+				} else {
+					node_bye(n, 206, "G2 not supported");
+				}
 			} else {
 				if (n->protocol_type != PROTOCOL_TYPE_GNUTELLA) {
-					g_warning("node %s <%s> advertised protocol type %d first \r\n",
+					g_warning("node %s <%s> advertised protocol type %d first",
 						node_ip(n), node_vendor(n), n->protocol_type);
 					n->protocol_type = PROTOCOL_TYPE_GNUTELLA;
 				}
