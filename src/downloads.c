@@ -1029,12 +1029,36 @@ static void download_set_retry_after(struct download *d, time_t after)
 }
 
 /*
+ * download_reclaim_server
+ *
+ * Reclaim download's server if it is no longer holding anything.
+ */
+static void download_reclaim_server(struct download *d)
+{
+	struct dl_server *server;
+
+	g_assert(d);
+	g_assert(d->server);
+	g_assert(d->list_idx == -1);
+
+	server = d->server;
+	d->server = NULL;
+
+	if (
+		server->count[DL_LIST_RUNNING] == 0 &&
+		server->count[DL_LIST_WAITING] == 0 &&
+		server->count[DL_LIST_STOPPED] == 0
+	)
+		free_server(server);
+}
+
+/*
  * download_remove_from_server
  *
  * Remove download from server.
- * Reclaim server if this was the last download held.
+ * Reclaim server if this was the last download held and `reclaim' is true.
  */
-static void download_remove_from_server(struct download *d)
+static void download_remove_from_server(struct download *d, gboolean reclaim)
 {
 	struct dl_server *server;
 	enum dl_list idx;
@@ -1045,16 +1069,13 @@ static void download_remove_from_server(struct download *d)
 
 	idx = d->list_idx;
 	server = d->server;
+	d->list_idx = -1;
 
 	server->list[idx] = g_list_remove(server->list[idx], d);
 	server->count[idx]--;
 
-	if (
-		server->count[DL_LIST_RUNNING] == 0 &&
-		server->count[DL_LIST_WAITING] == 0 &&
-		server->count[DL_LIST_STOPPED] == 0
-	)
-		free_server(server);
+	if (reclaim)
+		download_reclaim_server(d);
 }
 
 /*
@@ -1088,7 +1109,7 @@ static void download_redirect_to_server(struct download *d,
 	 */
 
 	memcpy(old_guid, download_guid(d), 16);
-	download_remove_from_server(d);
+	download_remove_from_server(d, TRUE);
 
 	/*
 	 * Create new server.
@@ -2466,6 +2487,7 @@ static void download_free_removed(void)
 
 		g_assert(d->status == GTA_DL_REMOVED);
 
+		download_reclaim_server(d);
 		sl_downloads = g_slist_remove(sl_downloads, d);
 		sl_unqueued = g_slist_remove(sl_unqueued, d);
 
@@ -2508,7 +2530,7 @@ void download_free(struct download *d)
 	if (d->sha1)
 		atom_sha1_free(d->sha1);
 
-	download_remove_from_server(d);
+	download_remove_from_server(d, FALSE);
 	d->status = GTA_DL_REMOVED;
 
 	atom_str_free(d->file_name);
@@ -2940,20 +2962,32 @@ static void download_header_read(
 
 	r = bws_read(bws.in, s->file_desc, s->buffer + s->pos, count);
 	if (r == 0) {
-		/*
-		 * If we did not read anything in the header at that point, and
-		 * we sent a /uri-res request, maybe the remote server does not
-		 * support it and closed the connection abruptly.
-		 *		--RAM, 20/06/2002
-		 */
+		if (header_lines(ih->header) == 0) {
+			/*
+			 * If the connection was flagged keep-alive, we were making
+			 * a follow-up request but the server did not honour it and
+			 * closed the connection (probably after serving the last byte
+			 * of the previous request).
+			 *		--RAM, 01/09/2002
+			 */
 
-		if (
-			header_lines(ih->header) == 0 &&
-			download_retry_no_urires(d, 0, 0)
-		)
-			return;
+			if (d->keep_alive)
+				d->server->attrs |= DLS_A_NO_KEEPALIVE;
+
+			/*
+			 * If we did not read anything in the header at that point, and
+			 * we sent a /uri-res request, maybe the remote server does not
+			 * support it and closed the connection abruptly.
+			 *		--RAM, 20/06/2002
+			 */
+
+			if (download_retry_no_urires(d, 0, 0))
+				return;
+		}
+
 		if (d->retries++ < download_max_retries)
 			download_queue_delay(d, download_retry_stopped_delay,
+				d->keep_alive ? "Connection not kept-alive (EOF)" :
 				"Stopped (EOF)");
 		else
 			goto too_many_retries;
@@ -4056,9 +4090,27 @@ void download_send_request(struct download *d)
 	 */
 
 	if (-1 == (sent = bws_write(bws.out, d->socket->file_desc, dl_tmp, rw))) {
+		/*
+		 * If the connection was flagged keep-alive, we were making
+		 * a follow-up request but the server did not honour it and
+		 * closed the connection (probably after serving the last byte
+		 * of the previous request).
+		 *		--RAM, 01/09/2002
+		 */
+
+		if (d->keep_alive)
+			d->server->attrs |= DLS_A_NO_KEEPALIVE;
+
 		download_stop(d, GTA_DL_ERROR, "Write failed: %s", g_strerror(errno));
 		return;
 	} else if (sent < rw) {
+		/*
+		 * Same as above.
+		 */
+
+		if (d->keep_alive)
+			d->server->attrs |= DLS_A_NO_KEEPALIVE;
+
 		download_stop(d, GTA_DL_ERROR, "Partial write: wrote %d of %d bytes",
 			sent, rw);
 		return;
@@ -4710,7 +4762,7 @@ void download_close(void)
 		if (d->sha1)
 			atom_sha1_free(d->sha1);
 		file_info_free(d->file_info, FALSE);
-		download_remove_from_server(d);
+		download_remove_from_server(d, TRUE);
 		atom_str_free(d->file_name);
 
 		g_free(d);
