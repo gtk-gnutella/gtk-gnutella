@@ -1129,21 +1129,17 @@ void on_popup_search_stop_activate
 void on_popup_search_config_cols_activate(GtkMenuItem * menuitem,
 	gpointer user_data)
 {
+    GtkWidget * cc;
     search_t *search;
 
     search = search_gui_get_current_search();
     g_return_if_fail(search != NULL);
     g_assert(search->ctree != NULL);
 
-    {
-        GtkWidget * cc;
+    cc = gtk_column_chooser_new(GTK_WIDGET(search->ctree));
+    gtk_menu_popup(GTK_MENU(cc), NULL, NULL, NULL, NULL, 1, 0);
 
-        /* FIXME: needs to work also in Gtk2 or be replaced. */
-        cc = gtk_column_chooser_new(GTK_WIDGET(search->ctree));
-        gtk_menu_popup(GTK_MENU(cc), NULL, NULL, NULL, NULL, 1, 0);
-
-        /* GtkColumnChooser takes care of cleaning up itself */
-    }
+    /* GtkColumnChooser takes care of cleaning up itself */
 }
 
 /* 
