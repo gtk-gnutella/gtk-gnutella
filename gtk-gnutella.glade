@@ -3339,6 +3339,147 @@
 	    </widget>
 
 	    <widget>
+	      <class>GtkFrame</class>
+	      <name>frame_search_results_settings</name>
+	      <label>General search settings (affect all searches)</label>
+	      <label_xalign>0</label_xalign>
+	      <shadow_type>GTK_SHADOW_ETCHED_IN</shadow_type>
+	      <child>
+		<padding>0</padding>
+		<expand>False</expand>
+		<fill>True</fill>
+	      </child>
+
+	      <widget>
+		<class>GtkTable</class>
+		<name>table34</name>
+		<border_width>2</border_width>
+		<rows>2</rows>
+		<columns>3</columns>
+		<homogeneous>False</homogeneous>
+		<row_spacing>2</row_spacing>
+		<column_spacing>4</column_spacing>
+
+		<widget>
+		  <class>GtkCheckButton</class>
+		  <name>checkbutton_search_pick_all</name>
+		  <tooltip>Automatically select all other results with the same name or urn:sha1.</tooltip>
+		  <can_focus>True</can_focus>
+		  <label>Enable autoselect</label>
+		  <active>False</active>
+		  <draw_indicator>True</draw_indicator>
+		  <child>
+		    <left_attach>0</left_attach>
+		    <right_attach>1</right_attach>
+		    <top_attach>0</top_attach>
+		    <bottom_attach>1</bottom_attach>
+		    <xpad>0</xpad>
+		    <ypad>0</ypad>
+		    <xexpand>False</xexpand>
+		    <yexpand>False</yexpand>
+		    <xshrink>False</xshrink>
+		    <yshrink>False</yshrink>
+		    <xfill>True</xfill>
+		    <yfill>False</yfill>
+		  </child>
+		</widget>
+
+		<widget>
+		  <class>GtkCheckButton</class>
+		  <name>checkbutton_search_autoselect_ident</name>
+		  <tooltip>If on autoselection only takes place if filesize matches exactly, if off filesize must be equals or greater.</tooltip>
+		  <can_focus>True</can_focus>
+		  <label>Autoselect identical</label>
+		  <active>False</active>
+		  <draw_indicator>True</draw_indicator>
+		  <child>
+		    <left_attach>1</left_attach>
+		    <right_attach>2</right_attach>
+		    <top_attach>0</top_attach>
+		    <bottom_attach>1</bottom_attach>
+		    <xpad>0</xpad>
+		    <ypad>0</ypad>
+		    <xexpand>False</xexpand>
+		    <yexpand>False</yexpand>
+		    <xshrink>False</xshrink>
+		    <yshrink>False</yshrink>
+		    <xfill>True</xfill>
+		    <yfill>False</yfill>
+		  </child>
+		</widget>
+
+		<widget>
+		  <class>GtkCheckButton</class>
+		  <name>checkbutton_search_jump_to_downloads</name>
+		  <can_focus>True</can_focus>
+		  <label>Jump to downloads</label>
+		  <active>False</active>
+		  <draw_indicator>True</draw_indicator>
+		  <child>
+		    <left_attach>0</left_attach>
+		    <right_attach>1</right_attach>
+		    <top_attach>1</top_attach>
+		    <bottom_attach>2</bottom_attach>
+		    <xpad>0</xpad>
+		    <ypad>0</ypad>
+		    <xexpand>False</xexpand>
+		    <yexpand>False</yexpand>
+		    <xshrink>False</xshrink>
+		    <yshrink>False</yshrink>
+		    <xfill>True</xfill>
+		    <yfill>False</yfill>
+		  </child>
+		</widget>
+
+		<widget>
+		  <class>GtkCheckButton</class>
+		  <name>checkbutton_search_remove_downloaded</name>
+		  <can_focus>True</can_focus>
+		  <label>Remove files manually selected for download</label>
+		  <active>False</active>
+		  <draw_indicator>True</draw_indicator>
+		  <child>
+		    <left_attach>1</left_attach>
+		    <right_attach>3</right_attach>
+		    <top_attach>1</top_attach>
+		    <bottom_attach>2</bottom_attach>
+		    <xpad>0</xpad>
+		    <ypad>0</ypad>
+		    <xexpand>False</xexpand>
+		    <yexpand>False</yexpand>
+		    <xshrink>False</xshrink>
+		    <yshrink>False</yshrink>
+		    <xfill>True</xfill>
+		    <yfill>False</yfill>
+		  </child>
+		</widget>
+
+		<widget>
+		  <class>GtkCheckButton</class>
+		  <name>checkbutton_search_results_use_fuzzy</name>
+		  <can_focus>True</can_focus>
+		  <label>Use fuzzy matching</label>
+		  <active>False</active>
+		  <draw_indicator>True</draw_indicator>
+		  <child>
+		    <left_attach>2</left_attach>
+		    <right_attach>3</right_attach>
+		    <top_attach>0</top_attach>
+		    <bottom_attach>1</bottom_attach>
+		    <xpad>0</xpad>
+		    <ypad>0</ypad>
+		    <xexpand>False</xexpand>
+		    <yexpand>False</yexpand>
+		    <xshrink>False</xshrink>
+		    <yshrink>False</yshrink>
+		    <xfill>True</xfill>
+		    <yfill>False</yfill>
+		  </child>
+		</widget>
+	      </widget>
+	    </widget>
+
+	    <widget>
 	      <class>GtkHBox</class>
 	      <name>hbox52</name>
 	      <homogeneous>False</homogeneous>
@@ -3350,13 +3491,22 @@
 	      </child>
 
 	      <widget>
-		<class>GtkCheckButton</class>
-		<name>checkbutton_search_pick_all</name>
-		<tooltip>Automatically select all other results with the same name or urn:sha1.</tooltip>
+		<class>GtkButton</class>
+		<name>button_search_download</name>
+		<sensitive>False</sensitive>
 		<can_focus>True</can_focus>
-		<label>Enable autoselect</label>
-		<active>False</active>
-		<draw_indicator>True</draw_indicator>
+		<accelerator>
+		  <modifiers>GDK_CONTROL_MASK</modifiers>
+		  <key>GDK_d</key>
+		  <signal>clicked</signal>
+		</accelerator>
+		<signal>
+		  <name>clicked</name>
+		  <handler>on_button_search_download_clicked</handler>
+		  <last_modification_time>Sun, 26 Mar 2000 17:39:53 GMT</last_modification_time>
+		</signal>
+		<label>Download selected files</label>
+		<relief>GTK_RELIEF_NORMAL</relief>
 		<child>
 		  <padding>0</padding>
 		  <expand>False</expand>
@@ -3365,13 +3515,22 @@
 	      </widget>
 
 	      <widget>
-		<class>GtkCheckButton</class>
-		<name>checkbutton_search_autoselect_ident</name>
-		<tooltip>If on autoselection only takes place if filesize matches exactly, if off filesize must be equals or greater.</tooltip>
+		<class>GtkButton</class>
+		<name>button_search_clear</name>
+		<sensitive>False</sensitive>
 		<can_focus>True</can_focus>
-		<label>Autoselect identical</label>
-		<active>False</active>
-		<draw_indicator>True</draw_indicator>
+		<accelerator>
+		  <modifiers>GDK_CONTROL_MASK</modifiers>
+		  <key>GDK_c</key>
+		  <signal>clicked</signal>
+		</accelerator>
+		<signal>
+		  <name>clicked</name>
+		  <handler>on_button_search_clear_clicked</handler>
+		  <last_modification_time>Sat, 30 Sep 2000 06:49:15 GMT</last_modification_time>
+		</signal>
+		<label>Clear results</label>
+		<relief>GTK_RELIEF_NORMAL</relief>
 		<child>
 		  <padding>0</padding>
 		  <expand>False</expand>
@@ -3442,100 +3601,14 @@
 		  <fill>False</fill>
 		</child>
 	      </widget>
-	    </widget>
-
-	    <widget>
-	      <class>GtkHBox</class>
-	      <name>hbox20</name>
-	      <homogeneous>False</homogeneous>
-	      <spacing>4</spacing>
-	      <child>
-		<padding>0</padding>
-		<expand>False</expand>
-		<fill>True</fill>
-	      </child>
-
-	      <widget>
-		<class>GtkButton</class>
-		<name>button_search_download</name>
-		<sensitive>False</sensitive>
-		<can_focus>True</can_focus>
-		<accelerator>
-		  <modifiers>GDK_CONTROL_MASK</modifiers>
-		  <key>GDK_d</key>
-		  <signal>clicked</signal>
-		</accelerator>
-		<signal>
-		  <name>clicked</name>
-		  <handler>on_button_search_download_clicked</handler>
-		  <last_modification_time>Sun, 26 Mar 2000 17:39:53 GMT</last_modification_time>
-		</signal>
-		<label>Download selected files</label>
-		<relief>GTK_RELIEF_NORMAL</relief>
-		<child>
-		  <padding>0</padding>
-		  <expand>False</expand>
-		  <fill>False</fill>
-		</child>
-	      </widget>
-
-	      <widget>
-		<class>GtkButton</class>
-		<name>button_search_clear</name>
-		<sensitive>False</sensitive>
-		<can_focus>True</can_focus>
-		<accelerator>
-		  <modifiers>GDK_CONTROL_MASK</modifiers>
-		  <key>GDK_c</key>
-		  <signal>clicked</signal>
-		</accelerator>
-		<signal>
-		  <name>clicked</name>
-		  <handler>on_button_search_clear_clicked</handler>
-		  <last_modification_time>Sat, 30 Sep 2000 06:49:15 GMT</last_modification_time>
-		</signal>
-		<label>Clear results</label>
-		<relief>GTK_RELIEF_NORMAL</relief>
-		<child>
-		  <padding>0</padding>
-		  <expand>False</expand>
-		  <fill>False</fill>
-		</child>
-	      </widget>
-	    </widget>
-
-	    <widget>
-	      <class>GtkHBox</class>
-	      <name>hbox80</name>
-	      <homogeneous>False</homogeneous>
-	      <spacing>4</spacing>
-	      <child>
-		<padding>0</padding>
-		<expand>False</expand>
-		<fill>True</fill>
-	      </child>
 
 	      <widget>
 		<class>GtkCheckButton</class>
-		<name>checkbutton_search_jump_to_downloads</name>
+		<name>checkbutton_search_results_show_settings</name>
 		<can_focus>True</can_focus>
-		<label>Jump to downloads</label>
+		<label>Show settings</label>
 		<active>False</active>
-		<draw_indicator>True</draw_indicator>
-		<child>
-		  <padding>0</padding>
-		  <expand>False</expand>
-		  <fill>False</fill>
-		</child>
-	      </widget>
-
-	      <widget>
-		<class>GtkCheckButton</class>
-		<name>checkbutton_search_remove_downloaded</name>
-		<can_focus>True</can_focus>
-		<label>Remove files manually selected for download</label>
-		<active>False</active>
-		<draw_indicator>True</draw_indicator>
+		<draw_indicator>False</draw_indicator>
 		<child>
 		  <padding>0</padding>
 		  <expand>False</expand>
@@ -7240,6 +7313,7 @@ options</label>
 	      <widget>
 		<class>GtkFrame</class>
 		<name>frame48</name>
+		<label>Downloading from mutiple sources (swarming)</label>
 		<label_xalign>0</label_xalign>
 		<shadow_type>GTK_SHADOW_ETCHED_IN</shadow_type>
 		<child>
@@ -7253,7 +7327,7 @@ options</label>
 		  <name>table31</name>
 		  <border_width>2</border_width>
 		  <rows>7</rows>
-		  <columns>3</columns>
+		  <columns>2</columns>
 		  <homogeneous>False</homogeneous>
 		  <row_spacing>2</row_spacing>
 		  <column_spacing>4</column_spacing>
@@ -7539,32 +7613,6 @@ options</label>
 		      <xpad>0</xpad>
 		      <ypad>0</ypad>
 		      <xexpand>False</xexpand>
-		      <yexpand>False</yexpand>
-		      <xshrink>False</xshrink>
-		      <yshrink>False</yshrink>
-		      <xfill>True</xfill>
-		      <yfill>False</yfill>
-		    </child>
-		  </widget>
-
-		  <widget>
-		    <class>GtkLabel</class>
-		    <name>label286</name>
-		    <label>These settings have no effect yet. Preparation for the swarming patch.</label>
-		    <justify>GTK_JUSTIFY_CENTER</justify>
-		    <wrap>True</wrap>
-		    <xalign>0</xalign>
-		    <yalign>0.5</yalign>
-		    <xpad>0</xpad>
-		    <ypad>0</ypad>
-		    <child>
-		      <left_attach>2</left_attach>
-		      <right_attach>3</right_attach>
-		      <top_attach>0</top_attach>
-		      <bottom_attach>7</bottom_attach>
-		      <xpad>0</xpad>
-		      <ypad>0</ypad>
-		      <xexpand>True</xexpand>
 		      <yexpand>False</yexpand>
 		      <xshrink>False</xshrink>
 		      <yshrink>False</yshrink>
@@ -8141,26 +8189,7 @@ settings</label>
 	</child>
 
 	<widget>
-	  <class>GtkEventBox</class>
-	  <name>eventbox4</name>
-	  <sensitive>False</sensitive>
-	  <tooltip>Connected to the internet</tooltip>
-	  <child>
-	    <padding>0</padding>
-	    <expand>False</expand>
-	    <fill>False</fill>
-	  </child>
-
-	  <widget>
-	    <class>GtkPixmap</class>
-	    <name>image_online</name>
-	    <filename>online.xpm</filename>
-	    <xalign>0.5</xalign>
-	    <yalign>0.5</yalign>
-	    <xpad>0</xpad>
-	    <ypad>0</ypad>
-	    <build_insensitive>False</build_insensitive>
-	  </widget>
+	  <class>Placeholder</class>
 	</widget>
 
 	<widget>
@@ -8177,6 +8206,28 @@ settings</label>
 	    <class>GtkPixmap</class>
 	    <name>image_offline</name>
 	    <filename>offline.xpm</filename>
+	    <xalign>0.5</xalign>
+	    <yalign>0.5</yalign>
+	    <xpad>0</xpad>
+	    <ypad>0</ypad>
+	    <build_insensitive>False</build_insensitive>
+	  </widget>
+	</widget>
+
+	<widget>
+	  <class>GtkEventBox</class>
+	  <name>eventbox6</name>
+	  <tooltip>Connected to the internet.</tooltip>
+	  <child>
+	    <padding>0</padding>
+	    <expand>True</expand>
+	    <fill>True</fill>
+	  </child>
+
+	  <widget>
+	    <class>GtkPixmap</class>
+	    <name>image_online</name>
+	    <filename>online.xpm</filename>
 	    <xalign>0.5</xalign>
 	    <yalign>0.5</yalign>
 	    <xpad>0</xpad>
