@@ -95,19 +95,21 @@ static void search_stats_notify_word(
     word_vec_t *wovec;
     guint wocnt;
     guint i;
-    gchar *buf = g_strdup(search);
+    gchar *buf;
 
     if (type == QUERY_SHA1)
         return;
 
+	buf = g_strdup(search);
    	wocnt = query_make_word_vec(buf, &wovec);
-	if (wocnt == 0)
-		return;
 
-    for (i = 0; i < wocnt; i++)
-        search_stats_tally(&wovec[i]);
+	if (wocnt != 0) {
+		for (i = 0; i < wocnt; i++)
+			search_stats_tally(&wovec[i]);
 
-	query_word_vec_free(wovec, wocnt);
+		query_word_vec_free(wovec, wocnt);
+	}
+
     g_free(buf);
 }
 
