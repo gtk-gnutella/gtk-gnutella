@@ -195,9 +195,9 @@ gchar *config_dir = NULL;
 
 
 guint32 nodes_col_widths[] = { 130, 50, 120, 20, 80 };
-guint32 dl_active_col_widths[] = { 240, 80, 80, 80 };
-guint32 dl_queued_col_widths[] = { 240, 80, 80, 80 };
-guint32 uploads_col_widths[] = { 200, 120, 36, 80, 80 };
+guint32 dl_active_col_widths[] = { 240, 80, 80, 80, 80 };
+guint32 dl_queued_col_widths[] = { 240, 80, 80, 80, 80 };
+guint32 uploads_col_widths[] = { 200, 120, 36, 80, 80, 80 };
 guint32 search_results_col_widths[] = { 210, 80, 50, 140, 140 };
 guint32 search_stats_col_widths[] = { 200, 80, 80 };
 guint32 ul_stats_col_widths[] = { 200, 80, 80, 80, 80 };
@@ -831,20 +831,20 @@ void config_set_param(keyword_t keyword, gchar *value)
 		return;
 
 	case k_widths_uploads:
-		if ((a = config_parse_array(value, 5)))
-			for (i = 0; i < 5; i++)
+		if ((a = config_parse_array(value, 6)))
+			for (i = 0; i < 6; i++)
 				uploads_col_widths[i] = a[i];
 		return;
 
 	case k_widths_dl_active:
-		if ((a = config_parse_array(value, 4)))
-			for (i = 0; i < 4; i++)
+		if ((a = config_parse_array(value, 5)))
+			for (i = 0; i < 5; i++)
 				dl_active_col_widths[i] = a[i];
 		return;
 
 	case k_widths_dl_queued:
-		if ((a = config_parse_array(value, 4)))
-			for (i = 0; i < 4; i++)
+		if ((a = config_parse_array(value, 5)))
+			for (i = 0; i < 5; i++)
 				dl_queued_col_widths[i] = a[i];
 		return;
 
@@ -1151,16 +1151,18 @@ static void config_save(void)
     fprintf(config, "%s = %u,%u,%u,%u,%u\n", keywords[k_widths_nodes],
 			nodes_col_widths[0], nodes_col_widths[1],
 			nodes_col_widths[2], nodes_col_widths[3], nodes_col_widths[4]);
-	fprintf(config, "%s = %u,%u,%u,%u,%u\n", keywords[k_widths_uploads],
+	fprintf(config, "%s = %u,%u,%u,%u,%u,%u\n", keywords[k_widths_uploads],
 			uploads_col_widths[0], uploads_col_widths[1],
 			uploads_col_widths[2], uploads_col_widths[3],
-			uploads_col_widths[4]);
-	fprintf(config, "%s = %u,%u,%u,%u\n", keywords[k_widths_dl_active],
+			uploads_col_widths[4], uploads_col_widths[5] );
+	fprintf(config, "%s = %u,%u,%u,%u,%u\n", keywords[k_widths_dl_active],
 			dl_active_col_widths[0], dl_active_col_widths[1],
-			dl_active_col_widths[2], dl_active_col_widths[3]);
-	fprintf(config, "%s = %u,%u,%u,%u\n", keywords[k_widths_dl_queued],
+			dl_active_col_widths[2], dl_active_col_widths[3],
+            dl_active_col_widths[4]);
+	fprintf(config, "%s = %u,%u,%u,%u,%u\n", keywords[k_widths_dl_queued],
 			dl_queued_col_widths[0], dl_queued_col_widths[1],
-            dl_queued_col_widths[2], dl_queued_col_widths[3]);
+            dl_queued_col_widths[2], dl_queued_col_widths[3],
+            dl_queued_col_widths[4]);
 	fprintf(config, "%s = %u,%u,%u,%u,%u\n",
 			keywords[k_widths_search_results],
 			search_results_col_widths[0], search_results_col_widths[1],
