@@ -46,6 +46,7 @@
 #include "gmsg.h"
 #include "alive.h"
 
+#include "gnet_property.h"
 #include "gnet_property_priv.h"
 #include "settings.h"
 
@@ -1171,8 +1172,10 @@ void pcache_pong_fake(struct gnutella_node *n, guint32 ip, guint16 port)
  */
 void pcache_port_changed(void)
 {
-	is_firewalled = TRUE;
+	gboolean val = TRUE;
+	gnet_prop_set_boolean(PROP_IS_FIREWALLED, &val, 0, 1);
 	portchange_time = time(NULL);
+	
 }
 
 /* vi: set ts=4: */

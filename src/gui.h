@@ -202,7 +202,6 @@ void gui_update_search_remove_downloaded();
 void gui_update_search_autoselect_ident();
 void gui_update_download_delete_aborted();
 void gui_update_search_pick_all();
-void gui_update_is_firewalled();
 void gui_update_stats_frames();
 void gui_update_queue_frozen();
 void gui_update_ul_usage_min_percentage();

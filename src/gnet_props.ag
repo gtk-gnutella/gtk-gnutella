@@ -41,7 +41,7 @@ prop = {
     type = string;
     save = FALSE;
     data = { 
-        default = "no new version available";
+        default = "No new version available";
     };
 };
 
@@ -1087,4 +1087,13 @@ prop = {
     };
 };
 
+prop = {
+    name = "is_firewalled";
+	desc = "Whether gtk-gnutella thinks we're currently firewalled";
+	save = FALSE;
+    type = boolean;
+    data = {
+		default = TRUE;
+	};
+};
 

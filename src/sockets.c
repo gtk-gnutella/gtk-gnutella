@@ -38,6 +38,7 @@
 #include <arpa/inet.h>
 #include <netinet/tcp.h>
 
+#include "gnet_property.h"
 #include "gnet_property_priv.h"
 #include "sockets.h"
 #include "downloads.h"
@@ -62,7 +63,6 @@
 
 #define RQST_LINE_LENGTH	256		/* Reasonable estimate for request line */
 
-gboolean is_firewalled = TRUE;		/* Assume the worst --RAM, 20/12/2001 */
 static gboolean ip_computed = FALSE;
 
 static GSList *sl_incoming = (GSList *) NULL;	/* To spot inactive sockets */
@@ -653,9 +653,11 @@ static void socket_accept(gpointer data, gint source,
 			(t->ip & 0xff000000) != 0x7f000000 &&	/* Not loopback 127.xxx */
 			t->ip != host_to_ip(host_name())		/* Not ourselves */
 		) {
-			is_firewalled = FALSE;
-			gui_update_is_firewalled();
-			if (dbg) printf("Got evidence that we're not fully firewalled\n");
+			gboolean val = FALSE;
+			gnet_prop_set_boolean(PROP_IS_FIREWALLED, &val, 0, 1);
+			if (dbg)
+				printf("Got evidence that we're not firewalled on port %u\n",
+					listen_port);
 		}
 	}
 }

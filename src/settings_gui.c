@@ -165,6 +165,7 @@ static gboolean search_stats_enabled_changed(property_t prop);
 static gboolean socks_user_changed(property_t prop);
 static gboolean socks_pass_changed(property_t prop);
 static gboolean traffic_stats_mode_changed(property_t prop);
+static gboolean is_firewalled_changed(property_t prop);
 
 // FIXME: move to separate file and autoegenerate from high-level
 //        description. 
@@ -1064,7 +1065,14 @@ static prop_map_t property_map[] = {
         IGNORE,
         FALSE,
         NULL
-    }
+    },
+    {
+        NULL,
+        PROP_IS_FIREWALLED,
+        is_firewalled_changed,
+        TRUE,
+        NULL
+    },
 };
 
 /***
@@ -1515,6 +1523,31 @@ static gboolean proxy_ip_changed(property_t prop)
     gtk_entry_set_text(GTK_ENTRY(w), ip_to_gchar(val));
 
     return FALSE;
+}
+
+static gboolean is_firewalled_changed(property_t prop)
+{
+	static GtkWidget *image_firewall = NULL;
+	static GtkWidget *image_no_firewall = NULL;
+	gboolean val;
+
+	if (image_firewall == NULL)
+		image_firewall = lookup_widget(main_window, "image_firewall");
+
+	if (image_no_firewall == NULL)
+		image_no_firewall = lookup_widget(main_window, "image_no_firewall");
+
+    gnet_prop_get_boolean(prop, &val, 0, 1);
+	
+	if (val) {
+		gtk_widget_show(image_firewall);
+		gtk_widget_hide(image_no_firewall);
+	} else {
+		gtk_widget_hide(image_firewall);
+		gtk_widget_show(image_no_firewall);
+	}
+
+	return FALSE;
 }
 
 static gboolean monitor_enabled_changed(property_t prop) 

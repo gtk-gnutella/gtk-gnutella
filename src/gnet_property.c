@@ -41,8 +41,8 @@ gboolean reading_hostfile     = FALSE;
 gboolean reading_hostfile_def = FALSE;
 gboolean ancient_version     = FALSE;
 gboolean ancient_version_def = FALSE;
-gchar   *new_version_str     = "no new version available";
-gchar   *new_version_str_def = "no new version available";
+gchar   *new_version_str     = "No new version available";
+gchar   *new_version_str_def = "No new version available";
 guint32  up_connections     = 4;
 guint32  up_connections_def = 4;
 guint32  max_connections     = 4;
@@ -228,6 +228,8 @@ gboolean use_fuzzy_matching     = TRUE;
 gboolean use_fuzzy_matching_def = TRUE;
 guint32  fuzzy_threshold     = 70;
 guint32  fuzzy_threshold_def = 70;
+gboolean is_firewalled     = TRUE;
+gboolean is_firewalled_def = TRUE;
 
 static prop_set_t *gnet_property = NULL;
 
@@ -2016,6 +2018,23 @@ prop_set_t *gnet_prop_init(void) {
     gnet_property->props[95].data.guint32.value = &fuzzy_threshold;
     gnet_property->props[95].data.guint32.max   = 100;
     gnet_property->props[95].data.guint32.min   = 0;
+
+
+    /*
+     * PROP_IS_FIREWALLED:
+     *
+     * General data:
+     */
+    gnet_property->props[96].name = "is_firewalled";
+    gnet_property->props[96].desc = "Whether gtk-gnutella thinks we're currently firewalled";
+    gnet_property->props[96].prop_changed_listeners = NULL;
+    gnet_property->props[96].save = FALSE;
+    gnet_property->props[96].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[96].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[96].data.boolean.def   = &is_firewalled_def;
+    gnet_property->props[96].data.boolean.value = &is_firewalled;
     return gnet_property;
 }
 
