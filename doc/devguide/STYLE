@@ -86,18 +86,19 @@ Ladies and gentleman, here's the
         return expression       RIGHT
         return (expression) WRONG
 
-4.2  memcmp() result:
+4.2  strcmp() result:
 
-        if (0 == memcpy(...))   RIGHT
-        if (!memcmp(...))       WRONG
+        if (0 == strcmp(...))   RIGHT
+        if (!strcmp(...))       WRONG
 
-      Reason (Raphael Manfredi): Although strictly equivalent,
-      they don't read the same.  The second is a boolean negation,
-      the first an equality test.  Since memcpy() is a spaceshit
-      operator (reference to Perl's "<=>" operator), i.e. it can
-      return -1, 0, or +1 depending on the comparison, the first
-      form is much more readable. (the second form reads as: "if NOT
-      memcmp", i.e. "if memory is not equal", which is clearly wrong).
+      Reason according to Raphael Manfredi:
+      Although strictly equivalent, they don't read the same. The
+      first represents an equality test, the second is a boolean
+      negation. Since strcmp() returns a signed integer, i.e. the
+      difference between the first non-matching characters. The first
+      form is much more readable. In contrast to the first, the latter
+      form reads as: "if NOT strcmp [...]", i.e. "if this is not a
+      string comparision [...]", which is clearly wrong. 
 
 4.3  In general, explicitly tested returned values should appear first
      in the condition.  This is an extension of rule 4.2:
@@ -105,7 +106,8 @@ Ladies and gentleman, here's the
         if (-1 == read(fd, buf, len))   RIGHT
         if (read(fd, buf, len) == -1)   WRONG
 
-     This puts the emphasis on the test.
+	 This form emphasizes the relation of interest immediately, i.e.
+     whether we're interested in "<", "=", or ">" comes first.
 
 4.4  If the line is longer that 80 characters, it must be broken where
      you would normally insert a space.  The continuation line must be
