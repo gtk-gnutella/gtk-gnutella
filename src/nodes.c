@@ -3338,9 +3338,12 @@ static void node_send_qrt(struct gnutella_node *n, gpointer query_table)
 	g_assert(NODE_IS_ULTRA(n));
 	g_assert(query_table != NULL);
 	g_assert(n->qrt_update == NULL);
-	g_assert(n->query_table == NULL);
 
 	n->qrt_update = qrt_update_create(n, n->query_table);
+
+	if (n->query_table)
+		qrt_unref(n->query_table);
+
 	n->query_table = qrt_ref(query_table);
 	node_send_patch_step(n);
 }
