@@ -1,5 +1,22 @@
 # since last version
 
+- (2002.08.25 - RAM)
+ * Use /dev/urandom to initialize seed on systems that have it.
+ * Skip empty lines silently when retrieving banned mesh entries.
+ * Added support for HTTP/1.1 connections on downloads.
+ * Swarming code now uses persistent connections and tailored range requests
+   when remote server is known to support HTTP/1.1.
+ * GUI will now report proper completion speed for the range requested.
+ * Could think we were disconnected from the Internet when not making any
+   outgoing connections, whilst still receiving some.
+
+- (2002.08.24 - RAM)
+ * Fixed style issues in fileinfo.c.
+ * Mark changes to the dl_by_time list so we know it was modified when we
+   are iterating through it.
+ * Converted download mesh to zone allocator.
+ * Added banning mesh to avoid filling the mesh with URLs we know are bad.
+
 - (2002.08.23 - RAM)
  * Properly reparent all downloads after a file_info_recreate() call which
    creates a new fileinfo structure to supersede the old one.
