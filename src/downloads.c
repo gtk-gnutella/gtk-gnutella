@@ -676,6 +676,7 @@ static void download_info_reget(struct download *d)
 	g_assert(fi->lifecount <= fi->refcount);
 
 	downloads_with_name_dec(fi->file_name);		/* File name can change! */
+	file_info_clear_download(d, TRUE);			/* `d' might be running */
 
 	fi->lifecount--;
 	file_info_free(fi, FALSE);					/* Keep it around for others */
@@ -1424,7 +1425,7 @@ void download_stop(struct download *d, guint32 new_status,
 		gui_update_download_clear();
 	}
 
-	file_info_clear_download(d);
+	file_info_clear_download(d, FALSE);
 
 	gui_update_c_downloads(dl_active, dl_establishing + dl_active);
 }
@@ -1458,7 +1459,7 @@ static void download_queue_v(struct download *d, const gchar *fmt, va_list ap)
 	if (DOWNLOAD_IS_RUNNING(d))
 		download_stop(d, GTA_DL_TIMEOUT_WAIT, NULL);
 	else
-		file_info_clear_download(d);	/* Also done by download_stop() */
+		file_info_clear_download(d, TRUE);	/* Also done by download_stop() */
 
 	/*
 	 * Since download stop can change "d->remove_msg", update it now.
@@ -1740,12 +1741,14 @@ static gboolean download_ignore_requested(struct download *d)
 		 * Since we're ignoring this file, make sure we don't keep any
 		 * track of it on disk: dispose of the fileinfo when the last
 		 * reference will be removed, remove all known downloads from the
-		 * queue and delete the file.
+		 * queue and delete the file (if not complete, or it could be in
+		 * the process of being moved).
 		 */
 
 		file_info_set_discard(d->file_info, TRUE);
 		queue_remove_downloads_with_file(fi, d);
-		download_remove_file(d);
+		if (!FILE_INFO_COMPLETE(fi))
+			download_remove_file(d);
 
 		return TRUE;
 	}
@@ -5209,6 +5212,7 @@ void download_verify_done(struct download *d, guchar *digest, time_t elapsed)
 	file_info_store_binary(fi);		/* Resync with computed SHA1 */
 
 	d->status = GTA_DL_VERIFIED;
+	gui_update_download(d, TRUE);
 
 	ignore_add_sha1(download_outname(d), fi->cha1);
 
@@ -5216,7 +5220,6 @@ void download_verify_done(struct download *d, guchar *digest, time_t elapsed)
 		ignore_add_filesize(d->file_name, d->file_info->size);
 		queue_remove_downloads_with_file(d->file_info, d);
 		download_move_to_completed_dir(d);
-		gui_update_download(d, TRUE);
 	} else {
 		download_move_to_completed_dir(d);	// XXX asynchronous
 		queue_suspend_downloads_with_file(d->file_info, FALSE);	// XXX when moved
@@ -5226,11 +5229,10 @@ void download_verify_done(struct download *d, guchar *digest, time_t elapsed)
 		 */
 
 		if (is_faked_download(d)) {
-			g_warning("SHA1 mismatch for %s, and cannot restart download",
+			g_warning("SHA1 mismatch for \"%s\", and cannot restart download",
 				download_outname(d));
-			gui_update_download(d, TRUE);
 		} else {
-			g_warning("SHA1 mismatch for %s, will be restarting download",
+			g_warning("SHA1 mismatch for \"%s\", will be restarting download",
 				download_outname(d));
 
 			// XXX needs to maybe update some other fileinfo fields?

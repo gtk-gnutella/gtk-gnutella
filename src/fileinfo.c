@@ -2384,16 +2384,20 @@ again:
  *
  * Go through all chunks that belong to the download,
  * and unmark them as busy.
+ *
+ * If `lifecount' is TRUE, the download is still counted as being "alive".
  */
-void file_info_clear_download(struct download *d)
+void file_info_clear_download(struct download *d, gboolean lifecount)
 {
 	GSList *fclist;
 	struct dl_file_chunk *fc;
+	struct dl_file_info *fi = d->file_info;
+	gint busy;			/* For assertions only */
 
-	fclist = d->file_info->chunklist;
-
-	for (fclist = d->file_info->chunklist; fclist; fclist = fclist->next) {
+	for (fclist = fi->chunklist, busy = 0; fclist; fclist = fclist->next) {
 		fc = fclist->data;
+		if (fc->status == DL_CHUNK_BUSY)
+			busy++;
 		if (fc->download == d) {
 			if (fc->status == DL_CHUNK_BUSY)
 				fc->status = DL_CHUNK_EMPTY;
@@ -2401,6 +2405,8 @@ void file_info_clear_download(struct download *d)
 		}
 	}
 	file_info_merge_adjacent(d->file_info);
+
+	g_assert(fi->lifecount >= (lifecount ? busy : (busy - 1)));
 
 	/* No need to flush data to disk, those are transient changes */
 }
@@ -2566,7 +2572,7 @@ enum dl_chunk_status file_info_find_hole(
 
 		if (fc->status != DL_CHUNK_EMPTY) {
 			if (fc->status == DL_CHUNK_BUSY)
-				busy++;		/* Will be used by aggressive code below */
+				busy++;		/* Will be used by assert below */
 			continue;
 		}
 
@@ -2580,6 +2586,8 @@ enum dl_chunk_status file_info_find_hole(
 		file_info_update(d, *from, *to, DL_CHUNK_BUSY);
 		return DL_CHUNK_EMPTY;
 	}
+
+	g_assert(fi->lifecount > busy);		/* Or we'd found a chunk before */
 
 	if (use_aggressive_swarming) {
 		guint32 longest_from = 0, longest_to = 0;
@@ -2595,8 +2603,6 @@ enum dl_chunk_status file_info_find_hole(
 		 * this file, and `busy' chunks.  The difference is the amount of
 		 * starving downloads...
 		 */
-
-		g_assert(fi->lifecount > busy);		/* Or we'd found a chunk before */
 
 		starving = fi->lifecount - busy;	/* Starving downloads */
 		minchunk = MIN(dl_minchunksize, fi->size - fi->done) / (2 * starving);
