@@ -12,7 +12,7 @@
 ?X: and add the name of the unit desired to the ?MAKE: dependency line.
 ?X: 
 ?MAKE:End: $W cat gtkversion d_libxml2 libs d_iptos remotectrl \
-	d_deflate d_inflate i_zlib icu gtkgversion d_enablenls
+	d_deflate d_inflate i_zlib icu gtkgversion glibversion d_enablenls
 ?MAKE:	-pick add $@ %<
 ?LINT:use $W
 ?T:glib_used frontend persistent zlib remote iptos unicode nls

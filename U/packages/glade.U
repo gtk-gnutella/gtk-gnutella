@@ -2,7 +2,7 @@
 ?RCS:
 ?RCS: @COPYRIGHT@
 ?RCS:
-?MAKE:glade: gtkversion sed _o
+?MAKE:glade: gtkversion
 ?MAKE:	-pick add $@ %<
 ?S:glade:
 ?S:	This variable holds the name of the glade command to use to regenerate
