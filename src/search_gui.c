@@ -1630,7 +1630,6 @@ void search_gui_download_files(void)
 {
     GtkWidget *notebook_main;
     GtkWidget *ctree_menu;
-	GtkCTreeNode *ctree_node;
 	guint selected;
 	guint created;
 
