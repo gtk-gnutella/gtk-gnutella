@@ -2883,9 +2883,13 @@ static gboolean download_overlap_check(struct download *d)
 	}
 
 	if (r != d->overlap_size) {
-		g_warning("Short read (%d instead of %d bytes) on resuming data "
-			"for \"%s\"", r, d->overlap_size, d->file_info->file_name);
-		download_stop(d, GTA_DL_ERROR, "Short read on resume data");
+		if (r == 0)
+			download_stop(d, GTA_DL_STOPPED, "Stopped (EOF)");
+		else {
+			g_warning("Short read (%d instead of %d bytes) on resuming data "
+				"for \"%s\"", r, d->overlap_size, d->file_info->file_name);
+			download_stop(d, GTA_DL_ERROR, "Short read on resume data");
+		}
 		goto out;
 	}
 
@@ -4302,6 +4306,7 @@ void download_close(void)
 			atom_sha1_free(d->sha1);
 		if (d->restart_timer_id)
 			g_source_remove(d->restart_timer_id);
+		file_info_free(d->file_info, FALSE);
 		download_remove_from_server(d);
 		atom_str_free(d->file_name);
 
