@@ -1483,6 +1483,7 @@ void search_matched(search_t *sch, struct results_set *rs)
     GdkColor *download_color;
     extern gboolean is_firewalled;
     GSList *l;
+    gboolean list_frozen = FALSE;
 
     g_assert(sch != NULL);
     g_assert(rs != NULL);
@@ -1523,11 +1524,7 @@ void search_matched(search_t *sch, struct results_set *rs)
 			sch->query, rs->num_recs, rs->num_recs == 1 ? "" : "s",
 			ip_port_to_gchar(rs->ip, rs->port), need_push, skip_records);
 
-    if (rs->records != NULL)
-        gtk_clist_freeze(GTK_CLIST(sch->clist));
-
-    // FIXME: is skip_records is set, we need not process the list
-  	for (l = rs->records; l; l = l->next) {
+  	for (l = rs->records; l && !skip_records; l = l->next) {
 		struct record *rc = (struct record *) l->data;
         filter_result_t *flt_result;
         gboolean mark;
@@ -1587,6 +1584,11 @@ void search_matched(search_t *sch, struct results_set *rs)
                 (flt_result->props[FILTER_PROP_DISPLAY].user_data == 
                     (gpointer) 1);
             
+            if (!list_frozen) {
+                list_frozen = TRUE;
+                gtk_clist_freeze(GTK_CLIST(sch->clist));
+            }
+
             search_gui_add_record(sch, rc, vinfo, 
                 downloaded ? download_color :  NULL,
                 mark ? mark_color : NULL);
@@ -1595,7 +1597,7 @@ void search_matched(search_t *sch, struct results_set *rs)
         filter_free_result(flt_result);
     }
 
-    if (rs->records != NULL)
+    if (list_frozen)
         gtk_clist_thaw(GTK_CLIST(sch->clist));
 
 	/* Adds the set to the list */
