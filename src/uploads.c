@@ -954,7 +954,7 @@ static gboolean upload_request_is_ok(
 static struct shared_file *get_file_to_upload_from_index(
 	struct upload *u,
 	header_t *header,
-	gchar *request,
+	gchar *uri,
 	guint index)
 {
 	struct shared_file *sf;
@@ -990,16 +990,14 @@ static struct shared_file *get_file_to_upload_from_index(
 	 * of the requested filename.
 	 */
 
-	buf = request +
-		((request[0] == 'G') ? sizeof("GET /get/") : sizeof("HEAD /get/"));
-
+	buf = uri + sizeof("/get/");		/* Go after first index char */
 	(void) url_unescape(buf, TRUE);		/* Index is escape-safe anyway */
 
 	while ((c = *(guchar *) buf++) && c != '/')
 		/* empty */;
 
 	if (c != '/') {
-		g_warning("malformed Gnutella HTTP request: %s", request);
+		g_warning("malformed Gnutella HTTP URI: %s", uri);
 		upload_error_remove(u, NULL, 400, "Malformed Gnutella HTTP request");
 		return NULL;
 	}
@@ -1043,7 +1041,29 @@ static struct shared_file *get_file_to_upload_from_index(
 	 */
 
 	if (sha1) {
-		struct shared_file *sfn = shared_file_by_sha1(digest);
+		struct shared_file *sfn;
+
+		/*
+		 * They can share serveral clones of the same files, i.e. bearing
+		 * distinct names yet having the same SHA1.  Therefore, check whether
+		 * the SHA1 matches with what we found so far, and if it does,
+		 * we found what they want.
+		 */
+
+		if (sf && sha1_hash_available(sf)) {
+			if (0 == memcmp(digest, sf->sha1_digest, SHA1_RAW_SIZE))
+				goto found;
+		}
+
+		/*
+		 * Look whether we know this SHA1 at all, and compare the results
+		 * to the file we found, if any.  Note that `sf' can be NULL at
+		 * this point, in which case we'll redirect them with 301 if we
+		 * know the hash.
+		 */
+
+		sfn = shared_file_by_sha1(digest);
+
 		if (sfn && sf != sfn) {
 			gchar location[1024];
 			gchar *escaped = url_escape(sfn->file_name);
@@ -1112,23 +1132,12 @@ static struct shared_file *get_file_to_upload_from_index(
 	}
 
 	if (sf == NULL) {
-		upload_error_not_found(u, request);
+		upload_error_not_found(u, uri);
 		goto failed;
 	}
 
-	/*
-	 * If we have the SHA1 for this file and they sent a
-	 * X-Gnutella-Content-URN header with an urn:sha1:, compare
-	 * it to the file's and deny with 404 if they don't match.
-	 *		--RAM, 20/05/2002
-	 */
-
-	if (sha1 && sha1_hash_available(sf)) {
-		if (0 != memcmp(digest, sf->sha1_digest, SHA1_RAW_SIZE)) {
-			upload_error_remove(u, sf, 404, "URN Mismatch (urn:sha1)");
-			goto failed;
-		}
-	}
+found:
+	g_assert(sf != NULL);
 
 	if (p) *p = ' ';			/* Restore patched space */
 
@@ -1140,9 +1149,9 @@ failed:
 	return NULL;
 }
 
-static const char urn_query[] = "GET /uri-res/N2R?";
+static const char n2r_query[] = "/uri-res/N2R?";
 
-#define URN_QUERY_LENGTH	(sizeof(urn_query) - 1)
+#define N2R_QUERY_LENGTH	(sizeof(n2r_query) - 1)
 
 /* 
  * get_file_to_upload_from_urn
@@ -1150,10 +1159,10 @@ static const char urn_query[] = "GET /uri-res/N2R?";
  * Get the shared_file to upload from a given URN.
  * Return the shared_file if we have it, NULL otherwise
  */
-static struct shared_file *get_file_to_upload_from_urn(const gchar *request)
+static struct shared_file *get_file_to_upload_from_urn(const gchar *uri)
 {
 	char hash[SHA1_BASE32_SIZE + 1];
-	const gchar *urn = request + URN_QUERY_LENGTH;
+	const gchar *urn = uri + N2R_QUERY_LENGTH;
 
 	/*
 	 * We currently only support SHA1 URNs.
@@ -1182,15 +1191,21 @@ static struct shared_file *get_file_to_upload(
 	struct upload *u, header_t *header, gchar *request)
 {
 	guint index = 0;
+	gchar *uri;
 
-	// XXX still not good, needs to handle HEAD /uri-res/ -- RAM, 13/06/2002
-	if (
-		sscanf(request, "GET /get/%u/", &index) ||
-		sscanf(request, "HEAD /get/%u/", &index)
-	)
-		return get_file_to_upload_from_index(u, header, request, index);
-	else if (0 == strncmp(request, urn_query, URN_QUERY_LENGTH))
-		return get_file_to_upload_from_urn(request);
+	/*
+	 * We have either "GET uri" or "HEAD uri" at this point.  Since the
+	 * value sizeof("GET") accounts for the trailing NUL as well, the
+	 * following will skip the space as well and point to the beginning
+	 * of the requested URI.
+	 */
+
+	uri = request + ((request[0] == 'G') ? sizeof("GET") : sizeof("HEAD"));
+
+	if (sscanf(uri, "/get/%u/", &index))
+		return get_file_to_upload_from_index(u, header, uri, index);
+	else if (0 == strncmp(uri, n2r_query, N2R_QUERY_LENGTH))
+		return get_file_to_upload_from_urn(uri);
 
 	upload_error_not_found(u, request);
 	return NULL;
