@@ -129,6 +129,7 @@ po/POTFILES.in
 po/boldquot.sed
 po/es.po
 po/fr.po
+po/gtk-gnutella.pot
 po/insert-header.sin
 po/nl.po
 po/quot.sed
