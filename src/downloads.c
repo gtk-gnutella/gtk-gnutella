@@ -1759,12 +1759,18 @@ static void download_queue_delay(struct download *d, guint32 delay,
 	va_end(args);
 
 	/*
-	 * Always consider the farthest time in the future when updating the
+	 * Always consider the earliest time in the future when updating the
 	 * `retry_after' field of the server.
+	 *
+	 * Indeed, we may have several downloads queued with PARQ, and each
+	 * downloads bears its own retry_after time.  But we need to know the
+	 * earliest time at which we should start browsing through the downloads
+	 * for a given server.
+	 *		--RAM, 16/07/2003
 	 */
 
 	d->last_update = now;
-	if (server->retry_after < (now + delay))
+	if (server->retry_after > (now + delay))
 		download_set_retry_after(d, now + delay);
 }
 
@@ -2385,6 +2391,9 @@ void download_pickup_queued(void)
 					continue;
 
 				if ((now - d->last_update) <= d->timeout_delay)
+					continue;
+
+				if (now < d->retry_after)
 					continue;
 
 				if (d->flags & DL_F_SUSPENDED)
@@ -4595,10 +4604,10 @@ static void download_request(
 	}
 
 	update_available_ranges(d, header);		/* Updates `d->ranges' */
+
 	delay = extract_retry_after(header);
+	d->retry_after = (delay > 0) ? (time(NULL) + delay) : 0;
 
-
-		
 	/*
 	 * Partial File Sharing Protocol (PFSP) -- client-side
 	 *
@@ -5765,6 +5774,7 @@ static struct download *select_push_download(guint file_index, gchar *hex_guid)
 	GSList *list;
 	gchar rguid[16];		/* Remote GUID */
 	gint i;
+	time_t now;
 
 	g_strdown(hex_guid);
 	gm_snprintf(dl_tmp, sizeof(dl_tmp), "%u:%s", file_index, hex_guid);
@@ -5835,6 +5845,8 @@ static struct download *select_push_download(guint file_index, gchar *hex_guid)
 	 * Look for a queued download on this host that we could request.
 	 */
 
+	now = time(NULL);
+
 	for (i = 0; i < DHASH_SIZE; i++) {
 		GList *l;
 		gint last_change;
@@ -5870,6 +5882,9 @@ static struct download *select_push_download(guint file_index, gchar *hex_guid)
 					count_running_downloads_with_name(
 						d->file_info->file_name) != 0
 				)
+					continue;
+
+				if (now < d->retry_after)
 					continue;
 
 				if (d->flags & DL_F_SUSPENDED)
