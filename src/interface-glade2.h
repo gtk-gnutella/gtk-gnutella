@@ -40,3 +40,4 @@ GtkWidget* create_main_window_config_sel_tab (void);
 GtkWidget* create_popup_nodes (void);
 GtkWidget* create_main_window_hostcache_tab (void);
 GtkWidget* create_popup_upload_stats (void);
+GtkWidget* create_dlg_wizard (void);

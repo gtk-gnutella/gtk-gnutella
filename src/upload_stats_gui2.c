@@ -47,6 +47,7 @@
 #ifdef USE_GTK2
 
 #include "gui.h"
+#include "interface-glade2.h"
 #include "upload_stats_gui.h" 
 #include "upload_stats.h"
 #include "override.h"		/* Must be the last header included */
@@ -55,8 +56,21 @@ RCSID("$Id$");
 
 /* Private variables */
 static GtkTreeView *upload_stats_treeview = NULL;
+static GtkWidget *popup_upload_stats = NULL;
 
 /* Private callbacks */
+
+static gboolean on_button_press_event(GtkWidget *widget, GdkEventButton *event,
+	gpointer user_data)
+{
+    if (3 == event->button) {
+        /* Right click section (popup menu) */
+        gtk_menu_popup(GTK_MENU(popup_upload_stats), NULL, NULL, NULL, NULL,
+			event->button, event->time);
+        return TRUE;
+	}
+	return FALSE;
+}
 
 /**
  * Render the size column.
@@ -247,6 +261,7 @@ static void upload_stats_gui_init_intern(gboolean intern)
 	STATIC_ASSERT(G_N_ELEMENTS(columns) == UPLOAD_STATS_GUI_VISIBLE_COLUMNS);
 
 	if (!initialized) {
+    	popup_upload_stats = create_popup_upload_stats();
 		model = GTK_TREE_MODEL(gtk_list_store_new(c_us_num,
 			G_TYPE_STRING,		/* Filename (UTF-8 encoded) */
 			G_TYPE_UINT,		/* Size */
@@ -257,6 +272,7 @@ static void upload_stats_gui_init_intern(gboolean intern)
 		upload_stats_treeview = GTK_TREE_VIEW(
 			lookup_widget(main_window, "treeview_ul_stats"));
 		gtk_tree_view_set_model(upload_stats_treeview, model);
+		g_object_unref(model);
 
 		for (i = 0; i < G_N_ELEMENTS(columns); i++) {
 			add_column(upload_stats_treeview,
@@ -267,7 +283,11 @@ static void upload_stats_gui_init_intern(gboolean intern)
 				columns[i].func);
 		}
 
-		g_object_unref(model);
+		g_signal_connect(GTK_OBJECT(upload_stats_treeview),
+			"button_press_event",
+			G_CALLBACK(on_button_press_event),
+			NULL);
+
 		initialized = TRUE;
 	}
 
@@ -294,6 +314,7 @@ static void upload_stats_gui_init_intern(gboolean intern)
         		NULL);
 		}
 	}
+
 }
 
 /* Public functions */

@@ -77,6 +77,19 @@ typedef struct remove_row_ctx {
  *** Callbacks
  ***/
 
+static gboolean on_button_press_event(GtkWidget *widget, GdkEventButton *event,
+		gpointer user_data)
+{
+	if (3 == event->button) { 
+        /* Right click section (popup menu) */
+		gtk_menu_popup(GTK_MENU(popup_uploads), NULL, NULL, NULL, NULL,
+			event->button, event->time);
+		return TRUE;
+    }
+
+	return FALSE;
+}
+
 /*
  * upload_removed:
  *
@@ -472,6 +485,9 @@ void uploads_gui_init(void)
     upload_add_upload_added_listener(upload_added);
     upload_add_upload_removed_listener(upload_removed);
     upload_add_upload_info_changed_listener(upload_info_changed);
+	
+	g_signal_connect(GTK_OBJECT(treeview), "button_press_event",
+		G_CALLBACK(on_button_press_event), NULL);
 }
 
 static inline void free_row_data(upload_row_data_t *rd, gpointer user_data)

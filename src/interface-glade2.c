@@ -891,14 +891,20 @@ create_popup_uploads (void)
 {
   GtkWidget *popup_uploads;
   GtkWidget *popup_uploads_config_cols;
+  GtkWidget *image353;
 
   popup_uploads = gtk_menu_new ();
   gtk_widget_set_name (popup_uploads, "popup_uploads");
 
-  popup_uploads_config_cols = gtk_menu_item_new_with_mnemonic (_("Configure columns"));
+  popup_uploads_config_cols = gtk_image_menu_item_new_with_mnemonic (_("Configure columns"));
   gtk_widget_set_name (popup_uploads_config_cols, "popup_uploads_config_cols");
   gtk_widget_show (popup_uploads_config_cols);
   gtk_container_add (GTK_CONTAINER (popup_uploads), popup_uploads_config_cols);
+
+  image353 = gtk_image_new_from_stock ("gtk-preferences", GTK_ICON_SIZE_MENU);
+  gtk_widget_set_name (image353, "image353");
+  gtk_widget_show (image353);
+  gtk_image_menu_item_set_image (GTK_IMAGE_MENU_ITEM (popup_uploads_config_cols), image353);
 
   g_signal_connect ((gpointer) popup_uploads_config_cols, "activate",
                     G_CALLBACK (on_popup_uploads_config_cols_activate),
@@ -907,6 +913,7 @@ create_popup_uploads (void)
   /* Store pointers to all widgets, for use by lookup_widget(). */
   GLADE_HOOKUP_OBJECT_NO_REF (popup_uploads, popup_uploads, "popup_uploads");
   GLADE_HOOKUP_OBJECT (popup_uploads, popup_uploads_config_cols, "popup_uploads_config_cols");
+  GLADE_HOOKUP_OBJECT (popup_uploads, image353, "image353");
 
   return popup_uploads;
 }
@@ -5933,6 +5940,7 @@ create_main_window_config_dl_tab (void)
 
   main_window_config_dl_tab = gtk_window_new (GTK_WINDOW_TOPLEVEL);
   gtk_widget_set_name (main_window_config_dl_tab, "main_window_config_dl_tab");
+  gtk_widget_set_size_request (main_window_config_dl_tab, 600, 500);
   gtk_window_set_title (GTK_WINDOW (main_window_config_dl_tab), _("window4"));
 
   scrolledwindow64 = gtk_scrolled_window_new (NULL, NULL);
@@ -15483,5 +15491,369 @@ create_popup_upload_stats (void)
   GLADE_HOOKUP_OBJECT (popup_upload_stats, image332, "image332");
 
   return popup_upload_stats;
+}
+
+GtkWidget*
+create_dlg_wizard (void)
+{
+  GtkWidget *dlg_wizard;
+  GtkWidget *dialog_vbox2;
+  GtkWidget *vbox137;
+  GtkWidget *label863;
+  GtkWidget *frame119;
+  GtkWidget *hbox270;
+  GtkWidget *entry_wizard_download_path;
+  GtkWidget *button_wizard_download_path;
+  GtkWidget *alignment103;
+  GtkWidget *hbox271;
+  GtkWidget *image350;
+  GtkWidget *label853;
+  GtkWidget *label854;
+  GtkWidget *frame121;
+  GtkWidget *hbox277;
+  GtkWidget *entry_wizard_upload_paths;
+  GtkWidget *button_wizard_upload_paths;
+  GtkWidget *alignment105;
+  GtkWidget *hbox278;
+  GtkWidget *image352;
+  GtkWidget *label860;
+  GtkWidget *label861;
+  GtkWidget *frame120;
+  GtkWidget *hbox279;
+  GtkWidget *label855;
+  GtkObject *spinbutton_wizard_port_adj;
+  GtkWidget *spinbutton_wizard_port;
+  GtkWidget *label866;
+  GtkWidget *label862;
+  GtkWidget *frame122;
+  GtkWidget *optionmenu_wizard_connection;
+  GtkWidget *menu1;
+  GtkWidget *menu_wizard_connection_unknown;
+  GtkWidget *menu_wizard_connection_t3;
+  GtkWidget *menu_wizard_connection_t1;
+  GtkWidget *menu_wizard_connection_sdsl;
+  GtkWidget *menu_wizard_connection_adsl;
+  GtkWidget *menu_wizard_connection_isdn128;
+  GtkWidget *menu_wizard_connection_isdn64;
+  GtkWidget *menu_wizard_connection_modem;
+  GtkWidget *label864;
+  GtkWidget *label865;
+  GtkWidget *dialog_action_area2;
+  GtkWidget *button_wizard_ok;
+
+  dlg_wizard = gtk_dialog_new ();
+  gtk_widget_set_name (dlg_wizard, "dlg_wizard");
+  gtk_window_set_title (GTK_WINDOW (dlg_wizard), _("GTK-Gnutella Configuration Wizard"));
+  gtk_window_set_type_hint (GTK_WINDOW (dlg_wizard), GDK_WINDOW_TYPE_HINT_DIALOG);
+
+  dialog_vbox2 = GTK_DIALOG (dlg_wizard)->vbox;
+  gtk_widget_set_name (dialog_vbox2, "dialog_vbox2");
+  gtk_widget_show (dialog_vbox2);
+
+  vbox137 = gtk_vbox_new (FALSE, 0);
+  gtk_widget_set_name (vbox137, "vbox137");
+  gtk_widget_show (vbox137);
+  gtk_box_pack_start (GTK_BOX (dialog_vbox2), vbox137, FALSE, TRUE, 0);
+
+  label863 = gtk_label_new (_("<span weight=\"heavy\" size=\"xx-large\">Welcome to GTK-Gnutella!</span>"));
+  gtk_widget_set_name (label863, "label863");
+  gtk_widget_show (label863);
+  gtk_box_pack_start (GTK_BOX (vbox137), label863, TRUE, TRUE, 4);
+  gtk_label_set_use_markup (GTK_LABEL (label863), TRUE);
+
+  frame119 = gtk_frame_new (NULL);
+  gtk_widget_set_name (frame119, "frame119");
+  gtk_widget_show (frame119);
+  gtk_box_pack_start (GTK_BOX (vbox137), frame119, FALSE, TRUE, 0);
+  gtk_container_set_border_width (GTK_CONTAINER (frame119), 4);
+
+  hbox270 = gtk_hbox_new (FALSE, 4);
+  gtk_widget_set_name (hbox270, "hbox270");
+  gtk_widget_show (hbox270);
+  gtk_container_add (GTK_CONTAINER (frame119), hbox270);
+  gtk_container_set_border_width (GTK_CONTAINER (hbox270), 2);
+
+  entry_wizard_download_path = gtk_entry_new ();
+  gtk_widget_set_name (entry_wizard_download_path, "entry_wizard_download_path");
+  gtk_widget_show (entry_wizard_download_path);
+  gtk_box_pack_start (GTK_BOX (hbox270), entry_wizard_download_path, TRUE, TRUE, 0);
+  gtk_editable_set_editable (GTK_EDITABLE (entry_wizard_download_path), FALSE);
+
+  button_wizard_download_path = gtk_button_new ();
+  gtk_widget_set_name (button_wizard_download_path, "button_wizard_download_path");
+  gtk_widget_show (button_wizard_download_path);
+  gtk_box_pack_start (GTK_BOX (hbox270), button_wizard_download_path, FALSE, FALSE, 0);
+  gtk_button_set_relief (GTK_BUTTON (button_wizard_download_path), GTK_RELIEF_NONE);
+
+  alignment103 = gtk_alignment_new (0.5, 0.5, 0, 0);
+  gtk_widget_set_name (alignment103, "alignment103");
+  gtk_widget_show (alignment103);
+  gtk_container_add (GTK_CONTAINER (button_wizard_download_path), alignment103);
+
+  hbox271 = gtk_hbox_new (FALSE, 2);
+  gtk_widget_set_name (hbox271, "hbox271");
+  gtk_widget_show (hbox271);
+  gtk_container_add (GTK_CONTAINER (alignment103), hbox271);
+
+  image350 = gtk_image_new_from_stock ("gtk-open", GTK_ICON_SIZE_BUTTON);
+  gtk_widget_set_name (image350, "image350");
+  gtk_widget_show (image350);
+  gtk_box_pack_start (GTK_BOX (hbox271), image350, FALSE, FALSE, 0);
+
+  label853 = gtk_label_new_with_mnemonic (_("_Browse"));
+  gtk_widget_set_name (label853, "label853");
+  gtk_widget_show (label853);
+  gtk_box_pack_start (GTK_BOX (hbox271), label853, FALSE, FALSE, 0);
+
+  label854 = gtk_label_new_with_mnemonic (_("Select a directory to save _downloads to"));
+  gtk_widget_set_name (label854, "label854");
+  gtk_widget_show (label854);
+  gtk_frame_set_label_widget (GTK_FRAME (frame119), label854);
+
+  frame121 = gtk_frame_new (NULL);
+  gtk_widget_set_name (frame121, "frame121");
+  gtk_widget_show (frame121);
+  gtk_box_pack_start (GTK_BOX (vbox137), frame121, FALSE, TRUE, 0);
+  gtk_container_set_border_width (GTK_CONTAINER (frame121), 4);
+
+  hbox277 = gtk_hbox_new (FALSE, 4);
+  gtk_widget_set_name (hbox277, "hbox277");
+  gtk_widget_show (hbox277);
+  gtk_container_add (GTK_CONTAINER (frame121), hbox277);
+  gtk_container_set_border_width (GTK_CONTAINER (hbox277), 2);
+
+  entry_wizard_upload_paths = gtk_entry_new ();
+  gtk_widget_set_name (entry_wizard_upload_paths, "entry_wizard_upload_paths");
+  gtk_widget_show (entry_wizard_upload_paths);
+  gtk_box_pack_start (GTK_BOX (hbox277), entry_wizard_upload_paths, TRUE, TRUE, 0);
+  gtk_editable_set_editable (GTK_EDITABLE (entry_wizard_upload_paths), FALSE);
+
+  button_wizard_upload_paths = gtk_button_new ();
+  gtk_widget_set_name (button_wizard_upload_paths, "button_wizard_upload_paths");
+  gtk_widget_show (button_wizard_upload_paths);
+  gtk_box_pack_start (GTK_BOX (hbox277), button_wizard_upload_paths, FALSE, FALSE, 0);
+  gtk_button_set_relief (GTK_BUTTON (button_wizard_upload_paths), GTK_RELIEF_NONE);
+
+  alignment105 = gtk_alignment_new (0.5, 0.5, 0, 0);
+  gtk_widget_set_name (alignment105, "alignment105");
+  gtk_widget_show (alignment105);
+  gtk_container_add (GTK_CONTAINER (button_wizard_upload_paths), alignment105);
+
+  hbox278 = gtk_hbox_new (FALSE, 2);
+  gtk_widget_set_name (hbox278, "hbox278");
+  gtk_widget_show (hbox278);
+  gtk_container_add (GTK_CONTAINER (alignment105), hbox278);
+
+  image352 = gtk_image_new_from_stock ("gtk-open", GTK_ICON_SIZE_BUTTON);
+  gtk_widget_set_name (image352, "image352");
+  gtk_widget_show (image352);
+  gtk_box_pack_start (GTK_BOX (hbox278), image352, FALSE, FALSE, 0);
+
+  label860 = gtk_label_new_with_mnemonic (_("_Browse"));
+  gtk_widget_set_name (label860, "label860");
+  gtk_widget_show (label860);
+  gtk_box_pack_start (GTK_BOX (hbox278), label860, FALSE, FALSE, 0);
+
+  label861 = gtk_label_new_with_mnemonic (_("Select one or more directories to be _shared on the Gnutella network:"));
+  gtk_widget_set_name (label861, "label861");
+  gtk_widget_show (label861);
+  gtk_frame_set_label_widget (GTK_FRAME (frame121), label861);
+
+  frame120 = gtk_frame_new (NULL);
+  gtk_widget_set_name (frame120, "frame120");
+  gtk_widget_show (frame120);
+  gtk_box_pack_start (GTK_BOX (vbox137), frame120, FALSE, TRUE, 4);
+  gtk_container_set_border_width (GTK_CONTAINER (frame120), 4);
+
+  hbox279 = gtk_hbox_new (FALSE, 4);
+  gtk_widget_set_name (hbox279, "hbox279");
+  gtk_widget_show (hbox279);
+  gtk_container_add (GTK_CONTAINER (frame120), hbox279);
+
+  label855 = gtk_label_new_with_mnemonic (_("Listen on TCP _port:"));
+  gtk_widget_set_name (label855, "label855");
+  gtk_widget_show (label855);
+  gtk_box_pack_start (GTK_BOX (hbox279), label855, FALSE, FALSE, 4);
+
+  spinbutton_wizard_port_adj = gtk_adjustment_new (8430, 0, 65535, 1, 10, 10);
+  spinbutton_wizard_port = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_wizard_port_adj), 1, 0);
+  gtk_widget_set_name (spinbutton_wizard_port, "spinbutton_wizard_port");
+  gtk_widget_show (spinbutton_wizard_port);
+  gtk_box_pack_start (GTK_BOX (hbox279), spinbutton_wizard_port, FALSE, TRUE, 0);
+  gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_wizard_port), TRUE);
+
+  label866 = gtk_label_new (_("Make sure your firewall does not block this port!"));
+  gtk_widget_set_name (label866, "label866");
+  gtk_widget_show (label866);
+  gtk_box_pack_start (GTK_BOX (hbox279), label866, TRUE, TRUE, 0);
+  gtk_misc_set_padding (GTK_MISC (label866), 4, 0);
+
+  label862 = gtk_label_new (_("Incoming connections"));
+  gtk_widget_set_name (label862, "label862");
+  gtk_widget_show (label862);
+  gtk_frame_set_label_widget (GTK_FRAME (frame120), label862);
+
+  frame122 = gtk_frame_new (NULL);
+  gtk_widget_set_name (frame122, "frame122");
+  gtk_widget_show (frame122);
+  gtk_box_pack_start (GTK_BOX (vbox137), frame122, FALSE, TRUE, 4);
+  gtk_container_set_border_width (GTK_CONTAINER (frame122), 4);
+
+  optionmenu_wizard_connection = gtk_option_menu_new ();
+  gtk_widget_set_name (optionmenu_wizard_connection, "optionmenu_wizard_connection");
+  gtk_widget_show (optionmenu_wizard_connection);
+  gtk_container_add (GTK_CONTAINER (frame122), optionmenu_wizard_connection);
+  gtk_container_set_border_width (GTK_CONTAINER (optionmenu_wizard_connection), 4);
+
+  menu1 = gtk_menu_new ();
+  gtk_widget_set_name (menu1, "menu1");
+
+  menu_wizard_connection_unknown = gtk_menu_item_new_with_mnemonic (_("Unknown"));
+  gtk_widget_set_name (menu_wizard_connection_unknown, "menu_wizard_connection_unknown");
+  gtk_widget_show (menu_wizard_connection_unknown);
+  gtk_container_add (GTK_CONTAINER (menu1), menu_wizard_connection_unknown);
+
+  menu_wizard_connection_t3 = gtk_menu_item_new_with_mnemonic (_("T3"));
+  gtk_widget_set_name (menu_wizard_connection_t3, "menu_wizard_connection_t3");
+  gtk_widget_show (menu_wizard_connection_t3);
+  gtk_container_add (GTK_CONTAINER (menu1), menu_wizard_connection_t3);
+
+  menu_wizard_connection_t1 = gtk_menu_item_new_with_mnemonic (_("T1"));
+  gtk_widget_set_name (menu_wizard_connection_t1, "menu_wizard_connection_t1");
+  gtk_widget_show (menu_wizard_connection_t1);
+  gtk_container_add (GTK_CONTAINER (menu1), menu_wizard_connection_t1);
+
+  menu_wizard_connection_sdsl = gtk_menu_item_new_with_mnemonic (_("SDSL"));
+  gtk_widget_set_name (menu_wizard_connection_sdsl, "menu_wizard_connection_sdsl");
+  gtk_widget_show (menu_wizard_connection_sdsl);
+  gtk_container_add (GTK_CONTAINER (menu1), menu_wizard_connection_sdsl);
+
+  menu_wizard_connection_adsl = gtk_menu_item_new_with_mnemonic (_("ADSL"));
+  gtk_widget_set_name (menu_wizard_connection_adsl, "menu_wizard_connection_adsl");
+  gtk_widget_show (menu_wizard_connection_adsl);
+  gtk_container_add (GTK_CONTAINER (menu1), menu_wizard_connection_adsl);
+
+  menu_wizard_connection_isdn128 = gtk_menu_item_new_with_mnemonic (_("ISDN (128 kbps)"));
+  gtk_widget_set_name (menu_wizard_connection_isdn128, "menu_wizard_connection_isdn128");
+  gtk_widget_show (menu_wizard_connection_isdn128);
+  gtk_container_add (GTK_CONTAINER (menu1), menu_wizard_connection_isdn128);
+
+  menu_wizard_connection_isdn64 = gtk_menu_item_new_with_mnemonic (_("ISDN (64 kbps)"));
+  gtk_widget_set_name (menu_wizard_connection_isdn64, "menu_wizard_connection_isdn64");
+  gtk_widget_show (menu_wizard_connection_isdn64);
+  gtk_container_add (GTK_CONTAINER (menu1), menu_wizard_connection_isdn64);
+
+  menu_wizard_connection_modem = gtk_menu_item_new_with_mnemonic (_("Analog modem (56 kbps)"));
+  gtk_widget_set_name (menu_wizard_connection_modem, "menu_wizard_connection_modem");
+  gtk_widget_show (menu_wizard_connection_modem);
+  gtk_container_add (GTK_CONTAINER (menu1), menu_wizard_connection_modem);
+
+  gtk_option_menu_set_menu (GTK_OPTION_MENU (optionmenu_wizard_connection), menu1);
+
+  label864 = gtk_label_new_with_mnemonic (_("Type of internet _connection"));
+  gtk_widget_set_name (label864, "label864");
+  gtk_widget_show (label864);
+  gtk_frame_set_label_widget (GTK_FRAME (frame122), label864);
+  gtk_label_set_use_markup (GTK_LABEL (label864), TRUE);
+
+  label865 = gtk_label_new (_("These are only the basic settings. You can change them at any time later from the <i>Config</i> section. You'll also find a lot more fine-grained options to suit your needs."));
+  gtk_widget_set_name (label865, "label865");
+  gtk_widget_show (label865);
+  gtk_box_pack_start (GTK_BOX (vbox137), label865, TRUE, TRUE, 0);
+  gtk_label_set_use_markup (GTK_LABEL (label865), TRUE);
+  gtk_label_set_line_wrap (GTK_LABEL (label865), TRUE);
+  gtk_misc_set_padding (GTK_MISC (label865), 4, 4);
+
+  dialog_action_area2 = GTK_DIALOG (dlg_wizard)->action_area;
+  gtk_widget_set_name (dialog_action_area2, "dialog_action_area2");
+  gtk_widget_show (dialog_action_area2);
+
+  button_wizard_ok = gtk_button_new_from_stock ("gtk-ok");
+  gtk_widget_set_name (button_wizard_ok, "button_wizard_ok");
+  gtk_widget_show (button_wizard_ok);
+  gtk_dialog_add_action_widget (GTK_DIALOG (dlg_wizard), button_wizard_ok, GTK_RESPONSE_OK);
+  GTK_WIDGET_SET_FLAGS (button_wizard_ok, GTK_CAN_DEFAULT);
+
+  g_signal_connect ((gpointer) button_wizard_download_path, "clicked",
+                    G_CALLBACK (on_button_config_save_path_clicked),
+                    NULL);
+  g_signal_connect ((gpointer) button_wizard_upload_paths, "clicked",
+                    G_CALLBACK (on_button_config_save_path_clicked),
+                    NULL);
+  g_signal_connect ((gpointer) menu_wizard_connection_unknown, "activate",
+                    G_CALLBACK (on_menu_wizard_connection_unknown_activate),
+                    NULL);
+  g_signal_connect ((gpointer) menu_wizard_connection_t3, "activate",
+                    G_CALLBACK (on_menu_wizard_connection_t3_activate),
+                    NULL);
+  g_signal_connect ((gpointer) menu_wizard_connection_t1, "activate",
+                    G_CALLBACK (on_menu_wizard_connection_t1_activate),
+                    NULL);
+  g_signal_connect ((gpointer) menu_wizard_connection_sdsl, "activate",
+                    G_CALLBACK (on_menu_wizard_connection_sdsl_activate),
+                    NULL);
+  g_signal_connect ((gpointer) menu_wizard_connection_adsl, "activate",
+                    G_CALLBACK (on_menu_wizard_connection_adsl_activate),
+                    NULL);
+  g_signal_connect ((gpointer) menu_wizard_connection_isdn128, "activate",
+                    G_CALLBACK (on_menu_wizard_connection_isdn128_activate),
+                    NULL);
+  g_signal_connect ((gpointer) menu_wizard_connection_isdn64, "activate",
+                    G_CALLBACK (on_menu_wizard_connection_isdn64_activate),
+                    NULL);
+  g_signal_connect ((gpointer) menu_wizard_connection_modem, "activate",
+                    G_CALLBACK (on_menu_wizard_connection_modem_activate),
+                    NULL);
+
+  gtk_label_set_mnemonic_widget (GTK_LABEL (label854), button_wizard_download_path);
+  gtk_label_set_mnemonic_widget (GTK_LABEL (label855), spinbutton_wizard_port);
+  gtk_label_set_mnemonic_widget (GTK_LABEL (label864), optionmenu_wizard_connection);
+
+  /* Store pointers to all widgets, for use by lookup_widget(). */
+  GLADE_HOOKUP_OBJECT_NO_REF (dlg_wizard, dlg_wizard, "dlg_wizard");
+  GLADE_HOOKUP_OBJECT_NO_REF (dlg_wizard, dialog_vbox2, "dialog_vbox2");
+  GLADE_HOOKUP_OBJECT (dlg_wizard, vbox137, "vbox137");
+  GLADE_HOOKUP_OBJECT (dlg_wizard, label863, "label863");
+  GLADE_HOOKUP_OBJECT (dlg_wizard, frame119, "frame119");
+  GLADE_HOOKUP_OBJECT (dlg_wizard, hbox270, "hbox270");
+  GLADE_HOOKUP_OBJECT (dlg_wizard, entry_wizard_download_path, "entry_wizard_download_path");
+  GLADE_HOOKUP_OBJECT (dlg_wizard, button_wizard_download_path, "button_wizard_download_path");
+  GLADE_HOOKUP_OBJECT (dlg_wizard, alignment103, "alignment103");
+  GLADE_HOOKUP_OBJECT (dlg_wizard, hbox271, "hbox271");
+  GLADE_HOOKUP_OBJECT (dlg_wizard, image350, "image350");
+  GLADE_HOOKUP_OBJECT (dlg_wizard, label853, "label853");
+  GLADE_HOOKUP_OBJECT (dlg_wizard, label854, "label854");
+  GLADE_HOOKUP_OBJECT (dlg_wizard, frame121, "frame121");
+  GLADE_HOOKUP_OBJECT (dlg_wizard, hbox277, "hbox277");
+  GLADE_HOOKUP_OBJECT (dlg_wizard, entry_wizard_upload_paths, "entry_wizard_upload_paths");
+  GLADE_HOOKUP_OBJECT (dlg_wizard, button_wizard_upload_paths, "button_wizard_upload_paths");
+  GLADE_HOOKUP_OBJECT (dlg_wizard, alignment105, "alignment105");
+  GLADE_HOOKUP_OBJECT (dlg_wizard, hbox278, "hbox278");
+  GLADE_HOOKUP_OBJECT (dlg_wizard, image352, "image352");
+  GLADE_HOOKUP_OBJECT (dlg_wizard, label860, "label860");
+  GLADE_HOOKUP_OBJECT (dlg_wizard, label861, "label861");
+  GLADE_HOOKUP_OBJECT (dlg_wizard, frame120, "frame120");
+  GLADE_HOOKUP_OBJECT (dlg_wizard, hbox279, "hbox279");
+  GLADE_HOOKUP_OBJECT (dlg_wizard, label855, "label855");
+  GLADE_HOOKUP_OBJECT (dlg_wizard, spinbutton_wizard_port, "spinbutton_wizard_port");
+  GLADE_HOOKUP_OBJECT (dlg_wizard, label866, "label866");
+  GLADE_HOOKUP_OBJECT (dlg_wizard, label862, "label862");
+  GLADE_HOOKUP_OBJECT (dlg_wizard, frame122, "frame122");
+  GLADE_HOOKUP_OBJECT (dlg_wizard, optionmenu_wizard_connection, "optionmenu_wizard_connection");
+  GLADE_HOOKUP_OBJECT (dlg_wizard, menu1, "menu1");
+  GLADE_HOOKUP_OBJECT (dlg_wizard, menu_wizard_connection_unknown, "menu_wizard_connection_unknown");
+  GLADE_HOOKUP_OBJECT (dlg_wizard, menu_wizard_connection_t3, "menu_wizard_connection_t3");
+  GLADE_HOOKUP_OBJECT (dlg_wizard, menu_wizard_connection_t1, "menu_wizard_connection_t1");
+  GLADE_HOOKUP_OBJECT (dlg_wizard, menu_wizard_connection_sdsl, "menu_wizard_connection_sdsl");
+  GLADE_HOOKUP_OBJECT (dlg_wizard, menu_wizard_connection_adsl, "menu_wizard_connection_adsl");
+  GLADE_HOOKUP_OBJECT (dlg_wizard, menu_wizard_connection_isdn128, "menu_wizard_connection_isdn128");
+  GLADE_HOOKUP_OBJECT (dlg_wizard, menu_wizard_connection_isdn64, "menu_wizard_connection_isdn64");
+  GLADE_HOOKUP_OBJECT (dlg_wizard, menu_wizard_connection_modem, "menu_wizard_connection_modem");
+  GLADE_HOOKUP_OBJECT (dlg_wizard, label864, "label864");
+  GLADE_HOOKUP_OBJECT (dlg_wizard, label865, "label865");
+  GLADE_HOOKUP_OBJECT_NO_REF (dlg_wizard, dialog_action_area2, "dialog_action_area2");
+  GLADE_HOOKUP_OBJECT (dlg_wizard, button_wizard_ok, "button_wizard_ok");
+
+  return dlg_wizard;
 }
 

@@ -141,7 +141,7 @@ void on_popup_uploads_config_cols_activate(
     GtkWidget *cc;
 
     cc = gtk_column_chooser_new(lookup_widget(main_window, "treeview_uploads"));
-    gtk_menu_popup(GTK_MENU(cc), NULL, NULL, NULL, NULL, 1, 0);
+    gtk_menu_popup(GTK_MENU(cc), NULL, NULL, NULL, NULL, 0, GDK_CURRENT_TIME);
 }
 
 static void uploads_kill_helper(
