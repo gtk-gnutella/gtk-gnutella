@@ -1,0 +1,20 @@
+?RCS:
+?RCS: @COPYRIGHT@
+?RCS:
+?MAKE:d_getinvent: Inlibc
+?MAKE: -pick add $@ %<
+?S:d_getinvent:
+?S:    This variable conditionally defines the HAS_GETINVENT symbol, which
+?S:    indicates to the C program that the getinvent() routine is available.
+?S:.
+?C:HAS_GETINVENT:
+?C:    This symbol, if defined, indicates that the getinvent routine is
+?C:    available.
+?C:.
+?H:#$d_getinvent       HAS_GETINVENT           /**/
+?H:.
+?LINT:set d_getinvent
+: see if getinvent exists
+set getinvent d_getinvent
+eval $inlibc
+
