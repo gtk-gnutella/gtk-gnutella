@@ -41,7 +41,7 @@
 
 RCSID("$Id$");
 
-#define TOKEN_CLOCK_SKEW	1800		/* +/- 30 minutes */
+#define TOKEN_CLOCK_SKEW	3600		/* +/- 1 hour */
 #define TOKEN_LIFE			60			/* lifetime of our tokens */
 #define TOKEN_BASE64_SIZE	(TOKEN_VERSION_SIZE * 4 / 3)	/* base64 size */
 #define LEVEL_SIZE			(2 * G_N_ELEMENTS(token_keys))	/* at most */
