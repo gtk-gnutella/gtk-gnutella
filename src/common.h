@@ -108,8 +108,8 @@ typedef void (*GCallback) (void);
 #define GTA_VERSION 0
 #define GTA_SUBVERSION 92
 #define GTA_PATCHLEVEL 0
-#define GTA_REVISION "candidate"
-#define GTA_REVCHAR "c"
+#define GTA_REVISION "unstable"
+#define GTA_REVCHAR "u"
 #define GTA_INTERFACE "X11"
 #define GTA_RELEASE "25/05/2003"
 #define GTA_WEBSITE "http://gtk-gnutella.sourceforge.net/"
@@ -118,7 +118,7 @@ typedef void (*GCallback) (void);
  * without installing it first. Thus, look for icons etc. in $srcdir.
  * XXX: Comment this out for releases! */
 
-#if 0
+#if 1
 #define USE_SOURCE_DIR_AS_FALLBACK
 #endif
 
