@@ -1,5 +1,13 @@
 # since last version
 
+- (2003.10.06 - RAM)
+ * The property system now remembers when a saved property is changed, and
+   supports a new prop_save_to_file_if_dirty() call that will perform a
+   save only if a saved property changed since last flush to disk.
+ * Added lazy property saving to the slow main timer.
+ * Added atexit() hook to allow GTKG to cleanup properly when a library
+   calls exit() directly, especially when the connection with X is lost.
+
 - (2003.10.05 - RAM)
  * Added parsing of new compact X-Alt header and generation of that new header
    to servents who have shown support for it.
