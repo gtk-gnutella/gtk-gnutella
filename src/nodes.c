@@ -88,6 +88,7 @@ RCSID("$Id$");
 #define ALIVE_MAX_PENDING		6	/* Max unanswered pings in a row */
 #define ALIVE_MAX_PENDING_LEAF	4	/* Max unanswered pings in a row (leaves) */
 
+#define NODE_MIN_UP_CONNECTIONS	25		/* Require 25 peer connections for UP */
 #define NODE_MIN_UPTIME			3600	/* Minumum uptime to become an UP */
 #define NODE_MIN_AVG_UPTIME		10800	/* Average uptime to become an UP */
 #define NODE_AVG_LEAF_MEM		262144	/* Average memory used by leaf */
@@ -469,6 +470,7 @@ static gboolean can_become_ultra(time_t now)
 	gboolean avg_ip_uptime;
 	gboolean node_uptime;
 	gboolean not_firewalled;
+	gboolean enough_conn;
 	gboolean enough_fd;
 	gboolean enough_mem;
 	gboolean enough_bw;
@@ -508,6 +510,9 @@ static gboolean can_become_ultra(time_t now)
 	/* Bandwidth requirements */
 	enough_bw = bsched_enough_up_bandwidth();
 
+	/* Connection requirements */
+	enough_conn = up_connections >= NODE_MIN_UP_CONNECTIONS;
+
 #define OK(b)	((b) ? ok : no)
 
 	if (dbg > 3) {
@@ -516,6 +521,7 @@ static gboolean can_become_ultra(time_t now)
 		printf(" * Sufficient IP address uptime: %s\n", OK(avg_ip_uptime));
 		printf(" * Sufficient node uptime      : %s\n", OK(node_uptime));
 		printf(" * Node not firewalled         : %s\n", OK(not_firewalled));
+		printf(" * Enough min peer connections : %s\n", OK(enough_conn));
 		printf(" * Enough file descriptors     : %s\n", OK(enough_fd));
 		printf(" * Enough physical memory      : %s\n", OK(enough_mem));
 		printf(" * Enough available bandwidth  : %s\n", OK(enough_bw));
@@ -532,6 +538,7 @@ static gboolean can_become_ultra(time_t now)
 	gnet_prop_set_boolean_val(PROP_UP_REQ_AVG_IP_UPTIME,  avg_ip_uptime);
 	gnet_prop_set_boolean_val(PROP_UP_REQ_NODE_UPTIME,    node_uptime);
 	gnet_prop_set_boolean_val(PROP_UP_REQ_NOT_FIREWALLED, not_firewalled);
+	gnet_prop_set_boolean_val(PROP_UP_REQ_ENOUGH_CONN,    enough_conn);
 	gnet_prop_set_boolean_val(PROP_UP_REQ_ENOUGH_FD,      enough_fd);
 	gnet_prop_set_boolean_val(PROP_UP_REQ_ENOUGH_MEM,     enough_mem);
 	gnet_prop_set_boolean_val(PROP_UP_REQ_ENOUGH_BW,      enough_bw);
@@ -1144,9 +1151,17 @@ static void node_remove_v(
 		n->qrt_receive = NULL;
 	}
 
-	if (n->query_table) {
-		qrt_unref(n->query_table);
-		n->query_table = NULL;
+	if (n->recv_query_table) {
+		qrt_unref(n->recv_query_table);
+		n->recv_query_table = NULL;
+
+		if (NODE_IS_LEAF(n))		/* Lost a leaf with a QRT... */
+			qrp_leaf_changed();		/* Might change the inter-UP QRT */
+	}
+
+	if (n->sent_query_table) {
+		qrt_unref(n->sent_query_table);
+		n->sent_query_table = NULL;
 	}
 
 	if (n->qrt_info) {
@@ -2438,12 +2453,20 @@ static void node_is_now_connected(struct gnutella_node *n)
 		return;
 	}
 
-	if (current_peermode == NODE_P_LEAF) {
+	/*
+	 * Initiate QRP sending if we're a leaf node or if we're an ultra node
+	 * and the remote note is an UP supporting last-hop QRP.
+	 */
+
+	if (
+		current_peermode == NODE_P_LEAF ||
+		(current_peermode == NODE_P_ULTRA && (n->attrs & NODE_A_UP_QRP))
+	) {
 		gpointer qrt = qrt_get_table();
 
 		/*
 		 * If we don't even have our first QRT computed yet, we
-		 * will send it to our ultranode when node_qrt_changed()
+		 * will send it to the ultranode when node_qrt_changed()
 		 * is called by the computation code.
 		 */
 
@@ -3751,6 +3774,26 @@ static void node_process_handshake_header(
 	}
 
 	/*
+	 * X-Ultrapeer-Query-Routing -- last hop QRP for inter-UP traffic
+	 */
+
+	field = header_get(head, "X-Ultrapeer-Query-Routing");
+	if (field) {
+		guint major, minor;
+		sscanf(field, "%u.%u", &major, &minor);
+		if (major > 0 || minor > 1)
+			if (dbg) g_warning("node %s <%s> claims Ultra QRP version %u.%u",
+				node_ip(n), node_vendor(n), major, minor);
+		n->uqrp_major = (guint8) major;
+		n->uqrp_minor = (guint8) minor;
+		if (n->attrs & NODE_A_ULTRA)
+			n->attrs |= NODE_A_UP_QRP;
+		else if (dbg)
+			g_warning("non-ultra node %s <%s> claims Ultra QRP version %u.%u",
+				node_ip(n), node_vendor(n), major, minor);
+	}
+
+	/*
 	 * Check that remote host speaks a protocol we can accept.
 	 */
 
@@ -3920,6 +3963,7 @@ static void node_process_handshake_header(
 				"%s"		/* X-Ultrapeer */
 				"%s"		/* X-Ultrapeer-Needed */
 				"%s"		/* X-Query-Routing */
+				"%s"		/* X-Ultrapeer-Query-Routing */
 				"X-Token: %s\r\n"
 				"X-Live-Since: %s\r\n",
 				version_string, ip_to_gchar(n->socket->ip),
@@ -3934,6 +3978,8 @@ static void node_process_handshake_header(
 					"",
 				current_peermode != NODE_P_NORMAL ?
 					node_query_routing_header(n) : "",
+				current_peermode == NODE_P_ULTRA ?
+					"X-Ultrapeer-Query-Routing: 0.1\r\n" : "",
 				tok_version(), start_rfc822_date);
 				
 			header_features_generate(&xfeatures.connections,
@@ -4417,7 +4463,10 @@ static void node_parse(struct gnutella_node *node)
             gnet_stats_count_dropped(n, MSG_DROP_IMPROPER_HOPS_TTL);
 		} else if (
 			current_peermode != NODE_P_ULTRA ||
-			n->peermode != NODE_P_LEAF
+			!(
+				n->peermode == NODE_P_LEAF ||
+				(n->peermode == NODE_P_ULTRA && (n->attrs & NODE_A_UP_QRP))
+			)
 		) {
 			drop = TRUE;
 			gnet_stats_count_dropped(n, MSG_DROP_UNEXPECTED);
@@ -4509,7 +4558,7 @@ static void node_parse(struct gnutella_node *node)
 		/* NOTREACHED */
 	case GTA_MSG_QRP:				/* Query Routing table propagation */
 		if (n->qrt_receive == NULL) {
-			n->qrt_receive = qrt_receive_create(n, n->query_table);
+			n->qrt_receive = qrt_receive_create(n, n->recv_query_table);
 			node_fire_node_flags_changed(n);
 		}
 		if (n->qrt_receive != NULL) {
@@ -4569,10 +4618,21 @@ static void node_parse(struct gnutella_node *node)
 			 * it to the leaf even if its TTL is zero when it reaches us
 			 * (handled by route_message() directly).
 			 */
+
 			if (NODE_IS_LEAF(n)) {
 				n->header.ttl++;
 				n->header.hops--;
 			}
+
+			/*
+			 * We may forward this message to our leaves.  Ensure it does
+			 * not appear to have expired here.  Leave the hop count intact
+			 * though.
+			 */
+
+			if (current_peermode == NODE_P_ULTRA && n->header.ttl == 0)
+				n->header.ttl++;
+
 			break;
 		case GTA_MSG_SEARCH_RESULTS:
             /*
@@ -4604,7 +4664,8 @@ static void node_parse(struct gnutella_node *node)
 				gmsg_sendto_route(n, &dest);
 
 			/*
-			 * If message was a query, route it to the appropriate leaves.
+			 * If message was a query, route it to the appropriate leaves
+			 * or to UPs that support last-hop QRP if TTL=1.
 			 * In that case, we have a non-NULL query hash vector `qhv'.
 			 */
 
@@ -4650,7 +4711,8 @@ void node_init_outgoing(struct gnutella_node *n)
 		"X-Token: %s\r\n"
 		"X-Live-Since: %s\r\n"
 		"%s"		/* X-Ultrapeer */
-		"%s",		/* X-Query-Routing */
+		"%s"		/* X-Query-Routing */
+		"%s",		/* X-Ultrapeer-Query-Routing */
 		GNUTELLA_HELLO,
 		n->proto_major, n->proto_minor,
 		ip_port_to_gchar(listen_ip(), listen_port),
@@ -4659,7 +4721,9 @@ void node_init_outgoing(struct gnutella_node *n)
 		current_peermode == NODE_P_NORMAL ? "" :
 		current_peermode == NODE_P_LEAF ?
 			"X-Ultrapeer: False\r\n": "X-Ultrapeer: True\r\n",
-		current_peermode != NODE_P_NORMAL ? "X-Query-Routing: 0.2\r\n" : ""
+		current_peermode != NODE_P_NORMAL ? "X-Query-Routing: 0.2\r\n" : "",
+		current_peermode == NODE_P_ULTRA ?
+			"X-Ultrapeer-Query-Routing: 0.1\r\n" : ""
 	);
 
 	header_features_generate(&xfeatures.connections, buf, sizeof(buf), &len);
@@ -5188,17 +5252,17 @@ gboolean node_remove_worst(gboolean non_local)
  */
 static void node_send_qrt(struct gnutella_node *n, gpointer query_table)
 {
-	g_assert(current_peermode == NODE_P_LEAF);
+	g_assert(current_peermode != NODE_P_NORMAL);
 	g_assert(NODE_IS_ULTRA(n));
 	g_assert(query_table != NULL);
 	g_assert(n->qrt_update == NULL);
 
-	n->qrt_update = qrt_update_create(n, n->query_table);
+	n->qrt_update = qrt_update_create(n, n->sent_query_table);
 
-	if (n->query_table)
-		qrt_unref(n->query_table);
+	if (n->sent_query_table)
+		qrt_unref(n->sent_query_table);
 
-	n->query_table = qrt_ref(query_table);
+	n->sent_query_table = qrt_ref(query_table);
 	node_send_patch_step(n);
 
 	node_fire_node_flags_changed(n);
@@ -5226,33 +5290,45 @@ static void node_send_patch_step(struct gnutella_node *n)
 	ok = qrt_update_was_ok(n->qrt_update);
 
 	if (dbg > 2)
-		printf("QRP patch sending to %s done (%s)\n",
+		printf("QRP %spatch sending to %s done (%s)\n",
+			(n->flags & NODE_F_STALE_QRP) ? "stale " : "",
 			node_ip(n), ok ? "OK" : "FAILED");
 
 	if (!ok) {
-		qrt_unref(n->query_table);
-		n->query_table = NULL;			/* Table was not successfuly sent */
+		qrt_unref(n->sent_query_table);
+		n->sent_query_table = NULL;			/* Table was not successfuly sent */
 	}
 
 	qrt_update_free(n->qrt_update);
 	n->qrt_update = NULL;
 
 	node_fire_node_flags_changed(n);
+
+	/*
+	 * If node was sending a stale QRP patch, we need to send an update.
+	 */
+
+	if (n->flags & NODE_F_STALE_QRP) {
+		gpointer qrt = qrt_get_table();		/* Latest routing table */
+		n->flags &= ~NODE_F_STALE_QRP;		/* Clear flag */
+		g_assert(qrt != NULL);				/* Must have a valid table now */
+		node_send_qrt(n, qrt);
+	}
 }
 
 /*
  * node_qrt_discard
  *
- * Invoked when a leaf sends us a RESET message, making the existing
+ * Invoked when remote sends us a RESET message, making the existing
  * routing table obsolete.
  */
 void node_qrt_discard(struct gnutella_node *n)
 {
-	g_assert(n->peermode == NODE_P_LEAF);
+	g_assert(n->peermode == NODE_P_LEAF || n->peermode == NODE_P_ULTRA);
 
-	if (n->query_table != NULL) {
-		qrt_unref(n->query_table);
-		n->query_table = NULL;
+	if (n->recv_query_table != NULL) {
+		qrt_unref(n->recv_query_table);
+		n->recv_query_table = NULL;
 	}
 	if (n->qrt_info != NULL) {
 		wfree(n->qrt_info, sizeof(*n->qrt_info));
@@ -5269,11 +5345,11 @@ void node_qrt_discard(struct gnutella_node *n)
  */
 void node_qrt_install(struct gnutella_node *n, gpointer query_table)
 {
-	g_assert(NODE_IS_LEAF(n));
-	g_assert(n->query_table == NULL);
+	g_assert(NODE_IS_LEAF(n) || NODE_IS_ULTRA(n));
+	g_assert(n->recv_query_table == NULL);
 	g_assert(n->qrt_info == NULL);
 
-	n->query_table = qrt_ref(query_table);
+	n->recv_query_table = qrt_ref(query_table);
 	n->qrt_info = walloc(sizeof(*n->qrt_info));
 	qrt_get_info(query_table, n->qrt_info);
 
@@ -5283,13 +5359,13 @@ void node_qrt_install(struct gnutella_node *n, gpointer query_table)
 /*
  * node_qrt_patched
  *
- * Invoked for ultra nodes when the Query Routing Table of a leaf was
+ * Invoked for ultra nodes when the Query Routing Table of remote node was
  * fully patched (i.e. we got a new generation).
  */
 void node_qrt_patched(struct gnutella_node *n, gpointer query_table)
 {
-	g_assert(NODE_IS_LEAF(n));
-	g_assert(n->query_table == query_table);
+	g_assert(NODE_IS_LEAF(n) || NODE_IS_ULTRA(n));
+	g_assert(n->recv_query_table == query_table);
 	g_assert(n->qrt_info != NULL);
 
 	qrt_get_info(query_table, n->qrt_info);
@@ -5298,7 +5374,7 @@ void node_qrt_patched(struct gnutella_node *n, gpointer query_table)
 /*
  * node_qrt_changed
  *
- * Invoked for leaf nodes when our Query Routing Table changed.
+ * Invoked for nodes when our Query Routing Table changed.
  */
 void node_qrt_changed(gpointer query_table)
 {
@@ -5306,29 +5382,40 @@ void node_qrt_changed(gpointer query_table)
 	GSList *sl;
 
 	/*
-	 * If we're not a leaf node, do nothing.
+	 * If we're in normal mode, do nothing.
+	 *
+	 * We have work to do when we're both a leaf and an ultra node, since
+	 * both can sent QRT to their peers (leaf nodes send QRT to their
+	 * ultranodes, and ultranodes send QRT to peer ultranodes supporting
+	 * the inter-UP QRP for last-hop queries).
 	 */
 
-	if (current_peermode != NODE_P_LEAF)
+	if (current_peermode == NODE_P_NORMAL)
 		return;
 
 	/*
-	 * Abort sending of any patch to ultranodes.
+	 * Abort sending of any patch to ultranodes, but only if we're a leaf
+	 * node.  If we're running as UP, then we'll continue to send our
+	 * UP QRP patch to remote UPs, even if it is slightly obsolete.  The
+	 * node will be marked with NODE_F_STALE_QRP so we do not forget the
+	 * patch was stale.
 	 */
 
-    for (sl = sl_nodes; sl; sl = g_slist_next(sl)) {
-        n = sl->data;
-		if (n->qrt_update != NULL) {
-			qrt_update_free(n->qrt_update);
-			n->qrt_update = NULL;
-			qrt_unref(n->query_table);
-			n->query_table = NULL;		/* Sending did not complete */
+	if (current_peermode == NODE_P_LEAF) {
+		for (sl = sl_nodes; sl; sl = g_slist_next(sl)) {
+			n = sl->data;
+			if (n->qrt_update != NULL) {
+				qrt_update_free(n->qrt_update);
+				n->qrt_update = NULL;
+				qrt_unref(n->sent_query_table);
+				n->sent_query_table = NULL;		/* Sending did not complete */
+			}
 		}
 	}
 
 	/*
 	 * Start sending of patch wrt to the previous table to all ultranodes.
-	 * (n->query_table holds the last query table we successfully sent)
+	 * (n->sent_query_table holds the last query table we successfully sent)
 	 */
 
     for (sl = sl_nodes; sl; sl = g_slist_next(sl)) {
@@ -5336,6 +5423,20 @@ void node_qrt_changed(gpointer query_table)
 
 		if (!NODE_IS_WRITABLE(n) || !NODE_IS_ULTRA(n))
 			continue;
+
+		if (current_peermode == NODE_P_ULTRA && !(n->attrs & NODE_A_UP_QRP))
+			continue;
+
+		/*
+		 * If we see a node that is still busy sending the old patch, mark
+		 * is as holding an obsolete QRP.  It will get the latest patch as
+		 * soon as this one completes.
+		 */
+
+		if (n->qrt_update != NULL) {
+			n->flags |= NODE_F_STALE_QRP;
+			continue;
+		}
 
 		node_send_qrt(n, query_table);
 	}
@@ -5386,8 +5487,10 @@ void node_close(void)
 			qrt_update_free(n->qrt_update);
 		if (n->qrt_receive)
 			qrt_receive_free(n->qrt_receive);
-		if (n->query_table)
-			qrt_unref(n->query_table);
+		if (n->sent_query_table)
+			qrt_unref(n->sent_query_table);
+		if (n->recv_query_table)
+			qrt_unref(n->recv_query_table);
 		if (n->qrt_info)
 			wfree(n->qrt_info, sizeof(*n->qrt_info));
 		if (n->rxfc)
@@ -5602,17 +5705,36 @@ void node_fill_flags(const gnet_node_t n, gnet_node_flags_t *flags)
 	flags->is_proxying = node->proxy_ip != 0;
 
 	flags->qrt_state = QRT_S_NONE;
+	flags->uqrt_state = QRT_S_NONE;
+
 	if (node->peermode == NODE_P_LEAF) {
-		if (node->qrt_receive != NULL) {
-			flags->qrt_state = node->query_table != NULL ?
+		/* Remote leaf connected to us, ultranode */
+		if (node->qrt_receive != NULL)
+			flags->qrt_state = node->recv_query_table != NULL ?
 				QRT_S_PATCHING : QRT_S_RECEIVING;
-		} else if (node->query_table != NULL)
+		else if (node->recv_query_table != NULL)
 			flags->qrt_state = QRT_S_RECEIVED;
 	} else if (node->peermode == NODE_P_ULTRA) {
-		if (node->qrt_update != NULL)
-			flags->qrt_state = QRT_S_SENDING;
-		else if (node->query_table != NULL)
-			flags->qrt_state = QRT_S_SENT;
+		if (current_peermode == NODE_P_ULTRA) {
+			/* Remote ultranode connected to us, ultranode */
+			if (node->qrt_receive != NULL)
+				flags->qrt_state = node->recv_query_table != NULL ?
+					QRT_S_PATCHING : QRT_S_RECEIVING;
+			else if (node->recv_query_table != NULL)
+				flags->qrt_state = QRT_S_RECEIVED;
+			if (node->qrt_update != NULL)
+				flags->uqrt_state = node->sent_query_table != NULL ?
+					QRT_S_PATCHING : QRT_S_SENDING;
+			else if (node->sent_query_table != NULL)
+				flags->uqrt_state = QRT_S_SENT;
+		} else {
+			/* Ultranode connected to us, leaf node */
+			if (node->qrt_update != NULL)
+				flags->qrt_state = node->sent_query_table != NULL ?
+					QRT_S_PATCHING : QRT_S_SENDING;
+			else if (node->sent_query_table != NULL)
+				flags->qrt_state = QRT_S_SENT;
+		}
 	}
 }
 
@@ -5671,7 +5793,8 @@ void node_get_status(const gnet_node_t n, gnet_node_status_t *status)
 
 	status->qrp_efficiency =
 		(gfloat) node->qrp_matches / (gfloat) MAX(1, node->qrp_queries);
-	status->has_qrp = node_ultra_received_qrp(node);
+	status->has_qrp = current_peermode == NODE_P_LEAF &&
+		node_ultra_received_qrp(node);
 
 	if (node->qrt_info != NULL) {
 		qrt_info_t *qi = node->qrt_info;

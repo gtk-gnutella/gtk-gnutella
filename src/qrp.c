@@ -3,8 +3,6 @@
  *
  * Copyright (c) 2002-2003, Raphael Manfredi
  *
- * Query Routing Protocol (LimeWire's scheme).
- *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
  *
@@ -25,6 +23,12 @@
  *----------------------------------------------------------------------
  */
 
+/**
+ * @file
+ *
+ * Query Routing Protocol (LimeWire's scheme).
+ */
+
 #include "gnutella.h"
 
 #include <stdio.h>					/* For qrt_dump() */
@@ -32,6 +36,7 @@
 #include <math.h>
 #include <zlib.h>
 
+#include "cq.h"
 #include "qrp.h"
 #include "routing.h"				/* For message_set_muid() */
 #include "gmsg.h"
@@ -48,6 +53,9 @@ RCSID("$Id$");
 #define MAX_TABLE_BITS		21		/* 2 MB */
 
 #define MAX_TABLE_SIZE		(1 << MAX_TABLE_BITS)
+#define EMPTY_TABLE_SIZE	8
+
+#define LEAF_MONITOR_PERIOD	(90 * 1000)	/* 1.5 minutes, in ms */
 
 #define QRP_ROUTE_MAGIC		0x30011ab1
 
@@ -71,6 +79,7 @@ struct routing_table {
 	gint fill_ratio;		/* 100 * fill ratio for table (received) */
 	gint pass_throw;		/* Query must pass a d100 throw to be forwarded */
 	gchar *digest;			/* SHA1 digest of the whole table (atom) */
+	gchar *name;			/* Name for dumping purposes */
 	gboolean compacted;
 };
 
@@ -89,20 +98,53 @@ struct routing_patch {
 static char_map_t qrp_map;
 static struct routing_table *routing_table = NULL;	/* Our table */
 static struct routing_patch *routing_patch = NULL;	/* Against empty table */
+static struct routing_table *local_table = NULL;	/* Table for local files */
+static struct routing_table *merged_table = NULL;	/* From all our leaves */
 static gint generation = 0;
 
 static gchar qrp_tmp[4096];
 
 static void qrt_compress_cancel_all(void);
-static void qrt_patch_compute(void);
+static void qrt_patch_compute(
+	struct routing_table *rt, struct routing_patch **rpp);
 static guint32 qrt_dump(FILE *f, struct routing_table *rt, gboolean full);
 
-/*
- * qrp_hashcode
- *
+static void qrp_monitor(cqueue_t *cq, gpointer obj);
+
+static gpointer monitor_ev = NULL;
+
+extern cqueue_t *callout_queue;
+
+/**
+ * Install supplied routing_table as the global `routing_table'.
+ */
+static void
+install_routing_table(struct routing_table *rt)
+{
+	g_assert(rt != NULL);
+
+	if (routing_table != NULL)
+		qrt_unref(routing_table);
+	routing_table = qrt_ref(rt);
+}
+
+/**
+ * Install supplied routing_table as the global `merged_table'.
+ * If the supplied table is NULL, we simply forget about the old table.
+ */
+static void
+install_merged_table(struct routing_table *rt)
+{
+	if (merged_table != NULL)
+		qrt_unref(merged_table);
+	merged_table = (rt == NULL) ? rt : qrt_ref(rt);
+}
+
+/**
  * Compute standard QRP hash code on 32 bits.
  */
-inline guint32 qrp_hashcode(gchar *x)
+inline guint32
+qrp_hashcode(gchar *x)
 {
 	guint32 xor = 0;		/* The running total */
 	gint j = 0;  			/* The byte position in xor */
@@ -134,57 +176,29 @@ inline guint32 qrp_hashcode(gchar *x)
 	return xor * A_INT;
 }
 
-/*
- * QRP_HASH_RESTRICT
- *
+/**
  * Restrict given hashcode to be a suitable index on `bits' bits.
  */
 #define QRP_HASH_RESTRICT(hashcode, bits) \
 	((guint32) (hashcode) >> (32 - (gint) (bits)))
 
-/*
- * qrp_hash		-- for tests only
+/**
+ * For tests only
  *
  * The hashing function, defined by the QRP specifications.
  * Naturally, everyone must use the SAME hashing function!
  */
-static guint32 qrp_hash(gchar *x, gint bits)
+static guint32
+qrp_hash(gchar *x, gint bits)
 {
 	return qrp_hashcode(x) >> (32 - bits);
-}
-
-/*
- * qrp_init
- *
- * Initialize QRP.
- */
-void qrp_init(char_map_t map)
-{
-	gint c;
-
-	g_assert(map);
-
-	for (c = 0; c < 256; c++)
-		qrp_map[c] = map[c];
-
-	/*
-	 * Having a working hash function is critical.
-	 * Check that the implementation is not broken by accident.
-	 */
-
-	g_assert(qrp_hash("ebcklmenq", 13) == 3527);
-	g_assert(qrp_hash("ndflalem", 16) == 37658);
-	g_assert(qrp_hash("NDFLalem", 16) == 37658);
-	g_assert(qrp_hash("7777a88a8a8a8", 10) == 342);
 }
 
 /***
  *** Routing table management.
  ***/
 
-/*
- * RT_SLOT_READ
- *
+/**
  * Access slot #`s' in arena `a'.
  * Table is compacted so that slot #6 is bit 1 of byte 0.
  *
@@ -198,29 +212,24 @@ void qrp_init(char_map_t map)
  */
 #define RT_SLOT_READ(a,s) ((a)[(s) >> 3] & (1 << (7 - ((s) & 0x7))))
 
-/*
- * RT_SLOT_SET
- *
+/**
  * Set slot #`s' in arena `a'.
  */
 #define RT_SLOT_SET(a,s) \
 	do { (a)[(s) >> 3] |= (1 << (7 - ((s) & 0x7))); } while (0)
 
-/*
- * RT_SLOT_CLEAR
- *
+/**
  * Clear slot #`s' in arena `a'.
  */
 #define RT_SLOT_CLEAR(a,s) \
 	do { (a)[(s) >> 3] &= ~(1 << (7 - ((s) & 0x7))); } while (0)
 
-/*
- * qrt_compact
- *
+/**
  * Compact routing table in place so that only one bit of information is used
  * per entry, reducing memory requirements by a factor of 8.
  */
-static void qrt_compact(struct routing_table *rt)
+static void
+qrt_compact(struct routing_table *rt)
 {
 	gint nsize;				/* New table size */
 	gchar *narena;			/* New arena */
@@ -237,7 +246,7 @@ static void qrt_compact(struct routing_table *rt)
 
 	if (dbg > 4) {
 		printf("Dumping QRT before compaction...\n");
-		token = qrt_dump(stdout, rt, dbg > 20);
+		token = qrt_dump(stdout, rt, dbg > 19);
 	}
 
 	nsize = rt->slots / 8;
@@ -278,20 +287,19 @@ static void qrt_compact(struct routing_table *rt)
 	if (dbg > 4) {
 		guint32 token2;
 		printf("Dumping QRT after compaction...\n");
-		token2 = qrt_dump(stdout, rt, dbg > 20);
+		token2 = qrt_dump(stdout, rt, dbg > 19);
 
 		if (token2 != token)
 			g_warning("BUG in QRT compaction!");
 	}
 }
 
-/*
- * qrt_sha1
- *
+/**
  * Computes the SHA1 of a compacted routing table.
  * Returns a pointer to static data.
  */
-static gchar *qrt_sha1(struct routing_table *rt)
+static gchar *
+qrt_sha1(struct routing_table *rt)
 {
 	gint i;
 	gint bytes;
@@ -321,34 +329,31 @@ static gchar *qrt_sha1(struct routing_table *rt)
 	return digest;
 }
 
-/*
- * qrt_patch_ref
- *
+/**
  * Get a new reference on a routing patch.
  */
-static struct routing_patch *qrt_patch_ref(struct routing_patch *rp)
+static struct routing_patch *
+qrt_patch_ref(struct routing_patch *rp)
 {
 	rp->refcnt++;
 	return rp;
 }
 
-/*
- * qrt_patch_free
- *
+/**
  * Free routing table patch.
  */
-static void qrt_patch_free(struct routing_patch *rp)
+static void
+qrt_patch_free(struct routing_patch *rp)
 {
 	G_FREE_NULL(rp->arena);
 	wfree(rp, sizeof(*rp));
 }
 
-/*
- * qrt_patch_unref
- *
+/**
  * Remove a reference on a routing patch, freeing it when no more ref remains.
  */
-static void qrt_patch_unref(struct routing_patch *rp)
+static void
+qrt_patch_unref(struct routing_patch *rp)
 {
 	g_assert(rp->refcnt > 0);
 
@@ -356,18 +361,17 @@ static void qrt_patch_unref(struct routing_patch *rp)
 		qrt_patch_free(rp);
 }
 
-/*
- * qrt_diff_4
- *
+/**
  * Compute patch between two (compacted) routing tables.
  * When `old' is NULL, then we compare against a table filled with "infinity".
  * If `old' isn't NULL, then it must have the same size as `new'.
  *
- * Returns a patch buffer (uncompressed), made of signed quartets.
+ * Returns a patch buffer (uncompressed), made of signed quartets, or NULL
+ * if there were no differences between the two tables.  If the `old' table
+ * was NULL, we guarantee we'll provide a non-null result.
  */
-static struct routing_patch *qrt_diff_4(
-	struct routing_table *old,
-	struct routing_table *new)
+static struct routing_patch *
+qrt_diff_4(struct routing_table *old, struct routing_table *new)
 {
 	gint bytes;
 	struct routing_patch *rp;
@@ -375,6 +379,7 @@ static struct routing_patch *qrt_diff_4(
 	guchar *np;
 	guchar *pp;
 	gint i;
+	gboolean changed = FALSE;
 
 	g_assert(old == NULL || old->magic == QRP_ROUTE_MAGIC);
 	g_assert(old == NULL || old->compacted);
@@ -413,8 +418,10 @@ static struct routing_patch *qrt_diff_4(
 		for (v = 0, j = 7; j >= 0; j--) {
 			guint8 mask = 1 << j;
 
-			if ((obyte & mask) ^ (nbyte & mask))	/* Bit `j' changed */
+			if ((obyte & mask) ^ (nbyte & mask)) {	/* Bit `j' changed */
 				v |= (obyte & mask) ? 0x1 : 0xf;
+				changed = TRUE;
+			}
 
 			if (j & 0x1)
 				v <<= 4;			/* We have upper half of octet (byte) */
@@ -428,6 +435,11 @@ static struct routing_patch *qrt_diff_4(
 	g_assert(np == (new->arena + new->slots / 8));
 	g_assert(op == NULL || op == (old->arena + old->slots / 8));
 	g_assert(pp == (rp->arena + rp->len));
+
+	if (!changed && old != NULL) {
+		qrt_patch_free(rp);
+		return NULL;
+	}
 
 	return rp;
 }
@@ -449,12 +461,11 @@ struct qrt_compress_context {
 
 static GSList *sl_compress_tasks = NULL;
 
-/*
- * qrt_compress_free
- *
+/**
  * Free compression context.
  */
-static void qrt_compress_free(gpointer u)
+static void
+qrt_compress_free(gpointer u)
 {
 	struct qrt_compress_context *ctx = (struct qrt_compress_context *) u;
 
@@ -466,12 +477,11 @@ static void qrt_compress_free(gpointer u)
 	wfree(ctx, sizeof(*ctx));
 }
 
-/*
- * qrt_step_compress
- *
+/**
  * Perform incremental compression.
  */
-static bgret_t qrt_step_compress(gpointer h, gpointer u, gint ticks)
+static bgret_t
+qrt_step_compress(gpointer h, gpointer u, gint ticks)
 {
 	struct qrt_compress_context *ctx = (struct qrt_compress_context *) u;
 	gint ret;
@@ -534,16 +544,14 @@ done:
 	return BGR_ERROR;		/* Not reached */
 }
 
-/*
- * qrt_patch_compress_done
- *
+/**
  * Called when the compress task is finished.
  *
  * This is really a wrapper on top of the user-supplied "done" callback
  * which lets us remove the task from the list.
  */
-static void qrt_patch_compress_done(
-	gpointer h, gpointer u, bgstatus_t status, gpointer arg)
+static void
+qrt_patch_compress_done(gpointer h, gpointer u, bgstatus_t status, gpointer arg)
 {
 	struct qrt_compress_context *ctx = (struct qrt_compress_context *) u;
 
@@ -562,15 +570,14 @@ static void qrt_patch_compress_done(
 	(*ctx->usr_done)(h, u, status, ctx->usr_arg);
 }
 
-/*
- * qrt_patch_compress
- *
+/**
  * Compress routing patch inplace (asynchronously).
  * When it's done, invoke callback with specified argument.
  *
  * Returns handle of the compressing task.
  */
-static gpointer qrt_patch_compress(
+static gpointer
+qrt_patch_compress(
 	struct routing_patch *rp,
 	bgdone_cb_t done_callback, gpointer arg)
 {
@@ -610,19 +617,23 @@ static gpointer qrt_patch_compress(
 	return task;
 }
 
-/*
- * qrt_create
- *
+/**
  * Create a new query routing table, with supplied `arena' and `slots'.
  * The value used for infinity is given as `max'.
  */
-static struct routing_table *qrt_create(gchar *arena, gint slots, gint max)
+static struct routing_table *
+qrt_create(gchar *name, gchar *arena, gint slots, gint max)
 {
 	struct routing_table *rt;
+
+	g_assert(slots > 0);
+	g_assert(max > 0);
+	g_assert(arena != NULL);
 
 	rt = walloc(sizeof(*rt));
 
 	rt->magic = QRP_ROUTE_MAGIC;
+	rt->name = g_strdup(name);
 	rt->arena = (guchar *) arena;
 	rt->slots = slots;
 	rt->generation = generation++;
@@ -638,18 +649,31 @@ static struct routing_table *qrt_create(gchar *arena, gint slots, gint max)
 	rt->digest = atom_sha1_get(qrt_sha1(rt));
 
 	if (dbg > 1)
-		printf("QRP ready: gen=%d, slots=%d, SHA1=%s\n",
-			rt->generation, rt->slots, sha1_base32(rt->digest));
+		printf("QRP \"%s\" ready: gen=%d, slots=%d, SHA1=%s\n",
+			rt->name, rt->generation, rt->slots, sha1_base32(rt->digest));
 
 	return rt;
 }
 
-/*
- * qrt_free
- *
+/**
+ * Create small empty table.
+ */
+static struct routing_table *
+qrt_empty_table(gchar *name)
+{
+	guchar *arena;
+
+	arena = g_malloc(EMPTY_TABLE_SIZE);
+	memset(arena, LOCAL_INFINITY, EMPTY_TABLE_SIZE);
+
+	return qrt_create(name, arena, EMPTY_TABLE_SIZE, LOCAL_INFINITY);
+}
+
+/**
  * Free query routing table.
  */
-static void qrt_free(struct routing_table *rt)
+static void
+qrt_free(struct routing_table *rt)
 {
 	g_assert(rt->refcnt == 0);
 
@@ -658,27 +682,26 @@ static void qrt_free(struct routing_table *rt)
 	if (rt->digest)
 		atom_sha1_free(rt->digest);
 	G_FREE_NULL(rt->arena);
+	G_FREE_NULL(rt->name);
 
 	wfree(rt, sizeof(*rt));
 }
 
-/*
- * qrt_get_table
- *
+/**
  * Returns the query routing table, NULL if not computed yet.
  */
-gpointer qrt_get_table(void)
+gpointer
+qrt_get_table(void)
 {
 	return routing_table;
 }
 
-/*
- * qrt_ref
- *
+/**
  * Get a new reference on the query routing table.
  * Returns its argument.
  */
-gpointer qrt_ref(gpointer obj)
+gpointer
+qrt_ref(gpointer obj)
 {
 	struct routing_table *rt = (struct routing_table *) obj;
 
@@ -689,13 +712,12 @@ gpointer qrt_ref(gpointer obj)
 	return obj;
 }
 
-/*
- * qrt_unref
- *
+/**
  * Remove one reference to query routing table.
  * When the last reference is removed, the table is freed.
  */
-void qrt_unref(gpointer obj)
+void
+qrt_unref(gpointer obj)
 {
 	struct routing_table *rt = (struct routing_table *) obj;
 
@@ -707,12 +729,11 @@ void qrt_unref(gpointer obj)
 		qrt_free(rt);
 }
 
-/*
- * qrt_get_info
- *
+/**
  * Returns information about query routing table.
  */
-void qrt_get_info(gpointer obj, qrt_info_t *qi)
+void
+qrt_get_info(gpointer obj, qrt_info_t *qi)
 {
 	struct routing_table *rt = (struct routing_table *) obj;
 
@@ -724,6 +745,246 @@ void qrt_get_info(gpointer obj, qrt_info_t *qi)
 	qi->generation = rt->generation;
 	qi->fill_ratio = rt->fill_ratio;
 	qi->pass_throw = rt->pass_throw;
+}
+
+/***
+ *** Merging of the leaf node QRP tables into `merged_table'.
+ ***/
+
+static gpointer merge_comp = NULL;		/* Background table merging handle */
+
+#define MERGE_MAGIC	0xe39ee39e
+
+struct merge_context {
+	guint32 magic;
+	GSList *tables;				/* Leaf routing tables */
+	guchar *arena;				/* Working arena (not compacted) */
+	gint slots;					/* Amount of slots used for merged table */
+};
+
+static struct merge_context *merge_ctx = NULL;
+
+/**
+ * Free merge context.
+ */
+static void
+merge_context_free(gpointer p)
+{
+	struct merge_context *ctx = (struct merge_context *) p;
+	GSList *sl;
+
+	g_assert(ctx->magic == MERGE_MAGIC);
+
+	merge_comp = NULL;		/* Task is being terminated */
+	merge_ctx = NULL;
+
+	for (sl = ctx->tables; sl; sl = g_slist_next(sl)) {
+		struct routing_table *rt = (struct routing_table *) sl->data;
+
+		qrt_unref(rt);
+	}
+	g_slist_free(ctx->tables);
+
+	if (ctx->arena != NULL)
+		g_free(ctx->arena);
+
+	wfree(ctx, sizeof(*ctx));
+}
+
+/**
+ * Fetch the list of all the QRT from our leaves.
+ */
+static bgret_t
+mrg_step_get_list(gpointer h, gpointer u, gint ticks)
+{
+	struct merge_context *ctx = (struct merge_context *) u;
+	const GSList *sl;
+	gint max_size = 0;			/* Max # of slots seen in all QRT */
+
+	g_assert(ctx->magic = MERGE_MAGIC);
+
+	for (sl = node_all_nodes(); sl; sl = g_slist_next(sl)) {
+		struct gnutella_node *dn = (struct gnutella_node *) sl->data;
+		struct routing_table *rt =
+			(struct routing_table *) dn->recv_query_table;
+
+		if (rt == NULL || !NODE_IS_LEAF(dn))
+			continue;
+
+		/*
+		 * At this point we're snapshoting the list of tables and we take
+		 * a reference on the table of the node.  Later on, the node can be
+		 * removed, but then we'll know because we'll be the only one
+		 * referencing the table!
+		 */
+
+		ctx->tables = g_slist_prepend(ctx->tables, qrt_ref(rt));
+
+		if (max_size < rt->slots)
+			max_size = rt->slots;
+	}
+
+	/* No valid table can have 0 slots! */
+	g_assert(max_size > 0 || ctx->tables == NULL);
+
+	ctx->slots = max_size;
+	if (max_size > 0) {
+		ctx->arena = g_malloc(max_size);
+		memset(ctx->arena, LOCAL_INFINITY, max_size);
+	}
+
+	return BGR_NEXT;
+}
+
+/**
+ * Merge routing table into specified arena.
+ *
+ * @param rt is the routing table to merge
+ * @param arena is a non-compacted arena
+ * @param slots is the number of slots in the arena
+ */
+static void
+merge_table_into_arena(struct routing_table *rt, guchar *arena, gint slots)
+{
+	gint ratio;
+	gint expand;
+	gint i, j;
+	gint idx = 0;
+
+	/*
+	 * By construction, the size of the arena is the max of all the sizes
+	 * of the QRT tables, so the size of the routing table to merge can only
+	 * be smaller than the arena size.
+	 */
+
+	g_assert(rt->slots <= slots);
+	g_assert(rt->compacted);
+	g_assert(is_pow2(slots));
+	g_assert(is_pow2(rt->slots));
+
+	ratio = highest_bit_set(slots) - highest_bit_set(rt->slots);
+
+	g_assert(ratio >= 0);
+
+	expand = 1 << ratio;
+
+	/*
+	 * Loop over the supplied QRT, and expand each slot `expand' times into
+	 * the arena, doing an "OR" merging.
+	 */
+
+	for (i = 0; i < rt->slots; i++) {
+		guchar value = RT_SLOT_READ(rt->arena, i);
+
+		if (value == 0) 				/* "0 OR x = x" -- no change */
+			idx += expand;
+		else {
+			g_assert(idx + expand <= slots);	/* Won't overflow */
+
+			for (j = 0; j < expand; j++) 
+				arena[idx++] = 0;				/* Less than "infinity" */
+		}
+	}
+}
+
+/**
+ * Merge next leaf QRT table if node is still there.
+ */
+static bgret_t
+mrg_step_merge_one(gpointer h, gpointer u, gint ticks)
+{
+	struct merge_context *ctx = (struct merge_context *) u;
+	gint ticks_used = 0;
+
+	g_assert(ctx->magic = MERGE_MAGIC);
+
+	/*
+	 * If we're no longer running in UP mode, we can end this task
+	 * immediately.
+	 */
+
+	if (current_peermode != NODE_P_ULTRA)
+		return BGR_DONE;
+
+	while (ctx->tables != NULL && ticks_used < ticks) {
+		struct routing_table *rt = (struct routing_table *) ctx->tables->data;
+
+		ctx->tables = g_slist_remove(ctx->tables, rt);
+
+		/*
+		 * If we're the only referer to this table, it means the node is
+		 * dead and therefore this table should be skipped.
+		 */
+
+		if (rt->refcnt > 1) {
+			merge_table_into_arena(rt, ctx->arena, ctx->slots);
+			ticks_used++;
+		}
+
+		qrt_unref(rt);
+	}
+
+	return (ctx->tables == NULL) ? BGR_NEXT : BGR_MORE;
+}
+
+/**
+ * Create and install the table.
+ */
+static bgret_t
+mrg_step_install_table(gpointer h, gpointer u, gint ticks)
+{
+	struct merge_context *ctx = (struct merge_context *) u;
+
+	g_assert(ctx->magic = MERGE_MAGIC);
+
+	/*
+	 * Make sure we're still running in UP mode... otherwise, it does
+	 * not make sense.
+	 */
+
+	if (current_peermode == NODE_P_ULTRA) {
+		struct routing_table *mt;
+		if (ctx->slots != 0)
+			mt = qrt_create("Merged table",
+				ctx->arena, ctx->slots, LOCAL_INFINITY);
+		else {
+			g_assert(ctx->arena == NULL);
+			mt = qrt_empty_table("Empty merged table");
+		}
+		ctx->arena = NULL;			/* Don't free arena when freeing context */
+		install_merged_table(mt);
+	}
+
+	return BGR_DONE;
+}
+
+static bgstep_cb_t merge_steps[] = {
+	mrg_step_get_list,
+	mrg_step_merge_one,
+	mrg_step_install_table,
+};
+
+/**
+ * Launch asynchronous merging of the leaf node QRT tables.
+ *
+ * @param cb is the routine to invoke when merging is done.  If NULL, then
+ * no routine is called.
+ */
+static void
+mrg_compute(bgdone_cb_t done_cb)
+{
+	struct merge_context *ctx;
+
+	g_assert(merge_ctx == NULL);	/* No computation active */
+
+	merge_ctx = ctx = walloc0(sizeof(*ctx));
+
+	ctx->magic = MERGE_MAGIC;
+
+	merge_comp = bg_task_create("Leaf QRT merging",
+		merge_steps, G_N_ELEMENTS(merge_steps),
+		ctx, merge_context_free,
+		done_cb, NULL);
 }
 
 /***
@@ -773,12 +1034,12 @@ static struct {
 
 static void qrp_cancel_computation(void);
 
-/*
- * qrp_prepare_computation
- *
- * This routine must be called to initialize the computation of the new QRP.
+/**
+ * This routine must be called to initialize the computation of the new QRP
+ * based on our local files.
  */
-void qrp_prepare_computation(void)
+void
+qrp_prepare_computation(void)
 {
 	g_assert(qrp_map != NULL);			/* qrp_init() called */
 
@@ -793,12 +1054,11 @@ void qrp_prepare_computation(void)
 	}
 }
 
-/*
- * qrp_add_file
- *
+/**
  * Add shared file to our QRP.
  */
-void qrp_add_file(struct shared_file *sf)
+void
+qrp_add_file(struct shared_file *sf)
 {
 	word_vec_t *wovec;
 	guint wocnt;
@@ -911,7 +1171,11 @@ struct unique_substrings {		/* User data for unique_subtr() callback */
 	gint count;
 };
 
-static void unique_substr(gpointer key, gpointer value, gpointer udata)
+/**
+ * Iteration callback on the hashtable containing keywords.
+ */
+static void
+unique_substr(gpointer key, gpointer value, gpointer udata)
 {
 	struct unique_substrings *u = (struct unique_substrings *) udata;
 	gchar *word = key;
@@ -950,15 +1214,14 @@ static void unique_substr(gpointer key, gpointer value, gpointer udata)
 #undef INSERT
 }
 
-/*
- * unique_substrings
- *
+/**
  * Create a list of all unique substrings at least MIN_WORD_LENGTH long,
  * from words held in `ht'.
  *
  * Returns created list, and count in `retcount'.
  */
-static GSList *unique_substrings(GHashTable *ht, gint *retcount)
+static GSList *
+unique_substrings(GHashTable *ht, gint *retcount)
 {
 	struct unique_substrings u = { NULL, NULL, 0 };		/* Callback args */
 
@@ -985,20 +1248,27 @@ static GSList *unique_substrings(GHashTable *ht, gint *retcount)
 
 struct qrp_context {
 	gint magic;
+	struct routing_table **rtp;	/* Pointer to routing table variable to fill */
+	struct routing_patch **rpp;	/* Pointer to routing patch variable to fill */
 	GSList *sl_substrings;		/* List of all substrings */
 	gint substrings;			/* Amount of substrings */
 	gchar *table;				/* Computed routing table */
 	gint slots;					/* Amount of slots in table */
+	struct routing_table *st;	/* Smaller table */
+	struct routing_table *lt;	/* Larger table for merging (destination) */
+	gint sidx;					/* Source index in `st' */
+	gint lidx;					/* Merging index in `lt' */
+	gint expand;				/* Expansion ratio from `st' to `lt' */
 };
 
 static gpointer qrp_comp = NULL;		/* Background computation handle */
+static gpointer qrp_merge = NULL;		/* Background merging handle */
 
-/*
- * dispose_ht_seen_words
- *
+/**
  * Free the `ht_seen_words' table.
  */
-static void dispose_ht_seen_words(void)
+static void
+dispose_ht_seen_words(void)
 {
 	g_assert(ht_seen_words);
 
@@ -1007,19 +1277,16 @@ static void dispose_ht_seen_words(void)
 	ht_seen_words = NULL;
 }
 
-/*
- * qrp_context_free
- *
+/**
  * Free query routing table computation context.
  */
-static void qrp_context_free(gpointer p)
+static void
+qrp_context_free(gpointer p)
 {
 	struct qrp_context *ctx = (struct qrp_context *) p;
 	GSList *l;
 
 	g_assert(ctx->magic == QRP_MAGIC);
-
-	qrp_comp = NULL;		/* If we're called, the task is being terminated */
 
 	/*
 	 * The `ht_seen_words' table is not really part of our task context,
@@ -1037,15 +1304,39 @@ static void qrp_context_free(gpointer p)
 	if (ctx->table)
 		G_FREE_NULL(ctx->table);
 
+	if (ctx->st)
+		qrt_unref(ctx->st);
+	if (ctx->lt)
+		qrt_unref(ctx->lt);
+
 	wfree(ctx, sizeof(*ctx));
 }
 
-/*
- * qrp_cancel_computation
- *
+/**
+ * Called when the QRP recomputation is done to free the context.
+ */
+static void
+qrp_comp_context_free(gpointer p)
+{
+	qrp_comp = NULL;		/* If we're called, the task is being terminated */
+	qrp_context_free(p);
+}
+
+/**
+ * Called when the QRP merging is done to free the context.
+ */
+static void
+qrp_merge_context_free(gpointer p)
+{
+	qrp_merge = NULL;		/* If we're called, the task is being terminated */
+	qrp_context_free(p);
+}
+
+/**
  * Cancel current computation, if any.
  */
-static void qrp_cancel_computation(void)
+static void
+qrp_cancel_computation(void)
 {
 	qrt_compress_cancel_all();
 
@@ -1053,14 +1344,18 @@ static void qrp_cancel_computation(void)
 		bg_task_cancel(qrp_comp);
 		qrp_comp = NULL;
 	}
+
+	if (qrp_merge) {
+		bg_task_cancel(qrp_merge);
+		qrp_merge = NULL;
+	}
 }
 
-/*
- * qrp_step_substring
- *
+/**
  * Compute all the substrings we need to insert.
  */
-static bgret_t qrp_step_substring(gpointer h, gpointer u, gint ticks)
+static bgret_t
+qrp_step_substring(gpointer h, gpointer u, gint ticks)
 {
 	struct qrp_context *ctx = (struct qrp_context *) u;
 
@@ -1077,15 +1372,14 @@ static bgret_t qrp_step_substring(gpointer h, gpointer u, gint ticks)
 	return BGR_NEXT;		/* All done for this step */
 }
 
-/*
- * qrt_eq
- *
+/**
  * Compare possibly compacted table `rt' with expanded table arena `arena'
  * having `slots' slots.
  *
  * Returns whether tables are identical.
  */
-static gboolean qrt_eq(struct routing_table *rt, gchar *arena, gint slots)
+static gboolean
+qrt_eq(struct routing_table *rt, gchar *arena, gint slots)
 {
 	gint i;
 
@@ -1109,12 +1403,11 @@ static gboolean qrt_eq(struct routing_table *rt, gchar *arena, gint slots)
 	return TRUE;
 }
 
-/*
- * qrp_step_compute
- *
- * Compute table.
+/**
+ * Compute QRP table, iteration step.
  */
-static bgret_t qrp_step_compute(gpointer h, gpointer u, gint ticks)
+static bgret_t
+qrp_step_compute(gpointer h, gpointer u, gint ticks)
 {
 	struct qrp_context *ctx = (struct qrp_context *) u;
 	gchar *table = NULL;
@@ -1228,27 +1521,28 @@ static bgret_t qrp_step_compute(gpointer h, gpointer u, gint ticks)
 	return BGR_MORE;			/* More work required */
 }
 
-/*
- * qrp_step_install
- *
- * Install the routing table we've built.
+/**
+ * Create the compacted routing table object.
  */
-static bgret_t qrp_step_install(gpointer h, gpointer u, gint ticks)
+static bgret_t
+qrp_step_create_table(gpointer h, gpointer u, gint ticks)
 {
 	struct qrp_context *ctx = (struct qrp_context *) u;
 	guint32 elapsed;
 
 	g_assert(ctx->magic == QRP_MAGIC);
-
+	g_assert(ctx->rtp != NULL);
+	g_assert(ctx->rpp != NULL);
 
 	/*
 	 * Install new routing table and notify the nodes that it has changed.
 	 */
 
-	if (routing_table != NULL)
-		qrt_unref(routing_table);
+	if (*ctx->rtp != NULL)
+		qrt_unref(*ctx->rtp);
 
-	routing_table = qrt_create(ctx->table, ctx->slots, LOCAL_INFINITY);
+	*ctx->rtp = qrt_create("Local table",
+		ctx->table, ctx->slots, LOCAL_INFINITY);
 	ctx->table = NULL;		/* Don't free table when freeing context */
 
 	/*
@@ -1256,36 +1550,235 @@ static bgret_t qrp_step_install(gpointer h, gpointer u, gint ticks)
 	 * patch against an empty table, to send to new connections.
 	 */
 
-	if (routing_patch != NULL) {
-		qrt_patch_unref(routing_patch);
-		routing_patch = NULL;
+	if (*ctx->rpp != NULL) {
+		qrt_patch_unref(*ctx->rpp);
+		*ctx->rpp = NULL;
 	}
 
 	elapsed = (guint32) time(NULL) - qrp_timestamp;
 	gnet_prop_set_guint32_val(PROP_QRP_COMPUTATION_TIME, elapsed);
 
-	qrt_patch_compute();				/* Default patch, done asynchronously */
+	return BGR_NEXT;		/* Proceed to next step */
+}
+
+/**
+ * Install the routing table we've built, if running as leaf.
+ */
+static bgret_t
+qrp_step_install_leaf(gpointer h, gpointer u, gint ticks)
+{
+	struct qrp_context *ctx = (struct qrp_context *) u;
+
+	g_assert(ctx->magic == QRP_MAGIC);
+	g_assert(ctx->rtp != NULL);
+	g_assert(ctx->rpp != NULL);
+
+	/*
+	 * Default patch (stored in *ctx->rpp), is computed asynchronously.
+	 *
+	 * If we're a leaf node, we're done.  We have computed the local_table
+	 * and can now start computing the default patch.
+	 *
+	 * If we're an ultra node, we need to first merge all the routing tables
+	 * from our leaves with ours, before proceeding with the patch computation.
+	 */
+
+	if (current_peermode != NODE_P_ULTRA) {
+		install_routing_table(*ctx->rtp);
+		install_merged_table(NULL);			/* We're not an ultra node */
+		qrt_patch_compute(routing_table, ctx->rpp);
+		node_qrt_changed(routing_table);
+		return BGR_DONE;		/* Done! */
+	}
+
+	return BGR_NEXT;		/* Proceed to next step */
+}
+
+/**
+ * Wait for the `merged_table' to be ready.
+ */
+static bgret_t
+qrp_step_wait_for_merged_table(gpointer h, gpointer u, gint ticks)
+{
+	struct qrp_context *ctx = (struct qrp_context *) u;
+	gint ratio;
+
+	g_assert(ctx->magic == QRP_MAGIC);
+
+	/*
+	 * If we switched to leaf mode, go on...  The next step will explicitly
+	 * catch this.
+	 */
+
+	if (current_peermode != NODE_P_ULTRA)
+		return BGR_NEXT;
+
+	/*
+	 * If the `merged_table' is not ready yet, we can't proceed with this
+	 * task.  We need to wait for the thread computing the table, or start
+	 * it if it's not running yet.
+	 */
+
+	if (merged_table == NULL) {
+		if (merge_comp == NULL)		/* Task not started yet */
+			mrg_compute(NULL);		/* Launch it */
+
+		bg_task_ticks_used(h, 0);
+		return BGR_MORE;			/* Switch to next task to run */
+	}
+
+	/*
+	 * Prepare the iteration for the next step.
+	 *
+	 * Identify the smallest of the two tables, and put the smallest in `st'
+	 * and the largest in `lt'.  Then compute the expansion factor between
+	 * the two and allocate the arena for the merging.
+	 */
+
+	g_assert(local_table != NULL);
+	g_assert(merged_table != NULL);
+
+	if (local_table->slots < merged_table->slots) {
+		ctx->slots = merged_table->slots;
+		ctx->st = qrt_ref(local_table);
+		ctx->lt = qrt_ref(merged_table);
+	} else {
+		ctx->slots = local_table->slots;
+		ctx->st = qrt_ref(merged_table);
+		ctx->lt = qrt_ref(local_table);
+	}
+
+	ratio = highest_bit_set(ctx->lt->slots) - highest_bit_set(ctx->st->slots);
+
+	g_assert(ratio >= 0);		/* By construction, lt is larger than st */
+
+	ctx->expand = 1 << ratio;
+	ctx->sidx = ctx->lidx = 0;
+
+	g_assert(ctx->table == NULL);
+
+	ctx->table = g_malloc(ctx->slots);
+	memset(ctx->table, LOCAL_INFINITY, ctx->slots);
+
+	/* Ready for iterating */
+
+	return BGR_NEXT;
+}
+
+/**
+ * Merge `local_table' with `merged_table'.
+ */
+static bgret_t
+qrp_step_merge_with_leaves(gpointer h, gpointer u, gint ticks)
+{
+	struct qrp_context *ctx = (struct qrp_context *) u;
+	gint used;
+	struct routing_table *st = ctx->st;
+	struct routing_table *lt = ctx->lt;
+	gint max = st->slots;
+	gint i = ctx->sidx;
+	gint expand = ctx->expand;
+	gint j;
+
+	g_assert(ctx->magic == QRP_MAGIC);
+	g_assert(st->compacted);
+	g_assert(lt->compacted);
+
+	/*
+	 * If we switched to leaf mode, go on...  The next step will explicitly
+	 * catch this.
+	 */
+
+	if (current_peermode != NODE_P_ULTRA)
+		return BGR_NEXT;
+
+	for (used = 0; used < ticks && i < max; i++, used++, ctx->sidx++) {
+		guchar vs = RT_SLOT_READ(st->arena, i);
+
+		/*
+		 * Since `lt', the larger table, has the same size as the merged
+		 * table, the `ctx->lidx' also points to the next area to be merged
+		 * in the result.
+		 */
+
+		g_assert(ctx->lidx + expand <= lt->slots);	/* Won't overflow */
+
+		for (j = 0; j < expand; j++) {
+			guchar vl = RT_SLOT_READ(lt->arena, ctx->lidx);
+			if (vl || vs)
+				ctx->table[ctx->lidx++] = 0;	/* Present, less than oo */
+			else
+				ctx->table[ctx->lidx++] = LOCAL_INFINITY;	/* Absent => oo */
+		}
+	}
+
+	return (ctx->sidx < max) ? BGR_MORE : BGR_NEXT;
+}
+
+/**
+ * Install the final routing table, and begin computation of the default
+ * QRT patch for new connections.
+ */
+static bgret_t
+qrp_step_install_ultra(gpointer h, gpointer u, gint ticks)
+{
+	struct qrp_context *ctx = (struct qrp_context *) u;
+	struct routing_table *rt;
+
+	g_assert(ctx->magic == QRP_MAGIC);
+
+	/*
+	 * If we switched to leaf mode whilst processing, go on with the
+	 * "leaf install" mode.
+	 */
+
+	if (current_peermode != NODE_P_ULTRA)
+		return qrp_step_install_leaf(h, u, ticks);
+
+	/*
+	 * Install merged table as `routing_table'.
+	 */
+
+	rt = qrt_create("Routing table", ctx->table, ctx->slots, LOCAL_INFINITY);
+	ctx->table = NULL;			/* Don't free arena when freeing context */
+
+	install_routing_table(rt);
+
+	/*
+	 * Activate default patch computation and tell them we got a new table...
+	 */
+
+	qrt_patch_compute(routing_table, ctx->rpp);
 	node_qrt_changed(routing_table);
 
-	return BGR_DONE;		/* Done! */
+	return BGR_DONE;
 }
 
 static bgstep_cb_t qrp_compute_steps[] = {
 	qrp_step_substring,
 	qrp_step_compute,
-	qrp_step_install,
+	qrp_step_create_table,
+	qrp_step_install_leaf,
+	qrp_step_wait_for_merged_table,
+	qrp_step_merge_with_leaves,
+	qrp_step_install_ultra,
 };
 
-/*
- * qrp_finalize_computation
- *
+static bgstep_cb_t qrp_merge_steps[] = {
+	qrp_step_wait_for_merged_table,
+	qrp_step_merge_with_leaves,
+	qrp_step_install_ultra,
+};
+
+/**
  * This routine must be called once all the files have been added to finalize
  * the computation of the new QRP.
  *
  * If the routing table has changed, the node_qrt_changed() routine will
  * be called once we have finished its computation.
  */
-void qrp_finalize_computation(void)
+void
+qrp_finalize_computation(void)
 {
 	struct qrp_context *ctx;
 
@@ -1297,14 +1790,37 @@ void qrp_finalize_computation(void)
 
 	ctx = walloc0(sizeof(*ctx));
 	ctx->magic = QRP_MAGIC;
+	ctx->rtp = &local_table;	/* NOT routing_table, this is for local files */
+	ctx->rpp = &routing_patch;
 
 	gnet_prop_set_guint32_val(PROP_QRP_TIMESTAMP, (guint32) time(NULL));
 
 	qrp_comp = bg_task_create("QRP computation",
-		qrp_compute_steps,
-		sizeof(qrp_compute_steps) / sizeof(qrp_compute_steps[0]),
-		ctx,
-		qrp_context_free,
+		qrp_compute_steps, G_N_ELEMENTS(qrp_compute_steps),
+		ctx, qrp_comp_context_free,
+		NULL, NULL);
+}
+
+/**
+ * Called as a task completion callback when the `merge_table' has been
+ * recomputed, to relaunch the merging with `local_table' to get the final
+ * routing table.
+ */
+static void
+qrp_merge_routing_table(gpointer h, gpointer c, bgstatus_t st, gpointer arg)
+{
+	struct qrp_context *ctx;
+
+	g_assert(qrp_merge == NULL);
+	g_assert(local_table != NULL);
+
+	ctx = walloc0(sizeof(*ctx));
+	ctx->magic = QRP_MAGIC;
+	ctx->rpp = &routing_patch;
+
+	qrp_merge = bg_task_create("QRP merging",
+		qrp_merge_steps, G_N_ELEMENTS(qrp_merge_steps),
+		ctx, qrp_merge_context_free,
 		NULL, NULL);
 }
 
@@ -1316,7 +1832,9 @@ void qrp_finalize_computation(void)
 
 struct qrt_patch_context {
 	guint32 magic;
+	struct routing_patch **rpp;	/* Pointer where final patch is stored */
 	struct routing_patch *rp;	/* Routing patch being compressed */
+	struct routing_table *rt;	/* Table against which patch is computed */
 	gpointer compress;			/* The compression task */
 };
 
@@ -1331,20 +1849,18 @@ static struct qrt_patch_context *qrt_patch_ctx = NULL;
 static GSList *qrt_patch_computed_listeners = NULL;
 
 
-/*
- * qrt_patch_computed
- *
+/**
  * Callback invoked when the routing patch is computed.
  */
-static void qrt_patch_computed(
-	gpointer h, gpointer u, bgstatus_t status, gpointer arg)
+static void
+qrt_patch_computed(gpointer h, gpointer u, bgstatus_t status, gpointer arg)
 {
 	struct qrt_patch_context *ctx = (struct qrt_patch_context *) arg;
 	GSList *l;
 
 	g_assert(ctx->magic == QRT_PATCH_MAGIC);
 	g_assert(ctx == qrt_patch_ctx);
-	g_assert(routing_patch == NULL);
+	g_assert(ctx->rpp != NULL);
 
 	if (dbg > 2)
 		printf("QRP global default patch computed (status = %d)\n", status);
@@ -1355,7 +1871,10 @@ static void qrt_patch_computed(
 		time_t now = time(NULL);
 		guint32 elapsed;
 
-		routing_patch = ctx->rp;
+		if (*ctx->rpp != NULL)
+			qrt_patch_unref(*ctx->rpp);
+
+		*ctx->rpp = ctx->rp;
 
 		elapsed = (guint32) now - qrp_patch_timestamp;
 		gnet_prop_set_guint32_val(PROP_QRP_PATCH_COMPUTATION_TIME, elapsed);
@@ -1368,8 +1887,6 @@ static void qrt_patch_computed(
 
 	ctx->magic = 0;					/* Prevent accidental reuse */
 
-	wfree(ctx, sizeof(*ctx));
-
 	/*
 	 * Tell all our listeners that the routing patch is now available, or
 	 * that an error occurred.
@@ -1377,22 +1894,22 @@ static void qrt_patch_computed(
 
 	for (l = qrt_patch_computed_listeners; l; l = l->next) {
 		struct patch_listener_info *pi = l->data;
-		(*pi->callback)(pi->arg, routing_patch);	/* NULL indicates failure */
+		(*pi->callback)(pi->arg, *ctx->rpp);	/* NULL indicates failure */
 		wfree(pi, sizeof(*pi));
 	}
+
+	wfree(ctx, sizeof(*ctx));
 
 	g_slist_free(qrt_patch_computed_listeners);
 	qrt_patch_computed_listeners = NULL;
 }
 
-/*
- * qrt_patch_computed_add_listener
- *
+/**
  * Record listener to callback with given argument when the default routing
  * patch will be ready.
  */
-static gpointer qrt_patch_computed_add_listener(
-	qrt_patch_computed_cb_t cb, gpointer arg)
+static gpointer
+qrt_patch_computed_add_listener(qrt_patch_computed_cb_t cb, gpointer arg)
 {
 	struct patch_listener_info *pi;
 
@@ -1415,12 +1932,11 @@ static gpointer qrt_patch_computed_add_listener(
 	return pi;
 }
 
-/*
- * qrt_patch_computed_remove_listener
- *
+/**
  * Remove recorded listener.
  */
-static void qrt_patch_computed_remove_listener(gpointer handle)
+static void
+qrt_patch_computed_remove_listener(gpointer handle)
 {
 	g_assert(qrt_patch_computed_listeners != NULL);
 
@@ -1428,12 +1944,11 @@ static void qrt_patch_computed_remove_listener(gpointer handle)
 		g_slist_remove(qrt_patch_computed_listeners, handle);
 }
 
-/*
- * qrt_patch_cancel_compute
- *
+/**
  * Cancel computation.
  */
-static void qrt_patch_cancel_compute(void)
+static void
+qrt_patch_cancel_compute(void)
 {
 	gpointer comptask;
 
@@ -1448,12 +1963,15 @@ static void qrt_patch_cancel_compute(void)
 	g_assert(qrt_patch_computed_listeners == NULL);
 }
 
-/*
- * qrt_patch_compute
- *
+/**
  * Launch asynchronous computation of the default routing patch.
+ *
+ * @param rt is the table for which the default patch is computed.
+ * @param rpp is a pointer to a variable where the final routing patch
+ * is to be stored.
  */
-static void qrt_patch_compute(void)
+static void
+qrt_patch_compute(struct routing_table *rt, struct routing_patch **rpp)
 {
 	struct qrt_patch_context *ctx;
 
@@ -1464,16 +1982,17 @@ static void qrt_patch_compute(void)
 	qrt_patch_ctx = ctx = walloc(sizeof(*ctx));
 
 	ctx->magic = QRT_PATCH_MAGIC;
-	ctx->rp = qrt_diff_4(NULL, routing_table);
+	ctx->rpp = rpp;
+	ctx->rt = rt;
+	ctx->rp = qrt_diff_4(NULL, rt);
 	ctx->compress = qrt_patch_compress(ctx->rp, qrt_patch_computed, ctx);
 }
 
-/*
- * qrt_compress_cancel_all
- *
+/**
  * Cancel all running compression coroutines.
  */
-static void qrt_compress_cancel_all(void)
+static void
+qrt_compress_cancel_all(void)
 {
 	GSList *l;
 
@@ -1491,13 +2010,12 @@ static void qrt_compress_cancel_all(void)
  *** Sending of the QRP messages.
  ***/
 
-/*
- * qrp_send_reset
- *
+/**
  * Send the RESET message, which must be sent before the PATCH sequence
  * to size the table.
  */
-static void qrp_send_reset(struct gnutella_node *n, gint slots, gint infinity)
+static void
+qrp_send_reset(struct gnutella_node *n, gint slots, gint infinity)
 {
 	struct gnutella_msg_qrp_reset m;
 
@@ -1522,13 +2040,12 @@ static void qrp_send_reset(struct gnutella_node *n, gint slots, gint infinity)
 			slots, infinity, node_ip(n));
 }
 
-/*
- * qrp_send_patch
- *
+/**
  * Send the PATCH message.  The patch payload data is made of the `len' bytes
  * starting at `buf'.
  */
-static void qrp_send_patch(struct gnutella_node *n,
+static void
+qrp_send_patch(struct gnutella_node *n,
 	gint seqno, gint seqsize, gboolean compressed, gint bits,
 	gchar *buf, gint len)
 {
@@ -1598,13 +2115,12 @@ struct qrp_patch {
 	gint len;				/* Length of data pointed at by `data' */
 };
 
-/*
- * qrp_recv_reset
- *
+/**
  * Receive a RESET message and fill the `reset' structure with its payload.
  * Returns TRUE if we read the message OK.
  */
-static gboolean qrp_recv_reset(struct gnutella_node *n, struct qrp_reset *reset)
+static gboolean
+qrp_recv_reset(struct gnutella_node *n, struct qrp_reset *reset)
 {
 	struct gnutella_qrp_reset *msg = (struct gnutella_qrp_reset *) n->data;
 
@@ -1621,13 +2137,12 @@ static gboolean qrp_recv_reset(struct gnutella_node *n, struct qrp_reset *reset)
 	return TRUE;
 }
 
-/*
- * qrp_recv_patch
- *
+/**
  * Receive a PATCH message and fill the `patch' structure with its payload.
  * Returns TRUE if we read the message OK.
  */
-static gboolean qrp_recv_patch(struct gnutella_node *n, struct qrp_patch *patch)
+static gboolean
+qrp_recv_patch(struct gnutella_node *n, struct qrp_patch *patch)
 {
 	struct gnutella_qrp_patch *msg = (struct gnutella_qrp_patch *) n->data;
 
@@ -1659,6 +2174,7 @@ static gboolean qrp_recv_patch(struct gnutella_node *n, struct qrp_patch *patch)
 #define QRT_PATCH_LEN		512		/* Send 512 bytes at a time, if we can */
 #define QRT_MAX_SEQSIZE		255		/* Maximum: 255 messages */
 #define QRT_MAX_BANDWIDTH	1024	/* Max bandwidth if clogging occurs */
+#define QRT_MIN_QUEUE_FILL  40		/* Hold PATCH message if queue 40% full */
 
 struct qrt_update {
 	guint32 magic;
@@ -1674,16 +2190,15 @@ struct qrt_update {
 	gint last_sent;					/* Amount sent during last batch */
 	gboolean ready;					/* Ready for sending? */
 	gboolean reset_needed;			/* Is the initial RESET needed? */
+	gboolean empty_patch;			/* Was patch empty? */
 };
 
-/*
- * qrt_compressed
- *
+/**
  * Callback invoked when the computed patch for a connection
  * has been compressed.
  */
-static void qrt_compressed(
-	gpointer h, gpointer u, bgstatus_t status, gpointer arg)
+static void
+qrt_compressed(gpointer h, gpointer u, bgstatus_t status, gpointer arg)
 {
 	struct qrt_update *qup = (struct qrt_update *) arg;
 	struct routing_patch *rp;
@@ -1702,6 +2217,17 @@ static void qrt_compressed(
 
 	if (!NODE_IS_WRITABLE(qup->node))
 		goto error;
+
+	/*
+	 * In this routine, we reference the `routing_patch' global variable
+	 * directly, because there can be only one default routing patch,
+	 * whether we are an UP or a leaf, and it is the default patch that
+	 * can be sent against a NULL table to bring them up-to-date wrt
+	 * the `routing_table' table, our QRT (computed against local files
+	 * only when we're a leaf, or the result of the merging of our local
+	 * table for the local files and all the QRT of our leaves when we're
+	 * running as an UP).
+	 */
 
 	/*
 	 * If the computed patch for this connection is larger than the
@@ -1762,16 +2288,15 @@ error:
 	return;
 }
 
-/*
- * qrt_patch_available
- *
+/**
  * Default global routing patch (the one against a NULL table) is now
  * available for consumption.
  *
  * If we get a NULL pointer, it means the computation was interrupted or
  * that an error occurred.
  */
-static void qrt_patch_available(gpointer arg, struct routing_patch *rp)
+static void
+qrt_patch_available(gpointer arg, struct routing_patch *rp)
 {
 	struct qrt_update *qup = (struct qrt_update *) arg;
 
@@ -1788,9 +2313,7 @@ static void qrt_patch_available(gpointer arg, struct routing_patch *rp)
 	qrt_compressed(NULL, NULL, rp == NULL ? BGS_ERROR : BGS_OK, qup);
 }
 
-/*
- * qrt_update_create
- *
+/**
  * Create structure keeping track of the table update.
  * Call qrt_update_send_next() to send the next patching message.
  *
@@ -1802,7 +2325,8 @@ static void qrt_patch_available(gpointer arg, struct routing_patch *rp)
  *
  * Return opaque handle.
  */
-gpointer qrt_update_create(struct gnutella_node *n, gpointer query_table)
+gpointer
+qrt_update_create(struct gnutella_node *n, gpointer query_table)
 {
 	struct qrt_update *qup;
 	gpointer old_table = query_table;
@@ -1861,21 +2385,24 @@ gpointer qrt_update_create(struct gnutella_node *n, gpointer query_table)
 		/*
 		 * The compression call may take a while, in the background.
 		 * When compression is done, `qup->compress' will be set to NULL.
+		 * If there are no differences, the patch will be NULL.
 		 */
 
 		qup->patch = qrt_diff_4(old_table, routing_table);
-		qup->compress = qrt_patch_compress(qup->patch, qrt_compressed, qup);
+		if (qup->patch != NULL)
+			qup->compress = qrt_patch_compress(qup->patch, qrt_compressed, qup);
+		else
+			qup->empty_patch = TRUE;
 	}
 
 	return qup;
 }
 
-/*
- * qrt_update_free
- *
+/**
  * Free query routing update tracker.
  */
-void qrt_update_free(gpointer handle)
+void
+qrt_update_free(gpointer handle)
 {
 	struct qrt_update *qup = (struct qrt_update *) handle;
 
@@ -1896,27 +2423,37 @@ void qrt_update_free(gpointer handle)
 	wfree(qup, sizeof(*qup));
 }
 
-/*
- * qrt_update_send_next
- *
+/**
  * Send the next batch of data.
  * Returns whether the routing should still be called.
  */
-gboolean qrt_update_send_next(gpointer handle)
+gboolean
+qrt_update_send_next(gpointer handle)
 {
 	struct qrt_update *qup = (struct qrt_update *) handle;
 	time_t now;
 	time_t elapsed;
 	gint len;
 	gint i;
+	struct gnutella_node *n;
 
 	g_assert(qup->magic == QRT_UPDATE_MAGIC);
 
 	if (!qup->ready)				/* Still compressing or waiting */
 		return TRUE;
 
-	if (qup->patch == NULL)			/* An error occurred */
+	if (qup->patch == NULL)			/* An error occurred, or patch was empty */
 		return FALSE;
+
+	/*
+	 * If queue is more than QRT_MIN_QUEUE_FILL percent full, then
+	 * don't send a new patch message now, wait for it to flush a little.
+	 */
+
+	n = qup->node;
+
+	if (NODE_MQUEUE_PERCENT_USED(n) > QRT_MIN_QUEUE_FILL)
+		return TRUE;
 
 	/*
 	 * Make sure we don't exceed the maximum bandwidth allocated for
@@ -1932,7 +2469,7 @@ gboolean qrt_update_send_next(gpointer handle)
 
 	if (
 		qup->last_sent / elapsed > QRT_MAX_BANDWIDTH &&
-		NODE_MQUEUE_PENDING(qup->node)
+		NODE_MQUEUE_PENDING(n)
 	)
 		return TRUE;
 
@@ -1953,7 +2490,7 @@ gboolean qrt_update_send_next(gpointer handle)
 			g_assert(len <= qup->chunksize);
 		}
 
-		qrp_send_patch(qup->node, qup->seqno++, qup->seqsize,
+		qrp_send_patch(n, qup->seqno++, qup->seqsize,
 			qup->patch->compressed, qup->patch->entry_bits,
 			(gchar *) qup->patch->arena + qup->offset, len);
 
@@ -1967,7 +2504,7 @@ gboolean qrt_update_send_next(gpointer handle)
 		 * the TCP connection has its buffer full.
 		 */
 
-		if (NODE_MQUEUE_COUNT(qup->node))
+		if (NODE_MQUEUE_COUNT(n))
 			break;
 	}
 
@@ -1976,19 +2513,19 @@ gboolean qrt_update_send_next(gpointer handle)
 	return qup->seqno <= qup->seqsize;
 }
 
-/*
- * qrt_update_was_ok
- *
+/**
  * Check whether sending was successful.
  * Should be called when qrt_update_send_next() returned FALSE.
  */
-gboolean qrt_update_was_ok(gpointer handle)
+gboolean
+qrt_update_was_ok(gpointer handle)
 {
 	struct qrt_update *qup = (struct qrt_update *) handle;
 
 	g_assert(qup->magic == QRT_UPDATE_MAGIC);
 
-	return qup->patch != NULL && qup->seqno > qup->seqsize;
+	return qup->empty_patch ||
+		(qup->patch != NULL && qup->seqno > qup->seqsize);
 }
 
 /***
@@ -2022,9 +2559,7 @@ struct qrt_receive {
 	gboolean deflated;		/* Is data deflated? */
 };
 
-/*
- * qrt_receive_create
- *
+/**
  * Create a new QRT receiving handler, to process all incoming QRP messages
  * from the leaf node.
  *
@@ -2034,7 +2569,8 @@ struct qrt_receive {
  *
  * Returns pointer to handler.
  */
-gpointer qrt_receive_create(struct gnutella_node *n, gpointer query_table)
+gpointer
+qrt_receive_create(struct gnutella_node *n, gpointer query_table)
 {
 	struct routing_table *table = (struct routing_table *) query_table;
 	struct qrt_receive *qrcv;
@@ -2104,12 +2640,11 @@ gpointer qrt_receive_create(struct gnutella_node *n, gpointer query_table)
 	return qrcv;
 }
 
-/*
- * qrt_receive_free
- *
+/**
  * Dispose of the QRP receiving state.
  */
-void qrt_receive_free(gpointer handle)
+void
+qrt_receive_free(gpointer handle)
 {
 	struct qrt_receive *qrcv = (struct qrt_receive *) handle;
 
@@ -2128,14 +2663,12 @@ void qrt_receive_free(gpointer handle)
 	wfree(qrcv, sizeof(*qrcv));
 }
 
-/*
- * qrt_apply_patch
- *
+/**
  * Apply raw patch data (uncompressed) to the current routing table.
  * Returns TRUE on sucess, FALSE on error with the node being BYE-ed.
  */
-static gboolean qrt_apply_patch(
-	struct qrt_receive *qrcv, guchar *data, gint len)
+static gboolean
+qrt_apply_patch(struct qrt_receive *qrcv, guchar *data, gint len)
 {
 	gint bpe = qrcv->entry_bits;		/* bits per entry */
 	gint epb;							/* entries per byte */
@@ -2345,14 +2878,13 @@ static gboolean qrt_apply_patch(
 	return TRUE;
 }
 
-/*
- * qrt_handle_reset
- *
+/**
  * Handle reception of QRP RESET.
  * Returns TRUE if we handled the message correctly, FALSE if an error
  * was found and the node BYE-ed.
  */
-static gboolean qrt_handle_reset(
+static gboolean
+qrt_handle_reset(
 	struct gnutella_node *n, struct qrt_receive *qrcv, struct qrp_reset *reset)
 {
 	struct routing_table *rt;
@@ -2404,6 +2936,9 @@ static gboolean qrt_handle_reset(
 
 	node_qrt_discard(n);
 
+	if (NODE_IS_LEAF(n))
+		qrp_leaf_changed();
+
 	if (qrcv->table)
 		qrt_unref(qrcv->table);
 
@@ -2413,6 +2948,7 @@ static gboolean qrt_handle_reset(
 	rt = qrcv->table = walloc(sizeof(*rt));
 
 	rt->magic = QRP_ROUTE_MAGIC;
+	rt->name = g_strdup_printf("QRT node %s", node_ip(n));
 	rt->refcnt = 1;
 	rt->generation = 0;
 	rt->infinity = reset->infinity;
@@ -2463,16 +2999,15 @@ static gboolean qrt_handle_reset(
 	return TRUE;
 }
 
-/*
- * qrt_handle_patch
- *
+/**
  * Handle reception of QRP PATCH.
  *
  * Returns TRUE if we handled the message correctly, FALSE if an error
  * was found and the node BYE-ed.  Sets `done' to TRUE on the last message
  * from the sequence.
  */
-static gboolean qrt_handle_patch(
+static gboolean
+qrt_handle_patch(
 	struct gnutella_node *n, struct qrt_receive *qrcv, struct qrp_patch *patch,
 	gboolean *done)
 {
@@ -2553,6 +3088,9 @@ static gboolean qrt_handle_patch(
 	}
 
 	qrcv->seqno++;
+
+	if (NODE_IS_LEAF(n))
+		qrp_leaf_changed();
 
 	/*
 	 * Process the patch data.
@@ -2696,15 +3234,13 @@ static gboolean qrt_handle_patch(
 		else
 			node_qrt_patched(n, rt);
 
-		(void) qrt_dump(stdout, rt, dbg > 20);
+		(void) qrt_dump(stdout, rt, dbg > 19);
 	}
 
 	return TRUE;
 }
 
-/*
- * qrt_receive_next
- *
+/**
  * Handle reception of the next QRP message in the stream for a given update.
  *
  * Returns whether we successfully handled the message.  If not, the node
@@ -2713,7 +3249,8 @@ static gboolean qrt_handle_patch(
  * When the last message from the sequence has been processed, set `done'
  * to TRUE.
  */
-gboolean qrt_receive_next(gpointer handle, gboolean *done)
+gboolean
+qrt_receive_next(gpointer handle, gboolean *done)
 {
 	struct qrt_receive *qrcv = (struct qrt_receive *) handle;
 	struct gnutella_node *n = qrcv->node;
@@ -2759,13 +3296,95 @@ dropped:
 	return TRUE;		/* Everything is fine, even if we dropped message */
 }
 
-/*
- * qrp_close
- *
+static gboolean qrt_leaf_change_notified = FALSE;
+
+/**
+ * Called when we get a new QRT from a leaf node, or when we loose a leaf
+ * that sent us its QRT.
+ */
+void
+qrp_leaf_changed(void)
+{
+	qrt_leaf_change_notified = TRUE;
+}
+
+/**
+ * Periodic monitor, to trigger recomputation of the merged table if we got
+ * a new leaf with a QRT or lost a leaf which sent us its QRT.
+ */
+static void
+qrp_monitor(cqueue_t *cq, gpointer obj)
+{
+	/*
+	 * Re-install monitor for next time.
+	 */
+
+	monitor_ev = cq_insert(callout_queue,
+		LEAF_MONITOR_PERIOD, qrp_monitor, NULL);
+
+	/*
+	 * If we're not running as an ultra node, or if the reconstruction thread
+	 * is already running, don't bother...
+	 */
+
+	if (current_peermode != NODE_P_ULTRA || merge_comp != NULL)
+		return;
+
+	/*
+	 * If we got notified of changes, relaunch the computation of the
+	 * merge_table.
+	 */
+
+	if (qrt_leaf_change_notified) {
+		qrt_leaf_change_notified = FALSE;
+		mrg_compute(qrp_merge_routing_table);
+	}
+}
+
+/**
+ * Initialize QRP.
+ */
+void
+qrp_init(char_map_t map)
+{
+	gint c;
+
+	g_assert(map);
+
+	for (c = 0; c < 256; c++)
+		qrp_map[c] = map[c];
+
+	/*
+	 * Having a working hash function is critical.
+	 * Check that the implementation is not broken by accident.
+	 */
+
+	g_assert(qrp_hash("ebcklmenq", 13) == 3527);
+	g_assert(qrp_hash("ndflalem", 16) == 37658);
+	g_assert(qrp_hash("NDFLalem", 16) == 37658);
+	g_assert(qrp_hash("7777a88a8a8a8", 10) == 342);
+
+	/*
+	 * Install the periodic monitoring callback.
+	 */
+
+	monitor_ev = cq_insert(callout_queue,
+		LEAF_MONITOR_PERIOD, qrp_monitor, NULL);
+
+	/*
+	 * Install an empty local table untill we compute our shared library.
+	 */
+
+	local_table = qrt_ref(qrt_empty_table("Empty local table"));
+}
+
+/**
  * Called at servent shutdown to reclaim all the memory.
  */
-void qrp_close(void)
+void
+qrp_close(void)
 {
+	cq_cancel(callout_queue, monitor_ev);
 	qrp_cancel_computation();
 
 	if (routing_table)
@@ -2778,13 +3397,12 @@ void qrp_close(void)
 		G_FREE_NULL(buffer.arena);
 }
 
-/*
- * qrt_dump_is_slot_present
- *
+/**
  * Used by qrt_dump().
  * Returns whether a slot in the table is present or not.
  */
-static gboolean qrt_dump_is_slot_present(struct routing_table *rt, gint slot)
+static gboolean
+qrt_dump_is_slot_present(struct routing_table *rt, gint slot)
 {
 	g_assert(slot < rt->slots);
 
@@ -2794,15 +3412,14 @@ static gboolean qrt_dump_is_slot_present(struct routing_table *rt, gint slot)
 	return RT_SLOT_READ(rt->arena, slot);
 }
 
-/*
- * qrt_dump
- *
+/**
  * Dump QRT to specified file.
  * If `full' is true, we dump the whole table.
  *
  * Returns a unique 32-bit checksum.
  */
-static guint32 qrt_dump(FILE *f, struct routing_table *rt, gboolean full)
+static guint32
+qrt_dump(FILE *f, struct routing_table *rt, gboolean full)
 {
 	gint i;
 	gint j;
@@ -2812,8 +3429,9 @@ static guint32 qrt_dump(FILE *f, struct routing_table *rt, gboolean full)
 	guint8 digest[SHA1HashSize];
 	guint32 result;
 
-	fprintf(f, "------ Query Routing Table (gen=%d, slots=%d, %scompacted)\n",
-		rt->generation, rt->slots, rt->compacted ? "" : "not ");
+	fprintf(f, "------ Query Routing Table \"%s\" "
+		"(gen=%d, slots=%d, %scompacted)\n",
+		rt->name, rt->generation, rt->slots, rt->compacted ? "" : "not ");
 
 	SHA1Reset(&ctx);
 
@@ -2865,8 +3483,9 @@ static guint32 qrt_dump(FILE *f, struct routing_table *rt, gboolean full)
 	}
 
 
-	fprintf(f, "------ End Routing Table (gen=%d, SHA1=%s, token=0x%x)\n",
-		rt->generation, sha1_base32((gchar *) digest), result);
+	fprintf(f, "------ End Routing Table \"%s\" "
+		"(gen=%d, SHA1=%s, token=0x%x)\n",
+		rt->name, rt->generation, sha1_base32((gchar *) digest), result);
 
 	return result;
 }
@@ -2875,12 +3494,11 @@ static guint32 qrt_dump(FILE *f, struct routing_table *rt, gboolean full)
  *** Query routing management.
  ***/
 
-/*
- * qhvec_alloc
- *
+/**
  * Allocate a query hash container for at most `size' entries.
  */
-query_hashvec_t *qhvec_alloc(gint size)
+query_hashvec_t *
+qhvec_alloc(gint size)
 {
 	query_hashvec_t *qhvec;
 
@@ -2893,34 +3511,31 @@ query_hashvec_t *qhvec_alloc(gint size)
 	return qhvec;
 }
 
-/*
- * qhvec_free
- *
+/**
  * Dispose of the query hash container.
  */
-void qhvec_free(query_hashvec_t *qhvec)
+void
+qhvec_free(query_hashvec_t *qhvec)
 {
 	wfree(qhvec->vec, qhvec->size * sizeof(struct query_hash));
 	wfree(qhvec, sizeof(*qhvec));
 }
 
-/*
- * qhvec_reset
- *
+/**
  * Empty query hash container.
  */
-void qhvec_reset(query_hashvec_t *qhvec)
+void
+qhvec_reset(query_hashvec_t *qhvec)
 {
 	qhvec->count = 0;
 }
 
-/*
- * qhvec_add
- *
+/**
  * Add the `word' coming from `src' into the query hash vector.
  * If the vector is already full, do nothing.
  */
-void qhvec_add(query_hashvec_t *qhvec, gchar *word, enum query_hsrc src)
+void
+qhvec_add(query_hashvec_t *qhvec, gchar *word, enum query_hsrc src)
 {
 	struct query_hash *qh;
 
@@ -2932,23 +3547,23 @@ void qhvec_add(query_hashvec_t *qhvec, gchar *word, enum query_hsrc src)
 	qh->source = src;
 }
 
-/*
- * qrt_build_query_target
- *
+/**
  * Compute list of nodes to send the query to, based on node's QRT.
- * The query is identified by its list of QRP hashes, by its hop count
+ * The query is identified by its list of QRP hashes, by its hop count, TTL
  * and by its source node (so we don't send back the query where it
  * came from).
  *
  * Returns list of nodes, a subset of the currently connected nodes.
  * Once used, the list of nodes can be freed with g_slist_free().
  */
-GSList *qrt_build_query_target(
-	query_hashvec_t *qhvec, gint hops, struct gnutella_node *source)
+GSList *
+qrt_build_query_target(
+	query_hashvec_t *qhvec, gint hops, gint ttl, struct gnutella_node *source)
 {
 	GSList *nodes = NULL;		/* Targets for the query */
 	gint count = 0;				/* Amount of selected nodes so far */
 	const GSList *sl;
+	gboolean process_ultra = FALSE;
 
 	g_assert(qhvec != NULL);
 	g_assert(hops >= 0);
@@ -2964,9 +3579,19 @@ GSList *qrt_build_query_target(
 		return NULL;
 	}
 
+	/*
+	 * We need to special case processing of queries with TTL=1 so that they
+	 * get set to ultra peers that support last-hop QRP only if they can
+	 * provide a reply.  Ultrapeers that don't support last-hop QRP get the
+	 * query via the regular broadcast mechanism.
+	 */
+
+	process_ultra = (ttl == 1);
+
 	for (sl = node_all_nodes(); sl; sl = g_slist_next(sl)) {
 		struct gnutella_node *dn = (struct gnutella_node *) sl->data;
-		struct routing_table *rt = (struct routing_table *) dn->query_table;
+		struct routing_table *rt =
+			(struct routing_table *) dn->recv_query_table;
 		struct query_hash *qh;
 		gboolean can_route;
 		gboolean sha1_query;
@@ -2979,14 +3604,21 @@ GSList *qrt_build_query_target(
 		if (dn == source)		/* This is the node that sent us the query */
 			continue;
 
-		if (!NODE_IS_LEAF(dn) || !NODE_IS_WRITABLE(dn))
+		if (!NODE_IS_WRITABLE(dn))
 			continue;
+
+		if (process_ultra) {
+			if (!NODE_UP_QRP(dn) && !NODE_IS_LEAF(dn))
+				continue;
+		} else if (!NODE_IS_LEAF(dn))
+				continue;
 
 		if (hops >= dn->hops_flow)		/* Hops-flow prevents sending */
 			continue;
 
 		/*
-		 * Look whether we can route the query to the leaf node.
+		 * Look whether we can route the query to the peer (a leaf node or
+		 * a last-hop QRP capable ultra node).
 		 */
 
 		node_inc_qrp_query(dn);
@@ -3032,10 +3664,13 @@ GSList *qrt_build_query_target(
 		if (sha1_query && !sha1_in_qrt)
 			continue;
 
+		if (NODE_IS_ULTRA(dn))
+			goto can_send;			/* Avoid indentation of remaining code */
+
 		/*
-		 * If table for the node is so full that we can't let all the queries
-		 * pass through, further restrict sending even though QRT says we
-		 * can let it go.
+		 * If table for the leaf node is so full that we can't let all the
+		 * queries pass through, further restrict sending even though QRT says
+		 * we can let it go.
 		 *
 		 * We only do that when there are pending messages in the node's queue,
 		 * meaning we can't transmit all our packets fast enough.
@@ -3075,6 +3710,7 @@ GSList *qrt_build_query_target(
 		 * OK, can send the query to that node.
 		 */
 
+	can_send:
 		nodes = g_slist_prepend(nodes, dn);
 		count++;
 		node_inc_qrp_match(dn);
@@ -3083,19 +3719,19 @@ GSList *qrt_build_query_target(
 	return nodes;
 }
 
-/*
- * qrt_route_query
- *
- * Route query message to leaf nodes, based on their QRT.
+/**
+ * Route query message to leaf nodes, based on their QRT, or to ultrapeers
+ * that support last-hop QRP if TTL=1.
  */
-void qrt_route_query(struct gnutella_node *n, query_hashvec_t *qhvec)
+void
+qrt_route_query(struct gnutella_node *n, query_hashvec_t *qhvec)
 {
 	GSList *nodes;				/* Targets for the query */
 
 	g_assert(qhvec != NULL);
 	g_assert(n->header.function == GTA_MSG_SEARCH);
 
-	nodes = qrt_build_query_target(qhvec, n->header.hops, n);
+	nodes = qrt_build_query_target(qhvec, n->header.hops, n->header.ttl, n);
 
 	if (dbg > 4)
 		printf("QRP %s (%d word/hash) forwarded to %d/%d leaves\n",
@@ -3119,7 +3755,8 @@ void qrt_route_query(struct gnutella_node *n, query_hashvec_t *qhvec)
 	else printf("OK: %s\n", #x); \
 } while (0)
 
-void test_hash(void)
+void
+test_hash(void)
 {
 #define hash qrp_hash
 

@@ -81,6 +81,8 @@ typedef struct gnutella_node {
 	guint8 proto_minor;			/* Handshaking protocol minor number */
 	guint8 qrp_major;			/* Query routing protocol major number */
 	guint8 qrp_minor;			/* Query routing protocol minor number */
+	guint8 uqrp_major;			/* UP Query routing protocol major number */
+	guint8 uqrp_minor;			/* UP Query routing protocol minor number */
 	gchar *vendor;				/* Vendor information */
 	guchar vcode[4];			/* Vendor code (vcode[0] == NUL when unknown) */
 	gpointer io_opaque;			/* Opaque I/O callback information */
@@ -137,10 +139,11 @@ typedef struct gnutella_node {
 	rxdrv_t *rx;				/* RX stack top */
 
 	gpointer routing_data;		/* Opaque info, for gnet message routing */
-	gpointer query_table;		/* Opaque info, query table sent / used by UP */
+	gpointer sent_query_table;	/* Opaque info, query table sent to node */
+	gpointer recv_query_table;	/* Opaque info, query table recved from node */
 	gpointer qrt_update;		/* Opaque info, query routing update handle */
 	gpointer qrt_receive;		/* Opaque info, query routing reception */
-	qrt_info_t *qrt_info;		/* For leaves: info about their query table */
+	qrt_info_t *qrt_info;		/* Info about received query table */
 
 	gpointer alive_pings;		/* Opaque info, for alive ping checks */
 	time_t last_alive_ping;		/* Last time we sent an alive ping */
@@ -223,7 +226,7 @@ typedef struct gnutella_node {
  */
 
 #define NODE_F_HDSK_PING	0x00000001	/* Expecting handshake ping */
-#define NODE_F_UNUSED_1		0x00000002	/* UNUSED */
+#define NODE_F_STALE_QRP	0x00000002	/* Is sending a stale QRP patch */
 #define NODE_F_INCOMING		0x00000004	/* Incoming (permanent) connection */
 #define NODE_F_ESTABLISHED	0x00000008	/* Gnutella connection established */
 #define NODE_F_VALID		0x00000010	/* We handshaked with a Gnutella node */
@@ -253,6 +256,7 @@ typedef struct gnutella_node {
 #define NODE_A_TX_DEFLATE	0x00000020	/* Sending compressed data */
 #define NODE_A_ULTRA		0x00000040	/* Node wants to be an Ultrapeer */
 #define NODE_A_NO_ULTRA		0x00000080	/* Node is NOT ultra capable */
+#define NODE_A_UP_QRP		0x00000100	/* Supports intra-UP QRP */
 
 #define NODE_A_CAN_HSEP		0x04000000	/* Node supports HSEP */
 #define NODE_A_CAN_QRP		0x08000000	/* Node supports query routing */
@@ -329,6 +333,7 @@ typedef struct gnutella_node {
 		(double) ((n)->rx_inflated - (n)->rx_given) / (n)->rx_inflated : 0.0)
 
 #define NODE_CAN_GGEP(n)	((n)->attrs & NODE_A_CAN_GGEP)
+#define NODE_UP_QRP(n)		((n)->attrs & NODE_A_UP_QRP)
 
 /*
  * Peer inspection macros
@@ -369,9 +374,11 @@ typedef struct gnutella_node {
  * we fully got the QRP table from the leaf.
  */
 #define node_ultra_received_qrp(n) \
-	(NODE_IS_ULTRA(n) && (n)->qrt_update == NULL && (n)->query_table != NULL)
+	(NODE_IS_ULTRA(n) && \
+	(n)->qrt_update == NULL && (n)->sent_query_table != NULL)
 #define node_leaf_sent_qrp(n) \
-	(NODE_IS_LEAF(n) && (n)->qrt_receive == NULL && (n)->query_table != NULL)
+	(NODE_IS_LEAF(n) && \
+	(n)->qrt_receive == NULL && (n)->recv_query_table != NULL)
 
 /*
  * Can we send query with hop count `h' according to node's hops-flow value?
