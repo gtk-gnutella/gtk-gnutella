@@ -114,10 +114,22 @@ void hostiles_retrieve(void)
 		linenum++;
 		if (*line == '\0' || *line == '#')
 			continue;
+
+		/*
+		 * Remove all trailing spaces in string.
+		 *
+		 * XXX Is this really needed?
+		 *   --RAM, 02/04/2004
+		 */
 	
 		p = line + strlen(line);	
-		while (isspace((guchar) *(--p)))
+
+		while (p > line) {
+			guchar c = (guchar) *(--p);
+			if (!isspace(c))
+				break;
 			*p = '\0';
+		}
 
 		if ('\0' == *line)
 			continue;
