@@ -220,7 +220,7 @@ static gchar *gwc_pick(void)
 
 	idx = random_value(count - 1);
 
-	if (dbg)
+	if (gwc_debug)
 		g_warning("picked webcache %s", gwc_url[idx]);
 
 	return gwc_url[idx];
@@ -462,7 +462,7 @@ static void forget_url(gchar *url)
 	g_assert(gwc_url_slot >= 0);
 	g_assert(sizeof(url_tmp) == sizeof(gwc_url));
 
-	if (dbg)
+	if (gwc_debug)
 		g_warning("forgetting GWC URL \"%s\"", url);
 
 	/*
@@ -475,7 +475,7 @@ static void forget_url(gchar *url)
 	if (g_hash_table_lookup(gwc_known_url, url))
 		g_hash_table_remove(gwc_known_url, url);
 	else {
-		if (dbg)
+		if (gwc_debug)
 			g_warning("URL was already gone from GWC");
 		return;
 	}
@@ -735,7 +735,7 @@ static void parse_dispatch_lines(
  */
 static gboolean gwc_url_line(struct parse_context *ctx, gchar *buf, gint len)
 {
-	if (dbg > 3)
+	if (gwc_debug > 3)
 		printf("GWC URL line (%d bytes): %s\n", len, buf);
 
 	if (0 == strncmp(buf, "ERROR", 5)) {
@@ -764,7 +764,7 @@ static gboolean gwc_url_line(struct parse_context *ctx, gchar *buf, gint len)
  */
 static void gwc_url_eof(struct parse_context *ctx)
 {
-	if (dbg > 2)
+	if (gwc_debug > 2)
 		printf("GWC URL all done (%d/%d lines processed)\n",
 			ctx->processed, ctx->lines);
 
@@ -834,7 +834,7 @@ static void gwc_get_urls(void)
 	gm_snprintf(gwc_tmp, sizeof(gwc_tmp),
 		"%s?urlfile=1&%s", current_url, CLIENT_INFO);
 
-	if (dbg > 2)
+	if (gwc_debug > 2)
 		printf("GWC URL request: %s\n", gwc_tmp);
 
 	/*
@@ -868,7 +868,7 @@ static gboolean hostfile_running = FALSE;
  */
 static gboolean gwc_host_line(struct parse_context *ctx, gchar *buf, gint len)
 {
-	if (dbg > 3)
+	if (gwc_debug > 3)
 		printf("GWC host line (%d bytes): %s\n", len, buf);
 
 	if (0 == strncmp(buf, "ERROR", 5)) {
@@ -898,7 +898,7 @@ static gboolean gwc_host_line(struct parse_context *ctx, gchar *buf, gint len)
  */
 static void gwc_host_eof(struct parse_context *ctx)
 {
-	if (dbg > 2)
+	if (gwc_debug > 2)
 		printf("GWC host all done (%d/%d lines processed)\n",
 			ctx->processed, ctx->lines);
 
@@ -977,7 +977,7 @@ void gwc_get_hosts(void)
 	gm_snprintf(gwc_tmp, sizeof(gwc_tmp),
 		"%s?hostfile=1&%s", current_url, CLIENT_INFO);
 
-	if (dbg > 2)
+	if (gwc_debug > 2)
 		printf("GWC host request: %s\n", gwc_tmp);
 
 	/*
@@ -1010,11 +1010,11 @@ void gwc_get_hosts(void)
  */
 static gboolean gwc_update_line(struct parse_context *ctx, gchar *buf, gint len)
 {
-	if (dbg > 3)
+	if (gwc_debug > 3)
 		printf("GWC update line (%d bytes): %s\n", len, buf);
 
 	if (0 == strncmp(buf, "OK", 2)) {
-		if (dbg > 2)
+		if (gwc_debug > 2)
 			printf("GWC update OK for \"%s\"\n",
 				http_async_info(ctx->handle, NULL, NULL, NULL, NULL));
 		http_async_close(ctx->handle);		/* OK, don't read more */
@@ -1119,7 +1119,7 @@ static void gwc_update_this(gchar *cache_url)
 	 */
 
 	if (!has_data) {
-		if (dbg > 2)
+		if (gwc_debug > 2)
 			printf("GWC update has nothing to send\n");
 		return;
 	}
@@ -1130,7 +1130,7 @@ static void gwc_update_this(gchar *cache_url)
 
 	g_strlcpy(&gwc_tmp[rw], CLIENT_INFO, sizeof(gwc_tmp)-rw);
 
-	if (dbg > 2)
+	if (gwc_debug > 2)
 		printf("GWC update request: %s\n", gwc_tmp);
 
 	/*
@@ -1164,7 +1164,7 @@ static void gwc_seed_cache(gchar *cache_url)
 	if (cache_url == NULL)
 		return;
 
-	if (dbg > 2)
+	if (gwc_debug > 2)
 		printf("GWC seeding cache \"%s\"\n", cache_url);
 
 	gwc_update_this(cache_url);

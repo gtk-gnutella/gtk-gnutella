@@ -27,6 +27,16 @@
 
 #include "common.h"
 #include "url.h"
+
+/* FIXME: Should the debug properties be moved to there own domain
+ *		  e.g., debug_props.ag etc.? Including gnet_property_priv.h
+ *		  here is ugly and circumvents the module concept but you
+ *		  surely don't want to access the debug variables by function
+ *		  calls.
+ */
+#include "gnet_property.h"
+#include "gnet_property_priv.h"	/* For url_debug */
+
 #include "override.h"		/* Must be the last header included */
 
 RCSID("$Id$");
@@ -387,12 +397,10 @@ void url_params_free(url_params_t *up)
 
 static gboolean url_safe_char(gint c, url_policy_t p)
 {
-	static gboolean url_dbg = TRUE;
-
 	if (p & URL_POLICY_GWC_RULES) {
 		/* Reject allow anything unreasonable */
 		if (!isascii(c)) {
-			if (url_dbg)
+			if (url_debug)
 				g_warning("Non-ASCII character in GWC URL; rejected");
 			return FALSE;
 		}
@@ -400,7 +408,7 @@ static gboolean url_safe_char(gint c, url_policy_t p)
     	if (!isalnum(c)
         	&& c != '/' && c != '.' && c != '_' && c != '-' && c != '~'
       	) {
-			if (url_dbg)
+			if (url_debug)
       			g_warning("Unsafe character in GWC URL; rejected");
       		return FALSE;
     	}
@@ -436,26 +444,26 @@ gchar *url_normalize(gchar *url, url_policy_t pol)
 	gchar *p, *q = url;
 	const gchar *uri;
 	static const char http_prefix[] = "http://";
-	static gboolean url_dbg = FALSE;
+	static gboolean url_debug = FALSE;
 
 	g_assert(url);
 
 	if (0 != strncmp(q, http_prefix, sizeof http_prefix - 1)) {
-		if (url_dbg)
-			g_warning("URL isn't preceded by \"http://\"");
+		if (url_debug)
+			g_warning("URL isn't preceded by \"%s\"", http_prefix);
 		return NULL;
 	}
 	q += sizeof http_prefix - 1;
 
 	if (!isalnum((guchar) *q)) {
-		if (url_dbg)
+		if (url_debug)
 			g_warning("HTTP prefix MUST be followed by an alphanum");
 		return NULL;
 	}
 
 	if (gchar_to_ip_strict(q, NULL, (const gchar **) &endptr)) {
 		if (!(pol & URL_POLICY_ALLOW_IP_AS_HOST)) {
-			if (url_dbg)
+			if (url_debug)
 				g_warning("URLs without hostnames have been disabled");
 			return NULL;
 		}
@@ -484,7 +492,7 @@ gchar *url_normalize(gchar *url, url_policy_t pol)
 			} else if (c == '.') {
 
 				if (!(isalnum((guchar) *(q - 1)) && isalnum((guchar) q[1]))) {
-					if (url_dbg)
+					if (url_debug)
 						g_warning("a dot must be preceded and followed by"
 						 	"an alphanum");
 					return NULL;
@@ -497,7 +505,7 @@ gchar *url_normalize(gchar *url, url_policy_t pol)
 			} else if (c == '\0' || c == '/' || c == ':') {
 				break;
 			} else {
-				if (url_dbg)
+				if (url_debug)
 					g_warning("invalid character in ``host:port'' part: "
 						"%s", q);
 				return NULL;
@@ -505,7 +513,7 @@ gchar *url_normalize(gchar *url, url_policy_t pol)
 		}
 
 		if (!tld || !(isalpha((guchar) tld[0]) && isalpha((guchar) tld[1]))) {
-			if (url_dbg)
+			if (url_debug)
 				g_warning("no or invalid top-level domain");
 			return NULL;
 		}
@@ -520,7 +528,7 @@ gchar *url_normalize(gchar *url, url_policy_t pol)
 		errno = 0;
 		v = strtoul(q, &endptr, 10);
 		if (errno || v < 1 || v > 65535) {
-			if (url_dbg)
+			if (url_debug)
 				g_warning("':' MUST be followed a by port value (1-65535)");
 			return NULL;
 		}
@@ -536,7 +544,7 @@ gchar *url_normalize(gchar *url, url_policy_t pol)
 	}
 
 	if (*p != '/' && *p != '\0') {
-		if (url_dbg)
+		if (url_debug)
 			g_warning("host must be followed by ':', '/' or NUL");
 		return NULL;
 	}
@@ -546,7 +554,7 @@ gchar *url_normalize(gchar *url, url_policy_t pol)
 	/* Scan path */
 	for (/* NOTHING */; (c = *(guchar *) p) != '\0'; q++, p++) {
 		if (!url_safe_char(c, pol)) {
-			if (url_dbg)
+			if (url_debug)
 				g_warning("URL contains characters prohibited by policy");
 			return NULL;
 		}
@@ -567,23 +575,23 @@ gchar *url_normalize(gchar *url, url_policy_t pol)
 
 			if (0 == strcmp(p, "/.")) {
 				p++;
-				if (url_dbg)
+				if (url_debug)
 					g_message("Ignoring trailing \"/.\" in URI");
 			} else if (0 == strcmp(p, "/..")) {
-				if (url_dbg)
+				if (url_debug)
 					g_message("Trailing \"/..\" in URI; rejected");
 				return NULL;
 			} else if (0 == strncmp(p, "/./", sizeof "/./" - 1)) {
 				p += 2;
-				if (url_dbg)
+				if (url_debug)
 					g_message("Ignoring unnecessary \"/./\" in URI");
 			} else if (0 == strncmp(p, "/../", sizeof "/../" - 1)) {
 				p += 3;
-				if (url_dbg)
+				if (url_debug)
 					g_message("Ascending one component in URI");
 				while (*--q != '/')
 					if (q <= uri) {
-						if (url_dbg)
+						if (url_debug)
 							g_message("URI ascents beyond root per \"/../\"");
 						return NULL;
 					}
@@ -609,7 +617,7 @@ gchar *url_normalize(gchar *url, url_policy_t pol)
 
 		for (i = 0; i < G_N_ELEMENTS(static_types); i++)
     		if (!strcasecmp(q - static_types[i].len, static_types[i].ext)) {
-				if (url_dbg)
+				if (url_debug)
 					g_message("URL points probably to static data; rejected");
       			return NULL;
     		}
@@ -629,7 +637,7 @@ gchar *url_normalize(gchar *url, url_policy_t pol)
 		url = p;
 	}
 
-	if (url_dbg)
+	if (url_debug)
 		g_message("url=\"%s\"", url);
 
 	return url;
