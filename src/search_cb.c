@@ -145,6 +145,13 @@ gint search_cb_autoselect(GtkCTree *ctree, GtkCTreeNode *node,
      */
 	grc = gtk_ctree_node_get_row_data(ctree, node);
 	rc = grc->shared_record;
+
+	/* XXX anti-crash, when rc is 0x3 or something... -- RAM, 16/03/2004 */
+	if ((gulong) rc < 0x1000) {
+		statusbar_gui_message(15, "*** MEMORY CORRUPTED, TRYING TO IGNORE!");
+		return 0;
+	}
+
 	gtk_clist_freeze(GTK_CLIST(ctree));
 	
     /* Search whole ctree for nodes to autoselect 
@@ -170,13 +177,19 @@ gint search_cb_autoselect(GtkCTree *ctree, GtkCTreeNode *node,
             continue;
 		}
 
+		/* XXX anti-crash, when rc is 0x3 or something... -- RAM, 16/03/2004 */
+		if ((gulong) rc2 < 0x1000) {
+			statusbar_gui_message(15, "*** MEMORY CORRUPTED, TRYING TO IGNORE!");
+			continue;
+		}
+
 		parent = GTK_CTREE_NODE(auto_node);
 		row = GTK_CTREE_ROW(parent);
 		
 		/* If auto_node is a child node, we skip it cause it will be handled 
 		 * when we come to it's parent 
 		 */
-		if(NULL != row->parent)
+		if (NULL != row->parent)
 			continue; 			
 		
 		child = row->children;
@@ -199,6 +212,13 @@ gint search_cb_autoselect(GtkCTree *ctree, GtkCTreeNode *node,
 		    	rc2 = grc2->shared_record;
 				if (rc == rc2)
 	        		continue;
+
+				/* XXX anti-crash -- RAM, 16/03/2004 */
+				if ((gulong) rc2 < 0x1000) {
+					statusbar_gui_message(15,
+						"*** MEMORY CORRUPTED, TRYING TO IGNORE!");
+					continue;
+				}
 	
 	            if (search_autoselect_ident) {
        		    	if ((rc->size == rc2->size && rc->sha1 != NULL && 
@@ -842,9 +862,9 @@ GList *search_cb_collect_ctree_data(GtkCTree *ctree, GList *node_list)
 	gui_record_t *grc;
 	record_t *rc;
 	
-	for(; node_list != NULL; node_list = g_list_next(node_list)) {
+	for (; node_list != NULL; node_list = g_list_next(node_list)) {
 	
-		if(node_list->data != NULL) {
+		if (node_list->data != NULL) {
 			grc = gtk_ctree_node_get_row_data(ctree, node_list->data);
 			rc = grc->shared_record;
 			data_list = g_list_append(data_list, rc);/* FIXME append is o(n) */
@@ -854,7 +874,6 @@ GList *search_cb_collect_ctree_data(GtkCTree *ctree, GList *node_list)
 	data_list = g_list_first(data_list);
 	return data_list;
 }
-
 
 
 /* 
