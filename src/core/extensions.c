@@ -37,6 +37,8 @@ RCSID("$Id$");
 #include "lib/walloc.h"
 #include "lib/override.h"		/* Must be the last header included */
 
+#include "if/gnet_property_priv.h"
+
 #define HUGE_FS		'\x1c'		/* Field separator (HUGE) */
 
 #define GGEP_MAXLEN	65535		/* Maximum decompressed length */
@@ -412,6 +414,49 @@ ext_ggep_parse(gchar **retp, gint len, extvec_t *exv, gint exvcnt)
 
 		if (end - p < data_length)		/* Not enough bytes for the payload */
 			goto abort;
+
+		/*
+		 * Some sanity checks:
+		 *
+		 * A COBS-encoded buffer can be trivially validated.
+		 * A deflated payload must be at least 6 bytes with a valid header.
+		 */
+
+		if (flags & (GGEP_F_COBS|GGEP_F_DEFLATE)) {
+			gint len = data_length;
+
+			if (flags & GGEP_F_COBS) {
+				if (len == 0 || !cobs_is_valid(p, len))
+					goto abort;
+				len--;					/* One byte of overhead */
+			}
+
+			if (flags & GGEP_F_DEFLATE) {
+				gint offset = 0;
+
+				if (len < 6)
+					goto abort;
+
+				/*
+				 * If COBS-ed, since neither the first byte nor the
+				 * second byte of the raw deflated payload can be NUL,
+				 * the leading COBS code will be at least 3.  Then
+				 * the next 2 bytes are the raw deflated header.
+				 *
+				 * If not COBS-ed, check whether payload holds a valid
+				 * deflated header.
+				 */
+
+				if (flags & GGEP_F_COBS) {
+					if ((guint) *p < 3)
+						goto abort;
+					offset = 1;			/* Skip leading byte */
+				}
+
+				if (!zlib_is_valid_header(p + offset, len))
+					goto abort;
+			}
+		}
 
 		/*
 		 * OK, at this point we have validated the GGEP header.
@@ -1110,8 +1155,11 @@ ext_ggep_decode(const extvec_t *e)
 		uncobs_len = plen;
 
 		if (!d->ext_ggep_deflate) {
-			if (!cobs_decode_into(pbase, plen, uncobs, plen, &result))
+			if (!cobs_decode_into(pbase, plen, uncobs, plen, &result)) {
+				if (ggep_debug)
+					g_warning("unable to decode COBS buffer");
 				goto out;
+			}
 
 			g_assert(result <= plen);
 
@@ -1121,8 +1169,11 @@ ext_ggep_decode(const extvec_t *e)
 
 			return;
 		} else {
-			if (!cobs_decode_into(pbase, plen, uncobs, plen, &result))
+			if (!cobs_decode_into(pbase, plen, uncobs, plen, &result)) {
+				if (ggep_debug)
+					g_warning("unable to decode COBS buffer");
 				goto out;
+			}
 
 			g_assert(result <= plen);
 
@@ -1161,10 +1212,11 @@ out:
 	 */
 
 	if (d->ext_payload == NULL) {
-		g_warning("unable to get GGEP \"%s\" %d-byte payload (%s)",
-			d->ext_ggep_id, d->ext_phys_paylen,
-			(d->ext_ggep_deflate && d->ext_ggep_cobs) ? "COBS + deflated" :
-			d->ext_ggep_cobs ? "COBS" : "deflated");
+		if (dbg || ggep_debug)
+			g_warning("unable to get GGEP \"%s\" %d-byte payload (%s)",
+				d->ext_ggep_id, d->ext_phys_paylen,
+				(d->ext_ggep_deflate && d->ext_ggep_cobs) ? "COBS + deflated" :
+				d->ext_ggep_cobs ? "COBS" : "deflated");
 
 		d->ext_paylen = 0;
 		d->ext_payload = d->ext_phys_payload;
