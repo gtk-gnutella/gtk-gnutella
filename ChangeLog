@@ -1,5 +1,13 @@
 # since last version
 
+- (2003.07.09 - Jeroen)
+ * PARQ: Uploads->parq pointers were only assigned during parq_upload_create.
+         Pointer is now also set when a existing parq upload is rerequested.
+	 Pointer is removed as soon as PARQ strucuture is freed.
+
+- (2003.07.07 - Jeroen)
+ * PARQ: Uploads contain a pointer to a parq structure now for fast lookups.
+
 - (2003.07.06 - RAM)
  * Broadcast Push messages to all known routes to increase reception likelihood.
  * Double grace period when running in ultra mode: more connections to flush.
