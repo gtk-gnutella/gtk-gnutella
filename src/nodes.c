@@ -419,7 +419,7 @@ static void node_remove_v(
 	}
 
 	n->status = GTA_NODE_REMOVING;
-	n->flags &= ~(NODE_F_WRITABLE|NODE_F_READABLE);
+	n->flags &= ~(NODE_F_WRITABLE|NODE_F_READABLE|NODE_F_BYE_SENT);
 	n->last_update = time((time_t *) NULL);
 
 	nodes_in_list--;
