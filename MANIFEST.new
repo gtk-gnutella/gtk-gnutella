@@ -17,6 +17,7 @@ gtk2-gnutella.glade
 gtk-gnutella.glade
 gwcache.boot
 hostiles.txt
+install.SH                   BSD-compatible install program
 Makefile.SH
 po/es.po
 po/fr.po
@@ -309,3 +310,26 @@ U/packages/glade.U
 U/packages/gtkconfig.U
 U/packages/gtkversion.U
 U/packages/xmlconfig.U
+pixmaps/Jmakefile
+pixmaps/Makefile.SH
+pixmaps/arrow_down.xpm
+pixmaps/arrow_up.xpm
+pixmaps/booklib.xpm
+pixmaps/booksha.xpm
+pixmaps/bookshav.xpm
+pixmaps/download.xpm
+pixmaps/exit.xpm
+pixmaps/filter.xpm
+pixmaps/firewall.xpm
+pixmaps/freeze.xpm
+pixmaps/icon.xpm
+pixmaps/leaf.xpm
+pixmaps/legacy.xpm
+pixmaps/no_firewall.xpm
+pixmaps/offline.xpm
+pixmaps/online.xpm
+pixmaps/save.xpm
+pixmaps/smallserver.xpm
+pixmaps/thaw.xpm
+pixmaps/ultra.xpm
+pixmaps/upload.xpm
