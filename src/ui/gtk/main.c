@@ -645,6 +645,29 @@ void main_gui_run(void)
         8, 8);
 #endif
 
+	/*
+	 * Make sure the application starts in the Gnet pane.
+	 */
+
+	gtk_notebook_set_page(
+		GTK_NOTEBOOK(lookup_widget(main_window, "notebook_main")),
+		nb_main_page_gnet);
+
+#ifdef USE_GTK1
+	{
+		GtkCTree *ctree_menu =
+			GTK_CTREE(lookup_widget(main_window, "ctree_menu"));
+		GtkCTreeNode *node;
+
+		node = gtk_ctree_find_by_row_data(ctree_menu,
+			gtk_ctree_node_nth(ctree_menu, 0),
+			GINT_TO_POINTER(nb_main_page_gnet));
+
+		if (node != NULL)
+			gtk_ctree_select(ctree_menu, node);
+	}
+#endif
+
     gtk_main();
 }
 
