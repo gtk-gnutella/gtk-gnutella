@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2001-2002, Raphael Manfredi
+ * Copyright (c) 2001-2002, Raphael Manfredi, Richard Eckart
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -26,56 +26,120 @@
 
 #include <regex.h>
 
+#include "gnutella.h"
 #include "matching.h"
 
-enum filter_type {
-  FILTER_TEXT,
-  FILTER_IP,
-  FILTER_SIZE
+/*
+ * Needed stuff from search.h
+ */
+struct record;
+struct search;
+
+enum rule_type {
+    RULE_TEXT = 0,
+    RULE_IP,
+    RULE_SIZE,
+    RULE_JUMP
 };
 
-enum filter_text_type {
-  FILTER_PREFIX,
-  FILTER_WORDS,
-  FILTER_SUFFIX,
-  FILTER_SUBSTR,
-  FILTER_REGEXP
+enum rule_text_type {
+    RULE_TEXT_PREFIX,
+    RULE_TEXT_WORDS,
+    RULE_TEXT_SUFFIX,
+    RULE_TEXT_SUBSTR,
+    RULE_TEXT_REGEXP
 };
 
-struct filter {
-  enum filter_type type;	/* type of filter, see above */
-  int positive:1;		/* true: display matches; false: hide matches */
-  union {
-    struct _f_text {
-      int case_sensitive:1;	/* case sensitive (true) or not (false) */
-      enum filter_text_type type; /* type of match, see above */
-      union {
-	char *match;		/* match string */
-	cpattern_t *pattern;	/* substring pattern */
-	GList *words;		/* a list of substring patterns */
-	regex_t *re;		/* regular expression match */
-      } u;
-    } text;
-    struct _f_ip {
-      guint32 addr;		/* IP address */
-      guint32 mask;		/* netmask */
-    } ip;
-    struct _f_size {
-      size_t lower;		/* lower limit or 0 */
-      size_t upper;		/* upper limit or ~0 */
-    } size;
-  } u;
+typedef struct filter {
+    gchar *name;
+    GList *ruleset;
+    struct search *search;
+    gboolean visited;
+    gint32 refcount;
+} filter_t;
+
+
+/* 
+ * Definition of a filter rule
+ */
+typedef struct rule {
+    enum rule_type type;	            /* type of rule, see above */
+    gboolean negate;
+    gboolean valid;
+    filter_t *target;
+    union {
+        struct _f_text {
+            int case_sensitive:1;	    /* case sensitive (true) or not (false) */
+            enum rule_text_type type; /* type of match, see above */
+            char *match; 	            /* match string */
+            union {
+                cpattern_t *pattern;	/* substring pattern */
+                GList *words;		    /* a list of substring patterns */
+                regex_t *re;		    /* regular expression match */
+            } u;
+        } text;
+        struct _f_ip {
+            guint32 addr;		        /* IP address */
+            guint32 mask;		        /* netmask */
+        } ip;
+        struct _f_size {
+            size_t lower;		        /* lower limit or 0 */
+            size_t upper;		        /* upper limit or ~0 */
+        } size;
+    } u;
+} rule_t;
+
+
+
+/*
+ * Notebook tabs in the filter detail notebook.
+ */
+enum {
+    nb_filt_page_buttons = 0,
+    nb_filt_page_text,
+    nb_filt_page_ip,
+    nb_filt_page_size,
+    nb_filt_page_jump
 };
 
-extern GList *global_filters;
 
-/* ---- Functions ---- */
 
-void filters_init(void);
-void filters_open_dialog(void);
+/*
+ * Public variables.
+ */
+extern filter_t *work_filter;
 
+
+
+/*
+ * Public interface.
+ */
+
+rule_t *filter_new_ip_rule(guint32, guint32, filter_t *, gboolean);
+rule_t *filter_new_size_rule(size_t, size_t, filter_t *, gboolean);
+rule_t *filter_new_text_rule(gchar *, gint, gboolean, filter_t *,gboolean);
+rule_t *filter_new_jump_rule(filter_t *);
+filter_t *filter_new(gchar *);
 gboolean filter_record(struct search *, struct record *);
-
-#endif							/* __filter_h__ */
-
-/* vi: set ts=4: */
+rule_t *filter_get_rule();
+void filter_adapt_order(void);
+void filter_append_rule(filter_t *, rule_t *);
+void filter_cancel_changes();
+void filter_close_dialog();
+void filter_close_search(struct search *);
+void filter_commit_changes();
+void filter_edit_ip_rule(rule_t *);
+void filter_edit_rule(rule_t *f);
+void filter_edit_size_rule(rule_t *);
+void filter_edit_text_rule(rule_t *);
+void filter_edit_jump_rule(rule_t *);
+void filter_free(filter_t *r);
+void filter_init(void);
+void filter_new_for_search(struct search *s);
+void filter_open_dialog();
+void filter_remove_rule(filter_t *, rule_t *);
+void filter_replace_rule(filter_t *, rule_t *, rule_t *);
+void filter_set(filter_t *);
+void filter_shutdown(void);
+void filter_update_filters(void);
+#endif /* __filter_h__ */
