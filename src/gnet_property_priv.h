@@ -88,6 +88,8 @@ extern guint32  gwc_debug;
 extern guint32  url_debug;
 extern guint32  dh_debug;
 extern guint32  dq_debug;
+extern guint32  vmsg_debug;
+extern guint32  search_debug;
 extern guint32  track_props;
 extern gboolean stop_host_get;
 extern gboolean bws_in_enabled;
