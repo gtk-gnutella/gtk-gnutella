@@ -375,7 +375,8 @@ static void autoselect_files_helper(
 	gboolean more_rows;
 	GtkTreeSelection	*selection;
 
-	g_return_if_fail(!autoselect_files_lock);
+	if (autoselect_files_lock)
+		return;
 	autoselect_files_lock = TRUE;
 
 	/* 
