@@ -153,7 +153,8 @@ pmsg_new(gint prio, void *buf, gint len)
  * Like pmsg_new() but returns an extended form with a free routine callback.
  */
 pmsg_t *
-pmsg_new_extend(gint prio, void *buf, gint len, pmsg_free_t free, gpointer arg)
+pmsg_new_extend(gint prio, void *buf, gint len,
+	pmsg_free_t free_func, gpointer arg)
 {
 	pmsg_ext_t *emb;
 	pdata_t *db;
@@ -165,7 +166,7 @@ pmsg_new_extend(gint prio, void *buf, gint len, pmsg_free_t free, gpointer arg)
 	emb = (pmsg_ext_t *) walloc(sizeof(*emb));
 	db = pdata_new(len);
 
-	emb->m_free = free;
+	emb->m_free = free_func;
 	emb->m_arg = arg;
 
 	(void) pmsg_fill((pmsg_t *) emb, db, prio, buf, len);
@@ -210,7 +211,7 @@ pmsg_alloc(gint prio, pdata_t *db, gint roff, gint woff)
  * Extended cloning of message, adds a free routine callback.
  */
 pmsg_t *
-pmsg_clone_extend(pmsg_t *mb, pmsg_free_t free, gpointer arg)
+pmsg_clone_extend(pmsg_t *mb, pmsg_free_t free_func, gpointer arg)
 {
 	pmsg_ext_t *nmb;
 
@@ -224,7 +225,7 @@ pmsg_clone_extend(pmsg_t *mb, pmsg_free_t free, gpointer arg)
 	pdata_addref(nmb->m_data);
 
 	nmb->m_prio |= PMSG_PF_EXT;
-	nmb->m_free = free;
+	nmb->m_free = free_func;
 	nmb->m_arg = arg;
 
 	return (pmsg_t *) nmb;
@@ -354,9 +355,12 @@ pmsg_free(pmsg_t *mb)
 			pmsg_ext_t *emb = (pmsg_ext_t *) mb;
 			if (emb->m_free)
 				(*emb->m_free)(mb, emb->m_arg);
+			memset(emb, 0, sizeof *emb);
 			wfree(emb, sizeof(*emb));
-		} else
+		} else {
+			memset(mb, 0, sizeof *mb);
 			zfree(mb_zone, mb);
+		}
 
 		/*
 		 * Unref buffer data only after possible free routine was
@@ -539,4 +543,4 @@ pdata_unref(pdata_t *db)
 		pdata_free(db);
 }
 
-/* vi: set ts=4: */
+/* vi: set ts=4 sw=4 cindent: */
