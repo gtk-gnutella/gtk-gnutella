@@ -174,7 +174,7 @@ upload_info_changed(gnet_upload_t u,
     guc_upload_free_info(info);
 }
 
-#define COMPARE_FUNC(field, code) \
+#define COMPARE_FUNC(field) \
 static gint CAT2(compare_,field)( \
 	GtkTreeModel *model, GtkTreeIter *a, GtkTreeIter *b, gpointer user_data) \
 { \
@@ -183,25 +183,26 @@ static gint CAT2(compare_,field)( \
 	(void) user_data; \
 	gtk_tree_model_get(model, a, c_ul_data, &rd_a, (-1)); \
 	gtk_tree_model_get(model, b, c_ul_data, &rd_b, (-1)); \
-	code \
-}
+	{
 
-COMPARE_FUNC(hosts, {
+#define COMPARE_FUNC_END } }
+
+COMPARE_FUNC(hosts)
 	guint32 ip_a = rd_a->ip;
 	guint32 ip_b = rd_b->ip;
 	return CMP(ip_a, ip_b);
-});
+COMPARE_FUNC_END
 
-COMPARE_FUNC(sizes, {
+COMPARE_FUNC(sizes)
 	return CMP(rd_b->size, rd_a->size);
-});
+COMPARE_FUNC_END
 
-COMPARE_FUNC(ranges, {
+COMPARE_FUNC(ranges)
 	filesize_t u = rd_a->range_end - rd_a->range_start;
 	filesize_t v = rd_b->range_end - rd_b->range_start;
 	gint s = CMP(v, u);
 	return 0 != s ? s : CMP(rd_a->range_start, rd_b->range_start);
-});
+COMPARE_FUNC_END
 
 /***
  *** Private functions
