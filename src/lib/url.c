@@ -62,15 +62,14 @@ static const guint8 is_transparent[96] = {
 
 static const char hex_alphabet[] = "0123456789ABCDEF";
 
-/*
- * url_escape_mask
- *
+/**
  * Escape undesirable characters using %xx, where xx is an hex code.
  * `mask' tells us whether we're escaping an URL path or a query string.
  *
- * Returns argument if no escaping is necessary, or a new string otherwise.
+ * @return argument if no escaping is necessary, or a new string otherwise.
  */
-static gchar *url_escape_mask(const gchar *url, guint8 mask)
+static gchar *
+url_escape_mask(const gchar *url, guint8 mask)
 {
 	const gchar *p;
 	gchar *q;
@@ -101,18 +100,16 @@ static gchar *url_escape_mask(const gchar *url, guint8 mask)
 	return new;
 }
 
-/*
- * url_escape_mask_into
- *
+/**
  * Escape undesirable characters using %xx, where xx is an hex code.
  * This is done in the `target' buffer, whose size is `len'.
  * `mask' tells us whether we're escaping an URL path or a query string.
  *
- * Returns amount of characters written into buffer (not counting trailing
+ * @return amount of characters written into buffer (not counting trailing
  * NUL), or -1 if the buffer was too small.
  */
-static gint url_escape_mask_into(
-	const gchar *url, gchar *target, gint len, guint8 mask)
+static gint
+url_escape_mask_into(const gchar *url, gchar *target, gint len, guint8 mask)
 {
 	const gchar *p = url;
 	gchar *q;
@@ -140,50 +137,48 @@ static gint url_escape_mask_into(
 	return q - target;
 }
 
-/*
- * url_escape
- *
+/**
  * Escape undesirable characters using %xx, where xx is an hex code.
- * Returns argument if no escaping is necessary, or a new string otherwise.
+ *
+ * @return argument if no escaping is necessary, or a new string otherwise.
  */
-gchar *url_escape(const gchar *url)
+gchar *
+url_escape(const gchar *url)
 {
 	return url_escape_mask(url, PATH_MASK);
 }
 
-/*
- * url_escape_query
- *
+/**
  * Same as url_escape(), but '+' are also escaped for the query string.
- * Returns argument if no escaping is necessary, or a new string otherwise.
+ *
+ * @return argument if no escaping is necessary, or a new string otherwise.
  */
-gchar *url_escape_query(const gchar *url)
+gchar *
+url_escape_query(const gchar *url)
 {
 	return url_escape_mask(url, QUERY_MASK);
 }
 
-/*
- * url_escape_into
- *
+/**
  * Escape undesirable characters using %xx, where xx is an hex code.
  * This is done in the `target' buffer, whose size is `len'.
  *
- * Returns amount of characters written into buffer (not counting trailing
+ * @return amount of characters written into buffer (not counting trailing
  * NUL), or -1 if the buffer was too small.
  */
-gint url_escape_into(const gchar *url, gchar *target, gint len)
+gint
+url_escape_into(const gchar *url, gchar *target, gint len)
 {
 	return url_escape_mask_into(url, target, len, PATH_MASK);
 }
 
-/*
- * url_escape_cntrl
- *
+/**
  * Escape control characters using %xx, where xx is an hex code.
  *
- * Returns argument if no escaping is necessary, or a new string otherwise.
+ * @return argument if no escaping is necessary, or a new string otherwise.
  */
-gchar *url_escape_cntrl(gchar *url)
+gchar *
+url_escape_cntrl(gchar *url)
 {
 	gchar *p;
 	gchar *q;
@@ -214,16 +209,16 @@ gchar *url_escape_cntrl(gchar *url)
 	return new;
 }
 
-/*
- * url_unescape
- *
+/**
  * Unescape string, in-place if `inplace' is TRUE.
  *
  * Returns the argument if un-escaping is NOT necessary, a new string
  * otherwise unless in-place decoding was requested.
- * Returns NULL if the argument isn't valid encoded.
+ *
+ * @return NULL if the argument isn't valid encoded.
  */
-gchar *url_unescape(gchar *url, gboolean inplace)
+gchar *
+url_unescape(gchar *url, gboolean inplace)
 {
 	gchar *p;
 	gchar *q;
@@ -289,16 +284,15 @@ gchar *url_unescape(gchar *url, gboolean inplace)
 	return new;
 }
 
-/*
- * url_params_parse
- *
+/**
  * Parse all the parameters in the URL query string.  All parameter values are
  * stored in their URL-unescaped form, but parameter names are NOT un-escaped.
  *
- * Returns an url_params_t object that can be queried for later...
- * Returns NULL if the argument isn't valid encoded.
+ * @return an url_params_t object that can be queried for later...
+ *         or NULL if the argument isn't valid encoded.
  */
-url_params_t *url_params_parse(gchar *query)
+url_params_t *
+url_params_parse(gchar *query)
 {
 	url_params_t *up;
 	gchar *q;
@@ -354,13 +348,12 @@ url_params_t *url_params_parse(gchar *query)
 	return up;
 }
 
-/*
- * url_params_get
- *
+/**
  * Get the value of a parameter, or NULL if the parameter is not present.
  * The value returned has already been URL-unescaped.
  */
-gchar *url_params_get(url_params_t *up, gchar *name)
+gchar *
+url_params_get(url_params_t *up, gchar *name)
 {
 	g_assert(up != NULL);
 	g_assert(up->params != NULL);
@@ -368,18 +361,19 @@ gchar *url_params_get(url_params_t *up, gchar *name)
 	return g_hash_table_lookup(up->params, name);
 }
 
-static void free_params_kv(gpointer key, gpointer value, gpointer udata)
+static void
+free_params_kv(gpointer key, gpointer value, gpointer unused_udata)
 {
+	(void) unused_udata;
 	g_free(key);
 	g_free(value);
 }
 
-/*
- * url_params_free
- *
+/**
  * Dispose of the url_params_t structure.
  */
-void url_params_free(url_params_t *up)
+void
+url_params_free(url_params_t *up)
 {
 	g_assert(up != NULL);
 
@@ -389,7 +383,8 @@ void url_params_free(url_params_t *up)
 	wfree(up, sizeof(*up));
 }
 
-static gboolean url_safe_char(gint c, url_policy_t p)
+static gboolean
+url_safe_char(gint c, url_policy_t p)
 {
 	if (p & URL_POLICY_GWC_RULES) {
 		/* Reject allow anything unreasonable */
@@ -415,9 +410,7 @@ static gboolean url_safe_char(gint c, url_policy_t p)
 	return TRUE;
 }
 
-/*
- * url_normalize
- *
+/**
  * NB: May modify ``url'' in all cased; pass a copy if necessary!
  *
  * Returns NULL if ``url'' isn't a valid resp. allowed URL. Otherwise,
@@ -429,7 +422,8 @@ static gboolean url_safe_char(gint c, url_policy_t p)
  * This allows comparing different variants of the same URL to detect
  * duplicates.
  */
-gchar *url_normalize(gchar *url, url_policy_t pol)
+gchar *
+url_normalize(gchar *url, url_policy_t pol)
 {
 	gint c, dots = 0;
 	gchar *endptr;
@@ -637,4 +631,4 @@ bad:
 	return NULL;
 }
 
-/* vi: set ts=4: */
+/* vi: set ts=4 sw=4 cindent: */

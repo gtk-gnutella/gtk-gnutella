@@ -38,7 +38,7 @@ RCSID("$Id$");
 
 #define HUGE_FS		'\x1c'		/* Field separator (HUGE) */
 
-static const gchar *extype[] = {
+static const gchar * const extype[] = {
 	"UNKNOWN",					/* EXT_UNKNOWN */
 	"XML",						/* EXT_XML */
 	"HUGE",						/* EXT_HUGE */
@@ -55,13 +55,13 @@ struct rwtable {			/* Reserved word description */
 	gint rw_token;			/* Token value */
 };
 
-static struct rwtable urntable[] =	/* URN name table (sorted) */
+static const struct rwtable urntable[] =	/* URN name table (sorted) */
 {
 	{ "bitprint",		EXT_T_URN_BITPRINT },
 	{ "sha1",			EXT_T_URN_SHA1 },
 };
 
-static struct rwtable ggeptable[] =	/* GGEP extension table (sorted) */
+static const struct rwtable ggeptable[] =	/* GGEP extension table (sorted) */
 {
 	{ "ALT",			EXT_T_GGEP_ALT },
 	{ "GTKGV1",			EXT_T_GGEP_GTKGV1 },
@@ -72,23 +72,22 @@ static struct rwtable ggeptable[] =	/* GGEP extension table (sorted) */
 	{ "u",				EXT_T_GGEP_u },
 };
 
-#define END(v)		(v - 1 + sizeof(v) / sizeof(v[0]))
+#define END(v)		(v - 1 + G_N_ELEMENTS(v))
 
-/*
- * rw_screen
- *
+/**
  * Perform a dichotomic search for keywords in the reserved-word table.
  * The `case_sensitive' parameter governs whether lookup is done with or
  * without paying attention to case.
  *
- * Returns the keyword token value upon success, EXT_T_UNKNOWN if not found.
+ * @return the keyword token value upon success, EXT_T_UNKNOWN if not found.
  * If keyword was found, its static shared string is returned in `retkw'.
  */
-static gint rw_screen(
-	gboolean case_sensitive,
-	struct rwtable *low, struct rwtable *high, gchar *word, gchar **retkw)
+static gint
+rw_screen(gboolean case_sensitive,
+	const struct rwtable *low, const struct rwtable *high,
+	const gchar *word, const gchar **retkw)
 {
-	struct rwtable *mid;
+	const struct rwtable *mid;
 	gint c;
 
 	g_assert(retkw);
@@ -111,24 +110,22 @@ static gint rw_screen(
 	return EXT_T_UNKNOWN;
 }
 
-/*
- * rw_ggep_screen
- *
- * Returns the GGEP token value upon success, EXT_T_UNKNOWN if not found.
+/**
+ * @return the GGEP token value upon success, EXT_T_UNKNOWN if not found.
  * If keyword was found, its static shared string is returned in `retkw'.
  */
-static gint rw_ggep_screen(gchar *word, gchar **retkw)
+static gint
+rw_ggep_screen(gchar *word, const gchar **retkw)
 {
 	return rw_screen(TRUE, ggeptable, END(ggeptable), word, retkw);
 }
 
-/*
- * rw_urn_screen
- *
- * Returns the URN token value upon success, EXT_T_UNKNOWN if not found.
+/**
+ * @return the URN token value upon success, EXT_T_UNKNOWN if not found.
  * If keyword was found, its static shared string is returned in `retkw'.
  */
-static gint rw_urn_screen(gchar *word, gchar **retkw)
+static gint
+rw_urn_screen(gchar *word, const gchar **retkw)
 {
 	return rw_screen(FALSE, urntable, END(urntable), word, retkw);
 }
@@ -139,13 +136,12 @@ static gint rw_urn_screen(gchar *word, gchar **retkw)
 
 static GHashTable *ext_names = NULL;
 
-/*
- * ext_name_atom
- *
+/**
  * Transform the name into a printable form, and return an atom string
  * of that printable form.
  */
-static gchar *ext_name_atom(gchar *name)
+static gchar *
+ext_name_atom(const gchar *name)
 {
 	gchar *key;
 	gchar *atom;
@@ -175,13 +171,14 @@ static gchar *ext_name_atom(gchar *name)
 	return atom;
 }
 
-/*
- * ext_names_kv_free
- *
+/**
  * Callback for freeing entries in the `ext_names' hash table.
  */
-static gboolean ext_names_kv_free(gpointer key, gpointer value, gpointer udata)
+static gboolean
+ext_names_kv_free(gpointer key, gpointer value, gpointer unused_udata)
 {
+	(void) unused_udata;
+
 	if (0 != strcmp((gchar *) key, (gchar *) value))
 		G_FREE_NULL(value);
 
@@ -213,8 +210,8 @@ static gboolean ext_names_kv_free(gpointer key, gpointer value, gpointer udata)
  *
  * Parses a GGEP block (can hold several extensions).
  */
-static gint ext_ggep_parse(
-	gchar **retp, gint len, extvec_t *exv, gint exvcnt)
+static gint
+ext_ggep_parse(gchar **retp, gint len, extvec_t *exv, gint exvcnt)
 {
 	gchar *p = *retp;
 	gchar *end = p + len;
@@ -229,7 +226,7 @@ static gint ext_ggep_parse(
 		gint i;
 		gchar *ip = id;
 		gboolean length_ended = FALSE;
-		gchar *name;
+		const gchar *name;
 
 		/*
 		 * First byte is GGEP flags.
@@ -346,12 +343,11 @@ out:
 	return count;
 }
 
-/*
- * ext_huge_parse
- *
+/**
  * Parses a URN block (one URN only).
  */
-static gint ext_huge_parse(gchar **retp, gint len, extvec_t *exv, gint exvcnt)
+static gint
+ext_huge_parse(gchar **retp, gint len, extvec_t *exv, gint exvcnt)
 {
 	gchar *p = *retp;
 	gchar *end = p + len;
@@ -360,7 +356,9 @@ static gint ext_huge_parse(gchar **retp, gint len, extvec_t *exv, gint exvcnt)
 	gint token;
 	gchar *payload_start = NULL;
 	gint data_length = 0;
-	gchar *name = NULL;
+	const gchar *name = NULL;
+
+	g_assert(exvcnt > 0);
 
 	/*
 	 * Make sure we can at least read "urn:", i.e. that we have 4 chars.
@@ -451,16 +449,17 @@ found:
 	return 1;
 }
 
-/*
- * ext_xml_parse
- *
+/**
  * Parses a XML block (grabs the whole xml up to the first NUL or separator).
  */
-static gint ext_xml_parse(gchar **retp, gint len, extvec_t *exv, gint exvcnt)
+static gint
+ext_xml_parse(gchar **retp, gint len, extvec_t *exv, gint exvcnt)
 {
 	gchar *p = *retp;
 	gchar *end = p + len;
 	gchar *lastp = p;				/* Last parsed point */
+
+	g_assert(exvcnt > 0);
 
 	while (p < end) {
 		guchar c = *p++;
@@ -487,20 +486,21 @@ static gint ext_xml_parse(gchar **retp, gint len, extvec_t *exv, gint exvcnt)
 	return 1;
 }
 
-/*
- * ext_unknown_parse
- *
+/**
  * Parses an unknown block, attempting to resynchronize on a known separator.
  * Everything up to the resync point is wrapped as an "unknown" extension.
  *
  * If `skip' is TRUE, we don't resync on the first resync point.
  */
-static gint ext_unknown_parse(
-	gchar **retp, gint len, extvec_t *exv, gint exvcnt, gboolean skip)
+static gint
+ext_unknown_parse(gchar **retp, gint len, extvec_t *exv,
+	gint exvcnt, gboolean skip)
 {
 	gchar *p = *retp;
 	gchar *end = p + len;
 	gchar *lastp = p;				/* Last parsed point */
+
+	g_assert(exvcnt > 0);
 
 	/*
 	 * Try to resync on a NUL byte, the HUGE_FS separator, "urn:" or what
@@ -544,9 +544,7 @@ static gint ext_unknown_parse(
 	return 1;
 }
 
-/*
- * ext_none_parse
- *
+/**
  * Parses a "no extension" block, made of NUL bytes or HUGE field separators
  * exclusively.  Obviously, this is unneeded stuff that simply accounts
  * for overhead!
@@ -554,11 +552,14 @@ static gint ext_unknown_parse(
  * If more that one separator in a row is found, they are all wrapped as a
  * "none" extension.
  */
-static gint ext_none_parse(gchar **retp, gint len, extvec_t *exv, gint exvcnt)
+static gint
+ext_none_parse(gchar **retp, gint len, extvec_t *exv, gint exvcnt)
 {
 	gchar *p = *retp;
 	gchar *end = p + len;
 	gchar *lastp = p;				/* Last parsed point */
+
+	g_assert(exvcnt > 0);
 
 	while (p < end) {
 		guchar c = *p++;
@@ -593,13 +594,12 @@ static gint ext_none_parse(gchar **retp, gint len, extvec_t *exv, gint exvcnt)
 	return 1;
 }
 
-/*
- * ext_merge_adjacent
- *
+/**
  * Merge two consecutive extensions `exv' and `next' into one big happy
  * extension, in `exv'.   The resulting extension type is that of `exv'.
  */
-static void ext_merge_adjacent(extvec_t *exv, extvec_t *next)
+static void
+ext_merge_adjacent(extvec_t *exv, extvec_t *next)
 {
 	gchar *end;
 	gchar *nend;
@@ -631,15 +631,14 @@ static void ext_merge_adjacent(extvec_t *exv, extvec_t *next)
 	exv->ext_paylen += added;
 }
 
-/*
- * ext_parse
- *
+/**
  * Parse extension block of `len' bytes starting at `buf' and fill the
  * supplied extension vector `exv', whose size is `exvcnt' entries.
  *
- * Returns the number of filled entries.
+ * @return the number of filled entries.
  */
-gint ext_parse(gchar *buf, gint len, extvec_t *exv, gint exvcnt)
+gint
+ext_parse(gchar *buf, gint len, extvec_t *exv, gint exvcnt)
 {
 	gchar *p = buf;
 	gchar *end = buf + len;
@@ -747,12 +746,11 @@ out:
 	return cnt;
 }
 
-/*
- * ext_is_printable
- *
- * Returns TRUE if extension is printable.
+/**
+ * @return TRUE if extension is printable.
  */
-gboolean ext_is_printable(const extvec_t *e)
+gboolean
+ext_is_printable(const extvec_t *e)
 {
 	const gchar *p = e->ext_payload;
 	gint len = e->ext_paylen;
@@ -767,12 +765,11 @@ gboolean ext_is_printable(const extvec_t *e)
 	return TRUE;
 }
 
-/*
- * ext_is_ascii
- *
- * Returns TRUE if extension is ASCII.
+/**
+ * @return TRUE if extension is ASCII.
  */
-gboolean ext_is_ascii(const extvec_t *e)
+gboolean
+ext_is_ascii(const extvec_t *e)
 {
 	const gchar *p = e->ext_payload;
 	gint len = e->ext_paylen;
@@ -787,12 +784,11 @@ gboolean ext_is_ascii(const extvec_t *e)
 	return TRUE;
 }
 
-/*
- * ext_has_ascii_word
- *
- * Returns TRUE if extension is ASCII and contains at least a character.
+/**
+ * @return TRUE if extension is ASCII and contains at least a character.
  */
-gboolean ext_has_ascii_word(const extvec_t *e)
+gboolean
+ext_has_ascii_word(const extvec_t *e)
 {
 	const gchar *p = e->ext_payload;
 	gint len = e->ext_paylen;
@@ -810,14 +806,12 @@ gboolean ext_has_ascii_word(const extvec_t *e)
 	return has_alnum;
 }
 
-/*
- * ext_dump_one
- *
+/**
  * Dump an extension to specified stdio stream.
  */
-static void ext_dump_one(FILE *f,
-	const extvec_t *e, const gchar *prefix, const gchar *postfix,
-	gboolean payload)
+static void
+ext_dump_one(FILE *f, const extvec_t *e, const gchar *prefix,
+	const gchar *postfix, gboolean payload)
 {
 	g_assert(e->ext_type <= EXT_MAXTYPE);
 
@@ -858,9 +852,7 @@ static void ext_dump_one(FILE *f,
 	fflush(f);
 }
 
-/*
- * ext_dump
- *
+/**
  * Dump all extensions in vector to specified stdio stream.
  *
  * The `prefix' and `postfix' strings, if non-NULL, are emitted before and
@@ -869,7 +861,8 @@ static void ext_dump_one(FILE *f,
  * If `payload' is true, the payload is dumped in hexadecimal if it contains
  * non-printable characters, as text otherwise.
  */
-void ext_dump(FILE *fd, const extvec_t *exv, gint exvcnt,
+void
+ext_dump(FILE *fd, const extvec_t *exv, gint exvcnt,
 	const gchar *prefix, const gchar *postfix, gboolean payload)
 {
 	while (exvcnt--)
@@ -880,25 +873,23 @@ void ext_dump(FILE *fd, const extvec_t *exv, gint exvcnt,
  *** Init & Shutdown
  ***/
 
-/*
- * ext_init
- *
+/**
  * Initialize the extension subsystem.
  */
-void ext_init(void)
+void
+ext_init(void)
 {
 	ext_names = g_hash_table_new(g_str_hash, g_str_equal);
 }
 
-/*
- * ext_close
- *
+/**
  * Free resources used by the extension subsystem.
  */
-void ext_close(void)
+void
+ext_close(void)
 {
 	g_hash_table_foreach_remove(ext_names, ext_names_kv_free, NULL);
 	g_hash_table_destroy(ext_names);
 }
 
-/* vi: set ts=4: */
+/* vi: set ts=4 sw=4 cindent: */

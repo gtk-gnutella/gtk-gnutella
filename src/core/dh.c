@@ -97,8 +97,9 @@ static time_t last_rotation;
  * and the associated dqhit_t objects.
  */
 static gboolean
-free_muid_true(gpointer key, gpointer value, gpointer udata)
+free_muid_true(gpointer key, gpointer value, gpointer unused_udata)
 {
+	(void) unused_udata;
 	atom_guid_free(key);
 	wfree(value, sizeof(dqhit_t));
 	return TRUE;
@@ -523,3 +524,4 @@ dh_close(void)
 	dh_table_free(by_muid_old);
 }
 
+/* vi: set ts=4 sw=4 cindent: */

@@ -4092,10 +4092,11 @@ call_download_request(gpointer o, header_t *header)
 }
 
 static void
-call_download_push_ready(gpointer o, header_t *header)
+call_download_push_ready(gpointer o, header_t *unused_header)
 {
 	struct download *d = DOWNLOAD(o);
 
+	(void) unused_header;
 	download_push_ready(d, io_getline(d->io_opaque));
 }
 
@@ -5202,12 +5203,13 @@ download_sink(struct download *d)
  * Read callback for file data.
  */
 static void
-download_sink_read(gpointer data, gint source, inputevt_cond_t cond)
+download_sink_read(gpointer data, gint unused_source, inputevt_cond_t cond)
 {
 	struct download *d = (struct download *) data;
 	struct gnutella_socket *s = d->socket;
 	gint32 r;
 
+	(void) unused_source;
 	g_assert(s);
 
 	if (cond & INPUT_EVENT_EXCEPTION) {		/* Treat as EOF */
@@ -6159,7 +6161,7 @@ download_incomplete_header(struct download *d)
  * Read callback for file data.
  */
 static void
-download_read(gpointer data, gint source, inputevt_cond_t cond)
+download_read(gpointer data, gint unused_source, inputevt_cond_t cond)
 {
 	struct download *d = (struct download *) data;
 	struct gnutella_socket *s;
@@ -6167,6 +6169,7 @@ download_read(gpointer data, gint source, inputevt_cond_t cond)
 	gint32 to_read, remains;
 	struct dl_file_info *fi;
 
+	(void) unused_source;
 	g_assert(d);
 	g_assert(d->file_info->recvcount > 0);
 
@@ -6274,7 +6277,7 @@ download_request_sent(struct download *d)
  * sending the HTTP request.
  */
 static void
-download_write_request(gpointer data, gint source, inputevt_cond_t cond)
+download_write_request(gpointer data, gint unused_source, inputevt_cond_t cond)
 {
 	struct download *d = (struct download *) data;
 	struct gnutella_socket *s = d->socket;
@@ -6283,6 +6286,7 @@ download_write_request(gpointer data, gint source, inputevt_cond_t cond)
 	gint rw;
 	gchar *base;
 
+	(void) unused_source;
 	g_assert(s->gdk_tag);		/* I/O callback still registered */
 	g_assert(r != NULL);
 	g_assert(d->status == GTA_DL_REQ_SENDING);

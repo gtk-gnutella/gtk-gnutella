@@ -33,8 +33,8 @@ RCSID("$Id$");
 #include "walloc.h"
 #include "override.h"		/* Must be the last header included */
 
-static inline struct subscriber *subscriber_new(
-    GCallback cb, enum frequency_type t, guint32 interval)
+static inline struct subscriber *
+subscriber_new(GCallback cb, enum frequency_type t, guint32 interval)
 {
     struct subscriber *s;
 
@@ -50,7 +50,8 @@ static inline struct subscriber *subscriber_new(
 
 #define subscriber_destroy(s) wfree(s, sizeof(struct subscriber))
 
-inline struct event *event_new(const gchar *name)
+inline struct event *
+event_new(const gchar *name)
 {
     struct event *evt;
     
@@ -62,21 +63,21 @@ inline struct event *event_new(const gchar *name)
     return evt;
 }
 
-/*
- * real_event_destroy:
- *
+/**
  * Destroy an event and free all associated memory. The pointer to the
  * event will be NULL after this call.
  */
-void real_event_destroy(struct event *evt)
+void
+real_event_destroy(struct event *evt)
 {
     GSList *sl;
     for (sl = evt->subscribers; sl; sl = g_slist_next(sl))
         subscriber_destroy(sl->data);
 }
 
-void event_add_subscriber(
-    struct event *evt, GCallback cb, enum frequency_type t, guint32 interval)
+void
+event_add_subscriber(struct event *evt, GCallback cb,
+	enum frequency_type t, guint32 interval)
 {
     struct subscriber * s;
 
@@ -89,12 +90,14 @@ void event_add_subscriber(
     evt->subscribers = g_slist_append(evt->subscribers, s);
 }
 
-static gint cmp_subscriber_callback(struct subscriber *s, GCallback cb)
+static gint
+cmp_subscriber_callback(struct subscriber *s, GCallback cb)
 {
     return (s->cb == cb) ? 0 : 1;
 }
 
-void event_remove_subscriber(struct event *evt, GCallback cb)
+void
+event_remove_subscriber(struct event *evt, GCallback cb)
 {
     GSList *sl;
 	struct subscriber *s;
@@ -113,18 +116,21 @@ void event_remove_subscriber(struct event *evt, GCallback cb)
 	subscriber_destroy(s);
 }
 
-guint event_subscriber_count(struct event *evt)
+guint
+event_subscriber_count(struct event *evt)
 {
   return g_slist_length(evt->subscribers);
 }
 
-gboolean event_subscriber_active(struct event *evt)
+gboolean
+event_subscriber_active(struct event *evt)
 {
   return NULL != evt->subscribers;
 }
 
 
-struct event_table *event_table_new(void) 
+struct event_table *
+event_table_new(void) 
 {
     struct event_table *t;
 
@@ -134,7 +140,8 @@ struct event_table *event_table_new(void)
     return t;
 }
 
-void real_event_table_destroy(struct event_table *t, gboolean cleanup) 
+void
+real_event_table_destroy(struct event_table *t, gboolean cleanup) 
 {
     if (cleanup)
         event_table_remove_all(t);
@@ -142,7 +149,8 @@ void real_event_table_destroy(struct event_table *t, gboolean cleanup)
     g_hash_table_destroy(t->events);
 }
 
-void event_table_add_event(struct event_table *t, struct event *evt)
+void
+event_table_add_event(struct event_table *t, struct event *evt)
 {
     GHashTable *ht;
 
@@ -157,7 +165,8 @@ void event_table_add_event(struct event_table *t, struct event *evt)
     g_hash_table_insert(ht, (gpointer) evt->name, evt);
 }
 
-void event_table_remove_event(struct event_table *t, struct event *evt)
+void
+event_table_remove_event(struct event_table *t, struct event *evt)
 {
     GHashTable *ht;
 
@@ -172,17 +181,23 @@ void event_table_remove_event(struct event_table *t, struct event *evt)
     g_hash_table_remove(ht, evt->name);
 }
 
-static gboolean remove_helper(gpointer key, gpointer value, gpointer data)
+static gboolean
+remove_helper(gpointer unused_key, gpointer value, gpointer unused_data)
 {
+	(void) unused_key;
+	(void) unused_data;
     event_destroy(value);
 
     return TRUE;
 }
 
-void event_table_remove_all(struct event_table *t)
+void
+event_table_remove_all(struct event_table *t)
 {
     g_assert(t != NULL);
     g_assert(t->events != NULL);
 
     g_hash_table_foreach_remove(t->events, remove_helper, NULL);
 }
+
+/* vi: set ts=4 sw=4 cindent: */

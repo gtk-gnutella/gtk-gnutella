@@ -145,11 +145,12 @@ aging_destroy(gpointer obj)
  * Expire value entry.
  */
 static void
-aging_expire(cqueue_t *cq, gpointer obj)
+aging_expire(cqueue_t *unused_cq, gpointer obj)
 {
 	struct aging_value *aval = obj;
 	struct aging *ag = aval->ag;
 
+	(void) unused_cq;
 	aval->cq_ev = NULL;
 
 	g_hash_table_remove(ag->table, aval->key);

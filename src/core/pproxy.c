@@ -991,13 +991,18 @@ static gboolean cproxy_http_header_ind(
  *
  * Returns length of generated request.
  */
-static gint cproxy_build_request(gpointer handle, gchar *buf, gint len,
-	gchar *verb, gchar *path, gchar *host, guint16 port)
+static gint
+cproxy_build_request(gpointer unused_handle, gchar *buf, gint len,
+	gchar *verb, gchar *path, gchar *unused_host, guint16 unused_port)
 {
 	/*
 	 * Note that we send an HTTP/1.0 request here, hence we need neither
 	 * the Host: nor the Connection: header.
 	 */
+
+	(void) unused_handle;
+	(void) unused_host;
+	(void) unused_port;
 
 	return gm_snprintf(buf, len,
 		"%s %s HTTP/1.0\r\n"

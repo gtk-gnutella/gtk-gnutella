@@ -98,7 +98,8 @@ typedef struct atom {
 #define ARENA_OFFSET	G_STRUCT_OFFSET(struct atom, arena)
 
 #ifdef PROTECT_ATOMS
-static inline void atom_unprotect(atom_t *a)
+static inline void
+atom_unprotect(atom_t *a)
 {
 	int ret;
 
@@ -110,7 +111,8 @@ static inline void atom_unprotect(atom_t *a)
 			a->arena, a->attr.len, g_strerror(errno));
 }
 
-static inline void atom_protect(atom_t *a, guint len)
+static inline void
+atom_protect(atom_t *a, guint len)
 {
 	int ret;
 
@@ -164,39 +166,36 @@ static const gchar *int_str(gconstpointer v);
 /*
  * The set of all atom types we know about.
  */
-table_desc_t atoms[] = {
+static table_desc_t atoms[] = {
 	{ "String",	NULL,	g_str_hash,	g_str_equal, str_len,	str_str	},	/* 0 */
 	{ "GUID",	NULL,	guid_hash,	guid_eq,	 guid_len,	guid_str},	/* 1 */
 	{ "SHA1",	NULL,	sha1_hash,	sha1_eq,	 sha1_len,	sha1_str},	/* 2 */
 	{ "int",	NULL,	g_int_hash,	g_int_equal, int_len,	int_str},	/* 3 */
 };
 
-/*
- * str_len
- *
- * Returns length of string + trailing NUL.
+/**
+ * @return length of string + trailing NUL.
  */
-static gint str_len(gconstpointer v)
+static gint
+str_len(gconstpointer v)
 {
 	return strlen((const gchar *) v) + 1;
 }
 
-/*
- * str_str
- *
- * Returns printable form of a string, i.e. self.
+/**
+ * @return printable form of a string, i.e. self.
  */
-static const gchar *str_str(gconstpointer v)
+static const gchar *
+str_str(gconstpointer v)
 {
 	return (const gchar *) v;
 }
 
-/*
- * binary_hash
- *
+/**
  * Hash `len' bytes (multiple of 4) starting from `key'.
  */
-guint binary_hash(const guchar *key, gint len)
+guint
+binary_hash(const guchar *key, gint len)
 {
 	const gchar *buf = (const gchar *) key;
 	gint i;
@@ -217,25 +216,24 @@ guint binary_hash(const guchar *key, gint len)
 	return hash;
 }
 
-/*
- * guid_hash
- *
+/**
  * Hash a GUID (16 bytes).
  */
-guint guid_hash(gconstpointer key)
+guint
+guid_hash(gconstpointer key)
 {
 	return binary_hash(key, 16);
 }
 
-/*
- * guid_eq
- *
+/**
  * Test two GUIDs for equality.
  */
-gint guid_eq(gconstpointer a, gconstpointer b)
+gint
+guid_eq(gconstpointer a, gconstpointer b)
 {
 /* FIXME:	Disabled because of alignment problems
- *			This should work if guid was declared as guint32[4].
+ *			This should work if guid was declared as guint32[4] or for
+ *			architectures that require no certain alignment.
  */
 #if 0
 	const guint32 *ax = (const guint32 *) a;
@@ -251,46 +249,43 @@ gint guid_eq(gconstpointer a, gconstpointer b)
 #endif
 }
 
-/*
- * guid_len
- *
- * Returns length of GUID.
+/**
+ * @return length of GUID.
  */
-static gint guid_len(gconstpointer v)
+static gint
+guid_len(gconstpointer unused_guid)
 {
+	(void) unused_guid;
 	return 16;
 }
 
-/*
- * guid_str
- *
- * Returns printable form of a GUID, as pointer to static data.
+/**
+ * @return printable form of a GUID, as pointer to static data.
  */
-static const gchar *guid_str(gconstpointer v)
+static const gchar *
+guid_str(gconstpointer v)
 {
 	return guid_hex_str((const gchar *) v);
 }
 
-/*
- * sha1_hash
- *
+/**
  * Hash a SHA1 (20 bytes).
  *
  * NB: This routine is visible for the download mesh.
  */
-guint sha1_hash(gconstpointer key)
+guint
+sha1_hash(gconstpointer key)
 {
 	return binary_hash(key, 20);
 }
 
-/*
- * sha1_eq
- *
+/**
  * Test two SHA1s for equality.
  *
  * NB: This routine is visible for the download mesh.
  */
-gint sha1_eq(gconstpointer a, gconstpointer b)
+gint
+sha1_eq(gconstpointer a, gconstpointer b)
 {
 /* FIXME:	Disabled because of alignment problems
  *			This should work if sha1_t (?) was declared as guint32[5].
@@ -310,42 +305,40 @@ gint sha1_eq(gconstpointer a, gconstpointer b)
 #endif
 }
 
-/*
- * sha1_len
- *
- * Returns length of SHA1.
+/**
+ * @return length of SHA1.
  */
-static gint sha1_len(gconstpointer v)
+static gint
+sha1_len(gconstpointer unused_sha1)
 {
+	(void) unused_sha1;
 	return 20;
 }
 
-/*
- * sha1_str
- *
- * Returns printable form of a SHA1, as pointer to static data.
+/**
+ * @return printable form of a SHA1, as pointer to static data.
  */
-static const gchar *sha1_str(gconstpointer v)
+static const gchar *
+sha1_str(gconstpointer sha1)
 {
-	return sha1_base32((const gchar *) v);
+	return sha1_base32((const gchar *) sha1);
 }
 
-/*
- * int_len
- *
- * Returns length of an int.
+/**
+ * @return length of an int.
  */
-static gint int_len(gconstpointer v)
+static gint
+int_len(gconstpointer unused_v)
 {
+	(void) unused_v;
 	return sizeof(gint);
 }
 
-/*
- * int_str
- *
- * Returns printable form of an int, as pointer to static data.
+/**
+ * @return printable form of an int, as pointer to static data.
  */
-static const gchar *int_str(gconstpointer v)
+static const gchar *
+int_str(gconstpointer v)
 {
 	static gchar fmt[32];
 
@@ -355,12 +348,11 @@ static const gchar *int_str(gconstpointer v)
 	return fmt;
 }
 
-/*
- * atoms_init
- *
+/**
  * Initialize atom structures.
  */
-void atoms_init(void)
+void
+atoms_init(void)
 {
 	guint i;
 
@@ -375,15 +367,14 @@ void atoms_init(void)
 	}
 }
 
-/*
- * atom_get
- *
+/**
  * Get atom of given `type', whose value is `key'.
  * If the atom does not exist yet, `key' is cloned and makes up the new atom.
  *
- * Returns the atom's value.
+ * @return the atom's value.
  */
-gpointer atom_get(gint type, gconstpointer key)
+gpointer
+atom_get(gint type, gconstpointer key)
 {
 	table_desc_t *td;
 	gboolean found;
@@ -432,13 +423,12 @@ gpointer atom_get(gint type, gconstpointer key)
 	return a->arena;
 }
 
-/*
- * atom_free
- *
+/**
  * Remove one reference from atom. 
  * Dispose of atom if nobody references it anymore.
  */
-void atom_free(gint type, gconstpointer key)
+void
+atom_free(gint type, gconstpointer key)
 {
 	table_desc_t *td;
 	gboolean found;
@@ -477,13 +467,13 @@ struct spot {			/* Information about given spot */
 	gint count;			/* Amount of allocation/free performed at spot */
 };
 
-/*
- * atom_get_track
- *
+/**
  * The tracking version of atom_get().
- * Returns the atom's value.
+ *
+ * @returns the atom's value.
  */
-gpointer atom_get_track(gint type, gconstpointer key, gchar *file, gint line)
+gpointer
+atom_get_track(gint type, gconstpointer key, gchar *file, gint line)
 {
 	gpointer atom;
 	atom_t *a;
@@ -518,37 +508,34 @@ gpointer atom_get_track(gint type, gconstpointer key, gchar *file, gint line)
 	return atom;
 }
 
-/*
- * tracking_free_kv
- *
+/**
  * Free key/value pair of the tracking table.
  */
-static gboolean tracking_free_kv(gpointer key, gpointer value, gpointer user)
+static gboolean
+tracking_free_kv(gpointer key, gpointer value, gpointer user)
 {
 	g_free(key);
 	wfree(value, sizeof(struct spot));
 	return TRUE;
 }
 
-/*
- * destroy_tracking_table
- *
+/**
  * Get rid of the tracking hash table.
  */
-static void destroy_tracking_table(GHashTable *h)
+static void
+destroy_tracking_table(GHashTable *h)
 {
 	g_hash_table_foreach_remove(h, tracking_free_kv, NULL);
 	g_hash_table_destroy(h);
 }
 
-/*
- * atom_free_track
- *
+/**
  * The tracking version of atom_free().
  * Remove one reference from atom. 
  * Dispose of atom if nobody references it anymore.
  */
-void atom_free_track(gint type, gconstpointer key, gchar *file, gint line)
+void
+atom_free_track(gint type, gconstpointer key, gchar *file, gint line)
 {
 	atom_t *a;
 	gchar buf[512];
@@ -581,13 +568,12 @@ void atom_free_track(gint type, gconstpointer key, gchar *file, gint line)
 	atom_free(type, key);
 }
 
-/*
- * dump_tracking_entry
- *
+/**
  * Dump all the spots where some tracked operation occurred, along with the
  * amount of such operations.
  */
-static void dump_tracking_entry(gpointer key, gpointer value, gpointer user)
+static void
+dump_tracking_entry(gpointer key, gpointer value, gpointer user)
 {
 	struct spot *sp = (struct spot *) value;
 	const gchar *what = (const gchar *) user;
@@ -595,12 +581,11 @@ static void dump_tracking_entry(gpointer key, gpointer value, gpointer user)
 	g_warning("%10d %s at \"%s\"", sp->count, what, (gchar *) key);
 }
 
-/*
- * dump_tracking_table
- *
+/**
  * Dump the values held in the tracking table `h'.
  */
-static void dump_tracking_table(gpointer atom, GHashTable *h, gchar *what)
+static void
+dump_tracking_table(gpointer atom, GHashTable *h, gchar *what)
 {
 	gint count = g_hash_table_size(h);
 
@@ -612,15 +597,16 @@ static void dump_tracking_table(gpointer atom, GHashTable *h, gchar *what)
 
 #endif	/* TRACK_ATOMS */
 
-/*
- * atom_warn_free
- *
+/**
  * Warning about existing atom that should have been freed.
  */
-static gboolean atom_warn_free(gpointer key, gpointer value, gpointer udata)
+static gboolean
+atom_warn_free(gpointer key, gpointer unused_value, gpointer udata)
 {
 	atom_t *a = (atom_t *) ((gchar *) key - ARENA_OFFSET);
 	table_desc_t *td = (table_desc_t *) udata;
+
+	(void) unused_value;
 
 	g_warning("found remaining %s atom 0x%lx, refcnt=%d: \"%s\"",
 		td->type, (glong) key, a->refcnt, (*td->str_func)(key));
@@ -641,12 +627,11 @@ static gboolean atom_warn_free(gpointer key, gpointer value, gpointer udata)
 	return TRUE;
 }
 
-/*
- * atoms_close
- *
+/**
  * Shutdown atom structures, freeing all remaining atoms.
  */
-void atoms_close(void)
+void
+atoms_close(void)
 {
 	guint i;
 
@@ -658,4 +643,4 @@ void atoms_close(void)
 	}
 }
 
-/* vi: set ts=4: */
+/* vi: set ts=4 sw=4 cindent: */

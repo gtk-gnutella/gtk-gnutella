@@ -160,9 +160,11 @@ bitzi_destroy(bitzi_data_t * data)
  * the parsing of the document tree and processes the ticket.
  */
 static void
-bitzi_host_data_ind(gpointer handle, gchar * data, gint len)
+bitzi_host_data_ind(gpointer unused_handle, gchar * data, gint len)
 {
-	int result;
+	gint result;
+
+	(void) unused_handle;
 
 	if (len > 0) {
 		result = xmlParseChunk(current_bitzi_request->ctxt, data, len, 0);
@@ -190,8 +192,12 @@ bitzi_host_data_ind(gpointer handle, gchar * data, gint len)
  * HTTP request is being stopped.
  */
 static void
-bitzi_host_error_ind(gpointer handle, http_errtype_t type, gpointer v)
+bitzi_host_error_ind(gpointer handle,
+	http_errtype_t unused_type, gpointer unused_v)
 {
+	(void) unused_type;
+	(void) unused_v;
+
 	g_warning("bitzi_host_error_ind: failed!");
 
 	g_assert(handle == current_bitzi_request_handle);
@@ -596,8 +602,10 @@ bitzi_cache_clean(void)
  * runs the bitzi_cache_clean routine to clean the cache
  */
 static gboolean
-bitzi_heartbeat(gpointer null_data)
+bitzi_heartbeat(gpointer unused_data)
 {
+	(void) unused_data;
+
 	/*
 	 * launch any pending queries 
 	 */

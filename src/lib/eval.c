@@ -46,13 +46,13 @@ static gchar *home;
 static gchar *get_home(void);
 static gchar *get_variable(gchar *s, gchar **end);
 
-/*
- * constant_make
- *
+/**
  * Create a constant string, or reuse an existing one if possible.
- * Returns a string atom.
+ *
+ * @returns a string atom.
  */
-static gchar *constant_make(gchar *s)
+static gchar *
+constant_make(gchar *s)
 {
 	gchar *v;
 
@@ -66,28 +66,30 @@ static gchar *constant_make(gchar *s)
 	return v;
 }
 
-/*
- * eval_init
- *
+/**
  * Initialize string evaluation.
  */
-void eval_init(void)
+void
+eval_init(void)
 {
 	constants = g_hash_table_new(g_str_hash, g_str_equal);
 	home = get_home();
 }
 
-static void constants_free_kv(gpointer key, gpointer val, gpointer x)
+static void
+constants_free_kv(gpointer key,
+	gpointer unused_val, gpointer unused_x)
 {
+	(void) unused_val;
+	(void) unused_x;
 	atom_str_free(key);
 }
 
-/*
- * eval_close
- *
+/**
  * Cleanup local structures at shutdown time.
  */
-void eval_close(void)
+void
+eval_close(void)
 {
 	atom_str_free(home);
 
@@ -95,18 +97,17 @@ void eval_close(void)
 	g_hash_table_destroy(constants);
 }
 
-/*
- * insert_value
- *
+/**
  * Insert value `val' at beginning of string `start'.
  *
  * The string `start' is held in a buffer capable of holding a string of
  * `maxlen' bytes, and the string is currently `len' bytes long, with `start'
  * being at the offset `off' within buffer.
  *
- * Returns the pointer right after the inserted value.
+ * @return the pointer right after the inserted value.
  */
-static gchar *insert_value(gchar *val, gchar *start, gint off,
+static gchar *
+insert_value(gchar *val, gchar *start, gint off,
 	gint len, gint maxlen)
 {
 	gint vlen = strlen(val);
@@ -125,9 +126,7 @@ static gchar *insert_value(gchar *val, gchar *start, gint off,
 	return start + vlen;
 }
 
-/*
- * eval_subst
- *
+/**
  * Substitutes variables from string:
  *
  * . The leading "~" is replaced by the home directory.
@@ -136,9 +135,10 @@ static gchar *insert_value(gchar *val, gchar *start, gint off,
  *
  * If given a NULL input, we return NULL.
  *
- * Returns string atom, which is not meant to be freed until exit time.
+ * @return string atom, which is not meant to be freed until exit time.
  */
-gchar *eval_subst(const gchar *str)
+gchar *
+eval_subst(const gchar *str)
 {
 	gchar buf[MAX_STRING];
 	gchar *p;
@@ -204,15 +204,14 @@ gchar *eval_subst(const gchar *str)
 	return constant_make(buf);
 }
 
-/*
- * get_home
- *
+/**
  * Compute the user's home directory.
  * Uses the HOME environment variable first, then the entry from /etc/passwd.
  *
- * Returns string atom.
+ * @return string atom.
  */
-static gchar *get_home(void)
+static gchar *
+get_home(void)
 {
 	gchar *v;
 	struct passwd *pp;
@@ -228,12 +227,10 @@ static gchar *get_home(void)
 	return atom_str_get("/tmp");
 }
 
-/*
- * get_variable
- *
+/**
  * Extract variable name from string `s', then fetch value from environment.
  *
- * Returns variable's value, or "" if not found and set `end' to the address
+ * @return variable's value, or "" if not found and set `end' to the address
  * of the character right after the variable name.
  */
 static gchar *get_variable(gchar *s, gchar **end)
@@ -284,4 +281,4 @@ static gchar *get_variable(gchar *s, gchar **end)
 	return value;
 }
 
-/* vi: set ts=4: */
+/* vi: set ts=4 sw=4 cindent: */

@@ -122,8 +122,10 @@ iprange_strerror(iprange_err_t errnum)
  * we need to force insertion.
  */
 static void
-iprange_free_nop(gpointer value, gpointer updata)
+iprange_free_nop(gpointer unused_value, gpointer unused_updata)
 {
+	(void) unused_value;
+	(void) unused_updata;
 }
 
 /**
@@ -616,4 +618,4 @@ iprange_get_stats(gpointer db, iprange_stats_t *stats)
 	stats->enlisted = idb->list_count;
 }
 
-/* vi: set ts=4: */
+/* vi: set ts=4 sw=4 cindent: */

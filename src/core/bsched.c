@@ -1368,6 +1368,10 @@ gint
 bio_sendfile(bio_source_t *bio, gint in_fd, off_t *offset, gint len)
 {
 #ifndef HAS_SENDFILE
+	(void) bio;
+	(void) in_fd;
+	(void) offset;
+	(void) len;
 	g_error("missing sendfile(2), should not have been called");
 	return EOPNOTSUPP;		/* g_error() is fatal, just shut warnings */
 #else

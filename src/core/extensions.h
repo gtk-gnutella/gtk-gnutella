@@ -49,7 +49,7 @@
  */
 typedef struct extvec {
 	gchar *ext_payload;		/* Start of payload buffer */
-	gchar *ext_name;		/* Extension name (may be NULL) */
+	const gchar *ext_name;	/* Extension name (may be NULL) */
 	gint ext_token;			/* Extension token */
 	guint16 ext_len;		/* Extension length (header + payload) */
 	guint16 ext_paylen;		/* Extension payload length */
@@ -59,7 +59,7 @@ typedef struct extvec {
 		struct {
 			gboolean extu_cobs;			/* Payload is COBS-encoded */
 			gboolean extu_deflate;		/* Payload is deflated */
-			gchar *extu_id;				/* Extension ID */
+			const gchar *extu_id;		/* Extension ID */
 		} extu_ggep;
 	} ext_u;
 

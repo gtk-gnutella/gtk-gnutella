@@ -1877,8 +1877,10 @@ route_proxy_find(gchar *guid)
  * Frees the banned GUID atom keys.
  */
 static void
-free_banned_push(gpointer key, gpointer value, gpointer udata)
+free_banned_push(gpointer key, gpointer unused_value, gpointer unused_udata)
 {
+	(void) unused_value;
+	(void) unused_udata;
 	atom_guid_free((gchar *) key);
 }
 

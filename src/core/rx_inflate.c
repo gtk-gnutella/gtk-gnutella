@@ -130,12 +130,13 @@ cleanup:
  *
  * Initialize the driver.
  */
-static gpointer rx_inflate_init(rxdrv_t *rx, gpointer args)
+static gpointer rx_inflate_init(rxdrv_t *rx, gpointer unused_args)
 {
 	struct attr *attr;
 	z_streamp inz;
 	gint ret;
 
+	(void) unused_args;
 	g_assert(rx);
 
 	inz = walloc(sizeof(*inz));

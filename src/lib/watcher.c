@@ -74,10 +74,13 @@ watcher_mtime(const gchar *filename)
  * Check each registered file for change -- hash table iterator callback.
  */
 static void
-watcher_check_mtime(gpointer key, gpointer value, gpointer udata)
+watcher_check_mtime(gpointer unused_key, gpointer value, gpointer unused_udata)
 {
 	struct monitored *m = (struct monitored *) value;
 	time_t new_mtime;
+
+	(void) unused_key;
+	(void) unused_udata;
 
 	new_mtime = watcher_mtime(m->filename);
 
@@ -92,8 +95,11 @@ watcher_check_mtime(gpointer key, gpointer value, gpointer udata)
  * registered files.
  */
 static void
-watcher_timer(cqueue_t *cq, gpointer udata)
+watcher_timer(cqueue_t *unused_cq, gpointer unused_udata)
 {
+	(void) unused_cq;
+	(void) unused_udata;
+
 	/*
 	 * Re-install timer for next time.
 	 */
@@ -204,10 +210,12 @@ watcher_init(void)
  * Free monitored structure -- hash table iterator callback.
  */
 static void
-free_monitored_kv(gpointer key, gpointer value, gpointer udata)
+free_monitored_kv(gpointer unused_key, gpointer value, gpointer unused_udata)
 {
 	struct monitored *m = (struct monitored *) value;
 
+	(void) unused_key;
+	(void) unused_udata;
 	watcher_free(m);
 }
 
@@ -223,3 +231,4 @@ watcher_close(void)
 	cq_cancel(callout_queue, monitor_ev);
 }
 
+/* vi: set ts=4 sw=4 cindent: */

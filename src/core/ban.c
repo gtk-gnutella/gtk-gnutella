@@ -142,10 +142,11 @@ ipf_free(struct ip_info *ipf)
  * Called from callout queue when it's time to destroy the record.
  */
 static void
-ipf_destroy(cqueue_t *cq, gpointer obj)
+ipf_destroy(cqueue_t *unused_cq, gpointer obj)
 {
 	struct ip_info *ipf = (struct ip_info *) obj;
 
+	(void) unused_cq;
 	g_assert(ipf);
 	g_assert(!ipf->banned);
 	g_assert(
@@ -163,12 +164,13 @@ ipf_destroy(cqueue_t *cq, gpointer obj)
  * Called from callout queue when it's time to unban the IP.
  */
 static void
-ipf_unban(cqueue_t *cq, gpointer obj)
+ipf_unban(cqueue_t *unused_cq, gpointer obj)
 {
 	struct ip_info *ipf = (struct ip_info *) obj;
 	time_t now = time((time_t *) NULL);
 	gint delay;
 
+	(void) unused_cq;
 	g_assert(ipf);
 	g_assert(ipf->banned);
 	g_assert(
@@ -552,8 +554,10 @@ ban_max_recompute(void)
 }
 
 static void
-free_info(gpointer key, gpointer value, gpointer udata)
+free_info(gpointer unused_key, gpointer value, gpointer unused_udata)
 {
+	(void) unused_key;
+	(void) unused_udata;
 	ipf_free((struct ip_info *) value);
 }
 

@@ -724,7 +724,7 @@ pcache_set_peermode(node_peer_t mode)
  * those as being "his" pongs.
  */
 static void
-setup_pong_demultiplexing(struct gnutella_node *n, gchar *muid, guint8 ttl)
+setup_pong_demultiplexing(struct gnutella_node *n, guint8 ttl)
 {
 	gint remains;
 	gint h;
@@ -1163,7 +1163,7 @@ pcache_ping_received(struct gnutella_node *n)
 	 */
 
 	if (current_peermode != NODE_P_LEAF)
-		setup_pong_demultiplexing(n, n->header.muid, n->header.ttl);
+		setup_pong_demultiplexing(n, n->header.ttl);
 
 	/*
 	 * If we can accept an incoming connection, send a reply.

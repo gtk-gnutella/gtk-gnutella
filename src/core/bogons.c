@@ -146,11 +146,13 @@ bogons_load(FILE *f)
  * addresses changed.
  */
 static void
-bogons_changed(const gchar *filename, gpointer udata)
+bogons_changed(const gchar *filename, gpointer unused_udata)
 {
 	FILE *f;
 	gchar buf[80];
 	gint count;
+
+	(void) unused_udata;
 
 	f = file_fopen(filename, "r");
 	if (f == NULL)

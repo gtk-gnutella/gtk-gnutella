@@ -80,8 +80,8 @@ struct work {
  *
  * Allocate work queue entry.
  */
-static struct work *we_alloc(
-	struct download *d, const gchar *dest, const gchar *ext)
+static struct work *
+we_alloc(struct download *d, const gchar *dest, const gchar *ext)
 {
 	struct work *we;
 
@@ -98,7 +98,8 @@ static struct work *we_alloc(
  *
  * Freeing of work queue entry.
  */
-static void we_free(gpointer data)
+static void
+we_free(gpointer data)
 {
 	struct work *we = (struct work *) data;
 
@@ -107,15 +108,15 @@ static void we_free(gpointer data)
 	wfree(we, sizeof(*we));
 }
 
-/*
- * d_sighandler
- *
+/**
  * Signal handler for termination.
  */
-static void d_sighandler(gpointer h, gpointer u, bgsig_t sig)
+static void
+d_sighandler(gpointer unused_h, gpointer u, bgsig_t sig)
 {
 	struct moved *md = (struct moved *) u;
 
+	(void) unused_h;
 	g_assert(md->magic == MOVED_MAGIC);
 
 	switch (sig) {
@@ -139,7 +140,8 @@ static void d_sighandler(gpointer h, gpointer u, bgsig_t sig)
  *
  * Freeing of computation context.
  */
-static void d_free(gpointer ctx)
+static void
+d_free(gpointer ctx)
 {
 	struct moved *md = (struct moved *) ctx;
 
@@ -155,22 +157,21 @@ static void d_free(gpointer ctx)
 	wfree(md, sizeof(*md));
 }
 
-/*
- * d_notify
- *
+/**
  * Daemon's notification of start/stop.
  */
-static void d_notify(gpointer h, gboolean on)
+static void
+d_notify(gpointer unused_h, gboolean on)
 {
+	(void) unused_h;
 	gnet_prop_set_boolean_val(PROP_FILE_MOVING, on);
 }
 
-/*
- * d_start
- *
+/**
  * Daemon's notification: starting to work on item.
  */
-static void d_start(gpointer h, gpointer ctx, gpointer item)
+static void
+d_start(gpointer h, gpointer ctx, gpointer item)
 {
 	struct moved *md = (struct moved *) ctx;
 	struct work *we = (struct work *) item;
@@ -247,12 +248,11 @@ abort_read:
 	return;
 }
 
-/*
- * d_end
- *
+/**
  * Daemon's notification: finished working on item.
  */
-static void d_end(gpointer h, gpointer ctx, gpointer item)
+static void
+d_end(gpointer h, gpointer ctx, gpointer item)
 {
 	struct moved *md = (struct moved *) ctx;
 	struct download *d = md->d;
@@ -314,12 +314,11 @@ finish:
 		download_move_error(d);
 }
 
-/*
- * d_step_copy
- *
+/**
  * Copy file around, incrementally.
  */
-static bgret_t d_step_copy(gpointer h, gpointer u, gint ticks)
+static bgret_t
+d_step_copy(gpointer h, gpointer u, gint ticks)
 {
 	struct moved *md = (struct moved *) u;
 	ssize_t r;
@@ -399,12 +398,11 @@ static bgret_t d_step_copy(gpointer h, gpointer u, gint ticks)
 	return md->copied == md->size ? BGR_DONE : BGR_MORE;
 }
 
-/*
- * move_queue
- *
+/**
  * Enqueue completed download file for verification.
  */
-void move_queue(struct download *d, const gchar *dest, const gchar *ext)
+void
+move_queue(struct download *d, const gchar *dest, const gchar *ext)
 {
 	struct work *we;
 
@@ -412,12 +410,11 @@ void move_queue(struct download *d, const gchar *dest, const gchar *ext)
 	bg_daemon_enqueue(move_daemon, we);
 }
 
-/*
- * move_init
- *
+/**
  * Initializes the background moving/copying task.
  */
-void move_init(void)
+void
+move_init(void)
 {
 	struct moved *md;
 	bgstep_cb_t step = d_step_copy;
@@ -436,9 +433,7 @@ void move_init(void)
 		d_notify);
 }
 
-/*
- * move_close
- *
+/**
  * Called at shutdown time.
  */
 void move_close(void)
@@ -446,4 +441,4 @@ void move_close(void)
 	bg_task_cancel(move_daemon);
 }
 
-/* vi: set ts=4: */
+/* vi: set ts=4 sw=4 cindent: */
