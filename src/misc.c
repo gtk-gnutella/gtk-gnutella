@@ -6,7 +6,7 @@
 #include <netdb.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
-#include <ctype.h>			/* For isalnum() */
+#include <ctype.h>			/* For isalnum() and isspace() */
 
 #include "gnutella.h"
 #include "nodes.h"
@@ -30,16 +30,19 @@ gchar *ip_port_to_gchar(guint32 ip, guint16 port)
 
 #if defined(_WIN32) || !defined(HAVE_INET_ATON)
 /* 
- * Copied from icecast
+ * Copied from icecast.
+ * Fixed to returns 0 on failure, 1 on success --RAM, 12/01/2002.
  */
 int inet_aton(const char *s, struct in_addr *a)
 {
 	int lsb, b2, b3, msb;
+
+	/* Assumes host byte ordering is little endian, which is OK on Wintel */
 	if (sscanf(s, "%d.%d.%d.%d", &lsb, &b2, &b3, &msb) < 4)
-		return -1;
+		return 0;
 
 	a->s_addr = lsb + (b2 << 8) + (b3 << 16) + (msb << 24);
-	return 0;
+	return 1;
 }
 #endif
 
@@ -54,6 +57,36 @@ guint32 gchar_to_ip(gchar * str)
 	if (r)
 		return g_ntohl(ia.s_addr);
 	return 0;
+}
+
+/*
+ * gchar_to_ip_port
+ *
+ * Decompiles ip:port into ip and port.  Leading spaces are ignored.
+ * Returns TRUE if it parsed correctly, FALSE otherwise.
+ */
+gboolean gchar_to_ip_port(gchar *str, guint32 *ip, guint16 *port)
+{
+	gint c;
+	gint lsb, b2, b3, msb;
+	gint iport;
+
+	while ((c = *str)) {		/* Skip leading spaces */
+		if (!isspace(c))
+			break;
+		str++;
+	}
+
+	/* IP addresses are always written in big-endian format */
+	if (sscanf(str, "%d.%d.%d.%d:%d", &msb, &b3, &b2, &lsb, &iport) < 5)
+		return FALSE;
+
+	if (iport < 0 || iport > 65535)
+		return FALSE;
+	
+	*ip = lsb + (b2 << 8) + (b3 << 16) + (msb << 24);
+
+	return TRUE;
 }
 
 guint32 host_to_ip(gchar * host)
@@ -71,6 +104,29 @@ guint32 host_to_ip(gchar * host)
 	}
 
 	return 0;
+}
+
+/*
+ * str_chomp
+ *
+ * Remove final char of string if it is a "\n".
+ * If len is 0, compute it.
+ *
+ * Returns new string length.
+ */
+gint str_chomp(gchar *str, gint len)
+{
+	if (len == 0)
+		len = strlen(str);
+
+	if (len == 0)
+		return 0;
+
+	if (str[len-1] == '\n') {
+		str[len-1] = '\0';
+		return len - 1;
+	} else
+		return len;
 }
 
 /*
@@ -154,6 +210,26 @@ gchar *guid_hex_str(guchar *guid)
 	buf[32] = '\0';		/* Should not be necessary, but... */
 
 	return buf;
+}
+
+static gint hexc2int(gchar c)
+{
+	return c >= '0' && c <= '9' ? c - '0'
+		 : c >= 'a' && c <= 'f' ? c - 'a' + 10
+		 : c - 'A' + 10;
+}
+
+/*
+ * hex_to_guid
+ *
+ * Converts hexadecimal string into a GUID.
+ */
+void hex_to_guid(gchar *hexguid, guchar *guid)
+{
+	gint i;
+
+	for (i = 0; i < 16; i++)
+		guid[i] = (hexc2int(hexguid[i*2]) << 4) + hexc2int(hexguid[i*2+1]);
 }
 
 /*
