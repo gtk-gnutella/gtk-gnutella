@@ -118,6 +118,7 @@ tsync_send(struct gnutella_node *n, guint32 node_id)
 {
 	struct tsync *ts;
 
+	g_return_if_fail(n->port != 0);
 	if (!NODE_IS_WRITABLE(n))
 		return;
 
