@@ -687,6 +687,7 @@ static void mq_puthere(mqueue_t *q, pmsg_t *mb, gint msize)
 		((make_room_called = TRUE)) &&			/* Call make_room() once only */
 		!make_room(q, mb, msize, &qlink_offset)
 	) {
+		g_assert(pmsg_is_unread(mb));			/* Not partially written */
 		if (dbg > 4)
 			gmsg_log_dropped(pmsg_start(mb),
 				"to FLOWC node %s, %d bytes queued",
@@ -719,6 +720,8 @@ static void mq_puthere(mqueue_t *q, pmsg_t *mb, gint msize)
 		 *
 		 *		--RAM, 18/01/2003
 		 */
+
+		g_assert(pmsg_is_unread(mb));			/* Not partially written */
 
 		gnet_stats_count_flowc(pmsg_start(mb));
 
@@ -1038,14 +1041,12 @@ void mq_putq(mqueue_t *q, pmsg_t *mb)
 
 	if (size == 0) {
 		g_warning("mq_putq: called with empty message");
-		pmsg_free(mb);
-		return;
+		goto cleanup;
 	}
 
 	if (q->flags & MQ_DISCARD) {
 		g_warning("mq_putq: called whilst queue shutdown");
-		pmsg_free(mb);
-		return;
+		goto cleanup;
 	}
 
 	/*
@@ -1073,10 +1074,8 @@ void mq_putq(mqueue_t *q, pmsg_t *mb)
 			written = -1;
 		}
 
-		if (written < 0) {
-			pmsg_free(mb);
-			return;					/* Node removed if necessary */
-		}
+		if (written < 0)
+			goto cleanup;			/* Node already removed if necessary */
 
 		node_add_tx_given(q->node, written);
 
@@ -1085,8 +1084,7 @@ void mq_putq(mqueue_t *q, pmsg_t *mb)
 			node_inc_sent(q->node);
             gnet_stats_count_sent(q->node,
 				gmsg_function(mbs), gmsg_hops(mbs), size);
-			pmsg_free(mb);
-			return;
+			goto cleanup;
 		}
 
 		mb->m_rptr += written;		/* Partially written */
@@ -1100,6 +1098,11 @@ void mq_putq(mqueue_t *q, pmsg_t *mb)
 	 */
 
 	mq_puthere(q, mb, size);
+	return;
+
+cleanup:
+	pmsg_free(mb);
+	return;
 }
 
 /* vi: set ts=4: */
