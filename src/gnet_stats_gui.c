@@ -371,11 +371,15 @@ void gnet_stats_gui_init(void)
         row = gtk_clist_append(clist_horizon, titles);
         gtk_clist_set_selectable(clist_horizon, row, FALSE);
     }
+
+    hsep_add_global_table_listener((GCallback) gnet_stats_gui_horizon_update,
+	                               FREQ_UPDATES, 0);
 }
 
 void gnet_stats_gui_shutdown(void)
 {
-	/* Nothing for now */
+	hsep_remove_global_table_listener(
+	    (GCallback) gnet_stats_gui_horizon_update);
 }
 
 void gnet_stats_gui_update(time_t now)

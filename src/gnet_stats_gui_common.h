@@ -38,7 +38,7 @@ extern const gchar *msg_drop_str(int MSG_DROP_REASON_COUNT);
 extern const gchar *general_type_str(int GNR_TYPE_COUNT);
 extern const gchar *horizon_stat_str(hsep_triple *table, gint row,
 	c_horizon_t column);
-
 int msg_type_str_size();
+void gnet_stats_gui_horizon_update(hsep_triple *table, guint32 triples);
 
 #endif /* _gnet_stats_gui_common_h_ */

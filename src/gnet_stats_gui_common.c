@@ -174,4 +174,44 @@ const gchar *horizon_stat_str(hsep_triple *table, gint row,
     return NULL;
 }
 
+/*
+ * gnet_stats_gui_horizon_update
+ *
+ * Updates the horizon statistics in the statusbar.
+ * This is an event-driven callback called from the HSEP code
+ * using the event listener framework.
+ */
+
+void gnet_stats_gui_horizon_update(hsep_triple *table, guint32 triples)
+{
+	const int hops = 4;      /* must be <= HSEP_N_MAX */
+	gchar s[64];
+	guint64 val;
+
+	if (triples <= hops)     /* should not happen */
+	    return;
+
+	/*
+	 * Update the 3 labels in the statusbar with the horizon values for a
+	 * distance of 'hops' hops.
+	 */
+
+	val = table[hops][HSEP_IDX_NODES];
+	gm_snprintf(s, sizeof(s),
+	            " %llu %s ", val, val == 1 ? _("node") : _("nodes"));
+	gtk_label_set_text(GTK_LABEL(lookup_widget(main_window,
+	                   "label_statusbar_horizon_node_count")), s);
+
+	val = table[hops][HSEP_IDX_FILES];
+	gm_snprintf(s, sizeof(s), " %llu %s ",
+	            val, val == 1 ? _("file") : _("files"));
+	gtk_label_set_text(GTK_LABEL(lookup_widget(main_window,
+	                   "label_statusbar_horizon_file_count")), s);
+
+	val = table[hops][HSEP_IDX_KIB];
+	gm_snprintf(s, sizeof(s), " %s ", short_kb_size64(val));
+	gtk_label_set_text(GTK_LABEL(lookup_widget(main_window,
+	                   "label_statusbar_horizon_kb_count")), s);
+}
+
 /* vi: set ts=4: */
