@@ -65,12 +65,12 @@ GtkWidget *popup_filter_rule = NULL;
  * Private variables
  */
 static gchar * rule_text_type_labels[] = {
-    "starts with",
-    "contains the words",
-    "ends with",
-    "contains the substring",
-    "matches regex",
-    "is exactly"
+    N_("starts with"),
+    N_("contains the words"),
+    N_("ends with"),
+    N_("contains the substring"),
+    N_("matches regex"),
+    N_("is exactly")
 };
 
 static gchar fg_tmp[1024];
@@ -148,22 +148,22 @@ void filter_gui_init(void)
 
     m = GTK_MENU(gtk_menu_new());
     menu_new_item_with_data(
-        m, rule_text_type_labels[RULE_TEXT_PREFIX], 
+        m, _(rule_text_type_labels[RULE_TEXT_PREFIX]),
         (gpointer) RULE_TEXT_PREFIX);
     menu_new_item_with_data(
-        m, rule_text_type_labels[RULE_TEXT_WORDS], 
+        m, _(rule_text_type_labels[RULE_TEXT_WORDS]),
         (gpointer) RULE_TEXT_WORDS);
     menu_new_item_with_data(
-        m, rule_text_type_labels[RULE_TEXT_SUFFIX], 
+        m, _(rule_text_type_labels[RULE_TEXT_SUFFIX]),
         (gpointer)RULE_TEXT_SUFFIX);
     menu_new_item_with_data(
-        m, rule_text_type_labels[RULE_TEXT_SUBSTR], 
+        m, _(rule_text_type_labels[RULE_TEXT_SUBSTR]),
         (gpointer) RULE_TEXT_SUBSTR);
     menu_new_item_with_data(
-        m, rule_text_type_labels[RULE_TEXT_REGEXP], 
+        m, _(rule_text_type_labels[RULE_TEXT_REGEXP]),
         (gpointer) RULE_TEXT_REGEXP);
     menu_new_item_with_data(
-        m, rule_text_type_labels[RULE_TEXT_EXACT], 
+        m, _(rule_text_type_labels[RULE_TEXT_EXACT]),
         (gpointer) RULE_TEXT_EXACT);
 
     gtk_option_menu_set_menu(
@@ -316,24 +316,24 @@ void filter_gui_filter_clear_list(void)
             fl_node_builtin);
 
 
-    titles[0] = "Builtin targets (not editable)";
+    titles[0] = _("Builtin targets (not editable)");
     titles[1] = "";
     titles[2] = "";
     fl_node_builtin = gtk_ctree_insert_node(
         GTK_CTREE(ctree_filter_filters), NULL, NULL,
         titles, 0, NULL, NULL, NULL, NULL, FALSE, TRUE);
             
-    titles[0] = "Global filters";
+    titles[0] = _("Global filters");
     fl_node_global = gtk_ctree_insert_node(
         GTK_CTREE(ctree_filter_filters), NULL, NULL,
         titles, 0, NULL, NULL, NULL, NULL, FALSE, TRUE);
 
-    titles[0] = "Search filters";
+    titles[0] = _("Search filters");
     fl_node_bound = gtk_ctree_insert_node(
         GTK_CTREE(ctree_filter_filters), NULL, NULL,
         titles, 0, NULL, NULL, NULL, NULL, FALSE, TRUE);
 
-    titles[0] = "Free filters";
+    titles[0] = _("Free filters");
     fl_node_free = gtk_ctree_insert_node(
         GTK_CTREE(ctree_filter_filters), NULL, NULL,
         titles, 0, NULL, NULL, NULL, NULL, FALSE, TRUE);
@@ -640,7 +640,7 @@ void filter_gui_update_filter_stats(void)
             continue;
 
         if (filter_is_shadowed(filter)) {
-            title = "new";
+            title = _("new");
         } else {
             buf = filter->match_count+filter->fail_count;
             if (buf != 0) {
@@ -654,7 +654,7 @@ void filter_gui_update_filter_stats(void)
                 }
                 title = fg_tmp;
             } else {
-                title = "none yet";
+                title = _("none yet");
             }
         }
 
@@ -697,7 +697,7 @@ void filter_gui_update_rule_stats(void)
             continue;
 
         if (RULE_IS_SHADOWED(rule)) {
-            title = "new";
+            title = _("new");
         } else {
             buf = rule->match_count+rule->fail_count;
             if (buf != 0) {
@@ -706,7 +706,7 @@ void filter_gui_update_rule_stats(void)
                     (gint)((float)rule->match_count/buf*100));
                 title = fg_tmp;
             } else {
-                title = "none yet";
+                title = _("none yet");
             }
         }
 
@@ -777,7 +777,7 @@ void filter_gui_rebuild_target_combos(GList *filters)
 
     m = GTK_MENU(gtk_menu_new());
 
-    menu_new_item_with_data(m, "no default filter", NULL);
+    menu_new_item_with_data(m, _("no default filter"), NULL);
     for (l = buf; l != NULL; l = l->next) {
         filter_t *filter = (filter_t *)l->data;
         /*
@@ -932,7 +932,7 @@ void filter_gui_edit_sha1_rule(rule_t *r)
 
     if (r != NULL) {
         hash = r->u.sha1.hash != NULL ? 
-            sha1_base32(r->u.sha1.hash) : "[no hash]";
+            sha1_base32(r->u.sha1.hash) : _("[no hash]");
         origfile = r->u.sha1.filename;
         target = (gpointer) r->target;
         invert = RULE_IS_NEGATED(r);
