@@ -533,6 +533,15 @@ void search_request(struct gnutella_node *n)
 		return;					/* We're not fast enough */
 
 	/*
+	 * If we aren't going to let the searcher download anything, then
+	 * don't waste bandwidth and his time by giving him search results.
+	 *		--Mark Schreiber, 11/01/2002
+	 */
+
+	if (max_uploads == 0)
+		return;
+
+	/*
 	 * If the query comes from a node farther than our TTL (i.e. the TTL we'll
 	 * use to send our reply), don't bother processing it: the reply won't
 	 * be able to reach the issuing node.

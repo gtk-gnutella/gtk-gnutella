@@ -696,6 +696,17 @@ static void upload_request(struct upload *u, header_t *header)
 		guchar c;
 
 		/*
+		 * If we don't share, abort immediately. --RAM, 11/01/2002
+		 */
+
+		if (max_uploads == 0) {
+			gchar *error = "Sharing currently disabled";
+			send_upload_error(u, 410, error);
+			upload_remove(u, error);
+			return;
+		}
+
+		/*
 		 * We must be cautious about file index changing between two scans,
 		 * which may happen when files are moved around on the local library.
 		 * If we serve the wrong file, and it's a resuming request, this will
