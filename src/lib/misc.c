@@ -1622,6 +1622,10 @@ do_stat(const gchar *path, struct stat *buf)
 	return ret;
 }
 
+/**
+ * Create new pathname from the concatenation of the dirname and the basename
+ * of the file.  The resulting string can be freed when it is no longer needed.
+ */
 gchar *
 make_pathname(const gchar *dir, const gchar *file)
 {
@@ -1726,6 +1730,26 @@ failure:
 }
 
 /**
+ * Check whether file given by its dirname and its basename exists.
+ */
+gboolean
+filepath_exists(const gchar *dir, const gchar *file)
+{
+	gchar *path;
+	struct stat buf;
+	gboolean exists = TRUE;
+
+	path = make_pathname(dir, file);
+
+	if (-1 == do_stat(path, &buf))
+		exists = FALSE;
+
+	G_FREE_NULL(path);
+
+	return exists;
+}
+
+/**
  * Parses an unsigned 64-bit integer from an ASCII string.
  *
  * @param src
@@ -1749,60 +1773,59 @@ failure:
 guint64
 parse_uint64(const gchar *src, gchar **endptr, gint base, gint *errorptr)
 {
-  const gchar *p;
-  guint64 v = 0;
-  gint error = 0, c;
+	const gchar *p;
+	guint64 v = 0;
+	gint error = 0, c;
 
-  g_assert(src != NULL);
-  g_assert(errorptr != NULL);
-  g_assert(base >= 2 && base <= 36);
+	g_assert(src != NULL);
+	g_assert(errorptr != NULL);
+	g_assert(base >= 2 && base <= 36);
 
-  if (base < 2 || base > 36) {
-    *errorptr = EINVAL;
-    return 0;
-  }
-      
-  for (p = src; (c = (guchar) *p) != '\0'; ++p) {
-    guint64 d, w;
-    
-    if (!isascii(c)) {
-      break;
-    }
-    if (isdigit(c)) {
-      d = c - '0';
-    } else if (isalpha(c)) {
-      c = tolower(c);
-      d = c - 'a' + 10;
-    } else {
-      break;
-    }
-    if (d >= (guint) base) {
-      break;
-    }
-    
-    w = v * base;
-    if (w / base != v) {
-      error = ERANGE;
-      break;
-    }
-    v = w + d; 
-    if (v < w) {
-      error = ERANGE;
-      break;
-    }
-  }
-  
-  if (NULL != endptr) {
-    *endptr = (gchar *) p;
-  }
-  if (!error && p == src) {
-    error = EINVAL;
-  }
-  if (error) {
-    v = 0;
-  }
-  *errorptr = error;
-  return v;
+	if (base < 2 || base > 36) {
+		*errorptr = EINVAL;
+		return 0;
+	}
+	  
+	for (p = src; (c = (guchar) *p) != '\0'; ++p) {
+		guint64 d, w;
+
+		if (!isascii(c))
+			break;
+
+		if (isdigit(c))
+			d = c - '0';
+		else if (isalpha(c)) {
+			c = tolower(c);
+			d = c - 'a' + 10;
+		} else
+			break;
+
+		if (d >= (guint) base)
+			break;
+
+		w = v * base;
+		if (w / base != v) {
+			error = ERANGE;
+			break;
+		}
+		v = w + d; 
+		if (v < w) {
+			error = ERANGE;
+			break;
+		}
+	}
+
+	if (NULL != endptr)
+		*endptr = (gchar *) p;
+
+	if (!error && p == src)
+		error = EINVAL;
+
+	if (error)
+		v = 0;
+	*errorptr = error;
+
+	return v;
 }
 
 

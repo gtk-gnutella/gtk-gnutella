@@ -231,6 +231,7 @@ gchar *make_pathname(const gchar *dir, const gchar *file);
 gchar *short_filename(gchar *fullname);
 gchar *data_hex_str(const gchar *data, size_t len);
 gint create_directory(const gchar *dir);
+gboolean filepath_exists(const gchar *dir, const gchar *file);
 guint64 parse_uint64(const gchar *, gchar **, gint, gint *);
 
 #ifdef HAVE_STRCASESTR
