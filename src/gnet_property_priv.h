@@ -41,6 +41,10 @@ extern guint32  max_host_downloads;
 extern guint32  max_uploads;
 extern guint32  max_uploads_ip;
 extern guint32  local_ip;
+extern guint32  current_ip_stamp;
+extern guint32  average_ip_uptime;
+extern guint32  start_stamp;
+extern guint32  average_servent_uptime;
 extern guint32  listen_port;
 extern guint32  forced_local_ip;
 extern guint32  connection_speed;
@@ -139,6 +143,12 @@ extern gboolean online_mode;
 extern guint32  lib_debug;
 extern gboolean download_require_urn;
 extern gboolean download_require_server_name;
+extern gboolean force_ultrapeer;
+extern gboolean force_leaf;
+extern guint32  max_ultrapeers;
+extern guint32  max_leaves;
+extern gboolean enable_ultrapeer;
+extern guint32  current_peermode;
 
 
 prop_set_t *gnet_prop_init(void);

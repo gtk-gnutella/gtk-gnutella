@@ -75,6 +75,7 @@ static gchar *pidfile = "gtk-gnutella.pid";
 
 static void settings_callbacks_init(void);
 static void settings_callbacks_shutdown(void);
+static void update_servent_uptime(void);
 
 
 /* ----------------------------------------- */
@@ -355,6 +356,7 @@ guint32 settings_max_msg_size(void)
 
 void settings_shutdown(void)
 {
+	update_servent_uptime();
     settings_callbacks_shutdown();
 
     prop_save_to_file(properties, config_dir, config_file);
@@ -402,6 +404,99 @@ void gnet_get_bw_stats(gnet_bw_stats_t *s)
     s->http_out         = bsched_bps(bws.out);
     s->http_out_avg     = bsched_avg_bps(bws.out);
     s->http_out_limit   = bws.out->bw_per_second;
+}
+
+/***
+ *** Internal helpers.
+ ***/
+
+/*
+ * update_address_lifetime
+ *
+ * Called whenever the IP address we advertise changed.
+ * Update the average uptime for a given IP address.
+ */
+static void update_address_lifetime(void)
+{
+	static guint32 old_ip = 0;
+	gboolean force_local_ip;
+	guint32 current_ip;
+	guint32 current_ip_stamp;
+	guint32 average_ip_uptime;
+	time_t now;
+
+	gnet_prop_get_boolean_val(PROP_FORCE_LOCAL_IP, &force_local_ip);
+	if (force_local_ip)
+		gnet_prop_get_guint32_val(PROP_FORCED_LOCAL_IP, &current_ip);
+	else
+		gnet_prop_get_guint32_val(PROP_LOCAL_IP, &current_ip);
+
+	if (old_ip == 0) {				/* First time */
+		old_ip = current_ip;
+		gnet_prop_get_guint32_val(PROP_CURRENT_IP_STAMP, &current_ip_stamp);
+		if (current_ip_stamp == 0) {
+			now = time(NULL);
+			gnet_prop_set_guint32_val(PROP_CURRENT_IP_STAMP, (guint32) now);
+		}
+	}
+
+	if (old_ip == current_ip)
+		return;
+
+	/*
+	 * IP address changed, update lifetime information.
+	 */
+
+	now = time(NULL);
+	old_ip = current_ip;
+
+	gnet_prop_get_guint32_val(PROP_CURRENT_IP_STAMP, &current_ip_stamp);
+	gnet_prop_get_guint32_val(PROP_AVERAGE_IP_UPTIME, &average_ip_uptime);
+
+	if (current_ip_stamp) {
+		time_t lifetime = now - current_ip_stamp;
+		if (lifetime < 0)
+			lifetime = 0;
+
+		/*
+		 * The average lifetime is computed as an EMA on 3 terms.
+		 * The smoothing factor sm=2/(3+1) is therefore 0.5.
+		 */
+
+		average_ip_uptime += (lifetime >> 1) - (average_ip_uptime >> 1);
+		gnet_prop_set_guint32_val(PROP_AVERAGE_IP_UPTIME, average_ip_uptime);
+	}
+
+	gnet_prop_set_guint32_val(PROP_CURRENT_IP_STAMP, (guint32) now);
+}
+
+/*
+ * update_servent_uptime
+ *
+ * Called at shutdown time to update the average_uptime property before
+ * saving the properties to disk.
+ */
+static void update_servent_uptime(void)
+{
+	time_t now = time(NULL);
+	time_t uptime;
+	guint32 start_stamp;
+	guint32 avg_servent_uptime;
+
+	gnet_prop_get_guint32_val(PROP_AVERAGE_SERVENT_UPTIME, &avg_servent_uptime);
+	gnet_prop_get_guint32_val(PROP_START_STAMP, &start_stamp);
+	
+	uptime = now - start_stamp;
+	if (uptime < 0)
+		uptime = 0;
+
+	/*
+	 * The average uptime is computed as an EMA on 7 terms.
+	 * The smoothing factor sm=2/(7+1) is therefore 0.25.
+	 */
+
+	avg_servent_uptime += (uptime >> 2) - (avg_servent_uptime >> 2);
+	gnet_prop_set_guint32_val(PROP_AVERAGE_SERVENT_UPTIME, avg_servent_uptime);
 }
 
 /***
@@ -750,6 +845,43 @@ static gboolean lib_debug_changed(property_t prop)
     return FALSE;
 }
 
+static gboolean force_local_ip_changed(property_t prop)
+{
+	update_address_lifetime();
+    return FALSE;
+}
+
+static gboolean local_ip_changed(property_t prop)
+{
+	update_address_lifetime();
+    return FALSE;
+}
+
+static gboolean enable_ultrapeer_changed(property_t prop)
+{
+    gboolean val;
+
+    gnet_prop_get_boolean_val(prop, &val);
+
+	if (!val)
+		gnet_prop_set_guint32_val(PROP_CURRENT_PEERMODE, NODE_P_NORMAL);
+	else
+		gnet_prop_set_guint32_val(PROP_CURRENT_PEERMODE, NODE_P_LEAF);
+
+    return FALSE;
+}
+
+static gboolean current_peermode_changed(property_t prop)
+{
+    guint32 val;
+
+    gnet_prop_get_guint32_val(prop, &val);
+	node_set_current_peermode(val);
+
+    return FALSE;
+}
+
+
 /***
  *** Property-to-callback map
  ***/
@@ -887,7 +1019,27 @@ static prop_map_t property_map[] = {
         PROP_LIB_DEBUG,
         lib_debug_changed,
         TRUE
-    }
+    },
+	{
+		PROP_FORCE_LOCAL_IP,
+		force_local_ip_changed,
+		TRUE,
+	},
+	{
+		PROP_LOCAL_IP,
+		local_ip_changed,
+		TRUE,
+	},
+	{
+		PROP_ENABLE_ULTRAPEER,
+		enable_ultrapeer_changed,
+		TRUE,
+	},
+	{
+		PROP_CURRENT_PEERMODE,
+		current_peermode_changed,
+		TRUE,
+	},
 };
 
 /***

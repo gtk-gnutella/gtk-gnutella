@@ -144,6 +144,46 @@ prop = {
 };
 
 prop = {
+    name = "current_ip_stamp";
+    desc = "When the current IP address was determined";
+	save = TRUE;
+    type = guint32;
+    data = {
+        default = 0;
+    };
+};
+
+prop = {
+    name = "average_ip_uptime";
+    desc = "Average uptime with the same IP address";
+	save = TRUE;
+    type = guint32;
+    data = {
+        default = 0;
+    };
+};
+
+prop = {
+    name = "start_stamp";
+    desc = "Timestamp at which servent was started";
+	save = FALSE;
+    type = guint32;
+    data = {
+        default = 0;
+    };
+};
+
+prop = {
+    name = "average_servent_uptime";
+    desc = "Average servent uptime, in seconds";
+	save = TRUE;
+    type = guint32;
+    data = {
+        default = 0;
+    };
+};
+
+prop = {
     name = "listen_port";
     desc = "Local port gtk-gnutella is listening on";
     type = guint32;
@@ -1280,6 +1320,68 @@ prop = {
     type = boolean;
     data = {
         default = FALSE;
+    };
+};
+
+prop = {
+    name = "force_ultrapeer";
+    desc = "Whether gtk-gnutella should start up as an Ultrapeer regardless "
+			"of whether the node is capable of handling it.  This setting "
+			"is only valid for the first hour (debugging only).";
+    type = boolean;
+    data = {
+        default = FALSE;
+    };
+};
+
+prop = {
+    name = "force_leaf";
+    desc = "Whether gtk-gnutella should always act as a leaf node, regardless "
+			"of whether the node is capable of becoming an Ultrapeer.";
+    type = boolean;
+    data = {
+        default = FALSE;
+    };
+};
+
+prop = {
+    name = "max_ultrapeers";
+    desc = "Maximum amount of Ultrapeers we should connect to as a leaf.";
+    type = guint32;
+    data = {
+        default = 3;
+        min = 1;
+        max = 4;
+    };
+};
+
+prop = {
+    name = "max_leaves";
+    desc = "Maximum amount of leaves we can accept.";
+    type = guint32;
+    data = {
+        default = 100;
+        min = 50;
+        max = 1000;
+    };
+};
+
+prop = {
+    name = "enable_ultrapeer";
+    desc = "Enable the ultrapeer features.";
+    type = boolean;
+    data = {
+        default = FALSE;
+    };
+};
+
+prop = {
+    name = "current_peermode";
+    desc = "Current peer mode for gtk-gnutella "
+			"(acting as a Leaf / Ultra node).";
+    type = guint32;
+    data = {
+        default = 1;
     };
 };
 

@@ -60,6 +60,14 @@ guint32  max_uploads_ip     = 1;
 guint32  max_uploads_ip_def = 1;
 guint32  local_ip     = 0x00000000;
 guint32  local_ip_def = 0x00000000;
+guint32  current_ip_stamp     = 0;
+guint32  current_ip_stamp_def = 0;
+guint32  average_ip_uptime     = 0;
+guint32  average_ip_uptime_def = 0;
+guint32  start_stamp     = 0;
+guint32  start_stamp_def = 0;
+guint32  average_servent_uptime     = 0;
+guint32  average_servent_uptime_def = 0;
 guint32  listen_port     = 6346;
 guint32  listen_port_def = 6346;
 guint32  forced_local_ip     = 0x00000000;
@@ -255,6 +263,18 @@ gboolean download_require_urn     = FALSE;
 gboolean download_require_urn_def = FALSE;
 gboolean download_require_server_name     = FALSE;
 gboolean download_require_server_name_def = FALSE;
+gboolean force_ultrapeer     = FALSE;
+gboolean force_ultrapeer_def = FALSE;
+gboolean force_leaf     = FALSE;
+gboolean force_leaf_def = FALSE;
+guint32  max_ultrapeers     = 3;
+guint32  max_ultrapeers_def = 3;
+guint32  max_leaves     = 100;
+guint32  max_leaves_def = 100;
+gboolean enable_ultrapeer     = FALSE;
+gboolean enable_ultrapeer_def = FALSE;
+guint32  current_peermode     = 1;
+guint32  current_peermode_def = 1;
 
 static prop_set_t *gnet_property = NULL;
 
@@ -475,22 +495,98 @@ prop_set_t *gnet_prop_init(void) {
 
 
     /*
-     * PROP_LISTEN_PORT:
+     * PROP_CURRENT_IP_STAMP:
      *
      * General data:
      */
-    gnet_property->props[11].name = "listen_port";
-    gnet_property->props[11].desc = "Local port gtk-gnutella is listening on";
+    gnet_property->props[11].name = "current_ip_stamp";
+    gnet_property->props[11].desc = "When the current IP address was determined";
     gnet_property->props[11].prop_changed_listeners = NULL;
     gnet_property->props[11].save = TRUE;
     gnet_property->props[11].vector_size = 1;
 
     /* Type specific data: */
     gnet_property->props[11].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[11].data.guint32.def   = &listen_port_def;
-    gnet_property->props[11].data.guint32.value = &listen_port;
-    gnet_property->props[11].data.guint32.max   = 0xFFFF;
-    gnet_property->props[11].data.guint32.min   = 0x0000;
+    gnet_property->props[11].data.guint32.def   = &current_ip_stamp_def;
+    gnet_property->props[11].data.guint32.value = &current_ip_stamp;
+    gnet_property->props[11].data.guint32.max   = 0xFFFFFFFF;
+    gnet_property->props[11].data.guint32.min   = 0x00000000;
+
+
+    /*
+     * PROP_AVERAGE_IP_UPTIME:
+     *
+     * General data:
+     */
+    gnet_property->props[12].name = "average_ip_uptime";
+    gnet_property->props[12].desc = "Average uptime with the same IP address";
+    gnet_property->props[12].prop_changed_listeners = NULL;
+    gnet_property->props[12].save = TRUE;
+    gnet_property->props[12].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[12].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[12].data.guint32.def   = &average_ip_uptime_def;
+    gnet_property->props[12].data.guint32.value = &average_ip_uptime;
+    gnet_property->props[12].data.guint32.max   = 0xFFFFFFFF;
+    gnet_property->props[12].data.guint32.min   = 0x00000000;
+
+
+    /*
+     * PROP_START_STAMP:
+     *
+     * General data:
+     */
+    gnet_property->props[13].name = "start_stamp";
+    gnet_property->props[13].desc = "Timestamp at which servent was started";
+    gnet_property->props[13].prop_changed_listeners = NULL;
+    gnet_property->props[13].save = FALSE;
+    gnet_property->props[13].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[13].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[13].data.guint32.def   = &start_stamp_def;
+    gnet_property->props[13].data.guint32.value = &start_stamp;
+    gnet_property->props[13].data.guint32.max   = 0xFFFFFFFF;
+    gnet_property->props[13].data.guint32.min   = 0x00000000;
+
+
+    /*
+     * PROP_AVERAGE_SERVENT_UPTIME:
+     *
+     * General data:
+     */
+    gnet_property->props[14].name = "average_servent_uptime";
+    gnet_property->props[14].desc = "Average servent uptime, in seconds";
+    gnet_property->props[14].prop_changed_listeners = NULL;
+    gnet_property->props[14].save = TRUE;
+    gnet_property->props[14].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[14].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[14].data.guint32.def   = &average_servent_uptime_def;
+    gnet_property->props[14].data.guint32.value = &average_servent_uptime;
+    gnet_property->props[14].data.guint32.max   = 0xFFFFFFFF;
+    gnet_property->props[14].data.guint32.min   = 0x00000000;
+
+
+    /*
+     * PROP_LISTEN_PORT:
+     *
+     * General data:
+     */
+    gnet_property->props[15].name = "listen_port";
+    gnet_property->props[15].desc = "Local port gtk-gnutella is listening on";
+    gnet_property->props[15].prop_changed_listeners = NULL;
+    gnet_property->props[15].save = TRUE;
+    gnet_property->props[15].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[15].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[15].data.guint32.def   = &listen_port_def;
+    gnet_property->props[15].data.guint32.value = &listen_port;
+    gnet_property->props[15].data.guint32.max   = 0xFFFF;
+    gnet_property->props[15].data.guint32.min   = 0x0000;
 
 
     /*
@@ -498,18 +594,18 @@ prop_set_t *gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[12].name = "forced_local_ip";
-    gnet_property->props[12].desc = "Use this IP address as source address if 'force local ip' is activated";
-    gnet_property->props[12].prop_changed_listeners = NULL;
-    gnet_property->props[12].save = TRUE;
-    gnet_property->props[12].vector_size = 1;
+    gnet_property->props[16].name = "forced_local_ip";
+    gnet_property->props[16].desc = "Use this IP address as source address if 'force local ip' is activated";
+    gnet_property->props[16].prop_changed_listeners = NULL;
+    gnet_property->props[16].save = TRUE;
+    gnet_property->props[16].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[12].type               = PROP_TYPE_IP;
-    gnet_property->props[12].data.guint32.def   = &forced_local_ip_def;
-    gnet_property->props[12].data.guint32.value = &forced_local_ip;
-    gnet_property->props[12].data.guint32.max   = 0xFFFFFFFF;
-    gnet_property->props[12].data.guint32.min   = 0x00000000;
+    gnet_property->props[16].type               = PROP_TYPE_IP;
+    gnet_property->props[16].data.guint32.def   = &forced_local_ip_def;
+    gnet_property->props[16].data.guint32.value = &forced_local_ip;
+    gnet_property->props[16].data.guint32.max   = 0xFFFFFFFF;
+    gnet_property->props[16].data.guint32.min   = 0x00000000;
 
 
     /*
@@ -517,18 +613,18 @@ prop_set_t *gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[13].name = "connection_speed";
-    gnet_property->props[13].desc = "The connection bandwidth reported to other hosts";
-    gnet_property->props[13].prop_changed_listeners = NULL;
-    gnet_property->props[13].save = TRUE;
-    gnet_property->props[13].vector_size = 1;
+    gnet_property->props[17].name = "connection_speed";
+    gnet_property->props[17].desc = "The connection bandwidth reported to other hosts";
+    gnet_property->props[17].prop_changed_listeners = NULL;
+    gnet_property->props[17].save = TRUE;
+    gnet_property->props[17].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[13].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[13].data.guint32.def   = &connection_speed_def;
-    gnet_property->props[13].data.guint32.value = &connection_speed;
-    gnet_property->props[13].data.guint32.max   = 2000;
-    gnet_property->props[13].data.guint32.min   = 0;
+    gnet_property->props[17].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[17].data.guint32.def   = &connection_speed_def;
+    gnet_property->props[17].data.guint32.value = &connection_speed;
+    gnet_property->props[17].data.guint32.max   = 2000;
+    gnet_property->props[17].data.guint32.min   = 0;
 
 
     /*
@@ -536,18 +632,18 @@ prop_set_t *gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[14].name = "limit_search_results";
-    gnet_property->props[14].desc = "Return at most this number of results to a query, using as many query hit packets as necessary.  To avoid network flooding, keep this to a reasonable value.";
-    gnet_property->props[14].prop_changed_listeners = NULL;
-    gnet_property->props[14].save = TRUE;
-    gnet_property->props[14].vector_size = 1;
+    gnet_property->props[18].name = "limit_search_results";
+    gnet_property->props[18].desc = "Return at most this number of results to a query, using as many query hit packets as necessary.  To avoid network flooding, keep this to a reasonable value.";
+    gnet_property->props[18].prop_changed_listeners = NULL;
+    gnet_property->props[18].save = TRUE;
+    gnet_property->props[18].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[14].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[14].data.guint32.def   = &search_max_items_def;
-    gnet_property->props[14].data.guint32.value = &search_max_items;
-    gnet_property->props[14].data.guint32.max   = 500;
-    gnet_property->props[14].data.guint32.min   = 1;
+    gnet_property->props[18].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[18].data.guint32.def   = &search_max_items_def;
+    gnet_property->props[18].data.guint32.value = &search_max_items;
+    gnet_property->props[18].data.guint32.max   = 500;
+    gnet_property->props[18].data.guint32.min   = 1;
 
 
     /*
@@ -555,18 +651,18 @@ prop_set_t *gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[15].name = "upload_bandwith_min_percentage";
-    gnet_property->props[15].desc = "Unless this percentage or more of the upload bandwidth is used, allow additional upload slots";
-    gnet_property->props[15].prop_changed_listeners = NULL;
-    gnet_property->props[15].save = TRUE;
-    gnet_property->props[15].vector_size = 1;
+    gnet_property->props[19].name = "upload_bandwith_min_percentage";
+    gnet_property->props[19].desc = "Unless this percentage or more of the upload bandwidth is used, allow additional upload slots";
+    gnet_property->props[19].prop_changed_listeners = NULL;
+    gnet_property->props[19].save = TRUE;
+    gnet_property->props[19].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[15].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[15].data.guint32.def   = &ul_usage_min_percentage_def;
-    gnet_property->props[15].data.guint32.value = &ul_usage_min_percentage;
-    gnet_property->props[15].data.guint32.max   = 100;
-    gnet_property->props[15].data.guint32.min   = 0;
+    gnet_property->props[19].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[19].data.guint32.def   = &ul_usage_min_percentage_def;
+    gnet_property->props[19].data.guint32.value = &ul_usage_min_percentage;
+    gnet_property->props[19].data.guint32.max   = 100;
+    gnet_property->props[19].data.guint32.min   = 0;
 
 
     /*
@@ -574,18 +670,18 @@ prop_set_t *gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[16].name = "download_connecting_timeout";
-    gnet_property->props[16].desc = "Number of seconds before a download connect attempt times out";
-    gnet_property->props[16].prop_changed_listeners = NULL;
-    gnet_property->props[16].save = TRUE;
-    gnet_property->props[16].vector_size = 1;
+    gnet_property->props[20].name = "download_connecting_timeout";
+    gnet_property->props[20].desc = "Number of seconds before a download connect attempt times out";
+    gnet_property->props[20].prop_changed_listeners = NULL;
+    gnet_property->props[20].save = TRUE;
+    gnet_property->props[20].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[16].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[16].data.guint32.def   = &download_connecting_timeout_def;
-    gnet_property->props[16].data.guint32.value = &download_connecting_timeout;
-    gnet_property->props[16].data.guint32.max   = 100000;
-    gnet_property->props[16].data.guint32.min   = 1;
+    gnet_property->props[20].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[20].data.guint32.def   = &download_connecting_timeout_def;
+    gnet_property->props[20].data.guint32.value = &download_connecting_timeout;
+    gnet_property->props[20].data.guint32.max   = 100000;
+    gnet_property->props[20].data.guint32.min   = 1;
 
 
     /*
@@ -593,18 +689,18 @@ prop_set_t *gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[17].name = "download_push_sent_timeout";
-    gnet_property->props[17].desc = "Number of seconds before a push request times out";
-    gnet_property->props[17].prop_changed_listeners = NULL;
-    gnet_property->props[17].save = TRUE;
-    gnet_property->props[17].vector_size = 1;
+    gnet_property->props[21].name = "download_push_sent_timeout";
+    gnet_property->props[21].desc = "Number of seconds before a push request times out";
+    gnet_property->props[21].prop_changed_listeners = NULL;
+    gnet_property->props[21].save = TRUE;
+    gnet_property->props[21].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[17].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[17].data.guint32.def   = &download_push_sent_timeout_def;
-    gnet_property->props[17].data.guint32.value = &download_push_sent_timeout;
-    gnet_property->props[17].data.guint32.max   = 100000;
-    gnet_property->props[17].data.guint32.min   = 1;
+    gnet_property->props[21].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[21].data.guint32.def   = &download_push_sent_timeout_def;
+    gnet_property->props[21].data.guint32.value = &download_push_sent_timeout;
+    gnet_property->props[21].data.guint32.max   = 100000;
+    gnet_property->props[21].data.guint32.min   = 1;
 
 
     /*
@@ -612,18 +708,18 @@ prop_set_t *gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[18].name = "download_connected_timeout";
-    gnet_property->props[18].desc = "Number of seconds before a download times out if no data is received";
-    gnet_property->props[18].prop_changed_listeners = NULL;
-    gnet_property->props[18].save = TRUE;
-    gnet_property->props[18].vector_size = 1;
+    gnet_property->props[22].name = "download_connected_timeout";
+    gnet_property->props[22].desc = "Number of seconds before a download times out if no data is received";
+    gnet_property->props[22].prop_changed_listeners = NULL;
+    gnet_property->props[22].save = TRUE;
+    gnet_property->props[22].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[18].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[18].data.guint32.def   = &download_connected_timeout_def;
-    gnet_property->props[18].data.guint32.value = &download_connected_timeout;
-    gnet_property->props[18].data.guint32.max   = 100000;
-    gnet_property->props[18].data.guint32.min   = 1;
+    gnet_property->props[22].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[22].data.guint32.def   = &download_connected_timeout_def;
+    gnet_property->props[22].data.guint32.value = &download_connected_timeout;
+    gnet_property->props[22].data.guint32.max   = 100000;
+    gnet_property->props[22].data.guint32.min   = 1;
 
 
     /*
@@ -631,18 +727,18 @@ prop_set_t *gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[19].name = "download_retry_timeout_min";
-    gnet_property->props[19].desc = "Minimum number of seconds to wait on auto-retry timeouts";
-    gnet_property->props[19].prop_changed_listeners = NULL;
-    gnet_property->props[19].save = TRUE;
-    gnet_property->props[19].vector_size = 1;
+    gnet_property->props[23].name = "download_retry_timeout_min";
+    gnet_property->props[23].desc = "Minimum number of seconds to wait on auto-retry timeouts";
+    gnet_property->props[23].prop_changed_listeners = NULL;
+    gnet_property->props[23].save = TRUE;
+    gnet_property->props[23].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[19].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[19].data.guint32.def   = &download_retry_timeout_min_def;
-    gnet_property->props[19].data.guint32.value = &download_retry_timeout_min;
-    gnet_property->props[19].data.guint32.max   = 100000;
-    gnet_property->props[19].data.guint32.min   = 1;
+    gnet_property->props[23].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[23].data.guint32.def   = &download_retry_timeout_min_def;
+    gnet_property->props[23].data.guint32.value = &download_retry_timeout_min;
+    gnet_property->props[23].data.guint32.max   = 100000;
+    gnet_property->props[23].data.guint32.min   = 1;
 
 
     /*
@@ -650,18 +746,18 @@ prop_set_t *gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[20].name = "download_retry_timeout_max";
-    gnet_property->props[20].desc = "Maximum number of seconds to wait on auto-retry timeouts";
-    gnet_property->props[20].prop_changed_listeners = NULL;
-    gnet_property->props[20].save = TRUE;
-    gnet_property->props[20].vector_size = 1;
+    gnet_property->props[24].name = "download_retry_timeout_max";
+    gnet_property->props[24].desc = "Maximum number of seconds to wait on auto-retry timeouts";
+    gnet_property->props[24].prop_changed_listeners = NULL;
+    gnet_property->props[24].save = TRUE;
+    gnet_property->props[24].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[20].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[20].data.guint32.def   = &download_retry_timeout_max_def;
-    gnet_property->props[20].data.guint32.value = &download_retry_timeout_max;
-    gnet_property->props[20].data.guint32.max   = 100000;
-    gnet_property->props[20].data.guint32.min   = 1;
+    gnet_property->props[24].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[24].data.guint32.def   = &download_retry_timeout_max_def;
+    gnet_property->props[24].data.guint32.value = &download_retry_timeout_max;
+    gnet_property->props[24].data.guint32.max   = 100000;
+    gnet_property->props[24].data.guint32.min   = 1;
 
 
     /*
@@ -669,18 +765,18 @@ prop_set_t *gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[21].name = "download_max_retries";
-    gnet_property->props[21].desc = "Maximum number of attempts to download a file not counting HTTP busy indications";
-    gnet_property->props[21].prop_changed_listeners = NULL;
-    gnet_property->props[21].save = TRUE;
-    gnet_property->props[21].vector_size = 1;
+    gnet_property->props[25].name = "download_max_retries";
+    gnet_property->props[25].desc = "Maximum number of attempts to download a file not counting HTTP busy indications";
+    gnet_property->props[25].prop_changed_listeners = NULL;
+    gnet_property->props[25].save = TRUE;
+    gnet_property->props[25].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[21].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[21].data.guint32.def   = &download_max_retries_def;
-    gnet_property->props[21].data.guint32.value = &download_max_retries;
-    gnet_property->props[21].data.guint32.max   = 100000;
-    gnet_property->props[21].data.guint32.min   = 1;
+    gnet_property->props[25].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[25].data.guint32.def   = &download_max_retries_def;
+    gnet_property->props[25].data.guint32.value = &download_max_retries;
+    gnet_property->props[25].data.guint32.max   = 100000;
+    gnet_property->props[25].data.guint32.min   = 1;
 
 
     /*
@@ -688,18 +784,18 @@ prop_set_t *gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[22].name = "download_retry_timeout_delay";
-    gnet_property->props[22].desc = "Delay in seconds before retrying after a connection timed out";
-    gnet_property->props[22].prop_changed_listeners = NULL;
-    gnet_property->props[22].save = TRUE;
-    gnet_property->props[22].vector_size = 1;
+    gnet_property->props[26].name = "download_retry_timeout_delay";
+    gnet_property->props[26].desc = "Delay in seconds before retrying after a connection timed out";
+    gnet_property->props[26].prop_changed_listeners = NULL;
+    gnet_property->props[26].save = TRUE;
+    gnet_property->props[26].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[22].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[22].data.guint32.def   = &download_retry_timeout_delay_def;
-    gnet_property->props[22].data.guint32.value = &download_retry_timeout_delay;
-    gnet_property->props[22].data.guint32.max   = 100000;
-    gnet_property->props[22].data.guint32.min   = 15;
+    gnet_property->props[26].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[26].data.guint32.def   = &download_retry_timeout_delay_def;
+    gnet_property->props[26].data.guint32.value = &download_retry_timeout_delay;
+    gnet_property->props[26].data.guint32.max   = 100000;
+    gnet_property->props[26].data.guint32.min   = 15;
 
 
     /*
@@ -707,18 +803,18 @@ prop_set_t *gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[23].name = "download_retry_busy_delay";
-    gnet_property->props[23].desc = "Delay in seconds before retrying after getting a 'busy' response from a host";
-    gnet_property->props[23].prop_changed_listeners = NULL;
-    gnet_property->props[23].save = TRUE;
-    gnet_property->props[23].vector_size = 1;
+    gnet_property->props[27].name = "download_retry_busy_delay";
+    gnet_property->props[27].desc = "Delay in seconds before retrying after getting a 'busy' response from a host";
+    gnet_property->props[27].prop_changed_listeners = NULL;
+    gnet_property->props[27].save = TRUE;
+    gnet_property->props[27].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[23].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[23].data.guint32.def   = &download_retry_busy_delay_def;
-    gnet_property->props[23].data.guint32.value = &download_retry_busy_delay;
-    gnet_property->props[23].data.guint32.max   = 100000;
-    gnet_property->props[23].data.guint32.min   = 15;
+    gnet_property->props[27].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[27].data.guint32.def   = &download_retry_busy_delay_def;
+    gnet_property->props[27].data.guint32.value = &download_retry_busy_delay;
+    gnet_property->props[27].data.guint32.max   = 100000;
+    gnet_property->props[27].data.guint32.min   = 15;
 
 
     /*
@@ -726,18 +822,18 @@ prop_set_t *gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[24].name = "download_retry_refused_delay";
-    gnet_property->props[24].desc = "Delay in seconds before retrying after getting a 'connection refused' response from a host";
-    gnet_property->props[24].prop_changed_listeners = NULL;
-    gnet_property->props[24].save = TRUE;
-    gnet_property->props[24].vector_size = 1;
+    gnet_property->props[28].name = "download_retry_refused_delay";
+    gnet_property->props[28].desc = "Delay in seconds before retrying after getting a 'connection refused' response from a host";
+    gnet_property->props[28].prop_changed_listeners = NULL;
+    gnet_property->props[28].save = TRUE;
+    gnet_property->props[28].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[24].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[24].data.guint32.def   = &download_retry_refused_delay_def;
-    gnet_property->props[24].data.guint32.value = &download_retry_refused_delay;
-    gnet_property->props[24].data.guint32.max   = 100000;
-    gnet_property->props[24].data.guint32.min   = 15;
+    gnet_property->props[28].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[28].data.guint32.def   = &download_retry_refused_delay_def;
+    gnet_property->props[28].data.guint32.value = &download_retry_refused_delay;
+    gnet_property->props[28].data.guint32.max   = 100000;
+    gnet_property->props[28].data.guint32.min   = 15;
 
 
     /*
@@ -745,18 +841,18 @@ prop_set_t *gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[25].name = "download_retry_stopped";
-    gnet_property->props[25].desc = "Delay in seconds before retrying after a retry stopped (timed out, connection reset by peer, etc...)";
-    gnet_property->props[25].prop_changed_listeners = NULL;
-    gnet_property->props[25].save = TRUE;
-    gnet_property->props[25].vector_size = 1;
+    gnet_property->props[29].name = "download_retry_stopped";
+    gnet_property->props[29].desc = "Delay in seconds before retrying after a retry stopped (timed out, connection reset by peer, etc...)";
+    gnet_property->props[29].prop_changed_listeners = NULL;
+    gnet_property->props[29].save = TRUE;
+    gnet_property->props[29].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[25].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[25].data.guint32.def   = &download_retry_stopped_delay_def;
-    gnet_property->props[25].data.guint32.value = &download_retry_stopped_delay;
-    gnet_property->props[25].data.guint32.max   = 100000;
-    gnet_property->props[25].data.guint32.min   = 15;
+    gnet_property->props[29].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[29].data.guint32.def   = &download_retry_stopped_delay_def;
+    gnet_property->props[29].data.guint32.value = &download_retry_stopped_delay;
+    gnet_property->props[29].data.guint32.max   = 100000;
+    gnet_property->props[29].data.guint32.min   = 15;
 
 
     /*
@@ -764,18 +860,18 @@ prop_set_t *gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[26].name = "download_overlap_range";
-    gnet_property->props[26].desc = "Ammount of bytes to overlap when resuming a download. It should be at least 64 bytes for safe resuming, otherwise gtk-gnutella will not accept to resume a file for which we had no SHA1 known, after a server gives one back.";
-    gnet_property->props[26].prop_changed_listeners = NULL;
-    gnet_property->props[26].save = TRUE;
-    gnet_property->props[26].vector_size = 1;
+    gnet_property->props[30].name = "download_overlap_range";
+    gnet_property->props[30].desc = "Ammount of bytes to overlap when resuming a download. It should be at least 64 bytes for safe resuming, otherwise gtk-gnutella will not accept to resume a file for which we had no SHA1 known, after a server gives one back.";
+    gnet_property->props[30].prop_changed_listeners = NULL;
+    gnet_property->props[30].save = TRUE;
+    gnet_property->props[30].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[26].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[26].data.guint32.def   = &download_overlap_range_def;
-    gnet_property->props[26].data.guint32.value = &download_overlap_range;
-    gnet_property->props[26].data.guint32.max   = SOCK_BUFSZ;
-    gnet_property->props[26].data.guint32.min   = 0;
+    gnet_property->props[30].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[30].data.guint32.def   = &download_overlap_range_def;
+    gnet_property->props[30].data.guint32.value = &download_overlap_range;
+    gnet_property->props[30].data.guint32.max   = SOCK_BUFSZ;
+    gnet_property->props[30].data.guint32.min   = 0;
 
 
     /*
@@ -783,18 +879,18 @@ prop_set_t *gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[27].name = "upload_connecting_timeout";
-    gnet_property->props[27].desc = "Number of seconds before an upload times out if no connection can be established during a push.  It is also the maximum amount of time we wait to get the whole HTTP request.";
-    gnet_property->props[27].prop_changed_listeners = NULL;
-    gnet_property->props[27].save = TRUE;
-    gnet_property->props[27].vector_size = 1;
+    gnet_property->props[31].name = "upload_connecting_timeout";
+    gnet_property->props[31].desc = "Number of seconds before an upload times out if no connection can be established during a push.  It is also the maximum amount of time we wait to get the whole HTTP request.";
+    gnet_property->props[31].prop_changed_listeners = NULL;
+    gnet_property->props[31].save = TRUE;
+    gnet_property->props[31].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[27].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[27].data.guint32.def   = &upload_connecting_timeout_def;
-    gnet_property->props[27].data.guint32.value = &upload_connecting_timeout;
-    gnet_property->props[27].data.guint32.max   = 100000;
-    gnet_property->props[27].data.guint32.min   = 1;
+    gnet_property->props[31].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[31].data.guint32.def   = &upload_connecting_timeout_def;
+    gnet_property->props[31].data.guint32.value = &upload_connecting_timeout;
+    gnet_property->props[31].data.guint32.max   = 100000;
+    gnet_property->props[31].data.guint32.min   = 1;
 
 
     /*
@@ -802,18 +898,18 @@ prop_set_t *gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[28].name = "upload_connected_timeout";
-    gnet_property->props[28].desc = "Number of seconds after which an upload times out if no data is transmitted";
-    gnet_property->props[28].prop_changed_listeners = NULL;
-    gnet_property->props[28].save = TRUE;
-    gnet_property->props[28].vector_size = 1;
+    gnet_property->props[32].name = "upload_connected_timeout";
+    gnet_property->props[32].desc = "Number of seconds after which an upload times out if no data is transmitted";
+    gnet_property->props[32].prop_changed_listeners = NULL;
+    gnet_property->props[32].save = TRUE;
+    gnet_property->props[32].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[28].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[28].data.guint32.def   = &upload_connected_timeout_def;
-    gnet_property->props[28].data.guint32.value = &upload_connected_timeout;
-    gnet_property->props[28].data.guint32.max   = 100000;
-    gnet_property->props[28].data.guint32.min   = 1;
+    gnet_property->props[32].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[32].data.guint32.def   = &upload_connected_timeout_def;
+    gnet_property->props[32].data.guint32.value = &upload_connected_timeout;
+    gnet_property->props[32].data.guint32.max   = 100000;
+    gnet_property->props[32].data.guint32.min   = 1;
 
 
     /*
@@ -821,18 +917,18 @@ prop_set_t *gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[29].name = "search_reissue_timeout";
-    gnet_property->props[29].desc = "Ammount of seconds to wait before a search is issued again to see if new results are available.  Be very careful with that parameter, and do not set it too low or you will damage the Gnutella network.  A delay of half an hour is fine.";
-    gnet_property->props[29].prop_changed_listeners = NULL;
-    gnet_property->props[29].save = TRUE;
-    gnet_property->props[29].vector_size = 1;
+    gnet_property->props[33].name = "search_reissue_timeout";
+    gnet_property->props[33].desc = "Ammount of seconds to wait before a search is issued again to see if new results are available.  Be very careful with that parameter, and do not set it too low or you will damage the Gnutella network.  A delay of half an hour is fine.";
+    gnet_property->props[33].prop_changed_listeners = NULL;
+    gnet_property->props[33].save = TRUE;
+    gnet_property->props[33].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[29].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[29].data.guint32.def   = &search_reissue_timeout_def;
-    gnet_property->props[29].data.guint32.value = &search_reissue_timeout;
-    gnet_property->props[29].data.guint32.max   = 9999;
-    gnet_property->props[29].data.guint32.min   = 600;
+    gnet_property->props[33].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[33].data.guint32.def   = &search_reissue_timeout_def;
+    gnet_property->props[33].data.guint32.value = &search_reissue_timeout;
+    gnet_property->props[33].data.guint32.max   = 9999;
+    gnet_property->props[33].data.guint32.min   = 600;
 
 
     /*
@@ -840,18 +936,18 @@ prop_set_t *gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[30].name = "ban_ratio_fds";
-    gnet_property->props[30].desc = "Maximum ratio of file descriptors reserved for banning. For instance, if your OS gives your 350 file descriptors, a ratio of 10 will reserve at most 35 file descriptors.  You should ensure you have around 100 file descriptors for efficient banning.";
-    gnet_property->props[30].prop_changed_listeners = NULL;
-    gnet_property->props[30].save = TRUE;
-    gnet_property->props[30].vector_size = 1;
+    gnet_property->props[34].name = "ban_ratio_fds";
+    gnet_property->props[34].desc = "Maximum ratio of file descriptors reserved for banning. For instance, if your OS gives your 350 file descriptors, a ratio of 10 will reserve at most 35 file descriptors.  You should ensure you have around 100 file descriptors for efficient banning.";
+    gnet_property->props[34].prop_changed_listeners = NULL;
+    gnet_property->props[34].save = TRUE;
+    gnet_property->props[34].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[30].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[30].data.guint32.def   = &ban_ratio_fds_def;
-    gnet_property->props[30].data.guint32.value = &ban_ratio_fds;
-    gnet_property->props[30].data.guint32.max   = 100;
-    gnet_property->props[30].data.guint32.min   = 0;
+    gnet_property->props[34].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[34].data.guint32.def   = &ban_ratio_fds_def;
+    gnet_property->props[34].data.guint32.value = &ban_ratio_fds;
+    gnet_property->props[34].data.guint32.max   = 100;
+    gnet_property->props[34].data.guint32.min   = 0;
 
 
     /*
@@ -859,18 +955,18 @@ prop_set_t *gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[31].name = "ban_max_fds";
-    gnet_property->props[31].desc = "Maximum number of file descriptors reserved for banning";
-    gnet_property->props[31].prop_changed_listeners = NULL;
-    gnet_property->props[31].save = TRUE;
-    gnet_property->props[31].vector_size = 1;
+    gnet_property->props[35].name = "ban_max_fds";
+    gnet_property->props[35].desc = "Maximum number of file descriptors reserved for banning";
+    gnet_property->props[35].prop_changed_listeners = NULL;
+    gnet_property->props[35].save = TRUE;
+    gnet_property->props[35].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[31].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[31].data.guint32.def   = &ban_max_fds_def;
-    gnet_property->props[31].data.guint32.value = &ban_max_fds;
-    gnet_property->props[31].data.guint32.max   = 10000;
-    gnet_property->props[31].data.guint32.min   = 0;
+    gnet_property->props[35].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[35].data.guint32.def   = &ban_max_fds_def;
+    gnet_property->props[35].data.guint32.value = &ban_max_fds;
+    gnet_property->props[35].data.guint32.max   = 10000;
+    gnet_property->props[35].data.guint32.min   = 0;
 
 
     /*
@@ -878,18 +974,18 @@ prop_set_t *gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[32].name = "incoming_connecting_timeout";
-    gnet_property->props[32].desc = "Number of seconds an incoming connection has to start sending out its request";
-    gnet_property->props[32].prop_changed_listeners = NULL;
-    gnet_property->props[32].save = TRUE;
-    gnet_property->props[32].vector_size = 1;
+    gnet_property->props[36].name = "incoming_connecting_timeout";
+    gnet_property->props[36].desc = "Number of seconds an incoming connection has to start sending out its request";
+    gnet_property->props[36].prop_changed_listeners = NULL;
+    gnet_property->props[36].save = TRUE;
+    gnet_property->props[36].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[32].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[32].data.guint32.def   = &incoming_connecting_timeout_def;
-    gnet_property->props[32].data.guint32.value = &incoming_connecting_timeout;
-    gnet_property->props[32].data.guint32.max   = 300;
-    gnet_property->props[32].data.guint32.min   = 5;
+    gnet_property->props[36].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[36].data.guint32.def   = &incoming_connecting_timeout_def;
+    gnet_property->props[36].data.guint32.value = &incoming_connecting_timeout;
+    gnet_property->props[36].data.guint32.max   = 300;
+    gnet_property->props[36].data.guint32.min   = 5;
 
 
     /*
@@ -897,18 +993,18 @@ prop_set_t *gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[33].name = "node_connecting_timeout";
-    gnet_property->props[33].desc = "Number of seconds before a Gnet connect attempt times out if no connection can be established";
-    gnet_property->props[33].prop_changed_listeners = NULL;
-    gnet_property->props[33].save = TRUE;
-    gnet_property->props[33].vector_size = 1;
+    gnet_property->props[37].name = "node_connecting_timeout";
+    gnet_property->props[37].desc = "Number of seconds before a Gnet connect attempt times out if no connection can be established";
+    gnet_property->props[37].prop_changed_listeners = NULL;
+    gnet_property->props[37].save = TRUE;
+    gnet_property->props[37].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[33].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[33].data.guint32.def   = &node_connecting_timeout_def;
-    gnet_property->props[33].data.guint32.value = &node_connecting_timeout;
-    gnet_property->props[33].data.guint32.max   = 100000;
-    gnet_property->props[33].data.guint32.min   = 1;
+    gnet_property->props[37].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[37].data.guint32.def   = &node_connecting_timeout_def;
+    gnet_property->props[37].data.guint32.value = &node_connecting_timeout;
+    gnet_property->props[37].data.guint32.max   = 100000;
+    gnet_property->props[37].data.guint32.min   = 1;
 
 
     /*
@@ -916,18 +1012,18 @@ prop_set_t *gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[34].name = "node_connected_timeout";
-    gnet_property->props[34].desc = "Number of seconds before a Gnet connection times out if no data is transmitted";
-    gnet_property->props[34].prop_changed_listeners = NULL;
-    gnet_property->props[34].save = TRUE;
-    gnet_property->props[34].vector_size = 1;
+    gnet_property->props[38].name = "node_connected_timeout";
+    gnet_property->props[38].desc = "Number of seconds before a Gnet connection times out if no data is transmitted";
+    gnet_property->props[38].prop_changed_listeners = NULL;
+    gnet_property->props[38].save = TRUE;
+    gnet_property->props[38].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[34].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[34].data.guint32.def   = &node_connected_timeout_def;
-    gnet_property->props[34].data.guint32.value = &node_connected_timeout;
-    gnet_property->props[34].data.guint32.max   = 100000;
-    gnet_property->props[34].data.guint32.min   = 1;
+    gnet_property->props[38].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[38].data.guint32.def   = &node_connected_timeout_def;
+    gnet_property->props[38].data.guint32.value = &node_connected_timeout;
+    gnet_property->props[38].data.guint32.max   = 100000;
+    gnet_property->props[38].data.guint32.min   = 1;
 
 
     /*
@@ -935,18 +1031,18 @@ prop_set_t *gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[35].name = "node_sendqueue_size";
-    gnet_property->props[35].desc = "Maximum size of the sendqueue for the nodes (in bytes). Must be at lest 150% of the maximum message size";
-    gnet_property->props[35].prop_changed_listeners = NULL;
-    gnet_property->props[35].save = TRUE;
-    gnet_property->props[35].vector_size = 1;
+    gnet_property->props[39].name = "node_sendqueue_size";
+    gnet_property->props[39].desc = "Maximum size of the sendqueue for the nodes (in bytes). Must be at lest 150% of the maximum message size";
+    gnet_property->props[39].prop_changed_listeners = NULL;
+    gnet_property->props[39].save = TRUE;
+    gnet_property->props[39].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[35].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[35].data.guint32.def   = &node_sendqueue_size_def;
-    gnet_property->props[35].data.guint32.value = &node_sendqueue_size;
-    gnet_property->props[35].data.guint32.max   = 256000;
-    gnet_property->props[35].data.guint32.min   = 98305;
+    gnet_property->props[39].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[39].data.guint32.def   = &node_sendqueue_size_def;
+    gnet_property->props[39].data.guint32.value = &node_sendqueue_size;
+    gnet_property->props[39].data.guint32.max   = 256000;
+    gnet_property->props[39].data.guint32.min   = 98305;
 
 
     /*
@@ -954,18 +1050,18 @@ prop_set_t *gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[36].name = "node_tx_flowc_timeout";
-    gnet_property->props[36].desc = "Maximum number of seconds a node can remain in transmit flow control before being kicked out.";
-    gnet_property->props[36].prop_changed_listeners = NULL;
-    gnet_property->props[36].save = TRUE;
-    gnet_property->props[36].vector_size = 1;
+    gnet_property->props[40].name = "node_tx_flowc_timeout";
+    gnet_property->props[40].desc = "Maximum number of seconds a node can remain in transmit flow control before being kicked out.";
+    gnet_property->props[40].prop_changed_listeners = NULL;
+    gnet_property->props[40].save = TRUE;
+    gnet_property->props[40].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[36].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[36].data.guint32.def   = &node_tx_flowc_timeout_def;
-    gnet_property->props[36].data.guint32.value = &node_tx_flowc_timeout;
-    gnet_property->props[36].data.guint32.max   = 100000;
-    gnet_property->props[36].data.guint32.min   = 5;
+    gnet_property->props[40].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[40].data.guint32.def   = &node_tx_flowc_timeout_def;
+    gnet_property->props[40].data.guint32.value = &node_tx_flowc_timeout;
+    gnet_property->props[40].data.guint32.max   = 100000;
+    gnet_property->props[40].data.guint32.min   = 5;
 
 
     /*
@@ -973,18 +1069,18 @@ prop_set_t *gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[37].name = "max_ttl";
-    gnet_property->props[37].desc = "Maximum TTL we allow in messages we broadcast.  If a message comes in with a TTL greater than that, it will be trimmed down to that value.  On Gnutella, the standard is TTL=7, so you cannot set a value lower than that.";
-    gnet_property->props[37].prop_changed_listeners = NULL;
-    gnet_property->props[37].save = TRUE;
-    gnet_property->props[37].vector_size = 1;
+    gnet_property->props[41].name = "max_ttl";
+    gnet_property->props[41].desc = "Maximum TTL we allow in messages we broadcast.  If a message comes in with a TTL greater than that, it will be trimmed down to that value.  On Gnutella, the standard is TTL=7, so you cannot set a value lower than that.";
+    gnet_property->props[41].prop_changed_listeners = NULL;
+    gnet_property->props[41].save = TRUE;
+    gnet_property->props[41].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[37].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[37].data.guint32.def   = &max_ttl_def;
-    gnet_property->props[37].data.guint32.value = &max_ttl;
-    gnet_property->props[37].data.guint32.max   = 20;
-    gnet_property->props[37].data.guint32.min   = 7;
+    gnet_property->props[41].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[41].data.guint32.def   = &max_ttl_def;
+    gnet_property->props[41].data.guint32.value = &max_ttl;
+    gnet_property->props[41].data.guint32.max   = 20;
+    gnet_property->props[41].data.guint32.min   = 7;
 
 
     /*
@@ -992,18 +1088,18 @@ prop_set_t *gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[38].name = "my_ttl";
-    gnet_property->props[38].desc = "The TTL we use in messages we generate.  The default on Gnutella is TTL=7.  If you set it to too large a value, you run the risk of being trimmed down by fellow gtk-gnutella nodes, or kicked out by some other servent.";
-    gnet_property->props[38].prop_changed_listeners = NULL;
-    gnet_property->props[38].save = TRUE;
-    gnet_property->props[38].vector_size = 1;
+    gnet_property->props[42].name = "my_ttl";
+    gnet_property->props[42].desc = "The TTL we use in messages we generate.  The default on Gnutella is TTL=7.  If you set it to too large a value, you run the risk of being trimmed down by fellow gtk-gnutella nodes, or kicked out by some other servent.";
+    gnet_property->props[42].prop_changed_listeners = NULL;
+    gnet_property->props[42].save = TRUE;
+    gnet_property->props[42].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[38].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[38].data.guint32.def   = &my_ttl_def;
-    gnet_property->props[38].data.guint32.value = &my_ttl;
-    gnet_property->props[38].data.guint32.max   = 15;
-    gnet_property->props[38].data.guint32.min   = 1;
+    gnet_property->props[42].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[42].data.guint32.def   = &my_ttl_def;
+    gnet_property->props[42].data.guint32.value = &my_ttl;
+    gnet_property->props[42].data.guint32.max   = 15;
+    gnet_property->props[42].data.guint32.min   = 1;
 
 
     /*
@@ -1011,18 +1107,18 @@ prop_set_t *gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[39].name = "hard_ttl_limit";
-    gnet_property->props[39].desc = "Maximum hard TTL limit (hops + TTL) on messages we relay.  This should be greater than the standard TTL=7, because it also applied to routed-back messages (query hits) that could be re-routed in case a connection is lost.  Standard broadcasted messages have their TTL limited by the maximum TTL you configure, and that limit should be much lower than the value of this parameter.";
-    gnet_property->props[39].prop_changed_listeners = NULL;
-    gnet_property->props[39].save = TRUE;
-    gnet_property->props[39].vector_size = 1;
+    gnet_property->props[43].name = "hard_ttl_limit";
+    gnet_property->props[43].desc = "Maximum hard TTL limit (hops + TTL) on messages we relay.  This should be greater than the standard TTL=7, because it also applied to routed-back messages (query hits) that could be re-routed in case a connection is lost.  Standard broadcasted messages have their TTL limited by the maximum TTL you configure, and that limit should be much lower than the value of this parameter.";
+    gnet_property->props[43].prop_changed_listeners = NULL;
+    gnet_property->props[43].save = TRUE;
+    gnet_property->props[43].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[39].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[39].data.guint32.def   = &hard_ttl_limit_def;
-    gnet_property->props[39].data.guint32.value = &hard_ttl_limit;
-    gnet_property->props[39].data.guint32.max   = 25;
-    gnet_property->props[39].data.guint32.min   = 9;
+    gnet_property->props[43].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[43].data.guint32.def   = &hard_ttl_limit_def;
+    gnet_property->props[43].data.guint32.value = &hard_ttl_limit;
+    gnet_property->props[43].data.guint32.max   = 25;
+    gnet_property->props[43].data.guint32.min   = 9;
 
 
     /*
@@ -1030,18 +1126,18 @@ prop_set_t *gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[40].name = "dbg";
-    gnet_property->props[40].desc = "For development use: debug level";
-    gnet_property->props[40].prop_changed_listeners = NULL;
-    gnet_property->props[40].save = TRUE;
-    gnet_property->props[40].vector_size = 1;
+    gnet_property->props[44].name = "dbg";
+    gnet_property->props[44].desc = "For development use: debug level";
+    gnet_property->props[44].prop_changed_listeners = NULL;
+    gnet_property->props[44].save = TRUE;
+    gnet_property->props[44].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[40].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[40].data.guint32.def   = &dbg_def;
-    gnet_property->props[40].data.guint32.value = &dbg;
-    gnet_property->props[40].data.guint32.max   = 20;
-    gnet_property->props[40].data.guint32.min   = 0;
+    gnet_property->props[44].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[44].data.guint32.def   = &dbg_def;
+    gnet_property->props[44].data.guint32.value = &dbg;
+    gnet_property->props[44].data.guint32.max   = 20;
+    gnet_property->props[44].data.guint32.min   = 0;
 
 
     /*
@@ -1049,16 +1145,16 @@ prop_set_t *gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[41].name = "stop_host_get";
-    gnet_property->props[41].desc = "For development use: don't add new hosts to the hostcatcher";
-    gnet_property->props[41].prop_changed_listeners = NULL;
-    gnet_property->props[41].save = TRUE;
-    gnet_property->props[41].vector_size = 1;
+    gnet_property->props[45].name = "stop_host_get";
+    gnet_property->props[45].desc = "For development use: don't add new hosts to the hostcatcher";
+    gnet_property->props[45].prop_changed_listeners = NULL;
+    gnet_property->props[45].save = TRUE;
+    gnet_property->props[45].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[41].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[41].data.boolean.def   = &stop_host_get_def;
-    gnet_property->props[41].data.boolean.value = &stop_host_get;
+    gnet_property->props[45].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[45].data.boolean.def   = &stop_host_get_def;
+    gnet_property->props[45].data.boolean.value = &stop_host_get;
 
 
     /*
@@ -1066,16 +1162,16 @@ prop_set_t *gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[42].name = "bandwidth_input_limit";
-    gnet_property->props[42].desc = "Enable bandwidth limitation for incoming HTTP traffic";
-    gnet_property->props[42].prop_changed_listeners = NULL;
-    gnet_property->props[42].save = TRUE;
-    gnet_property->props[42].vector_size = 1;
+    gnet_property->props[46].name = "bandwidth_input_limit";
+    gnet_property->props[46].desc = "Enable bandwidth limitation for incoming HTTP traffic";
+    gnet_property->props[46].prop_changed_listeners = NULL;
+    gnet_property->props[46].save = TRUE;
+    gnet_property->props[46].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[42].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[42].data.boolean.def   = &bws_in_enabled_def;
-    gnet_property->props[42].data.boolean.value = &bws_in_enabled;
+    gnet_property->props[46].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[46].data.boolean.def   = &bws_in_enabled_def;
+    gnet_property->props[46].data.boolean.value = &bws_in_enabled;
 
 
     /*
@@ -1083,16 +1179,16 @@ prop_set_t *gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[43].name = "bandwidth_output_limit";
-    gnet_property->props[43].desc = "Enable bandwidth limitation for outgoing HTTP traffic";
-    gnet_property->props[43].prop_changed_listeners = NULL;
-    gnet_property->props[43].save = TRUE;
-    gnet_property->props[43].vector_size = 1;
+    gnet_property->props[47].name = "bandwidth_output_limit";
+    gnet_property->props[47].desc = "Enable bandwidth limitation for outgoing HTTP traffic";
+    gnet_property->props[47].prop_changed_listeners = NULL;
+    gnet_property->props[47].save = TRUE;
+    gnet_property->props[47].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[43].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[43].data.boolean.def   = &bws_out_enabled_def;
-    gnet_property->props[43].data.boolean.value = &bws_out_enabled;
+    gnet_property->props[47].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[47].data.boolean.def   = &bws_out_enabled_def;
+    gnet_property->props[47].data.boolean.value = &bws_out_enabled;
 
 
     /*
@@ -1100,16 +1196,16 @@ prop_set_t *gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[44].name = "bandwidth_ginput_limit";
-    gnet_property->props[44].desc = "Enable bandwidth limitation for incoming Gnet traffic";
-    gnet_property->props[44].prop_changed_listeners = NULL;
-    gnet_property->props[44].save = TRUE;
-    gnet_property->props[44].vector_size = 1;
+    gnet_property->props[48].name = "bandwidth_ginput_limit";
+    gnet_property->props[48].desc = "Enable bandwidth limitation for incoming Gnet traffic";
+    gnet_property->props[48].prop_changed_listeners = NULL;
+    gnet_property->props[48].save = TRUE;
+    gnet_property->props[48].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[44].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[44].data.boolean.def   = &bws_gin_enabled_def;
-    gnet_property->props[44].data.boolean.value = &bws_gin_enabled;
+    gnet_property->props[48].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[48].data.boolean.def   = &bws_gin_enabled_def;
+    gnet_property->props[48].data.boolean.value = &bws_gin_enabled;
 
 
     /*
@@ -1117,16 +1213,16 @@ prop_set_t *gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[45].name = "bandwidth_goutput_limit";
-    gnet_property->props[45].desc = "Enable bandwidth limitation for outgoing Gnet traffic";
-    gnet_property->props[45].prop_changed_listeners = NULL;
-    gnet_property->props[45].save = TRUE;
-    gnet_property->props[45].vector_size = 1;
+    gnet_property->props[49].name = "bandwidth_goutput_limit";
+    gnet_property->props[49].desc = "Enable bandwidth limitation for outgoing Gnet traffic";
+    gnet_property->props[49].prop_changed_listeners = NULL;
+    gnet_property->props[49].save = TRUE;
+    gnet_property->props[49].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[45].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[45].data.boolean.def   = &bws_gout_enabled_def;
-    gnet_property->props[45].data.boolean.value = &bws_gout_enabled;
+    gnet_property->props[49].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[49].data.boolean.def   = &bws_gout_enabled_def;
+    gnet_property->props[49].data.boolean.value = &bws_gout_enabled;
 
 
     /*
@@ -1134,16 +1230,16 @@ prop_set_t *gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[46].name = "upload_bandwith_usage_enabled";
-    gnet_property->props[46].desc = "Enable dynamic upload slots allocation";
-    gnet_property->props[46].prop_changed_listeners = NULL;
-    gnet_property->props[46].save = TRUE;
-    gnet_property->props[46].vector_size = 1;
+    gnet_property->props[50].name = "upload_bandwith_usage_enabled";
+    gnet_property->props[50].desc = "Enable dynamic upload slots allocation";
+    gnet_property->props[50].prop_changed_listeners = NULL;
+    gnet_property->props[50].save = TRUE;
+    gnet_property->props[50].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[46].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[46].data.boolean.def   = &bw_ul_usage_enabled_def;
-    gnet_property->props[46].data.boolean.value = &bw_ul_usage_enabled;
+    gnet_property->props[50].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[50].data.boolean.def   = &bw_ul_usage_enabled_def;
+    gnet_property->props[50].data.boolean.value = &bw_ul_usage_enabled;
 
 
     /*
@@ -1151,16 +1247,16 @@ prop_set_t *gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[47].name = "auto_clear_completed_downloads";
-    gnet_property->props[47].desc = "Auto clear completed downloads";
-    gnet_property->props[47].prop_changed_listeners = NULL;
-    gnet_property->props[47].save = TRUE;
-    gnet_property->props[47].vector_size = 1;
+    gnet_property->props[51].name = "auto_clear_completed_downloads";
+    gnet_property->props[51].desc = "Auto clear completed downloads";
+    gnet_property->props[51].prop_changed_listeners = NULL;
+    gnet_property->props[51].save = TRUE;
+    gnet_property->props[51].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[47].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[47].data.boolean.def   = &clear_downloads_def;
-    gnet_property->props[47].data.boolean.value = &clear_downloads;
+    gnet_property->props[51].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[51].data.boolean.def   = &clear_downloads_def;
+    gnet_property->props[51].data.boolean.value = &clear_downloads;
 
 
     /*
@@ -1168,16 +1264,16 @@ prop_set_t *gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[48].name = "search_remove_downloaded";
-    gnet_property->props[48].desc = "Remove downloaded files from the search result";
-    gnet_property->props[48].prop_changed_listeners = NULL;
-    gnet_property->props[48].save = TRUE;
-    gnet_property->props[48].vector_size = 1;
+    gnet_property->props[52].name = "search_remove_downloaded";
+    gnet_property->props[52].desc = "Remove downloaded files from the search result";
+    gnet_property->props[52].prop_changed_listeners = NULL;
+    gnet_property->props[52].save = TRUE;
+    gnet_property->props[52].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[48].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[48].data.boolean.def   = &search_remove_downloaded_def;
-    gnet_property->props[48].data.boolean.value = &search_remove_downloaded;
+    gnet_property->props[52].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[52].data.boolean.def   = &search_remove_downloaded_def;
+    gnet_property->props[52].data.boolean.value = &search_remove_downloaded;
 
 
     /*
@@ -1185,16 +1281,16 @@ prop_set_t *gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[49].name = "force_local_ip";
-    gnet_property->props[49].desc = "Enable to use [forced_local_ip] as local ip";
-    gnet_property->props[49].prop_changed_listeners = NULL;
-    gnet_property->props[49].save = TRUE;
-    gnet_property->props[49].vector_size = 1;
+    gnet_property->props[53].name = "force_local_ip";
+    gnet_property->props[53].desc = "Enable to use [forced_local_ip] as local ip";
+    gnet_property->props[53].prop_changed_listeners = NULL;
+    gnet_property->props[53].save = TRUE;
+    gnet_property->props[53].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[49].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[49].data.boolean.def   = &force_local_ip_def;
-    gnet_property->props[49].data.boolean.value = &force_local_ip;
+    gnet_property->props[53].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[53].data.boolean.def   = &force_local_ip_def;
+    gnet_property->props[53].data.boolean.value = &force_local_ip;
 
 
     /*
@@ -1202,16 +1298,16 @@ prop_set_t *gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[50].name = "use_netmasks";
-    gnet_property->props[50].desc = "Try to connect to local networks first";
-    gnet_property->props[50].prop_changed_listeners = NULL;
-    gnet_property->props[50].save = TRUE;
-    gnet_property->props[50].vector_size = 1;
+    gnet_property->props[54].name = "use_netmasks";
+    gnet_property->props[54].desc = "Try to connect to local networks first";
+    gnet_property->props[54].prop_changed_listeners = NULL;
+    gnet_property->props[54].save = TRUE;
+    gnet_property->props[54].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[50].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[50].data.boolean.def   = &use_netmasks_def;
-    gnet_property->props[50].data.boolean.value = &use_netmasks;
+    gnet_property->props[54].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[54].data.boolean.def   = &use_netmasks_def;
+    gnet_property->props[54].data.boolean.value = &use_netmasks;
 
 
     /*
@@ -1219,16 +1315,16 @@ prop_set_t *gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[51].name = "download_delete_aborted";
-    gnet_property->props[51].desc = "Remove files of aborted downloads from disk";
-    gnet_property->props[51].prop_changed_listeners = NULL;
-    gnet_property->props[51].save = TRUE;
-    gnet_property->props[51].vector_size = 1;
+    gnet_property->props[55].name = "download_delete_aborted";
+    gnet_property->props[55].desc = "Remove files of aborted downloads from disk";
+    gnet_property->props[55].prop_changed_listeners = NULL;
+    gnet_property->props[55].save = TRUE;
+    gnet_property->props[55].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[51].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[51].data.boolean.def   = &download_delete_aborted_def;
-    gnet_property->props[51].data.boolean.value = &download_delete_aborted;
+    gnet_property->props[55].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[55].data.boolean.def   = &download_delete_aborted_def;
+    gnet_property->props[55].data.boolean.value = &download_delete_aborted;
 
 
     /*
@@ -1236,16 +1332,16 @@ prop_set_t *gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[52].name = "proxy_connections";
-    gnet_property->props[52].desc = "Use a proxy to connect to the internet";
-    gnet_property->props[52].prop_changed_listeners = NULL;
-    gnet_property->props[52].save = TRUE;
-    gnet_property->props[52].vector_size = 1;
+    gnet_property->props[56].name = "proxy_connections";
+    gnet_property->props[56].desc = "Use a proxy to connect to the internet";
+    gnet_property->props[56].prop_changed_listeners = NULL;
+    gnet_property->props[56].save = TRUE;
+    gnet_property->props[56].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[52].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[52].data.boolean.def   = &proxy_connections_def;
-    gnet_property->props[52].data.boolean.value = &proxy_connections;
+    gnet_property->props[56].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[56].data.boolean.def   = &proxy_connections_def;
+    gnet_property->props[56].data.boolean.value = &proxy_connections;
 
 
     /*
@@ -1253,16 +1349,16 @@ prop_set_t *gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[53].name = "proxy_auth";
-    gnet_property->props[53].desc = "Use username and password to authenticate to proxy";
-    gnet_property->props[53].prop_changed_listeners = NULL;
-    gnet_property->props[53].save = TRUE;
-    gnet_property->props[53].vector_size = 1;
+    gnet_property->props[57].name = "proxy_auth";
+    gnet_property->props[57].desc = "Use username and password to authenticate to proxy";
+    gnet_property->props[57].prop_changed_listeners = NULL;
+    gnet_property->props[57].save = TRUE;
+    gnet_property->props[57].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[53].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[53].data.boolean.def   = &proxy_auth_def;
-    gnet_property->props[53].data.boolean.value = &proxy_auth;
+    gnet_property->props[57].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[57].data.boolean.def   = &proxy_auth_def;
+    gnet_property->props[57].data.boolean.value = &proxy_auth;
 
 
     /*
@@ -1270,19 +1366,19 @@ prop_set_t *gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[54].name = "socks_user";
-    gnet_property->props[54].desc = "Username for proxy";
-    gnet_property->props[54].prop_changed_listeners = NULL;
-    gnet_property->props[54].save = TRUE;
-    gnet_property->props[54].vector_size = 1;
+    gnet_property->props[58].name = "socks_user";
+    gnet_property->props[58].desc = "Username for proxy";
+    gnet_property->props[58].prop_changed_listeners = NULL;
+    gnet_property->props[58].save = TRUE;
+    gnet_property->props[58].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[54].type               = PROP_TYPE_STRING;
-    gnet_property->props[54].data.string.def    = &socks_user_def;
-    gnet_property->props[54].data.string.value  = &socks_user;
-    if (gnet_property->props[54].data.string.def) {
-        *gnet_property->props[54].data.string.value =
-            g_strdup(*gnet_property->props[54].data.string.def);
+    gnet_property->props[58].type               = PROP_TYPE_STRING;
+    gnet_property->props[58].data.string.def    = &socks_user_def;
+    gnet_property->props[58].data.string.value  = &socks_user;
+    if (gnet_property->props[58].data.string.def) {
+        *gnet_property->props[58].data.string.value =
+            g_strdup(*gnet_property->props[58].data.string.def);
     }
 
 
@@ -1291,19 +1387,19 @@ prop_set_t *gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[55].name = "socks_pass";
-    gnet_property->props[55].desc = "Password for proxy";
-    gnet_property->props[55].prop_changed_listeners = NULL;
-    gnet_property->props[55].save = TRUE;
-    gnet_property->props[55].vector_size = 1;
+    gnet_property->props[59].name = "socks_pass";
+    gnet_property->props[59].desc = "Password for proxy";
+    gnet_property->props[59].prop_changed_listeners = NULL;
+    gnet_property->props[59].save = TRUE;
+    gnet_property->props[59].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[55].type               = PROP_TYPE_STRING;
-    gnet_property->props[55].data.string.def    = &socks_pass_def;
-    gnet_property->props[55].data.string.value  = &socks_pass;
-    if (gnet_property->props[55].data.string.def) {
-        *gnet_property->props[55].data.string.value =
-            g_strdup(*gnet_property->props[55].data.string.def);
+    gnet_property->props[59].type               = PROP_TYPE_STRING;
+    gnet_property->props[59].data.string.def    = &socks_pass_def;
+    gnet_property->props[59].data.string.value  = &socks_pass;
+    if (gnet_property->props[59].data.string.def) {
+        *gnet_property->props[59].data.string.value =
+            g_strdup(*gnet_property->props[59].data.string.def);
     }
 
 
@@ -1312,18 +1408,18 @@ prop_set_t *gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[56].name = "proxy_ip";
-    gnet_property->props[56].desc = "IP address of the proxy";
-    gnet_property->props[56].prop_changed_listeners = NULL;
-    gnet_property->props[56].save = TRUE;
-    gnet_property->props[56].vector_size = 1;
+    gnet_property->props[60].name = "proxy_ip";
+    gnet_property->props[60].desc = "IP address of the proxy";
+    gnet_property->props[60].prop_changed_listeners = NULL;
+    gnet_property->props[60].save = TRUE;
+    gnet_property->props[60].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[56].type               = PROP_TYPE_IP;
-    gnet_property->props[56].data.guint32.def   = &proxy_ip_def;
-    gnet_property->props[56].data.guint32.value = &proxy_ip;
-    gnet_property->props[56].data.guint32.max   = 0xFFFFFFFF;
-    gnet_property->props[56].data.guint32.min   = 0x00000000;
+    gnet_property->props[60].type               = PROP_TYPE_IP;
+    gnet_property->props[60].data.guint32.def   = &proxy_ip_def;
+    gnet_property->props[60].data.guint32.value = &proxy_ip;
+    gnet_property->props[60].data.guint32.max   = 0xFFFFFFFF;
+    gnet_property->props[60].data.guint32.min   = 0x00000000;
 
 
     /*
@@ -1331,18 +1427,18 @@ prop_set_t *gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[57].name = "proxy_port";
-    gnet_property->props[57].desc = "Port the proxy is listening on";
-    gnet_property->props[57].prop_changed_listeners = NULL;
-    gnet_property->props[57].save = TRUE;
-    gnet_property->props[57].vector_size = 1;
+    gnet_property->props[61].name = "proxy_port";
+    gnet_property->props[61].desc = "Port the proxy is listening on";
+    gnet_property->props[61].prop_changed_listeners = NULL;
+    gnet_property->props[61].save = TRUE;
+    gnet_property->props[61].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[57].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[57].data.guint32.def   = &proxy_port_def;
-    gnet_property->props[57].data.guint32.value = &proxy_port;
-    gnet_property->props[57].data.guint32.max   = 0xFFFF;
-    gnet_property->props[57].data.guint32.min   = 0x0000;
+    gnet_property->props[61].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[61].data.guint32.def   = &proxy_port_def;
+    gnet_property->props[61].data.guint32.value = &proxy_port;
+    gnet_property->props[61].data.guint32.max   = 0xFFFF;
+    gnet_property->props[61].data.guint32.min   = 0x0000;
 
 
     /*
@@ -1350,18 +1446,18 @@ prop_set_t *gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[58].name = "proxy_protocol";
-    gnet_property->props[58].desc = "Protocol the proxy uses";
-    gnet_property->props[58].prop_changed_listeners = NULL;
-    gnet_property->props[58].save = TRUE;
-    gnet_property->props[58].vector_size = 1;
+    gnet_property->props[62].name = "proxy_protocol";
+    gnet_property->props[62].desc = "Protocol the proxy uses";
+    gnet_property->props[62].prop_changed_listeners = NULL;
+    gnet_property->props[62].save = TRUE;
+    gnet_property->props[62].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[58].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[58].data.guint32.def   = &proxy_protocol_def;
-    gnet_property->props[58].data.guint32.value = &proxy_protocol;
-    gnet_property->props[58].data.guint32.max   = 0x5;
-    gnet_property->props[58].data.guint32.min   = 0x1;
+    gnet_property->props[62].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[62].data.guint32.def   = &proxy_protocol_def;
+    gnet_property->props[62].data.guint32.value = &proxy_protocol;
+    gnet_property->props[62].data.guint32.max   = 0x5;
+    gnet_property->props[62].data.guint32.min   = 0x1;
 
 
     /*
@@ -1369,18 +1465,18 @@ prop_set_t *gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[59].name = "max_hosts_cached";
-    gnet_property->props[59].desc = "Maximum number of hosts in the regular node catcher";
-    gnet_property->props[59].prop_changed_listeners = NULL;
-    gnet_property->props[59].save = TRUE;
-    gnet_property->props[59].vector_size = 1;
+    gnet_property->props[63].name = "max_hosts_cached";
+    gnet_property->props[63].desc = "Maximum number of hosts in the regular node catcher";
+    gnet_property->props[63].prop_changed_listeners = NULL;
+    gnet_property->props[63].save = TRUE;
+    gnet_property->props[63].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[59].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[59].data.guint32.def   = &max_hosts_cached_def;
-    gnet_property->props[59].data.guint32.value = &max_hosts_cached;
-    gnet_property->props[59].data.guint32.max   = 100000;
-    gnet_property->props[59].data.guint32.min   = 100;
+    gnet_property->props[63].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[63].data.guint32.def   = &max_hosts_cached_def;
+    gnet_property->props[63].data.guint32.value = &max_hosts_cached;
+    gnet_property->props[63].data.guint32.max   = 100000;
+    gnet_property->props[63].data.guint32.min   = 100;
 
 
     /*
@@ -1388,18 +1484,18 @@ prop_set_t *gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[60].name = "hosts_in_catcher";
-    gnet_property->props[60].desc = "Current number of hosts in regular node catcher";
-    gnet_property->props[60].prop_changed_listeners = NULL;
-    gnet_property->props[60].save = FALSE;
-    gnet_property->props[60].vector_size = 1;
+    gnet_property->props[64].name = "hosts_in_catcher";
+    gnet_property->props[64].desc = "Current number of hosts in regular node catcher";
+    gnet_property->props[64].prop_changed_listeners = NULL;
+    gnet_property->props[64].save = FALSE;
+    gnet_property->props[64].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[60].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[60].data.guint32.def   = &hosts_in_catcher_def;
-    gnet_property->props[60].data.guint32.value = &hosts_in_catcher;
-    gnet_property->props[60].data.guint32.max   = 100000;
-    gnet_property->props[60].data.guint32.min   = 0;
+    gnet_property->props[64].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[64].data.guint32.def   = &hosts_in_catcher_def;
+    gnet_property->props[64].data.guint32.value = &hosts_in_catcher;
+    gnet_property->props[64].data.guint32.max   = 100000;
+    gnet_property->props[64].data.guint32.min   = 0;
 
 
     /*
@@ -1407,18 +1503,18 @@ prop_set_t *gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[61].name = "hosts_in_ultra_catcher";
-    gnet_property->props[61].desc = "Current number of hosts in ultra node catcher";
-    gnet_property->props[61].prop_changed_listeners = NULL;
-    gnet_property->props[61].save = FALSE;
-    gnet_property->props[61].vector_size = 1;
+    gnet_property->props[65].name = "hosts_in_ultra_catcher";
+    gnet_property->props[65].desc = "Current number of hosts in ultra node catcher";
+    gnet_property->props[65].prop_changed_listeners = NULL;
+    gnet_property->props[65].save = FALSE;
+    gnet_property->props[65].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[61].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[61].data.guint32.def   = &hosts_in_ultra_catcher_def;
-    gnet_property->props[61].data.guint32.value = &hosts_in_ultra_catcher;
-    gnet_property->props[61].data.guint32.max   = 100000;
-    gnet_property->props[61].data.guint32.min   = 0;
+    gnet_property->props[65].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[65].data.guint32.def   = &hosts_in_ultra_catcher_def;
+    gnet_property->props[65].data.guint32.value = &hosts_in_ultra_catcher;
+    gnet_property->props[65].data.guint32.max   = 100000;
+    gnet_property->props[65].data.guint32.min   = 0;
 
 
     /*
@@ -1426,18 +1522,18 @@ prop_set_t *gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[62].name = "max_ultra_hosts_cached";
-    gnet_property->props[62].desc = "Maximum number of hosts in the ultra node catcher";
-    gnet_property->props[62].prop_changed_listeners = NULL;
-    gnet_property->props[62].save = TRUE;
-    gnet_property->props[62].vector_size = 1;
+    gnet_property->props[66].name = "max_ultra_hosts_cached";
+    gnet_property->props[66].desc = "Maximum number of hosts in the ultra node catcher";
+    gnet_property->props[66].prop_changed_listeners = NULL;
+    gnet_property->props[66].save = TRUE;
+    gnet_property->props[66].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[62].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[62].data.guint32.def   = &max_ultra_hosts_cached_def;
-    gnet_property->props[62].data.guint32.value = &max_ultra_hosts_cached;
-    gnet_property->props[62].data.guint32.max   = 100000;
-    gnet_property->props[62].data.guint32.min   = 100;
+    gnet_property->props[66].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[66].data.guint32.def   = &max_ultra_hosts_cached_def;
+    gnet_property->props[66].data.guint32.value = &max_ultra_hosts_cached;
+    gnet_property->props[66].data.guint32.max   = 100000;
+    gnet_property->props[66].data.guint32.min   = 100;
 
 
     /*
@@ -1445,18 +1541,18 @@ prop_set_t *gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[63].name = "max_high_ttl_msg";
-    gnet_property->props[63].desc = "Amount of tolerable messages above hard TTL limit per node. See also MAX_HIGH_TTL_RADIUS";
-    gnet_property->props[63].prop_changed_listeners = NULL;
-    gnet_property->props[63].save = TRUE;
-    gnet_property->props[63].vector_size = 1;
+    gnet_property->props[67].name = "max_high_ttl_msg";
+    gnet_property->props[67].desc = "Amount of tolerable messages above hard TTL limit per node. See also MAX_HIGH_TTL_RADIUS";
+    gnet_property->props[67].prop_changed_listeners = NULL;
+    gnet_property->props[67].save = TRUE;
+    gnet_property->props[67].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[63].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[63].data.guint32.def   = &max_high_ttl_msg_def;
-    gnet_property->props[63].data.guint32.value = &max_high_ttl_msg;
-    gnet_property->props[63].data.guint32.max   = 10000;
-    gnet_property->props[63].data.guint32.min   = 0;
+    gnet_property->props[67].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[67].data.guint32.def   = &max_high_ttl_msg_def;
+    gnet_property->props[67].data.guint32.value = &max_high_ttl_msg;
+    gnet_property->props[67].data.guint32.max   = 10000;
+    gnet_property->props[67].data.guint32.min   = 0;
 
 
     /*
@@ -1464,18 +1560,18 @@ prop_set_t *gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[64].name = "max_high_ttl_radius";
-    gnet_property->props[64].desc = "Hop radius for counting high TTL limit messages (# hops lower than...) See also MAX_HIGH_TTL_MSG";
-    gnet_property->props[64].prop_changed_listeners = NULL;
-    gnet_property->props[64].save = TRUE;
-    gnet_property->props[64].vector_size = 1;
+    gnet_property->props[68].name = "max_high_ttl_radius";
+    gnet_property->props[68].desc = "Hop radius for counting high TTL limit messages (# hops lower than...) See also MAX_HIGH_TTL_MSG";
+    gnet_property->props[68].prop_changed_listeners = NULL;
+    gnet_property->props[68].save = TRUE;
+    gnet_property->props[68].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[64].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[64].data.guint32.def   = &max_high_ttl_radius_def;
-    gnet_property->props[64].data.guint32.value = &max_high_ttl_radius;
-    gnet_property->props[64].data.guint32.max   = 10;
-    gnet_property->props[64].data.guint32.min   = 0;
+    gnet_property->props[68].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[68].data.guint32.def   = &max_high_ttl_radius_def;
+    gnet_property->props[68].data.guint32.value = &max_high_ttl_radius;
+    gnet_property->props[68].data.guint32.max   = 10;
+    gnet_property->props[68].data.guint32.min   = 0;
 
 
     /*
@@ -1483,18 +1579,18 @@ prop_set_t *gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[65].name = "input_bandwidth";
-    gnet_property->props[65].desc = "Bandwidth limit for incoming HTTP traffic in bytes/sec";
-    gnet_property->props[65].prop_changed_listeners = NULL;
-    gnet_property->props[65].save = TRUE;
-    gnet_property->props[65].vector_size = 1;
+    gnet_property->props[69].name = "input_bandwidth";
+    gnet_property->props[69].desc = "Bandwidth limit for incoming HTTP traffic in bytes/sec";
+    gnet_property->props[69].prop_changed_listeners = NULL;
+    gnet_property->props[69].save = TRUE;
+    gnet_property->props[69].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[65].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[65].data.guint32.def   = &bw_http_in_def;
-    gnet_property->props[65].data.guint32.value = &bw_http_in;
-    gnet_property->props[65].data.guint32.max   = BS_BW_MAX;
-    gnet_property->props[65].data.guint32.min   = 1024;
+    gnet_property->props[69].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[69].data.guint32.def   = &bw_http_in_def;
+    gnet_property->props[69].data.guint32.value = &bw_http_in;
+    gnet_property->props[69].data.guint32.max   = BS_BW_MAX;
+    gnet_property->props[69].data.guint32.min   = 1024;
 
 
     /*
@@ -1502,18 +1598,18 @@ prop_set_t *gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[66].name = "output_bandwidth";
-    gnet_property->props[66].desc = "Bandwidth limit for outgoing HTTP traffic in bytes/sec";
-    gnet_property->props[66].prop_changed_listeners = NULL;
-    gnet_property->props[66].save = TRUE;
-    gnet_property->props[66].vector_size = 1;
+    gnet_property->props[70].name = "output_bandwidth";
+    gnet_property->props[70].desc = "Bandwidth limit for outgoing HTTP traffic in bytes/sec";
+    gnet_property->props[70].prop_changed_listeners = NULL;
+    gnet_property->props[70].save = TRUE;
+    gnet_property->props[70].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[66].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[66].data.guint32.def   = &bw_http_out_def;
-    gnet_property->props[66].data.guint32.value = &bw_http_out;
-    gnet_property->props[66].data.guint32.max   = BS_BW_MAX;
-    gnet_property->props[66].data.guint32.min   = 1024;
+    gnet_property->props[70].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[70].data.guint32.def   = &bw_http_out_def;
+    gnet_property->props[70].data.guint32.value = &bw_http_out;
+    gnet_property->props[70].data.guint32.max   = BS_BW_MAX;
+    gnet_property->props[70].data.guint32.min   = 1024;
 
 
     /*
@@ -1521,18 +1617,18 @@ prop_set_t *gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[67].name = "input_gnet_bandwidth";
-    gnet_property->props[67].desc = "Bandwidth limit for incoming gNet traffic in bytes/sec";
-    gnet_property->props[67].prop_changed_listeners = NULL;
-    gnet_property->props[67].save = TRUE;
-    gnet_property->props[67].vector_size = 1;
+    gnet_property->props[71].name = "input_gnet_bandwidth";
+    gnet_property->props[71].desc = "Bandwidth limit for incoming gNet traffic in bytes/sec";
+    gnet_property->props[71].prop_changed_listeners = NULL;
+    gnet_property->props[71].save = TRUE;
+    gnet_property->props[71].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[67].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[67].data.guint32.def   = &bw_gnet_in_def;
-    gnet_property->props[67].data.guint32.value = &bw_gnet_in;
-    gnet_property->props[67].data.guint32.max   = BS_BW_MAX;
-    gnet_property->props[67].data.guint32.min   = 1024;
+    gnet_property->props[71].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[71].data.guint32.def   = &bw_gnet_in_def;
+    gnet_property->props[71].data.guint32.value = &bw_gnet_in;
+    gnet_property->props[71].data.guint32.max   = BS_BW_MAX;
+    gnet_property->props[71].data.guint32.min   = 1024;
 
 
     /*
@@ -1540,18 +1636,18 @@ prop_set_t *gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[68].name = "output_gnet_bandwidth";
-    gnet_property->props[68].desc = "Bandwidth limit for outgoing gNet traffic in bytes/sec";
-    gnet_property->props[68].prop_changed_listeners = NULL;
-    gnet_property->props[68].save = TRUE;
-    gnet_property->props[68].vector_size = 1;
+    gnet_property->props[72].name = "output_gnet_bandwidth";
+    gnet_property->props[72].desc = "Bandwidth limit for outgoing gNet traffic in bytes/sec";
+    gnet_property->props[72].prop_changed_listeners = NULL;
+    gnet_property->props[72].save = TRUE;
+    gnet_property->props[72].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[68].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[68].data.guint32.def   = &bw_gnet_out_def;
-    gnet_property->props[68].data.guint32.value = &bw_gnet_out;
-    gnet_property->props[68].data.guint32.max   = BS_BW_MAX;
-    gnet_property->props[68].data.guint32.min   = 1024;
+    gnet_property->props[72].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[72].data.guint32.def   = &bw_gnet_out_def;
+    gnet_property->props[72].data.guint32.value = &bw_gnet_out;
+    gnet_property->props[72].data.guint32.max   = BS_BW_MAX;
+    gnet_property->props[72].data.guint32.min   = 1024;
 
 
     /*
@@ -1559,18 +1655,18 @@ prop_set_t *gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[69].name = "search_queries_forward_size";
-    gnet_property->props[69].desc = "Maximum size of search queries messages we forward to others  (in bytes)";
-    gnet_property->props[69].prop_changed_listeners = NULL;
-    gnet_property->props[69].save = TRUE;
-    gnet_property->props[69].vector_size = 1;
+    gnet_property->props[73].name = "search_queries_forward_size";
+    gnet_property->props[73].desc = "Maximum size of search queries messages we forward to others  (in bytes)";
+    gnet_property->props[73].prop_changed_listeners = NULL;
+    gnet_property->props[73].save = TRUE;
+    gnet_property->props[73].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[69].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[69].data.guint32.def   = &search_queries_forward_size_def;
-    gnet_property->props[69].data.guint32.value = &search_queries_forward_size;
-    gnet_property->props[69].data.guint32.max   = 65536;
-    gnet_property->props[69].data.guint32.min   = 64;
+    gnet_property->props[73].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[73].data.guint32.def   = &search_queries_forward_size_def;
+    gnet_property->props[73].data.guint32.value = &search_queries_forward_size;
+    gnet_property->props[73].data.guint32.max   = 65536;
+    gnet_property->props[73].data.guint32.min   = 64;
 
 
     /*
@@ -1578,18 +1674,18 @@ prop_set_t *gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[70].name = "search_queries_kick_size";
-    gnet_property->props[70].desc = "Maximum size of search queries messages we allow, otherwise close the connection (in bytes)";
-    gnet_property->props[70].prop_changed_listeners = NULL;
-    gnet_property->props[70].save = TRUE;
-    gnet_property->props[70].vector_size = 1;
+    gnet_property->props[74].name = "search_queries_kick_size";
+    gnet_property->props[74].desc = "Maximum size of search queries messages we allow, otherwise close the connection (in bytes)";
+    gnet_property->props[74].prop_changed_listeners = NULL;
+    gnet_property->props[74].save = TRUE;
+    gnet_property->props[74].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[70].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[70].data.guint32.def   = &search_queries_kick_size_def;
-    gnet_property->props[70].data.guint32.value = &search_queries_kick_size;
-    gnet_property->props[70].data.guint32.max   = 65536;
-    gnet_property->props[70].data.guint32.min   = 128;
+    gnet_property->props[74].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[74].data.guint32.def   = &search_queries_kick_size_def;
+    gnet_property->props[74].data.guint32.value = &search_queries_kick_size;
+    gnet_property->props[74].data.guint32.max   = 65536;
+    gnet_property->props[74].data.guint32.min   = 128;
 
 
     /*
@@ -1597,18 +1693,18 @@ prop_set_t *gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[71].name = "search_answers_forward_size";
-    gnet_property->props[71].desc = "Maximum size of search answers messages we forward to others (in bytes)";
-    gnet_property->props[71].prop_changed_listeners = NULL;
-    gnet_property->props[71].save = TRUE;
-    gnet_property->props[71].vector_size = 1;
+    gnet_property->props[75].name = "search_answers_forward_size";
+    gnet_property->props[75].desc = "Maximum size of search answers messages we forward to others (in bytes)";
+    gnet_property->props[75].prop_changed_listeners = NULL;
+    gnet_property->props[75].save = TRUE;
+    gnet_property->props[75].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[71].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[71].data.guint32.def   = &search_answers_forward_size_def;
-    gnet_property->props[71].data.guint32.value = &search_answers_forward_size;
-    gnet_property->props[71].data.guint32.max   = 65536;
-    gnet_property->props[71].data.guint32.min   = 2048;
+    gnet_property->props[75].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[75].data.guint32.def   = &search_answers_forward_size_def;
+    gnet_property->props[75].data.guint32.value = &search_answers_forward_size;
+    gnet_property->props[75].data.guint32.max   = 65536;
+    gnet_property->props[75].data.guint32.min   = 2048;
 
 
     /*
@@ -1616,18 +1712,18 @@ prop_set_t *gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[72].name = "search_answers_kick_size";
-    gnet_property->props[72].desc = "Maximum size of search answers messages we allow, otherwise close the connection (in bytes)";
-    gnet_property->props[72].prop_changed_listeners = NULL;
-    gnet_property->props[72].save = TRUE;
-    gnet_property->props[72].vector_size = 1;
+    gnet_property->props[76].name = "search_answers_kick_size";
+    gnet_property->props[76].desc = "Maximum size of search answers messages we allow, otherwise close the connection (in bytes)";
+    gnet_property->props[76].prop_changed_listeners = NULL;
+    gnet_property->props[76].save = TRUE;
+    gnet_property->props[76].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[72].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[72].data.guint32.def   = &search_answers_kick_size_def;
-    gnet_property->props[72].data.guint32.value = &search_answers_kick_size;
-    gnet_property->props[72].data.guint32.max   = 65536;
-    gnet_property->props[72].data.guint32.min   = 2048;
+    gnet_property->props[76].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[76].data.guint32.def   = &search_answers_kick_size_def;
+    gnet_property->props[76].data.guint32.value = &search_answers_kick_size;
+    gnet_property->props[76].data.guint32.max   = 65536;
+    gnet_property->props[76].data.guint32.min   = 2048;
 
 
     /*
@@ -1635,18 +1731,18 @@ prop_set_t *gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[73].name = "other_messages_kick_size";
-    gnet_property->props[73].desc = "Maximum size of unknown messages we allow, otherwise close the connection (in bytes)";
-    gnet_property->props[73].prop_changed_listeners = NULL;
-    gnet_property->props[73].save = TRUE;
-    gnet_property->props[73].vector_size = 1;
+    gnet_property->props[77].name = "other_messages_kick_size";
+    gnet_property->props[77].desc = "Maximum size of unknown messages we allow, otherwise close the connection (in bytes)";
+    gnet_property->props[77].prop_changed_listeners = NULL;
+    gnet_property->props[77].save = TRUE;
+    gnet_property->props[77].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[73].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[73].data.guint32.def   = &other_messages_kick_size_def;
-    gnet_property->props[73].data.guint32.value = &other_messages_kick_size;
-    gnet_property->props[73].data.guint32.max   = 65536;
-    gnet_property->props[73].data.guint32.min   = 256;
+    gnet_property->props[77].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[77].data.guint32.def   = &other_messages_kick_size_def;
+    gnet_property->props[77].data.guint32.value = &other_messages_kick_size;
+    gnet_property->props[77].data.guint32.max   = 65536;
+    gnet_property->props[77].data.guint32.min   = 256;
 
 
     /*
@@ -1654,18 +1750,18 @@ prop_set_t *gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[74].name = "hops_random_factor";
-    gnet_property->props[74].desc = "Random factor for the hops field in search packets we send between 0 and 3 inclusive)";
-    gnet_property->props[74].prop_changed_listeners = NULL;
-    gnet_property->props[74].save = TRUE;
-    gnet_property->props[74].vector_size = 1;
+    gnet_property->props[78].name = "hops_random_factor";
+    gnet_property->props[78].desc = "Random factor for the hops field in search packets we send between 0 and 3 inclusive)";
+    gnet_property->props[78].prop_changed_listeners = NULL;
+    gnet_property->props[78].save = TRUE;
+    gnet_property->props[78].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[74].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[74].data.guint32.def   = &hops_random_factor_def;
-    gnet_property->props[74].data.guint32.value = &hops_random_factor;
-    gnet_property->props[74].data.guint32.max   = 3;
-    gnet_property->props[74].data.guint32.min   = 0;
+    gnet_property->props[78].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[78].data.guint32.def   = &hops_random_factor_def;
+    gnet_property->props[78].data.guint32.value = &hops_random_factor;
+    gnet_property->props[78].data.guint32.max   = 3;
+    gnet_property->props[78].data.guint32.min   = 0;
 
 
     /*
@@ -1673,16 +1769,16 @@ prop_set_t *gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[75].name = "send_pushes";
-    gnet_property->props[75].desc = "Whether or not to send push requests.  If you are firewalled, gtk-gnutella will never send push requests anyway.  If you don't let gtk-gnutella send pushes, it will not show search results that would require a push.";
-    gnet_property->props[75].prop_changed_listeners = NULL;
-    gnet_property->props[75].save = TRUE;
-    gnet_property->props[75].vector_size = 1;
+    gnet_property->props[79].name = "send_pushes";
+    gnet_property->props[79].desc = "Whether or not to send push requests.  If you are firewalled, gtk-gnutella will never send push requests anyway.  If you don't let gtk-gnutella send pushes, it will not show search results that would require a push.";
+    gnet_property->props[79].prop_changed_listeners = NULL;
+    gnet_property->props[79].save = TRUE;
+    gnet_property->props[79].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[75].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[75].data.boolean.def   = &send_pushes_def;
-    gnet_property->props[75].data.boolean.value = &send_pushes;
+    gnet_property->props[79].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[79].data.boolean.def   = &send_pushes_def;
+    gnet_property->props[79].data.boolean.value = &send_pushes;
 
 
     /*
@@ -1690,18 +1786,18 @@ prop_set_t *gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[76].name = "min_dup_msg";
-    gnet_property->props[76].desc = "Minimum amount of dup messages to enable kicking, per node (also see [min_dup_ratio])";
-    gnet_property->props[76].prop_changed_listeners = NULL;
-    gnet_property->props[76].save = TRUE;
-    gnet_property->props[76].vector_size = 1;
+    gnet_property->props[80].name = "min_dup_msg";
+    gnet_property->props[80].desc = "Minimum amount of dup messages to enable kicking, per node (also see [min_dup_ratio])";
+    gnet_property->props[80].prop_changed_listeners = NULL;
+    gnet_property->props[80].save = TRUE;
+    gnet_property->props[80].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[76].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[76].data.guint32.def   = &min_dup_msg_def;
-    gnet_property->props[76].data.guint32.value = &min_dup_msg;
-    gnet_property->props[76].data.guint32.max   = 99;
-    gnet_property->props[76].data.guint32.min   = 1;
+    gnet_property->props[80].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[80].data.guint32.def   = &min_dup_msg_def;
+    gnet_property->props[80].data.guint32.value = &min_dup_msg;
+    gnet_property->props[80].data.guint32.max   = 99;
+    gnet_property->props[80].data.guint32.min   = 1;
 
 
     /*
@@ -1709,18 +1805,18 @@ prop_set_t *gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[77].name = "min_dup_ratio";
-    gnet_property->props[77].desc = "Minimum ratio of dups on received messages, per node (between 0.00 and 100.00) (also see [min_dup_msg]) Note: the value is stored between 0 (0.0) and 10000 (100.0) in the config file";
-    gnet_property->props[77].prop_changed_listeners = NULL;
-    gnet_property->props[77].save = TRUE;
-    gnet_property->props[77].vector_size = 1;
+    gnet_property->props[81].name = "min_dup_ratio";
+    gnet_property->props[81].desc = "Minimum ratio of dups on received messages, per node (between 0.00 and 100.00) (also see [min_dup_msg]) Note: the value is stored between 0 (0.0) and 10000 (100.0) in the config file";
+    gnet_property->props[81].prop_changed_listeners = NULL;
+    gnet_property->props[81].save = TRUE;
+    gnet_property->props[81].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[77].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[77].data.guint32.def   = &min_dup_ratio_def;
-    gnet_property->props[77].data.guint32.value = &min_dup_ratio;
-    gnet_property->props[77].data.guint32.max   = 10000;
-    gnet_property->props[77].data.guint32.min   = 0;
+    gnet_property->props[81].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[81].data.guint32.def   = &min_dup_ratio_def;
+    gnet_property->props[81].data.guint32.value = &min_dup_ratio;
+    gnet_property->props[81].data.guint32.max   = 10000;
+    gnet_property->props[81].data.guint32.min   = 0;
 
 
     /*
@@ -1728,19 +1824,19 @@ prop_set_t *gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[78].name = "shared_files_extensions";
-    gnet_property->props[78].desc = "Only files with the given extensions will be shared. The special --all-- extension matches all files, even if they don't have any extension.  Use with care.";
-    gnet_property->props[78].prop_changed_listeners = NULL;
-    gnet_property->props[78].save = TRUE;
-    gnet_property->props[78].vector_size = 1;
+    gnet_property->props[82].name = "shared_files_extensions";
+    gnet_property->props[82].desc = "Only files with the given extensions will be shared. The special --all-- extension matches all files, even if they don't have any extension.  Use with care.";
+    gnet_property->props[82].prop_changed_listeners = NULL;
+    gnet_property->props[82].save = TRUE;
+    gnet_property->props[82].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[78].type               = PROP_TYPE_STRING;
-    gnet_property->props[78].data.string.def    = &scan_extensions_def;
-    gnet_property->props[78].data.string.value  = &scan_extensions;
-    if (gnet_property->props[78].data.string.def) {
-        *gnet_property->props[78].data.string.value =
-            g_strdup(*gnet_property->props[78].data.string.def);
+    gnet_property->props[82].type               = PROP_TYPE_STRING;
+    gnet_property->props[82].data.string.def    = &scan_extensions_def;
+    gnet_property->props[82].data.string.value  = &scan_extensions;
+    if (gnet_property->props[82].data.string.def) {
+        *gnet_property->props[82].data.string.value =
+            g_strdup(*gnet_property->props[82].data.string.def);
     }
 
 
@@ -1749,19 +1845,19 @@ prop_set_t *gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[79].name = "store_downloading_files_to";
-    gnet_property->props[79].desc = "Store incomplete files in this directory";
-    gnet_property->props[79].prop_changed_listeners = NULL;
-    gnet_property->props[79].save = TRUE;
-    gnet_property->props[79].vector_size = 1;
+    gnet_property->props[83].name = "store_downloading_files_to";
+    gnet_property->props[83].desc = "Store incomplete files in this directory";
+    gnet_property->props[83].prop_changed_listeners = NULL;
+    gnet_property->props[83].save = TRUE;
+    gnet_property->props[83].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[79].type               = PROP_TYPE_STRING;
-    gnet_property->props[79].data.string.def    = &save_file_path_def;
-    gnet_property->props[79].data.string.value  = &save_file_path;
-    if (gnet_property->props[79].data.string.def) {
-        *gnet_property->props[79].data.string.value =
-            g_strdup(*gnet_property->props[79].data.string.def);
+    gnet_property->props[83].type               = PROP_TYPE_STRING;
+    gnet_property->props[83].data.string.def    = &save_file_path_def;
+    gnet_property->props[83].data.string.value  = &save_file_path;
+    if (gnet_property->props[83].data.string.def) {
+        *gnet_property->props[83].data.string.value =
+            g_strdup(*gnet_property->props[83].data.string.def);
     }
 
 
@@ -1770,19 +1866,19 @@ prop_set_t *gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[80].name = "move_downloading_files_to";
-    gnet_property->props[80].desc = "Move complete files to this directory. If this is set to the SAME directory as the incomplete or corrupted files, files will be renamed with a trailing .OK";
-    gnet_property->props[80].prop_changed_listeners = NULL;
-    gnet_property->props[80].save = TRUE;
-    gnet_property->props[80].vector_size = 1;
+    gnet_property->props[84].name = "move_downloading_files_to";
+    gnet_property->props[84].desc = "Move complete files to this directory. If this is set to the SAME directory as the incomplete or corrupted files, files will be renamed with a trailing .OK";
+    gnet_property->props[84].prop_changed_listeners = NULL;
+    gnet_property->props[84].save = TRUE;
+    gnet_property->props[84].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[80].type               = PROP_TYPE_STRING;
-    gnet_property->props[80].data.string.def    = &move_file_path_def;
-    gnet_property->props[80].data.string.value  = &move_file_path;
-    if (gnet_property->props[80].data.string.def) {
-        *gnet_property->props[80].data.string.value =
-            g_strdup(*gnet_property->props[80].data.string.def);
+    gnet_property->props[84].type               = PROP_TYPE_STRING;
+    gnet_property->props[84].data.string.def    = &move_file_path_def;
+    gnet_property->props[84].data.string.value  = &move_file_path;
+    if (gnet_property->props[84].data.string.def) {
+        *gnet_property->props[84].data.string.value =
+            g_strdup(*gnet_property->props[84].data.string.def);
     }
 
 
@@ -1791,19 +1887,19 @@ prop_set_t *gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[81].name = "move_corrupted_files_to";
-    gnet_property->props[81].desc = "Move corrupted downloaded files in this directory. If this is set to the SAME directory as the incomplete or completed files, files will be renamed with a trailing .BAD";
-    gnet_property->props[81].prop_changed_listeners = NULL;
-    gnet_property->props[81].save = TRUE;
-    gnet_property->props[81].vector_size = 1;
+    gnet_property->props[85].name = "move_corrupted_files_to";
+    gnet_property->props[85].desc = "Move corrupted downloaded files in this directory. If this is set to the SAME directory as the incomplete or completed files, files will be renamed with a trailing .BAD";
+    gnet_property->props[85].prop_changed_listeners = NULL;
+    gnet_property->props[85].save = TRUE;
+    gnet_property->props[85].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[81].type               = PROP_TYPE_STRING;
-    gnet_property->props[81].data.string.def    = &bad_file_path_def;
-    gnet_property->props[81].data.string.value  = &bad_file_path;
-    if (gnet_property->props[81].data.string.def) {
-        *gnet_property->props[81].data.string.value =
-            g_strdup(*gnet_property->props[81].data.string.def);
+    gnet_property->props[85].type               = PROP_TYPE_STRING;
+    gnet_property->props[85].data.string.def    = &bad_file_path_def;
+    gnet_property->props[85].data.string.value  = &bad_file_path;
+    if (gnet_property->props[85].data.string.def) {
+        *gnet_property->props[85].data.string.value =
+            g_strdup(*gnet_property->props[85].data.string.def);
     }
 
 
@@ -1812,19 +1908,19 @@ prop_set_t *gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[82].name = "shared_dirs";
-    gnet_property->props[82].desc = "Directories which contain shared files";
-    gnet_property->props[82].prop_changed_listeners = NULL;
-    gnet_property->props[82].save = TRUE;
-    gnet_property->props[82].vector_size = 1;
+    gnet_property->props[86].name = "shared_dirs";
+    gnet_property->props[86].desc = "Directories which contain shared files";
+    gnet_property->props[86].prop_changed_listeners = NULL;
+    gnet_property->props[86].save = TRUE;
+    gnet_property->props[86].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[82].type               = PROP_TYPE_STRING;
-    gnet_property->props[82].data.string.def    = &shared_dirs_paths_def;
-    gnet_property->props[82].data.string.value  = &shared_dirs_paths;
-    if (gnet_property->props[82].data.string.def) {
-        *gnet_property->props[82].data.string.value =
-            g_strdup(*gnet_property->props[82].data.string.def);
+    gnet_property->props[86].type               = PROP_TYPE_STRING;
+    gnet_property->props[86].data.string.def    = &shared_dirs_paths_def;
+    gnet_property->props[86].data.string.value  = &shared_dirs_paths;
+    if (gnet_property->props[86].data.string.def) {
+        *gnet_property->props[86].data.string.value =
+            g_strdup(*gnet_property->props[86].data.string.def);
     }
 
 
@@ -1833,19 +1929,19 @@ prop_set_t *gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[83].name = "local_netmasks";
-    gnet_property->props[83].desc = "List of networks considered local.  This is a list of IP addresses, separated by ';'.  The IP address can be given out fully, as in 192.168.0.1, or be optionally followed by '/' and a network mask prefix length. For instance, 192.168.0.1/24 would represent the whole 192.168.0.* network.";
-    gnet_property->props[83].prop_changed_listeners = NULL;
-    gnet_property->props[83].save = TRUE;
-    gnet_property->props[83].vector_size = 1;
+    gnet_property->props[87].name = "local_netmasks";
+    gnet_property->props[87].desc = "List of networks considered local.  This is a list of IP addresses, separated by ';'.  The IP address can be given out fully, as in 192.168.0.1, or be optionally followed by '/' and a network mask prefix length. For instance, 192.168.0.1/24 would represent the whole 192.168.0.* network.";
+    gnet_property->props[87].prop_changed_listeners = NULL;
+    gnet_property->props[87].save = TRUE;
+    gnet_property->props[87].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[83].type               = PROP_TYPE_STRING;
-    gnet_property->props[83].data.string.def    = &local_netmasks_string_def;
-    gnet_property->props[83].data.string.value  = &local_netmasks_string;
-    if (gnet_property->props[83].data.string.def) {
-        *gnet_property->props[83].data.string.value =
-            g_strdup(*gnet_property->props[83].data.string.def);
+    gnet_property->props[87].type               = PROP_TYPE_STRING;
+    gnet_property->props[87].data.string.def    = &local_netmasks_string_def;
+    gnet_property->props[87].data.string.value  = &local_netmasks_string;
+    if (gnet_property->props[87].data.string.def) {
+        *gnet_property->props[87].data.string.value =
+            g_strdup(*gnet_property->props[87].data.string.def);
     }
 
 
@@ -1854,18 +1950,18 @@ prop_set_t *gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[84].name = "total_downloads";
-    gnet_property->props[84].desc = "Total number of completed downloads in this session";
-    gnet_property->props[84].prop_changed_listeners = NULL;
-    gnet_property->props[84].save = FALSE;
-    gnet_property->props[84].vector_size = 1;
+    gnet_property->props[88].name = "total_downloads";
+    gnet_property->props[88].desc = "Total number of completed downloads in this session";
+    gnet_property->props[88].prop_changed_listeners = NULL;
+    gnet_property->props[88].save = FALSE;
+    gnet_property->props[88].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[84].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[84].data.guint32.def   = &total_downloads_def;
-    gnet_property->props[84].data.guint32.value = &total_downloads;
-    gnet_property->props[84].data.guint32.max   = 0xFFFFFFFF;
-    gnet_property->props[84].data.guint32.min   = 0x00000000;
+    gnet_property->props[88].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[88].data.guint32.def   = &total_downloads_def;
+    gnet_property->props[88].data.guint32.value = &total_downloads;
+    gnet_property->props[88].data.guint32.max   = 0xFFFFFFFF;
+    gnet_property->props[88].data.guint32.min   = 0x00000000;
 
 
     /*
@@ -1873,18 +1969,18 @@ prop_set_t *gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[85].name = "total_uploads";
-    gnet_property->props[85].desc = "Total number of completed uploads in this session";
-    gnet_property->props[85].prop_changed_listeners = NULL;
-    gnet_property->props[85].save = FALSE;
-    gnet_property->props[85].vector_size = 1;
+    gnet_property->props[89].name = "total_uploads";
+    gnet_property->props[89].desc = "Total number of completed uploads in this session";
+    gnet_property->props[89].prop_changed_listeners = NULL;
+    gnet_property->props[89].save = FALSE;
+    gnet_property->props[89].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[85].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[85].data.guint32.def   = &total_uploads_def;
-    gnet_property->props[85].data.guint32.value = &total_uploads;
-    gnet_property->props[85].data.guint32.max   = 0xFFFFFFFF;
-    gnet_property->props[85].data.guint32.min   = 0x00000000;
+    gnet_property->props[89].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[89].data.guint32.def   = &total_uploads_def;
+    gnet_property->props[89].data.guint32.value = &total_uploads;
+    gnet_property->props[89].data.guint32.max   = 0xFFFFFFFF;
+    gnet_property->props[89].data.guint32.min   = 0x00000000;
 
 
     /*
@@ -1892,16 +1988,16 @@ prop_set_t *gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[86].name = "guid";
-    gnet_property->props[86].desc = "Global Unique IDentifier of this node";
-    gnet_property->props[86].prop_changed_listeners = NULL;
-    gnet_property->props[86].save = TRUE;
-    gnet_property->props[86].vector_size = 16;
+    gnet_property->props[90].name = "guid";
+    gnet_property->props[90].desc = "Global Unique IDentifier of this node";
+    gnet_property->props[90].prop_changed_listeners = NULL;
+    gnet_property->props[90].save = TRUE;
+    gnet_property->props[90].vector_size = 16;
 
     /* Type specific data: */
-    gnet_property->props[86].type               = PROP_TYPE_STORAGE;
-    gnet_property->props[86].data.storage.value = guid;
-    memset(guid, 0, gnet_property->props[86].vector_size);
+    gnet_property->props[90].type               = PROP_TYPE_STORAGE;
+    gnet_property->props[90].data.storage.value = guid;
+    memset(guid, 0, gnet_property->props[90].vector_size);
 
 
     /*
@@ -1909,16 +2005,16 @@ prop_set_t *gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[87].name = "use_swarming";
-    gnet_property->props[87].desc = "Wether or not to use swarming (recommended = YES)";
-    gnet_property->props[87].prop_changed_listeners = NULL;
-    gnet_property->props[87].save = TRUE;
-    gnet_property->props[87].vector_size = 1;
+    gnet_property->props[91].name = "use_swarming";
+    gnet_property->props[91].desc = "Wether or not to use swarming (recommended = YES)";
+    gnet_property->props[91].prop_changed_listeners = NULL;
+    gnet_property->props[91].save = TRUE;
+    gnet_property->props[91].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[87].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[87].data.boolean.def   = &use_swarming_def;
-    gnet_property->props[87].data.boolean.value = &use_swarming;
+    gnet_property->props[91].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[91].data.boolean.def   = &use_swarming_def;
+    gnet_property->props[91].data.boolean.value = &use_swarming;
 
 
     /*
@@ -1926,16 +2022,16 @@ prop_set_t *gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[88].name = "use_aggressive_swarming";
-    gnet_property->props[88].desc = "Whether or not to launch competing downloads when swarming and there are many sources available with a few chunks left.";
-    gnet_property->props[88].prop_changed_listeners = NULL;
-    gnet_property->props[88].save = TRUE;
-    gnet_property->props[88].vector_size = 1;
+    gnet_property->props[92].name = "use_aggressive_swarming";
+    gnet_property->props[92].desc = "Whether or not to launch competing downloads when swarming and there are many sources available with a few chunks left.";
+    gnet_property->props[92].prop_changed_listeners = NULL;
+    gnet_property->props[92].save = TRUE;
+    gnet_property->props[92].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[88].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[88].data.boolean.def   = &use_aggressive_swarming_def;
-    gnet_property->props[88].data.boolean.value = &use_aggressive_swarming;
+    gnet_property->props[92].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[92].data.boolean.def   = &use_aggressive_swarming_def;
+    gnet_property->props[92].data.boolean.value = &use_aggressive_swarming;
 
 
     /*
@@ -1943,18 +2039,18 @@ prop_set_t *gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[89].name = "dl_minchunksize";
-    gnet_property->props[89].desc = "Minimum chunk size when swarming.  This is only a hint as gtk-gnutella will download less if you only have a few bytes to get for a file...";
-    gnet_property->props[89].prop_changed_listeners = NULL;
-    gnet_property->props[89].save = TRUE;
-    gnet_property->props[89].vector_size = 1;
+    gnet_property->props[93].name = "dl_minchunksize";
+    gnet_property->props[93].desc = "Minimum chunk size when swarming.  This is only a hint as gtk-gnutella will download less if you only have a few bytes to get for a file...";
+    gnet_property->props[93].prop_changed_listeners = NULL;
+    gnet_property->props[93].save = TRUE;
+    gnet_property->props[93].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[89].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[89].data.guint32.def   = &dl_minchunksize_def;
-    gnet_property->props[89].data.guint32.value = &dl_minchunksize;
-    gnet_property->props[89].data.guint32.max   = 100*1024*1024;
-    gnet_property->props[89].data.guint32.min   = 64*1024;
+    gnet_property->props[93].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[93].data.guint32.def   = &dl_minchunksize_def;
+    gnet_property->props[93].data.guint32.value = &dl_minchunksize;
+    gnet_property->props[93].data.guint32.max   = 100*1024*1024;
+    gnet_property->props[93].data.guint32.min   = 64*1024;
 
 
     /*
@@ -1962,18 +2058,18 @@ prop_set_t *gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[90].name = "dl_maxchunksize";
-    gnet_property->props[90].desc = "Maximum chunk size when swarming";
-    gnet_property->props[90].prop_changed_listeners = NULL;
-    gnet_property->props[90].save = TRUE;
-    gnet_property->props[90].vector_size = 1;
+    gnet_property->props[94].name = "dl_maxchunksize";
+    gnet_property->props[94].desc = "Maximum chunk size when swarming";
+    gnet_property->props[94].prop_changed_listeners = NULL;
+    gnet_property->props[94].save = TRUE;
+    gnet_property->props[94].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[90].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[90].data.guint32.def   = &dl_maxchunksize_def;
-    gnet_property->props[90].data.guint32.value = &dl_maxchunksize;
-    gnet_property->props[90].data.guint32.max   = 1000*1024*1024;
-    gnet_property->props[90].data.guint32.min   = 64*1024;
+    gnet_property->props[94].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[94].data.guint32.def   = &dl_maxchunksize_def;
+    gnet_property->props[94].data.guint32.value = &dl_maxchunksize;
+    gnet_property->props[94].data.guint32.max   = 1000*1024*1024;
+    gnet_property->props[94].data.guint32.min   = 64*1024;
 
 
     /*
@@ -1981,16 +2077,16 @@ prop_set_t *gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[91].name = "auto_download_identical";
-    gnet_property->props[91].desc = "Wether or not to automatically queue search results that match a file in the download queue";
-    gnet_property->props[91].prop_changed_listeners = NULL;
-    gnet_property->props[91].save = TRUE;
-    gnet_property->props[91].vector_size = 1;
+    gnet_property->props[95].name = "auto_download_identical";
+    gnet_property->props[95].desc = "Wether or not to automatically queue search results that match a file in the download queue";
+    gnet_property->props[95].prop_changed_listeners = NULL;
+    gnet_property->props[95].save = TRUE;
+    gnet_property->props[95].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[91].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[91].data.boolean.def   = &auto_download_identical_def;
-    gnet_property->props[91].data.boolean.value = &auto_download_identical;
+    gnet_property->props[95].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[95].data.boolean.def   = &auto_download_identical_def;
+    gnet_property->props[95].data.boolean.value = &auto_download_identical;
 
 
     /*
@@ -1998,16 +2094,16 @@ prop_set_t *gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[92].name = "strict_sha1_matching";
-    gnet_property->props[92].desc = "When enabled, SHA1s must match. Otherwise, name and size will be sufficient";
-    gnet_property->props[92].prop_changed_listeners = NULL;
-    gnet_property->props[92].save = TRUE;
-    gnet_property->props[92].vector_size = 1;
+    gnet_property->props[96].name = "strict_sha1_matching";
+    gnet_property->props[96].desc = "When enabled, SHA1s must match. Otherwise, name and size will be sufficient";
+    gnet_property->props[96].prop_changed_listeners = NULL;
+    gnet_property->props[96].save = TRUE;
+    gnet_property->props[96].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[92].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[92].data.boolean.def   = &strict_sha1_matching_def;
-    gnet_property->props[92].data.boolean.value = &strict_sha1_matching;
+    gnet_property->props[96].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[96].data.boolean.def   = &strict_sha1_matching_def;
+    gnet_property->props[96].data.boolean.value = &strict_sha1_matching;
 
 
     /*
@@ -2015,16 +2111,16 @@ prop_set_t *gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[93].name = "use_fuzzy_matching";
-    gnet_property->props[93].desc = "Use fuzzy file name matching (recommended = NO; only rely on SHA1 matching to be safe)";
-    gnet_property->props[93].prop_changed_listeners = NULL;
-    gnet_property->props[93].save = TRUE;
-    gnet_property->props[93].vector_size = 1;
+    gnet_property->props[97].name = "use_fuzzy_matching";
+    gnet_property->props[97].desc = "Use fuzzy file name matching (recommended = NO; only rely on SHA1 matching to be safe)";
+    gnet_property->props[97].prop_changed_listeners = NULL;
+    gnet_property->props[97].save = TRUE;
+    gnet_property->props[97].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[93].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[93].data.boolean.def   = &use_fuzzy_matching_def;
-    gnet_property->props[93].data.boolean.value = &use_fuzzy_matching;
+    gnet_property->props[97].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[97].data.boolean.def   = &use_fuzzy_matching_def;
+    gnet_property->props[97].data.boolean.value = &use_fuzzy_matching;
 
 
     /*
@@ -2032,18 +2128,18 @@ prop_set_t *gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[94].name = "fuzzy_threshold";
-    gnet_property->props[94].desc = "Fuzziness threshold for filename matching (higher = stricter). A value of 100 means the filenames must be 100% identical.  A value of 0 means any two filenames will always be considered to be identical.  The minimum is 50%.";
-    gnet_property->props[94].prop_changed_listeners = NULL;
-    gnet_property->props[94].save = TRUE;
-    gnet_property->props[94].vector_size = 1;
+    gnet_property->props[98].name = "fuzzy_threshold";
+    gnet_property->props[98].desc = "Fuzziness threshold for filename matching (higher = stricter). A value of 100 means the filenames must be 100% identical.  A value of 0 means any two filenames will always be considered to be identical.  The minimum is 50%.";
+    gnet_property->props[98].prop_changed_listeners = NULL;
+    gnet_property->props[98].save = TRUE;
+    gnet_property->props[98].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[94].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[94].data.guint32.def   = &fuzzy_threshold_def;
-    gnet_property->props[94].data.guint32.value = &fuzzy_threshold;
-    gnet_property->props[94].data.guint32.max   = 100;
-    gnet_property->props[94].data.guint32.min   = 50;
+    gnet_property->props[98].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[98].data.guint32.def   = &fuzzy_threshold_def;
+    gnet_property->props[98].data.guint32.value = &fuzzy_threshold;
+    gnet_property->props[98].data.guint32.max   = 100;
+    gnet_property->props[98].data.guint32.min   = 50;
 
 
     /*
@@ -2051,16 +2147,16 @@ prop_set_t *gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[95].name = "is_firewalled";
-    gnet_property->props[95].desc = "Whether gtk-gnutella thinks we're currently firewalled";
-    gnet_property->props[95].prop_changed_listeners = NULL;
-    gnet_property->props[95].save = FALSE;
-    gnet_property->props[95].vector_size = 1;
+    gnet_property->props[99].name = "is_firewalled";
+    gnet_property->props[99].desc = "Whether gtk-gnutella thinks we're currently firewalled";
+    gnet_property->props[99].prop_changed_listeners = NULL;
+    gnet_property->props[99].save = FALSE;
+    gnet_property->props[99].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[95].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[95].data.boolean.def   = &is_firewalled_def;
-    gnet_property->props[95].data.boolean.value = &is_firewalled;
+    gnet_property->props[99].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[99].data.boolean.def   = &is_firewalled_def;
+    gnet_property->props[99].data.boolean.value = &is_firewalled;
 
 
     /*
@@ -2068,16 +2164,16 @@ prop_set_t *gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[96].name = "is_inet_connected";
-    gnet_property->props[96].desc = "Whether gtk-gnutella thinks it's connected to the Internet";
-    gnet_property->props[96].prop_changed_listeners = NULL;
-    gnet_property->props[96].save = FALSE;
-    gnet_property->props[96].vector_size = 1;
+    gnet_property->props[100].name = "is_inet_connected";
+    gnet_property->props[100].desc = "Whether gtk-gnutella thinks it's connected to the Internet";
+    gnet_property->props[100].prop_changed_listeners = NULL;
+    gnet_property->props[100].save = FALSE;
+    gnet_property->props[100].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[96].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[96].data.boolean.def   = &is_inet_connected_def;
-    gnet_property->props[96].data.boolean.value = &is_inet_connected;
+    gnet_property->props[100].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[100].data.boolean.def   = &is_inet_connected_def;
+    gnet_property->props[100].data.boolean.value = &is_inet_connected;
 
 
     /*
@@ -2085,16 +2181,16 @@ prop_set_t *gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[97].name = "gnet_compact_query";
-    gnet_property->props[97].desc = "Remove unnecessary ballast from query string before processing or forwarding them. Reduces traffic at the cost of little CPU time";
-    gnet_property->props[97].prop_changed_listeners = NULL;
-    gnet_property->props[97].save = TRUE;
-    gnet_property->props[97].vector_size = 1;
+    gnet_property->props[101].name = "gnet_compact_query";
+    gnet_property->props[101].desc = "Remove unnecessary ballast from query string before processing or forwarding them. Reduces traffic at the cost of little CPU time";
+    gnet_property->props[101].prop_changed_listeners = NULL;
+    gnet_property->props[101].save = TRUE;
+    gnet_property->props[101].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[97].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[97].data.boolean.def   = &gnet_compact_query_def;
-    gnet_property->props[97].data.boolean.value = &gnet_compact_query;
+    gnet_property->props[101].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[101].data.boolean.def   = &gnet_compact_query_def;
+    gnet_property->props[101].data.boolean.value = &gnet_compact_query;
 
 
     /*
@@ -2102,16 +2198,16 @@ prop_set_t *gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[98].name = "download_optimistic_start";
-    gnet_property->props[98].desc = "Also use sources that don't provide a SHA1 value for the first chunk of a file. This dramatically reduces the 'No URN on server' messages, but may result in overlap problems later if the first chunk was actually from a different file. Use with caution.";
-    gnet_property->props[98].prop_changed_listeners = NULL;
-    gnet_property->props[98].save = TRUE;
-    gnet_property->props[98].vector_size = 1;
+    gnet_property->props[102].name = "download_optimistic_start";
+    gnet_property->props[102].desc = "Also use sources that don't provide a SHA1 value for the first chunk of a file. This dramatically reduces the 'No URN on server' messages, but may result in overlap problems later if the first chunk was actually from a different file. Use with caution.";
+    gnet_property->props[102].prop_changed_listeners = NULL;
+    gnet_property->props[102].save = TRUE;
+    gnet_property->props[102].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[98].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[98].data.boolean.def   = &download_optimistic_start_def;
-    gnet_property->props[98].data.boolean.value = &download_optimistic_start;
+    gnet_property->props[102].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[102].data.boolean.def   = &download_optimistic_start_def;
+    gnet_property->props[102].data.boolean.value = &download_optimistic_start;
 
 
     /*
@@ -2119,16 +2215,16 @@ prop_set_t *gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[99].name = "mark_ignored";
-    gnet_property->props[99].desc = "Mark files that would be ignored when downloaded. This uses a little additional CPU power so it's off by default. If you don't have a very slow box, you might want to turn this on.";
-    gnet_property->props[99].prop_changed_listeners = NULL;
-    gnet_property->props[99].save = TRUE;
-    gnet_property->props[99].vector_size = 1;
+    gnet_property->props[103].name = "mark_ignored";
+    gnet_property->props[103].desc = "Mark files that would be ignored when downloaded. This uses a little additional CPU power so it's off by default. If you don't have a very slow box, you might want to turn this on.";
+    gnet_property->props[103].prop_changed_listeners = NULL;
+    gnet_property->props[103].save = TRUE;
+    gnet_property->props[103].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[99].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[99].data.boolean.def   = &mark_ignored_def;
-    gnet_property->props[99].data.boolean.value = &mark_ignored;
+    gnet_property->props[103].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[103].data.boolean.def   = &mark_ignored_def;
+    gnet_property->props[103].data.boolean.value = &mark_ignored;
 
 
     /*
@@ -2136,16 +2232,16 @@ prop_set_t *gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[100].name = "library_rebuilding";
-    gnet_property->props[100].desc = "Whether gtk-gnutella is currently rebuilding its library in the background";
-    gnet_property->props[100].prop_changed_listeners = NULL;
-    gnet_property->props[100].save = FALSE;
-    gnet_property->props[100].vector_size = 1;
+    gnet_property->props[104].name = "library_rebuilding";
+    gnet_property->props[104].desc = "Whether gtk-gnutella is currently rebuilding its library in the background";
+    gnet_property->props[104].prop_changed_listeners = NULL;
+    gnet_property->props[104].save = FALSE;
+    gnet_property->props[104].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[100].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[100].data.boolean.def   = &library_rebuilding_def;
-    gnet_property->props[100].data.boolean.value = &library_rebuilding;
+    gnet_property->props[104].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[104].data.boolean.def   = &library_rebuilding_def;
+    gnet_property->props[104].data.boolean.value = &library_rebuilding;
 
 
     /*
@@ -2153,16 +2249,16 @@ prop_set_t *gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[101].name = "sha1_rebuilding";
-    gnet_property->props[101].desc = "Whether gtk-gnutella is currently computing SHA1 of shared files in the background";
-    gnet_property->props[101].prop_changed_listeners = NULL;
-    gnet_property->props[101].save = FALSE;
-    gnet_property->props[101].vector_size = 1;
+    gnet_property->props[105].name = "sha1_rebuilding";
+    gnet_property->props[105].desc = "Whether gtk-gnutella is currently computing SHA1 of shared files in the background";
+    gnet_property->props[105].prop_changed_listeners = NULL;
+    gnet_property->props[105].save = FALSE;
+    gnet_property->props[105].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[101].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[101].data.boolean.def   = &sha1_rebuilding_def;
-    gnet_property->props[101].data.boolean.value = &sha1_rebuilding;
+    gnet_property->props[105].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[105].data.boolean.def   = &sha1_rebuilding_def;
+    gnet_property->props[105].data.boolean.value = &sha1_rebuilding;
 
 
     /*
@@ -2170,16 +2266,16 @@ prop_set_t *gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[102].name = "sha1_verifying";
-    gnet_property->props[102].desc = "Whether gtk-gnutella is currently verifying SHA1 of downloaded files in the background";
-    gnet_property->props[102].prop_changed_listeners = NULL;
-    gnet_property->props[102].save = FALSE;
-    gnet_property->props[102].vector_size = 1;
+    gnet_property->props[106].name = "sha1_verifying";
+    gnet_property->props[106].desc = "Whether gtk-gnutella is currently verifying SHA1 of downloaded files in the background";
+    gnet_property->props[106].prop_changed_listeners = NULL;
+    gnet_property->props[106].save = FALSE;
+    gnet_property->props[106].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[102].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[102].data.boolean.def   = &sha1_verifying_def;
-    gnet_property->props[102].data.boolean.value = &sha1_verifying;
+    gnet_property->props[106].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[106].data.boolean.def   = &sha1_verifying_def;
+    gnet_property->props[106].data.boolean.value = &sha1_verifying;
 
 
     /*
@@ -2187,16 +2283,16 @@ prop_set_t *gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[103].name = "file_moving";
-    gnet_property->props[103].desc = "Whether gtk-gnutella is currently moving files accross filesystems or simply copying in the background";
-    gnet_property->props[103].prop_changed_listeners = NULL;
-    gnet_property->props[103].save = FALSE;
-    gnet_property->props[103].vector_size = 1;
+    gnet_property->props[107].name = "file_moving";
+    gnet_property->props[107].desc = "Whether gtk-gnutella is currently moving files accross filesystems or simply copying in the background";
+    gnet_property->props[107].prop_changed_listeners = NULL;
+    gnet_property->props[107].save = FALSE;
+    gnet_property->props[107].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[103].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[103].data.boolean.def   = &file_moving_def;
-    gnet_property->props[103].data.boolean.value = &file_moving;
+    gnet_property->props[107].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[107].data.boolean.def   = &file_moving_def;
+    gnet_property->props[107].data.boolean.value = &file_moving;
 
 
     /*
@@ -2204,16 +2300,16 @@ prop_set_t *gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[104].name = "prefer_compressed_gnet";
-    gnet_property->props[104].desc = "If active, only compressed incoming connections are allowed after the minimum number of connections has been established. Always allows for one non-compressed connection.";
-    gnet_property->props[104].prop_changed_listeners = NULL;
-    gnet_property->props[104].save = TRUE;
-    gnet_property->props[104].vector_size = 1;
+    gnet_property->props[108].name = "prefer_compressed_gnet";
+    gnet_property->props[108].desc = "If active, only compressed incoming connections are allowed after the minimum number of connections has been established. Always allows for one non-compressed connection.";
+    gnet_property->props[108].prop_changed_listeners = NULL;
+    gnet_property->props[108].save = TRUE;
+    gnet_property->props[108].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[104].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[104].data.boolean.def   = &prefer_compressed_gnet_def;
-    gnet_property->props[104].data.boolean.value = &prefer_compressed_gnet;
+    gnet_property->props[108].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[108].data.boolean.def   = &prefer_compressed_gnet_def;
+    gnet_property->props[108].data.boolean.value = &prefer_compressed_gnet;
 
 
     /*
@@ -2221,16 +2317,16 @@ prop_set_t *gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[105].name = "online_mode";
-    gnet_property->props[105].desc = "If deactivated only uploads and downloads will continue. All gNet connections are disabled/terminated.";
-    gnet_property->props[105].prop_changed_listeners = NULL;
-    gnet_property->props[105].save = TRUE;
-    gnet_property->props[105].vector_size = 1;
+    gnet_property->props[109].name = "online_mode";
+    gnet_property->props[109].desc = "If deactivated only uploads and downloads will continue. All gNet connections are disabled/terminated.";
+    gnet_property->props[109].prop_changed_listeners = NULL;
+    gnet_property->props[109].save = TRUE;
+    gnet_property->props[109].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[105].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[105].data.boolean.def   = &online_mode_def;
-    gnet_property->props[105].data.boolean.value = &online_mode;
+    gnet_property->props[109].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[109].data.boolean.def   = &online_mode_def;
+    gnet_property->props[109].data.boolean.value = &online_mode;
 
 
     /*
@@ -2238,18 +2334,18 @@ prop_set_t *gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[106].name = "lib_debug";
-    gnet_property->props[106].desc = "Debug level for code shared between gui and core";
-    gnet_property->props[106].prop_changed_listeners = NULL;
-    gnet_property->props[106].save = TRUE;
-    gnet_property->props[106].vector_size = 1;
+    gnet_property->props[110].name = "lib_debug";
+    gnet_property->props[110].desc = "Debug level for code shared between gui and core";
+    gnet_property->props[110].prop_changed_listeners = NULL;
+    gnet_property->props[110].save = TRUE;
+    gnet_property->props[110].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[106].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[106].data.guint32.def   = &lib_debug_def;
-    gnet_property->props[106].data.guint32.value = &lib_debug;
-    gnet_property->props[106].data.guint32.max   = 0xFFFFFFFF;
-    gnet_property->props[106].data.guint32.min   = 0x00000000;
+    gnet_property->props[110].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[110].data.guint32.def   = &lib_debug_def;
+    gnet_property->props[110].data.guint32.value = &lib_debug;
+    gnet_property->props[110].data.guint32.max   = 0xFFFFFFFF;
+    gnet_property->props[110].data.guint32.min   = 0x00000000;
 
 
     /*
@@ -2257,16 +2353,16 @@ prop_set_t *gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[107].name = "download_require_urn";
-    gnet_property->props[107].desc = "Whether gtk-gnutella should make sure the server confirms the URN of the file we're requesting when it is known locally and a traditional request by name is used (i.e. gtk-gnutella is not issueing a /uri-res/N2R? request).  When set, it supersedes the optimistic first chunk setting.";
-    gnet_property->props[107].prop_changed_listeners = NULL;
-    gnet_property->props[107].save = TRUE;
-    gnet_property->props[107].vector_size = 1;
+    gnet_property->props[111].name = "download_require_urn";
+    gnet_property->props[111].desc = "Whether gtk-gnutella should make sure the server confirms the URN of the file we're requesting when it is known locally and a traditional request by name is used (i.e. gtk-gnutella is not issueing a /uri-res/N2R? request).  When set, it supersedes the optimistic first chunk setting.";
+    gnet_property->props[111].prop_changed_listeners = NULL;
+    gnet_property->props[111].save = TRUE;
+    gnet_property->props[111].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[107].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[107].data.boolean.def   = &download_require_urn_def;
-    gnet_property->props[107].data.boolean.value = &download_require_urn;
+    gnet_property->props[111].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[111].data.boolean.def   = &download_require_urn_def;
+    gnet_property->props[111].data.boolean.value = &download_require_urn;
 
 
     /*
@@ -2274,16 +2370,124 @@ prop_set_t *gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[108].name = "download_require_server_name";
-    gnet_property->props[108].desc = "Whether gtk-gnutella should make sure the server gives us back a non-empty identifying token.";
-    gnet_property->props[108].prop_changed_listeners = NULL;
-    gnet_property->props[108].save = TRUE;
-    gnet_property->props[108].vector_size = 1;
+    gnet_property->props[112].name = "download_require_server_name";
+    gnet_property->props[112].desc = "Whether gtk-gnutella should make sure the server gives us back a non-empty identifying token.";
+    gnet_property->props[112].prop_changed_listeners = NULL;
+    gnet_property->props[112].save = TRUE;
+    gnet_property->props[112].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[108].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[108].data.boolean.def   = &download_require_server_name_def;
-    gnet_property->props[108].data.boolean.value = &download_require_server_name;
+    gnet_property->props[112].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[112].data.boolean.def   = &download_require_server_name_def;
+    gnet_property->props[112].data.boolean.value = &download_require_server_name;
+
+
+    /*
+     * PROP_FORCE_ULTRAPEER:
+     *
+     * General data:
+     */
+    gnet_property->props[113].name = "force_ultrapeer";
+    gnet_property->props[113].desc = "Whether gtk-gnutella should start up as an Ultrapeer regardless of whether the node is capable of handling it.  This setting is only valid for the first hour (debugging only).";
+    gnet_property->props[113].prop_changed_listeners = NULL;
+    gnet_property->props[113].save = TRUE;
+    gnet_property->props[113].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[113].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[113].data.boolean.def   = &force_ultrapeer_def;
+    gnet_property->props[113].data.boolean.value = &force_ultrapeer;
+
+
+    /*
+     * PROP_FORCE_LEAF:
+     *
+     * General data:
+     */
+    gnet_property->props[114].name = "force_leaf";
+    gnet_property->props[114].desc = "Whether gtk-gnutella should always act as a leaf node, regardless of whether the node is capable of becoming an Ultrapeer.";
+    gnet_property->props[114].prop_changed_listeners = NULL;
+    gnet_property->props[114].save = TRUE;
+    gnet_property->props[114].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[114].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[114].data.boolean.def   = &force_leaf_def;
+    gnet_property->props[114].data.boolean.value = &force_leaf;
+
+
+    /*
+     * PROP_MAX_ULTRAPEERS:
+     *
+     * General data:
+     */
+    gnet_property->props[115].name = "max_ultrapeers";
+    gnet_property->props[115].desc = "Maximum amount of Ultrapeers we should connect to as a leaf.";
+    gnet_property->props[115].prop_changed_listeners = NULL;
+    gnet_property->props[115].save = TRUE;
+    gnet_property->props[115].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[115].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[115].data.guint32.def   = &max_ultrapeers_def;
+    gnet_property->props[115].data.guint32.value = &max_ultrapeers;
+    gnet_property->props[115].data.guint32.max   = 4;
+    gnet_property->props[115].data.guint32.min   = 1;
+
+
+    /*
+     * PROP_MAX_LEAVES:
+     *
+     * General data:
+     */
+    gnet_property->props[116].name = "max_leaves";
+    gnet_property->props[116].desc = "Maximum amount of leaves we can accept.";
+    gnet_property->props[116].prop_changed_listeners = NULL;
+    gnet_property->props[116].save = TRUE;
+    gnet_property->props[116].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[116].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[116].data.guint32.def   = &max_leaves_def;
+    gnet_property->props[116].data.guint32.value = &max_leaves;
+    gnet_property->props[116].data.guint32.max   = 1000;
+    gnet_property->props[116].data.guint32.min   = 50;
+
+
+    /*
+     * PROP_ENABLE_ULTRAPEER:
+     *
+     * General data:
+     */
+    gnet_property->props[117].name = "enable_ultrapeer";
+    gnet_property->props[117].desc = "Enable the ultrapeer features.";
+    gnet_property->props[117].prop_changed_listeners = NULL;
+    gnet_property->props[117].save = TRUE;
+    gnet_property->props[117].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[117].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[117].data.boolean.def   = &enable_ultrapeer_def;
+    gnet_property->props[117].data.boolean.value = &enable_ultrapeer;
+
+
+    /*
+     * PROP_CURRENT_PEERMODE:
+     *
+     * General data:
+     */
+    gnet_property->props[118].name = "current_peermode";
+    gnet_property->props[118].desc = "Current peer mode for gtk-gnutella (acting as a Leaf / Ultra node).";
+    gnet_property->props[118].prop_changed_listeners = NULL;
+    gnet_property->props[118].save = TRUE;
+    gnet_property->props[118].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[118].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[118].data.guint32.def   = &current_peermode_def;
+    gnet_property->props[118].data.guint32.value = &current_peermode;
+    gnet_property->props[118].data.guint32.max   = 0xFFFFFFFF;
+    gnet_property->props[118].data.guint32.min   = 0x00000000;
     return gnet_property;
 }
 
