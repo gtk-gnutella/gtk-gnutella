@@ -36,6 +36,10 @@ GLADE_UI = \
 	interface-glade2.c interface-glade2.h \
 	support-glade2.c support-glade2.h
 ADDITIONAL_DROPIN = \
+	filter.c filter.h filter_cb.c filter_cb.h filter_gui.c filter_gui.h \
+	gtk-missing.c gtk-missing.h \
+	gui.c gui.h \
+	callbacks.c callbacks.h \
 	monitor_gui2.c monitor_gui.h monitor_cb2.c monitor_cb.h \
 	nodes_gui.c nodes_gui.h nodes_cb.c nodes_cb.h \
 	gui_property.c gui_property.h gui_property_priv.h \
@@ -59,6 +63,10 @@ GLADE_UI = \
 	interface-glade1.c interface-glade1.h \
 	support-glade1.c support-glade1.h
 ADDITIONAL_DROPIN = \
+	filter.c filter.h filter_cb.c filter_cb.h filter_gui.c filter_gui.h \
+	gtk-missing.c gtk-missing.h \
+	gui.c gui.h \
+	callbacks.c callbacks.h \
 	gtkcolumnchooser.c gtkcolumnchooser.h \
 	monitor_gui.c monitor_gui.h monitor_cb.c monitor_cb.h \
 	nodes_gui.c nodes_gui.h nodes_cb.c nodes_cb.h \
@@ -76,7 +84,7 @@ gtk_gnutella_LDADD = @GTK_LIBS@ -lz @XML_LIBS@
 endif
 
 bin_PROGRAMS = gtk-gnutella
-CLEANFILES = interface-glade.c interface-glade.h *.bak
+CLEANFILES = *.bak
 
 XML_STORE_FILES = search_xml.c search_xml.h
 
@@ -91,7 +99,7 @@ gtk_gnutella_SOURCES = \
 	$(XML_STORE) \
 	$(GLADE_UI) \
 	$(ADDITIONAL_DROPIN) \
-	gnutella.h \
+	gnutella.h listener.h \
 	gnet.h common.h \
 	misc.c misc.h \
 	prop.c prop.h \
@@ -112,9 +120,7 @@ gtk_gnutella_SOURCES = \
 	uploads.c uploads.h uploads_gui.h \
 	upload_stats.c upload_stats.h upload_stats_gui.h \
 	main.c \
-	gui.c gui.h \
 	matching.c matching.h \
-	callbacks.c callbacks.h \
 	getline.c getline.h \
 	header.c header.h \
 	url.c url.h \
@@ -132,11 +138,9 @@ gtk_gnutella_SOURCES = \
 	rx_link.c rx_link.h \
 	rx_inflate.c rx_inflate.h \
 	zlib_util.c zlib_util.h \
-	gtk-missing.c gtk-missing.h \
 	sha1.c sha1.h huge.c huge.h \
 	base32.c base32.h \
 	utf8.c utf8.h \
-	filter.c filter.h filter_cb.c filter_cb.h filter_gui.c filter_gui.h \
 	ban.c ban.h \
 	inet.c inet.h \
 	qrp.c qrp.h \

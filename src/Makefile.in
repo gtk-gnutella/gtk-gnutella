@@ -108,20 +108,20 @@ YACC = @YACC@
 @ENABLE_GTK2_FALSE@GLADEFILE = gtk-gnutella.glade
 @ENABLE_GTK2_TRUE@GLADE_UI = 	interface-glade2.c interface-glade2.h 	support-glade2.c support-glade2.h
 @ENABLE_GTK2_FALSE@GLADE_UI = 	interface-glade1.c interface-glade1.h 	support-glade1.c support-glade1.h
-@ENABLE_GTK2_TRUE@ADDITIONAL_DROPIN = 	monitor_gui2.c monitor_gui.h monitor_cb2.c monitor_cb.h 	nodes_gui.c nodes_gui.h nodes_cb.c nodes_cb.h 	gui_property.c gui_property.h gui_property_priv.h 	settings_gui.c settings_gui.h settings_cb.c settings_cb.h 	statusbar_gui.c statusbar_gui.h 	search_gui.c search_gui.h search_cb.c search_cb.h 	downloads_gui.c downloads_gui.h downloads_cb.c downloads_cb.h 	uploads_gui.c uploads_gui.h uploads_cb.c uploads_cb.h 	upload_stats_gui.c upload_stats_gui.h 	gnet_stats_gui.c gnet_stats_gui.h 	search_stats_gui.c search_stats_gui.h 	main_gui.c main_gui.h main_cb.c main_cb.h 
-@ENABLE_GTK2_FALSE@ADDITIONAL_DROPIN = 	gtkcolumnchooser.c gtkcolumnchooser.h 	monitor_gui.c monitor_gui.h monitor_cb.c monitor_cb.h 	nodes_gui.c nodes_gui.h nodes_cb.c nodes_cb.h 	gui_property.c gui_property.h gui_property_priv.h 	settings_gui.c settings_gui.h settings_cb.c settings_cb.h 	statusbar_gui.c statusbar_gui.h 	search_gui.c search_gui.h search_cb.c search_cb.h 	downloads_gui.c downloads_gui.h downloads_cb.c downloads_cb.h 	uploads_gui.c uploads_gui.h uploads_cb.c uploads_cb.h 	upload_stats_gui.c upload_stats_gui.h 	gnet_stats_gui.c gnet_stats_gui.h 	search_stats_gui.c search_stats_gui.h 	main_gui.c main_gui.h main_cb.c main_cb.h 
+@ENABLE_GTK2_TRUE@ADDITIONAL_DROPIN = 	filter.c filter.h filter_cb.c filter_cb.h filter_gui.c filter_gui.h 	gtk-missing.c gtk-missing.h 	gui.c gui.h 	callbacks.c callbacks.h 	monitor_gui2.c monitor_gui.h monitor_cb2.c monitor_cb.h 	nodes_gui.c nodes_gui.h nodes_cb.c nodes_cb.h 	gui_property.c gui_property.h gui_property_priv.h 	settings_gui.c settings_gui.h settings_cb.c settings_cb.h 	statusbar_gui.c statusbar_gui.h 	search_gui.c search_gui.h search_cb.c search_cb.h 	downloads_gui.c downloads_gui.h downloads_cb.c downloads_cb.h 	uploads_gui.c uploads_gui.h uploads_cb.c uploads_cb.h 	upload_stats_gui.c upload_stats_gui.h 	gnet_stats_gui.c gnet_stats_gui.h 	search_stats_gui.c search_stats_gui.h 	main_gui.c main_gui.h main_cb.c main_cb.h 
+@ENABLE_GTK2_FALSE@ADDITIONAL_DROPIN = 	filter.c filter.h filter_cb.c filter_cb.h filter_gui.c filter_gui.h 	gtk-missing.c gtk-missing.h 	gui.c gui.h 	callbacks.c callbacks.h 	gtkcolumnchooser.c gtkcolumnchooser.h 	monitor_gui.c monitor_gui.h monitor_cb.c monitor_cb.h 	nodes_gui.c nodes_gui.h nodes_cb.c nodes_cb.h 	gui_property.c gui_property.h gui_property_priv.h 	settings_gui.c settings_gui.h settings_cb.c settings_cb.h 	statusbar_gui.c statusbar_gui.h 	search_gui.c search_gui.h search_cb.c search_cb.h 	downloads_gui.c downloads_gui.h downloads_cb.c downloads_cb.h 	uploads_gui.c uploads_gui.h uploads_cb.c uploads_cb.h 	upload_stats_gui.c upload_stats_gui.h 	gnet_stats_gui.c gnet_stats_gui.h 	search_stats_gui.c search_stats_gui.h 	main_gui.c main_gui.h main_cb.c main_cb.h 
 @ENABLE_GTK2_TRUE@gtk_gnutella_LDADD = @GTK_GNUTELLA_LIBS@ -lz @XML_LIBS@
 @ENABLE_GTK2_FALSE@gtk_gnutella_LDADD = @GTK_LIBS@ -lz @XML_LIBS@
 
 bin_PROGRAMS = gtk-gnutella
-CLEANFILES = interface-glade.c interface-glade.h *.bak
+CLEANFILES = *.bak
 
 XML_STORE_FILES = search_xml.c search_xml.h
 @ENABLE_XML_STORE_TRUE@XML_STORE = $(XML_STORE_FILES)
 @ENABLE_XML_STORE_FALSE@XML_STORE = 
 
 # interface.h must come before any .c files that include it so that it is built.
-gtk_gnutella_SOURCES =  	$(XML_STORE) 	$(GLADE_UI) 	$(ADDITIONAL_DROPIN) 	gnutella.h 	gnet.h common.h 	misc.c misc.h 	prop.c prop.h 	gnet_property.c gnet_property.h gnet_property_priv.h 	guid.c guid.h 	settings.c settings.h oldconfig.c oldconfig.h 	sockets.c sockets.h 	nodes.c nodes.h 	hosts.c hosts.h 	pcache.c pcache.h 	routing.c routing.h 	search.c search.h search_gui.h 	downloads.c downloads.h downloads_gui.h 	fileinfo.c fileinfo.h 	fuzzy.c fuzzy.h 	whitelist.c whitelist.h 	share.c share.h 	uploads.c uploads.h uploads_gui.h 	upload_stats.c upload_stats.h upload_stats_gui.h 	main.c 	gui.c gui.h 	matching.c matching.h 	callbacks.c callbacks.h 	getline.c getline.h 	header.c header.h 	url.c url.h 	pmsg.c pmsg.h 	gmsg.c gmsg.h 	cq.c cq.h 	mq.c mq.h 	sq.c sq.h 	bsched.c bsched.h 	tx.c tx.h 	tx_link.c tx_link.h 	tx_deflate.c tx_deflate.h 	rxbuf.c rxbuf.h 	rx.c rx.h 	rx_link.c rx_link.h 	rx_inflate.c rx_inflate.h 	zlib_util.c zlib_util.h 	gtk-missing.c gtk-missing.h 	sha1.c sha1.h huge.c huge.h 	base32.c base32.h 	utf8.c utf8.h 	filter.c filter.h filter_cb.c filter_cb.h filter_gui.c filter_gui.h 	ban.c ban.h 	inet.c inet.h 	qrp.c qrp.h 	getdate.y getdate.h 	atoms.c atoms.h 	extensions.c extensions.h ggep.h 	dmesh.c dmesh.h 	http.c http.h 	version.c version.h 	alive.c alive.h 	zalloc.c zalloc.h 	walloc.c walloc.h 	vendors.c vendors.h 	idtable.c idtable.h 	namesize.c namesize.h 	ignore.c ignore.h 	gnet_stats.c gnet_stats.h
+gtk_gnutella_SOURCES =  	$(XML_STORE) 	$(GLADE_UI) 	$(ADDITIONAL_DROPIN) 	gnutella.h listener.h 	gnet.h common.h 	misc.c misc.h 	prop.c prop.h 	gnet_property.c gnet_property.h gnet_property_priv.h 	guid.c guid.h 	settings.c settings.h oldconfig.c oldconfig.h 	sockets.c sockets.h 	nodes.c nodes.h 	hosts.c hosts.h 	pcache.c pcache.h 	routing.c routing.h 	search.c search.h search_gui.h 	downloads.c downloads.h downloads_gui.h 	fileinfo.c fileinfo.h 	fuzzy.c fuzzy.h 	whitelist.c whitelist.h 	share.c share.h 	uploads.c uploads.h uploads_gui.h 	upload_stats.c upload_stats.h upload_stats_gui.h 	main.c 	matching.c matching.h 	getline.c getline.h 	header.c header.h 	url.c url.h 	pmsg.c pmsg.h 	gmsg.c gmsg.h 	cq.c cq.h 	mq.c mq.h 	sq.c sq.h 	bsched.c bsched.h 	tx.c tx.h 	tx_link.c tx_link.h 	tx_deflate.c tx_deflate.h 	rxbuf.c rxbuf.h 	rx.c rx.h 	rx_link.c rx_link.h 	rx_inflate.c rx_inflate.h 	zlib_util.c zlib_util.h 	sha1.c sha1.h huge.c huge.h 	base32.c base32.h 	utf8.c utf8.h 	ban.c ban.h 	inet.c inet.h 	qrp.c qrp.h 	getdate.y getdate.h 	atoms.c atoms.h 	extensions.c extensions.h ggep.h 	dmesh.c dmesh.h 	http.c http.h 	version.c version.h 	alive.c alive.h 	zalloc.c zalloc.h 	walloc.c walloc.h 	vendors.c vendors.h 	idtable.c idtable.h 	namesize.c namesize.h 	ignore.c ignore.h 	gnet_stats.c gnet_stats.h
 
 
 GLADE_WARNING1 = "Warning: gtk-gnutella.glade is newer than glade-built files and"
@@ -140,7 +140,10 @@ LDFLAGS = @LDFLAGS@
 LIBS = @LIBS@
 @ENABLE_GTK2_FALSE@@ENABLE_XML_STORE_FALSE@gtk_gnutella_OBJECTS =  \
 @ENABLE_GTK2_FALSE@@ENABLE_XML_STORE_FALSE@interface-glade1.o \
-@ENABLE_GTK2_FALSE@@ENABLE_XML_STORE_FALSE@support-glade1.o \
+@ENABLE_GTK2_FALSE@@ENABLE_XML_STORE_FALSE@support-glade1.o filter.o \
+@ENABLE_GTK2_FALSE@@ENABLE_XML_STORE_FALSE@filter_cb.o filter_gui.o \
+@ENABLE_GTK2_FALSE@@ENABLE_XML_STORE_FALSE@gtk-missing.o gui.o \
+@ENABLE_GTK2_FALSE@@ENABLE_XML_STORE_FALSE@callbacks.o \
 @ENABLE_GTK2_FALSE@@ENABLE_XML_STORE_FALSE@gtkcolumnchooser.o \
 @ENABLE_GTK2_FALSE@@ENABLE_XML_STORE_FALSE@monitor_gui.o monitor_cb.o \
 @ENABLE_GTK2_FALSE@@ENABLE_XML_STORE_FALSE@nodes_gui.o nodes_cb.o \
@@ -162,31 +165,31 @@ LIBS = @LIBS@
 @ENABLE_GTK2_FALSE@@ENABLE_XML_STORE_FALSE@downloads.o fileinfo.o \
 @ENABLE_GTK2_FALSE@@ENABLE_XML_STORE_FALSE@fuzzy.o whitelist.o share.o \
 @ENABLE_GTK2_FALSE@@ENABLE_XML_STORE_FALSE@uploads.o upload_stats.o \
-@ENABLE_GTK2_FALSE@@ENABLE_XML_STORE_FALSE@main.o gui.o matching.o \
-@ENABLE_GTK2_FALSE@@ENABLE_XML_STORE_FALSE@callbacks.o getline.o \
+@ENABLE_GTK2_FALSE@@ENABLE_XML_STORE_FALSE@main.o matching.o getline.o \
 @ENABLE_GTK2_FALSE@@ENABLE_XML_STORE_FALSE@header.o url.o pmsg.o gmsg.o \
 @ENABLE_GTK2_FALSE@@ENABLE_XML_STORE_FALSE@cq.o mq.o sq.o bsched.o tx.o \
 @ENABLE_GTK2_FALSE@@ENABLE_XML_STORE_FALSE@tx_link.o tx_deflate.o \
 @ENABLE_GTK2_FALSE@@ENABLE_XML_STORE_FALSE@rxbuf.o rx.o rx_link.o \
 @ENABLE_GTK2_FALSE@@ENABLE_XML_STORE_FALSE@rx_inflate.o zlib_util.o \
-@ENABLE_GTK2_FALSE@@ENABLE_XML_STORE_FALSE@gtk-missing.o sha1.o huge.o \
-@ENABLE_GTK2_FALSE@@ENABLE_XML_STORE_FALSE@base32.o utf8.o filter.o \
-@ENABLE_GTK2_FALSE@@ENABLE_XML_STORE_FALSE@filter_cb.o filter_gui.o \
-@ENABLE_GTK2_FALSE@@ENABLE_XML_STORE_FALSE@ban.o inet.o qrp.o getdate.o \
-@ENABLE_GTK2_FALSE@@ENABLE_XML_STORE_FALSE@atoms.o extensions.o dmesh.o \
-@ENABLE_GTK2_FALSE@@ENABLE_XML_STORE_FALSE@http.o version.o alive.o \
-@ENABLE_GTK2_FALSE@@ENABLE_XML_STORE_FALSE@zalloc.o walloc.o vendors.o \
-@ENABLE_GTK2_FALSE@@ENABLE_XML_STORE_FALSE@idtable.o namesize.o \
-@ENABLE_GTK2_FALSE@@ENABLE_XML_STORE_FALSE@ignore.o gnet_stats.o
+@ENABLE_GTK2_FALSE@@ENABLE_XML_STORE_FALSE@sha1.o huge.o base32.o \
+@ENABLE_GTK2_FALSE@@ENABLE_XML_STORE_FALSE@utf8.o ban.o inet.o qrp.o \
+@ENABLE_GTK2_FALSE@@ENABLE_XML_STORE_FALSE@getdate.o atoms.o \
+@ENABLE_GTK2_FALSE@@ENABLE_XML_STORE_FALSE@extensions.o dmesh.o http.o \
+@ENABLE_GTK2_FALSE@@ENABLE_XML_STORE_FALSE@version.o alive.o zalloc.o \
+@ENABLE_GTK2_FALSE@@ENABLE_XML_STORE_FALSE@walloc.o vendors.o idtable.o \
+@ENABLE_GTK2_FALSE@@ENABLE_XML_STORE_FALSE@namesize.o ignore.o \
+@ENABLE_GTK2_FALSE@@ENABLE_XML_STORE_FALSE@gnet_stats.o
 @ENABLE_GTK2_TRUE@@ENABLE_XML_STORE_FALSE@gtk_gnutella_OBJECTS =  \
 @ENABLE_GTK2_TRUE@@ENABLE_XML_STORE_FALSE@interface-glade2.o \
-@ENABLE_GTK2_TRUE@@ENABLE_XML_STORE_FALSE@support-glade2.o \
-@ENABLE_GTK2_TRUE@@ENABLE_XML_STORE_FALSE@monitor_gui2.o monitor_cb2.o \
-@ENABLE_GTK2_TRUE@@ENABLE_XML_STORE_FALSE@nodes_gui.o nodes_cb.o \
-@ENABLE_GTK2_TRUE@@ENABLE_XML_STORE_FALSE@gui_property.o settings_gui.o \
-@ENABLE_GTK2_TRUE@@ENABLE_XML_STORE_FALSE@settings_cb.o statusbar_gui.o \
-@ENABLE_GTK2_TRUE@@ENABLE_XML_STORE_FALSE@search_gui.o search_cb.o \
-@ENABLE_GTK2_TRUE@@ENABLE_XML_STORE_FALSE@downloads_gui.o \
+@ENABLE_GTK2_TRUE@@ENABLE_XML_STORE_FALSE@support-glade2.o filter.o \
+@ENABLE_GTK2_TRUE@@ENABLE_XML_STORE_FALSE@filter_cb.o filter_gui.o \
+@ENABLE_GTK2_TRUE@@ENABLE_XML_STORE_FALSE@gtk-missing.o gui.o \
+@ENABLE_GTK2_TRUE@@ENABLE_XML_STORE_FALSE@callbacks.o monitor_gui2.o \
+@ENABLE_GTK2_TRUE@@ENABLE_XML_STORE_FALSE@monitor_cb2.o nodes_gui.o \
+@ENABLE_GTK2_TRUE@@ENABLE_XML_STORE_FALSE@nodes_cb.o gui_property.o \
+@ENABLE_GTK2_TRUE@@ENABLE_XML_STORE_FALSE@settings_gui.o settings_cb.o \
+@ENABLE_GTK2_TRUE@@ENABLE_XML_STORE_FALSE@statusbar_gui.o search_gui.o \
+@ENABLE_GTK2_TRUE@@ENABLE_XML_STORE_FALSE@search_cb.o downloads_gui.o \
 @ENABLE_GTK2_TRUE@@ENABLE_XML_STORE_FALSE@downloads_cb.o uploads_gui.o \
 @ENABLE_GTK2_TRUE@@ENABLE_XML_STORE_FALSE@uploads_cb.o \
 @ENABLE_GTK2_TRUE@@ENABLE_XML_STORE_FALSE@upload_stats_gui.o \
@@ -200,16 +203,13 @@ LIBS = @LIBS@
 @ENABLE_GTK2_TRUE@@ENABLE_XML_STORE_FALSE@downloads.o fileinfo.o \
 @ENABLE_GTK2_TRUE@@ENABLE_XML_STORE_FALSE@fuzzy.o whitelist.o share.o \
 @ENABLE_GTK2_TRUE@@ENABLE_XML_STORE_FALSE@uploads.o upload_stats.o \
-@ENABLE_GTK2_TRUE@@ENABLE_XML_STORE_FALSE@main.o gui.o matching.o \
-@ENABLE_GTK2_TRUE@@ENABLE_XML_STORE_FALSE@callbacks.o getline.o \
+@ENABLE_GTK2_TRUE@@ENABLE_XML_STORE_FALSE@main.o matching.o getline.o \
 @ENABLE_GTK2_TRUE@@ENABLE_XML_STORE_FALSE@header.o url.o pmsg.o gmsg.o \
 @ENABLE_GTK2_TRUE@@ENABLE_XML_STORE_FALSE@cq.o mq.o sq.o bsched.o tx.o \
 @ENABLE_GTK2_TRUE@@ENABLE_XML_STORE_FALSE@tx_link.o tx_deflate.o \
 @ENABLE_GTK2_TRUE@@ENABLE_XML_STORE_FALSE@rxbuf.o rx.o rx_link.o \
 @ENABLE_GTK2_TRUE@@ENABLE_XML_STORE_FALSE@rx_inflate.o zlib_util.o \
-@ENABLE_GTK2_TRUE@@ENABLE_XML_STORE_FALSE@gtk-missing.o sha1.o huge.o \
-@ENABLE_GTK2_TRUE@@ENABLE_XML_STORE_FALSE@base32.o utf8.o filter.o \
-@ENABLE_GTK2_TRUE@@ENABLE_XML_STORE_FALSE@filter_cb.o filter_gui.o \
+@ENABLE_GTK2_TRUE@@ENABLE_XML_STORE_FALSE@sha1.o huge.o base32.o utf8.o \
 @ENABLE_GTK2_TRUE@@ENABLE_XML_STORE_FALSE@ban.o inet.o qrp.o getdate.o \
 @ENABLE_GTK2_TRUE@@ENABLE_XML_STORE_FALSE@atoms.o extensions.o dmesh.o \
 @ENABLE_GTK2_TRUE@@ENABLE_XML_STORE_FALSE@http.o version.o alive.o \
@@ -219,14 +219,17 @@ LIBS = @LIBS@
 @ENABLE_GTK2_TRUE@@ENABLE_XML_STORE_TRUE@gtk_gnutella_OBJECTS =  \
 @ENABLE_GTK2_TRUE@@ENABLE_XML_STORE_TRUE@search_xml.o \
 @ENABLE_GTK2_TRUE@@ENABLE_XML_STORE_TRUE@interface-glade2.o \
-@ENABLE_GTK2_TRUE@@ENABLE_XML_STORE_TRUE@support-glade2.o \
-@ENABLE_GTK2_TRUE@@ENABLE_XML_STORE_TRUE@monitor_gui2.o monitor_cb2.o \
-@ENABLE_GTK2_TRUE@@ENABLE_XML_STORE_TRUE@nodes_gui.o nodes_cb.o \
-@ENABLE_GTK2_TRUE@@ENABLE_XML_STORE_TRUE@gui_property.o settings_gui.o \
-@ENABLE_GTK2_TRUE@@ENABLE_XML_STORE_TRUE@settings_cb.o statusbar_gui.o \
-@ENABLE_GTK2_TRUE@@ENABLE_XML_STORE_TRUE@search_gui.o search_cb.o \
-@ENABLE_GTK2_TRUE@@ENABLE_XML_STORE_TRUE@downloads_gui.o downloads_cb.o \
-@ENABLE_GTK2_TRUE@@ENABLE_XML_STORE_TRUE@uploads_gui.o uploads_cb.o \
+@ENABLE_GTK2_TRUE@@ENABLE_XML_STORE_TRUE@support-glade2.o filter.o \
+@ENABLE_GTK2_TRUE@@ENABLE_XML_STORE_TRUE@filter_cb.o filter_gui.o \
+@ENABLE_GTK2_TRUE@@ENABLE_XML_STORE_TRUE@gtk-missing.o gui.o \
+@ENABLE_GTK2_TRUE@@ENABLE_XML_STORE_TRUE@callbacks.o monitor_gui2.o \
+@ENABLE_GTK2_TRUE@@ENABLE_XML_STORE_TRUE@monitor_cb2.o nodes_gui.o \
+@ENABLE_GTK2_TRUE@@ENABLE_XML_STORE_TRUE@nodes_cb.o gui_property.o \
+@ENABLE_GTK2_TRUE@@ENABLE_XML_STORE_TRUE@settings_gui.o settings_cb.o \
+@ENABLE_GTK2_TRUE@@ENABLE_XML_STORE_TRUE@statusbar_gui.o search_gui.o \
+@ENABLE_GTK2_TRUE@@ENABLE_XML_STORE_TRUE@search_cb.o downloads_gui.o \
+@ENABLE_GTK2_TRUE@@ENABLE_XML_STORE_TRUE@downloads_cb.o uploads_gui.o \
+@ENABLE_GTK2_TRUE@@ENABLE_XML_STORE_TRUE@uploads_cb.o \
 @ENABLE_GTK2_TRUE@@ENABLE_XML_STORE_TRUE@upload_stats_gui.o \
 @ENABLE_GTK2_TRUE@@ENABLE_XML_STORE_TRUE@gnet_stats_gui.o \
 @ENABLE_GTK2_TRUE@@ENABLE_XML_STORE_TRUE@search_stats_gui.o main_gui.o \
@@ -237,17 +240,14 @@ LIBS = @LIBS@
 @ENABLE_GTK2_TRUE@@ENABLE_XML_STORE_TRUE@pcache.o routing.o search.o \
 @ENABLE_GTK2_TRUE@@ENABLE_XML_STORE_TRUE@downloads.o fileinfo.o fuzzy.o \
 @ENABLE_GTK2_TRUE@@ENABLE_XML_STORE_TRUE@whitelist.o share.o uploads.o \
-@ENABLE_GTK2_TRUE@@ENABLE_XML_STORE_TRUE@upload_stats.o main.o gui.o \
-@ENABLE_GTK2_TRUE@@ENABLE_XML_STORE_TRUE@matching.o callbacks.o \
-@ENABLE_GTK2_TRUE@@ENABLE_XML_STORE_TRUE@getline.o header.o url.o \
-@ENABLE_GTK2_TRUE@@ENABLE_XML_STORE_TRUE@pmsg.o gmsg.o cq.o mq.o sq.o \
-@ENABLE_GTK2_TRUE@@ENABLE_XML_STORE_TRUE@bsched.o tx.o tx_link.o \
+@ENABLE_GTK2_TRUE@@ENABLE_XML_STORE_TRUE@upload_stats.o main.o \
+@ENABLE_GTK2_TRUE@@ENABLE_XML_STORE_TRUE@matching.o getline.o header.o \
+@ENABLE_GTK2_TRUE@@ENABLE_XML_STORE_TRUE@url.o pmsg.o gmsg.o cq.o mq.o \
+@ENABLE_GTK2_TRUE@@ENABLE_XML_STORE_TRUE@sq.o bsched.o tx.o tx_link.o \
 @ENABLE_GTK2_TRUE@@ENABLE_XML_STORE_TRUE@tx_deflate.o rxbuf.o rx.o \
 @ENABLE_GTK2_TRUE@@ENABLE_XML_STORE_TRUE@rx_link.o rx_inflate.o \
-@ENABLE_GTK2_TRUE@@ENABLE_XML_STORE_TRUE@zlib_util.o gtk-missing.o \
-@ENABLE_GTK2_TRUE@@ENABLE_XML_STORE_TRUE@sha1.o huge.o base32.o utf8.o \
-@ENABLE_GTK2_TRUE@@ENABLE_XML_STORE_TRUE@filter.o filter_cb.o \
-@ENABLE_GTK2_TRUE@@ENABLE_XML_STORE_TRUE@filter_gui.o ban.o inet.o \
+@ENABLE_GTK2_TRUE@@ENABLE_XML_STORE_TRUE@zlib_util.o sha1.o huge.o \
+@ENABLE_GTK2_TRUE@@ENABLE_XML_STORE_TRUE@base32.o utf8.o ban.o inet.o \
 @ENABLE_GTK2_TRUE@@ENABLE_XML_STORE_TRUE@qrp.o getdate.o atoms.o \
 @ENABLE_GTK2_TRUE@@ENABLE_XML_STORE_TRUE@extensions.o dmesh.o http.o \
 @ENABLE_GTK2_TRUE@@ENABLE_XML_STORE_TRUE@version.o alive.o zalloc.o \
@@ -257,7 +257,10 @@ LIBS = @LIBS@
 @ENABLE_GTK2_FALSE@@ENABLE_XML_STORE_TRUE@gtk_gnutella_OBJECTS =  \
 @ENABLE_GTK2_FALSE@@ENABLE_XML_STORE_TRUE@search_xml.o \
 @ENABLE_GTK2_FALSE@@ENABLE_XML_STORE_TRUE@interface-glade1.o \
-@ENABLE_GTK2_FALSE@@ENABLE_XML_STORE_TRUE@support-glade1.o \
+@ENABLE_GTK2_FALSE@@ENABLE_XML_STORE_TRUE@support-glade1.o filter.o \
+@ENABLE_GTK2_FALSE@@ENABLE_XML_STORE_TRUE@filter_cb.o filter_gui.o \
+@ENABLE_GTK2_FALSE@@ENABLE_XML_STORE_TRUE@gtk-missing.o gui.o \
+@ENABLE_GTK2_FALSE@@ENABLE_XML_STORE_TRUE@callbacks.o \
 @ENABLE_GTK2_FALSE@@ENABLE_XML_STORE_TRUE@gtkcolumnchooser.o \
 @ENABLE_GTK2_FALSE@@ENABLE_XML_STORE_TRUE@monitor_gui.o monitor_cb.o \
 @ENABLE_GTK2_FALSE@@ENABLE_XML_STORE_TRUE@nodes_gui.o nodes_cb.o \
@@ -278,16 +281,13 @@ LIBS = @LIBS@
 @ENABLE_GTK2_FALSE@@ENABLE_XML_STORE_TRUE@downloads.o fileinfo.o \
 @ENABLE_GTK2_FALSE@@ENABLE_XML_STORE_TRUE@fuzzy.o whitelist.o share.o \
 @ENABLE_GTK2_FALSE@@ENABLE_XML_STORE_TRUE@uploads.o upload_stats.o \
-@ENABLE_GTK2_FALSE@@ENABLE_XML_STORE_TRUE@main.o gui.o matching.o \
-@ENABLE_GTK2_FALSE@@ENABLE_XML_STORE_TRUE@callbacks.o getline.o \
+@ENABLE_GTK2_FALSE@@ENABLE_XML_STORE_TRUE@main.o matching.o getline.o \
 @ENABLE_GTK2_FALSE@@ENABLE_XML_STORE_TRUE@header.o url.o pmsg.o gmsg.o \
 @ENABLE_GTK2_FALSE@@ENABLE_XML_STORE_TRUE@cq.o mq.o sq.o bsched.o tx.o \
 @ENABLE_GTK2_FALSE@@ENABLE_XML_STORE_TRUE@tx_link.o tx_deflate.o \
 @ENABLE_GTK2_FALSE@@ENABLE_XML_STORE_TRUE@rxbuf.o rx.o rx_link.o \
 @ENABLE_GTK2_FALSE@@ENABLE_XML_STORE_TRUE@rx_inflate.o zlib_util.o \
-@ENABLE_GTK2_FALSE@@ENABLE_XML_STORE_TRUE@gtk-missing.o sha1.o huge.o \
-@ENABLE_GTK2_FALSE@@ENABLE_XML_STORE_TRUE@base32.o utf8.o filter.o \
-@ENABLE_GTK2_FALSE@@ENABLE_XML_STORE_TRUE@filter_cb.o filter_gui.o \
+@ENABLE_GTK2_FALSE@@ENABLE_XML_STORE_TRUE@sha1.o huge.o base32.o utf8.o \
 @ENABLE_GTK2_FALSE@@ENABLE_XML_STORE_TRUE@ban.o inet.o qrp.o getdate.o \
 @ENABLE_GTK2_FALSE@@ENABLE_XML_STORE_TRUE@atoms.o extensions.o dmesh.o \
 @ENABLE_GTK2_FALSE@@ENABLE_XML_STORE_TRUE@http.o version.o alive.o \
