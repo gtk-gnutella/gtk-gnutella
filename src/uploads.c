@@ -1481,6 +1481,27 @@ static void upload_http_sha1_add(gchar *buf, gint *retval, gpointer arg)
 }
 
 /*
+ * upload_416_extra
+ *
+ * This routine is called by http_send_status() to generate the
+ * additionnal headers on a "416 Request range not satisfiable" error.
+ */
+static void upload_416_extra(gchar *buf, gint *retval, gpointer arg)
+{
+	gint rw = 0;
+	gint length = *retval;
+	struct upload_http_cb *a = (struct upload_http_cb *) arg;
+	struct upload *u = a->u;
+
+	rw = g_snprintf(buf, length,
+		"Content-Range: bytes */%u\r\n", u->file_size);
+
+	g_assert(rw < length);
+
+	*retval = rw;
+}
+
+/*
  * upload_http_status
  *
  * This routine is called by http_send_status() to generate the
@@ -1749,8 +1770,24 @@ static void upload_request(struct upload *u, header_t *header)
 	if (!has_end)
 		end = u->file_size - 1;
 
+	/*
+	 * When requested range is invalid, the HTTP 416 reply should contain
+	 * a Content-Range header giving the total file size, so that they
+	 * know the limits of what they can request.
+	 */
+
 	if (skip >= u->file_size || end >= u->file_size) {
-		upload_error_remove(u, reqfile, 416, "Requested range not satisfiable");
+		gchar *msg = "Requested range not satisfiable";
+
+		cb_arg.u = u;
+		cb_arg.sf = reqfile;
+
+		hev.he_type = HTTP_EXTRA_CALLBACK;
+		hev.he_cb = upload_416_extra;
+		hev.he_arg = &cb_arg;
+
+		(void) http_send_status(u->socket, 416, &hev, 1, msg);
+		upload_remove(u, msg);
 		return;
 	}
 
