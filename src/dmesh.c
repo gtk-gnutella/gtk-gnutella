@@ -1074,8 +1074,8 @@ void dmesh_collect_locations(guchar *sha1, guchar *value)
 		gboolean ok;
 		dmesh_urlinfo_t info;
 		gboolean non_space_seen;
-		gboolean skip_date = FALSE;
-		gboolean in_quote = FALSE;
+		gboolean skip_date;
+		gboolean in_quote;
 
 		/*
 		 * Find next space, colon or EOS (End of String).
@@ -1085,6 +1085,7 @@ void dmesh_collect_locations(guchar *sha1, guchar *value)
 
 		url = NULL;
 		non_space_seen = FALSE;
+		in_quote = FALSE;
 
 		while ((c = *p)) {
 			if (!non_space_seen) {
@@ -1109,7 +1110,7 @@ void dmesh_collect_locations(guchar *sha1, guchar *value)
 			}
 
 			if (in_quote)
-				continue;
+				goto next;
 
 			/*
 			 * The "," may appear un-escaped in the URL.
