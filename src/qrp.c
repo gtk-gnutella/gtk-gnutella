@@ -2868,9 +2868,12 @@ GSList *qrt_build_query_target(
 		 * If table for the node is so full that we can't let all the queries
 		 * pass through, further restrict sending even though QRT says we
 		 * can let it go.
+		 *
+		 * We only do that when there are pending messages in the node's queue,
+		 * meaning we can't transmit all our packets fast enough.
 		 */
 
-		if (rt->pass_throw < 100) {
+		if (rt->pass_throw < 100 && NODE_MQUEUE_COUNT(dn) != 0) {
 			if (random_value(99) >= rt->pass_throw)
 				continue;
 		}
