@@ -510,6 +510,8 @@ void on_clist_downloads_select_row(GtkCList * clist, gint row, gint column,
     gtk_widget_set_sensitive(GTK_WIDGET(popup_downloads_copy_url),
                              ((clist->selection != NULL) &&
                               (clist->selection->next == NULL)));
+    gtk_widget_set_sensitive(GTK_WIDGET(popup_downloads_copy_url),
+                             TRUE);
 	gui_update_download_abort_resume();
 }
 
@@ -520,6 +522,8 @@ void on_clist_downloads_unselect_row(GtkCList * clist, gint row,
     gtk_widget_set_sensitive(GTK_WIDGET(popup_downloads_copy_url),
                              ((clist->selection != NULL) &&
                               (clist->selection->next == NULL)));
+    gtk_widget_set_sensitive(GTK_WIDGET(popup_downloads_copy_url),
+                             clist->selection != NULL);
 	gui_update_download_abort_resume();
 }
 
