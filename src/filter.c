@@ -1192,7 +1192,8 @@ static void filter_set_ruleset(GList *ruleset)
  *
  * Convert a rule condition to a human readable string.
  */
-static gchar *rule_condition_to_gchar(rule_t *r) {
+static gchar *rule_condition_to_gchar(rule_t *r)
+{
     static gchar tmp[256];
 
     g_assert(r != NULL);
@@ -1247,28 +1248,16 @@ static gchar *rule_condition_to_gchar(rule_t *r) {
             ip_to_gchar(r->u.ip.mask));
         break;
     case RULE_SIZE:
-        if (r->u.size.lower == 0) {
-            g_snprintf(
-                tmp, sizeof(tmp), 
-                "If filesize is less than %d",
-                r->u.size.lower);
-        } else if (r->u.size.upper == 0) {
-            g_snprintf(
-                tmp, sizeof(tmp), 
-                "If filesize is greater than %d",
-                r->u.size.lower);
-        } else if (r->u.size.upper == r->u.size.lower) {
-            g_snprintf(
-                tmp, sizeof(tmp), 
-                "If filesize is exactly %d",
-                r->u.size.lower);
-        } else {
-            g_snprintf(
-                tmp, sizeof(tmp), 
-                "If filesize is between %d and %d",
-                r->u.size.lower,
-                r->u.size.upper);
-        }
+		if (r->u.size.lower == 0)
+			g_snprintf(tmp, sizeof(tmp),
+				"If filesize is smaller than %d", r->u.size.upper);
+		else if (r->u.size.upper == r->u.size.lower)
+			g_snprintf(tmp, sizeof(tmp),
+				"If filesize is exactly %d", r->u.size.upper);
+		else
+			g_snprintf(tmp, sizeof(tmp),
+				"If filesize is between %d and %d",
+				r->u.size.lower, r->u.size.upper);
         break;
     case RULE_JUMP:
        	g_snprintf(
