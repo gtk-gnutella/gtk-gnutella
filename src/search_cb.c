@@ -268,15 +268,14 @@ void on_search_notebook_switch(GtkNotebook * notebook,
 							   GtkNotebookPage * page, gint page_num,
 							   gpointer user_data)
 {
-    //FIXME: find a way this works also with Gtk2
-#ifndef USE_GTK2
-	search_t *sch = (search_t *)
-        gtk_object_get_user_data((GtkObject *) page->child);
+	search_t *sch;
+
+	sch = (search_t *) gtk_object_get_user_data(
+		GTK_OBJECT(gtk_notebook_get_nth_page(notebook, page_num)));
 
 	g_return_if_fail(sch);
 
     search_gui_set_current_search(sch);
-#endif
 }
 
 void on_clist_search_select_row(GtkCList * clist, gint row,
