@@ -145,7 +145,6 @@ used_free_kv(gpointer key, gpointer val, gpointer x)
 	struct used_val *v = (struct used_val *) val;
 
 	val_free(v);
-	statx_free(datapoints);
 }
 
 /**
@@ -156,6 +155,7 @@ clock_close(void)
 {
 	g_hash_table_foreach(used, used_free_kv, NULL);
 	g_hash_table_destroy(used);
+	statx_free(datapoints);
 }
 
 /**
@@ -201,6 +201,8 @@ clock_adjust(void)
 			continue;
 		statx_add(datapoints, v);
 	}
+
+	g_free(value);
 
 	/*
 	 * Recompute the new average using the "sound" points we kept.
