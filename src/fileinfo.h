@@ -134,6 +134,7 @@ void file_info_add_source(
 void file_info_remove_source(
     struct dl_file_info *fi, struct download *dl, gboolean discard);
 void file_info_timer(void);
+gchar *file_info_readable_filename(struct dl_file_info *fi);
 
 shared_file_t *file_info_shared_sha1(const gchar *sha1);
 gint file_info_available_ranges(struct dl_file_info *fi, gchar *buf, gint size);
