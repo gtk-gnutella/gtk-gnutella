@@ -66,6 +66,8 @@ typedef struct bsched {
 #define BS_F_NOBW			0x00000008	/* No more bandwidth */
 #define BS_F_FROZEN_SLOT	0x00000010	/* Value of `bw_slot' is frozen */
 
+#define BS_BW_MAX			(2*1024*1024)
+
 /*
  * Source under bandwidth control.
  */

@@ -41,7 +41,7 @@ bsched_t *bsched_make(gchar *name,
 	g_assert(!(mode & ~(BS_F_READ|BS_F_WRITE)));
 
 	g_assert(type == BS_T_STREAM);		/* XXX only mode supported for now */
-	g_assert(bandwidth < 2*1024*1024);	/* Signed, and multiplied by 1000 */
+	g_assert(bandwidth < BS_BW_MAX);	/* Signed, and multiplied by 1000 */
 
 	bs = (bsched_t *) g_malloc0(sizeof(*bs));
 
@@ -469,7 +469,7 @@ gint bio_write(bio_source_t *bio, gpointer data, gint len)
 
 	amount = len > available ? available : len;
 
-	if (dbg > 4)		// XXX dbg > 8
+	if (dbg > 7)
 		printf("bsched_write(fd=%d, len=%d) available=%d\n",
 			bio->fd, len, available);
 
@@ -514,7 +514,7 @@ gint bio_read(bio_source_t *bio, gpointer data, gint len)
 
 	amount = len > available ? available : len;
 
-	if (dbg > 4)		// XXX dbg > 8
+	if (dbg > 7)
 		printf("bsched_read(fd=%d, len=%d) available=%d\n",
 			bio->fd, len, available);
 
@@ -585,8 +585,16 @@ static void bsched_heartbeat(bsched_t *bs, struct timeval *tv)
 	gint theoric;
 	gint correction;
 
+	/*
+	 * If scheduler is disabled, we don't run most of the routine.
+	 *
+	 * Jump to the end, where the new timeslice begins, so that per-source
+	 * bandwidth transfer rates are updated nonetheless.  Use "goto" to avoid
+	 * indenting the whole routine.
+	 */
+
 	if (!(bs->flags & BS_F_ENABLED))
-		return;
+		goto new_timeslice;
 
 	delay = (gint) ((tv->tv_sec - bs->last_period.tv_sec) * 1000 +
 		(tv->tv_usec - bs->last_period.tv_usec) / 1000);
@@ -643,7 +651,7 @@ static void bsched_heartbeat(bsched_t *bs, struct timeval *tv)
 	else
 		bs->bw_slot = 0;
 
-	if (dbg > 4) {		// XXX dbg > 5
+	if (dbg > 4) {
 		printf("bsched_timer(%s): delay=%d (EMA=%d), b/w=%d (EMA=%d), "
 			"overused=%d (EMA = %d)\n",
 			bs->name, delay, bs->period_ema, bs->bw_actual, bs->bw_ema,
@@ -657,6 +665,8 @@ static void bsched_heartbeat(bsched_t *bs, struct timeval *tv)
 	/*
 	 * Reset running counters, and re-enable all sources.
 	 */
+
+new_timeslice:
 
 	bs->bw_actual = 0;
 	bsched_begin_timeslice(bs);

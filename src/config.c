@@ -675,12 +675,12 @@ void config_set_param(guint32 keyword, gchar *value)
 
 	case k_output_bandwidth:
 		/* Limited to 2 MB/s since we multiply by 1000 in an unsigned 32-bit */
-		if (i >= 0 && i < 2097152) output_bandwidth = i;
+		if (i >= 0 && i < BS_BW_MAX) output_bandwidth = i;
 		return;
 
 	case k_input_bandwidth:
 		/* Limited to 2 MB/s since we multiply by 1000 in an unsigned 32-bit */
-		if (i >= 0 && i < 2097152) input_bandwidth = i;
+		if (i >= 0 && i < BS_BW_MAX) input_bandwidth = i;
 		return;
 
 	case k_search_queries_forward_size:
