@@ -199,7 +199,11 @@ gpointer walloc_track(int size, gchar *file, gint line)
 	g_assert(size > 0);
 
 	if (rounded >= WALLOC_MAX)
+#ifdef TRACK_MALLOC
+		return malloc_track(size, file, line);
+#else
 		return g_malloc(size);		/* Too big for efficient zalloc() */
+#endif
 
 	idx = rounded >> ZALLOC_ALIGNBITS;
 
