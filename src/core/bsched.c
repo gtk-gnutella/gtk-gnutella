@@ -39,6 +39,7 @@ RCSID("$Id$");
 #include "if/gnet_property_priv.h"
 
 #include "lib/glib-missing.h"
+#include "lib/walloc.h"
 #include "lib/override.h"		/* Must be the last header included */
 
 
@@ -775,7 +776,7 @@ bsched_source_add(
 	g_assert((flags & BIO_F_RW) != BIO_F_RW);	/* Either reading or writing */
 	g_assert(!(flags & ~BIO_F_RW));				/* Can only specify r/w flags */
 
-	bio = (bio_source_t *) g_malloc0(sizeof(*bio));
+	bio = (bio_source_t *) walloc0(sizeof(*bio));
 
 	bio->bs = bs;
 	bio->wio = wio;
@@ -812,7 +813,7 @@ bsched_source_remove(bio_source_t *bio)
 	if (bio->io_tag)
 		g_source_remove(bio->io_tag);
 
-	G_FREE_NULL(bio);
+	wfree(bio, sizeof(*bio));
 }
 
 /**
