@@ -326,7 +326,8 @@ static zone_t *zn_create(zone_t *zone, gint size, gint hint)
 	 * the correct boundary.
 	 */
 
-	if (size < sizeof(gchar *))
+	g_assert(size > 0);
+	if (size < (gint) sizeof(gchar *))
 		size = sizeof(gchar *);
 
 #ifdef ZONE_SAFE
@@ -412,11 +413,11 @@ void zdestroy(zone_t *zone)
 
 	for (sz = zone->zn_next, next = NULL; sz; sz = next) {
 		next = sz->zn_next;
-		g_free(sz->zn_arena);
+		G_FREE_NULL(sz->zn_arena);
 		g_free(sz);
 	}
 
-	g_free(zone->zn_arena);
+	G_FREE_NULL(zone->zn_arena);
 	g_free(zone);
 }
 
@@ -452,7 +453,7 @@ zone_t *zget(gint size, gint hint)
 	 * it now in order to allow proper lookup in the zone hash table.
 	 */
 
-	if (size < sizeof(gchar *))
+	if (size < (gint) sizeof(gchar *))
 		size = sizeof(gchar *);
 	size = zalloc_round(size);
 	
@@ -527,3 +528,4 @@ static gchar **zn_extend(zone_t *zone)
 }
 #endif	/* !REMAP_ZALLOC */
 
+/* vi: set ts=4: */

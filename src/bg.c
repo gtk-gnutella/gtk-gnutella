@@ -39,7 +39,7 @@
 
 RCSID("$Id$");
 
-#define BT_MAGIC		0xbacc931d		/* Internal bgtask magic number */
+#define BT_MAGIC		0xbacc931dU		/* Internal bgtask magic number */
 
 #define MAX_LIFE		150000			/* In useconds, MUST be << 1 sec */
 #define MIN_LIFE		40000			/* Min lifetime per task, in usecs */
@@ -1068,3 +1068,4 @@ void bg_close(void)
 /* bg_task_get_exitcode */
 /* bg_task_get_signal */
 
+/* vi: set ts=4: */

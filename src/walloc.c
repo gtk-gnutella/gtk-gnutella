@@ -166,7 +166,7 @@ void wfree(gpointer ptr, gint size)
 gpointer wrealloc(gpointer old, gint old_size, gint new_size)
 {
 	gpointer new;
-	gint rounded = zalloc_round(new_size);
+	gulong rounded = zalloc_round(new_size);
 
 	if (zalloc_round(old_size) == rounded)
 		return old;
@@ -257,7 +257,7 @@ gpointer wrealloc_track(gpointer old, gint old_size, gint new_size,
 	gpointer new;
 	gint rounded = zalloc_round(new_size);
 
-	if (zalloc_round(old_size) == rounded)
+	if (zalloc_round(old_size) == (gulong) rounded)
 		return old;
 
 	new = walloc_track(new_size, file, line);

@@ -291,7 +291,7 @@ GList *downloads_gui_collect_ctree_data(GtkCTree *ctree, GList *node_list,
 		if (node_list->data != NULL) {
 			d = gtk_ctree_node_get_row_data(ctree, node_list->data);
 
-			if (DL_GUI_IS_HEADER == GPOINTER_TO_INT(d)) { /* Is a parent */
+			if (DL_GUI_IS_HEADER == d) { /* Is a parent */
 				
 				parent = GTK_CTREE_NODE(node_list->data);
 				row = GTK_CTREE_ROW(parent);
@@ -620,7 +620,7 @@ void download_gui_add(struct download *d)
 				drecord = gtk_ctree_node_get_row_data(ctree_downloads_queue, 
 					parent);		
 
-				if (DL_GUI_IS_HEADER != (guint32) drecord)/*not a header entry*/
+				if (DL_GUI_IS_HEADER != drecord)/*not a header entry*/
 				{
 					/* No header entry so we will create one */
 					/* Copy the old parents info into a new node */
@@ -665,7 +665,7 @@ void download_gui_add(struct download *d)
 						c_queue_status, "");
 						
 					gtk_ctree_node_set_row_data(ctree_downloads_queue, parent, 
-						(gpointer) DL_GUI_IS_HEADER);						
+						DL_GUI_IS_HEADER);						
 				}
 
 				/*
@@ -736,7 +736,7 @@ void download_gui_add(struct download *d)
 				drecord = gtk_ctree_node_get_row_data(ctree_downloads, 
 					parent);		
 
-				if (DL_GUI_IS_HEADER != (guint32) drecord) {
+				if (DL_GUI_IS_HEADER != drecord) {
 					/* No header entry so we will create one */
 					/* Copy the old parents info into a new node */
 					
@@ -785,7 +785,7 @@ void download_gui_add(struct download *d)
 						c_dl_range, "");
 						
 					gtk_ctree_node_set_row_data(ctree_downloads, parent, 
-						(gpointer) DL_GUI_IS_HEADER);						
+						DL_GUI_IS_HEADER);						
 				}
 
 				/*
@@ -846,7 +846,7 @@ void gui_update_download_server(struct download *d)
 {
 	GtkCTreeNode *node;
 
-	if (DL_GUI_IS_HEADER == (guint32) d)
+	if (DL_GUI_IS_HEADER == d)
 		return;			/* A header was sent here by mistake */ 		
 
 	g_assert(d);
@@ -879,7 +879,7 @@ void gui_update_download_range(struct download *d)
 	g_assert(d);
 	g_assert(d->status != GTA_DL_QUEUED);
 
-	if (DL_GUI_IS_HEADER == (guint32) d)
+	if (DL_GUI_IS_HEADER == d)
 		return;			/* A header was sent here by mistake */ 		
 
 	if (d->file_info->use_swarming) {
@@ -910,7 +910,7 @@ void gui_update_download_host(struct download *d)
 	gchar *text;
 	GtkCTreeNode *node;
 
-	if (DL_GUI_IS_HEADER == (guint32) d)
+	if (DL_GUI_IS_HEADER == d)
 		return;			/* A header was sent here by mistake */ 		
 
 	g_assert(d);
@@ -947,7 +947,7 @@ void gui_update_download(struct download *d, gboolean force)
     if (d->last_gui_update == now && !force)
 		return;
 
-	if (DL_GUI_IS_HEADER == (guint32) d)
+	if (DL_GUI_IS_HEADER == d)
 		return;			/* A header was sent here by mistake */ 		
 
 	/*
@@ -1342,7 +1342,7 @@ void gui_update_download(struct download *d, gboolean force)
 				drecord = gtk_ctree_node_get_row_data(ctree_downloads_queue, 
 					parent);		
 
-				if (DL_GUI_IS_HEADER == GPOINTER_TO_INT(drecord)) {
+				if (DL_GUI_IS_HEADER == drecord) {
 					/* There is a header entry, we need to update it */
 					
 					/* Download is done */
@@ -1412,7 +1412,7 @@ void gui_update_download(struct download *d, gboolean force)
 				drecord = gtk_ctree_node_get_row_data(ctree_downloads, 
 					parent);		
 
-				if (DL_GUI_IS_HEADER == GPOINTER_TO_INT(drecord)) {
+				if (DL_GUI_IS_HEADER == drecord) {
 					/* There is a header entry, we need to update it */
 					
 					/* Download is done */
@@ -1789,4 +1789,5 @@ void downloads_gui_collapse_all(GtkCTree *ctree)
 	gtk_ctree_collapse_recursive(ctree, NULL);
 }
 
+/* vi: set ts=4: */
 #endif
