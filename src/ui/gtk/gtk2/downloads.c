@@ -695,8 +695,7 @@ download_gui_add(download_t *d)
 		 */
 		if (!parent) {
 			host_count = 1;
-			d_file_name = guc_file_info_readable_filename
-				(d->file_info);
+			d_file_name = guc_file_info_readable_filename(d->file_info);
 			d_file_name = lazy_locale_to_utf8(
 					(gchar *) d_file_name, 0); /* Override const */
 
@@ -794,8 +793,7 @@ download_gui_add(download_t *d)
 
 		if (!parent) {
 			host_count = 1;
-			d_file_name = guc_file_info_readable_filename
-				(d->file_info);
+			d_file_name = guc_file_info_readable_filename(d->file_info);
 			d_file_name = lazy_locale_to_utf8(
 					(gchar *) d_file_name, 0); /* Override const */
 
@@ -948,12 +946,12 @@ void download_gui_remove(download_t *d)
 	gint n;
 	gint host_column;
 
-	g_return_if_fail(d);
-	g_return_if_fail(d->file_info);
+	g_return_if_fail(d != NULL);
+	g_return_if_fail(d->file_info != NULL);
 	g_return_if_fail(DOWNLOAD_IS_VISIBLE(d));
 
 	iter = find_download(d);
-	g_assert(iter);
+	g_assert(iter != NULL);
 
 	if (DOWNLOAD_IS_QUEUED(d)) {
 		treeview = treeview_downloads_queue;
@@ -968,7 +966,7 @@ void download_gui_remove(download_t *d)
 	store =	GTK_TREE_STORE(gtk_tree_view_get_model(treeview));
 	/* All downloads have parents! */
 	parent = find_parent_with_fi_handle(ht, d->file_info->fi_handle);
-	g_assert(parent);
+	g_return_if_fail(parent != NULL);
 
 	n = gtk_tree_model_iter_n_children(GTK_TREE_MODEL(store), parent);
 	/* If there are children, there should be >1 */
@@ -1671,7 +1669,7 @@ void gui_update_download(download_t *d, gboolean force)
 
 		parent = find_parent_with_fi_handle(parents_queue,
 					d->file_info->fi_handle);
-		g_assert(parent);
+		g_return_if_fail(parent != NULL);
 
 		model =	(GtkTreeStore *) gtk_tree_view_get_model(
 									treeview_downloads_queue);
