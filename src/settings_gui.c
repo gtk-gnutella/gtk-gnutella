@@ -3443,7 +3443,7 @@ static gboolean gnet_connections_changed(property_t prop)
         nodes = max_connections + max_leaves + max_normal;
         gm_snprintf(set_tmp, sizeof(set_tmp), 
             "%u/%uU | %u/%uN | %u/%uL",
-            ultra_count, max_connections, 
+            ultra_count, max_connections - max_normal, 
             normal_count, max_normal, 
             leaf_count, max_leaves);
         break;
