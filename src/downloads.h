@@ -71,8 +71,7 @@ struct download {
 	|| (d)->status == GTA_DL_PUSH_SENT \
 	|| (d)->status == GTA_DL_FALLBACK \
 	|| (d)->status == GTA_DL_REQ_SENT \
-	|| (d)->status == GTA_DL_HEADERS \
-    || (d)->status == GTA_DL_TIMEOUT_WAIT  )
+	|| (d)->status == GTA_DL_HEADERS)
 
 #define DOWNLOAD_IS_RUNNING(d) \
 	(DOWNLOAD_IS_ACTIVE(d) || DOWNLOAD_IS_ESTABLISHING(d))
