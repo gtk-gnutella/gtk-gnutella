@@ -1181,13 +1181,17 @@
 	      </widget>
 
 	      <widget>
-		<class>GtkScrolledWindow</class>
-		<name>sw_host_catcher</name>
-		<border_width>4</border_width>
-		<hscrollbar_policy>GTK_POLICY_NEVER</hscrollbar_policy>
-		<vscrollbar_policy>GTK_POLICY_ALWAYS</vscrollbar_policy>
-		<hupdate_policy>GTK_UPDATE_CONTINUOUS</hupdate_policy>
-		<vupdate_policy>GTK_UPDATE_CONTINUOUS</vupdate_policy>
+		<class>Placeholder</class>
+	      </widget>
+
+	      <widget>
+		<class>GtkTable</class>
+		<name>table3</name>
+		<rows>1</rows>
+		<columns>2</columns>
+		<homogeneous>False</homogeneous>
+		<row_spacing>0</row_spacing>
+		<column_spacing>0</column_spacing>
 		<child>
 		  <padding>0</padding>
 		  <expand>True</expand>
@@ -1195,33 +1199,71 @@
 		</child>
 
 		<widget>
-		  <class>GtkCList</class>
-		  <name>clist_host_catcher</name>
-		  <signal>
-		    <name>select_row</name>
-		    <handler>on_clist_host_catcher_select_row</handler>
-		    <last_modification_time>Sun, 26 Mar 2000 17:33:51 GMT</last_modification_time>
-		  </signal>
-		  <signal>
-		    <name>unselect_row</name>
-		    <handler>on_clist_host_catcher_unselect_row</handler>
-		    <last_modification_time>Mon, 27 Mar 2000 06:19:16 GMT</last_modification_time>
-		  </signal>
-		  <signal>
-		    <name>button_press_event</name>
-		    <handler>on_clist_host_catcher_button_press_event</handler>
-		    <last_modification_time>Thu, 30 Mar 2000 19:42:32 GMT</last_modification_time>
-		  </signal>
-		  <columns>1</columns>
-		  <column_widths>80</column_widths>
-		  <selection_mode>GTK_SELECTION_MULTIPLE</selection_mode>
-		  <show_titles>False</show_titles>
-		  <shadow_type>GTK_SHADOW_IN</shadow_type>
+		  <class>GtkHBox</class>
+		  <name>hbox65</name>
+		  <homogeneous>False</homogeneous>
+		  <spacing>0</spacing>
+		  <child>
+		    <left_attach>0</left_attach>
+		    <right_attach>1</right_attach>
+		    <top_attach>0</top_attach>
+		    <bottom_attach>1</bottom_attach>
+		    <xpad>0</xpad>
+		    <ypad>0</ypad>
+		    <xexpand>True</xexpand>
+		    <yexpand>True</yexpand>
+		    <xshrink>False</xshrink>
+		    <yshrink>False</yshrink>
+		    <xfill>True</xfill>
+		    <yfill>True</yfill>
+		  </child>
+
+		  <widget>
+		    <class>GtkLabel</class>
+		    <name>label95</name>
+		    <label>Hosts in catcher:</label>
+		    <justify>GTK_JUSTIFY_CENTER</justify>
+		    <wrap>False</wrap>
+		    <xalign>0.5</xalign>
+		    <yalign>0.5</yalign>
+		    <xpad>0</xpad>
+		    <ypad>0</ypad>
+		    <child>
+		      <padding>0</padding>
+		      <expand>False</expand>
+		      <fill>False</fill>
+		    </child>
+		  </widget>
 
 		  <widget>
 		    <class>Placeholder</class>
-		    <child_name>CList:title</child_name>
 		  </widget>
+		</widget>
+
+		<widget>
+		  <class>GtkEntry</class>
+		  <name>entry_hosts_in_catcher</name>
+		  <width>72</width>
+		  <sensitive>False</sensitive>
+		  <can_focus>True</can_focus>
+		  <editable>False</editable>
+		  <text_visible>True</text_visible>
+		  <text_max_length>0</text_max_length>
+		  <text></text>
+		  <child>
+		    <left_attach>1</left_attach>
+		    <right_attach>2</right_attach>
+		    <top_attach>0</top_attach>
+		    <bottom_attach>1</bottom_attach>
+		    <xpad>0</xpad>
+		    <ypad>0</ypad>
+		    <xexpand>False</xexpand>
+		    <yexpand>True</yexpand>
+		    <xshrink>False</xshrink>
+		    <yshrink>False</yshrink>
+		    <xfill>False</xfill>
+		    <yfill>False</yfill>
+		  </child>
 		</widget>
 	      </widget>
 
@@ -1242,31 +1284,16 @@
 
 		<widget>
 		  <class>GtkButton</class>
-		  <name>button_host_catcher_connect</name>
+		  <name>button_host_catcher_clear</name>
 		  <sensitive>False</sensitive>
 		  <can_default>True</can_default>
 		  <can_focus>True</can_focus>
 		  <signal>
 		    <name>clicked</name>
-		    <handler>on_button_host_catcher_connect_clicked</handler>
-		    <last_modification_time>Wed, 22 Mar 2000 07:10:12 GMT</last_modification_time>
+		    <handler>on_button_host_catcher_clear_clicked</handler>
+		    <last_modification_time>Wed, 22 Mar 2000 07:10:32 GMT</last_modification_time>
 		  </signal>
-		  <label>Connect</label>
-		  <relief>GTK_RELIEF_NORMAL</relief>
-		</widget>
-
-		<widget>
-		  <class>GtkButton</class>
-		  <name>button_host_catcher_get_more</name>
-		  <sensitive>False</sensitive>
-		  <can_default>True</can_default>
-		  <can_focus>True</can_focus>
-		  <signal>
-		    <name>clicked</name>
-		    <handler>on_button_host_catcher_get_more_clicked</handler>
-		    <last_modification_time>Wed, 22 Mar 2000 07:10:20 GMT</last_modification_time>
-		  </signal>
-		  <label>Get More</label>
+		  <label>Clear</label>
 		  <relief>GTK_RELIEF_NORMAL</relief>
 		</widget>
 	      </widget>
@@ -1285,36 +1312,6 @@
 		  <expand>False</expand>
 		  <fill>True</fill>
 		</child>
-
-		<widget>
-		  <class>GtkButton</class>
-		  <name>button_host_catcher_remove</name>
-		  <sensitive>False</sensitive>
-		  <can_default>True</can_default>
-		  <can_focus>True</can_focus>
-		  <signal>
-		    <name>clicked</name>
-		    <handler>on_button_host_catcher_remove_clicked</handler>
-		    <last_modification_time>Wed, 22 Mar 2000 07:10:26 GMT</last_modification_time>
-		  </signal>
-		  <label>Remove</label>
-		  <relief>GTK_RELIEF_NORMAL</relief>
-		</widget>
-
-		<widget>
-		  <class>GtkButton</class>
-		  <name>button_host_catcher_clear</name>
-		  <sensitive>False</sensitive>
-		  <can_default>True</can_default>
-		  <can_focus>True</can_focus>
-		  <signal>
-		    <name>clicked</name>
-		    <handler>on_button_host_catcher_clear_clicked</handler>
-		    <last_modification_time>Wed, 22 Mar 2000 07:10:32 GMT</last_modification_time>
-		  </signal>
-		  <label>Clear</label>
-		  <relief>GTK_RELIEF_NORMAL</relief>
-		</widget>
 	      </widget>
 	    </widget>
 	  </widget>
@@ -2584,17 +2581,17 @@
 		  <name>checkbutton_autodownload</name>
 		  <can_focus>True</can_focus>
 		  <signal>
-			<name>toggled</name>
-			<handler>on_checkbutton_autodownload_toggled</handler>
-			<last_modification_time>Fri, 19 Oct 2001 01:35:33 GMT</last_modification_time>
+		    <name>toggled</name>
+		    <handler>on_checkbutton_autodownload_toggled</handler>
+		    <last_modification_time>Fri, 19 Oct 2001 01:35:33 GMT</last_modification_time>
 		  </signal>
 		  <label>Automatic Download</label>
 		  <active>False</active>
 		  <draw_indicator>True</draw_indicator>
 		  <child>
-			<padding>0</padding>
-			<expand>False</expand>
-			<fill>False</fill>
+		    <padding>0</padding>
+		    <expand>False</expand>
+		    <fill>False</fill>
 		  </child>
 		</widget>
 	      </widget>
@@ -4330,27 +4327,27 @@
   </widget>
 
   <widget>
-	<class>GtkMenuItem</class>
-	<name>popup_search_stop</name>
-	<signal>
-	  <name>activate</name>
-	  <handler>on_popup_search_stop_activate</handler>
-	  <last_modification_time>Sat, 31 Mar 2001 11:59:21 GMT</last_modification_time>
-	</signal>
-	<label>Stop this search</label>
-	<right_justify>False</right_justify>
+    <class>GtkMenuItem</class>
+    <name>popup_search_stop</name>
+    <signal>
+      <name>activate</name>
+      <handler>on_popup_search_stop_activate</handler>
+      <last_modification_time>Sat, 31 Mar 2001 11:59:21 GMT</last_modification_time>
+    </signal>
+    <label>Stop this search</label>
+    <right_justify>False</right_justify>
   </widget>
 
   <widget>
-	<class>GtkMenuItem</class>
-	<name>popup_search_resume</name>
-	<signal>
-	  <name>activate</name>
-	  <handler>on_popup_search_resume_activate</handler>
-	  <last_modification_time>Sat, 31 Mar 2001 12:17:13 GMT</last_modification_time>
-	</signal>
+    <class>GtkMenuItem</class>
+    <name>popup_search_resume</name>
+    <signal>
+      <name>activate</name>
+      <handler>on_popup_search_resume_activate</handler>
+      <last_modification_time>Sat, 31 Mar 2001 12:17:13 GMT</last_modification_time>
+    </signal>
     <label>Resume this search</label>
-	<right_justify>False</right_justify>
+    <right_justify>False</right_justify>
   </widget>
 
   <widget>

@@ -24,6 +24,7 @@ GHashTable *ht_catched_hosts = NULL;	/* Same, as H table */
 GSList *ping_reqs = NULL;
 guint32 n_ping_reqs = 0;
 struct ping_req *pr_ref = (struct ping_req *) NULL;
+guint32 hosts_in_catcher = 0;
 
 gchar h_tmp[4096];
 
@@ -53,17 +54,20 @@ static gint host_eq(gconstpointer v1, gconstpointer v2)
 	return h1->ip == h2->ip && h1->port == h2->port;
 }
 
-static void host_ht_add(struct gnutella_host *host)
+static gboolean host_ht_add(struct gnutella_host *host)
 {
 	/* Add host to the ht_catched_hosts table */
 
 	if (g_hash_table_lookup(ht_catched_hosts, (gconstpointer) host)) {
 		g_warning("Attempt to add %s twice to caught host list",
 				  ip_port_to_gchar(host->ip, host->port));
-		return;
+		return FALSE;
 	}
 
+	hosts_in_catcher++;
 	g_hash_table_insert(ht_catched_hosts, host, (gpointer) 1);
+
+	return TRUE;
 }
 
 static void host_ht_remove(struct gnutella_host *host)
@@ -76,6 +80,7 @@ static void host_ht_remove(struct gnutella_host *host)
 		return;
 	}
 
+	hosts_in_catcher--;
 	g_hash_table_remove(ht_catched_hosts, host);
 }
 
@@ -119,16 +124,8 @@ gboolean find_host(guint32 ip, guint16 port)
 	return g_hash_table_lookup(ht_catched_hosts, &lhost) ? TRUE : FALSE;
 }
 
-void host_remove(struct gnutella_host *h, gboolean from_clist_too)
+void host_remove(struct gnutella_host *h)
 {
-	gint row;
-
-	if (from_clist_too) {
-		row = gtk_clist_find_row_from_data(
-			GTK_CLIST(clist_host_catcher), (gpointer) h);
-		gtk_clist_remove(GTK_CLIST(clist_host_catcher), row);
-	}
-
 	sl_catched_hosts = g_list_remove(sl_catched_hosts, h);
 	host_ht_remove(h);
 
@@ -160,7 +157,6 @@ void host_add(guint32 ip, guint16 port, gboolean connect)
 {
 	struct gnutella_host *host;
 	gchar *titles[2];
-	gint row;
 	gint extra;
 
 	if (!check_valid_host(ip, port))
@@ -194,19 +190,11 @@ void host_add(guint32 ip, guint16 port, gboolean connect)
 			connected_nodes() < up_connections)
 		node_add(NULL, host->ip, host->port);
 
-	/*
-	 * Add the host to the hosts catcher list
-	 */
-
-	row = gtk_clist_append(GTK_CLIST(clist_host_catcher), titles);
-	gtk_clist_set_row_data(GTK_CLIST(clist_host_catcher), row,
-						   (gpointer) host);
-
 	if (!sl_catched_hosts)
 		gtk_widget_set_sensitive(button_host_catcher_clear, TRUE);
 
-	sl_catched_hosts = g_list_append(sl_catched_hosts, host);
-	host_ht_add(host);
+	if (host_ht_add(host))
+		sl_catched_hosts = g_list_append(sl_catched_hosts, host);
 
 	/*
 	 * Prune cache if we reached our limit.
@@ -214,7 +202,7 @@ void host_add(guint32 ip, guint16 port, gboolean connect)
 
 	extra = g_hash_table_size(ht_catched_hosts) - max_hosts_cached;
 	while (extra-- > 0)
-		host_remove(g_list_first(sl_catched_hosts)->data, TRUE);
+		host_remove(g_list_first(sl_catched_hosts)->data);
 }
 
 static FILE *hosts_r_file = (FILE *) NULL;
@@ -258,7 +246,6 @@ struct gnutella_host *host_get_caught(void)
 {
 	struct gnutella_host *h;
 	GList *link;
-	gint row;
 
 	g_assert(sl_catched_hosts);		/* Must not call if no host in list */
 
@@ -274,23 +261,6 @@ struct gnutella_host *host_get_caught(void)
 	sl_catched_hosts = g_list_remove_link(sl_catched_hosts, link);
 	g_list_free_1(link);
 	host_ht_remove(h);
-
-	/*
-	 * This is potentially inefficient if the find_row_from_data() does
-	 * a sequential search.  They should be doing a hash lookup though.
-	 * Well, I hope they do.
-	 *
-	 * Also, it is unfortunate, but we somehow duplicate the code from
-	 * host_remove(), the difference being that we used g_list_remove_link()
-	 * above to remove the element instead of giving the host and letting
-	 * the list iterate to find it.
-	 *
-	 *		--RAM, 30/12/2001
-	 */
-
-	row = gtk_clist_find_row_from_data(
-		GTK_CLIST(clist_host_catcher), (gpointer) h);
-	gtk_clist_remove(GTK_CLIST(clist_host_catcher), row);
 
 	if (!sl_catched_hosts)
 		gtk_widget_set_sensitive(button_host_catcher_clear, FALSE);
@@ -333,7 +303,6 @@ done:
 	hosts_r_file = (FILE *) NULL;
 	hosts_idle_func = 0;
 
-	gtk_clist_thaw(GTK_CLIST(clist_host_catcher));
 	gui_set_status(NULL);
 
 	return FALSE;
@@ -351,8 +320,6 @@ void hosts_read_from_file(gchar * path, gboolean quiet)
 					  g_strerror(errno));
 		return;
 	}
-
-	gtk_clist_freeze(GTK_CLIST(clist_host_catcher));
 
 	hosts_idle_func = gtk_idle_add(hosts_reading_func, (gpointer) NULL);
 
@@ -1255,7 +1222,7 @@ void host_close(void)
 	pcache_expire();
 
 	while (sl_catched_hosts)
-		host_remove((struct gnutella_host *) sl_catched_hosts->data, FALSE);
+		host_remove((struct gnutella_host *) sl_catched_hosts->data);
 
 	g_hash_table_destroy(ht_catched_hosts);
 

@@ -816,8 +816,6 @@ void config_read(void)
 	if (!config)
 		return;
 
-	gtk_clist_freeze(GTK_CLIST(clist_host_catcher));
-
 	while (fgets(cfg_tmp, sizeof(cfg_tmp), config)) {
 		n++;
 		s = cfg_tmp;
@@ -870,8 +868,6 @@ void config_read(void)
 					"config file, line %u: unknown keyword '%s', ignored\n",
 					n, k);
 	}
-
-	gtk_clist_thaw(GTK_CLIST(clist_host_catcher));
 
 	fclose(config);
 }

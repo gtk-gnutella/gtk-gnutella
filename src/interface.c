@@ -39,10 +39,7 @@ GtkWidget *entry_routing_errors;
 GtkWidget *entry_dropped_messages;
 GtkWidget *entry_count_downloads;
 GtkWidget *entry_count_uploads;
-GtkWidget *clist_host_catcher;
-GtkWidget *button_host_catcher_connect;
-GtkWidget *button_host_catcher_get_more;
-GtkWidget *button_host_catcher_remove;
+GtkWidget *entry_hosts_in_catcher;
 GtkWidget *button_host_catcher_clear;
 GtkWidget *clist_uploads;
 GtkWidget *button_kill_upload;
@@ -186,7 +183,9 @@ create_main_window (void)
   GtkWidget *vbox3;
   GtkWidget *hbox8;
   GtkWidget *label_host_catcher;
-  GtkWidget *sw_host_catcher;
+  GtkWidget *table3;
+  GtkWidget *hbox65;
+  GtkWidget *label95;
   GtkWidget *hbuttonbox1;
   GtkWidget *hbuttonbox2;
   GtkWidget *label_gnutellanet;
@@ -853,25 +852,40 @@ create_main_window (void)
   gtk_box_pack_start (GTK_BOX (hbox8), label_host_catcher, FALSE, FALSE, 0);
   gtk_label_set_justify (GTK_LABEL (label_host_catcher), GTK_JUSTIFY_LEFT);
 
-  sw_host_catcher = gtk_scrolled_window_new (NULL, NULL);
-  gtk_widget_ref (sw_host_catcher);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "sw_host_catcher", sw_host_catcher,
+  table3 = gtk_table_new (1, 2, FALSE);
+  gtk_widget_ref (table3);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "table3", table3,
                             (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (sw_host_catcher);
-  gtk_box_pack_start (GTK_BOX (vbox3), sw_host_catcher, TRUE, TRUE, 0);
-  gtk_container_set_border_width (GTK_CONTAINER (sw_host_catcher), 4);
-  gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (sw_host_catcher), GTK_POLICY_NEVER, GTK_POLICY_ALWAYS);
+  gtk_widget_show (table3);
+  gtk_box_pack_start (GTK_BOX (vbox3), table3, TRUE, TRUE, 0);
 
-  clist_host_catcher = gtk_clist_new (1);
-  gtk_widget_ref (clist_host_catcher);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "clist_host_catcher", clist_host_catcher,
+  hbox65 = gtk_hbox_new (FALSE, 0);
+  gtk_widget_ref (hbox65);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "hbox65", hbox65,
                             (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (clist_host_catcher);
-  gtk_container_add (GTK_CONTAINER (sw_host_catcher), clist_host_catcher);
-  GTK_WIDGET_UNSET_FLAGS (clist_host_catcher, GTK_CAN_FOCUS);
-  gtk_clist_set_column_width (GTK_CLIST (clist_host_catcher), 0, 80);
-  gtk_clist_set_selection_mode (GTK_CLIST (clist_host_catcher), GTK_SELECTION_MULTIPLE);
-  gtk_clist_column_titles_hide (GTK_CLIST (clist_host_catcher));
+  gtk_widget_show (hbox65);
+  gtk_table_attach (GTK_TABLE (table3), hbox65, 0, 1, 0, 1,
+                    (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
+                    (GtkAttachOptions) (GTK_EXPAND | GTK_FILL), 0, 0);
+
+  label95 = gtk_label_new ("Hosts in catcher:");
+  gtk_widget_ref (label95);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label95", label95,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label95);
+  gtk_box_pack_start (GTK_BOX (hbox65), label95, FALSE, FALSE, 0);
+
+  entry_hosts_in_catcher = gtk_entry_new ();
+  gtk_widget_ref (entry_hosts_in_catcher);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "entry_hosts_in_catcher", entry_hosts_in_catcher,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (entry_hosts_in_catcher);
+  gtk_table_attach (GTK_TABLE (table3), entry_hosts_in_catcher, 1, 2, 0, 1,
+                    (GtkAttachOptions) (0),
+                    (GtkAttachOptions) (GTK_EXPAND), 0, 0);
+  gtk_widget_set_usize (entry_hosts_in_catcher, 72, -2);
+  gtk_widget_set_sensitive (entry_hosts_in_catcher, FALSE);
+  gtk_entry_set_editable (GTK_ENTRY (entry_hosts_in_catcher), FALSE);
 
   hbuttonbox1 = gtk_hbutton_box_new ();
   gtk_widget_ref (hbuttonbox1);
@@ -882,23 +896,14 @@ create_main_window (void)
   gtk_button_box_set_layout (GTK_BUTTON_BOX (hbuttonbox1), GTK_BUTTONBOX_SPREAD);
   gtk_button_box_set_spacing (GTK_BUTTON_BOX (hbuttonbox1), 15);
 
-  button_host_catcher_connect = gtk_button_new_with_label ("Connect");
-  gtk_widget_ref (button_host_catcher_connect);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "button_host_catcher_connect", button_host_catcher_connect,
+  button_host_catcher_clear = gtk_button_new_with_label ("Clear");
+  gtk_widget_ref (button_host_catcher_clear);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "button_host_catcher_clear", button_host_catcher_clear,
                             (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (button_host_catcher_connect);
-  gtk_container_add (GTK_CONTAINER (hbuttonbox1), button_host_catcher_connect);
-  gtk_widget_set_sensitive (button_host_catcher_connect, FALSE);
-  GTK_WIDGET_SET_FLAGS (button_host_catcher_connect, GTK_CAN_DEFAULT);
-
-  button_host_catcher_get_more = gtk_button_new_with_label ("Get More");
-  gtk_widget_ref (button_host_catcher_get_more);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "button_host_catcher_get_more", button_host_catcher_get_more,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (button_host_catcher_get_more);
-  gtk_container_add (GTK_CONTAINER (hbuttonbox1), button_host_catcher_get_more);
-  gtk_widget_set_sensitive (button_host_catcher_get_more, FALSE);
-  GTK_WIDGET_SET_FLAGS (button_host_catcher_get_more, GTK_CAN_DEFAULT);
+  gtk_widget_show (button_host_catcher_clear);
+  gtk_container_add (GTK_CONTAINER (hbuttonbox1), button_host_catcher_clear);
+  gtk_widget_set_sensitive (button_host_catcher_clear, FALSE);
+  GTK_WIDGET_SET_FLAGS (button_host_catcher_clear, GTK_CAN_DEFAULT);
 
   hbuttonbox2 = gtk_hbutton_box_new ();
   gtk_widget_ref (hbuttonbox2);
@@ -908,24 +913,6 @@ create_main_window (void)
   gtk_box_pack_start (GTK_BOX (vbox3), hbuttonbox2, FALSE, TRUE, 0);
   gtk_button_box_set_layout (GTK_BUTTON_BOX (hbuttonbox2), GTK_BUTTONBOX_SPREAD);
   gtk_button_box_set_spacing (GTK_BUTTON_BOX (hbuttonbox2), 15);
-
-  button_host_catcher_remove = gtk_button_new_with_label ("Remove");
-  gtk_widget_ref (button_host_catcher_remove);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "button_host_catcher_remove", button_host_catcher_remove,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (button_host_catcher_remove);
-  gtk_container_add (GTK_CONTAINER (hbuttonbox2), button_host_catcher_remove);
-  gtk_widget_set_sensitive (button_host_catcher_remove, FALSE);
-  GTK_WIDGET_SET_FLAGS (button_host_catcher_remove, GTK_CAN_DEFAULT);
-
-  button_host_catcher_clear = gtk_button_new_with_label ("Clear");
-  gtk_widget_ref (button_host_catcher_clear);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "button_host_catcher_clear", button_host_catcher_clear,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (button_host_catcher_clear);
-  gtk_container_add (GTK_CONTAINER (hbuttonbox2), button_host_catcher_clear);
-  gtk_widget_set_sensitive (button_host_catcher_clear, FALSE);
-  GTK_WIDGET_SET_FLAGS (button_host_catcher_clear, GTK_CAN_DEFAULT);
 
   label_gnutellanet = gtk_label_new ("gnutellaNet");
   gtk_widget_ref (label_gnutellanet);
@@ -2225,24 +2212,6 @@ create_main_window (void)
                       NULL);
   gtk_signal_connect (GTK_OBJECT (entry_max_connections), "focus_out_event",
                       GTK_SIGNAL_FUNC (on_entry_max_connections_focus_out_event),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (clist_host_catcher), "select_row",
-                      GTK_SIGNAL_FUNC (on_clist_host_catcher_select_row),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (clist_host_catcher), "unselect_row",
-                      GTK_SIGNAL_FUNC (on_clist_host_catcher_unselect_row),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (clist_host_catcher), "button_press_event",
-                      GTK_SIGNAL_FUNC (on_clist_host_catcher_button_press_event),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (button_host_catcher_connect), "clicked",
-                      GTK_SIGNAL_FUNC (on_button_host_catcher_connect_clicked),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (button_host_catcher_get_more), "clicked",
-                      GTK_SIGNAL_FUNC (on_button_host_catcher_get_more_clicked),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (button_host_catcher_remove), "clicked",
-                      GTK_SIGNAL_FUNC (on_button_host_catcher_remove_clicked),
                       NULL);
   gtk_signal_connect (GTK_OBJECT (button_host_catcher_clear), "clicked",
                       GTK_SIGNAL_FUNC (on_button_host_catcher_clear_clicked),

@@ -245,8 +245,6 @@ void node_remove(struct gnutella_node *n, const gchar * reason, ...)
 
 	on = on_the_net();
 
-	gtk_widget_set_sensitive(button_host_catcher_get_more, on);
-
 	if (!on)
 		gtk_widget_set_sensitive(button_search, FALSE);
 }
@@ -439,7 +437,6 @@ static void node_is_now_connected(struct gnutella_node *n)
 
 	gui_update_node(n, TRUE);
 	gui_update_c_gnutellanet();		/* connected_node_cnt changed */
-	gtk_widget_set_sensitive(button_host_catcher_get_more, TRUE);
 
 	node_added = n;
 	g_hook_list_invoke(&node_added_hook_list, TRUE);

@@ -327,6 +327,9 @@ void gui_update_global(void)
 
 	g_snprintf(gui_tmp, sizeof(gui_tmp), "%u", dropped_messages);
 	gtk_entry_set_text(GTK_ENTRY(entry_dropped_messages), gui_tmp);
+
+	g_snprintf(gui_tmp, sizeof(gui_tmp), "%u", hosts_in_catcher);
+	gtk_entry_set_text(GTK_ENTRY(entry_hosts_in_catcher), gui_tmp);
 }
 
 void gui_update_node(struct gnutella_node *n, gboolean force)

@@ -91,6 +91,8 @@
   filters to your searches.
 - Double-clicking on a file in the search window will request downloading of
   that file only, despite multiple selections. [From Noel T.Nunkovich]
+- Removed useless and memory hog host catcher list in the gnutellaNet screen:
+  saves 2 MB of RAM plus avoids cost of updating it [From Mark Schreiber].
 
 # v 0.18   2001.11.19
 

@@ -13,14 +13,14 @@ struct gnutella_host {
 extern GList *sl_catched_hosts;
 extern struct ping_req *pr_ref;
 extern gint hosts_idle_func;
-
+extern guint32 hosts_in_catcher;
 /*
  * Global Functions
  */
 
 void host_init(void);
 gboolean find_host(guint32, guint16);
-void host_remove(struct gnutella_host *, gboolean);
+void host_remove(struct gnutella_host *);
 void host_add(guint32, guint16, gboolean);
 gint host_fill_caught_array(struct gnutella_host *hosts, gint hcount);
 struct gnutella_host *host_get_caught(void);
