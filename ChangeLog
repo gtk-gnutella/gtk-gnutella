@@ -1,5 +1,14 @@
 # since last version
 
+- (2002.06.23 - Richard)
+  * Added RETURN back to filter tree on request
+  * Enabled stats for RETURN
+  * Free rule clipboard before exiting to prevent dmalloc from suspecting
+    a memory leak.
+  * Update credits
+  * Made vertical scrollbars at some points always visible to reduce 
+    flickering
+
 - (2002.06.23 - RAM)
   * Forgot to clear callout queue callback info before freeing structure
 	(fixes bug # 572800).
