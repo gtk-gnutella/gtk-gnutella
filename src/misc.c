@@ -188,7 +188,7 @@ guint32 gchar_to_ip(const gchar *str)
  *
  * Returns TRUE if ``s'' pointed to a string representation of an IPv4
  * address, otherwise FALSE.
- * If successful, ``*addr'' will be set to the IPv4 address in network
+ * If successful, ``*addr'' will be set to the IPv4 address in NATIVE
  * byte order and ``*endptr'' will point to the character after the
  * IPv4 address. ``addr'' and ``endptr'' may be NULL.
  */
@@ -233,6 +233,20 @@ gboolean gchar_to_ip_strict(const gchar *s, guint32 *addr,
 			*addr = 0;
 		return FALSE;
 	}
+
+	/*
+	 * Ensure native byteorder in variable.  Swapping is only needed on
+	 * little-endian machines since network byteorder is big-endian.
+	 *		--RAM, 2004-08-01
+	 */
+
+#if G_BYTE_ORDER == G_LITTLE_ENDIAN
+	{
+		guint32 tmp = *addr;
+		*addr = GUINT32_SWAP_LE_BE(tmp);
+	}
+#endif
+
 	return TRUE;
 }
 
@@ -1456,13 +1470,12 @@ gboolean gchar_to_ip_and_mask(const gchar *str, guint32 *ip, guint32 *netmask)
 	const gchar *ep, *s = str;
 	gint error;
 	glong v;
-	guint32 a;
 
-	if (!gchar_to_ip_strict(s, &a, &ep) || 0 == a)
+	if (!gchar_to_ip_strict(s, ip, &ep) || 0 == *ip)
 		return FALSE;
 
-	*ip = ntohl(a);
 	s = ep;
+
 	if (*s == '\0') {
 		*netmask = ~0;
 		return TRUE;
@@ -1474,11 +1487,8 @@ gboolean gchar_to_ip_and_mask(const gchar *str, guint32 *ip, guint32 *netmask)
 	if (!is_ascii_digit(*s))
 		return FALSE;
 
-
-	if (gchar_to_ip_strict(s, &a, &ep)) {
-		*netmask = ntohl(a);
-		return 0 != a;
-	}
+	if (gchar_to_ip_strict(s, netmask, &ep))
+		return 0 != *netmask;
 
 	v = gm_atoul(s, (gchar **) &ep, &error);
 	if (error || v < 1 || v > 32 || *ep != '\0')
