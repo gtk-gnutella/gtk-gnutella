@@ -1067,7 +1067,7 @@ on_popup_search_metadata_activate(GtkMenuItem *unused_menuitem,
 	g_message("on_search_meta_data: %d items", g_slist_length(sl_records));
 
 	for (sl = sl_records; sl; sl = g_slist_next(sl)) {
-		record_t    *rec;
+		record_t *rec;
 
 		rec = sl->data;
 		if (rec->sha1) {
