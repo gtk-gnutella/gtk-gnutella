@@ -183,6 +183,9 @@ void gnet_stats_count_flowc(gpointer head)
 	gnet_stats.byte.flowc_hops[i][MSG_TOTAL] += size;
 
 	i = MIN(h->ttl, STATS_FLOWC_COLUMNS);
+
+	g_assert(i != 0);			/* Cannot send a message with TTL=0 */
+
 	gnet_stats.pkg.flowc_ttl[i][t]++;
 	gnet_stats.pkg.flowc_ttl[i][MSG_TOTAL]++;
 	gnet_stats.byte.flowc_ttl[i][t] += size;
