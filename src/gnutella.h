@@ -57,8 +57,8 @@
 #define GTA_MSG_SEARCH					0x80
 #define GTA_MSG_SEARCH_RESULTS			0x81
 
-#define GTA_QRP_RESET					0x00
-#define GTA_QRP_PATCH					0x01
+#define GTA_MSGV_QRP_RESET				0x00
+#define GTA_MSGV_QRP_PATCH				0x01
 
 /*
  * Structures
@@ -131,13 +131,18 @@ struct gnutella_bye {
 	guchar message[0];
 } __attribute__((__packed__));
 
-struct qrp_reset {
+struct gnutella_qrp_reset {
 	guchar variant;			/* 0x00 */
 	guchar table_length[4];	/* little endian */
 	guchar infinity;
 } __attribute__((__packed__));
 
-struct qrp_patch {
+struct gnutella_msg_qrp_reset {
+	struct gnutella_header header;
+	struct gnutella_qrp_reset data;
+} __attribute__((__packed__));
+
+struct gnutella_qrp_patch {
 	guchar variant;			/* 0x01 */
 	guchar seq_no;
 	guchar seq_size;
@@ -145,7 +150,12 @@ struct qrp_patch {
 	guchar entry_bits;
 } __attribute__((__packed__));
 
-struct msg_vendor {
+struct gnutella_msg_qrp_patch {
+	struct gnutella_header header;
+	struct gnutella_qrp_patch data;
+} __attribute__((__packed__));
+
+struct gnutella_msg_vendor {
 	guchar vendor[4];		/* E.g. "GTKG" */
 	guchar type[2];			/* Message type, little endian */
 	guchar version[2];		/* Message version number, little endian */
@@ -155,7 +165,6 @@ struct msg_vendor {
 /* main.c */
 
 extern struct gnutella_socket *s_listen;
-extern time_t start_time;
 extern gchar *start_rfc822_date;
 
 #endif							/* __gnutella_h__ */
