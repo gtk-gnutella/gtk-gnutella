@@ -56,6 +56,8 @@ RCSID("$Id$");
 #define QHIT_SIZE_THRESHOLD	2016	/* Flush query hits larger than this */
 #define QHIT_MAX_RESULTS	255		/* Maximum amount of hits in a query hit */
 
+#define QHIT_MAX_PROXIES	5		/* Send out 5 push-proxies at most */
+
 static const guchar iso_8859_1[96] = {
 	' ', 			/* 160 - NO-BREAK SPACE */
 	' ', 			/* 161 - INVERTED EXCLAMATION MARK */
@@ -238,7 +240,6 @@ struct {
 #define FOUND_LEFT(x)	(found_data.l - (x))
 
 static gboolean use_ggep_h;			/* Can we use GGEP "H" for this query? */
-static gchar *use_ggep_version;		/* Can we use "GTKGVn" for this query? */
 static time_t release_date;
 
 /* 
@@ -883,7 +884,9 @@ static void flush_match(void)
 	struct gnutella_header *packet_head;
 	struct gnutella_search_results_out *search_head;
 	gchar version[24];
-	gint version_size = 0;		/* Size of GGEP version indication */
+	gchar push_proxies[40];
+	gint version_size = 0;		/* Size of emitted GGEP version */
+	gint proxies_size = 0;		/* Size of emitted GGEP proxies */
 
 	if (dbg > 3)
 		printf("flushing query hit (%d entr%s, %d bytes sofar)\n",
@@ -907,10 +910,10 @@ static void flush_match(void)
 		trailer[5] |= 0x01;			/* Firewall bit set in enabling byte */
 
 	/*
-	 * Build "GTKGV1" GGEP extension if needed.
+	 * Build the "GTKGV1" GGEP extension.
 	 */
 
-	if (use_ggep_version != NULL) {
+	{
 		guint8 major = GTA_VERSION;
 		guint8 minor = GTA_SUBVERSION;
 		gchar *revp = GTA_REVCHAR;
@@ -949,26 +952,84 @@ static void flush_match(void)
 		iov[5].iov_len = 4;
 
 		w = ggep_ext_writev(version, sizeof(version),
-				use_ggep_version, iov, G_N_ELEMENTS(iov),
-				GGEP_W_FIRST|GGEP_W_LAST);
+				"GTKGV1", iov, G_N_ELEMENTS(iov),
+				GGEP_W_FIRST);
 
 		if (w == -1)
-			g_warning("could not write GGEP \"%s\" extension in query hit",
-				use_ggep_version);
+			g_warning("could not write GGEP \"GTKGV1\" extension in query hit");
 		else {
 			trailer[6] |= 0x20;			/* Has GGEP extensions in trailer */
 			version_size = w;
 		}
 	}
 
+	/*
+	 * Look whether we'll need a "PUSH" GGEP extension to give out
+	 * our current push proxies.  Prepare payload in `proxies'.
+	 */
+
+	if (is_firewalled) {
+		GSList *nodes = node_push_proxies();
+
+		if (nodes != NULL) {
+			GSList *l;
+			gint count;
+			gchar *p;
+			gchar proxies[6 * QHIT_MAX_PROXIES];
+			gint proxies_len;	/* Length of the filled `proxies' buffer */
+			struct iovec iov[1];
+			gint w;
+
+			for (
+				l = nodes, count = 0, p = proxies;
+				l && count < QHIT_MAX_PROXIES;
+				l = g_slist_next(l), count++
+			) {
+				struct gnutella_node *n = (struct gnutella_node *) l->data;
+				
+				WRITE_GUINT16_BE(n->proxy_ip, p);
+				p += 4;
+				WRITE_GUINT16_LE(n->proxy_port, p);
+				p += 2;
+			}
+
+			proxies_len = p - proxies;
+
+			g_assert(proxies_len % 6 == 0);
+
+			iov[0].iov_base = (gpointer) proxies;
+			iov[0].iov_len = proxies_len;
+
+			w = ggep_ext_writev(push_proxies, sizeof(push_proxies),
+					"PUSH", iov, G_N_ELEMENTS(iov),
+					version_size ? GGEP_W_LAST : (GGEP_W_FIRST|GGEP_W_LAST));
+
+			if (w == -1)
+				g_warning("could not write GGEP \"PUSH\" extension "
+					"in query hit");
+			else {
+				trailer[6] |= 0x20;			/* Has GGEP extensions in trailer */
+				proxies_size = w;
+			}
+		}
+	}
+
+	if (proxies_size == 0)
+		ggep_ext_mark_last(version + 1);	/* +1: first byte is GGEP magic */
+
 	pos = FOUND_SIZE;
-	FOUND_GROW(16 + 7 + version_size);
+	FOUND_GROW(16 + 7 + version_size + proxies_size);
 	memcpy(&FOUND_BUF[pos], trailer, 7);	/* Store the open trailer */
 	pos += 7;
 
 	if (version_size) {
-		memcpy(&FOUND_BUF[pos], version, version_size);	/* Store GGEP version */
+		memcpy(&FOUND_BUF[pos], version, version_size);	/* Store "GTKGV1" */
 		pos += version_size;
+	}
+
+	if (proxies_size) {
+		memcpy(&FOUND_BUF[pos], push_proxies, proxies_size); /* Store "PUSH" */
+		pos += proxies_size;
 	}
 
 	memcpy(&FOUND_BUF[pos], guid, 16);	/* Store the GUID */
@@ -1607,27 +1668,17 @@ gboolean search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 	 * Otherwise, it's an old servent or one unwilling to support this new
 	 * extension, so it will get its SHA1 URNs in ASCII form.
 	 *		--RAM, 17/11/2002
-	 *
-	 * If query comes from GTKG 0.92u or later, include the GGEP "GTKGV1"
-	 * extension that is holding the version number of the replying servent,
-	 * and the startup time of the servent.
-	 *		--RAM, 10/01/2003
 	 */
 
 	{
 		guint8 major, minor;
 		gboolean release;
 
-		use_ggep_version = NULL;
-
 		if (guid_is_gtkg(n->header.muid, &major, &minor, &release)) {
 			/* Only supersede `use_ggep_h' if not indicated in "min speed" */
 			if (!use_ggep_h)
 				use_ggep_h =
 					major >= 1 || minor > 91 || (minor == 91 && release);
-
-			if (major >= 1 || minor >= 92)
-				use_ggep_version = "GTKGV1";
 
 			if (dbg > 3)
 				printf("GTKG %squery from %d.%d%s\n",
