@@ -1429,9 +1429,15 @@ load_helper(prop_set_t *ps, property_t prop, const gchar *val)
 	case PROP_TYPE_STORAGE:
 		{
 			gchar s[1024];
-			gchar *d = NULL, *buf;
+			gchar *d, *buf;
 
-			buf = p->vector_size > sizeof s ? g_malloc(p->vector_size) : s;
+			if (p->vector_size > sizeof s) {
+				d = g_malloc(p->vector_size);
+				buf = d;
+			} else {
+				d = NULL;
+				buf = s;
+			}
 			prop_parse_storage(p->name, val, p->vector_size, buf);
 			stub->storage.set(prop, buf, p->vector_size);
 
