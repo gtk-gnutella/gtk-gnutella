@@ -1,5 +1,10 @@
 # since last version
 
+- (2003.03.06 - Richard)
+ * Fixed odometers (where all showing "in")
+ * [Gtk1] Added odometers for leaf traffic
+ * [Gtk1] Added 3 new icons to the gui
+
 # v 0.92   2003.03.04  [beta2]
 
 Bugfixing release:
