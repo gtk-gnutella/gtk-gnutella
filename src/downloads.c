@@ -1127,7 +1127,7 @@ void send_push_request(gchar * guid, guint32 file_id, guint16 local_port)
 {
 	struct gnutella_msg_push_request m;
 
-	message_set_muid(&(m.header));
+	message_set_muid(&(m.header), FALSE);
 
 	m.header.function = GTA_MSG_PUSH_REQUEST;
 	m.header.ttl = my_ttl;
@@ -1503,6 +1503,10 @@ static void download_request(struct download *d, header_t *header)
 			}
 		}
 	} else {
+		char *ua = header_get(header, "Server");
+		ua = ua ? ua : header_get(header, "User-Agent");
+		if (ua)
+			g_warning("server \"%s\" did not send any Content-Length", ua);
 		download_stop(d, GTA_DL_ERROR, "No Content-Length header");
 		return;
 	}

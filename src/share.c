@@ -610,9 +610,12 @@ void search_request(struct gnutella_node *n)
 		memcpy(&packet_head->muid, &n->header.muid, 16);
 
 		/*
-		 * We apply the same logic here as in reply_init(): we limit the TTL
-		 * to the minimal possible value.
-		 *			 --RAM, 15/09/2001
+		 * We limit the TTL to the minimal possible value, then add a margin
+		 * of 5 to account for re-routing abilities some day.  We then trim
+		 * at our configured hard TTL limit.  Replies are precious packets,
+		 * it would be a pity if they did not make it back to their source.
+		 *
+		 *			 --RAM, 02/02/2001
 		 */
 
 		if (n->header.hops == 0) {
@@ -622,7 +625,7 @@ void search_request(struct gnutella_node *n)
 		}
 
 		packet_head->function = GTA_MSG_SEARCH_RESULTS;
-		packet_head->ttl = MIN(n->header.hops, max_ttl);
+		packet_head->ttl = MIN(n->header.hops + 5, hard_ttl_limit);
 		packet_head->hops = 0;
 		WRITE_GUINT32_LE(pl, packet_head->size);
 
@@ -643,3 +646,4 @@ void search_request(struct gnutella_node *n)
 }
 
 /* vi: set ts=4: */
+

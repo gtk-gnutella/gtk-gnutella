@@ -7,8 +7,8 @@
 
 void routing_init(void);
 void routing_close(void);
-void generate_new_muid(guchar * muid);
-void message_set_muid(struct gnutella_header *);
+void generate_new_muid(guchar *muid, gboolean modern);
+void message_set_muid(struct gnutella_header *header, gboolean modern);
 gboolean route_message(struct gnutella_node **);
 void routing_node_remove(struct gnutella_node *);
 void sendto_one(struct gnutella_node *, guchar *, guchar *, guint32);

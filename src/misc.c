@@ -128,7 +128,14 @@ gchar *short_size(guint32 size)
 
 gchar *node_ip(struct gnutella_node * n)
 {
-	return ip_port_to_gchar(n->ip, n->port);
+	/* Same as ip_port_to_gchar(), but need another static buffer to be able
+	   to use both in same printf() line */
+
+	static gchar a[128];
+	struct in_addr ia;
+	ia.s_addr = g_htonl(n->ip);
+	g_snprintf(a, sizeof(a), "%s:%u", inet_ntoa(ia), n->port);
+	return a;
 }
 
 /*

@@ -29,7 +29,9 @@
 
 GSList *sl_nodes = (GSList *) NULL;
 
-guint32 nodes_in_list = 0;
+static guint32 nodes_in_list = 0;
+static guint32 ponging_nodes = 0;
+static guint32 node_id = 0;
 
 guint32 global_messages = 0;
 guint32 global_searches = 0;
@@ -105,6 +107,11 @@ gboolean on_the_net(void)
 gint32 connected_nodes(void)
 {
 	return connected_node_cnt;
+}
+
+gint32 node_count(void)
+{
+	return nodes_in_list - ponging_nodes;
 }
 
 static guint32 max_msg_size(void)
@@ -221,6 +228,8 @@ void node_remove(struct gnutella_node *n, const gchar * reason, ...)
 			n->sent, n->received, n->dropped, n->n_bad);
 
 	nodes_in_list--;
+	if (n->flags & NODE_F_TMP)
+		ponging_nodes--;
 
 	gui_update_c_gnutellanet();
 	gui_update_node(n, TRUE);
@@ -284,26 +293,21 @@ static gboolean send_welcome(
 	gint sent;
 
 	g_assert(s);
-	g_assert(n == NULL || n->socket == s);	/* `n' is optional */
+	g_assert(n);
+	g_assert(n->socket == s);
 
 	if (
 		-1 == (sent = write(s->file_desc, gnutella_welcome,
 			gnutella_welcome_length))
 	) {
-		if (n)
-			node_remove(n, "Write of 0.4 HELLO acknowledge failed: %s",
-				g_strerror(errno));
-		else
-			socket_destroy(s);
+		node_remove(n, "Write of 0.4 HELLO acknowledge failed: %s",
+			g_strerror(errno));
 		return FALSE;
 	}
 	else if (sent < gnutella_welcome_length) {
 		g_warning("wrote only %d out of %d bytes of HELLO ack to %s",
 			sent, gnutella_welcome_length, ip_to_gchar(s->ip));
-		if (n)
-			node_remove(n, "Partial write of 0.4 HELLO acknowledge");
-		else
-			socket_destroy(s);
+		node_remove(n, "Partial write of 0.4 HELLO acknowledge");
 		return FALSE;
 	}
 
@@ -313,16 +317,15 @@ static gboolean send_welcome(
 /*
  * send_connection_pongs
  *
- * Send welcome followed by CONNECT_PONGS_COUNT pongs to the remote node,
+ * Send CONNECT_PONGS_COUNT pongs to the remote node with proper message ID,
  * then disconnect.
  */
-static void send_connection_pongs(struct gnutella_socket *s)
+static void send_connection_pongs(struct gnutella_node *n, guchar *muid)
 {
 	struct gnutella_host hosts[CONNECT_PONGS_COUNT];
+	struct gnutella_socket *s = n->socket;
 	gint hcount;
-
-	if (!send_welcome(s, NULL))
-		return;
+	gint pongs = 0;		/* Pongs we sent */
 
 	hcount = host_fill_caught_array(hosts, CONNECT_PONGS_COUNT);
 	g_assert(hcount >= 0 && hcount <= CONNECT_PONGS_COUNT);
@@ -330,39 +333,25 @@ static void send_connection_pongs(struct gnutella_socket *s)
 	if (hcount) {
 		gint i;
 		for (i = 0; i < hcount; i++) {
-			struct gnutella_msg_init_response pong;
+			struct gnutella_msg_init_response *pong;
 			gint sent;
 
-			/*
-			 * Build pong packet.
-			 */
-
-			WRITE_GUINT16_LE(hosts[i].port, pong.response.host_port);
-			WRITE_GUINT32_BE(hosts[i].ip, pong.response.host_ip);
-			WRITE_GUINT32_LE(0, pong.response.files_count);
-			WRITE_GUINT32_LE(0, pong.response.kbytes_count);
-			pong.header.function = GTA_MSG_INIT_RESPONSE;
-			pong.header.ttl = 1;
-			pong.header.hops = 0;
-			memcpy(&pong.header.muid, guid, 16);	/* Our own GUID */
-			WRITE_GUINT32_LE(sizeof(struct gnutella_init_response),
-				pong.header.size);
+			pong = build_pong_msg(0, 1, muid, hosts[i].ip, hosts[i].port, 0, 0);
 
 			/*
-			 * Send it, aborting on error or partial write.
+			 * Send pong, aborting on error or partial write.
 			 */
 
-			sent = write(s->file_desc, &pong, sizeof(pong));
-			if (sent != sizeof(pong))
+			sent = write(s->file_desc, pong, sizeof(*pong));
+			if (sent != sizeof(*pong))
 				break;
-		}
 
-		if (dbg > 4)
-			printf("Sent %d connection pong%s to %s\n",
-				i, i == 1 ? "" : "s", ip_to_gchar(s->ip));
+			n->n_pong_sent++;
+			pongs++;
+		}
 	}
 
-	socket_destroy(s);
+	node_remove(n, "Sent %d connection pong%s", pongs, pongs == 1 ? "" : "s");
 }
 
 /*
@@ -395,6 +384,62 @@ static void send_node_error(struct gnutella_socket *s, int code, guchar *msg)
 			code, ip_to_gchar(s->ip), rw, gnet_response);
 		fflush(stdout);
 	}
+}
+
+/*
+ * node_is_now_connected
+ *
+ * Called when we know that we're connected to the node, at the end of
+ * the handshaking (both for incoming and outgoing connections).
+ */
+static void node_is_now_connected(struct gnutella_node *n)
+{
+	struct gnutella_socket *s = n->socket;
+
+	/*
+	 * Install reading callback.
+	 */
+
+	g_assert(s->gdk_tag == 0);
+
+	s->gdk_tag = gdk_input_add(s->file_desc,
+		(GdkInputCondition) GDK_INPUT_READ | GDK_INPUT_EXCEPTION,
+		node_read, (gpointer) n);
+
+	/* We assume that if this is valid, it is non-zero */
+	g_assert(s->gdk_tag);
+
+	/*
+	 * Update state.
+	 */
+
+	n->status = GTA_NODE_CONNECTED;
+	n->last_update = n->connect_date = time((time_t *) NULL);
+	connected_node_cnt++;
+
+	/*
+	 * If we have an incoming connection, send an "alive" ping.
+	 */
+
+	if (n->flags & NODE_F_INCOMING)
+		send_alive_ping(n);
+
+	/*
+	 * Update the GUI.
+	 */
+
+	gui_update_node(n, TRUE);
+	gui_update_c_gnutellanet();		/* connected_node_cnt changed */
+	gtk_widget_set_sensitive(button_host_catcher_get_more, TRUE);
+
+	node_added = n;
+	g_hook_list_invoke(&node_added_hook_list, TRUE);
+	node_added = NULL;
+
+	/*
+	 * TODO Update the search button if there is the search entry
+	 * is not empty.
+	 */
 }
 
 /*
@@ -524,6 +569,15 @@ static void node_process_handshake_ack(struct io_header *ih)
 	s->getline = NULL;
 
 	/*
+	 * Install new node.
+	 */
+
+	gdk_input_remove(s->gdk_tag);
+	s->gdk_tag = 0;
+
+	node_is_now_connected(n);
+
+	/*
 	 * The problem we have now is that the remote node is going to
 	 * send binary data, normally processed by node_read().  However,
 	 * we have probably read some of those data along with the handshaking
@@ -591,18 +645,11 @@ static void node_process_handshake_ack(struct io_header *ih)
 		n->membuf = 0;
 	}
 
-	n->last_update = time((time_t *) 0);	/* Done reading ack */
-
 	/*
-	 * Install node_read() as the reading callback.
+	 * We can now read via the system call.
 	 */
 
 	n->read = (gint (*)(gint, gpointer, gint)) read;
-
-	gdk_input_remove(s->gdk_tag);
-	s->gdk_tag = gdk_input_add(s->file_desc,
-		(GdkInputCondition) GDK_INPUT_READ | GDK_INPUT_EXCEPTION,
-		node_read, (gpointer) n);
 }
 
 /*
@@ -816,11 +863,9 @@ nextline:
 	 */
 
 	if (n->proto_major == 0 && n->proto_minor == 4) {
-		n->last_update = time((time_t *) 0);	/* Done reading "headers" */
 		gdk_input_remove(s->gdk_tag);
-		s->gdk_tag = gdk_input_add(s->file_desc,
-			(GdkInputCondition) GDK_INPUT_READ | GDK_INPUT_EXCEPTION,
-			node_read, (gpointer) n);
+		s->gdk_tag = 0;
+		node_is_now_connected(n);
 		goto final_cleanup;
 	}
 
@@ -922,6 +967,7 @@ void node_add(struct gnutella_socket *s, guint32 ip, guint16 port)
 	gint row;
 	gboolean incoming = FALSE, already_connected = FALSE;
 	gint major = 0, minor = 0;
+	gboolean ponging_only = FALSE;
 
 	/*
 	 * Compute the protocol version from the first handshake line, if
@@ -952,19 +998,20 @@ void node_add(struct gnutella_socket *s, guint32 ip, guint16 port)
 #endif
 
 	/* Too many gnutellaNet connections */
-	if (nodes_in_list >= max_connections) {
-		if (s) {
-			if (major > 0 || minor > 4) {
-				send_node_error(s, 503, "Too many Gnet connections");
-				socket_destroy(s);
-			} else
-				send_connection_pongs(s);	/* Will close socket */
+	if (node_count() >= max_connections) {
+		if (!s)
+			return;
+		if (major > 0 || minor > 4) {
+			send_node_error(s, 503, "Too many Gnet connections");
+			socket_destroy(s);
+			return;
 		}
-		return;
+		ponging_only = TRUE;	/* Will only send connection pongs */
 	}
 
 	n = (struct gnutella_node *) g_malloc0(sizeof(struct gnutella_node));
 
+	n->id = node_id++;
 	n->ip = ip;
 	n->port = port;
 	n->proto_major = major;
@@ -972,17 +1019,37 @@ void node_add(struct gnutella_socket *s, guint32 ip, guint16 port)
 
 	n->routing_data = NULL;
 	n->read = (gint (*)(gint, gpointer, gint)) read;
+	n->flags = NODE_F_HDSK_PING;
 
 	if (s) {					/* This is an incoming control connection */
 		n->socket = s;
+		s->resource.node = n;
 		s->type = GTA_TYPE_CONTROL;
 		n->status = (major > 0 || minor > 4) ?
 			GTA_NODE_RECEIVING_HELLO : GTA_NODE_WELCOME_SENT;
-		s->resource.node = n;
 
 		incoming = TRUE;
 
-		titles[1] = (gchar *) "Incoming";
+		/*
+		 * We need to create a temporary connection, flagging it a "ponging"
+		 * because we have to read the initial GUID of the handshaking ping
+		 * to reply, lest the remote host might drop the pongs.
+		 *
+		 * For incoming connections, we don't know the listening IP:port
+		 * Gnet information.  We mark the nod with the NODE_F_INCOMING
+		 * flag so that we send it an "alive" ping to get that information
+		 * as soon as we have handshaked.
+		 *
+		 *		--RAM, 02/02/2001
+		 */
+
+		if (ponging_only) {
+			n->flags |= NODE_F_TMP;
+			titles[1] = (gchar *) "Ponging";
+		} else {
+			n->flags |= NODE_F_INCOMING;
+			titles[1] = (gchar *) "Incoming";
+		}
 	} else {
 		/* We have to create an outgoing control connection for the node */
 
@@ -992,6 +1059,8 @@ void node_add(struct gnutella_socket *s, guint32 ip, guint16 port)
 			n->status = GTA_NODE_CONNECTING;
 			s->resource.node = n;
 			n->socket = s;
+			n->gnet_ip = ip;
+			n->gnet_port = port;
 		} else {
 			n->status = GTA_NODE_REMOVING;
 			n->remove_msg = "Connection failed";
@@ -1016,6 +1085,8 @@ void node_add(struct gnutella_socket *s, guint32 ip, guint16 port)
 	sl_nodes = g_slist_prepend(sl_nodes, n);
 	if (n->status != GTA_NODE_REMOVING)
 		nodes_in_list++;
+	if (n->flags & NODE_F_TMP)
+		ponging_nodes++;
 
 	if (already_connected) {
 		if (incoming && (n->proto_major > 0 || n->proto_minor > 4))
@@ -1083,9 +1154,13 @@ void node_add(struct gnutella_socket *s, guint32 ip, guint16 port)
 }
 
 /*
- * Reading of messages
+ * node_parse
+ *
+ * Processing of messages.
+ *
+ * NB: callers of this routine must not use the node structure upon return,
+ * since we may invalidate that node during the processing.
  */
-
 void node_parse(struct gnutella_node *node)
 {
 	static struct gnutella_node *n;
@@ -1094,6 +1169,43 @@ void node_parse(struct gnutella_node *node)
 	g_return_if_fail(node);
 
 	n = node;
+
+	/*
+	 * If we're expecting a hanshaking ping, check whether we got one.
+	 * An hanshaking ping is normally sent after a connection is made,
+	 * and it comes with hops=0.
+	 *
+	 * We use the handshaking ping to determine, based on the GUID format,
+	 * whether the remote node is capable of limiting ping/pongs or not.
+	 * Note that for outgoing connections, we'll use the first ping we see
+	 * with hops=0 to determine that ability: the GUID[8] byte will be 0xff
+	 * and GUID[15] will be >= 1.
+	 *
+	 * The only time where the handshaking ping is necessary is for "ponging"
+	 * incoming connections.  Those were opened solely to send back connection
+	 * pongs, but we need the initial ping to know the GUID to use as message
+	 * ID when replying...
+	 *
+	 *		--RAM, 02/01/2002
+	 */
+
+	if (n->flags & NODE_F_HDSK_PING) {
+		if (n->header.function == GTA_MSG_INIT && n->header.hops == 0) {
+			if (n->flags & NODE_F_TMP) {
+				pcache_ping_received(n);
+				send_connection_pongs(n, n->header.muid); /* Will disconnect */
+				return;
+			}
+			if (n->header.muid[8] == 0xff && n->header.muid[15] >= 1)
+				n->flags |= NODE_F_PING_LIMIT;
+			n->flags &= ~NODE_F_HDSK_PING;		/* Clear indication */
+		} else if (n->flags & NODE_F_TMP) {
+			if (n->header.function == GTA_MSG_INIT)
+				pcache_ping_received(n);
+			node_remove(n, "Ponging connection did not send handshaking ping");
+			return;
+		}
+	}
 
 	/* First some simple checks */
 
@@ -1142,19 +1254,49 @@ void node_parse(struct gnutella_node *node)
 		break;
 	}
 
-	/* Route (forward) then handle the message if required */
+	/*
+	 * If message is dropped, stop right here.
+	 */
 
 	if (drop) {
 		n->dropped++;
 		dropped_messages++;
-	} else if (route_message(&n)) {		/* We have to handle the message */
+		goto reset_header;
+	
+	}
+
+	/*
+	 * With the ping/pong reducing scheme, we no longer pass ping/pongs
+	 * to the route_message() routine, and don't even have to store
+	 * routing information from pings to be able to route pongs back, which
+	 * saves routing entry for useful things...
+	 *		--RAM, 02/01/2002
+	 */
+
+	switch (n->header.function) {
+	case GTA_MSG_INIT:				/* Ping */
+		pcache_ping_received(n);
+		goto reset_header;
+		/* NOTREACHED */
+	case GTA_MSG_INIT_RESPONSE:		/* Pong */
+		pcache_pong_received(n);
+		goto reset_header;
+		/* NOTREACHED */
+	default:
+		break;
+	}
+
+//		case GTA_MSG_INIT:
+//			reply_init(n);
+//			break;
+//		case GTA_MSG_INIT_RESPONSE:
+//			host_add(n, 0, 0, TRUE);
+//			break;
+
+	/* Route (forward) then handle the message if required */
+
+	if (route_message(&n)) {		/* We have to handle the message */
 		switch (n->header.function) {
-		case GTA_MSG_INIT:
-			reply_init(n);
-			break;
-		case GTA_MSG_INIT_RESPONSE:
-			host_add(n, 0, 0, TRUE);
-			break;
 		case GTA_MSG_PUSH_REQUEST:
 			handle_push_request(n);
 			break;
@@ -1173,6 +1315,7 @@ void node_parse(struct gnutella_node *node)
 	if (!n)
 		return;				/* The node has been removed during processing */
 
+reset_header:
 	n->have_header = FALSE;
 	n->pos = 0;
 }
@@ -1340,27 +1483,11 @@ void node_read(gpointer data, gint source, GdkInputCondition cond)
 	struct gnutella_node *n = (struct gnutella_node *) data;
 
 	g_return_if_fail(n);
+	g_assert(n->status == GTA_NODE_CONNECTED);
 
 	if (cond & GDK_INPUT_EXCEPTION) {
 		node_remove(n, "Failed (Input Exception)");
 		return;
-	}
-
-	if (n->status == GTA_NODE_WELCOME_SENT) {
-		/* This is the first packet from this node */
-		n->status = GTA_NODE_CONNECTED;
-		connected_node_cnt++;
-		gui_update_c_gnutellanet();		/* connected_node_cnt changed */
-		gtk_widget_set_sensitive(button_host_catcher_get_more, TRUE);
-
-		node_added = n;
-		g_hook_list_invoke(&node_added_hook_list, TRUE);
-		node_added = NULL;
-
-		/*
-		 * TODO Update the search button if there is the search entry
-		 * is not empty
-		 */
 	}
 
 	if (!n->have_header) {		/* We haven't got the header yet */
@@ -1519,31 +1646,17 @@ void node_read_connecting(gpointer data, gint source, GdkInputCondition cond)
 		return;
 	}
 
-	/* Okay, we are now really connected to a gnutella node */
-
-	gdk_input_remove(s->gdk_tag);
-
-	s->gdk_tag = gdk_input_add(s->file_desc,
-		GDK_INPUT_READ | GDK_INPUT_EXCEPTION, node_read, (gpointer) n);
-
-	/* We assume that if this is valid, it is non-zero */
-	g_assert(s->gdk_tag);
+	/*
+	 * Okay, we are now really connected to a gnutella node
+	 */
 
 	s->pos = 0;
 
-	n->status = GTA_NODE_CONNECTED;
-	connected_node_cnt++;
+	gdk_input_remove(s->gdk_tag);
+	s->gdk_tag = 0;
 
-	gui_update_c_gnutellanet();		/* connected_node_cnt changed */
-	gui_update_node(n, TRUE);
-
-	gtk_widget_set_sensitive(button_host_catcher_get_more, TRUE);
-
-	send_init(n);
-
-	node_added = n;
-	g_hook_list_invoke(&node_added_hook_list, TRUE);
-	node_added = NULL;
+	node_is_now_connected(n);
+	pcache_outgoing_connection(n);	/* Will send proper handshaking ping */
 }
 
 void node_close(void)

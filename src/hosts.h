@@ -4,8 +4,6 @@
 struct gnutella_host {
 	guint32 ip;
 	guint16 port;
-	// guint32 files_count;			/* UNUSED --RAM */
-	// guint32 kbytes_count;		/* UNUSED --RAM */
 };
 
 /*
@@ -23,16 +21,22 @@ extern gint hosts_idle_func;
 void host_init(void);
 gboolean find_host(guint32, guint16);
 void host_remove(struct gnutella_host *, gboolean);
-void host_add(struct gnutella_node *, guint32, guint16, gboolean);
+void host_add(guint32, guint16, gboolean);
 gint host_fill_caught_array(struct gnutella_host *hosts, gint hcount);
 struct gnutella_host *host_get_caught(void);
-void send_init(struct gnutella_node *);
-void reply_init(struct gnutella_node *);
 void ping_stats_add(struct gnutella_node *);
 void ping_stats_update(void);
 gboolean check_valid_host(guint32, guint16);
 void hosts_read_from_file(gchar *, gboolean);
 void hosts_write_to_file(gchar *);
 void host_close(void);
+struct gnutella_msg_init_response *build_pong_msg(
+	guint8 hops, guint8 ttl, guchar *muid,
+	guint32 ip, guint16 port, guint32 files, guint32 kbytes);
+void send_alive_ping(struct gnutella_node *n);
+
+void pcache_outgoing_connection(struct gnutella_node *n);
+void pcache_ping_received(struct gnutella_node *n);
+void pcache_pong_received(struct gnutella_node *n);
 
 #endif /* __hosts_h__ */

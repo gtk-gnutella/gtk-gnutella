@@ -122,18 +122,18 @@ gboolean main_timer(gpointer p)
 	guint32 t;
 	time_t now = time((time_t *) NULL);
 	GSList *remove;
+	int nodes_missing = up_connections - node_count();
 
 	/*
 	 * If we are under the number of connections wanted, we add hosts
 	 * to the connection list
 	 */
 
-	if (nodes_in_list < up_connections && !stop_host_get) {
+	if (nodes_missing > 0 && !stop_host_get) {
 		if (sl_catched_hosts != NULL) {
 			struct gnutella_host *host;
-			int missing = up_connections - nodes_in_list;
 
-			while (missing-- > 0 && sl_catched_hosts) {
+			while (nodes_missing-- > 0 && sl_catched_hosts) {
 				host = host_get_caught();
 				node_add(NULL, host->ip, host->port);
 				g_free(host);

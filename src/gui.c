@@ -128,7 +128,7 @@ void gui_update_monitor_max_items(void)
 void gui_update_c_gnutellanet(void)
 {
 	g_snprintf(gui_tmp, sizeof(gui_tmp), "%u/%u gnutellaNet",
-		connected_nodes(), nodes_in_list);
+		connected_nodes(), node_count());
 	gtk_clist_set_text(GTK_CLIST(clist_connections), 0, 0, gui_tmp);
 }
 

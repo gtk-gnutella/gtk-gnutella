@@ -40,7 +40,7 @@ guint32 max_host_downloads = 4;
 guint32 max_uploads = 5;
 guint32 minimum_speed = 0;
 guint32 monitor_max_items = 25;
-guint32 connection_speed = 28;
+guint32 connection_speed = 28;	/* kbits/s */
 gint32 search_max_items = 30;	/* For now, this is limited to 255 anyway */
 guint32 forced_local_ip = 0;
 guint32 download_connecting_timeout = 30;
@@ -445,12 +445,11 @@ void config_hosts_catched(gchar * str)
 
 	while (h[i] && *h[i]) {
 		if (strlen(h[i]) == 8) {		/* This is a host with default port */
-			host_add(NULL, strtoul(h[i], NULL, 16), 6346, FALSE);
+			host_add(strtoul(h[i], NULL, 16), 6346, FALSE);
 		} else if (strlen(h[i]) == 12) {		/* This is a host with a port */
 			strncpy(p, h[i] + 8, 4);
 			h[i][8] = 0;
-			host_add(NULL, strtoul(h[i], NULL, 16), strtoul(p, NULL, 16),
-					 FALSE);
+			host_add(strtoul(h[i], NULL, 16), strtoul(p, NULL, 16), FALSE);
 		}
 
 		i++;

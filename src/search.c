@@ -337,7 +337,7 @@ static void search_add_new_muid(struct search *sch)
 {
 	guchar *muid = (guchar *) g_malloc(16);
 
-	generate_new_muid(muid);
+	generate_new_muid(muid, TRUE);
 
 	if (sch->muids)				/* If this isn't the first muid */
 		search_reset_sent_nodes(sch);

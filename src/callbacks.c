@@ -223,7 +223,9 @@ void on_button_host_catcher_connect_clicked(GtkButton * button,
 void on_button_host_catcher_get_more_clicked(GtkButton * button,
 											 gpointer user_data)
 {
-	send_init(NULL);
+	// This button no longer has effect with the ping/pong reduction scheme
+	// 		--RAM, 02/01/2002
+	// send_init(NULL);
 }
 
 void on_button_host_catcher_remove_clicked(GtkButton * button,

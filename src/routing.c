@@ -58,7 +58,7 @@ void routing_log(gchar * fmt, ...)
 	/*printf("%s", t); */
 }
 
-void decrement_message_counters(GSList *head);
+static void decrement_message_counters(GSList *head);
 
 /* just used to ensure type safety when accessing the routing_data field */
 struct route_data * get_routing_data(struct gnutella_node *n)
@@ -141,6 +141,26 @@ guint message_hash_func(gconstpointer key)
 	return hash;
 }
 
+/*
+ * patch_muid_for_modern_node
+ *
+ * Make sure the MUID we use in initial handshaking pings are marked
+ * specially to indicate we're modern nodes.
+ */
+static void patch_muid_for_modern_node(guchar *muid)
+{
+	/*
+	 * We're a "modern" client, meaning we're not Gnutella 0.56.
+	 * Therefore we must set our ninth byte, muid[8] to 0xff, and
+	 * put the protocol version number in muid[15].	For 0.4, this
+	 * means 0.
+	 *				--RAM, 15/09/2001
+	 */
+
+	muid[8] = 0xff;
+	muid[15] = 1;		/* Now capable of ping/pong reduction */
+}
+
 /* Init function */
 void routing_init(void)
 {
@@ -158,6 +178,7 @@ void routing_init(void)
 
 	for (i = 0; i < 15; i++)
 		guid[i] = rand() & 0xff;
+	patch_muid_for_modern_node(guid);
 
 	for (i = 0; i < 256; i++)
 		debug_msg[i] = "UNKNOWN MSG	";
@@ -166,17 +187,6 @@ void routing_init(void)
 	debug_msg[GTA_MSG_INIT_RESPONSE] = "Ping Reply	";
 	debug_msg[GTA_MSG_SEARCH] = "Search Req. ";
 	debug_msg[GTA_MSG_SEARCH_RESULTS] = "Search Reply";
-
-	/*
-	 * We're a "modern" client, meaning we're not Gnutella 0.56.
-	 * Therefore we must set our ninth byte, guid[8] to 0xff, and
-	 * put the protocol version number in guid[15].	For 0.4, this
-	 * means 0.
-	 *				--RAM, 15/09/2001
-	 */
-
-	guid[8] = 0xff;
-	guid[15] = 0;
 
 	/* should be around for life of program, so should *never*
 	   need to be deallocated */
@@ -199,25 +209,51 @@ void routing_close(void)
 	g_hash_table_destroy(messages_hashed);
 }
 
-void generate_new_muid(guchar * muid)
+/*
+ * generate_new_muid
+ *
+ * Generate a new random message ID.  We will never send the same MUID twice
+ * due to the use of a counter.
+ *
+ * If `modern' is true, then patch it to indicate we're a "modern node".
+ * If `modern' is false, it probably does not matter.
+ */
+void generate_new_muid(guchar *muid, gboolean modern)
 {
 	static guint32 muid_cnt = 0;		/* Ensure messages we send are unique */
 	gint i;
 
-	for (i = 0; i < (16 - sizeof(muid_cnt)); i += 2)
-		(*((guint16 *) (muid + i))) = (guint16) (rand() & 0xffff);
+	/*
+	 * We place our unique counter at offset 4, and it is 4 bytes long
+	 * hence the tweaking with `k', and the upper bound for `i' of 12.
+	 */
 
-	*((guint32 *) (muid + 16 - sizeof(muid_cnt))) = muid_cnt++;
+	for (i = 0; i < 12; i += 2) {
+		gint k = (i < 4) ? i : (i + 4);
+		(*((guint16 *) (muid + k))) = (guint16) (rand() & 0xffff);
+	}
+
+	*((guint32 *) (muid + 4)) = muid_cnt++;
+
+	if (modern)
+		patch_muid_for_modern_node(muid);
+	else {
+		if (muid[8] == 0xff)	/* To not confuse it with special GUID... */
+			muid[8] = 0x00;		/* the 9th byte cannot be 0xff */
+	}
 }
 
-/* Generate a new muid and put it in a message header */
-
-void message_set_muid(struct gnutella_header *header)
+/*
+ * message_set_muid
+ *
+ * Generate a new muid and put it in a message header.
+ */
+void message_set_muid(struct gnutella_header *header, gboolean modern)
 {
-	generate_new_muid(header->muid);
+	generate_new_muid(header->muid, modern);
 }
 
-void remove_one_message_reference(GSList * cur)
+static void remove_one_message_reference(GSList * cur)
 {
 	struct route_data *rd = (struct route_data *) cur->data;
 
@@ -245,7 +281,7 @@ void remove_one_message_reference(GSList * cur)
 
 /* reduces the messages in routing table count for all nodes in list */
 
-void decrement_message_counters(GSList *head)
+static void decrement_message_counters(GSList *head)
 {
 	GSList * cur;
 	
@@ -325,13 +361,13 @@ void message_add(guchar * muid, guint8 function,
 
 	route->saved_messages++;
 	
-	next_message_index++;
-	next_message_index %= MAX_STORED_MESSAGES;
+	if (++next_message_index >= MAX_STORED_MESSAGES)
+		next_message_index = 0;
 }
 
 /* remove references to routing data that is no longer associated with
    a node */
-GSList * purge_dangling_references(GSList *head)
+static GSList * purge_dangling_references(GSList *head)
 {
 	GSList * cur = head;
 	while (cur)
@@ -670,7 +706,7 @@ void sendto_one(struct gnutella_node *n, guchar * msg, guchar * data,
 	g_return_if_fail(size > 0);
 
 
-	if (!NODE_IS_CONNECTED(n))
+	if (!NODE_IS_CONNECTED(n) || NODE_IS_PONGING_ONLY(n))
 		return;
 
 	if (!data || size == sizeof(struct gnutella_header)) {
