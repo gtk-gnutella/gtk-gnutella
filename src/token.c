@@ -32,12 +32,15 @@
 #include "misc.h"
 #include "sha1.h"
 #include "base64.h"
+#include "crc.h"
 
 RCSID("$Id$");
 
 #define TOKEN_CLOCK_SKEW	1800		/* +/- 30 minutes */
 #define TOKEN_LIFE			60			/* lifetime of our tokens */
 #define TOKEN_BASE64_SIZE	(TOKEN_VERSION_SIZE * 4 / 3)	/* base64 size */
+#define LEVEL_SIZE			(2 * G_N_ELEMENTS(token_keys))	/* at most */
+#define LEVEL_BASE64_SIZE	(LEVEL_SIZE * 4 / 3 + 3)		/* +2 for == tail */
 
 /*
  * Keys are generated through "od -x /dev/random".
@@ -91,6 +94,11 @@ static gchar *tok_errstr[] = {
 	"Keys not found",				/* TOK_BAD_KEYS */
 	"Bad version string",			/* TOK_BAD_VERSION */
 	"Version older than expected",	/* TOK_OLD_VERSION */
+	"Level not base64-encoded",		/* TOK_BAD_LEVEL_ENCODING */
+	"Bad level length",				/* TOK_BAD_LEVEL_LENGTH */
+	"Level too short",				/* TOK_SHORT_LEVEL */
+	"Level mismatch",				/* TOK_INVALID_LEVEL */
+	"Missing level",				/* TOK_MISSING_LEVEL */
 };
 
 /*
@@ -131,9 +139,10 @@ static struct tokkey *find_tokkey(time_t now)
  * random_key
  *
  * Pickup a key randomly.
- * Returns the key string and the index within the key array into `idx'.
+ * Returns the key string and the index within the key array into `idx'
+ * and the token key structure used in `tkused'.
  */
-static gchar *random_key(time_t now, gint *idx)
+static gchar *random_key(time_t now, gint *idx, struct tokkey **tkused)
 {
 	static gboolean warned = FALSE;
 	gint random_idx;
@@ -152,6 +161,7 @@ static gchar *random_key(time_t now, gint *idx)
 
 	random_idx = random_value(tk->count - 1);
 	*idx = random_idx;
+	*tkused = tk;
 
 	return tk->keys[random_idx];
 }
@@ -170,14 +180,21 @@ static gchar *random_key(time_t now, gint *idx)
 guchar *tok_version(void)
 {
 	static time_t last_generated = 0;
-	static guchar token[TOKEN_BASE64_SIZE + 1];
+	static guchar *toklevel = NULL;
+	guchar token[TOKEN_BASE64_SIZE + 1];
 	guint8 digest[TOKEN_VERSION_SIZE];
+	guchar lvldigest[LEVEL_SIZE];
+	guchar lvlbase64[LEVEL_BASE64_SIZE + 1];
 	time_t now = time(NULL);
+	struct tokkey *tk;
 	gint idx;
 	gchar *key;
 	SHA1Context ctx;
 	guint8 seed[3];
 	guint32 now32;
+	gint lvlsize;
+	gint klen;
+	gint i;
 
 	/*
 	 * We don't generate a new token each time, but only every TOKEN_LIFE
@@ -188,11 +205,15 @@ guchar *tok_version(void)
 	g_assert(TOKEN_CLOCK_SKEW > 2 * TOKEN_LIFE);
 
 	if (now - last_generated < TOKEN_LIFE)
-		return token;
+		return toklevel;
 
 	last_generated = now;
 
-	key = random_key(now, &idx);
+	/*
+	 * Compute token.
+	 */
+
+	key = random_key(now, &idx, &tk);
 	seed[0] = random_value(0xff);
 	seed[1] = random_value(0xff);
 	seed[2] = random_value(0xff) & 0xe0;	/* Upper 3 bits only */
@@ -209,13 +230,42 @@ guchar *tok_version(void)
 	SHA1Result(&ctx, digest + 7);
 
 	/*
+	 * Compute level.
+	 */
+
+	lvlsize = G_N_ELEMENTS(token_keys) - (tk - token_keys);
+	now32 = crc32_update_crc(0, digest, TOKEN_VERSION_SIZE);
+	klen = strlen(tk->keys[0]);
+
+	for (i = 0; i < lvlsize; i++, tk++) {
+		gint j;
+		guint32 crc = now32;
+		guchar *c = (guchar *) &crc;
+
+		for (j = 0; j < tk->count; j++)
+			crc = crc32_update_crc(crc, tk->keys[j], klen);
+
+		crc = g_htonl(crc);
+		lvldigest[i*2] = c[0] ^ c[1];
+		lvldigest[i*2+1] = c[2] ^ c[3];
+	}
+
+	/*
 	 * Encode into base64.
 	 */
 
 	base64_encode_into(digest, TOKEN_VERSION_SIZE, token, TOKEN_BASE64_SIZE);
 	token[TOKEN_BASE64_SIZE] = '\0';
 
-	return token;
+	memset(lvlbase64, 0, sizeof(lvlbase64));
+	base64_encode_into(lvldigest, 2 * lvlsize, lvlbase64, LEVEL_BASE64_SIZE);
+
+	if (toklevel != NULL)
+		g_free(toklevel);
+
+	toklevel = g_strdup_printf("%s; %s", token, lvlbase64);
+
+	return toklevel;
 }
 
 /*
@@ -230,17 +280,33 @@ tok_error_t tok_version_valid(gchar *version, guchar *tokenb64, gint len)
 	time_t stamp;
 	guint32 stamp32;
 	struct tokkey *tk;
+	struct tokkey *rtk;
 	gint idx;
 	gchar *key;
 	SHA1Context ctx;
-	guchar token[TOKEN_VERSION_SIZE]; 
+	guchar lvldigest[1024];
+	guint8 token[TOKEN_VERSION_SIZE]; 
 	guint8 digest[SHA1HashSize];
 	version_t rver;
+	guchar *end;
+	gint toklen;
+	gint lvllen;
+	gint lvlsize;
+	gint klen;
+	gint i;
+	guchar *c = (guchar *) &stamp32;
 
-	if (len != TOKEN_BASE64_SIZE)
+	end = (guchar *) strchr(tokenb64, ';');		/* After 25/02/2003 */
+	toklen = end ? (end - tokenb64) : len;
+
+	/*
+	 * Verify token.
+	 */
+
+	if (toklen != TOKEN_BASE64_SIZE)
 		return TOK_BAD_LENGTH;
 
-	if (!base64_decode_into(tokenb64, len, token, TOKEN_VERSION_SIZE))
+	if (!base64_decode_into(tokenb64, toklen, token, TOKEN_VERSION_SIZE))
 		return TOK_BAD_ENCODING;
 
 	memcpy(&stamp32, token, 4);
@@ -280,6 +346,72 @@ tok_error_t tok_version_valid(gchar *version, guchar *tokenb64, gint len)
 
 	if (version_cmp(&rver, &tk->ver) < 0)
 		return TOK_OLD_VERSION;
+
+	/*
+	 * Verify level.
+	 */
+
+	if (end == NULL) {						/* No level */
+		if (rver.timestamp >= 1046127600)	/* 25/02/2003 */
+			return TOK_MISSING_LEVEL;
+		return TOK_OK;
+	}
+
+	lvllen = len - toklen - 2;				/* Forget about "; " */
+	end += 2;								/* Skip "; " */
+
+	if (lvllen >= sizeof(lvldigest) || lvllen <= 0)
+		return TOK_BAD_LEVEL_LENGTH;
+
+	if (lvllen & 0x3)
+		return TOK_BAD_LEVEL_LENGTH;
+
+	lvllen = base64_decode_into(end, lvllen, lvldigest, sizeof(lvldigest));
+
+	if (lvllen == 0 || (lvllen & 0x1))
+		return TOK_BAD_LEVEL_ENCODING;
+	
+	g_assert(lvllen >= 2);
+	g_assert((lvllen & 0x1) == 0);
+
+	/*
+	 * Only check the highest keys we can check.
+	 */
+
+	lvllen /= 2;							/* # of keys held remotely */
+	lvlsize = G_N_ELEMENTS(token_keys) - (tk - token_keys);
+	lvlsize = MIN(lvllen, lvlsize);
+
+	g_assert(lvlsize >= 1);
+
+	rtk = tk + (lvlsize - 1);				/* Keys at that level */
+
+	stamp32 = crc32_update_crc(0, token, TOKEN_VERSION_SIZE);
+	klen = strlen(rtk->keys[0]);
+
+	for (i = 0; i < rtk->count; i++)
+		stamp32 = crc32_update_crc(stamp32, rtk->keys[i], klen);
+
+	stamp32 = g_htonl(stamp32);
+
+	lvllen--;								/* Move to 0-based offset */
+
+	if (lvldigest[2*lvllen] != (c[0] ^ c[1]))
+		return TOK_INVALID_LEVEL;
+
+	if (lvldigest[2*lvllen+1] != (c[2] ^ c[3]))
+		return TOK_INVALID_LEVEL;
+
+	for (i = 0; i < G_N_ELEMENTS(token_keys); i++) {
+		rtk = &token_keys[i];
+		if (rtk->ver.timestamp > rver.timestamp) {
+			rtk--;							/* `rtk' could not exist remotely */
+			break;
+		}
+	}
+
+	if (lvllen < rtk - tk)
+		return TOK_SHORT_LEVEL;
 
 	return TOK_OK;
 }
