@@ -37,8 +37,8 @@ OBJ = \
 ++GLIB_CFLAGS $glibcflags
 
 ;# Those extra flags are expected to be user-defined
-CFLAGS = -I$(TOP) -I../.. $(GLIB_CFLAGS)
-DPFLAGS = -I$(TOP) -I../.. $(GLIB_CFLAGS)
+CFLAGS = -I$(TOP) -I../.. $(GLIB_CFLAGS) -DCURDIR=$(CURRENT)
+DPFLAGS = $(CFLAGS)
 
 DependTarget()
 NormalObjectTarget(c2ui)

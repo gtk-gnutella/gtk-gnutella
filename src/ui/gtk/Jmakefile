@@ -70,7 +70,7 @@ TOP_GUI = ..
 
 ;# Those extra flags are expected to be user-defined
 CFLAGS = -I$(TOP) -I$(TOP_SRC) -I$(TOP_GUI) \
-	$(GTK_CFLAGS) $(XML2_CFLAGS) -DGUI_SOURCES
+	$(GTK_CFLAGS) $(XML2_CFLAGS) -DGUI_SOURCES -DCURDIR=$(CURRENT)
 DPFLAGS = $(CFLAGS)
 
 IF = ../../if

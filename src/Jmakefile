@@ -55,7 +55,7 @@ EXTRA = \
 	if/gnet_property.o \
 	if/gui_property.o
 
-CFLAGS = -I.. -I. $(GTK_CFLAGS) $(XLM2_CFLAGS)
+CFLAGS = -I.. -I. $(GTK_CFLAGS) $(XLM2_CFLAGS) -DCURDIR=$(CURRENT)
 DPFLAGS = $(CFLAGS)
 LDFLAGS = \
 	-Lcore -lcore \

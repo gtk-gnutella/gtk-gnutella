@@ -34,7 +34,7 @@ SOURCES = gnet_property.c gui_property.c
 
 ++GLIB_CFLAGS $glibcflags
 
-CFLAGS = -I$(TOP) -I.. $(GLIB_CFLAGS)
+CFLAGS = -I$(TOP) -I.. $(GLIB_CFLAGS) -DCURDIR=$(CURRENT)
 DPFLAGS = $(CFLAGS)
 
 all:: properties
