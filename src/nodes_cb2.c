@@ -78,7 +78,7 @@ static void nodes_cb_connect_by_name(const gchar *addr)
 		adns_resolve(e, add_node_helper, GUINT_TO_POINTER((guint) port));
 	}
 
-    g_free(e);
+    G_FREE_NULL(e);
 }
 
 static void add_node(void)
@@ -128,7 +128,7 @@ void on_entry_host_changed(GtkEditable * editable, gpointer user_data)
         lookup_widget(main_window, "button_nodes_add"),
         is_string_ip(e));
 
-	g_free(e);
+	G_FREE_NULL(e);
 }
 
 gboolean on_treeview_nodes_button_press_event(

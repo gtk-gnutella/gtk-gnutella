@@ -278,7 +278,7 @@ void settings_init(void)
 				config_dir, g_strerror(errno));
 			goto no_config_dir;
 #if 0
-			g_free(config_dir);
+			G_FREE_NULL(config_dir);
 			config_dir = NULL;
 #endif
 		}
@@ -928,7 +928,7 @@ static gboolean scan_extensions_changed(property_t prop)
 
     parse_extensions(s);
 
-    g_free(s);
+    G_FREE_NULL(s);
 
     return FALSE;
 }
@@ -944,7 +944,7 @@ static gboolean file_path_changed(property_t prop)
 
         if (prop == PROP_SAVE_FILE_PATH) {
 			prop_def_t *def = gnet_prop_get_def(prop);
-			path = home_dir ? home_dir : *def->data.string.def;
+			path = g_strdup(home_dir ? home_dir : *def->data.string.def);
 			prop_free_def(def);
 		} else
 			path = gnet_prop_get_string(PROP_SAVE_FILE_PATH, NULL, 0);
@@ -954,14 +954,12 @@ static gboolean file_path_changed(property_t prop)
 
         gnet_prop_set_string(prop, path);
 
-        if (prop != PROP_SAVE_FILE_PATH)
-			g_free(path);
-
-        g_free(s);
+		G_FREE_NULL(path);
+        G_FREE_NULL(s);
         return TRUE;
     }
 
-    g_free(s);
+    G_FREE_NULL(s);
     return FALSE;
 }
 
@@ -970,11 +968,11 @@ static gboolean shared_dirs_paths_changed(property_t prop)
     gchar *s = gnet_prop_get_string(prop, NULL, 0);
 
     if (!shared_dirs_parse(s)) {
-        g_free(s);
+        G_FREE_NULL(s);
         shared_dirs_update_prop();
         return TRUE;
     } else {
-        g_free(s);
+        G_FREE_NULL(s);
         return FALSE;
     }
 }
@@ -985,7 +983,7 @@ static gboolean local_netmasks_string_changed(property_t prop)
 
     parse_netmasks(s);
 
-    g_free(s);
+    G_FREE_NULL(s);
 
     return FALSE;
 }

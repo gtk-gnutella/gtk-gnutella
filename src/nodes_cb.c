@@ -78,7 +78,7 @@ static void nodes_cb_connect_by_name(const gchar *addr)
 		adns_resolve(e, add_node_helper, GUINT_TO_POINTER((guint) port));
 	}
 
-    g_free(e);
+    G_FREE_NULL(e);
 }
 
 void on_clist_nodes_select_row
@@ -155,7 +155,7 @@ static void add_node(void)
 
     nodes_cb_connect_by_name(addr);
 
-    g_free(addr);
+    G_FREE_NULL(addr);
 
     gtk_entry_set_text(GTK_ENTRY(editable), "");
 }
@@ -194,7 +194,7 @@ void on_entry_host_changed(GtkEditable * editable, gpointer user_data)
         lookup_widget(main_window, "button_nodes_add"),
         is_string_ip(e));
 
-	g_free(e);
+	G_FREE_NULL(e);
 }
 
 #endif	/* USE_GTK1 */
