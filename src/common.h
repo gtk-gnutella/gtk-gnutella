@@ -90,6 +90,11 @@
 #include <glib.h>
 
 /*
+ * Use filesize_t to hold filesizes
+ */
+typedef guint64 filesize_t;
+
+/*
  * Macro to print signed 64-bit integers
  */
 #ifndef PRId64
