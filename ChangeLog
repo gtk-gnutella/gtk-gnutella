@@ -9,6 +9,8 @@
 - Added support for the Bye packet.
 - Dispatched heartbeat timer routines to the relevant files.
 - Integrated HTTP proxy patch [From Szabolcs Seláf].
+- Properly handle Range requests such as "123-456" and "-567".  Still no
+  handling for things like "123-456,457-789" though.
 
 # v 0.80   2002.01.31  [stable]
 # v 0.80   2002.01.22  [beta2]
