@@ -1,5 +1,8 @@
 # since last version
 
+- (2002.08.31 RAM)
+ * Changed the way GUID are generated for messages and servents.
+
 - (2002.08.29 RAM)
  * Actual freeing of download structures is now deferred to avoid race
    conditions with list traversals.
@@ -12,6 +15,8 @@
  * Make sure upload slot is reserved between two consecutive queries on
    a persistent HTTP/1.1 connection.
  * Fixed minor style issues in  vendors.h and whitelist.c.
+ * Fixed improper display when new version is encountered.
+ * Fixed file descriptor leak in ignore.c.
 
 - (2002.08.29 Richard)
  * Droped g_hash_tables to lookup handles in search.c and nodes.c and use
