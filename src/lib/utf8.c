@@ -2603,6 +2603,9 @@ static void textdomain_init(const char *codeset)
 #endif /* HAS_BIND_TEXTDOMAIN_CODESET */
 
 	textdomain(PACKAGE);
+	
+#else /* !NLS */
+	(void) codeset;
 #endif /* NLS */
 }
 
