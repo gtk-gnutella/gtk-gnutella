@@ -1,5 +1,10 @@
 # since last version
 
+- (2002.09.07 RAM)
+ * Added "int" atoms.
+ * Refactored swarming meta-information management to avoid conflicts between
+   different files, and really put identical sources to the same output file.
+
 - (2002.09.06 RAM)
  * Factored out handling of (name, size) tuples.
  * Was wrongly forwarding query hits with bad SHA1s when debugging disabled.
