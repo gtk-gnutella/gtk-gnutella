@@ -659,7 +659,7 @@ gchar *url_normalize(gchar *url, url_policy_t pol)
 		ssize_t len = q - url;
  
 		g_assert(len > 0); 
-		p = g_malloc(len + sizeof '/' + sizeof '\0');
+		p = g_malloc(len + sizeof "/");
 		if (p) {
 			memcpy(p, url, len);
 			p[len] = '/';
