@@ -981,7 +981,7 @@
 		  <orientation>GTK_PROGRESS_LEFT_TO_RIGHT</orientation>
 		  <activity_mode>False</activity_mode>
 		  <show_text>True</show_text>
-		  <format>bws in</format>
+		  <format>in</format>
 		  <text_xalign>0.5</text_xalign>
 		  <text_yalign>0.5</text_yalign>
 		  <child>
@@ -1008,7 +1008,7 @@
 		  <orientation>GTK_PROGRESS_LEFT_TO_RIGHT</orientation>
 		  <activity_mode>False</activity_mode>
 		  <show_text>True</show_text>
-		  <format>bws out</format>
+		  <format>out</format>
 		  <text_xalign>0.5</text_xalign>
 		  <text_yalign>0.5</text_yalign>
 		  <child>
@@ -1054,7 +1054,7 @@
 		  <orientation>GTK_PROGRESS_LEFT_TO_RIGHT</orientation>
 		  <activity_mode>False</activity_mode>
 		  <show_text>True</show_text>
-		  <format>bws gin</format>
+		  <format>in</format>
 		  <text_xalign>0.5</text_xalign>
 		  <text_yalign>0.5</text_yalign>
 		  <child>
@@ -1080,7 +1080,7 @@
 		  <orientation>GTK_PROGRESS_LEFT_TO_RIGHT</orientation>
 		  <activity_mode>False</activity_mode>
 		  <show_text>True</show_text>
-		  <format>bws gout</format>
+		  <format>out</format>
 		  <text_xalign>0.5</text_xalign>
 		  <text_yalign>0.5</text_yalign>
 		  <child>
@@ -1126,7 +1126,7 @@
 		  <orientation>GTK_PROGRESS_LEFT_TO_RIGHT</orientation>
 		  <activity_mode>False</activity_mode>
 		  <show_text>True</show_text>
-		  <format>bws lin</format>
+		  <format>in</format>
 		  <text_xalign>0.5</text_xalign>
 		  <text_yalign>0.5</text_yalign>
 		  <child>
@@ -1152,7 +1152,7 @@
 		  <orientation>GTK_PROGRESS_LEFT_TO_RIGHT</orientation>
 		  <activity_mode>False</activity_mode>
 		  <show_text>True</show_text>
-		  <format>bws lout</format>
+		  <format>out</format>
 		  <text_xalign>0.5</text_xalign>
 		  <text_yalign>0.5</text_yalign>
 		  <child>
@@ -3401,7 +3401,7 @@
 				<widget>
 				  <class>GtkLabel</class>
 				  <name>label_dl_active_count</name>
-				  <label>[active]</label>
+				  <label>active</label>
 				  <justify>GTK_JUSTIFY_CENTER</justify>
 				  <wrap>False</wrap>
 				  <xalign>0.5</xalign>
@@ -3435,7 +3435,7 @@
 				<widget>
 				  <class>GtkLabel</class>
 				  <name>label_dl_aqueued_count</name>
-				  <label>[aqueued]</label>
+				  <label>queued</label>
 				  <justify>GTK_JUSTIFY_CENTER</justify>
 				  <wrap>False</wrap>
 				  <xalign>0.5</xalign>
@@ -3932,7 +3932,7 @@
 				<widget>
 				  <class>GtkLabel</class>
 				  <name>label_dl_pqueued_count</name>
-				  <label>[pqueued]</label>
+				  <label>queued</label>
 				  <justify>GTK_JUSTIFY_CENTER</justify>
 				  <wrap>False</wrap>
 				  <xalign>0.5</xalign>
@@ -7963,7 +7963,7 @@
 	<widget>
 	  <class>GtkLabel</class>
 	  <name>label_statusbar_horizon_node_count</name>
-	  <label>[Nodes]</label>
+	  <label>Nodes</label>
 	  <justify>GTK_JUSTIFY_CENTER</justify>
 	  <wrap>False</wrap>
 	  <xalign>0.5</xalign>
@@ -7987,7 +7987,7 @@
 	<widget>
 	  <class>GtkLabel</class>
 	  <name>label_statusbar_horizon_file_count</name>
-	  <label>[Files]</label>
+	  <label>Files</label>
 	  <justify>GTK_JUSTIFY_CENTER</justify>
 	  <wrap>False</wrap>
 	  <xalign>0.5</xalign>
@@ -8011,7 +8011,7 @@
 	<widget>
 	  <class>GtkLabel</class>
 	  <name>label_statusbar_horizon_kb_count</name>
-	  <label>KB</label>
+	  <label>Size</label>
 	  <justify>GTK_JUSTIFY_CENTER</justify>
 	  <wrap>False</wrap>
 	  <xalign>0.5</xalign>
@@ -18903,7 +18903,7 @@ allowed</label>
 		      <widget>
 			<class>GtkLabel</class>
 			<name>label_output_bw_limit</name>
-			<label>[output]</label>
+			<label>out</label>
 			<justify>GTK_JUSTIFY_CENTER</justify>
 			<wrap>False</wrap>
 			<xalign>1</xalign>
@@ -18967,7 +18967,7 @@ allowed</label>
 		      <widget>
 			<class>GtkLabel</class>
 			<name>label_input_bw_limit</name>
-			<label>[input]</label>
+			<label>in</label>
 			<justify>GTK_JUSTIFY_CENTER</justify>
 			<wrap>False</wrap>
 			<xalign>1</xalign>

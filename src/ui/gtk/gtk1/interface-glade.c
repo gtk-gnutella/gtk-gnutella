@@ -1388,7 +1388,7 @@ create_main_window (void)
   gtk_tooltips_set_tip (tooltips, progressbar_bws_in, _("Click to toggle display."), NULL);
   gtk_widget_set_events (progressbar_bws_in, GDK_BUTTON_PRESS_MASK);
   gtk_progress_set_show_text (GTK_PROGRESS (progressbar_bws_in), TRUE);
-  gtk_progress_set_format_string (GTK_PROGRESS (progressbar_bws_in), _("bws in"));
+  gtk_progress_set_format_string (GTK_PROGRESS (progressbar_bws_in), _("in"));
 
   progressbar_bws_out = gtk_progress_bar_new ();
   gtk_widget_set_name (progressbar_bws_out, "progressbar_bws_out");
@@ -1400,7 +1400,7 @@ create_main_window (void)
   gtk_tooltips_set_tip (tooltips, progressbar_bws_out, _("Click to toggle display."), NULL);
   gtk_widget_set_events (progressbar_bws_out, GDK_BUTTON_PRESS_MASK);
   gtk_progress_set_show_text (GTK_PROGRESS (progressbar_bws_out), TRUE);
-  gtk_progress_set_format_string (GTK_PROGRESS (progressbar_bws_out), _("bws out"));
+  gtk_progress_set_format_string (GTK_PROGRESS (progressbar_bws_out), _("out"));
 
   frame_bws_ginout = gtk_frame_new (_("GnutellaNet traffic"));
   gtk_widget_set_name (frame_bws_ginout, "frame_bws_ginout");
@@ -1429,7 +1429,7 @@ create_main_window (void)
   gtk_box_pack_start (GTK_BOX (vbox43), progressbar_bws_gin, FALSE, FALSE, 0);
   gtk_widget_set_events (progressbar_bws_gin, GDK_BUTTON_PRESS_MASK);
   gtk_progress_set_show_text (GTK_PROGRESS (progressbar_bws_gin), TRUE);
-  gtk_progress_set_format_string (GTK_PROGRESS (progressbar_bws_gin), _("bws gin"));
+  gtk_progress_set_format_string (GTK_PROGRESS (progressbar_bws_gin), _("in"));
 
   progressbar_bws_gout = gtk_progress_bar_new ();
   gtk_widget_set_name (progressbar_bws_gout, "progressbar_bws_gout");
@@ -1440,7 +1440,7 @@ create_main_window (void)
   gtk_box_pack_start (GTK_BOX (vbox43), progressbar_bws_gout, FALSE, FALSE, 0);
   gtk_widget_set_events (progressbar_bws_gout, GDK_BUTTON_PRESS_MASK);
   gtk_progress_set_show_text (GTK_PROGRESS (progressbar_bws_gout), TRUE);
-  gtk_progress_set_format_string (GTK_PROGRESS (progressbar_bws_gout), _("bws gout"));
+  gtk_progress_set_format_string (GTK_PROGRESS (progressbar_bws_gout), _("out"));
 
   frame_bws_glinout = gtk_frame_new (_("Leaf traffic"));
   gtk_widget_set_name (frame_bws_glinout, "frame_bws_glinout");
@@ -1469,7 +1469,7 @@ create_main_window (void)
   gtk_box_pack_start (GTK_BOX (vbox107), progressbar_bws_lin, FALSE, FALSE, 0);
   gtk_widget_set_events (progressbar_bws_lin, GDK_BUTTON_PRESS_MASK);
   gtk_progress_set_show_text (GTK_PROGRESS (progressbar_bws_lin), TRUE);
-  gtk_progress_set_format_string (GTK_PROGRESS (progressbar_bws_lin), _("bws lin"));
+  gtk_progress_set_format_string (GTK_PROGRESS (progressbar_bws_lin), _("in"));
 
   progressbar_bws_lout = gtk_progress_bar_new ();
   gtk_widget_set_name (progressbar_bws_lout, "progressbar_bws_lout");
@@ -1480,7 +1480,7 @@ create_main_window (void)
   gtk_box_pack_start (GTK_BOX (vbox107), progressbar_bws_lout, FALSE, FALSE, 0);
   gtk_widget_set_events (progressbar_bws_lout, GDK_BUTTON_PRESS_MASK);
   gtk_progress_set_show_text (GTK_PROGRESS (progressbar_bws_lout), TRUE);
-  gtk_progress_set_format_string (GTK_PROGRESS (progressbar_bws_lout), _("bws lout"));
+  gtk_progress_set_format_string (GTK_PROGRESS (progressbar_bws_lout), _("out"));
 
   vbox_right = gtk_vbox_new (FALSE, 4);
   gtk_widget_set_name (vbox_right, "vbox_right");
@@ -2728,7 +2728,7 @@ create_main_window (void)
   gtk_widget_show (label533);
   gtk_box_pack_start (GTK_BOX (hbox166), label533, FALSE, FALSE, 0);
 
-  label_dl_active_count = gtk_label_new (_("[active]"));
+  label_dl_active_count = gtk_label_new (_("active"));
   gtk_widget_set_name (label_dl_active_count, "label_dl_active_count");
   gtk_widget_ref (label_dl_active_count);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "label_dl_active_count", label_dl_active_count,
@@ -2744,7 +2744,7 @@ create_main_window (void)
   gtk_widget_show (label537);
   gtk_box_pack_start (GTK_BOX (hbox166), label537, FALSE, FALSE, 0);
 
-  label_dl_aqueued_count = gtk_label_new (_("[aqueued]"));
+  label_dl_aqueued_count = gtk_label_new (_("queued"));
   gtk_widget_set_name (label_dl_aqueued_count, "label_dl_aqueued_count");
   gtk_widget_ref (label_dl_aqueued_count);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "label_dl_aqueued_count", label_dl_aqueued_count,
@@ -3037,7 +3037,7 @@ create_main_window (void)
   gtk_widget_show (label506);
   gtk_box_pack_start (GTK_BOX (hbox169), label506, FALSE, FALSE, 0);
 
-  label_dl_pqueued_count = gtk_label_new (_("[pqueued]"));
+  label_dl_pqueued_count = gtk_label_new (_("queued"));
   gtk_widget_set_name (label_dl_pqueued_count, "label_dl_pqueued_count");
   gtk_widget_ref (label_dl_pqueued_count);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "label_dl_pqueued_count", label_dl_pqueued_count,
@@ -5465,7 +5465,7 @@ create_main_window (void)
   gtk_box_pack_start (GTK_BOX (hbox_statusbar), frame129, FALSE, TRUE, 0);
   gtk_frame_set_shadow_type (GTK_FRAME (frame129), GTK_SHADOW_IN);
 
-  label_statusbar_horizon_node_count = gtk_label_new (_("[Nodes]"));
+  label_statusbar_horizon_node_count = gtk_label_new (_("Nodes"));
   gtk_widget_set_name (label_statusbar_horizon_node_count, "label_statusbar_horizon_node_count");
   gtk_widget_ref (label_statusbar_horizon_node_count);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "label_statusbar_horizon_node_count", label_statusbar_horizon_node_count,
@@ -5483,7 +5483,7 @@ create_main_window (void)
   gtk_box_pack_start (GTK_BOX (hbox_statusbar), frame130, FALSE, TRUE, 0);
   gtk_frame_set_shadow_type (GTK_FRAME (frame130), GTK_SHADOW_IN);
 
-  label_statusbar_horizon_file_count = gtk_label_new (_("[Files]"));
+  label_statusbar_horizon_file_count = gtk_label_new (_("Files"));
   gtk_widget_set_name (label_statusbar_horizon_file_count, "label_statusbar_horizon_file_count");
   gtk_widget_ref (label_statusbar_horizon_file_count);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "label_statusbar_horizon_file_count", label_statusbar_horizon_file_count,
@@ -5501,7 +5501,7 @@ create_main_window (void)
   gtk_box_pack_start (GTK_BOX (hbox_statusbar), frame131, FALSE, TRUE, 0);
   gtk_frame_set_shadow_type (GTK_FRAME (frame131), GTK_SHADOW_IN);
 
-  label_statusbar_horizon_kb_count = gtk_label_new (_("KB"));
+  label_statusbar_horizon_kb_count = gtk_label_new (_("Size"));
   gtk_widget_set_name (label_statusbar_horizon_kb_count, "label_statusbar_horizon_kb_count");
   gtk_widget_ref (label_statusbar_horizon_kb_count);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "label_statusbar_horizon_kb_count", label_statusbar_horizon_kb_count,
@@ -13651,7 +13651,7 @@ create_dlg_prefs (void)
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (GTK_FILL), 0, 0);
 
-  label_output_bw_limit = gtk_label_new (_("[output]"));
+  label_output_bw_limit = gtk_label_new (_("out"));
   gtk_widget_set_name (label_output_bw_limit, "label_output_bw_limit");
   gtk_widget_ref (label_output_bw_limit);
   gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "label_output_bw_limit", label_output_bw_limit,
@@ -13691,7 +13691,7 @@ create_dlg_prefs (void)
                     (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
                     (GtkAttachOptions) (GTK_FILL), 0, 0);
 
-  label_input_bw_limit = gtk_label_new (_("[input]"));
+  label_input_bw_limit = gtk_label_new (_("in"));
   gtk_widget_set_name (label_input_bw_limit, "label_input_bw_limit");
   gtk_widget_ref (label_input_bw_limit);
   gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "label_input_bw_limit", label_input_bw_limit,
