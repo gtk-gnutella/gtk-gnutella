@@ -144,7 +144,8 @@ void gui_update_download(struct download *d, gboolean force)
 			gboolean sha1_ok = fi->cha1 &&
 				(fi->sha1 == NULL || sha1_eq(fi->sha1, fi->cha1));
 
-			rw = g_snprintf(tmpstr, sizeof(tmpstr), "SHA1 check %s",
+			rw = g_snprintf(tmpstr, sizeof(tmpstr), "SHA1 %s %s",
+				fi->sha1 == NULL ? "figure" : "check",
 				fi->cha1 == NULL ?	"ERROR" :
 				sha1_ok ?			"OK" :
 									"FAILED");
