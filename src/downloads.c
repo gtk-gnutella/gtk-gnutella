@@ -631,13 +631,17 @@ static void download_info_reget(struct download *d)
 	g_assert(fi);
 	g_assert(fi->lifecount > 0);
 
+	downloads_with_name_dec(fi->file_name);		/* File name can change! */
+
 	fi->lifecount--;
 	file_info_free(fi);
 
-	d->file_info = file_info_get(
+	fi = d->file_info = file_info_get(
 		d->file_name, save_file_path, d->file_size, d->sha1);
-	d->file_info->refcount++;
-	d->file_info->lifecount++;
+	fi->refcount++;
+	fi->lifecount++;
+
+	downloads_with_name_inc(fi->file_name);
 }
 
 /*
@@ -3067,10 +3071,7 @@ static void download_write_data(struct download *d)
 		/* FALL THROUGH */
 	}
 
-	if (
-		d->file_info->use_swarming &&
-		-1 == lseek(d->file_desc, d->pos, SEEK_SET)
-	) {
+	if (-1 == lseek(d->file_desc, d->pos, SEEK_SET)) {
 		const char *error = g_strerror(errno);
 		g_warning("download_write_data(): failed to seek at offset %u (%s)",
 			d->pos, error);
