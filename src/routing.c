@@ -117,17 +117,21 @@ extern gint guid_eq(gconstpointer a, gconstpointer b);
  * Log function
  */
 
-static void routing_log(gchar * fmt, ...)
+static inline void routing_log_v(gchar * fmt, ...)
 {
 	va_list va;
-
-	if (dbg <= 8)
-		return;
 
 	va_start(va, fmt);
 	vprintf(fmt, va);
 	va_end(va);
 }
+
+#define routing_log(...) \
+	do { \
+		if (dbg >= 8) \
+			routing_log_v(__VA_ARGS__); \
+	} while (0)
+
 
 static void free_route_list(struct message *m);
 
