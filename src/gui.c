@@ -243,8 +243,6 @@ void gui_init(void)
         (GTK_CLIST(lookup_widget(main_window, "clist_uploads")));
 	gtk_clist_column_titles_passive
         (GTK_CLIST(lookup_widget(main_window, "clist_downloads")));
-	gtk_clist_column_titles_passive
-        (GTK_CLIST(lookup_widget(main_window, "clist_monitor")));
 
     {
         GtkCList *clist = 
