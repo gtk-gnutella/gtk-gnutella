@@ -27,6 +27,7 @@
 #include <gtk/gtk.h>
 
 gint gtk_paned_get_position(GtkPaned *paned);
+void gtk_clist_set_column_name(GtkCList * clist, gint col, gchar * t);
 gint gtk_main_flush();
 
 #endif	/* __gtk_missing_h__ */

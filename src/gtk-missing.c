@@ -32,12 +32,33 @@
  *
  * Get position of divider in a GtkPaned. (in GTK2)
  */
-gint gtk_paned_get_position(GtkPaned *paned){
+gint gtk_paned_get_position(GtkPaned *paned)
+{
     g_return_val_if_fail(paned != NULL, -1);
     g_return_val_if_fail(GTK_IS_PANED (paned), -1);
 
     return paned->child1_size;
 }
+
+/*
+ * gtk_clist_set_column_name:
+ *
+ * Set the internal name of the column without changing the
+ * column header widget. (Copy paste internal column_title_new
+ * from gtkclist.c)
+ * BEWARE: EVIL HACK
+ */
+void gtk_clist_set_column_name(GtkCList * clist, gint col, gchar * t)
+{
+    if (col < 0 || col >= clist->columns)
+        return;
+
+    if (clist->column[col].title)
+        g_free(clist->column[col].title);
+
+    clist->column[col].title = g_strdup(t);
+}
+
 
 /*
  * gtk_main_flush:
@@ -51,7 +72,7 @@ gint gtk_main_flush()
 {
     gint val = FALSE;
 
-    while (!val && g_main_pending())
+    while (!val && gtk_events_pending())
         val = gtk_main_iteration_do(FALSE);
 
     return val;
