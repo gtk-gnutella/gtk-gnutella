@@ -2193,8 +2193,8 @@ void parq_upload_force_remove(gnutella_upload_t *u)
 	struct parq_ul_queued *parq_ul = parq_upload_find(u);
 		
 	if (parq_ul != NULL) {
-		parq_upload_remove(u);
-		parq_upload_free(parq_ul);
+		if (!parq_upload_remove(u))
+			parq_upload_free(parq_ul);
 	}
 }
 
@@ -2203,9 +2203,14 @@ void parq_upload_force_remove(gnutella_upload_t *u)
  *
  * When an upload is removed this function should be called so parq
  * knows the current upload status of an upload.
+ * 
+ * @return TRUE if the download was totally removed. And the associated memory
+ * was cleared. FALSE if the parq structure still exists.
  */
-void parq_upload_remove(gnutella_upload_t *u)
+gboolean parq_upload_remove(gnutella_upload_t *u)
 {
+	gboolean return_result = FALSE; /* True if the upload was really removed
+									   ie: Removed from memory */
 	time_t now = time((time_t *) NULL);
 	struct parq_ul_queued *parq_ul = NULL;
 
@@ -2218,14 +2223,14 @@ void parq_upload_remove(gnutella_upload_t *u)
 		
 	if (u->parq_status) {
 		u->parq_status = FALSE;
-		return;
+		return FALSE;
 	}
 	
 	parq_ul = parq_upload_find(u);
 
 	/* If parq_ul = NULL, than the upload didn't get a slot in the PARQ. */
 	if (parq_ul == NULL)
-		return;
+		return FALSE;
 
 	/*
 	 * If we're still in the GTA_UL_QUEUE_WAITING state, we did not get any
@@ -2253,7 +2258,7 @@ void parq_upload_remove(gnutella_upload_t *u)
 			g_list_position(ul_parqs, 
 				g_list_find(ul_parqs, parq_ul->queue)) + 1,
 			g_list_length(ul_parqs));
-		return;
+		return FALSE;
 	}
 	
 	/*
@@ -2312,6 +2317,7 @@ void parq_upload_remove(gnutella_upload_t *u)
 		 * should not disconnect
 		 */
 		if (parq_ul->has_slot)
+			return_result = TRUE;
 			parq_ul->disc_timeout = now + parq_upload_ban_window;
 
 		/* Disconnected upload is allowed to reconnect immediatly */
@@ -2319,6 +2325,8 @@ void parq_upload_remove(gnutella_upload_t *u)
 		parq_ul->retry = now;
 		parq_ul->expire = now + MIN_LIFE_TIME;
 	}
+	
+	return return_result;
 }
 
 /*

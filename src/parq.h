@@ -76,7 +76,7 @@ guint parq_upload_lookup_eta(gnutella_upload_t *u);
 guint parq_upload_lookup_queue_no(gnutella_upload_t *u);
 
 gboolean parq_upload_queued(gnutella_upload_t *u);
-void parq_upload_remove(gnutella_upload_t *u);
+gboolean parq_upload_remove(gnutella_upload_t *u);
 void parq_upload_force_remove(gnutella_upload_t *u);
 void parq_upload_add(gnutella_upload_t *u);
 void parq_upload_busy(gnutella_upload_t *u, gpointer handle);
