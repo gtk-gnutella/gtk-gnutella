@@ -1787,18 +1787,12 @@ create_main_window (void)
   GtkWidget *image_legacy;
   GtkWidget *hpaned_main;
   GtkWidget *vbox138;
+  GtkWidget *vpaned_sidebar;
   GtkWidget *scrolledwindow58;
   GtkWidget *viewport23;
   GtkWidget *treeview_menu;
-  GtkWidget *hbox9289;
-  GtkWidget *notebook_sidebar;
-  GtkWidget *scrolledwindow62;
+  GtkWidget *sw_searches;
   GtkWidget *tree_view_search;
-  GtkWidget *label897;
-  GtkWidget *empty_notebook_page;
-  GtkWidget *label898;
-  GtkWidget *label899;
-  GtkWidget *label900;
   GtkWidget *viewport463;
   GtkWidget *vbox31;
   GtkWidget *frame71;
@@ -1836,11 +1830,6 @@ create_main_window (void)
   GtkWidget *frame132;
   GtkWidget *optionmenu_search_filter;
   GtkWidget *convertwidget20;
-  GtkWidget *button_search_passive;
-  GtkWidget *alignment110;
-  GtkWidget *hbox9292;
-  GtkWidget *image404;
-  GtkWidget *label911;
   GtkWidget *button_search;
   GtkWidget *alignment106;
   GtkWidget *hbox288;
@@ -1850,7 +1839,13 @@ create_main_window (void)
   GtkWidget *combo_search;
   GList *combo_search_items = NULL;
   GtkWidget *entry_search;
+  GtkWidget *button_search_passive;
+  GtkWidget *alignment110;
+  GtkWidget *hbox9292;
+  GtkWidget *image404;
+  GtkWidget *label911;
   GtkWidget *notebook_main;
+  GtkWidget *empty_notebook_page;
   GtkWidget *label590;
   GtkWidget *hbox_statusbar;
   GtkWidget *togglebutton_online;
@@ -2315,10 +2310,16 @@ create_main_window (void)
   gtk_widget_show (vbox138);
   gtk_paned_pack1 (GTK_PANED (hpaned_main), vbox138, FALSE, TRUE);
 
+  vpaned_sidebar = gtk_vpaned_new ();
+  gtk_widget_set_name (vpaned_sidebar, "vpaned_sidebar");
+  gtk_widget_show (vpaned_sidebar);
+  gtk_box_pack_start (GTK_BOX (vbox138), vpaned_sidebar, TRUE, TRUE, 0);
+  gtk_paned_set_position (GTK_PANED (vpaned_sidebar), 30);
+
   scrolledwindow58 = gtk_scrolled_window_new (NULL, NULL);
   gtk_widget_set_name (scrolledwindow58, "scrolledwindow58");
   gtk_widget_show (scrolledwindow58);
-  gtk_box_pack_start (GTK_BOX (vbox138), scrolledwindow58, TRUE, TRUE, 0);
+  gtk_paned_pack1 (GTK_PANED (vpaned_sidebar), scrolledwindow58, FALSE, TRUE);
   gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolledwindow58), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
   gtk_scrolled_window_set_shadow_type (GTK_SCROLLED_WINDOW (scrolledwindow58), GTK_SHADOW_OUT);
 
@@ -2335,66 +2336,19 @@ create_main_window (void)
   gtk_tree_view_set_headers_visible (GTK_TREE_VIEW (treeview_menu), FALSE);
   gtk_tree_view_set_enable_search (GTK_TREE_VIEW (treeview_menu), FALSE);
 
-  hbox9289 = gtk_hbox_new (FALSE, 0);
-  gtk_widget_set_name (hbox9289, "hbox9289");
-  gtk_widget_show (hbox9289);
-  gtk_box_pack_start (GTK_BOX (vbox138), hbox9289, TRUE, TRUE, 0);
-
-  notebook_sidebar = gtk_notebook_new ();
-  gtk_widget_set_name (notebook_sidebar, "notebook_sidebar");
-  gtk_widget_show (notebook_sidebar);
-  gtk_box_pack_start (GTK_BOX (hbox9289), notebook_sidebar, TRUE, TRUE, 0);
-  GTK_WIDGET_UNSET_FLAGS (notebook_sidebar, GTK_CAN_FOCUS);
-  gtk_notebook_set_show_tabs (GTK_NOTEBOOK (notebook_sidebar), FALSE);
-  gtk_notebook_set_show_border (GTK_NOTEBOOK (notebook_sidebar), FALSE);
-
-  scrolledwindow62 = gtk_scrolled_window_new (NULL, NULL);
-  gtk_widget_set_name (scrolledwindow62, "scrolledwindow62");
-  gtk_widget_show (scrolledwindow62);
-  gtk_container_add (GTK_CONTAINER (notebook_sidebar), scrolledwindow62);
-  gtk_notebook_set_tab_label_packing (GTK_NOTEBOOK (notebook_sidebar), scrolledwindow62,
-                                      TRUE, TRUE, GTK_PACK_START);
-  gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolledwindow62), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
-  gtk_scrolled_window_set_shadow_type (GTK_SCROLLED_WINDOW (scrolledwindow62), GTK_SHADOW_ETCHED_OUT);
+  sw_searches = gtk_scrolled_window_new (NULL, NULL);
+  gtk_widget_set_name (sw_searches, "sw_searches");
+  gtk_widget_show (sw_searches);
+  gtk_paned_pack2 (GTK_PANED (vpaned_sidebar), sw_searches, TRUE, TRUE);
+  gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (sw_searches), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
+  gtk_scrolled_window_set_shadow_type (GTK_SCROLLED_WINDOW (sw_searches), GTK_SHADOW_IN);
 
   tree_view_search = gtk_tree_view_new ();
   gtk_widget_set_name (tree_view_search, "tree_view_search");
   gtk_widget_show (tree_view_search);
-  gtk_container_add (GTK_CONTAINER (scrolledwindow62), tree_view_search);
+  gtk_container_add (GTK_CONTAINER (sw_searches), tree_view_search);
   gtk_tree_view_set_rules_hint (GTK_TREE_VIEW (tree_view_search), TRUE);
   gtk_tree_view_set_enable_search (GTK_TREE_VIEW (tree_view_search), FALSE);
-
-  label897 = gtk_label_new ("");
-  gtk_widget_set_name (label897, "label897");
-  gtk_widget_show (label897);
-  gtk_notebook_set_tab_label (GTK_NOTEBOOK (notebook_sidebar), gtk_notebook_get_nth_page (GTK_NOTEBOOK (notebook_sidebar), 0), label897);
-
-  empty_notebook_page = gtk_vbox_new (FALSE, 0);
-  gtk_widget_show (empty_notebook_page);
-  gtk_container_add (GTK_CONTAINER (notebook_sidebar), empty_notebook_page);
-
-  label898 = gtk_label_new ("");
-  gtk_widget_set_name (label898, "label898");
-  gtk_widget_show (label898);
-  gtk_notebook_set_tab_label (GTK_NOTEBOOK (notebook_sidebar), gtk_notebook_get_nth_page (GTK_NOTEBOOK (notebook_sidebar), 1), label898);
-
-  empty_notebook_page = gtk_vbox_new (FALSE, 0);
-  gtk_widget_show (empty_notebook_page);
-  gtk_container_add (GTK_CONTAINER (notebook_sidebar), empty_notebook_page);
-
-  label899 = gtk_label_new ("");
-  gtk_widget_set_name (label899, "label899");
-  gtk_widget_show (label899);
-  gtk_notebook_set_tab_label (GTK_NOTEBOOK (notebook_sidebar), gtk_notebook_get_nth_page (GTK_NOTEBOOK (notebook_sidebar), 2), label899);
-
-  empty_notebook_page = gtk_vbox_new (FALSE, 0);
-  gtk_widget_show (empty_notebook_page);
-  gtk_container_add (GTK_CONTAINER (notebook_sidebar), empty_notebook_page);
-
-  label900 = gtk_label_new ("");
-  gtk_widget_set_name (label900, "label900");
-  gtk_widget_show (label900);
-  gtk_notebook_set_tab_label (GTK_NOTEBOOK (notebook_sidebar), gtk_notebook_get_nth_page (GTK_NOTEBOOK (notebook_sidebar), 3), label900);
 
   viewport463 = gtk_viewport_new (NULL, NULL);
   gtk_widget_set_name (viewport463, "viewport463");
@@ -2612,38 +2566,6 @@ create_main_window (void)
 
   gtk_option_menu_set_menu (GTK_OPTION_MENU (optionmenu_search_filter), convertwidget20);
 
-  button_search_passive = gtk_button_new ();
-  gtk_widget_set_name (button_search_passive, "button_search_passive");
-  gtk_widget_show (button_search_passive);
-  gtk_table_attach (GTK_TABLE (table107), button_search_passive, 3, 4, 0, 1,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-  gtk_tooltips_set_tip (tooltips, button_search_passive, _("A passive search matches any search results routed through this node"), NULL);
-  gtk_widget_add_accelerator (button_search_passive, "clicked", accel_group,
-                              GDK_p, GDK_CONTROL_MASK,
-                              GTK_ACCEL_VISIBLE);
-  gtk_button_set_relief (GTK_BUTTON (button_search_passive), GTK_RELIEF_NONE);
-
-  alignment110 = gtk_alignment_new (0.5, 0.5, 0, 0);
-  gtk_widget_set_name (alignment110, "alignment110");
-  gtk_widget_show (alignment110);
-  gtk_container_add (GTK_CONTAINER (button_search_passive), alignment110);
-
-  hbox9292 = gtk_hbox_new (FALSE, 2);
-  gtk_widget_set_name (hbox9292, "hbox9292");
-  gtk_widget_show (hbox9292);
-  gtk_container_add (GTK_CONTAINER (alignment110), hbox9292);
-
-  image404 = gtk_image_new_from_stock ("gtk-index", GTK_ICON_SIZE_BUTTON);
-  gtk_widget_set_name (image404, "image404");
-  gtk_widget_show (image404);
-  gtk_box_pack_start (GTK_BOX (hbox9292), image404, FALSE, FALSE, 0);
-
-  label911 = gtk_label_new_with_mnemonic (_("_Passive"));
-  gtk_widget_set_name (label911, "label911");
-  gtk_widget_show (label911);
-  gtk_box_pack_start (GTK_BOX (hbox9292), label911, FALSE, FALSE, 0);
-
   button_search = gtk_button_new ();
   gtk_widget_set_name (button_search, "button_search");
   gtk_widget_show (button_search);
@@ -2695,6 +2617,38 @@ create_main_window (void)
   entry_search = GTK_COMBO (combo_search)->entry;
   gtk_widget_set_name (entry_search, "entry_search");
   gtk_widget_show (entry_search);
+
+  button_search_passive = gtk_button_new ();
+  gtk_widget_set_name (button_search_passive, "button_search_passive");
+  gtk_widget_show (button_search_passive);
+  gtk_table_attach (GTK_TABLE (table107), button_search_passive, 3, 4, 0, 1,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 4, 0);
+  gtk_tooltips_set_tip (tooltips, button_search_passive, _("A passive search matches any search results routed through this node"), NULL);
+  gtk_widget_add_accelerator (button_search_passive, "clicked", accel_group,
+                              GDK_p, GDK_CONTROL_MASK,
+                              GTK_ACCEL_VISIBLE);
+  gtk_button_set_relief (GTK_BUTTON (button_search_passive), GTK_RELIEF_NONE);
+
+  alignment110 = gtk_alignment_new (0.5, 0.5, 0, 0);
+  gtk_widget_set_name (alignment110, "alignment110");
+  gtk_widget_show (alignment110);
+  gtk_container_add (GTK_CONTAINER (button_search_passive), alignment110);
+
+  hbox9292 = gtk_hbox_new (FALSE, 2);
+  gtk_widget_set_name (hbox9292, "hbox9292");
+  gtk_widget_show (hbox9292);
+  gtk_container_add (GTK_CONTAINER (alignment110), hbox9292);
+
+  image404 = gtk_image_new_from_stock ("gtk-index", GTK_ICON_SIZE_BUTTON);
+  gtk_widget_set_name (image404, "image404");
+  gtk_widget_show (image404);
+  gtk_box_pack_start (GTK_BOX (hbox9292), image404, FALSE, FALSE, 0);
+
+  label911 = gtk_label_new_with_mnemonic (_("_Passive"));
+  gtk_widget_set_name (label911, "label911");
+  gtk_widget_show (label911);
+  gtk_box_pack_start (GTK_BOX (hbox9292), label911, FALSE, FALSE, 0);
 
   notebook_main = gtk_notebook_new ();
   gtk_widget_set_name (notebook_main, "notebook_main");
@@ -2882,9 +2836,6 @@ create_main_window (void)
   g_signal_connect ((gpointer) progressbar_bws_lout, "button_press_event",
                     G_CALLBACK (on_progressbar_bws_lout_button_press_event),
                     NULL);
-  g_signal_connect ((gpointer) button_search_passive, "clicked",
-                    G_CALLBACK (on_button_search_passive_clicked),
-                    NULL);
   g_signal_connect ((gpointer) button_search, "clicked",
                     G_CALLBACK (on_button_search_clicked),
                     NULL);
@@ -2893,6 +2844,9 @@ create_main_window (void)
                     NULL);
   g_signal_connect ((gpointer) entry_search, "activate",
                     G_CALLBACK (on_entry_search_activate),
+                    NULL);
+  g_signal_connect ((gpointer) button_search_passive, "clicked",
+                    G_CALLBACK (on_button_search_passive_clicked),
                     NULL);
 
   /* Store pointers to all widgets, for use by lookup_widget(). */
@@ -2974,17 +2928,12 @@ create_main_window (void)
   GLADE_HOOKUP_OBJECT (main_window, image_legacy, "image_legacy");
   GLADE_HOOKUP_OBJECT (main_window, hpaned_main, "hpaned_main");
   GLADE_HOOKUP_OBJECT (main_window, vbox138, "vbox138");
+  GLADE_HOOKUP_OBJECT (main_window, vpaned_sidebar, "vpaned_sidebar");
   GLADE_HOOKUP_OBJECT (main_window, scrolledwindow58, "scrolledwindow58");
   GLADE_HOOKUP_OBJECT (main_window, viewport23, "viewport23");
   GLADE_HOOKUP_OBJECT (main_window, treeview_menu, "treeview_menu");
-  GLADE_HOOKUP_OBJECT (main_window, hbox9289, "hbox9289");
-  GLADE_HOOKUP_OBJECT (main_window, notebook_sidebar, "notebook_sidebar");
-  GLADE_HOOKUP_OBJECT (main_window, scrolledwindow62, "scrolledwindow62");
+  GLADE_HOOKUP_OBJECT (main_window, sw_searches, "sw_searches");
   GLADE_HOOKUP_OBJECT (main_window, tree_view_search, "tree_view_search");
-  GLADE_HOOKUP_OBJECT (main_window, label897, "label897");
-  GLADE_HOOKUP_OBJECT (main_window, label898, "label898");
-  GLADE_HOOKUP_OBJECT (main_window, label899, "label899");
-  GLADE_HOOKUP_OBJECT (main_window, label900, "label900");
   GLADE_HOOKUP_OBJECT (main_window, viewport463, "viewport463");
   GLADE_HOOKUP_OBJECT (main_window, vbox31, "vbox31");
   GLADE_HOOKUP_OBJECT (main_window, frame71, "frame71");
@@ -3022,11 +2971,6 @@ create_main_window (void)
   GLADE_HOOKUP_OBJECT (main_window, frame132, "frame132");
   GLADE_HOOKUP_OBJECT (main_window, optionmenu_search_filter, "optionmenu_search_filter");
   GLADE_HOOKUP_OBJECT (main_window, convertwidget20, "convertwidget20");
-  GLADE_HOOKUP_OBJECT (main_window, button_search_passive, "button_search_passive");
-  GLADE_HOOKUP_OBJECT (main_window, alignment110, "alignment110");
-  GLADE_HOOKUP_OBJECT (main_window, hbox9292, "hbox9292");
-  GLADE_HOOKUP_OBJECT (main_window, image404, "image404");
-  GLADE_HOOKUP_OBJECT (main_window, label911, "label911");
   GLADE_HOOKUP_OBJECT (main_window, button_search, "button_search");
   GLADE_HOOKUP_OBJECT (main_window, alignment106, "alignment106");
   GLADE_HOOKUP_OBJECT (main_window, hbox288, "hbox288");
@@ -3035,6 +2979,11 @@ create_main_window (void)
   GLADE_HOOKUP_OBJECT (main_window, frame129, "frame129");
   GLADE_HOOKUP_OBJECT (main_window, combo_search, "combo_search");
   GLADE_HOOKUP_OBJECT (main_window, entry_search, "entry_search");
+  GLADE_HOOKUP_OBJECT (main_window, button_search_passive, "button_search_passive");
+  GLADE_HOOKUP_OBJECT (main_window, alignment110, "alignment110");
+  GLADE_HOOKUP_OBJECT (main_window, hbox9292, "hbox9292");
+  GLADE_HOOKUP_OBJECT (main_window, image404, "image404");
+  GLADE_HOOKUP_OBJECT (main_window, label911, "label911");
   GLADE_HOOKUP_OBJECT (main_window, notebook_main, "notebook_main");
   GLADE_HOOKUP_OBJECT (main_window, label590, "label590");
   GLADE_HOOKUP_OBJECT (main_window, hbox_statusbar, "hbox_statusbar");
@@ -3225,7 +3174,6 @@ create_main_window_gnet_tab (void)
   gtk_widget_set_name (vbox_gnutellanet, "vbox_gnutellanet");
   gtk_widget_show (vbox_gnutellanet);
   gtk_container_add (GTK_CONTAINER (viewport70), vbox_gnutellanet);
-  gtk_container_set_border_width (GTK_CONTAINER (vbox_gnutellanet), 2);
 
   frame5 = gtk_frame_new (NULL);
   gtk_widget_set_name (frame5, "frame5");
@@ -4652,6 +4600,7 @@ create_main_window_search_tab (void)
   GtkWidget *alignment90;
   GtkObject *spinbutton_search_max_results_adj;
   GtkWidget *spinbutton_search_max_results;
+  GtkWidget *frame137;
   GtkWidget *combo_search_handle_ignored_files;
   GtkWidget *combo_entry6;
   GtkWidget *label738;
@@ -4873,6 +4822,7 @@ create_main_window_search_tab (void)
   gtk_widget_set_name (frame91, "frame91");
   gtk_widget_show (frame91);
   gtk_container_add (GTK_CONTAINER (viewport460), frame91);
+  gtk_container_set_border_width (GTK_CONTAINER (frame91), 2);
 
   table78 = gtk_table_new (2, 3, FALSE);
   gtk_widget_set_name (table78, "table78");
@@ -4926,14 +4876,19 @@ create_main_window_search_tab (void)
   gtk_container_add (GTK_CONTAINER (alignment90), spinbutton_search_max_results);
   gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_search_max_results), TRUE);
 
+  frame137 = gtk_frame_new (NULL);
+  gtk_widget_set_name (frame137, "frame137");
+  gtk_widget_show (frame137);
+  gtk_table_attach (GTK_TABLE (table78), frame137, 1, 2, 1, 2,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (GTK_FILL), 0, 0);
+
   combo_search_handle_ignored_files = gtk_combo_new ();
   g_object_set_data (G_OBJECT (GTK_COMBO (combo_search_handle_ignored_files)->popwin),
                      "GladeParentKey", combo_search_handle_ignored_files);
   gtk_widget_set_name (combo_search_handle_ignored_files, "combo_search_handle_ignored_files");
   gtk_widget_show (combo_search_handle_ignored_files);
-  gtk_table_attach (GTK_TABLE (table78), combo_search_handle_ignored_files, 1, 2, 1, 2,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
+  gtk_container_add (GTK_CONTAINER (frame137), combo_search_handle_ignored_files);
 
   combo_entry6 = GTK_COMBO (combo_search_handle_ignored_files)->entry;
   gtk_widget_set_name (combo_entry6, "combo_entry6");
@@ -5432,6 +5387,7 @@ create_main_window_search_tab (void)
   GLADE_HOOKUP_OBJECT (main_window_search_tab, checkbutton_search_remove_downloaded, "checkbutton_search_remove_downloaded");
   GLADE_HOOKUP_OBJECT (main_window_search_tab, alignment90, "alignment90");
   GLADE_HOOKUP_OBJECT (main_window_search_tab, spinbutton_search_max_results, "spinbutton_search_max_results");
+  GLADE_HOOKUP_OBJECT (main_window_search_tab, frame137, "frame137");
   GLADE_HOOKUP_OBJECT (main_window_search_tab, combo_search_handle_ignored_files, "combo_search_handle_ignored_files");
   GLADE_HOOKUP_OBJECT (main_window_search_tab, combo_entry6, "combo_entry6");
   GLADE_HOOKUP_OBJECT (main_window_search_tab, label738, "label738");
@@ -9017,7 +8973,6 @@ create_main_window_hostcache_tab (void)
   gtk_widget_set_name (vbox133, "vbox133");
   gtk_widget_show (vbox133);
   gtk_container_add (GTK_CONTAINER (main_window_hostcache_tab), vbox133);
-  gtk_container_set_border_width (GTK_CONTAINER (vbox133), 2);
 
   frame113 = gtk_frame_new (NULL);
   gtk_widget_set_name (frame113, "frame113");
@@ -9029,6 +8984,7 @@ create_main_window_hostcache_tab (void)
   gtk_widget_set_name (scrolledwindow75, "scrolledwindow75");
   gtk_widget_show (scrolledwindow75);
   gtk_container_add (GTK_CONTAINER (frame113), scrolledwindow75);
+  gtk_container_set_border_width (GTK_CONTAINER (scrolledwindow75), 2);
   gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolledwindow75), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
   gtk_scrolled_window_set_shadow_type (GTK_SCROLLED_WINDOW (scrolledwindow75), GTK_SHADOW_IN);
 
@@ -9036,7 +8992,6 @@ create_main_window_hostcache_tab (void)
   gtk_widget_set_name (treeview_hcache, "treeview_hcache");
   gtk_widget_show (treeview_hcache);
   gtk_container_add (GTK_CONTAINER (scrolledwindow75), treeview_hcache);
-  gtk_container_set_border_width (GTK_CONTAINER (treeview_hcache), 2);
 
   label842 = gtk_label_new (_("Hostcache statistics"));
   gtk_widget_set_name (label842, "label842");
@@ -9699,11 +9654,12 @@ create_dlg_prefs_net_tab (void)
   GtkWidget *label90;
   GtkWidget *label91;
   GtkWidget *label92;
-  GtkWidget *combo_config_proxy_protocol;
-  GtkWidget *combo_entry4;
   GtkWidget *entry_config_proxy_hostname;
   GtkObject *spinbutton_config_proxy_port_adj;
   GtkWidget *spinbutton_config_proxy_port;
+  GtkWidget *frame136;
+  GtkWidget *combo_config_proxy_protocol;
+  GtkWidget *combo_entry4;
   GtkWidget *hbox88;
   GtkWidget *checkbutton_config_proxy_auth;
   GtkWidget *hbox61;
@@ -9955,20 +9911,6 @@ create_dlg_prefs_net_tab (void)
   gtk_label_set_justify (GTK_LABEL (label92), GTK_JUSTIFY_CENTER);
   gtk_misc_set_alignment (GTK_MISC (label92), 0, 0.5);
 
-  combo_config_proxy_protocol = gtk_combo_new ();
-  g_object_set_data (G_OBJECT (GTK_COMBO (combo_config_proxy_protocol)->popwin),
-                     "GladeParentKey", combo_config_proxy_protocol);
-  gtk_widget_set_name (combo_config_proxy_protocol, "combo_config_proxy_protocol");
-  gtk_widget_show (combo_config_proxy_protocol);
-  gtk_table_attach (GTK_TABLE (table47), combo_config_proxy_protocol, 1, 2, 0, 1,
-                    (GtkAttachOptions) (GTK_SHRINK | GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-
-  combo_entry4 = GTK_COMBO (combo_config_proxy_protocol)->entry;
-  gtk_widget_set_name (combo_entry4, "combo_entry4");
-  gtk_widget_show (combo_entry4);
-  gtk_editable_set_editable (GTK_EDITABLE (combo_entry4), FALSE);
-
   entry_config_proxy_hostname = gtk_entry_new ();
   gtk_widget_set_name (entry_config_proxy_hostname, "entry_config_proxy_hostname");
   gtk_widget_show (entry_config_proxy_hostname);
@@ -9984,6 +9926,25 @@ create_dlg_prefs_net_tab (void)
                     (GtkAttachOptions) (GTK_SHRINK | GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
   gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_config_proxy_port), TRUE);
+
+  frame136 = gtk_frame_new (NULL);
+  gtk_widget_set_name (frame136, "frame136");
+  gtk_widget_show (frame136);
+  gtk_table_attach (GTK_TABLE (table47), frame136, 1, 2, 0, 1,
+                    (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK | GTK_FILL),
+                    (GtkAttachOptions) (GTK_FILL), 0, 0);
+
+  combo_config_proxy_protocol = gtk_combo_new ();
+  g_object_set_data (G_OBJECT (GTK_COMBO (combo_config_proxy_protocol)->popwin),
+                     "GladeParentKey", combo_config_proxy_protocol);
+  gtk_widget_set_name (combo_config_proxy_protocol, "combo_config_proxy_protocol");
+  gtk_widget_show (combo_config_proxy_protocol);
+  gtk_container_add (GTK_CONTAINER (frame136), combo_config_proxy_protocol);
+
+  combo_entry4 = GTK_COMBO (combo_config_proxy_protocol)->entry;
+  gtk_widget_set_name (combo_entry4, "combo_entry4");
+  gtk_widget_show (combo_entry4);
+  gtk_editable_set_editable (GTK_EDITABLE (combo_entry4), FALSE);
 
   hbox88 = gtk_hbox_new (FALSE, 0);
   gtk_widget_set_name (hbox88, "hbox88");
@@ -10409,10 +10370,11 @@ create_dlg_prefs_net_tab (void)
   GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, label90, "label90");
   GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, label91, "label91");
   GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, label92, "label92");
-  GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, combo_config_proxy_protocol, "combo_config_proxy_protocol");
-  GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, combo_entry4, "combo_entry4");
   GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, entry_config_proxy_hostname, "entry_config_proxy_hostname");
   GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, spinbutton_config_proxy_port, "spinbutton_config_proxy_port");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, frame136, "frame136");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, combo_config_proxy_protocol, "combo_config_proxy_protocol");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, combo_entry4, "combo_entry4");
   GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, hbox88, "hbox88");
   GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, checkbutton_config_proxy_auth, "checkbutton_config_proxy_auth");
   GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, hbox61, "hbox61");
@@ -10494,7 +10456,7 @@ create_dlg_prefs_gnet_tab (void)
   GtkWidget *frame135;
   GtkWidget *combo_config_peermode;
   GtkWidget *combo_entry3;
-  GtkWidget *vbox120;
+  GtkWidget *viewport472;
   GtkWidget *frame_gnet_can_become_ultra;
   GtkWidget *vbox116;
   GtkWidget *table83;
@@ -10711,7 +10673,6 @@ create_dlg_prefs_gnet_tab (void)
   gtk_table_attach (GTK_TABLE (table91), frame78, 0, 2, 1, 2,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (GTK_FILL), 0, 0);
-  gtk_frame_set_shadow_type (GTK_FRAME (frame78), GTK_SHADOW_OUT);
 
   table92 = gtk_table_new (2, 2, FALSE);
   gtk_widget_set_name (table92, "table92");
@@ -10800,22 +10761,22 @@ create_dlg_prefs_gnet_tab (void)
   gtk_widget_show (combo_entry3);
   gtk_editable_set_editable (GTK_EDITABLE (combo_entry3), FALSE);
 
-  vbox120 = gtk_vbox_new (FALSE, 0);
-  gtk_widget_set_name (vbox120, "vbox120");
-  gtk_widget_show (vbox120);
-  gtk_box_pack_start (GTK_BOX (hbox253), vbox120, FALSE, FALSE, 0);
+  viewport472 = gtk_viewport_new (NULL, NULL);
+  gtk_widget_set_name (viewport472, "viewport472");
+  gtk_widget_show (viewport472);
+  gtk_box_pack_start (GTK_BOX (hbox253), viewport472, FALSE, FALSE, 0);
+  gtk_viewport_set_shadow_type (GTK_VIEWPORT (viewport472), GTK_SHADOW_OUT);
 
   frame_gnet_can_become_ultra = gtk_frame_new (NULL);
   gtk_widget_set_name (frame_gnet_can_become_ultra, "frame_gnet_can_become_ultra");
   gtk_widget_show (frame_gnet_can_become_ultra);
-  gtk_box_pack_start (GTK_BOX (vbox120), frame_gnet_can_become_ultra, FALSE, TRUE, 0);
-  gtk_frame_set_shadow_type (GTK_FRAME (frame_gnet_can_become_ultra), GTK_SHADOW_OUT);
+  gtk_container_add (GTK_CONTAINER (viewport472), frame_gnet_can_become_ultra);
+  gtk_container_set_border_width (GTK_CONTAINER (frame_gnet_can_become_ultra), 2);
 
   vbox116 = gtk_vbox_new (FALSE, 2);
   gtk_widget_set_name (vbox116, "vbox116");
   gtk_widget_show (vbox116);
   gtk_container_add (GTK_CONTAINER (frame_gnet_can_become_ultra), vbox116);
-  gtk_container_set_border_width (GTK_CONTAINER (vbox116), 2);
 
   table83 = gtk_table_new (1, 4, FALSE);
   gtk_widget_set_name (table83, "table83");
@@ -11888,7 +11849,7 @@ create_dlg_prefs_gnet_tab (void)
   GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, frame135, "frame135");
   GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, combo_config_peermode, "combo_config_peermode");
   GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, combo_entry3, "combo_entry3");
-  GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, vbox120, "vbox120");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, viewport472, "viewport472");
   GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, frame_gnet_can_become_ultra, "frame_gnet_can_become_ultra");
   GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, vbox116, "vbox116");
   GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, table83, "table83");
@@ -12179,7 +12140,6 @@ create_dlg_prefs_bw_tab (void)
   gtk_widget_set_name (viewport116, "viewport116");
   gtk_widget_show (viewport116);
   gtk_box_pack_start (GTK_BOX (hbox255), viewport116, TRUE, TRUE, 0);
-  gtk_container_set_border_width (GTK_CONTAINER (viewport116), 4);
   gtk_viewport_set_shadow_type (GTK_VIEWPORT (viewport116), GTK_SHADOW_OUT);
 
   frame93 = gtk_frame_new (NULL);
@@ -12320,6 +12280,7 @@ create_dlg_prefs_bw_tab (void)
   gtk_widget_set_name (frame127, "frame127");
   gtk_widget_show (frame127);
   gtk_container_add (GTK_CONTAINER (viewport114), frame127);
+  gtk_container_set_border_width (GTK_CONTAINER (frame127), 2);
 
   table13 = gtk_table_new (2, 3, FALSE);
   gtk_widget_set_name (table13, "table13");
@@ -12395,6 +12356,7 @@ create_dlg_prefs_bw_tab (void)
   gtk_widget_set_name (frame79, "frame79");
   gtk_widget_show (frame79);
   gtk_container_add (GTK_CONTAINER (viewport115), frame79);
+  gtk_container_set_border_width (GTK_CONTAINER (frame79), 2);
 
   table62 = gtk_table_new (2, 3, FALSE);
   gtk_widget_set_name (table62, "table62");
@@ -16002,7 +15964,6 @@ create_main_window_dl_files_tab (void)
   gtk_widget_set_name (vpaned_fileinfo, "vpaned_fileinfo");
   gtk_widget_show (vpaned_fileinfo);
   gtk_box_pack_start (GTK_BOX (vbox142), vpaned_fileinfo, TRUE, TRUE, 0);
-  gtk_container_set_border_width (GTK_CONTAINER (vpaned_fileinfo), 2);
   gtk_paned_set_position (GTK_PANED (vpaned_fileinfo), 305);
 
   vbox108 = gtk_vbox_new (FALSE, 0);
@@ -16014,11 +15975,13 @@ create_main_window_dl_files_tab (void)
   gtk_widget_set_name (frame81, "frame81");
   gtk_widget_show (frame81);
   gtk_box_pack_start (GTK_BOX (vbox108), frame81, TRUE, TRUE, 0);
+  gtk_container_set_border_width (GTK_CONTAINER (frame81), 2);
 
   scrolledwindow70 = gtk_scrolled_window_new (NULL, NULL);
   gtk_widget_set_name (scrolledwindow70, "scrolledwindow70");
   gtk_widget_show (scrolledwindow70);
   gtk_container_add (GTK_CONTAINER (frame81), scrolledwindow70);
+  gtk_container_set_border_width (GTK_CONTAINER (scrolledwindow70), 2);
   gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolledwindow70), GTK_POLICY_AUTOMATIC, GTK_POLICY_ALWAYS);
   gtk_scrolled_window_set_shadow_type (GTK_SCROLLED_WINDOW (scrolledwindow70), GTK_SHADOW_IN);
 
