@@ -393,7 +393,7 @@ void nodes_gui_add_node(gnet_node_info_t *n, const gchar *type)
     GtkCList *clist_nodes;
     gint row;
 	gchar *titles[7];
-	gchar proto_tmp[16];
+	gchar proto_tmp[32];
 
     g_assert(n != NULL);
 
