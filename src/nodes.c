@@ -4569,12 +4569,10 @@ node_parse(struct gnutella_node *node)
 	 */
 
 	if (drop) {
-		if (n->header.ttl == 0) {
-			if (node_sent_ttl0(n))
-				return;				/* Node was kicked out */
-		} else {
+		if (n->header.ttl == 0)
+			node_sent_ttl0(n);
+		else
 			n->rx_dropped++;
-		}
 		goto reset_header;
 	}
 
@@ -5177,7 +5175,7 @@ node_data_ind(rxdrv_t *rx, pmsg_t *mb)
  * Returns TRUE if node was removed (due to a duplicate bye, probably),
  * FALSE otherwise.
  */
-gboolean
+void
 node_sent_ttl0(struct gnutella_node *n)
 {
 	g_assert(n->header.ttl == 0);
@@ -5187,30 +5185,15 @@ node_sent_ttl0(struct gnutella_node *n)
 	 */
 
 	if (current_peermode == NODE_P_LEAF)
-		return FALSE;
+		return;
 
 	gnet_stats_count_dropped(n, MSG_DROP_TTL0);
-
-	/*
-	 * Some broken Ultrapeers out there do forward TTL=0 messages to their
-	 * leaves.  The harm is limited, since leaves don't forward messages.
-	 *		--RAM, 12/01/2003
-	 */
-
-	if (connected_nodes() > MAX(2, up_connections)) {
-		node_bye(n, 408, "%s %s message with TTL=0",
-			n->header.hops ? "Relayed" : "Sent",
-			gmsg_name(n->header.function));
-		return n->status == GTA_NODE_REMOVING;
-	}
 
 	n->rx_dropped++;
 	n->n_bad++;
 
 	if (dbg)
 		gmsg_log_bad(n, "message received with TTL=0");
-
-	return FALSE;
 }
 
 /**

@@ -757,8 +757,7 @@ forward_message(
 
 	if (sender->header.ttl == 0) {
 		routing_log("[ ] [NEW] TTL was 0");
-		if (node_sent_ttl0(sender))
-			*node = NULL;
+		node_sent_ttl0(sender);
 		/* Don't handle unless we're a leaf: shouldn't have seen it */
 		if (current_peermode == NODE_P_LEAF) {
 			sender->header.hops++;	/* Going to handle it, must be accurate */
@@ -955,8 +954,7 @@ route_message(struct gnutella_node **node, struct route_dest *dest)
 
 		if (sender->header.ttl == 0) {
 			routing_log("(TTL was 0)");
-			if (node_sent_ttl0(sender))
-				*node = NULL;
+			node_sent_ttl0(sender);
 			/* Don't handle unless we're a leaf: shouldn't have seen it */
 			return current_peermode == NODE_P_LEAF;
 		}
