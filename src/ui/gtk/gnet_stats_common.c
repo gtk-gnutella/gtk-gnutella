@@ -154,6 +154,8 @@ const gchar *general_type_str(int value)
 		N_("Queries seen from GTKG"),
 		N_("Queries seen from GTKG that were re-queries"),
 		N_("Queries advertising support of GGEP \"H\""),
+		N_("GIV callbacks received"),
+		N_("QUEUE callbacks received"),
 	};
 
 	STATIC_ASSERT(G_N_ELEMENTS(strs) == GNR_TYPE_COUNT);

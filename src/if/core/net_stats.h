@@ -108,6 +108,8 @@ typedef enum {
 	GNR_GTKG_TOTAL_QUERIES,
 	GNR_GTKG_REQUERIES,
 	GNR_QUERIES_WITH_GGEP_H,
+	GNR_GIV_CALLBACKS,
+	GNR_QUEUE_CALLBACKS,
 	GNR_TYPE_COUNT /* number of general stats */
 } gnr_stats_t;
 
