@@ -528,12 +528,14 @@ static void bsched_begin_timeslice(bsched_t *bs)
 	GList *l;
 	GList *last = NULL;
 	gdouble norm_factor = 1000.0 / bs->period;
+	gint count;
 
-	for (l = bs->sources; l; l = g_list_next(l)) {
+	for (count = 0, l = bs->sources; l; l = g_list_next(l)) {
 		bio_source_t *bio = (bio_source_t *) l->data;
 		guint32 actual;
 
 		last = l;			/* Remember last seen source  for rotation */
+		count++;			/* Count them for assertion */
 
 		bio->flags &= ~(BIO_F_ACTIVE | BIO_F_USED);
 		if (bio->io_tag == 0 && bio->io_callback)
@@ -563,6 +565,8 @@ static void bsched_begin_timeslice(bsched_t *bs)
 		bio->bw_last_bps = (guint) (bio->bw_actual * norm_factor);
 		bio->bw_actual = 0;
 	}
+
+	g_assert(bs->count == count);	/* All sources are there */
 
 	/*
 	 * Rotate sources, since we don't know how glib handles callbacks on
