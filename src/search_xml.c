@@ -92,6 +92,7 @@ static const gchar PROP_BUILTIN_DROP_UID[] = "DropUID";
 static const gchar PROP_FILTER_NAME[]      = "Name";
 static const gchar PROP_FILTER_GLOBAL[]    = "Global";
 static const gchar PROP_FILTER_UID[]       = "UID";
+static const gchar PROP_FILTER_ACTIVE[]    = "Active";
 static const gchar PROP_SEARCH_QUERY[]     = "Query";
 static const gchar PROP_SEARCH_SPEED[]     = "Speed";
 static const gchar PROP_RULE_TEXT_CASE[]   = "Case";
@@ -279,7 +280,7 @@ gboolean search_retrieve_xml(void)
                     g_error("Failed to resolve rule %d in \"%s\": missing key %p",
                         n, filter->name, rule_to_gchar(rule));
                 rule->target = new_target;
-                rule_set_flags(rule, RULE_FLAG_VALID);
+                set_flags(rule->flags, RULE_FLAG_VALID);
             
                 /*
                  * We circumwent the shadows, so we must do refcounting
@@ -402,6 +403,9 @@ static void filter_to_xml(xmlNodePtr parent, filter_t *f)
     newxml = xmlNewChild(parent, NULL, NODE_FILTER, NULL);
     
     xmlSetProp(newxml, PROP_FILTER_NAME, f->name);
+
+    g_snprintf(x_tmp, sizeof(x_tmp), "%u", TO_BOOL(filter_is_active(f)));
+    xmlSetProp(newxml, PROP_FILTER_ACTIVE, x_tmp);
 
     /*
      * We take the pointer as a unique id which
@@ -592,6 +596,7 @@ static void xml_to_filter(xmlNodePtr xmlnode, gpointer user_data)
     xmlNodePtr node;
     filter_t *filter;
     gpointer dest;
+    gboolean active = TRUE;
 
     g_assert(xmlnode != NULL);
     g_assert(xmlnode->name != NULL);
@@ -627,6 +632,17 @@ static void xml_to_filter(xmlNodePtr xmlnode, gpointer user_data)
             printf("adding new filter: %s\n", name);
         filter = filter_new(name);
     }
+
+    buf = xmlGetProp(xmlnode, PROP_FILTER_ACTIVE);
+    if (buf != NULL) {
+        active = atol(buf) == 1 ? TRUE : FALSE;
+        g_free(buf);
+    }
+    if (active)
+        set_flags(filter->flags, FILTER_FLAG_ACTIVE);
+    else
+        clear_flags(filter->flags, FILTER_FLAG_ACTIVE);
+    
 
     buf = xmlGetProp(xmlnode, PROP_FILTER_UID);
     g_assert(buf);
@@ -683,7 +699,7 @@ static void xml_to_text_rule(xmlNodePtr xmlnode, gpointer filter)
     flags = get_rule_flags_from_xml(xmlnode);
     rule = filter_new_text_rule
         (match, type, case_sensitive, target, flags);
-    rule_clear_flags(rule, RULE_FLAG_VALID);
+    clear_flags(rule->flags, RULE_FLAG_VALID);
 
     if (dbg >= 4)
         printf( "added to filter \"%s\" rule with target %p\n",
@@ -730,7 +746,7 @@ static void xml_to_ip_rule(xmlNodePtr xmlnode, gpointer filter)
 
     flags = get_rule_flags_from_xml(xmlnode);
     rule = filter_new_ip_rule(addr, mask, target, flags);
-    rule_clear_flags(rule, RULE_FLAG_VALID);
+    clear_flags(rule->flags, RULE_FLAG_VALID);
 
     if (dbg >= 4)
         printf( "added to filter \"%s\" rule with target %p\n",
@@ -775,7 +791,7 @@ static void xml_to_size_rule(xmlNodePtr xmlnode, gpointer filter)
        
     flags = get_rule_flags_from_xml(xmlnode);
     rule = filter_new_size_rule(lower, upper, target, flags);
-    rule_clear_flags(rule, RULE_FLAG_VALID);
+    clear_flags(rule->flags, RULE_FLAG_VALID);
 
     if (dbg >= 4)
         printf( "added to filter \"%s\" rule with target %p\n",
@@ -806,7 +822,7 @@ static void xml_to_jump_rule(xmlNodePtr xmlnode, gpointer filter)
        
     flags = get_rule_flags_from_xml(xmlnode);
     rule = filter_new_jump_rule(target,flags);
-    rule_clear_flags(rule, RULE_FLAG_VALID);
+    clear_flags(rule->flags, RULE_FLAG_VALID);
 
     if (dbg >= 4)
         printf( "added to filter \"%s\" rule with target %p\n",
