@@ -5933,22 +5933,37 @@ download_request(struct download *d, header_t *header, gboolean ok)
 	if (buf) {
 		filesize_t start, end, total;
 
-		if (!http_content_range_parse(buf, &start, &end, &total)) {
+		if (0 == http_content_range_parse(buf, &start, &end, &total)) {
 			/* FIXME: DOWNLOAD_SIZE, don't always use total!!! */
 			if (!d->file_size_known) {
 				d->size = total;
 				fi->size = total;
 			}
 
+			if (check_content_range > total) {
+                if (dbg)
+                    g_message("File '%s' on %s (%s): "
+                        "total size mismatch: got %" PRIu64
+						", for a served content of %" PRIu64,
+                        d->file_name,
+                        ip_port_to_gchar(download_ip(d), download_port(d)),
+                        download_vendor_str(d),
+                        (guint64) check_content_range, (guint64) total);
+
+				download_bad_source(d);
+				download_stop(d, GTA_DL_ERROR, "Total/served sizes mismatch");
+				return;
+			}
+
 			if (start != d->skip - d->overlap_size) {
-                if (dbg) {
+                if (dbg)
                     g_message("File '%s' on %s (%s): "
                         "start byte mismatch: wanted %" PRIu64 ", got %" PRIu64,
                         d->file_name,
                         ip_port_to_gchar(download_ip(d), download_port(d)),
                         download_vendor_str(d),
                         (guint64) (d->skip - d->overlap_size), (guint64) start);
-                }
+
 				download_bad_source(d);
 				download_stop(d, GTA_DL_ERROR, "Range start mismatch");
 				return;
@@ -5982,7 +5997,7 @@ download_request(struct download *d, header_t *header, gboolean ok)
 				return;
 			}
 			if (end < d->range_end - 1) {
-                if (dbg) {
+                if (dbg)
                     g_message("File '%s' on %s (%s): "
                         "end byte short: wanted %" PRIu64
 							", got %" PRIu64 " (continuing anyway)",
@@ -5990,7 +6005,6 @@ download_request(struct download *d, header_t *header, gboolean ok)
                         ip_port_to_gchar(download_ip(d), download_port(d)),
                         download_vendor_str(d),
                         (guint64) d->range_end - 1, (guint64) end);
-                }
 
 				/*
 				 * Since we're getting less than we asked for, we need to
@@ -6013,8 +6027,10 @@ download_request(struct download *d, header_t *header, gboolean ok)
 			check_content_range = 0;		/* We validated the served range */
 		} else {
             if (dbg) {
-                g_message("File '%s': malformed Content-Range: %s",
-                    d->file_name, buf);
+                g_message("File '%s' on %s (%s): malformed Content-Range: %s",
+                    d->file_name,
+					ip_port_to_gchar(download_ip(d), download_port(d)),
+					download_vendor_str(d), buf);
             }
         }
 	}
