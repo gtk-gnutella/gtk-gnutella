@@ -44,8 +44,8 @@ RCSID("$Id$");
  * A hostcache table.
  */
 struct hostcache {
-	gchar *         name;				/* Cache name, for debugging */
-	gchar *         filename;		    /* Filename where cache is persisted */
+	const gchar *   name;				/* Cache name, for debugging */
+	const gchar *   filename;		    /* Filename where cache is persisted */
 	hcache_type_t   type;				/* Cache type */
 	GList *         sl_caught_hosts;	/* Reserve list */
 	GList *         sl_valid_hosts;		/* Validated hosts */
@@ -70,11 +70,11 @@ struct hostcache_entry {
 	gchar * vendor;				/* Latest known vendor name (atom) */
 };
 
-#define NO_METADATA			((gpointer) 0x1)	/* No metadata for host */
+#define NO_METADATA			GUINT_TO_POINTER(1)	/* No metadata for host */
 
 static struct hostcache *caches[HCACHE_MAX];
-static gchar *files[HCACHE_MAX] = { "hosts", "ultras" };
-static gchar *names[HCACHE_MAX] = { "regular", "ultra" };
+static const gchar * const files[HCACHE_MAX] = { "hosts", "ultras" };
+static const gchar * const names[HCACHE_MAX] = { "regular", "ultra" };
 static gpointer bg_reader[HCACHE_MAX] = { NULL, NULL };
 
 static void hcache_remove_all(struct hostcache *hc);
@@ -84,9 +84,9 @@ static void hcache_remove_all(struct hostcache *hc);
  *
  * Convert host cache type to string.
  */
-gchar *hcache_type_to_gchar(hcache_type_t type)
+const gchar *hcache_type_to_gchar(hcache_type_t type)
 {
-	g_assert(type >= 0 && type < HCACHE_MAX);
+	g_assert((gint) type >= 0 && type < HCACHE_MAX);
 
 	return names[type];
 }
@@ -155,7 +155,7 @@ static void hcache_alloc(
 {
 	struct hostcache *hc;
 
-	g_assert(type >= 0 && type < HCACHE_MAX);
+	g_assert((gint) type >= 0 && type < HCACHE_MAX);
 	g_assert(caches[type] == NULL);
 
 	hc = g_malloc0(sizeof(*hc));
@@ -180,7 +180,7 @@ static void hcache_free(hcache_type_t type)
 {
 	struct hostcache *hc;
 
-	g_assert(type >= 0 && type < HCACHE_MAX);
+	g_assert((gint) type >= 0 && type < HCACHE_MAX);
 	g_assert(caches[type] != NULL);
 
 	hc = caches[type];
@@ -255,9 +255,8 @@ static void hcache_ht_remove(struct hostcache *hc, gnet_host_t *host)
 	}
 
 	g_hash_table_remove(hc->ht_known_hosts, host);
+	g_assert(hc->host_count > 0);
 	hc->host_count--;
-
-	g_assert(hc->host_count >= 0);
 
 	if (entry.hce != NO_METADATA)
 		hce_free(entry.hce);
@@ -280,7 +279,7 @@ void hcache_save_valid(hcache_type_t type, guint32 ip, guint16 port)
 	gnet_host_t *host;
 	struct hostcache *hc;
 
-	g_assert(type >= 0 && type < HCACHE_MAX);
+	g_assert((gint) type >= 0 && type < HCACHE_MAX);
 
 	if (!host_is_valid(ip, port))
 		return;
@@ -319,7 +318,7 @@ gboolean hcache_add(hcache_type_t type, guint32 ip, guint16 port, gchar *what)
 	struct hostcache *hc;
 	gnet_host_t *host;
 
-	g_assert(type >= 0 && type < HCACHE_MAX);
+	g_assert((gint) type >= 0 && type < HCACHE_MAX);
 
 	if (!host_is_valid(ip, port))
 		return FALSE;			/* Is host valid? */
@@ -372,7 +371,7 @@ static void hcache_remove(struct hostcache *hc, gnet_host_t *h)
  */
 gboolean hcache_is_low(hcache_type_t type)
 {
-	g_assert(type >= 0 && type < HCACHE_MAX);
+	g_assert((gint) type >= 0 && type < HCACHE_MAX);
 	g_assert(caches[type] != NULL);
 
 	return caches[type]->host_count < MIN_RESERVE_SIZE;
@@ -407,7 +406,7 @@ void hcache_clear(hcache_type_t type)
 {
 	struct hostcache *hc;
 
-	g_assert(type >= 0 && type < HCACHE_MAX);
+	g_assert((gint) type >= 0 && type < HCACHE_MAX);
 	g_assert(caches[type] != NULL);
 
 	hc = caches[type];
@@ -423,7 +422,7 @@ void hcache_clear(hcache_type_t type)
  */
 gint hcache_size(hcache_type_t type)
 {
-	g_assert(type >= 0 && type < HCACHE_MAX);
+	g_assert((gint) type >= 0 && type < HCACHE_MAX);
 	g_assert(caches[type]);
 
 	return caches[type]->host_count;
@@ -439,7 +438,7 @@ void hcache_prune(hcache_type_t type)
 	struct hostcache *hc;
     gint extra;
 
-	g_assert(type >= 0 && type < HCACHE_MAX);
+	g_assert((gint) type >= 0 && type < HCACHE_MAX);
 
 	hc = caches[type];
 
@@ -482,7 +481,7 @@ gint hcache_fill_caught_array(
 	struct hostcache *hc;
 	GHashTable *seen_host = g_hash_table_new(host_hash, host_eq);
 
-	g_assert(type >= 0 && type < HCACHE_MAX);
+	g_assert((gint) type >= 0 && type < HCACHE_MAX);
 
 	/*
 	 * First try to fill from our recent pongs, as they are more fresh
@@ -553,7 +552,7 @@ gboolean hcache_find_nearby(hcache_type_t type, guint32 *ip, guint16 *port)
 	struct hostcache *hc;
 	gboolean reading;
 
-	g_assert(type >= 0 && type < HCACHE_MAX);
+	g_assert((gint) type >= 0 && type < HCACHE_MAX);
 
 	hc = caches[type];
     gnet_prop_get_boolean_val(hc->reading, &reading);
@@ -617,7 +616,7 @@ void hcache_get_caught(hcache_type_t type, guint32 *ip, guint16 *port)
 	gboolean reading;
 	extern guint32 number_local_networks;
 
-	g_assert(type >= 0 && type < HCACHE_MAX);
+	g_assert((gint) type >= 0 && type < HCACHE_MAX);
 
 	hc = caches[type];
     gnet_prop_get_boolean_val(hc->reading, &reading);
@@ -809,7 +808,7 @@ void hcache_retrieve(hcache_type_t type)
 	FILE *fd;
 	bgstep_cb_t step = read_step;
 
-	g_assert(type >= 0 && type < HCACHE_MAX);
+	g_assert((gint) type >= 0 && type < HCACHE_MAX);
 	g_assert(caches[type] != NULL);
 
 	hc = caches[type];
@@ -849,7 +848,7 @@ void hcache_store(hcache_type_t type)
 	GList *l;
 	file_path_t fp;
 
-	g_assert(type >= 0 && type < HCACHE_MAX);
+	g_assert((gint) type >= 0 && type < HCACHE_MAX);
 	g_assert(caches[type] != NULL);
 
 	hc = caches[type];
@@ -908,7 +907,7 @@ void hcache_close(void)
 	static hcache_type_t types[] = { HCACHE_ANY, HCACHE_ULTRA };
 	gint i;
 
-	for (i = 0; i < sizeof(types) / sizeof(types[0]); i++) {
+	for (i = 0; i < G_N_ELEMENTS(types); i++) {
 		hcache_type_t type = types[i];
 
 		if (bg_reader[type] != NULL)

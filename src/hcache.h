@@ -37,7 +37,7 @@
 void hcache_init(void);
 void hcache_close(void);
 
-gchar *hcache_type_to_gchar(hcache_type_t type);
+const gchar *hcache_type_to_gchar(hcache_type_t type);
 
 void hcache_save_valid(hcache_type_t type, guint32 ip, guint16 port);
 
