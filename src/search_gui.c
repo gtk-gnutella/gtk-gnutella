@@ -2370,6 +2370,9 @@ void search_gui_expand_all()
 	GtkCTree *ctree;
     search_t *current_search = search_gui_get_current_search();
 
+	if (current_search == NULL)
+        return;
+
     ctree = current_search->ctree;
 
 	gtk_ctree_expand_recursive(ctree, NULL);	
@@ -2385,6 +2388,9 @@ void search_gui_collapse_all()
 {
 	GtkCTree *ctree;
     search_t *current_search = search_gui_get_current_search();
+
+	if (current_search == NULL)
+        return;
 
     ctree = current_search->ctree;
 
