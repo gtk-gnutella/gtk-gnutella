@@ -1,5 +1,15 @@
 # since last version
 
+- (2002.11.05 RAM)
+ * Don't show SHA1 computation rate if we did not hash anything (e.g. after
+   a recovery crash where we jump to the "SHA1 verified state" directly).
+ * Revisited fileinfo handling: try to not discard them when a download
+   stops, unless it was an explicit removal from the user or we are told to
+   ignore its SHA1, for instance.
+ * Fixed possible discrepancy between the download's SHA1 and the fileinfo's.
+   In particular, we could associate a download with a known SHA1 with a
+   fileinfo not bearing a SHA1 at all.
+
 - (2002.11.04 RAM)
  * Restored broken support for sendfile(): configure was no longer setting
    the proper variables, leading to sendfile() being ruled out everywhere
