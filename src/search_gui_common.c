@@ -44,7 +44,7 @@ RCSID("$Id$");
 static zone_t *rs_zone;		/* Allocation of results_set */
 static zone_t *rc_zone;		/* Allocation of record */
 
-static const gchar *search_file = "searches"; /* "old" file to searches */
+static const gchar search_file[] = "searches"; /* "old" file to searches */
 
 static gchar tmpstr[1024];
 
@@ -221,14 +221,8 @@ void search_gui_dispose_results(results_set_t *rs)
 			continue;
 
 		refs++;			/* Found one more reference to this search */
-
 		sch->r_sets = g_slist_remove_link(sch->r_sets, lnk);
-    
-        /* FIXME: I have the strong impression that there is a memory leak
-         *        here. We find the link and unlink it from r_sets, but
-         *        then it does become a self-contained list and it is not
-         *        freed anywhere, does it?
-		 */
+		g_slist_free_1(lnk);
 	}
 
 	g_assert(rs->refcount == refs);		/* Found all the searches */
