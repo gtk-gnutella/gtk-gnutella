@@ -4279,6 +4279,7 @@ void node_add_socket(struct gnutella_socket *s, guint32 ip, guint16 port)
  */
 static void node_parse(struct gnutella_node *node)
 {
+	time_t now = time(NULL);
 	static struct gnutella_node *n;
 	gboolean drop = FALSE;
 	gboolean has_ggep = FALSE;
@@ -4517,7 +4518,7 @@ static void node_parse(struct gnutella_node *node)
 		}
 		break;
 	case GTA_MSG_HSEP_DATA:
-		hsep_process_msg(n);
+		hsep_process_msg(n, now);
 		goto reset_header;
 	default:
 		break;
