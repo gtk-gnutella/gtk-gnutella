@@ -4051,6 +4051,19 @@ Grace time remaining:</property>
 	      <property name="fill">True</property>
 	    </packing>
 	  </child>
+
+	  <child>
+	    <widget class="GtkStatusbar" id="statusbar1">
+	      <property name="width_request">23</property>
+	      <property name="visible">True</property>
+	      <property name="has_resize_grip">True</property>
+	    </widget>
+	    <packing>
+	      <property name="padding">0</property>
+	      <property name="expand">False</property>
+	      <property name="fill">True</property>
+	    </packing>
+	  </child>
 	</widget>
 	<packing>
 	  <property name="padding">0</property>
@@ -17812,7 +17825,7 @@ before kicking</property>
 		      <child>
 			<widget class="GtkLabel" id="label285">
 			  <property name="visible">True</property>
-			  <property name="label" translatable="yes">Active downloads</property>
+			  <property name="label" translatable="yes">Active sources</property>
 			  <property name="use_underline">False</property>
 			  <property name="use_markup">False</property>
 			  <property name="justify">GTK_JUSTIFY_LEFT</property>
@@ -18216,7 +18229,7 @@ before kicking</property>
 		      <child>
 			<widget class="GtkLabel" id="label328">
 			  <property name="visible">True</property>
-			  <property name="label" translatable="yes">Download queue</property>
+			  <property name="label" translatable="yes">Inactive sources</property>
 			  <property name="use_underline">False</property>
 			  <property name="use_markup">False</property>
 			  <property name="justify">GTK_JUSTIFY_LEFT</property>
@@ -18256,7 +18269,7 @@ before kicking</property>
       <child>
 	<widget class="GtkLabel" id="label671">
 	  <property name="visible">True</property>
-	  <property name="label" translatable="yes">Downloads</property>
+	  <property name="label" translatable="yes">Sources</property>
 	  <property name="use_underline">False</property>
 	  <property name="use_markup">False</property>
 	  <property name="justify">GTK_JUSTIFY_LEFT</property>
@@ -18317,7 +18330,7 @@ before kicking</property>
 		  <child>
 		    <widget class="GtkLabel" id="label673">
 		      <property name="visible">True</property>
-		      <property name="label" translatable="yes">Fileinfo</property>
+		      <property name="label" translatable="yes">Files to get</property>
 		      <property name="use_underline">False</property>
 		      <property name="use_markup">False</property>
 		      <property name="justify">GTK_JUSTIFY_LEFT</property>
@@ -18806,7 +18819,7 @@ before kicking</property>
       <child>
 	<widget class="GtkLabel" id="label672">
 	  <property name="visible">True</property>
-	  <property name="label" translatable="yes">Fileinfo</property>
+	  <property name="label" translatable="yes">Files</property>
 	  <property name="use_underline">False</property>
 	  <property name="use_markup">False</property>
 	  <property name="justify">GTK_JUSTIFY_LEFT</property>

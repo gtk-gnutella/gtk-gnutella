@@ -1848,6 +1848,7 @@ create_main_window (void)
   GtkWidget *frame_statusbar_uptime;
   GtkWidget *alignment102;
   GtkWidget *label_statusbar_uptime;
+  GtkWidget *statusbar1;
   GtkAccelGroup *accel_group;
   GtkTooltips *tooltips;
 
@@ -2657,6 +2658,12 @@ create_main_window (void)
   gtk_widget_show (label_statusbar_uptime);
   gtk_container_add (GTK_CONTAINER (alignment102), label_statusbar_uptime);
 
+  statusbar1 = gtk_statusbar_new ();
+  gtk_widget_set_name (statusbar1, "statusbar1");
+  gtk_widget_show (statusbar1);
+  gtk_box_pack_start (GTK_BOX (hbox_statusbar), statusbar1, FALSE, TRUE, 0);
+  gtk_widget_set_size_request (statusbar1, 23, -1);
+
   g_signal_connect ((gpointer) main_window, "delete_event",
                     G_CALLBACK (on_main_window_delete_event),
                     NULL);
@@ -2871,6 +2878,7 @@ create_main_window (void)
   GLADE_HOOKUP_OBJECT (main_window, frame_statusbar_uptime, "frame_statusbar_uptime");
   GLADE_HOOKUP_OBJECT (main_window, alignment102, "alignment102");
   GLADE_HOOKUP_OBJECT (main_window, label_statusbar_uptime, "label_statusbar_uptime");
+  GLADE_HOOKUP_OBJECT (main_window, statusbar1, "statusbar1");
   GLADE_HOOKUP_OBJECT_NO_REF (main_window, tooltips, "tooltips");
 
   gtk_window_add_accel_group (GTK_WINDOW (main_window), accel_group);
@@ -9930,7 +9938,7 @@ create_main_window_downloads_tab (void)
   gtk_widget_show (label_dl_show_settings);
   gtk_box_pack_start (GTK_BOX (hbox216), label_dl_show_settings, FALSE, FALSE, 0);
 
-  label285 = gtk_label_new (_("Active downloads"));
+  label285 = gtk_label_new (_("Active sources"));
   gtk_widget_set_name (label285, "label285");
   gtk_widget_show (label285);
   gtk_frame_set_label_widget (GTK_FRAME (frame3), label285);
@@ -10069,12 +10077,12 @@ create_main_window_downloads_tab (void)
   gtk_widget_show (label714);
   gtk_box_pack_start (GTK_BOX (hbox212), label714, FALSE, FALSE, 0);
 
-  label328 = gtk_label_new (_("Download queue"));
+  label328 = gtk_label_new (_("Inactive sources"));
   gtk_widget_set_name (label328, "label328");
   gtk_widget_show (label328);
   gtk_frame_set_label_widget (GTK_FRAME (frame47), label328);
 
-  label671 = gtk_label_new (_("Downloads"));
+  label671 = gtk_label_new (_("Sources"));
   gtk_widget_set_name (label671, "label671");
   gtk_widget_show (label671);
   gtk_notebook_set_tab_label (GTK_NOTEBOOK (notebook_downloads), gtk_notebook_get_nth_page (GTK_NOTEBOOK (notebook_downloads), 0), label671);
@@ -10109,7 +10117,7 @@ create_main_window_downloads_tab (void)
   gtk_container_add (GTK_CONTAINER (scrolledwindow70), treeview_fileinfo);
   gtk_tree_view_set_rules_hint (GTK_TREE_VIEW (treeview_fileinfo), TRUE);
 
-  label673 = gtk_label_new (_("Fileinfo"));
+  label673 = gtk_label_new (_("Files to get"));
   gtk_widget_set_name (label673, "label673");
   gtk_widget_show (label673);
   gtk_frame_set_label_widget (GTK_FRAME (frame81), label673);
@@ -10283,7 +10291,7 @@ create_main_window_downloads_tab (void)
   gtk_widget_show (label719);
   gtk_box_pack_start (GTK_BOX (hbox235), label719, FALSE, FALSE, 0);
 
-  label672 = gtk_label_new (_("Fileinfo"));
+  label672 = gtk_label_new (_("Files"));
   gtk_widget_set_name (label672, "label672");
   gtk_widget_show (label672);
   gtk_notebook_set_tab_label (GTK_NOTEBOOK (notebook_downloads), gtk_notebook_get_nth_page (GTK_NOTEBOOK (notebook_downloads), 1), label672);
