@@ -1041,6 +1041,20 @@ gint bio_write(bio_source_t *bio, gconstpointer data, gint len)
 
 	r = write(bio->fd, data, amount);
 
+	/*
+	 * XXX hack for broken libc, which can return -1 with errno = 0!
+	 *
+	 * Apparently, when compiling with gcc-3.3.x, one can have a system
+	 * call return -1 with errno set to EOK.
+	 *		--RAM, 05/10/2003
+	 */
+
+	if (r == -1 && errno == 0) {
+		g_warning("write(fd=%d, len=%d) returned -1 with errno = 0, "
+			"assuming EAGAIN", bio->fd, data);
+		errno = EAGAIN;
+	}
+
 	if (r > 0) {
 		bsched_bw_update(bio->bs, r, amount);
 		bio->bw_actual += r;
@@ -1141,6 +1155,20 @@ gint bio_writev(bio_source_t *bio, struct iovec *iov, gint iovcnt)
 		r = safe_writev(bio->fd, iov, iovcnt);
 	else
 		r = writev(bio->fd, iov, iovcnt);
+
+	/*
+	 * XXX hack for broken libc, which can return -1 with errno = 0!
+	 *
+	 * Apparently, when compiling with gcc-3.3.x, one can have a system
+	 * call return -1 with errno set to EOK.
+	 *		--RAM, 05/10/2003
+	 */
+
+	if (r == -1 && errno == 0) {
+		g_warning("writev(fd=%d, len=%d) returned -1 with errno = 0, "
+			"assuming EAGAIN", bio->fd, len);
+		errno = EAGAIN;
+	}
 
 	if (r > 0) {
 		g_assert(r <= available);
