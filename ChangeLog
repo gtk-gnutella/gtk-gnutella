@@ -1,7 +1,6 @@
 # since last version
 
-- gtk-gnutella.spec now generated at configure time thanks to a patch
-  from Sam Varshavchik.
+- gtk-gnutella.spec now generated at configure time. [From: Sam Varshavchik]
 - LimeWire shut down their router.limewire.com pong cache.
 - Trace IP of HTTP requests/replies we send or receive.
 - Check for valid index/name combination before checking for upload slots.
@@ -55,6 +54,27 @@
 - Implemented LimeWire's ping/pong reducing scheme.
 - Created doc/gnutella directory, populated with reference on the recently
   implemented algorithms.
+- Fixed index-updating bug for downloads in push mode: the mapping was
+  not updated correctly, resulting in a failed assertion later on.
+- Advertise "Pong-Caching: 0.1" in the 0.6 handshake reply.
+- Factorized creation of version string, in a "version_string" global
+  that is now used everywhere the name of the program and its version needs
+  to be output in a header (User-Agent and Server headers).
+- Forgot that search reissue timeout of 0 meant "no reissue".  Fixed, and
+  adapted the label text in front of the entry textarea.  Also enlarged
+  the area a bit.  [From: Nate]
+- Fixed IP/port setups for socks4 and socks5 proxies: now use network order
+  instead of native. [From: Robert Bihlmeyer]
+- Was not validating config variable `min_dup_ratio'.  Adapted its comment,
+  and made other cosmetic change to the config file output.
+- Now initializes version string once and for all, at main() time.
+  This string is then consistently used in all emitted headers.
+- Parses remote "Pong-Caching:" hanshaking header.
+- During download requests, force push immediately if the remote end's IP:port
+  appears to be not connectible, even if the "Push" bit is not set in QHD.
+- Created new "Stopped" state, which is used on retry-able error conditions,
+  such as EOF or "Connection reset by peer" errors.  The retry timer was
+  shortened from 60 to 15 seconds, awaiting to make it configurable.
 
 # v 0.18   2001.11.19
 
