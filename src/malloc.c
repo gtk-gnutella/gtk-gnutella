@@ -582,7 +582,7 @@ GSList *slist_insert_sorted_track(
 {
 	gint cmp;
 	GSList *tmp = l;
-	GSList *prev;
+	GSList *prev = NULL;
 	GSList *new;
 
 	if (l == NULL)
