@@ -1,11 +1,43 @@
 # since last version
 
+- (2004.01.03 - RAM)
+ * Added a continuation on X-Queued: line, which was longer than 80 chars
+   when we emit lifetime and ETA information.
+ * Now count failed push proxy resolutions as well.
+ * Now always emit alternate locations via X-Alt:, so got rid of the old
+   code that emitted X-Gnutella-Alternate-Location headers.
+ * Lowered maximum query monitoring half life to 10 seconds.
+ * Changed computation formula for QRP pass-throw now that we filter SHA1
+   queries through the table.  The cut-off is now fixed at 5%.
+ * Another series of patches from Emile le Vivre:
+   [GTK2] emove expand/collapse all buttons from search pane because they
+   didn't fit and because the expand all button wasn't updating the
+   treeview.
+   [GTK1] Fixes autosort (except for count column for some reason)
+   [GTK1] Adds "connecting" and "queued" status messages to grouped downloads
+   [GTK1] Fixed "restart search" seg fault
+   [GTK1] Fixed autoselect to update the ctree so autoselected rows show up
+   immediately.
+ * (downloads_gui*.c) Removed spurious atom_int_get()/atom_int_free() calls
+   that do not strike me as beeing needed, but added explicit atom_int_get()
+   in the add_parent_with_fi_handle() routine.
+ * (downloads_gui.c) Made sure the hash tables are declared with g_int_hash
+   and g_int_equal to work properly with integer keys.
+ * (downloads_gui.c) Avoid too frequent updates and structure traversals to
+   update the parent tree summary info when its GUI info is fresh enough.
+ * Fixed long-standing race condition when receiving a GIV string.
+ * [GTK2] Fixed crash when clicking twice on Purge in the fileinfo pane [From
+   Hans de Graaff].
+ * Changed default for "node_rx_flowc_ratio" to 70%, and raised minimum
+   to 30%, to allow traffic bursts.
+
 - (2004.01.03 - Richard)
- * [Gtk1] [Gtk2] Lots of layout changes to assimilate the gtk1 and gtk2 guis, to clean up
-   layout in general and to fix paddings and spacings.
- * [Gtk1] [Gtk2] Unhid the "current search" entry in the search panel again as users
-   requested so.
- * [Gtk2] Applied patch to fix column visibility on the gnet pane [from Clayton Rollins].
+ * [Gtk1] [Gtk2] Lots of layout changes to assimilate the gtk1 and gtk2 guis,
+   to clean up layout in general and to fix paddings and spacings.
+ * [Gtk1] [Gtk2] Unhid the "current search" entry in the search panel again
+   as users requested so.
+ * [Gtk2] Applied patch to fix column visibility on the gnet pane
+   [from Clayton Rollins].
  
 - (2004.01.02 - RAM)
  * Fixed conflict ratio computation when they don't share anything.
