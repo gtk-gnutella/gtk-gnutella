@@ -1394,6 +1394,18 @@ prop = {
 };
 
 prop = {
+    name = "auto_feed_download_mesh";
+    desc = "Whether or not to automatically feed the download mesh with "
+	   "data gathered from the query hits that flow through our node. "
+	   "This looks for new entries for files we are sharing or already "
+	   "have in our mesh.";
+    type = boolean;
+    data = {
+	    default = TRUE;
+    };
+};
+
+prop = {
     name = "strict_sha1_matching";
     desc = "When enabled, SHA1s must match. Otherwise, name and size "
 			"will be sufficient";
