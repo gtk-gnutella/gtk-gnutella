@@ -1,5 +1,25 @@
 # since last version
 
+- (2002.12.28 - RAM)
+ * Added ban_max_recompute() to recompute max amount of file descriptors.
+ * Now sets the "max_banned_fd" property with the configured amount of fds.
+ * New properties: "max_banned_fd", "sys_nofile" and "sys_physmem".
+ * Added assertion in gnet_stats.c: cannot send a message with TTL=0.
+ * Don't send our IP to web cache if we're a leaf node.
+ * Renamed network_init() as node_init() for consistency.
+ * New routing next_pow2().
+ * Reworked the code sending BYE messages to not include a header payload
+   on 200, and force a trailing NUL.
+ * Was sending the QRT too early after connecting (before setting up the
+   TX stack).
+ * Refuse connections from leaf nodes when we're a normal node.
+ * Don't demultiplex pongs nor honour TTL=2 pings when in leaf mode.
+ * Pre-compute the default QRT patch (against NULL table) to immediately
+   be able to send it on new connections.
+ * Added computation of sys_xxx properties at startup.
+ * Don't try to compact queries when in leaf mode, since we don't relay.
+ * Fixed node_bye_flags() to skip already removing or shutdown nodes.
+
 - (2002.12.27 - RAM)
  * Only report compression error when there is actually an error, not when
    the task is cancelled.
@@ -14,6 +34,7 @@
  * When in leaf mode, pong all 0.4 connections.
  * Fixed cleanup order in qrp update to avoid crash at exit time.
  * Fixed wrong complaint about error whilst freeing compressor.
+ * Also forbid outgoing connections to 0.4 nodes when in leaf mode.
 
 - (2002.12.26 - RAM)
  * New properties: "current_ip_stamp", "average_ip_uptime", "start_stamp",
