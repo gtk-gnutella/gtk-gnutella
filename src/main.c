@@ -63,6 +63,7 @@
 #include "core/share.h"
 #include "core/sockets.h"
 #include "core/sq.h"
+#include "core/tsync.h"
 #include "core/upload_stats.h"
 #include "core/verify.h"
 #include "core/version.h"
@@ -273,6 +274,7 @@ void gtk_gnutella_exit(gint n)
 	features_close();
 	clock_close();
 	watcher_close();
+	tsync_close();
 	cq_close();
 	word_vec_close();
 	pattern_close();
@@ -549,6 +551,7 @@ gint main(gint argc, gchar **argv, gchar **env)
 	gnet_stats_init();
 	main_gui_early_init(argc, argv);
 	cq_init();
+	tsync_init();
 	watcher_init();
 	hcache_init(); /* before settings_init() */
 	settings_init();
