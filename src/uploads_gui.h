@@ -27,6 +27,7 @@
 #define _uploads_gui_h_
 
 #include <glib.h>
+#include <gtk/gtk.h>
 #include <time.h>
 #include "uploads.h"
 
@@ -38,6 +39,9 @@ typedef struct upload_row_data {
     guint32       range_start;
     guint32       range_end;
     upload_stage_t status;      /* last known status */
+#ifdef USE_GTK2
+    GtkTreeIter   iter;
+#endif
 } upload_row_data_t;
 
 void uploads_gui_early_init(void);
