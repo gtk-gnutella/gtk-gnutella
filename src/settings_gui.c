@@ -1907,6 +1907,24 @@ static prop_map_t property_map[] = {
         "label_dl_aqueued_count",
         FREQ_UPDATES, 0
     },
+#ifdef USE_GTK1		/* XXX not in GTK2 yet */
+    {
+        get_main_window,
+        PROP_FI_ALL_COUNT,
+        update_label,
+        TRUE,
+        "label_fi_all_count",
+        FREQ_UPDATES, 0
+    },
+    {
+        get_main_window,
+        PROP_FI_WITH_SOURCE_COUNT,
+        update_label,
+        TRUE,
+        "label_fi_with_source_count",
+        FREQ_UPDATES, 0
+    },
+#endif	/* USE_GTK1 */
     {
         get_main_window,
         PROP_SEARCH_MAX_RESULTS,
