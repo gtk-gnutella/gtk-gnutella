@@ -373,7 +373,7 @@ static void gui_init_menu(void)
 
 static GtkWidget *gui_create_dlg_about(void)
 {
-    /* NB: These strings are ISO-8859-1 encoded. */
+    /* NB: These strings are UTF-8 encoded. */
     static const char *contributors[] = {
         "Yann Grossel <olrick@users.sourceforge.net>",
         "Steven Wilcoxon <swilcoxon@users.sourceforge.net>",
@@ -386,7 +386,7 @@ static GtkWidget *gui_create_dlg_about(void)
         "Paul Cassella <pwc@users.sourceforge.net>",
         "Jared Mauch <jaredmauch@users.sourceforge.net>",
         "Nate E <web1 (at) users dot sourceforge dot net>",
-        "Rapha\353l Manfredi <Raphael_Manfredi@pobox.com>",
+        "Rapha\303\253l Manfredi <Raphael_Manfredi@pobox.com>",
         "Kenn Brooks Hamm <khamm@andrew.cmu.edu>",
         "Mark Schreiber <mark7@andrew.cmu.edu>",
         "Sam Varshavchik <mrsam@courier-mta.com>",
@@ -408,15 +408,15 @@ static GtkWidget *gui_create_dlg_about(void)
         "T'aZ <tazdev@altern.org>",
         "Andrew Barnert <barnert@myrealbox.com>",
         "Michael Gray <mrgray01@louisville.edu>",
-        "Nicol\341s Lichtmaier <nick@technisys.com.ar>",
+        "Nicol\303\241s Lichtmaier <nick@technisys.com.ar>",
+        "Rafael R. Reilova <rreilova@magepr.net>",
+        "Stephane Corbe <noubi@users.sourceforge.net>",
         "Emile le Vivre <emile@struggle.ca>",
         "Angelo Cano <angelo_cano@fastmail.fm>",
         NULL
     };
     GtkWidget *dlg = create_dlg_about();
     guint i;
-	static char s[256];
-	char *t;
 #ifdef USE_GTK2
     GtkTextBuffer *textbuf;
 
@@ -424,24 +424,20 @@ static GtkWidget *gui_create_dlg_about(void)
         lookup_widget(dlg, "textview_about_contributors")));
     
     for (i = 0; NULL != contributors[i]; i++) {
-        gm_snprintf(s, sizeof(s), "%s%s", i > 0 ? "\n" : "", contributors[i]);
-		t = iso_8859_1_to_utf8(s);
-		if (NULL == t)
-			t = "<Cannot convert to UTF-8>";
-        gtk_text_buffer_insert_at_cursor(textbuf, t, (-1));
+        if (i > 0)
+            gtk_text_buffer_insert_at_cursor(textbuf, "\n", (-1));
+        gtk_text_buffer_insert_at_cursor(textbuf, contributors[i], (-1));
     }
 #else
     GtkText *text = GTK_TEXT(lookup_widget(dlg, "text_about_contributors"));
+    static char s[256];
 
     for (i = 0; NULL != contributors[i]; i++) {
         if (i > 0)
             gtk_text_insert(text, NULL, NULL, NULL, "\n", (-1));
         g_strlcpy(s, contributors[i], sizeof(s));
-		t = iso_8859_1_to_utf8(s);
-		if (NULL == t)
-			t = "<Cannot convert to UTF-8>";
-		t = lazy_utf8_to_locale(t, 0);
-        gtk_text_insert(text, NULL, NULL, NULL, t, (-1));
+        gtk_text_insert(text, NULL, NULL, NULL,
+            lazy_utf8_to_locale(s, 0), (-1));
     }
 #endif
 
