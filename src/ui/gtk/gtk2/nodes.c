@@ -106,21 +106,6 @@ static void add_column(
 }
 
 /*
- * nodes_gui_set_column_width
- *
- * Sets the specified column, from the specified tree to the
- * specified width.
- */
-static void set_column(GtkTreeView *tree, gint id, gint width, gboolean visible)
-{
-	GtkTreeViewColumn *column;
-
-	column = gtk_tree_view_get_column(tree, id);
-	gtk_tree_view_column_set_visible(column, visible);
-	gtk_tree_view_column_set_fixed_width(column, MAX(1, width));
-}
-
-/*
  * nodes_gui_create_treeview_nodes
  *
  * Sets up the treeview_nodes object for use by
@@ -405,26 +390,15 @@ nodes_gui_early_init(void)
 void
 nodes_gui_init(void)
 {
-    GtkTreeView *tree;
-	guint32 width[NODES_VISIBLE_COLUMNS];
-	gboolean visible[NODES_VISIBLE_COLUMNS];
-	guint i;
-
 	treeview_nodes = GTK_TREE_VIEW(lookup_widget(
 		main_window, "treeview_nodes"));
-	tree = treeview_nodes;
+
+	tree_view_restore_widths(treeview_nodes, PROP_NODES_COL_WIDTHS);
+	tree_view_restore_visibility(treeview_nodes, PROP_NODES_COL_VISIBLE);
 
 #if GTK_CHECK_VERSION(2, 4, 0)
-    g_object_set(tree, "fixed_height_mode", TRUE, NULL);
+    g_object_set(treeview_nodes, "fixed_height_mode", TRUE, NULL);
 #endif /* GTK+ >= 2.4.0 */
-
-	gui_prop_get_guint32(PROP_NODES_COL_WIDTHS, width, 0, G_N_ELEMENTS(width));
-	gui_prop_get_boolean(PROP_NODES_COL_VISIBLE, visible, 0,
-		G_N_ELEMENTS(visible));
-
-	for (i = 0; i < G_N_ELEMENTS(width); i++) {
-    	set_column(tree, i, width[i], visible[i]);
-	}
 
 	nodes_handles = g_hash_table_new_full(
 		NULL, NULL, NULL, (GDestroyNotify) w_tree_iter_free);
