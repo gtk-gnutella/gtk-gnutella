@@ -140,7 +140,9 @@ gtk_cell_renderer_progress_get_type (void)
 			sizeof (GtkCellRendererProgress),
 			0,      	/* n_preallocs */
 			(GInstanceInitFunc) gtk_cell_renderer_progress_init,
+			NULL
 		};
+
 		cell_progress_type = g_type_register_static(
 			GTK_TYPE_CELL_RENDERER,
 			"GtkCellRendererProgress",
