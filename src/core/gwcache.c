@@ -933,12 +933,9 @@ gwc_host_eof(struct parse_context *ctx)
 	 * Provide GUI feedback.
 	 */
 
-	if (ctx->processed == 1)
-		gm_snprintf(gwc_tmp, sizeof(gwc_tmp), _("Got %d host from %s"),
-			ctx->processed, current_url);
-	else
-		gm_snprintf(gwc_tmp, sizeof(gwc_tmp), _("Got %d hosts from %s"),
-			ctx->processed, current_url);
+	gm_snprintf(gwc_tmp, sizeof(gwc_tmp),
+		NG_("Got %d host from %s", "Got %d hosts from %s", ctx->processed),
+		ctx->processed, current_url);
 
 	gcu_statusbar_message(gwc_tmp);
 
