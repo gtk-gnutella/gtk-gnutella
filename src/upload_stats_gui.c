@@ -80,7 +80,7 @@ static gint ul_find_row_by_upload(
 		gtk_clist_get_text(clist, i,
 			c_us_filename, &filename);
 
-		if (g_str_equal(filename, name)) {
+		if (0 == strcmp(filename, name)) {
 			*s = us;
 			return i;
 		}
