@@ -1,5 +1,15 @@
 # since last version
 
+- (2003.02.07 - RAM)
+ * Fixed memory leaks in dmesh.c, fileinfo.c, qrp.c.
+ * Allow user to abort actively-queued downloads.
+ * Added upload_stats_free_all() to clean up memory on exit.
+ * Fixed reading of free'd memory in mq.c.
+
+- (2003.02.06 - RAM)
+ * Had mistakenly added the "sinking" state to DOWNLOAD_IS_ACTIVE().
+ * Prefix all warnings with a timestamp [From Christian Biere].
+
 - (2003.02.05 - RAM)
  * Fixed dmesh fuzzy matching memory corruption.
  * Send PUSH messages at max TTL value, not my TTL in case it needs re-routing.
