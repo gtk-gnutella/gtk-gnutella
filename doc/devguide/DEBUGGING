@@ -92,3 +92,25 @@ The defines which can be used are:
         It does make much sense to use REMAP_ZALLOC together with the
         TRACK_* defines.
 
+	MALLOC_STATS
+		When supplied in addition to TRACK_MALLOC, and with REMAP_ZALLOC,
+		this keeps track of allocation statistics during the lifetime of
+		the program.
+
+		Those statistics are dumped at the end of the program run, and also
+		when a SIGUSR1 signal is sent.  The SIGUSR2 signal resets the
+		incremental statistics after dumping them and can be used to look at
+		the memory usage variation between a SIGUSR2 and the next SIGUSR1
+		or SIGUSR2.
+
+		During the execution of the program, statistics are sorted on the
+		"incremental" counters whilst the final dump is sorted using the
+		global counters.
+
+	MALLOC_FRAMES
+		If you have a GNU C library with the backtrace() call, this will
+		keep track of the allocation stacks, free stacks and reallocation
+		stacks and will show the various paths leading to a given call.
+
+		This is still work in progress.  At a later time, it will also
+		be able to display stacks and related information.
