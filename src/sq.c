@@ -160,17 +160,22 @@ void sq_process(squeue_t *sq, time_t now)
 	item = g_list_first(sq->searches);
 	mb = (pmsg_t *) item->data;
 
-	if (NODE_IS_WRITABLE(n))
-		mq_putq(n->outq, mb);
-
 	sq->count--;
 	sq->n_sent++;
 	sq->last_sent = now;
+
+	/*
+	 * Must log before sending, in case the queue discards the message
+	 * buffer immediately.
+	 */
 
 	if (dbg > 4)
 		printf("sq for node %s, sent \"%s\" (%d left, %d sent)\n",
 			node_ip(n), QUERY_TEXT(pmsg_start(mb)),
 			sq->count, sq->n_sent);
+
+	if (NODE_IS_WRITABLE(n))
+		mq_putq(n->outq, mb);
 
 	sq->searches = g_list_remove_link(sq->searches, item);
 	g_list_free_1(item);
