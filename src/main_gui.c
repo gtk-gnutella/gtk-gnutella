@@ -285,7 +285,7 @@ static void gui_init_menu(void)
         GTK_CTREE(lookup_widget(main_window, "ctree_menu"));
 
      /* gNet */
-    title = (gchar *) &"gnutellaNet";
+    title = (gchar *) _("gnutellaNet");
     parent_node = gtk_ctree_insert_node(
 		ctree_menu, NULL, NULL, &title,
         0, NULL, NULL, NULL, NULL, FALSE, TRUE );
@@ -294,7 +294,7 @@ static void gui_init_menu(void)
         GINT_TO_POINTER(nb_main_page_gnet));
 
     /* gNet -> Stats */
-    title = (gchar *) &"Stats";
+    title = (gchar *) _("Stats");
     last_node = gtk_ctree_insert_node(
 		GTK_CTREE(ctree_menu), parent_node, NULL, &title,
         0, NULL, NULL, NULL, NULL, TRUE, TRUE);
@@ -303,7 +303,7 @@ static void gui_init_menu(void)
         GINT_TO_POINTER(nb_main_page_gnet_stats));
 
     /* Uploads */
-    title = (gchar *) &"Uploads";
+    title = (gchar *) _("Uploads");
     parent_node = gtk_ctree_insert_node(
 		GTK_CTREE(ctree_menu), NULL, NULL, &title,
         0, NULL, NULL, NULL, NULL, FALSE, TRUE );
@@ -312,7 +312,7 @@ static void gui_init_menu(void)
         GINT_TO_POINTER(nb_main_page_uploads));
 
     /* Uploads -> Stats */
-    title = (gchar *) &"Stats";
+    title = (gchar *) _("Stats");
     last_node = gtk_ctree_insert_node(
 		GTK_CTREE(ctree_menu), parent_node, NULL, &title,
         0, NULL, NULL, NULL, NULL, TRUE, TRUE);
@@ -321,7 +321,7 @@ static void gui_init_menu(void)
         GINT_TO_POINTER(nb_main_page_uploads_stats));
 
     /* Downloads */
-    title = (gchar *) &"Downloads";
+    title = (gchar *) _("Downloads");
     last_node = gtk_ctree_insert_node(
 		GTK_CTREE(ctree_menu), NULL, NULL, &title,
         0, NULL, NULL, NULL, NULL, TRUE, TRUE );
@@ -330,7 +330,7 @@ static void gui_init_menu(void)
         GINT_TO_POINTER(nb_main_page_downloads));
 
     /* Search */
-    title = (gchar *) &"Search";
+    title = (gchar *) _("Search");
     parent_node = gtk_ctree_insert_node(
 		GTK_CTREE(ctree_menu), NULL, NULL, &title,
         0, NULL, NULL, NULL, NULL, FALSE, TRUE );
@@ -339,7 +339,7 @@ static void gui_init_menu(void)
         GINT_TO_POINTER(nb_main_page_search));
 
     /* Search -> Monitor */
-    title = (gchar *) &"Monitor";
+    title = (gchar *) _("Monitor");
     last_node = gtk_ctree_insert_node(
 		GTK_CTREE(ctree_menu), parent_node, NULL, &title,
         0, NULL, NULL, NULL, NULL, TRUE, TRUE );
@@ -348,7 +348,7 @@ static void gui_init_menu(void)
         GINT_TO_POINTER(nb_main_page_monitor));
 
     /* Search -> search stats */
-    title = (gchar *) &"Stats";
+    title = (gchar *) _("Stats");
     last_node = gtk_ctree_insert_node(
 		GTK_CTREE(ctree_menu), parent_node, NULL, &title,
         0, NULL, NULL, NULL, NULL, TRUE, TRUE );
@@ -357,7 +357,7 @@ static void gui_init_menu(void)
         GINT_TO_POINTER(nb_main_page_search_stats));
 
     /* Config */
-    title = (gchar *) &"Config";
+    title = (gchar *) _("Config");
     last_node = gtk_ctree_insert_node(
 		GTK_CTREE(ctree_menu), NULL, NULL, &title,
         0, NULL, NULL, NULL, NULL, TRUE, TRUE );
