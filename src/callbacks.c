@@ -2462,6 +2462,7 @@ void on_clist_search_select_row(GtkCList * clist, gint row,
     updating_search = TRUE;
 
     on_search_switch((struct search *)sch);
+   	gtk_list_item_select(GTK_LIST_ITEM(((struct search *)sch)->list_item));
     gtk_notebook_set_page
         (GTK_NOTEBOOK(notebook_search_results), 
          gtk_notebook_page_num(GTK_NOTEBOOK(notebook_search_results),
