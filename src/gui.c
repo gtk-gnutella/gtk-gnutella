@@ -1452,7 +1452,7 @@ void gui_update_nodes_display(time_t now)
 	gchar *a;
 	gint row = 0;
 
-	gtk_clist_freeze(clist);
+	// gtk_clist_freeze(clist);
 
 	for (l = clist->row_list, row = 0; l; l = l->next, row++) {
 		struct gnutella_node *n =
@@ -1461,7 +1461,7 @@ void gui_update_nodes_display(time_t now)
 		gtk_clist_set_text(clist, row, 4, a);
 	}
 
-	gtk_clist_thaw(clist);
+	// gtk_clist_thaw(clist);
 }
 
 static void gui_update_node_display(struct gnutella_node *n, time_t now)
@@ -1472,9 +1472,7 @@ static void gui_update_node_display(struct gnutella_node *n, time_t now)
 	a = gui_node_info_str(n, now);
 
 	row = gtk_clist_find_row_from_data(GTK_CLIST(clist_nodes), (gpointer) n);
-	gtk_clist_freeze(GTK_CLIST(clist_nodes));
 	gtk_clist_set_text(GTK_CLIST(clist_nodes), row, 4, a);
-	gtk_clist_thaw(GTK_CLIST(clist_nodes));
 }
 
 void gui_update_node(struct gnutella_node *n, gboolean force)
