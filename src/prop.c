@@ -71,7 +71,8 @@ do {																\
  *
  * Parse comma delimited numeric vector.
  */
-static void prop_parse_ip_vector(const gchar *str, gsize size, guint32 *t)
+static void prop_parse_ip_vector(const gchar *name,
+	const gchar *str, gsize size, guint32 *t)
 {
 	/* Parse comma delimited settings */
 
@@ -91,7 +92,8 @@ static void prop_parse_ip_vector(const gchar *str, gsize size, guint32 *t)
 	}
 
 	if (i < size)
-		g_warning("prop_parse_ip_vector: target initialization incomplete!");
+		g_warning("prop_parse_ip_vector: (prop=\"%s\") "
+			"target initialization incomplete!", name);
 
 	g_strfreev(h);
 }
@@ -100,7 +102,8 @@ static void prop_parse_ip_vector(const gchar *str, gsize size, guint32 *t)
  *
  * Parse comma delimited numeric vector.
  */
-void prop_parse_guint64_vector(const gchar *str, gsize size, guint64 *t)
+static void prop_parse_guint64_vector(const gchar *name,
+	const gchar *str, gsize size, guint64 *t)
 {
 	/* Parse comma delimited settings */
 
@@ -119,13 +122,13 @@ void prop_parse_guint64_vector(const gchar *str, gsize size, guint64 *t)
 		
 		t[i] = gm_atoul(h[i], NULL, &error);
 		if (error)
-			g_warning("prop_parse_guint64_vector: h[i]=\"%s\": \"%s\"",
-				h[i], g_strerror(error));
+			g_warning("prop_parse_guint64_vector: (prop=\"%s\") "
+				"h[i]=\"%s\": \"%s\"", name, h[i], g_strerror(error));
 	}
 
 	if (i < size)
-		g_warning("prop_parse_guint64_vector: "
-			"target initialization incomplete!");
+		g_warning("prop_parse_guint64_vector: (prop=\"%s\") "
+			"target initialization incomplete!", name);
 
 	g_strfreev(h);
 }
@@ -135,7 +138,8 @@ void prop_parse_guint64_vector(const gchar *str, gsize size, guint64 *t)
  *
  * Parse comma delimited numeric vector.
  */
-void prop_parse_guint32_vector(const gchar *str, gsize size, guint32 *t)
+static void prop_parse_guint32_vector(const gchar *name,
+	const gchar *str, gsize size, guint32 *t)
 {
 	/* Parse comma delimited settings */
 
@@ -154,13 +158,14 @@ void prop_parse_guint32_vector(const gchar *str, gsize size, guint32 *t)
 		
 		t[i] = gm_atoul(h[i], NULL, &error);
 		if (error)
-			g_warning("prop_parse_guint32_vector: h[i]=\"%s\": \"%s\"",
-				h[i], g_strerror(error));
+			g_warning("prop_parse_guint32_vector: "
+				"(prop=\"%s\") h[i]=\"%s\": \"%s\"",
+				name, h[i], g_strerror(error));
 	}
 
 	if (i < size)
-		g_warning("prop_parse_guint32_vector: "
-			"target initialization incomplete!");
+		g_warning("prop_parse_guint32_vector: (prop=\"%s\") "
+			"target initialization incomplete!", name);
 
 	g_strfreev(h);
 }
@@ -170,7 +175,8 @@ void prop_parse_guint32_vector(const gchar *str, gsize size, guint32 *t)
  *
  * Parse comma delimited boolean vector (TRUE/FALSE list).
  */
-void prop_parse_boolean_vector(const gchar *str, gsize size, gboolean *t)
+static void prop_parse_boolean_vector(const gchar *name,
+	const gchar *str, gsize size, gboolean *t)
 {
 	/* Parse comma delimited settings */
 
@@ -190,8 +196,8 @@ void prop_parse_boolean_vector(const gchar *str, gsize size, gboolean *t)
 	}
 
 	if (i < size)
-		g_warning("prop_parse_boolean_vector: "
-			"target initialization incomplete!");
+		g_warning("prop_parse_boolean_vector: (prop=\"%s\") "
+			"target initialization incomplete!", name);
 
 	g_strfreev(h);
 }
@@ -201,13 +207,15 @@ void prop_parse_boolean_vector(const gchar *str, gsize size, gboolean *t)
  *
  * Parse a hex string into a guint8 array.
  */
-void prop_parse_storage(const gchar *str, gsize size, guint8 *t)
+static void prop_parse_storage(const gchar *name,
+	const gchar *str, gsize size, guint8 *t)
 {
 	gsize i;
 
 	g_assert(size > 0);
 	if (size * 2 != strlen(str))
-		g_error("prop_parse_storage: storage does not match requested size");
+		g_error("prop_parse_storage: (prop=\"%s\") "
+			"storage does not match requested size", name);
 
 	for (i = 0; i < size; i++) {
 		guchar h, l;
@@ -216,7 +224,8 @@ void prop_parse_storage(const gchar *str, gsize size, guint8 *t)
 		l = str[i * 2 + 1];
 		if (!is_ascii_xdigit(h) || !is_ascii_xdigit(l)) {
 			t[i] = '\0';
-			g_warning("prop_parse_storage: storage is damaged: \"%s\"", str);
+			g_warning("prop_parse_storage: (prop=\"%s\") "
+				"storage is damaged: \"%s\"", name, str);
 			return;
 		}
 		t[i] = (hex2dec(h) << 4) + hex2dec(l);
@@ -1328,7 +1337,7 @@ static void load_helper(prop_set_t *ps, property_t prop, const gchar *val)
 		prop_assert(ps, prop,
 			p->vector_size * sizeof(gboolean) < sizeof(vecbuf_bool));
 	
-		prop_parse_boolean_vector(val, p->vector_size, vecbuf_bool);
+		prop_parse_boolean_vector(p->name, val, p->vector_size, vecbuf_bool);
 		stub->boolean.set(prop, vecbuf_bool, 0, 0);
 		break;
 	case PROP_TYPE_MULTICHOICE:
@@ -1336,14 +1345,14 @@ static void load_helper(prop_set_t *ps, property_t prop, const gchar *val)
 		prop_assert(ps, prop,
 			p->vector_size * sizeof(guint32) < sizeof(vecbuf_uint32));
 
-		prop_parse_guint32_vector(val, p->vector_size, vecbuf_uint32);
+		prop_parse_guint32_vector(p->name, val, p->vector_size, vecbuf_uint32);
 		stub->guint32.set(prop, vecbuf_uint32, 0, 0);
 		break;
 	case PROP_TYPE_GUINT64:
 		prop_assert(ps, prop,
 			p->vector_size * sizeof(guint64) < sizeof(vecbuf_uint64));
 
-		prop_parse_guint64_vector(val, p->vector_size, vecbuf_uint64);
+		prop_parse_guint64_vector(p->name, val, p->vector_size, vecbuf_uint64);
 		stub->guint64.set(prop, vecbuf_uint64, 0, 0);
 		break;
 	case PROP_TYPE_STRING:
@@ -1353,14 +1362,14 @@ static void load_helper(prop_set_t *ps, property_t prop, const gchar *val)
 		prop_assert(ps, prop,
 			p->vector_size * sizeof(guint32) < sizeof(vecbuf_uint32));
 
-		prop_parse_ip_vector(val, p->vector_size, vecbuf_uint32);
+		prop_parse_ip_vector(p->name, val, p->vector_size, vecbuf_uint32);
 		stub->guint32.set(prop, vecbuf_uint32, 0, 0);
 		break;
 	case PROP_TYPE_STORAGE:
 		{
 			guint8 *buf = g_new(guint8, p->vector_size);
 	
-			prop_parse_storage(val, p->vector_size, buf);
+			prop_parse_storage(p->name, val, p->vector_size, buf);
 			stub->storage.set(prop, buf, p->vector_size);
 
 			G_FREE_NULL(buf);

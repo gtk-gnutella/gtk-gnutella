@@ -216,10 +216,6 @@ typedef struct prop_set {
 /*
  * Helpers
  */
-void prop_parse_guint64_vector(const gchar *str, gsize size, guint64 *t);
-void prop_parse_guint32_vector(const gchar *str, gsize size, guint32 *t);
-void prop_parse_boolean_vector(const gchar *str, gsize size, gboolean *t);
-void prop_parse_storage(const gchar *str, gsize size, guint8 *t);
 
 prop_def_t *prop_get_def(prop_set_t *, property_t);
 void prop_free_def(prop_def_t *);
