@@ -168,9 +168,20 @@ prop = {
 };
 
 prop = {
-    name = "gnet_stats_col_widths";
-    cfgvar = "widths_gnet_stats";
-    desc = "Widths of the columns in the gnet stats table";
+    name = "gnet_stats_pkg_col_widths";
+    cfgvar = "widths_gnet_stats_pkg";
+    desc = "Widths of the columns in the gnet packet stats table";
+    type = guint32;
+    vector_size = 5;
+    data = {
+        default = "{ 60, 20, 20, 20, 20 }";
+    };
+};
+
+prop = {
+    name = "gnet_stats_byte_col_widths";
+    cfgvar = "widths_gnet_stats_byte";
+    desc = "Widths of the columns in the gnet byte stats table";
     type = guint32;
     vector_size = 5;
     data = {
