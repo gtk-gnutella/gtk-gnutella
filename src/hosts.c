@@ -21,6 +21,7 @@
 GList *sl_caught_hosts = NULL;				/* Reserve list */
 static GList *sl_valid_hosts = NULL;		/* Validated hosts */
 static GHashTable *ht_known_hosts = NULL;	/* All known hosts */
+static GList *pcache_recent_pongs = NULL;	/* Recent pongs we got */
 
 GSList *ping_reqs = NULL;
 guint32 n_ping_reqs = 0;
@@ -35,6 +36,7 @@ gint hosts_idle_func = 0;
 #define HOST_READ_CNT	20		/* Amount of hosts to read each idle tick */
 
 static void ping_reqs_clear(void);
+static gboolean get_recent_pong(guint32 *ip, guint16 *port);
 
 /*
  * Host hash table handling.
@@ -199,6 +201,12 @@ gboolean check_valid_host(guint32 ip, guint16 port)
 	return TRUE;
 }
 
+/*
+ * host_add
+ *
+ * Add a new host to our pong reserve.
+ * When `connect' is true, attempt to connect if we are low in Gnet links.
+ */
 void host_add(guint32 ip, guint16 port, gboolean connect)
 {
 	struct gnutella_host *host;
@@ -288,16 +296,39 @@ static FILE *hosts_r_file = (FILE *) NULL;
  */
 gint host_fill_caught_array(struct gnutella_host *hosts, gint hcount)
 {
-	GList *link = g_list_last(sl_caught_hosts);
+	GList *l;
 	gint i;
 
-	for (i = 0; i < hcount; i++, link = link->prev) {
+	/*
+	 * First try to fill from our recent pongs, as they are more fresh
+	 * and therefore more likely to be connectible.
+	 */
+
+	for (i = 0; i < hcount; i++) {
+		guint32 ip;
+		guint16 port;
+
+		if (!get_recent_pong(&ip, &port))
+			break;
+
+		hosts[i].ip = ip;
+		hosts[i].port = port;
+	}
+
+	if (i == hcount)
+		return hcount;
+
+	/*
+	 * Not enough fresh pongs, get some from our reserve.
+	 */
+
+	for (l = g_list_last(sl_caught_hosts); i < hcount; i++, l = l->prev) {
 		struct gnutella_host *h;
 
-		if (!link)
+		if (!l)
 			return i;			/* Amount of hosts we filled */
 		
-		h = (struct gnutella_host *) link->data;
+		h = (struct gnutella_host *) l->data;
 		hosts[i] = *h;			/* struct copy */
 	}
 
@@ -307,14 +338,23 @@ gint host_fill_caught_array(struct gnutella_host *hosts, gint hcount)
 /*
  * host_get_caught
  *
- * Get host IP/port information from our caught host list.
+ * Get host IP/port information from our caught host list, or from the
+ * recent pont cache, in alternance.
  */
 void host_get_caught(guint32 *ip, guint16 *port)
 {
+	static guint alternate = 0;
 	struct gnutella_host *h;
 	GList *link;
 
 	g_assert(sl_caught_hosts);		/* Must not call if no host in list */
+
+	/*
+	 * Try the recent pong cache when `alternate' is odd.
+	 */
+
+	if (alternate++ & 0x1 && get_recent_pong(ip, port))
+		return;
 
 	/*
 	 * If we're done reading from the host file, get latest host, at the
@@ -742,6 +782,7 @@ static void send_neighbouring_info(struct gnutella_node *n)
 static time_t pcache_expire_time = 0;
 
 struct cached_pong {		/* A cached pong */
+	gint refcount;			/* How many lists reference us? */
 	guint32 node_id;		/* The node ID from which we got that pong */
 	guint32 last_sent_id;	/* Node ID to which we last sent this pong */
 	guint32 ip;				/* Values from the pong message */
@@ -756,6 +797,9 @@ struct cache_line {			/* A cache line for a given hop value */
 	GSList *cursor;			/* Cursor within list: last item traversed */
 };
 
+static gint pcache_recent_pong_count = 0;	/* # of pongs in recent list */
+static GHashTable *ht_recent_pongs;
+
 #define PONG_CACHE_SIZE		(MAX_CACHE_HOPS+1)
 
 static struct cache_line pong_cache[PONG_CACHE_SIZE];
@@ -766,6 +810,28 @@ static struct cache_line pong_cache[PONG_CACHE_SIZE];
 #define OLD_PING_PERIOD		45		/* Pinging period for "old" clients */
 #define OLD_CACHE_RATIO		20		/* % of pongs from "old" clients we cache */
 #define MIN_RESERVE_SIZE	1024	/* we'd like that many pongs in reserve */
+#define RECENT_PING_SIZE	50		/* remember last 50 pongs we saw */
+
+/*
+ * cached_pong_hash
+ * cached_pong_eq
+ *
+ * Callbacks for the `ht_recent_pongs' hash table.
+ */
+
+static guint cached_pong_hash(gconstpointer key)
+{
+	struct cached_pong *cp = (struct cached_pong *) key;
+
+	return (guint) (cp->ip ^ ((cp->port << 16) | cp->port));
+}
+static gint cached_pong_eq(gconstpointer v1, gconstpointer v2)
+{
+	struct cached_pong *h1 = (struct cached_pong *) v1;
+	struct cached_pong *h2 = (struct cached_pong *) v2;
+
+	return h1->ip == h2->ip && h1->port == h2->port;
+}
 
 /*
  * pcache_init
@@ -778,6 +844,148 @@ static void pcache_init(void)
 
 	for (h = 0; h < PONG_CACHE_SIZE; h++)
 		pong_cache[h].hops = h;
+
+	ht_recent_pongs = g_hash_table_new(cached_pong_hash, cached_pong_eq);
+}
+
+/*
+ * free_cached_pong
+ *
+ * Free cached pong when noone references it any more.
+ */
+static void free_cached_pong(struct cached_pong *cp)
+{
+	g_assert(cp->refcount > 0);		/* Someone was referencing it */
+
+	if (--(cp->refcount) != 0)
+		return;
+
+	g_free(cp);
+}
+
+static GList *last_returned_pong = NULL;	/* Last returned from list */
+
+/*
+ * get_recent_pong
+ *
+ * Get a recent pong from the list, updating `last_returned_pong' as we
+ * go along, so that we never return twice the same pong instance.
+ *
+ * Fills `ip' and `port' with the pong value and return TRUE if we
+ * got a pong.  Otherwise return FALSE.
+ */
+static gboolean get_recent_pong(guint32 *ip, guint16 *port)
+{
+	static guint32 last_ip = 0;
+	static guint16 last_port = 0;
+	GList *l;
+	struct cached_pong *cp;
+
+	if (!pcache_recent_pongs)		/* List empty */
+		return FALSE;
+
+	/*
+	 * If `last_returned_pong' is NULL, it means we reached the head
+	 * of the list, so we traverse faster than we get pongs.
+	 *
+	 * Try with the head of the list, because maybe we have a recent pong
+	 * there, but if it is the same as the last ip/port we returned, then
+	 * go back to the tail of the list.
+	 */
+
+	if (last_returned_pong == NULL) {
+		l = g_list_first(pcache_recent_pongs);
+		cp = (struct cached_pong *) l->data;
+
+		if (cp->ip != last_ip || cp->port != last_port)
+			goto found;
+
+		if (l->next == NULL)			/* Head is the only item in list */
+			return FALSE;
+	} else {
+		/* Regular case */
+		for (l = last_returned_pong->prev; l; l = l->prev) {
+			cp = (struct cached_pong *) l->data;
+			if (cp->ip != last_ip || cp->port != last_port)
+				goto found;
+		}
+	}
+
+	/*
+	 * Still none found, go back to the end of the list.
+	 */
+
+	for (l = g_list_last(pcache_recent_pongs); l; l = l->prev) {
+		cp = (struct cached_pong *) l->data;
+		if (cp->ip != last_ip || cp->port != last_port)
+			goto found;
+	}
+
+	return FALSE;
+
+found:
+	last_returned_pong = l;
+	*ip = last_ip = cp->ip;
+	*port = last_port = cp->port;
+
+	if (dbg > 8)
+		printf("returning recent PONG %s\n",
+			ip_port_to_gchar(cp->ip, cp->port));
+
+	return TRUE;
+}
+
+/*
+ * add_recent_pong
+ *
+ * Add recent pong to the list, handled as a FIFO cache, if not already
+ * present.
+ */
+static void add_recent_pong(struct cached_pong *cp)
+{
+	if (g_hash_table_lookup(ht_recent_pongs, (gconstpointer) cp))
+		return;
+
+	if (pcache_recent_pong_count == RECENT_PING_SIZE) {		/* Full */
+		GList *link = g_list_last(pcache_recent_pongs);
+		struct cached_pong *cp = (struct cached_pong *) link->data;
+
+		pcache_recent_pongs = g_list_remove_link(pcache_recent_pongs, link);
+		g_hash_table_remove(ht_recent_pongs, cp);
+
+		if (link == last_returned_pong)
+			last_returned_pong = last_returned_pong->prev;
+
+		free_cached_pong(cp);
+		g_list_free_1(link);
+	} else
+		pcache_recent_pong_count++;
+	
+	pcache_recent_pongs = g_list_prepend(pcache_recent_pongs, cp);
+	g_hash_table_insert(ht_recent_pongs, cp, (gpointer) 1);
+	cp->refcount++;		/* We don't refcount insertion in the hash table */
+}
+
+/*
+ * clear_recent_pongs
+ *
+ * Clear the whole recent pong list.
+ */
+static void clear_recent_pongs(void)
+{
+	GList *l;
+
+	for (l = pcache_recent_pongs; l; l = l->next) {
+		struct cached_pong *cp = (struct cached_pong *) l->data;
+
+		g_hash_table_remove(ht_recent_pongs, cp);
+		free_cached_pong(cp);
+	}
+
+	g_list_free(pcache_recent_pongs);
+	pcache_recent_pongs = NULL;
+	last_returned_pong = NULL;
+	pcache_recent_pong_count = 0;
 }
 
 /*
@@ -816,7 +1024,7 @@ static void pcache_expire(void)
 
 		for (l = cl->pongs; l; l = l->next) {
 			entries++;
-			g_free(l->data);
+			free_cached_pong((struct cached_pong *) l->data);
 		}
 		g_slist_free(cl->pongs);
 
@@ -1248,10 +1456,10 @@ void pcache_pong_received(struct gnutella_node *n)
 			if (ip == n->ip) {
 				n->gnet_ip = ip;		/* Signals: we have figured it out */
 				n->gnet_port = port;
-			} else if (n->gnet_port == 0) {
+			} else if (!(n->flags & NODE_F_ALIEN_IP)) {
 				g_warning("node %s sent us a pong for itself with alien IP %s",
 					node_ip(n), ip_to_gchar(ip));
-				n->gnet_port = 1;		/* Signals: don't warn again */
+				n->flags |= NODE_F_ALIEN_IP;	/* Probably firewalled */
 			}
 		}
 		n->gnet_files_count = files_count;
@@ -1294,6 +1502,7 @@ void pcache_pong_received(struct gnutella_node *n)
 
 	cp = (struct cached_pong *) g_malloc(sizeof(struct cached_pong));
 
+	cp->refcount = 1;
 	cp->node_id = n->id;
 	cp->last_sent_id = n->id;
 	cp->ip = ip;
@@ -1304,6 +1513,7 @@ void pcache_pong_received(struct gnutella_node *n)
 	hop = CACHE_HOP_IDX(n->header.hops);
 	cl = &pong_cache[hop];
 	cl->pongs = g_slist_append(cl->pongs, cp);
+	add_recent_pong(cp);
 
 	if (dbg > 6)
 		printf("CACHED pong %s (hops=%d, TTL=%d) from %s %s\n",
@@ -1333,8 +1543,10 @@ void host_clear_cache(void)
 	sl_valid_hosts = NULL;
 
 	while (sl_caught_hosts)
-		host_remove((struct gnutella_host *) sl_valid_hosts->data);
+		host_remove((struct gnutella_host *) sl_caught_hosts->data);
 	g_list_free(sl_caught_hosts);
+
+	clear_recent_pongs();
 
 	gtk_widget_set_sensitive(button_host_catcher_clear, FALSE);
 }
@@ -1344,6 +1556,7 @@ void host_close(void)
 	pcache_expire();
 	host_clear_cache();
 	g_hash_table_destroy(ht_known_hosts);
+	g_hash_table_destroy(ht_recent_pongs);
 	ping_reqs_clear();
 }
 
