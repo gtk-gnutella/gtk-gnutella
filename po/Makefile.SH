@@ -57,7 +57,7 @@ mkinstalldirs = \$(MKINSTALLDIRS)
 DESTDIR = \$(INSTALL_PREFIX)
 
 GMSGFMT = $gmsgfmt
-GMSGFMT_FLAGS =`$gmsgfmt -V >/dev/null 2>&1 || echo --statistics -c`
+GMSGFMT_FLAGS =`$gmsgfmt -V >/dev/null 2>&1 && echo --statistics -c`
 MSGFMT = $msgfmt
 XGETTEXT = $xgettext
 MSGMERGE = $msgmerge
