@@ -34,10 +34,11 @@ RCSID("$Id$");
 
 #ifdef ENABLE_NLS
 #include <libintl.h>
-#include <locale.h>
 #endif /* ENABLE_NLS */
 
-#ifdef I_LIBCHARSET
+#include <locale.h>
+
+#if defined(I_LIBCHARSET)
 #include <libcharset.h>
 #else
 #include <langinfo.h>
@@ -2434,7 +2435,22 @@ gint utf8_to_iso8859(gchar *s, gint len, gboolean space)
 }
 
 
-#if !defined(USE_GLIB2) && !defined(I_LIBCHARSET)
+#if defined(USE_GLIB2)
+
+static const char *
+get_locale_charset(void)
+{
+	const char *cs = NULL;
+	
+	g_get_charset(&cs);
+	return cs;
+}
+	
+#else /* !USE_GLIB2 */
+
+#if defined(I_LIBCHARSET)
+#define get_locale_charset() locale_charset()
+#else /* !I_LIBCHARSET */
 
 /* List of known codesets. The first word of each string is the alias to be
  * returned. The words are seperated by whitespaces.
@@ -2522,7 +2538,7 @@ static const char *codesets[] = {
  * Returns a string representing the current locale as an alias which is
  * understood by GNU iconv. The returned pointer points to a static buffer.
  */
-const char *locale_charset(void)
+const char *get_locale_charset(void)
 {
 	int i = 0;
 	const char *cs;
@@ -2562,7 +2578,9 @@ const char *locale_charset(void)
 	}
 	return NULL;
 }
-#endif /* !USE_GLIB2 && !I_LIBCHARSET */
+#endif /* I_LIBCHARSET */
+
+#endif /* USE_GLIB2 */
 
 const gchar *locale_get_charset(void)
 {
@@ -2593,27 +2611,12 @@ void locale_init(void)
 
 	unicode_decompose_init();
 
-#ifdef ENABLE_NLS
 	setlocale(LC_ALL, "");
-#endif /* NLS */
-
-#ifdef USE_GLIB2
-	g_get_charset(&charset);
-#else /* !USE_GLIB2 */
-
-#if defined(I_LANGINFO) || defined(I_LIBCHARSET)
-	charset = locale_charset();
-#endif /* I_LANGINFO || I_LIBCHARSET */
-
-#endif /* USE_GLIB2 */
-
+	charset = get_locale_charset();
+	
 	if (charset == NULL) {
 		/* Default locale codeset */
-#if defined(__APPLE__) && defined(__MACH__) /* Mac OS X */
-		charset = "UTF-8";
-#else
 		charset = "ISO-8859-1";
-#endif
 		g_warning("locale_init: Using default codeset %s as fallback.",
 			charset);
 	}
