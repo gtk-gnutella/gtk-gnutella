@@ -2155,6 +2155,18 @@ static void download_request(struct download *d, header_t *header)
 					"Server can't handle resume request");
 				return;
 			} else {
+				/*
+				 * If the file on the server is greater than what we thought
+				 * it would be, then probably they are sharing a file that
+				 * they still receive.  Because now sevents start doing
+				 * swarming, we cannot be sure that the file is complete
+				 * without holes within the range we request.
+				 *
+				 * If the file is smaller than expected, then I don't know
+				 * what's happening but in any case, don't proceed!
+				 *
+				 *		--RAM, 15/05/2002
+				 */
 				g_warning("File '%s': expected size %u but server said %u",
 					d->file_name, d->size, server_size);
 				download_stop(d, GTA_DL_ERROR, "File size mismatch");
