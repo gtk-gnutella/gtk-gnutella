@@ -1,5 +1,14 @@
 # since last version
 
+- (2004.01.16 - RAM)
+ * Added trapping of g_slist_() and g_list_() routines that allocate linkable
+   objects under the hood.  Added trapping for hash_list new/free as well.
+ * (bsched.c) Fixed list leak.
+ * (uploads.c) Fixed possible atom leak.
+ * (downloads.c) Forgot to cleanup d->escaped_name at exit time.
+ * (uploads_gui.c) Made an explict free_data() callback for TRACK_MALLOC.
+ * (nodes.c) Fixed memory leak.
+
 - (2004.01.16 - Richard)
  * Replaced a number of g_free with G_FREE_NULL.
  * [Gtk1] [Gtk2] Moved "close" button for searches to a more convenient 
@@ -9,6 +18,20 @@
  * [Gtk1] Integrated fast-sorting patch from Emile le Vivre.
  * Moved init code from main_gui to downloads_gui.
  * Moved hash_list code from glib-missing.[ch] to hashlist.[ch].
+
+- (2004.01.15 - RAM)
+ * Added tracking for atoms (enabled with -DTRACK_ATOMS).
+ * (dmesh.c) Fixed atom leak.
+ * (gwcache.c) Fixed atom leak.
+ * (huge.c) Fixed memory leak.
+
+- (2004.01.14 - RAM)
+ * Added custom debugging malloc support.
+ * Added trailing inclusion of "override.h" to all C files.
+ * (share.c) Removed spurious comment termination.
+
+- (2004.01.13 - RAM)
+ * (downloads_gui.c) Removed spurious g_strdup() call.
 
 - (2004.01.12 - RAM)
  * Display the amount of file descriptors currently used for banning.
