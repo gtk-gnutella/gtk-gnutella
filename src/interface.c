@@ -5174,6 +5174,7 @@ create_dlg_filters (void)
   GtkWidget *vbox48;
   GtkWidget *hbox111;
   GtkWidget *label205;
+  GtkWidget *button_filter_create;
   GtkWidget *hseparator3;
   GtkWidget *hbox112;
   GtkWidget *table21;
@@ -5379,6 +5380,13 @@ create_dlg_filters (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (entry_filter_new);
   gtk_box_pack_start (GTK_BOX (hbox111), entry_filter_new, TRUE, TRUE, 0);
+
+  button_filter_create = gtk_button_new_with_label ("Create filter");
+  gtk_widget_ref (button_filter_create);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_filters), "button_filter_create", button_filter_create,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (button_filter_create);
+  gtk_box_pack_start (GTK_BOX (hbox111), button_filter_create, FALSE, FALSE, 0);
 
   hseparator3 = gtk_hseparator_new ();
   gtk_widget_ref (hseparator3);
@@ -6022,6 +6030,9 @@ create_dlg_filters (void)
                       NULL);
   gtk_signal_connect (GTK_OBJECT (entry_filter_new), "activate",
                       GTK_SIGNAL_FUNC (on_entry_filter_new_activate),
+                      NULL);
+  gtk_signal_connect (GTK_OBJECT (button_filter_create), "clicked",
+                      GTK_SIGNAL_FUNC (on_button_filter_create_clicked),
                       NULL);
   gtk_signal_connect (GTK_OBJECT (button_filter_add_rule_jump), "clicked",
                       GTK_SIGNAL_FUNC (on_button_filter_add_rule_jump_clicked),

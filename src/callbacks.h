@@ -370,5 +370,6 @@ void on_button_filter_clear_clicked(GtkButton *button, gpointer user_data);
 void on_button_filter_remove_rule_clicked(GtkButton *button, gpointer user_data);
 void on_entry_filter_new_activate (GtkEditable *editable, gpointer user_data); 
 void on_button_filter_remove_clicked(GtkButton *button, gpointer user_data);
+void on_button_filter_create_clicked(GtkButton *button, gpointer user_data);
 
 #endif	/* __callbacks_h__ */

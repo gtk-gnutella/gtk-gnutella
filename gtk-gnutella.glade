@@ -8549,6 +8549,24 @@ settings</label>
 		<fill>True</fill>
 	      </child>
 	    </widget>
+
+	    <widget>
+	      <class>GtkButton</class>
+	      <name>button_filter_create</name>
+	      <can_focus>True</can_focus>
+	      <signal>
+		<name>clicked</name>
+		<handler>on_button_filter_create_clicked</handler>
+		<last_modification_time>Sun, 02 Jun 2002 11:29:41 GMT</last_modification_time>
+	      </signal>
+	      <label>Create filter</label>
+	      <relief>GTK_RELIEF_NORMAL</relief>
+	      <child>
+		<padding>0</padding>
+		<expand>False</expand>
+		<fill>False</fill>
+	      </child>
+	    </widget>
 	  </widget>
 
 	  <widget>

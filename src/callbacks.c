@@ -1966,7 +1966,6 @@ void on_spinbutton_config_port_activate(GtkEditable * editable,
 	guint16 p;
 	p = gtk_spin_button_get_value_as_int(
             GTK_SPIN_BUTTON(spinbutton_config_port));
-    g_message("selected port: %u", p);
 
 	if (listen_port != p) {
 		if (s_listen)
@@ -3070,6 +3069,15 @@ void on_entry_filter_new_activate
         filter_set(filter);
         filter_update_filters();
     }
+}
+
+void on_button_filter_create_clicked
+    (GtkButton *button, gpointer user_data)
+{
+    /*
+     * Delegate to on_entry_filter_new_activate.
+     */
+    on_entry_filter_new_activate(GTK_EDITABLE(entry_filter_new), NULL);
 }
 
 /* vi: set ts=4: */
