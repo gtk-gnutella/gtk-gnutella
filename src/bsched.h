@@ -83,6 +83,7 @@ typedef struct bsched {
 	gint bw_stolen;						/* Amount we stole this period */
 	gint bw_stolen_ema;					/* EMA of stolen bandwidth */
 	gint bw_delta;						/* Running diff of actual vs. theoric */
+	gint bw_unwritten;					/* Data that we could not write */
 } bsched_t;
 
 /*
@@ -102,6 +103,8 @@ typedef struct bsched {
 #define BS_F_NOBW			0x00000008	/* No more bandwidth */
 #define BS_F_FROZEN_SLOT	0x00000010	/* Value of `bw_slot' is frozen */
 #define BS_F_CHANGED_BW		0x00000020	/* Bandwidth limit changed */
+
+#define BS_F_RW				(BS_F_READ|BS_F_WRITE)
 
 #define BS_BW_MAX			(2*1024*1024)
 
@@ -132,7 +135,10 @@ typedef struct bio_source {
 
 #define BIO_F_READ			0x00000001	/* Reading source */
 #define BIO_F_WRITE			0x00000002	/* Writing source */
-#define BIO_F_ACTIVE		0x00000004	/* Source active this period */
+#define BIO_F_ACTIVE		0x00000004	/* Source active since b/w scheduled */
+#define BIO_F_USED			0x00000008	/* Source used this period */
+
+#define BIO_F_RW			(BIO_F_READ|BIO_F_WRITE)
 
 #define BIO_EMA_SHIFT	7
 

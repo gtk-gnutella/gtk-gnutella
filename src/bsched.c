@@ -135,9 +135,9 @@ bsched_t *bsched_make(gchar *name,
 	bsched_t *bs;
 
 	/* Must contain either reading or writing sources */
-	g_assert(mode & (BS_F_READ|BS_F_WRITE));
-	g_assert((mode & (BS_F_READ|BS_F_WRITE)) != (BS_F_READ|BS_F_WRITE));
-	g_assert(!(mode & ~(BS_F_READ|BS_F_WRITE)));
+	g_assert(mode & BS_F_RW);
+	g_assert((mode & BS_F_RW) != BS_F_RW);
+	g_assert(!(mode & ~BS_F_RW));
 
 	g_assert(bandwidth >= 0);
 	g_assert(period > 0);
@@ -187,10 +187,12 @@ static void bsched_free(bsched_t *bs)
  * bsched_add_stealer
  *
  * Add `stealer' as a bandwidth stealer for underused bandwidth in `bs'.
+ * Both must be either reading or writing schedulers.
  */
 static void bsched_add_stealer(bsched_t *bs, bsched_t *stealer)
 {
 	g_assert(bs != stealer);
+	g_assert((bs->flags & BS_F_RW) == (stealer->flags & BS_F_RW));
 
 	bs->stealers = g_slist_prepend(bs->stealers, stealer);
 }
@@ -243,12 +245,11 @@ void bsched_init(void)
 	bsched_add_stealer(bws.gin, bws.in);
 	bsched_add_stealer(bws.gin, bws.glin);
 
-	/*
-	 * Leaf Gnet traffic can only steal from Gnet.
-	 */
-
 	bsched_add_stealer(bws.glout, bws.gout);
+	bsched_add_stealer(bws.glout, bws.out);
+
 	bsched_add_stealer(bws.glin, bws.gin);
+	bsched_add_stealer(bws.glin, bws.in);
 
 	bsched_set_peermode(current_peermode);
 }
@@ -493,7 +494,7 @@ static void bsched_begin_timeslice(bsched_t *bs)
 		bio_source_t *bio = (bio_source_t *) l->data;
 		guint32 actual;
 
-		bio->flags &= ~BIO_F_ACTIVE;
+		bio->flags &= ~(BIO_F_ACTIVE | BIO_F_USED);
 		if (bio->io_tag == 0 && bio->io_callback)
 			bio_enable(bio);
 
@@ -547,6 +548,12 @@ static void bsched_begin_timeslice(bsched_t *bs)
 
 	if (bs->bw_slot < BW_SLOT_MIN && bs->bw_stolen == 0)
 		bs->flags |= BS_F_FROZEN_SLOT;
+
+	/*
+	 * Reset the amount of data we could not write due to kernel flow-control.
+	 */
+
+	bs->bw_unwritten = 0;			/* Even if `bs' is for read sources... */
 }
 
 /*
@@ -609,9 +616,9 @@ bio_source_t *bsched_source_add(bsched_t *bs, int fd, guint32 flags,
 	 */
 
 	g_assert(!(bs->flags & BS_F_READ) == !(flags & BIO_F_READ));
-	g_assert(flags & (BIO_F_READ|BIO_F_WRITE));
-	g_assert((flags & (BIO_F_READ|BIO_F_WRITE)) != (BIO_F_READ|BIO_F_WRITE));
-	g_assert(!(flags & ~(BIO_F_READ|BIO_F_WRITE)));
+	g_assert(flags & BIO_F_RW);
+	g_assert((flags & BIO_F_RW) != BIO_F_RW);	/* Either reading or writing */
+	g_assert(!(flags & ~BIO_F_RW));				/* Can only specify r/w flags */
 
 	bio = (bio_source_t *) g_malloc0(sizeof(*bio));
 
@@ -771,10 +778,12 @@ static gint bw_available(bio_source_t *bio, gint len)
  * If no more bandwidth is available, disable all sources.
  *
  * `used' is the amount of bytes used by the I/O.
+ * `requested' is the amount of bytes requested for the I/O.
  */
-static void bsched_bw_update(bsched_t *bs, gint used)
+static void bsched_bw_update(bsched_t *bs, gint used, gint requested)
 {
 	g_assert(bs);		/* Ensure I/O source was in alive scheduler */
+	g_assert(used <= requested);
 
 	/*
 	 * Even when the scheduler is disabled, update the actual bandwidth used
@@ -785,6 +794,18 @@ static void bsched_bw_update(bsched_t *bs, gint used)
 
 	if (!(bs->flags & BS_F_ENABLED))		/* Scheduler disabled */
 		return;								/* Nothing to update */
+
+	/*
+	 * For writing schedulers, sum-up the difference between the amount of
+	 * data that we originally wished to write and the amount that got
+	 * actually written.  If it is positive, it means the kernel
+	 * flow-controlled the connection.
+	 *
+	 * For reading shedulers, we don't care about that difference.
+	 */
+
+	if (bs->flags & BS_F_WRITE)
+		bs->bw_unwritten += requested - used;
 
 	/*
 	 * When all bandwidth has been used, disable all sources.
@@ -828,11 +849,11 @@ gint bio_write(bio_source_t *bio, gpointer data, gint len)
 		printf("bsched_write(fd=%d, len=%d) available=%d\n",
 			bio->fd, len, available);
 
-	bio->flags |= BIO_F_ACTIVE;
+	bio->flags |= BIO_F_ACTIVE | BIO_F_USED;
 	r = write(bio->fd, data, amount);
 
 	if (r > 0) {
-		bsched_bw_update(bio->bs, r);
+		bsched_bw_update(bio->bs, r, amount);
 		bio->bw_actual += r;
 	}
 
@@ -927,7 +948,7 @@ gint bio_writev(bio_source_t *bio, struct iovec *iov, gint iovcnt)
 		printf("bsched_writev(fd=%d, len=%d) available=%d\n",
 			bio->fd, len, available);
 
-	bio->flags |= BIO_F_ACTIVE;
+	bio->flags |= BIO_F_ACTIVE | BIO_F_USED;
 
 	if (iovcnt > MAX_IOV_COUNT)
 		r = safe_writev(bio->fd, iov, iovcnt);
@@ -936,7 +957,7 @@ gint bio_writev(bio_source_t *bio, struct iovec *iov, gint iovcnt)
 
 	if (r > 0) {
 		g_assert(r <= available);
-		bsched_bw_update(bio->bs, r);
+		bsched_bw_update(bio->bs, r, MIN(len, available));
 		bio->bw_actual += r;
 	}
 
@@ -995,7 +1016,7 @@ gint bio_sendfile(bio_source_t *bio, gint in_fd, off_t *offset, gint len)
 		printf("bsched_write(fd=%d, len=%d) available=%d\n",
 			bio->fd, len, available);
 
-	bio->flags |= BIO_F_ACTIVE;
+	bio->flags |= BIO_F_ACTIVE | BIO_F_USED;
 
 #ifdef USE_BSD_SENDFILE
 	/*
@@ -1040,7 +1061,7 @@ gint bio_sendfile(bio_source_t *bio, gint in_fd, off_t *offset, gint len)
 #endif	/* USE_BSD_SENDFILE */
 
 	if (r > 0) {
-		bsched_bw_update(bio->bs, r);
+		bsched_bw_update(bio->bs, r, amount);
 		bio->bw_actual += r;
 	}
 
@@ -1082,11 +1103,11 @@ gint bio_read(bio_source_t *bio, gpointer data, gint len)
 		printf("bsched_read(fd=%d, len=%d) available=%d\n",
 			bio->fd, len, available);
 
-	bio->flags |= BIO_F_ACTIVE;
+	bio->flags |= BIO_F_ACTIVE | BIO_F_USED;
 	r = read(bio->fd, data, amount);
 
 	if (r > 0) {
-		bsched_bw_update(bio->bs, r);
+		bsched_bw_update(bio->bs, r, amount);
 		bio->bw_actual += r;
 	}
 
@@ -1110,7 +1131,7 @@ gint bws_write(bsched_t *bs, gint fd, gpointer data, gint len)
 	r = write(fd, data, len);
 
 	if (r > 0)
-		bsched_bw_update(bs, r);
+		bsched_bw_update(bs, r, len);
 
 	return r;
 }
@@ -1132,7 +1153,7 @@ gint bws_read(bsched_t *bs, gint fd, gpointer data, gint len)
 	r = read(fd, data, len);
 
 	if (r > 0)
-		bsched_bw_update(bs, r);
+		bsched_bw_update(bs, r, len);
 
 	return r;
 }
@@ -1255,10 +1276,10 @@ static void bsched_heartbeat(bsched_t *bs, GTimeVal *tv)
 
 	if (dbg > 4) {
 		printf("bsched_timer(%s): delay=%d (EMA=%d), b/w=%d (EMA=%d), "
-			"overused=%d (EMA=%d) stolen=%d (EMA=%d)\n",
+			"overused=%d (EMA=%d) stolen=%d (EMA=%d) unwritten=%d\n",
 			bs->name, delay, bs->period_ema, bs->bw_actual, bs->bw_ema,
 			overused, bs->bw_ema - bs->bw_stolen_ema - theoric,
-			bs->bw_stolen, bs->bw_stolen_ema);
+			bs->bw_stolen, bs->bw_stolen_ema, bs->bw_unwritten);
 		printf("    -> b/w delta=%d, max=%d, slot=%d "
 			"(target %d B/s, %d slot%s, real %.02f B/s)\n",
 			bs->bw_delta, bs->bw_max, bs->count ? bs->bw_max / bs->count : 0,
@@ -1305,6 +1326,40 @@ static void bsched_stealbeat(bsched_t *bs)
 	 */
 
 	underused = bs->bw_max - bs->bw_last_period;
+
+	/*
+	 * If `bs' holds reading sources, there is no further correction needed.
+	 *
+	 * Howewever, for writing sources, we need to pay attention to possible
+	 * outgoing flow-control exercised by the kernel.  We simply correct
+	 * the amount of underused bandwidth by the amount of unwritten data.
+	 */
+
+	underused -= bs->bw_unwritten;
+
+	/*
+	 * That's not enough for writing schedulers: some sources have no
+	 * triggering callback (i.e. we write to them when we have more data),
+	 * but others have triggering callbacks invoked only when there is room
+	 * for more data.
+	 *
+	 * If there are such sources that have callbacks and did not trigger,
+	 * it means there is already some flow control going on.  Maybe the
+	 * remote end is not reading, or we have problem sending.  It's hard to
+	 * tell.  In any case, remove the contribution of each untriggered source.
+	 */
+
+	if (bs->flags & BS_F_WRITE) {
+		gint slot_contribution = bs->count ? bs->bw_max / bs->count : 0;
+		GList *bl;
+
+		for (bl = bs->sources; bl && underused > 0; bl = g_list_next(bl)) {
+			bio_source_t *bio = (bio_source_t *) bl->data;
+
+			if (bio->io_callback != NULL && !(bio->flags & BIO_F_USED))
+				underused -= slot_contribution;
+		}
+	}
 
 	if (underused <= 0)				/* Nothing to redistribute */
 		return;
