@@ -83,7 +83,17 @@ struct bgtask {
 	gint prev_ticks;		/* Ticks used when measuring `elapsed' below */
 	gint elapsed;			/* Elapsed during last run, in usec */
 	gdouble tick_cost;		/* Time in ms. spent by each tick */
-	bgsig_cb_t sigh[BG_SIG_COUNT];
+	bgsig_cb_t sigh[BG_SIG_COUNT];	/* Signal handlers */
+
+	/*
+	 * Daemon tasks.
+	 */
+
+	GSList *wq;				/* Work queue (daemon task only) */
+	bgstart_cb_t start_cb;	/* Called when starting working on an item */
+	bgend_cb_t end_cb;		/* Called when finished working on an item */
+	bgclean_cb_t item_free;	/* Free routine for work queue items */
+	bgnotify_cb_t notify;	/* Start/Stop notification (optional) */
 };
 
 /*
@@ -95,21 +105,27 @@ struct bgtask {
 #define TASK_F_RUNNING		0x00000004	/* Task is running */
 #define TASK_F_ZOMBIE		0x00000008	/* Task waiting status collect */
 #define TASK_F_NOTICK		0x00000010	/* Do no recompute tick info */
+#define TASK_F_SLEEPING		0x00000020	/* Task is sleeping */
+#define TASK_F_DAEMON		0x80000000	/* Task is a daemon */
 
 /*
  * Access routines to internal fields.
  */
 
-gint bg_task_seqno(gpointer h)		{ return ((struct bgtask *) h)->seqno; }
+#define TASK(x)		((struct bgtask *) (x))
+
+gint bg_task_seqno(gpointer h)			{ return TASK(h)->seqno; }
+gpointer bg_task_context(gpointer h)	{ return TASK(h)->ucontext; }
 
 static GSList *runq = NULL;
+static GSList *sleepq = NULL;
 static gint runcount = 0;
 static GSList *dead_tasks = NULL;
 
 /*
  * bg_sched_add
  *
- * Add new task to the scheduler.
+ * Add new task to the scheduler (run queue).
  */
 static void bg_sched_add(struct bgtask *bt)
 {
@@ -124,7 +140,7 @@ static void bg_sched_add(struct bgtask *bt)
 /*
  * bg_sched_remove
  *
- * Remove task from the scheduler.
+ * Remove task from the scheduler (run queue).
  */
 static void bg_sched_remove(struct bgtask *bt)
 {
@@ -225,6 +241,40 @@ static void bg_task_resume(struct bgtask *bt)
 	gettimeofday(&bt->start, NULL);
 }
 
+/*
+ * bg_sched_sleep
+ *
+ * Add task to the sleep queue.
+ */
+static void bg_sched_sleep(struct bgtask *bt)
+{
+	g_assert(!(bt->flags & TASK_F_SLEEPING));
+	g_assert(!(bt->flags & TASK_F_RUNNING));
+	g_assert(runcount > 0);
+
+	bg_sched_remove(bt);			/* Can no longer be scheduled */
+	runcount--;
+	bt->flags |= TASK_F_SLEEPING;
+	sleepq = g_slist_prepend(sleepq, bt);
+}
+
+/*
+ * bg_sched_wakeup
+ *
+ * Remove task from the sleep queue and insert it to the runqueue.
+ */
+static void bg_sched_wakeup(struct bgtask *bt)
+{
+	g_assert(bt->flags & TASK_F_SLEEPING);
+	g_assert(!(bt->flags & TASK_F_RUNNING));
+
+	sleepq = g_slist_remove(sleepq, bt);
+	bt->flags &= ~TASK_F_SLEEPING;
+	runcount++;
+	bg_sched_add(bt);
+}
+
+
 static struct bgtask *current_task = NULL;
 
 /*
@@ -260,6 +310,15 @@ static struct bgtask *bg_task_switch(struct bgtask *bt)
  *
  * Create a new background task.
  * The `steps' array is cloned, so it can be built on the caller's stack.
+ *
+ * Each time the task is scheduled, the current processing step is ran.
+ * Each step should perform a small amount of work, as determined by the
+ * number of ticks it is allowed to process.  When a step is done, we move
+ * to the next step.
+ *
+ * When the task is done, the `done_cb' callback is called, if supplied.
+ * The user-supplied argument `done_arg' will also be given to that callback.
+ * Note that "done" does not necessarily mean success.
  *
  * Returns an opaque handle.
  */
@@ -298,19 +357,118 @@ gpointer bg_task_create(
 }
 
 /*
+ * bg_daemon_create
+ *
+ * A "daemon" is a task equipped with a work queue.
+ *
+ * When the daemon is initially created, it has an empty work queue and it is
+ * put in the "sleeping" state where it is not scheduled.
+ *
+ * As long as there is work in the work queue, the task is scheduled.
+ * It goes back to sleep when the work queue becomes empty.
+ *
+ * The `steps' given represent the processing to be done on each item of
+ * the work queue.  The `start_cb' callback is invoked before working on a
+ * new item, so that the context can be initialized.  The `end+cb' callback
+ * is invoked when the item has been processed (successfully or not).
+ *
+ * Since a daemon is not supposed to exit (although it can), there is no
+ * `done' callback.
+ *
+ * Use bg_daemon_enqueue() to enqueue more work to the daemon.
+ */
+gpointer bg_daemon_create(
+	gchar *name,						/* Task name (for tracing) */
+	bgstep_cb_t *steps, gint stepcnt,	/* Work to perform (copied) */
+	gpointer ucontext,					/* User context */
+	bgclean_cb_t ucontext_free,			/* Free routine for context */
+	bgstart_cb_t start_cb,				/* Starting working on an item */
+	bgend_cb_t end_cb,					/* Done working on an item */
+	bgclean_cb_t item_free,				/* Free routine for work queue items */
+	bgnotify_cb_t notify)				/* Start/Stop notify (optional) */
+{
+	struct bgtask *bt;
+	gint stepsize;
+
+	g_assert(stepcnt > 0);
+	g_assert(steps);
+
+	bt = walloc0(sizeof(*bt));
+
+	bt->magic = BT_MAGIC;
+	bt->flags |= TASK_F_DAEMON;
+	bt->name = name;
+	bt->ucontext = ucontext;
+	bt->uctx_free = ucontext_free;
+	bt->start_cb = start_cb;
+	bt->end_cb = end_cb;
+	bt->item_free = item_free;
+	bt->notify = notify;
+
+	stepsize = stepcnt * sizeof(bgstep_cb_t *);
+	bt->stepcnt = stepcnt;
+	bt->stepvec = walloc(stepsize);
+	memcpy(bt->stepvec, steps, stepsize);
+
+	runcount++;							/* One more task to schedule */
+	bg_sched_sleep(bt);					/* Record sleeping task */
+
+	return bt;
+}
+
+/*
+ * bg_daemon_enqueue
+ *
+ * Enqueue work item to the daemon task.
+ * If task was sleeping, wake it up.
+ */
+void bg_daemon_enqueue(gpointer h, gpointer item)
+{
+	struct bgtask *bt = TASK(h);
+
+	g_assert(h);
+	g_assert(bt->magic == BT_MAGIC);
+	g_assert(bt->flags & TASK_F_DAEMON);
+
+	bt->wq = g_slist_append(bt->wq, item);
+
+	if (bt->flags & TASK_F_SLEEPING) {
+		if (dbg > 1)
+			printf("BGTASK waking up daemon \"%s\" task\n", bt->name);
+
+		bg_sched_wakeup(bt);
+		if (bt->notify)
+			(*bt->notify)(bt, TRUE);	/* Waking up */
+	}
+}
+
+/*
  * bg_task_free
  *
  * Free task structure.
  */
 static void bg_task_free(struct bgtask *bt)
 {
+	GSList *l;
 	gint stepsize;
+	gint count;
 
 	g_assert(!(bt->flags & TASK_F_RUNNING));
 	g_assert(bt->flags & TASK_F_EXITED);
 
 	stepsize = bt->stepcnt * sizeof(bgstep_cb_t *);
 	wfree(bt->stepvec, stepsize);
+
+	for (count = 0, l = bt->wq; l; l = l->next) {
+		count++;
+		if (bt->item_free)
+			(*bt->item_free)(l->data);
+	}
+	g_slist_free(bt->wq);
+
+	if (count)
+		g_warning("freed %d pending item%s for daemon \"%s\" task",
+			count, count == 1 ? "" : "s", bt->name);
 
 	wfree(bt, sizeof(*bt));
 }
@@ -339,10 +497,13 @@ static void bg_task_terminate(struct bgtask *bt)
 	 */
 
 	if (dbg > 1)
-		printf("BGTASK terminating \"%s\", ran %d msecs\n",
-			bt->name, bt->wtime);
+		printf("BGTASK terminating \"%s\"%s, ran %d msecs\n",
+			bt->name, (bt->flags & TASK_F_DAEMON) ? " daemon" : "", bt->wtime);
 
 	g_assert(!(bt->flags & TASK_F_RUNNING));
+
+	if (bt->flags & TASK_F_SLEEPING)
+		bg_sched_wakeup(bt);
 
 	bt->flags |= TASK_F_EXITED;		/* Task has now exited */
 	bg_sched_remove(bt);			/* Ensure it's no longer scheduled */
@@ -412,7 +573,7 @@ static void bg_task_terminate(struct bgtask *bt)
  */
 void bg_task_exit(gpointer h, gint code)
 {
-	struct bgtask *bt = (struct bgtask *) h;
+	struct bgtask *bt = TASK(h);
 
 	g_assert(bt);
 	g_assert(bt->magic == BT_MAGIC);
@@ -454,7 +615,7 @@ static void bg_task_sendsig(struct bgtask *bt, bgsig_t sig, bgsig_cb_t handler)
  */
 gint bg_task_kill(gpointer h, bgsig_t sig)
 {
-	struct bgtask *bt = (struct bgtask *) h;
+	struct bgtask *bt = TASK(h);
 	bgsig_cb_t sighandler;
 
 	g_assert(bt);
@@ -516,7 +677,7 @@ gint bg_task_kill(gpointer h, bgsig_t sig)
  */
 bgsig_cb_t bg_task_signal(gpointer h, bgsig_t sig, bgsig_cb_t handler)
 {
-	struct bgtask *bt = (struct bgtask *) h;
+	struct bgtask *bt = TASK(h);
 	bgsig_cb_t oldhandler;
 
 	g_assert(bt);
@@ -568,7 +729,7 @@ static void bg_task_deliver_signals(struct bgtask *bt)
  */
 void bg_task_cancel(gpointer h)
 {
-	struct bgtask *bt = (struct bgtask *) h;
+	struct bgtask *bt = TASK(h);
 	struct bgtask *old = NULL;
 
 	g_assert(bt);
@@ -621,7 +782,7 @@ void bg_task_cancel(gpointer h)
  */
 void bg_task_ticks_used(gpointer h, gint used)
 {
-	struct bgtask *bt = (struct bgtask *) h;
+	struct bgtask *bt = TASK(h);
 
 	g_assert(bt);
 	g_assert(bt->magic == BT_MAGIC);
@@ -649,6 +810,63 @@ static void bg_reclaim_dead(void)
 
 	g_slist_free(dead_tasks);
 	dead_tasks = NULL;
+}
+
+/*
+ * bg_task_ended
+ *
+ * Called when a task has ended its processing.
+ */
+static void bg_task_ended(struct bgtask *bt)
+{
+	gpointer item;
+
+	/*
+	 * Non-daemon task: reroute to bg_task_terminate().
+	 */
+
+	if (!(bt->flags & TASK_F_DAEMON)) {
+		bg_task_terminate(bt);
+		return;
+	}
+
+	/*
+	 * Daemon task: signal we finished with the item, unqueue and free it.
+	 */
+
+	g_assert(bt->wq != NULL);
+
+	item = bt->wq->data;
+
+	if (dbg > 2)
+		printf("BGTASK daemon \"%s\" done with item 0x%lx\n",
+			bt->name, (gulong) item);
+
+	(*bt->end_cb)(bt, bt->ucontext, item);
+	bt->wq = g_slist_remove(bt->wq, item);
+	if (bt->item_free)
+		(*bt->item_free)(item);
+
+	/*
+	 * The following makes sure we pickup a new item at the next iteration.
+	 */
+
+	bt->tick_cost = 0;					/* Will restart at 1 tick next time */
+	bt->seqno = 0;
+	bt->step = 0;
+
+	/*
+	 * If task has no more work to perform, put it back to sleep.
+	 */
+
+	if (bt->wq == NULL) {
+		if (dbg > 1)
+			printf("BGTASK daemon \"%s\" going back to sleep\n", bt->name);
+
+		bg_sched_sleep(bt);
+		if (bt->notify)
+			(*bt->notify)(bt, FALSE);	/* Stopped */
+	}
 }
 
 /*
@@ -691,10 +909,12 @@ void bg_sched_timer(void)
 
 		if (bt->tick_cost) {
 			ticks = 1 + target / bt->tick_cost;
-			if (ticks > bt->prev_ticks * DELTA_FACTOR)
-				ticks = bt->prev_ticks * DELTA_FACTOR;
-			else if (DELTA_FACTOR * ticks < bt->prev_ticks)
-				ticks = bt->prev_ticks / DELTA_FACTOR;
+			if (bt->prev_ticks) {
+				if (ticks > bt->prev_ticks * DELTA_FACTOR)
+					ticks = bt->prev_ticks * DELTA_FACTOR;
+				else if (DELTA_FACTOR * ticks < bt->prev_ticks)
+					ticks = bt->prev_ticks / DELTA_FACTOR;
+			}
 			g_assert(ticks > 0);
 		} else
 			ticks = 1;
@@ -739,6 +959,27 @@ void bg_sched_timer(void)
 
 		bg_task_deliver_signals(bt);	/* Send any queued signal */
 
+		/*
+		 * If task is a daemon task, and we're starting at the first step,
+		 * unqueue the first item.
+		 */
+
+		if ((bt->flags & TASK_F_DAEMON) && bt->step == 0 && bt->seqno == 0) {
+			gpointer item;
+
+			g_assert(bt->wq != NULL);
+
+			item = bt->wq->data;
+
+			if (dbg > 2)
+				printf("BGTASK daemon \"%s\" starting with item 0x%lx\n",
+					bt->name, (gulong) item);
+
+			(*bt->start_cb)(bt, bt->ucontext, item);
+		}
+
+		g_assert(bt->step < bt->stepcnt);
+
 		ret = (*bt->stepvec[bt->step])(bt, bt->ucontext, ticks);
 
 		bg_task_switch(NULL);		/* Stop current task, update stats */
@@ -756,12 +997,12 @@ void bg_sched_timer(void)
 		 */
 
 		switch (ret) {
-		case BGR_DONE:				/* OK, end processing (same as exit(0) */
-			bg_task_terminate(bt);
+		case BGR_DONE:				/* OK, end processing */
+			bg_task_ended(bt);
 			break;
 		case BGR_NEXT:				/* OK, move to next step */
 			if (bt->step == (bt->stepcnt - 1))
-				bg_task_terminate(bt);
+				bg_task_ended(bt);
 			else {
 				bt->seqno = 0;
 				bt->step++;
@@ -772,7 +1013,7 @@ void bg_sched_timer(void)
 			bt->seqno++;
 			break;
 		case BGR_ERROR:
-			bt->exitcode = -1;		/* Fake an exit */
+			bt->exitcode = -1;		/* Fake an exit(-1) */
 			bg_task_terminate(bt);
 			break;
 		}
@@ -782,7 +1023,39 @@ void bg_sched_timer(void)
 		bg_reclaim_dead();			/* Free dead tasks */
 }
 
+/*
+ * bg_close
+ *
+ * Called at shutdown time.
+ */
+void bg_close(void)
+{
+	GSList *l;
+	gint count;
+
+	for (count = 0, l = runq; l; l = l->next) {
+		count++;
+		bg_task_terminate(l->data);
+	}
+	g_slist_free(runq);
+
+	if (count)
+		g_warning("terminated %d task%s", count, count == 1 ? "" : "s");
+
+	for (count = 0, l = sleepq; l; l = l->next) {
+		count++;
+		bg_task_terminate(l->data);
+	}
+	g_slist_free(sleepq);
+
+	if (count)
+		g_warning("terminated %d daemon task%s", count, count == 1 ? "" : "s");
+
+	bg_reclaim_dead();				/* Free dead tasks */
+}
+
 // bg_task_goto
+// bg_task_gosub
 // bg_task_get_exitcode
 // bg_task_get_signal
 

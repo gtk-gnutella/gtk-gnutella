@@ -68,6 +68,9 @@ typedef enum {
  * `bgsig_cb_t' is a signal processing handler.
  * `bgclean_cb_t' is the context cleanup handler, called upon task destruction.
  * `bgdone_cb_t' is the final callback called when task is finished.
+ * `bgstart_cb_t' is the initial callback when daemon starts working.
+ * `bgend_cb_t' is the final callback when daemon ends working.
+ * `bgnotify_cb_t' is the start/stop callback when daemon starts/stops working.
  */
 
 typedef bgret_t (*bgstep_cb_t)(gpointer h, gpointer ctx, gint ticks);
@@ -75,11 +78,15 @@ typedef void (*bgsig_cb_t)(gpointer h, gpointer ctx, bgsig_t sig);
 typedef void (*bgclean_cb_t)(gpointer ctx);
 typedef void (*bgdone_cb_t)(gpointer h, gpointer ctx,
 	bgstatus_t status, gpointer arg);
+typedef void (*bgstart_cb_t)(gpointer h, gpointer ctx, gpointer item);
+typedef void (*bgend_cb_t)(gpointer h, gpointer ctx, gpointer item);
+typedef void (*bgnotify_cb_t)(gpointer h, gboolean on);
 
 /*
  * Public interface.
  */
 
+void bg_close(void);
 void bg_sched_timer(void);
 
 gpointer bg_task_create(
@@ -90,11 +97,24 @@ gpointer bg_task_create(
 	bgdone_cb_t done_cb,				/* Notification callback when done */
 	gpointer done_arg);					/* Callback argument */
 
+gpointer bg_daemon_create(
+	gchar *name,						/* Task name (for tracing) */
+	bgstep_cb_t *steps, gint stepcnt,	/* Work to perform (copied) */
+	gpointer ucontext,					/* User context */
+	bgclean_cb_t ucontext_free,			/* Free routine for context */
+	bgstart_cb_t start_cb,				/* Starting working on an item */
+	bgend_cb_t end_cb,					/* Done working on an item */
+	bgclean_cb_t item_free,				/* Free routine for work queue items */
+	bgnotify_cb_t notify);				/* Start/Stop notify (optional) */
+
+void bg_daemon_enqueue(gpointer h, gpointer item);
+
 void bg_task_cancel(gpointer h);
 void bg_task_exit(gpointer h, gint code);
 void bg_task_ticks_used(gpointer h, gint used);
 
 gint bg_task_seqno(gpointer h);
+gpointer bg_task_context(gpointer h);
 
 #endif	/* __bg_h__ */
 
