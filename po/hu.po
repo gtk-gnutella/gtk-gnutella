@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.93\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2003-11-05 21:52+0100\n"
+"POT-Creation-Date: 2004-01-04 23:27+0100\n"
 "PO-Revision-Date: 2003-11-03 17:29+0100\n"
 "Last-Translator: Sulyok Péter <sp@elte.hu>\n"
 "Language-Team: NONE \n"
@@ -15,59 +15,59 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: src/downloads.c:416 src/downloads.c:471
+#: src/downloads.c:441 src/downloads.c:496
 msgid "No longer connected"
 msgstr "Már nincs kapcsolatban"
 
-#: src/downloads.c:1205
+#: src/downloads.c:1230
 msgid "Requeued by file info change"
 msgstr "Fájl infó változás miatt újra sorban áll"
 
-#: src/downloads.c:1278 src/downloads.c:2470 src/downloads.c:3311
+#: src/downloads.c:1303 src/downloads.c:2518 src/downloads.c:3379
 msgid "Suspended (SHA1 checking)"
 msgstr "Felfüggesztve (SHA1 ellenőrzés)"
 
-#: src/downloads.c:2754 src/downloads.c:3321
+#: src/downloads.c:2803 src/downloads.c:3389
 msgid "No download slot"
 msgstr "Nics letöltő nyílás"
 
-#: src/downloads.c:3000
+#: src/downloads.c:3064
 msgid "Ignoring Push flag"
 msgstr "Nyomás-jelzés mellőzése "
 
-#: src/downloads.c:3302
+#: src/downloads.c:3370
 msgid "Dup SHA1 during creation"
 msgstr "SHA1 készítése létrehozás közben"
 
-#: src/downloads.c:3818
+#: src/downloads.c:3886
 msgid "Explicitly requeued"
 msgstr "Kifejezetten újra sorba állítva"
 
-#: src/downloads.c:4334
+#: src/downloads.c:4439
 msgid "Requeued by competing download"
 msgstr "Vetélkedő letöltés miatt újra sorbaállítva"
 
-#: src/downloads.c:4398
+#: src/downloads.c:4503
 msgid "Requeued after trimmed data"
 msgstr "Adatokat igazítva újra sorbaállítva"
 
-#: src/downloads.c:4400
+#: src/downloads.c:4505
 msgid "Chunk done, connection closed"
 msgstr "Darab kész, kapcsolat lezárva"
 
-#: src/downloads.c:4571
+#: src/downloads.c:4676
 msgid "Weird HTTP status (protocol desync?)"
 msgstr "Furcsa HTTP állapot (szinkron elvesztve?)"
 
-#: src/downloads.c:4913
+#: src/downloads.c:5018
 msgid "URN fileinfo mismatch"
 msgstr "URN fájlinfó eltérés"
 
-#: src/downloads.c:4933
+#: src/downloads.c:5038
 msgid "Discovered dup SHA1"
 msgstr "SHA1 készítve"
 
-#: src/downloads.c:7254
+#: src/downloads.c:7378
 msgid "SHA1 mismatch detected"
 msgstr "SHA1 eltérés érzékelve"
 
@@ -81,40 +81,40 @@ msgstr "%u fájl megosztva (%s)"
 msgid "%u files shared (%s)"
 msgstr "%u fájl megosztva (%s)"
 
-#: src/gui.c:124
+#: src/gui.c:125
 msgid "in"
 msgstr "be"
 
-#: src/gui.c:124
+#: src/gui.c:125
 msgid "out"
 msgstr "ki"
 
-#: src/gui.c:125
+#: src/gui.c:126
 msgid "(avg)"
 msgstr "(átl)"
 
-#: src/gnet_property.c:413
+#: src/gnet_property.c:497
 msgid "Indicates whether the hostcache file is being read"
 msgstr "Jelzi, hogy beolvassa-e a gépgyorstár fájlt"
 
-#: src/gnet_property.c:430
+#: src/gnet_property.c:514
 msgid "Indicates whether the ultracache file is being read"
 msgstr "Jelzi, hogy beolvassa-e a ultra gépgyorstár fájlt"
 
-#: src/gnet_property.c:447
+#: src/gnet_property.c:531
 msgid "Indicates that gtk-gnutella finds the version you run very very old"
 msgstr ""
 "Jelzi, hogy a gtk-gnutella az ön által futtatott változatot nagyon réginek "
 "találja"
 
-#: src/gnet_property.c:464
+#: src/gnet_property.c:548
 msgid ""
 "Gtk-gnutella found a newer version on the gNet and gives information about "
 "it here"
 msgstr ""
 "Gtk-gnutella újabb verziót talált a gNet-en és itt ad róla tájékoztatást"
 
-#: src/gnet_property.c:485
+#: src/gnet_property.c:569
 msgid ""
 "Try to keep at least this number of connections to other servents of the "
 "same kind as we are (normal or ultra nodes). This should be smaller than the "
@@ -124,7 +124,7 @@ msgstr ""
 "amelyek ugyan olyanok mint a miénk (normál vagy ultra pont). Ez legyen "
 "kisebb, mint a bejövő kapcsolatok legnagyobb száma!"
 
-#: src/gnet_property.c:505
+#: src/gnet_property.c:589
 msgid ""
 "When in ultrapeer mode, try to keep at least this number of connections to "
 "normal servents.  This should be smaller than the maximum amount of "
@@ -134,7 +134,7 @@ msgstr ""
 "normál kiszolgálóval. Ez legyen kisebb, mint a bejövő kapcsolatok legnagyobb "
 "száma!"
 
-#: src/gnet_property.c:525
+#: src/gnet_property.c:609
 msgid ""
 "Don't allow more than this number of connections to other servents.  As a "
 "rule of thumb you should reserve 1kb/s bandwidth per connection. Never use "
@@ -146,19 +146,19 @@ msgstr ""
 "sávszélességét, hagyjon egy kis helyet a TCP/IP fejléceknek! Nem tanácsos "
 "ezt az értéket 10-nél nagyobbra állítani."
 
-#: src/gnet_property.c:545
+#: src/gnet_property.c:629
 msgid "Number of leaf nodes currently connected."
 msgstr "Pillanatnyilag a levél kapcsolatok száma."
 
-#: src/gnet_property.c:565
+#: src/gnet_property.c:649
 msgid "Number of normal nodes currently connected."
 msgstr "Pillanatnyilag a normál kapcsolatok száma."
 
-#: src/gnet_property.c:585
+#: src/gnet_property.c:669
 msgid "Number of ultra nodes currently connected."
 msgstr "Pillanatnyilag az ultra kapcsolatok száma."
 
-#: src/gnet_property.c:605
+#: src/gnet_property.c:689
 msgid ""
 "Don't start more than this number of parallel downloads.  Others will remain "
 "in the queue waiting for a download slot."
@@ -166,7 +166,7 @@ msgstr ""
 "Nem kezd bele ennél több egyidejű letöltésbe. A többi letöltő nyíláshoz áll "
 "sorba."
 
-#: src/gnet_property.c:625
+#: src/gnet_property.c:709
 msgid ""
 "Don't make more connections than given here to a single host to download a "
 "file.  Be nice to others, and leave it at the default value (1)."
@@ -174,7 +174,7 @@ msgstr ""
 "Letöltéskor nem hoz létre ennél több kapcsolatot egy géphez. Legyen kedves "
 "másokhoz, és hagyja az alapértéket (1)!"
 
-#: src/gnet_property.c:645
+#: src/gnet_property.c:729
 msgid ""
 "Don't allow more than this number of uploads in total. This also defines the "
 "amount of PARQ queues that will be used. You should at least set it to 2."
@@ -182,32 +182,32 @@ msgstr ""
 "Nem enged ennél több feltöltést. Ez meghatározza a PARQ sor hosszát is."
 "Legyen legalább 2!"
 
-#: src/gnet_property.c:665
+#: src/gnet_property.c:749
 msgid ""
 "Don't upload more than this number of files in parallel to a single host"
 msgstr "Nem tölt fel ennél több fájlt egyidejűleg egy gépre."
 
-#: src/gnet_property.c:685
+#: src/gnet_property.c:769
 msgid "Local IP address last determined"
 msgstr "Az utoljára meghatározott helyi IP-cím."
 
-#: src/gnet_property.c:705
+#: src/gnet_property.c:789
 msgid "When the current IP address was determined"
 msgstr "Amikor a jelenlegi IP-címet meghatározták"
 
-#: src/gnet_property.c:725
+#: src/gnet_property.c:809
 msgid "Average uptime with the same IP address"
 msgstr "Átlagos futási idő ugyanazzal az IP-címmel"
 
-#: src/gnet_property.c:745
+#: src/gnet_property.c:829
 msgid "Timestamp at which servent was started"
 msgstr "A kiszolgáló indulásának időpontja"
 
-#: src/gnet_property.c:765
+#: src/gnet_property.c:849
 msgid "Average servent uptime, in seconds"
 msgstr "A kiszolgáló átlagos futási ideje másodpercben"
 
-#: src/gnet_property.c:785
+#: src/gnet_property.c:869
 msgid ""
 "Local port gtk-gnutella is listening on. Your ISP may block or choke traffic "
 "on port 6346 so it would be a good idea to change it to something in the "
@@ -222,13 +222,13 @@ msgstr ""
 "nyitás beállítását, amennyiben szükséges! Jegyezze meg, hogy a 6346-os kapu "
 "nem szokott védeni a cenzúra ellen."
 
-#: src/gnet_property.c:805
+#: src/gnet_property.c:889
 msgid "Use this IP address as source address if 'force local ip' is activated"
 msgstr ""
 "Ezt az IP-címet használja forráscímként ha a „helyi ip kényszerítését” "
 "bekapcsolta"
 
-#: src/gnet_property.c:825
+#: src/gnet_property.c:909
 msgid ""
 "The connection bandwidth reported to other hosts. This is the speed at which "
 "you can upload things to others."
@@ -236,7 +236,17 @@ msgstr ""
 "A kapcsolat sávszélessége, amit a többi gépnek jelent. Ez az a sebesség, "
 "amellyel a feltöltés folyik."
 
-#: src/gnet_property.c:845
+#: src/gnet_property.c:929
+msgid ""
+"Whether the connection bandwidth reported to other hosts should be computed "
+"based on the current average upload speed. The reported speed is the "
+"available speed for a new upload, not the theoretical maximum configured: it "
+"is the average bandwidth (or the max configured bandwidth if no traffic yet) "
+"divided by the number of upload slots. When it is ON (recommended setting), "
+"the hardwired connection speed is not used."
+msgstr ""
+
+#: src/gnet_property.c:946
 msgid ""
 "Return at most this number of results to a query, using as many query hit "
 "packets as necessary.  To avoid network flooding, keep this to a reasonable "
@@ -246,7 +256,7 @@ msgstr ""
 "csomagot használva. A hálózat elárasztását kerülendő, tartsa ezt egy ésszerű "
 "értéken!"
 
-#: src/gnet_property.c:865
+#: src/gnet_property.c:966
 msgid ""
 "Unless this percentage or more of the upload bandwidth is used, allow "
 "additional upload slots"
@@ -254,27 +264,27 @@ msgstr ""
 "Amíg ezt a százalékot nem éri el a feltöltésre használt sávszélesség, "
 "további feltöltések nyitását engedi."
 
-#: src/gnet_property.c:885
+#: src/gnet_property.c:986
 msgid "Number of seconds before a download connect attempt times out"
 msgstr "A letöltő próbálkozás türelmi ideje másodpercben"
 
-#: src/gnet_property.c:905
+#: src/gnet_property.c:1006
 msgid "Number of seconds before a push request times out"
 msgstr "A nyomó próbálkozás türelmi ideje másodpercben"
 
-#: src/gnet_property.c:925
+#: src/gnet_property.c:1026
 msgid "Number of seconds before a download times out if no data is received"
 msgstr "A letöltés türelmi ideje másodpercben, ha nem érkezett adat"
 
-#: src/gnet_property.c:945
+#: src/gnet_property.c:1046
 msgid "Minimum number of seconds to wait on auto-retry timeouts"
 msgstr "Legalább ennyi másodpercet vár mielőtt újra próbál letölteni"
 
-#: src/gnet_property.c:965
+#: src/gnet_property.c:1066
 msgid "Maximum number of seconds to wait on auto-retry timeouts"
 msgstr "Legfeljebb ennyi másodpercet vár mielőtt újra próbál letölteni"
 
-#: src/gnet_property.c:985
+#: src/gnet_property.c:1086
 msgid ""
 "Maximum number of attempts to download a file not counting HTTP busy "
 "indications"
@@ -282,19 +292,19 @@ msgstr ""
 "Legfeljebb ennyiszer próbál egy fájlt letölteni nem számítva a HTTP foglalt "
 "jelzéseket"
 
-#: src/gnet_property.c:1005
+#: src/gnet_property.c:1106
 msgid "Delay in seconds before retrying after a connection timed out"
 msgstr ""
 "Türelmi idő lejárta utáni késleltetés másodpercben mielőtt újra próbál "
 "kapcsolódni"
 
-#: src/gnet_property.c:1025
+#: src/gnet_property.c:1126
 msgid ""
 "Delay in seconds before retrying after getting a 'busy' response from a host"
 msgstr ""
 "Foglalt jelzés utáni késleltetés másodpercben mielőtt újra próbál kapcsolódni"
 
-#: src/gnet_property.c:1045
+#: src/gnet_property.c:1146
 msgid ""
 "Delay in seconds before retrying after getting a 'connection refused' "
 "response from a host"
@@ -302,7 +312,7 @@ msgstr ""
 "A „kapcsolat visszautasítva” válasz utáni ismételt próbálkozás késleltetése "
 "másodpercben"
 
-#: src/gnet_property.c:1065
+#: src/gnet_property.c:1166
 msgid ""
 "Delay in seconds before retrying after a retry stopped (timed out, "
 "connection reset by peer, etc...)"
@@ -310,7 +320,7 @@ msgstr ""
 "A megállított próbálkozás (türelmi idő lejárt, a társ lezárta a kapcsolatot, "
 "stb.) utáni ismételt próbálkozás késleltetése"
 
-#: src/gnet_property.c:1085
+#: src/gnet_property.c:1186
 msgid ""
 "Amount of bytes to overlap when resuming a download. It should be at least "
 "64 bytes for safe resuming, otherwise gtk-gnutella will not accept to resume "
@@ -320,7 +330,7 @@ msgstr ""
 "biztonságosfolytatás érdekében, különben a gtk-gnutella nem fog folytatni "
 "olyan fájlt, amelyheznincs ismert SHA1, miután a kiszolgáló visszaad egyet."
 
-#: src/gnet_property.c:1105
+#: src/gnet_property.c:1206
 msgid ""
 "Number of seconds before an upload times out if no connection can be "
 "established during a push.  It is also the maximum amount of time we wait to "
@@ -329,12 +339,12 @@ msgstr ""
 "A feltöltés türelmi ideje másodpercben, ha nem sikerült kapcsolatot "
 "teremteni nyomással.Ez a teljes HTTP kérelem legnagyobb várakozási ideje is."
 
-#: src/gnet_property.c:1125
+#: src/gnet_property.c:1226
 msgid ""
 "Number of seconds after which an upload times out if no data is transmitted"
 msgstr "A feltöltés türelmi ideje, ha nem történt adatátvitel."
 
-#: src/gnet_property.c:1145
+#: src/gnet_property.c:1246
 msgid ""
 "Amount of seconds to wait before a search is issued again to see if new "
 "results are available.  Be very careful with this parameter, and do not set "
@@ -345,7 +355,7 @@ msgstr ""
 "eredményekért.Legyen óvatos ezzel a paraméterrel, és ne állítsa túl "
 "alacsonyra, különben a Gnutella-hálózat látja kárát. Fél óra késleltetés jó."
 
-#: src/gnet_property.c:1165
+#: src/gnet_property.c:1266
 msgid ""
 "Maximum ratio of file descriptors reserved for banning. For instance, if "
 "your OS gives you 350 file descriptors, a ratio of 10 will reserve at most "
@@ -356,21 +366,21 @@ msgstr ""
 "oprendszer ad 350 fájlleírót, akkor 10-es érték 35 fájlleírót jelent. Kb. "
 "100 fájlleírókell a hatékony működéshez."
 
-#: src/gnet_property.c:1185
+#: src/gnet_property.c:1286
 msgid "Maximum number of file descriptors reserved for banning"
 msgstr "Legfeljebb ennyi fájlleírót foglal le"
 
-#: src/gnet_property.c:1205
+#: src/gnet_property.c:1306
 msgid "Number of file descriptors we'll actually be using for banning"
 msgstr "Ennyi fájlleírót fog használni"
 
-#: src/gnet_property.c:1225
+#: src/gnet_property.c:1326
 msgid ""
 "Number of seconds an incoming connection has to start sending out its request"
 msgstr ""
 "Másodpercek száma, ami után egy bejövő kapcsolatnak küldenie kell a kérelmét"
 
-#: src/gnet_property.c:1245
+#: src/gnet_property.c:1346
 msgid ""
 "Number of seconds before a Gnet connect attempt times out if no connection "
 "can be established"
@@ -378,13 +388,14 @@ msgstr ""
 "Gnet kapcsolat létesítésének türelmi ideje másodpercben, ha nem sikerült "
 "kapcsolódni"
 
-#: src/gnet_property.c:1265
+#: src/gnet_property.c:1366
 msgid ""
 "Number of seconds before a Gnet connection times out if no data is "
 "transmitted"
 msgstr "Gnet kapcsolat tartásának türelmi ideje, ha nem történt adatátvitel"
 
-#: src/gnet_property.c:1285
+#: src/gnet_property.c:1386
+#, fuzzy, c-format
 msgid ""
 "Maximum size of the sendqueue for the nodes (in bytes). Must be at least "
 "150% of the maximum message size"
@@ -392,7 +403,7 @@ msgstr ""
 "A küldősor legnagyobb mérete bájtban. Legalább a legnagyobb üzenet 150%-ának "
 "kell lennie."
 
-#: src/gnet_property.c:1305
+#: src/gnet_property.c:1406
 msgid ""
 "Maximum number of seconds a node can remain in transmit flow control before "
 "being kicked out."
@@ -400,7 +411,7 @@ msgstr ""
 "A leghosszabb idő másodpercben, amíg egy pont az átvitelt vezérelheti, "
 "mielőtt kirúgják."
 
-#: src/gnet_property.c:1325
+#: src/gnet_property.c:1426
 msgid ""
 "Maximum percentage of time over 5 minutes that our node can remain in flow "
 "control remotely before dropping the connection.  This only works with nodes "
@@ -410,7 +421,7 @@ msgstr ""
 "mielőtt megszakítja a kapcsolatot. Ez csak olyan pontokkal működik, amelyek "
 "küldenek „hops-flow” üzenetet, amikor az átvitelt vezérlik."
 
-#: src/gnet_property.c:1345
+#: src/gnet_property.c:1446
 msgid ""
 "Maximum TTL we allow in messages we broadcast.  If a message comes in with a "
 "TTL greater than that, it will be trimmed down to that value.  On Gnutella, "
@@ -420,7 +431,7 @@ msgstr ""
 "érkezik, akkor az ezt az értéket kapja. A Gnutellán a szabvány a TTL=7, "
 "tehát ennél kisebb értéket nem lehet beállítani."
 
-#: src/gnet_property.c:1365
+#: src/gnet_property.c:1466
 msgid ""
 "The TTL we use in messages we generate.  The default on Gnutella is TTL=7.  "
 "If you set it to too large a value, you run the risk of being trimmed down "
@@ -430,7 +441,7 @@ msgstr ""
 "Ha túl nagyra állítják ezt az értéket, akkor lehet, hogy a társ gtk-gnutella "
 "pontok ezt lecsökkentik, vagy kirúg egy másik kiszolgáló."
 
-#: src/gnet_property.c:1385
+#: src/gnet_property.c:1486
 msgid ""
 "Maximum hard TTL limit (hops + TTL) on messages we relay.  This should be "
 "greater than the standard TTL=7, because it is also applied to routed-back "
@@ -445,51 +456,51 @@ msgstr ""
 "elveszett. Szabvány szórt üzenetek TTL korlátja a legnagyobb TTL érték, amit "
 "ennél jóval kisebbre kell állítani."
 
-#: src/gnet_property.c:1405
+#: src/gnet_property.c:1506
 msgid "For development use: debug level"
 msgstr "Fejlesztőknek: hibajavítás szintje"
 
-#: src/gnet_property.c:1425
+#: src/gnet_property.c:1526
 msgid "Debug level for code shared between gui and core"
 msgstr "Hibajavítás szintje a felhasználói felület és a mag osztott kódjára"
 
-#: src/gnet_property.c:1445
+#: src/gnet_property.c:1546
 msgid "For development use: track properties"
 msgstr "Fejlesztőknek: nyomkövetés tulajdonságai"
 
-#: src/gnet_property.c:1465
+#: src/gnet_property.c:1566
 msgid "For development use: don't add new hosts to the hostcatcher"
 msgstr "Fejlesztőknek: nem tesz új gépeket a gépfogóba"
 
-#: src/gnet_property.c:1482
+#: src/gnet_property.c:1583
 msgid "Enable bandwidth limitation for incoming HTTP traffic"
 msgstr "Bejövő HTTP forgalom korlátozása"
 
-#: src/gnet_property.c:1499
+#: src/gnet_property.c:1600
 msgid "Enable bandwidth limitation for outgoing HTTP traffic"
 msgstr "Kimenő HTTP forgalom korlátozása"
 
-#: src/gnet_property.c:1516
+#: src/gnet_property.c:1617
 msgid "Enable bandwidth limitation for incoming Gnet traffic"
 msgstr "Bejövő Gnet forgalom korlátozása"
 
-#: src/gnet_property.c:1533
+#: src/gnet_property.c:1634
 msgid "Enable bandwidth limitation for incoming Gnet leaf traffic"
 msgstr "Bejövő Gnet levél forgalom korlátozása"
 
-#: src/gnet_property.c:1550
+#: src/gnet_property.c:1651
 msgid "Enable bandwidth limitation for outgoing Gnet traffic"
 msgstr "Kimenő Gnet forgalom korlátozása"
 
-#: src/gnet_property.c:1567
+#: src/gnet_property.c:1668
 msgid "Enable bandwidth limitation for outgoing Gnet leaf traffic"
 msgstr "Kimenő Gnet levél forgalom korlátozása"
 
-#: src/gnet_property.c:1584
+#: src/gnet_property.c:1685
 msgid "Enable dynamic upload slots allocation"
 msgstr "Dinamikus feltöltő nyílás foglalása"
 
-#: src/gnet_property.c:1601
+#: src/gnet_property.c:1702
 msgid ""
 "Allow HTTP and Gnutella to grab whatever bandwidth the other is not using.  "
 "If FALSE, unused bandwidth is lost."
@@ -497,11 +508,11 @@ msgstr ""
 "Engedi, hogy HTTP és Gnutella magához ragadja a másik által nem használt "
 "sávszélességet. Ha HAMIS, akkor a nem használt sávszélesség elveszik."
 
-#: src/gnet_property.c:1618
+#: src/gnet_property.c:1719
 msgid "Auto clear completed downloads"
 msgstr "Befejezett letöltések automatikus takarítása"
 
-#: src/gnet_property.c:1635
+#: src/gnet_property.c:1736
 msgid ""
 "Auto clear failed downloads (HTTP error, failure to resume, write error, "
 "etc...)."
@@ -509,7 +520,7 @@ msgstr ""
 "Sikertelen letöltések automatikus takarítása (HTTP hiba, sikertelen "
 "folytatás, írási hiba, stb.)"
 
-#: src/gnet_property.c:1652
+#: src/gnet_property.c:1753
 msgid ""
 "Auto clear unavailable downloads (connection timeout, push route lost, "
 "etc...)."
@@ -517,19 +528,19 @@ msgstr ""
 "Elérhetetlen letöltések automatikus takarítása (türelmi idő lejárt, nyomás-"
 "útvonal elveszett, stb.)"
 
-#: src/gnet_property.c:1669
+#: src/gnet_property.c:1770
 msgid "Remove downloaded files from the search result"
 msgstr "Letöltött fájlok eltávolítása a találatok közül"
 
-#: src/gnet_property.c:1686
+#: src/gnet_property.c:1787
 msgid "Enable to use [forced_local_ip] as local ip"
 msgstr "A kényszerített ip használata helyi ip-ként"
 
-#: src/gnet_property.c:1703
+#: src/gnet_property.c:1804
 msgid "Try to connect to local networks first"
 msgstr "A helyi hálózatokhoz próbál csatlakozni először"
 
-#: src/gnet_property.c:1720 src/interface-glade2.c:3070
+#: src/gnet_property.c:1821 src/interface-glade2.c:3323
 msgid ""
 "Check this button if you want to use GTK-Gnutella on your Local Area "
 "Network. RFC1918 will be ignored."
@@ -537,7 +548,7 @@ msgstr ""
 "Pipálja ki ezt a négyzetet, ha a helyi hálózatokon akarja használni GTK-"
 "Gnutellát. RFC1918-at mellőzi."
 
-#: src/gnet_property.c:1737
+#: src/gnet_property.c:1838
 msgid ""
 "Check this button if you want GTK-Gnutella to use IP TOS to differentiate "
 "interactive, normal and bulk data. This is probably a good idea in most "
@@ -549,11 +560,11 @@ msgstr ""
 "lehet a legtöbb esetben, és segíthet ha egy gép, LAN vagy ISP rosszul "
 "konfigurált."
 
-#: src/gnet_property.c:1754
+#: src/gnet_property.c:1855
 msgid "Remove files of aborted downloads from disk"
 msgstr "Elvetett letöltés-fájlok eltávolítása a lemezről"
 
-#: src/gnet_property.c:1771
+#: src/gnet_property.c:1872
 msgid ""
 "DEPRECATED and automatically set to TRUE. Use a proxy to connect to the "
 "internet"
@@ -561,47 +572,47 @@ msgstr ""
 "ELAVULT és automatikusan IGAZ-ra állítva. Használjon proxyt internetre "
 "csatlakozáshoz."
 
-#: src/gnet_property.c:1788
+#: src/gnet_property.c:1889
 msgid "Use username and password to authenticate to proxy"
 msgstr "Azonosító és jelszó használata a proxyhoz"
 
-#: src/gnet_property.c:1805
+#: src/gnet_property.c:1906
 msgid "Username for proxy"
 msgstr "Azonosító a proxyhoz"
 
-#: src/gnet_property.c:1826
+#: src/gnet_property.c:1927
 msgid "Password for proxy"
 msgstr "Jelszó a proxyhoz"
 
-#: src/gnet_property.c:1847
+#: src/gnet_property.c:1948
 msgid "IP address of the proxy"
 msgstr "Proxy IP-címe"
 
-#: src/gnet_property.c:1867
+#: src/gnet_property.c:1968
 msgid "Port the proxy is listening on"
 msgstr "Kapu, amelyen a proxy várja a kapcsolatot"
 
-#: src/gnet_property.c:1887
+#: src/gnet_property.c:1988
 msgid "Protocol the proxy uses"
 msgstr "Protokol, amelyet a proxy használ"
 
-#: src/gnet_property.c:1907
+#: src/gnet_property.c:2008
 msgid "Maximum number of hosts in the regular node catcher"
 msgstr "A hagyományos gépfogóban tárolt gépek maximális száma"
 
-#: src/gnet_property.c:1927
+#: src/gnet_property.c:2028
 msgid "Current number of hosts in regular node catcher"
 msgstr "A hagyományos gépfogóban tárolt gépek száma"
 
-#: src/gnet_property.c:1947
+#: src/gnet_property.c:2048
 msgid "Current number of hosts in ultra node catcher"
 msgstr "Az ultra gépfogóban tárolt gépek száma"
 
-#: src/gnet_property.c:1967
+#: src/gnet_property.c:2068
 msgid "Maximum number of hosts in the ultra node catcher"
 msgstr "Az ultra gépfogóban tárolt gépek maximális száma"
 
-#: src/gnet_property.c:1987
+#: src/gnet_property.c:2088
 msgid ""
 "Amount of tolerable messages above hard TTL limit per node. See also "
 "MAX_HIGH_TTL_RADIUS"
@@ -609,30 +620,30 @@ msgstr ""
 "Pontonkénti kemény TTL korlát feletti üzenetek tűrhető száma. Lásd "
 "MAX_HIGH_TTL_RADIUS"
 
-#: src/gnet_property.c:2007
+#: src/gnet_property.c:2108
 msgid ""
 "Hop radius for counting high TTL limit messages (# hops lower than...) See "
 "also MAX_HIGH_TTL_MSG"
 msgstr ""
 "Magas TTL korlát üzenetek számolásához használt sugár. Lásd MAX_HIGH_TTL_MSG."
 
-#: src/gnet_property.c:2027
+#: src/gnet_property.c:2128
 msgid "Bandwidth limit for incoming HTTP traffic in bytes/sec"
 msgstr "Bejövő HTTP forgalom sávszélesség korlátja bájt/másodpercben."
 
-#: src/gnet_property.c:2047
+#: src/gnet_property.c:2148
 msgid "Bandwidth limit for outgoing HTTP traffic in bytes/sec"
 msgstr "Kimenő HTTP forgalom sávszélesség korlátja bájt/másodpercben."
 
-#: src/gnet_property.c:2067
+#: src/gnet_property.c:2168
 msgid "Bandwidth limit for incoming gNet traffic in bytes/sec"
 msgstr "Bejövő gNet forgalom sávszélesség korlátja bájt/másodpercben."
 
-#: src/gnet_property.c:2087
+#: src/gnet_property.c:2188
 msgid "Bandwidth limit for outgoing gNet traffic in bytes/sec"
 msgstr "Kimenő gNet forgalom sávszélesség korlátja bájt/másodpercben."
 
-#: src/gnet_property.c:2107
+#: src/gnet_property.c:2208
 msgid ""
 "Bandwidth limit for incoming gNet leaf traffic in bytes/sec. When running as "
 "an ultra node, this bandwidth is stolen from the regular HTTP traffic if the "
@@ -642,7 +653,7 @@ msgstr ""
 "üzemmódban ezt a sávszélességet a hagyományos HTTP forgalomtól veszi el, ha "
 "engedélyezett."
 
-#: src/gnet_property.c:2127
+#: src/gnet_property.c:2228
 msgid ""
 "Bandwidth limit for outgoing gNet leaf traffic in bytes/sec. When running as "
 "an ultra node, this bandwidth is stolen from the regular HTTP traffic, if "
@@ -652,12 +663,12 @@ msgstr ""
 "üzemmódban ezt a sávszélességet a hagyományos HTTP forgalomtól veszi el, ha "
 "engedélyezett."
 
-#: src/gnet_property.c:2147
+#: src/gnet_property.c:2248
 msgid ""
 "Maximum size of search queries messages we forward to others  (in bytes)"
 msgstr "A továbbított kereső üzenetek legnagyobb mérete bájtban."
 
-#: src/gnet_property.c:2167
+#: src/gnet_property.c:2268
 msgid ""
 "Maximum size of search queries messages we allow, otherwise close the "
 "connection (in bytes)"
@@ -665,11 +676,11 @@ msgstr ""
 "A legnagyobb engedélyezett kereső üzenetméret bájtban, különben lezárja a "
 "kapcsolatot."
 
-#: src/gnet_property.c:2187
+#: src/gnet_property.c:2288
 msgid "Maximum size of search answers messages we forward to others (in bytes)"
 msgstr "A továbbított találat üzenetek legnagyobb mérete bájtban."
 
-#: src/gnet_property.c:2207
+#: src/gnet_property.c:2308
 msgid ""
 "Maximum size of search answers messages we allow, otherwise close the "
 "connection (in bytes)"
@@ -677,7 +688,7 @@ msgstr ""
 "A legnagyobb engedélyezett találat-üzenetméret bájtban, különben lezárja a "
 "kapcsolatot."
 
-#: src/gnet_property.c:2227
+#: src/gnet_property.c:2328
 msgid ""
 "Maximum size of unknown messages we allow, otherwise close the connection "
 "(in bytes)"
@@ -685,13 +696,13 @@ msgstr ""
 "A legnagyobb engedélyezett ismeretlen üzenetméret bájtban, különben lezárja "
 "a kapcsolatot."
 
-#: src/gnet_property.c:2247
+#: src/gnet_property.c:2348
 msgid ""
 "Random factor for the hops field in search packets we send between 0 and 3 "
 "inclusive)"
 msgstr "Véletlen tényező a sugár mezőhöz a kereső csomagokban 0-tól 3-ig."
 
-#: src/gnet_property.c:2267
+#: src/gnet_property.c:2368
 msgid ""
 "Whether or not to send push requests.  If you are firewalled, gtk-gnutella "
 "will never send push requests anyway.  If you don't let gtk-gnutella send "
@@ -701,14 +712,14 @@ msgstr ""
 "kérelmet. Ezt letiltva nem jelennek meg olyan találatok, amelyekhez nyomás "
 "kell."
 
-#: src/gnet_property.c:2284
+#: src/gnet_property.c:2385
 msgid ""
 "Minimum amount of dup messages to enable kicking, per node (also see "
 "[min_dup_ratio])"
 msgstr ""
 "Legalább ennyi dup üzenet kell pontonként a rúgáshoz. Lásd [min_dup_ratio]."
 
-#: src/gnet_property.c:2304
+#: src/gnet_property.c:2405
 msgid ""
 "Minimum ratio of dups on received messages, per node (between 0.00 and "
 "100.00) (also see [min_dup_msg]) Note: the value is stored between 0 (0.0) "
@@ -718,7 +729,7 @@ msgstr ""
 "között)(lásd [min_dup_msg]) Megjegyzés: 0 és 10000 közötti érték kerül "
 "tárolásra a config fájlban."
 
-#: src/gnet_property.c:2324
+#: src/gnet_property.c:2425
 msgid ""
 "Only files with the given extensions will be shared. The special --all-- "
 "extension matches all files, even if they don't have any extension.  Use "
@@ -728,19 +739,19 @@ msgstr ""
 "minden fájlra illeszkedik, még a kiterjesztés nélküliekre is. Használja "
 "óvatosan!"
 
-#: src/gnet_property.c:2345
+#: src/gnet_property.c:2446
 msgid "Ignore symbolically linked directories when scanning files to share."
 msgstr "Szimbólikusan kötött mappák mellőzése a megosztáskor."
 
-#: src/gnet_property.c:2362
+#: src/gnet_property.c:2463
 msgid "Ignore symbolically linked regular files when scanning files to share."
 msgstr "Szimbólikusan kötött fájlok mellőzése a megosztáskor."
 
-#: src/gnet_property.c:2379
+#: src/gnet_property.c:2480
 msgid "Store incomplete files in this directory"
 msgstr "Ebben a mappában tárolja a be nem fejezett letöltésfájlokat."
 
-#: src/gnet_property.c:2400
+#: src/gnet_property.c:2501
 msgid ""
 "Move complete files to this directory. If this is set to the SAME directory "
 "as the incomplete or corrupted files, files will be renamed with a trailing ."
@@ -750,7 +761,7 @@ msgstr ""
 "mappa, mint a be nem fejezett és rossz fájlok mappája, akkor a fájlneveket "
 "megtoldja egy .OK kiterjesztéssel."
 
-#: src/gnet_property.c:2421
+#: src/gnet_property.c:2522
 msgid ""
 "Move corrupted, downloaded files to this directory. If this is set to the "
 "SAME directory as the incomplete or completed files, files will be renamed "
@@ -760,11 +771,11 @@ msgstr ""
 "mint a befejezett vagy a be nem fejezett mappa, akkor a fájlneveket "
 "megtoldja a .BAD kiterjesztéssel."
 
-#: src/gnet_property.c:2442
+#: src/gnet_property.c:2543
 msgid "Directories which contain shared files"
 msgstr "A megosztott fájlok mappái"
 
-#: src/gnet_property.c:2463
+#: src/gnet_property.c:2564
 msgid ""
 "List of networks considered local.  This is a list of IP addresses, "
 "separated by ';'.  The IP address can be given out fully, as in 192.168.0.1, "
@@ -776,31 +787,31 @@ msgstr ""
 "„/” és a hálózati maszkprefixhossz. Pl. 192.168.0.1/24 jelenti a 192.168.0.* "
 "hálózatot."
 
-#: src/gnet_property.c:2484
+#: src/gnet_property.c:2585
 msgid "Total number of completed downloads in this session"
 msgstr "A program indítása óta az összes befejezett letöltés száma."
 
-#: src/gnet_property.c:2504
+#: src/gnet_property.c:2605
 msgid "Number of running uploads"
 msgstr "Folyamatban lévő feltöltések száma"
 
-#: src/gnet_property.c:2524
+#: src/gnet_property.c:2625
 msgid "Number of registered (pending) uploads"
 msgstr "Bejegyzett (függő) feltöltések száma"
 
-#: src/gnet_property.c:2544
+#: src/gnet_property.c:2645
 msgid "Total number of completed uploads in this session"
 msgstr "A program indítása óta az összes befejezett feltöltés száma."
 
-#: src/gnet_property.c:2564
+#: src/gnet_property.c:2665
 msgid "Global Unique IDentifier of this node"
 msgstr "E pont GUID-je"
 
-#: src/gnet_property.c:2581
+#: src/gnet_property.c:2682
 msgid "Whether or not to use swarming (recommended = YES)"
 msgstr "Legyen-e zsúfolás (ajánlott IGEN)"
 
-#: src/gnet_property.c:2598
+#: src/gnet_property.c:2699
 msgid ""
 "Whether or not to launch competing downloads when swarming and there are "
 "many sources available with a few chunks left."
@@ -808,7 +819,7 @@ msgstr ""
 "Legyen-e egyidejűleg több forrásból letöltés zsúfoláskor, amikor sok forrás "
 "van néhány maradék darabbal."
 
-#: src/gnet_property.c:2615
+#: src/gnet_property.c:2716
 msgid ""
 "Minimum chunk size when swarming.  This is only a hint as gtk-gnutella will "
 "download less if you only have a few bytes to get for a file..."
@@ -816,17 +827,17 @@ msgstr ""
 "Zsúfolás legkisebb darabja. Ez csak egy javaslat, mivel gtk-gnutella "
 "kevesebbet tölt le ha már csak néhány bájt maradt a fájlból."
 
-#: src/gnet_property.c:2635
+#: src/gnet_property.c:2736
 msgid "Maximum chunk size when swarming"
 msgstr "Zsúfolás legnagyobb darabja."
 
-#: src/gnet_property.c:2655
+#: src/gnet_property.c:2756
 msgid ""
 "Whether or not to automatically queue search results that match a file in "
 "the download queue"
 msgstr "Magától beállítsa-e a sorba a találatokat"
 
-#: src/gnet_property.c:2672
+#: src/gnet_property.c:2773
 msgid ""
 "Whether or not to automatically feed the download mesh with data gathered "
 "from the query hits that flow through our node. This looks for new entries "
@@ -836,13 +847,13 @@ msgstr ""
 "átfolynak.Ez újakat keres a megosztott fájlokhoz vagy azokhoz, amelyek a "
 "letöltő hálóban vannak."
 
-#: src/gnet_property.c:2689
+#: src/gnet_property.c:2790
 msgid ""
 "When enabled, SHA1s must match. Otherwise, name and size will be sufficient"
 msgstr ""
 "Engedélyezve SHA1-eknek meg kell egyezniük. Különben név és méret elégséges."
 
-#: src/gnet_property.c:2706
+#: src/gnet_property.c:2807
 msgid ""
 "Use fuzzy file name matching (recommended = NO; only rely on SHA1 matching "
 "to be safe)"
@@ -850,7 +861,7 @@ msgstr ""
 "Laza fájlnév illesztés (ajánlott = NEM; csak SHA1 illesztés a biztonság "
 "kedvéért)"
 
-#: src/gnet_property.c:2723
+#: src/gnet_property.c:2824
 msgid ""
 "Fuzziness threshold for filename matching (higher = stricter). A value of "
 "100 means the filenames must be 100% identical.  A value of 0 means any two "
@@ -860,15 +871,15 @@ msgstr ""
 "a fájlnevek 100%-ának meg kell egyeznie. 0-ás érték jelenti, bármely két "
 "fájlnév azonos. A legkisebb érték 50%."
 
-#: src/gnet_property.c:2743
+#: src/gnet_property.c:2844
 msgid "Whether gtk-gnutella thinks we're currently firewalled"
 msgstr "Gtk-gnutella szerint tűzfal mögött vagyunk-e"
 
-#: src/gnet_property.c:2760
+#: src/gnet_property.c:2861
 msgid "Whether gtk-gnutella thinks it's connected to the Internet"
 msgstr "Gtk-gnutella szerint csatlakoztunk-e az Internethez"
 
-#: src/gnet_property.c:2777
+#: src/gnet_property.c:2878
 msgid ""
 "Remove unnecessary ballast from query string before processing or forwarding "
 "them. Reduces traffic at the cost of little CPU time"
@@ -876,7 +887,7 @@ msgstr ""
 "Eltávolítja a felesleges terhet a kereső szövegből mielőtt feldolgozza "
 "vagytovábbítja. Csökkenti a forgalmat egy kis CPU-idő árán."
 
-#: src/gnet_property.c:2794
+#: src/gnet_property.c:2895
 msgid ""
 "Also use sources that don't provide a SHA1 value for the first chunk of a "
 "file. This dramatically reduces the 'No URN on server' messages, but may "
@@ -888,12 +899,12 @@ msgstr ""
 "eredményezhet átfedési problémákat később, ha az első darab egy másik "
 "fájlból származik. Óvatosan használja!"
 
-#: src/gnet_property.c:2811
+#: src/gnet_property.c:2912
 msgid ""
 "Whether gtk-gnutella is currently rebuilding its library in the background"
 msgstr "Pillanatnyilag újraépíti-e gtk-gnutella a könvtárát a háttérben"
 
-#: src/gnet_property.c:2828
+#: src/gnet_property.c:2929
 msgid ""
 "Whether gtk-gnutella is currently computing SHA1 of shared files in the "
 "background"
@@ -901,7 +912,7 @@ msgstr ""
 "Pillanatnyilag számít-e gtk-gnutella SHA1-et a megosztott fájlokra a "
 "háttérben"
 
-#: src/gnet_property.c:2845
+#: src/gnet_property.c:2946
 msgid ""
 "Whether gtk-gnutella is currently verifying SHA1 of downloaded files in the "
 "background"
@@ -909,7 +920,7 @@ msgstr ""
 "Pillanatnyilag ellenőriz-e gtk-gnutella SHA1-et a letöltött fájlokra a "
 "háttérben"
 
-#: src/gnet_property.c:2862
+#: src/gnet_property.c:2963
 msgid ""
 "Whether gtk-gnutella is currently moving files across filesystems or simply "
 "copying in the background"
@@ -917,7 +928,7 @@ msgstr ""
 "Pillanatnyilag mozgat-e gtk-gnutella fájlokat fájlrendszerek között vagy "
 "egyszerűen másolja őket a háttérben"
 
-#: src/gnet_property.c:2879
+#: src/gnet_property.c:2980
 msgid ""
 "If active, only compressed incoming connections are allowed after the "
 "minimum number of connections has been established. Always allows for one "
@@ -926,7 +937,7 @@ msgstr ""
 "Bekapcsolva csak a tömörített kapcsolatokat engedi miután a legkevesebb "
 "kapcsolat létrejött. Mindig enged egy nem tömörített kapcsolatot"
 
-#: src/gnet_property.c:2896
+#: src/gnet_property.c:2997
 msgid ""
 "If deactivated, only uploads and downloads will continue. All gNet "
 "connections are disabled/terminated."
@@ -934,7 +945,7 @@ msgstr ""
 "Kikapcsolva csak feltöltés és letöltés folytatódik. Minden gNet kapcsolatot "
 "letilt/lezár"
 
-#: src/gnet_property.c:2913
+#: src/gnet_property.c:3014
 msgid ""
 "Whether gtk-gnutella should make sure the server confirms the URN of the "
 "file we're requesting when it is known locally and a traditional request by "
@@ -946,7 +957,7 @@ msgstr ""
 "gtk-gnutella nem intéz /uri-res/N2R? kérelmeket) Beállítva felülbírálja a "
 "derűlátó első darab beállítást."
 
-#: src/gnet_property.c:2930
+#: src/gnet_property.c:3031
 msgid ""
 "Whether gtk-gnutella should make sure the server gives us back a non-empty "
 "identifying token."
@@ -954,19 +965,21 @@ msgstr ""
 "Megbizonyosodik-e gtk-gnutella arról, hogy a kiszolgáló nem ad vissza üres "
 "azonosító jegyet."
 
-#: src/gnet_property.c:2947
+#: src/gnet_property.c:3048
 msgid "Maximum amount of Ultrapeers we should connect to as a leaf."
 msgstr "Ultrapontok legnagyobb száma, amelyekhez levélként csatlakozunk."
 
-#: src/gnet_property.c:2967
-msgid "Maximum amount of leaves we can accept."
-msgstr "A fogadható levelek legnagyobb száma."
+#: src/gnet_property.c:3068
+msgid ""
+"Maximum amount of leaves we can accept.  To be promoted Ultra, you should "
+"reserve 32 bytes of bandwidth per leaf."
+msgstr ""
 
-#: src/gnet_property.c:2987
+#: src/gnet_property.c:3088
 msgid "What to do with files that will be ignored for downloading."
 msgstr "Mit tesz a letöltéskor mellőzött fájlokkkal."
 
-#: src/gnet_property.c:3007
+#: src/gnet_property.c:3108
 msgid ""
 "The peer mode you want to operate as for gtk-gnutella.  When auto is "
 "selected, gtk-gnutella will start as a leaf node and may be promoted to an "
@@ -977,47 +990,47 @@ msgstr ""
 "ponttá, ha a sávszélesség és a futási idő engedi, feltéve, hogy nem vagyunk "
 "tűzfallal elzárva."
 
-#: src/gnet_property.c:3027
+#: src/gnet_property.c:3128
 msgid "Current peer mode for gtk-gnutella"
 msgstr "Gtk-gnutella jelenlegi üzemmódja"
 
-#: src/gnet_property.c:3047
+#: src/gnet_property.c:3148
 msgid "How many file descriptors a process can open."
 msgstr "Hány fájlleírót tud egy folyamat megnyitni."
 
-#: src/gnet_property.c:3067
+#: src/gnet_property.c:3168
 msgid "How many KB of physical memory is available."
 msgstr "Hány KB fizikai memória elérhető."
 
-#: src/gnet_property.c:3087
+#: src/gnet_property.c:3188
 msgid "How many downloads are currently held in the queue."
 msgstr "Hány letöltés van jelenleg a sorban."
 
-#: src/gnet_property.c:3107
+#: src/gnet_property.c:3208
 msgid "How many downloads are currently running (downloading / connecting)."
 msgstr "Hány letöltés fut jelenleg (letöltés / kapcsolódás)."
 
-#: src/gnet_property.c:3127
+#: src/gnet_property.c:3228
 msgid "How many downloads are currently active."
 msgstr "Hány letöltés zajlik jelenleg."
 
-#: src/gnet_property.c:3147
+#: src/gnet_property.c:3248
 msgid "How many downloads are currently actively queued."
 msgstr "Hány letöltés állt sorba aktívan."
 
-#: src/gnet_property.c:3167
+#: src/gnet_property.c:3268
 msgid "How many downloads are currently passively queued."
 msgstr "Hány letöltés állt sorba passzívan."
 
-#: src/gnet_property.c:3187
+#: src/gnet_property.c:3288
 msgid "How many fileinfo do we have."
 msgstr "Hány fájlinfónk van."
 
-#: src/gnet_property.c:3207
+#: src/gnet_property.c:3308
 msgid "How many fileinfo with sources do we have."
 msgstr "Hány fájlinfónk van forrással együtt."
 
-#: src/gnet_property.c:3227
+#: src/gnet_property.c:3328
 msgid ""
 "How many queued downloads are currently responsive (remote servent answering "
 "requests)."
@@ -1025,15 +1038,15 @@ msgstr ""
 "Hány sorbaállított letöltés válaszol jelenleg (távoli kiszolgáló válasz "
 "kérelmek)."
 
-#: src/gnet_property.c:3247
+#: src/gnet_property.c:3348
 msgid "Amount of bytes downloaded so far, HTTP headers notwithstanding."
 msgstr "Eddig letöltött bájtok száma, HTTP fejlécek nélkül"
 
-#: src/gnet_property.c:3267
+#: src/gnet_property.c:3368
 msgid "Amount of bytes uploaded so far, HTTP headers notwithstanding."
 msgstr "Eddig feltöltött bájtok száma, HTTP fejlécek nélkül"
 
-#: src/gnet_property.c:3287
+#: src/gnet_property.c:3388
 msgid ""
 "Whether gtk-gnutella should serve partial files whilst they are still "
 "incompletely downloaded.  Recommended for network's health unless you "
@@ -1044,7 +1057,7 @@ msgstr ""
 "Ajánlott a hálózat érdekében hacsak nem oszt már sok fájlt, amely esetben "
 "nem baj, ha marad, de nem sokat számít."
 
-#: src/gnet_property.c:3304
+#: src/gnet_property.c:3405
 msgid ""
 "When partial file sharing (PFSP) is enabled, gtk-gnutella will strive to "
 "download chunks in a random order, to maximize the spreading of the file in "
@@ -1059,7 +1072,7 @@ msgstr ""
 "nézet, stb.) Ez a mező beállítja az adat első darabjának a méretét, amelyet "
 "a fájl elejétől folyamatosan kell letölteni. Ne állítsa túl nagyra!"
 
-#: src/gnet_property.c:3324
+#: src/gnet_property.c:3425
 msgid ""
 "Whether to apply a fuzzy filter on download mesh entries.  The purpose of "
 "this filtering is to remove entries whose names are too different to be "
@@ -1072,18 +1085,18 @@ msgstr ""
 "következetesebb lesz egy kis CPU-idő árán, és néhány érvényes elem "
 "elvesztésének árán."
 
-#: src/gnet_property.c:3341
+#: src/gnet_property.c:3442
 msgid "Number of crawler visits during this session"
 msgstr "Csúszó látogatások az indulás óta"
 
-#: src/gnet_property.c:3361
+#: src/gnet_property.c:3462
 msgid ""
 "Whether the clock of this host is kept accurate via NTP. When you enable "
 "this, the computed clock skew is ignored."
 msgstr ""
 "NTP-vel szinkronizált-e az óra. Engedélyezve a számított órahiba mellőzve "
 
-#: src/gnet_property.c:3378
+#: src/gnet_property.c:3479
 msgid ""
 "The signed clock skew of this host compared to absolute time. Adding this "
 "skew to the host clock should give the true time."
@@ -1091,7 +1104,7 @@ msgstr ""
 "E gép óra-hibája csillagidőhöz képest. Ez hozzáadva a gép órájához az igaz "
 "időt kapjuk."
 
-#: src/gnet_property.c:3398
+#: src/gnet_property.c:3499
 msgid ""
 "Whether gtk-gnutella should keep track of the IP of unstable servents it "
 "encounters, preventing further connections attempts to/from them."
@@ -1099,7 +1112,7 @@ msgstr ""
 "Érzékelt instabil kiszolgálók IP-követése, megakadályozza a jövőbeni "
 "kapcsolatot velük."
 
-#: src/gnet_property.c:3415
+#: src/gnet_property.c:3516
 msgid ""
 "Whether gtk-gnutella should determine the servent types (as identified by "
 "their vendor string) that are unstable, preventing further connections to/"
@@ -1110,7 +1123,7 @@ msgstr ""
 "amelyek instabilak megakadályozandó a jövőbeni kapcsolatokat velük. Csak az "
 "instabil IP-követéssel együtt műdödik."
 
-#: src/gnet_property.c:3432
+#: src/gnet_property.c:3533
 msgid ""
 "Whether gtk-gnutella should automatically remove the file whenever it gets a "
 "resuming mismatch and retry from scratch. Until Tiger Tree Hashes are "
@@ -1119,40 +1132,267 @@ msgstr ""
 "Magától eltávolítja-e gtk-gnutella a fájlt valahányszor az összegzés eltér, "
 "és előröl kezdi. A tigrisfa hash elterjedéséig ez a legkönnyebb lehetőség."
 
-#: src/gnet_property.c:3449
+#: src/gnet_property.c:3550
+msgid ""
+"The amount of bytes which gtk-gnutella will strip off the already downloaded "
+"bytes after a resuming mismatch, in the hope that only this amount was "
+"corrupted, preventing proper resuming. Most of the time, a resuming mismatch "
+"indicates bad data on the server, but if the already downloaded data is bad "
+"then backing out some of it may allow us to recover from the problem."
+msgstr ""
+
+#: src/gnet_property.c:3570
+#, fuzzy
 msgid ""
 "The hostname of the server that can be used by downloaders to find the IP "
 "address via a DNS resolution.  If you have a dynamic IP address coupled with "
 "a dynamic DNS service, then this is valuable to downloaders: they may find "
-"your node even after a few rotation of your IP address."
+"your node even after a few rotations of your IP address."
 msgstr ""
 "A kiszolgálógépnév, amelyet a letöltők használhatnak DNS névfeloldással. Ha "
 "önnek dinamikus IP címe van egy dinamikus DNS szolgáltatóval, akkor ez "
 "értékes a letöltőknek, mert megtalálják a gépet az IP-címváltozás után is."
 
-#: src/gnet_property.c:3470
+#: src/gnet_property.c:3591
 msgid ""
 "Whether gtk-gnutella should advertise the hostname of your server to "
 "downloaders and in query hits."
 msgstr "Reklámozza-e gtk-gnutella a gépnevét a letöltőknek és a keresőknek."
 
-#: src/gui_property.c:226
+#: src/gnet_property.c:3608 src/interface-glade2.c:4834
+msgid ""
+"Percentage of the number of connections we should reserve for gtk-gnutella "
+"nodes."
+msgstr ""
+
+#: src/gnet_property.c:3628
+#, fuzzy
+msgid "Maximum percentage of slots a vendor can occupy"
+msgstr "A fogadható levelek legnagyobb száma."
+
+#: src/gnet_property.c:3648
+msgid ""
+"Size of the RX socket buffer to be used for downloads, in kbytes. If you "
+"wish to avoid Gnutella downloads using up all your bandwidth, set it to a "
+"low value (default is 8K, which is fine). If you don't mind sucking up all "
+"the available bandwidth, increasing your connection latency, set it to a "
+"greater value. Remember: the smaller the value, the more you will be able to "
+"precisely control the incoming rate."
+msgstr ""
+
+#: src/gnet_property.c:3668
+msgid ""
+"Size of the RX socket buffer to be used for nodes, in kbytes. The lower the "
+"value, the faster the remote end will flow-control at the TCP/IP level if "
+"you don't read quickly enough, which would be the case if you limit the "
+"incoming bandwidth."
+msgstr ""
+
+#: src/gnet_property.c:3688
+msgid ""
+"Average recent latency between the sending of the HTTP request and the "
+"reception of the reply from the remote server, in msecs."
+msgstr ""
+
+#: src/gnet_property.c:3708
+msgid "Last time at which we performed the ultrapeer requirement checks."
+msgstr ""
+
+#: src/gnet_property.c:3728
+msgid "Last time an automatic switch between ultra and leaf mode occurred."
+msgstr ""
+
+#: src/gnet_property.c:3748
+msgid ""
+"Whether we meet the sufficient average uptime requirement to become an Ultra "
+"node."
+msgstr ""
+
+#: src/gnet_property.c:3765
+msgid ""
+"Whether we meet the sufficient average IP address uptime requirement to "
+"become an Ultra node."
+msgstr ""
+
+#: src/gnet_property.c:3782
+msgid ""
+"Whether we meet the sufficient node uptime requirement to become an Ultra "
+"node."
+msgstr ""
+
+#: src/gnet_property.c:3799
+msgid "Whether we meet the non-firewalled requirement to become an Ultra node."
+msgstr ""
+
+#: src/gnet_property.c:3816
+msgid ""
+"Whether we meet the amount of file descriptor requirement to become an Ultra "
+"node."
+msgstr ""
+
+#: src/gnet_property.c:3833
+msgid "Whether we meet the memory requirements to become an Ultra node."
+msgstr ""
+
+#: src/gnet_property.c:3850
+msgid "Whether we meet the bandwidth requirements to become an Ultra node."
+msgstr ""
+
+#: src/gnet_property.c:3867
+msgid ""
+"Size of the search queue holding the locally generated queries before they "
+"are sent on a given connection.  When full, the oldest query is dropped "
+"without being sent.  Set it so that it is slightly larger than the amount of "
+"opened searches."
+msgstr ""
+
+#: src/gnet_property.c:3887
+msgid ""
+"Minimum amount of seconds between two consecutive queries sent to a given "
+"connection (for locally generated queries only!). The larger the value, the "
+"less negative impact it has on the network."
+msgstr ""
+
+#: src/gnet_property.c:3907
+msgid ""
+"Whether connection to gtk-gnutella via the 'shell' control interface should "
+"be allowed."
+msgstr ""
+
+#: src/gnet_property.c:3924
+msgid ""
+"Amount of seconds to leave 'dead' entries around so that they can still be "
+"displayed by the GUI along with the termination status."
+msgstr ""
+
+#: src/gnet_property.c:3944
+msgid ""
+"Whether gtk-gnutella should actively monitor query strings by TTL and hop "
+"count and drop duplicates.  Only applies when not running as a leaf node, "
+"and only for queries with hop count > 0, i.e. not from our immediate "
+"neighbour.  Dropped queries will be accounted for in the 'Message throttle' "
+"counter."
+msgstr ""
+
+#: src/gnet_property.c:3961
+msgid ""
+"Half the duration during which gtk-gnutella should remember the recently "
+"relayed queries by TTL and hop count.  The default value of 5 should be just "
+"fine, but you can experiment with different settings if you want.  The "
+"higher it is set, the more likely you are to drop legitimate queries, so be "
+"careful."
+msgstr ""
+
+#: src/gnet_property.c:3981
+msgid ""
+"The minimum amount of seconds to enforce between two identical queries "
+"coming from leaf nodes.  If the requery happens before the amount specified, "
+"it is dropped and accounted for in the 'Message throttle' counter.  Too "
+"frequent requeries are harmful for the network, yet we must allow some "
+"amount of requerying given the dynamic nature of Gnutella connections.  You "
+"can't disable this checking, but you can lower the constraint significantly. "
+"Deviations from the default of 1700 have exponential effects on the network "
+"traffic."
+msgstr ""
+
+#: src/gnet_property.c:4001
+msgid "Time at which we started the last scan of the library."
+msgstr ""
+
+#: src/gnet_property.c:4021
+msgid "Time spent scanning the library, in seconds."
+msgstr ""
+
+#: src/gnet_property.c:4041
+msgid "Time at which we started shared file indexing."
+msgstr ""
+
+#: src/gnet_property.c:4061
+msgid "Time spent indexing shared files."
+msgstr ""
+
+#: src/gnet_property.c:4081
+msgid "Time at which we started query routing table generation."
+msgstr ""
+
+#: src/gnet_property.c:4101
+msgid "Time spent computing the QRP table, in seconds."
+msgstr ""
+
+#: src/gnet_property.c:4121
+msgid "Time at which we started computing our QRP patch."
+msgstr ""
+
+#: src/gnet_property.c:4141
+msgid "Time spent computing the QRP table patch, in seconds."
+msgstr ""
+
+#: src/gnet_property.c:4161
+msgid "Query routing table generation number."
+msgstr ""
+
+#: src/gnet_property.c:4181
+msgid "Amount of slots used by our QRP table."
+msgstr ""
+
+#: src/gnet_property.c:4201
+msgid "Amount of slots filled within our QRP table."
+msgstr ""
+
+#: src/gnet_property.c:4221
+msgid "Percentage of slots filled within our QRP table."
+msgstr ""
+
+#: src/gnet_property.c:4241
+msgid "Percentage of hashing conflicts whilst inserting data in our QRP table."
+msgstr ""
+
+#: src/gnet_property.c:4261
+msgid "Amount of hashed keywords in our QRP table."
+msgstr ""
+
+#: src/gnet_property.c:4281
+msgid "Total raw size of the QRP table patch, in bytes"
+msgstr ""
+
+#: src/gnet_property.c:4301
+msgid "Final QRP table patch length, after possible compression."
+msgstr ""
+
+#: src/gnet_property.c:4321
+msgid "QRP table patch compression ratio, in percent, 0 means none."
+msgstr ""
+
+#: src/gnet_property.c:4341
+msgid ""
+"This property must be set to the current version number of gtk-gnutella in "
+"order to allow it to run when it is ancient"
+msgstr ""
+
+#: src/gnet_property.c:4362
+#, fuzzy
+msgid "Indicates that gtk-gnutella will expire in that many days."
+msgstr ""
+"Jelzi, hogy a gtk-gnutella az ön által futtatott változatot nagyon réginek "
+"találja"
+
+#: src/gui_property.c:268
 msgid "Search monitor enabled"
 msgstr "Keresésfigyelő engedélyezve"
 
-#: src/gui_property.c:243
+#: src/gui_property.c:285
 msgid "Maximum number of queries visible in search monitor"
 msgstr "A keresésfigyelőben látható lekérdezések száma legfeljebb"
 
-#: src/gui_property.c:263
+#: src/gui_property.c:305
 msgid "Match queue selection by regexp case sensitive"
 msgstr "Várakozási sor illesztés kis/nagybetű-érzékeny reguláris kifejezéssel"
 
-#: src/gui_property.c:280
+#: src/gui_property.c:322
 msgid "Autoselect similar files in searches"
 msgstr "Keresésekben magától kiválasztja a hasonló fájlokat"
 
-#: src/gui_property.c:297
+#: src/gui_property.c:339
 msgid ""
 "Whether to hide hits that have been considered for auto-downloading based on "
 "the SHA1 or your filters."
@@ -1160,183 +1400,192 @@ msgstr ""
 "Elrejtse-e az SHA1 vagy filterek alapján magától letöltésre kerülő "
 "találatokat"
 
-#: src/gui_property.c:314
+#: src/gui_property.c:356
 msgid "Widths of the columns in the nodes table"
 msgstr "Az oszlopok szélessége a pontok táblában"
 
-#: src/gui_property.c:334
+#: src/gui_property.c:376
 msgid "Widths of the columns in the active downloads table"
 msgstr "Az oszlopok szélessége az aktív letöltések táblában"
 
-#: src/gui_property.c:354
+#: src/gui_property.c:396
 msgid "Widths of the columns in the queued downloads table"
 msgstr "Az oszlopok szélessége a sorba állt letöltések táblában"
 
-#: src/gui_property.c:374
+#: src/gui_property.c:416
 msgid "Widths of the columns in the file info table"
 msgstr "Az oszlopok szélessége a fájlinfó táblában"
 
-#: src/gui_property.c:394
+#: src/gui_property.c:436
 msgid "Which columns are visible in the search results tables"
 msgstr "Mely oszlopok láthatóak a keresés eredményei táblában"
 
-#: src/gui_property.c:414
+#: src/gui_property.c:456
 msgid "Widths of the columns in the search list on the sidebar"
 msgstr "Az oszlopok szélessége a keresések listájában az oldalpanelen"
 
-#: src/gui_property.c:434
+#: src/gui_property.c:476
 msgid "Widths of the columns in the search results tables"
 msgstr "Az oszlopok szélessége a keresés eredményei táblában"
 
-#: src/gui_property.c:454
+#: src/gui_property.c:496
 msgid "Widths of the columns in the search stats table"
 msgstr "Az oszlopok szélessége a keresés-statisztika táblában"
 
-#: src/gui_property.c:474
+#: src/gui_property.c:516
 msgid "Widths of the columns in the upload stats table"
 msgstr "Az oszlopok szélessége a feltöltés-statisztika táblában"
 
-#: src/gui_property.c:494
+#: src/gui_property.c:536
 msgid "Widths of the columns in the uploads table"
 msgstr "Az oszlopok szélessége a feltöltések táblában"
 
-#: src/gui_property.c:514
+#: src/gui_property.c:556
 msgid "Widths of the columns in the rules table in the filter dialog"
 msgstr "Az oszlopok szélessége a szabályok táblában a szűrő dialógusban"
 
-#: src/gui_property.c:534
+#: src/gui_property.c:576
 msgid "Widths of the columns in the filter table in the filter dialog"
 msgstr "Az oszlopok szélessége a szűrők táblában a szűrő dialógusban"
 
-#: src/gui_property.c:554
+#: src/gui_property.c:596
 msgid "Widths of the columns in the gnet packet stats table"
 msgstr "Az oszlopok szélessége a gnet csomag-statisztika táblájában"
 
-#: src/gui_property.c:574
+#: src/gui_property.c:616
 msgid "Widths of the columns in the gnet fc ttl stats table"
 msgstr "Az oszlopok szélessége a gnet fc ttl statisztika táblában"
 
-#: src/gui_property.c:594 src/gui_property.c:614
+#: src/gui_property.c:636 src/gui_property.c:656
 msgid "Widths of the columns in the gnet fc hops stats table"
 msgstr "Az oszlopok szélessége a gnet sugár-számláló statisztika táblában"
 
-#: src/gui_property.c:634 src/gui_property.c:654
+#: src/gui_property.c:676 src/gui_property.c:696
 msgid "Widths of the columns in the gnet stats drop reasons table"
 msgstr "Az oszlopok szélessége a gnet statisztika ejtés indokai táblában"
 
-#: src/gui_property.c:674
+#: src/gui_property.c:716
 msgid "Position and size of the main window"
 msgstr "A fő ablak helye és mérete"
 
-#: src/gui_property.c:694
+#: src/gui_property.c:736
 msgid "Position and size of the filter dialog"
 msgstr "A szűrő dialógus helye és mérete"
 
-#: src/gui_property.c:714
+#: src/gui_property.c:756
 msgid "Position of the divider in the downloads panel"
 msgstr "Az elválasztás helye a letöltések panelen"
 
-#: src/gui_property.c:734
+#: src/gui_property.c:776
+#, fuzzy
+msgid "Position of the divider in the fileinfo panel"
+msgstr "Az elválasztás helye a letöltések panelen"
+
+#: src/gui_property.c:796
 msgid "Size of the sidebar"
 msgstr "Az oldalpanel szélessége"
 
-#: src/gui_property.c:754
+#: src/gui_property.c:816
 msgid "Position of the divider in the gnet stats pane"
 msgstr "Az elválasztás helye gnet statisztikái lapon"
 
-#: src/gui_property.c:774
+#: src/gui_property.c:836
 msgid "Size of the menu in the sidebar"
 msgstr "A menü mérete az oldalpanelen"
 
-#: src/gui_property.c:794
+#: src/gui_property.c:856
 msgid "Position of the divider in the search results pane"
 msgstr "Az elválasztás helye keresések eredményei lapon"
 
-#: src/gui_property.c:814
+#: src/gui_property.c:876
 msgid "Maximum number of results to show in any search"
 msgstr "A legtöbb eredmény, amely valamely keresésből ered"
 
-#: src/gui_property.c:834
+#: src/gui_property.c:896
 msgid "Debug level for the gui"
 msgstr "A gui hibajavítási szintje"
 
-#: src/gui_property.c:854
+#: src/gui_property.c:916
 msgid "Size of the filter tree in the filter dialog"
 msgstr "A szűrőfa mérete a szűrő dialógusban"
 
-#: src/gui_property.c:874
+#: src/gui_property.c:936
 msgid "Show tabs or search list"
 msgstr "Tabokat mutat a keresőlistában"
 
-#: src/gui_property.c:891
+#: src/gui_property.c:953
 msgid "Display toolbar"
 msgstr "Eszköztárat mutat"
 
-#: src/gui_property.c:908
+#: src/gui_property.c:970
 msgid "Display statusbar"
 msgstr "Állapotsort mutat"
 
-#: src/gui_property.c:925
+#: src/gui_property.c:987
 msgid "Display upload statistics in sidebar"
 msgstr "Feltöltési satisztikákat mutat az oldalpanelen"
 
-#: src/gui_property.c:942
+#: src/gui_property.c:1004
 msgid "Display download statistics in sidebar"
 msgstr "Letöltési satisztikákat mutat az oldalpanelen"
 
-#: src/gui_property.c:959
+#: src/gui_property.c:1021
 msgid "Display connection statistics in sidebar"
 msgstr "Csatlakozási satisztikákat mutat az oldalpanelen"
 
-#: src/gui_property.c:976
+#: src/gui_property.c:1038
 msgid "Display incoming HTTP traffic bandwidth usage"
 msgstr "Bejövő HTTPforgalom sávszélesség-használatát mutatja"
 
-#: src/gui_property.c:993
+#: src/gui_property.c:1055
 msgid "Display outgoing HTTP traffic bandwidth usage"
 msgstr "Kimenő HTTPforgalom sávszélesség-használatát mutatja"
 
-#: src/gui_property.c:1010
+#: src/gui_property.c:1072
 msgid "Display incoming gNet traffic bandwidth usage"
 msgstr "Bejövő gNetforgalom sávszélesség-használatát mutatja"
 
-#: src/gui_property.c:1027
+#: src/gui_property.c:1089
 msgid "Display outgoing gNet traffic bandwidth usage"
 msgstr "Kimenő gNetforgalom sávszélesség-használatát mutatja"
 
-#: src/gui_property.c:1044
+#: src/gui_property.c:1106
 msgid "Display incoming gNet leaf traffic bandwidth usage"
 msgstr "Bejövő gNetlevélforgalom sávszélesség-használatát mutatja"
 
-#: src/gui_property.c:1061
+#: src/gui_property.c:1123
 msgid "Display outgoing gNet leaf traffic bandwidth usage"
 msgstr "Kimenő gNetlevélforgalom sávszélesség-használatát mutatja"
 
-#: src/gui_property.c:1078
+#: src/gui_property.c:1140
+msgid "Automatically hide leaf bandwidth display when not in ultrapeer mode"
+msgstr ""
+
+#: src/gui_property.c:1157
 msgid "Display incoming HTTP traffic bandwidth average"
 msgstr "Bejövő HTTPforgalom sávszélesség-használatát mutatja"
 
-#: src/gui_property.c:1095
+#: src/gui_property.c:1174
 msgid "Display outgoing HTTP traffic bandwidth average"
 msgstr "HTTPforgalom átlagos sávszélesség-használatát mutatja"
 
-#: src/gui_property.c:1112
+#: src/gui_property.c:1191
 msgid "Display incoming gNet traffic bandwidth average"
 msgstr "Bejövő gNetforgalom átlagos sávszélesség-használatát mutatja"
 
-#: src/gui_property.c:1129
+#: src/gui_property.c:1208
 msgid "Display outgoing gNet traffic bandwidth average"
 msgstr "Kimenő gNetforgalom átlagos sávszélesség-használatát mutatja"
 
-#: src/gui_property.c:1146
+#: src/gui_property.c:1225
 msgid "Display incoming gNet leaf traffic bandwidth average"
 msgstr "Bejövő gNetlevélforgalom átlagos sávszélesség-használatát mutatja"
 
-#: src/gui_property.c:1163
+#: src/gui_property.c:1242
 msgid "Display outgoing gNet leaf traffic bandwidth average"
 msgstr "Kimenő gNetlevélforgalom átlagos sávszélesség-használatát mutatja"
 
-#: src/gui_property.c:1180
+#: src/gui_property.c:1259
 msgid ""
 "When enabled autoselection only takes place if filesize matches exactly, "
 "otherwise it must be equal or greater"
@@ -1344,31 +1593,31 @@ msgstr ""
 "Engedélyezve csak akkor választ ki magától, ha a fájlméretek megegyeznek, "
 "különben egyenlő vagy nagyobb kell legyen"
 
-#: src/gui_property.c:1197
+#: src/gui_property.c:1276
 msgid "Jump to downloads screen when downloading a file"
 msgstr "A letöltések képernyőre ugrik amikor letölt egy fájlt"
 
-#: src/gui_property.c:1214
+#: src/gui_property.c:1293
 msgid "Display search settings"
 msgstr "Kereső-beállításokat mutat"
 
-#: src/gui_property.c:1231
+#: src/gui_property.c:1310
 msgid "Display download settings"
 msgstr "Letöltő-beállításokat mutat"
 
-#: src/gui_property.c:1248
+#: src/gui_property.c:1327
 msgid "Use fuzzy name match for autoselection"
 msgstr "Laza névillesztés automatikus kiválasztáskor"
 
-#: src/gui_property.c:1265
+#: src/gui_property.c:1344
 msgid "Collect statistics about searches that go through this node"
 msgstr "E ponton átfolyó keresésekről statisztikákat gyűjt"
 
-#: src/gui_property.c:1285
+#: src/gui_property.c:1364
 msgid "Interval in which the search stats are updated"
 msgstr "A kereső-statisztikák időszerűsítésének időtartatama"
 
-#: src/gui_property.c:1305
+#: src/gui_property.c:1384
 msgid ""
 "A deletion coefficient, so that small non-significant results can be "
 "dropped.  The lower it is, the more search statistics will be kept in memory."
@@ -1376,15 +1625,15 @@ msgstr ""
 "Törlési együttható, hogy a kicsi, nem jelentős eredmények ejthetők.Minél "
 "alacsonyabb, annál több kereső-statisztika marad a memóriában."
 
-#: src/gui_property.c:1325
+#: src/gui_property.c:1404
 msgid "Show confirmation dialog when leaving gtk-gnutella"
 msgstr "Gtk-gnutellából kilépéskor megerősítés ablakot mutat"
 
-#: src/gui_property.c:1342
+#: src/gui_property.c:1421
 msgid "Show a helpful message when the mouse pointer lingers over a widget"
 msgstr "Súgó üzenetet mutat amikor az egér egy bigyón tétovázik"
 
-#: src/gui_property.c:1359
+#: src/gui_property.c:1438
 msgid ""
 "Show a lot more settings to tweak. If you tamper with them be sure to read "
 "up on what they are doing"
@@ -1392,214 +1641,321 @@ msgstr ""
 "Sokkal több beállítást mutat. Ha valamelyikkel babrál, nézzen utána mit is "
 "csinál!"
 
-#: src/gui_property.c:1376
+#: src/gui_property.c:1455
 msgid "Show percentages instead of absolute values in the gnet stats"
 msgstr "Abszolút értékek helyett százalékokat mutat a gnet statisztikákban"
 
-#: src/gui_property.c:1393
+#: src/gui_property.c:1472
 msgid "Show bytes instead of packages in the gnet stats"
 msgstr "Bájtokat mutat csomagok helyett a gnet statisztikákban"
 
-#: src/gui_property.c:1410
+#: src/gui_property.c:1489
 msgid "Show stats per hops instead of per TTL"
 msgstr "Sugár szerinti statisztikákat mutat TTL szerinti helyett"
 
-#: src/gui_property.c:1427
+#: src/gui_property.c:1506
 msgid "Add the headers to the volume"
 msgstr "Mérethez hozzáadja a fejléceket"
 
-#: src/gui_property.c:1444
+#: src/gui_property.c:1523
 msgid ""
 "Show percentages instead of absolute values in the gnet stats (drop reasons)"
 msgstr ""
 "Százalékokat mutat abszolút értékek helyett a gnet statisztikákban (ejtések "
 "okai)"
 
-#: src/gui_property.c:1461
+#: src/gui_property.c:1540
 msgid "Widths of the columns in the gnet stats general table"
 msgstr "Oszlopok szélessége az általános gnet statisztikák táblán"
 
-#: src/gui_property.c:1481 src/interface-glade2.c:7061
+#: src/gui_property.c:1560 src/interface-glade2.c:9321
 msgid "Auto clear completed uploads"
 msgstr "Magától takarítja a befejezett feltöltéseket"
 
-#: src/gui_property.c:1498 src/interface-glade2.c:7068
+#: src/gui_property.c:1577 src/interface-glade2.c:9328
 msgid "Auto clear failed uploads"
 msgstr "Magától takarítja a sikertelen feltöltéseket"
 
-#: src/gui_property.c:1515
+#: src/gui_property.c:1594
+msgid ""
+"Whether the node's uptime should be shown (not all nodes provide this "
+"information)."
+msgstr ""
+
+#: src/gui_property.c:1611
+msgid "Whether the handshaking version number should be displayed."
+msgstr ""
+
+#: src/gui_property.c:1628
+msgid ""
+"Whether detailed traffic information should be shown for the node.  When "
+"enabled, it is possible to also customize how much information to display.  "
+"When disabled, only TX and RX message counts are displayed, followed by the "
+"message queue info."
+msgstr ""
+
+#: src/gui_property.c:1645
+msgid "Whether TX traffic compression ratio should be displayed."
+msgstr ""
+
+#: src/gui_property.c:1662
+msgid "Whether RX traffic compression ratio should be displayed."
+msgstr ""
+
+#: src/gui_property.c:1679
+msgid "Whether TX instantaneous transmission speed should be displayed."
+msgstr ""
+
+#: src/gui_property.c:1696
+msgid "Whether RX instantaneous transmission speed should be displayed."
+msgstr ""
+
+#: src/gui_property.c:1713
+msgid "Whether count of transmitted queries should be displayed."
+msgstr ""
+
+#: src/gui_property.c:1730
+msgid "Whether count of received queries should be displayed."
+msgstr ""
+
+#: src/gui_property.c:1747
+msgid "Whether count of transmitted query hits should be displayed."
+msgstr ""
+
+#: src/gui_property.c:1764
+msgid "Whether count of received query hits should be displayed."
+msgstr ""
+
+#: src/gui_property.c:1781
+msgid "Whether count of locally generated queries should be displayed."
+msgstr ""
+
+#: src/gui_property.c:1798
+msgid ""
+"Whether count of local queries pending transmission should be displayed."
+msgstr ""
+
+#: src/gui_property.c:1815
+msgid "Whether count of dropped messages on TX should be displayed."
+msgstr ""
+
+#: src/gui_property.c:1832
+msgid "Whether count of dropped messages on RX should be displayed."
+msgstr ""
+
+#: src/gui_property.c:1849
+msgid ""
+"Whether Query Routing Protocol statistics should be displayed. For a leaf "
+"node, this is simply the ratio of queries that generated a hit over the "
+"amount of received queries.  For an ultrapeer, it displays the amount of "
+"slots in the QRP table, 'g' the generation number, 'f' the fill ratio, 't' "
+"the passing threshold and 'e' the efficiency, i.e. the proportion of "
+"received queries that are sent to the leaf."
+msgstr ""
+
+#: src/gui_property.c:1866
+msgid ""
+"Whether duplicate, bad and weird received message counts should be displayed."
+msgstr ""
+
+#: src/gui_property.c:1883
+msgid ""
+"Whether ping/pong roundtrip times (average and last) should be displayed.  "
+"Values shown are in milliseconds."
+msgstr ""
+
+#: src/gui_property.c:1900
+msgid ""
+"The amount of time in seconds that the GUI should buffer search results as "
+"they come in.  This prevents too frequent updates that may cause flickering, "
+"but also saves CPU cycles since less redrawing has to occur in the search "
+"pane."
+msgstr ""
+
+#: src/gui_property.c:1920
 msgid "Expanded stati of the nodes in the treemenu"
 msgstr "Kiterjesztett statisztikák a pontokról a famenüben"
 
-#: src/gui_property.c:1535
+#: src/gui_property.c:1940
 msgid "Widths of the columns in the gnet packet stats table (pkg)[GTK2]"
 msgstr "Oszlopok szélessége a gnet csomagok statisztikái táblán (pkg)[GTK2]"
 
-#: src/gui_property.c:1555
+#: src/gui_property.c:1960
 msgid "Widths of the columns in the gnet packet stats table (byte) [GTK2]"
 msgstr "Oszlopok szélessége a gnet csomagok statisztikái táblán (byte) [GTK2]"
 
-#: src/gui_property.c:1575
+#: src/gui_property.c:1980
 msgid "Configures the appearance of the toolbar"
 msgstr "Beállítja az eszköztár megjelenését"
 
-#: src/interface-glade2.c:57 src/interface-glade2.c:247
-#: src/interface-glade2.c:10273 src/interface-glade2.c:10554
-#: src/interface-glade2.c:10853 src/interface-glade2.c:11088
-#: src/interface-glade2.c:11361 src/interface-glade2.c:11998
-#: src/interface-glade2.c:12597
+#: src/interface-glade2.c:62 src/interface-glade2.c:294
+#: src/interface-glade2.c:12411 src/interface-glade2.c:12692
+#: src/interface-glade2.c:12991 src/interface-glade2.c:13226
+#: src/interface-glade2.c:13499 src/interface-glade2.c:14136
+#: src/interface-glade2.c:14735
 msgid "Abort"
 msgstr "Abbahagy"
 
-#: src/interface-glade2.c:67 src/interface-glade2.c:257
+#: src/interface-glade2.c:72 src/interface-glade2.c:304
 msgid "Abort all..."
 msgstr "Mindent abbahagy..."
 
-#: src/interface-glade2.c:76 src/interface-glade2.c:266
+#: src/interface-glade2.c:81 src/interface-glade2.c:313
 msgid "with name"
 msgstr "név szerint"
 
-#: src/interface-glade2.c:81 src/interface-glade2.c:271
+#: src/interface-glade2.c:86 src/interface-glade2.c:318
 msgid "from host"
 msgstr "gépről"
 
-#: src/interface-glade2.c:86 src/interface-glade2.c:276
+#: src/interface-glade2.c:91 src/interface-glade2.c:323
 msgid "with urn:sha1"
 msgstr "urn:sha1-gyel"
 
-#: src/interface-glade2.c:91
+#: src/interface-glade2.c:96
 msgid "Remove file"
 msgstr "Fájlt eltávolít"
 
-#: src/interface-glade2.c:101
+#: src/interface-glade2.c:106
 msgid "Resume"
 msgstr "Folytat"
 
-#: src/interface-glade2.c:111
+#: src/interface-glade2.c:116
 msgid "Move back to queue"
 msgstr "Sorba visszaállít"
 
-#: src/interface-glade2.c:127
+#: src/interface-glade2.c:132
 msgid "Force push mode"
 msgstr "Nyomás-üzemmódot kényszerít"
 
-#: src/interface-glade2.c:138 src/interface-glade2.c:287
+#: src/interface-glade2.c:143 src/interface-glade2.c:334
 msgid "Copy url to clipboard"
 msgstr "Url-t vágólapra másol"
 
-#: src/interface-glade2.c:148 src/interface-glade2.c:297
+#: src/interface-glade2.c:153 src/interface-glade2.c:344
 msgid "Connect to host"
 msgstr "Géphez csatlakozik"
 
-#: src/interface-glade2.c:242
+#: src/interface-glade2.c:169 src/interface-glade2.c:360
+#: src/interface-glade2.c:633
+msgid "Expand all"
+msgstr ""
+
+#: src/interface-glade2.c:179 src/interface-glade2.c:370
+#: src/interface-glade2.c:643
+#, fuzzy
+msgid "Collapse all"
+msgstr "Minden törlése"
+
+#: src/interface-glade2.c:289
 msgid "Start now"
 msgstr "Most kezd"
 
-#: src/interface-glade2.c:398
+#: src/interface-glade2.c:487
 msgid "Edit filter"
 msgstr "Szűrő szerkesztése"
 
-#: src/interface-glade2.c:414
+#: src/interface-glade2.c:503
 msgid "Download selected files"
 msgstr "Kijelölt fájlok letöltése"
 
-#: src/interface-glade2.c:424
+#: src/interface-glade2.c:513
 msgid "Drop..."
 msgstr "Ejt..."
 
-#: src/interface-glade2.c:438 src/interface-glade2.c:467
+#: src/interface-glade2.c:527 src/interface-glade2.c:556
 msgid "results with name"
 msgstr "eredmények név szerint"
 
-#: src/interface-glade2.c:443 src/interface-glade2.c:472
+#: src/interface-glade2.c:532 src/interface-glade2.c:561
 msgid "results with urn:sha1"
 msgstr "eredmények urn:sha1 szerint"
 
-#: src/interface-glade2.c:448 src/interface-glade2.c:477
+#: src/interface-glade2.c:537 src/interface-glade2.c:566
 msgid "results from host"
 msgstr "eredmények a következő géptől:"
 
-#: src/interface-glade2.c:453
+#: src/interface-glade2.c:542
 msgid "Globally drop..."
 msgstr "Globálisan ejt..."
 
-#: src/interface-glade2.c:488
+#: src/interface-glade2.c:577
 msgid "Auto-download selected by"
 msgstr "Automatikus letöltés kiválasztva a következő szerint"
 
-#: src/interface-glade2.c:502
+#: src/interface-glade2.c:591 src/search_gui.c:1641 src/search_gui.c:1647
 msgid "urn:sha1"
 msgstr "urn:sha1"
 
-#: src/interface-glade2.c:512
+#: src/interface-glade2.c:601
 msgid "name"
 msgstr "név"
 
-#: src/interface-glade2.c:528
+#: src/interface-glade2.c:617
 msgid "New search from selected"
 msgstr "Új keresés a kiválasztottakból"
 
-#: src/interface-glade2.c:544
+#: src/interface-glade2.c:659
 msgid "Stop this search"
 msgstr "Leállítja e keresést"
 
-#: src/interface-glade2.c:554
+#: src/interface-glade2.c:669
 msgid "Resume this search"
 msgstr "Folytatja e keresést"
 
-#: src/interface-glade2.c:564
+#: src/interface-glade2.c:679
 msgid "Restart this search"
 msgstr "Újrakezdi e keresést"
 
-#: src/interface-glade2.c:574
+#: src/interface-glade2.c:689
 msgid "Duplicate this search"
 msgstr "E keresés megkettőzése"
 
-#: src/interface-glade2.c:590
+#: src/interface-glade2.c:705
 msgid "Show tabs"
 msgstr "Fülek mutatása"
 
-#: src/interface-glade2.c:600 src/interface-glade2.c:13165
+#: src/interface-glade2.c:715 src/interface-glade2.c:15303
 msgid "Configure columns"
 msgstr "Oszlopok beállítása"
 
-#: src/interface-glade2.c:719
+#: src/interface-glade2.c:845
 msgid "Add as search"
 msgstr "Keresésként hozzáadás"
 
-#: src/interface-glade2.c:744
+#: src/interface-glade2.c:870
 msgid "Nothing for now"
 msgstr "Most semmit"
 
-#: src/interface-glade2.c:814
+#: src/interface-glade2.c:940
 msgid "Ruleset editor"
 msgstr "Szabálytárszerkesztő"
 
-#: src/interface-glade2.c:850
+#: src/interface-glade2.c:976
 msgid "Create filter"
 msgstr "Szűrő létrehozása"
 
-#: src/interface-glade2.c:870 src/interface-glade2.c:904
+#: src/interface-glade2.c:996 src/interface-glade2.c:1030
 msgid "Filter"
 msgstr "Szűrő"
 
-#: src/interface-glade2.c:876
+#: src/interface-glade2.c:1002
 msgid "Rules"
 msgstr "Szabályok"
 
-#: src/interface-glade2.c:882 src/interface-glade2.c:960
+#: src/interface-glade2.c:1008 src/interface-glade2.c:1086
 msgid "Match"
 msgstr "Illesztés"
 
-#: src/interface-glade2.c:915
+#: src/interface-glade2.c:1041
 msgid "enabled"
 msgstr "engedélyezett"
 
-#: src/interface-glade2.c:920
+#: src/interface-glade2.c:1046
 msgid "Remove filter"
 msgstr "Szűrő eltávolítása"
 
-#: src/interface-glade2.c:924
+#: src/interface-glade2.c:1050
 msgid ""
 "A filter cannot be removed if it is bound to a search or if it is in use "
 "(used as a target in a rule)."
@@ -1607,22 +1963,22 @@ msgstr ""
 "Szűrőt nem lehet eltávolítani, ha kereséshez kötött és használják (szabály "
 "célja)."
 
-#: src/interface-glade2.c:942
+#: src/interface-glade2.c:1068
 msgid "!"
 msgstr "¬"
 
-#: src/interface-glade2.c:948
+#: src/interface-glade2.c:1074
 msgid "Condition"
 msgstr "Feltétel"
 
-#: src/interface-glade2.c:954 src/interface-glade2.c:10179
-#: src/interface-glade2.c:10501 src/interface-glade2.c:10800
-#: src/interface-glade2.c:11035 src/interface-glade2.c:11308
-#: src/interface-glade2.c:11904 src/interface-glade2.c:12544
+#: src/interface-glade2.c:1080 src/interface-glade2.c:12317
+#: src/interface-glade2.c:12639 src/interface-glade2.c:12938
+#: src/interface-glade2.c:13173 src/interface-glade2.c:13446
+#: src/interface-glade2.c:14042 src/interface-glade2.c:14682
 msgid "Target"
 msgstr "Cél"
 
-#: src/interface-glade2.c:972
+#: src/interface-glade2.c:1098
 msgid ""
 "Remove all rules\n"
 "from this filter"
@@ -1630,7 +1986,7 @@ msgstr ""
 "Minden szabályt\n"
 "töröl e szűrőből"
 
-#: src/interface-glade2.c:977
+#: src/interface-glade2.c:1103
 msgid ""
 "Reset all rule stats\n"
 "in this filter"
@@ -1638,7 +1994,7 @@ msgstr ""
 "Szabálystatisztika-adatok\n"
 "nullázása e szűrőre"
 
-#: src/interface-glade2.c:982
+#: src/interface-glade2.c:1108
 msgid ""
 "Reset filter stats\n"
 "for this filter"
@@ -1646,7 +2002,7 @@ msgstr ""
 "Szűrőstatisztika-adatok\n"
 "nullázása e szűrőre"
 
-#: src/interface-glade2.c:987
+#: src/interface-glade2.c:1113
 msgid ""
 "Reset filter stats\n"
 "for all filters"
@@ -1654,15 +2010,15 @@ msgstr ""
 "Szűrőstatisztika-adatok\n"
 "nullázása minden szűrőre"
 
-#: src/interface-glade2.c:1051
+#: src/interface-glade2.c:1177
 msgid "Revert"
 msgstr "Visszaállít"
 
-#: src/interface-glade2.c:1192
+#: src/interface-glade2.c:1318
 msgid "gtk-gnutella shutdown"
 msgstr "gtk-gnutella leállítása"
 
-#: src/interface-glade2.c:1213
+#: src/interface-glade2.c:1339
 msgid ""
 "Gtk-gnutella is shutting down.\n"
 "Sending bye messages to peers.\n"
@@ -1674,75 +2030,76 @@ msgstr ""
 "\n"
 "Kegyességből hátralévő idő:"
 
-#: src/interface-glade2.c:1218
+#: src/interface-glade2.c:1344
 msgid "[time]"
 msgstr "[idő]"
 
-#: src/interface-glade2.c:1249
+#: src/interface-glade2.c:1375
 msgid "Copy rule"
 msgstr "Szabály másolása"
 
-#: src/interface-glade2.c:1259
+#: src/interface-glade2.c:1385
 msgid "Paste rule"
 msgstr "Szabály beillesztése"
 
-#: src/interface-glade2.c:1326
+#: src/interface-glade2.c:1452
 msgid "About gtk-gnutella"
 msgstr "Gtk-gnutella névjegye"
 
-#: src/interface-glade2.c:1357
+#: src/interface-glade2.c:1483
 msgid "[name and version]"
 msgstr "[név és változat]"
 
-#: src/interface-glade2.c:1375
+#: src/interface-glade2.c:1501
 msgid "Original author:"
 msgstr "Első szerző:"
 
-#: src/interface-glade2.c:1383
+#: src/interface-glade2.c:1509
 msgid "Project leader:"
 msgstr "Projektvezető:"
 
-#: src/interface-glade2.c:1391
+#: src/interface-glade2.c:1517
 msgid "Core development:"
 msgstr "Mag fejlesztése:"
 
-#: src/interface-glade2.c:1399
+#: src/interface-glade2.c:1525
 msgid "GUI development:"
 msgstr "GUI fejlesztése:"
 
-#: src/interface-glade2.c:1407
+#: src/interface-glade2.c:1533
 msgid "Swarming development:"
 msgstr "Zsúfolás fejlesztése:"
 
-#: src/interface-glade2.c:1415
+#: src/interface-glade2.c:1541
 msgid "PARQ development:"
 msgstr "PARQ fejlesztése:"
 
-#: src/interface-glade2.c:1428
+#: src/interface-glade2.c:1554
 msgid "Yann Grossel"
 msgstr "Yann Grossel"
 
-#: src/interface-glade2.c:1436 src/interface-glade2.c:1444
+#: src/interface-glade2.c:1562 src/interface-glade2.c:1570
 msgid "Raphaël Manfredi"
 msgstr "Raphaël Manfredi"
 
-#: src/interface-glade2.c:1452
-msgid "Richard Eckart (GTK+ 1.2)"
+#: src/interface-glade2.c:1578
+#, fuzzy
+msgid "Richard Eckart"
 msgstr "Richard Eckart (GTK+ 1.2)"
 
-#: src/interface-glade2.c:1460
+#: src/interface-glade2.c:1586
 msgid "Vidar Madsen"
 msgstr "Vidar Madsen"
 
-#: src/interface-glade2.c:1468
+#: src/interface-glade2.c:1594
 msgid "Jeroen Asselman"
 msgstr "Jeroen Asselman"
 
-#: src/interface-glade2.c:1505
+#: src/interface-glade2.c:1631
 msgid "Contributors"
 msgstr "Munkatársak"
 
-#: src/interface-glade2.c:1511
+#: src/interface-glade2.c:1637
 msgid ""
 "==&gt; We are looking for people who want to contribute to this fine tool."
 "&lt;=="
@@ -1750,115 +2107,121 @@ msgstr ""
 "⇒ Keresünk további személyeket, akik hozzá akarnak járulni e remek "
 "eszközhöz. ⇐"
 
-#: src/interface-glade2.c:1517
+#: src/interface-glade2.c:1643
 msgid "Visit http://gtk-gnutella.sourceforge.net."
 msgstr "Böngészd a „http://gtk-gnutella.sourceforge.net”-et!"
 
-#: src/interface-glade2.c:1525
+#: src/interface-glade2.c:1651
 msgid "Join the users or developers mailing lists."
 msgstr "Csatlakozz a használói vagy fejlesztői levelező listához."
 
-#: src/interface-glade2.c:1531
+#: src/interface-glade2.c:1657
 msgid "Meet us on #gtk-gnutella at irc.freenode.net."
 msgstr "Találkozzznk a „#gtk-gnutella” csatornán az „irc.freenode.net”-en!"
 
-#: src/interface-glade2.c:1543
+#: src/interface-glade2.c:1669
 msgid "_Close"
 msgstr "_Bezár"
 
-#: src/interface-glade2.c:1550
+#: src/interface-glade2.c:1676
+#, fuzzy
 msgid "@(#) $Id$"
 msgstr "@(#) $Id$"
 
-#: src/interface-glade2.c:1734
+#: src/interface-glade2.c:1874
 msgid "gtk-gnutella"
 msgstr "gtk-gnutella"
 
-#: src/interface-glade2.c:1771
+#: src/interface-glade2.c:1911
 msgid "_File"
 msgstr "_Fájl"
 
-#: src/interface-glade2.c:1780 src/interface-glade2.c:2097
+#: src/interface-glade2.c:1920 src/interface-glade2.c:2254
 msgid "_Quit"
 msgstr "_Kilépés"
 
-#: src/interface-glade2.c:1793
+#: src/interface-glade2.c:1933
 msgid "_View"
 msgstr "_Nézet"
 
-#: src/interface-glade2.c:1802
+#: src/interface-glade2.c:1942
 msgid "show _Toolbar"
 msgstr "_Eszköztár"
 
-#: src/interface-glade2.c:1808
+#: src/interface-glade2.c:1948
 msgid "show _Statusbar"
 msgstr "Á_llapotsor"
 
-#: src/interface-glade2.c:1820
+#: src/interface-glade2.c:1960
 msgid "show _Downloads"
 msgstr "Le_töltések"
 
-#: src/interface-glade2.c:1826
+#: src/interface-glade2.c:1966
 msgid "show _Uploads"
 msgstr "_Feltöltések"
 
-#: src/interface-glade2.c:1832
+#: src/interface-glade2.c:1972
 msgid "show _Connections"
 msgstr "_Kapcsolatok"
 
-#: src/interface-glade2.c:1838
+#: src/interface-glade2.c:1978
 msgid "HTTP traffic stats"
 msgstr "HTTP-forgalmi adatok"
 
-#: src/interface-glade2.c:1847
+#: src/interface-glade2.c:1987
 msgid "show HTTP incoming traffic"
 msgstr "bejövő HTTP forgalom"
 
-#: src/interface-glade2.c:1853
+#: src/interface-glade2.c:1993
 msgid "show HTTP outgoing traffic"
 msgstr "kimenő HTTP forgalom"
 
-#: src/interface-glade2.c:1859
+#: src/interface-glade2.c:1999
 msgid "gNet traffic stats"
 msgstr "gnet-forgalmi adatok"
 
-#: src/interface-glade2.c:1868
+#: src/interface-glade2.c:2008
 msgid "show gNet incoming traffic"
 msgstr "bejövő gNet forgalom"
 
-#: src/interface-glade2.c:1874
+#: src/interface-glade2.c:2014
 msgid "show gNet outgoing traffic"
 msgstr "kimenő gNet forgalom"
 
-#: src/interface-glade2.c:1880
+#: src/interface-glade2.c:2020
 msgid "gNet leaf traffic stats"
 msgstr "gnetlevél-forgalmi adatok"
 
-#: src/interface-glade2.c:1889
+#: src/interface-glade2.c:2029
+#, fuzzy
+msgid "autohide leaf traffic stats"
+msgstr "gnetlevél-forgalmi adatok"
+
+#: src/interface-glade2.c:2034
 msgid "show leaf incoming traffic"
 msgstr "bejövő gnetlevél forgalom"
 
-#: src/interface-glade2.c:1894
+#: src/interface-glade2.c:2039
 msgid "show leaf outgoing traffic"
 msgstr "kimenő gnetlevél forgalom"
 
-#: src/interface-glade2.c:1899
+#: src/interface-glade2.c:2044
 msgid "Help"
 msgstr "Súgó"
 
-#: src/interface-glade2.c:1908
+#: src/interface-glade2.c:2053
 msgid "_About"
 msgstr "_Névjegy"
 
-#: src/interface-glade2.c:1933
+#: src/interface-glade2.c:2078
 msgid "Uptime: "
 msgstr "Futási idő:"
 
-#: src/interface-glade2.c:1942
+#: src/interface-glade2.c:2087
 msgid "[uptime]"
 msgstr "[futási idő]"
 
-#: src/interface-glade2.c:2011
+#: src/interface-glade2.c:2156
 msgid ""
 "Gtk-gnutella thinks you're firewalled. Nobody has connected to you so far. "
 "You will not see any push results which may prevent you from seeing a large "
@@ -1867,156 +2230,171 @@ msgstr ""
 "Gtk-gnutella szerint tűzfal mögött van. Senki sem csatlakozott be eddig. "
 "Nyomás nem működik, amely megakadályozhatja nagy mennyiségű adat fogadását."
 
-#: src/interface-glade2.c:2024
+#: src/interface-glade2.c:2169
 msgid "People can connect to you. Push should work."
 msgstr "Be tudnak csatlakozni. Nyomás működik."
 
-#: src/interface-glade2.c:2041
+#: src/interface-glade2.c:2186
 msgid "Running in ultrapeer mode."
 msgstr "ultra üzemmód"
 
-#: src/interface-glade2.c:2053
+#: src/interface-glade2.c:2198
 msgid "This node is in leaf mode."
 msgstr "levél-üzemmód"
 
-#: src/interface-glade2.c:2065
+#: src/interface-glade2.c:2210
 msgid "Legacy mode is active. (Make sure there's an IRQ left!)"
 msgstr "Hagyományos üzemmód. (Bizonyosodjon meg róla, hogy maradt IRQ!)"
 
-#: src/interface-glade2.c:2073 src/interface-glade2.c:13031
-#: src/interface-glade2.c:13040 src/interface-glade2.c:13049
+#: src/interface-glade2.c:2218 src/interface-glade2.c:15169
+#: src/interface-glade2.c:15178 src/interface-glade2.c:15187
 msgid " "
 msgstr " "
 
-#: src/interface-glade2.c:2110
+#: src/interface-glade2.c:2267
 msgid "Filters"
 msgstr "Szűrők"
 
-#: src/interface-glade2.c:2183
+#: src/interface-glade2.c:2322
+#, fuzzy
+msgid "_Search:"
+msgstr "Keresés"
+
+#: src/interface-glade2.c:2357
+#, fuzzy
+msgid "_New"
+msgstr "_Nézet"
+
+#: src/interface-glade2.c:2363
+#, fuzzy
+msgid "_Passive"
+msgstr " passzív)"
+
+#: src/interface-glade2.c:2367
+msgid "A passive search matches any search results routed through this node"
+msgstr "A passzív keresésben minden találat, ami áthalad e ponton"
+
+#: src/interface-glade2.c:2403
 msgid "label187"
 msgstr "label187"
 
-#: src/interface-glade2.c:2193
+#: src/interface-glade2.c:2413
 msgid "label188"
 msgstr "label188"
 
-#: src/interface-glade2.c:2230
+#: src/interface-glade2.c:2450
 msgid "gNet connections"
 msgstr "gNet kapcsolatok"
 
-#: src/interface-glade2.c:2252 src/interface-glade2.c:7110 src/main_gui.c:132
-#: src/main_gui.c:177
+#: src/interface-glade2.c:2472 src/interface-glade2.c:9370 src/main_gui.c:133
+#: src/main_gui.c:178
 msgid "Uploads"
 msgstr "Feltöltések"
 
-#: src/interface-glade2.c:2274 src/interface-glade2.c:8032 src/main_gui.c:140
-#: src/main_gui.c:173
+#: src/interface-glade2.c:2494 src/interface-glade2.c:10237 src/main_gui.c:141
+#: src/main_gui.c:174
 msgid "Downloads"
 msgstr "Letöltések"
 
-#: src/interface-glade2.c:2303 src/interface-glade2.c:2310
-#: src/interface-glade2.c:2335 src/interface-glade2.c:2342
-#: src/interface-glade2.c:2367 src/interface-glade2.c:2374
+#: src/interface-glade2.c:2523 src/interface-glade2.c:2530
+#: src/interface-glade2.c:2555 src/interface-glade2.c:2562
+#: src/interface-glade2.c:2587 src/interface-glade2.c:2594
 msgid "Click to toggle display."
 msgstr "Kattintson a kijelző cseréjéhez!"
 
-#: src/interface-glade2.c:2313
+#: src/interface-glade2.c:2533
 msgid "HTTP traffic"
 msgstr "HTTP-forgalom"
 
-#: src/interface-glade2.c:2345
+#: src/interface-glade2.c:2565
 msgid "gnutellaNet traffic"
 msgstr "GNet-forgalom"
 
-#: src/interface-glade2.c:2377
+#: src/interface-glade2.c:2597
 msgid "Leaf traffic"
 msgstr "Levélforgalom"
 
-#: src/interface-glade2.c:2425
+#: src/interface-glade2.c:2645
 msgid "You seem to be offline."
 msgstr "Úgy tűnik ön nincs vonalban."
 
-#: src/interface-glade2.c:2650
+#: src/interface-glade2.c:2901
 msgid "gtk-gnutella: Quit?"
 msgstr "gtk-gnutella: Kilépés?"
 
-#: src/interface-glade2.c:2670
+#: src/interface-glade2.c:2921
 msgid "Do you really want to quit?"
 msgstr "Biztosan ki akar lépni?"
 
-#: src/interface-glade2.c:2677
+#: src/interface-glade2.c:2928
 msgid "Please confirm"
 msgstr "Kérem erősítse meg"
 
-#: src/interface-glade2.c:2798 src/interface-glade2.c:12746
+#: src/interface-glade2.c:3064 src/interface-glade2.c:14884
 msgid "window1"
 msgstr "window1"
 
-#: src/interface-glade2.c:2834
+#: src/interface-glade2.c:3100
 msgid "Current IP settings (Address:Port):"
 msgstr "Jelenlegi IP beállítás (cím:kapu):"
 
-#: src/interface-glade2.c:2839
+#: src/interface-glade2.c:3105
 msgid "not yet determined"
 msgstr "nincs még meghatározva"
 
-#: src/interface-glade2.c:2856
-msgid "_Listen port"
-msgstr "Bejövő kapu"
-
-#: src/interface-glade2.c:2871
+#: src/interface-glade2.c:3130
 msgid "Default: 6346, Disable: 0"
 msgstr "Alapértelmezés: 6346, letiltás: 0"
 
-#: src/interface-glade2.c:2887
-msgid "_Force local IP to"
-msgstr "Helyi IP kényszerítése a következőre:"
-
-#: src/interface-glade2.c:2894
+#: src/interface-glade2.c:3146
 msgid "Public hostname"
 msgstr "Nyilvános gépnév"
 
-#: src/interface-glade2.c:2908
+#: src/interface-glade2.c:3160
+msgid "_Force local IP to"
+msgstr "Helyi IP kényszerítése a következőre:"
+
+#: src/interface-glade2.c:3167
+msgid "_Listen port"
+msgstr "Bejövő kapu"
+
+#: src/interface-glade2.c:3175
 msgid "IP settings"
 msgstr "IP beállítások"
 
-#: src/interface-glade2.c:2953
+#: src/interface-glade2.c:3220
 msgid "_Port:"
 msgstr "_Kapu:"
 
-#: src/interface-glade2.c:2962
+#: src/interface-glade2.c:3237
 msgid "Proxy _type:"
 msgstr "Proxy _típus:"
 
-#: src/interface-glade2.c:2972
+#: src/interface-glade2.c:3246
 msgid "H_ost:"
 msgstr "G_ép"
 
-#: src/interface-glade2.c:2991
-msgid "                  "
-msgstr "                  "
-
-#: src/interface-glade2.c:3006
+#: src/interface-glade2.c:3260
 msgid "Use username and password to _authenticate to proxy"
 msgstr "Nevet és jelszót használ az azonosításhoz a proxy"
 
-#: src/interface-glade2.c:3016
+#: src/interface-glade2.c:3270
 msgid "_Username"
 msgstr "_Felhasználó"
 
-#: src/interface-glade2.c:3028
+#: src/interface-glade2.c:3281
 msgid "Pass_word"
 msgstr "_Jelszó"
 
-#: src/interface-glade2.c:3038
+#: src/interface-glade2.c:3291
 msgid "Proxy settings"
 msgstr "Proxy beállítása"
 
-#: src/interface-glade2.c:3060
+#: src/interface-glade2.c:3313
 msgid "_Try to connect to local networks first"
 msgstr "A helyi hálózatokhoz _próbál először csatlakozni"
 
-#: src/interface-glade2.c:3064
+#: src/interface-glade2.c:3317
 msgid ""
 "This option can give peformance boosts to those on a large network with many "
 "peers by trying to locate files on the local networks first."
@@ -2024,15 +2402,15 @@ msgstr ""
 "Ez a kapcsoló megnövelheti a teljesítményt sokpontú, nagy hálózatban azzal, "
 "hogy először a helyi hálózatokon keresi a fájlokat."
 
-#: src/interface-glade2.c:3066
+#: src/interface-glade2.c:3319
 msgid "Allow connections from and to LAN addresses"
 msgstr "Kapcsolatok engedélyezése LAN címekre/ről."
 
-#: src/interface-glade2.c:3077
+#: src/interface-glade2.c:3330
 msgid "A_ddresses of Local Network(s)"
 msgstr "Helyi hálózatok _címei"
 
-#: src/interface-glade2.c:3086
+#: src/interface-glade2.c:3339
 msgid ""
 "Enter a semicolon separated list of networks that are local to you in the "
 "form of ip/bits or ip/netmask (eg 192.168.1.0/24 or "
@@ -2042,261 +2420,455 @@ msgstr ""
 "helyiek! Használja a következő alakot: ip/bitek vagy ip/maszk (pl. "
 "192.168.1.0/24 vagy 192.168.1.0/255.255.255.0)"
 
-#: src/interface-glade2.c:3088
+#: src/interface-glade2.c:3341
 msgid "Local Networks"
 msgstr "Helyi hálózatok"
 
-#: src/interface-glade2.c:3128
-msgid "Actual amount of file descriptors used -- cannot be changed at runtime"
-msgstr "A használt fájleírók száma – futási időben nem változtatható"
-
-#: src/interface-glade2.c:3132
+#: src/interface-glade2.c:3360
 msgid "Max. file descriptors reserved for banning"
 msgstr "Legtöbb fájlleíró foglalva zárolásra"
 
-#: src/interface-glade2.c:3141
+#: src/interface-glade2.c:3369
+#, fuzzy, c-format
 msgid "Max. % of file descriptors used for banning"
 msgstr "Zárolt fájlleírók legnagyobb százaléka"
 
-#: src/interface-glade2.c:3150
+#: src/interface-glade2.c:3378
 msgid "Hard limit of file descriptors used"
 msgstr "Fájleírók kemény korlátja"
 
-#: src/interface-glade2.c:3159
+#: src/interface-glade2.c:3394
+msgid "Actual amount of file descriptors used -- cannot be changed at runtime"
+msgstr "A használt fájleírók száma – futási időben nem változtatható"
+
+#: src/interface-glade2.c:3414
 msgid "Banning"
 msgstr "Foglalás"
 
-#: src/interface-glade2.c:3191
-msgid "Host runs NTP"
-msgstr "NTP használata"
-
-#: src/interface-glade2.c:3198
+#: src/interface-glade2.c:3446
 msgid "Clock skew:"
 msgstr "Órahiba"
 
-#: src/interface-glade2.c:3207
+#: src/interface-glade2.c:3455
+msgid "Host runs NTP"
+msgstr "NTP használata"
+
+#: src/interface-glade2.c:3469
 msgid "       "
 msgstr "       "
 
-#: src/interface-glade2.c:3216 src/interface-glade2.c:5820
+#: src/interface-glade2.c:3477
+msgid "Clock synchronisation"
+msgstr ""
+
+#: src/interface-glade2.c:3494
+msgid "Enable \"shell\" control interface"
+msgstr ""
+
+#: src/interface-glade2.c:3499 src/interface-glade2.c:7879
 msgid "Miscellaneous"
 msgstr "Egyebek"
 
-#: src/interface-glade2.c:3444
+#: src/interface-glade2.c:3518 src/interface-glade2.c:3527
+#, fuzzy
+msgid "Kbytes"
+msgstr "bájt"
+
+#: src/interface-glade2.c:3553
+#, fuzzy
+msgid "Download RX buffer: "
+msgstr "Letöltő sor"
+
+#: src/interface-glade2.c:3562
+msgid "Gnutella RX buffer: "
+msgstr ""
+
+#: src/interface-glade2.c:3571
+msgid "Socket receive buffer size"
+msgstr ""
+
+#: src/interface-glade2.c:3896
 msgid "window2"
 msgstr "window2"
 
-#: src/interface-glade2.c:3491
+#: src/interface-glade2.c:3939
 msgid "Configured peermode"
 msgstr "Beállított pontmód"
 
-#: src/interface-glade2.c:3500
-msgid "Gnutella network mode"
-msgstr "Gnutella hálózati üzemmód"
+#: src/interface-glade2.c:3961
+msgid "Monitor bad node IP addresses"
+msgstr "Rossz IP címek figyelése"
 
-#: src/interface-glade2.c:3535
-msgid "Maximum # of leaves"
-msgstr "Levelek legnagyobb száma"
+#: src/interface-glade2.c:3969
+msgid "Monitor and auto-ban unstable servent types"
+msgstr "Instabil kiszolgálók figyelése és kizárása"
 
-#: src/interface-glade2.c:3545
+#: src/interface-glade2.c:3993
 msgid "Legacy connections"
 msgstr "Hagyományos kapcsolatok"
 
-#: src/interface-glade2.c:3555
+#: src/interface-glade2.c:4010
+msgid "Maximum # of leaves"
+msgstr "Levelek legnagyobb száma"
+
+#: src/interface-glade2.c:4027
 msgid "Ultrapeer mode settings"
 msgstr "Ultra-üzemmódú beállítások"
 
-#: src/interface-glade2.c:3574
+#: src/interface-glade2.c:4057
+msgid "Last check"
+msgstr ""
+
+#: src/interface-glade2.c:4067
+msgid "Last switch"
+msgstr ""
+
+#: src/interface-glade2.c:4084 src/interface-glade2.c:4097
+msgid "26/12/2001 7:54:23"
+msgstr ""
+
+#: src/interface-glade2.c:4114
+msgid "Sufficient average uptime"
+msgstr ""
+
+#: src/interface-glade2.c:4123
+msgid "Large enough uptime"
+msgstr ""
+
+#: src/interface-glade2.c:4132
+#, fuzzy
+msgid "Enough file descriptors"
+msgstr "Fájleírók kemény korlátja"
+
+#: src/interface-glade2.c:4141
+msgid "Enough available bandwidth"
+msgstr ""
+
+#: src/interface-glade2.c:4157
+msgid "Not firewalled"
+msgstr ""
+
+#: src/interface-glade2.c:4166
+msgid "Enough physical memory"
+msgstr ""
+
+#: src/interface-glade2.c:4175
+#, fuzzy
+msgid "IP address stability"
+msgstr "IP-cím"
+
+#: src/interface-glade2.c:4191 src/interface-glade2.c:4205
+#: src/interface-glade2.c:4220 src/interface-glade2.c:4234
+#: src/interface-glade2.c:4248 src/interface-glade2.c:4262
+#: src/interface-glade2.c:4276
+msgid "[no]"
+msgstr ""
+
+#: src/interface-glade2.c:4283
+#, fuzzy
+msgid "Ultrapeer promotion statistics"
+msgstr "Ultra-üzemmódú beállítások"
+
+#: src/interface-glade2.c:4289
+msgid "Gnutella network mode"
+msgstr "Gnutella hálózati üzemmód"
+
+#: src/interface-glade2.c:4318
 msgid "items"
 msgstr "elemek"
 
-#: src/interface-glade2.c:3582
-msgid "kbit/s"
-msgstr "kbit/s"
-
-#: src/interface-glade2.c:3606
+#: src/interface-glade2.c:4333
 msgid ""
 "This limits how many results gnutella returns to other people searching your "
 "files."
 msgstr "Ez a korlátozza, hogy másoknak mennyi eredményt adunk fájlkeresésekre."
 
-#: src/interface-glade2.c:3609
-msgid "seconds (0 - disable)"
-msgstr "másodpercek (0 - tiltás)"
-
-#: src/interface-glade2.c:3627
+#: src/interface-glade2.c:4336
 msgid "Limit search _results to "
 msgstr "Keresés _eredményeinek korlátja "
 
-#: src/interface-glade2.c:3635
-msgid "Default _minimum speed"
-msgstr "Alapértelmezett _legkisebb sebesség"
-
-#: src/interface-glade2.c:3643
+#: src/interface-glade2.c:4344
 msgid "Default search _reissue timeout"
 msgstr "Alapértelmezett keresés-_ismétlés türelmi ideje"
 
-#: src/interface-glade2.c:3652
+#: src/interface-glade2.c:4353
+msgid "seconds (0 - disable)"
+msgstr "másodpercek (0 - tiltás)"
+
+#: src/interface-glade2.c:4388 src/search_gui.c:1607 src/search_gui.c:1613
+msgid "Size"
+msgstr "Méret"
+
+#: src/interface-glade2.c:4400
+msgid "Spacing"
+msgstr ""
+
+#: src/interface-glade2.c:4413
+#, fuzzy
+msgid "Search queue"
+msgstr "Keresések"
+
+#: src/interface-glade2.c:4419
 msgid "Searches"
 msgstr "Keresések"
 
-#: src/interface-glade2.c:3671
+#: src/interface-glade2.c:4438
 msgid "Connecting time_out"
 msgstr "Csatlakozás türelmi ideje"
 
-#: src/interface-glade2.c:3679
+#: src/interface-glade2.c:4446
 msgid "T_X flow control timeout"
 msgstr "T_X folyamvezérlés türelmi ideje"
 
-#: src/interface-glade2.c:3687
+#: src/interface-glade2.c:4454
 msgid "Connected time_out"
 msgstr "Csatlakozás türelmi ideje lejárt"
 
-#: src/interface-glade2.c:3695
+#: src/interface-glade2.c:4462
 msgid "Incoming connecting timeout"
 msgstr "Bejövő kapcsolat türelmi ideje lejárt"
 
-#: src/interface-glade2.c:3740
+#: src/interface-glade2.c:4507
 msgid "gnutellaNet timeouts (all values in seconds)"
 msgstr "gnutellaNet türelmi idők (minden érték másodpercben)"
 
-#: src/interface-glade2.c:3759
+#: src/interface-glade2.c:4526
 msgid "hops radius"
 msgstr "hálózati sugár"
 
-#: src/interface-glade2.c:3782
+#: src/interface-glade2.c:4549
 msgid "Amount of tolerable messages above hard TTL limit per node"
 msgstr "Kemény TTL korlát feletti üzenetek tűrhető mennyisége"
 
-#: src/interface-glade2.c:3792
+#: src/interface-glade2.c:4559
 msgid "Max hard TTL limit (hop+ttl) on message"
 msgstr "TTL (hop+TTL) kemény felső korlátja üzenetre"
 
-#: src/interface-glade2.c:3811
+#: src/interface-glade2.c:4578
 msgid "Hop radius for counting high TTL limit messages (#hops lower than...)"
 msgstr ""
 "Hálózati sugár magas TTL korlát üzenetek számlálásához (sugár kisebb mint...)"
 
-#: src/interface-glade2.c:3814
-msgid "Max _TTL"
-msgstr "Legnagyobb _TTL"
-
-#: src/interface-glade2.c:3822
-msgid "Max # of _high TTL msg"
-msgstr "Legtöbb _magas TTL üznt"
-
-#: src/interface-glade2.c:3830
+#: src/interface-glade2.c:4581
 msgid "H_ard TTL limit"
 msgstr "_Kemény TTL korlát"
 
-#: src/interface-glade2.c:3838
-msgid "M_y TTL"
-msgstr "_Saját TTL"
+#: src/interface-glade2.c:4590
+msgid "Max # of _high TTL msg"
+msgstr "Legtöbb _magas TTL üznt"
 
-#: src/interface-glade2.c:3846
+#: src/interface-glade2.c:4599
+msgid "Max _TTL"
+msgstr "Legnagyobb _TTL"
+
+#: src/interface-glade2.c:4608
 msgid "from _nodes within a"
 msgstr "_pontoktól a köv-n belül"
 
-#: src/interface-glade2.c:3854
+#: src/interface-glade2.c:4616
+msgid "M_y TTL"
+msgstr "_Saját TTL"
+
+#: src/interface-glade2.c:4624
 msgid "gnutellaNet _TTL settings"
 msgstr "gnutellaNet _TTL beállítás"
 
-#: src/interface-glade2.c:3873
+#: src/interface-glade2.c:4643
 msgid "messages"
 msgstr "üzenetek"
 
-#: src/interface-glade2.c:3882 src/interface-glade2.c:3929
-#: src/interface-glade2.c:4452
+#: src/interface-glade2.c:4652 src/interface-glade2.c:4697
+#: src/interface-glade2.c:4800 src/interface-glade2.c:4809
+#: src/interface-glade2.c:5672 src/interface-glade2.c:7345
+#: src/interface-glade2.c:7354 src/interface-glade2.c:7495
 msgid "%"
 msgstr "%"
 
-#: src/interface-glade2.c:3909
+#: src/interface-glade2.c:4679
 msgid "Ratio of tolerable duplicate messages per node"
 msgstr "Kettőzött üzenetek tűrhető aránya pontonként"
 
-#: src/interface-glade2.c:3919
+#: src/interface-glade2.c:4688
 msgid "Number of tolerable _duplicate messages per node"
 msgstr "_Kettőzött üzenetek tűrhető száma pontonként"
 
-#: src/interface-glade2.c:3947
+#: src/interface-glade2.c:4715
 msgid "RX flow control ratio"
 msgstr "RX folyamvezérlés aránya"
 
-#: src/interface-glade2.c:3957
-msgid "Monitor bad node IP addresses"
-msgstr "Rossz IP címek figyelése"
+#: src/interface-glade2.c:4731
+msgid "Watch for similar queries"
+msgstr ""
 
-#: src/interface-glade2.c:3965
-msgid "Monitor and auto-ban unstable servent types"
-msgstr "Instabil kiszolgálók figyelése és kizárása"
+#: src/interface-glade2.c:4738
+msgid "Similar query half-life"
+msgstr ""
 
-#: src/interface-glade2.c:3973
+#: src/interface-glade2.c:4755
+#, fuzzy
+msgid "Leaf requery threshold"
+msgstr "Lazaság foka"
+
+#: src/interface-glade2.c:4772
 msgid "Quality management"
 msgstr "Minőségirányítás"
 
-#: src/interface-glade2.c:3999
+#: src/interface-glade2.c:4791
+#, fuzzy
+msgid "Connections reserved for gtk-gnutella nodes"
+msgstr "Gtk-gnutella jelenlegi üzemmódja"
+
+#: src/interface-glade2.c:4818
+msgid "Max connections allowed per unique vendor"
+msgstr ""
+
+#: src/interface-glade2.c:4843
+msgid "Maximum percentage of connection slots a vendor can occupy."
+msgstr ""
+
+#: src/interface-glade2.c:4845
+#, fuzzy
+msgid "Connection settings"
+msgstr "Letöltés beállítása"
+
+#: src/interface-glade2.c:4873
 msgid "Hops random factor"
 msgstr "Sugár véletlen szorzója"
 
-#: src/interface-glade2.c:4009
+#: src/interface-glade2.c:4882
 msgid "Clean up queries before processing"
 msgstr "Keresések takarítása feldolgozás előtt"
 
-#: src/interface-glade2.c:4016
+#: src/interface-glade2.c:4889
 msgid "Other"
 msgstr "Más"
 
-#: src/interface-glade2.c:4179
+#: src/interface-glade2.c:4908
+msgid ""
+"Forwarded\n"
+"Message"
+msgstr ""
+
+#: src/interface-glade2.c:4916
+#, fuzzy
+msgid ""
+"Maximum size\n"
+"allowed"
+msgstr "legnagyobb méret"
+
+#: src/interface-glade2.c:4924
+msgid ""
+"Size threshold\n"
+"before kicking"
+msgstr ""
+
+#: src/interface-glade2.c:4933
+msgid "Query"
+msgstr ""
+
+#: src/interface-glade2.c:4942
+msgid "Query hit"
+msgstr ""
+
+#: src/interface-glade2.c:4951
+msgid "Unknown"
+msgstr ""
+
+#: src/interface-glade2.c:4960
+msgid "(not forwarded)"
+msgstr ""
+
+#: src/interface-glade2.c:5008
+#, fuzzy
+msgid "gnutellaNet message size limits"
+msgstr "gnutellaNet _TTL beállítás"
+
+#: src/interface-glade2.c:5264
 msgid "window3"
 msgstr "window3"
 
-#: src/interface-glade2.c:4211
+#: src/interface-glade2.c:5305
 msgid "Use surplus bandwidth"
 msgstr "Többlet sávszélesség használata"
 
-#: src/interface-glade2.c:4218
+#: src/interface-glade2.c:5310
 msgid "Prefer compressed connections"
 msgstr "Tömörített kapcsolatokat szereti"
 
-#: src/interface-glade2.c:4225
+#: src/interface-glade2.c:5315
 msgid "Use IP Type of Service (TOS)"
 msgstr "IP-szolgáltatástípus használata"
 
-#: src/interface-glade2.c:4232 src/interface-glade2.c:9679
-msgid "General"
-msgstr "Általános"
+#: src/interface-glade2.c:5340
+msgid "Total input bandwidth limit:"
+msgstr ""
 
-#: src/interface-glade2.c:4257 src/interface-glade2.c:4265
-#: src/interface-glade2.c:4326 src/interface-glade2.c:4344
-#: src/interface-glade2.c:4398 src/interface-glade2.c:4406
+#: src/interface-glade2.c:5349
+msgid "Total output bandwidth limit:"
+msgstr ""
+
+#: src/interface-glade2.c:5358
+msgid "Measured HTTP latency:"
+msgstr ""
+
+#: src/interface-glade2.c:5367 src/interface-glade2.c:5376
+#: src/interface-glade2.c:5470 src/interface-glade2.c:5478
+#: src/interface-glade2.c:5546 src/interface-glade2.c:5564
+#: src/interface-glade2.c:5618 src/interface-glade2.c:5626
 msgid "K/s"
 msgstr "K/s"
 
-#: src/interface-glade2.c:4291 src/interface-glade2.c:4468
+#: src/interface-glade2.c:5385
+#, fuzzy
+msgid "secs"
+msgstr ". másodpercben   "
+
+#: src/interface-glade2.c:5401
+msgid "label_output_bw_limit"
+msgstr ""
+
+#: src/interface-glade2.c:5416
+msgid "label_http_latency"
+msgstr ""
+
+#: src/interface-glade2.c:5431
+msgid "label_input_bw_limit"
+msgstr ""
+
+#: src/interface-glade2.c:5439
+msgid "Available bandwidth"
+msgstr ""
+
+#: src/interface-glade2.c:5445 src/interface-glade2.c:11817
+msgid "General"
+msgstr "Általános"
+
+#: src/interface-glade2.c:5504 src/interface-glade2.c:5695
 msgid "Limit bandwidth for _incoming traffic to"
 msgstr "_Bejövő forgalom sávszélesség-korlátja"
 
-#: src/interface-glade2.c:4298 src/interface-glade2.c:4475
+#: src/interface-glade2.c:5511 src/interface-glade2.c:5702
 msgid "Limit bandwidth for _outgoing traffic to"
 msgstr "_Kimenő forgalom sávszélesség-korlátja"
 
-#: src/interface-glade2.c:4353
+#: src/interface-glade2.c:5573
 msgid "Limit incoming bandwidth from leaves to"
 msgstr "Levelektől bejövő sávszélesség korlátja"
 
-#: src/interface-glade2.c:4360
+#: src/interface-glade2.c:5580
 msgid "Limit outgoing bandwidth to leaves to"
 msgstr "Levelekhez kimenő sávszélesség korlátja"
 
-#: src/interface-glade2.c:4367
+#: src/interface-glade2.c:5587
 msgid "Ultrapeer mode"
 msgstr "Ultra üzemmód"
 
-#: src/interface-glade2.c:4373
+#: src/interface-glade2.c:5593
 msgid "Bandwidth control for gnutellaNet traffic"
 msgstr "GnutellaNet sávszélesség-vezérlése"
 
-#: src/interface-glade2.c:4439 src/interface-glade2.c:4488
+#: src/interface-glade2.c:5659 src/interface-glade2.c:5715
+#, fuzzy, c-format
 msgid ""
 "Until xx% of outgoing HTTP bandwidth is in use, open additional upload slots "
 "on request."
@@ -2304,459 +2876,698 @@ msgstr ""
 "Újabb feltöltő-nyílásokat enged, amíg a kimenő HTTP sávszélesség xx%-a nem "
 "használt."
 
-#: src/interface-glade2.c:4449
+#: src/interface-glade2.c:5669
 msgid "What other people see as your connection speed."
 msgstr "Amit a többiek látnak mint kapcsolat sebessége"
 
-#: src/interface-glade2.c:4460
+#: src/interface-glade2.c:5680
 msgid "kbits/s to peers"
 msgstr "kbit/s pontokhoz"
 
-#: src/interface-glade2.c:4482
+#: src/interface-glade2.c:5709
 msgid "Enable _dynamic upload slots allocation"
 msgstr "_Dinamikus feltöltönyílás-foglalás engedélyezése"
 
-#: src/interface-glade2.c:4490
+#: src/interface-glade2.c:5717
 msgid "Report an upload connection _speed of"
 msgstr "A következő feltöltési _sebesség jelentése"
 
-#: src/interface-glade2.c:4505
+#: src/interface-glade2.c:5725
+#, fuzzy
+msgid "Compute upload connection speed"
+msgstr "A következő feltöltési _sebesség jelentése"
+
+#: src/interface-glade2.c:5732
 msgid "Bandwidth control for HTTP traffic"
 msgstr "HTTP-forgalom sávszélesség-vezérlése"
 
-#: src/interface-glade2.c:4675
+#: src/interface-glade2.c:5924
 msgid "window4"
 msgstr "window4"
 
-#: src/interface-glade2.c:4732 src/interface-glade2.c:4781
-#: src/interface-glade2.c:4830
+#: src/interface-glade2.c:5981 src/interface-glade2.c:6030
+#: src/interface-glade2.c:6079
 msgid "_Browse"
 msgstr "_Tallóz"
 
-#: src/interface-glade2.c:4738
+#: src/interface-glade2.c:5987
 msgid "Keep downloading/incomplete files in"
 msgstr "Letöltésfájlok helye"
 
-#: src/interface-glade2.c:4787
+#: src/interface-glade2.c:6036
 msgid "Move completely downloaded files to"
 msgstr "Letöltött fájlok helye"
 
-#: src/interface-glade2.c:4836
+#: src/interface-glade2.c:6085
 msgid "Move corrupted downloaded files to"
 msgstr "Rossz letöltött fájlok helye"
 
-#: src/interface-glade2.c:4855
+#: src/interface-glade2.c:6104
 msgid "_Overlap when resuming"
 msgstr "Át_fedés folytatáskor"
 
-#: src/interface-glade2.c:4864
+#: src/interface-glade2.c:6112
 msgid "Maximum number of _retries"
 msgstr "Ismétlések legnagyobb száma"
 
-#: src/interface-glade2.c:4873 src/interface-glade2.c:10757
-#: src/interface-glade2.c:10765
+#: src/interface-glade2.c:6120 src/interface-glade2.c:12895
+#: src/interface-glade2.c:12903
 msgid "bytes"
 msgstr "bájt"
 
-#: src/interface-glade2.c:4887
+#: src/interface-glade2.c:6134
 msgid "Amount of bytes to overlap when resuming download"
 msgstr "Átfedő bájtok száma folytatáskor"
 
-#: src/interface-glade2.c:4897
+#: src/interface-glade2.c:6144
 msgid "Maximum attempts to make, not counting HTTP busy indications"
 msgstr "Legtöbb próbálkozás, nem számítva a HTTP foglalt jelzéseket"
 
-#: src/interface-glade2.c:4900
+#: src/interface-glade2.c:6147
 msgid "Resume and retry"
 msgstr "Folytat és ismétel"
 
-#: src/interface-glade2.c:4918
+#: src/interface-glade2.c:6166
 msgid "Optimistic first _chunk"
 msgstr "Derűlátó első _darab"
 
-#: src/interface-glade2.c:4925
+#: src/interface-glade2.c:6173
 msgid "Require _urn"
 msgstr "_Urn-t igénylése"
 
-#: src/interface-glade2.c:4932
+#: src/interface-glade2.c:6180
 msgid "Require _server name"
 msgstr "_Kiszolgálónév igénylése"
 
-#: src/interface-glade2.c:4939
+#: src/interface-glade2.c:6187
 msgid "Source quality"
 msgstr "Forrás minősége"
 
-#: src/interface-glade2.c:4958
-msgid "Retry stopped delay"
-msgstr "Ismétlés késleltetése leállításkor"
-
-#: src/interface-glade2.c:4966
-msgid "Retry refused delay"
-msgstr "Ismétlés késleltetése elutasításkor"
-
-#: src/interface-glade2.c:4974
-msgid "Retry busy delay"
-msgstr "Ismétlés késleltetése foglalt jelzésnél"
-
-#: src/interface-glade2.c:4982
-msgid "Retry timeout delay"
-msgstr "Ismétlés késleltetése türelem fogytán"
-
-#: src/interface-glade2.c:4990
-msgid "Retry timeout max"
-msgstr "Ismétlés türelmi ideje legfeljebb"
-
-#: src/interface-glade2.c:4998
-msgid "Retry timeout min"
-msgstr "Ismétlés türelmi ideje legalább"
-
-#: src/interface-glade2.c:5006
-msgid "Connecting timeout"
-msgstr "Kapcsolódás türelmi ideje lejárt"
-
-#: src/interface-glade2.c:5014
-msgid "_Push sent timeout"
-msgstr "_Nyomás türelmi ideje lejárt"
-
-#: src/interface-glade2.c:5022
-msgid "Connected timeout"
-msgstr "Csatlakozás türelmi ideje lejárt"
-
-#: src/interface-glade2.c:5037
+#: src/interface-glade2.c:6213
 msgid "Delay in seconds to wait when running download stops"
 msgstr "Késleltetés másodpercben, amikor a letöltés megáll"
 
-#: src/interface-glade2.c:5047
+#: src/interface-glade2.c:6223
 msgid "Delay in seconds to wait if connection is refused"
 msgstr "Késleltetés másodpercben, ha a kapcsolatot elutasítják"
 
-#: src/interface-glade2.c:5057
+#: src/interface-glade2.c:6233
 msgid "Delay in seconds to wait after HTTP busy indication"
 msgstr "Késleltetés másodpercben foglalt jelzés után"
 
-#: src/interface-glade2.c:5067
+#: src/interface-glade2.c:6243
 msgid "Delay in seconds to wait after connection failure"
 msgstr "Késleltetés másodpercben sikertelen csatlakozás után"
 
-#: src/interface-glade2.c:5077
+#: src/interface-glade2.c:6253
 msgid "Maximum seconds to wait on auto-retry timeouts"
 msgstr "Legtöbb másodperc várakozás auto-ismétlés türelem fogytán"
 
-#: src/interface-glade2.c:5087
+#: src/interface-glade2.c:6263
 msgid "Minimum seconds to wait on auto-retry timeouts"
 msgstr "Legkevesebb másodperc várakozás auto-ismétlés türelem fogytán"
 
-#: src/interface-glade2.c:5097
+#: src/interface-glade2.c:6273
 msgid "Number of seconds before timeout for a connecting download"
 msgstr "Letöltő kapcsolódás türelmi ideje másodpercben"
 
-#: src/interface-glade2.c:5107
+#: src/interface-glade2.c:6283
 msgid "Number of seconds before timeout for a 'push sent' download"
 msgstr "Nyomás-kérés türelmi ideje másodpercben"
 
-#: src/interface-glade2.c:5117
+#: src/interface-glade2.c:6293
 msgid "Number of seconds before timeout for a connected download"
 msgstr "Kapcsolódott letöltés türelmi ideje másodpercben"
 
-#: src/interface-glade2.c:5120
+#: src/interface-glade2.c:6296
+msgid "Retry stopped delay"
+msgstr "Ismétlés késleltetése leállításkor"
+
+#: src/interface-glade2.c:6304
+msgid "Retry refused delay"
+msgstr "Ismétlés késleltetése elutasításkor"
+
+#: src/interface-glade2.c:6312
+msgid "Retry busy delay"
+msgstr "Ismétlés késleltetése foglalt jelzésnél"
+
+#: src/interface-glade2.c:6320
+msgid "Retry timeout delay"
+msgstr "Ismétlés késleltetése türelem fogytán"
+
+#: src/interface-glade2.c:6328
+msgid "Retry timeout max"
+msgstr "Ismétlés türelmi ideje legfeljebb"
+
+#: src/interface-glade2.c:6336
+msgid "Retry timeout min"
+msgstr "Ismétlés türelmi ideje legalább"
+
+#: src/interface-glade2.c:6344
+msgid "Connecting timeout"
+msgstr "Kapcsolódás türelmi ideje lejárt"
+
+#: src/interface-glade2.c:6352
+msgid "_Push sent timeout"
+msgstr "_Nyomás türelmi ideje lejárt"
+
+#: src/interface-glade2.c:6360
+msgid "Connected timeout"
+msgstr "Csatlakozás türelmi ideje lejárt"
+
+#: src/interface-glade2.c:6368
 msgid "Delays and timeouts (all values in seconds)"
 msgstr "Késleltetések és türelmi idők (minden érték másodpercben)"
 
-#: src/interface-glade2.c:5137
-msgid "Enable s_warming"
-msgstr "_Zsúfolás engedélyezése"
-
-#: src/interface-glade2.c:5154
-msgid "A_ggressive mode"
-msgstr "_Heves üzemmód"
-
-#: src/interface-glade2.c:5161
+#: src/interface-glade2.c:6392
 msgid "M_inimum chunk size"
 msgstr "Leg_kisebb darabméret"
 
-#: src/interface-glade2.c:5170
+#: src/interface-glade2.c:6401
 msgid "Ma_ximum chunk size"
 msgstr "Leg_nagyobb darabméret"
 
-#: src/interface-glade2.c:5216
-msgid "Strict SHA_1 matching"
-msgstr "Szigorú SHA_1 illesztés"
+#: src/interface-glade2.c:6410
+msgid "Enable s_warming"
+msgstr "_Zsúfolás engedélyezése"
 
-#: src/interface-glade2.c:5223 src/interface-glade2.c:8715
-msgid "Use fu_zzy matching"
-msgstr "Laza illesztés használata"
+#: src/interface-glade2.c:6450
+msgid "A_ggressive mode"
+msgstr "_Heves üzemmód"
 
-#: src/interface-glade2.c:5230
-msgid "Fuzzy threshold"
-msgstr "Lazaság foka"
-
-#: src/interface-glade2.c:5239
+#: src/interface-glade2.c:6455
 msgid "Watch hit for _alternate sources"
 msgstr "_Alternatív találatok figyelése"
 
-#: src/interface-glade2.c:5254
+#: src/interface-glade2.c:6460
+msgid "Strict SHA_1 matching"
+msgstr "Szigorú SHA_1 illesztés"
+
+#: src/interface-glade2.c:6465
 msgid "_Feed mesh from hits"
 msgstr "Találatok _letöltőhálóba helyezése"
 
-#: src/interface-glade2.c:5261
-msgid "_Apply fuzy filter on download mesh entries"
+#: src/interface-glade2.c:6489
+msgid "Fuzzy threshold"
+msgstr "Lazaság foka"
+
+#: src/interface-glade2.c:6498
+#, fuzzy
+msgid "_Apply fuzzy filter on download mesh entries"
 msgstr "Laza szűrő alkalmazása e letöltőháló elemeire"
 
-#: src/interface-glade2.c:5268
+#: src/interface-glade2.c:6513 src/interface-glade2.c:10816
+msgid "Use fu_zzy matching"
+msgstr "Laza illesztés használata"
+
+#: src/interface-glade2.c:6519
 msgid "Downloading from multiple sources (swarming)"
 msgstr "Letöltés több forrásból (zsúfolás)"
 
-#: src/interface-glade2.c:5431
+#: src/interface-glade2.c:6760
 msgid "window5"
 msgstr "window5"
 
-#: src/interface-glade2.c:5493
+#: src/interface-glade2.c:6822
 msgid "_Add"
 msgstr "_Hozzáad"
 
-#: src/interface-glade2.c:5499
+#: src/interface-glade2.c:6828
 msgid "Files scanned"
 msgstr "Fájl felmérve"
 
-#: src/interface-glade2.c:5525
+#: src/interface-glade2.c:6854
 msgid "_Rescan"
 msgstr "Újra_felmérés"
 
-#: src/interface-glade2.c:5536
+#: src/interface-glade2.c:6865
 msgid "Search _extensions"
 msgstr "Keresett _kiterjesztések"
 
-#: src/interface-glade2.c:5551
+#: src/interface-glade2.c:6880
 msgid "Ignore symbolically linked directories"
 msgstr "Szimbólikus link-mappák mellőzése"
 
-#: src/interface-glade2.c:5556
+#: src/interface-glade2.c:6885
 msgid "Ignore symbolically linked regular files"
 msgstr "Szimbólikus link-fájlok mellőzése"
 
-#: src/interface-glade2.c:5561
+#: src/interface-glade2.c:6890
 msgid "_Path(s) to files"
 msgstr "_Elérési út(ak) a fájlokhoz"
 
-#: src/interface-glade2.c:5598
+#: src/interface-glade2.c:6927
 msgid "_Connecting timeout"
 msgstr "_Kapcsolódó türelmi idő lejárt"
 
-#: src/interface-glade2.c:5606
+#: src/interface-glade2.c:6935
 msgid "C_onnected timeout"
 msgstr "K_apcsolat türelmi ideje lejárt"
 
-#: src/interface-glade2.c:5614
+#: src/interface-glade2.c:6943
 msgid "Timeouts (all values in seconds)"
 msgstr "Türelmi idők (minden érték másodpercben)"
 
-#: src/interface-glade2.c:5630
+#: src/interface-glade2.c:6962
 msgid "Enable"
 msgstr "Engedélyezett"
 
-#: src/interface-glade2.c:5637
+#: src/interface-glade2.c:6969
 msgid "First chunk size"
 msgstr "Első darab mérete"
 
-#: src/interface-glade2.c:5654
+#: src/interface-glade2.c:6986
 msgid "Partial File Sharing (swarming)"
 msgstr "Részleges fájlmegosztás (zsúfolás)"
 
-#: src/interface-glade2.c:5749
+#: src/interface-glade2.c:7022
+msgid "Last scan initiated on"
+msgstr ""
+
+#: src/interface-glade2.c:7031
+#, fuzzy
+msgid "File scanning time"
+msgstr "Fájl felmérve"
+
+#: src/interface-glade2.c:7040 src/interface-glade2.c:7148
+#: src/interface-glade2.c:7157 src/interface-glade2.c:7166
+#: src/interface-glade2.c:7836 src/interface-glade2.c:7870
+msgid "seconds"
+msgstr ""
+
+#: src/interface-glade2.c:7056 src/interface-glade2.c:7182
+#: src/interface-glade2.c:7196 src/interface-glade2.c:7210
+msgid "26/12/2003 17:54:23"
+msgstr ""
+
+#: src/interface-glade2.c:7070
+msgid "18"
+msgstr ""
+
+#: src/interface-glade2.c:7077
+msgid "Library scanning"
+msgstr ""
+
+#: src/interface-glade2.c:7097
+msgid "Indexing started on"
+msgstr ""
+
+#: src/interface-glade2.c:7105
+msgid "Table generation started on"
+msgstr ""
+
+#: src/interface-glade2.c:7113
+msgid "Patch generation started on"
+msgstr ""
+
+#: src/interface-glade2.c:7121 src/interface-glade2.c:7130
+#: src/interface-glade2.c:7139
+msgid "and lasted"
+msgstr ""
+
+#: src/interface-glade2.c:7224 src/interface-glade2.c:7238
+#: src/interface-glade2.c:7252 src/interface-glade2.c:7441
+msgid "25"
+msgstr ""
+
+#: src/interface-glade2.c:7259
+msgid "Query Routing Protocol"
+msgstr ""
+
+#: src/interface-glade2.c:7284
+msgid "Keywords"
+msgstr ""
+
+#: src/interface-glade2.c:7293
+#, fuzzy
+msgid "Slots"
+msgstr "Statisztika"
+
+#: src/interface-glade2.c:7302
+msgid "Flled slots"
+msgstr ""
+
+#: src/interface-glade2.c:7318
+#, fuzzy
+msgid "Generation"
+msgstr "Általános"
+
+#: src/interface-glade2.c:7327
+#, fuzzy
+msgid "Filled ratio"
+msgstr "Fájlinfó"
+
+#: src/interface-glade2.c:7336
+#, fuzzy
+msgid "Conflict ratio"
+msgstr "Kapcsolódás"
+
+#: src/interface-glade2.c:7370
+msgid "12345678"
+msgstr ""
+
+#: src/interface-glade2.c:7384
+msgid "1M"
+msgstr ""
+
+#: src/interface-glade2.c:7399
+msgid "1234567"
+msgstr ""
+
+#: src/interface-glade2.c:7413
+msgid "1"
+msgstr ""
+
+#: src/interface-glade2.c:7427 src/interface-glade2.c:7539
+msgid "10"
+msgstr ""
+
+#: src/interface-glade2.c:7448
+#, fuzzy
+msgid "Query routing table information"
+msgstr "Részletes tájékoztató"
+
+#: src/interface-glade2.c:7468
+msgid "Raw length"
+msgstr ""
+
+#: src/interface-glade2.c:7477
+msgid "Compressed length"
+msgstr ""
+
+#: src/interface-glade2.c:7486
+msgid "Compressed ratio"
+msgstr ""
+
+#: src/interface-glade2.c:7511
+msgid "954065"
+msgstr ""
+
+#: src/interface-glade2.c:7525
+msgid "13456"
+msgstr ""
+
+#: src/interface-glade2.c:7546
+#, fuzzy
+msgid "Query routing patch information"
+msgstr "Részletes tájékoztató"
+
+#: src/interface-glade2.c:7552
+#, fuzzy
+msgid "Statistics"
+msgstr "Statisztika"
+
+#: src/interface-glade2.c:7757
 msgid "window6"
 msgstr "window6"
 
-#: src/interface-glade2.c:5782
+#: src/interface-glade2.c:7790
 msgid "Toolbar style"
 msgstr "Eszöztár-stílus"
 
-#: src/interface-glade2.c:5792
-msgid "Show _confirmation dialog when leaving gtk-gnutella"
-msgstr "Gtk-gnutellából kilépéskor megerősítés dialógus"
+#: src/interface-glade2.c:7799
+msgid "Try to keep 'dead' entries around for"
+msgstr ""
 
-#: src/interface-glade2.c:5799
+#: src/interface-glade2.c:7822
 msgid "Show _tootips (does not affect all tooltips yet)"
 msgstr "Tippek (még nincs hatással minden tippre)"
 
-#: src/interface-glade2.c:5837
-msgid "_Allow experimenting with low-level settings"
-msgstr "_Kísérletezés alacsony szintű beállításokkal"
+#: src/interface-glade2.c:7829
+msgid "Show _confirmation dialog when leaving gtk-gnutella"
+msgstr "Gtk-gnutellából kilépéskor megerősítés dialógus"
 
-#: src/interface-glade2.c:5844
+#: src/interface-glade2.c:7853
+#, fuzzy
+msgid "Update search results pane every"
+msgstr "Keresés _eredményeinek korlátja "
+
+#: src/interface-glade2.c:7898
+msgid ""
+"Show additional information and settings for advanced and _expert users."
+msgstr ""
+
+#: src/interface-glade2.c:7905
 msgid "Expert mode"
 msgstr "Haladó"
 
-#: src/interface-glade2.c:5919
+#: src/interface-glade2.c:7927
+msgid "Show node uptime"
+msgstr ""
+
+#: src/interface-glade2.c:7932
+msgid "Show handshaking version"
+msgstr ""
+
+#: src/interface-glade2.c:7937
+#, fuzzy
+msgid "Display detailed traffic information"
+msgstr "Részletes tájékoztató"
+
+#: src/interface-glade2.c:7961
+msgid "TX compression"
+msgstr ""
+
+#: src/interface-glade2.c:7968
+#, fuzzy
+msgid "TX speed"
+msgstr "Sebesség"
+
+#: src/interface-glade2.c:7975
+msgid "TX queries"
+msgstr ""
+
+#: src/interface-glade2.c:7982
+msgid "TX query hits"
+msgstr ""
+
+#: src/interface-glade2.c:7989
+msgid "TX dropped"
+msgstr ""
+
+#: src/interface-glade2.c:7996
+msgid "RX compression"
+msgstr ""
+
+#: src/interface-glade2.c:8003
+#, fuzzy
+msgid "RX speed"
+msgstr "Sebesség"
+
+#: src/interface-glade2.c:8010
+msgid "RX queries"
+msgstr ""
+
+#: src/interface-glade2.c:8017
+msgid "RX query hits"
+msgstr ""
+
+#: src/interface-glade2.c:8024
+msgid "RX dropped"
+msgstr ""
+
+#: src/interface-glade2.c:8031
+msgid "Generated queries"
+msgstr ""
+
+#: src/interface-glade2.c:8038
+msgid "Pending local queries"
+msgstr ""
+
+#: src/interface-glade2.c:8045
+#, fuzzy
+msgid "QRP stats"
+msgstr "Adatok nullázása"
+
+#: src/interface-glade2.c:8052
+msgid "Dup / Bad / Weird"
+msgstr ""
+
+#: src/interface-glade2.c:8059
+msgid "Ping / Pong round trip"
+msgstr ""
+
+#: src/interface-glade2.c:8066
+#, fuzzy
+msgid "Detailed traffic information to display"
+msgstr "Részletes tájékoztató"
+
+#: src/interface-glade2.c:8072
+#, fuzzy
+msgid "gnutellaNet display"
+msgstr "gnutellaNet"
+
+#: src/interface-glade2.c:8179
 msgid "window7"
 msgstr "window7"
 
-#: src/interface-glade2.c:5971
-msgid "_Core debug level"
-msgstr "_Mag hibairányítás szint"
-
-#: src/interface-glade2.c:5980
-msgid "_GUI debug level"
-msgstr "_GUI hibairányítás szintje"
-
-#: src/interface-glade2.c:5989
-msgid "_Shared code debug level"
-msgstr "_Osztott kód hibairányítás szintje"
-
-#: src/interface-glade2.c:6007
-msgid "_stop collecting hosts in host catcher"
-msgstr "Gépfogó-gyűjtés leállítása"
-
-#: src/interface-glade2.c:6014
+#: src/interface-glade2.c:8249
 msgid "_Track properties"
 msgstr "_Nyomkövetés beállításai"
 
-#: src/interface-glade2.c:6032
+#: src/interface-glade2.c:8258
+msgid "_Shared code debug level"
+msgstr "_Osztott kód hibairányítás szintje"
+
+#: src/interface-glade2.c:8267
+msgid "_GUI debug level"
+msgstr "_GUI hibairányítás szintje"
+
+#: src/interface-glade2.c:8276
+msgid "_Core debug level"
+msgstr "_Mag hibairányítás szint"
+
+#: src/interface-glade2.c:8285
+msgid "_stop collecting hosts in host catcher"
+msgstr "Gépfogó-gyűjtés leállítása"
+
+#: src/interface-glade2.c:8292
 msgid "Debug settings"
 msgstr "Hibairányítás beállításai"
 
-#: src/interface-glade2.c:6051 src/interface-glade2.c:13058
+#: src/interface-glade2.c:8311 src/interface-glade2.c:15196
 msgid "  "
 msgstr "  "
 
-#: src/interface-glade2.c:6061
+#: src/interface-glade2.c:8393
 msgid "PROP_READING_ULTRAFILE"
 msgstr "PROP_READING_ULTRAFILE"
 
-#: src/interface-glade2.c:6078
+#: src/interface-glade2.c:8402
 msgid "PROP_CURRENT_IP_STAMP"
 msgstr "PROP_CURRENT_IP_STAMP"
 
-#: src/interface-glade2.c:6087
+#: src/interface-glade2.c:8411
 msgid "PROP_AVERAGE_IP_UPTIME"
 msgstr "PROP_AVERAGE_IP_UPTIME"
 
-#: src/interface-glade2.c:6096
+#: src/interface-glade2.c:8420
 msgid "PROP_START_STAMP"
 msgstr "PROP_START_STAMP"
 
-#: src/interface-glade2.c:6105
+#: src/interface-glade2.c:8429
 msgid "PROP_AVERAGE_SERVENT_UPTIME"
 msgstr "PROP_AVERAGE_SERVENT_UPTIME"
 
-#: src/interface-glade2.c:6114
+#: src/interface-glade2.c:8438
 msgid "PROP_PROXY_CONNECTIONS"
 msgstr "PROP_PROXY_CONNECTIONS"
 
-#: src/interface-glade2.c:6163
+#: src/interface-glade2.c:8447
 msgid "PROP_SYS_NOFILE"
 msgstr "PROP_SYS_NOFILE"
 
-#: src/interface-glade2.c:6172
+#: src/interface-glade2.c:8456
 msgid "PROP_SYS_PHYSMEM"
 msgstr "PROP_SYS_PHYSMEM"
 
-#: src/interface-glade2.c:6181
+#: src/interface-glade2.c:8465
 msgid "PROP_CRAWLER_VISIT_COUNT"
 msgstr "PROP_CRAWLER_VISIT_COUNT"
 
-#: src/interface-glade2.c:6214
+#: src/interface-glade2.c:8474
 msgid "Unmapped stuff"
 msgstr "Unmapped stuff"
 
-#: src/interface-glade2.c:6349
+#: src/interface-glade2.c:8609
 msgid "window8"
 msgstr "window8"
 
-#: src/interface-glade2.c:6410
+#: src/interface-glade2.c:8670
 msgid "Try to connect to specified address"
 msgstr "Először a megadott címhez próbál kapcsolódni"
 
-#: src/interface-glade2.c:6427
+#: src/interface-glade2.c:8687
 msgid "Add"
 msgstr "Hozzáad"
 
-#: src/interface-glade2.c:6440
+#: src/interface-glade2.c:8700
 msgid "Connect to"
 msgstr "Kapcsolódás"
 
-#: src/interface-glade2.c:6453
+#: src/interface-glade2.c:8713
 msgid "ultrapeers"
 msgstr "ultratársak"
 
-#: src/interface-glade2.c:6473
+#: src/interface-glade2.c:8733
 msgid "Disconnect from selected nodes"
 msgstr "Lekapcsolódás a kijelölt pontokról"
 
-#: src/interface-glade2.c:6490 src/interface-glade2.c:10549
-#: src/interface-glade2.c:10848 src/interface-glade2.c:11083
-#: src/interface-glade2.c:11356
+#: src/interface-glade2.c:8750 src/interface-glade2.c:12687
+#: src/interface-glade2.c:12986 src/interface-glade2.c:13221
+#: src/interface-glade2.c:13494
 msgid "Remove"
 msgstr "Eltávolítás"
 
-#: src/interface-glade2.c:6501
+#: src/interface-glade2.c:8761
 msgid "Try to keep at least"
 msgstr "Megpróbál legalább"
 
-#: src/interface-glade2.c:6514
+#: src/interface-glade2.c:8774
 msgid "connections up"
 msgstr "kapcsolatot fenntartani"
 
-#: src/interface-glade2.c:6519
+#: src/interface-glade2.c:8779
 msgid "Maximum of"
 msgstr "Összesen legfeljebb"
 
-#: src/interface-glade2.c:6532
+#: src/interface-glade2.c:8792
 msgid "total connections"
 msgstr "kapcsolat"
 
-#: src/interface-glade2.c:6537
+#: src/interface-glade2.c:8797
 msgid "gnutellaNet connections"
 msgstr "gnutellaNet kapcsolat"
 
-#: src/interface-glade2.c:6571
+#: src/interface-glade2.c:8831
 msgid "Max hosts cached"
 msgstr "Legtöbb gép gyorstárban"
 
-#: src/interface-glade2.c:6580
+#: src/interface-glade2.c:8840
 msgid "Hosts in cache"
 msgstr "Gépek a gyorstárban"
 
-#: src/interface-glade2.c:6596
+#: src/interface-glade2.c:8856
 msgid "Ultrapeers"
 msgstr "Ultratársak"
 
-#: src/interface-glade2.c:6603
+#: src/interface-glade2.c:8863
 msgid "Normal hosts"
 msgstr "Normál gépek"
 
-#: src/interface-glade2.c:6628 src/interface-glade2.c:6635
+#: src/interface-glade2.c:8888 src/interface-glade2.c:8895
 msgid "Clear"
 msgstr "Törlés"
 
-#: src/interface-glade2.c:6642
+#: src/interface-glade2.c:8902
 msgid "Host catcher"
 msgstr "Gépfogó"
 
-#: src/interface-glade2.c:6657
+#: src/interface-glade2.c:8917
 msgid "Uploaded"
 msgstr "Feltöltve"
 
-#: src/interface-glade2.c:6667
+#: src/interface-glade2.c:8927
 msgid "Downloaded"
 msgstr "Letöltve"
 
-#: src/interface-glade2.c:6677
+#: src/interface-glade2.c:8937
 msgid "Chunks/Files"
 msgstr "Darab/Fájl"
 
-#: src/interface-glade2.c:6684
+#: src/interface-glade2.c:8944
 msgid "Volume"
 msgstr "Méret"
 
-#: src/interface-glade2.c:6731
+#: src/interface-glade2.c:8991
 msgid "Transfers"
 msgstr "Átvitel"
 
-#: src/interface-glade2.c:6754
+#: src/interface-glade2.c:9014
 msgid "GUID:"
 msgstr "GUID:"
 
-#: src/interface-glade2.c:6764
+#: src/interface-glade2.c:9024
 msgid ""
 "The Global Unique IDentifier associated with this node. It's used for "
 "routing packets in the Gnutella network."
@@ -2764,11 +3575,11 @@ msgstr ""
 "E ponthoz tartozó globális egyedi azonosító (GUID). Ezt használják "
 "útválasztásra a Gnutella-hálózaton."
 
-#: src/interface-glade2.c:6775
+#: src/interface-glade2.c:9035
 msgid "Address/Port:"
 msgstr "Cím/Kapu:"
 
-#: src/interface-glade2.c:6785
+#: src/interface-glade2.c:9045
 msgid ""
 "The current IP address and listening port for this node. To change these go "
 "to Config->Network."
@@ -2776,326 +3587,274 @@ msgstr ""
 "E pont jelenlegi IP-címe és bejövő kapuja. Megváltoztatása: "
 "Beállítások→Hálózat"
 
-#: src/interface-glade2.c:6796
+#: src/interface-glade2.c:9056
 msgid "Local node"
 msgstr "Saját pont"
 
-#: src/interface-glade2.c:6936
+#: src/interface-glade2.c:9196
 msgid "window9"
 msgstr "window9"
 
-#: src/interface-glade2.c:6973
+#: src/interface-glade2.c:9233
 msgid "Abort and remove all selected uploads"
 msgstr "Minden feltöltést abbahagy és eltávolít"
 
-#: src/interface-glade2.c:6990
+#: src/interface-glade2.c:9250
 msgid " Kill selected "
 msgstr " Kijelölt lelövése "
 
-#: src/interface-glade2.c:7001
+#: src/interface-glade2.c:9261
 msgid "Clear already completed uploads from list"
 msgstr "Sikeres feltöltések törlése"
 
-#: src/interface-glade2.c:7018
+#: src/interface-glade2.c:9278
 msgid " Clear completed "
 msgstr " Befejezett törlése "
 
-#: src/interface-glade2.c:7045 src/interface-glade2.c:12967
+#: src/interface-glade2.c:9305 src/interface-glade2.c:15105
 msgid "Upload Settings"
 msgstr "Feltöltés beállítása"
 
-#: src/interface-glade2.c:7075
+#: src/interface-glade2.c:9335
 msgid "Max. uploads to single host"
 msgstr "Legtöbb feltöltés egy gépre"
 
-#: src/interface-glade2.c:7083
+#: src/interface-glade2.c:9343
 msgid "Max. simultaneous uploads"
 msgstr "Legtöbb egyidejű feltöltés"
 
-#: src/interface-glade2.c:7187
+#: src/interface-glade2.c:9447
 msgid "window10"
 msgstr "window10"
 
-#: src/interface-glade2.c:7225
+#: src/interface-glade2.c:9485
 msgid "Somebody tell me a sensible tooltip for this."
 msgstr "Valaki mondjon egy értelmes tippet erre!"
 
-#: src/interface-glade2.c:7242
+#: src/interface-glade2.c:9502
 msgid "Clear non-existent files"
 msgstr "Nem létező fájlok törlése"
 
-#: src/interface-glade2.c:7268
+#: src/interface-glade2.c:9528
 msgid "Clear all"
 msgstr "Minden törlése"
 
-#: src/interface-glade2.c:7274
+#: src/interface-glade2.c:9534
 msgid "Upload history"
 msgstr "Feltöltés-napló"
 
-#: src/interface-glade2.c:7446
+#: src/interface-glade2.c:9701
 msgid "window11"
 msgstr "window11"
 
-#: src/interface-glade2.c:7495 src/interface-glade2.c:7887
-msgid "Filename"
-msgstr "Fájlnév"
-
-#: src/interface-glade2.c:7502 src/interface-glade2.c:7894
-#: src/search_gui.c:1178 src/search_gui.c:1183
-msgid "Host"
-msgstr "Gép"
-
-#: src/interface-glade2.c:7508 src/interface-glade2.c:7900
-#: src/search_gui.c:1164 src/search_gui.c:1169
-msgid "Size"
-msgstr "Méret"
-
-#: src/interface-glade2.c:7514
-msgid "Range"
-msgstr "Tartomány"
-
-#: src/interface-glade2.c:7520 src/interface-glade2.c:7906
-msgid "Server"
-msgstr "Kiszolgáló"
-
-#: src/interface-glade2.c:7526 src/interface-glade2.c:7912
-msgid "Status"
-msgstr "Állapot"
-
-#: src/interface-glade2.c:7551
-msgid "Max. simultaneous downloads"
-msgstr "Legtöbb egyidejű letöltés"
-
-#: src/interface-glade2.c:7559
+#: src/interface-glade2.c:9766
 msgid "Max. downloads from single host"
 msgstr "Legtöbb letöltés egy gépről"
 
-#: src/interface-glade2.c:7588
-msgid "More Settings"
-msgstr "További beállítások"
+#: src/interface-glade2.c:9773
+msgid "Max. simultaneous downloads"
+msgstr "Legtöbb egyidejű letöltés"
 
-#: src/interface-glade2.c:7594
-msgid "Never send a push request"
-msgstr "Soha sem kér nyomást"
+#: src/interface-glade2.c:9781
+#, fuzzy
+msgid "Bytes to back off on mismatch"
+msgstr "Eltérő fájlok törlése"
 
-#: src/interface-glade2.c:7601
+#: src/interface-glade2.c:9790
 msgid "Delete file on abort"
 msgstr "Abbahagyva fájl törlése"
 
-#: src/interface-glade2.c:7626
+#: src/interface-glade2.c:9797
 msgid "Remove file on mismatch"
 msgstr "Eltérő fájlok törlése"
 
-#: src/interface-glade2.c:7643
+#: src/interface-glade2.c:9804
+msgid "Never send a push request"
+msgstr "Soha sem kér nyomást"
+
+#: src/interface-glade2.c:9860
+msgid "More Settings"
+msgstr "További beállítások"
+
+#: src/interface-glade2.c:9883
 msgid "Completed"
 msgstr "Befejezve"
 
-#: src/interface-glade2.c:7648
+#: src/interface-glade2.c:9888
 msgid "Failed"
 msgstr "Sikertelen"
 
-#: src/interface-glade2.c:7653
+#: src/interface-glade2.c:9893
 msgid "Unavailable"
 msgstr "Nem elérhető"
 
-#: src/interface-glade2.c:7658
+#: src/interface-glade2.c:9898
 msgid "Auto clear stopped downloads"
 msgstr "Leállt letöltések önműködő törlése"
 
-#: src/interface-glade2.c:7664
+#: src/interface-glade2.c:9904
 msgid "Download settings"
 msgstr "Letöltés beállítása"
 
-#: src/interface-glade2.c:7684
+#: src/interface-glade2.c:9924
 msgid "Abort all selected downloads"
 msgstr "Kijelölt letöltések abbahagyása"
 
-#: src/interface-glade2.c:7701
+#: src/interface-glade2.c:9941
 msgid "_Abort selected"
 msgstr "Kijelöltet _abbahagy"
 
-#: src/interface-glade2.c:7714
+#: src/interface-glade2.c:9954
 msgid "Resume all selected downloads"
 msgstr "Minden kijelölt letöltés folytatása"
 
-#: src/interface-glade2.c:7731
+#: src/interface-glade2.c:9971
 msgid "_Resume selected"
 msgstr "Kijelöltet _folytat"
 
-#: src/interface-glade2.c:7744
+#: src/interface-glade2.c:9984
 msgid "Remove completed downloads from list"
 msgstr "Sikeres letöltéseket töröl a listáról"
 
-#: src/interface-glade2.c:7761
+#: src/interface-glade2.c:10001
 msgid "_Clear completed"
 msgstr "Sikeres _törlése"
 
-#: src/interface-glade2.c:7779
+#: src/interface-glade2.c:10019
 msgid "[running]"
 msgstr "[működik]"
 
-#: src/interface-glade2.c:7787
+#: src/interface-glade2.c:10026
 msgid " ("
 msgstr " ("
 
-#: src/interface-glade2.c:7793
+#: src/interface-glade2.c:10032
 msgid "[active]"
 msgstr "[aktív]"
 
-#: src/interface-glade2.c:7801
+#: src/interface-glade2.c:10039
 msgid ", "
 msgstr ", "
 
-#: src/interface-glade2.c:7807
+#: src/interface-glade2.c:10045
 msgid "[aqueued]"
 msgstr "[aktív sorban]"
 
-#: src/interface-glade2.c:7813
+#: src/interface-glade2.c:10051
 msgid ")"
 msgstr ")"
 
-#: src/interface-glade2.c:7841
+#: src/interface-glade2.c:10079
 msgid "Show _settings"
 msgstr "_Beállítások megjelenítése"
 
-#: src/interface-glade2.c:7847
+#: src/interface-glade2.c:10085
 msgid "Active downloads"
 msgstr "Folyó letöltések"
 
-#: src/interface-glade2.c:7947
+#: src/interface-glade2.c:10153
 msgid "Freeze queue"
 msgstr "Sor befagyasztása"
 
-#: src/interface-glade2.c:7953 src/interface-glade2.c:10145
+#: src/interface-glade2.c:10159 src/interface-glade2.c:12283
 msgid "case sensitive"
 msgstr "kis/nagybetűérzékeny"
 
-#: src/interface-glade2.c:7960
+#: src/interface-glade2.c:10166
 msgid "Select all matching regex from queue"
 msgstr "Minden illeszkedő reg.kif. törlése a sorból"
 
-#: src/interface-glade2.c:7988
+#: src/interface-glade2.c:10194
 msgid "[queued downloads]"
 msgstr "[sorbaállított letöltések]"
 
-#: src/interface-glade2.c:7996
+#: src/interface-glade2.c:10201
 msgid " queued ("
 msgstr " sorbaállt ("
 
-#: src/interface-glade2.c:8002
+#: src/interface-glade2.c:10207
 msgid "[hosts alive]"
 msgstr "[működő gép]"
 
-#: src/interface-glade2.c:8008
+#: src/interface-glade2.c:10213
 msgid " alive with "
 msgstr " működik "
 
-#: src/interface-glade2.c:8014
+#: src/interface-glade2.c:10219
 msgid "[pqueued]"
 msgstr "[passzív sorban]"
 
-#: src/interface-glade2.c:8020
+#: src/interface-glade2.c:10225
 msgid " passive)"
 msgstr " passzív)"
 
-#: src/interface-glade2.c:8026
+#: src/interface-glade2.c:10231
 msgid "Download queue"
 msgstr "Letöltő sor"
 
-#: src/interface-glade2.c:8068 src/interface-glade2.c:8229
+#: src/interface-glade2.c:10273 src/interface-glade2.c:10434
 msgid "Fileinfo"
 msgstr "Fájlinfó"
 
-#: src/interface-glade2.c:8085
+#: src/interface-glade2.c:10290
 msgid "[all count]"
 msgstr "[minden számlálva]"
 
-#: src/interface-glade2.c:8091
+#: src/interface-glade2.c:10296
 msgid " registered, "
 msgstr " regisztrálva, "
 
-#: src/interface-glade2.c:8097
+#: src/interface-glade2.c:10302
 msgid "[with source count]"
 msgstr "[forrásszámokkal]"
 
-#: src/interface-glade2.c:8103
+#: src/interface-glade2.c:10308
 msgid " with sources "
 msgstr " forrással "
 
-#: src/interface-glade2.c:8137 src/interface-glade2.c:8792
+#: src/interface-glade2.c:10342 src/interface-glade2.c:10946
 msgid "Filename:"
 msgstr "Fájlnév:"
 
-#: src/interface-glade2.c:8146 src/interface-glade2.c:8846
+#: src/interface-glade2.c:10351 src/interface-glade2.c:11000
 msgid "Size:"
 msgstr "Méret:"
 
-#: src/interface-glade2.c:8170
+#: src/interface-glade2.c:10375
 msgid "_Purge"
 msgstr "_Takarítás"
 
-#: src/interface-glade2.c:8197
+#: src/interface-glade2.c:10402
 msgid "Sources"
 msgstr "Források"
 
-#: src/interface-glade2.c:8217
+#: src/interface-glade2.c:10422
 msgid "Aliases"
 msgstr "Álnevek"
 
-#: src/interface-glade2.c:8223
+#: src/interface-glade2.c:10428
 msgid "Detail information"
 msgstr "Részletes tájékoztató"
 
-#: src/interface-glade2.c:8528
+#: src/interface-glade2.c:10703
 msgid "window12"
 msgstr "window12"
 
-#: src/interface-glade2.c:8554
-msgid "_Search for"
-msgstr "_Keresés"
+#: src/interface-glade2.c:10724
+#, fuzzy
+msgid "Current search"
+msgstr "Keresés be_zárása"
 
-#: src/interface-glade2.c:8584
-msgid "_New search"
-msgstr "Ú_j keresés"
-
-#: src/interface-glade2.c:8590
-msgid "New _passive search"
-msgstr "Új passzív keresés"
-
-#: src/interface-glade2.c:8594
-msgid "A passive search matches any search results routed through this node"
-msgstr "A passzív keresésben minden találat, ami áthalad e ponton"
-
-#: src/interface-glade2.c:8599
-msgid "Add new search"
-msgstr "Új keresés hozzáadása"
-
-#: src/interface-glade2.c:8658 src/search_gui.c:333 src/search_gui.c:864
-#: src/search_gui.c:977
+#: src/interface-glade2.c:10777 src/search_gui.c:463 src/search_gui.c:1288
+#: src/search_gui.c:1404
 msgid "(no search)"
 msgstr "(nincs keresés)"
 
-#: src/interface-glade2.c:8676
-msgid "_Jump to downloads"
-msgstr "_Ugrás a letöltéshez"
-
-#: src/interface-glade2.c:8683
-msgid "Enable _autoselect"
-msgstr "Önműködő kiválasztás"
-
-#: src/interface-glade2.c:8689
-msgid "Automatically select all other results with the same name or urn:sha1."
-msgstr "Azonos név vagy urn:sha1 önműködő kiválasztása"
-
-#: src/interface-glade2.c:8691
-msgid "_Remove files manually selected for download"
-msgstr "Letöltésre kiválasztott fájlok kézi _törlése"
-
-#: src/interface-glade2.c:8698
+#: src/interface-glade2.c:10810
 msgid "Autoselect _identical"
 msgstr "_Azonos önműködő kiválasztása"
 
-#: src/interface-glade2.c:8704
+#: src/interface-glade2.c:10814
 msgid ""
 "If on autoselection only takes place if filesize matches exactly, if off "
 "filesize must be equals or greater."
@@ -3103,286 +3862,309 @@ msgstr ""
 "Bekapcsolva önműködő kijelölés ha a fájlméret egyezik, kikapcsolva a "
 "fájlméretnek nagyobbnak vagy egyenlőnek kell lennie."
 
-#: src/interface-glade2.c:8706
+#: src/interface-glade2.c:10821
+msgid "Enable _autoselect"
+msgstr "Önműködő kiválasztás"
+
+#: src/interface-glade2.c:10826
+msgid "Automatically select all other results with the same name or urn:sha1."
+msgstr "Azonos név vagy urn:sha1 önműködő kiválasztása"
+
+#: src/interface-glade2.c:10842
 msgid "Max. _number of results"
 msgstr "Eredmények leg_nagyobb száma"
 
-#: src/interface-glade2.c:8744
+#: src/interface-glade2.c:10851
 msgid "Ignored files are"
 msgstr "Mellőzött fájlok"
 
-#: src/interface-glade2.c:8753
+#: src/interface-glade2.c:10860
+msgid "_Jump to downloads"
+msgstr "_Ugrás a letöltéshez"
+
+#: src/interface-glade2.c:10867
 msgid "_Hide downloaded files"
 msgstr "Letöltött fájlok el_rejtése"
 
-#: src/interface-glade2.c:8760
+#: src/interface-glade2.c:10887
+#, fuzzy
+msgid "_Remove manually downloaded files"
+msgstr "Letöltött fájlok helye"
+
+#: src/interface-glade2.c:10908
+#, fuzzy
+msgid "Displaying"
+msgstr "Kereső-beállításokat mutat"
+
+#: src/interface-glade2.c:10914
 msgid "General search settings (affect all searches)"
 msgstr "Általános keresési beállítás (minden keresésre hat)"
 
-#: src/interface-glade2.c:8801
+#: src/interface-glade2.c:10955
 msgid "ServentID:"
 msgstr "Kiszolgáló-azonosító:"
 
-#: src/interface-glade2.c:8810
+#: src/interface-glade2.c:10964
 msgid "Vendor:"
 msgstr "Eladó:"
 
-#: src/interface-glade2.c:8819
+#: src/interface-glade2.c:10973
 msgid "Timestamp:"
 msgstr "Időpecsét:"
 
-#: src/interface-glade2.c:8828
+#: src/interface-glade2.c:10982
 msgid "Source:"
 msgstr "Forrás:"
 
-#: src/interface-glade2.c:8837
+#: src/interface-glade2.c:10991
 msgid "SHA1:"
 msgstr "SHA1:"
 
-#: src/interface-glade2.c:8855
+#: src/interface-glade2.c:11009
 msgid "Index:"
 msgstr "Index:"
 
-#: src/interface-glade2.c:8987
+#: src/interface-glade2.c:11141
 msgid "Tag:"
 msgstr "Tag:"
 
-#: src/interface-glade2.c:9011
+#: src/interface-glade2.c:11165
 msgid "Information about selected file"
 msgstr "Tájékoztató a kijelölt fájlról"
 
-#: src/interface-glade2.c:9042
-msgid "_Download selected"
-msgstr "Kijelölt le_töltése"
-
-#: src/interface-glade2.c:9068
-msgid "Edit _Filters"
-msgstr "Szűrők _szerkesztése"
-
-#: src/interface-glade2.c:9094
-msgid "Sho_w settings"
-msgstr "_Beállítások megjelenítése"
-
-#: src/interface-glade2.c:9100
-msgid "     "
-msgstr "     "
-
-#: src/interface-glade2.c:9130
-msgid "_Clear results"
-msgstr "Eredmények _törlése"
-
-#: src/interface-glade2.c:9157
-msgid "Cl_ose search"
-msgstr "Keresés be_zárása"
-
-#: src/interface-glade2.c:9173
+#: src/interface-glade2.c:11181
 msgid ""
 "No items "
 "found                                                                          "
 msgstr "Nincs talált elem"
 
-#: src/interface-glade2.c:9186
+#: src/interface-glade2.c:11188
 msgid "Re_try search every"
 msgstr "Keresést ismétel minden"
 
-#: src/interface-glade2.c:9199
+#: src/interface-glade2.c:11201
 msgid "secs   "
 msgstr ". másodpercben   "
 
-#: src/interface-glade2.c:9365
+#: src/interface-glade2.c:11232
+msgid "_Download selected"
+msgstr "Kijelölt le_töltése"
+
+#: src/interface-glade2.c:11258
+msgid "Edit _Filters"
+msgstr "Szűrők _szerkesztése"
+
+#: src/interface-glade2.c:11284
+msgid "Sho_w settings"
+msgstr "_Beállítások megjelenítése"
+
+#: src/interface-glade2.c:11319
+msgid "_Clear results"
+msgstr "Eredmények _törlése"
+
+#: src/interface-glade2.c:11346
+msgid "Cl_ose search"
+msgstr "Keresés be_zárása"
+
+#: src/interface-glade2.c:11352
+#, fuzzy
+msgid "Search results"
+msgstr "Eredmények _törlése"
+
+#: src/interface-glade2.c:11503
 msgid "window13"
 msgstr "window13"
 
-#: src/interface-glade2.c:9379
+#: src/interface-glade2.c:11517
 msgid "Search _monitor enabled"
 msgstr "Keresés _figyelése"
 
-#: src/interface-glade2.c:9389
+#: src/interface-glade2.c:11527
 msgid "Show _last"
 msgstr "_Utolsó megjelenítése"
 
-#: src/interface-glade2.c:9401
+#: src/interface-glade2.c:11539
 msgid "searches"
 msgstr "keresések"
 
-#: src/interface-glade2.c:9468
+#: src/interface-glade2.c:11606
 msgid "window14"
 msgstr "window14"
 
-#: src/interface-glade2.c:9493
+#: src/interface-glade2.c:11631
 msgid "_Update interval (sec)"
 msgstr "Időszerűsítés időtartama (mp)"
 
-#: src/interface-glade2.c:9505
+#: src/interface-glade2.c:11643
 msgid "_Deletion coeff. (0-100)"
 msgstr "_Törlési együttható (1-100)"
 
-#: src/interface-glade2.c:9556
+#: src/interface-glade2.c:11694
 msgid "_Reset stats"
 msgstr "Adatok _nullázása"
 
-#: src/interface-glade2.c:9567
+#: src/interface-glade2.c:11705
 msgid "0 terms counted"
 msgstr "0 szó számlálva"
 
-#: src/interface-glade2.c:9644
+#: src/interface-glade2.c:11782
 msgid "window15"
 msgstr "window15"
 
-#: src/interface-glade2.c:9710
+#: src/interface-glade2.c:11848
 msgid "_Messages"
 msgstr "_Üzenetek"
 
-#: src/interface-glade2.c:9731
+#: src/interface-glade2.c:11869
 msgid "Flow _control"
 msgstr "Folyamvezérlés"
 
-#: src/interface-glade2.c:9752
+#: src/interface-glade2.c:11890
 msgid "_Received"
 msgstr "_Kapott"
 
-#: src/interface-glade2.c:9765 src/interface-glade2.c:9826
+#: src/interface-glade2.c:11903 src/interface-glade2.c:11964
 msgid "Show percentages"
 msgstr "Százalékok"
 
-#: src/interface-glade2.c:9772
+#: src/interface-glade2.c:11910
 msgid "Show bytes"
 msgstr "Bájtok"
 
-#: src/interface-glade2.c:9779
+#: src/interface-glade2.c:11917
 msgid "Columns show hops"
 msgstr "Ugrások"
 
-#: src/interface-glade2.c:9786
+#: src/interface-glade2.c:11924
 msgid "Add headers"
 msgstr "Fejlécek hozzáadása"
 
-#: src/interface-glade2.c:9817
+#: src/interface-glade2.c:11955
 msgid "Show reasons for"
 msgstr "Okok megjelenítése"
 
-#: src/interface-glade2.c:9855
+#: src/interface-glade2.c:11993
 msgid "Drop reasons"
 msgstr "Ejtés indokai"
 
-#: src/interface-glade2.c:9915
+#: src/interface-glade2.c:12053
 msgid "window24"
 msgstr "window24"
 
-#: src/interface-glade2.c:9935
+#: src/interface-glade2.c:12073
 msgid "Add jump rule"
 msgstr "Átugrásszabály"
 
-#: src/interface-glade2.c:9942
+#: src/interface-glade2.c:12080
 msgid "Add size rule"
 msgstr "Méretszabály"
 
-#: src/interface-glade2.c:9949
+#: src/interface-glade2.c:12087
 msgid "Add IP rule"
 msgstr "IP-szabály"
 
-#: src/interface-glade2.c:9956
+#: src/interface-glade2.c:12094
 msgid "Add name rule"
 msgstr "Névszabály"
 
-#: src/interface-glade2.c:9963
+#: src/interface-glade2.c:12101
 msgid "Add flag rule"
 msgstr "Jelzésszabály"
 
-#: src/interface-glade2.c:9970
+#: src/interface-glade2.c:12108
 msgid "Add state rule"
 msgstr "Állapotszabály"
 
-#: src/interface-glade2.c:10058
+#: src/interface-glade2.c:12196
 msgid "window25"
 msgstr "window25"
 
-#: src/interface-glade2.c:10086 src/interface-glade2.c:10405
-#: src/interface-glade2.c:10681 src/interface-glade2.c:11207
-#: src/interface-glade2.c:12213
+#: src/interface-glade2.c:12224 src/interface-glade2.c:12543
+#: src/interface-glade2.c:12819 src/interface-glade2.c:13345
+#: src/interface-glade2.c:14351
 msgid "invert condition"
 msgstr "Fordított feltétel"
 
-#: src/interface-glade2.c:10091 src/interface-glade2.c:10410
-#: src/interface-glade2.c:10686 src/interface-glade2.c:10973
-#: src/interface-glade2.c:11211 src/interface-glade2.c:11539
-#: src/interface-glade2.c:12218
+#: src/interface-glade2.c:12229 src/interface-glade2.c:12548
+#: src/interface-glade2.c:12824 src/interface-glade2.c:13111
+#: src/interface-glade2.c:13349 src/interface-glade2.c:13677
+#: src/interface-glade2.c:14356
 msgid "active"
 msgstr "aktív"
 
-#: src/interface-glade2.c:10096 src/interface-glade2.c:10415
-#: src/interface-glade2.c:10691 src/interface-glade2.c:11217
-#: src/interface-glade2.c:11544 src/interface-glade2.c:12223
+#: src/interface-glade2.c:12234 src/interface-glade2.c:12553
+#: src/interface-glade2.c:12829 src/interface-glade2.c:13355
+#: src/interface-glade2.c:13682 src/interface-glade2.c:14361
 msgid "mark only"
 msgstr "csak megjelöl"
 
-#: src/interface-glade2.c:10101 src/interface-glade2.c:10420
-#: src/interface-glade2.c:10696 src/interface-glade2.c:10978
-#: src/interface-glade2.c:11221 src/interface-glade2.c:11549
-#: src/interface-glade2.c:12228
+#: src/interface-glade2.c:12239 src/interface-glade2.c:12558
+#: src/interface-glade2.c:12834 src/interface-glade2.c:13116
+#: src/interface-glade2.c:13359 src/interface-glade2.c:13687
+#: src/interface-glade2.c:14366
 msgid "Flags"
 msgstr "Jelzések"
 
-#: src/interface-glade2.c:10152
+#: src/interface-glade2.c:12290
 msgid "Condition: If filename matches"
 msgstr "Feltétel: ha a fájlnév illik"
 
-#: src/interface-glade2.c:10191 src/interface-glade2.c:10513
-#: src/interface-glade2.c:10812 src/interface-glade2.c:11047
-#: src/interface-glade2.c:11320 src/interface-glade2.c:11916
-#: src/interface-glade2.c:12556
+#: src/interface-glade2.c:12329 src/interface-glade2.c:12651
+#: src/interface-glade2.c:12950 src/interface-glade2.c:13185
+#: src/interface-glade2.c:13458 src/interface-glade2.c:14054
+#: src/interface-glade2.c:14694
 msgid "Reset stats"
 msgstr "Adatok nullázása"
 
-#: src/interface-glade2.c:10221 src/interface-glade2.c:10543
-#: src/interface-glade2.c:10842 src/interface-glade2.c:11077
-#: src/interface-glade2.c:11350 src/interface-glade2.c:11946
-#: src/interface-glade2.c:12586
+#: src/interface-glade2.c:12359 src/interface-glade2.c:12681
+#: src/interface-glade2.c:12980 src/interface-glade2.c:13215
+#: src/interface-glade2.c:13488 src/interface-glade2.c:14084
+#: src/interface-glade2.c:14724
 msgid "New/replace"
 msgstr "Új/csere"
 
-#: src/interface-glade2.c:10247 src/interface-glade2.c:11972
-#: src/interface-glade2.c:12592
+#: src/interface-glade2.c:12385 src/interface-glade2.c:14110
+#: src/interface-glade2.c:14730
 msgid "Delete"
 msgstr "Törlés"
 
-#: src/interface-glade2.c:10377
+#: src/interface-glade2.c:12515
 msgid "window26"
 msgstr "window26"
 
-#: src/interface-glade2.c:10445
+#: src/interface-glade2.c:12583
 msgid "IP address"
 msgstr "IP-cím"
 
-#: src/interface-glade2.c:10453
+#: src/interface-glade2.c:12591
 msgid "network mask"
 msgstr "hálózati maszk"
 
-#: src/interface-glade2.c:10474
+#: src/interface-glade2.c:12612
 msgid "Condition: If IP address matches"
 msgstr "Feltétel: ha az IP-cím illik"
 
-#: src/interface-glade2.c:10653
+#: src/interface-glade2.c:12791
 msgid "window27"
 msgstr "window27"
 
-#: src/interface-glade2.c:10721
+#: src/interface-glade2.c:12859
 msgid "minimum size"
 msgstr "legkisebb méret"
 
-#: src/interface-glade2.c:10729
+#: src/interface-glade2.c:12867
 msgid "maximum size"
 msgstr "legnagyobb méret"
 
-#: src/interface-glade2.c:10773
+#: src/interface-glade2.c:12911
 msgid "Condition: If file size matches"
 msgstr "Feltétel: ha a fájlméret illik"
 
-#: src/interface-glade2.c:10945
+#: src/interface-glade2.c:13083
 msgid "window28"
 msgstr "window28"
 
-#: src/interface-glade2.c:10996
+#: src/interface-glade2.c:13134
 msgid ""
 "There is no condition. When this rule is reached, the matching will continue "
 "in the specified target filter. That's also why you can't invert this "
@@ -3392,94 +4174,94 @@ msgstr ""
 "célként megadott szűrőben. Ezért nem lehet megfordítani ezt a feltételt. Ha "
 "lehetne, ez a feltétel mellőzve lenne."
 
-#: src/interface-glade2.c:11003
+#: src/interface-glade2.c:13141
 msgid "Condition: always"
 msgstr "Feltétel: mindig"
 
-#: src/interface-glade2.c:11179
+#: src/interface-glade2.c:13317
 msgid "window29"
 msgstr "window29"
 
-#: src/interface-glade2.c:11246
+#: src/interface-glade2.c:13384
 msgid "SHA1 hash (not editable, add from search popup)"
 msgstr "SHA1 hash (nem szerkeszthető, a kereső felugróból lehet hozzáadni)"
 
-#: src/interface-glade2.c:11269
+#: src/interface-glade2.c:13407
 msgid "Originally obtained from"
 msgstr "Eredetileg jön"
 
-#: src/interface-glade2.c:11280
+#: src/interface-glade2.c:13418
 msgid "Condition: If urn:sha1 matches"
 msgstr "Feltétel: ha urn:sha1 illik"
 
-#: src/interface-glade2.c:11511
+#: src/interface-glade2.c:13649
 msgid "window30"
 msgstr "window30"
 
-#: src/interface-glade2.c:11574
+#: src/interface-glade2.c:13712
 msgid "Busy"
 msgstr "Foglalt"
 
-#: src/interface-glade2.c:11582
+#: src/interface-glade2.c:13720
 msgid "Push"
 msgstr "Nyomás"
 
-#: src/interface-glade2.c:11615 src/interface-glade2.c:11646
-#: src/interface-glade2.c:11840
+#: src/interface-glade2.c:13753 src/interface-glade2.c:13784
+#: src/interface-glade2.c:13978
 msgid "ignored"
 msgstr "mellőzve"
 
-#: src/interface-glade2.c:11677 src/interface-glade2.c:11809
-#: src/interface-glade2.c:11871
+#: src/interface-glade2.c:13815 src/interface-glade2.c:13947
+#: src/interface-glade2.c:14009
 msgid "unset"
 msgstr "kikapcsolva"
 
-#: src/interface-glade2.c:11708 src/interface-glade2.c:11739
-#: src/interface-glade2.c:11778
+#: src/interface-glade2.c:13846 src/interface-glade2.c:13877
+#: src/interface-glade2.c:13916
 msgid "set"
 msgstr "bekapcsolva"
 
-#: src/interface-glade2.c:11745
+#: src/interface-glade2.c:13883
 msgid "Stable"
 msgstr "Stabil"
 
-#: src/interface-glade2.c:11877
+#: src/interface-glade2.c:14015
 msgid "Condition: If result has flags"
 msgstr "Feltétel: ha az eredményben vannak jelzések"
 
-#: src/interface-glade2.c:12185
+#: src/interface-glade2.c:14323
 msgid "window31"
 msgstr "window31"
 
-#: src/interface-glade2.c:12253
+#: src/interface-glade2.c:14391
 msgid "DOWNLOAD"
 msgstr "LETÖLTÉS"
 
-#: src/interface-glade2.c:12286 src/interface-glade2.c:12418
+#: src/interface-glade2.c:14424 src/interface-glade2.c:14556
 msgid "don't"
 msgstr "ne"
 
-#: src/interface-glade2.c:12317 src/interface-glade2.c:12449
+#: src/interface-glade2.c:14455 src/interface-glade2.c:14587
 msgid "undefined"
 msgstr "meghatározatlan"
 
-#: src/interface-glade2.c:12323
+#: src/interface-glade2.c:14461
 msgid "DISPLAY"
 msgstr "MUTAT"
 
-#: src/interface-glade2.c:12356 src/interface-glade2.c:12387
+#: src/interface-glade2.c:14494 src/interface-glade2.c:14525
 msgid "do"
 msgstr "tegye"
 
-#: src/interface-glade2.c:12480 src/interface-glade2.c:12511
+#: src/interface-glade2.c:14618 src/interface-glade2.c:14649
 msgid "ignore"
 msgstr "mellőz"
 
-#: src/interface-glade2.c:12517
+#: src/interface-glade2.c:14655
 msgid "Condition: If current filter result properties match"
 msgstr "Feltétel: ha a jelenlegi szűrő eredmény tulajdonságai illenek"
 
-#: src/interface-glade2.c:12763
+#: src/interface-glade2.c:14901
 msgid ""
 "Configuration of IP address, Port,\n"
 "Proxy settings etc. "
@@ -3487,7 +4269,7 @@ msgstr ""
 "IP-cím, kapu, proxy, stb. \n"
 "beállítása."
 
-#: src/interface-glade2.c:12773
+#: src/interface-glade2.c:14911
 msgid ""
 "Peer mode selection, timeout and TTL settings, quality management regarding "
 "GnutellaNet traffic"
@@ -3495,7 +4277,7 @@ msgstr ""
 "Üzemmód választás, türelmi idő és TTL beállítás, GnutellaNet-forgalom "
 "minőségirányítása"
 
-#: src/interface-glade2.c:12783
+#: src/interface-glade2.c:14921
 msgid ""
 "Bandwidth limit configuration for HTTP, normal GnutellaNet and Ultrapeer "
 "traffic"
@@ -3503,163 +4285,226 @@ msgstr ""
 "Sávszélesség korlát beállítása HTTP, normál GnutellaNet és Ultratárs "
 "forgalomra"
 
-#: src/interface-glade2.c:12793
+#: src/interface-glade2.c:14931
 msgid "Choose directories for completed files and downloads in progress"
 msgstr "Válasszon mappákat a letöltött és a folyamatban levő fájloknak!"
 
-#: src/interface-glade2.c:12803
+#: src/interface-glade2.c:14941
 msgid "Selection of directories and filetypes to share"
 msgstr "Osztandó mappák és fájltípusok kiválasztása"
 
-#: src/interface-glade2.c:12812
+#: src/interface-glade2.c:14950
 msgid ""
 "Settings for the User Interface like toolbar appearance, expert settings"
 msgstr ""
 "Felhasználói felület beállítása mint eszköztár megjelenése, haladó "
 "beállítások"
 
-#: src/interface-glade2.c:12822
+#: src/interface-glade2.c:14960
 msgid "Debug level configuration"
 msgstr "Hibakövetésszint beállítása"
 
-#: src/interface-glade2.c:12853
+#: src/interface-glade2.c:14991
 msgid "Network Settings"
 msgstr "Hálózati beállítások"
 
-#: src/interface-glade2.c:12881
+#: src/interface-glade2.c:15019
 msgid "GnutellaNet Settings"
 msgstr "GnutellaNet Beállítások"
 
-#: src/interface-glade2.c:12909
+#: src/interface-glade2.c:15047
 msgid "Bandwidth Control"
 msgstr "Sávszélesség-vezérlés"
 
-#: src/interface-glade2.c:12938
+#: src/interface-glade2.c:15076
 msgid "Download Settings"
 msgstr "Letöltő beállítások"
 
-#: src/interface-glade2.c:12997 src/main_gui.c:181
+#: src/interface-glade2.c:15135 src/main_gui.c:182
 msgid "User Interface"
 msgstr "Felhasználói felület"
 
-#: src/interface-glade2.c:13025 src/main_gui.c:185
+#: src/interface-glade2.c:15163 src/main_gui.c:186
 msgid "Debugging"
 msgstr "Hibairányítás"
 
-#: src/interface-glade2.c:13155
+#: src/interface-glade2.c:15293
 msgid "Disconnect"
 msgstr "Szétkapcsol"
 
-#: src/main_gui.c:125
+#: src/main_gui.c:126
 msgid "gnutellaNet"
 msgstr "gnutellaNet"
 
-#: src/main_gui.c:128 src/main_gui.c:135 src/main_gui.c:152
+#: src/main_gui.c:129 src/main_gui.c:136 src/main_gui.c:153
 msgid "Stats"
 msgstr "Statisztika"
 
-#: src/main_gui.c:145
+#: src/main_gui.c:146
 msgid "Search"
 msgstr "Keresés"
 
-#: src/main_gui.c:148
+#: src/main_gui.c:149
 msgid "Monitor"
 msgstr "Figyelő"
 
-#: src/main_gui.c:157
+#: src/main_gui.c:158
 msgid "Config"
 msgstr "Beállítás"
 
-#: src/main_gui.c:161
+#: src/main_gui.c:162
 msgid "Network"
 msgstr "Hálózat"
 
-#: src/main_gui.c:165
+#: src/main_gui.c:166
 msgid "GnutellaNet"
 msgstr "GnutellaNet"
 
-#: src/main_gui.c:169
+#: src/main_gui.c:170
 msgid "Bandwidth"
 msgstr "Sávszélesség"
 
-#: src/search_gui.c:1156 src/search_gui.c:1162
+#: src/search_gui.c:1599 src/search_gui.c:1605
 msgid "File"
 msgstr "Fájl"
 
-#: src/search_gui.c:1171 src/search_gui.c:1176
+#: src/search_gui.c:1615 src/search_gui.c:1621
+msgid "#"
+msgstr ""
+
+#: src/search_gui.c:1623 src/search_gui.c:1629
 msgid "Speed"
 msgstr "Sebesség"
 
-#: src/search_gui.c:1193 src/search_gui.c:1199
+#: src/search_gui.c:1632 src/search_gui.c:1638
+msgid "Host"
+msgstr "Gép"
+
+#: src/search_gui.c:1650 src/search_gui.c:1656
 msgid "Info"
 msgstr "Tájékoztató"
 
-#: src/search_gui.c:1229
+#: src/search_gui.c:1692
 #, c-format
 msgid "%s%u item%s found"
 msgstr "%s%u elem%s találva"
 
-#: src/search_gui.c:1232
+#: src/search_gui.c:1695
 #, c-format
 msgid "%sNo items found"
 msgstr "%s db. elem találva"
 
-#: src/search_gui.c:1234
+#: src/search_gui.c:1697
 msgid "No search"
 msgstr "Nincs keresés"
 
-#: src/settings_gui.c:2926
+#: src/settings_gui.c:3701
 msgid "loading..."
 msgstr "töltés…"
 
-#: src/settings_gui.c:2927
+#: src/settings_gui.c:3702
 msgid "Reading host cache..."
 msgstr "Gépgyorstár olvasása"
 
-#: src/settings_gui.c:2942
+#: src/settings_gui.c:3724
 msgid "*** RUNNING AN OLD VERSION! ***"
 msgstr "☹☹☹ RÉGI VÁLTOZAT! ☹☹☹"
 
-#: src/settings_gui.c:3029
+#: src/settings_gui.c:3740
+msgid "*** VERSION WILL SOON BECOME OLD! ***"
+msgstr ""
+
+#: src/settings_gui.c:3743
+msgid "*** VERSION WILL BECOME OLD IN 1 DAY! ***"
+msgstr ""
+
+#: src/settings_gui.c:3746
+#, c-format
+msgid "*** VERSION WILL BECOME OLD IN %d DAYS! ***"
+msgstr ""
+
+#: src/settings_gui.c:3833
 #, c-format
 msgid "%u/%u host%s (%u%%)"
 msgstr "%u%u gép%s (%u%%)"
 
-#: src/settings_gui.c:3031
+#: src/settings_gui.c:3835
 #, c-format
 msgid "%u/%u host%s (%u%%%%)"
 msgstr "%u/%u gép%s (%u%%%%)"
 
-#: src/settings_gui.c:3591
+#: src/settings_gui.c:4518
 msgid "no sources"
 msgstr "nincs forrás"
 
-#: src/settings_gui.c:3595
+#: src/settings_gui.c:4522
 #, c-format
 msgid "%u source%s"
 msgstr "%u forrás%s"
 
-#: src/settings_gui.c:3610
+#: src/settings_gui.c:4537
 #, c-format
 msgid "%u active"
 msgstr "%u aktív"
 
-#: src/settings_gui.c:3624
+#: src/settings_gui.c:4563
 #, c-format
 msgid "%u queued"
 msgstr "%u sorban"
 
-#: src/settings_gui.c:3702
+#: src/settings_gui.c:4659
 #, c-format
 msgid "%u/%u connection%s"
 msgstr "%u/%u kapcsolat%s"
 
-#: src/settings_gui.c:3736
+#: src/settings_gui.c:4693
 #, c-format
 msgid "%u/%u upload%s"
 msgstr "%u/%u feltöltés%s"
 
-#: src/settings_gui.c:3758
+#: src/settings_gui.c:4715
 #, c-format
 msgid "%u/%u download%s"
 msgstr "%u/%u letöltés%s"
+
+#~ msgid "                  "
+#~ msgstr "                  "
+
+#~ msgid "kbit/s"
+#~ msgstr "kbit/s"
+
+#~ msgid "Default _minimum speed"
+#~ msgstr "Alapértelmezett _legkisebb sebesség"
+
+#~ msgid "_Allow experimenting with low-level settings"
+#~ msgstr "_Kísérletezés alacsony szintű beállításokkal"
+
+#~ msgid "Filename"
+#~ msgstr "Fájlnév"
+
+#~ msgid "Range"
+#~ msgstr "Tartomány"
+
+#~ msgid "Server"
+#~ msgstr "Kiszolgáló"
+
+#~ msgid "Status"
+#~ msgstr "Állapot"
+
+#~ msgid "_Search for"
+#~ msgstr "_Keresés"
+
+#~ msgid "_New search"
+#~ msgstr "Ú_j keresés"
+
+#~ msgid "New _passive search"
+#~ msgstr "Új passzív keresés"
+
+#~ msgid "Add new search"
+#~ msgstr "Új keresés hozzáadása"
+
+#~ msgid "_Remove files manually selected for download"
+#~ msgstr "Letöltésre kiválasztott fájlok kézi _törlése"
+
+#~ msgid "     "
+#~ msgstr "     "

@@ -3,6 +3,8 @@
 - (2004.01.04 - Hans)
  * [Gtk1] Show leafs and "normal" (legacy) clients in grey in the nodes list.
  * [Gtk2] Update nodes and uploads lists to show rows in grey in line with Gtk1
+ * Updated i18n .po and .pot files based on current code
+ * Updated Dutch translation
 	
 - (2004.01.04 - Richard)
  * [Gtk1] [Gtk2] Show icon when gtkg determines that it is ancient.
