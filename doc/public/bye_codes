@@ -24,7 +24,7 @@ Here are the officially registered BYE codes and their meaning:
 200		Servent Shutdown
 201		User Manual Removal
 202		Local Node Preferred
-203		RESERVED
+203		Changing Peer Mode
 204		RESERVED
 205		RESERVED
 206		RESERVED
@@ -47,12 +47,16 @@ Here are the officially registered BYE codes and their meaning:
 410		Excessive Messages [UNUSED]
 411		Invalid Payload [UNUSED]
 412		Security Violation
+413		Invalid QRP Sequence
+414		Leaf Node Relaying Messages
 499		Generic Peer-side Error [UNUSED]
 
-500		Servent Internal Error [UNUSED]
+500		Servent Internal Error
 501		Protocol Desynchronized
 502		Send Queue Full
 503		Servent Closing Connection [UNUSED]
+504		RESERVED
+505		Protocol Not Supported
 599		Generic Servent-side Error [UNUSED]
 
 Finally, recall that the above are generic categories of events.
