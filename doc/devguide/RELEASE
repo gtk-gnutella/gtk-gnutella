@@ -84,7 +84,7 @@ Quick Release Guide
 15. Login to www.sf.net and go to the Admin section of the gtk-gnutella
     project.
 
-16. Go to "Edit/Add Releases"
+16. Go to "File Releases"
 
 17. Go to "Add Release" in package gtk-gnutella and create a release "0.91".
 
