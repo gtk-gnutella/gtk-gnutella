@@ -9,6 +9,44 @@
    because the only source you have does not provide a urn.
  * Add a viewport to all config panes so they can be scrolled if the window
    too small to show them completely.
+ * In gwcache.c: when stopping because we get 50+ lines, use
+   http_async_close() and not http_async_cancel() as it is not an error,
+   so we don't want the error callback to be called.
+ * In http.c: when making a subrequest, disable timeouting of the now idle
+   parent request.
+
+- (2002.10.12 RAM)
+ * Fixed get_file_to_upload_from_index() to avoid writing to freed memory.
+ * Added pre-condition in io_read_data().
+ * Added asynchronous disposal of HTTP async requests to avoid writing
+   into freed memory upon user callback returns.
+ * Just because a hostname starts with a digit does not mean the host was
+   given as an IP address (fixes bug 617315).
+ * Display pushed uploads in light gray ("insensitive"), just as we do for
+   pushed downloads.
+ * Was not properly reporting errors when given bad URN in /uri-res.
+ * Also report 503 if given a /uri-res and we are still rebuilding, in case
+   we do not find the file for the URN: we might not have parsed it in the
+   library if it is large.
+ * When downloading, ignore SHA1 of files we already share in our library
+   (fixes bug #618722).
+ * Made `current_url' an atom in gwcache.c to avoid race conditions with
+   the entry being superseded.
+ * Delay next urlfile webcache request when the previous failed.
+
+- (2002.10.05 RAM)
+ * Never send pushes if we think we're firewalled.
+ * Made "misc.h" include "config.h" for compiles on FreeBSD.
+ * Further changed the upload request checking order for better GUI reporting.
+
+- (2002.09.28 RAM)
+ * Added ATOM vendor code.
+ * Check HTTP upload request after we extracted the vendor information.
+ * Drop "QTRAX2_CONNECTION" queries.
+ * When we're firewalled, answer pings at regular intervals, to help us
+   determine whether we're really firewalled.  Even if we have no slot.
+ * Moved "TTL exceeded" reason at the top, with related reasons.
+ * Fixed download fileinfo reparenting bug.
 
 - (2002.09.25 RAM)
  * Added ACQX and EVIL vendor codes.
