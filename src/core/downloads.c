@@ -6855,7 +6855,7 @@ picked:
 			download_queue_delay(d, download_retry_busy_delay,
 				"Write failed: %s", g_strerror(errno));
 		return;
-	} else if (sent < rw) {
+	} else if ((size_t) sent < rw) {
 		/*
 		 * Could not send the whole request, probably because the TCP output
 		 * path is clogged.
@@ -6863,7 +6863,7 @@ picked:
 
 		g_message("Partial HTTP request write to %s: wrote %d out of %d bytes",
 			ip_port_to_gchar(download_ip(d), download_port(d)),
-			sent, rw);
+			(int) sent, (int) rw);
 
 		g_assert(d->req == NULL);
 

@@ -833,7 +833,7 @@ gchar *header_fmt_to_gchar(gpointer o)
 
 	if (hf->header->len > HEADER_FMT_MAX_SIZE)
 		g_warning("trying to format too long an HTTP line (%d bytes)",
-			hf->header->len);
+			(int) hf->header->len);
 
 	strncpy(line, hf->header->str, HEADER_FMT_MAX_SIZE);
 	line[HEADER_FMT_MAX_SIZE] = '\0';
