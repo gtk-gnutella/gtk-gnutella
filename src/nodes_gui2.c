@@ -259,6 +259,13 @@ void nodes_gui_init(void)
  */
 void nodes_gui_shutdown(void) 
 {
+	GtkTreeViewColumn *c;
+	gint i;
+
+	for (i = 0; NULL != (c = gtk_tree_view_get_column(treeview_nodes, i)); i++)
+		g_signal_handlers_disconnect_by_func(c, on_nodes_gui_column_resized,
+			GINT_TO_POINTER(i));
+
     node_remove_node_added_listener(nodes_gui_node_added);
     node_remove_node_removed_listener(nodes_gui_node_removed);
     node_remove_node_info_changed_listener(nodes_gui_node_info_changed);
