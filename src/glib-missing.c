@@ -359,6 +359,7 @@ gm_sanitize_filename(const gchar *filename)
 	gchar *q = NULL, *r;
 	const gchar *p, *s = filename;
 	gboolean no_spaces;
+	int len = strlen(filename);
 	
 	g_assert(filename != NULL);
 
