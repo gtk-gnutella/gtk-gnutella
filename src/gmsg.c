@@ -334,8 +334,6 @@ gint gmsg_cmp(gpointer pdu1, gpointer pdu2)
 	 * waste of bandwidth).
 	 */
 
-	g_assert(h1->function == h2->function);
-
 	if (h1->hops == h2->hops)
 		return 0;
 
