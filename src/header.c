@@ -958,31 +958,60 @@ void header_get_feature(const gchar *feature_name, const header_t *header,
 	int *feature_version_major, int *feature_version_minor)
 {
 	gchar *buf = NULL;
+	gchar *start;
 	
 	*feature_version_major = 0;
 	*feature_version_minor = 0;
 
 	buf = header_get(header, (const gchar *) "X-Features");
 
-	/* We could also try to scan for the header: feature_name, so this would
+	/*
+	 * We could also try to scan for the header: feature_name, so this would
      * make this function even more generic. But I would suggest another
      * function for this though.
      */	
+
 	if (buf == NULL) {
-		/* Actually the 'specs' say we should assume it is supported if the
-		 * X-Features header is not there. But I wouldn't count on it */
+		/*
+		 * Actually the 'specs' say we should assume it is supported if the
+		 * X-Features header is not there. But I wouldn't count on it, and
+		 * it was only for "legacy" attributes in the HTTP file exchange.
+		 * Better safe than sorry.
+		 */
 		
 		return;
 	}
-	
-	buf = strcasestr(buf, feature_name);
-	
-	if (buf == NULL) {
-		return;
+
+	/*
+	 * We must locate the feature_name exactly, and not a subpart of another
+	 * feature.  If we look for "bar", then we must not match on "foobar".
+	 */
+
+	for (start = buf;;) {
+		gint pc;			/* Previous char */
+
+		buf = strcasestr(buf, feature_name);
+
+		if (buf == NULL)
+			return;
+		if (buf == start)
+			break;
+
+		pc = (gint) *(guchar *) (buf - 1);
+		if (isspace(pc) || pc == ',' || pc == ';')
+			break;			/* Found it! */
+
+		/*
+		 * Since we're looking for whole words separated by a space or the
+		 * regular header punctuation, the next match can't occur before
+		 * the end of the current string we matched...
+		 */
+
+		buf += strlen(feature_name);
 	}
-	
-	buf += strlen(feature_name);
-	
+
+	buf += strlen(feature_name);		/* Should now be on the "/" sep */
+
 	if (*buf != '/') {
 		g_warning("[header] Malformed X-Features header, ignoring");
 		if (dbg > 2)
@@ -990,12 +1019,13 @@ void header_get_feature(const gchar *feature_name, const header_t *header,
 		
 		return;
 	}
-	
+
 	buf++;
-	
-	if (*buf ==  '\0')
+
+	if (*buf == '\0')
 		return;
-	
+
 	/* XXX Is this exploitable? */
 	sscanf(buf, "%d.%d", feature_version_major, feature_version_minor);
 }
+
