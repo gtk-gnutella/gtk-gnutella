@@ -49,6 +49,11 @@ create_main_window (void)
   GtkAccelGroup *menu_gnet_stats_visible_menu_accels;
   GtkWidget *menu_bws_gin_visible;
   GtkWidget *menu_bws_gout_visible;
+  GtkWidget *menu_gnet_leaf_stats_visible;
+  GtkWidget *menu_gnet_leaf_stats_visible_menu;
+  GtkAccelGroup *menu_gnet_leaf_stats_visible_menu_accels;
+  GtkWidget *menu_bws_glin_visible;
+  GtkWidget *menu_bws_glout_visible;
   GtkWidget *menu_about;
   GtkWidget *hb_toolbar;
   GtkWidget *toolbar1;
@@ -93,7 +98,7 @@ create_main_window (void)
   GtkWidget *vbox43;
   GtkWidget *progressbar_bws_gin;
   GtkWidget *progressbar_bws_gout;
-  GtkWidget *frame75;
+  GtkWidget *frame_bws_glinout;
   GtkWidget *vbox107;
   GtkWidget *progressbar_bws_lin;
   GtkWidget *progressbar_bws_lout;
@@ -1038,6 +1043,40 @@ create_main_window (void)
   gtk_check_menu_item_set_active (GTK_CHECK_MENU_ITEM (menu_bws_gout_visible), TRUE);
   gtk_check_menu_item_set_show_toggle (GTK_CHECK_MENU_ITEM (menu_bws_gout_visible), TRUE);
 
+  menu_gnet_leaf_stats_visible = gtk_menu_item_new_with_label ("gNet leaf traffic stats");
+  gtk_widget_set_name (menu_gnet_leaf_stats_visible, "menu_gnet_leaf_stats_visible");
+  gtk_widget_ref (menu_gnet_leaf_stats_visible);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "menu_gnet_leaf_stats_visible", menu_gnet_leaf_stats_visible,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (menu_gnet_leaf_stats_visible);
+  gtk_container_add (GTK_CONTAINER (menu_view_menu), menu_gnet_leaf_stats_visible);
+
+  menu_gnet_leaf_stats_visible_menu = gtk_menu_new ();
+  gtk_widget_set_name (menu_gnet_leaf_stats_visible_menu, "menu_gnet_leaf_stats_visible_menu");
+  gtk_widget_ref (menu_gnet_leaf_stats_visible_menu);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "menu_gnet_leaf_stats_visible_menu", menu_gnet_leaf_stats_visible_menu,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_menu_item_set_submenu (GTK_MENU_ITEM (menu_gnet_leaf_stats_visible), menu_gnet_leaf_stats_visible_menu);
+  menu_gnet_leaf_stats_visible_menu_accels = gtk_menu_ensure_uline_accel_group (GTK_MENU (menu_gnet_leaf_stats_visible_menu));
+
+  menu_bws_glin_visible = gtk_check_menu_item_new_with_label ("show leaf incoming traffic");
+  gtk_widget_set_name (menu_bws_glin_visible, "menu_bws_glin_visible");
+  gtk_widget_ref (menu_bws_glin_visible);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "menu_bws_glin_visible", menu_bws_glin_visible,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (menu_bws_glin_visible);
+  gtk_container_add (GTK_CONTAINER (menu_gnet_leaf_stats_visible_menu), menu_bws_glin_visible);
+  gtk_check_menu_item_set_show_toggle (GTK_CHECK_MENU_ITEM (menu_bws_glin_visible), TRUE);
+
+  menu_bws_glout_visible = gtk_check_menu_item_new_with_label ("show leaf outgoing traffic");
+  gtk_widget_set_name (menu_bws_glout_visible, "menu_bws_glout_visible");
+  gtk_widget_ref (menu_bws_glout_visible);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "menu_bws_glout_visible", menu_bws_glout_visible,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (menu_bws_glout_visible);
+  gtk_container_add (GTK_CONTAINER (menu_gnet_leaf_stats_visible_menu), menu_bws_glout_visible);
+  gtk_check_menu_item_set_show_toggle (GTK_CHECK_MENU_ITEM (menu_bws_glout_visible), TRUE);
+
   menu_about = gtk_menu_item_new_with_label ("");
   tmp_key = gtk_label_parse_uline (GTK_LABEL (GTK_BIN (menu_about)->child),
                                    "_About");
@@ -1456,15 +1495,15 @@ create_main_window (void)
   gtk_progress_set_show_text (GTK_PROGRESS (progressbar_bws_gout), TRUE);
   gtk_progress_set_format_string (GTK_PROGRESS (progressbar_bws_gout), "bws gout");
 
-  frame75 = gtk_frame_new ("leaf traffic");
-  gtk_widget_set_name (frame75, "frame75");
-  gtk_widget_ref (frame75);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "frame75", frame75,
+  frame_bws_glinout = gtk_frame_new ("leaf traffic");
+  gtk_widget_set_name (frame_bws_glinout, "frame_bws_glinout");
+  gtk_widget_ref (frame_bws_glinout);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "frame_bws_glinout", frame_bws_glinout,
                             (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (frame75);
-  gtk_box_pack_start (GTK_BOX (vbox31), frame75, TRUE, TRUE, 0);
-  gtk_frame_set_label_align (GTK_FRAME (frame75), 0.5, 0.5);
-  gtk_frame_set_shadow_type (GTK_FRAME (frame75), GTK_SHADOW_NONE);
+  gtk_widget_show (frame_bws_glinout);
+  gtk_box_pack_start (GTK_BOX (vbox31), frame_bws_glinout, TRUE, TRUE, 0);
+  gtk_frame_set_label_align (GTK_FRAME (frame_bws_glinout), 0.5, 0.5);
+  gtk_frame_set_shadow_type (GTK_FRAME (frame_bws_glinout), GTK_SHADOW_NONE);
 
   vbox107 = gtk_vbox_new (FALSE, 0);
   gtk_widget_set_name (vbox107, "vbox107");
@@ -1472,7 +1511,7 @@ create_main_window (void)
   gtk_object_set_data_full (GTK_OBJECT (main_window), "vbox107", vbox107,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (vbox107);
-  gtk_container_add (GTK_CONTAINER (frame75), vbox107);
+  gtk_container_add (GTK_CONTAINER (frame_bws_glinout), vbox107);
 
   progressbar_bws_lin = gtk_progress_bar_new ();
   gtk_widget_set_name (progressbar_bws_lin, "progressbar_bws_lin");
@@ -7473,6 +7512,12 @@ create_main_window (void)
                       NULL);
   gtk_signal_connect (GTK_OBJECT (menu_bws_gout_visible), "activate",
                       GTK_SIGNAL_FUNC (on_menu_bws_gout_visible_activate),
+                      NULL);
+  gtk_signal_connect (GTK_OBJECT (menu_bws_glin_visible), "activate",
+                      GTK_SIGNAL_FUNC (on_menu_bws_glin_visible_activate),
+                      NULL);
+  gtk_signal_connect (GTK_OBJECT (menu_bws_glout_visible), "activate",
+                      GTK_SIGNAL_FUNC (on_menu_bws_glout_visible_activate),
                       NULL);
   gtk_signal_connect (GTK_OBJECT (menu_about), "activate",
                       GTK_SIGNAL_FUNC (on_menu_about_activate),
