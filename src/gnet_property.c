@@ -598,7 +598,7 @@ prop_set_t *gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[5].name = "normal_connections";
-    gnet_property->props[5].desc = _("When in ultrapeer mode, try to keep at least this number of connections to normal servents.  This should be smaller than the maximum amount of connections to allow incoming connections.");
+    gnet_property->props[5].desc = _("When in ultrapeer mode, try to keep at least this number of connections to normal servents. This should be smaller than the maximum amount of connections to allow incoming connections.");
     gnet_property->props[5].ev_changed = event_new("normal_connections_changed");
     gnet_property->props[5].save = TRUE;
     gnet_property->props[5].vector_size = 1;
@@ -618,7 +618,7 @@ prop_set_t *gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[6].name = "max_connections";
-    gnet_property->props[6].desc = _("Don't allow more than this number of connections to other servents.  As a rule of thumb you should reserve 512 b/s bandwidth per connection. Never use up all your bandwidth, leave a little space for TCP/IP overhead. It's not advisable that you set this to a value larger than 40.");
+    gnet_property->props[6].desc = _("Don't allow more than this number of connections to other servents. As a rule of thumb you should reserve 512 b/s bandwidth per connection. Never use up all your bandwidth, leave a little space for TCP/IP overhead. It's not advisable that you set this to a value larger than 40.");
     gnet_property->props[6].ev_changed = event_new("max_connections_changed");
     gnet_property->props[6].save = TRUE;
     gnet_property->props[6].vector_size = 1;
@@ -698,7 +698,7 @@ prop_set_t *gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[10].name = "max_simultaneous_downloads";
-    gnet_property->props[10].desc = _("Don't start more than this number of parallel downloads.  Others will remain in the queue waiting for a download slot.");
+    gnet_property->props[10].desc = _("Don't start more than this number of parallel downloads. Others will remain in the queue waiting for a download slot.");
     gnet_property->props[10].ev_changed = event_new("max_downloads_changed");
     gnet_property->props[10].save = TRUE;
     gnet_property->props[10].vector_size = 1;
@@ -718,7 +718,7 @@ prop_set_t *gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[11].name = "max_simultaneous_host_downloads";
-    gnet_property->props[11].desc = _("Don't make more connections than given here to a single host to download a file.  Be nice to others, and leave it at the default value (1).");
+    gnet_property->props[11].desc = _("Don't make more connections than given here to a single host to download a file. Be nice to others, and leave it at the default value (1).");
     gnet_property->props[11].ev_changed = event_new("max_host_downloads_changed");
     gnet_property->props[11].save = TRUE;
     gnet_property->props[11].vector_size = 1;
@@ -878,7 +878,7 @@ prop_set_t *gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[19].name = "listen_port";
-    gnet_property->props[19].desc = _("Local TCP port gtk-gnutella is listening on. Your ISP may block or choke traffic on TCP port 6346 so it would be a good idea to change it to something in the range of 1024-65535.  Don't forget to update your firewall port forwarding / opening, as necessary.  Note that by default, the TCP port 6346 is not used to guard against undue censorship.");
+    gnet_property->props[19].desc = _("Local TCP port gtk-gnutella is listening on. Your ISP may block or choke traffic on TCP port 6346 so it would be a good idea to change it to something in the range of 1024-65535. Don't forget to update your firewall port forwarding / opening, as necessary. Note that by default, the TCP port 6346 is not used to guard against undue censorship.");
     gnet_property->props[19].ev_changed = event_new("listen_port_changed");
     gnet_property->props[19].save = TRUE;
     gnet_property->props[19].vector_size = 1;
@@ -955,7 +955,7 @@ prop_set_t *gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[23].name = "limit_search_results";
-    gnet_property->props[23].desc = _("Return at most this number of results to a query, using as many query hit packets as necessary.  To avoid network flooding, keep this to a reasonable value.");
+    gnet_property->props[23].desc = _("Return at most this number of results to a query, using as many query hit packets as necessary. To avoid network flooding, keep this to a reasonable value.");
     gnet_property->props[23].ev_changed = event_new("query_response_max_items_changed");
     gnet_property->props[23].save = TRUE;
     gnet_property->props[23].vector_size = 1;
@@ -1175,7 +1175,7 @@ prop_set_t *gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[34].name = "download_retry_stopped";
-    gnet_property->props[34].desc = _("Delay in seconds before retrying after a retry stopped (timed out, connection reset by peer, etc...)");
+    gnet_property->props[34].desc = _("Delay in seconds before retrying after a retry stopped (timed out, connection reset by peer, etc.)");
     gnet_property->props[34].ev_changed = event_new("download_retry_stopped_delay_changed");
     gnet_property->props[34].save = TRUE;
     gnet_property->props[34].vector_size = 1;
@@ -1215,7 +1215,7 @@ prop_set_t *gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[36].name = "upload_connecting_timeout";
-    gnet_property->props[36].desc = _("Number of seconds before an upload times out if no connection can be established during a push.  It is also the maximum amount of time we wait to get the whole HTTP request.");
+    gnet_property->props[36].desc = _("Number of seconds before an upload times out if no connection can be established during a push. It is also the maximum amount of time we wait to get the whole HTTP request.");
     gnet_property->props[36].ev_changed = event_new("upload_connecting_timeout_changed");
     gnet_property->props[36].save = TRUE;
     gnet_property->props[36].vector_size = 1;
@@ -1255,7 +1255,7 @@ prop_set_t *gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[38].name = "search_reissue_timeout";
-    gnet_property->props[38].desc = _("Amount of seconds to wait before a search is issued again to see if new results are available.  Be very careful with this parameter, and do not set it too low or you will damage the Gnutella network.  A delay of half an hour is fine.");
+    gnet_property->props[38].desc = _("Amount of seconds to wait before a search is issued again to see if new results are available. Be very careful with this parameter, and do not set it too low or you will damage the Gnutella network. A delay of half an hour is fine.");
     gnet_property->props[38].ev_changed = event_new("search_reissue_timeout_changed");
     gnet_property->props[38].save = TRUE;
     gnet_property->props[38].vector_size = 1;
@@ -1275,7 +1275,7 @@ prop_set_t *gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[39].name = "ban_ratio_fds";
-    gnet_property->props[39].desc = _("Maximum ratio of file descriptors reserved for banning. For instance, if your OS gives you 350 file descriptors, a ratio of 10 will reserve at most 35 file descriptors.  You should ensure you have around 100 file descriptors for efficient banning.");
+    gnet_property->props[39].desc = _("Maximum ratio of file descriptors reserved for banning. For instance, if your OS gives you 350 file descriptors, a ratio of 10 will reserve at most 35 file descriptors. You should ensure you have around 100 file descriptors for efficient banning.");
     gnet_property->props[39].ev_changed = event_new("ban_ratio_fds_changed");
     gnet_property->props[39].save = TRUE;
     gnet_property->props[39].vector_size = 1;
@@ -1455,7 +1455,7 @@ prop_set_t *gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[48].name = "node_rx_flowc_ratio";
-    gnet_property->props[48].desc = _("Maximum percentage of time over 5 minutes that our node can remain in flow control remotely before dropping the connection.  This only works with nodes that will send us an hops-flow message when they are flow-controlling us.");
+    gnet_property->props[48].desc = _("Maximum percentage of time over 5 minutes that our node can remain in flow control remotely before dropping the connection. This only works with nodes that will send us an hops-flow message when they are flow-controlling us.");
     gnet_property->props[48].ev_changed = event_new("node_rx_flowc_ratio_changed");
     gnet_property->props[48].save = TRUE;
     gnet_property->props[48].vector_size = 1;
@@ -1475,7 +1475,7 @@ prop_set_t *gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[49].name = "max_ttl";
-    gnet_property->props[49].desc = _("Maximum TTL we allow in messages we broadcast.  If a message comes in with a TTL greater than that, it will be trimmed down to that value.  On Gnutella, the standard is TTL=7, so you cannot set a value lower than that.");
+    gnet_property->props[49].desc = _("Maximum TTL we allow in messages we broadcast. If a message comes in with a TTL greater than that, it will be trimmed down to that value. On Gnutella, the standard is TTL=7, so you cannot set a value lower than that.");
     gnet_property->props[49].ev_changed = event_new("max_ttl_changed");
     gnet_property->props[49].save = TRUE;
     gnet_property->props[49].vector_size = 1;
@@ -1495,7 +1495,7 @@ prop_set_t *gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[50].name = "my_ttl";
-    gnet_property->props[50].desc = _("The TTL we use in messages we generate.  The default on Gnutella is TTL=7.  If you set it to too large a value, you run the risk of being trimmed down by fellow gtk-gnutella nodes, or kicked out by some other servent.");
+    gnet_property->props[50].desc = _("The TTL we use in messages we generate. The default on Gnutella is TTL=7. If you set it to too large a value, you run the risk of being trimmed down by fellow gtk-gnutella nodes, or kicked out by some other servent.");
     gnet_property->props[50].ev_changed = event_new("my_ttl_changed");
     gnet_property->props[50].save = TRUE;
     gnet_property->props[50].vector_size = 1;
@@ -1515,7 +1515,7 @@ prop_set_t *gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[51].name = "hard_ttl_limit";
-    gnet_property->props[51].desc = _("Maximum hard TTL limit (hops + TTL) on messages we relay.  This should be greater than the standard TTL=7, because it is also applied to routed-back messages (query hits) that could be re-routed in case a connection is lost.  Standard broadcasted messages have their TTL limited by the maximum TTL you configure, and that limit should be much lower than the value of this parameter.");
+    gnet_property->props[51].desc = _("Maximum hard TTL limit (hops + TTL) on messages we relay. This should be greater than the standard TTL=7, because it is also applied to routed-back messages (query hits) that could be re-routed in case a connection is lost. Standard broadcasted messages have their TTL limited by the maximum TTL you configure, and that limit should be much lower than the value of this parameter.");
     gnet_property->props[51].ev_changed = event_new("hard_ttl_limit_changed");
     gnet_property->props[51].save = TRUE;
     gnet_property->props[51].vector_size = 1;
@@ -1731,7 +1731,7 @@ prop_set_t *gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[63].name = "bw_allow_stealing";
-    gnet_property->props[63].desc = _("Allow HTTP and Gnutella to grab whatever bandwidth the other is not using.  If FALSE, unused bandwidth is lost.");
+    gnet_property->props[63].desc = _("Allow HTTP and Gnutella to grab whatever bandwidth the other is not using. If FALSE, unused bandwidth is lost.");
     gnet_property->props[63].ev_changed = event_new("bw_allow_stealing_changed");
     gnet_property->props[63].save = TRUE;
     gnet_property->props[63].vector_size = 1;
@@ -1765,7 +1765,7 @@ prop_set_t *gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[65].name = "auto_clear_failed_downloads";
-    gnet_property->props[65].desc = _("Auto clear failed downloads (HTTP error, failure to resume, write error, etc...).");
+    gnet_property->props[65].desc = _("Auto clear failed downloads (HTTP error, failure to resume, write error, etc.).");
     gnet_property->props[65].ev_changed = event_new("autoclear_failed_downloads_changed");
     gnet_property->props[65].save = TRUE;
     gnet_property->props[65].vector_size = 1;
@@ -1782,7 +1782,7 @@ prop_set_t *gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[66].name = "auto_clear_unavailable_downloads";
-    gnet_property->props[66].desc = _("Auto clear unavailable downloads (connection timeout, push route lost, etc...).");
+    gnet_property->props[66].desc = _("Auto clear unavailable downloads (connection timeout, push route lost, etc.).");
     gnet_property->props[66].ev_changed = event_new("autoclear_unavailable_downloads_changed");
     gnet_property->props[66].save = TRUE;
     gnet_property->props[66].vector_size = 1;
@@ -2321,7 +2321,7 @@ prop_set_t *gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[94].name = "search_queries_forward_size";
-    gnet_property->props[94].desc = _("Maximum size of search queries messages we forward to others  (in bytes)");
+    gnet_property->props[94].desc = _("Maximum size of search queries messages we forward to others (in bytes)");
     gnet_property->props[94].ev_changed = event_new("search_queries_forward_size_changed");
     gnet_property->props[94].save = TRUE;
     gnet_property->props[94].vector_size = 1;
@@ -2441,7 +2441,7 @@ prop_set_t *gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[100].name = "send_pushes";
-    gnet_property->props[100].desc = _("Whether or not to send push requests.  If you are firewalled, gtk-gnutella will never send push requests anyway.  If you don't let gtk-gnutella send pushes, it will not show search results that would require a push.");
+    gnet_property->props[100].desc = _("Whether or not to send push requests. If you are firewalled, gtk-gnutella will never send push requests anyway. If you don't let gtk-gnutella send pushes, it will not show search results that would require a push.");
     gnet_property->props[100].ev_changed = event_new("send_pushes_changed");
     gnet_property->props[100].save = TRUE;
     gnet_property->props[100].vector_size = 1;
@@ -2498,7 +2498,7 @@ prop_set_t *gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[103].name = "shared_files_extensions";
-    gnet_property->props[103].desc = _("Only files with the given extensions will be shared. The special --all-- extension matches all files, even if they don't have any extension.  Use with care.");
+    gnet_property->props[103].desc = _("Only files with the given extensions will be shared. The special --all-- extension matches all files, even if they don't have any extension. Use with care.");
     gnet_property->props[103].ev_changed = event_new("scan_extensions_changed");
     gnet_property->props[103].save = TRUE;
     gnet_property->props[103].vector_size = 1;
@@ -2637,7 +2637,7 @@ prop_set_t *gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[110].name = "local_netmasks";
-    gnet_property->props[110].desc = _("List of networks considered local.  This is a list of IP addresses, separated by ';'.  The IP address can be given out fully, as in 192.168.0.1, or be optionally followed by '/' and a network mask prefix length. For instance, 192.168.0.1/24 would represent the whole 192.168.0.* network.");
+    gnet_property->props[110].desc = _("List of networks considered local. This is a list of IP addresses, separated by ';'. The IP address can be given out fully, as in 192.168.0.1, or be optionally followed by '/' and a network mask prefix length. For instance, 192.168.0.1/24 would represent the whole 192.168.0.* network.");
     gnet_property->props[110].ev_changed = event_new("local_netmasks_string_changed");
     gnet_property->props[110].save = TRUE;
     gnet_property->props[110].vector_size = 1;
@@ -2789,7 +2789,7 @@ prop_set_t *gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[118].name = "dl_minchunksize";
-    gnet_property->props[118].desc = _("Minimum chunk size when swarming.  This is only a hint as gtk-gnutella will download less if you only have a few bytes to get for a file...");
+    gnet_property->props[118].desc = _("Minimum chunk size when swarming. This is only a hint as gtk-gnutella will download less if you only have a few bytes to get for a file.");
     gnet_property->props[118].ev_changed = event_new("dl_minchunksize_changed");
     gnet_property->props[118].save = TRUE;
     gnet_property->props[118].vector_size = 1;
@@ -2897,7 +2897,7 @@ prop_set_t *gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[124].name = "fuzzy_threshold";
-    gnet_property->props[124].desc = _("Fuzziness threshold for filename matching (higher = stricter). A value of 100 means the filenames must be 100% identical.  A value of 0 means any two filenames will always be considered to be identical.  The minimum is 50%.");
+    gnet_property->props[124].desc = _("Fuzziness threshold for filename matching (higher = stricter). A value of 100 means the filenames must be identical. A value of 0 means any two filenames will always be considered to be identical. The minimum is 50%.");
     gnet_property->props[124].ev_changed = event_new("fuzzy_threshold_changed");
     gnet_property->props[124].save = TRUE;
     gnet_property->props[124].vector_size = 1;
@@ -3087,7 +3087,7 @@ prop_set_t *gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[135].name = "download_require_urn";
-    gnet_property->props[135].desc = _("Whether gtk-gnutella should make sure the server confirms the URN of the file we're requesting when it is known locally and a traditional request by name is used (i.e. gtk-gnutella is not issuing a /uri-res/N2R? request).  When set, it supersedes the optimistic first chunk setting.");
+    gnet_property->props[135].desc = _("Whether gtk-gnutella should make sure the server confirms the URN of the file we're requesting when it is known locally and a traditional request by name is used (i.e. gtk-gnutella is not issuing a /uri-res/N2R? request). When set, it supersedes the optimistic first chunk setting.");
     gnet_property->props[135].ev_changed = event_new("download_require_urn_changed");
     gnet_property->props[135].save = TRUE;
     gnet_property->props[135].vector_size = 1;
@@ -3161,7 +3161,7 @@ prop_set_t *gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[139].name = "max_leaves";
-    gnet_property->props[139].desc = _("Maximum amount of leaves we can accept.  To be promoted Ultra, you should reserve 32 bytes of bandwidth per leaf.");
+    gnet_property->props[139].desc = _("Maximum amount of leaves we can accept. To be promoted Ultra, you should reserve 32 bytes of bandwidth per leaf.");
     gnet_property->props[139].ev_changed = event_new("max_leaves_changed");
     gnet_property->props[139].save = TRUE;
     gnet_property->props[139].vector_size = 1;
@@ -3201,7 +3201,7 @@ prop_set_t *gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[141].name = "configured_peermode";
-    gnet_property->props[141].desc = _("The peer mode you want to operate as for gtk-gnutella.  When auto is selected, gtk-gnutella will start as a leaf node and may be promoted to an ultra node if bandwidth and uptime permits, provided that you are not firewalled.");
+    gnet_property->props[141].desc = _("The peer mode you want to operate as for gtk-gnutella. When auto is selected, gtk-gnutella will start as a leaf node and may be promoted to an ultra node if bandwidth and uptime permits, provided that you are not firewalled.");
     gnet_property->props[141].ev_changed = event_new("configured_peermode_changed");
     gnet_property->props[141].save = TRUE;
     gnet_property->props[141].vector_size = 1;
@@ -3481,7 +3481,7 @@ prop_set_t *gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[155].name = "pfsp_server";
-    gnet_property->props[155].desc = _("Whether gtk-gnutella should serve partial files whilst they are still incompletely downloaded.  Recommended for network's health unless you already share many files, in which case it does no harm to leave it in, but will not matter as much.");
+    gnet_property->props[155].desc = _("Whether gtk-gnutella should serve partial files whilst they are still incompletely downloaded. Recommended for network's health unless you already share many files, in which case it does no harm to leave it in, but will not matter as much.");
     gnet_property->props[155].ev_changed = event_new("pfsp_server_changed");
     gnet_property->props[155].save = TRUE;
     gnet_property->props[155].vector_size = 1;
@@ -3498,7 +3498,7 @@ prop_set_t *gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[156].name = "pfsp_first_chunk";
-    gnet_property->props[156].desc = _("When partial file sharing (PFSP) is enabled, gtk-gnutella will strive to download chunks in a random order, to maximize the spreading of the file in the network.  However, this makes auditing (file type, pre-viewing, etc...) of the file impossible. This field sets the size in bytes of the first chunk of data that should be continuously downloaded at the beginning of the file.  Don't set it too large.");
+    gnet_property->props[156].desc = _("When partial file sharing (PFSP) is enabled, gtk-gnutella will strive to download chunks in a random order, to maximize the spreading of the file in the network. However, this makes auditing (file type, pre-viewing, etc.) of the file impossible. This field sets the size in bytes of the first chunk of data that should be continuously downloaded at the beginning of the file. Don't set it too large.");
     gnet_property->props[156].ev_changed = event_new("pfsp_first_chunk_changed");
     gnet_property->props[156].save = TRUE;
     gnet_property->props[156].vector_size = 1;
@@ -3518,7 +3518,7 @@ prop_set_t *gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[157].name = "fuzzy_filter_dmesh";
-    gnet_property->props[157].desc = _("Whether to apply a fuzzy filter on download mesh entries.  The purpose of this filtering is to remove entries whose names are too different to be sensibly part of the same mesh. When activated, your mesh will probably be more consistent at the cost of extra CPU time, and at the cost of losing some valid entries in the process.");
+    gnet_property->props[157].desc = _("Whether to apply a fuzzy filter on download mesh entries. The purpose of this filtering is to remove entries whose names are too different to be sensibly part of the same mesh. When activated, your mesh will probably be more consistent at the cost of extra CPU time, and at the cost of losing some valid entries in the process.");
     gnet_property->props[157].ev_changed = event_new("fuzzy_filter_dmesh_changed");
     gnet_property->props[157].save = TRUE;
     gnet_property->props[157].vector_size = 1;
@@ -3609,7 +3609,7 @@ prop_set_t *gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[162].name = "node_monitor_unstable_servents";
-    gnet_property->props[162].desc = _("Whether gtk-gnutella should determine the servent types (as identified by their vendor string) that are unstable, preventing further connections to/from them.  This only works when gtk-gnutella already keeps track of unstable IP addresses.");
+    gnet_property->props[162].desc = _("Whether gtk-gnutella should determine the servent types (as identified by their vendor string) that are unstable, preventing further connections to/from them. This only works when gtk-gnutella already keeps track of unstable IP addresses.");
     gnet_property->props[162].ev_changed = event_new("node_monitor_unstable_servents_changed");
     gnet_property->props[162].save = TRUE;
     gnet_property->props[162].vector_size = 1;
@@ -3663,7 +3663,7 @@ prop_set_t *gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[165].name = "server_hostname";
-    gnet_property->props[165].desc = _("The hostname of the server that can be used by downloaders to find the IP address via a DNS resolution.  If you have a dynamic IP address coupled with a dynamic DNS service, then this is valuable to downloaders: they may find your node even after a few rotations of your IP address.");
+    gnet_property->props[165].desc = _("The hostname of the server that can be used by downloaders to find the IP address via a DNS resolution. If you have a dynamic IP address coupled with a dynamic DNS service, then this is valuable to downloaders: they may find your node even after a few rotations of your IP address.");
     gnet_property->props[165].ev_changed = event_new("server_hostname_changed");
     gnet_property->props[165].save = TRUE;
     gnet_property->props[165].vector_size = 1;
@@ -3960,7 +3960,7 @@ prop_set_t *gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[181].name = "search_queue_size";
-    gnet_property->props[181].desc = _("Size of the search queue holding the locally generated queries before they are sent on a given connection.  When full, the oldest query is dropped without being sent.  Set it so that it is slightly larger than the amount of opened searches.");
+    gnet_property->props[181].desc = _("Size of the search queue holding the locally generated queries before they are sent on a given connection. When full, the oldest query is dropped without being sent. Set it so that it is slightly larger than the amount of opened searches.");
     gnet_property->props[181].ev_changed = event_new("search_queue_size_changed");
     gnet_property->props[181].save = TRUE;
     gnet_property->props[181].vector_size = 1;
@@ -4037,7 +4037,7 @@ prop_set_t *gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[185].name = "node_watch_similar_queries";
-    gnet_property->props[185].desc = _("Whether gtk-gnutella should actively monitor query strings by TTL and hop count and drop duplicates.  Only applies when not running as a leaf node, and only for queries with hop count > 0, i.e. not from our immediate neighbour.  Dropped queries will be accounted for in the 'Message throttle' counter.");
+    gnet_property->props[185].desc = _("Whether gtk-gnutella should actively monitor query strings by TTL and hop count and drop duplicates. Only applies when not running as a leaf node, and only for queries with hop count > 0, i.e. not from our immediate neighbour. Dropped queries will be accounted for in the 'Message throttle' counter.");
     gnet_property->props[185].ev_changed = event_new("node_watch_similar_queries_changed");
     gnet_property->props[185].save = TRUE;
     gnet_property->props[185].vector_size = 1;
@@ -4054,7 +4054,7 @@ prop_set_t *gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[186].name = "node_queries_half_life";
-    gnet_property->props[186].desc = _("Half the duration during which gtk-gnutella should remember the recently relayed queries by TTL and hop count.  The default value of 5 should be just fine, but you can experiment with different settings if you want.  The higher it is set, the more likely you are to drop legitimate queries, so be careful.");
+    gnet_property->props[186].desc = _("Half the duration during which gtk-gnutella should remember the recently relayed queries by TTL and hop count. The default value of 5 should be just fine, but you can experiment with different settings if you want. The higher it is set, the more likely you are to drop legitimate queries, so be careful.");
     gnet_property->props[186].ev_changed = event_new("node_queries_half_life_changed");
     gnet_property->props[186].save = TRUE;
     gnet_property->props[186].vector_size = 1;
@@ -4074,7 +4074,7 @@ prop_set_t *gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[187].name = "node_requery_threshold";
-    gnet_property->props[187].desc = _("The minimum amount of seconds to enforce between two identical queries coming from leaf nodes.  If the requery happens before the amount specified, it is dropped and accounted for in the 'Message throttle' counter.  Too frequent requeries are harmful for the network, yet we must allow some amount of requerying given the dynamic nature of Gnutella connections.  You can't disable this checking, but you can lower the constraint significantly. Deviations from the default of 1700 have exponential effects on the network traffic.");
+    gnet_property->props[187].desc = _("The minimum amount of seconds to enforce between two identical queries coming from leaf nodes. If the requery happens before the amount specified, it is dropped and accounted for in the 'Message throttle' counter. Too frequent requeries are harmful for the network, yet we must allow some amount of requerying given the dynamic nature of Gnutella connections. You can't disable this checking, but you can lower the constraint significantly. Deviations from the default of 1700 have exponential effects on the network traffic.");
     gnet_property->props[187].ev_changed = event_new("node_requery_threshold_changed");
     gnet_property->props[187].save = TRUE;
     gnet_property->props[187].vector_size = 1;
