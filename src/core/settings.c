@@ -45,6 +45,8 @@
 #include "if/gnet_property_priv.h"
 #include "if/core/net_stats.h"
 
+#include "if/bridge/c2ui.h"
+
 #include "lib/cq.h"
 #include "lib/file.h"
 #include "lib/glib-missing.h"
@@ -1178,19 +1180,42 @@ static gboolean local_ip_changed(property_t prop)
 static gboolean configured_peermode_changed(property_t prop)
 {
     guint32 val;
+	gboolean forced = FALSE;
 
     gnet_prop_get_guint32_val(prop, &val);
 
+	/*
+	 * We don't allow them to be anything but a leaf node if they are
+	 * firewalled.  We even restrict the "normal" mode, which is to be
+	 * avoided anyway, and will be removed in a future release.
+	 *		--RAM, 2004-09-19
+	 */
+
+	switch (val) {
+	case NODE_P_NORMAL:
+	case NODE_P_ULTRA:
+		if (is_firewalled) {
+			val = NODE_P_AUTO;
+			forced = TRUE;
+			g_warning("must run as a leaf when TCP-firewalled");
+			gcu_statusbar_warning(
+				_("Can only run as a leaf when TCP-firewalled"));
+		}
+		break;
+	default:
+		break;
+	}
+
 	if (val == NODE_P_AUTO) {
 		if (connected_nodes() > 0)		/* Already connected */
-			return FALSE;				/* Keep our current operating mode */
+			return forced;				/* Keep our current operating mode */
 		val = NODE_P_LEAF;				/* Force leaf mode */
 		/* FALL THROUGH */
 	}
 
 	gnet_prop_set_guint32_val(PROP_CURRENT_PEERMODE, val);
 
-    return FALSE;
+    return forced;
 }
 
 static gboolean current_peermode_changed(property_t prop)
