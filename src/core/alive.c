@@ -257,7 +257,7 @@ alive_send_ping(gpointer obj)
 	 * a free routine to see whether the message is sent.
 	 */
 
-	m = build_ping_msg(muid, 1, &size);
+	m = build_ping_msg(muid, 1, FALSE, &size);
 
 	g_assert(size == sizeof(*m));	/* No trailing GGEP extension */
 
