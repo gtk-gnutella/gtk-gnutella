@@ -56,7 +56,7 @@ struct pproxy {
 void pproxy_add(struct gnutella_socket *s);
 void pproxy_remove(struct pproxy *pp, const gchar *reason, ...);
 void pproxy_timer(time_t now);
-void pproxy_close();
+void pproxy_close(void);
 
 /***
  *** Client side
