@@ -153,8 +153,18 @@ void vmsg_handle(struct gnutella_node *n)
 			gmsg_infostr(&n->header), vm == NULL ? "UNKNOWN" : vm->name,
 			vendor_code_str(vendor), id, version);
 
-	if (vm == NULL)
+	/*
+	 * If we can't handle the message, we count it as "unknown type", which
+	 * is not completely exact because the type (vendor-specific) is known,
+	 * it was only the subtype of that message which was unknown.  Still, I
+	 * don't think it is ambiguous enough to warrant another drop type.
+	 *		--RAM, 04/01/2003.
+	 */
+
+	if (vm == NULL) {
+		gnet_stats_count_dropped(n, MSG_DROP_UNKNOWN_TYPE);
 		return;
+	}
 
 	(*vm->handler)(n, version, n->data + sizeof(*v), n->size - sizeof(*v));
 }
