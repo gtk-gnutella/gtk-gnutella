@@ -740,13 +740,6 @@ void search_gui_download_files(void)
 
 	/* Download the selected files */
 
-	if (jump_to_downloads) {
-		gtk_notebook_set_page(
-			GTK_NOTEBOOK(lookup_widget(main_window, "notebook_main")),
-			nb_main_page_downloads);
-		search_gui_menu_select(nb_main_page_downloads);
-	}
-
 	if (current_search) {
 		download_selection_of_tree_view(
 			GTK_TREE_VIEW(current_search->tree_view));
