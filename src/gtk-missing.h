@@ -54,5 +54,8 @@ GSList *clist_collect_data(GtkCList *clist, gboolean allow_null,
     GCompareFunc cfn);
 gdouble _gtk_spin_button_get_value(GtkSpinButton *);
 guint32 gtk_editable_get_value_as_uint(GtkEditable *editable);
+void gtk_combo_init_choices(
+    GtkCombo* combo, GtkSignalFunc func, prop_def_t *def, gpointer user_data);
+
 
 #endif	/* __gtk_missing_h__ */

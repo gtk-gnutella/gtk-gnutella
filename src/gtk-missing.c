@@ -328,3 +328,47 @@ guint32 gtk_editable_get_value_as_uint(GtkEditable *editable)
     g_free(e);
     return result;
 }
+
+/*
+ * gtk_combo_init_choices:
+ *
+ * Adds alist of GtkItems to the given GtkCombo. Each GtkItem has the
+ * choice number set as user_data.
+ */
+void gtk_combo_init_choices(
+    GtkCombo *combo, GtkSignalFunc func, prop_def_t *def, gpointer user_data) {
+
+    guint n;
+    guint32 original;
+
+    g_assert(def != NULL);
+    g_assert(combo != NULL);
+    g_assert(def->type == PROP_TYPE_MULTICHOICE);
+    g_assert(def->data.guint32.choices != NULL);
+
+    original = *def->data.guint32.value;
+
+    n = 0;
+    while (def->data.guint32.choices[n].title != NULL) {
+        GtkWidget *list_item;
+        GList *l;
+
+        list_item = gtk_list_item_new_with_label(
+            def->data.guint32.choices[n].title);
+
+        gtk_object_set_user_data(GTK_OBJECT(list_item),
+            GINT_TO_POINTER(def->data.guint32.choices[n].value));
+
+        gtk_widget_show(list_item);
+        
+        gtk_signal_connect(
+            GTK_OBJECT(list_item), "select", func, user_data);
+
+        l = g_list_prepend(NULL, (gpointer) list_item);
+        gtk_list_append_items(GTK_LIST(combo->list), l);
+
+        if (def->data.guint32.choices[n].value == original)
+            gtk_list_select_child(GTK_LIST(combo->list), list_item);
+        n ++;
+    }
+}
