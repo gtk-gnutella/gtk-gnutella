@@ -82,13 +82,15 @@ static void download_request(struct download *d, header_t *header, gboolean ok);
 static void download_push_ready(struct download *d, getline_t *empty);
 static void download_push_remove(struct download *d);
 static void download_push(struct download *d, gboolean on_timeout);
-static void download_store(void);
-static void download_retrieve(void);
 static void download_resume_bg_tasks(void);
 static void download_incomplete_header(struct download *d);
 static gboolean has_blank_guid(const struct download *d);
 static void download_verify_sha1(struct download *d);
 static gboolean download_get_server_name(struct download *d, header_t *header);
+
+static gboolean download_dirty = FALSE;
+static void download_store(void);
+static void download_retrieve(void);
 
 /*
  * Download structures.
@@ -2641,7 +2643,7 @@ static struct download *create_download(
 	sl_downloads = g_slist_prepend(sl_downloads, d);
 	sl_unqueued = g_slist_prepend(sl_unqueued, d);
 
-	download_store();			/* Refresh list, in case we crash */
+	download_dirty = TRUE;			/* Refresh list, in case we crash */
 
 	/*
 	 * Insert in download mesh if it does not require a push and has a SHA1.
@@ -4162,8 +4164,14 @@ static gboolean check_content_urn(struct download *d, header_t *header)
 				return FALSE;
 		}
 
-		download_store();		/* Save SHA1 */
-		file_info_store();
+		/*
+		 * Discovery of the SHA1 for a download should be infrequent enough,
+		 * yet is very important.   This jusifies immediately storing that
+		 * new information without waiting for the "dirty timer" to trigger.
+		 */
+
+		download_store();				/* Save SHA1 */
+		file_info_store_if_dirty();
 
 		/*
 		 * Insert record in download mesh if it does not require
@@ -5833,6 +5841,18 @@ static void download_store(void)
 	}
 
 	file_config_close(out, &fp);
+	download_dirty = FALSE;
+}
+
+/*
+ * download_store_if_dirty
+ *
+ * Store pending download if needed.
+ */
+void download_store_if_dirty(void)
+{
+	if (download_dirty)
+		download_store();
 }
 
 /*

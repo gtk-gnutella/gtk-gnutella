@@ -230,6 +230,7 @@ static void slow_main_timer(time_t now)
 	if (++i > 4)
 		i = 0;
 
+	download_store_if_dirty();		/* Important, so always attempt it */
 	node_slow_timer(now);
 	ignore_timer(now);
 

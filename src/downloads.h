@@ -258,6 +258,7 @@ extern GSList *sl_unqueued;
 
 void download_init(void);
 void download_restore_state(void);
+void download_store_if_dirty(void);
 void download_timer(time_t now);
 void download_info_change_all(
 	struct dl_file_info *old_fi, struct dl_file_info *new_fi);
