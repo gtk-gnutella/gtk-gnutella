@@ -94,6 +94,7 @@ extern gboolean bw_ul_usage_enabled;
 extern gboolean bw_allow_stealing;
 extern gboolean clear_complete_downloads;
 extern gboolean clear_failed_downloads;
+extern gboolean clear_unavailable_downloads;
 extern gboolean search_remove_downloaded;
 extern gboolean force_local_ip;
 extern gboolean use_netmasks;
