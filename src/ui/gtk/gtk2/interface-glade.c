@@ -5468,7 +5468,7 @@ create_main_window_search_tab (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label659), 1, 0.5);
 
-  label660 = gtk_label_new (_("ServentID:"));
+  label660 = gtk_label_new (_("Servent ID:"));
   gtk_widget_set_name (label660, "label660");
   gtk_widget_show (label660);
   gtk_table_attach (GTK_TABLE (table66), label660, 2, 3, 2, 3,
