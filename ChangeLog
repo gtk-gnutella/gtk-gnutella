@@ -1,5 +1,11 @@
 # since last version
 
+- (2002.06.21 - Richard)
+  * BUG: access rule members after freeing the rule in 
+    filter_replace_rule_in_session
+  * Added popup to rules list in filter dialog (copy/paste rule)
+  * Made filter_free_rule public
+
 - (2002.06.21 - RAM)
   * Forgot to free dmesh slots sometimes.
   * General cleanup to be able to compile with dmalloc.
