@@ -739,6 +739,180 @@ prop = {
     };
 };
 
+prop = {
+    name = "node_show_uptime";
+    desc = "Whether the node's uptime should be shown (not all nodes provide "
+		"this information).";
+    type = boolean;
+    data = {
+        default = TRUE;
+    };
+};
+
+prop = {
+    name = "node_show_handshake_version";
+    desc = "Whether the handshaking version number should be displayed.";
+    type = boolean;
+    data = {
+        default = FALSE;
+    };
+};
+
+prop = {
+    name = "node_show_detailed_info";
+    desc = "Whether detailed traffic information should be shown for "
+		"the node.  When enabled, it is possible to also customize "
+		"how much information to display.  When disabled, only TX and RX "
+		"message counts are displayed, followed by the message queue info.";
+    type = boolean;
+    data = {
+        default = FALSE;
+    };
+};
+
+prop = {
+    name = "show_gnet_info_txc";
+    desc = "Whether TX traffic compression ratio should be displayed.";
+    type = boolean;
+    data = {
+        default = FALSE;
+    };
+};
+
+prop = {
+    name = "show_gnet_info_rxc";
+    desc = "Whether RX traffic compression ratio should be displayed.";
+    type = boolean;
+    data = {
+        default = FALSE;
+    };
+};
+
+prop = {
+    name = "show_gnet_info_tx_speed";
+    desc = "Whether TX instantaneous transmission speed should be displayed.";
+    type = boolean;
+    data = {
+        default = FALSE;
+    };
+};
+
+prop = {
+    name = "show_gnet_info_rx_speed";
+    desc = "Whether RX instantaneous transmission speed should be displayed.";
+    type = boolean;
+    data = {
+        default = FALSE;
+    };
+};
+
+prop = {
+    name = "show_gnet_info_tx_queries";
+    desc = "Whether count of transmitted queries should be displayed.";
+    type = boolean;
+    data = {
+        default = FALSE;
+    };
+};
+
+prop = {
+    name = "show_gnet_info_rx_queries";
+    desc = "Whether count of received queries should be displayed.";
+    type = boolean;
+    data = {
+        default = FALSE;
+    };
+};
+
+prop = {
+    name = "show_gnet_info_tx_hits";
+    desc = "Whether count of transmitted query hits should be displayed.";
+    type = boolean;
+    data = {
+        default = FALSE;
+    };
+};
+
+prop = {
+    name = "show_gnet_info_rx_hits";
+    desc = "Whether count of received query hits should be displayed.";
+    type = boolean;
+    data = {
+        default = FALSE;
+    };
+};
+
+prop = {
+    name = "show_gnet_info_gen_queries";
+    desc = "Whether count of locally generated queries should be displayed.";
+    type = boolean;
+    data = {
+        default = FALSE;
+    };
+};
+
+prop = {
+    name = "show_gnet_info_sq_queries";
+    desc = "Whether count of local queries pending transmission should "
+		"be displayed.";
+    type = boolean;
+    data = {
+        default = FALSE;
+    };
+};
+
+prop = {
+    name = "show_gnet_info_tx_dropped";
+    desc = "Whether count of dropped messages on TX should be displayed.";
+    type = boolean;
+    data = {
+        default = FALSE;
+    };
+};
+
+prop = {
+    name = "show_gnet_info_rx_dropped";
+    desc = "Whether count of dropped messages on RX should be displayed.";
+    type = boolean;
+    data = {
+        default = FALSE;
+    };
+};
+
+prop = {
+    name = "show_gnet_info_qrp_stats";
+    desc = "Whether Query Routing Protocol statistics should be displayed. "
+		"For a leaf node, this is simply the ratio of queries that generated "
+		"a hit over the amount of received queries.  For an upltrapeer, it "
+		"displays the amount of slots in the QRP table, 'g' the generation "
+		"number, 'f' the fill ratio, 't' the passing threshold and 'e' the "
+		"efficiency, i.e. the proportion of received queries that are sent "
+		"to the leaf.";
+    type = boolean;
+    data = {
+        default = FALSE;
+    };
+};
+
+prop = {
+    name = "show_gnet_info_dbw";
+    desc = "Whether duplicate, bad and weird received message counts should "
+		"be displayed.";
+    type = boolean;
+    data = {
+        default = FALSE;
+    };
+};
+
+prop = {
+    name = "show_gnet_info_rt";
+    desc = "Whether ping/pong roundtrip times (average and last) should be "
+		"displayed.  Values shown are in milliseconds.";
+    type = boolean;
+    data = {
+        default = FALSE;
+    };
+};
 
 /*
  * GTK2 specific properties

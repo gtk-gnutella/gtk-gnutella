@@ -186,6 +186,42 @@ gboolean clear_uploads_complete     = TRUE;
 gboolean clear_uploads_complete_def = TRUE;
 gboolean clear_uploads_failed     = TRUE;
 gboolean clear_uploads_failed_def = TRUE;
+gboolean node_show_uptime     = TRUE;
+gboolean node_show_uptime_def = TRUE;
+gboolean node_show_handshake_version     = FALSE;
+gboolean node_show_handshake_version_def = FALSE;
+gboolean node_show_detailed_info     = FALSE;
+gboolean node_show_detailed_info_def = FALSE;
+gboolean show_gnet_info_txc     = FALSE;
+gboolean show_gnet_info_txc_def = FALSE;
+gboolean show_gnet_info_rxc     = FALSE;
+gboolean show_gnet_info_rxc_def = FALSE;
+gboolean show_gnet_info_tx_speed     = FALSE;
+gboolean show_gnet_info_tx_speed_def = FALSE;
+gboolean show_gnet_info_rx_speed     = FALSE;
+gboolean show_gnet_info_rx_speed_def = FALSE;
+gboolean show_gnet_info_tx_queries     = FALSE;
+gboolean show_gnet_info_tx_queries_def = FALSE;
+gboolean show_gnet_info_rx_queries     = FALSE;
+gboolean show_gnet_info_rx_queries_def = FALSE;
+gboolean show_gnet_info_tx_hits     = FALSE;
+gboolean show_gnet_info_tx_hits_def = FALSE;
+gboolean show_gnet_info_rx_hits     = FALSE;
+gboolean show_gnet_info_rx_hits_def = FALSE;
+gboolean show_gnet_info_gen_queries     = FALSE;
+gboolean show_gnet_info_gen_queries_def = FALSE;
+gboolean show_gnet_info_sq_queries     = FALSE;
+gboolean show_gnet_info_sq_queries_def = FALSE;
+gboolean show_gnet_info_tx_dropped     = FALSE;
+gboolean show_gnet_info_tx_dropped_def = FALSE;
+gboolean show_gnet_info_rx_dropped     = FALSE;
+gboolean show_gnet_info_rx_dropped_def = FALSE;
+gboolean show_gnet_info_qrp_stats     = FALSE;
+gboolean show_gnet_info_qrp_stats_def = FALSE;
+gboolean show_gnet_info_dbw     = FALSE;
+gboolean show_gnet_info_dbw_def = FALSE;
+gboolean show_gnet_info_rt     = FALSE;
+gboolean show_gnet_info_rt_def = FALSE;
 guint32  treemenu_nodes_expanded[16]     = { 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1 };
 guint32  treemenu_nodes_expanded_def[16] = { 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1 };
 guint32  gnet_stats_pkg_col_widths[6]     = { 60, 20, 20, 20, 20, 20 };
@@ -1526,23 +1562,329 @@ prop_set_t *gui_prop_init(void) {
 
 
     /*
+     * PROP_NODE_SHOW_UPTIME:
+     *
+     * General data:
+     */
+    gui_property->props[71].name = "node_show_uptime";
+    gui_property->props[71].desc = _("Whether the node's uptime should be shown (not all nodes provide this information).");
+    gui_property->props[71].ev_changed = event_new("node_show_uptime_changed");
+    gui_property->props[71].save = TRUE;
+    gui_property->props[71].vector_size = 1;
+
+    /* Type specific data: */
+    gui_property->props[71].type               = PROP_TYPE_BOOLEAN;
+    gui_property->props[71].data.boolean.def   = &node_show_uptime_def;
+    gui_property->props[71].data.boolean.value = &node_show_uptime;
+
+
+    /*
+     * PROP_NODE_SHOW_HANDSHAKE_VERSION:
+     *
+     * General data:
+     */
+    gui_property->props[72].name = "node_show_handshake_version";
+    gui_property->props[72].desc = _("Whether the handshaking version number should be displayed.");
+    gui_property->props[72].ev_changed = event_new("node_show_handshake_version_changed");
+    gui_property->props[72].save = TRUE;
+    gui_property->props[72].vector_size = 1;
+
+    /* Type specific data: */
+    gui_property->props[72].type               = PROP_TYPE_BOOLEAN;
+    gui_property->props[72].data.boolean.def   = &node_show_handshake_version_def;
+    gui_property->props[72].data.boolean.value = &node_show_handshake_version;
+
+
+    /*
+     * PROP_NODE_SHOW_DETAILED_INFO:
+     *
+     * General data:
+     */
+    gui_property->props[73].name = "node_show_detailed_info";
+    gui_property->props[73].desc = _("Whether detailed traffic information should be shown for the node.  When enabled, it is possible to also customize how much information to display.  When disabled, only TX and RX message counts are displayed, followed by the message queue info.");
+    gui_property->props[73].ev_changed = event_new("node_show_detailed_info_changed");
+    gui_property->props[73].save = TRUE;
+    gui_property->props[73].vector_size = 1;
+
+    /* Type specific data: */
+    gui_property->props[73].type               = PROP_TYPE_BOOLEAN;
+    gui_property->props[73].data.boolean.def   = &node_show_detailed_info_def;
+    gui_property->props[73].data.boolean.value = &node_show_detailed_info;
+
+
+    /*
+     * PROP_SHOW_GNET_INFO_TXC:
+     *
+     * General data:
+     */
+    gui_property->props[74].name = "show_gnet_info_txc";
+    gui_property->props[74].desc = _("Whether TX traffic compression ratio should be displayed.");
+    gui_property->props[74].ev_changed = event_new("show_gnet_info_txc_changed");
+    gui_property->props[74].save = TRUE;
+    gui_property->props[74].vector_size = 1;
+
+    /* Type specific data: */
+    gui_property->props[74].type               = PROP_TYPE_BOOLEAN;
+    gui_property->props[74].data.boolean.def   = &show_gnet_info_txc_def;
+    gui_property->props[74].data.boolean.value = &show_gnet_info_txc;
+
+
+    /*
+     * PROP_SHOW_GNET_INFO_RXC:
+     *
+     * General data:
+     */
+    gui_property->props[75].name = "show_gnet_info_rxc";
+    gui_property->props[75].desc = _("Whether RX traffic compression ratio should be displayed.");
+    gui_property->props[75].ev_changed = event_new("show_gnet_info_rxc_changed");
+    gui_property->props[75].save = TRUE;
+    gui_property->props[75].vector_size = 1;
+
+    /* Type specific data: */
+    gui_property->props[75].type               = PROP_TYPE_BOOLEAN;
+    gui_property->props[75].data.boolean.def   = &show_gnet_info_rxc_def;
+    gui_property->props[75].data.boolean.value = &show_gnet_info_rxc;
+
+
+    /*
+     * PROP_SHOW_GNET_INFO_TX_SPEED:
+     *
+     * General data:
+     */
+    gui_property->props[76].name = "show_gnet_info_tx_speed";
+    gui_property->props[76].desc = _("Whether TX instantaneous transmission speed should be displayed.");
+    gui_property->props[76].ev_changed = event_new("show_gnet_info_tx_speed_changed");
+    gui_property->props[76].save = TRUE;
+    gui_property->props[76].vector_size = 1;
+
+    /* Type specific data: */
+    gui_property->props[76].type               = PROP_TYPE_BOOLEAN;
+    gui_property->props[76].data.boolean.def   = &show_gnet_info_tx_speed_def;
+    gui_property->props[76].data.boolean.value = &show_gnet_info_tx_speed;
+
+
+    /*
+     * PROP_SHOW_GNET_INFO_RX_SPEED:
+     *
+     * General data:
+     */
+    gui_property->props[77].name = "show_gnet_info_rx_speed";
+    gui_property->props[77].desc = _("Whether RX instantaneous transmission speed should be displayed.");
+    gui_property->props[77].ev_changed = event_new("show_gnet_info_rx_speed_changed");
+    gui_property->props[77].save = TRUE;
+    gui_property->props[77].vector_size = 1;
+
+    /* Type specific data: */
+    gui_property->props[77].type               = PROP_TYPE_BOOLEAN;
+    gui_property->props[77].data.boolean.def   = &show_gnet_info_rx_speed_def;
+    gui_property->props[77].data.boolean.value = &show_gnet_info_rx_speed;
+
+
+    /*
+     * PROP_SHOW_GNET_INFO_TX_QUERIES:
+     *
+     * General data:
+     */
+    gui_property->props[78].name = "show_gnet_info_tx_queries";
+    gui_property->props[78].desc = _("Whether count of transmitted queries should be displayed.");
+    gui_property->props[78].ev_changed = event_new("show_gnet_info_tx_queries_changed");
+    gui_property->props[78].save = TRUE;
+    gui_property->props[78].vector_size = 1;
+
+    /* Type specific data: */
+    gui_property->props[78].type               = PROP_TYPE_BOOLEAN;
+    gui_property->props[78].data.boolean.def   = &show_gnet_info_tx_queries_def;
+    gui_property->props[78].data.boolean.value = &show_gnet_info_tx_queries;
+
+
+    /*
+     * PROP_SHOW_GNET_INFO_RX_QUERIES:
+     *
+     * General data:
+     */
+    gui_property->props[79].name = "show_gnet_info_rx_queries";
+    gui_property->props[79].desc = _("Whether count of received queries should be displayed.");
+    gui_property->props[79].ev_changed = event_new("show_gnet_info_rx_queries_changed");
+    gui_property->props[79].save = TRUE;
+    gui_property->props[79].vector_size = 1;
+
+    /* Type specific data: */
+    gui_property->props[79].type               = PROP_TYPE_BOOLEAN;
+    gui_property->props[79].data.boolean.def   = &show_gnet_info_rx_queries_def;
+    gui_property->props[79].data.boolean.value = &show_gnet_info_rx_queries;
+
+
+    /*
+     * PROP_SHOW_GNET_INFO_TX_HITS:
+     *
+     * General data:
+     */
+    gui_property->props[80].name = "show_gnet_info_tx_hits";
+    gui_property->props[80].desc = _("Whether count of transmitted query hits should be displayed.");
+    gui_property->props[80].ev_changed = event_new("show_gnet_info_tx_hits_changed");
+    gui_property->props[80].save = TRUE;
+    gui_property->props[80].vector_size = 1;
+
+    /* Type specific data: */
+    gui_property->props[80].type               = PROP_TYPE_BOOLEAN;
+    gui_property->props[80].data.boolean.def   = &show_gnet_info_tx_hits_def;
+    gui_property->props[80].data.boolean.value = &show_gnet_info_tx_hits;
+
+
+    /*
+     * PROP_SHOW_GNET_INFO_RX_HITS:
+     *
+     * General data:
+     */
+    gui_property->props[81].name = "show_gnet_info_rx_hits";
+    gui_property->props[81].desc = _("Whether count of received query hits should be displayed.");
+    gui_property->props[81].ev_changed = event_new("show_gnet_info_rx_hits_changed");
+    gui_property->props[81].save = TRUE;
+    gui_property->props[81].vector_size = 1;
+
+    /* Type specific data: */
+    gui_property->props[81].type               = PROP_TYPE_BOOLEAN;
+    gui_property->props[81].data.boolean.def   = &show_gnet_info_rx_hits_def;
+    gui_property->props[81].data.boolean.value = &show_gnet_info_rx_hits;
+
+
+    /*
+     * PROP_SHOW_GNET_INFO_GEN_QUERIES:
+     *
+     * General data:
+     */
+    gui_property->props[82].name = "show_gnet_info_gen_queries";
+    gui_property->props[82].desc = _("Whether count of locally generated queries should be displayed.");
+    gui_property->props[82].ev_changed = event_new("show_gnet_info_gen_queries_changed");
+    gui_property->props[82].save = TRUE;
+    gui_property->props[82].vector_size = 1;
+
+    /* Type specific data: */
+    gui_property->props[82].type               = PROP_TYPE_BOOLEAN;
+    gui_property->props[82].data.boolean.def   = &show_gnet_info_gen_queries_def;
+    gui_property->props[82].data.boolean.value = &show_gnet_info_gen_queries;
+
+
+    /*
+     * PROP_SHOW_GNET_INFO_SQ_QUERIES:
+     *
+     * General data:
+     */
+    gui_property->props[83].name = "show_gnet_info_sq_queries";
+    gui_property->props[83].desc = _("Whether count of local queries pending transmission should be displayed.");
+    gui_property->props[83].ev_changed = event_new("show_gnet_info_sq_queries_changed");
+    gui_property->props[83].save = TRUE;
+    gui_property->props[83].vector_size = 1;
+
+    /* Type specific data: */
+    gui_property->props[83].type               = PROP_TYPE_BOOLEAN;
+    gui_property->props[83].data.boolean.def   = &show_gnet_info_sq_queries_def;
+    gui_property->props[83].data.boolean.value = &show_gnet_info_sq_queries;
+
+
+    /*
+     * PROP_SHOW_GNET_INFO_TX_DROPPED:
+     *
+     * General data:
+     */
+    gui_property->props[84].name = "show_gnet_info_tx_dropped";
+    gui_property->props[84].desc = _("Whether count of dropped messages on TX should be displayed.");
+    gui_property->props[84].ev_changed = event_new("show_gnet_info_tx_dropped_changed");
+    gui_property->props[84].save = TRUE;
+    gui_property->props[84].vector_size = 1;
+
+    /* Type specific data: */
+    gui_property->props[84].type               = PROP_TYPE_BOOLEAN;
+    gui_property->props[84].data.boolean.def   = &show_gnet_info_tx_dropped_def;
+    gui_property->props[84].data.boolean.value = &show_gnet_info_tx_dropped;
+
+
+    /*
+     * PROP_SHOW_GNET_INFO_RX_DROPPED:
+     *
+     * General data:
+     */
+    gui_property->props[85].name = "show_gnet_info_rx_dropped";
+    gui_property->props[85].desc = _("Whether count of dropped messages on RX should be displayed.");
+    gui_property->props[85].ev_changed = event_new("show_gnet_info_rx_dropped_changed");
+    gui_property->props[85].save = TRUE;
+    gui_property->props[85].vector_size = 1;
+
+    /* Type specific data: */
+    gui_property->props[85].type               = PROP_TYPE_BOOLEAN;
+    gui_property->props[85].data.boolean.def   = &show_gnet_info_rx_dropped_def;
+    gui_property->props[85].data.boolean.value = &show_gnet_info_rx_dropped;
+
+
+    /*
+     * PROP_SHOW_GNET_INFO_QRP_STATS:
+     *
+     * General data:
+     */
+    gui_property->props[86].name = "show_gnet_info_qrp_stats";
+    gui_property->props[86].desc = _("Whether Query Routing Protocol statistics should be displayed. For a leaf node, this is simply the ratio of queries that generated a hit over the amount of received queries.  For an upltrapeer, it displays the amount of slots in the QRP table, 'g' the generation number, 'f' the fill ratio, 't' the passing threshold and 'e' the efficiency, i.e. the proportion of received queries that are sent to the leaf.");
+    gui_property->props[86].ev_changed = event_new("show_gnet_info_qrp_stats_changed");
+    gui_property->props[86].save = TRUE;
+    gui_property->props[86].vector_size = 1;
+
+    /* Type specific data: */
+    gui_property->props[86].type               = PROP_TYPE_BOOLEAN;
+    gui_property->props[86].data.boolean.def   = &show_gnet_info_qrp_stats_def;
+    gui_property->props[86].data.boolean.value = &show_gnet_info_qrp_stats;
+
+
+    /*
+     * PROP_SHOW_GNET_INFO_DBW:
+     *
+     * General data:
+     */
+    gui_property->props[87].name = "show_gnet_info_dbw";
+    gui_property->props[87].desc = _("Whether duplicate, bad and weird received message counts should be displayed.");
+    gui_property->props[87].ev_changed = event_new("show_gnet_info_dbw_changed");
+    gui_property->props[87].save = TRUE;
+    gui_property->props[87].vector_size = 1;
+
+    /* Type specific data: */
+    gui_property->props[87].type               = PROP_TYPE_BOOLEAN;
+    gui_property->props[87].data.boolean.def   = &show_gnet_info_dbw_def;
+    gui_property->props[87].data.boolean.value = &show_gnet_info_dbw;
+
+
+    /*
+     * PROP_SHOW_GNET_INFO_RT:
+     *
+     * General data:
+     */
+    gui_property->props[88].name = "show_gnet_info_rt";
+    gui_property->props[88].desc = _("Whether ping/pong roundtrip times (average and last) should be displayed.  Values shown are in milliseconds.");
+    gui_property->props[88].ev_changed = event_new("show_gnet_info_rt_changed");
+    gui_property->props[88].save = TRUE;
+    gui_property->props[88].vector_size = 1;
+
+    /* Type specific data: */
+    gui_property->props[88].type               = PROP_TYPE_BOOLEAN;
+    gui_property->props[88].data.boolean.def   = &show_gnet_info_rt_def;
+    gui_property->props[88].data.boolean.value = &show_gnet_info_rt;
+
+
+    /*
      * PROP_TREEMENU_NODES_EXPANDED:
      *
      * General data:
      */
-    gui_property->props[71].name = "treemenu_nodes_expanded";
-    gui_property->props[71].desc = _("Expanded stati of the nodes in the treemenu");
-    gui_property->props[71].ev_changed = event_new("treemenu_nodes_expanded_changed");
-    gui_property->props[71].save = TRUE;
-    gui_property->props[71].vector_size = 16;
+    gui_property->props[89].name = "treemenu_nodes_expanded";
+    gui_property->props[89].desc = _("Expanded stati of the nodes in the treemenu");
+    gui_property->props[89].ev_changed = event_new("treemenu_nodes_expanded_changed");
+    gui_property->props[89].save = TRUE;
+    gui_property->props[89].vector_size = 16;
 
     /* Type specific data: */
-    gui_property->props[71].type               = PROP_TYPE_GUINT32;
-    gui_property->props[71].data.guint32.def   = treemenu_nodes_expanded_def;
-    gui_property->props[71].data.guint32.value = treemenu_nodes_expanded;
-    gui_property->props[71].data.guint32.choices = NULL;
-    gui_property->props[71].data.guint32.max   = 0xFFFFFFFF;
-    gui_property->props[71].data.guint32.min   = 0x00000000;
+    gui_property->props[89].type               = PROP_TYPE_GUINT32;
+    gui_property->props[89].data.guint32.def   = treemenu_nodes_expanded_def;
+    gui_property->props[89].data.guint32.value = treemenu_nodes_expanded;
+    gui_property->props[89].data.guint32.choices = NULL;
+    gui_property->props[89].data.guint32.max   = 0xFFFFFFFF;
+    gui_property->props[89].data.guint32.min   = 0x00000000;
 
 
     /*
@@ -1550,19 +1892,19 @@ prop_set_t *gui_prop_init(void) {
      *
      * General data:
      */
-    gui_property->props[72].name = "widths_gnet_stats_pkg";
-    gui_property->props[72].desc = _("Widths of the columns in the gnet packet stats table (pkg)[GTK2]");
-    gui_property->props[72].ev_changed = event_new("gnet_stats_pkg_col_widths_changed");
-    gui_property->props[72].save = TRUE;
-    gui_property->props[72].vector_size = 6;
+    gui_property->props[90].name = "widths_gnet_stats_pkg";
+    gui_property->props[90].desc = _("Widths of the columns in the gnet packet stats table (pkg)[GTK2]");
+    gui_property->props[90].ev_changed = event_new("gnet_stats_pkg_col_widths_changed");
+    gui_property->props[90].save = TRUE;
+    gui_property->props[90].vector_size = 6;
 
     /* Type specific data: */
-    gui_property->props[72].type               = PROP_TYPE_GUINT32;
-    gui_property->props[72].data.guint32.def   = gnet_stats_pkg_col_widths_def;
-    gui_property->props[72].data.guint32.value = gnet_stats_pkg_col_widths;
-    gui_property->props[72].data.guint32.choices = NULL;
-    gui_property->props[72].data.guint32.max   = 0xFFFFFFFF;
-    gui_property->props[72].data.guint32.min   = 0x00000000;
+    gui_property->props[90].type               = PROP_TYPE_GUINT32;
+    gui_property->props[90].data.guint32.def   = gnet_stats_pkg_col_widths_def;
+    gui_property->props[90].data.guint32.value = gnet_stats_pkg_col_widths;
+    gui_property->props[90].data.guint32.choices = NULL;
+    gui_property->props[90].data.guint32.max   = 0xFFFFFFFF;
+    gui_property->props[90].data.guint32.min   = 0x00000000;
 
 
     /*
@@ -1570,19 +1912,19 @@ prop_set_t *gui_prop_init(void) {
      *
      * General data:
      */
-    gui_property->props[73].name = "widths_gnet_stats_byte";
-    gui_property->props[73].desc = _("Widths of the columns in the gnet packet stats table (byte) [GTK2]");
-    gui_property->props[73].ev_changed = event_new("gnet_stats_byte_col_widths_changed");
-    gui_property->props[73].save = TRUE;
-    gui_property->props[73].vector_size = 6;
+    gui_property->props[91].name = "widths_gnet_stats_byte";
+    gui_property->props[91].desc = _("Widths of the columns in the gnet packet stats table (byte) [GTK2]");
+    gui_property->props[91].ev_changed = event_new("gnet_stats_byte_col_widths_changed");
+    gui_property->props[91].save = TRUE;
+    gui_property->props[91].vector_size = 6;
 
     /* Type specific data: */
-    gui_property->props[73].type               = PROP_TYPE_GUINT32;
-    gui_property->props[73].data.guint32.def   = gnet_stats_byte_col_widths_def;
-    gui_property->props[73].data.guint32.value = gnet_stats_byte_col_widths;
-    gui_property->props[73].data.guint32.choices = NULL;
-    gui_property->props[73].data.guint32.max   = 0xFFFFFFFF;
-    gui_property->props[73].data.guint32.min   = 0x00000000;
+    gui_property->props[91].type               = PROP_TYPE_GUINT32;
+    gui_property->props[91].data.guint32.def   = gnet_stats_byte_col_widths_def;
+    gui_property->props[91].data.guint32.value = gnet_stats_byte_col_widths;
+    gui_property->props[91].data.guint32.choices = NULL;
+    gui_property->props[91].data.guint32.max   = 0xFFFFFFFF;
+    gui_property->props[91].data.guint32.min   = 0x00000000;
 
 
     /*
@@ -1590,19 +1932,19 @@ prop_set_t *gui_prop_init(void) {
      *
      * General data:
      */
-    gui_property->props[74].name = "config_toolbar_style";
-    gui_property->props[74].desc = _("Configures the appearance of the toolbar");
-    gui_property->props[74].ev_changed = event_new("config_toolbar_style_changed");
-    gui_property->props[74].save = TRUE;
-    gui_property->props[74].vector_size = 1;
+    gui_property->props[92].name = "config_toolbar_style";
+    gui_property->props[92].desc = _("Configures the appearance of the toolbar");
+    gui_property->props[92].ev_changed = event_new("config_toolbar_style_changed");
+    gui_property->props[92].save = TRUE;
+    gui_property->props[92].vector_size = 1;
 
     /* Type specific data: */
-    gui_property->props[74].type               = PROP_TYPE_MULTICHOICE;
-    gui_property->props[74].data.guint32.def   = &config_toolbar_style_def;
-    gui_property->props[74].data.guint32.value = &config_toolbar_style;
-    gui_property->props[74].data.guint32.max   = 0xFFFFFFFF;
-    gui_property->props[74].data.guint32.min   = 0x00000000;
-    gui_property->props[74].data.guint32.choices = config_toolbar_style_choices;
+    gui_property->props[92].type               = PROP_TYPE_MULTICHOICE;
+    gui_property->props[92].data.guint32.def   = &config_toolbar_style_def;
+    gui_property->props[92].data.guint32.value = &config_toolbar_style;
+    gui_property->props[92].data.guint32.max   = 0xFFFFFFFF;
+    gui_property->props[92].data.guint32.min   = 0x00000000;
+    gui_property->props[92].data.guint32.choices = config_toolbar_style_choices;
 
     gui_property->byName = g_hash_table_new(g_str_hash, g_str_equal);
     for (n = 0; n < GUI_PROPERTY_NUM; n ++) {
