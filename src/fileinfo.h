@@ -89,6 +89,7 @@ void file_info_merge_adjacent(struct dl_file_info *fi);
 void file_info_clear_download(struct download *d, gboolean lifecount);
 enum dl_chunk_status file_info_chunk_status(
 	struct dl_file_info *fi, guint32 from, guint32 to);
+void file_info_reset(struct dl_file_info *fi);
 void file_info_recreate(struct download *d);
 struct dl_file_info *file_info_get(
 	gchar *file, gchar *path, guint32 size, gchar *sha1);

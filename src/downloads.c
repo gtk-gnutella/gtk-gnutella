@@ -599,12 +599,18 @@ gboolean download_file_exists(struct download *d)
 void download_remove_file(struct download *d)
 {
 	gchar path[2048];
+	struct dl_file_info *fi = d->file_info;
 
-	g_snprintf(path, sizeof(path), "%s/%s",
-		d->file_info->path, d->file_info->file_name);
+	g_snprintf(path, sizeof(path), "%s/%s", fi->path, fi->file_name);
 
 	if (-1 == unlink(path))
 		g_warning("cannot unlink \"%s\": %s", path, g_strerror(errno));
+	else
+		g_warning("unlinked \"%s\" (%u/%u bytes done, %s SHA1%s%s)",
+			fi->file_name, fi->done, fi->size,
+			fi->sha1 ? "with" : "no",
+			fi->sha1 ? ": " : "",
+			fi->sha1 ? sha1_base32(fi->sha1) : "");
 }
 
 /*
@@ -712,8 +718,9 @@ static void queue_suspend_downloads_with_file(
 		case GTA_DL_COMPLETED:
 		case GTA_DL_VERIFY_WAIT:
 		case GTA_DL_VERIFYING:
-		case GTA_DL_VERIFIED:
 			continue;
+		case GTA_DL_VERIFIED:		/* We want to be able to "un-suspend" */
+			break;
 		default:
 			break;
 		}
@@ -722,7 +729,7 @@ static void queue_suspend_downloads_with_file(
 			continue;
 
 		if (suspend) {
-			if (!DOWNLOAD_IS_QUEUED(d))
+			if (DOWNLOAD_IS_RUNNING(d))
 				download_queue(d, "Suspended (SHA1 checking)");
 			d->flags |= DL_F_SUSPENDED;		/* Can no longer be scheduled */
 		} else
@@ -5235,11 +5242,8 @@ void download_verify_done(struct download *d, guchar *digest, time_t elapsed)
 			g_warning("SHA1 mismatch for \"%s\", will be restarting download",
 				download_outname(d));
 
-			// XXX needs to maybe update some other fileinfo fields?
-			// XXX since file does not exist, swarming will be reset
-			// XXX do we need thos?
-
 			fi->lifecount++;					/* Reactivate download */
+			file_info_reset(d->file_info);
 			download_queue(d, "SHA1 mismatch detected");
 		}
 	}

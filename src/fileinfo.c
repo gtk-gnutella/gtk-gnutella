@@ -1413,6 +1413,12 @@ static void file_info_reparent_all(
 
 	if (-1 == unlink(fi_tmp))
 		g_warning("cannot unlink \"%s\": %s", fi_tmp, g_strerror(errno));
+	else
+		g_warning("reparenting unlinked \"%s\" (%u/%u bytes done, %s SHA1%s%s)",
+			from->file_name, from->done, from->size,
+			from->sha1 ? "with" : "no",
+			from->sha1 ? ": " : "",
+			from->sha1 ? sha1_base32(from->sha1) : "");
 
 	download_info_change_all(from, to);
 
@@ -2416,7 +2422,7 @@ void file_info_clear_download(struct download *d, gboolean lifecount)
  *
  * Reset all chunks to EMPTY, clear computed SHA1 if any.
  */
-static void file_info_reset(struct dl_file_info *fi)
+void file_info_reset(struct dl_file_info *fi)
 {
 	GSList *l;
 	struct dl_file_chunk *fc;
@@ -2424,11 +2430,6 @@ static void file_info_reset(struct dl_file_info *fi)
 	if (fi->cha1) {
 		atom_sha1_free(fi->cha1);
 		fi->cha1 = NULL;
-	}
-
-	for (l = fi->chunklist; l; l = g_slist_next(l)) {
-		fc = (struct dl_file_chunk *) l->data;
-		fc->status = DL_CHUNK_EMPTY;
 	}
 
 restart:
@@ -2442,6 +2443,11 @@ restart:
 			download_queue(d, "Requeued due to file removal");
 			goto restart;		/* Because file_info_clear_download() called */
 		}
+	}
+
+	for (l = fi->chunklist; l; l = g_slist_next(l)) {
+		fc = (struct dl_file_chunk *) l->data;
+		fc->status = DL_CHUNK_EMPTY;
 	}
 
 	file_info_merge_adjacent(fi);
