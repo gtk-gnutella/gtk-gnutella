@@ -145,10 +145,6 @@ GtkWidget * gtk_column_chooser_new(GtkWidget *widget)
         signal_connect(GTK_OBJECT(menuitem), "toggled",
 			GTK_SIGNAL_FUNC(on_column_popup_toggled), (gpointer) cc);
 
-#if (GTK_MAJOR_VERSION >= 2) 
-		if (0 == i)
-			gtk_widget_set_sensitive(menuitem, FALSE); 
-#endif
         gtk_widget_show(menuitem);
         gtk_menu_append(menu, menuitem);
 
@@ -300,3 +296,5 @@ static gint gtk_column_chooser_button_press(
 
     return GTK_WIDGET_CLASS(parent_class)->button_press_event(widget,event);
 }
+
+/* vi: set ts=4: */
