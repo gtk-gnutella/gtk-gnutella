@@ -1,5 +1,7 @@
 #!/bin/sh
 
+# $Id$
+
 # This is where the configuration stuff is stored.
 export GTK_GNUTELLA_DIR=$HOME/.gtk-gnutella
 
