@@ -1302,7 +1302,7 @@ create_dlg_about (void)
   gtk_misc_set_alignment (GTK_MISC (label492), 0, 0.5);
   gtk_misc_set_padding (GTK_MISC (label492), 10, 0);
 
-  label493 = gtk_label_new ("Rapha\303\253l Manfredi");
+  label493 = gtk_label_new ("Rapha\303«l Manfredi");
   gtk_widget_set_name (label493, "label493");
   gtk_widget_show (label493);
   gtk_box_pack_start (GTK_BOX (vbox88), label493, FALSE, FALSE, 0);
@@ -1310,7 +1310,7 @@ create_dlg_about (void)
   gtk_misc_set_alignment (GTK_MISC (label493), 0, 0.5);
   gtk_misc_set_padding (GTK_MISC (label493), 10, 0);
 
-  label494 = gtk_label_new ("Rapha\303\253l Manfredi");
+  label494 = gtk_label_new ("Rapha\303«l Manfredi");
   gtk_widget_set_name (label494, "label494");
   gtk_widget_show (label494);
   gtk_box_pack_start (GTK_BOX (vbox88), label494, FALSE, FALSE, 0);
@@ -1362,7 +1362,7 @@ create_dlg_about (void)
   gtk_text_view_set_left_margin (GTK_TEXT_VIEW (textview1), 4);
   gtk_text_view_set_right_margin (GTK_TEXT_VIEW (textview1), 4);
   gtk_text_buffer_set_text (gtk_text_view_get_buffer (GTK_TEXT_VIEW (textview1)),
-	"Yann Grossel <olrick@users.sourceforge.net>\nSteven Wilcoxon <swilcoxon@users.sourceforge.net>\nJason Lingohr <lingman@users.sourceforge.net>\nBrian St Pierre <bstpierre@users.sourceforge.net>\nChuck Homic <homic@users.sourceforge.net>\nIngo Saitz <salz@users.sourceforge.net>\nBen Hochstedler <hochstrb@users.sourceforge.net>\nDaniel Walker <axiom@users.sourceforge.net>\nPaul Cassella <pwc@users.sourceforge.net> \nJared Mauch <jaredmauch@users.sourceforge.net>\nNate E <web1 (at) users dot sourceforge dot net>\nRapha\303\253l Manfredi <Raphael_Manfredi@pobox.com>\nKenn Brooks Hamm <khamm@andrew.cmu.edu>\nMark Schreiber <mark7@andrew.cmu.edu>\nSam Varshavchik <mrsam@courier-mta.com>\nVladimir Klebanov <unny@rz.uni-karlsruhe.de>\nRoman Shterenzon <roman@xpert.com>\nRobert Bihlmeyer <robbe@orcus.priv.at>\nNoel T.Nunkovich <ntnunk@earthlink.net>\nMichael Tesch <tesch@users.sourceforge.net>\nMarkus 'guruz' Goetz <guruz@guruz.info>\nRichard Eckart <wyldfire@users.sourceforge.net>\nChristophe Tronche <ch.tronche@computer.org>\nAlex Bennee <alex@bennee.com>\nMike Perry <mikepery@fscked.org>\nZygo Blaxell <zblaxell@feedme.hungrycats.org>\nVidar Madsen <vidar@gimp.org>\nChristian Biere <christianbiere@gmx.de>\nko <junkpile@free.fr>\nT'aZ <tazdev@altern.org>", -1);
+	"Yann Grossel <olrick@users.sourceforge.net>\nSteven Wilcoxon <swilcoxon@users.sourceforge.net>\nJason Lingohr <lingman@users.sourceforge.net>\nBrian St Pierre <bstpierre@users.sourceforge.net>\nChuck Homic <homic@users.sourceforge.net>\nIngo Saitz <salz@users.sourceforge.net>\nBen Hochstedler <hochstrb@users.sourceforge.net>\nDaniel Walker <axiom@users.sourceforge.net>\nPaul Cassella <pwc@users.sourceforge.net> \nJared Mauch <jaredmauch@users.sourceforge.net>\nNate E <web1 (at) users dot sourceforge dot net>\nRapha\303«l Manfredi <Raphael_Manfredi@pobox.com>\nKenn Brooks Hamm <khamm@andrew.cmu.edu>\nMark Schreiber <mark7@andrew.cmu.edu>\nSam Varshavchik <mrsam@courier-mta.com>\nVladimir Klebanov <unny@rz.uni-karlsruhe.de>\nRoman Shterenzon <roman@xpert.com>\nRobert Bihlmeyer <robbe@orcus.priv.at>\nNoel T.Nunkovich <ntnunk@earthlink.net>\nMichael Tesch <tesch@users.sourceforge.net>\nMarkus 'guruz' Goetz <guruz@guruz.info>\nRichard Eckart <wyldfire@users.sourceforge.net>\nChristophe Tronche <ch.tronche@computer.org>\nAlex Bennee <alex@bennee.com>\nMike Perry <mikepery@fscked.org>\nZygo Blaxell <zblaxell@feedme.hungrycats.org>\nVidar Madsen <vidar@gimp.org>\nChristian Biere <christianbiere@gmx.de>\nko <junkpile@free.fr>\nT'aZ <tazdev@altern.org>", -1);
 
   label302 = gtk_label_new ("Contributors");
   gtk_widget_set_name (label302, "label302");
@@ -5225,9 +5225,12 @@ create_main_window_config_dbg_tab (void)
   GtkWidget *label376;
   GtkWidget *label377;
   GtkWidget *label517;
-  GtkWidget *checkbutton_config_stop_host_get;
   GtkObject *spinbutton_config_lib_debug_adj;
   GtkWidget *spinbutton_config_lib_debug;
+  GtkWidget *checkbutton_config_stop_host_get;
+  GtkWidget *label599;
+  GtkObject *spinbutton_config_track_props_adj;
+  GtkWidget *spinbutton_config_track_props;
   GtkWidget *label375;
   GtkWidget *frame_expert_unmapped;
   GtkWidget *table60;
@@ -5289,7 +5292,7 @@ create_main_window_config_dbg_tab (void)
   gtk_widget_show (frame54);
   gtk_box_pack_start (GTK_BOX (vbox81), frame54, FALSE, TRUE, 0);
 
-  table36 = gtk_table_new (4, 2, FALSE);
+  table36 = gtk_table_new (5, 2, FALSE);
   gtk_widget_set_name (table36, "table36");
   gtk_widget_show (table36);
   gtk_container_add (GTK_CONTAINER (frame54), table36);
@@ -5297,7 +5300,7 @@ create_main_window_config_dbg_tab (void)
   gtk_table_set_row_spacings (GTK_TABLE (table36), 2);
   gtk_table_set_col_spacings (GTK_TABLE (table36), 4);
 
-  spinbutton_config_dbg_adj = gtk_adjustment_new (0, 0, 100, 1, 10, 10);
+  spinbutton_config_dbg_adj = gtk_adjustment_new (0, 0, 20, 1, 10, 10);
   spinbutton_config_dbg = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_dbg_adj), 1, 0);
   gtk_widget_set_name (spinbutton_config_dbg, "spinbutton_config_dbg");
   gtk_widget_show (spinbutton_config_dbg);
@@ -5306,7 +5309,7 @@ create_main_window_config_dbg_tab (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_config_dbg), TRUE);
 
-  spinbutton_config_gui_debug_adj = gtk_adjustment_new (0, 0, 100, 1, 10, 10);
+  spinbutton_config_gui_debug_adj = gtk_adjustment_new (0, 0, 20, 1, 10, 10);
   spinbutton_config_gui_debug = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_gui_debug_adj), 1, 0);
   gtk_widget_set_name (spinbutton_config_gui_debug, "spinbutton_config_gui_debug");
   gtk_widget_show (spinbutton_config_gui_debug);
@@ -5342,14 +5345,7 @@ create_main_window_config_dbg_tab (void)
   gtk_label_set_justify (GTK_LABEL (label517), GTK_JUSTIFY_LEFT);
   gtk_misc_set_alignment (GTK_MISC (label517), 0, 0.5);
 
-  checkbutton_config_stop_host_get = gtk_check_button_new_with_mnemonic ("_stop collecting hosts in host catcher");
-  gtk_widget_set_name (checkbutton_config_stop_host_get, "checkbutton_config_stop_host_get");
-  gtk_widget_show (checkbutton_config_stop_host_get);
-  gtk_table_attach (GTK_TABLE (table36), checkbutton_config_stop_host_get, 0, 2, 3, 4,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 5, 0);
-
-  spinbutton_config_lib_debug_adj = gtk_adjustment_new (0, 0, 100, 1, 10, 10);
+  spinbutton_config_lib_debug_adj = gtk_adjustment_new (0, 0, 20, 1, 10, 10);
   spinbutton_config_lib_debug = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_lib_debug_adj), 1, 0);
   gtk_widget_set_name (spinbutton_config_lib_debug, "spinbutton_config_lib_debug");
   gtk_widget_show (spinbutton_config_lib_debug);
@@ -5357,6 +5353,31 @@ create_main_window_config_dbg_tab (void)
                     (GtkAttachOptions) (GTK_SHRINK | GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
   gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_config_lib_debug), TRUE);
+
+  checkbutton_config_stop_host_get = gtk_check_button_new_with_mnemonic ("_stop collecting hosts in host catcher");
+  gtk_widget_set_name (checkbutton_config_stop_host_get, "checkbutton_config_stop_host_get");
+  gtk_widget_show (checkbutton_config_stop_host_get);
+  gtk_table_attach (GTK_TABLE (table36), checkbutton_config_stop_host_get, 0, 2, 4, 5,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 5, 0);
+
+  label599 = gtk_label_new_with_mnemonic ("_Track properties");
+  gtk_widget_set_name (label599, "label599");
+  gtk_widget_show (label599);
+  gtk_table_attach (GTK_TABLE (table36), label599, 0, 1, 3, 4,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 5, 0);
+  gtk_label_set_justify (GTK_LABEL (label599), GTK_JUSTIFY_LEFT);
+  gtk_misc_set_alignment (GTK_MISC (label599), 0, 0.5);
+
+  spinbutton_config_track_props_adj = gtk_adjustment_new (0, 0, 100, 1, 10, 10);
+  spinbutton_config_track_props = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_track_props_adj), 1, 0);
+  gtk_widget_set_name (spinbutton_config_track_props, "spinbutton_config_track_props");
+  gtk_widget_show (spinbutton_config_track_props);
+  gtk_table_attach (GTK_TABLE (table36), spinbutton_config_track_props, 1, 2, 3, 4,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_config_track_props), TRUE);
 
   label375 = gtk_label_new ("Debug settings");
   gtk_widget_set_name (label375, "label375");
@@ -5634,6 +5655,7 @@ create_main_window_config_dbg_tab (void)
   gtk_label_set_mnemonic_widget (GTK_LABEL (label376), spinbutton_config_dbg);
   gtk_label_set_mnemonic_widget (GTK_LABEL (label377), spinbutton_config_gui_debug);
   gtk_label_set_mnemonic_widget (GTK_LABEL (label517), spinbutton_config_lib_debug);
+  gtk_label_set_mnemonic_widget (GTK_LABEL (label599), spinbutton_config_track_props);
 
   /* Store pointers to all widgets, for use by lookup_widget(). */
   GLADE_HOOKUP_OBJECT_NO_REF (main_window_config_dbg_tab, main_window_config_dbg_tab, "main_window_config_dbg_tab");
@@ -5647,8 +5669,10 @@ create_main_window_config_dbg_tab (void)
   GLADE_HOOKUP_OBJECT (main_window_config_dbg_tab, label376, "label376");
   GLADE_HOOKUP_OBJECT (main_window_config_dbg_tab, label377, "label377");
   GLADE_HOOKUP_OBJECT (main_window_config_dbg_tab, label517, "label517");
-  GLADE_HOOKUP_OBJECT (main_window_config_dbg_tab, checkbutton_config_stop_host_get, "checkbutton_config_stop_host_get");
   GLADE_HOOKUP_OBJECT (main_window_config_dbg_tab, spinbutton_config_lib_debug, "spinbutton_config_lib_debug");
+  GLADE_HOOKUP_OBJECT (main_window_config_dbg_tab, checkbutton_config_stop_host_get, "checkbutton_config_stop_host_get");
+  GLADE_HOOKUP_OBJECT (main_window_config_dbg_tab, label599, "label599");
+  GLADE_HOOKUP_OBJECT (main_window_config_dbg_tab, spinbutton_config_track_props, "spinbutton_config_track_props");
   GLADE_HOOKUP_OBJECT (main_window_config_dbg_tab, label375, "label375");
   GLADE_HOOKUP_OBJECT (main_window_config_dbg_tab, frame_expert_unmapped, "frame_expert_unmapped");
   GLADE_HOOKUP_OBJECT (main_window_config_dbg_tab, table60, "table60");
@@ -11179,6 +11203,7 @@ create_main_window_config_sel_tab (void)
 {
   GtkWidget *main_window_config_sel_tab;
   GtkWidget *table63;
+  GtkWidget *table64;
   GtkWidget *label592;
   GtkWidget *label593;
   GtkWidget *label594;
@@ -11193,23 +11218,34 @@ create_main_window_config_sel_tab (void)
   GtkWidget *button_config_select_ul;
   GtkWidget *button_config_select_ui;
   GtkWidget *button_config_select_dbg;
+  GtkWidget *label603;
+  GtkWidget *label600;
+  GtkWidget *label604;
+  GtkWidget *label602;
 
   main_window_config_sel_tab = gtk_window_new (GTK_WINDOW_TOPLEVEL);
   gtk_widget_set_name (main_window_config_sel_tab, "main_window_config_sel_tab");
   gtk_window_set_title (GTK_WINDOW (main_window_config_sel_tab), "window1");
 
-  table63 = gtk_table_new (7, 2, FALSE);
+  table63 = gtk_table_new (3, 3, FALSE);
   gtk_widget_set_name (table63, "table63");
   gtk_widget_show (table63);
   gtk_container_add (GTK_CONTAINER (main_window_config_sel_tab), table63);
-  gtk_container_set_border_width (GTK_CONTAINER (table63), 2);
-  gtk_table_set_row_spacings (GTK_TABLE (table63), 8);
-  gtk_table_set_col_spacings (GTK_TABLE (table63), 4);
 
-  label592 = gtk_label_new ("Configuration of IP address, Port, Proxy settings etc. ");
+  table64 = gtk_table_new (7, 2, FALSE);
+  gtk_widget_set_name (table64, "table64");
+  gtk_widget_show (table64);
+  gtk_table_attach (GTK_TABLE (table63), table64, 1, 2, 1, 2,
+                    (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
+                    (GtkAttachOptions) (GTK_EXPAND | GTK_FILL), 0, 0);
+  gtk_container_set_border_width (GTK_CONTAINER (table64), 2);
+  gtk_table_set_row_spacings (GTK_TABLE (table64), 8);
+  gtk_table_set_col_spacings (GTK_TABLE (table64), 4);
+
+  label592 = gtk_label_new ("Configuration of IP address, Port,\nProxy settings etc. ");
   gtk_widget_set_name (label592, "label592");
   gtk_widget_show (label592);
-  gtk_table_attach (GTK_TABLE (table63), label592, 1, 2, 0, 1,
+  gtk_table_attach (GTK_TABLE (table64), label592, 1, 2, 0, 1,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 4, 0);
   gtk_label_set_justify (GTK_LABEL (label592), GTK_JUSTIFY_LEFT);
@@ -11219,7 +11255,7 @@ create_main_window_config_sel_tab (void)
   label593 = gtk_label_new ("Peer mode selection, timeout and TTL settings, quality management regarding GnutellaNet traffic");
   gtk_widget_set_name (label593, "label593");
   gtk_widget_show (label593);
-  gtk_table_attach (GTK_TABLE (table63), label593, 1, 2, 1, 2,
+  gtk_table_attach (GTK_TABLE (table64), label593, 1, 2, 1, 2,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 4, 0);
   gtk_label_set_justify (GTK_LABEL (label593), GTK_JUSTIFY_LEFT);
@@ -11229,7 +11265,7 @@ create_main_window_config_sel_tab (void)
   label594 = gtk_label_new ("Bandwidth limit configuration for HTTP, normal GnutellaNet and Ultrapeer traffic");
   gtk_widget_set_name (label594, "label594");
   gtk_widget_show (label594);
-  gtk_table_attach (GTK_TABLE (table63), label594, 1, 2, 2, 3,
+  gtk_table_attach (GTK_TABLE (table64), label594, 1, 2, 2, 3,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 4, 0);
   gtk_label_set_justify (GTK_LABEL (label594), GTK_JUSTIFY_LEFT);
@@ -11239,7 +11275,7 @@ create_main_window_config_sel_tab (void)
   label596 = gtk_label_new ("Choose directories for completed files and downloads in progress");
   gtk_widget_set_name (label596, "label596");
   gtk_widget_show (label596);
-  gtk_table_attach (GTK_TABLE (table63), label596, 1, 2, 3, 4,
+  gtk_table_attach (GTK_TABLE (table64), label596, 1, 2, 3, 4,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 4, 0);
   gtk_label_set_justify (GTK_LABEL (label596), GTK_JUSTIFY_LEFT);
@@ -11249,7 +11285,7 @@ create_main_window_config_sel_tab (void)
   label597 = gtk_label_new ("Selection of directories and filetypes to share");
   gtk_widget_set_name (label597, "label597");
   gtk_widget_show (label597);
-  gtk_table_attach (GTK_TABLE (table63), label597, 1, 2, 4, 5,
+  gtk_table_attach (GTK_TABLE (table64), label597, 1, 2, 4, 5,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 4, 0);
   gtk_label_set_justify (GTK_LABEL (label597), GTK_JUSTIFY_LEFT);
@@ -11258,7 +11294,7 @@ create_main_window_config_sel_tab (void)
   label595 = gtk_label_new ("Settings for the User Interface like toolbar appereance, expert settings");
   gtk_widget_set_name (label595, "label595");
   gtk_widget_show (label595);
-  gtk_table_attach (GTK_TABLE (table63), label595, 1, 2, 5, 6,
+  gtk_table_attach (GTK_TABLE (table64), label595, 1, 2, 5, 6,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 4, 0);
   gtk_label_set_justify (GTK_LABEL (label595), GTK_JUSTIFY_LEFT);
@@ -11268,7 +11304,7 @@ create_main_window_config_sel_tab (void)
   label598 = gtk_label_new ("Debug level configuration");
   gtk_widget_set_name (label598, "label598");
   gtk_widget_show (label598);
-  gtk_table_attach (GTK_TABLE (table63), label598, 1, 2, 6, 7,
+  gtk_table_attach (GTK_TABLE (table64), label598, 1, 2, 6, 7,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 4, 0);
   gtk_label_set_justify (GTK_LABEL (label598), GTK_JUSTIFY_LEFT);
@@ -11277,51 +11313,87 @@ create_main_window_config_sel_tab (void)
   button_config_select_net = gtk_button_new_with_mnemonic ("Network Settings");
   gtk_widget_set_name (button_config_select_net, "button_config_select_net");
   gtk_widget_show (button_config_select_net);
-  gtk_table_attach (GTK_TABLE (table63), button_config_select_net, 0, 1, 0, 1,
+  gtk_table_attach (GTK_TABLE (table64), button_config_select_net, 0, 1, 0, 1,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
 
   button_config_select_gnet = gtk_button_new_with_mnemonic ("GnutellaNet Settings");
   gtk_widget_set_name (button_config_select_gnet, "button_config_select_gnet");
   gtk_widget_show (button_config_select_gnet);
-  gtk_table_attach (GTK_TABLE (table63), button_config_select_gnet, 0, 1, 1, 2,
+  gtk_table_attach (GTK_TABLE (table64), button_config_select_gnet, 0, 1, 1, 2,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
 
   button_config_select_bwc = gtk_button_new_with_mnemonic ("Bandwidth Control");
   gtk_widget_set_name (button_config_select_bwc, "button_config_select_bwc");
   gtk_widget_show (button_config_select_bwc);
-  gtk_table_attach (GTK_TABLE (table63), button_config_select_bwc, 0, 1, 2, 3,
+  gtk_table_attach (GTK_TABLE (table64), button_config_select_bwc, 0, 1, 2, 3,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
 
   button_config_select_dl = gtk_button_new_with_mnemonic ("Download Settings");
   gtk_widget_set_name (button_config_select_dl, "button_config_select_dl");
   gtk_widget_show (button_config_select_dl);
-  gtk_table_attach (GTK_TABLE (table63), button_config_select_dl, 0, 1, 3, 4,
+  gtk_table_attach (GTK_TABLE (table64), button_config_select_dl, 0, 1, 3, 4,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
 
   button_config_select_ul = gtk_button_new_with_mnemonic ("Upload Settings");
   gtk_widget_set_name (button_config_select_ul, "button_config_select_ul");
   gtk_widget_show (button_config_select_ul);
-  gtk_table_attach (GTK_TABLE (table63), button_config_select_ul, 0, 1, 4, 5,
+  gtk_table_attach (GTK_TABLE (table64), button_config_select_ul, 0, 1, 4, 5,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
 
   button_config_select_ui = gtk_button_new_with_mnemonic ("User Interface");
   gtk_widget_set_name (button_config_select_ui, "button_config_select_ui");
   gtk_widget_show (button_config_select_ui);
-  gtk_table_attach (GTK_TABLE (table63), button_config_select_ui, 0, 1, 5, 6,
+  gtk_table_attach (GTK_TABLE (table64), button_config_select_ui, 0, 1, 5, 6,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
 
   button_config_select_dbg = gtk_button_new_with_mnemonic ("Debugging");
   gtk_widget_set_name (button_config_select_dbg, "button_config_select_dbg");
   gtk_widget_show (button_config_select_dbg);
-  gtk_table_attach (GTK_TABLE (table63), button_config_select_dbg, 0, 1, 6, 7,
+  gtk_table_attach (GTK_TABLE (table64), button_config_select_dbg, 0, 1, 6, 7,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
+
+  label603 = gtk_label_new (" ");
+  gtk_widget_set_name (label603, "label603");
+  gtk_widget_show (label603);
+  gtk_table_attach (GTK_TABLE (table63), label603, 2, 3, 1, 2,
+                    (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
+                    (GtkAttachOptions) (GTK_EXPAND | GTK_FILL), 0, 0);
+  gtk_label_set_justify (GTK_LABEL (label603), GTK_JUSTIFY_LEFT);
+  gtk_misc_set_alignment (GTK_MISC (label603), 0, 0.5);
+
+  label600 = gtk_label_new (" ");
+  gtk_widget_set_name (label600, "label600");
+  gtk_widget_show (label600);
+  gtk_table_attach (GTK_TABLE (table63), label600, 1, 2, 0, 1,
+                    (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
+                    (GtkAttachOptions) (GTK_EXPAND | GTK_FILL), 0, 0);
+  gtk_label_set_justify (GTK_LABEL (label600), GTK_JUSTIFY_LEFT);
+  gtk_misc_set_alignment (GTK_MISC (label600), 0, 0.5);
+
+  label604 = gtk_label_new (" ");
+  gtk_widget_set_name (label604, "label604");
+  gtk_widget_show (label604);
+  gtk_table_attach (GTK_TABLE (table63), label604, 1, 2, 2, 3,
+                    (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
+                    (GtkAttachOptions) (GTK_EXPAND | GTK_FILL), 0, 0);
+  gtk_label_set_justify (GTK_LABEL (label604), GTK_JUSTIFY_LEFT);
+  gtk_misc_set_alignment (GTK_MISC (label604), 0, 0.5);
+
+  label602 = gtk_label_new ("  ");
+  gtk_widget_set_name (label602, "label602");
+  gtk_widget_show (label602);
+  gtk_table_attach (GTK_TABLE (table63), label602, 0, 1, 1, 2,
+                    (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
+                    (GtkAttachOptions) (GTK_EXPAND | GTK_FILL), 0, 0);
+  gtk_label_set_justify (GTK_LABEL (label602), GTK_JUSTIFY_LEFT);
+  gtk_misc_set_alignment (GTK_MISC (label602), 0, 0.5);
 
   g_signal_connect ((gpointer) button_config_select_net, "clicked",
                     G_CALLBACK (on_button_config_select_net_clicked),
@@ -11348,6 +11420,7 @@ create_main_window_config_sel_tab (void)
   /* Store pointers to all widgets, for use by lookup_widget(). */
   GLADE_HOOKUP_OBJECT_NO_REF (main_window_config_sel_tab, main_window_config_sel_tab, "main_window_config_sel_tab");
   GLADE_HOOKUP_OBJECT (main_window_config_sel_tab, table63, "table63");
+  GLADE_HOOKUP_OBJECT (main_window_config_sel_tab, table64, "table64");
   GLADE_HOOKUP_OBJECT (main_window_config_sel_tab, label592, "label592");
   GLADE_HOOKUP_OBJECT (main_window_config_sel_tab, label593, "label593");
   GLADE_HOOKUP_OBJECT (main_window_config_sel_tab, label594, "label594");
@@ -11362,6 +11435,10 @@ create_main_window_config_sel_tab (void)
   GLADE_HOOKUP_OBJECT (main_window_config_sel_tab, button_config_select_ul, "button_config_select_ul");
   GLADE_HOOKUP_OBJECT (main_window_config_sel_tab, button_config_select_ui, "button_config_select_ui");
   GLADE_HOOKUP_OBJECT (main_window_config_sel_tab, button_config_select_dbg, "button_config_select_dbg");
+  GLADE_HOOKUP_OBJECT (main_window_config_sel_tab, label603, "label603");
+  GLADE_HOOKUP_OBJECT (main_window_config_sel_tab, label600, "label600");
+  GLADE_HOOKUP_OBJECT (main_window_config_sel_tab, label604, "label604");
+  GLADE_HOOKUP_OBJECT (main_window_config_sel_tab, label602, "label602");
 
   return main_window_config_sel_tab;
 }

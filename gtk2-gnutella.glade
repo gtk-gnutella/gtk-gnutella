@@ -8664,7 +8664,7 @@ T'aZ &lt;tazdev@altern.org&gt;</property>
 		    <widget class="GtkTable" id="table36">
 		      <property name="border_width">2</property>
 		      <property name="visible">True</property>
-		      <property name="n_rows">4</property>
+		      <property name="n_rows">5</property>
 		      <property name="n_columns">2</property>
 		      <property name="homogeneous">False</property>
 		      <property name="row_spacing">2</property>
@@ -8680,7 +8680,7 @@ T'aZ &lt;tazdev@altern.org&gt;</property>
 			  <property name="update_policy">GTK_UPDATE_ALWAYS</property>
 			  <property name="snap_to_ticks">False</property>
 			  <property name="wrap">False</property>
-			  <property name="adjustment">0 0 100 1 10 10</property>
+			  <property name="adjustment">0 0 20 1 10 10</property>
 			</widget>
 			<packing>
 			  <property name="left_attach">1</property>
@@ -8702,7 +8702,7 @@ T'aZ &lt;tazdev@altern.org&gt;</property>
 			  <property name="update_policy">GTK_UPDATE_ALWAYS</property>
 			  <property name="snap_to_ticks">False</property>
 			  <property name="wrap">False</property>
-			  <property name="adjustment">0 0 100 1 10 10</property>
+			  <property name="adjustment">0 0 20 1 10 10</property>
 			</widget>
 			<packing>
 			  <property name="left_attach">1</property>
@@ -8793,6 +8793,28 @@ T'aZ &lt;tazdev@altern.org&gt;</property>
 		      </child>
 
 		      <child>
+			<widget class="GtkSpinButton" id="spinbutton_config_lib_debug">
+			  <property name="visible">True</property>
+			  <property name="can_focus">True</property>
+			  <property name="climb_rate">1</property>
+			  <property name="digits">0</property>
+			  <property name="numeric">True</property>
+			  <property name="update_policy">GTK_UPDATE_ALWAYS</property>
+			  <property name="snap_to_ticks">False</property>
+			  <property name="wrap">False</property>
+			  <property name="adjustment">0 0 20 1 10 10</property>
+			</widget>
+			<packing>
+			  <property name="left_attach">1</property>
+			  <property name="right_attach">2</property>
+			  <property name="top_attach">2</property>
+			  <property name="bottom_attach">3</property>
+			  <property name="x_options">shrink|fill</property>
+			  <property name="y_options"></property>
+			</packing>
+		      </child>
+
+		      <child>
 			<widget class="GtkCheckButton" id="checkbutton_config_stop_host_get">
 			  <property name="visible">True</property>
 			  <property name="can_focus">True</property>
@@ -8806,6 +8828,32 @@ T'aZ &lt;tazdev@altern.org&gt;</property>
 			<packing>
 			  <property name="left_attach">0</property>
 			  <property name="right_attach">2</property>
+			  <property name="top_attach">4</property>
+			  <property name="bottom_attach">5</property>
+			  <property name="x_padding">5</property>
+			  <property name="x_options">fill</property>
+			  <property name="y_options"></property>
+			</packing>
+		      </child>
+
+		      <child>
+			<widget class="GtkLabel" id="label599">
+			  <property name="visible">True</property>
+			  <property name="label" translatable="yes">_Track properties</property>
+			  <property name="use_underline">True</property>
+			  <property name="use_markup">False</property>
+			  <property name="justify">GTK_JUSTIFY_LEFT</property>
+			  <property name="wrap">False</property>
+			  <property name="selectable">False</property>
+			  <property name="xalign">0</property>
+			  <property name="yalign">0.5</property>
+			  <property name="xpad">0</property>
+			  <property name="ypad">0</property>
+			  <property name="mnemonic_widget">spinbutton_config_track_props</property>
+			</widget>
+			<packing>
+			  <property name="left_attach">0</property>
+			  <property name="right_attach">1</property>
 			  <property name="top_attach">3</property>
 			  <property name="bottom_attach">4</property>
 			  <property name="x_padding">5</property>
@@ -8815,7 +8863,7 @@ T'aZ &lt;tazdev@altern.org&gt;</property>
 		      </child>
 
 		      <child>
-			<widget class="GtkSpinButton" id="spinbutton_config_lib_debug">
+			<widget class="GtkSpinButton" id="spinbutton_config_track_props">
 			  <property name="visible">True</property>
 			  <property name="can_focus">True</property>
 			  <property name="climb_rate">1</property>
@@ -8829,9 +8877,9 @@ T'aZ &lt;tazdev@altern.org&gt;</property>
 			<packing>
 			  <property name="left_attach">1</property>
 			  <property name="right_attach">2</property>
-			  <property name="top_attach">2</property>
-			  <property name="bottom_attach">3</property>
-			  <property name="x_options">shrink|fill</property>
+			  <property name="top_attach">3</property>
+			  <property name="bottom_attach">4</property>
+			  <property name="x_options">fill</property>
 			  <property name="y_options"></property>
 			</packing>
 		      </child>
@@ -19415,72 +19463,348 @@ T'aZ &lt;tazdev@altern.org&gt;</property>
 
   <child>
     <widget class="GtkTable" id="table63">
-      <property name="border_width">2</property>
       <property name="visible">True</property>
-      <property name="n_rows">7</property>
-      <property name="n_columns">2</property>
+      <property name="n_rows">3</property>
+      <property name="n_columns">3</property>
       <property name="homogeneous">False</property>
-      <property name="row_spacing">8</property>
-      <property name="column_spacing">4</property>
+      <property name="row_spacing">0</property>
+      <property name="column_spacing">0</property>
 
       <child>
-	<widget class="GtkLabel" id="label592">
+	<widget class="GtkTable" id="table64">
+	  <property name="border_width">2</property>
 	  <property name="visible">True</property>
-	  <property name="label" translatable="yes">Configuration of IP address, Port, Proxy settings etc. </property>
-	  <property name="use_underline">False</property>
-	  <property name="use_markup">False</property>
-	  <property name="justify">GTK_JUSTIFY_LEFT</property>
-	  <property name="wrap">True</property>
-	  <property name="selectable">False</property>
-	  <property name="xalign">0</property>
-	  <property name="yalign">0.5</property>
-	  <property name="xpad">0</property>
-	  <property name="ypad">0</property>
-	</widget>
-	<packing>
-	  <property name="left_attach">1</property>
-	  <property name="right_attach">2</property>
-	  <property name="top_attach">0</property>
-	  <property name="bottom_attach">1</property>
-	  <property name="x_padding">4</property>
-	  <property name="x_options">fill</property>
-	  <property name="y_options"></property>
-	</packing>
-      </child>
+	  <property name="n_rows">7</property>
+	  <property name="n_columns">2</property>
+	  <property name="homogeneous">False</property>
+	  <property name="row_spacing">8</property>
+	  <property name="column_spacing">4</property>
 
-      <child>
-	<widget class="GtkLabel" id="label593">
-	  <property name="visible">True</property>
-	  <property name="label" translatable="yes">Peer mode selection, timeout and TTL settings, quality management regarding GnutellaNet traffic</property>
-	  <property name="use_underline">False</property>
-	  <property name="use_markup">False</property>
-	  <property name="justify">GTK_JUSTIFY_LEFT</property>
-	  <property name="wrap">True</property>
-	  <property name="selectable">False</property>
-	  <property name="xalign">0</property>
-	  <property name="yalign">0.5</property>
-	  <property name="xpad">0</property>
-	  <property name="ypad">0</property>
+	  <child>
+	    <widget class="GtkLabel" id="label592">
+	      <property name="visible">True</property>
+	      <property name="label" translatable="yes">Configuration of IP address, Port,
+Proxy settings etc. </property>
+	      <property name="use_underline">False</property>
+	      <property name="use_markup">False</property>
+	      <property name="justify">GTK_JUSTIFY_LEFT</property>
+	      <property name="wrap">True</property>
+	      <property name="selectable">False</property>
+	      <property name="xalign">0</property>
+	      <property name="yalign">0.5</property>
+	      <property name="xpad">0</property>
+	      <property name="ypad">0</property>
+	    </widget>
+	    <packing>
+	      <property name="left_attach">1</property>
+	      <property name="right_attach">2</property>
+	      <property name="top_attach">0</property>
+	      <property name="bottom_attach">1</property>
+	      <property name="x_padding">4</property>
+	      <property name="x_options">fill</property>
+	      <property name="y_options"></property>
+	    </packing>
+	  </child>
+
+	  <child>
+	    <widget class="GtkLabel" id="label593">
+	      <property name="visible">True</property>
+	      <property name="label" translatable="yes">Peer mode selection, timeout and TTL settings, quality management regarding GnutellaNet traffic</property>
+	      <property name="use_underline">False</property>
+	      <property name="use_markup">False</property>
+	      <property name="justify">GTK_JUSTIFY_LEFT</property>
+	      <property name="wrap">True</property>
+	      <property name="selectable">False</property>
+	      <property name="xalign">0</property>
+	      <property name="yalign">0.5</property>
+	      <property name="xpad">0</property>
+	      <property name="ypad">0</property>
+	    </widget>
+	    <packing>
+	      <property name="left_attach">1</property>
+	      <property name="right_attach">2</property>
+	      <property name="top_attach">1</property>
+	      <property name="bottom_attach">2</property>
+	      <property name="x_padding">4</property>
+	      <property name="x_options">fill</property>
+	      <property name="y_options"></property>
+	    </packing>
+	  </child>
+
+	  <child>
+	    <widget class="GtkLabel" id="label594">
+	      <property name="visible">True</property>
+	      <property name="label" translatable="yes">Bandwidth limit configuration for HTTP, normal GnutellaNet and Ultrapeer traffic</property>
+	      <property name="use_underline">False</property>
+	      <property name="use_markup">False</property>
+	      <property name="justify">GTK_JUSTIFY_LEFT</property>
+	      <property name="wrap">True</property>
+	      <property name="selectable">False</property>
+	      <property name="xalign">0</property>
+	      <property name="yalign">0.5</property>
+	      <property name="xpad">0</property>
+	      <property name="ypad">0</property>
+	    </widget>
+	    <packing>
+	      <property name="left_attach">1</property>
+	      <property name="right_attach">2</property>
+	      <property name="top_attach">2</property>
+	      <property name="bottom_attach">3</property>
+	      <property name="x_padding">4</property>
+	      <property name="x_options">fill</property>
+	      <property name="y_options"></property>
+	    </packing>
+	  </child>
+
+	  <child>
+	    <widget class="GtkLabel" id="label596">
+	      <property name="visible">True</property>
+	      <property name="label" translatable="yes">Choose directories for completed files and downloads in progress</property>
+	      <property name="use_underline">False</property>
+	      <property name="use_markup">False</property>
+	      <property name="justify">GTK_JUSTIFY_LEFT</property>
+	      <property name="wrap">True</property>
+	      <property name="selectable">False</property>
+	      <property name="xalign">0</property>
+	      <property name="yalign">0.5</property>
+	      <property name="xpad">0</property>
+	      <property name="ypad">0</property>
+	    </widget>
+	    <packing>
+	      <property name="left_attach">1</property>
+	      <property name="right_attach">2</property>
+	      <property name="top_attach">3</property>
+	      <property name="bottom_attach">4</property>
+	      <property name="x_padding">4</property>
+	      <property name="x_options">fill</property>
+	      <property name="y_options"></property>
+	    </packing>
+	  </child>
+
+	  <child>
+	    <widget class="GtkLabel" id="label597">
+	      <property name="visible">True</property>
+	      <property name="label" translatable="yes">Selection of directories and filetypes to share</property>
+	      <property name="use_underline">False</property>
+	      <property name="use_markup">False</property>
+	      <property name="justify">GTK_JUSTIFY_LEFT</property>
+	      <property name="wrap">False</property>
+	      <property name="selectable">False</property>
+	      <property name="xalign">0</property>
+	      <property name="yalign">0.5</property>
+	      <property name="xpad">0</property>
+	      <property name="ypad">0</property>
+	    </widget>
+	    <packing>
+	      <property name="left_attach">1</property>
+	      <property name="right_attach">2</property>
+	      <property name="top_attach">4</property>
+	      <property name="bottom_attach">5</property>
+	      <property name="x_padding">4</property>
+	      <property name="x_options">fill</property>
+	      <property name="y_options"></property>
+	    </packing>
+	  </child>
+
+	  <child>
+	    <widget class="GtkLabel" id="label595">
+	      <property name="visible">True</property>
+	      <property name="label" translatable="yes">Settings for the User Interface like toolbar appereance, expert settings</property>
+	      <property name="use_underline">False</property>
+	      <property name="use_markup">False</property>
+	      <property name="justify">GTK_JUSTIFY_LEFT</property>
+	      <property name="wrap">True</property>
+	      <property name="selectable">False</property>
+	      <property name="xalign">0</property>
+	      <property name="yalign">0.5</property>
+	      <property name="xpad">0</property>
+	      <property name="ypad">0</property>
+	    </widget>
+	    <packing>
+	      <property name="left_attach">1</property>
+	      <property name="right_attach">2</property>
+	      <property name="top_attach">5</property>
+	      <property name="bottom_attach">6</property>
+	      <property name="x_padding">4</property>
+	      <property name="x_options">fill</property>
+	      <property name="y_options"></property>
+	    </packing>
+	  </child>
+
+	  <child>
+	    <widget class="GtkLabel" id="label598">
+	      <property name="visible">True</property>
+	      <property name="label" translatable="yes">Debug level configuration</property>
+	      <property name="use_underline">False</property>
+	      <property name="use_markup">False</property>
+	      <property name="justify">GTK_JUSTIFY_LEFT</property>
+	      <property name="wrap">False</property>
+	      <property name="selectable">False</property>
+	      <property name="xalign">0</property>
+	      <property name="yalign">0.5</property>
+	      <property name="xpad">0</property>
+	      <property name="ypad">0</property>
+	    </widget>
+	    <packing>
+	      <property name="left_attach">1</property>
+	      <property name="right_attach">2</property>
+	      <property name="top_attach">6</property>
+	      <property name="bottom_attach">7</property>
+	      <property name="x_padding">4</property>
+	      <property name="x_options">fill</property>
+	      <property name="y_options"></property>
+	    </packing>
+	  </child>
+
+	  <child>
+	    <widget class="GtkButton" id="button_config_select_net">
+	      <property name="visible">True</property>
+	      <property name="can_focus">True</property>
+	      <property name="label" translatable="yes">Network Settings</property>
+	      <property name="use_underline">True</property>
+	      <property name="relief">GTK_RELIEF_NORMAL</property>
+	      <signal name="clicked" handler="on_button_config_select_net_clicked" last_modification_time="Sat, 15 Feb 2003 18:10:07 GMT"/>
+	    </widget>
+	    <packing>
+	      <property name="left_attach">0</property>
+	      <property name="right_attach">1</property>
+	      <property name="top_attach">0</property>
+	      <property name="bottom_attach">1</property>
+	      <property name="x_options">fill</property>
+	      <property name="y_options"></property>
+	    </packing>
+	  </child>
+
+	  <child>
+	    <widget class="GtkButton" id="button_config_select_gnet">
+	      <property name="visible">True</property>
+	      <property name="can_focus">True</property>
+	      <property name="label" translatable="yes">GnutellaNet Settings</property>
+	      <property name="use_underline">True</property>
+	      <property name="relief">GTK_RELIEF_NORMAL</property>
+	      <signal name="clicked" handler="on_button_config_select_gnet_clicked" last_modification_time="Sat, 15 Feb 2003 18:10:17 GMT"/>
+	    </widget>
+	    <packing>
+	      <property name="left_attach">0</property>
+	      <property name="right_attach">1</property>
+	      <property name="top_attach">1</property>
+	      <property name="bottom_attach">2</property>
+	      <property name="x_options">fill</property>
+	      <property name="y_options"></property>
+	    </packing>
+	  </child>
+
+	  <child>
+	    <widget class="GtkButton" id="button_config_select_bwc">
+	      <property name="visible">True</property>
+	      <property name="can_focus">True</property>
+	      <property name="label" translatable="yes">Bandwidth Control</property>
+	      <property name="use_underline">True</property>
+	      <property name="relief">GTK_RELIEF_NORMAL</property>
+	      <signal name="clicked" handler="on_button_config_select_bwc_clicked" last_modification_time="Sat, 15 Feb 2003 18:10:25 GMT"/>
+	    </widget>
+	    <packing>
+	      <property name="left_attach">0</property>
+	      <property name="right_attach">1</property>
+	      <property name="top_attach">2</property>
+	      <property name="bottom_attach">3</property>
+	      <property name="x_options">fill</property>
+	      <property name="y_options"></property>
+	    </packing>
+	  </child>
+
+	  <child>
+	    <widget class="GtkButton" id="button_config_select_dl">
+	      <property name="visible">True</property>
+	      <property name="can_focus">True</property>
+	      <property name="label" translatable="yes">Download Settings</property>
+	      <property name="use_underline">True</property>
+	      <property name="relief">GTK_RELIEF_NORMAL</property>
+	      <signal name="clicked" handler="on_button_config_select_dl_clicked" last_modification_time="Sat, 15 Feb 2003 18:10:35 GMT"/>
+	    </widget>
+	    <packing>
+	      <property name="left_attach">0</property>
+	      <property name="right_attach">1</property>
+	      <property name="top_attach">3</property>
+	      <property name="bottom_attach">4</property>
+	      <property name="x_options">fill</property>
+	      <property name="y_options"></property>
+	    </packing>
+	  </child>
+
+	  <child>
+	    <widget class="GtkButton" id="button_config_select_ul">
+	      <property name="visible">True</property>
+	      <property name="can_focus">True</property>
+	      <property name="label" translatable="yes">Upload Settings</property>
+	      <property name="use_underline">True</property>
+	      <property name="relief">GTK_RELIEF_NORMAL</property>
+	      <signal name="clicked" handler="on_button_config_select_ul_clicked" last_modification_time="Sat, 15 Feb 2003 18:10:44 GMT"/>
+	    </widget>
+	    <packing>
+	      <property name="left_attach">0</property>
+	      <property name="right_attach">1</property>
+	      <property name="top_attach">4</property>
+	      <property name="bottom_attach">5</property>
+	      <property name="x_options">fill</property>
+	      <property name="y_options"></property>
+	    </packing>
+	  </child>
+
+	  <child>
+	    <widget class="GtkButton" id="button_config_select_ui">
+	      <property name="visible">True</property>
+	      <property name="can_focus">True</property>
+	      <property name="label" translatable="yes">User Interface</property>
+	      <property name="use_underline">True</property>
+	      <property name="relief">GTK_RELIEF_NORMAL</property>
+	      <signal name="clicked" handler="on_button_config_select_ui_clicked" last_modification_time="Sat, 15 Feb 2003 18:10:56 GMT"/>
+	    </widget>
+	    <packing>
+	      <property name="left_attach">0</property>
+	      <property name="right_attach">1</property>
+	      <property name="top_attach">5</property>
+	      <property name="bottom_attach">6</property>
+	      <property name="x_options">fill</property>
+	      <property name="y_options"></property>
+	    </packing>
+	  </child>
+
+	  <child>
+	    <widget class="GtkButton" id="button_config_select_dbg">
+	      <property name="visible">True</property>
+	      <property name="can_focus">True</property>
+	      <property name="label" translatable="yes">Debugging</property>
+	      <property name="use_underline">True</property>
+	      <property name="relief">GTK_RELIEF_NORMAL</property>
+	      <signal name="clicked" handler="on_button_config_select_dbg_clicked" last_modification_time="Sat, 15 Feb 2003 18:11:19 GMT"/>
+	    </widget>
+	    <packing>
+	      <property name="left_attach">0</property>
+	      <property name="right_attach">1</property>
+	      <property name="top_attach">6</property>
+	      <property name="bottom_attach">7</property>
+	      <property name="x_options">fill</property>
+	      <property name="y_options"></property>
+	    </packing>
+	  </child>
 	</widget>
 	<packing>
 	  <property name="left_attach">1</property>
 	  <property name="right_attach">2</property>
 	  <property name="top_attach">1</property>
 	  <property name="bottom_attach">2</property>
-	  <property name="x_padding">4</property>
-	  <property name="x_options">fill</property>
-	  <property name="y_options"></property>
 	</packing>
       </child>
 
       <child>
-	<widget class="GtkLabel" id="label594">
+	<widget class="GtkLabel" id="label603">
 	  <property name="visible">True</property>
-	  <property name="label" translatable="yes">Bandwidth limit configuration for HTTP, normal GnutellaNet and Ultrapeer traffic</property>
+	  <property name="label" translatable="yes"> </property>
 	  <property name="use_underline">False</property>
 	  <property name="use_markup">False</property>
 	  <property name="justify">GTK_JUSTIFY_LEFT</property>
-	  <property name="wrap">True</property>
+	  <property name="wrap">False</property>
 	  <property name="selectable">False</property>
 	  <property name="xalign">0</property>
 	  <property name="yalign">0.5</property>
@@ -19488,45 +19812,17 @@ T'aZ &lt;tazdev@altern.org&gt;</property>
 	  <property name="ypad">0</property>
 	</widget>
 	<packing>
-	  <property name="left_attach">1</property>
-	  <property name="right_attach">2</property>
-	  <property name="top_attach">2</property>
-	  <property name="bottom_attach">3</property>
-	  <property name="x_padding">4</property>
-	  <property name="x_options">fill</property>
-	  <property name="y_options"></property>
+	  <property name="left_attach">2</property>
+	  <property name="right_attach">3</property>
+	  <property name="top_attach">1</property>
+	  <property name="bottom_attach">2</property>
 	</packing>
       </child>
 
       <child>
-	<widget class="GtkLabel" id="label596">
+	<widget class="GtkLabel" id="label600">
 	  <property name="visible">True</property>
-	  <property name="label" translatable="yes">Choose directories for completed files and downloads in progress</property>
-	  <property name="use_underline">False</property>
-	  <property name="use_markup">False</property>
-	  <property name="justify">GTK_JUSTIFY_LEFT</property>
-	  <property name="wrap">True</property>
-	  <property name="selectable">False</property>
-	  <property name="xalign">0</property>
-	  <property name="yalign">0.5</property>
-	  <property name="xpad">0</property>
-	  <property name="ypad">0</property>
-	</widget>
-	<packing>
-	  <property name="left_attach">1</property>
-	  <property name="right_attach">2</property>
-	  <property name="top_attach">3</property>
-	  <property name="bottom_attach">4</property>
-	  <property name="x_padding">4</property>
-	  <property name="x_options">fill</property>
-	  <property name="y_options"></property>
-	</packing>
-      </child>
-
-      <child>
-	<widget class="GtkLabel" id="label597">
-	  <property name="visible">True</property>
-	  <property name="label" translatable="yes">Selection of directories and filetypes to share</property>
+	  <property name="label" translatable="yes"> </property>
 	  <property name="use_underline">False</property>
 	  <property name="use_markup">False</property>
 	  <property name="justify">GTK_JUSTIFY_LEFT</property>
@@ -19540,43 +19836,15 @@ T'aZ &lt;tazdev@altern.org&gt;</property>
 	<packing>
 	  <property name="left_attach">1</property>
 	  <property name="right_attach">2</property>
-	  <property name="top_attach">4</property>
-	  <property name="bottom_attach">5</property>
-	  <property name="x_padding">4</property>
-	  <property name="x_options">fill</property>
-	  <property name="y_options"></property>
+	  <property name="top_attach">0</property>
+	  <property name="bottom_attach">1</property>
 	</packing>
       </child>
 
       <child>
-	<widget class="GtkLabel" id="label595">
+	<widget class="GtkLabel" id="label604">
 	  <property name="visible">True</property>
-	  <property name="label" translatable="yes">Settings for the User Interface like toolbar appereance, expert settings</property>
-	  <property name="use_underline">False</property>
-	  <property name="use_markup">False</property>
-	  <property name="justify">GTK_JUSTIFY_LEFT</property>
-	  <property name="wrap">True</property>
-	  <property name="selectable">False</property>
-	  <property name="xalign">0</property>
-	  <property name="yalign">0.5</property>
-	  <property name="xpad">0</property>
-	  <property name="ypad">0</property>
-	</widget>
-	<packing>
-	  <property name="left_attach">1</property>
-	  <property name="right_attach">2</property>
-	  <property name="top_attach">5</property>
-	  <property name="bottom_attach">6</property>
-	  <property name="x_padding">4</property>
-	  <property name="x_options">fill</property>
-	  <property name="y_options"></property>
-	</packing>
-      </child>
-
-      <child>
-	<widget class="GtkLabel" id="label598">
-	  <property name="visible">True</property>
-	  <property name="label" translatable="yes">Debug level configuration</property>
+	  <property name="label" translatable="yes"> </property>
 	  <property name="use_underline">False</property>
 	  <property name="use_markup">False</property>
 	  <property name="justify">GTK_JUSTIFY_LEFT</property>
@@ -19590,144 +19858,30 @@ T'aZ &lt;tazdev@altern.org&gt;</property>
 	<packing>
 	  <property name="left_attach">1</property>
 	  <property name="right_attach">2</property>
-	  <property name="top_attach">6</property>
-	  <property name="bottom_attach">7</property>
-	  <property name="x_padding">4</property>
-	  <property name="x_options">fill</property>
-	  <property name="y_options"></property>
+	  <property name="top_attach">2</property>
+	  <property name="bottom_attach">3</property>
 	</packing>
       </child>
 
       <child>
-	<widget class="GtkButton" id="button_config_select_net">
+	<widget class="GtkLabel" id="label602">
 	  <property name="visible">True</property>
-	  <property name="can_focus">True</property>
-	  <property name="label" translatable="yes">Network Settings</property>
-	  <property name="use_underline">True</property>
-	  <property name="relief">GTK_RELIEF_NORMAL</property>
-	  <signal name="clicked" handler="on_button_config_select_net_clicked" last_modification_time="Sat, 15 Feb 2003 18:10:07 GMT"/>
-	</widget>
-	<packing>
-	  <property name="left_attach">0</property>
-	  <property name="right_attach">1</property>
-	  <property name="top_attach">0</property>
-	  <property name="bottom_attach">1</property>
-	  <property name="x_options">fill</property>
-	  <property name="y_options"></property>
-	</packing>
-      </child>
-
-      <child>
-	<widget class="GtkButton" id="button_config_select_gnet">
-	  <property name="visible">True</property>
-	  <property name="can_focus">True</property>
-	  <property name="label" translatable="yes">GnutellaNet Settings</property>
-	  <property name="use_underline">True</property>
-	  <property name="relief">GTK_RELIEF_NORMAL</property>
-	  <signal name="clicked" handler="on_button_config_select_gnet_clicked" last_modification_time="Sat, 15 Feb 2003 18:10:17 GMT"/>
+	  <property name="label" translatable="yes">  </property>
+	  <property name="use_underline">False</property>
+	  <property name="use_markup">False</property>
+	  <property name="justify">GTK_JUSTIFY_LEFT</property>
+	  <property name="wrap">False</property>
+	  <property name="selectable">False</property>
+	  <property name="xalign">0</property>
+	  <property name="yalign">0.5</property>
+	  <property name="xpad">0</property>
+	  <property name="ypad">0</property>
 	</widget>
 	<packing>
 	  <property name="left_attach">0</property>
 	  <property name="right_attach">1</property>
 	  <property name="top_attach">1</property>
 	  <property name="bottom_attach">2</property>
-	  <property name="x_options">fill</property>
-	  <property name="y_options"></property>
-	</packing>
-      </child>
-
-      <child>
-	<widget class="GtkButton" id="button_config_select_bwc">
-	  <property name="visible">True</property>
-	  <property name="can_focus">True</property>
-	  <property name="label" translatable="yes">Bandwidth Control</property>
-	  <property name="use_underline">True</property>
-	  <property name="relief">GTK_RELIEF_NORMAL</property>
-	  <signal name="clicked" handler="on_button_config_select_bwc_clicked" last_modification_time="Sat, 15 Feb 2003 18:10:25 GMT"/>
-	</widget>
-	<packing>
-	  <property name="left_attach">0</property>
-	  <property name="right_attach">1</property>
-	  <property name="top_attach">2</property>
-	  <property name="bottom_attach">3</property>
-	  <property name="x_options">fill</property>
-	  <property name="y_options"></property>
-	</packing>
-      </child>
-
-      <child>
-	<widget class="GtkButton" id="button_config_select_dl">
-	  <property name="visible">True</property>
-	  <property name="can_focus">True</property>
-	  <property name="label" translatable="yes">Download Settings</property>
-	  <property name="use_underline">True</property>
-	  <property name="relief">GTK_RELIEF_NORMAL</property>
-	  <signal name="clicked" handler="on_button_config_select_dl_clicked" last_modification_time="Sat, 15 Feb 2003 18:10:35 GMT"/>
-	</widget>
-	<packing>
-	  <property name="left_attach">0</property>
-	  <property name="right_attach">1</property>
-	  <property name="top_attach">3</property>
-	  <property name="bottom_attach">4</property>
-	  <property name="x_options">fill</property>
-	  <property name="y_options"></property>
-	</packing>
-      </child>
-
-      <child>
-	<widget class="GtkButton" id="button_config_select_ul">
-	  <property name="visible">True</property>
-	  <property name="can_focus">True</property>
-	  <property name="label" translatable="yes">Upload Settings</property>
-	  <property name="use_underline">True</property>
-	  <property name="relief">GTK_RELIEF_NORMAL</property>
-	  <signal name="clicked" handler="on_button_config_select_ul_clicked" last_modification_time="Sat, 15 Feb 2003 18:10:44 GMT"/>
-	</widget>
-	<packing>
-	  <property name="left_attach">0</property>
-	  <property name="right_attach">1</property>
-	  <property name="top_attach">4</property>
-	  <property name="bottom_attach">5</property>
-	  <property name="x_options">fill</property>
-	  <property name="y_options"></property>
-	</packing>
-      </child>
-
-      <child>
-	<widget class="GtkButton" id="button_config_select_ui">
-	  <property name="visible">True</property>
-	  <property name="can_focus">True</property>
-	  <property name="label" translatable="yes">User Interface</property>
-	  <property name="use_underline">True</property>
-	  <property name="relief">GTK_RELIEF_NORMAL</property>
-	  <signal name="clicked" handler="on_button_config_select_ui_clicked" last_modification_time="Sat, 15 Feb 2003 18:10:56 GMT"/>
-	</widget>
-	<packing>
-	  <property name="left_attach">0</property>
-	  <property name="right_attach">1</property>
-	  <property name="top_attach">5</property>
-	  <property name="bottom_attach">6</property>
-	  <property name="x_options">fill</property>
-	  <property name="y_options"></property>
-	</packing>
-      </child>
-
-      <child>
-	<widget class="GtkButton" id="button_config_select_dbg">
-	  <property name="visible">True</property>
-	  <property name="can_focus">True</property>
-	  <property name="label" translatable="yes">Debugging</property>
-	  <property name="use_underline">True</property>
-	  <property name="relief">GTK_RELIEF_NORMAL</property>
-	  <signal name="clicked" handler="on_button_config_select_dbg_clicked" last_modification_time="Sat, 15 Feb 2003 18:11:19 GMT"/>
-	</widget>
-	<packing>
-	  <property name="left_attach">0</property>
-	  <property name="right_attach">1</property>
-	  <property name="top_attach">6</property>
-	  <property name="bottom_attach">7</property>
-	  <property name="x_options">fill</property>
-	  <property name="y_options"></property>
 	</packing>
       </child>
     </widget>
