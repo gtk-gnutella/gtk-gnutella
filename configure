@@ -3224,7 +3224,7 @@ rm -f conftest*
     if test "x$have_tos" = "xyes"; then
         echo "$ac_t""yes" 1>&6
         cat >> confdefs.h <<\EOF
-#define HAVE_TOS 1
+#define HAVE_IP_TOS 1
 EOF
 
     else
@@ -3256,7 +3256,7 @@ rm -f conftest*
 	if test "x$have_tos" = "xyes"; then
 	    echo "$ac_t""yes" 1>&6
 	    cat >> confdefs.h <<\EOF
-#define HAVE_TOS 1
+#define HAVE_IP_TOS 1
 EOF
 
 	    cat >> confdefs.h <<\EOF
