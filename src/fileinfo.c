@@ -2141,37 +2141,6 @@ file_info_retrieve(void)
 }
 
 /**
- * Lazily replace all G_DIR_SEPARATOR if filename with '_': if a
- * substitution needs to be done, a copy of the original argument is made
- * first. Otherwise, no change nor allocation occur.
- *
- * Any ASCII control characters and leading '.' in the filename are also
- * replaced with '_'.
- *
- * Returns the pointer to the escaped filename, or the original argument if
- * no escaping needed to be performed.
- */
-static gchar *
-escape_filename(const gchar *file)
-{
-	gchar *escaped = NULL;
-	guchar c;
-	size_t i;
-
-	for (i = 0; (c = (guchar) file[i]) != '\0'; i++) {
-		if (c == G_DIR_SEPARATOR || is_ascii_cntrl(c) || (c == '.' && i == 0)) {
-			if (escaped == NULL) {
-				escaped = g_strdup(file);
-				g_assert(escaped[i] == c);
-			}
-			escaped[i] = '_';
-		}
-	}
-
-	return escaped == NULL ? (gchar *) file : escaped; /* Override const */
-}
-
-/**
  * Allocate unique output name for file `name'.
  * Returns filename atom.
  */
@@ -2181,7 +2150,7 @@ file_info_new_outname(const gchar *name)
 	gint i;
 	gchar xuid[16];
 	size_t flen;
-	const gchar *escaped = escape_filename(name);
+	const gchar *escaped = gm_sanitize_filename(name);
 	gchar *result;
 	const gchar empty[] = "noname";
 	gchar ext[32] = "";
