@@ -1,9 +1,10 @@
-               The "Connect Back" Vendor-specific Message
+               The "Connect Back" Vendor-specific Messages
                               Version 1
 
                           Raphael Manfredi
                     <Raphael_Manfredi@pobox.com>
                           January 3rd, 2003
+                      Revised January 27th, 2003
                 
 
 [These specifications are a summary of messages exchanged on the GDF]
@@ -13,17 +14,20 @@ INTRODUCTION
 Please read the Vendor-Messages specifications if you have not done so
 already.
 
-This document specified the "Connect Back" vendor-specific message.
+This document specified the "Connect Back" vendor-specific messages.
+There are two of them: one for TCP, one for UDP.
 
 SPECIFICATIONS
 
-    Name: Connect Back
+* TCP Connect Back
+
+    Name: TCP Connect Back
     Vendor: BEAR
     ID: 7
     Version: 1
     TTL: 1
     Payload:
-        unsigned short: port number
+        unsigned short: port number (little-endian)
 
 The "Connect Back" message is meant to be sent by servents that still
 think they are firewalled, right after a connection to a remote servent
@@ -41,5 +45,33 @@ string "\n\n" and closes the connection.
 If the remote servent is able to receive the connection on the port it
 specified (usually its listening Gnutella port) AND read back that string,
 it will know it is not firewalled.
+
+* UDP Connect Back
+
+    Name: UDP Connect Back
+    Vendor: GTKG
+    ID: 7
+    Version: 1
+    TTL: 1
+    Payload:
+        unsigned short: port number (little-endian)
+
+This message is similar to "BEAR/7v1", but handles UDP connections
+instead of TCP ones.
+
+The "UDP Connect Back" message is meant to be sent by servents that still
+think they are firewalled, UDP-wise, right after a connection to a remote
+ servent has been established (but after the initial handshaking ping).
+
+This message carries a single 16-bit unsigned integer representing the
+port to which the receiver of the message should try to connect to via UDP.
+The target IP address for the connection is based on the IP address
+determined from the connection endpoint from which the message is
+received.
+
+The connection is made by sending a GUESS ping to the specified port.
+If the remote servent is able to receive that GUESS ping on the port it
+specified (usually its listening UDP Gnutella port), it will know it is
+not UDP firewalled.
 
 Raphael
