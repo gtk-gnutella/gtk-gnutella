@@ -255,7 +255,6 @@ void gtk_gnutella_exit(gint n)
 	if (dbg)
 		printf("gtk-gnutella shut down cleanly.\n\n");
 
-	show_time_count();
 	gtk_exit(n);
 }
 
