@@ -1,5 +1,22 @@
 # since last version
 
+- (2003.12.04 - RAM)
+ * Don't attempt QUEUE callback if we don't have enough bandwidth left to
+   issue a connection.
+ * Exported socket_tos_*() routines and added sock_is_corked().
+ * Detect recurrent upload stalling conditions, and try to workaround
+   the problem.
+
+- (2003.12.03 - RAM)
+ * Try to account for the bandwidth used by TCP/IP, which can become
+   significant when many connections are issued concurrently.
+ * Don't return alt-locs for ourselves if they enabled PFSP-server but
+   disabled sharing for now.
+
+- (2003.12.02 - RAM)
+ * Now shows real instantaneous bandwidth usage and not a fast EMA.
+ * Fixed some possible usage of uninitialized variables.
+
 - (2003.11.25 - Jeroen)
  * Removed dead gnucleus gwebcache
 
