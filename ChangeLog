@@ -1,5 +1,28 @@
 # since last version
 
+- (2003.12.27 - RAM)
+ * Due to a stupid typo, we were denying promoting nodes to UP even if the
+   bandwidth requirements were met [Patch from Sebastian Bork].
+ * [GTK1] Upon restart, a disabled search will now be shown in gray in the
+   search list (fixes bug #857972).
+ * When restarting a search from menu, re-enable it automatically if it
+   was disabled (fixes bug #864348).
+ * Added properties to track ultrapeer eligibility status and switching time.
+ * [GTK1] Added a frame showing ultrapeer promotion statistics when running
+   in "auto" mode.
+ * Applied cleanup patch for tree-view downloads (GTK2) [From Emile le Vivre].
+ * Added new properties for configuring the search queue, whether to enable
+   the "shell" remote control, whether and how tightly we should monitor
+   query traffic for duplicates, and for how long we should keep "dead"
+   entries for GUI display before removing them.
+ * Fixed download columns for GTK1, broken by Emile's patches.
+ * Raised atexit() timeout to 20 seconds.
+ * When computing average servent uptime and IP lifetime for ultranode
+   promotion, take into account the current uptime and IP lifetime.
+ * Query traffic monitoring is now controlled by GUI-settable properties.
+ * Must always perform nodes_gui_node_info_changed().
+ * Must always perform upload_info_changed().
+
 - (2003.12.26 - RAM)
  * Don't send QUEUE callbacks for entries we no longer share [Patch from
    Hans de Graaff].
