@@ -319,7 +319,7 @@ gwc_store_if_dirty(void)
 static void
 gwc_retrieve(void)
 {
-	const file_path_t fpvec[] = {
+	file_path_t fpvec[] = {
 		{ settings_config_dir(), gwc_file },
 		{ PRIVLIB_EXP, gwc_bootfile },
 #ifndef OFFICIAL_BUILD
