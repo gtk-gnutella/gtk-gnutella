@@ -1067,7 +1067,8 @@ static gboolean bw_gnet_in_changed(property_t prop)
     guint32 val;
 
     gnet_prop_get_guint32(prop, &val, 0, 1);
-    bsched_set_bandwidth(bws.gin, val);
+    bsched_set_bandwidth(bws.gin, val / 2);
+    bsched_set_bandwidth(bws.gin_udp, val / 2);
     
 	gnet_prop_get_guint32_val(PROP_CURRENT_PEERMODE, &val);
 	bsched_set_peermode(val);
@@ -1080,7 +1081,8 @@ static gboolean bw_gnet_out_changed(property_t prop)
     guint32 val;
 
     gnet_prop_get_guint32(prop, &val, 0, 1);
-    bsched_set_bandwidth(bws.gout, val);
+    bsched_set_bandwidth(bws.gout, val / 2);
+    bsched_set_bandwidth(bws.gout_udp, val / 2);
     
 	gnet_prop_get_guint32_val(PROP_CURRENT_PEERMODE, &val);
 	bsched_set_peermode(val);
@@ -1112,6 +1114,20 @@ static gboolean bw_gnet_lout_changed(property_t prop)
 	bsched_set_peermode(val);
 
     return FALSE;
+}
+
+static gboolean bw_allow_stealing_changed(property_t prop)
+{
+	gboolean val;
+
+	gnet_prop_get_boolean_val(prop, &val);
+
+	if (val)
+		bsched_config_steal_http_gnet();
+	else
+		bsched_config_steal_gnet();
+
+	return FALSE;
 }
 
 static gboolean node_online_mode_changed(property_t prop)
@@ -1441,6 +1457,11 @@ static prop_map_t property_map[] = {
     {
         PROP_BW_GNET_LOUT,
         bw_gnet_lout_changed,
+        FALSE
+    },
+    {
+        PROP_BW_ALLOW_STEALING,
+        bw_allow_stealing_changed,
         FALSE
     },
 	{
