@@ -46,6 +46,7 @@ RCSID("$Id$");
 
 #define PARQ_RETRY_SAFETY	40		/* 40 seconds before lifetime */
 #define PARQ_TIMER_BY_POS	30		/* 30 seconds for each queue position */
+#define GUARDING_TIME		45		/* Time we keep a slot after disconnect */
 #define MIN_LIFE_TIME		90
 #define QUEUE_PERIOD		600		/* Try to resend a queue every 10 minutes */
 #define MAX_QUEUE			144		/* Max amount of QUEUE we can send */
@@ -2049,6 +2050,21 @@ struct parq_ul_queued *parq_upload_get_at(struct parq_ul_queue *queue,
 }
 
 /*
+ * parq_upload_ip_can_proceed
+ *
+ * Check that the IP is not already downloading more than is alllowed.
+ * Returns TRUE if it is OK for that IP to download from us.
+ */
+gboolean parq_upload_ip_can_proceed(gnutella_upload_t *u)
+{
+	struct parq_ul_queued *uq = u->parq_opaque;
+
+	g_assert(uq != NULL);
+
+	return (uq->by_ip->uploading >= max_uploads_ip) ? FALSE : TRUE;
+}
+
+/*
  * parq_upload_continue
  * 
  * Returns true if the current upload is allowed to get an upload slot.
@@ -2060,7 +2076,7 @@ static gboolean parq_upload_continue(struct parq_ul_queued *uq, gint free_slots)
 	gint slots_free = max_uploads;
 	
 	/*
-	 * max_uploads holds the number of upload slots an queue may currently
+	 * max_uploads holds the number of upload slots a queue may currently
 	 * use. This is the lowest number of upload slots used by a queue + 1.
 	 */
 	gint allowed_max_uploads = -1;
@@ -2281,9 +2297,13 @@ void parq_upload_upload_got_freed(gnutella_upload_t *u)
  * parq_upload_get
  *
  * Get a queue slot, either existing or new.
+ * When `replacing' is TRUE, they issued a new request for a possibly
+ * stalling entry, which was killed anyway, so give them a slot!
+ *
  * Return slot as an opaque handle, NULL if slot cannot be created.
  */
-gpointer parq_upload_get(gnutella_upload_t *u, header_t *header)
+gpointer parq_upload_get(
+	gnutella_upload_t *u, header_t *header, gboolean replacing)
 {
 	struct parq_ul_queued *parq_ul = NULL;
 	gchar *buf;
@@ -2294,7 +2314,7 @@ gpointer parq_upload_get(gnutella_upload_t *u, header_t *header)
 	/*
 	 * Try to locate by ID first. If this fails, try to locate by IP and file
 	 * name. We want to locate on ID first as a client may reuse an ID.
-	 * Avoid abusing an PARQ entry by reusing an ID which already finished
+	 * Avoid abusing a PARQ entry by reusing an ID which already finished
 	 * uploading.
 	 */
 	
@@ -2303,9 +2323,12 @@ gpointer parq_upload_get(gnutella_upload_t *u, header_t *header)
 	if (parq_ul != NULL) {
 		if (!parq_ul->had_slot)
 			goto cleanup;
+		if (!replacing)
+			parq_ul = NULL;
 	}
 
-	parq_ul = parq_upload_find(u);
+	if (parq_ul == NULL)
+		parq_ul = parq_upload_find(u);
 
 	if (parq_ul == NULL) {
 		/*
@@ -2786,7 +2809,7 @@ gboolean parq_upload_remove(gnutella_upload_t *u)
 		 * should not disconnect
 		 */
 		if (parq_ul->has_slot)
-			parq_ul->disc_timeout = now + parq_upload_ban_window;
+			parq_ul->disc_timeout = now + (parq_upload_ban_window / 5);
 
 		/* Disconnected upload is allowed to reconnect immediatly */
 		parq_ul->has_slot = FALSE;
@@ -2798,11 +2821,7 @@ gboolean parq_upload_remove(gnutella_upload_t *u)
 		 * just not garanteed anymore that it will regain its upload slot
 		 * immediatly
 		 */
-#if 1
-		parq_ul->expire = now + 1;
-#else
-		parq_ul->expire = now + MIN_LIFE_TIME;
-#endif
+		parq_ul->expire = now + GUARDING_TIME;
 	}
 	
 	return return_result;
