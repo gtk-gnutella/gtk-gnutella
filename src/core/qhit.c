@@ -67,74 +67,203 @@ RCSID("$Id$");
 /*
  * Buffer where query hit packet is built.
  *
- * There is only one such packet, never freed.  At the beginning, one founds
- * the gnutella header, followed by the query hit header: initial offsetting
- * set by FOUND_RESET().
- *
- * The bufffer is logically (and possibly physically) extended via FOUND_GROW()
- * FOUND_BUF and FOUND_SIZE are used within the building code to access the
- * beginning of the query hit packet and the logical size of the packet.
- *
+ * There is only one such packet, a static buffer.  At the beginning, one
+ * founds the gnutella header, followed by the query hit header: initial
+ * offsetting set by found_clear().
  *		--RAM, 25/09/2001
  */
 
-static struct {
-	guchar *d;					/* data */
-	size_t l;					/* data length */
-	size_t s;					/* size used by current search hit */
-	gint files;					/* amount of file entries */
+struct found_struct {
+	guchar data[64 * 1024];		/* data */
+	size_t pos;					/* current write position */
+	size_t files;				/* amount of file entries */
 	size_t max_size;			/* max query hit size */
 	gboolean use_ggep_h;		/* whether to use GGEP "H" to send SHA1 */
 	gchar *muid;				/* the MUID to put in all query hits */
 	qhit_process_t process;		/* processor once query hit is built */
 	gpointer udata;				/* processor argument */
-} found_data;
+	gboolean open;				/* Set if found_open() was used */
+};
 
-#define FOUND_CHUNK		1024	/* Minimal growing memory amount unit */
+static struct found_struct *
+found_get(void)
+{
+	static struct found_struct found_data;
+	return &found_data;
+}
 
-#define FOUND_ENSURE(left) do {							\
-	size_t left_intern = (left);						\
-	if (left_intern > found_data.l) {					\
-		size_t missing = left_intern - found_data.l;	\
-		missing = MAX(missing, FOUND_CHUNK);			\
-		found_data.l += missing;						\
-		found_data.d = g_realloc(found_data.d, found_data.l);	\
-	}												\
-} while (0)
+static size_t
+found_file_count(void)
+{
+	return found_get()->files;
+}
 
-#define FOUND_GROW(len) do {						\
-	size_t s_intern, len_intern = (len);			\
-	g_assert(len <= INT_MAX);						\
-	s_intern = found_data.s + len_intern;			\
-	g_assert(s_intern >= found_data.s);				\
-	found_data.s = s_intern;						\
-	FOUND_ENSURE(found_data.s);						\
-} while (0)
+static size_t
+found_max_size(void)
+{
+	return found_get()->max_size;
+}
 
-#define FOUND_RESET() do {							\
-	found_data.s = sizeof(struct gnutella_header) +	\
-		sizeof(struct gnutella_search_results_out);	\
-	found_data.files = 0;							\
-} while (0)
+static void
+found_add_files(size_t n)
+{
+	found_get()->files += n;
+}
 
-#define FOUND_INIT(m,xuid,ggep_h,proc,ud) do {		\
-	found_data.max_size = (m);						\
-	found_data.muid = (xuid);						\
-	found_data.use_ggep_h = (ggep_h);				\
-	found_data.process = (proc);					\
-	found_data.udata = (ud);						\
-} while (0)
+static gboolean 
+found_ggep_h(void)
+{
+	return found_get()->use_ggep_h;
+}
 
-#define FOUND_BUF		found_data.d
-#define FOUND_SIZE		found_data.s
-#define FOUND_FILES		found_data.files
-#define FOUND_MAX_SIZE	found_data.max_size
-#define FOUND_MUID		found_data.muid
-#define FOUND_GGEP_H	found_data.use_ggep_h
-#define FOUND_PROCESS	found_data.process
-#define FOUND_UDATA		found_data.udata
+static gchar *
+found_open(void)
+{
+	struct found_struct *f = found_get();
 
-#define FOUND_LEFT(x)	(found_data.l - (x))
+	g_assert(!f->open);
+	f->open = TRUE;
+	g_assert(f->pos <= sizeof f->data);
+	return &f->data[f->pos];
+}
+
+static void
+found_close(size_t len)
+{
+	struct found_struct *f = found_get();
+
+	g_assert(f->open);
+	g_assert(f->pos <= sizeof f->data);
+	g_assert(len <= sizeof f->data - f->pos);
+	f->pos += len;
+	f->open = FALSE;
+}
+
+static size_t
+found_size(void)
+{
+	struct found_struct *f = found_get();
+
+	g_assert(!f->open);
+	g_assert(f->pos <= sizeof f->data);
+	return f->pos;
+}
+
+static size_t
+found_left(void)
+{
+	struct found_struct *f = found_get();
+
+	g_assert(!f->open);
+	g_assert(f->pos <= sizeof f->data);
+	return sizeof f->data - f->pos;
+}
+
+static gboolean
+found_write(gconstpointer data, size_t length)
+{
+	struct found_struct *f = found_get();
+
+	g_assert(data != NULL);
+	g_assert(length != 0);
+	g_assert(length <= INT_MAX);
+	g_assert(!f->open);
+
+	if (length > sizeof f->data - f->pos) {
+		g_warning("XXX");
+		return FALSE;
+	}
+
+	g_assert(f->pos < sizeof f->data);
+	memcpy(&f->data[f->pos], data, length);
+	f->pos += length;
+	g_assert(f->pos >= length && f->pos <= sizeof f->data);
+	return TRUE;
+}
+
+static void
+found_set_header(void)
+{
+	static const size_t head_size = sizeof(struct gnutella_header);
+	struct found_struct *f = found_get();
+	struct gnutella_header *packet_head;
+	struct gnutella_search_results_out *search_head;
+	guint32 connect_speed;		/* Connection speed, in kbits/s */
+	size_t len;
+
+	g_assert(!f->open);
+	g_assert(f->pos >= head_size);
+	len = f->pos - head_size;
+	g_assert(len < sizeof f->data);
+
+	packet_head = (struct gnutella_header *) f->data;
+	packet_head->ttl = 1;		/* Overriden later if sending inbound */
+	packet_head->hops = 0;
+	memcpy(f->data, f->muid, 16);
+
+	packet_head->function = GTA_MSG_SEARCH_RESULTS;
+	WRITE_GUINT32_LE(len, packet_head->size);
+
+	search_head = (gpointer) &f->data[head_size];
+	search_head->num_recs = f->files; /* One byte */
+
+	/*
+	 * Compute connection speed dynamically if requested.
+	 */
+
+	connect_speed = connection_speed;
+	if (compute_connection_speed) {
+		connect_speed = max_uploads == 0 ?
+			0 : (MAX(bsched_avg_bps(bws.out), bsched_bwps(bws.out)) * 8 / 1024);
+		if (max_uploads > 0 && connect_speed == 0)
+			connect_speed = 32;		/* No b/w limit set and no traffic yet */
+	}
+	connect_speed /= MAX(1, max_uploads);	/* Upload speed expected per slot */
+
+	WRITE_GUINT16_LE(listen_port, search_head->host_port);
+	WRITE_GUINT32_BE(listen_ip(), search_head->host_ip);
+	WRITE_GUINT32_LE(connect_speed, search_head->host_speed);
+}
+
+static void
+found_clear(void)
+{
+	struct found_struct *f = found_get();
+
+	f->pos = sizeof(struct gnutella_header) +
+		sizeof(struct gnutella_search_results_out);
+	g_assert(f->pos > 0 && f->pos < sizeof f->data);
+	f->files = 0;
+	f->open = FALSE;
+}
+
+static void
+found_process(void)
+{
+	struct found_struct *f = found_get();
+
+	g_assert(f->process != NULL);
+	dump_hex(stderr, __func__, f->data, f->pos);
+	f->process(f->data, f->pos, f->udata);
+}
+
+static void
+found_init(size_t max_size, gchar *xuid, gboolean ggep_h,
+	qhit_process_t proc, gpointer udata)
+{
+	struct found_struct *f = found_get();
+
+	g_assert(max_size <= INT_MAX);
+	g_assert(xuid != NULL);
+	g_assert(proc != NULL);
+
+	f->max_size = max_size;
+	f->muid = xuid;
+	f->use_ggep_h = ggep_h;
+	f->process = proc;
+	f->udata = udata;
+	f->open = FALSE;
+}
 
 static time_t release_date;
 
@@ -142,16 +271,20 @@ static time_t release_date;
  * Processor for query hits sent inbound.
  */
 static void
-qhit_send_node(gpointer data, gint len, gpointer udata)
+qhit_send_node(gpointer data, size_t len, gpointer udata)
 {
 	gnutella_node_t *n = (gnutella_node_t *) udata;
 	struct gnutella_header *packet_head = (struct gnutella_header *) data;
 
-	if (dbg > 3)
-		printf("flushing query hit (%d entr%s, %d bytes sofar) to %s\n",
-			FOUND_FILES, FOUND_FILES == 1 ? "y" : "ies", FOUND_SIZE,
+	if (/* XXX: dbg > 3 */ TRUE)
+		g_message("flushing query hit (%d entr%s, %d bytes sofar) to %s\n",
+			(int) found_file_count(),
+			found_file_count() == 1 ? "y" : "ies",
+			(int) found_size(),
 			node_ip(n));
 
+	g_assert(len <= INT_MAX);
+	
 	/*
 	 * We limit the TTL to the minimal possible value, then add a margin
 	 * of 5 to account for re-routing abilities some day.  We then trim
@@ -178,12 +311,8 @@ qhit_send_node(gpointer data, gint len, gpointer udata)
 static void
 flush_match(void)
 {
-	gchar trailer[10];
-	guint32 pos, pl;
-	struct gnutella_header *packet_head;
-	struct gnutella_search_results_out *search_head;
+	gchar trailer[7];
 	gint ggep_len = 0;			/* Size of the GGEP trailer */
-	guint32 connect_speed;		/* Connection speed, in kbits/s */
 	ggep_stream_t gs;
 	gchar *trailer_start;
 
@@ -209,20 +338,21 @@ flush_match(void)
 	 * update the flags if we store any GGEP extension.
 	 */
 
-	pos = FOUND_SIZE;
-	FOUND_GROW(7);
-	memcpy(&FOUND_BUF[pos], trailer, 7);	/* Store the open trailer */
-	trailer_start = &FOUND_BUF[pos];
-	pos += 7;
+	trailer_start = found_open();
+	found_close(0);	/* Nothing written */
+
+	if (!found_write(trailer, sizeof trailer)) /* Store the open trailer */
+		goto failure;
 
 	/*
 	 * Ensure we can stuff at most QHIT_MAX_GGEP bytes of GGEP trailer.
 	 */
 
-	if (FOUND_LEFT(pos) < QHIT_MAX_GGEP)
-		FOUND_ENSURE(QHIT_MAX_GGEP - FOUND_LEFT(pos));
+	if (found_left() < QHIT_MAX_GGEP)
+		goto failure;
 
-	ggep_stream_init(&gs, &FOUND_BUF[pos], QHIT_MAX_GGEP);
+	g_assert(QHIT_MAX_GGEP <= found_left());
+	ggep_stream_init(&gs, found_open(), QHIT_MAX_GGEP);
 
 	/*
 	 * Build the "GTKGV1" GGEP extension.
@@ -315,54 +445,27 @@ flush_match(void)
 	}
 
 	ggep_len = ggep_stream_close(&gs);
+	found_close(ggep_len);
 
 	if (ggep_len > 0) {
 		trailer_start[6] |= 0x20;		/* Has GGEP extensions in trailer */
-		FOUND_GROW(ggep_len);
 	}
 
 	/*
 	 * Store the GUID in the last 16 bytes of the query hit.
 	 */
 
-	pos = FOUND_SIZE;
-	FOUND_GROW(16);
-	memcpy(&FOUND_BUF[pos], guid, 16);	/* Store the GUID */
+	if (!found_write(guid, 16))
+		goto failure;
 
-	/* Payload size including the search results header, actual results */
-	pl = FOUND_SIZE - sizeof(struct gnutella_header);
+	found_set_header();
+	found_process();
+	return;
 
-	packet_head = (struct gnutella_header *) FOUND_BUF;
-	packet_head->ttl = 1;		/* Overriden later if sending inbound */
-	packet_head->hops = 0;
-	memcpy(&packet_head->muid, FOUND_MUID, 16);
+failure:
 
-	packet_head->function = GTA_MSG_SEARCH_RESULTS;
-	WRITE_GUINT32_LE(pl, packet_head->size);
-
-	search_head = (struct gnutella_search_results_out *)
-		&FOUND_BUF[sizeof(struct gnutella_header)];
-
-	search_head->num_recs = FOUND_FILES;	/* One byte, little endian! */
-
-	/*
-	 * Compute connection speed dynamically if requested.
-	 */
-
-	connect_speed = connection_speed;
-	if (compute_connection_speed) {
-		connect_speed = max_uploads == 0 ?
-			0 : (MAX(bsched_avg_bps(bws.out), bsched_bwps(bws.out)) * 8 / 1024);
-		if (max_uploads > 0 && connect_speed == 0)
-			connect_speed = 32;		/* No b/w limit set and no traffic yet */
-	}
-	connect_speed /= MAX(1, max_uploads);	/* Upload speed expected per slot */
-
-	WRITE_GUINT16_LE(listen_port, search_head->host_port);
-	WRITE_GUINT32_BE(listen_ip(), search_head->host_ip);
-	WRITE_GUINT32_LE(connect_speed, search_head->host_speed);
-
-	FOUND_PROCESS(FOUND_BUF, FOUND_SIZE, FOUND_UDATA);
+	g_warning("Created query hit was too big, discarding");
+	found_clear();
 }
 
 /**
@@ -374,15 +477,15 @@ flush_match(void)
 static gboolean
 add_file(struct shared_file *sf)
 {
-	guint32 pos = FOUND_SIZE;
 	guint32 needed = 8 + 2 + sf->file_name_len;		/* size of hit entry */
 	gboolean sha1_available;
 	gnet_host_t hvec[QHIT_MAX_ALT];
 	gint hcnt = 0;
-	guint32 fs32;
+	guint32 fs32, fs32_le, idx_le;
 	gint ggep_len;
 	gboolean ok;
 	ggep_stream_t gs;
+	size_t left;
 
 	g_assert(sf->fi == NULL);	/* Cannot match partially downloaded files */
 
@@ -409,15 +512,23 @@ add_file(struct shared_file *sf)
 	 * Refuse entry if we don't have enough room.	-- RAM, 22/01/2002
 	 */
 
-	if (pos + needed + QHIT_MIN_TRAILER_LEN > search_answers_forward_size)
+	if (
+		found_size() + needed + QHIT_MIN_TRAILER_LEN
+			> search_answers_forward_size
+	) {
+		g_warning("XXX");
 		return FALSE;
+	}
 
 	/*
 	 * Grow buffer by the size of the search results header 8 bytes,
 	 * plus the string length - NULL, plus two NULL's
 	 */
 
-	FOUND_GROW(needed);
+	if (needed > found_left()) {
+		g_warning("XXX");
+		return FALSE;
+	}
 
 	/*
 	 * If size is greater than 2^31-1, we store ~0 as the file size and will
@@ -425,15 +536,28 @@ add_file(struct shared_file *sf)
 	 */
 
 	fs32 = sf->file_size > ((1U << 31) - 1) ? ~0U : sf->file_size;
-	WRITE_GUINT32_LE(sf->file_index, &FOUND_BUF[pos]); pos += 4;
-	WRITE_GUINT32_LE(fs32, &FOUND_BUF[pos]); pos += 4;
+	
+	WRITE_GUINT32_LE(sf->file_index, &idx_le);
+	if (!found_write(&idx_le, sizeof idx_le)) {
+		g_warning("XXX");
+		return FALSE;
+	}
+	WRITE_GUINT32_LE(fs32, &fs32_le);
+	if (!found_write(&fs32_le, sizeof fs32_le)) {
+		g_warning("XXX");
+		return FALSE;
+	}
+	if (!found_write(sf->file_name, sf->file_name_len)) {
+		g_warning("XXX");
+		return FALSE;
+	}
 
-	memcpy(&FOUND_BUF[pos], sf->file_name, sf->file_name_len);
-	pos += sf->file_name_len;
+	/* Position equals the next byte to be written to */
 
-	/* Position equals the next byte to be writen to */
-
-	FOUND_BUF[pos++] = '\0';
+	if (!found_write("", 1)) {
+		g_warning("XXX");
+		return FALSE;
+	}
 
 	/*
 	 * We're now between the two NULs at the end of the hit entry.
@@ -443,26 +567,33 @@ add_file(struct shared_file *sf)
 	 * Emit the SHA1 as a plain ASCII URN if they don't grok "H".
 	 */
 
-	if (sha1_available && !FOUND_GGEP_H) {
-		/* Good old way: ASCII URN */
+	if (sha1_available && !found_ggep_h()) {
+		const gchar urnsha1[] = "urn:sha1";
 		gchar *b32 = sha1_base32(sf->sha1_digest);
-		memcpy(&FOUND_BUF[pos], "urn:sha1:", 9);
-		pos += 9;
-		memcpy(&FOUND_BUF[pos], b32, SHA1_BASE32_SIZE);
-		pos += SHA1_BASE32_SIZE;
+		/* Good old way: ASCII URN */
+
+		if (!found_write(urnsha1, sizeof urnsha1 - 1)) {
+			g_warning("XXX");
+			return FALSE;
+		}
+		if (!found_write(b32, SHA1_BASE32_SIZE)) {
+			g_warning("XXX");
+			return FALSE;
+		}
 	}
 
 	/*
 	 * From now on, we emit GGEP extensions, if we emit at all.
 	 */
 
-	ggep_stream_init(&gs, &FOUND_BUF[pos], FOUND_LEFT(pos));
+	left = found_left();
+	ggep_stream_init(&gs, found_open(), left);
 
 	/*
 	 * Emit the SHA1 as GGEP "H" if they said they understand it.
 	 */
 
-	if (sha1_available && FOUND_GGEP_H) {
+	if (sha1_available && found_ggep_h()) {
 		/* Modern way: GGEP "H" for binary URN */
 		guint8 type = GGEP_H_SHA1;
 
@@ -521,28 +652,32 @@ add_file(struct shared_file *sf)
 	}
 
 	ggep_len = ggep_stream_close(&gs);
-
-	pos += ggep_len;
-
-	FOUND_BUF[pos++] = '\0';
-	FOUND_FILES++;
-
 	/*
 	 * Because we don't know exactly the size of the GGEP extension
 	 * (could be COBS-encoded or not), we need to adjust the real
 	 * extension size now that the entry is fully written.
 	 */
+	found_close(ggep_len);
 
-	FOUND_SIZE = pos;
+	/* Append terminating NUL */
+	if (!found_write("", 1)) {
+		g_warning("XXX");
+		return FALSE;
+	}
+
+	found_add_files(1);
 
 	/*
 	 * If we have reached our size limit for query hits, flush what
 	 * we have so far.
 	 */
 
-	if (FOUND_SIZE >= FOUND_MAX_SIZE || FOUND_FILES >= QHIT_MAX_RESULTS) {
+	if (
+		found_size() >= found_max_size() ||
+		found_file_count() >= QHIT_MAX_RESULTS
+	) {
 		flush_match();
-		FOUND_RESET();
+		found_clear();
 	}
 
 	return TRUE;		/* Hit entry accepted */
@@ -568,13 +703,13 @@ add_file(struct shared_file *sf)
  * have to be sent out-of-bound
  */
 static void
-found_reset(
-	size_t max_size, gchar *muid,
+found_reset(size_t max_size, gchar *muid,
 	gboolean use_ggep_h, qhit_process_t process, gpointer udata)
 {
+	g_assert(process != NULL);
 	g_assert(max_size <= INT_MAX);
-	FOUND_INIT(max_size, muid, use_ggep_h, process, udata);
-	FOUND_RESET();
+	found_init(max_size, muid, use_ggep_h, process, udata);
+	found_clear();
 }
 
 /**
@@ -603,13 +738,13 @@ qhit_send_results(
 		shared_file_unref(sf);
 	}
 
-	if (FOUND_FILES)			/* Still some unflushed results */
+	if (0 != found_file_count())			/* Still some unflushed results */
 		flush_match();			/* Send last packet */
 
 	g_slist_free(files);
 
-	if (dbg > 3)
-		printf("sent %d/%d hits to %s\n", sent, count, node_ip(n));
+	if (/* XXX: dbg > 3 */ TRUE)
+		g_message("sent %d/%d hits to %s\n", sent, count, node_ip(n));
 }
 
 /**
@@ -630,6 +765,7 @@ qhit_build_results(
 	GSList *sl;
 	gint sent;
 
+	g_assert(cb != NULL);
 	found_reset(QHIT_SIZE_OOB, muid, use_ggep_h, cb, udata);
 
 	for (sl = files, sent = 0; sl && sent < count; sl = g_slist_next(sl)) {
@@ -639,7 +775,7 @@ qhit_build_results(
 			sent++;
 	}
 
-	if (FOUND_FILES)			/* Still some unflushed results */
+	if (0 != found_file_count())			/* Still some unflushed results */
 		flush_match();			/* Send last packet */
 
 	/*
@@ -653,9 +789,6 @@ qhit_build_results(
 void
 qhit_init(void)
 {
-	found_data.l = FOUND_CHUNK;		/* must be > size after found_reset */
-	found_data.d = (guchar *) g_malloc(found_data.l * sizeof(guchar));
-
 	release_date = date2time(GTA_RELEASE, time(NULL));
 }
 
@@ -665,7 +798,7 @@ qhit_init(void)
 void
 qhit_close(void)
 {
-	G_FREE_NULL(found_data.d);
+	/* Nada */
 }
 
 /* vi: set ts=4 sw=4 cindent: */

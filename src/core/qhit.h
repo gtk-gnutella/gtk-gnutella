@@ -30,7 +30,7 @@
 
 #include <glib.h>
 
-typedef void (*qhit_process_t)(gpointer data, gint len, gpointer udata);
+typedef void (*qhit_process_t)(gpointer data, size_t len, gpointer udata);
 
 /*
  * Public interface.
