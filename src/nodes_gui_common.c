@@ -303,6 +303,7 @@ const gchar *nodes_gui_common_flags_str(const gnet_node_flags_t *flags)
 
 	if (flags->in_tx_swift_control) status[8]     = 'S';
 	else if (flags->in_tx_flow_control) status[8] = 'F';
+	else if (flags->mqueue_above_lowat) status[8] = 'D';
 	else if (!flags->mqueue_empty) status[8]      = 'd';
 	else status[8]                                = '-';
 

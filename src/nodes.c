@@ -5896,6 +5896,7 @@ void node_fill_flags(const gnet_node_t n, gnet_node_flags_t *flags)
 	flags->readable = NODE_IS_READABLE(node);
     flags->tx_compressed = NODE_TX_COMPRESSED(node);
     flags->mqueue_empty  = 0 == NODE_MQUEUE_COUNT(node);
+    flags->mqueue_above_lowat  = NODE_MQUEUE_ABOVE_LOWAT(node);
     flags->in_tx_flow_control = NODE_IN_TX_FLOW_CONTROL(node);
     flags->in_tx_swift_control = NODE_IN_TX_SWIFT_CONTROL(node);
     flags->rx_compressed = NODE_RX_COMPRESSED(node);

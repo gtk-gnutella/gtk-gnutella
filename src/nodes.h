@@ -316,6 +316,9 @@ typedef struct gnutella_node {
 #define NODE_MQUEUE_PENDING(n) \
 	((n)->outq ? mq_pending((n)->outq) : 0)
 
+#define NODE_MQUEUE_ABOVE_LOWAT(n) \
+	((n)->outq ? mq_size((n)->outq) > mq_lowat((n)->outq) : FALSE)
+
 #define NODE_SQUEUE_COUNT(n) \
 	((n)->searchq ? sq_count((n)->searchq) : 0)
 

@@ -162,6 +162,7 @@ typedef struct gnet_node_flags {
 	gboolean tx_compressed;
 	gboolean rx_compressed;
 	gboolean mqueue_empty;
+	gboolean mqueue_above_lowat;
 	gboolean in_tx_flow_control;
     gboolean in_tx_swift_control;
 	gboolean is_push_proxied;
