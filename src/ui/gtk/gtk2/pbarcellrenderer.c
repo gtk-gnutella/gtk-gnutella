@@ -107,11 +107,11 @@ static void gtk_cell_renderer_progress_render(
  */
 enum {
   PROP_0,		/* Placeholder, empty property */
-  PROP_VALUE	/* The position of the progress bar [0:1] */
+  PROP_VALUE	/* The position of the progress bar [0:100] */
 };
 
 struct _GtkCellRendererProgressPriv {
-	double   value;
+	gint value;
 };
 
 static gpointer parent_class;
@@ -382,10 +382,10 @@ gtk_cell_renderer_progress_render(
 	gdk_gc_set_rgb_fg_color(gc, &widget->style->bg[GTK_STATE_NORMAL]);
 	gdk_draw_rectangle(window, gc, TRUE, x + 1, y + 1, w - 2, h - 2);
 	gdk_gc_set_rgb_fg_color(gc, &widget->style->bg[GTK_STATE_SELECTED]);
-	perc_w = (int)((w - 4) * cellprogress->priv->value);
+	perc_w = (int)((w - 4) * (cellprogress->priv->value / 100.0));
 	gdk_draw_rectangle(window, gc, TRUE, x + 2, y + 2, perc_w, h - 4);
 
-	val = cellprogress->priv->value * 100;
+	val = cellprogress->priv->value;
 	gm_snprintf(text, sizeof text, "%d", val);
 	layout = gtk_widget_create_pango_layout(widget, text);
 	pango_layout_get_pixel_extents(layout, NULL, &logical_rect);
