@@ -277,6 +277,7 @@ const gchar *nodes_gui_common_flags_str(const gnet_node_flags_t *flags)
 		case NODE_P_NORMAL:		status[0] = 'N'; break;
 		case NODE_P_LEAF:		status[0] = 'L'; break;
 		case NODE_P_CRAWLER:	status[0] = 'C'; break;
+		case NODE_P_UDP:		status[0] = 'P'; break;
 		default:				g_assert(0); break;
 	}
 
