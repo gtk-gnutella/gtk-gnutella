@@ -1570,7 +1570,7 @@ void gui_update_download(download_t *d, gboolean force)
 					rw += gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
 						"[%d/%d]", fi->recvcount, fi->lifecount);
 				}
-					
+
 				rw += gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
 					" TR: %s", s ? short_time(s) : "-");
 
@@ -1619,7 +1619,7 @@ void gui_update_download(download_t *d, gboolean force)
 	case GTA_DL_SINKING:
 		{
 			gchar bytes[32];
-			
+
 			gm_snprintf(bytes, sizeof bytes, "%" PRIu64, (guint64) d->sinkleft);
 			gm_snprintf(tmpstr, sizeof(tmpstr),
 				_("Sinking (%s bytes left)"), bytes);
