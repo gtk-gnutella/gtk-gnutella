@@ -81,6 +81,9 @@ struct dmesh_entry {
 #define MAX_ENTRIES		64			/* Max amount of entries kept in list */
 #define MAX_STAMP		0xffffffff	/* Unsigned int, 32 bits */
 
+#define MIN_PFSP_SIZE	524288		/* 512K, min size for PFSP advertising */
+#define MIN_PFSP_PCT	10			/* 10%, min available data for PFSP */
+
 /* If not at least 60% alike, dump! */
 #define FUZZY_DROP		((60 / 100) << FUZZY_SHIFT)
 /* If more than 80% alike, equal! */
@@ -1256,11 +1259,17 @@ gint dmesh_alternate_location(const gchar *sha1,
 	/*
 	 * PFSP-server: If we have to list ourselves in the mesh, do so
 	 * at the first position.
+	 *
+	 * We only introduce ourselves if we have at least MIN_PFSP_SIZE bytes
+	 * of the file available, or MIN_PFSP_PCT percents of it.
 	 */
 
 	if (
-		fi != NULL && fi->done != 0 && pfsp_server &&
-		!is_firewalled && upload_is_enabled()
+		fi != NULL && fi->done != 0 && pfsp_server && !is_firewalled &&
+		(
+			fi->done >= MIN_PFSP_SIZE ||
+			fi->done * 100 / fi->size > MIN_PFSP_PCT
+		) && upload_is_enabled()
 	) {
 		gint url_len;
 		struct dmesh_entry ourselves;
