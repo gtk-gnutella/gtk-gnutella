@@ -71,9 +71,30 @@ static void inline hash_list_regression(const hash_list_t *hl)
 #define hash_list_regression(hl)
 #endif
 
+/*
+ * With TRACK_MALLOC, the routines hash_list_new() and hash_list_free()
+ * are trapped by macros, but the routines need to be defined here,
+ * since they are called directly from within malloc.c.
+ */
 #ifdef TRACK_MALLOC
 #undef hash_list_new
 #undef hash_list_free
+#endif
+
+/*
+ * If walloc() and wfree() are remapped to malloc routines and they enabled
+ * TRACK_MALLOC as well, then hash_list_new() and hash_list_free() are
+ * wrapped within malloc.c, and the recording of the allocated descriptors
+ * happens there.  So we must NOT use g_malloc() and g_free() but use
+ * raw malloc() and free() instead, to avoid duplicate tracking.
+ */
+#if defined(REMAP_ZALLOC) && defined(TRACK_MALLOC)
+#undef walloc
+#undef wfree
+#undef malloc
+#undef free
+#define walloc(s)	malloc(s)
+#define wfree(p,s)	free(p)
 #endif
 
 hash_list_t *hash_list_new(void)
