@@ -279,6 +279,7 @@ extern const gboolean process_oob_queries;
 extern const gboolean send_oob_queries;
 extern const gboolean proxy_oob_queries;
 extern const gboolean uploads_stalling;
+extern const gboolean allow_dangerous_bugs;
 
 
 prop_set_t *gnet_prop_init(void);

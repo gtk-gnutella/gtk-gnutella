@@ -2598,17 +2598,13 @@ search_new(const gchar *query, guint32 reissue_timeout, flag_t flags)
 		sch->new_node_hook->func = (gpointer) node_added_callback;
 		g_hook_prepend(&node_added_hook_list, sch->new_node_hook);
 
-		/**
+		/*
 		 * LimeWire considers *any* form of requerying unacceptable.
 		 * Deactivate it for now.
 		 *		-- cbiere, 2005-03-22
 		 */
-#if 0
-		sch->reissue_timeout = reissue_timeout;
-#else
-		(void) reissue_timeout;
-		sch->reissue_timeout = 0;
-#endif
+
+		sch->reissue_timeout = allow_dangerous_bugs ? reissue_timeout : 0;
 
 		sch->sent_nodes =
 			g_hash_table_new(sent_node_hash_func, sent_node_compare);

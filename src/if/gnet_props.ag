@@ -2812,4 +2812,16 @@ prop = {
 	};
 };
 
+prop = {
+	name = "allow_dangerous_bugs";
+	desc = "Whether gtk-gnutella should proceed with dangerous behaviour "
+		"known to be buggy and which can cause it to crash or misbehave "
+		"severely.  Only enable this if you grasp the risks you're taking.";
+	save = TRUE;
+	type = boolean;
+	data = {
+		default = FALSE;
+	};
+};
+
 /* vi: set ts=4: */

@@ -537,6 +537,8 @@ gboolean proxy_oob_queries     = TRUE;
 gboolean proxy_oob_queries_def = TRUE;
 gboolean uploads_stalling     = FALSE;
 gboolean uploads_stalling_def = FALSE;
+gboolean allow_dangerous_bugs     = FALSE;
+gboolean allow_dangerous_bugs_def = FALSE;
 
 static prop_set_t *gnet_property = NULL;
 
@@ -5071,6 +5073,23 @@ prop_set_t *gnet_prop_init(void) {
     gnet_property->props[236].type               = PROP_TYPE_BOOLEAN;
     gnet_property->props[236].data.boolean.def   = &uploads_stalling_def;
     gnet_property->props[236].data.boolean.value = &uploads_stalling;
+
+
+    /*
+     * PROP_ALLOW_DANGEROUS_BUGS:
+     *
+     * General data:
+     */
+    gnet_property->props[237].name = "allow_dangerous_bugs";
+    gnet_property->props[237].desc = _("Whether gtk-gnutella should proceed with dangerous behaviour known to be buggy and which can cause it to crash or misbehave severely.  Only enable this if you grasp the risks you're taking.");
+    gnet_property->props[237].ev_changed = event_new("allow_dangerous_bugs_changed");
+    gnet_property->props[237].save = TRUE;
+    gnet_property->props[237].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[237].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[237].data.boolean.def   = &allow_dangerous_bugs_def;
+    gnet_property->props[237].data.boolean.value = &allow_dangerous_bugs;
 
     gnet_property->byName = g_hash_table_new(g_str_hash, g_str_equal);
     for (n = 0; n < GNET_PROPERTY_NUM; n ++) {
