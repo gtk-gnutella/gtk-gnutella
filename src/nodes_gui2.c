@@ -471,9 +471,11 @@ void nodes_gui_update_nodes_display(time_t now)
 	static GtkNotebook *notebook = NULL;
     GtkTreeModel *model;
 
-    g_message("recorded changed: flags: %d info:%d",
-        g_hash_table_size(ht_node_flags_changed),
-        g_hash_table_size(ht_node_info_changed));
+	if (gui_debug > 0) {
+    	g_message("recorded changed: flags: %d info: %d",
+        	g_hash_table_size(ht_node_flags_changed),
+        	g_hash_table_size(ht_node_info_changed));
+	}
 
     if (last_update + 2 > now)
         return;
