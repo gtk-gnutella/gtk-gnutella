@@ -3141,25 +3141,88 @@
 
 			    <widget>
 			      <class>GtkVBox</class>
-			      <name>vbox101</name>
+			      <name>vbox106</name>
 			      <homogeneous>False</homogeneous>
 			      <spacing>0</spacing>
 
 			      <widget>
-				<class>GtkLabel</class>
-				<name>label_dl_queue_count</name>
-				<label>[queued downloads]</label>
-				<justify>GTK_JUSTIFY_CENTER</justify>
-				<wrap>False</wrap>
-				<xalign>1</xalign>
-				<yalign>0.5</yalign>
-				<xpad>5</xpad>
-				<ypad>0</ypad>
+				<class>GtkHBox</class>
+				<name>hbox169</name>
+				<homogeneous>False</homogeneous>
+				<spacing>0</spacing>
 				<child>
 				  <padding>0</padding>
 				  <expand>True</expand>
 				  <fill>True</fill>
 				</child>
+
+				<widget>
+				  <class>GtkLabel</class>
+				  <name>label_dl_queue_count</name>
+				  <label>[queued downloads]</label>
+				  <justify>GTK_JUSTIFY_CENTER</justify>
+				  <wrap>False</wrap>
+				  <xalign>1</xalign>
+				  <yalign>0.5</yalign>
+				  <xpad>0</xpad>
+				  <ypad>0</ypad>
+				  <child>
+				    <padding>0</padding>
+				    <expand>True</expand>
+				    <fill>True</fill>
+				  </child>
+				</widget>
+
+				<widget>
+				  <class>GtkLabel</class>
+				  <name>label507</name>
+				  <label> queued (</label>
+				  <justify>GTK_JUSTIFY_CENTER</justify>
+				  <wrap>False</wrap>
+				  <xalign>0.5</xalign>
+				  <yalign>0.5</yalign>
+				  <xpad>0</xpad>
+				  <ypad>0</ypad>
+				  <child>
+				    <padding>0</padding>
+				    <expand>False</expand>
+				    <fill>False</fill>
+				  </child>
+				</widget>
+
+				<widget>
+				  <class>GtkLabel</class>
+				  <name>label_dl_qalive_count</name>
+				  <label>[hosts alive]</label>
+				  <justify>GTK_JUSTIFY_CENTER</justify>
+				  <wrap>False</wrap>
+				  <xalign>0.5</xalign>
+				  <yalign>0.5</yalign>
+				  <xpad>0</xpad>
+				  <ypad>0</ypad>
+				  <child>
+				    <padding>0</padding>
+				    <expand>False</expand>
+				    <fill>False</fill>
+				  </child>
+				</widget>
+
+				<widget>
+				  <class>GtkLabel</class>
+				  <name>label506</name>
+				  <label> alive)</label>
+				  <justify>GTK_JUSTIFY_CENTER</justify>
+				  <wrap>False</wrap>
+				  <xalign>0.5</xalign>
+				  <yalign>0.5</yalign>
+				  <xpad>0</xpad>
+				  <ypad>0</ypad>
+				  <child>
+				    <padding>0</padding>
+				    <expand>False</expand>
+				    <fill>False</fill>
+				  </child>
+				</widget>
 			      </widget>
 			    </widget>
 			  </widget>
@@ -9972,7 +10035,7 @@ interface</label>
 		      <class>GtkTable</class>
 		      <name>table57</name>
 		      <border_width>2</border_width>
-		      <rows>14</rows>
+		      <rows>13</rows>
 		      <columns>2</columns>
 		      <homogeneous>False</homogeneous>
 		      <row_spacing>2</row_spacing>
@@ -10330,33 +10393,6 @@ interface</label>
 		      </widget>
 
 		      <widget>
-			<class>GtkLabel</class>
-			<name>label481</name>
-			<label>PROP__DL__QALIVE__COUNT</label>
-			<justify>GTK_JUSTIFY_CENTER</justify>
-			<wrap>False</wrap>
-			<xalign>0</xalign>
-			<yalign>0.5</yalign>
-			<xpad>0</xpad>
-			<ypad>0</ypad>
-			<default_focus_target>entry_dl_qalive_count</default_focus_target>
-			<child>
-			  <left_attach>0</left_attach>
-			  <right_attach>1</right_attach>
-			  <top_attach>13</top_attach>
-			  <bottom_attach>14</bottom_attach>
-			  <xpad>0</xpad>
-			  <ypad>0</ypad>
-			  <xexpand>False</xexpand>
-			  <yexpand>False</yexpand>
-			  <xshrink>False</xshrink>
-			  <yshrink>False</yshrink>
-			  <xfill>True</xfill>
-			  <yfill>False</yfill>
-			</child>
-		      </widget>
-
-		      <widget>
 			<class>GtkEntry</class>
 			<name>entry_node_leaf_count</name>
 			<can_focus>True</can_focus>
@@ -10633,30 +10669,6 @@ interface</label>
 			  <right_attach>2</right_attach>
 			  <top_attach>12</top_attach>
 			  <bottom_attach>13</bottom_attach>
-			  <xpad>0</xpad>
-			  <ypad>0</ypad>
-			  <xexpand>True</xexpand>
-			  <yexpand>False</yexpand>
-			  <xshrink>False</xshrink>
-			  <yshrink>False</yshrink>
-			  <xfill>True</xfill>
-			  <yfill>False</yfill>
-			</child>
-		      </widget>
-
-		      <widget>
-			<class>GtkEntry</class>
-			<name>entry_dl_qalive_count</name>
-			<can_focus>True</can_focus>
-			<editable>False</editable>
-			<text_visible>True</text_visible>
-			<text_max_length>0</text_max_length>
-			<text></text>
-			<child>
-			  <left_attach>1</left_attach>
-			  <right_attach>2</right_attach>
-			  <top_attach>13</top_attach>
-			  <bottom_attach>14</bottom_attach>
 			  <xpad>0</xpad>
 			  <ypad>0</ypad>
 			  <xexpand>True</xexpand>

@@ -139,6 +139,7 @@ typedef struct prop_map {
  * Callback declarations.
  */
 static gboolean update_entry(property_t prop);
+static gboolean update_label(property_t prop);
 static gboolean update_spinbutton(property_t prop);
 static gboolean update_togglebutton(property_t prop);
 static gboolean update_multichoice(property_t prop);
@@ -1458,10 +1459,19 @@ static prop_map_t property_map[] = {
     {
         get_main_window,
         PROP_DL_QUEUE_COUNT,
-        dl_queue_count_changed,
+        update_label,
         TRUE,
         "label_dl_queue_count"
     },
+#ifndef USE_GTK2
+    {
+        get_main_window,
+        PROP_DL_QALIVE_COUNT,
+        update_label,
+        TRUE,
+        "label_dl_qalive_count"
+    },
+#endif
     {
         get_main_window,
         PROP_DL_RUNNING_COUNT,
@@ -1630,13 +1640,6 @@ static prop_map_t property_map[] = {
         TRUE,
         "entry_sys_physmem"
     },
-    {
-        get_main_window,
-        PROP_DL_QALIVE_COUNT,
-        update_entry,
-        TRUE,
-        "entry_dl_qalive_count"
-    },
 #ifdef USE_GTK2
 /* FIXME: Gtk1 version should have these too */
     {
@@ -1684,26 +1687,17 @@ static prop_map_t *settings_gui_get_map_entry(property_t prop)
     return &property_map[entry];
 }
 
-static gboolean update_entry(property_t prop)
+/* 
+ * prop_to_string:
+ *
+ * Helper function for update_label() and update_entry()
+ */
+static gchar *prop_to_string(property_t prop)
 {
-    GtkWidget *w;
-    gchar s[4096];
+    static gchar s[4096];
     prop_map_t *map_entry = settings_gui_get_map_entry(prop);
     prop_set_stub_t *stub = map_entry->stub;
-    GtkWidget *top = map_entry->fn_toplevel();
 
-    if (!top)
-        return FALSE;
-
-    w = lookup_widget(top, map_entry->wid);
-
-    if (w == NULL) {
-		if (gui_debug)
-			g_warning("%s - widget not found: [%s]", 
-				 G_GNUC_PRETTY_FUNCTION, map_entry->wid);
-        return FALSE;
-    }
-   
     switch (map_entry->type) {
         case PROP_TYPE_GUINT32: {
             guint32 val;
@@ -1741,10 +1735,56 @@ static gboolean update_entry(property_t prop)
                 prop_type_str[map_entry->type]);
     }
 
-    gtk_entry_set_text(GTK_ENTRY(w), s);
+    return s;
+}
+
+static gboolean update_entry(property_t prop)
+{
+    GtkWidget *w;
+    prop_map_t *map_entry = settings_gui_get_map_entry(prop);
+    GtkWidget *top = map_entry->fn_toplevel();
+
+    if (!top)
+        return FALSE;
+
+    w = lookup_widget(top, map_entry->wid);
+
+    if (w == NULL) {
+		if (gui_debug)
+			g_warning("%s - widget not found: [%s]", 
+				 G_GNUC_PRETTY_FUNCTION, map_entry->wid);
+        return FALSE;
+    }
+   
+
+    gtk_entry_set_text(GTK_ENTRY(w), prop_to_string(prop));
 
     return FALSE;
 }
+
+static gboolean update_label(property_t prop)
+{
+    GtkWidget *w;
+    prop_map_t *map_entry = settings_gui_get_map_entry(prop);
+    GtkWidget *top = map_entry->fn_toplevel();
+
+    if (!top)
+        return FALSE;
+
+    w = lookup_widget(top, map_entry->wid);
+
+    if (w == NULL) {
+		if (gui_debug)
+			g_warning("%s - widget not found: [%s]", 
+				 G_GNUC_PRETTY_FUNCTION, map_entry->wid);
+        return FALSE;
+    }
+
+    gtk_label_set_text(GTK_LABEL(w), prop_to_string(prop));
+
+    return FALSE;
+}
+
 
 static gboolean update_spinbutton(property_t prop)
 {
@@ -2931,25 +2971,6 @@ static gboolean file_moving_changed(property_t prop)
     gnet_prop_get_boolean(prop, &val, 0, 1);
 
     gtk_widget_set_sensitive(image, val);
-
-	return FALSE;
-}
-
-static gboolean dl_queue_count_changed(property_t prop)
-{
-	guint32 val;
-
-    gnet_prop_get_guint32(prop, &val, 0, 1);
-
-    if (val == 0) {
-        gtk_label_printf(
-            GTK_LABEL(lookup_widget(main_window, "label_dl_queue_count")),
-            "queue empty");
-    } else {
-        gtk_label_printf(
-            GTK_LABEL(lookup_widget(main_window, "label_dl_queue_count")),
-            "%u source%s queued", val, (val != 1) ? "s" : "");
-    }
 
 	return FALSE;
 }

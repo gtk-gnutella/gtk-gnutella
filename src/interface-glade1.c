@@ -240,8 +240,12 @@ create_main_window (void)
   GtkWidget *label407;
   GtkWidget *scrolledwindow40;
   GtkWidget *viewport10;
-  GtkWidget *vbox101;
+  GtkWidget *vbox106;
+  GtkWidget *hbox169;
   GtkWidget *label_dl_queue_count;
+  GtkWidget *label507;
+  GtkWidget *label_dl_qalive_count;
+  GtkWidget *label506;
   GtkWidget *hbox86;
   GtkWidget *label149;
   GtkWidget *entry_queue_regex;
@@ -672,8 +676,6 @@ create_main_window (void)
   GtkWidget *label479;
   guint label480_key;
   GtkWidget *label480;
-  guint label481_key;
-  GtkWidget *label481;
   GtkWidget *entry_node_leaf_count;
   GtkWidget *entry_node_normal_count;
   GtkWidget *entry_node_ultra_count;
@@ -686,7 +688,6 @@ create_main_window (void)
   GtkWidget *entry_force_ultrapeer;
   GtkWidget *entry_sys_nofile;
   GtkWidget *entry_sys_physmem;
-  GtkWidget *entry_dl_qalive_count;
   GtkWidget *entry_reading_ultrafile;
   GtkWidget *label296;
   GtkWidget *label_config;
@@ -2713,13 +2714,21 @@ create_main_window (void)
   gtk_widget_show (viewport10);
   gtk_container_add (GTK_CONTAINER (scrolledwindow40), viewport10);
 
-  vbox101 = gtk_vbox_new (FALSE, 0);
-  gtk_widget_set_name (vbox101, "vbox101");
-  gtk_widget_ref (vbox101);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "vbox101", vbox101,
+  vbox106 = gtk_vbox_new (FALSE, 0);
+  gtk_widget_set_name (vbox106, "vbox106");
+  gtk_widget_ref (vbox106);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "vbox106", vbox106,
                             (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (vbox101);
-  gtk_container_add (GTK_CONTAINER (viewport10), vbox101);
+  gtk_widget_show (vbox106);
+  gtk_container_add (GTK_CONTAINER (viewport10), vbox106);
+
+  hbox169 = gtk_hbox_new (FALSE, 0);
+  gtk_widget_set_name (hbox169, "hbox169");
+  gtk_widget_ref (hbox169);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "hbox169", hbox169,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (hbox169);
+  gtk_box_pack_start (GTK_BOX (vbox106), hbox169, TRUE, TRUE, 0);
 
   label_dl_queue_count = gtk_label_new ("[queued downloads]");
   gtk_widget_set_name (label_dl_queue_count, "label_dl_queue_count");
@@ -2727,9 +2736,32 @@ create_main_window (void)
   gtk_object_set_data_full (GTK_OBJECT (main_window), "label_dl_queue_count", label_dl_queue_count,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (label_dl_queue_count);
-  gtk_box_pack_start (GTK_BOX (vbox101), label_dl_queue_count, TRUE, TRUE, 0);
+  gtk_box_pack_start (GTK_BOX (hbox169), label_dl_queue_count, TRUE, TRUE, 0);
   gtk_misc_set_alignment (GTK_MISC (label_dl_queue_count), 1, 0.5);
-  gtk_misc_set_padding (GTK_MISC (label_dl_queue_count), 5, 0);
+
+  label507 = gtk_label_new (" queued (");
+  gtk_widget_set_name (label507, "label507");
+  gtk_widget_ref (label507);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label507", label507,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label507);
+  gtk_box_pack_start (GTK_BOX (hbox169), label507, FALSE, FALSE, 0);
+
+  label_dl_qalive_count = gtk_label_new ("[hosts alive]");
+  gtk_widget_set_name (label_dl_qalive_count, "label_dl_qalive_count");
+  gtk_widget_ref (label_dl_qalive_count);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label_dl_qalive_count", label_dl_qalive_count,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label_dl_qalive_count);
+  gtk_box_pack_start (GTK_BOX (hbox169), label_dl_qalive_count, FALSE, FALSE, 0);
+
+  label506 = gtk_label_new (" alive)");
+  gtk_widget_set_name (label506, "label506");
+  gtk_widget_ref (label506);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label506", label506,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label506);
+  gtk_box_pack_start (GTK_BOX (hbox169), label506, FALSE, FALSE, 0);
 
   hbox86 = gtk_hbox_new (FALSE, 4);
   gtk_widget_set_name (hbox86, "hbox86");
@@ -6144,7 +6176,7 @@ create_main_window (void)
   gtk_widget_show (frame_expert_unmapped);
   gtk_box_pack_start (GTK_BOX (vbox75), frame_expert_unmapped, FALSE, TRUE, 0);
 
-  table57 = gtk_table_new (14, 2, FALSE);
+  table57 = gtk_table_new (13, 2, FALSE);
   gtk_widget_set_name (table57, "table57");
   gtk_widget_ref (table57);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "table57", table57,
@@ -6324,19 +6356,6 @@ create_main_window (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label480), 0, 0.5);
 
-  label481 = gtk_label_new ("");
-  label481_key = gtk_label_parse_uline (GTK_LABEL (label481),
-                                   "PROP__DL__QALIVE__COUNT");
-  gtk_widget_set_name (label481, "label481");
-  gtk_widget_ref (label481);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "label481", label481,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (label481);
-  gtk_table_attach (GTK_TABLE (table57), label481, 0, 1, 13, 14,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-  gtk_misc_set_alignment (GTK_MISC (label481), 0, 0.5);
-
   entry_node_leaf_count = gtk_entry_new ();
   gtk_widget_set_name (entry_node_leaf_count, "entry_node_leaf_count");
   gtk_widget_ref (entry_node_leaf_count);
@@ -6468,17 +6487,6 @@ create_main_window (void)
                     (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
   gtk_entry_set_editable (GTK_ENTRY (entry_sys_physmem), FALSE);
-
-  entry_dl_qalive_count = gtk_entry_new ();
-  gtk_widget_set_name (entry_dl_qalive_count, "entry_dl_qalive_count");
-  gtk_widget_ref (entry_dl_qalive_count);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "entry_dl_qalive_count", entry_dl_qalive_count,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (entry_dl_qalive_count);
-  gtk_table_attach (GTK_TABLE (table57), entry_dl_qalive_count, 1, 2, 13, 14,
-                    (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-  gtk_entry_set_editable (GTK_ENTRY (entry_dl_qalive_count), FALSE);
 
   entry_reading_ultrafile = gtk_entry_new ();
   gtk_widget_set_name (entry_reading_ultrafile, "entry_reading_ultrafile");
@@ -7560,8 +7568,6 @@ create_main_window (void)
                               label479_key, GDK_MOD1_MASK, (GtkAccelFlags) 0);
   gtk_widget_add_accelerator (entry_sys_physmem, "grab_focus", accel_group,
                               label480_key, GDK_MOD1_MASK, (GtkAccelFlags) 0);
-  gtk_widget_add_accelerator (entry_dl_qalive_count, "grab_focus", accel_group,
-                              label481_key, GDK_MOD1_MASK, (GtkAccelFlags) 0);
 
   gtk_object_set_data (GTK_OBJECT (main_window), "tooltips", tooltips);
 
