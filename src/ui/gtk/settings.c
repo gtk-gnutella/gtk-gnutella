@@ -1569,14 +1569,23 @@ static gboolean
 search_results_show_tabs_changed(property_t prop)
 {
     gboolean val;
+	GtkWidget *w;
 
     gui_prop_get_boolean_val(prop, &val);
-	gtk_notebook_set_show_tabs(
-        GTK_NOTEBOOK(lookup_widget(main_window, "notebook_search_results")),
-		val);
+	w = lookup_widget(main_window, "notebook_search_results");
+	gtk_notebook_set_show_tabs(GTK_NOTEBOOK(w), val);
+
+	w = lookup_widget(main_window, "sw_searches"); 
+	if (search_results_show_tabs)
+    	gtk_widget_hide(w);
+	else
+    	gtk_widget_show(w);
+
+#ifdef USE_GTK1 
     gtk_notebook_set_page(
         GTK_NOTEBOOK(lookup_widget(main_window, "notebook_sidebar")),
         search_results_show_tabs ? 1 : 0);
+#endif /* USE_GTK1 */
 
     return FALSE;
 }
@@ -1762,10 +1771,8 @@ update_address_information(void)
     guint32 listen_port;
     guint32 current_ip;
 
-    gnet_prop_get_boolean_val
-		(PROP_FORCE_LOCAL_IP, &force_local_ip);
-    gnet_prop_get_guint32_val
-		(PROP_LISTEN_PORT, &listen_port);
+    gnet_prop_get_boolean_val(PROP_FORCE_LOCAL_IP, &force_local_ip);
+    gnet_prop_get_guint32_val(PROP_LISTEN_PORT, &listen_port);
 
     if (force_local_ip)
         gnet_prop_get_guint32_val
@@ -2163,9 +2170,10 @@ dl_aqueued_count_changed(property_t prop)
 	return FALSE;
 }
 
-#ifdef USE_GTK1
+#if 0
 /* Currently deactivated for GTK+ 2.x because the code created by Glade 2.6.0
- * requires GTK+ 2.4 */
+ * requires GTK+ 2.4. Also, the toolbar is completely redundant and
+ * underutilized. */
 static gboolean
 config_toolbar_style_changed(property_t prop)
 {
@@ -2222,7 +2230,7 @@ toolbar_visible_changed(property_t prop)
 
     return FALSE;
 }
-#endif /* USE_GTK1 */
+#endif /* 0 */
 
 static gboolean
 update_spinbutton_ultranode(property_t prop)
@@ -2690,7 +2698,6 @@ static prop_map_t property_map[] = {
         "hpaned_gnet_stats",
         FREQ_UPDATES, 0
     ),
-#ifdef USE_GTK1
     PROP_ENTRY(
         get_main_window,
         PROP_SIDE_DIVIDER_POS,
@@ -2699,7 +2706,6 @@ static prop_map_t property_map[] = {
         "vpaned_sidebar",
         FREQ_UPDATES, 0
     ),
-#endif /* USE_GTK1 */
     PROP_ENTRY(
         get_main_window,
         PROP_DOWNLOADS_DIVIDER_POS,
@@ -2742,9 +2748,10 @@ static prop_map_t property_map[] = {
         "menu_statusbar_visible",
         FREQ_UPDATES, 0
     ),
-#ifdef USE_GTK1
+#if 0
 /* XXX: Toolbar currently removed because Glade 2.6.0 creates source code
- * 		for it which depends on GTK+ 2.4.0.
+ * 		for it which depends on GTK+ 2.4.0. Also, there are only two buttons
+ *		for "Quit" and "Edit filters" which are quite redundant.
  */
     PROP_ENTRY(
         get_main_window,
@@ -5493,11 +5500,9 @@ settings_gui_shutdown(void)
     *(guint32 *) &main_divider_pos =
         gtk_paned_get_position(GTK_PANED
             (lookup_widget(main_window, "hpaned_main")));
-#ifdef USE_GTK1
     *(guint32 *) &side_divider_pos =
         gtk_paned_get_position(GTK_PANED
             (lookup_widget(main_window, "vpaned_sidebar")));
-#endif /* USE_GTK1 */
     *(guint32 *) &gnet_stats_divider_pos =
         gtk_paned_get_position(GTK_PANED
             (lookup_widget(main_window, "hpaned_gnet_stats")));
