@@ -85,6 +85,7 @@ gboolean gchar_to_ip_port(gchar *str, guint32 *ip, guint16 *port)
 		return FALSE;
 	
 	*ip = lsb + (b2 << 8) + (b3 << 16) + (msb << 24);
+	*port = iport;
 
 	return TRUE;
 }
