@@ -34,6 +34,7 @@
 #endif
 
 gboolean is_firewalled = TRUE;		/* Assume the worst --RAM, 20/12/2001 */
+static gboolean ip_computed = FALSE;
 
 static GSList *sl_incoming = (GSList *) NULL;	/* Track incoming sockets */
 
@@ -372,8 +373,13 @@ void socket_connected(gpointer data, gint source, GdkInputCondition cond)
 
 		g_assert(s->gdk_tag == 0);
 
-		if (!local_ip)
-			guess_local_ip(s->file_desc);
+		/*
+		 * Even though local_ip is persistent, we refresh it after startup,
+		 * in case the IP changed since last time.
+		 *		--RAM, 07/05/2002
+		 */
+
+		guess_local_ip(s->file_desc);
 
 		switch (s->type) {
 		case GTA_TYPE_CONTROL:
@@ -415,9 +421,24 @@ static void guess_local_ip(int sd)
 {
 	struct sockaddr_in addr;
 	gint len = sizeof(struct sockaddr_in);
+	guint32 ip;
 
 	if (-1 != getsockname(sd, (struct sockaddr *) &addr, &len)) {
-		local_ip = g_ntohl(addr.sin_addr.s_addr);
+		ip = g_ntohl(addr.sin_addr.s_addr);
+
+		/*
+		 * If local IP was unknown, or if we have never computed it since we
+		 * started, keep what we got here, even if it's a private IP.
+		 * Otherwise, we discard private IPs unless the previous IP was private.
+		 *		--RAM, 07/05/2002
+		 */
+
+		if (!ip_computed || !local_ip) {
+			local_ip = ip;
+			ip_computed = TRUE;
+		} else if (!is_private_ip(ip) || is_private_ip(local_ip))
+			local_ip = ip;
+
 		gui_update_config_port();
 	}
 }
