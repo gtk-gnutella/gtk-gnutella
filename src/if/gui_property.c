@@ -33,6 +33,7 @@
  * Includes specified by "uses"-statement in .ag file
  */
 #include "if/ui/gtk/gnet_stats.h"
+#include "ui/gtk/columns.h"
 
 #include "lib/override.h"		/* Must be the last header included */
 
@@ -65,8 +66,8 @@ gboolean search_results_col_visible[8]     = { 1,1,1,1,1,1,1,1};
 gboolean search_results_col_visible_def[8] = { 1,1,1,1,1,1,1,1};
 guint32  search_list_col_widths[3]     = { 80, 20, 20 };
 guint32  search_list_col_widths_def[3] = { 80, 20, 20 };
-guint32  search_results_col_widths[8]     = { 210, 50, 80, 50, 70, 70, 140, 70 };
-guint32  search_results_col_widths_def[8] = { 210, 50, 80, 50, 70, 70, 140, 70 };
+guint32  search_results_col_widths[c_sr_num]     = { 210, 50, 80, 50, 70, 70, 70, 140, 70 };
+guint32  search_results_col_widths_def[c_sr_num] = { 210, 50, 80, 50, 70, 70, 70, 140, 70 };
 guint32  search_stats_col_widths[3]     = { 200, 80, 80 };
 guint32  search_stats_col_widths_def[3] = { 200, 80, 80 };
 guint32  ul_stats_col_widths[5]     = { 200, 80, 80, 80, 80 };
@@ -556,7 +557,7 @@ prop_set_t *gui_prop_init(void) {
     gui_property->props[14].desc = _("Widths of the columns in the search results tables");
     gui_property->props[14].ev_changed = event_new("search_results_col_widths_changed");
     gui_property->props[14].save = TRUE;
-    gui_property->props[14].vector_size = 8;
+    gui_property->props[14].vector_size = c_sr_num;
 
     /* Type specific data: */
     gui_property->props[14].type               = PROP_TYPE_GUINT32;

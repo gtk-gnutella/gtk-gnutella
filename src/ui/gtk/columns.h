@@ -180,6 +180,7 @@ enum {
     c_sr_host,
     c_sr_sha1,	
 #endif
+    c_sr_meta,		/* meta-data info column */
     c_sr_info,
 #ifdef USE_GTK2
 #define SEARCH_RESULTS_VISIBLE_COLUMNS ((guint) c_sr_info + 1)

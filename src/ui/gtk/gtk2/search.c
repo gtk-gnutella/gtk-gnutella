@@ -34,6 +34,7 @@
 
 #include "search_cb.h"
 
+#include "gtk/bitzi.h"
 #include "gtk/search.h"
 #include "gtk/gtk-missing.h"
 #include "gtk/settings.h"
@@ -43,6 +44,7 @@
 #include "if/gui_property.h"
 #include "if/gui_property_priv.h"
 #include "if/bridge/ui2c.h"
+#include "if/core/bitzi.h"
 
 #include "lib/atoms.h"
 #include "lib/base32.h"
@@ -599,6 +601,7 @@ search_gui_add_record(
 		      c_sr_filename, name_utf8,
 		      c_sr_ext, ext_utf8[0] != '\0' ? ext_utf8 : NULL,
 		      c_sr_size, NULL != parent ? NULL : short_size(rc->size),
+			  c_sr_meta, NULL,
 		      c_sr_info, info[0] != '\0' ? info : NULL,
 		      c_sr_fg, fg,
 		      c_sr_bg, bg,
@@ -1182,6 +1185,7 @@ create_model(void)
 	G_TYPE_STRING,		/* Extension */
 	G_TYPE_STRING,		/* Size */
 	G_TYPE_STRING,		/* Source counter */
+	G_TYPE_STRING,		/* Metadata */
 	G_TYPE_STRING,		/* Info */
 	GDK_TYPE_COLOR,		/* Foreground */
 	GDK_TYPE_COLOR,		/* Background */
@@ -1245,6 +1249,7 @@ add_results_columns(GtkTreeView *treeview)
 		{ N_("Extension"), c_sr_ext,	  0.0, NULL },
 		{ N_("Size"),	   c_sr_size,	  1.0, search_gui_compare_size_func },
 		{ N_("#"),		   c_sr_count,	  1.0, search_gui_compare_count_func },
+		{ N_("Metadata"),  c_sr_meta,	  0.0, NULL },
 		{ N_("Info"),	   c_sr_info,	  0.0, NULL }
 	};
 	guint32 width[G_N_ELEMENTS(columns)];
@@ -1519,6 +1524,68 @@ search_gui_end_massive_update(search_t *sch)
 		GTK_TREE_MODEL(sch->model));
 	g_object_unref(GTK_TREE_MODEL(sch->model));
 	sch->massive_update = FALSE;
+}
+
+/*
+ * search_gui_metadata_update
+ *
+ * Update the search displays with the correct meta-data
+ *
+ */
+
+void search_gui_metadata_update(bitzi_data_t *data)
+{
+    GList           *sr;
+    search_t        *search;
+    GtkTreeIter *parent;
+    GtkTreeStore *model;
+    gchar		*text = NULL;
+	
+    /*
+     * Build string
+     */
+    if (data->mime_type) {
+		if (data->mime_desc) {
+			text = g_strdup_printf("%s (%1.1f): %s (%s)",
+					bitzi_fjtostring(data->judgement),
+					data->goodness,
+					data->mime_type,
+					data->mime_desc);
+		} else {
+			text = g_strdup_printf("%s (%1.1f): %s",
+					bitzi_fjtostring(data->judgement),
+					data->goodness,
+					data->mime_type);
+		}	    
+    } else if (data->judgement != UNKNOWN) {
+		text = g_strdup_printf("%s (%1.1f): No other data",
+				bitzi_fjtostring(data->judgement),
+				data->goodness);
+    }
+
+
+    /*
+     * Fill in the coloumns in each search that contains a reference
+     */
+	
+    for (sr=searches; sr; sr = g_list_next(sr) ) {
+		search = sr->data;
+		parent = find_parent_with_sha1(search->parents, data->urnsha1);
+
+		//g_message("search_metadata_cb: search %p, iter = %p",search, iter);
+
+		if (parent) {
+			model = GTK_TREE_STORE(search->model);
+
+			gtk_tree_store_set(model, parent,
+					c_sr_meta, text ? text: "Not in Database",
+					(-1));
+		}
+    } /* for each search */
+
+    /* free the string */
+    g_free(text);
+
 }
 
 /* vi: set ts=4 sw=4 cindent: */

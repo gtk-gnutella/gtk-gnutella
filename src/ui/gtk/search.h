@@ -30,6 +30,7 @@
 #include "filter_core.h"
 
 #include "if/core/search.h"
+#include "if/core/bitzi.h"
 #include "if/ui/gtk/search.h"
 #include "lib/hashlist.h"
 #include "lib/prop.h"
@@ -154,6 +155,12 @@ void gui_search_get_colors(
 
 void search_gui_start_massive_update(search_t *sch);
 void search_gui_end_massive_update(search_t *sch);
+
+/*
+ * Metadata Update
+ */
+
+void search_gui_metadata_update(bitzi_data_t *data);
 
 /*
  * Callbacks

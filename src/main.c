@@ -32,6 +32,7 @@
 
 #include "core/ban.h"
 #include "core/bsched.h"
+#include "core/bitzi.h"
 #include "core/clock.h"
 #include "core/dh.h"
 #include "core/dmesh.h"
@@ -591,6 +592,7 @@ gint main(gint argc, gchar **argv, gchar **env)
 	clock_init();
 	dq_init();
 	dh_init();
+	bitzi_init();
 	sq_init();
 	file_info_init_post();
 

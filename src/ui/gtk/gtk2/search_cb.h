@@ -78,5 +78,6 @@ void on_popup_search_config_cols_activate(GtkMenuItem *menuitem, gpointer user_d
 void on_popup_search_new_from_selected_activate(GtkMenuItem *menuitem, gpointer user_data);
 void on_popup_search_expand_all_activate (GtkMenuItem *menuitem, gpointer user_data);
 void on_popup_search_collapse_all_activate (GtkMenuItem *menuitem, gpointer user_data);
+void on_popup_search_metadata_activate(GtkMenuItem *menuitem, gpointer user_data);
 
 #endif /* _gtk2_search_cb_h_ */

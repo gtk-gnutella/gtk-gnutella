@@ -34,6 +34,13 @@
 
 #ifdef GUI_SOURCES
 
+/*
+ * Includes specified by "uses"-statement in .ag file
+ */
+#include "if/ui/gtk/gnet_stats.h"
+#include "ui/gtk/columns.h"
+
+
 extern const gboolean monitor_enabled;
 extern const guint32  monitor_max_items;
 extern const gboolean queue_regex_case;
@@ -48,7 +55,7 @@ extern const gboolean dl_queued_col_visible[5];
 extern const guint32  file_info_col_widths[5];
 extern const gboolean search_results_col_visible[8];
 extern const guint32  search_list_col_widths[3];
-extern const guint32  search_results_col_widths[8];
+extern const guint32  search_results_col_widths[c_sr_num];
 extern const guint32  search_stats_col_widths[3];
 extern const guint32  ul_stats_col_widths[5];
 extern const gboolean ul_stats_col_visible[5];

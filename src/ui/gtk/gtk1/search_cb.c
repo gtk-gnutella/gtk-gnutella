@@ -35,6 +35,7 @@ RCSID("$Id$");
 #include "gtk/search.h"
 #include "gtk/statusbar.h"
 #include "gtk/gtk-missing.h"
+#include "gtk/bitzi.h"			/* Bitzi GTK functions */
 #include "search_cb.h"
 
 #include "if/gui_property.h"
@@ -1162,6 +1163,46 @@ void on_popup_search_collapse_all_activate(GtkMenuItem *menuitem,
 {
     search_gui_collapse_all();
 
+}
+
+/*
+ * on_popup_search_metadata
+ *
+ * Queue a bitzi queries from the search context menu
+ */
+
+static void queue_bitzi_by_sha1(record_t *rec, void *nothing)
+{
+	g_assert(rec!=NULL);
+	guc_query_bitzi_by_urn(rec->sha1);
+}
+
+
+
+void
+on_popup_search_metadata_activate(GtkMenuItem *menuitem, gpointer user_data)
+{
+    GList *node_list, *data_list = NULL;
+    search_t *search;
+
+    search = search_gui_get_current_search();
+    g_assert(search != NULL);
+
+    gtk_clist_freeze(GTK_CLIST(search->ctree));
+	
+	node_list = g_list_copy(GTK_CLIST(search->ctree)->selection);
+	data_list = search_cb_collect_ctree_data(search->ctree, node_list);
+	
+	/* Queue up our requests */
+	g_message("on_popup_earch_metadata_activate: %d items, %p",
+			  g_list_position(data_list, g_list_last(data_list)) + 1,
+			  data_list);
+
+    g_list_foreach(data_list, (GFunc) queue_bitzi_by_sha1, NULL); 
+
+	gtk_clist_thaw(GTK_CLIST(search->ctree));
+	g_list_free(data_list);
+	g_list_free(node_list);
 }
 
 /* vi: set ts=4: */

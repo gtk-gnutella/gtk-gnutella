@@ -1,7 +1,10 @@
-/*
+/* -*- mode: cc-mode; tab-width:4; -*-
+ *
  * $Id$
  *
  * Copyright (c) 2004, Alex Bennee <alex@bennee.com>
+ *
+ * Bitzi GTK Headers
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -23,11 +26,13 @@
  *----------------------------------------------------------------------
  */
 
-#ifndef _core_bitzi_h_
-#define _core_bitzi_h_
+#ifndef _gtk_bitzi_h_
+#define _gtk_bitzi_h_
 
-#include "if/core/bitzi.h"
+#include "if/ui/gtk/bitzi.h"
 
-void bitzi_init(void);
+gchar *bitzi_fjtostring(bitzi_fj_t fj);
 
-#endif /* _core_bitzi_h_ */
+#endif /* _gtk_bitzi_h_ */
+
+/* vi: set ts=4 sw=4 cindent: */

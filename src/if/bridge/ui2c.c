@@ -69,20 +69,12 @@ gboolean guc_adns_resolve(
 }
 
 /*	bitzi interface functions (UI -> Core)*/
-gboolean guc_bitzi_metadata_query(gpointer ptr)
+
+void guc_query_bitzi_by_urn(guchar *urnsha1)
 {
-	return bitzi_metadata_query(ptr);
+    bitzi_query_byurnsha1(urnsha1);
 }
 
-void guc_bitzi_queue_metadata_search(guchar *sha1)
-{
-	bitzi_queue_metadata_search(sha1);
-}
-
-gboolean guc_bitzi_has_pending(void)
-{
-	return bitzi_has_pending();
-}
 
 /*	download and src interface functions (UI -> Core)*/
 const gchar *guc_build_url_from_download(struct download *d) 
@@ -310,9 +302,9 @@ GSList *guc_fi_get_ranges(gnet_fi_t fih)
 	return fi_get_ranges(fih);
 }
 
-void guc_fi_free_ranges(GSList *ranges)
+void guc_fi_free_ranges(GSList *chunks)
 {
-	fi_free_ranges(ranges);
+	fi_free_ranges(chunks);
 }
 
 /*	gnet stats interface functions (UI -> Core)*/

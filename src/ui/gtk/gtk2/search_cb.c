@@ -842,6 +842,47 @@ void on_popup_search_collapse_all_activate (GtkMenuItem *menuitem,
 }
 
 
+/*
+ * on_popup_search_metadata
+ *
+ * Queue a bitzi query
+ */
+
+void
+on_popup_search_metadata_activate(GtkMenuItem *menuitem, gpointer user_data)
+{
+#ifdef HAS_LIBXML2
+	search_t *search;
+	GtkTreeSelection *selection;
+	GSList *sl,*l;
+
+	g_message("on_search_meta_data_active: called");
+
+	/* collect the list of files selected */
+
+	search = search_gui_get_current_search();
+	g_assert(search != NULL);
+
+	selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(search->tree_view));
+
+	sl = tree_selection_collect_data(selection, gui_record_sha1_eq);
+
+	/* Queue up our requests */
+	g_message("on_search_meta_data: %d items",
+		g_slist_position(sl, g_slist_last(sl)) + 1);
+
+       for (l=sl; l; l=l->next)
+        {
+            record_t    *rec=l->data;
+	    guc_query_bitzi_by_urn(rec->sha1);
+        }
+
+	g_slist_free(sl);
+
+#endif	/* HAS_LIBXML2 */
+}
+
+
 void search_callbacks_shutdown(void)
 {
 	/*

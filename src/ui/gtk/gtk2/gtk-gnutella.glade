@@ -465,7 +465,7 @@
       <signal name="activate" handler="on_popup_search_edit_filter_activate"/>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image265">
+	<widget class="GtkImage" id="image366">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-properties</property>
 	  <property name="icon_size">1</property>
@@ -479,7 +479,7 @@
   </child>
 
   <child>
-    <widget class="GtkMenuItem" id="separator13">
+    <widget class="GtkSeparatorMenuItem" id="separator13">
       <property name="visible">True</property>
     </widget>
   </child>
@@ -492,7 +492,7 @@
       <signal name="activate" handler="on_popup_search_download_activate" last_modification_time="Sun, 30 Mar 2003 12:52:08 GMT"/>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image266">
+	<widget class="GtkImage" id="image367">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-save</property>
 	  <property name="icon_size">1</property>
@@ -512,7 +512,7 @@
       <property name="use_underline">True</property>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image267">
+	<widget class="GtkImage" id="image368">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-delete</property>
 	  <property name="icon_size">1</property>
@@ -564,7 +564,7 @@
       <property name="use_underline">True</property>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image268">
+	<widget class="GtkImage" id="image369">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-delete</property>
 	  <property name="icon_size">1</property>
@@ -610,7 +610,7 @@
   </child>
 
   <child>
-    <widget class="GtkMenuItem" id="separator14">
+    <widget class="GtkSeparatorMenuItem" id="separator14">
       <property name="visible">True</property>
     </widget>
   </child>
@@ -622,7 +622,7 @@
       <property name="use_underline">True</property>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image269">
+	<widget class="GtkImage" id="image370">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-execute</property>
 	  <property name="icon_size">1</property>
@@ -644,7 +644,7 @@
 	      <signal name="activate" handler="on_popup_search_autodownload_sha1_activate"/>
 
 	      <child internal-child="image">
-		<widget class="GtkImage" id="image270">
+		<widget class="GtkImage" id="image371">
 		  <property name="visible">True</property>
 		  <property name="stock">gtk-execute</property>
 		  <property name="icon_size">1</property>
@@ -665,7 +665,7 @@
 	      <signal name="activate" handler="on_popup_search_autodownload_name_activate"/>
 
 	      <child internal-child="image">
-		<widget class="GtkImage" id="image271">
+		<widget class="GtkImage" id="image372">
 		  <property name="visible">True</property>
 		  <property name="stock">gtk-execute</property>
 		  <property name="icon_size">1</property>
@@ -683,7 +683,7 @@
   </child>
 
   <child>
-    <widget class="GtkMenuItem" id="separator3">
+    <widget class="GtkSeparatorMenuItem" id="separator3">
       <property name="visible">True</property>
     </widget>
   </child>
@@ -696,7 +696,7 @@
       <signal name="activate" handler="on_popup_search_new_from_selected_activate" last_modification_time="Sun, 15 Sep 2002 11:07:06 GMT"/>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image272">
+	<widget class="GtkImage" id="image373">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-new</property>
 	  <property name="icon_size">1</property>
@@ -710,7 +710,7 @@
   </child>
 
   <child>
-    <widget class="GtkMenuItem" id="separator15">
+    <widget class="GtkSeparatorMenuItem" id="separator15">
       <property name="visible">True</property>
     </widget>
   </child>
@@ -723,7 +723,7 @@
       <signal name="activate" handler="on_popup_search_expand_all_activate" last_modification_time="Thu, 01 Jan 2004 05:01:39 GMT"/>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image273">
+	<widget class="GtkImage" id="image374">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-add</property>
 	  <property name="icon_size">1</property>
@@ -744,7 +744,7 @@
       <signal name="activate" handler="on_popup_search_collapse_all_activate" last_modification_time="Thu, 01 Jan 2004 05:01:39 GMT"/>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image274">
+	<widget class="GtkImage" id="image375">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-remove</property>
 	  <property name="icon_size">1</property>
@@ -758,7 +758,7 @@
   </child>
 
   <child>
-    <widget class="GtkMenuItem" id="separator17">
+    <widget class="GtkSeparatorMenuItem" id="separator17">
       <property name="visible">True</property>
     </widget>
   </child>
@@ -771,7 +771,7 @@
       <signal name="activate" handler="on_popup_search_stop_activate"/>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image275">
+	<widget class="GtkImage" id="image376">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-stop</property>
 	  <property name="icon_size">1</property>
@@ -792,7 +792,7 @@
       <signal name="activate" handler="on_popup_search_resume_activate"/>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image276">
+	<widget class="GtkImage" id="image377">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-go-forward</property>
 	  <property name="icon_size">1</property>
@@ -813,7 +813,7 @@
       <signal name="activate" handler="on_popup_search_restart_activate"/>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image277">
+	<widget class="GtkImage" id="image378">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-redo</property>
 	  <property name="icon_size">1</property>
@@ -834,7 +834,7 @@
       <signal name="activate" handler="on_popup_search_duplicate_activate"/>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image278">
+	<widget class="GtkImage" id="image379">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-copy</property>
 	  <property name="icon_size">1</property>
@@ -848,7 +848,7 @@
   </child>
 
   <child>
-    <widget class="GtkMenuItem" id="separator2">
+    <widget class="GtkSeparatorMenuItem" id="separator2">
       <property name="visible">True</property>
     </widget>
   </child>
@@ -861,7 +861,7 @@
       <signal name="activate" handler="on_popup_search_toggle_tabs_activate"/>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image279">
+	<widget class="GtkImage" id="image380">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-index</property>
 	  <property name="icon_size">1</property>
@@ -882,7 +882,7 @@
       <signal name="activate" handler="on_popup_search_config_cols_activate"/>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image280">
+	<widget class="GtkImage" id="image381">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-preferences</property>
 	  <property name="icon_size">1</property>
@@ -892,6 +892,21 @@
 	  <property name="ypad">0</property>
 	</widget>
       </child>
+    </widget>
+  </child>
+
+  <child>
+    <widget class="GtkSeparatorMenuItem" id="separator20">
+      <property name="visible">True</property>
+    </widget>
+  </child>
+
+  <child>
+    <widget class="GtkMenuItem" id="popup_search_metadata">
+      <property name="visible">True</property>
+      <property name="label" translatable="yes">Search Metadata</property>
+      <property name="use_underline">True</property>
+      <signal name="activate" handler="on_popup_search_metadata_activate" last_modification_time="Thu, 02 Sep 2004 08:35:41 GMT"/>
     </widget>
   </child>
 </widget>

@@ -6143,6 +6143,8 @@ create_popup_search (void)
   GtkWidget *separator2;
   GtkWidget *popup_search_toggle_tabs;
   GtkWidget *popup_search_config_cols;
+  GtkWidget *separator19;
+  GtkWidget *popup_search_metadata;
   GtkTooltips *tooltips;
 
   tooltips = gtk_tooltips_new ();
@@ -6386,6 +6388,23 @@ create_popup_search (void)
   gtk_widget_show (popup_search_config_cols);
   gtk_container_add (GTK_CONTAINER (popup_search), popup_search_config_cols);
 
+  separator19 = gtk_menu_item_new ();
+  gtk_widget_set_name (separator19, "separator19");
+  gtk_widget_ref (separator19);
+  gtk_object_set_data_full (GTK_OBJECT (popup_search), "separator19", separator19,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (separator19);
+  gtk_container_add (GTK_CONTAINER (popup_search), separator19);
+  gtk_widget_set_sensitive (separator19, FALSE);
+
+  popup_search_metadata = gtk_menu_item_new_with_label (_("Search Metadata"));
+  gtk_widget_set_name (popup_search_metadata, "popup_search_metadata");
+  gtk_widget_ref (popup_search_metadata);
+  gtk_object_set_data_full (GTK_OBJECT (popup_search), "popup_search_metadata", popup_search_metadata,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (popup_search_metadata);
+  gtk_container_add (GTK_CONTAINER (popup_search), popup_search_metadata);
+
   gtk_signal_connect (GTK_OBJECT (popup_search_edit_filter), "activate",
                       GTK_SIGNAL_FUNC (on_popup_search_edit_filter_activate),
                       NULL);
@@ -6439,6 +6458,9 @@ create_popup_search (void)
                       NULL);
   gtk_signal_connect (GTK_OBJECT (popup_search_config_cols), "activate",
                       GTK_SIGNAL_FUNC (on_popup_search_config_cols_activate),
+                      NULL);
+  gtk_signal_connect (GTK_OBJECT (popup_search_metadata), "activate",
+                      GTK_SIGNAL_FUNC (on_popup_search_metadata_activate),
                       NULL);
 
   gtk_object_set_data (GTK_OBJECT (popup_search), "tooltips", tooltips);

@@ -240,9 +240,8 @@ void guc_upload_stats_clear_all(void);
 const gchar *guc_version_get_version_string();
 
 /* bitzi interface functions*/
-gboolean guc_bitzi_metadata_query(gpointer ptr);
-void guc_bitzi_queue_metadata_search(guchar *sha1);
-gboolean guc_bitzi_has_pending(void);
+void guc_query_bitzi_by_urn(guchar *urnsha1);
+
 
 /* main functions */
 void guc_gtk_gnutella_exit(gint code);

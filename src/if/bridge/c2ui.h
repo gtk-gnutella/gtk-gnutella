@@ -34,6 +34,7 @@
 
 #include "if/core/downloads.h"
 #include "if/core/uploads.h"
+#include "if/core/bitzi.h"
 #include "lib/misc.h"
 
 /* Property table includes */
@@ -72,6 +73,9 @@ void gcu_statusbar_message(const gchar *message);
 void gcu_upload_stats_gui_add(struct ul_stats *stat);
 void gcu_upload_stats_gui_update(const gchar *name, guint64 size);
 void gcu_upload_stats_gui_clear_all(void);
+
+/* bitzi results */
+void gcu_bitzi_result(bitzi_data_t *bitzi_data);
 
 #endif /* _if_bridge_c2ui_h_ */
 

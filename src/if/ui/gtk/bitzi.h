@@ -23,11 +23,20 @@
  *----------------------------------------------------------------------
  */
 
-#ifndef _core_bitzi_h_
-#define _core_bitzi_h_
+#ifndef _if_ui_gtk_bitzi_h_
+#define _if_ui_gtk_bitzi_h_
 
-#include "if/core/bitzi.h"
+#include "if/core/bitzi.h"		/* For bitzi types */
 
-void bitzi_init(void);
+/*
+ * Public interface, visible from the bridge.
+ */
 
-#endif /* _core_bitzi_h_ */
+#ifdef GUI_SOURCES
+
+void bitzi_gui_update(bitzi_data_t *bitzi_data);
+
+#endif /* GUI_SOURCES */
+#endif /* _gtk_bitzi_h_ */
+
+/* vi: set ts=4 sw=4 cindent: */

@@ -26,7 +26,7 @@
  */
 
 #include "gtk/gui.h"
-
+#include "gtk/bitzi.h"
 #include "gtk/search.h"
 #include "gtk/gtk-missing.h"
 #include "gtk/settings.h"
@@ -1220,6 +1220,7 @@ void search_gui_add_record(
 	/* Setup text for node.  Note only parent nodes will have # and size shown*/
 	titles[c_sr_filename] = (NULL != rc->name) ?  rc->name : empty;
 	titles[c_sr_ext] = (NULL != rc->ext) ? rc->ext : empty;
+	titles[c_sr_meta] = empty;
 	titles[c_sr_info] = (NULL != rc->info) ?  rc->info : empty;
 	titles[c_sr_sha1] = (NULL != rc->sha1) ?  sha1_base32(rc->sha1) : empty;
 	titles[c_sr_size] = empty;
@@ -2215,6 +2216,14 @@ void gui_search_create_ctree(GtkWidget ** sw, GtkCTree ** ctree)
     gtk_clist_set_column_name(GTK_CLIST(*ctree), c_sr_sha1, _("urn:sha1"));
 	gtk_clist_set_column_visibility(GTK_CLIST(*ctree), c_sr_sha1, FALSE);
 
+	label = gtk_label_new(_("Metadata"));
+    gtk_misc_set_alignment(GTK_MISC(label),0,0.5);
+    hbox = gtk_hbox_new(FALSE, 4);
+    gtk_box_pack_start(GTK_BOX(hbox), label, TRUE, TRUE, 0);
+	gtk_clist_set_column_widget(GTK_CLIST(*ctree), c_sr_meta, hbox);
+    gtk_widget_show_all(hbox);
+    gtk_clist_set_column_name(GTK_CLIST(*ctree), c_sr_meta, _("Metadata"));
+
 	label = gtk_label_new(_("Info"));
     gtk_misc_set_alignment(GTK_MISC(label),0,0.5);
     hbox = gtk_hbox_new(FALSE, 4);
@@ -2498,6 +2507,63 @@ void search_gui_end_massive_update(search_t *sch)
 
 	while (ctree->freeze_count > 0)
 		gtk_clist_thaw(ctree);
+}
+
+/*
+ * search_gui_metadata_update
+ *
+ * Update the search displays with the correct meta-data
+ *
+ */
+
+void search_gui_metadata_update(bitzi_data_t *data)
+{
+    GList       *sr;
+    search_t    *search;
+    gchar	*text = NULL;
+    GtkCTreeNode *parent;
+	
+    /*
+     * Build string
+     */
+	
+    if (data->mime_type) {
+	if (data->mime_desc) {
+	    text = g_strdup_printf("%s (%1.1f): %s (%s)",
+		    bitzi_fjtostring(data->judgement),
+		    data->goodness,
+		    data->mime_type,
+		    data->mime_desc);
+	} else {
+	    text = g_strdup_printf("%s (%1.1f): %s",
+		    bitzi_fjtostring(data->judgement),
+		    data->goodness,
+		    data->mime_type);
+	}	    
+    } else if (data->judgement != UNKNOWN) {
+	text = g_strdup_printf("%s (%1.1f): No other data",
+		bitzi_fjtostring(data->judgement),
+		data->goodness);
+    }
+
+    /*
+     * Fill in the coloumns in each search that contains a reference
+     */
+	
+    for (sr=searches; sr; sr = g_list_next(sr) )
+    {
+	search = sr->data;
+	GtkCTree *ctree = GTK_CTREE(search->ctree);
+		
+	parent = find_parent_with_sha1(search->parents, data->urnsha1);
+	if (parent)
+	    gtk_ctree_node_set_text(ctree, parent, c_sr_meta, text); 
+
+    } /* for each search */
+
+    /* free the string */
+    g_free(text);
+
 }
 
 /* vi: set ts=4 sw=4 cindent: */

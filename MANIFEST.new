@@ -368,6 +368,7 @@ src/if/gui_property.h
 src/if/gui_property_priv.h
 src/if/gui_props.ag 
 src/if/props.tpl 
+src/if/ui/gtk/bitzi.h
 src/if/ui/gtk/downloads.h
 src/if/ui/gtk/gnet_stats.h
 src/if/ui/gtk/misc.h
@@ -458,6 +459,8 @@ src/ui/Jmakefile
 src/ui/Makefile.SH
 src/ui/gtk/Jmakefile
 src/ui/gtk/Makefile.SH
+src/ui/gtk/bitzi.c
+src/ui/gtk/bitzi.h
 src/ui/gtk/columns.h 
 src/ui/gtk/downloads.h 
 src/ui/gtk/downloads_common.c 
@@ -504,7 +507,6 @@ src/ui/gtk/gtk1/upload_stats.c
 src/ui/gtk/gtk1/uploads.c 
 src/ui/gtk/gtk2/Jmakefile
 src/ui/gtk/gtk2/Makefile.SH
-src/ui/gtk/gtk2/bitzi.c
 src/ui/gtk/gtk2/downloads.c 
 src/ui/gtk/gtk2/downloads_cb.c 
 src/ui/gtk/gtk2/downloads_cb.h 

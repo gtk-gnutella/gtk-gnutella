@@ -10,6 +10,7 @@ offset       = 1000;
 private_src  = "GUI_SOURCES";
 
 uses = "if/ui/gtk/gnet_stats.h";
+uses = "ui/gtk/columns.h";
 
 prop = {
     name = "monitor_enabled";
@@ -159,9 +160,9 @@ prop = {
     cfgvar = "widths_search_results";
     desc = "Widths of the columns in the search results tables";
     type = guint32;
-    vector_size = 8;
+    vector_size = c_sr_num;
     data = {
-        default = "{ 210, 50, 80, 50, 70, 70, 140, 70 }";
+        default = "{ 210, 50, 80, 50, 70, 70, 70, 140, 70 }";
     };
 };
 

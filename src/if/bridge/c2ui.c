@@ -37,6 +37,7 @@
 
 #define GUI_SOURCES
 
+#include "if/ui/gtk/bitzi.h"
 #include "if/ui/gtk/downloads.h"
 #include "if/ui/gtk/misc.h"
 #include "if/ui/gtk/search.h"
@@ -144,6 +145,18 @@ void gcu_upload_stats_gui_update(const gchar *name, guint64 size)
 void gcu_upload_stats_gui_clear_all(void)
 {
 	upload_stats_gui_clear_all();	
+}
+
+/*
+ * Bitzi result notification (Core->UI)
+ *
+ * If the IPC split goes ahead then the data will need to be copied
+ * across. For the time being we just pass the pointer.
+ */
+
+void gcu_bitzi_result(bitzi_data_t *bitzi_data)
+{
+    bitzi_gui_update(bitzi_data);
 }
 
 /*	statusbar interface functions (CORE -> UI)*/
