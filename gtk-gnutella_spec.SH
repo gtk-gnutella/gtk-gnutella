@@ -59,18 +59,18 @@ BuildRoot: %{_tmppath}/%{name}-root
 Group: Applications/Internet
 Release: 1.gtk%{gtkver}
 %if %{gtk2}
-BuildRequires: gtk2-devel glib2-devel libglade2-devel libxml2-devel byacc
+BuildRequires: gtk2-devel glib2-devel libxml2-devel byacc
 %else
-BuildRequires: gtk+-devel glib-devel libglade-devel libxml2-devel byacc
+BuildRequires: gtk+-devel glib-devel libxml2-devel byacc
 %endif
 %endif
 %if %{mdk}
 Group: Networking/File transfer
 Release: 0.gtk%{gtkver}.1mdk
 %if %{gtk2}
-BuildRequires: gtk2-devel glib2-devel libglade2.0-devel libxml2-devel bison
+BuildRequires: gtk2-devel glib2-devel libxml2-devel bison
 %else
-BuildRequires: gtk+-devel glib-devel libglade0-devel libxml2-devel bison
+BuildRequires: gtk+-devel glib-devel libxml2-devel bison
 %endif
 %endif
 
