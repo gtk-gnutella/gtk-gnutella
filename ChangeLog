@@ -1,5 +1,9 @@
 # since last version
 
+- (2003.01.13 - cbiere)
+ * [Gtk2] Set encoding for GIOChannels to NULL which is safe to use with 
+   binary data
+
 - (2003.01.12 - RAM)
  * Quote mesh URLs that contain the ',' character so other servents are
    not confused (GTKG does not need this).
