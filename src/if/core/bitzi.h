@@ -26,18 +26,18 @@
 #ifndef _if_core_bitzi_h_
 #define _if_core_bitzi_h_
 
-#include <glib.h>
-
-
-#include <time.h>		/* for time_t */
+#include "common.h"
 
 /*
  * Bitzi Meta-data structure
  *
- * Both Core and GUI have visability of this data structure
+ * Both Core and GUI have visibility of this data structure
  */
+
+/* XXX: Prefix these enums. It's likely that any of those clash with something
+ *		(on weird systems) */
 typedef enum {
-	UNKNOWN=0,
+	UNKNOWN = 0,
 	DANGEROUS_MISLEADING,
 	INCOMPLETE_DAMAGED,
 	SUBSTANDARD,
@@ -57,10 +57,10 @@ typedef struct {
 	gchar		*urnsha1;		/* pointer to urnsha1 atom */
 	gchar		*mime_type;		/* mime type */
 	gchar		*mime_desc;		/* mime details (fps, bitrate etc) */
-	guint32		size;			/* size of file */
-    bitzi_fj_t	judgement;
-	float		goodness;
-	time_t		expiry;		/* expiry date of meta-data */
+	filesize_t	size;			/* size of file */
+	bitzi_fj_t	judgement;
+	gfloat		goodness;
+	time_t		expiry;			/* expiry date of meta-data */
 } bitzi_data_t;
 
 #ifdef CORE_SOURCES
@@ -81,3 +81,4 @@ bitzi_data_t *bitzi_querycache_byurnsha1(const gchar *urnsha1);
 #endif /* CORE_SOURCES */
 
 #endif /* _core_bitzi_h_ */
+/* vi: set ts=4 sw=4 cindent: */

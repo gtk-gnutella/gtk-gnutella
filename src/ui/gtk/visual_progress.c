@@ -88,11 +88,11 @@ typedef struct vp_context {
 typedef struct vp_info {
     gnet_fi_t fi_handle;
     gchar *file_name;
-    guint32 file_size;
+    filesize_t file_size;
     GSList *chunks_list;
 	GSList *chunks_initial;
 	GSList *ranges_list;
-	guint32 done_initial;
+	filesize_t done_initial;
     vp_context_t *context;
 } vp_info_t;
 
@@ -120,7 +120,7 @@ static vp_context_t fi_context;
  * Draw a rectangle for visual progress
  */
 void 
-vp_draw_rectangle(vp_info_t *v, guint32 from, guint32 to, 
+vp_draw_rectangle(vp_info_t *v, filesize_t from, filesize_t to, 
 				  guint top, guint bottom)
 {
     guint s_from;
@@ -382,11 +382,12 @@ static void
 vp_print_chunk(gnet_fi_chunks_t *c, gboolean show_old)
 {
 	if (show_old)
-		printf("%10d - %10d %d [%s]\n",
-			c->from, c->to, c->status, c->old ? "O" : "N");
+		printf("%10" PRIu64 " - %10" PRIu64 " %d [%s]\n",
+			(guint64) c->from, (guint64) c->to,
+			(gint) c->status, c->old ? "O" : "N");
 	else
-		printf("%10d - %10d %d\n",
-			c->from, c->to, c->status);
+		printf("%10" PRIu64 " - %10" PRIu64 " %d\n",
+			(guint64) c->from, (guint64) c->to, (gint) c->status);
 }
 
 /*
@@ -416,8 +417,8 @@ vp_print_chunk_list(GSList *list, gchar *title)
  * @param old    TRUE if the chunk was downloaded before gtk-gnutella is started
  */
 static gnet_fi_chunks_t *
-vp_create_chunk(
-	guint32 from, guint32 to, enum dl_chunk_status status, gboolean old)
+vp_create_chunk(filesize_t from, filesize_t to,
+	enum dl_chunk_status status, gboolean old)
 {
 	gnet_fi_chunks_t *chunk;
 	
@@ -443,12 +444,13 @@ vp_assert_chunks_list(GSList *list)
 {
 	GSList *l;
 	gnet_fi_chunks_t *chunk;
-	guint32 last = 0;
+	filesize_t last = 0;
 
 	for (l = list; l; l = g_slist_next(l)) {
 		chunk = (gnet_fi_chunks_t *) l->data;
 		if (last != chunk->from) {
-			printf("**** Chunks list is not consistent! Please tell hans@degraaff.org\n");
+			g_warning("**** Chunks list is not consistent! "
+				"Please tell hans@degraaff.org");
 			vp_print_chunk_list(list, "Chunks list");
 			break;
 		}
@@ -473,7 +475,7 @@ vp_gui_fi_status_changed(gnet_fi_t fih)
     gnet_fi_chunks_t *nc;
     gboolean found;
 	gpointer value;
-	guint32 highest = 0;
+	filesize_t highest = 0;
 	gnet_fi_info_t *fi;
 	gnet_fi_status_t s;
 
@@ -540,7 +542,8 @@ vp_gui_fi_status_changed(gnet_fi_t fih)
 			 */
 			if (nc->from != highest) {
 				g_warning("Visual progress list corruption!");
-				g_warning("Please email trace below to hans@degraaff.org for analysis.");
+				g_warning("Please email trace below to hans@degraaff.org "
+					"for analysis.");
 				vp_print_chunk_list(v->chunks_initial, "Old");
 				vp_print_chunk_list(keep_new, "New");
 				vp_print_chunk_list(v->chunks_list, "Result");
