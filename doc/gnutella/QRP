@@ -1,0 +1,831 @@
+
+
+
+
+
+
+
+
+                    Query Routing for the Gnutella Network
+
+                                  Version 1.0
+ 
+                               Christopher Rohrs
+                                 Lime Wire LLC
+                                 May 16, 2002
+
+ 
+
+ __________________________________________________________
+|                                                          |
+|Document History                                          |
+|                                                          |
+|__________________________________________________________|
+|1.0|Added binary examples in the appendix.                |
+|   |Documented endian values.                             |
+|   |Function code of ROUTE_TABLE_UPDATE is 0x30, not 0x20.|
+|___|______________________________________________________|
+|0.5|Incorporated Willem Broekema's comments from          |
+|   |http://groups.yahoo.com/group/the_gdf/message/4735    |
+|   |Added warning about QRP propagation.                  |
+|___|______________________________________________________|
+|0.4|Used integer hash function.                           |
+|   |Incorporated corrections from Vinnie Falco.           |
+|___|______________________________________________________|
+|0.3|First_public_version._________________________________|
+
+                                        
+                                        
+ _____________________________________________________________________________
+|                                                                             |
+|Important Note                                                               |
+|                                                                             |
+|                                                                             |
+|Since this document was originally written, the LimeWire client has          |
+|introduced ultrapeers,which offload most messaging to high capacity hosts    |
+|[Sin]. Ultrapeers use a subset of the query routing proposal.   In particular|
+|leaf nodes send query route table update messages to ultrapeers, but         |
+|ultrapeers never propogate these tables.  We advise authors of Gnutella      |
+|clients to implement the ultrapeer protocol using query routing but without  |
+|table propogation.  Developersshould concentrate on Section 4 of this        |
+|document, "Gnutella Protocol Changes", as well as the examples in the        |
+|appendix.                                                                    |
+|                                                                             |
+|While full-fledged query routing may work well, understanding the effects of |
+|query routing between ultrapeers requires more study.  There is potential for|
+|much_harm_if_used_carelessly.________________________________________________|
+
+                                        
+                                        
+Abstract: We present a novel scheme for avoiding broadcast queries on the
+Gnutella network.  In this scheme, hosts create query route tables by hashing
+file keywords and regularly exchange them with their neighbors.  Standard
+compression techniques minimize the cost of exchanging tables. Our scheme could
+dramatically reduce Gnutella's bandwidth requirements, though careful study and
+simulation is needed before widespread deployment.
+ 
+
+Introduction
+
+ 
+The Gnutella protocol uses broadcasts to query for files.  A back-of-the-
+envelope calculation shows that this quickly limits the number of hosts that
+can be searched.  Despite popular rumor, this does not necessarily limit the
+overall size of the network [Bil].  Still, it is clearly desirable to eliminate
+broadcast queries.  Reducing query traffic increases scalability and leaves
+more bandwidth for uploads and downloads.
+ 
+Many ideas have been proposed to eliminate broadcasts.  Freenet, for example,
+avoids broadcasts through a clever lexical routing scheme [Lan].  However, this
+scheme is imperfect.  First, it requires you to know the exact name of the file
+you wish to download.  For example, "constitution.txt" will not match
+"constitution.html".  Secondly, it only returns a single match for your query. 
+Users searching for "book" are bound to be disappointed.
+ 
+Recently Prinkey presented a clever scheme for routing queries based on
+keywords [Pri].  The idea behind this scheme is to have hosts periodically
+exchange keyword route tables with their neighbors.  To reduce bandwidth,
+Prinkey describes an efficient way of encoding these keywords through hashing
+and bitmaps.  The result is that queries are normally only sent to hosts that
+can respond to them.  Furthermore, Prinkey's scheme does not suffer from any of
+Freenet's problems.  Unfortunately it requires organizing the network in a
+tree-like fashion.
+ 
+This paper generalizes Prinkey's routing scheme for use on the Gnutella
+network.  Our key ideas are to include distance information in routing tables
+and to compress the tables with well-known algorithms.  First we review
+Prinkey's original keyword-based routing scheme.  Then we describe the changes
+that are necessary for non-tree networks.  Next, we propose a new Gnutella
+message for this purpose.  We also discuss hashing in some depth.  Finally we
+conclude with remarks about the effects of this routing scheme on the network.
+ 
+
+Prinkey's Scheme
+
+ 
+This section reviews Prinkey's query routing scheme for rooted tree
+topologies.  We present this scheme through an example and a series of
+refinements.  Readers familiar with the scheme may choose to skip to the next
+section.
+ 
+Consider four hosts in a tree-like hierarchy rooted at host A, as shown below. 
+Hosts B, C, and D are serving files named "bad joke", "good book", and "good
+joke", respectively.  For simplicity assume that only node A is interested in
+querying the network.  With Gnutella's current search scheme, any query from A
+must be sent to all of the other hosts.  For example, a query for "bad joke"
+will needlessly be sent to hosts C and D.  This is inefficient.
+                   Figure 1: Route tables in a rooted tree.
+                    Keywords are not hashed for simplicity.
+ 
+Broadcasts can be avoided if hosts maintain some sort of routing table for each
+connection.  One possibility is to have hosts propagate all file keywords[1] up
+the tree.  For example, host B would know that keywords {"good", "book"} are
+reachable through C, and A would know that {"good", "book", "bad", "joke"} are
+(indirectly) reachable through B.  More formally, the routing table for a
+connection to a host X is the union of all routing tables for the connections
+from X to its children.  This is illustrated above.  With this information, a
+query is only sent along a connection if all keywords of the query are found in
+that connection's routing table.  For example, a query for "bad joke" would be
+sent from A to B, but not from B to C or D, since neither of these connections
+contains the keyword "bad".  Likewise, a query for "good joke" would be sent
+from A to B to D, but not to C.  (Queries are interpreted as logical AND's of
+keywords, not OR's.)
+ 
+This scheme guarantees there are never false negatives.  That is, a query will
+always be sent along a connection if some host reachable via that connection
+can respond to the query.  However it does not eliminate false positives.  For
+example, a query for "joke book" or "bad joke" may be sent from A to B even
+though neither C nor D can respond to the query.  It is hard to avoid these
+false positives, but one can reasonably assume that they are rare.
+ 
+Propagating route tables can potentially consume a lot of bandwidth.  To solve
+this problem, Prinkey advocates hashing each keyword and storing the resulting
+numbers in a bitmap.  For example, if "good" hashes to 2 and "book" to 5, the
+routing table for {"good", "book"} can be compressed to the bitmap 001001…. 
+Note that the second and fifth bits (starting from zero at the left) are set in
+this bitmap.  In other words, each multibyte string is compressed to a single
+bit.  The resulting tables are an example of Bloom filters.  Table propagation
+is done by logically OR'ing bitmaps instead of unioning sets of keywords.  Of
+course there is a chance that two strings could hash to the same value, but
+this only causes harmless false positives.  
+ 
+However, this scheme has two serious problems.  First, it requires a tree
+topology with a designated root.  This is difficult to form in a distributed
+fashion, especially if the tree is to account for the underlying structure of
+the network.  Secondly, if a host other than the root wants to query the
+network, it must send the query up the tree to the root.  This forces the nodes
+at the top of the tree to handle a disproportionate amount of traffic. 
+Modifications are needed before this scheme can be adopted to Gnutella.  
+ 
+
+Routing Without Trees
+
+ 
+One way of routing queries in a non-tree network like Gnutella is to simply
+propagate route tables along all connections.  That is, at every time step, a
+host sets its route tables to be the logical OR of its neighbors' route tables
+and its own files.[2]  So at after T time steps, all hosts within T hops of a
+host X are aware of X's files.  The problem is that X's routing information
+will continue to propagate long after it has left the network.  This will
+dramatically increase the false positive rate resulting in much wasted
+bandwidth.
+ 
+For this reason, it is critical to limit the span of a host's routing
+information.  This can be done by associating a hops value with each keyword. 
+Routing tables are now an array of numbers instead of an array of bits, where
+each number is the minimum distance to a matching file.  More formally, for any
+connection C, RTC[h] is the number of hops to a file with a keyword that hashes
+to h, or infinity if no such file exists.  Note that RTC[h] e1, for all h. 
+Queries are forwarded to those connections whose route tables have entries for
+all query keywords.  That is, a query with TTL N and keywords K1, .., KM is
+only sent along a connection C if RTC[HASH(Ki)]dN, for all 1<idM. 
+ 
+Hosts now update their tables via dynamic programming; at every time step,
+hosts exchange all their tables with neighbors and update them accordingly.[3] 
+Let host X have connections to hosts Y1…YM.  Let RTYi->X be the route table
+received by X from host Yi.  If X is not sharing any files with keywords
+hashing to h, the table RTX->Yi propagated by X to each host Yi is given by
+RTX->Yi[h]=minj`i(RTYj->X[h])+1.  Otherwise, RTX->Yi[h]=1.
+ 
+As an example, consider the network described in the previous section.  The
+fact that this network is a tree is a coincidence; it need not have a root and
+may have cycles.  After one time step, hosts have exchanged routing tables for
+files one hops away.  This is illustrated below on the left-hand side.  Here
+sets of keywords are shown instead of arrays of hashed values for simplicity. 
+For example, the table "{bad/1, joke/2}" would really be represented as the
+array [, 2, , 1, , ...] if "bad" hashed to 3 and "joke" hashed to 1. After
+a second time step, hosts have exchanged routing tables for files two hops
+away.  This is illustrated below on the right-hand side.  Note that A now has
+routing entries for all files.  On the other hand, B is aware that no files are
+reachable through A.
+ 
+                 Figure 2: Propagation of route tables by TTL.
+                    Keywords are not hashed for simplicity.
+ 
+At first this scheme seems wasteful.  Instead of exchanging one bit per
+keyword, hosts exchange a log2(M) bit number, where M is the maximum TTL.  So
+with a typical TTL of 10, neighbors exchange 4 times more data than in
+Prinkey's original scheme.  However experiments show that traditional data
+compression algorithms can reduce the size of these route tables quite
+substantially.  As an example, a very sparse table (one where most entries are
+infinity) will have almost no information, and hence can be encoded with few
+bits.  Furthermore, one expects an uneven distribution of numbers, which is
+ideal for certain kinds of statistical compression schemes.[4]  Hence we need
+not design our own encoding scheme; this greatly simplifies our update
+protocol.[5]
+ 
+An important question is when to update these tables.  Ideally a host would
+send a route table update after adding or removing connections, or changing its
+shared file list.  However, several improvements can be made that will greatly
+reduce the amount of bandwidth used.  First, hosts should only propagate route
+table information from connections that have been up for a few minutes.   This
+means that it may take a few minutes for a host to be searchable, but it tends
+to weed out the majority of short-lived connections.[6]  More importantly,
+hosts should not send out more than one message per connection per T minutes. 
+In other words, if a host receives several update messages from its neighbors
+within a T-minute window, they will be consolidated into a single message that
+is forwarded on.  So the number of update messages sent per connection is
+independent of the network size or the number of the host's connections.
+ 
+If the route table RT to be sent to a host is very similar to the last table
+RT' sent, it may be advantageous to send an incremental update.  First, the
+sender creates a "patch" by subtracting each element of RT and RT'.  Note that
+this patch contains all zeroes if the table has not changed, and positive or
+negative values otherwise.  Then this patch is compressed as discussed above
+and sent along the connection.  The receiver then decompresses this patch and
+adds it to the route table for that connection.  In a relatively stable
+network, such patches may save a considerable amount of bandwidth.
+ 
+
+Gnutella Protocol Changes
+
+ 
+To implement the above scheme for the Gnutella network, we propose the addition
+of a single extensible message to the protocol, called ROUTE_TABLE_UPDATE.  The
+proposed function code of this message is 0x30, since Gnutella uses even
+function codes for broadcast messages.  (An earlier version of this document
+incorrectly suggested 0x20; that value was used at least experimentally by some
+versions of BearShare.)
+ 
+ROUTE_TABLE_UPDATE messages come in several variants.  The length of the
+payload is defined in the Gnutella general message header and must always be at
+least 1. The first byte of the payload determines the message's variant.  Only
+two variants are currently defined: RESET (0x0) and PATCH (0x1).  The format of
+these messages is shown below.  More variants could be defined later if
+desired. This allows us to modify the route table mechanism without adding new
+Gnutella function codes.
+ 
+ _____________________________________________________________________________
+|Field_Name__|Bytes|Meaning___________________________________________________|
+|VARIANT_____|1____|The_message_variant.__Always_0x0_for_RESET._______________|
+|TABLE_LENGTH|4    |The length of the sender's route table, i.e., the number  |
+|            |     |of entries. (Earlier versions of this document incorrectly|
+|            |     |stated the meaning of this value.)  For hashing reasons,  |
+|____________|_____|this_must_be_a_power_of_2.__Little_endian.________________|
+|INFINITY    |1    |The route table value for infinity, i.e., the maximum     |
+|____________|_____|distance_to_any_file_in_the_table+1.______________________|
+
+                      Format of the RESET variant payload
+ 
+ _____________________________________________________________________________
+|Field_Name|Bytes____________|Meaning_________________________________________|
+|VARIANT___|1________________|The_message_variant.__Always_0x1_for_PATCH._____|
+|SEQ_NO    |1                |The position of this message in the update      |
+|__________|_________________|sequence._______________________________________|
+|SEQ_SIZE  |1                |The total number of messages in this update     |
+|__________|_________________|sequence._______________________________________|
+|COMPRESSOR|1                |The algorithm to use when decompressing data.   |
+|          |                 |Currently defined values:                       |
+|          |                 |0x0 no compression                              |
+|__________|_________________|0x1_ZLIB_compression____________________________|
+|ENTRY_BITS|1                |The number of bits per uncompressed patch entry,|
+|__________|_________________|including_the_sign_bit.__Must_be_4_or_8.________|
+|DATA______|to_end_of_payload|The_compressed_table_patch._____________________|
+
+                      Format of the PATCH variant payload
+ 
+A RESET variant must precede any PATCH variants.  This message resets the
+receiver's route table to a completely empty table of TABLE_LENGTH elements. 
+For hashing reasons discussed below, TABLE_LENGTH must be a power of two.  Each
+element of this table has a numerical value of INFINITY.  Typically INFINITY is
+chosen to be one greater than the maximum TTL, e.g., 11.  Hosts may send more
+RESET messages at any point in the future, e.g., if there has been a drastic
+change in the route table.  After receiving a RESET message along a connection
+C, a host is encouraged to disregard the route table for C and forward all
+queries along the C until the table has been fully updated via PATCH messages.
+[7]  This means, for example, that a client will broadcast all queries for a
+few seconds after startup.
+ 
+The PATCH variant incrementally changes the receiver's route table in the
+manner described in the previous section.  To prepare a patch, the sender first
+subtracts the last route table sent (or INFINITY if no table has been sent)
+from the current route table, yielding an array of signed numbers.  (Note that
+the sender must therefore store two route tables per connection.)  Then the
+sender interprets this array as a binary string and compresses it with a well-
+known algorithm.  Finally, the sender chunks this data into PATCH messages and
+sends these messages one-by-one.  Each message has a TTL of 1 and hops value of
+0, and all messages of the sequence share the same SEQ_SIZE, COMPRESSOR, and
+ENTRY_BITS fields.  (These are discussed later.)  The receiver inverts this
+process to update its route table. This is illustrated below.  Several examples
+of RESET and PATCH variants are shown in the appendix.
+                   Converting route tables to PATCH messages
+ 
+One may ask why multiple PATCH messages are sent for each table update; an
+alternative is to send a single giant PATCH every T minutes.   Unfortunately
+this would stall other Gnutella traffic for unacceptable periods of time. 
+Interleaving PATCH messages with normal traffic requires negligible extra
+bandwidth and decreases the worst-case latency of normal queries.  A maximum
+message size of 1KB might be a good choice.  This would block query traffic for
+at most 200 ms on a modem with 5KB/s bandwidth.  Clients are encouraged to
+spread the PATCH messages equally over the T minute window if possible. 
+ 
+The receiver uses the SEQ_NO and SEQ_SIZE fields to reassemble the compressed
+patch from a sequence of PATCH messages.  The SEQ_SIZE field is the number of
+PATCH messages in this sequence.  The SEQ_NO field is the message's position in
+the sequence.  Messages in the sequence must be sent in-order, so the SEQ_SIZE
+fields should increase by one in each message of the sequence.  If either of
+these conditions is violated (e.g., because the sender is improperly dropping
+buffered messages[8]), the receiver should close the connection; because table
+updates are generally incremental, there is no way to recover from a missing
+message.  Note that the sequence numbers are intended only to provide a "sanity
+check", not to make the use of a reliable transport layer (i.e., TCP)
+obsolete.  For this reason, no provisions are made for sequence restart. The
+sequence is completed when receiving a message whose SEQ_NO==SEQ_SIZE.  Note
+that sequences are limited to 255 messages, since only one unsigned byte is
+used per SEQ_SIZE field.  Also remember that the sender may send a RESET
+message at any time to start a new patch sequence
+ 
+Once the receiver has reassembled the compressed patch, it must decompress it
+with the algorithm specified in the COMPRESSOR field.  Currently two algorithms
+are specified: 0x0 for no algorithm or 0x1 for the ZLIB algorithm[9].  All
+implementations must support these algorithms.  New algorithms could be added
+in the future, though an out-of-band mechanism must be used to discover any
+such additional capabilities.
+ 
+Decompressing a compressed patch yields a sequence of bits.  The receiver must
+interpret these bits as an array of signed numbers in twos complement
+notation.  It does so by breaking the bits into elements that are ENTRY_BITS
+bits long.  The length of the resulting patch array must be the same length as
+the TABLE_SIZE field passed in the latest RESET message.  For simplicity,
+ENTRY_BITS is restricted to 4 or 8.  For example, the uncompressed string
+001011110000 would be interpreted as the patch [2, -1, 0] if ENTRY_BITS=4.  One
+could argue that a decent compression algorithm should eliminate the need vary
+this value, but our experiments show that setting ENTRY_BITS to 4 when possible
+can reduce table sizes by around 10%.
+ 
+In this scheme, table updates are not necessarily atomic.  That is, the
+receiver need not wait until receiving the last PATCH message before modifying
+or even propagating part of its route table for that connection.  We believe
+that this is actually a good thing.  First, it reduces the memory requirements
+of the client, as there is no need to buffer received PATCH messages.  Second,
+it may reduce the worst-case latency for table propagations.
+ 
+Older clients present difficulty in any sort of routing scheme, as they will
+not propagate route tables, creating "black holes" in the network.  For
+example, consider a string of clients A-B-X-C.  If X is an older client,
+queries from A will rarely reach C, though queries from C will reach A.  One
+option is for B to propagate a fake routing table from X with entries for all
+keywords, but this will undo the benefits of routing.  A better choice is for
+newer clients to prefer newer clients whenever possible.  This can be
+implemented through host discovery services like router.limewire.com, GUID
+versioning schemes[10], or the Gnutella "0.6" handshaking mechanism [Bil2]. 
+Whether or not a client connects to older clients at the cost of wasted
+bandwidth should be user configurable.  In the above example, A connects to X
+only if it wants to search older Gnutella clients.  Note that older clients
+will be able to search new clients.  This is illustrated below.
+ 
+               Partitioning the network into new and old clients
+ 
+ 
+
+Hashing Details
+
+ 
+A query string contains one or more arbitrarily long keywords.  These keywords
+should be separated by the ASCII value for a space (' '), i.e., the byte 0x20. 
+For example, the query string "graphics book" contains the keywords "graphics"
+and "book".  A consistent hash function h(k,m) is needed to map each keyword
+string k to an entry of a route table of length m.  This function must satisfy
+three properties:
+ 
+
+  1. It hashes keys of arbitrary length reasonably uniformly.
+  2. It is implemented easily and efficiently on most platforms.
+  3. It allows one to convert between hash tables of different sizes.  More
+     formally, given h(k, m) and m but not k it is possible to compute h(k, m')
+     for an arbitrary m'.  This allows clients with different route tables to
+     interoperate, an important feature for upwards compatibility.
+
+ 
+Any standard hash function should satisfy the first two properties.  The third
+property, however, is harder to satisfy.  For example, this effectively rules
+out division methods. i.e., those based on congruence modulo m.   Thankfully
+other methods will suffice.  To start, we need a way of converting an arbitrary
+length string k into a 32-bit natural number n.  We recommend calculating n
+from k as follows:
+ 
+                 n = k[3]k[2]k[1]k[0] ^ k[7]k[6]k[5]k[4] ^ ...
+ 
+Here wxyz refers to concatenation of bytes w through z, with z being the least
+significant byte.  x^y is the logical XOR of bytes x and y.  In other words,
+one interprets each keyword as a sequence of 32-bit little-endian
+numbers ­padded with 1 to 3 zeroes if needed and XORs the numbers together.
+ 
+Now one must map the natural number n onto the range 0 to (m-1).  While it is
+not practical, a function with the right properties is
+ 
+                        h'(n, m) = ë m ((n A) mod 1) û
+                      where A = (5-1)/2H0.6180339887...
+ 
+Here ëxû means the floor of x, and "x mod 1" means the fractional part of  x,
+i.e., x-ëxû.  This function is discussed in depth in Introduction to Algorithms
+by Cormen, Leiserson, and Rivest.  The value of A is suggested by Knuth to
+avoid collisions for a wide range of data.  Unfortunately this function is
+bound to result in different values on different platforms because of rounding
+errors. 
+ 
+However, if we restrict m a power of two, the function can be computed using
+integer operations as follows: first one multiplies the 32-bit value of n by
+the 32 bit-constant 0x4F1BBCDC, producing a 64-bit product.  The hash is then
+bits 31-b+1 through 31 of the product, inclusive, where b=log2(m).  (Assume 
+bits are labelled 0 through 63.)  A Java implementation of this function is
+shown in Appendix A, along with sample outputs.
+ 
+It is easy to interpolate/extrapolate this function when converting between
+tables of different sizes.  Assume we wish to interpolate a table T of size m
+to a table T' of size m'.  If we visualize the tables as number lines, it
+becomes clear that an element T'[i] should be set to the minimum of all
+overlapping elements of T.  This is illustrated below, along with pseudocode. 
+Here 'X' is the symbol for infinity.  In the pseudocode, we assume C-style
+indices (from 0 to m-1), assume that all elements of T' are initialized to
+infinity, and assume that T and T' use the same value for infinity.
+ 
+for all i, where 0 d i < m,
+for all i', where ë i m'/m û d i'< é(i+1) m'/mù
+T'[i']=min(T'[i'], T[i])
+ 
+                  Scaling route tables.  'X' means infinity.
+ 
+Current implementations lower-case keywords before adding them to route tables
+and when comparing incoming queries with the tables.  Internationalization
+presents some problems, however.   Clients cannot guess the language of a
+query, nor can they be expected cannot be expected to understand case rules for
+all languages, e.g. Arabic script.  There clients should ideally canonicalize
+all keywords in a (human) language-specific manner before adding them to route
+tables or sending them in queries.  For English, this means ensuring all
+letters are lower case.  Also, note that the hash function operates on bytes,
+not characters.  This means that all characters must be encoded in a unique,
+canonical manner.
+
+Conclusion
+
+ 
+The key assumption behind routing is that the savings in query reduction
+outweighs the cost of exchanging route tables.  The size of query routing
+tables depends on two factors: the number of distinct keywords in the horizon
+and the efficiency with which these can be encoded.  The number of keywords, in
+turn, depends on the number of users within the horizon and the number of
+distinct items they are sharing.  This latter is difficult to estimate.
+ 
+However, preliminary evidence suggests that these tables can be encoded quite
+efficiently.  As an experiment, we recorded query replies over several hours
+and built the routing tables corresponding to those replies.  We found that a
+65536 element route table with 12000 keywords and INFINITY=7 could be
+transmitted in just over 12 KB if ENTRY_BITS=4 one byte per keyword or 13 KB if
+ENTRY_BITS=8.
+ 
+As with the existing Gnutella protocol, this scheme limits your search radius
+to N hops.  That is not necessarily a problem.  Because routing allows you to
+hold more connections with the same amount of bandwidth, the diameter of the
+network will be greatly decreased.  In fact, Gnutella may already have a "small
+world" model, meaning that most hosts are reachable through a short number of
+hops. 
+ 
+Query routing has the potential to reduce Gnutella's bandwidth requirements by
+orders of magnitude, achieving true scalability.  However, query routing should
+be carefully studied in simulation before wider deployment.
+ 
+
+Appendix A: Java Implementation of Hash Function
+
+ 
+/**
+ * The official platform-independent hashing function for query-routing.  The
+ * key property is that it allows interpolation of hash tables of different
+ * sizes.  More formally k*hash(x,n)<=hash(x, kn)<=k*hash(x,n)+(k-1).<p>
+ */
+public class HashFunction {
+    /**
+     * A 32-bit integer version of the golden ratio, (sqrt(5)-1)/2, as
+suggested
+     * by Knuth.
+     */
+    private static final int A_INT=0x4F1BBCDC;
+ 
+    /**
+     * Returns the n-<b>bit</b> hash of x.toLowerCase(), where n="bits".  That
+     * is, the returned value value can fit in "bits" unsigned bits, and is
+     * between 0 and (2^bits)-1.
+     *
+     * @param x the string to hash
+     * @param bits the number of bits to use in the resulting answer
+     * @return the hash value
+     */   
+    public static int hash(String x, byte bits) {
+        return hash(x, 0, x.length(), bits);
+    }      
+ 
+    /**
+     * Returns the same value as hash(x.substring(start, end), bits),
+     * but tries to avoid allocations.  Note that x is lower-cased
+     * when hashing.
+     *
+     * @param x the string to hash
+     * @param bits the number of bits to use in the resulting answer
+     * @param start the start offset of the substring to hash
+     * @param end just PAST the end of the substring to hash
+     * @return the hash value
+     */  
+    public static int hash(String x, int start, int end, byte bits) {
+        //1. First turn x[start...end-1] into a number by treating all 4-byte
+        //chunks as a little-endian quadword, and XOR'ing the result together.
+        //We pad x with zeroes as needed.
+        //    To avoid having do deal with special cases, we do this by XOR'ing
+        //a rolling value one byte at a time, taking advantage of the fact that
+        //x XOR 0==x.
+        int xor=0;  //the running total
+        int j=0;    //the byte position in xor.  INVARIANT: j==(i-start)%4
+        for (int i=start; i<end; i++) {
+            int b=Character.toLowerCase(x.charAt(i)) & 0xFF;
+            b=b<<(j*8);
+            xor=xor^b;
+            j=(j+1)%4;
+        }
+        //2. Now map number to range 0 - (2^bits-1).
+        return hashFast(xor, bits);
+    }
+       
+    /**
+     * Returns the n-<b>bit</b> hash of x, where n="bits".  That is, the
+     * returned value value can fit in "bits" unsigned bits, and is
+     * between 0 and (2^bits)-1.
+     */
+    private static int hashFast(int x, byte bits) {
+        //Multiplication-based hash function.  See Chapter 12.3.2. of CLR.
+        long prod= (long)x * (long)A_INT;
+        long ret= prod << 32;
+        ret = ret >>> (32 + (32 - bits));
+        return (int)ret;
+    }
+ 
+    /** Unit tests. */
+    public static void main(String args[]) {
+        //1. Basic hash tests.  These unit tests were generated by the
+reference
+        //implementation of HashFunction.  Some I've checked manually.
+        Assert.that(hash("", (byte)13)==0);
+        Assert.that(hash("eb", (byte)13)==6791);
+        Assert.that(hash("ebc", (byte)13)==7082);
+        Assert.that(hash("ebck", (byte)13)==6698);
+        Assert.that(hash("ebckl", (byte)13)==3179);
+        Assert.that(hash("ebcklm", (byte)13)==3235);
+        Assert.that(hash("ebcklme", (byte)13)==6438);
+        Assert.that(hash("ebcklmen", (byte)13)==1062);
+        Assert.that(hash("ebcklmenq", (byte)13)==3527);
+        Assert.that(hash("", (byte)16)==0);
+        Assert.that(hash("n", (byte)16)==65003);
+        Assert.that(hash("nd", (byte)16)==54193);
+        Assert.that(hash("ndf", (byte)16)==4953);
+        Assert.that(hash("ndfl", (byte)16)==58201);
+        Assert.that(hash("ndfla", (byte)16)==34830);
+        Assert.that(hash("ndflal", (byte)16)==36910);
+        Assert.that(hash("ndflale", (byte)16)==34586);
+        Assert.that(hash("ndflalem", (byte)16)==37658);
+        Assert.that(hash("ndflaleme", (byte)16)==45559);
+        Assert.that(hash("ol2j34lj", (byte)10)==318);
+        Assert.that(hash("asdfas23", (byte)10)==503);
+        Assert.that(hash("9um3o34fd", (byte)10)==758);
+        Assert.that(hash("a234d", (byte)10)==281);
+        Assert.that(hash("a3f", (byte)10)==767);
+        Assert.that(hash("3nja9", (byte)10)==581);
+        Assert.that(hash("2459345938032343", (byte)10)==146);
+        Assert.that(hash("7777a88a8a8a8", (byte)10)==342);
+        Assert.that(hash("asdfjklkj3k", (byte)10)==861);
+        Assert.that(hash("adfk32l", (byte)10)==1011);
+        Assert.that(hash("zzzzzzzzzzz", (byte)10)==944);
+ 
+        //2. Case tests.
+        Assert.that(hash("3nja9", (byte)10)==581);
+        Assert.that(hash("3NJA9", (byte)10)==581);
+        Assert.that(hash("3nJa9", (byte)10)==581);
+    }
+}
+ 
+
+Appendix B: Patch Message Examples
+
+ 
+Here are sample encoding of query route tables.  These examples show the
+messages sent by a leaf node who initially shares a file named "test",
+subsequently shares a file named "qrp", then unshares the file named "test". 
+Hence keywords are always added with a distance of one.  Each example conveys
+the same information, showing that table updates can be encoded multiple ways.
+ 
+For simplicity, the table is only 8 entries long.  In all examples, INFINITY=7,
+though values as small as 2 could be used.  All messages are given in symbolic
+form along with the raw bytes in hexadecimal, with "|" denoting the end of the
+23 byte Gnutella header. 
+ 
+ 
+
+Example 1: BITS=8, no splitting or compression
+
+ 
+Note that –6 is encoded in a single byte as 11111010 in binary, or "fa" in
+hexadecimal.
+ 
+Initial encoding of table containing word "test" (hash=2)
+{RESET, tableSize: 8, Infinity: 7}
+85 d9 76 4d bf 2 1d 9a ff 72 e7 21 c3 40 dd 0 30 1 0 6 0 0 0 |
+0 8 0 0 0 7
+ 
+{PATCH, Sequence: 1/1, Bits: 8, Compr: 0, [<8 bytes>]
+a9 ab 9b 14 c1 1e 52 aa ff b4 b4 41 75 6d 29 0 30 1 0 d 0 0 0 |
+1 1 1 0 8 0 0 fa 0 0 0 0 0
+ 
+Adding the word "qrp" (hash=7)
+{PATCH, Sequence: 1/1, Bits: 8, Compr: 0, [<8 bytes>]
+d6 c4 b4 21 36 d0 ae 94 ff 56 7 e9 58 dd 72 0 30 1 0 d 0 0 0 |
+1 1 1 0 8 0 0 0 0 0 0 fa 0
+ 
+Removing "test"
+{PATCH, Sequence: 1/1, Bits: 8, Compr: 0, [<8 bytes>]
+3a e4 59 89 ae 3b 67 8a ff 96 95 66 e8 b2 b9 0 30 1 0 d 0 0 0 |
+1 1 1 0 8 0 0 6 0 0 0 0 0
+ 
+
+Example 2: BITS=4, no splitting or compression
+
+ 
+Note that –6 is encoded in a single nibble (half a byte) as 1010 in binary, or
+"a" in hexadecimal.
+ 
+Initial encoding of table containing word "test" (hash=2)
+{RESET, tableSize: 8, Infinity: 7}
+3f 7c 5a 8c 14 8a 38 22 ff bf 3b 76 5e 86 c6 0 30 1 0 6 0 0 0 |
+0 8 0 0 0 7
+ 
+{PATCH, Sequence: 1/1, Bits: 4, Compr: 0, [<4 bytes>]
+50 4a bb d7 c0 ea 68 68 ff ef 55 65 31 2f 39 0 30 1 0 9 0 0 0 |
+1 1 1 0 4 0 a0 0 0
+ 
+Adding the word "qrp" (hash=7)
+{PATCH, Sequence: 1/1, Bits: 4, Compr: 0, [<4 bytes>]
+5d 34 5b 67 f3 60 e 9c ff bc 26 79 5a 31 d2 0 30 1 0 9 0 0 0 |
+1 1 1 0 4 0 0 0 a0
+ 
+Removing "test"
+{PATCH, Sequence: 1/1, Bits: 4, Compr: 0, [<4 bytes>]
+f4 26 fa 2d b6 cc 23 7f ff ab 87 ef 6f 3a 93 0 30 1 0 9 0 0 0 |
+1 1 1 0 4 0 60 0 0
+ 
+
+Example 3: BITS=4, splitting, no compression
+
+ 
+Splitting is waste of bandwidth with such small tables, but it demonstrates how
+the protocol works with larger tables.
+ 
+Initial encoding of table containing word "test" (hash=2)
+{RESET, tableSize: 8, Infinity: 7}
+7e a1 67 2f 86 3b 9 8b ff a2 cd 26 88 4d 84 0 30 1 0 6 0 0 0 |
+0 8 0 0 0 7
+ 
+{PATCH, Sequence: 1/2, Bits: 4, Compr: 0, [<2 bytes>]
+a0 71 1 1f b1 e7 9e 63 ff f0 8a 60 c0 5a c 0 30 1 0 7 0 0 0 |
+1 1 2 0 4 0 a0
+ 
+{PATCH, Sequence: 2/2, Bits: 4, Compr: 0, [<2 bytes>]
+d 1b e6 71 eb 26 9c f ff 10 60 7f 31 72 41 0 30 1 0 7 0 0 0 |
+1 2 2 0 4 0 0
+ 
+Adding the word "qrp" (hash=7)
+{PATCH, Sequence: 1/2, Bits: 4, Compr: 0, [<2 bytes>]
+c7 ed 3d ca 3e ab 1d 5e ff e8 d6 5 1b 71 f6 0 30 1 0 7 0 0 0 |
+1 1 2 0 4 0 0
+ 
+{PATCH, Sequence: 2/2, Bits: 4, Compr: 0, [<2 bytes>]
+10 28 ad 5c fb 37 ba 4e ff 6b 38 a0 e2 1d d4 0 30 1 0 7 0 0 0 |
+1 2 2 0 4 0 a0
+ 
+Removing "test"
+{PATCH, Sequence: 1/2, Bits: 4, Compr: 0, [<2 bytes>]
+40 11 74 1d ff 85 b8 b3 ff 95 58 0 ee 6f de 0 30 1 0 7 0 0 0 |
+1 1 2 0 4 0 60
+ 
+{PATCH, Sequence: 2/2, Bits: 4, Compr: 0, [<2 bytes>]
+d8 6d f5 d1 38 a8 8 cf ff 20 c9 eb d2 f1 2b 0 30 1 0 7 0 0 0 |
+1 2 2 0 4 0 0
+ 
+
+Example 4: BITS=4, no splitting, compression
+
+ 
+Compression is a waste of bandwidth with such small tables, but it demonstrates
+how the protocol works with larger tables.
+ 
+Initial encoding of table containing word "test" (hash=2)
+{RESET, tableSize: 8, Infinity: 7}
+71 9f 38 68 49 c0 96 45 ff 23 ae 12 2 cd b3 0 30 1 0 6 0 0 0 |
+0 8 0 0 0 7
+ 
+{PATCH, Sequence: 1/1, Bits: 4, Compr: 1, [<12 bytes>]
+f1 a9 21 cf 47 75 9f 50 ff 8 f1 f3 57 d9 c3 0 30 1 0 11 0 0 0 |
+1 1 1 1 4 78 9c 63 58 c0 c0 0 0 1 e4 0 a1
+ 
+Adding the word "qrp" (hash=7)
+{PATCH, Sequence: 1/1, Bits: 4, Compr: 1, [<12 bytes>]
+fe 8 b5 ed a fb e7 88 ff d8 4d 6 af b 11 0 30 1 0 11 0 0 0 |
+1 1 1 1 4 78 9c 63 60 60 58 0 0 0 a4 0 a1
+ 
+Removing "test"
+{PATCH, Sequence: 1/1, Bits: 4, Compr: 1, [<12 bytes>]
+5a 23 fc 3d 27 d0 b1 17 ff b 92 c6 a2 af 1f 0 30 1 0 11 0 0 0 |
+1 1 1 1 4 78 9c 63 48 60 60 0 0 1 24 0 61
+ 
+
+Example 5: BITS=4, splitting and compression
+
+ 
+Initial encoding of table containing word "test" (hash=2)
+{RESET, tableSize: 8, Infinity: 7}
+2a c8 2f 10 90 1c a7 1e ff 14 6c 12 71 9f b7 0 30 1 0 6 0 0 0 |
+0 8 0 0 0 7
+ 
+{PATCH, Sequence: 1/2, Bits: 4, Compr: 1, [<10 bytes>]
+1f 6c dc 54 ac 1f 42 cc ff 31 99 15 a0 e0 36 0 30 1 0 f 0 0 0 |
+1 1 2 1 4 78 9c 63 58 c0 c0 0 0 1 e4
+ 
+{PATCH, Sequence: 2/2, Bits: 4, Compr: 1, [<2 bytes>]
+c1 c0 1a 79 2e 32 6e 54 ff e7 8d 21 de 4 3c 0 30 1 0 7 0 0 0 |
+1 2 2 1 4 0 a1
+ 
+Adding the word "qrp" (hash=7)
+{PATCH, Sequence: 1/2, Bits: 4, Compr: 1, [<10 bytes>]
+63 79 60 3 36 4f dd 86 ff a1 84 c4 dd d6 c7 0 30 1 0 f 0 0 0 |
+1 1 2 1 4 78 9c 63 60 60 58 0 0 0 a4
+ 
+{PATCH, Sequence: 2/2, Bits: 4, Compr: 1, [<2 bytes>]
+6d 93 7 a0 73 14 1b 69 ff 62 66 ba 56 47 10 0 30 1 0 7 0 0 0 |
+1 2 2 1 4 0 a1
+ 
+Removing "test"
+{PATCH, Sequence: 1/2, Bits: 4, Compr: 1, [<10 bytes>]
+70 da 77 93 a2 f6 53 39 ff 5f e7 fa 2c 1f c2 0 30 1 0 f 0 0 0 |
+1 1 2 1 4 78 9c 63 48 60 60 0 0 1 24
+ 
+{PATCH, Sequence: 2/2, Bits: 4, Compr: 1, [<2 bytes>]
+7a 19 5c b6 54 ba bc ec ff 4e 3d c5 d1 2f a9 0 30 1 0 7 0 0 0 |
+1 2 2 1 4 0 61
+
+-------------------------------------------------------------------------------
+[1] Generally speaking, it is better to propagate keywords than full
+filenames.  First, it generally saves bandwidth when propagating tables.  For
+example the files "good book" and "bad book" can be compressed into the keyword
+set {"good", "bad", "book"}.  Secondly, it makes query processing easier, since
+hosts don't need  to check whether a query is a substring of each filename. 
+Finally, this scheme allows hosts greater flexibility in query responses.  For
+example, it allows a host to match queries with the contents of a file not just
+its name if it desires. 
+[2] Logically OR'ing bitmaps is analogous to unioning sets of keywords.
+[3] This is similar to the improved horizon counting algorithm described by
+Rohrs [Roh].
+[4] Intuitively, one expects more files available at N+1 hops than N hops,
+since a query of TTL N+1 can search a much larger horizon.  Hence smaller hops
+values should be much less common than large hop values in our routing tables. 
+Statistical compression schemes such as Huffman encodings take advantage of
+precisely this.
+[5] An original draft of our protocol had separate sparse and dense update
+messages for use with different kinds of route tables, as suggested by
+Prinkey.  Now such distinctions are not needed; the compression scheme relieves
+us of this burden.
+[6]A study of 300 connections over several days showed that the average uptime
+of a connection was 24 minutes.   The average uptime of a connection surviving
+1 minute was 88 minutes.  The average uptime of a connection surviving 5
+minutes was 133 minutes more than two hours.  So the longer a connection is up,
+the longer one can expect it to remain up.
+[7] An alternative is for RESET messages to initialize the receiver's route
+table to be a completely full route table, i.e., one for which all elements are
+0.  Then no special rules are needed when forwarding queries.  The problem is
+that the client must not propagate the RESET'ed route table along other
+connections until the last PATCH message has been received.  Doing so would
+quickly flood the network with full tables, making query routing useless.
+[8] Flow control schemes should make sure that route table messages are never
+dropped.
+[9] Revision 0.1 of our proposal used GZIP instead of ZLIB.  GZIP uses ZLIB
+internally but also adds a header and checksum.  Hence using ZLIB saves a few
+bytes.  We also found Java's support for ZLIB to be better than its support for
+GZIP.  C programmers can use the zlib library to create and read ZLIB data. 
+Revision 0.3 of this document mistakenly referred to the "DEFLATE" algorithm
+instead of ZLIB.  While the two are related, they are not identical.
+[10] All "modern" Gnutella clients use marked GUIDs for identification
+purposes.  The ninth byte of these GUIDs (guid[8]) is all 1's to distinguish
+them from the Gnutella 0.56 client.  The last byte is a version number to allow
+Gnutella protocol versioning.  The current version number is 0.  The remaining
+bytes are typically random, though this is not required.
+
+-------------------------------------------------------------------------------
+[Sin] Singla, Anurag and Christopher Rohrs.  Ultrapeers: Another Step Towards
+Gnutella Scalability.  http://groups.yahoo.com/group/the_gdf/files/Proposals/
+Ultrapeer/Ultrapeers.html
+[Bil] Bildson, Greg.   Gnutella: Settings the Record Straight.  http://
+www.limewire.com/index.jsp/setting_record.
+[Lan] Langley, Adam.  "Freenet."  Peer-to-Peer: Harnessing the Power of
+Disruptive Technologies.  Ed. Andy Oram.  O'Reilly, 2001.  123-132.
+[Pri] Prinkey, Michael T.  An Efficient Scheme for Query Processing on Peer-to-
+Peer Networks http://aeolusres.homestead.com/files/index.html.
+[Roh] Rohrs, Christopher.  Improving Gnutella's Ping/Pong Scheme. http://
+www.limewire.com/index.jsp/pingpong. 
+[Bil2] Bildson, Greg and Christopher Rohrs.  An Extensible Handshaking Protocol
+for the Gnutella Network.  http://groups.yahoo.com/group/the_gdf/files/
+Development/Gnutella%200.6%20Handshaking%20Protocol
