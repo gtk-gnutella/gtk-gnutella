@@ -593,7 +593,7 @@ void node_timer(time_t now)
 					g_free(reason);
 				}
 			} else if (
-				current_peermode != NODE_P_LEAF && !NODE_IS_LEAF(n) &&
+				!NODE_IS_LEAF(n) &&
 				now - n->last_update > node_connected_timeout
 			) {
 				node_mark_bad(n);
@@ -3975,6 +3975,7 @@ void node_add_socket(struct gnutella_socket *s, guint32 ip, guint16 port)
 	n->peermode = NODE_P_UNKNOWN;		/* Until end of handshaking */
 	n->start_peermode = (node_peer_t) current_peermode;
 	n->hops_flow = MAX_HOP_COUNT;
+	n->last_update = time(NULL);
 
 	n->routing_data = NULL;
 	n->flags = NODE_F_HDSK_PING;
