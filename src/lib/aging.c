@@ -85,7 +85,7 @@ struct aging_value {
  */
 gpointer
 aging_make(
-	gint delay, GHashFunc hash, aging_equal_t eq,
+	gint delay, GHashFunc hash, GEqualFunc eq,
 	aging_free_t kfree, gpointer kdata,
 	aging_free_t vfree, gpointer vdata)
 {

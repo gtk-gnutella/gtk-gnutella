@@ -26,15 +26,16 @@
 #ifndef _aging_h_
 #define _aging_h_
 
+#include "glib-missing.h"	/* For GEqualFunc in glib-1.x */
+
 typedef void (*aging_free_t)(gpointer value, gpointer udata);
-typedef gboolean (*aging_equal_t)(gconstpointer a, gconstpointer b);
 
 /*
  * Public interface.
  */
 
 gpointer aging_make(
-	gint delay, GHashFunc hash, aging_equal_t eq,
+	gint delay, GHashFunc hash, GEqualFunc eq,
 	aging_free_t kfree, gpointer kdata,
 	aging_free_t vfree, gpointer vdata);
 
