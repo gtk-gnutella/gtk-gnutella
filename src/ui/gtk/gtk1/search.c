@@ -403,8 +403,9 @@ gboolean search_gui_new_search_full(
     sch->passive = (flags & SEARCH_PASSIVE) ? TRUE : FALSE;
 	sch->dups = g_hash_table_new((GHashFunc) search_gui_hash_func,
 					(GCompareFunc) search_gui_hash_key_compare);
-	if (!sch->dups)
+	if (!sch->dups) {
 		g_error("new_search: unable to allocate hash table.\n");
+	}
     
 	sch->parents = g_hash_table_new(NULL, NULL);	
   	filter_new_for_search(sch);
@@ -1836,7 +1837,6 @@ void search_gui_init(void)
     GtkCombo *combo_searches = GTK_COMBO
         (lookup_widget(main_window, "combo_searches"));
 
-	gint i;
 	GtkCTree *ctree;
 	search_t *current_search;
 	
@@ -1864,9 +1864,8 @@ void search_gui_init(void)
     ctree = (current_search != NULL) ? 
 		GTK_CTREE(current_search->ctree) : default_search_ctree;
         
-    for (i = 0; i < GTK_CLIST(ctree)->columns; i ++)
-    	gtk_clist_set_column_visibility
-        (GTK_CLIST(ctree), i, (gboolean) search_results_col_visible[i]);
+	gtk_clist_restore_visibility(
+		GTK_CLIST(ctree), PROP_SEARCH_RESULTS_COL_VISIBLE);
 
 	search_gui_retrieve_searches();
     search_add_got_results_listener(search_gui_got_results);
@@ -1879,7 +1878,6 @@ void search_gui_init(void)
 void search_gui_shutdown(void)
 {
 	GtkCTree *ctree;
-	gint i;
     search_t *current_search = search_gui_get_current_search();
 
     search_remove_got_results_listener(search_gui_got_results);
@@ -1888,9 +1886,8 @@ void search_gui_shutdown(void)
     ctree = (current_search != NULL) ? 
 		GTK_CTREE(current_search->ctree) : default_search_ctree;
 
-    for (i = 0; i < GTK_CLIST(ctree)->columns; i ++)
-        *(gboolean *) &search_results_col_visible[i] =
-			GTK_CLIST(ctree)->column[i].visible;
+	gtk_clist_save_visibility(
+		GTK_CLIST(ctree), PROP_SEARCH_RESULTS_COL_VISIBLE);
 
     while (searches != NULL)
         search_gui_close_search((search_t *) searches->data);
