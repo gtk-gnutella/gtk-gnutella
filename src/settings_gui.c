@@ -536,6 +536,7 @@ static prop_map_t property_map[] = {
         "clist_filter_filters",
         FREQ_UPDATES, 0
     },
+#ifndef USE_GTK2 
     {
         get_main_window,
         PROP_SEARCH_RESULTS_COL_WIDTHS,
@@ -544,6 +545,7 @@ static prop_map_t property_map[] = {
         NULL,
         FREQ_UPDATES, 0
     },
+#endif
     {
         get_main_window,
         PROP_SEARCH_RESULTS_COL_VISIBLE,

@@ -1373,38 +1373,25 @@ static void search_gui_got_results(
 /*
  * search_gui_search_results_col_widths_changed:
  *
- * Callback to update the columns withs in the currently visible search.
- * This is not in settings_gui because the current search should not be
  * known outside this file.
  */
-gboolean search_gui_search_results_col_widths_changed(property_t prop)
+static void sync_column_widths(GtkTreeView *treeview)
 {
     guint32 *width;
-    GtkTreeView *tree_view;
+	gint i;
 
-    if (current_search == NULL && default_search_tree_view == NULL)
-        return FALSE;
-
+	g_assert(NULL != treeview);
     width = gui_prop_get_guint32(PROP_SEARCH_RESULTS_COL_WIDTHS, NULL, 0, 0);
 
-    tree_view = GTK_TREE_VIEW((current_search != NULL) ? 
-        current_search->tree_view : default_search_tree_view);
-
-    if (tree_view != NULL) {
-        gint i;
-
-        for (i = 0; i <= c_sr_info; i ++)
-         	gtk_tree_view_column_set_fixed_width(
-					gtk_tree_view_get_column(tree_view, i),
-					MAX(1, (gint) width[i]));
-    }
+    for (i = 0; i <= c_sr_info; i ++)
+		gtk_tree_view_column_set_fixed_width(
+			gtk_tree_view_get_column(treeview, i), MAX(1, (gint) width[i]));
 
     G_FREE_NULL(width);
-    return FALSE;
 }
 
 /*
- * search_gui_search_results_col_widths_changed:
+ * search_gui_search_results_col_visible_changed:
  *
  * Callback to update the columns withs in the currently visible search.
  * This is not in settings_gui because the current search should not be
@@ -1981,8 +1968,7 @@ void search_gui_set_current_search(search_t *sch)
             lookup_widget(popup_search, "popup_search_resume"), FALSE);
     }
 
-	search_gui_search_results_col_widths_changed(
-		PROP_SEARCH_RESULTS_COL_WIDTHS);
+	sync_column_widths(GTK_TREE_VIEW(sch->tree_view));
 
     /*
      * Search results notebook
