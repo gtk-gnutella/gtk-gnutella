@@ -43,11 +43,14 @@ void locale_init(void);
 void locale_close(void);
 const gchar *locale_get_charset(void);
 gint utf8_is_valid_char(const gchar *s);
-gint utf8_is_valid_string(const gchar *s, gint len);
+size_t utf8_is_valid_string(const gchar *s, size_t len);
 size_t strlcpy_utf8(gchar *dst, const gchar *src, size_t dst_size);
 guint32 utf8_decode_char(const gchar *s, gint len, gint *retlen, gboolean warn);
 gint utf8_to_iso8859(gchar *s, gint len, gboolean space);
 size_t utf8_strlower(gchar *dst, const gchar *src, size_t size);
+gchar *utf8_strlower_copy(const gchar *src);
+size_t utf8_strupper(gchar *dst, const gchar *src, size_t size);
+gchar *utf8_strupper_copy(const gchar *src);
 
 /*
  * Necessary for GTK+ 2.x version because it expects almost any string
