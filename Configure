@@ -18,7 +18,7 @@
 
 # $Id$
 #
-# Generated on Sun Jun 20 22:32:24 MEST 2004 [metaconfig 3.0 PL70]
+# Generated on Fri Jun 25 00:10:14 MEST 2004 [metaconfig 3.0 PL70]
 
 cat >c1$$ <<EOF
 ARGGGHHHH!!!!!
@@ -4291,7 +4291,10 @@ else
 		else
 			echo "$ar didn't seem to work right." >&4
 			echo "Maybe this is a Cray...trying bld instead..." >&4
-			if bld t $libc | $sed -e 's/.*\///' -e "s/\\$_o:.*\$//" > libc.list
+			if
+				bld t $libc | \
+					$sed -e 's/.*\///' -e "s/\\$_o:.*\$//" > libc.list &&
+				$test -s libc.list
 			then
 				for thisname in $libnames; do
 					bld t $libnames | \
