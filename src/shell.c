@@ -31,6 +31,7 @@
 #include "shell.h"
 #include "sockets.h"
 #include "settings.h"
+#include "gnet_property_priv.h"
 
 #include "search_gui.h" /* FIXME: remove this dependency */
 
@@ -920,7 +921,11 @@ void shell_add(struct gnutella_socket *s)
 
 	sl_shells = g_slist_prepend(sl_shells, sh);
 
-	if (!shell_auth(getline_str(s->getline))) {
+	if (!enable_shell) {
+		g_warning("shell control interface disabled");
+		shell_write(sh, "401 Disabled\n");
+		shell_shutdown(sh);
+	} else if (!shell_auth(getline_str(s->getline))) {
 		g_warning("invalid credentials");
 		shell_write(sh, "400 Invalid credentials\n");
 		shell_shutdown(sh);
