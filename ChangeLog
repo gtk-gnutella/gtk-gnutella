@@ -1,5 +1,10 @@
 # since last version
 
+- (2004.03.03 - Jeroen)
+ * Fixed compiler error on some compilers
+ * When in random port mode, retry a new port of the random chosen port
+   could not be binded. (Also the 1 - 1024 is now tried)
+ 
 - (2004.03.02 - Jeroen)
  * Included HSEP patch 5 from Thomas.
  * Added shell patch 6
