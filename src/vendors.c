@@ -54,7 +54,7 @@ struct vendor {
     { T_GNUT, "Gnut" },
     { T_GTKG, "gtk-gnutella" },
     { T_HSLG, "Hagelslag" },
-    { T_LIME, "Limewire" },
+    { T_LIME, "LimeWire" },
     { T_MACT, "Mactella" },
     { T_MLDK, "MLDonkey" },
     { T_MMMM, "Morpheus-v2" },
