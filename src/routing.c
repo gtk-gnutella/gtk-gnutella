@@ -651,8 +651,6 @@ static gboolean forward_message(struct gnutella_node **node,
 
 	routing_log("[H] [NEW] ");
 
-	message_add(sender->header.muid, sender->header.function, sender);
-
 	sender->header.hops++;	/* Going to handle it, must be accurate */
 
 	if (!--sender->header.ttl) {
@@ -707,6 +705,16 @@ static gboolean forward_message(struct gnutella_node **node,
 			dest->ur.u_node = sender;
 		}
 	}
+
+	/*
+	 * Record the message in the routing table.
+	 *
+	 * This must not be done earlier, or we could corrupt the `m->routes'
+	 * argument that was given to us on entry as the `dest' parameter.
+	 * But now that we have traversed the list, it is safe.
+	 */
+
+	message_add(sender->header.muid, sender->header.function, sender);
 
 	return TRUE;
 }
