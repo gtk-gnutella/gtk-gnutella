@@ -284,6 +284,7 @@ gpointer atom_get(gint type, gconstpointer key)
 	struct atom *a;
 	gint len;
 
+    g_assert(key != NULL);
 	g_assert(type >= 0 && type < COUNT(atoms));
 
 	td = &atoms[type];		/* Where atoms of this type are held */
@@ -336,6 +337,7 @@ void atom_free(gint type, gconstpointer key)
 	gpointer x;
 	struct atom *a;
 
+    g_assert(key != NULL);
 	g_assert(type >= 0 && type < COUNT(atoms));
 
 	td = &atoms[type];		/* Where atoms of this type are held */
