@@ -115,6 +115,16 @@ static void gwc_get_urls(void);
 static void gwc_update_ip_url(void);
 static void gwc_seed_cache(gchar *cache_url);
 
+/*
+ * The following URLs are there for bootstrapping purposes only.
+ */
+
+static gchar *boot_url[] = {
+	"http://www.gnucleus.net/gcache/gcache.php",
+	"http://gwebcache.bearshare.net/gcache.php",
+	"http://raphael.manfredi.free.fr/gwc/gcache.php",
+};
+
 extern cqueue_t *callout_queue;
 
 /*
@@ -355,15 +365,12 @@ static void gwc_urlfile_retry(cqueue_t *cq, gpointer obj)
  */
 void gwc_init(void)
 {
+	gint i;
+
 	gwc_known_url = g_hash_table_new(g_str_hash, g_str_equal);
 
-	/*
-	 * The following URLs are there for bootstrapping purposes only.
-	 */
-
-	gwc_add("http://www.gnucleus.net/gcache/gcache.php");
-	gwc_add("http://gwebcache.bearshare.net/gcache.php");
-	gwc_add("http://raphael.manfredi.free.fr/gwc/gcache.php");
+	for (i = 0; i < G_N_ELEMENTS(boot_url); i++)
+		gwc_add(boot_url[i]);
 
 	gwc_retrieve();
 
@@ -415,14 +422,110 @@ static gboolean check_current_url(void)
 }
 
 /*
+ * forget_url
+ *
+ * Remove all knowledge about given URL, but do not free its memory.
+ */
+static void forget_url(gchar *url)
+{
+	gchar *url_tmp[MAX_GWC_URLS];			/* Temporary copy */
+	gint count = g_hash_table_size(gwc_known_url);
+	gint i;
+	gint j = 0;
+
+	g_assert(count > 0);
+	g_assert(count <= MAX_GWC_URLS);
+	g_assert(count == MAX_GWC_URLS || gwc_url_slot < count);
+	g_assert(gwc_url_slot >= 0);
+	g_assert(sizeof(url_tmp) == sizeof(gwc_url));
+
+	if (dbg)
+		g_warning("forgetting GWC URL \"%s\"", url);
+
+	/*
+	 * It is possible that the URL we're trying to forget was
+	 * already removed from the cache if it was at a slot overridden
+	 * in the round-robin buffer, should we have got new GWC URL since
+	 * it was selected.
+	 */
+
+	if (g_hash_table_lookup(gwc_known_url, url))
+		g_hash_table_remove(gwc_known_url, url);
+	else {
+		if (dbg)
+			g_warning("URL was already gone from GWC");
+		return;
+	}
+
+	/*
+	 * Because we have a round-robin buffer, removing something in the
+	 * middle of the buffer is not straightforward.  The `gwc_url_slot'
+	 * variable points to the last filled value in the buffer.
+	 *
+	 * We're going to build a copy in url_tmp[], filled from 0 to "count - 1",
+	 * and we'll move back that copy into the regular gwc_url[] cache.
+	 * The reason is that since there will be less entries in the cache
+	 * than the maximum amount, the round-robin buffer must be linearily
+	 * filled from 0 and upwards.
+	 */
+
+	if (count == MAX_GWC_URLS) {		/* Buffer was full */
+		for (i = gwc_url_slot;;) {
+			if (gwc_url[i] != url)		/* Atoms: we can compare addresses */
+				url_tmp[j++] = gwc_url[i];
+			i++;
+			if (i == MAX_GWC_URLS)
+				i = 0;
+			if (i == gwc_url_slot)		/* Back to where we started */
+				break;
+		}
+		url_tmp[MAX_GWC_URLS - 1] = NULL;
+	} else {							/* Buffer was partially filled */
+		for (i = 0; i <= gwc_url_slot; i++) {
+			if (gwc_url[i] != url)		/* Atoms: we can compare addresses */
+				url_tmp[j++] = gwc_url[i];
+		}
+		for (i = gwc_url_slot + 1; i < MAX_GWC_URLS; i++)
+			url_tmp[i] = NULL;
+	}
+
+	count--;							/* New amount of data in cache */
+	gwc_url_slot = j - 1;				/* Last position we filled */
+	memcpy(gwc_url, url_tmp, sizeof(gwc_url));
+
+	g_assert(gwc_url_slot >= 0 && gwc_url_slot < MAX_GWC_URLS);
+	g_assert(gwc_url_slot == count - 1);
+
+	/*
+	 * If we have less that the amount of bootstrapping URLs, fill
+	 * the cache with those.
+	 */
+
+	j = G_N_ELEMENTS(boot_url);
+
+	for (i = 0; i < j && count < j; i++) {
+		if (0 != strcmp(url, boot_url[i])) {
+			gwc_add(boot_url[i]);		/* Only if not the removed URL */
+			count++;
+		}
+	}
+
+	gwc_file_dirty = TRUE;
+}
+
+/*
  * clear_current_url
  *
  * Dispose of current URL atom, if defined.
+ * When `discard' is set, we remove the current URL physically from our cache.
  */
-static void clear_current_url(void)
+static void clear_current_url(gboolean discard)
 {
 	if (current_url == NULL)
 		return;
+
+	if (discard)
+		forget_url(current_url);
 
 	atom_str_free(current_url);
 	current_url = NULL;
@@ -452,7 +555,7 @@ void gwc_close(void)
 		atom_str_free(url);
 	}
 
-	clear_current_url();
+	clear_current_url(FALSE);
 }
 
 /***
@@ -569,7 +672,7 @@ static void parse_dispatch_lines(
 		linelen = str_chomp(linep, getline_length(getline));
 
 		if (!(*cb)(ctx, linep, linelen)) {
-			clear_current_url();		/* An ERROR was reported */
+			clear_current_url(TRUE);	/* An ERROR was reported */
 			return;
 		}
 
@@ -638,7 +741,7 @@ static void gwc_url_eof(struct parse_context *ctx)
 
 	if (ctx->processed < MIN_URL_LINES) {
 		gwc_seed_cache(current_url);
-		clear_current_url();		/* This webcache has nothing */
+		clear_current_url(TRUE);	/* This webcache has nothing */
 
 		/*
 		 * Retry the urlfile request after some delay.
@@ -670,7 +773,7 @@ static void gwc_url_error_ind(gpointer handle, http_errtype_t type, gpointer v)
 {
 	http_async_log_error(handle, type, v);
 
-	clear_current_url();			/* This webcache is not good */
+	clear_current_url(TRUE);		/* This webcache is not good */
 
 	/*
 	 * Retry the urlfile request after some delay.
@@ -715,7 +818,7 @@ static void gwc_get_urls(void)
 	if (!handle) {
 		g_warning("could not launch a \"GET %s\" request: %s",
 			gwc_tmp, http_async_strerror(http_async_errno));
-		clear_current_url();
+		clear_current_url(TRUE);
 		return;
 	}
 
@@ -772,7 +875,7 @@ static void gwc_host_eof(struct parse_context *ctx)
 
 	if (ctx->processed < MIN_IP_LINES) {
 		gwc_seed_cache(current_url);
-		clear_current_url();				/* Move to another cache */
+		clear_current_url(FALSE);			/* Move to another cache */
 	}
 
 	hostfile_running = FALSE;
@@ -798,7 +901,7 @@ static void gwc_host_error_ind(gpointer handle, http_errtype_t type, gpointer v)
 	http_async_log_error(handle, type, v);
 	hostfile_running = FALSE;
 
-	clear_current_url();				/* This webcache is not good */
+	clear_current_url(TRUE);			/* This webcache is not good */
 }
 
 /*
@@ -836,7 +939,7 @@ void gwc_get_hosts(void)
 	if (!handle) {
 		g_warning("could not launch a \"GET %s\" request: %s",
 			gwc_tmp, http_async_strerror(http_async_errno));
-		clear_current_url();
+		clear_current_url(TRUE);
 		return;
 	}
 
@@ -895,7 +998,7 @@ static void gwc_update_error_ind(
 	gpointer handle, http_errtype_t type, gpointer v)
 {
 	http_async_log_error(handle, type, v);
-	clear_current_url();				/* This webcache is not good */
+	clear_current_url(TRUE);			/* This webcache is not good */
 }
 
 /*
@@ -990,7 +1093,7 @@ static void gwc_update_this(gchar *cache_url)
 		g_warning("could not launch a \"GET %s\" request: %s",
 			gwc_tmp, http_async_strerror(http_async_errno));
 		if (cache_url == current_url)
-			clear_current_url();
+			clear_current_url(TRUE);
 		return;
 	}
 
