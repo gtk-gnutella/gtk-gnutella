@@ -7,6 +7,8 @@
   * Removed useless SIG_Ignore() signal handling trap, just SIG_IGN them.
   * Ignore SIGXFSZ so that subsequent write() fail: if not ignored, that
 	signal will kill the process.
+  * Added debugging output for auto-downloads, and refactored list iteration
+	bits to be more in line with the other uses.
 
 - (2002.04.21 - Richard)
   * click on bandwidth stats to toggle display mode (normal/average)

@@ -21,6 +21,7 @@ void autodownload_init()
 	FILE *f;
 	int i;
 	struct stat sbuf;
+	GSList *l;
 
 	if (!use_autodownload)
 		return;
@@ -36,11 +37,12 @@ void autodownload_init()
 		return;
 	auto_last_mtime = sbuf.st_mtime;
 
-	while (auto_strings != NULL) {
-		pattern = auto_strings->data;
-		auto_strings = g_slist_remove(auto_strings, pattern);
+	for (l = auto_strings; l; l = l->next) {
+		pattern = (cpattern_t *) l->data;
 		pattern_free(pattern);
 	}
+	g_slist_free(auto_strings);
+	auto_strings = NULL;
 
 	f = fopen(auto_download_file, "r");
 	if (f == NULL) {
@@ -69,24 +71,24 @@ void autodownload_notify(gchar* file, guint32 size,
 						 guint32 record_index, guint32 ip,
 						 guint16 port, gchar* guid, gboolean push)
 {
-	GSList* cur_pattern;
+	GSList* l;
 
 	g_assert(use_autodownload);
 
-	cur_pattern = auto_strings;
-	while (cur_pattern != NULL) {
+	for (l = auto_strings; l; l = l->next) {
 		cpattern_t *pattern;
 		gchar *result;
 
-		pattern = cur_pattern->data;
+		pattern = (cpattern_t *) l->data;
 		result = pattern_qsearch(pattern, file, 0, 0, qs_any);
 
 		if (result != NULL) {
+			if (dbg > 3)
+				printf("*** AUTO-MATCHED '%s' pattern '%s'\n",
+					file, pattern->pattern);
 			auto_download_new(file, size, record_index, ip, port, guid, push);
 			return;
 		}
-
-		cur_pattern = g_slist_next(cur_pattern);
 	}
 
 	return;
