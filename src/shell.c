@@ -704,7 +704,7 @@ void shell_add(struct gnutella_socket *s)
 	sh = shell_new(s);
     
     g_assert(s->gdk_tag == 0);
-    s->gdk_tag = gdk_input_add(s->file_desc,
+    s->gdk_tag = inputevt_add(s->file_desc,
         GDK_INPUT_READ | GDK_INPUT_EXCEPTION,
 		shell_handle_data, (gpointer) sh);
 
