@@ -54,15 +54,7 @@ create_main_window (void)
   GtkWidget *toolbar1;
   GtkWidget *tmp_toolbar_icon;
   GtkWidget *button_quit;
-  GtkWidget *button_search_filter;
-  GtkWidget *togglebutton_queue_freeze;
-  GtkWidget *hbox159;
-  GtkWidget *vbox_queue_freeze;
-  GtkWidget *pixmap1;
-  GtkWidget *label406;
-  GtkWidget *vbox_queue_thaw;
-  GtkWidget *pixmap2;
-  GtkWidget *label407;
+  GtkWidget *button23;
   GtkWidget *hpaned_main;
   GtkWidget *vpaned_sidebar;
   GtkWidget *sw_menu;
@@ -217,6 +209,13 @@ create_main_window (void)
   GtkWidget *label154;
   GtkWidget *label_qu_server;
   GtkWidget *label155;
+  GtkWidget *hbox162;
+  GtkWidget *togglebutton_queue_freeze;
+  GtkWidget *hbox159;
+  GtkWidget *vbox_queue_freeze;
+  GtkWidget *label406;
+  GtkWidget *vbox_queue_thaw;
+  GtkWidget *label407;
   GtkWidget *hbox86;
   GtkWidget *label149;
   GtkWidget *entry_queue_regex;
@@ -266,6 +265,7 @@ create_main_window (void)
   GtkWidget *button_search_download;
   GtkWidget *button_search_clear;
   GtkWidget *label294;
+  GtkWidget *button_search_filter;
   GtkWidget *checkbutton_search_results_show_settings;
   GtkWidget *label_search_results_show_settings;
   GtkWidget *label_search;
@@ -922,85 +922,17 @@ create_main_window (void)
   gtk_toolbar_append_space (GTK_TOOLBAR (toolbar1));
 
   tmp_toolbar_icon = create_pixmap (main_window, "filter.xpm");
-  button_search_filter = gtk_toolbar_append_element (GTK_TOOLBAR (toolbar1),
+  button23 = gtk_toolbar_append_element (GTK_TOOLBAR (toolbar1),
                                 GTK_TOOLBAR_CHILD_BUTTON,
                                 NULL,
                                 "Filters",
                                 NULL, NULL,
                                 tmp_toolbar_icon, NULL, NULL);
-  gtk_widget_set_name (button_search_filter, "button_search_filter");
-  gtk_widget_ref (button_search_filter);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "button_search_filter", button_search_filter,
+  gtk_widget_set_name (button23, "button23");
+  gtk_widget_ref (button23);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "button23", button23,
                             (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (button_search_filter);
-
-  togglebutton_queue_freeze = gtk_toggle_button_new ();
-  gtk_widget_set_name (togglebutton_queue_freeze, "togglebutton_queue_freeze");
-  gtk_widget_ref (togglebutton_queue_freeze);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "togglebutton_queue_freeze", togglebutton_queue_freeze,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (togglebutton_queue_freeze);
-  gtk_toolbar_append_space (GTK_TOOLBAR (toolbar1));
-
-  gtk_toolbar_append_widget (GTK_TOOLBAR (toolbar1), togglebutton_queue_freeze, NULL, NULL);
-  gtk_button_set_relief (GTK_BUTTON (togglebutton_queue_freeze), GTK_RELIEF_NONE);
-
-  hbox159 = gtk_hbox_new (FALSE, 0);
-  gtk_widget_set_name (hbox159, "hbox159");
-  gtk_widget_ref (hbox159);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "hbox159", hbox159,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (hbox159);
-  gtk_container_add (GTK_CONTAINER (togglebutton_queue_freeze), hbox159);
-
-  vbox_queue_freeze = gtk_vbox_new (FALSE, 0);
-  gtk_widget_set_name (vbox_queue_freeze, "vbox_queue_freeze");
-  gtk_widget_ref (vbox_queue_freeze);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "vbox_queue_freeze", vbox_queue_freeze,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (vbox_queue_freeze);
-  gtk_box_pack_start (GTK_BOX (hbox159), vbox_queue_freeze, TRUE, TRUE, 0);
-
-  pixmap1 = create_pixmap (main_window, "freeze.xpm");
-  gtk_widget_set_name (pixmap1, "pixmap1");
-  gtk_widget_ref (pixmap1);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "pixmap1", pixmap1,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (pixmap1);
-  gtk_box_pack_start (GTK_BOX (vbox_queue_freeze), pixmap1, TRUE, TRUE, 0);
-  gtk_pixmap_set_build_insensitive (GTK_PIXMAP (pixmap1), FALSE);
-
-  label406 = gtk_label_new ("Freeze queue");
-  gtk_widget_set_name (label406, "label406");
-  gtk_widget_ref (label406);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "label406", label406,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (label406);
-  gtk_box_pack_start (GTK_BOX (vbox_queue_freeze), label406, FALSE, FALSE, 0);
-
-  vbox_queue_thaw = gtk_vbox_new (FALSE, 0);
-  gtk_widget_set_name (vbox_queue_thaw, "vbox_queue_thaw");
-  gtk_widget_ref (vbox_queue_thaw);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "vbox_queue_thaw", vbox_queue_thaw,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_box_pack_start (GTK_BOX (hbox159), vbox_queue_thaw, TRUE, TRUE, 0);
-
-  pixmap2 = create_pixmap (main_window, "thaw.xpm");
-  gtk_widget_set_name (pixmap2, "pixmap2");
-  gtk_widget_ref (pixmap2);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "pixmap2", pixmap2,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (pixmap2);
-  gtk_box_pack_start (GTK_BOX (vbox_queue_thaw), pixmap2, TRUE, TRUE, 0);
-  gtk_pixmap_set_build_insensitive (GTK_PIXMAP (pixmap2), FALSE);
-
-  label407 = gtk_label_new ("Thaw queue");
-  gtk_widget_set_name (label407, "label407");
-  gtk_widget_ref (label407);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "label407", label407,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (label407);
-  gtk_box_pack_start (GTK_BOX (vbox_queue_thaw), label407, FALSE, FALSE, 0);
+  gtk_widget_show (button23);
 
   hpaned_main = gtk_hpaned_new ();
   gtk_widget_set_name (hpaned_main, "hpaned_main");
@@ -2378,6 +2310,61 @@ create_main_window (void)
   gtk_widget_show (label155);
   gtk_clist_set_column_widget (GTK_CLIST (clist_downloads_queue), 4, label155);
 
+  hbox162 = gtk_hbox_new (FALSE, 0);
+  gtk_widget_set_name (hbox162, "hbox162");
+  gtk_widget_ref (hbox162);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "hbox162", hbox162,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (hbox162);
+  gtk_box_pack_start (GTK_BOX (vbox15), hbox162, FALSE, TRUE, 0);
+
+  togglebutton_queue_freeze = gtk_toggle_button_new ();
+  gtk_widget_set_name (togglebutton_queue_freeze, "togglebutton_queue_freeze");
+  gtk_widget_ref (togglebutton_queue_freeze);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "togglebutton_queue_freeze", togglebutton_queue_freeze,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (togglebutton_queue_freeze);
+  gtk_box_pack_start (GTK_BOX (hbox162), togglebutton_queue_freeze, FALSE, FALSE, 0);
+
+  hbox159 = gtk_hbox_new (FALSE, 0);
+  gtk_widget_set_name (hbox159, "hbox159");
+  gtk_widget_ref (hbox159);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "hbox159", hbox159,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (hbox159);
+  gtk_container_add (GTK_CONTAINER (togglebutton_queue_freeze), hbox159);
+
+  vbox_queue_freeze = gtk_vbox_new (FALSE, 0);
+  gtk_widget_set_name (vbox_queue_freeze, "vbox_queue_freeze");
+  gtk_widget_ref (vbox_queue_freeze);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "vbox_queue_freeze", vbox_queue_freeze,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (vbox_queue_freeze);
+  gtk_box_pack_start (GTK_BOX (hbox159), vbox_queue_freeze, TRUE, TRUE, 0);
+
+  label406 = gtk_label_new ("Freeze queue");
+  gtk_widget_set_name (label406, "label406");
+  gtk_widget_ref (label406);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label406", label406,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label406);
+  gtk_box_pack_start (GTK_BOX (vbox_queue_freeze), label406, FALSE, FALSE, 0);
+
+  vbox_queue_thaw = gtk_vbox_new (FALSE, 0);
+  gtk_widget_set_name (vbox_queue_thaw, "vbox_queue_thaw");
+  gtk_widget_ref (vbox_queue_thaw);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "vbox_queue_thaw", vbox_queue_thaw,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_box_pack_start (GTK_BOX (hbox159), vbox_queue_thaw, TRUE, TRUE, 0);
+
+  label407 = gtk_label_new ("Thaw queue");
+  gtk_widget_set_name (label407, "label407");
+  gtk_widget_ref (label407);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label407", label407,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label407);
+  gtk_box_pack_start (GTK_BOX (vbox_queue_thaw), label407, FALSE, FALSE, 0);
+
   hbox86 = gtk_hbox_new (FALSE, 4);
   gtk_widget_set_name (hbox86, "hbox86");
   gtk_widget_ref (hbox86);
@@ -2786,6 +2773,15 @@ create_main_window (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (label294);
   gtk_box_pack_start (GTK_BOX (hbox52), label294, TRUE, TRUE, 0);
+
+  button_search_filter = gtk_button_new_with_label ("Edit filters");
+  gtk_widget_set_name (button_search_filter, "button_search_filter");
+  gtk_widget_ref (button_search_filter);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "button_search_filter", button_search_filter,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (button_search_filter);
+  gtk_box_pack_start (GTK_BOX (hbox52), button_search_filter, FALSE, FALSE, 0);
+  GTK_WIDGET_UNSET_FLAGS (button_search_filter, GTK_CAN_FOCUS);
 
   checkbutton_search_results_show_settings = gtk_check_button_new ();
   gtk_widget_set_name (checkbutton_search_results_show_settings, "checkbutton_search_results_show_settings");
@@ -5921,11 +5917,8 @@ create_main_window (void)
   gtk_signal_connect (GTK_OBJECT (button_quit), "clicked",
                       GTK_SIGNAL_FUNC (on_button_quit_clicked),
                       NULL);
-  gtk_signal_connect (GTK_OBJECT (button_search_filter), "clicked",
+  gtk_signal_connect (GTK_OBJECT (button23), "clicked",
                       GTK_SIGNAL_FUNC (on_button_search_filter_clicked),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (togglebutton_queue_freeze), "toggled",
-                      GTK_SIGNAL_FUNC (on_togglebutton_queue_freeze_toggled),
                       NULL);
   gtk_signal_connect (GTK_OBJECT (ctree_menu), "tree_select_row",
                       GTK_SIGNAL_FUNC (on_ctree_menu_tree_select_row),
@@ -6044,6 +6037,9 @@ create_main_window (void)
   gtk_signal_connect (GTK_OBJECT (clist_downloads_queue), "drag_end",
                       GTK_SIGNAL_FUNC (on_clist_downloads_queue_drag_end),
                       NULL);
+  gtk_signal_connect (GTK_OBJECT (togglebutton_queue_freeze), "toggled",
+                      GTK_SIGNAL_FUNC (on_togglebutton_queue_freeze_toggled),
+                      NULL);
   gtk_signal_connect (GTK_OBJECT (entry_queue_regex), "activate",
                       GTK_SIGNAL_FUNC (on_entry_queue_regex_activate),
                       NULL);
@@ -6076,6 +6072,9 @@ create_main_window (void)
                       NULL);
   gtk_signal_connect (GTK_OBJECT (button_search_clear), "clicked",
                       GTK_SIGNAL_FUNC (on_button_search_clear_clicked),
+                      NULL);
+  gtk_signal_connect (GTK_OBJECT (button_search_filter), "clicked",
+                      GTK_SIGNAL_FUNC (on_button_search_filter_clicked),
                       NULL);
   gtk_signal_connect (GTK_OBJECT (clist_monitor), "button_press_event",
                       GTK_SIGNAL_FUNC (on_clist_monitor_button_press_event),
@@ -9619,23 +9618,17 @@ create_dlg_about (void)
   GtkWidget *frame44;
   GtkWidget *label_about_title;
   GtkWidget *hseparator7;
+  GtkWidget *hbox161;
   GtkWidget *table28;
   GtkWidget *label265;
   GtkWidget *label264;
   GtkWidget *label266;
   GtkWidget *label267;
-  GtkWidget *hbox160;
-  GtkWidget *frame45;
-  GtkWidget *table29;
-  GtkWidget *label269;
   GtkWidget *label270;
   GtkWidget *label271;
-  GtkWidget *label272;
-  GtkWidget *label273;
-  GtkWidget *label274;
-  GtkWidget *label268;
-  GtkWidget *label275;
   GtkWidget *label291;
+  GtkWidget *label273;
+  GtkWidget *label272;
   GtkWidget *label292;
   GtkWidget *frame46;
   GtkWidget *scrolledwindow18;
@@ -9648,7 +9641,6 @@ create_dlg_about (void)
   dlg_about = gtk_window_new (GTK_WINDOW_TOPLEVEL);
   gtk_widget_set_name (dlg_about, "dlg_about");
   gtk_object_set_data (GTK_OBJECT (dlg_about), "dlg_about", dlg_about);
-  gtk_widget_set_usize (dlg_about, 550, 350);
   gtk_window_set_title (GTK_WINDOW (dlg_about), "About gtk-gnutella");
 
   vbox67 = gtk_vbox_new (FALSE, 0);
@@ -9685,18 +9677,26 @@ create_dlg_about (void)
   gtk_widget_show (hseparator7);
   gtk_box_pack_start (GTK_BOX (vbox67), hseparator7, FALSE, TRUE, 0);
 
-  table28 = gtk_table_new (2, 2, FALSE);
+  hbox161 = gtk_hbox_new (FALSE, 0);
+  gtk_widget_set_name (hbox161, "hbox161");
+  gtk_widget_ref (hbox161);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_about), "hbox161", hbox161,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (hbox161);
+  gtk_box_pack_start (GTK_BOX (vbox67), hbox161, FALSE, TRUE, 0);
+
+  table28 = gtk_table_new (5, 2, FALSE);
   gtk_widget_set_name (table28, "table28");
   gtk_widget_ref (table28);
   gtk_object_set_data_full (GTK_OBJECT (dlg_about), "table28", table28,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (table28);
-  gtk_box_pack_start (GTK_BOX (vbox67), table28, FALSE, TRUE, 0);
+  gtk_box_pack_start (GTK_BOX (hbox161), table28, TRUE, TRUE, 0);
   gtk_container_set_border_width (GTK_CONTAINER (table28), 4);
   gtk_table_set_row_spacings (GTK_TABLE (table28), 2);
   gtk_table_set_col_spacings (GTK_TABLE (table28), 4);
 
-  label265 = gtk_label_new ("Yann Grossel <olrick@users.sourceforge.net>");
+  label265 = gtk_label_new ("Yann Grossel");
   gtk_widget_set_name (label265, "label265");
   gtk_widget_ref (label265);
   gtk_object_set_data_full (GTK_OBJECT (dlg_about), "label265", label265,
@@ -9707,7 +9707,7 @@ create_dlg_about (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label265), 0, 0.5);
 
-  label264 = gtk_label_new ("Original author");
+  label264 = gtk_label_new ("Original author:");
   gtk_widget_set_name (label264, "label264");
   gtk_widget_ref (label264);
   gtk_object_set_data_full (GTK_OBJECT (dlg_about), "label264", label264,
@@ -9716,9 +9716,9 @@ create_dlg_about (void)
   gtk_table_attach (GTK_TABLE (table28), label264, 0, 1, 0, 1,
                     (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
-  gtk_misc_set_alignment (GTK_MISC (label264), 0, 0.5);
+  gtk_misc_set_alignment (GTK_MISC (label264), 1, 0.5);
 
-  label266 = gtk_label_new ("Current maintainer");
+  label266 = gtk_label_new ("Project leader:");
   gtk_widget_set_name (label266, "label266");
   gtk_widget_ref (label266);
   gtk_object_set_data_full (GTK_OBJECT (dlg_about), "label266", label266,
@@ -9727,11 +9727,9 @@ create_dlg_about (void)
   gtk_table_attach (GTK_TABLE (table28), label266, 0, 1, 1, 2,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
-  gtk_misc_set_alignment (GTK_MISC (label266), 0, 0.5);
+  gtk_misc_set_alignment (GTK_MISC (label266), 1, 0.5);
 
-  label267 = gtk_label_new ("");
-  gtk_label_parse_uline (GTK_LABEL (label267),
-                         "Raphaël Manfredi <Raphael__Manfredi@pobox.com>");
+  label267 = gtk_label_new ("Raphaël Manfredi");
   gtk_widget_set_name (label267, "label267");
   gtk_widget_ref (label267);
   gtk_object_set_data_full (GTK_OBJECT (dlg_about), "label267", label267,
@@ -9742,77 +9740,38 @@ create_dlg_about (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label267), 0, 0.5);
 
-  hbox160 = gtk_hbox_new (FALSE, 0);
-  gtk_widget_set_name (hbox160, "hbox160");
-  gtk_widget_ref (hbox160);
-  gtk_object_set_data_full (GTK_OBJECT (dlg_about), "hbox160", hbox160,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (hbox160);
-  gtk_box_pack_start (GTK_BOX (vbox67), hbox160, TRUE, TRUE, 0);
-
-  frame45 = gtk_frame_new ("Current roles");
-  gtk_widget_set_name (frame45, "frame45");
-  gtk_widget_ref (frame45);
-  gtk_object_set_data_full (GTK_OBJECT (dlg_about), "frame45", frame45,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (frame45);
-  gtk_box_pack_start (GTK_BOX (hbox160), frame45, FALSE, TRUE, 0);
-  gtk_container_set_border_width (GTK_CONTAINER (frame45), 3);
-
-  table29 = gtk_table_new (5, 2, FALSE);
-  gtk_widget_set_name (table29, "table29");
-  gtk_widget_ref (table29);
-  gtk_object_set_data_full (GTK_OBJECT (dlg_about), "table29", table29,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (table29);
-  gtk_container_add (GTK_CONTAINER (frame45), table29);
-  gtk_container_set_border_width (GTK_CONTAINER (table29), 2);
-  gtk_table_set_row_spacings (GTK_TABLE (table29), 2);
-  gtk_table_set_col_spacings (GTK_TABLE (table29), 4);
-
-  label269 = gtk_label_new ("Chief architect");
-  gtk_widget_set_name (label269, "label269");
-  gtk_widget_ref (label269);
-  gtk_object_set_data_full (GTK_OBJECT (dlg_about), "label269", label269,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (label269);
-  gtk_table_attach (GTK_TABLE (table29), label269, 0, 1, 1, 2,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-  gtk_misc_set_alignment (GTK_MISC (label269), 0, 0.5);
-
-  label270 = gtk_label_new ("Core development");
+  label270 = gtk_label_new ("Core development:");
   gtk_widget_set_name (label270, "label270");
   gtk_widget_ref (label270);
   gtk_object_set_data_full (GTK_OBJECT (dlg_about), "label270", label270,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (label270);
-  gtk_table_attach (GTK_TABLE (table29), label270, 0, 1, 2, 3,
+  gtk_table_attach (GTK_TABLE (table28), label270, 0, 1, 2, 3,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
-  gtk_misc_set_alignment (GTK_MISC (label270), 0, 0.5);
+  gtk_misc_set_alignment (GTK_MISC (label270), 1, 0.5);
 
-  label271 = gtk_label_new ("GUI development");
+  label271 = gtk_label_new ("GUI development:");
   gtk_widget_set_name (label271, "label271");
   gtk_widget_ref (label271);
   gtk_object_set_data_full (GTK_OBJECT (dlg_about), "label271", label271,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (label271);
-  gtk_table_attach (GTK_TABLE (table29), label271, 0, 1, 3, 4,
+  gtk_table_attach (GTK_TABLE (table28), label271, 0, 1, 3, 4,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
-  gtk_misc_set_alignment (GTK_MISC (label271), 0, 0.5);
+  gtk_misc_set_alignment (GTK_MISC (label271), 1, 0.5);
 
-  label272 = gtk_label_new ("Richard Eckart");
-  gtk_widget_set_name (label272, "label272");
-  gtk_widget_ref (label272);
-  gtk_object_set_data_full (GTK_OBJECT (dlg_about), "label272", label272,
+  label291 = gtk_label_new ("Swarming development:");
+  gtk_widget_set_name (label291, "label291");
+  gtk_widget_ref (label291);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_about), "label291", label291,
                             (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (label272);
-  gtk_table_attach (GTK_TABLE (table29), label272, 1, 2, 3, 4,
+  gtk_widget_show (label291);
+  gtk_table_attach (GTK_TABLE (table28), label291, 0, 1, 4, 5,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
-  gtk_misc_set_alignment (GTK_MISC (label272), 0, 0.5);
+  gtk_misc_set_alignment (GTK_MISC (label291), 1, 0.5);
 
   label273 = gtk_label_new ("Raphaël Manfredi");
   gtk_widget_set_name (label273, "label273");
@@ -9820,54 +9779,21 @@ create_dlg_about (void)
   gtk_object_set_data_full (GTK_OBJECT (dlg_about), "label273", label273,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (label273);
-  gtk_table_attach (GTK_TABLE (table29), label273, 1, 2, 2, 3,
+  gtk_table_attach (GTK_TABLE (table28), label273, 1, 2, 2, 3,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label273), 0, 0.5);
 
-  label274 = gtk_label_new ("Raphaël Manfredi");
-  gtk_widget_set_name (label274, "label274");
-  gtk_widget_ref (label274);
-  gtk_object_set_data_full (GTK_OBJECT (dlg_about), "label274", label274,
+  label272 = gtk_label_new ("Richard Eckart, Christian Biere");
+  gtk_widget_set_name (label272, "label272");
+  gtk_widget_ref (label272);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_about), "label272", label272,
                             (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (label274);
-  gtk_table_attach (GTK_TABLE (table29), label274, 1, 2, 1, 2,
+  gtk_widget_show (label272);
+  gtk_table_attach (GTK_TABLE (table28), label272, 1, 2, 3, 4,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
-  gtk_misc_set_alignment (GTK_MISC (label274), 0, 0.5);
-
-  label268 = gtk_label_new ("Project management");
-  gtk_widget_set_name (label268, "label268");
-  gtk_widget_ref (label268);
-  gtk_object_set_data_full (GTK_OBJECT (dlg_about), "label268", label268,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (label268);
-  gtk_table_attach (GTK_TABLE (table29), label268, 0, 1, 0, 1,
-                    (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-  gtk_misc_set_alignment (GTK_MISC (label268), 0, 0.5);
-
-  label275 = gtk_label_new ("Raphaël Manfredi");
-  gtk_widget_set_name (label275, "label275");
-  gtk_widget_ref (label275);
-  gtk_object_set_data_full (GTK_OBJECT (dlg_about), "label275", label275,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (label275);
-  gtk_table_attach (GTK_TABLE (table29), label275, 1, 2, 0, 1,
-                    (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-  gtk_misc_set_alignment (GTK_MISC (label275), 0, 0.5);
-
-  label291 = gtk_label_new ("Swarming development");
-  gtk_widget_set_name (label291, "label291");
-  gtk_widget_ref (label291);
-  gtk_object_set_data_full (GTK_OBJECT (dlg_about), "label291", label291,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (label291);
-  gtk_table_attach (GTK_TABLE (table29), label291, 0, 1, 4, 5,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-  gtk_misc_set_alignment (GTK_MISC (label291), 0, 0.5);
+  gtk_misc_set_alignment (GTK_MISC (label272), 0, 0.5);
 
   label292 = gtk_label_new ("Vidar Madsen");
   gtk_widget_set_name (label292, "label292");
@@ -9875,7 +9801,7 @@ create_dlg_about (void)
   gtk_object_set_data_full (GTK_OBJECT (dlg_about), "label292", label292,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (label292);
-  gtk_table_attach (GTK_TABLE (table29), label292, 1, 2, 4, 5,
+  gtk_table_attach (GTK_TABLE (table28), label292, 1, 2, 4, 5,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label292), 0, 0.5);
@@ -9886,7 +9812,7 @@ create_dlg_about (void)
   gtk_object_set_data_full (GTK_OBJECT (dlg_about), "frame46", frame46,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (frame46);
-  gtk_box_pack_start (GTK_BOX (hbox160), frame46, TRUE, TRUE, 0);
+  gtk_box_pack_start (GTK_BOX (vbox67), frame46, TRUE, TRUE, 0);
   gtk_container_set_border_width (GTK_CONTAINER (frame46), 3);
 
   scrolledwindow18 = gtk_scrolled_window_new (NULL, NULL);
@@ -9908,9 +9834,9 @@ create_dlg_about (void)
   gtk_container_add (GTK_CONTAINER (scrolledwindow18), text1);
   gtk_widget_set_usize (text1, 213, -2);
   gtk_text_insert (GTK_TEXT (text1), NULL, NULL, NULL,
-                   "Steven Wilcoxon <swilcoxon@users.sourceforge.net>\nJason Lingohr <lingman@users.sourceforge.net>\nBrian St Pierre <bstpierre@users.sourceforge.net>\nChuck Homic <homic@users.sourceforge.net>\nIngo Saitz <salz@users.sourceforge.net>\nBen Hochstedler <hochstrb@users.sourceforge.net>\nDaniel Walker <axiom@users.sourceforge.net>\nPaul Cassella <pwc@users.sourceforge.net> \nJared Mauch <jaredmauch@users.sourceforge.net>\nNate E <web1 (at) users dot sourceforge dot net>\nRaphaël Manfredi <Raphael_Manfredi@pobox.com>\nKenn Brooks Hamm <khamm@andrew.cmu.edu>\nMark Schreiber <mark7@andrew.cmu.edu>\nSam Varshavchik <mrsam@courier-mta.com>\nVladimir Klebanov <unny@rz.uni-karlsruhe.de>\nRoman Shterenzon <roman@xpert.com>\nRobert Bihlmeyer <robbe@orcus.priv.at>\nNoel T.Nunkovich <ntnunk@earthlink.net>\nMichael Tesch <tesch@users.sourceforge.net>\nMarkus 'guruz' Goetz <guruz@guruz.info>\nRichard Eckart <wyldfire@users.sourceforge.net>\nChristophe Tronche <ch.tronche@computer.org>\nAlex Bennee <alex@bennee.com>\nMike Perry <mikepery@fscked.org>\nZygo Blaxell <zblaxell@feedme.hungrycats.org>\nVidar Madsen <vidar@gimp.org>\nChristian Biere <christianbiere@gmx.de>", strlen("Steven Wilcoxon <swilcoxon@users.sourceforge.net>\nJason Lingohr <lingman@users.sourceforge.net>\nBrian St Pierre <bstpierre@users.sourceforge.net>\nChuck Homic <homic@users.sourceforge.net>\nIngo Saitz <salz@users.sourceforge.net>\nBen Hochstedler <hochstrb@users.sourceforge.net>\nDaniel Walker <axiom@users.sourceforge.net>\nPaul Cassella <pwc@users.sourceforge.net> \nJared Mauch <jaredmauch@users.sourceforge.net>\nNate E <web1 (at) users dot sourceforge dot net>\nRaphaël Manfredi <Raphael_Manfredi@pobox.com>\nKenn Brooks Hamm <khamm@andrew.cmu.edu>\nMark Schreiber <mark7@andrew.cmu.edu>\nSam Varshavchik <mrsam@courier-mta.com>\nVladimir Klebanov <unny@rz.uni-karlsruhe.de>\nRoman Shterenzon <roman@xpert.com>\nRobert Bihlmeyer <robbe@orcus.priv.at>\nNoel T.Nunkovich <ntnunk@earthlink.net>\nMichael Tesch <tesch@users.sourceforge.net>\nMarkus 'guruz' Goetz <guruz@guruz.info>\nRichard Eckart <wyldfire@users.sourceforge.net>\nChristophe Tronche <ch.tronche@computer.org>\nAlex Bennee <alex@bennee.com>\nMike Perry <mikepery@fscked.org>\nZygo Blaxell <zblaxell@feedme.hungrycats.org>\nVidar Madsen <vidar@gimp.org>\nChristian Biere <christianbiere@gmx.de>"));
+                   "Yann Grossel <olrick@users.sourceforge.net>\nSteven Wilcoxon <swilcoxon@users.sourceforge.net>\nJason Lingohr <lingman@users.sourceforge.net>\nBrian St Pierre <bstpierre@users.sourceforge.net>\nChuck Homic <homic@users.sourceforge.net>\nIngo Saitz <salz@users.sourceforge.net>\nBen Hochstedler <hochstrb@users.sourceforge.net>\nDaniel Walker <axiom@users.sourceforge.net>\nPaul Cassella <pwc@users.sourceforge.net> \nJared Mauch <jaredmauch@users.sourceforge.net>\nNate E <web1 (at) users dot sourceforge dot net>\nRaphaël Manfredi <Raphael_Manfredi@pobox.com>\nKenn Brooks Hamm <khamm@andrew.cmu.edu>\nMark Schreiber <mark7@andrew.cmu.edu>\nSam Varshavchik <mrsam@courier-mta.com>\nVladimir Klebanov <unny@rz.uni-karlsruhe.de>\nRoman Shterenzon <roman@xpert.com>\nRobert Bihlmeyer <robbe@orcus.priv.at>\nNoel T.Nunkovich <ntnunk@earthlink.net>\nMichael Tesch <tesch@users.sourceforge.net>\nMarkus 'guruz' Goetz <guruz@guruz.info>\nRichard Eckart <wyldfire@users.sourceforge.net>\nChristophe Tronche <ch.tronche@computer.org>\nAlex Bennee <alex@bennee.com>\nMike Perry <mikepery@fscked.org>\nZygo Blaxell <zblaxell@feedme.hungrycats.org>\nVidar Madsen <vidar@gimp.org>\nChristian Biere <christianbiere@gmx.de>", strlen("Yann Grossel <olrick@users.sourceforge.net>\nSteven Wilcoxon <swilcoxon@users.sourceforge.net>\nJason Lingohr <lingman@users.sourceforge.net>\nBrian St Pierre <bstpierre@users.sourceforge.net>\nChuck Homic <homic@users.sourceforge.net>\nIngo Saitz <salz@users.sourceforge.net>\nBen Hochstedler <hochstrb@users.sourceforge.net>\nDaniel Walker <axiom@users.sourceforge.net>\nPaul Cassella <pwc@users.sourceforge.net> \nJared Mauch <jaredmauch@users.sourceforge.net>\nNate E <web1 (at) users dot sourceforge dot net>\nRaphaël Manfredi <Raphael_Manfredi@pobox.com>\nKenn Brooks Hamm <khamm@andrew.cmu.edu>\nMark Schreiber <mark7@andrew.cmu.edu>\nSam Varshavchik <mrsam@courier-mta.com>\nVladimir Klebanov <unny@rz.uni-karlsruhe.de>\nRoman Shterenzon <roman@xpert.com>\nRobert Bihlmeyer <robbe@orcus.priv.at>\nNoel T.Nunkovich <ntnunk@earthlink.net>\nMichael Tesch <tesch@users.sourceforge.net>\nMarkus 'guruz' Goetz <guruz@guruz.info>\nRichard Eckart <wyldfire@users.sourceforge.net>\nChristophe Tronche <ch.tronche@computer.org>\nAlex Bennee <alex@bennee.com>\nMike Perry <mikepery@fscked.org>\nZygo Blaxell <zblaxell@feedme.hungrycats.org>\nVidar Madsen <vidar@gimp.org>\nChristian Biere <christianbiere@gmx.de>"));
 
-  label408 = gtk_label_new ("==> We are looking for people who want to contribute to this fine tool. <==\nVist http://gtk-gnutella.sourceforge.net.\nJoin the users or developers mailing lists.\nMeet us on #gtk-gnutella at irc.openprojects.org.");
+  label408 = gtk_label_new ("==> We are looking for people who want to contribute to this fine tool. <==\nVist http://gtk-gnutella.sourceforge.net.\nJoin the users or developers mailing lists.\nMeet us on #gtk-gnutella at irc.freenode.org.");
   gtk_widget_set_name (label408, "label408");
   gtk_widget_ref (label408);
   gtk_object_set_data_full (GTK_OBJECT (dlg_about), "label408", label408,
