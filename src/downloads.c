@@ -180,6 +180,7 @@ static void src_init(void)
     src_events[EV_SRC_REMOVED]        = event_new("src_removed");
     src_events[EV_SRC_INFO_CHANGED]   = event_new("src_info_changed");
     src_events[EV_SRC_STATUS_CHANGED] = event_new("src_status_changed");
+	src_events[EV_SRC_RANGES_CHANGED] = event_new("src_ranges_changed");
 }
 
 static void src_close(void)
@@ -211,6 +212,13 @@ void src_remove_listener(src_listener_t cb, gnet_src_ev_t ev)
 
     event_remove_subscriber(src_events[ev], (GCallback) cb);
 }
+
+struct download *src_get_download(gnet_src_t src_handle)
+{
+	return idtable_get_value(src_handle_map, src_handle);
+}
+
+
 
 /***
  *** Traditional downloads API
@@ -5255,6 +5263,9 @@ static void update_available_ranges(struct download *d, header_t *header)
 		download_filesize(d), download_vendor_str(d));
 
 	d->ranges_size = http_range_size(d->ranges);
+
+	event_trigger(src_events[EV_SRC_RANGES_CHANGED], 
+				  T_NORMAL(src_listener_t, d->src_handle));
 }
 
 /*

@@ -702,12 +702,14 @@ typedef enum {
 	EV_SRC_REMOVED,
 	EV_SRC_INFO_CHANGED,
 	EV_SRC_STATUS_CHANGED,
+	EV_SRC_RANGES_CHANGED,
 	EV_SRC_EVENTS /* Number of events in this domain */
 } gnet_src_ev_t;
 
 void src_add_listener(src_listener_t, gnet_src_ev_t, frequency_t, guint32);
 void src_remove_listener(src_listener_t, gnet_src_ev_t);
 
+struct download *src_get_download(gnet_src_t src_handle);
 
 
 /***
