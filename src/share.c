@@ -2237,6 +2237,21 @@ gboolean sha1_hash_is_uptodate(struct shared_file *sf)
 	if (sf->flags & SHARE_F_RECOMPUTING)
 		return FALSE;
 
+	/*
+	 * If there is a non-NULL `fi' entry, then this is a partially
+	 * downloaded file that we are sharing.  Don't try to update its
+	 * SHA1 by recomputing it!
+	 *
+	 * If it's a partial file, don't bother checking whether it exists.
+	 * (if gone, we won't be able to serve it, that's all).  But partial
+	 * files we serve MUST have known SHA1.
+	 */
+
+	if (sf->fi != NULL) {
+		g_assert(sf->fi->sha1 != NULL);
+		return TRUE;
+	}
+
 	if (-1 == stat(sf->file_path, &buf)) {
 		g_warning("can't stat shared file #%d \"%s\": %s",
 			sf->file_index, sf->file_path, g_strerror(errno));
@@ -2244,15 +2259,6 @@ gboolean sha1_hash_is_uptodate(struct shared_file *sf)
 		sf->flags &= ~SHARE_F_HAS_DIGEST;
 		return FALSE;
 	}
-
-	/*
-	 * If there is a non-NULL `fi' entry, then this is a partially
-	 * downloaded file that we are sharing.  Don't try to update its
-	 * SHA1 by recomputing it!
-	 */
-
-	if (sf->fi != NULL)
-		return TRUE;
 
 	/*
 	 * If file was modified since the last time we computed the SHA1,
