@@ -439,6 +439,8 @@ create_main_window (void)
   GtkWidget *spinbutton_config_ban_ratio_fds;
   GtkWidget *label502;
   GtkWidget *entry_config_max_banned_fd;
+  GtkWidget *frame80;
+  GtkWidget *checkbutton_host_runs_ntp;
   GtkWidget *label119;
   GtkWidget *scrolledwindow33;
   GtkWidget *viewport4;
@@ -4503,6 +4505,22 @@ create_main_window (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_widget_set_sensitive (entry_config_max_banned_fd, FALSE);
   gtk_entry_set_editable (GTK_ENTRY (entry_config_max_banned_fd), FALSE);
+
+  frame80 = gtk_frame_new ("Miscellaneous");
+  gtk_widget_set_name (frame80, "frame80");
+  gtk_widget_ref (frame80);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "frame80", frame80,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (frame80);
+  gtk_box_pack_start (GTK_BOX (vbox24), frame80, FALSE, TRUE, 0);
+
+  checkbutton_host_runs_ntp = gtk_check_button_new_with_label ("Host runs NTP");
+  gtk_widget_set_name (checkbutton_host_runs_ntp, "checkbutton_host_runs_ntp");
+  gtk_widget_ref (checkbutton_host_runs_ntp);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "checkbutton_host_runs_ntp", checkbutton_host_runs_ntp,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (checkbutton_host_runs_ntp);
+  gtk_container_add (GTK_CONTAINER (frame80), checkbutton_host_runs_ntp);
 
   label119 = gtk_label_new ("Network\nsettings");
   gtk_widget_set_name (label119, "label119");
@@ -11610,6 +11628,8 @@ create_dlg_about (void)
   GtkWidget *label273;
   GtkWidget *label272;
   GtkWidget *label292;
+  GtkWidget *label527;
+  GtkWidget *label528;
   GtkWidget *frame46;
   GtkWidget *scrolledwindow18;
   GtkWidget *text1;
@@ -11698,7 +11718,7 @@ create_dlg_about (void)
   gtk_widget_show (hbox161);
   gtk_box_pack_start (GTK_BOX (vbox67), hbox161, FALSE, TRUE, 0);
 
-  table28 = gtk_table_new (5, 2, FALSE);
+  table28 = gtk_table_new (6, 2, FALSE);
   gtk_widget_set_name (table28, "table28");
   gtk_widget_ref (table28);
   gtk_object_set_data_full (GTK_OBJECT (dlg_about), "table28", table28,
@@ -11818,6 +11838,28 @@ create_dlg_about (void)
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label292), 0, 0.5);
+
+  label527 = gtk_label_new ("PARQ development:");
+  gtk_widget_set_name (label527, "label527");
+  gtk_widget_ref (label527);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_about), "label527", label527,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label527);
+  gtk_table_attach (GTK_TABLE (table28), label527, 0, 1, 5, 6,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label527), 1, 0.5);
+
+  label528 = gtk_label_new ("Jeroen Asselman");
+  gtk_widget_set_name (label528, "label528");
+  gtk_widget_ref (label528);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_about), "label528", label528,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label528);
+  gtk_table_attach (GTK_TABLE (table28), label528, 1, 2, 5, 6,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label528), 0, 0.5);
 
   frame46 = gtk_frame_new ("Contributors:");
   gtk_widget_set_name (frame46, "frame46");
