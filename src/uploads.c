@@ -28,6 +28,7 @@
 
 #include "gnutella.h"
 
+#include <errno.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -57,10 +58,18 @@ RCSID("$Id$");
 
 #define READ_BUF_SIZE	4096		/* Read buffer size, if no sendfile(2) */
 #define BW_OUT_MIN		256			/* Minimum bandwidth to enable uploads */
+#define IO_PRE_STALL	30			/* Pre-stalling warning */
+#define IO_STALLED		60			/* Stalling condition */
+#define IO_LONG_TIMEOUT	160			/* Longer timeouting condition */
+#define UP_SEND_BUFSIZE	16384		/* Socket write buffer, when stalling */
+#define STALL_CLEAR		600			/* Decrease stall counter every 10 min */
+#define STALL_THRESH	3			/* If more stalls than that, workaround */
 
 #define RQST_LINE_LENGTH	256		/* Reasonable estimate for request line */
 
 static GSList *uploads = NULL;
+static gint stalled = 0;			/* Counts stalled connections */
+static time_t last_stalled;			/* Time at which last stall occurred */
 
 static idtable_t *upload_handle_map = NULL;
 
@@ -194,6 +203,7 @@ void upload_timer(time_t now)
 
 	for (l = uploads; l; l = g_slist_next(l)) {
 		gnutella_upload_t *u = (gnutella_upload_t *) l->data;
+		gboolean is_connecting;
 
 		g_assert(u != NULL);
 
@@ -204,16 +214,87 @@ void upload_timer(time_t now)
 		 * Check for timeouts.
 		 */
 
-		t = UPLOAD_IS_CONNECTING(u) ?
-            upload_connecting_timeout :	upload_connected_timeout;
+		is_connecting = UPLOAD_IS_CONNECTING(u);
+		t = is_connecting ?
+            upload_connecting_timeout :
+			MAX(upload_connected_timeout, IO_STALLED);
+
+		/*
+		 * Detect frequent stalling conditions on sending.
+		 */
+
+		if (!UPLOAD_IS_SENDING(u))
+			goto not_sending;		/* Avoid deep nesting level */
+
+		if (now - u->last_update > IO_STALLED) {
+			if (!(u->flags & UPLOAD_F_STALLED)) {
+				if (stalled++ == STALL_THRESH)
+					g_warning("frequent stalling detected, using workarounds");
+				last_stalled = now;
+				u->flags |= UPLOAD_F_STALLED;
+				g_warning(
+					"connection to %s (%s) stalled, stall counter at %d",
+					ip_to_gchar(u->ip), upload_vendor_str(u), stalled);
+			}
+		} else {
+			if (u->flags & UPLOAD_F_STALLED) {
+				g_warning("connection to %s (%s) alive again",
+					ip_to_gchar(u->ip), upload_vendor_str(u));
+
+				if (stalled <= STALL_THRESH && !sock_is_corked(u->socket)) {
+					g_warning(
+						"re-enabling TCP_CORK on connection to %s (%s)",
+						ip_to_gchar(u->ip), upload_vendor_str(u));
+					sock_cork(u->socket, TRUE);
+					socket_tos_throughput(u->socket);
+				}
+			}
+			u->flags &= ~UPLOAD_F_STALLED;
+		}
+
+		/* FALL THROUGH */
+
+	not_sending:
+
+		/*
+		 * If they have experienced significant stalling conditions recently,
+		 * be much more lenient about connection timeouts.
+		 */
+
+		if (!is_connecting && stalled > STALL_THRESH)
+			t = MAX(t, IO_LONG_TIMEOUT);
 
 		/*
 		 * We can't call upload_remove() since it will remove the upload
 		 * from the list we are traversing.
+		 *
+		 * Check pre-stalling condition and remove the CORK option
+		 * if we are no longer transmitting.
 		 */
 
 		if (now - u->last_update > t)
 			to_remove = g_slist_prepend(to_remove, u);
+		else if (
+			UPLOAD_IS_SENDING(u) &&
+			now - u->last_update > IO_PRE_STALL && sock_is_corked(u->socket)
+		) {
+			g_warning(
+				"connection to %s (%s) may be stalled, disabling TCP_CORK",
+				ip_to_gchar(u->ip), upload_vendor_str(u));
+			sock_cork(u->socket, FALSE);
+			socket_tos_lowdelay(u->socket);		/* To have ACKs come faster */
+		}
+	}
+
+	if (now - last_stalled > STALL_CLEAR) {
+		if (stalled > 0) {
+			stalled /= 2;			/* Exponential decrease */
+			last_stalled = now;
+			if (dbg)
+				g_warning("stall counter downgraded to %d", stalled);
+			if (stalled == 0)
+				g_warning("frequent stalling condition cleared");
+		}
 	}
 
 	for (l = to_remove; l; l = g_slist_next(l)) {
@@ -223,8 +304,10 @@ void upload_timer(time_t now)
 				upload_remove(u, "Connect back timeout");
 			else
 				upload_error_remove(u, NULL, 408, "Request timeout");
-		} else
+		} else if (UPLOAD_IS_SENDING(u))
 			upload_remove(u, "Data timeout");
+		else
+			upload_remove(u, "Lifetime expired");
 	}
 	g_slist_free(to_remove);
 }
@@ -2607,7 +2690,20 @@ static void upload_request(gnutella_upload_t *u, header_t *header)
 	 * Ethernet, it's about 1500 bytes.
 	 */
 
-	sock_cork(s, TRUE);
+	if (stalled <= STALL_THRESH)
+		sock_cork(s, TRUE);
+	else
+		socket_tos_lowdelay(s);	/* Make sure ACKs come back faster */
+
+	/*
+	 * If they have some connections stalling recently, limit the send buffer
+	 * size.  This will lower TCP's throughput by limiting the amount of
+	 * windowing possible, but at least we will be reacting more quickly
+	 * to stalling conditions.
+	 */
+
+	if (stalled > STALL_THRESH)
+		sock_send_buf(s, UP_SEND_BUFSIZE, TRUE);
 
 	/*
 	 * Send back HTTP status.

@@ -36,7 +36,7 @@ struct dl_file_info;
 	
 typedef struct upload {
     gnet_upload_t upload_handle;
-
+	guint32 flags;					/* Operating flags */
 	upload_stage_t status;
 	struct gnutella_socket *socket;
 	gint error_sent;				/* HTTP error code sent back */
@@ -84,6 +84,12 @@ typedef struct upload {
 } gnutella_upload_t;
 
 #define upload_vendor_str(u)	((u)->user_agent ? (u)->user_agent : "")
+
+/*
+ * Operating flags
+ */
+
+#define UPLOAD_F_STALLED		0x00000001	/* Stall condition present */
 
 /*
  * This structure is used for HTTP status printing callbacks.
