@@ -707,8 +707,10 @@ static void mi_clean(cqueue_t *cq, gpointer obj)
 
 	g_assert(found);
 	g_assert(obj == key);
+	g_assert(((struct mesh_info_val *) value)->cq_ev);
 
 	g_hash_table_remove(mesh_info, mik);
+	((struct mesh_info_val *) value)->cq_ev = NULL;
 	mi_free_kv(key, value, NULL);
 }
 
