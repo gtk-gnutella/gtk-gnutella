@@ -221,6 +221,8 @@ gboolean is_firewalled     = TRUE;
 gboolean is_firewalled_def = TRUE;
 gboolean is_inet_connected     = TRUE;
 gboolean is_inet_connected_def = TRUE;
+gboolean gnet_compact_query     = FALSE;
+gboolean gnet_compact_query_def = FALSE;
 
 static prop_set_t *gnet_property = NULL;
 
@@ -1966,6 +1968,23 @@ prop_set_t *gnet_prop_init(void) {
     gnet_property->props[92].type               = PROP_TYPE_BOOLEAN;
     gnet_property->props[92].data.boolean.def   = &is_inet_connected_def;
     gnet_property->props[92].data.boolean.value = &is_inet_connected;
+
+
+    /*
+     * PROP_GNET_COMPACT_QUERY:
+     *
+     * General data:
+     */
+    gnet_property->props[93].name = "gnet_compact_query";
+    gnet_property->props[93].desc = "Remove unnecessary ballast from query string before processing or forwarding them. Reduces traffic but increases CPU load. If you enable this it may also destroy some UTF8 queries.";
+    gnet_property->props[93].prop_changed_listeners = NULL;
+    gnet_property->props[93].save = TRUE;
+    gnet_property->props[93].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[93].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[93].data.boolean.def   = &gnet_compact_query_def;
+    gnet_property->props[93].data.boolean.value = &gnet_compact_query;
     return gnet_property;
 }
 

@@ -979,8 +979,8 @@ prop = {
     desc = "Minimum chunk size when swarming";
     type = guint32;
     data = {
-	min = "64*1024";
-	max = "10*1024*1024";
+	    min = "64*1024";
+	    max = "10*1024*1024";
         default = "512*1024";
     };
 };
@@ -990,8 +990,8 @@ prop = {
     desc = "Maximum chunk size when swarming";
     type = guint32;
     data = {
-	min = "64*1024";
-	max = "10*1024*1024";
+	    min = "64*1024";
+	    max = "10*1024*1024";
         default = "5*1024*1024";
     };
 };
@@ -1003,7 +1003,7 @@ prop = {
 	   "match a file in the download queue";
     type = boolean;
     data = {
-	default = TRUE;
+	    default = TRUE;
     };
 };
 
@@ -1012,7 +1012,7 @@ prop = {
     desc = "When enabled, SHA1s must match. Otherwise, name and size will be sufficient";
     type = boolean;
     data = {
-	default = FALSE;
+	    default = FALSE;
     };
 };
 
@@ -1021,7 +1021,7 @@ prop = {
     desc = "Use fuzzy file name matching";
     type = boolean;
     data = {
-	default = TRUE;
+	    default = TRUE;
     };
 };
 
@@ -1030,9 +1030,9 @@ prop = {
     desc = "Fuzziness threshold for filename matching (higher = stricter)";
     type = guint32;
     data = {
-	default = 70;
-	min = 0;
-	max = 100;
+	    default = 70;
+	    min = 0;
+	    max = 100;
     };
 };
 
@@ -1042,7 +1042,7 @@ prop = {
     save = FALSE;
     type = boolean;
     data = {
-	default = TRUE;
+	    default = TRUE;
     };
 };
 
@@ -1052,7 +1052,18 @@ prop = {
     save = FALSE;
     type = boolean;
     data = {
-	default = TRUE;
+	    default = TRUE;
+    };
+};
+
+prop = {
+    name = "gnet_compact_query";
+    desc = "Remove unnecessary ballast from query string before processing "
+           "or forwarding them. Reduces traffic but increases CPU load. "
+           "If you enable this it may also destroy some UTF8 queries.";
+    type = boolean;
+    data = {
+	    default = FALSE;
     };
 };
 
