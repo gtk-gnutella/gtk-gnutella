@@ -37,10 +37,9 @@
 #include "downloads.h"
 #include "dmesh.h"
 #include "huge.h"
+#include "http.h"
 
 #include "settings.h"
-
-#define HTTP_PORT	80		/* Registered HTTP port */
 
 extern cqueue_t *callout_queue;
 
@@ -285,71 +284,45 @@ static gboolean dmesh_is_banned(dmesh_urlinfo_t *info)
 gboolean dmesh_url_parse(gchar *url, dmesh_urlinfo_t *info)
 {
 	guint32 ip;
-	guint port;
+	guint16 port;
 	guint idx;
-	guint lsb, b2, b3, msb;
 	guchar q;
 	gchar *file;
 
-	if (0 != strncasecmp(url, "http://", 7))
+	if (!http_url_parse(url, &ip, &port, &file))
 		return FALSE;
 
-	url += 7;
-
 	/*
-	 * Test the first form of URL:
+	 * Test the first form of resource naming:
 	 *
-	 *    http://1.2.3.4:5678/get/1/name.txt
-	 *
-	 * If the port is missing, then HTTP_PORT is assumed.
+	 *    /get/1/name.txt
 	 */
 
-	if (
-		6 == sscanf(url, "%u.%u.%u.%u:%u/get/%u",
-			&msb, &b3, &b2, &lsb, &port, &idx)
-	)
+	if (1 == sscanf(file, "/get/%u", &idx))
 		goto ok;
-
-	if (5 == sscanf(url, "%u.%u.%u.%u/get/%u", &msb, &b3, &b2, &lsb, &idx)) {
-		port = HTTP_PORT;
-		goto ok;
-	}
 
 	/*
-	 * Test the second form of URL:
+	 * Test the second form of resource naming:
 	 *
-	 *    http://1.2.3.4:5678/uri-res/N2R?urn:sha1:ABCDEFGHIJKLMN....
+	 *    /uri-res/N2R?urn:sha1:ABCDEFGHIJKLMN....
 	 *
 	 * Because of a bug in sscanf(), we have to end with a %c, otherwise
 	 * the trailing text after the last parameter is NOT tested.
 	 */
 
-	idx = 0;			/* Identifies second form */
+	idx = URN_INDEX;		/* Identifies second form */
 
-	if (
-		6 == sscanf(url, "%u.%u.%u.%u:%u/uri-res/N2R%c",
-			&msb, &b3, &b2, &lsb, &port, &q) && q == '?'
-	)
+	if (1 == sscanf(file, "/uri-res/N2R%c", &q) && q == '?')
 		goto ok;
 	
-	if (
-		5 == sscanf(url, "%u.%u.%u.%u/uri-res/N2R%c",
-			&msb, &b3, &b2, &lsb, &q) && q == '?'
-	) {
-		port = HTTP_PORT;
-		goto ok;
-	}
-
 	return FALSE;
 
 ok:
-	ip = lsb + (b2 << 8) + (b3 << 16) + (msb << 24);
-
 	/*
 	 * Now extract the filename or the URL.
 	 */
 
-	if (idx == 0) {
+	if (idx == URN_INDEX) {
 		file = strrchr(url, '/');
 		g_assert(file);					/* Or we'd have not parsed above */
 
@@ -396,7 +369,7 @@ ok:
 	 * to do this anymore and will keep the file URL-escaped.
 	 */
 
-	if (idx != 0) {
+	if (idx != URN_INDEX) {
 		gchar *unescaped = url_unescape(file, FALSE);
 		info->name = atom_str_get(unescaped);
 		if (unescaped != file)
@@ -541,7 +514,7 @@ static void dmesh_fill_info(dmesh_urlinfo_t *info,
 	info->port = port;
 	info->idx = idx;
 
-	if (idx == 0) {
+	if (idx == URN_INDEX) {
 		g_snprintf(sha1_urn, sizeof(sha1_urn),
 			"urn:sha1:%s", sha1_base32(sha1));
 		info->name = sha1_urn;
@@ -763,7 +736,7 @@ static gint dmesh_urlinfo(dmesh_urlinfo_t *info, gchar *buf, gint len)
 	if (rw >= maxslen)
 		return -1;
 
-	if (info->idx == 0)
+	if (info->idx == URN_INDEX)
 		rw += g_snprintf(&buf[rw], len - rw, "/uri-res/N2R?%s", info->name);
 	else {
 		rw += g_snprintf(&buf[rw], len - rw, "/get/%u/", info->idx);
@@ -1050,6 +1023,7 @@ void dmesh_collect_locations(guchar *sha1, guchar *value)
 		gboolean ok;
 		dmesh_urlinfo_t info;
 		gboolean non_space_seen;
+		gboolean skip_date = FALSE;
 
 		/*
 		 * Find next space, colon or EOS (End of String).
@@ -1074,10 +1048,21 @@ void dmesh_collect_locations(guchar *sha1, guchar *value)
 			 * We know we're no longer in an URL if the character after is a
 			 * space (should be escaped).  Our header parsing code will
 			 * concatenate lines with a ", " separation.
+			 *
+			 * If the character after the "," is an 'h' and we're seeing
+			 * the string "http://" coming, then we've reached the end
+			 * of the current URL (all URLs were given on one big happy line).
 			 */
 
-			if (c == ',' && p[1] != ' ')
-				goto next;
+			if (c == ',') {
+				if (
+					(p[1] == 'h' || p[1] == 'H') &&
+					0 == strcasecmp(&p[1], "http://")
+				)
+					break;
+				if (p[1] != ' ')
+					goto next;
+			}
 
 			if (c == ' ' || c == ',')
 				break;
@@ -1113,15 +1098,17 @@ void dmesh_collect_locations(guchar *sha1, guchar *value)
 		*p = c;
 
 		/*
-		 * If URL cannot be parsed, resume processing after current point.
+		 * Maybe there is no date following the URL?
 		 */
 
-		if (!ok) {
-			if (c == '\0')				/* Reached end of string */
-				return;
-			p++;						/* Skip separator */
+		if (c == '\0')				/* Reached end of string */
+			return;
+		if (c == ',') {				/* There's no following date then */
+			p++;					/* Skip separator */
 			continue;
 		}
+
+		skip_date = !ok;			/* Skip date if we did not parse the URL */
 
 		/*
 		 * Advance to next ',', expecting a date.
@@ -1143,6 +1130,13 @@ void dmesh_collect_locations(guchar *sha1, guchar *value)
 		if (c != '\0' && p - date == 3) {
 			p++;
 			goto more_date;
+		}
+
+		if (skip_date) {				/* URL was not parsed, just skipping */
+			if (c == '\0')				/* Reached end of string */
+				return;
+			p++;						/* Skip the "," separator */
+			continue;
 		}
 
 		/*
