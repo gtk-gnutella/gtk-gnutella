@@ -159,6 +159,7 @@ CORE = \
 	tx.c \
 	tx_deflate.c \
 	tx_link.c \
+	udp.c \
 	upload_stats.c \
 	uploads.c \
 	url.c \
