@@ -189,7 +189,7 @@ static inline void nodes_gui_remove_selected_helper(
 	guint handle;
 
 	gtk_tree_model_get(model, iter, c_gnet_handle, &handle, (-1));
-	*list = g_slist_append(*list, GUINT_TO_POINTER(handle));
+	*list = g_slist_prepend(*list, GUINT_TO_POINTER(handle));
 }
 
 /*
