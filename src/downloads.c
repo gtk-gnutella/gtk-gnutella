@@ -101,8 +101,12 @@ static gboolean has_blank_guid(const struct download *d);
 static void download_verify_sha1(struct download *d);
 static gboolean download_get_server_name(struct download *d, header_t *header);
 static gboolean use_push_proxy(struct download *d);
-static void download_unavailable(
-	struct download *d, guint32 new_status, const gchar * reason, ...);
+static void download_unavailable(struct download *d, guint32 new_status,
+	const gchar * reason, ...) G_GNUC_PRINTF(3, 4);
+static void download_queue_delay(struct download *d, guint32 delay,
+	const gchar *fmt, ...) G_GNUC_PRINTF(3, 4);
+static void download_queue_hold(struct download *d, guint32 hold,
+	const gchar *fmt, ...) G_GNUC_PRINTF(3, 4);
 static void download_reparent(struct download *d, struct dl_server *new_server);
 
 static gboolean download_dirty = FALSE;
@@ -2045,7 +2049,6 @@ static void download_stop_v(struct download *d, guint32 new_status,
 
 	if (reason) {
 		gm_vsnprintf(d->error_str, sizeof(d->error_str), reason, ap);
-		d->error_str[sizeof(d->error_str) - 1] = '\0';	/* May be truncated */
 		d->remove_msg = d->error_str;
 	} else
 		d->remove_msg = NULL;
@@ -2181,7 +2184,6 @@ static void download_queue_v(struct download *d, const gchar *fmt, va_list ap)
 
 	if (fmt) {
 		gm_vsnprintf(d->error_str, sizeof(d->error_str), fmt, ap);
-		d->error_str[sizeof(d->error_str) - 1] = '\0';	/* May be truncated */
 		/* d->remove_msg updated below */
 	}
 
@@ -4391,7 +4393,8 @@ static gboolean download_overlap_check(struct download *d)
 					(gulong) (d->skip - d->overlap_size));
 			else
 				download_queue_delay(d, download_retry_busy_delay,
-					"Resuming data mismatch @ %lu", d->skip - d->overlap_size);
+					"Resuming data mismatch @ %lu",
+					(gulong) (d->skip - d->overlap_size));
 		}
 		goto out;
 	}
@@ -8047,33 +8050,38 @@ void download_close(void)
 /* 
  * build_url_from_download:
  *
- * creates a url which points to a downloads (e.g. you can move this to a
- * browser and download the file there with this url
+ * Creates a URL which points to a downloads (e.g. you can move this to a
+ * browser and download the file there with this URL).
  */
 const gchar *build_url_from_download(struct download *d) 
 {
 	static gchar url_tmp[1024];
-	gchar *buf = NULL;
 
-	if (d == NULL)
-		return NULL;
+	g_return_val_if_fail(d, NULL);
    
-	buf = url_escape(d->file_name);
+	if (d->record_index == URN_INDEX && d->sha1) {
+		gm_snprintf(url_tmp, sizeof(url_tmp),
+			"http://%s/uri-res/N2R?urn:sha1:%s",
+			 ip_port_to_gchar(download_ip(d), download_port(d)),
+			 sha1_base32(d->sha1));
+	} else {
+		gchar *buf = url_escape(d->file_name);
 
-	gm_snprintf(url_tmp, sizeof(url_tmp),
+		gm_snprintf(url_tmp, sizeof(url_tmp),
 			   "http://%s/get/%u/%s",
 			   ip_port_to_gchar(download_ip(d), download_port(d)),
 			   d->record_index, buf);
 
-	/*
-	 * Since url_escape() creates a new string ONLY if
-	 * escaping is necessary, we have to check this and
-	 * free memory accordingly.
-	 * -- Richard, 30 Apr 2002
-	 */
+		/*
+	 	* Since url_escape() creates a new string ONLY if
+	 	* escaping is necessary, we have to check this and
+	 	* free memory accordingly.
+	 	* -- Richard, 30 Apr 2002
+	 	*/
 
-	if (buf != d->file_name) {
-		G_FREE_NULL(buf);
+		if (buf != d->file_name) {
+			G_FREE_NULL(buf);
+		}
 	}
 	
 	return url_tmp;
