@@ -461,6 +461,8 @@ static gnutella_upload_t *upload_clone(gnutella_upload_t *u)
 
 	g_assert(u->io_opaque == NULL);		/* If cloned, we were transferrring! */
 
+	parq_upload_upload_got_cloned(u, cu);
+
     cu->upload_handle = upload_new_handle(cu); /* fetch new handle */
 	cu->bio = NULL;						/* Recreated on each transfer */
 	cu->file_desc = -1;					/* File re-opened each time */
@@ -468,7 +470,6 @@ static gnutella_upload_t *upload_clone(gnutella_upload_t *u)
 	cu->accounted = FALSE;
     cu->skip = 0;
     cu->end = 0;
-	cu->parq_opaque = NULL;				/* Let parq reassign it */
 
 	/*
 	 * The following have been copied and appropriated by the cloned upload.
@@ -481,7 +482,7 @@ static gnutella_upload_t *upload_clone(gnutella_upload_t *u)
 	u->buffer = NULL;
 	u->user_agent = NULL;
 	u->sha1 = NULL;
-
+	
 	/*
 	 * Add the upload structure to the upload slist, so it's monitored
 	 * from now on within the main loop for timeouts.

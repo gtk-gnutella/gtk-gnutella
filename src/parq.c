@@ -2151,6 +2151,31 @@ static gint parq_ul_rel_pos_cmp(gconstpointer a, gconstpointer b)
 	return as->relative_position - bs->relative_position;
 }
 
+void parq_upload_upload_got_cloned(gnutella_upload_t *u, gnutella_upload_t *cu)
+{
+	struct parq_ul_queued *parq_ul = NULL;
+	
+	if (u->parq_opaque == NULL) {
+		g_assert(u->parq_opaque == NULL);
+		g_assert(cu->parq_opaque == NULL);
+		return;
+	}
+	
+	g_assert(u->parq_opaque != NULL);
+	g_assert(cu->parq_opaque != NULL);
+	
+	parq_ul = parq_upload_find(u);
+	
+	if (parq_ul != NULL) {
+		parq_ul->u = cu;	
+	}
+	
+	u->parq_opaque = NULL;	
+
+	g_assert(u->parq_opaque == NULL);
+	g_assert(cu->parq_opaque != NULL);
+}
+
 /*
  * parq_upload_upload_got_freed
  *
@@ -2158,7 +2183,12 @@ static gint parq_ul_rel_pos_cmp(gconstpointer a, gconstpointer b)
  */
 void parq_upload_upload_got_freed(gnutella_upload_t *u)
 {
-	struct parq_ul_queued *parq_ul = parq_upload_find(u);
+	struct parq_ul_queued *parq_ul = NULL;
+	
+	if (u->parq_opaque == NULL)
+		return;
+	
+	parq_ul = parq_upload_find(u);
 	
 	/* The parq_ul allready might have been removed. So check this first */
 	if (parq_ul != NULL)	
