@@ -264,7 +264,6 @@ void gui_update_all()
 	gui_update_bandwidth_output();
     gui_update_bandwidth_ginput();
 	gui_update_bandwidth_goutput();
-    gui_update_is_firewalled();
     gui_update_stats_frames();
     gui_address_changed();
 
