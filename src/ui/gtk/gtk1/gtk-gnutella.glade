@@ -5956,7 +5956,7 @@
 	      <widget>
 		<class>GtkLabel</class>
 		<name>label68</name>
-		<label>Show last</label>
+		<label>Show _last</label>
 		<justify>GTK_JUSTIFY_CENTER</justify>
 		<wrap>False</wrap>
 		<xalign>0.5</xalign>
@@ -6115,7 +6115,7 @@
 	      <widget>
 		<class>GtkLabel</class>
 		<name>label101</name>
-		<label>Update interval (sec)</label>
+		<label>_Update interval (sec)</label>
 		<justify>GTK_JUSTIFY_RIGHT</justify>
 		<wrap>False</wrap>
 		<xalign>0.5</xalign>
@@ -6155,7 +6155,7 @@
 	      <widget>
 		<class>GtkLabel</class>
 		<name>label102</name>
-		<label>Deletion coeff. (0-100)</label>
+		<label>_Deletion coeff. (0-100)</label>
 		<justify>GTK_JUSTIFY_RIGHT</justify>
 		<wrap>False</wrap>
 		<xalign>0.5</xalign>
@@ -6291,7 +6291,7 @@
 		    <handler>on_button_search_stats_reset_clicked</handler>
 		    <last_modification_time>Fri, 29 Mar 2002 18:11:39 GMT</last_modification_time>
 		  </signal>
-		  <label>Reset stats</label>
+		  <label>_Reset stats</label>
 		  <relief>GTK_RELIEF_NORMAL</relief>
 		  <child>
 		    <padding>0</padding>
@@ -6695,7 +6695,7 @@
 			    <class>GtkLabel</class>
 			    <child_name>CList:title</child_name>
 			    <name>label392</name>
-			    <label>received</label>
+			    <label>Received</label>
 			    <justify>GTK_JUSTIFY_CENTER</justify>
 			    <wrap>False</wrap>
 			    <xalign>0.5</xalign>
@@ -6708,7 +6708,7 @@
 			    <class>GtkLabel</class>
 			    <child_name>CList:title</child_name>
 			    <name>label393</name>
-			    <label>expired</label>
+			    <label>Expired</label>
 			    <justify>GTK_JUSTIFY_CENTER</justify>
 			    <wrap>False</wrap>
 			    <xalign>0.5</xalign>
@@ -6721,7 +6721,7 @@
 			    <class>GtkLabel</class>
 			    <child_name>CList:title</child_name>
 			    <name>label394</name>
-			    <label>dropped</label>
+			    <label>Dropped</label>
 			    <justify>GTK_JUSTIFY_CENTER</justify>
 			    <wrap>False</wrap>
 			    <xalign>0.5</xalign>
@@ -6734,7 +6734,7 @@
 			    <class>GtkLabel</class>
 			    <child_name>CList:title</child_name>
 			    <name>label395</name>
-			    <label>queued</label>
+			    <label>Queued</label>
 			    <justify>GTK_JUSTIFY_CENTER</justify>
 			    <wrap>False</wrap>
 			    <xalign>0.5</xalign>
@@ -6747,7 +6747,7 @@
 			    <class>GtkLabel</class>
 			    <child_name>CList:title</child_name>
 			    <name>label500</name>
-			    <label>relayed</label>
+			    <label>Relayed</label>
 			    <justify>GTK_JUSTIFY_CENTER</justify>
 			    <wrap>False</wrap>
 			    <xalign>0.5</xalign>
@@ -6760,7 +6760,7 @@
 			    <class>GtkLabel</class>
 			    <child_name>CList:title</child_name>
 			    <name>label501</name>
-			    <label>gen. queued</label>
+			    <label>Gen. queued</label>
 			    <justify>GTK_JUSTIFY_CENTER</justify>
 			    <wrap>False</wrap>
 			    <xalign>0.5</xalign>
@@ -6773,7 +6773,7 @@
 			    <class>GtkLabel</class>
 			    <child_name>CList:title</child_name>
 			    <name>label396</name>
-			    <label>gen. sent</label>
+			    <label>Gen. sent</label>
 			    <justify>GTK_JUSTIFY_CENTER</justify>
 			    <wrap>False</wrap>
 			    <xalign>0.5</xalign>
@@ -10056,7 +10056,7 @@ for all filters</label>
 		    <handler>on_button_filter_reset_rule_clicked</handler>
 		    <last_modification_time>Sat, 08 Jun 2002 00:49:23 GMT</last_modification_time>
 		  </signal>
-		  <label>Reset stats</label>
+		  <label>_Reset stats</label>
 		  <relief>GTK_RELIEF_NORMAL</relief>
 		  <child>
 		    <padding>0</padding>
@@ -10429,7 +10429,7 @@ for all filters</label>
 		    <handler>on_button_filter_reset_rule_clicked</handler>
 		    <last_modification_time>Sat, 08 Jun 2002 00:49:37 GMT</last_modification_time>
 		  </signal>
-		  <label>Reset stats</label>
+		  <label>_Reset stats</label>
 		  <relief>GTK_RELIEF_NORMAL</relief>
 		  <child>
 		    <padding>0</padding>
@@ -10854,7 +10854,7 @@ for all filters</label>
 		    <handler>on_button_filter_reset_rule_clicked</handler>
 		    <last_modification_time>Sat, 08 Jun 2002 00:49:04 GMT</last_modification_time>
 		  </signal>
-		  <label>Reset stats</label>
+		  <label>_Reset stats</label>
 		  <relief>GTK_RELIEF_NORMAL</relief>
 		  <child>
 		    <padding>0</padding>
@@ -11109,7 +11109,7 @@ for all filters</label>
 		      <handler>on_button_filter_reset_rule_clicked</handler>
 		      <last_modification_time>Sat, 08 Jun 2002 00:48:53 GMT</last_modification_time>
 		    </signal>
-		    <label>Reset stats</label>
+		    <label>_Reset stats</label>
 		    <relief>GTK_RELIEF_NORMAL</relief>
 		    <child>
 		      <padding>0</padding>
@@ -11490,7 +11490,7 @@ for all filters</label>
 		    <handler>on_button_filter_reset_rule_clicked</handler>
 		    <last_modification_time>Sat, 08 Jun 2002 00:49:04 GMT</last_modification_time>
 		  </signal>
-		  <label>Reset stats</label>
+		  <label>_Reset stats</label>
 		  <relief>GTK_RELIEF_NORMAL</relief>
 		  <child>
 		    <padding>0</padding>
@@ -12142,7 +12142,7 @@ for all filters</label>
 		    <handler>on_button_filter_reset_rule_clicked</handler>
 		    <last_modification_time>Sat, 08 Jun 2002 00:49:04 GMT</last_modification_time>
 		  </signal>
-		  <label>Reset stats</label>
+		  <label>_Reset stats</label>
 		  <relief>GTK_RELIEF_NORMAL</relief>
 		  <child>
 		    <padding>0</padding>
@@ -12744,7 +12744,7 @@ for all filters</label>
 		    <handler>on_button_filter_reset_rule_clicked</handler>
 		    <last_modification_time>Sat, 08 Jun 2002 00:49:04 GMT</last_modification_time>
 		  </signal>
-		  <label>Reset stats</label>
+		  <label>_Reset stats</label>
 		  <relief>GTK_RELIEF_NORMAL</relief>
 		  <child>
 		    <padding>0</padding>
@@ -13950,7 +13950,7 @@ Meet us on #gtk-gnutella at irc.freenode.net.</label>
 		    <class>GtkCheckButton</class>
 		    <name>checkbutton_config_force_ip</name>
 		    <can_focus>True</can_focus>
-		    <label>Force local IP to</label>
+		    <label>Force local _IP to</label>
 		    <active>False</active>
 		    <draw_indicator>True</draw_indicator>
 		    <child>
@@ -13972,7 +13972,7 @@ Meet us on #gtk-gnutella at irc.freenode.net.</label>
 		  <widget>
 		    <class>GtkLabel</class>
 		    <name>label129</name>
-		    <label>Listen port</label>
+		    <label>_Listen port</label>
 		    <justify>GTK_JUSTIFY_CENTER</justify>
 		    <wrap>False</wrap>
 		    <xalign>0</xalign>
@@ -14025,7 +14025,7 @@ Meet us on #gtk-gnutella at irc.freenode.net.</label>
 		    <class>GtkCheckButton</class>
 		    <name>checkbutton_give_server_hostname</name>
 		    <can_focus>True</can_focus>
-		    <label>Public hostname</label>
+		    <label>Public _hostname</label>
 		    <active>False</active>
 		    <draw_indicator>True</draw_indicator>
 		    <child>
@@ -14159,7 +14159,7 @@ Meet us on #gtk-gnutella at irc.freenode.net.</label>
 		    <class>GtkCheckButton</class>
 		    <name>checkbutton_enable_udp</name>
 		    <can_focus>True</can_focus>
-		    <label>Enable UDP</label>
+		    <label>Enable _UDP</label>
 		    <active>False</active>
 		    <draw_indicator>True</draw_indicator>
 		    <child>
@@ -14217,7 +14217,7 @@ Meet us on #gtk-gnutella at irc.freenode.net.</label>
 		  <widget>
 		    <class>GtkLabel</class>
 		    <name>label91</name>
-		    <label>Host:</label>
+		    <label>H_ost:</label>
 		    <justify>GTK_JUSTIFY_CENTER</justify>
 		    <wrap>False</wrap>
 		    <xalign>7.45058e-09</xalign>
@@ -14243,7 +14243,7 @@ Meet us on #gtk-gnutella at irc.freenode.net.</label>
 		  <widget>
 		    <class>GtkLabel</class>
 		    <name>label92</name>
-		    <label>TCP Port:</label>
+		    <label>TCP _Port:</label>
 		    <justify>GTK_JUSTIFY_CENTER</justify>
 		    <wrap>False</wrap>
 		    <xalign>0.5</xalign>
@@ -14269,7 +14269,7 @@ Meet us on #gtk-gnutella at irc.freenode.net.</label>
 		  <widget>
 		    <class>GtkLabel</class>
 		    <name>label90</name>
-		    <label>Proxy type:</label>
+		    <label>Proxy _type:</label>
 		    <justify>GTK_JUSTIFY_CENTER</justify>
 		    <wrap>False</wrap>
 		    <xalign>0.5</xalign>
@@ -14436,7 +14436,7 @@ Meet us on #gtk-gnutella at irc.freenode.net.</label>
 		  <widget>
 		    <class>GtkLabel</class>
 		    <name>label93</name>
-		    <label>Username</label>
+		    <label>_Username</label>
 		    <justify>GTK_JUSTIFY_CENTER</justify>
 		    <wrap>False</wrap>
 		    <xalign>7.45058e-09</xalign>
@@ -14462,7 +14462,7 @@ Meet us on #gtk-gnutella at irc.freenode.net.</label>
 		  <widget>
 		    <class>GtkLabel</class>
 		    <name>label94</name>
-		    <label>Password</label>
+		    <label>Pass_word</label>
 		    <justify>GTK_JUSTIFY_CENTER</justify>
 		    <wrap>False</wrap>
 		    <xalign>7.45058e-09</xalign>
@@ -14606,7 +14606,7 @@ Meet us on #gtk-gnutella at irc.freenode.net.</label>
 		    <class>GtkCheckButton</class>
 		    <name>checkbutton_config_no_rfc1918</name>
 		    <can_focus>True</can_focus>
-		    <label>Allow connections from and to LAN addresses</label>
+		    <label>Allow connections from and to _LAN addresses</label>
 		    <active>False</active>
 		    <draw_indicator>True</draw_indicator>
 		    <child>
@@ -14631,7 +14631,7 @@ Meet us on #gtk-gnutella at irc.freenode.net.</label>
 		  <widget>
 		    <class>GtkLabel</class>
 		    <name>label126_2</name>
-		    <label>Local network(s)</label>
+		    <label>Local networks</label>
 		    <justify>GTK_JUSTIFY_CENTER</justify>
 		    <wrap>False</wrap>
 		    <xalign>0.5</xalign>
@@ -14952,7 +14952,7 @@ Meet us on #gtk-gnutella at irc.freenode.net.</label>
 		  <class>GtkCheckButton</class>
 		  <name>checkbutton_host_runs_ntp</name>
 		  <can_focus>True</can_focus>
-		  <label>Host runs NTP</label>
+		  <label>Host runs _NTP</label>
 		  <active>False</active>
 		  <draw_indicator>True</draw_indicator>
 		  <child>
@@ -15055,7 +15055,7 @@ Meet us on #gtk-gnutella at irc.freenode.net.</label>
 		  <class>GtkCheckButton</class>
 		  <name>checkbutton_enable_shell</name>
 		  <can_focus>True</can_focus>
-		  <label>Enable &quot;shell&quot; control interface</label>
+		  <label>Enable &quot;_shell&quot; control interface</label>
 		  <active>False</active>
 		  <draw_indicator>True</draw_indicator>
 		  <child>
@@ -15070,7 +15070,7 @@ Meet us on #gtk-gnutella at irc.freenode.net.</label>
 	    <widget>
 	      <class>GtkFrame</class>
 	      <name>frame_expert_rx_buffers</name>
-	      <label>Socket Receive Buffer Size</label>
+	      <label>Socket receive buffer size</label>
 	      <label_xalign>0</label_xalign>
 	      <shadow_type>GTK_SHADOW_ETCHED_IN</shadow_type>
 	      <child>
@@ -15092,7 +15092,7 @@ Meet us on #gtk-gnutella at irc.freenode.net.</label>
 		<widget>
 		  <class>GtkLabel</class>
 		  <name>label553</name>
-		  <label>Gnutella RX buffer</label>
+		  <label>_Gnutella RX buffer</label>
 		  <justify>GTK_JUSTIFY_CENTER</justify>
 		  <wrap>False</wrap>
 		  <xalign>0</xalign>
@@ -15170,7 +15170,7 @@ Meet us on #gtk-gnutella at irc.freenode.net.</label>
 		<widget>
 		  <class>GtkLabel</class>
 		  <name>label552</name>
-		  <label>Download RX buffer</label>
+		  <label>_Download RX buffer</label>
 		  <justify>GTK_JUSTIFY_CENTER</justify>
 		  <wrap>False</wrap>
 		  <xalign>0</xalign>
@@ -16332,7 +16332,7 @@ Meet us on #gtk-gnutella at irc.freenode.net.</label>
 		    <widget>
 		      <class>GtkLabel</class>
 		      <name>label37</name>
-		      <label>Limit search results to </label>
+		      <label>Limit search _results to </label>
 		      <justify>GTK_JUSTIFY_CENTER</justify>
 		      <wrap>False</wrap>
 		      <xalign>7.45058e-09</xalign>
@@ -16994,7 +16994,7 @@ Meet us on #gtk-gnutella at irc.freenode.net.</label>
 	      <widget>
 		<class>GtkFrame</class>
 		<name>frame_expert_gnet_ttl</name>
-		<label>GnutellaNet TTL settings</label>
+		<label>GnutellaNet _TTL settings</label>
 		<label_xalign>0</label_xalign>
 		<shadow_type>GTK_SHADOW_ETCHED_IN</shadow_type>
 
@@ -17011,7 +17011,7 @@ Meet us on #gtk-gnutella at irc.freenode.net.</label>
 		  <widget>
 		    <class>GtkLabel</class>
 		    <name>label84</name>
-		    <label>Max TTL</label>
+		    <label>Max _TTL</label>
 		    <justify>GTK_JUSTIFY_CENTER</justify>
 		    <wrap>False</wrap>
 		    <xalign>7.45058e-09</xalign>
@@ -17037,7 +17037,7 @@ Meet us on #gtk-gnutella at irc.freenode.net.</label>
 		  <widget>
 		    <class>GtkLabel</class>
 		    <name>label85</name>
-		    <label>My TTL</label>
+		    <label>M_y TTL</label>
 		    <justify>GTK_JUSTIFY_CENTER</justify>
 		    <wrap>False</wrap>
 		    <xalign>7.45058e-09</xalign>
@@ -17063,7 +17063,7 @@ Meet us on #gtk-gnutella at irc.freenode.net.</label>
 		  <widget>
 		    <class>GtkLabel</class>
 		    <name>label158</name>
-		    <label>from nodes within a</label>
+		    <label>from _nodes within a</label>
 		    <justify>GTK_JUSTIFY_CENTER</justify>
 		    <wrap>False</wrap>
 		    <xalign>0</xalign>
@@ -17089,7 +17089,7 @@ Meet us on #gtk-gnutella at irc.freenode.net.</label>
 		  <widget>
 		    <class>GtkLabel</class>
 		    <name>label157</name>
-		    <label>Max # of high TTL msg</label>
+		    <label>Max # of _high TTL msg</label>
 		    <justify>GTK_JUSTIFY_CENTER</justify>
 		    <wrap>False</wrap>
 		    <xalign>0</xalign>
@@ -17115,7 +17115,7 @@ Meet us on #gtk-gnutella at irc.freenode.net.</label>
 		  <widget>
 		    <class>GtkLabel</class>
 		    <name>label159</name>
-		    <label>Hard TTL limit</label>
+		    <label>H_ard TTL limit</label>
 		    <justify>GTK_JUSTIFY_CENTER</justify>
 		    <wrap>False</wrap>
 		    <xalign>0</xalign>
@@ -19698,7 +19698,7 @@ allowed</label>
 		    <handler>on_button_config_save_path_clicked</handler>
 		    <last_modification_time>Mon, 27 Mar 2000 06:18:49 GMT</last_modification_time>
 		  </signal>
-		  <label>Browse</label>
+		  <label>_Browse</label>
 		  <relief>GTK_RELIEF_NORMAL</relief>
 		  <child>
 		    <padding>0</padding>
@@ -19752,7 +19752,7 @@ allowed</label>
 		    <handler>on_button_config_move_path_clicked</handler>
 		    <last_modification_time>Mon, 01 May 2000 15:08:31 GMT</last_modification_time>
 		  </signal>
-		  <label>Browse</label>
+		  <label>_Browse</label>
 		  <relief>GTK_RELIEF_NORMAL</relief>
 		  <child>
 		    <padding>0</padding>
@@ -19806,7 +19806,7 @@ allowed</label>
 		    <handler>on_button_config_bad_path_clicked</handler>
 		    <last_modification_time>Sat, 09 Nov 2002 17:04:05 GMT</last_modification_time>
 		  </signal>
-		  <label>Browse</label>
+		  <label>_Browse</label>
 		  <relief>GTK_RELIEF_NORMAL</relief>
 		  <child>
 		    <padding>0</padding>
@@ -20105,7 +20105,7 @@ allowed</label>
 		  <class>GtkCheckButton</class>
 		  <name>checkbutton_config_download_optimistic_start</name>
 		  <can_focus>True</can_focus>
-		  <label>Optimistic first chunk</label>
+		  <label>Optimistic first _chunk</label>
 		  <active>False</active>
 		  <draw_indicator>True</draw_indicator>
 		  <child>
@@ -20128,7 +20128,7 @@ allowed</label>
 		  <class>GtkCheckButton</class>
 		  <name>checkbutton_config_req_urn</name>
 		  <can_focus>True</can_focus>
-		  <label>Require urn</label>
+		  <label>Require URN</label>
 		  <active>False</active>
 		  <draw_indicator>True</draw_indicator>
 		  <child>
@@ -20151,7 +20151,7 @@ allowed</label>
 		  <class>GtkCheckButton</class>
 		  <name>checkbutton_config_req_srv_name</name>
 		  <can_focus>True</can_focus>
-		  <label>Require server name</label>
+		  <label>Require _server name</label>
 		  <active>False</active>
 		  <draw_indicator>True</draw_indicator>
 		  <child>
