@@ -15948,7 +15948,6 @@ create_main_window_dl_files_tab (void)
   GtkWidget *label_fi_all_count;
   GtkWidget *label717;
   GtkWidget *label_fi_with_source_count;
-  GtkWidget *label912;
   GtkWidget *label719;
   GtkWidget *label913;
   GtkTooltips *tooltips;
@@ -16218,11 +16217,6 @@ create_main_window_dl_files_tab (void)
   gtk_widget_show (label_fi_with_source_count);
   gtk_box_pack_start (GTK_BOX (hbox235), label_fi_with_source_count, FALSE, TRUE, 0);
 
-  label912 = gtk_label_new ("");
-  gtk_widget_set_name (label912, "label912");
-  gtk_widget_show (label912);
-  gtk_box_pack_start (GTK_BOX (hbox235), label912, FALSE, TRUE, 4);
-
   label719 = gtk_label_new (_(" with sources"));
   gtk_widget_set_name (label719, "label719");
   gtk_widget_show (label719);
@@ -16287,7 +16281,6 @@ create_main_window_dl_files_tab (void)
   GLADE_HOOKUP_OBJECT (main_window_dl_files_tab, label_fi_all_count, "label_fi_all_count");
   GLADE_HOOKUP_OBJECT (main_window_dl_files_tab, label717, "label717");
   GLADE_HOOKUP_OBJECT (main_window_dl_files_tab, label_fi_with_source_count, "label_fi_with_source_count");
-  GLADE_HOOKUP_OBJECT (main_window_dl_files_tab, label912, "label912");
   GLADE_HOOKUP_OBJECT (main_window_dl_files_tab, label719, "label719");
   GLADE_HOOKUP_OBJECT (main_window_dl_files_tab, label913, "label913");
   GLADE_HOOKUP_OBJECT_NO_REF (main_window_dl_files_tab, tooltips, "tooltips");
