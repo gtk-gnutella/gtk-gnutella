@@ -1,5 +1,12 @@
 # since last version
 
+- (2003.01.02 - Richard)
+ * Added UP host catcher to gnet panel
+ * Redesigned a few config panels
+ * Added "ko" to contibutors
+ * Added information about the OS to the about dialog
+ * Added hidden RCSID label to the gui (about dialog)
+
 - (2003.01.01 - RAM)
  * Removed the G_INLINE_FUNC attribute in node_add_tx() and friends, as
    it no longer links properly.
