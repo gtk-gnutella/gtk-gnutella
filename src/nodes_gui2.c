@@ -26,6 +26,7 @@
  */
 
 #include "gui.h"
+#include "nodes_gui_common.h"
 #include "nodes_gui.h"
 
 RCSID("$Id$");
@@ -47,16 +48,24 @@ enum {
     NODE_COLUMNS
 };
 
-static gchar gui_tmp[4096];
 static GtkListStore *nodes_model = NULL;
 static GtkCellRenderer *nodes_gui_cell_renderer = NULL;
+static GHashTable *nodes_handles = NULL;
+
+/***
+ *** Private functions
+ ***/
 
 static void nodes_gui_node_removed(gnet_node_t);
 static void nodes_gui_node_added(gnet_node_t, const gchar *);
 static void nodes_gui_node_info_changed(gnet_node_t);
 static void nodes_gui_node_flags_changed(gnet_node_t);
-static void nodes_gui_add_column(GtkTreeView *, gint, const gchar *);
 
+/*
+ * on_nodes_gui_column_resized:
+ *
+ * Callback which updates the column width property
+ */
 static void on_nodes_gui_column_resized(
 	GtkTreeViewColumn *column, GParamSpec *param, gpointer data)
 {
@@ -72,33 +81,107 @@ static void on_nodes_gui_column_resized(
 }
 
 /*
+ * nodes_gui_add_column
+ *
+ * Create a column, associating the "text" attribute of the
+ * cell_renderer to the first column of the model
+ */
+static void nodes_gui_add_column(
+	GtkTreeView *tree, gint column_id, const gchar *title)
+{
+    GtkTreeViewColumn *column;
+
+   	column = gtk_tree_view_column_new_with_attributes(
+		title, nodes_gui_cell_renderer, "text", column_id, NULL);
+    gtk_tree_view_column_set_reorderable(column, TRUE);
+    gtk_tree_view_column_set_resizable(column, TRUE);
+    gtk_tree_view_column_set_sizing(column, GTK_TREE_VIEW_COLUMN_FIXED);
+    gtk_tree_view_column_set_min_width(column, 1);
+    gtk_tree_view_append_column(GTK_TREE_VIEW (tree), column);
+	g_object_notify(G_OBJECT(column), "width");
+	g_signal_connect(G_OBJECT(column), "notify::width",
+		G_CALLBACK(on_nodes_gui_column_resized), GINT_TO_POINTER(column_id));
+}
+
+static void nodes_gui_remove_selected_helper(
+	GtkTreeModel *model, GtkTreePath *path, GtkTreeIter *iter, gpointer data)
+{
+	GSList **list = data;
+	guint handle;
+
+	gtk_tree_model_get(model, iter, COL_NODE_HANDLE, &handle, -1);
+	*list = g_slist_append(*list, GUINT_TO_POINTER(handle));
+}
+
+/*
  * nodes_gui_find_node:
  *
  * Fetches the GtkTreeIter that points to the row which holds the
  * data about the given node.
  */
-gboolean nodes_gui_find_node(gnet_node_t n, GtkTreeIter *iter)
+static gboolean nodes_gui_find_node(gnet_node_t n, GtkTreeIter **iter)
 {
-    gboolean valid;
+	gpointer orig_key;
     
     g_assert(iter != NULL);
-
-    valid = gtk_tree_model_get_iter_first(GTK_TREE_MODEL(nodes_model), iter);
-
-    while (valid) {
-        GValue val = { 0, };
-
-        gtk_tree_model_get_value(GTK_TREE_MODEL(nodes_model), 
-            iter, COL_NODE_HANDLE, &val);
-
-        if (g_value_get_uint(&val) == n)
-            break;
-
-        valid = gtk_tree_model_iter_next(GTK_TREE_MODEL(nodes_model), iter);
-    }
-
-    return valid;
+	return g_hash_table_lookup_extended(nodes_handles,
+		GUINT_TO_POINTER(n), &orig_key, (gpointer) iter);
 }
+
+/*
+ * nodes_gui_update_node_info:
+ *
+ * Updates vendor, version and info column 
+ */
+static void nodes_gui_update_node_info(gnet_node_info_t *n)
+{
+    GtkTreeIter *iter;
+
+    g_assert(n != NULL);
+
+    if (nodes_gui_find_node(n->node_handle, &iter)) {
+		static gchar version[32];
+        gnet_node_status_t status;
+        time_t now = time((time_t *) NULL);
+
+        node_get_status(n->node_handle, &status);
+
+        gm_snprintf(version, sizeof(version), "%d.%d",
+            n->proto_major, n->proto_minor);
+
+        gtk_list_store_set(nodes_model, iter, 
+            COL_NODE_VENDOR, locale_to_utf8(pretty_node_vendor(n), 0),
+            COL_NODE_VERSION, version,
+            COL_NODE_INFO, nodes_gui_common_status_str(&status, now),
+            -1);
+    } else
+        g_warning("nodes_gui_update_node: no matching row found");
+}
+
+/*
+ * nodes_gui_update_node_flags
+ *  
+ */
+static void nodes_gui_update_node_flags(gnet_node_t n, gnet_node_flags_t *flags)
+{
+    GtkTreeIter *iter;
+
+    if (nodes_gui_find_node(n, &iter))
+		gtk_list_store_set(nodes_model, iter, COL_NODE_TYPE,  
+			nodes_gui_common_flags_str(flags), -1);
+    else
+        g_warning("%s: no matching row found", G_GNUC_PRETTY_FUNCTION);
+}
+
+static void nodes_gui_free_iter(gpointer iter)
+{
+	wfree(iter, sizeof(GtkTreeIter));
+}
+
+/***
+ *** Public functions
+ ***/
+
 
 /*
  * nodes_gui_early_init:
@@ -107,8 +190,8 @@ gboolean nodes_gui_find_node(gnet_node_t n, GtkTreeIter *iter)
  */
 void nodes_gui_early_init(void)
 {
-    // FIXME: create a popup again.
-    //popup_nodes = create_popup_nodes();
+    /* FIXME: create a popup again. */
+    /* popup_nodes = create_popup_nodes(); */
 }
 
 /*
@@ -138,7 +221,7 @@ void nodes_gui_init()
 
     /* The view now holds a reference.  We can get rid of our own
      * reference */
-    g_object_unref(G_OBJECT (nodes_model));
+    g_object_unref(G_OBJECT(nodes_model));
 	gtk_tree_selection_set_mode(gtk_tree_view_get_selection(tree),
 		GTK_SELECTION_MULTIPLE);
 
@@ -154,11 +237,12 @@ void nodes_gui_init()
     nodes_gui_add_column(tree, COL_NODE_CONNECTED, "Connected");
     nodes_gui_add_column(tree, COL_NODE_UPTIME, "Uptime");
     nodes_gui_add_column(tree, COL_NODE_INFO, "Info");
-
+	nodes_handles = g_hash_table_new_full(
+		NULL, NULL, NULL, (gpointer) &nodes_gui_free_iter);
     node_add_node_added_listener(nodes_gui_node_added);
     node_add_node_removed_listener(nodes_gui_node_removed);
     node_add_node_info_changed_listener(nodes_gui_node_info_changed);
-	node_add_node_flags_changed_listener(nodes_gui_node_flags_changed);
+    node_add_node_flags_changed_listener(nodes_gui_node_flags_changed);
 }
 
 /*
@@ -180,11 +264,12 @@ void nodes_gui_shutdown(void)
  */
 void nodes_gui_remove_node(gnet_node_t n)
 {
-    GtkTreeIter iter;
+    GtkTreeIter *iter;
 
-	if (nodes_gui_find_node(n, &iter))
-        gtk_list_store_remove(nodes_model, &iter);
-    else
+	if (nodes_gui_find_node(n, &iter)) {
+        gtk_list_store_remove(nodes_model, iter);
+		g_hash_table_remove(nodes_handles, GUINT_TO_POINTER(n));
+	} else
         g_warning("nodes_gui_remove_node: no matching row found");
 }
 
@@ -196,114 +281,30 @@ void nodes_gui_remove_node(gnet_node_t n)
 void nodes_gui_add_node(gnet_node_info_t *n, const gchar *type)
 {
     GtkTreeIter iter;
-	gchar proto_tmp[32];
-    guint handle;
+    GtkTreeIter *iter_cp;
+	static gchar proto_tmp[32];
 
     g_assert(n != NULL);
 
     gtk_list_store_append(nodes_model, &iter);
+	iter_cp = walloc(sizeof(GtkTreeIter));
+	memcpy(iter_cp, &iter, sizeof(*iter_cp));
 
    	gm_snprintf(proto_tmp, sizeof(proto_tmp), "%d.%d",
 		n->proto_major, n->proto_minor);
-    handle = n->node_handle;
-
+	g_hash_table_insert(nodes_handles,
+		GUINT_TO_POINTER(n->node_handle), iter_cp);
     gtk_list_store_set(nodes_model, &iter, 
         COL_NODE_HOST,    ip_port_to_gchar(n->ip, n->port),
-        COL_NODE_TYPE,    "...",
+        COL_NODE_TYPE,    NULL,
         COL_NODE_VENDOR,  locale_to_utf8(pretty_node_vendor(n), 0),
         COL_NODE_VERSION, proto_tmp,
-        COL_NODE_CONNECTED, "...",
-        COL_NODE_UPTIME,  "...",
-        COL_NODE_INFO,    "...",
-        COL_NODE_HANDLE,  handle,
+        COL_NODE_CONNECTED, NULL,
+        COL_NODE_UPTIME,  NULL,
+        COL_NODE_INFO,    NULL,
+        COL_NODE_HANDLE,  n->node_handle,
         -1);
 }
-
-
-
-/*
- * gui_node_status_str
- *
- * Compute info string for node.
- * Returns pointer to static data.
- */
-static gchar *gui_node_status_str(const gnet_node_status_t *n, time_t now)
-{
-	gchar *a;
-
-	switch (n->status) {
-	case GTA_NODE_CONNECTING:
-		a = "Connecting...";
-		break;
-
-	case GTA_NODE_HELLO_SENT:
-		a = "Hello sent";
-		break;
-
-	case GTA_NODE_WELCOME_SENT:
-		a = "Welcome sent";
-		break;
-
-	case GTA_NODE_CONNECTED:
-		if (n->sent || n->received) {
-			gint slen = 0;
-			if (n->tx_compressed)
-				slen += gm_snprintf(gui_tmp, sizeof(gui_tmp), "TXc=%d,%d%%",
-					n->sent, (gint) (n->tx_compression_ratio * 100));
-			else
-				slen += gm_snprintf(gui_tmp, sizeof(gui_tmp), "TX=%d", n->sent);
-
-			slen += gm_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
-				" (%.1f k/s)", n->tx_bps);
-
-			if (n->rx_compressed)
-				slen += gm_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
-					" RXc=%d,%d%%",
-					n->received, (gint) (n->rx_compression_ratio * 100));
-			else
-				slen += gm_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
-					" RX=%d", n->received);
-
-			slen += gm_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
-				" (%.1f k/s)"
-				" Query(TX=%d, Q=%d) Drop(TX=%d, RX=%d)"
-				" Dup=%d Bad=%d W=%d Q=%d,%d%% %s",
-				n->rx_bps,
-				n->squeue_sent, n->squeue_count,
-				n->tx_dropped, n->rx_dropped, n->n_dups, n->n_bad, n->n_weird,
-				n->mqueue_count, n->mqueue_percent_used,
-				n->in_tx_flow_control ? " [FC]" : "");
-			a = gui_tmp;
-		} else
-			a = "Connected";
-		break;
-
-	case GTA_NODE_SHUTDOWN:
-		{
-			gm_snprintf(gui_tmp, sizeof(gui_tmp),
-				"Closing: %s [Stop in %ds] RX=%d Q=%d,%d%%",
-				n->message, n->shutdown_remain, n->received,
-				n->mqueue_count, n->mqueue_percent_used);
-			a = gui_tmp;
-		}
-		break;
-
-	case GTA_NODE_REMOVING:
-		a = (gchar *) ((*n->message) ? n->message : "Removing");
-		break;
-
-	case GTA_NODE_RECEIVING_HELLO:
-		a = "Receiving hello";
-		break;
-
-	default:
-		a = "UNKNOWN STATUS";
-	}
-
-	return a;
-}
-
-
 
 /*
  * gui_update_nodes_display
@@ -339,107 +340,25 @@ void nodes_gui_update_nodes_display(time_t now)
 
         node_get_status(g_value_get_uint(&val), &status);
 
-		g_strlcpy(timestr, status.connect_date ? 
-			short_uptime(now - status.connect_date)  : "...", sizeof(timestr));
-        gtk_list_store_set(nodes_model, &iter, 
-            COL_NODE_CONNECTED, timestr,
-            COL_NODE_UPTIME, status.up_date ?
-				short_uptime(now - status.up_date) : "...",
-            COL_NODE_INFO, gui_node_status_str(&status, now),
-            -1);
+		if (status.connect_date) {
+			g_strlcpy(timestr, short_uptime(now - status.connect_date),
+				sizeof(timestr));
+        	gtk_list_store_set(nodes_model, &iter, 
+            	COL_NODE_CONNECTED, timestr,
+            	COL_NODE_UPTIME, status.up_date ?
+					short_uptime(now - status.up_date) : NULL,
+            	COL_NODE_INFO, nodes_gui_common_status_str(&status, now),
+            	-1);
+		} else
+            gtk_list_store_set(nodes_model, &iter,
+                COL_NODE_UPTIME, status.up_date ?
+                    short_uptime(now - status.up_date) : NULL,
+                COL_NODE_INFO, nodes_gui_common_status_str(&status, now),
+                -1);
 
         valid = gtk_tree_model_iter_next(GTK_TREE_MODEL(nodes_model), &iter);
     }
 }
-
-static void nodes_gui_update_node_info(gnet_node_info_t *n)
-{
-    GtkTreeIter iter;
-
-    g_assert(n != NULL);
-
-    if (nodes_gui_find_node(n->node_handle, &iter)) {
-		static gchar version[32];
-        gnet_node_status_t status;
-        time_t now = time((time_t *) NULL);
-
-        node_get_status(n->node_handle, &status);
-
-        gm_snprintf(version, sizeof(version), "%d.%d",
-            n->proto_major, n->proto_minor);
-
-        gtk_list_store_set(nodes_model, &iter, 
-            COL_NODE_VENDOR,  locale_to_utf8(pretty_node_vendor(n), 0),
-            COL_NODE_VERSION, version,
-            COL_NODE_INFO,    gui_node_status_str(&status, now),
-            -1);
-    } else
-        g_warning("nodes_gui_update_node: no matching row found");
-}
-
-
-/*
- * nodes_gui_update_node_flags
- *
- * Display a summary of the node flags:
- *
- *    012345678 (offset)
- *    NIrwqTRFh
- *    ^^^^^^^^^
- *    ||||||||+ hops flow triggerd (h), or total query flow control (f)
- *    |||||||+  flow control (F), or pending data in queue (d)
- *    ||||||+   indicates whether RX is compressed
- *    |||||+    indicates whether TX is compressed
- *    ||||+     indicates whether we sent/received a QRT, or send/receive one
- *    |||+      indicates whether node is writable
- *    ||+       indicates whether node is readable
- *    |+        indicates connection type (Incoming, Outgoing, Ponging)
- *    +         indicates peer mode (Normal, Ultra, Leaf)
- */
-static void nodes_gui_update_node_flags(gnet_node_t n, gnet_node_flags_t *flags)
-{
-	gchar status[] = { '-', '-', '-', '-', '-', '-', '-', '-', '-', '\0' };
-    GtkTreeIter iter;
-
-    if (nodes_gui_find_node(n, &iter)) {
-		switch (flags->peermode) {
-		case NODE_P_UNKNOWN:	break;
-		case NODE_P_ULTRA:		status[0] = 'U'; break;
-		case NODE_P_NORMAL:		status[0] = 'N'; break;
-		case NODE_P_LEAF:		status[0] = 'L'; break;
-		case NODE_P_CRAWLER:	status[0] = 'C'; break;
-		default:				g_assert_not_reached(); break;
-		}
-
-		status[1] = flags->incoming ? 'I' : 'O';
-		if (flags->temporary) status[1] = 'P';
-		if (flags->readable) status[2] = 'r';
-		if (flags->writable) status[3] = 'w';
-
-		switch (flags->qrt_state) {
-		case QRT_S_SENT: case QRT_S_RECEIVED:		status[4] = 'Q'; break;
-		case QRT_S_SENDING: case QRT_S_RECEIVING:	status[4] = 'q'; break;
-		case QRT_S_PATCHING:						status[4] = 'p'; break;
-		default:									break;
-		}
-
-		if (flags->tx_compressed) status[5] = 'T';
-		if (flags->rx_compressed) status[6] = 'R';
-
-		if (flags->in_tx_flow_control) status[7] = 'F';
-		else if (!flags->mqueue_empty) status[7] = 'd';
-
-		if (flags->hops_flow == 0)
-			status[8] = 'f';
-		else if (flags->hops_flow < GTA_NORMAL_TTL)
-			status[8] = 'h';
-
-        gtk_list_store_set(nodes_model, &iter, COL_NODE_TYPE,  status, -1);
-    } else
-        g_warning("%s: no matching row found", G_GNUC_PRETTY_FUNCTION);
-}
-
-
 
 /***
  *** Callbacks
@@ -467,15 +386,15 @@ static void nodes_gui_node_removed(gnet_node_t n)
  *
  * Adds the node to the gui.
  */
-static void nodes_gui_node_added(gnet_node_t n, const gchar *t)
+static void nodes_gui_node_added(gnet_node_t n, const gchar *type)
 {
     gnet_node_info_t *info;
 
     if (gui_debug >= 5)
-        printf("nodes_gui_node_added(%u, %s)\n", n, t);
+        printf("nodes_gui_node_added(%u, %s)\n", n, type);
 
     info = node_get_info(n);
-    nodes_gui_add_node(info, t);
+    nodes_gui_add_node(info, type);
     node_free_info(info);
 }
 
@@ -489,8 +408,8 @@ static void nodes_gui_node_added(gnet_node_t n, const gchar *t)
 static void nodes_gui_node_info_changed(gnet_node_t n)
 {
     gnet_node_info_t info;
-    
-	node_fill_info(n, &info);
+
+    node_fill_info(n, &info);
     nodes_gui_update_node_info(&info);
     node_clear_info(&info);
 }
@@ -509,38 +428,10 @@ static void nodes_gui_node_flags_changed(gnet_node_t n)
 }
 
 /*
- * nodes_gui_add_column
+ * nodes_gui_remove_selected
  *
- * Create a column, associating the "text" attribute of the
- * cell_renderer to the first column of the model
+ * Removes all selected nodes from the treeview and disconnects them 
  */
-static void nodes_gui_add_column(
-	GtkTreeView *tree, gint column_id, const gchar *title)
-{
-    GtkTreeViewColumn *column;
-
-    column = gtk_tree_view_column_new_with_attributes(
-		title, nodes_gui_cell_renderer, "text", column_id, NULL);
-    gtk_tree_view_column_set_reorderable(column, TRUE);
-    gtk_tree_view_column_set_resizable(column, TRUE);
-    gtk_tree_view_column_set_sizing(column, GTK_TREE_VIEW_COLUMN_FIXED);
-    gtk_tree_view_column_set_min_width(column, 1);
-    gtk_tree_view_append_column(GTK_TREE_VIEW (tree), column);
-	g_object_notify(G_OBJECT(column), "width");
-	g_signal_connect(G_OBJECT(column), "notify::width",
-		G_CALLBACK(on_nodes_gui_column_resized), GINT_TO_POINTER(column_id));
-}
-
-static void nodes_gui_remove_selected_helper(
-	GtkTreeModel *model, GtkTreePath *path, GtkTreeIter *iter, gpointer data)
-{
-	GSList **list = data;
-	guint handle;
-
-	gtk_tree_model_get(model, iter, COL_NODE_HANDLE, &handle, -1);
-	*list = g_slist_append(*list, GUINT_TO_POINTER(handle));
-}
-
 void nodes_gui_remove_selected(void)
 {
 	GtkTreeView *treeview;
