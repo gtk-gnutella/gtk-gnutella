@@ -4322,7 +4322,8 @@
 			      <class>GtkDrawingArea</class>
 			      <name>drawingarea_fi_progress</name>
 			      <height>16</height>
-			      <tooltip>Shows which parts are already downloaded. The colors are: green - downloaded   yellow - downloading   red - not available</tooltip>
+			      <tooltip>Shows visual information on the download progress. Green chunks have been downloaded, with the brighter green chunks touched during this session. Yellow chunks are active right now. Red chunks have not been downloaded yet. The blue line indicates which parts of the file have been seen on the network in this session.</tooltip>
+			      <events>GDK_ENTER_NOTIFY_MASK | GDK_LEAVE_NOTIFY_MASK</events>
 			      <signal>
 				<name>realize</name>
 				<handler>on_drawingarea_fi_progress_realize</handler>

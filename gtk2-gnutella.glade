@@ -18506,7 +18506,8 @@ before kicking</property>
 				    <widget class="GtkDrawingArea" id="drawingarea_fi_progress">
 				      <property name="height_request">14</property>
 				      <property name="visible">True</property>
-				      <property name="tooltip" translatable="yes">This bar shows the progress on downloading the file. Green parts have already been downloaded, with the bright green parts during this session. White parts are currently being downloaded.</property>
+				      <property name="tooltip" translatable="yes">Shows visual information on the download progress. Green chunks have been downloaded, with the brighter green chunks touched during this session. Yellow chunks are active right now. Red chunks have not been downloaded yet. The blue line indicates which parts of the file have been seen on the network in this session.</property>
+				      <property name="events">GDK_ENTER_NOTIFY_MASK | GDK_LEAVE_NOTIFY_MASK</property>
 				      <signal name="realize" handler="on_drawingarea_fi_progress_realize" last_modification_time="Sun, 11 Apr 2004 18:42:24 GMT"/>
 				      <signal name="expose_event" handler="on_drawingarea_fi_progress_expose_event" last_modification_time="Sun, 11 Apr 2004 18:42:39 GMT"/>
 				    </widget>

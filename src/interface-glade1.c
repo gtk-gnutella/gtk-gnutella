@@ -3787,7 +3787,8 @@ create_main_window (void)
   gtk_widget_show (drawingarea_fi_progress);
   gtk_box_pack_start (GTK_BOX (hbox198), drawingarea_fi_progress, TRUE, TRUE, 0);
   gtk_widget_set_usize (drawingarea_fi_progress, -2, 16);
-  gtk_tooltips_set_tip (tooltips, drawingarea_fi_progress, _("Shows which parts are already downloaded. The colors are: green - downloaded   yellow - downloading   red - not available"), NULL);
+  gtk_tooltips_set_tip (tooltips, drawingarea_fi_progress, _("Shows visual information on the download progress. Green chunks have been downloaded, with the brighter green chunks touched during this session. Yellow chunks are active right now. Red chunks have not been downloaded yet. The blue line indicates which parts of the file have been seen on the network in this session."), NULL);
+  gtk_widget_set_events (drawingarea_fi_progress, GDK_ENTER_NOTIFY_MASK | GDK_LEAVE_NOTIFY_MASK);
 
   frame79 = gtk_frame_new (_("Alternate filenames"));
   gtk_widget_set_name (frame79, "frame79");
@@ -15217,7 +15218,7 @@ create_dlg_about (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label266), 1, 0.5);
 
-  label267 = gtk_label_new (_("Raphaël Manfredi"));
+  label267 = gtk_label_new (_("Rapha\353l Manfredi"));
   gtk_widget_set_name (label267, "label267");
   gtk_widget_ref (label267);
   gtk_object_set_data_full (GTK_OBJECT (dlg_about), "label267", label267,
@@ -15261,7 +15262,7 @@ create_dlg_about (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label291), 1, 0.5);
 
-  label273 = gtk_label_new (_("Raphaël Manfredi"));
+  label273 = gtk_label_new (_("Rapha\353l Manfredi"));
   gtk_widget_set_name (label273, "label273");
   gtk_widget_ref (label273);
   gtk_object_set_data_full (GTK_OBJECT (dlg_about), "label273", label273,
