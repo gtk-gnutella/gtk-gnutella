@@ -464,14 +464,19 @@ void on_entry_fi_regex_activate(GtkEditable *editable, gpointer user_data)
 
 void fi_gui_init(void) 
 {
+    GtkCList *clist;
+
     fi_add_listener(fi_gui_fi_added, EV_FI_ADDED, FREQ_SECS, 0);
     fi_add_listener(fi_gui_fi_removed, EV_FI_REMOVED, FREQ_SECS, 0);
     fi_add_listener(fi_gui_fi_status_changed, EV_FI_STATUS_CHANGED,
 		FREQ_SECS, 0);
 
-    gtk_clist_set_column_justification(
-        GTK_CLIST(lookup_widget(main_window, "clist_fileinfo")),
+    clist = GTK_CLIST(lookup_widget(main_window, "clist_fileinfo"));
+
+    gtk_clist_set_column_justification(clist, 
         c_fi_size, GTK_JUSTIFY_RIGHT);
+
+    gtk_clist_column_titles_passive(clist);
 
     /* Initialize the row filter */
     fi_gui_set_filter_regex(NULL);

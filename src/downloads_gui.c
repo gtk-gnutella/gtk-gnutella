@@ -517,9 +517,8 @@ void downloads_gui_init(void)
 	clist = GTK_CLIST(ctree_downloads);
 	clist_queue = GTK_CLIST(ctree_downloads_queue);
 
+    gtk_clist_column_titles_passive(clist);
     gtk_clist_column_titles_passive(clist_queue);
-//	gtk_clist_set_reorderable(clist_queue, TRUE);
-//	gtk_clist_set_use_drag_icons(clist_queue, FALSE);
 
     gtk_clist_set_column_justification(
         clist_queue, c_queue_size, GTK_JUSTIFY_RIGHT);
