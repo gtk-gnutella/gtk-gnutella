@@ -27,6 +27,10 @@
 #define SOL_TCP IPPROTO_TCP
 #endif
 
+#ifndef SHUT_WR
+#define SHUT_WR 1		/* Shutdown TX side */
+#endif
+
 guint32 local_ip = 0;
 gboolean is_firewalled = TRUE;		/* Assume the worst --RAM, 20/12/2001 */
 
@@ -804,6 +808,18 @@ void sock_nodelay(struct gnutella_socket *s, gboolean on)
 	if (-1 == setsockopt(s->file_desc, SOL_TCP, TCP_NODELAY, &arg, sizeof(arg)))
 		g_warning("unable to %s TCP_NODELAY on fd#%d: %s",
 			on ? "set" : "clear", s->file_desc, g_strerror(errno));
+}
+
+/*
+ * sock_tx_shutdown
+ *
+ * Shutdown the TX side of the socket.
+ */
+void sock_tx_shutdown(struct gnutella_socket *s)
+{
+	if (-1 == shutdown(s->file_desc, SHUT_WR))
+		g_warning("unable to shutdown TX on fd#%d: %s",
+			s->file_desc, g_strerror(errno));
 }
 
 static void show_error(char *fmt, ...)

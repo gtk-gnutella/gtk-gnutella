@@ -610,6 +610,7 @@ void node_bye(struct gnutella_node *n, gint code, const gchar * reason, ...)
 		if (dbg > 4)
 			printf("successfully sent BYE \"%s\" to %s\n",
 				n->error_str, node_ip(n));
+		sock_tx_shutdown(n->socket);
 		node_shutdown_mode(n, BYE_GRACE_DELAY);
 	} else {
 		if (dbg > 4)
@@ -2370,13 +2371,14 @@ void node_disableq(struct gnutella_node *n)
 
 	/*
 	 * If we sent a Bye message, we can now rest assured it has been
-	 * transmitted.  Remove the node.
+	 * transmitted.  Shutdown the node.
 	 */
 
 	if (n->flags & NODE_F_BYE_SENT) {
 		if (dbg > 4)
 			printf("finally sent BYE \"%s\" to %s\n",
 				n->error_str, node_ip(n));
+		sock_tx_shutdown(n->socket);
 		node_shutdown_mode(n, BYE_GRACE_DELAY);
 		return;
 	}
