@@ -2002,6 +2002,7 @@ gboolean download_start_prepare_running(struct download *d)
 	d->keep_alive = FALSE;	/* Until proven otherwise by server's reply */
 
 	d->flags &= ~DL_F_OVERLAPPED;		/* Clear overlapping indication */
+	d->flags &= ~DL_F_SHRINKED_REPLY;	/* Clear server shrinking indication */
 
 	/*
 	 * If this file is swarming, the overlapping size and skipping offset
@@ -4906,6 +4907,7 @@ static void download_request(
 
 				d->range_end = end + 1;				/* The new end */
 				d->size = d->range_end - d->skip;	/* Don't count overlap */
+				d->flags |= DL_F_SHRINKED_REPLY;	/* Remember shrinking */
 
 				gui_update_download_range(d);
 			}
