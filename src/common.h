@@ -77,8 +77,6 @@ typedef void (*GCallback) (void);
 #include "glib-missing.h"
 #include "event.h"
 
-#include "../config.h"
-
 /*
  * Portability macros.
  */
