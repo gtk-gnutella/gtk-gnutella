@@ -72,6 +72,7 @@ gtk_gnutella_SOURCES = \
 	rx_inflate.c rx_inflate.h \
 	zlib_util.c zlib_util.h \
 	gtk-missing.c gtk-missing.h \
+	gtkcolumnchooser.c gtkcolumnchooser.h \
 	sha1.c sha1.h huge.c huge.h \
 	base32.c base32.h \
 	utf8.c utf8.h
