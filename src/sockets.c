@@ -188,9 +188,9 @@ static void socket_read(gpointer data, gint source, GdkInputCondition cond)
 	if (0 == strncmp(first, gnutella_hello, gnutella_hello_length))
 		node_add(s, s->ip, s->port);	/* Incoming control connection */
 	else if (0 == strncmp(first, "GET ", 4))
-		upload_add(s, FALSE);
+		upload_add(s);
 	else if (0 == strncmp(first, "HEAD ", 5))
-		upload_add(s, TRUE);
+		upload_add(s);
 	else if (0 == strncmp(first, "GIV ", 4))
 		download_push_ack(s);
 	else {
@@ -217,6 +217,8 @@ void socket_connected(gpointer data, gint source, GdkInputCondition cond)
 			node_remove(s->resource.node, "Connection failed");
 		else if (s->type == GTA_TYPE_DOWNLOAD && s->resource.download)
 			download_fallback_to_push(s->resource.download, FALSE);
+		else if (s->type == GTA_TYPE_UPLOAD && s->resource.upload)
+			upload_remove(s->resource.upload, "Connection failed");
 		else
 			socket_destroy(s);
 		return;
@@ -347,9 +349,12 @@ void socket_connected(gpointer data, gint source, GdkInputCondition cond)
 			break;
 
 		case GTA_TYPE_UPLOAD:
-			// XXX
-			g_warning("Unhandled UPLOAD asynchronous connection");
-			socket_destroy(s);
+			{
+				struct upload *u = s->resource.upload;
+
+				g_assert(u->socket == s);
+				upload_push_conf(u);
+			}
 			break;
 
 		default:
