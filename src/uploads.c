@@ -891,9 +891,15 @@ static void upload_request(struct upload *u, header_t *header)
 					upload_remove(u, msg);
 					return;
 				}
-			} else if (1 == sscanf(buf, "bytes=-%u", &end))
-				has_end = TRUE;
-			else
+			} else if (1 == sscanf(buf, "bytes=-%u", &skip)) {
+				/*
+				 * Backwards specification -- they want latest `skip' bytes.
+				 */
+				if (skip >= requested_file->file_size)
+					skip = 0;
+				else
+					skip = requested_file->file_size - skip;
+			} else
 				(void) sscanf(buf, "bytes=%u-", &skip);
 		}
 
@@ -926,10 +932,10 @@ static void upload_request(struct upload *u, header_t *header)
 		 * Validate the rquested range.
 		 */
 
-		if (!has_end)
-			end = requested_file->file_size - 1;
-
 		u->file_size = requested_file->file_size;
+
+		if (!has_end)
+			end = u->file_size - 1;
 
 		if (skip >= u->file_size || end >= u->file_size) {
 			char *msg = "Requested range not satisfiable";
@@ -1069,7 +1075,7 @@ static void upload_request(struct upload *u, header_t *header)
 		 * Add upload to the GUI
 		 */
 
-		g_snprintf(size_tmp, sizeof(size_tmp), "%s", short_size(u->end + 1));
+		g_snprintf(size_tmp, sizeof(size_tmp), "%s", short_size(u->file_size));
 
 		range_len = g_snprintf(range_tmp, sizeof(range_tmp), "%s",
 			compact_size(u->end - u->skip + 1));
