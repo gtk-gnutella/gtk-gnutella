@@ -1,9 +1,14 @@
+gtk-gnutella (0.16.0-0) unstable; urgency=low
+
+  * new upstream CVS
+
+ -- Raphael Manfredi <Raphael_Manfredi@pobox.com>  Wed, 3 Oct 2001 19:16:17 +0100
+
 gtk-gnutella (0.13.3-4) unstable; urgency=low
 
   * build-dependecies corrected closes: Bug#92775, #87252
 
  -- Matthias Kabel <mkabel@debian.org>  Son, 15 Jul 2001 18:13:44 +0100
-
 
 gtk-gnutella (0.13.3-3) unstable; urgency=low
 
