@@ -33,23 +33,29 @@
  * Macros
  */
 
-#define READ_GUINT16_LE(a,v) \
-	do { memcpy(&v, a, 2); v = GUINT16_FROM_LE(v); } while (0)
+#define READ_GUINT16_LE(a,v) G_STMT_START { \
+    memcpy(&v, a, 2); v = GUINT16_FROM_LE(v); \
+} G_STMT_END
 
-#define WRITE_GUINT16_LE(v,a) \
-	do { guint16 _v = GUINT16_TO_LE(v); memcpy(a, &_v, 2); } while (0)
+#define WRITE_GUINT16_LE(v,a) G_STMT_START { \
+    guint16 _v = GUINT16_TO_LE(v); memcpy(a, &_v, 2); \
+} G_STMT_END
 
-#define READ_GUINT32_LE(a,v) \
-	do { memcpy(&v, a, 4); v = GUINT32_FROM_LE(v); } while (0)
+#define READ_GUINT32_LE(a,v) G_STMT_START { \
+    memcpy(&v, a, 4); v = GUINT32_FROM_LE(v); \
+} G_STMT_END
 
-#define READ_GUINT32_BE(a,v) \
-	do { memcpy(&v, a, 4); v = GUINT32_FROM_BE(v); } while (0)
+#define READ_GUINT32_BE(a,v) G_STMT_START { \
+    memcpy(&v, a, 4); v = GUINT32_FROM_BE(v); \
+} G_STMT_END
 
-#define WRITE_GUINT32_LE(v,a) \
-	do { guint32 _v = GUINT32_TO_LE(v); memcpy(a, &_v, 4); } while (0)
+#define WRITE_GUINT32_LE(v,a) G_STMT_START { \
+    guint32 _v = GUINT32_TO_LE(v); memcpy(a, &_v, 4); \
+} G_STMT_END
 
-#define WRITE_GUINT32_BE(v,a) \
-	do { guint32 _v = GUINT32_TO_BE(v); memcpy(a, &_v, 4); } while (0)
+#define WRITE_GUINT32_BE(v,a) G_STMT_START { \
+    guint32 _v = GUINT32_TO_BE(v); memcpy(a, &_v, 4); \
+} G_STMT_END
 
 /*
  * Constants
