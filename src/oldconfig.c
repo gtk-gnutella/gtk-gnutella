@@ -571,8 +571,8 @@ void config_set_param(keyword_t keyword, gchar *value)
             ul_usage_min_percentage, gnet,
             PROP_UL_USAGE_MIN_PERCENTAGE)
         CONFIG_SET_NUM(
-            minimum_speed, gnet,
-            PROP_MINIMUM_SPEED)
+            minimum_speed, gui,
+            PROP_DEFAULT_MINIMUM_SPEED)
         CONFIG_SET_NUM(
             monitor_max_items, gui,
             PROP_MONITOR_MAX_ITEMS)
@@ -767,7 +767,7 @@ void config_set_param(keyword_t keyword, gchar *value)
         if (i == 0)
             i = FILTER_PROP_STATE_DONT;
 
-        gnet_prop_set_guint32(PROP_FILTER_DEFAULT_POLICY, &i, 0, 1);
+        gui_prop_set_guint32(PROP_FILTER_DEFAULT_POLICY, &i, 0, 1);
 		return;
 
     case k_guid:
