@@ -45,6 +45,10 @@
 
 #define NO_FUNC
 
+#define SORT_ASC  1
+#define SORT_DESC -1
+#define SORT_NONE 0
+ 
 /* 
  * Create a function for the focus out signal and make it call
  * the callback for the activate signal.
@@ -2223,9 +2227,23 @@ void on_clist_search_results_unselect_row(GtkCList * clist, gint row,
 void on_clist_search_results_click_column(GtkCList * clist, gint column,
 										  gpointer user_data)
 {
+    GtkWidget * cw = NULL;
+
+    g_assert(clist != NULL);
+
 	if (current_search == NULL)
 		return;
 
+    /* destroy existing arrow */
+    if (current_search->arrow != NULL) { 
+        gtk_widget_hide(current_search->arrow);
+        gtk_widget_unrealize(current_search->arrow);
+        gtk_container_remove(GTK_CONTAINER(current_search->arrow->parent), 
+                             current_search->arrow);
+        current_search->arrow = NULL;
+    }     
+
+    /* set compare function */
 	switch (column) {
 	case c_sr_size:		
 		gtk_clist_set_compare_func(GTK_CLIST(current_search->clist),
@@ -2243,22 +2261,59 @@ void on_clist_search_results_click_column(GtkCList * clist, gint column,
 		gtk_clist_set_compare_func(GTK_CLIST(current_search->clist), NULL);
 	}
 
+    /* rotate or initialize search order */
 	if (column == current_search->sort_col) {
-		current_search->sort_order =
-			(current_search->sort_order > 0) ? -1 : 1;
+        switch(current_search->sort_order) {
+        case SORT_ASC:
+            current_search->sort_order = SORT_DESC;
+           	break;
+        case SORT_DESC:
+            current_search->sort_order = SORT_NONE;
+            break;
+        case SORT_NONE:
+            current_search->sort_order = SORT_ASC;
+        }
 	} else {
 		current_search->sort_col = column;
-		current_search->sort_order = 1;
+		current_search->sort_order = SORT_ASC;
 	}
 
-	gtk_clist_set_sort_type(GTK_CLIST(current_search->clist),
-		(current_search->sort_order > 0) ?
-			GTK_SORT_ASCENDING : GTK_SORT_DESCENDING);
-	gtk_clist_set_sort_column(GTK_CLIST(current_search->clist), column);
+    /* set sort type and create arrow */
+    switch(current_search->sort_order) {
+    case SORT_ASC:
+        current_search->arrow = create_pixmap(main_window, "arrow_up.xpm");
+        gtk_clist_set_sort_type(
+            GTK_CLIST(current_search->clist),
+            GTK_SORT_ASCENDING);
+        break;  
+    case SORT_DESC:
+        current_search->arrow = create_pixmap(main_window, "arrow_down.xpm");
+        gtk_clist_set_sort_type(
+            GTK_CLIST(current_search->clist),
+            GTK_SORT_DESCENDING);
+        break;
+    case SORT_NONE:
+        break;
+    default:
+        g_assert_not_reached();
+    }
 
-	gtk_clist_sort(GTK_CLIST(current_search->clist));
+    /* display arrow if necessary */
+    if (current_search->sort_order != SORT_NONE) {
+        cw = gtk_clist_get_column_widget
+                 (GTK_CLIST(current_search->clist), column);
+        if (cw != NULL) {
+            gtk_box_pack_start(GTK_BOX(cw), current_search->arrow, 
+                               FALSE, FALSE, 0);
+            gtk_box_reorder_child(GTK_BOX(cw), current_search->arrow, 0);
+            gtk_widget_show(current_search->arrow);
+        }
+        gtk_clist_set_sort_column(GTK_CLIST(current_search->clist), column);
+        gtk_clist_sort(GTK_CLIST(current_search->clist));
+    } 
 
-	current_search->sort = TRUE;
+    /* set wether list is sorted */
+    current_search->sort = current_search->sort_order != SORT_NONE;
 }
 
 
@@ -2266,13 +2321,6 @@ void on_clist_search_results_click_column(GtkCList * clist, gint column,
 /***
  *** popup-search
  ***/
-void on_popup_search_stop_sorting_activate(GtkMenuItem * menuitem,
-										   gpointer user_data)
-{
-	if (current_search)
-		current_search->sort = FALSE;
-}
-
 void on_popup_search_filters_activate(GtkMenuItem * menuitem,
 									  gpointer user_data)
 {
@@ -2382,7 +2430,6 @@ gboolean on_clist_search_results_button_press_event(GtkWidget * widget,
 		gtk_widget_set_sensitive(popup_search_duplicate, (gboolean) searches);
 
 		if (current_search) {
-			gtk_widget_set_sensitive(popup_search_stop_sorting, current_search->sort);
 			gtk_widget_set_sensitive(popup_search_stop, 
 				current_search->passive ?
 					!current_search->frozen :
@@ -2394,7 +2441,6 @@ gboolean on_clist_search_results_button_press_event(GtkWidget * widget,
 			if (current_search->passive)
 				gtk_widget_set_sensitive(popup_search_restart, FALSE);
 		} else {
-			gtk_widget_set_sensitive(popup_search_stop_sorting, FALSE);
 			gtk_widget_set_sensitive(popup_search_stop, FALSE);
 			gtk_widget_set_sensitive(popup_search_resume, FALSE);
 		}

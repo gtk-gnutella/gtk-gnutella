@@ -265,7 +265,6 @@ void on_popup_search_filters_activate (GtkMenuItem *menuitem, gpointer user_data
 void on_popup_search_restart_activate (GtkMenuItem *menuitem, gpointer user_data);
 void on_popup_search_resume_activate (GtkMenuItem *menuitem, gpointer user_data);
 void on_popup_search_stop_activate (GtkMenuItem *menuitem, gpointer user_data);
-void on_popup_search_stop_sorting_activate (GtkMenuItem *menuitem, gpointer user_data);
 void on_popup_search_toggle_tabs_activate (GtkMenuItem *menuitem, gpointer user_data);
 
 
