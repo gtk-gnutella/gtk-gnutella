@@ -3150,7 +3150,7 @@ void download_resume(struct download *d)
 	g_assert(d);
 	g_assert(!DOWNLOAD_IS_QUEUED(d));
 
-	if (DOWNLOAD_IS_RUNNING(d))
+	if (DOWNLOAD_IS_RUNNING(d) || DOWNLOAD_IS_WAITING(d))
 		return;
 
 	g_assert(d->list_idx == DL_LIST_STOPPED);
