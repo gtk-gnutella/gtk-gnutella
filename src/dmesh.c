@@ -1,4 +1,5 @@
 /* -*- mode: cc-mode; tab-width:4; -*-
+ *
  * $Id$
  *
  * Copyright (c) 2002, Raphael Manfredi
@@ -1404,6 +1405,7 @@ void dmesh_collect_locations(guchar *sha1, guchar *value, gboolean defer)
 		url = NULL;
 		non_space_seen = FALSE;
 		in_quote = FALSE;
+		info.name = NULL;
 
 		while ((c = *p)) {
 			if (!non_space_seen) {
@@ -1482,6 +1484,13 @@ void dmesh_collect_locations(guchar *sha1, guchar *value, gboolean defer)
 					"quote, but did not end with one!", url);
 		}
 
+		/*
+		 * Once dmesh_url_parse() has been called and returned `ok', we'll
+		 * have a non-NULL `info.name' field.  This is an atom that must
+		 * get freed: instead of saying `continue', we must `goto free_urlinfo'
+		 * so that this atom can be freed.
+		 */
+
 		*p = '\0';
 		ok = dmesh_url_parse(url, &info);
 
@@ -1505,7 +1514,7 @@ void dmesh_collect_locations(guchar *sha1, guchar *value, gboolean defer)
 			goto finish;
 		if (c == ',') {				/* There's no following date then */
 			p++;					/* Skip separator */
-			continue;
+			goto free_urlinfo;		/* continue */
 		}
 
 		skip_date = !ok;			/* Skip date if we did not parse the URL */
@@ -1549,7 +1558,7 @@ void dmesh_collect_locations(guchar *sha1, guchar *value, gboolean defer)
 				goto finish;
             if (c == ',')
                 p++;					/* Skip the "," separator */
-			continue;
+			goto free_urlinfo;			/* continue */
 		}
 
 		/*
@@ -1630,21 +1639,29 @@ void dmesh_collect_locations(guchar *sha1, guchar *value, gboolean defer)
 				(guint32) (now - MIN(stamp, now)));
 
 	nolog:
-        if (info.name)
-            atom_str_free(info.name);
-
 		if (c == '\0')				/* Reached end of string */
 			goto finish;
 
         if (c == ',')
             p++;					/* Skip separator */
+
+	free_urlinfo:
+		if (info.name)
+			atom_str_free(info.name);
+
+		continue;
+
+	finish:
+		if (info.name)
+			atom_str_free(info.name);
+
+		break;
 	}
 
 	/*
 	 * Once everyone is done we can sort out deferred urls, if any.
 	 */
 
-finish:
 	if (fuzzy_filter_dmesh && defer) {
 		/*
 		 * We only defer when collection from live headers.

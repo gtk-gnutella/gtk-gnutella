@@ -2161,6 +2161,8 @@ struct dl_file_info *file_info_get(
 	if (sha1)
 		dmesh_multiple_downloads(sha1, size, fi);
 
+	atom_str_free(outname);
+
 	return fi;
 }
 

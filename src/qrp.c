@@ -2501,6 +2501,9 @@ static gboolean qrt_handle_patch(
 
 		g_assert(qrcv->current_index == rt->slots);
 
+		if (rt->digest)
+			atom_sha1_free(rt->digest);
+
 		rt->digest = atom_sha1_get(qrt_sha1(rt));
 		rt->fill_ratio = (gint) (100.0 * rt->set_count / rt->slots);
 
