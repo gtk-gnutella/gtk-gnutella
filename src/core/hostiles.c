@@ -54,17 +54,38 @@ RCSID("$Id$");
 
 #define THERE	GUINT_TO_POINTER(0x2)
 
+typedef enum {
+	HOSTILE_GLOBAL = 0,
+	HOSTILE_PRIVATE = 1,
+
+	NUM_HOSTILES
+} hostiles_t;
+
 static const gchar hostiles_file[] = "hostiles.txt";
 static const gchar hostiles_what[] = "hostile IP addresses";
 
-static gpointer hostile_db;		/* The hostile database */
+static gpointer hostile_db[NUM_HOSTILES];		/* The hostile database */
+
+/**
+ * Frees all entries in the given hostiles
+ */
+static void
+hostiles_close_one(hostiles_t which)
+{
+	g_assert((gint) which >= 0 && which < NUM_HOSTILES);
+	
+	if (hostile_db[which]) {
+		iprange_free_each(hostile_db[which], NULL);
+		hostile_db[which] = NULL;
+	}
+}
 
 /**
  * Load hostile data from the supplied FILE.
  * Returns the amount of entries loaded.
  */
 static gint
-hostiles_load(FILE *f)
+hostiles_load(FILE *f, hostiles_t which)
 {
 	gchar line[1024];
 	gchar *p;
@@ -74,7 +95,10 @@ hostiles_load(FILE *f)
 	gint bits;
 	iprange_err_t error;
 
-	hostile_db = iprange_make(NULL, NULL);
+	g_assert((gint) which >= 0 && which < NUM_HOSTILES);
+	g_assert(NULL == hostile_db[which]);
+
+	hostile_db[which] = iprange_make(NULL, NULL);
 
 	while (fgets(line, sizeof(line), f)) {
 		linenum++;
@@ -108,13 +132,14 @@ hostiles_load(FILE *f)
 			bits--;
 		}
 
-		error = iprange_add_cidr(hostile_db, ip, bits, THERE);
+		error = iprange_add_cidr(hostile_db[which], ip, bits, THERE);
 
 		switch (error) {
 		case IPR_ERR_OK:
 			break;
 		case IPR_ERR_RANGE_OVERLAP:
-			error = iprange_add_cidr_force(hostile_db, ip, bits, THERE, NULL);
+			error = iprange_add_cidr_force(hostile_db[which],
+						ip, bits, THERE, NULL);
 			if (dbg > 0 && error == IPR_ERR_OK) {
 				g_warning("%s: line %d: "
 					"entry \"%s\" (%s/%d) superseded earlier smaller range",
@@ -137,7 +162,7 @@ hostiles_load(FILE *f)
 	if (dbg) {
 		iprange_stats_t stats;
 
-		iprange_get_stats(hostile_db, &stats);
+		iprange_get_stats(hostile_db[which], &stats);
 
 		g_message("loaded %d hostile IP addresses/netmasks", count);
 		g_message("hostile stats: count=%d level2=%d heads=%d enlisted=%d",
@@ -152,23 +177,43 @@ hostiles_load(FILE *f)
  * addresses changed.
  */
 static void
-hostiles_changed(const gchar *filename, gpointer unused_udata)
+hostiles_changed(const gchar *filename, gpointer udata)
 {
 	FILE *f;
 	gchar buf[80];
 	gint count;
+	hostiles_t which;
 
-	(void) unused_udata;
-
+	which = GPOINTER_TO_UINT(udata);
+	g_assert((gint) which >= 0 && which < NUM_HOSTILES);
+	
 	f = file_fopen(filename, "r");
 	if (f == NULL)
 		return;
 
-	hostiles_close();
-	count = hostiles_load(f);
+	hostiles_close_one(which);
+	count = hostiles_load(f, which);
+	fclose(f);
 
 	gm_snprintf(buf, sizeof(buf), "Reloaded %d hostile IP addresses.", count);
 	gcu_statusbar_message(buf);
+}
+
+static void
+hostiles_retrieve_from_file(FILE *f, hostiles_t which,
+	const gchar *path, const gchar *filename)
+{
+	gchar *pathname;
+
+	g_assert(f);
+	g_assert(path);
+	g_assert(filename);
+	g_assert((gint) which >= 0 && which < NUM_HOSTILES);
+	
+	pathname = make_pathname(path, filename);
+	watcher_register(pathname, hostiles_changed, GUINT_TO_POINTER(which));
+	G_FREE_NULL(pathname);
+	hostiles_load(f, which);
 }
 
 /**
@@ -186,31 +231,38 @@ static void
 hostiles_retrieve(void)
 {
 	FILE *f;
+	file_path_t fp_private[1];
 	gint idx;
-	gchar *filename;
-#ifndef OFFICIAL_BUILD
-	file_path_t fp[3];
-#else
-	file_path_t fp[2];
-#endif
 
-	file_path_set(&fp[0], settings_config_dir(), hostiles_file);
-	file_path_set(&fp[1], PRIVLIB_EXP, hostiles_file);
-#ifndef OFFICIAL_BUILD
-	file_path_set(&fp[2], PACKAGE_SOURCE_DIR, hostiles_file);
-#endif
-
+	file_path_set(&fp_private[0], settings_config_dir(), hostiles_file);
 	f = file_config_open_read_norename_chosen(
-			hostiles_what, fp, G_N_ELEMENTS(fp), &idx);
+			hostiles_what, fp_private, G_N_ELEMENTS(fp_private), &idx);
 
-	if (!f)
-	   return;
+	if (f) {
+		hostiles_retrieve_from_file(f, HOSTILE_PRIVATE,
+			fp_private[idx].dir, fp_private[idx].name);
+		fclose(f);
+		f = NULL;
+	}
 
-	filename = make_pathname(fp[idx].dir, fp[idx].name);
-	watcher_register(filename, hostiles_changed, NULL);
-	G_FREE_NULL(filename);
 
-	hostiles_load(f);
+	if (use_global_hostiles_txt) {
+		static const file_path_t const fp[] = {
+#ifndef OFFICIAL_BUILD
+			{ PACKAGE_SOURCE_DIR, hostiles_file },
+#endif
+			{ PRIVLIB_EXP, hostiles_file },
+		};
+
+		f = file_config_open_read_norename_chosen(
+				hostiles_what, fp, G_N_ELEMENTS(fp), &idx);
+		if (f) {
+			hostiles_retrieve_from_file(f,
+				HOSTILE_GLOBAL, fp[idx].dir, fp[idx].name);
+			fclose(f);
+			f = NULL;
+		}
+	}
 }
 
 /**
@@ -223,14 +275,15 @@ hostiles_init(void)
 }
 
 /**
- * Frees all entries in the hostiles
+ * Frees all entries in all the hostiles
  */
 void
 hostiles_close(void)
 {
-	if (hostile_db) {
-		iprange_free_each(hostile_db, NULL);
-		hostile_db = NULL;
+	gint i;
+
+	for (i = 0; i < NUM_HOSTILES; i++) {
+		hostiles_close_one(i);
 	}
 }
 
@@ -241,7 +294,14 @@ hostiles_close(void)
 gboolean
 hostiles_check(guint32 ip)
 {
-	return hostile_db != NULL && THERE == iprange_get(hostile_db, ip);
+	gint i;
+
+	for (i = 0; i < NUM_HOSTILES; i++) {
+		if (NULL != hostile_db[i] && THERE == iprange_get(hostile_db[i], ip))
+			return TRUE;
+	}
+	
+	return FALSE;
 }
 
 /* vi: set ts=4 sw=4 cindent: */
