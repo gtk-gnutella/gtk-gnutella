@@ -128,6 +128,63 @@ static gint rw_urn_screen(gchar *word, gchar **retkw)
 }
 
 /***
+ *** Extension name atoms.
+ ***/
+
+static GHashTable *ext_names = NULL;
+
+/*
+ * ext_name_atom
+ *
+ * Transform the name into a printable form, and return an atom string
+ * of that printable form.
+ */
+static gchar *ext_name_atom(gchar *name)
+{
+	gchar *key;
+	gchar *atom;
+
+	/*
+	 * Look whether we already known about this name.
+	 */
+
+	atom = g_hash_table_lookup(ext_names, name);
+
+	if (atom != NULL)
+		return atom;
+
+	/*
+	 * The key is always the raw name we're given.
+	 *
+	 * The value is always a printable form of the name, where non-printable
+	 * chars are shown as hexadecimal escapes: \xhh.  However, if there is
+	 * no escaping, then the name is also the key (same object).
+	 */
+
+	key = g_strdup(name);
+	atom = hex_escape(key);
+
+	g_hash_table_insert(ext_names, key, atom);
+
+	return atom;
+}
+
+/*
+ * ext_names_kv_free
+ *
+ * Callback for freeing entries in the `ext_names' hash table.
+ */
+static gboolean ext_names_kv_free(gpointer key, gpointer value, gpointer udata)
+{
+	if (0 != strcmp((gchar *) key, (gchar *) value))
+		g_free(value);
+
+	g_free(key);
+
+	return TRUE;
+}
+
+/***
  *** Extension parsing.
  ***
  *** All the ext_xxx_parse routines share the same signature and behaviour:
@@ -247,10 +304,18 @@ static gint ext_ggep_parse(
 
 		/*
 		 * Look whether we know about this extension.
+		 *
+		 * If we do, the name is the ID as well.  Otherwise, for tracing
+		 * and debugging purposes, save the name away, once.
 		 */
 
 		exv->ext_token = rw_ggep_screen(id, &name);
 		exv->ext_name = name;
+
+		if (name != NULL)
+			exv->ext_ggep_id = name;
+		else
+			exv->ext_ggep_id = ext_name_atom(id);
 
 		/*
 		 * One more entry, prepare next iteration.
@@ -756,7 +821,8 @@ static void ext_dump_one(FILE *fd,
 	fprintf(fd, "%d byte%s", e->ext_paylen, e->ext_paylen == 1 ? "" : "s");
 
 	if (e->ext_type == EXT_GGEP)
-		fprintf(fd, " (COBS: %s, deflate: %s)",
+		fprintf(fd, " (ID=\"%s\", COBS: %s, deflate: %s)",
+			e->ext_ggep_id,
 			e->ext_ggep_cobs ? "yes" : "no",
 			e->ext_ggep_deflate ? "yes" : "no");
 
@@ -796,5 +862,30 @@ void ext_dump(FILE *fd, extvec_t *exv, gint exvcnt,
 {
 	while (exvcnt--)
 		ext_dump_one(fd, exv++, prefix, postfix, payload);
+}
+
+/***
+ *** Init & Shutdown
+ ***/
+
+/*
+ * ext_init
+ *
+ * Initialize the extension subsystem.
+ */
+void ext_init(void)
+{
+	ext_names = g_hash_table_new(g_str_hash, g_str_equal);
+}
+
+/*
+ * ext_close
+ *
+ * Free resources used by the extension subsystem.
+ */
+void ext_close(void)
+{
+	g_hash_table_foreach_remove(ext_names, ext_names_kv_free, NULL);
+	g_hash_table_destroy(ext_names);
 }
 

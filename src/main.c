@@ -51,6 +51,7 @@
 #include "gwcache.h"
 #include "verify.h"
 #include "move.h"
+#include "extensions.h"
 
 #ifdef USE_REMOTE_SHELL
 #include "shell.h"
@@ -126,6 +127,7 @@ void gtk_gnutella_exit(gint n)
 		usleep(200000);					/* 200 ms */
 	}
 
+	ext_close();
 	share_close();
 	node_close();
 	routing_close();
@@ -347,6 +349,7 @@ gint main(gint argc, gchar ** argv)
 #endif
 	ban_init();
     whitelist_init();
+	ext_init();
 
     main_gui_init();
 

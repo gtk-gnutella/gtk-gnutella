@@ -59,6 +59,7 @@ typedef struct extvec {
 		struct {
 			gboolean extu_cobs;			/* Payload is COBS-encoded */
 			gboolean extu_deflate;		/* Payload is deflated */
+			gchar *extu_id;				/* Extension ID */
 		} extu_ggep;
 	} ext_u;
 
@@ -73,6 +74,7 @@ typedef struct extvec {
 
 #define ext_ggep_cobs		ext_u.extu_ggep.extu_cobs
 #define ext_ggep_deflate	ext_u.extu_ggep.extu_deflate
+#define ext_ggep_id			ext_u.extu_ggep.extu_id
 
 #define MAX_EXTVEC		32	/* Maximum amount of extensions in vector */
 
@@ -102,6 +104,9 @@ typedef struct extvec {
 /*
  * Public interface.
  */
+
+void ext_init(void);
+void ext_close(void);
 
 gint ext_parse(guchar *buf, gint len, extvec_t *exv, gint extcnt);
 
