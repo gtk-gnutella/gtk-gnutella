@@ -208,6 +208,7 @@ static gboolean downloads_count_changed(property_t prop);
 static gboolean current_peermode_changed(property_t prop);
 static gboolean clock_skew_changed(property_t prop);
 static gboolean mark_ignored_changed(property_t prop);
+static gboolean update_monitor_unstable_ip(property_t prop);
 
 /* FIXME:
  * move to separate file and autogenerate from high-level description.
@@ -2086,7 +2087,7 @@ static prop_map_t property_map[] = {
     {
         get_main_window,
         PROP_NODE_MONITOR_UNSTABLE_IP,
-        update_togglebutton,
+        update_monitor_unstable_ip,
         TRUE,
         "checkbutton_gnet_monitor_ip",
         FREQ_UPDATES, 0
@@ -3409,6 +3410,18 @@ static gboolean guid_changed(property_t prop)
     return FALSE;
 }
 
+static gboolean update_monitor_unstable_ip(property_t prop)
+{
+	gboolean b;
+
+	gnet_prop_get_boolean_val(prop, &b);
+
+	gtk_widget_set_sensitive(
+		lookup_widget(main_window, "checkbutton_gnet_monitor_servents"), b);
+
+	return FALSE;
+}
+
 static gboolean show_tooltips_changed(property_t prop)
 {
     gboolean b;
@@ -3911,7 +3924,7 @@ static void settings_gui_config_widget(prop_map_t *map, prop_def_t *def)
                     (gpointer) map);
 
 				if (gui_debug >= 9)
-					printf("\t...adjusted lower=%d, upper=%d\n",
+					printf("\t...adjusted lower=%f, upper=%f\n",
 						adj->lower, adj->upper);
             }
 
