@@ -243,6 +243,9 @@ create_main_window (void)
   GtkWidget *checkbutton_download_delete_aborted;
   GtkWidget *checkbutton_downloads_never_push;
   GtkWidget *checkbutton_dl_remove_file_on_mismatch;
+  GtkWidget *label639a;
+  GtkObject *spinbutton_mismatch_backout_adj;
+  GtkWidget *spinbutton_mismatch_backout;
   GtkWidget *frame_dl_autoclear;
   GtkWidget *table64;
   GtkWidget *checkbutton_dl_clear_complete;
@@ -2991,7 +2994,7 @@ create_main_window (void)
   gtk_widget_show (vbox112);
   gtk_container_add (GTK_CONTAINER (frame_dl_settings), vbox112);
 
-  table60 = gtk_table_new (2, 5, FALSE);
+  table60 = gtk_table_new (2, 6, FALSE);
   gtk_widget_set_name (table60, "table60");
   gtk_widget_ref (table60);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "table60", table60,
@@ -3075,6 +3078,31 @@ create_main_window (void)
   gtk_table_attach (GTK_TABLE (table60), checkbutton_dl_remove_file_on_mismatch, 4, 5, 1, 2,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
+
+  label639a = gtk_label_new (_("Backout on resume mismatch"));
+  gtk_widget_set_name (label639a, "label639a");
+  gtk_widget_ref (label639a);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label639a", label639a,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label639a);
+  gtk_table_attach (GTK_TABLE (table60), label639a, 4, 5, 0, 1,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_label_set_justify (GTK_LABEL (label639a), GTK_JUSTIFY_RIGHT);
+  gtk_misc_set_alignment (GTK_MISC (label639a), 0, 0.5);
+
+  spinbutton_mismatch_backout_adj = gtk_adjustment_new (50000, 0, 250000, 1000, 10000, 10);
+  spinbutton_mismatch_backout = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_mismatch_backout_adj), 100, 0);
+  gtk_widget_set_name (spinbutton_mismatch_backout, "spinbutton_mismatch_backout");
+  gtk_widget_ref (spinbutton_mismatch_backout);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "spinbutton_mismatch_backout", spinbutton_mismatch_backout,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (spinbutton_mismatch_backout);
+  gtk_table_attach (GTK_TABLE (table60), spinbutton_mismatch_backout, 5, 6, 0, 1,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_widget_set_usize (spinbutton_mismatch_backout, 68, -2);
+  gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_mismatch_backout), TRUE);
 
   frame_dl_autoclear = gtk_frame_new (_("Auto clear stopped downloads"));
   gtk_widget_set_name (frame_dl_autoclear, "frame_dl_autoclear");
