@@ -724,7 +724,7 @@ fi
 
 PACKAGE=gtk-gnutella
 
-VERSION=0.91.1
+VERSION=0.92
 
 if test "`cd $srcdir && pwd`" != "`pwd`" && test -f $srcdir/config.status; then
   { echo "configure: error: source directory already configured; run "make distclean" there first" 1>&2; exit 1; }
@@ -1513,7 +1513,7 @@ EOF
 fi
 
 
-ALL_LINGUAS="es"
+ALL_LINGUAS="es nl"
 
 # Make sure we can run config.sub.
 if ${CONFIG_SHELL-/bin/sh} $ac_config_sub sun4 >/dev/null 2>&1; then :

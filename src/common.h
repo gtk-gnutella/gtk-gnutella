@@ -108,17 +108,17 @@ typedef void (*GCallback) (void);
 #define GTA_VERSION 0
 #define GTA_SUBVERSION 92
 #define GTA_PATCHLEVEL 0
-#define GTA_REVISION "unstable"
-#define GTA_REVCHAR "u"
+#define GTA_REVISION "stable"
+#define GTA_REVCHAR ""
 #define GTA_INTERFACE "X11"
-#define GTA_RELEASE "09/06/2003"
+#define GTA_RELEASE "15/06/2003"
 #define GTA_WEBSITE "http://gtk-gnutella.sourceforge.net/"
 
 /* If we compile from CVS (aka "unstable") we want to run from $srcdir
  * without installing it first. Thus, look for icons etc. in $srcdir.
  * XXX: Comment this out for releases! */
 
-#if 1
+#if 0
 #define USE_SOURCE_DIR_AS_FALLBACK
 #endif
 
@@ -144,6 +144,7 @@ void gtk_gnutella_exit(gint);
 /*
  * Standard gettext macros.
  */
+
 #ifdef ENABLE_NLS
 #  include <libintl.h>
 #  undef _
@@ -161,7 +162,6 @@ void gtk_gnutella_exit(gint);
 #  define bindtextdomain(Domain,Directory) (Domain)
 #  define _(String) (String)
 #  define N_(String) (String)
-#endif
-
+#endif /* ENABLE_NLS */
 
 #endif /* _common_h_ */

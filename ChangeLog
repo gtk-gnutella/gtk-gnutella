@@ -1,5 +1,51 @@
 # since last version
 
+# v 0.92   2003.06.15  [stable]
+
+- Now supports Ultrapeers, which means GTKG can work as an ultra node or as
+  a leaf node.  You can still run as a normal node, although this is not
+  something wise to do, because that will likely relagate you in a small part
+  of the Gnutella network.
+- New icons for showing node state (leaf or ultra mode).
+- The GTK2 front-end is no longer experimental, albeit it is slower than
+  the GTK1.2 front-end.  This is due to the somewhat inefficient
+  implementation of the underlying GTK library.  Don't use GTK2 unless you
+  have the equivalent of a 1 GHz Intel chip.
+- Added client-side PFSP support (partial file sharing). GTKG can download
+  from servers holding partial files.
+- Added full PARQ support (Passive / Active Remote Queuing), both for uplaod
+  and downloads.
+- New Gnet statistics: flow-controlled packets per TTL and hops.
+- The "Type" column in the Gnet connection pane was turned into "Flags".
+- Added support for GGEP in pings/pongs/pushes: those packets are now
+  accepted and forwarded to connections advertising GGEP support.
+- New "use surplus bandwidth" setting: all unused bandwidth for Gnet or HTTP
+  can be stolen by the other in case it needs some.
+- Added count for total bytes uploaded and downloaded.
+- Added support for vendor-specific messages.
+- New hops-flow support: remote flow-controlled connections can now warn us
+  that thye are flow-controlling us, and so we can drop queries immediately
+  instead of sending them, saving outgoing bandwidth.
+- Will now show the GTKG version in query hits.
+- The queue now shows the count of alive downloads, as well as the queue count.
+  An "alive" download is an entry for which the remote server replies.
+- Changed the connection algorithm: will now attempt to connect to more
+  nodes than really configured, dropping the surplus connections later, when
+  needed at all.
+- Filters out hostile IP addresses.
+- New "fileinfo" pane in the download screen.  Not finished, but will show
+  the currently registered downloads and their status.
+- Domain name resolution for Gnutella web cache are now done asynchronously.
+  The GUI will no longer freeze due to a DNS request.
+- Some performance improvements: removed the most important bottlenecks.
+
+- (2003.06.14 - RAM)
+ * Updated hostiles.txt to follow BearShare's modifications, and sorted it.
+ * Forgot to mention PARQ id in header of persisted downloads.
+ * Changed tooltip for "listen_port".
+ * The new default listening port is now set to 8436 to avoid ISP censorship.
+ * Fixed typo appereance -> appearance in GTK2.
+
 - (2003.06.12 - Jeroen)
  * PARQ: Max uploads from single host is also detected and used in PARQ now.
  * PARQ: Timesout small upload chunks sooner now. This should make sure people
@@ -9,6 +55,10 @@
 	 behaviour for small files.
 	 NOTE: This is:  #if 0 in the parq code, and thus actually disabled.
  * PARQ: No more assertion failure on gtk-gnutella shutdown (I hope)
+
+- (2003.06.10 - RAM)
+ * Don't send out an invalid IP/port in the X-Node header.
+ * Integrated GTK2 icon patch [From Russell Francis].
 
 - (2003.06.09 - RAM)
  * Raised default amount of downloads from 10 to 50.
