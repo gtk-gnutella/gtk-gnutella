@@ -60,7 +60,7 @@ static gboolean search_gui_shutting_down = FALSE;
 /*
  * Private function prototypes
  */
-static GtkTreeViewColumn *add_column(GtkTreeView *treeview, gchar *name,
+static GtkTreeViewColumn *add_column(GtkTreeView *treeview, const gchar *name,
 	gint id, gint width, gfloat xalign, gint fg_column, gint bg_column);
 
 /*
@@ -481,12 +481,15 @@ void search_gui_add_record(
 	GdkColor *fg,
 	GdkColor *bg)
 {
-  	GString *info = g_string_sized_new(80);
-  	gchar *info_utf8;
 	GtkTreeIter *parent;
 	GtkTreeIter iter;
 	GtkTreeStore *model = GTK_TREE_STORE(sch->model);
-	gchar *name_utf8, ext_utf8[32] = "";
+	const gchar *name_utf8;
+	size_t rw = 0;
+  	gchar info[1024], ext_utf8[32];
+
+	ext_utf8[0] = '\0';
+	info[0] = '\0';
 
 	/*
 	 * When the search is displayed in multiple search results, the refcount
@@ -498,7 +501,7 @@ void search_gui_add_record(
 	g_assert(rc->refcount >= 1);
 	
 	if (rc->tag) {
-		guint len = strlen(rc->tag);
+		size_t len = strlen(rc->tag);
 
 		/*
 		 * We want to limit the length of the tag shown, but we don't
@@ -508,15 +511,25 @@ void search_gui_add_record(
 		 *				--RAM, 09/09/2001
 		 */
 
-		g_string_append_len(info, rc->tag, MIN(len, MAX_TAG_SHOWN));
+		len = MIN(len, MAX_TAG_SHOWN);
+		rw = gm_snprintf(info, MIN(len, sizeof info), "%s", rc->tag);
 	}
 	if (vinfo->len) {
-		if (info->len)
-			g_string_append(info, "; ");
-		g_string_append(info, vinfo->str);
+		g_assert(rw < sizeof info);
+		rw = gm_snprintf(&info[rw], sizeof info - rw, "%s%s",
+			info[0] != '\0' ? "; " : "", vinfo->str);
 	}
-	/* strdup() info because it's normally shorter than filename */
-	info_utf8 = g_strdup(lazy_locale_to_utf8(info->str, info->len));
+
+	/* Don't care if it's truncated. It's usually very short anyways. */
+	if (info[0] != '\0') {
+		const gchar *s;
+
+		g_assert(rw < sizeof info);
+		s = lazy_locale_to_utf8(info, rw);
+		if (s != info) {
+			g_strlcpy(info, s, sizeof info);
+		}
+	}
 
 	if (NULL != rc->sha1) {
 		gpointer key;
@@ -548,10 +561,9 @@ void search_gui_add_record(
 	name_utf8 = lazy_locale_to_utf8(rc->name, 0);
 	if (name_utf8) {
 		const gchar *p = strrchr(name_utf8, '.');
-		size_t len;
 
-		len = g_strlcpy(ext_utf8, p ? ++p : "", sizeof ext_utf8);
-		if (len >= sizeof ext_utf8) {
+		rw = g_strlcpy(ext_utf8, p ? ++p : "", sizeof ext_utf8);
+		if (rw >= sizeof ext_utf8) {
 			/* If the guessed extension is really this long, assume the
 			 * part after the dot isn't an extension at all. */
 			ext_utf8[0] = '\0';
@@ -559,21 +571,19 @@ void search_gui_add_record(
 			/* Using g_utf8_strdown() would be cleaner but it allocates
 			 * a new string which is ugly. Nobody uses such file extensions
 			 * anyway. */
-			g_strdown(ext_utf8);
+			ascii_strlower(ext_utf8, ext_utf8);
 		}
 	}
 
 	gtk_tree_store_set(model, &iter,
 		      c_sr_filename, name_utf8,
-		      c_sr_ext, ext_utf8,
+		      c_sr_ext, ext_utf8[0] != '\0' ? ext_utf8 : NULL,
 		      c_sr_size, NULL != parent ? NULL : short_size(rc->size),
-		      c_sr_info, info_utf8,
+		      c_sr_info, info[0] != '\0' ? info : NULL,
 		      c_sr_fg, fg,
 		      c_sr_bg, bg,
 		      c_sr_record, rc,
 		      (-1));
-	G_FREE_NULL(info_utf8);
-	g_string_free(info, TRUE);
 }
 
 void search_gui_set_clear_button_sensitive(gboolean flag)
@@ -781,17 +791,17 @@ void search_gui_download_files(void)
  */
 static void sync_column_widths(GtkTreeView *treeview)
 {
-    guint32 *width;
+    guint32 width[SEARCH_RESULTS_VISIBLE_COLUMNS];
 	guint i;
 
 	g_assert(NULL != treeview);
-    width = gui_prop_get_guint32(PROP_SEARCH_RESULTS_COL_WIDTHS, NULL, 0, 0);
 
-    for (i = 0; i < SEARCH_GUI2_VISIBLE_COLUMNS; i++)
+    gui_prop_get_guint32(PROP_SEARCH_RESULTS_COL_WIDTHS, width, 0,
+		G_N_ELEMENTS(width));
+    for (i = 0; i < G_N_ELEMENTS(width); i++) {
 		gtk_tree_view_column_set_fixed_width(
 			gtk_tree_view_get_column(treeview, i), MAX(1, (gint) width[i]));
-
-    G_FREE_NULL(width);
+	}
 }
 
 /*
@@ -803,99 +813,65 @@ static void sync_column_widths(GtkTreeView *treeview)
  */
 gboolean search_gui_search_results_col_visible_changed(property_t prop)
 {
-    guint32 *val;
-    GtkTreeView *treeview;
-	search_t *current_search = search_gui_get_current_search();
+    search_t *current = search_gui_get_current_search();
+	GtkTreeView *treeview;
+	gboolean val[SEARCH_RESULTS_VISIBLE_COLUMNS];
+	guint i;
 
-    if (current_search == NULL && default_search_tree_view == NULL)
+    if (!current && !default_search_tree_view)
         return FALSE;
 
-    val = gui_prop_get_guint32(PROP_SEARCH_RESULTS_COL_VISIBLE, NULL, 0, 0);
+    treeview = GTK_TREE_VIEW(current ?
+					current->tree_view : default_search_tree_view);
+    if (!treeview)
+		return FALSE;
 
-    treeview = GTK_TREE_VIEW((current_search != NULL) ? 
-        current_search->tree_view : default_search_tree_view);
-    if (NULL != treeview) {
+	gui_prop_get_boolean(PROP_SEARCH_RESULTS_COL_VISIBLE, val, 0,
+		G_N_ELEMENTS(val));
+
+	for (i = 0; i < G_N_ELEMENTS(val); i++) {
 		GtkTreeViewColumn *c;
-        gint i;
-  
-		for (i = 0; NULL != (c = gtk_tree_view_get_column(treeview, i)); i++) 
-            gtk_tree_view_column_set_visible(c, val[i]);
-    }
-    G_FREE_NULL(val);
-    return FALSE;
+
+		c = gtk_tree_view_get_column(treeview, i);
+		gtk_tree_view_column_set_visible(c, val[i]);
+	}
+
+	return FALSE;
 }
 
 /***
  *** Private functions
  ***/
 
-static void search_gui_column_resized(
-    GtkTreeViewColumn *column,
-	property_t prop,
-	gint id,
-	gint min_id,
-	gint max_id)
-{
-    guint32 width;
-    static GStaticMutex mutex = G_STATIC_MUTEX_INIT;
-
-    g_assert(id >= min_id && id <= max_id);
-    g_static_mutex_lock(&mutex);
-    width = gtk_tree_view_column_get_width(column);
-	if ((gint) width < 1)
-		width = 1;
-	if (!search_gui_shutting_down)
-		gui_prop_set_guint32(prop, &width, id, 1);
-    g_static_mutex_unlock(&mutex);
-}
-
-static void on_search_gui_list_column_resized(
-    GtkTreeViewColumn *column, GParamSpec *param, gpointer data)
-{
-    search_gui_column_resized(column, PROP_SEARCH_LIST_COL_WIDTHS,
-		GPOINTER_TO_INT(data), 0, 2);
-}
-
-static void on_search_gui_results_column_resized(
-    GtkTreeViewColumn *column, GParamSpec *param, gpointer data)
-{
-    search_gui_column_resized(column, PROP_SEARCH_RESULTS_COL_WIDTHS,
-		GPOINTER_TO_INT(data), 0, 7);
-}
-
-static void add_list_column(
-	GtkTreeView *treeview,
-	gchar *name,
-	gint id,
-	gint width,
-	gfloat xalign) 
-{
-    GtkTreeViewColumn *column;
-
-	column = add_column(treeview, name, id, width, xalign, c_sl_fg, c_sl_bg);
-	g_signal_connect(G_OBJECT(column), "notify::width",
-        G_CALLBACK(on_search_gui_list_column_resized), GINT_TO_POINTER(id));
-}
-
 static void add_list_columns(GtkTreeView *treeview)
 {
-	guint32 *width;
+	static const struct {
+		const gchar * const title;
+		const gint id;
+		const gfloat align;
+	} columns[] = {
+		{ N_("Search"), c_sl_name, 0.0 },
+		{ N_("Hits"),	c_sl_hit,  1.0 },
+		{ N_("New"),	c_sl_new,  1.0 }
+	};
+	guint32 width[G_N_ELEMENTS(columns)];
+	guint i;
 
-    width = gui_prop_get_guint32(PROP_SEARCH_LIST_COL_WIDTHS, NULL, 0, 0);
-	add_list_column(treeview, "Search", c_sl_name, width[c_sl_name],
-		(gfloat) 0.0);
-	add_list_column(treeview, "Hits", c_sl_hit, width[c_sl_hit], (gfloat) 1.0);
-	add_list_column(treeview, "New", c_sl_new, width[c_sl_new], (gfloat) 1.0);
-	G_FREE_NULL(width);
+    gui_prop_get_guint32(PROP_SEARCH_LIST_COL_WIDTHS, width, 0,
+		G_N_ELEMENTS(width));
+	for (i = 0; i < G_N_ELEMENTS(columns); i++) {
+		add_column(treeview, _(columns[i].title), columns[i].id,
+			width[columns[i].id], columns[i].align, c_sl_fg, c_sl_bg);
+	}
 }
 
 static void add_results_column(
 	GtkTreeView *treeview,
-	gchar *name,
+	const gchar *name,
 	gint id,
 	gint width,
 	gfloat xalign,
-	gint (*sortfunc)(GtkTreeModel *, GtkTreeIter *, GtkTreeIter *, gpointer))
+	GtkTreeIterCompareFunc sortfunc)
 {
     GtkTreeViewColumn *column;
 	GtkTreeModel *model;
@@ -905,8 +881,6 @@ static void add_results_column(
 	if (NULL != sortfunc)
 		gtk_tree_sortable_set_sort_func(
 			GTK_TREE_SORTABLE(model), id, sortfunc, NULL, NULL);
-	g_signal_connect(G_OBJECT(column), "notify::width",
-        G_CALLBACK(on_search_gui_results_column_resized), GINT_TO_POINTER(id));
 	g_signal_connect(G_OBJECT(column), "clicked",
 		G_CALLBACK(on_tree_view_search_results_click_column),
 		GINT_TO_POINTER(id));
@@ -965,18 +939,23 @@ void search_gui_init(void)
      * Now we restore the column visibility
      */
     {
-        gint i;
+        guint i;
         GtkTreeView *treeview;
-        GtkTreeViewColumn *c;
 		search_t *current_search = search_gui_get_current_search();
+		gboolean visible[SEARCH_RESULTS_VISIBLE_COLUMNS];
 
         treeview = current_search != NULL ? 
                 GTK_TREE_VIEW(current_search->tree_view) : 
                 GTK_TREE_VIEW(default_search_tree_view);
       
-		for (i = 0; NULL != (c = gtk_tree_view_get_column(treeview, i)); i++) 
-            gtk_tree_view_column_set_visible(c,
-				 (gboolean) search_results_col_visible[i]);
+		gui_prop_get_boolean(PROP_SEARCH_RESULTS_COL_VISIBLE, visible, 0,
+			G_N_ELEMENTS(visible));
+		for (i = 0; i < G_N_ELEMENTS(visible); i++) {
+        	GtkTreeViewColumn *c;
+			
+			c = gtk_tree_view_get_column(treeview, i);
+            gtk_tree_view_column_set_visible(c, visible[i]);
+		}
     }
 
 	search_gui_retrieve_searches();
@@ -986,8 +965,6 @@ void search_gui_init(void)
 void search_gui_shutdown(void)
 {
 	GtkTreeView *tv;
-	GtkTreeViewColumn *c;
-	gint i;
 	search_t *current_search = search_gui_get_current_search();
 
 	search_gui_shutting_down = TRUE;
@@ -1004,14 +981,8 @@ void search_gui_shutdown(void)
 		? GTK_TREE_VIEW(current_search->tree_view)
 		: GTK_TREE_VIEW(default_search_tree_view);
 
-
-	for (i = 0; NULL != (c = gtk_tree_view_get_column(tv, i)); i++) {
-		guint32 val;
-		
-		val = gtk_tree_view_column_get_visible(c);
-		gui_prop_set_guint32(PROP_SEARCH_RESULTS_COL_VISIBLE, &val, i, 1);
-	}
-
+	tree_view_save_widths(tv, PROP_SEARCH_RESULTS_COL_WIDTHS);
+	tree_view_save_visibility(tv, PROP_SEARCH_RESULTS_COL_VISIBLE);
 
     while (searches != NULL)
         search_gui_close_search((search_t *) searches->data);
@@ -1127,7 +1098,6 @@ void search_gui_set_current_search(search_t *sch)
 	search_t *old_sch = search_gui_get_current_search();
     GtkWidget *spinbutton_reissue_timeout;
     static gboolean locked = FALSE;
-	static GStaticMutex mutex = G_STATIC_MUTEX_INIT;
     gboolean passive;
     gboolean frozen;
     guint32 reissue_timeout;
@@ -1135,14 +1105,9 @@ void search_gui_set_current_search(search_t *sch)
 
 	g_assert(sch != NULL);
 
-	g_static_mutex_lock(&mutex);
-    if (locked) {
-		g_static_mutex_unlock(&mutex);
+    if (locked)
 		return;
-	}
     locked = TRUE;
-	g_static_mutex_unlock(&mutex);
-
 
 	if (old_sch)
 		gui_search_force_update_tab_label(old_sch, time(NULL));
@@ -1156,22 +1121,24 @@ void search_gui_set_current_search(search_t *sch)
      * to the new current_search.
      */
     if (current_search != NULL) {
-        gint i;
+        guint i;
         GtkTreeView *treeview = GTK_TREE_VIEW(sch->tree_view);
         GtkTreeView *treeview_old = GTK_TREE_VIEW(current_search->tree_view);
-		GtkTreeViewColumn *c;
-		GtkTreeViewColumn *old_c;
         
-		for (
-			i = 0;
-			NULL != (c = gtk_tree_view_get_column(treeview, i)) &&
-			NULL != (old_c = gtk_tree_view_get_column(treeview_old, i));
-			i++
-		) {
+		for (i = 0; i < SEARCH_RESULTS_VISIBLE_COLUMNS; i++) {
+			GtkTreeViewColumn *c, *old_c;
+
+			c = gtk_tree_view_get_column(treeview, i);
+			old_c = gtk_tree_view_get_column(treeview_old, i);
             gtk_tree_view_column_set_visible(c,
 				 gtk_tree_view_column_get_visible(old_c));
         }
-    }
+		tree_view_save_widths(treeview_old, PROP_SEARCH_RESULTS_COL_WIDTHS);
+    } else if (default_search_tree_view) {
+		tree_view_save_widths(GTK_TREE_VIEW(default_search_tree_view),
+			PROP_SEARCH_RESULTS_COL_WIDTHS);
+	}
+
 
 	search_gui_current_search(sch);
 	sch->unseen_items = 0;
@@ -1259,7 +1226,7 @@ static GtkTreeModel *create_model(void)
 
 static GtkTreeViewColumn *add_column(
 	GtkTreeView *treeview,
-	gchar *name,
+	const gchar *name,
 	gint id,
 	gint width,
 	gfloat xalign,
@@ -1293,29 +1260,33 @@ static GtkTreeViewColumn *add_column(
 		NULL);
     gtk_tree_view_column_set_sort_column_id(column, id);
     gtk_tree_view_append_column(treeview, column);
-	g_object_notify(G_OBJECT(column), "width");
 
 	return column;
 }
 
 static void add_results_columns(GtkTreeView *treeview)
 {
-	guint32 *width;
+	static const struct {
+		const gchar * const title;
+		const gint id;
+		const gfloat align;
+		const GtkTreeIterCompareFunc func;
+	} columns[] = {
+		{ N_("File"),	   c_sr_filename, 0.0, NULL },
+		{ N_("Extension"), c_sr_ext,	  0.0, NULL },
+		{ N_("Size"),	   c_sr_size,	  1.0, search_gui_compare_size_func },
+		{ N_("#"),		   c_sr_count,	  1.0, search_gui_compare_count_func },
+		{ N_("Info"),	   c_sr_info,	  0.0, NULL }
+	};
+	guint32 width[G_N_ELEMENTS(columns)];
+	guint i;
 
-    width = gui_prop_get_guint32(PROP_SEARCH_RESULTS_COL_WIDTHS, NULL, 0, 0);
-
-	add_results_column(treeview, "File", c_sr_filename, width[c_sr_filename],
-		(gfloat) 0.0, NULL);
-	add_results_column(treeview, "Extension", c_sr_ext, width[c_sr_ext],
-		(gfloat) 0.0, NULL);
-	add_results_column(treeview, "Size", c_sr_size, width[c_sr_size],
-		(gfloat) 1.0, search_gui_compare_size_func);
-	add_results_column(treeview, "#", c_sr_count, width[c_sr_count],
-		(gfloat) 1.0, search_gui_compare_count_func);
-	add_results_column(treeview, "Info", c_sr_info, width[c_sr_info],
-		(gfloat) 0.0, NULL);
-
-	G_FREE_NULL(width);
+    gui_prop_get_guint32(PROP_SEARCH_RESULTS_COL_WIDTHS, width, 0,
+		G_N_ELEMENTS(width));
+	for (i = 0; i < G_N_ELEMENTS(columns); i++) {
+		add_results_column(treeview, _(columns[i].title), columns[i].id,
+			width[columns[i].id], columns[i].align, columns[i].func);
+	}
 }
 
 /* Create a new GtkTreeView for search results */
@@ -1361,15 +1332,15 @@ void gui_search_create_tree_view(GtkWidget ** sw, GtkWidget ** tv)
 void gui_search_update_items(struct search *sch)
 {
     if (sch) {
-        const gchar *str = sch->passive ? N_("(passive search) ") : "";
+        const gchar *str = sch->passive ? _("(passive search) ") : "";
     
         if (sch->items)
-            gm_snprintf(tmpstr, sizeof(tmpstr), "%s%u item%s found", 
-                str, sch->items, (sch->items > 1) ? "s" : "");
+            gm_snprintf(tmpstr, sizeof(tmpstr), _("%s%u %s found"),
+                str, sch->items, (sch->items > 1) ? _("items") : _("item"));
         else
-            gm_snprintf(tmpstr, sizeof(tmpstr), "%sNo items found", str);
+            gm_snprintf(tmpstr, sizeof(tmpstr), _("%sNo items found"), str);
     } else
-        g_strlcpy(tmpstr, "No search", sizeof(tmpstr));
+        g_strlcpy(tmpstr, _("No search"), sizeof(tmpstr));
 
 	gtk_label_set(label_items_found, tmpstr);
 }
