@@ -236,12 +236,13 @@ ntp_got_reply(struct gnutella_socket *s)
 	clock_offset = tm2f(&offset) / 2;		/* Should be close to 0 */
 
 	if (dbg > 1)
-		printf("NTP local clock offset is %.6lf secs\n", clock_offset);
+		printf("NTP local clock offset is %.6f secs\n",
+			(double) clock_offset);
 
 	gnet_prop_set_guint32_val(PROP_CLOCK_SKEW, (guint32) clock_offset);
 
-	g_message("detected NTP-%u, stratum %u, offset %.6lf secs",
-		version, m->stratum, clock_offset);
+	g_message("detected NTP-%u, stratum %u, offset %.6f secs",
+		version, m->stratum, (double) clock_offset);
 }
 
 /**

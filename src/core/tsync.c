@@ -222,9 +222,9 @@ tsync_got_reply(struct gnutella_node *n,
 	rtt = tm2f(&delay);
 
 	if (dbg > 1)
-		printf("TSYNC RTT for %d.%d with %s via %s is: %.6lf secs\n",
+		printf("TSYNC RTT for %d.%d with %s via %s is: %.6f secs\n",
 			(gint) sent->tv_sec, (gint) sent->tv_usec,
-			node_ip(n), NODE_IS_UDP(n) ? "UDP" : "TCP", rtt);
+			node_ip(n), NODE_IS_UDP(n) ? "UDP" : "TCP", (double) rtt);
 
 	/*
 	 * If request is too ancient, we'll just use it to measure the
@@ -254,8 +254,8 @@ tsync_got_reply(struct gnutella_node *n,
 		clock_offset = tm2f(&offset) / 2;
 
 		if (dbg > 1)
-			printf("TSYNC offset between %s clock at %s and ours: %.6lf secs\n",
-				ntp ? "NTP" : "regular", node_ip(n), clock_offset);
+			printf("TSYNC offset between %s clock at %s and ours: %.6f secs\n",
+				ntp ? "NTP" : "regular", node_ip(n), (double) clock_offset);
 
 		/*
 		 * If the node is still connected (which we can't know easily if
