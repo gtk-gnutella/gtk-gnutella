@@ -41,6 +41,7 @@ binary-arch: checkroot build
 	install -d debian/tmp
 	cd debian/tmp && install -d `cat ../dirs`
 	$(MAKE) install INSTALL_PREFIX=`pwd`/debian/tmp
+	$(MAKE) install.man INSTALL_PREFIX=`pwd`/debian/tmp
 	strip --remove-section=.comment --remove-section=.note `pwd`/debian/tmp/usr/bin/gtk-gnutella
 # Must have debmake installed for this to work. Otherwise please copy
 # /usr/bin/debstd into the debian directory and change debstd to debian/debstd
