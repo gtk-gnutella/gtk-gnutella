@@ -169,7 +169,22 @@ enum {
     nb_main_page_gnet_stats
 };
 
+/*
+ * Nodes in the treemenu
+ */
+enum {
+    TREEMENU_NODE_GNET = 0,
+    TREEMENU_NODE_GNET_STATS,
+    TREEMENU_NODE_UL,
+    TREEMENU_NODE_UL_STATS,
+    TREEMENU_NODE_DL,
+    TREEMENU_NODE_SEARCH,
+    TREEMENU_NODE_SEARCH_MON,
+    TREEMENU_NODE_SEARCH_STATS,
+    TREEMENU_NODE_CFG,
 
+    TREEMENU_NODES
+};
 
 /*
  * Public variables.

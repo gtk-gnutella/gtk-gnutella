@@ -657,28 +657,15 @@ prop = {
  * GTK2 specific properties
  */
 
-/*
 prop = {
-    name = "gnet_stats_fc_view_mode";
-    desc = "Whether the columns show hops or TTL";
-    type = multichoice;
+    name = "treemenu_nodes_expanded";
+    desc = "Expanded stati of the nodes in the treemenu";
+    type = guint32;
+    vector_size = 9; /* TREEMENU_NODES */
     data = {
-        default = 0;
-    };
-    choice = {
-        name = "Packets";
-        value = 0;
-    };
-    choice = {
-        name = "Bytes";
-        value = 1;
-    };
-    choice = {
-        name = "Bytes including headers";
-        value = 2;
+        default = "{ 1, 1, 1, 1, 1, 1, 1, 1, 1 }";
     };
 };
-*/
 
 prop = {
     name = "gnet_stats_pkg_col_widths";
@@ -702,3 +689,29 @@ prop = {
         default = "{ 60, 20, 20, 20, 20, 20 }";
     };
 };
+
+prop = {
+    name = "config_toolbar_style";
+    desc = "Configures the appearance of the toolbar";
+    type = multichoice;
+    data = {
+        default = 4;
+    };
+    choice = {
+        name = "Icons";
+        value = 1;
+    };
+    choice = {
+        name = "Text";
+        value = 2;
+    };
+    choice = {
+        name = "Both (vertical)";
+        value = 3;
+    };
+    choice = {
+        name = "Both (horizontal)";
+        value = 4;
+    };
+};
+

@@ -167,10 +167,21 @@ guint32  gnet_stats_general_col_widths[2]     = { 60, 20 };
 guint32  gnet_stats_general_col_widths_def[2] = { 60, 20 };
 gboolean clear_uploads     = TRUE;
 gboolean clear_uploads_def = TRUE;
+guint32  treemenu_nodes_expanded[9]     = { 1, 1, 1, 1, 1, 1, 1, 1, 1 };
+guint32  treemenu_nodes_expanded_def[9] = { 1, 1, 1, 1, 1, 1, 1, 1, 1 };
 guint32  gnet_stats_pkg_col_widths[6]     = { 60, 20, 20, 20, 20, 20 };
 guint32  gnet_stats_pkg_col_widths_def[6] = { 60, 20, 20, 20, 20, 20 };
 guint32  gnet_stats_byte_col_widths[6]     = { 60, 20, 20, 20, 20, 20 };
 guint32  gnet_stats_byte_col_widths_def[6] = { 60, 20, 20, 20, 20, 20 };
+guint32  config_toolbar_style     = 4;
+guint32  config_toolbar_style_def = 4;
+prop_def_choice_t config_toolbar_style_choices[] = { 
+    {"Icons", 1},
+    {"Text", 2},
+    {"Both (vertical)", 3},
+    {"Both (horizontal)", 4},
+    {NULL, 0}
+};
 
 static prop_set_t *gui_property = NULL;
 
@@ -1336,23 +1347,43 @@ prop_set_t *gui_prop_init(void) {
 
 
     /*
+     * PROP_TREEMENU_NODES_EXPANDED:
+     *
+     * General data:
+     */
+    gui_property->props[62].name = "treemenu_nodes_expanded";
+    gui_property->props[62].desc = "Expanded stati of the nodes in the treemenu";
+    gui_property->props[62].prop_changed_listeners = NULL;
+    gui_property->props[62].save = TRUE;
+    gui_property->props[62].vector_size = 9;
+
+    /* Type specific data: */
+    gui_property->props[62].type               = PROP_TYPE_GUINT32;
+    gui_property->props[62].data.guint32.def   = treemenu_nodes_expanded_def;
+    gui_property->props[62].data.guint32.value = treemenu_nodes_expanded;
+    gui_property->props[62].data.guint32.choices = NULL;
+    gui_property->props[62].data.guint32.max   = 0xFFFFFFFF;
+    gui_property->props[62].data.guint32.min   = 0x00000000;
+
+
+    /*
      * PROP_GNET_STATS_PKG_COL_WIDTHS:
      *
      * General data:
      */
-    gui_property->props[62].name = "widths_gnet_stats_pkg";
-    gui_property->props[62].desc = "Widths of the columns in the gnet packet stats table (pkg)[GTK2]";
-    gui_property->props[62].prop_changed_listeners = NULL;
-    gui_property->props[62].save = TRUE;
-    gui_property->props[62].vector_size = 6;
+    gui_property->props[63].name = "widths_gnet_stats_pkg";
+    gui_property->props[63].desc = "Widths of the columns in the gnet packet stats table (pkg)[GTK2]";
+    gui_property->props[63].prop_changed_listeners = NULL;
+    gui_property->props[63].save = TRUE;
+    gui_property->props[63].vector_size = 6;
 
     /* Type specific data: */
-    gui_property->props[62].type               = PROP_TYPE_GUINT32;
-    gui_property->props[62].data.guint32.def   = gnet_stats_pkg_col_widths_def;
-    gui_property->props[62].data.guint32.value = gnet_stats_pkg_col_widths;
-    gui_property->props[62].data.guint32.choices = NULL;
-    gui_property->props[62].data.guint32.max   = 0xFFFFFFFF;
-    gui_property->props[62].data.guint32.min   = 0x00000000;
+    gui_property->props[63].type               = PROP_TYPE_GUINT32;
+    gui_property->props[63].data.guint32.def   = gnet_stats_pkg_col_widths_def;
+    gui_property->props[63].data.guint32.value = gnet_stats_pkg_col_widths;
+    gui_property->props[63].data.guint32.choices = NULL;
+    gui_property->props[63].data.guint32.max   = 0xFFFFFFFF;
+    gui_property->props[63].data.guint32.min   = 0x00000000;
 
 
     /*
@@ -1360,19 +1391,39 @@ prop_set_t *gui_prop_init(void) {
      *
      * General data:
      */
-    gui_property->props[63].name = "widths_gnet_stats_byte";
-    gui_property->props[63].desc = "Widths of the columns in the gnet packet stats table (byte) [GTK2]";
-    gui_property->props[63].prop_changed_listeners = NULL;
-    gui_property->props[63].save = TRUE;
-    gui_property->props[63].vector_size = 6;
+    gui_property->props[64].name = "widths_gnet_stats_byte";
+    gui_property->props[64].desc = "Widths of the columns in the gnet packet stats table (byte) [GTK2]";
+    gui_property->props[64].prop_changed_listeners = NULL;
+    gui_property->props[64].save = TRUE;
+    gui_property->props[64].vector_size = 6;
 
     /* Type specific data: */
-    gui_property->props[63].type               = PROP_TYPE_GUINT32;
-    gui_property->props[63].data.guint32.def   = gnet_stats_byte_col_widths_def;
-    gui_property->props[63].data.guint32.value = gnet_stats_byte_col_widths;
-    gui_property->props[63].data.guint32.choices = NULL;
-    gui_property->props[63].data.guint32.max   = 0xFFFFFFFF;
-    gui_property->props[63].data.guint32.min   = 0x00000000;
+    gui_property->props[64].type               = PROP_TYPE_GUINT32;
+    gui_property->props[64].data.guint32.def   = gnet_stats_byte_col_widths_def;
+    gui_property->props[64].data.guint32.value = gnet_stats_byte_col_widths;
+    gui_property->props[64].data.guint32.choices = NULL;
+    gui_property->props[64].data.guint32.max   = 0xFFFFFFFF;
+    gui_property->props[64].data.guint32.min   = 0x00000000;
+
+
+    /*
+     * PROP_CONFIG_TOOLBAR_STYLE:
+     *
+     * General data:
+     */
+    gui_property->props[65].name = "config_toolbar_style";
+    gui_property->props[65].desc = "Configures the appearance of the toolbar";
+    gui_property->props[65].prop_changed_listeners = NULL;
+    gui_property->props[65].save = TRUE;
+    gui_property->props[65].vector_size = 1;
+
+    /* Type specific data: */
+    gui_property->props[65].type               = PROP_TYPE_MULTICHOICE;
+    gui_property->props[65].data.guint32.def   = &config_toolbar_style_def;
+    gui_property->props[65].data.guint32.value = &config_toolbar_style;
+    gui_property->props[65].data.guint32.max   = 0xFFFFFFFF;
+    gui_property->props[65].data.guint32.min   = 0x00000000;
+    gui_property->props[65].data.guint32.choices = config_toolbar_style_choices;
     return gui_property;
 }
 

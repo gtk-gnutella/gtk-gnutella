@@ -59,6 +59,10 @@ gboolean on_dlg_quit_delete_event(
 
 #ifdef USE_GTK2
 void on_main_gui_treeview_menu_cursor_changed(GtkTreeView *, gpointer);
+void on_main_gui_treeview_menu_row_collapsed(
+	GtkTreeView *, GtkTreeIter *, GtkTreePath *, gpointer);
+void on_main_gui_treeview_menu_row_expanded(
+	GtkTreeView *, GtkTreeIter *, GtkTreePath *, gpointer);
 #endif
 
 

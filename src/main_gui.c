@@ -134,6 +134,20 @@ static void gui_init_window_title(void)
 }
 
 #ifdef USE_GTK2
+
+static gboolean gui_init_menu_helper(
+	GtkTreeModel *model, GtkTreePath *path, GtkTreeIter *iter, gpointer data)
+{
+	guint32 expanded;
+	gint id;
+	
+	gtk_tree_model_get(model, iter, 2, &id, -1);
+	gui_prop_get_guint32(PROP_TREEMENU_NODES_EXPANDED, &expanded, id, 1);
+	if (expanded)
+		gtk_tree_view_expand_row(GTK_TREE_VIEW(data), path, FALSE);
+	return FALSE;
+}
+
 static void gui_init_menu(void) 
 {
 	GtkTreeView	*treeview;
@@ -142,41 +156,46 @@ static void gui_init_menu(void)
 	GtkTreeViewColumn *column;
 
 	treeview = GTK_TREE_VIEW(lookup_widget(main_window, "treeview_menu"));
-	store = gtk_tree_store_new(2, G_TYPE_STRING, G_TYPE_INT);
+	store = gtk_tree_store_new(3,
+		G_TYPE_STRING,	/* Label */
+		G_TYPE_INT,		/* Notbook page */
+		G_TYPE_INT);	/* Menu entry ID (persistent between releases) */
 
 	gtk_tree_store_append(store, &parent, NULL);
 	gtk_tree_store_set(store, &parent,
-		0, "gnutellaNet", 1, nb_main_page_gnet, -1);
+		0, "gnutellaNet", 1, nb_main_page_gnet, 2, TREEMENU_NODE_GNET, -1);
 	gtk_tree_store_append(store, &iter, &parent);
 	gtk_tree_store_set(store, &iter,
-		0, "Stats", 1, nb_main_page_gnet_stats, -1);
+		0, "Stats", 1, nb_main_page_gnet_stats, 2, TREEMENU_NODE_GNET_STATS,
+		-1);
+	gtk_tree_store_append(store, &parent, NULL);
+	gtk_tree_store_set(store, &parent,
+		0, "Uploads", 1, nb_main_page_uploads, 2, TREEMENU_NODE_UL, -1);
+	gtk_tree_store_append(store, &iter, &parent);
+	gtk_tree_store_set(store, &iter,
+		0, "Stats", 1, nb_main_page_uploads_stats, 2, TREEMENU_NODE_UL_STATS,
+		-1);
 
 	gtk_tree_store_append(store, &parent, NULL);
 	gtk_tree_store_set(store, &parent,
-		0, "Uploads", 1, nb_main_page_uploads, -1);
-	gtk_tree_store_append(store, &iter, &parent);
-	gtk_tree_store_set(store, &iter,
-		0, "Stats", 1, nb_main_page_uploads_stats, -1);
+		0, "Downloads", 1, nb_main_page_downloads, 2, TREEMENU_NODE_DL, -1);
 
 	gtk_tree_store_append(store, &parent, NULL);
 	gtk_tree_store_set(store, &parent,
-		0, "Downloads", 1, nb_main_page_downloads, -1);
+		0, "Search", 1, nb_main_page_search, 2, TREEMENU_NODE_SEARCH, -1);
+	gtk_tree_store_append(store, &iter, &parent);
+	gtk_tree_store_set(store, &iter,
+		0, "Monitor", 1, nb_main_page_monitor, 2, TREEMENU_NODE_SEARCH_MON, -1);
+	gtk_tree_store_append(store, &iter, &parent);
+	gtk_tree_store_set(store, &iter,
+		0, "Stats", 1, nb_main_page_search_stats, 2, TREEMENU_NODE_SEARCH_STATS,
+		-1);
 
 	gtk_tree_store_append(store, &parent, NULL);
 	gtk_tree_store_set(store, &parent,
-		0, "Search", 1, nb_main_page_search, -1);
-	gtk_tree_store_append(store, &iter, &parent);
-	gtk_tree_store_set(store, &iter,
-		0, "Monitor", 1, nb_main_page_monitor, -1);
-	gtk_tree_store_append(store, &iter, &parent);
-	gtk_tree_store_set(store, &iter,
-		0, "Stats", 1, nb_main_page_search_stats, -1);
-
-	gtk_tree_store_append(store, &parent, NULL);
-	gtk_tree_store_set(store, &parent, 0, "Config", 1, nb_main_page_config, -1);
+		0, "Config", 1, nb_main_page_config, 2, TREEMENU_NODE_CFG, -1);
 
 	gtk_tree_view_set_model(treeview, GTK_TREE_MODEL(store));
-	g_object_unref(store);
 
 	column = gtk_tree_view_column_new_with_attributes(
 		NULL, gtk_cell_renderer_text_new(), "text", 0, NULL);
@@ -184,9 +203,17 @@ static void gui_init_menu(void)
     gtk_tree_view_column_set_sizing(column, GTK_TREE_VIEW_COLUMN_FIXED);
     gtk_tree_view_append_column(treeview, column);
 	gtk_tree_view_columns_autosize(treeview);
+	
+	gtk_tree_model_foreach(GTK_TREE_MODEL(store),
+		(gpointer) &gui_init_menu_helper, treeview);
+	g_object_unref(store);
 
 	g_signal_connect(G_OBJECT(treeview), "cursor-changed",
 		G_CALLBACK(on_main_gui_treeview_menu_cursor_changed), NULL);
+	g_signal_connect(G_OBJECT(treeview), "row-collapsed",
+		G_CALLBACK(on_main_gui_treeview_menu_row_collapsed), NULL);
+	g_signal_connect(G_OBJECT(treeview), "row-expanded",
+		G_CALLBACK(on_main_gui_treeview_menu_row_expanded), NULL);
 }
 
 #else
@@ -323,7 +350,6 @@ void main_gui_early_init(gint argc, gchar **argv)
     uploads_gui_early_init();
     statusbar_gui_init();
 
-    gui_init_menu();
 	gui_init_window_title();
 
     /* about box */
@@ -400,6 +426,7 @@ void main_gui_init(void)
 
     nodes_gui_init();
     settings_gui_init();
+    gui_init_menu();
     gnet_stats_gui_init();
     search_stats_gui_init();
     uploads_gui_init();
