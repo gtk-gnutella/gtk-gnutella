@@ -27,7 +27,6 @@
 
 #include "common.h"
 
-#include <pwd.h>
 #include <netdb.h>
 
 #include "lib/eval.h"
@@ -252,7 +251,6 @@ settings_getphysmemsize(void)
 void
 settings_init(void)
 {
-    struct passwd *pwd = NULL;
 	guint32 maxfd = (guint32) sysconf(_SC_OPEN_MAX);
 	gulong memory = settings_getphysmemsize();
 	guint32 amount = (guint32) memory;
@@ -274,25 +272,14 @@ settings_init(void)
 	gnet_prop_set_guint32_val(PROP_SYS_NOFILE, maxfd);
 	gnet_prop_set_guint32_val(PROP_SYS_PHYSMEM, amount);
 
-	config_dir = g_strdup(getenv("GTK_GNUTELLA_DIR"));
 	memset((gchar *) guid, 0, sizeof(guid));
-
-	pwd = getpwuid(getuid());
-
-	if (pwd && pwd->pw_dir)
-		home_dir = g_strdup(pwd->pw_dir);
-	else
-		home_dir = g_strdup(getenv("HOME"));
-
+	config_dir = g_strdup(getenv("GTK_GNUTELLA_DIR"));
+	home_dir = g_strdup(eval_subst("~"));
 	if (!home_dir)
 		g_warning(_("Can't find your home directory!"));
 
-	if (!config_dir) {
-		if (home_dir) {
-			config_dir = make_pathname(home_dir, ".gtk-gnutella");
-		} else
-			g_warning(_("No home directory: prefs will not be saved!"));
-	}
+	if (!config_dir && home_dir)
+		config_dir = make_pathname(home_dir, ".gtk-gnutella");
 
 	if (NULL == config_dir || '\0' == config_dir[0])
 		goto no_config_dir;
@@ -304,13 +291,8 @@ settings_init(void)
 			g_warning("mkdir(\"%s\") failed: \"%s\"",
 				config_dir, g_strerror(errno));
 			goto no_config_dir;
-#if 0
-			G_FREE_NULL(config_dir);
-			config_dir = NULL;
-#endif
 		}
 	}
-
 
 	g_assert(NULL != config_dir);
 	/* Ensure we're the only instance running */
@@ -324,7 +306,6 @@ settings_init(void)
 	prop_load_from_file(properties, config_dir, config_file);
 
 	path = make_pathname(config_dir, ul_stats_file);
-
 	upload_stats_load_history(path);	/* Loads the upload statistics */
 	G_FREE_NULL(path);
 
@@ -502,13 +483,14 @@ settings_ask_for_property(gchar *name, gchar *value)
 	fprintf(stderr, "\n*** ANCIENT VERSION DETECTED! ***\n\n");
 	fprintf(stderr,
 		"Sorry, this program is too ancient to run without\n"
-		"an explicit user action: please edit the file\n\n"
+		"an explicit user action: If it's not possible to upgrade\n"
+		"you may edit the file\n\n"
 		"\t%s%s%s\n\n"
 		"and set the variable \"%s\" to\n\"%s\".\n\n"
 		"You will then be able to run this version forever, but\n"
 		"please consider upgrading, as Gnutella is an evolving\n"
-		"network, where ancient versions are less performant, if\n"
-		"not harmful!\n\n",
+		"network in which ancient software is less useful or even\n"
+		"harmful!\n\n",
 		config_dir, G_DIR_SEPARATOR_S, config_file, name, value);
 	fprintf(stderr, "*** EXITING ***\n\n");
 
@@ -545,10 +527,8 @@ settings_close(void)
 	settings_remove_pidfile();
     gnet_prop_shutdown();
 
-	if (home_dir)
-		G_FREE_NULL(home_dir);
-	if (config_dir)
-		G_FREE_NULL(config_dir);
+	G_FREE_NULL(home_dir);
+	G_FREE_NULL(config_dir);
 }
 
 void
