@@ -40,6 +40,7 @@
 
 #ifndef USE_GTK2
 #define g_ascii_strcasecmp g_strcasecmp
+#define gdk_drawable_get_size gdk_window_get_size
 #endif
 
 #define GUI_CELL_RENDERER_YPAD 0

@@ -418,7 +418,7 @@ void filter_close_dialog(gboolean commit)
 
         gdk_window_get_root_origin
             (filter_dialog->window, &coord[0], &coord[1]);
-        gdk_window_get_size
+        gdk_drawable_get_size
             (filter_dialog->window, &coord[2], &coord[3]);
 
         gui_prop_set_guint32(PROP_FILTER_DLG_COORDS, coord, 0, 4);
