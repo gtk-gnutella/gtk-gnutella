@@ -30,8 +30,13 @@
 
 #include <gtk/gtk.h>
 
+#ifdef USE_GTK2
+#include "interface-glade2.h"
+#include "support-glade2.h"
+#else
 #include "interface-glade1.h"
 #include "support-glade1.h"
+#endif
 
 #include "gui_property.h"
 #include "gui_property_priv.h"
