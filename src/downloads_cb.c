@@ -725,10 +725,10 @@ void on_button_downloads_resume_clicked(GtkButton * button,
     gtk_clist_thaw(GTK_CLIST(clist_downloads));
 }
 
-void on_button_downloads_clear_completed_clicked(GtkButton * button, 
-                                                 gpointer user_data)
+void on_button_downloads_clear_completed_clicked(
+    GtkButton *button, gpointer user_data)
 {
-	download_clear_stopped(TRUE, TRUE);
+	download_clear_stopped(TRUE, TRUE, TRUE);
 }
 
 /*** 
