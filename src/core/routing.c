@@ -41,6 +41,7 @@ RCSID("$Id$");
 #include "gnet_stats.h"
 #include "hostiles.h"
 #include "guid.h"
+#include "oob_proxy.h"
 
 #include "if/gnet_property.h"
 #include "if/gnet_property_priv.h"
@@ -330,6 +331,24 @@ routing_log_flush(struct route_log *log)
 		log->new ? "[NEW] " : "",
 		log->extra, log->extra[0] == '\0' ? "" : " ",
 		route_string(&log->dest, log->ip));
+}
+
+/**
+ * Mangle OOB query MUID by zeroing the parts of the MUID where the IP:port
+ * are recorded.
+ *
+ * @return copy of mangled MUID as pointer to static data.
+ */
+static const gchar *route_mangled_oob_muid(const gchar *muid)
+{
+	static gchar mangled[16];
+
+	memcpy(mangled, muid, 16);
+
+	mangled[0] = mangled[1] = mangled[2] = mangled[3] = 0;	/* Clear IP */
+	mangled[13] = mangled[14] = 0;							/* Clear port */
+
+	return mangled;
 }
 
 /**
@@ -1074,8 +1093,10 @@ forward_message(
 		sender->n_hard_ttl++;
         gnet_stats_count_dropped(sender, MSG_DROP_HARD_TTL_LIMIT);
 
-		if (sender->header.hops <= max_high_ttl_radius &&
-			sender->n_hard_ttl > max_high_ttl_msg
+		if (
+			sender->header.hops <= max_high_ttl_radius &&
+			sender->n_hard_ttl > max_high_ttl_msg &&
+			!NODE_IS_UDP(sender)
 		) {
 			node_bye(sender, 403, "Relayed %d high TTL (>%d) messages",
 				sender->n_hard_ttl, max_high_ttl_msg);
@@ -1152,6 +1173,8 @@ forward_message(
  * @param log is a structure recording to-be-logged information for debug
  * @param node is a pointer to the variable holding the node, and it can be
  * set to NULL if we removed the node.
+ * @param mangled is an alternate MUID with bytes 0-3 and 13-14 zeroed
+ * which should be tested for duplication as well.  Only set for OOB queries.
  * @param mp is set on output to the message if found in the routing table.
  *
  * @return whether we should route the message.  If `*mp' is not NULL, then
@@ -1159,7 +1182,7 @@ forward_message(
  */
 static gboolean
 check_duplicate(struct route_log *log,
-	struct gnutella_node **node, struct message **mp)
+	struct gnutella_node **node, const gchar *mangled, struct message **mp)
 {
 	struct gnutella_node *sender = *node;
 
@@ -1228,6 +1251,58 @@ check_duplicate(struct route_log *log,
 				routing_log_extra(log, "dup message, original route lost");
 			else
 				routing_log_extra(log, "dup message");
+		}
+
+		return FALSE;			/* Don't forward and don't handle */
+	}
+
+	/*
+	 * If we have a mangled MUID to test against, we have to look at whether
+	 * we also have an entry for it in the routing table.  Indeed, due to
+	 * OOB-proxying of queries performed by ultra nodes, the same query can
+	 * be proxied from different nodes with different IP:port.
+	 *
+	 * The mangled MUID is the query MUID where the IP:port have been zeroed
+	 * out.  If we get a match, it means we saw this OOB query under a
+	 * different incarnation already.  We'll only forward it if it has a
+	 * higher TTL as we saw before.
+	 *
+	 *		--RAM, 2004-09-19
+	 *
+	 * The code in the following if() almost mirrors the one in the preceding
+	 * if() with two exceptions: we don't kick offenders, and we increment
+	 * the global stats counter of duplicate OOB queries.
+	 *
+	 * XXX factorize this code.
+	 */
+
+	if (mangled && find_message(mangled, sender->header.function, mp)) {
+		struct message *m = *mp;
+
+		g_assert(m != NULL);		/* find_message() succeeded */
+
+		gnet_stats_count_general(sender, GNR_QUERY_OOB_PROXIED_DUPS, 1);
+
+		if (sender->header.ttl > m->ttl) {
+			routing_log_extra(log, "dup OOB query with higher ttl");
+
+			gnet_stats_count_general(sender, GNR_DUPS_WITH_HIGHER_TTL, 1);
+
+			m->ttl = sender->header.ttl;	/* Remember highest TTL */
+
+			return TRUE;			/* Forward but don't handle */
+		}
+
+		gnet_stats_count_dropped(sender, MSG_DROP_DUPLICATE);
+
+		if (m->routes && node_sent_message(sender, m)) {
+			/* The same node has sent us a message twice ! */
+			routing_log_extra(log, "dup OOB query (from the same node!)");
+		} else {
+			if (m->routes == NULL)
+				routing_log_extra(log, "dup OOB query, original route lost");
+			else
+				routing_log_extra(log, "dup OOB query");
 		}
 
 		return FALSE;			/* Don't forward and don't handle */
@@ -1490,7 +1565,10 @@ route_query_hit(struct route_log *log,
 
 	if (node_sent_message(fake_node, m)) {
 		node_is_target = TRUE;		/* We are the target of the reply */
-		gnet_stats_count_general(sender, GNR_LOCAL_QUERY_HITS, 1);
+		if (oob_proxy_muid_proxied(sender->header.muid))
+			gnet_stats_count_general(sender, GNR_OOB_PROXIED_QUERY_HITS, 1);
+		else
+			gnet_stats_count_general(sender, GNR_LOCAL_QUERY_HITS, 1);
 		goto handle;
 	}
 
@@ -1594,6 +1672,7 @@ route_message(struct gnutella_node **node, struct route_dest *dest)
 	gboolean duplicate = FALSE;
 	gboolean route_it = FALSE;
 	struct route_log log;
+	const gchar *mangled = NULL;
 
 	/* Ensure we never get something bearing our special GUID route marker */
 	g_assert(sender->header.function != QUERY_HIT_ROUTE_SAVE);
@@ -1608,6 +1687,17 @@ route_message(struct gnutella_node **node, struct route_dest *dest)
 		sender->header.function, sender->header.hops, sender->header.ttl);
 
 	/*
+	 * For OOB queries, we have to mangle the MUID to detect duplicates
+	 * when the query is proxied from different ultra nodes.
+	 */
+
+	if (
+		sender->header.function == GTA_MSG_SEARCH &&
+		gmsg_split_is_oob_query(&sender->header, sender->data)
+	)
+		mangled = route_mangled_oob_muid(sender->header.muid);
+
+	/*
 	 * For routed messages, we check whether we get a duplicate and
 	 * whether the message should be handled locally.
 	 */
@@ -1615,7 +1705,7 @@ route_message(struct gnutella_node **node, struct route_dest *dest)
 	switch (sender->header.function) {
 	case GTA_MSG_PUSH_REQUEST:
 	case GTA_MSG_SEARCH:
-		route_it = check_duplicate(&log, node, &m);
+		route_it = check_duplicate(&log, node, mangled, &m);
 		duplicate = (m != NULL);
 
 		/*
@@ -1627,6 +1717,17 @@ route_message(struct gnutella_node **node, struct route_dest *dest)
 		 */
 
 		message_add(sender->header.muid, sender->header.function, sender);
+
+		/*
+		 * Unfortunately, to be able to detect duplicate OOB-proxied queries
+		 * we need to insert two entries in the routing table for queries
+		 * marked with the OOB flag: one for the original MUID, and one for
+		 * the mangled MUID with the IP:port section zeroed.
+		 *		--RAM, 2004-09-19
+		 */
+
+		if (mangled)
+			message_add(mangled, sender->header.function, sender);
 
 		if (!route_it)
 			goto done;
