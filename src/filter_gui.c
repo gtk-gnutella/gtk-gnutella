@@ -1156,8 +1156,8 @@ void filter_gui_edit_flag_rule(rule_t *r)
         stable = r->u.flag.stable;
         busy   = r->u.flag.busy;
         push   = r->u.flag.push;
-        active   = RULE_IS_ACTIVE(r);
-        soft     = RULE_IS_SOFT(r);
+        active = RULE_IS_ACTIVE(r);
+        soft   = RULE_IS_SOFT(r);
     }
 
     switch (stable) {
