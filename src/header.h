@@ -98,7 +98,7 @@ typedef struct {
  */
 
 #define HEAD_MAX_LINES		128		/* Maximum amount of header lines */
-#define HEAD_MAX_SIZE		8192	/* Maximum size of header data */
+#define HEAD_MAX_SIZE		16384	/* Maximum size of header data */
 
 /*
  * Public interface.
