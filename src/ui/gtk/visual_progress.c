@@ -57,7 +57,7 @@ RCSID("$Id$");
 #include "lib/override.h"	/* Must be the last header included */
 
 /* The height of the indicator arrows in visual progress */
-#define VP_ARROW_HEIGHT 5
+#define VP_ARROW_HEIGHT 7 
 
 /**
  * The context for drawing, including location to draw
@@ -172,7 +172,7 @@ void
 vp_draw_arrow(vp_info_t *v, filesize_t at)
 {
 	guint s_at;
-	guint i;
+	GdkPoint points[3];
 
     g_assert(v);
     g_assert(v->context);
@@ -182,12 +182,21 @@ vp_draw_arrow(vp_info_t *v, filesize_t at)
 
 	s_at = (gfloat) at * v->context->widget->allocation.width / v->file_size;
 
+	/* Fill the inside of the arrow */
+	points[0].x = s_at - VP_ARROW_HEIGHT;
+	points[0].y = 0;
+	points[1].x = s_at;
+	points[1].y = VP_ARROW_HEIGHT;
+	points[2].x = s_at + VP_ARROW_HEIGHT;
+	points[2].y = 0;
 	gdk_gc_set_foreground(v->context->gc, &arrow);
-	for (i = VP_ARROW_HEIGHT + 1; i-- > 0; /* empty */) {
-		gdk_draw_line(v->context->drawable, v->context->gc,
-		    s_at - i, VP_ARROW_HEIGHT - i,
-			s_at + i, VP_ARROW_HEIGHT - i);
-	}
+	gdk_draw_polygon(v->context->drawable, v->context->gc,
+		TRUE, points, G_N_ELEMENTS(points));
+
+	/* Draw a black border around the arrow */
+	gdk_gc_set_foreground(v->context->gc, &black);
+	gdk_draw_polygon(v->context->drawable, v->context->gc,
+		FALSE, points, G_N_ELEMENTS(points));
 }
 
 /**
