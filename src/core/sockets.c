@@ -208,8 +208,10 @@ socket_tos(struct gnutella_socket *s, gint tos)
 			default:
 				g_assert_not_reached();
 		}
-		g_warning("unable to set IP_TOS to %s (%d) on fd#%d: %s",
-			tosname, tos, s->file_desc, g_strerror(errno));
+
+		if (errno != ECONNRESET)
+			g_warning("unable to set IP_TOS to %s (%d) on fd#%d: %s",
+				tosname, tos, s->file_desc, g_strerror(errno));
 	}
 }
 
