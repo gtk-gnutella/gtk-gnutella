@@ -131,6 +131,8 @@ create_main_window (void)
   GtkWidget *vbox_stats;
   GtkWidget *hbox7;
   GtkWidget *label_stats;
+  GtkWidget *hseparator1;
+  GtkWidget *button_quit;
   GtkWidget *vbox_right;
   GtkWidget *vbox_gnutellanet;
   GtkWidget *vbox6;
@@ -384,6 +386,20 @@ create_main_window (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (button_stats_update);
   gtk_box_pack_start (GTK_BOX (vbox_left), button_stats_update, FALSE, FALSE, 0);
+
+  hseparator1 = gtk_hseparator_new ();
+  gtk_widget_ref (hseparator1);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "hseparator1", hseparator1,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (hseparator1);
+  gtk_box_pack_start (GTK_BOX (vbox_left), hseparator1, FALSE, TRUE, 5);
+
+  button_quit = gtk_button_new_with_label ("Quit");
+  gtk_widget_ref (button_quit);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "button_quit", button_quit,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (button_quit);
+  gtk_box_pack_start (GTK_BOX (vbox_left), button_quit, FALSE, FALSE, 0);
 
   vbox_right = gtk_vbox_new (FALSE, 4);
   gtk_widget_ref (vbox_right);
@@ -1833,6 +1849,9 @@ create_main_window (void)
                       NULL);
   gtk_signal_connect (GTK_OBJECT (button_stats_update), "clicked",
                       GTK_SIGNAL_FUNC (on_button_stats_update_clicked),
+                      NULL);
+  gtk_signal_connect (GTK_OBJECT (button_quit), "clicked",
+                      GTK_SIGNAL_FUNC (on_button_quit_clicked),
                       NULL);
   gtk_signal_connect (GTK_OBJECT (clist_nodes), "select_row",
                       GTK_SIGNAL_FUNC (on_clist_nodes_select_row),

@@ -108,3 +108,4 @@ gboolean on_entry_max_host_downloads_focus_out_event (GtkWidget *widget, GdkEven
 void on_entry_max_host_downloads_activate (GtkEditable *editable, gpointer user_data);
 void on_popup_search_restart_activate (GtkMenuItem *menuitem, gpointer user_data);
 void on_popup_search_duplicate_activate (GtkMenuItem *menuitem, gpointer user_data);
+void on_button_quit_clicked (GtkButton *button, gpointer user_data);

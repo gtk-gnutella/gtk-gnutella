@@ -33,6 +33,11 @@ void on_button_stats_update_clicked (GtkButton *button, gpointer user_data)
 	ping_stats_update();
 }
 
+void on_button_quit_clicked (GtkButton *button, gpointer user_data)
+{
+	gtk_gnutella_exit(0);
+}
+
 /* gnutellaNet ------------------------------------------------------------------------------------ */
 
 /* connections */

@@ -19,7 +19,7 @@ void gui_set_status(gchar *msg)
 	else
 	{
 		gtk_label_set(GTK_LABEL(label_left), "");
-		g_snprintf(gui_tmp, sizeof(gui_tmp), "(c) Olrick - %s", GTA_WEBSITE);
+		g_snprintf(gui_tmp, sizeof(gui_tmp), "%s", GTA_WEBSITE);
 		gtk_label_set(GTK_LABEL(label_right), gui_tmp);
 	}
 }

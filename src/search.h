@@ -38,6 +38,8 @@ struct search
 	gint sort_order;						/* Ascending or descending */
 	gboolean sort;							/* Do sorting or not */
 
+	gpointer filter_page;				/* Page of filters in the filters notebook */
+
 	/* XXX Other fields for the filtering will be added here */
 };
 

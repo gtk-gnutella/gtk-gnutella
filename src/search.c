@@ -5,10 +5,10 @@
 
 #include "interface.h"
 
-#include "dialog-filters.h"
-
 #include "search.h"
 #include "filter.h"
+
+#include "dialog-filters.h"
 
 gchar stmp_1[4096];
 gchar stmp_2[4096];
@@ -315,6 +315,8 @@ void search_close_current(void)
 
 	g_return_if_fail(current_search);
 
+	filters_close_search(sch);
+
 	searches = g_slist_remove(searches, (gpointer) sch);
 
 	search_free_r_sets(sch);
@@ -447,6 +449,8 @@ void new_search(guint16 speed, gchar *query)
 	gtk_entry_set_text(GTK_ENTRY(entry_search), "");
 
 	searches = g_slist_append(searches, (gpointer) sch);
+
+	filters_new_search(sch);
 }
 
 /* Searches results */
