@@ -20,7 +20,7 @@
 
 # $Id$
 #
-# Generated on Sat Nov  1 16:40:53 MET 2003 [metaconfig 3.0 PL70]
+# Generated on Tue Dec  9 13:19:00 MET 2003 [metaconfig 3.0 PL70]
 
 cat >/tmp/c1$$ <<EOF
 ARGGGHHHH!!!!!
@@ -1595,8 +1595,11 @@ eval $setvar
 : ask them whether they want remote control support
 $cat <<'EOM'
 
-I have an experimental remote control service.  It is not currently
-functional, but you may choose to enable it if you're brave enough.
+I have an experimental remote control service.
+Currently you can create searches, connect to nodes, and print and 
+set the values of properties as well as read the 'tooltips'.  It is
+not completely functional, but you may choose to enable it if you're
+brave enough.  For more information, see doc/other/remote-shell.txt
 
 EOM
 case "$remotectrl" in
@@ -1609,7 +1612,6 @@ case "$ans" in
 y) remotectrl=true; d_remotectrl="$define";;
 *) remotectrl=false; d_remotectrl="$undef";;
 esac
-
 : ask them wich GTK+ version they want
 $cat <<'EOM'
 
