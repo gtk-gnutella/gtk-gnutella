@@ -676,9 +676,6 @@ void config_set_param(keyword_t keyword, gchar *value)
             ban_max_fds, gnet,
             PROP_BAN_MAX_FDS)
         CONFIG_SET_NUM(
-            proxy_protocol, gnet,
-            PROP_PROXY_PROTOCOL)
-        CONFIG_SET_NUM(
             min_dup_msg, gnet,
             PROP_MIN_DUP_MSG)
         CONFIG_SET_IP(
@@ -810,10 +807,22 @@ void config_set_param(keyword_t keyword, gchar *value)
         gui_prop_set_boolean(PROP_JUMP_TO_DOWNLOADS, &b, 0, 1);
 		return;
     }
-	case k_proxy_connections: {
+	case k_proxy_connections:
 		/* PROP_PROXY_CONNECTIONS is deprecated */
+		gnet_prop_set_boolean_val(PROP_PROXY_CONNECTIONS, (gboolean) i);
 		return;
-    }
+
+	case k_proxy_protocol: {
+		gboolean use_proxy;
+		
+		gnet_prop_get_boolean_val(PROP_PROXY_CONNECTIONS, &use_proxy);
+		if (!use_proxy) {
+			i = PROXY_NONE;
+			gnet_prop_set_boolean_val(PROP_PROXY_CONNECTIONS, TRUE);
+		}
+       	gnet_prop_set_guint32_val(PROP_PROXY_PROTOCOL, i);
+		return;
+	}	
 	case k_dbg:
 		gnet_prop_set_guint32(PROP_DBG, &i, 0, 1);
         gui_prop_set_guint32(PROP_GUI_DEBUG, &i, 0, 1);
