@@ -632,7 +632,7 @@ download_selected_file(
 	g_assert(rc->refcount > 0);
 
 	rs = rc->results_set;
-	need_push = (rs->status & ST_FIREWALL) || !host_is_valid(rs->ip, rs->port);
+	need_push = (rs->status & ST_FIREWALL) != 0;
 
 	filename = gm_sanitize_filename(rc->name, FALSE, FALSE);
 	guc_download_new(filename, rc->size, rc->index, rs->ip, 
@@ -1249,6 +1249,10 @@ add_results_columns(GtkTreeView *treeview)
 		{ N_("Extension"), c_sr_ext,	  0.0, NULL },
 		{ N_("Size"),	   c_sr_size,	  1.0, search_gui_compare_size_func },
 		{ N_("#"),		   c_sr_count,	  1.0, search_gui_compare_count_func },
+		{ N_("Speed"),	   c_sr_speed,	  1.0, NULL },
+		{ N_("Host"),	   c_sr_host,	  0.0, NULL },
+		{ N_("Loc"),	   c_sr_loc,	  1.0, NULL },
+		{ N_("SHA1"),	   c_sr_sha1,	  0.0, NULL },
 		{ N_("Metadata"),  c_sr_meta,	  0.0, NULL },
 		{ N_("Info"),	   c_sr_info,	  0.0, NULL }
 	};
