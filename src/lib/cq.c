@@ -313,7 +313,7 @@ cq_resched(cqueue_t *cq, gpointer handle, gint delay)
 /**
  * Expire timeout by removing it out of the queue and firing its callback.
  */
-static void
+void
 cq_expire(cqueue_t *cq, cevent_t *ev)
 {
 	cq_service_t fn = ev->ce_fn;
@@ -322,7 +322,6 @@ cq_expire(cqueue_t *cq, cevent_t *ev)
 	g_assert(valid_ptr(cq));
 	g_assert(ev->ce_magic == EV_MAGIC);
 	g_assert(valid_ptr(fn));
-	g_assert(valid_ptr(cq->cq_current));
 
 	cq_cancel(cq, ev);			/* Remove event from queue before firing */
 

@@ -96,6 +96,7 @@ void cq_close(void);
 cqueue_t *cq_make(time_t now);
 void cq_free(cqueue_t *cq);
 gpointer cq_insert(cqueue_t *cq, gint delay, cq_service_t fn, gpointer arg);
+void cq_expire(cqueue_t *cq, cevent_t *ev);
 void cq_cancel(cqueue_t *cq, gpointer handle);
 void cq_resched(cqueue_t *cq, gpointer handle, gint delay);
 void cq_clock(cqueue_t *cq, gint elapsed);
