@@ -1090,3 +1090,25 @@ prop = {
     };
 };
 
+prop = {
+    name = "library_rebuilding";
+    desc = "Whether gtk-gnutella is currently rebuilding its library "
+           "in the background";
+    save = FALSE;
+    type = boolean;
+    data = {
+        default = FALSE;
+    };
+};
+
+prop = {
+    name = "sha1_rebuilding";
+    desc = "Whether gtk-gnutella is currently computing SHA1 of shared "
+           "files in the background";
+    save = FALSE;
+    type = boolean;
+    data = {
+        default = FALSE;
+    };
+};
+

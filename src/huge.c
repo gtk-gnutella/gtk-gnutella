@@ -823,6 +823,7 @@ no_adjust:
 		if (cache_dirty)
 			dump_cache();
 		sha1_timeout_tag = 0;
+		gnet_prop_set_boolean_val(PROP_SHA1_REBUILDING, FALSE);
 	}
 
 	return call_timer_again;
@@ -859,6 +860,7 @@ static void queue_shared_file_for_sha1_computation(
 		g_assert(TIMEOUT_PERIOD > 0);
 		sha1_timeout_tag = g_timeout_add(TIMEOUT_PERIOD, sha1_timer, NULL);
 		g_assert(sha1_timeout_tag);
+		gnet_prop_set_boolean_val(PROP_SHA1_REBUILDING, TRUE);
 	}
 }
 

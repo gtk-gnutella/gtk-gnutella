@@ -46,6 +46,8 @@
 #include "gnet_stats.h"
 #include "settings.h"
 
+#include "gnet_property.h"
+
 #define QHIT_SIZE_THRESHOLD	2016	/* Flush query hits larger than this */
 
 static guchar iso_8859_1[96] = {
@@ -733,6 +735,8 @@ void share_scan(void)
 	else
 		in_share_scan = TRUE;
 
+	gnet_prop_set_boolean_val(PROP_LIBRARY_REBUILDING, TRUE);
+
 	files_scanned = 0;
 	bytes_scanned = 0;
 	kbytes_scanned = 0;
@@ -809,6 +813,7 @@ void share_scan(void)
 #endif
 
 	in_share_scan = FALSE;
+	gnet_prop_set_boolean_val(PROP_LIBRARY_REBUILDING, FALSE);
 }
 
 void share_close(void)
@@ -1183,15 +1188,20 @@ gboolean search_request(struct gnutella_node *n)
 		 * Drop the "QTRAX2_CONNECTION" queries as being "overhead".
 		 */
 
+#define QTRAX_STRLEN	(sizeof("QTRAX2_CONNECTION")-1)
+
 		if (
-			search_len == sizeof("QTRAX2_CONNECTION")-1 &&
+			search_len >= QTRAX_STRLEN &&
 			search[0] == 'Q' &&
 			search[1] == 'T' &&
-			0 == strcmp(search, "QTRAX2_CONNECTION")
+			0 == strncmp(search, "QTRAX2_CONNECTION", QTRAX_STRLEN)
 		) {
             gnet_stats_count_dropped(n, MSG_DROP_QUERY_OVERHEAD);
 			return TRUE;		/* Drop the message! */
 		}
+
+#undef QTRAX_STRLEN
+
     }
 
 
