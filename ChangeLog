@@ -1,5 +1,10 @@
 # since last version
 
+- (2002.06.23 - Richard)
+  * Also set foreground color for root nodes and builtin targets in 
+    filter dialog
+  * Removed "search again" items from download/queue popups
+
 - (2002.06.23 - RAM)
   * Fixed size computation problems when generating alternate location header.
   * Now displays Server name in downloads as soon as it is known.  Previously,
