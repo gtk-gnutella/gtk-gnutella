@@ -31,8 +31,9 @@
 #define CORE_SOURCES
 
 #include "core/ban.h"
-#include "core/bsched.h"
 #include "core/bitzi.h"
+#include "core/bogons.h"
+#include "core/bsched.h"
 #include "core/clock.h"
 #include "core/dh.h"
 #include "core/dmesh.h"
@@ -41,6 +42,7 @@
 #include "core/extensions.h"
 #include "core/features.h"
 #include "core/fileinfo.h"
+#include "core/geo_ip.h"
 #include "core/gmsg.h"
 #include "core/gnet_stats.h"
 #include "core/gnutella.h"
@@ -259,6 +261,8 @@ void gtk_gnutella_exit(gint n)
 	dh_close();
 	dq_close();
 	hsep_close();
+	gip_close();
+	bogons_close();
 	hostiles_close();
 	drop_close();
 	file_info_close();
@@ -559,6 +563,9 @@ gint main(gint argc, gchar **argv, gchar **env)
 	hcache_init(); /* before settings_init() */
 	settings_init();
     hcache_retrieve_all(); /* after settings_init() */
+	hostiles_init();
+	bogons_init();
+	gip_init();
 	guid_init();
 	gwc_init();
 	verify_init();
@@ -586,7 +593,6 @@ gint main(gint argc, gchar **argv, gchar **env)
 	ext_init();
 	inet_init();
 	crc_init();
-	hostiles_init();
 	parq_init();
 	hsep_init();
 	clock_init();
