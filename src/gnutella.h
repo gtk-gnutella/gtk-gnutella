@@ -26,6 +26,8 @@
 #ifndef _gnutella_h_
 #define _gnutella_h_
 
+#include <arpa/inet.h>	/* For ntohl(), htonl() */
+
 #include "gnet.h"
 #include "gnet_property_priv.h"
 
@@ -46,7 +48,7 @@
 } G_STMT_END
 
 #define READ_GUINT32_BE(a,v) G_STMT_START { \
-    memcpy(&v, a, 4); v = GUINT32_FROM_BE(v); \
+    memcpy(&v, a, 4); v = ntohl(v); \
 } G_STMT_END
 
 #define WRITE_GUINT32_LE(v,a) G_STMT_START { \
@@ -54,7 +56,7 @@
 } G_STMT_END
 
 #define WRITE_GUINT32_BE(v,a) G_STMT_START { \
-    guint32 _v = GUINT32_TO_BE(v); memcpy(a, &_v, 4); \
+    guint32 _v = htonl(v); memcpy(a, &_v, 4); \
 } G_STMT_END
 
 /*

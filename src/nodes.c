@@ -30,9 +30,7 @@
 #include <string.h>
 
 #include <netinet/in.h>
-#include <arpa/inet.h>
-
-#include <assert.h>
+#include <arpa/inet.h>	/* For htonl() */
 
 #include "sockets.h"
 #include "search.h"
@@ -4829,7 +4827,7 @@ gchar *node_ip(const gnutella_node_t *n)
 
 	static gchar a[32];
 	struct in_addr ia;
-	ia.s_addr = g_htonl(n->ip);
+	ia.s_addr = htonl(n->ip);
 	gm_snprintf(a, sizeof(a), "%s:%u", inet_ntoa(ia), n->port);
 	return a;
 }

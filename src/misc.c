@@ -32,7 +32,7 @@
 #include <stdlib.h>			/* For RAND_MAX */
 #include <netdb.h>
 #include <netinet/in.h>
-#include <arpa/inet.h>
+#include <arpa/inet.h>		/* For ntohl(), htonl() */
 #include <string.h>			/* For strlen() */
 #include <ctype.h>			/* For isalnum() and isspace() */
 #include <sys/times.h>		/* For times() */
@@ -102,7 +102,7 @@ gchar *ip_to_gchar(guint32 ip)
 {
 	static gchar a[32];
 	struct in_addr ia;
-	ia.s_addr = g_htonl(ip);
+	ia.s_addr = htonl(ip);
 	g_strlcpy(a, inet_ntoa(ia), sizeof(a));
 	return a;
 }
@@ -114,7 +114,7 @@ gchar *ip_port_to_gchar(guint32 ip, guint16 port)
 	size_t len;
 	struct in_addr ia;
 
-	ia.s_addr = g_htonl(ip);
+	ia.s_addr = htonl(ip);
 	len = g_strlcpy(a, inet_ntoa(ia), sizeof(a));
 	if (len < sizeof(a) - 1)
 		gm_snprintf(a + len, sizeof(a) - len, ":%u", port);
@@ -148,7 +148,7 @@ guint32 gchar_to_ip(const gchar * str)
 	gint r;
 	r = inet_aton(str, &ia);
 	if (r)
-		return g_ntohl(ia.s_addr);
+		return ntohl(ia.s_addr);
 	return 0;
 }
 
@@ -184,7 +184,7 @@ guint32 host_to_ip(const gchar * host)
 {
 	struct hostent *he = gethostbyname(host);
 	if (he)
-		return g_ntohl(*(guint32 *) (he->h_addr_list[0]));
+		return ntohl(*(guint32 *) (he->h_addr_list[0]));
 	else {
 #if defined(HAVE_HSTRERROR)
 		g_warning("cannot resolve \"%s\": %s", host, hstrerror(h_errno));

@@ -732,7 +732,7 @@ static void guess_local_ip(int sd)
 
 	if (-1 != getsockname(sd, (struct sockaddr *) &addr, &len)) {
 		gboolean can_supersede;
-		ip = g_ntohl(addr.sin_addr.s_addr);
+		ip = ntohl(addr.sin_addr.s_addr);
 
 		/*
 		 * If local IP was unknown, keep what we got here, even if it's a
@@ -765,7 +765,7 @@ static int socket_local_port(struct gnutella_socket *s)
 	if (getsockname(s->file_desc, (struct sockaddr *) &addr, &len) == -1)
 		return -1;
 
-	return g_ntohs(addr.sin_port);
+	return ntohs(addr.sin_port);
 }
 
 static void socket_accept(gpointer data, gint source,
@@ -812,8 +812,8 @@ static void socket_accept(gpointer data, gint source,
 	t = (struct gnutella_socket *) walloc0(sizeof(struct gnutella_socket));
 
 	t->file_desc = sd;
-	t->ip = g_ntohl(addr.sin_addr.s_addr);
-	t->port = g_ntohs(addr.sin_port);
+	t->ip = ntohl(addr.sin_addr.s_addr);
+	t->port = ntohs(addr.sin_port);
 	t->direction = SOCK_CONN_INCOMING;
 	t->type = s->type;
 	t->local_port = s->local_port;
@@ -912,8 +912,8 @@ static struct gnutella_socket *socket_connect_finalize(
 	s->ip = ip_addr;
 	memset(&addr, 0, sizeof(addr));
 	addr.sin_family = AF_INET;
-	addr.sin_addr.s_addr = g_htonl(s->ip);
-	addr.sin_port = g_htons(s->port);
+	addr.sin_addr.s_addr = htonl(s->ip);
+	addr.sin_port = htons(s->port);
 
 	inet_connection_attempted(s->ip);
 
@@ -926,8 +926,8 @@ static struct gnutella_socket *socket_connect_finalize(
 
 		memset(&lcladdr, 0, sizeof(lcladdr));
 		lcladdr.sin_family = AF_INET;
-		lcladdr.sin_addr.s_addr = g_htonl(forced_local_ip);
-		lcladdr.sin_port = g_htons(0);
+		lcladdr.sin_addr.s_addr = htonl(forced_local_ip);
+		lcladdr.sin_port = htons(0);
 
 		/*
 		 * Note: we ignore failures: it will be automatic at connect()
@@ -1099,8 +1099,8 @@ struct gnutella_socket *socket_listen(
 	fcntl(sd, F_SETFL, O_NONBLOCK);	/* Set the file descriptor non blocking */
 
 	addr.sin_family = AF_INET;
-	addr.sin_addr.s_addr = g_htonl((ip) ? ip : INADDR_ANY);
-	addr.sin_port = g_htons(port);
+	addr.sin_addr.s_addr = htonl((ip) ? ip : INADDR_ANY);
+	addr.sin_port = htons(port);
 
 	/* bind() the socket */
 
@@ -1131,7 +1131,7 @@ struct gnutella_socket *socket_listen(
 			return NULL;
 		}
 
-		s->local_port = g_ntohs(addr.sin_port);
+		s->local_port = ntohs(addr.sin_port);
 	} else
 		s->local_port = port;
 

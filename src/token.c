@@ -27,6 +27,7 @@
 
 #include "common.h"
 
+#include <arpa/inet.h>	/* For ntohl(), htonl() */
 #include "token.h"
 #include "version.h"
 #include "misc.h"
@@ -219,7 +220,7 @@ guchar *tok_version(void)
 	seed[2] = random_value(0xff) & 0xe0;	/* Upper 3 bits only */
 	seed[2] |= idx;							/* Has 5 bits for the index */
 
-	now32 = (guint32) g_htonl((guint32) now);
+	now32 = (guint32) htonl((guint32) now);
 	memcpy(digest, &now32, 4);
 	memcpy(digest + 4, &seed, 3);
 
@@ -245,7 +246,7 @@ guchar *tok_version(void)
 		for (j = 0; j < tk->count; j++)
 			crc = crc32_update_crc(crc, tk->keys[j], klen);
 
-		crc = g_htonl(crc);
+		crc = htonl(crc);
 		lvldigest[i*2] = c[0] ^ c[1];
 		lvldigest[i*2+1] = c[2] ^ c[3];
 	}
@@ -310,7 +311,7 @@ tok_error_t tok_version_valid(gchar *version, guchar *tokenb64, gint len)
 		return TOK_BAD_ENCODING;
 
 	memcpy(&stamp32, token, 4);
-	stamp = (time_t) g_ntohl(stamp32);
+	stamp = (time_t) ntohl(stamp32);
 
 	/*
 	 * Versions before 24/02/2003 did not use network order for timestamp.
@@ -392,7 +393,7 @@ tok_error_t tok_version_valid(gchar *version, guchar *tokenb64, gint len)
 	for (i = 0; i < rtk->count; i++)
 		stamp32 = crc32_update_crc(stamp32, rtk->keys[i], klen);
 
-	stamp32 = g_htonl(stamp32);
+	stamp32 = htonl(stamp32);
 
 	lvllen--;								/* Move to 0-based offset */
 

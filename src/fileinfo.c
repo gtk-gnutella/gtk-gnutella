@@ -50,7 +50,7 @@
 #include <fcntl.h>
 #include <regex.h>
 #include <time.h>			/* For ctime() */
-#include <netinet/in.h>		/* For ntohl() and friends... */
+#include <arpa/inet.h>		/* For ntohl() and friends... */
 #include <dirent.h>
 
 RCSID("$Id$");
