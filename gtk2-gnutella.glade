@@ -7301,8 +7301,6 @@ ko &lt;junkpile@free.fr&gt;</property>
 
 		      <child>
 			<widget class="GtkHandleBox" id="hb_searches">
-			  <property name="width_request">150</property>
-			  <property name="height_request">100</property>
 			  <property name="visible">True</property>
 			  <property name="shadow_type">GTK_SHADOW_OUT</property>
 			  <property name="handle_position">GTK_POS_TOP</property>
@@ -7323,15 +7321,15 @@ ko &lt;junkpile@free.fr&gt;</property>
 				  <property name="can_focus">True</property>
 				  <property name="headers_visible">True</property>
 				  <property name="rules_hint">True</property>
-				  <property name="reorderable">True</property>
-				  <property name="enable_search">True</property>
+				  <property name="reorderable">False</property>
+				  <property name="enable_search">False</property>
 				</widget>
 			      </child>
 			    </widget>
 			  </child>
 			</widget>
 			<packing>
-			  <property name="tab_expand">True</property>
+			  <property name="tab_expand">False</property>
 			  <property name="tab_fill">True</property>
 			</packing>
 		      </child>
@@ -7437,7 +7435,7 @@ ko &lt;junkpile@free.fr&gt;</property>
 				    <packing>
 				      <property name="padding">0</property>
 				      <property name="expand">False</property>
-				      <property name="fill">False</property>
+				      <property name="fill">True</property>
 				    </packing>
 				  </child>
 
@@ -7451,7 +7449,7 @@ ko &lt;junkpile@free.fr&gt;</property>
 				    <packing>
 				      <property name="padding">0</property>
 				      <property name="expand">False</property>
-				      <property name="fill">False</property>
+				      <property name="fill">True</property>
 				    </packing>
 				  </child>
 
@@ -7465,7 +7463,7 @@ ko &lt;junkpile@free.fr&gt;</property>
 				    <packing>
 				      <property name="padding">0</property>
 				      <property name="expand">False</property>
-				      <property name="fill">False</property>
+				      <property name="fill">True</property>
 				    </packing>
 				  </child>
 				</widget>
@@ -7474,7 +7472,7 @@ ko &lt;junkpile@free.fr&gt;</property>
 			    <packing>
 			      <property name="padding">0</property>
 			      <property name="expand">False</property>
-			      <property name="fill">False</property>
+			      <property name="fill">True</property>
 			    </packing>
 			  </child>
 
@@ -7504,7 +7502,7 @@ ko &lt;junkpile@free.fr&gt;</property>
 				    <packing>
 				      <property name="padding">0</property>
 				      <property name="expand">False</property>
-				      <property name="fill">False</property>
+				      <property name="fill">True</property>
 				    </packing>
 				  </child>
 
@@ -7521,7 +7519,7 @@ ko &lt;junkpile@free.fr&gt;</property>
 				    <packing>
 				      <property name="padding">0</property>
 				      <property name="expand">False</property>
-				      <property name="fill">False</property>
+				      <property name="fill">True</property>
 				    </packing>
 				  </child>
 				</widget>
@@ -7549,7 +7547,7 @@ ko &lt;junkpile@free.fr&gt;</property>
 			    <packing>
 			      <property name="padding">0</property>
 			      <property name="expand">False</property>
-			      <property name="fill">False</property>
+			      <property name="fill">True</property>
 			    </packing>
 			  </child>
 
@@ -7578,7 +7576,7 @@ ko &lt;junkpile@free.fr&gt;</property>
 				    <packing>
 				      <property name="padding">0</property>
 				      <property name="expand">False</property>
-				      <property name="fill">False</property>
+				      <property name="fill">True</property>
 				    </packing>
 				  </child>
 
@@ -7594,7 +7592,7 @@ ko &lt;junkpile@free.fr&gt;</property>
 				    <packing>
 				      <property name="padding">0</property>
 				      <property name="expand">False</property>
-				      <property name="fill">False</property>
+				      <property name="fill">True</property>
 				    </packing>
 				  </child>
 				</widget>
@@ -7622,7 +7620,7 @@ ko &lt;junkpile@free.fr&gt;</property>
 			    <packing>
 			      <property name="padding">0</property>
 			      <property name="expand">False</property>
-			      <property name="fill">False</property>
+			      <property name="fill">True</property>
 			    </packing>
 			  </child>
 			</widget>
@@ -7631,7 +7629,7 @@ ko &lt;junkpile@free.fr&gt;</property>
 		    <packing>
 		      <property name="padding">0</property>
 		      <property name="expand">False</property>
-		      <property name="fill">True</property>
+		      <property name="fill">False</property>
 		    </packing>
 		  </child>
 		</widget>
@@ -9288,7 +9286,7 @@ ko &lt;junkpile@free.fr&gt;</property>
 				  <property name="can_focus">True</property>
 				  <property name="headers_visible">True</property>
 				  <property name="rules_hint">True</property>
-				  <property name="reorderable">True</property>
+				  <property name="reorderable">False</property>
 				  <property name="enable_search">False</property>
 				</widget>
 			      </child>
@@ -10511,6 +10509,7 @@ ko &lt;junkpile@free.fr&gt;</property>
 
 		      <child>
 			<widget class="GtkFrame" id="frame27">
+			  <property name="border_width">2</property>
 			  <property name="visible">True</property>
 			  <property name="label_xalign">0</property>
 			  <property name="label_yalign">0.5</property>
@@ -10723,6 +10722,7 @@ ko &lt;junkpile@free.fr&gt;</property>
 
 		      <child>
 			<widget class="GtkHBox" id="hbox152">
+			  <property name="border_width">2</property>
 			  <property name="visible">True</property>
 			  <property name="homogeneous">False</property>
 			  <property name="spacing">4</property>
@@ -10956,17 +10956,38 @@ ko &lt;junkpile@free.fr&gt;</property>
 			      <property name="border_width">2</property>
 			      <property name="visible">True</property>
 			      <property name="n_rows">3</property>
-			      <property name="n_columns">3</property>
+			      <property name="n_columns">6</property>
 			      <property name="homogeneous">False</property>
 			      <property name="row_spacing">2</property>
 			      <property name="column_spacing">4</property>
 
 			      <child>
-				<widget class="GtkCheckButton" id="checkbutton_search_autoselect">
+				<widget class="GtkSpinButton" id="spinbutton_search_max_results">
 				  <property name="visible">True</property>
-				  <property name="tooltip" translatable="yes">Automatically select all other results with the same name or urn:sha1.</property>
 				  <property name="can_focus">True</property>
-				  <property name="label" translatable="yes">Enable _autoselect</property>
+				  <property name="climb_rate">1</property>
+				  <property name="digits">0</property>
+				  <property name="numeric">True</property>
+				  <property name="update_policy">GTK_UPDATE_ALWAYS</property>
+				  <property name="snap_to_ticks">False</property>
+				  <property name="wrap">False</property>
+				  <property name="adjustment">5000 1 50000 1 10 10</property>
+				</widget>
+				<packing>
+				  <property name="left_attach">1</property>
+				  <property name="right_attach">2</property>
+				  <property name="top_attach">2</property>
+				  <property name="bottom_attach">3</property>
+				  <property name="x_options">shrink|fill</property>
+				  <property name="y_options"></property>
+				</packing>
+			      </child>
+
+			      <child>
+				<widget class="GtkCheckButton" id="checkbutton_search_remove_downloaded">
+				  <property name="visible">True</property>
+				  <property name="can_focus">True</property>
+				  <property name="label" translatable="yes">_Remove files manually selected for download</property>
 				  <property name="use_underline">True</property>
 				  <property name="relief">GTK_RELIEF_NORMAL</property>
 				  <property name="active">False</property>
@@ -10974,10 +10995,52 @@ ko &lt;junkpile@free.fr&gt;</property>
 				  <property name="draw_indicator">True</property>
 				</widget>
 				<packing>
-				  <property name="left_attach">0</property>
-				  <property name="right_attach">1</property>
+				  <property name="left_attach">1</property>
+				  <property name="right_attach">5</property>
+				  <property name="top_attach">1</property>
+				  <property name="bottom_attach">2</property>
+				  <property name="x_options">fill</property>
+				  <property name="y_options"></property>
+				</packing>
+			      </child>
+
+			      <child>
+				<widget class="GtkCheckButton" id="checkbutton_search_autoselect_fuzzy">
+				  <property name="visible">True</property>
+				  <property name="can_focus">True</property>
+				  <property name="label" translatable="yes">Use fu_zzy matching</property>
+				  <property name="use_underline">True</property>
+				  <property name="relief">GTK_RELIEF_NORMAL</property>
+				  <property name="active">False</property>
+				  <property name="inconsistent">False</property>
+				  <property name="draw_indicator">True</property>
+				</widget>
+				<packing>
+				  <property name="left_attach">4</property>
+				  <property name="right_attach">5</property>
 				  <property name="top_attach">0</property>
 				  <property name="bottom_attach">1</property>
+				  <property name="x_options">fill</property>
+				  <property name="y_options"></property>
+				</packing>
+			      </child>
+
+			      <child>
+				<widget class="GtkCheckButton" id="checkbutton_search_mark_ignored">
+				  <property name="visible">True</property>
+				  <property name="can_focus">True</property>
+				  <property name="label" translatable="yes">_Mark ignored files</property>
+				  <property name="use_underline">True</property>
+				  <property name="relief">GTK_RELIEF_NORMAL</property>
+				  <property name="active">False</property>
+				  <property name="inconsistent">False</property>
+				  <property name="draw_indicator">True</property>
+				</widget>
+				<packing>
+				  <property name="left_attach">5</property>
+				  <property name="right_attach">6</property>
+				  <property name="top_attach">1</property>
+				  <property name="bottom_attach">2</property>
 				  <property name="x_options">fill</property>
 				  <property name="y_options"></property>
 				</packing>
@@ -10997,72 +11060,9 @@ ko &lt;junkpile@free.fr&gt;</property>
 				</widget>
 				<packing>
 				  <property name="left_attach">1</property>
-				  <property name="right_attach">2</property>
+				  <property name="right_attach">4</property>
 				  <property name="top_attach">0</property>
 				  <property name="bottom_attach">1</property>
-				  <property name="x_options">fill</property>
-				  <property name="y_options"></property>
-				</packing>
-			      </child>
-
-			      <child>
-				<widget class="GtkCheckButton" id="checkbutton_search_autoselect_fuzzy">
-				  <property name="visible">True</property>
-				  <property name="can_focus">True</property>
-				  <property name="label" translatable="yes">Use fu_zzy matching</property>
-				  <property name="use_underline">True</property>
-				  <property name="relief">GTK_RELIEF_NORMAL</property>
-				  <property name="active">False</property>
-				  <property name="inconsistent">False</property>
-				  <property name="draw_indicator">True</property>
-				</widget>
-				<packing>
-				  <property name="left_attach">2</property>
-				  <property name="right_attach">3</property>
-				  <property name="top_attach">0</property>
-				  <property name="bottom_attach">1</property>
-				  <property name="x_options">fill</property>
-				  <property name="y_options"></property>
-				</packing>
-			      </child>
-
-			      <child>
-				<widget class="GtkCheckButton" id="checkbutton_search_remove_downloaded">
-				  <property name="visible">True</property>
-				  <property name="can_focus">True</property>
-				  <property name="label" translatable="yes">_Remove files manually selected for download</property>
-				  <property name="use_underline">True</property>
-				  <property name="relief">GTK_RELIEF_NORMAL</property>
-				  <property name="active">False</property>
-				  <property name="inconsistent">False</property>
-				  <property name="draw_indicator">True</property>
-				</widget>
-				<packing>
-				  <property name="left_attach">0</property>
-				  <property name="right_attach">2</property>
-				  <property name="top_attach">2</property>
-				  <property name="bottom_attach">3</property>
-				  <property name="x_options">fill</property>
-				  <property name="y_options"></property>
-				</packing>
-			      </child>
-
-			      <child>
-				<widget class="GtkCheckButton" id="checkbutton_search_mark_ignored">
-				  <property name="visible">True</property>
-				  <property name="can_focus">True</property>
-				  <property name="label" translatable="yes">_Mark ignored files</property>
-				  <property name="use_underline">True</property>
-				  <property name="relief">GTK_RELIEF_NORMAL</property>
-				  <property name="active">False</property>
-				  <property name="inconsistent">False</property>
-				  <property name="draw_indicator">True</property>
-				</widget>
-				<packing>
-				  <property name="left_attach">2</property>
-				  <property name="right_attach">3</property>
-				  <property name="top_attach">2</property>
-				  <property name="bottom_attach">3</property>
 				  <property name="x_options">fill</property>
 				  <property name="y_options"></property>
 				</packing>
@@ -11081,9 +11081,58 @@ ko &lt;junkpile@free.fr&gt;</property>
 				</widget>
 				<packing>
 				  <property name="left_attach">0</property>
-				  <property name="right_attach">3</property>
+				  <property name="right_attach">1</property>
 				  <property name="top_attach">1</property>
 				  <property name="bottom_attach">2</property>
+				  <property name="x_padding">4</property>
+				  <property name="x_options">fill</property>
+				  <property name="y_options"></property>
+				</packing>
+			      </child>
+
+			      <child>
+				<widget class="GtkLabel" id="label557">
+				  <property name="visible">True</property>
+				  <property name="label" translatable="yes">Max. number of results</property>
+				  <property name="use_underline">False</property>
+				  <property name="use_markup">False</property>
+				  <property name="justify">GTK_JUSTIFY_LEFT</property>
+				  <property name="wrap">False</property>
+				  <property name="selectable">False</property>
+				  <property name="xalign">0</property>
+				  <property name="yalign">0.5</property>
+				  <property name="xpad">0</property>
+				  <property name="ypad">0</property>
+				</widget>
+				<packing>
+				  <property name="left_attach">0</property>
+				  <property name="right_attach">1</property>
+				  <property name="top_attach">2</property>
+				  <property name="bottom_attach">3</property>
+				  <property name="x_padding">4</property>
+				  <property name="x_options">fill</property>
+				  <property name="y_options"></property>
+				</packing>
+			      </child>
+
+			      <child>
+				<widget class="GtkCheckButton" id="checkbutton_search_autoselect">
+				  <property name="visible">True</property>
+				  <property name="tooltip" translatable="yes">Automatically select all other results with the same name or urn:sha1.</property>
+				  <property name="can_focus">True</property>
+				  <property name="label" translatable="yes">Enable _autoselect</property>
+				  <property name="use_underline">True</property>
+				  <property name="relief">GTK_RELIEF_NORMAL</property>
+				  <property name="active">False</property>
+				  <property name="inconsistent">False</property>
+				  <property name="draw_indicator">True</property>
+				</widget>
+				<packing>
+				  <property name="left_attach">0</property>
+				  <property name="right_attach">1</property>
+				  <property name="top_attach">0</property>
+				  <property name="bottom_attach">1</property>
+				  <property name="x_padding">4</property>
 				  <property name="x_options">fill</property>
 				  <property name="y_options"></property>
 				</packing>
@@ -17520,7 +17569,7 @@ interface</property>
 					      <property name="can_focus">True</property>
 					      <property name="headers_visible">True</property>
 					      <property name="rules_hint">True</property>
-					      <property name="reorderable">True</property>
+					      <property name="reorderable">False</property>
 					      <property name="enable_search">False</property>
 					    </widget>
 					  </child>
@@ -17583,7 +17632,7 @@ interface</property>
 						  <property name="can_focus">True</property>
 						  <property name="headers_visible">True</property>
 						  <property name="rules_hint">True</property>
-						  <property name="reorderable">True</property>
+						  <property name="reorderable">False</property>
 						  <property name="enable_search">False</property>
 						</widget>
 					      </child>
@@ -17955,6 +18004,7 @@ interface</property>
 
 				  <child>
 				    <widget class="GtkScrolledWindow" id="scrolledwindow45">
+				      <property name="border_width">2</property>
 				      <property name="visible">True</property>
 				      <property name="can_focus">True</property>
 				      <property name="hscrollbar_policy">GTK_POLICY_AUTOMATIC</property>
@@ -17968,7 +18018,7 @@ interface</property>
 					  <property name="can_focus">True</property>
 					  <property name="headers_visible">True</property>
 					  <property name="rules_hint">True</property>
-					  <property name="reorderable">True</property>
+					  <property name="reorderable">False</property>
 					  <property name="enable_search">False</property>
 					</widget>
 				      </child>
@@ -18058,7 +18108,7 @@ interface</property>
 	<widget class="GtkHBox" id="hbox_statusbar">
 	  <property name="visible">True</property>
 	  <property name="homogeneous">False</property>
-	  <property name="spacing">0</property>
+	  <property name="spacing">2</property>
 
 	  <child>
 	    <widget class="GtkToggleButton" id="togglebutton_online">
@@ -18111,28 +18161,6 @@ interface</property>
 	      <property name="padding">0</property>
 	      <property name="expand">False</property>
 	      <property name="fill">False</property>
-	    </packing>
-	  </child>
-
-	  <child>
-	    <widget class="GtkAlignment" id="alignment68">
-	      <property name="visible">True</property>
-	      <property name="xalign">0.5</property>
-	      <property name="yalign">0.5</property>
-	      <property name="xscale">1</property>
-	      <property name="yscale">0</property>
-
-	      <child>
-		<widget class="GtkStatusbar" id="statusbar">
-		  <property name="visible">True</property>
-		  <property name="has_resize_grip">False</property>
-		</widget>
-	      </child>
-	    </widget>
-	    <packing>
-	      <property name="padding">5</property>
-	      <property name="expand">True</property>
-	      <property name="fill">True</property>
 	    </packing>
 	  </child>
 
@@ -18297,9 +18325,32 @@ interface</property>
 	      <property name="ypad">0</property>
 	    </widget>
 	    <packing>
-	      <property name="padding">5</property>
+	      <property name="padding">0</property>
 	      <property name="expand">False</property>
 	      <property name="fill">False</property>
+	    </packing>
+	  </child>
+
+	  <child>
+	    <widget class="GtkAlignment" id="alignment68">
+	      <property name="visible">True</property>
+	      <property name="xalign">0.5</property>
+	      <property name="yalign">0.5</property>
+	      <property name="xscale">1</property>
+	      <property name="yscale">0</property>
+
+	      <child>
+		<widget class="GtkStatusbar" id="statusbar">
+		  <property name="border_width">4</property>
+		  <property name="visible">True</property>
+		  <property name="has_resize_grip">True</property>
+		</widget>
+	      </child>
+	    </widget>
+	    <packing>
+	      <property name="padding">0</property>
+	      <property name="expand">True</property>
+	      <property name="fill">True</property>
 	    </packing>
 	  </child>
 	</widget>
