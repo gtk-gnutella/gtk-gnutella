@@ -1,5 +1,7 @@
 /*
  * Copyright (c) 2001, Raphael Manfredi
+ *
+ * Search bins are Copyright (c) 2001, Kenn Brooks Hamm & Raphael Manfredi
  */
 
 #include <ctype.h>
