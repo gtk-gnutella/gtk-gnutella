@@ -86,9 +86,10 @@
 #define CONFIG_SET_VECTOR(v,pref,prop)               \
     case k_##v: {                                    \
         prop_def_t *def = pref##_prop_get_def(prop); \
-        pref##_prop_set_guint32                      \
-            (prop, config_parse_array                \
-                (value, def->vector_size), 0, 0);    \
+        guint32 *b = config_parse_array              \
+            (value, def->vector_size);               \
+        if (b)                                       \
+            pref##_prop_set_guint32(prop, b, 0, 0);  \
         prop_free_def(def);                          \
         return;                                      \
     }
