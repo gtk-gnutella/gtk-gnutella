@@ -30,17 +30,12 @@
 
 #include <gtk/gtk.h>
 
-#include "downloads.h" // FIXME: remove this dependency
-#include "uploads.h" // FIXME: remove this dependency
-
 #include "interface-glade1.h"
 #include "support-glade1.h"
 
 #include "gui_property.h"
 #include "gui_property_priv.h"
 #include "gtk-missing.h"
-
-
 
 
 /*
@@ -54,6 +49,20 @@ enum {
     c_ul_agent,
     c_ul_status
 };
+
+
+
+/*
+ * Uploads table columns
+ */
+enum {
+    c_us_filename = 0,
+    c_us_size,
+    c_us_attempts,
+    c_us_complete,
+    c_us_norm
+};
+
 
 
 
@@ -97,6 +106,19 @@ enum {
 
 
 /*
+ * Gnet stats table columns
+ */
+enum {
+    c_gs_type = 0,
+    c_gs_recieved,
+    c_gs_sent,
+    c_gs_expired,
+    c_gs_dropped
+};
+
+
+
+/*
  * Searches overview table columns
  */
 enum {
@@ -122,14 +144,15 @@ enum {
  * Notebook tabs in the main notebook.
  */
 enum {
-    nb_main_page_gnutellaNet = 0,
+    nb_main_page_gnet = 0,
     nb_main_page_uploads,
     nb_main_page_uploads_stats,
     nb_main_page_downloads,
     nb_main_page_search,
     nb_main_page_monitor,
     nb_main_page_search_stats,
-    nb_main_page_config
+    nb_main_page_config,
+    nb_main_page_gnet_stats
 };
 
 
@@ -142,6 +165,7 @@ extern GtkWidget *shutdown_window;
 extern GtkWidget *main_window;
 extern GtkWidget *shutdown_window;
 extern GtkWidget *dlg_about;
+extern GtkWidget *dlg_quit;
 extern GtkWidget *popup_downloads;
 extern GtkWidget *popup_uploads;
 extern GtkWidget *popup_search;
@@ -149,37 +173,15 @@ extern GtkWidget *popup_nodes;
 extern GtkWidget *popup_monitor;
 extern GtkWidget *popup_queue;
 
-
-struct search;
-
 /*
  * Public interface.
  */
 void gui_init(void);
 void gui_update_all(void);
-//void gui_new_version_found(gchar *text, gboolean stable);
-void gui_update_guid(void);
-void gui_update_c_downloads(gint, gint);
-void gui_update_c_gnutellanet(void);
-void gui_update_c_uploads(void);
-void gui_update_config_force_ip(gboolean force);
-void gui_update_connection_speed(void);
 void gui_update_files_scanned(void);
 void gui_update_global(void);
 void gui_update_traffic_stats(void);
-void gui_update_scan_extensions(void);
-void gui_update_c_gnutellanet(void);
-void gui_update_c_uploads(void);
-void gui_update_c_downloads(gint, gint);
-void gui_update_files_scanned(void);
-void gui_update_connection_speed(void);
 void gui_update_stats(void);
-void gui_update_proxy_auth();
-void gui_update_proxy_connections();
-void gui_update_upload(struct upload *);
-void gui_update_upload_kill(void);
-void gui_update_config_netmasks();
 void gui_update_stats_frames();
-void gui_update_queue_frozen();
 void gui_allow_rescan_dir(gboolean flag);
 #endif /* __gui_h__ */
