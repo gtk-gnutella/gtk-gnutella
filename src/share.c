@@ -711,8 +711,9 @@ void share_scan(void)
 
 	gui_update_files_scanned();		/* Final view */
 
+#if 0
 	/*
-	 * Query routing table update.
+	 * Query routing table update.  XXX DISABLED: not ready.
 	 */
 
 	qrp_prepare_computation();
@@ -725,6 +726,7 @@ void share_scan(void)
 	}
 
 	qrp_finalize_computation();
+#endif
 
 	in_share_scan = FALSE;
 }
