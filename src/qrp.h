@@ -97,11 +97,14 @@ void qrt_get_info(gpointer obj, qrt_info_t *qi);
 struct query_hashvec *qhvec_alloc(gint size);
 void qhvec_free(struct query_hashvec *qhvec);
 void qhvec_reset(struct query_hashvec *qhvec);
+query_hashvec_t * qhvec_clone(query_hashvec_t *qsrc);
+gboolean qhvec_has_source(query_hashvec_t *qhvec, enum query_hsrc src);
 void qhvec_add(struct query_hashvec *qhvec, gchar *word, enum query_hsrc src);
 
 GSList *qrt_build_query_target(
 	query_hashvec_t *qhvec, gint hops, gint ttl, struct gnutella_node *source);
 void qrt_route_query(struct gnutella_node *n, query_hashvec_t *qhvec);
+gboolean qrp_node_can_route(struct gnutella_node *n, query_hashvec_t *qhv);
 
 #endif	/* _qrp_h_ */
 

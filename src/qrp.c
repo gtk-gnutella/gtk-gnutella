@@ -3061,9 +3061,6 @@ qrt_handle_reset(
 
 	node_qrt_discard(n);
 
-	if (NODE_IS_LEAF(n))
-		qrp_leaf_changed();
-
 	if (qrcv->table)
 		qrt_unref(qrcv->table);
 
@@ -3214,9 +3211,6 @@ qrt_handle_patch(
 
 	qrcv->seqno++;
 
-	if (NODE_IS_LEAF(n))
-		qrp_leaf_changed();
-
 	/*
 	 * Process the patch data.
 	 */
@@ -3358,6 +3352,9 @@ qrt_handle_patch(
 			node_qrt_install(n, rt);
 		else
 			node_qrt_patched(n, rt);
+
+		if (NODE_IS_LEAF(n))
+			qrp_leaf_changed();
 
 		(void) qrt_dump(stdout, rt, dbg > 19);
 	}
@@ -3656,6 +3653,29 @@ qhvec_reset(query_hashvec_t *qhvec)
 }
 
 /**
+ * Clone query hash vector.
+ */
+query_hashvec_t *
+qhvec_clone(query_hashvec_t *qsrc)
+{
+	query_hashvec_t *qhvec;
+	gint vecsize;
+
+	g_assert(qsrc != NULL);
+
+	qhvec = walloc(sizeof(*qhvec));
+
+	qhvec->count = qsrc->count;
+	qhvec->size = qsrc->size;
+	vecsize = qsrc->size * sizeof(struct query_hash);
+	qhvec->vec = walloc(vecsize);
+
+	memcpy(qhvec->vec, qsrc->vec, vecsize);
+
+	return qhvec;
+}
+
+/**
  * Add the `word' coming from `src' into the query hash vector.
  * If the vector is already full, do nothing.
  */
@@ -3670,6 +3690,94 @@ qhvec_add(query_hashvec_t *qhvec, gchar *word, enum query_hsrc src)
 	qh = &qhvec->vec[qhvec->count++];
 	qh->hashcode = qrp_hashcode(word);
 	qh->source = src;
+}
+
+/**
+ * Check whether there is a specific type of source in the query vector.
+ */
+gboolean
+qhvec_has_source(query_hashvec_t *qhv, enum query_hsrc src)
+{
+	struct query_hash *qh;
+	gint i;
+
+	for (i = qhv->count, qh = qhv->vec; i > 0; i--, qh++) {
+		if (qh->source == src)
+			return TRUE;
+	}
+
+	return FALSE;
+}
+
+/**
+ * Check whether we can route a query identified by its hash vector
+ * to a node given its routing table.
+ */
+static gboolean
+qrp_can_route(query_hashvec_t *qhv, struct routing_table *rt)
+{
+	gboolean can_route = TRUE;
+	gboolean sha1_query = FALSE;
+	gboolean sha1_in_qrt = FALSE;
+	struct query_hash *qh;
+	gint i;
+
+	for (i = qhv->count, qh = qhv->vec; i > 0; i--, qh++) {
+		guint32 idx = QRP_HASH_RESTRICT(qh->hashcode, rt->bits);
+
+		/* 
+		 * If there is an entry in the table and the source is an URN,
+		 * we have to forward the query, as those are OR-ed.
+		 * Otherwise, ALL the keywords must be present.
+		 */
+
+		g_assert(idx < (guint32) rt->slots);
+
+		if (qh->source == QUERY_H_URN)
+			sha1_query = TRUE;
+
+		if (RT_SLOT_READ(rt->arena, idx)) {
+			if (qh->source == QUERY_H_URN) {	/* URN present */
+				sha1_in_qrt = TRUE;
+				can_route = TRUE;				/* Force routing */
+				break;							/* Will forward */
+			}
+		} else {
+			if (qh->source == QUERY_H_WORD)		/* Word NOT present */
+				can_route = FALSE;				/* A priori, don't route */
+		}
+	}
+
+	if (!can_route)
+		return FALSE;
+
+	/*
+	 * When facing a SHA1 query, if not at least one of the possibly
+	 * multiple SHA1 URN present did not match the QRT, don't forward.
+	 */
+
+	if (sha1_query && !sha1_in_qrt)
+		return FALSE;
+
+	return TRUE;
+}
+
+/**
+ * Check whether we can route a query identified by its hash vector
+ * to a node.
+ */
+gboolean
+qrp_node_can_route(gnutella_node_t *n, query_hashvec_t *qhv)
+{
+	struct routing_table *rt = (struct routing_table *) n->recv_query_table;
+
+	if (rt == NULL)			/* Node has not sent its query routing table */
+		return FALSE;
+
+	if (!NODE_IS_WRITABLE(n))
+		return FALSE;
+
+	return qrp_can_route(qhv, rt);
 }
 
 /**
@@ -3689,6 +3797,7 @@ qrt_build_query_target(
 	gint count = 0;				/* Amount of selected nodes so far */
 	const GSList *sl;
 	gboolean process_ultra = FALSE;
+	gboolean sha1_query;
 
 	g_assert(qhvec != NULL);
 	g_assert(hops >= 0);
@@ -3704,6 +3813,8 @@ qrt_build_query_target(
 		return NULL;
 	}
 
+	sha1_query = qhvec_has_source(qhvec, QUERY_H_URN);
+
 	/*
 	 * We need to special case processing of queries with TTL=1 so that they
 	 * get set to ultra peers that support last-hop QRP only if they can
@@ -3717,11 +3828,6 @@ qrt_build_query_target(
 		struct gnutella_node *dn = (struct gnutella_node *) sl->data;
 		struct routing_table *rt =
 			(struct routing_table *) dn->recv_query_table;
-		struct query_hash *qh;
-		gboolean can_route;
-		gboolean sha1_query;
-		gboolean sha1_in_qrt;
-		gint i;
 
 		if (rt == NULL)			/* Node has not sent its query routing table */
 			continue;
@@ -3748,45 +3854,7 @@ qrt_build_query_target(
 
 		node_inc_qrp_query(dn);
 
-		can_route = TRUE;
-		sha1_query = FALSE;
-		sha1_in_qrt = FALSE;
-
-		for (i = qhvec->count, qh = qhvec->vec; i > 0; i--, qh++) {
-			guint32 idx = QRP_HASH_RESTRICT(qh->hashcode, rt->bits);
-
-			/* 
-			 * If there is an entry in the table and the source is an URN,
-			 * we have to forward the query, as those are OR-ed.
-			 * Otherwise, ALL the keywords must be present.
-			 */
-
-			g_assert(idx < (guint32) rt->slots);
-
-			if (qh->source == QUERY_H_URN)
-				sha1_query = TRUE;
-
-			if (RT_SLOT_READ(rt->arena, idx)) {
-				if (qh->source == QUERY_H_URN) {	/* URN present */
-					sha1_in_qrt = TRUE;
-					can_route = TRUE;				/* Force routing */
-					break;							/* Will forward */
-				}
-			} else {
-				if (qh->source == QUERY_H_WORD)		/* Word NOT present */
-					can_route = FALSE;				/* A priori, don't route */
-			}
-		}
-
-		if (!can_route)
-			continue;
-
-		/*
-		 * When facing a SHA1 query, if not at least one of the possibly
-		 * multiple SHA1 URN present did not match the QRT, don't forward.
-		 */
-
-		if (sha1_query && !sha1_in_qrt)
+		if (!qrp_can_route(qhvec, rt))
 			continue;
 
 		if (NODE_IS_ULTRA(dn))
@@ -3863,7 +3931,7 @@ qrt_route_query(struct gnutella_node *n, query_hashvec_t *qhvec)
 			gmsg_infostr(&n->header), qhvec->count, g_slist_length(nodes),
 			node_leaf_count);
 
-	gmsg_split_sendto_leaves(nodes, (guchar *) &n->header, n->data,
+	gmsg_split_sendto_all(nodes, (guchar *) &n->header, n->data,
 		n->size + sizeof(struct gnutella_header));
 
 	g_slist_free(nodes);
