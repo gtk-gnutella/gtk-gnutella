@@ -1105,6 +1105,24 @@ random_init(void)
 }
 
 /**
+ * Check whether buffer contains printable data, suitable for "%s" printing.
+ * If not, consider dump_hex().
+ */
+gboolean is_printable(const gchar *buf, gint len)
+{
+	const guchar *p = (guchar *) buf;
+	gint l = len;
+
+	while (l--) {
+		guchar c = *p++;
+		if (!is_ascii_print(c))
+			return FALSE;
+	}
+
+	return TRUE;
+}
+
+/**
  * Display header line for hex dumps
  */
 inline static void
