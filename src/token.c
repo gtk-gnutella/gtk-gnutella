@@ -35,6 +35,7 @@
 #include "sha1.h"
 #include "base64.h"
 #include "crc.h"
+#include "clock.h"
 
 RCSID("$Id$");
 
@@ -76,6 +77,7 @@ struct tokkey {
 	const gchar **keys;	/* Keys to use */
 	gint count;			/* Amount of keys defined */
 } token_keys[] = {
+	/* Keep this array sorted by increasing timestamp */
 	{
 		{ 0, 92, 0, 'u', 0, 1045868400 },			/* 22/02/2003 */
 		keys_092u, G_N_ELEMENTS(keys_092u),
@@ -222,6 +224,8 @@ guchar *tok_version(void)
 	seed[2] = random_value(0xff) & 0xe0;	/* Upper 3 bits only */
 	seed[2] |= idx;							/* Has 5 bits for the index */
 
+	now = clock_loc2gmt(now);				/* As close to GMT as possible */
+
 	now32 = (guint32) htonl((guint32) now);
 	memcpy(digest, &now32, 4);
 	memcpy(digest + 4, &seed, 3);
@@ -317,13 +321,13 @@ tok_error_t tok_version_valid(
 	stamp = (time_t) ntohl(stamp32);
 
 	/*
-	 * Versions before 24/02/2003 did not use network order for timestamp.
+	 * Use that stamp, whose precision is TOKEN_LIFE, to update our
+	 * clock skew if necessary.
 	 */
 
-	if (ABS(stamp - now) > TOKEN_CLOCK_SKEW)	/* XXX temporary */
-		stamp = (time_t) stamp32;
+	clock_update(stamp, TOKEN_LIFE);
 
-	if (ABS(stamp - now) > TOKEN_CLOCK_SKEW)
+	if (ABS(stamp - clock_loc2gmt(now)) > TOKEN_CLOCK_SKEW)
 		return TOK_BAD_STAMP;
 
 	tk = find_tokkey(stamp);				/* The keys they used */
