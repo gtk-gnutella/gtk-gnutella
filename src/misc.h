@@ -118,8 +118,8 @@ gchar *date_to_rfc822_gchar2(time_t date);
 /*
  * Time string conversions
  */
-gchar *short_time(guint32 s);
-gchar *short_uptime(guint32 s);
+gchar *short_time(time_t s);
+gchar *short_uptime(time_t s);
 
 /*
  * Size string conversions

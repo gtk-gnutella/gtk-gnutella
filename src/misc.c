@@ -396,35 +396,37 @@ gchar *compact_size(guint32 size)
 
 /* Return time spent in seconds in a consise short readable form */
 
-gchar *short_time(guint32 s)
+gchar *short_time(time_t t)
 {
 	static gchar b[SIZE_FIELD_MAX];
+	gint s = (gint) MAX(t, 0);
 
 	if (s > 86400)
-		gm_snprintf(b, sizeof(b), "%ud %uh", s / 86400, (s % 86400) / 3600);
+		gm_snprintf(b, sizeof(b), "%dd %dh", s / 86400, (s % 86400) / 3600);
 	else if (s > 3600)
-		gm_snprintf(b, sizeof(b), "%uh %um", s / 3600, (s % 3600) / 60);
+		gm_snprintf(b, sizeof(b), "%dh %dm", s / 3600, (s % 3600) / 60);
 	else if (s > 60)
-		gm_snprintf(b, sizeof(b), "%um %us", s / 60, s % 60);
+		gm_snprintf(b, sizeof(b), "%dm %ds", s / 60, s % 60);
 	else
-		gm_snprintf(b, sizeof(b), "%us", s);
+		gm_snprintf(b, sizeof(b), "%ds", s);
 
 	return b;
 }
 
 /* Alternate time formatter for uptime*/
 
-gchar *short_uptime(guint32 s)
+gchar *short_uptime(time_t uptime)
 {
 	static gchar b[SIZE_FIELD_MAX];
+	gint s = (gint) MAX(uptime, 0);
 
 	if (s > 86400) {
 		guint32 d = s % 86400;
-		gm_snprintf(b, sizeof(b), "%ud %02u%c%02u",
+		gm_snprintf(b, sizeof(b), "%dd %02d%c%02d",
 			s / 86400, d / 3600, (s & 0x1) ? '.' : ':', (d % 3600) / 60);
 	} else {
 		guint32 h = s % 3600;
-		gm_snprintf(b, sizeof(b), "%02u:%02u:%02u", s / 3600, h / 60, h % 60);
+		gm_snprintf(b, sizeof(b), "%02d:%02d:%02d", s / 3600, h / 60, h % 60);
 	}
 
 	return b;
