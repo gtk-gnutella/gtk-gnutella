@@ -39,16 +39,13 @@ enum {
     C_FI_COLUMNS
 };
 
+static gnet_fi_t last_shown = 0;
+static gboolean  last_shown_valid = FALSE;
+
 void on_clist_fileinfo_resize_column(
     GtkCList *clist, gint column, gint width, gpointer user_data)
 {
     file_info_col_widths[column] = width;
-}
-
-gboolean on_clist_fileinfo_button_press_event(
-    GtkWidget *widget, GdkEventButton  *event, gpointer user_data)
-{
-  return FALSE;
 }
 
 static void fi_gui_set_details(gnet_fi_t fih)
@@ -82,10 +79,18 @@ static void fi_gui_set_details(gnet_fi_t fih)
     
     g_strfreev(aliases);
     fi_free_info(fi);
+
+    last_shown = fih;
+    last_shown_valid = TRUE;
+
+    gtk_widget_set_sensitive(lookup_widget(main_window, "button_fi_purge"),
+        TRUE);
 }
 
 static void fi_gui_clear_details()
 {
+    last_shown_valid = FALSE;
+
     gtk_label_set_text(
         GTK_LABEL(lookup_widget(main_window, "label_fi_filename")),
         "");
@@ -94,6 +99,8 @@ static void fi_gui_clear_details()
         "");
     gtk_clist_clear(
         GTK_CLIST(lookup_widget(main_window, "clist_fi_aliases")));
+    gtk_widget_set_sensitive(lookup_widget(main_window, "button_fi_purge"),
+        FALSE);
 }
 
 void on_clist_fileinfo_select_row(GtkCList *clist, gint row, gint column,
@@ -108,10 +115,17 @@ void on_clist_fileinfo_select_row(GtkCList *clist, gint row, gint column,
 
 void on_clist_fileinfo_unselect_row(GtkCList *clist, gint row, gint column,
     GdkEvent *event, gpointer user_data)
-{
+{ 
     if (clist->selection == NULL)
         fi_gui_clear_details();
 }
+
+void on_button_fi_purge_clicked(GtkButton *button, gpointer user_data)
+{
+    if (last_shown_valid)
+        fi_purge(last_shown);
+}
+
 
 static void fi_gui_append_row(
     GtkCList *cl, gnet_fi_t fih, gchar **titles, guint len)

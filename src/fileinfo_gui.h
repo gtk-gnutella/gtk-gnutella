@@ -43,7 +43,11 @@ void on_clist_fileinfo_select_row(
 
 void on_clist_fileinfo_unselect_row(
     GtkCList *, gint, gint, GdkEvent *, gpointer user_data);
+void on_button_fi_purge_clicked(
+    GtkButton *button, gpointer user_data);
 #endif /* USE_GTK2 */
+
+
 
 #endif /* _fileinfo_gui_h_ */
 

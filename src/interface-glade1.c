@@ -291,21 +291,14 @@ create_main_window (void)
   GtkWidget *table59;
   GtkWidget *label523;
   GtkWidget *label524;
-  GtkWidget *label_fi_filename;
   GtkWidget *label_fi_size;
+  GtkWidget *button_fi_purge;
+  GtkWidget *label_fi_filename;
   GtkWidget *hseparator13;
-  GtkWidget *notebook6;
-  GtkWidget *scrolledwindow43;
-  GtkWidget *clist_fi_sources;
-  GtkWidget *label519;
-  GtkWidget *label520;
-  GtkWidget *label521;
-  GtkWidget *label522;
-  GtkWidget *label517;
+  GtkWidget *frame79;
   GtkWidget *scrolledwindow44;
   GtkWidget *clist_fi_aliases;
   GtkWidget *label526;
-  GtkWidget *label518;
   GtkWidget *label511;
   GtkWidget *label_downloads;
   GtkWidget *vbox76;
@@ -830,8 +823,11 @@ create_main_window (void)
   GtkWidget *image_firewall;
   GtkWidget *eventbox_image_no_firewall;
   GtkWidget *image_no_firewall;
+  GtkWidget *eventbox_image_leaf;
   GtkWidget *image_leaf;
+  GtkWidget *eventbox_image_legacy;
   GtkWidget *image_legacy;
+  GtkWidget *eventbox_image_ultra;
   GtkWidget *image_ultra;
   GtkWidget *label_statusbar_uptime;
   GtkAccelGroup *accel_group;
@@ -3215,7 +3211,7 @@ create_main_window (void)
   gtk_container_add (GTK_CONTAINER (frame78), vbox110);
   gtk_container_set_border_width (GTK_CONTAINER (vbox110), 2);
 
-  table59 = gtk_table_new (2, 2, FALSE);
+  table59 = gtk_table_new (2, 3, FALSE);
   gtk_widget_set_name (table59, "table59");
   gtk_widget_ref (table59);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "table59", table59,
@@ -3248,18 +3244,7 @@ create_main_window (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label524), 0, 0.5);
 
-  label_fi_filename = gtk_label_new ("[filename]");
-  gtk_widget_set_name (label_fi_filename, "label_fi_filename");
-  gtk_widget_ref (label_fi_filename);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "label_fi_filename", label_fi_filename,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (label_fi_filename);
-  gtk_table_attach (GTK_TABLE (table59), label_fi_filename, 1, 2, 0, 1,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-  gtk_misc_set_alignment (GTK_MISC (label_fi_filename), 0, 0.5);
-
-  label_fi_size = gtk_label_new ("[size]");
+  label_fi_size = gtk_label_new ("");
   gtk_widget_set_name (label_fi_size, "label_fi_size");
   gtk_widget_ref (label_fi_size);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "label_fi_size", label_fi_size,
@@ -3270,6 +3255,28 @@ create_main_window (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label_fi_size), 0, 0.5);
 
+  button_fi_purge = gtk_button_new_with_label ("Purge");
+  gtk_widget_set_name (button_fi_purge, "button_fi_purge");
+  gtk_widget_ref (button_fi_purge);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "button_fi_purge", button_fi_purge,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (button_fi_purge);
+  gtk_table_attach (GTK_TABLE (table59), button_fi_purge, 2, 3, 0, 1,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_widget_set_sensitive (button_fi_purge, FALSE);
+
+  label_fi_filename = gtk_label_new ("");
+  gtk_widget_set_name (label_fi_filename, "label_fi_filename");
+  gtk_widget_ref (label_fi_filename);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label_fi_filename", label_fi_filename,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label_fi_filename);
+  gtk_table_attach (GTK_TABLE (table59), label_fi_filename, 1, 2, 0, 1,
+                    (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label_fi_filename), 0, 0.5);
+
   hseparator13 = gtk_hseparator_new ();
   gtk_widget_set_name (hseparator13, "hseparator13");
   gtk_widget_ref (hseparator13);
@@ -3278,75 +3285,13 @@ create_main_window (void)
   gtk_widget_show (hseparator13);
   gtk_box_pack_start (GTK_BOX (vbox110), hseparator13, FALSE, TRUE, 0);
 
-  notebook6 = gtk_notebook_new ();
-  gtk_widget_set_name (notebook6, "notebook6");
-  gtk_widget_ref (notebook6);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "notebook6", notebook6,
+  frame79 = gtk_frame_new ("Alternate filenames");
+  gtk_widget_set_name (frame79, "frame79");
+  gtk_widget_ref (frame79);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "frame79", frame79,
                             (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (notebook6);
-  gtk_box_pack_start (GTK_BOX (vbox110), notebook6, TRUE, TRUE, 0);
-  gtk_notebook_set_tab_pos (GTK_NOTEBOOK (notebook6), GTK_POS_LEFT);
-
-  scrolledwindow43 = gtk_scrolled_window_new (NULL, NULL);
-  gtk_widget_set_name (scrolledwindow43, "scrolledwindow43");
-  gtk_widget_ref (scrolledwindow43);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "scrolledwindow43", scrolledwindow43,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (scrolledwindow43);
-  gtk_container_add (GTK_CONTAINER (notebook6), scrolledwindow43);
-
-  clist_fi_sources = gtk_clist_new (4);
-  gtk_widget_set_name (clist_fi_sources, "clist_fi_sources");
-  gtk_widget_ref (clist_fi_sources);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "clist_fi_sources", clist_fi_sources,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (clist_fi_sources);
-  gtk_container_add (GTK_CONTAINER (scrolledwindow43), clist_fi_sources);
-  gtk_clist_set_column_width (GTK_CLIST (clist_fi_sources), 0, 80);
-  gtk_clist_set_column_width (GTK_CLIST (clist_fi_sources), 1, 80);
-  gtk_clist_set_column_width (GTK_CLIST (clist_fi_sources), 2, 80);
-  gtk_clist_set_column_width (GTK_CLIST (clist_fi_sources), 3, 80);
-  gtk_clist_column_titles_show (GTK_CLIST (clist_fi_sources));
-
-  label519 = gtk_label_new ("Host");
-  gtk_widget_set_name (label519, "label519");
-  gtk_widget_ref (label519);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "label519", label519,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (label519);
-  gtk_clist_set_column_widget (GTK_CLIST (clist_fi_sources), 0, label519);
-
-  label520 = gtk_label_new ("Server");
-  gtk_widget_set_name (label520, "label520");
-  gtk_widget_ref (label520);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "label520", label520,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (label520);
-  gtk_clist_set_column_widget (GTK_CLIST (clist_fi_sources), 1, label520);
-
-  label521 = gtk_label_new ("Range");
-  gtk_widget_set_name (label521, "label521");
-  gtk_widget_ref (label521);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "label521", label521,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (label521);
-  gtk_clist_set_column_widget (GTK_CLIST (clist_fi_sources), 2, label521);
-
-  label522 = gtk_label_new ("Status");
-  gtk_widget_set_name (label522, "label522");
-  gtk_widget_ref (label522);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "label522", label522,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (label522);
-  gtk_clist_set_column_widget (GTK_CLIST (clist_fi_sources), 3, label522);
-
-  label517 = gtk_label_new ("Sources");
-  gtk_widget_set_name (label517, "label517");
-  gtk_widget_ref (label517);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "label517", label517,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (label517);
-  gtk_notebook_set_tab_label (GTK_NOTEBOOK (notebook6), gtk_notebook_get_nth_page (GTK_NOTEBOOK (notebook6), 0), label517);
+  gtk_widget_show (frame79);
+  gtk_box_pack_start (GTK_BOX (vbox110), frame79, TRUE, TRUE, 0);
 
   scrolledwindow44 = gtk_scrolled_window_new (NULL, NULL);
   gtk_widget_set_name (scrolledwindow44, "scrolledwindow44");
@@ -3354,7 +3299,8 @@ create_main_window (void)
   gtk_object_set_data_full (GTK_OBJECT (main_window), "scrolledwindow44", scrolledwindow44,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (scrolledwindow44);
-  gtk_container_add (GTK_CONTAINER (notebook6), scrolledwindow44);
+  gtk_container_add (GTK_CONTAINER (frame79), scrolledwindow44);
+  gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolledwindow44), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
 
   clist_fi_aliases = gtk_clist_new (1);
   gtk_widget_set_name (clist_fi_aliases, "clist_fi_aliases");
@@ -3373,14 +3319,6 @@ create_main_window (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (label526);
   gtk_clist_set_column_widget (GTK_CLIST (clist_fi_aliases), 0, label526);
-
-  label518 = gtk_label_new ("Aliases");
-  gtk_widget_set_name (label518, "label518");
-  gtk_widget_ref (label518);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "label518", label518,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (label518);
-  gtk_notebook_set_tab_label (GTK_NOTEBOOK (notebook6), gtk_notebook_get_nth_page (GTK_NOTEBOOK (notebook6), 1), label518);
 
   label511 = gtk_label_new ("Fileinfo");
   gtk_widget_set_name (label511, "label511");
@@ -7837,14 +7775,32 @@ create_main_window (void)
   gtk_misc_set_padding (GTK_MISC (image_no_firewall), 1, 0);
   gtk_pixmap_set_build_insensitive (GTK_PIXMAP (image_no_firewall), FALSE);
 
+  eventbox_image_leaf = gtk_event_box_new ();
+  gtk_widget_set_name (eventbox_image_leaf, "eventbox_image_leaf");
+  gtk_widget_ref (eventbox_image_leaf);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "eventbox_image_leaf", eventbox_image_leaf,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (eventbox_image_leaf);
+  gtk_box_pack_start (GTK_BOX (hbox_statusbar), eventbox_image_leaf, FALSE, FALSE, 0);
+  gtk_tooltips_set_tip (tooltips, eventbox_image_leaf, "Running in leaf mode.", NULL);
+
   image_leaf = create_pixmap (main_window, "leaf.xpm");
   gtk_widget_set_name (image_leaf, "image_leaf");
   gtk_widget_ref (image_leaf);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "image_leaf", image_leaf,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (image_leaf);
-  gtk_box_pack_start (GTK_BOX (hbox_statusbar), image_leaf, FALSE, FALSE, 0);
+  gtk_container_add (GTK_CONTAINER (eventbox_image_leaf), image_leaf);
   gtk_pixmap_set_build_insensitive (GTK_PIXMAP (image_leaf), FALSE);
+
+  eventbox_image_legacy = gtk_event_box_new ();
+  gtk_widget_set_name (eventbox_image_legacy, "eventbox_image_legacy");
+  gtk_widget_ref (eventbox_image_legacy);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "eventbox_image_legacy", eventbox_image_legacy,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (eventbox_image_legacy);
+  gtk_box_pack_start (GTK_BOX (hbox_statusbar), eventbox_image_legacy, FALSE, FALSE, 0);
+  gtk_tooltips_set_tip (tooltips, eventbox_image_legacy, "Running in legacy mode. Consider switching to auto mode (Config->gNet settings->Current peermode)", NULL);
 
   image_legacy = create_pixmap (main_window, "legacy.xpm");
   gtk_widget_set_name (image_legacy, "image_legacy");
@@ -7852,8 +7808,17 @@ create_main_window (void)
   gtk_object_set_data_full (GTK_OBJECT (main_window), "image_legacy", image_legacy,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (image_legacy);
-  gtk_box_pack_start (GTK_BOX (hbox_statusbar), image_legacy, FALSE, FALSE, 0);
+  gtk_container_add (GTK_CONTAINER (eventbox_image_legacy), image_legacy);
   gtk_pixmap_set_build_insensitive (GTK_PIXMAP (image_legacy), FALSE);
+
+  eventbox_image_ultra = gtk_event_box_new ();
+  gtk_widget_set_name (eventbox_image_ultra, "eventbox_image_ultra");
+  gtk_widget_ref (eventbox_image_ultra);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "eventbox_image_ultra", eventbox_image_ultra,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (eventbox_image_ultra);
+  gtk_box_pack_start (GTK_BOX (hbox_statusbar), eventbox_image_ultra, FALSE, TRUE, 0);
+  gtk_tooltips_set_tip (tooltips, eventbox_image_ultra, "Running in ultrapeer mode", NULL);
 
   image_ultra = create_pixmap (main_window, "ultra.xpm");
   gtk_widget_set_name (image_ultra, "image_ultra");
@@ -7861,7 +7826,7 @@ create_main_window (void)
   gtk_object_set_data_full (GTK_OBJECT (main_window), "image_ultra", image_ultra,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (image_ultra);
-  gtk_box_pack_start (GTK_BOX (hbox_statusbar), image_ultra, FALSE, TRUE, 0);
+  gtk_container_add (GTK_CONTAINER (eventbox_image_ultra), image_ultra);
   gtk_pixmap_set_build_insensitive (GTK_PIXMAP (image_ultra), FALSE);
 
   label_statusbar_uptime = gtk_label_new ("Uptime");
@@ -8055,14 +8020,14 @@ create_main_window (void)
   gtk_signal_connect (GTK_OBJECT (clist_fileinfo), "resize_column",
                       GTK_SIGNAL_FUNC (on_clist_fileinfo_resize_column),
                       NULL);
-  gtk_signal_connect (GTK_OBJECT (clist_fileinfo), "button_press_event",
-                      GTK_SIGNAL_FUNC (on_clist_fileinfo_button_press_event),
-                      NULL);
   gtk_signal_connect (GTK_OBJECT (clist_fileinfo), "select_row",
                       GTK_SIGNAL_FUNC (on_clist_fileinfo_select_row),
                       NULL);
   gtk_signal_connect (GTK_OBJECT (clist_fileinfo), "unselect_row",
                       GTK_SIGNAL_FUNC (on_clist_fileinfo_unselect_row),
+                      NULL);
+  gtk_signal_connect (GTK_OBJECT (button_fi_purge), "clicked",
+                      GTK_SIGNAL_FUNC (on_button_fi_purge_clicked),
                       NULL);
   gtk_signal_connect (GTK_OBJECT (entry_search), "changed",
                       GTK_SIGNAL_FUNC (on_entry_search_changed),

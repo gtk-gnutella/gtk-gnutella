@@ -3254,15 +3254,24 @@ inline void file_info_timer(void)
 void fi_purge(gnet_fi_t fih)
 {
     GSList *sl;
+    GSList *csl;
     struct dl_file_info *fi = file_info_find_by_handle(fih); 
 
     g_assert(fi != NULL);
 
-    /* Throw away fileinfo after we purged the downloads */
-    file_info_set_discard(fi, TRUE);
-
-    for(sl = g_slist_copy(fi->sources); sl != NULL; sl = g_slist_next(sl)) {
+    csl = g_slist_copy(fi->sources);
+    for(sl = csl; sl != NULL; sl = g_slist_next(sl)) {
         struct download *dl = (struct download *) sl->data;
+        download_abort(dl);
         download_free(dl);
     }
+
+    download_free_removed();
+
+    g_assert(fi->refcount == 0);
+
+    file_info_hash_remove(fi);
+    fi_free(fi);
+
+    g_slist_free(csl);
 }

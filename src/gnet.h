@@ -693,5 +693,8 @@ void fi_free_info(gnet_fi_info_t *);
 void fi_get_status(gnet_fi_t, gnet_fi_status_t *);
 gchar **fi_get_aliases(gnet_fi_t fih);
 
+void fi_purge(gnet_fi_t fih);
+
+
 #endif /* _gnet_h_ */
 
