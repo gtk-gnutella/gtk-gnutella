@@ -2977,7 +2977,7 @@ upload_write(gpointer up, gint unused_source, inputevt_cond_t cond)
 		before = pos = u->pos;
 		written = bio_sendfile(u->bio, u->file_desc, &pos, available);
 
-		g_assert((ssize_t) -1 == written || (guint64) written == pos - before);
+		g_assert((ssize_t) -1 == written || (off_t) written == pos - before);
 		u->pos = pos;
 			
 	} else {
