@@ -518,9 +518,9 @@ void fi_gui_shutdown(void)
  *        to by the row user_data and should be automatically freed
  *        when removing the row (see upload stats code).
  */
-/*
 void fi_gui_update_display(time_t now)
 {
+#if 0
     static time_t last_update = 0;
 	GtkCList *clist;
 	GList *l;
@@ -544,7 +544,7 @@ void fi_gui_update_display(time_t now)
         fi_gui_update_row(clist, row, titles, G_N_ELEMENTS(titles));
     }
     gtk_clist_thaw(clist);
+#endif
 }
-*/
 
-/* vi: set ts=4: */
+/* vi: set ts=4 sw=4 cindent: */

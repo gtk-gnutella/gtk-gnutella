@@ -55,8 +55,10 @@ static GtkTreeStore *store_fileinfo = NULL;
 static GtkTreeStore *store_aliases = NULL;
 static GHashTable *fi_gui_handles = NULL;
 
-static void fi_gui_update_row(
-    GtkTreeStore *store, GtkTreeIter *iter, gchar **titles)
+static GHashTable *fi_updates = NULL;
+
+static void
+fi_gui_update_row(GtkTreeStore *store, GtkTreeIter *iter, gchar **titles)
 {		
 	if (NULL != titles[c_fi_filename]) {
 		gtk_tree_store_set(store, iter,
@@ -74,7 +76,8 @@ static void fi_gui_update_row(
 		(-1));
 }
 
-static void fi_gui_set_details(gnet_fi_t fih)
+static void
+fi_gui_set_details(gnet_fi_t fih)
 {
     gnet_fi_info_t *fi = NULL;
     gnet_fi_status_t fis;
@@ -111,7 +114,8 @@ static void fi_gui_set_details(gnet_fi_t fih)
 			     TRUE);
 }
 
-static void fi_gui_clear_details(void)
+static void
+fi_gui_clear_details(void)
 {
     last_shown_valid = FALSE;
 
@@ -125,8 +129,8 @@ static void fi_gui_clear_details(void)
     vp_draw_fi_progress(last_shown_valid, last_shown);
 }
 
-void on_treeview_fileinfo_selected(
-	GtkTreeView *tree_view, gpointer user_data)
+void
+on_treeview_fileinfo_selected(GtkTreeView *tree_view, gpointer user_data)
 {
 	GtkTreeSelection *selection;
 	GtkTreeModel *model;
@@ -141,12 +145,11 @@ void on_treeview_fileinfo_selected(
 	fi_gui_clear_details();
 }
 
-/*
- * on_button_fi_purge_clicked
- *
+/**
  * Handle the clicking of the purge button.  Purge the selected file.
  */
-void on_button_fi_purge_clicked(GtkButton *button, gpointer user_data)
+void
+on_button_fi_purge_clicked(GtkButton *button, gpointer user_data)
 {
     if (last_shown_valid) {
 		guc_fi_purge(last_shown);
@@ -154,8 +157,8 @@ void on_button_fi_purge_clicked(GtkButton *button, gpointer user_data)
     }
 }
 
-static void fi_gui_append_row(
-    GtkTreeStore *store, gnet_fi_t fih, gchar **titles)
+static void
+fi_gui_append_row(GtkTreeStore *store, gnet_fi_t fih, gchar **titles)
 {
 	GtkTreeIter iter;
 
@@ -166,14 +169,12 @@ static void fi_gui_append_row(
 	fi_gui_update_row(store, &iter, titles);
 }
 
-/*
- * fi_gui_fill_info:
- *
+/**
  * Fill in the cell data. Calling this will always break the data
  * it filled in last time!
  */
-static void fi_gui_fill_info(
-    gnet_fi_t fih, gchar *titles[c_fi_num])
+static void
+fi_gui_fill_info(gnet_fi_t fih, gchar *titles[c_fi_num])
 {
     static gnet_fi_info_t *fi = NULL;
 
@@ -191,8 +192,8 @@ static void fi_gui_fill_info(
     titles[c_fi_filename] = fi->file_name;
 }
 
-static void fi_gui_fill_status(
-    gnet_fi_t fih, gchar *titles[c_fi_num])
+static void
+fi_gui_fill_status(gnet_fi_t fih, gchar *titles[c_fi_num])
 {
     gnet_fi_status_t s;
     static gchar fi_sources[32];
@@ -246,7 +247,8 @@ static void fi_gui_fill_status(
     titles[c_fi_handle] = GUINT_TO_POINTER(fih);
 }
 
-static void fi_gui_update(gnet_fi_t fih, gboolean full)
+static void
+fi_gui_update(gnet_fi_t fih, gboolean full)
 {
 	GtkTreeIter *iter;
 	gchar *titles[c_fi_num];
@@ -269,7 +271,8 @@ static void fi_gui_update(gnet_fi_t fih, gboolean full)
 	vp_draw_fi_progress(last_shown_valid, last_shown);
 }
 
-static void fi_gui_fi_added(gnet_fi_t fih)
+static void
+fi_gui_fi_added(gnet_fi_t fih)
 {
 	gchar *titles[c_fi_num];
 
@@ -280,9 +283,12 @@ static void fi_gui_fi_added(gnet_fi_t fih)
     fi_gui_append_row(store_fileinfo, fih, titles);
 }
 
-static void fi_gui_fi_removed(gnet_fi_t fih)
+static void
+fi_gui_fi_removed(gnet_fi_t fih)
 {
 	GtkTreeIter *iter;
+	
+	g_hash_table_remove(fi_updates, GUINT_TO_POINTER(fih));
 	
 	if (
 		!g_hash_table_lookup_extended(fi_gui_handles, GUINT_TO_POINTER(fih),
@@ -296,13 +302,24 @@ static void fi_gui_fi_removed(gnet_fi_t fih)
 	g_hash_table_remove(fi_gui_handles, GUINT_TO_POINTER(fih));
 }
 
-static void fi_gui_fi_status_changed(gnet_fi_t fih)
+static void
+fi_gui_fi_status_changed(gnet_fi_t fih)
 {
-    fi_gui_update(fih, FALSE);
+	g_hash_table_insert(fi_updates, GUINT_TO_POINTER(fih), GINT_TO_POINTER(1));
 }
 
-static gint compare_uint_func(
-    GtkTreeModel *model, GtkTreeIter *i, GtkTreeIter *j, gpointer user_data)
+static gboolean 
+fi_gui_update_queued(gpointer key, gpointer unused_value, gpointer unused_udata)
+{
+	gnet_fi_t fih = GPOINTER_TO_UINT(key);
+
+  	fi_gui_update(fih, FALSE);
+	return TRUE; /* Remove the handle from the hashtable */
+}
+
+static gint
+compare_uint_func(GtkTreeModel *model, GtkTreeIter *i, GtkTreeIter *j,
+		gpointer user_data)
 {
 	guint a, b;
 
@@ -311,8 +328,9 @@ static gint compare_uint_func(
     return CMP(b, a);
 }
 
-static gint compare_uint64_func(
-    GtkTreeModel *model, GtkTreeIter *i, GtkTreeIter *j, gpointer user_data)
+static gint
+compare_uint64_func(GtkTreeModel *model, GtkTreeIter *i, GtkTreeIter *j,
+		gpointer user_data)
 {
 	guint64 a, b;
 
@@ -353,7 +371,20 @@ static void add_column(
     gtk_tree_view_append_column(GTK_TREE_VIEW (tree), column);
 }
 
-void fi_gui_init(void) 
+void
+fi_gui_update_display(time_t now) 
+{
+	static time_t last;
+
+	if (!last || delta_time(now, last) > 3) {
+		last = now;
+
+		g_hash_table_foreach_remove(fi_updates, fi_gui_update_queued, NULL);
+	}
+}
+
+void
+fi_gui_init(void) 
 {
 	static const struct {
 		const gint id;
@@ -387,6 +418,8 @@ void fi_gui_init(void)
 
 	fi_gui_handles = g_hash_table_new_full(
         NULL, NULL, NULL, (gpointer) w_tree_iter_free);
+
+	fi_updates = g_hash_table_new(NULL, NULL);
 
     treeview_fi_aliases = GTK_TREE_VIEW(lookup_widget(main_window,
 		"treeview_fi_aliases"));
@@ -429,7 +462,8 @@ void fi_gui_init(void)
 		FREQ_SECS, 0);
 }
 
-void fi_gui_shutdown(void)
+void
+fi_gui_shutdown(void)
 {
     guc_fi_remove_listener(fi_gui_fi_removed, EV_FI_REMOVED);
     guc_fi_remove_listener(fi_gui_fi_added, EV_FI_ADDED);
@@ -446,6 +480,8 @@ void fi_gui_shutdown(void)
 	gtk_tree_view_set_model(treeview_fi_aliases, NULL);
 	g_hash_table_destroy(fi_gui_handles);
 	fi_gui_handles = NULL;
+	g_hash_table_destroy(fi_updates);
+	fi_updates = NULL;
 }
 
 /* vi: set ts=4 sw=4 cindent: */

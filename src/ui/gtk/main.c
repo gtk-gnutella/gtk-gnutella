@@ -734,6 +734,7 @@ void main_gui_timer(void)
     search_stats_gui_update(now);
     nodes_gui_update_nodes_display(now);
     uploads_gui_update_display(now);
+	fi_gui_update_display(now);
     statusbar_gui_clear_timeouts(now);
     search_gui_flush(now);
 
