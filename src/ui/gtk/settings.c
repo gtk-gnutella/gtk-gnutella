@@ -5403,6 +5403,9 @@ void settings_gui_shutdown(void)
     *(guint32 *) &results_divider_pos = 
         gtk_paned_get_position(GTK_PANED
             (lookup_widget(main_window, "vpaned_results")));
+    *(guint32 *) &filter_main_divider_pos = 
+        gtk_paned_get_position(GTK_PANED
+            (lookup_widget(filter_dialog, "hpaned_filter_main")));
 
     /*
      * Save properties to file
