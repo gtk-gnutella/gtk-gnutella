@@ -85,7 +85,7 @@ struct gnutella_socket *s_udp_listen = NULL;
 
 typedef union socket_addr {
 	struct sockaddr_in inet4;
-#if USE_IPV6_HACK
+#ifdef USE_IPV6_HACK
 	/* The IPv6 hack might be useful for machines with IPv6 only. It is a
 	 * hack because it will only work with IPv4 addresses that are mapped
 	 * to IPv6 i.e., "::FFFF:<IPv4 address>". It is not tested so far.
@@ -113,7 +113,8 @@ socket_addr_set(socket_addr_t *addr, guint32 ip, guint16 port)
 
 	*addr = zero_addr;
 	
-#if USE_IPV6_HACK
+#ifdef USE_IPV6_HACK
+	addr->inet6.sin6_len = sizeof(struct in6_addr);
 	addr->inet6.sin6_family = AF_INET6;	/* host byte order */
 	addr->inet6.sin6_port = htons(port);
 	addr->inet6.sin6_addr.s6_addr[10] = 0xff;
@@ -139,7 +140,7 @@ socket_addr_get_ip(const socket_addr_t *addr)
 
 	g_assert(addr != NULL);
 	
-#if USE_IPV6_HACK
+#ifdef USE_IPV6_HACK
 	READ_GUINT32_BE(&addr->inet6.sin6_addr.s6_addr[12], ip);
 #else
 	ip = htonl(addr->inet4.sin_addr.s_addr);
@@ -159,7 +160,7 @@ socket_addr_get_port(const socket_addr_t *addr)
 {
 	g_assert(addr != NULL);
 
-#if USE_IPV6_HACK
+#ifdef USE_IPV6_HACK
 	return ntohs(addr->inet6.sin6_port);
 #else
 	return ntohs(addr->inet4.sin_port);
@@ -2436,9 +2437,10 @@ void
 sock_tx_shutdown(struct gnutella_socket *s)
 {
 	g_assert(-1 != s->file_desc);
-	if (-1 == shutdown(s->file_desc, SHUT_WR))
+	if (-1 == shutdown(s->file_desc, SHUT_WR)) {
 		g_warning("unable to shutdown TX on fd#%d: %s",
 			s->file_desc, g_strerror(errno));
+	}
 }
 
 static int
