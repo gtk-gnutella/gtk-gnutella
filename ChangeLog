@@ -1,5 +1,23 @@
 # since last version
 
+- (2003.04.16 - RAM)
+ * Added new "configured_peermode" property.  Old "current_peermode" is
+   no longer persistent.
+ * Leaf node bandwidth is now stolen from HTTP.  If that brings outgoing
+   HTTP bandwidth to 0, sharing is disabled.
+ * Reordered the computations in bsched.c: resort to early floating point
+   division by 1000.0 then to multiplication to avoid overflowing integers.
+ * Shut up compiler warning about uninitialized var in adns.c.
+ * Removed "force_ultrapeer" and "force_leaf" properties.
+ * Addded automatic promotion of leaf to Ultrapeer based on uptime (for now).
+ * Don't send non-ultra pongs to leaf nodes.
+ * Fixed memory leak in searches: limit MUID list to 4 per search.
+ * Throttle leaf node pings to 60 seconds instead of the 3 seconds for others.
+ * Adjusted bandwidth scheduler for low-activity sources.
+ * Removed unused function on_the_net().
+ * When switching to the "auto" configured peermode and there is no connection
+   yet, force leaf mode as the current mode.
+
 - (2003.04.13 - RAM)
  * Forgot to update node's timestamp after having sent the Gnutella hello.
  * Added files created by gettext for internationalization (i18n).
