@@ -56,7 +56,7 @@ static gchar gwc_tmp[1024];
  */
 
 #define MAX_GWC_URLS	200					/* Max URLs we store */
-#define MAX_GWC_REUSE	8					/* Max amount of uses for one URL */
+#define MAX_GWC_REUSE	1					/* Max amount of uses for one URL */
 
 static gchar *gwc_url[MAX_GWC_URLS];		/* Holds string atoms */
 static gint gwc_url_slot = -1;
