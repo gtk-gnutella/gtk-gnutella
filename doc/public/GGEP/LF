@@ -6,7 +6,7 @@ Where: Query Hit
 Status: Draft 
 Date: 2004-11-04
 Format: Variable-Length Integer 
-COBS-Encoding: No
+COBS-Encoding: If neccessary 
 Deflate: No
 
 1. OVERVIEW
@@ -24,9 +24,9 @@ necessary. To prevent problems with older clients, using the extension should
 be considered if the filesize exceeds 2^31-1 bytes. If the LF extension is
 used, the legacy filesize should be set to ~0 i.e., all bits set. This may be
 used to detect clients that are not aware of this extension and assume a
-different filesize. In order to take advantage of this, all related routines
-(e.g., HTTP parsers) must be able to parse and emit at least 64-bit values and
-detect too large values that cannot be handled by them.
+different filesize. In order to take advantage of the LF extension, all related
+routines (e.g., HTTP parsers) must be able to parse and emit at least 64-bit
+values and detect too large values that cannot be handled by them.
 
 3. SPECIFICATION
 
@@ -34,53 +34,49 @@ There is no need to indicate support for this feature at any stage. This
 extension is defined as follows:
 
 Due to the location of the LF extension, there must be no NUL bytes in the
-the GGEP data. Therefore, each byte of the data contains only 7 data bits,
-the MSB is set in all bytes. The ordering of the bytes is little-endian.
+the GGEP data. Therefore, the payload must be COBS encoded if it contains
+any NUL bytes. The ordering of the bytes is little-endian.
 
 4. EXAMPLE CODE
 
-This example implementation in C use 64-bit integers, allowing filesizes up to
-(2 ^ 63) - 1 bytes. The maximum length for the GGEP data is therefore 9 bytes.
-The decoder is strict i.e., trailing zeros are disallowed and the MSB must be
-set even if the data value is not zero. On failure, both function return -1.
+This example implementation in C uses 64-bit integers, allowing filesizes up to
+(2 ^ 64) - 1 bytes. The maximum length of the GGEP payload data is therefore 8
+bytes. The decoder is strict i.e., trailing zeros are disallowed. A filesize of
+zero bytes, is considered invalid. On failure, both functions return 0.
 
-int64_t
+uint64_t
 decode_lf(uint8_t *data, int length)
 {
   uint64_t filesize, b;
   int i, j;
 
-  if (length < 1 || length > 9)
-    return -1;
+  if (length < 1 || length > 8)
+    return 0;
 
-  filesize = 0;
-  j = 0;
-  for (i = 0; i < length; i++, j += 7) {
+  j = i = filesize = 0;
+  do {
     b = data[i];
-    if ((b ^= 0x80) & 0x80)
-      return -1;
-    
     filesize |= b << j;
-  }
+    j += 8;
+  } while (++i < length);
 
-  if (0 == b && length != 1)
-    return -1;
+  if (0 == b)
+    return 0;
 
   return filesize;
 }
 
 int
-encode_lf(int64_t filesize, uint8_t *data)
+encode_lf(uint64_t filesize, uint8_t *data)
 {
-  uint64_t s = filesize;
   uint8_t *p = data;
 
-  if (filesize < 0)
-    return -1;
-  
+  if (0 == filesize)
+    return 0;
+
   do {
-    *p++ = s | 0x80;
-  } while (0 != (s >>= 7));
+    *p++ = filesize;
+  } while (0 != (filesize >>= 8));
 
   return p - data;
 }
