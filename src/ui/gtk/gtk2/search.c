@@ -1526,66 +1526,41 @@ search_gui_end_massive_update(search_t *sch)
 	sch->massive_update = FALSE;
 }
 
-/*
- * search_gui_metadata_update
+/**
  *
  * Update the search displays with the correct meta-data
  *
  */
-
-void search_gui_metadata_update(bitzi_data_t *data)
+void
+search_gui_metadata_update(const bitzi_data_t *data)
 {
-    GList           *sr;
-    search_t        *search;
-    GtkTreeIter *parent;
-    GtkTreeStore *model;
-    gchar		*text = NULL;
+	GList *l;
+	gchar *text;
+
+	text = bitzi_gui_get_metadata(data);
+
+	/*
+	 * Fill in the columns in each search that contains a reference
+	 */
 	
-    /*
-     * Build string
-     */
-    if (data->mime_type) {
-		if (data->mime_desc) {
-			text = g_strdup_printf("%s (%1.1f): %s (%s)",
-					bitzi_fjtostring(data->judgement),
-					data->goodness,
-					data->mime_type,
-					data->mime_desc);
-		} else {
-			text = g_strdup_printf("%s (%1.1f): %s",
-					bitzi_fjtostring(data->judgement),
-					data->goodness,
-					data->mime_type);
-		}	    
-    } else if (data->judgement != UNKNOWN) {
-		text = g_strdup_printf("%s (%1.1f): No other data",
-				bitzi_fjtostring(data->judgement),
-				data->goodness);
-    }
+	for (l = searches; l != NULL; l = g_list_next(l)) {
+		search_t *search = l->data;
+    	GtkTreeIter *parent;
 
+#if 0
+		g_message("search_metadata_cb: search %p, iter = %p",search, iter);
+#endif
 
-    /*
-     * Fill in the coloumns in each search that contains a reference
-     */
-	
-    for (sr=searches; sr; sr = g_list_next(sr) ) {
-		search = sr->data;
-		parent = find_parent_with_sha1(search->parents, data->urnsha1);
-
-		//g_message("search_metadata_cb: search %p, iter = %p",search, iter);
-
+	   	parent = find_parent_with_sha1(search->parents, data->urnsha1);
 		if (parent) {
-			model = GTK_TREE_STORE(search->model);
-
-			gtk_tree_store_set(model, parent,
-					c_sr_meta, text ? text: "Not in Database",
+			gtk_tree_store_set(GTK_TREE_STORE(search->model), parent,
+					c_sr_meta, text ? text : _("Not in database"),
 					(-1));
 		}
-    } /* for each search */
+	}
 
-    /* free the string */
-    g_free(text);
-
+	/* free the string */
+	g_free(text);
 }
 
 /* vi: set ts=4 sw=4 cindent: */
