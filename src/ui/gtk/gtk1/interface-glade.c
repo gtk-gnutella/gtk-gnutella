@@ -4601,7 +4601,7 @@ create_main_window (void)
   gtk_clist_set_column_widget (GTK_CLIST (clist_gnet_stats_msg), 0, label391);
   gtk_misc_set_alignment (GTK_MISC (label391), 7.45058e-09, 0.5);
 
-  label392 = gtk_label_new (_("received"));
+  label392 = gtk_label_new (_("Received"));
   gtk_widget_set_name (label392, "label392");
   gtk_widget_ref (label392);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "label392", label392,
@@ -4609,7 +4609,7 @@ create_main_window (void)
   gtk_widget_show (label392);
   gtk_clist_set_column_widget (GTK_CLIST (clist_gnet_stats_msg), 1, label392);
 
-  label393 = gtk_label_new (_("expired"));
+  label393 = gtk_label_new (_("Expired"));
   gtk_widget_set_name (label393, "label393");
   gtk_widget_ref (label393);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "label393", label393,
@@ -4617,7 +4617,7 @@ create_main_window (void)
   gtk_widget_show (label393);
   gtk_clist_set_column_widget (GTK_CLIST (clist_gnet_stats_msg), 2, label393);
 
-  label394 = gtk_label_new (_("dropped"));
+  label394 = gtk_label_new (_("Dropped"));
   gtk_widget_set_name (label394, "label394");
   gtk_widget_ref (label394);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "label394", label394,
@@ -4625,7 +4625,7 @@ create_main_window (void)
   gtk_widget_show (label394);
   gtk_clist_set_column_widget (GTK_CLIST (clist_gnet_stats_msg), 3, label394);
 
-  label395 = gtk_label_new (_("queued"));
+  label395 = gtk_label_new (_("Queued"));
   gtk_widget_set_name (label395, "label395");
   gtk_widget_ref (label395);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "label395", label395,
@@ -4633,7 +4633,7 @@ create_main_window (void)
   gtk_widget_show (label395);
   gtk_clist_set_column_widget (GTK_CLIST (clist_gnet_stats_msg), 4, label395);
 
-  label500 = gtk_label_new (_("relayed"));
+  label500 = gtk_label_new (_("Relayed"));
   gtk_widget_set_name (label500, "label500");
   gtk_widget_ref (label500);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "label500", label500,
@@ -4641,7 +4641,7 @@ create_main_window (void)
   gtk_widget_show (label500);
   gtk_clist_set_column_widget (GTK_CLIST (clist_gnet_stats_msg), 5, label500);
 
-  label501 = gtk_label_new (_("gen. queued"));
+  label501 = gtk_label_new (_("Gen. queued"));
   gtk_widget_set_name (label501, "label501");
   gtk_widget_ref (label501);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "label501", label501,
@@ -4649,7 +4649,7 @@ create_main_window (void)
   gtk_widget_show (label501);
   gtk_clist_set_column_widget (GTK_CLIST (clist_gnet_stats_msg), 6, label501);
 
-  label396 = gtk_label_new (_("gen. sent"));
+  label396 = gtk_label_new (_("Gen. sent"));
   gtk_widget_set_name (label396, "label396");
   gtk_widget_ref (label396);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "label396", label396,
