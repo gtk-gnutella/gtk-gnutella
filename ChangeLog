@@ -1,5 +1,12 @@
 # since last version
 
+- (2002.04.27 - RAM)
+  * Reversed logic for forced IP, to make it behave properly: the IP is
+	now only updated dynamically when "force IP" is not checked.
+  * Added download_remove_file() and download_file_exists().
+  * Check for new "download_delete_aborted" condition in download_abort() to
+	remove file when it is set.
+
 - (2002.04.25 - Richard)
   * moved more code from main.c to gui_init() in gui.c.
   * added checkbutton "Delete file on abort" to downloads panel. When this
