@@ -1476,7 +1476,6 @@ void gui_update_download(struct download *d, gboolean force)
 
 void gui_update_download_abort_resume(void)
 {
-
    	struct download *d;
     GList *node_list;
     GList *data_list;
