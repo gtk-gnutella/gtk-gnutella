@@ -47,7 +47,7 @@ else
     frontend="Gtk 2.0"
 
 dnl We don't need any deprecated glib functions 
-	CPPFLAGS="${CPPFLAGS} -DG_DISABLE_DEPRECATED"
+	CPPFLAGS="${CPPFLAGS} -DG_DISABLE_DEPRECATED -DGDK_DISABLE_DEPRECATED"
     
 fi
 AM_CONDITIONAL(ENABLE_GTK2, test "x$enable_gtk2" = "xyes")
