@@ -851,8 +851,10 @@ void search_matched(search_t *sch, results_set_t *rs)
 		 * Don't show something we downloaded if they don't want it.
 		 */
 
-		if (downloaded && search_hide_downloaded)
+		if (downloaded && search_hide_downloaded) {
+            filter_free_result(flt_result);
 			continue;
+        }
     
         /*
          * We start with FILTER_PROP_DISPLAY:
@@ -1017,7 +1019,7 @@ void search_gui_flush(time_t now)
              * Since we keep results around for a while, the search may have
              * been closed until they get dispatched... so we need to check 
              * that.
-             * --BLUE, 4/1/2004
+             *     --BLUE, 4/1/2004
              */
 
             if (sch) {
