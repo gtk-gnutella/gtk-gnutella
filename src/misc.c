@@ -131,7 +131,7 @@ gchar *ip_port_to_gchar(guint32 ip, guint16 port)
 	return a;
 }
 
-gchar *hostname_port_to_gchar(gchar *hostname, guint16 port)
+gchar *hostname_port_to_gchar(const gchar *hostname, guint16 port)
 {
 	static gchar a[300];
 	size_t len;
