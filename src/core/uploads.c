@@ -2974,10 +2974,10 @@ upload_write(gpointer up, gint unused_source, inputevt_cond_t cond)
 	 	 */
 
 		available = amount > READ_BUF_SIZE ? READ_BUF_SIZE : amount;
-		pos = u->pos;
-		written = bio_sendfile(u->bio, u->file_desc, &u->pos, available);
+		written = bio_sendfile(u->bio, u->file_desc, &pos, available);
 
-		g_assert((ssize_t) -1 == written || (guint64) written == u->pos - pos);
+		g_assert((ssize_t) -1 == written || (guint64) written == pos - u->pos);
+		u->pos = pos;
 	} else {
 		/*
 	 	 * If the buffer position reached the size, then we need to read
