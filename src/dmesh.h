@@ -93,6 +93,8 @@ gint dmesh_alternate_location(
 void dmesh_multiple_downloads(
     guchar *sha1, guint32 size, struct dl_file_info *fi);
 
+void dmesh_check_results_set(gnet_results_set_t *rs);
+
 void dmesh_store(void);
 void dmesh_ban_store(void);
 

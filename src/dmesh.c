@@ -628,19 +628,21 @@ void dmesh_remove(const guchar *sha1,
  * Add entry to the download mesh, indexed by the binary `sha1' digest.
  * If `stamp' is 0, then the current time is used.
  *
- * If `idx' is 0, then we can access this file only through an /uri-res
- * request, the URN being given as `name'.
+ * If `idx' is URN_INDEX, then we can access this file only through an
+ * /uri-res request, the URN being given as `name'.
  *
  * Returns whether the entry was added in the mesh, or was discarded because
  * it was the oldest record and we have enough already.
  */
-static gboolean dmesh_raw_add(guchar *sha1,
-	guint32 ip, guint16 port, guint idx, gchar *name, guint32 stamp)
+static gboolean dmesh_raw_add(guchar *sha1, dmesh_urlinfo_t *info, guint32 stamp)
 {
 	struct dmesh_entry *dme;
 	struct dmesh *dm;
 	guint32 now = (guint32) time(NULL);
-	dmesh_urlinfo_t info;
+	guint32 ip = info->ip;
+	guint16 port = info->port;
+	guint idx = info->idx;
+	gchar *name = info->name;
 
 	if (stamp == 0 || stamp > now)
 		stamp = now;
@@ -665,12 +667,7 @@ static gboolean dmesh_raw_add(guchar *sha1,
 	 * See whether this URL is banned from the mesh.
 	 */
 
-	info.ip = ip;
-	info.port = port;
-	info.idx = idx;
-	info.name = name;
-
-	if (dmesh_is_banned(&info))
+	if (dmesh_is_banned(info))
 		return FALSE;
 
 	/*
@@ -774,7 +771,7 @@ gboolean dmesh_add(guchar *sha1,
 	 */
 
 	dmesh_fill_info(&info, sha1, ip, port, idx, name);
-	return dmesh_raw_add(sha1, ip, port, idx, info.name, stamp);
+	return dmesh_raw_add(sha1, &info, stamp);
 }
 
 /*
@@ -1264,8 +1261,7 @@ static void dmesh_check_deferred_against_existing(
 		dmesh_urlinfo_t *url = d->dmesh_url;
 		gboolean ok;
 
-		ok = dmesh_raw_add(sha1, url->ip, url->port, url->idx, url->name,
-				  d->stamp);
+		ok = dmesh_raw_add(sha1, url, d->stamp);
 
 		if (dbg > 4) {
 			printf("MESH %s: %s deferred \"%s\", stamp=%u age=%u\n",
@@ -1329,8 +1325,7 @@ static void dmesh_check_deferred_against_themselves(
 		dmesh_urlinfo_t *url = def->dmesh_url;
 		gboolean ok;
 
-		ok = dmesh_raw_add(sha1,
-			url->ip, url->port, url->idx, url->name, def->stamp);
+		ok = dmesh_raw_add(sha1, url, def->stamp);
 
 		if (dbg > 4) {
 			time_t now = time(NULL);
@@ -1670,8 +1665,7 @@ void dmesh_collect_locations(guchar *sha1, guchar *value, gboolean defer)
 			 * to avoid dmesh pollution.
 			 */
 
-			ok = dmesh_raw_add(
-				sha1, info.ip, info.port, info.idx, info.name, stamp);
+			ok = dmesh_raw_add(sha1, &info, stamp);
 
 		} else {
 			if (fuzzy_filter_dmesh && defer) {
@@ -1683,8 +1677,7 @@ void dmesh_collect_locations(guchar *sha1, guchar *value, gboolean defer)
 						&info, stamp);
 				goto nolog;
 			} else
-				ok = dmesh_raw_add(
-					sha1, info.ip, info.port, info.idx, info.name, stamp);
+				ok = dmesh_raw_add(sha1, &info, stamp);
 		}
 
 	skip_add:
@@ -1768,6 +1761,48 @@ static gint dmesh_alt_loc_fill(
 	}
 
 	return i;
+}
+
+/*
+ * dmesh_check_results_set
+ *
+ * Parse query hit (result set) for entries whose SHA1 match something
+ * we have into the mesh or share, and insert them if needed.
+ */
+void dmesh_check_results_set(gnet_results_set_t *rs)
+{
+	GSList *l;
+	time_t now = time(NULL);
+
+	for (l = rs->records; l; l = l->next) {
+		gnet_record_t *rc = (gnet_record_t *) l->data;
+		dmesh_urlinfo_t info;
+		gboolean has = FALSE;
+
+		if (rc->sha1 == NULL)
+			continue;
+
+		/*
+		 * If we have an entry for this SHA1 in the mesh already,
+		 * then we can update it for that entry.
+		 *
+		 * If the entry is not in the mesh already, look whether we're
+		 * sharing this SHA1.
+		 */
+
+		has = (NULL != g_hash_table_lookup(mesh, rc->sha1));
+
+		if (!has) {
+			struct shared_file *sf = shared_file_by_sha1(rc->sha1);
+			if (sf != NULL && sf != SHARE_REBUILDING)
+				has = TRUE;
+		}
+
+		if (has) {
+			dmesh_fill_info(&info, rc->sha1, rs->ip, rs->port, URN_INDEX, NULL);
+			(void) dmesh_raw_add(rc->sha1, &info, now);
+		}
+	}
 }
 
 #define DMESH_MAX	MAX_ENTRIES

@@ -130,8 +130,8 @@ void search_remove_got_results_listener(search_got_results_listener_t l)
         g_slist_remove(search_got_results_listeners, l);
 }
 
-static void search_fire_got_results
-    (GSList *sch_matched, const gnet_results_set_t *rs)
+static void search_fire_got_results(
+	GSList *sch_matched, const gnet_results_set_t *rs)
 {
     GSList *l;
     g_assert(rs != NULL);
@@ -1289,11 +1289,17 @@ gboolean search_results(gnutella_node_t *n)
      */
 
     if (auto_download_identical)
-        file_info_check_results_set(rs);
+		file_info_check_results_set(rs);
 
+	/*
+	 * Look for records whose SHA1 matches files we own and add
+	 * those entries to the mesh.
+	 */
+
+	dmesh_check_results_set(rs);
 
     /*
-     * Look for records that match entries in the download queue.
+     * Look for records that should be ignored.
      */
 
     if (mark_ignored) {
