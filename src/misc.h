@@ -135,6 +135,18 @@ gchar *sha1_base32(const gchar *sha1);
 gchar *base32_sha1(const gchar *base32);
 
 /*
+ * GUID<->hex string conversion
+ */
+gchar *guid_hex_str(const gchar *guid);
+gboolean hex_to_guid(const gchar *hexguid, gchar *guid);
+
+/*
+ * GUID<->base32 string conversion
+ */
+gchar *guid_base32_str(const gchar *guid);
+gchar *base32_to_guid(const gchar *base32);
+
+/*
  * Tests
  */
 gboolean is_string_ip(const gchar *);
@@ -156,9 +168,7 @@ guint32 random_value(guint32 max);
  * Stuff
  */
 gint str_chomp(gchar *str, gint len);
-gchar *guid_hex_str(const gchar *guid);
-guint hex2dec(guchar c);
-void hex_to_guid(const gchar *hexguid, gchar *guid);
+gint hex2dec(guchar c);
 void dump_hex(FILE *, const gchar *, gconstpointer, gint);
 void strlower(gchar *, const gchar *);
 char *unique_filename(const gchar *path, const gchar *file, const gchar *ext);

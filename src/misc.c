@@ -440,25 +440,69 @@ gchar *guid_hex_str(const gchar *guid)
  *
  * Convert an hexadecimal char (0-9, A-F, a-f) into decimal.
  */
-inline guint hex2dec(guchar c)
+inline gint hex2dec(guchar c)
 {
 	return c >= '0' && c <= '9' ? c - '0'
 		 : c >= 'a' && c <= 'f' ? c - 'a' + 10
-		 : c - 'A' + 10;
+		 : c >= 'A' && c <= 'F' ? c - 'A' + 10
+		 : -1;
 }
 
 /*
  * hex_to_guid
  *
  * Converts hexadecimal string into a GUID.
+ * Returns true if OK.
  */
-void hex_to_guid(const gchar *hexguid, gchar *guid)
+gboolean hex_to_guid(const gchar *hexguid, gchar *guid)
 {
 	gulong i;
 
-	for (i = 0; i < 16; i++)
-		guid[i] = (hex2dec((guchar) hexguid[i << 1]) << 4)
-				+ hex2dec((guchar) hexguid[(i << 1) + 1]);
+	for (i = 0; i < 16; i++) {
+		gint a = hex2dec((guchar) hexguid[i << 1]);
+		gint b = hex2dec((guchar) hexguid[(i << 1) + 1]);
+
+		if (a < 0 || b < 0)
+			return FALSE;
+
+		guid[i] = (a << 4) + b;
+	}
+
+	return TRUE;
+}
+
+/*
+ * guid_base32_str
+ *
+ * Converts GUID into its base32 representation, without the trailing padding.
+ * Returns pointer to static data.
+ */
+gchar *guid_base32_str(const gchar *guid)
+{
+	static gchar guid_b32[26 + 1];		/* 26 chars needed for a GUID */
+
+	base32_encode_str_into(guid, 16, guid_b32, sizeof(guid_b32), FALSE);
+
+	return guid_b32;
+}
+
+/*
+ * base32_to_guid
+ *
+ * Decode the base32 representation of a GUID.
+ * Returns pointer to static data, or NULL if the input was not valid base32.
+ */
+gchar *base32_to_guid(const gchar *base32)
+{
+	static gchar guid[20];	/* Needs 20 chars to decode, last 4 will be 0 */
+
+	if (0 == base32_decode_into(base32, 26, guid, sizeof(guid)))
+		return NULL;
+
+	g_assert(guid[16] == '\0' && guid[17] == '\0' &&
+		guid[18] == '\0' && guid[19] == '\0');
+
+	return guid;
 }
 
 /*
