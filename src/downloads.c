@@ -3426,11 +3426,18 @@ void download_free_removed(void)
  * `sl_removed' list where it will be reclaimed later on via
  * download_free_removed().
  */
-void download_remove(struct download *d)
+gboolean download_remove(struct download *d)
 {
 	g_assert(d);
 	g_assert(d->status != GTA_DL_REMOVED);		/* Not already freed */
 
+	/*
+	 * Make sure download is not used by a background task
+	 * 		-- JA 25/10/2003
+	 */
+	if (d->status == GTA_DL_VERIFY_WAIT || d->status == GTA_DL_VERIFYING)
+		return FALSE;
+	
 	if (DOWNLOAD_IS_VISIBLE(d))
 		download_gui_remove(d);
 
@@ -3503,6 +3510,7 @@ void download_remove(struct download *d)
 	sl_removed = g_slist_prepend(sl_removed, d);
 	
 	/* download structure will be freed in download_free_removed() */
+	return TRUE;
 }
 
 /* ----------------------------------------- */

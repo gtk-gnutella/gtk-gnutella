@@ -3661,8 +3661,12 @@ void file_info_timer(void)
  * fi_purge:
  *
  * Kill all downloads associated with a fi and remove the fi itself.
+ *
+ * Will return FALSE if download could not be removed because it was still in
+ * use. EG, when it is being verified.
+ * 		-- JA 25/10/03
  */
-void fi_purge(gnet_fi_t fih)
+gboolean fi_purge(gnet_fi_t fih)
 {
 	GSList *sl;
 	GSList *csl;
@@ -3679,7 +3683,11 @@ void fi_purge(gnet_fi_t fih)
 		struct download *dl = (struct download *) sl->data;
 
 		download_abort(dl);
-		download_remove(dl);
+		if (!download_remove(dl)) {
+			g_slist_free(csl);
+			
+			return FALSE;
+		}
 	}
 
 	g_slist_free(csl);
@@ -3696,6 +3704,8 @@ void fi_purge(gnet_fi_t fih)
 		file_info_hash_remove(fi);
 		fi_free(fi);
 	}
+	
+	return TRUE;
 }
 
 /*
@@ -3883,4 +3893,3 @@ gboolean file_info_restrict_range(
 
 	return FALSE;	/* Sorry, cannot satisfy this request */
 }
-
