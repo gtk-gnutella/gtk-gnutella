@@ -454,7 +454,7 @@ void on_button_kill_upload_clicked(GtkButton * button, gpointer user_data)
 			continue;
 		}
 
-		if (d->status != GTA_UL_COMPLETE)
+		if (!UPLOAD_IS_COMPLETE(d))
 			socket_destroy(d->socket);
 		l = next;
 	}
@@ -475,7 +475,7 @@ void on_button_clear_uploads_clicked(GtkButton * button,
 		d = gtk_clist_get_row_data(GTK_CLIST(clist_uploads), row);
 		if (!d)
 			break;
-		if (d->status == GTA_UL_COMPLETE)
+		if (UPLOAD_IS_COMPLETE(d))
 			upload_remove(d, NULL);
 		else
 			row++;
@@ -511,7 +511,7 @@ gboolean on_clist_uploads_button_press_event(GtkWidget * widget,
 			gtk_clist_get_row_data(GTK_CLIST(clist_uploads), row);
 		gtk_clist_unselect_all(GTK_CLIST(clist_uploads));
 		gtk_widget_set_sensitive(button_kill_upload,
-			(d->status != GTA_UL_COMPLETE));
+			!UPLOAD_IS_COMPLETE(d));
 #endif
 
 	gui_update_upload_kill();
@@ -1414,6 +1414,9 @@ gboolean on_entry_max_uploads_focus_out_event(GtkWidget * widget,
 static void search_reissue_timeout_changed(GtkEntry * entry)
 {
 	guint v = atol(gtk_entry_get_text(entry));
+
+	if (v < 600)
+		v = 600;		/* Have to be reasonable -- RAM, 22/12/2001 */
 
 	if (v < ((guint32) - 1) / 1000)
 		search_update_reissue_timeout(v);
