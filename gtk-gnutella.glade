@@ -2769,7 +2769,6 @@
 			<widget>
 			  <class>GtkToggleButton</class>
 			  <name>togglebutton_queue_freeze</name>
-			  <width>65</width>
 			  <can_focus>True</can_focus>
 			  <signal>
 			    <name>toggled</name>
@@ -7725,18 +7724,6 @@ settings</label>
   <widget>
     <class>GtkMenuItem</class>
     <name>separator2</name>
-    <right_justify>False</right_justify>
-  </widget>
-
-  <widget>
-    <class>GtkMenuItem</class>
-    <name>popup_search_stop_sorting</name>
-    <signal>
-      <name>activate</name>
-      <handler>on_popup_search_stop_sorting_activate</handler>
-      <last_modification_time>Tue, 02 May 2000 19:56:35 GMT</last_modification_time>
-    </signal>
-    <label>Stop automatic sorting</label>
     <right_justify>False</right_justify>
   </widget>
 

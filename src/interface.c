@@ -129,7 +129,6 @@ GtkWidget *popup_search_filters;
 GtkWidget *popup_search_restart;
 GtkWidget *popup_search_resume;
 GtkWidget *popup_search_stop;
-GtkWidget *popup_search_stop_sorting;
 GtkWidget *popup_search_toggle_tabs;
 GtkWidget *popup_search;
 GtkWidget *popup_hosts;
@@ -1970,7 +1969,6 @@ create_main_window (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (togglebutton_queue_freeze);
   gtk_box_pack_start (GTK_BOX (hbox68), togglebutton_queue_freeze, FALSE, FALSE, 0);
-  gtk_widget_set_usize (togglebutton_queue_freeze, 65, -2);
 
   hbox86 = gtk_hbox_new (FALSE, 4);
   gtk_widget_ref (hbox86);
@@ -4727,13 +4725,6 @@ create_popup_search (void)
   gtk_container_add (GTK_CONTAINER (popup_search), separator2);
   gtk_widget_set_sensitive (separator2, FALSE);
 
-  popup_search_stop_sorting = gtk_menu_item_new_with_label ("Stop automatic sorting");
-  gtk_widget_ref (popup_search_stop_sorting);
-  gtk_object_set_data_full (GTK_OBJECT (popup_search), "popup_search_stop_sorting", popup_search_stop_sorting,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (popup_search_stop_sorting);
-  gtk_container_add (GTK_CONTAINER (popup_search), popup_search_stop_sorting);
-
   popup_search_toggle_tabs = gtk_menu_item_new_with_label ("Show tabs");
   gtk_widget_ref (popup_search_toggle_tabs);
   gtk_object_set_data_full (GTK_OBJECT (popup_search), "popup_search_toggle_tabs", popup_search_toggle_tabs,
@@ -4761,9 +4752,6 @@ create_popup_search (void)
                       NULL);
   gtk_signal_connect (GTK_OBJECT (popup_search_clear_results), "activate",
                       GTK_SIGNAL_FUNC (on_popup_search_clear_results_activate),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (popup_search_stop_sorting), "activate",
-                      GTK_SIGNAL_FUNC (on_popup_search_stop_sorting_activate),
                       NULL);
   gtk_signal_connect (GTK_OBJECT (popup_search_toggle_tabs), "activate",
                       GTK_SIGNAL_FUNC (on_popup_search_toggle_tabs_activate),
