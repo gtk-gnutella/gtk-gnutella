@@ -68,7 +68,7 @@ void routing_log(gchar * fmt, ...)
 static void decrement_message_counters(GSList *head);
 
 /* just used to ensure type safety when accessing the routing_data field */
-struct route_data * get_routing_data(struct gnutella_node *n)
+static struct route_data * get_routing_data(struct gnutella_node *n)
 {
 	return (struct route_data *)(n->routing_data);
 }
@@ -283,7 +283,8 @@ static void remove_one_message_reference(GSList * cur)
 			g_free(rd);
 			cur->data = NULL;	/* Mark as freed, don't try again --RAM */
 		}
-	}
+	} else
+		g_assert(rd == &fake_route);
 }
 
 /* reduces the messages in routing table count for all nodes in list */
@@ -325,8 +326,10 @@ void routing_node_remove(struct gnutella_node *node)
 void message_add(guchar * muid, guint8 function,
 				 struct gnutella_node *node)
 {
-	struct route_data *route;
 	static time_t last_rotation = 0;
+	static gboolean cycled = FALSE;
+	struct route_data *route;
+	struct message *entry;
 
 	if (last_rotation == 0)
 		last_rotation = time((time_t) NULL);
@@ -351,45 +354,49 @@ void message_add(guchar * muid, guint8 function,
 	else
 	{
 		if (node->routing_data == NULL)
-		{
 			init_routing_data(node);
-			route = get_routing_data(node);
-		}
-		else route = node->routing_data;
+		route = get_routing_data(node);
 	}
+
+	if (dbg && cycled && next_message_index == 0) {
+		time_t now = time((time_t) NULL);
+		int elapsed = now - last_rotation;
+
+		printf("Cycling through route table after %d seconds\n", elapsed);
+		last_rotation = now;
+	}
+
+	entry = &message_array[next_message_index];
 	
-	/* remove the item that previously occupied our storage space, if it
-	 * was in the hash table */
-	if (message_array[next_message_index].nodes != NULL)
-	{
-		g_hash_table_remove(messages_hashed, &message_array[next_message_index]);
-		decrement_message_counters(message_array[next_message_index].nodes);
-		g_slist_free(message_array[next_message_index].nodes);
-		message_array[next_message_index].nodes = NULL;
+	/*
+	 * If we cycled through the table, remove the message at the slot we're
+	 * going to supersede.
+	 */
 
-		if (dbg && next_message_index == 0) {
-			time_t now = time((time_t) NULL);
-			int elapsed = now - last_rotation;
+	if (cycled) {
+		g_hash_table_remove(messages_hashed, entry);
 
-			printf("Cycling through route table after %d seconds\n", elapsed);
-			last_rotation = now;
+		if (entry->nodes != NULL) {
+			decrement_message_counters(entry->nodes);
+			g_slist_free(entry->nodes);
+			entry->nodes = NULL;
 		}
 	}
 
 	/* fill in that storage space */
-	memcpy(message_array[next_message_index].muid, muid, 16);
-	message_array[next_message_index].nodes =
-		g_slist_append(message_array[next_message_index].nodes, route);
-	message_array[next_message_index].function = function;
+	memcpy(entry->muid, muid, 16);
+	entry->nodes = g_slist_append(entry->nodes, route);
+	entry->function = function;
 
 	/* insert the new message into the hash table */
-	g_hash_table_insert(messages_hashed, &message_array[next_message_index],
-		&message_array[next_message_index]);
+	g_hash_table_insert(messages_hashed, entry, entry);
 
 	route->saved_messages++;
 	
-	if (++next_message_index >= MAX_STORED_MESSAGES)
+	if (++next_message_index >= MAX_STORED_MESSAGES) {
 		next_message_index = 0;
+		cycled = TRUE;
+	}
 }
 
 /* remove references to routing data that is no longer associated with
