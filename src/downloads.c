@@ -2515,8 +2515,10 @@ void download_fallback_to_push(struct download *d,
  * this is our convention for expressing a /uri-res/N2R? download URL.
  * However, we don't forbid 0 as a valid record index if it does not
  * have a SHA1.
+ *
+ * Returns created download structure, or NULL if none.
  */
-static void create_download(
+static struct download *create_download(
 	gchar *file, guint32 size, guint32 record_index,
 	guint32 ip, guint16 port, gchar *guid, gchar *sha1, time_t stamp,
 	gboolean push, gboolean interactive, struct dl_file_info *file_info)
@@ -2534,7 +2536,7 @@ static void create_download(
 		if (interactive)
 			g_warning("rejecting duplicate download for %s", file_name);
 		atom_str_free(file_name);
-		return;
+		return NULL;
 	}
 
 	/*
@@ -2626,11 +2628,11 @@ static void create_download(
 				sha1_base32(d->sha1), fi->done, fi->done == 1 ? "" : "s",
 				download_outname(d));
 			if (DOWNLOAD_IS_QUEUED(d))		/* file_info_got_sha1() can queue */
-				return;
+				return d;
 		} else {
 			download_info_reget(d);
 			download_queue(d, _("Dup SHA1 during creation"));
-			return;
+			return d;
 		}
 	}
 
@@ -2649,6 +2651,8 @@ static void create_download(
 		/* Max number of downloads reached, we have to queue it */
 		download_queue(d, _("No download slot"));
 	}
+
+	return d;
 }
 
 
@@ -2763,7 +2767,7 @@ void download_auto_new(gchar *file, guint32 size, guint32 record_index,
 
 	file_name = atom_str_get(file);
 
-	create_download(file_name, size, record_index, ip, port,
+	(void) create_download(file_name, size, record_index, ip, port,
 		guid, sha1, stamp, push, FALSE, fi);
 	return;
 
@@ -2935,7 +2939,7 @@ void download_new(gchar *file, guint32 size, guint32 record_index,
 			  guint32 ip, guint16 port, gchar *guid, guchar *sha1,
 			  time_t stamp, gboolean push, struct dl_file_info *fi)
 {
-	create_download(file, size, record_index, ip, port, guid, sha1,
+	(void) create_download(file, size, record_index, ip, port, guid, sha1,
 		stamp, push, TRUE, fi);
 }
 
@@ -2948,7 +2952,7 @@ void download_new(gchar *file, guint32 size, guint32 record_index,
 void download_orphan_new(
 	gchar *file, guint32 size, guchar *sha1, struct dl_file_info *fi)
 {
-	create_download(file, size, 0, 0, 0, blank_guid, sha1,
+	(void) create_download(file, size, 0, 0, 0, blank_guid, sha1,
 		time(NULL), FALSE, TRUE, fi);
 }
 
@@ -4280,6 +4284,8 @@ static void download_request(
 	gchar *buf;
 	struct stat st;
 	gboolean got_content_length = FALSE;
+	guint32 check_content_range = 0;
+	guint32 requested_size;
 	guint32 ip;
 	guint16 port;
 	gint http_major = 0, http_minor = 0;
@@ -4744,11 +4750,11 @@ static void download_request(
 	 */
 
 	fi = d->file_info;
+	requested_size = d->range_end - d->skip + d->overlap_size;
 
 	buf = header_get(header, "Content-Length");		/* Mandatory */
 	if (buf) {
 		guint32 content_size = atol(buf);
-		guint32 requested_size = d->range_end - d->skip + d->overlap_size;
 		if (content_size == 0) {
 			download_bad_source(d);
 			download_stop(d, GTA_DL_ERROR, "Zero Content-Length");
@@ -4762,25 +4768,8 @@ static void download_request(
 				download_stop(d, GTA_DL_ERROR,
 					"Server can't handle resume request");
 				return;
-			} else {
-				/*
-				 * If the file on the server is greater than what we thought
-				 * it would be, then probably they are sharing a file that
-				 * they still receive.	Because now sevents start doing
-				 * swarming, we cannot be sure that the file is complete
-				 * without holes within the range we request.
-				 *
-				 * If the file is smaller than expected, then I don't know
-				 * what's happening but in any case, don't proceed!
-				 *
-				 *		--RAM, 15/05/2002
-				 */
-				g_warning("File '%s': expected content of %u, server said %u",
-					d->file_name, requested_size, content_size);
-				download_bad_source(d);
-				download_stop(d, GTA_DL_ERROR, "Content-Length mismatch");
-				return;
-			}
+			} else
+				check_content_range = content_size;	/* Need Content-Range */
 		}
 		got_content_length = TRUE;
 	}
@@ -4805,6 +4794,20 @@ static void download_request(
 				g_warning("File '%s': end byte mismatch: wanted %u, got %u"
 					" (continuing anyway)",
 					d->file_name, d->range_end - 1, end);
+
+				/*
+				 * Since we're getting less than we asked for, we need to
+				 * update the end/size information and mark as DL_CHUNK_EMPTY
+				 * the trailing part of the range we won't be getting.
+				 *		-- RAM, 15/05/2003
+				 */
+
+				file_info_update(d, end + 1, d->range_end, DL_CHUNK_EMPTY);
+
+				d->range_end = end + 1;				/* The new end */
+				d->size = d->range_end - d->skip;	/* Don't count overlap */
+
+				gui_update_download_range(d);
 			}
 			if (total != fi->size) {
 				g_warning("File '%s': file size mismatch: expected %u, got %u",
@@ -4814,10 +4817,27 @@ static void download_request(
 				return;
 			}
 			got_content_length = TRUE;
-		} else {
+			check_content_range = 0;		/* We validated the served range */
+		} else
 			g_warning("File '%s': malformed Content-Range: %s",
 				d->file_name, buf);
-		}
+	}
+
+	/*
+	 * If we needed a Content-Range to validate the served range,
+	 * but we didn't have any or could not parse it, abort!
+	 */
+
+	if (check_content_range != 0) {
+		g_warning("File '%s': expected content of %u, server %s (%s) said %u",
+			d->file_name, requested_size,
+			ip_port_to_gchar(download_ip(d), download_port(d)),
+			download_vendor_str(d),
+			check_content_range);
+
+		download_bad_source(d);
+		download_stop(d, GTA_DL_ERROR, "Content-Length mismatch");
+		return;
 	}
 
 	/*
@@ -5462,7 +5482,7 @@ static struct download *select_push_download(guint file_index, gchar *hex_guid)
 				server->count[DL_LIST_WAITING] == 0 ||
 				count_running_on_server(server) >= max_host_downloads
 			)
-			continue;
+				continue;
 
 			for (w = server->list[DL_LIST_WAITING]; w; w = g_list_next(w)) {
 				struct download *d = (struct download *) w->data;
@@ -5627,6 +5647,34 @@ void download_retry(struct download *d)
 	download_stop(d, GTA_DL_TIMEOUT_WAIT, NULL);
 }
 
+/*
+ * download_find_waiting_unparq
+ *
+ * Find a waiting download on the specified server, identified by its IP:port
+ * for which we have no PARQ information yet.
+ *
+ * Returns NULL if none, the download we found otherwise.
+ */
+struct download *download_find_waiting_unparq(guint32 ip, guint16 port)
+{
+	struct dl_server *server = get_server(blank_guid, ip, port);
+	GList *w;
+
+	if (server == NULL)
+		return NULL;
+
+	for (w = server->list[DL_LIST_WAITING]; w; w = g_list_next(w)) {
+		struct download *d = (struct download *) w->data;
+
+		g_assert(!DOWNLOAD_IS_RUNNING(d));
+
+		if (d->queue_status == NULL)		/* No PARQ information yet */
+			return d;						/* Found it! */
+	}
+
+	return NULL;
+}
+
 /***
  *** Queue persistency routines
  ***/
@@ -5665,11 +5713,12 @@ static void download_store(void)
 	fputs("#   <blank line>\n", out);
 	fputs("#\n\n", out);
 
-	fputs("RECLINES=3\n\n", out);
+	fputs("RECLINES=4\n\n", out);
 
 	for (l = sl_downloads; l; l = g_slist_next(l)) {
 		struct download *d = (struct download *) l->data;
 		gchar *escaped;
+		gchar *id;
 
 		if (d->status == GTA_DL_DONE || d->status == GTA_DL_REMOVED)
 			continue;
@@ -5677,14 +5726,16 @@ static void download_store(void)
 			continue;
 
 		escaped = url_escape_cntrl(d->file_name);	/* Protect against "\n" */
+		id = get_parq_dl_id(d);
 
 		fprintf(out, "%s\n", escaped);
 		fprintf(out, "%u, %u:%s, %s\n",
 			d->file_info->size,
 			d->record_index, guid_hex_str(download_guid(d)),
 			ip_port_to_gchar(download_ip(d), download_port(d)));
-		fprintf(out, "%s\n\n",
+		fprintf(out, "%s\n",
 			d->file_info->sha1 ? sha1_base32(d->file_info->sha1) : "*");
+		fprintf(out, "%s\n\n", id != NULL ? id : "*");
 
 		if (escaped != d->file_name)				/* Lazily dup'ed */
 			g_free(escaped);
@@ -5717,6 +5768,8 @@ static void download_retrieve(void)
 	gint maxlines = -1;
 	file_path_t fp = { settings_config_dir(), download_file };
 	gboolean allow_comments = TRUE;
+	gchar *parq_id = NULL;
+	struct download *d;
 
 	in = file_config_open_read(file_what, &fp, 1);
 
@@ -5807,13 +5860,7 @@ static void download_retrieve(void)
 			if (maxlines == 2)
 				break;
 			continue;
-		case 3:
-			if (maxlines != 3) {
-				g_warning("download_retrieve: "
-					"can't handle %d lines in records, aborting", maxlines);
-				goto out;
-			}
-
+		case 3:						/* SHA1 hash, or "*" if none */
 			if (dl_tmp[0] == '*')
 				break;
 			if (
@@ -5826,6 +5873,15 @@ static void download_retrieve(void)
 					dl_tmp, line);
 			} else
 				has_sha1 = TRUE;
+			break;
+		case 4:						/* PARQ id, or "*" if none */
+			if (maxlines != 4) {
+				g_warning("download_retrieve: "
+					"can't handle %d lines in records, aborting", maxlines);
+				goto out;
+			}
+			if (dl_tmp[0] != '*')
+				parq_id = g_strdup(dl_tmp);
 			break;
 		default:
 			g_warning("download_retrieve: "
@@ -5844,8 +5900,21 @@ static void download_retrieve(void)
 		 * old and the entry does not get added to the download mesh yet.
 		 */
 
-		create_download(d_name, d_size, d_index, d_ip, d_port, d_guid,
+		d = create_download(d_name, d_size, d_index, d_ip, d_port, d_guid,
 			has_sha1 ? sha1_digest : NULL, 1, FALSE, FALSE, NULL);
+
+		g_assert(d != NULL);
+
+		/*
+		 * Record PARQ id if present, so we may answer QUEUE callbacks.
+		 */
+
+		if (parq_id != NULL) {
+			parq_dl_create(d);
+			parq_dl_add_id(d, parq_id);
+			g_free(parq_id);
+			parq_id = NULL;
+		}
 
 		/*
 		 * Don't free `d_name', we gave it to create_download()!
@@ -5854,7 +5923,6 @@ static void download_retrieve(void)
 		d_name = NULL;
 		recline = 0;				/* Mark the end */
 		has_sha1 = FALSE;
-
 	}
 
 out:
