@@ -106,6 +106,9 @@ typedef struct gnet_node_status {
 	guint32  rt_avg;			/* Average ping/pong roundtrip time */
 	guint32  rt_last;			/* Last ping/pong roundtrip time */
 
+	guint32 tcp_rtt;			/* RTT in ms over TCP */
+	guint32 udp_rtt;			/* RTT in ms over UDP */
+
     gint     shutdown_remain;   /* Number of seconds before shutdown */
     gchar    message[128];       /* Additional information */
 } gnet_node_status_t;

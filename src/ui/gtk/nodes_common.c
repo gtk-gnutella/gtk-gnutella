@@ -241,9 +241,18 @@ const gchar *nodes_gui_common_status_str(
 				" Dup=%u Bad=%u W=%u H=%u",
 				n->n_dups, n->n_bad, n->n_weird, n->n_hostile);
 
-			if (show_gnet_info_rt)
+			if (show_gnet_info_rt) {
 				slen += gm_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
-				" RT(avg=%d, last=%d)", n->rt_avg, n->rt_last);
+				" RT(avg=%d, last=%d", n->rt_avg, n->rt_last);	/* ) */
+				if (n->tcp_rtt)
+					slen += gm_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
+						", tcp=%d", n->tcp_rtt);
+				if (n->udp_rtt)
+					slen += gm_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
+						", udp=%d", n->udp_rtt);
+				slen += gm_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
+					/* ( */ ")");
+			}
 
 			slen += gm_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
 				" Q=%d,%d%% %s",
