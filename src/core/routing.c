@@ -1491,7 +1491,8 @@ route_query(struct route_log *log,
 	) {
 		gint ttl_max = my_ttl - sender->header.hops - 1;
 		sender->header.ttl = MAX(ttl_max, 1);	/* Trim down */
-		routing_log_extra(log, "No dyn. query, TTL forced to %d ", sender->header.ttl);
+		routing_log_extra(log, "No dyn. query, TTL forced to %d ",
+			sender->header.ttl);
 	}
 
 	return forward_message(log, node, NULL, dest, NULL);	/* Broadcast */
