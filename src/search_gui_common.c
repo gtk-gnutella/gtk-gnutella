@@ -73,6 +73,7 @@ search_t *search_gui_get_current_search(void)	{ return current_search; }
 void search_gui_forget_current_search(void)		{ current_search = NULL; }
 void search_gui_current_search(search_t *sch)	{ current_search = sch; }
 
+
 /*
  * search_gui_free_alt_locs
  *
@@ -126,6 +127,8 @@ void search_gui_free_record(record_t *rc)
 	atom_str_free(rc->name);
 	if (rc->tag != NULL)
 		atom_str_free(rc->tag);
+	if (rc->info != NULL)
+		atom_str_free(rc->info);
 	if (rc->sha1 != NULL)
 		atom_sha1_free(rc->sha1);
 	if (rc->alt_locs != NULL)
@@ -286,7 +289,6 @@ void search_gui_unref_record(record_t *rc)
 	/*
 	 * Free record, and remove it from the parent's list.
 	 */
-
 	rs = rc->results_set;
 	search_gui_free_record(rc);
 
@@ -458,6 +460,8 @@ record_t *search_gui_create_record(results_set_t *rs, gnet_record_t *r)
     rc->index = r->index;
     rc->sha1 = r->sha1 != NULL ? atom_sha1_get(r->sha1) : NULL;
     rc->tag = r->tag != NULL ? atom_str_get(r->tag) : NULL;
+	rc->info = NULL;
+	rc->count = 0;
     rc->flags = r->flags;
 	rc->alt_locs = NULL;
 
@@ -472,7 +476,7 @@ record_t *search_gui_create_record(results_set_t *rs, gnet_record_t *r)
 
 		rc->alt_locs = alt;
 	}
-
+	
     return rc;
 }
 

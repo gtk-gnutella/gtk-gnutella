@@ -47,6 +47,12 @@ static gchar tmpstr[4096];
  ***/
 
 
+/* 
+ * 	refresh_popup
+ *
+ *	Activates/deactivates buttons and popups based on what is selected
+ *
+ */
 static void refresh_popup(void)
 {
 	gboolean sensitive;
@@ -55,7 +61,7 @@ static void refresh_popup(void)
     search = search_gui_get_current_search();
 
 	sensitive = search && 
-        (gboolean) GPOINTER_TO_INT(GTK_CLIST(search->clist)->selection);
+        (NULL != (GTK_CLIST(search->ctree))->selection);
 	gtk_widget_set_sensitive
         (lookup_widget(main_window, "button_search_download"), sensitive);
     gtk_widget_set_sensitive
@@ -117,15 +123,25 @@ void on_combo_entry_searches_activate
 }
 
 
+/* 
+ * 	on_search_popdown_switch
+ */
 void on_search_popdown_switch(GtkWidget *w, gpointer data)
 {
 	if (search_selected != NULL)
         search_gui_set_current_search(search_selected);
 }
 
-void on_search_notebook_switch(GtkNotebook * notebook,
-							   GtkNotebookPage * page, gint page_num,
-							   gpointer user_data)
+
+/* 
+ * 	on_search_notebook_switch
+ *
+ *	When the user switches notebook tabs, update the rest of GUI
+ *
+ *	This may be obsolete as we removed the tabbed interface --Emile 27/12/03
+ */
+void on_search_notebook_switch(GtkNotebook * notebook, GtkNotebookPage * page, 
+	gint page_num, gpointer user_data)
 {
 	search_t *sch;
 
@@ -137,9 +153,14 @@ void on_search_notebook_switch(GtkNotebook * notebook,
     search_gui_set_current_search(sch);
 }
 
-void on_clist_search_select_row(GtkCList * clist, gint row,
-								 gint column, GdkEvent * event,
-								 gpointer user_data)
+
+/* 
+ * 	on_clist_search_select_row
+ *
+ *	Changes current search and updates GUI
+ */
+void on_clist_search_select_row(GtkCList * clist, gint row, gint column, 
+	GdkEvent * event, gpointer user_data)
 {
     gpointer sch;
 
@@ -153,11 +174,22 @@ void on_clist_search_select_row(GtkCList * clist, gint row,
     search_gui_set_current_search((search_t *)sch);
 }
 
+
+/* 
+ * 	on_search_selected
+ */
 void on_search_selected(GtkItem * i, gpointer data)
 {
 	search_selected = (search_t *) data;
 }
 
+
+/* 
+ * 	on_button_search_clicked
+ *
+ *	Create a search based on query entered
+ *
+ */
 void on_button_search_clicked(GtkButton *button, gpointer user_data)
 {
 	gchar *e = gtk_editable_get_chars
@@ -219,6 +251,10 @@ void on_button_search_clicked(GtkButton *button, gpointer user_data)
 	g_free(e);
 }
 
+
+/* 
+ * 	on_entry_search_activate
+ */
 void on_entry_search_activate(GtkEditable * editable, gpointer user_data)
 {
     /*
@@ -229,6 +265,13 @@ void on_entry_search_activate(GtkEditable * editable, gpointer user_data)
 	on_button_search_clicked(NULL, user_data);
 }
 
+
+/* 
+ * 	on_entry_search_changed
+ *
+ *	When a search string is entered, activate the search button
+ *
+ */
 void on_entry_search_changed(GtkEditable * editable, gpointer user_data)
 {
 	gchar *e = gtk_editable_get_chars(editable, 0, -1);
@@ -238,6 +281,13 @@ void on_entry_search_changed(GtkEditable * editable, gpointer user_data)
 	g_free(e);
 }
 
+
+/* 
+ * 	on_button_search_clear_clicked
+ *
+ *	Clear search results, de-activate clear search button
+ *
+ */
 void on_button_search_clear_clicked(GtkButton * button, gpointer user_data)
 {
 	gui_search_clear_results();
@@ -246,6 +296,10 @@ void on_button_search_clear_clicked(GtkButton * button, gpointer user_data)
         (lookup_widget(main_window, "button_search_clear"), FALSE);
 }
 
+
+/* 
+ * 	on_button_search_close_clicked
+ */
 void on_button_search_close_clicked(GtkButton * button, gpointer user_data)
 {
     search_t *search;
@@ -256,11 +310,37 @@ void on_button_search_close_clicked(GtkButton * button, gpointer user_data)
         search_gui_close_search(search);
 }
 
+
+/* 
+ * 	on_button_search_download_clicked
+ */
 void on_button_search_download_clicked(GtkButton * button, gpointer user_data)
 {
     search_gui_download_files();
 }
 
+
+/* 
+ * 	on_button_search_collapse_clicked
+ */
+void on_button_search_collapse_clicked(GtkButton *button, gpointer user_data)
+{
+    search_gui_collapse_all();
+}
+
+
+/* 
+ * 	on_button_search_expand_clicked
+ */
+void on_button_search_expand_clicked(GtkButton *button, gpointer user_data)
+{
+    search_gui_expand_all();
+}
+
+
+/* 
+ * 	on_clist_search_results_key_press_event
+ */
 gboolean on_clist_search_results_key_press_event
     (GtkWidget *widget, GdkEventKey * event, gpointer user_data)
 {
@@ -275,6 +355,13 @@ gboolean on_clist_search_results_key_press_event
     };
 }
 
+
+/* 
+ * 	on_clist_search_results_button_press_event
+ *
+ *	Handles showing the popup in the event of right-clicks and downloading
+ *	for double-clicks
+ */
 gboolean on_clist_search_results_button_press_event
     (GtkWidget *widget, GdkEventButton * event, gpointer user_data)
 {
@@ -301,17 +388,11 @@ gboolean on_clist_search_results_button_press_event
 				 */
 				gtk_signal_emit_stop_by_name(GTK_OBJECT(widget),
 					"button_press_event");
-				if (
-					gtk_clist_get_selection_info(GTK_CLIST(widget), event->x,
-						event->y, &row, &column)
-				) {
-					/*
-					 * Manually reselect to force the autoselection to behave
-					 * correctly.
-					 */
-					gtk_clist_select_row(GTK_CLIST(widget), row, column);
-					search_gui_download_files();
+					
+				if (gtk_clist_get_selection_info(GTK_CLIST(widget), event->x,
+					event->y, &row, &column)) {
 
+					search_gui_download_files();
                     return TRUE;
 				}
 			} else {
@@ -324,8 +405,6 @@ gboolean on_clist_search_results_button_press_event
 	case 3:
         /* right click section (popup menu) */
         refresh_popup();
-
-
         {
             gboolean search_results_show_tabs;
     
@@ -351,12 +430,23 @@ gboolean on_clist_search_results_button_press_event
 	return FALSE;
 }
 
+
+/* 
+ * 	on_button_search_filter_clicked
+ */
 void on_button_search_filter_clicked(
     GtkButton *button, gpointer user_data)
 {
 	filter_open_dialog();
 }
 
+
+/* 
+ * 	on_clist_search_results_click_column
+ *
+ *	Sort search according to selected column 
+ *
+ */
 void on_clist_search_results_click_column(
     GtkCList *clist, gint column, gpointer user_data)
 {
@@ -387,23 +477,38 @@ void on_clist_search_results_click_column(
 	}
 	
 	search_gui_sort_column(search, column); /* Sort column, draw arrow */
- 
-
 }
 
-/**
- * on_clist_search_results_select_row:
+
+/*
+ *	on_clist_search_results_select_row:
  *
- * This function is called when the user selectes a row in the
- * search results pane. Autoselection takes place here.
+ *	This function is called when the user selects a row in the
+ *	search results pane. Autoselection takes place here.
  */
-void on_clist_search_results_select_row(
-    GtkCList * clist, gint row, gint col, GdkEvent * event, gpointer data)
+void on_ctree_search_results_select_row(GtkCTree *ctree,
+	GList *node, gint column, gpointer user_data)
 {
     gboolean search_autoselect;
     gboolean search_autoselect_ident;
     gboolean search_autoselect_fuzzy;
+    search_t *sch;
+	record_t *rc, *rc2;
 
+	GList *row_list;
+	GtkCTreeNode *auto_node, *parent;
+	GtkCTreeRow *parent_row;
+	gint x, i;
+    GList *l;
+    guint32 fuzzy_threshold;
+	gpointer key = NULL;
+
+	if (NULL == node)
+		return;
+	
+	/* Add selected node to selected list for this search*/
+    sch = search_gui_get_current_search();
+	
     gui_prop_get_boolean(
         PROP_SEARCH_AUTOSELECT, 
         &search_autoselect, 0, 1);
@@ -418,29 +523,25 @@ void on_clist_search_results_select_row(
 
     /*
      * Block this signal so we don't emit it for every autoselected item.
-     */
+	 *
+	 * Note: this means we will have to manually add each autoselected item
+	 * to the selected list.
+	 */
     gtk_signal_handler_block_by_func(
-        GTK_OBJECT(clist),
-        GTK_SIGNAL_FUNC(on_clist_search_results_select_row),
+        GTK_OBJECT(ctree),
+        GTK_SIGNAL_FUNC(on_ctree_search_results_select_row),
         NULL);
 
     refresh_popup();
 
-    gtk_clist_freeze(clist);
 
     /* 
      * check if config setting select all is on and only autoselect if
      * only one item is selected (no way to merge two autoselections)
      */
-	if (
-        search_autoselect && 
-        (clist->selection != NULL) &&
-        (clist->selection->next == NULL)
-    ) {
-		record_t *rc;
-		gint x, i;
-        GList *l;
-        guint32 fuzzy_threshold;
+	if (search_autoselect && 
+        (GTK_CLIST(ctree)->selection != NULL) &&
+        (GTK_CLIST(ctree)->selection->next == NULL)) {
 
         gnet_prop_get_guint32(PROP_FUZZY_THRESHOLD, &fuzzy_threshold, 0, 1);
 
@@ -451,19 +552,25 @@ void on_clist_search_results_select_row(
          * is done.
          *      --BLUE, 20/06/2002
          */
-		rc = (record_t *) gtk_clist_get_row_data(clist, row);
+		rc = (record_t *) gtk_ctree_node_get_row_data
+			(ctree, GTK_CTREE_NODE(node));
 
-        /*
-         * Note that rc != NULL is embedded in the "for condition".
-         * No need to copy row_list since we do not modify it.
-         */
-        x = 1;
-        for (
-            l = clist->row_list, i = 0; 
-            (rc != NULL) && (l != NULL); 
-            l = l->next, ++ i
-        ) {
-            record_t *rc2 = (record_t *)((GtkCListRow *) l->data)->data;
+        /* Search whole ctree for nodes to autoselect 
+         * Note, the "row_list" of the ctree/clist contains the row number of
+		 * each node. The "selection" list (used elsewhere) contains 
+		 * GtkCTreeNode*'s.  This is undocumented but important. -- Emile
+		 */			
+		for (x = 1, row_list = GTK_CLIST(ctree)->row_list; 
+			(NULL != row_list) && (NULL != rc);
+			row_list = g_list_next(row_list)) {			
+       
+			/* Use the row number, to get the TreeNode */	
+			auto_node = gtk_ctree_node_nth(ctree, 
+				GPOINTER_TO_INT(row_list->data));
+			if (NULL == auto_node)
+				continue;
+			
+			rc2 = (record_t *)gtk_ctree_node_get_row_data(ctree, auto_node);
 
             /*
              * Skip the line we selected in the first place.
@@ -495,7 +602,7 @@ void on_clist_search_results_select_row(
 (fuzzy_compare(rc2->name, rc->name) * 100 >= (fuzzy_threshold << FUZZY_SHIFT)))
                         )
                     )) {
-                        gtk_clist_select_row(clist, i, 0);
+                        gtk_ctree_select(ctree, auto_node);
                         x++;
                     }
                 } else {
@@ -505,7 +612,7 @@ void on_clist_search_results_select_row(
                         (rc2 && !strcmp(rc2->name, rc->name))) &&
                         (rc2->size >= rc->size)
                     ) {
-                        gtk_clist_select_row(clist, i, 0);
+                        gtk_ctree_select(ctree, auto_node);
                         x++;
                     }
                 }
@@ -519,23 +626,66 @@ void on_clist_search_results_select_row(
         } else if (x == 1) {
             statusbar_gui_message(15, "none auto selected");
         }
-	}
+	} 
 
-    gtk_clist_thaw(clist);
+
+	/* The following code will select all the children of a parent, if that
+	 * parent is selected. This isn't necessary because when a node is closed
+	 * it's children are already selected.  This would only be useful if 
+	 * someone opened a node and then clicked on the parent... in which case
+	 * they likely wouldn't want to select all the children.  Regardless,
+	 * we may want this later --- Emile
+	 */
+
+#if 0
+	/* If a parent node is selected, select all children */
+	if (GTK_CLIST(ctree)->selection != NULL) {
+
+		rc = gtk_ctree_node_get_row_data(ctree, GTK_CTREE_NODE(node));
+		if (NULL != rc->sha1) {
+
+			key = atom_sha1_get(rc->sha1);
+			parent = find_parent_with_sha1(sch->parents, key);
+		
+			if (NULL != parent) {
+			
+				parent_row = GTK_CTREE_ROW(parent);
+								
+				/* A parent exists with that sha1, is it the selected node? */
+				if ((parent == GTK_CTREE_NODE(node)) 
+					&& (NULL != parent_row->children)) {
+					gtk_ctree_select_recursive(ctree, GTK_CTREE_NODE(node));				
+				}
+			}
+			
+			atom_sha1_free(key);
+		}	
+	}
+#endif
 
     gtk_signal_handler_unblock_by_func(
-        GTK_OBJECT(clist),
-        GTK_SIGNAL_FUNC(on_clist_search_results_select_row),
+        GTK_OBJECT(ctree),
+        GTK_SIGNAL_FUNC(on_ctree_search_results_select_row),
         NULL);
+g_warning("End select row");	
+	
 }
 
-void on_clist_search_results_unselect_row(
-    GtkCList * clist, gint row, gint col, GdkEvent * event, gpointer data)
+
+/* 
+ * 	on_clist_search_results_unselect_row
+ */
+void on_ctree_search_results_unselect_row(
+    GtkCTree *ctree, GList *node, gint column, gpointer user_data)
 {
     refresh_popup();
 }
 
-void on_clist_search_results_resize_column(
+
+/* 
+ * 	on_ctree_search_results_resize_column
+ */
+void on_ctree_search_results_resize_column(
     GtkCList * clist, gint column, gint width, gpointer user_data)
 {
     guint32 buf = width;
@@ -544,6 +694,13 @@ void on_clist_search_results_resize_column(
     gui_prop_set_guint32(PROP_SEARCH_RESULTS_COL_WIDTHS, &buf, column, 1);
 }
 
+
+/* 
+ * 	on_button_search_passive_clicked
+ *
+ *	Please add comment
+ *
+ */
 void on_button_search_passive_clicked(
     GtkButton *button, gpointer user_data)
 {
@@ -586,218 +743,298 @@ void on_button_search_passive_clicked(
  *** Search results popup
  ***/
 
-void on_popup_search_drop_name_activate(
-    GtkMenuItem *menuitem, gpointer user_data)
+
+/* 
+ * 	search_cb_collect_ctree_data
+ *
+ *	Given a GList of GtkCTreeNodes, return a new list pointing to the row data 
+ *	List will have to be freed later on.
+ */
+GList *search_cb_collect_ctree_data(GtkCTree *ctree, GList *node_list)
 {
-    GSList *sl = NULL;
+	GList *data_list = NULL;
+	record_t *rc;
+	
+	for(; node_list != NULL; node_list = g_list_next(node_list)) {
+	
+		if(node_list->data != NULL) {
+			rc = gtk_ctree_node_get_row_data(ctree, node_list->data);
+			data_list = g_list_append(data_list, rc);
+		}
+	}
+	
+	data_list = g_list_first(data_list);
+	return data_list;
+}
+
+
+
+/* 
+ * 	on_popup_search_drop_name_activate
+ *
+ *	For all selected results, create a filter based on name
+ */
+void on_popup_search_drop_name_activate(GtkMenuItem *menuitem, 
+	gpointer user_data)
+{
+    GList *node_list, *data_list = NULL;
     search_t *search;
 
     search = search_gui_get_current_search();
-
     g_assert(search != NULL);
 
-    gtk_clist_freeze(GTK_CLIST(search->clist));
+    gtk_clist_freeze(GTK_CLIST(search->ctree));
+	
+	node_list = g_list_copy(GTK_CLIST(search->ctree)->selection);
+	data_list = search_cb_collect_ctree_data(search->ctree, node_list);
+	
+    g_list_foreach(data_list, (GFunc) filter_add_drop_name_rule, 
+		search->filter);
 
-    sl = clist_collect_data(GTK_CLIST(search->clist), 
-        FALSE, gui_record_name_eq);
-
-    g_slist_foreach(sl, 
-        (GFunc) filter_add_drop_name_rule, search->filter);
-
-    g_slist_free(sl);
-
-    gtk_clist_thaw(GTK_CLIST(search->clist));
+    gtk_clist_thaw(GTK_CLIST(search->ctree));
+	g_list_free(data_list);
 }
 
-void on_popup_search_drop_sha1_activate(
-    GtkMenuItem *menuitem, gpointer user_data)
+
+/* 
+ * 	on_popup_search_drop_sha1_activate
+ *
+ *	For all selected results, create a filter based on sha1
+ */
+void on_popup_search_drop_sha1_activate(GtkMenuItem *menuitem, 
+	gpointer user_data)
 {
-    GSList *sl = NULL;
+    GList *node_list, *data_list = NULL;
     search_t *search;
 
     search = search_gui_get_current_search();
-
     g_assert(search != NULL);
 
-    gtk_clist_freeze(GTK_CLIST(search->clist));
+    gtk_clist_freeze(GTK_CLIST(search->ctree));
+	
+	node_list = g_list_copy(GTK_CLIST(search->ctree)->selection);
+	data_list = search_cb_collect_ctree_data(search->ctree, node_list);
+	
+    g_list_foreach(data_list, (GFunc) filter_add_drop_sha1_rule, 
+		search->filter);
 
-    sl = clist_collect_data(GTK_CLIST(search->clist), 
-        FALSE, gui_record_sha1_eq);
-
-    g_slist_foreach(sl, 
-        (GFunc) filter_add_drop_sha1_rule, search->filter);
-
-    g_slist_free(sl);
-
-    gtk_clist_thaw(GTK_CLIST(search->clist));
+    gtk_clist_thaw(GTK_CLIST(search->ctree));
+	g_list_free(data_list);
 }
 
-void on_popup_search_drop_host_activate(
-    GtkMenuItem *menuitem, gpointer user_data)
+
+/* 
+ * 	on_popup_search_drop_host_activate
+ *
+ *	For all selected results, create a filter based on host
+ */
+void on_popup_search_drop_host_activate(GtkMenuItem *menuitem, 
+	gpointer user_data)
 {
-    GSList *sl = NULL;
+    GList *node_list, *data_list = NULL;
     search_t *search;
 
     search = search_gui_get_current_search();
-
     g_assert(search != NULL);
 
-    gtk_clist_freeze(GTK_CLIST(search->clist));
+    gtk_clist_freeze(GTK_CLIST(search->ctree));
+	
+	node_list = g_list_copy(GTK_CLIST(search->ctree)->selection);
+	data_list = search_cb_collect_ctree_data(search->ctree, node_list);
+	
+    g_list_foreach(data_list, (GFunc) filter_add_drop_host_rule, 
+		search->filter);
 
-    sl = clist_collect_data(GTK_CLIST(search->clist), 
-        FALSE, gui_record_sha1_eq);
-
-    g_slist_foreach(sl, (GFunc) filter_add_drop_host_rule, search->filter);
-
-    g_slist_free(sl);
-
-    gtk_clist_thaw(GTK_CLIST(search->clist));
+    gtk_clist_thaw(GTK_CLIST(search->ctree));
+	g_list_free(data_list);
 }
 
-void on_popup_search_drop_name_global_activate(
-    GtkMenuItem *menuitem, gpointer user_data)
+
+/* 
+ * 	on_popup_search_drop_name_global_activate
+ *
+ *	For all selected results, create a global filter based on name
+ */
+void on_popup_search_drop_name_global_activate(GtkMenuItem *menuitem, 
+	gpointer user_data)
 {
-    GSList *sl = NULL;
+    GList *node_list, *data_list = NULL;
     search_t *search;
 
     search = search_gui_get_current_search();
-
     g_assert(search != NULL);
 
-    gtk_clist_freeze(GTK_CLIST(search->clist));
+    gtk_clist_freeze(GTK_CLIST(search->ctree));
+	
+	node_list = g_list_copy(GTK_CLIST(search->ctree)->selection);
+	data_list = search_cb_collect_ctree_data(search->ctree, node_list);
+	
+    g_list_foreach(data_list, (GFunc) filter_add_drop_name_rule, 
+		filter_get_global_pre());
 
-    sl = clist_collect_data(GTK_CLIST(search->clist), 
-        FALSE, gui_record_name_eq);
-
-    g_slist_foreach(sl, (GFunc) filter_add_drop_name_rule, 
-        filter_get_global_pre());
-
-    g_slist_free(sl);
-
-    gtk_clist_thaw(GTK_CLIST(search->clist));
+    gtk_clist_thaw(GTK_CLIST(search->ctree));
+	g_list_free(data_list);
 }
 
-void on_popup_search_drop_sha1_global_activate(
-    GtkMenuItem *menuitem, gpointer user_data)
+
+/* 
+ * 	on_popup_search_drop_sha1_global_activate
+ *
+ *	For all selected results, create a global filter based on sha1
+ *
+ */
+void on_popup_search_drop_sha1_global_activate(GtkMenuItem *menuitem, 
+	gpointer user_data)
 {
-    GSList *sl = NULL;
+    GList *node_list, *data_list = NULL;
     search_t *search;
 
     search = search_gui_get_current_search();
-
     g_assert(search != NULL);
 
-    gtk_clist_freeze(GTK_CLIST(search->clist));
+    gtk_clist_freeze(GTK_CLIST(search->ctree));
+	
+	node_list = g_list_copy(GTK_CLIST(search->ctree)->selection);
+	data_list = search_cb_collect_ctree_data(search->ctree, node_list);
+	
+    g_list_foreach(data_list, (GFunc) filter_add_drop_sha1_rule, 
+		filter_get_global_pre());
 
-    sl = clist_collect_data(GTK_CLIST(search->clist), 
-        FALSE, gui_record_sha1_eq);
-
-    g_slist_foreach(sl, (GFunc) filter_add_drop_sha1_rule, 
-        filter_get_global_pre());
-
-    g_slist_free(sl);
-
-    gtk_clist_thaw(GTK_CLIST(search->clist));
+    gtk_clist_thaw(GTK_CLIST(search->ctree));
+	g_list_free(data_list);
 }
 
-void on_popup_search_drop_host_global_activate(
-    GtkMenuItem *menuitem, gpointer user_data)
+
+/* 
+ * 	on_popup_search_drop_host_global_activate
+ *
+ *	For all selected results, create a global filter based on host
+ *
+ */
+void on_popup_search_drop_host_global_activate(GtkMenuItem *menuitem, 
+	gpointer user_data)
 {
-    GSList *sl = NULL;
+    GList *node_list, *data_list = NULL;
     search_t *search;
 
     search = search_gui_get_current_search();
-
     g_assert(search != NULL);
 
-    gtk_clist_freeze(GTK_CLIST(search->clist));
+    gtk_clist_freeze(GTK_CLIST(search->ctree));
+	
+	node_list = g_list_copy(GTK_CLIST(search->ctree)->selection);
+	data_list = search_cb_collect_ctree_data(search->ctree, node_list);
+	
+    g_list_foreach(data_list, (GFunc) filter_add_drop_host_rule, 
+		filter_get_global_pre());
 
-    sl = clist_collect_data(GTK_CLIST(search->clist), 
-        FALSE, gui_record_sha1_eq);
-
-    g_slist_foreach(sl,(GFunc) filter_add_drop_host_rule, 
-        filter_get_global_pre());
-
-    g_slist_free(sl);
-
-    gtk_clist_thaw(GTK_CLIST(search->clist));
+    gtk_clist_thaw(GTK_CLIST(search->ctree));
+	g_list_free(data_list);
 }
 
-void on_popup_search_autodownload_name_activate(
-    GtkMenuItem *menuitem, gpointer user_data)
+
+/* 
+ * 	on_popup_search_autodownload_name_activate
+ *
+ *	Please add comment
+ *
+ */
+void on_popup_search_autodownload_name_activate(GtkMenuItem *menuitem, 
+	gpointer user_data)
 {
-    GSList *sl = NULL;
+    GList *node_list, *data_list = NULL;
     search_t *search;
 
     search = search_gui_get_current_search();
-
     g_assert(search != NULL);
 
-    gtk_clist_freeze(GTK_CLIST(search->clist));
+    gtk_clist_freeze(GTK_CLIST(search->ctree));
+	
+	node_list = g_list_copy(GTK_CLIST(search->ctree)->selection);
+	data_list = search_cb_collect_ctree_data(search->ctree, node_list);
+	
+    g_list_foreach(data_list, (GFunc) filter_add_download_name_rule, 
+		search->filter);
 
-    sl = clist_collect_data(GTK_CLIST(search->clist), 
-        FALSE, gui_record_name_eq);
-
-    g_slist_foreach(sl, (GFunc) filter_add_download_name_rule, search->filter);
-
-    g_slist_free(sl);
-
-    gtk_clist_thaw(GTK_CLIST(search->clist));
+    gtk_clist_thaw(GTK_CLIST(search->ctree));
+	g_list_free(data_list);
 }
 
-void on_popup_search_autodownload_sha1_activate(
-    GtkMenuItem *menuitem, gpointer user_data)
+
+/* 
+ * 	on_popup_search_autodownload_sha1_activate
+ *
+ *	Please add comment
+ *
+ */
+void on_popup_search_autodownload_sha1_activate(GtkMenuItem *menuitem, 
+	gpointer user_data)
 {
-    GSList *sl = NULL;
+    GList *node_list, *data_list = NULL;
     search_t *search;
 
     search = search_gui_get_current_search();
-
     g_assert(search != NULL);
 
-    gtk_clist_freeze(GTK_CLIST(search->clist));
+    gtk_clist_freeze(GTK_CLIST(search->ctree));
+	
+	node_list = g_list_copy(GTK_CLIST(search->ctree)->selection);
+	data_list = search_cb_collect_ctree_data(search->ctree, node_list);
+	
+    g_list_foreach(data_list, (GFunc) filter_add_download_sha1_rule, 
+		search->filter);
 
-    sl = clist_collect_data(GTK_CLIST(search->clist), 
-        FALSE, gui_record_sha1_eq);
-
-    g_slist_foreach(sl, (GFunc) filter_add_download_sha1_rule, search->filter);
-
-    g_slist_free(sl);
-
-    gtk_clist_thaw(GTK_CLIST(search->clist));
+    gtk_clist_thaw(GTK_CLIST(search->ctree));
+	g_list_free(data_list);
 }
 
-void on_popup_search_new_from_selected_activate(
-    GtkMenuItem *menuitem, gpointer user_data)
+
+/* 
+ * 	on_popup_search_new_from_selected_activate
+ *
+ *	Please add comment
+ *
+ */
+void on_popup_search_new_from_selected_activate(GtkMenuItem *menuitem, 
+	gpointer user_data)
 {
-    GSList *sl = NULL;
+    GList *node_list, *data_list = NULL;
     search_t *search;
 
-    /* grab current search pointer to extract selected items */
     search = search_gui_get_current_search();
-
     g_assert(search != NULL);
 
-    gtk_clist_freeze(GTK_CLIST(search->clist));
+    gtk_clist_freeze(GTK_CLIST(search->ctree));
+	
+	node_list = g_list_copy(GTK_CLIST(search->ctree)->selection);
+	data_list = search_cb_collect_ctree_data(search->ctree, node_list);
+	
+    g_list_foreach(data_list, (GFunc) gui_add_targetted_search, 
+		search->filter);
 
-    sl = clist_collect_data(GTK_CLIST(search->clist), 
-        FALSE, gui_record_sha1_eq);
-
-    g_slist_foreach(sl, (GFunc) gui_add_targetted_search, search->filter);
-
-    g_slist_free(sl);
-
-    gtk_clist_thaw(GTK_CLIST(search->clist));
+    gtk_clist_thaw(GTK_CLIST(search->ctree));
+	g_list_free(data_list);
 }
 
-void on_popup_search_edit_filter_activate(GtkMenuItem * menuitem,
-									gpointer user_data)
+
+/* 
+ * 	on_popup_search_edit_filter_activate
+ */
+void on_popup_search_edit_filter_activate(GtkMenuItem * menuitem, 
+	gpointer user_data)
 {
     filter_open_dialog();
 }
 
-void on_popup_search_duplicate_activate(GtkMenuItem * menuitem,
-										gpointer user_data)
+
+/* 
+ * 	on_popup_search_duplicate_activate
+ *
+ *	Create a new search identical to the current search
+ * 	Note: Doesn't duplicate filters or passive searches yet
+ */
+void on_popup_search_duplicate_activate(GtkMenuItem * menuitem,	
+	gpointer user_data)
 {
     search_t *search;
     guint32 timeout;
@@ -814,8 +1051,11 @@ void on_popup_search_duplicate_activate(GtkMenuItem * menuitem,
 			search->enabled ? SEARCH_ENABLED : 0, NULL);
 }
 
-void on_popup_search_restart_activate(
-	GtkMenuItem *menuitem, gpointer user_data)
+
+/* 
+ * 	on_popup_search_restart_activate
+ */
+void on_popup_search_restart_activate(GtkMenuItem *menuitem, gpointer user_data)
 {
     search_t *search;
 
@@ -824,8 +1064,11 @@ void on_popup_search_restart_activate(
 		search_gui_restart_search(search);
 }
 
-void on_popup_search_resume_activate(GtkMenuItem * menuitem,
-									 gpointer user_data)
+
+/* 
+ * 	on_popup_search_resume_activate
+ */
+void on_popup_search_resume_activate(GtkMenuItem * menuitem, gpointer user_data)
 {
     search_t *search;
 
@@ -834,6 +1077,12 @@ void on_popup_search_resume_activate(GtkMenuItem * menuitem,
 		gui_search_set_enabled(search, TRUE);
 }
 
+
+/* 
+ * 	on_popup_search_stop_activate
+ *
+ *	Stop current search
+ */
 void on_popup_search_stop_activate
     (GtkMenuItem *menuitem, gpointer user_data)
 {
@@ -844,24 +1093,53 @@ void on_popup_search_stop_activate
 		gui_search_set_enabled(search, FALSE);
 }
 
+
+/* 
+ * 	on_popup_search_config_cols_activate
+ *
+ *	Please add comment
+ *
+ */
 void on_popup_search_config_cols_activate(GtkMenuItem * menuitem,
-										  gpointer user_data)
+	gpointer user_data)
 {
     search_t *search;
 
     search = search_gui_get_current_search();
     g_return_if_fail(search != NULL);
-    g_assert(search->clist != NULL);
+    g_assert(search->ctree != NULL);
 
     {
         GtkWidget * cc;
 
         /* FIXME: needs to work also in Gtk2 or be replaced. */
-        cc = gtk_column_chooser_new(GTK_WIDGET(search->clist));
+        cc = gtk_column_chooser_new(GTK_WIDGET(search->ctree));
         gtk_menu_popup(GTK_MENU(cc), NULL, NULL, NULL, NULL, 1, 0);
 
         /* GtkColumnChooser takes care of cleaning up itself */
     }
+}
+
+
+/* 
+ * 	on_popup_search_expand_all_activate
+ */
+void on_popup_search_expand_all_activate(GtkMenuItem *menuitem, 
+	gpointer user_data)
+{
+    search_gui_expand_all();
+
+}
+
+
+/* 
+ * 	on_popup_search_collapse_all_activate
+ */
+void on_popup_search_collapse_all_activate(GtkMenuItem *menuitem,
+	gpointer user_data)
+{
+    search_gui_collapse_all();
+
 }
 
 #endif	/* USE_GTK1 */

@@ -161,6 +161,7 @@ enum {
 };
 #endif
 
+
 /*
  * Fileinfo table columns.
  */
@@ -186,12 +187,11 @@ enum {
 enum {
     c_sr_filename = 0,
     c_sr_size,
-#ifdef USE_GTK2
 	c_sr_count,
-#else	
+#ifdef USE_GTK1
     c_sr_speed,
     c_sr_host,
-    c_sr_urn,
+    c_sr_sha1,	
 #endif
     c_sr_info,
 #ifdef USE_GTK2
@@ -201,6 +201,8 @@ enum {
 #endif
 	c_sr_num
 };
+
+
 
 /*
  * Gnet stats table columns

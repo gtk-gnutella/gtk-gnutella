@@ -96,8 +96,10 @@ typedef struct record {
 	gchar  *name;				/* File name */
 	guint32 size;				/* Size of file, in bytes */
 	guint32 index;				/* Index for GET command */
+	guint32 count;				/* Number of children */
 	gchar  *sha1;				/* SHA1 URN (binary form, atom) */
 	gchar  *tag;				/* Optional tag data string (atom) */
+	gchar  *info;				/* Short version of tag (atom) */
 	gnet_host_vec_t *alt_locs;	/* Optional alternate locations for record */
     flag_t  flags;              /* same flags as in gnet_record_t */
 } record_t;
@@ -140,4 +142,3 @@ void search_gui_retrieve_searches(void);
 void search_gui_got_results(GSList *schl, const gnet_results_set_t *r_set);
 
 #endif /* _search_gui_common_h_ */
-

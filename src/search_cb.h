@@ -38,17 +38,19 @@ void on_entry_search_activate (GtkEditable *editable, gpointer user_data);
 void on_entry_search_changed (GtkEditable *editable, gpointer user_data);
 void on_button_search_clear_clicked(GtkButton * button, gpointer user_data);
 void on_button_search_close_clicked (GtkButton *button, gpointer user_data);
-void on_button_search_download_clicked (GtkButton *button, gpointer user_data); 
+void on_button_search_download_clicked (GtkButton *button, gpointer user_data);
+void on_button_search_collapse_clicked (GtkButton *button, gpointer user_data);
+void on_button_search_expand_clicked (GtkButton *button, gpointer user_data);
+
 gboolean on_clist_search_results_key_press_event(GtkWidget *widget, GdkEventKey *event, gpointer user_data);
 gboolean on_clist_search_results_button_press_event(GtkWidget *widget, GdkEventButton *event, gpointer user_data);
 void on_button_search_filter_clicked (GtkButton *button, gpointer user_data);
 void on_clist_search_results_click_column(GtkCList * clist, gint column, gpointer user_data);
-void on_clist_search_results_select_row(GtkCList * clist, gint row, gint column, GdkEvent * event, gpointer user_data);
-void on_clist_search_results_unselect_row(GtkCList * clist, gint row, gint column, GdkEvent * event, gpointer user_data);
-void on_clist_search_results_resize_column(GtkCList * clist, gint column, gint width, gpointer user_data);
 void on_button_search_passive_clicked (GtkButton *button, gpointer user_data);
 
-
+void on_ctree_search_results_select_row(GtkCTree *ctree, GList *node, gint column, gpointer user_data);
+void on_ctree_search_results_unselect_row(GtkCTree *ctree, GList *node, gint column, gpointer user_data);
+void on_ctree_search_results_resize_column(GtkCList * clist, gint column, gint width, gpointer user_data);
 
 
 /***
@@ -71,6 +73,7 @@ void on_popup_search_resume_activate(GtkMenuItem *menuitem, gpointer user_data);
 void on_popup_search_stop_activate(GtkMenuItem *menuitem, gpointer user_data);
 void on_popup_search_config_cols_activate(GtkMenuItem *menuitem, gpointer user_data);
 void on_popup_search_new_from_selected_activate(GtkMenuItem *menuitem, gpointer user_data);
-
+void on_popup_search_expand_all_activate(GtkMenuItem *menuitem, gpointer user_data);
+void on_popup_search_collapse_all_activate(GtkMenuItem *menuitem, gpointer user_data);
 
 #endif /* _search_cb_h_ */

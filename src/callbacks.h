@@ -148,21 +148,3 @@ on_button_config_select_dbg_clicked    (GtkButton       *button,
                                         gpointer         user_data);
 
 #endif	/* _callbacks_h_ */
-
-/*
-void
-on_treeview_downloads_columns_changed  (GtkTreeView     *treeview,
-                                        gpointer         user_data);
-
-gboolean
-on_treeview_downloads_button_press_event
-                                        (GtkWidget       *widget,
-                                        GdkEventButton  *event,
-                                        gpointer         user_data);
-
-gboolean
-on_treeview_downloads_toggle_cursor_row
-                                        (GtkTreeView     *treeview,
-                                        gpointer         user_data);
-
-*/

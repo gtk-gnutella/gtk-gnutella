@@ -369,6 +369,9 @@ create_main_window (void)
   GtkWidget *checkbutton_search_results_show_settings;
   GtkWidget *label_search_results_show_settings;
   GtkWidget *label294;
+  GtkWidget *button_search_expand;
+  GtkWidget *button_search_collapse;
+  GtkWidget *label639;
   GtkWidget *button_search_clear;
   GtkWidget *button_search_close;
   GtkWidget *label_search;
@@ -4162,6 +4165,30 @@ create_main_window (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (label294);
   gtk_box_pack_start (GTK_BOX (hbox181), label294, TRUE, TRUE, 0);
+
+  button_search_expand = gtk_button_new_with_label (_("Expand all"));
+  gtk_widget_set_name (button_search_expand, "button_search_expand");
+  gtk_widget_ref (button_search_expand);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "button_search_expand", button_search_expand,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (button_search_expand);
+  gtk_box_pack_start (GTK_BOX (hbox181), button_search_expand, FALSE, FALSE, 0);
+
+  button_search_collapse = gtk_button_new_with_label (_("Collapse all"));
+  gtk_widget_set_name (button_search_collapse, "button_search_collapse");
+  gtk_widget_ref (button_search_collapse);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "button_search_collapse", button_search_collapse,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (button_search_collapse);
+  gtk_box_pack_start (GTK_BOX (hbox181), button_search_collapse, FALSE, FALSE, 0);
+
+  label639 = gtk_label_new ("");
+  gtk_widget_set_name (label639, "label639");
+  gtk_widget_ref (label639);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label639", label639,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label639);
+  gtk_box_pack_start (GTK_BOX (hbox181), label639, TRUE, TRUE, 0);
 
   button_search_clear = gtk_button_new_with_label (_("Clear results"));
   gtk_widget_set_name (button_search_clear, "button_search_clear");
@@ -10571,6 +10598,12 @@ create_main_window (void)
   gtk_signal_connect (GTK_OBJECT (button_search_filter), "clicked",
                       GTK_SIGNAL_FUNC (on_button_search_filter_clicked),
                       NULL);
+  gtk_signal_connect (GTK_OBJECT (button_search_expand), "clicked",
+                      GTK_SIGNAL_FUNC (on_button_search_expand_clicked),
+                      NULL);
+  gtk_signal_connect (GTK_OBJECT (button_search_collapse), "clicked",
+                      GTK_SIGNAL_FUNC (on_button_search_collapse_clicked),
+                      NULL);
   gtk_signal_connect (GTK_OBJECT (button_search_clear), "clicked",
                       GTK_SIGNAL_FUNC (on_button_search_clear_clicked),
                       NULL);
@@ -11000,6 +11033,9 @@ create_popup_search (void)
   GtkWidget *separator3;
   GtkWidget *popup_search_new_from_selected;
   GtkWidget *separator15;
+  GtkWidget *popup_search_expand_all;
+  GtkWidget *popup_search_collapse_all;
+  GtkWidget *separator16;
   GtkWidget *popup_search_stop;
   GtkWidget *popup_search_resume;
   GtkWidget *popup_search_restart;
@@ -11168,6 +11204,31 @@ create_popup_search (void)
   gtk_container_add (GTK_CONTAINER (popup_search), separator15);
   gtk_widget_set_sensitive (separator15, FALSE);
 
+  popup_search_expand_all = gtk_menu_item_new_with_label (_("Expand all"));
+  gtk_widget_set_name (popup_search_expand_all, "popup_search_expand_all");
+  gtk_widget_ref (popup_search_expand_all);
+  gtk_object_set_data_full (GTK_OBJECT (popup_search), "popup_search_expand_all", popup_search_expand_all,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (popup_search_expand_all);
+  gtk_container_add (GTK_CONTAINER (popup_search), popup_search_expand_all);
+
+  popup_search_collapse_all = gtk_menu_item_new_with_label (_("Collapse all"));
+  gtk_widget_set_name (popup_search_collapse_all, "popup_search_collapse_all");
+  gtk_widget_ref (popup_search_collapse_all);
+  gtk_object_set_data_full (GTK_OBJECT (popup_search), "popup_search_collapse_all", popup_search_collapse_all,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (popup_search_collapse_all);
+  gtk_container_add (GTK_CONTAINER (popup_search), popup_search_collapse_all);
+
+  separator16 = gtk_menu_item_new ();
+  gtk_widget_set_name (separator16, "separator16");
+  gtk_widget_ref (separator16);
+  gtk_object_set_data_full (GTK_OBJECT (popup_search), "separator16", separator16,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (separator16);
+  gtk_container_add (GTK_CONTAINER (popup_search), separator16);
+  gtk_widget_set_sensitive (separator16, FALSE);
+
   popup_search_stop = gtk_menu_item_new_with_label (_("Stop this search"));
   gtk_widget_set_name (popup_search_stop, "popup_search_stop");
   gtk_widget_ref (popup_search_stop);
@@ -11254,6 +11315,12 @@ create_popup_search (void)
                       NULL);
   gtk_signal_connect (GTK_OBJECT (popup_search_new_from_selected), "activate",
                       GTK_SIGNAL_FUNC (on_popup_search_new_from_selected_activate),
+                      NULL);
+  gtk_signal_connect (GTK_OBJECT (popup_search_expand_all), "activate",
+                      GTK_SIGNAL_FUNC (on_popup_search_expand_all_activate),
+                      NULL);
+  gtk_signal_connect (GTK_OBJECT (popup_search_collapse_all), "activate",
+                      GTK_SIGNAL_FUNC (on_popup_search_collapse_all_activate),
                       NULL);
   gtk_signal_connect (GTK_OBJECT (popup_search_stop), "activate",
                       GTK_SIGNAL_FUNC (on_popup_search_stop_activate),

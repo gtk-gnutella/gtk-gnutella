@@ -43,11 +43,12 @@ struct search {
 	gboolean    enabled;
 
 #ifdef USE_GTK2
-	GtkWidget  *tree_view;			   /* GtkCList for this search */
-	GHashTable *parents;	/* table of mount iterators for any seen SHA1 */
+	GtkWidget	*tree_view;			/* GtkTreeView for this search */
 #else
-	GtkWidget  *clist;			   /* GtkCList for this search */
+	GtkCTree	*ctree;			   	/* GtkCTree for this search */
 #endif
+
+	GHashTable *parents;	/* table of mount iterators for any seen SHA1 */
 	GtkWidget  *scrolled_window;   /* GtkScrolledWindow, contains the GtkCList */
 	GtkWidget  *list_item;		   /* The GtkListItem in combo for this search */
     GtkWidget  *arrow;             /* The arrow displaying sort order  */
@@ -103,11 +104,16 @@ gboolean gui_search_update_tab_label(struct search *);
 void gui_search_clear_results(void);
 void gui_search_history_add(gchar *s);
 #ifdef USE_GTK2
-void gui_search_create_tree_view(GtkWidget ** sw, GtkWidget ** tree_view);
+void gui_search_create_tree_view(GtkWidget **sw, GtkWidget **tree_view);
 void gui_search_force_update_tab_label(struct search *, time_t now);
 #else
-void gui_search_create_clist(GtkWidget ** sw, GtkWidget ** clist);
+GtkCTreeNode *find_parent_with_sha1(GHashTable *ht, gpointer key);
+void gui_search_create_ctree(GtkWidget **sw, GtkCTree **ctree);
 void gui_search_force_update_tab_label(struct search *);
+
+void search_gui_expand_all();
+void search_gui_collapse_all();
+
 #endif
 void gui_search_update_items(struct search *);
 void gui_search_set_enabled(struct search *sch, gboolean enabled);
