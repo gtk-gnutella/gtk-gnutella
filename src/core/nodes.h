@@ -47,6 +47,10 @@ typedef enum node_protocol_types {
 	PROTOCOL_TYPE_G2
 } node_protocol_types_t;
 
+typedef enum {
+	NODE_MAGIC = 0x67f8e02f
+} node_magic_t;
+
 /*
  * This structure keeps tracks of remote flow-control indications and
  * measures the time spent in flow-control over a period of time.  Every
@@ -85,6 +89,7 @@ struct node_rxfc_mon {
 #define PING_LEAF_THROTTLE		60		/* seconds, peer is leaf node */
 
 typedef struct gnutella_node {
+	node_magic_t magic;			/* Magic value for consistency checks */
     gnet_node_t node_handle;    /* Handle of this node */
 	node_peer_t peermode;		/* Operating mode (leaf, ultra, normal) */
 	node_peer_t start_peermode;	/* Operating mode when handshaking begun */

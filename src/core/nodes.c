@@ -1280,6 +1280,7 @@ void
 node_real_remove(gnutella_node_t *node)
 {
 	g_return_if_fail(node);
+	g_assert(node->magic == NODE_MAGIC);
 
     /*
      * Tell the frontend that the node was removed.
@@ -1327,6 +1328,7 @@ node_real_remove(gnutella_node_t *node)
 	if (node->rx)
 		rx_free(node->rx);
 
+	node->magic = 0;
 	wfree(node, sizeof(*node));
 }
 
@@ -1336,6 +1338,7 @@ node_real_remove(gnutella_node_t *node)
 static void
 node_remove_v(struct gnutella_node *n, const gchar *reason, va_list ap)
 {
+	g_assert(n->magic == NODE_MAGIC);
 	g_assert(n->status != GTA_NODE_REMOVING);
 	g_assert(!NODE_IS_UDP(n));
 
@@ -1546,6 +1549,7 @@ node_remove_by_handle(gnet_node_t n)
 	node = node_find_by_handle(n);
 
     g_assert(node != NULL);
+	g_assert(node->magic == NODE_MAGIC);
 
 	if (node == udp_node)
 		gnet_prop_set_boolean_val(PROP_ENABLE_UDP, FALSE);
@@ -1898,6 +1902,7 @@ node_remove(struct gnutella_node *n, const gchar *reason, ...)
 	va_list args;
 
 	g_assert(n);
+	g_assert(n->magic == NODE_MAGIC);
 
 #ifdef ENABLE_G2
 	g2_node_disconnected(n);
@@ -4818,6 +4823,7 @@ node_udp_create(void)
 
 	n = (struct gnutella_node *) walloc0(sizeof(struct gnutella_node));
 
+	n->magic = NODE_MAGIC;
     n->node_handle = node_request_handle(n);
     n->id = node_id++;
 	n->ip = listen_ip();
@@ -5053,6 +5059,7 @@ node_add_socket(struct gnutella_socket *s, guint32 ip, guint16 port)
 	 */
 
 	n = (struct gnutella_node *) walloc0(sizeof(struct gnutella_node));
+	n->magic = NODE_MAGIC;
     n->node_handle = node_request_handle(n);
 
     n->id = node_id++;
@@ -6672,55 +6679,95 @@ node_close(void)
 	/* Clean up node info */
 	while (sl_nodes) {
 		struct gnutella_node *n = sl_nodes->data;
+
+		g_assert(n->magic == NODE_MAGIC);
+		
 		if (n->socket) {
 			if (n->socket->getline)
 				getline_free(n->socket->getline);
 			G_FREE_NULL(n->socket);
 		}
-		if (n->outq)
+		if (n->outq) {
 			mq_free(n->outq);
-		if (n->searchq)
+			n->outq = NULL;
+		}
+		if (n->searchq) {
 			sq_free(n->searchq);
+			n->searchq = NULL;
+		}
 		if (n->allocated)
 			G_FREE_NULL(n->data);
-		if (n->gnet_guid)
+		if (n->gnet_guid) {
 			atom_guid_free(n->gnet_guid);
-		if (n->alive_pings)
+			n->gnet_guid = NULL;
+		}
+		if (n->alive_pings) {
 			alive_free(n->alive_pings);
-		if (n->routing_data)
+			n->alive_pings = NULL;
+		}
+		if (n->routing_data) {
 			routing_node_remove(n);
-		if (n->qrt_update)
+			n->routing_data = NULL;
+		}
+		if (n->qrt_update) {
 			qrt_update_free(n->qrt_update);
-		if (n->qrt_receive)
+			n->qrt_update = NULL;
+		}
+		if (n->qrt_receive) {
 			qrt_receive_free(n->qrt_receive);
-		if (n->sent_query_table)
+			n->qrt_receive = NULL;
+		}
+		if (n->sent_query_table) {
 			qrt_unref(n->sent_query_table);
-		if (n->recv_query_table)
+			n->sent_query_table = NULL;
+		}
+		if (n->recv_query_table) {
 			qrt_unref(n->recv_query_table);
-		if (n->qrt_info)
+			n->recv_query_table = NULL;
+		}
+		if (n->qrt_info) {
 			wfree(n->qrt_info, sizeof(*n->qrt_info));
-		if (n->rxfc)
+			n->qrt_info = NULL;
+		}
+		if (n->rxfc) {
 			wfree(n->rxfc, sizeof(*n->rxfc));
+			n->rxfc = NULL;
+		}
 		if (n->guid) {
 			route_proxy_remove(n->guid);
 			atom_guid_free(n->guid);
+			n->guid = NULL;
 		}
-		if (n->qseen != NULL)
+		if (n->qseen != NULL) {
 			string_table_free(n->qseen);
-		if (n->qrelayed != NULL)
+			n->qseen = NULL;
+		}
+		if (n->qrelayed != NULL) {
 			string_table_free(n->qrelayed);
-		if (n->qrelayed_old != NULL)
+			n->qrelayed = NULL;
+		}
+		if (n->qrelayed_old != NULL) {
 			string_table_free(n->qrelayed_old);
-		if (n->tsync_ev != NULL)
+			n->qrelayed_old = NULL;
+		}
+		if (n->tsync_ev != NULL) {
 			cq_cancel(callout_queue, n->tsync_ev);
+			n->tsync_ev = NULL;
+		}
 		node_real_remove(n);
+		n = NULL;
 	}
 
-	if (udp_node->outq)
+	if (udp_node->outq) {
 		mq_free(udp_node->outq);
-	if (udp_node->alive_pings)
+		udp_node->outq = NULL;
+	}
+	if (udp_node->alive_pings) {
 		alive_free(udp_node->alive_pings);
+		udp_node->alive_pings = NULL;
+	}
 	node_real_remove(udp_node);
+	udp_node = NULL;
 
 	g_slist_free(sl_proxies);
     g_hash_table_destroy(ht_connected_nodes);
