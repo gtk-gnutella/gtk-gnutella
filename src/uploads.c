@@ -207,8 +207,9 @@ static void send_upload_error(struct upload *u, int code, guchar *msg, ...)
 	rw = g_snprintf(http_response, sizeof(http_response),
 		"HTTP/1.0 %d %s\r\n"
 		"Server: %s\r\n"
+		"X-Live-Since: %s\r\n"
 		"\r\n",
-		code, reason, version_string);
+		code, reason, version_string, start_rfc822_date);
 
 	if (-1 == (sent = write(s->file_desc, http_response, rw)))
 		g_warning("Unable to send back HTTP error %d (%s) to %s: %s",
@@ -852,19 +853,21 @@ static void upload_request(struct upload *u, header_t *header)
 			rw = g_snprintf(http_response, sizeof(http_response),
 				"HTTP/1.0 206 Partial Content\r\n"
 				"Server: %s\r\n"
+				"X-Live-Since: %s\r\n"
 				"Content-type: application/binary\r\n"
 				"Content-length: %i\r\n"
 				"Content-Range: bytes %u-%u/%u\r\n\r\n",
-				version_string,
+				version_string, start_rfc822_date,
 				u->file_size - u->skip,
 				u->skip, u->file_size - 1, u->file_size);
 		else
 			rw = g_snprintf(http_response, sizeof(http_response),
 				"HTTP/1.0 200 OK\r\n"
 				"Server: %s\r\n"
+				"X-Live-Since: %s\r\n"
 				"Content-type: application/binary\r\n"
 				"Content-length: %i\r\n\r\n",
-				version_string, u->file_size);
+				version_string, start_rfc822_date, u->file_size);
 
 		sent = write(s->file_desc, http_response, rw);
 		if (sent == -1) {
