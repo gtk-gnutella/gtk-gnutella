@@ -583,8 +583,6 @@ void search_request(struct gnutella_node *n)
 
 		gtk_clist_prepend(GTK_CLIST(clist_monitor), titles);
 
-		gtk_clist_set_selectable(GTK_CLIST(clist_monitor), 0, FALSE);
-
 		gtk_clist_thaw(GTK_CLIST(clist_monitor));
 	}
 
