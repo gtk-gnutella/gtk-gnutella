@@ -59,7 +59,6 @@ EXTRA_DIST = gtk-gnutella.spec	\
 	debian/gtk-gnutella.1		\
 	debian/menu					\
 	debian/rules				\
-	debian/substvars			\
 	$(EXTRA_GTK2) \
 	$(EXTRA_SHELL)
 
