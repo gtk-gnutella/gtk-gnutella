@@ -53,6 +53,11 @@ guint32 search_answers_forward_size = 32768;
 guint32 search_answers_kick_size = 40960;
 guint32 other_messages_kick_size = 40960;
 guint32 hops_random_factor = 0;
+guint32 max_high_ttl_msg = 10;
+guint32 max_high_ttl_radius = 2;
+guint32 min_dup_msg = 5;
+gfloat min_dup_ratio = 1.5;
+guint32 max_hosts_cached = 20480;
 
 gint dbg = 0;					// debug level, for development use
 gint stop_host_get = 0;			// stop get new hosts, non activity ok (debug)
@@ -124,6 +129,8 @@ enum {
 	k_hard_ttl_limit,
 	k_dbg, k_stop_host_get, k_enable_err_log, k_max_uploads_ip,
 	k_search_strict_and, k_search_pick_all,
+	k_max_high_ttl_msg, k_max_high_ttl_radius,
+	k_min_dup_msg, k_min_dup_ratio, k_max_hosts_cached,
 	k_end
 };
 
@@ -190,6 +197,11 @@ gchar *keywords[] = {
 	"max_uploads_ip",
 	"search_strict_and",
 	"search_pick_all",
+	"max_high_ttl_msg",
+	"max_high_ttl_radius",
+	"min_dup_msg",
+	"min_dup_ratio",
+	"max_hosts_cached",
 	NULL
 };
 
@@ -449,297 +461,292 @@ guint32 *config_parse_array(gchar * str, guint32 n)
 	return r;
 }
 
-void config_set_param(guint32 keyword, gchar * value)
+void config_set_param(guint32 keyword, gchar *value)
 {
 	gint32 i = atol(value);
 	guint32 *a;
 
 	switch (keyword) {
-	case k_monitor_enabled:{
-			monitor_enabled = (gboolean) ! g_strcasecmp(value, "true");
-			return;
-		}
-	case k_monitor_max_items:{
-			if (i > 0 && i < 512)
-				monitor_max_items = i;
-			return;
-		}
-	case k_clear_uploads:{
-			clear_uploads = (gboolean) ! g_strcasecmp(value, "true");
-			return;
-		}
-	case k_clear_downloads:{
-			clear_downloads = (gboolean) ! g_strcasecmp(value, "true");
-			return;
-		}
-	case k_up_connections:{
-			if (i >= 0 && i < 512)
-				up_connections = i;
-			return;
-		}
-	case k_max_downloads:{
-			if (i > 0 && i < 512)
-				max_downloads = i;
-			return;
-		}
-	case k_max_host_downloads:{
-			if (i > 0 && i < 512)
-				max_host_downloads = i;
-			return;
-		}
-	case k_max_uploads:{
-			if (i >= 0 && i < 512)
-				max_uploads = i;
-			return;
-		}
-	case k_minimum_speed:{
-			minimum_speed = atol(value);
-			return;
-		}
-	case k_listen_port:{
-			listen_port = atoi(value);
-			return;
-		}
-	case k_hard_ttl_limit:{
-			if (i >= 5 && i < 255)
-				hard_ttl_limit = i;
-			return;
-		}
-	case k_max_ttl:{
-			if (i > 0 && i < 255)
-				max_ttl = i;
-			return;
-		}
-	case k_my_ttl:{
-			if (i > 0 && i < 255)
-				my_ttl = i;
-			return;
-		}
-	case k_search_max_items:{
-			if (i >= -1 && i < 256)
-				search_max_items = i;
-			return;
-		}
-	case k_connection_speed:{
-			if (i > 0 && i < 65535)
-				connection_speed = i;
-			return;
-		}
-	case k_force_local_ip:{
-			force_local_ip = (gboolean) ! g_strcasecmp(value, "true");
-			return;
-		}
-	case k_scan_extensions:{
-			parse_extensions(value);
-			return;
-		}
+	case k_monitor_enabled:
+		monitor_enabled = (gboolean) ! g_strcasecmp(value, "true");
+		return;
+
+	case k_monitor_max_items:
+		if (i > 0 && i < 512) monitor_max_items = i;
+		return;
+
+	case k_clear_uploads:
+		clear_uploads = (gboolean) ! g_strcasecmp(value, "true");
+		return;
+
+	case k_clear_downloads:
+		clear_downloads = (gboolean) ! g_strcasecmp(value, "true");
+		return;
+
+	case k_up_connections:
+		if (i >= 0 && i < 512) up_connections = i;
+		return;
+
+	case k_max_downloads:
+		if (i > 0 && i < 512) max_downloads = i;
+		return;
+
+	case k_max_host_downloads:
+		if (i > 0 && i < 512) max_host_downloads = i;
+		return;
+
+	case k_max_uploads:
+		if (i >= 0 && i < 512) max_uploads = i;
+		return;
+
+	case k_minimum_speed:
+		minimum_speed = atol(value);
+		return;
+
+	case k_listen_port:
+		listen_port = atoi(value);
+		return;
+
+	case k_hard_ttl_limit:
+		if (i >= 5 && i < 255) hard_ttl_limit = i;
+		return;
+
+	case k_max_ttl:
+		if (i > 0 && i < 255) max_ttl = i;
+		return;
+
+	case k_my_ttl:
+		if (i > 0 && i < 255) my_ttl = i;
+		return;
+
+	case k_search_max_items:
+		if (i >= -1 && i < 256) search_max_items = i;
+		return;
+
+	case k_connection_speed:
+		if (i > 0 && i < 65535) connection_speed = i;
+		return;
+
+	case k_force_local_ip:
+		force_local_ip = (gboolean) ! g_strcasecmp(value, "true");
+		return;
+
+	case k_scan_extensions:
+		parse_extensions(value);
+		return;
+
 	case k_old_save_file_path:
-	case k_save_file_path:{
-			save_file_path = g_strdup(value);
-			return;
+	case k_save_file_path:
+		save_file_path = g_strdup(value);
+		return;
+
+	case k_move_file_path:
+		move_file_path = g_strdup(value);
+		return;
+
+	case k_shared_dirs:
+		shared_dirs_parse(value);
+		return;
+
+	case k_hosts_catched:
+		config_hosts_catched(value);
+		return;
+
+	case k_node_sendqueue_size:
+		if (i > 4096 && i < 1048576) node_sendqueue_size = i;
+		return;
+
+	case k_node_connecting_timeout:
+		if (i > 10 && i < 3600) node_connecting_timeout = i;
+		return;
+
+	case k_node_connected_timeout:
+		if (i > 10 && i < 3600) node_connected_timeout = i;
+		return;
+
+	case k_download_connecting_timeout:
+		if (i > 10 && i < 3600) download_connecting_timeout = i;
+		return;
+
+	case k_download_push_sent_timeout:
+		if (i > 10 && i < 3600) download_push_sent_timeout = i;
+
+	case k_download_connected_timeout:
+		if (i > 10 && i < 3600) download_connected_timeout = i;
+		return;
+
+	case k_search_queries_forward_size:
+		if (i > 512 && i < 65535) search_queries_forward_size = i;
+		return;
+
+	case k_search_queries_kick_size:
+		if (i > 512 && i < 65535) search_queries_kick_size = i;
+		return;
+
+	case k_search_answers_forward_size:
+		if (i > 512 && i < 1048576) search_answers_forward_size = i;
+		return;
+
+	case k_search_answers_kick_size:
+		if (i > 512 && i < 1048576) search_answers_kick_size = i;
+		return;
+
+	case k_other_messages_kick_size:
+		if (i > 0 && i < 1048576) other_messages_kick_size = i;
+		return;
+
+	case k_win_x:
+		w_x = i;
+		return;
+
+	case k_win_y:
+		w_y = i;
+		return;
+
+	case k_win_w:
+		w_w = i;
+		return;
+
+	case k_win_h:
+		w_h = i;
+		return;
+	case k_win_coords:
+		if ((a = config_parse_array(value, 4))) {
+			w_x = a[0];
+			w_y = a[1];
+			w_w = a[2];
+			w_h = a[3];
 		}
-	case k_move_file_path:{
-			move_file_path = g_strdup(value);
-			return;
-		}
-	case k_shared_dirs:{
-			shared_dirs_parse(value);
-			return;
-		}
-	case k_hosts_catched:{
-			config_hosts_catched(value);
-			return;
-		}
-	case k_node_sendqueue_size:{
-			if (i > 4096 && i < 1048576)
-				node_sendqueue_size = i;
-			return;
-		}
-	case k_node_connecting_timeout:{
-			if (i > 10 && i < 3600)
-				node_connecting_timeout = i;
-			return;
-		}
-	case k_node_connected_timeout:{
-			if (i > 10 && i < 3600)
-				node_connected_timeout = i;
-			return;
-		}
-	case k_download_connecting_timeout:{
-			if (i > 10 && i < 3600)
-				download_connecting_timeout = i;
-			return;
-		}
-	case k_download_push_sent_timeout:{
-			if (i > 10 && i < 3600)
-				download_push_sent_timeout = i;
-			return;
-		}
-	case k_download_connected_timeout:{
-			if (i > 10 && i < 3600)
-				download_connected_timeout = i;
-			return;
-		}
-	case k_search_queries_forward_size:{
-			if (i > 512 && i < 65535)
-				search_queries_forward_size = i;
-			return;
-		}
-	case k_search_queries_kick_size:{
-			if (i > 512 && i < 65535)
-				search_queries_kick_size = i;
-			return;
-		}
-	case k_search_answers_forward_size:{
-			if (i > 512 && i < 1048576)
-				search_answers_forward_size = i;
-			return;
-		}
-	case k_search_answers_kick_size:{
-			if (i > 512 && i < 1048576)
-				search_answers_kick_size = i;
-			return;
-		}
-	case k_other_messages_kick_size:{
-			if (i > 0 && i < 1048576)
-				other_messages_kick_size = i;
-			return;
-		}
-	case k_win_x:{
-			w_x = i;
-			return;
-		}
-	case k_win_y:{
-			w_y = i;
-			return;
-		}
-	case k_win_w:{
-			w_w = i;
-			return;
-		}
-	case k_win_h:{
-			w_h = i;
-			return;
-		}
-	case k_win_coords:{
-			if ((a = config_parse_array(value, 4))) {
-				w_x = a[0];
-				w_y = a[1];
-				w_w = a[2];
-				w_h = a[3];
-			}
-			return;
-		}
-	case k_widths_nodes:{
-			if ((a = config_parse_array(value, 3)))
-				for (i = 0; i < 3; i++)
-					nodes_col_widths[i] = a[i];
-			return;
-		}
-	case k_widths_uploads:{
-			if ((a = config_parse_array(value, 3)))
-				for (i = 0; i < 3; i++)
-					uploads_col_widths[i] = a[i];
-			return;
-		}
-	case k_widths_dl_active:{
-			if ((a = config_parse_array(value, 3)))
-				for (i = 0; i < 3; i++)
-					dl_active_col_widths[i] = a[i];
-			return;
-		}
-	case k_widths_dl_queued:{
-			if ((a = config_parse_array(value, 2)))
-				for (i = 0; i < 2; i++)
-					dl_queued_col_widths[i] = a[i];
-			return;
-		}
-	case k_widths_search_results:{
-			if ((a = config_parse_array(value, 5)))
-				for (i = 0; i < 5; i++)
-					search_results_col_widths[i] = a[i];
-			return;
-		}
-	case k_show_results_tabs:{
-			search_results_show_tabs =
-				(gboolean) ! g_strcasecmp(value, "true");
-			return;
-		}
-	case k_forced_local_ip:{
-			forced_local_ip = gchar_to_ip(value);
-			return;
-		}
-	case k_hops_random_factor:{
-			if (i >= 0 && i <= 3)
-				hops_random_factor = i;
-			return;
-		}
-	case k_send_pushes:{
-			send_pushes = i ? 1 : 0;
-			return;
-		}
-	case k_jump_to_downloads:{
-			jump_to_downloads = i ? TRUE : FALSE;
-			return;
-		}
-	case k_proxy_connections:{
-			proxy_connections = i ? TRUE : FALSE;
-			return;
-		}
-	case k_socks_protocol:{
-			socks_protocol = i;
-			return;
-		}
-	case k_proxy_ip:{
-			proxy_ip = g_strdup(value);
-			return;
-		}
-	case k_proxy_port:{
-			proxy_port = i;
-			return;
-		}
-	case k_socksv5_user:{
-			socksv5_user = g_strdup(value);
-			return;
-		}
-	case k_socksv5_pass:{
-			socksv5_pass = g_strdup(value);
-			return;
-		}
-	case k_max_connections:{
-			if (i >= 0 && i < 512)
-				max_connections = i;
-			return;
-		}
-	case k_search_reissue_timeout:{
-			search_reissue_timeout = i;
-			return;
-		}
-	case k_dbg:{
-			dbg = i;
-			return;
-		}
-	case k_stop_host_get:{
-			stop_host_get = i;
-			return;
-		}
-	case k_enable_err_log:{
-			enable_err_log = i;
-			return;
-		}
-	case k_max_uploads_ip:{
-			if (i >= 0 && i < 512)
-				max_uploads_ip = i;
-			return;
-		}
-	case k_search_strict_and:{
-			search_strict_and = i;
-			return;
-		}
-	case k_search_pick_all:{
-			search_pick_all = i;
-			return;
-		}
+		return;
+
+	case k_widths_nodes:
+		if ((a = config_parse_array(value, 3)))
+			for (i = 0; i < 3; i++)
+				nodes_col_widths[i] = a[i];
+		return;
+
+	case k_widths_uploads:
+		if ((a = config_parse_array(value, 3)))
+			for (i = 0; i < 3; i++)
+				uploads_col_widths[i] = a[i];
+		return;
+
+	case k_widths_dl_active:
+		if ((a = config_parse_array(value, 3)))
+			for (i = 0; i < 3; i++)
+				dl_active_col_widths[i] = a[i];
+		return;
+
+	case k_widths_dl_queued:
+		if ((a = config_parse_array(value, 2)))
+			for (i = 0; i < 2; i++)
+				dl_queued_col_widths[i] = a[i];
+		return;
+
+	case k_widths_search_results:
+		if ((a = config_parse_array(value, 5)))
+			for (i = 0; i < 5; i++)
+				search_results_col_widths[i] = a[i];
+		return;
+
+	case k_show_results_tabs:
+		search_results_show_tabs =
+			(gboolean) ! g_strcasecmp(value, "true");
+		return;
+
+	case k_forced_local_ip:
+		forced_local_ip = gchar_to_ip(value);
+		return;
+
+	case k_hops_random_factor:
+		if (i >= 0 && i <= 3)
+			hops_random_factor = i;
+		return;
+
+	case k_send_pushes:
+		send_pushes = i ? 1 : 0;
+		return;
+
+	case k_jump_to_downloads:
+		jump_to_downloads = i ? TRUE : FALSE;
+		return;
+
+	case k_proxy_connections:
+		proxy_connections = i ? TRUE : FALSE;
+		return;
+
+	case k_socks_protocol:
+		socks_protocol = i;
+		return;
+
+	case k_proxy_ip:
+		proxy_ip = g_strdup(value);
+		return;
+
+	case k_proxy_port:
+		proxy_port = i;
+		return;
+
+	case k_socksv5_user:
+		socksv5_user = g_strdup(value);
+		return;
+
+	case k_socksv5_pass:
+		socksv5_pass = g_strdup(value);
+		return;
+
+	case k_max_connections:
+		if (i >= 0 && i < 512) max_connections = i;
+		return;
+
+	case k_search_reissue_timeout:
+		search_reissue_timeout = i;
+		return;
+
+	case k_dbg:
+		dbg = i;
+		return;
+
+	case k_stop_host_get:
+		stop_host_get = i;
+		return;
+
+	case k_enable_err_log:
+		enable_err_log = i;
+		return;
+
+	case k_max_uploads_ip:
+		if (i >= 0 && i < 512)
+			max_uploads_ip = i;
+		return;
+
+	case k_search_strict_and:
+		search_strict_and = i;
+		return;
+
+	case k_search_pick_all:
+		search_pick_all = i;
+		return;
+
+	case k_max_high_ttl_msg:
+		max_high_ttl_msg = i;
+		return;
+
+	case k_max_high_ttl_radius:
+		max_high_ttl_radius = i;
+		return;
+
+	case k_min_dup_msg:
+		min_dup_msg = i;
+		return;
+
+	case k_min_dup_ratio:
+		min_dup_ratio = atof(value);
+		return;
+
+	case k_max_hosts_cached:
+		if (i >= 100) max_hosts_cached = i;
+		return;
 	}
 }
 
@@ -978,6 +985,26 @@ void config_save(void)
 	fprintf(config, "%s = %u\n\n", keywords[k_hard_ttl_limit],
 			hard_ttl_limit);
 
+	fprintf(config, "# The following two variables work in concert:\n");
+	fprintf(config, "# Amount of tolerable messages above hard TTL limit "
+		"per node\n%s = %u\n",
+			keywords[k_max_high_ttl_msg], max_high_ttl_msg);
+	fprintf(config, "# Hop radius for counting high TTL limit messages "
+		"(#hops lower than...)\n%s = %u\n\n",
+			keywords[k_max_high_ttl_radius], max_high_ttl_radius);
+
+	fprintf(config, "# The following two variables work in concert:\n");
+	fprintf(config, "# Minimum amount of dup messages to enable kicking, "
+		"per node\n%s = %u\n",
+			keywords[k_min_dup_msg], min_dup_msg);
+	fprintf(config, "# Minimum ratio of dups on received messages, "
+		"per node (between 0.0 and 1.0)\n%s = %.2f\n\n",
+			keywords[k_min_dup_ratio], min_dup_ratio);
+
+	fprintf(config, "# Maximum amount of hosts to keep in cache "
+		"(minimum 100)\n%s = %u\n\n",
+			keywords[k_max_hosts_cached], max_hosts_cached);
+
 	fprintf(config, "# Maximum size of the sendqueue "
 		"for the nodes (in bytes)\n%s = %u\n\n",
 			keywords[k_node_sendqueue_size], node_sendqueue_size);
@@ -997,6 +1024,7 @@ void config_save(void)
 
 	fprintf(config, "# Maximum uploads per IP address\n"
 			"%s = %u\n\n", keywords[k_max_uploads_ip], max_uploads_ip);
+
 	fprintf(config,
 			"# Set to 1 to filter search results with a strict AND\n"
 			"%s = %u\n\n", keywords[k_search_strict_and],
