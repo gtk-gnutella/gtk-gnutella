@@ -1,5 +1,27 @@
 # since last version
 
+# v 0.92   2003.05.25  [candidate]
+
+Candidate 0.92 release.  The following are the main changes since 0.92b2:
+
+- PARQ is now fully implemented.
+- Filters out hostile IP addresses.
+- New icons for showing node state (leaf or ultra mode).
+- New "fileinfo" pane in the download screen.  Not finished, but will show
+  the currently registered downloads and their status.
+- Minor bugs fixed.
+
+WARNING: Leaf node bandwidth is now stolen from HTTP when running in ultra
+mode.  If that brings outgoing HTTP bandwidth to 0, sharing is disabled.
+
+- (2003.05.25 - RAM)
+ * Miscellaneous cleanup before release of 0.92c.
+ * Now trace vendor string in the "Cancelling upload" messages.
+ * Mentionned in GUI hints that number of PARQ queue is governed by the
+   number of upload slots, and that it should be at least set to 2.
+ * Tell them that when host runs NTP, the computed clock skew is ignored.
+ * Display lifecount of the fileinfo, not its refcount [From Hans de Graaff].
+
 - (2003.05.25 - Jeroen)
  * When in leaf mode: Prefer compressed connections is honoured again.
 
