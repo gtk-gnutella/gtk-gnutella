@@ -38,8 +38,11 @@ void socket_monitor_incoming(void)
 		g_assert(s->last_update);
 		/* We reuse the `node_connecting_timeout' parameter, need a new one? */
 		if (now - s->last_update > node_connecting_timeout) {
-			g_warning("connection from %s timed out (%d bytes read)\n",
+			g_warning("connection from %s timed out (%d bytes read)",
 					  ip_to_gchar(s->ip), s->pos);
+			if (s->pos > 0)
+				dump_hex(stderr, "Connection Header",
+					s->buffer, MIN(s->pos, 80));
 			socket_destroy(s);
 			goto retry;			/* Don't know the internals of lists, retry */
 		}
@@ -144,14 +147,16 @@ static void socket_read(gpointer data, gint source, GdkInputCondition cond)
 
 			gdk_input_remove(s->gdk_tag);
 			s->gdk_tag = 0;
-			if (s->pos > 22)	/* 22 = 17 + "0.4\n\n" */
-				g_warning
-					("incoming node %s sent extra bytes after HELLO\n",
+			if (s->pos > 22) {	/* 22 = 17 + "0.4\n\n" */
+				g_warning("incoming node %s sent extra bytes after HELLO",
 					 ip_port_to_gchar(s->ip, s->port));
-			else if (s->pos < 22)
-				g_warning("incoming node %s sent short HELLO: \"%s\"\n",
-						  ip_port_to_gchar(s->ip, s->port), s->buffer);
-
+				dump_hex(stderr, "Extra HELLO Data",
+					s->buffer + 22, MIN(s->pos - 22, 80));
+			} else if (s->pos < 22) {
+				g_warning("incoming node %s sent short HELLO",
+						  ip_port_to_gchar(s->ip, s->port));
+				dump_hex(stderr, "HELLO Data", s->buffer, s->pos);
+			}
 			s->pos = 0;
 			sl_incoming = g_slist_remove(sl_incoming, s);
 			s->last_update = 0;
@@ -196,9 +201,8 @@ static void socket_read(gpointer data, gint source, GdkInputCondition cond)
 			}
 		} else {
 			g_warning("socket_read(): Got an unknown incoming connection, "
-				"dropping it.\n");
-			g_warning("socket_read: first 80 chars: %.80s\n", s->buffer);
-
+				"dropping it.");
+			dump_hex(stderr, "Connection Header", s->buffer, MIN(s->pos, 80));
 			socket_destroy(s);
 		}
 	}
@@ -445,49 +449,43 @@ static void socket_accept(gpointer data, gint source,
 
 	switch (s->type) {
 	case GTA_TYPE_CONTROL:
-		{
-			t->gdk_tag =
-				gdk_input_add(sd, GDK_INPUT_READ | GDK_INPUT_EXCEPTION,
-							  socket_read, t);
-			/*
-			 * Whilst the socket is attached to that callback, it has been
-			 * freshly accepted and we don't know what we're going to do with
-			 * it.	Is it an incoming node connection or an upload request?
-			 * Can't tell until we have read enough bytes.
-			 *
-			 * However, we must guard against a subtle DOS attack whereby
-			 * someone would connect to us and then send only one byte (say),
-			 * then nothing.  The socket would remain connected, without
-			 * being monitored for timeout by the node/upload code.
-			 *
-			 * Insert the socket to the `sl_incoming' list, and have it
-			 * monitored periodically.	We know the socket is on the list
-			 * as soon as it has a non-zero last_update field.
-			 *				--RAM, 07/09/2001
-			 */
+		t->gdk_tag =
+			gdk_input_add(sd, GDK_INPUT_READ | GDK_INPUT_EXCEPTION,
+						  socket_read, t);
+		/*
+		 * Whilst the socket is attached to that callback, it has been
+		 * freshly accepted and we don't know what we're going to do with
+		 * it.	Is it an incoming node connection or an upload request?
+		 * Can't tell until we have read enough bytes.
+		 *
+		 * However, we must guard against a subtle DOS attack whereby
+		 * someone would connect to us and then send only one byte (say),
+		 * then nothing.  The socket would remain connected, without
+		 * being monitored for timeout by the node/upload code.
+		 *
+		 * Insert the socket to the `sl_incoming' list, and have it
+		 * monitored periodically.	We know the socket is on the list
+		 * as soon as it has a non-zero last_update field.
+		 *				--RAM, 07/09/2001
+		 */
 
-			sl_incoming = g_slist_prepend(sl_incoming, t);
-			t->last_update = time((time_t *) 0);
-			break;
-		}
+		sl_incoming = g_slist_prepend(sl_incoming, t);
+		t->last_update = time((time_t *) 0);
+		break;
 
 	case GTA_TYPE_DOWNLOAD:
-		{
-			if (dbg > 7) printf("Accepting INCOMING CONNECTION for %s\n",
-				s->resource.download->file_name);
+		if (dbg > 7) printf("Accepting INCOMING CONNECTION for %s\n",
+			s->resource.download->file_name);
 
-			t->resource.download = s->resource.download;
+		t->resource.download = s->resource.download;
+		t->resource.download->socket = t;
 
-			t->resource.download->socket = t;
+		t->gdk_tag =
+			gdk_input_add(sd, GDK_INPUT_READ | GDK_INPUT_EXCEPTION,
+						  download_read, t);
 
-			t->gdk_tag =
-				gdk_input_add(sd, GDK_INPUT_READ | GDK_INPUT_EXCEPTION,
-							  download_read, t);
-
-			socket_free(s);		/* Close the listening socket */
-
-			break;
-		}
+		socket_free(s);		/* Close the listening socket */
+		break;
 
 	default:
 		g_assert(0);			/* Can't happen */
@@ -884,7 +882,10 @@ int connect_socksv5(struct gnutella_socket *s)
 			return (rc);
 		}
 
-		if ((unsigned short int) buf[1] == 2)
+		if (
+			(unsigned short int) buf[1] == 2 &&
+			socksv5_user && socksv5_user[0]		/* has provided user info */
+		)
 			s->pos++;
 		else
 			s->pos += 3;
