@@ -1,5 +1,14 @@
 # since last version
 
+- (2002.12.29 - RAM)
+ * When "enable_ultrapeer" is FALSE, forbid setting "current_peermode" to
+   anything other than NODE_P_NORMAL, forcing the value if necessary.
+ * Fixed improper assertion in node_send_qrt(), and forgot to cleanly
+   unref the old query table, if present.
+ * Space alive pings more for a leaf <-> ultra connection.
+ * When in leaf mode, no need to demultiplex pongs.  Also don't forward
+   cached pongs when we get a ping.
+
 - (2002.12.28 - guruz)
  * [Gtk1] Made PROP_MAX_ULTRAPEERS GUI-configurable depending on the setting
    of PROP_ENABLE_ULTRAPEER.
