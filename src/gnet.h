@@ -514,8 +514,26 @@ void download_index_changed(guint32, guint16, guchar *, guint32, guint32);
 
 typedef guint32 gnet_upload_t;
 
+/*
+ * Upload states.
+ */
+
+typedef enum {
+    GTA_UL_PUSH_RECEIVED    = 1,    /* We got a push request */
+    GTA_UL_COMPLETE         = 2,    /* The file has been sent completely */
+    GTA_UL_SENDING          = 3,    /* We are sending data */
+    GTA_UL_HEADERS          = 4,    /* Receiving the HTTP request headers */
+    GTA_UL_WAITING          = 5,    /* Waiting new HTTP request */
+    GTA_UL_ABORTED          = 6,    /* Upload removed during operation */
+    GTA_UL_CLOSED           = 7,    /* Upload removed while waiting */
+    GTA_UL_QUEUED           = 8,    /* Upload is queued */
+    GTA_UL_QUEUE            = 9,    /* Send a queue (Similar to push) */
+    GTA_UL_QUEUE_WAITING    = 10    /* Connect back with GTA_UL_QUEUE was
+                                       success now waiting for a response */
+} upload_stage_t;
+
 typedef struct gnet_upload_status {
-    guint32 status;
+    upload_stage_t status;
 	off_t   pos;		 /* Read position in file we're sending */
     guint32 bps;         /* Current transfer rate */
     guint32 avg_bps;     /* Average transfer rate */
@@ -543,22 +561,6 @@ typedef struct gnet_upload_info {
     gchar  *user_agent;  /* remote user agent */
 	gboolean push;       /* Whether we're pushing or not */
 } gnet_upload_info_t;
-
-/*
- * Upload states.
- */
-
-#define GTA_UL_PUSH_RECEIVED	1	/* We got a push request */
-#define GTA_UL_COMPLETE			2	/* The file has been sent completely */
-#define GTA_UL_SENDING			3	/* We are sending data */
-#define GTA_UL_HEADERS			4	/* Receiving the HTTP request headers */
-#define GTA_UL_WAITING			5	/* Waiting new HTTP request */
-#define GTA_UL_ABORTED          6   /* Upload removed during operation */
-#define GTA_UL_CLOSED           7   /* Upload removed while waiting */
-#define GTA_UL_QUEUED			8	/* Upload is queued */
-#define GTA_UL_QUEUE			9   /* Send a queue (Similar to push) */
-#define GTA_UL_QUEUE_WAITING   10 	/* Connect back with GTA_UL_QUEUE was succes
-									   now waiting for a response */
 
 /*
  * State inspection macros.
