@@ -155,8 +155,11 @@ udp_received(struct gnutella_socket *s)
 
 	if (bogons_check(s->ip)) {
 		bogus = TRUE;
-		g_warning("UDP datagram (%d byte%s) received from bogus IP %s",
-			(gint) s->pos, s->pos == 1 ? "" : "s", ip_to_gchar(s->ip));
+
+		if (udp_debug) {
+			g_warning("UDP datagram (%d byte%s) received from bogus IP %s",
+				(gint) s->pos, s->pos == 1 ? "" : "s", ip_to_gchar(s->ip));
+		}
 		gnet_stats_count_general(GNR_UDP_BOGUS_SOURCE_IP, 1);
 	}
 

@@ -1392,8 +1392,9 @@ socket_read(gpointer data, gint source, inputevt_cond_t cond)
 	if (hostiles_check(s->ip)) {
 		static const gchar msg[] = "Hostile IP address banned";
 
-		g_warning("denying connection from hostile %s: \"%s\"",
-			ip_to_gchar(s->ip), first);
+		if (dbg)
+			g_warning("denying connection from hostile %s: \"%s\"",
+				ip_to_gchar(s->ip), first);
 		if (0 == strncmp(first, GNUTELLA_HELLO, GNUTELLA_HELLO_LENGTH))
 			send_node_error(s, 550, msg);
 		else
@@ -1869,8 +1870,8 @@ socket_udp_accept(gpointer data, gint unused_source, inputevt_cond_t cond)
 
 	if (cond & INPUT_EVENT_EXCEPTION) {
 		gint error;
-
 		socklen_t error_len = sizeof error;
+
 		getsockopt(s->file_desc, SOL_SOCKET, SO_ERROR, &error, &error_len);
 		g_warning("Input Exception for UDP listening socket #%d: %s",
 				  s->file_desc, g_strerror(error));
