@@ -174,6 +174,7 @@ tx_dgram_write_error(txdrv_t *tx, gnet_host_t *to, const char *func)
 	case EPROTONOSUPPORT:
 	case ETIMEDOUT:
 	case EACCES:
+	case EPERM:
 		g_warning("UDP write to %s failed: %s",
 			ip_port_to_gchar(to->ip, to->port), g_strerror(errno));
 		return -1;
