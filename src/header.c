@@ -791,29 +791,37 @@ void header_features_generate(struct xfeature_t *xfeatures,
 	gchar *buf, gint len, gint *rw)
 {
 	GList *cur;
-	gboolean first = TRUE;
+	gpointer fmt;
 	
-
+	if (len - *rw < strlen("X-Features: \r\n"))
+		return;
+		
+	if (g_list_first(xfeatures->features) == NULL)
+		return;
+	
+	fmt = header_fmt_make("X-Features", len - *rw);
+	
 	for(cur = g_list_first(xfeatures->features);
-		cur != g_list_last(xfeatures->features);
+		cur != NULL;
 		cur = g_list_next(cur)) {
 		
+		gchar feature_version[50];
 		struct header_x_feature *feature = 
 			(struct header_x_feature *) cur->data;
-
-		if (first) {
-			*rw += gm_snprintf(&buf[*rw], len - *rw, "X-Features: ");
-			first = FALSE;
-		} else
-			*rw += gm_snprintf(&buf[*rw], len - *rw, ", ");
-			
-		*rw += gm_snprintf(&buf[*rw], len - *rw, "%s/%d.%d ",
+		
+		gm_snprintf(feature_version, sizeof(feature_version), "%s/%d.%d ",
 			feature->name, feature->major, feature->minor);
+		
+		header_fmt_append(fmt, feature_version, ", ");
 	}
+
+	header_fmt_end(fmt);
 	
-	/* Only close this header if we did start to write it */
-	if (!first)
-		*rw += gm_snprintf(&buf[*rw], len - *rw, "\r\n");	
+	if (header_fmt_length(fmt) < len - *rw) {
+		*rw += gm_snprintf(&buf[*rw], len - *rw, "%s", header_fmt_string(fmt));
+	}
+
+	header_fmt_free(fmt);
 }
 
 /*
