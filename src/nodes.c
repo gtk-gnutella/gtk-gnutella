@@ -623,6 +623,9 @@ static void send_connection_pongs(struct gnutella_node *n, guchar *muid)
 
 	if (hcount) {
 		gint i;
+
+		sock_cork(s, TRUE);
+
 		for (i = 0; i < hcount; i++) {
 			struct gnutella_msg_init_response *pong;
 			gint sent;
