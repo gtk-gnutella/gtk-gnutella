@@ -113,7 +113,7 @@ static gchar *pkt_stat_str(
 		g_strlcpy(strbuf, "-", n);
 	else {
 		if (!perc)
-			gm_snprintf(strbuf, n, "%llu", val_tbl[type]);
+			gm_snprintf(strbuf, n, "%" PRIu64, val_tbl[type]);
 		else
 			gm_snprintf(strbuf, n, "%.2f%%", 
 			    (gfloat) val_tbl[type] / val_tbl[MSG_TOTAL] * 100.0);
@@ -152,7 +152,8 @@ static const gchar *drop_stat_str(
 		gm_snprintf(str, n, "%.2f%%", 
 		    (gfloat) stats->drop_reason[reason][selected_type] / total * 100);
 	else
-		gm_snprintf(str, n, "%llu", stats->drop_reason[reason][selected_type]);
+		gm_snprintf(str, n, "%" PRIu64,
+			stats->drop_reason[reason][selected_type]);
 
 	return str;
 }
@@ -165,7 +166,7 @@ static const gchar *general_stat_str(
 	else if (type == GNR_QUERY_COMPACT_SIZE)
 		g_strlcpy(str, compact_size64(stats->general[type]), n);
 	else
-		gm_snprintf(str, n, "%" G_GUINT64_FORMAT, stats->general[type]);
+		gm_snprintf(str, n, "%" PRIu64, stats->general[type]);
 
 	return str;
 }
