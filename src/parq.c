@@ -45,6 +45,8 @@ RCSID("$Id$");
 #define PARQ_MAX_UL_RETRY_DELAY 600		/* 10 minutes retry rate max. */
 #define MIN_LIFE_TIME		90
 #define EXPIRE_GRACE_TIME	90
+#define QUEUE_PERIOD		600		/* Try to resend a queue every 10 minutes */
+#define MAX_QUEUE			144		/* Max amount of QUEUE we can send */
 
 #define MAX_UPLOADS			100		/* Avoid more than that many uploads */
 
@@ -106,10 +108,12 @@ struct parq_ul_queued {
 	guint eta;				/* Expected time in seconds till an upload slot is
 							   reached */
 
-	time_t expire;			/* Time at which the queue position will be lost*/
-	time_t retry;			/* Time at which the first retry-after is expected*/
+	time_t expire;			/* Time at which the queue position will be lost */
+	time_t retry;			/* Time at which the first retry-after is expected */
 	time_t enter;			/* Time upload entered parq */
 	time_t updated;			/* Time last upload request was sent */
+	time_t last_queue_sent;	/* When we last sent the QUEUE */
+	guint32 queue_sent;		/* Amount of QUEUE messages we sent */
 	 
 	gboolean is_alive;		/* Whether client is still requesting this file */
 
@@ -1416,17 +1420,41 @@ void parq_upload_timer(time_t now)
 		struct parq_ul_queue *queue = (struct parq_ul_queue *) queues->data;
 
 		queue_selected++;
-		
+
+		/*
+		 * Infrequently scan the dead uploads as well to send QUEUE.
+		 */
+
+		if ((now % 60) == 0) {
+			for (dl = queue->by_date_dead; dl != NULL; dl = dl->next) {	
+				struct parq_ul_queued *parq_ul =
+					(struct parq_ul_queued *) dl->data;
+
+				g_assert(parq_ul != NULL);
+
+				/* Entry can't have a slot, and we know it expired! */
+
+				if (
+					!(parq_ul->flags & (PARQ_UL_QUEUE|PARQ_UL_NOQUEUE) &&
+					now - parq_ul->last_queue_sent > QUEUE_PERIOD &&
+					parq_ul->queue_sent < MAX_QUEUE)
+				)
+					parq_upload_send_queue(parq_ul);
+			}
+		}
+			
 		for (dl = queue->by_rel_pos; dl != NULL; dl = dl->next) {	
 			struct parq_ul_queued *parq_ul = (struct parq_ul_queued *) dl->data;
 
-			if (parq_ul == NULL)
+			if (parq_ul == NULL)		// XXX how can this happen? -- RAM
 				break;
 			
 			if (
 				parq_ul->expire <= now &&
 				!parq_ul->has_slot &&
-				!(parq_ul->flags & (PARQ_UL_QUEUE|PARQ_UL_NOQUEUE))
+				!(parq_ul->flags & (PARQ_UL_QUEUE|PARQ_UL_NOQUEUE) &&
+				now - parq_ul->last_queue_sent > QUEUE_PERIOD &&
+				parq_ul->queue_sent < MAX_QUEUE)
 			)
 				parq_upload_send_queue(parq_ul);
 			
@@ -2290,23 +2318,28 @@ void parq_upload_do_send_queue(struct parq_ul_queued *parq_ul)
 	gnutella_upload_t *u;
 
 	g_assert(parq_ul->flags & PARQ_UL_QUEUE);
-		
+
+	parq_ul->last_queue_sent = time(NULL);		/* We tried... */
+	parq_ul->queue_sent++;
+
 	if (dbg)
-		printf("PARQ UL Q %d/%d (%3d[%3d]/%3d): Sending QUEUE to %s: '%s'\n\r",
+		printf("PARQ UL Q %d/%d (%3d[%3d]/%3d): "
+			"Sending QUEUE #%d to %s: '%s'\n\r",
 			  g_list_position(ul_parqs, 
 			  g_list_find(ul_parqs, parq_ul->queue)) + 1,
 			  g_list_length(ul_parqs), 
 			  parq_ul->position, 
 			  parq_ul->relative_position,
 			  parq_ul->queue->size,
+			  parq_ul->queue_sent,
 			  ip_port_to_gchar(parq_ul->ip, parq_ul->port),
 			  parq_ul->name);
 
 	s = socket_connect(parq_ul->ip, parq_ul->port, SOCK_TYPE_UPLOAD);
 	
 	if (!s) {
-		g_warning("could not send QUEUE to %s (can't connect)",
-			ip_port_to_gchar(parq_ul->ip, parq_ul->port));
+		g_warning("could not send QUEUE #%d to %s (can't connect)",
+			parq_ul->queue_sent, ip_port_to_gchar(parq_ul->ip, parq_ul->port));
 		return;
 	}
 
@@ -2347,6 +2380,7 @@ void parq_upload_send_queue_conf(gnutella_upload_t *u)
 		parq_ul->id, ip_port_to_gchar(listen_ip(), listen_port));
 	
 	s = u->socket;
+
 	if (-1 == (sent = bws_write(bws.out, s->file_desc, queue, rw))) {
 		g_warning("PARQ UL: Unable to send back QUEUE for \"%s\" to %s: %s",
 			  u->name, ip_port_to_gchar(s->ip, s->port), g_strerror(errno));
@@ -2356,13 +2390,13 @@ void parq_upload_send_queue_conf(gnutella_upload_t *u)
 			  sent, rw, u->name, ip_port_to_gchar(s->ip, s->port),
 			  g_strerror(errno));
 	} else /* if (dbg > 2) */ {
-		printf("PARQ UL: Sent to %s: %s",
-			  ip_port_to_gchar(s->ip, s->port), queue);
+		printf("PARQ UL: Sent #%d to %s: %s",
+			  parq_ul->queue_sent, ip_port_to_gchar(s->ip, s->port), queue);
 		fflush(stdout);
 	}
 
 	if (sent != rw) {
-		upload_remove(u, "Unable to send QUEUE");
+		upload_remove(u, "Unable to send QUEUE #%d", parq_ul->queue_sent);
 		return;
 	}
 
