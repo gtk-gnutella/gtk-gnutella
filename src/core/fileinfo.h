@@ -35,9 +35,9 @@
  * Operating flags.
  */
 
-#define FI_F_SUSPEND		0x00000001 	/* Marked "suspended" new downloads */
-#define FI_F_DISCARD		0x00000002 	/* Discard fileinfo when refcount = 0 */
-#define FI_F_MARK			0x80000000 	/* Marked during traversal */
+#define FI_F_SUSPEND		0x00000001U	/* Marked "suspended" new downloads */
+#define FI_F_DISCARD		0x00000002U	/* Discard fileinfo when refcount = 0 */
+#define FI_F_MARK			0x80000000U	/* Marked during traversal */
 
 /*
  * Public interface.
@@ -53,25 +53,26 @@ void file_info_store_binary(struct dl_file_info *fi);
 void file_info_store_if_dirty(void);
 void file_info_set_discard(struct dl_file_info *fi, gboolean state);
 enum dl_chunk_status file_info_find_hole(
-	struct download *d, guint32 *from, guint32 *to);
+	struct download *d, filesize_t *from, filesize_t *to);
 gboolean file_info_find_available_hole(struct download *d,
-	GSList *ranges, guint32 *from, guint32 *to);
+	GSList *ranges, filesize_t *from, filesize_t *to);
 void file_info_merge_adjacent(struct dl_file_info *fi);
 void file_info_clear_download(struct download *d, gboolean lifecount);
 enum dl_chunk_status file_info_chunk_status(
-	struct dl_file_info *fi, guint32 from, guint32 to);
+	struct dl_file_info *fi, filesize_t from, filesize_t to);
 void file_info_reset(struct dl_file_info *fi);
 void file_info_recreate(struct download *d);
 struct dl_file_info *file_info_get(
-	gchar *file, const gchar *path, guint32 size, gchar *sha1, 
+	gchar *file, const gchar *path, filesize_t size, gchar *sha1, 
 	gboolean file_size_known);
 void file_info_strip_binary(struct dl_file_info *fi);
 void file_info_strip_binary_from_file(
 	struct dl_file_info *fi, const gchar *file);
 gboolean file_info_got_sha1(struct dl_file_info *fi, const gchar *sha1);
-void file_info_update(
-	struct download *d, guint32 from, guint32 to, enum dl_chunk_status status);
-enum dl_chunk_status file_info_pos_status(struct dl_file_info *fi, guint32 pos);
+void file_info_update(struct download *d, filesize_t from, filesize_t to,
+	enum dl_chunk_status status);
+enum dl_chunk_status file_info_pos_status(struct dl_file_info *fi,
+	filesize_t pos);
 void file_info_close(void);
 void file_info_close_pre(void);
 void file_info_try_to_swarm_with(
@@ -88,9 +89,10 @@ void file_info_upload_stop(struct dl_file_info *fi, const gchar *reason);
 shared_file_t *file_info_shared_sha1(const gchar *sha1);
 gint file_info_available_ranges(struct dl_file_info *fi, gchar *buf, gint size);
 gboolean file_info_restrict_range(
-	struct dl_file_info *fi, guint32 start, guint32 *end);
+	struct dl_file_info *fi, filesize_t start, filesize_t *end);
 
 struct dl_file_info *file_info_has_identical(
-	gchar *file, guint32 size, gchar *sha1);
+	gchar *file, filesize_t size, gchar *sha1);
 
 #endif /* _core_fileinfo_h_ */
+/* vi: set ts=4 sw=4 cindent: */

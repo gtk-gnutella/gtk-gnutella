@@ -71,8 +71,8 @@ RCSID("$Id$");
 #define FI_MAX_FIELD_LEN	1024	/* Max field length we accept to save */
 
 struct dl_file_chunk {
-	guint32 from;					/* Range offset start (byte included) */
-	guint32 to;						/* Range offset end (byte EXCLUDED) */
+	filesize_t from;				/* Range offset start (byte included) */
+	filesize_t to;					/* Range offset end (byte EXCLUDED) */
 	enum dl_chunk_status status;	/* Status of range */
 	struct download *download;		/* Download that "reserved" the range */
 };
@@ -386,7 +386,7 @@ file_info_init(void)
 
 	fi_by_sha1     = g_hash_table_new(sha1_hash, sha1_eq);
 	fi_by_namesize = g_hash_table_new(namesize_hash, namesize_eq);
-	fi_by_size     = g_hash_table_new(g_int_hash, g_int_equal);
+	fi_by_size     = g_hash_table_new(uint64_hash, uint64_eq);
 	fi_by_outname  = g_hash_table_new(g_str_hash, g_str_equal);
 
     fi_handle_map = idtable_new(32, 32);
@@ -454,10 +454,10 @@ file_info_fd_store_binary(struct dl_file_info *fi, int fd, gboolean force)
 	 * Write trailer at the far end.
 	 */
 
-	if (lseek(fd, fi->size, SEEK_SET) != fi->size) {
+	if (fi->size != (guint64) lseek(fd, fi->size, SEEK_SET)) {
 		g_warning("file_info_store_binary(): "
-			"lseek() to offset %u in \"%s\" failed: %s",
-			fi->size, fi->file_name, g_strerror(errno));
+			"lseek() to offset %" PRIu64 " in \"%s\" failed: %s",
+			(guint64) fi->size, fi->file_name, g_strerror(errno));
 		return;
 	}
 
@@ -595,8 +595,10 @@ file_info_strip_binary_from_file(struct dl_file_info *fi, const gchar *file)
 
 	if (dfi->size != fi->size || dfi->done != fi->done) {
 		g_warning("could not chop fileinfo trailer off \"%s\": file was "
-			"different than expected (%u/%u bytes done instead of %u/%u)",
-			file, dfi->done, dfi->size, fi->done, fi->size);
+			"different than expected (%" PRIu64 "/%" PRIu64 " bytes done "
+			"instead of %" PRIu64 "/%" PRIu64 ")",
+			file, (guint64) dfi->done, (guint64) dfi->size,
+			(guint64) fi->done, (guint64) fi->size);
 	} else if (-1 == truncate(file, fi->size))
 		g_warning("could not chop fileinfo trailer off \"%s\": %s",
 			file, g_strerror(errno));
@@ -625,7 +627,7 @@ fi_free(struct dl_file_info *fi)
 	}
 
 	if (fi->size_atom)
-		atom_int_free(fi->size_atom);
+		atom_uint64_free(fi->size_atom);
 	if (fi->file_name)
 		atom_str_free(fi->file_name);
 	if (fi->path)
@@ -653,7 +655,7 @@ fi_free(struct dl_file_info *fi)
  * Resize fileinfo to be `size' bytes, by adding empty chunk at the tail.
  */
 static void
-fi_resize(struct dl_file_info *fi, guint32 size)
+fi_resize(struct dl_file_info *fi, filesize_t size)
 {
 	struct dl_file_chunk *fc;
 
@@ -674,9 +676,9 @@ fi_resize(struct dl_file_info *fi, guint32 size)
 
 	g_assert(fi->size_atom);
 
-	atom_int_free(fi->size_atom);
+	atom_uint64_free(fi->size_atom);
 	fi->size = size;
-	fi->size_atom = atom_int_get(&size);
+	fi->size_atom = atom_uint64_get(&size);
 }
 
 /**
@@ -855,7 +857,7 @@ file_info_has_filename(struct dl_file_info *fi, gchar *file)
  * Returns the fileinfo structure if found, NULL otherwise.
  */
 static struct dl_file_info *
-file_info_lookup(gchar *name, guint32 size, const gchar *sha1)
+file_info_lookup(gchar *name, filesize_t size, const gchar *sha1)
 {
 	struct dl_file_info *fi;
 	struct namesize nsk;
@@ -1119,8 +1121,8 @@ file_info_retrieve_binary(const gchar *file, const gchar *path)
 	}
 
 	if (trailer.filesize != lseek(fd, trailer.filesize, SEEK_SET)) {
-		g_warning("seek to position %u within \"%s\" failed: %s",
-			trailer.filesize, pathname, g_strerror(errno));
+		g_warning("seek to position %" PRIu64 " within \"%s\" failed: %s",
+			(guint64) trailer.filesize, pathname, g_strerror(errno));
 		goto eof;
 	}
 
@@ -1130,8 +1132,8 @@ file_info_retrieve_binary(const gchar *file, const gchar *path)
 
 	if (-1 == tbuf_read(fd, trailer.length)) {
 		g_warning("file_info_retrieve_binary(): "
-			"unable to read whole trailer (%d bytes) from \"%s\": %s",
-			trailer.filesize, pathname, g_strerror(errno));
+			"unable to read whole trailer (%" PRIu64 " bytes) from \"%s\": %s",
+			(guint64) trailer.filesize, pathname, g_strerror(errno));
 		goto eof;
 	}
 
@@ -1147,7 +1149,7 @@ file_info_retrieve_binary(const gchar *file, const gchar *path)
 	fi->file_name = atom_str_get(file);
 	fi->path = atom_str_get(path);
 	fi->size = trailer.filesize;
-	fi->size_atom = atom_int_get(&fi->size);
+	fi->size_atom = atom_uint64_get(&fi->size);
 	fi->generation = trailer.generation;
 	fi->file_size_known = fi->use_swarming = 1;		/* Must assume swarming */
 	fi->refcount = 0;
@@ -1186,7 +1188,7 @@ file_info_retrieve_binary(const gchar *file, const gchar *path)
 		
 		if (tmpguint > FI_MAX_FIELD_LEN) {
 			gm_snprintf(tmp, sizeof(tmp),
-				"field #%d is too large (%u bytes) ", field, tmpguint);
+				"field #%d is too large (%u bytes) ", field, (guint) tmpguint);
 			reason = tmp;
 			goto bailout;
 		}
@@ -1287,8 +1289,9 @@ file_info_retrieve_binary(const gchar *file, const gchar *path)
 	file_info_merge_adjacent(fi);	/* Update fi->done */
 
 	if (dbg > 3)
-		printf("FILEINFO: good trailer info (v%u, %u bytes) in \"%s\"\n",
-			version, trailer.length, pathname);
+		g_message("FILEINFO: "
+			"good trailer info (v%u, %" PRIu64 "bytes) in \"%s\"",
+			version, (guint64) trailer.length, pathname);
 
 	G_FREE_NULL(pathname);
 	return fi;
@@ -1399,7 +1402,7 @@ file_info_store_list(gpointer key, gpointer val, gpointer x)
 
 	for (l = (GSList *) val; l; l = l->next) {
 		fi = (struct dl_file_info *) l->data;
-		g_assert(fi->size == *(guint32 *) key);
+		g_assert(fi->size == *(filesize_t *) key);
 		file_info_store_one(f, fi);
 	}
 
@@ -1617,8 +1620,9 @@ file_info_hash_insert(struct dl_file_info *fi)
 	g_assert(fi->size_atom);
 
 	if (dbg > 4) {
-		printf("FILEINFO insert 0x%lx \"%s\" (%u/%u bytes done) sha1=%s\n",
-			(gulong) fi, fi->file_name, fi->done, fi->size,
+		printf("FILEINFO insert 0x%p \"%s\" "
+			"(%" PRIu64 "/%" PRIu64 " bytes done) sha1=%s\n",
+			fi, fi->file_name, (guint64) fi->done, (guint64) fi->size,
 			fi->sha1 ? sha1_base32(fi->sha1) : "none");
 		fflush(stdout);
 	}
@@ -1686,7 +1690,7 @@ file_info_hash_insert(struct dl_file_info *fi)
 	 * all the `fi' structs with the same size!
 	 */
 
-	g_assert(fi->size == *(guint32 *) fi->size_atom);
+	g_assert(fi->size == *(filesize_t *) fi->size_atom);
 
 	l = g_hash_table_lookup(fi_by_size, fi->size_atom);
 
@@ -1724,10 +1728,10 @@ file_info_hash_remove(struct dl_file_info *fi)
 	g_assert(fi->size_atom);
 
 	if (dbg > 4) {
-		printf("FILEINFO remove 0x%lx \"%s\" (%u/%u bytes done) sha1=%s\n",
-			(gulong) fi, fi->file_name, fi->done, fi->size,
+		g_message("FILEINFO remove 0x%lx \"%s\" "
+			"(%" PRIu64 "/%" PRIu64 " bytes done) sha1=%s\n",
+			(gulong) fi, fi->file_name, (guint64) fi->done, (guint64) fi->size,
 			fi->sha1 ? sha1_base32(fi->sha1) : "none");
-		fflush(stdout);
 	}
 
     /*
@@ -1793,7 +1797,7 @@ file_info_hash_remove(struct dl_file_info *fi)
 	 * all the `fi' structs with the same size (in case we free `fi' now)!
 	 */
 
-	g_assert(fi->size == *(guint32 *) fi->size_atom);
+	g_assert(fi->size == *(filesize_t *) fi->size_atom);
 
 	l = g_hash_table_lookup(fi_by_size, &fi->size);
 
@@ -1840,9 +1844,10 @@ file_info_unlink(struct dl_file_info *fi)
 				fi->path, G_DIR_SEPARATOR_S, fi->file_name,
 				NULL == path ?  "Out of memory" : g_strerror(errno));
 	} else {
-		g_warning("unlinked \"%s\" (%u/%u bytes or %d%% done, %s SHA1%s%s)",
-			fi->file_name, fi->done, fi->size,
-			fi->done * 100 / (fi->size == 0 ? 1 : fi->size),
+		g_warning("unlinked \"%s\" (%" PRIu64 "/%" PRIu64
+			" bytes or %d%% done, %s SHA1%s%s)",
+			fi->file_name, (guint64) fi->done, (guint64) fi->size,
+			(gint) (fi->done * 100 / (fi->size == 0 ? 1 : fi->size)),
 			fi->sha1 ? "with" : "no",
 			fi->sha1 ? ": " : "",
 			fi->sha1 ? sha1_base32(fi->sha1) : "");
@@ -1924,19 +1929,20 @@ file_info_got_sha1(struct dl_file_info *fi, const gchar *sha1)
 	 */
 
 	if (dbg > 3)
-		printf("CONFLICT found same SHA1 %s in "
-			"\"%s\" (%u/%u bytes done) and \"%s\" (%u/%u bytes done)\n",
+		g_message("CONFLICT found same SHA1 %s in "
+			"\"%s\" (%" PRIu64 "/%" PRIu64 " bytes done) and \"%s\" "
+			"(%" PRIu64 "/%" PRIu64 " bytes done)\n",
 			sha1_base32(sha1),
-			xfi->file_name, xfi->done, xfi->size,
-			fi->file_name, fi->done, fi->size);
+			xfi->file_name, (guint64) xfi->done, (guint64) xfi->size,
+			fi->file_name, (guint64) fi->done, (guint64) fi->size);
 
 	if (fi->done && xfi->done) {
 		g_warning("found same SHA1 %s in "
-			"\"%s\" (%u/%u bytes done) and \"%s\" (%u/%u bytes done) "
-			"-- aborting last one",
+			"\"%s\" (%" PRIu64 "/%" PRIu64 " bytes done) and \"%s\" "
+			"(%" PRIu64 "/%" PRIu64 " bytes done) -- aborting last one",
 			sha1_base32(sha1),
-			xfi->file_name, xfi->done, xfi->size,
-			fi->file_name, fi->done, fi->size);
+			xfi->file_name, (guint64) xfi->done, (guint64) xfi->size,
+			fi->file_name, (guint64) fi->done, (guint64) fi->size);
 		return FALSE;
 	}
 
@@ -2058,7 +2064,8 @@ file_info_retrieve(void)
 	FILE *f;
 	struct dl_file_chunk *fc = NULL;
 	gchar line[1024];
-	guint32 from, to, status;
+	filesize_t from, to;
+	guint32 status;
 	struct dl_file_info *fi = NULL;
 	gboolean empty = TRUE;
 	GSList *aliases = NULL;
@@ -2246,8 +2253,8 @@ file_info_retrieve(void)
 					file_info_merge_adjacent(fi);		/* Compute fi->done */
 					if (fi->done > 0) {
 						g_warning("discarding cached metainfo for \"%s\": "
-							"file had %d bytes downloaded but is now gone!",
-							pathname, fi->done);
+							"file had %" PRIu64 " bytes downloaded "
+							"but is now gone!", pathname, (guint64) fi->done);
 						G_FREE_NULL(pathname);
 						goto discard;
 					}
@@ -2275,9 +2282,10 @@ file_info_retrieve(void)
 			dfi = file_info_lookup_dup(fi);
 
 			if (dfi != NULL) {
-				g_warning("found DUPLICATE entry for \"%s\" (%u bytes) "
-					"with \"%s\" (%u bytes)",
-					fi->file_name, fi->size, dfi->file_name, dfi->size);
+				g_warning("found DUPLICATE entry for \"%s\" "
+					"(%" PRIu64 " bytes) with \"%s\" (%" PRIu64 " bytes)",
+					fi->file_name, (guint64) fi->size,
+					dfi->file_name, (guint64) dfi->size);
 				goto discard;
 			}
 
@@ -2394,8 +2402,7 @@ file_info_retrieve(void)
 			v = parse_uint64(value, &ep, 10, &error);
 			damaged = error || *ep != '\0' || v >= ((guint64) 1UL << 63);
 			fi->size = v;
-			/* XXX: int is the wrong type */
-			fi->size_atom = atom_int_get(&fi->size);
+			fi->size_atom = atom_uint64_get(&fi->size);
 			break;	
 		case FI_TAG_FSKN:
 			v = parse_uint64(value, &ep, 10, &error);
@@ -2586,9 +2593,8 @@ ok:
  * The `sha1' is the known SHA1 for the file (NULL if unknown).
  */
 static struct dl_file_info *
-file_info_create(
-	gchar *file, const gchar *path, guint32 size, const gchar *sha1, 
-	gboolean file_size_known)
+file_info_create(gchar *file, const gchar *path, filesize_t size,
+	const gchar *sha1, gboolean file_size_known)
 {
 	struct dl_file_info *fi;
 	struct stat st;
@@ -2625,7 +2631,7 @@ file_info_create(
 	} 
 	G_FREE_NULL(pathname);
 
-	fi->size_atom = atom_int_get(&fi->size);	/* Set now, for fi_resize() */
+	fi->size_atom = atom_uint64_get(&fi->size);	/* Set now, for fi_resize() */
 
 	if (size > fi->size)
 		fi_resize(fi, size);
@@ -2643,8 +2649,7 @@ file_info_create(
  * `file' is the file name on the server.
  */ 
 struct dl_file_info *
-file_info_get(
-	gchar *file, const gchar *path, guint32 size, gchar *sha1, 
+file_info_get(gchar *file, const gchar *path, filesize_t size, gchar *sha1, 
 	gboolean file_size_known)
 {
 	struct dl_file_info *fi;
@@ -2670,8 +2675,10 @@ file_info_get(
 			g_assert(fi->sha1);
 			g_assert(sha1);
 
-			g_warning("file \"%s\" (SHA1 %s) was %u bytes, resizing to %u",
-				fi->file_name, sha1_base32(fi->sha1), fi->size, size);
+			g_warning("file \"%s\" (SHA1 %s) was %" PRIu64
+				" bytes, resizing to %" PRIu64,
+				fi->file_name, sha1_base32(fi->sha1),
+				(guint64) fi->size, (guint64) size);
 
 			file_info_hash_remove(fi);
 			fi_resize(fi, size);
@@ -2744,8 +2751,9 @@ file_info_get(
 			 * NB: if we have a SHA1, we know it's matching at this point.
 			 */
 
-			g_warning("found existing file \"%s\" size=%u, increasing to %u",
-				outname, fi->size, size);
+			g_warning("found existing file \"%s\" size=%" PRIu64 
+				", increasing to %" PRIu64,
+				outname, (guint64) fi->size, (guint64) size);
 
 			fi_resize(fi, size);
 		}
@@ -2785,7 +2793,7 @@ file_info_get(
  * and NULL otherwise.
  */
 struct dl_file_info *
-file_info_has_identical(gchar *file, guint32 size, gchar *sha1)
+file_info_has_identical(gchar *file, filesize_t size, gchar *sha1)
 {
 	GSList *p;
 	GSList *sizelist;
@@ -2934,8 +2942,8 @@ file_info_merge_adjacent(struct dl_file_info *fi)
  * the supplied download `d' so we know who "owns" it currently.
  */
 void
-file_info_update(
-	struct download *d, guint32 from, guint32 to, enum dl_chunk_status status)
+file_info_update(struct download *d, filesize_t from, filesize_t to,
+		enum dl_chunk_status status)
 {
 	GSList *fclist;
 	int n;
@@ -2960,9 +2968,9 @@ again:
 	/* I think the algorithm is safe now, but hey... */
 	if (++againcount > 10) {
 		g_warning("Eek! Internal error! "
-			"file_info_update(%u, %u, %d) is looping for \"%s\"! "
-			"Man battle stations!",
-			from, to, status, d->file_name);
+			"file_info_update(%" PRIu64 ", %" PRIu64 ", %d) "
+			"is looping for \"%s\"! Man battle stations!",
+			(guint64) from, (guint64) to, status, d->file_name);
 		return;
 	}
 
@@ -3076,7 +3084,7 @@ again:
 
 		} else if ((fc->from < from) && (fc->to < to)) {
 
-			guint32 tmp;
+			filesize_t tmp;
 
 			if (fc->status == DL_CHUNK_DONE)
 				need_merging = TRUE;
@@ -3102,11 +3110,13 @@ again:
 	if (!found) {
 		/* Should never happen. */
 		g_warning("file_info_update(): "
-			"(%s) Didn't find matching chunk for <%u-%u> (%u)",
-			fi->file_name, from, to, status);
+			"(%s) Didn't find matching chunk for "
+			"<%" PRIu64 "-%" PRIu64 "> (%u)",
+			fi->file_name, (guint64) from, (guint64) to, status);
 		for (fclist = fi->chunklist; fclist; fclist = g_slist_next(fclist)) {
 			fc = fclist->data;
-			g_warning("... %u %u %u", fc->from, fc->to, fc->status);
+			g_warning("... %" PRIu64 " %" PRIu64 " %u",
+					(guint64) fc->from, (guint64) fc->to, fc->status);
 		}
 	}
 
@@ -3212,7 +3222,7 @@ restart:
  * checking.
  */
 enum dl_chunk_status
-file_info_chunk_status(struct dl_file_info *fi, guint32 from, guint32 to)
+file_info_chunk_status(struct dl_file_info *fi, filesize_t from, filesize_t to)
 {
 	GSList *fclist;
 	struct dl_file_chunk *fc;
@@ -3237,7 +3247,7 @@ file_info_chunk_status(struct dl_file_info *fi, guint32 from, guint32 to)
  * Used to detect if a download is crashing with another.
  */
 enum dl_chunk_status
-file_info_pos_status(struct dl_file_info *fi, guint32 pos)
+file_info_pos_status(struct dl_file_info *fi, filesize_t pos)
 {
 	GSList *fclist;
 	struct dl_file_chunk *fc;
@@ -3315,7 +3325,7 @@ static GSList *
 list_clone_shift(struct dl_file_info *fi)
 {
 	struct dl_file_chunk *fc;
-	guint32 offset;
+	filesize_t offset;
 	GSList *clone;
 	GSList *l;
 	GSList *tail;
@@ -3325,7 +3335,8 @@ list_clone_shift(struct dl_file_info *fi)
 	if (fc->status != DL_CHUNK_DONE || fc->to < pfsp_first_chunk)
 		return fi->chunklist;
 
-	offset = random_value(fi->size - 1);
+	offset = ((((guint64) random_value(~0)) << 32) | random_value(~0))
+		% (fi->size - 1);
 
 	/*
 	 * First pass: clone the list starting at the first chunk whose start is
@@ -3411,12 +3422,12 @@ list_clone_shift(struct dl_file_info *fi)
  * "compete" with the download that reserved it.
  */
 enum dl_chunk_status
-file_info_find_hole(struct download *d, guint32 *from, guint32 *to)
+file_info_find_hole(struct download *d, filesize_t *from, filesize_t *to)
 {
 	GSList *fclist;
 	struct dl_file_chunk *fc;
 	struct dl_file_info *fi = d->file_info;
-	guint32 chunksize;
+	filesize_t chunksize;
 	guint busy = 0;
 	GSList *cklist;
 	gboolean cloned = FALSE;
@@ -3449,8 +3460,8 @@ file_info_find_hole(struct download *d, guint32 *from, guint32 *to)
 #endif /* 0 */
 
 	if (fi->size < d->file_size) {
-		g_warning("fi->size=%u < d->file_size=%u for \"%s\"",
-			fi->size, d->file_size, fi->file_name);
+		g_warning("fi->size=%" PRIu64 " < d->file_size=%" PRIu64 " for \"%s\"",
+			(guint64) fi->size, (guint64) d->file_size, fi->file_name);
 	}
 
 	g_assert(fi->lifecount > 0);
@@ -3499,9 +3510,9 @@ file_info_find_hole(struct download *d, guint32 *from, guint32 *to)
 	g_assert(fi->lifecount > (gint32) busy); /* Or we'd found a chunk before */
 
 	if (use_aggressive_swarming) {
-		guint32 longest_from = 0, longest_to = 0;
+		filesize_t longest_from = 0, longest_to = 0;
 		gint starving;
-		guint32 minchunk;
+		filesize_t minchunk;
 
 		/*
 		 * Compute minimum chunk size for splitting.  When we're told to
@@ -3565,11 +3576,11 @@ selected:	/* Selected a hole to download */
  */
 gboolean
 file_info_find_available_hole(
-	struct download *d, GSList *ranges, guint32 *from, guint32 *to)
+	struct download *d, GSList *ranges, filesize_t *from, filesize_t *to)
 {
 	GSList *fclist;
 	struct dl_file_info *fi;
-	guint32 chunksize;
+	filesize_t chunksize;
 	GSList *cklist;
 	gboolean cloned = FALSE;
 
@@ -4227,8 +4238,8 @@ file_info_available_ranges(struct dl_file_info *fi, gchar *buf, gint size)
 		if (fc->status != DL_CHUNK_DONE)
 			continue;
 
-		rw = gm_snprintf(range, sizeof(range), "%s%u-%u",
-			is_first ? "bytes " : "", fc->from, fc->to - 1);
+		rw = gm_snprintf(range, sizeof(range), "%s%" PRIu64 "-%" PRIu64,
+			is_first ? "bytes " : "", (guint64) fc->from, (guint64) fc->to - 1);
 
 		if (!header_fmt_value_fits(fmt, rw, maxfmt))
 			break;			/* Will not fit, cannot emit all of it */
@@ -4288,8 +4299,8 @@ file_info_available_ranges(struct dl_file_info *fi, gchar *buf, gint size)
 		g_assert(j >= 0 && j < nleft);
 		g_assert(fc->status == DL_CHUNK_DONE);
 
-		rw = gm_snprintf(range, sizeof(range), "%s%u-%u",
-			is_first ? "bytes " : "", fc->from, fc->to - 1);
+		rw = gm_snprintf(range, sizeof(range), "%s%" PRIu64 "-%" PRIu64,
+			is_first ? "bytes " : "", (guint64) fc->from, (guint64) fc->to - 1);
 
 		len = header_fmt_length(fmt);
 
@@ -4338,7 +4349,8 @@ emit:
  * an available chunk.
  */
 gboolean
-file_info_restrict_range(struct dl_file_info *fi, guint32 start, guint32 *end)
+file_info_restrict_range(struct dl_file_info *fi,
+		filesize_t start, filesize_t *end)
 {
 	GSList *l;
 
@@ -4377,7 +4389,7 @@ file_info_restrict_range(struct dl_file_info *fi, guint32 start, guint32 *end)
  * @param[in] size  File size to be used in range creation
  */
 static GSList *
-fi_range_for_complete_file(guint32 size)
+fi_range_for_complete_file(filesize_t size)
 {
 	http_range_t *range;
 
