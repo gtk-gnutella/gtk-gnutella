@@ -302,16 +302,28 @@ void main_gui_init(void)
         GTK_CLIST(lookup_widget(main_window, "clist_uploads")),
         c_ul_size, GTK_JUSTIFY_RIGHT);
     gtk_clist_set_column_justification(
-        GTK_CLIST(lookup_widget(main_window, "clist_gnet_stats")),
+        GTK_CLIST(lookup_widget(main_window, "clist_gnet_stats_pkg")),
         c_gs_sent, GTK_JUSTIFY_RIGHT);
     gtk_clist_set_column_justification(
-        GTK_CLIST(lookup_widget(main_window, "clist_gnet_stats")),
+        GTK_CLIST(lookup_widget(main_window, "clist_gnet_stats_pkg")),
         c_gs_dropped, GTK_JUSTIFY_RIGHT);
     gtk_clist_set_column_justification(
-        GTK_CLIST(lookup_widget(main_window, "clist_gnet_stats")),
+        GTK_CLIST(lookup_widget(main_window, "clist_gnet_stats_pkg")),
         c_gs_expired, GTK_JUSTIFY_RIGHT);
     gtk_clist_set_column_justification(
-        GTK_CLIST(lookup_widget(main_window, "clist_gnet_stats")),
+        GTK_CLIST(lookup_widget(main_window, "clist_gnet_stats_pkg")),
+        c_gs_recieved, GTK_JUSTIFY_RIGHT);
+    gtk_clist_set_column_justification(
+        GTK_CLIST(lookup_widget(main_window, "clist_gnet_stats_byte")),
+        c_gs_sent, GTK_JUSTIFY_RIGHT);
+    gtk_clist_set_column_justification(
+        GTK_CLIST(lookup_widget(main_window, "clist_gnet_stats_byte")),
+        c_gs_dropped, GTK_JUSTIFY_RIGHT);
+    gtk_clist_set_column_justification(
+        GTK_CLIST(lookup_widget(main_window, "clist_gnet_stats_byte")),
+        c_gs_expired, GTK_JUSTIFY_RIGHT);
+    gtk_clist_set_column_justification(
+        GTK_CLIST(lookup_widget(main_window, "clist_gnet_stats_byte")),
         c_gs_recieved, GTK_JUSTIFY_RIGHT);
     gtk_clist_set_column_justification(
         GTK_CLIST(lookup_widget(main_window, "clist_gnet_stats_drop_reasons")),
@@ -328,7 +340,9 @@ void main_gui_init(void)
 	gtk_clist_column_titles_passive(
         GTK_CLIST(lookup_widget(main_window, "clist_downloads")));
 	gtk_clist_column_titles_passive(
-        GTK_CLIST(lookup_widget(main_window, "clist_gnet_stats")));
+        GTK_CLIST(lookup_widget(main_window, "clist_gnet_stats_pkg")));
+	gtk_clist_column_titles_passive(
+        GTK_CLIST(lookup_widget(main_window, "clist_gnet_stats_byte")));
 	gtk_clist_column_titles_passive(
         GTK_CLIST(lookup_widget(
             main_window, "clist_gnet_stats_drop_reasons")));
@@ -385,11 +399,21 @@ void main_gui_run(void)
 {
     guint32 coord[4] = { 0, 0, 0, 0 };
 
+    gui_prop_get_guint32(PROP_WINDOW_COORDS, coord, 0, 4);
+
     gui_update_global();
 
-    gtk_widget_show(main_window);		/* Display the main window */
+    /*
+     * We need to tell Gtk the size of the window, otherwise we'll get
+     * strange side effects when the window is shown (like implicitly
+     * resized widgets).
+     *      -- Richard, 8/9/2002
+     */
+    if ((coord[2] != 0) && (coord[3] != 0))
+        gtk_window_set_default_size(
+            GTK_WINDOW(main_window), coord[2], coord[3]);
 
-    gui_prop_get_guint32(PROP_WINDOW_COORDS, coord, 0, 4);
+    gtk_widget_show(main_window);		/* Display the main window */
 
     if ((coord[2] != 0) && (coord[3] != 0))
         gdk_window_move_resize(main_window->window, 
