@@ -1,0 +1,167 @@
+     An Extensible Handshaking Protocol for the Gnutella Network
+
+                             Greg Bildson
+                          Christopher Rohrs
+                            Lime Wire LLC
+
+[Note: If you wish to skip the preamble, go directly to Section 3.]
+
+1. Introduction
+
+Gnutella servents currently establish messaging connections with the
+following protocol:
+
+   1. The client establishes a TCP connection with the server.
+   2. The client sends "GNUTELLA CONNECT/0.4<lf><lf>".  Here "<lf>"
+      refers the end-of-line character, commonly notated by "\n" in
+      programming languages like C and Java.
+   3. The server responds with "GNUTELLA OK<lf><lf>".
+   4. Both client and server send binary messages at will.
+
+Most clients are strict in checking these strings.  For example,
+neither LimeWire nor Gnutella 0.56 will accept "GNUTELLA
+CONNECT/0.5<lf><lf>" in step (2).
+
+The problem with this scheme is that it provides no way of versioning
+the Gnutella protocol.  Servents cannot discover advanced capabilities
+in other servents.  Say for example that a servent X supports a new
+protocol message for routing queries intelligently (QRP).  X cannot
+tell whether a neighboring servent Y will understand its QRP messages.
+
+Lime Wire LLC had proposed using the GUIDs of initial ping requests as
+a form of protocol versioning.  For example, the last byte of the GUID
+of the first message by a client would be 0 if the client spoke the
+"Gnutella 0.5" protocol, 1 if the client spoke the "Gnutella 0.6"
+protocol, etc.  While this scheme is backwards- compatible, it is
+imperfect.  First, it does not provide ways for clients to support
+different combinations of protocol extensions.  If, for example,
+clients at the "0.6" level were to support QRP and pong-caching, a
+servent would be required to implement both.  Second, this scheme
+places a burden on the servent implementer.  For example, a servent
+trying to accept only connections with QRP support must put new
+connections on "probation" until it has received the initial ping.
+
+Clearly a simpler but more flexible scheme is needed.  We propose a
+protocol that the uses HTTP-style headers.  We introduce our scheme in
+two steps.  First we describe a simple but flawed HTTP-style protocol.
+Then we describe some refinements that allow status codes to be sent
+in both directions.
+
+
+2. Introducing HTTP Headers
+
+The following is a simple but flawed handshaking scheme using
+HTTP-style headers:
+
+   1. The client establishes a TCP connection with the server.
+   2. The client sends "GNUTELLA CONNECT/0.6<cr><lf>".  Here "<cr>"
+      refers the carriage-return character, commonly notated by "\r"
+      in programming languages like C and Java.
+   3. The client sends HTTP-style capability headers, each terminated
+      by "<cr><lf>", with an extra "<cr><lf>" at the end.  Example
+      headers might be:
+          User-Agent: LimeWire<cr><lf>
+          Query-Routing: 0.1<cr><lf>
+          <cr><lf>
+   4. The server responds with "GNUTELLA/0.6 200 OK<cr><lf>".
+   5. The server sends HTTP-style headers as in (3).
+   6. Both client and server send binary messages at will.
+
+If the server sends a response other than "200 OK" in in step (4), the
+client should disconnect.  For example, a server requiring
+authentication might respond with "GNUTELLA/0.6 401
+Unauthorized<cr><lf>".  Likewise, a server that is overloaded may
+reject connections with "GNUTELLA/0.6 503 Service Unavailable".
+
+While this scheme is an improvement over the GUID-based scheme, it has
+three shortcomings.  First, it does not provide backwards
+compatibility, though this is easily fixed by making multiple
+connection attempts as necessary.  Secondly, there is no way for the
+client to reject the server; status codes are only one-way.  For
+example, a client demanding authentication from the server cannot send
+"401 Unauthorized".  Third, the client must always send
+vendor-specific headers to the server, which wastes bandwidth.
+BearShare, for example, might wish to send signed binary data in the
+handshaking headers in order to eliminate its proprietary "binary
+query" message.  If many BearShare servents are trying to connect to
+an overloaded LimeWire servent L, it is clearly a waste for L to read
+these binary headers, only to respond with "503 Service Unavailable".
+
+
+3. Proposed Protocol
+
+This section presents our proposed handshaking protocol.  This
+protocol differs from the simple one described above in that the
+client gets to send a response code to the server, and the client
+sends two sets of headers:
+
+   1. The client establishes a TCP connection with the server.
+   2. The client sends "GNUTELLA CONNECT/0.6<cr><lf>".
+   3. The client sends all capability headers--except for
+      vendor-specific headers--each terminated by "<cr><lf>", with
+      an extra "<cr><lf>" at the end.
+   4. The server responds with "GNUTELLA/0.6 200 OK<cr><lf>".
+   5. The server sends all its headers, in the same format as in (3).
+   6. The client sends "GNUTELLA/0.6 200 OK<cr><lf>, as in (4).
+   7. The client sends any vendor-specific headers as needed, in the
+      same format as (3).
+   6. Both client and server send binary messages at will, using the
+      information gained in (3) and (5).  
+
+Here is a sample interaction between a client and a server.  Data sent
+from client to server is shown on the left; data sent from server to
+client is shown on the right.
+
+       Client                           Server
+       -----------------------------------------------------------
+       GNUTELLA CONNECT/0.6<cr><lf>
+       User-Agent: BearShare<cr><lf>
+       Query-Routing: 0.2<cr><lf>
+       <cr><lf>
+                                        GNUTELLA/0.6 200 OK<cr><lf>
+                                        User-Agent: BearShare<cr><lf>
+                                        Query-Routing: 0.1<cr><lf>
+                                        BearShare-Data: 5ef89a<cr><lf>
+                                        <cr><lf>
+       GNUTELLA/0.6 200 OK<cr><lf>
+       BearShare-Data: a04fce<cr><lf>
+       <cr><lf>
+
+       [binary messags]                 [binary messages]
+
+A few notes about the responses: first, the client (server) should
+disconnect if receiving any response other than "200 OK" at step 4
+(6).  There is no need to define these error codes now.  Second,
+servents should ignore higher version numbers in steps (2), (4), and
+(6).  For example, it is perfectly legal for a future client to
+connect to a server and send "GNUTELLA CONNECT/0.7".  The server
+should respond with "GNUTELLA/0.7 200 OK" if it supports the 0.7
+protocol, or "GNUTELLA/0.6 200 OK" otherwise.  However, note that an
+old-fashioned "GNUTELLA OK" is not an appropriate response.
+
+A few notes about the headers: servents should use standard HTTP
+headers whenever appropriate.  For example, servents should use the
+standard "User-Agent" header rather than make up a "Servent-Vendor"
+header.  However, it is perfectly legal to add new headers (e.g.,
+"Query-Routing") when no appropriate HTTP header exists, as long as
+they follow HTTP syntax.  Such headers should be approved by other
+developers on the GDF.
+
+One difficulty with this scheme is that it does not provide automatic
+backwards-compatibility with existing servents.  A 0.6 client that
+sends "GNUTELLA CONNECT/0.6" to a 0.4 server will be disconnected.
+For this reason, clients are encouraged to reconnect at the 0.4 level
+if the 0.6 handshake failed.  Furthermore, servers should respond with
+an old-fashioned "GNUTELLA OK" if they receive "GNUTELLA
+CONNECT/0.4<lf><lf>" instead of the more modern "GNUTELLA
+CONNECT/0.6<cr><lf>".  Both steps will prevent 0.4 clients from being
+disconnected from 0.6 clients.
+
+Finally, we encourage vendors to implement this protocol in two
+stages.  Initially, vendors should modify their servents to accept the
+new headers (and respond appropriately with "GNUTELLA/0.6 200 OK") on
+incoming connections.  Only after these clients have been widely
+deployed should clients actually start to send "GNUTELLA CONNECT/0.6"
+when establishing outgoing connections.  This incremental rollout will
+reduce the number of reconnect attempts and provide a smooth
+transition to the new handshaking scheme.

@@ -1,0 +1,357 @@
+[This is an HTML document that was converted to text by RAM.  The orignal
+ was located at http://www.limewire.com/index.jsp/pingpong]
+
+        Christopher Rohrs, Lime Peer Technologies LLC (LimeWire)
+        with ideas from Vincent Falco, Free Peers Inc. (BearShare)
+
+Abstract
+
+We propose a revised ping/pong scheme for the Gnutella network. Our
+scheme helps clients connect to the network more easily, uses a small
+amount of bandwidth, and is compatible with older clients. The key idea
+is to cache pongs and send only the best N pongs to a client.
+
+Introduction
+
+Gnutella's ping and pong messages serve two functions:
+
+  1. Return IP addresses of other servents so you can establish more
+     connections.
+  2. Provide a measure of the horizon size, i.e., the number of hosts
+     and files searchable.
+
+Unfortunately the current ping/pong scheme has two problems. First, it
+consumes an enormous amount of bandwidth - up to 50% of the total
+Gnutella messaging bandwidth. Secondly, most returned addresses are not
+reachable or not accepting incoming connections. For this reason, it is
+difficult to connect to the Gnutella network.
+
+This document proposes an improved way of achieving the first function.
+Our method does not introduce any new messages and requires no
+modifications to the existing ping and pong message formats; it simply
+changes when they are sent and how they are interpreted. Our scheme has
+three properties:
+
+  1. Efficiency The amount of bandwidth used for pings/pongs is capped
+     at roughly 100 bytes/sec/connection, even in the presence of an
+     attacker or older clients.
+  2. Quality If a host A receives a pong from another host B, B was
+     accepting incoming connections within the last 15 seconds.
+  3. Fairness If a host sends a ping and has been playing by the rules,
+     it is guaranteed a pong in response - unless there are really no
+     hosts accepting incoming connections.
+
+Our scheme does not attempt to measure the horizon accurately. As long
+as a servent receives one pong from each host in its horizon, pongs will
+consume a lot of bandwidth. As an example, receiving 4000 pongs would
+require (4000 pongs)(37 bytes/pong)/(1 sec/5000 bytes)=30 seconds on a
+typical 56kb/sec modem. However, we do suggest some new ways to
+approximate the horizon in the appendix.
+
+The key idea of our scheme is to cache pongs to avoid broadcasting pings
+too rapidly. We also introduce a technique called ping multiplexing to
+avoid additional broadcasts while the cache is filling. Additional
+refinements include limiting the number of pongs sent in response to a
+ping, and throttling incoming pings to defend against attackers and old
+clients. This entire scheme can be implemented easily and efficiently,
+and we give complete pseudocode at the end of this document.
+
+Pong Limiting
+
+Pong limiting is an easy way to reduce the number of pongs on the
+network. First of all, a host should only send a pong with its own
+address if that host is not firewalled and can currently accept incoming
+connections. This is critical to our scheme. Remember that we are not
+trying to provide information about the horizon size; we are only
+interested in efficiently helping people connect to the network quickly.
+
+Second, a host should only route a fixed number of pongs in response to
+a ping. If everyone is using the above rule, picking 10 or so pongs
+should be enough to help hosts connect quickly. The question is which 10
+pongs to send back. Pongs with lower hops values are more useful to
+unconnected clients trying to establish a permanent connection, as these
+pongs are younger. On the other hand, pongs with higher hops values are
+more useful to neighbors trying to increase their horizon size through
+additional connections.
+
+Therefore a good approach is to try to distribute hops values equally
+and to send pongs from a variety of connections. In this case, that might
+mean sending one pong with a hops value of 1 from connection 1, one pong
+with a hops value of 2 from connection 2, etc. Clients may also strive
+to send different pongs to each connection in response to each ping.
+
+Pong Caching
+
+Pong limiting does not solve the efficiency problem if too many pings
+are being sent. Consider a single servent A with a stable set of good
+connections. Now another host B joins A and sends a ping. A broadcasts
+the ping to all hosts within its horizon and routes the pongs back. Now
+say that B disconnects and is replaced by another host C. As usual C
+send a ping to A. Unless a lot of time has elapsed since B sent its
+ping, the ping from C will travel to the same set of hosts, and A will
+route the same set of pongs back. So twice as many messages have been
+sent than necessary. More generally, any two pings that a hosts sees
+within a small period of time are likely to have the same effect.
+
+We can take advantage of this by caching the most recent pongs and
+avoiding the broadcast of pings. In the above example, A caches the
+pongs it saw in response to B's ping and simply sends these back to C -
+without forwarding C's ping. This is illustrated to the right. Of course
+A will have to set the GUID of each pong that it sends to C. If every
+host on the network is caching pongs, the amount of traffic will be
+greatly reduced.
+
+To ensure that hosts get fresh pongs, it is important that the cache
+expires every few seconds. To refresh its cache, a host pings all its
+neighbors every 3 seconds and stores all pongs sent in response. The TTL
+on this ping is the standard outgoing value, say 5 or 7. Broadcasting a
+ping every few seconds may sound like a crazy idea, but some quick
+analysis shows that very little bandwidth is actually used. The trick is
+to observe that hosts receiving a ping usually respond by simply dipping
+into their pong caches. In other words, a ping is rarely a true
+broadcast message.
+
+Let the cache expiration time, in seconds, be T. Let N be the maximum
+number of pongs sent in response to a ping. Then at most one ping and N
+pongs are sent per connection per T seconds. Since a ping is 23 bytes
+and a pong is 37 bytes, the amount of bandwidth used per connection is
+(23+N*37)/T bytes/sec. Assuming T=3 and N=10, that works out to only 131
+bytes/sec/connection. So a typical modem user with 2 connections and a
+total bandwidth of 5 kbytes/sec will only have to devote 5% of his
+bandwidth to pings and pongs - an order of magnitude less than the
+current scheme. Reducing N or increasing T can further decrease
+bandwidth requirements. Furthermore, no pong will be older than M*T
+seconds, where M is the maximum allowable TTL. For M=5, that works out
+to only 15 seconds.
+
+In an earlier version of our scheme, if a host with an empty cache
+received a ping with TTL i, it refreshed the cache by broadcasting the
+ping with a TTL of i-1-not M-and storing the results. If the host
+subsequently received a ping with a higher TTL, it would broadcast that
+ping immediately. We called this process a "TTL upgrade". If there is
+little demand for pongs, the earlier demand-driven scheme is more
+efficient than our proposed scheme because only a small portion of the
+network is pinging at any given time. However, if pongs are in demand,
+it is less efficient because each node may send up to M pings (and N*M
+pongs) per connection per T seconds. For this reason, our proposed
+scheme does not use TTL upgrades.
+
+Ping Multiplexing
+
+The above discussion assumes that hosts reply to a ping instantaneously.
+Obviously this is not so. The worst case occurs when the caches of all
+hosts expire at the same time. In this case, every ping results in a
+?cache miss?, so hosts must wait for pongs to be routed from their
+originator. If the latency per connection is not significantly smaller
+than the cache expiration time, a host may receive a pong shortly before
+its cache expires. For this reason, it is advisable that T be no smaller
+than 3 seconds. Furthermore, clients implementing message prioritization
+should make pings and pongs a higher priority message than queries and
+replies.
+
+Another difficulty arises when two pings come in quick succession.
+Consider three hosts A, B, and C, connected in a line as shown in the
+first picture to the right. Assume C is well-connected to the network. A
+sends a ping to B and B broadcasts it to C. Now before A has received
+any replies to that ping, a new host D connects to B and sends a ping.
+Because B's cache is still empty, B must broadcast D's ping if it wishes
+to respond immediately.
+
+This second broadcast can be avoided through a technique we call ping
+multiplexing. The basic idea is to ?multiplex? many incoming pings into
+a single outgoing ping per connection. Conversely we ?demultiplex? a
+single incoming pong into multiple outgoing pongs. In the above example,
+B does not broadcast D?s ping. Instead it waits until it has received
+pongs from C and then send these along to both A and D. This is
+illustrated in the last second and third pictures to the right. For the
+sake of simplicity, this illustration ignores the forwarded ping sent
+from B to A in response to D?s ping.
+
+To summarize: respond to a ping immediately with cached pongs, then set
+up information so that later pongs will be routed to the connection as
+needed. This can be implemented by maintaining two additional pieces of
+information for each connection: the GUID of the last ping received from
+that connection and how many pongs the connection still needs. The
+information is used as follows:
+
+* When receiving a ping from a connection, store the GUID in the
+  connection. Respond immediately with as many cached pongs as possible,
+  but not more than N. Set the number of pongs the connection still
+  needs appropriately.
+* When receiving a pong from a connection, forward the pong along all
+  connections still needing more pongs, using the GUIDs stored on those
+  connections.
+
+With this implementation, traditional ping routing tables are not
+needed!
+
+Dealing with Old Clients
+
+If all clients used the above scheme, at most one ping and M pongs would
+be sent per connection per T seconds. Unfortunately, new clients will
+have to deal with old and malicious clients that forward pings at
+unbounded speeds. For this reason, our scheme limits the rate that
+incoming pings are accepted; any pings exceeding that rate are dropped.
+
+This is implemented by maintaining the time that the last ping was
+accepted from a connection. Again, we stress that this is solely to
+defend against old clients and malicious attackers.
+It is also wise to treat older clients specially when sending pings and
+receiving pongs. First, a new client should ping an old client no more
+than once every 30 seconds or so. The reason is that pings to old
+clients result in true broadcasts and are harmful to the network.
+
+Moreover, older clients will likely return a flood of pongs, consuming a
+lot of the new client's bandwidth. Second, pongs from older clients
+should be placed in a special reserve cache. Because these pongs include
+hosts that cannot accept incoming connections, they should only be used
+when absolutely necessary. For example, if a host lost all connections
+shortly after the normal cache expired, the reserve cache could be used
+to establish new connections.
+
+Luckily we have a way to identify older clients. As discussed at the
+O'Reilly Conference and on the GDF, clients should handshake by
+initially sending pings with a marked GUID. The ninth byte of this GUID
+(i.e., GUID[8] in C or Java) is 0xFF, and the last byte is the protocol
+version number. (Note that this ping handshaking has nothing to do with
+the "GNUTELLA CONNECT 0.4" handshake string sent; unfortunately this
+string must be frozen for the sake of backwards compatibility.) The
+current protocol version number is 0, which stands for "Gnutella 0.5".
+We propose to use a version number of 1 for our ping/pong scheme and
+call this "Gnutella 0.6".
+
+Pseudocode
+
+Below is pseudocode that puts all of the above ideas together. In our
+pseudocode, cache refreshes are triggered when receiving a ping T
+seconds after the last cache refill. Another implementation is to use a
+timer to refresh the cache exactly every T seconds. In practice, both
+will behave nearly the same.
+
+There are some special cases below for dealing with old clients.
+However, we have omitted some details, such as sending periodic update
+pings to old clients and using the reserve cache when no new pongs can
+be found. Also, there is a special case for sending handshake pings and
+receiving pings from a network crawler.
+
+Constants:
+
+* T: both the expire time for cached pongs and the throttle time.
+  Suggested value: 3 seconds.
+* M: the max TTL. Suggested value: 7.
+* N: the max number of pongs to return in response to a ping. Suggested
+  value: 10.
+
+Global variables:
+
+* CACHE: the pong cache. An M array list, each containing a list of
+  connection> pairs. Associating an address with a connection prevents
+  us from sending a cached pong down the path it came from.
+* NEXT_EXPIRE: the time we will next expire CACHE. At this time, we will
+  also forward pings to all connections.
+* RESERVE_CACHE: the cache of expired pongs and pongs from old clients.
+  Used in case the cache empties and all connections suddenly die.
+
+Maintain the following variables per connection C:
+
+* ACCEPT_TIME: the time we will next accept a ping from C.
+* ACCEPT_GUID: the GUID of the last ping accepted on C, or null if not
+  seen.
+* NEEDED: an array of size M. NEEDED[i] is the number of pongs with hops
+  value i needed by C.
+
+When establishing a new connection C:
+
+* If you don?t need any connections and have enough values in
+  RESERVE_CACHE, send C a new ping with TTL 1 for handshaking purposes.
+* Otherwise send C a new ping with TTL=M.
+
+When receiving a ping P on connection C, even if C is a ?temporary/
+reject connection?:
+
+* Throttle incoming pings to defend against old clients and attackers.
+  If the current time is less than C.ACCEPT_TIME, drop P and return from
+  this method. Otherwise set C.ACCEPT_TIME to be the current time+T.
+* Refresh the cache if necessary, being sure to synchronize properly. If
+  the current time is greater than NEXT_EXPIRE, do the following:
+
+  o Set NEXT_EXPIRE=current time+N.
+  o Empty the cache, copying the contents into RESERVE_CACHE.
+  o Send a ping with a new GUID and TTL M to all connections to newer
+    clients. [sic]
+
+* Special case for crawlers: if P.TTL=2 and P.HOPS=0, send pongs with
+  the address and ports of all neighbors. Return from this method.
+* Setup pong demultiplexing tables. Set C.ACCEPT_GUID=P.GUID. For all
+  0=P.TTL, set C.NEEDED[i]=N/P.TTL. For all i>P.TTL, set C.NEEDED[i]=0.
+* Return a pong with my address if I can accept incoming connections
+  right now.
+* Return cached pongs. For all i between 1 and P.TTL, inclusive,
+
+  o Choose NEEDED[i] addresses from CACHE[i] as possible, or as many as
+    possible. Be sure that no address was received from C.
+  o Decrement C.NEEDED[i] by the amount chosen.
+  o Send the addresses to C in pongs with P.GUID.
+
+
+When receiving a pong P on connection C:
+
+* If C is an old client, place in RESERVE_CACHE and return from this
+  method.
+* Add ADDRESS, C> to CACHE[P.HOPS].
+* Route/demultiplex P. For each connection C? except for C,
+
+  o Check if C? still needs a pong. If C?.NEEDED[P.HOPS]==0, continue to
+    the next connection.
+  o Send P along C? with GUID given by C?.ACCEPT_GUID.
+  o Decrement C?.NEEDED[P.HOPS]
+
+
+
+Appendix: Estimating Horizon Size
+
+Our ping/pong scheme does not provide a way to measure the horizon size.
+We do acknowledge, however, that there is some value in providing
+reasonable horizon statistics. This information tells the user whether
+she is well-connected to the network and may be useful in helping a
+client establish better connections. Here we outline some ways of
+measuring the horizon size.
+
+The easiest way is to maintain a large set of all pongs seen, including
+those from older connections. Eventually this set will contain pongs
+from most non-firewalled hosts in the horizon. However, this set will
+grow very slowly, since at most 10 pongs are added per 3 seconds per
+connection. Furthermore, the client should take care to expire entries
+that are more than a few minutes old.
+
+A similar approach is to maintain a set of all hosts responding to
+queries. (Remember that the query reply message includes the address of
+the host sharing the file.) This also has some problems. First, this
+scheme only measures those hosts in the horizon that are sharing files,
+although this is arguably as important as the total horizon size.
+Secondly this set will also grow slowly since query replies only consume
+a small percentage of all messages. Finally, it is difficult to measure
+the number of files being shared without adding extra information to the
+query hit descriptor.
+
+The best approach is to introduce one or two messages solely for the
+purpose of communicating horizon size. Assume for simplicity that the
+Gnutella network is a tree, i.e., there is only one path between any two
+hosts. A key observation is that the number of hosts reachable from some
+host with TTL N is the sum of the number of hosts reachable from all its
+neighbors with TTL N-1. For formally, let H[A, n, B] be the number of
+hosts within n hops of host A that are reachable through B. Let H?[A, n,
+B] be the number of hosts within n hops of host A that are not reachable
+through B. Then for any host A with neighbors N1...Nm,
+
+                      H[A, n, Ni]=1+H?[Ni, n-1, A]
+H?[A, n, Ni]=H[A, n, N1]+?+H[A, n, N(i-1)+H[A, n, N(i+1)]+?+H[A, n, Nm]
+                             H?[A, 0, Ni]=0
+
+Horizon estimation now works through a sort of dynamic programming
+algorithm. Each host maintains the horizon size per connection, i.e., H
+[A, n, Ni] for all n and i. Every few seconds or so, hosts calculate
+their H? tables from these values, exchange them with neighbors, and use
+these values to update their H tables. The total horizon size reported
+to the user is the sum over all i of H[A, n, Ni]. This scheme is
+accurate, efficient, and uses almost no bandwidth.
