@@ -364,7 +364,9 @@ void gui_update_node_display(struct gnutella_node *n, time_t now)
 			if (remain < 0)
 				remain = 0;
 			g_snprintf(gui_tmp, sizeof(gui_tmp),
-				"Shutdowning: %s [Stop in %ds]", n->error_str, remain);
+				"Shutdowning: %s [Stop in %ds] RX=%d Q=%d,%d%%",
+				n->error_str, remain, n->received,
+				NODE_QUEUE_COUNT(n), NODE_QUEUE_PERCENT_USED(n));
 			a = gui_tmp;
 		}
 		break;
@@ -564,7 +566,7 @@ void gui_update_download(struct download *d, gboolean force)
 			guint32 avg_bps;
 
 			if (d->size)
-				p = ((gfloat) d->pos / (gfloat) d->size) * 100.0;
+				p = d->pos * 100.0 / d->size;
 
 			bps = bio_bps(d->bio);
 			avg_bps = bio_avg_bps(d->bio);
@@ -634,6 +636,9 @@ void gui_update_upload(struct upload *u)
 	gchar gui_tmp[256];
 	guint32 requested = u->end - u->skip + 1;
 
+	if (u->pos < u->skip)
+		return;					/* Never wrote anything yet */
+
 	if (!UPLOAD_IS_COMPLETE(u)) {
 		gint slen;
 		guint32 bps = 1;
@@ -643,7 +648,7 @@ void gui_update_upload(struct upload *u)
 		 * position divided by 1 percentage point, found by dividing
 		 * the total size by 100
 		 */
-		pc = (u->pos - u->skip) / ((requested / 100.0));
+		pc = (u->pos - u->skip) * 100.0 / requested;
 
 		if (u->bio) {
 			bps = bio_bps(u->bio);
