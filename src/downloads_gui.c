@@ -562,7 +562,7 @@ void downloads_gui_shutdown(void)
  */
 void download_gui_add(struct download *d)
 {
-	const gchar *UNKNOWN_SIZE_STR = "unknown size";
+	const gchar *UNKNOWN_SIZE_STR = "no size";
 	const gchar *titles[6], *titles_parent[6];
 	GtkCTreeNode *new_node, *parent;
 	GdkColor *color;

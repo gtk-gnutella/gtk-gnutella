@@ -636,7 +636,7 @@ void downloads_gui_shutdown(void)
 void download_gui_add(download_t *d)
 {
 	const gchar *vendor;
-	const gchar *UNKNOWN_SIZE_STR = "unknown size";
+	const gchar *UNKNOWN_SIZE_STR = "no size";
 	GHashTable *ht;
 	GtkTreeView *treeview;
 	GtkTreeIter *parent;
