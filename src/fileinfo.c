@@ -88,7 +88,7 @@ extern gint sha1_eq(gconstpointer a, gconstpointer b);
  * recorded fi structs for that size.
  *
  * The `fi_by_sha1' hash table keeps track of the SHA1 -> fi association.
- * The `fi_by_namesize' hash table keeps track of the (name, size) -> fi one.
+ * The `fi_by_namesize' hash table keeps track of items by (name, size).
  * The `fi_by_outname' table keeps track of the "output name" -> fi link.
  */
 
@@ -596,10 +596,7 @@ static void fi_free(struct dl_file_info *fi)
  */
 static void fi_resize(struct dl_file_info *fi, guint32 size)
 {
-	namesize_t nsk;
 	struct dl_file_chunk *fc;
-	GSList *l;
-	GSList *to_remove = NULL;
 	struct dl_file_info *xfi;
 
 	g_assert(fi);
@@ -622,37 +619,6 @@ static void fi_resize(struct dl_file_info *fi, guint32 size)
 	atom_int_free(fi->size_atom);
 	fi->size = size;
 	fi->size_atom = atom_int_get(&size);
-
-	/*
-	 * Now make sure none of the current aliases will conflict, now that we
-	 * got a new size.
-	 */
-
-	nsk.size = size;
-
-	for (l = fi->alias; l; l = l->next) {
-		nsk.name = l->data;
-
-		xfi = g_hash_table_lookup(fi_by_namesize, &nsk);
-
-		if (xfi != NULL) {
-			g_assert(xfi != fi);		/* We should not be there! */
-
-			if (dbg) g_warning("ignoring alias \"%s\" for \"%s\" "
-				"(resized to %u bytes): conflicts with \"%s\" (%u bytes)",
-				nsk.name, fi->file_name, fi->size, xfi->file_name, xfi->size);
-
-			to_remove = g_slist_prepend(to_remove, l->data);
-		}
-	}
-
-	for (l = to_remove; l; l = l->next) {
-		gchar *name = (gchar *) l->data;
-		fi->alias = g_slist_remove(fi->alias, name);
-		atom_str_free(name);
-	}
-
-	g_slist_free(to_remove);
 }
 
 /*
@@ -665,6 +631,7 @@ static void fi_alias(struct dl_file_info *fi, gchar *name, gboolean record)
 {
 	namesize_t nsk;
 	struct dl_file_info *xfi;
+	GSList *list;
 
 	g_assert(fi);
 	g_assert(!record || fi->hashed);	/* record => fi->hahsed */
@@ -678,14 +645,9 @@ static void fi_alias(struct dl_file_info *fi, gchar *name, gboolean record)
 	nsk.name = name;
 	nsk.size = fi->size;
 
-	xfi = g_hash_table_lookup(fi_by_namesize, &nsk);
+	list = g_hash_table_lookup(fi_by_namesize, &nsk);
 
-	if (xfi != NULL && xfi != fi) {
-		if (dbg) g_warning("ignoring alias \"%s\" for \"%s\" (%u bytes): "
-			"conflicts with \"%s\" (%u bytes)",
-			name, fi->file_name, fi->size, xfi->file_name, xfi->size);
-		return;
-	} else if (xfi == fi)
+	if (list != NULL && g_slist_find(list, fi) != NULL)
 		return;					/* Alias already known */
 
 	/*
@@ -695,8 +657,13 @@ static void fi_alias(struct dl_file_info *fi, gchar *name, gboolean record)
 	fi->alias = g_slist_append(fi->alias, atom_str_get(name));
 
 	if (record) {
-		namesize_t *ns = namesize_make(nsk.name, nsk.size);
-		g_hash_table_insert(fi_by_namesize, ns, fi);
+		if (list != NULL)
+			g_slist_append(list, fi);
+		else {
+			namesize_t *ns = namesize_make(nsk.name, nsk.size);
+			list = g_slist_append(list, fi);
+			g_hash_table_insert(fi_by_namesize, ns, list);
+		}
 	}
 }
 
@@ -866,9 +833,10 @@ static struct dl_file_info *file_info_lookup(
 	nsk.name = name;
 	nsk.size = size;
 
-	fi = g_hash_table_lookup(fi_by_namesize, &nsk);
+	list = g_hash_table_lookup(fi_by_namesize, &nsk);
 
-	if (fi) {
+	if (list != NULL && g_slist_next(list) == NULL) {
+		fi = list->data;
 		g_assert(fi->size == size);
 		return fi;
 	}
@@ -1405,8 +1373,10 @@ static void file_info_free_sha1_kv(gpointer key, gpointer val, gpointer x)
 static void file_info_free_namesize_kv(gpointer key, gpointer val, gpointer x)
 {
 	namesize_t *ns = (namesize_t *) key;
+	GSList *list = (GSList *) val;
 
 	namesize_free(ns);
+	g_slist_free(list);
 
 	/* fi structure in value not freed, shared with other hash tables */
 }
@@ -1565,23 +1535,26 @@ static void file_info_hash_insert(struct dl_file_info *fi)
 	}
 
 	/*
-	 * The (name, size) tuples must also point to ONE entry, the current
-	 * one, for each of the name aliases.
+	 * The (name, size) tuples also point to a list of entries, one for
+	 * each of the name aliases.  Ideally, we'd want only one, but there
+	 * can be name conflicts.  This does not matter unless they disabled
+	 * strict SHA1 matching...  but that is a dangerous move.
 	 */
 
 	nsk.size = fi->size;
 
 	for (l = fi->alias; l; l = l->next) {
+		GSList *list;
 		nsk.name = l->data;
 
-		xfi = g_hash_table_lookup(fi_by_namesize, &nsk);
+		list = g_hash_table_lookup(fi_by_namesize, &nsk);
 
-		if (xfi != NULL && xfi != fi)		/* See comment above */
-			g_error("xfi = 0x%lx, fi = 0x%lx", (gulong) xfi, (gulong) fi);
-
-		if (xfi == NULL) {
+		if (list != NULL)
+			g_slist_append(list, fi);
+		else {
 			namesize_t *ns = namesize_make(nsk.name, nsk.size);
-			g_hash_table_insert(fi_by_namesize, ns, fi);
+			list = g_slist_append(list, fi);
+			g_hash_table_insert(fi_by_namesize, ns, list);
 		}
 	}
 
@@ -1622,7 +1595,6 @@ static void file_info_hash_insert(struct dl_file_info *fi)
 static void file_info_hash_remove(struct dl_file_info *fi)
 {
 	namesize_t nsk;
-	gpointer x;
 	gboolean found;
 	GSList *l;
 	GSList *newl;
@@ -1668,21 +1640,27 @@ static void file_info_hash_remove(struct dl_file_info *fi)
 	nsk.size = fi->size;
 
 	for (l = fi->alias; l; l = l->next) {
-		union { 
-			namesize_t *ns;
-			gpointer ptr;
-		} key;
+		namesize_t *ns;
+		GSList *list;
+		GSList *head;
+
 		nsk.name = l->data;
 
 		found = g_hash_table_lookup_extended(fi_by_namesize, &nsk,
-			&key.ptr, &x);
+			(gpointer *) &ns, (gpointer *) &list);
 
 		g_assert(found);
-		g_assert(x == (gpointer) fi);
-		g_assert(key.ns->size == fi->size);
+		g_assert(list != NULL);
+		g_assert(ns->size == fi->size);
 
-		g_hash_table_remove(fi_by_namesize, key.ns);
-		namesize_free(key.ns);
+		head = list;
+		list = g_slist_remove(list, fi);
+
+		if (list == NULL) {
+			g_hash_table_remove(fi_by_namesize, ns);
+			namesize_free(ns);
+		} else if (head != list)
+			g_hash_table_insert(fi_by_namesize, ns, list);	/* Head changed */
 	}
 
 	/*
@@ -2462,6 +2440,7 @@ struct dl_file_info *file_info_has_identical(
 {
 	GSList *p;
 	GSList *sizelist;
+	GSList *list;
 	struct dl_file_info *fi;
 	namesize_t nsk;
 
@@ -2486,10 +2465,19 @@ struct dl_file_info *file_info_has_identical(
 			return fi;
 	}
 
+	/*
+	 * Only retain entry by (name, size) if it is unique.
+	 * We're not going to try to disambiguate between conflicting entries!
+	 */
+
 	nsk.name = file;
 	nsk.size = size;
 
-	fi = g_hash_table_lookup(fi_by_namesize, &nsk);
+	list = g_hash_table_lookup(fi_by_namesize, &nsk);
+	fi = NULL;
+
+	if (list != NULL && g_slist_next(list) == NULL)
+		fi = list->data;
 
 	if (fi && sha1 && fi->sha1 && sha1_eq(sha1, fi->sha1))
 		return fi;
