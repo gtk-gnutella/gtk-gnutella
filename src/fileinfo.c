@@ -476,13 +476,9 @@ void file_info_store_binary(struct dl_file_info *fi)
 	 * since then we'll go directly to file_info_fd_store_binary().
 	 */
 
-	fd = file_open(path, O_WRONLY);
+	fd = file_open_missing(path, O_WRONLY);
 
 	if (fd < 0) {
-		if (errno != ENOENT)
-			g_warning("file_info_store_binary(): "
-				"can't open \"%s\" for writing: %s",
-				path, g_strerror(errno));
 		G_FREE_NULL(path);
 		return;
 	}
@@ -746,13 +742,9 @@ gboolean file_info_has_trailer(const gchar *path)
 	struct trailer trailer;
 	gboolean valid;
 
-	fd = file_open(path, O_RDONLY);
-	if (fd < 0) {
-		if (errno != ENOENT)
-			g_warning("can't open \"%s\" for reading: %s",
-				path, g_strerror(errno));
+	fd = file_open_missing(path, O_RDONLY);
+	if (fd < 0)
 		return FALSE;
-	}
 
 	valid = file_info_get_trailer(fd, &trailer, path);
 	close(fd);
@@ -1046,11 +1038,8 @@ static struct dl_file_info *file_info_retrieve_binary(
 	pathname = g_strdup_printf("%s/%s", path, file);
 	g_return_val_if_fail(NULL != pathname, NULL);
 	
-	fd = file_open(pathname, O_RDONLY);
+	fd = file_open_missing(pathname, O_RDONLY);
 	if (fd < 0) {
-		if (errno != ENOENT)
-			g_warning("can't open \"%s\" for reading: %s",
-				pathname, g_strerror(errno));
 		G_FREE_NULL(pathname);
 		return NULL;
 	}
