@@ -975,7 +975,15 @@ mq_puthere(mqueue_t *q, pmsg_t *mb, gint msize)
 					"to FLOWC node %s, %d bytes queued [KILLING]",
 					node_ip(q->node), q->size);
 
-			node_bye(q->node, 502, "Send queue reached %d bytes", q->maxsize);
+			/* XXX: Is the check for UDP the correct fix or just a
+			 *		workaround? node_bye_v() asserts that the node isn't
+			 *		the UDP node.
+			 *		-- cbiere, 2004-12-20
+			 */
+			if (!NODE_IS_UDP(q->node)) {
+				node_bye(q->node, 502, "Send queue reached %d bytes",
+					q->maxsize);
+			}
 		}
 
 		pmsg_free(mb);
