@@ -583,7 +583,7 @@ static gboolean forward_message(struct gnutella_node **node,
 
 	/* Drop messages that would travel way too many nodes --RAM */
 	if (
-		sender->header.ttl + sender->header.hops > hard_ttl_limit &&
+		(guint32) sender->header.ttl + sender->header.hops > hard_ttl_limit &&
 		current_peermode != NODE_P_LEAF
 	) {
 		routing_log("[ ] [NEW] hard TTL limit reached");

@@ -673,7 +673,7 @@ static gnet_results_set_t *get_results_set(
 		guint32 tlen = e - s;			/* Trailer length, starts at `s' */
 		guchar *x = (guchar *) s;
 
-		if (tlen >= 5 && x[4] + 5 <= tlen)
+		if ((gint) tlen >= 5 && x[4] + 5 <= tlen)
 			trailer = s;
 
 		if (trailer)
@@ -967,9 +967,9 @@ static gnet_results_set_t *get_results_set(
  */
 static void update_neighbour_info(gnutella_node_t *n, gnet_results_set_t *rs)
 {
-	gchar *vendor;
 	extern gint guid_eq(gconstpointer a, gconstpointer b);
-	gint old_weird = n->n_weird;
+	gchar *vendor;
+	guint32 old_weird = n->n_weird;
 
 	g_assert(n->header.hops == 1);
 
@@ -1096,7 +1096,7 @@ static void _search_send_packet(search_ctrl_t *sch, gnutella_node_t *n)
 {
 	struct gnutella_msg_search *m;
 	guint32 size;
-	gint plen;				/* Length of payload */
+	guint32 plen;			/* Length of payload */
 	gint qlen;				/* Length of query text */
 	gboolean is_urn_search = FALSE;
 	guint16 speed;
@@ -1194,7 +1194,7 @@ static void _search_send_packet(search_ctrl_t *sch, gnutella_node_t *n)
 	m->header.ttl = my_ttl;
 	m->header.hops = (hops_random_factor && current_peermode != NODE_P_LEAF) ?
 		random_value(hops_random_factor) : 0;
-	if (m->header.ttl + m->header.hops > hard_ttl_limit)
+	if ((guint32) m->header.ttl + (guint32) m->header.hops > hard_ttl_limit)
 		m->header.ttl = hard_ttl_limit - m->header.hops;
 
 	WRITE_GUINT32_LE(plen, m->header.size);
@@ -1949,3 +1949,5 @@ gboolean search_is_passive(gnet_search_t sh)
     
     return sch->passive;
 }
+
+/* vi: set ts=4: */

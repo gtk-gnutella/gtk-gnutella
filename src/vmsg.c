@@ -256,7 +256,7 @@ static void handle_messages_supported(struct gnutella_node *n,
 			node_ip(n), node_vendor(n), count,
 			count == 1 ? "" : "s");
 
-	if (size != sizeof(count) + count * VMS_ITEM_SIZE) {
+	if (size != (gint) sizeof(count) + count * VMS_ITEM_SIZE) {
 		g_warning("bad payload length in \"Messages Supported\" from %s <%s>: "
 			"expected %d bytes in vector for %d item%s, got %d",
 			node_ip(n), node_vendor(n),
@@ -285,7 +285,7 @@ void vmsg_send_messages_supported(struct gnutella_node *n)
 	guint32 paysize = sizeof(count) + count * VMS_ITEM_SIZE;
 	guint32 msgsize;
 	guchar *payload;
-	gint i;
+	guint i;
 
 	msgsize = vmsg_fill_header(&m->header, paysize, sizeof(v_tmp));
 	payload = vmsg_fill_type(&m->data, T_0000, 0, 0);
@@ -540,3 +540,4 @@ void vmsg_send_proxy_ack(struct gnutella_node *n, gchar *muid)
 	gmsg_ctrl_sendto_one(n, (gchar *) m, msgsize);
 }
 
+/* vi: set ts=4: */
