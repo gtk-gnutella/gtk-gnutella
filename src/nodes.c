@@ -2495,7 +2495,7 @@ node_is_now_connected(struct gnutella_node *n)
 			if (!NODE_IS_LEAF(n))
 				send_proxy_request(n);
 		}
-		if (is_udp_firewalled)
+		if (enable_udp && is_udp_firewalled)
 			vmsg_send_udp_connect_back(n, listen_port);
 	}
 
