@@ -76,6 +76,10 @@
 #define T_XTLA	MAKE_CODE('X','T','L','A')
 #define T_ZIGA	MAKE_CODE('Z','I','G','A')
 
+#define T_0000	0x00000000
+
+gint vendor_code_cmp(guint32 a, guint32 b);
+gchar *vendor_code_str(guint32 code);
 gchar *lookup_vendor_name(guchar code[4]);
 gboolean is_vendor_known(guchar code[4]);
 

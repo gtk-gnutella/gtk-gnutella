@@ -23,6 +23,7 @@
  *----------------------------------------------------------------------
  */
 
+#include "gnutella.h"
 #include "common.h"
 
 #include <ctype.h>
@@ -78,15 +79,13 @@ struct vendor {
 
 #define END(v)		(v - 1 + sizeof(v) / sizeof(v[0]))
 
-#define READ_GUINT32_BE(a,v) { memcpy(&v, a, 4); v = GUINT32_FROM_BE(v); }
-
 /*
- * code_cmp
+ * vendor_code_cmp
  *
  * Compare two codes, alphanumerically (i.e. "ACQX" < "GTKG").
  * Returns -1/0/+1 depending on comparison's sign.
  */
-static gint code_cmp(guint32 a, guint32 b)
+gint vendor_code_cmp(guint32 a, guint32 b)
 {
 	gint i;
 
@@ -124,7 +123,7 @@ static gchar *find_vendor(guchar raw[4])
 
 	while (low <= high) {
 		struct vendor *mid = low + (high - low) / 2;
-		gint c = code_cmp(mid->code,  code);
+		gint c = vendor_code_cmp(mid->code,  code);
 
 		if (c == 0)
 			return mid->name;
@@ -148,6 +147,29 @@ gboolean is_vendor_known(guchar raw[4])
         return FALSE;
 
 	return find_vendor(raw) != NULL;
+}
+
+/*
+ * vendor_code_str
+ *
+ * Make up a printable version of the vendor code.
+ * Returns pointer to static data.
+ */
+gchar *vendor_code_str(guint32 code)
+{
+	static gchar temp[5];
+    gint i;
+
+	WRITE_GUINT32_BE(code, temp);
+	temp[4] = '\0';
+
+	for (i = 0; i < 4; i++) {
+        guchar c = temp[i];
+		if (!isascii(c) || !isprint(c))
+			temp[i] = '.';
+	}
+
+	return temp;
 }
 
 /*
