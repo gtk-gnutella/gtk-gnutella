@@ -193,12 +193,7 @@ static void mq_swift_checkpoint(mqueue_t *q, gboolean initial)
 		 * take a margin...
 		 */
 
-		/*
-		 * Add + 2 to avoid a zero result in case the target_to_lowmark is
-		 * less then 3.
-		 *		-- JA 08/03/2004
-		 */
-		needed = target_to_lowmark + 2 / 3;
+		needed = target_to_lowmark / 3;
 	} else {
 		/*
 		 * We won't be able to reach the low watermark at the present rates.
@@ -222,7 +217,8 @@ static void mq_swift_checkpoint(mqueue_t *q, gboolean initial)
 		q->header.hops = 1;
 		q->header.ttl = max_ttl;
 
-		make_room_header(q, (gchar*) &q->header, PMSG_P_DATA, needed, NULL);
+		if (needed > 0)
+			make_room_header(q, (gchar*) &q->header, PMSG_P_DATA, needed, NULL);
 
 		/*
 		 * Whether or not we were able to make enough room at this point
