@@ -175,7 +175,8 @@ gchar *host_name(void)
 /*
  * str_chomp
  *
- * Remove final char of string if it is a "\n".
+ * Remove antepenultimate char of string if it is a "\r" followed by "\n".
+ * Remove final char of string if it is a "\n" or "\r".
  * If len is 0, compute it.
  *
  * Returns new string length.
@@ -188,7 +189,12 @@ gint str_chomp(gchar *str, gint len)
 	if (len == 0)
 		return 0;
 
-	if (str[len-1] == '\n') {
+	if (len >= 2 && str[len-2] == '\r' && str[len-1] == '\n') {
+		str[len-2] = '\0';
+		return len - 2;
+	}
+
+	if (str[len-1] == '\n' || str[len-1] == '\r') {
 		str[len-1] = '\0';
 		return len - 1;
 	} else
