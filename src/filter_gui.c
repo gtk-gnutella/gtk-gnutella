@@ -204,7 +204,7 @@ void filter_gui_filter_clear_list(void)
             fl_node_builtin);
 
 
-    titles[0] = "Builtin targets";
+    titles[0] = "Builtin targets (not editable)";
     titles[1] = "";
     titles[2] = "";
     fl_node_builtin = gtk_ctree_insert_node(
@@ -300,14 +300,6 @@ void filter_gui_filter_add(filter_t *f, GList *ruleset)
         if (parent == fl_node_builtin) {
             gtk_ctree_node_set_selectable
                 (GTK_CTREE(ctree_filter_filters), node, FALSE);
-            gtk_ctree_node_set_background
-                (GTK_CTREE(ctree_filter_filters), node,
-                 &(gtk_widget_get_style(GTK_WIDGET(ctree_filter_filters))
-                    ->bg[GTK_STATE_INSENSITIVE]));
-            gtk_ctree_node_set_foreground
-                (GTK_CTREE(ctree_filter_filters), node,
-                 &(gtk_widget_get_style(GTK_WIDGET(ctree_filter_filters))
-                    ->fg[GTK_STATE_INSENSITIVE]));
         }
     
         g_free(titles[1]);
