@@ -36,8 +36,8 @@ struct filter {
       } u;
     } text;
     struct _f_ip {
-      in_addr_t addr;		/* IP address */
-      in_addr_t mask;		/* netmask */
+      guint32 addr;		/* IP address */
+      guint32 mask;		/* netmask */
     } ip;
     struct _f_size {
       size_t lower;		/* lower limit or 0 */
