@@ -14,8 +14,8 @@
    - Sidebar: moved adding of new searches here
    - Config: a few minor changes in the gnet settings to make gtk1 and gtk2
      look more similar.
- * Hide leaf bandwidth odometers in the sidebar by default. Most people will
-   not need those.
+ * [Gtk1] [Gtk2] Added option to automatically hide leaf bandwidth stats
+   when not in ultrapeer mode (default: on).
 
 - (2003.12.20 - RAM)
  * PARQ will no longer send QUEUE when uploads are disabled.
