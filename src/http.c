@@ -171,7 +171,11 @@ gboolean http_send_status(
 	 * Append extra information to the minimal header created above.
 	 */
 
-	for (i = 0; i < hevcnt && rw < header_size; i++) {
+	/* 
+	 * The +3 is there to leave room for "\r\n\0"
+	 *		-- JA, 09/02/2004
+	 */
+	for (i = 0; i < hevcnt && rw + 3 < header_size; i++) {
 		http_extra_desc_t *he = &hev[i];
 		http_extra_type_t type = he->he_type;
 
@@ -182,9 +186,10 @@ gboolean http_send_status(
 			break;
 		case HTTP_EXTRA_CALLBACK:
 			{
-				/* The -3 is there to leave room for "\r\n" + NUL */
-				gint len = header_size - rw - 3;
+				gint len = header_size - rw;
 
+				g_assert(len > 0 );
+				
 				(*he->he_cb)(&header[rw], &len, he->he_arg, cb_flags);
 
 				g_assert(len + rw <= header_size);
