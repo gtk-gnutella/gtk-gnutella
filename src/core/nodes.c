@@ -4423,6 +4423,7 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 
 	if (
 		current_peermode == NODE_P_LEAF &&
+		!(n->flags & NODE_F_CRAWLER) &&
 		(n->degree < 2 * NODE_LEGACY_DEGREE || !(n->attrs & NODE_A_DYN_QUERY))
 	) {
 		static const gchar msg[] = "Too ancient Gnutella protocol";
