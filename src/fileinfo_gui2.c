@@ -28,6 +28,8 @@
 #include "gui.h"
 #include "fileinfo.h"
 
+#ifdef USE_GTK2
+
 RCSID("$Id$");
 
 enum {
@@ -415,3 +417,4 @@ void fi_gui_shutdown(void)
 	fi_gui_handles = NULL;
 }
 
+#endif	/* USE_GTK2 */

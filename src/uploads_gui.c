@@ -24,6 +24,9 @@
  */
 
 #include "gui.h"
+
+#ifdef USE_GTK1
+
 #include "interface-glade1.h"
 #include "uploads_gui.h"
 #include "uploads_gui_common.h"
@@ -423,3 +426,5 @@ void uploads_gui_clear_completed(void)
 		gtk_timeout_add(100, (GtkFunction) uploads_clear_helper, NULL);
 	}
 }
+
+#endif	/* USE_GTK1 */

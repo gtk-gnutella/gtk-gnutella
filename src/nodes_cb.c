@@ -27,6 +27,8 @@
 
 #include "gui.h"
 
+#ifdef USE_GTK1
+
 #include "adns.h"
 #include "nodes_cb.h"
 #include "settings_gui.h"
@@ -193,3 +195,5 @@ void on_entry_host_changed(GtkEditable * editable, gpointer user_data)
 
 	g_free(e);
 }
+
+#endif	/* USE_GTK1 */

@@ -23,6 +23,10 @@
  *----------------------------------------------------------------------
  */
 
+#include "config.h"
+
+#ifdef USE_GTK1
+
 #include "gnet_stats_gui.h"
 
 RCSID("$Id$");
@@ -483,3 +487,5 @@ void gnet_stats_gui_update(time_t now)
     gtk_clist_thaw(clist_stats_fc_ttl);
     gtk_clist_thaw(clist_stats_fc_hops);
 }
+
+#endif	/* USE_GTK1 */

@@ -27,6 +27,8 @@
 
 #include "gui.h"
 
+#ifdef USE_GTK2
+
 #include "adns.h"
 #include "nodes_cb2.h"
 #include "settings_gui.h"
@@ -138,3 +140,5 @@ gboolean on_treeview_nodes_button_press_event(
 	}
 	return FALSE;
 }
+
+#endif	/* USE_GTK2 */

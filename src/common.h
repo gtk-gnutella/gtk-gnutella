@@ -24,9 +24,7 @@
 #ifndef _common_h_
 #define _common_h_
 
-#ifdef HAVE_CONFIG_H
-# include <config.h>
-#endif
+#include "config.h"
 
 /*
  * Main includes

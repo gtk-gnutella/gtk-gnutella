@@ -26,9 +26,7 @@
 #ifndef _adns_h_
 #define _adns_h_
 
-#ifdef HAVE_CONFIG_H
 #include "config.h"
-#endif
 
 #include <glib.h>
 

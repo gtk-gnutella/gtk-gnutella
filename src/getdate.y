@@ -40,10 +40,8 @@
 
 #include "common.h"
 
-#ifdef HAVE_CONFIG_H
-# ifdef FORCE_ALLOCA_H
-#  include <alloca.h>
-# endif
+#ifdef FORCE_ALLOCA_H
+#include <alloca.h>
 #endif
 
 /* Since the code of getdate.y is not included in the Emacs executable
@@ -58,19 +56,11 @@
 # undef static
 #endif
 
-#ifdef HAVE_STDIO_H
 #include <stdio.h>
-#endif
-
-#ifdef HAVE_CTYPE_H
 #include <ctype.h>
-#endif
-
-#ifdef HAVE_STRING_H
 #include <string.h>
-#endif
 
-#if defined (STDC_HEADERS) || (!defined (isascii) && !defined (HAVE_ISASCII))
+#if defined (STDC_HEADERS) || (!defined (isascii) && !defined (HAS_ISASCII))
 # define IN_CTYPE_DOMAIN(c) 1
 #else
 # define IN_CTYPE_DOMAIN(c) isascii(c)
@@ -93,14 +83,10 @@
 
 #include "getdate.h"
 
-#if defined (STDC_HEADERS) || defined (USG)
-# include <string.h>
-#endif
-
 /* Some old versions of bison generate parsers that use bcopy.
    That loses on systems that don't provide the function, so we have
    to redefine it here.  */
-#if !defined (HAVE_BCOPY) && defined (HAVE_MEMCPY) && !defined (bcopy)
+#if !defined (HAS_BCOPY) && defined (HAS_MEMCPY) && !defined (bcopy)
 # define bcopy(from, to, len) memcpy ((to), (from), (len))
 #endif
 

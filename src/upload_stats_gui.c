@@ -44,6 +44,8 @@
 
 #include "gnutella.h"
 
+#ifdef USE_GTK1
+
 #include "gui.h"
 #include "upload_stats_gui.h"
 #include "upload_stats.h"
@@ -162,3 +164,4 @@ void upload_stats_gui_clear_all(void)
 	ul_rows = 0;
 }
 
+#endif	/* USE_GTK1 */

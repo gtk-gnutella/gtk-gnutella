@@ -71,7 +71,7 @@ void hostiles_retrieve(void)
 #endif
 
 	file_path_set(&fp[0], settings_config_dir(), hostiles_file);
-	file_path_set(&fp[1], PACKAGE_DATA_DIR, hostiles_file);
+	file_path_set(&fp[1], PRIVLIB_EXP, hostiles_file);
 #ifdef USE_SOURCE_DIR_AS_FALLBACK 
 	file_path_set(&fp[2], PACKAGE_SOURCE_DIR, hostiles_file);
 #endif

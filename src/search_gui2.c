@@ -27,6 +27,8 @@
 
 #include "gui.h"
 
+#ifdef USE_GTK2
+
 /* GUI includes  */
 #include "search_gui_common.h"
 #include "search_gui.h"
@@ -1669,4 +1671,4 @@ void gui_search_history_add(gchar *s)
     list_search_history = new_hist;
 }
 
-
+#endif	/* USE_GTK2 */

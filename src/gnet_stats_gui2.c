@@ -23,6 +23,10 @@
  *----------------------------------------------------------------------
  */
 
+#include "config.h"
+
+#ifdef USE_GTK2
+
 #include "gnet_stats_gui.h"
 #include "gnutella.h" /* for sizeof(struct gnutella_header) */
 
@@ -703,3 +707,5 @@ void gnet_stats_gui_update(time_t now)
 cleanup:
 	g_static_mutex_unlock(&mutex);
 }
+
+#endif	/* USE_GTK2 */

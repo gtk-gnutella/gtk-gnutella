@@ -47,8 +47,12 @@
 RCSID("$Id$");
 
 #ifdef USE_GTK2
+#ifndef g_hash_table_freeze
 #define g_hash_table_freeze(x) /* The function is deprecated. It does nothing */
+#endif
+#ifndef g_hash_table_thaw
 #define g_hash_table_thaw(x) /* The function is deprecated. It does nothing */
+#endif
 #endif
 
 #define MUID_SIZE	16

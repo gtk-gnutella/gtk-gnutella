@@ -24,6 +24,9 @@
  */
 
 #include "gui.h"
+
+#ifdef USE_GTK2
+
 #include "interface-glade2.h"
 #include "uploads_gui.h"
 #include "uploads_gui_common.h"
@@ -590,3 +593,4 @@ void uploads_gui_shutdown(void)
 	sl_removed_uploads = NULL;
 }
 
+#endif	/* USE_GTK2 */

@@ -34,7 +34,7 @@
 #include "search_gui.h"
 #include "settings_gui.h"
 
-#ifdef USE_SEARCH_XML
+#ifdef HAS_LIBXML2
 #include "search_xml.h"
 #include <libxml/parser.h>
 #endif
@@ -545,7 +545,7 @@ void search_gui_check_alt_locs(results_set_t *rs, record_t *rc)
 	search_gui_free_alt_locs(rc);
 }
 
-#ifndef USE_SEARCH_XML
+#ifndef HAS_LIBXML2
 /*
  * search_store_old
  *
@@ -573,7 +573,7 @@ static void search_store_old(void)
 
 	file_config_close(out, &fp);
 }
-#endif /* USE_SEARCH_XML */
+#endif /* HAS_LIBXML2 */
 
 /*
  * search_gui_store_searches
@@ -582,7 +582,7 @@ static void search_store_old(void)
  */
 void search_gui_store_searches(void)
 {
-#ifdef USE_SEARCH_XML
+#ifdef HAS_LIBXML2
 	char *path;
 
 	search_store_xml();
@@ -663,7 +663,7 @@ static gboolean search_retrieve_old(void)
  */
 void search_gui_retrieve_searches(void)
 {
-#ifdef USE_SEARCH_XML
+#ifdef HAS_LIBXML2
 	LIBXML_TEST_VERSION
 
     if (!search_retrieve_xml()) {
@@ -676,7 +676,7 @@ void search_gui_retrieve_searches(void)
 
 #else
     search_retrieve_old();
-#endif /* USE_SEARCH_XML */
+#endif /* HAS_LIBXML2 */
 }
 
 /***

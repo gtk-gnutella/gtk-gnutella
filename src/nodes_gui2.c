@@ -26,6 +26,9 @@
  */
 
 #include "gui.h"
+
+#ifdef USE_GTK2
+
 #include "gtk-missing.h"
 #include "gtkcolumnchooser.h"
 #include "nodes_gui_common.h"
@@ -450,3 +453,4 @@ void nodes_gui_remove_selected(void)
 	g_slist_free(node_list);
 }
 
+#endif	/* USE_GTK2 */

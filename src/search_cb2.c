@@ -26,6 +26,9 @@
  */
 
 #include "gui.h"
+
+#ifdef USE_GTK2
+
 #include <gdk/gdkkeysyms.h>
 
 #include "gtkcolumnchooser.h"
@@ -842,3 +845,4 @@ void search_callbacks_shutdown(void)
  	 */
 }
 
+#endif	/* USE_GTK2 */

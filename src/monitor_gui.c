@@ -28,6 +28,8 @@
 #include "gui.h"
 #include "monitor_gui.h"
 
+#ifdef USE_GTK1
+
 RCSID("$Id$");
 
 /***
@@ -132,3 +134,5 @@ void monitor_gui_enable_monitor(const gboolean val)
         registered = val;
     }
 }
+
+#endif	/* USE_GTK1 */

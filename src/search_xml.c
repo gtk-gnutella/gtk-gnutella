@@ -27,6 +27,8 @@
 
 #include "gui.h"
 
+#ifdef HAS_LIBXML2
+
 #include <libxml/tree.h>
 #include <libxml/parser.h>
 
@@ -1291,3 +1293,6 @@ static guint16 get_rule_flags_from_xml(xmlNodePtr xmlnode)
 
     return flags;
 }
+
+#endif	/* HAS_LIBXML2 */
+

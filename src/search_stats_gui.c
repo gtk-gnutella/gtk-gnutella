@@ -32,6 +32,10 @@
  *		(C) 2002 Michael Tesch, released with gtk-gnutella & its license
  */
 
+#include "config.h"
+
+#ifdef USE_GTK1
+
 #include "search_stats_gui.h"
 
 #include <stdio.h>
@@ -398,3 +402,5 @@ void search_stats_gui_update(time_t now)
 	gm_snprintf(tmpstr, sizeof(tmpstr), "%u terms counted", stat_count);
 	gtk_label_set_text(GTK_LABEL(label_search_stats_count), tmpstr);
 }
+
+#endif	/* USE_GTK1 */

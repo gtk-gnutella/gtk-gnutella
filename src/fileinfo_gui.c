@@ -28,6 +28,8 @@
 #include "gui.h"
 #include "fileinfo.h"
 
+#ifdef USE_GTK1
+
 RCSID("$Id$");
 
 enum {
@@ -338,3 +340,4 @@ void fi_gui_update_display(time_t now)
 }
 */
 
+#endif	/* USE_GTK1 */

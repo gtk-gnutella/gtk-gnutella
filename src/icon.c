@@ -25,15 +25,13 @@
  *----------------------------------------------------------------------
  */
 
-#ifdef HAVE_CONFIG_H
 #include "config.h"
-#endif
 
 #include "gnutella.h"
 #include "gui.h"
 #include "icon.h"
 
-#if USE_GTK2
+#ifdef USE_GTK2
 
 #include "interface-glade2.h"
 

@@ -23,8 +23,11 @@
  *----------------------------------------------------------------------
  */
 
-#include "monitor_cb.h"
+#include "config.h"
 
+#ifdef USE_GTK1
+
+#include "monitor_cb.h"
 #include "search_gui.h"
 
 RCSID("$Id$");
@@ -85,3 +88,4 @@ void on_popup_monitor_add_search_activate
 	}	
 }
 
+#endif	/* USE_GTK1 */

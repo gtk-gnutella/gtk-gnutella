@@ -44,6 +44,8 @@
 
 #include "gnutella.h"
 
+#ifdef USE_GTK2
+
 #include "gui.h"
 #include "upload_stats_gui.h" 
 #include "upload_stats.h"
@@ -316,3 +318,4 @@ void upload_stats_gui_clear_all(void)
 		GTK_LIST_STORE(gtk_tree_view_get_model(upload_stats_treeview)));
 }
 
+#endif	/* USE_GTK2 */

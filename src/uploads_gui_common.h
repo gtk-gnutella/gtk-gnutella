@@ -26,9 +26,7 @@
 #ifndef _uploads_gui_common_h_
 #define _uploads_gui_common_h_
 
-#ifdef HAVE_CONFIG_H
-#include <config.h>
-#endif
+#include "config.h"
 
 #include <glib.h> 
 #include <time.h>           /* For time_t */

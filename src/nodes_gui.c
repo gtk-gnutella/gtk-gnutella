@@ -26,6 +26,9 @@
  */
 
 #include "gui.h"
+
+#ifdef USE_GTK1
+
 #include "interface-glade1.h"
 #include "nodes_gui_common.h"
 #include "nodes_gui.h"
@@ -319,3 +322,4 @@ void nodes_gui_update_nodes_display(time_t now)
     gtk_clist_thaw(clist);
 }
 
+#endif	/* USE_GTK1 */

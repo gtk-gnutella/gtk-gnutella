@@ -23,9 +23,7 @@
  *----------------------------------------------------------------------
  */
 
-#ifdef HAVE_CONFIG_H
 #include "config.h"
-#endif
 
 #include "gui.h"
 
@@ -37,6 +35,7 @@
 
 #include "main_gui.h"
 #include "nodes_gui.h"
+#include "main_cb.h"
 
 #include "settings_gui.h"
 #include "search_gui.h"
@@ -464,7 +463,7 @@ void main_gui_early_init(gint argc, gchar **argv)
 	gtk_set_locale();
 	gtk_init(&argc, &argv);
 
-	add_pixmap_directory(PACKAGE_DATA_DIR "/pixmaps");
+	add_pixmap_directory(PRIVLIB_EXP "/pixmaps");
 #ifdef USE_SOURCE_DIR_AS_FALLBACK
 	add_pixmap_directory(PACKAGE_SOURCE_DIR "/pixmaps");
 #endif

@@ -26,6 +26,9 @@
  */
 
 #include "gui.h"
+
+#ifdef USE_GTK1
+
 #include <gdk/gdkkeysyms.h>
 
 #include "gtkcolumnchooser.h"
@@ -883,3 +886,5 @@ void on_popup_search_config_cols_activate(GtkMenuItem * menuitem,
         /* GtkColumnChooser takes care of cleaning up itself */
     }
 }
+
+#endif	/* USE_GTK1 */
