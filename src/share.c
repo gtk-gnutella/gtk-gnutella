@@ -2273,7 +2273,7 @@ gboolean search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 		/*
 		 * Here we suppose that the peer has the same NFKD/NFC keyword algo
 		 * than us, see unicode_canonize() in utf8.c.
-		 * (It must anyway, for compatibility with the QRP) */
+		 * (It must anyway, for compatibility with the QRP)
 		 */
 #else
 		if (is_utf8) {
