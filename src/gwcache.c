@@ -926,11 +926,15 @@ static void gwc_update_this(gchar *cache_url)
 	}
 
 	/*
-	 * Send our IP:port information if we're connectible and we are
-	 * not firewalled.
+	 * Send our IP:port information if we're connectible, we are
+	 * not firewalled, and we're not in leaf mode.
 	 */
 
-	if (!is_firewalled && host_is_valid(listen_ip(), listen_port)) {
+	if (
+		!is_firewalled &&
+		current_peermode != NODE_P_LEAF &&
+		host_is_valid(listen_ip(), listen_port)
+	) {
 		rw += g_snprintf(&gwc_tmp[rw], sizeof(gwc_tmp)-rw,
 			"ip=%s&", ip_port_to_gchar(listen_ip(), listen_port));
 		has_data = TRUE;
