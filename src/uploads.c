@@ -9,6 +9,12 @@
 #include <fcntl.h>
 #include <time.h>
 
+#include "config.h"
+
+#ifdef HAVE_SENDFILE_H
+#include <sys/sendfile.h>
+#endif
+
 #include "sockets.h"
 #include "share.h"
 #include "gui.h"
@@ -954,6 +960,14 @@ static void upload_request(struct upload *u, header_t *header)
 			mtime = now;			/* Clock skew on file server */
 
 		/*
+		 * On linux, turn TCP_CORK on so that we only send out full TCP/IP
+		 * frames.  The exact size depends on your LAN interface, but on
+		 * Ethernet, it's about 1500 bytes.
+		 */
+
+		sock_cork(s, TRUE);
+
+		/*
 		 * Setup and write the HTTP 200 header , including the file size.
 		 * If partial content (range request), emit a 206 reply.
 		 */
@@ -1077,6 +1091,24 @@ void upload_write(gpointer up, gint source, GdkInputCondition cond)
 		return;
 	}
 
+#ifdef HAVE_SENDFILE_H
+
+	/* If we got a valid skip amount then jump ahead to that position */
+	if (u->pos == 0 && u->skip > 0)
+		u->pos = u->skip;
+
+	/*
+	 * Compute the amount of bytes to send.
+	 * Use the two variables to avoid warnings about unused vars by compiler.
+	 */
+
+	amount = u->end - u->pos + 1;
+	available = amount > u->buf_size ? u->buf_size : amount;
+
+	write_bytes = bio_sendfile(u->bio, u->file_desc, &u->pos, available);
+
+#else	/* !HAVE_SENDFILE_H */
+
 	/* If we got a valid skip amount then jump ahead to that position */
 	if (u->pos == 0 && u->skip > 0) {
 		if (lseek(u->file_desc, u->skip, SEEK_SET) == -1) {
@@ -1118,14 +1150,24 @@ void upload_write(gpointer up, gint source, GdkInputCondition cond)
 
 	write_bytes = bio_write(u->bio, &u->buffer[u->bpos], available);
 
+#endif	/* HAVE_SENDFILE_H */
+
 	if (write_bytes == -1) {
 		if (errno != EAGAIN)
 			upload_remove(u, "Data write error: %s", g_strerror(errno));
 		return;
 	}
 
+#ifndef HAVE_SENDFILE_H
+	/*
+	 * Only required when not using sendfile(), otherwise the u->pos field
+	 * is directly updated by the kernel, and u->bpos is unused.
+	 *		--RAM, 21/02/2002
+	 */
+
 	u->pos += write_bytes;
 	u->bpos += write_bytes;
+#endif
 
 	u->last_update = time((time_t *) NULL);
 

@@ -1,6 +1,8 @@
 #ifndef __uploads_h__
 #define __uploads_h__
 
+#include <sys/types.h>		/* For off_t */
+
 #include "bsched.h"
 
 struct gnutella_node;
@@ -28,7 +30,7 @@ struct upload {
 
 	guint skip;						/* First byte to send, inclusive */
 	guint end;						/* Last byte to send, inclusive */
-	guint pos;
+	off_t pos;						/* Read position in file we're sending */
 	gboolean push;
 };
 
