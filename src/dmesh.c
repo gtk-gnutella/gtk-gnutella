@@ -66,14 +66,14 @@ dmesh_url_error_t dmesh_url_errno;		/* Error from dmesh_url_parse() */
 static GHashTable *mesh = NULL;
 
 struct dmesh {				/* A download mesh bucket */
-	guint32 last_update;	/* Timestamp of last insertion in the mesh */
+	time_t last_update;	/* Timestamp of last insertion in the mesh */
 	gint count;				/* Amount of entries in list */
 	GSList *entries;		/* The download mesh entries, dmesh_entry data */
 };
 
 struct dmesh_entry {
-	guint32 inserted;		/* When entry was inserted in mesh */
-	guint32 stamp;			/* When entry was last seen */
+	time_t inserted;		/* When entry was inserted in mesh */
+	time_t stamp;			/* When entry was last seen */
 	dmesh_urlinfo_t url;	/* URL info */
 };
 
@@ -186,10 +186,7 @@ static gint dmesh_entry_cmp(gconstpointer a, gconstpointer b)
 	const struct dmesh_entry *ae = (const struct dmesh_entry *) a;
 	const struct dmesh_entry *be = (const struct dmesh_entry *) b;
 
-	if (ae->stamp == be->stamp)
-		return 0;
-
-	return ae->stamp > be->stamp ? -1 : +1;
+	return delta_time(be->stamp, ae->stamp);
 }
 
 /*
@@ -285,7 +282,7 @@ static void dmesh_ban_add(const gchar *sha1,
 	 * If expired, don't insert.
 	 */
 
-	lifetime -= now - stamp;
+	lifetime -= delta_time(now, stamp);
 
 	if (lifetime <= 0)
 		return;
@@ -341,7 +338,7 @@ static void dmesh_ban_add(const gchar *sha1,
 					atom_sha1_get(sha1), by_ip);
 		}
 	}
-	else if (dmb->ctime < stamp) {
+	else if (delta_time(dmb->ctime, stamp) < 0) {
 		dmb->ctime = stamp;
 		cq_resched(callout_queue, dmb->cq_ev, lifetime * 1000);
 	}	
@@ -527,13 +524,13 @@ static void dm_expire(
 {
 	GSList *l;
 	GSList *prev;
-	guint32 now = (guint32) time(NULL);
+	time_t now = time(NULL);
 
 	for (prev = NULL, l = dm->entries; l; /* empty */) {
 		struct dmesh_entry *dme = (struct dmesh_entry *) l->data;
 		GSList *next;
 
-		if (now - dme->stamp <= agemax) {
+		if (delta_time(now, dme->stamp) <= agemax) {
 			prev = l;
 			l = l->next;
 			continue;
@@ -549,10 +546,10 @@ static void dm_expire(
 		g_assert(dm->count > 0);
 
 		if (dbg > 4)
-			printf("MESH %s: EXPIRED \"%s\", age=%u\n",
+			printf("MESH %s: EXPIRED \"%s\", age=%d\n",
 				sha1_base32(sha1),
 				dmesh_urlinfo_to_gchar(&dme->url),
-				(guint32) (now - dme->stamp));
+				(gint) delta_time(now, dme->stamp));
 
 		dmesh_entry_free(dme);
 		dm->count--;
@@ -577,7 +574,7 @@ static void dm_expire(
  * Returns TRUE if entry was removed or not found, FALSE otherwise.
  */
 static gboolean dm_remove(struct dmesh *dm,
-	guint32 ip, guint16 port, guint idx, const gchar *name, guint32 stamp)
+	guint32 ip, guint16 port, guint idx, const gchar *name, time_t stamp)
 {
 	GSList *l;
 
@@ -600,7 +597,7 @@ static gboolean dm_remove(struct dmesh *dm,
 			 * of an entry we already have.
 			 */
 
-			if (dme->stamp >= stamp)
+			if (delta_time(dme->stamp, stamp) >= 0)
 				return FALSE;
 
 			dm->entries = g_slist_remove(dm->entries, dme);
@@ -714,20 +711,20 @@ gboolean dmesh_remove(const gchar *sha1,
  * Returns whether the entry was added in the mesh, or was discarded because
  * it was the oldest record and we have enough already.
  */
-static gboolean dmesh_raw_add(gchar *sha1, dmesh_urlinfo_t *info, guint32 stamp)
+static gboolean dmesh_raw_add(gchar *sha1, dmesh_urlinfo_t *info, time_t stamp)
 {
 	struct dmesh_entry *dme;
 	struct dmesh *dm;
-	guint32 now = (guint32) time(NULL);
+	time_t now = time(NULL);
 	guint32 ip = info->ip;
 	guint16 port = info->port;
 	guint idx = info->idx;
 	gchar *name = info->name;
 
-	if (stamp == 0 || stamp > now)
+	if (stamp == 0 || delta_time(stamp, now) > 0)
 		stamp = now;
 
-	if (now - stamp > MAX_LIFETIME)
+	if (delta_time(now, stamp) > MAX_LIFETIME)
 		return FALSE;
 
 	/*
@@ -840,7 +837,7 @@ static gboolean dmesh_raw_add(gchar *sha1, dmesh_urlinfo_t *info, guint32 stamp)
  * Same as dmesh_raw_add(), but this is for public consumption.
  */
 gboolean dmesh_add(gchar *sha1,
-	guint32 ip, guint16 port, guint idx, gchar *name, guint32 stamp)
+	guint32 ip, guint16 port, guint idx, gchar *name, time_t stamp)
 {
 	dmesh_urlinfo_t info;
 
@@ -1148,7 +1145,7 @@ gint dmesh_fill_alternate(const gchar *sha1, gnet_host_t *hvec, gint hcnt)
  * Returns amount of generated data.
  */
 gint dmesh_alternate_location(const gchar *sha1,
-	gchar *buf, gint size, guint32 ip, guint32 last_sent, const gchar *vendor,
+	gchar *buf, gint size, guint32 ip, time_t last_sent, const gchar *vendor,
 	struct dl_file_info *fi, gboolean request)
 {
 	gchar url[1024];
@@ -1225,7 +1222,7 @@ gint dmesh_alternate_location(const gchar *sha1,
 			if (info->idx != URN_INDEX)
 				continue;
 
-			if (banned->ctime > last_sent) {
+			if (delta_time(banned->ctime, last_sent) > 0) {
 				gchar *value = ip_port_to_gchar(info->ip, info->port);
 
 				if (!header_fmt_value_fits(fmt, strlen(value), size / 3))
@@ -1303,7 +1300,7 @@ gint dmesh_alternate_location(const gchar *sha1,
 	if (dm == NULL)						/* SHA1 unknown */
 		goto nomore;
 
-	if (dm->last_update <= last_sent)	/* No new insertion */
+	if (delta_time(dm->last_update, last_sent) <= 0)	/* No new insertion */
 		goto nomore;	
 	
 	/*
@@ -1334,7 +1331,7 @@ gint dmesh_alternate_location(const gchar *sha1,
 	for (i = 0, l = dm->entries; l; l = l->next) {
 		struct dmesh_entry *dme = (struct dmesh_entry *) l->data;
 
-		if (dme->inserted <= last_sent)
+		if (delta_time(dme->inserted, last_sent) <= 0)
 			continue;
 
 		if (dme->url.ip == ip)
@@ -1386,7 +1383,7 @@ gint dmesh_alternate_location(const gchar *sha1,
 		dme = selected[j];
 		selected[j] = NULL;				/* Can't select same entry twice */
 
-		g_assert(dme->inserted > last_sent);
+		g_assert(delta_time(dme->inserted, last_sent) > 0);
 
 		url_len = dmesh_entry_compact(dme, url, sizeof(url));
 
@@ -1422,7 +1419,7 @@ nomore:
 
 typedef struct {
     dmesh_urlinfo_t *dmesh_url;	/* The URL details */
-    guint32 stamp;				/* Timestamp */
+    time_t stamp;				/* Timestamp */
 } dmesh_deferred_url_t;
 
 /*
@@ -1468,7 +1465,7 @@ static GSList *dmesh_get_nonurn_altlocs(const gchar *sha1)
  */
 
 static GSList *dmesh_defer_nonurn_altloc(
-	GSList *list, dmesh_urlinfo_t *url, guint32 stamp)
+	GSList *list, dmesh_urlinfo_t *url, time_t stamp)
 {
     dmesh_deferred_url_t *defer;
 
@@ -1577,11 +1574,11 @@ static void dmesh_check_deferred_against_existing(
 		ok = dmesh_raw_add(sha1, url, d->stamp);
 
 		if (dbg > 4) {
-			printf("MESH %s: %s deferred \"%s\", stamp=%u age=%u\n",
+			printf("MESH %s: %s deferred \"%s\", stamp=%u age=%d\n",
 				sha1_base32(sha1),
 				ok ? "added" : "rejected",
-				dmesh_urlinfo_to_gchar(url), (guint32) d->stamp,
-				(guint32) (now - MIN(d->stamp, now)));
+				dmesh_urlinfo_to_gchar(url), (guint) d->stamp,
+				(gint) delta_time(now, d->stamp));
 		}
 	}
 
@@ -1642,11 +1639,11 @@ static void dmesh_check_deferred_against_themselves(
 
 		if (dbg > 4) {
 			time_t now = time(NULL);
-			printf("MESH %s: %s consistent deferred \"%s\", stamp=%u age=%u\n",
+			printf("MESH %s: %s consistent deferred \"%s\", stamp=%u age=%d\n",
 				sha1_base32(sha1),
 				ok ? "added" : "rejected",
 				dmesh_urlinfo_to_gchar(url), (guint32) def->stamp,
-				(guint32) (now - MIN(def->stamp, now)));
+				(gint) delta_time(now, def->stamp));
 		}
 	}
 
@@ -1796,7 +1793,7 @@ void dmesh_collect_compact_locations(gchar *sha1, gchar *value)
 						printf("MESH %s: %s compact \"%s\", stamp=%u\n",
 							sha1_base32(sha1),
 							ok ? "added" : "rejected",
-							dmesh_urlinfo_to_gchar(&info), (guint32) now);
+							dmesh_urlinfo_to_gchar(&info), (guint) now);
 				} else if (dbg)
 					g_warning("ignoring invalid compact alt-loc \"%s\"", start);
 					
@@ -2015,9 +2012,9 @@ void dmesh_collect_locations(gchar *sha1, gchar *value, gboolean defer)
 			stamp = date2time(date, &now);
 
 			if (dbg > 6)
-				printf("MESH (stamp=%u): \"%s\"\n", (guint32) stamp, date);
+				printf("MESH (stamp=%u): \"%s\"\n", (guint) stamp, date);
 
-			if (stamp == -1) {
+			if (stamp == (time_t) -1) {
 				g_warning("cannot parse Alternate-Location date: %s", date);
 				stamp = 0;
 			}
@@ -2073,11 +2070,11 @@ void dmesh_collect_locations(gchar *sha1, gchar *value, gboolean defer)
 
 	skip_add:
 		if (dbg > 4)
-			printf("MESH %s: %s \"%s\", stamp=%u age=%u\n",
+			printf("MESH %s: %s \"%s\", stamp=%u age=%d\n",
 				sha1_base32(sha1),
 				ok ? "added" : "rejected",
-				dmesh_urlinfo_to_gchar(&info), (guint32) stamp,
-				(guint32) (now - MIN(stamp, now)));
+				dmesh_urlinfo_to_gchar(&info), (guint) stamp,
+				(gint) delta_time(now, stamp));
 
 	nolog:
 		if (c == '\0')				/* Reached end of string */
@@ -2366,7 +2363,7 @@ static void dmesh_retrieve(void)
 	 * blank line are attached sources for this SHA1.
 	 */
 
-	while (fgets(tmp, sizeof(tmp) - 1, in)) {	/* Room for trailing NUL */
+	while (fgets(tmp, sizeof(tmp), in)) {
 		line++;
 
 		if (tmp[0] == '#')
@@ -2474,7 +2471,7 @@ static void dmesh_ban_retrieve(void)
 	 * Lines starting with a # are skipped.
 	 */
 
-	while (fgets(tmp, sizeof(tmp) - 1, in)) {	/* Room for trailing NUL */
+	while (fgets(tmp, sizeof(tmp), in)) {
 		line++;
 
 		if (tmp[0] == '#')
@@ -2485,8 +2482,9 @@ static void dmesh_ban_retrieve(void)
 
 		str_chomp(tmp, 0);		/* Remove final "\n" */
 
+		errno = 0;
 		stamp = strtoul(tmp, &p, 10);
-		if (p == tmp || *p != ' ') {
+		if (p == tmp || *p != ' ' || errno) {
 			g_warning("malformed stamp at line #%d in banned mesh: %s",
 				line, tmp);
 			continue;
