@@ -1,5 +1,7 @@
 /*
- * FILL_IN_EMILES_BLANKS
+ * $Id$
+ *
+ * Copyright (c) 2003, Christian Biere
  *
  * Interface definition file.  One of the files that defines structures,
  * macros, etc. as part of the gui/core interface.
