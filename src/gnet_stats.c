@@ -102,17 +102,16 @@ void gnet_stats_count_sent(gnutella_node_t *n)
     stats_byte_sent[stats_lut[n->header.function]] += size;
 }
 
-void gnet_stats_count_sent_type(gnutella_node_t *n, guint8 type)
+void gnet_stats_count_sent_ext(gnutella_node_t *n, guint8 type, guint32 size)
 {
-    guint32 size;
+	guint32 msgsize;
 
-    READ_GUINT32_LE(n->header.size, size);
-    size += sizeof(n->header);
+    msgsize = size + sizeof(n->header);	/* Parameter is payload size only */
 
     stats_pkg_sent[MSG_TOTAL]++;
     stats_pkg_sent[stats_lut[type]]++;
-    stats_byte_sent[MSG_TOTAL] += size;
-    stats_byte_sent[stats_lut[n->header.function]] += size;
+    stats_byte_sent[MSG_TOTAL] += msgsize;
+    stats_byte_sent[stats_lut[n->header.function]] += msgsize;
 }
 
 void gnet_stats_count_expired(gnutella_node_t *n)

@@ -590,15 +590,15 @@ static void mq_service(gpointer data)
 
 	for (l = q->qtail; l && r > 0 && iovsize > 0; iovsize--) {
 		struct iovec *ie = &iov[iovcnt++];
+		pmsg_t *mb = (pmsg_t *) l->data;
 
 		if (r >= ie->iov_len) {			/* Completely written */
 			sent++;
-            gnet_stats_count_sent_type(q->node,
-				gmsg_function(pmsg_start((pmsg_t *) l->data)));
+            gnet_stats_count_sent_ext(q->node,
+				gmsg_function(pmsg_start(mb)), pmsg_size(mb));
 			r -= ie->iov_len;
 			l = mq_rmlink_prev(q, l, ie->iov_len);
 		} else {
-			pmsg_t *mb = (pmsg_t *) l->data;
 			g_assert(r > 0 && r < pmsg_size(mb));
 			g_assert(r < q->size);
 			mb->m_rptr += r;
