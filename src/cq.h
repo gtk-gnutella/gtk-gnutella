@@ -78,9 +78,10 @@ struct chash {
 
 typedef struct cqueue {
 	struct chash *cq_hash;		/* Array of buckets for hash list */
-	time_t cq_time;			/* "current time" */
+	time_t cq_time;				/* "current time" */
 	gint cq_items;				/* Amount of recorded events */
 	gint cq_last_bucket;		/* Last bucket slot we were at */
+	struct chash *cq_current;	/* Current bucket being scanned in cq_clock() */
 } cqueue_t;
 
 /*

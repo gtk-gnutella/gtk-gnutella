@@ -66,6 +66,7 @@ cqueue_t *cq_make(time_t now)
 	cq->cq_items = 0;
 	cq->cq_time = now;
 	cq->cq_last_bucket = EV_HASH(now);
+	cq->cq_current = NULL;
 
 	return cq;
 }
@@ -108,10 +109,24 @@ static void ev_link(cqueue_t *cq, cevent_t *ev)
 
 	g_assert(valid_ptr(cq));
 	g_assert(valid_ptr(ev));
+	g_assert(ev->ce_time > cq->cq_time || cq->cq_current);
 
 	trigger = ev->ce_time;
-	ch = &cq->cq_hash[EV_HASH(trigger)];
 	cq->cq_items++;
+
+	/*
+	 * Important corner case: we may be rescheduling an event BEFORE
+	 * the current clock time, in which case we must insert the event
+	 * in the current bucket, so it gets fired during the current
+	 * cq_clock() run.
+	 */
+
+	if (trigger  <= cq->cq_time)
+		ch = cq->cq_current;
+	else
+		ch = &cq->cq_hash[EV_HASH(trigger)];
+
+	g_assert(valid_ptr(ch));
 
 	/*
 	 * If bucket is empty, the event is the new head.
@@ -269,7 +284,14 @@ void cq_resched(cqueue_t *cq, gpointer handle, gint delay)
 	g_assert(valid_ptr(cq));
 	g_assert(valid_ptr(handle));
 	g_assert(ev->ce_magic == EV_MAGIC);
-	g_assert(ev->ce_time > cq->cq_time);	/* Not run yet via cq_clock() */
+
+	/*
+	 * If is perfectly possible that whilst running cq_clock() and
+	 * expiring an event, some other event gets rescheduled BEFORE the
+	 * current clock time. Hence the assertion below.
+	 */
+
+	g_assert(ev->ce_time > cq->cq_time || cq->cq_current);
 
 	/*
 	 * Events are sorted into the callout queue by trigger time, and are also
@@ -300,8 +322,16 @@ static void cq_expire(cqueue_t *cq, cevent_t *ev)
 	g_assert(valid_ptr(cq));
 	g_assert(ev->ce_magic == EV_MAGIC);
 	g_assert(valid_ptr(fn));
+	g_assert(valid_ptr(cq->cq_current));
 
 	cq_cancel(cq, ev);			/* Remove event from queue before firing */
+
+	/*
+	 * All the callout queue data structures were updated.
+	 * It is now safe to invoke the callback, even if there is some
+	 * re-entry to the same callout queue.
+	 */
+
 	(*fn)(cq, arg);
 }
 
@@ -323,6 +353,7 @@ void cq_clock(cqueue_t *cq, gint elapsed)
 
 	g_assert(valid_ptr(cq));
 	g_assert(elapsed >= 0);
+	g_assert(cq->cq_current == NULL);
 
 	cq->cq_time += elapsed;
 	now = cq->cq_time;
@@ -339,12 +370,13 @@ void cq_clock(cqueue_t *cq, gint elapsed)
 	if (EV_OVER(elapsed))
 		last_bucket = bucket;
 
-
 	/*
 	 * Since the hashed time is a not a strictly monotonic function of time,
 	 * we have to rescan the last bucket, in case the earliest event have
 	 * expired now, before moving forward.
 	 */
+
+	cq->cq_current = ch;
 
 	while ((ev = ch->ch_head) && ev->ce_time <= now)
 		cq_expire(cq, ev);
@@ -354,7 +386,7 @@ void cq_clock(cqueue_t *cq, gint elapsed)
 	 */
 
 	if (cq->cq_last_bucket == last_bucket && !EV_OVER(elapsed))
-		return;
+		goto done;
 
 	cq->cq_last_bucket = last_bucket;
 
@@ -370,10 +402,15 @@ void cq_clock(cqueue_t *cq, gint elapsed)
 		 * soon as we reach an event scheduled after `now'.
 		 */
 
+		cq->cq_current = ch;
+
 		while ((ev = ch->ch_head) && ev->ce_time <= now)
 			cq_expire(cq, ev);
 
 	} while (bucket != last_bucket);
+
+done:
+	cq->cq_current = NULL;
 }
 
 /* vi: set ts=4: */
