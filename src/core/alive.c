@@ -237,6 +237,7 @@ alive_send_ping(gpointer obj)
 	gchar muid[16];
 	struct alive_ping *ap;
 	struct gnutella_msg_init *m;
+	guint32 size;
 	pmsg_t *mb;
 
 	g_assert(a->count == 0 || a->pings != NULL);
@@ -256,8 +257,11 @@ alive_send_ping(gpointer obj)
 	 * a free routine to see whether the message is sent.
 	 */
 
-	m = build_ping_msg(muid, 1);
-	mb = gmsg_to_ctrl_pmsg_extend(m, sizeof(*m), alive_pmsg_free, a->node);
+	m = build_ping_msg(muid, 1, &size);
+
+	g_assert(size == sizeof(*m));	/* No trailing GGEP extension */
+
+	mb = gmsg_to_ctrl_pmsg_extend(m, size, alive_pmsg_free, a->node);
 	pmsg_set_check(mb, alive_ping_can_send);
 
 	gmsg_mb_sendto_one(a->node, mb);
