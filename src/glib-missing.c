@@ -125,9 +125,8 @@ GList *gm_list_insert_after(GList *list, GList *lnk, gpointer data)
 #else	/* !HAVE_VSNPRINTF */
 #define DO_VSNPRINTF() do {							\
 	gchar *printed = g_strdup_vprintf(fmt, args);	\
-	strncpy (str, printed, n);						\
-	str[n - 1] = '\0';								\
-	retval = strlen(str);							\
+	gint l = g_strlcpy(str, printed, n);			\
+	retval = MIN((n - 1), l);						\
 	g_free(printed);								\
 } while (0)
 #endif	/* HAVE_VSNPRINTF */

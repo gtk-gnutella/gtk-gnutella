@@ -67,7 +67,7 @@ static void monitor_gui_append_to_monitor(
          * we print a urn:sha1-query instead. */
         gm_snprintf(tmpstr, sizeof(tmpstr), "urn:sha1:%s", item);
     } else {
-        gm_snprintf(tmpstr, sizeof(tmpstr), "%s", item);
+        g_strlcpy(tmpstr, item, sizeof(tmpstr));
     }
 
     titles[0] = tmpstr;

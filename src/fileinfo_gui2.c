@@ -215,8 +215,8 @@ static void fi_gui_fill_status(
 		titles[C_FI_IDONE] = GUINT_TO_POINTER(0);
     }
         
-    gm_snprintf(fi_size, sizeof(fi_size), "%s", short_size(s.size));
-    titles[C_FI_SIZE]    = fi_size;
+    g_strlcpy(fi_size, short_size(s.size), sizeof(fi_size));
+	titles[C_FI_SIZE]    = fi_size;
     titles[C_FI_ISIZE]   = GUINT_TO_POINTER(s.size);
 
     if (s.recvcount) {

@@ -191,8 +191,7 @@ static void uploads_gui_update_upload_info(gnet_upload_info_t *u)
 		gtk_clist_set_text(clist_uploads, row, c_ul_size, "...");
 		gtk_clist_set_text(clist_uploads, row, c_ul_range, "...");
 	} else {
-		gm_snprintf(size_tmp, sizeof(size_tmp), "%s", 
-			short_size(u->file_size));
+		g_strlcpy(size_tmp, short_size(u->file_size), sizeof(size_tmp));
 
 		range_len = gm_snprintf(range_tmp, sizeof(range_tmp), "%s",
 			compact_size(u->range_end - u->range_start + 1));
@@ -252,8 +251,7 @@ void uploads_gui_add_upload(gnet_upload_info_t *u)
     if ((u->range_start == 0) && (u->range_end == 0)) {
         titles[c_ul_size] = titles[c_ul_range] =  "...";
     } else {
-        gm_snprintf(size_tmp, sizeof(size_tmp), "%s", 
-            short_size(u->file_size));
+        g_strlcpy(size_tmp, short_size(u->file_size), sizeof(size_tmp));
 
         range_len = gm_snprintf(range_tmp, sizeof(range_tmp), "%s",
             compact_size(u->range_end - u->range_start + 1));

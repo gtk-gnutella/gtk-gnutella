@@ -103,7 +103,7 @@ void upload_stats_gui_add(struct ul_stats *stat)
 	gchar norm_tmp[16];
     GtkCList *clist = GTK_CLIST(lookup_widget(main_window, "clist_ul_stats"));
 
-	gm_snprintf(size_tmp, sizeof(size_tmp), "%s", short_size(stat->size));
+	g_strlcpy(size_tmp, short_size(stat->size), sizeof(size_tmp));
 	gm_snprintf(attempts_tmp, sizeof(attempts_tmp), "%u", stat->attempts);
 	gm_snprintf(complete_tmp, sizeof(complete_tmp), "%u", stat->complete);
 	gm_snprintf(norm_tmp, sizeof(norm_tmp), "%.3f", stat->norm);

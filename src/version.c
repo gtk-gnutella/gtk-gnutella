@@ -123,7 +123,7 @@ static void version_stamp(const gchar *str, version_t *ver)
 			 * servents to parse it.
 			 */
 
-			gm_snprintf(stamp, MIN(end - p + 1, sizeof(stamp)), "%s", p);
+			g_strlcpy(stamp, p, MIN(end - p + 1, sizeof(stamp)));
 			ver->timestamp = date2time(stamp, &now);
 
 			if (ver->timestamp == -1) {
@@ -303,9 +303,9 @@ static void version_new_found(const gchar *text, gboolean stable)
     gchar *s;
 
     if (stable)
-        gm_snprintf(last_stable, sizeof(last_stable), "%s", text);
+        g_strlcpy(last_stable, text, sizeof(last_stable));
     else
-        gm_snprintf(last_dev, sizeof(last_dev), "%s", text);
+        g_strlcpy(last_dev, text, sizeof(last_dev));
 
 	s = g_strdup_printf(
 		"%s - Newer version%s available: %s%s%s%s%s",

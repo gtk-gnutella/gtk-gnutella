@@ -4937,11 +4937,9 @@ void node_get_status(const gnet_node_t n, gnet_node_status_t *status)
         status->shutdown_remain = 0;
 
     if (node->error_str != NULL)
-        gm_snprintf(status->message, sizeof(status->message), "%s", 
-            node->error_str);
+        g_strlcpy(status->message, node->error_str, sizeof(status->message));
     else if (node->remove_msg != NULL)
-        gm_snprintf(status->message, sizeof(status->message), "%s", 
-            node->remove_msg);
+        g_strlcpy(status->message, node->remove_msg, sizeof(status->message));
     else
         status->message[0] = '\0';
 
@@ -4953,7 +4951,7 @@ void node_get_status(const gnet_node_t n, gnet_node_status_t *status)
 /*
  * node_remove_nodes_by_handle:
  *
- * Disconnect from the given list of node hanles. The list may not contain
+ * Disconnect from the given list of node handles. The list may not contain
  * NULL elements or duplicate elements.
  */
 void node_remove_nodes_by_handle(GSList *node_list)

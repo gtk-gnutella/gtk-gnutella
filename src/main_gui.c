@@ -150,7 +150,7 @@ static gboolean gui_init_menu_helper(
 	guint32 expanded;
 	gint id;
 	
-	gtk_tree_model_get(model, iter, 2, &id, -1);
+	gtk_tree_model_get(model, iter, 2, &id, (-1));
 	gui_prop_get_guint32(PROP_TREEMENU_NODES_EXPANDED, &expanded, id, 1);
 	if (expanded)
 		gtk_tree_view_expand_row(GTK_TREE_VIEW(data), path, FALSE);
@@ -175,66 +175,68 @@ static void gui_init_menu(void)
 
 	gtk_tree_store_append(store, &parent, NULL);
 	gtk_tree_store_set(store, &parent,
-		0, _("gnutellaNet"), 1, nb_main_page_gnet, 2, TREEMENU_NODE_GNET, -1);
+		0, _("gnutellaNet"), 1, nb_main_page_gnet, 2, TREEMENU_NODE_GNET, (-1));
 	gtk_tree_store_append(store, &iter, &parent);
 	gtk_tree_store_set(store, &iter,
 		0, _("Stats"), 1, nb_main_page_gnet_stats, 2, TREEMENU_NODE_GNET_STATS,
-		-1);
+		(-1));
 	gtk_tree_store_append(store, &parent, NULL);
 	gtk_tree_store_set(store, &parent,
-		0, _("Uploads"), 1, nb_main_page_uploads, 2, TREEMENU_NODE_UL, -1);
+		0, _("Uploads"), 1, nb_main_page_uploads, 2, TREEMENU_NODE_UL, (-1));
 	gtk_tree_store_append(store, &iter, &parent);
 	gtk_tree_store_set(store, &iter,
 		0, _("Stats"), 1, nb_main_page_uploads_stats, 2, TREEMENU_NODE_UL_STATS,
-		-1);
+		(-1));
 
 	gtk_tree_store_append(store, &parent, NULL);
 	gtk_tree_store_set(store, &parent,
-		0, _("Downloads"), 1, nb_main_page_downloads, 2, TREEMENU_NODE_DL, -1);
+		0, _("Downloads"), 1, nb_main_page_downloads, 2, TREEMENU_NODE_DL,
+		(-1));
 
 	gtk_tree_store_append(store, &parent, NULL);
 	gtk_tree_store_set(store, &parent,
-		0, _("Search"), 1, nb_main_page_search, 2, TREEMENU_NODE_SEARCH, -1);
+		0, _("Search"), 1, nb_main_page_search, 2, TREEMENU_NODE_SEARCH, (-1));
 	gtk_tree_store_append(store, &iter, &parent);
 	gtk_tree_store_set(store, &iter,
-		0, _("Monitor"), 1, nb_main_page_monitor, 2, TREEMENU_NODE_SEARCH_MON, -1);
+		0, _("Monitor"), 1, nb_main_page_monitor, 2, TREEMENU_NODE_SEARCH_MON,
+		(-1));
 	gtk_tree_store_append(store, &iter, &parent);
 	gtk_tree_store_set(store, &iter,
-		0, _("Stats"), 1, nb_main_page_search_stats, 2, TREEMENU_NODE_SEARCH_STATS,
-		-1);
+		0, _("Stats"), 1, nb_main_page_search_stats, 2,
+		TREEMENU_NODE_SEARCH_STATS, (-1));
 
 	gtk_tree_store_append(store, &parent, NULL);
 	gtk_tree_store_set(store, &parent,
 		0, _("Config"), 1, nb_main_page_config_sel,
-		2, TREEMENU_NODE_CFG_SEL, -1);
+		2, TREEMENU_NODE_CFG_SEL, (-1));
 	gtk_tree_store_append(store, &iter, &parent);
 	gtk_tree_store_set(store, &iter,
 		0, _("Network"), 1, nb_main_page_config_net,
-		2, TREEMENU_NODE_CFG_NET, -1);
+		2, TREEMENU_NODE_CFG_NET, (-1));
 	gtk_tree_store_append(store, &iter, &parent);
 	gtk_tree_store_set(store, &iter,
 		0, _("GnutellaNet"), 1, nb_main_page_config_gnet,
-		2, TREEMENU_NODE_CFG_GNET, -1);
+		2, TREEMENU_NODE_CFG_GNET, (-1));
 	gtk_tree_store_append(store, &iter, &parent);
 	gtk_tree_store_set(store, &iter,
 		0, _("Bandwidth"), 1, nb_main_page_config_bwc,
-		2, TREEMENU_NODE_CFG_BWC, -1);
+		2, TREEMENU_NODE_CFG_BWC, (-1));
 	gtk_tree_store_append(store, &iter, &parent);
 	gtk_tree_store_set(store, &iter,
 		0, _("Downloads"), 1, nb_main_page_config_dl,
-		2, TREEMENU_NODE_CFG_DL, -1);
+		2, TREEMENU_NODE_CFG_DL, (-1));
 	gtk_tree_store_append(store, &iter, &parent);
 	gtk_tree_store_set(store, &iter,
 		0, _("Uploads"), 1, nb_main_page_config_ul,
-		2, TREEMENU_NODE_CFG_UL, -1);
+		2, TREEMENU_NODE_CFG_UL, (-1));
 	gtk_tree_store_append(store, &iter, &parent);
 	gtk_tree_store_set(store, &iter,
 		0, _("User Interface"), 1, nb_main_page_config_ui,
-		2, TREEMENU_NODE_CFG_UI, -1);
+		2, TREEMENU_NODE_CFG_UI, (-1));
 	gtk_tree_store_append(store, &iter, &parent);
 	gtk_tree_store_set(store, &iter,
 		0, _("Debugging"), 1, nb_main_page_config_dbg,
-		2, TREEMENU_NODE_CFG_DBG, -1);
+		2, TREEMENU_NODE_CFG_DBG, (-1));
 
 	gtk_tree_view_set_model(treeview, GTK_TREE_MODEL(store));
 
@@ -246,7 +248,7 @@ static void gui_init_menu(void)
 	gtk_tree_view_columns_autosize(treeview);
 	
 	gtk_tree_model_foreach(GTK_TREE_MODEL(store),
-		(gpointer) &gui_init_menu_helper, treeview);
+		(GtkTreeModelForeachFunc) gui_init_menu_helper, treeview);
 	g_object_unref(store);
 
 	g_signal_connect(G_OBJECT(treeview), "cursor-changed",
@@ -283,11 +285,13 @@ static GtkWidget *gui_create_main_window(void)
 	 */
 	tab_window[nb_main_page_gnet] = create_main_window_gnet_tab();
 	tab_window[nb_main_page_uploads] = create_main_window_uploads_tab();
-	tab_window[nb_main_page_uploads_stats] = create_main_window_upload_stats_tab();
+	tab_window[nb_main_page_uploads_stats] =
+		create_main_window_upload_stats_tab();
 	tab_window[nb_main_page_downloads] = create_main_window_downloads_tab();
 	tab_window[nb_main_page_search] = create_main_window_search_tab();
 	tab_window[nb_main_page_monitor] = create_main_window_monitor_tab();
-	tab_window[nb_main_page_search_stats] = create_main_window_search_stats_tab();
+	tab_window[nb_main_page_search_stats] =
+		create_main_window_search_stats_tab();
 	tab_window[nb_main_page_gnet_stats] = create_main_window_gnet_stats_tab();
 
 	tab_window[nb_main_page_config_sel] = create_main_window_config_sel_tab();
@@ -460,6 +464,7 @@ static GtkWidget *gui_create_dlg_about(void)
     };
     GtkWidget *dlg = create_dlg_about();
     guint i;
+	static char s[256];
 #ifdef USE_GTK2
     GtkTextBuffer *textbuf;
 
@@ -467,8 +472,6 @@ static GtkWidget *gui_create_dlg_about(void)
         lookup_widget(dlg, "textview_about_contributors")));
     
     for (i = 0; NULL != contributors[i]; i++) {
-        static char s[256];
-
         gm_snprintf(s, sizeof(s), "%s%s", i > 0 ? "\n" : "", contributors[i]);
         gtk_text_buffer_insert_at_cursor(
             textbuf, iso_8859_1_to_utf8(s), (-1));
@@ -479,7 +482,9 @@ static GtkWidget *gui_create_dlg_about(void)
     for (i = 0; NULL != contributors[i]; i++) {
         if (i > 0)
             gtk_text_insert(text, NULL, NULL, NULL, "\n", (-1));
-        gtk_text_insert(text, NULL, NULL, NULL, utf8_to_locale(iso_8859_1_to_utf8((char*)contributors[i]),0), (-1));
+        g_strlcpy(s, contributors[i], sizeof(s));
+        gtk_text_insert(text, NULL, NULL, NULL,
+			utf8_to_locale(iso_8859_1_to_utf8(s), 0), (-1));
     }
 #endif
 
@@ -630,7 +635,7 @@ void main_gui_run(void)
      * resized widgets).
      *      -- Richard, 8/9/2002
      */
-    if ((coord[2] != 0) && (coord[3] != 0))
+    if (coord[2] != 0 && coord[3] != 0)
         gtk_window_set_default_size(
             GTK_WINDOW(main_window), coord[2], coord[3]);
 
@@ -638,7 +643,7 @@ void main_gui_run(void)
     
     icon_init();
 
-    if ((coord[2] != 0) && (coord[3] != 0))
+    if (coord[2] != 0 && coord[3] != 0)
         gdk_window_move_resize(main_window->window, 
 	    coord[0], coord[1], coord[2], coord[3]);
 

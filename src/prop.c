@@ -742,7 +742,7 @@ gchar *prop_get_string(prop_set_t *ps, property_t prop, gchar *t, guint32 size)
             target[0] = '\0';
             target = NULL;
         } else {
-            gm_snprintf(target, size, "%s", s);
+            g_strlcpy(target, s, size);
         }
     }
         
@@ -784,7 +784,7 @@ gchar *prop_to_string(prop_set_t *ps, property_t prop)
         }
         case PROP_TYPE_STRING: {
             gchar *buf = prop_get_string(ps, prop, NULL, 0);
-            gm_snprintf(s, sizeof(s), "%s", buf);
+            g_strlcpy(s, buf, sizeof(s));
             g_free(buf);
             break;
         }
@@ -793,7 +793,7 @@ gchar *prop_to_string(prop_set_t *ps, property_t prop)
         
             prop_get_guint32(ps, prop, &val, 0, 1);
 
-            gm_snprintf(s, sizeof(s), "%s", ip_to_gchar(val));
+            g_strlcpy(s, ip_to_gchar(val), sizeof(s));
             break;
         }
         case PROP_TYPE_BOOLEAN: {
@@ -801,7 +801,7 @@ gchar *prop_to_string(prop_set_t *ps, property_t prop)
        
             prop_get_boolean(ps, prop, &val, 0, 1);
 
-            gm_snprintf(s, sizeof(s), "%s", val ? "TRUE" : "FALSE");
+            g_strlcpy(s, val ? "TRUE" : "FALSE", sizeof(s));
             break;
         }
         default:
@@ -819,11 +819,11 @@ gchar *prop_to_string(prop_set_t *ps, property_t prop)
  *
  * Returns "TRUE" or "FALSE" depending on the given boolean value.
  */
-static gchar *config_boolean(gboolean b)
+static const gchar *config_boolean(gboolean b)
 {
-	static gchar *b_true = "TRUE";
-	static gchar *b_false = "FALSE";
-	return (b) ? b_true : b_false;
+	static const gchar *b_true = "TRUE";
+	static const gchar *b_false = "FALSE";
+	return b ? b_true : b_false;
 }
 
 /*
@@ -861,7 +861,7 @@ static gchar *config_comment(const gchar *s)
         }
     }
 
-    gm_snprintf(result, sizeof(result), "%s", out->str);
+    g_strlcpy(result, out->str, sizeof(result));
     g_strfreev(sv);
 
     g_string_free(out, TRUE);
@@ -944,8 +944,10 @@ void prop_save_to_file
 			version_number, GTA_RELEASE, GTA_WEBSITE);
 #endif
 
-    fprintf(config, "#\n# Description of contents\n");
-    fprintf(config, "%s\n\n", config_comment(ps->desc));
+    fprintf(config,
+		"#\n# Description of contents\n"
+    	"%s\n\n",
+		config_comment(ps->desc));
 
     for (n = 0; n < ps->size; n++) {
         prop_def_t *p = &ps->props[n];
@@ -966,8 +968,8 @@ void prop_save_to_file
         switch (p->type) {
         case PROP_TYPE_BOOLEAN:
             for (i = 0; i < p->vector_size; i++) {
-                gm_snprintf(sbuf, sizeof(sbuf), "%s", 
-                    config_boolean(p->data.boolean.value[i]));
+                g_strlcpy(sbuf, config_boolean(p->data.boolean.value[i]),
+					sizeof(sbuf));
                 vbuf[i] = g_strdup(sbuf);
             }
             vbuf[p->vector_size] = NULL;
@@ -991,8 +993,8 @@ void prop_save_to_file
             break;
         case PROP_TYPE_IP:
             for (i = 0; i < p->vector_size; i++) {
-                gm_snprintf(sbuf, sizeof(sbuf), "%s", 
-                        ip_to_gchar(p->data.guint32.value[i]));
+                g_strlcpy(sbuf, ip_to_gchar(p->data.guint32.value[i]),
+					sizeof(sbuf));
                 vbuf[i] = g_strdup(sbuf);
             }
             vbuf[p->vector_size] = NULL;
