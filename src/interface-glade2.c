@@ -1552,14 +1552,14 @@ create_dlg_about (void)
   gtk_misc_set_alignment (GTK_MISC (label492), 0, 0.5);
   gtk_misc_set_padding (GTK_MISC (label492), 10, 0);
 
-  label493 = gtk_label_new (_("Rapha\303\253l Manfredi"));
+  label493 = gtk_label_new (_("Raphaël Manfredi"));
   gtk_widget_set_name (label493, "label493");
   gtk_widget_show (label493);
   gtk_box_pack_start (GTK_BOX (vbox88), label493, FALSE, FALSE, 0);
   gtk_misc_set_alignment (GTK_MISC (label493), 0, 0.5);
   gtk_misc_set_padding (GTK_MISC (label493), 10, 0);
 
-  label494 = gtk_label_new (_("Rapha\303\253l Manfredi"));
+  label494 = gtk_label_new (_("Raphaël Manfredi"));
   gtk_widget_set_name (label494, "label494");
   gtk_widget_show (label494);
   gtk_box_pack_start (GTK_BOX (vbox88), label494, FALSE, FALSE, 0);
@@ -1777,6 +1777,10 @@ create_main_window (void)
   GtkWidget *label697;
   GtkWidget *eventbox_image_ancient;
   GtkWidget *image_ancient;
+  GtkWidget *eventbox_image_fd_shortage;
+  GtkWidget *image_fd_shortage;
+  GtkWidget *eventbox_image_fd_runout;
+  GtkWidget *image_fd_runout;
   GtkWidget *hb_toolbar;
   GtkWidget *toolbar_main;
   GtkWidget *hpaned_main;
@@ -1873,7 +1877,7 @@ create_main_window (void)
   gtk_widget_show (handlebox1);
   gtk_box_pack_start (GTK_BOX (vbox12), handlebox1, FALSE, FALSE, 0);
 
-  table70 = gtk_table_new (1, 5, FALSE);
+  table70 = gtk_table_new (1, 7, FALSE);
   gtk_widget_set_name (table70, "table70");
   gtk_widget_show (table70);
   gtk_container_add (GTK_CONTAINER (handlebox1), table70);
@@ -2077,7 +2081,7 @@ create_main_window (void)
   hbox211 = gtk_hbox_new (FALSE, 4);
   gtk_widget_set_name (hbox211, "hbox211");
   gtk_widget_show (hbox211);
-  gtk_table_attach (GTK_TABLE (table70), hbox211, 3, 4, 0, 1,
+  gtk_table_attach (GTK_TABLE (table70), hbox211, 5, 6, 0, 1,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (GTK_EXPAND | GTK_FILL), 0, 0);
   gtk_container_set_border_width (GTK_CONTAINER (hbox211), 2);
@@ -2199,7 +2203,7 @@ create_main_window (void)
   label697 = gtk_label_new (_(" "));
   gtk_widget_set_name (label697, "label697");
   gtk_widget_show (label697);
-  gtk_table_attach (GTK_TABLE (table70), label697, 4, 5, 0, 1,
+  gtk_table_attach (GTK_TABLE (table70), label697, 6, 7, 0, 1,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label697), 0, 0.5);
@@ -2207,7 +2211,7 @@ create_main_window (void)
   eventbox_image_ancient = gtk_event_box_new ();
   gtk_widget_set_name (eventbox_image_ancient, "eventbox_image_ancient");
   gtk_widget_show (eventbox_image_ancient);
-  gtk_table_attach (GTK_TABLE (table70), eventbox_image_ancient, 2, 3, 0, 1,
+  gtk_table_attach (GTK_TABLE (table70), eventbox_image_ancient, 4, 5, 0, 1,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (GTK_FILL), 0, 0);
 
@@ -2215,6 +2219,30 @@ create_main_window (void)
   gtk_widget_set_name (image_ancient, "image_ancient");
   gtk_widget_show (image_ancient);
   gtk_container_add (GTK_CONTAINER (eventbox_image_ancient), image_ancient);
+
+  eventbox_image_fd_shortage = gtk_event_box_new ();
+  gtk_widget_set_name (eventbox_image_fd_shortage, "eventbox_image_fd_shortage");
+  gtk_widget_show (eventbox_image_fd_shortage);
+  gtk_table_attach (GTK_TABLE (table70), eventbox_image_fd_shortage, 2, 3, 0, 1,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (GTK_FILL), 0, 0);
+
+  image_fd_shortage = create_pixmap (main_window, "clanbomber_yellow.xpm");
+  gtk_widget_set_name (image_fd_shortage, "image_fd_shortage");
+  gtk_widget_show (image_fd_shortage);
+  gtk_container_add (GTK_CONTAINER (eventbox_image_fd_shortage), image_fd_shortage);
+
+  eventbox_image_fd_runout = gtk_event_box_new ();
+  gtk_widget_set_name (eventbox_image_fd_runout, "eventbox_image_fd_runout");
+  gtk_widget_show (eventbox_image_fd_runout);
+  gtk_table_attach (GTK_TABLE (table70), eventbox_image_fd_runout, 3, 4, 0, 1,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (GTK_FILL), 0, 0);
+
+  image_fd_runout = create_pixmap (main_window, "clanbomber_red.xpm");
+  gtk_widget_set_name (image_fd_runout, "image_fd_runout");
+  gtk_widget_show (image_fd_runout);
+  gtk_container_add (GTK_CONTAINER (eventbox_image_fd_runout), image_fd_runout);
 
   hb_toolbar = gtk_handle_box_new ();
   gtk_widget_set_name (hb_toolbar, "hb_toolbar");
@@ -2758,6 +2786,10 @@ create_main_window (void)
   GLADE_HOOKUP_OBJECT (main_window, label697, "label697");
   GLADE_HOOKUP_OBJECT (main_window, eventbox_image_ancient, "eventbox_image_ancient");
   GLADE_HOOKUP_OBJECT (main_window, image_ancient, "image_ancient");
+  GLADE_HOOKUP_OBJECT (main_window, eventbox_image_fd_shortage, "eventbox_image_fd_shortage");
+  GLADE_HOOKUP_OBJECT (main_window, image_fd_shortage, "image_fd_shortage");
+  GLADE_HOOKUP_OBJECT (main_window, eventbox_image_fd_runout, "eventbox_image_fd_runout");
+  GLADE_HOOKUP_OBJECT (main_window, image_fd_runout, "image_fd_runout");
   GLADE_HOOKUP_OBJECT (main_window, hb_toolbar, "hb_toolbar");
   GLADE_HOOKUP_OBJECT (main_window, toolbar_main, "toolbar_main");
   GLADE_HOOKUP_OBJECT (main_window, hpaned_main, "hpaned_main");

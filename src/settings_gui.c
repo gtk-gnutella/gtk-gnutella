@@ -151,8 +151,8 @@ static gboolean update_window_geometry(property_t prop);
 
 #ifdef USE_GTK2
 static gboolean update_treeview_col_widths(property_t prop);
-static gboolean config_toolbar_style_changed(property_t prop);
 #endif
+static gboolean config_toolbar_style_changed(property_t prop);
 static gboolean bw_gnet_lin_enabled_changed(property_t prop);
 static gboolean bw_gnet_lout_enabled_changed(property_t prop);
 static gboolean bw_http_in_enabled_changed(property_t prop);
@@ -220,6 +220,8 @@ static gboolean spinbutton_output_bw_changed(property_t prop);
 static void update_output_bw_display(void);
 static void update_input_bw_display(void);
 static gboolean dl_http_latency_changed(property_t prop);
+static gboolean file_descriptor_shortage_changed(property_t prop);
+static gboolean file_descriptor_runout_changed(property_t prop);
 static gboolean update_byte_size_entry(property_t prop);
 static gboolean compute_connection_speed_changed(property_t prop);
 static gboolean update_toggle_search_autoselect(property_t prop);
@@ -2550,7 +2552,6 @@ static prop_map_t property_map[] = {
         "checkbutton_gnet_monitor_servents",
         FREQ_UPDATES, 0
     },
-#ifdef USE_GTK2
     {
         get_main_window,
         PROP_CONFIG_TOOLBAR_STYLE,
@@ -2559,7 +2560,6 @@ static prop_map_t property_map[] = {
         "combo_config_toolbar_style",
         FREQ_UPDATES, 0
     },
-#endif
     {
         get_main_window,
         PROP_RESERVE_GTKG_NODES,
@@ -2726,6 +2726,24 @@ static prop_map_t property_map[] = {
         update_label,
         TRUE,
         "label_qrp_patch_comp_ratio",
+        FREQ_UPDATES, 0
+    },
+    {
+        get_main_window,
+        PROP_FILE_DESCRIPTOR_SHORTAGE,
+        file_descriptor_shortage_changed,
+        TRUE,
+        "eventbox_image_fd_shortage", 
+        /* need eventbox because image has no tooltip */
+        FREQ_UPDATES, 0
+    },
+    {
+        get_main_window,
+        PROP_FILE_DESCRIPTOR_RUNOUT,
+        file_descriptor_runout_changed,
+        TRUE,
+        "eventbox_image_fd_runout", 
+        /* need eventbox because image has no tooltip */
         FREQ_UPDATES, 0
     },
 #ifdef USE_GTK1
@@ -3767,6 +3785,50 @@ static gboolean ancient_version_changed(property_t prop)
     return FALSE;
 }
 
+static gboolean file_descriptor_shortage_changed(property_t prop)
+{
+    gboolean b;
+    GtkWidget *w;
+    prop_map_t *map_entry = settings_gui_get_map_entry(prop);
+    prop_set_stub_t *stub = map_entry->stub;
+    GtkWidget *top = map_entry->fn_toplevel();
+
+    w = lookup_widget(top, map_entry->wid);
+
+    stub->boolean.get(prop, &b, 0, 1);
+
+    if (b) {
+        statusbar_gui_warning(15, _("*** FILE DESCRIPTORS RUNNING LOW! ***"));
+        gtk_widget_show(w);
+    } else {
+        gtk_widget_hide(w);
+    }
+
+    return FALSE;
+}
+
+static gboolean file_descriptor_runout_changed(property_t prop)
+{
+    gboolean b;
+    GtkWidget *w;
+    prop_map_t *map_entry = settings_gui_get_map_entry(prop);
+    prop_set_stub_t *stub = map_entry->stub;
+    GtkWidget *top = map_entry->fn_toplevel();
+
+    w = lookup_widget(top, map_entry->wid);
+
+    stub->boolean.get(prop, &b, 0, 1);
+
+    if (b) {
+        statusbar_gui_warning(15, _("*** FILE DESCRIPTORS HAVE RUN OUT! ***"));
+        gtk_widget_show(w);
+    } else {
+        gtk_widget_hide(w);
+    }
+
+    return FALSE;
+}
+
 static gboolean ancient_version_left_days_changed(property_t prop)
 {
     guint32 remain;
@@ -4602,7 +4664,6 @@ static gboolean dl_aqueued_count_changed(property_t prop)
 	return FALSE;
 }
 
-#ifdef USE_GTK2
 static gboolean config_toolbar_style_changed(property_t prop)
 {
 	guint32 val;
@@ -4639,7 +4700,6 @@ static gboolean config_toolbar_style_changed(property_t prop)
 	update_multichoice(prop);
 	return FALSE;
 }
-#endif
 
 static gboolean update_spinbutton_ultranode(property_t prop)
 {

@@ -57,7 +57,7 @@ create_main_window (void)
   GtkWidget *menu_bws_glout_visible;
   GtkWidget *menu_about;
   GtkWidget *hb_toolbar;
-  GtkWidget *toolbar1;
+  GtkWidget *toolbar_main;
   GtkWidget *tmp_toolbar_icon;
   GtkWidget *button_quit;
   GtkWidget *button23;
@@ -939,6 +939,9 @@ create_main_window (void)
   GtkObject *spinbutton_search_accumulation_period_adj;
   GtkWidget *spinbutton_search_accumulation_period;
   GtkWidget *label653;
+  GtkWidget *label657;
+  GtkWidget *combo_config_toolbar_style;
+  GtkWidget *combo_entry5;
   GtkWidget *frame64;
   GtkWidget *table45;
   GtkWidget *checkbutton_expert_mode;
@@ -1090,6 +1093,10 @@ create_main_window (void)
   GtkWidget *image_offline;
   GtkWidget *alignment25;
   GtkWidget *statusbar;
+  GtkWidget *eventbox_image_fd_shortage;
+  GtkWidget *image_fd_shortage;
+  GtkWidget *eventbox_image_fd_runout;
+  GtkWidget *image_fd_runout;
   GtkWidget *eventbox_image_ancient;
   GtkWidget *image_ancient;
   GtkWidget *eventbox_image_save;
@@ -1418,18 +1425,18 @@ create_main_window (void)
   gtk_box_pack_start (GTK_BOX (vbox12), hb_toolbar, FALSE, TRUE, 0);
   gtk_container_set_border_width (GTK_CONTAINER (hb_toolbar), 1);
 
-  toolbar1 = gtk_toolbar_new (GTK_ORIENTATION_HORIZONTAL, GTK_TOOLBAR_BOTH);
-  gtk_widget_set_name (toolbar1, "toolbar1");
-  gtk_widget_ref (toolbar1);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "toolbar1", toolbar1,
+  toolbar_main = gtk_toolbar_new (GTK_ORIENTATION_HORIZONTAL, GTK_TOOLBAR_BOTH);
+  gtk_widget_set_name (toolbar_main, "toolbar_main");
+  gtk_widget_ref (toolbar_main);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "toolbar_main", toolbar_main,
                             (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (toolbar1);
-  gtk_container_add (GTK_CONTAINER (hb_toolbar), toolbar1);
-  gtk_toolbar_set_space_style (GTK_TOOLBAR (toolbar1), GTK_TOOLBAR_SPACE_LINE);
-  gtk_toolbar_set_button_relief (GTK_TOOLBAR (toolbar1), GTK_RELIEF_NONE);
+  gtk_widget_show (toolbar_main);
+  gtk_container_add (GTK_CONTAINER (hb_toolbar), toolbar_main);
+  gtk_toolbar_set_space_style (GTK_TOOLBAR (toolbar_main), GTK_TOOLBAR_SPACE_LINE);
+  gtk_toolbar_set_button_relief (GTK_TOOLBAR (toolbar_main), GTK_RELIEF_NONE);
 
   tmp_toolbar_icon = create_pixmap (main_window, "exit.xpm");
-  button_quit = gtk_toolbar_append_element (GTK_TOOLBAR (toolbar1),
+  button_quit = gtk_toolbar_append_element (GTK_TOOLBAR (toolbar_main),
                                 GTK_TOOLBAR_CHILD_BUTTON,
                                 NULL,
                                 _("Quit"),
@@ -1441,10 +1448,10 @@ create_main_window (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (button_quit);
 
-  gtk_toolbar_append_space (GTK_TOOLBAR (toolbar1));
+  gtk_toolbar_append_space (GTK_TOOLBAR (toolbar_main));
 
   tmp_toolbar_icon = create_pixmap (main_window, "filter.xpm");
-  button23 = gtk_toolbar_append_element (GTK_TOOLBAR (toolbar1),
+  button23 = gtk_toolbar_append_element (GTK_TOOLBAR (toolbar_main),
                                 GTK_TOOLBAR_CHILD_BUTTON,
                                 NULL,
                                 _("Filters"),
@@ -9200,7 +9207,7 @@ create_main_window (void)
   gtk_widget_show (frame52);
   gtk_box_pack_start (GTK_BOX (vbox77), frame52, FALSE, TRUE, 0);
 
-  table35 = gtk_table_new (4, 3, FALSE);
+  table35 = gtk_table_new (5, 3, FALSE);
   gtk_widget_set_name (table35, "table35");
   gtk_widget_ref (table35);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "table35", table35,
@@ -9237,7 +9244,7 @@ create_main_window (void)
   gtk_object_set_data_full (GTK_OBJECT (main_window), "label599", label599,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (label599);
-  gtk_table_attach (GTK_TABLE (table35), label599, 0, 1, 2, 3,
+  gtk_table_attach (GTK_TABLE (table35), label599, 0, 1, 3, 4,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label599), 0, 0.5);
@@ -9249,7 +9256,7 @@ create_main_window (void)
   gtk_object_set_data_full (GTK_OBJECT (main_window), "spinbutton_entry_removal_timeout", spinbutton_entry_removal_timeout,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (spinbutton_entry_removal_timeout);
-  gtk_table_attach (GTK_TABLE (table35), spinbutton_entry_removal_timeout, 1, 2, 2, 3,
+  gtk_table_attach (GTK_TABLE (table35), spinbutton_entry_removal_timeout, 1, 2, 3, 4,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
 
@@ -9259,7 +9266,7 @@ create_main_window (void)
   gtk_object_set_data_full (GTK_OBJECT (main_window), "label600", label600,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (label600);
-  gtk_table_attach (GTK_TABLE (table35), label600, 2, 3, 2, 3,
+  gtk_table_attach (GTK_TABLE (table35), label600, 2, 3, 3, 4,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label600), 0, 0.5);
@@ -9270,7 +9277,7 @@ create_main_window (void)
   gtk_object_set_data_full (GTK_OBJECT (main_window), "label652", label652,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (label652);
-  gtk_table_attach (GTK_TABLE (table35), label652, 0, 1, 3, 4,
+  gtk_table_attach (GTK_TABLE (table35), label652, 0, 1, 4, 5,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label652), 0, 0.5);
@@ -9282,7 +9289,7 @@ create_main_window (void)
   gtk_object_set_data_full (GTK_OBJECT (main_window), "spinbutton_search_accumulation_period", spinbutton_search_accumulation_period,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (spinbutton_search_accumulation_period);
-  gtk_table_attach (GTK_TABLE (table35), spinbutton_search_accumulation_period, 1, 2, 3, 4,
+  gtk_table_attach (GTK_TABLE (table35), spinbutton_search_accumulation_period, 1, 2, 4, 5,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
 
@@ -9292,10 +9299,39 @@ create_main_window (void)
   gtk_object_set_data_full (GTK_OBJECT (main_window), "label653", label653,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (label653);
-  gtk_table_attach (GTK_TABLE (table35), label653, 2, 3, 3, 4,
+  gtk_table_attach (GTK_TABLE (table35), label653, 2, 3, 4, 5,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label653), 0, 0.5);
+
+  label657 = gtk_label_new (_("Toolbar style"));
+  gtk_widget_set_name (label657, "label657");
+  gtk_widget_ref (label657);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label657", label657,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label657);
+  gtk_table_attach (GTK_TABLE (table35), label657, 0, 1, 2, 3,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label657), 0, 0.5);
+
+  combo_config_toolbar_style = gtk_combo_new ();
+  gtk_widget_set_name (combo_config_toolbar_style, "combo_config_toolbar_style");
+  gtk_widget_ref (combo_config_toolbar_style);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "combo_config_toolbar_style", combo_config_toolbar_style,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (combo_config_toolbar_style);
+  gtk_table_attach (GTK_TABLE (table35), combo_config_toolbar_style, 1, 2, 2, 3,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+
+  combo_entry5 = GTK_COMBO (combo_config_toolbar_style)->entry;
+  gtk_widget_set_name (combo_entry5, "combo_entry5");
+  gtk_widget_ref (combo_entry5);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "combo_entry5", combo_entry5,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (combo_entry5);
+  gtk_entry_set_editable (GTK_ENTRY (combo_entry5), FALSE);
 
   frame64 = gtk_frame_new (_("Expert mode"));
   gtk_widget_set_name (frame64, "frame64");
@@ -10607,6 +10643,40 @@ create_main_window (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (statusbar);
   gtk_container_add (GTK_CONTAINER (alignment25), statusbar);
+
+  eventbox_image_fd_shortage = gtk_event_box_new ();
+  gtk_widget_set_name (eventbox_image_fd_shortage, "eventbox_image_fd_shortage");
+  gtk_widget_ref (eventbox_image_fd_shortage);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "eventbox_image_fd_shortage", eventbox_image_fd_shortage,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (eventbox_image_fd_shortage);
+  gtk_box_pack_start (GTK_BOX (hbox_statusbar), eventbox_image_fd_shortage, FALSE, TRUE, 0);
+
+  image_fd_shortage = create_pixmap (main_window, "clanbomber_yellow.xpm");
+  gtk_widget_set_name (image_fd_shortage, "image_fd_shortage");
+  gtk_widget_ref (image_fd_shortage);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "image_fd_shortage", image_fd_shortage,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (image_fd_shortage);
+  gtk_container_add (GTK_CONTAINER (eventbox_image_fd_shortage), image_fd_shortage);
+  gtk_pixmap_set_build_insensitive (GTK_PIXMAP (image_fd_shortage), FALSE);
+
+  eventbox_image_fd_runout = gtk_event_box_new ();
+  gtk_widget_set_name (eventbox_image_fd_runout, "eventbox_image_fd_runout");
+  gtk_widget_ref (eventbox_image_fd_runout);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "eventbox_image_fd_runout", eventbox_image_fd_runout,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (eventbox_image_fd_runout);
+  gtk_box_pack_start (GTK_BOX (hbox_statusbar), eventbox_image_fd_runout, FALSE, TRUE, 0);
+
+  image_fd_runout = create_pixmap (main_window, "clanbomber_red.xpm");
+  gtk_widget_set_name (image_fd_runout, "image_fd_runout");
+  gtk_widget_ref (image_fd_runout);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "image_fd_runout", image_fd_runout,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (image_fd_runout);
+  gtk_container_add (GTK_CONTAINER (eventbox_image_fd_runout), image_fd_runout);
+  gtk_pixmap_set_build_insensitive (GTK_PIXMAP (image_fd_runout), FALSE);
 
   eventbox_image_ancient = gtk_event_box_new ();
   gtk_widget_set_name (eventbox_image_ancient, "eventbox_image_ancient");
@@ -14824,7 +14894,7 @@ create_dlg_about (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label266), 1, 0.5);
 
-  label267 = gtk_label_new (_("Rapha\353l Manfredi"));
+  label267 = gtk_label_new (_("Raphaël Manfredi"));
   gtk_widget_set_name (label267, "label267");
   gtk_widget_ref (label267);
   gtk_object_set_data_full (GTK_OBJECT (dlg_about), "label267", label267,
@@ -14868,7 +14938,7 @@ create_dlg_about (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label291), 1, 0.5);
 
-  label273 = gtk_label_new (_("Rapha\353l Manfredi"));
+  label273 = gtk_label_new (_("Raphaël Manfredi"));
   gtk_widget_set_name (label273, "label273");
   gtk_widget_ref (label273);
   gtk_object_set_data_full (GTK_OBJECT (dlg_about), "label273", label273,
