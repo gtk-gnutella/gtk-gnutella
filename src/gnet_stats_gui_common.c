@@ -184,12 +184,13 @@ const gchar *horizon_stat_str(hsep_triple *table, gint row,
 
 void gnet_stats_gui_horizon_update(hsep_triple *table, guint32 triples)
 {
-	const int hops = 4;      /* must be <= HSEP_N_MAX */
+	const guint32 hops = 4U;      /* must be <= HSEP_N_MAX */
 	gchar s[64];
 	guint64 val;
 
 	if (triples <= hops)     /* should not happen */
 	    return;
+	g_assert((gint32) triples > 0);
 
 	/*
 	 * Update the 3 labels in the statusbar with the horizon values for a
