@@ -507,9 +507,12 @@ void version_init(void)
 	gboolean ok;
 	time_t now = time(NULL);
 
-	(void) uname(&un);
+	if (uname(&un)) {
+		memset(&un, 0, sizeof un);
+		g_warning("uname() failed: %s:", g_strerror(errno));
+	}
 
-	gm_snprintf(buf, sizeof(buf) - 1,
+	gm_snprintf(buf, sizeof(buf),
 		"gtk-gnutella/%s (%s; %s; %s %s %s)",
 		GTA_VERSION_NUMBER, GTA_RELEASE, GTA_INTERFACE,
 		un.sysname, un.release, un.machine);
@@ -521,7 +524,7 @@ void version_init(void)
 	version_stamp(version_string, &our_version);
 	g_assert(our_version.timestamp > 0);
 
-	gm_snprintf(buf, sizeof(buf) - 1,
+	gm_snprintf(buf, sizeof(buf),
 		"gtk-gnutella/%s (%s)",
 		GTA_VERSION_NUMBER, GTA_RELEASE);
 
