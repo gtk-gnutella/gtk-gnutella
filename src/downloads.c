@@ -2172,7 +2172,14 @@ static gboolean download_ignore_requested(struct download *d)
 	enum ignore_val reason = IGNORE_FALSE;
 	struct dl_file_info *fi = d->file_info;
 
-	if (hostiles_check(download_ip(d)))
+	/*
+	 * Reject if we're trying to download from ourselves (could happen
+	 * if someone echoes back our own alt-locs to us with PFSP).
+	 */
+
+	if (download_ip(d) == listen_ip() && download_port(d) == listen_port)
+		reason = IGNORE_OURSELVES;
+	else if (hostiles_check(download_ip(d)))
 		reason = IGNORE_HOSTILE;
 
 	if (reason == IGNORE_FALSE)
@@ -2183,6 +2190,7 @@ static gboolean download_ignore_requested(struct download *d)
 			download_gui_add(d);
 
 		download_stop(d, GTA_DL_ERROR, "Ignoring requested (%s)",
+			reason == IGNORE_OURSELVES ? "Points to ourselves" :
 			reason == IGNORE_HOSTILE ? "Hostile IP" :
 			reason == IGNORE_SHA1 ? "SHA1" :
 			reason == IGNORE_LIBRARY ? "Already Owned" : "Name & Size");
@@ -2195,11 +2203,16 @@ static gboolean download_ignore_requested(struct download *d)
 		 * the process of being moved).
 		 */
 
-		if (reason != IGNORE_HOSTILE) {
+		switch (reason) {
+		case IGNORE_HOSTILE:
+		case IGNORE_OURSELVES:
+			break;
+		default:
 			file_info_set_discard(d->file_info, TRUE);
 			queue_remove_downloads_with_file(fi, d);
 			if (!FILE_INFO_COMPLETE(fi))
 				download_remove_file(d, FALSE);
+			break;
 		}
 
 		return TRUE;
@@ -2881,6 +2894,16 @@ static struct download *create_download(
 	gchar *file_name = interactive ? atom_str_get(file) : file;
 	struct dl_file_info *fi;
 	gboolean server_created = FALSE;		/* For assertions only */
+
+	/*
+	 * Reject if we're trying to download from ourselves (could happen
+	 * if someone echoes back our own alt-locs to us with PFSP).
+	 */
+
+	if (ip == listen_ip() && port == listen_port) {
+		atom_str_free(file_name);
+		return NULL;
+	}
 
 	/*
 	 * Create server if none exists already.
@@ -5582,6 +5605,22 @@ static void download_request(
 			g_warning("server \"%s\" did not send any length indication", ua);
 		download_bad_source(d);
 		download_stop(d, GTA_DL_ERROR, "No Content-Length header");
+		return;
+	}
+
+	/*
+	 * Since we may request some overlap, ensure that the server did not
+	 * shrink our request to just the overlap range!
+	 *		--RAM, 14/10/2003
+	 */
+
+	g_assert(d->size >= 0);
+
+	if (d->size == 0) {
+		g_assert(d->flags & DL_F_SHRUNK_REPLY);
+		download_queue_delay(d,
+			MAX(delay, download_retry_busy_delay),
+			"Partial file on server, waiting");
 		return;
 	}
 
