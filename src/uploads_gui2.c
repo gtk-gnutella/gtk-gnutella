@@ -139,18 +139,6 @@ static void upload_info_changed(gnet_upload_t u,
     upload_free_info(info);
 }
 
-static void on_column_resized(
-	GtkTreeViewColumn *column, GParamSpec *param, gpointer data)
-{
-    guint32 width;
-    gint column_id = GPOINTER_TO_INT(data);
-
-	g_assert(column_id >= 0 && column_id < UPLOADS_GUI_VISIBLE_COLUMNS);
-	width = gtk_tree_view_column_get_width(column);
-    if ((gint) width < 1)
-		width = 1;
-	gui_prop_set_guint32(PROP_UPLOADS_COL_WIDTHS, &width, column_id, 1);
-}
 
 #define COMPARE_FUNC(field, code) \
 static gint compare_ ##field## _func( \
@@ -412,9 +400,6 @@ static void add_column(gint column_id, GtkTreeIterCompareFunc sortfunc)
 		NULL);
 	gtk_tree_view_column_set_sort_column_id(column, column_id);
 	gtk_tree_view_append_column(treeview_uploads, column);
-	g_object_notify(G_OBJECT(column), "width");
-	g_signal_connect(G_OBJECT(column), "notify::width",
-		G_CALLBACK(on_column_resized), GINT_TO_POINTER(column_id));
 
 	if (NULL != sortfunc)
 		gtk_tree_sortable_set_sort_func(GTK_TREE_SORTABLE(store_uploads),
@@ -585,14 +570,9 @@ void uploads_gui_clear_completed(void)
  */
 void uploads_gui_shutdown(void) 
 {
-    GtkTreeViewColumn *c;
-    gint i;
-
 	uploads_shutting_down = TRUE;
 	
-	for (i = 0; (c = gtk_tree_view_get_column(treeview_uploads, i)); i++)
-        g_signal_handlers_disconnect_by_func(c, on_column_resized,
-            GINT_TO_POINTER(i));
+	tree_view_save_widths(treeview_uploads, PROP_UPLOADS_COL_WIDTHS);
 
     upload_remove_upload_added_listener(upload_added);
     upload_remove_upload_removed_listener(upload_removed);
