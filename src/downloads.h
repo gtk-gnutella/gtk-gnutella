@@ -103,8 +103,6 @@ struct download {
 extern GSList *sl_downloads;
 extern guint32 count_downloads;
 extern gboolean send_pushes;
-extern struct download *selected_queued_download;
-extern struct download *selected_active_download;
 
 /*
  * Global Functions
