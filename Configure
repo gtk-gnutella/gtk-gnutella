@@ -20,7 +20,7 @@
 
 # $Id$
 #
-# Generated on Tue Dec  9 13:19:00 MET 2003 [metaconfig 3.0 PL70]
+# Generated on Tue Dec 16 18:17:21 MET 2003 [metaconfig 3.0 PL70]
 
 cat >/tmp/c1$$ <<EOF
 ARGGGHHHH!!!!!
@@ -317,6 +317,10 @@ strings=''
 i_sysparam=''
 i_syssendfile=''
 i_syssysctl=''
+i_systime=''
+i_systimek=''
+i_time=''
+timeincl=''
 i_uni_putil=''
 i_zlib=''
 d_icu=''
@@ -413,6 +417,7 @@ locincpth="$locincpth /opt/gnu/include /usr/GNU/include /opt/GNU/include"
 : no include file wanted by default
 inclwanted=''
 
+i_sysselct=''
 : change the next line if compiling for Xenix/286 on Xenix/386
 xlibpth='/usr/lib/386 /lib/386'
 
@@ -4813,6 +4818,89 @@ eval $inhdr
 set sys/sysctl.h i_syssysctl
 eval $inhdr
 
+: see if we should include time.h, sys/time.h, or both
+echo " "
+echo "Testing to see if we should include <time.h>, <sys/time.h> or both." >&4
+$echo $n "I'm now running the test program...$c"
+$cat >try.c <<'EOCP'
+#include <sys/types.h>
+#ifdef I_TIME
+#include <time.h>
+#endif
+#ifdef I_SYSTIME
+#ifdef SYSTIMEKERNEL
+#define KERNEL
+#endif
+#include <sys/time.h>
+#endif
+#ifdef I_SYSSELECT
+#include <sys/select.h>
+#endif
+int main()
+{
+	struct tm foo;
+#ifdef S_TIMEVAL
+	struct timeval bar;
+#endif
+#ifdef S_TIMEZONE
+	struct timezone tzp;
+#endif
+	if (foo.tm_sec == foo.tm_sec)
+		exit(0);
+#ifdef S_TIMEVAL
+	if (bar.tv_sec == bar.tv_sec)
+		exit(0);
+#endif
+	exit(1);
+}
+EOCP
+flags=''
+for s_timezone in '-DS_TIMEZONE' ''; do
+sysselect=''
+for s_timeval in '-DS_TIMEVAL' ''; do
+for i_systimek in '' '-DSYSTIMEKERNEL'; do
+for i_time in '' '-DI_TIME'; do
+for i_systime in '-DI_SYSTIME' ''; do
+	case "$flags" in
+	'') $echo $n ".$c"
+		if $cc $ccflags \
+		$i_time $i_systime $i_systimek $sysselect $s_timeval $s_timezone \
+		-o try try.c >/dev/null 2>&1 ; then
+			set X $i_time $i_systime $i_systimek $sysselect $s_timeval
+			shift
+			flags="$*"
+			echo " "
+			$echo $n "Succeeded with $flags$c"
+		fi
+		;;
+	esac
+done
+done
+done
+done
+done
+timeincl=''
+echo " "
+case "$flags" in
+*SYSTIMEKERNEL*) i_systimek="$define"
+	timeincl=`./findhdr sys/time.h`
+	echo "We'll include <sys/time.h> with KERNEL defined." >&4;;
+*) i_systimek="$undef";;
+esac
+case "$flags" in
+*I_TIME*) i_time="$define"
+	timeincl=`./findhdr time.h`" $timeincl"
+	echo "We'll include <time.h>." >&4;;
+*) i_time="$undef";;
+esac
+case "$flags" in
+*I_SYSTIME*) i_systime="$define"
+	timeincl=`./findhdr sys/time.h`" $timeincl"
+	echo "We'll include <sys/time.h>." >&4;;
+*) i_systime="$undef";;
+esac
+$rm -f try.c try
+
 : see if deflate exists
 set deflate d_deflate
 eval $inlibc
@@ -5094,6 +5182,9 @@ i_sysin='$i_sysin'
 i_sysparam='$i_sysparam'
 i_syssendfile='$i_syssendfile'
 i_syssysctl='$i_syssysctl'
+i_systime='$i_systime'
+i_systimek='$i_systimek'
+i_time='$i_time'
 i_uni_putil='$i_uni_putil'
 i_zlib='$i_zlib'
 icu='$icu'
@@ -5191,6 +5282,7 @@ tar='$tar'
 targetarch='$targetarch'
 tbl='$tbl'
 test='$test'
+timeincl='$timeincl'
 to='$to'
 touch='$touch'
 tr='$tr'
