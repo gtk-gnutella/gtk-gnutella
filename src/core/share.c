@@ -923,6 +923,11 @@ recurse_scan(gchar *dir, const gchar *basedir)
 						g_warning("Not sharing empty file: \"%s\"", full);
 					break;
 				}
+
+				if (!S_ISREG(file_stat.st_mode)) {
+					g_warning("Not sharing non-regular file: \"%s\"", full);
+					break;
+				}
 					
 				if (too_big_for_gnutella(file_stat.st_size)) {
 					g_warning("File is too big to be shared: \"%s\"", full);
