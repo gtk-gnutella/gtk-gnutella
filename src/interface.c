@@ -2402,6 +2402,7 @@ create_main_window (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (checkbutton_search_pick_all);
   gtk_box_pack_start (GTK_BOX (hbox52), checkbutton_search_pick_all, FALSE, FALSE, 0);
+  gtk_tooltips_set_tip (tooltips, checkbutton_search_pick_all, "Automatically select all other results with the same name or urn:sha1.", NULL);
 
   checkbutton_search_autoselect_ident = gtk_check_button_new_with_label ("Autoselect identical");
   gtk_widget_ref (checkbutton_search_autoselect_ident);
@@ -2409,6 +2410,7 @@ create_main_window (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (checkbutton_search_autoselect_ident);
   gtk_box_pack_start (GTK_BOX (hbox52), checkbutton_search_autoselect_ident, FALSE, FALSE, 0);
+  gtk_tooltips_set_tip (tooltips, checkbutton_search_autoselect_ident, "If on autoselection only takes place if filesize matches exactly, if off filesize must be equals or greater.", NULL);
 
   search_reissue_label = gtk_label_new ("Retry search every");
   gtk_widget_ref (search_reissue_label);
@@ -2428,7 +2430,7 @@ create_main_window (void)
   gtk_widget_set_usize (entry_search_reissue_timeout, 70, -2);
   gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (entry_search_reissue_timeout), TRUE);
 
-  label246 = gtk_label_new ("sec (0 - off)");
+  label246 = gtk_label_new ("secs (0 - off)");
   gtk_widget_ref (label246);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "label246", label246,
                             (GtkDestroyNotify) gtk_widget_unref);
