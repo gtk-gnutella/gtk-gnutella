@@ -28,15 +28,17 @@ set w_main_list {
 	checkbutton_config_force_ip
 	checkbutton_config_proxy_connections
 	checkbutton_config_proxy_auth
+    checkbutton_config_bps_in
+    checkbutton_config_bps_out
 	entry_config_extensions
 	entry_config_force_ip 
 	entry_config_maxttl 
 	entry_config_myttl
 	entry_config_path 
-	entry_config_port 
+	spinbutton_config_port 
 	entry_config_search_items 
-	entry_config_socks_host
-	entry_config_socks_password 
+	entry_config_proxy_ip
+	entry_config_socks_password
 	entry_config_socks_username 
 	entry_config_speed 
 	radio_config_http 
@@ -44,7 +46,7 @@ set w_main_list {
 	radio_config_socksv5
 	checkbutton_config_use_netmasks
 	entry_config_netmasks        
-    entry_config_socks_port 
+    spinbutton_config_proxy_port 
 	spinbutton_config_bps_in
 	spinbutton_config_bps_out
 
@@ -63,7 +65,7 @@ set w_main_list {
 	button_queue_clear
 	button_queue_remove
 	togglebutton_queue_freeze
-    entry_queue_remove_regex
+    entry_queue_regex
     checkbutton_queue_regex_case
 
 	button_downloads_abort
@@ -71,7 +73,7 @@ set w_main_list {
 	button_downloads_resume
 	checkbutton_downloads_auto_clear 
 	checkbutton_downloads_never_push
-    checkbutton_downloads_delete_aborted
+    checkbutton_download_delete_aborted
 	clist_downloads
 
 	button_search 
@@ -82,6 +84,7 @@ set w_main_list {
 	button_search_stream 
 	checkbutton_search_jump_to_downloads
     checkbutton_search_remove_downloaded
+    checkbutton_search_pick_all
 	entry_search 
     combo_search
 	entry_search_reissue_timeout
@@ -173,6 +176,8 @@ set w_main_list {
 	statusbar 
 	sw_connections
     progressbar_connections 
+    entry_nodes_guid
+    entry_nodes_ip
 }
 
 # interface.h ----------------------------------------------------------------------------------------
