@@ -1,5 +1,28 @@
 # since last version
 
+- (2002.09.24 RAM)
+ * Added the EXT_NONE extension to hold separator overhead.
+ * Don't warn at exit time on fileinfo entries with refcount=0.
+ * At debug level 5+, can now log the packets we emit, and the non-broadcasted
+   messages we relay..
+ * Suppressed MSG_DROP_MULTIPLE_SHA1, added MSG_DROP_QUERY_OVERHEAD.
+ * Renamed MSG_DROP_MISFORMED_SHA1_QUERY as MSG_DROP_MALFORMED_SHA1_QUERY.
+ * Documented web cache usage policy.
+ * Added cache seeding when the caches we inspect have few entries.
+ * Fixed memory leak in nodes.c.
+ * No longer send the trailing "urn:\0" in queries.
+ * When issuing SHA1 queries, was not copying the trailing NUL.
+ * Will now drop queries with too many (unneeded) separators in extension.
+ * Now supports queries with multiple SHA1.
+ * Split our query hit packets in chunks of ~2KB for better flow control.
+ * Fixed missing counter decrements on completed uploads.
+
+- (2002.09.23 RAM)
+ * When replacing URLs in the web cache, delete from the known URL table
+   before re-inserting, for the rare cases where we're inserting the same
+   URL at the same slot.
+ * Removed spurious block that crept in inside gwc_store().
+
 - (2002.09.23 - Richard)
  * fixed memory leak in:
    - search_xml.x (config_comment)
