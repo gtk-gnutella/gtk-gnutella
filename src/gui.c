@@ -988,6 +988,46 @@ UPDATE_SPINBUTTON(
     max_hosts_cached,
     NO_FUNC)
 
+void gui_update_queue_frozen()
+{
+    static gboolean msg_displayed = FALSE;
+
+    g_message("frozen %i, msg %i", download_queue_is_frozen(),
+              msg_displayed);
+
+    if (download_queue_is_frozen() > 0) {
+		gtk_label_set_text(
+            GTK_LABEL(GTK_BIN(togglebutton_queue_freeze)->child),
+			"Thaw queue");
+        if (!msg_displayed) {
+            msg_displayed = TRUE;
+          	gui_statusbar_push(scid_queue_freezed, "QUEUE FROZEN");
+        }
+    } else {
+		gtk_label_set_text(
+            GTK_LABEL(GTK_BIN(togglebutton_queue_freeze)->child),
+			"Freeze queue");
+        if (msg_displayed) {
+            msg_displayed = FALSE;
+            gui_statusbar_pop(scid_queue_freezed);
+        }
+	} 
+
+    gtk_signal_handler_block_by_func(
+        GTK_OBJECT(togglebutton_queue_freeze),
+        GTK_SIGNAL_FUNC(on_togglebutton_queue_freeze_toggled),
+        NULL);
+
+    gtk_toggle_button_set_active(
+        GTK_TOGGLE_BUTTON(togglebutton_queue_freeze),
+        download_queue_is_frozen() > 0);
+    
+    gtk_signal_handler_unblock_by_func(
+        GTK_OBJECT(togglebutton_queue_freeze),
+        GTK_SIGNAL_FUNC(on_togglebutton_queue_freeze_toggled),
+        NULL);
+}
+
 /*
  * gui_update_config_netmasks
  *
@@ -1056,6 +1096,9 @@ void gui_update_global(void)
 {
 	static gboolean startupset = FALSE;
 	static time_t   startup;
+    static struct conf_bandwidth max_bw = {0, 0, 0, 0};
+    guint32 high_limit;
+    guint32 current;
 
 	time_t now = time((time_t *) NULL);	
 
@@ -1089,61 +1132,71 @@ void gui_update_global(void)
 	 *      --BLUE, 21/04/2002
 	 */
 	
-	g_snprintf(gui_tmp, sizeof(gui_tmp), "%s/s in %s", 
-			   compact_size(progressbar_bws_in_avg ? bsched_avg_bps(bws.in) : 
-										             bsched_bps(bws.in)),
-			   progressbar_bws_in_avg ? "(avg)" : "");
-	gtk_progress_set_format_string(GTK_PROGRESS(progressbar_bws_in), gui_tmp);
-
-	g_snprintf(gui_tmp, sizeof(gui_tmp), "%s/s out %s", 
-			   compact_size(progressbar_bws_out_avg ? bsched_avg_bps(bws.out) :
-										              bsched_bps(bws.out)),
-			   progressbar_bws_out_avg ? "(avg)" : "");
-	gtk_progress_set_format_string(GTK_PROGRESS(progressbar_bws_out), gui_tmp);
-
-    g_snprintf(gui_tmp, sizeof(gui_tmp), "%s/s in %s", 
-			   compact_size(progressbar_bws_gin_avg ? bsched_avg_bps(bws.gin) : 
-										              bsched_bps(bws.gin)),
-			   progressbar_bws_gin_avg ? "(avg)" : "");
-	gtk_progress_set_format_string(GTK_PROGRESS(progressbar_bws_gin), gui_tmp);
-
-	g_snprintf(gui_tmp, sizeof(gui_tmp), "%s/s out %s", 
-			   compact_size(progressbar_bws_gout_avg ? bsched_avg_bps(bws.gout) :
-										               bsched_bps(bws.gout)),
-			   progressbar_bws_gout_avg ? "(avg)" : "");
-	gtk_progress_set_format_string(GTK_PROGRESS(progressbar_bws_gout), gui_tmp);
-
-
-	/*
+   	/*
 	 * If the bandwidth usage peaks above the maximum, then GTK will not
 	 * update the progress bar, so we have to cheat and limit the value
 	 * displayed.
 	 *		--RAM, 16/04/2002
 	 */
 
-	gtk_progress_configure(GTK_PROGRESS(progressbar_bws_in), 
-    	MIN(progressbar_bws_in_avg ? bsched_avg_bps(bws.in) : 
-									 bsched_bps(bws.in), 
-			bws.in->bw_per_second),
-		0, bws.in->bw_per_second);
+    current = progressbar_bws_in_avg ? bsched_avg_bps(bws.in) : bsched_bps(bws.in);
+
+    if (max_bw.input < current)
+        max_bw.input = current;
+
+    high_limit = bws_in_enabled ? bws.in->bw_per_second : max_bw.input;
+
+	g_snprintf(gui_tmp, sizeof(gui_tmp), "%s/s in %s", compact_size(current),
+			   progressbar_bws_in_avg ? "(avg)" : "");
+	gtk_progress_set_format_string(GTK_PROGRESS(progressbar_bws_in), gui_tmp);
+
+    gtk_progress_configure(GTK_PROGRESS(progressbar_bws_in), 
+    	MIN(current,bws.in->bw_per_second), 0, high_limit);
+
+
+    current = progressbar_bws_out_avg ? bsched_avg_bps(bws.out) : bsched_bps(bws.out);
+
+    if (max_bw.output < current)
+        max_bw.output = current;
+
+    high_limit = bws_out_enabled ? bws.out->bw_per_second : max_bw.output;
+
+	g_snprintf(gui_tmp, sizeof(gui_tmp), "%s/s out %s", compact_size(current),
+			   progressbar_bws_out_avg ? "(avg)" : "");
+	gtk_progress_set_format_string(GTK_PROGRESS(progressbar_bws_out), gui_tmp);
 
 	gtk_progress_configure(GTK_PROGRESS(progressbar_bws_out), 
-    	MIN(progressbar_bws_out_avg ? bsched_avg_bps(bws.out) :
-									  bsched_bps(bws.out), 
-			bws.out->bw_per_second),
-		0, bws.out->bw_per_second);
+    	MIN(current, bws.out->bw_per_second), 0, high_limit);
 
-   	gtk_progress_configure(GTK_PROGRESS(progressbar_bws_gin), 
-    	MIN(progressbar_bws_gin_avg ? bsched_avg_bps(bws.gin) : 
-								 	  bsched_bps(bws.gin), 
-			bws.gin->bw_per_second),
-		0, bws.gin->bw_per_second);
+
+    current = progressbar_bws_gin_avg ? bsched_avg_bps(bws.gin) : bsched_bps(bws.gin);
+
+    if (max_bw.ginput < current)
+        max_bw.ginput = current;
+
+    high_limit = bws_gin_enabled ? bws.gin->bw_per_second : max_bw.ginput;
+
+    g_snprintf(gui_tmp, sizeof(gui_tmp), "%s/s in %s", 
+			   compact_size(current), progressbar_bws_gin_avg ? "(avg)" : "");
+	gtk_progress_set_format_string(GTK_PROGRESS(progressbar_bws_gin), gui_tmp);
+
+ 	gtk_progress_configure(GTK_PROGRESS(progressbar_bws_gin), 
+    	MIN(current, bws.gin->bw_per_second), 0, high_limit);
+
+
+    current = progressbar_bws_gout_avg ? bsched_avg_bps(bws.gout) : bsched_bps(bws.gout);
+
+    if (max_bw.goutput < current)
+        max_bw.goutput = current;
+
+    high_limit = bws_gout_enabled ? bws.gout->bw_per_second : max_bw.goutput;
+
+	g_snprintf(gui_tmp, sizeof(gui_tmp), "%s/s out %s", 
+			   compact_size(current), progressbar_bws_gout_avg ? "(avg)" : "");
+	gtk_progress_set_format_string(GTK_PROGRESS(progressbar_bws_gout), gui_tmp);
 
 	gtk_progress_configure(GTK_PROGRESS(progressbar_bws_gout), 
-    	MIN(progressbar_bws_gout_avg ? bsched_avg_bps(bws.gout) :
-		 							   bsched_bps(bws.gout), 
-			bws.gout->bw_per_second),
-		0, bws.gout->bw_per_second);
+    	MIN(current, bws.gout->bw_per_second), 0, high_limit);
 }
 
 void gui_update_node_display(struct gnutella_node *n, time_t now)
