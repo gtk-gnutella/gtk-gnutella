@@ -194,7 +194,7 @@ static gchar *uploads_gui_status_str(
 	guint32 requested = data->range_end - data->range_start + 1;
 
 	if (u->pos < data->range_start)
-		return "Not started"; /* Never wrote anything yet */
+		return "No output yet..."; /* Never wrote anything yet */
 
     switch(u->status) {
     case GTA_UL_ABORTED:
@@ -206,7 +206,7 @@ static gchar *uploads_gui_status_str(
     case GTA_UL_WAITING:
         return "Waiting for further request...";
     case GTA_UL_PUSH_RECEIVED:
-        return "Got push request";
+        return "Got push, connecting back...";
     case GTA_UL_COMPLETE:
 		if (u->last_update != data->start_date) {
 			guint32 spent = u->last_update - data->start_date;
@@ -306,14 +306,14 @@ static void uploads_gui_update_upload_info(gnet_upload_info_t *u)
 
 	rd->status = status.status;
 
-	gtk_clist_set_text(clist_uploads, row, c_ul_status,
-		uploads_gui_status_str(&status, rd));
-
 	if (u->push) {
 		GdkColor *color = &(gtk_widget_get_style(GTK_WIDGET(clist_uploads))
 			->fg[GTK_STATE_INSENSITIVE]);
 		gtk_clist_set_foreground(clist_uploads, row, color);
 	}
+
+	gtk_clist_set_text(clist_uploads, row, c_ul_status,
+		uploads_gui_status_str(&status, rd));
 }
 
 

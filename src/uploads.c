@@ -208,7 +208,10 @@ void upload_timer(time_t now)
 	for (l = remove; l; l = l->next) {
 		gnutella_upload_t *u = (gnutella_upload_t *) l->data;
 		if (UPLOAD_IS_CONNECTING(u)) {
-			upload_error_remove(u, NULL, 408, "Request timeout");
+			if (u->status == GTA_UL_PUSH_RECEIVED)
+				upload_remove(u, "Connect back timeout");
+			else
+				upload_error_remove(u, NULL, 408, "Request timeout");
 		} else
 			upload_remove(u, "Data timeout");
 	}
@@ -338,6 +341,8 @@ void handle_push_request(struct gnutella_node *n)
 	u = upload_create(s, TRUE);
 	u->index = file_index;
 	u->name = atom_str_get(req_file->file_name);
+
+	upload_fire_upload_info_changed(u);
 
 	/* Now waiting for the connection CONF -- will call upload_push_conf() */
 }
@@ -534,23 +539,32 @@ static void send_upload_error(
 static void upload_remove_v(
 	gnutella_upload_t *u, const gchar *reason, va_list ap)
 {
+	gchar *logreason;
 	gchar errbuf[1024];
 
 	if (reason) {
 		g_vsnprintf(errbuf, sizeof(errbuf), reason, ap);
 		errbuf[sizeof(errbuf) - 1] = '\0';		/* May be truncated */
-
-		if (dbg > 1) {
-			if (u->name) {
-				if (dbg) printf("Cancelling upload for %s from %s: %s\n",
-					u->name, ip_to_gchar(u->socket->ip), errbuf);
-			} else {
-				if (dbg) printf("Cancelling upload from %s: %s\n",
-					ip_to_gchar(u->socket->ip), errbuf);
-			}
+		logreason = errbuf;
+	} else {
+		if (u->error_sent) {
+			g_snprintf(errbuf, sizeof(errbuf), "HTTP %d", u->error_sent);
+			logreason = errbuf;
+		} else {
+			errbuf[0] = '\0';
+			logreason = "No reason given";
 		}
-	} else
-		errbuf[0] = '\0';
+	}
+
+	if (dbg > 1) {
+		if (u->name) {
+			printf("Cancelling upload for %s from %s: %s\n",
+				u->name, ip_to_gchar(u->socket->ip), logreason);
+		} else {
+			printf("Cancelling upload from %s: %s\n",
+				ip_to_gchar(u->socket->ip), logreason);
+		}
+	}
 
 	/*
 	 * If the upload is still connecting, we have not started sending
@@ -567,8 +581,11 @@ static void upload_remove_v(
 		UPLOAD_IS_CONNECTING(u) &&
 		!u->error_sent &&
 		u->status != GTA_UL_PUSH_RECEIVED
-	)
-		send_upload_error(u, NULL, 400, reason ? errbuf : "Bad Request");
+	) {
+		if (reason == NULL)
+			logreason = "Bad Request";
+		send_upload_error(u, NULL, 400, logreason);
+	}
 
 	/*
 	 * If COMPLETE, we've already decremented `running_uploads' and
@@ -916,13 +933,16 @@ void upload_add(struct gnutella_socket *s)
  * Prepare reception of a full HTTP header, including the leading request.
  * Will call upload_request() when everything has been parsed.
  */
-static void expect_http_header(gnutella_upload_t *u)
+static void expect_http_header(gnutella_upload_t *u, guint32 new_status)
 {
 	struct gnutella_socket *s = u->socket;
 
 	g_assert(s->resource.upload == u);
 	g_assert(s->getline == NULL);
 	g_assert(u->io_opaque == NULL);
+
+	u->status = new_status;
+	upload_fire_upload_info_changed(u);
 
 	/*
 	 * We're requesting the reading of a "status line", which will be the
@@ -945,8 +965,7 @@ static void expect_http_header(gnutella_upload_t *u)
  */
 static void upload_wait_new_request(gnutella_upload_t *u)
 {
-	u->status = GTA_UL_WAITING;
-	expect_http_header(u);
+	expect_http_header(u, GTA_UL_WAITING);
 }
 
 /*
@@ -991,7 +1010,11 @@ void upload_push_conf(gnutella_upload_t *u)
 		return;
 	}
 
-	expect_http_header(u);
+	/*
+	 * We're now expecting HTTP headers on the connection we've made.
+	 */
+
+	expect_http_header(u, GTA_UL_HEADERS);
 }
 
 /*
@@ -2113,7 +2136,7 @@ void upload_kill(gnet_upload_t upload)
     g_assert(u != NULL);
 
     if (!UPLOAD_IS_COMPLETE(u))
-        socket_destroy(u->socket);
+        upload_remove(u, "Explicitly killed");
 }
 
 /*
