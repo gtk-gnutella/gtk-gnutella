@@ -2117,6 +2117,11 @@ static gboolean qrt_apply_patch(
 			 *
 			 * The "bpe=1" patch is special.  The value is XOR-ed, thus
 			 * a 0 means no change, and a 1 inverts the value.
+			 *
+			 * In reality, for leaf<->ultrapeer QRT, what matters is presence.
+			 * We consider everything that is less to infinity as being
+			 * present, and therefore forget about the "hops-away" semantics
+			 * of the QRT slot value.
 			 */
 
 			if (bpe == 1) {				/* Special, use XOR */
@@ -2217,10 +2222,15 @@ static gboolean qrt_handle_reset(
 	}
 
 	/*
-	 * If infinity is not at least 2, there is a problem.
+	 * If infinity is not at least 1, there is a problem.
+	 *
+	 * We allow 1 because for leaf<->ultrapeer QRTs, what matters is
+	 * presence, and we don't really care about the hop distance: normally,
+	 * presence would be 1 and absence 2, without any 0 in the table.  When
+	 * infinity is 1, presence will be indicated by a 0.
 	 */
 
-	if (reset->infinity < 2) {
+	if (reset->infinity < 1) {
 		g_warning("node %s <%s> sent us invalid QRP infinity: %u",
 			node_ip(n), n->vendor ? n->vendor : "????",
 			(guint) reset->infinity);
@@ -2466,11 +2476,11 @@ static gboolean qrt_handle_patch(
 			rt->pass_throw = 100;		/* Always forward if QRT says so */
 
 		if (dbg > 2)
-			printf("QRP got whole patch "
+			printf("QRP got whole %d-bit patch "
 				"(gen=%d, slots=%d (*%d), fill=%d%%, throw=%d) "
 				"from %s <%s>: SHA1=%s\n",
-				rt->generation, rt->slots, qrcv->shrink_factor,
-				rt->fill_ratio, rt->pass_throw,
+				qrcv->entry_bits, rt->generation, rt->slots,
+				qrcv->shrink_factor, rt->fill_ratio, rt->pass_throw,
 				node_ip(n), n->vendor ? n->vendor : "????",
 				sha1_base32(rt->digest));
 
@@ -2578,7 +2588,7 @@ static gboolean qrt_dump_is_slot_present(struct routing_table *rt, gint slot)
 	g_assert(slot < rt->slots);
 
 	if (!rt->compacted)
-		return rt->arena[slot] != rt->infinity;
+		return rt->arena[slot] < rt->infinity;
 
 	return RT_SLOT_READ(rt->arena, slot);
 }
