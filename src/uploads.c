@@ -159,6 +159,8 @@ static void upload_fire_upload_added(gnutella_upload_t *n)
 {
     LISTENER_EMIT(upload_added, n->upload_handle, 
         running_uploads, registered_uploads);
+	gnet_prop_set_guint32_val(PROP_UL_RUNNING, running_uploads);
+	gnet_prop_set_guint32_val(PROP_UL_REGISTERED, registered_uploads);
 }
 
 static void upload_fire_upload_removed(
@@ -166,6 +168,8 @@ static void upload_fire_upload_removed(
 {
     LISTENER_EMIT(upload_removed, n->upload_handle, reason,
         running_uploads, registered_uploads);
+	gnet_prop_set_guint32_val(PROP_UL_RUNNING, running_uploads);
+	gnet_prop_set_guint32_val(PROP_UL_REGISTERED, registered_uploads);
 }
 
 static void upload_fire_upload_info_changed

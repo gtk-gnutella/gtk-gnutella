@@ -1458,7 +1458,7 @@ void download_stop(struct download *d, guint32 new_status,
 	d->flags &= ~DL_F_CHUNK_CHOSEN;
 
 	gnet_prop_set_guint32_val(PROP_DL_RUNNING_COUNT, count_running_downloads());
-	gui_update_c_downloads(dl_active, dl_establishing + dl_active);
+	gnet_prop_set_guint32_val(PROP_DL_ACTIVE_COUNT, dl_active);
 }
 
 /*
@@ -2134,7 +2134,7 @@ void download_start(struct download *d, gboolean check_allowed)
 	gnet_prop_set_guint32_val(PROP_DL_RUNNING_COUNT, count_running_downloads());
 
 	gui_update_download(d, TRUE);
-	gui_update_c_downloads(dl_active, dl_establishing + dl_active);
+	gnet_prop_set_guint32_val(PROP_DL_ACTIVE_COUNT, dl_active);
 }
 
 /* pick up new downloads from the queue as needed */
@@ -4715,7 +4715,7 @@ static void download_request(struct download *d, header_t *header, gboolean ok)
 
 	gnet_prop_set_guint32_val(PROP_DL_RUNNING_COUNT, count_running_downloads());
 	gui_update_download(d, TRUE);
-	gui_update_c_downloads(dl_active, dl_establishing + dl_active);
+	gnet_prop_set_guint32_val(PROP_DL_ACTIVE_COUNT, dl_active);
 
 	g_assert(s->gdk_tag == 0);
 	g_assert(d->bio == NULL);
@@ -5302,8 +5302,10 @@ static struct download *select_push_download(guint file_index, gchar *hex_guid)
 						download_gui_add(d);
 
 					gui_update_download(d, TRUE);
-					gui_update_c_downloads(dl_active,
-						dl_establishing + dl_active);
+					gnet_prop_set_guint32_val(PROP_DL_ACTIVE_COUNT,
+						dl_active);
+					gnet_prop_set_guint32_val(PROP_DL_RUNNING_COUNT,
+						count_running_downloads());
 
 					if (dbg > 4)
 						printf(

@@ -38,7 +38,6 @@ static guint uploads_rows_done = 0;
 
 static gint find_row(gnet_upload_t u, upload_row_data_t **data);
 
-static void uploads_gui_update_meter(guint32 i, guint32 t);
 static void uploads_gui_update_upload_info(gnet_upload_info_t *u);
 static void uploads_gui_add_upload(gnet_upload_info_t *u);
 static gchar *uploads_gui_status_str(
@@ -79,8 +78,6 @@ static void upload_removed(
         if (reason != NULL)
             gtk_clist_set_text(clist, row, c_ul_status, reason);
     }
-
-    uploads_gui_update_meter(running, registered);
 }
 
 
@@ -99,7 +96,6 @@ static void upload_added(
 
     info = upload_get_info(n);
     uploads_gui_add_upload(info);
-    uploads_gui_update_meter(running, registered);
     upload_free_info(info);
 }
 
@@ -118,10 +114,7 @@ static void upload_info_changed(gnet_upload_t u,
     gnet_upload_info_t *info;
     
     info = upload_get_info(u);
-
     uploads_gui_update_upload_info(info);
-    uploads_gui_update_meter(running, registered);
-    
     upload_free_info(info);
 }
 
@@ -174,22 +167,6 @@ static gint find_row(gnet_upload_t u, upload_row_data_t **data)
     return -1;
 }
 
-
-
-static void uploads_gui_update_meter(guint32 i, guint32 t)
-{
-    GtkProgressBar *pg = GTK_PROGRESS_BAR
-         (lookup_widget(main_window, "progressbar_uploads"));
-    gfloat frac;
-
-	gm_snprintf(tmpstr, sizeof(tmpstr), "%u/%u upload%s", i, t,
-			   (i == 1 && t == 1) ? "" : "s");
-
-    frac = MIN(i, t) != 0 ? (float)MIN(i, t) / t : 0;
-
-    gtk_progress_bar_set_text(pg, tmpstr);
-    gtk_progress_bar_set_fraction(pg, frac);
-}
 
 static gchar *uploads_gui_status_str(
     gnet_upload_status_t *u, upload_row_data_t *data)
@@ -400,8 +377,6 @@ void uploads_gui_init(void)
 
 	gtk_clist_column_titles_passive(
         GTK_CLIST(lookup_widget(main_window, "clist_uploads")));
-
-    uploads_gui_update_meter(0, 0);
 
     upload_add_upload_added_listener(upload_added);
     upload_add_upload_removed_listener(upload_removed);

@@ -398,21 +398,6 @@ void gui_update_download_range(struct download *d)
 	gtk_clist_set_text(clist_downloads, row, c_dl_range, tmpstr);
 }
 
-void gui_update_c_downloads(gint c, gint ec)
-{
-    GtkProgressBar *pg = GTK_PROGRESS_BAR
-        (lookup_widget(main_window, "progressbar_downloads"));
-    gfloat frac;
-
-	gm_snprintf(tmpstr, sizeof(tmpstr), "%u/%u download%s", c, ec,
-			   (c == 1 && ec == 1) ? "" : "s");
-    
-    frac = MIN(c, ec) != 0 ? (float)MIN(c, ec) / ec : 0;
-
-    gtk_progress_bar_set_text(pg, tmpstr);
-    gtk_progress_bar_set_fraction(pg, frac);
-}
-
 void gui_update_download_abort_resume(void)
 {
 	struct download *d;
