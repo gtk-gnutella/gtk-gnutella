@@ -71,6 +71,7 @@ struct adns_cache_t {
 static gint adns_query_fd = -1;
 static guint adns_query_event_id = 0;
 static guint adns_reply_event_id = 0;
+static gboolean is_helper = FALSE;		/* Are we the DNS helper process? */
 
 static gboolean adns_helper_alive = TRUE;
 
@@ -202,8 +203,13 @@ G_INLINE_FUNC gboolean adns_do_transfer(
 				g_strerror(errno), errno, (gint) do_write);
 			return FALSE;
 		} else if (0 == ret) {
-			g_warning("adns_do_transfer: EOF (%s)",
-				do_write ? "write" : "read");
+			/*
+			 * Don't warn on EOF if we're the children process and our
+			 * parent is gone.
+			 */
+			if (!do_write && !(is_helper && getppid() == 1))
+				g_warning("adns_do_transfer: EOF (%s)",
+					do_write ? "write" : "read");
 			return FALSE;
 		} else {
 			n -= ret;
@@ -280,6 +286,8 @@ static void adns_helper(gint fd_in, gint fd_out)
 
 	g_set_prgname("DNS-helper for gtk-gnutella");
 	gm_setproctitle("DNS helper for gtk-gnutella");
+
+	is_helper = TRUE;
 
 	for (;;) {
 		if (!adns_do_read(fd_in, &query, sizeof(query)))
