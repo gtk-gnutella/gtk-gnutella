@@ -1487,8 +1487,11 @@ file_info_store_one(FILE *f, struct dl_file_info *fi)
 
 	if (fi->use_swarming && fi->dirty)
 		file_info_store_binary(fi);
-
-	if (fi->refcount == 0) {
+	/*
+	 * Keep entries for incomplete or not even started downloads so that the
+	 * download is started/resumed as soon as a search gains a source.
+	 */
+	if (fi->refcount == 0 && fi->done == fi->size) {
 		gchar *path;
 		struct stat st;
 
@@ -1558,12 +1561,12 @@ file_info_store_one(FILE *f, struct dl_file_info *fi)
 static void
 file_info_store_list(gpointer key, gpointer val, gpointer x)
 {
-	GSList *l;
+	GSList *sl;
 	struct dl_file_info *fi;
 	FILE *f = (FILE *)x;
 
-	for (l = (GSList *) val; l; l = l->next) {
-		fi = (struct dl_file_info *) l->data;
+	for (sl = (GSList *) val; sl; sl = g_slist_next(sl)) {
+		fi = (struct dl_file_info *) sl->data;
 		g_assert(fi->size == *(filesize_t *) key);
 		file_info_store_one(f, fi);
 	}
