@@ -13177,114 +13177,13 @@ Grace time remaining:</property>
 			  <property name="window_placement">GTK_CORNER_TOP_LEFT</property>
 
 			  <child>
-			    <widget class="GtkCList" id="clist_downloads">
+			    <widget class="GtkTreeView" id="treeview_downloads">
 			      <property name="visible">True</property>
 			      <property name="can_focus">True</property>
-			      <property name="n_columns">6</property>
-			      <property name="column_widths">80,80,80,80,80,80</property>
-			      <property name="selection_mode">GTK_SELECTION_MULTIPLE</property>
-			      <property name="show_titles">True</property>
-			      <property name="shadow_type">GTK_SHADOW_IN</property>
-			      <signal name="resize_column" handler="on_clist_downloads_resize_column" last_modification_time="Thu, 12 Sep 2002 19:45:14 GMT"/>
-			      <signal name="select_row" handler="on_clist_downloads_select_row" last_modification_time="Thu, 12 Sep 2002 19:45:19 GMT"/>
-			      <signal name="unselect_row" handler="on_clist_downloads_unselect_row" last_modification_time="Thu, 12 Sep 2002 19:45:24 GMT"/>
-			      <signal name="button_press_event" handler="on_clist_downloads_button_press_event" last_modification_time="Thu, 12 Sep 2002 19:45:39 GMT"/>
-
-			      <child>
-				<widget class="GtkLabel" id="label421">
-				  <property name="visible">True</property>
-				  <property name="label" translatable="yes">Filename</property>
-				  <property name="use_underline">False</property>
-				  <property name="use_markup">False</property>
-				  <property name="justify">GTK_JUSTIFY_LEFT</property>
-				  <property name="wrap">False</property>
-				  <property name="selectable">False</property>
-				  <property name="xalign">0</property>
-				  <property name="yalign">0.5</property>
-				  <property name="xpad">0</property>
-				  <property name="ypad">0</property>
-				</widget>
-			      </child>
-
-			      <child>
-				<widget class="GtkLabel" id="label422">
-				  <property name="visible">True</property>
-				  <property name="label" translatable="yes">Host</property>
-				  <property name="use_underline">False</property>
-				  <property name="use_markup">False</property>
-				  <property name="justify">GTK_JUSTIFY_LEFT</property>
-				  <property name="wrap">False</property>
-				  <property name="selectable">False</property>
-				  <property name="xalign">0.5</property>
-				  <property name="yalign">0.5</property>
-				  <property name="xpad">0</property>
-				  <property name="ypad">0</property>
-				</widget>
-			      </child>
-
-			      <child>
-				<widget class="GtkLabel" id="label423">
-				  <property name="visible">True</property>
-				  <property name="label" translatable="yes">Size</property>
-				  <property name="use_underline">False</property>
-				  <property name="use_markup">False</property>
-				  <property name="justify">GTK_JUSTIFY_LEFT</property>
-				  <property name="wrap">False</property>
-				  <property name="selectable">False</property>
-				  <property name="xalign">0.5</property>
-				  <property name="yalign">0.5</property>
-				  <property name="xpad">0</property>
-				  <property name="ypad">0</property>
-				</widget>
-			      </child>
-
-			      <child>
-				<widget class="GtkLabel" id="label424">
-				  <property name="visible">True</property>
-				  <property name="label" translatable="yes">Range</property>
-				  <property name="use_underline">False</property>
-				  <property name="use_markup">False</property>
-				  <property name="justify">GTK_JUSTIFY_LEFT</property>
-				  <property name="wrap">False</property>
-				  <property name="selectable">False</property>
-				  <property name="xalign">0.5</property>
-				  <property name="yalign">0.5</property>
-				  <property name="xpad">0</property>
-				  <property name="ypad">0</property>
-				</widget>
-			      </child>
-
-			      <child>
-				<widget class="GtkLabel" id="label425">
-				  <property name="visible">True</property>
-				  <property name="label" translatable="yes">Server</property>
-				  <property name="use_underline">False</property>
-				  <property name="use_markup">False</property>
-				  <property name="justify">GTK_JUSTIFY_LEFT</property>
-				  <property name="wrap">False</property>
-				  <property name="selectable">False</property>
-				  <property name="xalign">0.5</property>
-				  <property name="yalign">0.5</property>
-				  <property name="xpad">0</property>
-				  <property name="ypad">0</property>
-				</widget>
-			      </child>
-
-			      <child>
-				<widget class="GtkLabel" id="label426">
-				  <property name="visible">True</property>
-				  <property name="label" translatable="yes">Status</property>
-				  <property name="use_underline">False</property>
-				  <property name="use_markup">False</property>
-				  <property name="justify">GTK_JUSTIFY_LEFT</property>
-				  <property name="wrap">False</property>
-				  <property name="selectable">False</property>
-				  <property name="xalign">0</property>
-				  <property name="yalign">0.5</property>
-				  <property name="xpad">0</property>
-				  <property name="ypad">0</property>
-				</widget>
-			      </child>
+			      <property name="headers_visible">True</property>
+			      <property name="rules_hint">False</property>
+			      <property name="reorderable">False</property>
+			      <property name="enable_search">True</property>
 			    </widget>
 			  </child>
 			</widget>
@@ -14204,98 +14103,13 @@ Grace time remaining:</property>
 			  <property name="window_placement">GTK_CORNER_TOP_LEFT</property>
 
 			  <child>
-			    <widget class="GtkCList" id="clist_downloads_queue">
+			    <widget class="GtkTreeView" id="treeview_downloads_queue">
 			      <property name="visible">True</property>
 			      <property name="can_focus">True</property>
-			      <property name="n_columns">5</property>
-			      <property name="column_widths">80,80,80,80,189</property>
-			      <property name="selection_mode">GTK_SELECTION_MULTIPLE</property>
-			      <property name="show_titles">True</property>
-			      <property name="shadow_type">GTK_SHADOW_IN</property>
-			      <signal name="resize_column" handler="on_clist_downloads_queue_resize_column" last_modification_time="Thu, 04 Jul 2002 11:43:20 GMT"/>
-			      <signal name="select_row" handler="on_clist_downloads_queue_select_row" last_modification_time="Thu, 04 Jul 2002 11:43:24 GMT"/>
-			      <signal name="unselect_row" handler="on_clist_downloads_queue_unselect_row" last_modification_time="Thu, 04 Jul 2002 11:43:29 GMT"/>
-			      <signal name="button_press_event" handler="on_clist_downloads_queue_button_press_event" last_modification_time="Thu, 04 Jul 2002 11:43:33 GMT"/>
-
-			      <child>
-				<widget class="GtkLabel" id="label329">
-				  <property name="visible">True</property>
-				  <property name="label" translatable="yes">Filename</property>
-				  <property name="use_underline">False</property>
-				  <property name="use_markup">False</property>
-				  <property name="justify">GTK_JUSTIFY_LEFT</property>
-				  <property name="wrap">False</property>
-				  <property name="selectable">False</property>
-				  <property name="xalign">0</property>
-				  <property name="yalign">0.5</property>
-				  <property name="xpad">0</property>
-				  <property name="ypad">0</property>
-				</widget>
-			      </child>
-
-			      <child>
-				<widget class="GtkLabel" id="label330">
-				  <property name="visible">True</property>
-				  <property name="label" translatable="yes">Host</property>
-				  <property name="use_underline">False</property>
-				  <property name="use_markup">False</property>
-				  <property name="justify">GTK_JUSTIFY_LEFT</property>
-				  <property name="wrap">False</property>
-				  <property name="selectable">False</property>
-				  <property name="xalign">0.5</property>
-				  <property name="yalign">0.5</property>
-				  <property name="xpad">0</property>
-				  <property name="ypad">0</property>
-				</widget>
-			      </child>
-
-			      <child>
-				<widget class="GtkLabel" id="label331">
-				  <property name="visible">True</property>
-				  <property name="label" translatable="yes">Size</property>
-				  <property name="use_underline">False</property>
-				  <property name="use_markup">False</property>
-				  <property name="justify">GTK_JUSTIFY_LEFT</property>
-				  <property name="wrap">False</property>
-				  <property name="selectable">False</property>
-				  <property name="xalign">0.5</property>
-				  <property name="yalign">0.5</property>
-				  <property name="xpad">0</property>
-				  <property name="ypad">0</property>
-				</widget>
-			      </child>
-
-			      <child>
-				<widget class="GtkLabel" id="label332">
-				  <property name="visible">True</property>
-				  <property name="label" translatable="yes">Server</property>
-				  <property name="use_underline">False</property>
-				  <property name="use_markup">False</property>
-				  <property name="justify">GTK_JUSTIFY_LEFT</property>
-				  <property name="wrap">False</property>
-				  <property name="selectable">False</property>
-				  <property name="xalign">0.5</property>
-				  <property name="yalign">0.5</property>
-				  <property name="xpad">0</property>
-				  <property name="ypad">0</property>
-				</widget>
-			      </child>
-
-			      <child>
-				<widget class="GtkLabel" id="label333">
-				  <property name="visible">True</property>
-				  <property name="label" translatable="yes">Status</property>
-				  <property name="use_underline">False</property>
-				  <property name="use_markup">False</property>
-				  <property name="justify">GTK_JUSTIFY_LEFT</property>
-				  <property name="wrap">False</property>
-				  <property name="selectable">False</property>
-				  <property name="xalign">0.5</property>
-				  <property name="yalign">0.5</property>
-				  <property name="xpad">0</property>
-				  <property name="ypad">0</property>
-				</widget>
-			      </child>
+			      <property name="headers_visible">True</property>
+			      <property name="rules_hint">False</property>
+			      <property name="reorderable">False</property>
+			      <property name="enable_search">True</property>
 			    </widget>
 			  </child>
 			</widget>
