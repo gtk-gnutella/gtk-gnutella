@@ -77,7 +77,8 @@ gtk_gnutella_SOURCES = \
 	base32.c base32.h \
 	utf8.c utf8.h \
 	qrp.c qrp.h \
-	ban.c ban.h
+	ban.c ban.h \
+	getdate.y
 
 gtk_gnutella_LDADD = @GTK_LIBS@ -lz
 

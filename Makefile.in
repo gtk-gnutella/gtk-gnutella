@@ -87,6 +87,7 @@ GTK_LIBS = @GTK_LIBS@
 MAKEINFO = @MAKEINFO@
 PACKAGE = @PACKAGE@
 VERSION = @VERSION@
+YACC = @YACC@
 
 SUBDIRS = src
 EXTRA_DIST = gtk-gnutella.spec		debian/README.debian			debian/changelog				debian/control					debian/copyright				debian/dirs						debian/gtk-gnutella.1			debian/menu						debian/rules					debian/substvars
