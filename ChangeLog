@@ -1,5 +1,16 @@
 # since last version
 
+- (2002.09.20 RAM)
+ * Forgot to update the name hash-table when changing fileinfo.
+ * Must always seek before writing to a downloaded file, even when swarming
+   is OFF, since we always update the trailer, hence changing the write
+   pointer.
+ * Don't lseek to the trailer if we're not going to write it anyway.
+ * Finalized asynchronous HTTP request support.
+ * First implementation of Gnutella web cache support.  No update yet.
+ * Added new core property "incoming_connecting_timeout".
+ * Improved str_chomp() to also strip trailing "\r\n" or plain "\r".
+
 - (2002.09.19 RAM)
  * Added COCO to the vendor list.
  * Check for sendfile() or write() returning 0 in case the underlying file
