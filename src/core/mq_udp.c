@@ -192,7 +192,10 @@ mq_udp_service(gpointer data)
 
 		r = tx_sendto((txdrv_t *) q->tx_drv, &mi->to, mb_start, mb_size);
 
-		if (r <= 0)		/* No more bandwidth, or write error received */
+		if (r < 0)		/* Error, drop packet and continue */
+			goto skip;
+
+		if (r == 0)		/* No more bandwidth */
 			break;
 
 		if (r != mb_size) {
@@ -223,6 +226,7 @@ mq_udp_service(gpointer data)
 			break;
 		}
 
+	skip:
 		if (q->qlink)
 			q->cops->qlink_remove(q, l);
 		l = q->cops->rmlink_prev(q, l, mb_size);
