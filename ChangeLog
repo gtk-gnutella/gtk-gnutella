@@ -1,5 +1,15 @@
 # since last version
 
+- (2002.11.22 - Richard)
+ * Show more information on failed uploads.
+ * Add new debug level variable "common_dbg" controlled by
+   PROP_LIB_DEBUG
+ * Clean up includes
+ * Polished toolbar
+ * Show URN queries in search stats
+ * Moved parsing of magnet: and urn:sha1: searches from 
+   search_cb.c to search_gui.c
+ 
 # v 0.91.1  2002.11.22  [stable]
 
 Highlight of changes (user-visible):
