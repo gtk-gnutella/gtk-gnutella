@@ -1213,6 +1213,14 @@ static prop_map_t property_map[] = {
         "checkbutton_config_no_rfc1918",
         FREQ_UPDATES, 0
     },
+	{
+		get_main_window,
+		PROP_USE_IP_TOS,
+		update_togglebutton,
+		TRUE,
+		"checkbutton_config_use_ip_tos",
+        FREQ_UPDATES, 0
+	},
     {
         get_main_window,
         PROP_FORCED_LOCAL_IP,

@@ -39,6 +39,11 @@
 #include <arpa/inet.h>
 #include <netinet/tcp.h>
 
+#if defined(HAVE_IP_TOS) && defined(NEED_NETINET_IP_H_FOR_TOS)
+#include <netinet/in_systm.h>
+#include <netinet/ip.h>
+#endif
+
 #include "sockets.h"
 #include "downloads.h"
 #include "uploads.h"
@@ -58,10 +63,6 @@
 
 RCSID("$Id$");
 
-#if !defined(SOL_TCP) && defined(IPPROTO_TCP)
-#define SOL_TCP IPPROTO_TCP
-#endif
-
 #ifndef SHUT_WR
 #define SHUT_WR 1		/* Shutdown TX side */
 #endif
@@ -77,6 +78,131 @@ static GSList *sl_incoming = (GSList *) NULL;	/* To spot inactive sockets */
 
 static void guess_local_ip(int sd);
 static void socket_destroy(struct gnutella_socket *s, gchar *reason);
+
+/* 
+ * SOL_TCP and SOL_IP aren't standards. Some platforms define them, on
+ * some it's safe to assume they're the same as IPPROTO_*, but the
+ * only way to be portably safe is to use protoent functions.
+ *
+ * If the user changes /etc/protocols while running gtkg, things may
+ * go badly.
+ */
+static gboolean sol_got = FALSE;
+static gint sol_tcp_cached = -1;
+static gint sol_ip_cached = -1;
+
+static void get_sol(void)
+{
+	struct protoent *pent;
+
+	pent = getprotobyname("tcp");
+	if (NULL != pent)
+		sol_tcp_cached = pent->p_proto;
+	pent = getprotobyname("ip");
+	if (NULL != pent)
+		sol_ip_cached = pent->p_proto;
+	sol_got = TRUE;
+}
+
+static gint sol_tcp(void)
+{
+	if (!sol_got) /* FIXME: This should be done in socket_init() */
+		get_sol();
+	return sol_tcp_cached;
+}
+
+#ifdef HAVE_IP_TOS
+  
+static gint sol_ip(void)
+{
+	if (!sol_got) /* FIXME: This should be done in socket_init() */
+		get_sol();
+	return sol_ip_cached;
+}
+
+static void sock_tos(struct gnutella_socket *s, gint tos)
+{
+	if (!use_ip_tos)
+		return;
+	if (
+		-1 == setsockopt(s->file_desc, sol_ip(),
+				IP_TOS, (gpointer) &tos, sizeof(tos))
+	) {
+		const gchar *tosname;
+
+		switch (tos) {
+			case 0: tosname = "default"; break;
+			case IPTOS_LOWDELAY: tosname = "low delay"; break;
+			case IPTOS_THROUGHPUT: tosname = "throughput"; break;
+			default:
+				g_assert_not_reached();
+		}
+		g_warning("unable to set IP_TOS to %s (%d) on fd#%d: %s",
+			tosname, tos, s->file_desc, g_strerror(errno));
+	}
+}
+
+/*
+ * sock_tos_normal
+ * 
+ * Set the Type of Service (TOS) field to "normal."
+ */
+static void sock_tos_normal(struct gnutella_socket *s)
+{
+	sock_tos(s, 0);
+}
+
+/*
+ * sock_tos_lowdelay
+ *
+ * Set the Type of Service (TOS) field to "lowdelay." This may cause
+ * your host and/or any routers along the path to put its packets in
+ * a higher-priority queue, and/or to route them along the lowest-
+ * latency path without regard for bandwidth.
+ */
+static void sock_tos_lowdelay(struct gnutella_socket *s)
+{
+	sock_tos(s, IPTOS_LOWDELAY);
+}
+
+/*
+ * sock_tos_throughput
+ *
+ * Set the Type of Service (TOS) field to "throughput." This may cause
+ * your host and/or any routers along the path to put its packets in
+ * a lower-priority queue, and/or to route them along the highest-
+ * bandwidth path without regard for latency.
+ */
+static void sock_tos_throughput(struct gnutella_socket *s)
+{
+	sock_tos(s, IPTOS_THROUGHPUT);
+}
+
+/*
+ * sock_tos_default
+ *
+ * Pick an appropriate default TOS for packets on the socket, based
+ * on the socket's type.
+ */
+static void sock_tos_default(struct gnutella_socket *s)
+{
+	switch (s->type) {
+	case SOCK_TYPE_CONTROL:
+	case SOCK_TYPE_HTTP:
+		sock_tos_lowdelay(s);
+		break;
+	case SOCK_TYPE_UPLOAD:
+		sock_tos_throughput(s);
+		break;
+	default:
+		sock_tos_normal(s);
+		break;
+	}
+}
+#else
+#define sock_tos_default(s) /* */
+#endif /* HAVE_IP_TOS */
+
 
 /*
  * socket_timer
@@ -844,6 +970,8 @@ static struct gnutella_socket *socket_connect_finalize(
 			INPUT_EVENT_WRITE | INPUT_EVENT_EXCEPTION,
 			socket_connected, s);
 
+	sock_tos_default(s);
+
 	return s;
 }
 
@@ -1001,6 +1129,8 @@ struct gnutella_socket *socket_listen(
 		inputevt_add(sd, INPUT_EVENT_READ | INPUT_EVENT_EXCEPTION,
 					  socket_accept, s);
 
+	sock_tos_default(s);
+
 	return s;
 }
 
@@ -1022,7 +1152,7 @@ void sock_cork(struct gnutella_socket *s, gboolean on)
 #ifdef TCP_CORK
 	gint arg = on ? 1 : 0;
 
-	if (-1 == setsockopt(s->file_desc, SOL_TCP, TCP_CORK, &arg, sizeof(arg)))
+	if (-1 == setsockopt(s->file_desc, sol_tcp(), TCP_CORK, &arg, sizeof(arg)))
 		g_warning("unable to %s TCP_CORK on fd#%d: %s",
 			on ? "set" : "clear", s->file_desc, g_strerror(errno));
 	else
@@ -1120,9 +1250,13 @@ void sock_nodelay(struct gnutella_socket *s, gboolean on)
 {
 	gint arg = on ? 1 : 0;
 
-	if (-1 == setsockopt(s->file_desc, SOL_TCP, TCP_NODELAY, &arg, sizeof(arg)))
+	if (
+		-1 == setsockopt(s->file_desc, sol_tcp(), TCP_NODELAY,
+				&arg, sizeof(arg))
+	) {
 		g_warning("unable to %s TCP_NODELAY on fd#%d: %s",
 			on ? "set" : "clear", s->file_desc, g_strerror(errno));
+	}
 }
 
 /*

@@ -793,6 +793,18 @@ prop = {
 };
 
 prop = {
+    name = "use_ip_tos";
+    desc =	"Check this button if you want GTK-Gnutella to use IP TOS to "
+			"differentiate interactive, normal and bulk data. This is "
+			"probably a good idea in most cases, and can particularly help "
+			"with badly misconfigured hosts, LANs, and ISPs.";
+    type = boolean;
+    data = {
+        default = FALSE;
+    };
+};
+
+prop = {
     name = "download_delete_aborted";
     desc = "Remove files of aborted downloads from disk";
     type = boolean;

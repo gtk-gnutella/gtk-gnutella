@@ -429,6 +429,7 @@ create_main_window (void)
   GtkWidget *table49;
   GtkWidget *checkbutton_config_bw_allow_stealing;
   GtkWidget *checkbutton_prefer_compressed_gnet;
+  GtkWidget *checkbutton_config_use_ip_tos;
   GtkWidget *frame20;
   GtkWidget *vbox105;
   GtkWidget *table13;
@@ -4318,7 +4319,7 @@ create_main_window (void)
   gtk_widget_show (frame70);
   gtk_box_pack_start (GTK_BOX (vbox29), frame70, FALSE, TRUE, 0);
 
-  table49 = gtk_table_new (2, 1, FALSE);
+  table49 = gtk_table_new (3, 1, FALSE);
   gtk_widget_set_name (table49, "table49");
   gtk_widget_ref (table49);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "table49", table49,
@@ -4346,6 +4347,16 @@ create_main_window (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (checkbutton_prefer_compressed_gnet);
   gtk_table_attach (GTK_TABLE (table49), checkbutton_prefer_compressed_gnet, 0, 1, 1, 2,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+
+  checkbutton_config_use_ip_tos = gtk_check_button_new_with_label ("Use IP Type of Service (TOS)");
+  gtk_widget_set_name (checkbutton_config_use_ip_tos, "checkbutton_config_use_ip_tos");
+  gtk_widget_ref (checkbutton_config_use_ip_tos);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "checkbutton_config_use_ip_tos", checkbutton_config_use_ip_tos,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (checkbutton_config_use_ip_tos);
+  gtk_table_attach (GTK_TABLE (table49), checkbutton_config_use_ip_tos, 0, 1, 2, 3,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
 
@@ -11422,7 +11433,7 @@ create_dlg_about (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label266), 1, 0.5);
 
-  label267 = gtk_label_new ("Raphaël Manfredi");
+  label267 = gtk_label_new ("Rapha\353l Manfredi");
   gtk_widget_set_name (label267, "label267");
   gtk_widget_ref (label267);
   gtk_object_set_data_full (GTK_OBJECT (dlg_about), "label267", label267,
@@ -11466,7 +11477,7 @@ create_dlg_about (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label291), 1, 0.5);
 
-  label273 = gtk_label_new ("Raphaël Manfredi");
+  label273 = gtk_label_new ("Rapha\353l Manfredi");
   gtk_widget_set_name (label273, "label273");
   gtk_widget_ref (label273);
   gtk_object_set_data_full (GTK_OBJECT (dlg_about), "label273", label273,
@@ -11527,7 +11538,7 @@ create_dlg_about (void)
   gtk_container_add (GTK_CONTAINER (scrolledwindow18), text1);
   gtk_widget_set_usize (text1, 213, -2);
   gtk_text_insert (GTK_TEXT (text1), NULL, NULL, NULL,
-                   "Yann Grossel <olrick@users.sourceforge.net>\nSteven Wilcoxon <swilcoxon@users.sourceforge.net>\nJason Lingohr <lingman@users.sourceforge.net>\nBrian St Pierre <bstpierre@users.sourceforge.net>\nChuck Homic <homic@users.sourceforge.net>\nIngo Saitz <salz@users.sourceforge.net>\nBen Hochstedler <hochstrb@users.sourceforge.net>\nDaniel Walker <axiom@users.sourceforge.net>\nPaul Cassella <pwc@users.sourceforge.net> \nJared Mauch <jaredmauch@users.sourceforge.net>\nNate E <web1 (at) users dot sourceforge dot net>\nRaphaël Manfredi <Raphael_Manfredi@pobox.com>\nKenn Brooks Hamm <khamm@andrew.cmu.edu>\nMark Schreiber <mark7@andrew.cmu.edu>\nSam Varshavchik <mrsam@courier-mta.com>\nVladimir Klebanov <unny@rz.uni-karlsruhe.de>\nRoman Shterenzon <roman@xpert.com>\nRobert Bihlmeyer <robbe@orcus.priv.at>\nNoel T.Nunkovich <ntnunk@earthlink.net>\nMichael Tesch <tesch@users.sourceforge.net>\nMarkus 'guruz' Goetz <guruz@guruz.info>\nRichard Eckart <wyldfire@users.sourceforge.net>\nChristophe Tronche <ch.tronche@computer.org>\nAlex Bennee <alex@bennee.com>\nMike Perry <mikepery@fscked.org>\nZygo Blaxell <zblaxell@feedme.hungrycats.org>\nVidar Madsen <vidar@gimp.org>\nChristian Biere <christianbiere@gmx.de\nko <junkpile@free.fr>\n", -1);
+                   "Yann Grossel <olrick@users.sourceforge.net>\nSteven Wilcoxon <swilcoxon@users.sourceforge.net>\nJason Lingohr <lingman@users.sourceforge.net>\nBrian St Pierre <bstpierre@users.sourceforge.net>\nChuck Homic <homic@users.sourceforge.net>\nIngo Saitz <salz@users.sourceforge.net>\nBen Hochstedler <hochstrb@users.sourceforge.net>\nDaniel Walker <axiom@users.sourceforge.net>\nPaul Cassella <pwc@users.sourceforge.net> \nJared Mauch <jaredmauch@users.sourceforge.net>\nNate E <web1 (at) users dot sourceforge dot net>\nRapha\353l Manfredi <Raphael_Manfredi@pobox.com>\nKenn Brooks Hamm <khamm@andrew.cmu.edu>\nMark Schreiber <mark7@andrew.cmu.edu>\nSam Varshavchik <mrsam@courier-mta.com>\nVladimir Klebanov <unny@rz.uni-karlsruhe.de>\nRoman Shterenzon <roman@xpert.com>\nRobert Bihlmeyer <robbe@orcus.priv.at>\nNoel T.Nunkovich <ntnunk@earthlink.net>\nMichael Tesch <tesch@users.sourceforge.net>\nMarkus 'guruz' Goetz <guruz@guruz.info>\nRichard Eckart <wyldfire@users.sourceforge.net>\nChristophe Tronche <ch.tronche@computer.org>\nAlex Bennee <alex@bennee.com>\nMike Perry <mikepery@fscked.org>\nZygo Blaxell <zblaxell@feedme.hungrycats.org>\nVidar Madsen <vidar@gimp.org>\nChristian Biere <christianbiere@gmx.de\nko <junkpile@free.fr>\n", 1204);
 
   label408 = gtk_label_new ("==> We are looking for people who want to contribute to this fine tool. <==\nVisit http://gtk-gnutella.sourceforge.net.\nJoin the users or developers mailing lists.\nMeet us on #gtk-gnutella at irc.freenode.net.");
   gtk_widget_set_name (label408, "label408");

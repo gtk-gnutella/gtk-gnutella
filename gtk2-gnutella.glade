@@ -5751,6 +5751,8 @@ T'aZ &lt;tazdev@altern.org&gt;</property>
 </widget>
 
 <widget class="GtkWindow" id="main_window_config_bwc_tab">
+  <property name="width_request">600</property>
+  <property name="height_request">400</property>
   <property name="visible">True</property>
   <property name="title" translatable="yes">window3</property>
   <property name="type">GTK_WINDOW_TOPLEVEL</property>
@@ -5790,7 +5792,7 @@ T'aZ &lt;tazdev@altern.org&gt;</property>
 		  <child>
 		    <widget class="GtkTable" id="table48">
 		      <property name="visible">True</property>
-		      <property name="n_rows">2</property>
+		      <property name="n_rows">3</property>
 		      <property name="n_columns">1</property>
 		      <property name="homogeneous">False</property>
 		      <property name="row_spacing">2</property>
@@ -5834,6 +5836,28 @@ T'aZ &lt;tazdev@altern.org&gt;</property>
 			  <property name="right_attach">1</property>
 			  <property name="top_attach">1</property>
 			  <property name="bottom_attach">2</property>
+			  <property name="x_padding">5</property>
+			  <property name="x_options">fill</property>
+			  <property name="y_options"></property>
+			</packing>
+		      </child>
+
+		      <child>
+			<widget class="GtkCheckButton" id="checkbutton_config_use_ip_tos">
+			  <property name="visible">True</property>
+			  <property name="can_focus">True</property>
+			  <property name="label" translatable="yes">Use IP Type of Service (TOS)</property>
+			  <property name="use_underline">True</property>
+			  <property name="relief">GTK_RELIEF_NORMAL</property>
+			  <property name="active">False</property>
+			  <property name="inconsistent">False</property>
+			  <property name="draw_indicator">True</property>
+			</widget>
+			<packing>
+			  <property name="left_attach">0</property>
+			  <property name="right_attach">1</property>
+			  <property name="top_attach">2</property>
+			  <property name="bottom_attach">3</property>
 			  <property name="x_padding">5</property>
 			  <property name="x_options">fill</property>
 			  <property name="y_options"></property>

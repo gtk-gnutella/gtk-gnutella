@@ -3722,6 +3722,7 @@ create_main_window_config_bwc_tab (void)
   GtkWidget *table48;
   GtkWidget *checkbutton_config_bw_allow_stealing;
   GtkWidget *checkbutton_prefer_compressed_gnet;
+  GtkWidget *checkbutton_config_use_ip_tos;
   GtkWidget *label536;
   GtkWidget *frame20;
   GtkWidget *vbox103;
@@ -3773,6 +3774,7 @@ create_main_window_config_bwc_tab (void)
 
   main_window_config_bwc_tab = gtk_window_new (GTK_WINDOW_TOPLEVEL);
   gtk_widget_set_name (main_window_config_bwc_tab, "main_window_config_bwc_tab");
+  gtk_widget_set_size_request (main_window_config_bwc_tab, 600, 400);
   gtk_window_set_title (GTK_WINDOW (main_window_config_bwc_tab), "window3");
 
   scrolledwindow39 = gtk_scrolled_window_new (NULL, NULL);
@@ -3798,7 +3800,7 @@ create_main_window_config_bwc_tab (void)
   gtk_widget_show (frame72);
   gtk_box_pack_start (GTK_BOX (vbox29), frame72, FALSE, TRUE, 0);
 
-  table48 = gtk_table_new (2, 1, FALSE);
+  table48 = gtk_table_new (3, 1, FALSE);
   gtk_widget_set_name (table48, "table48");
   gtk_widget_show (table48);
   gtk_container_add (GTK_CONTAINER (frame72), table48);
@@ -3816,6 +3818,13 @@ create_main_window_config_bwc_tab (void)
   gtk_widget_set_name (checkbutton_prefer_compressed_gnet, "checkbutton_prefer_compressed_gnet");
   gtk_widget_show (checkbutton_prefer_compressed_gnet);
   gtk_table_attach (GTK_TABLE (table48), checkbutton_prefer_compressed_gnet, 0, 1, 1, 2,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 5, 0);
+
+  checkbutton_config_use_ip_tos = gtk_check_button_new_with_mnemonic ("Use IP Type of Service (TOS)");
+  gtk_widget_set_name (checkbutton_config_use_ip_tos, "checkbutton_config_use_ip_tos");
+  gtk_widget_show (checkbutton_config_use_ip_tos);
+  gtk_table_attach (GTK_TABLE (table48), checkbutton_config_use_ip_tos, 0, 1, 2, 3,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 5, 0);
 
@@ -4109,6 +4118,7 @@ create_main_window_config_bwc_tab (void)
   GLADE_HOOKUP_OBJECT (main_window_config_bwc_tab, table48, "table48");
   GLADE_HOOKUP_OBJECT (main_window_config_bwc_tab, checkbutton_config_bw_allow_stealing, "checkbutton_config_bw_allow_stealing");
   GLADE_HOOKUP_OBJECT (main_window_config_bwc_tab, checkbutton_prefer_compressed_gnet, "checkbutton_prefer_compressed_gnet");
+  GLADE_HOOKUP_OBJECT (main_window_config_bwc_tab, checkbutton_config_use_ip_tos, "checkbutton_config_use_ip_tos");
   GLADE_HOOKUP_OBJECT (main_window_config_bwc_tab, label536, "label536");
   GLADE_HOOKUP_OBJECT (main_window_config_bwc_tab, frame20, "frame20");
   GLADE_HOOKUP_OBJECT (main_window_config_bwc_tab, vbox103, "vbox103");
