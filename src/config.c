@@ -25,7 +25,7 @@ static gchar *host_file = "hosts";
 gboolean clear_uploads = FALSE;
 gboolean clear_downloads = FALSE;
 gboolean monitor_enabled = FALSE;
-gboolean force_local_ip = FALSE;
+gboolean force_local_ip = TRUE;
 
 guint8 max_ttl = 7;
 guint8 my_ttl = 5;
