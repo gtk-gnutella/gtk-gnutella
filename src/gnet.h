@@ -499,7 +499,7 @@ void gnet_get_bw_stats(gnet_bw_source type, gnet_bw_stats_t *stats);
  *       search.h and not from search_gui.h.
  */
 struct dl_file_info;
-void download_new(gchar *,
+gboolean download_new(gchar *,
 	guint32, guint32, guint32, guint16, gchar *, guchar *, time_t,
     gboolean, struct dl_file_info *);
 void download_auto_new(gchar *,

@@ -37,6 +37,7 @@
 #include "gui_property.h"
 #include "gui_property_priv.h"
 #include "settings_gui.h"
+#include "statusbar_gui.h"
 
 #ifdef USE_SEARCH_XML
 # include "search_xml.h"
@@ -1181,7 +1182,14 @@ void search_gui_store_searches(void)
 
 /* ----------------------------------------- */
 
-static void download_selection_of_clist(GtkCList * c)
+/*
+ * download_selection_of_clist
+ *
+ * Create downloads for all the search results pointed at by the list.
+ * Returns the amount of downloads actually created, and the amount of
+ * items in the selection within `selected'.
+ */
+static guint download_selection_of_clist(GtkCList * c, guint *selected)
 {
 	struct results_set *rs;
 	struct record *rc;
@@ -1189,14 +1197,16 @@ static void download_selection_of_clist(GtkCList * c)
 	GList *l;
     gint row;
     gboolean remove_downloaded;
+	guint created = 0;
+	guint count = 0;
 
     gnet_prop_get_boolean_val(PROP_SEARCH_REMOVE_DOWNLOADED,
 		&remove_downloaded);
 
     gtk_clist_freeze(c);
 
-	for (l = c->selection; l; 
-         l = c->selection) {
+	for (l = c->selection; l; l = c->selection) {
+		count++;
 
         /* make it visibile that we already selected this for download */
 		gtk_clist_set_foreground(
@@ -1215,8 +1225,12 @@ static void download_selection_of_clist(GtkCList * c)
 		rs = rc->results_set;
 		need_push =
 			(rs->status & ST_FIREWALL) || !host_is_valid(rs->ip, rs->port);
-		download_new(rc->name, rc->size, rc->index, rs->ip, rs->port,
-					 rs->guid, rc->sha1, rs->stamp, need_push, NULL);
+
+		if (
+			download_new(rc->name, rc->size, rc->index, rs->ip, rs->port,
+				rs->guid, rc->sha1, rs->stamp, need_push, NULL)
+		)
+			created++;
 
         /*
          * I'm not totally sure why we have to determine the row again,
@@ -1244,8 +1258,10 @@ static void download_selection_of_clist(GtkCList * c)
 
     gui_search_force_update_tab_label(current_search);
     gui_search_update_items(current_search);
-}
 
+	*selected = count;
+	return created;
+}
 
 
 void search_gui_download_files(void)
@@ -1280,8 +1296,18 @@ void search_gui_download_files(void)
 	}
 
 	if (current_search) {
-		download_selection_of_clist(GTK_CLIST(current_search->clist));
+		guint selected;
+		guint created;
+
+		created = download_selection_of_clist(
+			GTK_CLIST(current_search->clist), &selected);
+
 		gtk_clist_unselect_all(GTK_CLIST(current_search->clist));
+
+		statusbar_gui_message(15,
+			"Created %u download%s from the %u selected item%s",
+			created, created == 1 ? "" : "s",
+			selected, selected == 1 ? "" : "s");
 	} else {
 		g_warning("search_download_files(): no possible search!\n");
 	}

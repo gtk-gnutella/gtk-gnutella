@@ -2974,14 +2974,18 @@ void download_index_changed(guint32 ip, guint16 port, guchar *guid,
 }
 
 
-/* Create a new download */
-
-void download_new(gchar *file, guint32 size, guint32 record_index,
+/*
+ * download_new
+ *
+ * Create a new download, usually called from an interactive user action.
+ * Return whether download was created.
+ */
+gboolean download_new(gchar *file, guint32 size, guint32 record_index,
 			  guint32 ip, guint16 port, gchar *guid, guchar *sha1,
 			  time_t stamp, gboolean push, struct dl_file_info *fi)
 {
-	(void) create_download(file, size, record_index, ip, port, guid, sha1,
-		stamp, push, TRUE, fi);
+	return NULL != create_download(file, size, record_index, ip, port, guid,
+		sha1, stamp, push, TRUE, fi);
 }
 
 /*
