@@ -3,6 +3,7 @@ INSTALL
 LICENSE
 README
 TODO
+ChangeLog
 config_h.SH                  Produces config.h
 Configure                    Portability tool
 debian/changelog
@@ -141,7 +142,6 @@ src/filter_gui.h
 src/filter.h
 src/fuzzy.c
 src/fuzzy.h
-src/getdate.c
 src/getdate.h
 src/getdate.y
 src/getline.c
