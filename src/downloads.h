@@ -84,6 +84,7 @@ struct download {
 
 	guint32 skip;			/* Number of bytes for file we had before start */
 	guint32 pos;			/* Number of bytes of the file we currently have */
+	guint32 range_end;		/* First byte offset AFTER the requested range */
 
 	struct gnutella_socket *socket;
 	gint file_desc;			/* FD for writing into downloaded file */
@@ -104,6 +105,7 @@ struct download {
 
 	guint32 flags;
 
+	gboolean keep_alive;	/* Keep HTTP connection? */
 	gboolean visible;		/* The download is visible in the GUI */
 	gboolean push;			/* Currently in push mode */
 	gboolean always_push;	/* Always use the push method for this download */
@@ -139,6 +141,8 @@ struct download {
 
 #define DLS_A_NO_URIRES		0x00000001	/* No support for "/uri-res/N2R?" */
 #define DLS_A_PUSH_IGN		0x00000002	/* Ignore pushes and connect directly */
+#define DLS_A_NO_KEEPALIVE	0x00000004	/* No persistent connection */
+#define DLS_A_HTTP_1_1		0x00000008	/* Server supports HTTP/1.1 */
 
 /*
  * Access macros.
@@ -227,7 +231,7 @@ void download_abort(struct download *);
 void download_resume(struct download *);
 void download_start(struct download *, gboolean);
 void download_queue_back(struct download *);
-gboolean download_send_request(struct download *);
+void download_send_request(struct download *);
 void download_retry(struct download *);
 void download_index_changed(guint32, guint16, guchar *, guint32, guint32);
 void download_close(void);

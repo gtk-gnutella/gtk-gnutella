@@ -985,7 +985,7 @@ void download_gui_add(struct download *d)
 	d->visible = TRUE;
 }
 
-/**
+/*
  * download_gui_remove:
  *
  * Remove a download from the GUI.
@@ -1086,6 +1086,7 @@ static void download_add_to_list(struct download *d, enum dl_list idx)
 {
 	struct dl_server *server = d->server;
 
+	g_assert(idx != -1);
 	g_assert(d->list_idx == -1);			/* Not in any list */
 
 	d->list_idx = idx;
@@ -1329,12 +1330,6 @@ void download_stop(struct download *d, guint32 new_status,
 	if (DOWNLOAD_IS_VISIBLE(d))
 		gui_update_download(d, TRUE);
 
-	if (!d->file_info->use_swarming) {
-		if (new_status == GTA_DL_COMPLETED)
-			queue_remove_downloads_with_file(d->file_info);
-	} else if (d->file_info->done == d->file_info->size)
-		queue_remove_downloads_with_file(d->file_info);
-
 	if (store_queue) {
 		download_store();			/* Refresh copy */
 		file_info_store();
@@ -1385,6 +1380,8 @@ static void download_queue_v(struct download *d, const gchar *fmt, va_list ap)
 
 	if (DOWNLOAD_IS_RUNNING(d))
 		download_stop(d, GTA_DL_TIMEOUT_WAIT, NULL);
+	else
+		file_info_clear_download(d);	/* Also done by download_stop() */
 
 	/*
 	 * Since download stop can change "d->remove_msg", update it now.
@@ -1400,8 +1397,6 @@ static void download_queue_v(struct download *d, const gchar *fmt, va_list ap)
 
 	download_gui_add(d);
 	gui_update_download(d, TRUE);
-
-	file_info_clear_download(d);
 }
 
 /*
@@ -1697,7 +1692,8 @@ static gboolean download_start_prepare(struct download *d)
 	g_snprintf(dl_tmp, sizeof(dl_tmp), "%s/%s",
 			d->file_info->path, d->file_info->file_name);
 
-	d->skip = 0;		/* We're setting it here only if not swarming */
+	d->skip = 0;			/* We're setting it here only if not swarming */
+	d->keep_alive = FALSE;	/* Until proven otherwise by server's reply */
 
 	if (stat(dl_tmp, &st) != -1) {
 		if (
@@ -1723,7 +1719,7 @@ static gboolean download_start_prepare(struct download *d)
 		}
 
 		if (found) {						/* File exists in "done" dir */
-			if (st.st_size < d->size) {		/* And is smaller */
+			if (st.st_size < download_filesize(d)) {	/* And is smaller */
 				if (-1 == rename(dl_dest, dl_tmp))
 					g_warning("cannot move incomplete \"%s\" back to "
 						"download dir as \"%s\": %s", dl_dest, dl_tmp,
@@ -1808,7 +1804,7 @@ static gboolean download_pick_chunk(struct download *d)
 
 	} else if (status == DL_CHUNK_BUSY) {
 
-		download_queue_delay(d, 10, "Waiting for a free slot");
+		download_queue_delay(d, 10, "Waiting for a free chunk");
 		return FALSE;
 
 	} else if (status == DL_CHUNK_DONE) {
@@ -2254,7 +2250,12 @@ static void create_download(
 		push = FALSE;
 
 	d->file_name = file_name;
-	/* Note: size and skip will be filled by file_info_find_hole() later */
+
+	/*
+	 * Note: size and skip will be filled by download_pick_chunk() later
+	 * if we use swarming.
+	 */
+
 	d->size = size;
 	d->record_index = record_index;
 	d->file_desc = -1;
@@ -2388,6 +2389,54 @@ abort_download:
 	if (output_name != file)		/* Was allocated by escape_filename() */
 		g_free(output_name);
 	return;
+}
+
+/*
+ * download_clone
+ *
+ * Clone download, resetting most dynamically allocated structures in the
+ * original since they are shallow-copied to the new download.
+ *
+ * (This routine is used because each different download from the same host
+ * will become a line in the GUI, and the GUI stores download structures in
+ * ts row data, expecting a one-to-one mapping between a download and the GUI).
+ */
+static struct download *download_clone(struct download *d)
+{
+	struct download *cd = g_malloc(sizeof(struct download));
+
+	*cd = *d;		/* Struct copy */
+
+	g_assert(d->io_opaque == NULL);		/* If cloned, we were receiving! */
+
+	cd->bio = NULL;						/* Recreated on each transfer */
+	cd->file_desc = -1;					/* File re-opened each time */
+	cd->socket->resource.download = cd;	/* Takes ownership of socket */
+	cd->file_info->refcount++;			/* Clone and original share same info */
+	cd->list_idx = -1;
+	cd->file_name = atom_str_get(d->file_name);
+	cd->visible = FALSE;
+
+	download_add_to_list(cd, DL_LIST_WAITING);
+
+	sl_downloads = g_slist_prepend(sl_downloads, cd);
+	sl_unqueued = g_slist_prepend(sl_unqueued, cd);
+
+	if (d->push)
+		download_push_remove(d);
+	if (cd->push)
+		download_push_insert(cd);
+
+	/*
+	 * The following have been copied and appropriated by the cloned download.
+	 * They are reset so that a download_free() on the original will not
+	 * free them.
+	 */
+
+	d->sha1 = NULL;
+	d->socket = NULL;
+
+	return cd;
 }
 
 /* search has detected index change in queued download --RAM, 18/12/2001 */
@@ -3082,7 +3131,7 @@ static gboolean download_overlap_check(struct download *d)
 	}
 
 	if (0 != memcmp(s->buffer, data, d->overlap_size)) {
-		download_stop(d, GTA_DL_ERROR, "Resuming data mismatch on pos %lu",
+		download_stop(d, GTA_DL_ERROR, "Resuming data mismatch @ %lu",
 				d->skip - d->overlap_size);
 		if (dbg > 3)
 			printf("%d overlapping bytes UNMATCHED at offset %d for \"%s\"\n",
@@ -3126,6 +3175,9 @@ static void download_write_data(struct download *d)
 {
 	struct gnutella_socket *s = d->socket;
 	gint written;
+	gboolean trimmed = FALSE;
+	guint32 val;
+	struct download *cd;					/* Cloned download, if completed */
 
 	g_assert(s->pos > 0);
 
@@ -3156,16 +3208,30 @@ static void download_write_data(struct download *d)
 			d->pos, error);
 	}
 
+	/*
+	 * We can't have data going farther than what we requested from the
+	 * server.  But if we do, trim and warn.
+	 */
+
+	if (d->pos + s->pos > d->range_end) {
+		gint extra = d->range_end - (d->pos + s->pos);
+		g_warning("server %s gave us %d more byte%s than requested for \"%s\"",
+			ip_port_to_gchar(download_ip(d), download_port(d)),
+			extra, extra == 1 ? "" : "s", download_outname(d));
+		s->pos -= extra;
+		trimmed = TRUE;
+		g_assert(s->pos > 0);	/* We had not reached range_end previously */
+	}
+
 	if (-1 == (written = write(d->file_desc, s->buffer, s->pos))) {
 		const char *error = g_strerror(errno);
-		g_warning("download_read(): write to file failed (%s) !", error);
-		g_warning("download_read: tried to write(%d, %p, %d)",
+		g_warning("write to file failed (%s) !", error);
+		g_warning("tried to write(%d, %p, %d)",
 			  d->file_desc, s->buffer, s->pos);
 		download_stop(d, GTA_DL_ERROR, "Can't save data: %s", error);
 		return;
 	} else if (written < s->pos) {
-		g_warning("download_read(): "
-			"partial write of %d out of %d bytes to file '%s'",
+		g_warning("partial write of %d out of %d bytes to file '%s'",
 			written, s->pos, d->file_info->file_name);
 		download_stop(d, GTA_DL_ERROR, "Partial write to file");
 		return;
@@ -3180,42 +3246,116 @@ static void download_write_data(struct download *d)
 	 */
 
 	if (d->file_info->use_swarming) {
- 
 		enum dl_chunk_status s = file_info_pos_status(d->file_info, d->pos);
 
-		if (s == DL_CHUNK_DONE) {
-			download_stop(d, GTA_DL_COMPLETED, NULL);
-			if (d->file_info->done < d->file_info->size) {
-				download_queue_delay(d, 2, "Requeued by competing download.");
-			} else {
-				guint32 val = total_downloads + 1;
+		switch(s) {
+		case DL_CHUNK_DONE:
+			/*
+			 * Reached a zone that is completed.  If the file is done,
+			 * we can clear the download.
+			 *
+			 * Otherwise, if we have reached the end of our requested chunk,
+			 * meaning we put an upper boundary to our request, we are probably
+			 * on a persistent connection where we'll be able to request
+			 * another chunk data of data.
+			 *
+			 * The only remaining possibility is that we have reached a zone
+			 * where a competing download is busy (aggressive swarming on),
+			 * and since we cannot tell the remote HTTP server that we wish
+			 * to interrupt the current download, we have no choice but to
+			 * requeue the download, thereby loosing the slot.
+			 */
+			if (d->file_info->done >= d->file_info->size)
+				goto done;
+			else if (d->pos == d->range_end)
+				goto partial_done;
+			else
+				download_queue(d, "Requeued by competing download");
+			break;
+		case DL_CHUNK_BUSY:			/* Still within requested chunk */
+			g_assert(d->pos < d->range_end);
+			g_assert(!trimmed);
+			break;
+		case DL_CHUNK_EMPTY:
+			/*
+			 * We're done with our busy-chunk.
+			 * We've reached a new virgin territory.
+			 *
+			 * If we are on a persistent connection AND we reached the
+			 * end of our requested range, then the server is expecting
+			 * a new request from us.
+			 *
+			 * Otherwise, go on.  We'll be stopped when we bump into another
+			 * DONE chunk anyway.
+			 *
+			 * XXX It would be nice to extend the zone as much as possible to
+			 * XXX avoid new downloads starting from here and competing too
+			 * XXX soon with us. -- FIXME (original note from Vidar)
+			 */
 
-				queue_remove_downloads_with_file(d->file_info);
-				download_move_to_completed_dir(d);
-				gnet_prop_set_guint32(PROP_TOTAL_DOWNLOADS, &val, 0, 1);
-			}
-		} else if (s == DL_CHUNK_EMPTY) {
-			/*
-			 * We have completed our busy-chunk, so we should extend it
-			 * to avoid new downloads starting from here. (FIXME -- XXX)
-			 */
-		} else if (d->pos >= (d->skip + d->size)) {
-			/*
-			 * Growing the chunk size dynamically would be nice, but since
-			 * since the Size column isn't updated regularly, let's
-			 * just progress beyond 100% for now.
-			 */
-			/* d->size = d->pos - d->skip; */
+			if (d->pos == d->range_end)
+				goto partial_done;
+
+			d->range_end = download_filesize(d);	/* New upper boundary */
+
+			break;					/* Go on... */
 		}
-
-	} else if (d->file_info->done == d->file_info->size) {
-		guint32 val = total_downloads+1;
-
-		download_stop(d, GTA_DL_COMPLETED, NULL);
-		download_move_to_completed_dir(d);
-		gnet_prop_set_guint32(PROP_TOTAL_DOWNLOADS, &val, 0, 1);
-	} else
+	} else if (d->file_info->done == d->file_info->size)
+		goto done;
+	else
 		gui_update_download(d, FALSE);
+
+	return;
+
+	/*
+	 * Requested chunk is done.
+	 */
+
+partial_done:
+	g_assert(d->pos == d->range_end);
+	g_assert(d->file_info->use_swarming);
+
+	/*
+	 * Since a download structure is associated with a GUI line entry, we
+	 * must clone it to be able to display the chunk as completed, yet
+	 * continue downloading.
+	 */
+
+	cd = download_clone(d);
+	download_stop(d, GTA_DL_COMPLETED, NULL);
+
+	/*
+	 * If we had to trim the data requested, it means the server did not
+	 * understand our Range: request properly, and it's going to send us
+	 * more data.  Something weird happened, and we can't even think
+	 * continuing with this connection.
+	 */
+
+	if (trimmed)
+		download_queue(cd, "Requeued after trimmed data");
+	else if (!cd->keep_alive)
+		download_queue(cd, "Chunk done, connection closed");
+	else {
+		if (download_start_prepare(cd)) {
+			cd->keep_alive = TRUE;			/* Was reset by _prepare() */
+			download_gui_add(cd);
+			download_send_request(cd);		/* Will pick up new range */
+		}
+	}
+
+	return;
+
+	/*
+	 * We have completed the download of the requested file.
+	 */
+
+done:
+	download_stop(d, GTA_DL_COMPLETED, NULL);
+	queue_remove_downloads_with_file(d->file_info);
+	download_move_to_completed_dir(d);
+
+	val = total_downloads + 1;
+	gnet_prop_set_guint32(PROP_TOTAL_DOWNLOADS, &val, 0, 1);
 }
 
 /*
@@ -3323,6 +3463,7 @@ static void download_request(struct download *d, header_t *header)
 	gboolean got_new_server = FALSE;
 	guint32 ip;
 	guint16 port;
+	gint http_major = 0, http_minor = 0;
 
 	d->last_update = time(NULL);	/* Done reading headers */
 
@@ -3334,7 +3475,8 @@ static void download_request(struct download *d, header_t *header)
 		fflush(stdout);
 	}
 
-	ack_code = http_status_parse(status, "HTTP", &ack_message, NULL, NULL);
+	ack_code = http_status_parse(status, "HTTP",
+		&ack_message, &http_major, &http_minor);
 
 	/*
 	 * Extract Server: header string, if present, and store it unless
@@ -3367,13 +3509,47 @@ static void download_request(struct download *d, header_t *header)
 			ip_to_gchar(s->ip));
 		dump_hex(stderr, "Status Line", status,
 			MIN(getline_length(s->getline), 80));
-		download_stop(d, GTA_DL_ERROR, "Weird HTTP status");
+
+		/*
+		 * Don't abort the download if we're already on a persistent
+		 * connection: the server might have goofed, or we have a bug.
+		 * What we read was probably still data coming through.
+		 */
+
+		if (d->keep_alive)
+			download_queue(d, "Weird HTTP status (protocol desync?)");
+		else
+			download_stop(d, GTA_DL_ERROR, "Weird HTTP status");
 		return;
 	}
 
 	d->retries = 0;				/* Retry successful, we managed to connect */
 	ip = download_ip(d);
 	port = download_port(d);
+
+	/*
+	 * Do we have to keep the connection after this request?
+	 *
+	 * If server supports HTTP/1.1, record it.  This will help us determine
+	 * whether to send a Range: request during swarming, at the next
+	 * connection attempt.
+	 */
+
+	buf = header_get(header, "Connection");
+
+	if (http_major > 1 || (http_major == 1 && http_minor >= 1)) {
+		/* HTTP/1.1 or greater -- defaults to persistent connections */
+		d->keep_alive = TRUE;
+		d->server->attrs |= DLS_A_HTTP_1_1;
+		if (buf && 0 == strcasecmp(buf, "close"))
+			d->keep_alive = FALSE;
+	} else {
+		/* HTTP/1.0 or lesser -- must request persistence */
+		d->keep_alive = FALSE;
+		if (buf && 0 == strcasecmp(buf, "keep-alive"))
+			d->keep_alive = TRUE;
+	}
+
 
 	/*
 	 * Check for X-Gnutella-Content-URN.
@@ -3401,6 +3577,20 @@ static void download_request(struct download *d, header_t *header)
 
 			if (d->sha1 == NULL) {
 				d->sha1 = atom_sha1_get(digest);
+
+				// XXX need to inform fileinfo about the new SHA1
+				// XXX also, we may be pointing to the wrong fileinfo, so
+				// XXX we might need to switch fileinfos at this point.
+				// XXX there can be only ONE fileinfo with a given SHA1
+				// XXX for now, warn if the fileinfo has the wrong SHA1.
+				// XXX		-RAM, 25/08/2002
+
+				if (d->file_info->sha1 != d->sha1)
+					g_warning("discovered SHA1 %s on the fly for %s "
+						"(fileinfo has %s)",
+						sha1_base32(d->sha1), download_outname(d),
+						d->file_info->sha1 ? "another" : "none");
+
 				download_store();		/* Save SHA1 */
 				file_info_store();
 
@@ -3427,6 +3617,10 @@ static void download_request(struct download *d, header_t *header)
 		/* OK -- Update mesh */
 		if (!d->always_push && d->sha1)
 			dmesh_add(d->sha1, ip, port, d->record_index, d->file_name, 0);
+
+		/* If connection is not kept alive, remember it for this server */
+		if (!d->keep_alive)
+			d->server->attrs |= DLS_A_NO_KEEPALIVE;
 	} else {
 		guint delay = 0;
 
@@ -3512,16 +3706,16 @@ static void download_request(struct download *d, header_t *header)
 
 	buf = header_get(header, "Content-Length");		/* Mandatory */
 	if (buf) {
-		guint32 z = atol(buf);
-		guint32 server_size = z + d->skip - d->overlap_size;
-		if (z == 0) {
-			download_stop(d, GTA_DL_ERROR, "Bad length !?");
+		guint32 content_size = atol(buf);
+		guint32 requested_size = d->range_end - d->skip + d->overlap_size;
+		if (content_size == 0) {
+			download_stop(d, GTA_DL_ERROR, "Null Content-Length");
 			return;
-		} else if (server_size != d->file_info->size) {
-			if (z == d->file_info->size) {
+		} else if (content_size != requested_size) {
+			if (content_size == d->file_info->size) {
 				g_warning("File '%s': server seems to have "
-					"ignored our range request of %u.",
-					d->file_name, d->file_info->size - d->overlap_size);
+					"ignored our range request of %u-%u.",
+					d->file_name, d->skip - d->overlap_size, d->range_end - 1);
 				download_stop(d, GTA_DL_ERROR,
 					"Server can't handle resume request");
 				return;
@@ -3538,9 +3732,9 @@ static void download_request(struct download *d, header_t *header)
 				 *
 				 *		--RAM, 15/05/2002
 				 */
-				g_warning("File '%s': expected size %u but server said %u",
-					d->file_name, d->file_info->size, server_size);
-				download_stop(d, GTA_DL_ERROR, "File size mismatch");
+				g_warning("File '%s': expected content of %u, server said %u",
+					d->file_name, requested_size, content_size);
+				download_stop(d, GTA_DL_ERROR, "Content-Length mismatch");
 				return;
 			}
 		}
@@ -3559,6 +3753,11 @@ static void download_request(struct download *d, header_t *header)
 					d->file_name, d->skip - d->overlap_size, start);
 				download_stop(d, GTA_DL_ERROR, "Range start mismatch");
 				return;
+			}
+			if (end != d->range_end - 1) {
+				g_warning("File '%s': end byte mismatch: wanted %u, got %u"
+					" (continuing anyway)",
+					d->file_name, d->range_end - 1, end);
 			}
 			if (total != d->file_info->size) {
 				g_warning("File '%s': file size mismatch: expected %u, got %u",
@@ -3638,6 +3837,9 @@ static void download_request(struct download *d, header_t *header)
 	 */
 
 	io_free(d->io_opaque);
+
+	getline_free(s->getline);		/* No longer need this */
+	s->getline = NULL;
 
 	d->start_date = time((time_t *) NULL);
 	d->status = GTA_DL_RECEIVING;
@@ -3741,7 +3943,7 @@ static void download_read(gpointer data, gint source, GdkInputCondition cond)
  * Send the HTTP request for a download, then prepare I/O reading callbacks
  * to read the incoming status line and following headers.
  */
-gboolean download_send_request(struct download *d)
+void download_send_request(struct download *d)
 {
 	struct gnutella_socket *s = d->socket;
 	struct io_header *ih;
@@ -3754,7 +3956,7 @@ gboolean download_send_request(struct download *d)
 	if (!s) {
 		g_warning("download_send_request(): No socket for '%s'", d->file_name);
 		download_stop(d, GTA_DL_ERROR, "Internal Error");
-		return FALSE;
+		return;
 	}
 
 	/*
@@ -3777,7 +3979,7 @@ gboolean download_send_request(struct download *d)
 	 */
 
 	if (d->file_info->use_swarming && !download_pick_chunk(d))
-		return FALSE;
+		return;
 
 	g_assert(d->overlap_size <= sizeof(s->buffer));
 
@@ -3814,22 +4016,53 @@ gboolean download_send_request(struct download *d)
 
 	if (n2r)
 		rw = g_snprintf(dl_tmp, sizeof(dl_tmp),
-			"GET /uri-res/N2R?urn:sha1:%s HTTP/1.0\r\n",
+			"GET /uri-res/N2R?urn:sha1:%s HTTP/1.1\r\n",
 			sha1_base32(d->sha1));
 	else
 		rw = g_snprintf(dl_tmp, sizeof(dl_tmp),
-			"GET /get/%u/%s HTTP/1.0\r\n",
+			"GET /get/%u/%s HTTP/1.1\r\n",
 			d->record_index, d->file_name);
 
 	rw += g_snprintf(&dl_tmp[rw], sizeof(dl_tmp)-rw,
-		"User-Agent: %s\r\n"
-		"Connection: close\r\n",
-		version_string);
+		"Host: %s\r\n"
+		"User-Agent: %s\r\n",
+		ip_port_to_gchar(download_ip(d), download_port(d)), version_string);
 
-	if (d->skip)
-		rw += g_snprintf(&dl_tmp[rw], sizeof(dl_tmp)-rw,
-			"Range: bytes=%u-\r\n",
-			d->skip - d->overlap_size);
+	/*
+	 * If server is known to NOT support keepalives, then request only
+	 * a range starting from d->skip.  Likewise if we don't know whether
+	 * the server supports HTTP/1.1.
+	 *
+	 * Otherwise, we request a range and expect the server to keep the
+	 * connection alive once the range has been fully served so that
+	 * we may request the next chunk, if needed.
+	 */
+
+	d->range_end = download_filesize(d);
+
+	if (
+		(d->server->attrs & (DLS_A_NO_KEEPALIVE|DLS_A_HTTP_1_1)) !=
+			DLS_A_HTTP_1_1
+	) {
+		/* Request only a lower-bounded range, if needed */
+
+		if (d->skip)
+			rw += g_snprintf(&dl_tmp[rw], sizeof(dl_tmp)-rw,
+				"Range: bytes=%u-\r\n",
+				d->skip - d->overlap_size);
+	} else {
+		/* Request exact range, unless we're asking for the full file */
+
+		if (d->size != download_filesize(d)) {
+			guint32 start = d->skip - d->overlap_size;
+
+			d->range_end = d->skip + d->size;
+
+			rw += g_snprintf(&dl_tmp[rw], sizeof(dl_tmp)-rw,
+				"Range: bytes=%u-%u\r\n",
+				start, d->range_end - 1);
+		}
+	}
 
 	g_assert(rw + 3 < sizeof(dl_tmp));		/* Should not have filled yet! */
 
@@ -3876,13 +4109,14 @@ gboolean download_send_request(struct download *d)
 
 	if (-1 == (sent = bws_write(bws.out, d->socket->file_desc, dl_tmp, rw))) {
 		download_stop(d, GTA_DL_ERROR, "Write failed: %s", g_strerror(errno));
-		return FALSE;
+		return;
 	} else if (sent < rw) {
 		download_stop(d, GTA_DL_ERROR, "Partial write: wrote %d of %d bytes",
 			sent, rw);
-		return FALSE;
+		return;
 	} else if (dbg > 2) {
-		printf("----Sent Request to %s:\n%.*s----\n",
+		printf("----Sent Request (%s) to %s:\n%.*s----\n",
+			d->keep_alive ? "follow-up" : "initial",
 			ip_port_to_gchar(download_ip(d), download_port(d)),
 				(int) rw, dl_tmp);
 		fflush(stdout);
@@ -3917,7 +4151,7 @@ gboolean download_send_request(struct download *d)
 		GDK_INPUT_READ | GDK_INPUT_EXCEPTION,
 		download_header_read, (gpointer) ih);
 
-	return TRUE;
+	return;
 }
 
 /*
