@@ -1,5 +1,32 @@
 # since last version
 
+- (2004-09-25 - RAM)
+ * Now assumes that all servers support the /uri-res/N2R? file requesting.
+   We don't really want to download anything from older servents anyway.
+ * Ignore improbable SHA1 made of identical bytes, either in their base32
+   encoding or in their binary form.
+ * Count the GTKG queries and requeries we see, as well as queries for which
+   we can reply using GGEP "H" for SHA1.
+ * Tell them every 5 attempts that they're banned instead of 10.
+ * Revisited the computation performed to determine whether we can be an
+   ultra node: only use the EMA of the outgoing b/w if they have running
+   uploads.  Lowered b/w requirements to only 128 B/s per connection.
+ * Account for "uploads_stalling" when determining whether we have enough
+   b/w to stay an ultranode.
+ * Double time spent as a leaf node in auto-mode each time we switch back
+   to leaf mode.
+
+- (2004-09-24 - RAM)
+ * Fixed warning about badly configured proxy, which must be emitted only
+   when a proxy is chosen.
+ * New "H=xxx" statistics for nodes, enabled when dups/bad etc... are
+   configured for display, showing the amount of messages bearing an
+   hostile IP address which we get from the node.
+ * Tell them in the search statusbar when the search was stopped.
+ * Don't show the origin IP address of UDP-delivered hits if it matches the
+   one held in the query hit.
+ * Append "alt" to query hits bearing alt-locs.
+
 - (2004-09-23 - RAM)
  * Keep track of whether we receive solicited UDP traffic.
  * Send an UDP ping to our peers when we connect and we're not sure whether
