@@ -69,6 +69,7 @@
 #include "core/sockets.h"
 #include "core/sq.h"
 #include "core/tsync.h"
+#include "core/uhc.h"
 #include "core/upload_stats.h"
 #include "core/verify.h"
 #include "core/version.h"
@@ -202,8 +203,7 @@ void gtk_gnutella_exit(gint n)
 	DO(shell_close);
 #endif
 
-	file_info_close_pre();
-
+	DO(file_info_close_pre);
 	DO(node_bye_all);
 	DO(upload_close);	/* Done before upload_stats_close() for stats update */
 	DO(upload_stats_close);
@@ -212,6 +212,7 @@ void gtk_gnutella_exit(gint n)
 	DO(pproxy_close);
 	DO(http_close);
 	DO(gwc_close);
+	DO(uhc_close);
 	DO(verify_close);
 	DO(move_close);
 
@@ -578,6 +579,7 @@ gint main(gint argc, gchar **argv, gchar **env)
 	gip_init();
 	guid_init();
 	gwc_init();
+	uhc_init();
 	verify_init();
 	move_init();
 	ignore_init();
