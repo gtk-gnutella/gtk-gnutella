@@ -232,8 +232,9 @@ static void handle_messages_supported(struct gnutella_node *n,
 		return;
 	}
 
-	// XXX
-	g_warning("handle_messages_supported not implemented yet!");
+	// XXX -- we don't need this support yet -- RAM, 30/01/2003
+	if (dbg)
+		g_warning("handle_messages_supported() not implemented yet!");
 }
 
 /*
