@@ -3588,6 +3588,7 @@ GSList *fi_get_chunks(gnet_fi_t fih)
     gnet_fi_chunks_t *chunk = NULL;
     GSList *l = NULL;
     GSList *chunks = NULL;
+    GSList *tail = NULL;
     
     g_assert( fi );
 
@@ -3599,7 +3600,20 @@ GSList *fi_get_chunks(gnet_fi_t fih)
         chunk->status = fc->status;
         chunk->old    = TRUE;
 
-        chunks = g_slist_prepend(chunks, chunk); /* FIXME: prepend? */
+	/*
+	 * g_slist_prepend would be faster, but it changes the order
+	 * of the chunks and breaks the assumption that chunks are in
+	 * increasing order. Thus it would require a sorting or
+	 * walking backwards of the tree, thus negating the
+	 * performance gain. We still get the performance gain here by
+	 * using our own tail to append.
+	 */
+	if (tail) {
+	    tail = g_slist_append(tail, chunk);
+	} else {
+	    chunks = g_slist_append(chunks, chunk); 
+	    tail = chunks;
+	}
     }
 
     return chunks;
@@ -3613,7 +3627,7 @@ void fi_free_chunks(GSList *chunks)
     GSList *sl;
 
     for (sl = chunks; NULL != sl; sl = g_slist_next(sl)) {
-        G_FREE_NULL(sl->data);
+        wfree(sl->data, sizeof(gnet_fi_chunks_t));
     }
 
     g_slist_free(chunks);
