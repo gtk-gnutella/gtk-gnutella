@@ -2737,6 +2737,28 @@ node_got_bye(struct gnutella_node *n)
 	READ_GUINT16_LE(n->data, code);
 
 	/*
+	 * Codes are supposed to be 2xx, 4xx or 5xx.
+	 *
+	 * But GnucDNA is bugged enough to forget about the code and
+	 * starts to emit the message right away.  Fortunately, we can
+	 * detect this because the two ASCII bytes will make the code
+	 * appear out of range...  We force code 901 when we detect and
+	 * correct this bug.
+	 *
+	 *		--RAM, 2004-10-19
+	 */
+
+	if (code > 999) {
+		guchar c1 = n->data[0];
+		guchar c2 = n->data[1];
+
+		if (is_ascii_alnum(c1) && is_ascii_alnum(c2)) {
+			message = n->data;
+			code = 901;
+		}
+	}
+
+	/*
 	 * The first line can end with <cr><lf>, in which case we have an RFC-822
 	 * style header in the packet.  Since the packet may not be NUL terminated,
 	 * perform the scan manually.
