@@ -3589,8 +3589,11 @@ static gboolean download_check_status(
  *
  * As a side effect, we remove the old index/name information from the download
  * mesh as well.
+ *
+ * Returns TRUE if OK, FALSE if we stopped the download because we finally
+ * spotted it as being a duplicate!
  */
-static void download_convert_to_urires(struct download *d)
+static gboolean download_convert_to_urires(struct download *d)
 {
 	gchar *name;
 
@@ -3615,6 +3618,20 @@ static void download_convert_to_urires(struct download *d)
 	atom_str_free(d->file_name);
 	d->record_index = URN_INDEX;
 	d->file_name = name;
+
+	/*
+	 * Maybe it became a duplicate download, due to our lame detection?
+	 */
+
+	if (
+		has_same_download(name,
+			download_guid(d), download_ip(d), download_port(d))
+	) {
+		download_stop(d, GTA_DL_ERROR, "Was a duplicate");
+		return FALSE;
+	}
+
+	return TRUE;
 }
 
 /*
@@ -4009,7 +4026,8 @@ static void download_request(struct download *d, header_t *header, gboolean ok)
 
 	if (ack_code == 503 || (ack_code >= 200 && ack_code <= 299)) {
 		if (d->record_index != URN_INDEX && (d->flags & DL_F_URIRES))
-			download_convert_to_urires(d);
+			if (!download_convert_to_urires(d))
+				return;
 	}
 
 	if (ack_code >= 200 && ack_code <= 299) {
