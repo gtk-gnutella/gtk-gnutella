@@ -2115,13 +2115,23 @@ gboolean parq_upload_request(gnutella_upload_t *u, gpointer handle,
 	}
 
 	/*
+	 * If we sent a QUEUE message and we're getting a reply, reset the
+	 * amount of QUEUE messages sent amd clear the flag.
+	 */
+
+	if (parq_ul->flags & PARQ_UL_QUEUE_SENT) {
+		parq_ul->queue_sent = 0;
+		parq_ul->flags &= ~PARQ_UL_QUEUE_SENT;
+	}
+
+	/*
 	 * Client was already downloading a segment, segment was finished and 
 	 * just did a follow up request.
 	 */
 
 	if (parq_ul->has_slot)
 		return TRUE;
-	
+
 	/*
 	 * Check whether the current upload is allowed to get an upload slot. If so
 	 * move other queued items after the current item up one position in the
