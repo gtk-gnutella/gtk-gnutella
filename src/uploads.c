@@ -351,8 +351,10 @@ static void upload_free_resources(struct upload *u)
 		bsched_source_remove(u->bio);
 		u->bio = NULL;
 	}
-	if (u->user_agent)
+	if (u->user_agent) {
 		g_free(u->user_agent);
+		u->user_agent = NULL;
+	}
 }
 
 /*
@@ -943,6 +945,7 @@ static struct shared_file *get_file_to_upload_from_index(
 	return reqfile;
 }
 
+/* XXX -- urn:sha1: is case-insensitive -- RAM, 20/05/2002 */
 static const char sha1_query[] = "GET /uri-res/N2R?urn:sha1:";
 static const int sha1_query_length = sizeof(sha1_query) - 1;
 
@@ -1130,9 +1133,7 @@ static void upload_request(struct upload *u, header_t *header)
 	buf = header_get(header, "Range");
 	if (buf) {
 		if (strchr(buf, ',')) {
-			char *msg = "Multiple Range requests unsupported";
-			send_upload_error(u, 400, msg);
-			upload_remove(u, msg);
+			upload_error_remove(u, 400, "Multiple Range requests unsupported");
 			return;
 		} else if (2 == sscanf(buf, "bytes=%u-%u", &skip, &end)) {
 			has_end = TRUE;
@@ -1150,6 +1151,26 @@ static void upload_request(struct upload *u, header_t *header)
 				skip = reqfile->file_size - skip;
 		} else
 			(void) sscanf(buf, "bytes=%u-", &skip);
+	}
+
+	/*
+	 * If we have the SHA1 for this file and they sent a
+	 * X-Gnutella-Content-URN header with an urn:sha1:, compare
+	 * it to the file's and deny with 404 if they don't match.
+	 *		--RAM, 20/05/2002
+	 */
+
+	if (reqfile->sha1_digest[0] != '\0') {
+		if ((buf = header_get(header, "X-Gnutella-Content-Urn"))) {
+			gchar *sha1 = strstr(buf, "urn:sha1:");	// XXX case insensitive, RAM
+			if (
+				sha1 &&
+				0 != strncmp(sha1 + 9, reqfile->sha1_digest, SHA1_BASE32_SIZE)
+			) {
+				upload_error_remove(u, 404, "URN mismatch for urn:sha1");
+				return;
+			}
+		}
 	}
 
 	user_agent = header_get(header, "User-Agent");
