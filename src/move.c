@@ -253,8 +253,8 @@ abort_read:
 static void d_end(gpointer h, gpointer ctx, gpointer item)
 {
 	struct moved *md = (struct moved *) ctx;
-	time_t elapsed = 0;
 	struct download *d = md->d;
+	gint elapsed = 0;
 
 	g_assert(md->magic == MOVED_MAGIC);
 	g_assert(md->d == ((struct work *) item)->d);
@@ -296,8 +296,9 @@ static void d_end(gpointer h, gpointer ctx, gpointer item)
 				md->target, g_strerror(errno));
 	}
 
-	elapsed = time(NULL) - md->start;
-	elapsed = MAX(1, elapsed);
+	elapsed = delta_time(time(NULL), md->start);
+	if (elapsed < 0)	/* time warp? clock not monotic? */
+		elapsed = 1;
 
 	if (dbg > 1)
 		printf("Moved file \"%s\" at %lu bytes/sec [error=%d]\n",
@@ -320,9 +321,9 @@ finish:
 static bgret_t d_step_copy(gpointer h, gpointer u, gint ticks)
 {
 	struct moved *md = (struct moved *) u;
-	gint r;
-	gint amount;
-	guint32 remain;
+	ssize_t r;
+	size_t amount;
+	gint64 remain;
 	gint used;
 
 	g_assert(md->magic == MOVED_MAGIC);
@@ -352,7 +353,7 @@ static bgret_t d_step_copy(gpointer h, gpointer u, gint ticks)
 
 	r = read(md->rd, md->buffer, amount);
 
-	if (r < 0) {
+	if ((ssize_t) -1 == r) {
 		md->error = errno;
 		g_warning("error while reading \"%s\" for moving: %s",
 			download_outname(md->d), g_strerror(errno));
@@ -383,13 +384,13 @@ static bgret_t d_step_copy(gpointer h, gpointer u, gint ticks)
 		g_warning("error while writing for moving \"%s\": %s",
 			download_outname(md->d), g_strerror(errno));
 		return BGR_DONE;
-	} else if (r < amount) {
+	} else if ((size_t) r < amount) {
 		md->error = -1;
 		g_warning("short write whilst moving \"%s\"", download_outname(md->d));
 		return BGR_DONE;
 	}
 
-	g_assert(r == amount);
+	g_assert((size_t) r == amount);
 
 	md->copied += r;
 	download_move_progress(md->d, md->copied);
