@@ -159,6 +159,171 @@ static guint32   search_passive  = 0;		/* Amount of passive searches */
 static void search_check_results_set(gnet_results_set_t *rs);
 
 /***
+ *** Counters
+ ***/
+
+static GHashTable *ht_sha1 = NULL;
+static GHashTable *ht_host = NULL;
+
+#if !GLIB_CHECK_VERSION(2, 0, 0)
+#undef SEARCH_STATS_COUNTERS
+#endif
+
+#ifdef SEARCH_STATS_COUNTERS
+static GList *top_sha1 = NULL;
+static GList *top_host = NULL;
+
+struct item_count {
+	gpointer p;
+	guint n;
+};
+
+static GList * 
+stats_update(GList *top, gpointer key, guint n)
+{
+	GList *l;
+	struct item_count *item = NULL;
+	guint last_n = 0;
+	
+	for (l = top; l != NULL; l = g_list_next(l)) {
+		struct item_count *ic = l->data;
+
+		if (ic->p == key) {
+			item = ic;
+			ic->n = n;
+			if (last_n >= n || l == top)
+				return top;
+
+			top = g_list_delete_link(top, l);
+			break;
+		}
+		last_n = ic->n;
+	}
+
+	if (!item) {
+		if (g_list_length(top) < 25) {
+			item = g_malloc(sizeof *item);
+		} else if (n > last_n) {
+			l = g_list_last(top);
+			item = l->data;
+			top = g_list_delete_link(top, l);
+		} else {
+			return top;
+		}
+		item->p = key;
+		item->n = n;
+	}
+	
+	for (l = top; l != NULL; l = g_list_next(l)) {
+		struct item_count *ic = l->data;
+
+		if (ic->n <= n)
+			break;
+	}
+	top = g_list_insert_before(top, l, item);
+
+	return top;
+}
+
+static void
+free_sha1(gpointer sha1)
+{
+	g_assert(sha1 != NULL);
+	atom_sha1_free(sha1);
+}
+
+static void
+count_sha1(const gchar *sha1)
+{
+	static guint calls;
+	gpointer key, value;
+	guint n;
+
+	if (!ht_sha1) {
+		ht_sha1 = g_hash_table_new_full(NULL, NULL, free_sha1, NULL);
+		if (top_sha1) {
+			GList *l;
+			
+			g_message("SHA1 ranking:");
+			for (l = top_sha1; l != NULL; l = g_list_next(l)) {
+				struct item_count *ic = l->data;
+			
+				ic->p = atom_sha1_get(ic->p);
+				g_hash_table_insert(ht_sha1, ic->p, GUINT_TO_POINTER(ic->n));
+				g_message("%8u %s", ic->n, sha1_base32(ic->p));
+			}
+		}
+	}
+	
+	key = atom_sha1_get(sha1);
+	if (g_hash_table_lookup_extended(ht_sha1, key, NULL, &value)) {
+		n = GPOINTER_TO_UINT(value) + 1;
+	} else {
+		n = 1;
+	}
+			
+	g_hash_table_insert(ht_sha1, key, GUINT_TO_POINTER(n));
+	top_sha1 = stats_update(top_sha1, key, n);
+	if (++calls > 1000) {
+		GList *l;
+
+		for (l = top_sha1; l != NULL; l = g_list_next(l)) {
+			struct item_count *ic = l->data;
+			
+			ic->p = atom_sha1_get(ic->p);
+		}
+		g_hash_table_destroy(ht_sha1);
+		ht_sha1 = NULL;
+		calls = 0;
+	}
+}
+
+static void
+count_host(guint32 ip)
+{
+	static guint calls;
+	gpointer key, value;
+	guint n;
+
+	if (is_private_ip(rs->ip) || bogons_check(rs->ip))
+		return;
+
+	if (!ht_host) {
+		ht_host = g_hash_table_new(NULL, NULL);
+		if (top_host) {
+			GList *l;
+
+			g_message("Host ranking:");
+			for (l = top_host; l != NULL; l = g_list_next(l)) {
+				struct item_count *ic = l->data;
+			
+				g_hash_table_insert(ht_host, ic->p, GUINT_TO_POINTER(ic->n));
+				g_message("%8d %s", ic->n,
+					ip_to_gchar(GPOINTER_TO_UINT(ic->p)));
+			}
+		}
+	}
+	
+	key = GUINT_TO_POINTER(ip);
+	if (g_hash_table_lookup_extended(ht_host, key, NULL, &value))
+		n = GPOINTER_TO_UINT(value) + 1;
+	else
+		n = 1;
+			
+	g_hash_table_insert(ht_host, key, GUINT_TO_POINTER(n));
+	top_host = stats_update(top_host, key, n);
+	if (++calls > 1000) {
+		g_hash_table_destroy(ht_host);
+		ht_host = NULL;
+		calls = 0;
+	}
+}
+#else
+#define count_sha1(x) do { } while (0)
+#define count_host(x) do { } while (0)
+#endif /* SEARCH_STATS_COUNTERS */
+
+/***
  *** Callbacks (private and public)
  ***/
 
@@ -460,6 +625,8 @@ get_results_set(gnutella_node_t *n, gboolean validate_only)
 			gnet_stats_count_general(GNR_OOB_HITS_WITH_ALIEN_IP, 1);
 	}
 
+	count_host(rs->ip);
+	
 	/* Check for hostile IP addresses */
 
 	if (hostiles_check(rs->ip)) {
@@ -472,7 +639,7 @@ get_results_set(gnutella_node_t *n, gboolean validate_only)
 	}
 
 	/* Check for valid IP addresses (unroutable => turn push on) */
-
+	
 	if (is_private_ip(rs->ip))
 		rs->status |= ST_FIREWALL;
 	else if (rs->port == 0 || bogons_check(rs->ip)) {
@@ -616,6 +783,7 @@ get_results_set(gnutella_node_t *n, gboolean validate_only)
 						huge_sha1_extract32(ext_payload(e),
 								paylen, sha1_digest, &n->header, TRUE)
 					) {
+						count_sha1(sha1_digest);
 						if (!validate_only) {
 							if (rc->sha1 != NULL) {
 								multiple_sha1 = TRUE;
@@ -644,6 +812,7 @@ get_results_set(gnutella_node_t *n, gboolean validate_only)
 						buf[paylen] = '\0';
 
 						if (urn_get_sha1_no_prefix(buf, sha1_digest)) {
+							count_sha1(sha1_digest);
 							if (huge_improbable_sha1(sha1_digest, SHA1_RAW_SIZE))
 								sha1_errors++;
 							else if (!validate_only) {
@@ -662,6 +831,7 @@ get_results_set(gnutella_node_t *n, gboolean validate_only)
 					ret = ggept_h_sha1_extract(e, sha1_digest, SHA1_RAW_SIZE);
 					if (ret == GGEP_OK) {
 						has_hash = TRUE;
+						count_sha1(sha1_digest);
 						if (huge_improbable_sha1(sha1_digest, SHA1_RAW_SIZE))
 							sha1_errors++;
 						else if (!validate_only) {
@@ -1854,9 +2024,9 @@ search_init(void)
 	rs_zone = zget(sizeof(gnet_results_set_t), 1024);
 	rc_zone = zget(sizeof(gnet_record_t), 1024);
 
-	searches = g_hash_table_new(g_direct_hash, 0);
+	searches = g_hash_table_new(NULL, NULL);
 	search_by_muid = g_hash_table_new(guid_hash, guid_eq);
-    search_handle_map = idtable_new(32,32);
+    search_handle_map = idtable_new(32, 32);
 	query_hashvec = qhvec_alloc(128);	/* Max: 128 unique words / URNs! */
 }
 
@@ -1871,6 +2041,11 @@ search_shutdown(void)
 
     g_assert(idtable_ids(search_handle_map) == 0);
 
+	if (ht_sha1)
+		g_hash_table_destroy(ht_sha1);
+	if (ht_host)
+		g_hash_table_destroy(ht_host);
+	
 	g_hash_table_destroy(searches);
 	g_hash_table_destroy(search_by_muid);
     idtable_destroy(search_handle_map);
@@ -2365,43 +2540,37 @@ gnet_search_t
 search_new(const gchar *query, guint32 reissue_timeout, flag_t flags)
 {
 	search_ctrl_t *sch;
-	gchar *qdup;
-	gint qlen;
+	gchar *qdup, *s;
 
 	/*
 	 * Canonicalize the query we're sending.
 	 */
 
-	qlen = strlen(query);
-
-#ifdef USE_ICU
-	if (icu_enabled() && utf8_is_valid_string(query, qlen) > 0) {
-		qdup = unicode_canonize(query);
-	} else
-#endif
-	{
-		qdup = g_strdup(query);
-
-		/* Suppress accents, graphics, ... */
-		if (is_latin_locale() && !utf8_is_valid_string(qdup, 0))
-			use_map_on_query(qdup, qlen);
-
-		/* XXX: use_map_on_query() works for latin encodings only but
-		 *		UTF-8 queries should be canonicalized too. When using
-		 *		GTK+ 2.x, the query as entered by the user is always
-		 *		UTF-8 encoded.
-		 */
-	}
-
+	qdup = g_strdup(query);
 	if (!utf8_is_valid_string(qdup, 0)) {
-		gchar *s;
-
+		if (is_latin_locale()) {
+			/* Suppress accents, graphics, ... */
+			use_map_on_query(qdup, strlen(qdup));
+		}
+		
 		s = locale_to_utf8(qdup, 0);
 		if (s != qdup) {
 			G_FREE_NULL(qdup);
 			qdup = g_strdup(s);
 		}
 	}
+	g_assert(utf8_is_valid_string(qdup, 0));
+
+#ifdef USE_ICU
+	if (icu_enabled()) {
+		s = unicode_canonize(qdup);
+	} else
+#endif
+	{
+		s = utf8_strlower_copy(qdup);
+	}
+	G_FREE_NULL(qdup);
+	qdup = s;
 
 	compact_query(qdup);
 	if ('\0' == *qdup) {
