@@ -269,6 +269,8 @@ void pproxy_timer(time_t now)
 		struct pproxy *pp = (struct pproxy *) l->data;
 		pproxy_error_remove(pp, 408, "Request timeout");
 	}
+
+	g_slist_free(to_remove);
 }
 
 /*
@@ -484,13 +486,11 @@ static void build_push(struct gnutella_msg_push_request *m,
  */
 static gchar *validate_vendor(gchar *vendor, gchar *token, guint32 ip)
 {
-	gboolean faked;
-	gchar *result;
-
-	if (vendor)
-		faked = !version_check(vendor, token, ip);
+	gchar *result = NULL;
 
 	if (vendor) {
+		gboolean faked = !version_check(vendor, token, ip);
+
 		if (faked) {
 			gchar *name = g_strdup_printf("!%s", vendor);
 			result = atom_str_get(name);
@@ -754,6 +754,8 @@ void pproxy_close(void)
 		pproxy_free_resources(pp);
 		wfree(pp, sizeof(*pp));
 	}
+
+	g_slist_free(pproxies);
 }
 
 /***
