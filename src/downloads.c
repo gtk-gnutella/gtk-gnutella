@@ -212,6 +212,11 @@ void download_timer(time_t now)
 		case GTA_DL_REQ_SENT:
 		case GTA_DL_FALLBACK:
 
+			if (!is_inet_connected) {
+				download_queue(d, "No longer connected");
+				break;
+			}
+
 			switch (d->status) {
 			case GTA_DL_PUSH_SENT:
 			case GTA_DL_FALLBACK:
@@ -238,6 +243,11 @@ void download_timer(time_t now)
 				gui_update_download(d, TRUE);
 			break;
 		case GTA_DL_TIMEOUT_WAIT:
+			if (!is_inet_connected) {
+				download_queue(d, "No longer connected");
+				break;
+			}
+
 			if (now - d->last_update > d->timeout_delay)
 				download_start(d, TRUE);
 			else
@@ -263,7 +273,8 @@ void download_timer(time_t now)
 		download_clear_stopped(FALSE, FALSE);
 
 	/* Dequeuing */
-	download_pickup_queued();
+	if (is_inet_connected)
+		download_pickup_queued();
 }
 
 /*
