@@ -1,5 +1,19 @@
 # since last version
 
+- (2004-08-05 - RAM)
+ * Implemented dynamic querying.  For now, it's only plugged for leaf queries.
+ * Fixed re-entrance problem when an event was rescheduled before the current
+   trigger time by another event that fired.
+ * Added 5 general statistics about dynamic queries and their status.
+ * Added new "dq_debug" property for debugging dynamic querying.
+ * Emit and parse headers for dynamic querying.
+ * Added hack for LimeWire, emitting the garbage it wants from leaves to
+   consider them good.
+   It is a bug from LW to require those meaningless headers from leaves.
+ * Enhanced pmsg to have support for free routine callbacks.
+ * It is now possible to mark messages as being sent, for checking in the
+   free routine afterwards.
+
 - (2004-08-05 - Jeroen)
  * When avoiding vendor monopoly, make a difference between outgoing and
    incoming connections. 
