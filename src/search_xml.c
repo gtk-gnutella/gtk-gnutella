@@ -94,6 +94,7 @@ static const gchar PROP_FILTER_UID[]       = "UID";
 static const gchar PROP_FILTER_ACTIVE[]    = "Active";
 static const gchar PROP_SEARCH_QUERY[]     = "Query";
 static const gchar PROP_SEARCH_SPEED[]     = "Speed";
+static const gchar PROP_SEARCH_PASSIVE[]   = "Passive";
 static const gchar PROP_RULE_TEXT_CASE[]   = "Case";
 static const gchar PROP_RULE_TEXT_MATCH[]  = "Match";
 static const gchar PROP_RULE_TEXT_TYPE[]   = "Type";
@@ -160,8 +161,7 @@ void search_store_xml(void)
      */
     for (l = searches; l; l = l->next) {
 		search_t *sch = (search_t *) l->data;
-		if (!sch->passive)
-			search_to_xml(root, sch);
+        search_to_xml(root, sch);
 	}
 
     /*
@@ -370,6 +370,9 @@ static void search_to_xml(xmlNodePtr parent, search_t *s)
 
   	g_snprintf(x_tmp, sizeof(x_tmp), "%u", s->speed);
     xmlSetProp(newxml, PROP_SEARCH_SPEED, x_tmp);
+
+    g_snprintf(x_tmp, sizeof(x_tmp), "%u", TO_BOOL(s->passive));
+    xmlSetProp(newxml, PROP_SEARCH_PASSIVE, x_tmp);
     
     for (l = s->filter->ruleset; l != NULL; l = l->next)
         rule_to_xml(newxml, (rule_t *)l->data);
@@ -557,6 +560,8 @@ static void xml_to_search(xmlNodePtr xmlnode, gpointer user_data)
     gint32 speed = 0;
     xmlNodePtr node;
     search_t * search;
+    gboolean passive = FALSE;
+    guint flags;
 
     g_assert(xmlnode != NULL);
     g_assert(xmlnode->name != NULL);
@@ -575,9 +580,18 @@ static void xml_to_search(xmlNodePtr xmlnode, gpointer user_data)
         g_free(buf);
     }
 
+    buf = xmlGetProp(xmlnode, PROP_SEARCH_PASSIVE);
+    if (buf != NULL) {
+        passive = atol(buf) == 1 ? TRUE : FALSE;
+        g_free(buf);
+    }
+
+    flags =
+        (passive ? SEARCH_PASSIVE : 0);
+
     if (dbg >= 4)
         printf("adding new search: %s\n", query);
-    search = new_search(speed, query);
+    search = _new_search(speed, query, flags);
 
     g_free(query);
 
