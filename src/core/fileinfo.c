@@ -1057,7 +1057,7 @@ file_info_shared_sha1(const gchar *sha1)
 		 * one of the aliases.
 		 */
 
-		fi->sf = sf;
+		fi->sf = shared_file_ref(sf);
 		sf->fi = fi;			/* Signals it's a partially downloaded file */
 
 		sf->file_path = atom_str_get(path);
@@ -1797,7 +1797,7 @@ void
 file_info_upload_stop(struct dl_file_info *fi, const gchar *reason)
 {
 	upload_stop_all(fi, reason);
-	shared_file_free(fi->sf);
+	shared_file_unref(fi->sf);
 	fi->sf = NULL;
 }
 
