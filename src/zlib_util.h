@@ -43,7 +43,7 @@ typedef struct  {
 #define zlib_deflater_outlen(z)	((z)->outlen)
 
 /*
- * Public interaface.
+ * Public interface.
  */
 
 gchar *zlib_strerror(gint errnum);

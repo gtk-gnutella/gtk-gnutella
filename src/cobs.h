@@ -31,7 +31,7 @@
 #include <glib.h>
 
 /*
- * Public interaface.
+ * Public interface.
  */
 
 struct iovec;

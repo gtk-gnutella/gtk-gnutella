@@ -31,7 +31,7 @@
 #include <glib.h>
 
 /*
- * Public interaface.
+ * Public interface.
  */
 
 guchar *base32_encode(const guchar *buf, gint len, gint *retpad);

@@ -101,7 +101,7 @@ typedef struct {
 #define HEAD_MAX_SIZE		8192	/* Maximum size of header data */
 
 /*
- * Public interaface.
+ * Public interface.
  */
 
 header_t *header_make(void);

@@ -54,7 +54,7 @@ typedef struct getline {
 } getline_t;
 
 /*
- * Public interaface.
+ * Public interface.
  */
 
 getline_t *getline_make(void);

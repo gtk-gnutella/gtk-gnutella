@@ -29,7 +29,7 @@
 #include <glib.h>
 
 /*
- * Public interaface.
+ * Public interface.
  */
 
 guchar *url_escape(guchar *url);

@@ -83,7 +83,7 @@ typedef enum ggept_status {
 } ggept_status_t;
 
 /*
- * Public interaface.
+ * Public interface.
  */
 
 struct iovec;
