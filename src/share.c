@@ -500,8 +500,19 @@ void search_request(struct gnutella_node *n)
 
 	  memcpy(&packet_head.muid, &(*n).header.muid, 16);
 
+	 /*
+	  * We apply the same logic here as in reply_init(): we limit the TTL
+	  * to the minimal possible value.
+	  *		--RAM, 15/09/2001
+	  */
+
+	  if (n->header.hops == 0) {
+	  	  g_warning("search_request(): hops=0, bug in route_message()?\n");
+		  n->header.hops++;		/* Can't send message with TTL=0 */
+	  }
+
 	  packet_head.function = GTA_MSG_SEARCH_RESULTS;
-	  packet_head.ttl = max_ttl;			/* Use max TTL --RAM 13/09/2001 */
+	  packet_head.ttl = MIN(n->header.hops, max_ttl);
 	  packet_head.hops = 0;
 	  memcpy(&packet_head.size, &pl, 4);
     
