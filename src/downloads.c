@@ -29,6 +29,7 @@
  * Handle downloads.
  */
 
+#include "common.h"
 #include "gnutella.h"
 #include "sockets.h"
 #include "downloads.h"
@@ -57,12 +58,6 @@
 #include "pproxy.h"
 #include "tm.h"
 #include "file.h"
-
-#include <errno.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <regex.h>
 
 #include "ui_core_interface.h"
 #include "override.h"		/* Must be the last header included */
