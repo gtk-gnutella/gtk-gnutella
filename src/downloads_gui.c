@@ -56,13 +56,18 @@ static GHashTable *parents_queue;	/* table of parent queued dl iterators */
  *	add_parent_with_fi_handle
  *
  *	Add the given tree node to the hashtable.
- *  The key is an atomized int of the fi_handle for a given download.
+ *  The key is an int ref on the fi_handle for a given download.
  *
  */
 static inline void add_parent_with_fi_handle(
 	GHashTable *ht, gpointer key, GtkCTreeNode *data)
 {
-	g_hash_table_insert(ht, key, data);
+	/*
+	 * Since we're inserting an integer ref into the hash table, we need
+	 * to make it an atom.
+	 */
+
+	g_hash_table_insert(ht, atom_int_get(key), data);
 }
 
 
@@ -79,20 +84,15 @@ static inline void remove_parent_with_fi_handle(
 	GtkCTreeNode *data = NULL;
 	gpointer orig_key;
  
-	key = atom_int_get(fi_handle);
+	key = fi_handle;
 
 	if (g_hash_table_lookup_extended(ht, key,
 			(gpointer) &orig_key, (gpointer) &data)) {
-		/* Must first free memory used by the original key */
-		atom_int_free(orig_key);
-		/* Then remove the key */
 		g_hash_table_remove(ht, key);
+		atom_int_free(orig_key);
 	} else
 		g_warning("remove_parent_with_fi_handle:can't find fi in hash table!");
-
-	atom_int_free(key);
 }
-
 
 /*
  *	find_parent_with_fi_handle
@@ -195,6 +195,52 @@ GList *downloads_gui_collect_ctree_data(GtkCTree *ctree, GList *node_list,
 	return data_list;
 }
 
+/*
+ *	downloads_gui_any_status
+ *
+ *	Returns true if any of the active downloads in the same tree as the given 
+ * 	download are in the specified status.
+ */
+static gboolean downloads_gui_any_status(
+	struct download *d, download_status_t status)
+{
+	struct download *drecord = NULL;
+	gpointer key;
+	gint num_children;
+	gboolean any_found = FALSE;
+	GtkCTreeNode *node, *parent;
+	GtkCTreeRow *row;
+    GtkCTree *ctree_downloads =
+		GTK_CTREE(lookup_widget(main_window, "ctree_downloads"));
+
+	if (d->file_info != NULL) {
+		key = (gpointer) &d->file_info->fi_handle;
+		parent = find_parent_with_fi_handle(parents, key);
+
+		if (parent != NULL) {
+
+			num_children = count_node_children(ctree_downloads, parent);
+			row = GTK_CTREE_ROW(parent);
+			node = row->children;
+			
+			for (; node != NULL; 
+				row = GTK_CTREE_ROW(node), node = row->sibling
+			) {		
+				drecord = gtk_ctree_node_get_row_data(ctree_downloads, node);
+
+				if (NULL == drecord || -1 == GPOINTER_TO_INT(drecord))
+					continue;
+					
+				if (drecord->status == status) {
+					any_found = TRUE;
+					break;
+				}
+			}					
+		}
+	}
+
+	return any_found;
+}
 
 /*
  *	downloads_gui_all_aborted
@@ -216,7 +262,7 @@ gboolean downloads_gui_all_aborted(struct download *d)
 
 	if (NULL != d->file_info) {
 			
-		key = (gpointer) atom_int_get(&(d->file_info->fi_handle));
+		key = &d->file_info->fi_handle;
 		parent = find_parent_with_fi_handle(parents, key);
 
 		if (NULL != parent) {
@@ -242,7 +288,6 @@ gboolean downloads_gui_all_aborted(struct download *d)
 				}
 			}					
 		}
-		atom_int_free(key);		
 	}
 
 	return all_aborted;
@@ -267,14 +312,14 @@ gboolean downloads_gui_update_parent_status(struct download *d,
 
 	if (NULL != d->file_info) {
 			
-		key = (gpointer) atom_int_get(&(d->file_info->fi_handle));
+		key = &d->file_info->fi_handle;
 		parent = find_parent_with_fi_handle(parents, key);
 
 		if (NULL != parent) {
 			changed = TRUE;
-			gtk_ctree_node_set_text(ctree_downloads, parent, c_dl_status, new_status);
+			gtk_ctree_node_set_text(ctree_downloads, parent,
+				c_dl_status, new_status);
 		}
-		atom_int_free(key);		
 	}
 
 	return changed;
@@ -360,7 +405,7 @@ void download_gui_add(struct download *d)
 			(lookup_widget(main_window, "ctree_downloads_queue"));
 
 		if (NULL != d->file_info) {
-			key = (gpointer) atom_int_get(&(d->file_info->fi_handle));
+			key = (gpointer) &d->file_info->fi_handle;
 			parent = find_parent_with_fi_handle(parents_queue, key);
 			if (NULL != parent) {
 				/* 	There already is a download with that file_info
@@ -444,9 +489,6 @@ void download_gui_add(struct download *d)
 				gtk_ctree_node_set_text(ctree_downloads_queue, parent, 
 					c_queue_host, tmpstr);
 					
-				/* We free this atom for children, but not for new parents */
-				atom_int_free(key);		
-			
 			} else {
 				/*  There are no other downloads with the same file_info
 				 *  Add download as normal
@@ -482,7 +524,7 @@ void download_gui_add(struct download *d)
 			(lookup_widget(main_window, "ctree_downloads"));
 
 		if (NULL != d->file_info) {
-			key = (gpointer) atom_int_get(&(d->file_info->fi_handle));
+			key = (gpointer) &d->file_info->fi_handle;
 			parent = find_parent_with_fi_handle(parents, key);
 			if (NULL != parent) {
 				/* 	There already is a download with that file_info
@@ -570,10 +612,7 @@ void download_gui_add(struct download *d)
 
 				gtk_ctree_node_set_text(ctree_downloads, parent, 
 					c_queue_host, tmpstr);
-					
-				/* We free this atom for children, but not for new parents */
-				atom_int_free(key);		
-			
+
 			} else {
 				/*  There are no other downloads with the same file_info
 				 *  Add download as normal
@@ -801,6 +840,12 @@ void gui_update_download(struct download *d, gboolean force)
 			rw += gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
 					" retry in %ds",
 					(gint) (get_parq_dl_retry_delay(d) - elapsed));
+
+			if (
+				!downloads_gui_any_status(d, GTA_DL_CONNECTING) &&
+				!downloads_gui_any_status(d, GTA_DL_RECEIVING)
+			)
+				downloads_gui_update_parent_status(d, "Queued");
 		}
 		a = tmpstr;
 		break;
@@ -810,6 +855,8 @@ void gui_update_download(struct download *d, gboolean force)
 
 	case GTA_DL_CONNECTING:
 		a = "Connecting...";
+		if (!downloads_gui_any_status(d, GTA_DL_RECEIVING))
+			downloads_gui_update_parent_status(d, "Connecting...");
 		break;
 
 	case GTA_DL_PUSH_SENT:
@@ -1085,7 +1132,7 @@ void gui_update_download(struct download *d, gboolean force)
 		/*  Update header for downloads with multiple hosts */
 		if (NULL != d->file_info) {
 		
-			key = atom_int_get(&d->file_info->fi_handle);
+			key = &d->file_info->fi_handle;
 			parent = find_parent_with_fi_handle(parents_queue, key);
 
 			if (NULL != parent) {
@@ -1137,8 +1184,6 @@ void gui_update_download(struct download *d, gboolean force)
 					}
 				}	
 			}			
-			
-			atom_int_free(key);
 		}	
 	} else {  /* Is an active downloads */
 
@@ -1154,7 +1199,7 @@ void gui_update_download(struct download *d, gboolean force)
 		/*  Update header for downloads with multiple hosts */
 		if (NULL != d->file_info) {
 		
-			key = atom_int_get(&d->file_info->fi_handle);
+			key = &d->file_info->fi_handle;
 			parent = find_parent_with_fi_handle(parents, key);
 
 			if (NULL != parent) {
@@ -1205,9 +1250,7 @@ void gui_update_download(struct download *d, gboolean force)
 						}
 					}
 				}	
-			}			
-			
-			atom_int_free(key);
+			}
 		}	
 	}
 }
@@ -1356,7 +1399,7 @@ void download_gui_remove(struct download *d)
 			/*  We need to discover if the download has a parent */
 			if (NULL != d->file_info) {
 		
-				key = atom_int_get(&d->file_info->fi_handle);
+				key = &d->file_info->fi_handle;
 				parent =  find_parent_with_fi_handle(parents_queue, key);
 
 				if (NULL != parent) {
@@ -1423,12 +1466,10 @@ void download_gui_remove(struct download *d)
 				} else 
 					g_warning("download_gui_remove(): "
 						"Download '%s' has no parent", d->file_name);
-	
-				atom_int_free(key);				
 			}
 		} else
-		g_warning("download_gui_remove(): "
-			"Queued download '%s' not found in treeview !?", d->file_name);
+			g_warning("download_gui_remove(): "
+				"Queued download '%s' not found in treeview !?", d->file_name);
 		
 	} else { /* Removing active download */
 
@@ -1441,7 +1482,7 @@ void download_gui_remove(struct download *d)
 			/*  We need to discover if the download has a parent */
 			if (NULL != d->file_info) {
 		
-				key = atom_int_get(&d->file_info->fi_handle);
+				key = &d->file_info->fi_handle;
 				parent =  find_parent_with_fi_handle(parents, key);
 
 				if (NULL != parent) {
@@ -1513,8 +1554,6 @@ void download_gui_remove(struct download *d)
 				} else 
 					g_warning("download_gui_remove(): "
 						"Active download '%s' has no parent", d->file_name);
-	
-				atom_int_free(key);				
 			}	
 		} else
 			g_warning("download_gui_remove(): "
