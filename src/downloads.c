@@ -816,6 +816,7 @@ void download_remove_file(struct download *d, gboolean reset)
 		case GTA_DL_FALLBACK:
 		case GTA_DL_SINKING:		/* Will only make a new request after */
 		case GTA_DL_CONNECTING:
+			continue;
 		default:
 			break;		/* go on */
 		}
@@ -851,6 +852,24 @@ void download_info_change_all(
 			continue;
 
 		is_running = DOWNLOAD_IS_RUNNING(d);
+
+		/*
+		 * The following states are marked as being running, but the
+		 * fileinfo structure has not yet been used to request anything,
+		 * so we don't need to stop.
+		 */
+
+		switch (d->status) {
+		case GTA_DL_ACTIVE_QUEUED:
+		case GTA_DL_PUSH_SENT:
+		case GTA_DL_FALLBACK:
+		case GTA_DL_SINKING:
+		case GTA_DL_CONNECTING:
+			is_running = FALSE;
+			break;
+		default:
+			break;
+		}
 
 		if (is_running)
 			download_stop(d, GTA_DL_TIMEOUT_WAIT, NULL);
