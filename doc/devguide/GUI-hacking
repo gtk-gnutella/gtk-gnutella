@@ -1,0 +1,52 @@
+		GUI Hacking Hints
+		$Id$
+
+To regenerate the GUI source code from the Glade file, type
+
+    make glade_files
+    
+
+Some simple guidelines to add a net setting to the GUI:
+
+Most of the time a new settings will need to be bound to a property.
+E.g. spinbutton_up_connections should be bound to PROP_UP_CONNECTIONS.
+To achive this, simply:
+
+* add the desired widget (GtkSpinButton or GtkToggleButton) to the GUI 
+  using Glade and give it the proper name (in this case 
+  "spinbutton_up_connections". You do not need to add any callbacks within
+  Glade. The callbacks will be added by the GUI core within Gtk-gnutella
+  later.
+* Add a new entry to the property_map in settings_gui.c. In this case it
+  should look like:
+  {
+    get_main_window,
+    PROP_UP_CONNECTIONS,
+    update_spinbutton,
+    TRUE,
+    "spinbutton_up_connections"
+  }
+  
+get_main_window is a function which will fetch the current instance of
+the main window. If you place the widget within another window or 
+popup menu, this needs to be replaced.
+  
+PROP_UP_CONNECTIONS is the name of the property you want to bind to.
+  
+update_spinbutton is the generic GtkSpinButton callback. It will simply
+set the value within the widget when the property has changed. If you need
+other actions to take place, you just create a custom callback and place
+it's name here instead.
+  
+TRUE means, that the callback (see above, here update_spinbutton) will be
+called when the GUI is initialized. This should almost always be TRUE, so
+the GUI widget will reflect the state of the bound properties on startup.
+  
+"spinbutton_up_connections" is the name of the widget.
+
+The above also works for GtkToggleButtons with the generic callback being
+update_togglebutton. For other widgets/properties you may need to do more
+work, especially you have to add callbacks within Glade and you need to
+provide those callbacks somewhere in the GUI code. Most of the time
+these callbacks will end up in settings_cb.c.
+  
