@@ -116,6 +116,24 @@
 #define g_list_delete_link(l,lk) \
 	list_delete_link_track((l),(lk), __FILE__, __LINE__)
 
+#define g_string_new(p)			string_new_track((p), __FILE__, __LINE__)
+#define g_string_sized_new(s)	string_sized_new_track((s), __FILE__, __LINE__)
+#define g_string_append(s,p)	string_append_track((s),(p),__FILE__,__LINE__)
+#define g_string_append_c(s,c)	string_append_c_track((s),(c),__FILE__,__LINE__)
+#define g_string_assign(s,p)	string_assign_track((s),(p),__FILE__,__LINE__)
+#define g_string_free(s,b)		string_free_track((s),(b), __FILE__, __LINE__)
+#define g_string_prepend(s,p)	string_prepend_track((s),(p),__FILE__,__LINE__)
+#define g_string_prepend_c(s,c) string_prepend_c_track(s),(c),__FILE__,__LINE__)
+
+#define g_string_insert(s,i,p)	\
+	string_insert_track((s),(i),(p),__FILE__,__LINE__)
+#define g_string_insert_c(s,i,c) \
+	string_insert_c_track((s),(i),(c),__FILE__,__LINE__)
+#define g_string_sprintf(s,fmt,...) \
+	string_sprintf_track((s),__FILE__,__LINE__,(fmt), __VA_ARGS__)
+#define g_string_sprintfa(s,fmt,...) \
+	string_sprintf_tracka((s),__FILE__,__LINE__,(fmt), __VA_ARGS__)
+
 /*
  * Use STRTRACK() to track an allocated string by some obscure routine that
  * does not happen to be wrapped here, so that we can remember it is an
@@ -189,6 +207,28 @@ GList *list_insert_sorted_track(
 GList *list_insert_after_track(
 	GList *l, GList *lk, gpointer data, gchar *file, gint line);
 GList *list_delete_link_track(GList *l, GList *lk, gchar *file, gint line);
+
+GString *string_new_track(const gchar *p, gchar *file, gint line);
+GString *string_sized_new_track(guint size, gchar *file, gint line);
+GString *string_append_track(
+	GString *s, const gchar *p, gchar *file, gint line);
+GString *string_append_c_track(
+	GString *s, gchar c, gchar *file, gint line);
+GString *string_assign_track(
+	GString *s, const gchar *p, gchar *file, gint line);
+void string_free_track(GString *s, gint freestr, gchar *file, gint line);
+GString *string_prepend_track(
+	GString *s, const gchar *p, gchar *file, gint line);
+GString *string_prepend_c_track(
+	GString *s, gchar c, gchar *file, gint line);
+GString *string_insert_track(
+	GString *s, gint pos, const gchar *p, gchar *file, gint line);
+GString *string_insert_c_track(
+	GString *s, gint pos, gchar c, gchar *file, gint line);
+GString *string_sprintf_track(
+	GString *s, gchar *file, gint line, const gchar *fmt, ...);
+GString *string_sprintfa_track(
+	GString *s, gchar *file, gint line, const gchar *fmt, ...);
 
 #endif	/* TRACK_MALLOC || MALLOC_SOURCE */
 

@@ -87,8 +87,8 @@ static void malloc_log_block(gpointer k, gpointer v, gpointer leaksort)
 		struct block *r = (struct block *) b->realloc->data;
 		gint cnt = g_slist_length(b->realloc);
 
-		g_warning("   (realloc'ed %d time%s, final: %u bytes from \"%s:%d\")",
-			cnt, cnt == 1 ? "" : "s", r->size, r->file, r->line);
+		g_warning("   (realloc'ed %d time%s, lastly from \"%s:%d\")",
+			cnt, cnt == 1 ? "" : "s", r->file, r->line);
 	}
 }
 
@@ -272,10 +272,11 @@ gpointer realloc_track(gpointer o, guint32 s, gchar *file, gint line)
 
 	r->file = file;
 	r->line = line;
-	r->size = s;
+	r->size = b->size;			/* Previous size before realloc */
 	r->realloc = NULL;
 
 	b->realloc = g_slist_prepend(b->realloc, r);	/* Last realloc at head */
+	b->size = s;
 
 	if (n != o) {
 		g_hash_table_remove(blocks, o);
@@ -283,6 +284,26 @@ gpointer realloc_track(gpointer o, guint32 s, gchar *file, gint line)
 	}
 
 	return n;
+}
+
+/*
+ * realloc_record
+ *
+ * Update size of already recorded object.
+ * Returns object.
+ */
+static gpointer realloc_record(gpointer o, guint32 s, gchar *file, gint line)
+{
+	struct block *b;
+
+	if (blocks == NULL || !(b = g_hash_table_lookup(blocks, o))) {
+		g_warning("(%s:%d) attempt to realloc freed block at 0x%lx?",
+			file, line, (gulong) o);
+		return o;
+	}
+
+	b->size = s;
+	return o;
 }
 
 /*
@@ -798,6 +819,153 @@ GList *list_delete_link_track(GList *l, GList *lk, gchar *file, gint line)
 	list_free1_track(lk, file, line);
 
 	return new;
+}
+
+/***
+ *** String trackers, to unveil hidden string buffer allocation.
+ ***/
+
+#define GSTRING_OBJ_SIZE	8		/* Random size */
+
+/*
+ * string_str_track
+ *
+ * Track changes to the internal string object.
+ * Returns GString object.
+ */
+static GString *string_str_track(GString *s, gchar *old, gchar *file, gint line)
+{
+	if (s->str != old) {
+		free_record(old, file, line);
+		string_record(s->str, file, line);
+	} else
+		realloc_record(s->str, strlen(s->str) + 1, file, line);
+
+	return s;
+}
+
+GString *string_new_track(const gchar *p, gchar *file, gint line)
+{
+	GString *result = g_string_new(p);
+
+	malloc_record(result, GSTRING_OBJ_SIZE, file, line);
+	string_record(result->str, file, line);
+
+	return result;
+}
+
+GString *string_sized_new_track(guint size, gchar *file, gint line)
+{
+	GString *result = g_string_sized_new(size);
+
+	malloc_record(result, GSTRING_OBJ_SIZE, file, line);
+	string_record(result->str, file, line);
+
+	return result;
+}
+
+GString *string_append_track(
+	GString *s, const gchar *p, gchar *file, gint line)
+{
+	gchar *old = s->str;
+
+	s = g_string_append(s, p);
+	return string_str_track(s, old, file, line);
+}
+
+GString *string_append_c_track(
+	GString *s, gchar c, gchar *file, gint line)
+{
+	gchar *old = s->str;
+
+	s = g_string_append_c(s, c);
+	return string_str_track(s, old, file, line);
+}
+
+GString *string_assign_track(
+	GString *s, const gchar *p, gchar *file, gint line)
+{
+	gchar *old = s->str;
+
+	s = g_string_assign(s, p);
+	return string_str_track(s, old, file, line);
+}
+
+void string_free_track(GString *s, gint freestr, gchar *file, gint line)
+{
+	free_record(s, file, line);
+	if (freestr)
+		free_record(s->str, file, line);
+
+	g_string_free(s, freestr);
+}
+
+GString *string_prepend_track(
+	GString *s, const gchar *p, gchar *file, gint line)
+{
+	gchar *old = s->str;
+
+	s = g_string_prepend(s, p);
+	return string_str_track(s, old, file, line);
+}
+
+GString *string_prepend_c_track(
+	GString *s, gchar c, gchar *file, gint line)
+{
+	gchar *old = s->str;
+
+	s = g_string_prepend_c(s, c);
+	return string_str_track(s, old, file, line);
+}
+
+GString *string_insert_track(
+	GString *s, gint pos, const gchar *p, gchar *file, gint line)
+{
+	gchar *old = s->str;
+
+	s = g_string_insert(s, pos, p);
+	return string_str_track(s, old, file, line);
+}
+
+GString *string_insert_c_track(
+	GString *s, gint pos, gchar c, gchar *file, gint line)
+{
+	gchar *old = s->str;
+
+	s = g_string_insert_c(s, pos, c);
+	return string_str_track(s, old, file, line);
+}
+
+GString *string_sprintf_track(
+	GString *s, gchar *file, gint line, const gchar *fmt, ...)
+{
+	va_list args;
+	gchar *o;
+	gchar *old = s->str;
+
+	va_start(args, fmt);
+	o = g_strdup_vprintf(fmt, args);
+	va_end(args);
+
+	g_string_assign(s, o);
+	g_free(o);
+	return string_str_track(s, old, file, line);
+}
+
+GString *string_sprintfa_track(
+	GString *s, gchar *file, gint line, const gchar *fmt, ...)
+{
+	va_list args;
+	gchar *o;
+	gchar *old = s->str;
+
+	va_start(args, fmt);
+	o = g_strdup_vprintf(fmt, args);
+	va_end(args);
+
+	g_string_append(s, o);
+	g_free(o);
+	return string_str_track(s, old, file, line);
 }
 
 #endif /* TRACK_MALLOC */
