@@ -21,9 +21,9 @@
 
 gchar c_tmp[2048];
 
-/*
- * Main window
- */
+/***
+/*** Main window
+ ***/
 
 gboolean on_main_window_delete_event(GtkWidget * widget, GdkEvent * event,
 									 gpointer user_data)
@@ -32,19 +32,20 @@ gboolean on_main_window_delete_event(GtkWidget * widget, GdkEvent * event,
 	return TRUE;
 }
 
-/*
- * Left part
- */
+/***
+ *** Left panel (selection tree)
+ ***/
 
-void on_clist_menu_select_row(GtkCList * clist, gint row, gint column,
-							  GdkEvent * event, gpointer user_data)
+void on_ctree_menu_tree_select_row(GtkCTree * ctree, GList *node, gint column,
+							       gpointer user_data)
 {
-	gtk_notebook_set_page(GTK_NOTEBOOK(notebook_main), row);
-}
+    gpointer tabptr;
 
-void on_button_stats_update_clicked(GtkButton * button, gpointer user_data)
-{
-	// XXX dead code
+    tabptr = gtk_ctree_node_get_row_data( GTK_CTREE(ctree), GTK_CTREE_NODE(node));
+    if( !tabptr )
+        return;
+
+	gtk_notebook_set_page(GTK_NOTEBOOK(notebook_main), *((gint *)tabptr));
 }
 
 void on_button_quit_clicked(GtkButton * button, gpointer user_data)
@@ -52,9 +53,9 @@ void on_button_quit_clicked(GtkButton * button, gpointer user_data)
 	gtk_gnutella_exit(0);
 }
 
-/*
- * gnutellaNet
- */
+/***
+ *** gnutellaNet pane
+ ***/
 
 /* connections */
 
@@ -112,44 +113,25 @@ void on_entry_host_changed(GtkEditable * editable, gpointer user_data)
 	g_free(e);
 }
 
-void on_button_nodes_remove_clicked(GtkButton * button, gpointer user_data)
-{
-	if (GTK_CLIST(clist_nodes)->selection) {
-		struct gnutella_node *n;
-		GList *l = GTK_CLIST(clist_nodes)->selection;
-
-		while (l) {
-			n = (struct gnutella_node *)
-				gtk_clist_get_row_data(GTK_CLIST(clist_nodes),
-									   (gint) l->data);
-			l = l->next;
-			if (NODE_IS_WRITABLE(n))
-				node_bye(n, 201, "User manual removal");
-			else {
-				node_remove(n, NULL);
-				node_real_remove(n);
-			}
-		}
-	}
-}
-
 void on_clist_nodes_select_row(GtkCList * clist, gint row, gint column,
 							   GdkEvent * event, gpointer user_data)
 {
 	gtk_widget_set_sensitive(button_nodes_remove, TRUE);
+   gtk_widget_set_sensitive(popup_nodes_remove, TRUE);
 }
 
 void on_clist_nodes_unselect_row(GtkCList * clist, gint row, gint column,
 								 GdkEvent * event, gpointer user_data)
 {
-	gtk_widget_set_sensitive(button_nodes_remove,
-							 (gboolean) GTK_CLIST(clist_nodes)->selection);
+    gboolean sensitive = (gboolean) GTK_CLIST(clist_nodes)->selection;
+	gtk_widget_set_sensitive(button_nodes_remove, sensitive);
+    gtk_widget_set_sensitive(popup_nodes_remove, sensitive);
 }
 
 void on_clist_nodes_resize_column(GtkCList * clist, gint column,
 								  gint width, gpointer user_data)
 {
-	nodes_col_widths[column] = width;
+    nodes_col_widths[column] = width;
 }
 
 /* minimum connections up */
@@ -158,7 +140,7 @@ void on_entry_up_connections_activate(GtkEditable * editable,
 									  gpointer user_data)
 {
 	/* This will generate a focus out event (next func) */
-	gtk_widget_grab_focus(clist_menu);
+	gtk_widget_grab_focus(ctree_menu);
 }
 
 gboolean on_entry_up_connections_focus_out_event(GtkWidget * widget,
@@ -166,10 +148,11 @@ gboolean on_entry_up_connections_focus_out_event(GtkWidget * widget,
 												 gpointer user_data)
 {
 	guint32 v;
-	gchar *e =
-		g_strdup(gtk_entry_get_text(GTK_ENTRY(entry_up_connections)));
-	g_strstrip(e);
-	v = atol(e);
+	gchar *e = 
+        g_strdup(gtk_entry_get_text(GTK_ENTRY(entry_up_connections)));
+        
+    g_strstrip(e);
+    v = atol(e);
 	g_free(e);
 	if (v >= 0 && v < 512) {
 		up_connections = v;
@@ -182,7 +165,9 @@ gboolean on_entry_up_connections_focus_out_event(GtkWidget * widget,
 	return TRUE;
 }
 
-/* nodes popup menu */
+/*** 
+ *** Popup menu: nodes
+ ***/
 
 gboolean on_clist_nodes_button_press_event(GtkWidget * widget,
 										   GdkEventButton * event,
@@ -191,16 +176,21 @@ gboolean on_clist_nodes_button_press_event(GtkWidget * widget,
 	if (event->button != 3)
 		return FALSE;
 
-	gtk_clist_unselect_all(GTK_CLIST(clist_nodes));
-
-	gtk_menu_popup(GTK_MENU(popup_nodes), NULL, NULL, NULL, NULL, 3, 0);
+   gtk_menu_popup(GTK_MENU(popup_nodes), NULL, NULL, NULL, NULL, 
+                  event->button, event->time);
 
 	return TRUE;
 }
 
-void on_popup_nodes_title_activate(GtkMenuItem * menuitem,
+void on_popup_nodes_remove_activate(GtkMenuItem * menuitem,
 								   gpointer user_data)
 {
+  gui_nodes_remove_selected();
+}
+
+void on_button_nodes_remove_clicked(GtkButton * button, gpointer user_data)
+{
+  gui_nodes_remove_selected();
 }
 
 void on_button_host_catcher_clear_clicked(GtkButton * button,
@@ -276,7 +266,7 @@ void button_fs_hosts_read_clicked(GtkButton * button, gpointer user_data)
 	hosts_read_filesel = (GtkWidget *) NULL;
 }
 
-void on_popup_hosts_importe_activate(GtkMenuItem * menuitem,
+void on_popup_hosts_import_activate(GtkMenuItem * menuitem,
 									 gpointer user_data)
 {
 	if (!hosts_read_filesel) {
@@ -301,9 +291,9 @@ void on_popup_hosts_importe_activate(GtkMenuItem * menuitem,
 	}
 }
 
-/*
- * Uploads
- */
+/***  
+ *** Uploads
+ ***/
 
 void on_clist_uploads_select_row(GtkCList * clist, gint row, gint column,
 								 GdkEvent * event, gpointer user_data)
@@ -328,29 +318,28 @@ void on_clist_uploads_resize_column(GtkCList * clist, gint column,
 	uploads_col_widths[column] = width;
 }
 
-void on_button_kill_upload_clicked(GtkButton * button, gpointer user_data)
+void on_button_uploads_kill_clicked(GtkButton * button, gpointer user_data)
 {
-	GList *l = NULL, *next;
+   GList *l = NULL;
 	struct upload *d;
 
 	l = GTK_CLIST(clist_uploads)->selection;
 
 	while (l) {
-		next = l->next;
 		d = (struct upload *)
 			gtk_clist_get_row_data(GTK_CLIST(clist_uploads),
 								   (gint) l->data);
-
-		if (!d) {
-			g_warning
-				("on_button_kill_uploadd_clicked(): row %d has NULL data\n",
-				 (gint) l->data);
-			continue;
+      gtk_clist_unselect_row(GTK_CLIST(clist_uploads), (gint) l->data, 0);
+      
+		if (d) {
+        if (!UPLOAD_IS_COMPLETE(d))
+          socket_destroy(d->socket);
+      } else {
+        g_warning("on_button_upload_kill_clicked(): row %d has NULL data\n",
+                  (gint) l->data);
 		}
 
-		if (!UPLOAD_IS_COMPLETE(d))
-			socket_destroy(d->socket);
-		l = next;
+      l = GTK_CLIST(clist_uploads)->selection;
 	}
 
 	gui_update_count_uploads();
@@ -359,7 +348,7 @@ void on_button_kill_upload_clicked(GtkButton * button, gpointer user_data)
 
 }
 
-void on_button_clear_uploads_clicked(GtkButton * button,
+void on_button_uploads_clear_completed_clicked(GtkButton * button,
 									 gpointer user_data)
 {
 	struct upload *d;
@@ -374,10 +363,10 @@ void on_button_clear_uploads_clicked(GtkButton * button,
 		else
 			row++;
 	}
-	gtk_widget_set_sensitive(button_clear_uploads, 0);
+	gtk_widget_set_sensitive(button_uploads_clear_completed, 0);
 }
 
-void on_checkbutton_clear_uploads_toggled(GtkToggleButton * togglebutton,
+void on_checkbutton_uploads_auto_clear_toggled(GtkToggleButton * togglebutton,
 										  gpointer user_data)
 {
 	clear_uploads = gtk_toggle_button_get_active(togglebutton);
@@ -410,20 +399,19 @@ gboolean on_clist_uploads_button_press_event(GtkWidget * widget,
 
 	gui_update_upload_kill();
 
-	gtk_menu_popup(GTK_MENU(popup_uploads), NULL, NULL, NULL, NULL, 3, 0);
+	gtk_menu_popup(GTK_MENU(popup_uploads), NULL, NULL, NULL, NULL, 
+                  event->button, event->time);
 
 	return TRUE;
 }
 
-void on_popup_uploads_title_activate(GtkMenuItem * menuitem,
-									 gpointer user_data)
+void on_popup_uploads_title_activate (GtkMenuItem *menuitem, gpointer user_data) 
 {
-
 }
 
-/*
- * Upload Stats
- */
+/***
+ *** Upload Stats pane
+ ***/
 
 void on_clist_ul_stats_click_column(GtkCList * clist, gint column,
 				    gpointer user_data)
@@ -482,9 +470,9 @@ void on_button_ul_stats_clear_deleted_clicked(GtkButton * button, gpointer user_
 {
 	ul_stats_prune_nonexistant();
 }
-/*
- * Downloads
- */
+/***
+ *** Downloads pane
+ ***/
 
 /* Active downloads clist */
 
@@ -531,109 +519,151 @@ gboolean on_clist_downloads_button_press_event(GtkWidget * widget,
 	d = (struct download *)
 		gtk_clist_get_row_data(GTK_CLIST(clist_downloads), row);
 
-	strncpy(c_tmp + 24, "...", 4);
-	strncpy(c_tmp, d->file_name, 24);
-
-	gtk_label_set(GTK_LABEL
-				  ((GTK_MENU_ITEM(popup_dl_active_title)->item.bin.child)),
-				  c_tmp);
-
-	gtk_widget_set_sensitive(download_p_push, !d->push);
-	gtk_widget_set_sensitive(download_p_queue,
+	gtk_widget_set_sensitive(popup_downloads_queue,
 							 d->status != GTA_DL_COMPLETED);
-	gtk_widget_set_sensitive(download_p_kill,
+	gtk_widget_set_sensitive(popup_downloads_kill,
 							 d->status != GTA_DL_COMPLETED);
 
-	gtk_clist_unselect_all(GTK_CLIST(clist_downloads));
-
-	gtk_menu_popup(GTK_MENU(popup_dl_active), NULL, NULL, NULL, NULL, 3,
-				   0);
-
-	selected_active_download = d;
+	gtk_menu_popup(GTK_MENU(popup_dl_active), NULL, NULL, NULL, NULL, 
+                  event->button, event->time);
 
 	return TRUE;
 }
 
-void on_download_p_push_activate(GtkMenuItem * menuitem,
+void on_popup_downloads_push_activate(GtkMenuItem * menuitem,
 								 gpointer user_data)
 {
-	if (selected_active_download)
-		download_fallback_to_push(selected_active_download, FALSE, TRUE);
-	selected_active_download = (struct download *) NULL;
+    GList *l;
+	struct download *d;
+
+	for (l = GTK_CLIST(clist_downloads)->selection; l; 
+        l = GTK_CLIST(clist_downloads)->selection ) {		
+		d = (struct download *) 
+        gtk_clist_get_row_data(GTK_CLIST(clist_downloads),
+                               (gint) l->data);
+        gtk_clist_unselect_row(GTK_CLIST(clist_downloads), (gint) l->data, 0);
+     
+        if (!d) {
+			g_warning("on_popup_downloads_queue_activate(): row %d has NULL data\n",
+			          (gint) l->data);
+		    continue;
+        }
+     	download_fallback_to_push(d, FALSE, TRUE);
+	}
 }
 
-void on_download_p_queue_activate(GtkMenuItem * menuitem,
+void on_popup_downloads_queue_activate(GtkMenuItem * menuitem,
 								  gpointer user_data)
 {
-	if (selected_active_download)
-		download_queue(selected_active_download);
-	selected_active_download = (struct download *) NULL;
+   GList *l;
+	struct download *d;
+
+	for (l = GTK_CLIST(clist_downloads)->selection; l; 
+        l = GTK_CLIST(clist_downloads)->selection ) {		
+     
+     d = (struct download *) 
+       gtk_clist_get_row_data(GTK_CLIST(clist_downloads),
+                              (gint) l->data);
+     gtk_clist_unselect_row(GTK_CLIST(clist_downloads), (gint) l->data, 0);
+     
+     if (!d) {
+       g_warning
+         ("on_popup_downloads_queue_activate(): row %d has NULL data\n",
+          (gint) l->data);
+       continue;
+     }
+     download_queue(d);
+	}
 }
 
-void on_download_p_kill_activate(GtkMenuItem * menuitem,
+void on_popup_downloads_kill_activate(GtkMenuItem * menuitem,
 								 gpointer user_data)
 {
-	if (selected_active_download)
-		download_kill(selected_active_download);
-	selected_active_download = (struct download *) NULL;
+   GList *l;
+	struct download *d;
+
+	for (l = GTK_CLIST(clist_downloads)->selection; l; 
+        l = GTK_CLIST(clist_downloads)->selection ) {		
+     
+     d = (struct download *) 
+       gtk_clist_get_row_data(GTK_CLIST(clist_downloads),
+                              (gint) l->data);
+     gtk_clist_unselect_row(GTK_CLIST(clist_downloads), (gint) l->data, 0);
+     
+     if (!d) {
+       g_warning
+         ("on_popup_downloads_queue_activate(): row %d has NULL data\n",
+          (gint) l->data);
+       continue;
+     }
+     download_kill(d);
+	}
 }
 
 /* Active downloads buttons and entries */
 
-void on_button_abort_download_clicked(GtkButton * button,
+void on_button_downloads_abort_clicked(GtkButton * button,
 									  gpointer user_data)
 {
 	GList *l;
 	struct download *d;
 
-	for (l = GTK_CLIST(clist_downloads)->selection; l; l = l->next) {
-		d = (struct download *)
-			gtk_clist_get_row_data(GTK_CLIST(clist_downloads),
-								   (gint) l->data);
+	for (l = GTK_CLIST(clist_downloads)->selection; l; l = GTK_CLIST(clist_downloads)->selection ) {
+		d = (struct download *) gtk_clist_get_row_data(GTK_CLIST(clist_downloads),
+                                                     (gint) l->data);
 
 		if (!d) {
-			g_warning
-				("on_button_abort_download_clicked(): row %d has NULL data\n",
-				 (gint) l->data);
+			g_warning("on_button_downloads_abort_clicked(): row %d has NULL data\n",
+                   (gint) l->data);
 			continue;
 		}
 
+      gtk_clist_unselect_row(GTK_CLIST(clist_downloads), (gint) l->data, 0);
 		download_abort(d);
 	}
 }
 
-void on_button_resume_download_clicked(GtkButton * button,
+void on_button_downloads_resume_clicked(GtkButton * button,
 									   gpointer user_data)
 {
 	GList *l;
 	struct download *d;
 
-	for (l = GTK_CLIST(clist_downloads)->selection; l; l = l->next) {
-		d = (struct download *)
-			gtk_clist_get_row_data(GTK_CLIST(clist_downloads),
-								   (gint) l->data);
-
-		if (!d) {
-			g_warning
-				("on_button_abort_download_clicked(): row %d has NULL data\n",
-				 (gint) l->data);
-			continue;
-		}
-
-		download_resume(d);
+	for (l = GTK_CLIST(clist_downloads)->selection; l; 
+        l = GTK_CLIST(clist_downloads)->selection ) {		
+     
+     d = (struct download *) 
+       gtk_clist_get_row_data(GTK_CLIST(clist_downloads),
+                              (gint) l->data);
+     gtk_clist_unselect_row(GTK_CLIST(clist_downloads), (gint) l->data, 0);
+     
+     if (!d) {
+       g_warning
+         ("on_button_downloads_resume_clicked(): row %d has NULL data\n",
+          (gint) l->data);
+       continue;
+     }
+     download_resume(d);
 	}
 
 	gui_update_download_abort_resume();
 	gui_update_download_clear();
 }
 
-void on_button_clear_download_clicked(GtkButton * button,
+void on_button_downloads_clear_completed_clicked(GtkButton * button,
 									  gpointer user_data)
 {
 	downloads_clear_stopped(TRUE, TRUE);
 }
 
-void on_checkbutton_clear_downloads_toggled(GtkToggleButton * togglebutton,
+void on_button_downloads_queue_clear_clicked(GtkButton * button,
+                                   gpointer user_data)
+{
+  // FIXME: should remove all queued downloads.
+  g_warning("on_button_downloads_queue_clear_clicked(): need to be implemented");
+}
+
+void on_checkbutton_downloads_auto_clear_toggled(GtkToggleButton * togglebutton,
 											gpointer user_data)
 {
 	clear_downloads = gtk_toggle_button_get_active(togglebutton);
@@ -645,7 +675,7 @@ void on_entry_max_downloads_activate(GtkEditable * editable,
 									 gpointer user_data)
 {
 	/* This will generate a focus out event (next func) */
-	gtk_widget_grab_focus(clist_menu);
+	gtk_widget_grab_focus(ctree_menu);
 }
 
 gboolean on_entry_max_downloads_focus_out_event(GtkWidget * widget,
@@ -662,7 +692,7 @@ gboolean on_entry_max_downloads_focus_out_event(GtkWidget * widget,
 	 * XXX This unselected_all() is a first attempt to work around the problem.
 	 */
 
-	gtk_clist_unselect_all(GTK_CLIST(clist_download_queue));
+	gtk_clist_unselect_all(GTK_CLIST(clist_downloads_queue));
 
 	gui_update_max_downloads();
 	download_pickup_queued();
@@ -674,7 +704,7 @@ void on_entry_max_host_downloads_activate(GtkEditable * editable,
 										  gpointer user_data)
 {
 	/* This will generate a focus out event (next func) */
-	gtk_widget_grab_focus(clist_menu);
+	gtk_widget_grab_focus(ctree_menu);
 }
 
 gboolean on_entry_max_host_downloads_focus_out_event(GtkWidget * widget,
@@ -691,7 +721,7 @@ gboolean on_entry_max_host_downloads_focus_out_event(GtkWidget * widget,
 	 * XXX This unselected_all() is a first attempt to work around the problem.
 	 */
 
-	gtk_clist_unselect_all(GTK_CLIST(clist_download_queue));
+	gtk_clist_unselect_all(GTK_CLIST(clist_downloads_queue));
 
 	gui_update_max_host_downloads();
 	download_pickup_queued();
@@ -699,43 +729,50 @@ gboolean on_entry_max_host_downloads_focus_out_event(GtkWidget * widget,
 	return TRUE;
 }
 
-/* Queued downloads */
+/*** 
+ *** Queued downloads
+ ***/
 
-void on_clist_download_queue_select_row(GtkCList * clist, gint row,
+void on_clist_downloads_queue_select_row(GtkCList * clist, gint row,
 										gint column, GdkEvent * event,
 										gpointer user_data)
 {
-	gtk_widget_set_sensitive(button_remove_download, TRUE);
+	gtk_widget_set_sensitive(button_downloads_queue_remove, TRUE);
+	gtk_widget_set_sensitive(popup_queue_remove, TRUE);
 }
 
-void on_clist_download_queue_unselect_row(GtkCList * clist, gint row,
+void on_clist_downloads_queue_unselect_row(GtkCList * clist, gint row,
 										  gint column, GdkEvent * event,
 										  gpointer user_data)
 {
-	gtk_widget_set_sensitive(button_remove_download,
-							 (gboolean) GTK_CLIST(clist_download_queue)->
+	gtk_widget_set_sensitive(button_downloads_queue_remove,
+							 (gboolean) GTK_CLIST(clist_downloads_queue)->
+							 selection);
+	gtk_widget_set_sensitive(popup_queue_remove,
+							 (gboolean) GTK_CLIST(clist_downloads_queue)->
 							 selection);
 }
 
-void on_button_remove_download_clicked(GtkButton * button,
+void on_button_downloads_queue_remove_clicked(GtkButton * button,
 									   gpointer user_data)
 {
-	if (GTK_CLIST(clist_download_queue)->selection) {
+	if (GTK_CLIST(clist_downloads_queue)->selection) {
 		struct download *d;
-		GList *l = GTK_CLIST(clist_download_queue)->selection;
+		GList *l = GTK_CLIST(clist_downloads_queue)->selection;
 
 		while (l) {
+         gtk_clist_unselect_row(GTK_CLIST(clist_downloads_queue), (gint) l->data, 0);
 			d = (struct download *)
-				gtk_clist_get_row_data(GTK_CLIST(clist_download_queue),
+				gtk_clist_get_row_data(GTK_CLIST(clist_downloads_queue),
 									   (gint) l->data);
-			l = l->next;
 			if (d->status == GTA_DL_QUEUED)
 				download_free(d);
+         l = GTK_CLIST(clist_downloads_queue)->selection;
 		}
 	}
 }
 
-void on_clist_download_queue_click_column(GtkCList * clist, gint column,
+void on_clist_downloads_queue_click_column(GtkCList * clist, gint column,
 										  gpointer user_data)
 {
 }
@@ -743,11 +780,11 @@ void on_clist_download_queue_click_column(GtkCList * clist, gint column,
 void on_download_start_now_activate(GtkMenuItem * menuitem,
 									gpointer user_data)
 {
-	if (selected_queued_download)
+    if (selected_queued_download)
 		download_start(selected_queued_download, TRUE);
 }
 
-gboolean on_clist_download_queue_button_press_event(GtkWidget * widget,
+gboolean on_clist_downloads_queue_button_press_event(GtkWidget * widget,
 													GdkEventButton * event,
 													gpointer user_data)
 {
@@ -758,23 +795,14 @@ gboolean on_clist_download_queue_button_press_event(GtkWidget * widget,
 		return FALSE;
 
 	if (!gtk_clist_get_selection_info
-		(GTK_CLIST(clist_download_queue), event->x, event->y, &row, &col))
+		(GTK_CLIST(clist_downloads_queue), event->x, event->y, &row, &col))
 		return FALSE;
 
 	d = (struct download *)
-		gtk_clist_get_row_data(GTK_CLIST(clist_download_queue), row);
+		gtk_clist_get_row_data(GTK_CLIST(clist_downloads_queue), row);
 
-	strncpy(c_tmp + 24, "...", 4);
-	strncpy(c_tmp, d->file_name, 24);
-
-	gtk_label_set(GTK_LABEL
-				  ((GTK_MENU_ITEM(popup_dl_queued_title)->item.bin.child)),
-				  c_tmp);
-
-	gtk_clist_unselect_all(GTK_CLIST(clist_download_queue));
-
-	gtk_menu_popup(GTK_MENU(popup_dl_queued), NULL, NULL, NULL, NULL, 3,
-				   0);
+	gtk_menu_popup(GTK_MENU(popup_dl_queued), NULL, NULL, NULL, NULL, 
+                  event->button, event->time);
 
 	if (d->status == GTA_DL_QUEUED)
 		selected_queued_download = d;
@@ -785,21 +813,21 @@ gboolean on_clist_download_queue_button_press_event(GtkWidget * widget,
 	return TRUE;
 }
 
-void on_clist_download_queue_resize_column(GtkCList * clist, gint column,
+void on_clist_downloads_queue_resize_column(GtkCList * clist, gint column,
 										   gint width, gpointer user_data)
 {
 	dl_queued_col_widths[column] = width;
 }
 
-/*
- * Searches
- */
+/***
+ *** Searches
+ ***/
 
 void on_entry_minimum_speed_activate(GtkEditable * editable,
 									 gpointer user_data)
 {
 	/* This will generate a focus out event (next func) */
-	gtk_widget_grab_focus(clist_menu);
+	gtk_widget_grab_focus(ctree_menu);
 }
 
 gboolean on_entry_minimum_speed_focus_out_event(GtkWidget * widget,
@@ -829,7 +857,7 @@ void on_button_search_clicked(GtkButton * button, gpointer user_data)
 	g_strstrip(e);
 	if (*e)
 		new_search(minimum_speed, e);
-	gtk_widget_grab_focus(clist_menu);
+	gtk_widget_grab_focus(ctree_menu);
 
 	g_free(e);
 }
@@ -861,24 +889,24 @@ void on_button_search_download_clicked(GtkButton * button,
 void on_button_search_stream_clicked(GtkButton * button,
 									 gpointer user_data)
 {
-
 }
 
 
-/*
- * Monitor
- */
+/***
+ *** Monitor
+ ***/ 
 
-void on_checkbutton_monitor_toggled(GtkToggleButton * togglebutton,
+void on_checkbutton_monitor_enable_toggled(GtkToggleButton * togglebutton,
 									gpointer user_data)
 {
 	monitor_enabled = gtk_toggle_button_get_active(togglebutton);
+	gtk_widget_set_sensitive(GTK_WIDGET(clist_monitor), !monitor_enabled);
 }
 
 void on_entry_monitor_activate(GtkEditable * editable, gpointer user_data)
 {
 	/* This will generate a focus out event (next func) */
-	gtk_widget_grab_focus(clist_menu);
+	gtk_widget_grab_focus(ctree_menu);
 }
 
 gboolean on_entry_monitor_focus_out_event(GtkWidget * widget,
@@ -902,12 +930,9 @@ gboolean on_entry_monitor_focus_out_event(GtkWidget * widget,
 	return TRUE;
 }
 
-/* Monitor popup menu */
-
-void on_popup_monitor_title_activate(GtkMenuItem * menuitem,
-									 gpointer user_data)
-{
-}
+/***
+ *** Monitor popup menu
+ ***/  
 
 gboolean on_clist_monitor_button_press_event(GtkWidget * widget,
 											 GdkEventButton * event,
@@ -916,18 +941,47 @@ gboolean on_clist_monitor_button_press_event(GtkWidget * widget,
 	if (event->button != 3)
 		return FALSE;
 
-	gtk_clist_unselect_all(GTK_CLIST(clist_monitor));
-
-	gtk_menu_popup(GTK_MENU(popup_monitor), NULL, NULL, NULL, NULL, 3, 0);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(checkbutton_monitor_enable), FALSE);
+	gtk_menu_popup(GTK_MENU(popup_monitor), NULL, NULL, NULL, NULL, 
+                  event->button, event->time);
 
 	return TRUE;
 }
 
-/*
- * Search Stats
- */
-void on_checkbutton_enable_search_stats_toggled(GtkToggleButton * togglebutton,
-						gpointer user_data)
+void on_popup_monitor_hide(GtkWidget *widget, 
+                           gpointer user_data)
+{
+	// FIXME: should restart monitoring again if wanted.
+}
+
+void on_popup_monitor_add_search_activate (GtkMenuItem *menuitem, 
+                                           gpointer user_data)
+{
+	GList *l;
+	gchar *titles[1];
+	gchar *e;
+
+	for (l = GTK_CLIST(clist_monitor)->selection; l; 
+        l = GTK_CLIST(clist_monitor)->selection ) {		
+        gtk_clist_get_text(GTK_CLIST(clist_monitor), (gint) l->data, 0, titles);
+        gtk_clist_unselect_row(GTK_CLIST(clist_monitor), (gint) l->data, 0);
+     
+		e = g_strdup(titles[0]);
+
+		g_strstrip(e);
+		if (*e)
+			new_search(minimum_speed, e);
+
+		g_free(e);
+	}	
+	gtk_widget_grab_focus(ctree_menu);
+}
+
+/***
+ *** Search Stats
+ ***/ 
+void on_checkbutton_search_stats_enable_toggled(GtkToggleButton * togglebutton,
+                                                gpointer user_data)
 {
 	search_stats_enabled = gtk_toggle_button_get_active(togglebutton);
 	/* if stats have been disabled, disable the toggle button too,
@@ -937,11 +991,10 @@ void on_checkbutton_enable_search_stats_toggled(GtkToggleButton * togglebutton,
 	if (search_stats_enabled)
 		enable_search_stats();
 	else
-		gtk_widget_set_sensitive(checkbutton_enable_search_stats, FALSE);
-
+		gtk_widget_set_sensitive(checkbutton_search_stats_enable, FALSE);
 }
 
-void on_button_reset_search_stats_clicked(GtkButton * button, gpointer user_data)
+void on_button_search_stats_reset_clicked(GtkButton * button, gpointer user_data)
 {
 	reset_search_stats();
 }
@@ -950,7 +1003,7 @@ void on_entry_search_stats_update_interval_activate(GtkEditable * editable,
 						    gpointer user_data)
 {
 	/* This will generate a focus out event (next func) */
-	gtk_widget_grab_focus(clist_menu);
+	gtk_widget_grab_focus(ctree_menu);
 }
 
 gboolean on_entry_search_stats_update_interval_focus_out_event(
@@ -971,10 +1024,10 @@ gboolean on_entry_search_stats_update_interval_focus_out_event(
 }
 
 void on_entry_search_stats_delcoef_activate(GtkEditable * editable,
-					    gpointer user_data)
+                                            gpointer user_data)
 {
 	/* This will generate a focus out event (next func) */
-	gtk_widget_grab_focus(clist_menu);
+	gtk_widget_grab_focus(ctree_menu);
 }
 
 gboolean on_entry_search_stats_delcoef_focus_out_event(
@@ -999,9 +1052,9 @@ void on_clist_search_stats_resize_column(GtkCList * clist, gint column,
 	search_stats_col_widths[column] = width;
 }
 
-/*
- * Config
- */
+/***
+ *** Config pane
+ ***/ 
 
 /* While downloading, store files to */
 
@@ -1182,7 +1235,7 @@ void on_entry_config_path_activate(GtkEditable * editable,
 								   gpointer user_data)
 {
 	/* This will generate a focus out event (next func) */
-	gtk_widget_grab_focus(clist_menu);
+	gtk_widget_grab_focus(ctree_menu);
 }
 
 gboolean on_entry_config_path_focus_out_event(GtkWidget * widget,
@@ -1198,7 +1251,7 @@ void on_entry_config_extensions_activate(GtkEditable * editable,
 										 gpointer user_data)
 {
 	/* This will generate a focus out event (next func) */
-	gtk_widget_grab_focus(clist_menu);
+	gtk_widget_grab_focus(ctree_menu);
 }
 
 gboolean on_entry_config_extensions_focus_out_event(GtkWidget * widget,
@@ -1232,7 +1285,7 @@ void on_entry_config_force_ip_activate(GtkEditable * editable,
 									   gpointer user_data)
 {
 	/* This will generate a focus out event (next func) */
-	gtk_widget_grab_focus(clist_menu);
+	gtk_widget_grab_focus(ctree_menu);
 }
 
 gboolean on_entry_config_force_ip_focus_out_event(GtkWidget * widget,
@@ -1270,7 +1323,7 @@ void config_port_update_request(void)
 			listen_port = 0;
 
 		gtk_widget_set_sensitive(button_config_update_port, FALSE);
-		gtk_widget_grab_focus(clist_menu);
+		gtk_widget_grab_focus(ctree_menu);
 	}
 	gui_update_config_port();
 	g_free(e);
@@ -1308,7 +1361,7 @@ void on_entry_config_maxttl_activate(GtkEditable * editable,
 									 gpointer user_data)
 {
 	/* This will generate a focus out event (next func) */
-	gtk_widget_grab_focus(clist_menu);
+	gtk_widget_grab_focus(ctree_menu);
 }
 
 gboolean on_entry_config_maxttl_focus_out_event(GtkWidget * widget,
@@ -1331,7 +1384,7 @@ void on_entry_config_myttl_activate(GtkEditable * editable,
 									gpointer user_data)
 {
 	/* This will generate a focus out event (next func) */
-	gtk_widget_grab_focus(clist_menu);
+	gtk_widget_grab_focus(ctree_menu);
 }
 
 gboolean on_entry_config_myttl_focus_out_event(GtkWidget * widget,
@@ -1353,7 +1406,7 @@ void on_entry_config_speed_activate(GtkEditable * editable,
 									gpointer user_data)
 {
 	/* This will generate a focus out event (next func) */
-	gtk_widget_grab_focus(clist_menu);
+	gtk_widget_grab_focus(ctree_menu);
 }
 
 gboolean on_entry_config_speed_focus_out_event(GtkWidget * widget,
@@ -1375,7 +1428,7 @@ void on_entry_config_search_items_activate(GtkEditable * editable,
 										   gpointer user_data)
 {
 	/* This will generate a focus out event (next func) */
-	gtk_widget_grab_focus(clist_menu);
+	gtk_widget_grab_focus(ctree_menu);
 }
 
 gboolean on_entry_config_search_items_focus_out_event(GtkWidget * widget,
@@ -1400,16 +1453,17 @@ void on_button_search_passive_clicked(GtkButton * button,
 {
 	struct search *sch;
 	sch = _new_search(minimum_speed, "Passive", SEARCH_PASSIVE);
-	gtk_widget_grab_focus(clist_menu);
+	gtk_widget_grab_focus(ctree_menu);
 }
 
-void on_checkbutton_never_push_toggled(GtkToggleButton * togglebutton,
+void on_checkbutton_downloads_never_push_toggled(GtkToggleButton * togglebutton,
 									   gpointer user_data)
 {
 	send_pushes = !gtk_toggle_button_get_active(togglebutton);
+	gtk_widget_set_sensitive(popup_downloads_push, !gtk_toggle_button_get_active(togglebutton));
 }
 
-void on_checkbutton_jump_to_downloads_toggled(GtkToggleButton *
+void on_checkbutton_search_jump_to_downloads_toggled(GtkToggleButton *
 											  togglebutton,
 											  gpointer user_data)
 {
@@ -1428,7 +1482,7 @@ void on_entry_max_uploads_activate(GtkEditable * editable,
 								   gpointer user_data)
 {
 	/* This will generate a focus out event (next func) */
-	gtk_widget_grab_focus(clist_menu);
+	gtk_widget_grab_focus(ctree_menu);
 }
 
 gboolean on_entry_max_uploads_focus_out_event(GtkWidget * widget,
@@ -1476,20 +1530,20 @@ gboolean on_entry_search_reissue_timeout_focus_out_event(GtkWidget *
 	return TRUE;
 }
 
-void on_config_entry_socks_host_activate(GtkEditable * editable,
+void on_entry_config_socks_host_activate(GtkEditable * editable,
 										 gpointer user_data)
 {
 	/* This will generate a focus out event (next func) */
-	gtk_widget_grab_focus(clist_menu);
+	gtk_widget_grab_focus(ctree_menu);
 }
 
-gboolean on_config_entry_socks_host_focus_out_event(GtkWidget * widget,
+gboolean on_entry_config_socks_host_focus_out_event(GtkWidget * widget,
 													GdkEventFocus * event,
 													gpointer user_data)
 {
 
 	gchar *e =
-		g_strdup(gtk_entry_get_text(GTK_ENTRY(config_entry_socks_host)));
+		g_strdup(gtk_entry_get_text(GTK_ENTRY(entry_config_socks_host)));
 	g_strstrip(e);
 
 
@@ -1502,20 +1556,20 @@ gboolean on_config_entry_socks_host_focus_out_event(GtkWidget * widget,
 	return TRUE;
 }
 
-void on_config_entry_socks_port_activate(GtkEditable * editable,
+void on_entry_config_socks_port_activate(GtkEditable * editable,
 										 gpointer user_data)
 {
 	/* This will generate a focus out event (next func) */
-	gtk_widget_grab_focus(clist_menu);
+	gtk_widget_grab_focus(ctree_menu);
 }
 
-gboolean on_config_entry_socks_port_focus_out_event(GtkWidget * widget,
+gboolean on_entry_config_socks_port_focus_out_event(GtkWidget * widget,
 													GdkEventFocus * event,
 													gpointer user_data)
 {
 	gint16 v;
 	gchar *e =
-		g_strdup(gtk_entry_get_text(GTK_ENTRY(config_entry_socks_port)));
+		g_strdup(gtk_entry_get_text(GTK_ENTRY(entry_config_socks_port)));
 	g_strstrip(e);
 
 	v = atoi(e);
@@ -1526,14 +1580,14 @@ gboolean on_config_entry_socks_port_focus_out_event(GtkWidget * widget,
 
 }
 
-void on_config_entry_socks_username_activate(GtkEditable * editable,
+void on_entry_config_socks_username_activate(GtkEditable * editable,
 											 gpointer user_data)
 {
 	/* This will generate a focus out event (next func) */
-	gtk_widget_grab_focus(clist_menu);
+	gtk_widget_grab_focus(ctree_menu);
 }
 
-gboolean on_config_entry_socks_username_focus_out_event(GtkWidget * widget,
+gboolean on_entry_config_socks_username_focus_out_event(GtkWidget * widget,
 														GdkEventFocus *
 														event,
 														gpointer user_data)
@@ -1541,7 +1595,7 @@ gboolean on_config_entry_socks_username_focus_out_event(GtkWidget * widget,
 
 	gchar *e =
 		g_strdup(gtk_entry_get_text
-				 (GTK_ENTRY(config_entry_socks_username)));
+				 (GTK_ENTRY(entry_config_socks_username)));
 	g_strstrip(e);
 
 	socksv5_user = g_strdup(e);
@@ -1550,14 +1604,14 @@ gboolean on_config_entry_socks_username_focus_out_event(GtkWidget * widget,
 	return TRUE;
 }
 
-void on_config_entry_socks_password_activate(GtkEditable * editable,
+void on_entry_config_socks_password_activate(GtkEditable * editable,
 											 gpointer user_data)
 {
 	/* This will generate a focus out event (next func) */
-	gtk_widget_grab_focus(clist_menu);
+	gtk_widget_grab_focus(ctree_menu);
 }
 
-gboolean on_config_entry_socks_password_focus_out_event(GtkWidget * widget,
+gboolean on_entry_config_socks_password_focus_out_event(GtkWidget * widget,
 														GdkEventFocus *
 														event,
 														gpointer user_data)
@@ -1565,7 +1619,7 @@ gboolean on_config_entry_socks_password_focus_out_event(GtkWidget * widget,
 
 	gchar *e =
 		g_strdup(gtk_entry_get_text
-				 (GTK_ENTRY(config_entry_socks_password)));
+				 (GTK_ENTRY(entry_config_socks_password)));
 	g_strstrip(e);
 
 	socksv5_pass = g_strdup(e);
@@ -1575,7 +1629,7 @@ gboolean on_config_entry_socks_password_focus_out_event(GtkWidget * widget,
 }
 
 
-void on_checkbutton_proxy_connections_toggled(GtkToggleButton *
+void on_checkbutton_config_proxy_connections_toggled(GtkToggleButton *
 											  togglebutton,
 											  gpointer user_data)
 {
@@ -1583,21 +1637,21 @@ void on_checkbutton_proxy_connections_toggled(GtkToggleButton *
 
 }
 
-void on_radio_http_toggled(GtkToggleButton * togglebutton,
+void on_radio_config_http_toggled(GtkToggleButton * togglebutton,
 							  gpointer user_data)
 {
 	if (gtk_toggle_button_get_active(togglebutton))
 		proxy_protocol = 1;
 }
 
-void on_radio_socksv4_toggled(GtkToggleButton * togglebutton,
+void on_radio_config_socksv4_toggled(GtkToggleButton * togglebutton,
 							  gpointer user_data)
 {
 	if (gtk_toggle_button_get_active(togglebutton))
 		proxy_protocol = 4;
 }
 
-void on_radio_socksv5_toggled(GtkToggleButton * togglebutton,
+void on_radio_config_socksv5_toggled(GtkToggleButton * togglebutton,
 							  gpointer user_data)
 {
 	if (gtk_toggle_button_get_active(togglebutton))
@@ -1608,7 +1662,7 @@ void on_entry_max_connections_activate(GtkEditable * editable,
 									   gpointer user_data)
 {
 	/* This will generate a focus out event (next func) */
-	gtk_widget_grab_focus(clist_menu);
+	gtk_widget_grab_focus(ctree_menu);
 }
 
 gboolean on_entry_max_connections_focus_out_event(GtkWidget * widget,
@@ -1627,11 +1681,9 @@ gboolean on_entry_max_connections_focus_out_event(GtkWidget * widget,
 	return TRUE;
 }
 
-/*
- * search callbacks
- */
-
-/* ----------------------------------------- */
+/*** 
+ *** Search pane
+ ***/ 
 
 static gint search_results_compare_size(GtkCList * clist, gconstpointer ptr1,
 								 gconstpointer ptr2)
@@ -1644,7 +1696,7 @@ static gint search_results_compare_size(GtkCList * clist, gconstpointer ptr1,
 }
 
 static gint search_results_compare_speed(GtkCList * clist, gconstpointer ptr1,
-								  gconstpointer ptr2)
+								         gconstpointer ptr2)
 {
 	struct results_set *rs1 =
 		((struct record *) ((GtkCListRow *) ptr1)->data)->results_set;
@@ -1656,7 +1708,7 @@ static gint search_results_compare_speed(GtkCList * clist, gconstpointer ptr1,
 }
 
 static gint search_results_compare_host(GtkCList * clist, gconstpointer ptr1,
-							   gconstpointer ptr2)
+							            gconstpointer ptr2)
 {
 	struct results_set *rs1 =
 		((struct record *) ((GtkCListRow *) ptr1)->data)->results_set;
@@ -1675,13 +1727,20 @@ static gint search_results_compare_host(GtkCList * clist, gconstpointer ptr1,
 
 static gint select_all_lock = 0;
 
+/**
+ * on_clist_search_results_select_row:
+ *
+ * This function is called when the user selectes a row in the
+ * search results pane. Autoselection takes place here.
+ */
 void on_clist_search_results_select_row(GtkCList * clist, gint row,
 										gint column, GdkEvent * event,
 										gpointer user_data)
 {
 	gtk_widget_set_sensitive(button_search_download, TRUE);
 
-	if (search_pick_all) {		// config setting select all is on
+	if (search_pick_all && 
+       (GTK_CLIST(clist)->selection->next == NULL)) {		// config setting select all is on
 		if (!select_all_lock) {
 			struct record *rc, *rc2;
 			gint x, i;
@@ -1702,12 +1761,13 @@ void on_clist_search_results_select_row(GtkCList * clist, gint row,
 						}
 					}
 			}
-			g_snprintf(c_tmp, sizeof(c_tmp),
-					   "		(%d auto selected)", x);
-			gtk_label_set(GTK_LABEL(label_left), c_tmp);
+			g_snprintf(c_tmp, sizeof(c_tmp), "%d auto selected", x);
+         gui_set_status(c_tmp);
 			select_all_lock = 0;		// we are done, un "lock" it
 		}
-	}
+	} else {
+     gui_set_status("autoselection disabled");
+   }
 }
 
 /* Row unselected */
@@ -1716,13 +1776,12 @@ void on_clist_search_results_unselect_row(GtkCList * clist, gint row,
 										  gint column, GdkEvent * event,
 										  gpointer user_data)
 {
-	gboolean sensitive;
+   gboolean sensitive;
 
-	sensitive = current_search
-		&& GTK_CLIST(current_search->clist)->selection;
+	sensitive = current_search	&& (gboolean) GTK_CLIST(current_search->clist)->selection;
 	gtk_widget_set_sensitive(button_search_download, sensitive);
-	if (search_pick_all)
-		gtk_label_set(GTK_LABEL(label_left), "");
+	if (search_pick_all || !sensitive)
+     gui_set_status( NULL );
 }
 
 /* Column title clicked */
@@ -1841,6 +1900,7 @@ gboolean on_clist_search_results_button_press_event(GtkWidget * widget,
 
 	switch (event->button) {
 	case 1:
+      // this is the left-click part
 		if (event->type == GDK_2BUTTON_PRESS) {
 			gtk_signal_emit_stop_by_name(GTK_OBJECT(widget),
 				"button_press_event");
@@ -1875,8 +1935,9 @@ gboolean on_clist_search_results_button_press_event(GtkWidget * widget,
 			}
 		}
 		return FALSE;
-
+   
 	case 3:
+        // this is the popup menu part
 		gtk_widget_set_sensitive(popup_search_toggle_tabs,
 			(gboolean) searches);
 		gtk_widget_set_sensitive(popup_search_close, (gboolean) searches);
@@ -1884,10 +1945,8 @@ gboolean on_clist_search_results_button_press_event(GtkWidget * widget,
 		gtk_widget_set_sensitive(popup_search_duplicate, (gboolean) searches);
 
 		if (current_search) {
-			gtk_clist_unselect_all(GTK_CLIST(current_search->clist));
-			gtk_widget_set_sensitive(popup_search_stop_sorting,
-				current_search->sort);
-			gtk_widget_set_sensitive(popup_search_stop,
+			gtk_widget_set_sensitive(popup_search_stop_sorting, current_search->sort);
+			gtk_widget_set_sensitive(popup_search_stop, 
 				current_search->passive ?
 					!current_search->frozen :
 					current_search->reissue_timeout);
@@ -1897,23 +1956,16 @@ gboolean on_clist_search_results_button_press_event(GtkWidget * widget,
 					!current_search->reissue_timeout);
 			if (current_search->passive)
 				gtk_widget_set_sensitive(popup_search_restart, FALSE);
-			g_snprintf(c_tmp, sizeof(c_tmp), "%s", current_search->query);
 		} else {
 			gtk_widget_set_sensitive(popup_search_stop_sorting, FALSE);
 			gtk_widget_set_sensitive(popup_search_stop, FALSE);
 			gtk_widget_set_sensitive(popup_search_resume, FALSE);
-			g_snprintf(c_tmp, sizeof(c_tmp), "No current search");
 		}
 
-		gtk_label_set(
-			GTK_LABEL((GTK_MENU_ITEM(popup_search_title)->item.bin.child)),
-			c_tmp);
-		g_snprintf(c_tmp, sizeof(c_tmp),
-			(search_results_show_tabs) ? "Hide tabs" : "Show tabs");
-		gtk_label_set(
-			GTK_LABEL((GTK_MENU_ITEM(popup_search_toggle_tabs)->item.bin.child)),
-			c_tmp);
-		gtk_menu_popup(GTK_MENU(popup_search), NULL, NULL, NULL, NULL, 3, 0);
+        g_snprintf(c_tmp, sizeof(c_tmp), (search_results_show_tabs) ? "Hide tabs" : "Show tabs");
+		gtk_label_set( GTK_LABEL((GTK_MENU_ITEM(popup_search_toggle_tabs)->item.bin.child)), c_tmp);
+		gtk_menu_popup(GTK_MENU(popup_search), NULL, NULL, NULL, NULL, 
+                     event->button, event->time);
 		return TRUE;
 
 	default:
@@ -1969,6 +2021,11 @@ void on_search_switch(struct search *sch)
 	gui_update_minimum_speed(sch->speed);
 	gtk_widget_set_sensitive(button_search_download,
 							 (gboolean) GTK_CLIST(sch->clist)->selection);
+   // FIXME: needs only to remove the "autoselected" message from the
+   // statusbar stack. Fix when we use statusbar_context
+   //
+   // bluefire
+   gui_set_status( NULL );
 
 	if (sch->items == 0) {
 		gtk_widget_set_sensitive(button_search_clear, FALSE);
@@ -2024,15 +2081,74 @@ void on_button_search_clear_clicked(GtkButton * button, gpointer user_data)
 
 }
 
-void
-on_popup_search_clear_results_activate(GtkMenuItem * menuitem,
-									   gpointer user_data)
+void on_popup_search_clear_results_activate(GtkMenuItem * menuitem,
+									        gpointer user_data)
 {
 	gui_search_clear_results();
 
 	gtk_widget_set_sensitive(button_search_clear, FALSE);
 	gtk_widget_set_sensitive(popup_search_clear_results, FALSE);
 
+}
+
+/***
+ *** menu bar
+ ***/ 
+
+void on_menu_toolbar_visible_activate(GtkMenuItem * menuitem,
+                                      gpointer user_data)
+{
+	toolbar_visible = GTK_CHECK_MENU_ITEM(menuitem)->active;
+	if( GTK_CHECK_MENU_ITEM(menuitem)->active ) {
+		gtk_widget_show_all( hb_toolbar );
+	} else {
+		gtk_widget_hide_all( hb_toolbar );
+	}
+}
+
+
+void on_menu_statusbar_visible_activate(GtkMenuItem * menuitem,
+									    gpointer user_data)
+{
+	statusbar_visible = GTK_CHECK_MENU_ITEM(menuitem)->active;
+	if( GTK_CHECK_MENU_ITEM(menuitem)->active ) {
+		gtk_widget_show_all( hbox_statusbar );
+	} else {
+		gtk_widget_hide_all( hbox_statusbar );
+	}
+}
+
+void on_menu_downloads_visible_activate(GtkMenuItem * menuitem,
+									 gpointer user_data)
+{
+	progressbar_downloads_visible = GTK_CHECK_MENU_ITEM(menuitem)->active;
+	if( GTK_CHECK_MENU_ITEM(menuitem)->active ) {
+		gtk_widget_show_all( progressbar_downloads );
+	} else {
+		gtk_widget_hide_all( progressbar_downloads );
+	}
+}
+
+void on_menu_uploads_visible_activate(GtkMenuItem * menuitem,
+								   gpointer user_data)
+{
+	progressbar_uploads_visible = GTK_CHECK_MENU_ITEM(menuitem)->active;
+	if( GTK_CHECK_MENU_ITEM(menuitem)->active ) {
+		gtk_widget_show_all( progressbar_uploads );
+	} else {
+		gtk_widget_hide_all( progressbar_uploads );
+	}
+}
+
+void on_menu_connections_visible_activate(GtkMenuItem * menuitem,
+									   gpointer user_data)
+{
+	progressbar_connections_visible = GTK_CHECK_MENU_ITEM(menuitem)->active;
+	if( GTK_CHECK_MENU_ITEM(menuitem)->active ) {
+		gtk_widget_show_all( progressbar_connections );
+	} else {
+		gtk_widget_hide_all( progressbar_connections );
+	}
 }
 
 /* vi: set ts=4: */
