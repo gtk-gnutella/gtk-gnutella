@@ -1,5 +1,12 @@
 # since last version
 
+- (2004-08-30 - RAM)
+ * Message queue now maintains whether queue is within the warn-zone range
+   (between hiwat and lowat) to update node's flag as soon as the condition
+   changes.
+ * Added support for GTKG/21v1 "Push-Proxy Cancel" vendor message.
+ * Show used charset at startup time.
+
 - (2004-08-29 - RAM)
  * Added count of bytes/packets queued to be able to monitor the amount of
    bytes/packets dropped whilst in the TX queues.  New columns "queued" and
