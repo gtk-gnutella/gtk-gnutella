@@ -582,17 +582,16 @@ static gnet_results_set_t *get_results_set
 
 		/*
 		 * Now that we have the vendor, warn if the message has SHA1 errors.
+		 * Then drop the packet!
 		 */
 
-		if (dbg && sha1_errors) {
-			g_warning(
+		if (sha1_errors) {
+			if (dbg) g_warning(
 				"%s (%s) from %s (%s) had %d SHA1 error%s over %u record%s",
 				 gmsg_infostr(&n->header), vendor ? vendor : "????",
 				 node_ip(n), n->vendor ? n->vendor : "????",
 				 sha1_errors, sha1_errors == 1 ? "" : "s",
 				 nr, nr == 1 ? "" : "s");
-			if (dbg > 1)
-				dump_hex(stderr, "Query Hit Data (BAD)", n->data, n->size);
 			goto bad_packet;		/* Will drop this bad query hit */
 		}
 
@@ -1034,10 +1033,6 @@ gboolean search_results(gnutella_node_t *n)
             !sch->frozen && 
 			(sch->passive || search_has_muid(sch, n->header.muid))
         ) {
-            // FIXME: expensive assert.
-            g_assert(g_slist_find(selected_searches, 
-                (gpointer) sch->search_handle) == NULL);
-
 			selected_searches = g_slist_prepend
                 (selected_searches, (gpointer) sch->search_handle);
         }
