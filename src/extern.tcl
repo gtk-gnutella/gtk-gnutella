@@ -78,6 +78,7 @@ set w_main_list {
     spinbutton_config_node_connected_timeout
     spinbutton_config_upload_connecting_timeout
     spinbutton_config_upload_connected_timeout
+    vpaned_downloads
 
 	button_nodes_add 
 	button_nodes_remove 
