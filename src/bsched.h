@@ -30,7 +30,6 @@
 
 struct iovec;
 
-#include <sys/time.h>		/* For struct timeval */
 #include <sys/types.h>		/* For off_t */
 #include <gdk/gdk.h>
 
@@ -57,7 +56,7 @@ struct iovec;
  * next period.
  */
 typedef struct bsched {
-	struct timeval last_period;			/* Last time we ran our period */
+	GTimeVal last_period;				/* Last time we ran our period */
 	GList *sources;						/* List of bio_source_t */
 	gchar *name;						/* Name, for tracing purposes */
 	gint count;							/* Amount of sources */

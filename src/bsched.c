@@ -222,12 +222,11 @@ void bsched_close(void)
  */
 void bsched_enable(bsched_t *bs)
 {
-	struct timezone tz;
 
 	g_assert(bs);
 
 	bs->flags |= BS_F_ENABLED;
-	(void) gettimeofday(&bs->last_period, &tz);
+	g_get_current_time(&bs->last_period);
 }
 
 /*
@@ -1024,7 +1023,7 @@ gint bws_read(bsched_t *bs, gint fd, gpointer data, gint len)
  *
  * Periodic heartbeat.
  */
-static void bsched_heartbeat(bsched_t *bs, struct timeval *tv)
+static void bsched_heartbeat(bsched_t *bs, GTimeVal *tv)
 {
 	gint delay;
 	gint overused;
@@ -1164,10 +1163,9 @@ new_timeslice:
  */
 void bsched_timer(void)
 {
-	struct timezone tz;
-	struct timeval tv;
+	GTimeVal tv;
 
-	(void) gettimeofday(&tv, &tz);
+	g_get_current_time(&tv);
 
 	bsched_heartbeat(bws.out, &tv);
 	bsched_heartbeat(bws.in, &tv);

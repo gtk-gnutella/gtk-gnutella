@@ -252,12 +252,11 @@ static gboolean main_timer(gpointer p)
  */
 static gboolean callout_timer(gpointer p)
 {
-	static struct timeval last_period = { 0L, 0L };
-	struct timezone tz;
-	struct timeval tv;
+	static GTimeVal last_period = { 0L, 0L };
+	GTimeVal tv;
 	gint delay;
 
-	(void) gettimeofday(&tv, &tz);
+	g_get_current_time(&tv);
 
 	/*
 	 * How much elapsed since last call?

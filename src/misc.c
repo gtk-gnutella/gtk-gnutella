@@ -706,7 +706,7 @@ void random_init(void)
 	FILE *f = NULL;
 	SHA1Context ctx;
 	struct stat buf;
-	struct timeval start, end;
+	GTimeVal start, end;
 	struct tms ticks;
 	guint32 seed;
 	guint8 digest[SHA1HashSize];
@@ -719,7 +719,7 @@ void random_init(void)
 	 * Get random entropy from the system.
 	 */
 
-	gettimeofday(&start, NULL);
+	g_get_current_time(&start);
 
 	SHA1Reset(&ctx);
 
@@ -776,7 +776,7 @@ void random_init(void)
 	sys[3] = ticks.tms_utime;
 	sys[4] = ticks.tms_stime;
 
-	gettimeofday(&end, NULL);
+	g_get_current_time(&end);
 
 	sys[5] = end.tv_sec - start.tv_sec;
 	sys[6] = end.tv_usec - start.tv_usec;

@@ -48,7 +48,7 @@ struct alive {
 
 struct alive_ping {
 	guchar *muid;				/* The GUID of the message */
-	struct timeval sent;		/* Time at which we sent the message */
+	GTimeVal sent;				/* Time at which we sent the message */
 };
 
 /*
@@ -63,7 +63,7 @@ static struct alive_ping *ap_make(guchar *muid)
 	ap = walloc(sizeof(*ap));
 
 	ap->muid = atom_guid_get(muid);
-	gettimeofday(&ap->sent, NULL);
+	g_get_current_time(&ap->sent);
 
 	return ap;
 }
@@ -149,10 +149,10 @@ gboolean alive_send_ping(gpointer obj)
  */
 static void ap_ack(struct alive_ping *ap, struct alive *a)
 {
-	struct timeval now;
+	GTimeVal now;
 	gint delay;					/* Between sending and reception, in ms */
 
-	gettimeofday(&now, NULL);
+	g_get_current_time(&now);
 
 	delay = (gint) ((now.tv_sec - ap->sent.tv_sec) * 1000 +
 		(now.tv_usec - ap->sent.tv_usec) / 1000);
