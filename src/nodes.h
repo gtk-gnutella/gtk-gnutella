@@ -58,6 +58,7 @@ struct gnutella_node {
 	guint32 pos;			/* write position in data */
 
 	guchar status;			/* See possible values below */
+	guchar peermode;		/* See possible values below */
 	guint32 flags;			/* See possible values below */
 	guint32 attrs;			/* See possible values below */
 
@@ -88,6 +89,7 @@ struct gnutella_node {
 	rxdrv_t *rx;				/* RX stack top */
 
 	gpointer routing_data;		/* Opaque info, for packet routing */
+	gpointer query_routing;		/* Opaque info, for query routing */
 
 	/*
 	 * Data structures used by the ping/pong reduction scheme.
@@ -169,6 +171,14 @@ struct gnutella_node {
 #define GTA_NODE_SHUTDOWN			7	/* Connection being shutdown */
 
 /*
+ * Peer modes.
+ */
+
+#define NODE_P_LEAF					0	/* Leaf node */
+#define NODE_P_NORMAL				1	/* Normal legacy node */
+#define NODE_P_ULTRA				2	/* Ultra node */
+
+/*
  * State inspection macros.
  */
 
@@ -225,6 +235,14 @@ struct gnutella_node {
 #define NODE_RX_COMPRESSION_RATIO(n)	\
 	((n)->rx_inflated ?					\
 		(double) ((n)->rx_inflated - (n)->rx_given) / (n)->rx_inflated : 0.0)
+
+/*
+ * Peer inspection macros
+ */
+
+#define NODE_IS_LEAF(n)			((n)->peermode == NODE_P_LEAF)
+#define NODE_IS_NORMAL(n)		((n)->peermode == NODE_P_NORMAL)
+#define NODE_IS_ULTRA(n)		((n)->peermode == NODE_P_ULTRA)
 
 /*
  * Macros.
@@ -298,6 +316,8 @@ void node_bye_all(void);
 gboolean node_bye_pending(void);
 void node_close(void);
 gboolean node_remove_non_nearby(void);
+
+void send_node_error(struct gnutella_socket *s, int code, guchar *msg, ...);
 
 #endif /* __nodes_h__ */
 
