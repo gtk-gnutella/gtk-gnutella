@@ -84,7 +84,7 @@ static void add_drop_sha1_filter(
 	record_t *rec;
     rule_t *rule;
 
-	gtk_tree_model_get(model, iter, 6, &rec, -1);	
+	gtk_tree_model_get(model, iter, c_sr_record, &rec, -1);	
     g_assert(rec != NULL);
     g_assert(filter != NULL);
 
@@ -101,7 +101,7 @@ static void add_drop_name_filter (
 	record_t *rec;
     rule_t *rule;
 
-	gtk_tree_model_get(model, iter, 6, &rec, -1);	
+	gtk_tree_model_get(model, iter, c_sr_record, &rec, -1);	
     g_assert(rec != NULL);
     g_assert(filter != NULL);
 
@@ -118,7 +118,7 @@ static void add_drop_host_filter(
 	record_t *rec;
     rule_t *rule;
 
-	gtk_tree_model_get(model, iter, 6, &rec, -1);	
+	gtk_tree_model_get(model, iter, c_sr_record, &rec, -1);	
     g_assert(rec != NULL);
     g_assert(filter != NULL);
 
@@ -134,7 +134,7 @@ static void add_download_sha1_filter(
 	filter_t *filter = data;
 	record_t *rec;
 
-	gtk_tree_model_get(model, iter, 6, &rec, -1);	
+	gtk_tree_model_get(model, iter, c_sr_record, &rec, -1);	
     g_assert(rec != NULL);
     g_assert(filter != NULL);
 
@@ -155,7 +155,7 @@ static void add_download_name_filter(
 	record_t *rec;
     rule_t *rule;
 
-	gtk_tree_model_get(model, iter, 6, &rec, -1);	
+	gtk_tree_model_get(model, iter, c_sr_record, &rec, -1);	
     g_assert(rec != NULL);
     g_assert(filter != NULL);
 
@@ -247,7 +247,7 @@ static void add_targetted_search(
 	record_t *rec;
     rule_t *rule;
 
-	gtk_tree_model_get(model, iter, 6, &rec, -1);	
+	gtk_tree_model_get(model, iter, c_sr_record, &rec, -1);	
     g_assert(rec != NULL);
     g_assert(rec->name != NULL);
 
@@ -328,7 +328,7 @@ void on_tree_view_search_select_row(GtkTreeView * treeview, gpointer user_data)
 	if (!gtk_tree_selection_get_selected(selection, &model, &iter))
 		return;
 
-	gtk_tree_model_get(model, &iter, 3, &sch, -1);
+	gtk_tree_model_get(model, &iter, c_sl_sch, &sch, -1);
 
 	if (sch == NULL)
 		return;
@@ -468,8 +468,6 @@ gboolean on_tree_view_search_results_key_press_event
 gboolean on_tree_view_search_results_button_press_event
     (GtkWidget *widget, GdkEventButton * event, gpointer user_data)
 {
-	gint row = 0;
-	gint column = 0;
 	static guint click_time = 0;
 	search_t *current_search;
 
@@ -491,19 +489,9 @@ gboolean on_tree_view_search_results_button_press_event
 				 */
 				gtk_signal_emit_stop_by_name(GTK_OBJECT(widget),
 					"button_press_event");
-				if (
-					gtk_clist_get_selection_info(GTK_CLIST(widget), event->x,
-													event->y, &row, &column)
-				) {
-					/*
-					 * Manually reselect to force the autoselection to behave
-					 * correctly.
-					 */
-//					gtk_clist_select_row(GTK_CLIST(widget), row, column);
 					search_gui_download_files();
 
 					return TRUE;
-				}
 			} else {
 					click_time = event->time;
 					return FALSE;
@@ -555,17 +543,17 @@ void on_tree_view_search_results_click_column(
 
 }
 
+static guint32 autoselect_files_fuzzy_threshold;
+
 static void autoselect_files(
     GtkTreeModel *model, GtkTreePath *path, GtkTreeIter *iter, gpointer data) 
 {
 	record_t *rc;
 	gint x;
-	guint32 fuzzy_threshold;
+	guint32 fuzzy_threshold = autoselect_files_fuzzy_threshold;
 	GtkTreeIter	model_iter;
 	gboolean more_rows;
 	GtkTreeSelection	*tree_selection = GTK_TREE_SELECTION(data);
-
-	gnet_prop_get_guint32(PROP_FUZZY_THRESHOLD, &fuzzy_threshold, 0, 1);
 
 	/* 
 	 * Rows with NULL data can appear when inserting new rows
@@ -575,7 +563,8 @@ static void autoselect_files(
 	 *      --BLUE, 20/06/2002
 	 */
 
-	gtk_tree_model_get(model, iter, 6, &rc, -1);
+	gtk_tree_model_get(model, iter, c_sr_record, &rc, -1);
+//	g_message("%s: name=\"%s'\"", __FUNCTION__, rc->name);
 
 	/*
 	 * Note that rc != NULL is embedded in the "for condition".
@@ -587,7 +576,7 @@ static void autoselect_files(
 		more_rows = gtk_tree_model_iter_next(model, &model_iter)) 
 	{
 		record_t *rc2;
-		gtk_tree_model_get(model, &model_iter, 6, &rc2, -1);
+		gtk_tree_model_get(model, &model_iter, c_sr_record, &rc2, -1);
 
 		/*
 		 * Skip the line we selected in the first place.
@@ -639,19 +628,17 @@ static void autoselect_files(
 			(rc->sha1 != NULL) ? "by urn:sha1 and filename" : "by filename");
 }
 
-/**
- * on_tree_view_search_results_select_row:
- *
- * This function is called when the user selectes a row in the
- * search results pane. Autoselection takes place here.
- */
-void on_tree_view_search_results_select_row(
-    GtkTreeView *tree_view, gpointer user_data)
+static gboolean autoselection_running = FALSE;
+
+gboolean autoselect_files_after_delay(gpointer data)
 {
+	GtkTreeView *tree_view = GTK_TREE_VIEW(data);
+
     gboolean search_autoselect;
     gboolean search_autoselect_ident;
     gboolean search_autoselect_fuzzy;
 	GtkTreeSelection *tree_selection = gtk_tree_view_get_selection(tree_view);
+	time_t	start;
 
     gui_prop_get_boolean(
         PROP_SEARCH_AUTOSELECT,
@@ -675,26 +662,44 @@ void on_tree_view_search_results_select_row(
 
     refresh_popup();
 
+	gnet_prop_get_guint32(PROP_FUZZY_THRESHOLD, 
+		&autoselect_files_fuzzy_threshold, 0, 1);
+
     /* 
      * check if config setting select all is on and only autoselect if
      * only one item is selected (no way to merge two autoselections)
      */
-    if (search_autoselect)
+	g_warning("Starting autoselect...");
+	start = time(NULL);
+	if (search_autoselect)
 		gtk_tree_selection_selected_foreach(
 			tree_selection,
 			autoselect_files,
 			tree_selection);
+	g_warning("Autoselect done (%d sec.).\n", (int)(time(NULL) - start));
 
     g_signal_handlers_unblock_by_func(
         G_OBJECT(tree_view),
         G_CALLBACK(on_tree_view_search_results_select_row),
         NULL);
+
+	autoselection_running = FALSE;
+	return FALSE;
 }
 
-void on_tree_view_search_results_unselect_row(
-    GtkTreeView * tree_view, gint row, gint col, GdkEvent * event, gpointer data)
+/**
+ * on_tree_view_search_results_select_row:
+ *
+ * This function is called when the user selectes a row in the
+ * search results pane. Autoselection takes place here.
+ */
+void on_tree_view_search_results_select_row(
+    GtkTreeView *tree_view, gpointer user_data)
 {
-    refresh_popup();
+	if (!autoselection_running) {
+		autoselection_running = TRUE;
+		g_timeout_add(350, autoselect_files_after_delay, tree_view);
+	}
 }
 
 void on_tree_view_search_results_resize_column(

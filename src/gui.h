@@ -100,7 +100,12 @@ enum {
     c_sr_speed,
     c_sr_host,
     c_sr_urn,
-    c_sr_info
+    c_sr_info,
+#ifdef USE_GTK2
+	c_sr_record, /* invisible, pointer to the record_t of this entry */
+	c_sr_sortkey, /* invisible, key for sorting by filename */
+#endif
+	c_sr_num
 };
 
 
@@ -125,7 +130,11 @@ enum {
 enum {
     c_sl_name = 0,
     c_sl_hit,
-    c_sl_new
+    c_sl_new,
+#ifdef USE_GTK2
+	c_sl_sch, /* invisible, pointer to the search_t for this entry */
+#endif
+	c_sl_num
 };
 
 
