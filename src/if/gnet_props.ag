@@ -1398,7 +1398,7 @@ prop = {
     desc = "Store incomplete files in this directory";
     type = string;
     data = {
-        default = "~";
+        default = "~/gtk-gnutella-downloads/incomplete";
     };
 };
 
@@ -1410,7 +1410,7 @@ prop = {
 		   "corrupted files, files will be renamed with a trailing .OK";
     type = string;
     data = {
-        default = "~";
+        default = "~/gtk-gnutella-downloads/complete";
     };
 };
 
@@ -1422,7 +1422,7 @@ prop = {
 		   "completed files, files will be renamed with a trailing .BAD";
     type = string;
     data = {
-        default = "~";
+        default = "~/gtk-gnutella-downloads/corrupt";
     };
 };
 
