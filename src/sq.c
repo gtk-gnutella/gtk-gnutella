@@ -35,12 +35,9 @@
 #include "nodes.h"
 #include "search.h"
 #include "atoms.h"
+#include "gnet_property_priv.h"
 
 RCSID("$Id$");
-
-/* hack value for now */
-#define QUEUE_SPACING	10		/* Send a search every 10 seconds */
-#define MAX_QUEUE		256		/* Max amount of searches we queue */
 
 /*
  * Compute start of search string (which is NUL terminated) in query.
@@ -173,9 +170,9 @@ squeue_t *sq_make(struct gnutella_node *node)
 	/*
 	 * By initializing `last_sent' to the current time and not to `0', we
 	 * ensure that we won't send the query to the node during the first
-	 * QUEUE_SPACING seconds of its connection.  This prevent useless traffic
-	 * on Gnet, because if the connection held for that long, chances are
-	 * it will hold until we get some results back.
+	 * "search_queue_spacing" seconds of its connection.  This prevent
+	 * useless traffic on Gnet, because if the connection held for that long,
+	 * chances are it will hold until we get some results back.
 	 *
 	 *		--RAM, 01/05/2002
 	 */
@@ -262,7 +259,7 @@ void sq_putq(squeue_t *sq, gnet_search_t sh, pmsg_t *mb)
 	sq->searches = g_list_prepend(sq->searches, sb);
 	sq->count++;
 
-	if (sq->count > MAX_QUEUE)
+	if (sq->count > search_queue_size)
 		cap_queue(sq);
 }
 
@@ -287,7 +284,7 @@ retry:
 	 * We don't need to do anything if either:
 	 *
 	 * 1. The queue is empty.
-	 * 2. We sent our last search less than QUEUE_SPACING seconds ago.
+	 * 2. We sent our last search less than "search_queue_spacing" seconds ago.
 	 * 3. We never got a packet from that node.
 	 * 4. The node activated hops-flow to shut all queries
 	 * 5. We activated flow-control on the node locally.
@@ -298,7 +295,7 @@ retry:
 	if (sq->count == 0)
 		return;
 
-    if (sq->last_sent + QUEUE_SPACING > now)
+    if (sq->last_sent + search_queue_spacing > now)
 		return;
 
 	n = sq->node;
@@ -377,7 +374,7 @@ retry:
  */
 static void cap_queue(squeue_t *sq)
 {
-    while (sq->count > MAX_QUEUE) {
+    while (sq->count > search_queue_size) {
     	GList *item = g_list_last(sq->searches);
 		smsg_t *sb = (smsg_t *) item->data;
 
