@@ -5146,6 +5146,14 @@ static prop_map_t property_map[] = {
     ),
     PROP_ENTRY(
         get_prefs_dialog,
+        PROP_PROXY_OOB_QUERIES,
+        update_togglebutton,
+        TRUE,
+        "checkbutton_proxy_oob_queries",
+        FREQ_UPDATES, 0
+    ),
+    PROP_ENTRY(
+        get_prefs_dialog,
         PROP_ENABLE_UDP,
         enable_udp_changed,
         TRUE,
