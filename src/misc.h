@@ -73,7 +73,10 @@ size_t strlcpy(gchar *dst, const gchar *src, size_t dst_size);
 #endif
 
 /* Wrappers for ctype functions that allow only ASCII characters whereas
- * the locale would allow others.
+ * the locale would allow others. The parameter doesn't have to be casted
+ * to (unsigned char) because isascii() is defined for all values so that
+ * these macros return false for everything out of [0..127].
+ *
  * GLib 2.x has similar macros/functions but defines only a subset.
  */
 #define is_ascii_alnum(c) (isascii(c) && isalnum(c))
@@ -147,8 +150,8 @@ gchar *date_to_rfc1123_gchar(time_t date);
 /*
  * Time string conversions
  */
-gchar *short_time(time_t s);
-gchar *short_uptime(time_t s);
+gchar *short_time(gint s);
+gchar *short_uptime(gint s);
 
 /* Use a macro so that's possible to not use difftime where it's not
  * necessary because time_t is flat encoded

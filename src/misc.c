@@ -537,10 +537,10 @@ gchar *compact_kb_size(guint32 size)
 
 /* Return time spent in seconds in a consise short readable form */
 
-gchar *short_time(time_t t)
+gchar *short_time(gint t)
 {
 	static gchar b[SIZE_FIELD_MAX];
-	gint s = (gint) MAX(t, 0);
+	gint s = MAX(t, 0);
 
 	if (s > 86400)
 		gm_snprintf(b, sizeof(b), "%dd %dh", s / 86400, (s % 86400) / 3600);
@@ -556,10 +556,10 @@ gchar *short_time(time_t t)
 
 /* Alternate time formatter for uptime*/
 
-gchar *short_uptime(time_t uptime)
+gchar *short_uptime(gint uptime)
 {
 	static gchar b[SIZE_FIELD_MAX];
-	gint s = (gint) MAX(uptime, 0);
+	gint s = MAX(uptime, 0);
 
 	if (s > 86400) {
 		guint32 d = s % 86400;
@@ -1045,9 +1045,9 @@ void strlower(gchar *dst, const gchar *src)
 gchar *strcasestr(const gchar *haystack, const gchar *needle)
 {
 	guint32 delta[256];
-	guint32 nlen = strlen(needle);
+	size_t nlen = strlen(needle);
 	guint32 *pd = delta;
-	gint i;
+	size_t i;
 	const gchar *n;
 	guint32 haylen = strlen(haystack);
 	const gchar *end = haystack + haylen;
@@ -1064,7 +1064,7 @@ gchar *strcasestr(const gchar *haystack, const gchar *needle)
 
 	nlen--;		/* Restore original pattern length */
 
-	for (n = needle, i =0; i < nlen; i++) {
+	for (n = needle, i = 0; i < nlen; i++) {
 		guchar c = *n++;
 		delta[(guchar) tolower(c)] = nlen - i;
 	}
@@ -1254,21 +1254,20 @@ void random_init(void)
  */
 gchar *unique_filename(const gchar *path, const gchar *file, const gchar *ext)
 {
+	static const gchar extra_bytes[] = "0123456789abcdefghijklmnopqrstuvwxyz";
 	gchar *filename;
 	size_t size;
 	size_t len;
 	struct stat buf;
 	gint i;
 	gchar xuid[16];
-	const gchar extra_bytes[] = "0123456789abcdefghijklmnopqrstuvwxyz";
 
 	/* Use extra_bytes so we can easily append a few chars later */
-	filename = g_strconcat(path, G_DIR_SEPARATOR_S, file, ext,
-					extra_bytes, NULL);
+	filename = GM_STRCONCAT_NULL(path, G_DIR_SEPARATOR_S, file, ext,
+					extra_bytes);
 	size = strlen(filename);
-	len = strlen(extra_bytes);
-	filename[size - len] = '\0';
-	len = size - len;
+	len = size - sizeof extra_bytes - 1;
+	filename[len] = '\0';
 
 	/*
 	 * Append file and extension, then try to see whether this file exists.
@@ -1406,8 +1405,8 @@ gboolean gchar_to_ip_and_mask(const gchar *str, guint32 *ip, guint32 *netmask)
 
 	if (strchr(mask_str, '.')) {
 		*netmask = gchar_to_ip(mask_str);
-		if (~0 != *netmask) {
-			if (*netmask != ~((1 << (highest_bit_set(~*netmask) + 1)) - 1))
+		if (~0U != *netmask) {
+			if (*netmask != ~((1U << (highest_bit_set(~*netmask) + 1)) - 1))
 				return FALSE;
 		}
 		return 0 != *netmask;
@@ -1498,7 +1497,7 @@ gchar *make_pathname(const gchar *dir, const gchar *file)
 	else 
 		 sep = G_DIR_SEPARATOR_S;
 
-	return g_strconcat(dir, sep, file, NULL);
+	return GM_STRCONCAT_NULL(dir, sep, file);
 }
 
 /* vi: set ts=4: */
