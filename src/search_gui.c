@@ -616,8 +616,6 @@ gint search_gui_compare_records(
 	return result;
 }
 
-
-
 /* 
  * search_gui_insert_with_sort:
  *
@@ -672,11 +670,7 @@ GList *search_gui_insert_with_sort(GList *list, GtkCTreeNode *node,
 
 			if (result >= 0) { /* Entry is "greater" than the next */
 
-				if (0 == i )
-					/* Inserting at the beginning.  Cheaper to use prepend */
-					list = g_list_prepend(list, node);
-				else
-					list = g_list_insert(list, node, i);					
+				list = g_list_insert(list, node, i); /* Prepends if i == 0 */
 				break;
 			}
 
@@ -897,10 +891,17 @@ void search_gui_perform_sort(GtkCTree *ctree, gboolean ascending, gint sort_col)
 			temp_list = g_list_append(temp_list, cur_node);
 		
 			
-			/* Sort into a glist  O(n) for ordered data, <O(n*n) for unordered*/
-			for (cur_node = GTK_CTREE_NODE_NEXT (cur_node);
-				(NULL != cur_node); cur_node = GTK_CTREE_NODE_NEXT (cur_node)) {	
-	
+			/*
+			 * Sort into a glist:
+			 *   O(n) for ordered data,
+			 *  <O(n*n) for unordered data.
+			 */
+
+			for (
+				cur_node = GTK_CTREE_NODE_NEXT (cur_node);
+				(NULL != cur_node);
+				cur_node = GTK_CTREE_NODE_NEXT (cur_node)
+			) {	
 				temp_list = search_gui_insert_with_sort(temp_list, 
 					cur_node, ctree, ascending, sort_col); 
 			}
@@ -1064,6 +1065,7 @@ void search_gui_add_record(
 	record_t *rc1;
 	record_t *rc2;
     struct results_set *rs = rc->results_set;
+	gchar *empty = "";
 
 	GtkCTreeNode *parent;
 	GtkCTreeNode *node;
@@ -1107,32 +1109,26 @@ void search_gui_add_record(
 	g_string_free(info, TRUE);
 
 	/* Setup text for node.  Note only parent nodes will have # and size shown*/
-	titles[c_sr_filename] = (NULL != rc->name) ?
-		atom_str_get(rc->name) : atom_str_get("");
-	titles[c_sr_info] = (NULL != rc->info) ?
-		atom_str_get(rc->info) : atom_str_get("");
-	titles[c_sr_sha1] = (NULL != rc->sha1) ?
-		atom_str_get(sha1_base32(rc->sha1)) : atom_str_get("");
-	titles[c_sr_size] = atom_str_get("");
-	titles[c_sr_count] = atom_str_get("");
+	titles[c_sr_filename] = (NULL != rc->name) ?  rc->name : empty;
+	titles[c_sr_info] = (NULL != rc->info) ?  rc->info : empty;
+	titles[c_sr_sha1] = (NULL != rc->sha1) ?  sha1_base32(rc->sha1) : empty;
+	titles[c_sr_size] = empty;
+	titles[c_sr_count] = empty;
 
 	titles[c_sr_host] = (NULL == rs->hostname) ?
-		atom_str_get(ip_port_to_gchar(rs->ip, rs->port)) :
-		atom_str_get(hostname_port_to_gchar(rs->hostname, rs->port));
+		ip_port_to_gchar(rs->ip, rs->port) :
+		hostname_port_to_gchar(rs->hostname, rs->port);
 
 	gm_snprintf(tmpstr, sizeof(tmpstr), "%u", rs->speed);
 	titles[c_sr_speed] = atom_str_get(tmpstr);
 
-
-	
-	/*Add the search result to the ctree */
+	/* Add the search result to the ctree */
 	if (NULL != rc->sha1) {
 
 		/* We use the sch->parents hash table to store pointers to all the
 		 * parent tree nodes referenced by their atomized sha1.
 		 */
-		key = atom_sha1_get(rc->sha1);
-		parent = find_parent_with_sha1(sch->parents, key);
+		parent = find_parent_with_sha1(sch->parents, rc->sha1);
 
 		if (NULL != parent) {
 			/* A parent exists with that sha1, add as child to that parent */
@@ -1149,14 +1145,10 @@ void search_gui_add_record(
 			parent_rc = gtk_ctree_node_get_row_data(ctree, parent);
 			parent_rc->count = count;
 			is_parent = FALSE;
-			
- 			/* we need only the reference for new parents */
-			atom_sha1_free(key);
-
 		} else { 
+			key = atom_sha1_get(rc->sha1);	/* New parent, need new atom ref */
 
-			atom_str_free(titles[c_sr_size]);		
-			titles[c_sr_size] = atom_str_get(short_size(rc->size));
+			titles[c_sr_size] = short_size(rc->size);
 
 			/* Add node as a parent */
 			node = gtk_ctree_insert_node(ctree, parent = NULL, NULL, titles, 5, 
@@ -1169,8 +1161,7 @@ void search_gui_add_record(
 		}
 		
 	} else { /* Add node as a parent with no SHA1 */ 
-		atom_str_free(titles[c_sr_size]);		
-		titles[c_sr_size] = atom_str_get(short_size(rc->size));
+		titles[c_sr_size] = short_size(rc->size);
 
 		node = gtk_ctree_insert_node(ctree, parent = NULL, NULL, titles, 5, 
 				NULL, NULL, NULL, NULL, 0, 0);
@@ -1179,13 +1170,7 @@ void search_gui_add_record(
 		is_parent = TRUE;
 	}
 	
-	atom_str_free(titles[c_sr_filename]);
 	atom_str_free(titles[c_sr_speed]);
-	atom_str_free(titles[c_sr_host]);
-	atom_str_free(titles[c_sr_sha1]);
-	atom_str_free(titles[c_sr_info]);
-	atom_str_free(titles[c_sr_count]);
-	atom_str_free(titles[c_sr_size]);
 	
 	search_gui_ref_record(rc);
 
@@ -1206,7 +1191,7 @@ void search_gui_add_record(
 		 * moving the parent will move the children too so we just pretend that
 		 * the parent node was actually the node that was added, not the child. 
 		 */
-		if(!is_parent && (c_sr_count == sch->sort_col)) {
+		if (!is_parent && (c_sr_count == sch->sort_col)) {
 			is_parent = TRUE;
 			parent_row = GTK_CTREE_ROW(node);
 			auto_node = parent_row->parent;
@@ -1235,7 +1220,7 @@ void search_gui_add_record(
 				if (rc1 == rc2)
 					continue;
 				
-				if(SORT_ASC == sch->sort_order) {
+				if (SORT_ASC == sch->sort_order) {
  	            	if (search_gui_compare_records(sch->sort_col, rc1, rc2) < 0){
 						sibling = cur_node;
 						break;
@@ -1262,7 +1247,7 @@ void search_gui_add_record(
 
 				rc2 = (record_t *) gtk_ctree_node_get_row_data(ctree, cur_node);
 	
-				if(SORT_ASC == sch->sort_order) {
+				if (SORT_ASC == sch->sort_order) {
  	            	if (search_gui_compare_records(sch->sort_col, rc1, rc2) < 0){
 						sibling = cur_node;
 						break;
@@ -1347,19 +1332,16 @@ static void search_gui_remove_result(GtkCTree *ctree, GtkCTreeNode *node)
 			child_node = row->children;	/* The first child of node */
 
 			child_rc = gtk_ctree_node_get_row_data(ctree, child_node);
-			filename = (NULL != child_rc->name) ?
-				atom_str_get(child_rc->name) : atom_str_get("");
-			info = (NULL != child_rc->info) ?
-				atom_str_get(child_rc->info) : atom_str_get("");
-			sha1 = (NULL != child_rc->sha1) ?
-				atom_str_get(sha1_base32(child_rc->sha1)) : atom_str_get("");
-			size = atom_str_get(short_size(child_rc->size));
+			filename = (NULL != child_rc->name) ?  child_rc->name : "";
+			info = (NULL != child_rc->info) ?  child_rc->info : "";
+			sha1 = (NULL != child_rc->sha1) ?  sha1_base32(child_rc->sha1) :"";
+			size = short_size(child_rc->size);
 
 			host = (NULL == child_rc->results_set->hostname) ?
-				atom_str_get(ip_port_to_gchar(child_rc->results_set->ip, 
-					child_rc->results_set->port)) :
-				atom_str_get(hostname_port_to_gchar(
-				child_rc->results_set->hostname, child_rc->results_set->port));
+				ip_port_to_gchar(child_rc->results_set->ip, 
+					child_rc->results_set->port) :
+				hostname_port_to_gchar(child_rc->results_set->hostname,
+					child_rc->results_set->port);
 
 			gm_snprintf(tmpstr, sizeof(tmpstr), "%u", 
 				child_rc->results_set->speed);
@@ -1388,12 +1370,7 @@ static void search_gui_remove_result(GtkCTree *ctree, GtkCTreeNode *node)
 			/* Delete the 1st child node, now that we've copied the data */
 			gtk_ctree_remove_node(ctree, child_node);
 
-			atom_str_free(sha1);
-			atom_str_free(filename);
-			atom_str_free(info);
-			atom_str_free(size);
 			atom_str_free(speed);
-			atom_str_free(host);
 			
 		} else {
 			/* The row has no children, remove it's sha1 and the row itself */
