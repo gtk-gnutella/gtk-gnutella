@@ -37,7 +37,7 @@
 #define ATOM_STRING		0		/* Strings */
 #define ATOM_GUID		1		/* GUIDs (binary, 16 bytes) */
 #define ATOM_SHA1		2		/* SHA1 (binary, 20 bytes) */
-#define ATOM_INT		3		/* integers (binary, 4 bytes) */
+#define ATOM_UINT64		3		/* integers (binary, 8 bytes) */
 
 /*
  * Convenience macros.
@@ -54,8 +54,8 @@
 #define atom_sha1_get(k)	atom_get_track(ATOM_SHA1, (k), _WHERE_, __LINE__)
 #define atom_sha1_free(k)	atom_free_track(ATOM_SHA1, (k), _WHERE_, __LINE__)
 
-#define atom_int_get(k)		atom_get_track(ATOM_INT, (k), _WHERE_, __LINE__)
-#define atom_int_free(k)	atom_free_track(ATOM_INT, (k), _WHERE_, __LINE__)
+#define atom_uint64_get(k)	atom_get_track(ATOM_UINT64, (k), _WHERE_, __LINE__)
+#define atom_uint64_free(k)	atom_free_track(ATOM_UINT64, (k), _WHERE_, __LINE__)
 
 #ifndef ATOMS_SOURCE
 #define atom_get(t,k)		atom_get_track(t, (k), _WHERE_, __LINE__)
@@ -73,8 +73,8 @@
 #define atom_sha1_get(k)	atom_get(ATOM_SHA1, k)
 #define atom_sha1_free(k)	atom_free(ATOM_SHA1, k)
 
-#define atom_int_get(k)		atom_get(ATOM_INT, k)
-#define atom_int_free(k)	atom_free(ATOM_INT, k)
+#define atom_uint64_get(k)	atom_get(ATOM_UINT64, k)
+#define atom_uint64_free(k)	atom_free(ATOM_UINT64, k)
 
 #endif	/* TRACK_ATOMS */
 
@@ -85,6 +85,17 @@
 void atoms_init(void);
 void atoms_close(void);
 
+/*
+ * Hash functions and equality checks
+ */
+guint uint64_hash(gconstpointer key);
+gint uint64_eq(gconstpointer a, gconstpointer b);
+guint sha1_hash(gconstpointer key);
+gint sha1_eq(gconstpointer a, gconstpointer b);
+guint guid_hash(gconstpointer key);
+gint guid_eq(gconstpointer a, gconstpointer b);
+guint uint64_hash(gconstpointer key);
+gint uint64_eq(gconstpointer a, gconstpointer b);
 
 #ifdef TRACK_ATOMS
 gpointer atom_get_track(gint type, gconstpointer key, gchar *file, gint line);
@@ -98,5 +109,5 @@ void atom_free(gint type, gconstpointer key);
 
 #endif	/* _atoms_h_ */
 
-/* vi: set ts=4: */
+/* vi: set ts=4 sw=4 cindent: */
 

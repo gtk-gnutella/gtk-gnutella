@@ -34,6 +34,8 @@
 #define ATOMS_SOURCE
 #include "common.h"
 
+#include "atoms.h"
+
 RCSID("$Id$");
 
 #ifdef PROTECT_ATOMS
@@ -146,31 +148,23 @@ typedef struct table_desc {
 	str_func_t str_func;		/* Atom to human-readable string */
 } table_desc_t;
 
-#define public
-
 static gint str_len(gconstpointer v);
 static const gchar *str_str(gconstpointer v);
-public guint guid_hash(gconstpointer key);
-public gint guid_eq(gconstpointer a, gconstpointer b);
 static gint guid_len(gconstpointer v);
 static const gchar *guid_str(gconstpointer v);
-public guint sha1_hash(gconstpointer key);
-public gint sha1_eq(gconstpointer a, gconstpointer b);
 static gint sha1_len(gconstpointer v);
 static const gchar *sha1_str(gconstpointer v);
-static gint int_len(gconstpointer v);
-static const gchar *int_str(gconstpointer v);
-
-#undef public
+static gint uint64_len(gconstpointer v);
+static const gchar *uint64_str(gconstpointer v);
 
 /*
  * The set of all atom types we know about.
  */
 static table_desc_t atoms[] = {
-	{ "String",	NULL,	g_str_hash,	g_str_equal, str_len,	str_str	},	/* 0 */
-	{ "GUID",	NULL,	guid_hash,	guid_eq,	 guid_len,	guid_str},	/* 1 */
-	{ "SHA1",	NULL,	sha1_hash,	sha1_eq,	 sha1_len,	sha1_str},	/* 2 */
-	{ "int",	NULL,	g_int_hash,	g_int_equal, int_len,	int_str},	/* 3 */
+	{ "String",	NULL, g_str_hash,  g_str_equal, str_len,    str_str  },	/* 0 */
+	{ "GUID",	NULL, guid_hash,   guid_eq,	    guid_len,   guid_str },	/* 1 */
+	{ "SHA1",	NULL, sha1_hash,   sha1_eq,	    sha1_len,   sha1_str },	/* 2 */
+	{ "uint64",	NULL, uint64_hash, uint64_eq,   uint64_len, uint64_str},/* 3 */
 };
 
 /**
@@ -327,25 +321,48 @@ sha1_str(gconstpointer sha1)
 /**
  * @return length of an int.
  */
-static gint
-int_len(gconstpointer unused_v)
+static int
+uint64_len(gconstpointer unused_v)
 {
 	(void) unused_v;
-	return sizeof(gint);
+	return sizeof(guint64);
 }
 
 /**
  * @return printable form of an int, as pointer to static data.
  */
 static const gchar *
-int_str(gconstpointer v)
+uint64_str(gconstpointer v)
 {
-	static gchar fmt[32];
+	static gchar fmt[64];
 
-	gm_snprintf(fmt, sizeof(fmt), "%d/%u",
-		*(const gint *) v, *(const guint *) v);
+	gm_snprintf(fmt, sizeof(fmt), "%" PRId64 "/%" PRIu64,
+		*(const gint64 *) v, *(const guint64 *) v);
 
 	return fmt;
+}
+
+/**
+ * Test two 64-bit integers for equality.
+ *
+ * @return whether both referenced 64-bit integers are equal.
+ */
+gint
+uint64_eq(gconstpointer a, gconstpointer b)
+{
+	return *(const guint64 *) a == *(const guint64 *) b;
+}
+
+/**
+ * Calculate the 32-bit hash of a 64-bit integer
+ *
+ * @return the 32-bit hash value for the referenced 64-bit integer.
+ */
+guint
+uint64_hash(gconstpointer p)
+{
+	guint64 v = *(const guint64 *) p;
+	return v ^ (v >> 32);
 }
 
 /**
