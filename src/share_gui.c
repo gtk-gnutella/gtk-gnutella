@@ -28,6 +28,7 @@
 #include "gnutella.h"
 #include "share_gui.h"
 #include "misc.h"
+#include "gui_property_priv.h"
 
 static guint32 monitor_items = 0;
 
@@ -37,7 +38,7 @@ void share_gui_init()
         (GTK_CLIST(lookup_widget(main_window, "clist_monitor")));  
 }
 
-void share_gui_append_to_monitor(gchar * item)
+void share_gui_append_to_monitor(const gchar *item)
 {
     char *titles[1];
     static GtkWidget *clist_monitor = NULL;
@@ -55,11 +56,13 @@ void share_gui_append_to_monitor(gchar * item)
         gtk_clist_remove(GTK_CLIST(clist_monitor),
             GTK_CLIST(clist_monitor)->rows - 1);
 
-	titles[0] = item;
+	titles[0] = g_strdup(item);
 
 	gtk_clist_prepend(GTK_CLIST(clist_monitor), titles);
 
 	gtk_clist_thaw(GTK_CLIST(clist_monitor));
+
+    g_free(titles[0]);
 }
 
 /*
@@ -82,8 +85,20 @@ void share_gui_clear_monitor(void)
  *
  * Enable/disable monitor.
  */
-void share_gui_enable_monitor(gboolean b)
+void share_gui_enable_monitor(const gboolean val)
 {
-	gtk_widget_set_sensitive
-        (lookup_widget(main_window, "clist_monitor"), !b);
+    static gboolean registered = FALSE;
+    gtk_widget_set_sensitive
+        (lookup_widget(main_window, "clist_monitor"), !val);
+
+    if (val != registered) {
+        if (val) {
+            share_add_search_request_listener
+                (share_gui_append_to_monitor);
+        } else {
+            share_remove_search_request_listener
+                (share_gui_append_to_monitor);
+        }
+        registered = val;
+    }
 }
