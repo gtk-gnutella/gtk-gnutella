@@ -258,7 +258,7 @@ dh_route(gnutella_node_t *src, gnutella_node_t *dest, gint count)
 	g_assert(src->header.function == GTA_MSG_SEARCH_RESULTS);
 
 	if (!NODE_IS_WRITABLE(dest))
-		return;
+		goto drop_shutdown;
 
 	muid = src->header.muid;
 	dh = dh_locate(muid);
@@ -416,6 +416,11 @@ dh_route(gnutella_node_t *src, gnutella_node_t *dest, gint count)
 		printf("DH enqueued %d hit%s for %s\n",
 			count, count == 1 ? "" : "s", guid_hex_str(muid));
 
+	return;
+
+drop_shutdown:
+	src->rx_dropped++;
+	gnet_stats_count_dropped(src, MSG_DROP_SHUTDOWN);
 	return;
 
 drop_flow_control:
