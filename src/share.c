@@ -2026,7 +2026,7 @@ gboolean search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 
 		if (now - seen < QUERY_RETRY_MIN) {
 			if (dbg) g_warning("node %s (%s) re-queried \"%s\" after %d secs",
-				node_ip(n), node_vendor(n), query, now - seen);
+				node_ip(n), node_vendor(n), query, (gint) (now - seen));
 			gnet_stats_count_dropped(n, MSG_DROP_THROTTLE);
 			return TRUE;		/* Drop the message! */
 		}
