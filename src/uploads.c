@@ -25,6 +25,7 @@
 
 #include "gnutella.h"
 #include "interface.h"
+#include "atoms.h"
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -72,6 +73,8 @@ struct io_header {
 static void upload_request(struct upload *u, header_t *header);
 static void upload_error_remove(struct upload *u, struct shared_file *sf,
 	int code, guchar *msg, ...);
+static void upload_error_remove_ext(struct upload *u, struct shared_file *sf,
+	gchar *extended, int code, guchar *msg, ...);
 
 /*
  * upload_timer
@@ -315,7 +318,7 @@ void handle_push_request(struct gnutella_node *n)
 
 	u = upload_create(s, TRUE);
 	u->index = file_index;
-	u->name = g_strdup(req_file->file_name);
+	u->name = atom_str_get(req_file->file_name);
 
 	/* Now waiting for the connection CONF -- will call upload_push_conf() */
 }
@@ -331,7 +334,7 @@ void upload_real_remove(void)
 static void upload_free_resources(struct upload *u)
 {
 	if (u->name != NULL) {
-		g_free(u->name);
+		atom_str_free(u->name);
 		u->name = NULL;
 	}
 	if (u->file_desc != -1) {
@@ -354,7 +357,7 @@ static void upload_free_resources(struct upload *u)
 		u->bio = NULL;
 	}
 	if (u->user_agent) {
-		g_free(u->user_agent);
+		atom_str_free(u->user_agent);
 		u->user_agent = NULL;
 	}
 }
@@ -367,11 +370,13 @@ static void upload_free_resources(struct upload *u)
 static void send_upload_error_v(
 	struct upload *u,
 	struct shared_file *sf,
+	gchar *ext,
 	int code,
 	guchar *msg, va_list ap)
 {
 	gchar reason[1024];
 	gchar extra[1024];
+	gint slen = 0;
 
 	if (msg) {
 		g_vsnprintf(reason, sizeof(reason), msg, ap);
@@ -385,16 +390,24 @@ static void send_upload_error_v(
 		return;
 	}
 
+	extra[0] = '\0';
+
+	/*
+	 * If `ext' is not null, we have extra header information to propagate.
+	 */
+
+	if (ext)
+		slen = g_snprintf(extra, sizeof(extra), "%s", ext);
+
 	/*
 	 * If `sf' is not null, propagate the SHA1 for the file if we have it.
 	 */
 
 	if (sf && sha1_hash_available(sf)) {
-		g_snprintf(extra, sizeof(extra),
+		g_snprintf(&extra[slen], sizeof(extra)-slen,
 			"X-Gnutella-Content-URN: urn:sha1:%s\r\n",
 			sha1_base32(sf->sha1_digest));
-	} else
-		extra[0] = '\0';
+	}
 
 	socket_http_error(u->socket, code, extra[0] ? extra : NULL, reason);
 	u->error_sent = code;
@@ -415,7 +428,7 @@ static void send_upload_error(
 	va_list args;
 
 	va_start(args, msg);
-	send_upload_error_v(u, sf, code, msg, args);
+	send_upload_error_v(u, sf, NULL, code, msg, args);
 	va_end(args);
 }
 
@@ -517,7 +530,7 @@ void upload_remove(struct upload *u, const gchar *reason, ...)
 /*
  * upload_error_remove
  *
- * Utility routine.  Cancel the upload, sending back the HTTP eerror message.
+ * Utility routine.  Cancel the upload, sending back the HTTP error message.
  */
 static void upload_error_remove(
 	struct upload *u,
@@ -528,10 +541,32 @@ static void upload_error_remove(
 	va_list args;
 
 	va_start(args, msg);
-	send_upload_error_v(u, sf, code, msg, args);
+	send_upload_error_v(u, sf, NULL, code, msg, args);
 	upload_remove_v(u, msg, args);
 	va_end(args);
 }
+
+/*
+ * upload_error_remove_ext
+ *
+ * Utility routine.  Cancel the upload, sending back the HTTP error message.
+ * `ext' contains additionnal header information to propagate back. 
+ */
+static void upload_error_remove_ext(
+	struct upload *u,
+	struct shared_file *sf,
+	gchar *ext,
+	int code,
+	guchar *msg, ...)
+{
+	va_list args;
+
+	va_start(args, msg);
+	send_upload_error_v(u, sf, ext, code, msg, args);
+	upload_remove_v(u, msg, args);
+	va_end(args);
+}
+
 
 /***
  *** Header parsing callbacks
@@ -918,11 +953,17 @@ static gboolean upload_request_is_ok(
 
 static struct shared_file *get_file_to_upload_from_index(
 	struct upload *u,
+	header_t *header,
 	gchar *request,
 	guint index)
 {
+	struct shared_file *sf;
 	guchar c;
 	gchar *buf;
+	gchar *basename;
+	gchar *sha1 = NULL;
+	gchar digest[SHA1_RAW_SIZE];
+	gchar *p;
 
 	/*
 	 * We must be cautious about file index changing between two scans,
@@ -935,18 +976,19 @@ static struct shared_file *get_file_to_upload_from_index(
 	 *		--RAM, 16/01/2002
 	 */
 
-	struct shared_file *reqfile = shared_file(index);
+	sf = shared_file(index);
 
-	if (reqfile == SHARE_REBUILDING) {
+	if (sf == SHARE_REBUILDING) {
 		/* Retry-able by user, hence 503 */
 		upload_error_remove(u, NULL, 503, "Library being rebuilt");
 		return NULL;
 	}
 
-	if (reqfile == NULL) {
-		upload_error_not_found(u, request);
-		return NULL;
-	}
+	/*
+	 * Go to the basename of the file requested in the query.
+	 * If we have one, `c' will point to '/' and `buf' to the start
+	 * of the requested filename.
+	 */
 
 	buf = request +
 		((request[0] == 'G') ? sizeof("GET /get/") : sizeof("HEAD /get/"));
@@ -956,18 +998,153 @@ static struct shared_file *get_file_to_upload_from_index(
 	while ((c = *(guchar *) buf++) && c != '/')
 		/* empty */;
 
-	if (
-		c == '/' &&
-		0 != strncmp(buf, reqfile->file_name, reqfile->file_name_len)
-	) {
-		gchar *error = "File index/name mismatch";
-		g_warning("%s from %s for %d/%s", error,
-			ip_to_gchar(u->socket->ip), index, reqfile->file_name);
-		upload_error_remove(u, NULL, 409, error);
+	if (c != '/') {
+		g_warning("malformed Gnutella HTTP request: %s", request);
+		upload_error_remove(u, NULL, 400, "Malformed Gnutella HTTP request");
 		return NULL;
 	}
 
-	return reqfile;
+	/*
+	 * Go patch the first space we encounter before HTTP to be a NUL.
+	 * Indeed, the requesst shoud be "GET /get/12/foo.txt HTTP/1.0".
+	 *
+	 * Note that if we don't find HTTP/ after the space, it's not an
+	 * error: they're just sending an HTTP/0.9 request, which is awkward
+	 * but we accept it.
+	 */
+
+	p = strrchr(buf, ' ');
+	if (p && p[1]=='H' && p[2]=='T' && p[3]=='T' && p[4]=='P' && p[5]=='/')
+		*p = '\0';
+	else
+		p = NULL;
+
+	basename = buf;
+
+	/*
+	 * If we have a X-Gnutella-Content-Urn, check whether we got a valid
+	 * SHA1 URN in there and extract it.
+	 */
+
+	if ((buf = header_get(header, "X-Gnutella-Content-Urn"))) {
+		sha1 = strstr(buf, "urn:sha1:");	// XXX case insensitive, RAM
+
+		/*
+		 * NB: base32_decode_into() will stop when NUL is reached
+		 * and return FALSE.
+		 */
+
+		if (sha1) {
+			sha1 += 9;		/* Skip "urn:sha1:" */
+			if (
+				!base32_decode_into(sha1, SHA1_BASE32_SIZE,
+					digest, sizeof(digest))
+			) {
+				g_warning("ignoring invalid SHA1 base32 encoding: %s", sha1);
+				sha1 = NULL;
+			}
+		}
+	}
+
+	/*
+	 * If `sf' is NULL, the index was incorrect.
+	 *
+	 * If they sent a SHA1, look whether we got a matching file.
+	 * If we do, let them know the URL changed by returning a 301, otherwise
+	 * it's a 404.
+	 */
+
+	if (sf == NULL && sha1) {
+		sf = shared_file_by_sha1(digest);
+		if (sf) {
+			gchar location[1024];
+			gchar *escaped = url_escape(sf->file_name);
+
+			g_snprintf(location, sizeof(location),
+				"Location: http://%s/get/%d/%s\r\n",
+				ip_port_to_gchar(listen_ip(), listen_port),
+				sf->file_index, escaped);
+
+			upload_error_remove_ext(u, sf, location,
+				301, "Moved Permanently");
+
+			if (escaped != sf->file_name)
+				g_free(escaped);
+		} else
+			upload_error_remove(u, NULL, 404, "URN Not Found (urn:sha1)");
+
+		goto failed;
+	}
+
+	/*
+	 * Maybe we have a unique file with the same basename.  If we do,
+	 * transparently return it instead of what they requested.
+	 *
+	 * We don't return a 301 in that case because the user did not supply
+	 * the X-Gnutella-Content-Urn.  Therefore it's an old servent, and it
+	 * cannot know about the new 301 return I've introduced.
+	 *
+	 * (RAM notified the GDF about 301 handling on June 5th, 2002 only)
+	 */
+
+	if (sf == NULL) {
+		sf = shared_file_by_name(basename);
+
+		if (dbg > 4) {
+			if (sf)
+				printf("BAD INDEX FIXED: requested %u, serving %u: %s\n",
+					index, sf->file_index, sf->file_path);
+			else
+				printf("BAD INDEX NOT FIXED: requested %u: %s\n",
+					index, basename);
+		}
+
+	} else if (0 != strncmp(basename, sf->file_name, sf->file_name_len)) {
+		struct shared_file *sfn = shared_file_by_name(basename);
+
+		if (dbg > 4) {
+			if (sfn)
+				printf("INDEX FIXED: requested %u, serving %u: %s\n",
+					index, sfn->file_index, sfn->file_path);
+			else
+				printf("INDEX MISMATCH: requested %u: %s (has %s)\n",
+					index, basename, sfn->file_name);
+		}
+
+		if (sfn == NULL) {
+			upload_error_remove(u, NULL, 409, "File index/name mismatch");
+			goto failed;
+		} else
+			sf = sfn;
+	}
+
+	if (sf == NULL) {
+		upload_error_not_found(u, request);
+		goto failed;
+	}
+
+	/*
+	 * If we have the SHA1 for this file and they sent a
+	 * X-Gnutella-Content-URN header with an urn:sha1:, compare
+	 * it to the file's and deny with 404 if they don't match.
+	 *		--RAM, 20/05/2002
+	 */
+
+	if (sha1 && sha1_hash_available(sf)) {
+		if (0 != memcmp(digest, sf->sha1_digest, SHA1_RAW_SIZE)) {
+			upload_error_remove(u, sf, 404, "URN Mismatch (urn:sha1)");
+			goto failed;
+		}
+	}
+
+	if (p) *p = ' ';			/* Restore patched space */
+
+	return sf;
+
+failed:
+	if (p) *p = ' ';			/* Restore patched space */
+
+	return NULL;
 }
 
 /* XXX -- urn:sha1: is case-insensitive -- RAM, 20/05/2002 */
@@ -987,7 +1164,7 @@ static struct shared_file *get_file_to_upload_from_sha1(const gchar *request)
 
 	sscanf(request + sha1_query_length, "%32s", hash);
 
-	return shared_file_from_sha1_hash(hash);
+	return shared_file_by_sha1_base32(hash);
 }
 
 /*
@@ -997,7 +1174,8 @@ static struct shared_file *get_file_to_upload_from_sha1(const gchar *request)
  * get_file_to_upload_from_sha1 depending on the syntax of the request.
  * Return the shared_file if we got it, or NULL otherwise.
  */
-static struct shared_file *get_file_to_upload(struct upload *u, gchar *request)
+static struct shared_file *get_file_to_upload(
+	struct upload *u, header_t *header, gchar *request)
 {
 	guint index = 0;
 
@@ -1005,7 +1183,7 @@ static struct shared_file *get_file_to_upload(struct upload *u, gchar *request)
 		sscanf(request, "GET /get/%u/", &index) ||
 		sscanf(request, "HEAD /get/%u/", &index)
 	)
-		return get_file_to_upload_from_index(u, request, index);
+		return get_file_to_upload_from_index(u, header, request, index);
 	else if (!strncmp(request, sha1_query, sha1_query_length))
 		return get_file_to_upload_from_sha1(request);
 
@@ -1025,7 +1203,7 @@ static void upload_request(struct upload *u, header_t *header)
 	struct gnutella_socket *s = u->socket;
 	struct shared_file *reqfile = NULL;
 	guint index = 0, skip = 0, end = 0, rw = 0, row = 0, upcount = 0;
-	gchar http_response[1024], *fpath = NULL, sl[] = "/";
+	gchar http_response[1024], *fpath = NULL;
 	gchar *user_agent = 0;
 	gchar *buf;
 	gchar *titles[6];
@@ -1099,10 +1277,10 @@ static void upload_request(struct upload *u, header_t *header)
 	 *				--RAM, 09/09/2001
 	 */
 
-	reqfile = get_file_to_upload(u, request);
+	reqfile = get_file_to_upload(u, header, request);
 
 	if (!reqfile) {
-		/* get_file_to_upload is supposed to have signaled the error already */
+		/* get_file_to_upload() has signaled the error already */
 		return;
 	}
 
@@ -1210,35 +1388,9 @@ static void upload_request(struct upload *u, header_t *header)
 			(void) sscanf(buf, "bytes=%u-", &skip);
 	}
 
-	/*
-	 * If we have the SHA1 for this file and they sent a
-	 * X-Gnutella-Content-URN header with an urn:sha1:, compare
-	 * it to the file's and deny with 404 if they don't match.
-	 *		--RAM, 20/05/2002
+	/* 
+	 * Extract User-Agent.
 	 */
-
-	if (sha1_hash_available(reqfile)) {
-		if ((buf = header_get(header, "X-Gnutella-Content-Urn"))) {
-			gchar *sha1 = strstr(buf, "urn:sha1:");	// XXX case insensitive, RAM
-			gchar digest[SHA1_RAW_SIZE];
-
-			/*
-			 * NB: base32_decode_into() will stop when NUL is reached
-			 * and return FALSE.
-			 */
-
-			if (
-				sha1 &&
-				base32_decode_into(sha1 + 9, SHA1_BASE32_SIZE,
-					digest, sizeof(digest)) &&
-				0 != memcmp(digest, reqfile->sha1_digest, SHA1_RAW_SIZE)
-			) {
-				upload_error_remove(u, reqfile,
-					404, "URN mismatch for urn:sha1");
-				return;
-			}
-		}
-	}
 
 	user_agent = header_get(header, "User-Agent");
 
@@ -1252,20 +1404,10 @@ static void upload_request(struct upload *u, header_t *header)
 
 	/*
 	 * We're accepting the upload.  Setup accordingly.
-	 */
-
-	/* Set the full path to the file */
-
-	if (reqfile->file_directory[strlen(reqfile->file_directory) - 1] == sl[0])
-		fpath = g_strconcat(reqfile->file_directory, reqfile->file_name, NULL);
-	else
-		fpath = g_strconcat(reqfile->file_directory,
-			sl, reqfile->file_name, NULL);
-
-	/*
 	 * Validate the rquested range.
 	 */
 
+	fpath = reqfile->file_path;
 	u->file_size = reqfile->file_size;
 
 	if (!has_end)
@@ -1278,18 +1420,14 @@ static void upload_request(struct upload *u, header_t *header)
 
 	if (-1 == stat(fpath, &statbuf)) {
 		upload_error_not_found(u, request);
-		g_free(fpath);
 		return;
 	}
 
 	/* Open the file for reading , READONLY just in case. */
 	if ((u->file_desc = open(fpath, O_RDONLY)) < 0) {
 		upload_error_not_found(u, request);
-		g_free(fpath);
 		return;
 	}
-
-	g_free(fpath);
 
 	/*
 	 * If we pushed this upload, and they are not requesting the same
@@ -1316,15 +1454,15 @@ static void upload_request(struct upload *u, header_t *header)
 	u->index = index;
 
 	if (u->push && 0 != strcmp(u->name, reqfile->file_name)) {
-		g_free(u->name);
+		atom_str_free(u->name);
 		u->name = NULL;
 	}
 
 	if (u->name == NULL)
-		u->name = g_strdup(reqfile->file_name);
+		u->name = atom_str_get(reqfile->file_name);
 
 	if (user_agent)
-		u->user_agent = g_strdup(user_agent);
+		u->user_agent = atom_str_get(user_agent);
 
 	u->skip = skip;
 	u->end = end;
