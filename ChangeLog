@@ -1,5 +1,21 @@
 # since last version
 
+- (2004.02.14 - Richard)
+ * [Gtk1] Try to avoid memory corruption during selection in search results due
+   to recursive calls of on_ctree_search_results_select_row(). 
+   Should close #892802.
+ * [Gtk1] Added a general gtk_ctree_count_node_children() to gtk-missing.[ch].
+ * [Gtk1] [Gtk2] Removed property PROP_JUMP_TO_DOWNLOADS. 
+   I don't think we need this anymore.
+ * [Gtk1] Added PROP_SEARCH_CASESENSE. This controls if the name column in the
+   search results is sorted case-sensitive.
+ * [Gtk1] Cleant up a few places in search_gui.c and fixed part 2 of bug #892593
+   in the process. Maybe part one is also fixed.
+ * [Gtk2] Fixed compiler warnings about redefinition of g_string_printf and
+   g_string_printfa in malloc.h.
+ * Number of leaks is now reported in the leak summary.
+ * [Gtk1] Small GUI layout fixed in the downloads and fileinfo panes.
+
 - (2004.02.06 - Jeroen)
  * I am back, so lets start with tiny things ;)
  * Fixed a couple of compiler warnings
