@@ -1085,7 +1085,7 @@ void send_node_error(struct gnutella_socket *s, int code, guchar *msg, ...)
 
 	/*
 	 * When sending a 503 (Busy) error to a node, send some hosts from
-	 * our cache list as well.  Likewise on 401 (Non-compressed).
+	 * our cache list as well.  Likewise on 403 (Non-compressed).
 	 */
 
 	rw = g_snprintf(gnet_response, sizeof(gnet_response),
@@ -1096,7 +1096,7 @@ void send_node_error(struct gnutella_socket *s, int code, guchar *msg, ...)
 		"%s"
 		"\r\n",
 		code, msg_tmp, version_string, ip_to_gchar(s->ip), start_rfc822_date,
-		(code == 503 || code == 401) ?
+		(code == 503 || code == 403) ?
 			formatted_connection_pongs("X-Try") : "");
 
 	g_assert(rw < sizeof(gnet_response));
@@ -1757,7 +1757,7 @@ static void node_process_handshake_header(
 			(connected_nodes() >= up_connections) &&
             (connected_nodes() - compressed_node_cnt > 0)
         ) {
-			send_node_error(n->socket, 401,
+			send_node_error(n->socket, 403,
 				"Gnet connection not compressed");
 			node_remove(n, "Connection not compressed");
 			return;
