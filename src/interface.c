@@ -1188,7 +1188,7 @@ create_main_window (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_widget_set_sensitive (button_search_filter, FALSE);
 
-  label79 = gtk_label_new ("Actives searches:");
+  label79 = gtk_label_new ("Active searches:");
   gtk_widget_ref (label79);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "label79", label79,
                             (GtkDestroyNotify) gtk_widget_unref);
@@ -1206,7 +1206,6 @@ create_main_window (void)
                     (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
   gtk_widget_set_sensitive (combo_searches, FALSE);
-  gtk_combo_set_use_arrows (GTK_COMBO (combo_searches), FALSE);
 
   combo_entry_searches = GTK_COMBO (combo_searches)->entry;
   gtk_widget_ref (combo_entry_searches);
@@ -1222,7 +1221,7 @@ create_main_window (void)
   gtk_widget_show (hbox19);
   gtk_box_pack_start (GTK_BOX (vbox_search), hbox19, FALSE, FALSE, 0);
 
-  label_items_found = gtk_label_new ("0 items found");
+  label_items_found = gtk_label_new ("No item found");
   gtk_widget_ref (label_items_found);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "label_items_found", label_items_found,
                             (GtkDestroyNotify) gtk_widget_unref);

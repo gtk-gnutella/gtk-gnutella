@@ -108,7 +108,7 @@ void search_create_clist(GtkWidget **sw, GtkWidget **clist)
 void search_update_items(struct search *sch)
 {
 	if (sch && sch->items) g_snprintf(stmp_1, sizeof(stmp_1), "%u item%s found", sch->items, (sch->items > 1)? "s": "");
-	else g_snprintf(stmp_1, sizeof(stmp_1), "No items found");
+	else g_snprintf(stmp_1, sizeof(stmp_1), "No item found");
 	gtk_label_set(GTK_LABEL(label_items_found), stmp_1);
 }
 
