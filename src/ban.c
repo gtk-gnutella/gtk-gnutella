@@ -356,6 +356,40 @@ static GList *banned_tail = NULL;
 static gint banned_count = 0;
 
 /*
+ * ban_reclaim_fd
+ *
+ * Reclaim a file descriptor used for banning.
+ * Returns TRUE if we did reclaim something, FALSE if there was nothing.
+ */
+gboolean ban_reclaim_fd(void)
+{
+	GList *prev;
+
+	if (banned_tail == NULL) {
+		g_assert(banned_head == NULL);
+		g_assert(banned_count == 0);
+		return FALSE;					/* Empty list */
+	}
+
+	g_assert(banned_head != NULL);
+	g_assert(banned_count > 0);
+
+	(void) close(GPOINTER_TO_INT(banned_tail->data));	/* Reclaim fd */
+
+	if (dbg > 9)
+		printf("closed BAN fd #%d\n", GPOINTER_TO_INT(banned_tail->data));
+
+	prev = g_list_previous(banned_tail);
+	banned_head = g_list_remove_link(banned_head, banned_tail);
+	g_list_free_1(banned_tail);
+	banned_tail = prev;
+
+	banned_count--;
+
+	return TRUE;
+}
+
+/*
  * ban_force
  *
  * Force banning of the connection.
@@ -367,21 +401,11 @@ void ban_force(struct gnutella_socket *s)
 	gint fd = s->file_desc;
 
 	if (banned_count >= max_banned_fd) {
-		GList *prev = g_list_previous(banned_tail);
-
 		g_assert(banned_tail);
-		g_assert(max_banned_fd <= 1 || prev);
+		g_assert(max_banned_fd <= 1 || (banned_tail != banned_head));
 
-		(void) close(GPOINTER_TO_INT(banned_tail->data));	/* Reclaim fd */
-
-		if (dbg > 9)
-			printf("closed BAN fd #%d\n", GPOINTER_TO_INT(banned_tail->data));
-
-		banned_head = g_list_remove_link(banned_head, banned_tail);
-		g_list_free_1(banned_tail);
-		banned_tail = prev;
-	} else
-		banned_count++;
+		ban_reclaim_fd();
+	}
 
 	/*
 	 * Shrink socket buffers.
@@ -396,6 +420,7 @@ void ban_force(struct gnutella_socket *s)
 	 * Insert banned fd in the list.
 	 */
 
+	banned_count++;
 	banned_head = g_list_prepend(banned_head, GINT_TO_POINTER(fd));
 	if (banned_tail == NULL)
 		banned_tail = banned_head;
