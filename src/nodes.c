@@ -39,6 +39,7 @@ GSList *sl_nodes = (GSList *) NULL;
 
 static guint32 nodes_in_list = 0;
 static guint32 ponging_nodes = 0;
+static guint32 shutdown_nodes = 0;
 static guint32 node_id = 0;
 
 guint32 global_messages = 0;
@@ -95,23 +96,18 @@ void node_timer(time_t now)
 		struct gnutella_node *n = (struct gnutella_node *) l->data;
 		l = l->next;
 
-		if (
-			n->status == GTA_NODE_REMOVING &&
-			now - n->last_update > NODE_ERRMSG_TIMEOUT
-		)
-			node_real_remove(n);
-		else if (
-			NODE_IS_CONNECTING(n) &&
-			now - n->last_update > node_connecting_timeout
-		)
-			node_remove(n, "Timeout");
-		else if (
-			n->status == GTA_NODE_SHUTDOWN &&
-			now - n->shutdown_date > SHUTDOWN_GRACE_DELAY
-		) {
-			gchar *reason = g_strdup(n->error_str);
-			node_remove(n, "Shutdown timeout (%s)", reason);
-			g_free(reason);
+		if (n->status == GTA_NODE_REMOVING) {
+			if (now - n->last_update > NODE_ERRMSG_TIMEOUT)
+				node_real_remove(n);
+		} else if (NODE_IS_CONNECTING(n)) {
+			if (now - n->last_update > node_connecting_timeout)
+				node_remove(n, "Timeout");
+		} else if (n->status == GTA_NODE_SHUTDOWN) {
+			if (now - n->shutdown_date > SHUTDOWN_GRACE_DELAY) {
+				gchar *reason = g_strdup(n->error_str);
+				node_remove(n, "Shutdown timeout (%s)", reason);
+				g_free(reason);
+			}
 		} else if (now - n->last_update > node_connected_timeout) {
 			if (NODE_IS_WRITABLE(n))
 				node_bye(n, 405, "Activity timeout");
@@ -177,7 +173,7 @@ gint32 connected_nodes(void)
 
 gint32 node_count(void)
 {
-	return nodes_in_list - ponging_nodes;
+	return nodes_in_list - ponging_nodes - shutdown_nodes;
 }
 
 static guint32 max_msg_size(void)
@@ -296,6 +292,9 @@ void node_remove(struct gnutella_node *n, const gchar * reason, ...)
 		g_assert(connected_node_cnt >= 0);
 	}
 
+	if (n->status == GTA_NODE_SHUTDOWN)
+		shutdown_nodes--;
+
 	if (n->membuf) {
 		g_assert(n->socket);
 		g_free(n->membuf->data);
@@ -365,6 +364,8 @@ static void node_shutdown_mode(struct gnutella_node *n)
 	n->flags &= ~(NODE_F_WRITABLE|NODE_F_READABLE);
 	n->shutdown_date = time((time_t) NULL);
 	mq_shutdown(n->outq);
+
+	shutdown_nodes++;
 
 	gui_update_node(n, TRUE);
 }
@@ -1865,7 +1866,7 @@ void node_add(struct gnutella_socket *s, guint32 ip, guint16 port)
  * NB: callers of this routine must not use the node structure upon return,
  * since we may invalidate that node during the processing.
  */
-void node_parse(struct gnutella_node *node)
+static void node_parse(struct gnutella_node *node)
 {
 	static struct gnutella_node *n;
 	gboolean drop = FALSE;
@@ -2439,7 +2440,9 @@ void node_read(gpointer data, gint source, GdkInputCondition cond)
 
 	n->pos += r;
 
-	if (n->pos >= n->size)
+	g_assert(n->pos <= n->size);
+
+	if (n->pos == n->size)
 		node_parse(n);
 }
 
