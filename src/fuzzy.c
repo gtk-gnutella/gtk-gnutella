@@ -25,8 +25,8 @@
  *----------------------------------------------------------------------
  */
 
-#include <stdio.h>
-#include <glib.h>
+#include "common.h"
+
 #include <ctype.h>
 
 static char *fuzzy_strlower(char *a)

@@ -38,7 +38,7 @@
 **  This code is in the public domain and has no copyright.
 */
 
-#include "config.h"
+#include "common.h"
 
 #ifdef HAVE_CONFIG_H
 # ifdef FORCE_ALLOCA_H

@@ -1797,7 +1797,7 @@ static struct dl_file_info *file_info_create(
 	if (stat(fi_tmp, &st) != -1) {
 		g_warning("file_info_get(): "
 			"assuming file \"%s\" is complete up to %lu bytes",
-			fi->file_name, st.st_size);
+			fi->file_name, (gulong) st.st_size);
 		fc = g_malloc0(sizeof(struct dl_file_chunk));
 		fc->from = 0;
 		fi->size = fc->to = st.st_size;
