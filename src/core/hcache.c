@@ -1215,6 +1215,7 @@ hcache_free(hostcache_t *hc)
     g_assert(hc->host_count == 0);
     g_assert(hash_list_length(hc->hostlist) == 0);
 
+	hash_list_free(hc->hostlist);
 	G_FREE_NULL(hc);
 }
 
