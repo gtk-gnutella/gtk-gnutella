@@ -23,19 +23,81 @@
  *----------------------------------------------------------------------
  */
 
-#ifdef HAVE_CONFIG_H
-# include <config.h>
-#endif
-
-#include "gnet.h"
+#include "gui.h"
 
 #include "main_gui.h"
 #include "nodes_gui.h"
 
 #include "settings_gui.h"
 #include "search_gui.h"
+#include "monitor_gui.h"
 
-#include "filter.h" // FIXME: remove this dependency
+#include "filter_cb.h"
+
+#include "filter.h"
+
+#include "oldconfig.h"
+
+#include <pwd.h>
+
+
+/***
+ *** Private function
+ ***/
+
+/*
+ * load_legacy_settings:
+ *
+ * If no configuration files are found for frontend and core, it tries
+ * to read in the old config file.
+ * FIXME: This should be removed as soon as possible, probably for 1.0.
+ */
+void load_legacy_settings(void)
+{
+    struct passwd *pwd = getpwuid(getuid());
+    gchar *config_dir;
+    gchar *home_dir;
+    gchar tmp[2000] = "";
+    gchar core_config_file[2000] = "";
+    gchar gui_config_file[2000] = "";
+
+    config_dir = g_strdup(getenv("GTK_GNUTELLA_DIR"));
+    if (pwd && pwd->pw_dir)
+		home_dir = g_strdup(pwd->pw_dir);
+	else
+		home_dir = g_strdup(getenv("HOME"));
+
+    if (!home_dir)
+		g_warning("can't find your home directory!");
+ 
+    if (!config_dir) {
+		if (home_dir) {
+			g_snprintf(tmp, sizeof(tmp),
+				"%s/.gtk-gnutella", home_dir);
+			config_dir = g_strdup(tmp);
+		} else
+			g_warning("no home directory: can't check legacy configuration!");
+	}
+
+    g_snprintf(core_config_file, sizeof(core_config_file), 
+        "%s/%s", config_dir, "config_gnet");
+    g_snprintf(gui_config_file, sizeof(gui_config_file), 
+        "%s/%s", config_dir, "config_gui");
+
+    if (!file_exists(core_config_file) && !file_exists(gui_config_file)) {
+        g_warning("No configuration found, trying legacy config file");
+        config_init();
+    }
+
+    g_free(config_dir);
+    g_free(home_dir);
+}
+
+
+
+/***
+ *** Public functions
+ ***/
 
 void main_gui_init(void)
 {
@@ -78,7 +140,13 @@ void main_gui_init(void)
 
     settings_gui_init();
     nodes_gui_init();
+    /* Must come before search_init() so searches/filters can be loaded.*/
+	filter_init(); 
     search_gui_init();
+    filter_update_targets(); /* Make sure the default filters are ok */
+    monitor_gui_init();
+
+    load_legacy_settings();
 }
 
 void main_gui_run(void)
@@ -111,7 +179,17 @@ void main_gui_shutdown(void)
      */
     filter_close_dialog(FALSE);
 
-    search_gui_shutdown();
+    filter_cb_close();
+    monitor_gui_shutdown();
+    search_gui_shutdown(); /* must be done before filter_shutdown! */
+	filter_shutdown();
     nodes_gui_shutdown();
     settings_gui_shutdown();
+}
+
+void main_gui_timer()
+{
+    gui_update_global();
+    gui_update_traffic_stats();
+    filter_timer(); /* Update the filter stats */
 }

@@ -23,11 +23,12 @@
  *----------------------------------------------------------------------
  */
 
-#include "gnutella.h"
+//#include "gnutella.h"
 
-#include <pwd.h>
 #include <signal.h>
 #include <locale.h>
+
+#include "common.h"
 
 #include "gui.h"
 #include "search.h"
@@ -36,29 +37,22 @@
 #include "routing.h"
 #include "downloads.h"
 #include "hosts.h"
-#include "misc.h"
 #include "gmsg.h"
 #include "bsched.h"
 #include "search_stats.h"
 #include "upload_stats.h"
 #include "pcache.h"
 #include "gtk-missing.h"
-#include "filter.h"
 #include "cq.h"
 #include "ban.h"
-#include "atoms.h"
 #include "dmesh.h"
-#include "filter_cb.h"
 #include "version.h"
-#include "matching.h"
-#include "walloc.h"
 #include "nodes.h"
 #include "whitelist.h"
 
 #include "gnet_property_priv.h"
 #include "main_gui.h"
 #include "settings.h"
-#include "oldconfig.h"
 #include "fileinfo.h"
 
 #define SLOW_UPDATE_PERIOD		20	/* Updating period for `main_slow_update' */
@@ -100,17 +94,8 @@ void gtk_gnutella_exit(gint n)
 	node_bye_all();
 	upload_close();		/* Done before settings_close() for stats update */
 	download_close();
-    filter_cb_close();
-
-	/*
-	 * Make sure the gui writes config variabes it owns but that can't 
-	 * be updated via callbacks.
-	 *      --BLUE, 16/05/2002
-	 */
 
     main_gui_shutdown();
-
-	gui_shutdown();
 
 	if (hosts_idle_func)
 		g_source_remove(hosts_idle_func);
@@ -118,8 +103,7 @@ void gtk_gnutella_exit(gint n)
 	if (s_listen)
 		socket_destroy(s_listen);
 	socket_shutdown();
-	search_shutdown(); /* must be done before filter_shutdown! */
-	filter_shutdown();
+	search_shutdown(); 
 	bsched_shutdown();
 	settings_shutdown();
 
@@ -151,7 +135,6 @@ void gtk_gnutella_exit(gint n)
 	host_close();
 	routing_close();
 	bsched_close();
-	gui_close();
 	dmesh_close();
 	settings_close();
 	ban_close();
@@ -244,9 +227,7 @@ static gboolean main_timer(gpointer p)
 	 */
 
 	if (!exiting) {
-		gui_update_global();
-        gui_update_traffic_stats();
-        filter_timer(); /* Update the filter stats */
+        main_gui_timer();
 
 		/* Update for things that change slowly */
 		if (main_slow_update++ > SLOW_UPDATE_PERIOD) {
@@ -308,54 +289,6 @@ static gboolean scan_files_once(gpointer p)
 	return FALSE;
 }
 
-/*
- * load_legacy_settings:
- *
- * If no configuration files are found for frontend and core, it tries
- * to read in the old config file.
- * FIXME: This should be removed as soon as possible, probably for 1.0.
- */
-void load_legacy_settings(void)
-{
-    struct passwd *pwd = getpwuid(getuid());
-    gchar *config_dir;
-    gchar *home_dir;
-    gchar tmp[2000] = "";
-    gchar core_config_file[2000] = "";
-    gchar gui_config_file[2000] = "";
-
-    config_dir = g_strdup(getenv("GTK_GNUTELLA_DIR"));
-    if (pwd && pwd->pw_dir)
-		home_dir = g_strdup(pwd->pw_dir);
-	else
-		home_dir = g_strdup(getenv("HOME"));
-
-    if (!home_dir)
-		g_warning("can't find your home directory!");
- 
-    if (!config_dir) {
-		if (home_dir) {
-			g_snprintf(tmp, sizeof(tmp),
-				"%s/.gtk-gnutella", home_dir);
-			config_dir = g_strdup(tmp);
-		} else
-			g_warning("no home directory: can't check legacy configuration!");
-	}
-
-    g_snprintf(core_config_file, sizeof(core_config_file), 
-        "%s/%s", config_dir, "config_gnet");
-    g_snprintf(gui_config_file, sizeof(gui_config_file), 
-        "%s/%s", config_dir, "config_gui");
-
-    if (!file_exists(core_config_file) && !file_exists(gui_config_file)) {
-        g_warning("No configuration found, trying legacy config file");
-        config_init();
-    }
-
-    g_free(config_dir);
-    g_free(home_dir);
-}
-
 gint main(gint argc, gchar ** argv)
 {
 	gint i;
@@ -395,9 +328,7 @@ gint main(gint argc, gchar ** argv)
 	bsched_init();
 	network_init();
 	routing_init();
-	filter_init();			/* Must come before search_init() for retrieval */
 	search_init();
-    filter_update_targets(); /* Make sure the default filters are ok */
 	share_init();
 	dmesh_init();			/* Muse be done BEFORE download_init() */
 	download_init();
@@ -406,8 +337,6 @@ gint main(gint argc, gchar ** argv)
     whitelist_init();
 
     main_gui_init();
-
-    load_legacy_settings();
 
    	gui_update_all();
 
