@@ -1,5 +1,15 @@
 # since last version
 
+- (2002.10.30 RAM)
+ * Raised logging level for some innermost traces in bg.c.
+ * Moved check for "no GUID to use PUSH" to download_push() to avoid seeing
+   retry countdowns when a connection cannot be made.
+   This updates yesterday's fix.
+ * Integrated batch of portability and cleanup fixes from Christian Biere.
+ * Don't call search_close() too early [Fix from Juli Mallett].
+ * Avoid dereferencing a NULL `current_search' variable [From Juli Mallett].
+ * When falling back to push, reset the time for accurate push timeout.
+
 - (2002.10.29 RAM)
  * New background task layer.
  * Added X-Host: support to specify non-firewalled server's IP address to
