@@ -316,7 +316,7 @@ enum ignore_val ignore_is_requested(
 		if (g_hash_table_lookup(by_sha1, sha1))
 			return IGNORE_SHA1;
 		sf = shared_file_by_sha1(sha1);
-		if (sf && sf != SHARE_REBUILDING)
+		if (sf && sf != SHARE_REBUILDING && sf->fi == NULL)
 			return IGNORE_LIBRARY;
 	}
 
