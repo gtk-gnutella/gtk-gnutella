@@ -31,6 +31,7 @@ static void download_start_restart_timer(struct download *d);
 static void download_read(gpointer data, gint source, GdkInputCondition cond);
 static void download_request(struct download *d, header_t *header);
 static void download_push_ready(struct download *d, getline_t *empty);
+static void download_push_remove(struct download *d);
 
 #define DL_RUN_DELAY	5		/* To avoid hammering host --RAM */
 
@@ -361,6 +362,9 @@ void download_stop(struct download *d, guint32 new_status,
 	if (new_status == GTA_DL_COMPLETED)
 		queue_remove_all_named(d->file_name);
 
+	if (DOWNLOAD_IS_STOPPED(d) && DOWNLOAD_IS_IN_PUSH_MODE(d))
+		download_push_remove(d);
+
 	download_pickup_queued();
 
 	if (DOWNLOAD_IS_VISIBLE(d)) {
@@ -456,14 +460,19 @@ static void download_push_insert(struct download *d)
 	key = g_strdup(dl_tmp);
 
 	/*
-	 * We cannot have the download already in the table, since we take care
-	 * when starting a download that there is no duplicate.
+	 * We should not have the download already in the table, since we take care
+	 * when starting a download that there is no (active) duplicate.  We also
+	 * perform the same check on resuming a stopped download, so the following
+	 * warning should not happen.  It will indicate a bug. --RAM, 01/01/2002
 	 */
 
-	g_assert(0 == g_hash_table_lookup(pushed_downloads, (gpointer) key));
-	g_hash_table_insert(pushed_downloads, (gpointer) key, (gpointer) d);
-
-	d->push = TRUE;
+	if (0 != g_hash_table_lookup(pushed_downloads, (gpointer) key)) {
+		g_warning("BUG: duplicate push ignored for \"%s\"", d->file_name);
+		d->push = FALSE;		/* Don't do it */
+	} else {
+		g_hash_table_insert(pushed_downloads, (gpointer) key, (gpointer) d);
+		d->push = TRUE;
+	}
 }
 
 /*
@@ -961,6 +970,12 @@ void download_resume(struct download *d)
 
 	if (DOWNLOAD_IS_RUNNING(d))
 		return;
+
+	if (has_same_active_download(d->file_name, d->guid)) {
+		d->status = GTA_DL_CONNECTING;		/* So we may call download_stop */
+		download_stop(d, GTA_DL_ERROR, "Duplicate");
+		return;
+	}
 
 	download_start(d, TRUE);
 }
