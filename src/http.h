@@ -166,6 +166,17 @@ typedef struct http_range {
 
 #define HTTP_OFFSET_MAX	0xffffffff
 
+typedef enum http_state {
+	HTTP_AS_UNKNOWN = 0,		/* No defined state */
+	HTTP_AS_CONNECTING,			/* Connecting to server */
+	HTTP_AS_REQ_SENDING,		/* Sending request to server */
+	HTTP_AS_REQ_SENT,			/* Request sent, waiting for reply */
+	HTTP_AS_HEADERS,			/* Receiving headers */
+	HTTP_AS_RECEIVING,			/* Receiving data */
+	HTTP_AS_REDIRECTED,			/* Request redirected */
+	HTTP_AS_REMOVED,			/* Removed, pending free */
+} http_state_t;
+
 /*
  * Public interface
  */
@@ -207,6 +218,7 @@ void http_async_connected(gpointer handle);
 void http_async_close(gpointer handle);
 void http_async_cancel(gpointer handle);
 void http_async_error(gpointer handle, gint code);
+http_state_t http_async_state(gpointer handle);
 
 void http_async_set_opaque(gpointer handle, gpointer data, http_user_free_t fn);
 gpointer http_async_get_opaque(gpointer handle);

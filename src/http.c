@@ -1098,6 +1098,7 @@ static const gchar *http_verb[HTTP_MAX_REQTYPE] = {
 struct http_async {					/* An asynchronous HTTP request */
 	gint magic;						/* Magic number */
 	enum http_reqtype type;			/* Type of request */
+	http_state_t state;				/* Current request state */
 	guint32 flags;					/* Operational flags */
 	gchar *url;						/* Initial URL request (atom) */
 	gchar *path;					/* Path to request (atom) */
@@ -1232,6 +1233,7 @@ static void http_async_free_recursive(struct http_async *ha)
 
 	ha->magic = 0;				/* Prevent accidental reuse */
 	ha->flags |= HA_F_FREED;	/* Will be freed later */
+	ha->state = HTTP_AS_REMOVED;
 
 	sl_ha_freed = g_slist_prepend(sl_ha_freed, ha);
 }
@@ -1440,6 +1442,7 @@ static struct http_async *http_async_create(
 
 	ha->magic = HTTP_ASYNC_MAGIC;
 	ha->type = type;
+	ha->state = HTTP_AS_CONNECTING;
 	ha->flags = 0;
 	ha->url = atom_str_get(url);
 	ha->path = atom_str_get(path);
@@ -1610,6 +1613,7 @@ static void http_redirect(struct http_async *ha, gchar *url)
 
 	socket_free(ha->socket);
 	ha->socket = NULL;
+	ha->state = HTTP_AS_REDIRECTED;
 
 	/*
 	 * Create sub-request to handle the redirection.
@@ -1815,8 +1819,49 @@ static void http_got_header(struct http_async *ha, header_t *header)
 	 * Give them the data immediately.
 	 */
 
+	ha->state = HTTP_AS_RECEIVING;
+
 	if (s->pos > 0)
 		http_got_data(ha, FALSE);
+}
+
+/*
+ * http_async_state
+ *
+ * Get the state of the HTTP request.
+ */
+http_state_t http_async_state(gpointer handle)
+{
+	struct http_async *ha = (struct http_async *) handle;
+
+	g_assert(ha->magic == HTTP_ASYNC_MAGIC);
+
+	/*
+	 * Special-case redirected request: they have at least one child.
+	 * Return the state of the first active child we get.
+	 */
+
+	if (ha->state == HTTP_AS_REDIRECTED) {
+		GSList *l;
+
+		g_assert(ha->children);
+
+		for (l = ha->children; l; l = g_slist_next(l)) {
+			struct http_async *cha = (struct http_async *) l->data;
+
+			switch (cha->state) {
+			case HTTP_AS_REDIRECTED:
+			case HTTP_AS_REMOVED:
+				break;
+			default:
+				return cha->state;
+			}
+		}
+
+		return HTTP_AS_UNKNOWN;		/* Weird */
+	}
+
+	return ha->state;
 }
 
 /**
@@ -1833,6 +1878,21 @@ static void call_http_got_header(gpointer obj, header_t *header)
 }
 
 static struct io_error http_io_error;
+
+/*
+ * http_header_start
+ *
+ * Called when we start receiving the HTTP headers.
+ */
+static void http_header_start(gpointer handle)
+{
+	struct http_async *ha = (struct http_async *) handle;
+	
+	g_assert(ha->magic == HTTP_ASYNC_MAGIC);
+
+	ha->state = HTTP_AS_HEADERS;
+	ha->last_update = time(NULL);
+}
 
 /*
  * http_async_connected
@@ -1875,6 +1935,8 @@ void http_async_connected(gpointer handle)
 	 * Send the HTTP request.
 	 */
 
+	ha->state = HTTP_AS_REQ_SENDING;
+
 	if (-1 == (sent = bws_write(bws.out, s->file_desc, req, rw))) {
 		g_warning("HTTP request sending to %s failed: %s",
 			ip_port_to_gchar(s->ip, s->port), g_strerror(errno));
@@ -1897,8 +1959,10 @@ void http_async_connected(gpointer handle)
 	 * Prepare to read back the status line and the headers.
 	 */
 
+	ha->state = HTTP_AS_REQ_SENT;
+
 	io_get_header(ha, &ha->io_opaque, bws.in, s, IO_SAVE_FIRST,
-		call_http_got_header, NULL, &http_io_error);
+		call_http_got_header, http_header_start, &http_io_error);
 }
 
 /*
