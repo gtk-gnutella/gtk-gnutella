@@ -710,8 +710,7 @@ GList *list_remove_track(GList *l, gpointer data, gchar *file, gint line)
 	if (lk == NULL)
 		return l;
 
-	free_record(lk, file, line);
-	return g_list_remove(l, data);
+	return list_delete_link_track(l, lk, file, line);
 }
 
 GList *list_insert_track(
@@ -756,6 +755,8 @@ GList *list_insert_sorted_track(
 		return l;
 	}
 
+	/* Insert `new' before `tmp' */
+
 	if (tmp->prev != NULL) {
 		tmp->prev->next = new;
 		new->prev = tmp->prev;
@@ -794,7 +795,7 @@ GList *list_delete_link_track(GList *l, GList *lk, gchar *file, gint line)
 	GList *new;
 
 	new = g_list_remove_link(l, lk);
-	list_free1_track(l, file, line);
+	list_free1_track(lk, file, line);
 
 	return new;
 }
