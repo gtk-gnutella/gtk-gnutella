@@ -155,6 +155,7 @@ void sq_process(squeue_t *sq, time_t now)
 	 * 2. We sent our last search less than QUEUE_SPACING seconds ago.
 	 * 3. We never got a packet from that node.
 	 * 4. The node activated hops-flow to shut all queries
+	 * 5. We activated flow-control on the node locally.
 	 *
 	 *		--RAM, 01/05/2002
 	 */
@@ -174,6 +175,9 @@ void sq_process(squeue_t *sq, time_t now)
 		return;
 
 	if (!NODE_IS_WRITABLE(n))
+		return;
+
+	if (NODE_IN_TX_FLOW_CONTROL(n))		/* Don't add to the message queue yet */
 		return;
 
 	/*
