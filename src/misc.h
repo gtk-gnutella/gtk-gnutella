@@ -143,7 +143,7 @@ guint32 random_value(guint32 max);
  * Stuff
  */
 gint str_chomp(gchar *str, gint len);
-gchar *guid_hex_str(guchar *guid);
+gchar *guid_hex_str(const guchar *guid);
 gint hex2dec(gchar c);
 void hex_to_guid(gchar *hexguid, guchar *guid);
 void dump_hex(FILE *, gchar *, gchar *, gint);

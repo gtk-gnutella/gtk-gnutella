@@ -49,6 +49,9 @@ RCSID("$Id$");
 #define RANDOM_MAXV				RANDOM_MASK
 #endif
 
+static const char *hex_alphabet = "0123456789ABCDEF";
+static const char *hex_alphabet_lower = "0123456789abcdef";
+
 /*
  * is_string_ip
  *
@@ -129,15 +132,12 @@ guint32 gchar_to_ip(const gchar * str)
  */
 gboolean gchar_to_ip_port(gchar *str, guint32 *ip, guint16 *port)
 {
-	gint c;
 	gint lsb, b2, b3, msb;
 	gint iport;
 
-	while ((c = (guchar)*str)) {		/* Skip leading spaces */
-		if (!isspace(c))
-			break;
+	/* Skip leading spaces */
+	while (isspace((guchar) *str))
 		str++;
-	}
 
 	/* IP addresses are always written in big-endian format */
 	if (sscanf(str, "%d.%d.%d.%d:%d", &msb, &b3, &b2, &lsb, &iport) < 5)
@@ -369,16 +369,19 @@ gchar *short_uptime(guint32 s)
  *
  * Returns hexadecimal string representing given GUID.
  */
-gchar *guid_hex_str(guchar *guid)
+gchar *guid_hex_str(const guchar *guid)
 {
 	static gchar buf[33];
-	gint i;
+	const guchar *src = guid;
+	guchar *dst = buf;
+	gulong i;
 
-	for (i = 0; i < 16; i++)
-		gm_snprintf(&buf[i*2], 3, "%02x", guid[i]);
+	for (i = 0; i < 16; i++, src++) {
+		*dst++ = hex_alphabet_lower[*src >> 4];
+		*dst++ = hex_alphabet_lower[*src & 0x0f];
+	}
 
-	buf[32] = '\0';		/* Should not be necessary, but... */
-
+	buf[32] = '\0';
 	return buf;
 }
 
@@ -730,12 +733,24 @@ void strlower(gchar *dst, gchar *src)
 }
 
 #ifndef USE_GTK2
-/* FIXME: Use autoconf and HAVE_STRLCPY
- * (g_)strlcpy would return strlen(src)
- */
-gsize g_strlcpy(gchar *dest, const gchar *src, gsize dest_size)
+/* FIXME: Use autoconf and HAVE_STRLCPY */
+size_t g_strlcpy(gchar *dst, const gchar *src, size_t dst_size)
 {
-	return gm_snprintf(dest, dest_size, "%s", src);
+	gchar *d = dst;
+	gchar *s = src;
+	size_t i = 0;
+
+	g_assert(NULL != dst);
+	g_assert(NULL != src);
+
+	if (dst_size) {
+		while ((*d++ = *s++) && i < dst_size)
+			i++;
+		dst[dst_size - 1] = '\0';
+	}
+ 	while (*s++)
+		i++;
+	return i;
 }
 #endif
 
@@ -971,8 +986,6 @@ gchar *unique_filename(gchar *path, gchar *file, gchar *ext)
 }
 
 #define ESCAPE_CHAR		'\\'
-
-static char *hex_alphabet = "0123456789ABCDEF";
 
 /*
  * char_is_safe 
