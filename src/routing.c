@@ -306,6 +306,8 @@ void message_set_muid(struct gnutella_header *header, guint8 function)
 	case GTA_MSG_PUSH_REQUEST:
 	case GTA_MSG_BYE:
 	case GTA_MSG_QRP:
+	case GTA_MSG_VENDOR:
+	case GTA_MSG_STANDARD:
 		guid_random_muid(header->muid);
 		break;
 	case GTA_MSG_INIT:
