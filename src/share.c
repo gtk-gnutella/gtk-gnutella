@@ -131,11 +131,11 @@ struct shared_file *shared_file(guint idx)
 {
 	/* Return shared file info for index `idx', or NULL if none */
 
-	if (idx < 1 || idx > files_scanned)
-		return NULL;
-
 	if (file_table == NULL)			/* Rebuilding the library! */
 		return SHARE_REBUILDING;
+
+	if (idx < 1 || idx > files_scanned)
+		return NULL;
 
 	return file_table[idx - 1];
 }
