@@ -117,12 +117,13 @@ enum {
 enum {
     c_sr_filename = 0,
     c_sr_size,
+#ifndef USE_GTK2
     c_sr_speed,
     c_sr_host,
     c_sr_urn,
+#endif
     c_sr_info,
 #ifdef USE_GTK2
-	c_sr_status,
 	c_sr_fg, /* invisible, holds the foreground color for the row */
 	c_sr_bg, /* invisible, holds the background color for the row */
 	c_sr_record, /* invisible, pointer to the record_t of this entry */
