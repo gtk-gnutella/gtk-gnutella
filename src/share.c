@@ -42,6 +42,7 @@
 #include "gtk-missing.h"
 #include "utf8.h"
 #include "qrp.h"
+#include "base32.h"
 
 static guchar iso_8859_1[96] = {
 	' ', 			/* 160 - NO-BREAK SPACE */
