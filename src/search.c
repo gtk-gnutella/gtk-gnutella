@@ -1349,6 +1349,9 @@ void search_matched(search_t *sch, struct results_set *rs)
     extern gboolean is_firewalled;
     GSList *l;
 
+    g_assert(sch != NULL);
+    g_assert(rs != NULL);
+
     mark_color = &(gtk_widget_get_style(GTK_WIDGET(sch->clist))
         ->bg[GTK_STATE_INSENSITIVE]);
 
@@ -1379,7 +1382,8 @@ void search_matched(search_t *sch, struct results_set *rs)
 		!check_valid_host(rs->ip, rs->port);
 	skip_records = (!send_pushes || is_firewalled) && need_push;
 
-   	gtk_clist_freeze(GTK_CLIST(sch->clist));
+    if (rs->records != NULL)
+        gtk_clist_freeze(GTK_CLIST(sch->clist));
 
     // FIXME: is skip_records is set, we need not process the list
   	for (l = rs->records; l; l = l->next) {
@@ -1456,7 +1460,8 @@ void search_matched(search_t *sch, struct results_set *rs)
         filter_free_result(flt_result);
     }
 
-   	gtk_clist_thaw(GTK_CLIST(sch->clist));
+    if (rs->records != NULL)
+        gtk_clist_thaw(GTK_CLIST(sch->clist));
 
 	/* Adds the set to the list */
 	sch->r_sets = g_slist_prepend(sch->r_sets, (gpointer) rs);
