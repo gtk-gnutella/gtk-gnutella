@@ -383,7 +383,7 @@ void node_slow_timer(time_t now)
 	for (sl = unstable_ips; sl != NULL; sl = g_slist_next(sl)) {
 		node_bad_ip_t *bad_ip = (node_bad_ip_t *) sl->data;
 		
-		if (bad_ip->time_added > node_error_cleanup_timer) {
+		if (bad_ip->time_added + node_error_cleanup_timer < now) {
 			to_remove = g_slist_prepend(to_remove, bad_ip);
 		} else
 			break; /* Should be sorted by time. */
@@ -391,7 +391,7 @@ void node_slow_timer(time_t now)
 
 	for (sl = to_remove; sl != NULL; sl = g_slist_next(sl)) {
 		node_bad_ip_t *bad_ip = (node_bad_ip_t *) sl->data;		
-		
+	
 		g_hash_table_remove(unstable_ip, GUINT_TO_POINTER(bad_ip->ip));
 		unstable_ips = g_slist_remove(unstable_ips, bad_ip);
 		
@@ -1130,12 +1130,12 @@ void node_mark_bad(struct gnutella_node *n)
 		bad_ip->ip = n->ip;
 		bad_ip->time_added = time(NULL);
 		
-		g_hash_table_insert(unstable_ip, GUINT_TO_POINTER(bad_ip->ip), bad_ip);
+		g_hash_table_insert(unstable_ip, GUINT_TO_POINTER(n->ip), bad_ip);
 		unstable_ips = g_slist_prepend(unstable_ips, bad_ip);
 
 		g_warning("[nodes up] Marked ip %s (%s) as a bad host",
 			ip_to_gchar(n->ip),
-			n->vendor);
+			NULL != n->vendor ? n->vendor : "<unknown>");
 	}	
 	
 	if (n->vendor == NULL)
