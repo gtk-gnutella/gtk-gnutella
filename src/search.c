@@ -1384,7 +1384,8 @@ gboolean search_result_is_dup(search_t * sch, struct record * rc)
 	 */
 
 	if (rc->index != old_rc->index) {
-		g_warning("Index changed from %u to %u at %s for %s",
+		if (dbg) g_warning(
+			"Index changed from %u to %u at %s for %s",
 			old_rc->index, rc->index, guid_hex_str(rc->results_set->guid),
 			rc->name);
 		download_index_changed(

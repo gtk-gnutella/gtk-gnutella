@@ -288,7 +288,8 @@ static void get_protocol_version(guchar *handshake, gint *major, gint *minor)
 	if (sscanf(&handshake[gnutella_hello_length], "%d.%d", major, minor))
 		return;
 
-	g_warning("Unable to parse version number in HELLO, assuming 0.4");
+	if (dbg)
+		g_warning("Unable to parse version number in HELLO, assuming 0.4");
 	if (dbg > 2) {
 		guint len = strlen(handshake);
 		dump_hex(stderr, "First HELLO Line", handshake, MIN(len, 80));
@@ -806,8 +807,9 @@ static gboolean send_welcome(
 		return FALSE;
 	}
 	else if (sent < gnutella_welcome_length) {
-		g_warning("wrote only %d out of %d bytes of HELLO ack to %s",
-			sent, gnutella_welcome_length, ip_to_gchar(s->ip));
+		if (dbg)
+			g_warning("wrote only %d out of %d bytes of HELLO ack to %s",
+				sent, gnutella_welcome_length, ip_to_gchar(s->ip));
 		node_remove(n, "Partial write of 0.4 HELLO acknowledge");
 		return FALSE;
 	}
@@ -963,14 +965,14 @@ void send_node_error(struct gnutella_socket *s, int code, guchar *msg, ...)
 
 	g_assert(rw < sizeof(gnet_response));
 
-	if (-1 == (sent = bws_write(bws.gout, s->file_desc, gnet_response, rw)))
-		g_warning("Unable to send back error %d (%s) to node %s: %s",
+	if (-1 == (sent = bws_write(bws.gout, s->file_desc, gnet_response, rw))) {
+		if (dbg) g_warning("Unable to send back error %d (%s) to node %s: %s",
 			code, msg_tmp, ip_to_gchar(s->ip), g_strerror(errno));
-	else if (sent < rw)
-		g_warning("Only sent %d out of %d bytes of error %d (%s) "
+	} else if (sent < rw) {
+		if (dbg) g_warning("Only sent %d out of %d bytes of error %d (%s) "
 			"to node %s: %s",
 			sent, rw, code, msg_tmp, ip_to_gchar(s->ip), g_strerror(errno));
-	else if (dbg > 4) {
+	} else if (dbg > 4) {
 		printf("----Sent error %d to node %s:\n%.*s----\n",
 			code, ip_to_gchar(s->ip), rw, gnet_response);
 		fflush(stdout);
@@ -1134,8 +1136,8 @@ static void node_got_bye(struct gnutella_node *n)
 		}
 		if (c && c < ' ' && !warned) {
 			warned = TRUE;
-			g_warning("Bye message from %s contains control characters",
-				node_ip(n));
+			if (dbg) g_warning(
+				"Bye message from %s contains control characters", node_ip(n));
 		}
 	}
 
@@ -1244,7 +1246,7 @@ static void extract_header_pongs(header_t *header, struct gnutella_node *n)
 		if (dbg > 4)
 			printf("Node %s sent us %d pong%s in header\n",
 				node_ip(n), pong, pong == 1 ? "" : "s");
-		if (pong == 0)
+		if (pong == 0 && dbg)
 			g_warning("Node %s sent us unparseable X-Try: %s\n",
 				node_ip(n), field);
 	}
@@ -1263,7 +1265,7 @@ static void extract_header_pongs(header_t *header, struct gnutella_node *n)
 		if (dbg > 4)
 			printf("Node %s sent us %d ultranode pong%s in header\n",
 				node_ip(n), pong, pong == 1 ? "" : "s");
-		if (pong == 0)
+		if (pong == 0 && dbg)
 			g_warning("Node %s sent us unparseable X-Try-Ultrapeers: %s\n",
 				node_ip(n), field);
 	}
@@ -1325,28 +1327,32 @@ static gboolean analyse_status(struct gnutella_node *n, gint *code)
 		fflush(stdout);
 	}
 	if (ack_code == -1) {
-		if (incoming || 0 != strcmp(status, "GNUTELLA OK")) {
-			g_warning("weird GNUTELLA %s status line from %s",
-				what, ip_to_gchar(n->ip));
-			dump_hex(stderr, "Status Line", status,
-				MIN(getline_length(s->getline), 80));
-		} else
-			g_warning("node %s gave a 0.4 reply to our 0.6 HELLO, dropping",
-				node_ip(n));
+		if (dbg) {
+			if (incoming || 0 != strcmp(status, "GNUTELLA OK")) {
+				g_warning("weird GNUTELLA %s status line from %s",
+					what, ip_to_gchar(n->ip));
+				dump_hex(stderr, "Status Line", status,
+					MIN(getline_length(s->getline), 80));
+			} else
+				g_warning("node %s gave a 0.4 reply to our 0.6 HELLO, dropping",
+					node_ip(n));
+		}
 	} else {
 		ack_ok = TRUE;
 		n->flags |= NODE_F_VALID;		/* This is a Gnutella node */
 	}
 
 	if (ack_ok && (major != n->proto_major || minor != n->proto_minor)) {
-		if (incoming)
-			g_warning("node %s handshaked at %d.%d and now acks at %d.%d, "
-				"adjusting", ip_to_gchar(n->ip), n->proto_major, n->proto_minor,
-				major, minor);
-		else
-			g_warning("node %s was sent %d.%d HELLO but supports %d.%d only, "
-				"adjusting", ip_to_gchar(n->ip), n->proto_major, n->proto_minor,
-				major, minor);
+		if (dbg) {
+			if (incoming)
+				g_warning("node %s handshaked at %d.%d and now acks at %d.%d, "
+					"adjusting", ip_to_gchar(n->ip),
+					n->proto_major, n->proto_minor, major, minor);
+			else
+				g_warning("node %s was sent %d.%d HELLO but supports %d.%d "
+					"only, adjusting", ip_to_gchar(n->ip),
+					n->proto_major, n->proto_minor, major, minor);
+		}
 		n->proto_major = major;
 		n->proto_minor = minor;
 	}
@@ -1524,7 +1530,7 @@ static void node_process_handshake_header(struct io_header *ih)
 		guint major, minor;
 		sscanf(field, "%u.%u", &major, &minor);
 		if (major > 0 || minor > 1)
-			g_warning("node %s claims Pong-Caching version %u.%u",
+			if (dbg) g_warning("node %s claims Pong-Caching version %u.%u",
 				node_ip(n), major, minor);
 		n->attrs |= NODE_A_PONG_CACHING;
 	}
@@ -1572,7 +1578,7 @@ static void node_process_handshake_header(struct io_header *ih)
 		guint major, minor;
 		sscanf(field, "%u.%u", &major, &minor);
 		if (major > 0 || minor > 1)
-			g_warning("node %s claims Bye-Packet version %u.%u",
+			if (dbg) g_warning("node %s claims Bye-Packet version %u.%u",
 				node_ip(n), major, minor);
 		n->attrs |= NODE_A_BYE_PACKET;
 	}
@@ -1693,13 +1699,14 @@ static void node_process_handshake_header(struct io_header *ih)
 	sent = bws_write(bws.gout, n->socket->file_desc, gnet_response, rw);
 	if (sent == -1) {
 		int errcode = errno;
-		g_warning("Unable to send back %s to node %s: %s",
+		if (dbg) g_warning("Unable to send back %s to node %s: %s",
 			what, ip_to_gchar(n->ip), g_strerror(errcode));
 		node_remove(n, "Failed (Cannot send %s: %s)",
 			what, g_strerror(errcode));
 		return;
 	} else if (sent < rw) {
-		g_warning("Could only send %d out of %d bytes of %s to node %s",
+		if (dbg) g_warning(
+			"Could only send %d out of %d bytes of %s to node %s",
 			sent, rw, what, ip_to_gchar(n->ip));
 		node_remove(n, "Failed (Cannot send %s atomically)", what);
 		return;
@@ -1768,9 +1775,11 @@ nextline:
 	switch (getline_read(getline, s->buffer, s->pos, &parsed)) {
 	case READ_OVERFLOW:
 		send_node_error(s, 413, "Header line too long");
-		g_warning("node_header_parse: line too long, disconnecting from %s",
-			ip_to_gchar(s->ip));
-		dump_hex(stderr, "Leading Data", s->buffer, MIN(s->pos, 256));
+		if (dbg) {
+			g_warning("node_header_parse: line too long, disconnecting from %s",
+				ip_to_gchar(s->ip));
+			dump_hex(stderr, "Leading Data", s->buffer, MIN(s->pos, 256));
+		}
 		node_remove(n, "Failed (Header line too long)");
 		return;
 		/* NOTREACHED */
@@ -1821,21 +1830,25 @@ nextline:
 		send_node_error(s, 413, header_strerror(error));
 		/* FALL THROUGH */
 	case HEAD_EOH_REACHED:
-		g_warning("node_header_parse: %s, disconnecting from %s",
-			header_strerror(error),  ip_to_gchar(s->ip));
-		fprintf(stderr, "------ Header Dump:\n");
-		header_dump(header, stderr);
-		fprintf(stderr, "------\n");
-		dump_hex(stderr, "Header Line", getline_str(getline),
-			MIN(getline_length(getline), 128));
+		if (dbg) {
+			g_warning("node_header_parse: %s, disconnecting from %s",
+				header_strerror(error),  ip_to_gchar(s->ip));
+			fprintf(stderr, "------ Header Dump:\n");
+			header_dump(header, stderr);
+			fprintf(stderr, "------\n");
+			dump_hex(stderr, "Header Line", getline_str(getline),
+				MIN(getline_length(getline), 128));
+		}
 		node_remove(n, "Failed (%s)", header_strerror(error));
 		return;
 		/* NOTREACHED */
 	default:					/* Error, but try to continue */
-		g_warning("node_header_parse: %s, from %s",
-			header_strerror(error), ip_to_gchar(s->ip));
-		dump_hex(stderr, "Header Line",
-			getline_str(getline), getline_length(getline));
+		if (dbg) {
+			g_warning("node_header_parse: %s, from %s",
+				header_strerror(error), ip_to_gchar(s->ip));
+			dump_hex(stderr, "Header Line",
+				getline_str(getline), getline_length(getline));
+		}
 		getline_reset(getline);
 		goto nextline;			/* Go process other lines we may have read */
 	}
@@ -1848,14 +1861,16 @@ nextline:
 	 */
 
 	if (s->pos && !(ih->flags & IO_EXTRA_DATA_OK)) {
-		g_warning("%s node %s sent extra bytes after HELLO",
-			(n->flags & (NODE_F_INCOMING|NODE_F_TMP)) ?
-				"incoming" : "outgoing",
-			ip_to_gchar(s->ip));
-		dump_hex(stderr, "Extra HELLO Data", s->buffer, MIN(s->pos, 256));
-		fprintf(stderr, "------ HELLO Header Dump:\n");
-		header_dump(ih->header, stderr);
-		fprintf(stderr, "\n------\n");
+		if (dbg) {
+			g_warning("%s node %s sent extra bytes after HELLO",
+				(n->flags & (NODE_F_INCOMING|NODE_F_TMP)) ?
+					"incoming" : "outgoing",
+				ip_to_gchar(s->ip));
+			dump_hex(stderr, "Extra HELLO Data", s->buffer, MIN(s->pos, 256));
+			fprintf(stderr, "------ HELLO Header Dump:\n");
+			header_dump(ih->header, stderr);
+			fprintf(stderr, "\n------\n");
+		}
 		node_remove(n, "Failed (Extra HELLO data)");
 		return;
 	}
@@ -1918,9 +1933,11 @@ static void node_header_read(
 
 	count = sizeof(s->buffer) - s->pos - 1;		/* -1 to allow trailing NUL */
 	if (count <= 0) {
-		g_warning("node_header_read: incoming buffer full, "
-			"disconnecting from %s", ip_to_gchar(s->ip));
-		dump_hex(stderr, "Leading Data", s->buffer, MIN(s->pos, 256));
+		if (dbg) {
+			g_warning("node_header_read: incoming buffer full, "
+				"disconnecting from %s", ip_to_gchar(s->ip));
+			dump_hex(stderr, "Leading Data", s->buffer, MIN(s->pos, 256));
+		}
 		node_remove(n, "Failed (Input buffer full)");
 		goto final_cleanup;
 	}
@@ -2792,8 +2809,11 @@ static void node_read_connecting(
 				s->pos += r;
 		}
 
-		g_warning("node %s replied to our 0.4 HELLO strangely", node_ip(n));
-		dump_hex(stderr, "HELLO Reply", s->buffer, MIN(s->pos, TRACE_LIMIT));
+		if (dbg) {
+			g_warning("node %s replied to our 0.4 HELLO strangely", node_ip(n));
+			dump_hex(stderr, "HELLO Reply",
+				s->buffer, MIN(s->pos, TRACE_LIMIT));
+		}
 		node_remove(n, "Failed (Not a Gnutella server?)");
 		return;
 	}
