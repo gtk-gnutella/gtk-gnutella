@@ -103,7 +103,7 @@ static struct {
 
 static gint get_command(const gchar *cmd)
 {
-	gint n;
+	guint n;
 
 	for (n = 0; n < G_N_ELEMENTS(commands); n ++) {
 		if (g_ascii_strcasecmp(commands[n].cmd, cmd) == 0)
@@ -592,27 +592,29 @@ static guint shell_exec_horizon(gnutella_shell_t *sh, const gchar *cmd)
 	for (sl = (GSList *) node_all_nodes() ; sl; sl = g_slist_next(sl)) {
 		struct gnutella_node *n = (struct gnutella_node *) sl->data;
 
+		if (!NODE_IS_ESTABLISHED(n))
+			continue;
+
 		nodes++;
 		
 		if (!(n->attrs & NODE_A_CAN_HSEP))
 			continue;
 
-		hsep_nodes ++;
+		hsep_nodes++;
 	}
 
-	gm_snprintf(buf, sizeof(buf) - 1,
-		"Horizon size (%d/%d nodes support HSEP):\n\n", hsep_nodes,nodes);
+	gm_snprintf(buf, sizeof(buf),
+		"Horizon size (%u/%u nodes support HSEP):\n\n", hsep_nodes, nodes);
 
 	shell_write(sh, buf);
 
-	if (hsep_nodes == 0)
-	{
+	if (hsep_nodes == 0) {
 		shell_write(sh, "No horizon information available.\n");
 		return REPLY_READY;
 	}
 	
 	hsep_get_table(globaltable, HSEP_N_MAX + 1);	
-	globalt = (gint64 *)&globaltable[1];
+	globalt = (gint64 *) &globaltable[1];
 
 	/*
 	 * Determine maximum width of each column.
@@ -620,34 +622,37 @@ static guint shell_exec_horizon(gnutella_shell_t *sh, const gchar *cmd)
 	
 	maxlen[0] = 5;   /* length of Nodes */
 	maxlen[1] = 5;   /* length of Files */
-	maxlen[2] = 3;   /* length of KiB */
+	maxlen[2] = 4;   /* length of Size */
 
-	for (i=0; i < HSEP_N_MAX * 3; i++)
-	{
-		int n = gm_snprintf(buf, sizeof(buf) - 1, "%llu", *globalt++);		
+	for (i = 0; i < HSEP_N_MAX * 3; i++) {
+		size_t n;
+	       
+		if ((i % 3) == 2)
+			n = strlen(short_kb_size64(*globalt++));
+		else
+			n = gm_snprintf(buf, sizeof(buf), "%llu", *globalt++);		
 
-		if(n > maxlen[i % 3])
+		if (n > maxlen[i % 3])
 			maxlen[i % 3] = n;
 	}
 
-	gm_snprintf(buf, sizeof(buf) - 1, "Hops  %*s  %*s  %*s\n----------",
-		maxlen[0], "Nodes", maxlen[1], "Files", maxlen[2], "KiB");
+	gm_snprintf(buf, sizeof(buf), "Hops  %*s  %*s  %*s\n----------",
+		maxlen[0], "Nodes", maxlen[1], "Files", maxlen[2], "Size");
 
 	shell_write(sh, buf);
 
-	for (i = maxlen[0] + maxlen[1] + maxlen[2];i > 0;i--)
+	for (i = maxlen[0] + maxlen[1] + maxlen[2]; i > 0; i--)
 		shell_write(sh, "-");
 
 	shell_write(sh, "\n");
 
-	globalt = (gint64 *)&globaltable[1];
+	globalt = (gint64 *) &globaltable[1];
 	
-	for (i = 0; i < HSEP_N_MAX; i++)
-	{
-		gm_snprintf(buf, sizeof(buf) - 1, "%4d  %*llu  %*llu  %*llu\n", i+1,
+	for (i = 0; i < HSEP_N_MAX; i++) {
+		gm_snprintf(buf, sizeof(buf), "%4d  %*llu  %*llu  %*s\n", i + 1,
 			maxlen[0], globalt[HSEP_IDX_NODES],
 			maxlen[1], globalt[HSEP_IDX_FILES],
-			maxlen[2], globalt[HSEP_IDX_KIB]);
+			maxlen[2], short_kb_size64(globalt[HSEP_IDX_KIB]));
 
 		shell_write(sh, buf);
 		globalt += 3;
@@ -1097,8 +1102,12 @@ void shell_init(void)
 {
 	gint n;
 
-	for (n = 0; n < SHA1_RAW_SIZE; n ++)
-		auth_cookie[n] = random_value(0xFF);
+	for (n = 0; n < SHA1_RAW_SIZE; n ++) {
+		guint32 v = random_value(~0);
+
+		v ^= (v >> 24) ^ (v >> 16) ^ (v >> 8);
+		auth_cookie[n] = v & 0xff;
+	}
 
 	shell_dump_cookie();
 }
@@ -1116,4 +1125,5 @@ void shell_close(void)
 	g_assert(NULL == sl_shells);
 };
 
+/* vi: set ts=4: */
 #endif	/* USE_REMOTE_CTRL */
