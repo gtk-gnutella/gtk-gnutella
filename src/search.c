@@ -55,8 +55,9 @@ RCSID("$Id$");
 #endif
 #endif
 
-#define MUID_SIZE	16
-#define MUID_MAX	4			/* Max amount of MUID we keep per search */
+#define MUID_SIZE			16
+#define MUID_MAX			4		/* Max amount of MUID we keep per search */
+#define SEARCH_MIN_RETRY	1800	/* Minimum search retry timeout */
 
 struct sent_node_data {
 	guint32 ip;
@@ -1754,10 +1755,7 @@ void search_set_reissue_timeout(gnet_search_t sh, guint32 timeout)
         return;
     }
 
-    if (timeout < 600)
-        timeout = 600;
-
-    sch->reissue_timeout = timeout;
+    sch->reissue_timeout = MAX(timeout, SEARCH_MIN_RETRY);
     update_one_reissue_timeout(sch);
 }
 
