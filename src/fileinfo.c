@@ -484,7 +484,11 @@ static void fi_free(struct dl_file_info *fi)
  */
 static void fi_resize(struct dl_file_info *fi, guint32 size)
 {
+	namesize_t nsk;
 	struct dl_file_chunk *fc;
+	GSList *l;
+	GSList *to_remove = NULL;
+	struct dl_file_info *xfi;
 
 	g_assert(fi);
 	g_assert(fi->size < size);
@@ -498,7 +502,7 @@ static void fi_resize(struct dl_file_info *fi, guint32 size)
 
 	/*
 	 * Don't remove/re-insert `fi' from hash tables: when this routine is
-	 * called, `fi' has not been inserted yet.
+	 * called, `fi' is no longer "hashed", or has never been "hashed".
 	 */
 
 	g_assert(fi->size_atom);
@@ -506,6 +510,37 @@ static void fi_resize(struct dl_file_info *fi, guint32 size)
 	atom_int_free(fi->size_atom);
 	fi->size = size;
 	fi->size_atom = atom_int_get(&size);
+
+	/*
+	 * Now make sure none of the current aliases will conflict, now that we
+	 * got a new size.
+	 */
+
+	nsk.size = size;
+
+	for (l = fi->alias; l; l = l->next) {
+		nsk.name = l->data;
+
+		xfi = g_hash_table_lookup(fi_by_namesize, &nsk);
+
+		if (xfi != NULL) {
+			g_assert(xfi != fi);		/* We should not be there! */
+
+			if (dbg) g_warning("ignoring alias \"%s\" for \"%s\" "
+				"(resized to %u bytes): conflicts with \"%s\" (%u bytes)",
+				nsk.name, fi->file_name, fi->size, xfi->file_name, xfi->size);
+
+			to_remove = g_slist_prepend(to_remove, l->data);
+		}
+	}
+
+	for (l = to_remove; l; l = l->next) {
+		gchar *name = (gchar *) l->data;
+		fi->alias = g_slist_remove(fi->alias, name);
+		atom_str_free(name);
+	}
+
+	g_slist_free(to_remove);
 }
 
 /*
@@ -1315,6 +1350,7 @@ static void file_info_hash_remove(struct dl_file_info *fi)
 
 		g_assert(found);
 		g_assert(x == (gpointer) fi);
+		g_assert(ns->size == fi->size);
 
 		g_hash_table_remove(fi_by_namesize, ns);
 		namesize_free(ns);
@@ -1336,7 +1372,7 @@ static void file_info_hash_remove(struct dl_file_info *fi)
 	newl = g_slist_remove(l, fi);
 
 	if (newl == NULL)
-		g_hash_table_remove(fi_by_size, &fi->size);
+		g_hash_table_remove(fi_by_size, fi->size_atom);
 	else if (newl != l)
 		g_hash_table_insert(fi_by_size, fi->size_atom, newl);
 
@@ -1799,10 +1835,14 @@ void file_info_recreate(struct download *d)
 
 	/*
 	 * We change the target's file info on the fly here, because we know this
-	 * download has not started yet, it's only preparing.
+	 * download has not started yet, it's only preparing.  If we did it through
+	 * the download_info_change_all() call, it would be requeued due to the
+	 * fileinfo change.
 	 */
 
-	d->file_info = new_fi;			/* Don't decrement refcount yet */
+	d->file_info = new_fi;			/* Don't decrement refcount on fi yet */
+	new_fi->refcount++;
+	new_fi->lifecount++;
 
 	/*
 	 * All other downloads bearing the old `fi' are moved to the new one,
@@ -1841,8 +1881,6 @@ struct dl_file_info *file_info_get(
 		fi = NULL;
 
 	if (fi) {
-		fi_alias(fi, file, TRUE);	/* Add alias if not conflicting */
-
 		/*
 		 * If download size is greater, we need to resize the output file.
 		 * This can only happen for a download with a SHA1, because otherwise
@@ -1860,6 +1898,8 @@ struct dl_file_info *file_info_get(
 			fi_resize(fi, size);
 			file_info_hash_insert(fi);
 		}
+
+		fi_alias(fi, file, TRUE);	/* Add alias if not conflicting */
 
 		return fi;
 	}

@@ -1799,6 +1799,8 @@ void download_start(struct download *d, gboolean check_allowed)
 		return;
 
 	g_assert(d->list_idx == DL_LIST_RUNNING);	/* Moved to "running" list */
+	g_assert(d->file_info->refcount > 0);		/* Still alive */
+	g_assert(d->file_info->lifecount > 0);
 
 	if (!send_pushes && d->push)
 		download_push_remove(d);
