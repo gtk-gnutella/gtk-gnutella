@@ -731,8 +731,16 @@ gint search_gui_compare_records(gint sort_col, record_t *r1, record_t *r2)
             result = strcmp(r1->name, r2->name);
             break;
         case c_sr_size:
-            result = (r1->size == r2->size) ? 0 :
-                (r1->size > r2->size) ? +1 : -1;
+			/*
+			 * Sort by size, then by identical SHA1.
+			 */
+			if (r1->size == r2->size)
+            	result = (r1->sha1 == r2->sha1) ? 0 :
+              		(r1->sha1 == NULL) ? -1 :
+              		(r2->sha1 == NULL) ? +1 :
+					memcmp(r1->sha1, r2->sha1, SHA1_RAW_SIZE);
+			else
+				result = (r1->size > r2->size) ? +1 : -1;
             break;
         case c_sr_speed:
             result = (rs1->speed == rs2->speed) ? 0 :
