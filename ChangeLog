@@ -1,5 +1,10 @@
 # since last version
 
+- (2004.06.01 - RAM)
+ * Fixed download_clone() to remap the parq ID to the children download.
+ * Make sure to revitalize a stopped download upon receiving QUEUE.
+ * Removed spurious trailing "\n" in warnings from parq.c.
+
 - (2004.06.01 - Jeroen)
  * Uploads: HEAD requests won't be treated as a followup request anymore (which
             avoids an upload to ignore the max uploads per ip setting)
