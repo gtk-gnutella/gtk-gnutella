@@ -1539,7 +1539,7 @@ static void dmesh_retrieve(void)
 		if (skip)
 			continue;
 
-		str_chomp(tmp, 0);
+		str_chomp(tmp, 0);		/* Remove final "\n" */
 
 		if (has_sha1)
 			dmesh_collect_locations(sha1, tmp);
