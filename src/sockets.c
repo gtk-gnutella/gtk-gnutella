@@ -182,16 +182,16 @@ static void socket_read(gpointer data, gint source, GdkInputCondition cond)
 	/*
 	 * Dispatch request.
 	 *
-	 * XXX TODO: handle push requests (GIV)
+	 * XXX TODO: handle push requests (GIV) directly on our GNet socket?
 	 */
 
 	first = getline_str(s->getline);
 
 	if (0 == strncmp(first, gnutella_hello, gnutella_hello_length))
 		node_add(s, s->ip, s->port);	/* Incoming control connection */
-	else if (0 == strncmp(first, "GET", 3))
+	else if (0 == strncmp(first, "GET ", 4))
 		upload_add(s, FALSE);
-	else if (0 == strncmp(first, "HEAD", 4))
+	else if (0 == strncmp(first, "HEAD ", 5))
 		upload_add(s, TRUE);
 	else {
 		gint len = getline_length(s->getline);
@@ -342,10 +342,6 @@ void socket_connected(gpointer data, gint source, GdkInputCondition cond)
 				struct download *d = s->resource.download;
 
 				g_assert(d->socket == s);
-
-				s->gdk_tag = gdk_input_add(s->file_desc,
-					  GDK_INPUT_READ | GDK_INPUT_EXCEPTION,
-					  download_read, (gpointer) d);
 				download_send_request(d);
 			}
 			break;
@@ -405,7 +401,6 @@ static void socket_accept(gpointer data, gint source,
 		break;
 
 	default:
-
 		g_warning("socket_accept(): Unknown listning socket type %d !\n",
 				  s->type);
 		socket_destroy(s);
@@ -469,9 +464,8 @@ static void socket_accept(gpointer data, gint source,
 		t->resource.download = s->resource.download;
 		t->resource.download->socket = t;
 
-		t->gdk_tag =
-			gdk_input_add(sd, GDK_INPUT_READ | GDK_INPUT_EXCEPTION,
-						  download_read, (gpointer) t->resource.download);
+		t->gdk_tag = gdk_input_add(sd, GDK_INPUT_READ | GDK_INPUT_EXCEPTION,
+			download_push_read, (gpointer) t->resource.download);
 
 		socket_free(s);		/* Close the listening socket */
 		break;
