@@ -2243,6 +2243,8 @@ static void upload_write(gpointer up, gint source, inputevt_cond_t cond)
 	u->bpos += written;
 #endif
 
+	gnet_prop_set_guint32_val(PROP_UL_BYTE_COUNT, ul_byte_count + written);
+
 	u->last_update = time((time_t *) NULL);
 
 	/* This upload is complete */
