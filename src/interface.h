@@ -79,6 +79,7 @@ extern GtkWidget *spinbutton_config_node_connecting_timeout;
 extern GtkWidget *spinbutton_config_node_connected_timeout;
 extern GtkWidget *spinbutton_config_upload_connecting_timeout;
 extern GtkWidget *spinbutton_config_upload_connected_timeout;
+extern GtkWidget *vpaned_downloads;
 extern GtkWidget *button_nodes_add;
 extern GtkWidget *button_nodes_remove;
 extern GtkWidget *button_host_catcher_clear;

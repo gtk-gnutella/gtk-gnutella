@@ -445,10 +445,9 @@
 	    <widget>
 	      <class>GtkFrame</class>
 	      <name>frame_bws_inout</name>
-	      <border_width>2</border_width>
 	      <label>HTTP traffic</label>
 	      <label_xalign>0.5</label_xalign>
-	      <shadow_type>GTK_SHADOW_ETCHED_IN</shadow_type>
+	      <shadow_type>GTK_SHADOW_NONE</shadow_type>
 	      <child>
 		<padding>0</padding>
 		<expand>False</expand>
@@ -520,10 +519,9 @@
 	    <widget>
 	      <class>GtkFrame</class>
 	      <name>frame_bws_ginout</name>
-	      <border_width>2</border_width>
 	      <label>gnutellaNet traffic</label>
 	      <label_xalign>0.5</label_xalign>
-	      <shadow_type>GTK_SHADOW_ETCHED_IN</shadow_type>
+	      <shadow_type>GTK_SHADOW_NONE</shadow_type>
 	      <child>
 		<padding>0</padding>
 		<expand>False</expand>
@@ -2208,7 +2206,7 @@
 
 	  <widget>
 	    <class>GtkVPaned</class>
-	    <name>vpaned1</name>
+	    <name>vpaned_downloads</name>
 	    <border_width>2</border_width>
 	    <handle_size>8</handle_size>
 	    <gutter_size>8</gutter_size>
@@ -6754,7 +6752,7 @@ options</label>
 		    <update_policy>GTK_UPDATE_ALWAYS</update_policy>
 		    <snap>False</snap>
 		    <wrap>False</wrap>
-		    <value>1</value>
+		    <value>15</value>
 		    <lower>15</lower>
 		    <upper>100000</upper>
 		    <step>1</step>
@@ -7839,7 +7837,7 @@ settings</label>
   <class>GtkWindow</class>
   <name>dlg_filters</name>
   <visible>False</visible>
-  <title>Search results filters</title>
+  <title>Search results filter definition</title>
   <type>GTK_WINDOW_DIALOG</type>
   <position>GTK_WIN_POS_NONE</position>
   <modal>False</modal>
@@ -7854,8 +7852,79 @@ settings</label>
     <spacing>2</spacing>
 
     <widget>
+      <class>GtkHBox</class>
+      <name>hbox97</name>
+      <border_width>2</border_width>
+      <homogeneous>False</homogeneous>
+      <spacing>4</spacing>
+      <child>
+	<padding>0</padding>
+	<expand>False</expand>
+	<fill>True</fill>
+      </child>
+
+      <widget>
+	<class>GtkLabel</class>
+	<name>label183</name>
+	<label>Define filter</label>
+	<justify>GTK_JUSTIFY_CENTER</justify>
+	<wrap>False</wrap>
+	<xalign>0.5</xalign>
+	<yalign>0.5</yalign>
+	<xpad>0</xpad>
+	<ypad>0</ypad>
+	<child>
+	  <padding>0</padding>
+	  <expand>False</expand>
+	  <fill>False</fill>
+	</child>
+      </widget>
+
+      <widget>
+	<class>GtkCombo</class>
+	<name>combo1</name>
+	<value_in_list>False</value_in_list>
+	<ok_if_empty>True</ok_if_empty>
+	<case_sensitive>False</case_sensitive>
+	<use_arrows>True</use_arrows>
+	<use_arrows_always>False</use_arrows_always>
+	<items></items>
+	<child>
+	  <padding>0</padding>
+	  <expand>True</expand>
+	  <fill>True</fill>
+	</child>
+
+	<widget>
+	  <class>GtkEntry</class>
+	  <child_name>GtkCombo:entry</child_name>
+	  <name>combo-entry1</name>
+	  <can_focus>True</can_focus>
+	  <editable>True</editable>
+	  <text_visible>True</text_visible>
+	  <text_max_length>0</text_max_length>
+	  <text></text>
+	</widget>
+      </widget>
+
+      <widget>
+	<class>GtkButton</class>
+	<name>button6</name>
+	<can_focus>True</can_focus>
+	<label>Delete</label>
+	<relief>GTK_RELIEF_NORMAL</relief>
+	<child>
+	  <padding>0</padding>
+	  <expand>False</expand>
+	  <fill>False</fill>
+	</child>
+      </widget>
+    </widget>
+
+    <widget>
       <class>GtkScrolledWindow</class>
       <name>scrolledwindow11</name>
+      <border_width>2</border_width>
       <hscrollbar_policy>GTK_POLICY_ALWAYS</hscrollbar_policy>
       <vscrollbar_policy>GTK_POLICY_ALWAYS</vscrollbar_policy>
       <hupdate_policy>GTK_UPDATE_CONTINUOUS</hupdate_policy>
@@ -7894,6 +7963,7 @@ settings</label>
     <widget>
       <class>GtkNotebook</class>
       <name>notebook2</name>
+      <border_width>2</border_width>
       <can_focus>True</can_focus>
       <show_tabs>True</show_tabs>
       <show_border>True</show_border>
@@ -7904,7 +7974,7 @@ settings</label>
       <popup_enable>False</popup_enable>
       <child>
 	<padding>0</padding>
-	<expand>True</expand>
+	<expand>False</expand>
 	<fill>True</fill>
       </child>
 
