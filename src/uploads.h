@@ -74,6 +74,7 @@ typedef struct upload {
 	gboolean queue;					/* Similar to PUSH, but this time it is due
 				                       to parq */
 	gboolean accounted;				/* True when upload was accounted for */
+	gboolean unavailable_range;		/* True when last request ended with 416 */
 	
 	gboolean parq_status;
 } gnutella_upload_t;
