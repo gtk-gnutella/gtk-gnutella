@@ -310,7 +310,8 @@ void hsep_process_msg(struct gnutella_node *n)
 		*messaget = guint64_to_LE(*messaget);
 		messaget++;
 	}
-	messaget -= 3;			/* Back to front */
+
+	messaget = (guint64 *) n->data;		/* Back to front */
 
 	/* sanity check */
 
