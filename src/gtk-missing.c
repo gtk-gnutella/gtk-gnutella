@@ -362,6 +362,7 @@ static void tree_selection_collect_data_helper(GtkTreeModel *model,
 	collect_data_struct_t *cdata = user_data;
 	gpointer data = NULL;
 
+	(void) path;
 	g_assert(NULL != cdata);
 	gtk_tree_model_get(model, iter, c_sr_record, &data, (-1));
 	g_assert(NULL != data);
@@ -435,7 +436,6 @@ void tree_view_save_widths(GtkTreeView *treeview, property_t prop)
 	gint i;
 
 	g_assert(treeview);
-
 	for (i = 0; i < INT_MAX; i++) {
 		GtkTreeViewColumn *c;
 		guint32 width;
@@ -450,12 +450,28 @@ void tree_view_save_widths(GtkTreeView *treeview, property_t prop)
 	}
 }
 
+void tree_view_restore_widths(GtkTreeView *treeview, property_t prop)
+{
+	gint i;
+
+	g_assert(treeview);
+	for (i = 0; i < INT_MAX; i++) {
+		GtkTreeViewColumn *c;
+		guint32 width;
+
+		c = gtk_tree_view_get_column(treeview, i);
+		if (!c)
+			break;
+		gui_prop_get_guint32(prop, &width, i, 1);
+		g_object_set(G_OBJECT(c), "fixed-width", MAX(1, width), NULL);
+	}
+}
+
 void tree_view_save_visibility(GtkTreeView *treeview, property_t prop)
 {
 	guint i;
 
 	g_assert(treeview);
-
 	for (i = 0; i < INT_MAX; i++) {
 		GtkTreeViewColumn *c;
 		guint32 val;
@@ -465,6 +481,23 @@ void tree_view_save_visibility(GtkTreeView *treeview, property_t prop)
 			break;
 		val = gtk_tree_view_column_get_visible(c);
 		gui_prop_set_boolean(prop, &val, i, 1);
+	}
+}
+
+void tree_view_restore_visibility(GtkTreeView *treeview, property_t prop)
+{
+	guint i;
+
+	g_assert(treeview);
+	for (i = 0; i < INT_MAX; i++) {
+		GtkTreeViewColumn *c;
+		gboolean val;
+
+		c = gtk_tree_view_get_column(treeview, i);
+		if (!c)
+			break;
+		gui_prop_get_boolean(prop, &val, i, 1);
+		gtk_tree_view_column_set_visible(c, val);
 	}
 }
 
@@ -833,9 +866,8 @@ void gtk_widget_fix_width(GtkWidget *w, GtkWidget *l, guint chars, guint extra)
     plang = pango_context_get_language(pctx);
     pfm = pango_context_get_metrics(pctx, pfd, plang);
 
-    max_width = PANGO_PIXELS(
-        (pango_font_metrics_get_approximate_digit_width(pfm) * chars)
-        + extra);
+    max_width = PANGO_PIXELS((gint)
+		(pango_font_metrics_get_approximate_digit_width(pfm) * chars + extra));
 
     gtk_widget_set_size_request(w, max_width, -1);
 
