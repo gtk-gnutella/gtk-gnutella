@@ -27,6 +27,8 @@
 #include "gnet_stats_gui2.h"
 #include "gnutella.h" /* for sizeof(struct gnutella_header) */
 
+RCSID("$Id$");
+
 gchar *msg_type_str[MSG_TYPE_COUNT] = {
     "Unknown",
     "Ping",
@@ -88,24 +90,7 @@ gchar *msg_stats_label[] = {
 	"Generated"
 };
 
-static guint gnet_stats_mode = 0;
-
-#define MODE_FC_ABSOLUTE	0x01
-#define MODE_FC_HEADERS		0x02
-#define MODE_FC_PACKETS		0x04
-#define MODE_FC_TTL			0x08
-
-#define MODE_RECV_ABSOLUTE	0x10
-#define MODE_RECV_HEADERS	0x20
-#define MODE_RECV_PACKETS	0x40
-#define MODE_RECV_TTL		0x80
-
-#define MODE_MSGS_ABSOLUTE	0x100
-#define MODE_MSGS_PACKETS	0x200
- 
 enum {
-	GNET_STATS_NB_PAGE_GENERAL,
-	GNET_STATS_NB_PAGE_DROP_REASONS,
 	GNET_STATS_NB_PAGE_MESSAGES,
 	GNET_STATS_NB_PAGE_FLOWC,
 	GNET_STATS_NB_PAGE_RECV,
@@ -113,9 +98,8 @@ enum {
 	GNET_STATS_NP_PAGE_NUMBER
 };
 
-static gint selected_type = MSG_TOTAL;
-
-static void column_set_hidden(GtkTreeView *, const gchar *, gboolean);
+static void hide_column_by_title(GtkTreeView *, const gchar *, gboolean);
+static void gnet_stats_update_drop_reasons(const gnet_stats_t *);
 
 
 /***
@@ -140,8 +124,9 @@ static void on_gnet_stats_column_resized(
  	width = gtk_tree_view_column_get_width(column);
 
 #if 0
-	g_message("%s: widget=\"%s\" title=\"%s\", width=%u",
-		__FUNCTION__, widget_name, title, width);
+	g_message(
+		"on_gnet_stats_column_resized: widget=\"%s\" title=\"%s\", width=%u",
+		widget_name, title, width);
 #endif
 
 	if (!(strcmp(title, "Type")))
@@ -186,75 +171,22 @@ static void on_gnet_stats_column_resized(
 	g_static_mutex_unlock(&mutex);
 }
 
+static gint gnet_stats_drop_reasons_type = MSG_TOTAL;
+
 static void on_gnet_stats_type_selected(GtkItem *i, gpointer data)
 {
-    selected_type = GPOINTER_TO_INT(data);
-    gnet_stats_gui_update();
-}
+	static gnet_stats_t stats;
 
-#define GNET_STATS_BUTTON_TOGGLED(a, b)										 \
-static void on_gnet_stats_##a##_toggled(									 \
-	GtkWidget *widget, gpointer data)										 \
-{																			 \
-	gboolean value;															 \
-																			 \
-	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(widget)))			 \
-		gnet_stats_mode |= (b);												 \
-	else																	 \
-	 	gnet_stats_mode &= ~(b);											 \
-	value = FALSE != (gnet_stats_mode & (b));								 \
-	gui_prop_set_boolean(PROP_GNET_STATS_##b, &value, 0, 1);	 			 \
-	gnet_stats_gui_update();												 \
-}
-
-GNET_STATS_BUTTON_TOGGLED(msgs_packets, MODE_MSGS_PACKETS)
-GNET_STATS_BUTTON_TOGGLED(msgs_absolute, MODE_MSGS_ABSOLUTE)
-GNET_STATS_BUTTON_TOGGLED(fc_absolute, MODE_FC_ABSOLUTE)
-GNET_STATS_BUTTON_TOGGLED(fc_headers, MODE_FC_HEADERS)
-GNET_STATS_BUTTON_TOGGLED(fc_packets, MODE_FC_PACKETS)
-GNET_STATS_BUTTON_TOGGLED(recv_absolute, MODE_RECV_ABSOLUTE)
-GNET_STATS_BUTTON_TOGGLED(recv_headers, MODE_RECV_HEADERS)
-GNET_STATS_BUTTON_TOGGLED(recv_packets, MODE_RECV_PACKETS)
-
-static void on_gnet_stats_fc_ttl_toggled(GtkWidget *widget, gpointer data)
-{
-	gboolean value;
-	/* Hide column for TTL=0 */
-	
-	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(widget)))
-		gnet_stats_mode |= MODE_FC_TTL;										
-	else
-		gnet_stats_mode &= ~MODE_FC_TTL;										
-	column_set_hidden(
-		GTK_TREE_VIEW(lookup_widget(main_window, "treeview_gnet_stats_flowc")),
-		"0", gnet_stats_mode & MODE_FC_TTL);
-	value = FALSE != (gnet_stats_mode & MODE_FC_TTL);
-	gui_prop_set_boolean(PROP_GNET_STATS_MODE_FC_TTL, &value, 0, 1);
-	gnet_stats_gui_update();
-}
-
-static void on_gnet_stats_recv_ttl_toggled(GtkWidget *widget, gpointer data)
-{
-	gboolean value;
-	/* Hide column for TTL=0 */
-	
-	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(widget)))
-		gnet_stats_mode |= MODE_RECV_TTL;
-	else
-		gnet_stats_mode &= ~MODE_RECV_TTL;
-	column_set_hidden(
-		GTK_TREE_VIEW(lookup_widget(main_window, "treeview_gnet_stats_recv")),
-		"0", gnet_stats_mode & MODE_RECV_TTL);
-	value = FALSE != (gnet_stats_mode & MODE_RECV_TTL);
-	gui_prop_set_boolean(PROP_GNET_STATS_MODE_RECV_TTL, &value, 0, 1);
-    gnet_stats_gui_update();
+	gnet_stats_drop_reasons_type = GPOINTER_TO_INT(data);
+	gnet_stats_get(&stats);
+	gnet_stats_update_drop_reasons(&stats);
 }
 
 /***
  *** Private functions
  ***/
 
-static void column_set_hidden(
+static void hide_column_by_title(
 	GtkTreeView *treeview, const gchar *header_title, gboolean hidden)
 {
 	GList *list, *l;
@@ -278,26 +210,28 @@ static void column_set_hidden(
 }
 
 static gchar *pkt_stat_str(
-	gchar *strbuf, gulong n, const guint32 *val_tbl, gint type)
+	gchar *strbuf, gulong n, const guint32 *val_tbl, gint type, gboolean perc)
 {
     if (val_tbl[type] == 0)
 		g_strlcpy(strbuf, "-", n);
-    else if (gnet_stats_mode & MODE_MSGS_ABSOLUTE)
-        g_snprintf(strbuf, n, "%u", val_tbl[type]);
-    else
-        g_snprintf(strbuf, n, "%.2f%%", 
-            (gfloat) val_tbl[type] / val_tbl[MSG_TOTAL] * 100.0);
+    else {
+		if (!perc)
+        	g_snprintf(strbuf, n, "%lu", (gulong) val_tbl[type]);
+    	else
+        	g_snprintf(strbuf, n, "%.2f%%", 
+            	(gfloat) val_tbl[type] / val_tbl[MSG_TOTAL] * 100.0);
+	}
 
     return strbuf;
 }
 
 
 const gchar *byte_stat_str(
-	gchar *strbuf, gulong n, const guint32 *val_tbl, gint type)
+	gchar *strbuf, gulong n, const guint32 *val_tbl, gint type, gboolean perc)
 {
     if (val_tbl[type] == 0)
 		g_strlcpy(strbuf, "-", n);
-    else if (gnet_stats_mode & MODE_MSGS_ABSOLUTE)
+    else if (!perc)
         g_strlcpy(strbuf, compact_size(val_tbl[type]), n);
     else
         g_snprintf(strbuf, n, "%.2f%%", 
@@ -307,7 +241,11 @@ const gchar *byte_stat_str(
 }
 
 const gchar *drop_stat_str(
-	gchar *str, gulong n, const gnet_stats_t *stats, gint reason)
+	gchar *str,
+	gulong n,
+	const gnet_stats_t *stats,
+	gint reason,
+	gint selected_type)
 {
     guint32 total = stats->pkg.dropped[MSG_TOTAL];
 
@@ -315,7 +253,7 @@ const gchar *drop_stat_str(
 		g_strlcpy(str, "-", n);
     else if (gnet_stats_drop_perc)
         g_snprintf(str, n, "%.2f%%", 
-            (gfloat)stats->drop_reason[reason][selected_type]/total*100);
+            (gfloat) stats->drop_reason[reason][selected_type] / total * 100);
     else
         g_snprintf(str, n, "%u", stats->drop_reason[reason][selected_type]);
 
@@ -340,18 +278,19 @@ static const gchar *type_stat_str(
 	gulong n,
 	gulong value,
 	gulong total,
-	gboolean absolute,
-	gboolean packets)
+	gboolean perc,
+	gboolean bytes)
 {
-	if (value == 0 || total == 0) {
+	if (value == 0 || total == 0)
 		g_strlcpy(strbuf, "-", n);
-	} else if (absolute) {
-		if (packets)
-       		g_snprintf(strbuf, n, "%lu", (gulong) value);
-		else
+	else if (perc)
+		g_snprintf(strbuf, n, "%.2f%%", (gfloat) value / total * 100.0);
+	else {
+		if (bytes)
 			g_strlcpy(strbuf, compact_size(value), n);
-	} else 
-		g_snprintf(strbuf, n, "%.2f%%", (gfloat) value/total*100.0);
+		else
+       		g_snprintf(strbuf, n, "%lu", (gulong) value);
+	}
 
     return strbuf;
 }
@@ -365,6 +304,7 @@ static void add_column(
 	renderer = gtk_cell_renderer_text_new();
 	column = gtk_tree_view_column_new_with_attributes(
 					label, renderer, "text", column_id, NULL);
+	gtk_tree_view_column_set_min_width(column, 0);
 	gtk_tree_view_column_set_sizing(column, GTK_TREE_VIEW_COLUMN_GROW_ONLY);
 	gtk_tree_view_column_set_resizable(column, TRUE);
 	gtk_tree_view_column_set_reorderable(column, TRUE);
@@ -394,7 +334,8 @@ static void gnet_stats_update_general(const gnet_stats_t *stats)
 	}
 }
 
-static void gnet_stats_update_drop_reasons(const gnet_stats_t *stats)
+static void gnet_stats_update_drop_reasons(
+	const gnet_stats_t *stats)
 {
     GtkTreeView *treeview;
     GtkListStore *store;
@@ -408,7 +349,8 @@ static void gnet_stats_update_drop_reasons(const gnet_stats_t *stats)
 	gtk_tree_model_get_iter_first(GTK_TREE_MODEL(store), &iter);
 
 	for (n = 0; n < MSG_DROP_REASON_COUNT; n++) {
-		drop_stat_str(str, sizeof(str), stats, n++);
+		drop_stat_str(str, sizeof(str), stats, n++,
+			gnet_stats_drop_reasons_type);
 		gtk_list_store_set(store, &iter, 1, str, -1);
 		gtk_tree_model_iter_next(GTK_TREE_MODEL(store), &iter);
 	}
@@ -421,7 +363,13 @@ static void gnet_stats_update_messages(const gnet_stats_t *stats)
     GtkListStore *store;
     GtkTreeIter iter;
     gint n;
+	gboolean perc = FALSE;
+	gboolean bytes = FALSE;
 	static char str[5][32];
+	const size_t len = sizeof(str[0]);
+
+	gui_prop_get_boolean_val(PROP_GNET_STATS_PERC, &perc);
+	gui_prop_get_boolean_val(PROP_GNET_STATS_BYTES, &bytes);
 
     treeview = GTK_TREE_VIEW(
         lookup_widget(main_window, "treeview_gnet_stats_messages"));
@@ -429,31 +377,31 @@ static void gnet_stats_update_messages(const gnet_stats_t *stats)
 	gtk_tree_model_get_iter_first(GTK_TREE_MODEL(store), &iter);
 
     for (n = 0; n < MSG_TYPE_COUNT; n ++) {
-		if (gnet_stats_mode & MODE_MSGS_PACKETS) {
+		if (!bytes) {
 			gtk_list_store_set(store, &iter,
 				c_gs_received,
-				pkt_stat_str(str[0], sizeof(str[0]), stats->pkg.received, n), 
+				pkt_stat_str(str[0], len, stats->pkg.received, n, perc), 
 				c_gs_generated,
-				pkt_stat_str(str[1], sizeof(str[0]), stats->pkg.generated, n),
+				pkt_stat_str(str[1], len, stats->pkg.generated, n, perc),
 				c_gs_dropped,
-				pkt_stat_str(str[2], sizeof(str[0]), stats->pkg.dropped, n),
+				pkt_stat_str(str[2], len, stats->pkg.dropped, n, perc),
 				c_gs_expired,
-				pkt_stat_str(str[3], sizeof(str[0]), stats->pkg.expired, n),
+				pkt_stat_str(str[3], len, stats->pkg.expired, n, perc),
 				c_gs_relayed,
-				pkt_stat_str(str[4], sizeof(str[0]), stats->pkg.relayed, n),
+				pkt_stat_str(str[4], len, stats->pkg.relayed, n, perc),
 				-1);
 		} else { /* byte mode */
 			gtk_list_store_set(store, &iter,
 				c_gs_received,
-				byte_stat_str(str[0], sizeof(str[0]), stats->byte.received, n),
+				byte_stat_str(str[0], len, stats->byte.received, n, perc),
 				c_gs_generated,
-				byte_stat_str(str[1], sizeof(str[0]), stats->byte.generated, n),
+				byte_stat_str(str[1], len, stats->byte.generated, n, perc),
 				c_gs_dropped,
-				byte_stat_str(str[2], sizeof(str[0]), stats->byte.dropped, n),
+				byte_stat_str(str[2], len, stats->byte.dropped, n, perc),
 				c_gs_expired,
-				byte_stat_str(str[3], sizeof(str[0]), stats->byte.expired, n),
+				byte_stat_str(str[3], len, stats->byte.expired, n, perc),
 				c_gs_relayed,
-				byte_stat_str(str[4], sizeof(str[0]), stats->byte.relayed, n),
+				byte_stat_str(str[4], len, stats->byte.relayed, n, perc),
 				-1);
     	}
 		gtk_tree_model_iter_next(GTK_TREE_MODEL(store), &iter);
@@ -463,34 +411,35 @@ static void gnet_stats_update_messages(const gnet_stats_t *stats)
 
 static void gnet_stats_update_types(
 	const gnet_stats_t *stats,
-	const gchar *treeview_name,
-	gboolean absolute,
-	gboolean packets,
-	gboolean with_headers,
+	GtkTreeView *treeview,
 	gint columns,
 	const guint32 (*byte_counters)[MSG_TYPE_COUNT],
 	const guint32 (*pkg_counters)[MSG_TYPE_COUNT])
 {
-    GtkTreeView *treeview;
     GtkListStore *store;
     GtkTreeIter iter;
     gint n;
+	gboolean perc = FALSE;
+	gboolean bytes = FALSE;
+	gboolean with_headers = FALSE;
 	static gchar str[MSG_TYPE_COUNT][32];
 
-    treeview = GTK_TREE_VIEW(lookup_widget(main_window, treeview_name));
-	store = GTK_LIST_STORE(gtk_tree_view_get_model(treeview));
-	gtk_tree_model_get_iter_first(GTK_TREE_MODEL(store), &iter);
+	gui_prop_get_boolean_val(PROP_GNET_STATS_PERC, &perc);
+	gui_prop_get_boolean_val(PROP_GNET_STATS_BYTES, &bytes);
+	gui_prop_get_boolean_val(PROP_GNET_STATS_WITH_HEADERS, &with_headers);
 
+	store = GTK_LIST_STORE(gtk_tree_view_get_model(GTK_TREE_VIEW(treeview)));
+	gtk_tree_model_get_iter_first(GTK_TREE_MODEL(store), &iter);
 
 	for (n = 0; n < MSG_TYPE_COUNT; n++) {
 		gint i;
 
-		if (packets)
+		if (!bytes)
 			for (i = 0; i < columns; i++)
 				type_stat_str(str[i], sizeof(str[0]),
 					(gulong) pkg_counters[i][n],
 					(gulong) pkg_counters[i][MSG_TOTAL],
-					absolute, packets);
+					perc, FALSE);
 		else
 			for (i = 0; i < columns; i++) {
 				gulong	value;
@@ -504,8 +453,7 @@ static void gnet_stats_update_types(
 					total += pkg_counters[i][MSG_TOTAL]
 						* sizeof(struct gnutella_header);
 				}
-				type_stat_str(str[i], sizeof(str[0]),
-					value, total, absolute, packets);
+				type_stat_str(str[i], sizeof(str[0]), value, total, perc, TRUE);
 			}
 
 		gtk_list_store_set(store, &iter,
@@ -528,44 +476,44 @@ static void gnet_stats_update_flowc(const gnet_stats_t *stats)
 {
 	const guint32 (*byte_counters)[MSG_TYPE_COUNT];
 	const guint32 (*pkg_counters)[MSG_TYPE_COUNT];
+	GtkTreeView *treeview;
+	gboolean hops = FALSE;
 
-	if (gnet_stats_mode & MODE_FC_TTL) {
-		pkg_counters = stats->pkg.flowc_ttl;
-		byte_counters = stats->byte.flowc_ttl;
-	} else {
+    treeview = GTK_TREE_VIEW(
+		lookup_widget(main_window, "treeview_gnet_stats_flowc"));
+	gui_prop_get_boolean_val(PROP_GNET_STATS_HOPS, &hops);
+	if (hops) {
 		pkg_counters = stats->pkg.flowc_hops;
 		byte_counters = stats->byte.flowc_hops;
+	} else {
+		pkg_counters = stats->pkg.flowc_ttl;
+		byte_counters = stats->byte.flowc_ttl;
 	}
-	gnet_stats_update_types(stats,
-		"treeview_gnet_stats_flowc",
-		gnet_stats_mode & MODE_FC_ABSOLUTE,
-		gnet_stats_mode & MODE_FC_PACKETS,
-		gnet_stats_mode & MODE_FC_HEADERS,
-		STATS_FLOWC_COLUMNS,
-		byte_counters,
-		pkg_counters);
+	hide_column_by_title(treeview, "0", !hops);
+	gnet_stats_update_types(stats, treeview, STATS_FLOWC_COLUMNS,
+		byte_counters, pkg_counters);
 }
 
 static void gnet_stats_update_recv(const gnet_stats_t *stats)
 {
 	const guint32 (*byte_counters)[MSG_TYPE_COUNT];
 	const guint32 (*pkg_counters)[MSG_TYPE_COUNT];
-
-	if (gnet_stats_mode & MODE_RECV_TTL) {
-		pkg_counters = stats->pkg.received_ttl;
-		byte_counters = stats->byte.received_ttl;
-	} else {
+	GtkTreeView *treeview;
+	gboolean hops = FALSE;
+	
+    treeview = GTK_TREE_VIEW(
+		lookup_widget(main_window, "treeview_gnet_stats_recv"));
+	gui_prop_get_boolean_val(PROP_GNET_STATS_HOPS, &hops);
+	if (hops) {
 		pkg_counters = stats->pkg.received_hops;
 		byte_counters = stats->byte.received_hops;
+	} else {
+		pkg_counters = stats->pkg.received_ttl;
+		byte_counters = stats->byte.received_ttl;
 	}
-	gnet_stats_update_types(stats,
-		"treeview_gnet_stats_recv",
-		gnet_stats_mode & MODE_RECV_ABSOLUTE,
-		gnet_stats_mode & MODE_RECV_PACKETS,
-		gnet_stats_mode & MODE_RECV_HEADERS,
-		STATS_RECV_COLUMNS,
-		byte_counters,
-		pkg_counters);
+	hide_column_by_title(treeview, "0", !hops);
+	gnet_stats_update_types(stats, treeview, STATS_FLOWC_COLUMNS,
+		byte_counters, pkg_counters);
 }
 
 /***
@@ -578,6 +526,7 @@ void gnet_stats_gui_init(void)
     GtkTreeModel *model;
     GtkCombo *combo;
     gint n;
+
 
     treeview = GTK_TREE_VIEW(
         lookup_widget(main_window, "treeview_gnet_stats_messages"));
@@ -644,16 +593,16 @@ void gnet_stats_gui_init(void)
         list_item = gtk_list_item_new_with_label(msg_type_str[n]);
         gtk_widget_show(list_item);
 
-        g_signal_connect(
-            GTK_OBJECT(list_item), "select",
-            G_CALLBACK(on_gnet_stats_type_selected),
-            GINT_TO_POINTER(n));
-
         l = g_list_prepend(NULL, (gpointer) list_item);
         gtk_list_append_items(GTK_LIST(GTK_COMBO(combo)->list), l);
 
         if (n == MSG_TOTAL)
             gtk_list_select_child(GTK_LIST(GTK_COMBO(combo)->list), list_item);
+
+        g_signal_connect(
+            GTK_OBJECT(list_item), "select",
+            G_CALLBACK(on_gnet_stats_type_selected),
+            GINT_TO_POINTER(n));
     }
 
 
@@ -732,47 +681,12 @@ void gnet_stats_gui_init(void)
 
     gtk_tree_view_set_model(treeview, model);
 	g_object_unref(model);
-
-	/* Install signal handlers for view selection buttons */
-
-	g_signal_connect(GTK_CHECK_BUTTON(
-		lookup_widget(main_window, "checkbutton_gnet_stats_fc_headers")),
-		"toggled", G_CALLBACK(on_gnet_stats_fc_headers_toggled), NULL);
-	g_signal_connect(GTK_RADIO_BUTTON(
-		lookup_widget(main_window, "radio_gnet_stats_fc_absolute")),
-		"toggled", G_CALLBACK(on_gnet_stats_fc_absolute_toggled), NULL);
-	g_signal_connect(GTK_RADIO_BUTTON(
-		lookup_widget(main_window, "radio_gnet_stats_fc_packets")),
-		"toggled", G_CALLBACK(on_gnet_stats_fc_packets_toggled), NULL);
-	g_signal_connect(
-		GTK_RADIO_BUTTON(lookup_widget(main_window, "radio_gnet_stats_fc_ttl")),
-		"toggled", G_CALLBACK(on_gnet_stats_fc_ttl_toggled), NULL);
-
-	g_signal_connect(GTK_RADIO_BUTTON(
-		lookup_widget(main_window, "radio_gnet_stats_msgs_absolute")),
-		"toggled", G_CALLBACK(on_gnet_stats_msgs_absolute_toggled), NULL);
-	g_signal_connect(GTK_RADIO_BUTTON(
-		lookup_widget(main_window, "radio_gnet_stats_msgs_packets")),
-		"toggled", G_CALLBACK(on_gnet_stats_msgs_packets_toggled), NULL);
-
-	g_signal_connect(GTK_CHECK_BUTTON(
-		lookup_widget(main_window, "checkbutton_gnet_stats_recv_headers")),
-		"toggled", G_CALLBACK(on_gnet_stats_recv_headers_toggled), NULL);
-	g_signal_connect(GTK_RADIO_BUTTON(
-		lookup_widget(main_window, "radio_gnet_stats_recv_absolute")),
-		"toggled", G_CALLBACK(on_gnet_stats_recv_absolute_toggled), NULL);
-	g_signal_connect(GTK_RADIO_BUTTON(
-		lookup_widget(main_window, "radio_gnet_stats_recv_packets")),
-		"toggled", G_CALLBACK(on_gnet_stats_recv_packets_toggled), NULL);
-	g_signal_connect(GTK_RADIO_BUTTON(
-		lookup_widget(main_window, "radio_gnet_stats_recv_ttl")),
-		"toggled", G_CALLBACK(on_gnet_stats_recv_ttl_toggled), NULL);
 }
 
 
 void gnet_stats_gui_update(void)
 {
-    gnet_stats_t stats;
+    static gnet_stats_t stats;
 	static GStaticMutex mutex = G_STATIC_MUTEX_INIT;
     gint current_page;
 
@@ -789,13 +703,10 @@ void gnet_stats_gui_update(void)
     current_page = gtk_notebook_get_current_page(
         GTK_NOTEBOOK(lookup_widget(main_window, "gnet_stats_notebook")));
 
+	gnet_stats_update_general(&stats);
+	gnet_stats_update_drop_reasons(&stats);
+
 	switch (current_page) {
-		case GNET_STATS_NB_PAGE_GENERAL:
-			gnet_stats_update_general(&stats);
-			break;
-		case GNET_STATS_NB_PAGE_DROP_REASONS:
-			gnet_stats_update_drop_reasons(&stats);
-			break;
 		case GNET_STATS_NB_PAGE_MESSAGES:
 			gnet_stats_update_messages(&stats);
 			break;
