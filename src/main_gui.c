@@ -35,6 +35,7 @@
 #include "search_stats_gui.h"
 #include "gnet_stats_gui.h"
 #include "uploads_gui.h"
+#include "downloads_gui.h"
 
 #include "filter_cb.h"
 
@@ -344,6 +345,7 @@ void main_gui_init(void)
     search_stats_gui_init();
     nodes_gui_init();
     uploads_gui_init();
+    gui_update_c_downloads(0,0); // FIXME: remove when downloads are overhauled
     /* Must come before search_init() so searches/filters can be loaded.*/
 	filter_init(); 
     search_gui_init();
