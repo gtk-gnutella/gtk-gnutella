@@ -269,10 +269,8 @@ static idtable_t *fi_handle_map = NULL;
 #define file_info_drop_handle(n) \
     idtable_free_id(fi_handle_map, n);
 
-struct event *fi_added_event = NULL;
-struct event *fi_removed_event = NULL;
-struct event *fi_info_changed_event = NULL;
-struct event *fi_status_changed_event = NULL;
+static event_t *fi_events[EV_FI_EVENTS] = {
+    NULL, NULL, NULL, NULL, NULL, NULL };
 
 /*
  * tbuf_extend
@@ -340,10 +338,12 @@ void file_info_init(void)
 
     fi_handle_map = idtable_new(32, 32);
 
-    fi_added_event = event_new("fi_added");
-    fi_removed_event = event_new("fi_removed");
-    fi_info_changed_event = event_new("fi_info_changed");
-    fi_status_changed_event = event_new("fi_status_changed");
+    fi_events[EV_FI_ADDED]          = event_new("fi_added");
+    fi_events[EV_FI_REMOVED]        = event_new("fi_removed");
+    fi_events[EV_FI_INFO_CHANGED]   = event_new("fi_info_changed");
+    fi_events[EV_FI_STATUS_CHANGED] = event_new("fi_status_changed");
+    fi_events[EV_FI_SRC_ADDED]      = event_new("fi_src_added");
+    fi_events[EV_FI_SRC_REMOVED]    = event_new("fi_src_removed");
 }
 
 static inline void file_info_checksum(guint32 *checksum, guchar *d, int len)
@@ -1282,7 +1282,7 @@ static void file_info_free_outname_kv(gpointer key, gpointer val, gpointer x)
      */
 
     event_trigger(
-        fi_removed_event, 
+        fi_events[EV_FI_REMOVED], 
         T_NORMAL(fi_listener_t, fi->fi_handle));    
     file_info_drop_handle(fi->fi_handle);
 
@@ -1298,6 +1298,8 @@ static void file_info_free_outname_kv(gpointer key, gpointer val, gpointer x)
  */
 void file_info_close(void)
 {
+    guint n;
+
 	/*
 	 * Freeing callbacks expect that the freeing of the `fi_by_outname'
 	 * table will free the referenced `fi' (since that table MUST contain
@@ -1318,12 +1320,8 @@ void file_info_close(void)
     g_assert(idtable_ids(fi_handle_map) == 0);
     idtable_destroy(fi_handle_map);
 
-    g_warning("deleting events");
-
-    event_destroy(fi_added_event);
-    event_destroy(fi_removed_event);
-    event_destroy(fi_info_changed_event);
-    event_destroy(fi_status_changed_event);
+    for (n = 0; n < G_N_ELEMENTS(fi_events); n ++)
+        event_destroy(fi_events[n]);
 
 	g_hash_table_destroy(fi_by_sha1);
 	g_hash_table_destroy(fi_by_namesize);
@@ -1430,7 +1428,7 @@ static void file_info_hash_insert(struct dl_file_info *fi)
 	fi->hashed = TRUE;
     fi->fi_handle = file_info_request_handle(fi);
     event_trigger(
-        fi_added_event, 
+        fi_events[EV_FI_ADDED], 
         T_NORMAL(fi_listener_t, fi->fi_handle));    
 }
 
@@ -1465,7 +1463,7 @@ static void file_info_hash_remove(struct dl_file_info *fi)
      */
 
     event_trigger(
-        fi_removed_event, 
+        fi_events[EV_FI_REMOVED], 
         T_NORMAL(fi_listener_t, fi->fi_handle));    
     file_info_drop_handle(fi->fi_handle);
 
@@ -2562,7 +2560,7 @@ again:
 		file_info_store_binary(d->file_info);
 
     event_trigger(
-        fi_status_changed_event, 
+        fi_events[EV_FI_STATUS_CHANGED], 
         T_NORMAL(fi_listener_t, fi->fi_handle));    
 }
 
@@ -3097,48 +3095,20 @@ void file_info_spot_completed_orphans(void)
 	g_hash_table_foreach(fi_by_outname, fi_spot_completed_kv, NULL);
 }
 
-void fi_add_fi_added_listener(fi_listener_t cb)
+void fi_add_listener(GCallback cb, gnet_fi_ev_t ev,
+    frequency_t t, guint32 interval)
 {
-    event_add_subscriber(fi_added_event, (GCallback) cb, FREQ_UPDATES, 0);
+    g_assert(ev < EV_FI_EVENTS);
+
+    event_add_subscriber(fi_events[ev], (GCallback) cb,
+        t, interval);
 }
 
-void fi_remove_fi_added_listener(fi_listener_t cb)
+void fi_remove_listener(GCallback cb, gnet_fi_ev_t ev)
 {
-    event_remove_subscriber(fi_added_event, (GCallback) cb);
-}
+    g_assert(ev < EV_FI_EVENTS);
 
-void fi_add_fi_removed_listener(fi_listener_t cb)
-{
-    event_add_subscriber(fi_removed_event, (GCallback) cb, FREQ_UPDATES, 0);
-}
-
-void fi_remove_fi_removed_listener(fi_listener_t cb)
-{
-    event_remove_subscriber(fi_removed_event, (GCallback) cb);
-}
-
-void fi_add_fi_info_changed_listener(fi_listener_t cb)
-{
-    event_add_subscriber(
-        fi_info_changed_event, (GCallback) cb, FREQ_UPDATES, 0);
-}
-
-void fi_remove_fi_info_changed_listener(fi_listener_t cb)
-{
-    event_remove_subscriber(
-        fi_info_changed_event, (GCallback) cb);
-}
-
-void fi_add_fi_status_changed_listener(fi_listener_t cb)
-{
-    event_add_subscriber(
-        fi_status_changed_event, (GCallback) cb, FREQ_UPDATES, 0);
-}
-
-void fi_remove_fi_status_changed_listener(fi_listener_t cb)
-{
-    event_remove_subscriber(
-        fi_status_changed_event, (GCallback) cb);
+    event_remove_subscriber(fi_events[ev], cb);
 }
 
 gnet_fi_info_t *fi_get_info(gnet_fi_t fih)
@@ -3218,6 +3188,10 @@ inline void file_info_add_source(
     fi->dirty_status = TRUE;
     dl->file_info = fi;
     fi->sources = g_slist_prepend(fi->sources, dl);
+
+    event_trigger(
+        fi_events[EV_FI_SRC_ADDED], 
+        T_NORMAL(fi_src_listener_t, fi->fi_handle, dl->src_handle));    
 }
 
 inline void file_info_remove_source(
@@ -3226,6 +3200,10 @@ inline void file_info_remove_source(
     g_assert(dl->file_info != NULL);
     g_assert(fi->refcount > 0);
     
+    event_trigger(
+        fi_events[EV_FI_SRC_REMOVED], 
+        T_NORMAL(fi_src_listener_t, fi->fi_handle, dl->src_handle));    
+
     fi->refcount --;
     fi->dirty_status = TRUE;
     dl->file_info = NULL;
@@ -3243,7 +3221,7 @@ static void fi_notify_helper(
     fi->dirty_status = FALSE;
 
     event_trigger(
-        fi_status_changed_event, 
+        fi_events[EV_FI_STATUS_CHANGED], 
         T_NORMAL(fi_listener_t, fi->fi_handle));    
 }
 
