@@ -94,6 +94,9 @@ GtkWidget *popup_hosts;
 GtkWidget *popup_hosts_export;
 GtkWidget *popup_dl_queued;
 GtkWidget *popup_queue_remove;
+GtkWidget *popup_queue_remove_named;
+GtkWidget *popup_queue_remove_host;
+GtkWidget *popup_queue_search_again;
 GtkWidget *popup_queue_start_now;
 GtkWidget *popup_queue_freeze;
 GtkWidget *popup_queue_search_again;
@@ -231,6 +234,7 @@ create_main_window (void)
   GtkWidget *ul_stats_size;
   GtkWidget *ul_stats_label3;
   GtkWidget *ul_stats_label4;
+  GtkWidget *ul_stats_label5;
   GtkWidget *ul_stats_hbox2;
   GtkWidget *label_ul_stats;
   GtkWidget *vpaned1;
@@ -1213,16 +1217,17 @@ create_main_window (void)
   gtk_box_pack_start (GTK_BOX (vbox19), ul_stats_scrolledwindow, TRUE, TRUE, 0);
   gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (ul_stats_scrolledwindow), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
 
-  clist_ul_stats = gtk_clist_new (4);
+  clist_ul_stats = gtk_clist_new (5);
   gtk_widget_ref (clist_ul_stats);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "clist_ul_stats", clist_ul_stats,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (clist_ul_stats);
   gtk_container_add (GTK_CONTAINER (ul_stats_scrolledwindow), clist_ul_stats);
-  gtk_clist_set_column_width (GTK_CLIST (clist_ul_stats), 0, 277);
+  gtk_clist_set_column_width (GTK_CLIST (clist_ul_stats), 0, 204);
   gtk_clist_set_column_width (GTK_CLIST (clist_ul_stats), 1, 41);
   gtk_clist_set_column_width (GTK_CLIST (clist_ul_stats), 2, 60);
   gtk_clist_set_column_width (GTK_CLIST (clist_ul_stats), 3, 67);
+  gtk_clist_set_column_width (GTK_CLIST (clist_ul_stats), 4, 67);
   gtk_clist_column_titles_show (GTK_CLIST (clist_ul_stats));
 
   ul_stats_label2 = gtk_label_new ("Filename");
@@ -1240,19 +1245,26 @@ create_main_window (void)
   gtk_widget_show (ul_stats_size);
   gtk_clist_set_column_widget (GTK_CLIST (clist_ul_stats), 1, ul_stats_size);
 
-  ul_stats_label3 = gtk_label_new ("# Attempts");
+  ul_stats_label3 = gtk_label_new ("Attempts");
   gtk_widget_ref (ul_stats_label3);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "ul_stats_label3", ul_stats_label3,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (ul_stats_label3);
   gtk_clist_set_column_widget (GTK_CLIST (clist_ul_stats), 2, ul_stats_label3);
 
-  ul_stats_label4 = gtk_label_new ("# Complete");
+  ul_stats_label4 = gtk_label_new ("Complete");
   gtk_widget_ref (ul_stats_label4);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "ul_stats_label4", ul_stats_label4,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (ul_stats_label4);
   gtk_clist_set_column_widget (GTK_CLIST (clist_ul_stats), 3, ul_stats_label4);
+
+  ul_stats_label5 = gtk_label_new ("Normalized");
+  gtk_widget_ref (ul_stats_label5);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "ul_stats_label5", ul_stats_label5,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (ul_stats_label5);
+  gtk_clist_set_column_widget (GTK_CLIST (clist_ul_stats), 4, ul_stats_label5);
 
   ul_stats_hbox2 = gtk_hbox_new (FALSE, 8);
   gtk_widget_ref (ul_stats_hbox2);
@@ -3075,8 +3087,6 @@ GtkWidget*
 create_popup_dl_queued (void)
 {
   GtkAccelGroup *popup_dl_queued_accels;
-  GtkWidget *popup_queue_remove_named;
-  GtkWidget *popup_queue_remove_host;
   GtkWidget *separator7;
   GtkWidget *separator8;
 
