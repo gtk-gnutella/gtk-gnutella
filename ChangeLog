@@ -1,5 +1,11 @@
 # since last version
 
+- (2002.11.06 RAM)
+ * More tweakings with fileinfos: will now physically remove files that are
+   SHA1 or name/size ignored (if not completed already).
+ * Forgot a few calls to file_info_clear_download() which releases the
+   association between a download entry and a chunk in the file.
+
 - (2002.11.05 RAM)
  * Don't show SHA1 computation rate if we did not hash anything (e.g. after
    a recovery crash where we jump to the "SHA1 verified state" directly).
