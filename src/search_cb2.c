@@ -49,7 +49,7 @@ static search_t *search_selected = NULL;
 
 static void refresh_popup(void)
 {
-	static const char *popup_names[] = {
+	static const char * const popup_names[] = {
 		"popup_search_download",
 		"popup_search_drop_name",
 		"popup_search_drop_sha1",
@@ -61,13 +61,12 @@ static void refresh_popup(void)
 		"popup_search_new_from_selected",
 		"popup_search_restart",
 		"popup_search_duplicate",
-		NULL
 	};
 	search_t *search = search_gui_get_current_search();
 	gboolean sensitive = NULL != search;
 	guint i;
 
-	for (i = 0; NULL != popup_names[i]; i++)
+	for (i = 0; i < G_N_ELEMENTS(popup_names); i++)
 		gtk_widget_set_sensitive(lookup_widget(popup_search, popup_names[i]),
 			sensitive);
 
@@ -150,8 +149,8 @@ void on_tree_view_search_select_row(GtkTreeView * treeview, gpointer user_data)
 		g_return_if_fail(NULL != sch);
 
 		gtk_notebook_set_page(
-		GTK_NOTEBOOK(lookup_widget(main_window, "notebook_main")),
-		nb_main_page_search);
+			GTK_NOTEBOOK(lookup_widget(main_window, "notebook_main")),
+			nb_main_page_search);
 		search_gui_set_current_search(sch);
 	}
 }
@@ -466,7 +465,6 @@ void on_tree_view_search_results_select_row(
 	if (NULL != path) {
 		GtkTreeModel *model;
 		const record_t *rc = NULL;
-		gchar *filename;
 		const gchar *vendor;
 		GtkTreeIter iter;
 		search_t *sch = NULL;
@@ -481,13 +479,11 @@ void on_tree_view_search_results_select_row(
 		g_assert(NULL != sch);
 		model = GTK_TREE_MODEL(sch->model);
 		gtk_tree_model_get_iter(model, &iter, path);
-		gtk_tree_model_get(model, &iter, c_sr_filename, &filename,
-			c_sr_record, &rc, (-1));
+		gtk_tree_model_get(model, &iter, c_sr_record, &rc, (-1));
 		g_assert(NULL != rc);
 		gtk_entry_set_text(
 			GTK_ENTRY(lookup_widget(main_window, "entry_result_info_filename")),
-			filename);
-		G_FREE_NULL(filename);
+			lazy_locale_to_utf8(rc->name, 0));
 		gtk_entry_set_text(
 			GTK_ENTRY(lookup_widget(main_window, "entry_result_info_sha1")),
 			rc->sha1 != NULL ? sha1_base32(rc->sha1) : _("<none>"));
