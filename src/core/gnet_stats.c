@@ -87,6 +87,7 @@ void gnet_stats_init(void)
     stats_lut[GTA_MSG_PUSH_REQUEST] = MSG_PUSH_REQUEST;
     stats_lut[GTA_MSG_SEARCH] = MSG_SEARCH;
     stats_lut[GTA_MSG_SEARCH_RESULTS] = MSG_SEARCH_RESULTS;
+    stats_lut[GTA_MSG_HSEP_DATA] = MSG_HSEP;
 
     memset(&gnet_stats, 0, sizeof(gnet_stats));
     memset(&gnet_udp_stats, 0, sizeof(gnet_udp_stats));
@@ -109,13 +110,13 @@ void gnet_stats_count_received_header(gnutella_node_t *n)
 
     gnet_stats.pkg.received[MSG_TOTAL]++;
     gnet_stats.pkg.received[t]++;
-    gnet_stats.byte.received[MSG_TOTAL] += sizeof(n->header);
-    gnet_stats.byte.received[t] += sizeof(n->header);
+    gnet_stats.byte.received[MSG_TOTAL] += GTA_HEADER_SIZE;
+    gnet_stats.byte.received[t] += GTA_HEADER_SIZE;
 
     stats->pkg.received[MSG_TOTAL]++;
     stats->pkg.received[t]++;
-    stats->byte.received[MSG_TOTAL] += sizeof(n->header);
-    stats->byte.received[t] += sizeof(n->header);
+    stats->byte.received[MSG_TOTAL] += GTA_HEADER_SIZE;
+    stats->byte.received[t] += GTA_HEADER_SIZE;
 
 	i = MIN(n->header.ttl, STATS_RECV_COLUMNS-1);
     stats->pkg.received_ttl[i][MSG_TOTAL]++;
@@ -163,6 +164,8 @@ void gnet_stats_count_queued(
 	guint t = stats_lut[type];
 	gnet_stats_t *stats;
 
+	g_assert(t != MSG_UNKNOWN);
+
 	stats = NODE_IS_UDP(n) ? &gnet_udp_stats : &gnet_tcp_stats;
 
 	stats_pkg = hops ? gnet_stats.pkg.queued : gnet_stats.pkg.gen_queued;
@@ -189,6 +192,8 @@ void gnet_stats_count_sent(
 	guint64 *stats_byte;
 	guint t = stats_lut[type];
 	gnet_stats_t *stats;
+
+	g_assert(t != MSG_UNKNOWN);
 
 	stats = NODE_IS_UDP(n) ? &gnet_udp_stats : &gnet_tcp_stats;
 
@@ -327,7 +332,7 @@ void gnet_stats_get(gnet_stats_t *s)
 void gnet_stats_tcp_get(gnet_stats_t *s)
 {
     g_assert(s != NULL);
-    memcpy(s, &gnet_stats, sizeof(*s));
+    memcpy(s, &gnet_tcp_stats, sizeof(*s));
 }
 
 void gnet_stats_udp_get(gnet_stats_t *s)
