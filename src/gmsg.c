@@ -102,6 +102,9 @@ void gmsg_sendto_one(struct gnutella_node *n, guchar *msg, guint32 size)
 {
 	g_assert(((struct gnutella_header *) msg)->ttl > 0);
 
+	if (!NODE_IS_WRITABLE(n))
+		return;
+
 	mq_putq(n->outq, gmsg_to_pmsg(msg, size));
 }
 
@@ -114,6 +117,9 @@ void gmsg_split_sendto_one(struct gnutella_node *n,
 	guchar *head, guchar *data, guint32 size)
 {
 	g_assert(((struct gnutella_header *) head)->ttl > 0);
+
+	if (!NODE_IS_WRITABLE(n))
+		return;
 
 	mq_putq(n->outq, gmsg_split_to_pmsg(head, data, size));
 }
