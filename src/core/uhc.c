@@ -77,7 +77,7 @@ static struct uhc_context {
  */
 
 static const gchar * const boot_hosts[] = {
-	"galvatron.dyndns.org:59009",
+	"uhc.udp-host-cache.com:9999",
 	"kisama.ath.cx:8080",
 	"krill.shacknet.nu:20095",
 	"starscream.dynalias.com:80",
@@ -320,6 +320,7 @@ uhc_is_waiting(void)
 void
 uhc_get_hosts(void)
 {
+	g_message("%s", __func__);
 	/*
 	 * Make sure we don't probe host caches more than once at a time.
 	 * Ancient versions are denied the right to contact host caches and
