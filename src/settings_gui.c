@@ -3425,14 +3425,25 @@ static gboolean update_toggle_search_autoselect(property_t prop)
 
 static gboolean update_node_column_visibility(property_t prop, gint col)
 {
+#ifdef USE_GTK1
 	GtkCList *clist = GTK_CLIST(lookup_widget(main_window, "clist_nodes"));
-	gboolean value;
+#else
+	GtkTreeView *treeview = GTK_TREE_VIEW(lookup_widget(
+		main_window, "treeview_nodes"));
+	GtkTreeViewColumn *column;
+#endif
 	gboolean ret;
+	gboolean value;
 
 	ret = update_togglebutton(prop);
 	gui_prop_get_boolean_val(prop, &value);
 
+#ifdef USE_GTK1
 	gtk_clist_set_column_visibility(clist, col, value);
+#else
+	column = gtk_tree_view_get_column(treeview, col);
+	gtk_tree_view_column_set_visible(column, value);
+#endif
 
 	return ret;
 }
