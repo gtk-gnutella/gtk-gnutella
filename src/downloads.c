@@ -643,9 +643,10 @@ void download_stop(struct download *d, guint32 new_status,
 	count_running_downloads();
 }
 
+/*
 void download_kill(struct download *d)
 {
-	/* Kill a active download: remove it from the GUI, and unlink() the file */
+	// Kill a active download: remove it from the GUI, and unlink() the file
 
 	g_return_if_fail(d);
 
@@ -659,6 +660,7 @@ void download_kill(struct download *d)
 
 	download_free(d);
 }
+*/    
 
 void download_queue(struct download *d)
 {
