@@ -41,8 +41,6 @@
  * 
  * Move the ranges code to fileinfo so that it can be used there as well.
  *
- * Check out why only some requests provide a range
- *
  * Do not redraw the bar too often, only on event for actual file and
  * perhaps max once a second.
  */
@@ -408,11 +406,14 @@ static void vp_update_ranges(gnet_src_t srcid)
 		v->ranges = range_for_complete_file(d->file_info->size);
 	} else {
 		/* Merge in the new ranges */
-		g_message("Ranges before: %s", http_range_to_gchar(v->ranges));
-		g_message("Ranges new   : %s", http_range_to_gchar(d->ranges));
+		if (dbg) {
+			g_message("Ranges before: %s", http_range_to_gchar(v->ranges));
+			g_message("Ranges new   : %s", http_range_to_gchar(d->ranges));
+		}
 		v->ranges = http_range_merge(v->ranges, d->ranges);
 		/* FIXME: should be freeing old v->ranges list here... */
-		g_message("Ranges after : %s", http_range_to_gchar(v->ranges));
+		if (dbg)
+			g_message("Ranges after : %s", http_range_to_gchar(v->ranges));
 	}
 }
 
