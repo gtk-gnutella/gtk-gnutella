@@ -1415,6 +1415,12 @@ socket_connect_finalize(struct gnutella_socket *s, guint32 ip_addr)
 
 	g_assert(NULL != s);
 
+	if (hostiles_check(ip_addr)) {
+		g_warning("Not connecting to hostile host %s", ip_to_gchar(ip_addr));
+		socket_destroy(s, "Not connecting to hostile host");
+		return NULL;
+	}
+			
 	s->ip = ip_addr;
 	memset(&addr, 0, sizeof(addr));
 	addr.sin_family = AF_INET;
