@@ -1221,11 +1221,10 @@ file_info_retrieve_binary(const gchar *file, const gchar *path)
 	GSList *chunklist = NULL;
 
 #define BAILOUT(x)			\
-do {						\
+G_STMT_START {				\
 	reason = (x);			\
 	goto bailout;			\
-	g_assert_not_reached();	\
-} while (0)
+} G_STMT_END 
 
 	g_assert(NULL != file);
 	g_assert(NULL != path);
@@ -1464,8 +1463,7 @@ bailout:
 						? "" : G_DIR_SEPARATOR_S, file);
 
 eof:
-	if (NULL != pathname)
-		G_FREE_NULL(pathname);
+	G_FREE_NULL(pathname);
 	if (fi)
 		fi_free(fi);
 

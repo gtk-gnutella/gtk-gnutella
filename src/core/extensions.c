@@ -181,10 +181,10 @@ rw_screen(gboolean case_sensitive,
 
 #define GET_KEY(i) (table[(i)].rw_name)
 #define FOUND(i) \
-	do { \
+	G_STMT_START { \
 		*retkw = table[(i)].rw_name; \
 	   	return table[(i)].rw_token; \
-	} while (0) \
+	} G_STMT_END
 
 	if (case_sensitive)
 		BINARY_SEARCH(const gchar *, word, size, strcmp, GET_KEY, FOUND);
