@@ -50,7 +50,7 @@ RCSID("$Id$");
 #define REUSE_DELAY	10800		/* 3 hours */
 #define ENOUGH_DATA	30			/* Update skew when we have enough data */
 #define MIN_DATA	15			/* Minimum amount of points for update */
-#define MAX_SDEV	150.0		/* Maximum dispersion we tolerate */
+#define MAX_SDEV	60.0		/* Maximum dispersion we tolerate */
 #define CLEAN_STEPS	3			/* Amount of steps to remove off-track data */
 
 struct used_val {
