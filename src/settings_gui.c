@@ -1867,6 +1867,14 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     },
     {
+        get_main_window,
+        PROP_SEARCH_ACCUMULATION_PERIOD,
+        update_spinbutton,
+        TRUE,
+        "spinbutton_search_accumulation_period",
+        FREQ_UPDATES, 0
+	},
+    {
         NULL,
         PROP_PROGRESSBAR_BWS_IN_AVG,
         traffic_stats_mode_changed,

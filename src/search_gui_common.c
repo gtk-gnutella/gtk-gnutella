@@ -934,6 +934,7 @@ void search_matched(search_t *sch, results_set_t *rs)
 
   	g_string_free(vinfo, TRUE);
 }
+
 /***
  *** Callbacks
  ***/
@@ -961,16 +962,25 @@ void search_gui_got_results(GSList *schl, const gnet_results_set_t *r_set)
     accumulated_rs = g_slist_prepend(accumulated_rs, rs);
 }
 
+/*
+ * search_gui_flush
+ *
+ * Periodic timer to flush the accumulated hits during the period and
+ * dispatch them to the GUI.
+ */
 void search_gui_flush(time_t now)
 {
     GSList *sl;
     GSList *curs;
+    static time_t last = 0;
+	guint32 period;
 #ifdef USE_GTK1
     GSList *frozen = NULL;
 #endif
-    static time_t last = 0;
 
-    if (now && (difftime(now, last) < 5))
+	gui_prop_get_guint32_val(PROP_SEARCH_ACCUMULATION_PERIOD, &period);
+
+    if (now && (difftime(now, last) < period))
         return;
 
     last = now;
@@ -1007,6 +1017,7 @@ void search_gui_flush(time_t now)
              * that.
              * --BLUE, 4/1/2004
              */
+
             if (sch) {
 #ifdef USE_GTK1
                 gtk_clist_freeze(GTK_CLIST(sch->ctree));
@@ -1053,9 +1064,9 @@ void search_gui_flush(time_t now)
                  * check that.
                  * --BLUE, 4/1/2004
                  */
-                if (sch) {
+
+                if (sch)
                     search_gui_remove_r_set(sch, rs);
-                } 
             }
         } 
     }
@@ -1074,3 +1085,4 @@ void search_gui_flush(time_t now)
     g_slist_free(accumulated_rs);
     accumulated_rs = NULL;
 }
+
