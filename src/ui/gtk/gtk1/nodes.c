@@ -114,40 +114,27 @@ static void nodes_gui_node_added(gnet_node_t n)
  *
  * Callback: called when node information was changed by the backend.
  *
- * This updates the node information in the gui. 
+ * This schedules an update of the node information in the gui at the
+ * next tick. 
  */
 static void nodes_gui_node_info_changed(gnet_node_t n)
 {
     g_hash_table_insert(ht_node_info_changed, 
         GUINT_TO_POINTER(n), GUINT_TO_POINTER(1));
-#if 0
-	{
-    	gnet_node_info_t info;
-
-    	guc_node_fill_info(n, &info);
-    	nodes_gui_update_node_info(&info, -1);
-    	guc_node_clear_info(&info);
-	}
-#endif
 }
 
 /*
  * nodes_gui_node_flags_changed
  *
  * Callback invoked when the node's user-visible flags are changed.
+ *
+ * This schedules an update of the node information in the gui at the
+ * next tick. 
  */
 static void nodes_gui_node_flags_changed(gnet_node_t n)
 {
     g_hash_table_insert(ht_node_flags_changed, 
         GUINT_TO_POINTER(n), GUINT_TO_POINTER(1));
-#if 0
-	{
-    	gnet_node_flags_t flags;
-
-    	guc_node_fill_flags(n, &flags);
-    	nodes_gui_update_node_flags(n, &flags, -1);
-	}
-#endif
 }
 
 
@@ -182,6 +169,9 @@ static void nodes_gui_update_node_info(gnet_node_info_t *n, gint row)
         gtk_clist_set_text(clist, row, c_gnet_user_agent,
 			n->vendor ? n->vendor : "...");
 
+        gtk_clist_set_text(clist, row, c_gnet_loc,
+			n->country ? n->country : "..");
+
         gm_snprintf(gui_tmp, sizeof(gui_tmp), "%d.%d",
             n->proto_major, n->proto_minor);
         gtk_clist_set_text(clist, row, c_gnet_version, gui_tmp);
@@ -215,7 +205,7 @@ static void nodes_gui_update_node_flags(
         row = gtk_clist_find_row_from_data(clist, GUINT_TO_POINTER(n));
 
     if (row != -1) {
-        gtk_clist_set_text(clist, row, 1,
+        gtk_clist_set_text(clist, row, c_gnet_flags,
 			nodes_gui_common_flags_str(flags));
 	if (NODE_P_LEAF == flags->peermode || NODE_P_NORMAL == flags->peermode) {
 		GdkColor *color = &(gtk_widget_get_style(GTK_WIDGET(clist))
@@ -333,6 +323,7 @@ void nodes_gui_add_node(gnet_node_info_t *n)
     titles[c_gnet_host]       = ip_port_to_gchar(n->ip, n->port);
     titles[c_gnet_flags]      = "...";
     titles[c_gnet_user_agent] = n->vendor ? n->vendor : "...";
+    titles[c_gnet_loc]        = n->country ? n->country : "..";
     titles[c_gnet_version]    = proto_tmp;
     titles[c_gnet_connected]  = "...";
     titles[c_gnet_uptime]     = "...";
