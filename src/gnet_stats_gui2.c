@@ -301,9 +301,9 @@ G_INLINE_FUNC const gchar *general_stat_str(
 	gchar *str, gulong n, const gnet_stats_t *stats, gint type)
 {
     if (stats->general[type] == 0)
-        strlcpy(str, "-", n);
+        g_strlcpy(str, "-", n);
     else if (type == GNR_QUERY_COMPACT_SIZE)
-        strlcpy(str, compact_size(stats->general[type]), n);
+        g_strlcpy(str, compact_size(stats->general[type]), n);
     else
         g_snprintf(str, n, "%u", stats->general[type]);
 
