@@ -50,6 +50,7 @@ extern guint32  gnet_stats_fc_ttl_col_widths[10];
 extern guint32  gnet_stats_fc_hops_col_widths[10];
 extern guint32  gnet_stats_fc_col_widths[10];
 extern guint32  gnet_stats_drop_reasons_col_widths[2];
+extern guint32  gnet_stats_recv_col_widths[10];
 extern guint32  window_coords[4];
 extern guint32  filter_dlg_coords[4];
 extern guint32  downloads_divider_pos;
@@ -92,8 +93,16 @@ extern guint32  gnet_stats_general_col_widths[2];
 extern gboolean clear_uploads;
 extern guint32  gnet_stats_pkg_col_widths[6];
 extern guint32  gnet_stats_byte_col_widths[6];
-extern gboolean gnet_stats_pkg_perc;
-extern gboolean gnet_stats_byte_perc;
+extern gboolean gnet_stats_mode_fc_absolute;
+extern gboolean gnet_stats_mode_fc_headers;
+extern gboolean gnet_stats_mode_fc_packets;
+extern gboolean gnet_stats_mode_fc_ttl;
+extern gboolean gnet_stats_mode_msgs_absolute;
+extern gboolean gnet_stats_mode_msgs_packets;
+extern gboolean gnet_stats_mode_recv_absolute;
+extern gboolean gnet_stats_mode_recv_headers;
+extern gboolean gnet_stats_mode_recv_packets;
+extern gboolean gnet_stats_mode_recv_ttl;
 
 
 prop_set_t *gui_prop_init(void);

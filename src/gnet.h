@@ -409,7 +409,8 @@ enum {
     GNR_TYPE_COUNT /* number of general stats */
 };
 
-#define STATS_FLOWC_COLUMNS 10
+#define STATS_FLOWC_COLUMNS 10 /* Type, 0..7, 8+ */
+#define STATS_RECV_COLUMNS 10 /* -"- */
 
 typedef struct gnet_stat {
     guint32 drop_reason[MSG_DROP_REASON_COUNT][MSG_TYPE_COUNT];
@@ -420,6 +421,8 @@ typedef struct gnet_stat {
         guint32 relayed[MSG_TYPE_COUNT];
         guint32 dropped[MSG_TYPE_COUNT];
         guint32 expired[MSG_TYPE_COUNT];
+		guint32 received_hops[STATS_RECV_COLUMNS][MSG_TYPE_COUNT];
+		guint32 received_ttl[STATS_RECV_COLUMNS][MSG_TYPE_COUNT];
 		guint32 flowc_hops[STATS_FLOWC_COLUMNS][MSG_TYPE_COUNT];
 		guint32 flowc_ttl[STATS_FLOWC_COLUMNS][MSG_TYPE_COUNT];
     } pkg;
@@ -430,6 +433,8 @@ typedef struct gnet_stat {
         guint32 relayed[MSG_TYPE_COUNT];
         guint32 dropped[MSG_TYPE_COUNT];
         guint32 expired[MSG_TYPE_COUNT];
+		guint32 received_hops[STATS_RECV_COLUMNS][MSG_TYPE_COUNT];
+		guint32 received_ttl[STATS_RECV_COLUMNS][MSG_TYPE_COUNT];
 		guint32 flowc_hops[STATS_FLOWC_COLUMNS][MSG_TYPE_COUNT];
 		guint32 flowc_ttl[STATS_FLOWC_COLUMNS][MSG_TYPE_COUNT];
     } byte;

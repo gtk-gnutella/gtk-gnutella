@@ -223,6 +223,17 @@ prop = {
 };
 
 prop = {
+    name = "gnet_stats_recv_col_widths"; 
+    cfgvar = "widths_gnet_stats_recv";
+    desc = "Widths of the columns in the gnet stats drop reasons table";
+    type = guint32;
+    vector_size = 10;
+    data = {
+        default = "{ 60, 40, 40, 40, 40, 40, 40, 40, 40, 40 }";
+    };
+};
+
+prop = {
     name = "window_coords";
     desc = "Position and size of the main window";
     type = guint32;
@@ -650,9 +661,8 @@ prop = {
 };
 
 prop = {
-    name = "gnet_stats_pkg_perc";
-    desc = "Show percentages instead of absolute values in the gnet stats "
-           "(pkg) [GTK2]";
+    name = "gnet_stats_mode_fc_absolute";
+    desc = "";
     type = boolean;
     data = {
         default = FALSE;
@@ -660,11 +670,83 @@ prop = {
 };
 
 prop = {
-    name = "gnet_stats_byte_perc";
-    desc = "Show percentages instead of absolute values in the gnet stats "
-           "(byte) [GTK2]";
+    name = "gnet_stats_mode_fc_headers";
+    desc = "";
     type = boolean;
     data = {
         default = FALSE;
     };
 };
+
+prop = {
+    name = "gnet_stats_mode_fc_packets";
+    desc = "";
+    type = boolean;
+    data = {
+        default = FALSE;
+    };
+};
+
+prop = {
+    name = "gnet_stats_mode_fc_ttl";
+    desc = "";
+    type = boolean;
+    data = {
+        default = FALSE;
+    };
+};
+
+prop = {
+    name = "gnet_stats_mode_msgs_absolute";
+    desc = "";
+    type = boolean;
+    data = {
+        default = FALSE;
+    };
+};
+
+prop = {
+    name = "gnet_stats_mode_msgs_packets";
+    desc = "";
+    type = boolean;
+    data = {
+        default = FALSE;
+    };
+};
+
+prop = {
+    name = "gnet_stats_mode_recv_absolute";
+    desc = "";
+    type = boolean;
+    data = {
+        default = FALSE;
+    };
+};
+
+prop = {
+    name = "gnet_stats_mode_recv_headers";
+    desc = "";
+    type = boolean;
+    data = {
+        default = FALSE;
+    };
+};
+
+prop = {
+    name = "gnet_stats_mode_recv_packets";
+    desc = "";
+    type = boolean;
+    data = {
+        default = FALSE;
+    };
+};
+
+prop = {
+    name = "gnet_stats_mode_recv_ttl";
+    desc = "";
+    type = boolean;
+    data = {
+        default = FALSE;
+    };
+};
+

@@ -1284,22 +1284,76 @@ static prop_map_t property_map[] = {
         "checkbutton_expert_mode"
     },
 #ifdef USE_GTK2
-#if 0
     {
         get_main_window,
-        PROP_GNET_STATS_PKG_PERC,
+        PROP_GNET_STATS_MODE_FC_HEADERS,
         update_togglebutton,
         TRUE,
-        "checkbutton_gnet_stats_pkg_perc"
+        "checkbutton_gnet_stats_fc_headers"
     },
     {
         get_main_window,
-        PROP_GNET_STATS_BYTE_PERC,
+        PROP_GNET_STATS_MODE_FC_ABSOLUTE,
         update_togglebutton,
         TRUE,
-        "checkbutton_gnet_stats_byte_perc"
+        "radio_gnet_stats_fc_absolute"
     },
-#endif
+    {
+        get_main_window,
+        PROP_GNET_STATS_MODE_FC_PACKETS,
+        update_togglebutton,
+        TRUE,
+        "radio_gnet_stats_fc_packets"
+    },
+    {
+        get_main_window,
+        PROP_GNET_STATS_MODE_FC_TTL,
+        update_togglebutton,
+        TRUE,
+        "radio_gnet_stats_fc_ttl"
+    },
+    {
+        get_main_window,
+        PROP_GNET_STATS_MODE_MSGS_ABSOLUTE,
+        update_togglebutton,
+        TRUE,
+        "radio_gnet_stats_msgs_absolute"
+    },
+    {
+        get_main_window,
+        PROP_GNET_STATS_MODE_MSGS_PACKETS,
+        update_togglebutton,
+        TRUE,
+        "radio_gnet_stats_msgs_packets"
+    },
+    {
+        get_main_window,
+        PROP_GNET_STATS_MODE_RECV_HEADERS,
+        update_togglebutton,
+        TRUE,
+        "checkbutton_gnet_stats_recv_headers"
+    },
+    {
+        get_main_window,
+        PROP_GNET_STATS_MODE_RECV_ABSOLUTE,
+        update_togglebutton,
+        TRUE,
+        "radio_gnet_stats_recv_absolute"
+    },
+    {
+        get_main_window,
+        PROP_GNET_STATS_MODE_RECV_PACKETS,
+        update_togglebutton,
+        TRUE,
+        "radio_gnet_stats_recv_packets"
+    },
+    {
+        get_main_window,
+        PROP_GNET_STATS_MODE_RECV_TTL,
+        update_togglebutton,
+        TRUE,
+        "radio_gnet_stats_recv_ttl"
+    },
 #else
     {
         get_main_window,

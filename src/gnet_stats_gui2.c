@@ -88,30 +88,32 @@ gchar *msg_stats_label[] = {
 	"Generated"
 };
 
-#define FLOWC_MODE_HOPS(m)	((m) & 1)		/* columns represent hops */
-#define FLOWC_MODE_TTL(m)	(!((m) & 1))	/*    "        "     TTL  */
-#define FLOWC_MODE_BYTE(m)	(((m) & 2))		/* show volumes */
-#define FLOWC_MODE_PKTS(m)	(!((m) & 2))	/* show number of packets */
-#define FLOWC_MODE_REL(m)	(((m) & 4))		/* relative values */
-#define FLOWC_MODE_ABS(m)	(!((m) & 4))	/* absolutes   " */
-#define FLOWC_MODE_HDRS(m)	(((m) & 8))		/* add header size */
-#define FLOWC_MODE_PAYL(m)	(!((m) & 8))	/* show payload only */
+static guint gnet_stats_mode = 0;
 
-#define STATS_MSGS_MODE_PACKETS 1
-#define STATS_MSGS_MODE_REL 2
+#define MODE_FC_ABSOLUTE	0x01
+#define MODE_FC_HEADERS		0x02
+#define MODE_FC_PACKETS		0x04
+#define MODE_FC_TTL			0x08
 
+#define MODE_RECV_ABSOLUTE	0x10
+#define MODE_RECV_HEADERS	0x20
+#define MODE_RECV_PACKETS	0x40
+#define MODE_RECV_TTL		0x80
+
+#define MODE_MSGS_ABSOLUTE	0x100
+#define MODE_MSGS_PACKETS	0x200
+ 
 enum {
 	GNET_STATS_NB_PAGE_GENERAL,
 	GNET_STATS_NB_PAGE_DROP_REASONS,
 	GNET_STATS_NB_PAGE_MESSAGES,
 	GNET_STATS_NB_PAGE_FLOWC,
+	GNET_STATS_NB_PAGE_RECV,
 
 	GNET_STATS_NP_PAGE_NUMBER
 };
 
 static gint selected_type = MSG_TOTAL;
-static gint selected_flowc = 0;
-static gint gnet_stats_msgs_mode = 0;
 
 static void column_set_hidden(GtkTreeView *, const gchar *, gboolean);
 
@@ -173,6 +175,8 @@ static void on_gnet_stats_column_resized(
 		property = PROP_GNET_STATS_MSG_COL_WIDTHS;
     else if (!strcmp(widget_name, "treeview_gnet_stats_flowc"))
 		property = PROP_GNET_STATS_FC_COL_WIDTHS;
+    else if (!strcmp(widget_name, "treeview_gnet_stats_recv"))
+		property = PROP_GNET_STATS_RECV_COL_WIDTHS;
 	else {
 		property = -1;
 		g_assert_not_reached();
@@ -188,41 +192,62 @@ static void on_gnet_stats_type_selected(GtkItem *i, gpointer data)
     gnet_stats_gui_update();
 }
 
-static void on_gnet_stats_msgs_toggled(GtkWidget *widget, gpointer data)
-{
-	gnet_stats_msgs_mode ^= STATS_MSGS_MODE_PACKETS;
-    gnet_stats_gui_update();
+#define GNET_STATS_BUTTON_TOGGLED(a, b)										 \
+static void on_gnet_stats_##a##_toggled(									 \
+	GtkWidget *widget, gpointer data)										 \
+{																			 \
+	gboolean value;															 \
+																			 \
+	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(widget)))			 \
+		gnet_stats_mode |= (b);												 \
+	else																	 \
+	 	gnet_stats_mode &= ~(b);											 \
+	value = FALSE != (gnet_stats_mode & (b));								 \
+	gui_prop_set_boolean(PROP_GNET_STATS_##b, &value, 0, 1);	 			 \
+	gnet_stats_gui_update();												 \
 }
 
-static void on_gnet_stats_msgs_abs_toggled(GtkWidget *widget, gpointer data)
+GNET_STATS_BUTTON_TOGGLED(msgs_packets, MODE_MSGS_PACKETS)
+GNET_STATS_BUTTON_TOGGLED(msgs_absolute, MODE_MSGS_ABSOLUTE)
+GNET_STATS_BUTTON_TOGGLED(fc_absolute, MODE_FC_ABSOLUTE)
+GNET_STATS_BUTTON_TOGGLED(fc_headers, MODE_FC_HEADERS)
+GNET_STATS_BUTTON_TOGGLED(fc_packets, MODE_FC_PACKETS)
+GNET_STATS_BUTTON_TOGGLED(recv_absolute, MODE_RECV_ABSOLUTE)
+GNET_STATS_BUTTON_TOGGLED(recv_headers, MODE_RECV_HEADERS)
+GNET_STATS_BUTTON_TOGGLED(recv_packets, MODE_RECV_PACKETS)
+
+static void on_gnet_stats_fc_ttl_toggled(GtkWidget *widget, gpointer data)
 {
-	gnet_stats_msgs_mode ^= STATS_MSGS_MODE_REL;
-    gnet_stats_gui_update();
-}
-
-static void on_gnet_stats_fc_toggled(GtkWidget *widget, gpointer data)
-{
-	const gchar *name = gtk_widget_get_name(widget);
-	/* FIXME: add properties to save settings */
-
-	g_assert(NULL != name);
-	if (!strcmp(name, "radio_fc_ttl") || !strcmp(name, "radio_fc_hops"))
-		selected_flowc ^= 1;
-	else if (!strcmp(name, "radio_fc_pkts") || !strcmp(name, "radio_fc_bytes"))
-		selected_flowc ^= 2;
-	else if (!strcmp(name, "radio_fc_abs") || !strcmp(name, "radio_fc_rel"))
-		selected_flowc ^= 4;
-	else if (!strcmp(name, "checkbutton_fc_headers"))
-		selected_flowc ^= 8;
-	else
-		g_assert_not_reached();
-
+	gboolean value;
 	/* Hide column for TTL=0 */
+	
+	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(widget)))
+		gnet_stats_mode |= MODE_FC_TTL;										
+	else
+		gnet_stats_mode &= ~MODE_FC_TTL;										
 	column_set_hidden(
 		GTK_TREE_VIEW(lookup_widget(main_window, "treeview_gnet_stats_flowc")),
-		"0",
-		FLOWC_MODE_HOPS(selected_flowc));
+		"0", gnet_stats_mode & MODE_FC_TTL);
+	value = FALSE != (gnet_stats_mode & MODE_FC_TTL);
+	gui_prop_set_boolean(PROP_GNET_STATS_MODE_FC_TTL, &value, 0, 1);
 	gnet_stats_gui_update();
+}
+
+static void on_gnet_stats_recv_ttl_toggled(GtkWidget *widget, gpointer data)
+{
+	gboolean value;
+	/* Hide column for TTL=0 */
+	
+	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(widget)))
+		gnet_stats_mode |= MODE_RECV_TTL;
+	else
+		gnet_stats_mode &= ~MODE_RECV_TTL;
+	column_set_hidden(
+		GTK_TREE_VIEW(lookup_widget(main_window, "treeview_gnet_stats_recv")),
+		"0", gnet_stats_mode & MODE_RECV_TTL);
+	value = FALSE != (gnet_stats_mode & MODE_RECV_TTL);
+	gui_prop_set_boolean(PROP_GNET_STATS_MODE_RECV_TTL, &value, 0, 1);
+    gnet_stats_gui_update();
 }
 
 /***
@@ -244,7 +269,7 @@ static void column_set_hidden(
 			gtk_object_get(GTK_OBJECT(l->data), "title", &title, NULL);
 			if (NULL != title && !strcmp(header_title, title)) {
 				gtk_tree_view_column_set_visible(GTK_TREE_VIEW_COLUMN(l->data),
-					hidden);
+					!hidden);
 				break;
 			}
 		}
@@ -252,36 +277,36 @@ static void column_set_hidden(
 	g_list_free(list);
 }
 
-G_INLINE_FUNC gchar *pkt_stat_str(
+static gchar *pkt_stat_str(
 	gchar *strbuf, gulong n, const guint32 *val_tbl, gint type)
 {
     if (val_tbl[type] == 0)
 		g_strlcpy(strbuf, "-", n);
-    else if (gnet_stats_msgs_mode & STATS_MSGS_MODE_REL)
-        g_snprintf(strbuf, n, "%.2f%%", 
-            (float)val_tbl[type]/val_tbl[MSG_TOTAL]*100.0);
-    else
+    else if (gnet_stats_mode & MODE_MSGS_ABSOLUTE)
         g_snprintf(strbuf, n, "%u", val_tbl[type]);
+    else
+        g_snprintf(strbuf, n, "%.2f%%", 
+            (gfloat) val_tbl[type] / val_tbl[MSG_TOTAL] * 100.0);
 
     return strbuf;
 }
 
 
-G_INLINE_FUNC const gchar *byte_stat_str(
+const gchar *byte_stat_str(
 	gchar *strbuf, gulong n, const guint32 *val_tbl, gint type)
 {
     if (val_tbl[type] == 0)
 		g_strlcpy(strbuf, "-", n);
-    else if (gnet_stats_msgs_mode & STATS_MSGS_MODE_REL)
-        g_snprintf(strbuf, n, "%.2f%%", 
-            (float)val_tbl[type]/val_tbl[MSG_TOTAL]*100.0);
-    else
+    else if (gnet_stats_mode & MODE_MSGS_ABSOLUTE)
         g_strlcpy(strbuf, compact_size(val_tbl[type]), n);
+    else
+        g_snprintf(strbuf, n, "%.2f%%", 
+            (gfloat) val_tbl[type] / val_tbl[MSG_TOTAL] * 100.0);
 
 	return strbuf;
 }
 
-G_INLINE_FUNC const gchar *drop_stat_str(
+const gchar *drop_stat_str(
 	gchar *str, gulong n, const gnet_stats_t *stats, gint reason)
 {
     guint32 total = stats->pkg.dropped[MSG_TOTAL];
@@ -290,14 +315,14 @@ G_INLINE_FUNC const gchar *drop_stat_str(
 		g_strlcpy(str, "-", n);
     else if (gnet_stats_drop_perc)
         g_snprintf(str, n, "%.2f%%", 
-            (float)stats->drop_reason[reason][selected_type]/total*100);
+            (gfloat)stats->drop_reason[reason][selected_type]/total*100);
     else
         g_snprintf(str, n, "%u", stats->drop_reason[reason][selected_type]);
 
     return str;
 }
 
-G_INLINE_FUNC const gchar *general_stat_str(
+static const gchar *general_stat_str(
 	gchar *str, gulong n, const gnet_stats_t *stats, gint type)
 {
     if (stats->general[type] == 0)
@@ -310,18 +335,23 @@ G_INLINE_FUNC const gchar *general_stat_str(
 	return str;
 }
 
-G_INLINE_FUNC const gchar *flowc_stat_str(
-	gchar *strbuf, gulong n, gulong value, gulong total)
+static const gchar *type_stat_str(
+	gchar *strbuf,
+	gulong n,
+	gulong value,
+	gulong total,
+	gboolean absolute,
+	gboolean packets)
 {
 	if (value == 0 || total == 0) {
 		g_strlcpy(strbuf, "-", n);
-	} else if (FLOWC_MODE_ABS(selected_flowc)) {
-		if (FLOWC_MODE_BYTE(selected_flowc))	/* byte mode */
-			g_strlcpy(strbuf, compact_size(value), n);
-		else									/* packet mode */
+	} else if (absolute) {
+		if (packets)
        		g_snprintf(strbuf, n, "%lu", (gulong) value);
+		else
+			g_strlcpy(strbuf, compact_size(value), n);
 	} else 
-		g_snprintf(strbuf, n, "%.2f%%", (float) value/total*100.0);
+		g_snprintf(strbuf, n, "%.2f%%", (gfloat) value/total*100.0);
 
     return strbuf;
 }
@@ -341,7 +371,7 @@ static void add_column(
 	gtk_tree_view_append_column(treeview, column);
 	g_object_notify(G_OBJECT(column), "width");
 	g_signal_connect(G_OBJECT(column), "notify::width",
-		(gpointer) on_gnet_stats_column_resized, NULL);
+		G_CALLBACK(on_gnet_stats_column_resized), NULL);
 }
 
 static void gnet_stats_update_general(const gnet_stats_t *stats)
@@ -399,7 +429,7 @@ static void gnet_stats_update_messages(const gnet_stats_t *stats)
 	gtk_tree_model_get_iter_first(GTK_TREE_MODEL(store), &iter);
 
     for (n = 0; n < MSG_TYPE_COUNT; n ++) {
-		if (gnet_stats_msgs_mode & STATS_MSGS_MODE_PACKETS) {
+		if (gnet_stats_mode & MODE_MSGS_PACKETS) {
 			gtk_list_store_set(store, &iter,
 				c_gs_received,
 				pkt_stat_str(str[0], sizeof(str[0]), stats->pkg.received, n), 
@@ -412,7 +442,7 @@ static void gnet_stats_update_messages(const gnet_stats_t *stats)
 				c_gs_relayed,
 				pkt_stat_str(str[4], sizeof(str[0]), stats->pkg.relayed, n),
 				-1);
-		} else { /* STATS_MSGS_MODE_BYTES */
+		} else { /* byte mode */
 			gtk_list_store_set(store, &iter,
 				c_gs_received,
 				byte_stat_str(str[0], sizeof(str[0]), stats->byte.received, n),
@@ -431,52 +461,51 @@ static void gnet_stats_update_messages(const gnet_stats_t *stats)
 
 }
 
-static void gnet_stats_update_flowc(const gnet_stats_t *stats) {
+static void gnet_stats_update_types(
+	const gnet_stats_t *stats,
+	const gchar *treeview_name,
+	gboolean absolute,
+	gboolean packets,
+	gboolean with_headers,
+	gint columns,
+	const guint32 (*byte_counters)[MSG_TYPE_COUNT],
+	const guint32 (*pkg_counters)[MSG_TYPE_COUNT])
+{
     GtkTreeView *treeview;
     GtkListStore *store;
     GtkTreeIter iter;
     gint n;
 	static gchar str[MSG_TYPE_COUNT][32];
-	const guint32 (*byte_counters)[MSG_TYPE_COUNT];
-	const guint32 (*pkg_counters)[MSG_TYPE_COUNT];
 
-    treeview = GTK_TREE_VIEW(
-        lookup_widget(main_window, "treeview_gnet_stats_flowc"));
+    treeview = GTK_TREE_VIEW(lookup_widget(main_window, treeview_name));
 	store = GTK_LIST_STORE(gtk_tree_view_get_model(treeview));
 	gtk_tree_model_get_iter_first(GTK_TREE_MODEL(store), &iter);
 
-	if (FLOWC_MODE_HOPS(selected_flowc)) {
-		/* Hops mode */
-		pkg_counters = stats->pkg.flowc_hops;
-		byte_counters = stats->byte.flowc_hops;
-	} else {
-		/* TTL mode */
-		pkg_counters = stats->pkg.flowc_ttl;
-		byte_counters = stats->byte.flowc_ttl;
-	}
 
 	for (n = 0; n < MSG_TYPE_COUNT; n++) {
 		gint i;
 
-		if (FLOWC_MODE_PKTS(selected_flowc))	/* packet mode */
-			for (i = 0; i < STATS_FLOWC_COLUMNS; i++)
-				flowc_stat_str(str[i], sizeof(str[0]),
+		if (packets)
+			for (i = 0; i < columns; i++)
+				type_stat_str(str[i], sizeof(str[0]),
 					(gulong) pkg_counters[i][n],
-					(gulong) pkg_counters[i][MSG_TOTAL]);
-		else									/* byte mode */
-			for (i = 0; i < STATS_FLOWC_COLUMNS; i++) {
+					(gulong) pkg_counters[i][MSG_TOTAL],
+					absolute, packets);
+		else
+			for (i = 0; i < columns; i++) {
 				gulong	value;
 				gulong	total;
 		
 				value = byte_counters[i][n];
 				total = byte_counters[i][MSG_TOTAL];
-				if (FLOWC_MODE_HDRS(selected_flowc)) {
+				if (with_headers) {
 					value += pkg_counters[i][n]
 						* sizeof(struct gnutella_header);
 					total += pkg_counters[i][MSG_TOTAL]
 						* sizeof(struct gnutella_header);
 				}
-				flowc_stat_str(str[i], sizeof(str[0]), value, total);
+				type_stat_str(str[i], sizeof(str[0]),
+					value, total, absolute, packets);
 			}
 
 		gtk_list_store_set(store, &iter,
@@ -493,6 +522,50 @@ static void gnet_stats_update_flowc(const gnet_stats_t *stats) {
 #if 0 
 	g_message(" ");
 #endif
+}
+
+static void gnet_stats_update_flowc(const gnet_stats_t *stats)
+{
+	const guint32 (*byte_counters)[MSG_TYPE_COUNT];
+	const guint32 (*pkg_counters)[MSG_TYPE_COUNT];
+
+	if (gnet_stats_mode & MODE_FC_TTL) {
+		pkg_counters = stats->pkg.flowc_ttl;
+		byte_counters = stats->byte.flowc_ttl;
+	} else {
+		pkg_counters = stats->pkg.flowc_hops;
+		byte_counters = stats->byte.flowc_hops;
+	}
+	gnet_stats_update_types(stats,
+		"treeview_gnet_stats_flowc",
+		gnet_stats_mode & MODE_FC_ABSOLUTE,
+		gnet_stats_mode & MODE_FC_PACKETS,
+		gnet_stats_mode & MODE_FC_HEADERS,
+		STATS_FLOWC_COLUMNS,
+		byte_counters,
+		pkg_counters);
+}
+
+static void gnet_stats_update_recv(const gnet_stats_t *stats)
+{
+	const guint32 (*byte_counters)[MSG_TYPE_COUNT];
+	const guint32 (*pkg_counters)[MSG_TYPE_COUNT];
+
+	if (gnet_stats_mode & MODE_RECV_TTL) {
+		pkg_counters = stats->pkg.received_ttl;
+		byte_counters = stats->byte.received_ttl;
+	} else {
+		pkg_counters = stats->pkg.received_hops;
+		byte_counters = stats->byte.received_hops;
+	}
+	gnet_stats_update_types(stats,
+		"treeview_gnet_stats_recv",
+		gnet_stats_mode & MODE_RECV_ABSOLUTE,
+		gnet_stats_mode & MODE_RECV_PACKETS,
+		gnet_stats_mode & MODE_RECV_HEADERS,
+		STATS_RECV_COLUMNS,
+		byte_counters,
+		pkg_counters);
 }
 
 /***
@@ -522,7 +595,7 @@ void gnet_stats_gui_init(void)
 					i == 0 ? msg_type_str[n] : "-", -1);
 	}
 
-	for (n = 0; n < 6; n++)
+	for (n = 0; n < G_N_ELEMENTS(msg_stats_label); n++)
 		add_column(treeview, n, msg_stats_label[n]);
 
     gtk_tree_view_set_model(treeview, model);
@@ -629,27 +702,71 @@ void gnet_stats_gui_init(void)
     gtk_tree_view_set_model(treeview, model);
 	g_object_unref(model);
 
+	/* ----------------------------------------- */
+
+    treeview = GTK_TREE_VIEW(
+        lookup_widget(main_window, "treeview_gnet_stats_recv"));
+	model = GTK_TREE_MODEL(
+		gtk_list_store_new(STATS_RECV_COLUMNS,
+			G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING,
+			G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING,
+			G_TYPE_STRING, G_TYPE_STRING));
+
+	for (n = 0; n < STATS_FLOWC_COLUMNS; n++) {
+    	gchar buf[16];
+
+		g_snprintf(buf, sizeof(buf), "%d%c", n-1,
+				(n+1) < STATS_RECV_COLUMNS ? '\0' : '+');
+		add_column(treeview, n, n == 0 ? "Type" : buf);
+	}
+
+	for (n = 0; n < MSG_TYPE_COUNT; n++) {
+		GtkTreeIter iter;
+		gint i;
+
+		gtk_list_store_append(GTK_LIST_STORE(model), &iter);
+			for (i = 0; i < STATS_RECV_COLUMNS; i++)
+				gtk_list_store_set(GTK_LIST_STORE(model), &iter, i,
+					i == 0 ? msg_type_str[n] : "-", -1);
+	}
+
+    gtk_tree_view_set_model(treeview, model);
+	g_object_unref(model);
+
 	/* Install signal handlers for view selection buttons */
 
+	g_signal_connect(GTK_CHECK_BUTTON(
+		lookup_widget(main_window, "checkbutton_gnet_stats_fc_headers")),
+		"toggled", G_CALLBACK(on_gnet_stats_fc_headers_toggled), NULL);
+	g_signal_connect(GTK_RADIO_BUTTON(
+		lookup_widget(main_window, "radio_gnet_stats_fc_absolute")),
+		"toggled", G_CALLBACK(on_gnet_stats_fc_absolute_toggled), NULL);
+	g_signal_connect(GTK_RADIO_BUTTON(
+		lookup_widget(main_window, "radio_gnet_stats_fc_packets")),
+		"toggled", G_CALLBACK(on_gnet_stats_fc_packets_toggled), NULL);
 	g_signal_connect(
-		GTK_RADIO_BUTTON(lookup_widget(main_window, "radio_fc_ttl")),
-		"toggled", G_CALLBACK(on_gnet_stats_fc_toggled), NULL);
-	g_signal_connect(
-		GTK_RADIO_BUTTON(lookup_widget(main_window, "radio_fc_pkts")),
-		"toggled", G_CALLBACK(on_gnet_stats_fc_toggled), NULL);
-	g_signal_connect(
-		GTK_RADIO_BUTTON(lookup_widget(main_window, "radio_fc_abs")),
-		"toggled", G_CALLBACK(on_gnet_stats_fc_toggled), NULL);
-	g_signal_connect(
-		GTK_CHECK_BUTTON(lookup_widget(main_window, "checkbutton_fc_headers")),
-		"toggled", G_CALLBACK(on_gnet_stats_fc_toggled), NULL);
+		GTK_RADIO_BUTTON(lookup_widget(main_window, "radio_gnet_stats_fc_ttl")),
+		"toggled", G_CALLBACK(on_gnet_stats_fc_ttl_toggled), NULL);
 
 	g_signal_connect(GTK_RADIO_BUTTON(
-		lookup_widget(main_window, "gnet_stats_msgs_radio_byte")),
-		"toggled", G_CALLBACK(on_gnet_stats_msgs_toggled), NULL);
+		lookup_widget(main_window, "radio_gnet_stats_msgs_absolute")),
+		"toggled", G_CALLBACK(on_gnet_stats_msgs_absolute_toggled), NULL);
 	g_signal_connect(GTK_RADIO_BUTTON(
-		lookup_widget(main_window, "gnet_stats_msgs_radio_abs")),
-		"toggled", G_CALLBACK(on_gnet_stats_msgs_abs_toggled), NULL);
+		lookup_widget(main_window, "radio_gnet_stats_msgs_packets")),
+		"toggled", G_CALLBACK(on_gnet_stats_msgs_packets_toggled), NULL);
+
+	g_signal_connect(GTK_CHECK_BUTTON(
+		lookup_widget(main_window, "checkbutton_gnet_stats_recv_headers")),
+		"toggled", G_CALLBACK(on_gnet_stats_recv_headers_toggled), NULL);
+	g_signal_connect(GTK_RADIO_BUTTON(
+		lookup_widget(main_window, "radio_gnet_stats_recv_absolute")),
+		"toggled", G_CALLBACK(on_gnet_stats_recv_absolute_toggled), NULL);
+	g_signal_connect(GTK_RADIO_BUTTON(
+		lookup_widget(main_window, "radio_gnet_stats_recv_packets")),
+		"toggled", G_CALLBACK(on_gnet_stats_recv_packets_toggled), NULL);
+	g_signal_connect(GTK_RADIO_BUTTON(
+		lookup_widget(main_window, "radio_gnet_stats_recv_ttl")),
+		"toggled", G_CALLBACK(on_gnet_stats_recv_ttl_toggled), NULL);
 }
 
 
@@ -684,6 +801,9 @@ void gnet_stats_gui_update(void)
 			break;
 		case GNET_STATS_NB_PAGE_FLOWC:
 			gnet_stats_update_flowc(&stats);
+			break;
+		case GNET_STATS_NB_PAGE_RECV:
+			gnet_stats_update_recv(&stats);
 			break;
 		default:
 			g_assert_not_reached();
