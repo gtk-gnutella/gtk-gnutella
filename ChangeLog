@@ -1,6 +1,8 @@
 # since last version
 
 - (2002.06.23 - Richard)
+  * Fixed bug: active downloads not unfreezed after "force push"
+  * Mark active "push mode" downloads and "always push" downloads in queue
   * Tagret combos are correctly updated when adding and removing a filter
   * "About" box added.
   * Added builtin targets to filter tree to have the stats (not selectable)
