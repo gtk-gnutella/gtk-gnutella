@@ -931,18 +931,29 @@ hcache_prune(hcache_type_t type)
 
 	hc = caches[type];
 
+#define HALF_PRUNE(x) do {		\
+	if (hc->host_count < caches[x]->host_count) \
+		hc = caches[x];			\
+} while (0)
+
     switch (type) {
     case HCACHE_VALID_ANY:
-		if (hc->host_count < caches[HCACHE_FRESH_ANY]->host_count)
-			hc = caches[HCACHE_FRESH_ANY];
+		HALF_PRUNE(HCACHE_FRESH_ANY);
         break;
     case HCACHE_VALID_ULTRA:
-		if (hc->host_count < caches[HCACHE_FRESH_ULTRA]->host_count)
-			hc = caches[HCACHE_FRESH_ULTRA];
+		HALF_PRUNE(HCACHE_FRESH_ULTRA);
         break;
+    case HCACHE_FRESH_ANY:
+		HALF_PRUNE(HCACHE_VALID_ANY);
+		break;
+    case HCACHE_FRESH_ULTRA:
+		HALF_PRUNE(HCACHE_VALID_ULTRA);
+		break;
     default:
         break;
     }
+
+#undef HALF_PRUNE
 
     extra = -hcache_slots_left(hc->type);
 
