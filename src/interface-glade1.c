@@ -402,7 +402,7 @@ create_main_window (void)
   GtkWidget *viewport_fix_flashing_2;
   GtkWidget *hbox168;
   GtkWidget *label_search_stats_count;
-  GtkWidget *label98;
+  GtkWidget *label_search_stats;
   GtkWidget *notebook1;
   GtkWidget *scrolledwindow32;
   GtkWidget *viewport3;
@@ -560,16 +560,12 @@ create_main_window (void)
   GtkWidget *table17;
   GtkWidget *label37;
   GtkWidget *label38;
-  GtkWidget *label196;
-  GtkWidget *label197;
-  GtkObject *spinbutton_config_search_min_speed_adj;
-  GtkWidget *spinbutton_config_search_min_speed;
   GtkObject *spinbutton_config_search_items_adj;
   GtkWidget *spinbutton_config_search_items;
-  GtkWidget *label276;
+  GtkWidget *label567;
   GtkObject *spinbutton_config_search_reissue_timeout_adj;
   GtkWidget *spinbutton_config_search_reissue_timeout;
-  GtkWidget *label277;
+  GtkWidget *label568;
   GtkWidget *frame_expert_gnet_timeout;
   GtkWidget *table10;
   GtkWidget *label175;
@@ -870,7 +866,7 @@ create_main_window (void)
   GtkWidget *label375;
   GtkWidget *label376;
   GtkWidget *checkbutton_gnet_stats_drop_perc;
-  GtkWidget *label346;
+  GtkWidget *label_gnet_stats;
   GtkWidget *hbox_statusbar;
   GtkWidget *togglebutton_online;
   GtkWidget *hbox145;
@@ -4263,13 +4259,13 @@ create_main_window (void)
   gtk_misc_set_alignment (GTK_MISC (label_search_stats_count), 1, 0.5);
   gtk_misc_set_padding (GTK_MISC (label_search_stats_count), 5, 0);
 
-  label98 = gtk_label_new (_("Search Stats"));
-  gtk_widget_set_name (label98, "label98");
-  gtk_widget_ref (label98);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "label98", label98,
+  label_search_stats = gtk_label_new (_("Search Stats"));
+  gtk_widget_set_name (label_search_stats, "label_search_stats");
+  gtk_widget_ref (label_search_stats);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label_search_stats", label_search_stats,
                             (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (label98);
-  gtk_notebook_set_tab_label (GTK_NOTEBOOK (notebook_main), gtk_notebook_get_nth_page (GTK_NOTEBOOK (notebook_main), 6), label98);
+  gtk_widget_show (label_search_stats);
+  gtk_notebook_set_tab_label (GTK_NOTEBOOK (notebook_main), gtk_notebook_get_nth_page (GTK_NOTEBOOK (notebook_main), 6), label_search_stats);
 
   notebook1 = gtk_notebook_new ();
   gtk_widget_set_name (notebook1, "notebook1");
@@ -5079,7 +5075,7 @@ create_main_window (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label182), 0, 0.5);
 
-  spinbutton_config_bws_gin_adj = gtk_adjustment_new (1, 1, 2000, 1, 16, 16);
+  spinbutton_config_bws_gin_adj = gtk_adjustment_new (1, 1, 2000, 1, 5, 16);
   spinbutton_config_bws_gin = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_bws_gin_adj), 1, 2);
   gtk_widget_set_name (spinbutton_config_bws_gin, "spinbutton_config_bws_gin");
   gtk_widget_ref (spinbutton_config_bws_gin);
@@ -5092,7 +5088,7 @@ create_main_window (void)
   gtk_widget_set_usize (spinbutton_config_bws_gin, 64, -2);
   gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_config_bws_gin), TRUE);
 
-  spinbutton_config_bws_gout_adj = gtk_adjustment_new (1, 1, 2000, 1, 16, 16);
+  spinbutton_config_bws_gout_adj = gtk_adjustment_new (1, 1, 2000, 1, 5, 16);
   spinbutton_config_bws_gout = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_bws_gout_adj), 1, 2);
   gtk_widget_set_name (spinbutton_config_bws_gout, "spinbutton_config_bws_gout");
   gtk_widget_ref (spinbutton_config_bws_gout);
@@ -5144,7 +5140,7 @@ create_main_window (void)
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
 
-  spinbutton_config_bws_glin_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 10);
+  spinbutton_config_bws_glin_adj = gtk_adjustment_new (1, 0, 100, 1, 5, 10);
   spinbutton_config_bws_glin = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_bws_glin_adj), 1, 2);
   gtk_widget_set_name (spinbutton_config_bws_glin, "spinbutton_config_bws_glin");
   gtk_widget_ref (spinbutton_config_bws_glin);
@@ -5157,7 +5153,7 @@ create_main_window (void)
   gtk_widget_set_usize (spinbutton_config_bws_glin, 64, -2);
   gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_config_bws_glin), TRUE);
 
-  spinbutton_config_bws_glout_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 10);
+  spinbutton_config_bws_glout_adj = gtk_adjustment_new (1, 0, 100, 1, 5, 10);
   spinbutton_config_bws_glout = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_bws_glout_adj), 1, 2);
   gtk_widget_set_name (spinbutton_config_bws_glout, "spinbutton_config_bws_glout");
   gtk_widget_ref (spinbutton_config_bws_glout);
@@ -5222,7 +5218,7 @@ create_main_window (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label126), 0, 0.5);
 
-  spinbutton_config_bws_in_adj = gtk_adjustment_new (1, 1, 2000, 1, 16, 16);
+  spinbutton_config_bws_in_adj = gtk_adjustment_new (1, 1, 2000, 1, 5, 16);
   spinbutton_config_bws_in = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_bws_in_adj), 1, 2);
   gtk_widget_set_name (spinbutton_config_bws_in, "spinbutton_config_bws_in");
   gtk_widget_ref (spinbutton_config_bws_in);
@@ -5235,7 +5231,7 @@ create_main_window (void)
   gtk_widget_set_usize (spinbutton_config_bws_in, 64, -2);
   gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_config_bws_in), TRUE);
 
-  spinbutton_config_bws_out_adj = gtk_adjustment_new (1, 1, 2000, 1, 16, 1024);
+  spinbutton_config_bws_out_adj = gtk_adjustment_new (1, 1, 2000, 1, 5, 1024);
   spinbutton_config_bws_out = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_bws_out_adj), 1, 2);
   gtk_widget_set_name (spinbutton_config_bws_out, "spinbutton_config_bws_out");
   gtk_widget_ref (spinbutton_config_bws_out);
@@ -5324,7 +5320,7 @@ create_main_window (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label156), 7.45058e-09, 0.5);
 
-  spinbutton_config_speed_adj = gtk_adjustment_new (64, 0, 2e+06, 1, 16, 16);
+  spinbutton_config_speed_adj = gtk_adjustment_new (64, 0, 2e+06, 1, 8, 16);
   spinbutton_config_speed = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_speed_adj), 1, 0);
   gtk_widget_set_name (spinbutton_config_speed, "spinbutton_config_speed");
   gtk_widget_ref (spinbutton_config_speed);
@@ -5634,7 +5630,7 @@ create_main_window (void)
   gtk_widget_show (frame_searches);
   gtk_box_pack_start (GTK_BOX (vbox25), frame_searches, FALSE, TRUE, 0);
 
-  table17 = gtk_table_new (3, 3, FALSE);
+  table17 = gtk_table_new (2, 3, FALSE);
   gtk_widget_set_name (table17, "table17");
   gtk_widget_ref (table17);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "table17", table17,
@@ -5667,41 +5663,6 @@ create_main_window (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label38), 7.45058e-09, 0.5);
 
-  label196 = gtk_label_new (_("Default minimum speed"));
-  gtk_widget_set_name (label196, "label196");
-  gtk_widget_ref (label196);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "label196", label196,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (label196);
-  gtk_table_attach (GTK_TABLE (table17), label196, 0, 1, 1, 2,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-  gtk_misc_set_alignment (GTK_MISC (label196), 0, 0.5);
-
-  label197 = gtk_label_new (_("kbit/s"));
-  gtk_widget_set_name (label197, "label197");
-  gtk_widget_ref (label197);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "label197", label197,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (label197);
-  gtk_table_attach (GTK_TABLE (table17), label197, 2, 3, 1, 2,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-  gtk_misc_set_alignment (GTK_MISC (label197), 0, 0.5);
-
-  spinbutton_config_search_min_speed_adj = gtk_adjustment_new (1, 0, 2e+06, 1, 10, 10);
-  spinbutton_config_search_min_speed = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_search_min_speed_adj), 1, 0);
-  gtk_widget_set_name (spinbutton_config_search_min_speed, "spinbutton_config_search_min_speed");
-  gtk_widget_ref (spinbutton_config_search_min_speed);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "spinbutton_config_search_min_speed", spinbutton_config_search_min_speed,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (spinbutton_config_search_min_speed);
-  gtk_table_attach (GTK_TABLE (table17), spinbutton_config_search_min_speed, 1, 2, 1, 2,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-  gtk_widget_set_usize (spinbutton_config_search_min_speed, 45, -2);
-  gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_config_search_min_speed), TRUE);
-
   spinbutton_config_search_items_adj = gtk_adjustment_new (1, 1, 255, 1, 10, 10);
   spinbutton_config_search_items = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_search_items_adj), 1, 0);
   gtk_widget_set_name (spinbutton_config_search_items, "spinbutton_config_search_items");
@@ -5716,16 +5677,16 @@ create_main_window (void)
   gtk_tooltips_set_tip (tooltips, spinbutton_config_search_items, _("This limits how many results gnutella returns to other people searching your files."), NULL);
   gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_config_search_items), TRUE);
 
-  label276 = gtk_label_new (_("Default search reissue timeout"));
-  gtk_widget_set_name (label276, "label276");
-  gtk_widget_ref (label276);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "label276", label276,
+  label567 = gtk_label_new (_("Default search reissue timeout"));
+  gtk_widget_set_name (label567, "label567");
+  gtk_widget_ref (label567);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label567", label567,
                             (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (label276);
-  gtk_table_attach (GTK_TABLE (table17), label276, 0, 1, 2, 3,
+  gtk_widget_show (label567);
+  gtk_table_attach (GTK_TABLE (table17), label567, 0, 1, 1, 2,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
-  gtk_misc_set_alignment (GTK_MISC (label276), 0, 0.5);
+  gtk_misc_set_alignment (GTK_MISC (label567), 0, 0.5);
 
   spinbutton_config_search_reissue_timeout_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 10);
   spinbutton_config_search_reissue_timeout = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_search_reissue_timeout_adj), 1, 0);
@@ -5734,21 +5695,21 @@ create_main_window (void)
   gtk_object_set_data_full (GTK_OBJECT (main_window), "spinbutton_config_search_reissue_timeout", spinbutton_config_search_reissue_timeout,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (spinbutton_config_search_reissue_timeout);
-  gtk_table_attach (GTK_TABLE (table17), spinbutton_config_search_reissue_timeout, 1, 2, 2, 3,
+  gtk_table_attach (GTK_TABLE (table17), spinbutton_config_search_reissue_timeout, 1, 2, 1, 2,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
   gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_config_search_reissue_timeout), TRUE);
 
-  label277 = gtk_label_new (_("seconds"));
-  gtk_widget_set_name (label277, "label277");
-  gtk_widget_ref (label277);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "label277", label277,
+  label568 = gtk_label_new (_("seconds"));
+  gtk_widget_set_name (label568, "label568");
+  gtk_widget_ref (label568);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label568", label568,
                             (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (label277);
-  gtk_table_attach (GTK_TABLE (table17), label277, 2, 3, 2, 3,
+  gtk_widget_show (label568);
+  gtk_table_attach (GTK_TABLE (table17), label568, 2, 3, 1, 2,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
-  gtk_misc_set_alignment (GTK_MISC (label277), 0, 0.5);
+  gtk_misc_set_alignment (GTK_MISC (label568), 0, 0.5);
 
   frame_expert_gnet_timeout = gtk_frame_new (_("gnutellaNet timeouts (all values in seconds)"));
   gtk_widget_set_name (frame_expert_gnet_timeout, "frame_expert_gnet_timeout");
@@ -8296,13 +8257,13 @@ create_main_window (void)
   gtk_widget_show (checkbutton_gnet_stats_drop_perc);
   gtk_box_pack_start (GTK_BOX (vbox82), checkbutton_gnet_stats_drop_perc, FALSE, FALSE, 0);
 
-  label346 = gtk_label_new ("");
-  gtk_widget_set_name (label346, "label346");
-  gtk_widget_ref (label346);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "label346", label346,
+  label_gnet_stats = gtk_label_new (_("gNet Stats"));
+  gtk_widget_set_name (label_gnet_stats, "label_gnet_stats");
+  gtk_widget_ref (label_gnet_stats);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label_gnet_stats", label_gnet_stats,
                             (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (label346);
-  gtk_notebook_set_tab_label (GTK_NOTEBOOK (notebook_main), gtk_notebook_get_nth_page (GTK_NOTEBOOK (notebook_main), 8), label346);
+  gtk_widget_show (label_gnet_stats);
+  gtk_notebook_set_tab_label (GTK_NOTEBOOK (notebook_main), gtk_notebook_get_nth_page (GTK_NOTEBOOK (notebook_main), 8), label_gnet_stats);
 
   hbox_statusbar = gtk_hbox_new (FALSE, 0);
   gtk_widget_set_name (hbox_statusbar, "hbox_statusbar");
