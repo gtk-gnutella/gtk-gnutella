@@ -36,6 +36,7 @@ RCSID("$Id$");
 #include "tx.h"
 #include "tx_dgram.h"
 #include "bsched.h"
+#include "inet.h"
 
 #include "if/core/hosts.h"
 
@@ -193,6 +194,7 @@ tx_dgram_sendto(txdrv_t *tx, gnet_host_t *to, gpointer data, gint len)
 
 	if (r >= 0) {
 		node_add_tx_written(tx->node, r);
+		inet_udp_record_sent(to->ip);
 		return r;
 	}
 
