@@ -114,7 +114,6 @@
     FOCUS_TO_ACTIVATE(w)
 
 static gchar c_tmp[2048];
-static gint select_all_lock = 0;
 static GtkWidget *hosts_read_filesel = NULL;
 static GtkWidget *add_dir_filesel = NULL;
 static gchar *selected_url = NULL; 
@@ -2548,77 +2547,83 @@ void on_clist_search_results_select_row(GtkCList * clist, gint row,
      */
 	if (search_pick_all && 
        (clist->selection->next == NULL)) {
-		if (!select_all_lock) {
-			record_t *rc;
-            record_t *rc2;
-			gint x, i;
+		record_t *rc;
+		gint x, i;
+        GList *l;
+
+        /* 
+         * Rows with NULL data can appear when inserting new rows
+         * because the selection is resynced and the row data can not
+         * be set until insertion (and therefore also selection syncing
+         * is done.
+         *      --BLUE, 20/06/2002
+         */
+		rc = (record_t *) gtk_clist_get_row_data(clist, row);
+
+        /*
+         * Note that rc != NULL is embedded in the "for condition".
+         * No need to copy row_list since we do not modify it.
+         */
+        x = 1;
+        for (
+            l = clist->row_list, i = 0; 
+            (rc != NULL) && (l != NULL); 
+            l = l->next, ++ i
+        ) {
+            record_t *rc2 = (record_t *)((GtkCListRow *) l->data)->data;
 
             /*
-             * Lock this section so we don't call it for every autoselected
-             * item. 
+             * Skip the line we selected in the first place.
              */
+            if (rc == rc2)
+                continue;
 
-            /* 
-             * Rows will NULL data can appear when inserting new rows
-             * because the selection is resynced and the row data can not
-             * be set until insertion (and therefore also selection syncing
-             * is done.
-             *      --BLUE, 20/06/2002
-             */
-			select_all_lock = 1;
-			rc = (record_t *) gtk_clist_get_row_data(clist, row);
-            if (rc != NULL) {
-                x = 1;
-                for (i = 0; i < clist->rows; i++) {
-                    if (i == row)
-                        continue;	// skip this one
-                    rc2 = (struct record *) gtk_clist_get_row_data(clist, i);
-   
-                    if (rc2 == NULL) {
-                        g_warning(" on_clist_search_results_select_row: "
-                            "detected row with NULL data, skipping: %d", i);
-                        continue;
-                    }
-    
-                    if (search_autoselect_ident) {
-                        if ((
-                                rc->sha1 != NULL && rc2->sha1 != NULL &&
-                                memcmp(rc->sha1, rc2->sha1, SHA1_RAW_SIZE) == 0
-                            ) || (
-                                (rc->sha1 == NULL) && rc2 && 
-                                !strcmp(rc2->name, rc->name) && 
-                                (rc2->size == rc->size)
-                            )) {
-                            gtk_clist_select_row(clist, i, 0);
-                            x++;
-                        }
-                    } else {
-                        if (((rc->sha1 != NULL && rc2->sha1 != NULL &&
-                            memcmp(rc->sha1, rc2->sha1, SHA1_RAW_SIZE) == 0) || 
-                            (rc2 && !strcmp(rc2->name, rc->name))) &&
-                            (rc2->size >= rc->size)) {
-                            gtk_clist_select_row(clist, i, 0);
-                            x++;
-                        }
-                    }
-                }
-    
-                if (x > 1) {
-                    g_snprintf(c_tmp, sizeof(c_tmp), "%d auto selected %s",
-                        x, (rc->sha1 != NULL) ? 
-                            "by urn:sha1 and filename" : "by filename");
-                    msgid = gui_statusbar_push
-                        (scid_search_autoselected, c_tmp);
-                    gui_statusbar_add_timeout
-                        (scid_search_autoselected, msgid, 15);
-                }
+            if (rc2 == NULL) {
+                g_warning(" on_clist_search_results_select_row: "
+                          "detected row with NULL data, skipping: %d", i);
+                continue;
             }
-
-            select_all_lock = 0; /* unlock in this section again */
-		}
+    
+            if (search_autoselect_ident) {
+                if ((
+                        rc->sha1 != NULL && rc2->sha1 != NULL &&
+                        memcmp(rc->sha1, rc2->sha1, SHA1_RAW_SIZE) == 0
+                    ) || (
+                        (rc->sha1 == NULL) && rc2 && 
+                        !strcmp(rc2->name, rc->name) && 
+                        (rc2->size == rc->size)
+                    )) {
+                        gtk_clist_select_row(clist, i, 0);
+                        x++;
+                    }
+                } else {
+                    if (
+                        ((rc->sha1 != NULL && rc2->sha1 != NULL &&
+                        memcmp(rc->sha1, rc2->sha1, SHA1_RAW_SIZE) == 0) || 
+                        (rc2 && !strcmp(rc2->name, rc->name))) &&
+                        (rc2->size >= rc->size)
+                    ) {
+                        gtk_clist_select_row(clist, i, 0);
+                        x++;
+                    }
+                }
+        }
+    
+        if (x > 1) {
+            g_snprintf(c_tmp, sizeof(c_tmp), "%d auto selected %s",
+                x, (rc->sha1 != NULL) ? 
+                    "by urn:sha1 and filename" : "by filename");
+            msgid = gui_statusbar_push(scid_search_autoselected, c_tmp);
+            gui_statusbar_add_timeout(scid_search_autoselected, msgid, 15);
+        }
 	}
 
     gtk_clist_thaw(clist);
+
+    gtk_signal_handler_unblock_by_func(
+        GTK_OBJECT(clist),
+        GTK_SIGNAL_FUNC(on_clist_search_results_select_row),
+        NULL);
 }
 
 void on_clist_search_results_unselect_row(GtkCList * clist, gint row,
