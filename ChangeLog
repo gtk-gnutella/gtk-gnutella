@@ -1,5 +1,10 @@
 # since last version
 
+- (2003.10.25 - Jeroen)
+ * Don't allow removing a download for which a background task is active. EG,
+   while verifying an SHA1 hash.
+ * Remove file on mismatch option is now also available for GTK2
+
 - (2003.10.21 - Jeroen)
  * Intergrated patch from Thadeu Lima de Souza Cascardo. This fixes a segfault
    with remote control.
