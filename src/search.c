@@ -1359,7 +1359,10 @@ static void search_gui_update(search_t *sch, struct results_set *rs)
 		} else {
 			/*
 			 * gtk_clist_set_auto_sort() can't work for row data based sorts!
-			 * Too bad.
+			 * Too bad. The problem is, that our compare callback wants to
+             * extract the record from the row data. But since we have not
+             * yet added neither the row nor the row data, this does not
+             * work.
 			 * So we need to find the place to put the result by ourselves.
 			 */
 
