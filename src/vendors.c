@@ -46,6 +46,7 @@ struct vendor {
     { T_FIRE, "FireFly" },
     { T_FISH, "PEERanha" },
     { T_GDNA, "Gnucleus DNA" },
+    { T_GIFT, "giFT" },
     { T_GNEW, "Gnewtellium" },
     { T_GNOT, "Gnotella" },
     { T_GNTD, "Gnet Daemon" },

@@ -48,6 +48,7 @@
 #define T_FIRE	MAKE_CODE('F','I','R','E')
 #define T_FISH	MAKE_CODE('F','I','S','H')
 #define T_GDNA	MAKE_CODE('G','D','N','A')
+#define T_GIFT  MAKE_CODE('G','I','F','T')
 #define T_GNEW	MAKE_CODE('G','N','E','W')
 #define T_GNOT	MAKE_CODE('G','N','O','T')
 #define T_GNTD	MAKE_CODE('G','N','T','D')

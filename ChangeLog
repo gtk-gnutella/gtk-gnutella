@@ -1,5 +1,8 @@
 # since last version
 
+- (2003.07.21 - guruz)
+ * Added giFT vendor code
+
 - (2003.07.20 - Jeroen)
  * Try to avoid to connect to unstable ultrapeer hosts. An ultrapeer
    is marked unstable when we are unable to connect to it for more
