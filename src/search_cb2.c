@@ -525,7 +525,7 @@ void on_tree_view_search_results_select_row(
 	gtk_tree_view_get_cursor(tree_view, &path, NULL);
 	if (NULL != path) {
 		GtkTreeModel *model;
-		record_t *rc;
+		const record_t *rc = NULL;
 		gchar *filename;
 		const gchar *vendor;
 		GtkTreeIter iter;
@@ -534,6 +534,7 @@ void on_tree_view_search_results_select_row(
 		gtk_tree_model_get_iter(model, &iter, path);
 		gtk_tree_model_get(model, &iter, c_sr_filename, &filename,
 			c_sr_record, &rc, (-1));
+		g_assert(NULL != rc);
 		gtk_entry_set_text(
 			GTK_ENTRY(lookup_widget(main_window, "entry_result_info_filename")),
 			filename);
