@@ -1,5 +1,9 @@
 # since last version
 
+- (2003.04.17 - RAM)
+ * Integrated PARQ patch #15 [From Jeroen Asselman].
+ * List PARQ development explicitly in the AUTHORS file.
+
 - (2003.04.16 - RAM)
  * Added new "configured_peermode" property.  Old "current_peermode" is
    no longer persistent.
