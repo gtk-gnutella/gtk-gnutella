@@ -209,6 +209,15 @@ void node_remove(struct gnutella_node *n, const gchar * reason, ...)
 	} else
 		n->remove_msg = NULL;
 
+	if (dbg > 3)
+		printf("Node %s removed: %s\n", ip_port_to_gchar(n->ip, n->port),
+			n->remove_msg ? n->remove_msg : "<no reason>");
+
+	if (dbg > 4)
+		printf("NODE [%d.%d] %s TX=%d RX=%d Drop=%d Bad=%d\n",
+			n->proto_major, n->proto_minor, ip_port_to_gchar(n->ip, n->port),
+			n->sent, n->received, n->dropped, n->n_bad);
+
 	nodes_in_list--;
 
 	gui_update_c_gnutellanet();
@@ -270,6 +279,7 @@ static void send_node_error(struct gnutella_socket *s, int code, guchar *msg)
 {
 	gchar gnet_response[1024];
 	gint rw;
+	gint sent;
 
 	// XXX if 503, add X-Try:
 
@@ -278,14 +288,16 @@ static void send_node_error(struct gnutella_socket *s, int code, guchar *msg)
 		"User-Agent: gtk-gnutella/%d.%d\r\n\r\n",
 		code, msg, GTA_VERSION, GTA_SUBVERSION);
 
-	// XXX mark partial writes
-
-	if (-1 == write(s->file_desc, gnet_response, rw))
+	if (-1 == (sent = write(s->file_desc, gnet_response, rw)))
 		g_warning("Unable to send back error %d (%s) to node %s: %s",
 			code, msg, ip_to_gchar(s->ip), g_strerror(errno));
+	else if (sent < rw)
+		g_warning("Only sent %d out of %d bytes of error %d (%s) "
+			"to node %s: %s",
+			sent, rw, code, msg, ip_to_gchar(s->ip), g_strerror(errno));
 	else if (dbg > 4) {
-		printf("----Sent Error to node %s:\n%.*s----\n",
-			ip_to_gchar(s->ip), rw, gnet_response);
+		printf("----Sent error %d to node %s:\n%.*s----\n",
+			code, ip_to_gchar(s->ip), rw, gnet_response);
 		fflush(stdout);
 	}
 }
@@ -363,14 +375,16 @@ static void node_process_handshake_ack(struct io_header *ih)
 		fflush(stdout);
 	}
 
-	ack_code = parse_status_line(status, &ack_message, &major, &minor);
+	ack_code = parse_status_line(status, "GNUTELLA",
+		&ack_message, &major, &minor);
+
 	if (dbg) {
 		printf("ACK: code=%d, message=\"%s\", proto=%d.%d\n", ack_code,
 			ack_message, major, minor);
 		fflush(stdout);
 	}
 	if (ack_code == -1) {
-		g_warning("weird acknowledgment status line from %s",
+		g_warning("weird GNUTELLA acknowledgment status line from %s",
 			ip_to_gchar(n->ip));
 		dump_hex(stderr, "Status Line", status,
 			MIN(getline_length(s->getline), 80));
@@ -470,7 +484,7 @@ static void node_process_handshake_ack(struct io_header *ih)
 		 */
 
 		while (mbuf->rptr < mbuf->end)
-			node_read((gpointer) n, s->file_desc, 0);
+			node_read((gpointer) n, s->file_desc, GDK_INPUT_READ);
 
 		/*
 		 * Cleanup the memory buffer data structures.
@@ -528,9 +542,10 @@ static void node_process_handshake_header(struct io_header *ih)
 	rw = g_snprintf(gnet_response, sizeof(gnet_response),
 		"GNUTELLA/0.6 200 OK\r\n"
 		"User-Agent: gtk-gnutella/%d.%d\r\n"
-		"X-Comment: This is still experimental, and none of the new 0.6\r\n"
-		"    features are supported.  In particular, no attention is paid\r\n"
-		"    to any headers that are sent along the handshake.\r\n"
+		"X-Comment: This is still experimental, no special features\r\n"
+//		"X-Comment: This is still experimental, and none of the new 0.6\r\n"
+//		"    features are supported.  In particular, no attention is paid\r\n"
+//		"    to any headers that are sent along the handshake.\r\n"
 		"\r\n",
 		GTA_VERSION, GTA_SUBVERSION);
 
@@ -611,6 +626,7 @@ static void node_header_parse(struct io_header *ih)
 nextline:
 	switch (getline_read(getline, s->buffer, s->pos, &parsed)) {
 	case READ_OVERFLOW:
+		send_node_error(s, 413, "Header line too long");
 		g_warning("node_header_parse: line too long, disconnecting from %s",
 			ip_to_gchar(s->ip));
 		dump_hex(stderr, "Leading Data", s->buffer, MIN(s->pos, 256));
@@ -661,6 +677,8 @@ nextline:
 		break;
 	case HEAD_TOO_LARGE:
 	case HEAD_MANY_LINES:
+		send_node_error(s, 413, header_strerror(error));
+		/* FALL THROUGH */
 	case HEAD_EOH_REACHED:
 		g_warning("node_header_parse: %s, disconnecting from %s",
 			header_strerror(error),  ip_to_gchar(s->ip));
@@ -1249,6 +1267,7 @@ void node_read(gpointer data, gint source, GdkInputCondition cond)
 		/* This is the first packet from this node */
 		n->status = GTA_NODE_CONNECTED;
 		connected_node_cnt++;
+		gui_update_c_gnutellanet();		/* connected_node_cnt changed */
 		gtk_widget_set_sensitive(button_host_catcher_get_more, TRUE);
 
 		node_added = n;
@@ -1433,6 +1452,7 @@ void node_read_connecting(gpointer data, gint source, GdkInputCondition cond)
 	n->status = GTA_NODE_CONNECTED;
 	connected_node_cnt++;
 
+	gui_update_c_gnutellanet();		/* connected_node_cnt changed */
 	gui_update_node(n, TRUE);
 
 	gtk_widget_set_sensitive(button_host_catcher_get_more, TRUE);
