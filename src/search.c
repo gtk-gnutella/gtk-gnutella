@@ -33,13 +33,12 @@
 /* Handle searches */
 
 #include "gnutella.h"
-#include "search_gui.h"
 #include "misc.h"
 #include "search.h"
 #include "downloads.h"
 #include "hosts.h"				/* For check_valid_host() */
 #include "nodes.h"				/* For NODE_IS_PONGING_ONLY() */
-#include "callbacks.h"
+#include "callbacks.h" // FIXME: remove this dependency
 #include "routing.h"
 #include "gmsg.h"
 #include "filter.h"
@@ -49,6 +48,12 @@
 #include "sq.h"
 #include "walloc.h"
 #include "zalloc.h"
+
+#include "gnet_property_priv.h"
+#include "gui_property_priv.h" // FIXME: for search_max_results. Remove this.
+#include "search_gui.h" // FIXME: remove this dependency
+#include "nodes_gui.h" // FIXME: remove this dependency
+#include "settings.h"
 
 #ifdef USE_SEARCH_XML
 # include "search_xml.h"
@@ -92,6 +97,9 @@
 
 #define MAX_TAG_SHOWN	60		/* Show only first chars of tag */
 
+#define find_search(s) ((search_t *) s)
+#define search_new_handle(s) ((gnet_search_t) s)
+
 static gchar stmp_2[4096];
 
 GList *searches = NULL;		/* List of search structs */
@@ -102,8 +110,6 @@ extern GtkWidget *default_scrolled_window;
 
 search_t *search_selected = NULL;
 search_t *current_search = NULL;	/*	The search currently displayed */
-gboolean search_results_show_tabs = TRUE;	/* Display the notebook tabs? */
-guint32 search_max_results = 5000;		/* Max items allowed in GUI results */
 guint32 search_passive = 0;				/* Amount of passive searches */
 
 static gchar *search_file = "searches";	/* File where searches are saved */
@@ -166,7 +172,7 @@ void search_init(void)
 	rs_zone = zget(sizeof(struct results_set), 1024);
 	rc_zone = zget(sizeof(struct record), 1024);
 
-	gui_search_init();
+	search_gui_init();
 #ifdef USE_SEARCH_XML
     LIBXML_TEST_VERSION
 	if (search_retrieve_old()) {
@@ -449,7 +455,7 @@ void search_close(search_t *sch)
      */
 	searches = g_list_remove(searches, (gpointer) sch);
 
-    gui_search_remove(sch);
+    search_gui_remove_search(sch);
 	filter_close_search(sch);
 
 	if (!sch->passive) {
@@ -660,10 +666,18 @@ static gint search_hash_key_compare(gconstpointer a, gconstpointer b)
 }
 
 
-search_t *new_search(guint16 speed, gchar * query)
+search_t *search_new(gchar *query, guint16 speed)
 {
-	return _new_search(speed, query, 0);
+	return search_new_full
+        (query, speed, search_reissue_timeout, 0);
 }
+
+search_t *search_new_passive(gchar *query, guint16 speed)
+{
+	return search_new_full
+        (query, speed, search_reissue_timeout, SEARCH_PASSIVE);
+}
+
 
 void search_stop(search_t *sch)
 {
@@ -674,6 +688,8 @@ void search_stop(search_t *sch)
 		g_assert(sch->reissue_timeout_id);
 		g_assert(sch->reissue_timeout); /* not already stopped */
 
+        printf("search_stop: reissue_timeout = 0\n");
+    
 		sch->reissue_timeout = 0;
 		update_one_reissue_timeout(sch);
 
@@ -756,27 +772,24 @@ static void update_one_reissue_timeout(search_t *sch)
 			g_timeout_add(sch->reissue_timeout * 1000,
 						  search_reissue_timeout_callback, sch);
 	} else {
+        printf("update_one_reissue_timeout: reissue_timeout = 0\n");
 		sch->reissue_timeout_id = 0;
 		if (dbg)
 			printf("canceling search %s reissue timeout.\n", sch->query);
 	}
 }
 
-void search_update_reissue_timeout(guint32 timeout)
+void search_update_reissue_timeout(search_t *sch, guint32 timeout)
 {
-	GList *l;
+  	if (timeout > 0 && timeout < 600)	/* v == 0 means: no reissue */
+        timeout = 600; /* Have to be reasonable -- RAM, 30/12/2001 */
 
-	search_reissue_timeout = timeout;
-
-	for (l = searches; l; l = l->next) {
-		search_t *sch = (search_t *) l->data;
-		if (sch->passive)
-			continue;
+    if (sch && !sch->passive) {
 		if (sch->reissue_timeout > 0)	/* Not stopped */
 			sch->reissue_timeout = timeout;
 		if (sch->reissue_timeout_id)
 			update_one_reissue_timeout(sch);
-	}
+    }
 }
 
 /*
@@ -794,7 +807,8 @@ static void search_remove_r_set(search_t *sch, struct results_set *rs)
 
 /* Start a new search */
 
-search_t *_new_search(guint16 speed, gchar * query, guint flags)
+search_t *search_new_full
+    (gchar *query, guint16 speed, guint32 reissue_timeout, guint flags)
 {
 	search_t *sch;
 	GList *glist;
@@ -807,8 +821,6 @@ search_t *_new_search(guint16 speed, gchar * query, guint flags)
         lookup_widget(main_window, "notebook_search_results");
     GtkWidget *button_search_close = 
         lookup_widget(main_window, "button_search_close");
-    GtkWidget *entry_minimum_speed =
-        lookup_widget(main_window, "entry_minimum_speed");
     GtkWidget *entry_search = lookup_widget(main_window, "entry_search");
 
 	sch = (search_t *) g_malloc0(sizeof(search_t));
@@ -832,7 +844,7 @@ search_t *_new_search(guint16 speed, gchar * query, guint flags)
 		sch->new_node_hook->func = node_added_callback;
 		g_hook_prepend(&node_added_hook_list, sch->new_node_hook);
 
-		sch->reissue_timeout = search_reissue_timeout;
+		sch->reissue_timeout = reissue_timeout;
 		sch->reissue_timeout_id =
 			g_timeout_add(sch->reissue_timeout * 1000,
 						  search_reissue_timeout_callback, sch);
@@ -910,11 +922,10 @@ search_t *_new_search(guint16 speed, gchar * query, guint flags)
 					   GTK_SIGNAL_FUNC(on_search_selected),
 					   (gpointer) sch);
 
-	gui_view_search(sch);
+	search_gui_view_search(sch);
 
 	gtk_widget_set_sensitive(combo_searches, TRUE);
 	gtk_widget_set_sensitive(button_search_close, TRUE);
-    gtk_widget_set_sensitive(entry_minimum_speed, TRUE);
 
     gtk_entry_set_text(GTK_ENTRY(entry_search),"");
 
@@ -1738,10 +1749,8 @@ static void update_neighbour_info(
 		 * Use vendor tag if needed to guess servent vendor name.
 		 */
 
-		if (n->vendor == NULL && vendor) {
-			n->vendor = atom_str_get(vendor);
-			gui_update_node_vendor(n);
-		}
+		if (n->vendor == NULL && vendor) 
+            node_set_vendor(n, vendor);
 
 		if (vendor == NULL)
 			n->attrs |= NODE_A_QHD_NO_VTAG;	/* No vendor tag */
@@ -2032,7 +2041,7 @@ static gboolean search_retrieve_old(void)
 
 		(void) str_chomp(stmp_2, 0);	/* The search string */
 
-		new_search(minimum_speed, stmp_2);
+		search_new(stmp_2, minimum_speed);
 		stmp_2[0] = 0;
 	}
 
@@ -2173,6 +2182,53 @@ void search_download_files(void)
 		g_warning("search_download_files(): no possible search!\n");
 	}
 }
+
+
+/*
+ * search_get_info:
+ *
+ * Fetches information about a given search. The returned information must
+ * be freed manually by the caller using the search_free_info call.
+ *
+ * O(1):
+ * Since the gnet_search_t is actually a pointer to the search
+ * struct, this call is O(1). It would be safer to have gnet_search_t be
+ * an index in a list or a number, but depending on the underlying
+ * containerstructure of sl_nodes, that would have O(log(n)) (balanced tree)
+ * or O(n) (list) runtime.
+ */
+gnet_search_info_t *search_get_info(const gnet_search_t s)
+{
+    search_t *search = find_search(s);
+    gnet_search_info_t *info = g_new(gnet_search_info_t, 1);
+
+    info->search_handle = s;
+    info->query = g_strdup(search->query);
+    info->speed = search->speed;
+    info->time  = search->time;
+    info->items = search->items;
+
+    info->last_update_time  = search->last_update_time;
+    info->last_update_items = search->last_update_items;
+    
+    info->passive = search->passive;
+    info->frozen  = search->frozen;
+
+    info->reissue_timeout = search->reissue_timeout;
+
+    return info;
+}
+
+
+
+void search_free_info(gnet_search_info_t *info)
+{
+    g_assert(info != NULL);
+
+    g_free(info->query);
+    g_free(info);
+}
+
 
 
 

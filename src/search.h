@@ -26,9 +26,13 @@
 #ifndef __search_h__
 #define __search_h__
 
+#include "gnutella.h"
+#include "gnet.h"
+
 #include <time.h>
-#include "nodes.h"
 #include "filter.h"
+
+#include <gtk/gtk.h> // FIXME: remove this dependency
 
 /*
  * A results_set structure factorizes the common information from a Query Hit
@@ -87,6 +91,8 @@ typedef struct record {
  * Structure for search results 
  */
 typedef struct search {
+    gnet_search_t search_handle; /* Search handle */
+
 	GtkWidget *clist;			/* GtkCList for this search */
 	GtkWidget *scrolled_window; /* GtkScrolledWindow containing the GtkCList */
 	GtkWidget *list_item;		/* The GtkListItem in combo for this search */
@@ -98,9 +104,9 @@ typedef struct search {
 	GSList *r_sets;				/* The results sets of this search */
 	guint32 items;				/* Total number of items for this search */
 
-	gint sort_col;				/* Column to sort */
-	gint sort_order;			/* Ascending or descending */
-	gboolean sort;				/* Do sorting or not */
+    gint sort_col;
+    gint sort_order;
+    gboolean sort;
 
 	time_t last_update_time;	/* the last time the notebook tab was updated */
 	guint32 last_update_items;	/* Number of items included in last update */
@@ -125,11 +131,9 @@ typedef struct search {
  * Global Data
  */
 extern GtkWidget *dialog_filters;
-extern gboolean search_results_show_tabs;
 extern guint32 search_passive;
 extern guint32 search_reissue_timeout;
 extern GList *searches;			/* List of search structs */
-extern guint32 search_max_results;	/* Max items allowed in GUI results */
 extern struct search *search_selected;
 extern struct search *current_search;	/*	The search currently displayed */
 
@@ -142,8 +146,9 @@ extern struct search *current_search;	/*	The search currently displayed */
  * Global Functions
  */
 void search_init(void);
-struct search *new_search(guint16, gchar *);
-struct search *_new_search(guint16, gchar *, guint flags);
+struct search *search_new(gchar *, guint16);
+struct search *search_new_passive(gchar *, guint16);
+struct search *search_new_full(gchar *, guint16, guint32, guint flags);
 void search_stop(struct search *sch);
 void search_restart(struct search *sch);
 void search_reissue(struct search *sch);
@@ -152,7 +157,7 @@ gboolean search_results(struct gnutella_node *n);
 void search_extract_host(struct gnutella_node *n, guint32 *ip, guint16 *port);
 void search_download_files(void);
 void search_clear_clicked(void);
-void search_update_reissue_timeout(guint32);
+void search_update_reissue_timeout(search_t *, guint32);
 void search_shutdown(void);
 void search_clear(search_t *sch);
 void search_store(void);
