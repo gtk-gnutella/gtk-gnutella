@@ -72,6 +72,7 @@
 #include "nodes.h"
 #include "hsep.h"
 #include "header.h"
+#include "uploads.h"
 
 RCSID("$Id$");
 
@@ -797,4 +798,3 @@ unsigned int hsep_get_connection_table(struct gnutella_node *n,
 void hsep_close()
 {
 }
-
