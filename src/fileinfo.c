@@ -2428,8 +2428,10 @@ void file_info_update(
 	int n;
 	struct dl_file_info *fi = d->file_info;
 	struct dl_file_chunk *fc, *nfc;
+	struct dl_file_chunk *prevfc;
 	gboolean found = FALSE;
 	int againcount = 0;
+	gboolean need_merging = (status != DL_CHUNK_DONE);
 	struct download *newval = (status == DL_CHUNK_EMPTY) ? NULL : d;
 
 	g_assert(fi->refcount > 0);
@@ -2451,10 +2453,19 @@ again:
 		return;
 	}
 
+	/*
+	 * Update fi->done, accurately.
+	 *
+	 * We don't blindly update fi->done with (to - from) when DL_CHUNK_DONE
+	 * because we may be writing data to an already "done" chunk, when a
+	 * previous chunk bumps into a done one.
+	 *		--RAM, 04/11/2002
+	 */
+
 	for (
-		n = 0, fclist = fi->chunklist;
+		n = 0, prevfc = NULL, fclist = fi->chunklist;
 		fclist;
-		n++, fclist = g_slist_next(fclist)
+		n++, prevfc = fc, fclist = g_slist_next(fclist)
 	) {
 		fc = fclist->data;
 
@@ -2463,6 +2474,13 @@ again:
 
 		if ((fc->from == from) && (fc->to == to)) {
 
+			if (prevfc && prevfc->status == status)
+				need_merging = TRUE;
+			else if (fc->status == DL_CHUNK_DONE)
+				need_merging = TRUE;		/* Writing to completed chunk! */
+
+			if (status == DL_CHUNK_DONE)
+				fi->done += to - from;
 			fc->status = status;	
 			fc->download = newval;
 			found = TRUE;
@@ -2470,6 +2488,13 @@ again:
 
 		} else if ((fc->from == from) && (fc->to < to)) {
 
+			if (prevfc && prevfc->status == status)
+				need_merging = TRUE;
+			else if (fc->status == DL_CHUNK_DONE)
+				need_merging = TRUE;		/* Writing to completed chunk! */
+
+			if (status == DL_CHUNK_DONE)
+				fi->done += fc->to - from;
 			fc->status = status;
 			fc->download = newval;
 			from = fc->to;
@@ -2477,20 +2502,43 @@ again:
 
 		} else if ((fc->from == from) && (fc->to > to)) {
 
-			nfc = walloc(sizeof(struct dl_file_chunk));
-			nfc->from = to;
-			nfc->to = fc->to;
-			nfc->status = fc->status;
-			nfc->download = fc->download;
+			if (fc->status == DL_CHUNK_DONE)
+				need_merging = TRUE;		/* Writing to completed chunk! */
 
-			fc->to = to;
-			fc->status = status;
-			fc->download = newval;
-			g_slist_insert(fi->chunklist, nfc, n+1);
+			if (status == DL_CHUNK_DONE)
+				fi->done += to - from;
+
+			if (
+				status == DL_CHUNK_DONE &&
+				prevfc != NULL &&
+				prevfc->status == status
+			) {
+				g_assert(prevfc->to == fc->from);
+				prevfc->to = to;
+				fc->from = to;
+			} else {
+				nfc = walloc(sizeof(struct dl_file_chunk));
+				nfc->from = to;
+				nfc->to = fc->to;
+				nfc->status = fc->status;
+				nfc->download = fc->download;
+
+				fc->to = to;
+				fc->status = status;
+				fc->download = newval;
+				g_slist_insert(fi->chunklist, nfc, n+1);
+			}
+
 			found = TRUE;
 			break;
 
 		} else if ((fc->from < from) && (fc->to >= to)) {
+
+			if (fc->status == DL_CHUNK_DONE)
+				need_merging = TRUE;
+
+			if (status == DL_CHUNK_DONE)
+				fi->done += to - from;
 
 			nfc = walloc(sizeof(struct dl_file_chunk));
 			nfc->from = from;
@@ -2516,6 +2564,12 @@ again:
 		} else if ((fc->from < from) && (fc->to < to)) {
 
 			guint32 tmp;
+
+			if (fc->status == DL_CHUNK_DONE)
+				need_merging = TRUE;
+
+			if (status == DL_CHUNK_DONE)
+				fi->done += fc->to - from;
 
 			nfc = walloc(sizeof(struct dl_file_chunk));
 			nfc->from = from;
@@ -2543,16 +2597,8 @@ again:
 		}
 	}
 
-	/*
-	 * Update fi->done, accurately.
-	 *
-	 * We don't blindly update fi->done with (to - from) when DL_CHUNK_DONE
-	 * because we may be writing data to an already "done" chunk, when a
-	 * previous chunk bumps into a done one.
-	 *		--RAM, 04/11/2002
-	 */
-
-	file_info_merge_adjacent(fi);		/* Also updates fi->done */
+	if (need_merging)
+		file_info_merge_adjacent(fi);		/* Also updates fi->done */
 
 	/*
 	 * When status is DL_CHUNK_DONE, we're coming from an "active" download,
