@@ -4,10 +4,20 @@
 
 package=gtk-gnutella
 
+OPTFLAGS=-O2 -g -Wall
+EXTRA_FLAGS=
+
+ifeq ($(DEB_BUILD_ARCH), alpha)
+	EXTRA_FLAGS=-mieee
+endif
+
+
+BUILDFLAGS=$(OPTFLAGS) $(EXTRA_FLAGS)
+
 build:
 	$(checkdir)
-	./configure --enable-xml-store --prefix=/usr
-	$(MAKE) CFLAGS="-O2 -g -Wall"
+	CFLAGS="$(BUILDFLAGS)" ./configure --enable-xml-store --prefix=/usr
+	$(MAKE)
 #	cp menu.ex debian/tmp/usr/lib/menu/xtranslate 
 	touch build
 
