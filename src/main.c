@@ -272,23 +272,6 @@ gint main(gint argc, gchar ** argv)
 #endif
 
 	gtk_window_set_title(GTK_WINDOW(main_window), mtmp);
-
-	// FIXME: all the widget from here to end have empty callback functions
-	gtk_widget_set_sensitive(popup_queue_search_again, FALSE);
-	gtk_widget_set_sensitive(popup_downloads_remove_file, FALSE);
-	gtk_widget_set_sensitive(popup_downloads_search_again, FALSE);
-	// FIXME: end
-
-    gtk_widget_set_sensitive(popup_nodes_remove, FALSE);
-	gtk_widget_set_sensitive(popup_queue_abort, FALSE);
-	gtk_widget_set_sensitive(popup_queue_abort_named, FALSE);
-	gtk_widget_set_sensitive(popup_queue_abort_host, FALSE);
-	// FIXME: enable when code for popup_queue_search_again is written
-	//gtk_widget_set_sensitive(popup_queue_search_again, FALSE);
-    gtk_widget_set_sensitive(popup_downloads_push, 
-                             !gtk_toggle_button_get_active(
-								 GTK_TOGGLE_BUTTON(checkbutton_downloads_never_push)));
-
 	gtk_widget_show(main_window);		/* Display the main window */
 
 	/* Setup the main timer */

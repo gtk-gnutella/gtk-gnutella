@@ -45,16 +45,43 @@ void gui_init(void)
 
 	/* statusbar stuff */
 	scid_bottom    = 
-		gtk_statusbar_get_context_id(GTK_STATUSBAR(statusbar), "default");
+		gtk_statusbar_get_context_id(GTK_STATUSBAR(statusbar), 
+                                     "default");
 	scid_hostsfile = 
-		gtk_statusbar_get_context_id(GTK_STATUSBAR(statusbar), "reading hosts file");
+		gtk_statusbar_get_context_id(GTK_STATUSBAR(statusbar), 
+                                     "reading hosts file");
 	scid_search_autoselected = 
-		gtk_statusbar_get_context_id(GTK_STATUSBAR(statusbar), "autoselected search items");
+		gtk_statusbar_get_context_id(GTK_STATUSBAR(statusbar), 
+                                     "autoselected search items");
 	scid_queue_freezed = 
-		gtk_statusbar_get_context_id(GTK_STATUSBAR(statusbar), "queue freezed");	
+		gtk_statusbar_get_context_id(GTK_STATUSBAR(statusbar), 
+                                     "queue freezed");	
 
 	g_snprintf(gui_tmp, sizeof(gui_tmp), "%s", GTA_WEBSITE);
 	gui_statusbar_push(scid_bottom, gui_tmp);
+
+    /* copy url selection stuff */
+    gtk_selection_add_target(popup_dl_active, GDK_SELECTION_PRIMARY, 
+                             GDK_SELECTION_TYPE_STRING, 1);
+
+	// FIXME: all the widget from here to end have empty callback functions
+	gtk_widget_set_sensitive(popup_queue_search_again, FALSE);
+	gtk_widget_set_sensitive(popup_downloads_remove_file, FALSE);
+	gtk_widget_set_sensitive(popup_downloads_search_again, FALSE);
+    //gtk_widget_set_sensitive(popup_downloads_copy_url, FALSE);
+	// FIXME: end
+
+    gtk_widget_set_sensitive(popup_nodes_remove, FALSE);
+	gtk_widget_set_sensitive(popup_queue_abort, FALSE);
+	gtk_widget_set_sensitive(popup_queue_abort_named, FALSE);
+	gtk_widget_set_sensitive(popup_queue_abort_host, FALSE);
+	// FIXME: enable when code for popup_queue_search_again is written
+	//gtk_widget_set_sensitive(popup_queue_search_again, FALSE);
+    gtk_widget_set_sensitive(popup_downloads_push, 
+                             !gtk_toggle_button_get_active(
+								 GTK_TOGGLE_BUTTON(checkbutton_downloads_never_push)));
+
+
 }
 
 void gui_nodes_remove_selected(void)
@@ -93,8 +120,6 @@ void gui_statusbar_add_timeout(guint scid, guint msgid, guint timeout)
 {
 	struct statusbar_timeout * t = NULL;
 
-	g_message( "adding statusbar timeout" );
-	
     t = g_malloc0(sizeof(struct statusbar_timeout));
 	
 	t->scid    = scid;
@@ -112,8 +137,6 @@ void gui_statusbar_add_timeout(guint scid, guint msgid, guint timeout)
 static void gui_statusbar_free_timeout(struct statusbar_timeout * t)
 {
 	g_return_if_fail(t);
-
-	g_message("clearing timed out statusbar message");
 
 	gui_statusbar_remove(t->scid, t->msgid);
 
