@@ -84,7 +84,8 @@ RCSID("$Id$");
 #define MIN_TX_FOR_RATIO		500	/* TX packets before enforcing ratio */
 #define ALIVE_PERIOD			20	/* Seconds between each alive ping */
 #define ALIVE_PERIOD_LEAF		120	/* Idem, for leaf nodes <-> ultrapeers */
-#define ALIVE_MAX_PENDING		4	/* Max unanswered pings in a row */
+#define ALIVE_MAX_PENDING		6	/* Max unanswered pings in a row */
+#define ALIVE_MAX_PENDING_LEAF	4	/* Max unanswered pings in a row (leaves) */
 
 #define NODE_MIN_UPTIME			3600	/* Minumum uptime to become an UP */
 #define NODE_MIN_AVG_UPTIME		10800	/* Average uptime to become an UP */
@@ -2362,8 +2363,9 @@ static void node_is_now_connected(struct gnutella_node *n)
 
 	n->outq = mq_make(node_sendqueue_size, n, tx);
 	n->searchq = sq_make(n);
-	n->alive_pings = alive_make(n, ALIVE_MAX_PENDING);
 	n->flags |= NODE_F_WRITABLE;
+	n->alive_pings = alive_make(n, n->alive_period == ALIVE_PERIOD ?
+		ALIVE_MAX_PENDING : ALIVE_MAX_PENDING_LEAF);
 
 	/*
 	 * Terminate connection if the peermode changed during handshaking.
