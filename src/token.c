@@ -94,6 +94,25 @@ static const gchar *keys_092c[] = {
 	"7257 7cff ac09 668f 3b0e 7d6b fe8a 7e7d",
 };
 
+static const gchar *keys_092_2[] = {
+	"b6c1 2fd1 ae02 409f 7f04 f34a 8076 4283",
+	"9232 aa04 652b fa9d 6f48 f3dc b616 ffc1",
+	"211d c9d9 1fa4 6e78 335b c094 dd22 9ac7",
+	"9f5f df94 730b b366 0d6b f4f9 caed 11a9",
+	"3458 9e10 8b23 5977 f5d1 66d7 8bb0 238f",
+	"ec9b f865 fade fa12 1930 6f3e 7dde 47a6",
+	"8e02 5453 4a37 c4c1 f7ab a611 f454 69aa",
+	"e450 8506 06aa 3de9 a7c8 4b09 8427 65d2",
+	"5d19 a84f a371 70f4 464d 0ba7 ff51 a93b",
+	"fe1c fa92 0cc9 46f1 128a 810c 434c 1568",
+	"779d 8c74 99aa 1d50 659e b4cf 47c7 3325",
+	"06bb d901 f3e8 0d06 f77a a20c 31fe 0bc8",
+	"cbff 3cf3 325b 8fc9 bdfc 7acf 15c1 25a2",
+	"f167 81cc be83 60e4 6535 092f ea9d 8ef6",
+	"c2ec 27f2 0b30 5155 3cd4 dc8c 5928 2e63",
+	"d365 afac 948e ffdc abc1 7687 2850 9d58",
+};
+
 /* 
  * Describes the keys to use depending on the version.
  */
@@ -110,6 +129,10 @@ struct tokkey {
 	{
 		{ 0, 92, 0, 'c', 0, 1053813600 },			/* 25/05/2003 */
 		keys_092c, G_N_ELEMENTS(keys_092c),
+	},
+	{
+		{ 0, 92, 2, '\0', 0, 1067209200 },			/* 27/10/2003 */
+		keys_092_2, G_N_ELEMENTS(keys_092_2),
 	},
 };
 
