@@ -183,6 +183,31 @@ gchar *host_name(void)
 }
 
 /*
+ * host_is_valid
+ *
+ * Check whether host can be reached from the Internet.
+ * We rule out IPs of private networks, plus some other invalid combinations.
+ */
+gboolean host_is_valid(guint32 ip, guint16 port)
+{
+	if ((!ip || !port) ||			/* IP == 0 || Port == 0 */
+		(is_private_ip(ip)) ||
+		/* 1.2.3.4 || 1.1.1.1 */
+		(ip == (guint32) 0x01020304 || ip == (guint32) 0x01010101) ||
+		/* 224..239.0.0 / 8 (multicast) */
+		((ip & (guint32) 0xF0000000) == (guint32) 0xE0000000) ||
+		/* 0.0.0.0 / 8 */
+		((ip & (guint32) 0xFF000000) == (guint32) 0x00000000) ||
+		/* 127.0.0.0 / 8 */
+		((ip & (guint32) 0xFF000000) == (guint32) 0x7F000000) ||
+		/* 255.255.255.0 / 24 */
+		((ip & (guint32) 0xFFFFFF00) == (guint32) 0xFFFFFF00))
+			return FALSE;
+
+	return TRUE;
+}
+
+/*
  * str_chomp
  *
  * Remove antepenultimate char of string if it is a "\r" followed by "\n".

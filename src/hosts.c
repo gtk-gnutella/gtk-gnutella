@@ -149,33 +149,6 @@ static gboolean host_is_connected(guint32 ip, guint16 port)
 	return FALSE;
 }
 
-/*
- * host_is_valid
- *
- * Check whether host can be reached from the Internet.
- * We rule out IPs of private networks, plus some other invalid combinations.
- */
-gboolean host_is_valid(guint32 ip, guint16 port)
-{
-	if (!ip || !port)
-		return FALSE;			/* IP == 0 || Port == 0 */
-
-	if (is_private_ip(ip)) 
-		return FALSE;
-
-	if (ip == (guint32) 0x01020304 || ip == (guint32) 0x01010101)
-		return FALSE;			/* IP == 1.2.3.4 || IP == 1.1.1.1 */
-	if ((ip & (guint32) 0xF0000000) == (guint32) 0xE0000000)
-		return FALSE;			/* IP == 224..239.0.0 / 8 (multicast) */
-	if ((ip & (guint32) 0xFF000000) == (guint32) 0x00000000)
-		return FALSE;			/* IP == 0.0.0.0 / 8 */
-	if ((ip & (guint32) 0xFF000000) == (guint32) 0x7F000000)
-		return FALSE;			/* IP == 127.0.0.0 / 8 */
-	if ((ip & (guint32) 0xFFFFFF00) == (guint32) 0xFFFFFF00)
-		return FALSE;			/* IP == 255.255.255.0 / 24 */
-
-	return TRUE;
-}
 
 /*
  * add_host_to_cache

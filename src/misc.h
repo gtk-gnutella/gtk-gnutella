@@ -87,6 +87,7 @@ gchar *  ip_to_gchar(guint32);
 gchar *  ip_port_to_gchar(guint32, guint16);
 guint32  host_to_ip(gchar *);
 gchar *  host_name(void);
+gboolean host_is_valid(guint32, guint16);
 
 /*
  * Date string conversions
