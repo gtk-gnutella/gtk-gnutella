@@ -44,7 +44,7 @@ binary-arch: checkroot build
 	strip --remove-section=.comment --remove-section=.note `pwd`/debian/tmp/usr/bin/gtk-gnutella
 # Must have debmake installed for this to work. Otherwise please copy
 # /usr/bin/debstd into the debian directory and change debstd to debian/debstd
-	debstd ChangeLog NEWS README TODO 
+	debstd ChangeLog README TODO 
 	dpkg-gencontrol -isp
 	chown -R root.root debian/tmp
 	chmod -R go=rX debian/tmp
