@@ -23,7 +23,7 @@
  *----------------------------------------------------------------------
  */
 
-#include "config.h"
+#include "common.h"
 
 #ifdef USE_GTK2
 
@@ -44,12 +44,12 @@ static GtkNotebook *notebook_main = NULL;
 static GtkNotebook *notebook_gnet_stats = NULL;
 
 static const gchar *msg_stats_label[] = {
-	"Type",
-	"Received",
-	"Expired",
-	"Dropped",
-	"Relayed",
-	"Generated"
+	N_("Type"),
+	N_("Received"),
+	N_("Expired"),
+	N_("Dropped"),
+	N_("Relayed"),
+	N_("Generated")
 };
 
 enum {
@@ -224,15 +224,13 @@ static void add_column(
 
 static void gnet_stats_update_general(const gnet_stats_t *stats)
 {
+	static gchar str[32];
     GtkTreeView *treeview = treeview_gnet_stats_general;
     GtkListStore *store;
     GtkTreeIter iter;
     gint n;
-	static gchar str[32];
 
 	store = GTK_LIST_STORE(gtk_tree_view_get_model(treeview));
-	g_object_ref(store);
-	gtk_tree_view_set_model(treeview, NULL);
 	gtk_tree_model_get_iter_first(GTK_TREE_MODEL(store), &iter);
 
 	for (n = 0; n < GNR_TYPE_COUNT; n++) {
@@ -240,87 +238,75 @@ static void gnet_stats_update_general(const gnet_stats_t *stats)
 		gtk_list_store_set(store, &iter, 1, str, (-1));
 		gtk_tree_model_iter_next(GTK_TREE_MODEL(store), &iter);
 	}
-	gtk_tree_view_set_model(treeview, GTK_TREE_MODEL(store));
-	g_object_unref(store);
 }
 
 static void gnet_stats_update_drop_reasons(
 	const gnet_stats_t *stats)
 {
+	static gchar str[32];
     GtkTreeView *treeview = treeview_gnet_stats_drop_reasons;
     GtkListStore *store;
     GtkTreeIter iter;
     gint n;
-	static gchar str[32];
 
 	store = GTK_LIST_STORE(gtk_tree_view_get_model(treeview));
-	g_object_ref(store);
-	gtk_tree_view_set_model(treeview, NULL);
 	gtk_tree_model_get_iter_first(GTK_TREE_MODEL(store), &iter);
 
 	for (n = 0; n < MSG_DROP_REASON_COUNT; n++) {
-		drop_stat_str(str, sizeof(str), stats, n,
-			gnet_stats_drop_reasons_type);
+		drop_stat_str(str, sizeof(str), stats, n, gnet_stats_drop_reasons_type);
 		gtk_list_store_set(store, &iter, 1, str, (-1));
 		gtk_tree_model_iter_next(GTK_TREE_MODEL(store), &iter);
 	}
-
-	gtk_tree_view_set_model(treeview, GTK_TREE_MODEL(store));
-	g_object_unref(store);
 }
 
 static void gnet_stats_update_messages(const gnet_stats_t *stats)
 {
+	static char str[num_c_gs][32];
+	static const size_t len = sizeof(str[0]);
     GtkTreeView *treeview = treeview_gnet_stats_messages;
     GtkListStore *store;
     GtkTreeIter iter;
-    gint n;
 	gboolean perc = FALSE;
 	gboolean bytes = FALSE;
-	static char str[5][32];
-	const size_t len = sizeof(str[0]);
+    c_gs_t n;
 
 	gui_prop_get_boolean_val(PROP_GNET_STATS_PERC, &perc);
 	gui_prop_get_boolean_val(PROP_GNET_STATS_BYTES, &bytes);
 
 	store = GTK_LIST_STORE(gtk_tree_view_get_model(treeview));
-	g_object_ref(store);
-	gtk_tree_view_set_model(treeview, NULL);
 	gtk_tree_model_get_iter_first(GTK_TREE_MODEL(store), &iter);
 
-    for (n = 0; n < MSG_TYPE_COUNT; n ++) {
+    for (n = 0; n < num_c_gs; n ++) {
 		if (!bytes) {
 			gtk_list_store_set(store, &iter,
-				c_gs_received,
-				pkt_stat_str(str[0], len, stats->pkg.received, n, perc), 
-				c_gs_generated,
-				pkt_stat_str(str[1], len, stats->pkg.generated, n, perc),
-				c_gs_dropped,
-				pkt_stat_str(str[2], len, stats->pkg.dropped, n, perc),
-				c_gs_expired,
-				pkt_stat_str(str[3], len, stats->pkg.expired, n, perc),
-				c_gs_relayed,
-				pkt_stat_str(str[4], len, stats->pkg.relayed, n, perc),
+				c_gs_received,	pkt_stat_str(str[c_gs_received],
+									len, stats->pkg.received, n, perc), 
+				c_gs_generated, pkt_stat_str(str[c_gs_generated],
+									len, stats->pkg.generated, n, perc),
+				c_gs_dropped,	pkt_stat_str(str[c_gs_dropped],
+									len, stats->pkg.dropped, n, perc),
+				c_gs_expired,	pkt_stat_str(str[c_gs_expired],
+									len, stats->pkg.expired, n, perc),
+				c_gs_relayed,	pkt_stat_str(str[c_gs_relayed],
+									len, stats->pkg.relayed, n, perc),
 				(-1));
 		} else { /* byte mode */
 			gtk_list_store_set(store, &iter,
-				c_gs_received,
-				byte_stat_str(str[0], len, stats->byte.received, n, perc),
-				c_gs_generated,
-				byte_stat_str(str[1], len, stats->byte.generated, n, perc),
-				c_gs_dropped,
-				byte_stat_str(str[2], len, stats->byte.dropped, n, perc),
-				c_gs_expired,
-				byte_stat_str(str[3], len, stats->byte.expired, n, perc),
-				c_gs_relayed,
-				byte_stat_str(str[4], len, stats->byte.relayed, n, perc),
+				c_gs_received,	byte_stat_str(str[c_gs_received],
+									len, stats->byte.received, n, perc),
+				c_gs_generated, byte_stat_str(str[c_gs_generated],
+									len, stats->byte.generated, n, perc),
+				c_gs_dropped,	byte_stat_str(str[c_gs_dropped],
+									len, stats->byte.dropped, n, perc),
+				c_gs_expired,	byte_stat_str(str[c_gs_expired],
+									len, stats->byte.expired, n, perc),
+				c_gs_relayed,	byte_stat_str(str[c_gs_relayed],
+									len, stats->byte.relayed, n, perc),
 				(-1));
     	}
 		gtk_tree_model_iter_next(GTK_TREE_MODEL(store), &iter);
 	}
 
-	gtk_tree_view_set_model(treeview, GTK_TREE_MODEL(store));
-	g_object_unref(store);
 }
 
 static void gnet_stats_update_types(
@@ -330,21 +316,19 @@ static void gnet_stats_update_types(
 	const guint64 (*byte_counters)[MSG_TYPE_COUNT],
 	const guint64 (*pkg_counters)[MSG_TYPE_COUNT])
 {
+	static gchar str[MSG_TYPE_COUNT][32];
     GtkListStore *store;
     GtkTreeIter iter;
-    gint n;
 	gboolean perc = FALSE;
 	gboolean bytes = FALSE;
 	gboolean with_headers = FALSE;
-	static gchar str[MSG_TYPE_COUNT][32];
+    gint n;
 
 	gui_prop_get_boolean_val(PROP_GNET_STATS_PERC, &perc);
 	gui_prop_get_boolean_val(PROP_GNET_STATS_BYTES, &bytes);
 	gui_prop_get_boolean_val(PROP_GNET_STATS_WITH_HEADERS, &with_headers);
 
 	store = GTK_LIST_STORE(gtk_tree_view_get_model(GTK_TREE_VIEW(treeview)));
-	g_object_ref(store);
-	gtk_tree_view_set_model(treeview, NULL);
 	gtk_tree_model_get_iter_first(GTK_TREE_MODEL(store), &iter);
 
 	for (n = 0; n < MSG_TYPE_COUNT; n++) {
@@ -378,8 +362,6 @@ static void gnet_stats_update_types(
 		gtk_tree_model_iter_next(GTK_TREE_MODEL(store), &iter);
 	}
 
-	gtk_tree_view_set_model(treeview, GTK_TREE_MODEL(store));
-	g_object_unref(store);
 }
 
 static void gnet_stats_update_flowc(const gnet_stats_t *stats)
@@ -422,7 +404,7 @@ static void gnet_stats_update_recv(const gnet_stats_t *stats)
 		byte_counters, pkg_counters);
 }
 
-static void gnet_stats_update_horizon()
+static void gnet_stats_update_horizon(void)
 {
     GtkTreeView *treeview = treeview_gnet_stats_horizon;
     GtkListStore *store;
@@ -430,68 +412,69 @@ static void gnet_stats_update_horizon()
     gint n;
 	hsep_triple hsep_table[HSEP_N_MAX + 1];
 
-	hsep_get_global_table(hsep_table, HSEP_N_MAX + 1);
+	hsep_get_global_table(hsep_table, G_N_ELEMENTS(hsep_table));
 
 	store = GTK_LIST_STORE(gtk_tree_view_get_model(treeview));
-	g_object_ref(store);
-	gtk_tree_view_set_model(treeview, NULL);
 	gtk_tree_model_get_iter_first(GTK_TREE_MODEL(store), &iter);
 
-	for (n = 0; n < HSEP_N_MAX; n++) {
-		gtk_list_store_set(store, &iter, 1,
-		    horizon_stat_str(hsep_table, n + 1, 1), (-1));
-		gtk_list_store_set(store, &iter, 2,
-		    horizon_stat_str(hsep_table, n + 1, 2), (-1));
-		gtk_list_store_set(store, &iter, 3,
-		    horizon_stat_str(hsep_table, n + 1, 3), (-1));
+	/* Skip the first element */
+	for (n = 1; n < G_N_ELEMENTS(hsep_table); n++) {
+		gtk_list_store_set(store, &iter,
+			c_horizon_nodes, horizon_stat_str(hsep_table, n, c_horizon_nodes),
+		    c_horizon_files, horizon_stat_str(hsep_table, n, c_horizon_files),
+		    c_horizon_size,	 horizon_stat_str(hsep_table, n, c_horizon_size),
+			(-1));
 		gtk_tree_model_iter_next(GTK_TREE_MODEL(store), &iter);
 	}
-	gtk_tree_view_set_model(treeview, GTK_TREE_MODEL(store));
-	g_object_unref(store);
 }
 
-/***
- *** Public functions
- ***/
-
-void gnet_stats_gui_init(void)
+static void gnet_stats_gui_horizon_init(void)
 {
+	static const gchar * const titles[num_c_horizon] = {
+		N_("Hops"),
+		N_("Nodes"),
+		N_("Files"),
+		N_("Size")
+	};
     GtkTreeView *treeview;
     GtkTreeModel *model;
-	GtkOptionMenu *option_menu;
-	GtkWidget *menu;
-    gint n;
 	guint32 *width;
+	c_horizon_t n;
 
-	notebook_main = GTK_NOTEBOOK(
-		lookup_widget(main_window, "notebook_main"));
-	notebook_gnet_stats = GTK_NOTEBOOK(
-		lookup_widget(main_window, "gnet_stats_notebook"));
-    treeview = treeview_gnet_stats_messages = GTK_TREE_VIEW(
-        lookup_widget(main_window, "treeview_gnet_stats_messages"));
-	model = GTK_TREE_MODEL(gtk_list_store_new(6,
-							G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING,
-							G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING));
+    treeview = treeview_gnet_stats_horizon = GTK_TREE_VIEW(
+        lookup_widget(main_window, "treeview_gnet_stats_horizon"));
+	model = GTK_TREE_MODEL(
+		gtk_list_store_new(num_c_horizon,
+			G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING));
 
-	for (n = 0; n < msg_type_str_size(); n++) {
+	width = gui_prop_get_guint32(
+				PROP_GNET_STATS_HORIZON_COL_WIDTHS, NULL, 0, 0);
+	for (n = 0; n < num_c_horizon; n++) {
 		GtkTreeIter iter;
 		gint i;
 
-		gtk_list_store_append(GTK_LIST_STORE(model), &iter);
-			for (i = 0; i < 6; i++)
-				gtk_list_store_set(GTK_LIST_STORE(model), &iter, i,
-					i == 0 ? msg_type_str(n) : "-", (-1));
+		for (i = 0; n == c_horizon_hops && i < HSEP_N_MAX; i++) {
+			gtk_list_store_append(GTK_LIST_STORE(model), &iter);
+			gtk_list_store_set(GTK_LIST_STORE(model), &iter,
+				c_horizon_hops, horizon_stat_str(NULL, i + 1, 0),
+				c_horizon_nodes, "-",
+				c_horizon_files, "-",
+				c_horizon_size, "-",
+				(-1));
+		}
+		add_column(treeview, n, width[n], (gfloat) (n != 0), titles[n]);
 	}
-
-	width = gui_prop_get_guint32(
-				PROP_GNET_STATS_MSG_COL_WIDTHS, NULL, 0, 0);
-	for (n = 0; n < G_N_ELEMENTS(msg_stats_label); n++)
-		add_column(treeview, n, width[n], (gfloat) (n != 0),
-			msg_stats_label[n]);
 	G_FREE_NULL(width);
-
     gtk_tree_view_set_model(treeview, model);
 	g_object_unref(model);
+}
+
+static void gnet_stats_gui_flowc_init(void)
+{
+    GtkTreeView *treeview;
+    GtkTreeModel *model;
+	guint32 *width;
+	guint n;
 
     treeview = treeview_gnet_stats_flowc = GTK_TREE_VIEW(
         lookup_widget(main_window, "treeview_gnet_stats_flowc"));
@@ -501,8 +484,18 @@ void gnet_stats_gui_init(void)
 			G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING,
 			G_TYPE_STRING, G_TYPE_STRING));
 
-	width = gui_prop_get_guint32(
-				PROP_GNET_STATS_FC_COL_WIDTHS, NULL, 0, 0);
+	for (n = 0; n < msg_type_str_size(); n++) {
+		GtkTreeIter iter;
+		gint i;
+
+		gtk_list_store_append(GTK_LIST_STORE(model), &iter);
+		for (i = 0; i < STATS_FLOWC_COLUMNS; i++)
+			gtk_list_store_set(GTK_LIST_STORE(model), &iter,
+				i, i == 0 ? msg_type_str(n) : "-",
+				(-1));
+	}
+
+	width = gui_prop_get_guint32(PROP_GNET_STATS_FC_COL_WIDTHS, NULL, 0, 0);
 	for (n = 0; n < STATS_FLOWC_COLUMNS; n++) {
     	gchar buf[16];
 
@@ -512,49 +505,20 @@ void gnet_stats_gui_init(void)
 			n == 0 ? "Type" : buf);
 	}
 	G_FREE_NULL(width);
-
-	for (n = 0; n < msg_type_str_size(); n++) {
-		GtkTreeIter iter;
-		gint i;
-
-		gtk_list_store_append(GTK_LIST_STORE(model), &iter);
-		for (i = 0; i < STATS_FLOWC_COLUMNS; i++)
-			gtk_list_store_set(GTK_LIST_STORE(model), &iter, i,
-				i == 0 ? msg_type_str(n) : "-", (-1));
-	}
-
     gtk_tree_view_set_model(treeview, model);
 	g_object_unref(model);
+}
 
-    /*
-     * Initialize stats tables.
-     */
-
-	option_menu = GTK_OPTION_MENU(
-		lookup_widget(main_window, "option_menu_gnet_stats_type"));
-	menu = gtk_menu_new();
-
-	for (n = 0; n < msg_type_str_size(); n ++) {
-		GtkWidget *menu_item;
-
-		menu_item = gtk_menu_item_new_with_label(msg_type_str(n));
-		gtk_menu_shell_append(GTK_MENU_SHELL(menu), menu_item);
-		g_signal_connect(
-			GTK_OBJECT(menu_item), "activate",
-			G_CALLBACK(on_gnet_stats_type_selected),
-			GINT_TO_POINTER(n));
-	}
-	gtk_option_menu_set_menu(option_menu, menu);
-	gtk_option_menu_set_history(option_menu, MSG_TOTAL);
-	gtk_widget_show_all(GTK_WIDGET(option_menu));
-
-
-	/* ----------------------------------------- */
+static void gnet_stats_gui_drop_reasons_init(void)
+{
+    GtkTreeView *treeview;
+    GtkTreeModel *model;
+	guint32 *width;
+	guint n;
 
     treeview = treeview_gnet_stats_drop_reasons = GTK_TREE_VIEW(
         lookup_widget(main_window, "treeview_gnet_stats_drop_reasons"));
-	model = GTK_TREE_MODEL(
-		gtk_list_store_new(2, G_TYPE_STRING, G_TYPE_STRING));
+	model = GTK_TREE_MODEL(gtk_list_store_new(2, G_TYPE_STRING, G_TYPE_STRING));
 
 	width = gui_prop_get_guint32(
 				PROP_GNET_STATS_DROP_REASONS_COL_WIDTHS, NULL, 0, 0);
@@ -568,15 +532,20 @@ void gnet_stats_gui_init(void)
 				0, msg_drop_str(i), 1, "-", (-1));
 		}
 
-		add_column(treeview, n, width[n], (gfloat) n != 0,
-			n == 0 ? "Type" : "Count");
+		add_column(treeview, n, width[n], (gfloat) (n != 0),
+			n == 0 ? N_("Type") : N_("Count"));
 	}
 	G_FREE_NULL(width);
-
     gtk_tree_view_set_model(treeview, model);
 	g_object_unref(model);
+}
 
-	/* ----------------------------------------- */
+static void gnet_stats_gui_general_init(void)
+{
+    GtkTreeView *treeview;
+    GtkTreeModel *model;
+	guint32 *width;
+	guint n;
 
     treeview = treeview_gnet_stats_general = GTK_TREE_VIEW(
         lookup_widget(main_window, "treeview_gnet_stats_general"));
@@ -594,53 +563,56 @@ void gnet_stats_gui_init(void)
 			gtk_list_store_set(GTK_LIST_STORE(model), &iter,
 				0, general_type_str(i), 1, "-", (-1));
 		}
-		add_column(treeview, n, width[n], (gfloat) n != 0,
-			n == 0 ? "Type" : "Count");
+		add_column(treeview, n, width[n], (gfloat) (n != 0),
+			n == 0 ? N_("Type") : N_("Count"));
 	}
 	G_FREE_NULL(width);
-
     gtk_tree_view_set_model(treeview, model);
 	g_object_unref(model);
+}
 
-	/* ----------------------------------------- */
+static void gnet_stats_gui_messages_init(void)
+{
+    GtkTreeView *treeview;
+    GtkTreeModel *model;
+	guint32 *width;
+	guint n;
 
-    treeview = treeview_gnet_stats_horizon = GTK_TREE_VIEW(
-        lookup_widget(main_window, "treeview_gnet_stats_horizon"));
-	model = GTK_TREE_MODEL(
-		gtk_list_store_new(4,
-			G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING));
+    treeview = treeview_gnet_stats_messages = GTK_TREE_VIEW(
+        lookup_widget(main_window, "treeview_gnet_stats_messages"));
+	model = GTK_TREE_MODEL(gtk_list_store_new(G_N_ELEMENTS(msg_stats_label),
+							G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING,
+							G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING));
 
-	width = gui_prop_get_guint32(
-				PROP_GNET_STATS_HORIZON_COL_WIDTHS, NULL, 0, 0);
-	for (n = 0; n < 4; n++) {
+	for (n = 0; n < msg_type_str_size(); n++) {
 		GtkTreeIter iter;
 		gint i;
-		char *str;
 
-		for (i = 0; n == 0 && i < HSEP_N_MAX; i++) {
-			gtk_list_store_append(GTK_LIST_STORE(model), &iter);
+		gtk_list_store_append(GTK_LIST_STORE(model), &iter);
+		for (i = 0; i < G_N_ELEMENTS(msg_stats_label); i++) {
 			gtk_list_store_set(GTK_LIST_STORE(model), &iter,
-				0, horizon_stat_str(NULL, i + 1, 0),
-				1, "-", 2, "-", 3, "-", (-1));
+				i, i == 0 ? msg_type_str(n) : "-",
+				(-1));
 		}
-		switch (n) {
-			case 0: str = _("Hops");
-			        break;
-			case 1: str = _("Nodes");
-			        break;
-			case 2: str = _("Files");
-			        break;
-			case 3: str = _("Size");
-			        break;
-		}
-		add_column(treeview, n, width[n], (gfloat) n != 0, str);
 	}
+
+	width = gui_prop_get_guint32(
+				PROP_GNET_STATS_MSG_COL_WIDTHS, NULL, 0, 0);
+	for (n = 0; (guint) n < G_N_ELEMENTS(msg_stats_label); n++)
+		add_column(treeview, n, width[n], (gfloat) (n != 0),
+			msg_stats_label[n]);
 	G_FREE_NULL(width);
 
     gtk_tree_view_set_model(treeview, model);
 	g_object_unref(model);
+}
 
-	/* ----------------------------------------- */
+static void gnet_stats_gui_recv_init(void)
+{
+    GtkTreeView *treeview;
+    GtkTreeModel *model;
+	guint32 *width;
+	guint n;
 
     treeview = treeview_gnet_stats_recv = GTK_TREE_VIEW(
         lookup_widget(main_window, "treeview_gnet_stats_recv"));
@@ -650,15 +622,14 @@ void gnet_stats_gui_init(void)
 			G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING,
 			G_TYPE_STRING, G_TYPE_STRING));
 
-	width = gui_prop_get_guint32(
-				PROP_GNET_STATS_RECV_COL_WIDTHS, NULL, 0, 0);
+	width = gui_prop_get_guint32(PROP_GNET_STATS_RECV_COL_WIDTHS, NULL, 0, 0);
 	for (n = 0; n < STATS_FLOWC_COLUMNS; n++) {
     	gchar buf[16];
 
 		gm_snprintf(buf, sizeof(buf), "%d%c", n - 1,
 				n + 1 < STATS_RECV_COLUMNS ? '\0' : '+');
 		add_column(treeview, n, width[n], (gfloat) (n != 0),
-			n == 0 ? "Type" : buf);
+			n == 0 ? N_("Type") : buf);
 	}
 	G_FREE_NULL(width);
 
@@ -667,13 +638,65 @@ void gnet_stats_gui_init(void)
 		gint i;
 
 		gtk_list_store_append(GTK_LIST_STORE(model), &iter);
-		for (i = 0; i < STATS_RECV_COLUMNS; i++)
-			gtk_list_store_set(GTK_LIST_STORE(model), &iter, i,
-				i == 0 ? msg_type_str(n) : "-", (-1));
+		for (i = 0; i < STATS_RECV_COLUMNS; i++) {
+			gtk_list_store_set(GTK_LIST_STORE(model), &iter,
+				i, i == 0 ? msg_type_str(n) : "-",
+				(-1));
+		}
 	}
 
     gtk_tree_view_set_model(treeview, model);
 	g_object_unref(model);
+}
+
+static void gnet_stats_gui_type_menu_init(void)
+{
+	GtkOptionMenu *option_menu;
+	GtkWidget *menu;
+	guint n;
+
+	option_menu = GTK_OPTION_MENU(
+		lookup_widget(main_window, "option_menu_gnet_stats_type"));
+	menu = gtk_menu_new();
+
+	for (n = 0; n < msg_type_str_size(); n++) {
+		GtkWidget *menu_item;
+
+		menu_item = gtk_menu_item_new_with_label(msg_type_str(n));
+		gtk_menu_shell_append(GTK_MENU_SHELL(menu), menu_item);
+		g_signal_connect(
+			GTK_OBJECT(menu_item), "activate",
+			G_CALLBACK(on_gnet_stats_type_selected),
+			GINT_TO_POINTER(n));
+	}
+	gtk_option_menu_set_menu(option_menu, menu);
+	gtk_option_menu_set_history(option_menu, MSG_TOTAL);
+	gtk_widget_show_all(GTK_WIDGET(option_menu));
+}
+
+
+/***
+ *** Public functions
+ ***/
+
+void gnet_stats_gui_init(void)
+{
+	notebook_main = GTK_NOTEBOOK(
+		lookup_widget(main_window, "notebook_main"));
+	notebook_gnet_stats = GTK_NOTEBOOK(
+		lookup_widget(main_window, "gnet_stats_notebook"));
+
+    /*
+     * Initialize stats tables.
+     */
+
+	gnet_stats_gui_drop_reasons_init();
+	gnet_stats_gui_horizon_init();
+	gnet_stats_gui_flowc_init();
+	gnet_stats_gui_general_init();
+	gnet_stats_gui_messages_init();
+	gnet_stats_gui_recv_init();
+	gnet_stats_gui_type_menu_init();
 }
 
 void gnet_stats_gui_shutdown(void)
@@ -717,17 +740,17 @@ void gnet_stats_gui_update(time_t now)
 	gnet_stats_update_horizon();
 
 	switch (current_page) {
-		case GNET_STATS_NB_PAGE_MESSAGES:
-			gnet_stats_update_messages(&stats);
-			break;
-		case GNET_STATS_NB_PAGE_FLOWC:
-			gnet_stats_update_flowc(&stats);
-			break;
-		case GNET_STATS_NB_PAGE_RECV:
-			gnet_stats_update_recv(&stats);
-			break;
-		default:
-			g_assert_not_reached();
+	case GNET_STATS_NB_PAGE_MESSAGES:
+		gnet_stats_update_messages(&stats);
+		break;
+	case GNET_STATS_NB_PAGE_FLOWC:
+		gnet_stats_update_flowc(&stats);
+		break;
+	case GNET_STATS_NB_PAGE_RECV:
+		gnet_stats_update_recv(&stats);
+		break;
+	default:
+		g_assert_not_reached();
 	}
 
 cleanup:
