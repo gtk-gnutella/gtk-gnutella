@@ -275,7 +275,7 @@ void gui_update_download(struct download *d, gboolean force)
 						"(%.1f k/s) ", bs);
 
 				rw += gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
-					"[%d/%d] TR: %s", fi->recvcount, fi->refcount,
+					"[%d/%d] TR: %s", fi->recvcount, fi->lifecount,
 					s ? short_time(s) : "-");
 
 				if (fi->recv_last_rate) {
