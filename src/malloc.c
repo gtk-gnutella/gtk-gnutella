@@ -1136,6 +1136,7 @@ void leak_dump(gpointer o)
 	 */
 
 	g_warning("leak summary by total decreasing size:");
+	g_warning("leaks found: %d", count);
 
 	for (i = 0; i < count; i++) {
 		struct leak *l = &filler.leaks[i];
