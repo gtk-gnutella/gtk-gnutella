@@ -1,0 +1,235 @@
+<?xml version="1.0" standalone="no"?>
+<!DOCTYPE book PUBLIC "-//OASIS//DTD DocBook XML V4.3//EN"
+"docbook/xml-dtd-4.3/docbookx.dtd">
+
+<book>
+<bookinfo>
+  <title>GTK-Gnutella manual</title>
+  <author><firstname>Hans</firstname><surname>de
+  Graaff</surname></author>
+  <copyright><year>2004</year><holder>Hans de Graaff</holder></copyright>
+</bookinfo>
+
+<preface>
+  <title>Foreword</title>
+
+  <para>This manual is far from finished. Currently it mostly
+  incorporates documentation written by other people over time located
+  on the website and in the source distribution. As I have time I will
+  add additional text to the manual, but please feel free to
+  contribute parts if you like.</para>
+
+  <section><title>Document style</title>
+    <para>Murphy has proposed the following documentation style for
+    <gtkg/> documentation:</para>
+
+    <literallayout>
+Document Style for unformatted gtk-gnutella docs
+
+It is intended that these unformatted documents will be pasted into whatever 
+markup we (eventually) decide to use for presentation - at this point probably 
+manpage and html.  
+
+Lines should be wrapped at no more than 80 characters and should end in a space 
+to ease reformatting.  
+
+Sentences should end in two spaces, even at the end of a line or paragraph.  
+This makes it easier to automagically recognise sentences.  Use double quotes 
+("), not single quotes ('), so contractions don't confuse syntax highlighting 
+editors.  
+
+Certain terms should always be written the same way to facilitate future search 
+and replace operations:  
+
+gtk-gnutella - should not be abbreviated or capitalized, even at the beginning 
+of a sentence.  
+
+gnet - should not be capitalized.  It's an abbreviation for gnutellaNet but I'm 
+going by precedence here.  
+
+Avoid acronyms, for the most part.  Use "internet service provider" rather than 
+"ISP" and "local area network" rather than "LAN" but we don't have to get too 
+carried away; "IP" is fine, for instance.  It doesn't really matter which we use, 
+as long as it's consistant.  The more rigidly consistent we are, the more 
+flexibily we have for future search and replace if we change our minds.  So 
+look at the previously written docs for precedence.  
+
+When describing UI elements, use the exact spelling and capitalization as they 
+appear.  
+
+Avoid just restating the tooltips.  The tooltips in gtk-gnutella are excellent 
+but if the user doesn't understand them, it does no good to repeat them in the 
+documentation.  
+    </literallayout>
+
+  </section>
+    
+</preface>
+
+<part>
+<title>Getting started</title>
+
+<chapter id="ch1">
+<title>A quick introduction to the Gnutella network</title>
+
+<para>GTK-Gnutella is a servant on the Gnutella peer-to-peer
+network. In order to make the most out of <gtkg/> it helps to
+understand a bit about peer to peer networking in general, and the
+Gnutella network in particular.</para>
+
+<sect1>
+<title>Peer to peer</title>
+
+<para>The concept of a peer to peer network is that each participant
+in the network has the same level of rights in the network. Everyone
+is equal, no one is unique, and everyone can be missed without
+jepardizing the network.</para>
+
+<para>To make this possible each participant has the full
+functionality needed to create the network. Any two participants
+together can create a fully functional network. To realize why this is
+special consider how information is normally distributed on the
+internet. 
+
+</para>
+
+</sect1>
+
+
+</chapter>
+
+<chapter id="ch2">
+<title>Starting GTK-Gnutella for the first time</title>
+<para>Placeholder</para>
+
+</chapter>
+<chapter id="ch3">
+<title>Searching for files</title>
+<para>Placeholder</para>
+
+</chapter>
+<chapter id="ch4">
+<title>Downloading files</title>
+<para>Placeholder</para>
+
+</chapter>
+<chapter id="ch5">
+<title>Sharing your own files</title>
+<para>Placeholder</para>
+
+</chapter>
+
+<chapter id="ch6">
+<title>Adjusting settings</title>
+<para>Placeholder</para>
+
+</chapter>
+
+</part>
+
+<part>
+<title>Advanced features</title>
+
+<chapter id="ch-filtering">
+<title>Filtering</title>
+
+<para>The text in this chapter is copied verbatim from the Filtering
+mini-Howto by Vidar Madsen and Markus Goetz. It is copyright 2002 by
+them.</para>
+
+<para>
+
+
+Introduction
+
+The filtering code in gtk-gnutella 0.90 was dramatically improved. This small howto will tell you how to deal with the power given by those filters.
+
+Note that filters will only be applied to new search results as they come in. There is currently no way to apply them to the results that are already in the list.
+State flags
+
+When a search result arrives at the filtering engine it has two state flags; DOWNLOAD and DISPLAY. Initially the state flags are in an "undefined" state, and by applying various tests to each result, these flags can be set to DO and DON'T.
+
+Note: As soon as both state flags are defined, i.e. set to either DO or DON'T, the filtering is aborted, and the application will proceed to DISPLAY and/or DOWNLOAD if the respective flags are set. Furthermore, each of the flags can be set only once (subsequent attempts to set them will be silently ignored), so the order in which you set up the rules is quite important.
+Filters
+
+A filter is basically a set of rules. There are three types of user-definable filters; Global filters, Search filters, and Free filters;
+
+    * There are two global filters; "pre" and "post". The "pre" filter is applied to all results before they go to their respective search filter. They can be used to filter away certain hosts, restrict which types of files you see (i.e. ignore all ".html" files), etc. The global "post" filter will be processed after the search results have gone through their search filter.
+    * Search filters are filters that are connected to a specific ongoing search. When you search for something, every result will be sent to its respective search filter.
+    * Free filters are perhaps the most interesting ones. You can practically write "sub-routines" that can be called from any of the other filters. For example, you can define a "movie" filter that filters away files that are less than a certain size, and don't match any of the common video file extensions. Then you can use the "jump" rule in your search filters to call your "movie" filter.
+
+Rules
+
+There are several different rule types. Most of them have some flags that might warrant an explanation;
+
+    * "Invert condition" can be checked to invert the test in question. An example; If you're looking for an mp3 file, and your search results are cluttered with non-relevant hits, you can set up a rule that says; If filename DOES NOT end with ".mp3", flag it as "DON'T DISPLAY". Inverted conditions are marked with an X in the rule list.
+    * The "Active" flag can be checked and unchecked to temporarily enable or disable a rule.
+    * The "Mark only" flag is special, and is likely to be replaced by something more generic, but currently it can be used to mark search results with a different colour to make the matching results stand out from the rest. To achieve that effect, check "Mark only", and select "DON'T DISPLAY" as the target.
+
+Size rules
+
+Size rules have three similar uses;
+
+    * If only "minimum size" is given, the rule will trigger a jump to the selected target if the size is less than the value given. This can be used to filter away small files when looking for something large, such as a video clip.
+    * If both "minimum" and "maximum" is defined, the rule will cause a jump if the size is between the two values.
+    * If only "maximum" is given, the filter will jump if the result's size is larger than the given value.
+
+Name rules
+
+Name rules perform tests on the results' filenames. The "Condition" pulldown should be quite self-explanatory.
+Flag rules
+
+The flag rules can be used to filter results based on the hosting servent's flags; "Stable", "Busy "and "Push". For example, if you are behind a firewall and unable to received pushed files, you can add a rule that directs all results with the Push flag set to DON'T DISPLAY.
+Jump rules
+
+The jump rule is used to either set a DO or DON'T flag directly, or it can be used to call one of the free filters for subsequent testing.
+IP rules
+
+IP rules filter results based on the servent's IP address. A typical use for this is to ignore certain spammer hosts which return bogus hits. Or one can auto-download results that come from a certain IP address or network which is known to be fast.
+urn:sha1 rules
+
+The urn:sha1 rules are special, and can't be edited manually. They can only be added via the right-click-menu in the search results window. They are used to match a given file, and flag it for either DON'T DISPLAY (if picked via the "ignore" menu item) or DOWNLOAD (if picked via the "auto-download" item).
+State rules
+
+State rules can be used to process results that have already been through a number of other tests. A common application for this rule is to automatically download results that haven't been marked as DON'T DISPLAY. See under "Sample rulesets" for a full example.
+Tips
+
+    * If you want to filter away certain results permanently (based on e.g. file size or name), create a free filter called "Ignore", and put two jumps in it; one to "DON'T DISPLAY" and one to "DON'T DOWNLOAD". Now you can jump to "Ignore" instead of "DON'T DISPLAY". This way the filter execution will abort immediately, instead of trying to run the rest of the calling filter.
+    * To see which files have been tagged for download, add a rule to your Global (post) filter; If state flag "DOWNLOAD" is set, jump to "DON'T DISPLAY" with "Mark only". Now your auto-downloaded files will show up in a different colour in the search results.
+    * Apparently some pieces of software like to respond to every search they come across, and feed back bogus results. You may have come across files with names like "!!_YEEHAA_!!_(search term).exe" or "secret paysite passwords for (search term).html" and similar. Zygo has a nice trick to weed them out: Specify your search with the words jumbled, like "clones of the attack", and use a filter to remove results that has the same order of the words; "If file matches the regexp "clones.*of.*the.*attack", DON'T DISPLAY".
+
+Sample filters
+
+Here is a sample "movie" filter as mentioned earlier. If you set this up as a free filter, you can jump to it from the search filters to filter out a lot of bogus hits. Also, when doing a new search, you can select it on the default filter pulldown directly.
+! 	Condition 	Target
+  	If filesize is smaller than 400000000 (381.5 MB) 	DON'T DISPLAY
+  	If filename ends with ".avi" 	RETURN
+  	If filename ends with ".mpg" 	RETURN
+  	Always 	DON'T DISPLAY
+
+Here is a filter that will download MPEG music videos of Rammstein tracks. The trick is to use inverted conditions (note the X'es in front), and the last rule that will mark all files that aren't flagged as DON'T DISPLAY with DOWNLOAD.
+! 	Condition 	Target
+X 	If filename contains the words "rammstein" 	DON'T DISPLAY
+X 	If filename ends with "mpg" 	DON'T DISPLAY
+  	If filesize is smaller than 20000000 (19.1 MB) 	DON'T DISPLAY
+X 	If flag DON'T DISPLAY 	DOWNLOAD
+
+</para>
+
+
+</part>
+
+<part>
+<title>The gory details</title>
+
+<chapter id="ch7">
+<title>The GnutellaNet pane</title>
+<para>Placeholder</para>
+</chapter>
+
+</part>
+
+<index>
+</index>
+
+</book>
