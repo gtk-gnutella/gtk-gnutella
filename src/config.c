@@ -210,11 +210,12 @@ guint32 search_results_col_widths[] = { 210, 80, 50, 140, 140 };
 guint32 search_stats_col_widths[] = { 200, 80, 80 };
 guint32 ul_stats_col_widths[] = { 200, 80, 80, 80, 80 };
 guint32 search_list_col_widths[] = { 80, 20, 20 };
-guint32 filter_table_col_widths[] = { 10, 240, 80 };
+guint32 filter_table_col_widths[] = { 10, 240, 80, 40 };
 
 gboolean jump_to_downloads = TRUE;
 
 gint win_x = 0, win_y = 0, win_w = 0, win_h = 0;
+gint flt_dlg_x = 0, flt_dlg_y = 0, flt_dlg_w = 0, flt_dlg_h = 0;
 
 guint32 search_reissue_timeout = 600;	/* 10 minutes */
 
@@ -320,6 +321,7 @@ typedef enum {
     k_main_divider_pos,
     k_side_divider_pos,
     k_filter_default_policy,
+    k_filter_dlg_coords,
 	k_end
 } keyword_t;
 
@@ -451,7 +453,8 @@ static gchar *keywords[k_end] = {
     "downloads_divider_pos",
     "main_divider_pos",
     "side_divider_pos",
-    "filter_default_policy"
+    "filter_default_policy",
+    "filter_dlg_coords"
 };
 
 static gchar cfg_tmp[4096];
@@ -841,12 +844,22 @@ void config_set_param(keyword_t keyword, gchar *value)
 	case k_win_h:
 		win_h = i;
 		return;
+
 	case k_win_coords:
 		if ((a = config_parse_array(value, 4))) {
 			win_x = a[0];
 			win_y = a[1];
 			win_w = a[2];
 			win_h = a[3];
+		}
+		return;
+
+    case k_filter_dlg_coords:
+		if ((a = config_parse_array(value, 4))) {
+			flt_dlg_x = a[0];
+			flt_dlg_y = a[1];
+			flt_dlg_w = a[2];
+			flt_dlg_h = a[3];
 		}
 		return;
 
@@ -899,8 +912,8 @@ void config_set_param(keyword_t keyword, gchar *value)
 		return;
 
     case k_widths_filter_table:
-		if ((a = config_parse_array(value, 3)))
-			for (i = 0; i < 3; i++)
+		if ((a = config_parse_array(value, 4)))
+			for (i = 0; i < 4; i++)
 				filter_table_col_widths[i] = a[i];
 		return;
 
@@ -1199,12 +1212,14 @@ static void config_save(void)
 			keywords[k_widths_search_list],
 			search_list_col_widths[0], search_list_col_widths[1],
 			search_list_col_widths[2]);
-        fprintf(config, "%s = %u,%u,%u\n",
+        fprintf(config, "%s = %u,%u,%u,%u\n",
 			keywords[k_widths_filter_table],
 			filter_table_col_widths[0], filter_table_col_widths[1],
-            filter_table_col_widths[2]);
-       	fprintf(config, "%s = %u,%u,%u,%u\n", keywords[k_win_coords], win_x,
-			win_y, win_w, win_h);
+            filter_table_col_widths[2], filter_table_col_widths[3]);
+       	fprintf(config, "%s = %u,%u,%u,%u\n", keywords[k_win_coords], 
+            win_x, win_y, win_w, win_h);
+        fprintf(config, "%s = %u,%u,%u,%u\n", keywords[k_filter_dlg_coords], 
+            flt_dlg_x, flt_dlg_y, flt_dlg_w, flt_dlg_h);
     }
 
     CONFIG_SECTION("Network settings") {
