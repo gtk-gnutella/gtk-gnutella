@@ -1,5 +1,29 @@
 # since last version
 
+- (2002.04.25 - Richard)
+  * moved more code from main.c to gui_init() in gui.c.
+  * added checkbutton "Delete file on abort" to downloads panel. When this
+    is on, aborting a download will also remove the associated file from the
+    hard disk. This is to prevent us from having multiple "Abort..." and
+    "Abort and delete..." entries in the popup menu.
+    This functionality still has to be integrated into the download logic.
+  * remove the "update" button for port configuration on the config network
+    panel. This entry now behaves just like every other entry (enter or 
+    change focus to accept changes).
+  * replaced more entries in the config panels with GtkSpinButtons.
+  * added a "copy url" item to the downloads popup. This can be used to 
+    copy the url of a single download to the clipboard and paste it
+    e.g. to your browser. This is only selectable, if a single download
+    is selected.
+  * added build_url_from_download() to misc.c because of the above
+  * cleaned up lots of stuff in gui.c, including coding style but mostly
+    changing the way focus-out signals were handled. Now a focus-out signal
+    triggers a activate-callback on all widgets to update the program state. 
+    Meaning, we no longer use "grab_focus(menutree)" to trigger a focus-out
+    event (useless focus jumping). Instead when pressing "enter" on a widget,
+    the change is accepted and the focus stays where it is.
+  * more layout in the config panels.
+	
 - (2002.04.22 - RAM)
   * Always update actual bandwidth used, even when the scheduler is disabled,
     so that the GUI can display the current usage whether bandwidth is
@@ -15,6 +39,8 @@
   * added "authenticate to proxy" to network config. The associated
     config variable is called proxy_auth.
   * made bandwidth stats more readable
+
+# change of changelog format to better accomodate multiple contributors.
 
 - made reissue timeout spinbutton on search-pane wider. (Richard)
 - made config pane a tabbed pane. (Richard)
