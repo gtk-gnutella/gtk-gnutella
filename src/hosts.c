@@ -773,6 +773,21 @@ static void ping_all_neighbours(time_t now)
 }
 
 /*
+ * pcache_possibly_expired
+ *
+ * Check pong cache for expiration.
+ * If expiration time is reached, flush it and ping all our neighbours.
+ */
+void pcache_possibly_expired(time_t now)
+{
+	if (now >= pcache_expire_time) {
+		pcache_expire();
+		pcache_expire_time = now + CACHE_LIFESPAN;
+		ping_all_neighbours(now);
+	}
+}
+
+/*
  * setup_pong_demultiplexing
  *
  * Fill ping_guid[] and pong_needed[] arrays in the node from which we just
@@ -1051,11 +1066,7 @@ void pcache_ping_received(struct gnutella_node *n)
 	 * Purge cache if needed.
 	 */
 
-	if (now >= pcache_expire_time) {
-		pcache_expire();
-		pcache_expire_time = now + CACHE_LIFESPAN;
-		ping_all_neighbours(now);
-	}
+	pcache_possibly_expired(now);
 
 	/*
 	 * If TTL = 0, only us can reply, and we'll do that below in any case..

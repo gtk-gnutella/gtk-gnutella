@@ -35,6 +35,7 @@ struct gnutella_msg_init_response *build_pong_msg(
 	guint32 ip, guint16 port, guint32 files, guint32 kbytes);
 void send_alive_ping(struct gnutella_node *n);
 
+void pcache_possibly_expired(time_t now);
 void pcache_outgoing_connection(struct gnutella_node *n);
 void pcache_ping_received(struct gnutella_node *n);
 void pcache_pong_received(struct gnutella_node *n);

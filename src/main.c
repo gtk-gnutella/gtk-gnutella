@@ -287,6 +287,9 @@ gboolean main_timer(gpointer p)
 	/* Expire connecting sockets */
 	socket_monitor_incoming();
 
+	/* Expire pong cache */
+	pcache_possibly_expired(now);
+
 	/* GUI update */
 
 	gui_update_global();
