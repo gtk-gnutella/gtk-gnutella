@@ -1,6 +1,7 @@
 # since last version
 
 - (2002.08.22 - Vidar)
+ * Fixed Search Monitor to display urn:sha1-queries properly.
  * Changed fileinfo.c to use hashes instead of a linked list.
  * Made manual node 'Add'ing accept a ":port" suffix.
 
