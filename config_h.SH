@@ -303,12 +303,6 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  */
 #$d_enablenls ENABLE_NLS	/**/
 
-/* I_LANGINFO:
- *	This symbol, if defined, indicates to the C program that it should
- *	include <langinfo.h>.
- */
-#$i_langinfo I_LANGINFO		/**/
-
 /* I_LIBCHARSET:
  *	This symbol, if defined, indicates to the C program that it should
  *	include <libcharset.h>.

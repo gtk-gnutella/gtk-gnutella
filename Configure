@@ -18,7 +18,7 @@
 
 # $Id$
 #
-# Generated on Sun Aug 29 11:37:38 MEST 2004 [metaconfig 3.0 PL70]
+# Generated on Mon Oct  4 21:15:56 MEST 2004 [metaconfig 3.0 PL70]
 
 cat >c1$$ <<EOF
 ARGGGHHHH!!!!!
@@ -342,7 +342,6 @@ gtkversion=''
 h_fcntl=''
 h_sysfile=''
 i_inttypes=''
-i_langinfo=''
 i_libcharset=''
 i_libintl=''
 i_niin=''
@@ -2455,16 +2454,10 @@ case "$ans" in
 	d_usegtk1="$define"; d_usegtk2="$undef";;
 esac
 
-: decide which version of glib to use
-case "$glibversion" in
-'')
-	case "$gtkversion" in
-	1) ver=1;;
-	*) ver=2;;
-	esac
-	;;
-2) ver=2;;
-*) ver=1;;
+: decide which version of glib to use -- tied to the choice of GTK
+case "$gtkversion" in
+1) ver=1;;
+*) ver=2;;
 esac
 case "$ver" in
 2)
@@ -5973,10 +5966,6 @@ esac
 set inttypes.h i_inttypes
 eval $inhdr
 
-: see if this is a langinfo system
-set langinfo.h i_langinfo
-eval $inhdr
-
 : see if this is a libcharset system
 set libcharset.h i_libcharset
 eval $inhdr
@@ -6326,7 +6315,6 @@ h_sysfile='$h_sysfile'
 hint='$hint'
 huge='$huge'
 i_inttypes='$i_inttypes'
-i_langinfo='$i_langinfo'
 i_libcharset='$i_libcharset'
 i_libintl='$i_libintl'
 i_niin='$i_niin'
