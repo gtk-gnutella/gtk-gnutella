@@ -77,6 +77,24 @@ gchar *general_type_str[GNR_TYPE_COUNT] = {
     "SHA1 queries"
 };
 
+gchar *flowc_mode_str[8] = {
+	"TTL, packets, absolute",
+	"Hops, packets, absolute",
+	"TTL, bytes, absolute", 
+	"Hops, bytes, absolute"
+	"TTL, packets, percent",
+	"Hops, packets, percent",
+	"TTL, bytes, percent", 
+	"Hops, bytes, percent",
+};
+
+#define FLOWC_MODE_HOPS(m)	((m) & 1)
+#define FLOWC_MODE_TTL(m)	(!((m) & 1))
+#define FLOWC_MODE_BYTE(m)	(((m) & 2))
+#define FLOWC_MODE_PKTS(m)	(!((m) & 2))
+#define FLOWC_MODE_PERC(m)	(((m) & 4))
+#define FLOWC_MODE_ABS(m)	(!((m) & 4))
+
 static gint selected_type = MSG_TOTAL;
 static gint selected_flowc = 0;
 
@@ -149,17 +167,28 @@ static void on_gnet_stats_type_selected(GtkItem *i, gpointer data)
     gnet_stats_gui_update();
 }
 
-static void on_gnet_stats_flowc_selected(GtkItem *i, gpointer data)
-{
-    selected_flowc = GPOINTER_TO_INT(data);
-    gnet_stats_gui_update();
+static void on_gnet_stats_fc_toggled(GtkToggleButton *b, gpointer data) {
+const gchar *name = gtk_widget_get_name(GTK_WIDGET(b));
+
+	g_message("%s", __FUNCTION__);
+
+	if (!strcmp(name, "radio_fc_ttl") || !strcmp(name, "radio_fc_hops"))
+		selected_flowc ^= 1;
+	else if (!strcmp(name, "radio_fc_pkts") || !strcmp(name, "radio_fc_bytes"))
+		selected_flowc ^= 2;
+	else if (!strcmp(name, "radio_fc_abs") || !strcmp(name, "radio_fc_rel"))
+		selected_flowc ^= 4;
+	else
+		g_assert_not_reached();
+
+	gnet_stats_gui_update();
 }
 
 /***
  *** Private functions
  ***/
 G_INLINE_FUNC gchar *pkt_stat_str(
-    guint32 *val_tbl, gint type)
+    const guint32 *val_tbl, gint type)
 {
     static gchar strbuf[20];
 
@@ -177,7 +206,7 @@ G_INLINE_FUNC gchar *pkt_stat_str(
 
 
 G_INLINE_FUNC gchar *byte_stat_str(
-    guint32 *val_tbl, gint type)
+    const guint32 *val_tbl, gint type)
 {
     static gchar strbuf[20];
 
@@ -192,7 +221,7 @@ G_INLINE_FUNC gchar *byte_stat_str(
         return compact_size(val_tbl[type]);
 }
 
-G_INLINE_FUNC gchar *drop_stat_str(gnet_stats_t *stats, gint reason)
+G_INLINE_FUNC gchar *drop_stat_str(const gnet_stats_t *stats, gint reason)
 {
     static gchar strbuf[20];
     guint32 total = stats->pkg.dropped[MSG_TOTAL];
@@ -210,7 +239,7 @@ G_INLINE_FUNC gchar *drop_stat_str(gnet_stats_t *stats, gint reason)
     return strbuf;
 }
 
-G_INLINE_FUNC gchar *general_stat_str(gnet_stats_t *stats, gint type)
+G_INLINE_FUNC gchar *general_stat_str(const gnet_stats_t *stats, gint type)
 {
     static gchar strbuf[20];
 
@@ -226,21 +255,21 @@ G_INLINE_FUNC gchar *general_stat_str(gnet_stats_t *stats, gint type)
 }
 
 G_INLINE_FUNC gchar *flowc_stat_str(
-    guint32 *val_tbl, gint type)
+    const guint32 *val_tbl, gint type)
 {
     static gchar strbuf[20];
 
     if (val_tbl[type] == 0)
-        return (selected_flowc & 1) ? "-" : "- ";
+        return FLOWC_MODE_PERC(selected_flowc) ? "-" : "- ";
 
-	if (selected_flowc & 1) {
+	if (FLOWC_MODE_ABS(selected_flowc)) {
 		
-		if (selected_flowc < 4)  
-        	g_snprintf(strbuf, sizeof(strbuf), "%u", val_tbl[type]);
-		else
+		if (FLOWC_MODE_BYTE(selected_flowc))  /* byte mode */
     		return compact_size(val_tbl[type]);
+		else /* packet mode */
+        	g_snprintf(strbuf, sizeof(strbuf), "%u", val_tbl[type]);
 	}
-    else
+    else 
 		g_snprintf(strbuf, sizeof(strbuf), "%.2f%%", 
             (float)val_tbl[type]/val_tbl[MSG_TOTAL]*100.0);
 
@@ -258,7 +287,6 @@ void gnet_stats_gui_init(void)
     GtkCList *clist_general;
     GtkCList *clist_reason;
     GtkCombo *combo_types;
-    GtkCombo *combo_flowc;
     GtkTreeView *treeview_flowc;
     GtkTreeModel *model;
 	GtkTreeIter iter;
@@ -277,8 +305,8 @@ void gnet_stats_gui_init(void)
         lookup_widget(main_window, "clist_gnet_stats_general"));
     combo_types = GTK_COMBO(
         lookup_widget(main_window, "combo_gnet_stats_type"));
-    combo_flowc = GTK_COMBO(
-        lookup_widget(main_window, "combo_gnet_stats_flowc"));
+ /*   combo_flowc = GTK_COMBO(
+        lookup_widget(main_window, "combo_gnet_stats_flowc"));*/
     treeview_flowc = GTK_TREE_VIEW(
         lookup_widget(main_window, "treeview_gnet_stats_flowc"));
 
@@ -324,12 +352,13 @@ void gnet_stats_gui_init(void)
 
 		renderer = gtk_cell_renderer_text_new();
 		g_snprintf(buf, sizeof(buf), "%d%c", n-1,
-				(n+1) < STATS_FLOWC_COLUMNS ? ' ' : '+');
+				(n+1) < STATS_FLOWC_COLUMNS ? '\0' : '+');
 		column = gtk_tree_view_column_new_with_attributes(
 			n == 0 ? "Type" : buf, renderer, "text", n, NULL);
 		gtk_tree_view_column_set_fixed_width(column, n == 0 ? 100 : 50);
 		gtk_tree_view_column_set_sizing(column, GTK_TREE_VIEW_COLUMN_FIXED);
 		gtk_tree_view_column_set_resizable(column, TRUE);
+		gtk_tree_view_column_set_reorderable(column, TRUE);
 		gtk_tree_view_append_column(treeview_flowc, column);
 	}
 
@@ -376,9 +405,9 @@ void gnet_stats_gui_init(void)
 
         gtk_widget_show(list_item);
 
-        gtk_signal_connect(
+        g_signal_connect(
             GTK_OBJECT(list_item), "select",
-            GTK_SIGNAL_FUNC(on_gnet_stats_type_selected),
+            G_CALLBACK(on_gnet_stats_type_selected),
             GINT_TO_POINTER(n));
 
         l = g_list_prepend(NULL, (gpointer) list_item);
@@ -389,36 +418,15 @@ void gnet_stats_gui_init(void)
                 GTK_LIST(GTK_COMBO(combo_types)->list), list_item);
     }
 
-    for (n = 0; n < 8; n ++) {
-        GtkWidget *list_item;
-        GList *l;
-		static gchar *labels[8] = {
-							"by TTL (packets, percent)",
-							"by TTL (packets, absolute)", 
-							"by hops (packets, percent)",
-							"by hops (packets, absolute)",
-							"by TTL (bytes, percent)",
-							"by TTL (bytes, absolute)", 
-							"by hops (bytes, percent)",
-							"by hops (bytes, absolute)"};
-
-        list_item = gtk_list_item_new_with_label(labels[n]);
-
-        gtk_widget_show(list_item);
-
-        gtk_signal_connect(
-            GTK_OBJECT(list_item), "select",
-            GTK_SIGNAL_FUNC(on_gnet_stats_flowc_selected),
-            GINT_TO_POINTER(n));
-
-        l = g_list_prepend(NULL, (gpointer) list_item);
-        gtk_list_append_items(GTK_LIST(GTK_COMBO(combo_flowc)->list), l);
-
-        if (n == 7)
-            gtk_list_select_child(
-                GTK_LIST(GTK_COMBO(combo_flowc)->list), list_item);
-    }
-
+	g_signal_connect(
+		GTK_RADIO_BUTTON(lookup_widget(main_window, "radio_fc_ttl")),
+		"toggled", G_CALLBACK(on_gnet_stats_fc_toggled), NULL);
+	g_signal_connect(
+		GTK_RADIO_BUTTON(lookup_widget(main_window, "radio_fc_pkts")),
+		"toggled", G_CALLBACK(on_gnet_stats_fc_toggled), NULL);
+	g_signal_connect(
+		GTK_RADIO_BUTTON(lookup_widget(main_window, "radio_fc_abs")),
+		"toggled", G_CALLBACK(on_gnet_stats_fc_toggled), NULL);
 
     for (n = 0; n < MSG_DROP_REASON_COUNT; n ++) {
         gint row;
@@ -435,6 +443,26 @@ void gnet_stats_gui_init(void)
     }
 }
 
+static void gnet_stats_fc_show_col(GtkTreeView *treeview) {
+GList *list, *l;
+const gchar *title;
+
+	/* Hide column for TTL=0 */
+	list = gtk_tree_view_get_columns(treeview);
+
+	for (l = list; NULL != l; l = g_list_next(l))
+		if (NULL != l->data) {
+			gtk_object_get(GTK_OBJECT(l->data), "title", &title, NULL);
+			if (NULL != title && *title == '0') {
+				gtk_tree_view_column_set_visible(GTK_TREE_VIEW_COLUMN(l->data),
+					FLOWC_MODE_HOPS(selected_flowc));
+				break;
+			}
+		}
+
+	g_list_free(list);
+}
+
 void gnet_stats_gui_update(void)
 {
     GtkCList *clist_stats_pkg;
@@ -448,7 +476,7 @@ void gnet_stats_gui_update(void)
     gnet_stats_t stats;
 	static gboolean lock = FALSE;
 	gchar *str[MSG_TYPE_COUNT];
-
+	guint32 (*counters)[MSG_TYPE_COUNT];
     gint current_page;
 
 	if (lock)
@@ -478,7 +506,7 @@ void gnet_stats_gui_update(void)
         lookup_widget(main_window, "treeview_gnet_stats_flowc"));
 
 	store = GTK_LIST_STORE(gtk_tree_view_get_model(treeview_flowc));
-
+	gnet_stats_fc_show_col(treeview_flowc);
     gtk_clist_freeze(clist_reason);
     gtk_clist_freeze(clist_general);
     gtk_clist_freeze(clist_stats_byte);
@@ -508,49 +536,51 @@ void gnet_stats_gui_update(void)
             byte_stat_str(stats.byte.relayed, n));
     }
 
+	counters = (FLOWC_MODE_HOPS(selected_flowc))
+		/* Hops mode */
+		?  (FLOWC_MODE_PKTS(selected_flowc))
+			? stats.pkg.flowc_hops : stats.byte.flowc_hops
+		/* TTL mode */
+		:  (FLOWC_MODE_PKTS(selected_flowc))
+			? stats.pkg.flowc_ttl : stats.pkg.flowc_ttl;
+
 	gtk_tree_model_get_iter_first(GTK_TREE_MODEL(store), &iter);
 
 	for (n = 0; n < MSG_TYPE_COUNT; n++) {
 		gint i;
-		guint32 *p;
 
-		for (i = 0; i < STATS_FLOWC_COLUMNS; i++) {
-			switch (selected_flowc) {
-				case 0: /* FALL THROUGH */
-				case 1:
-					p = stats.pkg.flowc_ttl[i];
-					break;
-				case 2: /* FALL THROUGH */
-				case 3:
-					p = stats.pkg.flowc_hops[i];
-					break;
-				case 4: /* FALL THROUGH */
-				case 5:
-					p = stats.byte.flowc_ttl[i];
-					break;
-				case 6: /* FALL THROUGH */
-				case 7:
-					p = stats.byte.flowc_hops[i];
-				break;
-			
-				default:
-					g_assert_not_reached();
-			}
-
-			str[i] = g_strdup(flowc_stat_str(p, n));
-		}
+		for (i = 0; i < STATS_FLOWC_COLUMNS; i++)
+			str[i] = g_strdup(flowc_stat_str(counters[i], n));
 
 		gtk_list_store_set(store, &iter,
 			0, msg_type_str[n],
+#if STATS_FLOWC_COLUMNS >= 1
 			1, str[0],
+#endif
+#if STATS_FLOWC_COLUMNS >= 2
 			2, str[1],
+#endif
+#if STATS_FLOWC_COLUMNS >= 3
 			3, str[2],
+#endif
+#if STATS_FLOWC_COLUMNS >= 4
 			4, str[3],
+#endif
+#if STATS_FLOWC_COLUMNS >= 5
 			5, str[4],
+#endif
+#if STATS_FLOWC_COLUMNS >= 6
 			6, str[5],
+#endif
+#if STATS_FLOWC_COLUMNS >= 7
 			7, str[6],
+#endif
+#if STATS_FLOWC_COLUMNS >= 8
 			8, str[7],
+#endif
+#if STATS_FLOWC_COLUMNS >= 9
 			9, str[8],
+#endif
 			-1);
 #if 0		
 		g_message("%-12s %-4s %-4s %-4s %-4s %-4s %-4s %-4s",
@@ -558,9 +588,10 @@ void gnet_stats_gui_update(void)
 			str[0], str[1], str[2], str[3], str[4], str[5], str[6]);
 #endif
 
-		gtk_tree_model_iter_next(GTK_TREE_MODEL(store), &iter);
 		for (i = 0; i < STATS_FLOWC_COLUMNS; i++)
 			G_FREE_NULL(str[i]);
+		if (!gtk_tree_model_iter_next(GTK_TREE_MODEL(store), &iter))
+			break;
 	}
 
 #if 0
