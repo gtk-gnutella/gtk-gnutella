@@ -40,9 +40,9 @@ RCSID("$Id$");
  * Interesting remark found in gdkevents.c :
  * What do we do with G_IO_NVAL ?
  */
-#define READ_CONDITION		(G_IO_IN | G_IO_HUP | G_IO_ERR)
-#define WRITE_CONDITION		(G_IO_OUT | G_IO_ERR)
-#define EXCEPTION_CONDITION	(G_IO_PRI)
+#define READ_CONDITION		(G_IO_IN | G_IO_PRI)
+#define WRITE_CONDITION		(G_IO_OUT)
+#define EXCEPTION_CONDITION	(G_IO_ERR | G_IO_HUP | G_IO_NVAL)
 
 /*
  * The relay structure is used as a bridge to provide GDK-compatible

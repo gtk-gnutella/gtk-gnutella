@@ -475,6 +475,11 @@ static void adns_query_callback(
 	g_assert(dest == adns_query_fd);
 	g_assert(0 != adns_query_event_id);
 
+	if (condition & INPUT_EVENT_EXCEPTION) {
+		g_warning("adns_query_callback: write exception");
+		goto abort;
+	}
+
 	while (remain->n > 0) {
 		ssize_t ret;
 
@@ -486,17 +491,8 @@ static void adns_query_callback(
 		}
 		/* FALL THROUGH */
 		if ((ssize_t) -1 == ret) {
-			if (errno != EAGAIN && errno != EINTR) {
-				g_warning("adns_query_callback: write() failed: %s",
-					g_strerror(errno));
-				inputevt_remove(adns_query_event_id);
-				g_warning("adns_query_callback: removed myself");
-				adns_helper_alive = FALSE;
-				CLOSE_IF_VALID(adns_query_fd);
-				g_warning("adns_query_callback: using fallback");
-				adns_fallback(remain->query);
-				adns_async_write_free(remain);
-			}
+			if (errno != EAGAIN && errno != EINTR)
+				goto error;
 			return;
 		}
 
@@ -509,6 +505,18 @@ static void adns_query_callback(
 	inputevt_remove(adns_query_event_id);
 	adns_query_event_id = 0;
 	adns_async_write_free(remain);
+
+	return;
+
+error:
+	g_warning("adns_query_callback: write() failed: %s", g_strerror(errno));
+abort:
+	inputevt_remove(adns_query_event_id);
+	g_warning("adns_query_callback: removed myself");
+	adns_helper_alive = FALSE;
+	CLOSE_IF_VALID(adns_query_fd);
+	g_warning("adns_query_callback: using fallback");
+	adns_fallback(remain->query);
 }
 
 /* public functions */

@@ -682,7 +682,7 @@ static void shell_handle_data(
 		return;
 	}
 
-	if (cond & INPUT_EVENT_WRITE && IS_PROCESSING(sh))
+	if ((cond & INPUT_EVENT_WRITE) && IS_PROCESSING(sh))
 		shell_write_data(sh);
 
 	if (cond & INPUT_EVENT_READ)
@@ -708,7 +708,8 @@ static gboolean shell_write(gnutella_shell_t *sh, const gchar *s)
 
 	if (sh->write_tag == 0) {
 		sh->write_tag = inputevt_add(sh->socket->file_desc, 
-			INPUT_EVENT_WRITE, shell_handle_data, (gpointer) sh);
+			INPUT_EVENT_EXCEPTION | INPUT_EVENT_WRITE,
+			shell_handle_data, (gpointer) sh);
 	}
 
 	return TRUE;

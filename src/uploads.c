@@ -2711,11 +2711,8 @@ static void upload_write(gpointer up, gint source, inputevt_cond_t cond)
 	off_t pos;				/* For sendfile() sanity checks */
 #endif	/* !HAS_SENDFILE */
 
-	if (!(cond & INPUT_EVENT_WRITE)) {
+	if (cond & INPUT_EVENT_EXCEPTION) {
 		/* If we can't write then we don't want it, kill the socket */
-		if (dbg)
-			printf("upload_write(); Condition %i, Exception = %i\n",
-				   cond, INPUT_EVENT_EXCEPTION);
 		upload_remove(u, "Write exception");
 		return;
 	}
