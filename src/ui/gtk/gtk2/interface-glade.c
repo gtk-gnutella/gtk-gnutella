@@ -2033,7 +2033,7 @@ create_main_window (void)
   gtk_widget_set_name (menu_gnet_leaf_stats_visible_menu, "menu_gnet_leaf_stats_visible_menu");
   gtk_menu_item_set_submenu (GTK_MENU_ITEM (menu_gnet_leaf_stats_visible), menu_gnet_leaf_stats_visible_menu);
 
-  menu_autohide_bws_gleaf = gtk_check_menu_item_new_with_mnemonic (_("autohide leaf traffic stats"));
+  menu_autohide_bws_gleaf = gtk_check_menu_item_new_with_mnemonic (_("auto-hide leaf traffic stats"));
   gtk_widget_set_name (menu_autohide_bws_gleaf, "menu_autohide_bws_gleaf");
   gtk_widget_show (menu_autohide_bws_gleaf);
   gtk_container_add (GTK_CONTAINER (menu_gnet_leaf_stats_visible_menu), menu_autohide_bws_gleaf);
@@ -16242,7 +16242,7 @@ create_main_window_dl_files_tab (void)
   gtk_widget_show (label912);
   gtk_box_pack_start (GTK_BOX (hbox235), label912, FALSE, TRUE, 4);
 
-  label719 = gtk_label_new (_("with sources"));
+  label719 = gtk_label_new (_(" with sources"));
   gtk_widget_set_name (label719, "label719");
   gtk_widget_show (label719);
   gtk_box_pack_start (GTK_BOX (hbox235), label719, FALSE, TRUE, 0);
