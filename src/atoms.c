@@ -362,7 +362,7 @@ void atoms_close(void)
 	for (i = 0; i < COUNT(atoms); i++) {
 		struct table_desc *td = &atoms[i];
 
-		g_hash_table_foreach_remove(td->table, atom_warn_free, td->type);
+		g_hash_table_foreach_remove(td->table, atom_warn_free, td);
 		g_hash_table_destroy(td->table);
 	}
 }
