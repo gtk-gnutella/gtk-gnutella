@@ -62,12 +62,12 @@ gboolean dl_queued_col_visible[DOWNLOAD_QUEUE_VISIBLE_COLUMNS]     = { 1, 1, 1, 
 gboolean dl_queued_col_visible_def[DOWNLOAD_QUEUE_VISIBLE_COLUMNS] = { 1, 1, 1, 1, 1, 1 };
 guint32  file_info_col_widths[FILEINFO_VISIBLE_COLUMNS]     = { 240, 80, 80, 80, 80 };
 guint32  file_info_col_widths_def[FILEINFO_VISIBLE_COLUMNS] = { 240, 80, 80, 80, 80 };
+guint32  search_list_col_widths[SEARCH_RESULTS_VISIBLE_COLUMNS]     = { 80, 20, 20 };
+guint32  search_list_col_widths_def[SEARCH_RESULTS_VISIBLE_COLUMNS] = { 80, 20, 20 };
 gboolean search_results_col_visible[c_sr_num]     = { 1,1,1,1,1,1,1,1,1,1 };
 gboolean search_results_col_visible_def[c_sr_num] = { 1,1,1,1,1,1,1,1,1,1 };
-guint32  search_list_col_widths[c_sr_num]     = { 80, 20, 20 };
-guint32  search_list_col_widths_def[c_sr_num] = { 80, 20, 20 };
-guint32  search_results_col_widths[SEARCH_RESULTS_VISIBLE_COLUMNS]     = { 210, 50, 80, 50, 70, 70, 70, 140, 70 };
-guint32  search_results_col_widths_def[SEARCH_RESULTS_VISIBLE_COLUMNS] = { 210, 50, 80, 50, 70, 70, 70, 140, 70 };
+guint32  search_results_col_widths[c_sr_num]     = { 210, 50, 80, 50, 70, 70, 70, 140, 70 };
+guint32  search_results_col_widths_def[c_sr_num] = { 210, 50, 80, 50, 70, 70, 70, 140, 70 };
 guint32  search_stats_col_widths[3]     = { 200, 80, 80 };
 guint32  search_stats_col_widths_def[3] = { 200, 80, 80 };
 guint32  ul_stats_col_widths[UPLOAD_STATS_GUI_VISIBLE_COLUMNS]     = { 200, 80, 80, 80, 80 };
@@ -512,40 +512,40 @@ prop_set_t *gui_prop_init(void) {
 
 
     /*
-     * PROP_SEARCH_RESULTS_COL_VISIBLE:
-     *
-     * General data:
-     */
-    gui_property->props[12].name = "search_results_col_visible";
-    gui_property->props[12].desc = _("Which columns are visible in the search results tables");
-    gui_property->props[12].ev_changed = event_new("search_results_col_visible_changed");
-    gui_property->props[12].save = TRUE;
-    gui_property->props[12].vector_size = c_sr_num;
-
-    /* Type specific data: */
-    gui_property->props[12].type               = PROP_TYPE_BOOLEAN;
-    gui_property->props[12].data.boolean.def   = search_results_col_visible_def;
-    gui_property->props[12].data.boolean.value = search_results_col_visible;
-
-
-    /*
      * PROP_SEARCH_LIST_COL_WIDTHS:
      *
      * General data:
      */
-    gui_property->props[13].name = "widths_search_list";
-    gui_property->props[13].desc = _("Widths of the columns in the search list on the sidebar");
-    gui_property->props[13].ev_changed = event_new("search_list_col_widths_changed");
+    gui_property->props[12].name = "widths_search_list";
+    gui_property->props[12].desc = _("Widths of the columns in the search list on the sidebar");
+    gui_property->props[12].ev_changed = event_new("search_list_col_widths_changed");
+    gui_property->props[12].save = TRUE;
+    gui_property->props[12].vector_size = SEARCH_RESULTS_VISIBLE_COLUMNS;
+
+    /* Type specific data: */
+    gui_property->props[12].type               = PROP_TYPE_GUINT32;
+    gui_property->props[12].data.guint32.def   = search_list_col_widths_def;
+    gui_property->props[12].data.guint32.value = search_list_col_widths;
+    gui_property->props[12].data.guint32.choices = NULL;
+    gui_property->props[12].data.guint32.max   = 0xFFFFFFFF;
+    gui_property->props[12].data.guint32.min   = 0x00000000;
+
+
+    /*
+     * PROP_SEARCH_RESULTS_COL_VISIBLE:
+     *
+     * General data:
+     */
+    gui_property->props[13].name = "search_results_col_visible";
+    gui_property->props[13].desc = _("Which columns are visible in the search results tables");
+    gui_property->props[13].ev_changed = event_new("search_results_col_visible_changed");
     gui_property->props[13].save = TRUE;
     gui_property->props[13].vector_size = c_sr_num;
 
     /* Type specific data: */
-    gui_property->props[13].type               = PROP_TYPE_GUINT32;
-    gui_property->props[13].data.guint32.def   = search_list_col_widths_def;
-    gui_property->props[13].data.guint32.value = search_list_col_widths;
-    gui_property->props[13].data.guint32.choices = NULL;
-    gui_property->props[13].data.guint32.max   = 0xFFFFFFFF;
-    gui_property->props[13].data.guint32.min   = 0x00000000;
+    gui_property->props[13].type               = PROP_TYPE_BOOLEAN;
+    gui_property->props[13].data.boolean.def   = search_results_col_visible_def;
+    gui_property->props[13].data.boolean.value = search_results_col_visible;
 
 
     /*
@@ -557,7 +557,7 @@ prop_set_t *gui_prop_init(void) {
     gui_property->props[14].desc = _("Widths of the columns in the search results tables");
     gui_property->props[14].ev_changed = event_new("search_results_col_widths_changed");
     gui_property->props[14].save = TRUE;
-    gui_property->props[14].vector_size = SEARCH_RESULTS_VISIBLE_COLUMNS;
+    gui_property->props[14].vector_size = c_sr_num;
 
     /* Type specific data: */
     gui_property->props[14].type               = PROP_TYPE_GUINT32;

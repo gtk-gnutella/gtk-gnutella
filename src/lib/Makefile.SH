@@ -85,10 +85,11 @@ all:: .FORCE_DEPEND
 ########################################################################
 # Start of Jmakefile
 
-# $X-Id: Jmakefile,v 1.7 2004/10/16 20:50:36 rmanfredi Exp $
+# $X-Id: Jmakefile,v 1.9 2004/10/18 19:46:00 rmanfredi Exp $
 
 LSRC = \
 	adns.c \
+	aging.c \
 	atoms.c \
 	base32.c \
 	base64.c \
@@ -130,6 +131,7 @@ LSRC = \
 
 LOBJ = \
 	adns.o \
+	aging.o \
 	atoms.o \
 	base32.o \
 	base64.o \
