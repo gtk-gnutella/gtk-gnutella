@@ -1,3 +1,13 @@
+# Since last version
+
+- Fixed important sharing bug where extensions were not matched for correctly
+- Can now configure a max size for the host cache (defaults to 20480)
+- Kicking policies for dup messages and high TTL now configurable
+- Removed unneeded inclusion of <mcheck.h>
+- Fixed broken "rm" in debian/rules, changed it to "rm -f"
+- Show "<unparsed>" when results have an unparsed query hit trailer
+- Ran all sources through "indent -kr", plus minimal reformating, ts=4 now
+
 # v 0.15   2001.09.20
 
 - No longer depends on having "glade" or "tcl" for building
