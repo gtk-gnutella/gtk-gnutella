@@ -145,8 +145,8 @@ gboolean progressbar_bws_glout_avg     = TRUE;
 gboolean progressbar_bws_glout_avg_def = TRUE;
 gboolean search_autoselect_ident     = TRUE;
 gboolean search_autoselect_ident_def = TRUE;
-gboolean jump_to_downloads     = FALSE;
-gboolean jump_to_downloads_def = FALSE;
+gboolean search_sort_casesense     = FALSE;
+gboolean search_sort_casesense_def = FALSE;
 gboolean show_search_results_settings     = FALSE;
 gboolean show_search_results_settings_def = FALSE;
 gboolean show_dl_settings     = FALSE;
@@ -1272,20 +1272,20 @@ prop_set_t *gui_prop_init(void) {
 
 
     /*
-     * PROP_JUMP_TO_DOWNLOADS:
+     * PROP_SEARCH_SORT_CASESENSE:
      *
      * General data:
      */
-    gui_property->props[54].name = "jump_to_downloads";
-    gui_property->props[54].desc = _("Jump to downloads screen when downloading a file");
-    gui_property->props[54].ev_changed = event_new("jump_to_downloads_changed");
+    gui_property->props[54].name = "search_sort_casesense";
+    gui_property->props[54].desc = _("Do a case sensitive sorting.");
+    gui_property->props[54].ev_changed = event_new("search_sort_casesense_changed");
     gui_property->props[54].save = TRUE;
     gui_property->props[54].vector_size = 1;
 
     /* Type specific data: */
     gui_property->props[54].type               = PROP_TYPE_BOOLEAN;
-    gui_property->props[54].data.boolean.def   = &jump_to_downloads_def;
-    gui_property->props[54].data.boolean.value = &jump_to_downloads;
+    gui_property->props[54].data.boolean.def   = &search_sort_casesense_def;
+    gui_property->props[54].data.boolean.value = &search_sort_casesense;
 
 
     /*

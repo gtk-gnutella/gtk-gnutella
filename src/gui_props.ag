@@ -558,8 +558,8 @@ prop = {
 };
 
 prop = {
-    name = "jump_to_downloads";
-    desc = "Jump to downloads screen when downloading a file";
+    name = "search_sort_casesense";
+    desc = "Do a case sensitive sorting.";
     type = boolean;
     data = {
         default = FALSE;

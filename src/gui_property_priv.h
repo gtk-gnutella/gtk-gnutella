@@ -84,7 +84,7 @@ extern gboolean progressbar_bws_gout_avg;
 extern gboolean progressbar_bws_glin_avg;
 extern gboolean progressbar_bws_glout_avg;
 extern gboolean search_autoselect_ident;
-extern gboolean jump_to_downloads;
+extern gboolean search_sort_casesense;
 extern gboolean show_search_results_settings;
 extern gboolean show_dl_settings;
 extern gboolean search_autoselect_fuzzy;
