@@ -38,14 +38,14 @@ guint32 monitor_max_items = 25;
 guint32 connection_speed = 28;
 gint32 search_max_items = 30;	/* For now, this is limited to 255 anyway */
 guint32 forced_local_ip = 0;
-guint32 download_connecting_timeout = 60;
+guint32 download_connecting_timeout = 30;
 guint32 download_push_sent_timeout = 60;
 guint32 download_connected_timeout = 60;
 guint32 download_retry_timeout_min = 20;
 guint32 download_retry_timeout_max = 120;
 guint32 download_max_retries = 5;
 guint32 node_connected_timeout = 45;
-guint32 node_connecting_timeout = 45;
+guint32 node_connecting_timeout = 5;
 guint32 node_sendqueue_size = 20480;	/* was 10240 */
 guint32 search_queries_forward_size = 256;
 guint32 search_queries_kick_size = 5120;
@@ -557,26 +557,26 @@ void config_set_param(guint32 keyword, gchar *value)
 		return;
 
 	case k_node_connecting_timeout:
-		if (i > 10 && i < 3600) node_connecting_timeout = i;
+		if (i > 1 && i < 3600) node_connecting_timeout = i;
 		return;
 
 	case k_node_connected_timeout:
-		if (i > 10 && i < 3600) node_connected_timeout = i;
+		if (i > 1 && i < 3600) node_connected_timeout = i;
 		return;
 
 	case k_download_connecting_timeout:
-		if (i > 10 && i < 3600) download_connecting_timeout = i;
+		if (i > 1 && i < 3600) download_connecting_timeout = i;
 		return;
 
 	case k_download_push_sent_timeout:
-		if (i > 10 && i < 3600) download_push_sent_timeout = i;
+		if (i > 1 && i < 3600) download_push_sent_timeout = i;
 
 	case k_download_connected_timeout:
-		if (i > 10 && i < 3600) download_connected_timeout = i;
+		if (i > 1 && i < 3600) download_connected_timeout = i;
 		return;
 
 	case k_search_queries_forward_size:
-		if (i > 512 && i < 65535) search_queries_forward_size = i;
+		if (i > 64 && i < 65535) search_queries_forward_size = i;
 		return;
 
 	case k_search_queries_kick_size:
