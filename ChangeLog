@@ -1,5 +1,9 @@
 # since last version
 
+- (2002.12.28 - guruz)
+ * [Gtk1] Made PROP_MAX_ULTRAPEERS GUI-configurable depending on the setting
+   of PROP_ENABLE_ULTRAPEER.
+
 - (2002.12.28 - Richard)
  * Added PROP_CURRENT_PEERMODE and PROP_ENABLE_ULTRAPEER to gui
  * Added PROP_BAN_MAX_FDS and PROP_BAN_RATIO to gui

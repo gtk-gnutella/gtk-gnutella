@@ -149,7 +149,7 @@ static gboolean update_window_geometry(property_t prop);
 #ifdef USE_GTK2
 static gboolean update_treeview_col_widths(property_t prop);
 #endif
-
+static gboolean current_peermode_changed(property_t prop);
 static gboolean bw_http_in_enabled_changed(property_t prop);
 static gboolean bw_gnet_in_enabled_changed(property_t prop);
 static gboolean bw_gnet_out_enabled_changed(property_t prop);
@@ -194,7 +194,7 @@ static gboolean sha1_verifying_changed(property_t prop);
 static gboolean file_moving_changed(property_t prop);
 
 // FIXME: move to separate file and autoegenerate from high-level
-//        description. 
+//        description.
 static prop_map_t property_map[] = {
     {
         get_main_window,
@@ -534,6 +534,13 @@ static prop_map_t property_map[] = {
         update_spinbutton,
         TRUE,
         "spinbutton_max_connections",
+    },
+    {
+        get_main_window,
+        PROP_MAX_ULTRAPEERS,
+        update_spinbutton,
+        TRUE,
+        "spinbutton_max_ultrapeers",
     },
     {
         get_main_window,
@@ -1437,6 +1444,9 @@ static prop_map_t property_map[] = {
         TRUE,
         "checkbutton_config_req_srv_name"
     },
+#ifndef USE_GTK2
+// FIXME: Gtk2 should also have these controls
+
     {
         get_main_window,
         PROP_ENABLE_ULTRAPEER,
@@ -1447,7 +1457,7 @@ static prop_map_t property_map[] = {
     {
         get_main_window,
         PROP_CURRENT_PEERMODE,
-        update_multichoice,
+        current_peermode_changed,
         TRUE,
         "combo_config_peermode"
     },
@@ -2025,6 +2035,40 @@ static gboolean proxy_ip_changed(property_t prop)
     return FALSE;
 }
 
+static gboolean current_peermode_changed(property_t prop)
+{
+	GtkWidget *hbox_normal_or_ultrapeer;
+	GtkWidget *hbox_leaf;
+	guint32 val;
+
+	hbox_normal_or_ultrapeer = lookup_widget(main_window, "hbox_normal_or_ultrapeer");
+	hbox_leaf = lookup_widget(main_window, "hbox_leaf");
+
+	update_multichoice(prop);
+
+	gnet_prop_get_guint32(prop, &val, 0, 1);
+
+	switch (val) {
+	case NODE_P_LEAF:
+		{
+		gtk_widget_show(hbox_leaf);
+		gtk_widget_hide(hbox_normal_or_ultrapeer);
+		break;
+		};
+	case NODE_P_NORMAL:
+	case NODE_P_ULTRA:
+		{
+		gtk_widget_show(hbox_normal_or_ultrapeer);
+		gtk_widget_hide(hbox_leaf);
+		break;
+		};
+	default:
+		g_assert_not_reached();
+	};
+
+	return FALSE;
+};
+
 static gboolean is_firewalled_changed(property_t prop)
 {
 	GtkWidget *image_firewall;
@@ -2035,7 +2079,7 @@ static gboolean is_firewalled_changed(property_t prop)
 	image_no_firewall = lookup_widget(main_window, "image_no_firewall");
 
     gnet_prop_get_boolean(prop, &val, 0, 1);
-	
+
 	if (val) {
 		gtk_widget_show(image_firewall);
 		gtk_widget_hide(image_no_firewall);
