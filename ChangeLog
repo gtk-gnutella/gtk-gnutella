@@ -1,5 +1,9 @@
 # since last version
 
+- (2004-10-19 - Richard)
+ * [Gtk1] Added "Configure columns" to nodes pane
+ * [Gtk1] [Gtk2] Removed nodes column configuration checkboxes
+
 - (2004-10-18 - RAM)
  * Fixed small memory leak in core/uploads.c.
  * Remember IP of stalling uploads for a while, via the new "aging" table,
