@@ -70,10 +70,27 @@ set s [open "interface-glade.c" "r"]
 set d [open "interface.c" "w" 0600]
 
 # First, copy the head until the first "GtkWidget *"
+# We also replace
+#
+#	#include "callbacks-glade.h"
+#	#include "interface-glade.h"
+#
+# lines with:.
+#
+#	#include "callbacks.h"
+#	#include "interface.h"
+#
+# because glade is only for developers, and *-glade files are removed.
 
 while { ! [eof $s] } {
 	set l [gets $s]
 	if { [regexp -- "^GtkWidget\\*$" $l] == 1 } break
+	if { [regexp -- "^#include \"callbacks" $l] == 1 } {
+		set l "#include \"callbacks.h\""
+	}
+	if { [regexp -- "^#include \"interface" $l] == 1 } {
+		set l "#include \"interface.h\""
+	}
 	puts $d $l
 }
 

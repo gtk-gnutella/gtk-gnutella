@@ -14,8 +14,8 @@
 #include <gdk/gdkkeysyms.h>
 #include <gtk/gtk.h>
 
-#include "callbacks-glade.h"
-#include "interface-glade.h"
+#include "callbacks.h"
+#include "interface.h"
 #include "support.h"
 
 /* Global Widgets (added by extern.tcl) */
