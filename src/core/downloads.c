@@ -4736,7 +4736,7 @@ check_date(const header_t *header, guint32 ip)
 		if (their == (time_t) -1)
 			g_message("Cannot parse Date: %s", buf);
 		else
-			clock_update(their, 1, ip);
+			clock_update(their, 10, ip);
 	}
 }
 
