@@ -1245,11 +1245,30 @@ static gchar *rule_condition_to_gchar(rule_t *r) {
             ip_to_gchar(r->u.ip.mask));
         break;
     case RULE_SIZE:
-       	g_snprintf(
-            f_tmp, sizeof(f_tmp), 
-            "If filesize is between %d and %d",
-            r->u.size.lower,
-            r->u.size.upper);
+        {
+            if (r->u.size.lower == 0) {
+                g_snprintf(
+                    f_tmp, sizeof(f_tmp), 
+                    "If filesize is less than %d",
+                    r->u.size.lower);
+            } else if (r->u.size.upper == 0) {
+                g_snprintf(
+                    f_tmp, sizeof(f_tmp), 
+                    "If filesize is greater than %d",
+                    r->u.size.lower);
+            } else if (r->u.size.upper == r->u.size.lower) {
+                g_snprintf(
+                    f_tmp, sizeof(f_tmp), 
+                    "If filesize is exactly %d",
+                    r->u.size.lower);
+            } else {
+                g_snprintf(
+                    f_tmp, sizeof(f_tmp), 
+                    "If filesize is between %d and %d",
+                    r->u.size.lower,
+                    r->u.size.upper);
+            }
+        }
         break;
     case RULE_JUMP:
        	g_snprintf(
@@ -1847,9 +1866,14 @@ static int filter_apply(filter_t *filter, struct record *rec)
             val = filter_apply(r->target, rec);                      
             filter->visited = FALSE;                                 
 
-            if ((val != -1) && (dbg >= 6))
-                g_message("matched rule: %s", rule_to_gchar(r));
-            return val;    
+            /*
+             * If a decision could be reached, we return.
+             */
+            if (val != -1) {
+                if(dbg >= 6)
+                    g_message("matched rule: %s", rule_to_gchar(r));
+                return val;    
+            }
         }
 
 		list = g_list_next(list);
