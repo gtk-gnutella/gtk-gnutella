@@ -491,6 +491,15 @@ void guc_node_fill_info
 	node_fill_info(n, info);
 }
 
+void guc_node_udp_gui_show(void)
+{
+	node_udp_gui_show();
+}
+
+void guc_node_udp_gui_remove(void)
+{
+	node_udp_gui_remove();
+}
 
 /*	parq interface functions (UI -> Core)*/
 gint guc_get_parq_dl_position(const struct download *d)

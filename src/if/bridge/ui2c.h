@@ -175,6 +175,8 @@ void guc_node_fill_flags
 	(gnet_node_t n, gnet_node_flags_t *flags);
 void guc_node_fill_info
 	(const gnet_node_t n, gnet_node_info_t *info);
+void guc_node_udp_gui_show(void);
+void guc_node_udp_gui_remove(void);
 	
 /* parq interface functions */
 gint guc_get_parq_dl_position(const struct download *d);
