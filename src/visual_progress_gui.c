@@ -99,6 +99,9 @@ static GdkColor busy;       /** Pre-filled color (yellow) for BUSY chunks */
 static GdkColor empty;      /** Pre-filled color (red) for EMPTY chunks */
 static GdkColor black;      /** Pre-filled color (black) for general drawing */
 static GdkColor available;  /** Pre-filled color (blue) available on network */
+static GdkColor nosize;      /** Pre-filled color (gray) indicates
+								 chunk information is not available
+								 (e.g. file size == 0 */
 static GdkColor *base;      /** Theme-defined background color */
 
 /**
@@ -127,17 +130,12 @@ vp_draw_rectangle(vp_info_t *v, guint32 from, guint32 to,
 	 * neither should be zero when we end up here, so this can be
 	 * considered a bug somewhere in the calling code.
 	 *
-	 * file_size should be set in the fileinfo code.
+	 * file_size should be set in the fileinfo code. For files with
+	 * unknown size the file_size == 0, but in this case
+	 * vp_draw_fi_progress catches this case.
 	 */
 	g_assert(v->file_size);
 
-	
-	/* FIXME: DOWNLOAD_SIZE:
-	 * This should now be totally screwed up for fileinfo's with an
-	 * unknown size.  Their size will be set to 1 but we shouldn't rely on that.
-	 *		--- Emile.
-	 */
-	
 	s_from = (gfloat) from * v->context->widget->allocation.width 
 		/ v->file_size;
 	s_to   = (gfloat) to   * v->context->widget->allocation.width 
@@ -216,9 +214,16 @@ vp_draw_fi_progress(gboolean valid, gnet_fi_t fih)
 			v = value;
 			v->context = &fi_context;
 
-			g_slist_foreach(v->chunks_list, &vp_draw_chunk, v);
-
-			g_slist_foreach(v->ranges, &vp_draw_range, v);
+			if (v->file_size > 0) {
+				g_slist_foreach(v->chunks_list, &vp_draw_chunk, v);
+				g_slist_foreach(v->ranges, &vp_draw_range, v);
+			} else {
+				gdk_gc_set_foreground(fi_context.gc, &nosize);
+				gdk_draw_rectangle(fi_context.drawable, fi_context.gc, TRUE,
+								   0, 0, 
+								   fi_context.widget->allocation.width, 
+								   fi_context.widget->allocation.height);
+			}
 		} else {
 			gdk_gc_set_foreground(fi_context.gc, base);
 			gdk_draw_rectangle(fi_context.drawable, fi_context.gc, TRUE,
@@ -519,6 +524,8 @@ vp_gui_init(void)
     gdk_colormap_alloc_color(cmap, &black, FALSE, TRUE);
 	gdk_color_parse("blue", &available);
 	gdk_colormap_alloc_color(cmap, &available, FALSE, TRUE);
+	gdk_color_parse("gray", &nosize);
+	gdk_colormap_alloc_color(cmap, &nosize, FALSE, TRUE);
 
     /*
      * No progress fih has been seen yet

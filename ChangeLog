@@ -1,5 +1,12 @@
 # since last version
 
+- (2004-08-02 - Hans)
+ * Show gray progress bar when the file size of a downloadable file is not
+   known.
+	
+- (2004-07-24 - Hans)
+ * Make 'Purge' button on the 'Files' tab inactive when file has been
+   completely downloaded. Fixes #922920.
 
 - (2004-07-19 - TNT)
  * Added option 'ALL' to the remote shell command 'HORIZON'. This option
