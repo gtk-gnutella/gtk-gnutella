@@ -35,6 +35,7 @@
 #include "ban.h"
 #include "sockets.h"
 #include "version.h" /* for version_is_too_old() */
+#include "token.h"
 
 RCSID("$Id$");
 
@@ -437,9 +438,11 @@ static gchar *too_old = "Outdated version, please upgrade";
  * is exceptional, usually restricted to some versions and the servent's author
  * is informed about the banning.
  *
+ * `token' is an optional parameter, which should only be given for GTKG.
+ *
  * Returns NULL if we shall not ban, a banning reason string otherwise.
  */
-gchar *ban_vendor(gchar *vendor)
+gchar *ban_vendor(gchar *vendor, gchar *token)
 {
 	/*
 	 * Ban gtk-gnutella/0.90 from the network.  This servent had
@@ -466,7 +469,11 @@ gchar *ban_vendor(gchar *vendor)
 
 		if (version_is_too_old(vendor))
 			return too_old;
-	}
+
+	} else if (token != NULL)
+		g_warning("vendor \"%s\" used an X-Token header set to \"%s\"",
+			vendor, token);
+
 
 #undef GTKG_NAME
 #undef GTKG_LEN

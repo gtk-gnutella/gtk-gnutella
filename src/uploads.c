@@ -1658,6 +1658,8 @@ static void upload_request(gnutella_upload_t *u, header_t *header)
 	gint hevcnt = 0;
 	guchar *sha1;
 	gboolean is_followup = u->status == GTA_UL_WAITING;
+	gboolean faked = FALSE;
+	gchar *token;
 	extern gint sha1_eq(gconstpointer a, gconstpointer b);
 
 	if (dbg > 2) {
@@ -1698,10 +1700,12 @@ static void upload_request(gnutella_upload_t *u, header_t *header)
 	/* 
 	 * Extract User-Agent.
 	 *
+	 * X-Token: GTKG token
 	 * User-Agent: whatever
 	 * Server: whatever (in case no User-Agent)
 	 */
 
+	token = header_get(header, "X-Token");
 	user_agent = header_get(header, "User-Agent");
 
 	/* Maybe they sent a Server: line, thinking they're a server? */
@@ -1709,10 +1713,16 @@ static void upload_request(gnutella_upload_t *u, header_t *header)
 		user_agent = header_get(header, "Server");
 
 	if (user_agent)
-		version_check(user_agent);
+		faked = version_check(user_agent, token);
 
-	if (!is_followup && user_agent)
-		u->user_agent = atom_str_get(user_agent);
+	if (!is_followup && user_agent) {
+		if (faked) {
+			gchar *name = g_strdup_printf("!%s", user_agent);
+			u->user_agent = atom_str_get(name);
+			g_free(name);
+		} else
+			u->user_agent = atom_str_get(user_agent);
+	}
 
 	/*
 	 * Make sure there is the HTTP/x.x tag at the end of the request,
@@ -1763,7 +1773,7 @@ static void upload_request(gnutella_upload_t *u, header_t *header)
 	 */
 
 	if (user_agent) {
-		gchar *msg = ban_vendor(user_agent);
+		gchar *msg = ban_vendor(user_agent, token);
 
 		if (msg != NULL) {
 			upload_error_remove(u, NULL, 403, msg);

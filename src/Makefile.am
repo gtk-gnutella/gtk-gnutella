@@ -136,6 +136,7 @@ gtk_gnutella_SOURCES = \
 	header.c header.h \
 	ioheader.c ioheader.h \
 	url.c url.h \
+	token.c token.h \
 	pmsg.c pmsg.h \
 	gmsg.c gmsg.h \
 	cq.c cq.h \
@@ -152,6 +153,7 @@ gtk_gnutella_SOURCES = \
 	zlib_util.c zlib_util.h \
 	sha1.c sha1.h huge.c huge.h \
 	base32.c base32.h \
+	base64.c base64.h \
 	utf8.c utf8.h \
 	ban.c ban.h \
 	inet.c inet.h \

@@ -44,6 +44,7 @@
 #include "ioheader.h"
 #include "version.h"
 #include "glib-missing.h"
+#include "token.h"
 
 RCSID("$Id$");
 
@@ -91,9 +92,11 @@ gboolean http_send_status(
 	rw = gm_snprintf(header, sizeof(header),
 		"HTTP/1.1 %d %s\r\n"
 		"Server: %s\r\n"
-		"%s"
+		"%s"			// Connection
+		"X-Token: %s\r\n"
 		"X-Live-Since: %s\r\n",
-		code, status_msg, version_string, conn_close, start_rfc822_date);
+		code, status_msg, version_string, conn_close,
+		tok_version(), start_rfc822_date);
 
 	mrw = rw;		/* Minimal header length */
 

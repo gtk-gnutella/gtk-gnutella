@@ -186,6 +186,7 @@ typedef struct gnutella_node {
 #define NODE_F_ULTRA		0x00002000	/* Is one of our ultra nodes */
 #define NODE_F_LEAF			0x00004000	/* Is one of our leaves */
 #define NODE_F_CRAWLER		0x00008000	/* Is a Gnutella Crawler */
+#define NODE_F_FAKE_NAME	0x00010000	/* Was unable to validate GTKG name */
 
 /*
  * Node attributes.

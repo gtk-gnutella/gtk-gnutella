@@ -3687,11 +3687,17 @@ static gboolean download_get_server_name(struct download *d, header_t *header)
 
 	if (buf) {
 		struct dl_server *server = d->server;
-		version_check(buf);
+		gboolean faked = version_check(buf, header_get(header, "X-Token"));
 		if (server->vendor == NULL) {
-			server->vendor = atom_str_get(buf);
+			if (faked) {
+				gchar *name = g_strdup_printf("!%s", buf);
+				server->vendor = atom_str_get(name);
+				g_free(name);
+			} else
+				server->vendor = atom_str_get(buf);
 			got_new_server = TRUE;
-		} else if (0 != strcmp(server->vendor, buf)) {	/* Name changed? */
+		} else if (!faked && 0 != strcmp(server->vendor, buf)) {
+			/* Name changed? */
 			atom_str_free(server->vendor);
 			server->vendor = atom_str_get(buf);
 			got_new_server = TRUE;
@@ -4554,6 +4560,46 @@ static void download_request(struct download *d, header_t *header, gboolean ok)
 
 		download_bad_source(d);
 
+		/*
+		 * Check whether server is banning us based on our user-agent.
+		 *
+		 * If server is a gtk-gnutella, it's not banning us based on that.
+		 * Note that if the remote server is a fake GTKG, then its name
+		 * will begin with a '!'.
+		 */
+
+		if (
+			!(d->server->attrs & DLS_A_BANNING) &&
+			*download_vendor_str(d) != '\0' &&
+			0 != strncmp(download_vendor_str(d), "gtk-gnutella/", 13)
+		) {
+			switch (ack_code) {
+			case 401:
+				if (0 != strncmp(download_vendor_str(d), "BearShare", 9))
+					d->server->attrs |= DLS_A_BANNING;	/* Probably */
+				break;
+			case 403:
+				d->server->attrs |= DLS_A_BANNING;		/* Probably */
+				break;
+			case 404:
+				if (0 == strncmp(ack_message, "Please Share", 12))
+					d->server->attrs |= DLS_A_BANNING;	/* Shareaza */
+				break;
+			}
+
+			/*
+			 * If server might be banning us, use minimal HTTP headers
+			 * in our requests from now on.
+			 */
+
+			if (d->server->attrs & DLS_A_BANNING) {
+				d->server->attrs |= DLS_A_MINIMAL_HTTP;
+				g_warning("server \"%s\" at %s might be banning us",
+					download_vendor_str(d),
+					ip_port_to_gchar(download_ip(d), download_port(d)));
+			}
+		}
+
 		download_stop(d, GTA_DL_ERROR,
 			"%sHTTP %d %s", short_read, ack_code, ack_message);
 		return;
@@ -4991,7 +5037,9 @@ picked:
 	rw += gm_snprintf(&dl_tmp[rw], sizeof(dl_tmp)-rw,
 		"Host: %s\r\n"
 		"User-Agent: %s\r\n",
-		ip_port_to_gchar(download_ip(d), download_port(d)), version_string);
+		ip_port_to_gchar(download_ip(d), download_port(d)),
+		(d->server->attrs & DLS_A_BANNING) ?
+			download_vendor_str(d) : version_string);
 	
 	/*
 	 * Add X-Queue / X-Queued information into the header

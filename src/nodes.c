@@ -65,6 +65,7 @@
 #include "hcache.h"
 #include "qrp.h"
 #include "vmsg.h"
+#include "token.h"
 
 #include "settings.h"
 
@@ -1426,10 +1427,12 @@ void send_node_error(struct gnutella_socket *s, int code, guchar *msg, ...)
 		"GNUTELLA/0.6 %d %s\r\n"
 		"User-Agent: %s\r\n"
 		"Remote-IP: %s\r\n"
+		"X-Token: %s\r\n"
 		"X-Live-Since: %s\r\n"
 		"%s"		// X-Ultrapeer
 		"%s",		// X-Try
-		code, msg_tmp, version_string, ip_to_gchar(s->ip), start_rfc822_date,
+		code, msg_tmp, version_string, ip_to_gchar(s->ip),
+		tok_version(), start_rfc822_date,
 		current_peermode == NODE_P_NORMAL ? "" :
 		current_peermode == NODE_P_LEAF ?
 			"X-Ultrapeer: False\r\n": "X-Ultrapeer: True\r\n",
@@ -2497,6 +2500,7 @@ static void node_process_handshake_header(
 	gchar *what = incoming ? "HELLO reply" : "HELLO acknowledgment";
 	gchar *compressing = "Content-Encoding: deflate\r\n";
 	gchar *empty = "";
+	gchar *token = NULL;
 
 	g_assert(!(n->flags & NODE_F_TMP));	/* 0.6 connections no longer "tmp" */
 
@@ -2523,11 +2527,16 @@ static void node_process_handshake_header(
 	 * Handle common header fields, non servent-specific.
 	 */
 
+	/* X-Token -- marks gtk-gnutella versions */
+
+	token = header_get(head, "X-Token");
+
 	/* User-Agent -- servent vendor identification */
 
 	field = header_get(head, "User-Agent");
 	if (field) {
-		version_check(field);
+		if (!version_check(field, token))
+			n->flags |= NODE_F_FAKE_NAME;
         node_set_vendor(n, field);
 	}
 
@@ -2709,6 +2718,29 @@ static void node_process_handshake_header(
 	}
 
 	/*
+	 * Check that everything is OK so far for an outgoing connection: if
+	 * they did not reply with 200, then there's no need for us to reply back.
+	 */
+
+	if (!incoming && !analyse_status(n, NULL)) {
+		/*
+		 * If we have the "retry at 0.4" flag set, re-initiate the
+		 * connection at the 0.4 level if it was an outgoing connection.
+		 *
+		 * If the flag is not set, we got a valid 0.6 reply, but the
+		 * connection was denied.  Check the header nonetheless for
+		 * possible pongs.
+		 */
+
+		if ((n->flags & NODE_F_RETRY_04))
+			downgrade_handshaking(n);
+		else
+			extract_header_pongs(head, n);
+
+		return;				/* node_remove() has freed s->getline */
+	}
+
+	/*
 	 * Vendor-specific banning.
 	 *
 	 * This happens at step #2 of the handshaking process for incoming
@@ -2716,7 +2748,7 @@ static void node_process_handshake_header(
 	 */
 
 	if (n->vendor) {
-		gchar *msg = ban_vendor(n->vendor);
+		gchar *msg = ban_vendor(n->vendor, token);
 
 		if (msg != NULL) {
 			send_node_error(n->socket, 403, msg);
@@ -2776,24 +2808,6 @@ static void node_process_handshake_header(
 
 	if (!incoming) {
 		gboolean mode_changed = FALSE;
-
-		if (!analyse_status(n, NULL)) {
-			/*
-			 * If we have the "retry at 0.4" flag set, re-initiate the
-			 * connection at the 0.4 level.
-			 *
-			 * If the flag is not set, we got a valid 0.6 reply, but the
-			 * connection was denied.  Check the header nonetheless for
-			 * possible pongs.
-			 */
-
-			if (n->flags & NODE_F_RETRY_04)
-				downgrade_handshaking(n);
-			else
-				extract_header_pongs(head, n);
-
-			return;				/* node_remove() has freed s->getline */
-		}
 
 		/* Make sure we only receive incoming connections from crawlers */
 
@@ -2900,6 +2914,7 @@ static void node_process_handshake_header(
 				"%s"		// X-Ultrapeer
 				"%s"		// X-Ultrapeer-Needed
 				"%s"		// X-Query-Routing
+				"X-Token: %s\r\n"
 				"X-Live-Since: %s\r\n"
 				"\r\n",
 				version_string, ip_to_gchar(n->socket->ip),
@@ -2914,7 +2929,7 @@ static void node_process_handshake_header(
 					"",
 				current_peermode != NODE_P_NORMAL ?
 					"X-Query-Routing: 0.1\r\n" : "",
-				start_rfc822_date);
+				tok_version(), start_rfc822_date);
 
 		g_assert(rw < sizeof(gnet_response));
 	}
@@ -3693,6 +3708,7 @@ void node_init_outgoing(struct gnutella_node *n)
 			"GGEP: 0.5\r\n"
 			"Vendor-Message: 0.1\r\n"
 			"Accept-Encoding: deflate\r\n"
+			"X-Token: %s\r\n"
 			"X-Live-Since: %s\r\n"
 			"%s"		// X-Ultrapeer
 			"%s"		// X-Query-Routing
@@ -3700,7 +3716,7 @@ void node_init_outgoing(struct gnutella_node *n)
 			n->proto_major, n->proto_minor,
 			ip_port_to_gchar(listen_ip(), listen_port),
 			ip_to_gchar(n->ip),
-			version_string, start_rfc822_date,
+			version_string, tok_version(), start_rfc822_date,
 			current_peermode == NODE_P_NORMAL ? "" :
 			current_peermode == NODE_P_LEAF ?
 				"X-Ultrapeer: False\r\n": "X-Ultrapeer: True\r\n",
@@ -4504,7 +4520,13 @@ void node_add_rxdrop(gnutella_node_t *n, gint x)
 
 void node_set_vendor(gnutella_node_t *n, const gchar *vendor)
 {
-    n->vendor = atom_str_get(vendor);
+	if (n->flags & NODE_F_FAKE_NAME) {
+		gchar *name = g_strdup_printf("!%s", vendor);
+		n->vendor = atom_str_get(name);
+		g_free(name);
+	} else
+		n->vendor = atom_str_get(vendor);
+
     node_fire_node_info_changed(n);
 }
 

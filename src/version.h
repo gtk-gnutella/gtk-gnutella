@@ -44,13 +44,23 @@ typedef struct version {
 } version_t;
 
 /*
+ * Banning periods for our versions.
+ */
+
+#define VERSION_ANCIENT_WARN	(86400*365)		/* 1 year */
+#define VERSION_ANCIENT_BAN		(86400*365)		/* 1 year */
+
+#define VERSION_UNSTABLE_WARN	(86400*60)		/* 2 months - 60 days */
+#define VERSION_UNSTABLE_BAN	(86400*90)		/* 3 months - 90 days */
+
+/*
  * Public interface.
  */
 
 void version_init(void);
 void version_close(void);
 void version_ancient_warn(void);
-void version_check(guchar *str);
+gboolean version_check(guchar *str, gchar *token);
 gboolean version_is_too_old(gchar *vendor);
 
 gchar *version_str(version_t *ver);

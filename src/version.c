@@ -31,14 +31,9 @@
 #include <sys/utsname.h>		/* For uname() */
 
 #include "version.h"
+#include "token.h"
 
 RCSID("$Id$");
-
-#define VERSION_ANCIENT_WARN	(86400*365)		/* 1 year */
-#define VERSION_ANCIENT_BAN		(86400*365)		/* 1 year */
-
-#define VERSION_UNSTABLE_WARN	(86400*60)		/* 2 months - 60 days */
-#define VERSION_UNSTABLE_BAN	(86400*90)		/* 3 months - 90 days */
 
 gchar *version_number = NULL;
 gchar *version_string = NULL;
@@ -309,8 +304,11 @@ static void version_new_found(gchar *text, gboolean stable)
  *
  * Check version of servent, and if it's a gtk-gnutella more recent than we
  * are, record that fact and change the status bar.
+ *
+ * Returns TRUE if we properly checked the version, FALSE if we got something
+ * looking as gtk-gnutella but which failed the token-based sanity checks.
  */
-void version_check(guchar *str)
+gboolean version_check(guchar *str, gchar *token)
 {
 	version_t their_version;
 	version_t *target_version;
@@ -318,7 +316,7 @@ void version_check(guchar *str)
 	gchar *version;
 
 	if (!version_parse(str, &their_version))
-		return;				/* Not gtk-gnutella, or unparseable */
+		return TRUE;			/* Not gtk-gnutella, or unparseable */
 
 	/*
 	 * Is their version a development one, or a release?
@@ -336,9 +334,6 @@ void version_check(guchar *str)
 			cmp == 0 ? "=" :
 			cmp > 0 ? "-" : "+");
 
-	if (cmp > 0)
-		return;
-
 	/*
 	 * Check timestamp.
 	 */
@@ -347,6 +342,37 @@ void version_check(guchar *str)
 
 	if (dbg > 6)
 		printf("VERSION time=%d\n", (gint) their_version.timestamp);
+
+	/*
+	 * If version claims something older than TOKEN_START_DATE, then
+	 * there must be a token present.
+	 */
+
+	if (their_version.timestamp >= TOKEN_START_DATE) {
+		tok_error_t error;
+
+		if (token == NULL) {
+			g_warning("got GTKG vendor string \"%s\" without token!", str);
+			return FALSE;	/* Can't be correct */
+		}
+
+		error = tok_version_valid(str, token, strlen(token));
+
+		if (error != TOK_OK) {
+			g_warning("vendor string \"%s\" has wrong token \"%s\": %s ",
+				str, token, tok_strerror(error));
+			return FALSE;
+		}
+
+		/*
+		 * OK, so now we know we can "trust" this version string as being
+		 * probably genuine.  It makes sense to extract version information
+		 * out of it.
+		 */
+	}
+
+	if (cmp > 0)			/* We're more recent */
+		return TRUE;
 
 	/*
 	 * If timestamp is greater and we were comparing against a stable
@@ -365,16 +391,16 @@ void version_check(guchar *str)
 		if (version_cmp(&last_dev_version, &their_version) > 0) {
 			if (dbg > 6)
 				printf("VERSION is less recent than latest dev we know\n");
-			return;
+			return TRUE;
 		}
 		target_version = &last_dev_version;
 	}
 
 	if (their_version.timestamp <= target_version->timestamp)
-		return;
+		return TRUE;
 
 	if (their_version.timestamp == our_version.timestamp)
-		return;
+		return TRUE;
 
 	/*
 	 * We found a more recent version than the last version seen.
@@ -403,6 +429,8 @@ void version_check(guchar *str)
 		version_new_found(version, TRUE);
 	else if (our_version.tag == 'u')
 		version_new_found(version, FALSE);
+
+	return TRUE;
 }
  
 /*

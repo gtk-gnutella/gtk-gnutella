@@ -1,9 +1,9 @@
 /*
  * $Id$
  *
- * Copyright (c) 2002, Raphael Manfredi
+ * Copyright (c) 2003, Raphael Manfredi
  *
- * Banning control.
+ * Token management.
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -25,31 +25,34 @@
  *----------------------------------------------------------------------
  */
 
-#ifndef _ban_h_
-#define _ban_h_
+#ifndef _token_h_
+#define _token_h_
 
 #include <glib.h>
 
-struct gnutella_socket;
-
-void ban_init(void);
-void ban_close(void);
-gint ban_allow(guint32 ip);
-void ban_force(struct gnutella_socket *s);
-gint ban_delay(guint32 ip);
-void ban_max_recompute(void);
-
-gchar *ban_vendor(gchar *vendor, gchar *token);
+#define TOKEN_VERSION_SIZE	(4 + 3 + 20)	/* stamp + seed + SHA1 */
+#define TOKEN_START_DATE	1045868400		/* When we started using tokens */
 
 /*
- * Return codes for ban_allow().
+ * Error codes for token validation.
+ */
+typedef enum {
+	TOK_OK = 0,					/* OK */
+	TOK_BAD_LENGTH,				/* Bad length */
+	TOK_BAD_STAMP,				/* Bad timestamp */
+	TOK_BAD_INDEX,				/* Bad key index */
+	TOK_INVALID,				/* Invalid */
+	TOK_BAD_ENCODING,			/* Not base64-encoded */
+} tok_error_t;
+
+/*
+ * Public interface.
  */
 
-#define BAN_OK		0		/* OK, don't ban and accept the connection */
-#define BAN_FIRST	1		/* Initial banning, send polite denial */
-#define BAN_FORCE	2		/* Force banning, don't send back anything */
+gchar *tok_strerror(tok_error_t errnum);
+guchar *tok_version(void);
+tok_error_t tok_version_valid(gchar *version, guchar *tokenb64, gint len);
 
-#endif	/* _ban_h_ */
+#endif	/* _token_h_ */
 
 /* vi: set ts=4: */
-

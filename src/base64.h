@@ -1,9 +1,9 @@
 /*
  * $Id$
  *
- * Copyright (c) 2002, Raphael Manfredi
+ * Copyright (c) 2003, Raphael Manfredi
  *
- * Banning control.
+ * Base64 encoding/decoding.
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -25,31 +25,24 @@
  *----------------------------------------------------------------------
  */
 
-#ifndef _ban_h_
-#define _ban_h_
+#ifndef _base64_h_
+#define _base64_h_
 
 #include <glib.h>
 
-struct gnutella_socket;
-
-void ban_init(void);
-void ban_close(void);
-gint ban_allow(guint32 ip);
-void ban_force(struct gnutella_socket *s);
-gint ban_delay(guint32 ip);
-void ban_max_recompute(void);
-
-gchar *ban_vendor(gchar *vendor, gchar *token);
-
 /*
- * Return codes for ban_allow().
+ * Public interface.
  */
 
-#define BAN_OK		0		/* OK, don't ban and accept the connection */
-#define BAN_FIRST	1		/* Initial banning, send polite denial */
-#define BAN_FORCE	2		/* Force banning, don't send back anything */
+guchar *base64_encode(const guchar *buf, gint len, gint *retpad);
+void base64_encode_into(const guchar *buf, gint len,
+	guchar *encbuf, gint enclen);
 
-#endif	/* _ban_h_ */
+guchar *base64_decode(const guchar *buf, gint len);
+gboolean base64_decode_into(const guchar *buf, gint len,
+	guchar *decbuf, gint declen);
+
+#endif	/* _base64_h_ */
 
 /* vi: set ts=4: */
 
