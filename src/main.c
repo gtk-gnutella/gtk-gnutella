@@ -67,6 +67,7 @@ static void SIG_Handler(int n)
 
 static void SIG_Ignore(int n)
 {
+	signal(SIGPIPE, SIG_Ignore);		/* SIG_IGN -- running under debugger */
 	return;
 }
 
