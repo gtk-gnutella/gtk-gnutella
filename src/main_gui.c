@@ -34,6 +34,7 @@
 #include "statusbar_gui.h"
 #include "search_stats_gui.h"
 #include "gnet_stats_gui.h"
+#include "uploads_gui.h"
 
 #include "filter_cb.h"
 
@@ -252,13 +253,13 @@ void main_gui_early_init(gint argc, gchar **argv)
     dlg_quit = create_dlg_quit();
 
 	/* popup menus */
-	popup_nodes = create_popup_nodes();
 	popup_search = create_popup_search();
 	popup_monitor = create_popup_monitor();
-	popup_uploads = create_popup_uploads();
 	popup_downloads = create_popup_dl_active();
 	popup_queue = create_popup_dl_queued();	
 
+    nodes_gui_early_init();
+    uploads_gui_early_init();
     statusbar_gui_init();
 
     gui_init_menu();
@@ -298,65 +299,13 @@ void main_gui_init(void)
     gtk_clist_set_column_justification(
         GTK_CLIST(lookup_widget(main_window, "clist_downloads_queue")),
         c_queue_size, GTK_JUSTIFY_RIGHT);
-    gtk_clist_set_column_justification(
-        GTK_CLIST(lookup_widget(main_window, "clist_uploads")),
-        c_ul_size, GTK_JUSTIFY_RIGHT);
-    gtk_clist_set_column_justification(
-        GTK_CLIST(lookup_widget(main_window, "clist_gnet_stats_pkg")),
-        c_gs_relayed, GTK_JUSTIFY_RIGHT);
-    gtk_clist_set_column_justification(
-        GTK_CLIST(lookup_widget(main_window, "clist_gnet_stats_pkg")),
-        c_gs_generated, GTK_JUSTIFY_RIGHT);
-    gtk_clist_set_column_justification(
-        GTK_CLIST(lookup_widget(main_window, "clist_gnet_stats_pkg")),
-        c_gs_dropped, GTK_JUSTIFY_RIGHT);
-    gtk_clist_set_column_justification(
-        GTK_CLIST(lookup_widget(main_window, "clist_gnet_stats_pkg")),
-        c_gs_expired, GTK_JUSTIFY_RIGHT);
-    gtk_clist_set_column_justification(
-        GTK_CLIST(lookup_widget(main_window, "clist_gnet_stats_pkg")),
-        c_gs_recieved, GTK_JUSTIFY_RIGHT);
-    gtk_clist_set_column_justification(
-        GTK_CLIST(lookup_widget(main_window, "clist_gnet_stats_byte")),
-        c_gs_generated, GTK_JUSTIFY_RIGHT);
-    gtk_clist_set_column_justification(
-        GTK_CLIST(lookup_widget(main_window, "clist_gnet_stats_byte")),
-        c_gs_dropped, GTK_JUSTIFY_RIGHT);
-    gtk_clist_set_column_justification(
-        GTK_CLIST(lookup_widget(main_window, "clist_gnet_stats_byte")),
-        c_gs_expired, GTK_JUSTIFY_RIGHT);
-    gtk_clist_set_column_justification(
-        GTK_CLIST(lookup_widget(main_window, "clist_gnet_stats_byte")),
-        c_gs_recieved, GTK_JUSTIFY_RIGHT);
-    gtk_clist_set_column_justification(
-        GTK_CLIST(lookup_widget(main_window, "clist_gnet_stats_byte")),
-        c_gs_relayed, GTK_JUSTIFY_RIGHT);
-    gtk_clist_set_column_justification(
-        GTK_CLIST(lookup_widget(main_window, "clist_gnet_stats_general")),
-        1, GTK_JUSTIFY_RIGHT);
-    gtk_clist_set_column_justification(
-        GTK_CLIST(lookup_widget(main_window, "clist_gnet_stats_drop_reasons")),
-        1, GTK_JUSTIFY_RIGHT);
 
     gtk_clist_column_titles_passive(
         GTK_CLIST(lookup_widget(main_window, "clist_search_stats")));
     gtk_clist_column_titles_passive(
         GTK_CLIST(lookup_widget(main_window, "clist_search")));
-    gtk_clist_column_titles_passive(
-        GTK_CLIST(lookup_widget(main_window, "clist_nodes")));
-	gtk_clist_column_titles_passive(
-        GTK_CLIST(lookup_widget(main_window, "clist_uploads")));
 	gtk_clist_column_titles_passive(
         GTK_CLIST(lookup_widget(main_window, "clist_downloads")));
-	gtk_clist_column_titles_passive(
-        GTK_CLIST(lookup_widget(main_window, "clist_gnet_stats_pkg")));
-	gtk_clist_column_titles_passive(
-        GTK_CLIST(lookup_widget(main_window, "clist_gnet_stats_byte")));
-	gtk_clist_column_titles_passive(
-        GTK_CLIST(lookup_widget(
-            main_window, "clist_gnet_stats_drop_reasons")));
-	gtk_clist_column_titles_passive(
-        GTK_CLIST(lookup_widget(main_window, "clist_gnet_stats_general")));
 
     gtk_clist_set_compare_func(
         GTK_CLIST(lookup_widget(main_window, "clist_ul_stats")), 
@@ -377,8 +326,6 @@ void main_gui_init(void)
         (lookup_widget(popup_downloads, "popup_downloads_remove_file"), FALSE);
     gtk_widget_set_sensitive
         (lookup_widget(popup_downloads, "popup_downloads_copy_url"), FALSE);
-    gtk_widget_set_sensitive
-        (lookup_widget(popup_nodes, "popup_nodes_remove"), FALSE);
 	gtk_widget_set_sensitive
         (lookup_widget(popup_queue, "popup_queue_abort"), FALSE); 
 	gtk_widget_set_sensitive
@@ -396,6 +343,7 @@ void main_gui_init(void)
     gnet_stats_gui_init();
     search_stats_gui_init();
     nodes_gui_init();
+    uploads_gui_init();
     /* Must come before search_init() so searches/filters can be loaded.*/
 	filter_init(); 
     search_gui_init();
@@ -454,6 +402,7 @@ void main_gui_shutdown(void)
     search_gui_shutdown(); /* must be done before filter_shutdown! */
 	filter_shutdown();
     nodes_gui_shutdown();
+    uploads_gui_shutdown();
     settings_gui_shutdown();
 }
 
