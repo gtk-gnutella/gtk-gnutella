@@ -29,6 +29,7 @@
 
 #include <stdio.h>					/* For qrt_dump() */
 #include <ctype.h>
+#include <math.h>
 #include <zlib.h>
 
 #include "qrp.h"
@@ -39,10 +40,10 @@
 
 RCSID("$Id$");
 
-#define MIN_SPARSE_RATIO	15		/* At most 15% of slots used */
-#define MAX_CONFLICT_RATIO	60		/* At most 60% of insertion conflicts */
+#define MIN_SPARSE_RATIO	1		/* At most 1% of slots used */
+#define MAX_CONFLICT_RATIO	20		/* At most 20% of insertion conflicts */
 #define LOCAL_INFINITY		2		/* We're one hop away, so 2 is infinity */
-#define MIN_TABLE_BITS		17		/* 128 KB */
+#define MIN_TABLE_BITS		16		/* 64 KB */
 #define MAX_TABLE_BITS		21		/* 2 MB */
 
 #define MAX_TABLE_SIZE		(1 << MAX_TABLE_BITS)
@@ -2502,13 +2503,27 @@ static gboolean qrt_handle_patch(
 		rt->fill_ratio = (gint) (100.0 * rt->set_count / rt->slots);
 
 		/*
-		 * If table is more than 50% full, each query will go through a
+		 * If table is more than 1% full, each query will go through a
 		 * random d100 throw, and will pass only if the score is below
 		 * the value of the pass throw threshold.
+		 *
+		 * The function below quickly drops and then flattens:
+		 *
+		 *   x =  2%  -> throw = 61
+		 *   x =  3%  -> throw = 55
+		 *   x =  5%  -> throw = 48
+		 *   x = 10%  -> throw = 39
+		 *   x = 20%  -> throw = 29
+		 *   x = 50%  -> throw = 14
+		 *   x = 90%  -> throw = 3
+		 *   x = 99%  -> throw = 1
+		 *
+		 * throw = 100 * (1 - (x - 0.01)^1/5 + 0.01) 
 		 */
 
-		if (rt->fill_ratio > 50)
-			rt->pass_throw = (gint) (190 - 9.0 * rt->fill_ratio / 5);
+		if (rt->fill_ratio > 1)
+			rt->pass_throw = (gint)
+				(100.0 * (1 - pow((rt->fill_ratio - 1) / 100.0, 1/5.0) + 0.01));
 		else
 			rt->pass_throw = 100;		/* Always forward if QRT says so */
 
