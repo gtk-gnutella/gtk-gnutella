@@ -2345,9 +2345,11 @@ static void download_push(struct download *d, gboolean on_timeout)
 			 *		-- RAM, 18/08/2002.
 			 */
 
-			if (!host_is_valid(download_ip(d), download_port(d)))
+			if (!host_is_valid(download_ip(d), download_port(d))) {
 				download_stop(d, GTA_DL_ERROR, "Push route lost");
-			else {
+				download_remove_all_from_peer(
+					download_guid(d), download_ip(d), download_port(d));
+			} else {
 				/*
 				 * Later on, if we manage to connect to the server, we'll
 				 * make sure to mark it so that we ignore pushes to it, and
@@ -2378,9 +2380,16 @@ attempt_retry:
 
 	if (d->always_push && ignore_push) {
 		d->retries++;
-		if (on_timeout || d->retries > 5)
+		if (on_timeout || d->retries > 5) {
+			/*
+			 * Looks like we won't be able to ever reach this host.
+			 * Abort the download, and remove all the ones for the same host.
+			 */
+
 			download_stop(d, GTA_DL_ERROR, "Can't reach host (Push or Direct)");
-		else
+			download_remove_all_from_peer(
+				download_guid(d), download_ip(d), download_port(d));
+		} else
 			download_queue_delay(d, download_retry_refused_delay,
 				"No direct connection yet (%d retr%s)",
 				d->retries, d->retries == 1 ? "y" : "ies");
