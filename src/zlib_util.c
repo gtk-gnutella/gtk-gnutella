@@ -205,7 +205,7 @@ void zlib_deflater_free(zlib_deflater_t *zd, gboolean output)
 	if (outz) {
 		gint ret = deflateEnd(outz);
 
-		if (ret != Z_OK || ret != Z_DATA_ERROR)
+		if (ret != Z_OK && ret != Z_DATA_ERROR)
 			g_warning("while freeing compressor: %s", zlib_strerror(ret));
 
 		g_free(outz);
