@@ -74,11 +74,13 @@ find_pixmap_file                       (const gchar     *filename)
 
 /* This is an internally used function to create pixmaps. */
 GtkWidget*
-create_pixmap                          (GtkWidget       *widget,
+create_pixmap                          (GtkWidget       *unused_widget,
                                         const gchar     *filename)
 {
   gchar *pathname = NULL;
   GtkWidget *pixmap;
+
+  (void) unused_widget;
 
   if (!filename || !filename[0])
       return gtk_image_new ();
