@@ -439,7 +439,9 @@ void main_gui_early_init(gint argc, gchar **argv)
 	gtk_init(&argc, &argv);
 
 	add_pixmap_directory(PACKAGE_DATA_DIR "/pixmaps");
+#ifdef USE_SOURCE_DIR_AS_FALLBACK
 	add_pixmap_directory(PACKAGE_SOURCE_DIR "/pixmaps");
+#endif
 
     main_window = gui_create_main_window();
     shutdown_window = create_shutdown_window();

@@ -259,7 +259,9 @@ static void gwc_retrieve(void)
 	file_path_t fpvec[] = {
 		{ config_dir, gwc_file },
 		{ PACKAGE_DATA_DIR, gwc_bootfile },
-		{ PACKAGE_SOURCE_DIR, gwc_bootfile },
+#ifdef USE_SOURCE_DIR_AS_FALLBACK
+		{ PACKAGE_SOURCE_DIR, gwc_bootfile }
+#endif
 	};
 	gchar tmp[1024];
 

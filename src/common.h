@@ -116,6 +116,13 @@ typedef void (*GCallback) (void);
 #define GTA_RELEASE "26/03/2003"
 #define GTA_WEBSITE "http://gtk-gnutella.sourceforge.net/"
 
+/* If we compile from CVS (aka "unstable") we want to run from $srcdir
+ * without installing it first. Thus, look for icons etc. in $srcdir.
+ * XXX: Comment this out for releases! */
+
+#define USE_SOURCE_DIR_AS_FALLBACK 1
+
+
 /*
  * Forbidden glib calls.
  */
