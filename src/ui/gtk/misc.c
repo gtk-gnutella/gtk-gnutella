@@ -120,8 +120,8 @@ static void update_stat(guint32 *max, GtkProgressBar *pg,
         current);
     frac = (high_limit == 0) ? 0 : (gfloat) current / high_limit;
 
-	gm_snprintf(gui_tmp, sizeof(gui_tmp), "%s/s %s %s",
-        compact_size(current),
+	gm_snprintf(gui_tmp, sizeof(gui_tmp), "%s %s %s",
+        compact_rate(current),
         inout ? _("in") : _("out"),
         avg_mode ? _("(avg)") : "");
 	gtk_progress_bar_set_text(pg, gui_tmp);
