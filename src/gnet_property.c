@@ -29,14 +29,12 @@
 #include "eval.h"
 #include "gnet_property.h"
 
-
 /*
  * Includes specified by "uses"-statement in .ag file
  */
 #include "sockets.h"
 #include "gnet.h"
 #include "bsched.h"
-
 
 #include "override.h"		/* Must be the last header included */
 
@@ -131,8 +129,8 @@ guint32  incoming_connecting_timeout     = 30;
 guint32  incoming_connecting_timeout_def = 30;
 guint32  node_connecting_timeout     = 30;
 guint32  node_connecting_timeout_def = 30;
-guint32  node_connected_timeout     = 90;
-guint32  node_connected_timeout_def = 90;
+guint32  node_connected_timeout     = 180;
+guint32  node_connected_timeout_def = 180;
 guint32  node_sendqueue_size     = 98304;
 guint32  node_sendqueue_size_def = 98304;
 guint32  node_tx_flowc_timeout     = 180;
@@ -1398,7 +1396,7 @@ prop_set_t *gnet_prop_init(void) {
     gnet_property->props[45].data.guint32.value = &node_connected_timeout;
     gnet_property->props[45].data.guint32.choices = NULL;
     gnet_property->props[45].data.guint32.max   = 100000;
-    gnet_property->props[45].data.guint32.min   = 30;
+    gnet_property->props[45].data.guint32.min   = 120;
 
 
     /*

@@ -561,8 +561,8 @@ prop = {
             "if no data is transmitted";
     type = guint32;
     data = {
-        default = 90;
-        min     = 30;
+        default = 180;
+        min     = 120;
         max     = 100000;
     };
 };
