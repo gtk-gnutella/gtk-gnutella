@@ -48,8 +48,10 @@ RCSID("$Id$");
 #define EXPIRE_GRACE_TIME	90
 #define QUEUE_PERIOD		600		/* Try to resend a queue every 10 minutes */
 #define MAX_QUEUE			144		/* Max amount of QUEUE we can send */
+#define MAX_QUEUE_REFUSED	2		/* Max QUEUE they can refuse in a row */
 
 #define MAX_UPLOADS			100		/* Avoid more than that many uploads */
+#define MAX_UPLOAD_QSIZE	4000	/* Size of the PARQ queue */
 
 #define MIBI (1024 * 1024)
 /*
@@ -65,7 +67,7 @@ RCSID("$Id$");
 
 GHashTable *dl_all_parq_by_id = NULL;
 
-guint parq_max_upload_size = 4000;
+guint parq_max_upload_size = MAX_UPLOAD_QSIZE;
 guint parq_upload_active_size = 20; /* Number of active upload slots per queue*/
 static const gchar *file_parq_file = "parq";
 
@@ -114,7 +116,8 @@ struct parq_ul_queued {
 	time_t enter;			/* Time upload entered parq */
 	time_t updated;			/* Time last upload request was sent */
 	time_t last_queue_sent;	/* When we last sent the QUEUE */
-	guint32 queue_sent;		/* Amount of QUEUE messages we sent */
+	guint32 queue_sent;		/* Amount of QUEUE messages we tried to send */
+	guint32 queue_refused;	/* Amount of QUEUE messages refused remotely */
 	 
 	gboolean is_alive;		/* Whether client is still requesting this file */
 
@@ -141,6 +144,7 @@ struct parq_ul_queued {
 
 #define PARQ_UL_QUEUE		0x00000001	/* Scheduled for QUEUE sending */
 #define PARQ_UL_NOQUEUE		0x00000002	/* No IP:port, don't send QUEUE */
+#define PARQ_UL_QUEUE_SENT	0x00000004	/* QUEUE message sent */
 
 /* Contains the queued download status */
 struct parq_dl_queued {	
@@ -173,8 +177,8 @@ static void parq_upload_update_relative_position(
 static void parq_upload_update_ip_and_name(struct parq_ul_queued *parq_ul, 
 	gnutella_upload_t *u);
 
-void parq_upload_send_queue(struct parq_ul_queued *parq_ul);
-void parq_upload_do_send_queue(struct parq_ul_queued *parq_ul);
+static void parq_upload_send_queue(struct parq_ul_queued *parq_ul);
+static void parq_upload_do_send_queue(struct parq_ul_queued *parq_ul);
 
 /***
  ***  Generic non PARQ specific functions
@@ -1409,7 +1413,7 @@ static void parq_upload_update_eta(struct parq_ul_queue *which_ul_queue)
 	}
 }
 
-static struct parq_ul_queued *parq_upload_find_ID(gnutella_upload_t *u, 
+static struct parq_ul_queued *parq_upload_find_id(gnutella_upload_t *u, 
 												  header_t *header)
 {
 	gchar *buf;
@@ -1491,7 +1495,8 @@ void parq_upload_timer(time_t now)
 				if (
 					!(parq_ul->flags & (PARQ_UL_QUEUE|PARQ_UL_NOQUEUE)) &&
 					now - parq_ul->last_queue_sent > QUEUE_PERIOD &&
-					parq_ul->queue_sent < MAX_QUEUE
+					parq_ul->queue_sent < MAX_QUEUE &&
+					parq_ul->queue_refused < MAX_QUEUE_REFUSED
 				)
 					parq_upload_send_queue(parq_ul);
 			}
@@ -1507,7 +1512,8 @@ void parq_upload_timer(time_t now)
 				!parq_ul->has_slot &&
 				!(parq_ul->flags & (PARQ_UL_QUEUE|PARQ_UL_NOQUEUE)) &&
 				now - parq_ul->last_queue_sent > QUEUE_PERIOD &&
-				parq_ul->queue_sent < MAX_QUEUE
+				parq_ul->queue_sent < MAX_QUEUE &&
+				parq_ul->queue_refused < MAX_QUEUE_REFUSED
 			)
 				parq_upload_send_queue(parq_ul);
 			
@@ -1823,7 +1829,7 @@ gpointer parq_upload_get(gnutella_upload_t *u, header_t *header)
 	 * Try to locate by ID first. If this fails, try to locate by IP and file
 	 * name. We want to locate on ID first as a client may reuse an ID.
 	 */
-	parq_ul = parq_upload_find_ID(u, header);
+	parq_ul = parq_upload_find_id(u, header);
 	
 	if (parq_ul != NULL)
 		goto cleanup;
@@ -1970,7 +1976,7 @@ void parq_upload_busy(gnutella_upload_t *u, gpointer handle)
 		  	  parq_ul->position, parq_ul->relative_position);
 	}
 	
-	u->parq_status = 0;			/* XXX -- get rid of `parq_status'? */
+	u->parq_status = FALSE;			/* XXX -- get rid of `parq_status'? */
 	
 	if (parq_ul->has_slot)
 		return;
@@ -2005,15 +2011,36 @@ void parq_upload_remove(gnutella_upload_t *u)
 	 */
 		
 	if (u->parq_status) {
-		u->parq_status = 0;
+		u->parq_status = FALSE;
 		return;
 	}
 	
 	parq_ul = parq_upload_find(u);
-	
+
 	/* If parq_ul = NULL, than the upload didn't get a slot in the PARQ. */
 	if (parq_ul == NULL)
 		return;
+
+	/*
+	 * If we're still in the GTA_UL_QUEUE_WAITING state, we did not get any
+	 * HTTP requesst after sending the QUEUE callback.  However, if we sent
+	 * a QUEUE request and went further, reset the amount of refused QUEUE.
+	 *		--RAM, 17/05/2003
+	 */
+
+	if (dbg && (parq_ul->flags & PARQ_UL_QUEUE_SENT))
+		printf("PARQ UL Q %d/%d: QUEUE #%d sent [refused=%d], u->status = %d\n",
+			g_list_position(ul_parqs, 
+				g_list_find(ul_parqs, parq_ul->queue)) + 1,
+			g_list_length(ul_parqs),
+			parq_ul->queue_sent, parq_ul->queue_refused, u->status);
+
+	if (u->status == GTA_UL_QUEUE_WAITING)
+		parq_ul->queue_refused++;
+	else if (parq_ul->flags & PARQ_UL_QUEUE_SENT)
+		parq_ul->queue_refused = 0;
+
+	parq_ul->flags &= ~PARQ_UL_QUEUE_SENT;
 
 	if (parq_ul->has_slot && u->keep_alive && u->status == GTA_UL_WAITING) {
 		printf("**** PARQ UL Q %d/%d: Not removed, waiting for new request\n",
@@ -2024,12 +2051,11 @@ void parq_upload_remove(gnutella_upload_t *u)
 	}
 	
 	if (dbg)
-		printf("PARQ UL Q %d/%d: Upload finished or removed from uploads\n",
+		printf("PARQ UL Q %d/%d: Upload removed\n",
 			g_list_position(ul_parqs, 
 				g_list_find(ul_parqs, parq_ul->queue)) + 1,
 			g_list_length(ul_parqs));
-				
-	
+
 	if (parq_ul->has_slot) {
 		GList *lnext = NULL;
 		
@@ -2101,6 +2127,7 @@ void parq_upload_add_header(gchar *buf, gint *retval, gpointer arg)
 				MAX((gint32) (parq_ul->expire - now), 0));
 		} else {
 			g_assert(length > 0);
+
 			rw = gm_snprintf(buf, length,
 				"X-Queue: %d.%d\r\n"
 				"X-Queued: position=%d; ID=%s; length=%d; ETA=%d; lifetime=%d"
@@ -2128,6 +2155,51 @@ void parq_upload_add_header(gchar *buf, gint *retval, gpointer arg)
 					MAX((gint32)  (parq_ul->retry - now ), 0));
 		}
 	}
+
+	g_assert(rw < length);
+	
+	*retval = rw;
+}
+
+/*
+ * parq_upload_add_header_id
+ * 
+ * Adds X-Queued status in the HTTP reply header showing the queue ID
+ * for an upload getting a slot.
+ *
+ * `buf' is the start of the buffer where the headers are to be added.
+ * `retval' contains the length of the buffer initially, and is filled
+ * with the amount of data written.
+ */
+void parq_upload_add_header_id(gchar *buf, gint *retval, gpointer arg)
+{	
+	gint rw = 0;
+	gint length = *retval;
+	struct upload_http_cb *a = (struct upload_http_cb *) arg;
+	struct parq_ul_queued *parq_ul;
+
+	g_assert(buf != NULL);
+	g_assert(retval != NULL);
+	g_assert(a->u != NULL);
+	
+	parq_ul = (struct parq_ul_queued *) parq_upload_find(a->u);
+
+	g_assert(a->u->status == GTA_UL_SENDING);
+	g_assert(parq_ul != NULL);
+
+	/*
+	 * If they understand PARQ, we also give them a queue ID even
+	 * when they get an upload slot.  This will allow safe resuming
+	 * should the connection be broken while the upload is active.
+	 *		--RAM, 17/05/2003
+	 */
+
+	if (parq_ul->major >= 1)
+		rw = gm_snprintf(buf, length,
+			"X-Queue: %d.%d\r\n"
+			"X-Queued: ID=%s\r\n",
+			PARQ_VERSION_MAJOR, PARQ_VERSION_MINOR,
+			parq_upload_lookup_id(a->u));
 
 	g_assert(rw < length);
 	
@@ -2417,7 +2489,6 @@ void parq_upload_do_send_queue(struct parq_ul_queued *parq_ul)
 	u->status = GTA_UL_QUEUE;
 	u->name = atom_str_get(parq_ul->name);
 	parq_upload_update_ip_and_name(parq_ul, u);
-//	u->ip = parq_ul->remote_ip;
 	upload_fire_upload_info_changed(u);
 	
 	/* Verify created upload entry */
@@ -2444,7 +2515,7 @@ void parq_upload_send_queue_conf(gnutella_upload_t *u)
 	parq_ul = parq_upload_find(u);
 	
 	g_assert(parq_ul != NULL);
-		
+
 	/*
 	 * Send the QUEUE header.
 	 */
@@ -2472,6 +2543,8 @@ void parq_upload_send_queue_conf(gnutella_upload_t *u)
 		upload_remove(u, "Unable to send QUEUE #%d", parq_ul->queue_sent);
 		return;
 	}
+
+	parq_ul->flags |= PARQ_UL_QUEUE_SENT;		/* We sent the QUEUE message */
 
 	/*
 	 * We're now expecting HTTP headers on the connection we've made.
