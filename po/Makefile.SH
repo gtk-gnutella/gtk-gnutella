@@ -16,6 +16,10 @@ esac
 case "$0" in
 */*) cd `expr X$0 : 'X\(.*\)/'` ;;
 esac
+
+INSTALL=`echo $install | sed -e 's,\./i,\$(top_srcdir)/i,'`
+INSTALLDIR=`echo $installdir | sed -e 's,\./i,\$(top_srcdir)/i,'`
+
 echo "Extracting po/Makefile (with variable substitutions)"
 : This section of the file will have variable substitutions done on it.
 : Move anything that needs config subs from !NO!SUBS! section to !GROK!THIS!.
@@ -36,6 +40,7 @@ PACKAGE = $package
 VERSION = $gtkgversion
 
 SHELL = /bin/sh
+$make_set_make
 
 srcdir = .
 top_srcdir = ..
@@ -45,9 +50,9 @@ exec_prefix = $prefix
 datadir = $prefix/share
 localedir = $localeexp
 
-INSTALL = $install
+INSTALL = $INSTALL
 INSTALL_DATA = \$(INSTALL) -m 644
-MKINSTALLDIRS = $installdir
+MKINSTALLDIRS = $INSTALLDIR
 mkinstalldirs = \$(MKINSTALLDIRS)
 DESTDIR = \$(INSTALL_PREFIX)
 
