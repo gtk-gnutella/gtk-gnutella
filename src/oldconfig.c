@@ -44,7 +44,6 @@
 #include <unistd.h>
 #include <netdb.h>
 
-#include "gnet.h"
 #include "settings_gui.h"
 
 #define CONFIG_SET_BOOL(v,pref,prop)                 \
@@ -483,7 +482,7 @@ void config_set_param(keyword_t keyword, gchar *value)
             search_results_show_tabs, gui, 
             PROP_SEARCH_RESULTS_SHOW_TABS)
         CONFIG_SET_BOOL(
-            search_stats_enabled, gnet, 
+            search_stats_enabled, gui, 
             PROP_SEARCH_STATS_ENABLED)
         CONFIG_SET_BOOL(
             statusbar_visible, gui, 
@@ -614,10 +613,10 @@ void config_set_param(keyword_t keyword, gchar *value)
             search_queries_kick_size, gnet,
             PROP_SEARCH_QUERIES_KICK_SIZE)
         CONFIG_SET_NUM(
-            search_stats_delcoef, gnet,
+            search_stats_delcoef, gui,
             PROP_SEARCH_STATS_DELCOEF)
         CONFIG_SET_NUM(
-            search_stats_update_interval, gnet,
+            search_stats_update_interval, gui,
             PROP_SEARCH_STATS_UPDATE_INTERVAL)
         CONFIG_SET_NUM(
             up_connections, gnet,
