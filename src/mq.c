@@ -388,6 +388,7 @@ static void mq_puthere(mqueue_t *q, pmsg_t *mb, gint msize)
 	needed = q->size + msize - q->maxsize;
 
 	if (needed > 0 && !make_room(q, mb, needed)) {
+		pmsg_free(mb);
 		node_bye(q->node, 502, "Send queue reached %d bytes", q->maxsize);
 		return;
 	}
@@ -401,7 +402,7 @@ static void mq_puthere(mqueue_t *q, pmsg_t *mb, gint msize)
 	 * is always enqueued at the tail.
 	 *
 	 * A higher priority message needs to be inserted at the right place,
-	 * near the *head* but after any partially sent message, and of course
+	 * near the *tail* but after any partially sent message, and of course
 	 * after all enqueued messages with the same priority.
 	 */
 
