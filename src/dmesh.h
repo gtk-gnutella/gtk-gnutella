@@ -61,6 +61,7 @@ typedef enum {
 	DMESH_URL_BAD_FILE_PREFIX,	/* File prefix neither /uri-res nor /get */
 	DMESH_URL_RESERVED_INDEX,	/* Index in /get/index is reserved */
 	DMESH_URL_NO_FILENAME,		/* No filename after /get/index */
+	DMESH_URL_BAD_ENCODING,		/* Bad URL encoding */
 } dmesh_url_error_t;
 
 extern dmesh_url_error_t dmesh_url_errno;
