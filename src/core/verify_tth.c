@@ -133,9 +133,9 @@ static bgret_t tigertree_step_compute(gpointer h, gpointer u, gint ticks)
 	gint i;
 	ssize_t r;
 	gchar *hash;
+	tt_computation_context_t *ctx = (tt_computation_context_t *) u;
 
 	(void) ticks;
-	tt_computation_context_t *ctx = (tt_computation_context_t *) u;
 
 	if (ctx->fd == -1) {
 		if (files_to_hash == NULL) {
