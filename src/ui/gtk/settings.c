@@ -3905,6 +3905,22 @@ static prop_map_t property_map[] = {
     ),
     PROP_ENTRY(
         get_prefs_dialog,
+        PROP_SHOW_GNET_INFO_TX_WIRE,
+        update_togglebutton,
+        TRUE,
+        "checkbutton_gnet_info_tx_wire",
+        FREQ_UPDATES, 0
+    ),
+    PROP_ENTRY(
+        get_prefs_dialog,
+        PROP_SHOW_GNET_INFO_RX_WIRE,
+        update_togglebutton,
+        TRUE,
+        "checkbutton_gnet_info_rx_wire",
+        FREQ_UPDATES, 0
+    ),
+    PROP_ENTRY(
+        get_prefs_dialog,
         PROP_SHOW_GNET_INFO_TX_QUERIES,
         update_togglebutton,
         TRUE,
