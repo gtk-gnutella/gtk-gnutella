@@ -972,7 +972,7 @@ void search_gui_flush(time_t now)
 
     last = now;
 
-    if (accumulated_rs) {
+    if (accumulated_rs && (gui_debug >= 10)) {
         guint32 recs = 0;
         guint32 rscount = 0;
 
