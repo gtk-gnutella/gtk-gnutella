@@ -32,6 +32,7 @@ typedef struct upload_row_data {
     gnet_upload_t handle;      /* upload handle in backend */
     gboolean      valid;       /* handle still valid in backend */
     time_t        start_date;
+    time_t        last_update; /* last time the gui updated */
     guint32       range_start;
     guint32       range_end;
     guint32       status;      /* last known status */

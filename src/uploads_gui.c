@@ -26,6 +26,7 @@
 #include "uploads_gui.h"
 
 #define IO_STALLED		60		/* If nothing exchanged after that many secs */
+#define REMOVE_DELAY    5       /* delay before outdated info is removed */
 
 static gchar tmpstr[4096];
 
@@ -65,16 +66,12 @@ static void upload_removed(
             GTK_CLIST(lookup_widget(main_window, "clist_uploads"));
         data->valid = FALSE;
 
-        if (clear_uploads || (data->status == GTA_UL_CLOSED)) {
-            gtk_clist_remove(clist, row);
-        } else {
-            gtk_widget_set_sensitive(
-                lookup_widget(main_window, "button_uploads_clear_completed"), 
-                TRUE);
+        gtk_widget_set_sensitive(
+            lookup_widget(main_window, "button_uploads_clear_completed"), 
+            TRUE);
 
-            if (reason != NULL)
-                gtk_clist_set_text(clist, row, c_ul_status, reason);
-        }
+        if (reason != NULL)
+            gtk_clist_set_text(clist, row, c_ul_status, reason);
     }
 
     uploads_gui_update_meter(running, registered);
@@ -270,6 +267,7 @@ static void uploads_gui_update_upload_info(gnet_upload_info_t *u)
         rd->range_start  = u->range_start;
         rd->range_end    = u->range_end;
         rd->start_date   = u->start_date;
+        rd->last_update  = time((time_t *) NULL);	
 
         if ((u->range_start == 0) && (u->range_end == 0)) {
             gtk_clist_set_text(clist_uploads, row, c_ul_size, "...");
@@ -420,6 +418,8 @@ void uploads_gui_update_display(time_t now)
 	GList *l;
 	gint row = 0;
     gnet_upload_status_t status;
+    GSList *to_remove = NULL;
+    GSList *sl;
 
     if (last_update == now)
         return;
@@ -434,10 +434,21 @@ void uploads_gui_update_display(time_t now)
             ((GtkCListRow *) l->data)->data;
 
         if (data->valid) {
+            data->last_update = now;
             upload_get_status(data->handle, &status);
             gtk_clist_set_text(clist, row, c_ul_status, 
                 uploads_gui_status_str(&status, data));
+        } else {
+            if (clear_uploads && (now - data->last_update > REMOVE_DELAY))
+                to_remove = g_slist_prepend(to_remove, (gpointer)row);
         }
+    }
+
+    if (clear_uploads) {
+        for (sl = to_remove; sl != NULL; sl = g_slist_next(sl))
+            gtk_clist_remove(clist, (gint)sl->data);
+
+        g_slist_free(to_remove);
     }
 
     gtk_clist_thaw(clist);
