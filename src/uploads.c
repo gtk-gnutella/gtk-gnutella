@@ -1696,10 +1696,11 @@ static void upload_http_sha1_add(gchar *buf, gint *retval, gpointer arg)
 	 * much space as we can with alt-locs, and we would not have much room
 	 * left to emit the range list if we did it afterwards.
 	 *
-	 * Leave at least 512 bytes for alt-locs, just in case.
+	 * Leave at least 160 bytes for alt-locs, just in case (enough for one
+	 * traditional URN location and several compact ones).
 	 */
 
-	range_length = length - 512;
+	range_length = length - 160;
 
 	if (sf->fi != NULL && rw < range_length) {
 		g_assert(pfsp_server);		/* Or we would not have a partial file */
