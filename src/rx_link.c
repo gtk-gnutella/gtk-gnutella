@@ -47,6 +47,7 @@ RCSID("$Id$");
 struct attr {
 	gint fd;			/* Cached socket file descriptor */
 	bio_source_t *bio;	/* Bandwidth-limited I/O source */
+	bsched_t *bs;		/* Scheduler to attach I/O source to */
 };
 
 /*
@@ -128,6 +129,7 @@ static gpointer rx_link_init(rxdrv_t *rx, gpointer args)
 
 	attr->fd = rx->node->socket->file_desc;
 	attr->bio = NULL;
+	attr->bs = rx->node->peermode == NODE_P_LEAF ? bws.glin : bws.gin;
 
 	rx->opaque = attr;
 	
@@ -189,7 +191,7 @@ static void rx_link_enable(rxdrv_t *rx)
 	 * Install reading callback.
 	 */
 
-	attr->bio = bsched_source_add(bws.gin, attr->fd, BIO_F_READ,
+	attr->bio = bsched_source_add(attr->bs, attr->fd, BIO_F_READ,
 		is_readable, (gpointer) rx);
 
 	g_assert(attr->bio);

@@ -87,6 +87,7 @@ static void is_writable(gpointer data, gint source, inputevt_cond_t cond)
 static gpointer tx_link_init(txdrv_t *tx, gpointer args)
 {
 	struct attr *attr;
+	bsched_t *bs;
 
 	g_assert(tx);
 
@@ -100,8 +101,10 @@ static gpointer tx_link_init(txdrv_t *tx, gpointer args)
 	 * through calls to bio_write() and bio_writev().
 	 */
 
+	bs = tx->node->peermode == NODE_P_LEAF ? bws.glout : bws.gout;
+
 	attr->fd = tx->node->socket->file_desc;
-	attr->bio = bsched_source_add(bws.gout, attr->fd, BIO_F_WRITE, NULL, NULL);
+	attr->bio = bsched_source_add(bs, attr->fd, BIO_F_WRITE, NULL, NULL);
 
 	tx->opaque = attr;
 	
