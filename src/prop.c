@@ -25,6 +25,7 @@
 
 #include <sys/stat.h>
 #include <stdio.h>
+#include <ctype.h>
 
 #include "prop.h"
 #include "common.h"
@@ -1353,14 +1354,13 @@ static void load_helper(prop_set_t *ps, property_t prop, const gchar *val)
 void prop_load_from_file(
 	prop_set_t *ps, const gchar *dir, const gchar *filename)
 {
+	static const char fmt[] = "Bad line %u in config file, ignored\n";
 	FILE *config;
 	gchar *s, *k, *v;
 	gchar *path;
 	property_t i;
 	guint32 n = 0;
 	struct stat buf;
-
-#define ERR_FMT "Bad line %u in config file, ignored\n"
 
 	g_assert(dir != NULL);
 	g_assert(filename != NULL);
@@ -1387,45 +1387,47 @@ void prop_load_from_file(
 	G_FREE_NULL(path);
 
 	while (fgets(prop_tmp, sizeof(prop_tmp), config)) {
+		gint c;
+
 		n++;
 		s = prop_tmp;
-		while (*s && (*s == ' ' || *s == '\t'))
+		while ((c = (guchar) *s) != '\0' && isascii(c) && isblank(c))
 			s++;
-		if (!((*s >= 'A' && *s <= 'Z') || (*s >= 'a' && *s <= 'z')))
+		
+		if (!isascii(c) || !isalpha(c))
 			continue;
 		k = s;
-		while (*s == '_' || (*s >= 'A' && *s <= 'Z')
-			   || (*s >= 'a' && *s <= 'z') || (*s >= '0' && *s <= '9'))
+		while ((c = (guchar) *s) == '_' || (isascii(c) && isalnum(c)))
 			s++;
-		if (*s != '=' && *s != ' ' && *s != '\t') {
-			fprintf(stderr, ERR_FMT, n);
+		if (c != '=' && !(isascii(c) && isblank(c))) {
+			g_warning(fmt, n);
 			continue;
 		}
 		v = s;
-		while (*s == ' ' || *s == '\t')
+		while ((c = (guchar) *s) != '\0' && isascii(c) && isblank(c))
 			s++;
-		if (*s != '=') {
-			fprintf(stderr, ERR_FMT, n);
+		if (c != '=') {
+			g_warning(fmt, n);
 			continue;
 		}
 		*v = 0;
 		s++;
-		while (*s == ' ' || *s == '\t')
+		while ((c = (guchar) *s) != '\0' && isascii(c) && isblank(c))
 			s++;
-		if (*s == '"') {
+		if (c == '"') {
 			v = ++s;
-			while (*s && *s != '\n' && *s != '"')
+			while ((c = (guchar) *s) != '\0' && c != '\n' && c != '"')
 				s++;
-			if (!*s || *s == '\n') {
-				fprintf(stderr, ERR_FMT, n);
+			if (c == '\0' || c == '\n') {
+				g_warning(fmt, n);
 				continue;
 			}
 		} else {
 			v = s;
-			while (*s && *s != '\n' && *s != ' ' && *s != '\t')
+			while ((c = (guchar) *s) != '\0' && !(isascii(c) && isspace(c)))
 				s++;
 		}
-		*s = 0;
+		*s = '\0';
 
 
 		for (i = 0; i < ps->size; i++)
@@ -1435,8 +1437,7 @@ void prop_load_from_file(
 			}
 
 		if (i >= ps->size)
-			fprintf(stderr,
-					"config file, line %u: unknown keyword '%s', ignored\n",
+			g_warning("config file, line %u: unknown keyword '%s', ignored\n",
 					n, k);
 	}
 
@@ -1447,6 +1448,7 @@ inline property_t prop_get_by_name(prop_set_t *ps, const gchar *name)
 {
 	g_assert(ps != NULL);
 
-	return GPOINTER_TO_UINT(
-		g_hash_table_lookup(ps->byName, name));
+	return GPOINTER_TO_UINT(g_hash_table_lookup(ps->byName, name));
 }
+
+/* vi: set ts=4: */
