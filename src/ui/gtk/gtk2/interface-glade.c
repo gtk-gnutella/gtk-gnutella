@@ -1587,14 +1587,14 @@ create_dlg_about (void)
   gtk_misc_set_alignment (GTK_MISC (label492), 0, 0.5);
   gtk_misc_set_padding (GTK_MISC (label492), 10, 0);
 
-  label493 = gtk_label_new (_("Raphaël Manfredi"));
+  label493 = gtk_label_new (_("Rapha\303\253l Manfredi"));
   gtk_widget_set_name (label493, "label493");
   gtk_widget_show (label493);
   gtk_box_pack_start (GTK_BOX (vbox88), label493, FALSE, FALSE, 0);
   gtk_misc_set_alignment (GTK_MISC (label493), 0, 0.5);
   gtk_misc_set_padding (GTK_MISC (label493), 10, 0);
 
-  label494 = gtk_label_new (_("Raphaël Manfredi"));
+  label494 = gtk_label_new (_("Rapha\303\253l Manfredi"));
   gtk_widget_set_name (label494, "label494");
   gtk_widget_show (label494);
   gtk_box_pack_start (GTK_BOX (vbox88), label494, FALSE, FALSE, 0);
@@ -3047,7 +3047,7 @@ create_dlg_quit (void)
   gtk_dialog_add_action_widget (GTK_DIALOG (dlg_quit), button_abort_quit, GTK_RESPONSE_CANCEL);
   GTK_WIDGET_SET_FLAGS (button_abort_quit, GTK_CAN_DEFAULT);
 
-  button_really_quit = gtk_button_new_from_stock ("gtk-ok");
+  button_really_quit = gtk_button_new_from_stock ("gtk-quit");
   gtk_widget_set_name (button_really_quit, "button_really_quit");
   gtk_widget_show (button_really_quit);
   gtk_dialog_add_action_widget (GTK_DIALOG (dlg_quit), button_really_quit, GTK_RESPONSE_OK);
