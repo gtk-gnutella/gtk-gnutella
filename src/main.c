@@ -147,6 +147,8 @@ gint main(gint argc, gchar ** argv)
 	gchar mtmp[1024];
 	gint optimal_width;
 
+	g_assert(sizeof(menus) / sizeof(menus[0]) - 2 == NOTEBOOK_MAIN_IDX_MAX);
+
 	for (i = 3; i < 256; i++)
 		close(i);				/* Just in case */
 
@@ -204,7 +206,7 @@ gint main(gint argc, gchar ** argv)
 	optimal_width =
 		gtk_clist_optimal_column_width(GTK_CLIST(clist_stats), 0);
 
-	for (i = 0; i < 8; i++)
+	for (i = 0; i <= NOTEBOOK_MAIN_IDX_MAX; i++)
 		gtk_clist_insert(GTK_CLIST(clist_menu), i, (gchar **) & menus[i]);
 	gtk_clist_select_row(GTK_CLIST(clist_menu), 0, 0);
 
