@@ -41,7 +41,7 @@ INSTALLDIR = $INSTALLDIR
 # Parameters set by Configure -- edit config.sh if changes are needed
 
 CTAGS = ctags
-MAKE = make
+$make_set_make
 MV = $mv
 PRIVLIB = $installprivlib
 RM = $rm -f
@@ -55,7 +55,7 @@ $spitshell >>Makefile <<'!NO!SUBS!'
 ########################################################################
 # Start of Jmakefile
 
-# $X-Id: Jmakefile,v 1.2 2003/08/09 22:38:30 rmanfredi Exp $
+# $X-Id: Jmakefile,v 1.1 2003/08/10 23:01:44 rmanfredi Exp $
 
 PIXMAPS = \
 	arrow_down.xpm \
@@ -76,6 +76,7 @@ PIXMAPS = \
 	online.xpm \
 	save.xpm \
 	smallserver.xpm \
+	stock_form-time-field-16.xpm \
 	thaw.xpm \
 	ultra.xpm \
 	upload.xpm
@@ -83,28 +84,30 @@ PIXMAPS = \
 all::
 
 local_install::
-	@for dir in $(PRIVLIB)/pixmaps; do \
-	case '${MFLAGS}' in *[i]*) set +e;; esac;		\
-	(set -x; test -d $(INSTALL_PREFIX)$$dir			\
-	|| $(INSTALLDIR) $(INSTALL_PREFIX)$$dir);	\
+	@case '${MFLAGS}' in *[i]*) set +e;; esac; \
+	for dir in $(PRIVLIB)/pixmaps; do	\
+	(set -x; test -d $(INSTALL_PREFIX)$$dir || \
+		$(INSTALLDIR) $(INSTALL_PREFIX)$$dir);	\
 	done
 
 local_deinstall::
-	@for dir in $(PRIVLIB)/pixmaps; do \
-	case '${MFLAGS}' in *[i]*) set +e;; esac; \
-	(set -x; test -d $$dir && $(RM) -r $(INSTALL_PREFIX)$$dir); \
+	@case '${MFLAGS}' in *[i]*) set +e;; esac; \
+	for dir in $(PRIVLIB)/pixmaps; do \
+		(set -x; test -d $$dir && $(RM) -r $(INSTALL_PREFIX)$$dir); \
 	done
 
 local_install:: $(PIXMAPS)
-	@case '${MFLAGS}' in *[i]*) set +e;; esac; \
+	case '${MFLAGS}' in *[i]*) set +e;; esac;		\
+	(set -x; test -d $(INSTALL_PREFIX)$(PRIVLIB)/pixmaps || \
+		$(INSTALLDIR) $(INSTALL_PREFIX)$(PRIVLIB)/pixmaps); \
 	for i in $(PIXMAPS); do \
-	(set -x; $(INSTALL) -c $(INSTALLFLAGS) $$i $(INSTALL_PREFIX)$(PRIVLIB)/pixmaps); \
+		(set -x; $(INSTALL) -c $(INSTALLFLAGS) $$i $(INSTALL_PREFIX)$(PRIVLIB)/pixmaps); \
 	done
 
 local_deinstall::
 	@case '${MFLAGS}' in *[i]*) set +e;; esac; \
 	for i in $(PIXMAPS); do \
-	(set -x; $(RM) $(INSTALL_PREFIX)$(PRIVLIB)/pixmaps/$$i); \
+		(set -x; $(RM) $(INSTALL_PREFIX)$(PRIVLIB)/pixmaps/$$i); \
 	done
 
 ########################################################################
@@ -125,18 +128,24 @@ local_clobber:: local_realclean
 	$(RM) Makefile config.sh
 
 install: local_install
-install.man: local_install.man
+install.man: maybe_install.man
 deinstall: local_deinstall
-deinstall.man: local_deinstall.man
+deinstall.man: maybe_deinstall.man
+
+install.man-no:
+deinstall.man-no:
+
+maybe_install.man: install.man-no
+maybe_deinstall.man: deinstall.man-no
 
 Makefile.SH: Jmakefile
 	-@if test -f $(TOP)/.package; then \
-	if test -f Makefile.SH; then \
-	echo "	$(RM) Makefile.SH~; $(MV) Makefile.SH Makefile.SH~"; \
-	$(RM) Makefile.SH~; $(MV) Makefile.SH Makefile.SH~; \
-	fi; \
-	echo "	$(JMAKE) -DTOPDIR=$(TOP) -DCURDIR=$(CURRENT)" ; \
-	$(JMAKE) -DTOPDIR=$(TOP) -DCURDIR=$(CURRENT) ; \
+		if test -f Makefile.SH; then \
+			echo "	$(RM) Makefile.SH~; $(MV) Makefile.SH Makefile.SH~"; \
+			$(RM) Makefile.SH~; $(MV) Makefile.SH Makefile.SH~; \
+		fi; \
+		echo "	$(JMAKE) -DTOPDIR=$(TOP) -DCURDIR=$(CURRENT)" ; \
+		$(JMAKE) -DTOPDIR=$(TOP) -DCURDIR=$(CURRENT) ; \
 	else touch $@; exit 0; fi
 
 Makefile: Makefile.SH

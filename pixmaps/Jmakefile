@@ -46,6 +46,7 @@ PIXMAPS = \
 	online.xpm \
 	save.xpm \
 	smallserver.xpm \
+	stock_form-time-field-16.xpm \
 	thaw.xpm \
 	ultra.xpm \
 	upload.xpm
