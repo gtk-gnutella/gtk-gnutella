@@ -42,11 +42,13 @@
 /* time is in the interval msg_interval +/- msg_skew */
 #define HSEP_MSG_SKEW 10
 
-typedef struct {
-  guint64 hosts;       /* number of reachable hosts */
-  guint64 files;       /* number of reachable files */
-  guint64 kibibytes;   /* number of reachable KiB */
-} hsep_triple;
+typedef guint64 hsep_triple[3];
+
+enum {
+	HSEP_IDX_HOSTS = 0,
+	HSEP_IDX_FILES = 1,
+	HSEP_IDX_KIB = 2
+};
 
 extern hsep_triple hsep_global_table[HSEP_N_MAX+1];
 
@@ -60,7 +62,8 @@ void hsep_process_msg(struct gnutella_node *);
 void hsep_dump_table(void);
 void hsep_timer(void);
 void hsep_notify_shared(guint64 ownfiles, guint64 ownkibibytes);
-unsigned int hsep_check_monotony(hsep_triple *table, unsigned int triples);
+void hsep_sanity_check(void);
+gboolean hsep_check_monotony(hsep_triple *table, unsigned int triples);
 unsigned int hsep_triples_to_send(hsep_triple *table, unsigned int triples);
 
 #endif
