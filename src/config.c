@@ -30,6 +30,7 @@ static gchar *ul_stats_file = "upload_stats";
 gboolean clear_uploads = FALSE;
 gboolean clear_downloads = FALSE;
 gboolean monitor_enabled = FALSE;
+gboolean search_remove_downloaded = FALSE;
 gboolean force_local_ip = TRUE;
 gboolean toolbar_visible = FALSE;
 gboolean statusbar_visible = TRUE;

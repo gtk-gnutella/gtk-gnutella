@@ -18,6 +18,7 @@ extern gboolean toolbar_visible;
 extern gboolean statusbar_visible;
 extern gboolean monitor_enabled;
 extern gboolean search_stats_enabled;
+extern gboolean search_remove_downloaded;
 extern gboolean clear_uploads;
 extern gboolean clear_downloads;
 extern gboolean download_delete_aborted;
