@@ -271,7 +271,7 @@ cpattern_t *pattern_compile(gchar *pattern)
 	cpattern_t *p = (cpattern_t *) zalloc(pat_zone);
 	guint32 plen = strlen(pattern);
 	guint32 *pd = p->delta;
-	gint i;
+	guint i;
 	guchar *c;
 
 	p->pattern = g_strdup(pattern);
@@ -586,7 +586,7 @@ inline gint st_key(search_table_t *table, gchar k[2])
  * one-char strings are silently ignored */
 void st_insert_item(search_table_t *table, const gchar *s, void *data)
 {
-	gint i;
+	guint i;
 	guint len;
 	struct st_entry *entry;
 	GHashTable *seen_keys;
@@ -602,12 +602,12 @@ void st_insert_item(search_table_t *table, const gchar *s, void *data)
 
 	seen_keys = g_hash_table_new(g_direct_hash, 0);
 	
-	entry = g_malloc(sizeof(struct st_entry));
+	entry = g_malloc(sizeof(*entry));
 	entry->string = string;
 	entry->data = data;
 	entry->mask = mask_hash(string);
 	
-	for (i = 0; i < len-1; i++) {
+	for (i = 0; i < len - 1; i++) {
 		gint key = st_key(table, string + i);
 
 		/* don't insert item into same bin twice */
@@ -655,7 +655,7 @@ static cpattern_t *pattern_compile_fast(gchar *pattern, guint32 plen)
 {
 	cpattern_t *p = (cpattern_t *) zalloc(pat_zone);
 	guint32 *pd = p->delta;
-	gint i;
+	guint i;
 	guchar *c;
 
 	p->pattern = pattern;
@@ -702,7 +702,7 @@ static gboolean entry_match(
 			else
 				break;
 		}
-		if (j != amount)		/* Word does not occur as many time as we want */
+		if (j != amount)	/* Word does not occur as many time as we want */
 			return FALSE;
 	}
 
@@ -717,8 +717,8 @@ gint st_search(
 	gint max_res,
 	query_hashvec_t *qhv)
 {
-	gint i, key, nres = 0;
-	guint len;
+	gint key, nres = 0;
+	guint i, len;
 	struct st_bin *best_bin = NULL;
 	gint best_bin_size = INT_MAX;
 	word_vec_t *wovec;
@@ -741,9 +741,12 @@ gint st_search(
 	 * Find smallest bin
 	 */
 
-	for (i = 0; i < len-1; i++) {
+	if (len < 2)
+		return 0;
+
+	for (i = 0; i < len - 1; i++) {
 		struct st_bin *bin;
-		if (isspace((guchar) search[i]) || isspace((guchar) search[i+1]))
+		if (is_ascii_space(search[i]) || is_ascii_space(search[i+1]))
 			continue;
 		key = st_key(table, search + i);
 		if ((bin = table->bins[key]) == NULL) {
