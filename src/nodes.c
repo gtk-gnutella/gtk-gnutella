@@ -2019,6 +2019,14 @@ void node_add(struct gnutella_socket *s, guint32 ip, guint16 port)
 		} else {
 			n->status = GTA_NODE_REMOVING;
 			n->remove_msg = "Connection failed";
+
+			/*
+			 * If we are out of file descriptors, don't drop the node from
+			 * the hostcache: mark it valid.
+			 */
+
+			if (errno == EMFILE || errno == ENFILE)
+				n->flags |= NODE_F_VALID;
 		}
 
 		titles[1] = (gchar *) "Outgoing";
