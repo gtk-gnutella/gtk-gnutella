@@ -158,7 +158,8 @@ gtk_gnutella_SOURCES = \
 	idtable.c idtable.h \
 	namesize.c namesize.h \
 	ignore.c ignore.h \
-	gnet_stats.c gnet_stats.h
+	gnet_stats.c gnet_stats.h \
+	gwcache.c gwcache.h
 
 GLADE_WARNING1 = "Warning: gtk-gnutella.glade is newer than glade-built files and"
 GLADE_WARNING2 = "  \"glade --write-source\" failed.  To ignore any changes to"

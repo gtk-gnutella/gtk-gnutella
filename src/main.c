@@ -48,6 +48,7 @@
 #include "guid.h"
 #include "gnet_stats.h"
 #include "http.h"
+#include "gwcache.h"
 
 #include "main_gui.h"
 #include "settings.h"
@@ -90,6 +91,8 @@ void gtk_gnutella_exit(gint n)
 	node_bye_all();
 	upload_close();		/* Done before settings_close() for stats update */
 	download_close();
+	http_close();
+	gwc_close();
 
     main_gui_shutdown();
 
@@ -299,6 +302,7 @@ gint main(gint argc, gchar ** argv)
 	init_constants();
 	settings_init();
 	guid_init();
+	gwc_init();
 	ignore_init();
 	file_info_init();
 	matching_init();

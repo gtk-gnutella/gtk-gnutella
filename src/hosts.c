@@ -41,6 +41,7 @@
 #include "gmsg.h"
 #include "pcache.h"
 #include "whitelist.h"
+#include "gwcache.h"
 
 #include "settings.h"
 
@@ -110,6 +111,12 @@ static void auto_connect(void)
 	gint i;
 	time_t now = time((time_t *) NULL);
 	extern gboolean node_connected(guint32, guint16, gboolean);
+
+	/*
+	 * Try to fill hosts from web host cache, asynchronously.
+	 */
+
+	gwc_get_hosts();
 
 	/*
 	 * To avoid hammering the host caches, we don't allow connections to
