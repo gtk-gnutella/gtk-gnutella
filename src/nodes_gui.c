@@ -298,7 +298,7 @@ static void nodes_gui_update_node_flags(gnet_node_t n, gnet_node_flags_t *flags)
 
 		if (flags->hops_flow == 0)
 			status[8] = 'f';
-		else if (flags->hops_flow <= 7)
+		else if (flags->hops_flow < 7)
 			status[8] = 'h';
 
         gtk_clist_set_text(clist, row, 1, status);
