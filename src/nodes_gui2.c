@@ -52,6 +52,7 @@ static void nodes_gui_node_removed(
 static void nodes_gui_node_added(
     gnet_node_t n, const gchar *t, guint32, guint32);
 static void nodes_gui_node_info_changed(gnet_node_t);
+static void nodes_gui_node_flags_changed(gnet_node_t n);
 static void nodes_gui_add_column(GtkTreeView *, gint, const gchar *);
 
 /*
@@ -136,6 +137,7 @@ void nodes_gui_init()
     node_add_node_added_listener(nodes_gui_node_added);
     node_add_node_removed_listener(nodes_gui_node_removed);
     node_add_node_info_changed_listener(nodes_gui_node_info_changed);
+	node_add_node_flags_changed_listener(nodes_gui_node_flags_changed);
 }
 
 /*
@@ -177,7 +179,6 @@ void nodes_gui_add_node(gnet_node_info_t *n, const gchar *type)
 {
     GtkTreeIter iter;
 	gchar proto_tmp[16];
-    gchar type_tmp[64];
     guint handle;
 
     g_assert(n != NULL);
@@ -186,12 +187,11 @@ void nodes_gui_add_node(gnet_node_info_t *n, const gchar *type)
 
    	g_snprintf(proto_tmp, sizeof(proto_tmp), "%d.%d",
 		n->proto_major, n->proto_minor);
-    g_snprintf(type_tmp, sizeof(type_tmp), "%s", type);
     handle = n->node_handle;
 
     gtk_list_store_set(nodes_model, &iter, 
         COL_NODE_HOST,    ip_port_to_gchar(n->ip, n->port),
-        COL_NODE_TYPE,    type_tmp,
+        COL_NODE_TYPE,    "...",
         COL_NODE_VENDOR,  n->vendor ? n->vendor : "...",
         COL_NODE_VERSION, proto_tmp,
         COL_NODE_CONNECTED, "...",
@@ -373,6 +373,54 @@ void nodes_gui_update_node_info(gnet_node_info_t *n)
 }
 
 
+/*
+ * nodes_gui_update_node_flags
+ *
+ * Display a summary of the node flags:
+ *
+ *    0123456 (offset)
+ *    NIrwTRF
+ *    ^^^^^^^
+ *    ||||||+ flow control
+ *    |||||+  indicates whether RX is compressed
+ *    ||||+   indicates whether TX is compressed
+ *    |||+    indicates whether node is writable
+ *    ||+     indicates whether node is readable
+ *    |+      indicates connection type (Incoming, Outgoing, Ponging)
+ *    +       indicates peer mode (Normal, Ultra, Leaf)
+ */
+static void nodes_gui_update_node_flags(gnet_node_t n, gnet_node_flags_t *flags)
+{
+	gchar status[] = { '-', '-', '-', '-', '-', '-', '-', '\0' };
+    gboolean valid;
+    GtkTreeIter iter;
+
+    valid = nodes_gui_find_node(n, &iter);
+
+    if (valid) {
+		switch (flags->peermode) {
+		case NODE_P_UNKNOWN:	break;
+		case NODE_P_ULTRA:		status[0] = 'U'; break;
+		case NODE_P_NORMAL:		status[0] = 'N'; break;
+		case NODE_P_LEAF:		status[0] = 'L'; break;
+		default:				g_assert(0); break;
+		}
+
+		status[1] = flags->incoming ? 'I' : 'O';
+		if (flags->temporary) status[1] = 'P';
+		if (flags->readable) status[2] = 'r';
+		if (flags->writable) status[3] = 'w';
+		if (flags->tx_compressed) status[4] = 'T';
+		if (flags->rx_compressed) status[5] = 'R';
+		if (flags->in_tx_flow_control) status[6] = 'F';
+
+        gtk_list_store_set(nodes_model, &iter, 
+            COL_NODE_TYPE,  status,
+            -1);
+    } else
+        g_warning("%s: no matching row found", G_GNUC_PRETTY_FUNCTION);
+}
+
 
 
 /***
@@ -418,7 +466,7 @@ static void nodes_gui_node_added(
 }
 
 /*
- * nodes_gui_node_changed:
+ * nodes_gui_node_info_changed:
  *
  * Callback: called when node information was changed by the backend.
  *
@@ -426,18 +474,32 @@ static void nodes_gui_node_added(
  */
 static void nodes_gui_node_info_changed(gnet_node_t n)
 {
-    gnet_node_info_t *info;
+    gnet_node_info_t info;
     
-    info = node_get_info(n);
-
-    nodes_gui_update_node_info(info);
-
-    node_free_info(info);
+	node_fill_info(n, &info);
+    nodes_gui_update_node_info(&info);
+    node_clear_info(&info);
 }
 
+/*
+ * nodes_gui_node_flags_changed
+ *
+ * Callback invoked when the node's user-visible flags are changed.
+ */
+static void nodes_gui_node_flags_changed(gnet_node_t n)
+{
+    gnet_node_flags_t flags;
 
-/* Create a column, associating the "text" attribute of the
- * cell_renderer to the first column of the model */
+    node_fill_flags(n, &flags);
+    nodes_gui_update_node_flags(n, &flags);
+}
+
+/*
+ * nodes_gui_add_column
+ *
+ * Create a column, associating the "text" attribute of the
+ * cell_renderer to the first column of the model
+ */
 static void nodes_gui_add_column(
 	GtkTreeView *tree, gint column_id, const gchar *title)
 {
@@ -450,3 +512,4 @@ static void nodes_gui_add_column(
     gtk_tree_view_column_set_sizing(column, GTK_TREE_VIEW_COLUMN_FIXED);
     gtk_tree_view_append_column (GTK_TREE_VIEW (tree), column);
 }
+
