@@ -1017,7 +1017,7 @@ void search_gui_perform_sort(GtkCTree *ctree, gboolean ascending, gint sort_col)
          */
 		for (
             cur_node = GTK_CTREE_NODE(GTK_CLIST(ctree)->row_list);
-			(NULL != cur_node); 
+			NULL != cur_node; 
             cur_node = GTK_CTREE_NODE_SIBLING(cur_node)
         ) {
             g_array_append_val(array, cur_node);
@@ -1041,7 +1041,6 @@ void search_gui_perform_sort(GtkCTree *ctree, gboolean ascending, gint sort_col)
 		g_array_free(array, TRUE);
 		break; /* End of all cases using quicksort */
 	}	
-
 	
 #if 0
 	/* Use GTK's default sort functionality (a merge sort I think) */
@@ -1789,6 +1788,9 @@ void search_gui_shutdown(void)
         search_gui_close_search((search_t *) searches->data);
 
 	search_gui_common_shutdown();
+
+    g_list_free(list_search_history);
+    list_search_history = NULL;
 }
 
 
@@ -1823,6 +1825,7 @@ void search_gui_remove_search(search_t * sch)
 
    	glist = g_list_prepend(NULL, (gpointer) sch->list_item);
 	gtk_list_remove_items(GTK_LIST(combo_searches->list), glist);
+    g_list_free(glist); glist = NULL;
 
     row = gtk_clist_find_row_from_data(clist_search, sch);
     gtk_clist_remove(clist_search, row);
