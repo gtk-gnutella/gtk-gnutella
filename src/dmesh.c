@@ -140,13 +140,13 @@ gboolean dmesh_url_parse(gchar *url, dmesh_urlinfo_t *info)
 	 */
 
 	if (
-		6 == sscanf(url, "http://%u.%u.%u.%u:%u/get/%u/",
+		6 == sscanf(url, "http://%u.%u.%u.%u:%u/get/%u",
 			&msb, &b3, &b2, &lsb, &port, &idx)
 	)
 		goto ok;
 
 	if (
-		5 == sscanf(url, "http://%u.%u.%u.%u/get/%u/",
+		5 == sscanf(url, "http://%u.%u.%u.%u/get/%u",
 			&msb, &b3, &b2, &lsb, &idx)
 	) {
 		port = HTTP_PORT;
@@ -203,12 +203,19 @@ ok:
 		file = strstr(url, "/get/");
 		g_assert(file);					/* Or we'd have not parsed above */
 
-		file += sizeof("/get/");		/* Go after first index char */
-		
-		while ((c = *file++) && c != '/')
+		file += sizeof("/get/") - 1;	/* Go at first index char */
+
+		/*
+		 * We have to go past the index and make sure there's a "/" after it.
+		 */
+
+		while ((c = *file++) && isdigit(c))
 			/* empty */;
 
-		g_assert(c == '/');				/* We know it's there, after index */
+		if (c != '/')
+			return FALSE;				/* Did not have "/get/234/" */
+
+		/* Ok, `file' points after the "/", at beginning of filename */
 	}
 
 	info->ip = ip;
