@@ -168,7 +168,6 @@ gtk_gnutella_SOURCES = \
 	verify.c verify.h \
 	move.c move.h \
 	file.c file.h \
-	shell.c shell.h \
 	inputevt.c inputevt.h
 
 GLADE_WARNING1 = "Warning: gtk-gnutella.glade is newer than glade-built files and"
