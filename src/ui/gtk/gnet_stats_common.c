@@ -130,6 +130,7 @@ const gchar *general_type_str(int value)
 		N_("Query hits received for local queries"),
 		N_("Query hits received for OOB-proxied queries"),
 		N_("OOB hits received for OOB-proxied queries"),
+		N_("Queries requesting OOB hit delivery"),
 		N_("Duplicates with higher TTL"),
 		N_("Duplicate OOB-proxied queries"),
 		N_("Compacted queries"),

@@ -1868,7 +1868,8 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 		guint16 port;
 
 		guid_oob_get_ip_port(n->header.muid, &ip, &port);
-
+		gnet_stats_count_general(n, GNR_OOB_QUERIES, 1);
+		
 		/*
 		 * Verify against the hotile IP addresses...
 		 */
