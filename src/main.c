@@ -172,9 +172,9 @@ gint main(gint argc, gchar ** argv)
 	bsched_init();
 	network_init();
 	routing_init();
+	filters_init();			/* Must come before search_init() for retrieval */
 	search_init();
 	share_init();
-	filters_init();
 	download_init();
 	autodownload_init();
 
