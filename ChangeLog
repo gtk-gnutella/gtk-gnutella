@@ -3,7 +3,8 @@
 
 - 32 bits overflow when computing the size of all files on the GnutellaNet
   (in the gnutellanet stats) should been fixed
-- Currently implementing the multiple simultaneous searches
+- Currently implementing the multiple simultaneous searches and the search
+  results filters
 
 * v 0.12          2000.05.03
 

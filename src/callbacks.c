@@ -658,7 +658,7 @@ void on_clist_search_results_click_column (GtkCList *clist, gint column, gpointe
 
 void on_button_search_filter_clicked (GtkButton *button, gpointer user_data)
 {
-
+	gtk_widget_show(dialog_filters);
 }
 
 void on_button_search_close_clicked (GtkButton *button, gpointer user_data)

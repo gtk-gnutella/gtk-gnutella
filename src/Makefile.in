@@ -71,7 +71,7 @@ INCLUDES =  	@GTK_CFLAGS@
 
 bin_PROGRAMS = gtk_gnutella
 
-gtk_gnutella_SOURCES =  	gnutella.h 	misc.c 	config.c 	md5.c 	sockets.c 	nodes.c 	hosts.c 	routing.c 	search.c 	downloads.c 	share.c 	uploads.c 	main.c 	gui.c 	support.c support.h 	interface.c interface.h 	callbacks.c callbacks.h
+gtk_gnutella_SOURCES =  	gnutella.h 	misc.c 	config.c 	md5.c 	sockets.c 	nodes.c 	hosts.c 	routing.c 	search.c search.h 	filter.c filter.h 	downloads.c 	share.c 	uploads.c 	main.c 	gui.c 	support.c support.h 	interface.c interface.h 	callbacks.c callbacks.h 	dialog-filters.c dialog-filters.h 	callbacks-filters.c callbacks-filters.h
 
 
 gtk_gnutella_LDADD = @GTK_LIBS@
@@ -86,8 +86,8 @@ CPPFLAGS = @CPPFLAGS@
 LDFLAGS = @LDFLAGS@
 LIBS = @LIBS@
 gtk_gnutella_OBJECTS =  misc.o config.o md5.o sockets.o nodes.o hosts.o \
-routing.o search.o downloads.o share.o uploads.o main.o gui.o support.o \
-interface.o callbacks.o
+routing.o search.o filter.o downloads.o share.o uploads.o main.o gui.o \
+support.o interface.o callbacks.o dialog-filters.o callbacks-filters.o
 gtk_gnutella_DEPENDENCIES = 
 gtk_gnutella_LDFLAGS = 
 CFLAGS = @CFLAGS@
@@ -101,9 +101,10 @@ DISTFILES = $(DIST_COMMON) $(SOURCES) $(HEADERS) $(TEXINFOS) $(EXTRA_DIST)
 
 TAR = gtar
 GZIP_ENV = --best
-DEP_FILES =  .deps/callbacks.P .deps/config.P .deps/downloads.P \
-.deps/gui.P .deps/hosts.P .deps/interface.P .deps/main.P .deps/md5.P \
-.deps/misc.P .deps/nodes.P .deps/routing.P .deps/search.P .deps/share.P \
+DEP_FILES =  .deps/callbacks-filters.P .deps/callbacks.P .deps/config.P \
+.deps/dialog-filters.P .deps/downloads.P .deps/filter.P .deps/gui.P \
+.deps/hosts.P .deps/interface.P .deps/main.P .deps/md5.P .deps/misc.P \
+.deps/nodes.P .deps/routing.P .deps/search.P .deps/share.P \
 .deps/sockets.P .deps/support.P .deps/uploads.P
 SOURCES = $(gtk_gnutella_SOURCES)
 OBJECTS = $(gtk_gnutella_OBJECTS)

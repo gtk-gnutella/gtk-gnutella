@@ -5,7 +5,7 @@
 #
 # So this little script...
 #
-# Of course, You will need tclsh to run it...
+# Of course, you will need tclsh to run it...
 #
 
 set w_list {
@@ -41,8 +41,6 @@ set w_list {
 	popup_uploads popup_uploads_title
 }
 
-# interface.h ----------------------------------------------------------------------------------------
-
 # First we check wether the script hasn't been run already
 
 set h [open "interface.h"]
@@ -54,6 +52,8 @@ while { ! [eof $h] } {
 		exit 1
 	}
 }
+
+# interface.h ----------------------------------------------------------------------------------------
 
 close $h
 

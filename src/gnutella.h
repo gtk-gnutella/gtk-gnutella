@@ -311,6 +311,7 @@ extern gint hosts_idle_func;
 /* search.c */
 
 extern gboolean  clear_uploads, clear_downloads;
+extern GtkWidget *dialog_filters;
 
 /* downloads.c */
 

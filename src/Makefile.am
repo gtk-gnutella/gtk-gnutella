@@ -14,7 +14,8 @@ gtk_gnutella_SOURCES = \
 	nodes.c \
 	hosts.c \
 	routing.c \
-	search.c \
+	search.c search.h \
+	filter.c filter.h \
 	downloads.c \
 	share.c \
 	uploads.c \
@@ -22,7 +23,9 @@ gtk_gnutella_SOURCES = \
 	gui.c \
 	support.c support.h \
 	interface.c interface.h \
-	callbacks.c callbacks.h
+	callbacks.c callbacks.h \
+	dialog-filters.c dialog-filters.h \
+	callbacks-filters.c callbacks-filters.h
 
 gtk_gnutella_LDADD = @GTK_LIBS@
 

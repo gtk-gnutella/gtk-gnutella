@@ -5,47 +5,13 @@
 
 #include "interface.h"
 
+#include "dialog-filters.h"
+
+#include "search.h"
+#include "filter.h"
+
 gchar stmp_1[4096];
 gchar stmp_2[4096];
-
-struct results_set
-{
-	guchar guid[16];
-	guint32 num_recs;
-	guint32 ip;
-	guint16 port;
-	guint32 speed;
-
-	GSList *records;
-};
-
-struct record
-{
-	struct results_set *results_set;
-	gchar *name;
-	guint32 size;
-	guint32 index;
-};
-
-struct search
-{
-	GtkWidget *clist;						/* GtkCList for this search */
-	GtkWidget *scrolled_window;		/* GtkScrolledWindow containing the GtkCList */
-	GtkWidget *list_item;				/* The GtkListItem in the combo for this search */
-	gchar 	*query;						/* The search query */
-	guint16	speed;						/* Minimum speed for the results of this query */
-	time_t	time;							/* Time when this search was started */
-	guchar	muid[16];					/* Message UID of this search */
-	GSList	*r_sets;						/* The results sets of this search */
-	guint32	items;						/* Total number of items for this search */
-	guint32  displayed;					/* Total number of items displayed */
-
-	gint sort_col;							/* Column to sort */
-	gint sort_order;						/* Ascending or descending */
-	gboolean sort;							/* Do sorting or not */
-
-	// XXX Other fields will be needed for the advanced filtering
-};
 
 GSList *searches = NULL;							/* List of search structs */
 
@@ -53,6 +19,8 @@ GtkWidget *default_search_clist    = NULL;	/* If no search are currently allocat
 GtkWidget *default_scrolled_window = NULL;	/* If no search are currently allocated */
 
 struct search *current_search = NULL;			/*	The search currently displayed */
+
+GtkWidget *dialog_filters = NULL;
 
 /* --------------------------------------------------------------------------------------------------------- */
 
@@ -145,6 +113,10 @@ void search_init(void)
 	gtk_notebook_append_page(GTK_NOTEBOOK(notebook_search_results), default_scrolled_window, NULL);
 
 	gtk_signal_connect(GTK_OBJECT(GTK_COMBO(combo_searches)->popwin), "hide", GTK_SIGNAL_FUNC(on_search_switch), NULL);
+
+	dialog_filters = create_dialog_filters();
+
+	gtk_window_set_position(GTK_WINDOW(dialog_filters), GTK_WIN_POS_CENTER);
 }
 
 /* Free all the results sets of a search */
@@ -422,7 +394,13 @@ void search_results(struct gnutella_node *n)
 
 	for (l = rs->records; l; l = l->next)
 	{
+		sch->items++;
+
 		rc = (struct record *) l->data;
+
+		if (!filter_record(sch, rc)) continue;
+
+		sch->displayed++;
 
 		titles[0] = rc->name;
 		titles[1] = short_size(rc->size);
@@ -462,8 +440,6 @@ void search_results(struct gnutella_node *n)
 		}
 
 		gtk_clist_set_row_data(GTK_CLIST(sch->clist), row, (gpointer) rc);
-
-		sch->items++;
 	}
 
 	gtk_clist_thaw(GTK_CLIST(sch->clist));
