@@ -42,10 +42,10 @@ RCSID("$Id$");
  * What we return to the outside is a pointer to arena[], not to
  * the atom structure.
  */
-struct atom {
+typedef struct atom {
 	gint refcnt;				/* Amount of references */
 	gchar arena[1];			/* Start of user arena */
-};
+} atom_t;
 
 #define ARENA_OFFSET	G_STRUCT_OFFSET(struct atom, arena)
 
@@ -55,14 +55,14 @@ typedef const gchar *(*str_func_t)(gconstpointer v);
 /*
  * Description of atom types.
  */
-struct table_desc {
+typedef struct table_desc {
 	const gchar *type;			/* Type of atoms */
 	GHashTable *table;			/* Table of atoms: "atom value" => 1 */
 	GHashFunc hash_func;		/* Hashing function for atoms */
 	GCompareFunc eq_func;		/* Atom equality function */
 	len_func_t len_func;		/* Atom length function */
 	str_func_t str_func;		/* Atom to human-readable string */
-};
+} table_desc_t;
 
 #define public
 
@@ -84,7 +84,7 @@ static const gchar *int_str(gconstpointer v);
 /*
  * The set of all atom types we know about.
  */
-struct table_desc atoms[] = {
+table_desc_t atoms[] = {
 	{ "String",	NULL,	g_str_hash,	g_str_equal, str_len,	str_str	},	/* 0 */
 	{ "GUID",	NULL,	guid_hash,	guid_eq,	 guid_len,	guid_str},	/* 1 */
 	{ "SHA1",	NULL,	sha1_hash,	sha1_eq,	 sha1_len,	sha1_str},	/* 2 */
@@ -123,9 +123,9 @@ static const gchar *str_str(gconstpointer v)
  *
  * Hash `len' bytes (multiple of 4) starting from `key'.
  */
-static guint binary_hash(gconstpointer key, gint len)
+static guint binary_hash(const guchar *key, gint len)
 {
-	const guchar *buf = (const guchar *) key;
+	const gchar *buf = (const gchar *) key;
 	gint i;
 	guint hash = 0;
 
@@ -161,7 +161,9 @@ guint guid_hash(gconstpointer key)
  */
 gint guid_eq(gconstpointer a, gconstpointer b)
 {
-/* FIXME: Disabled because of alignment problems */
+/* FIXME:	Disabled because of alignment problems
+ *			This should work if guid was declared as guint32[4].
+ */
 #if 0
 	const guint32 *ax = (const guint32 *) a;
 	const guint32 *bx = (const guint32 *) b;
@@ -217,7 +219,9 @@ guint sha1_hash(gconstpointer key)
  */
 gint sha1_eq(gconstpointer a, gconstpointer b)
 {
-/* FIXME: Disabled because of alignment problems */
+/* FIXME:	Disabled because of alignment problems
+ *			This should work if sha1_t (?) was declared as guint32[5].
+ */
 #if 0
 	const guint32 *ax = (const guint32 *) a;
 	const guint32 *bx = (const guint32 *) b;
@@ -288,7 +292,7 @@ void atoms_init(void)
 	gint i;
 
 	for (i = 0; i < COUNT(atoms); i++) {
-		struct table_desc *td = &atoms[i];
+		table_desc_t *td = &atoms[i];
 
 		td->table = g_hash_table_new(td->hash_func, td->eq_func);
 	}
@@ -304,11 +308,11 @@ void atoms_init(void)
  */
 gpointer atom_get(gint type, gconstpointer key)
 {
-	struct table_desc *td;
+	table_desc_t *td;
 	gboolean found;
 	gpointer value;
 	gpointer x;
-	struct atom *a;
+	atom_t *a;
 	gint len;
 
     g_assert(key != NULL);
@@ -323,7 +327,7 @@ gpointer atom_get(gint type, gconstpointer key)
 	found = g_hash_table_lookup_extended(td->table, key, &value, &x);
 
 	if (found) {
-		a = (struct atom *) ((gchar *) value - ARENA_OFFSET);
+		a = (atom_t *) ((gchar *) value - ARENA_OFFSET);
 
 		g_assert(a->refcnt > 0);
 
@@ -345,7 +349,7 @@ gpointer atom_get(gint type, gconstpointer key)
 	 * Insert atom in table.
 	 */
 
-	g_hash_table_insert(td->table, a->arena, (gpointer) 1);
+	g_hash_table_insert(td->table, a->arena, GINT_TO_POINTER(1));
 
 	return a->arena;
 }
@@ -358,11 +362,11 @@ gpointer atom_get(gint type, gconstpointer key)
  */
 void atom_free(gint type, gconstpointer key)
 {
-	struct table_desc *td;
+	table_desc_t *td;
 	gboolean found;
 	gpointer value;
 	gpointer x;
-	struct atom *a;
+	atom_t *a;
 
     g_assert(key != NULL);
 	g_assert(type >= 0 && type < COUNT(atoms));
@@ -374,7 +378,7 @@ void atom_free(gint type, gconstpointer key)
 	g_assert(found);
 	g_assert(value == key);
 
-	a = (struct atom *) ((gchar *) key - ARENA_OFFSET);
+	a = (atom_t *) ((gchar *) key - ARENA_OFFSET);
 
 	g_assert(a->refcnt > 0);
 
@@ -395,8 +399,8 @@ void atom_free(gint type, gconstpointer key)
  */
 static gboolean atom_warn_free(gpointer key, gpointer value, gpointer udata)
 {
-	struct atom *a = (struct atom *) ((gchar *) key - ARENA_OFFSET);
-	struct table_desc *td = (struct table_desc *) udata;
+	atom_t *a = (atom_t *) ((gchar *) key - ARENA_OFFSET);
+	table_desc_t *td = (table_desc_t *) udata;
 
 	g_warning("found remaining %s atom 0x%lx, refcnt=%d: \"%s\"",
 		td->type, (glong) key, a->refcnt, (*td->str_func)(key));
@@ -420,7 +424,7 @@ void atoms_close(void)
 	gint i;
 
 	for (i = 0; i < COUNT(atoms); i++) {
-		struct table_desc *td = &atoms[i];
+		table_desc_t *td = &atoms[i];
 
 		g_hash_table_foreach_remove(td->table, atom_warn_free, td);
 		g_hash_table_destroy(td->table);
