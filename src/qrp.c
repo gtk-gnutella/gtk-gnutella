@@ -2144,6 +2144,21 @@ static gboolean qrt_apply_patch(
 	g_assert(qrcv->expansion != NULL);
 
 	/*
+	 * Make sure the received table is not full yet.  If that
+	 * test fails, they have alreayd sent more data than the
+	 * advertised table size.
+	 */
+
+	if (qrcv->current_index >= rt->slots) {
+		struct gnutella_node *n = qrcv->node;
+		g_warning("node %s <%s> overflowed its QRP patch (spurious message?)",
+			node_ip(n), node_vendor(n));
+		node_bye_if_writable(n, 413, "QRP patch overflowed table (%s slots)",
+			compact_size(rt->client_slots));
+		return FALSE;
+	}
+
+	/*
 	 * NOTA BENE:
 	 *
 	 * When we're shrinking the table, every entry needs to be expanded
@@ -2309,7 +2324,9 @@ static gboolean qrt_apply_patch(
 					struct gnutella_node *n = qrcv->node;
 					g_warning("node %s <%s> overflowed its QRP patch",
 						node_ip(n), node_vendor(n));
-					node_bye_if_writable(n, 413, "QRP patch overflowed table");
+					node_bye_if_writable(n, 413,
+						"QRP patch overflowed table (%s slots)",
+						compact_size(rt->client_slots));
 					return FALSE;
 				}
 			}
