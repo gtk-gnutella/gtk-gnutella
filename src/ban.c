@@ -326,7 +326,7 @@ void ban_force(struct gnutella_socket *s)
 		banned_count++;
 
 	/*
-	 * Shrink socket buffers, and dispose of the socket structure.
+	 * Shrink socket buffers.
 	 */
 
 	sock_send_buf(s, SOCK_BUFFER, TRUE);
