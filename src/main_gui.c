@@ -81,16 +81,13 @@ GtkWidget *popup_queue = NULL;
 
 static void gui_init_window_title(void)
 {
-	gchar tmpstr[256];
-
-	gm_snprintf(tmpstr, sizeof(tmpstr),
+	gtk_window_set_title(GTK_WINDOW(main_window),
 #ifdef GTA_REVISION
-		"gtk-gnutella %s %s", version_number, GTA_REVISION
+		"gtk-gnutella " GTA_VERSION_NUMBER " " GTA_REVISION
 #else
-		"gtk-gnutella %s", version_number
+		"gtk-gnutella " GTA_VERSION_NUMBER
 #endif
 	);
-	gtk_window_set_title(GTK_WINDOW(main_window), tmpstr);
 }
 
 #ifdef USE_GTK2
