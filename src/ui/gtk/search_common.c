@@ -1296,7 +1296,7 @@ search_gui_parse_query(const gchar *querystr, const gchar **error)
 	}
 
 	if (0 == strncasecmp(query, magnet, CONST_STRLEN(magnet))) {
-		guchar raw[SHA1_RAW_SIZE];
+		gchar raw[SHA1_RAW_SIZE];
 
 		if (urn_get_sha1(query, raw)) {
 			gm_snprintf(query, sizeof query, "%s%s", urnsha1, sha1_base32(raw));
@@ -1315,7 +1315,7 @@ search_gui_parse_query(const gchar *querystr, const gchar **error)
 	 */
 
 	if (0 == strncasecmp(query, urnsha1, CONST_STRLEN(urnsha1))) {
-		guchar raw[SHA1_RAW_SIZE];
+		gchar raw[SHA1_RAW_SIZE];
 		gchar *b = &query[CONST_STRLEN(urnsha1)];
 
 		if (strlen(b) >= SHA1_BASE32_SIZE) {
@@ -1328,7 +1328,7 @@ search_gui_parse_query(const gchar *querystr, const gchar **error)
 		 	 * the new one on the fly.
 		 	 */
 			if (base32_decode_old_into(b, SHA1_BASE32_SIZE, raw, sizeof raw)) {
-				guchar b32[SHA1_BASE32_SIZE + 1];
+				gchar b32[SHA1_BASE32_SIZE + 1];
 
 				base32_encode_into(raw, sizeof(raw), b32, sizeof(b32));
 				b32[sizeof b32 - 1] = '\0';
