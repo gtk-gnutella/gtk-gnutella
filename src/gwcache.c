@@ -65,12 +65,43 @@ static gchar gwc_tmp[1024];
 static gchar *gwc_url[MAX_GWC_URLS];		/* Holds string atoms */
 static gint gwc_url_slot = -1;
 static GHashTable *gwc_known_url = NULL;
+
+/*
+ * Web cache update policy:
+ *
+ * . One random web cache is selected among the list of known caches,
+ *   at startup.  This is known as the "current webcache", and it is
+ *   stored in `current_url'.
+ *
+ * . As soon as a transaction to the "current webcache" fails, a new one
+ *   is elected.
+ *
+ * . Every HOUR_MS milliseconds, a transaction updating ip (if connectible)
+ *   and an url (chosen randomly among the known ones) is sent to
+ *   the "current webcache".
+ *
+ * . Every hour, but 10 minutes after the previous update, an urlfile
+ *   request is sent to the "current webcache", to get more webcache URLs
+ *   to propagate.
+ *
+ * . After having used a cache for more than MAX_GWC_REUSE times, as
+ *   tracked by `current_reused', a new "current webcache" is elected.
+ *
+ * . If an urlfile or an hostfile request return less than MIN_URL_LINES
+ *   or MIN_IP_LINES respectively, we force an update on that cache to
+ *   "seed" it with data.  We then elect another "current webcache".
+ *
+ * . All requests include "client=GTKG" and "version" information.
+ */
+
 static gchar *current_url = NULL;			/* Cache we're currently using */
 static gint current_reused = 0;				/* Amount of times we reused it */
 
 #define MAX_URL_LINES	50					/* Max lines on a urlfile req */
 #define MAX_IP_LINES	50					/* Max lines on a hostfile req */
 #define MAX_OK_LINES	3					/* Max lines when expecting OK */
+#define MIN_IP_LINES	5					/* Min lines expected */
+#define MIN_URL_LINES	5					/* Min lines expected */
 #define HOUR_MS			(3600 * 1000)		/* Callout queue time in ms */
 
 static gchar *gwc_file = "gwcache";
@@ -81,6 +112,7 @@ static gboolean gwc_file_dirty = FALSE;
 
 static void gwc_get_urls(void);
 static void gwc_update_ip_url(void);
+static void gwc_seed_cache(gchar *cache_url);
 
 extern cqueue_t *callout_queue;
 
@@ -567,8 +599,9 @@ static void gwc_url_eof(struct parse_context *ctx)
 		printf("GWC URL all done (%d/%d lines processed)\n",
 			ctx->processed, ctx->lines);
 
-	if (ctx->processed == 0) {
-		current_url = NULL;			/* This webcache is not good */
+	if (ctx->processed < MIN_URL_LINES) {
+		gwc_seed_cache(current_url);
+		current_url = NULL;			/* This webcache has nothing */
 		gwc_get_urls();				/* Try with another one! */
 	}
 }
@@ -624,7 +657,8 @@ static void gwc_get_urls(void)
 		NULL, gwc_url_data_ind, gwc_url_error_ind);
 
 	if (!handle) {
-		g_warning("could not launch a \"GET %s\" request", gwc_tmp);
+		g_warning("could not launch a \"GET %s\" request: %s",
+			gwc_tmp, http_async_strerror(http_async_errno));
 		current_url = NULL;
 		return;
 	}
@@ -680,8 +714,10 @@ static void gwc_host_eof(struct parse_context *ctx)
 		printf("GWC host all done (%d/%d lines processed)\n",
 			ctx->processed, ctx->lines);
 
-	if (ctx->processed == 0)
-		current_url = NULL;			/* This webcache is not good */
+	if (ctx->processed < MIN_IP_LINES) {
+		gwc_seed_cache(current_url);
+		current_url = NULL;				/* Move to another cache */
+	}
 
 	hostfile_running = FALSE;
 }
@@ -739,7 +775,8 @@ void gwc_get_hosts(void)
 		NULL, gwc_host_data_ind, gwc_host_error_ind);
 
 	if (!handle) {
-		g_warning("could not launch a \"GET %s\" request", gwc_tmp);
+		g_warning("could not launch a \"GET %s\" request: %s",
+			gwc_tmp, http_async_strerror(http_async_errno));
 		current_url = NULL;
 		return;
 	}
@@ -803,11 +840,11 @@ static void gwc_update_error_ind(
 }
 
 /*
- * gwc_update_ip_url
+ * gwc_update_this
  *
- * Publish our IP to the web cache and propagate one random URL.
+ * Publish our IP to the named cache `cache_url' and propagate one random URL.
  */
-static void gwc_update_ip_url(void)
+static void gwc_update_this(gchar *cache_url)
 {
 	gpointer handle;
 	gchar *url = NULL;
@@ -816,9 +853,9 @@ static void gwc_update_ip_url(void)
 	gint rw;
 	gint i;
 
-	check_current_url();
+	g_assert(cache_url != NULL);
 
-	rw = g_snprintf(gwc_tmp, sizeof(gwc_tmp), "%s?", current_url);
+	rw = g_snprintf(gwc_tmp, sizeof(gwc_tmp), "%s?", cache_url);
 
 	/*
 	 * Choose another URL randomly.
@@ -826,7 +863,7 @@ static void gwc_update_ip_url(void)
 
 	for (i = 0; i < MAX_GWC_URLS; i++) {
 		url = gwc_pick();
-		if (0 != strcmp(url, current_url)) {
+		if (0 != strcmp(url, cache_url)) {
 			found_alternate = TRUE;
 			break;
 		}
@@ -888,11 +925,43 @@ static void gwc_update_ip_url(void)
 		NULL, gwc_update_data_ind, gwc_update_error_ind);
 
 	if (!handle) {
-		g_warning("could not launch a \"GET %s\" request", gwc_tmp);
-		current_url = NULL;
+		g_warning("could not launch a \"GET %s\" request: %s",
+			gwc_tmp, http_async_strerror(http_async_errno));
+		if (cache_url == current_url)
+			current_url = NULL;
 		return;
 	}
 
 	parse_context_set(handle, MAX_OK_LINES);
+}
+
+/*
+ * gwc_seed_cache
+ *
+ * Publish our IP to the named cache `cache_url' and propagate one random URL.
+ *
+ * We sometimes forcefully call this routine with a cache that does not return
+ * anything to us, to try to "bootstrap" it by feeding some data.
+ */
+static void gwc_seed_cache(gchar *cache_url)
+{
+	if (cache_url == NULL)
+		return;
+
+	if (dbg > 2)
+		printf("GWC seeding cache \"%s\"\n", cache_url);
+
+	gwc_update_this(cache_url);
+}
+
+/*
+ * gwc_update_ip_url
+ *
+ * Publish our IP to the web cache and propagate one random URL.
+ */
+static void gwc_update_ip_url(void)
+{
+	check_current_url();
+	gwc_update_this(current_url);
 }
 
