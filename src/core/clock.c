@@ -3,9 +3,6 @@
  *
  * Copyright (c) 2003, Raphael Manfredi
  *
- * Maintain an accurate clock skew of our host's clock with respect
- * to the absolute time.
- *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
  *
@@ -26,6 +23,13 @@
  *----------------------------------------------------------------------
  */
 
+/*
+ * @file
+ *
+ * Maintain an accurate clock skew of our host's clock with respect
+ * to the absolute time.
+ */
+
 #include "common.h"
 
 RCSID("$Id$");
@@ -40,14 +44,11 @@ RCSID("$Id$");
 #include "if/gnet_property.h"
 #include "if/gnet_property_priv.h"
 
+#include "lib/stats.h"
 #include "lib/override.h"		/* Must be the last header included */
 
-#define MAX_DELTA	86400		/* 1 day */
-#define MAX_ADJUST	9600		/* 3 hours */
-
 #define REUSE_DELAY	86400		/* 1 day */
-
-static GHashTable *used;		/* Records the IP address used */
+#define MIN_DATA	30			/* Update skew when we have enough data */
 
 struct used_val {
 	guint *ip_atom;				/* The atom used for the key */
@@ -55,12 +56,36 @@ struct used_val {
 	gpointer cq_ev;				/* Scheduled cleanup event */
 };
 
+static GHashTable *used;		/* Records the IP address used */
+
 /*
- * val_free
+ * This container holds the data points (clock offset between the real UTC
+ * time and our local clock time) collected.  For each update, there are
+ * two data points entered: u+d and u-d, where u is the update point and
+ * d is the precision of the value.
  *
+ * When we have "enough" data points, we compute the average and the
+ * standard deviation, then we remove all the points lying outside the
+ * range [average - sigma, average + sigma].  We then recompute the
+ * average and use that to update our clock skew.
+ *
+ * Since we can't update the system clock, we define a skew and the relation
+ * between the real, the local time and the skew is:
+ *
+ *		real_time = local_time + clock_skew
+ *
+ * The routine clock_loc2gmt() is used to compute the real time based on
+ * the local time, given the currently determined skew.  The skewing of the
+ * local time is only used when the host is not running NTP.  Otherwise,
+ * we compute the skew just for the fun of it.
+ */
+gpointer datapoints = NULL;
+
+/**
  * Dispose of the value from the `used' table.
  */
-static void val_free(struct used_val *v)
+static void
+val_free(struct used_val *v)
 {
 	g_assert(v);
 	g_assert(v->ip_atom);
@@ -73,12 +98,11 @@ static void val_free(struct used_val *v)
 	wfree(v, sizeof(*v));
 }
 
-/*
- * val_destroy
- *
+/**
  * Called from callout queue when it's time to destroy the record.
  */
-static void val_destroy(cqueue_t *cq, gpointer obj)
+static void
+val_destroy(cqueue_t *cq, gpointer obj)
 {
 	struct used_val *v = (struct used_val *) obj;
 
@@ -90,12 +114,11 @@ static void val_destroy(cqueue_t *cq, gpointer obj)
 	val_free(v);
 }
 
-/*
- * val_create
- *
+/**
  * Create a value for the `used' table.
  */
-struct used_val *val_create(guint32 ip, gint precision)
+struct used_val *
+val_create(guint32 ip, gint precision)
 {
 	struct used_val *v = walloc(sizeof(*v));
 
@@ -106,50 +129,109 @@ struct used_val *val_create(guint32 ip, gint precision)
 	return v;
 }
 
-/*
- * clock_init
- *
+/**
  * Called at startup time to initialize local structures.
  */
-void clock_init(void)
+void
+clock_init(void)
 {
 	used = g_hash_table_new(g_int_hash, g_int_equal);
+	datapoints = statx_make();
 }
 
-static void used_free_kv(gpointer key, gpointer val, gpointer x)
+static void
+used_free_kv(gpointer key, gpointer val, gpointer x)
 {
 	struct used_val *v = (struct used_val *) val;
 
 	val_free(v);
+	statx_free(datapoints);
 }
 
-/*
- * clock_close
- *
+/**
  * Called at shutdown time to cleanup local structures.
  */
-void clock_close(void)
+void
+clock_close(void)
 {
 	g_hash_table_foreach(used, used_free_kv, NULL);
 	g_hash_table_destroy(used);
 }
 
-/*
- * clock_update
- *
+/**
+ * Adjust clock skew when we have enough datapoints.
+ */
+static void
+clock_adjust(void)
+{
+	gint n;
+	gdouble *value;
+	gdouble avg;
+	gdouble sdev;
+	gdouble min;
+	gdouble max;
+	gint i;
+	guint32 new_skew;
+
+	/*
+	 * Compute average and standard deviation using all the data points.
+	 */
+
+	n = statx_n(datapoints);
+	avg = statx_avg(datapoints);
+	sdev = statx_sdev(datapoints);
+	value = statx_data(datapoints);
+
+	if (dbg > 1)
+		printf("CLOCK adjusting from n=%d avg=%.2f sdev=%.2f\n", n, avg, sdev);
+
+	min = avg - sdev;
+	max = avg + sdev;
+
+	statx_clear(datapoints);
+
+	/*
+	 * Remove aberration points: keep only the sigma range around the
+	 * average.
+	 */
+
+	for (i = 0; i < n; i++) {
+		gdouble v = value[i];
+		if (v < min || v > max)
+			continue;
+		statx_add(datapoints, v);
+	}
+
+	/*
+	 * Recompute the new average using the "sound" points we kept.
+	 */
+
+	n = statx_n(datapoints);
+	avg = statx_avg(datapoints);
+	sdev = statx_sdev(datapoints);
+
+	statx_clear(datapoints);
+
+	new_skew = clock_skew + (gint32) avg;
+
+	if (dbg > 1)
+		printf("CLOCK kept n=%d avg=%.2f sdev=%.2f => SKEW old=%d new=%d\n",
+			n, avg, sdev, (gint32) clock_skew, (gint32) new_skew);
+
+	gnet_prop_set_guint32_val(PROP_CLOCK_SKEW, new_skew);
+}
+
+/**
  * Update clock information, with given precision in seconds.
  *
  * The `ip' is used to avoid using the same source more than once per
  * REUSE_DELAY seconds.
  */
-void clock_update(time_t update, gint precision, guint32 ip)
+void
+clock_update(time_t update, gint precision, guint32 ip)
 {
 	time_t now;
-	gint epsilon;
-	gint32 delta_skew;
 	gint32 delta;
-    guint32 new_skew;
-    gint32 skew;
 	struct used_val *v;
 
 	g_assert(used);
@@ -172,78 +254,26 @@ void clock_update(time_t update, gint precision, guint32 ip)
 		g_hash_table_insert(used, v->ip_atom, v);
 	}
 
-    gnet_prop_get_guint32_val(PROP_CLOCK_SKEW, &new_skew);
-	skew = (gint32) new_skew;
 	now = time(NULL);
+	delta = update - (now + (gint32) clock_skew);
 
-	/*
-	 * It's not reasonable to have a delta of more than a day.  If people
-	 * accept to run with such a wrong clock (even if it's the local host),
-	 * then too bad but GTKG can't fix it.  It's broken beyond repair.
-	 */
-
-	if (ABS(skew) > MAX_DELTA) {
-		delta = skew > 0 ? +MAX_DELTA : -MAX_DELTA;
-		g_warning("truncating clock skew from %d to %d [%s]",
-			skew, delta, ip_to_gchar(ip));
-		new_skew = (guint32) delta;
-		gnet_prop_set_guint32_val(PROP_CLOCK_SKEW, new_skew);
-	}
-
-	/*
-	 * Compute how far we land from the absolute time given our present skew.
-	 * If that epsilon is smaller than the precision of the measure,
-	 * don't further update the skew.
-	 */
-
-	epsilon = now + skew - update;
-
-	if (ABS(epsilon) <= precision) {
-		if (dbg)
-			printf("CLOCK rejecting update=%u, precision=%d [%s]"
-				" (epsilon=%d, within precision window)\n",
-				(guint32) update, precision, ip_to_gchar(ip), epsilon);
-		return;
-	}
-
-	/*
-	 * Limit the amount by which we can correct to avoid sudden jumps.
-	 */
-
-	delta = update - now;
-
-	if (ABS(delta) > MAX_DELTA) {
-		if (dbg)
-			printf("CLOCK rejecting update=%u, precision=%d [%s]"
-				" (more than %d seconds off)\n",
-				(guint32) update, precision, ip_to_gchar(ip), MAX_DELTA);
-		return;
-	}
-
-	if (delta < -MAX_ADJUST)
-		delta = -MAX_ADJUST;
-	else if (delta > MAX_ADJUST)
-		delta = MAX_ADJUST;
-
-	/*
-	 * Update the clock_skew as a slow EMA.
-	 */
-
-	delta_skew = delta / 32 - skew / 32;
-	new_skew = (guint32) (skew + delta_skew);
-    gnet_prop_set_guint32_val(PROP_CLOCK_SKEW, new_skew);
+	statx_add(datapoints, (gdouble) (delta + precision));
+	statx_add(datapoints, (gdouble) (delta - precision));
 
 	if (dbg)
-		printf("CLOCK skew=%d, precision=%d, epsilon=%d [%s]\n",
-			(gint32) clock_skew, precision, epsilon, ip_to_gchar(ip));
+		printf("CLOCK skew=%d delta=%d +/-%d [%s] (n=%d avg=%.2f sdev=%.2f)\n",
+			(gint32) clock_skew, delta, precision, ip_to_gchar(ip),
+			statx_n(datapoints), statx_avg(datapoints), statx_sdev(datapoints));
+
+	if (statx_n(datapoints) >= MIN_DATA)
+		clock_adjust();
 }
 
-/*
- * clock_loc2gmt
- *
+/**
  * Given a local timestamp, use our skew to correct it to GMT.
  */
-time_t clock_loc2gmt(time_t stamp)
+time_t
+clock_loc2gmt(time_t stamp)
 {
 	if (host_runs_ntp)
 		return stamp;
@@ -251,12 +281,11 @@ time_t clock_loc2gmt(time_t stamp)
 	return stamp + (gint32) clock_skew;
 }
 
-/*
- * clock_gmt2loc
- *
+/**
  * Given a GMT timestamp, convert it to a local stamp using our skew.
  */
-time_t clock_gmt2loc(time_t stamp)
+time_t
+clock_gmt2loc(time_t stamp)
 {
 	if (host_runs_ntp)
 		return stamp;
