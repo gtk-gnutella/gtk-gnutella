@@ -185,8 +185,20 @@ enum {
     nb_main_page_search,
     nb_main_page_monitor,
     nb_main_page_search_stats,
+    nb_main_page_gnet_stats,
+#ifdef USE_GTK2
+    nb_main_page_config_net,
+    nb_main_page_config_gnet,
+    nb_main_page_config_bwc,
+    nb_main_page_config_dl,
+    nb_main_page_config_ul,
+    nb_main_page_config_ui,
+    nb_main_page_config_dbg,
+#else
     nb_main_page_config,
-    nb_main_page_gnet_stats
+#endif
+
+    nb_main_page_num
 };
 
 /*
@@ -201,7 +213,13 @@ enum {
     TREEMENU_NODE_SEARCH,
     TREEMENU_NODE_SEARCH_MON,
     TREEMENU_NODE_SEARCH_STATS,
-    TREEMENU_NODE_CFG,
+    TREEMENU_NODE_CFG_NET,
+    TREEMENU_NODE_CFG_GNET,
+    TREEMENU_NODE_CFG_BWC,
+    TREEMENU_NODE_CFG_DL,
+    TREEMENU_NODE_CFG_UL,
+    TREEMENU_NODE_CFG_UI,
+    TREEMENU_NODE_CFG_DBG,
 
     TREEMENU_NODES
 };
@@ -209,8 +227,6 @@ enum {
 /*
  * Public variables.
  */
-extern GtkWidget *main_window;
-extern GtkWidget *shutdown_window;
 extern GtkWidget *main_window;
 extern GtkWidget *shutdown_window;
 extern GtkWidget *dlg_about;
@@ -248,5 +264,10 @@ gint gui_record_name_eq(gconstpointer rec1, gconstpointer rec2);
 gint gui_record_sha1_eq(gconstpointer rec1, gconstpointer rec2);
 gint gui_record_host_eq(gconstpointer rec1, gconstpointer rec2);
 gint gui_record_sha1_or_name_eq(gconstpointer rec1, gconstpointer rec2);
+
+#ifdef USE_GTK2
+void gui_merge_window_as_tab(GtkWidget *toplvl, GtkWidget *notebook,
+							 GtkWidget *window);
+#endif
 
 #endif /* _gui_h_ */

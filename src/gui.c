@@ -319,3 +319,92 @@ gint gui_record_sha1_or_name_eq(gconstpointer rec1, gconstpointer rec2)
     else
         return gui_record_name_eq(rec1, rec2);
 }
+
+#ifdef USE_GTK2
+/*
+ * The following handles UI joining since the glade code is now
+ * splitted into several files. Prevents huge UI creation functions
+ * and allows GTK2 compilation on some platforms.
+ *
+ * 2003-02-08 ko [junkpile@free.fr]
+ *
+ */
+typedef struct steal_dict_params {
+	GtkWidget *target;
+	GtkWidget *source;
+} steal_dict_params_t;
+
+/*
+ * gui_steal_widget_dict_recursive:
+ *
+ * Transfers the widget dictionary for specified widget
+ * from specified window to the main window.
+ * If the widget is a container, recursively calls
+ * itself on each child.
+ *
+ */
+void gui_steal_widget_dict_recursive(GtkWidget *widget, gpointer data)
+{
+	const gchar *name;
+	steal_dict_params_t *params = (steal_dict_params_t *) data;
+	
+	g_assert(widget != NULL);
+	g_assert(data != NULL);
+
+	name = gtk_widget_get_name(widget);
+	if (name != NULL) {
+		gpointer *data = g_object_steal_data(G_OBJECT(params->source), name);
+		if (data != NULL)
+			g_object_set_data_full(G_OBJECT(params->target), name,
+				data, (GDestroyNotify) gtk_widget_unref);
+	}
+
+	if (GTK_IS_CONTAINER(widget))
+		gtk_container_foreach(GTK_CONTAINER(widget),
+			gui_steal_widget_dict_recursive, data);
+}
+
+/*
+ * gui_merge_window_as_tab:
+ *
+ * 2003-02-08 ko [junkpile@free.fr]
+ *
+ * Reparents children of specified window into a new notebook tab.
+ * Also transfers the widget dictionary to specified toplevel
+ * window so lookup_widget() is not broken afterwards.
+ * 
+ */
+void gui_merge_window_as_tab(GtkWidget *toplvl, GtkWidget *notebook,
+							 GtkWidget *window)
+{
+	const gchar *title;
+	GList *children = NULL;
+	steal_dict_params_t params = {
+		toplvl, window
+	};
+
+	/*
+	 * First recursively steal widget dictionary.
+	 */
+	gtk_container_foreach(GTK_CONTAINER(window),
+		gui_steal_widget_dict_recursive, &params);
+
+	/*
+	 * Then reparent the first child of the window,
+	 * using the window title as the new tab title.
+	 */
+	title = gtk_window_get_title(GTK_WINDOW(window));
+	children = gtk_container_get_children(GTK_CONTAINER(window));
+
+	if (children != NULL) {
+		GtkWidget *child = GTK_WIDGET(children->data);
+		if (child) {
+			gtk_widget_reparent(child, notebook);
+			gtk_notebook_set_tab_label_text(GTK_NOTEBOOK(notebook),
+				child, title);
+		}
+		g_list_free(children);
+	}
+}
+#endif	/* USE_GTK2 */
+

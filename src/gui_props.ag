@@ -661,9 +661,9 @@ prop = {
     name = "treemenu_nodes_expanded";
     desc = "Expanded stati of the nodes in the treemenu";
     type = guint32;
-    vector_size = 9; /* TREEMENU_NODES */
+    vector_size = 16; /* TREEMENU_NODES */
     data = {
-        default = "{ 1, 1, 1, 1, 1, 1, 1, 1, 1 }";
+        default = "{ 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1 }";
     };
 };
 

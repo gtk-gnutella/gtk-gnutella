@@ -1771,3 +1771,59 @@ void filter_gui_thaw_filters()
     gtk_clist_thaw
         (GTK_CLIST(lookup_widget(filter_dialog, "ctree_filter_filters")));
 }
+
+#ifdef USE_GTK2
+/*
+ * filter_gui_create_dlg_filters:
+ *
+ * Handles filter dialog UI joining.
+ * Creates all dependent "tab" windows and merges them into
+ * the rules notebook.
+ *
+ */
+GtkWidget *filter_gui_create_dlg_filters()
+{
+	GtkWidget *dialog;
+    GtkWidget *notebook;
+    GtkWidget *tab_window[nb_filt_page_num];
+    gint i ;
+
+    /*
+     * First create the filter dialog without the tab contents.
+     */
+    dialog = create_dlg_filters();
+    notebook = lookup_widget(dialog, "notebook_filter_detail");
+
+    /*
+     * Then create all the tabs in their own window.
+     */
+	tab_window[nb_filt_page_buttons] = create_dlg_filters_add_tab();
+	tab_window[nb_filt_page_text] = create_dlg_filters_text_tab();
+	tab_window[nb_filt_page_ip] = create_dlg_filters_ip_tab();
+	tab_window[nb_filt_page_size] = create_dlg_filters_size_tab();
+	tab_window[nb_filt_page_jump] = create_dlg_filters_jump_tab();
+	tab_window[nb_filt_page_sha1] = create_dlg_filters_sha1_tab();
+	tab_window[nb_filt_page_flag] = create_dlg_filters_flags_tab();
+	tab_window[nb_filt_page_state] = create_dlg_filters_state_tab();
+
+    /*
+     * Merge the UI and destroy the source windows.
+     */
+    for (i = 0; i < nb_filt_page_num; i++) {
+        GtkWidget *w = tab_window[i];
+        gui_merge_window_as_tab(dialog, notebook, w);
+        gtk_object_destroy(GTK_OBJECT(w));
+    }
+
+    /*
+     * Get rid of the first (dummy) notebook tab.
+     * (My glade seems to require a tab to be defined in the notebook
+     * as a placeholder, or it creates _two_ unlabeled tabs at runtime).
+     */
+    gtk_container_remove(GTK_CONTAINER(notebook),
+        gtk_notebook_get_nth_page(GTK_NOTEBOOK(notebook), 0));
+
+	return dialog;
+}
+#endif	/* USE_GTK2 */
+

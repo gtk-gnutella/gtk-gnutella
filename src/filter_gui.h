@@ -42,7 +42,9 @@ enum {
     nb_filt_page_jump,
     nb_filt_page_sha1,
     nb_filt_page_flag,
-    nb_filt_page_state
+    nb_filt_page_state,
+
+    nb_filt_page_num
 };
 
 extern GtkWidget *filter_dialog;
@@ -73,5 +75,11 @@ void filter_gui_freeze_rules();
 void filter_gui_thaw_rules();
 void filter_gui_freeze_filters();
 void filter_gui_thaw_filters();
+
+#ifdef USE_GTK2
+GtkWidget *filter_gui_create_dlg_filters();
+#else
+#define filter_gui_create_dlg_filters() create_dlg_filters()
+#endif
 
 #endif /* _filter_gui_h_ */

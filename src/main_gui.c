@@ -196,7 +196,35 @@ static void gui_init_menu(void)
 
 	gtk_tree_store_append(store, &parent, NULL);
 	gtk_tree_store_set(store, &parent,
-		0, "Config", 1, nb_main_page_config, 2, TREEMENU_NODE_CFG, -1);
+		0, "Config", 1, nb_main_page_config_net, 2, TREEMENU_NODE_CFG_NET, -1);
+	gtk_tree_store_append(store, &iter, &parent);
+	gtk_tree_store_set(store, &iter,
+		0, "Network", 1, nb_main_page_config_net,
+		2, TREEMENU_NODE_CFG_NET, -1);
+	gtk_tree_store_append(store, &iter, &parent);
+	gtk_tree_store_set(store, &iter,
+		0, "GnutellaNet", 1, nb_main_page_config_gnet,
+		2, TREEMENU_NODE_CFG_GNET, -1);
+	gtk_tree_store_append(store, &iter, &parent);
+	gtk_tree_store_set(store, &iter,
+		0, "Bandwidth", 1, nb_main_page_config_bwc,
+		2, TREEMENU_NODE_CFG_BWC, -1);
+	gtk_tree_store_append(store, &iter, &parent);
+	gtk_tree_store_set(store, &iter,
+		0, "Downloads", 1, nb_main_page_config_dl,
+		2, TREEMENU_NODE_CFG_DL, -1);
+	gtk_tree_store_append(store, &iter, &parent);
+	gtk_tree_store_set(store, &iter,
+		0, "Uploads", 1, nb_main_page_config_ul,
+		2, TREEMENU_NODE_CFG_UL, -1);
+	gtk_tree_store_append(store, &iter, &parent);
+	gtk_tree_store_set(store, &iter,
+		0, "User Interface", 1, nb_main_page_config_ui,
+		2, TREEMENU_NODE_CFG_UI, -1);
+	gtk_tree_store_append(store, &iter, &parent);
+	gtk_tree_store_set(store, &iter,
+		0, "Debugging", 1, nb_main_page_config_dbg,
+		2, TREEMENU_NODE_CFG_DBG, -1);
 
 	gtk_tree_view_set_model(treeview, GTK_TREE_MODEL(store));
 
@@ -219,7 +247,69 @@ static void gui_init_menu(void)
 		G_CALLBACK(on_main_gui_treeview_menu_row_expanded), NULL);
 }
 
+/*
+ * gui_create_main_window:
+ *
+ * Handles main window UI joining.
+ * Creates all dependent "tab" windows and merges them into
+ * the main notebook.
+ *
+ */
+static GtkWidget *gui_create_main_window()
+{
+	GtkWidget *window;
+	GtkWidget *notebook;
+	GtkWidget *tab_window[nb_main_page_num];
+	gint i ;
+
+	/*
+	 * First create the main window without the tab contents.
+	 */
+	window = create_main_window();
+	notebook = lookup_widget(window, "notebook_main");
+
+	/*
+	 * Then create all the tabs in their own window.
+	 */
+	tab_window[nb_main_page_gnet] = create_main_window_gnet_tab();
+	tab_window[nb_main_page_uploads] = create_main_window_uploads_tab();
+	tab_window[nb_main_page_uploads_stats] = create_main_window_upload_stats_tab();
+	tab_window[nb_main_page_downloads] = create_main_window_downloads_tab();
+	tab_window[nb_main_page_search] = create_main_window_search_tab();
+	tab_window[nb_main_page_monitor] = create_main_window_monitor_tab();
+	tab_window[nb_main_page_search_stats] = create_main_window_search_stats_tab();
+	tab_window[nb_main_page_gnet_stats] = create_main_window_gnet_stats_tab();
+	tab_window[nb_main_page_config_net] = create_main_window_config_net_tab();
+	tab_window[nb_main_page_config_gnet] = create_main_window_config_gnet_tab();
+	tab_window[nb_main_page_config_bwc] = create_main_window_config_bwc_tab();
+	tab_window[nb_main_page_config_dl] = create_main_window_config_dl_tab();
+	tab_window[nb_main_page_config_ul] = create_main_window_config_ul_tab();
+	tab_window[nb_main_page_config_ui] = create_main_window_config_ui_tab();
+	tab_window[nb_main_page_config_dbg] = create_main_window_config_dbg_tab();
+
+	/*
+	 * Merge the UI and destroy the source windows.
+	 */
+	for (i = 0; i < nb_main_page_num; i++) {
+		GtkWidget *w = tab_window[i];
+		gui_merge_window_as_tab(window, notebook, w);
+		gtk_object_destroy(GTK_OBJECT(w));
+	}
+
+	/*
+	 * Get rid of the first (dummy) notebook tab.
+	 * (My glade seems to require a tab to be defined in the notebook
+	 * as a placeholder, or it creates _two_ unlabeled tabs at runtime).
+	 */
+	gtk_container_remove(GTK_CONTAINER(notebook),
+		gtk_notebook_get_nth_page(GTK_NOTEBOOK(notebook), 0));
+
+	return window;
+}
+
 #else
+
+#define gui_create_main_window() create_main_window()
 
 static void gui_init_menu(void) 
 {
@@ -338,7 +428,7 @@ void main_gui_early_init(gint argc, gchar **argv)
 	add_pixmap_directory(PACKAGE_DATA_DIR "/pixmaps");
 	add_pixmap_directory(PACKAGE_SOURCE_DIR "/pixmaps");
 
-    main_window = create_main_window();
+    main_window = gui_create_main_window();
     shutdown_window = create_shutdown_window();
     dlg_about = create_dlg_about();
     dlg_quit = create_dlg_quit();
@@ -523,3 +613,4 @@ void main_gui_shutdown_tick(guint left)
 	gtk_label_set(label_shutdown_count,tmp);
     gtk_main_flush();
 }
+

@@ -167,8 +167,8 @@ guint32  gnet_stats_general_col_widths[2]     = { 60, 20 };
 guint32  gnet_stats_general_col_widths_def[2] = { 60, 20 };
 gboolean clear_uploads     = TRUE;
 gboolean clear_uploads_def = TRUE;
-guint32  treemenu_nodes_expanded[9]     = { 1, 1, 1, 1, 1, 1, 1, 1, 1 };
-guint32  treemenu_nodes_expanded_def[9] = { 1, 1, 1, 1, 1, 1, 1, 1, 1 };
+guint32  treemenu_nodes_expanded[16]     = { 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1 };
+guint32  treemenu_nodes_expanded_def[16] = { 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1 };
 guint32  gnet_stats_pkg_col_widths[6]     = { 60, 20, 20, 20, 20, 20 };
 guint32  gnet_stats_pkg_col_widths_def[6] = { 60, 20, 20, 20, 20, 20 };
 guint32  gnet_stats_byte_col_widths[6]     = { 60, 20, 20, 20, 20, 20 };
@@ -1355,7 +1355,7 @@ prop_set_t *gui_prop_init(void) {
     gui_property->props[62].desc = "Expanded stati of the nodes in the treemenu";
     gui_property->props[62].prop_changed_listeners = NULL;
     gui_property->props[62].save = TRUE;
-    gui_property->props[62].vector_size = 9;
+    gui_property->props[62].vector_size = 16;
 
     /* Type specific data: */
     gui_property->props[62].type               = PROP_TYPE_GUINT32;

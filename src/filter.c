@@ -382,7 +382,7 @@ void filter_open_dialog() {
     current_search = search_gui_get_current_search();
 
     if (filter_dialog == NULL) {
-        filter_dialog = create_dlg_filters();
+        filter_dialog = filter_gui_create_dlg_filters();
         g_assert(filter_dialog != NULL);
    
         filter_gui_init();
