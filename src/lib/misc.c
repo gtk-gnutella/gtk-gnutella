@@ -777,16 +777,29 @@ data_hex_str(const gchar *data, size_t len)
 	return buf;
 }
 
+static inline gint
+hex2dec_invalid(void)
+{
+	g_assert_not_reached();
+	return -1;
+}
+
 /**
  * Convert an hexadecimal char (0-9, A-F, a-f) into decimal.
  */
-inline gint
-hex2dec(guchar c)
+static inline gint
+hex2dec_inline(guchar c)
 {
 	return c >= '0' && c <= '9' ? c - '0'
 		 : c >= 'a' && c <= 'f' ? c - 'a' + 10
 		 : c >= 'A' && c <= 'F' ? c - 'A' + 10
-		 : (g_assert_not_reached(), -1);
+		 : hex2dec_invalid();
+}
+
+gint
+hex2dec(guchar c)
+{
+	return hex2dec_inline(c);
 }
 
 /**
@@ -805,7 +818,7 @@ hex_to_guid(const gchar *hexguid, gchar *guid)
 		if (!(is_ascii_xdigit(a) && is_ascii_xdigit(b)))
 			return FALSE;
 
-		guid[i] = (hex2dec(a) << 4) + hex2dec(b);
+		guid[i] = (hex2dec_inline(a) << 4) + hex2dec_inline(b);
 	}
 
 	return TRUE;
@@ -1226,7 +1239,7 @@ gboolean is_printable(const gchar *buf, gint len)
 /**
  * Display header line for hex dumps
  */
-inline static void
+static inline void
 dump_hex_header(FILE *out)
 {
 	fprintf(out, "%s%s\n",
