@@ -84,7 +84,6 @@ FILE *file_config_open_read(
 		g_warning("unable to open \"%s\" to retrieve %s: %s",
 			path, what, error);
 	}
-	G_FREE_NULL(path);
 
 	/*
 	 * Maybe we crashed after having retrieved the file in a previous run
@@ -105,13 +104,10 @@ FILE *file_config_open_read(
 		instead = instead_str;
 
 		for (xfv = fv + 1, xfvcnt = fvcnt - 1; xfvcnt; xfv++, xfvcnt--) {
-			path = g_strdup_printf("%s/%s", xfv->dir, xfv->name);
-			if (NULL == path)
-				break;
-			if (NULL != (in = fopen(path, "r"))) {
-				break;
-			}
 			G_FREE_NULL(path);
+			path = g_strdup_printf("%s/%s", xfv->dir, xfv->name);
+			if (NULL != path && NULL != (in = fopen(path, "r")))
+				break;
 		}
 	}
 
