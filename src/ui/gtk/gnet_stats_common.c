@@ -45,6 +45,7 @@ const gchar *msg_type_str(int value)
 		N_("Pong"),
 		N_("Bye"),
 		N_("QRP"),
+		N_("HSEP"),
 		N_("Vendor Spec."),
 		N_("Vendor Std."),
 		N_("Push"),

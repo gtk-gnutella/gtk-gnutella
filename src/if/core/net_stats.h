@@ -36,12 +36,13 @@ enum {
 	MSG_INIT_RESPONSE,
 	MSG_BYE,
 	MSG_QRP,
+	MSG_HSEP,
 	MSG_VENDOR,
 	MSG_STANDARD,
 	MSG_PUSH_REQUEST,
 	MSG_SEARCH,
 	MSG_SEARCH_RESULTS,
-	MSG_TOTAL,     /* allways counted (for all the above types) */
+	MSG_TOTAL,     /* always counted (for all the above types) */
 	MSG_TYPE_COUNT /* number of known message types */
 };
 
