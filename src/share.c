@@ -52,6 +52,7 @@
 #include "ggep.h"
 #include "search.h"		/* For QUERY_SPEED_MARK */
 #include "dmesh.h"		/* For dmesh_fill_alternate() */
+#include "hostiles.h"
 #include "override.h"		/* Must be the last header included */
 
 RCSID("$Id$");
@@ -1765,6 +1766,7 @@ gboolean search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 	gint utf8_len = -1;
 	gint offset = 0;			/* Query string start offset */
 	gboolean drop_it = FALSE;
+	gboolean oob = FALSE;		/* Wants out-of-band query hit delivery? */
 
 	/*
 	 * Make sure search request is NUL terminated... --RAM, 06/10/2001
@@ -2157,6 +2159,8 @@ gboolean search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 			use_ggep_h = TRUE;
 	}
 
+	oob = (req_speed & QUERY_SPEED_OOB_REPLY) != 0;
+
 	/*
 	 * If we aren't going to let the searcher download anything, then
 	 * don't waste bandwidth and his time by giving him search results.
@@ -2180,7 +2184,10 @@ gboolean search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 		guint8 major, minor;
 		gboolean release;
 
-		if (guid_is_gtkg(n->header.muid, &major, &minor, &release)) {
+		if (
+			guid_query_muid_is_gtkg(
+				n->header.muid, oob, &major, &minor, &release)
+		) {
 			/* Only supersede `use_ggep_h' if not indicated in "min speed" */
 			if (!use_ggep_h)
 				use_ggep_h =
@@ -2190,6 +2197,22 @@ gboolean search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 				printf("GTKG %squery from %d.%d%s\n",
 					guid_is_requery(n->header.muid) ? "re-" : "",
 					major, minor, release ? "" : "u");
+		}
+	}
+
+	/*
+	 * If OOB reply is wanted, we have the IP/port of the querier.
+	 * Verify against the hotile IP addresses...
+	 */
+
+	if (oob) {
+		guint32 ip;
+
+		guid_oob_get_ip_port(n->header.muid, &ip, NULL);
+
+		if (hostiles_check(ip)) {
+			gnet_stats_count_dropped(n, MSG_DROP_HOSTILE_IP);
+			return TRUE;		/* Drop the message! */
 		}
 	}
 
