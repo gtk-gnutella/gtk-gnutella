@@ -482,14 +482,8 @@ gboolean search_gui_new_search_full(
 
 	searches = g_list_append(searches, (gpointer) sch);
 
-/* FIXME:	This might be suboptimal but if search_start() isn't called
- *			"search_handle"->sent_nodes will not be initialized and
- *			the function in search.c accessing this hashtable, will warn
- *			it's NULL (or raise a SIGSEGV in case of NODEBUG).
- */
-	guc_search_start(sch->search_handle);
-	if (!sch->enabled)
-		guc_search_stop(sch->search_handle);
+	if (sch->enabled)
+		guc_search_start(sch->search_handle);
 
 	set_search_color(sch);
 
