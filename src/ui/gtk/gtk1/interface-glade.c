@@ -1011,7 +1011,7 @@ create_main_window (void)
   gtk_object_set_data_full (GTK_OBJECT (main_window), "sw_menu", sw_menu,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (sw_menu);
-  gtk_paned_pack1 (GTK_PANED (vpaned_sidebar), sw_menu, TRUE, TRUE);
+  gtk_paned_pack1 (GTK_PANED (vpaned_sidebar), sw_menu, FALSE, FALSE);
   gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (sw_menu), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
 
   ctree_menu = gtk_ctree_new (1, 0);
@@ -3440,7 +3440,7 @@ create_main_window (void)
   gtk_widget_show (label_fi_with_source_count);
   gtk_box_pack_start (GTK_BOX (hbox175), label_fi_with_source_count, FALSE, FALSE, 0);
 
-  label545 = gtk_label_new (_("with sources"));
+  label545 = gtk_label_new (_(" with sources"));
   gtk_widget_set_name (label545, "label545");
   gtk_widget_ref (label545);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "label545", label545,
@@ -17397,7 +17397,6 @@ create_removed_widgets (void)
   removed_widgets = gtk_window_new (GTK_WINDOW_TOPLEVEL);
   gtk_widget_set_name (removed_widgets, "removed_widgets");
   gtk_object_set_data (GTK_OBJECT (removed_widgets), "removed_widgets", removed_widgets);
-  gtk_window_set_title (GTK_WINDOW (removed_widgets), _("Removed widgets"));
 
   vbox135 = gtk_vbox_new (FALSE, 0);
   gtk_widget_set_name (vbox135, "vbox135");

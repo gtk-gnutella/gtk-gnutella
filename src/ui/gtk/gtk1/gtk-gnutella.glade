@@ -429,8 +429,8 @@
 	    <hupdate_policy>GTK_UPDATE_CONTINUOUS</hupdate_policy>
 	    <vupdate_policy>GTK_UPDATE_CONTINUOUS</vupdate_policy>
 	    <child>
-	      <shrink>True</shrink>
-	      <resize>True</resize>
+	      <shrink>False</shrink>
+	      <resize>False</resize>
 	    </child>
 
 	    <widget>
@@ -4587,7 +4587,7 @@
 			<widget>
 			  <class>GtkLabel</class>
 			  <name>label545</name>
-			  <label>with sources</label>
+			  <label> with sources</label>
 			  <justify>GTK_JUSTIFY_CENTER</justify>
 			  <wrap>False</wrap>
 			  <xalign>0.5</xalign>
@@ -25661,7 +25661,7 @@ allowed</label>
 <widget>
   <class>GtkWindow</class>
   <name>removed_widgets</name>
-  <title>Removed widgets</title>
+  <title></title>
   <type>GTK_WINDOW_TOPLEVEL</type>
   <position>GTK_WIN_POS_NONE</position>
   <modal>False</modal>
