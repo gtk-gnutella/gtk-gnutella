@@ -130,6 +130,7 @@ const gchar *general_type_str(int value)
 		N_("Query hits received for local queries"),
 		N_("Query hits received for OOB-proxied queries"),
 		N_("Queries requesting OOB hit delivery"),
+		N_("Stripped OOB flag on queries"),
 		N_("Duplicates with higher TTL"),
 		N_("Duplicate OOB-proxied queries"),
 		N_("OOB hits received for OOB-proxied queries"),
@@ -158,6 +159,9 @@ const gchar *general_type_str(int value)
 		N_("Queries advertising support of GGEP \"H\""),
 		N_("GIV callbacks received"),
 		N_("QUEUE callbacks received"),
+		N_("UDP messages with bogus source IP"),
+		N_("Alien UDP messages (non-Gnutella)"),
+		N_("Unprocessed UDP Gnutella messages"),
 	};
 
 	STATIC_ASSERT(G_N_ELEMENTS(strs) == GNR_TYPE_COUNT);
