@@ -38,7 +38,7 @@ struct search
 	gint sort_order;						/* Ascending or descending */
 	gboolean sort;							/* Do sorting or not */
 
-	// XXX Other fields will be needed for the advanced filtering
+	/* XXX Other fields for the filtering will be added here */
 };
 
 extern GSList *searches;							/* List of search structs */

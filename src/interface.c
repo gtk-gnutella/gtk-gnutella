@@ -96,7 +96,11 @@ GtkWidget *popup_dl_queued;
 GtkWidget *popup_dl_queued_title;
 GtkWidget *download_start_now;
 GtkWidget *popup_search;
+GtkWidget *popup_search_title;
 GtkWidget *popup_search_stop_sorting;
+GtkWidget *popup_search_filters;
+GtkWidget *popup_search_close;
+GtkWidget *popup_search_toggle_tabs;
 GtkWidget *popup_monitor;
 GtkWidget *popup_monitor_title;
 GtkWidget *popup_nodes;
@@ -2195,10 +2199,41 @@ GtkWidget*
 create_popup_search (void)
 {
   GtkAccelGroup *popup_search_accels;
+  GtkWidget *separator1;
+  GtkWidget *separator2;
 
   popup_search = gtk_menu_new ();
   gtk_object_set_data (GTK_OBJECT (popup_search), "popup_search", popup_search);
   popup_search_accels = gtk_menu_ensure_uline_accel_group (GTK_MENU (popup_search));
+
+  popup_search_title = gtk_menu_item_new_with_label ("title");
+  gtk_widget_ref (popup_search_title);
+  gtk_object_set_data_full (GTK_OBJECT (popup_search), "popup_search_title", popup_search_title,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (popup_search_title);
+  gtk_container_add (GTK_CONTAINER (popup_search), popup_search_title);
+
+  separator1 = gtk_menu_item_new ();
+  gtk_widget_ref (separator1);
+  gtk_object_set_data_full (GTK_OBJECT (popup_search), "separator1", separator1,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (separator1);
+  gtk_container_add (GTK_CONTAINER (popup_search), separator1);
+  gtk_widget_set_sensitive (separator1, FALSE);
+
+  popup_search_filters = gtk_menu_item_new_with_label ("Filters the results");
+  gtk_widget_ref (popup_search_filters);
+  gtk_object_set_data_full (GTK_OBJECT (popup_search), "popup_search_filters", popup_search_filters,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (popup_search_filters);
+  gtk_container_add (GTK_CONTAINER (popup_search), popup_search_filters);
+
+  popup_search_close = gtk_menu_item_new_with_label ("Close this search");
+  gtk_widget_ref (popup_search_close);
+  gtk_object_set_data_full (GTK_OBJECT (popup_search), "popup_search_close", popup_search_close,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (popup_search_close);
+  gtk_container_add (GTK_CONTAINER (popup_search), popup_search_close);
 
   popup_search_stop_sorting = gtk_menu_item_new_with_label ("Stop automatic sorting");
   gtk_widget_ref (popup_search_stop_sorting);
@@ -2207,8 +2242,32 @@ create_popup_search (void)
   gtk_widget_show (popup_search_stop_sorting);
   gtk_container_add (GTK_CONTAINER (popup_search), popup_search_stop_sorting);
 
+  separator2 = gtk_menu_item_new ();
+  gtk_widget_ref (separator2);
+  gtk_object_set_data_full (GTK_OBJECT (popup_search), "separator2", separator2,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (separator2);
+  gtk_container_add (GTK_CONTAINER (popup_search), separator2);
+  gtk_widget_set_sensitive (separator2, FALSE);
+
+  popup_search_toggle_tabs = gtk_menu_item_new_with_label ("Show tabs");
+  gtk_widget_ref (popup_search_toggle_tabs);
+  gtk_object_set_data_full (GTK_OBJECT (popup_search), "popup_search_toggle_tabs", popup_search_toggle_tabs,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (popup_search_toggle_tabs);
+  gtk_container_add (GTK_CONTAINER (popup_search), popup_search_toggle_tabs);
+
+  gtk_signal_connect (GTK_OBJECT (popup_search_filters), "activate",
+                      GTK_SIGNAL_FUNC (on_popup_search_filters_activate),
+                      NULL);
+  gtk_signal_connect (GTK_OBJECT (popup_search_close), "activate",
+                      GTK_SIGNAL_FUNC (on_popup_search_close_activate),
+                      NULL);
   gtk_signal_connect (GTK_OBJECT (popup_search_stop_sorting), "activate",
                       GTK_SIGNAL_FUNC (on_popup_search_stop_sorting_activate),
+                      NULL);
+  gtk_signal_connect (GTK_OBJECT (popup_search_toggle_tabs), "activate",
+                      GTK_SIGNAL_FUNC (on_popup_search_toggle_tabs_activate),
                       NULL);
 
   return popup_search;

@@ -312,6 +312,7 @@ extern gint hosts_idle_func;
 
 extern gboolean  clear_uploads, clear_downloads;
 extern GtkWidget *dialog_filters;
+extern guint32   search_results_col_widths[];
 
 /* downloads.c */
 
@@ -332,9 +333,6 @@ extern guint32 count_uploads;
 
 /* callbacks.c */
 
-extern gint search_results_sort_col;
-extern gint search_results_sort_order;
-extern gboolean search_results_sort;
 extern struct download *selected_queued_download;
 extern struct download *selected_active_download;
 
@@ -484,6 +482,7 @@ void search_close_current(void);
 gint search_results_compare_size(GtkCList *, gconstpointer, gconstpointer);
 gint search_results_compare_speed(GtkCList *, gconstpointer, gconstpointer);
 gint search_results_compare_ip(GtkCList *, gconstpointer, gconstpointer);
+void search_open_filters_dialog(void);
 
 #endif	/* __gnutella_h__ */
 

@@ -3523,6 +3523,43 @@
 
   <widget>
     <class>GtkMenuItem</class>
+    <name>popup_search_title</name>
+    <label>title</label>
+    <right_justify>False</right_justify>
+  </widget>
+
+  <widget>
+    <class>GtkMenuItem</class>
+    <name>separator1</name>
+    <right_justify>False</right_justify>
+  </widget>
+
+  <widget>
+    <class>GtkMenuItem</class>
+    <name>popup_search_filters</name>
+    <signal>
+      <name>activate</name>
+      <handler>on_popup_search_filters_activate</handler>
+      <last_modification_time>Mon, 08 May 2000 14:09:31 GMT</last_modification_time>
+    </signal>
+    <label>Filters the results</label>
+    <right_justify>False</right_justify>
+  </widget>
+
+  <widget>
+    <class>GtkMenuItem</class>
+    <name>popup_search_close</name>
+    <signal>
+      <name>activate</name>
+      <handler>on_popup_search_close_activate</handler>
+      <last_modification_time>Mon, 08 May 2000 14:09:18 GMT</last_modification_time>
+    </signal>
+    <label>Close this search</label>
+    <right_justify>False</right_justify>
+  </widget>
+
+  <widget>
+    <class>GtkMenuItem</class>
     <name>popup_search_stop_sorting</name>
     <signal>
       <name>activate</name>
@@ -3530,6 +3567,24 @@
       <last_modification_time>Tue, 02 May 2000 19:56:35 GMT</last_modification_time>
     </signal>
     <label>Stop automatic sorting</label>
+    <right_justify>False</right_justify>
+  </widget>
+
+  <widget>
+    <class>GtkMenuItem</class>
+    <name>separator2</name>
+    <right_justify>False</right_justify>
+  </widget>
+
+  <widget>
+    <class>GtkMenuItem</class>
+    <name>popup_search_toggle_tabs</name>
+    <signal>
+      <name>activate</name>
+      <handler>on_popup_search_toggle_tabs_activate</handler>
+      <last_modification_time>Mon, 08 May 2000 14:08:36 GMT</last_modification_time>
+    </signal>
+    <label>Show tabs</label>
     <right_justify>False</right_justify>
   </widget>
 </widget>

@@ -39,7 +39,7 @@ void send_push_request(gchar *, guint32, guint16);
 
 /* ------------------------------------------------------------------------------------------------ */
 
-/* Returns the current number of running downloads */
+/* Return the current number of running downloads */
 
 gint count_running_downloads(void)
 {
@@ -57,7 +57,7 @@ gint count_running_downloads(void)
 
 /* GUI operations --------------------------------------------------------------------------------- */
 
-/* Adds a download to the GUI */
+/* Add a download to the GUI */
 
 void download_gui_add(struct download *d)
 {
@@ -90,7 +90,7 @@ void download_gui_add(struct download *d)
 	d->visible = TRUE;
 }
 
-/* Removes a download from the GUI */
+/* Remove a download from the GUI */
 
 void download_gui_remove(struct download *d)
 {
@@ -145,7 +145,7 @@ void downloads_clear_stopped(gboolean all, gboolean now)
 		{
 			if (now || (time((time_t *) NULL) - d->last_update) > 3) download_free(d);
 		}
-		else if (!all && d->status == GTA_DL_COMPLETED)
+		else if (d->status == GTA_DL_COMPLETED)
 		{
 			if (now || (time((time_t *) NULL) - d->last_update) > 3) download_free(d);
 		}
@@ -159,7 +159,7 @@ void downloads_clear_stopped(gboolean all, gboolean now)
 
 void download_stop(struct download *d, guint32 new_status, const gchar *reason)
 {
-	/* Stops an active download, close its socket and its data file descriptor */
+	/* Stop an active download, close its socket and its data file descriptor */
 
 	g_return_if_fail(d);
 
@@ -265,7 +265,7 @@ void download_queue(struct download *d)
 	gui_update_download(d, TRUE);
 }
 
-/* (Re)starts a stopped or queued download */
+/* (Re)start a stopped or queued download */
 
 void download_start(struct download *d)
 {
@@ -375,7 +375,7 @@ void download_fallback_to_push(struct download *d, gboolean user_request)
 
 /* Downloads creation and destruction ------------------------------------------------------------- */
 
-/* Creates a new download */
+/* Create a new download */
 
 void download_new(gchar *file, guint32 size, guint32 record_index, guint32 ip, guint16 port, gchar *guid)
 {
@@ -531,7 +531,7 @@ void download_move_to_completed_dir(struct download *d)
 	return;
 }
 
-/* Sends a push request */
+/* Send a push request */
 
 void send_push_request(gchar *guid, guint32 file_id, guint16 local_port)
 {
@@ -556,7 +556,7 @@ void send_push_request(gchar *guid, guint32 file_id, guint16 local_port)
 	sendto_all((guchar *) &m, NULL, sizeof(struct gnutella_msg_push_request));
 }
 
-/* Sends the HTTP request for a download */
+/* Send the HTTP request for a download */
 
 gboolean download_send_request(struct download *d)
 {
@@ -569,7 +569,7 @@ gboolean download_send_request(struct download *d)
 		return FALSE;
 	}
 
-	/* Sends the HTTP Request */
+	/* Send the HTTP Request */
 
 	if (d->skip) g_snprintf(dl_tmp, sizeof(dl_tmp), "GET /get/%i/%s HTTP/1.0\r\nConnection: Keep-Alive\r\nRange: bytes=%u-\r\n\r\n", d->record_index, d->file_name, d->skip);
 	else g_snprintf(dl_tmp, sizeof(dl_tmp), "GET /get/%i/%s HTTP/1.0\r\nConnection: Keep-Alive\r\n\r\n", d->record_index, d->file_name);
@@ -580,7 +580,7 @@ gboolean download_send_request(struct download *d)
 		return FALSE;
 	}
 
-	/* Updates the GUI */
+	/* Update the GUI */
 
 	d->status = GTA_DL_REQ_SENT;
 
@@ -589,7 +589,7 @@ gboolean download_send_request(struct download *d)
 	return TRUE;
 }
 
-/* Reads data on a download socket */
+/* Read data on a download socket */
 
 void download_read(gpointer data, gint source, GdkInputCondition cond)
 {

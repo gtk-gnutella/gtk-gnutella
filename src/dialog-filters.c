@@ -107,6 +107,12 @@ create_dialog_filters (void)
   gtk_signal_connect (GTK_OBJECT (dialog_filters), "delete_event",
                       GTK_SIGNAL_FUNC (on_dialog_filters_delete_event),
                       NULL);
+  gtk_signal_connect (GTK_OBJECT (button_apply), "clicked",
+                      GTK_SIGNAL_FUNC (on_button_apply_clicked),
+                      NULL);
+  gtk_signal_connect (GTK_OBJECT (button_cancel), "clicked",
+                      GTK_SIGNAL_FUNC (on_button_cancel_clicked),
+                      NULL);
 
   return dialog_filters;
 }

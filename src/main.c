@@ -197,6 +197,7 @@ gint main(gint argc, gchar **argv)
 	gtk_widget_set_sensitive(popup_monitor_title, FALSE);
 	gtk_widget_set_sensitive(popup_nodes_title, FALSE);
 	gtk_widget_set_sensitive(popup_uploads_title, FALSE);
+	gtk_widget_set_sensitive(popup_search_title, FALSE);
 
 	gtk_widget_show(main_window); /* Display the main window */
 

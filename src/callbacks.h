@@ -23,7 +23,6 @@ void on_checkbutton_clear_downloads_toggled (GtkToggleButton *togglebutton, gpoi
 void on_button_remove_upload_clicked (GtkButton *button, gpointer user_data); 
 void on_button_search_clicked (GtkButton *button, gpointer user_data); 
 void on_entry_minimum_speed_activate (GtkEditable *editable, gpointer user_data); 
-void on_clist_search_results_select_row (GtkCList *clist, gint row, gint column, GdkEvent *event, gpointer user_data); 
 void on_button_search_download_clicked (GtkButton *button, gpointer user_data); 
 void on_button_search_stream_clicked (GtkButton *button, gpointer user_data); 
 void on_checkbutton_monitor_toggled (GtkToggleButton *togglebutton, gpointer user_data); 
@@ -49,7 +48,6 @@ gboolean on_entry_max_downloads_focus_out_event (GtkWidget *widget, GdkEventFocu
 void on_clist_download_queue_select_row (GtkCList *clist, gint row, gint column, GdkEvent *event, gpointer user_data);
 void on_clist_download_queue_unselect_row (GtkCList *clist, gint row, gint column, GdkEvent *event, gpointer user_data);
 gboolean on_entry_minimum_speed_focus_out_event (GtkWidget *widget, GdkEventFocus *event, gpointer user_data);
-void on_clist_search_results_unselect_row (GtkCList *clist, gint row, gint column, GdkEvent *event, gpointer user_data);
 gboolean on_entry_monitor_focus_out_event (GtkWidget *widget, GdkEventFocus *event, gpointer user_data); 
 void on_button_config_save_path_clicked (GtkButton *button, gpointer user_data);
 void on_entry_config_search_items_activate (GtkEditable *editable, gpointer user_data);
@@ -78,11 +76,9 @@ gboolean on_entry_config_force_ip_focus_out_event (GtkWidget *widget, GdkEventFo
 void on_entry_config_path_activate (GtkEditable *editable, gpointer user_data); 
 gboolean on_entry_config_path_focus_out_event (GtkWidget *widget, GdkEventFocus *event, gpointer user_data);
 void on_button_remove_download_clicked (GtkButton *button, gpointer user_data); 
-gboolean on_clist_search_results_button_press_event (GtkWidget *widget, GdkEventButton *event, gpointer user_data);
 void on_clist_uploads_click_column (GtkCList *clist, gint column, gpointer user_data); 
 void on_clist_downloads_click_column (GtkCList *clist, gint column, gpointer user_data); 
 void on_clist_download_queue_click_column (GtkCList *clist, gint column, gpointer user_data);
-void on_clist_search_results_click_column (GtkCList *clist, gint column, gpointer user_data);
 void on_download_start_now_activate (GtkMenuItem *menuitem, gpointer user_data);
 gboolean on_clist_downloads_button_press_event (GtkWidget *widget, GdkEventButton *event, gpointer user_data);
 gboolean on_clist_download_queue_button_press_event (GtkWidget *widget, GdkEventButton *event, gpointer user_data);
@@ -101,3 +97,6 @@ gboolean on_clist_uploads_button_press_event (GtkWidget *widget, GdkEventButton 
 void on_popup_search_stop_sorting_activate (GtkMenuItem *menuitem, gpointer user_data);
 void on_button_search_filter_clicked (GtkButton *button, gpointer user_data);
 void on_button_search_close_clicked (GtkButton *button, gpointer user_data);
+void on_popup_search_filters_activate (GtkMenuItem *menuitem, gpointer user_data);
+void on_popup_search_close_activate (GtkMenuItem *menuitem, gpointer user_data);
+void on_popup_search_toggle_tabs_activate (GtkMenuItem *menuitem, gpointer user_data);

@@ -35,7 +35,8 @@ set w_list {
 	popup_hosts popup_hosts_title popup_hosts_export
 	popup_dl_active popup_dl_active_title download_p_push download_p_queue download_p_kill
 	popup_dl_queued popup_dl_queued_title download_start_now
-	popup_search popup_search_stop_sorting
+	popup_search popup_search_title popup_search_stop_sorting popup_search_filters popup_search_close
+	popup_search_toggle_tabs
 	popup_monitor popup_monitor_title
 	popup_nodes popup_nodes_title
 	popup_uploads popup_uploads_title

@@ -22,23 +22,150 @@ struct search *current_search = NULL;			/*	The search currently displayed */
 
 GtkWidget *dialog_filters = NULL;
 
+guint32 search_results_col_widths[] = { 290, 80, 50, 140 };
+
+gboolean search_results_show_tabs = FALSE;	/* Do we have to display the notebook tabs */
+
 /* --------------------------------------------------------------------------------------------------------- */
 
-/* Create a new GtkCList for search results */
+/* Row selected */
 
 void on_clist_search_results_select_row(GtkCList *clist, gint row, gint column, GdkEvent *event, gpointer user_data)
 {
 	gtk_widget_set_sensitive(button_search_download, TRUE);
 }
 
+/* Row unselected */
+
 void on_clist_search_results_unselect_row(GtkCList *clist, gint row, gint column, GdkEvent *event, gpointer user_data)
 {
 	gtk_widget_set_sensitive(button_search_download, (gboolean) clist->selection);
 }
 
+/* Column title clicked */
+
+void on_clist_search_results_click_column (GtkCList *clist, gint column, gpointer user_data)
+{
+	if (!current_search) return;
+
+	/* Sorting by host doesn't work for now - so we disable it */
+
+	if (column == 3) return;
+
+	switch (column)
+	{
+		case 1:
+			gtk_clist_set_compare_func(GTK_CLIST(current_search->clist), search_results_compare_size);
+			break;
+
+		case 2:
+			gtk_clist_set_compare_func(GTK_CLIST(current_search->clist), search_results_compare_speed);
+			break;
+
+		case 3:
+			gtk_clist_set_compare_func(GTK_CLIST(current_search->clist), search_results_compare_ip);
+			break;
+
+		default:
+			gtk_clist_set_compare_func(GTK_CLIST(current_search->clist), NULL);
+	}
+
+	if (column == current_search->sort_col)
+	{
+		current_search->sort_order = (current_search->sort_order > 0)? -1 : 1;
+	}
+	else
+	{
+		current_search->sort_col = column;
+		current_search->sort_order = 1;
+	}
+
+	gtk_clist_set_sort_type(GTK_CLIST(current_search->clist), (current_search->sort_order > 0)? GTK_SORT_ASCENDING : GTK_SORT_DESCENDING);
+	gtk_clist_set_sort_column(GTK_CLIST(current_search->clist), column);
+
+	gtk_clist_sort(GTK_CLIST(current_search->clist));
+
+	current_search->sort = TRUE;
+}
+
+/* Search results popup menu */
+
+void on_popup_search_stop_sorting_activate (GtkMenuItem *menuitem, gpointer user_data)
+{
+	if (current_search) current_search->sort = FALSE;
+}
+
+void on_popup_search_filters_activate (GtkMenuItem *menuitem, gpointer user_data)
+{
+	if (current_search) search_open_filters_dialog();
+}
+
+void on_popup_search_close_activate (GtkMenuItem *menuitem, gpointer user_data)
+{
+	if (current_search) search_close_current();
+}
+
+void on_popup_search_toggle_tabs_activate (GtkMenuItem *menuitem, gpointer user_data)
+{
+	gtk_notebook_set_show_tabs(GTK_NOTEBOOK(notebook_search_results), (search_results_show_tabs = !search_results_show_tabs));
+}
+
+gboolean on_clist_search_results_button_press_event(GtkWidget *widget, GdkEventButton *event, gpointer user_data)
+{
+	if (event->button != 3) return FALSE;
+
+	gtk_widget_set_sensitive(popup_search_toggle_tabs, (gboolean) searches);
+	gtk_widget_set_sensitive(popup_search_close, (gboolean) searches);
+	gtk_widget_set_sensitive(popup_search_filters, (gboolean) searches);
+
+	if (current_search)
+	{
+		gtk_clist_unselect_all(GTK_CLIST(current_search->clist));
+		gtk_widget_set_sensitive(popup_search_stop_sorting, current_search->sort);
+		g_snprintf(stmp_1, sizeof(stmp_1), "%s", current_search->query);
+	}
+	else
+	{
+		gtk_widget_set_sensitive(popup_search_stop_sorting, FALSE);
+		g_snprintf(stmp_1, sizeof(stmp_1), "No current search");
+	}
+
+	gtk_label_set(GTK_LABEL((GTK_MENU_ITEM(popup_search_title)->item.bin.child)), stmp_1);
+
+	g_snprintf(stmp_1, sizeof(stmp_1), (search_results_show_tabs)? "Hide tabs" : "Show tabs");
+
+	gtk_label_set(GTK_LABEL((GTK_MENU_ITEM(popup_search_toggle_tabs)->item.bin.child)), stmp_1);
+
+	gtk_menu_popup(GTK_MENU(popup_search), NULL, NULL, NULL, NULL, 3, 0);
+
+	return TRUE;
+}
+
+/* Column resize */
+
+void on_clist_search_results_resize_column(GtkCList *clist, gint column, gint width, gpointer user_data)
+{
+	static gboolean resizing = FALSE;
+	GSList *l;
+
+	if (resizing) return;
+
+	resizing = TRUE;
+
+	search_results_col_widths[column] = width;
+
+	for (l = searches; l; l = l->next)
+		gtk_clist_set_column_width(GTK_CLIST(((struct search *) l->data)->clist), column, width);
+
+	resizing = FALSE;
+}
+
+/* Create a new GtkCList for search results */
+
 void search_create_clist(GtkWidget **sw, GtkWidget **clist)
 {
 	GtkWidget *label;
+	gint i;
 
 	*sw = gtk_scrolled_window_new (NULL, NULL);
 
@@ -47,10 +174,7 @@ void search_create_clist(GtkWidget **sw, GtkWidget **clist)
 	*clist = gtk_clist_new (4);
 
 	gtk_container_add (GTK_CONTAINER (*sw), *clist);
-	gtk_clist_set_column_width (GTK_CLIST (*clist), 0, 290);
-	gtk_clist_set_column_width (GTK_CLIST (*clist), 1, 80);
-	gtk_clist_set_column_width (GTK_CLIST (*clist), 2, 50);
-	gtk_clist_set_column_width (GTK_CLIST (*clist), 3, 140);
+	for (i = 0; i < 4; i++) gtk_clist_set_column_width (GTK_CLIST (*clist), i, search_results_col_widths[i]);
 	gtk_clist_set_selection_mode (GTK_CLIST (*clist), GTK_SELECTION_EXTENDED);
 	gtk_clist_column_titles_show (GTK_CLIST (*clist));
 
@@ -71,6 +195,9 @@ void search_create_clist(GtkWidget **sw, GtkWidget **clist)
 
 	gtk_signal_connect(GTK_OBJECT(*clist), "select_row", GTK_SIGNAL_FUNC(on_clist_search_results_select_row), NULL);
 	gtk_signal_connect(GTK_OBJECT(*clist), "unselect_row", GTK_SIGNAL_FUNC(on_clist_search_results_unselect_row), NULL);
+	gtk_signal_connect(GTK_OBJECT(*clist), "click_column", GTK_SIGNAL_FUNC(on_clist_search_results_click_column), NULL);
+	gtk_signal_connect(GTK_OBJECT(*clist), "button_press_event", GTK_SIGNAL_FUNC(on_clist_search_results_button_press_event), NULL);
+	gtk_signal_connect(GTK_OBJECT(*clist), "resize-column", GTK_SIGNAL_FUNC(on_clist_search_results_resize_column), NULL);
 }
 
 void search_update_items(struct search *sch)
@@ -87,19 +214,36 @@ void on_search_selected(GtkItem *i, gpointer data)
 	search_selected = (struct search *) data;
 }
 
-void on_search_switch(GtkWidget *w, gpointer data)
+gboolean updating = FALSE;
+
+void on_search_switch(struct search *sch)
 {
-	g_return_if_fail(search_selected);
+	g_return_if_fail(sch);
+	current_search = sch;
+	search_update_items(sch);
+	gui_update_minimum_speed(sch->speed);
+	gtk_widget_set_sensitive(button_search_download, (gboolean) GTK_CLIST(sch->clist)->selection);
+}
 
-	current_search = search_selected;
+void on_search_popdown_switch(GtkWidget *w, gpointer data)
+{
+	struct search *sch = search_selected;
+	if (!sch || updating) return;
+	updating = TRUE;
+	on_search_switch(sch);
+	gtk_notebook_set_page(GTK_NOTEBOOK(notebook_search_results), gtk_notebook_page_num(GTK_NOTEBOOK(notebook_search_results), sch->scrolled_window));
+	updating = FALSE;
+}
 
-	gtk_notebook_set_page(GTK_NOTEBOOK(notebook_search_results), gtk_notebook_page_num(GTK_NOTEBOOK(notebook_search_results), search_selected->scrolled_window));
-
-	search_update_items(search_selected);
-
-	gui_update_minimum_speed(search_selected->speed);
-
-	gtk_widget_set_sensitive(button_search_download, (gboolean) GTK_CLIST(search_selected->clist)->selection);
+void on_search_notebook_switch(GtkNotebook *notebook, GtkNotebookPage *page, gint page_num, gpointer user_data)
+{
+	struct search *sch = gtk_object_get_user_data((GtkObject *) page->child);
+	g_return_if_fail(sch);
+	if (updating) return;
+	updating = TRUE;
+	on_search_switch(sch);
+	gtk_list_item_select(GTK_LIST_ITEM(sch->list_item));
+	updating = FALSE;
 }
 
 /* */
@@ -107,15 +251,11 @@ void on_search_switch(GtkWidget *w, gpointer data)
 void search_init(void)
 {
 	search_create_clist(&default_scrolled_window, &default_search_clist);
-
 	gtk_notebook_remove_page(GTK_NOTEBOOK(notebook_search_results), 0);
-
 	gtk_notebook_append_page(GTK_NOTEBOOK(notebook_search_results), default_scrolled_window, NULL);
-
-	gtk_signal_connect(GTK_OBJECT(GTK_COMBO(combo_searches)->popwin), "hide", GTK_SIGNAL_FUNC(on_search_switch), NULL);
-
+	gtk_signal_connect(GTK_OBJECT(GTK_COMBO(combo_searches)->popwin), "hide", GTK_SIGNAL_FUNC(on_search_popdown_switch), NULL);
+	gtk_signal_connect(GTK_OBJECT(notebook_search_results), "switch_page", GTK_SIGNAL_FUNC(on_search_notebook_switch), NULL);
 	dialog_filters = create_dialog_filters();
-
 	gtk_window_set_position(GTK_WINDOW(dialog_filters), GTK_WIN_POS_CENTER);
 }
 
@@ -156,20 +296,11 @@ void search_close_current(void)
 
 	search_free_r_sets(sch);
 
-	if (searches)
+	if (searches) /* Some other searches remain. */
 	{
-		/* Some other searches remain. We destroy the clist of this search and display another search */
-
 		gtk_notebook_remove_page(GTK_NOTEBOOK(notebook_search_results), gtk_notebook_page_num(GTK_NOTEBOOK(notebook_search_results), sch->scrolled_window));
-
-		/* Why the next call always fails with warning "assertion `GTK_IS_WIDGET (widget)' failed." ? */
-		/* gtk_widget_destroy(sch->scrolled_window); */
-
-		gtk_list_item_select(GTK_LIST_ITEM(((struct search *) searches->data)->list_item));
-
-		on_search_switch(NULL, NULL);
 	}
-	else		/* Keep the clist of this search, clear it and make it the default clist */
+	else	/* Keep the clist of this search, clear it and make it the default clist */
 	{
 		gtk_clist_clear(GTK_CLIST(sch->clist));
 
@@ -181,6 +312,8 @@ void search_close_current(void)
 		search_update_items(NULL);
 
 		gtk_entry_set_text(GTK_ENTRY(combo_entry_searches), "");
+
+		if (search_results_show_tabs) gtk_notebook_set_show_tabs(GTK_NOTEBOOK(notebook_search_results), FALSE);
 	}
 
 	glist = g_list_prepend(NULL, (gpointer) sch->list_item);
@@ -210,6 +343,8 @@ void new_search(guint16 speed, gchar *query)
 	sch->query = g_strdup(query);
 	sch->speed = minimum_speed;
 
+	/* Create and send the search request */
+
 	size = sizeof(struct gnutella_msg_search) + strlen(query) + 1;
 
 	m = (struct gnutella_msg_search *) g_malloc(size);
@@ -234,9 +369,23 @@ void new_search(guint16 speed, gchar *query)
 
 	g_free(m);
 
+	/* Create the list item */
+
+	sch->list_item = gtk_list_item_new_with_label(sch->query);
+
+	gtk_widget_show(sch->list_item);
+
+	glist = g_list_prepend(NULL, (gpointer) sch->list_item);
+
+	gtk_list_prepend_items(GTK_LIST(GTK_COMBO(combo_searches)->list), glist);
+
+	/* Create a new CList if needed, or use the default CList */
+
 	if (searches)	/* We have to create a new clist for this search */
 	{
 		search_create_clist(&sch->scrolled_window, &sch->clist);
+
+		gtk_object_set_user_data((GtkObject *) sch->scrolled_window, (gpointer) sch);
 
 		gtk_notebook_append_page(GTK_NOTEBOOK(notebook_search_results), sch->scrolled_window, NULL);
 
@@ -252,36 +401,40 @@ void new_search(guint16 speed, gchar *query)
 			default_search_clist = default_scrolled_window = NULL;
 		}
 		else g_warning("new_search(): No current search but no default clist !?\n");
+
+		gtk_object_set_user_data((GtkObject *) sch->scrolled_window, (gpointer) sch);
 	}
 
-	searches = g_slist_append(searches, (gpointer) sch);
+	gtk_notebook_set_tab_label_text(GTK_NOTEBOOK(notebook_search_results), sch->scrolled_window, sch->query);
 
-	sch->list_item = gtk_list_item_new_with_label(sch->query);
+	if (!searches && search_results_show_tabs) gtk_notebook_set_show_tabs(GTK_NOTEBOOK(notebook_search_results), TRUE);
 
 	gtk_signal_connect(GTK_OBJECT(sch->list_item), "select", GTK_SIGNAL_FUNC(on_search_selected), (gpointer) sch);
 
-	gtk_widget_show(sch->list_item);
-
-	glist = g_list_prepend(NULL, (gpointer) sch->list_item);
-
-	gtk_list_prepend_items(GTK_LIST(GTK_COMBO(combo_searches)->list), glist);
-
-	gtk_list_item_select(GTK_LIST_ITEM(sch->list_item));
-
-	on_search_switch(NULL, NULL);
+	on_search_switch(sch);
 
 	gtk_widget_set_sensitive(combo_searches, TRUE);
 	gtk_widget_set_sensitive(button_search_filter, TRUE);
 	gtk_widget_set_sensitive(button_search_close, TRUE);
 
 	gtk_entry_set_text(GTK_ENTRY(entry_search), "");
+
+	searches = g_slist_append(searches, (gpointer) sch);
+}
+
+/* Filters dialog */
+
+void search_open_filters_dialog(void)
+{
+	gtk_widget_show(dialog_filters);
+	gdk_window_raise(dialog_filters->window);
 }
 
 /* Searches results */
 
-gint search_compare(struct record *r1, struct record *r2)
+gint search_compare(gint sort_col, struct record *r1, struct record *r2)
 {
-	switch (search_results_sort_col)
+	switch (sort_col)
 	{
 		case 0: return strcmp(r1->name, r2->name);
 		case 1: return r1->size - r2->size;
@@ -421,7 +574,7 @@ void search_results(struct gnutella_node *n)
 
 			if (sch->sort_order > 0)
 			{
-				while (row < GTK_CLIST(sch->clist)->rows && search_compare(rc, (struct record *) GTK_CLIST_ROW(work)->data) > 0)
+				while (row < GTK_CLIST(sch->clist)->rows && search_compare(sch->sort_col, rc, (struct record *) GTK_CLIST_ROW(work)->data) > 0)
 				{
 					row++;
 					work = work->next;
@@ -429,7 +582,7 @@ void search_results(struct gnutella_node *n)
 			}
 			else
 			{
-				while (row < GTK_CLIST(sch->clist)->rows && search_compare(rc, (struct record *) GTK_CLIST_ROW(work)->data) < 0)
+				while (row < GTK_CLIST(sch->clist)->rows && search_compare(sch->sort_col, rc, (struct record *) GTK_CLIST_ROW(work)->data) < 0)
 				{
 					row++;
 					work = work->next;

@@ -10,10 +10,6 @@
 
 gchar c_tmp[2048];
 
-gint search_results_sort_col = 0;
-gint search_results_sort_order = 1;
-gboolean search_results_sort = FALSE;
-
 struct download *selected_queued_download = (struct download *) NULL;
 struct download *selected_active_download = (struct download *) NULL;
 
@@ -608,57 +604,9 @@ void on_entry_search_changed (GtkEditable *editable, gpointer user_data)
 	g_free(e);
 }
 
-/*
-
-void on_clist_search_results_click_column (GtkCList *clist, gint column, gpointer user_data)
-{
-*/
-	/* Sorting by host doesn't work for now - so we disable it */
-/*
-
-	if (column == 3) return;
-
-	switch (column)
-	{
-		case 1:
-			gtk_clist_set_compare_func(GTK_CLIST(clist_search_results), search_results_compare_size);
-			break;
-
-		case 2:
-			gtk_clist_set_compare_func(GTK_CLIST(clist_search_results), search_results_compare_speed);
-			break;
-
-		case 3:
-			gtk_clist_set_compare_func(GTK_CLIST(clist_search_results), search_results_compare_ip);
-			break;
-
-		default:
-			gtk_clist_set_compare_func(GTK_CLIST(clist_search_results), NULL);
-	}
-
-	if (column == search_results_sort_col)
-	{
-		search_results_sort_order = (search_results_sort_order > 0)? -1 : 1;
-	}
-	else
-	{
-		search_results_sort_col = column;
-		search_results_sort_order = 1;
-	}
-
-	gtk_clist_set_sort_type(GTK_CLIST(clist_search_results), (search_results_sort_order > 0)? GTK_SORT_ASCENDING : GTK_SORT_DESCENDING);
-	gtk_clist_set_sort_column(GTK_CLIST(clist_search_results), column);
-
-	gtk_clist_sort(GTK_CLIST(clist_search_results));
-
-	search_results_sort = TRUE;
-}
-
-*/
-
 void on_button_search_filter_clicked (GtkButton *button, gpointer user_data)
 {
-	gtk_widget_show(dialog_filters);
+	search_open_filters_dialog();
 }
 
 void on_button_search_close_clicked (GtkButton *button, gpointer user_data)
@@ -675,30 +623,6 @@ void on_button_search_stream_clicked (GtkButton *button, gpointer user_data)
 {
 
 }
-
-/* Search results popup menu */
-
-void on_popup_search_stop_sorting_activate (GtkMenuItem *menuitem, gpointer user_data)
-{
-	search_results_sort = FALSE;
-}
-
-/*
-
-gboolean on_clist_search_results_button_press_event (GtkWidget *widget, GdkEventButton *event, gpointer user_data)
-{
-	if (event->button != 3) return FALSE;
-
-//	gtk_clist_unselect_all(GTK_CLIST(clist_search_results));
-
-	gtk_widget_set_sensitive(popup_search_stop_sorting, search_results_sort);
-
-	gtk_menu_popup(GTK_MENU(popup_search), NULL, NULL, NULL, NULL, 3, 0);
-
-	return TRUE;
-}
-
-*/
 
 /* Monitor ---------------------------------------------------------------------------------------- */
 
