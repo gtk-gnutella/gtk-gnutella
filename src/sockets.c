@@ -181,8 +181,6 @@ static void socket_read(gpointer data, gint source, GdkInputCondition cond)
 
 	/*
 	 * Dispatch request.
-	 *
-	 * XXX TODO: handle push requests (GIV) directly on our GNet socket?
 	 */
 
 	first = getline_str(s->getline);
@@ -193,6 +191,8 @@ static void socket_read(gpointer data, gint source, GdkInputCondition cond)
 		upload_add(s, FALSE);
 	else if (0 == strncmp(first, "HEAD ", 5))
 		upload_add(s, TRUE);
+	else if (0 == strncmp(first, "GIV ", 4))
+		download_push_ack(s);
 	else {
 		gint len = getline_length(s->getline);
 		g_warning("socket_read(): Got an unknown incoming connection, "
@@ -455,19 +455,6 @@ static void socket_accept(gpointer data, gint source,
 
 		sl_incoming = g_slist_prepend(sl_incoming, t);
 		t->last_update = time((time_t *) 0);
-		break;
-
-	case GTA_TYPE_DOWNLOAD:
-		if (dbg > 4) printf("Accepting INCOMING CONNECTION for %s\n",
-			s->resource.download->file_name);
-
-		t->resource.download = s->resource.download;
-		t->resource.download->socket = t;
-
-		t->gdk_tag = gdk_input_add(sd, GDK_INPUT_READ | GDK_INPUT_EXCEPTION,
-			download_push_read, (gpointer) t->resource.download);
-
-		socket_free(s);		/* Close the listening socket */
 		break;
 
 	default:
