@@ -2184,8 +2184,6 @@ static const struct fi_tag {
 	/* Above line intentionally left blank (for "!}sort" on vi) */
 };
 
-#define END(v)		(v - 1 + sizeof(v) / sizeof(v[0]))
-
 /**
  * Transform fileinfo tag string into tag constant.
  * For instance, "TIME" would yield FI_TAG_TIME.
@@ -2194,27 +2192,17 @@ static const struct fi_tag {
 static fi_tag_t
 file_info_string_to_tag(const gchar *s)
 {
-	struct fi_tag const *low = fi_tag_map;
-	struct fi_tag const *high = END(fi_tag_map);
-
 	STATIC_ASSERT(G_N_ELEMENTS(fi_tag_map) == (NUM_FI_TAGS - 1));
 
-	/*
-	 * Dichotomic search.
-	 */
-
-	while (low <= high) {
-		struct fi_tag const *mid = low + (high - low) / 2;
-		gint c = strcmp(mid->str, s);
-
-		if (c == 0)
-			return mid->tag;
-		else if (c < 0)
-			low = mid + 1;
-		else
-			high = mid - 1;
-	}
-
+#define GET_KEY(i) (fi_tag_map[(i)].str)
+#define FOUND(i) do { return fi_tag_map[(i)].tag; } while (0)
+	
+	/* Perform a binary search to find ``uc'' */
+	BINARY_SEARCH(const gchar *, s, G_N_ELEMENTS(fi_tag_map), strcmp,
+		GET_KEY, FOUND);
+	
+#undef FOUND
+#undef GET_KEY
 	return FI_TAG_UNKNOWN;
 }
 
