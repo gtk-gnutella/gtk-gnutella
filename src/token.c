@@ -273,5 +273,7 @@ tok_error_t tok_version_valid(gchar *version, guchar *tokenb64, gint len)
 
 	if (version_cmp(&rver, &tk->ver) < 0)
 		return TOK_OLD_VERSION;
+
+	return TOK_OK;
 }
 
