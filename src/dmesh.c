@@ -49,6 +49,8 @@ extern cqueue_t *callout_queue;
 extern guint sha1_hash(gconstpointer key);
 extern gint sha1_eq(gconstpointer a, gconstpointer b);
 
+dmesh_url_error_t dmesh_url_errno;		/* Error from dmesh_url_parse() */
+
 /*
  * The download mesh records all the known sources for a given SHA1.
  * It is implemented as a big hash table, where SHA1 are keys, each value
@@ -276,12 +278,48 @@ static gboolean dmesh_is_banned(dmesh_urlinfo_t *info)
 	return NULL != g_hash_table_lookup(ban_mesh, info);
 }
 
+/***
+ *** Mesh URL parsing.
+ ***/
+
+static gchar *parse_errstr[] = {
+	"OK",									/* DMESH_URL_OK */
+	"HTTP parsing error",					/* DMESH_URL_HTTP_PARSER */
+	"File prefix neither /uri-res nor /get",/* DMESH_URL_BAD_FILE_PREFIX */
+	"Index in /get/index is reserved",		/* DMESH_URL_RESERVED_INDEX */
+	"No filename after /get/index",			/* DMESH_URL_NO_FILENAME */
+};
+
+#define MAX_PARSE_ERRNUM (sizeof(parse_errstr) / sizeof(parse_errstr[0]) - 1)
+
+/*
+ * dmesh_url_strerror
+ *
+ * Return human-readable error string corresponding to error code `errnum'.
+ */
+gchar *dmesh_url_strerror(dmesh_url_error_t errnum)
+{
+	static gchar http_error_str[128];
+
+	if (errnum < 0 || errnum > MAX_PARSE_ERRNUM)
+		return "Invalid error code";
+
+	if (errnum == DMESH_URL_HTTP_PARSER) {
+		g_snprintf(http_error_str, sizeof(http_error_str),
+			"%s: %s", parse_errstr[errnum], http_url_strerror(http_url_errno));
+		return http_error_str;
+	}
+
+	return parse_errstr[errnum];
+}
+
 /*
  * dmesh_url_parse
  *
  * Parse URL `url', and fill a structure `info' representing this URL.
  *
  * Returns TRUE if OK, FALSE if we could not parse it.
+ * The variable `dmesh_url_errno' is set accordingly.
  */
 gboolean dmesh_url_parse(gchar *url, dmesh_urlinfo_t *info)
 {
@@ -291,8 +329,10 @@ gboolean dmesh_url_parse(gchar *url, dmesh_urlinfo_t *info)
 	guchar q;
 	gchar *file;
 
-	if (!http_url_parse(url, &ip, &port, NULL, &file))
+	if (!http_url_parse(url, &ip, &port, NULL, &file)) {
+		dmesh_url_errno = DMESH_URL_HTTP_PARSER;
 		return FALSE;
+	}
 
 	/*
 	 * Test the first form of resource naming:
@@ -317,6 +357,7 @@ gboolean dmesh_url_parse(gchar *url, dmesh_urlinfo_t *info)
 	if (1 == sscanf(file, "/uri-res/N2R%c", &q) && q == '?')
 		goto ok;
 	
+	dmesh_url_errno = DMESH_URL_BAD_FILE_PREFIX;
 	return FALSE;
 
 ok:
@@ -330,14 +371,16 @@ ok:
 
 		/*
 		 * Verify we're right on the "/N2R?" part, i.e. that we're facing
-		 * an URL with an urn query, and not a get with an index.
-		 *
+		 * an URL with an urn query, and not a get with an index:
 		 * Should they send us a "/get/4294967295/name.txt", we refuse it.
-		  (4294967295 is URN_INDEX in decimal).
+		 * (4294967295 is URN_INDEX in decimal).
 		 */
 
-		if (0 != strncmp(file, "/N2R?", 5))
+		if (0 != strncmp(file, "/N2R?", 5)) {
+			dmesh_url_errno = DMESH_URL_RESERVED_INDEX;;
 			return FALSE;					/* Index 0xffffffff is our mark */
+		}
+
 		file += 5;							/* Skip "/N2R?" */
 	} else {
 		guchar c;
@@ -354,8 +397,10 @@ ok:
 		while ((c = *file++) && isdigit(c))
 			/* empty */;
 
-		if (c != '/')
+		if (c != '/') {
+			dmesh_url_errno = DMESH_URL_NO_FILENAME;
 			return FALSE;				/* Did not have "/get/234/" */
+		}
 
 		/* Ok, `file' points after the "/", at beginning of filename */
 	}
@@ -380,6 +425,8 @@ ok:
 			g_free(unescaped);
 	} else
 		info->name = atom_str_get(file);
+
+	dmesh_url_errno = DMESH_URL_OK;
 
 	return TRUE;
 }
@@ -1098,7 +1145,8 @@ void dmesh_collect_locations(guchar *sha1, guchar *value)
 			printf("MESH (parsed=%d): \"%s\"\n", ok, url);
 
 		if (!ok)
-			g_warning("cannot parse Alternate-Location URL: %s", url);
+			g_warning("cannot parse Alternate-Location URL \"%s\": %s",
+				url, dmesh_url_strerror(dmesh_url_errno));
 
 		*p = c;
 

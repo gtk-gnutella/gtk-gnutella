@@ -54,12 +54,27 @@ typedef struct {
 #define URN_INDEX	0xffffffff		/* Marking index, indicates URN instead */
 
 /*
+ * Error codes from dmesh_url_parse().
+ */
+
+typedef enum {
+	DMESH_URL_OK = 0,			/* All OK */
+	DMESH_URL_HTTP_PARSER,		/* Error from http_url_parse() */
+	DMESH_URL_BAD_FILE_PREFIX,	/* File prefix neither /uri-res nor /get */
+	DMESH_URL_RESERVED_INDEX,	/* Index in /get/index is reserved */
+	DMESH_URL_NO_FILENAME,		/* No filename after /get/index */
+} dmesh_url_error_t;
+
+extern dmesh_url_error_t dmesh_url_errno;
+
+/*
  * Public interface
  */
 
 void dmesh_init(void);
 void dmesh_close(void);
 
+gchar *dmesh_url_strerror(dmesh_url_error_t errnum);
 gboolean dmesh_url_parse(gchar *url, dmesh_urlinfo_t *info);
 
 gboolean dmesh_add(
