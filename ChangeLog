@@ -1,3 +1,13 @@
+# Since last release:
+
+- Allocate node reception buffer once, not each time a >4K message is received.
+- Avoid dropping replies on high TTL, adjust the field down
+- Send back pongs and query hits using the hop count of request as TTL
+  (since replies must be routed along the same path, it need not be greater)
+- Kick out nodes sending us messages with TTL=0.
+- Initial host catcher is now router.limewire.com.
+- Ignore file count and sizes in pongs when high bits are set (obviously wrong!)
+
 # v 0.14   2001.09.12
 
 - New project admin Raphael Manfredi <Raphael_Manfredi@pobox.com>
