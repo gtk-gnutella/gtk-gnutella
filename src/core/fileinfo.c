@@ -277,7 +277,7 @@ static struct {
 #define READ_INT32(a) do {			\
 	gint32 val;						\
 	TBUF_GETINT32(&val);			\
-	STATIC_ASSERT(sizeof val == sizeof(*a)); \
+	STATIC_ASSERT(sizeof val <= sizeof(*a)); \
 	*a = ntohl(val);				\
 	file_info_checksum(&checksum, (gchar *) &val, sizeof(val)); \
 } while(0)
