@@ -742,7 +742,8 @@ void on_popup_search_new_from_selected_activate(
     g_assert(search != NULL);
 	selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(search->tree_view));
     sl = tree_selection_collect_data(selection, gui_record_sha1_or_name_eq);
-    g_slist_foreach(sl, (GFunc) gui_add_targetted_search, search->filter);
+    g_slist_foreach(
+        sl, (GFunc) search_gui_add_targetted_search, search->filter);
     g_slist_free(sl);
 }
 

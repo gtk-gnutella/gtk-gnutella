@@ -1026,7 +1026,7 @@ void on_popup_search_new_from_selected_activate(GtkMenuItem *menuitem,
 	node_list = g_list_copy(GTK_CLIST(search->ctree)->selection);
 	data_list = search_cb_collect_ctree_data(search->ctree, node_list);
 	
-    g_list_foreach(data_list, (GFunc) gui_add_targetted_search, 
+    g_list_foreach(data_list, (GFunc) search_gui_add_targetted_search, 
 		search->filter);
 
     gtk_clist_thaw(GTK_CLIST(search->ctree));
