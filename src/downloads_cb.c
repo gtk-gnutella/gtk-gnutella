@@ -983,8 +983,6 @@ void on_entry_queue_regex_activate(GtkEditable *editable, gpointer user_data)
     }
 
     G_FREE_NULL(regex);
-
-    gtk_entry_set_text(GTK_ENTRY(editable), "");
 }
 
 gboolean on_ctree_downloads_queue_button_press_event
