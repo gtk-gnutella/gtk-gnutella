@@ -42,6 +42,11 @@ typedef struct {
 	gchar country[1 /* Adjusted as necessary*/];
 } iso3166_entry_t;
 
+/*
+ * Suggestion for translators: Translate only the name the of country in
+ * which the language is spoken - if the native name is different.
+ */
+
 static const struct {
 	const char cc[3];
 	const char *country;
@@ -317,7 +322,7 @@ iso3166_decode_cc(gint code)
 }
 
 /**
- * Encodes are valid 2-letter country code into an integer.
+ * Encodes a valid 2-letter country code into an integer.
  * @return -1 if the given string is obviously not a 2-letter country code.
  */
 gint
