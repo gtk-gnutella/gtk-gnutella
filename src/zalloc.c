@@ -189,9 +189,10 @@ gpointer zalloc_track(zone_t *zone, gchar *file, gint line)
  * zblock_log
  *
  * Log information about block, `p' being the physical start of the block, not
- * the user part of it.
+ * the user part of it.  The block is known to be of size `size' and should
+ * be also recorded in the `leakset' for summarizing of all the leaks.
  */
-static void zblock_log(gchar *p)
+static void zblock_log(gchar *p, gint size, gpointer leakset)
 {
 	gchar *uptr;			/* User pointer */
 	gchar *file;
@@ -204,6 +205,8 @@ static void zblock_log(gchar *p)
 	uptr += sizeof(gint);
 
 	g_warning("leaked block 0x%lx from \"%s:%d\"", (gulong) uptr, file, line);
+
+	leak_add(leakset, size, file, line);
 }
 
 /*
@@ -216,6 +219,7 @@ static void zdump_used(zone_t *zone)
 	gint used = 0;
 	struct subzone *next;
 	gchar *p;
+	gpointer leakset = leak_init();
 
 	p = (gchar *) zone->zn_arena;
 	next = zone->zn_next;
@@ -226,7 +230,7 @@ static void zdump_used(zone_t *zone)
 		while (cnt-- > 0) {
 			if (*(gchar **) p == BLOCK_USED) {
 				used++;
-				zblock_log(p);
+				zblock_log(p, zone->zn_size, leakset);
 			}
 			p += zone->zn_size;
 		}
@@ -241,6 +245,9 @@ static void zdump_used(zone_t *zone)
 	if (used != zone->zn_cnt)
 		g_warning("found %d used block, but zone said it was holding %d",
 			used, zone->zn_cnt);
+
+	leak_dump(leakset);
+	leak_close(leakset);
 }
 #endif	/* TRACK_ZALLOC */
 
