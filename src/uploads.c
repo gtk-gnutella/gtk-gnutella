@@ -205,7 +205,7 @@ void upload_fire_upload_info_changed
 void upload_timer(time_t now)
 {
 	GSList *sl, *to_remove = NULL;
-	time_t t;
+	gint t;
 
 	for (sl = list_uploads; sl; sl = g_slist_next(sl)) {
 		gnutella_upload_t *u = (gnutella_upload_t *) sl->data;
@@ -2624,8 +2624,8 @@ static void upload_request(gnutella_upload_t *u, header_t *header)
 				upload_is_enabled() &&
 				bw_ul_usage_enabled &&
 				bws_out_enabled &&
-				bsched_pct(bws.out) < ul_usage_min_percentage &&
-				bsched_avg_pct(bws.out) < ul_usage_min_percentage
+				(gulong) bsched_pct(bws.out) < ul_usage_min_percentage &&
+				(gulong) bsched_avg_pct(bws.out) < ul_usage_min_percentage
 			) {
 				if (parq_upload_request_force(
 						u, u->parq_opaque, running_uploads - 1)) {
@@ -2756,7 +2756,7 @@ static void upload_request(gnutella_upload_t *u, header_t *header)
 	 */
 
 	mtime = statbuf.st_mtime;
-	if (mtime > now)
+	if (delta_time(mtime, now) > 0)
 		mtime = now;			/* Clock skew on file server */
 
 	/*
