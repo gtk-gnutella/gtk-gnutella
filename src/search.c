@@ -1261,6 +1261,7 @@ static struct results_set *get_results_set(struct gnutella_node *n)
 			}
 			break;
 		case T_LIME:
+		case T_SWAP:
 			if (trailer[4] == 4)
 				trailer[4] = 2;			/* We ignore XML data size */
 				/* Fall through */
