@@ -152,7 +152,7 @@ gboolean gchar_to_ip_port(gchar *str, guint32 *ip, guint16 *port)
 	return TRUE;
 }
 
-guint32 host_to_ip(gchar * host)
+guint32 host_to_ip(const gchar * host)
 {
 	struct hostent *he = gethostbyname(host);
 	if (he)
