@@ -20,6 +20,7 @@
 #include "upload_stats.h"
 
 gchar c_tmp[2048];
+static gint select_all_lock = 0;
 
 /***
  *** Main window
@@ -489,11 +490,6 @@ void on_clist_downloads_unselect_row(GtkCList * clist, gint row,
 	gui_update_download_abort_resume();
 }
 
-void on_clist_downloads_click_column(GtkCList * clist, gint column,
-									 gpointer user_data)
-{
-}
-
 void on_clist_downloads_resize_column(GtkCList * clist, gint column,
 									  gint width, gpointer user_data)
 {
@@ -530,8 +526,14 @@ gboolean on_clist_downloads_button_press_event(GtkWidget * widget,
 	return TRUE;
 }
 
+
+
+/***
+ *** popup-downloads
+ ***/
+
 void on_popup_downloads_push_activate(GtkMenuItem * menuitem,
-								 gpointer user_data)
+								      gpointer user_data)
 {
     GList *l;
 	struct download *d;
@@ -552,10 +554,91 @@ void on_popup_downloads_push_activate(GtkMenuItem * menuitem,
 	}
 }
 
-void on_popup_downloads_queue_activate(GtkMenuItem * menuitem,
-								  gpointer user_data)
+void on_popup_downloads_kill_activate(GtkMenuItem * menuitem,
+								      gpointer user_data)
 {
-   GList *l;
+    GList *l;
+	struct download *d;
+
+	for (l = GTK_CLIST(clist_downloads)->selection; l; 
+         l = GTK_CLIST(clist_downloads)->selection ) {		
+     
+		d = (struct download *) 
+			gtk_clist_get_row_data(GTK_CLIST(clist_downloads),
+								   (gint) l->data);
+		gtk_clist_unselect_row(GTK_CLIST(clist_downloads), (gint) l->data, 0);
+     
+		if (!d) {
+			g_warning("on_popup_downloads_kill_activate(): row %d has NULL data\n",
+					  (gint) l->data);
+			continue;
+		}
+		download_kill(d);
+	}
+}
+
+void on_popup_downloads_abort_named_activate(GtkMenuItem * menuitem,
+										   gpointer user_data) 
+{
+	GList *l;
+	struct download *d;
+
+	for (l = GTK_CLIST(clist_downloads)->selection; l; 
+         l = GTK_CLIST(clist_downloads)->selection ) {		
+     
+		d = (struct download *) 
+			gtk_clist_get_row_data(GTK_CLIST(clist_downloads),
+								   (gint) l->data);
+		gtk_clist_unselect_row(GTK_CLIST(clist_downloads), (gint) l->data, 0);
+     
+		if (!d) {
+			g_warning("on_popup_downloads_abort_named_activate(): row %d has NULL data\n",
+					  (gint) l->data);
+			continue;
+		}
+		download_remove_all_named(d->file_name);
+	}
+}
+
+void on_popup_downloads_abort_host_activate(GtkMenuItem * menuitem,
+										    gpointer user_data) 
+{
+	GList *l;
+	struct download *d;
+
+	for (l = GTK_CLIST(clist_downloads)->selection; l; 
+         l = GTK_CLIST(clist_downloads)->selection ) {		
+     
+		d = (struct download *) 
+			gtk_clist_get_row_data(GTK_CLIST(clist_downloads),
+								   (gint) l->data);
+		gtk_clist_unselect_row(GTK_CLIST(clist_downloads), (gint) l->data, 0);
+     
+		if (!d) {
+			g_warning("on_popup_downloads_abort_host_activate(): row %d has NULL data\n",
+					  (gint) l->data);
+			continue;
+		}
+		download_remove_all_from_peer(d->guid);
+	}
+}
+
+void on_popup_downloads_remove_file_activate(GtkMenuItem * menuitem,
+			 							   gpointer user_data) 
+{
+	// FIXME
+}
+
+void on_popup_downloads_search_again_activate(GtkMenuItem * menuitem,
+										   gpointer user_data) 
+{
+	// FIXME
+}
+
+void on_popup_downloads_queue_activate(GtkMenuItem * menuitem,
+							 gpointer user_data)
+{
+    GList *l;
 	struct download *d;
 
 	for (l = GTK_CLIST(clist_downloads)->selection; l; 
@@ -576,31 +659,99 @@ void on_popup_downloads_queue_activate(GtkMenuItem * menuitem,
 	}
 }
 
-void on_popup_downloads_kill_activate(GtkMenuItem * menuitem,
-								 gpointer user_data)
+
+
+/***
+ *** popup-queue
+ ***/
+void on_popup_queue_start_now_activate(GtkMenuItem * menuitem,
+										   gpointer user_data) 
 {
-   GList *l;
+		GList *l;
 	struct download *d;
 
-	for (l = GTK_CLIST(clist_downloads)->selection; l; 
-        l = GTK_CLIST(clist_downloads)->selection ) {		
+	for (l = GTK_CLIST(clist_downloads_queue)->selection; l; 
+         l = GTK_CLIST(clist_downloads_queue)->selection ) {		
+		d = (struct download *) 
+			gtk_clist_get_row_data(GTK_CLIST(clist_downloads_queue),
+                                   (gint) l->data);
+        gtk_clist_unselect_row(GTK_CLIST(clist_downloads_queue), (gint) l->data, 0);
      
-     d = (struct download *) 
-       gtk_clist_get_row_data(GTK_CLIST(clist_downloads),
-                              (gint) l->data);
-     gtk_clist_unselect_row(GTK_CLIST(clist_downloads), (gint) l->data, 0);
+        if (!d) {
+			g_warning("on_popup_queue_start_now_activate(): row %d has NULL data\n",
+			          (gint) l->data);
+		    continue;
+        }
+		if (d->status == GTA_DL_QUEUED)
+			download_start(d, TRUE);
+	} 
+}
+
+
+
+void on_popup_queue_freeze_activate(GtkMenuItem * menuitem,
+										   gpointer user_data) 
+{
+	// FIXME
+}
+
+void on_popup_queue_search_again_activate(GtkMenuItem * menuitem,
+										   gpointer user_data) 
+{
+	// FIXME
+}
+
+void on_popup_queue_remove_named_activate(GtkMenuItem * menuitem,
+										  gpointer user_data) 
+{
+	GList *l;
+	struct download *d;
+
+	for (l = GTK_CLIST(clist_downloads_queue)->selection; l; 
+         l = GTK_CLIST(clist_downloads_queue)->selection ) {		
      
-     if (!d) {
-       g_warning
-         ("on_popup_downloads_queue_activate(): row %d has NULL data\n",
-          (gint) l->data);
-       continue;
-     }
-     download_kill(d);
+		d = (struct download *) 
+			gtk_clist_get_row_data(GTK_CLIST(clist_downloads_queue),
+								   (gint) l->data);
+		gtk_clist_unselect_row(GTK_CLIST(clist_downloads_queue), (gint) l->data, 0);
+     
+		if (!d) {
+			g_warning("on_popup_queue_remove_named_activate(): row %d has NULL data\n",
+					  (gint) l->data);
+			continue;
+		}
+		download_remove_all_named(d->file_name);
 	}
 }
 
-/* Active downloads buttons and entries */
+void on_popup_queue_remove_host_activate(GtkMenuItem * menuitem,
+										    gpointer user_data) 
+{
+	GList *l;
+	struct download *d;
+
+	for (l = GTK_CLIST(clist_downloads_queue)->selection; l; 
+         l = GTK_CLIST(clist_downloads_queue)->selection ) {		
+     
+		d = (struct download *) 
+			gtk_clist_get_row_data(GTK_CLIST(clist_downloads_queue),
+								   (gint) l->data);
+		gtk_clist_unselect_row(GTK_CLIST(clist_downloads_queue), (gint) l->data, 0);
+     
+		if (!d) {
+			g_warning("on_popup_queue_remove_host_activate(): row %d has NULL data\n",
+					  (gint) l->data);
+			continue;
+		}
+		download_remove_all_from_peer(d->guid);
+	}
+}
+
+
+
+/***
+ *** downloads pane
+ ***/
 
 void on_button_downloads_abort_clicked(GtkButton * button,
 									  gpointer user_data)
@@ -608,9 +759,11 @@ void on_button_downloads_abort_clicked(GtkButton * button,
 	GList *l;
 	struct download *d;
 
-	for (l = GTK_CLIST(clist_downloads)->selection; l; l = GTK_CLIST(clist_downloads)->selection ) {
+	for (l = GTK_CLIST(clist_downloads)->selection; l; 
+         l = GTK_CLIST(clist_downloads)->selection ) {
 		d = (struct download *) gtk_clist_get_row_data(GTK_CLIST(clist_downloads),
                                                      (gint) l->data);
+        gtk_clist_unselect_row(GTK_CLIST(clist_downloads), (gint) l->data, 0);
 
 		if (!d) {
 			g_warning("on_button_downloads_abort_clicked(): row %d has NULL data\n",
@@ -618,7 +771,6 @@ void on_button_downloads_abort_clicked(GtkButton * button,
 			continue;
 		}
 
-      gtk_clist_unselect_row(GTK_CLIST(clist_downloads), (gint) l->data, 0);
 		download_abort(d);
 	}
 }
@@ -695,7 +847,7 @@ gboolean on_entry_max_downloads_focus_out_event(GtkWidget * widget,
 	gtk_clist_unselect_all(GTK_CLIST(clist_downloads_queue));
 
 	gui_update_max_downloads();
-	download_pickup_queued();
+	//download_pickup_queued();
 
 	return TRUE;
 }
@@ -724,7 +876,7 @@ gboolean on_entry_max_host_downloads_focus_out_event(GtkWidget * widget,
 	gtk_clist_unselect_all(GTK_CLIST(clist_downloads_queue));
 
 	gui_update_max_host_downloads();
-	download_pickup_queued();
+	//download_pickup_queued();
 
 	return TRUE;
 }
@@ -739,7 +891,6 @@ void on_clist_downloads_queue_select_row(GtkCList * clist, gint row,
 {
 	gtk_widget_set_sensitive(button_downloads_queue_remove, TRUE);
 	gtk_widget_set_sensitive(popup_queue_remove, TRUE);
-	gtk_widget_set_sensitive(popup_queue_start_now, TRUE);
 }
 
 void on_clist_downloads_queue_unselect_row(GtkCList * clist, gint row,
@@ -750,7 +901,6 @@ void on_clist_downloads_queue_unselect_row(GtkCList * clist, gint row,
 	
 	gtk_widget_set_sensitive(button_downloads_queue_remove, sensitive);
 	gtk_widget_set_sensitive(popup_queue_remove, sensitive);
-	gtk_widget_set_sensitive(popup_queue_start_now, sensitive); 
 }
 
 void on_button_downloads_queue_remove_clicked(GtkButton * button,
@@ -776,33 +926,7 @@ void on_button_downloads_queue_remove_clicked(GtkButton * button,
 	} 
 }
 
-void on_clist_downloads_queue_click_column(GtkCList * clist, gint column,
-										  gpointer user_data)
-{
-}
 
-void on_download_start_now_activate(GtkMenuItem * menuitem,
-									gpointer user_data)
-{
-	GList *l;
-	struct download *d;
-
-	for (l = GTK_CLIST(clist_downloads_queue)->selection; l; 
-         l = GTK_CLIST(clist_downloads_queue)->selection ) {		
-		d = (struct download *) 
-			gtk_clist_get_row_data(GTK_CLIST(clist_downloads_queue),
-                                   (gint) l->data);
-        gtk_clist_unselect_row(GTK_CLIST(clist_downloads_queue), (gint) l->data, 0);
-     
-        if (!d) {
-			g_warning("on_download_start_now(): row %d has NULL data\n",
-			          (gint) l->data);
-		    continue;
-        }
-		if (d->status == GTA_DL_QUEUED)
-			download_start(d, TRUE);
-	} 
-}
 
 gboolean on_clist_downloads_queue_button_press_event(GtkWidget * widget,
 													GdkEventButton * event,
@@ -831,12 +955,12 @@ void on_clist_downloads_queue_resize_column(GtkCList * clist, gint column,
 										   gint width, gpointer user_data)
 {
 	dl_queued_col_widths[column] = width;
+
 }
 
 /***
  *** Searches
  ***/
-
 void on_entry_minimum_speed_activate(GtkEditable * editable,
 									 gpointer user_data)
 {
@@ -903,6 +1027,7 @@ void on_button_search_download_clicked(GtkButton * button,
 void on_button_search_stream_clicked(GtkButton * button,
 									 gpointer user_data)
 {
+	// FIXME
 }
 
 
@@ -1369,6 +1494,7 @@ void on_button_config_update_port_clicked(GtkButton * button,
 void on_checkbutton_config_throttle_toggled(GtkToggleButton * togglebutton,
 											gpointer user_data)
 {
+	// FIXME
 }
 
 void on_entry_config_maxttl_activate(GtkEditable * editable,
@@ -1735,12 +1861,6 @@ static gint search_results_compare_host(GtkCList * clist, gconstpointer ptr1,
 		return (rs1->ip > rs2->ip) ? +1 : -1;
 }
 
-/* ----------------------------------------- */
-
-/* Row selected */
-
-static gint select_all_lock = 0;
-
 /**
  * on_clist_search_results_select_row:
  *
@@ -1784,8 +1904,6 @@ void on_clist_search_results_select_row(GtkCList * clist, gint row,
    }
 }
 
-/* Row unselected */
-
 void on_clist_search_results_unselect_row(GtkCList * clist, gint row,
 										  gint column, GdkEvent * event,
 										  gpointer user_data)
@@ -1797,8 +1915,6 @@ void on_clist_search_results_unselect_row(GtkCList * clist, gint row,
 	if (search_pick_all || !sensitive)
      gui_set_status( NULL );
 }
-
-/* Column title clicked */
 
 void on_clist_search_results_click_column(GtkCList * clist, gint column,
 										  gpointer user_data)
@@ -1841,8 +1957,11 @@ void on_clist_search_results_click_column(GtkCList * clist, gint column,
 	current_search->sort = TRUE;
 }
 
-/* Search results popup menu (glade puts funcs prototypes in callbacks.h) */
 
+
+/***
+ *** popup-search
+ ***/
 void on_popup_search_stop_sorting_activate(GtkMenuItem * menuitem,
 										   gpointer user_data)
 {
@@ -1989,11 +2108,11 @@ gboolean on_clist_search_results_button_press_event(GtkWidget * widget,
 	return FALSE;
 }
 
-/* Column resize */
-
 void on_clist_search_results_resize_column(GtkCList * clist, gint column,
 										   gint width, gpointer user_data)
 {
+	// FIXME: what is this actually for???
+	// bluefire
 	static gboolean resizing = FALSE;
 	GSList *l;
 
@@ -2105,10 +2224,11 @@ void on_popup_search_clear_results_activate(GtkMenuItem * menuitem,
 
 }
 
+
+
 /***
  *** menu bar
  ***/ 
-
 void on_menu_toolbar_visible_activate(GtkMenuItem * menuitem,
                                       gpointer user_data)
 {
