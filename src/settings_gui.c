@@ -1014,6 +1014,20 @@ static prop_map_t property_map[] = {
         "checkbutton_dl_remove_file_on_mismatch",
         FREQ_UPDATES, 0
     },
+	{
+        get_main_window,
+        PROP_PFSP_SERVER,
+        update_togglebutton,
+        TRUE,
+        "checkbutton_pfsp_server",
+	},
+	{
+        get_main_window,
+        PROP_PFSP_FIRST_CHUNK,
+        update_spinbutton,
+        TRUE,
+        "spinbutton_pfsp_first_chunk",
+	},
 #endif	/* USE_GTK1 */
     {
         get_main_window,
