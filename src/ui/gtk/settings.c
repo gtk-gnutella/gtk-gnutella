@@ -869,24 +869,6 @@ static gboolean update_byte_size_entry(property_t prop)
     return FALSE;
 }
 
-static gboolean update_toggle_search_autoselect(property_t prop)
-{
-	gboolean value;
-	gboolean ret;
-
-	ret = update_togglebutton(prop);
-	gui_prop_get_boolean_val(prop, &value);
-
-	gtk_widget_set_sensitive(
-		lookup_widget(main_window, "checkbutton_search_autoselect_ident"),
-		value);
-	gtk_widget_set_sensitive(
-		lookup_widget(main_window, "checkbutton_search_autoselect_fuzzy"),
-		value);
-
-	return ret;
-}
-
 static gboolean update_toggle_remove_on_mismatch(property_t prop)
 {
     gboolean value;
@@ -1953,9 +1935,6 @@ static gboolean expert_mode_changed(property_t prop)
     static const gchar *expert_widgets_main[] = {
         "button_search_passive",
         "frame_expert_node_info",
-#ifdef USE_GTK1
-        "frame_expert_search_autoselect",
-#endif /* USE_GTK1 */
         "hbox_expert_search_timeout",
 		NULL
 	};
