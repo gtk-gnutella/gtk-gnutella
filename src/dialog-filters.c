@@ -45,6 +45,7 @@ GtkWidget *dialog_filters = NULL;
 GtkWidget *f_notebook = NULL;
 
 struct filter_page *filters_current_page = NULL;
+static struct filter_page *global_filter_page = NULL;
 
 /* */
 
@@ -132,7 +133,7 @@ GtkWidget *create_dialog_filters(void)
 	gtk_signal_connect(GTK_OBJECT(f_notebook), "switch-page",
 					   GTK_SIGNAL_FUNC(on_filter_notebook_switch), NULL);
 
-	dialog_filters_new_page(NULL);
+	global_filter_page = dialog_filters_new_page(NULL);
 
 	hbox1 = gtk_hbox_new(FALSE, 10);
 	gtk_widget_ref(hbox1);
@@ -237,19 +238,12 @@ void filters_new_search(struct search *sch)
 	sch->filter_page = (gpointer) dialog_filters_new_page(sch);
 }
 
-void filters_close_search(struct search *sch)
+static void free_filter_page(struct filter_page *fp)
 {
-	struct filter_page *fp;
-	struct filter_page_line *fpl;
+	GList *l;
 
-	g_return_if_fail(sch);
-
-	fp = (struct filter_page *) sch->filter_page;
-
-	while (fp->page_lines) {
-		fpl = (struct filter_page_line *) fp->page_lines->data;
-
-		fp->page_lines = g_list_remove(fp->page_lines, (gpointer) fpl);
+	for (l = g_list_first(fp->page_lines); l; l = g_list_next(l)) {
+		struct filter_page_line *fpl = (struct filter_page_line *) l->data;
 
 		gtk_widget_destroy(fpl->remove_button);
 		gtk_widget_destroy(fpl->f_box);
@@ -257,16 +251,22 @@ void filters_close_search(struct search *sch)
 
 		g_free(fpl);
 	}
+	g_list_free(fp->page_lines);
+
+	gtk_notebook_remove_page(GTK_NOTEBOOK(f_notebook),
+		gtk_notebook_page_num(GTK_NOTEBOOK(f_notebook), fp->table));
+
+	g_free(fp);
+}
+
+void filters_close_search(struct search *sch)
+{
+	g_return_if_fail(sch);
+
+	free_filter_page((struct filter_page *) sch->filter_page);
 
 	g_list_foreach(sch->filters, (GFunc)filter_free, NULL);
 	g_list_free(sch->filters);
-
-	gtk_notebook_remove_page(GTK_NOTEBOOK(f_notebook),
-							 gtk_notebook_page_num(GTK_NOTEBOOK
-												   (f_notebook),
-												   fp->table));
-
-	g_free(fp);
 }
 
 /*
@@ -276,6 +276,8 @@ void filters_close_search(struct search *sch)
  */
 void filters_shutdown(void)
 {
+	free_filter_page(global_filter_page);
+
 	g_list_foreach(global_filters, (GFunc)filter_free, NULL);
 	g_list_free(global_filters);
 }
