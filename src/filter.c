@@ -371,6 +371,9 @@ void filter_open_dialog() {
         shadow_t *shadow;
         GList *ruleset;
         gboolean enabled;
+
+        if (filter == filter_return)
+            continue;
         
         shadow = shadow_find(filter);
         ruleset = (shadow != NULL) ? shadow->current : filter->ruleset;
