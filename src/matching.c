@@ -135,15 +135,17 @@ guint query_make_word_vec(const gchar *query_str, word_vec_t **wovec)
 	const gchar *start = NULL;
 	gchar * const query_dup = g_strdup(query_str);
 	gchar *query;
-	gchar *first_word = NULL;
-	guint first_n = 0;
 	gchar first = TRUE;
-	
+	guchar c;
+
 	g_assert(wovec != NULL);
 
-	for (query = query_dup; '\0' != *query; query++) {
+	for (query = query_dup; /* empty */; query++) {
 		gboolean is_alpha;
-		is_alpha = isalnum((guchar) *query);
+
+		c = *(guchar *) query;
+		is_alpha = isalnum(c);
+
 		if (start == NULL) {				/* Not in a word yet */
 			if (is_alpha) start = query;
 		} else {
@@ -157,22 +159,22 @@ guint query_make_word_vec(const gchar *query_str, word_vec_t **wovec)
 			else {
 				if (seen_word == NULL) {
 					seen_word = g_hash_table_new(g_str_hash, g_str_equal);
-					g_hash_table_insert(seen_word, first_word,
-						GUINT_TO_POINTER(first_n));
-					first_word = NULL;
+					g_hash_table_insert(seen_word, wv[0].word,
+						GUINT_TO_POINTER(1));
 				}
 
 				/*
-			 	* If word already seen in query, it's in the seen_word table.
-		 	 	* The associated value is the index in the vector plus 1.
-		 	 	*/
+			 	 * If word already seen in query, it's in the seen_word table.
+		 	 	 * The associated value is the index in the vector plus 1.
+		 	 	 */
+
 				np1 = GPOINTER_TO_UINT(
 					g_hash_table_lookup(seen_word, (gconstpointer) start));
 			}
 
 			if (np1--) {
-					wv[np1].amount++;
-					wv[np1].len = query - start;
+				wv[np1].amount++;
+				wv[np1].len = query - start;
 			} else {
 				word_vec_t *entry;
 				if (n == nv) {				/* Filled all the slots */
@@ -188,19 +190,27 @@ guint query_make_word_vec(const gchar *query_str, word_vec_t **wovec)
 				memcpy(entry->word, start, entry->len + 1); /* Includes NUL */
 				
 				entry->amount = 1;
-				if (first) {
-					first_n = n;
-					first_word = entry->word;
+
+				/*
+				 * Delay insertion of first word until we find another one.
+				 * The hash table storing duplicates is not created for
+				 * the first word.  The word entry is saved into `first_word'
+				 * for later insertion, if needed.
+				 */
+
+				if (first)
 					first = FALSE;
-				} else { 
+				else { 
 					g_hash_table_insert(seen_word, entry->word,
 						GUINT_TO_POINTER(n));
 				}
 			}
 			start = NULL;
 		}
+
+		if (c == '\0') break;
 	}
-	
+
 	if (NULL != seen_word)
 		g_hash_table_destroy(seen_word);	/* Key pointers belong to vector */
 	if (n)
@@ -252,7 +262,7 @@ cpattern_t *pattern_compile(gchar *pattern)
 	guint32 plen = strlen(pattern);
 	guint32 *pd = p->delta;
 	gint i;
-	gchar *c;
+	guchar *c;
 
 	p->pattern = g_strdup(pattern);
 	p->len = plen;
@@ -264,8 +274,8 @@ cpattern_t *pattern_compile(gchar *pattern)
 
 	plen--;			/* Restore original pattern length */
 
-	for (pd = p->delta, c = pattern, i = 0; i < plen; c++, i++)
-		pd[(guchar) *c] = plen - i;
+	for (pd = p->delta, c = (guchar *) pattern, i = 0; i < plen; c++, i++)
+		pd[*c] = plen - i;
 
 	return p;
 }
@@ -648,7 +658,7 @@ static cpattern_t *pattern_compile_fast(gchar *pattern, guint32 plen)
 	plen--;			/* Restore original pattern length */
 
 	for (pd = p->delta, c = (guchar *) pattern, i = 0; i < plen; c++, i++)
-		pd[(guchar) *c] = plen - i;
+		pd[*c] = plen - i;
 
 	return p;
 }
