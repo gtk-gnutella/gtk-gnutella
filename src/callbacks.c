@@ -35,10 +35,10 @@ RCSID("$Id$");
  * the callback for the activate signal.
  */
 #define FOCUS_TO_ACTIVATE(a)                                            \
-    gboolean on_##a##_focus_out_event                                   \
+    gboolean CAT3(on_,a,_focus_out_event)                               \
         (GtkWidget *widget, GdkEventFocus *event, gpointer user_data)   \
     {                                                                   \
-        on_##a##_activate(GTK_EDITABLE(widget), NULL);                  \
+        CAT3(on_,a,_activate)(GTK_EDITABLE(widget), NULL);                  \
         return FALSE;                                                   \
     }
 

@@ -2584,7 +2584,7 @@ static gboolean update_bandwidth_spinbutton(property_t prop)
  ***/
 
 #define ENTRY(v, widget)                                    \
-    static gboolean v##_changed(property_t prop)            \
+    static gboolean CAT2(v,_changed)(property_t prop)       \
     {                                                       \
         gchar *val   = gnet_prop_get_string(prop, NULL, 0); \
         GtkWidget *w = lookup_widget(main_window, widget);  \

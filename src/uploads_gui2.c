@@ -144,7 +144,7 @@ static void upload_info_changed(gnet_upload_t u,
 
 
 #define COMPARE_FUNC(field, code) \
-static gint compare_ ##field## _func( \
+static gint CAT3(compare_,field,_func)( \
 	GtkTreeModel *model, GtkTreeIter *a, GtkTreeIter *b, gpointer user_data) \
 { \
 	const upload_row_data_t *rd_a = NULL; \

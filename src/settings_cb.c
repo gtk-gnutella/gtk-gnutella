@@ -39,16 +39,16 @@ RCSID("$Id$");
  * the callback for the activate signal.
  */
 #define FOCUS_TO_ACTIVATE(a)                                            \
-    gboolean on_##a##_focus_out_event                                   \
+    gboolean CAT3(on_,a,_focus_out_event)                               \
         (GtkWidget *widget, GdkEventFocus *event, gpointer user_data)   \
     {                                                                   \
-        on_##a##_activate(GTK_EDITABLE(widget), NULL);                  \
-        return FALSE;                                                    \
+        CAT3(on_,a,_activate)(GTK_EDITABLE(widget), NULL);              \
+        return FALSE;                                                   \
     }
 
 #define checkmenu_changed(pref,p, cb) do {                              \
         gboolean val = GTK_CHECK_MENU_ITEM(cb)->active;                 \
-        pref##_prop_set_boolean(p, &val, 0, 1);                         \
+        CAT2(pref,_prop_set_boolean)(p, &val, 0, 1);                    \
     } while (0)
 
 void on_spinbutton_search_reissue_timeout_changed
