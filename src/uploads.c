@@ -930,19 +930,16 @@ static void upload_error_not_found(struct upload *u, const gchar *request)
 static gboolean upload_request_is_ok(
 	struct upload *u,
 	header_t *header,
-	gchar *request)
+	gchar *request,
+	gint len)
 {
-	struct gnutella_socket *s = u->socket;
 	gint http_major, http_minor;
 
 	/*
 	 * Check HTTP protocol version. --RAM, 11/04/2002
 	 */
 
-	if (
-		!http_extract_version(request, getline_length(s->getline),
-			&http_major, &http_minor)
-	) {
+	if (!http_extract_version(request, len, &http_major, &http_minor)) {
 		upload_error_remove(u, NULL, 500, "Unknown/Missing Protocol Tag");
 		return FALSE;
 	}
@@ -1473,6 +1470,19 @@ static void upload_request(struct upload *u, header_t *header)
 	head_only = (request[0] == 'H');
 
 	/*
+	 * Make sure there is the HTTP/x.x tag at the end of the request,
+	 * thereby ruling out the HTTP/0.9 requests.
+	 *
+	 * This has to be done early, and before calling get_file_to_upload()
+	 * or the getline_length() call will no longer represent the length of
+	 * the string, since URL-unescaping happens inplace and can "shrink"
+	 * the request.
+	 */
+
+	if (!upload_request_is_ok(u, header, request, getline_length(s->getline)))
+		return;
+
+	/*
 	 * IDEA
 	 *
 	 * To prevent people from hammering us, we should setup a priority queue
@@ -1523,9 +1533,6 @@ static void upload_request(struct upload *u, header_t *header)
 		upload_error_remove(u, NULL, 400, "Change of Resource Forbidden");
 		return;
 	}
-
-	if (!upload_request_is_ok(u, header, request))
-		return;
 
 	/*
 	 * We let all HEAD request go through, whether we're busy or not, since
@@ -1964,6 +1971,9 @@ void upload_write(gpointer up, gint source, GdkInputCondition cond)
 	if (write_bytes == -1) {
 		if (errno != EAGAIN)
 			upload_remove(u, "Data write error: %s", g_strerror(errno));
+		return;
+	} else if (write_bytes == 0) {
+		upload_remove(u, "No bytes written, source may be gone");
 		return;
 	}
 
