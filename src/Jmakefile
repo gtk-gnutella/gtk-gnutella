@@ -165,6 +165,7 @@ CORE = \
 	utf8.c \
 	vendors.c \
 	verify.c \
+	verify-tigertree.c \
 	version.c \
 	vmsg.c \
 	walloc.c \

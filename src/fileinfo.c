@@ -867,7 +867,12 @@ file_info_lookup(gchar *name, guint32 size, const gchar *sha1)
 
 	if (list != NULL && g_slist_next(list) == NULL) {
 		fi = list->data;
-		g_assert(fi->size == size);
+		
+		/* FIXME: FILE_SIZE_KNOWN: Should we provide another lookup?
+		 *	-- JA 2004-07-21
+		 */
+		if (fi->file_size_known)
+			g_assert(fi->size == size);
 		return fi;
 	}
 
@@ -880,7 +885,11 @@ file_info_lookup(gchar *name, guint32 size, const gchar *sha1)
 	for (l = list; l; l = l->next) {
 		fi = l->data;
 
-		g_assert(fi->size == size);
+		/* FIXME: FILE_SIZE_KNOWN: Should we provide another lookup?
+		 *	-- JA 2004-07-21
+		 */
+		if (fi->file_size_known)
+			g_assert(fi->size == size);
 
 		if (file_info_has_filename(fi, name))
 			return fi;
@@ -1114,7 +1123,7 @@ file_info_retrieve_binary(const gchar *file, const gchar *path)
 	fi->size = trailer.filesize;
 	fi->size_atom = atom_int_get(&fi->size);
 	fi->generation = trailer.generation;
-	fi->use_swarming = 1;					/* Must assume swarming */
+	fi->file_size_known = fi->use_swarming = 1;		/* Must assume swarming */
 	fi->refcount = 0;
 
 	/*
@@ -2279,7 +2288,7 @@ file_info_create(
 	fi->size = 0;							/* Will be updated below */
 	fi->file_size_known = file_size_known;
 	fi->done = 0;
-	fi->use_swarming = use_swarming;
+	fi->use_swarming = use_swarming && file_size_known;
 	fi->ctime = time(NULL);
 
 	pathname = make_pathname(fi->path, fi->file_name);
@@ -2305,6 +2314,9 @@ file_info_create(
 	if (size > fi->size)
 		fi_resize(fi, size);
 
+	if (!fi->file_size_known)
+		g_assert(!fi->use_swarming);
+		
 	return fi;
 }
 
@@ -2511,7 +2523,11 @@ file_info_has_identical(gchar *file, guint32 size, gchar *sha1)
 	for (p = sizelist; p; p = p->next) {
 		fi = (struct dl_file_info *) p->data;
 
-		g_assert(fi->size == size);
+		/* FIXME: FILE_SIZE_KNOWN: Should we provide another lookup?
+		 *	-- JA 2004-07-21
+		 */
+		if (fi->file_size_known)
+			g_assert(fi->size == size);
 		g_assert(fi->refcount >= 0);
 
 		/*

@@ -152,6 +152,8 @@ struct download {
 	const gchar *remove_msg;
 
 	gchar *sha1;			/* Known SHA1 (binary atom), NULL if none */
+	gchar *uri;				/* Uri if not dealing with regular gnutella
+							 * file download */
 	guint32 last_dmesh;		/* Time when last download mesh was sent */
 
 	GSList *ranges;			/* PFSP -- known list of ranges, NULL if none */

@@ -3261,8 +3261,7 @@ download_fallback_to_push(struct download *d,
  * Returns created download structure, or NULL if none.
  */
 static struct download *
-create_download(
-	gchar *file, guint32 size, guint32 record_index,
+create_download(gchar *file, gchar *uri, guint32 size, guint32 record_index,
 	guint32 ip, guint16 port, gchar *guid, gchar *hostname,
 	gchar *sha1, time_t stamp,
 	gboolean push, gboolean interactive, gboolean file_size_known, 
@@ -3271,6 +3270,7 @@ create_download(
 	struct dl_server *server;
 	struct download *d;
 	gchar *file_name;
+	gchar *file_uri = NULL;
 	struct dl_file_info *fi;
 	gboolean server_created = FALSE;		/* For assertions only */
 
@@ -3293,6 +3293,9 @@ create_download(
 	}
 
     file_name = interactive ? atom_str_get(file) : file;
+    
+    if (uri)
+	    file_uri = atom_str_get(uri);
 
 	/*
 	 * Create server if none exists already.
@@ -3351,8 +3354,10 @@ create_download(
 	d->file_name = file_name;
 	d->escaped_name = url_escape_cntrl(file_name);
 
+	d->uri = file_uri;
+	
 	if (!file_size_known)	
-		size = 1; /* Dummy value to prevent divide by zero errors, etc. */
+		size = 0; /* Value should be updated later when known by HTTP headers */
 
 	d->file_size_known = file_size_known;
 	d->file_size = size;
@@ -3506,7 +3511,7 @@ download_auto_new(gchar *file, guint32 size, guint32 record_index,
 
 	file_name = atom_str_get(file);
 
-	create_download(file_name, size, record_index, ip, port,
+	create_download(file_name, NULL, size, record_index, ip, port,
 		guid, hostname, sha1, stamp, push, FALSE, file_size_known, fi, proxies);
 
 	return;
@@ -3700,8 +3705,8 @@ download_new(gchar *file, guint32 size, guint32 record_index,
 	gchar *sha1, time_t stamp, gboolean push,
 	struct dl_file_info *fi, gnet_host_vec_t *proxies)
 {
-	return NULL != create_download(file, size, record_index, ip, port, guid,
-		hostname, sha1, stamp, push, TRUE, TRUE, fi, proxies);
+	return NULL != create_download(file, NULL, size, record_index, ip, port, 
+		guid, hostname, sha1, stamp, push, TRUE, TRUE, fi, proxies);
 }
 
 /**
@@ -3715,8 +3720,18 @@ download_new_unknown_size(gchar *file, guint32 record_index,
 {
 	guint32 size = 1;
 	
-	return NULL != create_download(file, size, record_index, ip, port, guid,
-		hostname, sha1, stamp, push, TRUE, FALSE, fi, proxies);
+	return NULL != create_download(file, NULL, size, record_index, ip, port, 
+		guid, hostname, sha1, stamp, push, TRUE, FALSE, fi, proxies);
+}
+
+gboolean download_new_uri(gchar *file, gchar *uri, guint32 size,
+			  guint32 ip, guint16 port, gchar *guid, gchar *hostname,
+			  gchar *sha1, time_t stamp, gboolean push,
+			  struct dl_file_info *fi, gnet_host_vec_t *proxies)
+{
+	return NULL != create_download(file, uri, size, 0, ip, port, 
+		guid, hostname, sha1, stamp, push, TRUE, size != 0 ? TRUE : FALSE, fi, 
+		proxies);
 }
 
 /**
@@ -3728,7 +3743,7 @@ download_orphan_new(
 	gchar *file, guint32 size, gchar *sha1, struct dl_file_info *fi)
 {
 	time_t ntime = fi->ntime;
-	(void) create_download(file, size, 0, 0, 0, blank_guid, NULL, sha1,
+	(void) create_download(file, NULL, size, 0, 0, 0, blank_guid, NULL, sha1,
 		time(NULL), FALSE, TRUE, TRUE, fi, NULL);
 	fi->ntime = ntime;
 }
@@ -3832,6 +3847,11 @@ download_remove(struct download *d)
 		d->sha1 = NULL;
 	}
 
+	if (d->uri)
+	{
+		atom_str_free(d->uri);
+	}
+	
 	if (d->ranges) {
 		http_range_free(d->ranges);
 		d->ranges = NULL;
@@ -5534,7 +5554,13 @@ download_request(struct download *d, header_t *header, gboolean ok)
 			"[short %d line%s header] ", count, count == 1 ? "" : "s");
 	}
 
-	
+#ifdef TIGERTREE
+	/* FIXME TIGERTREE: 
+	 * Temporary
+	 */
+	tt_parse_header(d, header);
+#endif
+
 	if (ack_code == 503 || (ack_code >= 200 && ack_code <= 299)) {
 
 		/*
@@ -6016,6 +6042,14 @@ download_request(struct download *d, header_t *header, gboolean ok)
 	buf = header_get(header, "Content-Length");		/* Mandatory */
 	if (buf) {
 		guint32 content_size = atol(buf);
+		
+		// FIXME: DOWNLOAD_SIZE, don't always use total!!!
+		if (!d->file_size_known) {
+			d->size = content_size;
+			fi->size = content_size;
+			fi->file_size_known = TRUE;
+		}
+		
 		if (content_size == 0) {
 			download_bad_source(d);
 			download_stop(d, GTA_DL_ERROR, "Zero Content-Length");
@@ -6029,9 +6063,10 @@ download_request(struct download *d, header_t *header, gboolean ok)
 				download_stop(d, GTA_DL_ERROR,
 					"Server can't handle resume request");
 				return;
-			} else
+			} else 
 				check_content_range = content_size;	/* Need Content-Range */
 		}
+				
 		got_content_length = TRUE;
 	}
 
@@ -6044,6 +6079,12 @@ download_request(struct download *d, header_t *header, gboolean ok)
 			sscanf(buf, "bytes %d-%d/%d", &start, &end, &total) ||	/* Good */
 			sscanf(buf, "bytes=%d-%d/%d", &start, &end, &total)		/* Bad! */
 		) {
+			// FIXME: DOWNLOAD_SIZE, don't always use total!!!
+			if (!d->file_size_known) {
+				d->size = total;
+				fi->size = total;
+			}
+			
 			if (start != d->skip - d->overlap_size) {
                 if (dbg) {
                     g_message("File '%s' on %s (%s): "
@@ -6329,7 +6370,10 @@ download_read(gpointer data, gint source, inputevt_cond_t cond)
 	g_assert(d->pos <= fi->size);
 
 	if (d->pos == fi->size) {
-		download_stop(d, GTA_DL_ERROR, "Failed (Completed?)");
+		if (fi->file_size_known)
+			download_stop(d, GTA_DL_ERROR, "Failed (Completed?)");
+		else
+			download_stop(d, GTA_DL_COMPLETED, "FIXME: !file_size_known");
 		return;
 	}
 
@@ -6545,6 +6589,8 @@ download_send_request(struct download *d)
 	 */
 
 	if (fi->use_swarming) {
+		g_assert(fi->file_size_known);
+		
 		/*
 		 * PFSP -- client side
 		 *
@@ -6618,6 +6664,12 @@ picked:
 	 * Build the HTTP request.
 	 */
 
+	if (d->uri) {
+		printf("GET %s HTTP/1.1\r\n", d->uri);
+		rw = gm_snprintf(dl_tmp, sizeof(dl_tmp),
+			"GET %s HTTP/1.1\r\n",
+			d->uri);
+	} else
 	if (n2r)
 		rw = gm_snprintf(dl_tmp, sizeof(dl_tmp),
 			"GET /uri-res/N2R?urn:sha1:%s HTTP/1.1\r\n",
@@ -7239,6 +7291,7 @@ download_store(void)
 			"#   size, index[:GUID], IP:port[, hostname]\n"
 			"#   SHA1 or * if none\n"
 			"#   PARQ id or * if none\n"
+			"#   FILE_SIZE_KNOWN true or false \n"
 			"#   <blank line>\n"
 			"#\n\n" 
 			"RECLINES=4\n\n", out);
@@ -7261,10 +7314,11 @@ download_store(void)
 		hostname = d->server->hostname;
 
 		fprintf(out,
-			"%s\n"
-			"%u, %u%s%s, %s%s%s\n"
-			"%s\n"
-			"%s\n\n",
+			"%s\n" /* File name */
+			"%u, %u%s%s, %s%s%s\n" /* size, index, ip:port[,hostname] */
+			"%s\n" /* SHA1 */
+			"%s\n" /* PARQ id */
+			"\n\n",
 			d->escaped_name,
 			d->file_info->size, d->record_index,
 			guid == NULL ? "" : ":", guid == NULL ? "" : guid_hex_str(guid),
@@ -7490,9 +7544,9 @@ download_retrieve(void)
 		 * in the fileinfo.
 		 */
 
-		d = create_download(d_name, d_size, d_index, d_ip, d_port, d_guid,
-			d_hostname, has_sha1 ? sha1_digest : NULL, MAGIC_TIME, FALSE,
-			FALSE, TRUE, NULL, NULL);
+		d = create_download(d_name, NULL, d_size, d_index, d_ip, d_port, d_guid,
+			d_hostname, has_sha1 ? sha1_digest : NULL, 1, FALSE, FALSE,
+			TRUE, NULL, NULL);
 
 		if (d == NULL) {
 			g_message("Ignored dup download at line #%d (server %s)",

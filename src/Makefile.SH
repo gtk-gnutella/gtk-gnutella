@@ -251,6 +251,7 @@ CORE = \
 	utf8.c \
 	vendors.c \
 	verify.c \
+	verify-tigertree.c \
 	version.c \
 	vmsg.c \
 	walloc.c \
@@ -406,6 +407,7 @@ OBJLIST = \
 	utf8.o \
 	vendors.o \
 	verify.o \
+	verify-tigertree.o \
 	version.o \
 	vmsg.o \
 	walloc.o \

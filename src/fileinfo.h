@@ -96,7 +96,7 @@ struct dl_file_info {
 #define FI_F_DISCARD		0x00000002 	/* Discard fileinfo when refcount = 0 */
 #define FI_F_MARK			0x80000000 	/* Marked during traversal */
 
-#define FILE_INFO_COMPLETE(x)	((x)->done == (x)->size)
+#define FILE_INFO_COMPLETE(x)	((x)->done == (x)->size && (x)->file_size_known)
 
 void file_info_init(void);
 void file_info_scandir(const gchar *dir);
