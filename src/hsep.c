@@ -461,8 +461,8 @@ void hsep_send_msg(struct gnutella_node *n)
 	opttriples = hsep_triples_to_send(
 		(hsep_triple *) ((&m->header) + 1), triples);
 
-	globalt = (guint64 *) &hsep_global_table[1];
-	connectiont = (guint64 *) &n->hsep_table[1];
+	globalt = (guint64 *) hsep_global_table;
+	connectiont = (guint64 *) n->hsep_table;
 
 	printf("HSEP: Sending %d %s to node %p (msg #%u): ", opttriples,
 	    opttriples == 1 ? "triple" : "triples", n, n->hsep_msgs_sent + 1);
