@@ -829,9 +829,10 @@ void on_popup_search_duplicate_activate(
     /* FIXME: should call search_duplicate which has to be written. */
     /* FIXME: should properly duplicate passive searches. */
 
-	search_gui_new_search_full(search->query, search->enabled,
+	search_gui_new_search_full(search->query,
 		search_get_minimum_speed(search->search_handle), 
-		timeout, search->sort_col, search->sort_order, 0, NULL);
+		timeout, search->sort_col, search->sort_order,
+		search->enabled ? SEARCH_ENABLED : 0, NULL);
 }
 
 void on_popup_search_restart_activate
