@@ -82,8 +82,24 @@ copy the string of msgid!
 There are sometimes strings that are not meant to be translated
 (e.g., "window14" or the like) but appear in the PO file nonetheless.
 This is caused by glade which tags all strings translatable. Also
-as a rule of thumb, strings that contain underscores are usually
-used as internal place holders.
+as a rule of thumb, strings that contain multiple underscores are
+usually used as internal place holders (e.g., "PROP_IP_CHANGED").
+
+However, some strings contain a single underscore (e.g., "_File"). In
+this case the underscore declares the following letter as accelerator
+key. In this example, the key combination <Alt>+F or sometimes
+<Control>+F would activate the GUI element associated with this string.
+You should use an appropriate character as accelerator in the translation
+as well, just prepend an underscore to selected character:
+
+	msgid "Save _File"
+	msgstr "Speichere _Datei"
+
+If you change the accelerator key, try to make sure that the chosen key
+doesn't clash with another one in the same scope. In rare cases, you might
+want to discard the underscore so that no accelerator will be available for
+the GUI element.
+
 
 4.1 Translation Context:
 ========================
