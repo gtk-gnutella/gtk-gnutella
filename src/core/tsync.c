@@ -79,10 +79,12 @@ tsync_free(struct tsync *ts)
  * Expire the tsync record.
  */
 static void
-tsync_expire(cqueue_t *cq, gpointer obj)
+tsync_expire(cqueue_t *unused_cq, gpointer obj)
 {
 	struct tsync *ts = obj;
 	struct gnutella_node *n;
+
+	(void) unused_cq;
 
 	if (dbg > 1)
 		printf("TSYNC expiring time %d.%d\n",
@@ -301,10 +303,12 @@ tsync_init(void)
  * Get rid of the tsync structure held in the value.
  */
 static void
-free_tsync_kv(gpointer key, gpointer value, gpointer udata)
+free_tsync_kv(gpointer unused_key, gpointer value, gpointer unused_udata)
 {
 	struct tsync *ts = value;
 
+	(void) unused_key;
+	(void) unused_udata;
 	tsync_free(ts);
 }
 

@@ -76,8 +76,8 @@ static gchar auth_cookie[SHA1_RAW_SIZE];
 static void shell_destroy(gnutella_shell_t *sh);
 void shell_shutdown(gnutella_shell_t *sh);
 static gboolean shell_write(gnutella_shell_t *sh, const gchar *s);
-void print_hsep_table(
-	gnutella_shell_t *sh, hsep_triple *table, int triples, hsep_triple *nonhsep);
+void print_hsep_table(gnutella_shell_t *sh, hsep_triple *table,
+	int triples, hsep_triple *nonhsep);
 
 enum {
 	CMD_UNKNOWN,
@@ -108,8 +108,8 @@ static const struct {
 };
 
 
-
-static gint get_command(const gchar *cmd)
+static gint
+get_command(const gchar *cmd)
 {
 	guint n;
 
@@ -121,14 +121,13 @@ static gint get_command(const gchar *cmd)
 	return CMD_UNKNOWN;
 }
 
-/*
- * shell_token_end:
- *
+/**
  * Returns a pointer to the end of the first token within s. If
  * s only consists of a single token, it returns a pointer to the
  * terminating \0 in the string.
  */
-static const gchar *shell_token_end(const gchar *s)
+static const
+gchar *shell_token_end(const gchar *s)
 {
 	gboolean escape = FALSE;
 	gboolean quote  = FALSE;
@@ -168,7 +167,8 @@ static const gchar *shell_token_end(const gchar *s)
 	return cur;
 }
 
-static void shell_unescape(gchar *s)
+static void
+shell_unescape(gchar *s)
 {
 	gboolean escape = FALSE;
 	gchar *c_read = s;
@@ -190,14 +190,13 @@ static void shell_unescape(gchar *s)
 	*c_write = '\0';
 }
 
-/*
- * shell_get_token:
- *
+/**
  * Return the next token from s starting from position pos. Make sure
  * that pos is 0 or something sensible when calling this the first time!.
  * The returned string needs to be g_free-ed when no longer needed.
  */
-static gchar *shell_get_token(const gchar *s, gint *pos) {
+static gchar *
+shell_get_token(const gchar *s, gint *pos) {
 	const gchar *start;
 	const gchar *end;
 	gchar *retval;
@@ -228,7 +227,8 @@ static gchar *shell_get_token(const gchar *s, gint *pos) {
 	return retval;
 }
 
-static guint shell_exec_node(gnutella_shell_t *sh, const gchar *cmd) 
+static guint
+shell_exec_node(gnutella_shell_t *sh, const gchar *cmd) 
 {
 	gchar *tok;
 	gint pos = 0;
@@ -289,7 +289,8 @@ error:
 	return REPLY_ERROR;
 }
 
-static guint shell_exec_search(gnutella_shell_t *sh, const gchar *cmd) 
+static guint
+shell_exec_search(gnutella_shell_t *sh, const gchar *cmd) 
 {
 	gchar *tok;
 	gint pos = 0;
@@ -336,7 +337,8 @@ error:
 	return REPLY_ERROR;
 }
 
-static guint shell_exec_print(gnutella_shell_t *sh, const gchar *cmd) 
+static guint
+shell_exec_print(gnutella_shell_t *sh, const gchar *cmd) 
 {
 	gchar *tok_prop;
 	gint pos = 0;
@@ -393,7 +395,8 @@ error:
 	return REPLY_ERROR;
 }
 
-static guint shell_exec_set(gnutella_shell_t *sh, const gchar *cmd) 
+static guint
+shell_exec_set(gnutella_shell_t *sh, const gchar *cmd) 
 {
 	gchar *tok_prop;
 	gchar *tok_value;
@@ -505,12 +508,11 @@ error:
 	return REPLY_ERROR;
 }
 
-/*
- * shell_exec_whatis
- *
+/**
  * Takes a whatis command and tries to execute it.
  */
-static guint shell_exec_whatis(gnutella_shell_t *sh, const gchar *cmd) 
+static guint
+shell_exec_whatis(gnutella_shell_t *sh, const gchar *cmd) 
 {
 	gchar *tok_prop;
 	gint pos = 0;
@@ -573,12 +575,11 @@ error:
 	return REPLY_ERROR;
 }
 
-/*
- * shell_exec_horizon
- *
+/**
  * Displays horizon size information.
  */
-static guint shell_exec_horizon(gnutella_shell_t *sh, const gchar *cmd) 
+static guint
+shell_exec_horizon(gnutella_shell_t *sh, const gchar *cmd) 
 {
 	gchar buf[200];
 	gchar *tok;
@@ -636,7 +637,8 @@ static guint shell_exec_horizon(gnutella_shell_t *sh, const gchar *cmd)
 
 			shell_write(sh, "\n");
 
-			gm_snprintf(buf, sizeof(buf), _("Horizon size via HSEP node %s (%s):"),
+			gm_snprintf(buf, sizeof(buf),
+				_("Horizon size via HSEP node %s (%s):"),
 				node_ip(n),
 				NODE_IS_LEAF(n) ? _("leaf") :
 					(NODE_IS_ULTRA(n) ? _("ultrapeer") : _("normal node")));
@@ -660,7 +662,9 @@ error:
 	return REPLY_ERROR;
 }
 
-void print_hsep_table(gnutella_shell_t *sh, hsep_triple *table, int triples, hsep_triple *nonhsepptr)
+void
+print_hsep_table(gnutella_shell_t *sh, hsep_triple *table,
+	int triples, hsep_triple *nonhsepptr)
 {
 	gint i;
 	char *hopsstr = _("Hops");
@@ -691,18 +695,33 @@ void print_hsep_table(gnutella_shell_t *sh, hsep_triple *table, int triples, hse
 
 	for (i = 0; i < triples * 4; i++) {
 		size_t n;
+		guint m = i % 4;
 	       
-		if ((i % 4) == 0)
+		switch (m) {
+		case 0:
 			n = gm_snprintf(buf, sizeof(buf), "%d", i / 4 + 1);
-		else if ((i % 4) == 3)
-			n = strlen(short_kb_size64(*t++ + nonhsep[HSEP_IDX_KIB]));
-		else if ((i % 4) == 2)
-			n = gm_snprintf(buf, sizeof(buf), "%" PRIu64, *t++ + nonhsep[HSEP_IDX_FILES]);
-		else
-			n = gm_snprintf(buf, sizeof(buf), "%" PRIu64, *t++ + nonhsep[HSEP_IDX_NODES]);
+			break;
+		case 1:
+			n = gm_snprintf(buf, sizeof(buf), "%" PRIu64,
+					*t + nonhsep[HSEP_IDX_NODES]);
+			t++;
+			break;
+		case 2:
+			n = gm_snprintf(buf, sizeof(buf), "%" PRIu64,
+					*t + nonhsep[HSEP_IDX_FILES]);
+			t++;
+			break;
+		case 3:
+			n = strlen(short_kb_size64(*t + nonhsep[HSEP_IDX_KIB]));
+			t++;
+			break;
+		default:
+			n = 0;
+			g_assert_not_reached();
+		}
 
-		if (n > maxlen[i % 4])
-			maxlen[i % 4] = n;
+		if (n > maxlen[m])
+			maxlen[m] = n;
 	}
 
 	gm_snprintf(buf, sizeof(buf), "%*s  %*s  %*s  %*s\n", maxlen[0], hopsstr,
@@ -864,7 +883,6 @@ static void shell_read_data(gnutella_shell_t *sh)
 	g_assert(sh->socket->getline);
 
 	sh->last_update = time((time_t *) NULL);
-
 	s = sh->socket;
 
 	if (s->pos >= sizeof(s->buffer))
@@ -932,15 +950,15 @@ static void shell_read_data(gnutella_shell_t *sh)
 
 }
 
-/*
- * shell_handle_data:
- *
+/**
  * Called whenever some event occurs on a shell socket.
  */
-static void shell_handle_data(gpointer data, gint source, inputevt_cond_t cond)
+static void
+shell_handle_data(gpointer data, gint unused_source, inputevt_cond_t cond)
 {
 	gnutella_shell_t *sh = (gnutella_shell_t *) data;
 
+	(void) unused_source;
 	g_assert(sh);
 
 	if (cond & INPUT_EVENT_EXCEPTION) {
@@ -963,7 +981,8 @@ static void shell_handle_data(gpointer data, gint source, inputevt_cond_t cond)
 
 }
 
-static gboolean shell_write(gnutella_shell_t *sh, const gchar *s)
+static gboolean
+shell_write(gnutella_shell_t *sh, const gchar *s)
 {
 	size_t len;
 
@@ -994,17 +1013,13 @@ static gboolean shell_write(gnutella_shell_t *sh, const gchar *s)
 	return TRUE;
 }
 
-
-
-
-/*
- * shell_auth:
- *
+/**
  * Takes a HELO command string and checks whether the connection
  * is allowed using the specified credentials. Returns true if
  * the connection is allowed.
  */
-static gboolean shell_auth(const gchar *str)
+static gboolean
+shell_auth(const gchar *str)
 {
 	gboolean ok;
 	gchar *tok_helo;
@@ -1030,12 +1045,11 @@ static gboolean shell_auth(const gchar *str)
 	return ok;
 }
 
-/*
- * shell_new:
- *
+/**
  * Create a new gnutella_shell object.
  */
-static gnutella_shell_t *shell_new(struct gnutella_socket *s)
+static gnutella_shell_t *
+shell_new(struct gnutella_socket *s)
 {
 	gnutella_shell_t *sh;
 
@@ -1051,25 +1065,23 @@ static gnutella_shell_t *shell_new(struct gnutella_socket *s)
 	return sh;
 }
 
-/*
- * shell_free:
- *
+/**
  * Free gnutella_shell object.
  */
-static void shell_free(gnutella_shell_t *sh)
+static void
+shell_free(gnutella_shell_t *sh)
 {
 	g_assert(sh->socket == NULL); /* must have called shell_destroy before */
 
 	G_FREE_NULL(sh);
 }
 
-/*
- * shell_destroy:
- *
+/**
  * Terminate shell and free associated ressources. The gnutella_shell is also
  * removed from sl_shells, so don't call this while iterating over sl_shells.
  */
-static void shell_destroy(gnutella_shell_t *s)
+static void
+shell_destroy(gnutella_shell_t *s)
 {
 	g_assert(s);
 	g_assert(s->socket);
@@ -1087,7 +1099,8 @@ static void shell_destroy(gnutella_shell_t *s)
 	shell_free(s);
 }
 
-void shell_shutdown(gnutella_shell_t *sh)
+void
+shell_shutdown(gnutella_shell_t *sh)
 {
 	g_assert(sh);
 	g_assert(!sh->shutdown);
@@ -1095,12 +1108,11 @@ void shell_shutdown(gnutella_shell_t *sh)
 	sh->shutdown = TRUE;
 }
 
-/*
- * shell_add
- *
+/**
  * Create a new shell connection. Hook up shell_handle_data as callback.
  */
-void shell_add(struct gnutella_socket *s)
+void
+shell_add(struct gnutella_socket *s)
 {
 	gnutella_shell_t *sh;
 
@@ -1145,7 +1157,8 @@ void shell_add(struct gnutella_socket *s)
 
 }
 
-static void shell_dump_cookie()
+static void
+shell_dump_cookie(void)
 {
 	FILE *out;
 	file_path_t fp;
@@ -1164,7 +1177,8 @@ static void shell_dump_cookie()
 	file_config_close(out, &fp);
 }
 
-void shell_timer(time_t now)
+void
+shell_timer(time_t now)
 {
 	GSList *to_remove = NULL;
 	GSList *sl;
@@ -1182,7 +1196,8 @@ void shell_timer(time_t now)
 	g_slist_free(to_remove);
 }
 
-void shell_init(void)
+void
+shell_init(void)
 {
 	gint n;
 
@@ -1196,7 +1211,8 @@ void shell_init(void)
 	shell_dump_cookie();
 }
 
-void shell_close(void)
+void
+shell_close(void)
 {
 	GSList *sl;
 	GSList *to_remove;
@@ -1207,7 +1223,7 @@ void shell_close(void)
 
 	g_slist_free(to_remove);
 	g_assert(NULL == sl_shells);
-};
+}
 
-/* vi: set ts=4: */
+/* vi: set ts=4 sw=4 cindent: */
 #endif	/* USE_REMOTE_CTRL */

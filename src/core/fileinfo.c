@@ -1465,11 +1465,12 @@ file_info_store_if_dirty(void)
  * Callback for hash table iterator. Used by file_info_close().
  */
 static void
-file_info_free_sha1_kv(gpointer key, gpointer val, gpointer x)
+file_info_free_sha1_kv(gpointer key, gpointer val, gpointer unused_x)
 {
 	const gchar *sha1 = (const gchar *) key;
 	const struct dl_file_info *fi = (const struct dl_file_info *) val;
 
+	(void) unused_x;
 	g_assert(sha1 == fi->sha1);		/* SHA1 shared with fi's, don't free */
 
 	/* fi structure in value not freed, shared with other hash tables */
@@ -1479,11 +1480,12 @@ file_info_free_sha1_kv(gpointer key, gpointer val, gpointer x)
  * Callback for hash table iterator. Used by file_info_close().
  */
 static void
-file_info_free_namesize_kv(gpointer key, gpointer val, gpointer x)
+file_info_free_namesize_kv(gpointer key, gpointer val, gpointer unused_x)
 {
 	namesize_t *ns = (namesize_t *) key;
 	GSList *list = (GSList *) val;
 
+	(void) unused_x;
 	namesize_free(ns);
 	g_slist_free(list);
 
@@ -1494,10 +1496,12 @@ file_info_free_namesize_kv(gpointer key, gpointer val, gpointer x)
  * Callback for hash table iterator. Used by file_info_close().
  */
 static void
-file_info_free_size_kv(gpointer key, gpointer val, gpointer x)
+file_info_free_size_kv(gpointer unused_key, gpointer val, gpointer unused_x)
 {
 	GSList *list = (GSList *) val;
 
+	(void) unused_key;
+	(void) unused_x;
 	g_slist_free(list);
 
 	/* fi structure in value not freed, shared with other hash tables */
@@ -1507,11 +1511,12 @@ file_info_free_size_kv(gpointer key, gpointer val, gpointer x)
  * Callback for hash table iterator. Used by file_info_close().
  */
 static void
-file_info_free_outname_kv(gpointer key, gpointer val, gpointer x)
+file_info_free_outname_kv(gpointer key, gpointer val, gpointer unused_x)
 {
 	const gchar *name = (const gchar *) key;
 	struct dl_file_info *fi = (struct dl_file_info *) val;
 
+	(void) unused_x;
 	g_assert(name == fi->file_name);	/* name shared with fi's, don't free */
 
 	/*
@@ -3767,11 +3772,12 @@ file_info_scandir(const gchar *dir)
  * Callback for hash table iterator. Used by file_info_completed_orphans().
  */
 static void
-fi_spot_completed_kv(gpointer key, gpointer val, gpointer x)
+fi_spot_completed_kv(gpointer key, gpointer val, gpointer unused_x)
 {
 	const gchar *name = (const gchar *) key;
 	struct dl_file_info *fi = (struct dl_file_info *) val;
 
+	(void) unused_x;
 	g_assert(name == fi->file_name);	/* name shared with fi's, don't free */
 
 	if (fi->refcount)					/* Attached to a download */
@@ -4097,10 +4103,13 @@ file_info_remove_source(
 }
 
 static void
-fi_notify_helper(gpointer key, gpointer value, gpointer user_data)
+fi_notify_helper(gpointer unused_key, gpointer value, gpointer unused_udata)
 {
-    struct dl_file_info *fi = (struct dl_file_info *)value;
+    struct dl_file_info *fi = (struct dl_file_info *) value;
 
+	(void) unused_key;
+	(void) unused_udata;
+	
     if (!fi->dirty_status)
         return;
 
@@ -4489,5 +4498,5 @@ fi_update_seenonnetwork(gnet_src_t srcid)
  * Local Variables:
  * tab-width:4
  * End:
- * vi: set ts=4:
+ * vi: set ts=4 sw=4 cindent:
  */

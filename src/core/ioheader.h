@@ -81,7 +81,7 @@ void io_get_header(
 	gint flags,					/* I/O parsing flags */
 	io_done_cb_t done,			/* Mandatory: final callback when all done */
 	io_start_cb_t start,		/* Optional: called when reading 1st byte */
-	struct io_error *error);	/* Mandatory: error callbacks for resource */
+	const struct io_error *error); /* Mandatory: error callbacks for resource */
 
 void io_continue_header(
 	gpointer opaque,			/* Existing header parsing context */
@@ -91,5 +91,5 @@ void io_continue_header(
 
 #endif	/* _core_ioheader_h_ */
 
-/* vi: set ts=4: */
+/* vi: set ts=4 sw=4 cindent: */
 

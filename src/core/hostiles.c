@@ -150,11 +150,13 @@ hostiles_load(FILE *f)
  * addresses changed.
  */
 static void
-hostiles_changed(const gchar *filename, gpointer udata)
+hostiles_changed(const gchar *filename, gpointer unused_udata)
 {
 	FILE *f;
 	gchar buf[80];
 	gint count;
+
+	(void) unused_udata;
 
 	f = file_fopen(filename, "r");
 	if (f == NULL)

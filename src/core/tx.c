@@ -199,8 +199,11 @@ tx_flush(txdrv_t *tx)
  * The write() operation is forbidden.
  */
 gint
-tx_no_write(txdrv_t *tx, gpointer data, gint len)
+tx_no_write(txdrv_t *unused_tx, gpointer unused_data, gint unused_len)
 {
+	(void) unused_tx;
+	(void) unused_data;
+	(void) unused_len;
 	g_error("no write() operation allowed");
 	errno = ENOENT;
 	return -1;
@@ -210,8 +213,11 @@ tx_no_write(txdrv_t *tx, gpointer data, gint len)
  * The writev() operation is forbidden.
  */
 gint
-tx_no_writev(txdrv_t *tx, struct iovec *iov, gint iovcnt)
+tx_no_writev(txdrv_t *unused_tx, struct iovec *unused_iov, gint unused_iovcnt)
 {
+	(void) unused_tx;
+	(void) unused_iov;
+	(void) unused_iovcnt;
 	g_error("no writev() operation allowed");
 	errno = ENOENT;
 	return -1;
@@ -221,8 +227,13 @@ tx_no_writev(txdrv_t *tx, struct iovec *iov, gint iovcnt)
  * The sendto() operation is forbidden.
  */
 gint
-tx_no_sendto(txdrv_t *tx, gnet_host_t *to, gpointer data, gint len)
+tx_no_sendto(txdrv_t *unused_tx, gnet_host_t *unused_to,
+		gpointer unused_data, gint unused_len)
 {
+	(void) unused_tx;
+	(void) unused_to;
+	(void) unused_data;
+	(void) unused_len;
 	g_error("no sendto() operation allowed");
 	errno = ENOENT;
 	return -1;

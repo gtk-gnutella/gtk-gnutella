@@ -50,16 +50,16 @@ struct attr {
 	bio_source_t *bio;	/* Bandwidth-limited I/O source */
 };
 
-/*
- * is_writable
- *
+/**
  * Invoked when the output file descriptor can accept more data.
  */
-static void is_writable(gpointer data, gint source, inputevt_cond_t cond)
+static void
+is_writable(gpointer data, gint unused_source, inputevt_cond_t cond)
 {
 	txdrv_t *tx = (txdrv_t *) data;
 	struct gnutella_node *n = tx->node;
 
+	(void) unused_source;
 	g_assert(tx->flags & TX_SERVICE);		/* Servicing enabled */
 	g_assert(n);
 
@@ -80,13 +80,12 @@ static void is_writable(gpointer data, gint source, inputevt_cond_t cond)
  *** Polymorphic routines.
  ***/
 
-/*
- * tx_link_init
- *
+/**
  * Initialize the driver.
  * Always succeeds, so never returns NULL.
  */
-static gpointer tx_link_init(txdrv_t *tx, gpointer args)
+static gpointer
+tx_link_init(txdrv_t *tx, gpointer args)
 {
 	struct attr *attr;
 	bsched_t *bs;
@@ -116,12 +115,11 @@ static gpointer tx_link_init(txdrv_t *tx, gpointer args)
 	return tx;		/* OK */
 }
 
-/*
- * tx_link_destroy
- *
+/**
  * Get rid of the driver's private data.
  */
-static void tx_link_destroy(txdrv_t *tx)
+static void
+tx_link_destroy(txdrv_t *tx)
 {
 	struct attr *attr = (struct attr *) tx->opaque;
 
@@ -130,7 +128,8 @@ static void tx_link_destroy(txdrv_t *tx)
 	wfree(attr, sizeof(*attr));
 }
 
-static inline gint tx_link_write_error(txdrv_t *tx, const char *func)
+static inline gint
+tx_link_write_error(txdrv_t *tx, const char *func)
 {	
 	switch (errno) {
 	case EAGAIN:
@@ -180,13 +179,13 @@ static inline gint tx_link_write_error(txdrv_t *tx, const char *func)
 	return 0;		/* Just in case */
 }
 
-/*
- * tx_link_write
- *
+/**
  * Write data buffer.
- * Returns amount of bytes written, or -1 on error.
+ *
+ * @return amount of bytes written, or -1 on error.
  */
-static gint tx_link_write(txdrv_t *tx, gpointer data, gint len)
+static gint
+tx_link_write(txdrv_t *tx, gpointer data, gint len)
 {
 	gint r;
 	bio_source_t *bio = ((struct attr *) tx->opaque)->bio;
@@ -200,13 +199,13 @@ static gint tx_link_write(txdrv_t *tx, gpointer data, gint len)
 	return tx_link_write_error(tx, "tx_link_write");
 }
 
-/*
- * tx_link_writev
- *
+/**
  * Write I/O vector.
- * Returns amount of bytes written, or -1 on error.
+ *
+ * @return amount of bytes written, or -1 on error.
  */
-static gint tx_link_writev(txdrv_t *tx, struct iovec *iov, gint iovcnt)
+static gint
+tx_link_writev(txdrv_t *tx, struct iovec *iov, gint iovcnt)
 {
 	gint r;
 	bio_source_t *bio = ((struct attr *) tx->opaque)->bio;
@@ -221,12 +220,11 @@ static gint tx_link_writev(txdrv_t *tx, struct iovec *iov, gint iovcnt)
 	return tx_link_write_error(tx, "tx_link_writev");
 }
 
-/*
- * tx_link_enable
- *
+/**
  * Allow servicing of upper TX queue when output fd is ready.
  */
-static void tx_link_enable(txdrv_t *tx)
+static void
+tx_link_enable(txdrv_t *tx)
 {
 	struct attr *attr = (struct attr *) tx->opaque;
 	struct gnutella_node *n = tx->node;
@@ -236,12 +234,11 @@ static void tx_link_enable(txdrv_t *tx)
 	bio_add_callback(attr->bio, is_writable, (gpointer) tx);
 }
 
-/*
- * tx_link_disable
- *
+/**
  * Disable servicing of upper TX queue.
  */
-static void tx_link_disable(txdrv_t *tx)
+static void
+tx_link_disable(txdrv_t *tx)
 {
 	struct attr *attr = (struct attr *) tx->opaque;
 	struct gnutella_node *n = tx->node;
@@ -259,30 +256,30 @@ static void tx_link_disable(txdrv_t *tx)
 	node_unflushq(n);
 }
 
-/*
- * tx_link_pending
- *
+/**
  * No data buffered at this level: always returns 0.
  */
-static gint tx_link_pending(txdrv_t *tx)
+static gint
+tx_link_pending(txdrv_t *unused_tx)
 {
+	(void) unused_tx;
 	return 0;
 }
 
-/*
- * tx_link_flush
- *
+/**
  * No data buffered at this level, nothing to do.
  */
-static void tx_link_flush(txdrv_t *tx)
+static void
+tx_link_flush(txdrv_t *unused_tx)
 {
 	/* Data, if any, is in the TCP layer */
+	(void) unused_tx;
 }
 
-/*
- * tx_link_bio_source
+/**
  */
-static struct bio_source *tx_link_bio_source(txdrv_t *tx)
+static struct bio_source *
+tx_link_bio_source(txdrv_t *tx)
 {
 	struct attr *attr = (struct attr *) tx->opaque;
 

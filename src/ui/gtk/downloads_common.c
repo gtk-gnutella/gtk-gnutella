@@ -47,26 +47,23 @@ RCSID("$Id$");
 
 static gboolean update_download_clear_needed = FALSE;
 
-/*
- * gui_update_download_clear
- *
+/**
  * Remember that we need to check for cleared downloads at the next
  * invocation of gui_update_download_clear_now(), which happens once
  * every second only to avoid too frequent costly list traversals.
  */
-void gui_update_download_clear(void)
+void
+gui_update_download_clear(void)
 {
 	update_download_clear_needed = TRUE;
 }
 
-/*
- *	gui_update_download_clear_now
- *
+/**
  *	Checks if there are any active downloads that are clearable
  *  If so, this activates the "Clear Stopped" button
- *
  */
-void gui_update_download_clear_now(void)
+void
+gui_update_download_clear_now(void)
 {
 	if (!update_download_clear_needed)
 		return;
@@ -76,14 +73,12 @@ void gui_update_download_clear_now(void)
         guc_download_something_to_clear());
 }
 
-/*
- *	gui_update_queue_frozen
- *
+/**
  *	Checks if the download queue is frozen, if so update the freeze queue
  *  widgets and display a message on the statusbar
- *
  */
-void gui_update_queue_frozen(void)
+void
+gui_update_queue_frozen(void)
 {
     static gboolean msg_displayed = FALSE;
     static statusbar_msgid_t id = {0, 0};
@@ -146,8 +141,8 @@ void gui_update_queue_frozen(void)
 /**
  * Enable the "start now" menu entry for queued items.
  */
-void gui_download_enable_start_now(
-	guint32 running_downloads, guint32 max_downloads)
+void
+gui_download_enable_start_now(guint32 running_downloads, guint32 max_downloads)
 {
 	GtkWidget *w = lookup_widget(popup_queue, "popup_queue_start_now");
 	gboolean selected = TRUE;
@@ -160,28 +155,27 @@ void gui_download_enable_start_now(
 }
 
 
-/*
- *	on_button_downloads_clear_stopped_clicked
- *
+/**
  *	clear all stopped, complete, and unavailable downloads
- *
  */
-void on_button_downloads_clear_stopped_clicked(
-    GtkButton *button, gpointer user_data)
+void
+on_button_downloads_clear_stopped_clicked(GtkButton *unused_button,
+	gpointer unused_udata)
 {
+	(void) unused_button;
+	(void) unused_udata;
 	guc_download_clear_stopped(TRUE, TRUE, TRUE, TRUE);
 }
 
 
-/*
- *	on_togglebutton_queue_freeze_toggled
- *
+/**
  *	Freeze the downloads queue
- *
  */
 void on_togglebutton_queue_freeze_toggled(GtkToggleButton *togglebutton,
-	gpointer user_data) 
+	gpointer unused_udata) 
 {
+	(void) unused_udata;
+
     if (gtk_toggle_button_get_active(togglebutton)) {
         guc_download_freeze_queue();
     } else {
@@ -189,4 +183,4 @@ void on_togglebutton_queue_freeze_toggled(GtkToggleButton *togglebutton,
     }
 }
 
-/* vi: set ts=4: */
+/* vi: set ts=4 sw=4 cindent: */

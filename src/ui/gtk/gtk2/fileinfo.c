@@ -135,7 +135,7 @@ void on_treeview_fileinfo_selected(
 
     selection = gtk_tree_view_get_selection(treeview_fileinfo);
     if (gtk_tree_selection_get_selected(selection, &model, &iter)) {
-	gtk_tree_model_get(model, &iter, c_fi_handle, &fih, (-1));
+		gtk_tree_model_get(model, &iter, c_fi_handle, &fih, (-1));
     	fi_gui_set_details(fih);
     } else
 	fi_gui_clear_details();
@@ -149,8 +149,8 @@ void on_treeview_fileinfo_selected(
 void on_button_fi_purge_clicked(GtkButton *button, gpointer user_data)
 {
     if (last_shown_valid) {
-	guc_fi_purge(last_shown);
-	fi_gui_clear_details();
+		guc_fi_purge(last_shown);
+		fi_gui_clear_details();
     }
 }
 

@@ -136,12 +136,11 @@ static const gchar * const boot_url[] = {
 	"http://cache.kicks-ass.net:8000/",
 };
 
-/*
- * gwc_add
- *
+/**
  * Add new URL to cache, possibly pushing off an older one if cache is full.
  */
-static void gwc_add(const gchar *new_url)
+static void
+gwc_add(const gchar *new_url)
 {
 	gchar *url_atom;
 	gchar *url;
@@ -200,21 +199,20 @@ static void gwc_add(const gchar *new_url)
 		atom_str_free(old_url);
 	}
 
-	g_hash_table_insert(gwc_known_url, url_atom, (gpointer) 0x1);
+	g_hash_table_insert(gwc_known_url, url_atom, GUINT_TO_POINTER(1));
 
 	gwc_url[gwc_url_slot] = url_atom;
 	gwc_file_dirty = TRUE;
 }
 
-/*
- * gwc_pick
- *
+/**
  * Pickup a cache randomly from the known set.
  *
  * Try to avoid using default bootstrapping URLs if we have more than the
  * minimum set of caches in stock...
  */
-static gchar *gwc_pick(void)
+static gchar *
+gwc_pick(void)
 {
 	gint count = g_hash_table_size(gwc_known_url);
 	gint idx;
@@ -246,7 +244,6 @@ static void gwc_store(void)
 
 	file_path_set(&fp, settings_config_dir(), gwc_file);
 	out = file_config_open_write(gwc_what, &fp);
-
 	if (!out)
 		return;
 
@@ -285,31 +282,25 @@ void gwc_store_if_dirty(void)
 		gwc_store();
 }
 
-/*
- * gwc_retrieve
- *
+/**
  * Retrieve known GWC URLs.
  * They are normally saved in ~/.gtk-gnutella/gwcache.
  */
-static void gwc_retrieve(void)
+static void
+gwc_retrieve(void)
 {
+	const file_path_t fpvec[] = {
+		{ settings_config_dir(), gwc_file },
+		{ PRIVLIB_EXP, gwc_bootfile },
+#ifndef OFFICIAL_BUILD
+		{ PACKAGE_SOURCE_DIR, gwc_bootfile }
+#endif
+	};
 	gint line;
 	FILE *in;
-#ifndef OFFICIAL_BUILD
-	file_path_t fpvec[3];
-#else
-	file_path_t fpvec[2];
-#endif
 	gchar tmp[1024];
 
-	file_path_set(&fpvec[0], settings_config_dir(), gwc_file);
-	file_path_set(&fpvec[1], PRIVLIB_EXP, gwc_bootfile);
-#ifndef OFFICIAL_BUILD
-	file_path_set(&fpvec[2], PACKAGE_SOURCE_DIR, gwc_bootfile);
-#endif
-
 	in = file_config_open_read(gwc_what, fpvec, G_N_ELEMENTS(fpvec));
-
 	if (!in)
 		return;
 
@@ -335,14 +326,16 @@ static void gwc_retrieve(void)
 	fclose(in);
 }
 
-/*
- * gwc_hourly_update
- *
+/**
  * Hourly web cache update.
  * Scheduled as a callout queue event.
  */
-static void gwc_hourly_update(cqueue_t *cq, gpointer obj)
+static void
+gwc_hourly_update(cqueue_t *unused_cq, gpointer unused_obj)
 {
+	(void) unused_cq;
+	(void) unused_obj;
+
 	if (is_inet_connected)
 		gwc_update_ip_url();
 
@@ -350,14 +343,16 @@ static void gwc_hourly_update(cqueue_t *cq, gpointer obj)
 		HOUR_MS, gwc_hourly_update, NULL);
 }
 
-/*
- * gwc_periodic_refresh
- *
+/**
  * Hourly web cache refresh.
  * Scheduled as a callout queue event.
  */
-static void gwc_periodic_refresh(cqueue_t *cq, gpointer obj)
+static void
+gwc_periodic_refresh(cqueue_t *unused_cq, gpointer unused_obj)
 {
+	(void) unused_cq;
+	(void) unused_obj;
+
 	if (is_inet_connected) {
 		/*
 		 * Disable retry timer, since we are about to retry now based
@@ -376,24 +371,25 @@ static void gwc_periodic_refresh(cqueue_t *cq, gpointer obj)
 		REFRESH_MS, gwc_periodic_refresh, NULL);
 }
 
-/*
- * gwc_urlfile_retry
- *
+/**
  * Called when we failed last urlfile request, after some delay.
  * Scheduled as a callout queue event.
  */
-static void gwc_urlfile_retry(cqueue_t *cq, gpointer obj)
+static void
+gwc_urlfile_retry(cqueue_t *unused_cq, gpointer unused_obj)
 {
+	(void) unused_cq;
+	(void) unused_obj;
+
 	urlfile_retry_ev = NULL;
 	gwc_get_urls();
 }
 
-/*
- * gwc_init
- *
+/**
  * Initialize web cache.
  */
-void gwc_init(void)
+void
+gwc_init(void)
 {
 	guint i;
 
@@ -420,15 +416,14 @@ void gwc_init(void)
 		REFRESH_MS, gwc_periodic_refresh, NULL);
 }
 
-/*
- * check_current_url
- *
+/**
  * Ensures that we have a valid `current_url' or pick a new one.
  * Also force change a the current URL after too many uses.
  *
- * Returns TRUE if we got a valid URL.
+ * @return TRUE if we got a valid URL.
  */
-static gboolean check_current_url(void)
+static gboolean
+check_current_url(void)
 {
 	if (current_url == NULL || current_reused >= MAX_GWC_REUSE) {
 		/*
@@ -449,12 +444,11 @@ static gboolean check_current_url(void)
 	return current_url != NULL;
 }
 
-/*
- * forget_url
- *
+/**
  * Remove all knowledge about given URL, but do not free its memory.
  */
-static void forget_url(gchar *url)
+static void
+forget_url(gchar *url)
 {
 	gchar *url_tmp[MAX_GWC_URLS];			/* Temporary copy */
 	gint count = g_hash_table_size(gwc_known_url);
@@ -545,13 +539,12 @@ static void forget_url(gchar *url)
 	gwc_file_dirty = TRUE;
 }
 
-/*
- * clear_current_url
- *
+/**
  * Dispose of current URL atom, if defined.
  * When `discard' is set, we remove the current URL physically from our cache.
  */
-static void clear_current_url(gboolean discard)
+static void
+clear_current_url(gboolean discard)
 {
 	if (current_url == NULL)
 		return;
@@ -563,12 +556,11 @@ static void clear_current_url(gboolean discard)
 	current_url = NULL;
 }
 
-/*
- * gwc_close
- *
+/**
  * Called when servent shuts down.
  */
-void gwc_close(void)
+void
+gwc_close(void)
 {
 	gint i;
 
@@ -608,12 +600,11 @@ typedef gboolean (parse_dispatch_t)
 	(struct parse_context *c, gchar *buf, gint len);
 typedef void (parse_eof_t)(struct parse_context *c);
 
-/*
- * parse_context_free
- *
+/**
  * Free parsing context.
  */
-static void parse_context_free(gpointer obj)
+static void
+parse_context_free(gpointer obj)
 {
 	struct parse_context *ctx = (struct parse_context *) obj;
 
@@ -621,15 +612,14 @@ static void parse_context_free(gpointer obj)
 	wfree(ctx, sizeof(*ctx));
 }
 
-/*
- * parse_context_set
- *
+/**
  * Allocate new parsing context for handle and record it.
  *
  * `handle' is the asynchronous HTTP request handle.
  * `maxlines' is the max number of lines we want to parse.
  */
-static void parse_context_set(gpointer handle, gint maxlines)
+static void
+parse_context_set(gpointer handle, gint maxlines)
 {
 	struct parse_context *ctx;
 
@@ -644,15 +634,14 @@ static void parse_context_set(gpointer handle, gint maxlines)
 }
 
 
-/*
- * parse_dispatch_lines
- *
+/**
  * Analyze the data we have received, and give each line to the supplied
  * dispatcher callback `cb', after having chomped it.  On EOF, call `eof'
  * to finalize parsing.
  */
-static void parse_dispatch_lines(
-	gpointer handle, gchar *buf, gint len, parse_dispatch_t cb, parse_eof_t eof)
+static void
+parse_dispatch_lines(gpointer handle, gchar *buf, gint len,
+		parse_dispatch_t cb, parse_eof_t eof)
 {
 	struct parse_context *ctx;
 	getline_t *getline;
@@ -732,13 +721,13 @@ static void parse_dispatch_lines(
  *** GET ...?urlfile=1
  ***/
 
-/*
- * gwc_url_line
- *
+/**
  * Called from parse_dispatch_lines() for each complete line of output.
- * Returns FALSE to stop processing of any remaining data.
+ *
+ * @return FALSE to stop processing of any remaining data.
  */
-static gboolean gwc_url_line(struct parse_context *ctx, gchar *buf, gint len)
+static gboolean
+gwc_url_line(struct parse_context *ctx, gchar *buf, gint len)
 {
 	if (gwc_debug > 3)
 		printf("GWC URL line (%d bytes): %s\n", len, buf);
@@ -762,12 +751,11 @@ static gboolean gwc_url_line(struct parse_context *ctx, gchar *buf, gint len)
 	return TRUE;
 }
 
-/*
- * gwc_url_eof
- *
+/**
  * Called from parse_dispatch_lines() on EOF.
  */
-static void gwc_url_eof(struct parse_context *ctx)
+static void
+gwc_url_eof(struct parse_context *ctx)
 {
 	if (gwc_debug > 2)
 		printf("GWC URL all done (%d/%d lines processed)\n",
@@ -788,22 +776,20 @@ static void gwc_url_eof(struct parse_context *ctx)
 	}
 }
 
-/*
- * gwc_url_data_ind
- *
+/**
  * Populate callback: more data available.
  */
-static void gwc_url_data_ind(gpointer handle, gchar *data, gint len)
+static void
+gwc_url_data_ind(gpointer handle, gchar *data, gint len)
 {
 	parse_dispatch_lines(handle, data, len, gwc_url_line, gwc_url_eof);
 }
 
-/*
- * gwc_url_error_ind
- *
+/**
  * HTTP request is being stopped.
  */
-static void gwc_url_error_ind(gpointer handle, http_errtype_t type, gpointer v)
+static void
+gwc_url_error_ind(gpointer handle, http_errtype_t type, gpointer v)
 {
 	http_async_log_error(handle, type, v);
 
@@ -819,15 +805,14 @@ static void gwc_url_error_ind(gpointer handle, http_errtype_t type, gpointer v)
 		URL_RETRY_MS, gwc_urlfile_retry, NULL);
 }
 
-/*
- * gwc_get_urls
- *
+/**
  * Retrieve more web caches, asynchronously.
  *
  * We'll try again and again, until we reach a good cache that answers
  * with at least one request.
  */
-static void gwc_get_urls(void)
+static void
+gwc_get_urls(void)
 {
 	gpointer handle;
 
@@ -865,13 +850,13 @@ static void gwc_get_urls(void)
 
 static gboolean hostfile_running = FALSE;
 
-/*
- * gwc_host_line
- *
+/**
  * Called from parse_dispatch_lines() for each complete line of output.
- * Returns FALSE to stop processing of any remaining data.
+ *
+ * @return FALSE to stop processing of any remaining data.
  */
-static gboolean gwc_host_line(struct parse_context *ctx, gchar *buf, gint len)
+static gboolean
+gwc_host_line(struct parse_context *ctx, gchar *buf, gint len)
 {
 	if (gwc_debug > 3)
 		printf("GWC host line (%d bytes): %s\n", len, buf);
@@ -896,12 +881,11 @@ static gboolean gwc_host_line(struct parse_context *ctx, gchar *buf, gint len)
 	return TRUE;
 }
 
-/*
- * gwc_host_eof
- *
+/**
  * Called from parse_dispatch_lines() on EOF.
  */
-static void gwc_host_eof(struct parse_context *ctx)
+static void
+gwc_host_eof(struct parse_context *ctx)
 {
 	if (gwc_debug > 2)
 		printf("GWC host all done (%d/%d lines processed)\n",
@@ -915,22 +899,20 @@ static void gwc_host_eof(struct parse_context *ctx)
 	hostfile_running = FALSE;
 }
 
-/*
- * gwc_host_data_ind
- *
+/**
  * Populate callback: more data available.
  */
-static void gwc_host_data_ind(gpointer handle, gchar *data, gint len)
+static void
+gwc_host_data_ind(gpointer handle, gchar *data, gint len)
 {
 	parse_dispatch_lines(handle, data, len, gwc_host_line, gwc_host_eof);
 }
 
-/*
- * gwc_host_error_ind
- *
+/**
  * HTTP request is being stopped.
  */
-static void gwc_host_error_ind(gpointer handle, http_errtype_t type, gpointer v)
+static void
+gwc_host_error_ind(gpointer handle, http_errtype_t type, gpointer v)
 {
 	http_async_log_error(handle, type, v);
 	hostfile_running = FALSE;
@@ -938,12 +920,11 @@ static void gwc_host_error_ind(gpointer handle, http_errtype_t type, gpointer v)
 	clear_current_url(TRUE);			/* This webcache is not good */
 }
 
-/*
- * gwc_get_hosts
- *
+/**
  * Retrieve more hosts from web cache, asynchronously.
  */
-void gwc_get_hosts(void)
+void
+gwc_get_hosts(void)
 {
 	gpointer handle;
 	static time_t last_called = 0;
@@ -1007,13 +988,13 @@ void gwc_get_hosts(void)
  *** GET ...?ip=....&url=....
  ***/
 
-/*
- * gwc_update_line
- *
+/**
  * Called from parse_dispatch_lines() for each complete line of output.
- * Returns FALSE to stop processing of any remaining data.
+ *
+ * @return FALSE to stop processing of any remaining data.
  */
-static gboolean gwc_update_line(struct parse_context *ctx, gchar *buf, gint len)
+static gboolean
+gwc_update_line(struct parse_context *ctx, gchar *buf, gint len)
 {
 	if (gwc_debug > 3)
 		printf("GWC update line (%d bytes): %s\n", len, buf);
@@ -1035,34 +1016,30 @@ static gboolean gwc_update_line(struct parse_context *ctx, gchar *buf, gint len)
 	return TRUE;
 }
 
-/*
- * gwc_update_data_ind
- *
+/**
  * Populate callback: more data available.
  */
-static void gwc_update_data_ind(gpointer handle, gchar *data, gint len)
+static void
+gwc_update_data_ind(gpointer handle, gchar *data, gint len)
 {
 	parse_dispatch_lines(handle, data, len, gwc_update_line, NULL);
 }
 
-/*
- * gwc_update_error_ind
- *
+/**
  * HTTP request is being stopped.
  */
-static void gwc_update_error_ind(
-	gpointer handle, http_errtype_t type, gpointer v)
+static void
+gwc_update_error_ind(gpointer handle, http_errtype_t type, gpointer v)
 {
 	http_async_log_error(handle, type, v);
 	clear_current_url(TRUE);			/* This webcache is not good */
 }
 
-/*
- * gwc_update_this
- *
+/**
  * Publish our IP to the named cache `cache_url' and propagate one random URL.
  */
-static void gwc_update_this(gchar *cache_url)
+static void
+gwc_update_this(gchar *cache_url)
 {
 	gpointer handle;
 	gchar *url = NULL;
@@ -1156,15 +1133,14 @@ static void gwc_update_this(gchar *cache_url)
 	parse_context_set(handle, MAX_OK_LINES);
 }
 
-/*
- * gwc_seed_cache
- *
+/**
  * Publish our IP to the named cache `cache_url' and propagate one random URL.
  *
  * We sometimes forcefully call this routine with a cache that does not return
  * anything to us, to try to "bootstrap" it by feeding some data.
  */
-static void gwc_seed_cache(gchar *cache_url)
+static void
+gwc_seed_cache(gchar *cache_url)
 {
 	if (cache_url == NULL)
 		return;
@@ -1175,12 +1151,11 @@ static void gwc_seed_cache(gchar *cache_url)
 	gwc_update_this(cache_url);
 }
 
-/*
- * gwc_update_ip_url
- *
+/**
  * Publish our IP to the web cache and propagate one random URL.
  */
-static void gwc_update_ip_url(void)
+static void
+gwc_update_ip_url(void)
 {
 	if (!check_current_url())
 		return;

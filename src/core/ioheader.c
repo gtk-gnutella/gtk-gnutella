@@ -60,7 +60,7 @@ struct io_header {
 	bsched_t *bs;						/* Bandwidth scheduler to use */
 	header_t *header;
 	getline_t *getline;
-	struct io_error *error;				/* Error callbacks */
+	const struct io_error *error;		/* Error callbacks */
 	io_done_cb_t process_header;		/* Called when all headers are read */
 	io_start_cb_t header_read_start;	/* Called when reading first byte */
 	GString *text;						/* Full header text */
@@ -337,13 +337,14 @@ nextline:
  * Read data is then handed out to io_header_parse() for analysis.
  */
 static void
-io_read_data(gpointer data, gint source, inputevt_cond_t cond)
+io_read_data(gpointer data, gint unused_source, inputevt_cond_t cond)
 {
 	struct io_header *ih = (struct io_header *) data;
 	struct gnutella_socket *s = ih->socket;
 	guint count;
 	gint r;
 
+	(void) unused_source;
 	g_assert(s != NULL);
 	g_assert(s->gdk_tag);			/* I/O callback still registered */
 
@@ -424,7 +425,7 @@ io_get_header(
 	gint flags,					/* I/O parsing flags */
 	io_done_cb_t done,			/* Mandatory: final callback when all done */
 	io_start_cb_t start,		/* Optional: called when reading 1st byte */
-	struct io_error *error)		/* Mandatory: error callbacks for resource */
+	const struct io_error *error) /* Mandatory: error callbacks for resource */
 {
 	struct io_header *ih;
 	gint mask;

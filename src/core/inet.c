@@ -163,10 +163,11 @@ ip_record_touch(struct ip_record *ipr)
  * Callout queue callback, invoked when it's time to destroy the record.
  */
 static void
-ip_record_destroy(cqueue_t *cq, gpointer obj)
+ip_record_destroy(cqueue_t *unused_cq, gpointer obj)
 {
 	struct ip_record *ipr = (struct ip_record *) obj;
 
+	(void) unused_cq;
 	ipr->timeout_ev = NULL;			/* The event that fired */
 	ip_record_free_remove(ipr);
 }
@@ -234,8 +235,11 @@ inet_udp_firewalled(void)
  * solicited UDP traffic.
  */
 static void
-got_no_udp_solicited(cqueue_t *cq, gpointer obj)
+got_no_udp_solicited(cqueue_t *unused_cq, gpointer unused_obj)
 {
+	(void) unused_cq;
+	(void) unused_obj;
+
 	if (dbg)
 		printf("FW: got no solicited UDP traffic for %d secs\n",
 			FW_SOLICITED_WINDOW);
@@ -268,8 +272,11 @@ inet_udp_got_solicited(void)
  * for some amount of time.  We conclude we became firewalled.
  */
 static void
-got_no_connection(cqueue_t *cq, gpointer obj)
+got_no_connection(cqueue_t *unused_cq, gpointer unused_obj)
 {
+	(void) unused_cq;
+	(void) unused_obj;
+
 	if (dbg)
 		printf("FW: got no connection to port %u for %d secs\n",
 			listen_port, FW_INCOMING_WINDOW);
@@ -283,8 +290,11 @@ got_no_connection(cqueue_t *cq, gpointer obj)
  * received for some amount of time.  We conclude we became firewalled.
  */
 static void
-got_no_udp_unsolicited(cqueue_t *cq, gpointer obj)
+got_no_udp_unsolicited(cqueue_t *unused_cq, gpointer unused_obj)
 {
+	(void) unused_cq;
+	(void) unused_obj;
+
 	if (dbg)
 		printf("FW: got no unsolicited UDP datagram to port %u for %d secs\n",
 			listen_port, FW_INCOMING_WINDOW);
@@ -510,9 +520,12 @@ inet_set_is_connected(gboolean val)
  * connections attempted.
  */
 static void
-check_outgoing_connection(cqueue_t *cq, gpointer obj)
+check_outgoing_connection(cqueue_t *unused_cq, gpointer unused_obj)
 {
 	outgoing_ev = NULL;
+
+	(void) unused_cq;
+	(void) unused_obj;
 
 	if (activity_seen == 0)				/* Nothing over the period */
 		inet_set_is_connected(FALSE);
@@ -622,10 +635,11 @@ inet_init(void)
  * Hash table iteration callback to free the "ip_record" structure.
  */
 static void
-free_ip_record(gpointer key, gpointer value, gpointer udata)
+free_ip_record(gpointer key, gpointer value, gpointer unused_udata)
 {
 	struct ip_record *ipr = (struct ip_record *) value;
 
+	(void) unused_udata;
 	g_assert(ipr->ip == GPOINTER_TO_UINT(key));
 	ip_record_free(ipr);
 }

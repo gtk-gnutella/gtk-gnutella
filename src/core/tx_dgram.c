@@ -52,16 +52,16 @@ struct attr {
 	bio_source_t *bio;	/* Bandwidth-limited I/O source */
 };
 
-/*
- * is_writable
- *
+/**
  * Invoked when the output file descriptor can accept more data.
  */
-static void is_writable(gpointer data, gint source, inputevt_cond_t cond)
+static void
+is_writable(gpointer data, gint unused_source, inputevt_cond_t cond)
 {
 	txdrv_t *tx = (txdrv_t *) data;
 	struct gnutella_node *n = tx->node;
 
+	(void) unused_source;
 	g_assert(tx->flags & TX_SERVICE);		/* Servicing enabled */
 	g_assert(n);
 	g_assert(NODE_IS_UDP(n));
@@ -83,13 +83,12 @@ static void is_writable(gpointer data, gint source, inputevt_cond_t cond)
  *** Polymorphic routines.
  ***/
 
-/*
- * tx_dgram_init
- *
+/**
  * Initialize the driver.
  * Always succeeds, so never returns NULL.
  */
-static gpointer tx_dgram_init(txdrv_t *tx, gpointer args)
+static gpointer
+tx_dgram_init(txdrv_t *tx, gpointer args)
 {
 	struct attr *attr;
 
@@ -116,12 +115,11 @@ static gpointer tx_dgram_init(txdrv_t *tx, gpointer args)
 	return tx;		/* OK */
 }
 
-/*
- * tx_dgram_destroy
- *
+/**
  * Get rid of the driver's private data.
  */
-static void tx_dgram_destroy(txdrv_t *tx)
+static void
+tx_dgram_destroy(txdrv_t *tx)
 {
 	struct attr *attr = (struct attr *) tx->opaque;
 
@@ -130,8 +128,8 @@ static void tx_dgram_destroy(txdrv_t *tx)
 	wfree(attr, sizeof(*attr));
 }
 
-static inline gint tx_dgram_write_error(
-	txdrv_t *tx, gnet_host_t *to, const char *func)
+static inline gint
+tx_dgram_write_error(txdrv_t *tx, gnet_host_t *to, const char *func)
 {	
 	switch (errno) {
 	case EAGAIN:
@@ -217,12 +215,11 @@ tx_dgram_sendto(txdrv_t *tx, gnet_host_t *to, gpointer data, gint len)
 	return tx_dgram_write_error(tx, to, "tx_dgram_sendto");
 }
 
-/*
- * tx_dgram_enable
- *
+/**
  * Allow servicing of upper TX queue when output fd is ready.
  */
-static void tx_dgram_enable(txdrv_t *tx)
+static void
+tx_dgram_enable(txdrv_t *tx)
 {
 	struct attr *attr = (struct attr *) tx->opaque;
 	struct gnutella_node *n = tx->node;
@@ -232,41 +229,39 @@ static void tx_dgram_enable(txdrv_t *tx)
 	bio_add_callback(attr->bio, is_writable, (gpointer) tx);
 }
 
-/*
- * tx_dgram_disable
- *
+/**
  * Disable servicing of upper TX queue.
  */
-static void tx_dgram_disable(txdrv_t *tx)
+static void
+tx_dgram_disable(txdrv_t *tx)
 {
 	struct attr *attr = (struct attr *) tx->opaque;
 
 	bio_remove_callback(attr->bio);
 }
 
-/*
- * tx_dgram_pending
- *
+/**
  * No data buffered at this level: always returns 0.
  */
-static gint tx_dgram_pending(txdrv_t *tx)
+static gint
+tx_dgram_pending(txdrv_t *unused_tx)
 {
+	(void) unused_tx;
 	return 0;
 }
 
-/*
- * tx_dgram_flush
- *
+/**
  * Nothing to do.
  */
-static void tx_dgram_flush(txdrv_t *tx)
+static void tx_dgram_flush(txdrv_t *unused_tx)
 {
+	(void) unused_tx;
 }
 
-/*
- * tx_dgram_bio_source
+/**
  */
-static struct bio_source *tx_dgram_bio_source(txdrv_t *tx)
+static struct bio_source *
+tx_dgram_bio_source(txdrv_t *tx)
 {
 	struct attr *attr = (struct attr *) tx->opaque;
 

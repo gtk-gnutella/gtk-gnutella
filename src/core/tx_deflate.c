@@ -92,12 +92,11 @@ struct attr {
 
 static void deflate_nagle_timeout(cqueue_t *cq, gpointer arg);
 
-/*
- * deflate_send
- *
+/**
  * Write ready-to-be-sent buffer to the lower layer.
  */
-static void deflate_send(txdrv_t *tx)
+static void
+deflate_send(txdrv_t *tx)
 {
 	struct attr *attr = (struct attr *) tx->opaque;
 	struct buffer *b;
@@ -157,12 +156,11 @@ static void deflate_send(txdrv_t *tx)
 	tx_srv_enable(attr->nd);
 }
 
-/*
- * deflate_nagle_start
- *
+/**
  * Start the nagle timer.
  */
-static void deflate_nagle_start(txdrv_t *tx)
+static void
+deflate_nagle_start(txdrv_t *tx)
 {
 	struct attr *attr = (struct attr *) tx->opaque;
 
@@ -173,12 +171,11 @@ static void deflate_nagle_start(txdrv_t *tx)
 	attr->flags |= DF_NAGLE;
 }
 
-/*
- * deflate_nagle_stop
- *
+/**
  * Stop the nagle timer.
  */
-static void deflate_nagle_stop(txdrv_t *tx)
+static void
+deflate_nagle_stop(txdrv_t *tx)
 {
 	struct attr *attr = (struct attr *) tx->opaque;
 
@@ -191,13 +188,12 @@ static void deflate_nagle_stop(txdrv_t *tx)
 	attr->flags &= ~DF_NAGLE;
 }
 
-/*
- * deflate_rotate_and_send
- *
+/**
  * Make the "filling buffer" the buffer to send, and rotate filling buffers.
  * Attempt to write the new send buffer immediately.
  */
-static void deflate_rotate_and_send(txdrv_t *tx)
+static void
+deflate_rotate_and_send(txdrv_t *tx)
 {
 	struct attr *attr = (struct attr *) tx->opaque;
 
@@ -228,13 +224,12 @@ static void deflate_rotate_and_send(txdrv_t *tx)
 	deflate_send(tx);
 }
 
-/*
- * deflate_service
- *
+/**
  * Service routine for the compressing stage.
  * Called by lower layer when it is ready to process more data.
  */
-static void deflate_service(gpointer data)
+static void
+deflate_service(gpointer data)
 {
 	txdrv_t *tx = (txdrv_t *) data;
 	struct attr *attr = (struct attr *) tx->opaque;
@@ -316,13 +311,12 @@ static void deflate_service(gpointer data)
 			(attr->flags & DF_FLUSH) ? 'f' : '-');
 }
 
-/*
- * deflate_flush
- *
+/**
  * Flush compression within filling buffer.
  * Return success status, failure meaning we shutdown.
  */
-static gboolean deflate_flush(txdrv_t *tx)
+static gboolean
+deflate_flush(txdrv_t *tx)
 {
 	struct attr *attr = (struct attr *) tx->opaque;
 	z_streamp outz = attr->outz;
@@ -400,17 +394,17 @@ retry:
 	return TRUE;		/* Fully flushed */
 }
 
-/*
- * deflate_nagle_timeout
- *
+/**
  * Called from the callout queue when the Nagle timer expires.
  * If we can send the buffer, flush it and send it.  Otherwise, reschedule.
  */
-static void deflate_nagle_timeout(cqueue_t *cq, gpointer arg)
+static void
+deflate_nagle_timeout(cqueue_t *unused_cq, gpointer arg)
 {
 	txdrv_t *tx = (txdrv_t *) arg;
 	struct attr *attr = (struct attr *) tx->opaque;
 
+	(void) unused_cq;
 	if (attr->send_idx != -1) {		/* Send buffer still incompletely sent */
 
 		if (dbg > 9)
@@ -450,15 +444,14 @@ static void deflate_nagle_timeout(cqueue_t *cq, gpointer arg)
 	}
 }
 
-/*
- * deflate_add
- *
+/**
  * Compress as much data as possible to the output buffer, sending data
  * as we go along.
  *
- * Returns the amount of input bytes that were consumed ("added"), -1 on error.
+ * @return the amount of input bytes that were consumed ("added"), -1 on error.
  */
-static gint deflate_add(txdrv_t *tx, gpointer data, gint len)
+static gint
+deflate_add(txdrv_t *tx, gpointer data, gint len)
 {
 	struct attr *attr = (struct attr *) tx->opaque;
 	z_streamp outz = attr->outz;
@@ -583,11 +576,10 @@ static gint deflate_add(txdrv_t *tx, gpointer data, gint len)
  *** Polymorphic routines.
  ***/
 
-/*
- * tx_deflate_init
- *
+/**
  * Initialize the driver.
- * Returns NULL if there is an initialization problem.
+ *
+ * @return NULL if there is an initialization problem.
  */
 static gpointer tx_deflate_init(txdrv_t *tx, gpointer args)
 {
@@ -644,12 +636,11 @@ static gpointer tx_deflate_init(txdrv_t *tx, gpointer args)
 	return tx;		/* OK */
 }
 
-/*
- * tx_deflate_destroy
- *
+/**
  * Get rid of the driver's private data.
  */
-static void tx_deflate_destroy(txdrv_t *tx)
+static void
+tx_deflate_destroy(txdrv_t *tx)
 {
 	struct attr *attr = (struct attr *) tx->opaque;
 	gint i;
@@ -689,13 +680,13 @@ static void tx_deflate_destroy(txdrv_t *tx)
 	wfree(attr, sizeof(*attr));
 }
 
-/*
- * tx_deflate_write
- *
+/**
  * Write data buffer.
- * Returns amount of bytes written, or -1 on error.
+ *
+ * @return amount of bytes written, or -1 on error.
  */
-static gint tx_deflate_write(txdrv_t *tx, gpointer data, gint len)
+static gint
+tx_deflate_write(txdrv_t *tx, gpointer data, gint len)
 {
 	struct attr *attr = (struct attr *) tx->opaque;
 
@@ -717,13 +708,13 @@ static gint tx_deflate_write(txdrv_t *tx, gpointer data, gint len)
 	return deflate_add(tx, data, len);
 }
 
-/*
- * tx_deflate_writev
- *
+/**
  * Write I/O vector.
- * Returns amount of bytes written, or -1 on error.
+ *
+ * @return amount of bytes written, or -1 on error.
  */
-static gint tx_deflate_writev(txdrv_t *tx, struct iovec *iov, gint iovcnt)
+static gint
+tx_deflate_writev(txdrv_t *tx, struct iovec *iov, gint iovcnt)
 {
 	struct attr *attr = (struct attr *) tx->opaque;
 	gint sent = 0;
@@ -770,32 +761,31 @@ static gint tx_deflate_writev(txdrv_t *tx, struct iovec *iov, gint iovcnt)
 	return sent;
 }
 
-/*
- * tx_deflate_enable
- *
+/**
  * Allow servicing of upper TX queue.
  */
-static void tx_deflate_enable(txdrv_t *tx)
+static void
+tx_deflate_enable(txdrv_t *unused_tx)
 {
 	/* Nothing specific */
+	(void) unused_tx;
 }
 
-/*
- * tx_deflate_disable
- *
+/**
  * Disable servicing of upper TX queue.
  */
-static void tx_deflate_disable(txdrv_t *tx)
+static void
+tx_deflate_disable(txdrv_t *unused_tx)
 {
 	/* Nothing specific */
+	(void) unused_tx;
 }
 
-/*
- * tx_deflate_pending
- *
- * Returns the amount of data buffered locally and in the stack below.
+/**
+ * @return the amount of data buffered locally and in the stack below.
  */
-static gint tx_deflate_pending(txdrv_t *tx)
+static gint
+tx_deflate_pending(txdrv_t *tx)
 {
 	struct attr *attr = (struct attr *) tx->opaque;
 	struct buffer *b;
@@ -813,12 +803,11 @@ static gint tx_deflate_pending(txdrv_t *tx)
 	return pending + tx_pending(attr->nd);
 }
 
-/*
- * tx_deflate_flush
- *
+/**
  * Trigger the Nagle timeout immediately, if registered.
  */
-static void tx_deflate_flush(txdrv_t *tx)
+static void
+tx_deflate_flush(txdrv_t *tx)
 {
 	struct attr *attr = (struct attr *) tx->opaque;
 
@@ -828,12 +817,11 @@ static void tx_deflate_flush(txdrv_t *tx)
 	}
 }
 
-/*
- * tx_deflate_bio_source
- *
+/**
  * Fetch the I/O source of the network driver.
  */
-static struct bio_source *tx_deflate_bio_source(txdrv_t *tx)
+static struct bio_source *
+tx_deflate_bio_source(txdrv_t *tx)
 {
 	struct attr *attr = (struct attr *) tx->opaque;
 

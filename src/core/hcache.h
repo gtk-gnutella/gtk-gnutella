@@ -51,15 +51,15 @@ const gchar *hcache_type_to_gchar(hcache_type_t type);
 
 gboolean hcache_add(
     hcache_type_t type, guint32 ip, guint16 port,
-    gchar *what);
+    const gchar *what);
 
 gboolean hcache_add_caught(
     host_type_t type, guint32 ip, guint16 port,
-    gchar *what);
+    const gchar *what);
 
 gboolean hcache_add_valid(
     host_type_t type, guint32 ip, guint16 port,
-    gchar *what);
+    const gchar *what);
 
 gboolean hcache_node_is_bad(guint32 ip);
 

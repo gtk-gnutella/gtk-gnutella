@@ -113,8 +113,11 @@ ntp_tm_deserialize(guchar src[8], tm_t *dest)
  * timeframe.
  */
 static void
-ntp_no_reply(cqueue_t *cq, gpointer uddata)
+ntp_no_reply(cqueue_t *unused_cq, gpointer unused_udata)
 {
+	(void) unused_cq;
+	(void) unused_udata;
+
 	if (dbg)
 		printf("NTP no reply from localhost\n");
 
@@ -137,7 +140,7 @@ ntp_probe(void)
 		return;
 
 	memset(&m, 0, sizeof(m));
-	m.flags = (NTP_VERSION) << 3 | NTP_CLIENT;
+	m.flags = (NTP_VERSION << 3) | NTP_CLIENT;
 	tm_now(&now);
 	ntp_tm_serialize(m.transmit_timestamp, &now);
 
@@ -174,7 +177,7 @@ ntp_got_reply(struct gnutella_socket *s)
 	tm_t replied;
 	tm_t got;
 	tm_t offset;
-	double clock_offset;
+	gdouble clock_offset;
 
 	tm_now(&got);
 
@@ -251,5 +254,5 @@ ntp_close(void)
 		cq_cancel(callout_queue, wait_ev);
 }
 
-/* vi: set ts=4: */
+/* vi: set ts=4 sw=4 cindent: */
 
