@@ -300,15 +300,9 @@ host_lookup_callback(const gchar *hostname, gpointer data)
 	guint16 port;
 	gchar buf[512];
 
-	if (!ht_pending_lookups) {
-		g_warning("host_lookup_callback() was called during shutdown(?)");
+	if (!ht_pending_lookups || !g_hash_table_lookup(ht_pending_lookups, data))
 		return;
-	}
-	if (!g_hash_table_lookup(ht_pending_lookups, data)) {
-		g_warning("host_lookup_callback() was called after the concerned row "
-			"was removed");
-		return;
-	}
+
 	g_hash_table_remove(ht_pending_lookups, data);
 	
 	tv = GTK_TREE_VIEW(lookup_widget(main_window, "treeview_nodes"));
@@ -721,32 +715,28 @@ nodes_gui_reverse_lookup_selected_helper(GtkTreeModel *model,
 		GtkTreePath *unused_path, GtkTreeIter *iter, gpointer unused_data)
 {
 	gnet_node_t n = ~0;
-	guint32 ip;
-	guint16 port;
-	gchar *host;
+	gpointer key = GUINT_TO_POINTER(n);
+	gnet_node_info_t info;
+	gchar buf[128];
 
 	(void) unused_path;
 	(void) unused_data;
 	
-	gtk_tree_model_get(model, iter,
-			c_gnet_host, &host, c_gnet_handle, &n, (-1));
-
+	gtk_tree_model_get(model, iter, c_gnet_handle, &n, (-1));
 	g_assert(NULL != find_node(n));
-	g_assert(host != NULL);
 
-	if (!strchr(host, '(') && gchar_to_ip_port(host, &ip, &port)) {
-		gpointer key;
-		gchar buf[128];
-
-		key = GUINT_TO_POINTER(n);
-		g_assert(NULL == g_hash_table_lookup(ht_pending_lookups, key));
-		gm_snprintf(buf, sizeof buf, "%s (%s)",
-			_("Reverse lookup in progress..."), host);
-		gtk_list_store_set(GTK_LIST_STORE(model), iter, c_gnet_host, buf, (-1));
-		g_hash_table_insert(ht_pending_lookups, key, GINT_TO_POINTER(1));
-		adns_reverse_lookup(ip, host_lookup_callback, key);
-	}
-	G_FREE_NULL(host);
+	key = GUINT_TO_POINTER(n);
+	if (NULL != g_hash_table_lookup(ht_pending_lookups, key))
+		return;
+	
+	guc_node_fill_info(n, &info);
+	g_assert(n == info.node_handle);
+	gm_snprintf(buf, sizeof buf, "%s (%s)", _("Reverse lookup in progress..."),
+		ip_port_to_gchar(info.ip, info.port));
+	gtk_list_store_set(GTK_LIST_STORE(model), iter, c_gnet_host, buf, (-1));
+	g_hash_table_insert(ht_pending_lookups, key, GINT_TO_POINTER(1));
+	adns_reverse_lookup(info.ip, host_lookup_callback, key);
+	guc_node_clear_info(&info);
 }
 
 /**
