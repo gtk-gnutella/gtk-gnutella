@@ -4725,7 +4725,7 @@ extract_retry_after(const header_t *header)
  * Look for a Date: header in the reply and use it to update our skew.
  */
 static void
-check_date(const header_t *header, guint32 ip)
+check_date(const header_t *header, guint32 ip, struct download *d)
 {
 	const gchar *buf;
 
@@ -4735,8 +4735,27 @@ check_date(const header_t *header, guint32 ip)
 
 		if (their == (time_t) -1)
 			g_message("Cannot parse Date: %s", buf);
-		else
-			clock_update(their, 10, ip);
+		else {
+			tm_t delta;
+			time_t correction;
+
+			/*
+			 * We can determine the elapsed time since we sent the headers.
+			 * The half of that time should roughly be the trip time from
+			 * the remote server to us, and hence we must correct their
+			 * clock forwards.  Also, we use that amount as an indication
+			 * of the precision of our measurement.  We make sure we don't
+			 * supply a precision of 0, as this should be reserved to "Time
+			 * Sync" via UDP from an NTP-synchronized host.
+			 *		--RAM, 2004-10-03
+			 */
+
+			tm_now(&delta);
+			tm_sub(&delta, &d->header_sent);
+			correction = (time_t) (tm2f(&delta) / 2.0);
+
+			clock_update(their + correction, correction + 1, ip);
+		}
 	}
 }
 
@@ -5327,7 +5346,7 @@ download_request(struct download *d, header_t *header, gboolean ok)
 	ip = download_ip(d);
 	port = download_port(d);
 
-	check_date(header, ip);		/* Update clock skew if we have a Date: */
+	check_date(header, ip, d);	/* Update clock skew if we have a Date: */
 
 	/*
 	 * Do we have to keep the connection after this request?
