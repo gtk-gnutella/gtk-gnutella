@@ -30,7 +30,7 @@ RCSID("$Id$");
 #include "uploads.h"			/* For upload_row_data_t */
 #include "uploads_common.h"
 
-#include "if/gui_property.h"	/* For gui_prop_get_guint32() */
+#include "if/gui_property.h"
 #include "if/gnet_property.h"
 
 #include "lib/misc.h"
@@ -156,9 +156,8 @@ const gchar *uploads_gui_status_str(
 
 	case GTA_UL_QUEUED:
 		{
-			extern gint max_uploads;
-			extern gint running_uploads;
-		
+			guint32 max_up, cur_up;
+
 			/*
 			 * Status: GTA_UL_QUEUED. When PARQ is enabled, and all upload
 			 * slots are full an upload is placed into the PARQ-upload. Clients
@@ -166,7 +165,11 @@ const gchar *uploads_gui_status_str(
 			 * probably want to display this information
 			 *		-- JA, 06/02/2003
 			 */
-			if (u->parq_position <= (guint) max_uploads - running_uploads) {
+
+
+			gnet_prop_get_guint32_val(PROP_MAX_UPLOADS, &max_up);
+			gnet_prop_get_guint32_val(PROP_UL_RUNNING, &cur_up);
+			if (u->parq_position <= max_up - cur_up) {
 				/* position 1 should always get an upload slot */
 				if (u->parq_retry > 0)
 					gm_snprintf(tmpstr, sizeof(tmpstr),
