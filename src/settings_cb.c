@@ -132,9 +132,8 @@ void on_entry_config_extensions_activate(GtkEditable *editable, gpointer data)
     gchar *ext;
 
     ext = gtk_editable_get_chars(editable, 0, -1);
-   
-   	parse_extensions(ext);
-	gui_update_scan_extensions();
+
+    gnet_prop_set_string(PROP_SCAN_EXTENSIONS, ext);
 
     g_free(ext);
 }
