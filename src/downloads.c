@@ -858,8 +858,24 @@ void download_index_changed(guint32 ip, guint16 port, guint32 from, guint32 to)
 		struct download *d = (struct download *) l->data;
 
 		if (d->ip == ip && d->port == port && d->record_index == from) {
+			gboolean push_mode = d->push;
+
+			/*
+			 * When in push mode, we've recorded the index in a hash table,
+			 * associating the GIV string to the download structure.
+			 * If that index changes, we need to remove the old mapping before
+			 * operating the change, and re-install the new mapping after
+			 * then change took place.
+			 */
+
+			if (push_mode)
+				download_push_remove(d);
+
 			d->record_index = to;
 			nfound++;
+
+			if (push_mode)
+				download_push_insert(d);
 
 			switch (d->status) {
 			case GTA_DL_REQ_SENT:
