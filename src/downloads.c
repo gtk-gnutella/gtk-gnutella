@@ -3963,7 +3963,12 @@ static gboolean download_overlap_check(struct download *d)
 
 	if (0 != memcmp(s->buffer, data, d->overlap_size)) {
 		download_bad_source(d);
-		download_stop(d, GTA_DL_ERROR, "Resuming data mismatch @ %lu",
+		if (dl_remove_file_on_mismatch) {
+			download_queue(d, "Resuming data mismatch @ %lu",
+				d->skip - d->overlap_size);
+			download_remove_file(d, TRUE);
+		} else
+			download_stop(d, GTA_DL_ERROR, "Resuming data mismatch @ %lu",
 				d->skip - d->overlap_size);
 		if (dbg > 3)
 			printf("%d overlapping bytes UNMATCHED at offset %d for \"%s\"\n",
