@@ -2180,6 +2180,96 @@ static void download_write_data(struct download *d)
 }
 
 /*
+ * download_moved_permanently
+ *
+ * Refresh IP:port, download index and name, by looking at the new location
+ * in the header ("Location:").
+ *
+ * Returns TRUE if we managed to parse the new location.
+ */
+static gboolean download_moved_permanently(struct download *d, header_t *header)
+{
+	gchar *buf;
+	guint32 ip;
+	guint port;
+	guint idx;
+	guint lsb, b2, b3, msb;
+	gchar *file;
+
+	buf = header_get(header, "Location");
+	if (buf == NULL)
+		return FALSE;
+
+	/*
+	 * The URL given must be of the form:
+	 *
+	 *    http://1.2.3.4:5678/get/1/name.txt
+	 *
+	 * Although theorically a /uri-res/N2R? URL could be given for the
+	 * resource, we always use that form if we have the SHA1, so there is
+	 * no 301 Moved return possible, if everyone does it right.
+	 *
+	 * If the port is missing, then 80 is assumed.
+	 */
+
+	if (
+		6 == sscanf(buf, "http://%u.%u.%u.%u:%u/get/%u/",
+			&msb, &b3, &b2, &lsb, &port, &idx)
+	)
+		goto ok;
+
+	if (
+		5 == sscanf(buf, "http://%u.%u.%u.%u/get/%u/",
+			&msb, &b3, &b2, &lsb, &idx)
+	) {
+		port = 80;
+		goto ok;
+	}
+
+	g_warning("could not parse HTTP Location: %s", buf);
+	return FALSE;
+
+ok:
+	ip = lsb + (b2 << 8) + (b3 << 16) + (msb << 24);
+
+	/*
+	 * If ip/port changed, accept the new ones but warn.
+	 */
+
+	if (ip != d->ip || port != d->port)
+		g_warning("server %s (file \"%s\") redirecting us to %s",
+			ip_port_to_gchar(d->ip, d->port), d->file_name, buf);
+
+	/*
+	 * Check filename.
+	 *
+	 * If it changed, we don't change the output_name, so we'll continue
+	 * to write to the same file we previously started with.
+	 */
+
+	file = strrchr(buf, '/');
+	g_assert(file);					/* Or we'd have not parse above */
+
+	file++;
+	if (0 != strcmp(file, d->file_name)) {
+		g_warning("file \"%s\" was renamed \"%s\" on %s",
+			d->file_name, file, ip_port_to_gchar(d->ip, d->port));
+
+		if (d->output_name == d->file_name)
+			d->output_name = g_strdup(d->file_name);
+
+		atom_str_free(d->file_name);
+		d->file_name = atom_str_get(file);
+	}
+
+	d->ip = ip;
+	d->port = port;
+	d->record_index = idx;
+
+	return TRUE;
+}
+
+/*
  * download_request
  *
  * Called to initiate the download once all the HTTP headers have been read.
@@ -2290,9 +2380,14 @@ static void download_request(struct download *d, header_t *header)
 			}
 		}
 
-		// XXX handle 301
-
 		switch (ack_code) {
+		case 301:				/* Moved permanently */
+			if (!download_moved_permanently(d, header))
+				break;
+			download_queue_delay(d,
+				delay ? delay : download_retry_busy_delay,
+				"HTTP %d %s", ack_code, ack_message);
+			return;
 		case 400:				/* Bad request */
 		case 404:				/* Could be sent if /uri-res not understood */
 		case 403:				/* Idem, /uri-res is not "authorized" */
