@@ -6430,6 +6430,7 @@ void download_close(void)
 			http_range_free(d->ranges);
         
 		file_info_remove_source(d->file_info, d, TRUE);
+		parq_dl_remove(d);
 		download_remove_from_server(d, TRUE);
 		atom_str_free(d->file_name);
 
