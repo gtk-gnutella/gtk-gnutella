@@ -653,6 +653,7 @@ struct http_async {					/* An asynchronous HTTP request */
  */
 
 #define HA_F_FREED		0x00000001	/* Structure has been logically freed */
+#define HA_F_SUBREQ		0x00000002	/* Children request now has control */
 
 /*
  * In order to allow detection of logically freed structures when we return
@@ -1101,6 +1102,15 @@ static gboolean http_async_subrequest(
 		http_subreq_data_ind, http_subreq_error_ind,
 		parent);
 
+	/*
+	 * Indicate that the child request now has control, the parent request
+	 * being only there to record the user's callbacks (and because it's the
+	 * only one known from the outside).
+	 */
+
+	if (child)
+		parent->flags |= HA_F_SUBREQ;
+
 	return child != NULL;
 }
 
@@ -1151,9 +1161,13 @@ static void http_redirect(struct http_async *ha, gchar *url)
 	 */
 
 	g_assert(ha->io_opaque);
+	g_assert(ha->bio);
 
 	io_free(ha->io_opaque);
 	ha->io_opaque = NULL;
+
+	bsched_source_remove(ha->bio);
+	ha->bio = NULL;
 }
 
 /*
@@ -1511,6 +1525,9 @@ retry:
 		guint32 timeout = ha->bio ?
 			download_connected_timeout :
 			download_connecting_timeout;
+
+		if (ha->flags & HA_F_SUBREQ)
+			continue;
 
 		if (elapsed > timeout) {
 			http_async_error(ha, HTTP_ASYNC_TIMEOUT);
