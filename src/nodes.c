@@ -2549,6 +2549,23 @@ gint node_writev(struct gnutella_node *n, struct iovec *iov, gint iovcnt)
 }
 
 /*
+ * node_disable_read
+ *
+ * Disable reading callback.
+ */
+static void node_disable_read(struct gnutella_node *n)
+{
+	struct gnutella_socket *s = n->socket;
+
+	g_assert(s);
+	g_assert(s->gdk_tag);
+
+	n->flags |= NODE_F_NOREAD;
+	gdk_input_remove(s->gdk_tag);		/* Don't read anymore */
+	s->gdk_tag = 0;
+}
+
+/*
  * node_read
  *
  * I/O callback used to read binary Gnet traffic from a node.
@@ -2648,11 +2665,14 @@ void node_read(gpointer data, gint source, GdkInputCondition cond)
 		}
 
 		if (kick) {
-			node_bye(n, 400, "Too large %s message (%d bytes)",
+			/*
+			 * We can't read any more data from this node, as we are
+			 * desynchronized: the large payload will stay unread.
+			 */
+
+			node_disable_read(n);
+			node_bye(n, 400, "Too large %s message (%u bytes)",
 				gmsg_name(n->header.function), n->size);
-			gdk_input_remove(n->socket->gdk_tag);	/* Don't read anymore */
-			n->socket->gdk_tag = 0;
-			n->flags |= NODE_F_NOREAD;
 			return;
 		}
 
@@ -2668,13 +2688,11 @@ void node_read(gpointer data, gint source, GdkInputCondition cond)
 			guint32 maxsize = max_msg_size();	/* Can change dynamically */
 
 			if (maxsize < n->size) {
-				g_warning("got %d byte %s message, should have kicked node\n",
+				g_warning("got %u byte %s message, should have kicked node\n",
 					n->size, gmsg_name(n->header.function));
+				node_disable_read(n);
 				node_bye(n, 400, "Too large %s message (%d bytes)",
 					gmsg_name(n->header.function), n->size);
-				gdk_input_remove(n->socket->gdk_tag);
-				n->socket->gdk_tag = 0;
-				n->flags |= NODE_F_NOREAD;
 				return;
 			}
 
