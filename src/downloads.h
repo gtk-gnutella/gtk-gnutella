@@ -103,6 +103,9 @@ struct download {
 	guchar *sha1;			/* Known SHA1 (binary atom), NULL if none */
 	guint32 last_dmesh;		/* Time when last download mesh was sent */
 
+	GSList *ranges;			/* PFSP -- known list of ranges, NULL if none */
+	guint32 sinkleft;		/* Amount of data left to sink */
+
 	guint32 flags;
 
 	gboolean keep_alive;	/* Keep HTTP connection? */
@@ -133,6 +136,7 @@ struct download {
 #define GTA_DL_MOVE_WAIT		16	/* Waiting to be moved to "done/bad" dir */
 #define GTA_DL_MOVING			17	/* Being moved to "done/bad" dir */
 #define GTA_DL_DONE				18	/* All done! */
+#define GTA_DL_SINKING			19	/* Sinking HTML reply */
 
 /*
  * Download flags.
@@ -142,6 +146,7 @@ struct download {
 #define DL_F_PUSH_IGN		0x00000002	/* Trying to ignore push flag */
 #define DL_F_OVERLAPPED		0x00000004	/* We went through overlap checking */
 #define DL_F_REPLIED		0x00000008	/* Servent replied to last request */
+#define DL_F_CHUNK_CHOSEN	0x00000010	/* Retrying with specific chunk */
 #define DL_F_SUSPENDED		0x40000000	/* Suspended, do not schedule */
 #define DL_F_MARK			0x80000000	/* Marked in traversal */
 
@@ -197,7 +202,8 @@ struct download {
 	|| (d)->status == GTA_DL_DONE       )
 
 #define DOWNLOAD_IS_ACTIVE(d)			\
-	((d)->status == GTA_DL_RECEIVING)
+	(  (d)->status == GTA_DL_RECEIVING	\
+	|| (d)->status == GTA_DL_SINKING)
 
 #define DOWNLOAD_IS_WAITING(d)			\
 	(  (d)->status == GTA_DL_TIMEOUT_WAIT)

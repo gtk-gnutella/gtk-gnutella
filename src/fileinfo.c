@@ -43,6 +43,7 @@
 
 #include "settings.h"
 #include "nodes.h"
+#include "http.h"			/* For http_range_t */
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -2601,6 +2602,35 @@ enum dl_chunk_status file_info_pos_status(struct dl_file_info *fi, guint32 pos)
 }
 
 /*
+ * fi_check_file
+ *
+ * This routine is called each time we start a new download, before
+ * making the request to the remote server. If we detect that the
+ * file is "gone", then it means the user manually deleted the file.
+ * In that case, we need to reset all the chunks and mark the whole
+ * thing as being EMPTY.
+ * 		--RAM, 21/08/2002.
+ */
+static void fi_check_file(struct dl_file_info *fi)
+{
+	struct stat buf;
+
+	g_assert(fi->done);			/* Or file will not exist */
+
+	/*
+	 * File should exist since fi->done > 0, and it was not completed.
+	 */
+
+	g_snprintf(fi_tmp, sizeof(fi_tmp), "%s/%s", fi->path, fi->file_name);
+
+	if (-1 == stat(fi_tmp, &buf)) {
+		g_warning("file %s removed, resetting swarming", fi_tmp);
+		file_info_reset(fi);
+	}
+}
+
+
+/*
  * file_info_find_hole
  *
  * Finds a range to download, and stores it in *from and *to.
@@ -2616,35 +2646,20 @@ enum dl_chunk_status file_info_find_hole(
 	struct dl_file_chunk *fc;
 	struct dl_file_info *fi = d->file_info;
 	guint32 chunksize;
-	struct stat buf;
 	guint busy = 0;
 
 	g_assert(fi->refcount > 0);
 	g_assert(fi->lifecount > 0);
 
 	/*
-	 * This routine is called each time we start a new download, before
-	 * making the request to the remote server. If we detect that the
-	 * file is "gone", then it means the user manually deleted the file.
-	 * In that case, we need to reset all the chunks and mark the whole
-	 * thing as being EMPTY.
-	 *		--RAM, 21/08/2002.
+	 * Ensure the file has not disappeared.
 	 */
 
 	if (fi->done) {
 		if (fi->done == fi->size)
 			return DL_CHUNK_DONE;
 
-		/*
-		 * File should exist since fi->done > 0, and it was not completed.
-		 */
-
-		g_snprintf(fi_tmp, sizeof(fi_tmp), "%s/%s", fi->path, fi->file_name);
-
-		if (-1 == stat(fi_tmp, &buf)) {
-			g_warning("file %s removed, resetting swarming", fi_tmp);
-			file_info_reset(fi);
-		}
+		fi_check_file(fi);
 	}
 
 	/*
@@ -2735,6 +2750,91 @@ enum dl_chunk_status file_info_find_hole(
 	
 	/* No holes found. */
 	return (fi->done == fi->size) ? DL_CHUNK_DONE : DL_CHUNK_BUSY;
+}
+
+/*
+ * file_info_find_available_hole
+ *
+ * Find free chunk that also fully belongs to the `ranges' list.
+ *
+ * Returns TRUE if one was found, with `from' and `to' set, FALSE otherwise.
+ * NB: In accordance with other fileinfo semantics, `to' is NOT the last byte
+ * of the range but one byte AFTER the end.
+ */
+gboolean file_info_find_available_hole(struct download *d,
+	GSList *ranges, guint32 *from, guint32 *to)
+{
+	GSList *fclist;
+	struct dl_file_info *fi;
+	guint32 chunksize;
+
+	g_assert(d);
+	g_assert(ranges);
+
+	fi = d->file_info;
+
+	/*
+	 * Ensure the file has not disappeared.
+	 */
+
+	if (fi->done) {
+		if (fi->done == fi->size)
+			return FALSE;;
+
+		fi_check_file(fi);
+	}
+
+	g_assert(fi->lifecount > 0);
+
+	for (fclist = fi->chunklist; fclist; fclist = g_slist_next(fclist)) {
+		GSList *l;
+		struct dl_file_chunk *fc = fclist->data;
+
+		if (fc->status != DL_CHUNK_EMPTY)
+			continue;
+
+		/*
+		 * Look whether this empty chunk intersects with one of the
+		 * available ranges.
+		 *
+		 * NB: the list of ranges is sorted.  And contrary to fi chunks,
+		 * the upper boundary of the range (r->end) is part of the range.
+		 */
+
+		for (l = ranges; l; l = g_slist_next(l)) {
+			http_range_t *r = (http_range_t *) l->data;
+
+			if (r->start > fc->to)
+				break;					/* No further range will intersect */
+
+			if (r->start >= fc->from && r->start < fc->to) {
+				*from = r->start;
+				*to = MIN(r->end + 1, fc->to);
+				goto found;
+			}
+
+			if (r->end >= fc->from && r->end < fc->to) {
+				*from = MAX(r->start, fc->from);
+				*to = r->end + 1;
+				goto found;
+			}
+		}
+	}
+
+	return FALSE;
+
+found:
+	chunksize = fi->size / fi->lifecount;
+
+	if (chunksize < dl_minchunksize) chunksize = dl_minchunksize;
+	if (chunksize > dl_maxchunksize) chunksize = dl_maxchunksize;
+
+	if ((*to - *from) > chunksize)
+		*to = *from + chunksize;
+
+	file_info_update(d, *from, *to, DL_CHUNK_BUSY);
+
+	return TRUE;
 }
 
 /*

@@ -101,6 +101,8 @@ void file_info_store_if_dirty(void);
 void file_info_set_discard(struct dl_file_info *fi, gboolean state);
 enum dl_chunk_status file_info_find_hole(
 	struct download *d, guint32 *from, guint32 *to);
+gboolean file_info_find_available_hole(struct download *d,
+	GSList *ranges, guint32 *from, guint32 *to);
 void file_info_merge_adjacent(struct dl_file_info *fi);
 void file_info_clear_download(struct download *d, gboolean lifecount);
 enum dl_chunk_status file_info_chunk_status(

@@ -58,6 +58,7 @@ RCSID("$Id$");
 #define DOWNLOAD_RECV_BUFSIZE	114688		/* 112K */
 #define DOWNLOAD_MIN_OVERLAP	64			/* Minimum overlap for safety */
 #define DOWNLOAD_SHORT_DELAY	2			/* Shortest retry delay */
+#define DOWNLOAD_MAX_SINK		16384		/* Max amount of data to sink */
 
 static GSList *sl_downloads = NULL; /* All downloads (queued + unqueued) */
 GSList *sl_unqueued = NULL;			/* Unqueued downloads only */
@@ -318,6 +319,7 @@ void download_timer(time_t now)
 		case GTA_DL_CONNECTING:
 		case GTA_DL_REQ_SENT:
 		case GTA_DL_FALLBACK:
+		case GTA_DL_SINKING:
 
 			if (!is_inet_connected) {
 				download_queue(d, "No longer connected");
@@ -1482,9 +1484,24 @@ void download_stop(struct download *d, guint32 new_status,
 	}
 	if (d->io_opaque)				/* I/O data */
 		io_free(d->io_opaque);
+
 	if (d->bio) {
 		bsched_source_remove(d->bio);
 		d->bio = NULL;
+	}
+
+	/* Don't clear ranges if simply queuing, or if completed */
+
+	if (d->ranges) {
+		switch (new_status) {
+		case GTA_DL_ERROR:
+		case GTA_DL_ABORTED:
+			http_range_free(d->ranges);
+			d->ranges = NULL;
+			break;
+		default:
+			break;
+		}
 	}
 
 	if (d->list_idx != list_target)
@@ -1515,8 +1532,9 @@ void download_stop(struct download *d, guint32 new_status,
 	}
 
 	file_info_clear_download(d, FALSE);
-	gnet_prop_set_guint32_val(PROP_DL_RUNNING_COUNT, count_running_downloads());
+	d->flags &= ~DL_F_CHUNK_CHOSEN;
 
+	gnet_prop_set_guint32_val(PROP_DL_RUNNING_COUNT, count_running_downloads());
 	gui_update_c_downloads(dl_active, dl_establishing + dl_active);
 }
 
@@ -1876,7 +1894,7 @@ static void download_unqueue(struct download *d)
 }
 
 /*
- * download_start_prepare
+ * download_start_prepare_running
  *
  * Setup the download structure with proper range offset, and check that the
  * download is not otherwise completed.
@@ -1884,26 +1902,14 @@ static void download_unqueue(struct download *d)
  * Returns TRUE if we may continue with the download, FALSE if it has been
  * stopped due to a problem.
  */
-static gboolean download_start_prepare(struct download *d)
+static gboolean download_start_prepare_running(struct download *d)
 {
 	struct dl_file_info *fi = d->file_info;
 
     g_assert(d != NULL);
-	g_assert(d->list_idx != DL_LIST_RUNNING);
+	g_assert(!DOWNLOAD_IS_QUEUED(d));
+	g_assert(d->list_idx == DL_LIST_RUNNING);
 	g_assert(fi != NULL);
-
-	/*
-	 * Updata global accounting data.
-	 */
-
-	download_move_to_list(d, DL_LIST_RUNNING);
-
-	/*
-	 * If the download is in the queue, we remove it from there.
-	 */
-
-	if (DOWNLOAD_IS_QUEUED(d))
-		download_unqueue(d);
 
 	d->status = GTA_DL_CONNECTING;	/* Most common state if we succeed */
 
@@ -1972,6 +1978,36 @@ static gboolean download_start_prepare(struct download *d)
 }
 
 /*
+ * download_start_prepare
+ *
+ * Make download a "running" one (in running list, unqueued), then call
+ * download_start_prepare_running().
+ *
+ * Returns TRUE if we may continue with the download, FALSE if it has been
+ * stopped due to a problem.
+ */
+static gboolean download_start_prepare(struct download *d)
+{
+    g_assert(d != NULL);
+	g_assert(d->list_idx != DL_LIST_RUNNING);	/* Not already running */
+
+	/*
+	 * Updata global accounting data.
+	 */
+
+	download_move_to_list(d, DL_LIST_RUNNING);
+
+	/*
+	 * If the download is in the queue, we remove it from there.
+	 */
+
+	if (DOWNLOAD_IS_QUEUED(d))
+		download_unqueue(d);
+
+	return download_start_prepare_running(d);
+}
+
+/*
  * download_pick_chunk
  *
  * Called for swarming downloads when we are connected to the remote server,
@@ -2021,6 +2057,64 @@ static gboolean download_pick_chunk(struct download *d)
 
 	g_assert(d->overlap_size == 0 || d->skip > d->overlap_size);
 
+	return TRUE;
+}
+
+/*
+ * download_pick_available
+ *
+ * Pickup a range we don't have yet from the available ranges.
+ *
+ * Returns TRUE if we selected a chunk, FALSE if we can't select a chunk
+ * (e.g. we have everything the remote server makes available).
+ */
+static gboolean download_pick_available(struct download *d)
+{
+	guint32 from, to;
+
+	g_assert(d->ranges != NULL);
+
+
+	d->overlap_size = 0;
+	d->last_update = time((time_t *) NULL);
+
+	if (!file_info_find_available_hole(d, d->ranges, &from, &to)) {
+		if (dbg > 3)
+			printf("PFSP no interesting chunks from %s for \"%s\", "
+				"available was: %s\n",
+				ip_port_to_gchar(download_ip(d), download_port(d)),
+				download_outname(d), http_range_to_gchar(d->ranges));
+
+		return FALSE;
+	}
+
+	/*
+	 * We found a chunk that the remote end has and which we miss.
+	 */
+
+	d->skip = d->pos = from;
+	d->size = to - from;
+
+	/*
+	 * Maybe we can do some overlapping check if the remote server has
+	 * some data before that chunk and we also have the corresponding
+	 * range.
+	 */
+
+	if (
+		from > download_overlap_range &&
+		file_info_chunk_status(d->file_info, 
+			from - download_overlap_range, from) == DL_CHUNK_DONE &&
+		http_range_contains(d->ranges, from - download_overlap_range, from - 1)
+	)
+		d->overlap_size = download_overlap_range;
+
+	if (dbg > 3)
+		printf("PFSP selected %u-%u (overlap=%u) from %s for \"%s\", "
+			"available was: %s\n", from, to - 1, d->overlap_size,
+			ip_port_to_gchar(download_ip(d), download_port(d)),
+			download_outname(d), http_range_to_gchar(d->ranges));
+			
 	return TRUE;
 }
 
@@ -2679,6 +2773,7 @@ static struct download *download_clone(struct download *d)
 
 	d->sha1 = NULL;
 	d->socket = NULL;
+	d->ranges = NULL;
 
 	return cd;
 }
@@ -2894,6 +2989,9 @@ void download_free(struct download *d)
 
 	if (d->sha1)
 		atom_sha1_free(d->sha1);
+
+	if (d->ranges)
+		http_range_free(d->ranges);
 
 	download_remove_from_server(d, FALSE);
 	d->status = GTA_DL_REMOVED;
@@ -3930,6 +4028,123 @@ collect_locations:
 	return TRUE;
 }
 
+
+/*
+ * update_available_ranges
+ *
+ * Partial File Sharing Protocol (PFSP) -- client-side
+ *
+ * If there is an X-Available-Range header, parse it to know
+ * whether we can spot a range that is available and which we
+ * do not have.
+ */
+static void update_available_ranges(struct download *d, header_t *header)
+{
+	gchar *buf;
+	gchar *available = "X-Available-Ranges";
+
+	if (d->ranges != NULL) {
+		http_range_free(d->ranges);
+		d->ranges = NULL;
+	}
+
+	if (!d->file_info->use_swarming)
+		return;
+
+	buf = header_get(header, available);
+
+	if (buf == NULL)
+		return;
+
+	/*
+	 * Update available range list.
+	 */
+
+	d->ranges = http_range_parse(available, buf,
+		download_filesize(d), download_vendor_str(d));
+}
+
+/*
+ * download_sink
+ *
+ * Sink read data.
+ * Used when waiting for the end of the previous HTTP reply.
+ *
+ * When all the data has been sank, issue the next HTTP request.
+ */
+static void download_sink(struct download *d)
+{
+	struct gnutella_socket *s = d->socket;
+
+	g_assert(s->pos >= 0 && s->pos <= sizeof(s->buffer));
+	g_assert(d->status == GTA_DL_SINKING);
+	g_assert(d->flags & DL_F_CHUNK_CHOSEN);
+
+	if (s->pos > d->sinkleft) {
+		g_warning("got more data to sink than expected from %s <%s>",
+			ip_port_to_gchar(download_ip(d), download_port(d)),
+			download_vendor_str(d));
+		download_stop(d, GTA_DL_ERROR, "More data to sink than expected");
+		return;
+	}
+
+	d->sinkleft -= s->pos;
+	s->pos = 0;
+
+	/*
+	 * When we're done sinking everything, remove the read callback
+	 * and send the pending request.
+	 */
+
+	if (d->sinkleft == 0) {
+		bsched_source_remove(d->bio);
+		d->bio = NULL;
+		d->status = GTA_DL_CONNECTING;
+		download_send_request(d);
+	}
+}
+
+/*
+ * download_sink_read
+ *
+ * Read callback for file data.
+ */
+static void download_sink_read(gpointer data, gint source, inputevt_cond_t cond)
+{
+	struct download *d = (struct download *) data;
+	struct gnutella_socket *s = d->socket;
+	gint32 r;
+
+	g_assert(s);
+
+	if (cond & GDK_INPUT_EXCEPTION) {
+		download_stop(d, GTA_DL_ERROR, "Failed (Input Exception)");
+		return;
+	}
+
+	r = bio_read(d->bio, s->buffer, sizeof(s->buffer));
+
+	if (r <= 0) {
+		if (r == 0) {
+			download_queue_delay(d, download_retry_busy_delay,
+				"Stopped data (EOF)");
+		} else if (errno != EAGAIN) {
+			if (errno == ECONNRESET)
+				download_queue_delay(d, download_retry_busy_delay,
+					"Stopped data (%s)", g_strerror(errno));
+			else
+				download_stop(d, GTA_DL_ERROR,
+					"Failed (Read error: %s)", g_strerror(errno));
+		}
+		return;
+	}
+
+	s->pos = r;
+	d->last_update = time(NULL);
+
+	download_sink(d);
+}
+
 /*
  * download_request
  *
@@ -3955,6 +4170,7 @@ static void download_request(struct download *d, header_t *header, gboolean ok)
 	gboolean is_followup = d->keep_alive;
 	struct dl_file_info *fi;
 	gchar short_read[80];
+	guint delay;
 
 	/*
 	 * If `ok' is FALSE, we might not even have fully read the status line,
@@ -4077,6 +4293,133 @@ static void download_request(struct download *d, header_t *header, gboolean ok)
 				return;
 	}
 
+	update_available_ranges(d, header);		/* Updates `d->ranges' */
+	delay = extract_retry_after(header);
+
+	/*
+	 * Partial File Sharing Protocol (PFSP) -- client-side
+	 *
+	 * We can make another request with a range that the remote
+	 * servent has if the reply was a keep-alive one.  Both 503 or 416
+	 * replies are possible with PFSP.
+	 */
+
+	if (d->ranges && d->keep_alive && d->file_info->use_swarming) {
+		switch (ack_code) {
+		case 503:				/* Range not available, maybe */
+		case 416:				/* Range not satisfiable */
+			/*
+			 * If we were requesting something that is already within the
+			 * available ranges, then there is no need to go further.
+			 */
+
+			if (http_range_contains(d->ranges, d->skip, d->range_end - 1)) {
+				if (dbg > 3)
+					printf("PFSP currently requested chunk %u-%u from %s "
+						"for \"%s\" already in the available ranges: %s\n",
+						d->skip, d->range_end - 1,
+						ip_port_to_gchar(download_ip(d), download_port(d)),
+						download_outname(d), http_range_to_gchar(d->ranges));
+
+				break;
+			}
+
+			/*
+			 * Clear current request so we may pick whatever is available
+			 * remotely by freeing the current chunk...
+			 */
+
+			file_info_clear_download(d, TRUE);		/* `d' is running */
+
+			/* Update mesh -- we're about to return */
+			if (!d->always_push && d->sha1)
+				dmesh_add(d->sha1, ip, port,
+					d->record_index, d->file_name, 0);
+
+			if (!download_start_prepare_running(d))
+				return;
+
+			/*
+			 * If we can pick an available range, re-issue the request.
+			 * Due to the above check for a request made for an already
+			 * existing range, we won't loop re-requesting chunks forever
+			 * if 503 meant "Busy" and not "Range not available".
+			 *
+			 * As a further precaution, to avoid hammering, we check
+			 * whether there is a Retry-After header.  If there is,
+			 * `delay' won't be 0 and we will not try to make the request.
+			 */
+
+			if (delay == 0 && download_pick_available(d)) {
+				/*
+				 * Sink the data that might have been returned with the
+				 * HTTP status.  When it's done, we'll send the request
+				 * with the chunk we have chosen.
+				 */
+
+				buf = header_get(header, "Content-Length");	/* Mandatory */
+
+				if (buf == NULL) {
+					g_warning("no Content-Length with keep-alive reply "
+						"%d \"%s\" from %s <%s>", ack_code, ack_message,
+						ip_port_to_gchar(download_ip(d), download_port(d)),
+						download_vendor_str(d));
+					download_queue_delay(d,
+						MAX(delay, download_retry_refused_delay),
+						"Partial file, bad HTTP keep-alive support");
+					return;
+				}
+				
+				d->sinkleft = (guint32) atol(buf);
+
+				if (d->sinkleft > DOWNLOAD_MAX_SINK) {
+					g_warning("too much data to sink (%u bytes) on reply "
+						"%d \"%s\" from %s <%s>", d->sinkleft,
+						ack_code, ack_message,
+						ip_port_to_gchar(download_ip(d), download_port(d)),
+						download_vendor_str(d));
+					download_queue_delay(d,
+						MAX(delay, download_retry_refused_delay),
+						"Partial file, too much data to sink (%u bytes)",
+						d->sinkleft);
+					return;
+				}
+
+				io_free(d->io_opaque);
+				getline_free(s->getline);	/* No longer need this */
+				s->getline = NULL;
+
+				d->flags |= DL_F_CHUNK_CHOSEN;
+
+				if (d->sinkleft == 0 || d->sinkleft == s->pos) {
+					s->pos = 0;
+					download_send_request(d);
+				} else {
+					g_assert(s->gdk_tag == 0);
+					g_assert(d->bio == NULL);
+
+					d->status = GTA_DL_SINKING;
+
+					d->bio = bsched_source_add(bws.in, s->file_desc,
+						BIO_F_READ, download_sink_read, (gpointer) d);
+				
+					if (s->pos > 0)
+						download_sink(d);
+
+					gui_update_download(d, TRUE);
+				}
+			} else {
+				/* Server has nothing for us yet, give it time */
+				download_queue_delay(d,
+					MAX(delay, download_retry_refused_delay),
+					"Partial file on server, waiting");
+			}
+			return;
+		default:
+			break;
+		}
+	}
+
 	if (ack_code >= 200 && ack_code <= 299) {
 		/* OK -- Update mesh */
 		if (!d->always_push && d->sha1)
@@ -4092,8 +4435,6 @@ static void download_request(struct download *d, header_t *header, gboolean ok)
 			return;
 		}
 	} else {
-		guint delay = extract_retry_after(header);
-
 		switch (ack_code) {
 		case 301:				/* Moved permanently */
 			if (!download_moved_permanently(d, header))
@@ -4117,13 +4458,19 @@ static void download_request(struct download *d, header_t *header, gboolean ok)
 				return;
 			break;
 		case 503:				/* Busy */
-			/* If we made a follow-up request, mark host as not reliable */
-			if (is_followup)
-				d->server->attrs |= DLS_A_NO_KEEPALIVE;
-
 			/* Make sure we're waiting for the right file, collect alt-locs */
 			if (!check_content_urn(d, header))
 				return;
+
+			/*
+			 * If we made a follow-up request, mark host as not reliable.
+			 *
+			 * We know 503 means really "busy" here and not "range not
+			 * available" because we already checked for PFSP above.
+			 */
+
+			if (is_followup)
+				d->server->attrs |= DLS_A_NO_KEEPALIVE;
 
 			/* FALL THROUGH */
 		case 408:				/* Request timeout */
@@ -4496,8 +4843,29 @@ void download_send_request(struct download *d)
 	 * (will set d->skip and d->overlap_size).
 	 */
 
-	if (d->file_info->use_swarming && !download_pick_chunk(d))
-		return;
+	if (d->file_info->use_swarming) {
+		/*
+		 * PFSP -- client side
+		 *
+		 * If we're retrying after a 503/416 reply from a servent
+		 * supporting PFSP, then the chunk is already chosen.
+		 */
+
+		if (d->flags & DL_F_CHUNK_CHOSEN)
+			d->flags &= ~DL_F_CHUNK_CHOSEN;
+		else {
+			if (d->ranges != NULL && download_pick_available(d))
+				goto picked;
+
+			http_range_free(d->ranges);		/* May have changed on server */
+			d->ranges = NULL;				/* Request normally */
+
+			if (!download_pick_chunk(d))
+				return;
+		}
+	}
+
+picked:
 
 	g_assert(d->overlap_size <= sizeof(s->buffer));
 
@@ -5677,6 +6045,8 @@ void download_close(void)
 			bsched_source_remove(d->bio);
 		if (d->sha1)
 			atom_sha1_free(d->sha1);
+		if (d->ranges)
+			http_range_free(d->ranges);
 		file_info_free(d->file_info, TRUE);
 		download_remove_from_server(d, TRUE);
 		atom_str_free(d->file_name);
