@@ -678,6 +678,7 @@ gpointer qrt_ref(gpointer obj)
 {
 	struct routing_table *rt = (struct routing_table *) obj;
 
+	g_assert(obj);
 	g_assert(rt->magic == QRP_ROUTE_MAGIC);
 
 	rt->refcnt++;
@@ -694,6 +695,7 @@ void qrt_unref(gpointer obj)
 {
 	struct routing_table *rt = (struct routing_table *) obj;
 
+	g_assert(obj);
 	g_assert(rt->magic == QRP_ROUTE_MAGIC);
 	g_assert(rt->refcnt > 0);
 
@@ -2224,12 +2226,6 @@ static gboolean qrt_handle_reset(
 		return FALSE;
 	}
 
-	if (qrcv->table)
-		qrt_unref(qrcv->table);
-
-	if (qrcv->expansion)
-		wfree(qrcv->expansion, qrcv->shrink_factor);
-
 	/*
 	 * If the advertized table size is not a power of two, good bye.
 	 */
@@ -2266,6 +2262,12 @@ static gboolean qrt_handle_reset(
 	 */
 
 	node_qrt_discard(n);
+
+	if (qrcv->table)
+		qrt_unref(qrcv->table);
+
+	if (qrcv->expansion)
+		wfree(qrcv->expansion, qrcv->shrink_factor);
 
 	rt = qrcv->table = walloc(sizeof(*rt));
 
@@ -2479,6 +2481,23 @@ static gboolean qrt_handle_patch(
 		struct routing_table *rt = qrcv->table;
 
 		*done = TRUE;
+
+		/*
+		 * Make sure the servent sent us a patch that covers the whole table.
+		 * We've reached the end of the patch sequence, but that does not
+		 * necessarily means it applied to all the slots.
+		 */
+
+		if (qrcv->current_index < rt->slots) {
+			g_warning("QRP %d-bit patch from node %s <%s> covered only "
+				"%d/%d slots",
+				qrcv->entry_bits, node_ip(n), n->vendor ? n->vendor : "????",
+				qrcv->current_index, rt->slots);
+			node_bye_if_writable(n, 413,
+				"Incomplete %d-bit QRP patch covered %d/%d slots",
+				qrcv->entry_bits, qrcv->current_index, rt->slots);
+			return FALSE;
+		}
 
 		g_assert(qrcv->current_index == rt->slots);
 
