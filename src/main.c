@@ -272,8 +272,11 @@ static void sig_terminate(int n)
  */
 static void sig_ignore(int n)
 {
+#ifndef SIGNALS_KEPT
+	gint saved_errno = errno;
 	signal(n, sig_ignore);
-	return;
+	errno = saved_errno;
+#endif
 }
 
 static void init_constants(void)
