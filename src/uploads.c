@@ -1923,7 +1923,7 @@ static void upload_request(gnutella_upload_t *u, header_t *header)
 	struct upload_http_cb cb_parq_arg;
 	gint http_code;
 	const gchar *http_msg;
-	http_extra_desc_t hev[4];
+	http_extra_desc_t hev[6];
 	gint hevcnt = 0;
 	gchar *sha1;
 	gboolean is_followup =
