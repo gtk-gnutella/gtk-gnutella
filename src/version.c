@@ -25,14 +25,14 @@
  *----------------------------------------------------------------------
  */
 
-#include "gnutella.h"
+//#include "gnutella.h"
 
 #include <sys/utsname.h>		/* For uname() */
 
 #include "version.h"
-#include "atoms.h"
+#include "common.h"
+#include "gnet.h"
 #include "getdate.h"
-#include "gui.h"
 
 #include "gnet_property_priv.h"
 
@@ -272,6 +272,32 @@ static gint version_cmp(struct version *a, struct version *b)
 	return a->major < b->major ? -1 : +1;
 }
 
+static void version_new_found(gchar *text, gboolean stable)
+{
+    static gchar last_stable[256] = "";
+    static gchar last_dev[256] = "";
+    gchar *s;
+
+    if (stable)
+        g_snprintf(last_stable, sizeof(last_stable), "%s", text);
+    else
+        g_snprintf(last_dev, sizeof(last_dev), "%s", text);
+
+	s = g_strdup_printf(
+		"%s - Newer version%s available: %s%s%s%s%s",
+		GTA_WEBSITE,
+		last_stable && last_dev ? "s" : "",
+		last_stable ? "release " : "",
+		last_stable ? last_stable : "",
+		last_stable && last_dev ? " / " : "",
+		last_dev ? "from CVS " : "",
+		last_dev ? last_dev : "");
+
+    gnet_prop_set_string(PROP_NEW_VERSION_STR, s);
+
+    g_free(s);
+}
+
 /*
  * version_check
  *
@@ -364,7 +390,7 @@ void version_check(guchar *str)
 		target_version == &last_dev_version ? "development" : "released",
 		version);
 
-	gui_new_version_found(version, target_version == &last_rel_version);
+	version_new_found(version, target_version == &last_rel_version);
 }
  
 /*
@@ -408,8 +434,9 @@ void version_ancient_warn(void)
 	g_assert(our_version.timestamp > 0);	/* version_init() called */
 
 	if (time(NULL) - our_version.timestamp > 86400*365) {
+        gboolean b = TRUE;
 		g_warning("version of gtk-gnutella is too old, you should upgrade!");
-		gui_ancient_warn();
+        gnet_prop_set_boolean(PROP_ANCIENT_VERSION, &b, 0, 1);
 	}
 }
 
