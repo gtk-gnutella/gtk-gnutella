@@ -439,16 +439,18 @@ The above can not be set through the GUI and are undocumented.
 This can not be set through the GUI.
 This is the max number of hosts that will be cached in the host cache.
 .SH FILES
-.I $GTK_GNUTELLA_DIR/cablehosts
-.RS
-Cablehosts file. What does this do?
-.RE
 .TP
 .I $GTK_GNUTELLA_DIR/config
 .RS
 Per-user configuration file. This can be edited.
 .B gtk-gnutella
 saves this file every time the program is exited normally.
+.RE
+.TP
+.I $GTK_GNUTELLA_DIR/downloads
+.RS
+This is where the download queue is persisted.  Only the direct downloads
+(i.e. non-pushed) can be saved, since they don't need routing information.
 .RE
 .TP
 .I $GTK_GNUTELLA_DIR/hosts
@@ -464,8 +466,7 @@ for configuration files. If this variable is not set,
 .B HOME
 is used instead. If 
 .B HOME
-is not set (what are you, nuts?), then no configuration information
-will be saved when
+is not set, then no configuration information will be saved when
 .I gtk-gnutella
 exits.
 .SH MAILING LISTS
