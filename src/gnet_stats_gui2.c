@@ -90,8 +90,6 @@ gchar *msg_stats_label[] = {
 	"Generated"
 };
 
-static	GtkCellRenderer *gnet_stats_gui_cell_renderer = NULL;
-
 enum {
 	GNET_STATS_NB_PAGE_MESSAGES,
 	GNET_STATS_NB_PAGE_FLOWC,
@@ -109,20 +107,18 @@ static void gnet_stats_update_drop_reasons(const gnet_stats_t *);
  ***/
 
 static void on_gnet_stats_column_resized(
-	GtkTreeViewColumn *column, gpointer data)
+	GtkTreeViewColumn *column, GParamSpec *param, gpointer data)
 {
 	const gchar *widget_name;
-	const gchar *title;
 	guint32 width;
 	gint property;
-	gint column_id;
+	gint column_id = GPOINTER_TO_INT(data);
 	static GStaticMutex mutex = G_STATIC_MUTEX_INIT;
 
-	if (!g_static_mutex_trylock(&mutex))
-		return;
+	g_assert(column_id >= 0 && column_id <= 9);
 
+	g_static_mutex_lock(&mutex);
 	widget_name = gtk_widget_get_name(column->tree_view);
-	title = gtk_tree_view_column_get_title(column);
  	width = gtk_tree_view_column_get_width(column);
 
 #if 0
@@ -130,29 +126,6 @@ static void on_gnet_stats_column_resized(
 		"on_gnet_stats_column_resized: widget=\"%s\" title=\"%s\", width=%u",
 		widget_name, title, width);
 #endif
-
-	if (!(strcmp(title, "Type")))
-		column_id = 0;
-	else if (!(strcmp(title, "Count")))
-		column_id = 1;
-	else if (!(strcmp(title, "Received")))
-		column_id = 1;
-	else if (!(strcmp(title, "Expired")))
-		column_id = 2;
-	else if (!(strcmp(title, "Dropped")))
-		column_id = 3;
-	else if (!(strcmp(title, "Relayed")))
-		column_id = 4;
-	else if (!(strcmp(title, "Generated")))
-		column_id = 5;
-	else if (isdigit((guchar) title[0])) {
-		column_id = (title[0] - '0') + 1;
-		g_assert(column_id >= 1 && column_id <= 9);
-	}
-	else {
-		column_id = -1;
-		g_assert_not_reached();
-	}
 
     if (!strcmp(widget_name, "treeview_gnet_stats_general"))
 		property = PROP_GNET_STATS_GENERAL_COL_WIDTHS;
@@ -298,20 +271,34 @@ static const gchar *type_stat_str(
 }
 
 static void add_column(
-	GtkTreeView *treeview, gint column_id, const gchar *label)
+	GtkTreeView *treeview,
+	gint column_id,
+	gint width,
+	gfloat xalign,
+	const gchar *label)
 {
 	GtkTreeViewColumn *column;
+	GtkCellRenderer *renderer;
+
+	renderer = gtk_cell_renderer_text_new();
+	gtk_cell_renderer_text_set_fixed_height_from_font(
+		GTK_CELL_RENDERER_TEXT(renderer), 1);
+	g_object_set(renderer,
+		"xalign", xalign,
+		"ypad", (gint) GUI_CELL_RENDERER_YPAD,
+		NULL);
 
 	column = gtk_tree_view_column_new_with_attributes(
-				label, gnet_stats_gui_cell_renderer, "text", column_id, NULL);
-	gtk_tree_view_column_set_min_width(column, 0);
-	gtk_tree_view_column_set_sizing(column, GTK_TREE_VIEW_COLUMN_GROW_ONLY);
+				label, renderer, "text", column_id, NULL);
+	gtk_tree_view_column_set_min_width(column, 1);
+	gtk_tree_view_column_set_fixed_width(column, MAX(1, width));
+	gtk_tree_view_column_set_sizing(column, GTK_TREE_VIEW_COLUMN_FIXED);
 	gtk_tree_view_column_set_resizable(column, TRUE);
 	gtk_tree_view_column_set_reorderable(column, TRUE);
 	gtk_tree_view_append_column(treeview, column);
 	g_object_notify(G_OBJECT(column), "width");
 	g_signal_connect(G_OBJECT(column), "notify::width",
-		G_CALLBACK(on_gnet_stats_column_resized), NULL);
+		G_CALLBACK(on_gnet_stats_column_resized), GINT_TO_POINTER(column_id));
 }
 
 static void gnet_stats_update_general(const gnet_stats_t *stats)
@@ -526,7 +513,7 @@ void gnet_stats_gui_init(void)
     GtkTreeModel *model;
     GtkCombo *combo;
     gint n;
-
+	guint32 *width;
 
     treeview = GTK_TREE_VIEW(
         lookup_widget(main_window, "treeview_gnet_stats_messages"));
@@ -544,12 +531,12 @@ void gnet_stats_gui_init(void)
 					i == 0 ? msg_type_str[n] : "-", -1);
 	}
 
-	gnet_stats_gui_cell_renderer = gtk_cell_renderer_text_new();
-	g_object_set(gnet_stats_gui_cell_renderer,
-		"ypad", (gint) GUI_CELL_RENDERER_YPAD, NULL);
-
+	width = gui_prop_get_guint32(
+				PROP_GNET_STATS_MSG_COL_WIDTHS, NULL, 0, 0);
 	for (n = 0; n < G_N_ELEMENTS(msg_stats_label); n++)
-		add_column(treeview, n, msg_stats_label[n]);
+		add_column(treeview, n, width[n], (gfloat) n != 0,
+			msg_stats_label[n]);
+	G_FREE_NULL(width);
 
     gtk_tree_view_set_model(treeview, model);
 	g_object_unref(model);
@@ -562,13 +549,17 @@ void gnet_stats_gui_init(void)
 			G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING,
 			G_TYPE_STRING, G_TYPE_STRING));
 
+	width = gui_prop_get_guint32(
+				PROP_GNET_STATS_FC_COL_WIDTHS, NULL, 0, 0);
 	for (n = 0; n < STATS_FLOWC_COLUMNS; n++) {
     	gchar buf[16];
 
 		g_snprintf(buf, sizeof(buf), "%d%c", n-1,
 				(n+1) < STATS_FLOWC_COLUMNS ? '\0' : '+');
-		add_column(treeview, n, n == 0 ? "Type" : buf);
+		add_column(treeview, n, width[n], (gfloat) n != 0,
+			n == 0 ? "Type" : buf);
 	}
+	G_FREE_NULL(width);
 
 	for (n = 0; n < MSG_TYPE_COUNT; n++) {
 		GtkTreeIter iter;
@@ -617,6 +608,8 @@ void gnet_stats_gui_init(void)
 	model = GTK_TREE_MODEL(
 		gtk_list_store_new(2, G_TYPE_STRING, G_TYPE_STRING));
 
+	width = gui_prop_get_guint32(
+				PROP_GNET_STATS_DROP_REASONS_COL_WIDTHS, NULL, 0, 0);
 	for (n = 0; n < 2; n++) {
 		GtkTreeIter iter;
 		gint i;
@@ -627,8 +620,10 @@ void gnet_stats_gui_init(void)
 				0, msg_drop_str[i], 1, "-", -1);
 		}
 
-		add_column(treeview, n, n == 0 ? "Type" : "Count");
+		add_column(treeview, n, width[n], (gfloat) n != 0,
+			n == 0 ? "Type" : "Count");
 	}
+	G_FREE_NULL(width);
 
     gtk_tree_view_set_model(treeview, model);
 	g_object_unref(model);
@@ -640,6 +635,8 @@ void gnet_stats_gui_init(void)
 	model = GTK_TREE_MODEL(
 		gtk_list_store_new(2, G_TYPE_STRING, G_TYPE_STRING));
 
+	width = gui_prop_get_guint32(
+				PROP_GNET_STATS_GENERAL_COL_WIDTHS, NULL, 0, 0);
 	for (n = 0; n < 2; n++) {
 		GtkTreeIter iter;
 		gint i;
@@ -649,8 +646,10 @@ void gnet_stats_gui_init(void)
 			gtk_list_store_set(GTK_LIST_STORE(model), &iter,
 				0, general_type_str[i], 1, "-", -1);
 		}
-		add_column(treeview, n, n == 0 ? "Type" : "Count");
+		add_column(treeview, n, width[n], (gfloat) n != 0,
+			n == 0 ? "Type" : "Count");
 	}
+	G_FREE_NULL(width);
 
     gtk_tree_view_set_model(treeview, model);
 	g_object_unref(model);
@@ -665,13 +664,17 @@ void gnet_stats_gui_init(void)
 			G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING,
 			G_TYPE_STRING, G_TYPE_STRING));
 
+	width = gui_prop_get_guint32(
+				PROP_GNET_STATS_RECV_COL_WIDTHS, NULL, 0, 0);
 	for (n = 0; n < STATS_FLOWC_COLUMNS; n++) {
     	gchar buf[16];
 
 		g_snprintf(buf, sizeof(buf), "%d%c", n-1,
 				(n+1) < STATS_RECV_COLUMNS ? '\0' : '+');
-		add_column(treeview, n, n == 0 ? "Type" : buf);
+		add_column(treeview, n, width[n], (gfloat) n != 0,
+			n == 0 ? "Type" : buf);
 	}
+	G_FREE_NULL(width);
 
 	for (n = 0; n < MSG_TYPE_COUNT; n++) {
 		GtkTreeIter iter;
