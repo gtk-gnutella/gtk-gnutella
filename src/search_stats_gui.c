@@ -255,18 +255,10 @@ static void search_stats_tally(const word_vec_t * vec)
  * Clear the list, empty the hash table.
  */
 void search_stats_gui_reset(void)
-    {
-    GtkWidget *clist_search_stats = 
-            lookup_widget(main_window, "clist_search_stats");
-
+{
 	empty_hash_table();
-	gtk_clist_clear(GTK_CLIST(clist_search_stats));
-
-	/* if no longer in use, free up all the mem */
-	if (!search_stats_enabled) {
-		g_hash_table_destroy(stat_hash);
-		stat_hash = NULL;
-	}
+	gtk_clist_clear(GTK_CLIST(
+        lookup_widget(main_window, "clist_search_stats")));
 }
 
 void search_stats_gui_set_type(gint type)
@@ -335,6 +327,8 @@ void search_stats_gui_init(void)
 void search_stats_gui_shutdown(void)
 {
     search_stats_gui_set_type(NO_SEARCH_STATS);
+    g_hash_table_destroy(stat_hash);
+	stat_hash = NULL;
 }
 
 /*
