@@ -143,7 +143,55 @@ static guchar blank_guid[16] = { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 };
 
 extern gint sha1_eq(gconstpointer a, gconstpointer b);
 
-/* ----------------------------------------- */
+/***
+ *** Sources API
+ ***/
+static struct event *src_events[EV_SRC_EVENTS] = {
+    NULL, NULL, NULL, NULL };
+
+static idtable_t *src_handle_map = NULL;
+
+static void src_init(void)
+{
+    src_handle_map = idtable_new(32, 32);
+
+    src_events[EV_SRC_ADDED]          = event_new("src_added");
+    src_events[EV_SRC_REMOVED]        = event_new("src_removed");
+    src_events[EV_SRC_INFO_CHANGED]   = event_new("src_info_changed");
+    src_events[EV_SRC_STATUS_CHANGED] = event_new("src_status_changed");
+}
+
+static void src_close(void)
+{
+    guint n;
+
+    // See FIXME in download_close()!!
+    //g_assert(idtable_ids(src_handle_map) == 0);
+    idtable_destroy(src_handle_map);
+
+    for (n = 0; n < G_N_ELEMENTS(src_events); n ++)
+        event_destroy(src_events[n]);
+}
+
+void src_add_listener(src_listener_t cb, gnet_src_ev_t ev, 
+    frequency_t t, guint32 interval)
+{
+    g_assert(ev < EV_SRC_EVENTS);
+
+    event_add_subscriber(src_events[ev], (GCallback) cb,
+        t, interval);
+}
+
+void src_remove_listener(src_listener_t cb, gnet_src_ev_t ev)
+{
+    g_assert(ev < EV_SRC_EVENTS);
+
+    event_remove_subscriber(src_events[ev], (GCallback) cb);
+}
+
+/***
+ *** Traditional downloads API
+ ***/
 
 #ifdef USE_GTK2
 #define g_strdown(s) strlower((s), (s))
@@ -280,6 +328,8 @@ void download_init(void)
 	dl_by_ip = g_hash_table_new(dl_ip_hash, dl_ip_eq);
 	dl_count_by_name = g_hash_table_new(g_str_hash, g_str_equal);
 	dl_count_by_sha1 = g_hash_table_new(g_str_hash, g_str_equal);
+
+    src_init();
 }
 
 /*
@@ -420,8 +470,10 @@ void download_timer(time_t now)
 		}
 	}
 
-	if (clear_downloads)
-		download_clear_stopped(FALSE, FALSE);
+	download_clear_stopped(
+        clear_complete_downloads, 
+        clear_failed_downloads,
+        FALSE);
 
 	download_free_removed();
 
@@ -1086,20 +1138,20 @@ gint download_remove_all_with_sha1(const guchar *sha1)
  * GUI operations
  */
 
-/* Remove stopped downloads */
+/* 
+ * download_clear_stopped:
+ * 
+ * Remove stopped downloads. 
+ * complete == TRUE: removes DONE | COMPLETED
+ * failed == TRUE:   removes ERROR | ABORTED 
+ * now == TRUE:      remove immediately, else remove only downloads
+ *                   idle since at least 3 seconds 
+ */
 
-void download_clear_stopped(gboolean all, gboolean now)
+void download_clear_stopped(gboolean complete, gboolean failed, gboolean now)
 {
 	GSList *l = sl_unqueued;
 	time_t current_time = 0;
-
-	/*
-	 * If all == TRUE: remove DONE | COMPLETED | ERROR | ABORTED,
-	 * else remove only DONE | COMPLETED (partial chunk done).
-	 *
-	 * If now == TRUE: remove immediately, else remove only downloads
-	 * idle since at least 3 seconds
-	 */
 
 	if (l && !now)
 		current_time = time(NULL);
@@ -1121,13 +1173,18 @@ void download_clear_stopped(gboolean all, gboolean now)
 			continue;
 		}
 
-		if (all) {
-			if (now || (current_time - d->last_update) > 3)
+        if (now || (current_time - d->last_update) > 3) {
+            if (
+                (complete && (
+                    d->status == GTA_DL_DONE || 
+                    d->status == GTA_DL_COMPLETED)) 
+                ||
+                (failed && (
+                    d->status == GTA_DL_ERROR ||
+                    d->status == GTA_DL_ABORTED ))
+            )
 				download_free(d);
-		} else if (d->status == GTA_DL_DONE || d->status == GTA_DL_COMPLETED) {
-			if (now || (current_time - d->last_update) > 3)
-				download_free(d);
-		}
+        }
 	}
 
 	gui_update_download_abort_resume();
@@ -2447,6 +2504,7 @@ static void create_download(
 	if (server == NULL)
 		server = allocate_server(guid, ip, port);
 
+    d->src_handle = idtable_new_id(src_handle_map, d);
 	d->server = server;
 	d->list_idx = -1;
 
@@ -2688,6 +2746,7 @@ static struct download *download_clone(struct download *d)
     fi = d->file_info;
 
 	*cd = *d;		                /* Struct copy */
+    cd->src_handle = idtable_new_id(src_handle_map, cd); /* new handle */
     cd->file_info = NULL;           /* has not been added to fi sources list */
 	file_info_add_source(fi, cd);   /* add clonded source */
 
@@ -2946,6 +3005,8 @@ void download_free(struct download *d)
 
 	atom_str_free(d->file_name);
 	file_info_free(d->file_info, FALSE);		/* Keep fileinfo around */
+
+    idtable_free_id(src_handle_map, d->src_handle);
 
 	sl_removed = g_slist_prepend(sl_removed, d);
 
@@ -6161,6 +6222,17 @@ void download_close(void)
 		wfree(d, sizeof(*d));
 	}
 
+    /* 
+     * FIXME:
+     * It would be much cleaner if all downloads would be properly freed
+     * by calling download_free because thier handles would then be
+     * freed and we can assert that the src_handle_map is empty when
+     * src_close is called. (see src_close)
+     * -- Richard, 24 Mar 2003
+     */
+
+    src_close();
+
 	g_slist_free(sl_downloads);
 	g_slist_free(sl_unqueued);
 	g_hash_table_destroy(pushed_downloads);
@@ -6195,7 +6267,7 @@ gchar *build_url_from_download(struct download *d)
      * Since url_escape() creates a new string ONLY if
      * escaping is necessary, we have to check this and
      * free memory accordingly.
-     *     --BLUE, 30/04/2002
+     * -- Richard, 30 Apr 2002
      */
 
     if (buf != d->file_name) {

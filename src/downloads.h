@@ -101,6 +101,8 @@ struct dl_queued {
 
 
 struct download {
+    gnet_src_t src_handle;      /* Handle */
+
 	gchar error_str[256];	/* Used to sprintf() error strings with vars */
 	guint32 status;			/* Current status of the download */
 	gpointer io_opaque;		/* Opaque I/O callback information */
@@ -294,7 +296,7 @@ void download_free(struct download *);
 void download_push_ack(struct gnutella_socket *);
 void download_fallback_to_push(struct download *, gboolean, gboolean);
 void download_pickup_queued(void);
-void download_clear_stopped(gboolean, gboolean);
+void download_clear_stopped(gboolean, gboolean, gboolean);
 void download_abort(struct download *);
 void download_resume(struct download *);
 void download_start(struct download *, gboolean);
