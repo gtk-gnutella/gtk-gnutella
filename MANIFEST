@@ -1,5 +1,12 @@
+AUTHORS
+INSTALL
+LICENSE
+README
+TODO
 config_h.SH                  Produces config.h
 Configure                    Portability tool
+gtk2-gnutella.glade
+gtk-gnutella.glade
 Makefile.SH
 po/es.po
 po/fr.po
@@ -269,6 +276,8 @@ src/zalloc.h
 src/zlib_util.c
 src/zlib_util.h
 U/modified/ccflags.U
+U/modified/Csym.U
+U/modified/libc.U
 U/modified/Myinit.U
 U/modified/prototype.U
 U/new/d_bindtxtcode.U
