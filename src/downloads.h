@@ -210,12 +210,6 @@ extern GSList *sl_unqueued;
 
 void download_init(void);
 void download_timer(time_t now);
-void download_new(gchar *,
-	guint32, guint32, guint32, guint16, gchar *, guchar *, time_t,
-    gboolean, struct dl_file_info *);
-void download_auto_new(gchar *,
-	guint32, guint32, guint32, guint16, gchar *, guchar *, time_t,
-    gboolean, struct dl_file_info *);
 void download_info_change_all(
 	struct dl_file_info *old_fi, struct dl_file_info *new_fi);
 void download_queue(struct download *d, const gchar *fmt, ...);
@@ -234,7 +228,6 @@ void download_start(struct download *, gboolean);
 void download_requeue(struct download *);
 void download_send_request(struct download *);
 void download_retry(struct download *);
-void download_index_changed(guint32, guint16, guchar *, guint32, guint32);
 void download_close(void);
 gint download_remove_all_from_peer(const gchar *guid, guint32 ip, guint16 port);
 gint download_remove_all_named(const gchar *name);
