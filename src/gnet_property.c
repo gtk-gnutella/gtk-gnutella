@@ -973,7 +973,7 @@ prop_set_t *gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[38].name = "hard_ttl_limit";
-    gnet_property->props[38].desc = "Maximum hard TTL limit (hops + TTL) on message we relay.  This should be greater than the standard TTL=7, because it also applied to routed-back messages (query hits) that could be re-routed in case a connection is lost.  Standard broadcasted messages have their TTL limited by the maximum TTL you configure, and that limit should be much lower than the value of this parameter.";
+    gnet_property->props[38].desc = "Maximum hard TTL limit (hops + TTL) on messages we relay.  This should be greater than the standard TTL=7, because it also applied to routed-back messages (query hits) that could be re-routed in case a connection is lost.  Standard broadcasted messages have their TTL limited by the maximum TTL you configure, and that limit should be much lower than the value of this parameter.";
     gnet_property->props[38].prop_changed_listeners = NULL;
     gnet_property->props[38].save = TRUE;
     gnet_property->props[38].vector_size = 1;
@@ -1378,7 +1378,7 @@ prop_set_t *gnet_prop_init(void) {
     gnet_property->props[60].type               = PROP_TYPE_GUINT32;
     gnet_property->props[60].data.guint32.def   = &max_high_ttl_msg_def;
     gnet_property->props[60].data.guint32.value = &max_high_ttl_msg;
-    gnet_property->props[60].data.guint32.max   = 99;
+    gnet_property->props[60].data.guint32.max   = 10000;
     gnet_property->props[60].data.guint32.min   = 0;
 
 
@@ -1397,7 +1397,7 @@ prop_set_t *gnet_prop_init(void) {
     gnet_property->props[61].type               = PROP_TYPE_GUINT32;
     gnet_property->props[61].data.guint32.def   = &max_high_ttl_radius_def;
     gnet_property->props[61].data.guint32.value = &max_high_ttl_radius;
-    gnet_property->props[61].data.guint32.max   = 99;
+    gnet_property->props[61].data.guint32.max   = 10;
     gnet_property->props[61].data.guint32.min   = 0;
 
 
@@ -1736,7 +1736,7 @@ prop_set_t *gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[79].name = "local_netmasks";
-    gnet_property->props[79].desc = "List of networks considered local";
+    gnet_property->props[79].desc = "List of networks considered local.  This is a list of IP addresses, separated by ';'.  The IP address can be given out fully, as in 192.168.0.1, or be optionally followed by '/' and a network mask prefix length. For instance, 192.168.0.1/24 would represent the whole 192.168.0.* network.";
     gnet_property->props[79].prop_changed_listeners = NULL;
     gnet_property->props[79].save = TRUE;
     gnet_property->props[79].vector_size = 1;
