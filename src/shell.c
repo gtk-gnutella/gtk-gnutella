@@ -182,9 +182,7 @@ static void shell_unescape(gchar *s)
 			continue;
 		}
 
-		*c_write = *c_read;
-		c_read++;
-		c_write++;
+		*c_write++ = *c_read++;
 	}
 	*c_write = '\0';
 }
@@ -661,7 +659,7 @@ error:
 
 void print_hsep_table(gnutella_shell_t *sh, hsep_triple *table, int triples, hsep_triple *nonhsepptr)
 {
-	guint i;
+	gint i;
 	char *hopsstr = _("Hops");
 	char *nodesstr = _("Nodes");
 	char *filesstr = _("Files");
@@ -692,7 +690,7 @@ void print_hsep_table(gnutella_shell_t *sh, hsep_triple *table, int triples, hse
 		size_t n;
 	       
 		if ((i % 4) == 0)
-			n = gm_snprintf(buf, sizeof(buf), "%d", i/4 + 1);
+			n = gm_snprintf(buf, sizeof(buf), "%d", i / 4 + 1);
 		else if ((i % 4) == 3)
 			n = strlen(short_kb_size64(*t++ + nonhsep[HSEP_IDX_KIB]));
 		else if ((i % 4) == 2)
@@ -823,9 +821,11 @@ static void shell_write_data(gnutella_shell_t *sh)
 	sh->last_update = time((time_t *) NULL);
 
 	s = sh->socket;
-	written = write(s->file_desc, sh->outbuf, sh->outpos);
-
+	written = s->wio.write(&s->wio, sh->outbuf, sh->outpos);
 	if (written < 0) {
+		if (errno == EAGAIN)
+			return;
+
 		shell_shutdown (sh);
 		sh->outpos = 0;
 	}
@@ -867,8 +867,10 @@ static void shell_read_data(gnutella_shell_t *sh)
 	if (s->pos >= sizeof(s->buffer))
 		g_warning("Remote shell: Read more than buffer size.\n");
 	else {
-		rc = read(s->file_desc, s->buffer+s->pos,
-				sizeof(s->buffer)-1-s->pos);
+		gchar *p = s->buffer + s->pos;
+		size_t size = sizeof(s->buffer) - s->pos - 1;
+		
+		rc = s->wio.read(&s->wio, p, size);
 		if (rc <= 0) {
 			if (rc == 0) {
 				if (s->pos == 0) {
@@ -896,6 +898,7 @@ static void shell_read_data(gnutella_shell_t *sh)
 		case READ_OVERFLOW:
 			g_warning("Line is too long (from shell at %s)\n",
 				ip_port_to_gchar(s->ip, s->port));
+			shell_destroy(sh);
 			return;
 		case READ_DONE:
 			if (s->pos != parsed)
@@ -980,7 +983,7 @@ static gboolean shell_write(gnutella_shell_t *sh, const gchar *s)
 	sh->outpos += len;
 
 	if (sh->write_tag == 0) {
-		sh->write_tag = inputevt_add(sh->socket->file_desc, 
+		sh->write_tag = inputevt_add(sh->socket->wio.fd(&sh->socket->wio), 
 			INPUT_EVENT_EXCEPTION | INPUT_EVENT_WRITE,
 			shell_handle_data, (gpointer) sh);
 	}
@@ -1111,7 +1114,7 @@ void shell_add(struct gnutella_socket *s)
 	sh = shell_new(s);
 	
 	g_assert(s->gdk_tag == 0);
-	s->gdk_tag = inputevt_add(s->file_desc,
+	s->gdk_tag = inputevt_add(s->wio.fd(&s->wio),
 		INPUT_EVENT_READ | INPUT_EVENT_EXCEPTION,
 		shell_handle_data, (gpointer) sh);
 
