@@ -220,7 +220,7 @@ void search_store_xml(void)
 		gchar *filename;
 
         if (gui_debug >= 3)
-            printf("saved searches file: %s\n", x_tmp);
+            g_message("saved searches file: %s\n", filename_new);
 
 		filename = make_pathname(settings_gui_config_dir(), search_file_xml);
 
