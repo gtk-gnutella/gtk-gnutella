@@ -428,6 +428,7 @@ void uploads_gui_update_display(time_t now)
     gnet_upload_status_t status;
     GSList *to_remove = NULL;
     GSList *sl;
+	gboolean all_removed = TRUE;
 
     if (last_update == now)
         return;
@@ -449,6 +450,8 @@ void uploads_gui_update_display(time_t now)
         } else {
             if (clear_uploads && (now - data->last_update > REMOVE_DELAY))
                 to_remove = g_slist_prepend(to_remove, (gpointer)row);
+			else
+				all_removed = FALSE;	/* Not removing all "expired" ones */
         }
     }
 
@@ -460,6 +463,11 @@ void uploads_gui_update_display(time_t now)
     }
 
     gtk_clist_thaw(clist);
+
+	if (all_removed)
+		gtk_widget_set_sensitive(
+			lookup_widget(main_window, "button_uploads_clear_completed"),
+			FALSE);
 }
 
 void uploads_gui_clear_completed(void)
@@ -488,3 +496,4 @@ void uploads_gui_clear_completed(void)
 	gtk_widget_set_sensitive(
         lookup_widget(main_window, "button_uploads_clear_completed"), FALSE);
 }
+
