@@ -2155,7 +2155,7 @@ static gchar *file_info_new_outname(const gchar *name)
 {
 	gint i;
 	gchar xuid[16];
-	gint flen;
+	size_t flen;
 	const gchar *escaped = escape_filename(name);
 	gchar *result;
 	const gchar empty[] = "noname";
@@ -2178,7 +2178,7 @@ static gchar *file_info_new_outname(const gchar *name)
 	 */
 
 	flen = g_strlcpy(fi_tmp, escaped, sizeof fi_tmp);
-	if (flen >= sizeof fi_tmp) {
+	if ((size_t) flen >= sizeof fi_tmp) {
 		g_warning("file_info_new_outname: Filename was truncated: \"%s\"",
 			fi_tmp);
 	}
@@ -3202,7 +3202,7 @@ enum dl_chunk_status file_info_find_hole(
 		goto selected;
 	}
 
-	g_assert(fi->lifecount > busy);		/* Or we'd found a chunk before */
+	g_assert(fi->lifecount > (gint32) busy); /* Or we'd found a chunk before */
 
 	if (use_aggressive_swarming) {
 		guint32 longest_from = 0, longest_to = 0;
@@ -3518,20 +3518,19 @@ void file_info_spot_completed_orphans(void)
 	g_hash_table_foreach(fi_by_outname, fi_spot_completed_kv, NULL);
 }
 
-void fi_add_listener(GCallback cb, gnet_fi_ev_t ev,
+void fi_add_listener(fi_listener_t cb, gnet_fi_ev_t ev,
     frequency_t t, guint32 interval)
 {
     g_assert(ev < EV_FI_EVENTS);
 
-    event_add_subscriber(fi_events[ev], (GCallback) cb,
-        t, interval);
+    event_add_subscriber(fi_events[ev], (GCallback) cb, t, interval);
 }
 
-void fi_remove_listener(GCallback cb, gnet_fi_ev_t ev)
+void fi_remove_listener(fi_listener_t cb, gnet_fi_ev_t ev)
 {
     g_assert(ev < EV_FI_EVENTS);
 
-    event_remove_subscriber(fi_events[ev], cb);
+    event_remove_subscriber(fi_events[ev], (GCallback) cb);
 }
 
 gnet_fi_info_t *fi_get_info(gnet_fi_t fih)
@@ -3853,9 +3852,10 @@ gint file_info_available_ranges(struct dl_file_info *fi, gchar *buf, gint size)
 	struct dl_file_chunk **fc_ary;
 	gint length;
 
+	g_assert(size >= 0);
 	fmt = header_fmt_make("X-Available-Ranges", ", ", size);
 
-	if (header_fmt_length(fmt) + sizeof("bytes 0-512\r\n") >= size)
+	if (header_fmt_length(fmt) + sizeof("bytes 0-512\r\n") >= (size_t) size)
 		goto emit;				/* Sorry, not enough room for anything */
 
 	for (l = fi->chunklist; l != NULL; l = g_slist_next(l)) {
@@ -3931,7 +3931,7 @@ gint file_info_available_ranges(struct dl_file_info *fi, gchar *buf, gint size)
 
 		len = header_fmt_length(fmt);
 
-		if (len + sizeof("bytes 0-512\r\n") >= maxfmt)
+		if ((gint) (len + sizeof("bytes 0-512\r\n")) >= maxfmt)
 			break;			/* No more room, no need to continue */
 
 		if (header_fmt_value_fits(fmt, rw, maxfmt)) {
