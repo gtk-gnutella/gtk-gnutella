@@ -1,5 +1,11 @@
 # since last version
 
+- (2002.05.12 - RAM)
+  * Made destruction of the RX stack a true depth-first operation.
+  * The RX inflater will stop delivering packets as soon as RX is disabled.
+  * The TX deflater writev() routine was not accurately detecting flow-control.
+  * Need to dispose of the RX stack asynchronously, not on the interrupt stack.
+
 - (2002.05.11 - Richard)
   * Added a saftey call to disable the tabs of notebook_main even
     if left on in glade.
