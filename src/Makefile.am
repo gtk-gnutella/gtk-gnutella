@@ -75,7 +75,9 @@ gtk_gnutella_SOURCES = \
 	gtkcolumnchooser.c gtkcolumnchooser.h \
 	sha1.c sha1.h huge.c huge.h \
 	base32.c base32.h \
-	utf8.c utf8.h
+	utf8.c utf8.h \
+	qrp.c qrp.h \
+	ban.c ban.h
 
 gtk_gnutella_LDADD = @GTK_LIBS@ -lz
 
