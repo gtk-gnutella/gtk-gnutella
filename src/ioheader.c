@@ -149,13 +149,13 @@ nextline:
 		return;
 		/* NOTREACHED */
 	case READ_DONE:
-		if (s->pos != parsed)
+		if (s->pos != (size_t) parsed)
 			memmove(s->buffer, s->buffer + parsed, s->pos - parsed);
 		s->pos -= parsed;
 		break;
 	case READ_MORE:		/* ok, but needs more data */
 	default:
-		g_assert(parsed == s->pos);
+		g_assert((size_t) parsed == s->pos);
 		s->pos = 0;
 		return;
 	}
