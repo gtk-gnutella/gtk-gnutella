@@ -98,7 +98,7 @@ struct mesh_info_val {
 	gpointer cq_ev;					/* Scheduled cleanup callout event */
 };
 
-#define MESH_INFO_TIMEOUT	600		/* Keep info 10 minutes */
+#define MESH_INFO_TIMEOUT	(600*1000)	/* Keep info 10 minutes (unit: ms) */
 
 extern cqueue_t *callout_queue;
 
@@ -709,6 +709,10 @@ static void mi_clean(cqueue_t *cq, gpointer obj)
 	g_assert(obj == key);
 	g_assert(((struct mesh_info_val *) value)->cq_ev);
 
+	if (dbg > 4)
+		printf("upload MESH info (%s/%s) discarded\n",
+			ip_to_gchar(mik->ip), sha1_base32(mik->sha1));
+
 	g_hash_table_remove(mesh_info, mik);
 	((struct mesh_info_val *) value)->cq_ev = NULL;
 	mi_free_kv(key, value, NULL);
@@ -746,6 +750,10 @@ static guint32 mi_get_stamp(guint32 ip, guchar *sha1, time_t now)
 		oldstamp = miv->stamp;
 		miv->stamp = (guint32) now;
 
+		if (dbg > 4)
+			printf("upload MESH info (%s/%s) has stamp=%u\n",
+				ip_to_gchar(ip), sha1_base32(sha1), oldstamp);
+
 		return oldstamp;
 	}
 
@@ -758,6 +766,10 @@ static guint32 mi_get_stamp(guint32 ip, guchar *sha1, time_t now)
 	miv->cq_ev = cq_insert(callout_queue, MESH_INFO_TIMEOUT, mi_clean, mik);
 
 	g_hash_table_insert(mesh_info, mik, miv);
+
+	if (dbg > 4)
+		printf("new upload MESH info (%s/%s) stamp=%u\n",
+			ip_to_gchar(ip), sha1_base32(sha1), (guint32) now);
 
 	return 0;			/* Don't remember sending info about this file */
 }
@@ -1451,10 +1463,11 @@ static void upload_http_sha1_add(gchar *buf, gint *retval, gpointer arg)
 
 	if (rw < length) {
 		time_t now = time(NULL);
-		guint32 last_sent = mi_get_stamp(a->u->ip, a->sf->sha1_digest, now);
+		guint32 last_sent = mi_get_stamp(a->u->socket->ip,
+			a->sf->sha1_digest, now);
 
 		rw += dmesh_alternate_location(a->sf->sha1_digest,
-			&buf[rw], length - rw, a->u->ip, last_sent);
+			&buf[rw], length - rw, a->u->socket->ip, last_sent);
 	}
 
 	*retval = rw;
