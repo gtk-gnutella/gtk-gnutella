@@ -38,7 +38,7 @@ RCSID("$Id$");
  * for 64-bit CPUs is required. It is used only for
  * optimization of time. Otherwise it does nothing.
  */
-#if G_MAXULONG >= G_MAXUINT64
+#if !(G_MAXULONG < 0xffffffffffffffffULL)
 #	define OPTIMIZE_FOR_64BIT
 #endif
 
