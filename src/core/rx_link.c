@@ -57,7 +57,7 @@ struct attr {
  *
  * Invoked when the input file descriptor has more data available.
  */
-static void is_readable(gpointer data, gint source, inputevt_cond_t cond)
+static void is_readable(gpointer data, gint unused_source, inputevt_cond_t cond)
 {
 	rxdrv_t *rx = (rxdrv_t *) data;
 	struct attr *attr = (struct attr *) rx->opaque;
@@ -66,6 +66,7 @@ static void is_readable(gpointer data, gint source, inputevt_cond_t cond)
 	pmsg_t *mb;
 	gint r;
 
+	(void) unused_source;
 	g_assert(attr->bio);			/* Input enabled */
 
 	if (cond & INPUT_EVENT_EXCEPTION) {
@@ -121,10 +122,11 @@ error:
  * Initialize the driver.
  * Always succeeds, so never returns NULL.
  */
-static gpointer rx_link_init(rxdrv_t *rx, gpointer args)
+static gpointer rx_link_init(rxdrv_t *rx, gpointer unused_args)
 {
 	struct attr *attr;
 
+	(void) unused_args;
 	g_assert(rx);
 
 	attr = walloc(sizeof(*attr));
