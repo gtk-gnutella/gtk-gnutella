@@ -229,11 +229,62 @@ void host_add(struct gnutella_node *n, guint32 t_ip, guint16 t_port,
 		host_remove(g_list_first(sl_catched_hosts)->data, TRUE);
 }
 
+static FILE *hosts_r_file = (FILE *) NULL;
+
+/*
+ * host_get_caught
+ *
+ * Get a host from our caught host list.
+ *
+ * The returned host is removed from the list, but it is up to the caller
+ * to free the host structure if it is no longer needed.
+ */
+struct gnutella_host *host_get_caught(void)
+{
+	struct gnutella_host *h;
+	GList *link;
+	gint row;
+
+	g_assert(sl_catched_hosts);		/* Must not call if no host in list */
+
+	/*
+	 * If we're done reading from the host file, get latest host, at the
+	 * tail of the list.  Otherwise, get the first host in that list.
+	 */
+
+	link = (hosts_r_file == NULL) ?
+		g_list_last(sl_catched_hosts) : g_list_first(sl_catched_hosts);
+
+	h = (struct gnutella_host *) link->data;
+	sl_catched_hosts = g_list_remove_link(sl_catched_hosts, link);
+	host_ht_remove(h);
+
+	/*
+	 * This is potentially inefficient if the find_row_from_data() does
+	 * a sequential search.  They should be doing a hash lookup though.
+	 * Well, I hope they do.
+	 *
+	 * Also, it is unfortunate, but we somehow duplicate the code from
+	 * host_remove(), the difference being that we used g_list_remove_link()
+	 * above to remove the element instead of giving the host and letting
+	 * the list iterate to find it.
+	 *
+	 *		--RAM, 30/12/2001
+	 */
+
+	row = gtk_clist_find_row_from_data(
+		GTK_CLIST(clist_host_catcher), (gpointer) h);
+	gtk_clist_remove(GTK_CLIST(clist_host_catcher), row);
+
+	if (!sl_catched_hosts)
+		gtk_widget_set_sensitive(button_host_catcher_clear, FALSE);
+
+	return h;
+}
+
 /*
  * Hosts text files
  */
-
-FILE *hosts_r_file = (FILE *) NULL;
 
 gint hosts_reading_func(gpointer data)
 {
@@ -494,8 +545,7 @@ void reply_init(struct gnutella_node *n)
 void host_close(void)
 {
 	while (sl_catched_hosts)
-		host_remove((struct gnutella_host *) sl_catched_hosts->data,
-					FALSE);
+		host_remove((struct gnutella_host *) sl_catched_hosts->data, FALSE);
 
 	g_hash_table_destroy(ht_catched_hosts);
 

@@ -24,6 +24,7 @@ void host_init(void);
 gboolean find_host(guint32, guint16);
 void host_remove(struct gnutella_host *, gboolean);
 void host_add(struct gnutella_node *, guint32, guint16, gboolean);
+struct gnutella_host *host_get_caught(void);
 void send_init(struct gnutella_node *);
 void reply_init(struct gnutella_node *);
 void ping_stats_add(struct gnutella_node *);
