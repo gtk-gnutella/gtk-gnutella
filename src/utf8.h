@@ -51,9 +51,9 @@ gint utf8_to_iso8859(gchar *s, gint len, gboolean space);
  * Necessary for GTK+ 2.x version because it expects almost any string
  * to be encoded as UTF-8.
  */
-gchar *iso_8859_1_to_utf8(gchar *fromstr);
-gchar *locale_to_utf8(gchar *str, size_t len);
-gchar *lazy_locale_to_utf8(gchar *str, size_t len);
+gchar *iso_8859_1_to_utf8(const gchar *fromstr);
+gchar *locale_to_utf8(const gchar *str, size_t len);
+gchar *lazy_locale_to_utf8(const gchar *str, size_t len);
 
 #ifdef USE_GTK2
 /* Necessary for Mac OS X, as it requires filenames to be UTF-8 encoded
@@ -70,8 +70,8 @@ gchar *locale_to_utf8_nfd(const gchar *str, size_t len);
  */
 
 gboolean is_ascii_string(const gchar *str);
-gchar *utf8_to_locale(gchar *str, size_t len);
-gchar *lazy_utf8_to_locale(gchar *str, size_t len);
+gchar *utf8_to_locale(const gchar *str, size_t len);
+gchar *lazy_utf8_to_locale(const gchar *str, size_t len);
 
 #ifdef USE_ICU
 

@@ -721,7 +721,7 @@ static inline char *g_iconv_complete(GIConv cd,
  *				strings	e.g., to view strings in the GUI. The conversion
  *				MAY be inappropriate!
  */
-gchar *locale_to_utf8(gchar *str, size_t len)
+gchar *locale_to_utf8(const gchar *str, size_t len)
 {
 	static gchar outbuf[4096 + 6]; /* an UTF-8 char is max. 6 bytes large */
 
@@ -730,7 +730,7 @@ gchar *locale_to_utf8(gchar *str, size_t len)
 	if (0 == len)
 		len = strlen(str);
 	if (utf8_is_valid_string(str, len))
-		return str;
+		return (gchar *) str; /* Override const */
 	else
 		return g_iconv_complete(cd_locale_to_utf8,
 				str, len, outbuf, sizeof(outbuf) - 7);
@@ -779,7 +779,7 @@ locale_to_utf8_nfd(const gchar *str, size_t len)
 #endif /* USE_GTK2 */
 
 
-gchar *utf8_to_locale(gchar *str, size_t len)
+gchar *utf8_to_locale(const gchar *str, size_t len)
 {
 	static gchar outbuf[4096 + 6]; /* a multibyte char is max. 6 bytes large */
 
@@ -800,7 +800,7 @@ gboolean is_ascii_string(const gchar *str)
     return TRUE;
 }
 
-gchar *iso_8859_1_to_utf8(gchar *fromstr)
+gchar *iso_8859_1_to_utf8(const gchar *fromstr)
 {
 	static gchar outbuf[4096 + 6]; /* a multibyte char is max. 6 bytes large */
 
@@ -810,16 +810,55 @@ gchar *iso_8859_1_to_utf8(gchar *fromstr)
 				fromstr, strlen(fromstr), outbuf, sizeof(outbuf) - 7);
 }
 
-gchar *lazy_utf8_to_locale(gchar *str, size_t len)
+gchar *lazy_utf8_to_locale(const gchar *str, size_t len)
 {
 	gchar *t = utf8_to_locale(str, len);
 	return NULL != t ? t : "<Cannot convert to locale>";
 }
 
-gchar *lazy_locale_to_utf8(gchar *str, size_t len)
+/**
+ * Converts the supplied string ``str'' from the current locale encoding
+ * to a UTF-8 string.  If compiled for GTK+ 2.x this function does also
+ * enforce NFC.
+ *
+ * @param str the string to convert.
+ * @param len the length of ``str''. May be set to zero if ``str'' is 
+ *		  NUL-terminated.
+ *
+ * @returns the converted string or ``str'' if no conversion was necessary.
+ */
+gchar *
+lazy_locale_to_utf8(const gchar *str, size_t len)
 {
-	gchar *t = locale_to_utf8(str, len);
-	return NULL != t ? t : "<Cannot convert to UTF-8>";
+	const gchar *s;
+
+	/* Let's assume that most of the supplied strings are pure ASCII. */
+	if (is_ascii_string(str))
+		return (gchar *) str; /* Override const */
+
+	s = locale_to_utf8(str, len);
+	if (!s)
+		return "<Cannot convert to UTF-8>";
+
+#ifdef USE_GTK2
+	{
+		static gchar buf[4096 + 6];
+		gchar *s_nfc;
+
+		/* Enforce UTF-8 NFC because GTK+ would render a decomposed string
+		 * otherwise (if the string is not in NFC). This is a known GTK+ bug.
+		 */
+
+		s_nfc = g_utf8_normalize(s, (gssize) -1, G_NORMALIZE_NFC);
+		if (0 != strcmp(s, s_nfc)) {
+			g_strlcpy(buf, s_nfc, sizeof buf);
+			s = buf;
+		}
+		G_FREE_NULL(s_nfc);
+	}
+#endif
+
+	return (gchar *) s; /* Override const */
 }
 
 #ifdef USE_ICU
