@@ -179,7 +179,7 @@ void gnet_stats_count_dropped(gnutella_node_t *n, msg_drop_reason_t reason)
 {
 	guint32 size;
 	guint type;
-	g_assert(reason >= 0 && reason < MSG_DROP_REASON_COUNT);
+	g_assert((gint) reason >= 0 && reason < MSG_DROP_REASON_COUNT);
 
     size = n->size + sizeof(n->header);
 	type = stats_lut[n->header.function];
@@ -195,7 +195,7 @@ void gnet_stats_count_general(gnutella_node_t *n, gnr_stats_t type, guint32 x)
 {
 	/* XXX - parameter `n' is unused, remove? */
 
-	g_assert(type >= 0 && type < GNR_TYPE_COUNT);
+	g_assert((gint) type >= 0 && type < GNR_TYPE_COUNT);
 
     gnet_stats.general[type] += x;
 }
@@ -204,7 +204,7 @@ void gnet_stats_count_dropped_nosize(
 	gnutella_node_t *n, msg_drop_reason_t reason)
 {
 	guint type;
-	g_assert(reason >= 0 && reason < MSG_DROP_REASON_COUNT);
+	g_assert((gint) reason >= 0 && reason < MSG_DROP_REASON_COUNT);
 
 	type = stats_lut[n->header.function];
 
@@ -255,3 +255,4 @@ void gnet_stats_get(gnet_stats_t *s)
     memcpy(s, &gnet_stats, sizeof(*s));
 }
 
+/* vi: set ts=4: */
