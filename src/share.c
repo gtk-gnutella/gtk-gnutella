@@ -111,58 +111,77 @@ void shared_dir_add(gchar *path)
  *the whole file system.
  */
  
-void recurse_scan(gchar *dir)
+void recurse_scan(gchar *dir, gchar *basedir)
 { 
  GSList *exts = NULL;
   DIR *directory;                                  /* Directory stream used by opendir, readdir etc.. */
   struct dirent *dir_entry;
   gchar *full = NULL , *sl = "/";
+  gchar *file_directory = NULL;
+  gchar *file_directory_path = NULL;
 
   struct shared_file *found = NULL;
   struct stat file_stat;
 
-   if (!(directory = opendir(dir))) return;
+  if (!(directory = opendir(dir))) return;
 
   while ((dir_entry = readdir(directory))) {
 
-    if (*dir+(strlen(dir)-1) ==  '/')
+	if (dir_entry->d_name[0] == '.') continue;
+
+    if (dir[strlen(dir)-1] ==  '/')
       full = g_strconcat(dir,  dir_entry->d_name, NULL);
     else
       full = g_strconcat(dir, sl, dir_entry->d_name, NULL);
 
-  if (dir_entry->d_name[0] == '.') continue;
+	if (is_directory(full)) {
+	  g_free(full);
+	  if (dir[strlen(dir)-1] ==  '/')
+		full = g_strconcat(dir, dir_entry->d_name, sl, NULL);
+	  else
+		full = g_strconcat(dir, sl, dir_entry->d_name, sl, NULL);
 
-  if (is_directory(full)) { 
+	  recurse_scan(full, basedir);
+	  g_free(full);
+	  continue;
+	}
 
-    if (*dir+(strlen(dir)-1) ==  '/')
-      full = g_strconcat(dir, &dir_entry->d_name[1], sl, NULL);
-    else
-      full = g_strconcat(dir, dir_entry->d_name, sl, NULL);
+	for (exts = extensions; exts; exts = exts->next) 
+	  if (strstr(dir_entry->d_name, exts->data)) {
 
-    recurse_scan(full);}
+		if (stat(full, &file_stat) == -1) {
+		  printf("GTK_GNUTELLA: Can't stat %s.", full);
+		  continue;
+		}
 
-    for (exts = extensions; exts; exts = exts->next) 
-      if (strstr(dir_entry->d_name, exts->data)) {
-	
-	while (stat(full, &file_stat) == -1) {
-	  printf("GTK_GNUTELLA: Can't stat."); continue; }
+		found = (struct shared_file *)g_malloc0(sizeof(struct shared_file));
 
-	found = (struct shared_file *)g_malloc0(sizeof(struct shared_file));
+		/* As long as we've got one file in this directory (so it'll be
+		 * freed in share_scan()), allocate these strings.
+		 */
+		if(!file_directory)
+		  file_directory = g_strdup(dir);
+		if(!file_directory_path) {
+		  file_directory_path = g_strdup(dir + strlen(basedir));
+		  g_strdown(file_directory_path);
+		}
 
-	found->file_name = strdup(dir_entry->d_name);
-	found->file_directory = strdup(dir);
-	found->file_size = file_stat.st_size;
-	found->file_index = ++files_scanned;
+		found->file_name = g_strdup(dir_entry->d_name);
+		found->file_name_lowercase = g_strdup(found->file_name);
+		g_strdown(found->file_name_lowercase);
+		found->file_directory = file_directory;
+		found->file_directory_path = file_directory_path;
+		found->file_size = file_stat.st_size;
+		found->file_index = ++files_scanned;
 
-	shared_files = g_slist_append(shared_files, found);
+		shared_files = g_slist_append(shared_files, found);
 
-	bytes_scanned += file_stat.st_size;
-	kbytes_scanned += bytes_scanned/1024;
-	bytes_scanned %= 1024;
-
-      }
-
-
+		bytes_scanned += file_stat.st_size;
+		kbytes_scanned += bytes_scanned/1024;
+		bytes_scanned %= 1024;
+		break; /* for loop */
+	  }
+	g_free(full);
   }
   closedir(directory);
 }  
@@ -172,16 +191,37 @@ void recurse_scan(gchar *dir)
 void share_scan(void)
 {
 	GSList *l;
+	gchar *last_dir = NULL, *last_lower_dir = NULL;
 
 	files_scanned = 0;
 	bytes_scanned = 0;
 	kbytes_scanned = 0;
 
-	g_slist_free(shared_files); shared_files = NULL;
+	for (l = shared_files; l; l = l->next) {
+	  struct shared_file *sf = l->data;
+	  g_free(sf->file_name);
+	  g_free(sf->file_name_lowercase);
+	  if(last_dir && strcmp(last_dir, sf->file_directory)) {
+		g_free(last_dir);
+		last_dir = sf->file_directory;
+	  }
+	  if(last_lower_dir && strcmp(last_lower_dir, sf->file_directory_path)) {
+		g_free(last_lower_dir);
+		last_lower_dir = sf->file_directory_path;
+	  }
+	  
+	}
+	if(last_lower_dir) /* free the last one */
+	  g_free(last_lower_dir);
+	if(last_dir)
+	  g_free(last_dir);
 
-       	for (l = shared_dirs; l; l = l->next) recurse_scan((gchar *) l->data);
+	g_slist_free(shared_files);
+	shared_files = NULL;
+
+	for (l = shared_dirs; l; l = l->next)
+	  recurse_scan(l->data, l->data);
 	gui_update_files_scanned();
-
 }
 
 void dejunk(char *str)
@@ -209,10 +249,12 @@ void search_request(struct gnutella_node *n)
   GSList *files = NULL;
   guchar found_files = 0;
   guint32 size = 0, pos = 0, pl = 0;
-  gchar *search, *search2 = NULL;
+  gchar *search;
   guchar *found_data = NULL, *final = NULL;
   struct gnutella_header packet_head;
   struct gnutella_search_results_out search_head; 
+  gchar *last_dir = NULL;
+  gchar *dir_matches = NULL;
 
 	global_searches++;
 
@@ -241,42 +283,41 @@ void search_request(struct gnutella_node *n)
 	if ((strlen(search) < 1)) return;
 
 	dejunk(search);
+	g_strdown(search);
 
 	found_data = (guchar *)g_malloc0(1*sizeof(guchar));
 	
 	/* So far, searches just search for a string match, nothing fancy.. */
 
-	for (files = shared_files; files; files = files->next)
-	  {
+	for (files = shared_files; files; files = files->next) {
+	    struct shared_file *sf = (struct shared_file *)files->data;
 	    
-	    g_strdown(search);
-	    
-	    search2 = g_strdup( ((struct shared_file *)(*files).data)->file_name );
-	    
-	    g_strdown(search2);
+/* 		printf("search %s, directory %s\n", search, ((struct shared_file *)(*files).data)->file_directory); */
 
-	    if (strstr(search2, search)) {
+		if(last_dir != sf->file_directory_path) {
+		  last_dir = sf->file_directory_path;
+		  dir_matches = strstr(last_dir, search);
+		}
 
+	    if (dir_matches || strstr(sf->file_name_lowercase, search)) {
 
 	      /* Add to calling nodes found list. */
 	      found_data = 
-		g_realloc(found_data, (size+8+strlen(((struct shared_file *)(*files).data)->file_name)+2)*sizeof(guchar));
+			g_realloc(found_data, (size + 8 + strlen(sf->file_name) + 2)*sizeof(guchar));
 
-	      WRITE_GUINT32_LE( ((struct shared_file *)(*files).data)->file_index, &found_data[pos]);
+	      WRITE_GUINT32_LE( sf->file_index, &found_data[pos]);
 	      
-	      WRITE_GUINT32_LE( ((struct shared_file *)(*files).data)->file_size, &found_data[pos+4]);
+	      WRITE_GUINT32_LE( sf->file_size, &found_data[pos+4]);
 	      
-	      memcpy(&found_data[pos+8],((struct shared_file *)(*files).data)->file_name, 
-		       strlen(((struct shared_file *)(*files).data)->file_name));
+	      memcpy(&found_data[pos + 8], sf->file_name, strlen(sf->file_name));
 
 		/* the size of the search results header 8 bytes, plus the string length - NULL, plus two NULL's */ 
 	      
-		size += 8+strlen(((struct shared_file *)(*files).data)->file_name)+2;
-	       
+		size += 8 + strlen(sf->file_name) + 2;
 
-		pos = size-2;
+		pos = size - 2;
 
-		found_data[pos] = '\0'; found_data[pos+1] = '\0';
+		found_data[pos] = '\0'; found_data[pos + 1] = '\0';
 		
 		/* Position equals the next byte to be writen to */
 		pos += 2;
@@ -295,15 +336,10 @@ void search_request(struct gnutella_node *n)
 		 * search. 
 		 */
 		if (((search_max_items != -1) && (found_files > search_max_items)) ||
-			(found_files == 255)) 
-		  {
-			g_free(search2);
+			(found_files == 255)) {
 			break;
 		  }
-
 	    }
-	    g_free(search2);
-
   	  }
 
 
