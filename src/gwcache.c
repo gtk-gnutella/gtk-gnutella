@@ -258,7 +258,7 @@ static void gwc_retrieve(void)
 {
 	gint line;
 	FILE *in;
-#ifdef USE_SOURCE_DIR_AS_FALLBACK
+#ifndef OFFICIAL_BUILD
 	file_path_t fpvec[3];
 #else
 	file_path_t fpvec[2];
@@ -267,7 +267,7 @@ static void gwc_retrieve(void)
 
 	file_path_set(&fpvec[0], settings_config_dir(), gwc_file);
 	file_path_set(&fpvec[1], PRIVLIB_EXP, gwc_bootfile);
-#ifdef USE_SOURCE_DIR_AS_FALLBACK
+#ifndef OFFICIAL_BUILD
 	file_path_set(&fpvec[2], PACKAGE_SOURCE_DIR, gwc_bootfile);
 #endif
 

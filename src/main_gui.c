@@ -464,7 +464,7 @@ void main_gui_early_init(gint argc, gchar **argv)
 	gtk_init(&argc, &argv);
 
 	add_pixmap_directory(PRIVLIB_EXP "/pixmaps");
-#ifdef USE_SOURCE_DIR_AS_FALLBACK
+#ifndef OFFICIAL_BUILD
 	add_pixmap_directory(PACKAGE_SOURCE_DIR "/pixmaps");
 #endif
 
