@@ -25,7 +25,7 @@
  *----------------------------------------------------------------------
  */
 
-//#include "gnutella.h"
+#include "common.h"		/* For proper -DUSE_DMALLOC compiles */
 #include <glib.h>
 #include <string.h>
 

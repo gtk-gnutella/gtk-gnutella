@@ -30,9 +30,24 @@
 
 #include <glib.h>
 
+/*
+ * Under USE_DMALLOC control, those routines are remapped to malloc/free.
+ */
+
+#ifdef USE_DMALLOC
+
+#define walloc(s)			g_malloc(s)
+#define wfree(p,s)			g_free(p)
+#define wrealloc(p,o,n)		g_realloc((p), (n));
+
+#else	/* !USE_DMALLOC */
+
 gpointer walloc(gint size);
 void wfree(gpointer ptr, gint size);
 gpointer wrealloc(gpointer old, gint old_size, gint new_size);
+
+#endif	/* USE_DMALLOC */
+
 void wdestroy(void);
 
 #endif /* __walloc_h__ */

@@ -66,11 +66,26 @@ typedef struct zone {			/* Zone descriptor */
  * Memory allocation routines.
  */
 
-gpointer zalloc(zone_t *);
-void zfree(zone_t *, gpointer);
 zone_t *zcreate(gint, gint);
 zone_t *zget(gint, gint);
 void zdestroy(zone_t *zone);
+
+/*
+ * Under USE_DMALLOC control, those routines are remapped to malloc/free.
+ */
+
+#ifdef USE_DMALLOC
+
+#define zalloc(z)	g_malloc((z)->zn_size)
+#define zfree(z,o)	g_free(o)
+
+#else	/* !USE_DMALLOC */
+
+gpointer zalloc(zone_t *);
+void zfree(zone_t *, gpointer);
+
+#endif	/* USE_DMALLOC */
+
 
 #endif /* __zalloc_h__ */
 

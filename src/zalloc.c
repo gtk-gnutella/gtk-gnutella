@@ -58,6 +58,11 @@ static gchar **zn_extend(zone_t *);
 static struct zone *zn_create(zone_t *, gint, gint);
 
 /*
+ * Under USE_DMALLOC, do not define zalloc() and zfree().
+ */
+
+#ifndef USE_DMALLOC
+/*
  * zalloc
  *
  * Allcate memory with fixed size blocks (zone allocation).
@@ -130,6 +135,40 @@ gpointer zalloc(zone_t *zone)
 
 	return blk;
 }
+
+/*
+ * zfree
+ *
+ * Return block to its zone, hence freeing it. Previous content of the
+ * block is lost.
+ *
+ * Since a zone consists of blocks with a fixed size, memory fragmentation
+ * is not an issue. Therefore, the block is returned to the zone by being
+ * inserted at the head of the free list.
+ *
+ * Warning: returning a block to the wrong zone may lead to disasters.
+ */
+void zfree(zone_t *zone, gpointer ptr)
+{
+	g_assert(ptr);
+	g_assert(zone);
+
+#ifdef ZONE_SAFE
+	{
+		gchar **tmp = ((gchar **) ptr-1);	/* Go back at leading magic */
+		if (*tmp != BLOCK_USED)
+			g_error("trying to free block 0x%lx twice", (gulong) ptr);
+		ptr = tmp;
+	}
+#endif
+
+	g_assert(zone->zn_cnt > 0);		/* There must be something to free! */
+
+	*(gchar **) ptr = (gchar *) zone->zn_free;	/* Will precede old head */
+	zone->zn_free = (gchar **) ptr;				/* New free list head */
+	zone->zn_cnt--;								/* To make zone gc easier */
+}
+#endif	/* !USE_DMALLOC */
 
 /*
  * zcreate
@@ -210,39 +249,6 @@ static zone_t *zn_create(zone_t *zone, gint size, gint hint)
 	zn_cram(zone, arena, size);
 
 	return zone;
-}
-
-/*
- * zfree
- *
- * Return block to its zone, hence freeing it. Previous content of the
- * block is lost.
- *
- * Since a zone consists of blocks with a fixed size, memory fragmentation
- * is not an issue. Therefore, the block is returned to the zone by being
- * inserted at the head of the free list.
- *
- * Warning: returning a block to the wrong zone may lead to disasters.
- */
-void zfree(zone_t *zone, gpointer ptr)
-{
-	g_assert(ptr);
-	g_assert(zone);
-
-#ifdef ZONE_SAFE
-	{
-		gchar **tmp = ((gchar **) ptr-1);	/* Go back at leading magic */
-		if (*tmp != BLOCK_USED)
-			g_error("trying to free block 0x%lx twice", (gulong) ptr);
-		ptr = tmp;
-	}
-#endif
-
-	g_assert(zone->zn_cnt > 0);		/* There must be something to free! */
-
-	*(gchar **) ptr = (gchar *) zone->zn_free;	/* Will precede old head */
-	zone->zn_free = (gchar **) ptr;				/* New free list head */
-	zone->zn_cnt--;								/* To make zone gc easier */
 }
 
 /*

@@ -25,8 +25,8 @@
  *----------------------------------------------------------------------
  */
 
-#include "cq.h"
 #include "common.h"
+#include "cq.h"
 
 #define HASH_SIZE	1024			/* Hash list size, must be power of 2 */
 #define HASH_MASK	(HASH_SIZE - 1)

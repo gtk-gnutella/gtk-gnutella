@@ -62,8 +62,29 @@
 void atoms_init(void);
 void atoms_close(void);
 
+#ifdef USE_DMALLOC
+
+#include <string.h>
+
+extern gint atom_dmalloc_len;
+extern gpointer atom_dmalloc_ptr;
+
+gint atom_length(gint type, gconstpointer key);
+
+#define atom_get(t,k) (									\
+	(atom_dmalloc_len = atom_length(t,k)),				\
+	(atom_dmalloc_ptr = g_malloc(atom_dmalloc_len)),	\
+	memcpy(atom_dmalloc_ptr, k, atom_dmalloc_len),		\
+	atom_dmalloc_ptr)
+
+#define atom_free(t,k)	g_free(k)
+
+#else	/* !USE_DMALLOC */
+
 gpointer atom_get(gint type, gconstpointer key);
 void atom_free(gint type, gconstpointer key);
+
+#endif	/* USE_DMALLOC */
 
 #endif	/* __atoms_h__ */
 

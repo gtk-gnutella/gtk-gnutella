@@ -25,6 +25,8 @@
  *----------------------------------------------------------------------
  */
 
+#include "common.h"			/* For safe compilation under USE_DMALLOC */
+
 #include "namesize.h"
 #include "atoms.h"
 #include "walloc.h"

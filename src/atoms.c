@@ -268,6 +268,11 @@ void atoms_init(void)
 }
 
 /*
+ * Under USE_DMALLOC, we don't use atom_get() and atom_free().
+ */
+
+#ifndef USE_DMALLOC
+/*
  * atom_get
  *
  * Get atom of given `type', whose value is `key'.
@@ -358,6 +363,7 @@ void atom_free(gint type, gconstpointer key)
 		g_free(a);
 	}
 }
+#endif	/* !USE_DMALLOC */
 
 /*
  * atom_warn_free
@@ -393,4 +399,30 @@ void atoms_close(void)
 		g_hash_table_destroy(td->table);
 	}
 }
+
+/*
+ * Under USE_DMALLOC, we need the following.
+ */
+
+#ifdef USE_DMALLOC
+
+gint atom_dmalloc_len;
+gpointer atom_dmalloc_ptr;
+
+/*
+ * atom_length
+ *
+ * Return the length of the atom key.
+ */
+gint atom_length(gint type, gconstpointer key)
+{
+	struct table_desc *td;
+
+	g_assert(type >= 0 && type < COUNT(atoms));
+
+	td = &atoms[type];		/* Where atoms of this type are held */
+
+	return (*td->len_func)(key);
+}
+#endif	/* USE_DMALLOC */
 

@@ -44,6 +44,11 @@
 static struct zone *wzone[WZONE_SIZE];
 
 /*
+ * Under USE_DMALLOC, do not define walloc(), wfree() and wrealloc().
+ */
+
+#ifndef USE_DMALLOC
+/*
  * walloc
  *
  * Allocate memory from a zone suitable for the given size.
@@ -132,6 +137,7 @@ gpointer wrealloc(gpointer old, gint old_size, gint new_size)
 
 	return new;
 }
+#endif	/* !USE_DMALLOC */
 
 /*
  * wdestroy
