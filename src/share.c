@@ -75,6 +75,11 @@ struct {
 #define FOUND_BUF	found_data.d
 #define FOUND_SIZE	found_data.s
 
+/*
+ * Minimal trailer length is our code NAME, the open flags, and the GUID.
+ */
+#define QHIT_MIN_TRAILER_LEN	(4+3+16)	/* NAME + open flags + GUID */
+
 /* ----------------------------------------- */
 
 static void setup_char_map(char_map_t map)
@@ -410,17 +415,28 @@ void share_close(void)
 
 /*
  * Callback from st_search(), for each matching file.	--RAM, 06/10/2001
+ *
+ * Returns TRUE if we inserted the record, FALSE if we refused it due to
+ * lack of space.
  */
-static void got_match(struct shared_file *sf)
+static gboolean got_match(struct shared_file *sf)
 {
 	guint32 pos = FOUND_SIZE;
+	guint32 needed = 8 + 2 + sf->file_name_len;		/* size of hit entry */
+
+	/*
+	 * Refuse entry if we don't have enough room.	-- RAM, 22/01/2002
+	 */
+
+	if (pos + needed + QHIT_MIN_TRAILER_LEN > search_answers_forward_size)
+		return FALSE;
 
 	/*
 	 * Grow buffer by the size of the search results header 8 bytes,
 	 * plus the string length - NULL, plus two NULL's
 	 */
 
-	FOUND_GROW(8 + 2 + sf->file_name_len);
+	FOUND_GROW(needed);
 
 	WRITE_GUINT32_LE(sf->file_index, &FOUND_BUF[pos]);
 	WRITE_GUINT32_LE(sf->file_size, &FOUND_BUF[pos + 4]);
@@ -432,6 +448,8 @@ static void got_match(struct shared_file *sf)
 
 	FOUND_BUF[pos++] = '\0';
 	FOUND_BUF[pos++] = '\0';
+
+	return TRUE;		/* Hit entry accepted */
 }
 
 /* Searches requests (from others nodes) 

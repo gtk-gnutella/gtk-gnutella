@@ -99,7 +99,7 @@ void st_compact(search_table_t *);
 #include "share.h" /* For shared_file. FIXME: see note below. */
 
 /* FIXME: The type of this callback is too specific. */
-typedef void (*st_search_callback)(struct shared_file *);
+typedef gboolean (*st_search_callback)(struct shared_file *);
 
 gint st_search(
 	search_table_t *table,

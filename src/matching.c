@@ -511,7 +511,7 @@ static gboolean entry_match(
 gint st_search(
 	search_table_t *table,
 	guchar *search,
-	void (*callback)(struct shared_file *),
+	gboolean (*callback)(struct shared_file *),
 	gint max_res)
 {
 	gint i, key, nres = 0;
@@ -611,9 +611,13 @@ gint st_search(
 		scanned++;
 
 		if (entry_match(e->string, sf->file_name_len, pattern, wovec, wocnt)) {
-			(*callback)(sf);
 			if (dbg > 5)
 				printf("MATCH: %s\n", sf->file_name);
+			if (!(*callback)(sf)) {
+				g_warning("stopping matching at %d entr%s, packet too large",
+					nres, nres == 1 ? "y" : "ies");
+				break;
+			}
 			nres++;
 		}
 	}
