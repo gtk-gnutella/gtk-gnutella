@@ -443,6 +443,9 @@ static void adjust_credit(
 	int delta_useconds =
 		end->tv_usec - start->tv_usec + delta_seconds * 1000 * 1000;
 
+	if (delta_useconds == 0)
+		delta_useconds++;
+
 	/*
 	 * Double credit for next iteration if we are under the half life,
 	 * but remove one fourth of the credit if we are above twice that
