@@ -274,7 +274,7 @@ static prop_map_t property_map[] = {
 #endif
     {
         get_main_window,
-        PROP_SEARCH_AUTOSELECT,
+        PROP_SEARCH_AUTOSELECT_SIMILAR,
         update_toggle_search_autoselect,
         TRUE,
         "checkbutton_search_autoselect",
@@ -282,7 +282,7 @@ static prop_map_t property_map[] = {
     },
     {
         get_main_window,
-        PROP_SEARCH_AUTOSELECT_IDENT,
+        PROP_SEARCH_AUTOSELECT_SAMESIZE,
         update_togglebutton,
         TRUE,
         "checkbutton_search_autoselect_ident",
@@ -4541,6 +4541,8 @@ static gboolean expert_mode_changed(property_t prop)
         "frame_expert_gnet_message_size",
         "frame_expert_search_queue",
         "frame_expert_share_statistics",
+        "frame_expert_search_autoselect",
+        "hbox_expert_search_timeout",
         NULL
     };
     gint n;
