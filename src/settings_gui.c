@@ -196,6 +196,7 @@ static gboolean sha1_verifying_changed(property_t prop);
 static gboolean file_moving_changed(property_t prop);
 static gboolean dl_queue_count_changed(property_t prop);
 static gboolean dl_running_count_changed(property_t prop);
+static gboolean config_toolbar_style_changed(property_t prop);
 
 // FIXME: move to separate file and autoegenerate from high-level
 //        description.
@@ -1424,8 +1425,6 @@ static prop_map_t property_map[] = {
         TRUE,
         "checkbutton_config_bw_allow_stealing"
     },
-#ifndef USE_GTK2
-// FIXME: Gtk2 should also have these
     {
         get_main_window,
         PROP_MAX_ULTRA_HOSTS_CACHED,
@@ -1467,6 +1466,15 @@ static prop_map_t property_map[] = {
         dl_running_count_changed,
         TRUE,
         "label_dl_running_count"
+    },
+#ifdef USE_GTK2
+/* FIXME: Gtk1 version should have this one too */
+    {
+        get_main_window,
+        PROP_CONFIG_TOOLBAR_STYLE,
+        config_toolbar_style_changed,
+        TRUE,
+        "combo_config_toolbar_style"
     },
 #endif
 };
@@ -2752,6 +2760,43 @@ static gboolean dl_running_count_changed(property_t prop)
             "%u source%s active", val, (val != 1) ? "s" : "");
     }
 
+	return FALSE;
+}
+
+static gboolean config_toolbar_style_changed(property_t prop)
+{
+	guint32 val;
+	GtkToolbarStyle style;
+
+	gui_prop_get_guint32_val(PROP_CONFIG_TOOLBAR_STYLE, &val);
+	
+	switch (val) {
+		case 1:
+			style = GTK_TOOLBAR_ICONS;
+			break;
+		case 2:
+			style = GTK_TOOLBAR_TEXT;
+			break;
+		case 3:
+			style = GTK_TOOLBAR_BOTH;
+			break;
+		case 4:
+#ifdef USE_GTK2
+			style = GTK_TOOLBAR_BOTH_HORIZ;
+#else
+			style = GTK_TOOLBAR_BOTH;
+#endif
+			break;
+		default:
+			style = GTK_TOOLBAR_BOTH;
+			g_warning(
+				"config_toolbar_style_changed: Unknown toolbar style (val=%ld)",
+				(gulong) val);
+	}
+
+	gtk_toolbar_set_style(
+   		GTK_TOOLBAR(lookup_widget(main_window, "toolbar_main")), style);
+	update_multichoice(prop);
 	return FALSE;
 }
 
