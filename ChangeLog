@@ -1,5 +1,15 @@
 # since last version
 
+- (2002.12.17 - RAM)
+ * Had to regenerate configure et al. because it complained it could not
+   find automake-1.4 on my system with --enable-maintainer-mode.
+ * Avoid writing back the fileinfo trailer when there was no new data
+   and the fileinfo is not otherwise dirty.
+ * Simplified gnet_stats.c to always use the stats_lut[] array.
+ * Fixed typo "Prefered" -> "Preferred".
+ * Was wrongly using strcasecmp(var, "http://") instead of the correct form
+   strncasecmp(var, "http://", 7) in dmesh.c.
+
 - (2002.12.17 - Richard)
  * Added optional remote shell support (add --enable-remote-shell to configure)
    Documentation is in doc/other/remote-shell.txt
@@ -26,6 +36,20 @@
 
 - (2002.12.08 - cbiere)
  * [Gtk2] Added new stats pane with information about flow-control
+
+- (2002.12.08 - RAM)
+ * Added TASK_F_RUNNABLE flag to ensure non-duplication of tasks in run queue.
+ * When a host cache is freed, reset its pointer to NULL to prevent reuse.
+ * Was calling hcache_close() too soon.
+ * Made sure Location headers in replies are absolute URIs, per HTTP/1.1 specs.
+ * Added hcache_remove_all() to decouple hcache_free() from hcache_clear().
+
+- (2002.12.07 - RAM)
+ * Even when node is connected, it can lack the "alive_ping" object.
+ * Refuse connection from "Gtk-Gnutella" (spoofed/tempered-with string).
+ * Changed "Transmit timeout" message into "Flow-controlled for too long".
+ * Added vendor codes GDNA and GNTD.
+ * Switched vendor searching from linear to dichotomic lookup.
 
 - (2002.12.06 - RAM)
  * Added properties "download_require_urn" and "download_require_server_name".
