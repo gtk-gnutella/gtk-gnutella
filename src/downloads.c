@@ -442,7 +442,8 @@ gboolean download_file_exists(struct download *d)
 	gchar path[2048];
 	struct stat buf;
 
-	g_snprintf(path, sizeof(path), "%s/%s", d->file_info->path, d->file_info->file_name);
+	g_snprintf(path, sizeof(path), "%s/%s",
+		d->file_info->path, d->file_info->file_name);
 
 	if (-1 == stat(path, &buf))
 		return FALSE;
@@ -459,7 +460,8 @@ void download_remove_file(struct download *d)
 {
 	gchar path[2048];
 
-	g_snprintf(path, sizeof(path), "%s/%s", d->file_info->path, d->file_info->file_name);
+	g_snprintf(path, sizeof(path), "%s/%s",
+		d->file_info->path, d->file_info->file_name);
 
 	if (-1 == unlink(path))
 		g_warning("cannot unlink \"%s\": %s", path, g_strerror(errno));
@@ -1169,8 +1171,8 @@ void download_stop(struct download *d, guint32 new_status,
 		gui_update_download(d, TRUE);
 
 	if (!d->file_info->use_swarming) {
-	if (new_status == GTA_DL_COMPLETED)
-		queue_remove_downloads_with_file(d->file_info);
+		if (new_status == GTA_DL_COMPLETED)
+			queue_remove_downloads_with_file(d->file_info);
 	} else if (d->file_info->done == d->file_info->size)
 		queue_remove_downloads_with_file(d->file_info);
 
@@ -1524,37 +1526,37 @@ static gboolean download_start_prepare(struct download *d)
 		g_snprintf(dl_tmp, sizeof(dl_tmp), "%s/%s",
 			d->file_info->path, d->file_info->file_name);
 
-	d->skip = 0;
+		d->skip = 0;
 
-	if (stat(dl_tmp, &st) != -1) {
-		if (st.st_size > download_overlap_range)
-			d->skip = st.st_size;
+		if (stat(dl_tmp, &st) != -1) {
+			if (st.st_size > download_overlap_range)
+				d->skip = st.st_size;
 		} else if (!d->file_info->use_swarming) {
-		gchar dl_dest[4096];
+			gchar dl_dest[4096];
 
-		g_snprintf(dl_dest, sizeof(dl_dest), "%s/%s",
-					move_file_path, d->file_info->file_name);
+			g_snprintf(dl_dest, sizeof(dl_dest), "%s/%s",
+						move_file_path, d->file_info->file_name);
 
-		if (stat(dl_dest, &st) != -1) {		/* File exists in "done" dir */
-			if (st.st_size < d->size) {		/* And is smaller */
-				if (-1 == rename(dl_dest, dl_tmp))
-					g_warning("cannot move incomplete \"%s\" back to "
-						"download dir: %s", dl_dest, g_strerror(errno));
-				else {
-					if (st.st_size > download_overlap_range)
-						d->skip = st.st_size;
-					g_warning("moved incomplete \"%s\" back to download dir",
-								d->file_info->file_name);
-				}
-			} else
-				d->skip = st.st_size;		/* "done" file is larger */
+			if (stat(dl_dest, &st) != -1) {		/* File exists in "done" dir */
+				if (st.st_size < d->size) {		/* And is smaller */
+					if (-1 == rename(dl_dest, dl_tmp))
+						g_warning("cannot move incomplete \"%s\" back to "
+							"download dir: %s", dl_dest, g_strerror(errno));
+					else {
+						if (st.st_size > download_overlap_range)
+							d->skip = st.st_size;
+						g_warning("moved incomplete \"%s\" back to download dir",
+									d->file_info->file_name);
+					}
+				} else
+					d->skip = st.st_size;		/* "done" file is larger */
+			}
 		}
-	}
 
-	d->pos = d->skip;
-	d->last_update = time((time_t *) NULL);
-	d->overlap_size = (d->skip == 0 || d->size <= d->pos) ?
-		0 : download_overlap_range;
+		d->pos = d->skip;
+		d->last_update = time((time_t *) NULL);
+		d->overlap_size = (d->skip == 0 || d->size <= d->pos) ?
+			0 : download_overlap_range;
 
 	} else { /* using swarming */
 	
@@ -1574,7 +1576,7 @@ static gboolean download_start_prepare(struct download *d)
 			if (
 				from > download_overlap_range &&
 				file_info_chunk_status(d->file_info, 
-					from - download_overlap_range, from -1 ) == DL_CHUNK_DONE
+					from - download_overlap_range, from) == DL_CHUNK_DONE
 			)
 				d->overlap_size = download_overlap_range;
 
@@ -2316,8 +2318,10 @@ void download_move_to_completed_dir(struct download *d)
 	if (0 == strcmp(d->file_info->path, move_file_path))
 		return;			/* Already in "completed dir" */
 
-	g_snprintf(dl_src, sizeof(dl_src), "%s/%s", d->file_info->path, d->file_info->file_name);
-	g_snprintf(dl_dest, sizeof(dl_dest), "%s/%s", move_file_path, d->file_info->file_name);
+	g_snprintf(dl_src, sizeof(dl_src), "%s/%s",
+		d->file_info->path, d->file_info->file_name);
+	g_snprintf(dl_dest, sizeof(dl_dest), "%s/%s",
+		move_file_path, d->file_info->file_name);
 
 	dl_src[sizeof(dl_src)-1] = '\0';
 	dl_dest[sizeof(dl_dest)-1] = '\0';
