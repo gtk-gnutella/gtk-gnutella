@@ -2732,7 +2732,7 @@ create_main_window (void)
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
 
-  label130 = gtk_label_new (_("Max uploads from single host"));
+  label130 = gtk_label_new (_("Max uploads to a single host"));
   gtk_widget_set_name (label130, "label130");
   gtk_widget_ref (label130);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "label130", label130,

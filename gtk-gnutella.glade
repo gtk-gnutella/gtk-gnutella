@@ -2640,7 +2640,7 @@
 		<widget>
 		  <class>GtkLabel</class>
 		  <name>label130</name>
-		  <label>Max uploads from single host</label>
+		  <label>Max uploads to a single host</label>
 		  <justify>GTK_JUSTIFY_CENTER</justify>
 		  <wrap>False</wrap>
 		  <xalign>1</xalign>
