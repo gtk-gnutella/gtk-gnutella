@@ -78,11 +78,22 @@ const gchar *nodes_gui_common_status_str(
 
 			slen += gm_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
 				" (%.1f k/s)"
-				" Query(TX=%d, Q=%d) Drop(TX=%d, RX=%d)"
-				" Dup=%d Bad=%d W=%d RT(avg=%d, last=%d) Q=%d,%d%% %s",
+				" Query(Gen=%d, Q=%d, TX=%u, RX=%u) QHit(TX=%u, RX=%u)"
+				" Drop(TX=%d, RX=%d)",
 				n->rx_bps,
-				n->squeue_sent, n->squeue_count,
-				n->tx_dropped, n->rx_dropped, n->n_dups, n->n_bad, n->n_weird,
+				n->squeue_sent, n->squeue_count, n->tx_queries, n->rx_queries,
+				n->tx_qhits, n->rx_qhits,
+				n->tx_dropped, n->rx_dropped);
+
+			if (n->has_qrp)
+				slen += gm_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
+					" QRP=%u%%",
+					(guint) (n->qrp_efficiency * 100.0));
+
+
+			slen += gm_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
+				" Dup=%d Bad=%d W=%d RT(avg=%d, last=%d) Q=%d,%d%% %s",
+				n->n_dups, n->n_bad, n->n_weird,
 				n->rt_avg, n->rt_last, n->mqueue_count, n->mqueue_percent_used,
 				n->in_tx_flow_control ? " [FC]" : "");
 			a = gui_tmp;

@@ -2173,6 +2173,8 @@ gboolean search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 	 */
 
     gnet_stats_count_general(n, GNR_LOCAL_SEARCHES, 1);
+	if (node_ultra_received_qrp(n))
+		node_inc_qrp_query(n);
 	found_reset(n);
 
 	max_replies = (search_max_items == -1) ? 255 : search_max_items;
@@ -2253,6 +2255,8 @@ gboolean search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 finish:
 	if (found_files > 0) {
         gnet_stats_count_general(n, GNR_LOCAL_HITS, found_files);
+		if (node_ultra_received_qrp(n))
+			node_inc_qrp_match(n);
 
 		if (FOUND_FILES)			/* Still some unflushed results */
 			flush_match();			/* Send last packet */

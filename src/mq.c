@@ -971,9 +971,20 @@ again:
 
 		if (r >= ie->iov_len) {			/* Completely written */
 			gchar *mb_start = pmsg_start(mb);
+			guint8 function = gmsg_function(mb_start);
 			sent++;
             gnet_stats_count_sent(q->node,
-				gmsg_function(mb_start), gmsg_hops(mb_start), pmsg_size(mb));
+				function, gmsg_hops(mb_start), pmsg_size(mb));
+			switch (function) {
+			case GTA_MSG_SEARCH:
+				node_inc_tx_query(q->node);
+				break;
+			case GTA_MSG_SEARCH_RESULTS:
+				node_inc_tx_qhit(q->node);
+				break;
+			default:
+				break;
+			}
 			r -= ie->iov_len;
 			if (q->qlink)
 				qlink_remove(q, l);
@@ -1060,13 +1071,15 @@ void mq_putq(mqueue_t *q, pmsg_t *mb)
 
 	if (q->qhead == NULL) {
 		gchar *mbs = pmsg_start(mb);
+		guint8 function = gmsg_function(mbs);
+		guint8 hops = gmsg_hops(mbs);
 		gint written;
 
 		/*
 		 * Honour hops-flow, and ensure there is a route for possible replies.
 		 */
 
-		if (node_can_send(q->node, gmsg_function(mbs), gmsg_hops(mbs), mbs))
+		if (node_can_send(q->node, function, hops, mbs))
 			written = tx_write(q->tx_drv, mbs, size);
 		else {
 			if (dbg > 4)
@@ -1087,8 +1100,17 @@ void mq_putq(mqueue_t *q, pmsg_t *mb)
 		if (written == size) {
 			gchar *mbs = pmsg_start(mb);
 			node_inc_sent(q->node);
-            gnet_stats_count_sent(q->node,
-				gmsg_function(mbs), gmsg_hops(mbs), size);
+            gnet_stats_count_sent(q->node, function, hops, size);
+			switch (function) {
+			case GTA_MSG_SEARCH:
+				node_inc_tx_query(q->node);
+				break;
+			case GTA_MSG_SEARCH_RESULTS:
+				node_inc_tx_qhit(q->node);
+				break;
+			default:
+				break;
+			}
 			goto cleanup;
 		}
 

@@ -4646,6 +4646,16 @@ static gboolean node_read(struct gnutella_node *n, pmsg_t *mb)
 		READ_GUINT32_LE(n->header.size, n->size);
 
         gnet_stats_count_received_header(n);
+		switch (n->header.function) {
+		case GTA_MSG_SEARCH:
+			node_inc_rx_query(n);
+			break;
+		case GTA_MSG_SEARCH_RESULTS:
+			node_inc_rx_qhit(n);
+			break;
+		default:
+			break;
+		}
 
 		/* If the message haven't got any data, we process it now */
 
@@ -5517,6 +5527,17 @@ void node_get_status(const gnet_node_t n, gnet_node_status_t *status)
 
 	bio = node->rx ? rx_bio_source(node->rx) : NULL;
 	status->rx_bps = bio ? bio_bps(bio) / 1024.0 : 0.0;
+
+	if (node_ultra_received_qrp(node)) {
+		status->qrp_efficiency = node->qrp_matches / MAX(1, node->qrp_queries);
+		status->has_qrp = TRUE;
+	} else
+		status->has_qrp = FALSE;
+
+	status->rx_queries = node->rx_queries;
+	status->tx_queries = node->tx_queries;
+	status->rx_qhits   = node->rx_qhits;
+	status->tx_qhits   = node->tx_qhits;
 
     status->shutdown_remain = 
         node->shutdown_delay - (now - node->shutdown_date);

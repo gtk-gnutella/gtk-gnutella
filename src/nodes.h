@@ -182,6 +182,17 @@ typedef struct gnutella_node {
 	gint32 rx_given;			/* Bytes fed to the RX stack (from bottom) */
 	gint32 rx_inflated;			/* Bytes inflated by the RX stack */
 	gint32 rx_read;				/* Bytes read from the RX stack */
+
+	/*
+	 * Various Gnutella statistics -- RAM, 10/12/2003.
+	 */
+
+	guint32 qrp_queries;		/* Queries received under QRP control */
+	guint32 qrp_matches;		/* Queries received that incurred a match */
+	guint32 rx_queries;			/* Total amount of queries received */
+	guint32 tx_queries;			/* Total amount of queries sent */
+	guint32 rx_qhits;			/* Total amount of hits received */
+	guint32 tx_qhits;			/* Total amount of hits sent */
 } gnutella_node_t;
 
 /*
@@ -317,6 +328,23 @@ typedef struct gnutella_node {
 #define node_add_rx_given(n,x)		do { (n)->rx_given += (x); } while (0)
 #define node_add_rx_inflated(n,x)	do { (n)->rx_inflated += (x); } while (0)
 #define node_add_rx_read(n,x)		do { (n)->rx_read += (x); } while (0)
+
+#define node_inc_tx_query(n)		do { (n)->tx_queries++; } while (0)
+#define node_inc_rx_query(n)		do { (n)->rx_queries++; } while (0)
+#define node_inc_tx_qhit(n)			do { (n)->tx_qhits++; } while (0)
+#define node_inc_rx_qhit(n)			do { (n)->rx_qhits++; } while (0)
+
+#define node_inc_qrp_query(n)		do { (n)->qrp_queries++; } while (0)
+#define node_inc_qrp_match(n)		do { (n)->qrp_matches++; } while (0)
+
+/*
+ * Check whether Ultra node has received our QRP table, or whether
+ * we fully got the QRP table from the leaf.
+ */
+#define node_ultra_received_qrp(n) \
+	(NODE_IS_ULTRA(n) && (n)->qrt_update == NULL && (n)->query_table != NULL)
+#define node_leaf_sent_qrp(n) \
+	(NODE_IS_LEAF(n) && (n)->qrt_receive == NULL && (n)->query_table != NULL)
 
 /*
  * Can we send query with hop count `h' according to node's hops-flow value?

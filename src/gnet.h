@@ -88,6 +88,7 @@ typedef struct gnet_node_status {
 	/*
 	 * Traffic statistics -- RAM, 13/05/2002.
 	 */
+
 	gint32   tx_given;			/* Bytes fed to the TX stack (from top) */
 	gint32   tx_deflated;		/* Bytes deflated by the TX stack */
 	gint32   tx_written;		/* Bytes written by the TX stack */
@@ -101,6 +102,17 @@ typedef struct gnet_node_status {
     gboolean rx_compressed;     /* Is RX traffic compressed */
     gfloat   rx_compression_ratio;/* RX compression ratio */
     gfloat   rx_bps;			/* RX traffic rate */
+
+	/*
+	 * Gnutella statistics -- RAM, 10/12/2003.
+	 */
+
+	gboolean has_qrp;			/* Whether node is under QRP control */
+	gfloat qrp_efficiency;		/* Queries matched / received on QRP control */
+	guint32 rx_queries;			/* Total amount of queries received */
+	guint32 tx_queries;			/* Total amount of queries sent */
+	guint32 rx_qhits;			/* Total amount of hits received */
+	guint32 tx_qhits;			/* Total amount of hits sent */
 
 	guint32  rt_avg;			/* Average ping/pong roundtrip time */
 	guint32  rt_last;			/* Last ping/pong roundtrip time */
