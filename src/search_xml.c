@@ -73,6 +73,8 @@ static void xml_to_text_rule(xmlNodePtr, gpointer);
 static void xml_to_ip_rule(xmlNodePtr, gpointer);
 static void xml_to_size_rule(xmlNodePtr, gpointer);
 static void xml_to_jump_rule(xmlNodePtr, gpointer);
+static void xml_to_sha1_rule(xmlNodePtr, gpointer);
+static void xml_to_flag_rule(xmlNodePtr, gpointer);
 static guint16 get_rule_flags_from_xml(xmlNodePtr);
 
 /*
@@ -85,6 +87,8 @@ static const gchar NODE_RULE_TEXT[]   = "TextRule";
 static const gchar NODE_RULE_IP[]     = "IpRule";
 static const gchar NODE_RULE_SIZE[]   = "SizeRule";
 static const gchar NODE_RULE_JUMP[]   = "JumpRule";
+static const gchar NODE_RULE_SHA1[]   = "SHA1Rule";
+static const gchar NODE_RULE_FLAG[]   = "FlagRule";
 
 static const gchar PROP_BUILTIN_SHOW_UID[] = "ShowUID";
 static const gchar PROP_BUILTIN_DROP_UID[] = "DropUID";
@@ -102,10 +106,15 @@ static const gchar PROP_RULE_IP_ADDR[]     = "Address";
 static const gchar PROP_RULE_IP_MASK[]     = "Netmask";
 static const gchar PROP_RULE_SIZE_LOWER[]  = "Lower";
 static const gchar PROP_RULE_SIZE_UPPER[]  = "Upper";
+static const gchar PROP_RULE_SHA1_HASH[]   = "Hash";
 static const gchar PROP_RULE_NEGATE[]      = "Negate";
 static const gchar PROP_RULE_ACTIVE[]      = "Active";
 static const gchar PROP_RULE_SOFT[]        = "Soft";
 static const gchar PROP_RULE_TARGET[]      = "Target";
+static const gchar PROP_RULE_FLAG_BUSY[]   = "Busy";
+static const gchar PROP_RULE_FLAG_PUSH[]   = "Push";
+static const gchar PROP_RULE_FLAG_STABLE[] = "Stable";
+
 
 
 static gchar x_tmp[4096];
@@ -119,6 +128,8 @@ static node_parser_t parser_map[] = {
     {(gchar *)NODE_RULE_IP,     xml_to_ip_rule},
     {(gchar *)NODE_RULE_SIZE,   xml_to_size_rule},
     {(gchar *)NODE_RULE_JUMP,   xml_to_jump_rule},
+    {(gchar *)NODE_RULE_SHA1,   xml_to_sha1_rule},
+    {(gchar *)NODE_RULE_FLAG,   xml_to_flag_rule},
     {NULL, NULL}
 };
 
@@ -481,6 +492,29 @@ static void rule_to_xml(xmlNodePtr parent, rule_t *r)
         /*
          * Only need target to this rule and that's done below.
          */
+        break;
+    case RULE_SHA1:
+        newxml = xmlNewChild(parent, NULL, NODE_RULE_SHA1, NULL);
+
+        if (r->u.sha1.hash != NULL)
+            xmlSetProp
+                (newxml,PROP_RULE_SHA1_HASH, sha1_base32(r->u.sha1.hash));
+        
+        /*
+         * r->u.sha1.hash is NULL, we just omit the hash.
+         */
+        break;
+    case RULE_FLAG:
+        newxml = xmlNewChild(parent, NULL, NODE_RULE_FLAG, NULL);
+        
+        g_snprintf(x_tmp, sizeof(x_tmp), "%u", r->u.flag.stable);
+        xmlSetProp(newxml, PROP_RULE_FLAG_STABLE, x_tmp);
+
+        g_snprintf(x_tmp, sizeof(x_tmp), "%u", r->u.flag.busy);
+        xmlSetProp(newxml, PROP_RULE_FLAG_BUSY, x_tmp);
+
+        g_snprintf(x_tmp, sizeof(x_tmp), "%u", r->u.flag.push);
+        xmlSetProp(newxml, PROP_RULE_FLAG_PUSH, x_tmp);
         break;
     default:
         g_error("Unknown rule type: %d", r->type);
@@ -845,6 +879,101 @@ static void xml_to_jump_rule(xmlNodePtr xmlnode, gpointer filter)
         g_list_append(((filter_t *) filter)->ruleset, rule);
 }
 
+static void xml_to_sha1_rule(xmlNodePtr xmlnode, gpointer filter)
+{
+    guchar *hash = NULL;
+    gchar *buf;
+    rule_t *rule;
+    filter_t *target;
+    guint16 flags;
+
+    g_assert(xmlnode != NULL);
+    g_assert(xmlnode->name != NULL);
+    g_assert(filter != NULL);
+    g_assert(g_strcasecmp(xmlnode->name, NODE_RULE_SHA1) ==0);
+
+    buf = xmlGetProp(xmlnode, PROP_RULE_SHA1_HASH);
+    if ((buf != NULL) && (strlen(buf) == SHA1_BASE32_SIZE))
+        hash = base32_sha1(buf);
+    g_free(buf);
+
+    buf = xmlGetProp(xmlnode, PROP_RULE_TARGET);
+    errno = 0;
+    target = (gpointer) strtoul(buf, 0, 16);
+    if (errno != 0)
+        g_error( "xml_to_sha1_rule: %s", g_strerror(errno));
+    g_free(buf);
+
+    flags = get_rule_flags_from_xml(xmlnode);
+    rule = filter_new_sha1_rule(hash, target, flags);
+    clear_flags(rule->flags, RULE_FLAG_VALID);
+
+    if (dbg >= 4)
+        printf( "added to filter \"%s\" rule with target %p\n",
+            ((filter_t *)filter)->name, rule->target);
+
+    ((filter_t *) filter)->ruleset =
+        g_list_append(((filter_t *) filter)->ruleset, rule);
+}
+
+static void xml_to_flag_rule(xmlNodePtr xmlnode, gpointer filter)
+{
+    enum rule_flag_action stable = RULE_FLAG_IGNORE;
+    enum rule_flag_action busy   = RULE_FLAG_IGNORE;
+    enum rule_flag_action push   = RULE_FLAG_IGNORE;
+    gchar *buf;
+    rule_t *rule;
+    filter_t *target;
+    guint16 flags;
+
+    g_assert(xmlnode != NULL);
+    g_assert(xmlnode->name != NULL);
+    g_assert(filter != NULL);
+    g_assert(g_strcasecmp(xmlnode->name, NODE_RULE_FLAG) ==0);
+
+    buf = xmlGetProp(xmlnode, PROP_RULE_FLAG_STABLE);
+    if (buf != NULL) {
+        gint val = atol(buf);
+        if ((val == RULE_FLAG_SET) || (val == RULE_FLAG_UNSET))
+            stable = val;
+    }
+    g_free(buf);
+
+    buf = xmlGetProp(xmlnode, PROP_RULE_FLAG_BUSY);
+    if (buf != NULL) {
+        gint val = atol(buf);
+        if ((val == RULE_FLAG_SET) || (val == RULE_FLAG_UNSET))
+            busy = val;
+    }
+    g_free(buf);
+
+    buf = xmlGetProp(xmlnode, PROP_RULE_FLAG_PUSH);
+    if (buf != NULL) {
+        gint val = atol(buf);
+        if ((val == RULE_FLAG_SET) || (val == RULE_FLAG_UNSET))
+            push = val;
+    }
+    g_free(buf);
+
+    buf = xmlGetProp(xmlnode, PROP_RULE_TARGET);
+    errno = 0;
+    target = (gpointer) strtoul(buf, 0, 16);
+    if (errno != 0)
+        g_error( "xml_to_flag_rule: %s", g_strerror(errno));
+    g_free(buf);
+
+    flags = get_rule_flags_from_xml(xmlnode);
+    rule = filter_new_flag_rule(stable, busy, push, target, flags);
+    clear_flags(rule->flags, RULE_FLAG_VALID);
+
+    if (dbg >= 4)
+        printf( "added to filter \"%s\" rule with target %p\n",
+            ((filter_t *)filter)->name, rule->target);
+
+    ((filter_t *) filter)->ruleset =
+        g_list_append(((filter_t *) filter)->ruleset, rule);
+}
+
 static guint16 get_rule_flags_from_xml(xmlNodePtr xmlnode)
 {
     gboolean negate = FALSE;
@@ -855,11 +984,6 @@ static guint16 get_rule_flags_from_xml(xmlNodePtr xmlnode)
 
     g_assert(xmlnode != NULL);
     g_assert(xmlnode->name != NULL);
-    g_assert(
-        (g_strcasecmp(xmlnode->name, NODE_RULE_TEXT) == 0) ||
-        (g_strcasecmp(xmlnode->name, NODE_RULE_IP) == 0) ||
-        (g_strcasecmp(xmlnode->name, NODE_RULE_SIZE) == 0) ||
-        (g_strcasecmp(xmlnode->name, NODE_RULE_JUMP) == 0));
     
     buf = xmlGetProp(xmlnode, PROP_RULE_NEGATE);
     if (buf != NULL) {
