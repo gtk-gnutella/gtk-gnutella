@@ -189,13 +189,16 @@ static void slow_main_timer(time_t now)
 	case 3:
 		file_info_store_if_dirty();
 		break;
+	case 4:
+		gwc_store_if_dirty();
+		break;
 	default:
 		g_assert(0);
 	}
 
 	ignore_timer(now);
 
-	if (++i > 3)
+	if (++i > 4)
 		i = 0;
 }
 
