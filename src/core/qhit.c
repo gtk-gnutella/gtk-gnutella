@@ -36,6 +36,7 @@ RCSID("$Id$");
 #include "qhit.h"
 #include "gnutella.h"
 #include "ggep.h"
+#include "ggep_type.h"
 #include "gmsg.h"
 #include "share.h"
 #include "nodes.h"
@@ -400,6 +401,7 @@ add_file(struct shared_file *sf)
 	gboolean sha1_available;
 	gnet_host_t hvec[QHIT_MAX_ALT];
 	gint hcnt = 0;
+	guint32 fs32;
 
 	g_assert(sf->fi == NULL);	/* Cannot match partially downloaded files */
 
@@ -436,8 +438,9 @@ add_file(struct shared_file *sf)
 
 	FOUND_GROW(needed);
 
+	fs32 = sf->file_size > ((((guint64) 1U) << 32) - 1) ? ~0U : sf->file_size;
 	WRITE_GUINT32_LE(sf->file_index, &FOUND_BUF[pos]); pos += 4;
-	WRITE_GUINT32_LE(sf->file_size, &FOUND_BUF[pos]);  pos += 4;
+	WRITE_GUINT32_LE(fs32, &FOUND_BUF[pos]);  pos += 4;
 
 	memcpy(&FOUND_BUF[pos], sf->file_name, sf->file_name_len);
 	pos += sf->file_name_len;
@@ -447,7 +450,7 @@ add_file(struct shared_file *sf)
 	FOUND_BUF[pos++] = '\0';
 
 	if (sha1_available) {
-		gchar *ggep_h_addr = NULL;
+		gchar *last_ggep = NULL;
 
 		/*
 		 * Emit the SHA1, either as GGEP "H" or as a plain ASCII URN.
@@ -458,16 +461,14 @@ add_file(struct shared_file *sf)
 			guint8 type = GGEP_H_SHA1;
 			struct iovec iov[2];
 			gint w;
-			guint32 flags = GGEP_W_FIRST | GGEP_W_COBS;
+			guint32 flags = GGEP_W_COBS;
 
+			flags |= last_ggep ? 0 : GGEP_W_FIRST;
 			iov[0].iov_base = (gpointer) &type;
 			iov[0].iov_len = 1;
 
 			iov[1].iov_base = sf->sha1_digest;
 			iov[1].iov_len = SHA1_RAW_SIZE;
-
-			if (hcnt == 0)
-				flags |= GGEP_W_LAST;	/* Nothing will follow */
 
 			w = ggep_ext_writev((gchar *) &FOUND_BUF[pos], FOUND_LEFT(pos),
 					"H", iov, G_N_ELEMENTS(iov), flags);
@@ -475,8 +476,8 @@ add_file(struct shared_file *sf)
 			if (w == -1)
 				g_warning("could not write GGEP \"H\" extension in query hit");
 			else {
+				last_ggep = &FOUND_BUF[pos] + (last_ggep ? 0 : 1);
 				pos += w;			/* Could be COBS-encoded, we don't know */
-				ggep_h_addr = &FOUND_BUF[pos] + 1;	/* Skip leading magic */
 			}
 		} else {
 			/* Good old way: ASCII URN */
@@ -485,6 +486,26 @@ add_file(struct shared_file *sf)
 			pos += 9;
 			memcpy(&FOUND_BUF[pos], b32, SHA1_BASE32_SIZE);
 			pos += SHA1_BASE32_SIZE;
+		}
+
+		if (sf->file_size > ((1U << 31) - 1)) {
+			guint8 buf[63 / 7];
+			gint len, w;
+			guint32 flags;
+			
+			flags = last_ggep ? 0 : GGEP_W_FIRST;
+			len = ggep_lf_encode(sf->file_size, buf); 
+			g_assert(len > 0 && len <= (gint) sizeof buf);
+
+			w = ggep_ext_write((gchar *) &FOUND_BUF[pos], FOUND_LEFT(pos),
+					"LF", buf, len, flags);
+			
+			if (w == -1) {
+				g_warning("could not write GGEP \"LF\" extension in query hit");
+			} else {
+				last_ggep = &FOUND_BUF[pos] + (last_ggep ? 0 : 1);
+				pos += w;
+			}
 		}
 
 		/*
@@ -498,11 +519,12 @@ add_file(struct shared_file *sf)
 			gint i;
 			gint alts_len;
 			struct iovec iov[1];
-			guint32 flags = GGEP_W_LAST | GGEP_W_COBS;
+			guint32 flags = GGEP_W_COBS;
 			gint w;
 
 			g_assert(hcnt <= QHIT_MAX_ALT);
 
+			flags |= last_ggep ? 0 : GGEP_W_FIRST;
 			for (i = 0, p = alts; i < hcnt; i++) {
 				WRITE_GUINT32_BE(hvec[i].ip, p);
 				p += 4;
@@ -517,18 +539,20 @@ add_file(struct shared_file *sf)
 			iov[0].iov_base = (gpointer) alts;
 			iov[0].iov_len = alts_len;
 
-			if (ggep_h_addr == NULL)
-				flags |= GGEP_W_FIRST;		/* Nothing before */
-
 			w = ggep_ext_writev((gchar *) &FOUND_BUF[pos], FOUND_LEFT(pos),
 					"ALT", iov, G_N_ELEMENTS(iov), flags);
 
-			if (w == -1)
+			if (w == -1) {
 				g_warning(
 					"could not write GGEP \"ALT\" extension in query hit");
-			else
+			} else {
+				last_ggep = &FOUND_BUF[pos] + (last_ggep ? 0 : 1);
 				pos += w;			/* Could be COBS-encoded, we don't know */
+			}
 		}
+
+		if (last_ggep != NULL)
+			ggep_ext_mark_last(last_ggep);
 	}
 
 	FOUND_BUF[pos++] = '\0';
