@@ -58,10 +58,6 @@ void gui_update_all()
 
     /* update gui setting from config variables */
 
-    gui_update_c_gnutellanet(0, 0);
-	gui_update_c_uploads();
-	gui_update_c_downloads(0, 0);
-    
 	gui_update_files_scanned();
 
     gtk_toggle_button_set_active(
@@ -138,17 +134,21 @@ void gui_update_global(void)
     gnet_stats_gui_update();
     search_stats_gui_update(now);
     nodes_gui_update_nodes_display(now);
+    uploads_gui_update_display(now);
     statusbar_gui_clear_timeouts(now);
 }
 
+// FIXME: stats that are turned off need not be calculated!
 void gui_update_traffic_stats() {
     static guint32 bw_http_in_max = 0;
     static guint32 bw_http_out_max = 0;
     static guint32 bw_gnet_in_max = 0;
     static guint32 bw_gnet_out_max = 0;
+    gfloat frac = 0;
     gnet_bw_stats_t stats;
     guint32 high_limit;
     guint32 current;
+
     GtkProgressBar *progressbar_bws_in = GTK_PROGRESS_BAR
         (lookup_widget(main_window, "progressbar_bws_in"));
     GtkProgressBar *progressbar_bws_out = GTK_PROGRESS_BAR
@@ -178,60 +178,58 @@ void gui_update_traffic_stats() {
     if (bw_http_in_max < current)
         bw_http_in_max = current;
 
-    high_limit = stats.http_in_enabled ? 
-        stats.http_in_limit : bw_http_in_max;
+    high_limit = MAX(
+        stats.http_in_enabled ? stats.http_in_limit : bw_http_in_max,
+        current);
+    frac = (high_limit == 0) ? 0 : (gfloat) current / high_limit;
 
 	g_snprintf(gui_tmp, sizeof(gui_tmp), "%s/s in %s", 
         compact_size(current), progressbar_bws_in_avg ? "(avg)" : "");
 	gtk_progress_bar_set_text(progressbar_bws_in, gui_tmp);
-
-    gtk_progress_configure(GTK_PROGRESS(progressbar_bws_in), current,
-        0, MAX(high_limit, current));
-
+    gtk_progress_bar_set_fraction(progressbar_bws_in, frac);
 
     current = progressbar_bws_out_avg ? stats.http_out_avg : stats.http_out;
     if (bw_http_out_max < current)
         bw_http_out_max = current;
 
-    high_limit = stats.http_out_enabled ? 
-        stats.http_out_limit : bw_http_out_max;
+    high_limit = MAX(
+        stats.http_out_enabled ? stats.http_out_limit : bw_http_out_max,
+        current);
+    frac = (high_limit == 0) ? 0 : (gfloat) current / high_limit;
 
 	g_snprintf(gui_tmp, sizeof(gui_tmp), "%s/s out %s",
         compact_size(current), progressbar_bws_out_avg ? "(avg)" : "");
 	gtk_progress_bar_set_text(progressbar_bws_out, gui_tmp);
-
-	gtk_progress_configure(GTK_PROGRESS(progressbar_bws_out), current,
-    	0, MAX(current, high_limit));
-
+    gtk_progress_bar_set_fraction(progressbar_bws_out, frac);
 
     current = progressbar_bws_gin_avg ? stats.gnet_in_avg : stats.gnet_in;
     if (bw_gnet_in_max < current)
         bw_gnet_in_max = current;
 
-    high_limit = stats.gnet_in_enabled ? 
-        stats.gnet_in_limit : bw_gnet_in_max;
+    high_limit = MAX(
+        stats.gnet_in_enabled ? stats.gnet_in_limit : bw_gnet_in_max,
+        current);
+    frac = (high_limit == 0) ? 0 : (gfloat) current / high_limit;
 
     g_snprintf(gui_tmp, sizeof(gui_tmp), "%s/s in %s", 
         compact_size(current), progressbar_bws_gin_avg ? "(avg)" : "");
 	gtk_progress_set_format_string(GTK_PROGRESS(progressbar_bws_gin), gui_tmp);
-
- 	gtk_progress_configure(GTK_PROGRESS(progressbar_bws_gin), current,
-    	0, MAX(current, high_limit));
+    gtk_progress_bar_set_fraction(progressbar_bws_gin, frac);
 
 
     current = progressbar_bws_gout_avg ? stats.gnet_out_avg : stats.gnet_out;
     if (bw_gnet_out_max < current)
         bw_gnet_out_max = current;
 
-    high_limit = stats.gnet_out_enabled ? 
-        stats.gnet_out_limit : bw_gnet_out_max;
+    high_limit = MAX(
+        stats.gnet_out_enabled ? stats.gnet_out_limit : bw_gnet_out_max,
+        current);
+    frac = (high_limit == 0) ? 0 : (gfloat) current / high_limit;
 
 	g_snprintf(gui_tmp, sizeof(gui_tmp), "%s/s out %s", 
         compact_size(current), progressbar_bws_gout_avg ? "(avg)" : "");
 	gtk_progress_set_format_string(GTK_PROGRESS(progressbar_bws_gout), gui_tmp);
-
-	gtk_progress_configure(GTK_PROGRESS(progressbar_bws_gout), current,
-    	0, MAX(current, high_limit));
+    gtk_progress_bar_set_fraction(progressbar_bws_gout, frac);
 }
 
 void gui_update_stats_frames()
