@@ -1468,7 +1468,7 @@ socket_connect_finalize(struct gnutella_socket *s, guint32 ip_addr)
 			sizeof(struct sockaddr_in));
 
 	if (res == -1 && errno != EINPROGRESS) {
-		if (!proxy_ip || !proxy_port) {
+		if (proxy_protocol != PROXY_NONE && (!proxy_ip || !proxy_port)) {
 			g_warning("Proxy isn't properly configured (%s)",
 				ip_port_to_gchar(proxy_ip, proxy_port));
 			socket_destroy(s, "Check the proxy configuration");
