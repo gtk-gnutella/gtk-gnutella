@@ -10151,7 +10151,7 @@ create_dlg_prefs_net_tab (void)
   gtk_misc_set_alignment (GTK_MISC (label129), 0, 0.5);
   gtk_misc_set_padding (GTK_MISC (label129), 4, 0);
 
-  label35 = gtk_label_new (_("Default: 6346, Random: 0"));
+  label35 = gtk_label_new (_("Default: 6346, Disable: 0, Random: 1"));
   gtk_widget_set_name (label35, "label35");
   gtk_widget_show (label35);
   gtk_table_attach (GTK_TABLE (table102), label35, 2, 3, 0, 1,

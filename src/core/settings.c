@@ -809,7 +809,7 @@ listen_port_changed(property_t prop)
 	 * If port did not change values, do nothing.
 	 */
 
-	if (listen_port == old_listen_port)
+	if (listen_port == old_listen_port && listen_port != 0)
 		return FALSE;
 
 	if (old_listen_port != (guint32) -1) {
@@ -817,7 +817,7 @@ listen_port_changed(property_t prop)
 		inet_udp_firewalled();
 	}
 
-	random_port = listen_port == 0;
+	random_port = listen_port == 1;
 	memset(tried, 0, sizeof tried);
 	memset(tried, 0xff, 1024 / 8); /* Mark ports below 1024 as already tried */
 
