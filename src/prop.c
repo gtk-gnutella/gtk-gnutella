@@ -51,6 +51,37 @@ static gchar prop_tmp[4096];
  ***/
 
 /*
+ * prop_parse_ip_vector:
+ *
+ * Parse comma delimited numeric vector.
+ */
+void prop_parse_ip_vector(const gchar *str, gsize size, guint32 *t)
+{
+	/* Parse comma delimited settings */
+
+	gchar **h;
+	gsize i;
+
+    g_assert(str != NULL);
+    g_assert(t != NULL);
+
+    h = g_strsplit(str, ",", size + 1);
+
+	for (i = 0; i < size; i++) {
+		if (!h[i])
+			break;
+
+		t[i] = gchar_to_ip(h[i]);
+	}
+
+    if (i < size)
+        g_warning("prop_parse_ip_vector: "
+            "target initialization incomplete!");
+
+	g_strfreev(h);
+}
+
+/*
  * prop_parse_guint32_vector:
  *
  * Parse comma delimited numeric vector.
@@ -800,6 +831,7 @@ void prop_save_to_file
             vbuf[p->vector_size] = NULL;
                 
             val = g_strjoinv(",", vbuf);
+            quotes = TRUE;
             break;
         case PROP_TYPE_STORAGE:
             val = g_new(guint8, (p->vector_size*2)+1);
@@ -882,7 +914,7 @@ static void load_helper(prop_set_t *ps, property_t prop, const gchar *val)
             (p->vector_size * sizeof(guint32)) < 
             (sizeof(vecbuf) * sizeof(vecbuf[0])));
 
-        prop_parse_guint32_vector(val, p->vector_size, (guint32 *)vecbuf);
+        prop_parse_ip_vector(val, p->vector_size, (guint32 *)vecbuf);
         stub->guint32.set(prop, (guint32 *)&vecbuf, 0, 0);
         break;
     case PROP_TYPE_STORAGE: {
