@@ -736,6 +736,29 @@ static void tx_deflate_disable(txdrv_t *tx)
 	/* Nothing specific */
 }
 
+/*
+ * tx_deflate_pending
+ *
+ * Returns the amount of data buffered locally and in the stack below.
+ */
+static gint tx_deflate_pending(txdrv_t *tx)
+{
+	struct attr *attr = (struct attr *) tx->opaque;
+	struct buffer *b;
+	gint pending;
+
+	b = &attr->buf[attr->fill_idx];	/* Buffer we fill */
+	pending = b->wptr - b->rptr;
+	pending += attr->unflushed;		/* Some of those made it to buffer */
+
+	if (attr->send_idx != -1) {
+		b = &attr->buf[attr->send_idx];	/* Buffer we send */
+		pending += b->wptr - b->rptr;
+	}
+
+	return pending + tx_pending(attr->nd);
+}
+
 struct txdrv_ops tx_deflate_ops = {
 	tx_deflate_init,		/* init */
 	tx_deflate_destroy,		/* destroy */
@@ -743,5 +766,6 @@ struct txdrv_ops tx_deflate_ops = {
 	tx_deflate_writev,		/* writev */
 	tx_deflate_enable,		/* enable */
 	tx_deflate_disable,		/* disable */
+	tx_deflate_pending,		/* pending */
 };
 

@@ -294,7 +294,6 @@ void node_enableq(struct gnutella_node *n);
 void node_flushq(struct gnutella_node *n);
 void node_tx_enter_flowc(struct gnutella_node *n);
 void node_tx_leave_flowc(struct gnutella_node *n);
-void node_bye_sent(struct gnutella_node *n);
 void node_bye_all(void);
 gboolean node_bye_pending(void);
 void node_close(void);

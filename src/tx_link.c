@@ -231,15 +231,6 @@ static void tx_link_disable(txdrv_t *tx)
 	bio_remove_callback(attr->bio);
 
 	/*
-	 * If we queued a Bye message, we can now rest assured it has been sent.
-	 */
-
-	if (n->flags & NODE_F_BYE_SENT) {
-		node_bye_sent(n);
-		return;
-	}
-
-	/*
 	 * If we were put in TCP_NODELAY mode by node_flushq(), then go back
 	 * to delaying mode.  Indeed, the send queue is empty, and we want to
 	 * buffer the messages for a while to avoid sending an IP packet for
@@ -253,6 +244,16 @@ static void tx_link_disable(txdrv_t *tx)
 	}
 }
 
+/*
+ * tx_link_pending
+ *
+ * No data buffered at this level: always returns 0.
+ */
+static gint tx_link_pending(txdrv_t *tx)
+{
+	return 0;
+}
+
 struct txdrv_ops tx_link_ops = {
 	tx_link_init,		/* init */
 	tx_link_destroy,	/* destroy */
@@ -260,5 +261,6 @@ struct txdrv_ops tx_link_ops = {
 	tx_link_writev,		/* writev */
 	tx_link_enable,		/* enable */
 	tx_link_disable,	/* disable */
+	tx_link_pending,	/* pending */
 };
 

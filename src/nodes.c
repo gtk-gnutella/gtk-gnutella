@@ -117,6 +117,7 @@ static void node_read_connecting(
 	gpointer data, gint source, GdkInputCondition cond);
 static void node_disable_read(struct gnutella_node *n);
 static void node_data_ind(rxdrv_t *rx, pmsg_t *mb);
+static void node_bye_sent(struct gnutella_node *n);
 
 /***
  *** Node timer.
@@ -134,6 +135,17 @@ void node_timer(time_t now)
 	while (l) {
 		struct gnutella_node *n = (struct gnutella_node *) l->data;
 		l = l->next;
+
+		/*
+		 * If we're sending a BYE message, check whether the whole TX
+		 * stack finally flushed.
+		 */
+
+		if (n->flags & NODE_F_BYE_SENT) {
+			g_assert(n->outq);
+			if (mq_pending(n->outq) == 0)
+				node_bye_sent(n);
+		}
 
 		if (!stop_host_get) {		/* No timeout if stop_host_get is set */
 			if (n->status == GTA_NODE_REMOVING) {
@@ -667,36 +679,33 @@ void node_bye(struct gnutella_node *n, gint code, const gchar * reason, ...)
 	 * out.  But not doing it immediately gives a chance for the message to
 	 * proagate AND be read by the remote node.
 	 *
-	 * When sending is delayed, node_disableq() will check for the
+	 * When sending is delayed, we will periodically check for the
 	 * NODE_F_BYE_SENT condition and change the shutdown delay to a much
-	 * shorter period.
+	 * shorter period when the TX queue is emptied.
 	 *
 	 * In shutdown mode, we'll also preserve the existing error message for
 	 * node_remove().
+	 *
+	 * NB: To know whether we sent it or not, we need to probe the size
+	 * of the TX stack, since there is a possible compression stage that
+	 * can delay sending data for a little while.  That's why we
+	 * use mq_pending() and not mq_size().
 	 */
 
-	n->flags |= NODE_F_BYE_SENT;
-
-	/*
-	 * XXX to know whether we sent it or not, we'd need to probe the size
-	 * XXX of the RX stack, now that there is a possible compression stage.
-	 */
-
-	if (mq_size(n->outq) == 0) {
+	if (mq_pending(n->outq) == 0) {
 		if (dbg > 4)
 			printf("successfully sent BYE \"%s\" to %s\n",
 				n->error_str, node_ip(n));
 
-		if (!(n->attrs & NODE_A_TX_DEFLATE)) {
-			/* No compression, it's safe to shutdown */
 			sock_tx_shutdown(n->socket);
 			node_shutdown_mode(n, BYE_GRACE_DELAY);
-		} else
-			node_shutdown_mode(n, SHUTDOWN_GRACE_DELAY);
 	} else {
 		if (dbg > 4)
 			printf("delayed sending of BYE \"%s\" to %s\n",
 				n->error_str, node_ip(n));
+
+		n->flags |= NODE_F_BYE_SENT;
+
 		node_shutdown_mode(n, SHUTDOWN_GRACE_DELAY);
 	}
 
@@ -2471,7 +2480,7 @@ static void node_disable_read(struct gnutella_node *n)
  *
  * Called when the Bye message has been successfully sent.
  */
-void node_bye_sent(struct gnutella_node *n)
+static void node_bye_sent(struct gnutella_node *n)
 {
 	if (dbg > 4)
 		printf("finally sent BYE \"%s\" to %s\n", n->error_str, node_ip(n));

@@ -63,6 +63,7 @@ struct txdrv_ops {
 	gint (*writev)(txdrv_t *tx, struct iovec *iov, gint iovcnt);
 	void (*enable)(txdrv_t *tx);
 	void (*disable)(txdrv_t *tx);
+	gint (*pending)(txdrv_t *tx);
 };
 
 /*
@@ -76,6 +77,7 @@ gint tx_writev(txdrv_t *tx, struct iovec *iov, gint iovcnt);
 void tx_srv_register(txdrv_t *d, tx_service_t srv_fn, gpointer srv_arg);
 void tx_srv_enable(txdrv_t *tx);
 void tx_srv_disable(txdrv_t *tx);
+gint tx_pending(txdrv_t *tx);
 
 #endif	/* __tx_h__ */
 

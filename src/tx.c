@@ -40,6 +40,7 @@
 #define TX_WRITEV(o,i,c)	((o)->ops->writev((o), (i), (c)))
 #define TX_ENABLE(o)		((o)->ops->enable((o)))
 #define TX_DISABLE(o)		((o)->ops->disable((o)))
+#define TX_PENDING(o)		((o)->ops->pending((o)))
 
 /*
  * tx_make
@@ -141,5 +142,17 @@ void tx_srv_disable(txdrv_t *tx)
 
 	TX_DISABLE(tx);
 	tx->flags &= ~TX_SERVICE;
+}
+
+/*
+ * tx_pending
+ *
+ * Amount of data pending in the whole stack.
+ */
+gint tx_pending(txdrv_t *tx)
+{
+	g_assert(tx);
+
+	return TX_PENDING(tx);
 }
 
