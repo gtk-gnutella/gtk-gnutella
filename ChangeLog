@@ -1,5 +1,11 @@
 # since last version
 
+- (2003.05.22 - Jeroen)
+ * PARQ: A broken/disconnected upload can reclaim its queue position
+ * PARQ: Upload pane now shows the Queue the current upload is queued in
+ * PARQ: Dynamic upload slots also honours parq now.
+ * PARQ: Fixed: No more infinite Waiting uploads.
+
 - (2003.05.20 - Jeroen)
  * PARQ: Fixed: An upload can't get actively queued more than once at a time.
 
