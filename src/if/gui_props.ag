@@ -906,6 +906,24 @@ prop = {
 };
 
 prop = {
+    name = "show_gnet_info_tx_wire";
+    desc = "Whether to display the amount of bytes sent on the TX wire.";
+    type = boolean;
+    data = {
+        default = FALSE;
+    };
+};
+
+prop = {
+    name = "show_gnet_info_rx_wire";
+    desc = "Whether to display the amount of bytes received on the RX wire.";
+    type = boolean;
+    data = {
+        default = FALSE;
+    };
+};
+
+prop = {
     name = "show_gnet_info_tx_speed";
     desc = "Whether TX instantaneous transmission speed should be displayed.";
     type = boolean;

@@ -120,6 +120,8 @@ extern const gboolean node_show_handshake_version;
 extern const gboolean node_show_detailed_info;
 extern const gboolean show_gnet_info_txc;
 extern const gboolean show_gnet_info_rxc;
+extern const gboolean show_gnet_info_tx_wire;
+extern const gboolean show_gnet_info_rx_wire;
 extern const gboolean show_gnet_info_tx_speed;
 extern const gboolean show_gnet_info_rx_speed;
 extern const gboolean show_gnet_info_tx_queries;
