@@ -304,7 +304,7 @@ target_to_string(gpointer target)
 	}
 	
     gm_snprintf(buf, sizeof buf, "0x%x", GPOINTER_TO_UINT(value));
-	return buf;
+	return (const xmlChar *) buf;
 }
 
 /**
@@ -327,7 +327,7 @@ xml_prop_printf(xmlNodePtr node, const xmlChar *name, const char *fmt, ...)
 	va_start(ap, fmt);
 	gm_vsnprintf(buf, sizeof buf, fmt, ap);
 	va_end(ap);
-    return xmlSetProp(node, name, buf);
+    return xmlSetProp(node, name, (const xmlChar *) buf);
 }
 
 /**
