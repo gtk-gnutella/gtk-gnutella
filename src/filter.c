@@ -34,9 +34,6 @@
 #include "search_gui.h"
 #include "gtk-missing.h"
 
-#include "gui_property_priv.h"
-#include "gui_property.h"
-
 #define BIT_TO_BOOL(m) ((m == 0) ? FALSE : TRUE)
 
 /*

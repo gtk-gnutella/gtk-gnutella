@@ -37,14 +37,12 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#include "sha1.h"
 #include "huge.h"
 #include "share.h"
 #include "gmsg.h"
 #include "header.h"
 #include "dmesh.h"
 
-#include "gnet_property_priv.h"
 #include "settings.h"
 
 /***

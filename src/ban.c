@@ -26,16 +26,14 @@
  */
 
 #include "gnutella.h"
+
 #include <stdio.h>			/* For debug printf() only */
 #include <time.h>
 #include <sys/time.h>
 #include <unistd.h>
 
 #include "ban.h"
-#include "cq.h"
 #include "sockets.h"
-
-#include "gnet_property_priv.h"
 
 /*
  * We keep a hash table, indexed by IP address, which records all the

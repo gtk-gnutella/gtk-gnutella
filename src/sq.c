@@ -34,7 +34,7 @@
 #include "pmsg.h"
 #include "nodes.h"
 
-#include "gnet_property_priv.h"
+
 
 /* hack value for now */
 #define QUEUE_SPACING	10		/* Send a search every 10 seconds */

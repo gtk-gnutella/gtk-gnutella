@@ -23,14 +23,12 @@
  *----------------------------------------------------------------------
  */
 
-//#include "gnutella.h"
+#include "gnutella.h"
+#include "gui.h"
 
 #include <signal.h>
 #include <locale.h>
 
-#include "common.h"
-
-#include "gui.h"
 #include "search.h"
 #include "share.h"
 #include "sockets.h"
@@ -39,18 +37,14 @@
 #include "hosts.h"
 #include "gmsg.h"
 #include "bsched.h"
-#include "search_stats.h"
 #include "upload_stats.h"
 #include "pcache.h"
-#include "gtk-missing.h"
-#include "cq.h"
 #include "ban.h"
 #include "dmesh.h"
 #include "version.h"
 #include "nodes.h"
 #include "whitelist.h"
 
-#include "gnet_property_priv.h"
 #include "main_gui.h"
 #include "settings.h"
 #include "fileinfo.h"

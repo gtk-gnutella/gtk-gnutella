@@ -30,7 +30,7 @@
 
 #include <glib.h>
 
-#include "common.h"
+#include "gnutella.h"
 
 typedef void (*qrp_callback_t)(gpointer arg, gboolean cancelled);
 

@@ -29,7 +29,6 @@
 #include "filter.h"
 #include "filter_cb.h"
 #include "filter_gui.h"
-#include "gui_property_priv.h"
 
 /*
  * Private variables

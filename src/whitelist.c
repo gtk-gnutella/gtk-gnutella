@@ -24,13 +24,11 @@
  *----------------------------------------------------------------------
  */
 
-
 #include "gnutella.h"
+
 #include "whitelist.h"
 #include "settings.h"
 #include "nodes.h"
-#include "misc.h"
-#include "gnet_property_priv.h"
 
 #include <sys/stat.h>
 #include <unistd.h>

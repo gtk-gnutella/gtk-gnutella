@@ -25,8 +25,9 @@
  *----------------------------------------------------------------------
  */
 
+#include "gui.h"
+
 #include "share_gui.h"
-#include "common.h"
 
 static guint32 monitor_items = 0;
 static GtkListStore *monitor_model = NULL;

@@ -30,8 +30,6 @@
 
 #include "search_cb.h"
 #include "search_gui.h"
-#include "gnet.h"
-#include "gtk-missing.h"
 #include "statusbar_gui.h"
 
 #ifndef USE_GTK2

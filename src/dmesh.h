@@ -28,6 +28,8 @@
 #ifndef __dmesh_h__
 #define __dmesh_h__
 
+#include "downloads.h"
+
 #include <glib.h>
 #include <errno.h>
 

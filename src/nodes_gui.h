@@ -27,7 +27,6 @@
 #define __nodes_gui_h__
 
 #include "gui.h"
-#include "gnet.h"
 
 void nodes_gui_init(void);
 void nodes_gui_shutdown(void);

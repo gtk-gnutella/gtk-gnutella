@@ -123,7 +123,7 @@ guint8 *[=(. func-prefix)=]_get_storage(property_t, guint8 *, gsize);
 #ifndef __[=(. set-name-down)=]_priv_h__
 #define __[=(. set-name-down)=]_priv_h__
 
-#include "prop.h"
+#include <glib.h>
 
 [= FOR prop =][= 
 IF (exist? "data.value") =][=
@@ -152,7 +152,6 @@ void [=(. func-prefix)=]_shutdown(void);
 =]
 
 #include "prop.h"
-#include "[=(sprintf "%s_priv.h" (. set-name-down))=]"
 #include "[=(sprintf "%s.h" (. set-name-down))=]"
 
 

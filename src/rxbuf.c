@@ -25,12 +25,13 @@
  *----------------------------------------------------------------------
  */
 
+#include "gnutella.h"
+
 #include <stdio.h>
 #include <glib.h>
 
 #include "rxbuf.h"
 #include "pmsg.h"
-#include "gnet_property_priv.h"
 
 /*
  * RX buffers are a set of pdata_t structures which are never physically freed

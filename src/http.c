@@ -28,6 +28,8 @@
  *----------------------------------------------------------------------
  */
 
+#include "gnutella.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -36,10 +38,8 @@
 #include <sys/types.h>
 
 #include "http.h"
-#include "gnet_property_priv.h"
 #include "sockets.h"
 #include "bsched.h"
-#include "gnutella.h"
 
 /*
  * http_send_status

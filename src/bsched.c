@@ -25,7 +25,7 @@
  *----------------------------------------------------------------------
  */
 
-#include "common.h"
+#include "gnutella.h"
 
 #include <stdio.h>
 #include <errno.h>
@@ -38,7 +38,6 @@
 #endif
 
 #include "bsched.h"
-#include "gnet_property_priv.h"
 
 /*
  * Global bandwidth schedulers.

@@ -25,14 +25,12 @@
 
 #include "gnutella.h"
 
-#include "gnet.h"
-#include "gnet_property_priv.h"
-#include "gnutella.h"
 #include "extensions.h"
 #include "gmsg.h"
 #include "huge.h"
 #include "nodes.h"
 #include "routing.h"
+#include "downloads.h"
 
 #include <ctype.h>
 

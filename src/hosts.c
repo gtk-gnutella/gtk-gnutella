@@ -33,7 +33,6 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
-#include "gui.h" // FIXME: remove this dependency
 #include "sockets.h"
 #include "hosts.h"
 #include "nodes.h"
@@ -43,7 +42,6 @@
 #include "pcache.h"
 #include "whitelist.h"
 
-#include "gnet_property_priv.h"
 #include "settings.h"
 
 GList *sl_caught_hosts = NULL;				/* Reserve list */

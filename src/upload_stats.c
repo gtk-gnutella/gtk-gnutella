@@ -52,7 +52,7 @@
 
 #include "upload_stats_gui.h" // FIXME: remove this dependency
 #include "upload_stats.h"
-#include "url.h"
+
 
 struct ul_stats {
 	guint32 size;

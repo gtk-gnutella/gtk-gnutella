@@ -25,19 +25,16 @@
  *----------------------------------------------------------------------
  */
 
+#include "gui.h"
+
 #include <libxml/tree.h>
 #include <libxml/parser.h>
 
-#include "common.h"
 #include "filter.h"
 #include "search_xml.h"
 
-#include "gnet.h"
 #include "settings_gui.h"
 #include "search_gui.h"
-
-#include "gui_property.h"
-#include "gui_property_priv.h"
 
 #define GLOBAL_PRE 0
 #define GLOBAL_POST 1

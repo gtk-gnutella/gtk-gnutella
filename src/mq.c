@@ -25,17 +25,16 @@
  *----------------------------------------------------------------------
  */
 
+#include "gnutella.h"		/* Needed to be able to compile with dmalloc */
+
 #include <stdlib.h>			/* For qsort() */
 #include <sys/types.h>		/* FreeBSD requires this before <sys/uio.h> */
 #include <sys/uio.h>		/* For struct iovec */
 
-#include "gnutella.h"		/* Needed to be able to compile with dmalloc */
-#include "gnet_property_priv.h"	/* For dbg */
 #include "nodes.h"
 #include "mq.h"
 #include "pmsg.h"
 #include "gmsg.h"
-#include "common.h"
 #include "tx.h"
 
 #define MQ_MAXIOV	256		/* Our limit on the I/O vectors we build */

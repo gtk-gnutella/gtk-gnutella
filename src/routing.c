@@ -26,6 +26,7 @@
  */
 
 #include "gnutella.h"
+
 #include "search.h" /* For search_passive. */
 #include "routing.h"
 #include "hosts.h"
@@ -34,8 +35,6 @@
 
 #include <stdarg.h>
 #include <assert.h>
-
-#include "gnet_property_priv.h"
 
 /*
  * Flags for GUID[15] tagging.

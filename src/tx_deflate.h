@@ -28,8 +28,9 @@
 #ifndef __tx_deflate_h__
 #define __tx_deflate_h__
 
+#include "gnutella.h"
+
 #include "tx.h"
-#include "cq.h"
 
 struct txdrv_ops tx_deflate_ops;
 

@@ -25,6 +25,8 @@
  *----------------------------------------------------------------------
  */
 
+#include "gnutella.h"
+
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <signal.h>
@@ -36,16 +38,12 @@
 #include <unistd.h>
 #include <netdb.h>
 
-#include "common.h"
-
 #include "settings.h"
 #include "search.h"
 #include "hosts.h"
 #include "upload_stats.h"
 #include "sockets.h"
 #include "inet.h"
-#include "gnet.h"
-#include "gnet_property_priv.h"
 
 #define debug dbg
 
@@ -582,6 +580,7 @@ static gboolean shared_dirs_paths_changed(property_t prop)
 {
     gchar *s = gnet_prop_get_string(prop, NULL, 0);
 
+    // FIXME: should give notification or reset prop if parsing fails
     shared_dirs_parse(s);
 
     g_free(s);

@@ -25,19 +25,17 @@
  *----------------------------------------------------------------------
  */
 
-/*
- * For ntohl and inet_addr
- */
+#include "gui.h"
+#include "filter_gui.h"
+
+/* For ntohl and inet_addr */
+
 #include <sys/types.h>
 #include <netinet/in.h> 
 #include <arpa/inet.h>
 
-#include "gui.h"
 
-#include "filter_gui.h"
-#include "gtk-missing.h"
 
-#include "gui_property_priv.h"
 
 #define DEFAULT_TARGET (filter_get_drop_target())   
 

@@ -36,12 +36,8 @@
 
 #include "downloads.h"
 #include "dmesh.h"
-#include "url.h"
-#include "getdate.h"
 #include "huge.h"
-#include "cq.h"
 
-#include "gnet_property_priv.h"
 #include "settings.h"
 
 #define HTTP_PORT	80		/* Registered HTTP port */

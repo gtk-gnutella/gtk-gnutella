@@ -30,8 +30,6 @@
 #include "alive.h"
 #include "nodes.h"
 
-#include "gnet_property_priv.h"
-
 #define INFINITY	0xffffffff
 
 /*

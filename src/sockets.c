@@ -38,7 +38,6 @@
 #include <arpa/inet.h>
 #include <netinet/tcp.h>
 
-#include "gnet_property_priv.h"
 #include "sockets.h"
 #include "downloads.h"
 #include "uploads.h"

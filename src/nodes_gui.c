@@ -25,10 +25,9 @@
  *----------------------------------------------------------------------
  */
 
-#include "nodes_gui.h"
-#include "gtk-missing.h"
+#include "gui.h"
 
-#include "gui_property_priv.h"
+#include "nodes_gui.h"
 
 static gchar gui_tmp[4096];
 

@@ -25,16 +25,11 @@
  *----------------------------------------------------------------------
  */
 
-//#include "gnutella.h"
+#include "gnutella.h"
 
 #include <sys/utsname.h>		/* For uname() */
 
 #include "version.h"
-#include "common.h"
-#include "gnet.h"
-#include "getdate.h"
-
-#include "gnet_property_priv.h"
 
 gchar *version_string = NULL;
 

@@ -37,9 +37,6 @@
 #include "tx.h"
 #include "tx_deflate.h"
 #include "zlib_util.h"
-#include "cq.h"
-
-#include "gnet_property_priv.h"
 
 /*
  * The driver manages two fixed-size buffers: one is being filled by the

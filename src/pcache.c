@@ -35,7 +35,6 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
-#include "gui.h" // FIXME: remove this dependency
 #include "sockets.h"
 #include "hosts.h"
 #include "pcache.h"
@@ -44,10 +43,8 @@
 #include "routing.h"
 #include "gmsg.h"
 #include "alive.h"
-#include "cq.h"
 #include "inet.h"
 
-#include "gnet_property_priv.h"
 #include "settings.h"
 
 static GList *last_returned_pong = NULL;	/* Last returned from list */

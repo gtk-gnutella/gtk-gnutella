@@ -30,10 +30,7 @@
 #include <stdio.h>
 
 #include "inet.h"
-#include "cq.h"
-#include "gnet_property_priv.h"
 #include "settings.h"
-#include "gnet.h"
 
 extern cqueue_t *callout_queue;
 

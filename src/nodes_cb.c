@@ -27,13 +27,10 @@
 
 #include "gui.h"
 
-#include "gnet.h"
 #include "nodes_cb.h"
-#include "gtk-missing.h"
 #include "settings_gui.h"
 #include "statusbar_gui.h"
 
-#include "gui_property_priv.h"
 
 /*
  * nodes_ctrl_connect_by_name:
