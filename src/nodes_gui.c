@@ -146,6 +146,9 @@ static gchar *nodes_gui_status_str(const gnet_node_status_t *n, time_t now)
 			else
 				slen += g_snprintf(gui_tmp, sizeof(gui_tmp), "TX=%d", n->sent);
 
+			slen += g_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
+				" (%.1f k/s)", n->tx_bps);
+
 			if (n->rx_compressed)
 				slen += g_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
 					" RXc=%d,%d%%",
@@ -155,8 +158,10 @@ static gchar *nodes_gui_status_str(const gnet_node_status_t *n, time_t now)
 					" RX=%d", n->received);
 
 			slen += g_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
+				" (%.1f k/s)"
 				" Query(TX=%d, Q=%d) Drop(TX=%d, RX=%d)"
 				" Dup=%d Bad=%d W=%d RT(avg=%d, last=%d) Q=%d,%d%% %s",
+				n->rx_bps,
 				n->squeue_sent, n->squeue_count,
 				n->tx_dropped, n->rx_dropped, n->n_dups, n->n_bad, n->n_weird,
 				n->rt_avg, n->rt_last, n->mqueue_count, n->mqueue_percent_used,

@@ -74,6 +74,7 @@ typedef struct mqueue {
 #define mq_size(q)					((q)->size)
 #define mq_count(q)					((q)->count)
 #define mq_pending(q)				((q)->size + tx_pending((q)->tx_drv))
+#define mq_bio(q)					(tx_bio_source((q)->tx_drv))
 
 extern gint tx_pending(struct txdriver *tx);
 

@@ -81,14 +81,16 @@ typedef struct gnet_node_status {
 	gint32   tx_given;			/* Bytes fed to the TX stack (from top) */
 	gint32   tx_deflated;		/* Bytes deflated by the TX stack */
 	gint32   tx_written;		/* Bytes written by the TX stack */
-    gboolean tx_compressed;     /* Is tx traffic compressed */
-    gfloat   tx_compression_ratio; /* Tx compression ratio */
+    gboolean tx_compressed;     /* Is TX traffic compressed */
+    gfloat   tx_compression_ratio; /* TX compression ratio */
+    gfloat   tx_bps;			/* TX traffic rate */
 	
 	gint32   rx_given;			/* Bytes fed to the RX stack (from bottom) */
 	gint32   rx_inflated;		/* Bytes inflated by the RX stack */
 	gint32   rx_read;			/* Bytes read from the RX stack */
-    gboolean rx_compressed;     /* Is rx traffic compressed */
-    gfloat   rx_compression_ratio;/* Rx compression ratio */
+    gboolean rx_compressed;     /* Is RX traffic compressed */
+    gfloat   rx_compression_ratio;/* RX compression ratio */
+    gfloat   rx_bps;			/* RX traffic rate */
 
 	guint32  rt_avg;			/* Average ping/pong roundtrip time */
 	guint32  rt_last;			/* Last ping/pong roundtrip time */
