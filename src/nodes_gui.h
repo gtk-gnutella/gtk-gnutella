@@ -34,7 +34,7 @@ void nodes_gui_shutdown(void);
 
 void nodes_gui_add_node(gnet_node_info_t *n, const gchar *type);
 void nodes_gui_remove_node(gnet_node_t n);
-void nodes_gui_update_node(gnet_node_info_t *, gboolean, gboolean, gboolean);
+void nodes_gui_update_node(gnet_node_info_t *, gboolean);
 void nodes_gui_update_nodes_display(time_t now);
 
 #endif /* __nodes_gui_h__ */
