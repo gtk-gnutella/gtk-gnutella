@@ -229,7 +229,7 @@ file_config_open_read_norename_chosen(
  * Returns opened FILE if success, NULL on error.
  */
 static FILE *
-file_config_open(const gchar *what, const file_path_t *fv, gboolean append)
+file_config_open(const gchar *what, const file_path_t *fv)
 {
 	FILE *out = NULL;
 	char *path;
@@ -239,7 +239,7 @@ file_config_open(const gchar *what, const file_path_t *fv, gboolean append)
 	g_return_val_if_fail(NULL != path, NULL);
 
 	if (is_absolute_path(path)) {
-		out = file_fopen(path, append ? "a" : "w");
+		out = file_fopen(path, "w");
 		if (out == NULL)
 			g_warning("unable to persist %s", what);
 		G_FREE_NULL(path);
@@ -253,16 +253,7 @@ file_config_open(const gchar *what, const file_path_t *fv, gboolean append)
 FILE *
 file_config_open_write(const gchar *what, const file_path_t *fv) 
 {
-    return file_config_open(what, fv, FALSE);
-}
-
-/**
- * Open configuration file for appending.
- */
-FILE *
-file_config_open_append(const gchar *what, const file_path_t *fv) 
-{
-    return file_config_open(what, fv, TRUE);
+    return file_config_open(what, fv);
 }
 
 /**
