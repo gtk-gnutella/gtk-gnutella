@@ -743,7 +743,10 @@ static void create_download(
 	d->file_desc = -1;
 	memcpy(d->guid, guid, 16);
 	d->restart_timer_id = 0;
-	d->push = push;
+	if (push)
+		download_push_insert(d);
+	else
+		d->push = FALSE;
 
 	sl_downloads = g_slist_prepend(sl_downloads, (gpointer) d);
 
@@ -1803,10 +1806,22 @@ void download_push_ack(struct gnutella_socket *s)
 	 * in a row, and with the propagation delay, the first gets handled
 	 * after we sent the second push.  We'll get a GIV for an already
 	 * connected download.
+	 *
+	 * We check two things: that we're not already connected (has a socket)
+	 * and that we're in a state where we can expect a GIV string.  Doing
+	 * the two tests add robustness, since they are overlapping, but not
+	 * completely equivalent (if we're in the queued state, for instance).
 	 */
 
 	if (d->socket) {
-		g_warning("got spurious GIV string: download already connected");
+		g_warning("got spurious GIV string: download is connected, state %d",
+			d->status);
+		goto error;
+	}
+
+	if (!DOWNLOAD_IS_EXPECTING_GIV(d)) {
+		g_warning("got GIV string in unexpected state (%d), ignoring",
+			d->status);
 		goto error;
 	}
 
