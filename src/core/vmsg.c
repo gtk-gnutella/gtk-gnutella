@@ -1224,7 +1224,7 @@ vmsg_time_sync_req_stamp(pmsg_t *mb, struct mqueue *q)
  * If the node is an UDP node, its IP and port indicate to whom we shall
  * send the message.
  *
- * The `sent' parameter is filled with the initial "T1" timestamp markup.
+ * The `sent' parameter holds the initial "T1" timestamp markup.
  */
 void
 vmsg_send_time_sync_req(struct gnutella_node *n, gboolean ntp, tm_t *sent)
