@@ -3595,7 +3595,7 @@ static gboolean check_content_urn(struct download *d, header_t *header)
 static void download_request(struct download *d, header_t *header, gboolean ok)
 {
 	struct gnutella_socket *s = d->socket;
-	gchar *status = getline_str(s->getline);
+	gchar *status;
 	gint ack_code;
 	gchar *ack_message = "";
 	gchar *buf;
@@ -3608,7 +3608,10 @@ static void download_request(struct download *d, header_t *header, gboolean ok)
 	gboolean is_followup = d->keep_alive;
 	gchar short_read[80];
 
-	d->last_update = time(NULL);	/* Done reading headers */
+	g_assert(s->getline);				/* Being in the header reading phase */
+
+	status = getline_str(s->getline);
+	d->last_update = time(NULL);		/* Done reading headers */
 
 	if (dbg > 2) {
 		gchar *incomplete = ok ? "" : "INCOMPLETE ";
