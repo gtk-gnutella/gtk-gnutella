@@ -541,17 +541,6 @@ prop = {
 };
 
 prop = {
-    name = "autoclear_uploads";
-    cfgvar = "auto_clear_completed_uploads";
-    desc = "Auto clear completed uploads";
-    type = boolean;
-    data = {
-        default = FALSE;
-        value   = clear_uploads;
-    };
-};
-
-prop = {
     name = "autoclear_downloads";
     cfgvar = "auto_clear_completed_downloads";
     desc = "Auto clear completed downloads";

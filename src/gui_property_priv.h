@@ -85,6 +85,7 @@ extern gboolean gnet_stats_pkg_perc;
 extern gboolean gnet_stats_byte_perc;
 extern gboolean gnet_stats_drop_perc;
 extern guint32  gnet_stats_general_col_widths[2];
+extern gboolean clear_uploads;
 
 
 prop_set_t *gui_prop_init(void);

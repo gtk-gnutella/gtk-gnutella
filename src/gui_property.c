@@ -148,6 +148,8 @@ gboolean gnet_stats_drop_perc     = FALSE;
 gboolean gnet_stats_drop_perc_def = FALSE;
 guint32  gnet_stats_general_col_widths[2]     = { 60, 20 };
 guint32  gnet_stats_general_col_widths_def[2] = { 60, 20 };
+gboolean clear_uploads     = FALSE;
+gboolean clear_uploads_def = FALSE;
 
 static prop_set_t *gui_property = NULL;
 
@@ -1028,7 +1030,7 @@ prop_set_t *gui_prop_init(void) {
     gui_property->props[47].type               = PROP_TYPE_GUINT32;
     gui_property->props[47].data.guint32.def   = &search_stats_mode_def;
     gui_property->props[47].data.guint32.value = &search_stats_mode;
-    gui_property->props[47].data.guint32.max   = 2;
+    gui_property->props[47].data.guint32.max   = 3;
     gui_property->props[47].data.guint32.min   = 0;
 
 
@@ -1189,6 +1191,23 @@ prop_set_t *gui_prop_init(void) {
     gui_property->props[56].data.guint32.value = gnet_stats_general_col_widths;
     gui_property->props[56].data.guint32.max   = 0xFFFFFFFF;
     gui_property->props[56].data.guint32.min   = 0x00000000;
+
+
+    /*
+     * PROP_AUTOCLEAR_UPLOADS:
+     *
+     * General data:
+     */
+    gui_property->props[57].name = "auto_clear_completed_uploads";
+    gui_property->props[57].desc = "Auto clear completed uploads";
+    gui_property->props[57].prop_changed_listeners = NULL;
+    gui_property->props[57].save = TRUE;
+    gui_property->props[57].vector_size = 1;
+
+    /* Type specific data: */
+    gui_property->props[57].type               = PROP_TYPE_BOOLEAN;
+    gui_property->props[57].data.boolean.def   = &clear_uploads_def;
+    gui_property->props[57].data.boolean.value = &clear_uploads;
     return gui_property;
 }
 

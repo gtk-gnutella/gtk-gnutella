@@ -491,7 +491,7 @@ prop = {
     data = {
         default = 0;
         min     = 0;
-        max     = 2;
+        max     = 3;
     };
 };
 
@@ -584,5 +584,16 @@ prop = {
     vector_size = 2;
     data = {
         default = "{ 60, 20 }";
+    };
+};
+
+prop = {
+    name = "autoclear_uploads";
+    cfgvar = "auto_clear_completed_uploads";
+    desc = "Auto clear completed uploads";
+    type = boolean;
+    data = {
+        default = FALSE;
+        value   = clear_uploads;
     };
 };

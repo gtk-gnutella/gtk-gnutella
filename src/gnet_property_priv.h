@@ -74,7 +74,6 @@ extern gboolean bws_out_enabled;
 extern gboolean bws_gin_enabled;
 extern gboolean bws_gout_enabled;
 extern gboolean bw_ul_usage_enabled;
-extern gboolean clear_uploads;
 extern gboolean clear_downloads;
 extern gboolean search_remove_downloaded;
 extern gboolean force_local_ip;
