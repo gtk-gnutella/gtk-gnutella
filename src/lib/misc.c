@@ -1333,13 +1333,13 @@ ascii_strlower(gchar *dst, const gchar *src)
 	if (dst != src)
 		do {
 			c = (const guchar) *src++;
-			*dst++ = is_ascii_upper(c) ? tolower(c) : c;
+			*dst++ = ascii_tolower(c);
 		} while (c != '\0');
 	else
 		do {
 			c = (const guchar) *src++;
 			if (is_ascii_upper(c))
-				*dst = tolower(c);
+				*dst = ascii_tolower(c);
 			dst++;
 		} while (c != '\0');
 }
@@ -1885,7 +1885,7 @@ parse_uint64(const gchar *src, gchar **endptr, gint base, gint *errorptr)
 		if (isdigit(c))
 			d = c - '0';
 		else if (isalpha(c)) {
-			c = tolower(c);
+			c = ascii_tolower(c);
 			d = c - 'a' + 10;
 		} else
 			break;

@@ -4682,7 +4682,7 @@ static guint32
 utf32_uppercase(guint32 uc)
 {
 	if (uc < 0x80)
-		return is_ascii_lower(uc) ? (guint32) toupper(uc) : uc;
+		return is_ascii_lower(uc) ? (guint32) ascii_toupper(uc) : uc;
 
 #define GET_ITEM(i) (utf32_uppercase_lut[(i)].lower)
 #define FOUND(i) \
@@ -4706,7 +4706,7 @@ static guint32
 utf32_lowercase(guint32 uc)
 {
 	if (uc < 0x80)
-		return is_ascii_upper(uc) ? (guint32) tolower(uc) : uc;
+		return is_ascii_upper(uc) ? (guint32) ascii_tolower(uc) : uc;
 
 #define GET_ITEM(i) (utf32_lowercase_lut[(i)].upper)
 #define FOUND(i) \

@@ -94,11 +94,11 @@ normalize(gchar *field)
 		if (start_word) {
 			if (is_ascii_alnum(c)) {
 				start_word = FALSE;
-				*s = toupper(c);
+				*s = ascii_toupper(c);
 			}
 		} else {
 			if (is_ascii_alnum(c))
-				*s = tolower(c);
+				*s = ascii_tolower(c);
 			else
 				start_word = TRUE;
 		}

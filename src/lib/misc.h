@@ -89,6 +89,18 @@ size_t strlcpy(gchar *dst, const gchar *src, size_t dst_size);
 #define is_ascii_upper(c) (isascii(c) && isupper((guchar) c))
 #define is_ascii_xdigit(c) (isascii(c) && isxdigit((guchar) c))
 
+static inline gint
+ascii_toupper(gint c)
+{
+	return is_ascii_lower(c) ? c + 32 : c;
+}
+
+static inline gint
+ascii_tolower(gint c)
+{
+	return is_ascii_upper(c) ? c - 32 : c;
+}
+
 #if !GLIB_CHECK_VERSION(2,4,0)
 static inline const gchar *
 g_strip_context(const gchar *id, const gchar *val)

@@ -701,12 +701,12 @@ pcache_init(void)
 				memcpy(local_meta.language, lang, 2);
 
 			for (i = 0; i < 2; i++)
-				local_meta.language[i] = tolower(local_meta.language[i]);
+				local_meta.language[i] = ascii_tolower(local_meta.language[i]);
 
 			if (len >= 5 && lang[2] == '_') {
 				memcpy(local_meta.country, lang + 3, 2);
 				for (i = 0; i < 2; i++)
-					local_meta.country[i] = toupper(local_meta.country[i]);
+					local_meta.country[i] = ascii_toupper(local_meta.country[i]);
 			} else
 				local_meta.country[0] = '\0';
 		}

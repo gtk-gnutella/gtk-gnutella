@@ -463,8 +463,8 @@ url_normalize(gchar *url, url_policy_t pol)
 			gint c;
 
 		    for (/* NOTHING */; (c = (guchar) *q) != '\0'; q++) {
-        		if (isalnum(c)) {
-          			*q = tolower(c);
+        		if (is_ascii_alnum(c)) {
+          			*q = ascii_tolower(c);
         		} else if (c != '-') {
           			break;
         		}
