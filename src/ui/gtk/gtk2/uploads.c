@@ -89,9 +89,13 @@ typedef struct remove_row_ctx {
  *** Callbacks
  ***/
 
-static gboolean on_button_press_event(GtkWidget *widget, GdkEventButton *event,
-		gpointer user_data)
+static gboolean
+on_button_press_event(GtkWidget *unused_widget, GdkEventButton *event,
+		gpointer unused_udata)
 {
+	(void) unused_widget;
+	(void) unused_udata;
+
 	if (3 == event->button) { 
         /* Right click section (popup menu) */
 		gtk_menu_popup(GTK_MENU(popup_uploads), NULL, NULL, NULL, NULL,
@@ -102,19 +106,21 @@ static gboolean on_button_press_event(GtkWidget *widget, GdkEventButton *event,
 	return FALSE;
 }
 
-/*
- * upload_removed:
- *
+/**
  * Callback: called when an upload is removed from the backend.
  *
  * Either immediately clears the upload from the frontend or just
  * set the upload_row_info->valid to FALSE, so we don't accidentally
  * try to use the handle to communicate with the backend.
  */
-static void upload_removed(
-    gnet_upload_t uh, const gchar *reason, guint32 running, guint32 registered)
+static void
+upload_removed(gnet_upload_t uh, const gchar *reason,
+		guint32 running, guint32 registered)
 {
     upload_row_data_t *rd = NULL;
+
+	(void) running;
+	(void) registered;
 	
     /* Invalidate row and remove it from the GUI if autoclear is on */
 	rd = find_upload(uh);
@@ -130,81 +136,82 @@ static void upload_removed(
 
 
 
-/*
- * upload_added:
- *
+/**
  * Callback: called when an upload is added from the backend.
  *
  * Adds the upload to the gui.
  */
-static void upload_added(
-    gnet_upload_t n, guint32 running, guint32 registered)
+static void
+upload_added(gnet_upload_t n, guint32 running, guint32 registered)
 {
     gnet_upload_info_t *info;
+
+	(void) running;
+	(void) registered;
 
     info = guc_upload_get_info(n);
     uploads_gui_add_upload(info);
     guc_upload_free_info(info);
 }
 
-/*
- * upload_info_changed:
- *
+/**
  * Callback: called when upload information was changed by the backend.
  * This updates the upload information in the gui. 
  */
-static void upload_info_changed(gnet_upload_t u, 
+static void
+upload_info_changed(gnet_upload_t u, 
     guint32 running, guint32 registered)
 {
     gnet_upload_info_t *info;
+
+	(void) running;
+	(void) registered;
 
     info = guc_upload_get_info(u);
     uploads_gui_update_upload_info(info);
     guc_upload_free_info(info);
 }
 
-#if 0	/* UNUSED */
 #define COMPARE_FUNC(field, code) \
-static gint CAT3(compare_,field,_func)( \
+static gint CAT2(compare_,field)( \
 	GtkTreeModel *model, GtkTreeIter *a, GtkTreeIter *b, gpointer user_data) \
 { \
 	const upload_row_data_t *rd_a = NULL; \
 	const upload_row_data_t *rd_b = NULL; \
-	\
+	(void) user_data; \
 	gtk_tree_model_get(model, a, c_ul_data, &rd_a, (-1)); \
 	gtk_tree_model_get(model, b, c_ul_data, &rd_b, (-1)); \
 	code \
-} \
+}
 
 COMPARE_FUNC(hosts, {
-	guint32 ip_a = GUINT32_FROM_LE(rd_a->ip);
-	guint32 ip_b = GUINT32_FROM_LE(rd_b->ip);
+	guint32 ip_a = rd_a->ip;
+	guint32 ip_b = rd_b->ip;
 	return CMP(ip_a, ip_b);
 });
 
 COMPARE_FUNC(sizes, {
-	return CMP(rd_a->size, rd_b->size);
+	return CMP(rd_b->size, rd_a->size);
 });
 
 COMPARE_FUNC(ranges, {
-	guint32 u = rd_a->range_end - rd_a->range_start;
-	guint32 v = rd_b->range_end - rd_b->range_start;
-	gint s = CMP(u, v); 
+	filesize_t u = rd_a->range_end - rd_a->range_start;
+	filesize_t v = rd_b->range_end - rd_b->range_start;
+	gint s = CMP(v, u); 
 	return 0 != s ? s : CMP(rd_a->range_start, rd_b->range_start);
 });
-#endif	/* UNUSED */
 
 /***
  *** Private functions
  ***/
 
-/*
- * find_upload:
- *
+/**
  * Tries to fetch upload_row_data associated with the given upload handle.
- * Returns a pointer the upload_row_data.
+ *
+ * @return a pointer the upload_row_data.
  */
-static inline upload_row_data_t *find_upload(gnet_upload_t u)
+static inline upload_row_data_t *
+find_upload(gnet_upload_t u)
 {
 	upload_row_data_t *rd;
 	gpointer key;
@@ -222,12 +229,13 @@ static inline upload_row_data_t *find_upload(gnet_upload_t u)
 	return rd;
 }
 
-static void uploads_gui_update_upload_info(const gnet_upload_info_t *u)
+static void
+uploads_gui_update_upload_info(const gnet_upload_info_t *u)
 {
 	GdkColor *color = NULL;
     upload_row_data_t *rd = NULL;
 	gnet_upload_status_t status;
-	gint range_len;
+	size_t range_len;
 
 	rd = find_upload(u->upload_handle);
 	g_assert(NULL != rd);
@@ -318,12 +326,11 @@ static void uploads_gui_update_upload_info(const gnet_upload_info_t *u)
 
 
 
-/*
- * uploads_gui_add_upload:
- *
+/**
  * Adds the given upload to the gui.
  */
-void uploads_gui_add_upload(gnet_upload_info_t *u)
+void
+uploads_gui_add_upload(gnet_upload_info_t *u)
 {
 	gint range_len;
 	const gchar *titles[UPLOADS_GUI_VISIBLE_COLUMNS];
@@ -409,8 +416,8 @@ void uploads_gui_add_upload(gnet_upload_info_t *u)
 	g_hash_table_insert(upload_handles, GUINT_TO_POINTER(rd->handle), rd);
 }
 
-static void add_column(gint column_id, GtkTreeIterCompareFunc sortfunc,
-	GtkType column_type)
+static void
+add_column(gint column_id, GtkTreeIterCompareFunc sortfunc, GtkType column_type)
 {
 	GtkTreeViewColumn *column;
 	GtkCellRenderer *renderer;
@@ -470,20 +477,16 @@ static void add_column(gint column_id, GtkTreeIterCompareFunc sortfunc,
  *** Public functions
  ***/
 
-void uploads_gui_early_init(void)
+void
+uploads_gui_early_init(void)
 {
     popup_uploads = create_popup_uploads();
 }
 
-void uploads_gui_init(void)
+void
+uploads_gui_init(void)
 {
-	GtkTreeView *treeview;
-
-	button_uploads_clear_completed = lookup_widget(main_window,
-		"button_uploads_clear_completed");
-	treeview_uploads = treeview =
-		GTK_TREE_VIEW(lookup_widget(main_window, "treeview_uploads"));
-	store_uploads = gtk_list_store_new(c_ul_num,
+	GType types[] = {
 		G_TYPE_STRING,
 		G_TYPE_STRING,
 		G_TYPE_STRING,
@@ -493,18 +496,40 @@ void uploads_gui_init(void)
 		G_TYPE_FLOAT,
 		G_TYPE_STRING,
 		GDK_TYPE_COLOR,
-		G_TYPE_POINTER);
+		G_TYPE_POINTER
+	};
+	static const struct {
+		gint id;
+		GtkTreeIterCompareFunc sortfunc;
+	} cols[] = {
+		{ c_ul_filename, 	NULL },
+		{ c_ul_host, 		compare_hosts },
+		{ c_ul_loc, 		NULL },
+		{ c_ul_size, 		compare_sizes },
+		{ c_ul_range, 		compare_ranges },
+		{ c_ul_agent, 		NULL },
+		{ c_ul_progress, 	NULL }, 
+		{ c_ul_status, 		NULL },
+	};
+	GtkTreeView *treeview;
+	size_t i;
+
+	STATIC_ASSERT(G_N_ELEMENTS(types) == c_ul_num);
+	STATIC_ASSERT(G_N_ELEMENTS(cols) == UPLOADS_GUI_VISIBLE_COLUMNS);
+	store_uploads = gtk_list_store_newv(G_N_ELEMENTS(types), types);
+
+	button_uploads_clear_completed = lookup_widget(main_window,
+		"button_uploads_clear_completed");
+	treeview_uploads = treeview =
+		GTK_TREE_VIEW(lookup_widget(main_window, "treeview_uploads"));
 	gtk_tree_view_set_model(treeview, GTK_TREE_MODEL(store_uploads));
 
-	add_column(c_ul_filename, NULL, GTK_TYPE_CELL_RENDERER_TEXT);
-	add_column(c_ul_host, NULL, GTK_TYPE_CELL_RENDERER_TEXT);
-	add_column(c_ul_loc, NULL, GTK_TYPE_CELL_RENDERER_TEXT);
-	add_column(c_ul_size, NULL, GTK_TYPE_CELL_RENDERER_TEXT);
-	add_column(c_ul_range, NULL, GTK_TYPE_CELL_RENDERER_TEXT);
-	add_column(c_ul_agent, NULL, GTK_TYPE_CELL_RENDERER_TEXT);
-	add_column(c_ul_progress, NULL, GTK_TYPE_CELL_RENDERER_PROGRESS); 
-	add_column(c_ul_status, NULL, GTK_TYPE_CELL_RENDERER_TEXT);
-
+	for (i = 0; i < G_N_ELEMENTS(cols); i++)
+		add_column(cols[i].id, cols[i].sortfunc,
+			c_ul_progress == cols[i].id
+				? GTK_TYPE_CELL_RENDERER_PROGRESS
+				: GTK_TYPE_CELL_RENDERER_TEXT);
+	
 	upload_handles = g_hash_table_new(NULL, NULL);
 
     guc_upload_add_upload_added_listener(upload_added);
@@ -516,7 +541,8 @@ void uploads_gui_init(void)
 		G_CALLBACK(on_button_press_event), NULL);
 }
 
-static inline void free_row_data(upload_row_data_t *rd, gpointer user_data)
+static inline void
+free_row_data(upload_row_data_t *rd, gpointer user_data)
 {
 	(void) user_data;
 
@@ -531,7 +557,8 @@ static inline void free_row_data(upload_row_data_t *rd, gpointer user_data)
 	wfree(rd, sizeof(*rd));
 }
 
-static inline void free_handle(gpointer key, gpointer value,
+static inline void
+free_handle(gpointer key, gpointer value,
 	gpointer user_data)
 {
 	(void) key;
@@ -540,7 +567,8 @@ static inline void free_handle(gpointer key, gpointer value,
 	free_row_data(value, NULL);
 }
 
-static inline void remove_row(upload_row_data_t *rd, remove_row_ctx_t *ctx)
+static inline void
+remove_row(upload_row_data_t *rd, remove_row_ctx_t *ctx)
 {
 	g_assert(NULL != rd);
 	if (ctx->force || upload_should_remove(ctx->now, rd)) {
@@ -550,7 +578,8 @@ static inline void remove_row(upload_row_data_t *rd, remove_row_ctx_t *ctx)
 		ctx->sl_remaining = g_slist_prepend(ctx->sl_remaining, rd);
 }
 
-static inline void update_row(gpointer key, gpointer data, gpointer user_data)
+static inline void
+update_row(gpointer key, gpointer data, gpointer user_data)
 {
 	time_t now = *(time_t *) user_data;
 	upload_row_data_t *rd = data;
@@ -569,12 +598,11 @@ static inline void update_row(gpointer key, gpointer data, gpointer user_data)
 		(-1));
 }
 
-/*
- * uploads_gui_update_display
- *
+/**
  * Update all the uploads at the same time.
  */
-void uploads_gui_update_display(time_t now)
+void
+uploads_gui_update_display(time_t now)
 {
     static time_t last_update = 0;
     static gboolean locked = FALSE;
@@ -623,7 +651,8 @@ void uploads_gui_update_display(time_t now)
     locked = FALSE;
 }
 
-static gboolean uploads_clear_helper(gpointer user_data)
+static gboolean
+uploads_clear_helper(gpointer user_data)
 {
 	guint counter = 0;
     GSList *sl, *sl_remaining = NULL;
@@ -663,7 +692,8 @@ static gboolean uploads_clear_helper(gpointer user_data)
     return TRUE; /* More rows to remove. */
 }
 
-void uploads_gui_clear_completed(void)
+void
+uploads_gui_clear_completed(void)
 {
 	if (!uploads_remove_lock) {
 		uploads_remove_lock = TRUE;
@@ -671,12 +701,11 @@ void uploads_gui_clear_completed(void)
 	}
 }
 
-/*
- * uploads_gui_shutdown:
- *
+/**
  * Unregister callbacks in the backend and clean up.
  */
-void uploads_gui_shutdown(void) 
+void
+uploads_gui_shutdown(void) 
 {
 	uploads_shutting_down = TRUE;
 	
