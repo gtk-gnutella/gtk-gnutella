@@ -47,6 +47,7 @@ LSRC = \
 	header.c \
 	idtable.c \
 	inputevt.c \
+	iprange.c \
 	malloc.c \
 	misc.c \
 	pattern.c \
