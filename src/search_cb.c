@@ -41,14 +41,6 @@ static gchar tmpstr[4096];
  *** Private functions
  ***/
 
-static gint search_results_compare_func
-    (GtkCList * clist, gconstpointer ptr1, gconstpointer ptr2)
-{
-    const record_t *s1 = (const record_t *) ((const GtkCListRow *) ptr1)->data;
-	const record_t *s2 = (const record_t *) ((const GtkCListRow *) ptr2)->data;
-
-    return search_gui_compare_records(clist->sort_column, s1, s2);
-}
 
 static void refresh_popup(void)
 {
@@ -363,7 +355,6 @@ void on_button_search_filter_clicked(
 void on_clist_search_results_click_column(
     GtkCList *clist, gint column, gpointer user_data)
 {
-    GtkWidget * cw = NULL;
     search_t *search;
 
     g_assert(clist != NULL);
@@ -372,16 +363,6 @@ void on_clist_search_results_click_column(
 
 	if (search == NULL)
 		return;
-
-    /* destroy existing arrow */
-    if (search->arrow != NULL) { 
-        gtk_widget_destroy(search->arrow);
-        search->arrow = NULL;
-    }     
-
-    /* set compare function */
-	gtk_clist_set_compare_func
-        (GTK_CLIST(search->clist), search_results_compare_func);
 
     /* rotate or initialize search order */
 	if (column == search->sort_col) {
@@ -399,43 +380,10 @@ void on_clist_search_results_click_column(
 		search->sort_col = column;
 		search->sort_order = SORT_ASC;
 	}
+	
+	search_gui_sort_column(search, column); /* Sort column, draw arrow */
+ 
 
-    /* set sort type and create arrow */
-    switch (search->sort_order) {
-    case SORT_ASC:
-        search->arrow = create_pixmap(main_window, "arrow_up.xpm");
-        gtk_clist_set_sort_type(
-            GTK_CLIST(search->clist),
-            GTK_SORT_ASCENDING);
-        break;  
-    case SORT_DESC:
-        search->arrow = create_pixmap(main_window, "arrow_down.xpm");
-        gtk_clist_set_sort_type(
-            GTK_CLIST(search->clist),
-            GTK_SORT_DESCENDING);
-        break;
-    case SORT_NONE:
-        break;
-    default:
-        g_assert_not_reached();
-    }
-
-    /* display arrow if necessary and set sorting parameters*/
-    if (search->sort_order != SORT_NONE) {
-        cw = gtk_clist_get_column_widget
-                 (GTK_CLIST(search->clist), column);
-        if (cw != NULL) {
-            gtk_box_pack_start(GTK_BOX(cw), search->arrow, 
-                               FALSE, FALSE, 0);
-            gtk_box_reorder_child(GTK_BOX(cw), search->arrow, 0);
-            gtk_widget_show(search->arrow);
-        }
-        gtk_clist_set_sort_column(GTK_CLIST(search->clist), column);
-        gtk_clist_sort(GTK_CLIST(search->clist));
-        search->sort = TRUE;
-    } else {
-        search->sort = FALSE;
-    }
 }
 
 /**
@@ -533,8 +481,10 @@ void on_clist_search_results_select_row(
                     ) || (
                         (rc->sha1 == NULL) && 
                         (rc2->size == rc->size) && (
-                            (!search_autoselect_fuzzy && !strcmp(rc2->name, rc->name)) ||
-                            (search_autoselect_fuzzy && (fuzzy_compare(rc2->name, rc->name) * 100 >= (fuzzy_threshold << FUZZY_SHIFT)))
+                            (!search_autoselect_fuzzy &&
+								!strcmp(rc2->name, rc->name)) ||
+                            (search_autoselect_fuzzy &&
+(fuzzy_compare(rc2->name, rc->name) * 100 >= (fuzzy_threshold << FUZZY_SHIFT)))
                         )
                     )) {
                         gtk_clist_select_row(clist, i, 0);
@@ -852,8 +802,8 @@ void on_popup_search_duplicate_activate(GtkMenuItem * menuitem,
     /* FIXME: should properly duplicate passive searches. */
 	if (search)
 		search_gui_new_search_full(search->query, 
-            search_get_minimum_speed(search->search_handle), 
-            timeout, 0, NULL);
+            search_get_minimum_speed(search->search_handle), timeout,
+            search->sort_col, search->sort_order, 0, NULL);
 }
 
 void on_popup_search_restart_activate
@@ -924,4 +874,3 @@ void on_popup_search_config_cols_activate(GtkMenuItem * menuitem,
         /* GtkColumnChooser takes care of cleaning up itself */
     }
 }
-

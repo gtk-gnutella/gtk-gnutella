@@ -143,8 +143,8 @@ void search_gui_shutdown(void);
 gboolean search_gui_new_search(
 	const gchar *, flag_t flags, search_t **search);
 gboolean search_gui_new_search_full(
-	const gchar *query, guint16 speed, guint32 reissue_timeout, flag_t flags,
-	search_t **search);
+	const gchar *query, guint16 speed, guint32 reissue_timeout, gint sort_col, 
+	gint sort_order, flag_t flags, search_t **search);
 struct search *search_new_full(const gchar *, guint16, guint32, flag_t flags);
 void search_gui_close_search(search_t *sch);
 
@@ -157,6 +157,8 @@ void search_gui_set_current_search(search_t *sch);
 search_t *search_gui_get_current_search(void);
 
 void search_gui_store_searches(void);
+
+void search_gui_sort_column(search_t *search, gint column);
 
 gint search_gui_compare_records(
 	gint sort_col, const record_t *r1, const record_t *r2);

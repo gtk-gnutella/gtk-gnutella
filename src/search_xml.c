@@ -108,6 +108,8 @@ static const gchar TAG_SEARCH_QUERY[]           = "Query";
 static const gchar TAG_SEARCH_SPEED[]           = "Speed";
 static const gchar TAG_SEARCH_PASSIVE[]         = "Passive";
 static const gchar TAG_SEARCH_REISSUE_TIMEOUT[] = "ReissueTimeout";
+static const gchar TAG_SEARCH_SORT_COL[]        = "SortCol";
+static const gchar TAG_SEARCH_SORT_ORDER[] 		= "SortOrder";
 static const gchar TAG_RULE_TEXT_CASE[]         = "Case";
 static const gchar TAG_RULE_TEXT_MATCH[]        = "Match";
 static const gchar TAG_RULE_TEXT_TYPE[]         = "Type";
@@ -444,7 +446,13 @@ static void search_to_xml(xmlNodePtr parent, search_t *s)
   	gm_snprintf(x_tmp, sizeof(x_tmp), "%u", 
         search_get_reissue_timeout(s->search_handle));
     xmlSetProp(newxml, TAG_SEARCH_REISSUE_TIMEOUT, x_tmp);
-    
+
+  	gm_snprintf(x_tmp, sizeof(x_tmp), "%i", s->sort_col);
+    xmlSetProp(newxml, TAG_SEARCH_SORT_COL, x_tmp);
+
+  	gm_snprintf(x_tmp, sizeof(x_tmp), "%i", s->sort_order);
+    xmlSetProp(newxml, TAG_SEARCH_SORT_ORDER, x_tmp);
+
     for (l = s->filter->ruleset; l != NULL; l = l->next)
         rule_to_xml(newxml, (rule_t *)l->data);
 }
@@ -699,6 +707,7 @@ static void xml_to_search(xmlNodePtr xmlnode, gpointer user_data)
 {
     gchar *buf;
     gchar *query;
+	gint sort_col = SORT_NO_COL, sort_order = SORT_NONE;
     gint32 speed;
     guint32 reissue_timeout;
     xmlNodePtr node;
@@ -738,12 +747,24 @@ static void xml_to_search(xmlNodePtr xmlnode, gpointer user_data)
         g_free(buf);
     }
 
+    buf = xmlGetProp(xmlnode, TAG_SEARCH_SORT_COL);
+    if (buf) {
+        sort_col = atol(buf);
+        g_free(buf);
+    }
+
+	buf = xmlGetProp(xmlnode, TAG_SEARCH_SORT_ORDER);
+    if (buf) {
+        sort_order = atol(buf);
+        g_free(buf);
+    }
+
     flags =
         (passive ? SEARCH_PASSIVE : 0);
 
     if (gui_debug >= 4)
         printf("adding new search: %s\n", query);
-    search_gui_new_search_full(query, speed, reissue_timeout, flags, &search);
+    search_gui_new_search_full(query, speed, reissue_timeout, sort_col, sort_order, flags, &search);
 
     g_free(query);
 

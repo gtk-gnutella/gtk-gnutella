@@ -91,6 +91,7 @@ typedef guint16 flag_t;
 #define SORT_ASC  1
 #define SORT_DESC (-1)
 #define SORT_NONE 0
+#define SORT_NO_COL 0		/* On search creation, no column chosen for sort */
 
 /*
  * Network related string routines

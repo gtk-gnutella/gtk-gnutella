@@ -79,6 +79,9 @@ static GList *sl_search_history = NULL;
 static search_t *find_search(gnet_search_t sh);
 static record_t *create_record(results_set_t *rs, gnet_record_t *r);
 static results_set_t *create_results_set(const gnet_results_set_t *r_set);
+static gint search_results_compare_func
+    (GtkCList * clist, gconstpointer ptr1, gconstpointer ptr2);
+
 #ifndef USE_SEARCH_XML
     static void search_store_old(void);
 #endif /* USE_SEARCH_XML */
@@ -440,11 +443,12 @@ gboolean search_gui_new_search(
 {
     guint32 timeout;
     guint32 speed;
-
+	gint sort_col = SORT_NO_COL, sort_order = SORT_NONE;
+	
     gui_prop_get_guint32_val(PROP_DEFAULT_MINIMUM_SPEED, &speed);
     gnet_prop_get_guint32_val(PROP_SEARCH_REISSUE_TIMEOUT, &timeout);
 
-	return search_gui_new_search_full(query, speed, timeout, flags, search);
+	return search_gui_new_search_full(query, speed, timeout, sort_col, sort_order, flags, search);
 }
 
 /* 
@@ -456,8 +460,8 @@ gboolean search_gui_new_search(
  * search is stored there.
  */
 gboolean search_gui_new_search_full(
-	const gchar *querystr, guint16 speed, guint32 reissue_timeout, flag_t flags,
-	search_t **search)
+	const gchar *querystr, guint16 speed, guint32 reissue_timeout, gint sort_col, 
+	gint sort_order, flag_t flags, search_t **search)
 {
 	search_t *sch;
 	GList *glist;
@@ -535,6 +539,9 @@ gboolean search_gui_new_search_full(
 
 	sch = g_new0(search_t, 1);
 
+	sch->sort_col = sort_col;
+	sch->sort_order = sort_order;
+	
 	sch->query = atom_str_get(query);
     sch->search_handle = search_new(query, speed, reissue_timeout, flags);
     sch->passive = flags & SEARCH_PASSIVE;
@@ -606,6 +613,7 @@ gboolean search_gui_new_search_full(
 					   GTK_SIGNAL_FUNC(on_search_selected),
 					   (gpointer) sch);
 
+	search_gui_sort_column(sch, sort_col);
 	search_gui_set_current_search(sch);
 
 	gtk_widget_set_sensitive(combo_searches, TRUE);
@@ -686,6 +694,65 @@ gint search_gui_compare_records(
     }
 
 	return result;
+}
+
+/*
+ * search_gui_sort_column
+ *
+ * Draws arrows for the given column of the GtkCList and 
+ * sorts the contents of the GtkClist according to the 
+ * sorting parameters set in search
+ */
+void search_gui_sort_column(search_t *search, gint column)
+{
+    GtkWidget * cw = NULL;
+
+    /* set compare function */
+	gtk_clist_set_compare_func
+        (GTK_CLIST(search->clist), search_results_compare_func);
+
+   /* destroy existing arrow */
+    if (search->arrow != NULL) { 
+        gtk_widget_destroy(search->arrow);
+        search->arrow = NULL;
+    }     
+
+    /* set sort type and create arrow */
+    switch (search->sort_order) {
+    case SORT_ASC:
+        search->arrow = create_pixmap(main_window, "arrow_up.xpm");
+        gtk_clist_set_sort_type(
+            GTK_CLIST(search->clist),
+            GTK_SORT_ASCENDING);
+        break;  
+    case SORT_DESC:
+        search->arrow = create_pixmap(main_window, "arrow_down.xpm");
+        gtk_clist_set_sort_type(
+            GTK_CLIST(search->clist),
+            GTK_SORT_DESCENDING);
+        break;
+    case SORT_NONE:
+        break;
+    default:
+        g_assert_not_reached();
+    }
+
+    /* display arrow if necessary and set sorting parameters*/
+    if (search->sort_order != SORT_NONE) {
+        cw = gtk_clist_get_column_widget
+                 (GTK_CLIST(search->clist), column);
+        if (cw != NULL) {
+            gtk_box_pack_start(GTK_BOX(cw), search->arrow, 
+                               FALSE, FALSE, 0);
+            gtk_box_reorder_child(GTK_BOX(cw), search->arrow, 0);
+            gtk_widget_show(search->arrow);
+        }
+        gtk_clist_set_sort_column(GTK_CLIST(search->clist), column);
+        gtk_clist_sort(GTK_CLIST(search->clist));
+        search->sort = TRUE;
+    } else {
+        search->sort = FALSE;
+    }
 }
 
 /*
@@ -1400,6 +1467,16 @@ static results_set_t *create_results_set(const gnet_results_set_t *r_set)
 
     return rs;
 }
+
+static gint search_results_compare_func
+    (GtkCList * clist, gconstpointer ptr1, gconstpointer ptr2)
+{
+    const record_t *s1 = (const record_t *) ((const GtkCListRow *) ptr1)->data;
+	const record_t *s2 = (const record_t *) ((const GtkCListRow *) ptr2)->data;
+
+    return search_gui_compare_records(clist->sort_column, s1, s2);
+}
+
 
 /*
  * search_retrieve_old
