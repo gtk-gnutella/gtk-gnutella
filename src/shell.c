@@ -25,6 +25,8 @@
 
 #include "gnutella.h"
 
+#ifdef USE_REMOTE_CTRL
+
 #include "inputevt.h"
 #include "shell.h"
 #include "sockets.h"
@@ -780,3 +782,5 @@ void shell_close(void)
 	g_slist_free(to_remove);
 	g_assert(NULL == sl_shells);
 };
+
+#endif	/* USE_REMOTE_CTRL */
