@@ -1571,10 +1571,8 @@ void download_stop(struct download *d, guint32 new_status,
 	if (DOWNLOAD_IS_VISIBLE(d))
 		gui_update_download(d, TRUE);
 
-	if (store_queue) {
-		download_store();			/* Refresh copy */
-		file_info_store();
-	}
+	if (store_queue)
+		download_dirty = TRUE;		/* Refresh list, in case we crash */
 
 	if (DOWNLOAD_IS_STOPPED(d) && DOWNLOAD_IS_IN_PUSH_MODE(d))
 		download_push_remove(d);
@@ -5865,11 +5863,17 @@ static void download_store(void)
  * download_store_if_dirty
  *
  * Store pending download if needed.
+ *
+ * The fileinfo database is also flushed if dirty, but only when the
+ * downloads themselves are stored.  Since both are linked via SHA1 and name,
+ * it's best to try to keep them in sync.
  */
 void download_store_if_dirty(void)
 {
-	if (download_dirty)
+	if (download_dirty) {
 		download_store();
+		file_info_store_if_dirty();
+	}
 }
 
 /*
