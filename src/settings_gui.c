@@ -3419,7 +3419,7 @@ static gboolean update_monitor_unstable_ip(property_t prop)
 	gtk_widget_set_sensitive(
 		lookup_widget(main_window, "checkbutton_gnet_monitor_servents"), b);
 
-	return FALSE;
+	return update_togglebutton(prop);
 }
 
 static gboolean show_tooltips_changed(property_t prop)
