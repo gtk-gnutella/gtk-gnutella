@@ -419,6 +419,10 @@ fi_gui_fi_added(gnet_fi_t fih)
 static void
 fi_gui_fi_removed(gnet_fi_t fih)
 {
+	if (fih == last_shown) {
+		last_shown_valid = FALSE;
+	}
+
     fi_gui_remove_row(fih, FALSE);
 }
 
@@ -456,18 +460,26 @@ on_clist_fileinfo_unselect_row(GtkCList *clist, gint unused_row,
 void
 on_button_fi_purge_clicked(GtkButton *unused_button, gpointer unused_udata)
 {
-    GSList *sl = NULL;
+    GSList *sl_handles = NULL;
     GtkCList *clist = GTK_CLIST(
         lookup_widget(main_window, "clist_fileinfo"));
 		
 	(void) unused_button;
 	(void) unused_udata;
-    sl = clist_collect_data(clist, TRUE, NULL);
-    if (sl) {
-        guc_fi_purge_by_handle_list(sl);
+    sl_handles = clist_collect_data(clist, TRUE, NULL);
+    if (sl_handles) {
+		GSList *sl;
+
+		for (sl = sl_handles; sl != NULL; sl = g_slist_next(sl))
+			if (GPOINTER_TO_UINT(sl->data) == last_shown) {
+				last_shown_valid = FALSE;
+				break;
+			}
+			
+        guc_fi_purge_by_handle_list(sl_handles);
     }
 				    
-    g_slist_free(sl);
+    g_slist_free(sl_handles);
 }
 
 void

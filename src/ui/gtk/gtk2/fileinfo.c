@@ -62,6 +62,8 @@ fi_gui_fi_removed(gnet_fi_t fih)
 	GtkTreeIter *iter;
 	
 	g_hash_table_remove(fi_updates, GUINT_TO_POINTER(fih));
+	if (fih == last_shown)
+		last_shown_valid = FALSE;
 	
 	if (
 		!g_hash_table_lookup_extended(fi_gui_handles, GUINT_TO_POINTER(fih),
@@ -135,8 +137,6 @@ fi_gui_set_details(gnet_fi_t fih)
 static void
 fi_gui_clear_details(void)
 {
-    last_shown_valid = FALSE;
-
     gtk_entry_set_text(entry_fi_filename, "");
     gtk_label_set_text(label_fi_size, "");
     gtk_tree_store_clear(store_aliases);
@@ -144,6 +144,7 @@ fi_gui_clear_details(void)
     gtk_widget_set_sensitive(
         lookup_widget(main_window, "button_fi_purge"), FALSE);
 
+    last_shown_valid = FALSE;
     vp_draw_fi_progress(last_shown_valid, last_shown);
 }
 
@@ -184,6 +185,8 @@ fi_purge_helper(GtkTreeModel *model, GtkTreePath *unused_path,
 	sl = data;
 	gtk_tree_model_get(model, iter, c_fi_handle, &fih, (-1));
 	*sl = g_slist_prepend(*sl, GUINT_TO_POINTER(fih));
+	if (fih == last_shown)
+		last_shown_valid = FALSE;
 }
 
 /**
@@ -197,7 +200,7 @@ on_button_fi_purge_clicked(GtkButton *unused_button, gpointer unused_udata)
 	
 	(void) unused_button;
 	(void) unused_udata;
-	
+
 	s = gtk_tree_view_get_selection(treeview_fileinfo);
 	gtk_tree_selection_selected_foreach(s, fi_purge_helper, &sl_fih);
 	guc_fi_purge_by_handle_list(sl_fih);
