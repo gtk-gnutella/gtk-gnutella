@@ -199,7 +199,10 @@ static void base64_encode_exactly(const gchar *buf, guint len,
  * base64_encode_into
  *
  * Encode `len' bytes from `buf' into `enclen' bytes starting from `encbuf'.
+ * Trailing padding chars are emitted.
  * Caller must have ensured that there was enough room in encbuf.
+ *
+ * NB: No trailing NUL is emitted.
  */
 void base64_encode_into(const gchar *buf, guint len,
 	gchar *encbuf, guint enclen)
@@ -218,7 +221,7 @@ void base64_encode_into(const gchar *buf, guint len,
  * base64_encode
  *
  * Encode `len' bytes starting at `buf' into new allocated buffer.
- * No trailing padding chars are emitted.
+ * Trailing padding chars are emitted.
  *
  * Returns the new encoded buffer, NUL-terminated, and the added amount
  * of padding chars in `retpad' if it is a non-NULL pointer.
