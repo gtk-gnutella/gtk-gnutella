@@ -485,6 +485,10 @@ gboolean hcache_add(
 
 	g_assert((guint) type < HCACHE_MAX);
 
+    if ((type == HCACHE_UNSTABLE) && (!node_monitor_unstable_ip)) {
+        return FALSE;
+    }
+
 	if (ip == listen_ip() && port == listen_port) {
         stats[HCACHE_LOCAL_INSTANCE] ++;
 		return FALSE;
@@ -541,15 +545,9 @@ gboolean hcache_add(
          * we switch it as HCACHE_FRESH_XXX, we'll start reading from there,
          * in effect using the most recent hosts we know about.
          */
-
         hc->hostlist = g_list_prepend(hc->hostlist, host);
         break;
 
-    case HCACHE_UNSTABLE:
-        if (!node_monitor_unstable_ip) {
-            break;
-        }
-        /* no break! */
     default:
         /*
          * We use g_list_prepend here because it is faster then g_list_append.
@@ -572,10 +570,11 @@ gboolean hcache_add(
     hcache_prune(hc->type);
     hcache_update_low_on_pongs();
 
-    if (dbg > 8)
+    if (dbg > 8) {
         printf("Added %s %s (%s)\n", what, ip_port_to_gchar(ip, port),
             ((type == HCACHE_FRESH_ANY) || (type == HCACHE_VALID_ANY)) ? 
                 (host_low_on_pongs ? "LOW" : "OK") : "");
+    }
 
 	return TRUE;
 }
