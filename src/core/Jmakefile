@@ -31,6 +31,7 @@ SRC = \
 	alive.c \
 	ban.c \
 	bitzi.c \
+	bogons.c \
 	bsched.c \
 	clock.c \
 	dh.c \
@@ -40,6 +41,7 @@ SRC = \
 	extensions.c \
 	features.c \
 	fileinfo.c \
+	geo_ip.c \
 	ggep.c \
 	ggep_type.c \
 	gmsg.c \
