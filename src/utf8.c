@@ -43,15 +43,17 @@ RCSID("$Id$");
 
 #include "gnutella.h" /* dbg */
 
-#ifndef USE_GTK2
+#if !defined(USE_GTK2) || defined(ENABLE_NLS)
 #include <iconv.h>
 #include <langinfo.h>
 #include <locale.h>
-
+#endif
+ 
 #ifdef HAVE_LIBCHARSET_H
 #include <libcharset.h>
 #endif /* HAVE_LIBCHARSET_H */
 
+#ifndef USE_GTK2
 #define GIConv iconv_t
 #define g_iconv_open(t, f) iconv_open(t, f) 
 #define g_iconv(c, i, n, o, m) iconv(c, i, n, o, m)
