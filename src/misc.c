@@ -366,6 +366,21 @@ gchar *sha1_base32(const guchar *sha1)
 }
 
 /*
+ * base32_sha1
+ *
+ * Convert base32 string into binary SHA1.
+ * Returns pointer to static data.
+ */
+guchar *base32_sha1(const gchar *base32)
+{
+	static guchar digest_sha1[SHA1_RAW_SIZE];
+
+	base32_decode_into(base32, SHA1_BASE32_SIZE, digest_sha1, sizeof(digest_sha1));
+
+	return digest_sha1;
+}
+
+/*
  * date_to_rfc822_gchar
  *
  * Convert time to RFC-822 style date.
