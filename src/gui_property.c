@@ -29,12 +29,10 @@
 #include "eval.h"
 #include "gui_property.h"
 
-
 /*
  * Includes specified by "uses"-statement in .ag file
  */
 #include "gui.h"
-
 
 #include "override.h"		/* Must be the last header included */
 
