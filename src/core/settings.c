@@ -27,7 +27,6 @@
 
 #include "common.h"
 
-#include <signal.h>
 #include <pwd.h>
 #include <netdb.h>
 

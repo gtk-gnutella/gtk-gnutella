@@ -29,8 +29,6 @@
 
 RCSID("$Id$");
 
-#include <signal.h> /* signal(), SIGCHLD, SIG_IGN */
-
 #include "adns.h"
 #include "atoms.h"
 #include "inputevt.h"

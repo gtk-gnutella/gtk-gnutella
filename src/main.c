@@ -25,7 +25,6 @@
 
 #include "common.h"
 
-#include <signal.h>
 #include <setjmp.h>
 
 #define CORE_SOURCES
