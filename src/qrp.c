@@ -1329,9 +1329,14 @@ static void qrt_patch_computed_remove_listener(gpointer handle)
  */
 static void qrt_patch_cancel_compute(void)
 {
+	gpointer comptask;
+
 	g_assert(qrt_patch_ctx != NULL);
 
-	bg_task_cancel(qrt_patch_ctx->compress);
+	comptask = qrt_patch_ctx->compress;
+
+	bg_task_cancel(comptask);
+	sl_compress_tasks = g_slist_remove(sl_compress_tasks, comptask);
 
 	g_assert(qrt_patch_ctx == NULL);	/* qrt_patch_computed() called! */
 	g_assert(qrt_patch_computed_listeners == NULL);
