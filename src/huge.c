@@ -333,12 +333,13 @@ static void sha1_read_cache()
  ** Asynchronous computation of hash value
  **/
 
-/* Computation is performed through the sha1_timer timer, called by
+/*
+ * Computation is performed through the sha1_timer timer, called by
  * the GTK main loop. It has some "credit" to perform its operations
  * (either computing the hash for a maximum of HASH_BLOCK_SIZE bytes, or
  * some special operations like opening the next file). The actual time
  * taken by the task is measured. If it's too long, credit is
- * decreased by one. If it's within the limit, the credit is doubled
+ * decreased by 1/4th. If it's within the limit, the credit is doubled
  * for next iteration. Thus the credit slowly oscillates between max
  * and 2 * max. Here max = 0.1 sec. On my pentium III 866 MHz, it
  * allows the computation to be performed on a slice of 1000 to 2000
@@ -346,10 +347,11 @@ static void sha1_read_cache()
  * Mbytes ranges from 2.5 to 5 seconds. 
  */
 
-#define MAX_HALF_LIFE 	50000		/* in microseconds */
+#define MAX_HALF_LIFE 	50000		/* in microseconds, MUST be << 1 sec */
 #define HASH_BLOCK_SIZE	4096		/* size of a hash unit credit */
+#define TIMEOUT_PERIOD	(1000 - (MAX_HALF_LIFE/1000))
 
-static gboolean sha1_timeout_active = FALSE;
+static gint sha1_timeout_tag = 0;
 static int credit = 1;
 
 /* This is a file waiting either for the digest to be computer, or
@@ -406,6 +408,7 @@ static void push(struct file_sha1 **stack,struct file_sha1 *record)
 static SHA1Context context;
 static struct file_sha1 *current_file = NULL;
 static int current_fd = -1;
+static time_t current_start;		/* Debugging, show computation rate */
 
 /* 
  * adjust_credit
@@ -418,19 +421,25 @@ static void adjust_credit(
 	const struct timeval *end)
 {
 	int delta_seconds = end->tv_sec - start->tv_sec;
-	int delta_microseconds =
+	int delta_useconds =
 		end->tv_usec - start->tv_usec + delta_seconds * 1000 * 1000;
 
 	/*
 	 * Double credit for next iteration if we are under the half life,
 	 * but remove one fourth of the credit if we are above twice that
-	 * elapsed time.
+	 * elapsed time.  That's coarse grain adjustments.
+	 *
+	 * Within the [half-life, 2* half-life] interval, we shoot for
+	 * the middle of the interval, by making linear adjustments.
 	 */
 
-	if (delta_microseconds < MAX_HALF_LIFE)
+	if (delta_useconds < MAX_HALF_LIFE)
 		credit += credit;
-	else if (delta_microseconds > MAX_HALF_LIFE * 2)
+	else if (delta_useconds > MAX_HALF_LIFE * 2)
 		credit -= credit >> 2;
+	else
+		credit = (gint) (credit *
+			(gfloat) (MAX_HALF_LIFE + MAX_HALF_LIFE/2) / delta_useconds);
 
 	/* Be sure to be able to execute at least one step */
 
@@ -439,7 +448,7 @@ static void adjust_credit(
 
 	if (dbg > 4) {
 		printf("adjust_credit: elapsed: %d usec, new credit = %d\n",
-			delta_microseconds, credit);
+			delta_useconds, credit);
 		fflush(stdout);
 	}
 }
@@ -545,6 +554,14 @@ static void close_current_file(void)
 		current_file = NULL;
 	}
 	if (current_fd != -1) {
+		if (dbg > 1) {
+			struct stat buf;
+			time_t delta = time((time_t *) NULL) - current_start;
+
+			if (delta && -1 != fstat(current_fd, &buf))
+				printf("SHA1 computation rate: %ld bytes/sec\n",
+					buf.st_size / delta);
+		}
 		close(current_fd);
 		current_fd = -1;
 	}
@@ -584,8 +601,10 @@ static gboolean open_next_file(void)
 	if (!current_file)
 		return FALSE;			/* No more file to process */
 
-	if (dbg > 1)
+	if (dbg > 1) {
 		printf("Computing SHA1 digest for %s\n", current_file->file_name);
+		current_start = time((time_t *) NULL);
+	}
 
 	current_fd = open(current_file->file_name, O_RDONLY);
 
@@ -676,7 +695,7 @@ static void sha1_timer_one_step(void)
 /* 
  * sha1_timer
  * 
- * The timer doing all the work. This is a Gtk timeout callback, so it must
+ * The timer doing all the work. This is a glib timeout callback, so it must
  * return TRUE to be called again, or FALSE to never be called again.
  */
 static gboolean sha1_timer(gpointer p)
@@ -707,7 +726,7 @@ static gboolean sha1_timer(gpointer p)
 	if (!call_timer_again) {
 		if (cache_dirty)
 			dump_cache();
-		sha1_timeout_active = FALSE;
+		sha1_timeout_tag = 0;
 	}
 
 	return call_timer_again;
@@ -740,9 +759,10 @@ static void queue_shared_file_for_sha1_computation(
 	new_cell->file_index = file_index;
 	push(&waiting_for_sha1_computation, new_cell);
 
-	if (!sha1_timeout_active) {
-		sha1_timeout_active = TRUE;
-		gtk_timeout_add(1000, (GtkFunction) sha1_timer, NULL);
+	if (!sha1_timeout_tag) {
+		g_assert(TIMEOUT_PERIOD > 0);
+		sha1_timeout_tag = g_timeout_add(TIMEOUT_PERIOD, sha1_timer, NULL);
+		g_assert(sha1_timeout_tag);
 	}
 }
 
@@ -807,6 +827,9 @@ void huge_init(void)
  */
 void huge_close(void)
 {
+	if (sha1_timeout_tag)
+		g_source_remove(sha1_timeout_tag);
+
 	// XXX -- to be filled up
 }
 
