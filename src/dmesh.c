@@ -1057,7 +1057,7 @@ void dmesh_collect_locations(guchar *sha1, guchar *value)
 			if (c == ',') {
 				if (
 					(p[1] == 'h' || p[1] == 'H') &&
-					0 == g_ascii_strcasecmp(&p[1], "http://")
+					0 == g_ascii_strncasecmp(&p[1], "http://", 7)
 
 				)
 					break;
@@ -1124,7 +1124,7 @@ void dmesh_collect_locations(guchar *sha1, guchar *value)
              * we assume a new urn is starting with "http://"
              *      -Richard 23/11/2002
              */
-            if ((c == ',') || (g_ascii_strcasecmp(p, "http://") == 0))
+            if ((c == ',') || (g_ascii_strncasecmp(p, "http://", 7) == 0))
 				break;
 			p++;
 		}
