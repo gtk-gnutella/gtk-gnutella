@@ -267,7 +267,7 @@ oob_proxy_pending_results(
 		goto ignore;
 	}
 
-	vmsg_send_oob_reply_ack(n, muid, MAX(hits, 254));
+	vmsg_send_oob_reply_ack(n, muid, MIN(hits, 254));
 
 	if (query_debug > 5)
 		printf("QUERY OOB-proxied %s notified of %d hits at %s, wants %u\n",
@@ -332,6 +332,9 @@ oob_proxy_got_results(gnutella_node_t *n, gint results)
 	 */
 
 	dh_got_results(opr->leaf_muid, results);
+
+	if (NODE_IS_UDP(n))
+		gnet_stats_count_general(n, GNR_OOB_HITS_FOR_PROXIED_QUERIES, 1);
 
 	/*
 	 * Replace the MUID of the message with the original one that
