@@ -1082,6 +1082,7 @@ void on_entry_queue_remove_regex_activate(GtkEditable *editable,
 {
     download_remove_all_regex
         (gtk_entry_get_text(GTK_ENTRY(entry_queue_remove_regex)));
+    gtk_entry_set_text(GTK_ENTRY(entry_queue_remove_regex), "");
 }
 
 void on_checkbutton_queue_regex_case_toggled(GtkToggleButton *togglebutton,
