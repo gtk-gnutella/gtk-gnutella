@@ -239,6 +239,12 @@ void download_stop(struct download *d, guint32 new_status, const gchar *reason)
 	}
 
 	count_running_downloads();
+
+	if(d->restart_timer_id) {
+	  g_warning("download_stop: download %s has a restart_timer_id.\n", d->file_name);
+	  g_source_remove(d->restart_timer_id);
+	  d->restart_timer_id = 0;
+	}
 }
 
 void download_kill(struct download *d)
@@ -283,6 +289,11 @@ void download_queue(struct download *d)
 	download_gui_add(d);
 
 	gui_update_download(d, TRUE);
+
+	if(d->restart_timer_id) {
+	  g_source_remove(d->restart_timer_id);
+	  d->restart_timer_id = 0;
+	}
 }
 
 /* (Re)start a stopped or queued download */
@@ -429,6 +440,7 @@ void download_new(gchar *file, guint32 size, guint32 record_index, guint32 ip, g
 	d->port = port;
 	d->file_desc = -1;
 	memcpy(d->guid, guid, 16);
+	d->restart_timer_id = 0;
 
 	sl_downloads = g_slist_prepend(sl_downloads, (gpointer) d);
 
@@ -458,6 +470,9 @@ void download_free(struct download *d)
 	if (IS_DOWNLOAD_RUNNING(d)) download_stop(d, GTA_DL_ABORTED, NULL);
 
 	sl_downloads = g_slist_remove(sl_downloads, (gpointer) d);
+
+	if(d->restart_timer_id)
+	  g_source_remove(d->restart_timer_id);
 
 	g_free(d->path);
 	g_free(d->file_name);
@@ -627,6 +642,17 @@ gboolean download_send_request(struct download *d)
 	return TRUE;
 }
 
+gboolean download_queue_w(gpointer dp) {
+  struct download *d = (struct download *)dp;
+  download_queue(d);
+  download_pickup_queued();
+  return TRUE;
+}
+
+void download_start_restart_timer(struct download *d) {
+  d->restart_timer_id = g_timeout_add(60 * 1000, download_queue_w, d);
+}
+
 /* Read data on a download socket */
 
 void download_read(gpointer data, gint source, GdkInputCondition cond)
@@ -644,7 +670,7 @@ void download_read(gpointer data, gint source, GdkInputCondition cond)
 
 	r = read(s->file_desc, s->buffer + s->pos, MIN(sizeof(s->buffer) - s->pos, d->size - d->pos));
 
-	if (!r) { download_stop(d, GTA_DL_ERROR, "Failed (EOF)"); return; }
+	if (!r) { download_stop(d, GTA_DL_ERROR, "Failed (EOF)"); download_start_restart_timer(d); return; }
 	else if (r < 0 && errno == EAGAIN) return;
 	else if (r < 0) { download_stop(d, GTA_DL_ERROR, "Failed (Read Error)"); return; }
 
@@ -721,25 +747,30 @@ void download_read(gpointer data, gint source, GdkInputCondition cond)
 			*seek++ = 0;
 
 			if (!*(s->buffer)) end = TRUE;	/* We have got all the headers */
-			else if (!g_strncasecmp(s->buffer, "HTTP/1.0 200", 12) || !g_strncasecmp(s->buffer, "HTTP 200", 8))
+			else if (!g_strncasecmp(s->buffer, "HTTP/1.0 200", 12) 
+					 || !g_strncasecmp(s->buffer, "HTTP 200", 8))
 			{
 				d->ok = TRUE;
 			}
-			else if (!g_strncasecmp(s->buffer, "HTTP/1.0 404", 12) || !g_strncasecmp(s->buffer, "HTTP 404", 8))
+			else if (!g_strncasecmp(s->buffer, "HTTP/1.0 404", 12) 
+					 || !g_strncasecmp(s->buffer, "HTTP 404", 8))
 			{
 				download_stop(d, GTA_DL_ERROR, "404 Not found");
 				return;
 			}
-			else if (!g_strncasecmp(s->buffer, "Content-length:", 15))
-			{
-				guint32 z = atol(s->buffer + 15);
+			else if (!g_strncasecmp(s->buffer, "Content-length:", 15)) {
+			  guint32 z = atol(s->buffer + 15);
 
-				if (!z) { download_stop(d, GTA_DL_ERROR, "Bad length !?"); return; }
-				else if (z + d->skip != d->size)
-				{
-					g_warning("File '%s': expected size %u but server says %u, believing it...\n", d->file_name, d->size, z + d->skip);
-					d->size = z + d->skip;
+			  if (!z) { download_stop(d, GTA_DL_ERROR, "Bad length !?"); return; }
+			  else if (z + d->skip != d->size) {
+				if (z == d->size) {
+				  g_warning("File '%s': server seems to have ignored our range request of %u.\n", d->file_name, d->size);
+				} else {
+				  g_warning("File '%s': expected size %u but server says %u, "
+							"believing it...\n", d->file_name, d->size, z + d->skip);
+				  d->size = z + d->skip;
 				}
+			  }
 			}
 
 			memmove(s->buffer, seek, s->pos - (seek - s->buffer));
