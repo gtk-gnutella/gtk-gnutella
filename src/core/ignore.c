@@ -283,6 +283,8 @@ ignore_namesize_load(const gchar *file, time_t *stamp)
  * Priority is given to the SHA1, if supplied.
  *
  * @param file Must be a basename, without any directory separator
+ * @param size the filesize
+ * @param sha1 must point to a SHA1 (binary) or NULL
  */
 enum ignore_val
 ignore_is_requested(const gchar *file, filesize_t size, gchar *sha1)

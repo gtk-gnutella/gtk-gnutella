@@ -47,6 +47,7 @@ RCSID("$Id$");
  * Initialize a GGEP stream object, capable of receiving multiple GGEP
  * extensions, written into the supplied buffer.
  *
+ * @param gs		a GGEP stream
  * @param data		start of buffer where data will be written
  * @param len		length of supplied buffer
  */
@@ -116,6 +117,7 @@ ggep_stream_append(ggep_stream_t *gs, gpointer data, gint len)
 /**
  * Begin emission of GGEP extension.
  *
+ * @param gs		a GGEP stream
  * @param id		the ID of the GGEP extension
  * @param wflags	whether COBS / deflate should be used.
  *

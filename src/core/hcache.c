@@ -242,6 +242,8 @@ hcache_dump_info(const struct hostcache *hc, const gchar *what)
 /**
  * Get information about the host entry, both the host and the metadata.
  *
+ * @param ip		the IPv4 address of the host
+ * @param port		the port used by the host
  * @param h		filled with the host entry in the table
  * @param e		filled with the meta data of the host, as held in table
  *

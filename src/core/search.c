@@ -1458,6 +1458,7 @@ search_qhv_fill(search_ctrl_t *sch, query_hashvec_t *qhv)
 /**
  * Create and send a search request packet
  *
+ * @param sch DOCUMENT THIS!
  * @param n if NULL, we're "broadcasting" an initial search.  Otherwise, this
  * is the only node to which we should send the message.
  */

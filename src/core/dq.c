@@ -329,6 +329,7 @@ dq_select_ttl(dquery_t *dq, gnutella_node_t *node, gint connections)
  * Create a pmsg_info structure, giving meta-information about the message
  * we're about to send.
  *
+ * @param dq      DOCUMENT THIS!
  * @param degree  the degree of the node to which the message is sent
  * @param ttl     the TTL at which the message is sent
  * @param node_id the ID of the node to which we send the message
@@ -508,7 +509,8 @@ dq_pmsg_by_ttl(dquery_t *dq, gint ttl)
 /**
  * Fill node vector with UP hosts to which we could send our probe query.
  *
- * @param nv the pre-allocated node vector
+ * @param dq     DOCUMENT THIS!
+ * @param nv     the pre-allocated node vector
  * @param ncount the size of the vector
  *
  * @return amount of nodes we found.
@@ -556,6 +558,7 @@ dq_fill_probe_up(dquery_t *dq, gnutella_node_t **nv, gint ncount)
 /**
  * Fill node vector with UP hosts to which we could send our next query.
  *
+ * @param dq DOCUMENT THIS!
  * @param nv the pre-allocated node vector
  * @param ncount the size of the vector
  *

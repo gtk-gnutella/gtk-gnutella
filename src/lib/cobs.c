@@ -270,6 +270,7 @@ cobs_decode(gchar *buf, gint len, gint *retlen, gboolean inplace)
  * Initialize an incremental COBS context, where data will be written in the
  * supplied buffer.
  *
+ * @param cs		the COBS stream to initialize.
  * @param data		start of buffer where data will be written
  * @param len		length of supplied buffer
  */

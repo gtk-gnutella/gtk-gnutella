@@ -690,6 +690,7 @@ http_buffer_free(http_buffer_t *b)
 /**
  * Parses the value of a Content-Range header.
  *
+ * @param buf should point the payload of a Content-Range header
  * @param start will be set to the ``start'' offset
  * @param end will be set to the ``end'' offset
  * @param total will be set to the ``total'' size of the requested object.
@@ -747,9 +748,12 @@ http_content_range_parse(const gchar *buf,
  * Add a new http_range_t object within the sorted list.
  * Refuse to add the range if it is overlapping existing ranges.
  *
- * The `field' and `vendor' arguments are only there to log errors, if any.
- *
- * @param`ignored' is set to TRUE if range was ignored.
+ * @param `list' must be sorted if not NULL.
+ * @param `start' the start of the range to add
+ * @param `end' the end of the range to add
+ * @param `field' arguments are only there to log errors, if any.
+ * @param `vendor' is same as `field'.
+ * @param `ignored' is set to TRUE if range was ignored.
  * @return the new head of the list.
  */
 static GSList *

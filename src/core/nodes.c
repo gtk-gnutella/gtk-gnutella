@@ -4993,7 +4993,7 @@ node_add_socket(struct gnutella_socket *s, guint32 ip, guint16 port)
 		return;
 
 	/*
-	 * Too many gnutellaNet connections?
+	 * Too many GnutellaNet connections?
      *
      * In leaf-mode we only respect max_ultrapeers, in normal-mode
      * node_ultra_count is always 0, and in ultra_mode we can only
@@ -6737,7 +6737,7 @@ void
 node_set_vendor(gnutella_node_t *n, const gchar *vendor)
 {
 	gchar buf[128];
-	
+
 	if (n->flags & NODE_F_FAKE_NAME) {
 		buf[0] = '!';
 		g_strlcpy(&buf[1], vendor, sizeof buf - 1);
@@ -7467,6 +7467,8 @@ node_crawl_append_vendor(GString *ua, gchar *vendor)
  * @param features	the selected features to insert
  * @param now		current time, for connection time computation
  * @param ua		the concatenated user-agent string
+ * @param gtkg		if TRUE only Gtk-Gnutella nodes are added,
+ *					otherwise only nodes of other vendors are added.
  *
  * @return the amount of entries successfully written
  */

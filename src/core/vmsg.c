@@ -924,6 +924,7 @@ handle_qstat_answer(struct gnutella_node *n,
 /**
  * Send a "Query Status Response" message to specified node.
  *
+ * @param n the Gnutella node to sent the message to
  * @param muid is the query ID
  * @param hits is the number of hits our filters did not drop.
  */

@@ -330,6 +330,7 @@ sq_puthere(squeue_t *sq, gnet_search_t sh, pmsg_t *mb, query_hashvec_t *qhv)
  * to remove the queries when a search is closed, and avoid queuing twice
  * the same search.
  *
+ * @param sq DOCUMENT THIS!
  * @param mb the query message
  * @param sh the search handle
  */
