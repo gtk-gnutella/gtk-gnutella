@@ -59,7 +59,8 @@ void event_add_subscriber(
 
 void event_remove_subscriber(struct event *evt, GCallback cb);
 
-guint32 event_subscriber_count(struct event *evt);
+guint event_subscriber_count(struct event *evt);
+gboolean event_subscriber_active(struct event *evt);
 
 /*
  * T_VETO:   breaks trigger chain as soon as a subscriber returns 
