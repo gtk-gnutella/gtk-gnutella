@@ -355,6 +355,7 @@ void node_timer(time_t now)
 
 			if (
 				n->sent > MIN_TX_FOR_RATIO &&
+				!NODE_IS_LEAF(n) &&
 				(n->received == 0 || n->sent / n->received > MAX_TX_RX_RATIO)
 			) {
 				node_bye_if_writable(n, 405, "Reception shortage");
@@ -457,7 +458,57 @@ gint32 connected_nodes(void)
 
 gint32 node_count(void)
 {
-	return nodes_in_list - ponging_nodes - shutdown_nodes;
+	return nodes_in_list - ponging_nodes - shutdown_nodes - node_leaf_count;
+}
+
+/*
+ * node_keep_missing
+ *
+ * Amount of node connections we would like to keep.
+ * Returns 0 if none.
+ */
+gint node_keep_missing(void)
+{
+	gint missing;
+
+	switch (current_peermode) {
+	case NODE_P_LEAF:
+		missing = max_ultrapeers - node_ultra_count;
+		return MAX(0, missing);
+	case NODE_P_NORMAL:
+	case NODE_P_ULTRA:
+		missing = up_connections - (node_ultra_count + node_normal_count);
+		return MAX(0, missing);
+	default:
+		g_assert_not_reached();
+	}
+
+	return 0;
+}
+
+/*
+ * node_missing
+ *
+ * Amount of node connections we would like to have.
+ * Returns 0 if none.
+ */
+gint node_missing(void)
+{
+	gint missing;
+
+	switch (current_peermode) {
+	case NODE_P_LEAF:
+		missing = max_ultrapeers - node_ultra_count;
+		return MAX(0, missing);
+	case NODE_P_NORMAL:
+	case NODE_P_ULTRA:
+		missing = max_connections - (node_ultra_count + node_normal_count);
+		return MAX(0, missing);
+	default:
+		g_assert_not_reached();
+	}
+
+	return 0;
 }
 
 /*
@@ -537,7 +588,7 @@ void node_real_remove(gnutella_node_t *node)
 	 *		--RAM, 13/01/2002
 	 */
 
-	if (node->gnet_ip && (node->flags & NODE_F_VALID))
+	if (!NODE_IS_LEAF(node) && node->gnet_ip && (node->flags & NODE_F_VALID))
 		hcache_save_valid(
 			(node->attrs & NODE_A_ULTRA) ? HCACHE_ULTRA : HCACHE_ANY,
 			node->gnet_ip, node->gnet_port);
@@ -1332,7 +1383,8 @@ static void node_is_now_connected(struct gnutella_node *n)
 	} else if (n->flags & NODE_F_LEAF) {
 		if (current_peermode == NODE_P_ULTRA)
 			n->peermode = NODE_P_LEAF;
-	}
+	} else if (n->attrs & NODE_A_ULTRA)
+		n->peermode = NODE_P_ULTRA;
 
 	g_assert(current_peermode != NODE_P_LEAF ||
 		NODE_IS_ULTRA(n) || NODE_IS_PONGING_ONLY(n));
@@ -1582,14 +1634,15 @@ void node_set_current_peermode(guint32 mode)
 {
 	gchar *msg = NULL;
 
+	// XXX we need to know the previous peermode
+
 	switch (mode) {
 	case NODE_P_NORMAL:
 		msg = "normal";
-		node_bye_flags(NODE_F_ULTRA, 203, "Becoming a regular node");
+		node_bye_flags(NODE_F_LEAF, 203, "Becoming a regular node");
 		break;
 	case NODE_P_ULTRA:
 		msg = "ultra";
-		node_bye_flags(NODE_F_ULTRA, 203, "Becoming an ultra node");
 		break;
 	case NODE_P_LEAF:
 		msg = "leaf";
@@ -1832,6 +1885,201 @@ static gboolean analyse_status(struct gnutella_node *n, gint *code)
 }
 
 /*
+ * node_can_accept_connection
+ *
+ * Can node accept connection?
+ *
+ * If `handshaking' is true, we're still in the handshaking phase, otherwise
+ * we're already connected and can send a BYE.
+ *
+ * Returns TRUE if we can accept the connection, FALSE otherwise, with
+ * the node being removed.
+ */
+static gboolean node_can_accept_connection(
+	struct gnutella_node *n, gboolean handshaking)
+{
+	g_assert(handshaking || n->status == GTA_NODE_CONNECTED);
+	g_assert(n->attrs & (NODE_A_NO_ULTRA|NODE_A_CAN_ULTRA));
+
+	/*
+	 * Deny cleanly if they deactivated "online mode".
+	 */
+
+	if (handshaking && !allow_gnet_connections) {
+		send_node_error(n->socket, 403,
+			"Gnet connections currently disabled");
+		node_remove(n, "Gnet connections disabled");
+		return FALSE;
+	}
+
+	/*
+	 * If we are handshaking, we have not incremented the node counts yet.
+	 * Hence we can do >= tests against the limits.
+	 */
+
+	switch (current_peermode) {
+	case NODE_P_ULTRA:
+		/*
+		 * If we're an ultra node, we need to enforce leaf counts.
+		 *
+		 * We also enforce ultra node counts if we're issuing an outgoing
+		 * connection, but for incoming ones, we'll try to let the other
+		 * node become a leaf node, so don't enforce if we're still in the
+		 * handshaking phase.
+		 */
+
+		if (n->flags & NODE_F_LEAF) {
+			if (handshaking && node_leaf_count >= max_leaves) {
+				send_node_error(n->socket, 503,
+					"Too many leaf connections (%d max)", max_leaves);
+				node_remove(n, "Too many leaves");
+				return FALSE;
+			}
+			if (!handshaking && node_leaf_count > max_leaves) {
+				node_bye(n, 503,
+					"Too many leaf connections (%d max)", max_leaves);
+				return FALSE;
+			}
+		} else if (n->attrs & NODE_A_ULTRA) {
+			gint ultra_max = max_connections - normal_connections;
+
+			ultra_max = MAX(ultra_max, 0);
+
+			if (
+				handshaking &&
+				node_ultra_count >= ultra_max &&
+				!(n->flags & NODE_F_INCOMING)
+			) {
+				send_node_error(n->socket, 503,
+					"Too many ultra connections (%d max)", ultra_max);
+				node_remove(n, "Too many ultra nodes");
+				return FALSE;
+			}
+			if (!handshaking && node_ultra_count > ultra_max) {
+				node_bye(n, 503,
+					"Too many ultra connections (%d max)", ultra_max);
+				return FALSE;
+			}
+		}
+
+		/*
+		 * Enforce preference for compression only with non-leaf nodes.
+		 */
+
+		if (handshaking && !(n->flags & NODE_F_LEAF)) {
+			gint connected = node_normal_count + node_ultra_count;
+
+			if (
+				prefer_compressed_gnet &&
+				(n->flags & NODE_F_INCOMING) && 
+				!(n->attrs & NODE_A_CAN_INFLATE) &&
+				connected >= up_connections &&
+				connected - compressed_node_cnt > 0
+			) {
+				send_node_error(n->socket, 403,
+					"Gnet connection not compressed");
+				node_remove(n, "Connection not compressed");
+				return FALSE;
+			}
+		}
+
+		/*
+		 * If we have already enough normal nodes, reject a normal node.
+		 */
+
+		if (
+			handshaking &&
+			(n->attrs & NODE_A_NO_ULTRA) &&
+			node_normal_count >= normal_connections
+		) {
+			if (normal_connections)
+				send_node_error(n->socket, 503,
+					"Too many normal nodes (%d max)", normal_connections);
+			else
+				send_node_error(n->socket, 403, "Normal nodes refused");
+			node_remove(n, "Rejected normal node");
+			return FALSE;
+		}
+
+		break;
+	case NODE_P_NORMAL:
+		if (handshaking) {
+			gint connected = node_normal_count + node_ultra_count;
+			if (
+				(n->attrs & (NODE_A_CAN_ULTRA|NODE_A_ULTRA)) == NODE_A_CAN_ULTRA
+			) {
+				send_node_error(n->socket, 503, "Cannot accept leaf node");
+				node_remove(n, "Rejected leaf node");
+				return FALSE;
+			}
+			if (connected >= max_connections) {
+				send_node_error(n->socket, 503,
+					"Too many Gnet connections (%d max)", max_connections);
+				node_remove(n, "Sent busy indication");
+				return FALSE;
+			}
+			if (
+				prefer_compressed_gnet &&
+				(n->flags & NODE_F_INCOMING) && 
+				!(n->attrs & NODE_A_CAN_INFLATE) &&
+				connected >= up_connections &&
+				connected - compressed_node_cnt > 0
+			) {
+				send_node_error(n->socket, 403,
+					"Gnet connection not compressed");
+				node_remove(n, "Connection not compressed");
+				return FALSE;
+			}
+		} else if (node_normal_count + node_ultra_count > max_connections) {
+			node_bye(n, 503,
+				"Too many Gnet connections (%d max)", max_connections);
+			return FALSE;
+		}
+		break;
+	case NODE_P_LEAF:
+		if (handshaking) {
+			/*
+			 * If we're a leaf node, we can only accept incoming connections
+			 * from an ultra node.
+			 *
+			 * The Ultrapeer specs say that two leaf nodes not finding
+			 * Ultrapeers could connect to each other like two normal nodes,
+			 * but I don't want to support that.  It's insane.
+			 *		--RAM, 11/01/2003
+			 */
+
+			if (!(n->attrs & NODE_A_ULTRA)) {
+				send_node_error(n->socket, 204,
+					"Shielded leaf node (%d peers max)", max_ultrapeers);
+				node_remove(n, "Sent shielded indication");
+				return FALSE;
+			}
+
+			if (!(n->attrs & NODE_A_ULTRA)) {
+				send_node_error(n->socket, 503, "Looking for an ultra node");
+				node_remove(n, "Not an ultra node");
+				return FALSE;
+			}
+			if (node_ultra_count >= max_ultrapeers) {
+				send_node_error(n->socket, 503,
+					"Too many ultra connections (%d max)", max_ultrapeers);
+				node_remove(n, "Too many ultra nodes");
+				return FALSE;
+			}
+		} else if (node_ultra_count > max_ultrapeers) {
+			node_bye(n, 503,
+				"Too many ultra connections (%d max)", max_ultrapeers);
+			return FALSE;
+		}
+		break;
+	default:
+		g_assert_not_reached();
+	}
+
+	return TRUE;
+}
+
+/*
  * node_process_handshake_ack
  *
  * This routine is called to process the whole 0.6+ final handshake header
@@ -1923,6 +2171,9 @@ static void node_process_handshake_ack(struct gnutella_node *n, header_t *head)
 
 	node_is_now_connected(n);
 
+	if (n->status != GTA_NODE_CONNECTED)	/* Something went wrong */
+		return;
+
 	/*
 	 * Now that the Gnutella stack is up, BYE the node if we don't really
 	 * support the right version for the necessary protocols.
@@ -1941,6 +2192,15 @@ static void node_process_handshake_ack(struct gnutella_node *n, header_t *head)
 			return;
 		}
 	}
+
+	/*
+	 * Make sure we do not exceed our maximum amout of connections.
+	 * In particular, if the remote node did not obey our leaf guidance
+	 * and we still have enough ultra nodes, BYE them.
+	 */
+
+	if (!node_can_accept_connection(n, FALSE))
+		return;
 
 	/*
 	 * If we already have data following the final acknowledgment, feed it
@@ -2000,6 +2260,8 @@ static void node_process_handshake_header(
 	gchar *what = incoming ? "HELLO reply" : "HELLO acknowledgment";
 	gchar *compressing = "Content-Encoding: deflate\r\n";
 	gchar *empty = "";
+
+	g_assert(!(n->flags & NODE_F_TMP));	/* 0.6 connections no longer "tmp" */
 
 	if (dbg) {
 		printf("Got %s handshaking headers from node %s:\n",
@@ -2177,25 +2439,6 @@ static void node_process_handshake_header(
 		n->attrs |= NODE_A_NO_ULTRA;
 
 	/*
-	 * If the connection is flagged as being temporary, it's time to deny
-	 * it with a 503 error code.
-	 */
-
-	if (n->flags & NODE_F_TMP) {
-		g_assert(incoming);
-		if (current_peermode == NODE_P_LEAF) {
-			send_node_error(n->socket, 204,
-				"Shielded leaf node (%d peers max)", max_ultrapeers);
-			node_remove(n, "Sent shielded indication");
-		} else {
-			send_node_error(n->socket, 503,
-				"Too many Gnet connections (%d max)", max_connections);
-			node_remove(n, "Sent busy indication");
-		}
-		return;					/* node_remove() has freed s->getline */
-	}
-
-	/*
 	 * Accept-Encoding -- decompression support on the remote side
 	 */
 
@@ -2205,19 +2448,27 @@ static void node_process_handshake_header(
 			n->attrs |= NODE_A_CAN_INFLATE;
 			n->attrs |= NODE_A_TX_DEFLATE;	/* We accept! */
 		}
-	} else if (incoming) {
-		guint32 up_max = current_peermode == NODE_P_LEAF ?
-			up_connections : max_ultrapeers;
-		if (
-			prefer_compressed_gnet &&
-			(connected_nodes() >= up_max) &&
-			(connected_nodes() - compressed_node_cnt > 0)
-		) {
-			send_node_error(n->socket, 403,
-				"Gnet connection not compressed");
-			node_remove(n, "Connection not compressed");
-			return;
-		}
+	}
+
+	/*
+	 * We no longer flag incoming 0.6 connections as NODE_F_TMP, so we
+	 * need to enforce our connection count here.
+	 *
+	 * This must come after parsing of "Accept-Encoding", since we're
+	 * also enforcing the preference for gnet compression.
+	 */
+
+	if (!node_can_accept_connection(n, TRUE))
+		return;
+
+	/*
+	 * If we're a leaf node, we're talking to an Ultra node.
+	 * (otherwise, node_can_accept_connection() would have triggered)
+	 */
+
+	if (current_peermode == NODE_P_LEAF) {
+		g_assert(n->attrs & NODE_A_ULTRA);
+		n->flags |= NODE_F_ULTRA;			/* This is our ultranode */
 	}
 
 	/*
@@ -2263,18 +2514,6 @@ static void node_process_handshake_header(
 	}
 
 	/*
-	 * If we're a regular node, we want to talk to a non-leaf node.
-	 */
-
-	if (current_peermode == NODE_P_NORMAL) {
-		if ((n->attrs & (NODE_A_CAN_ULTRA|NODE_A_ULTRA)) == NODE_A_CAN_ULTRA) {
-			send_node_error(n->socket, 503, "Cannot accept leaf node");
-			node_remove(n, "Rejected leaf node");
-			return;
-		}
-	}
-
-	/*
 	 * If this is an outgoing connection, we're processing the remote
 	 * acknowledgment to our initial handshake.
 	 */
@@ -2298,19 +2537,6 @@ static void node_process_handshake_header(
 				extract_header_pongs(head, n);
 
 			return;				/* node_remove() has freed s->getline */
-		}
-
-		/*
-		 * If we're a leaf node, we want to talk to an Ultra node.
-		 */
-
-		if (current_peermode == NODE_P_LEAF) {
-			if (!(n->attrs & NODE_A_ULTRA)) {
-				send_node_error(n->socket, 503, "Looking for an ultra node");
-				node_remove(n, "Not an ultra node");
-				return;
-			} else
-				n->flags |= NODE_F_ULTRA;		/* This is our ultranode */
 		}
 
 		/* X-Ultrapeer-Needed -- only defined for 2nd reply (outgoing) */
@@ -2376,58 +2602,14 @@ static void node_process_handshake_header(
 	 	
 		g_assert(rw < sizeof(gnet_response));
 	} else {
-		/*
-		 * Deny cleanly if they deactivated "online mode".
-		 */
-
-		if (!allow_gnet_connections) {
-			send_node_error(n->socket, 403,
-				"Gnet connections currently disabled");
-			node_remove(n, "Gnet connections disabled");
-			return;
-		}
-
-		/*
-		 * If we're a leaf node, we can only accept incoming connections
-		 * from an ultra node.
-		 *
-		 * The Ultrapeer specs say that two leaf nodes not finding Ultrapeers
-		 * could connect to each other like two normal nodes, but I don't
-		 * want to support that.  It's insane.
-		 *		--RAM, 11/01/2003
-		 */
-
-		if (current_peermode == NODE_P_LEAF) {
-			if (!(n->attrs & NODE_A_ULTRA)) {
-				send_node_error(n->socket, 204, "Shielded leaf node");
-				node_remove(n, "Local node is shielded");
-				return;
-			} else
-				n->flags |= NODE_F_ULTRA;		/* This is our ultranode */
-		}
-
-		/*
-		 * If we're an ultra node, and we have already enough normal nodes,
-		 * reject a normal node.
-		 */
-
-		if (
-			current_peermode == NODE_P_ULTRA &&
-			node_normal_count >= normal_connections &&
-			(n->attrs & NODE_A_NO_ULTRA)
-		) {
-			if (normal_connections)
-				send_node_error(n->socket, 503,
-					"Too many normal nodes (% max)", normal_connections);
-			else
-				send_node_error(n->socket, 403, "Normal nodes refused");
-			node_remove(n, "Rejected normal node");
-			return;
-		}
+		gint ultra_max;
 
 		/*
 		 * Welcome the incoming node.
 		 */
+
+		ultra_max = max_connections - normal_connections;
+		ultra_max = MAX(ultra_max, 0);
 
 		rw = g_snprintf(gnet_response, sizeof(gnet_response),
 			"GNUTELLA/0.6 200 OK\r\n"
@@ -2450,7 +2632,7 @@ static void node_process_handshake_header(
 			current_peermode == NODE_P_LEAF ?
 				"X-Ultrapeer: False\r\n": "X-Ultrapeer: True\r\n",
 			current_peermode != NODE_P_ULTRA ? "" :
-			node_ultra_count < up_connections ? "X-Ultrapeer-Needed: True\r\n"
+			node_ultra_count < ultra_max ? "X-Ultrapeer-Needed: True\r\n"
 				: "X-Ultrapeer-Needed: False\r\n",
 			current_peermode != NODE_P_NORMAL ? "X-Query-Routing: 0.1\r\n" : "",
 			start_rfc822_date);
@@ -2623,8 +2805,6 @@ void node_add_socket(struct gnutella_socket *s, guint32 ip, guint16 port)
 	gboolean incoming = FALSE, already_connected = FALSE;
 	gint major = 0, minor = 0;
 	gboolean ponging_only = FALSE;
-	gint max_nodes;
-	gint up_nodes;
 
 	g_assert(s == NULL || s->resource.node == NULL);
 
@@ -2673,16 +2853,6 @@ void node_add_socket(struct gnutella_socket *s, guint32 ip, guint16 port)
 	}
 #endif
 
-	if (current_peermode == NODE_P_LEAF) {
-		max_nodes = up_nodes = max_ultrapeers;
-		// XXX temporary hack until we revisit connections
-		if (dbg > 5)
-			max_nodes++;
-	} else {
-		max_nodes = max_connections;
-		up_nodes = up_connections;
-	}
-
 	if (s && major == 0 && minor < 6) {
 		if (no_gnutella_04) {
 			socket_free(s);
@@ -2692,7 +2862,7 @@ void node_add_socket(struct gnutella_socket *s, guint32 ip, guint16 port)
 			!allow_gnet_connections ||
 			prefer_compressed_gnet ||
 			current_peermode == NODE_P_LEAF ||
-			connected_nodes() >= up_nodes
+			connected_nodes() >= up_connections
 		)
             ponging_only = TRUE;	/* Will only send connection pongs */
 	}
@@ -2708,7 +2878,12 @@ void node_add_socket(struct gnutella_socket *s, guint32 ip, guint16 port)
 	 * Too many gnutellaNet connections?
 	 */
 
-    if (node_count() >= max_nodes) {
+    if (
+		(current_peermode == NODE_P_LEAF && node_ultra_count >= max_ultrapeers)
+		||
+		(current_peermode != NODE_P_ULTRA &&
+			node_ultra_count + node_normal_count >= max_connections)
+	) {
         if (!s)
             return;
         if (!already_connected) {
@@ -2754,7 +2929,7 @@ void node_add_socket(struct gnutella_socket *s, guint32 ip, guint16 port)
 		 * to reply, lest the remote host might drop the pongs.
 		 *
 		 * For incoming connections, we don't know the listening IP:port
-		 * Gnet information.  We mark the nod with the NODE_F_INCOMING
+		 * Gnet information.  We mark the node with the NODE_F_INCOMING
 		 * flag so that we send it an "alive" ping to get that information
 		 * as soon as we have handshaked.
 		 *
@@ -2767,7 +2942,16 @@ void node_add_socket(struct gnutella_socket *s, guint32 ip, guint16 port)
 		 * a connection, so it may very well accept incoming.
 		 *
 		 *		--RAM, 18/03/2002
+		 *
+		 * As of today, we'll no longer be flagging incoming 0.6 connections
+		 * as Ponging.  Checking for maximum connections will be done
+		 * during the handshaking.
+		 *
+		 *		--RAM, 17/01/2003
 		 */
+
+		if (major > 0 || minor > 4)
+			ponging_only = FALSE;
 
 		if (ponging_only) {
 			n->flags |= NODE_F_TMP;
@@ -2891,8 +3075,8 @@ static void node_parse(struct gnutella_node *node)
 	n = node;
 
 	/*
-	 * If we're expecting a hanshaking ping, check whether we got one.
-	 * An hanshaking ping is normally sent after a connection is made,
+	 * If we're expecting a handshaking ping, check whether we got one.
+	 * An handshaking ping is normally sent after a connection is made,
 	 * and it comes with hops=0.
 	 *
 	 * We use the handshaking ping to determine, based on the GUID format,
@@ -3002,7 +3186,10 @@ static void node_parse(struct gnutella_node *node)
 		break;
 
 	case GTA_MSG_QRP:			/* Leaf -> Ultrapeer, never routed */
-		if (current_peermode != NODE_P_ULTRA) {
+		if (
+			current_peermode != NODE_P_ULTRA ||
+			n->peermode != NODE_P_LEAF
+		) {
 			drop = TRUE;
 			gnet_stats_count_dropped(n, MSG_DROP_UNEXPECTED);
 			if (dbg)
@@ -3124,7 +3311,7 @@ static void node_parse(struct gnutella_node *node)
              * the message was dropped.
              */
 
-			if (current_peermode == NODE_P_ULTRA) {
+			if (current_peermode == NODE_P_ULTRA && dest.type != ROUTE_NONE) {
 				qhv = query_hashvec;
 				qhvec_reset(qhv);
 			} else
@@ -3178,11 +3365,10 @@ static void node_parse(struct gnutella_node *node)
 
 			if (
 				current_peermode == NODE_P_ULTRA &&
-				n->header.function == GTA_MSG_SEARCH
-			) {
-				g_assert(qhv != NULL);
+				n->header.function == GTA_MSG_SEARCH &&
+				qhv != NULL
+			)
 				qrt_route_query(n, qhv);
-			}
 		}
 	} else {
 		if (dbg > 3)

@@ -47,6 +47,8 @@
 
 RCSID("$Id$");
 
+#define MAX_EXTRA_HOSTS	15			/* Max amount of extra connections */
+
 gboolean host_low_on_pongs = FALSE;			/* True when less than 12% full */
 
 static gboolean in_shutdown = FALSE;
@@ -64,12 +66,11 @@ void host_timer(void)
 {
 	static gint called = 0;
     gint count;
-	gint nodes_missing;
+	gint missing;
 	guint32 ip;
 	guint16 port;
 	hcache_type_t hctype;
 	gint max_nodes;
-	gint up_nodes;
 
 	if (in_shutdown || !online_mode)
 		return;
@@ -77,13 +78,11 @@ void host_timer(void)
 	count = node_count();
 
 	if (current_peermode == NODE_P_LEAF)
-		max_nodes = up_nodes = max_ultrapeers;
-	else {
+		max_nodes = max_ultrapeers;
+	else
 		max_nodes = max_connections;
-		up_nodes = up_connections;
-	}
 
-	nodes_missing = up_nodes - count;
+	missing = node_keep_missing();
 
 	/*
 	 * If we are not connected to the Internet, apparently, make sure to
@@ -91,33 +90,49 @@ void host_timer(void)
 	 * Also, we don't connect each time we are called.
 	 */
 
-	if (!is_inet_connected && nodes_missing) {
+	if (!is_inet_connected && missing) {
 		if (0 == (called++ & 0xf))		/* Once every 16 attempts */
-			nodes_missing = 1;
+			missing = 1;
 		else
-			nodes_missing = 0;			/* Don't connect this run */
+			missing = 0;			/* Don't connect this run */
 	}
 
+	/*
+	 * Allow more outgoing connections than the maximum amount of
+	 * established Gnet connection we can maintain, but not more
+	 * than MAX_EXTRA_HOSTS.  This is the "greedy mode".
+	 */
+
+	if (count > max_nodes + MAX_EXTRA_HOSTS)
+		return;
+
 	if (count < max_nodes)
-		nodes_missing -= whitelist_connect();
-    
+		missing -= whitelist_connect();
+
 	/*
 	 * If we are under the number of connections wanted, we add hosts
 	 * to the connection list
 	 */
 
-	hctype = current_peermode == NODE_P_LEAF ? HCACHE_ULTRA : HCACHE_ANY;
+	hctype = current_peermode == NODE_P_NORMAL ? HCACHE_ANY : HCACHE_ULTRA;
+
+	if (
+		current_peermode == NODE_P_ULTRA &&
+		node_normal_count < normal_connections &&
+		node_ultra_count >= (up_connections - normal_connections)
+	)
+		hctype = HCACHE_ANY;
 
 	if (hcache_size(hctype) == 0)
 		hctype = HCACHE_ANY;
 
-	if (nodes_missing > 0) {
+	if (missing > 0) {
         if (!stop_host_get) {
-			while (hcache_size(hctype) && nodes_missing-- > 0) {
+			while (hcache_size(hctype) && missing-- > 0) {
 				hcache_get_caught(hctype, &ip, &port);
 				node_add(ip, port);
 			}
-			if (nodes_missing)
+			if (missing)
 				gwc_get_hosts(); 		/* Fill hosts from web host cache */
 		}
 	}
@@ -230,20 +245,9 @@ void host_add(guint32 ip, guint16 port, gboolean connect)
 
 
 	if (connect) {
-		gint max_nodes;
-		gint up_nodes;
-
-		if (current_peermode == NODE_P_LEAF)
-			max_nodes = up_nodes = max_ultrapeers;
-		else {
-			max_nodes = max_connections;
-			up_nodes = up_connections;
-		}
-
-		if (node_count() < max_nodes) {
-			if (connected_nodes() < up_nodes)
+		if (node_keep_missing() > 0)
 				node_add(ip, port);
-		} else {
+		else {
 			/* If we are above the max connections, delete a non-nearby 
 			 * connection before adding this better one
 			 */
