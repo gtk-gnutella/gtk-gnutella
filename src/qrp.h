@@ -28,9 +28,9 @@
 #ifndef _qrp_h_
 #define _qrp_h_
 
-#include <glib.h>
-
 #include "gnutella.h"
+
+#include <glib.h>
 
 #define QRP_MIN_WORD_LENGTH		3		/* Minimal word length */
 

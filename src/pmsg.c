@@ -25,9 +25,9 @@
  *----------------------------------------------------------------------
  */
 
-#include "gnutella.h"
 #include <string.h>		/* For memcpy() */
 
+#include "gnutella.h"
 #include "pmsg.h"
 
 RCSID("$Id$");
