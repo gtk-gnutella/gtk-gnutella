@@ -55,7 +55,7 @@ $spitshell >>Makefile <<'!NO!SUBS!'
 ########################################################################
 # Start of Jmakefile
 
-# $X-Id: Jmakefile,v 1.1 2003/08/10 23:01:44 rmanfredi Exp $
+# $X-Id: Jmakefile,v 1.2 2004/01/05 00:44:26 rmanfredi Exp $
 
 PIXMAPS = \
 	arrow_down.xpm \
@@ -82,6 +82,8 @@ PIXMAPS = \
 	upload.xpm
 
 all::
+
+INSTALLFLAGS = -m 444
 
 local_install::
 	@case '${MFLAGS}' in *[i]*) set +e;; esac; \
