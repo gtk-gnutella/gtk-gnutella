@@ -189,7 +189,7 @@ search_gui_set_details(record_t *rc)
 	gtk_entry_set_text(info_filename, lazy_locale_to_utf8(rc->name, 0));
 
 	gm_snprintf(tmpstr, sizeof(tmpstr), "%s%s",
-		rc->sha1 ? "urn:sha1" : _("<none>"),
+		rc->sha1 ? "urn:sha1:" : _("<none>"),
 		rc->sha1 ? sha1_base32(rc->sha1) : "");
 	gtk_entry_set_text(info_sha1, tmpstr);
 

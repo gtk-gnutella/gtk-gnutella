@@ -472,7 +472,7 @@ on_tree_view_search_results_select_row(GtkTreeView *view, gpointer unused_udata)
 			lazy_locale_to_utf8(rc->name, 0));
 		
 		gm_snprintf(tmpstr, sizeof(tmpstr), "%s%s",
-			rc->sha1 ? "urn:sha1" : _("<none>"),
+			rc->sha1 ? "urn:sha1:" : _("<none>"),
 			rc->sha1 ? sha1_base32(rc->sha1) : "");
 		gtk_entry_set_text(
 			GTK_ENTRY(lookup_widget(main_window, "entry_result_info_sha1")),
