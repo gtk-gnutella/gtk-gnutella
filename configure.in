@@ -168,6 +168,7 @@ if test "$ac_cv_func_bind_textdomain_codeset" = yes; then
 fi
 
 AC_CHECK_HEADERS(libcharset.h, , , ) 
+AC_CHECK_HEADERS(langinfo.h, , , ) 
 
 AC_CHECK_HEADERS(sys/sysctl.h, , , )
 
