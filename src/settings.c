@@ -46,7 +46,7 @@
 #include "upload_stats.h"
 #include "filter.h"
 #include "sockets.h"
-#include "pcache.h"
+#include "inet.h"
 #include "gnet.h"
 #include "listener.h"
 #include "gnet_property.h"
@@ -434,7 +434,7 @@ static gboolean listen_port_changed(property_t prop)
 		return FALSE;
 
 	old_listen_port = listen_port;
-	pcache_port_changed();			/* Tell pong cache that our port changed */
+	inet_firewalled();			/* Assume we're firewalled on port change */
 
     /*
      * Close old port.

@@ -38,7 +38,6 @@
 #include <arpa/inet.h>
 #include <netinet/tcp.h>
 
-#include "gnet_property.h"
 #include "gnet_property_priv.h"
 #include "sockets.h"
 #include "downloads.h"
@@ -52,6 +51,7 @@
 #include "ban.h"
 #include "http.h"
 #include "settings.h"
+#include "inet.h"
 
 #if !defined(SOL_TCP) && defined(IPPROTO_TCP)
 #define SOL_TCP IPPROTO_TCP
@@ -460,6 +460,8 @@ void socket_connected(gpointer data, gint source, GdkInputCondition cond)
 			return;
 		}
 
+		inet_connection_succeeded(s->ip);
+
 		s->pos = 0;
 		memset(s->buffer, 0, sizeof(s->buffer));
 
@@ -637,29 +639,7 @@ static void socket_accept(gpointer data, gint source,
 		break;
 	}
 
-	/*
-	 * Since someone connected to us, we're not completely firewalled.
-	 * The Gnutella port has at least been opened.
-	 *		--RAM, 20/12/2001
-	 */
-
-	if (is_firewalled) {
-		/*
-		 * Make sure we're not connecting locally.
-		 */
-
-		if (
-			t->ip != listen_ip() &&					/* Not ourselves */
-			(t->ip & 0xff000000) != 0x7f000000 &&	/* Not loopback 127.xxx */
-			t->ip != host_to_ip(host_name())		/* Not ourselves */
-		) {
-			gboolean val = FALSE;
-			gnet_prop_set_boolean(PROP_IS_FIREWALLED, &val, 0, 1);
-			if (dbg)
-				printf("Got evidence that we're not firewalled on port %u\n",
-					listen_port);
-		}
-	}
+	inet_got_incoming(t->ip);	/* Signal we got an incoming connection */
 }
 
 /*
@@ -699,6 +679,8 @@ struct gnutella_socket *socket_connect(guint32 ip, guint16 port, gint type)
 	addr.sin_family = AF_INET;
 	addr.sin_addr.s_addr = g_htonl(ip);
 	addr.sin_port = g_htons(port);
+
+	inet_connection_attempted(ip);
 
 	/*
 	 * Now we check if we're forcing a local IP, and make it happen if so.

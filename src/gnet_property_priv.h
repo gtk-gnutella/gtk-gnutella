@@ -125,6 +125,7 @@ extern gboolean strict_sha1_matching;
 extern gboolean use_fuzzy_matching;
 extern guint32  fuzzy_threshold;
 extern gboolean is_firewalled;
+extern gboolean is_inet_connected;
 
 
 prop_set_t *gnet_prop_init(void);

@@ -165,6 +165,7 @@ static gboolean socks_user_changed(property_t prop);
 static gboolean socks_pass_changed(property_t prop);
 static gboolean traffic_stats_mode_changed(property_t prop);
 static gboolean is_firewalled_changed(property_t prop);
+static gboolean is_inet_connected_changed(property_t prop);
 
 // FIXME: move to separate file and autoegenerate from high-level
 //        description. 
@@ -1086,6 +1087,13 @@ static prop_map_t property_map[] = {
         TRUE,
         NULL
     },
+    {
+        NULL,
+        PROP_IS_INET_CONNECTED,
+        is_inet_connected_changed,
+        TRUE,
+        NULL
+    },
 };
 
 /***
@@ -1560,6 +1568,12 @@ static gboolean is_firewalled_changed(property_t prop)
 		gtk_widget_show(image_no_firewall);
 	}
 
+	return FALSE;
+}
+
+static gboolean is_inet_connected_changed(property_t prop)
+{
+	g_warning("is_inet_connected_changed() called");	// XXX
 	return FALSE;
 }
 

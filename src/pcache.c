@@ -45,17 +45,14 @@
 #include "routing.h"
 #include "gmsg.h"
 #include "alive.h"
+#include "cq.h"
+#include "inet.h"
 
-#include "gnet_property.h"
 #include "gnet_property_priv.h"
 #include "settings.h"
 
-#define FW_STATUS_GRACE		300		/* Startup period where we send pongs */
-
 static GList *last_returned_pong = NULL;	/* Last returned from list */
 static GList *pcache_recent_pongs = NULL;	/* Recent pongs we got */
-
-static time_t portchange_time = 0;			/* When we last changed port */
 
 /***
  *** Messages
@@ -840,37 +837,6 @@ static struct cached_pong *record_fresh_pong(struct gnutella_node *n,
 }
 
 /*
- * can_answer_ping
- *
- * Check whether we can answer a ping with a pong.
- *
- * Normally, when we're firewalled, we don't answer. However, if we have
- * a non-private IP and are within the first FW_STATUS_GRACE seconds of
- * port changing time, act as if we were not: we can only know we're not
- * firewalled when we get an incoming connection.
- */
-static gboolean can_answer_ping(void)
-{
-	guint32 ip;
-
-	if (!is_firewalled)
-		return TRUE;
-
-	ip = listen_ip();
-
-	if (!ip)
-		return FALSE;		/* We don't know our local IP, we can't reply */
-
-	if (is_private_ip(ip))
-		return FALSE;
-
-	if (time(NULL) - portchange_time < FW_STATUS_GRACE)
-		return TRUE;
-
-	return FALSE;
-}
-
-/*
  * pcache_ping_received
  *
  * Called when a ping is received from a node.
@@ -966,7 +932,7 @@ void pcache_ping_received(struct gnutella_node *n)
 	 * If we can accept an incoming connection, send a reply.
 	 */
 
-	if (node_count() < max_connections && can_answer_ping()) {
+	if (node_count() < max_connections && inet_can_answer_ping()) {
 		send_personal_info(n, FALSE);
 		if (!NODE_IS_CONNECTED(n))	/* Can be removed if send queue is full */
 			return;
@@ -1160,22 +1126,6 @@ void pcache_pong_fake(struct gnutella_node *n, guint32 ip, guint16 port)
 
 	n->gnet_ip = ip;
 	n->gnet_port = port;
-}
-
-/*
- * pcache_port_changed
- *
- * This routine is called when the listening port of the servent is changed.
- * We reset the timestamp used to measure the "grace period" during which
- * we can answer with pongs even though we're firewalled.  We also reset
- * the firewalled status to TRUE.
- */
-void pcache_port_changed(void)
-{
-	gboolean val = TRUE;
-	gnet_prop_set_boolean(PROP_IS_FIREWALLED, &val, 0, 1);
-	portchange_time = time(NULL);
-	
 }
 
 /* vi: set ts=4: */

@@ -156,12 +156,26 @@ static void auto_connect(void)
  */
 void host_timer(void)
 {
+	static gint called = 0;
 	int nodes_missing = up_connections - node_count();
 	guint32 ip;
 	guint16 port;
 
 	if (in_shutdown)
 		return;
+
+	/*
+	 * If we are not connected to the Internet, apparently, make sure to
+	 * connect to at most one host, to avoid using all our hostcache.
+	 * Also, we don't connect each time we are called.
+	 */
+
+	if (!is_inet_connected && nodes_missing) {
+		if (0 == (called++ & 0xf))		/* Once every 16 attempts */
+			nodes_missing = 1;
+		else
+			nodes_missing = 0;			/* Don't connect this run */
+	}
 
 	/*
 	 * If we are under the number of connections wanted, we add hosts

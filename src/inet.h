@@ -25,29 +25,21 @@
  *----------------------------------------------------------------------
  */
 
-#ifndef __pcache_h__
-#define __pcache_h__
+#ifndef __inet_h__
+#define __inet_h__
 
-/*
- * Global Functions
- */
-
-struct gnutella_msg_init_response *build_pong_msg(
-	guint8 hops, guint8 ttl, guchar *muid,
-	guint32 ip, guint16 port, guint32 files, guint32 kbytes);
+#include <glib.h>
 
 /*
  * Public interface.
  */
 
-void pcache_init(void);
-void pcache_close(void);
-void pcache_possibly_expired(time_t now);
-void pcache_outgoing_connection(struct gnutella_node *n);
-void pcache_ping_received(struct gnutella_node *n);
-void pcache_pong_received(struct gnutella_node *n);
-void pcache_pong_fake(struct gnutella_node *n, guint32 ip, guint16 port);
-gboolean pcache_get_recent(guint32 *ip, guint16 *port);
-void pcache_clear_recent(void);
-    
-#endif /* __pcache_h__ */
+void inet_firewalled(void);
+void inet_got_incoming(guint32 ip);
+gboolean inet_can_answer_ping(void);
+
+void inet_connection_attempted(guint32 ip);
+void inet_connection_succeeded(guint32 ip);
+
+#endif /* __inet_h__ */
+

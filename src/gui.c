@@ -510,23 +510,6 @@ void gui_update_guid()
         guid_hex_str(guid));
 }
 
-void gui_update_is_firewalled()
-{
-    GtkWidget *image_firewall;
-    GtkWidget *image_no_firewall;
-
-    image_firewall = lookup_widget(main_window, "image_firewall");
-    image_no_firewall = lookup_widget(main_window, "image_no_firewall");
-
-    if (is_firewalled) {
-        gtk_widget_show(image_firewall);
-        gtk_widget_hide(image_no_firewall);
-    } else {
-        gtk_widget_hide(image_firewall);
-        gtk_widget_show(image_no_firewall);
-    }
-}
-
 void gui_update_queue_frozen()
 {
     static gboolean msg_displayed = FALSE;

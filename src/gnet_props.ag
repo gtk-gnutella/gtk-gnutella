@@ -1097,3 +1097,13 @@ prop = {
 	};
 };
 
+prop = {
+    name = "is_inet_connected";
+	desc = "Whether gtk-gnutella thinks it's connected to the Internet";
+	save = FALSE;
+    type = boolean;
+    data = {
+		default = FALSE;
+	};
+};
+

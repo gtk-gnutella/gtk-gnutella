@@ -230,6 +230,8 @@ guint32  fuzzy_threshold     = 70;
 guint32  fuzzy_threshold_def = 70;
 gboolean is_firewalled     = TRUE;
 gboolean is_firewalled_def = TRUE;
+gboolean is_inet_connected     = FALSE;
+gboolean is_inet_connected_def = FALSE;
 
 static prop_set_t *gnet_property = NULL;
 
@@ -2051,6 +2053,23 @@ prop_set_t *gnet_prop_init(void) {
     gnet_property->props[96].type               = PROP_TYPE_BOOLEAN;
     gnet_property->props[96].data.boolean.def   = &is_firewalled_def;
     gnet_property->props[96].data.boolean.value = &is_firewalled;
+
+
+    /*
+     * PROP_IS_INET_CONNECTED:
+     *
+     * General data:
+     */
+    gnet_property->props[97].name = "is_inet_connected";
+    gnet_property->props[97].desc = "Whether gtk-gnutella thinks it's connected to the Internet";
+    gnet_property->props[97].prop_changed_listeners = NULL;
+    gnet_property->props[97].save = FALSE;
+    gnet_property->props[97].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[97].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[97].data.boolean.def   = &is_inet_connected_def;
+    gnet_property->props[97].data.boolean.value = &is_inet_connected;
     return gnet_property;
 }
 
