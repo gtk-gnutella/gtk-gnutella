@@ -167,6 +167,7 @@ iprange_free_each(gpointer db, gpointer udata)
 	struct iprange_db *idb = (struct iprange_db *) db;
 	gint i;
 
+	g_assert(db);
 	g_assert(idb->magic == IPRANGE_MAGIC);
 
 	/*
@@ -351,6 +352,7 @@ iprange_add_cidr_internal(
 	GSList *to_remove = NULL;
 	struct iprange_net *ipn;
 
+	g_assert(db);
 	g_assert(idb->magic == IPRANGE_MAGIC);
 	g_assert(bits >= 1 && bits <= 32);
 	g_assert(0 == (GPOINTER_TO_UINT(udata) & IPRANGE_MARK));
@@ -560,6 +562,7 @@ iprange_get(gpointer db, guint32 ip)
 	GSList *head;
 	GSList *l;
 
+	g_assert(db);
 	g_assert(idb->magic == IPRANGE_MAGIC);
 
 	first = ip >> 24;
@@ -610,6 +613,7 @@ iprange_get_stats(gpointer db, iprange_stats_t *stats)
 {
 	struct iprange_db *idb = (struct iprange_db *) db;
 
+	g_assert(db);
 	g_assert(idb->magic == IPRANGE_MAGIC);
 
 	stats->count = idb->range_count;
