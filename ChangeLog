@@ -1,5 +1,32 @@
 # since last version
 
+- (2004.06.08 - Richard)
+ * Use hash table instead of list for faster lookup in node_is_connected()
+   and node_host_is_connected().
+ * Split up gnet.h into several files for better readability. 
+   All are included from gnet.h.
+ * Changed algorithm for quick-connecting to utilize only up to 
+   PROP_QUICK_CONNECT_POOL_SIZE connections instead of using 
+   them additionally to the maximum number of connections.
+ * Changed large parts of the host cache code. We now have seven host caches
+   and we can get stats for them.
+ * Adjusted default hostcache capacities.
+ * Removed "unstable ip" code from nodes.c. This is now handled in hcache.c.
+ * Started with doxygen support.
+ * Added file_config_open_append to file.c. Needed by new hostcache code.
+ * Moved host_hash, host_eq and host_cmp as public functions to hosts.c.
+ * Made host_is_valid(ip,port) a define. The function is now ip_is_valid(ip).
+ * Pongs from hosts that are marked bad in the host cache are no longer added
+   to the recent pong cache.
+ * [Gtk1] [Gtk2] Minor layout fixes which were not in the last commit.
+ * Manually added new files to the build files. Somebody who can regenerate 
+   the build files and known about the package files has to double-check this.
+   
+- (2004.06.07 - Richard)
+ * [Gtk1] [Gtk2] Added hostcache panel.
+ * [Gtk1] [Gtk2] Added horizon stats labels to the statusbar.
+ * [Gtk1] [Gtk2] Made quick-connection pool size configurable.
+
 - (2004.06.06 - TNT)
  * Added German translation (de.po). Still needs a little
    fine-tuning.
