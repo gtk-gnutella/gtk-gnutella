@@ -166,29 +166,79 @@
 	    </widget>
 
 	    <widget>
-	      <class>GtkCheckMenuItem</class>
-	      <name>menu_bps_in_visible</name>
-	      <signal>
-		<name>activate</name>
-		<handler>on_menu_bps_in_visible_activate</handler>
-		<last_modification_time>Mon, 15 Apr 2002 14:56:55 GMT</last_modification_time>
-	      </signal>
-	      <label>show _Input Banwidth</label>
-	      <active>True</active>
-	      <always_show_toggle>True</always_show_toggle>
+	      <class>GtkMenuItem</class>
+	      <name>menu_http_stats_visible</name>
+	      <label>HTTP traffic stats</label>
+	      <right_justify>False</right_justify>
+
+	      <widget>
+		<class>GtkMenu</class>
+		<name>menu_http_stats_visible_menu</name>
+
+		<widget>
+		  <class>GtkCheckMenuItem</class>
+		  <name>menu_bws_in_visible</name>
+		  <signal>
+		    <name>activate</name>
+		    <handler>on_menu_bws_in_visible_activate</handler>
+		    <last_modification_time>Wed, 15 May 2002 10:33:03 GMT</last_modification_time>
+		  </signal>
+		  <label>show HTTP incoming traffic</label>
+		  <active>True</active>
+		  <always_show_toggle>True</always_show_toggle>
+		</widget>
+
+		<widget>
+		  <class>GtkCheckMenuItem</class>
+		  <name>menu_bws_out_visible</name>
+		  <signal>
+		    <name>activate</name>
+		    <handler>on_menu_bws_out_visible_activate</handler>
+		    <last_modification_time>Wed, 15 May 2002 10:33:03 GMT</last_modification_time>
+		  </signal>
+		  <label>show HTTP outgoing traffic</label>
+		  <active>True</active>
+		  <always_show_toggle>True</always_show_toggle>
+		</widget>
+	      </widget>
 	    </widget>
 
 	    <widget>
-	      <class>GtkCheckMenuItem</class>
-	      <name>menu_bps_out_visible</name>
-	      <signal>
-		<name>activate</name>
-		<handler>on_menu_bps_out_visible_activate</handler>
-		<last_modification_time>Mon, 15 Apr 2002 14:57:22 GMT</last_modification_time>
-	      </signal>
-	      <label>show _Output Bandwidth</label>
-	      <active>True</active>
-	      <always_show_toggle>True</always_show_toggle>
+	      <class>GtkMenuItem</class>
+	      <name>menu_gnet_stats_visible</name>
+	      <label>gNet traffic stats</label>
+	      <right_justify>False</right_justify>
+
+	      <widget>
+		<class>GtkMenu</class>
+		<name>menu_gnet_stats_visible_menu</name>
+
+		<widget>
+		  <class>GtkCheckMenuItem</class>
+		  <name>menu_bws_gin_visible</name>
+		  <signal>
+		    <name>activate</name>
+		    <handler>on_menu_bws_gin_visible_activate</handler>
+		    <last_modification_time>Wed, 15 May 2002 10:33:03 GMT</last_modification_time>
+		  </signal>
+		  <label>show gNet incoming traffic</label>
+		  <active>True</active>
+		  <always_show_toggle>True</always_show_toggle>
+		</widget>
+
+		<widget>
+		  <class>GtkCheckMenuItem</class>
+		  <name>menu_bws_gout_visible</name>
+		  <signal>
+		    <name>activate</name>
+		    <handler>on_menu_bws_gout_visible_activate</handler>
+		    <last_modification_time>Wed, 15 May 2002 10:33:03 GMT</last_modification_time>
+		  </signal>
+		  <label>show gNet outgoing traffic</label>
+		  <active>True</active>
+		  <always_show_toggle>True</always_show_toggle>
+		</widget>
+	      </widget>
 	    </widget>
 	  </widget>
 	</widget>
@@ -393,57 +443,151 @@
 	    </widget>
 
 	    <widget>
-	      <class>GtkProgressBar</class>
-	      <name>progressbar_bps_in</name>
-	      <tooltip>Click to toggle display.</tooltip>
-	      <events>GDK_BUTTON_PRESS_MASK</events>
-	      <signal>
-		<name>button_press_event</name>
-		<handler>on_progressbar_bps_in_button_press_event</handler>
-		<last_modification_time>Sun, 21 Apr 2002 18:56:14 GMT</last_modification_time>
-	      </signal>
-	      <value>0</value>
-	      <lower>0</lower>
-	      <upper>100</upper>
-	      <bar_style>GTK_PROGRESS_CONTINUOUS</bar_style>
-	      <orientation>GTK_PROGRESS_LEFT_TO_RIGHT</orientation>
-	      <activity_mode>False</activity_mode>
-	      <show_text>True</show_text>
-	      <format>%v/%u bps in</format>
-	      <text_xalign>0.5</text_xalign>
-	      <text_yalign>0.5</text_yalign>
+	      <class>GtkFrame</class>
+	      <name>frame_bws_inout</name>
+	      <border_width>2</border_width>
+	      <label>HTTP traffic</label>
+	      <label_xalign>0.5</label_xalign>
+	      <shadow_type>GTK_SHADOW_ETCHED_IN</shadow_type>
 	      <child>
 		<padding>0</padding>
 		<expand>False</expand>
 		<fill>False</fill>
 	      </child>
+
+	      <widget>
+		<class>GtkVBox</class>
+		<name>vbox42</name>
+		<homogeneous>False</homogeneous>
+		<spacing>0</spacing>
+
+		<widget>
+		  <class>GtkProgressBar</class>
+		  <name>progressbar_bws_in</name>
+		  <tooltip>Click to toggle display.</tooltip>
+		  <events>GDK_BUTTON_PRESS_MASK</events>
+		  <signal>
+		    <name>button_press_event</name>
+		    <handler>on_progressbar_bws_in_button_press_event</handler>
+		    <last_modification_time>Wed, 15 May 2002 10:26:50 GMT</last_modification_time>
+		  </signal>
+		  <value>0</value>
+		  <lower>0</lower>
+		  <upper>100</upper>
+		  <bar_style>GTK_PROGRESS_CONTINUOUS</bar_style>
+		  <orientation>GTK_PROGRESS_LEFT_TO_RIGHT</orientation>
+		  <activity_mode>False</activity_mode>
+		  <show_text>True</show_text>
+		  <format>bws in</format>
+		  <text_xalign>0.5</text_xalign>
+		  <text_yalign>0.5</text_yalign>
+		  <child>
+		    <padding>0</padding>
+		    <expand>False</expand>
+		    <fill>False</fill>
+		  </child>
+		</widget>
+
+		<widget>
+		  <class>GtkProgressBar</class>
+		  <name>progressbar_bws_out</name>
+		  <tooltip>Click to toggle display.</tooltip>
+		  <events>GDK_BUTTON_PRESS_MASK</events>
+		  <signal>
+		    <name>button_press_event</name>
+		    <handler>on_progressbar_bws_out_button_press_event</handler>
+		    <last_modification_time>Wed, 15 May 2002 10:26:55 GMT</last_modification_time>
+		  </signal>
+		  <value>0</value>
+		  <lower>0</lower>
+		  <upper>100</upper>
+		  <bar_style>GTK_PROGRESS_CONTINUOUS</bar_style>
+		  <orientation>GTK_PROGRESS_LEFT_TO_RIGHT</orientation>
+		  <activity_mode>False</activity_mode>
+		  <show_text>True</show_text>
+		  <format>bws out</format>
+		  <text_xalign>0.5</text_xalign>
+		  <text_yalign>0.5</text_yalign>
+		  <child>
+		    <padding>0</padding>
+		    <expand>False</expand>
+		    <fill>False</fill>
+		  </child>
+		</widget>
+	      </widget>
 	    </widget>
 
 	    <widget>
-	      <class>GtkProgressBar</class>
-	      <name>progressbar_bps_out</name>
-	      <tooltip>Click to toggle display.</tooltip>
-	      <events>GDK_BUTTON_PRESS_MASK</events>
-	      <signal>
-		<name>button_press_event</name>
-		<handler>on_progressbar_bps_out_button_press_event</handler>
-		<last_modification_time>Sun, 21 Apr 2002 18:56:24 GMT</last_modification_time>
-	      </signal>
-	      <value>0</value>
-	      <lower>0</lower>
-	      <upper>100</upper>
-	      <bar_style>GTK_PROGRESS_CONTINUOUS</bar_style>
-	      <orientation>GTK_PROGRESS_LEFT_TO_RIGHT</orientation>
-	      <activity_mode>False</activity_mode>
-	      <show_text>True</show_text>
-	      <format>%v/%u bps out</format>
-	      <text_xalign>0.5</text_xalign>
-	      <text_yalign>0.5</text_yalign>
+	      <class>GtkFrame</class>
+	      <name>frame_bws_ginout</name>
+	      <border_width>2</border_width>
+	      <label>gnutellaNet traffic</label>
+	      <label_xalign>0.5</label_xalign>
+	      <shadow_type>GTK_SHADOW_ETCHED_IN</shadow_type>
 	      <child>
 		<padding>0</padding>
 		<expand>False</expand>
 		<fill>False</fill>
 	      </child>
+
+	      <widget>
+		<class>GtkVBox</class>
+		<name>vbox43</name>
+		<homogeneous>False</homogeneous>
+		<spacing>0</spacing>
+
+		<widget>
+		  <class>GtkProgressBar</class>
+		  <name>progressbar_bws_gin</name>
+		  <events>GDK_BUTTON_PRESS_MASK</events>
+		  <signal>
+		    <name>button_press_event</name>
+		    <handler>on_progressbar_bws_gin_button_press_event</handler>
+		    <last_modification_time>Wed, 15 May 2002 10:27:08 GMT</last_modification_time>
+		  </signal>
+		  <value>0</value>
+		  <lower>0</lower>
+		  <upper>100</upper>
+		  <bar_style>GTK_PROGRESS_CONTINUOUS</bar_style>
+		  <orientation>GTK_PROGRESS_LEFT_TO_RIGHT</orientation>
+		  <activity_mode>False</activity_mode>
+		  <show_text>True</show_text>
+		  <format>bws gin</format>
+		  <text_xalign>0.5</text_xalign>
+		  <text_yalign>0.5</text_yalign>
+		  <child>
+		    <padding>0</padding>
+		    <expand>False</expand>
+		    <fill>False</fill>
+		  </child>
+		</widget>
+
+		<widget>
+		  <class>GtkProgressBar</class>
+		  <name>progressbar_bws_gout</name>
+		  <events>GDK_BUTTON_PRESS_MASK</events>
+		  <signal>
+		    <name>button_press_event</name>
+		    <handler>on_progressbar_bws_gout_button_press_event</handler>
+		    <last_modification_time>Wed, 15 May 2002 10:27:13 GMT</last_modification_time>
+		  </signal>
+		  <value>0</value>
+		  <lower>0</lower>
+		  <upper>100</upper>
+		  <bar_style>GTK_PROGRESS_CONTINUOUS</bar_style>
+		  <orientation>GTK_PROGRESS_LEFT_TO_RIGHT</orientation>
+		  <activity_mode>False</activity_mode>
+		  <show_text>True</show_text>
+		  <format>bws gout</format>
+		  <text_xalign>0.5</text_xalign>
+		  <text_yalign>0.5</text_yalign>
+		  <child>
+		    <padding>0</padding>
+		    <expand>False</expand>
+		    <fill>False</fill>
+		  </child>
+		</widget>
+	      </widget>
 	    </widget>
 	  </widget>
 	</widget>
@@ -725,11 +869,13 @@
 		    <signal>
 		      <name>activate</name>
 		      <handler>on_entry_up_connections_activate</handler>
+		      <after>True</after>
 		      <last_modification_time>Wed, 20 Mar 2002 23:29:33 GMT</last_modification_time>
 		    </signal>
 		    <signal>
 		      <name>focus_out_event</name>
 		      <handler>on_entry_up_connections_focus_out_event</handler>
+		      <after>True</after>
 		      <last_modification_time>Wed, 20 Mar 2002 23:29:48 GMT</last_modification_time>
 		    </signal>
 		    <climb_rate>1</climb_rate>
@@ -792,11 +938,13 @@
 		    <signal>
 		      <name>activate</name>
 		      <handler>on_entry_max_connections_activate</handler>
+		      <after>True</after>
 		      <last_modification_time>Wed, 20 Mar 2002 23:30:33 GMT</last_modification_time>
 		    </signal>
 		    <signal>
 		      <name>focus_out_event</name>
 		      <handler>on_entry_max_connections_focus_out_event</handler>
+		      <after>True</after>
 		      <last_modification_time>Wed, 20 Mar 2002 23:30:43 GMT</last_modification_time>
 		    </signal>
 		    <climb_rate>1</climb_rate>
@@ -1263,33 +1411,6 @@
 		    </widget>
 
 		    <widget>
-		      <class>GtkEntry</class>
-		      <name>entry_hosts_in_catcher</name>
-		      <width>72</width>
-		      <sensitive>False</sensitive>
-		      <tooltip>Somebody tell me a sensible tooltip for this.</tooltip>
-		      <can_focus>True</can_focus>
-		      <editable>False</editable>
-		      <text_visible>True</text_visible>
-		      <text_max_length>0</text_max_length>
-		      <text></text>
-		      <child>
-			<left_attach>1</left_attach>
-			<right_attach>2</right_attach>
-			<top_attach>0</top_attach>
-			<bottom_attach>1</bottom_attach>
-			<xpad>0</xpad>
-			<ypad>0</ypad>
-			<xexpand>True</xexpand>
-			<yexpand>False</yexpand>
-			<xshrink>False</xshrink>
-			<yshrink>False</yshrink>
-			<xfill>True</xfill>
-			<yfill>False</yfill>
-		      </child>
-		    </widget>
-
-		    <widget>
 		      <class>GtkButton</class>
 		      <name>button_host_catcher_clear</name>
 		      <sensitive>False</sensitive>
@@ -1350,11 +1471,13 @@
 		      <signal>
 			<name>activate</name>
 			<handler>on_spinbutton_nodes_max_hosts_cached_activate</handler>
+			<after>True</after>
 			<last_modification_time>Tue, 14 May 2002 18:11:38 GMT</last_modification_time>
 		      </signal>
 		      <signal>
 			<name>focus_out_event</name>
 			<handler>on_spinbutton_nodes_max_hosts_cached_focus_out_event</handler>
+			<after>True</after>
 			<last_modification_time>Tue, 14 May 2002 18:11:44 GMT</last_modification_time>
 		      </signal>
 		      <climb_rate>1</climb_rate>
@@ -1365,7 +1488,7 @@
 		      <wrap>False</wrap>
 		      <value>100</value>
 		      <lower>100</lower>
-		      <upper>50000</upper>
+		      <upper>500000</upper>
 		      <step>1</step>
 		      <page>100</page>
 		      <page_size>100</page_size>
@@ -1374,6 +1497,36 @@
 			<right_attach>2</right_attach>
 			<top_attach>1</top_attach>
 			<bottom_attach>2</bottom_attach>
+			<xpad>0</xpad>
+			<ypad>0</ypad>
+			<xexpand>True</xexpand>
+			<yexpand>False</yexpand>
+			<xshrink>False</xshrink>
+			<yshrink>False</yshrink>
+			<xfill>True</xfill>
+			<yfill>False</yfill>
+		      </child>
+		    </widget>
+
+		    <widget>
+		      <class>GtkProgressBar</class>
+		      <name>progressbar_hosts_in_catcher</name>
+		      <width>100</width>
+		      <value>0</value>
+		      <lower>0</lower>
+		      <upper>100</upper>
+		      <bar_style>GTK_PROGRESS_CONTINUOUS</bar_style>
+		      <orientation>GTK_PROGRESS_LEFT_TO_RIGHT</orientation>
+		      <activity_mode>False</activity_mode>
+		      <show_text>True</show_text>
+		      <format>%v/%u (%P%%)</format>
+		      <text_xalign>0.5</text_xalign>
+		      <text_yalign>0.5</text_yalign>
+		      <child>
+			<left_attach>1</left_attach>
+			<right_attach>2</right_attach>
+			<top_attach>0</top_attach>
+			<bottom_attach>1</bottom_attach>
 			<xpad>0</xpad>
 			<ypad>0</ypad>
 			<xexpand>True</xexpand>
@@ -1758,11 +1911,13 @@
 		  <signal>
 		    <name>activate</name>
 		    <handler>on_entry_max_uploads_activate</handler>
+		    <after>True</after>
 		    <last_modification_time>Wed, 20 Mar 2002 23:37:15 GMT</last_modification_time>
 		  </signal>
 		  <signal>
 		    <name>focus_out_event</name>
 		    <handler>on_entry_max_uploads_focus_out_event</handler>
+		    <after>True</after>
 		    <last_modification_time>Wed, 20 Mar 2002 23:37:22 GMT</last_modification_time>
 		  </signal>
 		  <climb_rate>1</climb_rate>
@@ -1808,11 +1963,13 @@
 		  <signal>
 		    <name>activate</name>
 		    <handler>on_spinbutton_uploads_max_ip_activate</handler>
+		    <after>True</after>
 		    <last_modification_time>Wed, 01 May 2002 15:26:04 GMT</last_modification_time>
 		  </signal>
 		  <signal>
 		    <name>focus_out_event</name>
 		    <handler>on_spinbutton_uploads_max_ip_focus_out_event</handler>
+		    <after>True</after>
 		    <last_modification_time>Wed, 01 May 2002 15:26:18 GMT</last_modification_time>
 		  </signal>
 		  <climb_rate>1</climb_rate>
@@ -2290,11 +2447,13 @@
 		      <signal>
 			<name>activate</name>
 			<handler>on_entry_max_downloads_activate</handler>
+			<after>True</after>
 			<last_modification_time>Wed, 20 Mar 2002 23:38:01 GMT</last_modification_time>
 		      </signal>
 		      <signal>
 			<name>focus_out_event</name>
 			<handler>on_entry_max_downloads_focus_out_event</handler>
+			<after>True</after>
 			<last_modification_time>Wed, 20 Mar 2002 23:38:06 GMT</last_modification_time>
 		      </signal>
 		      <climb_rate>1</climb_rate>
@@ -2340,11 +2499,13 @@
 		      <signal>
 			<name>activate</name>
 			<handler>on_entry_max_host_downloads_activate</handler>
+			<after>True</after>
 			<last_modification_time>Wed, 20 Mar 2002 23:38:44 GMT</last_modification_time>
 		      </signal>
 		      <signal>
 			<name>focus_out_event</name>
 			<handler>on_entry_max_host_downloads_focus_out_event</handler>
+			<after>True</after>
 			<last_modification_time>Wed, 20 Mar 2002 23:38:48 GMT</last_modification_time>
 		      </signal>
 		      <climb_rate>1</climb_rate>
@@ -3075,11 +3236,13 @@
 		<signal>
 		  <name>activate</name>
 		  <handler>on_entry_search_reissue_timeout_activate</handler>
+		  <after>True</after>
 		  <last_modification_time>Wed, 20 Mar 2002 23:40:12 GMT</last_modification_time>
 		</signal>
 		<signal>
 		  <name>focus_out_event</name>
 		  <handler>on_entry_search_reissue_timeout_focus_out_event</handler>
+		  <after>True</after>
 		  <last_modification_time>Wed, 20 Mar 2002 23:40:17 GMT</last_modification_time>
 		</signal>
 		<climb_rate>1</climb_rate>
@@ -3366,11 +3529,13 @@
 		<signal>
 		  <name>activate</name>
 		  <handler>on_entry_monitor_activate</handler>
+		  <after>True</after>
 		  <last_modification_time>Wed, 20 Mar 2002 23:41:01 GMT</last_modification_time>
 		</signal>
 		<signal>
 		  <name>focus_out_event</name>
 		  <handler>on_entry_monitor_focus_out_event</handler>
+		  <after>True</after>
 		  <last_modification_time>Wed, 20 Mar 2002 23:41:05 GMT</last_modification_time>
 		</signal>
 		<climb_rate>1</climb_rate>
@@ -3967,11 +4132,13 @@
 		      <signal>
 			<name>activate</name>
 			<handler>on_spinbutton_config_port_activate</handler>
+			<after>True</after>
 			<last_modification_time>Sat, 11 May 2002 12:32:02 GMT</last_modification_time>
 		      </signal>
 		      <signal>
 			<name>focus_out_event</name>
 			<handler>on_spinbutton_config_port_focus_out_event</handler>
+			<after>True</after>
 			<last_modification_time>Sat, 11 May 2002 12:32:11 GMT</last_modification_time>
 		      </signal>
 		      <climb_rate>1</climb_rate>
@@ -3980,7 +4147,7 @@
 		      <update_policy>GTK_UPDATE_ALWAYS</update_policy>
 		      <snap>False</snap>
 		      <wrap>False</wrap>
-		      <value>6346</value>
+		      <value>6347</value>
 		      <lower>1</lower>
 		      <upper>65535</upper>
 		      <step>1</step>
@@ -4222,11 +4389,13 @@
 		      <signal>
 			<name>activate</name>
 			<handler>on_spinbutton_config_proxy_port_activate</handler>
+			<after>True</after>
 			<last_modification_time>Sat, 11 May 2002 12:33:21 GMT</last_modification_time>
 		      </signal>
 		      <signal>
 			<name>focus_out_event</name>
 			<handler>on_spinbutton_config_proxy_port_focus_out_event</handler>
+			<after>True</after>
 			<last_modification_time>Sat, 11 May 2002 12:33:32 GMT</last_modification_time>
 		      </signal>
 		      <climb_rate>1</climb_rate>
@@ -4518,8 +4687,231 @@ settings</label>
 
 	      <widget>
 		<class>GtkFrame</class>
+		<name>frame20</name>
+		<label>Bandwidth control for gnutellaNet traffic</label>
+		<label_xalign>0</label_xalign>
+		<shadow_type>GTK_SHADOW_ETCHED_IN</shadow_type>
+		<child>
+		  <padding>0</padding>
+		  <expand>False</expand>
+		  <fill>True</fill>
+		</child>
+
+		<widget>
+		  <class>GtkTable</class>
+		  <name>table13</name>
+		  <border_width>2</border_width>
+		  <rows>2</rows>
+		  <columns>3</columns>
+		  <homogeneous>False</homogeneous>
+		  <row_spacing>2</row_spacing>
+		  <column_spacing>4</column_spacing>
+
+		  <widget>
+		    <class>GtkCheckButton</class>
+		    <name>checkbutton_config_bws_gin</name>
+		    <can_focus>True</can_focus>
+		    <signal>
+		      <name>toggled</name>
+		      <handler>on_checkbutton_config_bws_gin_toggled</handler>
+		      <last_modification_time>Wed, 15 May 2002 10:18:15 GMT</last_modification_time>
+		    </signal>
+		    <label>Limit bandwidth for incoming traffic to</label>
+		    <active>False</active>
+		    <draw_indicator>True</draw_indicator>
+		    <child>
+		      <left_attach>0</left_attach>
+		      <right_attach>1</right_attach>
+		      <top_attach>0</top_attach>
+		      <bottom_attach>1</bottom_attach>
+		      <xpad>0</xpad>
+		      <ypad>0</ypad>
+		      <xexpand>False</xexpand>
+		      <yexpand>False</yexpand>
+		      <xshrink>False</xshrink>
+		      <yshrink>False</yshrink>
+		      <xfill>True</xfill>
+		      <yfill>False</yfill>
+		    </child>
+		  </widget>
+
+		  <widget>
+		    <class>GtkCheckButton</class>
+		    <name>checkbutton_config_bws_gout</name>
+		    <can_focus>True</can_focus>
+		    <signal>
+		      <name>toggled</name>
+		      <handler>on_checkbutton_config_bws_gout_toggled</handler>
+		      <after>True</after>
+		      <last_modification_time>Wed, 15 May 2002 10:18:10 GMT</last_modification_time>
+		    </signal>
+		    <label>Limit bandwidth for outgoing traffic to</label>
+		    <active>False</active>
+		    <draw_indicator>True</draw_indicator>
+		    <child>
+		      <left_attach>0</left_attach>
+		      <right_attach>1</right_attach>
+		      <top_attach>1</top_attach>
+		      <bottom_attach>2</bottom_attach>
+		      <xpad>0</xpad>
+		      <ypad>0</ypad>
+		      <xexpand>False</xexpand>
+		      <yexpand>False</yexpand>
+		      <xshrink>False</xshrink>
+		      <yshrink>False</yshrink>
+		      <xfill>True</xfill>
+		      <yfill>False</yfill>
+		    </child>
+		  </widget>
+
+		  <widget>
+		    <class>GtkLabel</class>
+		    <name>label181</name>
+		    <label>K/s</label>
+		    <justify>GTK_JUSTIFY_CENTER</justify>
+		    <wrap>False</wrap>
+		    <xalign>0</xalign>
+		    <yalign>0.5</yalign>
+		    <xpad>0</xpad>
+		    <ypad>0</ypad>
+		    <child>
+		      <left_attach>2</left_attach>
+		      <right_attach>3</right_attach>
+		      <top_attach>0</top_attach>
+		      <bottom_attach>1</bottom_attach>
+		      <xpad>0</xpad>
+		      <ypad>0</ypad>
+		      <xexpand>False</xexpand>
+		      <yexpand>False</yexpand>
+		      <xshrink>False</xshrink>
+		      <yshrink>False</yshrink>
+		      <xfill>True</xfill>
+		      <yfill>False</yfill>
+		    </child>
+		  </widget>
+
+		  <widget>
+		    <class>GtkLabel</class>
+		    <name>label182</name>
+		    <label>K/s</label>
+		    <justify>GTK_JUSTIFY_CENTER</justify>
+		    <wrap>False</wrap>
+		    <xalign>0</xalign>
+		    <yalign>0.5</yalign>
+		    <xpad>0</xpad>
+		    <ypad>0</ypad>
+		    <child>
+		      <left_attach>2</left_attach>
+		      <right_attach>3</right_attach>
+		      <top_attach>1</top_attach>
+		      <bottom_attach>2</bottom_attach>
+		      <xpad>0</xpad>
+		      <ypad>0</ypad>
+		      <xexpand>False</xexpand>
+		      <yexpand>False</yexpand>
+		      <xshrink>False</xshrink>
+		      <yshrink>False</yshrink>
+		      <xfill>True</xfill>
+		      <yfill>False</yfill>
+		    </child>
+		  </widget>
+
+		  <widget>
+		    <class>GtkSpinButton</class>
+		    <name>spinbutton_config_bws_gin</name>
+		    <width>64</width>
+		    <can_focus>True</can_focus>
+		    <signal>
+		      <name>activate</name>
+		      <handler>on_spinbutton_config_bws_gin_activate</handler>
+		      <after>True</after>
+		      <last_modification_time>Wed, 15 May 2002 10:18:44 GMT</last_modification_time>
+		    </signal>
+		    <signal>
+		      <name>focus_out_event</name>
+		      <handler>on_spinbutton_config_bws_gin_focus_out_event</handler>
+		      <after>True</after>
+		      <last_modification_time>Wed, 15 May 2002 10:19:03 GMT</last_modification_time>
+		    </signal>
+		    <climb_rate>1</climb_rate>
+		    <digits>2</digits>
+		    <numeric>True</numeric>
+		    <update_policy>GTK_UPDATE_ALWAYS</update_policy>
+		    <snap>False</snap>
+		    <wrap>False</wrap>
+		    <value>1</value>
+		    <lower>1</lower>
+		    <upper>2000</upper>
+		    <step>1</step>
+		    <page>16</page>
+		    <page_size>16</page_size>
+		    <child>
+		      <left_attach>1</left_attach>
+		      <right_attach>2</right_attach>
+		      <top_attach>0</top_attach>
+		      <bottom_attach>1</bottom_attach>
+		      <xpad>0</xpad>
+		      <ypad>0</ypad>
+		      <xexpand>False</xexpand>
+		      <yexpand>False</yexpand>
+		      <xshrink>False</xshrink>
+		      <yshrink>False</yshrink>
+		      <xfill>True</xfill>
+		      <yfill>False</yfill>
+		    </child>
+		  </widget>
+
+		  <widget>
+		    <class>GtkSpinButton</class>
+		    <name>spinbutton_config_bws_gout</name>
+		    <width>64</width>
+		    <can_focus>True</can_focus>
+		    <signal>
+		      <name>activate</name>
+		      <handler>on_spinbutton_config_bws_gout_activate</handler>
+		      <after>True</after>
+		      <last_modification_time>Wed, 15 May 2002 10:18:52 GMT</last_modification_time>
+		    </signal>
+		    <signal>
+		      <name>focus_out_event</name>
+		      <handler>on_spinbutton_config_bws_gout_focus_out_event</handler>
+		      <after>True</after>
+		      <last_modification_time>Wed, 15 May 2002 10:19:12 GMT</last_modification_time>
+		    </signal>
+		    <climb_rate>1</climb_rate>
+		    <digits>2</digits>
+		    <numeric>True</numeric>
+		    <update_policy>GTK_UPDATE_ALWAYS</update_policy>
+		    <snap>False</snap>
+		    <wrap>False</wrap>
+		    <value>1</value>
+		    <lower>1</lower>
+		    <upper>2000</upper>
+		    <step>1</step>
+		    <page>16</page>
+		    <page_size>16</page_size>
+		    <child>
+		      <left_attach>1</left_attach>
+		      <right_attach>2</right_attach>
+		      <top_attach>1</top_attach>
+		      <bottom_attach>2</bottom_attach>
+		      <xpad>0</xpad>
+		      <ypad>0</ypad>
+		      <xexpand>False</xexpand>
+		      <yexpand>False</yexpand>
+		      <xshrink>False</xshrink>
+		      <yshrink>False</yshrink>
+		      <xfill>True</xfill>
+		      <yfill>False</yfill>
+		    </child>
+		  </widget>
+		</widget>
+	      </widget>
+
+	      <widget>
+		<class>GtkFrame</class>
 		<name>frame12</name>
-		<label>Bandwidth settings</label>
+		<label>Bandwidth control for upload/download traffic</label>
 		<label_xalign>0</label_xalign>
 		<shadow_type>GTK_SHADOW_ETCHED_IN</shadow_type>
 		<child>
@@ -4538,6 +4930,7 @@ settings</label>
 		  <widget>
 		    <class>GtkTable</class>
 		    <name>table4</name>
+		    <border_width>2</border_width>
 		    <rows>2</rows>
 		    <columns>3</columns>
 		    <homogeneous>False</homogeneous>
@@ -4603,18 +4996,20 @@ settings</label>
 
 		    <widget>
 		      <class>GtkSpinButton</class>
-		      <name>spinbutton_config_bps_in</name>
+		      <name>spinbutton_config_bws_in</name>
 		      <width>64</width>
 		      <can_focus>True</can_focus>
 		      <signal>
 			<name>activate</name>
-			<handler>on_spinbutton_config_bps_in_activate</handler>
-			<last_modification_time>Sat, 11 May 2002 12:54:58 GMT</last_modification_time>
+			<handler>on_spinbutton_config_bws_in_activate</handler>
+			<after>True</after>
+			<last_modification_time>Wed, 15 May 2002 10:19:23 GMT</last_modification_time>
 		      </signal>
 		      <signal>
 			<name>focus_out_event</name>
-			<handler>on_spinbutton_config_bps_in_focus_out_event</handler>
-			<last_modification_time>Sat, 11 May 2002 12:55:05 GMT</last_modification_time>
+			<handler>on_spinbutton_config_bws_in_focus_out_event</handler>
+			<after>True</after>
+			<last_modification_time>Wed, 15 May 2002 10:19:31 GMT</last_modification_time>
 		      </signal>
 		      <climb_rate>1</climb_rate>
 		      <digits>2</digits>
@@ -4623,7 +5018,7 @@ settings</label>
 		      <snap>False</snap>
 		      <wrap>False</wrap>
 		      <value>1</value>
-		      <lower>0</lower>
+		      <lower>1</lower>
 		      <upper>2000</upper>
 		      <step>1</step>
 		      <page>16</page>
@@ -4646,18 +5041,20 @@ settings</label>
 
 		    <widget>
 		      <class>GtkSpinButton</class>
-		      <name>spinbutton_config_bps_out</name>
+		      <name>spinbutton_config_bws_out</name>
 		      <width>64</width>
 		      <can_focus>True</can_focus>
 		      <signal>
 			<name>activate</name>
-			<handler>on_spinbutton_config_bps_out_activate</handler>
-			<last_modification_time>Sat, 11 May 2002 12:55:13 GMT</last_modification_time>
+			<handler>on_spinbutton_config_bws_out_activate</handler>
+			<after>True</after>
+			<last_modification_time>Wed, 15 May 2002 10:19:39 GMT</last_modification_time>
 		      </signal>
 		      <signal>
 			<name>focus_out_event</name>
-			<handler>on_spinbutton_config_bps_out_focus_out_event</handler>
-			<last_modification_time>Sat, 11 May 2002 12:55:19 GMT</last_modification_time>
+			<handler>on_spinbutton_config_bws_out_focus_out_event</handler>
+			<after>True</after>
+			<last_modification_time>Wed, 15 May 2002 10:19:45 GMT</last_modification_time>
 		      </signal>
 		      <climb_rate>1</climb_rate>
 		      <digits>2</digits>
@@ -4689,12 +5086,12 @@ settings</label>
 
 		    <widget>
 		      <class>GtkCheckButton</class>
-		      <name>checkbutton_config_bps_in</name>
+		      <name>checkbutton_config_bws_in</name>
 		      <can_focus>True</can_focus>
 		      <signal>
 			<name>toggled</name>
-			<handler>on_checkbutton_config_bps_in_toggled</handler>
-			<last_modification_time>Wed, 08 May 2002 17:50:53 GMT</last_modification_time>
+			<handler>on_checkbutton_config_bws_in_toggled</handler>
+			<last_modification_time>Wed, 15 May 2002 10:39:31 GMT</last_modification_time>
 		      </signal>
 		      <label>Limit bandwidth for incoming traffic to</label>
 		      <active>False</active>
@@ -4717,12 +5114,12 @@ settings</label>
 
 		    <widget>
 		      <class>GtkCheckButton</class>
-		      <name>checkbutton_config_bps_out</name>
+		      <name>checkbutton_config_bws_out</name>
 		      <can_focus>True</can_focus>
 		      <signal>
 			<name>toggled</name>
-			<handler>on_checkbutton_config_bps_out_toggled</handler>
-			<last_modification_time>Wed, 08 May 2002 17:51:00 GMT</last_modification_time>
+			<handler>on_checkbutton_config_bws_out_toggled</handler>
+			<last_modification_time>Wed, 15 May 2002 10:39:23 GMT</last_modification_time>
 		      </signal>
 		      <label>Limit bandwidth for outgoing traffic to</label>
 		      <active>False</active>
@@ -4742,24 +5139,6 @@ settings</label>
 			<yfill>False</yfill>
 		      </child>
 		    </widget>
-		  </widget>
-
-		  <widget>
-		    <class>GtkLabel</class>
-		    <name>label127</name>
-		    <label>Due to the current implementation limitations,
-this does not affect Gnet traffic.</label>
-		    <justify>GTK_JUSTIFY_CENTER</justify>
-		    <wrap>False</wrap>
-		    <xalign>7.45058e-09</xalign>
-		    <yalign>0.5</yalign>
-		    <xpad>0</xpad>
-		    <ypad>0</ypad>
-		    <child>
-		      <padding>0</padding>
-		      <expand>False</expand>
-		      <fill>False</fill>
-		    </child>
 		  </widget>
 		</widget>
 	      </widget>
@@ -4831,11 +5210,13 @@ control</label>
 		    <signal>
 		      <name>activate</name>
 		      <handler>on_entry_config_speed_activate</handler>
+		      <after>True</after>
 		      <last_modification_time>Tue, 23 Apr 2002 18:25:43 GMT</last_modification_time>
 		    </signal>
 		    <signal>
 		      <name>focus_out_event</name>
 		      <handler>on_entry_config_speed_focus_out_event</handler>
+		      <after>True</after>
 		      <last_modification_time>Tue, 23 Apr 2002 18:25:53 GMT</last_modification_time>
 		    </signal>
 		    <climb_rate>1</climb_rate>
@@ -4860,7 +5241,7 @@ control</label>
 		  <widget>
 		    <class>GtkLabel</class>
 		    <name>label36</name>
-		    <label>kbits/s</label>
+		    <label>kbits/s to peers</label>
 		    <justify>GTK_JUSTIFY_CENTER</justify>
 		    <wrap>False</wrap>
 		    <xalign>0.5</xalign>
@@ -4915,16 +5296,19 @@ control</label>
 		  <widget>
 		    <class>GtkSpinButton</class>
 		    <name>entry_config_search_items</name>
+		    <width>64</width>
 		    <tooltip>This limits how many results gnutella returns to other people searching your files.</tooltip>
 		    <can_focus>True</can_focus>
 		    <signal>
 		      <name>activate</name>
 		      <handler>on_entry_config_search_items_activate</handler>
+		      <after>True</after>
 		      <last_modification_time>Tue, 23 Apr 2002 18:32:41 GMT</last_modification_time>
 		    </signal>
 		    <signal>
 		      <name>focus_out_event</name>
 		      <handler>on_entry_config_search_items_focus_out_event</handler>
+		      <after>True</after>
 		      <last_modification_time>Tue, 23 Apr 2002 18:32:47 GMT</last_modification_time>
 		    </signal>
 		    <climb_rate>1</climb_rate>
@@ -5068,15 +5452,18 @@ control</label>
 		  <widget>
 		    <class>GtkSpinButton</class>
 		    <name>spinbutton_config_node_tx_flowc_timeout</name>
+		    <width>64</width>
 		    <can_focus>True</can_focus>
 		    <signal>
 		      <name>activate</name>
 		      <handler>on_spinbutton_config_node_tx_flowc_timeout_activate</handler>
+		      <after>True</after>
 		      <last_modification_time>Tue, 14 May 2002 19:11:06 GMT</last_modification_time>
 		    </signal>
 		    <signal>
 		      <name>focus_out_event</name>
 		      <handler>on_spinbutton_config_node_tx_flowc_timeout_focus_out_event</handler>
+		      <after>True</after>
 		      <last_modification_time>Tue, 14 May 2002 19:11:13 GMT</last_modification_time>
 		    </signal>
 		    <climb_rate>1</climb_rate>
@@ -5086,8 +5473,8 @@ control</label>
 		    <snap>False</snap>
 		    <wrap>False</wrap>
 		    <value>1</value>
-		    <lower>0</lower>
-		    <upper>100</upper>
+		    <lower>1</lower>
+		    <upper>100000</upper>
 		    <step>1</step>
 		    <page>10</page>
 		    <page_size>10</page_size>
@@ -5110,15 +5497,18 @@ control</label>
 		  <widget>
 		    <class>GtkSpinButton</class>
 		    <name>spinbutton_config_node_connecting_timeout</name>
+		    <width>64</width>
 		    <can_focus>True</can_focus>
 		    <signal>
 		      <name>activate</name>
 		      <handler>on_spinbutton_config_node_connecting_timeout_activate</handler>
+		      <after>True</after>
 		      <last_modification_time>Tue, 14 May 2002 18:17:25 GMT</last_modification_time>
 		    </signal>
 		    <signal>
 		      <name>focus_out_event</name>
 		      <handler>on_spinbutton_config_node_connecting_timeout_focus_out_event</handler>
+		      <after>True</after>
 		      <last_modification_time>Tue, 14 May 2002 18:17:30 GMT</last_modification_time>
 		    </signal>
 		    <climb_rate>1</climb_rate>
@@ -5128,8 +5518,8 @@ control</label>
 		    <snap>False</snap>
 		    <wrap>False</wrap>
 		    <value>1</value>
-		    <lower>30</lower>
-		    <upper>999</upper>
+		    <lower>1</lower>
+		    <upper>100000</upper>
 		    <step>1</step>
 		    <page>10</page>
 		    <page_size>10</page_size>
@@ -5152,15 +5542,18 @@ control</label>
 		  <widget>
 		    <class>GtkSpinButton</class>
 		    <name>spinbutton_config_node_connected_timeout</name>
+		    <width>64</width>
 		    <can_focus>True</can_focus>
 		    <signal>
 		      <name>activate</name>
 		      <handler>on_spinbutton_config_node_connected_timeout_activate</handler>
+		      <after>True</after>
 		      <last_modification_time>Tue, 14 May 2002 18:19:22 GMT</last_modification_time>
 		    </signal>
 		    <signal>
 		      <name>focus_out_event</name>
 		      <handler>on_spinbutton_config_node_connected_timeout_focus_out_event</handler>
+		      <after>True</after>
 		      <last_modification_time>Tue, 14 May 2002 18:19:27 GMT</last_modification_time>
 		    </signal>
 		    <climb_rate>1</climb_rate>
@@ -5170,8 +5563,8 @@ control</label>
 		    <snap>False</snap>
 		    <wrap>False</wrap>
 		    <value>1</value>
-		    <lower>30</lower>
-		    <upper>999</upper>
+		    <lower>1</lower>
+		    <upper>100000</upper>
 		    <step>1</step>
 		    <page>10</page>
 		    <page_size>10</page_size>
@@ -5374,15 +5767,18 @@ control</label>
 		  <widget>
 		    <class>GtkSpinButton</class>
 		    <name>entry_config_maxttl</name>
+		    <width>64</width>
 		    <can_focus>True</can_focus>
 		    <signal>
 		      <name>activate</name>
 		      <handler>on_entry_config_maxttl_activate</handler>
+		      <after>True</after>
 		      <last_modification_time>Tue, 23 Apr 2002 18:28:07 GMT</last_modification_time>
 		    </signal>
 		    <signal>
 		      <name>focus_out_event</name>
 		      <handler>on_entry_config_maxttl_focus_out_event</handler>
+		      <after>True</after>
 		      <last_modification_time>Tue, 23 Apr 2002 18:29:11 GMT</last_modification_time>
 		    </signal>
 		    <climb_rate>1</climb_rate>
@@ -5393,7 +5789,7 @@ control</label>
 		    <wrap>False</wrap>
 		    <value>1</value>
 		    <lower>1</lower>
-		    <upper>254</upper>
+		    <upper>99</upper>
 		    <step>1</step>
 		    <page>5</page>
 		    <page_size>5</page_size>
@@ -5421,11 +5817,13 @@ control</label>
 		    <signal>
 		      <name>activate</name>
 		      <handler>on_spinbutton_config_max_high_ttl_msg_activate</handler>
+		      <after>True</after>
 		      <last_modification_time>Mon, 13 May 2002 11:30:47 GMT</last_modification_time>
 		    </signal>
 		    <signal>
 		      <name>focus_out_event</name>
 		      <handler>on_spinbutton_config_max_high_ttl_msg_focus_out_event</handler>
+		      <after>True</after>
 		      <last_modification_time>Mon, 13 May 2002 11:30:58 GMT</last_modification_time>
 		    </signal>
 		    <climb_rate>1</climb_rate>
@@ -5464,11 +5862,13 @@ control</label>
 		    <signal>
 		      <name>activate</name>
 		      <handler>on_spinbutton_config_hard_ttl_limit_activate</handler>
+		      <after>True</after>
 		      <last_modification_time>Mon, 13 May 2002 11:31:04 GMT</last_modification_time>
 		    </signal>
 		    <signal>
 		      <name>focus_out_event</name>
 		      <handler>on_spinbutton_config_hard_ttl_limit_focus_out_event</handler>
+		      <after>True</after>
 		      <last_modification_time>Mon, 13 May 2002 11:31:09 GMT</last_modification_time>
 		    </signal>
 		    <climb_rate>1</climb_rate>
@@ -5502,15 +5902,18 @@ control</label>
 		  <widget>
 		    <class>GtkSpinButton</class>
 		    <name>entry_config_myttl</name>
+		    <width>64</width>
 		    <can_focus>True</can_focus>
 		    <signal>
 		      <name>activate</name>
 		      <handler>on_entry_config_myttl_activate</handler>
+		      <after>True</after>
 		      <last_modification_time>Tue, 23 Apr 2002 18:30:34 GMT</last_modification_time>
 		    </signal>
 		    <signal>
 		      <name>focus_out_event</name>
 		      <handler>on_entry_config_myttl_focus_out_event</handler>
+		      <after>True</after>
 		      <last_modification_time>Tue, 23 Apr 2002 18:30:41 GMT</last_modification_time>
 		    </signal>
 		    <climb_rate>1</climb_rate>
@@ -5521,7 +5924,7 @@ control</label>
 		    <wrap>False</wrap>
 		    <value>1</value>
 		    <lower>1</lower>
-		    <upper>254</upper>
+		    <upper>99</upper>
 		    <step>1</step>
 		    <page>5</page>
 		    <page_size>5</page_size>
@@ -5549,11 +5952,13 @@ control</label>
 		    <signal>
 		      <name>activate</name>
 		      <handler>on_spinbutton_config_max_high_ttl_radius_activate</handler>
+		      <after>True</after>
 		      <last_modification_time>Mon, 13 May 2002 11:30:34 GMT</last_modification_time>
 		    </signal>
 		    <signal>
 		      <name>focus_out_event</name>
 		      <handler>on_spinbutton_config_max_high_ttl_radius_focus_out_event</handler>
+		      <after>True</after>
 		      <last_modification_time>Mon, 13 May 2002 11:30:41 GMT</last_modification_time>
 		    </signal>
 		    <climb_rate>1</climb_rate>
@@ -5564,7 +5969,7 @@ control</label>
 		    <wrap>False</wrap>
 		    <value>1</value>
 		    <lower>1</lower>
-		    <upper>9</upper>
+		    <upper>99</upper>
 		    <step>1</step>
 		    <page>10</page>
 		    <page_size>10</page_size>
@@ -5768,17 +6173,19 @@ options</label>
 		    <widget>
 		      <class>GtkSpinButton</class>
 		      <name>spinbutton_config_download_overlap_range</name>
-		      <width>64</width>
+		      <width>96</width>
 		      <tooltip>Amount of bytes to overlap when resuming download</tooltip>
 		      <can_focus>True</can_focus>
 		      <signal>
 			<name>activate</name>
 			<handler>on_spinbutton_config_download_overlap_range_activate</handler>
+			<after>True</after>
 			<last_modification_time>Mon, 13 May 2002 11:44:58 GMT</last_modification_time>
 		      </signal>
 		      <signal>
 			<name>focus_out_event</name>
 			<handler>on_spinbutton_config_download_overlap_range_focus_out_event</handler>
+			<after>True</after>
 			<last_modification_time>Mon, 13 May 2002 11:45:05 GMT</last_modification_time>
 		      </signal>
 		      <climb_rate>1</climb_rate>
@@ -5789,7 +6196,7 @@ options</label>
 		      <wrap>False</wrap>
 		      <value>1</value>
 		      <lower>128</lower>
-		      <upper>4096</upper>
+		      <upper>1.04858e+06</upper>
 		      <step>1</step>
 		      <page>10</page>
 		      <page_size>10</page_size>
@@ -5849,16 +6256,19 @@ options</label>
 		    <widget>
 		      <class>GtkSpinButton</class>
 		      <name>spinbutton_config_download_max_retries</name>
+		      <width>64</width>
 		      <tooltip>Maximum attempts to make, not counting HTTP busy indications</tooltip>
 		      <can_focus>True</can_focus>
 		      <signal>
 			<name>activate</name>
 			<handler>on_spinbutton_config_download_max_retries_activate</handler>
+			<after>True</after>
 			<last_modification_time>Mon, 13 May 2002 11:45:10 GMT</last_modification_time>
 		      </signal>
 		      <signal>
 			<name>focus_out_event</name>
 			<handler>on_spinbutton_config_download_max_retries_focus_out_event</handler>
+			<after>True</after>
 			<last_modification_time>Mon, 13 May 2002 11:45:16 GMT</last_modification_time>
 		      </signal>
 		      <climb_rate>1</climb_rate>
@@ -5869,7 +6279,7 @@ options</label>
 		      <wrap>False</wrap>
 		      <value>1</value>
 		      <lower>1</lower>
-		      <upper>999</upper>
+		      <upper>100000</upper>
 		      <step>1</step>
 		      <page>10</page>
 		      <page_size>10</page_size>
@@ -5908,7 +6318,7 @@ options</label>
 		  <widget>
 		    <class>GtkLabel</class>
 		    <name>label162</name>
-		    <label>Retry stopped</label>
+		    <label>Retry stopped delay</label>
 		    <justify>GTK_JUSTIFY_CENTER</justify>
 		    <wrap>False</wrap>
 		    <xalign>0</xalign>
@@ -6147,11 +6557,13 @@ options</label>
 		    <signal>
 		      <name>activate</name>
 		      <handler>on_spinbutton_config_download_retry_stopped_activate</handler>
+		      <after>True</after>
 		      <last_modification_time>Mon, 13 May 2002 11:31:30 GMT</last_modification_time>
 		    </signal>
 		    <signal>
 		      <name>focus_out_event</name>
 		      <handler>on_spinbutton_config_download_retry_stopped_focus_out_event</handler>
+		      <after>True</after>
 		      <last_modification_time>Mon, 13 May 2002 11:31:36 GMT</last_modification_time>
 		    </signal>
 		    <climb_rate>1</climb_rate>
@@ -6160,9 +6572,9 @@ options</label>
 		    <update_policy>GTK_UPDATE_ALWAYS</update_policy>
 		    <snap>False</snap>
 		    <wrap>False</wrap>
-		    <value>1</value>
-		    <lower>5</lower>
-		    <upper>999</upper>
+		    <value>15</value>
+		    <lower>15</lower>
+		    <upper>100000</upper>
 		    <step>1</step>
 		    <page>10</page>
 		    <page_size>10</page_size>
@@ -6191,11 +6603,13 @@ options</label>
 		    <signal>
 		      <name>activate</name>
 		      <handler>on_spinbutton_config_download_retry_refused_delay_activate</handler>
+		      <after>True</after>
 		      <last_modification_time>Mon, 13 May 2002 11:32:00 GMT</last_modification_time>
 		    </signal>
 		    <signal>
 		      <name>focus_out_event</name>
 		      <handler>on_spinbutton_config_download_retry_refused_delay_focus_out_event</handler>
+		      <after>True</after>
 		      <last_modification_time>Mon, 13 May 2002 11:32:07 GMT</last_modification_time>
 		    </signal>
 		    <climb_rate>1</climb_rate>
@@ -6205,8 +6619,8 @@ options</label>
 		    <snap>False</snap>
 		    <wrap>False</wrap>
 		    <value>1</value>
-		    <lower>30</lower>
-		    <upper>9999</upper>
+		    <lower>15</lower>
+		    <upper>100000</upper>
 		    <step>1</step>
 		    <page>10</page>
 		    <page_size>10</page_size>
@@ -6234,11 +6648,13 @@ options</label>
 		    <signal>
 		      <name>activate</name>
 		      <handler>on_spinbutton_config_download_retry_busy_delay_activate</handler>
+		      <after>True</after>
 		      <last_modification_time>Mon, 13 May 2002 11:32:13 GMT</last_modification_time>
 		    </signal>
 		    <signal>
 		      <name>focus_out_event</name>
 		      <handler>on_spinbutton_config_download_retry_busy_delay_focus_out_event</handler>
+		      <after>True</after>
 		      <last_modification_time>Mon, 13 May 2002 11:32:28 GMT</last_modification_time>
 		    </signal>
 		    <climb_rate>1</climb_rate>
@@ -6248,8 +6664,8 @@ options</label>
 		    <snap>False</snap>
 		    <wrap>False</wrap>
 		    <value>1</value>
-		    <lower>5</lower>
-		    <upper>999</upper>
+		    <lower>15</lower>
+		    <upper>100000</upper>
 		    <step>1</step>
 		    <page>10</page>
 		    <page_size>10</page_size>
@@ -6278,11 +6694,13 @@ options</label>
 		    <signal>
 		      <name>activate</name>
 		      <handler>on_spinbutton_config_download_retry_timeout_delay_activate</handler>
+		      <after>True</after>
 		      <last_modification_time>Mon, 13 May 2002 11:32:34 GMT</last_modification_time>
 		    </signal>
 		    <signal>
 		      <name>focus_out_event</name>
 		      <handler>on_spinbutton_config_download_retry_timeout_delay_focus_out_event</handler>
+		      <after>True</after>
 		      <last_modification_time>Mon, 13 May 2002 11:32:38 GMT</last_modification_time>
 		    </signal>
 		    <climb_rate>1</climb_rate>
@@ -6292,8 +6710,8 @@ options</label>
 		    <snap>False</snap>
 		    <wrap>False</wrap>
 		    <value>1</value>
-		    <lower>30</lower>
-		    <upper>9999</upper>
+		    <lower>15</lower>
+		    <upper>100000</upper>
 		    <step>1</step>
 		    <page>10</page>
 		    <page_size>10</page_size>
@@ -6321,11 +6739,13 @@ options</label>
 		    <signal>
 		      <name>activate</name>
 		      <handler>on_spinbutton_config_download_retry_timeout_max_activate</handler>
+		      <after>True</after>
 		      <last_modification_time>Mon, 13 May 2002 11:42:03 GMT</last_modification_time>
 		    </signal>
 		    <signal>
 		      <name>focus_out_event</name>
 		      <handler>on_spinbutton_config_download_retry_timeout_max_focus_out_event</handler>
+		      <after>True</after>
 		      <last_modification_time>Mon, 13 May 2002 11:42:24 GMT</last_modification_time>
 		    </signal>
 		    <climb_rate>1</climb_rate>
@@ -6335,8 +6755,8 @@ options</label>
 		    <snap>False</snap>
 		    <wrap>False</wrap>
 		    <value>1</value>
-		    <lower>10</lower>
-		    <upper>999</upper>
+		    <lower>15</lower>
+		    <upper>100000</upper>
 		    <step>1</step>
 		    <page>10</page>
 		    <page_size>10</page_size>
@@ -6364,11 +6784,13 @@ options</label>
 		    <signal>
 		      <name>activate</name>
 		      <handler>on_spinbutton_config_download_retry_timeout_min_activate</handler>
+		      <after>True</after>
 		      <last_modification_time>Mon, 13 May 2002 11:42:36 GMT</last_modification_time>
 		    </signal>
 		    <signal>
 		      <name>focus_out_event</name>
 		      <handler>on_spinbutton_config_download_retry_timeout_min_focus_out_event</handler>
+		      <after>True</after>
 		      <last_modification_time>Mon, 13 May 2002 11:43:10 GMT</last_modification_time>
 		    </signal>
 		    <climb_rate>1</climb_rate>
@@ -6378,8 +6800,8 @@ options</label>
 		    <snap>False</snap>
 		    <wrap>False</wrap>
 		    <value>1</value>
-		    <lower>10</lower>
-		    <upper>999</upper>
+		    <lower>15</lower>
+		    <upper>100000</upper>
 		    <step>1</step>
 		    <page>10</page>
 		    <page_size>10</page_size>
@@ -6407,11 +6829,13 @@ options</label>
 		    <signal>
 		      <name>activate</name>
 		      <handler>on_spinbutton_config_download_connecting_timeout_activate</handler>
+		      <after>True</after>
 		      <last_modification_time>Mon, 13 May 2002 11:44:38 GMT</last_modification_time>
 		    </signal>
 		    <signal>
 		      <name>focus_out_event</name>
 		      <handler>on_spinbutton_config_download_connecting_timeout_focus_out_event</handler>
+		      <after>True</after>
 		      <last_modification_time>Mon, 13 May 2002 11:44:43 GMT</last_modification_time>
 		    </signal>
 		    <climb_rate>1</climb_rate>
@@ -6421,8 +6845,8 @@ options</label>
 		    <snap>False</snap>
 		    <wrap>False</wrap>
 		    <value>1</value>
-		    <lower>10</lower>
-		    <upper>999</upper>
+		    <lower>1</lower>
+		    <upper>100000</upper>
 		    <step>1</step>
 		    <page>10</page>
 		    <page_size>10</page_size>
@@ -6450,11 +6874,13 @@ options</label>
 		    <signal>
 		      <name>activate</name>
 		      <handler>on_spinbutton_config_download_push_sent_timeout_activate</handler>
+		      <after>True</after>
 		      <last_modification_time>Mon, 13 May 2002 11:44:25 GMT</last_modification_time>
 		    </signal>
 		    <signal>
 		      <name>focus_out_event</name>
 		      <handler>on_spinbutton_config_download_push_sent_timeout_focus_out_event</handler>
+		      <after>True</after>
 		      <last_modification_time>Mon, 13 May 2002 11:44:33 GMT</last_modification_time>
 		    </signal>
 		    <climb_rate>1</climb_rate>
@@ -6464,8 +6890,8 @@ options</label>
 		    <snap>False</snap>
 		    <wrap>False</wrap>
 		    <value>1</value>
-		    <lower>10</lower>
-		    <upper>999</upper>
+		    <lower>1</lower>
+		    <upper>100000</upper>
 		    <step>1</step>
 		    <page>10</page>
 		    <page_size>10</page_size>
@@ -6493,11 +6919,13 @@ options</label>
 		    <signal>
 		      <name>activate</name>
 		      <handler>on_spinbutton_config_download_connected_timeout_activate</handler>
+		      <after>True</after>
 		      <last_modification_time>Mon, 13 May 2002 11:44:14 GMT</last_modification_time>
 		    </signal>
 		    <signal>
 		      <name>focus_out_event</name>
 		      <handler>on_spinbutton_config_download_connected_timeout_focus_out_event</handler>
+		      <after>True</after>
 		      <last_modification_time>Mon, 13 May 2002 11:44:20 GMT</last_modification_time>
 		    </signal>
 		    <climb_rate>1</climb_rate>
@@ -6507,8 +6935,8 @@ options</label>
 		    <snap>False</snap>
 		    <wrap>False</wrap>
 		    <value>1</value>
-		    <lower>10</lower>
-		    <upper>999</upper>
+		    <lower>1</lower>
+		    <upper>100000</upper>
 		    <step>1</step>
 		    <page>10</page>
 		    <page_size>10</page_size>
@@ -6798,11 +7226,13 @@ settings</label>
 		    <signal>
 		      <name>activate</name>
 		      <handler>on_spinbutton_config_upload_connecting_timeout_activate</handler>
+		      <after>True</after>
 		      <last_modification_time>Tue, 14 May 2002 18:20:28 GMT</last_modification_time>
 		    </signal>
 		    <signal>
 		      <name>focus_out_event</name>
 		      <handler>on_spinbutton_config_upload_connecting_timeout_focus_out_event</handler>
+		      <after>True</after>
 		      <last_modification_time>Tue, 14 May 2002 18:20:34 GMT</last_modification_time>
 		    </signal>
 		    <climb_rate>1</climb_rate>
@@ -6812,8 +7242,8 @@ settings</label>
 		    <snap>False</snap>
 		    <wrap>False</wrap>
 		    <value>1</value>
-		    <lower>30</lower>
-		    <upper>999</upper>
+		    <lower>1</lower>
+		    <upper>100000</upper>
 		    <step>1</step>
 		    <page>10</page>
 		    <page_size>10</page_size>
@@ -6840,11 +7270,13 @@ settings</label>
 		    <signal>
 		      <name>activate</name>
 		      <handler>on_spinbutton_config_upload_connected_timeout_activate</handler>
+		      <after>True</after>
 		      <last_modification_time>Tue, 14 May 2002 18:20:41 GMT</last_modification_time>
 		    </signal>
 		    <signal>
 		      <name>focus_out_event</name>
 		      <handler>on_spinbutton_config_upload_connected_timeout_focus_out_event</handler>
+		      <after>True</after>
 		      <last_modification_time>Tue, 14 May 2002 18:20:48 GMT</last_modification_time>
 		    </signal>
 		    <climb_rate>1</climb_rate>
@@ -6854,8 +7286,8 @@ settings</label>
 		    <snap>False</snap>
 		    <wrap>False</wrap>
 		    <value>1</value>
-		    <lower>30</lower>
-		    <upper>999</upper>
+		    <lower>1</lower>
+		    <upper>100000</upper>
 		    <step>1</step>
 		    <page>10</page>
 		    <page_size>10</page_size>
