@@ -1165,14 +1165,33 @@ prop = {
 };
 
 prop = {
-    name = "prefer_compressed_gnet";
-    desc = "If active, only compressed incoming connections are allowed after "
-           "the minimum number of connections has been established. Always "
-	   "allows for one non-compressed connection.";
-    save = TRUE;
+    name = "sha1_verifying";
+    desc = "Whether gtk-gnutella is currently verifying SHA1 of downloaded "
+           "files in the background";
+    save = FALSE;
     type = boolean;
     data = {
         default = FALSE;
     };
 };
 
+prop = {
+    name = "prefer_compressed_gnet";
+    desc = "If active, only compressed incoming connections are allowed after "
+           "the minimum number of connections has been established. Always "
+	   "allows for one non-compressed connection.";
+    type = boolean;
+    data = {
+        default = FALSE;
+    };
+};
+
+prop = {
+    name = "online_mode";
+    desc = "If deactivated only uploads and downloads will continue. All "
+           "gNet connections are disabled/terminated.";
+    type = boolean;
+    data = {
+        default = TRUE;
+    };
+};

@@ -231,8 +231,12 @@ gboolean library_rebuilding     = FALSE;
 gboolean library_rebuilding_def = FALSE;
 gboolean sha1_rebuilding     = FALSE;
 gboolean sha1_rebuilding_def = FALSE;
+gboolean sha1_verifying     = FALSE;
+gboolean sha1_verifying_def = FALSE;
 gboolean prefer_compressed_gnet     = FALSE;
 gboolean prefer_compressed_gnet_def = FALSE;
+gboolean online_mode     = TRUE;
+gboolean online_mode_def = TRUE;
 
 static prop_set_t *gnet_property = NULL;
 
@@ -2068,20 +2072,54 @@ prop_set_t *gnet_prop_init(void) {
 
 
     /*
-     * PROP_PREFER_COMPRESSED_GNET:
+     * PROP_SHA1_VERIFYING:
      *
      * General data:
      */
-    gnet_property->props[98].name = "prefer_compressed_gnet";
-    gnet_property->props[98].desc = "If active, only compressed incoming connections are allowed after the minimum number of connections has been established. Always allows for one non-compressed connection.";
+    gnet_property->props[98].name = "sha1_verifying";
+    gnet_property->props[98].desc = "Whether gtk-gnutella is currently verifying SHA1 of downloaded files in the background";
     gnet_property->props[98].prop_changed_listeners = NULL;
-    gnet_property->props[98].save = TRUE;
+    gnet_property->props[98].save = FALSE;
     gnet_property->props[98].vector_size = 1;
 
     /* Type specific data: */
     gnet_property->props[98].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[98].data.boolean.def   = &prefer_compressed_gnet_def;
-    gnet_property->props[98].data.boolean.value = &prefer_compressed_gnet;
+    gnet_property->props[98].data.boolean.def   = &sha1_verifying_def;
+    gnet_property->props[98].data.boolean.value = &sha1_verifying;
+
+
+    /*
+     * PROP_PREFER_COMPRESSED_GNET:
+     *
+     * General data:
+     */
+    gnet_property->props[99].name = "prefer_compressed_gnet";
+    gnet_property->props[99].desc = "If active, only compressed incoming connections are allowed after the minimum number of connections has been established. Always allows for one non-compressed connection.";
+    gnet_property->props[99].prop_changed_listeners = NULL;
+    gnet_property->props[99].save = TRUE;
+    gnet_property->props[99].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[99].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[99].data.boolean.def   = &prefer_compressed_gnet_def;
+    gnet_property->props[99].data.boolean.value = &prefer_compressed_gnet;
+
+
+    /*
+     * PROP_ONLINE_MODE:
+     *
+     * General data:
+     */
+    gnet_property->props[100].name = "online_mode";
+    gnet_property->props[100].desc = "If deactivated only uploads and downloads will continue. All gNet connections are disabled/terminated.";
+    gnet_property->props[100].prop_changed_listeners = NULL;
+    gnet_property->props[100].save = TRUE;
+    gnet_property->props[100].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[100].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[100].data.boolean.def   = &online_mode_def;
+    gnet_property->props[100].data.boolean.value = &online_mode;
     return gnet_property;
 }
 

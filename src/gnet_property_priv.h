@@ -126,7 +126,9 @@ extern gboolean download_optimistic_start;
 extern gboolean mark_ignored;
 extern gboolean library_rebuilding;
 extern gboolean sha1_rebuilding;
+extern gboolean sha1_verifying;
 extern gboolean prefer_compressed_gnet;
+extern gboolean online_mode;
 
 
 prop_set_t *gnet_prop_init(void);

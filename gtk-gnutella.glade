@@ -8934,10 +8934,11 @@ interface</label>
       </child>
 
       <widget>
-	<class>GtkHBox</class>
-	<name>hbox145</name>
-	<homogeneous>False</homogeneous>
-	<spacing>0</spacing>
+	<class>GtkToggleButton</class>
+	<name>togglebutton_online</name>
+	<can_focus>True</can_focus>
+	<relief>GTK_RELIEF_NORMAL</relief>
+	<active>False</active>
 	<child>
 	  <padding>0</padding>
 	  <expand>False</expand>
@@ -8945,40 +8946,10 @@ interface</label>
 	</child>
 
 	<widget>
-	  <class>Placeholder</class>
-	</widget>
-
-	<widget>
-	  <class>GtkEventBox</class>
-	  <name>eventbox5</name>
-	  <tooltip>Not connected to the internet.</tooltip>
-	  <child>
-	    <padding>0</padding>
-	    <expand>False</expand>
-	    <fill>False</fill>
-	  </child>
-
-	  <widget>
-	    <class>GtkPixmap</class>
-	    <name>image_offline</name>
-	    <filename>offline.xpm</filename>
-	    <xalign>0.5</xalign>
-	    <yalign>0.5</yalign>
-	    <xpad>0</xpad>
-	    <ypad>0</ypad>
-	    <build_insensitive>False</build_insensitive>
-	  </widget>
-	</widget>
-
-	<widget>
-	  <class>GtkEventBox</class>
-	  <name>eventbox6</name>
-	  <tooltip>Connected to the internet.</tooltip>
-	  <child>
-	    <padding>0</padding>
-	    <expand>True</expand>
-	    <fill>True</fill>
-	  </child>
+	  <class>GtkHBox</class>
+	  <name>hbox145</name>
+	  <homogeneous>False</homogeneous>
+	  <spacing>0</spacing>
 
 	  <widget>
 	    <class>GtkPixmap</class>
@@ -8989,6 +8960,33 @@ interface</label>
 	    <xpad>0</xpad>
 	    <ypad>0</ypad>
 	    <build_insensitive>False</build_insensitive>
+	    <child>
+	      <padding>0</padding>
+	      <expand>True</expand>
+	      <fill>True</fill>
+	    </child>
+	  </widget>
+
+	  <widget>
+	    <class>GtkEventBox</class>
+	    <name>eventbox5</name>
+	    <tooltip>Not connected to the internet.</tooltip>
+	    <child>
+	      <padding>0</padding>
+	      <expand>False</expand>
+	      <fill>False</fill>
+	    </child>
+
+	    <widget>
+	      <class>GtkPixmap</class>
+	      <name>image_offline</name>
+	      <filename>offline.xpm</filename>
+	      <xalign>0.5</xalign>
+	      <yalign>0.5</yalign>
+	      <xpad>0</xpad>
+	      <ypad>0</ypad>
+	      <build_insensitive>False</build_insensitive>
+	    </widget>
 	  </widget>
 	</widget>
       </widget>
@@ -9043,7 +9041,7 @@ interface</label>
 
       <widget>
 	<class>GtkEventBox</class>
-	<name>eventbox_image_lib</name>
+	<name>eventbox_image_shav</name>
 	<child>
 	  <padding>0</padding>
 	  <expand>False</expand>
@@ -9052,11 +9050,11 @@ interface</label>
 
 	<widget>
 	  <class>GtkPixmap</class>
-	  <name>image_lib</name>
-	  <filename>booklib.xpm</filename>
+	  <name>image_shav</name>
+	  <filename>bookshav.xpm</filename>
 	  <xalign>0.5</xalign>
 	  <yalign>0.5</yalign>
-	  <xpad>1</xpad>
+	  <xpad>0</xpad>
 	  <ypad>0</ypad>
 	  <build_insensitive>True</build_insensitive>
 	</widget>
@@ -9075,8 +9073,30 @@ interface</label>
 
 	<widget>
 	  <class>GtkEventBox</class>
-	  <name>eventbox2</name>
+	  <name>eventbox_image_lib</name>
 	  <tooltip>Gtk-gnutella thinks you're firewalled. Nobody has connected to you so far. You will not see any push results which may prevent you from seeing a large amount of results.</tooltip>
+	  <child>
+	    <padding>0</padding>
+	    <expand>False</expand>
+	    <fill>True</fill>
+	  </child>
+
+	  <widget>
+	    <class>GtkPixmap</class>
+	    <name>image_lib</name>
+	    <filename>booklib.xpm</filename>
+	    <xalign>0.5</xalign>
+	    <yalign>0.5</yalign>
+	    <xpad>1</xpad>
+	    <ypad>0</ypad>
+	    <build_insensitive>True</build_insensitive>
+	  </widget>
+	</widget>
+
+	<widget>
+	  <class>GtkEventBox</class>
+	  <name>eventbox3</name>
+	  <tooltip>People can connect to you. Push should work.</tooltip>
 	  <child>
 	    <padding>0</padding>
 	    <expand>False</expand>
@@ -9094,28 +9114,22 @@ interface</label>
 	    <build_insensitive>False</build_insensitive>
 	  </widget>
 	</widget>
+      </widget>
 
-	<widget>
-	  <class>GtkEventBox</class>
-	  <name>eventbox3</name>
-	  <tooltip>People can connect to you. Push should work.</tooltip>
-	  <child>
-	    <padding>0</padding>
-	    <expand>False</expand>
-	    <fill>True</fill>
-	  </child>
-
-	  <widget>
-	    <class>GtkPixmap</class>
-	    <name>image_no_firewall</name>
-	    <filename>no_firewall.xpm</filename>
-	    <xalign>0.5</xalign>
-	    <yalign>0.5</yalign>
-	    <xpad>1</xpad>
-	    <ypad>0</ypad>
-	    <build_insensitive>False</build_insensitive>
-	  </widget>
-	</widget>
+      <widget>
+	<class>GtkPixmap</class>
+	<name>image_no_firewall</name>
+	<filename>no_firewall.xpm</filename>
+	<xalign>0.5</xalign>
+	<yalign>0.5</yalign>
+	<xpad>1</xpad>
+	<ypad>0</ypad>
+	<build_insensitive>False</build_insensitive>
+	<child>
+	  <padding>0</padding>
+	  <expand>False</expand>
+	  <fill>False</fill>
+	</child>
       </widget>
 
       <widget>

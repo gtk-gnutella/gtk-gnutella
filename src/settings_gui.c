@@ -187,6 +187,7 @@ static gboolean expert_mode_changed(property_t prop);
 static gboolean search_stats_mode_changed(property_t prop);
 static gboolean sha1_rebuilding_changed(property_t prop);
 static gboolean library_rebuilding_changed(property_t prop);
+static gboolean sha1_verifying_changed(property_t prop);
 
 // FIXME: move to separate file and autoegenerate from high-level
 //        description. 
@@ -1266,10 +1267,17 @@ static prop_map_t property_map[] = {
     },
     {
         get_main_window,
-        PROP_PREFER_COMPRESSED_GNET,
+        PROP_ONLINE_MODE,
         update_togglebutton,
         TRUE,
-        "checkbutton_prefer_compressed_gnet"
+        "togglebutton_online"
+    },
+    {
+        get_main_window,
+        PROP_SHA1_VERIFYING,
+        sha1_verifying_changed,
+        TRUE,
+        "eventbox_image_shav" /* need eventbox because image has no tooltip */
     },
 };
 
@@ -2289,6 +2297,20 @@ static gboolean sha1_rebuilding_changed(property_t prop)
 	gboolean val;
 
 	image = lookup_widget(main_window, "image_sha");
+
+    gnet_prop_get_boolean(prop, &val, 0, 1);
+
+    gtk_widget_set_sensitive(image, val);
+	
+	return FALSE;
+}
+
+static gboolean sha1_verifying_changed(property_t prop)
+{
+	GtkWidget *image;
+	gboolean val;
+
+	image = lookup_widget(main_window, "image_shav");
 
     gnet_prop_get_boolean(prop, &val, 0, 1);
 

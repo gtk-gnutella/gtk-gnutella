@@ -598,21 +598,22 @@ create_main_window (void)
   GtkWidget *label404;
   GtkWidget *label346;
   GtkWidget *hbox_statusbar;
+  GtkWidget *togglebutton_online;
   GtkWidget *hbox145;
+  GtkWidget *image_online;
   GtkWidget *eventbox5;
   GtkWidget *image_offline;
-  GtkWidget *eventbox6;
-  GtkWidget *image_online;
   GtkWidget *statusbar;
   GtkWidget *image_save;
   GtkWidget *eventbox_image_sha;
   GtkWidget *image_sha;
+  GtkWidget *eventbox_image_shav;
+  GtkWidget *image_shav;
+  GtkWidget *hbox89;
   GtkWidget *eventbox_image_lib;
   GtkWidget *image_lib;
-  GtkWidget *hbox89;
-  GtkWidget *eventbox2;
-  GtkWidget *image_firewall;
   GtkWidget *eventbox3;
+  GtkWidget *image_firewall;
   GtkWidget *image_no_firewall;
   GtkWidget *label_statusbar_uptime;
   GtkAccelGroup *accel_group;
@@ -5570,13 +5571,30 @@ create_main_window (void)
   gtk_widget_show (hbox_statusbar);
   gtk_box_pack_start (GTK_BOX (vbox12), hbox_statusbar, FALSE, TRUE, 0);
 
+  togglebutton_online = gtk_toggle_button_new ();
+  gtk_widget_set_name (togglebutton_online, "togglebutton_online");
+  gtk_widget_ref (togglebutton_online);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "togglebutton_online", togglebutton_online,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (togglebutton_online);
+  gtk_box_pack_start (GTK_BOX (hbox_statusbar), togglebutton_online, FALSE, FALSE, 0);
+
   hbox145 = gtk_hbox_new (FALSE, 0);
   gtk_widget_set_name (hbox145, "hbox145");
   gtk_widget_ref (hbox145);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "hbox145", hbox145,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (hbox145);
-  gtk_box_pack_start (GTK_BOX (hbox_statusbar), hbox145, FALSE, FALSE, 0);
+  gtk_container_add (GTK_CONTAINER (togglebutton_online), hbox145);
+
+  image_online = create_pixmap (main_window, "online.xpm");
+  gtk_widget_set_name (image_online, "image_online");
+  gtk_widget_ref (image_online);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "image_online", image_online,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (image_online);
+  gtk_box_pack_start (GTK_BOX (hbox145), image_online, TRUE, TRUE, 0);
+  gtk_pixmap_set_build_insensitive (GTK_PIXMAP (image_online), FALSE);
 
   eventbox5 = gtk_event_box_new ();
   gtk_widget_set_name (eventbox5, "eventbox5");
@@ -5595,24 +5613,6 @@ create_main_window (void)
   gtk_widget_show (image_offline);
   gtk_container_add (GTK_CONTAINER (eventbox5), image_offline);
   gtk_pixmap_set_build_insensitive (GTK_PIXMAP (image_offline), FALSE);
-
-  eventbox6 = gtk_event_box_new ();
-  gtk_widget_set_name (eventbox6, "eventbox6");
-  gtk_widget_ref (eventbox6);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "eventbox6", eventbox6,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (eventbox6);
-  gtk_box_pack_start (GTK_BOX (hbox145), eventbox6, TRUE, TRUE, 0);
-  gtk_tooltips_set_tip (tooltips, eventbox6, "Connected to the internet.", NULL);
-
-  image_online = create_pixmap (main_window, "online.xpm");
-  gtk_widget_set_name (image_online, "image_online");
-  gtk_widget_ref (image_online);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "image_online", image_online,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (image_online);
-  gtk_container_add (GTK_CONTAINER (eventbox6), image_online);
-  gtk_pixmap_set_build_insensitive (GTK_PIXMAP (image_online), FALSE);
 
   statusbar = gtk_statusbar_new ();
   gtk_widget_set_name (statusbar, "statusbar");
@@ -5648,13 +5648,38 @@ create_main_window (void)
   gtk_container_add (GTK_CONTAINER (eventbox_image_sha), image_sha);
   gtk_misc_set_padding (GTK_MISC (image_sha), 1, 0);
 
+  eventbox_image_shav = gtk_event_box_new ();
+  gtk_widget_set_name (eventbox_image_shav, "eventbox_image_shav");
+  gtk_widget_ref (eventbox_image_shav);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "eventbox_image_shav", eventbox_image_shav,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (eventbox_image_shav);
+  gtk_box_pack_start (GTK_BOX (hbox_statusbar), eventbox_image_shav, FALSE, TRUE, 0);
+
+  image_shav = create_pixmap (main_window, "bookshav.xpm");
+  gtk_widget_set_name (image_shav, "image_shav");
+  gtk_widget_ref (image_shav);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "image_shav", image_shav,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (image_shav);
+  gtk_container_add (GTK_CONTAINER (eventbox_image_shav), image_shav);
+
+  hbox89 = gtk_hbox_new (FALSE, 0);
+  gtk_widget_set_name (hbox89, "hbox89");
+  gtk_widget_ref (hbox89);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "hbox89", hbox89,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (hbox89);
+  gtk_box_pack_start (GTK_BOX (hbox_statusbar), hbox89, FALSE, TRUE, 0);
+
   eventbox_image_lib = gtk_event_box_new ();
   gtk_widget_set_name (eventbox_image_lib, "eventbox_image_lib");
   gtk_widget_ref (eventbox_image_lib);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "eventbox_image_lib", eventbox_image_lib,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (eventbox_image_lib);
-  gtk_box_pack_start (GTK_BOX (hbox_statusbar), eventbox_image_lib, FALSE, TRUE, 0);
+  gtk_box_pack_start (GTK_BOX (hbox89), eventbox_image_lib, FALSE, TRUE, 0);
+  gtk_tooltips_set_tip (tooltips, eventbox_image_lib, "Gtk-gnutella thinks you're firewalled. Nobody has connected to you so far. You will not see any push results which may prevent you from seeing a large amount of results.", NULL);
 
   image_lib = create_pixmap (main_window, "booklib.xpm");
   gtk_widget_set_name (image_lib, "image_lib");
@@ -5665,33 +5690,6 @@ create_main_window (void)
   gtk_container_add (GTK_CONTAINER (eventbox_image_lib), image_lib);
   gtk_misc_set_padding (GTK_MISC (image_lib), 1, 0);
 
-  hbox89 = gtk_hbox_new (FALSE, 0);
-  gtk_widget_set_name (hbox89, "hbox89");
-  gtk_widget_ref (hbox89);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "hbox89", hbox89,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (hbox89);
-  gtk_box_pack_start (GTK_BOX (hbox_statusbar), hbox89, FALSE, TRUE, 0);
-
-  eventbox2 = gtk_event_box_new ();
-  gtk_widget_set_name (eventbox2, "eventbox2");
-  gtk_widget_ref (eventbox2);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "eventbox2", eventbox2,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (eventbox2);
-  gtk_box_pack_start (GTK_BOX (hbox89), eventbox2, FALSE, TRUE, 0);
-  gtk_tooltips_set_tip (tooltips, eventbox2, "Gtk-gnutella thinks you're firewalled. Nobody has connected to you so far. You will not see any push results which may prevent you from seeing a large amount of results.", NULL);
-
-  image_firewall = create_pixmap (main_window, "firewall.xpm");
-  gtk_widget_set_name (image_firewall, "image_firewall");
-  gtk_widget_ref (image_firewall);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "image_firewall", image_firewall,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (image_firewall);
-  gtk_container_add (GTK_CONTAINER (eventbox2), image_firewall);
-  gtk_misc_set_padding (GTK_MISC (image_firewall), 1, 0);
-  gtk_pixmap_set_build_insensitive (GTK_PIXMAP (image_firewall), FALSE);
-
   eventbox3 = gtk_event_box_new ();
   gtk_widget_set_name (eventbox3, "eventbox3");
   gtk_widget_ref (eventbox3);
@@ -5701,13 +5699,23 @@ create_main_window (void)
   gtk_box_pack_start (GTK_BOX (hbox89), eventbox3, FALSE, TRUE, 0);
   gtk_tooltips_set_tip (tooltips, eventbox3, "People can connect to you. Push should work.", NULL);
 
+  image_firewall = create_pixmap (main_window, "firewall.xpm");
+  gtk_widget_set_name (image_firewall, "image_firewall");
+  gtk_widget_ref (image_firewall);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "image_firewall", image_firewall,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (image_firewall);
+  gtk_container_add (GTK_CONTAINER (eventbox3), image_firewall);
+  gtk_misc_set_padding (GTK_MISC (image_firewall), 1, 0);
+  gtk_pixmap_set_build_insensitive (GTK_PIXMAP (image_firewall), FALSE);
+
   image_no_firewall = create_pixmap (main_window, "no_firewall.xpm");
   gtk_widget_set_name (image_no_firewall, "image_no_firewall");
   gtk_widget_ref (image_no_firewall);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "image_no_firewall", image_no_firewall,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (image_no_firewall);
-  gtk_container_add (GTK_CONTAINER (eventbox3), image_no_firewall);
+  gtk_box_pack_start (GTK_BOX (hbox_statusbar), image_no_firewall, FALSE, FALSE, 0);
   gtk_misc_set_padding (GTK_MISC (image_no_firewall), 1, 0);
   gtk_pixmap_set_build_insensitive (GTK_PIXMAP (image_no_firewall), FALSE);
 
