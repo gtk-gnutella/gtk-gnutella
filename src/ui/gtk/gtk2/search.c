@@ -638,15 +638,20 @@ search_gui_set_clear_button_sensitive(gboolean flag)
 
 
 static void
-download_selected_file(
-	GtkTreeModel *model, GtkTreePath *path, GtkTreeIter *iter, gpointer data)
+download_selected_file(GtkTreeModel *model, GtkTreeIter *iter, GSList **sl)
 {
 	struct results_set *rs;
 	struct record *rc = NULL;
 	gboolean need_push;
 	gchar *filename;
 
-	(void) path;
+	g_assert(model != NULL);
+	g_assert(iter != NULL);
+
+	if (sl) {
+		*sl = g_slist_prepend(*sl, w_tree_iter_copy(iter));
+	}
+	
 	gtk_tree_model_get(model, iter, c_sr_record, &rc, (-1));
 	g_assert(rc->refcount > 0);
 
@@ -667,11 +672,6 @@ download_selected_file(
 	if (rc->alt_locs != NULL)
 		search_gui_check_alt_locs(rs, rc);
 
-	if (data != NULL) {
-		GSList	**iter_list = (GSList **)data;
-
-		*iter_list = g_slist_prepend(*iter_list, w_tree_iter_copy(iter));
-	}
 	g_assert(rc->refcount > 0);
 }
 
@@ -743,35 +743,61 @@ remove_selected_file(gpointer data, gpointer user_data)
 	w_tree_iter_free(iter);
 }
 
+struct selection_ctx {
+	GtkTreeView *tv;
+	GSList **iters;
+};
+
 static void
-download_selection_of_tree_view(GtkTreeView * tree_view)
+download_selected_all_files(GtkTreeModel *model, GtkTreePath *path,
+		GtkTreeIter *iter, gpointer data)
 {
-    gboolean search_remove_downloaded;
-	GtkTreeSelection *selection;
-	GtkTreeModel *model;
-	GSList	*iter_list = NULL;
-	search_t *current_search = search_gui_get_current_search();
+	struct selection_ctx *ctx = data;
 
-	selection = gtk_tree_view_get_selection(tree_view);
-	model = GTK_TREE_MODEL(current_search->model);
+	g_assert(ctx != NULL);
 
-    gnet_prop_get_boolean_val(PROP_SEARCH_REMOVE_DOWNLOADED,
-		&search_remove_downloaded);
-
-	gtk_tree_selection_selected_foreach(
-		selection, 
-		download_selected_file, 
-		search_remove_downloaded ? &iter_list : NULL);
-
-	if (search_remove_downloaded) {
-		g_slist_foreach(iter_list, remove_selected_file, model);
-		g_slist_free(iter_list);
+	download_selected_file(model, iter, ctx->iters);
+    if (
+            gtk_tree_model_iter_has_child(model, iter) &&
+            !gtk_tree_view_row_expanded(ctx->tv, path)
+    ) {
+        GtkTreeIter child;
+        gint i = 0;
+        
+        while (gtk_tree_model_iter_nth_child(model, &child, iter, i)) {
+			download_selected_file(model, iter, ctx->iters);
+            i++;
+        }
 	}
+}
 
-    gui_search_force_update_tab_label(current_search, time(NULL));
-    search_gui_update_items(current_search);
-    guc_search_update_items
-		(current_search->search_handle, current_search->items);
+static void
+download_current_selection(void)
+{
+	search_t *search = search_gui_get_current_search();
+	GSList *sl = NULL;
+	struct selection_ctx ctx;
+    gboolean clear;
+
+	/* XXX: This has to be GUI (not a core) property! */
+    gnet_prop_get_boolean_val(PROP_SEARCH_REMOVE_DOWNLOADED, &clear);
+
+	ctx.tv = GTK_TREE_VIEW(search->tree_view);
+	ctx.iters = clear ? &sl : NULL;
+	gtk_tree_selection_selected_foreach(gtk_tree_view_get_selection(ctx.tv),
+		download_selected_all_files, &ctx);
+
+	if (sl) {
+		GtkTreeModel *model;
+
+		model = gtk_tree_view_get_model(ctx.tv);
+		g_slist_foreach(sl, remove_selected_file, model);
+    	g_slist_free(sl);
+	}
+	
+    gui_search_force_update_tab_label(search, time(NULL));
+    search_gui_update_items(search);
+    guc_search_update_items(search->search_handle, search->items);
 }
 
 struct menu_helper {
@@ -826,8 +852,7 @@ search_gui_download_files(void)
 	/* Download the selected files */
 
 	if (current_search) {
-		download_selection_of_tree_view(
-			GTK_TREE_VIEW(current_search->tree_view));
+		download_current_selection();
 		gtk_tree_selection_unselect_all(
 			GTK_TREE_SELECTION(gtk_tree_view_get_selection(
 				GTK_TREE_VIEW(current_search->tree_view))));
@@ -998,29 +1023,25 @@ selection_counter_helper(
 }
 
 static gint
-selection_counter(GtkTreeView *tree_view)
+selection_counter(GtkTreeView *tv)
 {
-	GtkTreeSelection *selection = NULL;
 	gint rows = 0;
 
-	if (tree_view != NULL)
- 		selection = gtk_tree_view_get_selection(tree_view);
-	if (selection != NULL)
-		gtk_tree_selection_selected_foreach(
-				selection, 
-				selection_counter_helper,
-				&rows);
+	if (tv) {
+		gtk_tree_selection_selected_foreach(gtk_tree_view_get_selection(tv),
+			selection_counter_helper, &rows);
+	}
 
 	return rows;
 }
 
 static gboolean
-tree_view_search_remove(
-	GtkTreeModel *model, GtkTreePath *path, GtkTreeIter *iter, gpointer data)
+tree_view_search_remove(GtkTreeModel *model, GtkTreePath *unused_path,
+		GtkTreeIter *iter, gpointer data)
 {
 	gpointer sch;
 
-	(void) path;
+	(void) unused_path;
     gtk_tree_model_get(model, iter, c_sl_sch, &sch, (-1));
  	if (sch == data) {
     	gtk_tree_store_remove((GtkTreeStore *) model, iter);

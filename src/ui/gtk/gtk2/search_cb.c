@@ -169,8 +169,10 @@ on_tree_view_search_select_row(GtkTreeView *treeview, gpointer unused_udata)
 	}
 }
 
-void on_search_selected(GtkItem * i, gpointer data)
+void
+on_search_selected(GtkItem *unused_item, gpointer data)
 {
+	(void) unused_item;
 	search_selected = (search_t *) data;
 }
 
@@ -360,95 +362,6 @@ gboolean on_tree_view_search_results_click_column(
 	return FALSE;
 }
 
-/* Property caches filled in on_tree_view_search_results_select_row() */
-static gboolean as_similar;
-static gboolean as_samesize;
-static gboolean as_fuzzy;
-static guint32  as_fuzzy_threshold;
-
-/* Some static globals to collect the files and sources of all
- * autoselect_files_helper() runs and display them at the end in 
- * on_tree_view_search_results_select_row() */
-/* FIXME: see below */
-static guint32  sel_files;
-static guint32  sel_sources;
-
-static void autoselect_files_helper(
-    GtkTreeModel *model, GtkTreePath *path, GtkTreeIter *iter, gpointer data) 
-{
-	record_t *rc;
-	GtkTreeIter	model_iter;
-	gboolean more_rows;
-	GtkTreeSelection *selection;
-    GtkTreeView *treeview = GTK_TREE_VIEW(data);
-
-    /* FIXME: if we really accumulate, we'll get totally wrong numbers */
-    sel_sources = 0;
-    sel_files = 0;
-
-	selection = gtk_tree_view_get_selection(treeview);
-	gtk_tree_model_get(model, iter, c_sr_record, &rc, (-1));
-
-    if (rc == NULL) {
-		g_warning("autoselect_files_helper: "
-			"detected row with NULL data, aborting");
-		return;
-	}
-
-    /* Search the top level of the tree for items to auto-select. 
-     * We don't want to search the children, because on the 
-     * relevant data, all the children are the same as thier parents
-     * anyway (stored in the shared_record) */
-    for (
-        more_rows = gtk_tree_model_get_iter_first(model, &model_iter);
-		more_rows;
-		more_rows = gtk_tree_model_iter_next(model, &model_iter)
-    ) {
-        record_t *rc2;
-        GtkTreeIter	child;
-
-		gtk_tree_model_get(model, &model_iter, c_sr_record, &rc2, (-1));
-
-		if (rc2 == NULL) {
-			g_warning("autoselect_files_helper: "
-				"detected row with NULL data, skipping");
-			continue;
-		}
-
-		if (
-            search_gui_autoselect_cmp(rc, rc2, 
-                as_similar, as_samesize,
-                as_fuzzy, as_fuzzy_threshold)
-        ) {
-            GtkTreePath* p;
-
-            /* Expand to the current path, otherwise any changes to
-             * the selection would be discarded. */
-            p = gtk_tree_model_get_path(model, &model_iter);
-            gtk_tree_view_expand_row(treeview, p, FALSE);
-            gtk_tree_path_free(p);
-
-			gtk_tree_selection_select_iter(selection, &model_iter);
-			sel_files ++;
-            sel_sources ++;
-
-            /* If the iter has no children, we're already done. */
-            if (gtk_tree_model_iter_children(model, &child, &model_iter)) {
-                /* Expand to the current path, otherwise any changes to
-                 * the selection would be discarded. */
-                gtk_tree_view_expand_row(treeview, path, FALSE);
-    
-                /* Now select all children. */
-                gtk_tree_selection_select_iter(selection, &model_iter);
-                do {
-                    gtk_tree_selection_select_iter(selection, &child);
-                    sel_sources ++;
-                } while (gtk_tree_model_iter_next(model, &child));
-            }	
-		}
-    }
-}
-
 /**
  * on_tree_view_search_results_select_row:
  *
@@ -458,22 +371,8 @@ static void autoselect_files_helper(
 void on_tree_view_search_results_select_row(
     GtkTreeView *view, gpointer user_data)
 {
-	static gboolean locked = FALSE;
 	static gchar tmpstr[4096];
 	GtkTreePath *path;
-
-    if (locked)
-        return;
-
-    locked = TRUE;
-
-    /*
-     * Block this signal so we don't emit it for every autoselected item.
-     */
-    g_signal_handlers_block_by_func(
-        G_OBJECT(view),
-        G_CALLBACK(on_tree_view_search_results_select_row),
-        NULL);
 
 	gtk_tree_view_get_cursor(view, &path, NULL);
 	if (NULL != path) {
@@ -571,39 +470,6 @@ void on_tree_view_search_results_select_row(
 	}
 
     refresh_popup();
-
-    /* Fill a few static global variables here, so we don't have to
-     * poll the properties in autoselect_files_helper all the time. */
-    gui_prop_get_boolean(PROP_SEARCH_AUTOSELECT_SIMILAR, &as_similar, 0, 1);
-    gui_prop_get_boolean(PROP_SEARCH_AUTOSELECT_SAMESIZE, &as_samesize, 0, 1);
-    gui_prop_get_boolean(PROP_SEARCH_AUTOSELECT_FUZZY, &as_fuzzy, 0, 1);
-	gnet_prop_get_guint32(PROP_FUZZY_THRESHOLD, &as_fuzzy_threshold, 0, 1);
-
-    /* Unfortunately Gtk2 doesn't tell us which nodes were freshly added
-     * to the selection, so we have to iterate over the complete selection
-     * Yikes!
-     *     -- Richard, 18/04/2004
-     */
-    /* FIXME: there has to be a better way (see comment above) */
-	gtk_tree_selection_selected_foreach(
-        gtk_tree_view_get_selection(view),
-        autoselect_files_helper,
-		view);
-
-    if (sel_sources > 1) {
-        statusbar_gui_message(15, (as_similar
-			?  _("%d files auto selected with %d sources "
-			     "by urn:sha1, filename and size.")
-            :  _("%d files auto selected with %d sources by urn:sha1.")),
-            sel_files, sel_sources);
-    }
-
-    g_signal_handlers_unblock_by_func(
-        G_OBJECT(view),
-        G_CALLBACK(on_tree_view_search_results_select_row),
-        NULL);
-
-    locked = FALSE;
 }
 
 void on_button_search_passive_clicked(

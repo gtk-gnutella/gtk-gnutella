@@ -81,8 +81,10 @@ void statusbar_gui_init(void)
 		gtk_statusbar_get_context_id(statusbar, "default");
 	scid_hostsfile = 
 		gtk_statusbar_get_context_id(statusbar, "reading hosts file");
+#ifdef USE_GTK1
 	scid_search_autoselected = 
 		gtk_statusbar_get_context_id(statusbar, "autoselected search items");
+#endif /* USE_GTK1 */
 	scid_queue_freezed = 
 		gtk_statusbar_get_context_id(statusbar, "queue freezed");	
 
