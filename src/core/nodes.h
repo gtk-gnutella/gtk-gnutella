@@ -469,6 +469,7 @@ extern struct gnutella_node *node_added;
  */
 
 void node_init(void);
+void node_post_init(void);
 void node_slow_timer(time_t now);
 void node_timer(time_t now);
 guint connected_nodes(void);
@@ -544,6 +545,7 @@ void node_became_firewalled(void);
 void node_set_socket_rx_size(gint rx_size);
 
 void node_udp_process(struct gnutella_socket *s);
+gnutella_node_t *node_udp_get_ip_port(guint32 ip, guint16 port);
 
 #endif /* _core_nodes_h_ */
 

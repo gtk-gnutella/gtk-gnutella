@@ -41,10 +41,13 @@ RCSID("$Id$");
 #include "nodes.h"
 #include "gmsg.h"
 #include "mq.h"
+#include "mq_tcp.h"
+#include "mq_udp.h"
 #include "sq.h"
 #include "tx.h"
 #include "tx_link.h"
 #include "tx_deflate.h"
+#include "tx_dgram.h"
 #include "rxbuf.h"
 #include "rx.h"
 #include "rx_link.h"
@@ -266,10 +269,10 @@ node_remove_node_flags_changed_listener(node_flags_changed_listener_t l)
 }
 
 static
-void node_fire_node_added(gnutella_node_t *n, const gchar *type)
+void node_fire_node_added(gnutella_node_t *n)
 {
     n->last_update = time((time_t *)NULL);
-    LISTENER_EMIT(node_added, n->node_handle, type);
+    LISTENER_EMIT(node_added, n->node_handle);
 }
 
 static void
@@ -918,10 +921,20 @@ node_init(void)
     ht_connected_nodes = g_hash_table_new(host_hash, host_eq);
 	nodes_by_id        = g_hash_table_new(g_int_hash, g_int_equal);
 
-	udp_node = node_udp_create();
-
 	start_rfc822_date = atom_str_get(date_to_rfc822_gchar(now));
 	gnet_prop_set_guint32_val(PROP_START_STAMP, (guint32) now);
+
+	udp_node = node_udp_create();
+}
+
+/**
+ * Post GUI initialization.
+ */
+void
+node_post_init(void)
+{
+	if (enable_udp)
+		node_udp_gui_show();
 }
 
 /**
@@ -2452,7 +2465,7 @@ node_is_now_connected(struct gnutella_node *n)
 
 	g_assert(tx);
 
-	n->outq = mq_make(node_sendqueue_size, n, tx);
+	n->outq = mq_tcp_make(node_sendqueue_size, n, tx);
 	n->flags |= NODE_F_WRITABLE;
 	n->alive_pings = alive_make(n, n->alive_period == ALIVE_PERIOD ?
 		ALIVE_MAX_PENDING : ALIVE_MAX_PENDING_LEAF);
@@ -4307,23 +4320,29 @@ static gnutella_node_t *
 node_udp_create(void)
 {
 	gnutella_node_t *n;
+	txdrv_t *tx;
 
 	n = (struct gnutella_node *) walloc0(sizeof(struct gnutella_node));
 
     n->node_handle = node_request_handle(n);
     n->id = node_id++;
-	n->ip = 0;
-	n->port = 0;
+	n->ip = listen_ip();
+	n->port = listen_port;
 	n->proto_major = 0;
 	n->proto_minor = 6;
 	n->peermode = NODE_P_UDP;
 	n->hops_flow = MAX_HOP_COUNT;
 	n->last_update = n->last_tx = n->last_rx = time(NULL);
 	n->routing_data = NULL;
-	n->vendor = atom_str_get("UDP node");
+	n->vendor = atom_str_get("Pseudo UDP node");
 	n->status = GTA_NODE_CONNECTED;
-	n->flags = NODE_F_INCOMING | NODE_F_ESTABLISHED |
+	n->flags = NODE_F_ESTABLISHED | \
 		NODE_F_READABLE | NODE_F_WRITABLE | NODE_F_VALID;
+	n->up_date = start_stamp;
+	n->connect_date = start_stamp;
+
+	tx = tx_make(n, tx_dgram_get_ops(), 0);		/* Cannot fail */
+	n->outq = mq_udp_make(node_sendqueue_size, n, tx);
 
 	return n;
 }
@@ -4337,6 +4356,7 @@ node_udp_get(struct gnutella_socket *s)
 	gnutella_node_t *n = udp_node;
 	struct gnutella_header *head;
 
+	g_assert(n != NULL);
 	g_assert(n->socket == NULL);
 
 	head = (struct gnutella_header *) s->buffer;
@@ -4364,6 +4384,37 @@ node_udp_release(struct gnutella_socket *s)
 	g_assert(n->socket != NULL);
 
 	n->socket = NULL;
+}
+
+/**
+ * Get "fake" node for UDP transmission.
+ */
+gnutella_node_t *
+node_udp_get_ip_port(guint32 ip, guint16 port)
+{
+	gnutella_node_t *n = udp_node;
+	
+	n->ip = ip;
+	n->port = port;
+
+	return n;
+}
+
+/**
+ * Show UDP node in the GUI
+ */
+void node_udp_gui_show(void)
+{
+    node_fire_node_added(udp_node);
+    node_fire_node_flags_changed(udp_node);
+}
+
+/**
+ * Remove UDP node from the GUI
+ */
+void node_udp_gui_remove(void)
+{
+    node_fire_node_removed(udp_node);
 }
 
 /**
@@ -4561,7 +4612,7 @@ node_add_socket(struct gnutella_socket *s, guint32 ip, guint16 port)
 		connection_type = "Outgoing";
 	}
 
-    node_fire_node_added(n, connection_type);
+    node_fire_node_added(n);
     node_fire_node_flags_changed(n);
 
 	/*
@@ -4606,7 +4657,7 @@ static void
 node_parse(struct gnutella_node *node)
 {
 	time_t now = time(NULL);
-	static struct gnutella_node *n;
+	struct gnutella_node *n;
 	gboolean drop = FALSE;
 	gboolean has_ggep = FALSE;
 	size_t regular_size = (size_t) -1;		/* -1 signals: regular size */
