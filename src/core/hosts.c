@@ -208,7 +208,7 @@ host_timer(void)
 				static gint rotate = 0;
 
 				if (!uhc_is_waiting() && !gwc_is_waiting()) {
-					if (!enable_udp || (rotate++ & 0x1))
+					if (!enable_udp || (0x3 == (rotate++ & 0x3)))
 						gwc_get_hosts(); 	/* Get from web host cache */
 					else
 						uhc_get_hosts();	/* Get from UDP pong caches */
