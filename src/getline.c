@@ -72,7 +72,7 @@ gint getline_read(getline_t *o, guchar *data, gint len, gint *used)
 			 */
 
 			o->pos--;							/* We strip "\n" */
-			if (o->line[o->pos - 1] == '\r')
+			if (o->pos > 0 && o->line[o->pos - 1] == '\r')
 				o->pos--;						/* We strip "\r" */
 			o->line[o->pos] = '\0';				/* NUL-terminate string */
 			break;
