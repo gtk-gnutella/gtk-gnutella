@@ -58,7 +58,7 @@ RCSID("$Id$");
  */
 typedef struct dqhit {
 	guint32 msg_recv;		/* Amount of individual messages we got */
-	guint32 msg_queued;		/* XXX # of messages queued */
+	guint32 msg_queued;		/* # of messages queued */
 	guint32 hits_recv;		/* Total amount of results we saw */
 	guint32 hits_sent;		/* Total amount of results we sent back */
 	guint32 hits_queued;	/* Amount of hits queued */
@@ -230,15 +230,28 @@ dh_pmsg_free(pmsg_t *mb, gpointer arg)
 	if (dh == NULL)
 		goto cleanup;
 
-	g_assert(dh->hits_queued >= pmi->hits);
-	g_assert(dh->msg_queued > 0);
-
-	dh->hits_queued -= pmi->hits;
-	dh->msg_queued--;
+	/*
+	 * It can happen that an initial query hit comes and is queued for
+	 * transmission, but the node is so clogged we don't actually send
+	 * it before the entry expires in our tracking tables.  When we later
+	 * get the ACK that it was sent, we can therefore get obsolete data.
+	 * Hence we're very careful updating the stats, and we can't assert
+	 * that we're tracking everything correctly.
+	 *		--RAM, 2004-09-04
+	 */
 
 	if (pmsg_was_sent(mb))
 		dh->hits_sent += pmi->hits;
 
+	if (dh->msg_queued == 0)	/* We did not expect this ACK */
+		goto cleanup;
+
+	dh->msg_queued--;
+
+	if (dh->hits_queued >= pmi->hits)
+		dh->hits_queued -= pmi->hits;
+
+	/* FALL THROUGH */
 cleanup:
 	wfree(pmi, sizeof(*pmi));
 }
