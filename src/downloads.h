@@ -109,6 +109,7 @@ typedef enum {
     GTA_DL_REQ_SENDING      = 22,   /* Sending HTTP request */
 } download_status_t;
 
+typedef struct download download_t;
 
 struct download {
     gnet_src_t src_handle;      /* Handle */
