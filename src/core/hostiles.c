@@ -1,4 +1,6 @@
 /*
+ * $Id$
+ *
  * Copyright (c) 2004, Raphael Manfredi
  * Copyright (c) 2003, Markus Goetz
  *
@@ -41,6 +43,7 @@ RCSID("$Id$");
 #include "lib/file.h"
 #include "lib/misc.h"
 #include "lib/glib-missing.h"
+#include "lib/iprange.h"
 #include "lib/walloc.h"
 #include "lib/watcher.h"
 
@@ -49,41 +52,12 @@ RCSID("$Id$");
 
 #include "lib/override.h"		/* Must be the last header included */
 
-GSList *sl_hostiles = NULL;
+#define THERE	GUINT_TO_POINTER(0x2)
 
 static const gchar hostiles_file[] = "hostiles.txt";
 static const gchar hostiles_what[] = "hostile IP addresses";
 
-/*
- * Pre-sorted addresses to match against.
- */
-
-static GSList *hostiles_exact[256];		/* Indexed by LAST byte */
-static GSList *hostiles_wild = NULL;	/* Addresses with mask less than /8 */
-static GSList *hostiles_narrow[256];	/* Indexed by FIRST byte */
-
-/**
- * Hash an hostile structure.
- */
-static guint
-hostile_hash(gconstpointer key)
-{
-	const struct hostile *h = key;
-
-	return (guint) (h->ip_masked ^ h->netmask);
-}
-
-/**
- * Check whether two hostile structures are equal.
- */
-static gint
-hostile_eq(gconstpointer a, gconstpointer b)
-{
-	const struct hostile *ha = a;
-	const struct hostile *hb = b;
-
-	return ha->ip_masked == hb->ip_masked && ha->netmask == hb->netmask;
-}
+static gpointer hostile_db;		/* The hostile database */
 
 /**
  * Load hostile data from the supplied FILE.
@@ -95,12 +69,12 @@ hostiles_load(FILE *f)
 	gchar line[1024];
 	gchar *p;
 	guint32 ip, netmask;
-	struct hostile *n;
 	int linenum = 0;
 	gint count = 0;
-	GHashTable *seen;
+	gint bits;
+	iprange_err_t error;
 
-	seen = g_hash_table_new(hostile_hash, hostile_eq);
+	hostile_db = iprange_make(NULL, NULL);
 
 	while (fgets(line, sizeof(line), f)) {
 		linenum++;
@@ -123,74 +97,52 @@ hostiles_load(FILE *f)
 			continue;
 
 		if (!gchar_to_ip_and_mask(line, &ip, &netmask)) {
-			g_warning("hostiles_retrieve(): "
-				"line %d: invalid IP or netmask\"%s\"", linenum, line);
+			g_warning("%s, line %d: invalid IP or netmask \"%s\"",
+				hostiles_file, linenum, line);
 			continue;
 		}
 
-		n = walloc0(sizeof(*n));
-		n->ip_masked = ip & netmask;
-		n->netmask = netmask;
+		bits = 32;
+		while (0 == (netmask & 0x1)) {
+			netmask >>= 1;
+			bits--;
+		}
 
-		if (g_hash_table_lookup(seen, n)) {
-			g_warning("hostiles_retrieve(): line %d: "
-				"ignoring duplicate entry \"%s\" (%s/%s)",
-				linenum, line, ip_to_gchar(ip), ip2_to_gchar(netmask));
-			wfree(n, sizeof(*n));
+		error = iprange_add_cidr(hostile_db, ip, bits, THERE);
+
+		switch (error) {
+		case IPR_ERR_OK:
+			break;
+		case IPR_ERR_RANGE_OVERLAP:
+			error = iprange_add_cidr_force(hostile_db, ip, bits, THERE, NULL);
+			if (error == IPR_ERR_OK) {
+				g_warning("%s: line %d: "
+					"entry \"%s\" (%s/%d) superseded earlier smaller range",
+					hostiles_file, linenum, line, ip_to_gchar(ip), bits);
+				break;
+			}
+			/* FALL THROUGH */
+		default:
+			g_warning("%s, line %d: rejected entry \"%s\" (%s/%d): %s",
+				hostiles_file, linenum, line, ip_to_gchar(ip), bits,
+				iprange_strerror(error));
 			continue;
 		}
 
-		g_hash_table_insert(seen, n, n);
-		sl_hostiles = g_slist_prepend(sl_hostiles, n);
 		count++;
 	}
 
-	sl_hostiles = g_slist_reverse(sl_hostiles);
-	g_hash_table_destroy(seen);		/* Keys/values are in `sl_hostiles' */
+	if (dbg) {
+		iprange_stats_t stats;
 
-	if (dbg)
-		g_message("loaded %d hostile IP addresses/netmasks\n", count);
+		iprange_get_stats(hostile_db, &stats);
+
+		g_message("loaded %d hostile IP addresses/netmasks", count);
+		g_message("hostile stats: count=%d level2=%d heads=%d enlisted=%d",
+			stats.count, stats.level2, stats.heads, stats.enlisted);
+	}
 
 	return count;
-}
-
-/**
- * Pre-compile addresses so that we don't have to check too many rules
- * each time to see if an address is part of the hostile set:
- */
-static void
-hostiles_compile(void)
-{
-	GSList *sl;
-	gint i;
-
-	/*
-	 * The addresses whose mask is /32 are put in a special array, indexed by
-	 * the LAST byte of the address: `hostiles_exact'.
-	 *
-	 * The addresses with /8 or less are put in a special list that is
-	 * parsed in the second place: `hostiles_wild'.  There should not be
-	 * much in there.
-	 *
-	 * All remaining addresses are places in an array, indexed by the FIRST byte
-	 * of the address: `hostiles_narrow'.
-	 */
-
-	for (i = 0; i < 256; i++)
-		hostiles_exact[i] = hostiles_narrow[i] = NULL;
-
-	for (sl = sl_hostiles; sl; sl = g_slist_next(sl)) {
-		struct hostile *h = (struct hostile *) sl->data;
-		if (h->netmask == 0xffffffff) {
-			i = h->ip_masked & 0x000000ff;
-			hostiles_exact[i] = g_slist_prepend(hostiles_exact[i], h);
-		} else if (h->netmask < 0xff000000)
-			hostiles_wild = g_slist_prepend(hostiles_wild, h);
-		else {
-			i = (h->ip_masked & 0xff000000) >> 24;
-			hostiles_narrow[i] = g_slist_prepend(hostiles_narrow[i], h);
-		}
-	}
 }
 
 /**
@@ -210,7 +162,6 @@ hostiles_changed(const gchar *filename, gpointer udata)
 
 	hostiles_close();
 	count = hostiles_load(f);
-	hostiles_compile();
 
 	gm_snprintf(buf, sizeof(buf), "Reloaded %d hostile IP addresses.", count);
 	gcu_statusbar_message(buf);
@@ -253,9 +204,9 @@ hostiles_retrieve(void)
 
 	filename = make_pathname(fp[idx].dir, fp[idx].name);
 	watcher_register(filename, hostiles_changed, NULL);
+	G_FREE_NULL(filename);
 
 	hostiles_load(f);
-	hostiles_compile();
 }
 
 /**
@@ -273,70 +224,18 @@ hostiles_init(void)
 void
 hostiles_close(void)
 {
-	GSList *sl;
-	gint i;
-
-	for (i = 0; i < 256; i++) {
-		g_slist_free(hostiles_exact[i]);
-		g_slist_free(hostiles_narrow[i]);
-	}
-	g_slist_free(hostiles_wild);
-	hostiles_wild = NULL;
-
-	for (sl = sl_hostiles; sl; sl = g_slist_next(sl)) 
-		wfree(sl->data, sizeof(struct hostile));
-
-	g_slist_free(sl_hostiles);
-	sl_hostiles = NULL;
+	iprange_free_each(hostile_db, NULL);
+	hostile_db = NULL;
 }
 
 /**
  * Check the given IP agains the entries in the hostiles.
  * Returns TRUE if found, and FALSE if not.
- *
  */
 gboolean
 hostiles_check(guint32 ip)
 {
-	GSList *sl;
-	struct hostile *h;
-	gint i;
-
-	/*
-	 * Look for an exact match.
-	 */
-
-	i = ip & 0x000000ff;
-
-	for (sl = hostiles_exact[i]; sl; sl = g_slist_next(sl)) {
-		h = (struct hostile *) sl->data;
-		if (ip == h->ip_masked)
-			return TRUE;
-	}
-
-	/*
-	 * Look for a wild match.
-	 */
-
-	for (sl = hostiles_wild; sl; sl = g_slist_next(sl)) {
-		h = (struct hostile *) sl->data;
-		if ((ip & h->netmask) == h->ip_masked)
-			return TRUE;
-	}
-
-	/*
-	 * Look for a narrow match.
-	 */
-
-	i = (ip & 0xff000000) >> 24;
-
-	for (sl = hostiles_narrow[i]; sl; sl = g_slist_next(sl)) {
-		h = (struct hostile *) sl->data;
-		if ((ip & h->netmask) == h->ip_masked)
-			return TRUE;
-	}
-
-	return FALSE;
+	return THERE == iprange_get(hostile_db, ip);
 }
 
 /* vi: set ts=4: */

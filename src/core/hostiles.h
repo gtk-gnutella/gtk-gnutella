@@ -1,8 +1,9 @@
 /*
+ * $Id$
+ *
  * Copyright (c) 2003, Markus Goetz & Raphael Manfredi
  *
  * Support for the hostiles.txt of bearshare
- * This file is based a lot on the whitelist stuff by vidar.
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -29,15 +30,10 @@
 
 #include <glib.h>
 
-struct hostile {
-    guint32 ip_masked;
-    guint32 netmask;
-};
-
 gboolean hostiles_check(guint32 ip);
 void hostiles_init(void);
 void hostiles_close(void);
 
 #endif /* _core_hostiles_h_ */
 
-
+/* vi: set ts=4 sw=4 cindent: */
