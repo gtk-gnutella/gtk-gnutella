@@ -1111,8 +1111,6 @@ static prop_map_t property_map[] = {
         "checkbutton_uploads_auto_clear",
         FREQ_UPDATES, 0
     },
-#ifndef USE_GTK2
-// FIXME: rename widget in Gtk2 and add new one.
     {
         get_main_window,
         PROP_AUTOCLEAR_COMPLETED_DOWNLOADS,
@@ -1129,7 +1127,6 @@ static prop_map_t property_map[] = {
         "checkbutton_dl_clear_failed",
         FREQ_UPDATES, 0
     },
-#endif
     {
         get_main_window,
         PROP_FORCE_LOCAL_IP,
@@ -1554,8 +1551,6 @@ static prop_map_t property_map[] = {
         "checkbutton_search_results_show_settings",
         FREQ_UPDATES, 0
     },
-#ifndef USE_GTK2
-// FIXME: add proper widgets (frame_dl_settings, the checkbutton)
     {
         get_main_window,
         PROP_SHOW_DL_SETTINGS,
@@ -1564,7 +1559,6 @@ static prop_map_t property_map[] = {
         "checkbutton_dl_show_settings",
         FREQ_UPDATES, 0
     },
-#endif
     {
         get_main_window,
         PROP_CONFIRM_QUIT,
