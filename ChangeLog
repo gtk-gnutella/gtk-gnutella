@@ -1,9 +1,15 @@
 # since last version
 
+- (2002.09.08 RAM)
+ * Fixed problem when requeuing a stopped download from the GUI.
+ * Internal invalidation of the "fileinfo" was leaving a NULL pointer and
+   this is confusing: always reget a proper fileinfo when invalidating.
+
 - (2002.09.07 RAM)
  * Added "int" atoms.
  * Refactored swarming meta-information management to avoid conflicts between
    different files, and really put identical sources to the same output file.
+ * Make sure we don't display negative retry times for downloads.
 
 - (2002.09.06 RAM)
  * Factored out handling of (name, size) tuples.
