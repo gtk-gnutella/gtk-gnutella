@@ -408,7 +408,10 @@ void version_init(void)
 	gchar patch[80];
 
 #ifdef GTA_PATCHLEVEL
-	g_snprintf(patch, sizeof(patch), ".%u", GTA_PATCHLEVEL);
+	if (GTA_PATCHLEVEL)
+		g_snprintf(patch, sizeof(patch), ".%u", GTA_PATCHLEVEL);
+	else
+		patch[0] = '\0';
 #else
 	patch[0] = '\0';
 #endif
