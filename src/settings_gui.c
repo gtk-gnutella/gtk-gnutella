@@ -183,6 +183,7 @@ static gboolean force_local_ip_changed(property_t prop);
 static gboolean use_netmasks_changed(property_t prop);
 static gboolean guid_changed(property_t prop);
 static gboolean show_tooltips_changed(property_t prop);
+static gboolean expert_mode_changed(property_t prop);
 
 // FIXME: move to separate file and autoegenerate from high-level
 //        description. 
@@ -1187,6 +1188,20 @@ static prop_map_t property_map[] = {
         show_tooltips_changed,
         TRUE,
         "checkbutton_config_show_tooltips"
+    },
+    {
+        NULL,
+        PROP_EXPERT_MODE,
+        expert_mode_changed,
+        TRUE,
+        NULL
+    },
+    {
+        get_main_window,
+        PROP_GNET_STATS_PERC_MODE,
+        update_togglebutton,
+        TRUE,
+        "checkbutton_gnet_stats_perc_mode"
     }
 };
 
@@ -2112,6 +2127,34 @@ gboolean show_tooltips_changed(property_t prop)
     return FALSE;
 }
 
+static gboolean expert_mode_changed(property_t prop)
+{
+    gchar *expert_widgets[] = {
+        "frame_expert_nw_local",
+        "frame_expert_gnet_timeout",
+        "frame_expert_gnet_ttl",
+        "frame_expert_gnet_quality",
+        "frame_expert_gnet_other",
+		"frame_expert_dl_timeout",
+        "frame_expert_ul_timeout",
+        NULL
+    };
+    gint n;
+    gboolean b;
+
+    gui_prop_get_boolean(prop, &b, 0, 1);
+
+    for (n = 0; expert_widgets[n] != NULL; n++) {
+        GtkWidget *w = lookup_widget(main_window, expert_widgets[n]);
+
+        if (b)
+            gtk_widget_show(w);
+        else
+            gtk_widget_hide(w);
+    }
+
+    return FALSE;
+}
 
 /***
  *** V.  Control functions.
