@@ -33,6 +33,12 @@
 #include "gui.h"
 #include "filter_gui.h"
 
+#ifdef USE_GTK2
+#include "interface-glade2.h"
+#else
+#include "interface-glade.h"
+#endif
+
 RCSID("$Id$");
 
 #ifdef USE_GTK2
@@ -847,8 +853,8 @@ void filter_gui_edit_rule(rule_t *r)
  */
 void filter_gui_edit_ip_rule(rule_t *r)
 {
-    gchar *ip       = g_strdup("");
-    gchar *mask     = g_strdup("255.255.255.255");
+    gchar *ip       = NULL;
+    gchar *mask     = NULL;
     gpointer target = (gpointer) DEFAULT_TARGET;
     gboolean invert = FALSE;
     gboolean active = TRUE;
@@ -866,7 +872,10 @@ void filter_gui_edit_ip_rule(rule_t *r)
         invert = RULE_IS_NEGATED(r);
         active = RULE_IS_ACTIVE(r);
         soft   = RULE_IS_SOFT(r);
-    }
+    } else {
+		ip = g_strdup("");
+		mask = g_strdup("255.255.255.255");
+	}
 
     gtk_entry_set_text(
         GTK_ENTRY(lookup_widget(filter_dialog, "entry_filter_ip_address")), 
@@ -890,8 +899,8 @@ void filter_gui_edit_ip_rule(rule_t *r)
             (lookup_widget(filter_dialog, "checkbutton_filter_ip_soft")),
         soft);
 
-    g_free(ip);
-    g_free(mask);
+   	G_FREE_NULL(ip);
+   	G_FREE_NULL(mask);
 
     gtk_notebook_set_page(
         GTK_NOTEBOOK
@@ -1374,7 +1383,7 @@ void filter_gui_set_ruleset(GList *ruleset)
  * Fetch the rule which is currently edited. This
  * returns a completely new rule_t item in new memory.
  */
-rule_t *filter_gui_get_rule() 
+rule_t *filter_gui_get_rule(void) 
 {
     gint page;
     rule_t *r;
@@ -1426,7 +1435,7 @@ rule_t *filter_gui_get_rule()
  * Extract information about a text rule.
  * NEVER CALL DIRECTLY!!! Use filter_gui_get_rule().
  */
-static rule_t *filter_gui_get_text_rule()
+static rule_t *filter_gui_get_text_rule(void)
 {
   	rule_t *r;
     gchar *match;
@@ -1489,7 +1498,7 @@ static rule_t *filter_gui_get_text_rule()
  * Extract information about a ip rule.
  * NEVER CALL DIRECTLY!!! Use filter_gui_get_rule().
  */
-static rule_t *filter_gui_get_ip_rule()
+static rule_t *filter_gui_get_ip_rule(void)
 {
     gchar *s;
     guint32 addr;
@@ -1548,7 +1557,7 @@ static rule_t *filter_gui_get_ip_rule()
  * Extract information about a size rule.
  * NEVER CALL DIRECTLY!!! Use filter_gui_get_rule().
  */
-static rule_t *filter_gui_get_size_rule()
+static rule_t *filter_gui_get_size_rule(void)
 {
     size_t lower;
     size_t upper;
@@ -1601,7 +1610,7 @@ static rule_t *filter_gui_get_size_rule()
  * Extract information about a size rule.
  * NEVER CALL DIRECTLY!!! Use filter_gui_get_rule().
  */
-static rule_t *filter_gui_get_jump_rule()
+static rule_t *filter_gui_get_jump_rule(void)
 {
     filter_t *target;
     gboolean active;
@@ -1630,7 +1639,7 @@ static rule_t *filter_gui_get_jump_rule()
  * Extract information about a flag rule.
  * NEVER CALL DIRECTLY!!! Use filter_gui_get_rule().
  */
-static rule_t *filter_gui_get_flag_rule()
+static rule_t *filter_gui_get_flag_rule(void)
 {
     filter_t *target;
     enum rule_flag_action stable = 2;
@@ -1687,7 +1696,7 @@ static rule_t *filter_gui_get_flag_rule()
  * Extract information about a state rule.
  * NEVER CALL DIRECTLY!!! Use filter_gui_get_rule().
  */
-static rule_t *filter_gui_get_state_rule()
+static rule_t *filter_gui_get_state_rule(void)
 {
     filter_t *target;
     enum filter_prop_state display  = FILTER_PROP_STATE_IGNORE;
@@ -1735,7 +1744,7 @@ static rule_t *filter_gui_get_state_rule()
     return filter_new_state_rule(display, download, target, flags);
 }
 
-void filter_gui_freeze_rules()
+void filter_gui_freeze_rules(void)
 {
     if (filter_dialog == NULL)
         return;
@@ -1744,7 +1753,7 @@ void filter_gui_freeze_rules()
         (GTK_CLIST(lookup_widget(filter_dialog, "clist_filter_rules")));
 }
 
-void filter_gui_thaw_rules()
+void filter_gui_thaw_rules(void)
 {
     if (filter_dialog == NULL)
         return;
@@ -1753,7 +1762,7 @@ void filter_gui_thaw_rules()
         (GTK_CLIST(lookup_widget(filter_dialog, "clist_filter_rules")));
 }
 
-void filter_gui_freeze_filters()
+void filter_gui_freeze_filters(void)
 {
     if (filter_dialog == NULL)
         return;
@@ -1762,7 +1771,7 @@ void filter_gui_freeze_filters()
         (GTK_CLIST(lookup_widget(filter_dialog, "ctree_filter_filters")));
 }
 
-void filter_gui_thaw_filters()
+void filter_gui_thaw_filters(void)
 {
     if (filter_dialog == NULL)
         return;
@@ -1780,7 +1789,7 @@ void filter_gui_thaw_filters()
  * the rules notebook.
  *
  */
-GtkWidget *filter_gui_create_dlg_filters()
+GtkWidget *filter_gui_create_dlg_filters(void)
 {
 	GtkWidget *dialog;
     GtkWidget *notebook;
