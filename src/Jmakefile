@@ -114,6 +114,7 @@ CORE = \
 	inputevt.c \
 	ioheader.c \
 	main.c \
+	malloc.c \
 	matching.c \
 	misc.c \
 	move.c \

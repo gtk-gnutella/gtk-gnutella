@@ -100,7 +100,7 @@ all:: .FORCE_DEPEND
 ########################################################################
 # Start of Jmakefile
 
-# $X-Id: Jmakefile,v 1.8 2003/12/16 18:08:52 rmanfredi Exp $
+# $X-Id: Jmakefile,v 1.9 2003/12/26 21:35:39 rmanfredi Exp $
 
 GUI_GTK2 = \
 	downloads_cb2.c \
@@ -199,6 +199,7 @@ CORE = \
 	inputevt.c \
 	ioheader.c \
 	main.c \
+	malloc.c \
 	matching.c \
 	misc.c \
 	move.c \
@@ -341,6 +342,7 @@ OBJLIST = \
 	inputevt.o \
 	ioheader.o \
 	main.o \
+	malloc.o \
 	matching.o \
 	misc.o \
 	move.o \
