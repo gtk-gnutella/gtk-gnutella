@@ -1445,6 +1445,12 @@ void search_gui_remove_search(search_t * sch)
 
     gtk_timeout_remove(sch->tab_updating);
 
+    /* remove column header arrow if it exists */
+    if (sch->arrow != NULL) { 
+        gtk_widget_destroy(sch->arrow);
+        sch->arrow = NULL;
+    }     
+
     if (searches) {				/* Some other searches remain. */
 		gtk_notebook_remove_page(notebook_search_results,
 			gtk_notebook_page_num(notebook_search_results, 
@@ -1479,10 +1485,11 @@ void search_gui_remove_search(search_t * sch)
 	}
     
 	gtk_widget_set_sensitive(GTK_WIDGET(combo_searches), searches != NULL);
-	gtk_widget_set_sensitive
-        (lookup_widget(main_window, "button_search_close"), searches != NULL);
+	gtk_widget_set_sensitive(
+        lookup_widget(main_window, "button_search_close"), searches != NULL);
 
-    sensitive = current_search && GTK_CLIST(current_search->clist)->selection;
+    sensitive = (searches != NULL) && 
+        GTK_CLIST(current_search->clist)->selection;
     gtk_widget_set_sensitive
         (lookup_widget(main_window, "button_search_download"), sensitive);
 }
@@ -1642,8 +1649,7 @@ void gui_search_create_clist(GtkWidget ** sw, GtkWidget ** clist)
 	*sw = gtk_scrolled_window_new(NULL, NULL);
 
 	gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(*sw),
-								   GTK_POLICY_AUTOMATIC,
-								   GTK_POLICY_AUTOMATIC);
+        GTK_POLICY_AUTOMATIC, GTK_POLICY_ALWAYS);
 
 	*clist = gtk_clist_new(6);
 
