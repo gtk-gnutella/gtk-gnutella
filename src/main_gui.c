@@ -416,6 +416,7 @@ static GtkWidget *gui_create_dlg_about(void)
     GtkWidget *dlg = create_dlg_about();
     guint i;
 	static char s[256];
+	char *t;
 #ifdef USE_GTK2
     GtkTextBuffer *textbuf;
 
@@ -424,8 +425,10 @@ static GtkWidget *gui_create_dlg_about(void)
     
     for (i = 0; NULL != contributors[i]; i++) {
         gm_snprintf(s, sizeof(s), "%s%s", i > 0 ? "\n" : "", contributors[i]);
-        gtk_text_buffer_insert_at_cursor(
-            textbuf, iso_8859_1_to_utf8(s), (-1));
+		t = iso_8859_1_to_utf8(s);
+		if (NULL == t)
+			t = "<Cannot convert to UTF-8>";
+        gtk_text_buffer_insert_at_cursor(textbuf, t, (-1));
     }
 #else
     GtkText *text = GTK_TEXT(lookup_widget(dlg, "text_about_contributors"));
@@ -434,8 +437,11 @@ static GtkWidget *gui_create_dlg_about(void)
         if (i > 0)
             gtk_text_insert(text, NULL, NULL, NULL, "\n", (-1));
         g_strlcpy(s, contributors[i], sizeof(s));
-        gtk_text_insert(text, NULL, NULL, NULL,
-			utf8_to_locale(iso_8859_1_to_utf8(s), 0), (-1));
+		t = iso_8859_1_to_utf8(s);
+		if (NULL == t)
+			t = "<Cannot convert to UTF-8>";
+		t = lazy_utf8_to_locale(t, 0);
+        gtk_text_insert(text, NULL, NULL, NULL, t, (-1));
     }
 #endif
 
