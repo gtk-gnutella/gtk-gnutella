@@ -93,7 +93,7 @@ static gchar *current_url = NULL;			/* Cache we're currently using */
 static gint current_reused = 0;				/* Amount of times we reused it */
 
 #define MAX_URL_LINES	50					/* Max lines on a urlfile req */
-#define MAX_IP_LINES	50					/* Max lines on a hostfile req */
+#define MAX_IP_LINES	150					/* Max lines on a hostfile req */
 #define MAX_OK_LINES	3					/* Max lines when expecting OK */
 #define MIN_IP_LINES	5					/* Min lines expected */
 #define MIN_URL_LINES	5					/* Min lines expected */
