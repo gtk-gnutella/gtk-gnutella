@@ -119,6 +119,7 @@ ntp_no_reply(cqueue_t *cq, gpointer uddata)
 		printf("NTP no reply from localhost\n");
 
 	gnet_prop_set_boolean_val(PROP_HOST_RUNS_NTP, FALSE);
+	wait_ev = NULL;
 }
 
 /**
