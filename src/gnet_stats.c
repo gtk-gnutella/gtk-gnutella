@@ -33,34 +33,34 @@ static guint8 stats_lut[256];
 
 static gnet_stats_t gnet_stats;
 
-static gchar *msg_drop_reason[MSG_DROP_REASON_COUNT] = {
-	"Bad size",							/* MSG_DROP_BAD_SIZE */
-	"Too small",						/* MSG_DROP_TOO_SMALL */
-	"Too large",						/* MSG_DROP_TOO_LARGE */
-	"Way too large",					/* MSG_DROP_WAY_TOO_LARGE */
-	"Unknown message type",				/* MSG_DROP_UNKNOWN_TYPE */
-	"Unexpected message",				/* MSG_DROP_UNEXPECTED */
-	"Message sent with TTL = 0",		/* MSG_DROP_TTL0 */
-	"Improper hops/ttl combination"		/* MSG_DROP_IMPROPER_HOPS_TTL */
-	"Max TTL exceeded",					/* MSG_DROP_MAX_TTL_EXCEEDED */
-	"Message throttle",					/* MSG_DROP_THROTTLE */
-	"Unusable Pong",					/* MSG_DROP_PONG_UNUSABLE */
-	"Hard TTL limit reached",			/* MSG_DROP_HARD_TTL_LIMIT */
-	"Max hop count reached",			/* MSG_DROP_MAX_HOP_COUNT */
-	"Unrequested reply",				/* MSG_DROP_UNREQUESTED_REPLY */
-	"Route lost",						/* MSG_DROP_ROUTE_LOST */
-	"No route",							/* MSG_DROP_NO_ROUTE */
-	"Duplicate message",				/* MSG_DROP_DUPLICATE */
-	"Message to banned GUID",			/* MSG_DROP_BANNED */
-	"Node shutting down",				/* MSG_DROP_SHUTDOWN */
-	"TX flow control",					/* MSG_DROP_FLOW_CONTROL */
-	"Query text had no trailing NUL",	/* MSG_DROP_QUERY_NO_NUL */
-	"Query text too short",				/* MSG_DROP_QUERY_TOO_SHORT */
-	"Query had unnecessary overhead",	/* MSG_DROP_QUERY_OVERHEAD */
-	"Message with malformed SHA1",		/* MSG_DROP_MALFORMED_SHA1 */
-	"Message with malformed UTF-8",		/* MSG_DROP_MALFORMED_UTF_8 */
-	"Malformed Query Hit",				/* MSG_DROP_BAD_RESULT */
-	"Hostile IP address",				/* MSG_DROP_HOSTILE_IP */
+static gchar * const msg_drop_reason[MSG_DROP_REASON_COUNT] = {
+	N_("Bad size"),							/* MSG_DROP_BAD_SIZE */
+	N_("Too small"),						/* MSG_DROP_TOO_SMALL */
+	N_("Too large"),						/* MSG_DROP_TOO_LARGE */
+	N_("Way too large"),					/* MSG_DROP_WAY_TOO_LARGE */
+	N_("Unknown message type"),				/* MSG_DROP_UNKNOWN_TYPE */
+	N_("Unexpected message"),				/* MSG_DROP_UNEXPECTED */
+	N_("Message sent with TTL = 0"),		/* MSG_DROP_TTL0 */
+	N_("Improper hops/ttl combination"),		/* MSG_DROP_IMPROPER_HOPS_TTL */
+	N_("Max TTL exceeded"),					/* MSG_DROP_MAX_TTL_EXCEEDED */
+	N_("Message throttle"),					/* MSG_DROP_THROTTLE */
+	N_("Unusable Pong"),					/* MSG_DROP_PONG_UNUSABLE */
+	N_("Hard TTL limit reached"),			/* MSG_DROP_HARD_TTL_LIMIT */
+	N_("Max hop count reached"),			/* MSG_DROP_MAX_HOP_COUNT */
+	N_("Unrequested reply"),				/* MSG_DROP_UNREQUESTED_REPLY */
+	N_("Route lost"),						/* MSG_DROP_ROUTE_LOST */
+	N_("No route"),							/* MSG_DROP_NO_ROUTE */
+	N_("Duplicate message"),				/* MSG_DROP_DUPLICATE */
+	N_("Message to banned GUID"),			/* MSG_DROP_BANNED */
+	N_("Node shutting down"),				/* MSG_DROP_SHUTDOWN */
+	N_("TX flow control"),					/* MSG_DROP_FLOW_CONTROL */
+	N_("Query text had no trailing NUL"),	/* MSG_DROP_QUERY_NO_NUL */
+	N_("Query text too short"),				/* MSG_DROP_QUERY_TOO_SHORT */
+	N_("Query had unnecessary overhead"),	/* MSG_DROP_QUERY_OVERHEAD */
+	N_("Message with malformed SHA1"),		/* MSG_DROP_MALFORMED_SHA1 */
+	N_("Message with malformed UTF-8"),		/* MSG_DROP_MALFORMED_UTF_8 */
+	N_("Malformed Query Hit"),				/* MSG_DROP_BAD_RESULT */
+	N_("Hostile IP address"),				/* MSG_DROP_HOSTILE_IP */
 };
 
 /***
