@@ -188,7 +188,7 @@ static const gchar *tok_errstr[] = {
  */
 const gchar *tok_strerror(tok_error_t errnum)
 {
-	if (errnum < 0 || errnum >= G_N_ELEMENTS(tok_errstr))
+	if ((gint) errnum < 0 || errnum >= G_N_ELEMENTS(tok_errstr))
 		return "Invalid error code";
 
 	return tok_errstr[errnum];
@@ -557,3 +557,4 @@ gboolean tok_is_ancient(time_t now)
 	return find_tokkey(now) == NULL;
 }
 
+/* vi: set ts=4: */
