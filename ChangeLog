@@ -1,8 +1,17 @@
 # since last version
 
+- (2003.02.23 - RAM)
+ * Forgot to negate the return of version_check().
+ * Partially validate version whose token is given.
+ * Avoid always polling at the minimum specified by the download server.
 
 - (2003.02.22 - guruz)
  * Added MLDonkey vendor code (MLDK)
+
+- (2003.02.22 - cbiere)
+ * The user_callback (parameter for adns_resolve()) was called twice if
+   the hostname was an IP string; this caused s->gdk_tag != 0 in
+   socket_connect_finalize() because it was called twice due to this bug.
 
 - (2003.02.21 - cbiere)
  * Added socket_connect_prepare() to reduce double code
