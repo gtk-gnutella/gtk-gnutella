@@ -4138,7 +4138,7 @@ static void node_parse(struct gnutella_node *node)
 	 *
 	 *		--RAM, 02/01/2002
 	 *
-	 * The only time where the handshaking ping wass necessary wass for
+	 * The only time where the handshaking ping was necessary was for
 	 * "ponging" incoming connections, which we no longer support.
 	 * Those were opened solely to send back connection pongs, but we need
 	 * the initial ping to know the GUID to use as message ID when replying...
