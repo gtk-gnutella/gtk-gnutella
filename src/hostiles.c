@@ -117,20 +117,16 @@ void hostiles_retrieve(void)
 
 		/*
 		 * Remove all trailing spaces in string.
-		 *
-		 * XXX Is this really needed?
-		 *   --RAM, 02/04/2004
+		 * Otherwise, lines which contain only spaces would cause a warning.
 		 */
 	
-		p = line + strlen(line);	
-
-		while (p > line) {
-			guchar c = (guchar) *(--p);
-			if (!isspace(c))
+		p = strchr(line, '\0');	
+		while (--p >= line) {
+			guchar c = (guchar) *p;
+			if (!is_ascii_space(c))
 				break;
 			*p = '\0';
 		}
-
 		if ('\0' == *line)
 			continue;
 
@@ -153,10 +149,11 @@ void hostiles_retrieve(void)
 		}
 
 		g_hash_table_insert(seen, n, n);
-		sl_hostiles = g_slist_append(sl_hostiles, n);
+		sl_hostiles = g_slist_prepend(sl_hostiles, n);
 		count++;
 	}
 
+	sl_hostiles = g_slist_reverse(sl_hostiles);
 	g_hash_table_destroy(seen);		/* Keys/values are in `sl_hostiles' */
 
 	if (dbg)
@@ -222,6 +219,7 @@ void hostiles_close(void)
 		g_slist_free(hostiles_narrow[i]);
 	}
 	g_slist_free(hostiles_wild);
+	hostiles_wild = NULL;
 
 	for (sl = sl_hostiles; sl; sl = g_slist_next(sl)) 
 		wfree(sl->data, sizeof(struct hostile));
@@ -279,3 +277,5 @@ gboolean hostiles_check(guint32 ip)
 
 	return FALSE;
 }
+
+/* vi: set ts=4: */
