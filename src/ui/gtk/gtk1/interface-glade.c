@@ -10633,9 +10633,9 @@ create_dlg_prefs (void)
   GtkWidget *label509;
   GtkObject *spinbutton_config_dbg_adj;
   GtkWidget *spinbutton_config_dbg;
-  GtkWidget *checkbutton_config_stop_host_get;
   GtkObject *spinbutton_config_track_props_adj;
   GtkWidget *spinbutton_config_track_props;
+  GtkWidget *checkbutton_config_stop_host_get;
   GtkWidget *frame134;
   GtkWidget *table92;
   GtkWidget *label689;
@@ -10668,6 +10668,9 @@ create_dlg_prefs (void)
   GtkWidget *label699;
   GtkObject *spinbutton_config_routing_debug_adj;
   GtkWidget *spinbutton_config_routing_debug;
+  GtkWidget *label712;
+  GtkObject *spinbutton_config_ggep_debug_adj;
+  GtkWidget *spinbutton_config_ggep_debug;
   GtkWidget *frame_expert_unmapped;
   GtkWidget *table57;
   guint label461_key;
@@ -15854,7 +15857,7 @@ create_dlg_prefs (void)
   gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "frame133", frame133,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (frame133);
-  gtk_box_pack_start (GTK_BOX (hbox206), frame133, FALSE, TRUE, 0);
+  gtk_box_pack_start (GTK_BOX (hbox206), frame133, FALSE, FALSE, 0);
   gtk_frame_set_shadow_type (GTK_FRAME (frame133), GTK_SHADOW_OUT);
 
   table32 = gtk_table_new (5, 2, FALSE);
@@ -15902,7 +15905,7 @@ create_dlg_prefs (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_config_gui_debug), TRUE);
 
-  label440 = gtk_label_new (_("Shared code debug level"));
+  label440 = gtk_label_new (_("Lib debug level"));
   gtk_widget_set_name (label440, "label440");
   gtk_widget_ref (label440);
   gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "label440", label440,
@@ -15948,16 +15951,6 @@ create_dlg_prefs (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_config_dbg), TRUE);
 
-  checkbutton_config_stop_host_get = gtk_check_button_new_with_label (_("Stop collecting hosts in host catcher"));
-  gtk_widget_set_name (checkbutton_config_stop_host_get, "checkbutton_config_stop_host_get");
-  gtk_widget_ref (checkbutton_config_stop_host_get);
-  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "checkbutton_config_stop_host_get", checkbutton_config_stop_host_get,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (checkbutton_config_stop_host_get);
-  gtk_table_attach (GTK_TABLE (table32), checkbutton_config_stop_host_get, 0, 2, 4, 5,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-
   spinbutton_config_track_props_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 10);
   spinbutton_config_track_props = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_track_props_adj), 1, 0);
   gtk_widget_set_name (spinbutton_config_track_props, "spinbutton_config_track_props");
@@ -15970,6 +15963,16 @@ create_dlg_prefs (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_config_track_props), TRUE);
 
+  checkbutton_config_stop_host_get = gtk_check_button_new_with_label (_("Stop collecting hosts"));
+  gtk_widget_set_name (checkbutton_config_stop_host_get, "checkbutton_config_stop_host_get");
+  gtk_widget_ref (checkbutton_config_stop_host_get);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "checkbutton_config_stop_host_get", checkbutton_config_stop_host_get,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (checkbutton_config_stop_host_get);
+  gtk_table_attach (GTK_TABLE (table32), checkbutton_config_stop_host_get, 0, 2, 4, 5,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+
   frame134 = gtk_frame_new (_("Functionality"));
   gtk_widget_set_name (frame134, "frame134");
   gtk_widget_ref (frame134);
@@ -15979,7 +15982,7 @@ create_dlg_prefs (void)
   gtk_box_pack_start (GTK_BOX (hbox206), frame134, FALSE, TRUE, 0);
   gtk_frame_set_shadow_type (GTK_FRAME (frame134), GTK_SHADOW_OUT);
 
-  table92 = gtk_table_new (5, 4, FALSE);
+  table92 = gtk_table_new (5, 6, FALSE);
   gtk_widget_set_name (table92, "table92");
   gtk_widget_ref (table92);
   gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "table92", table92,
@@ -16206,6 +16209,28 @@ create_dlg_prefs (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (spinbutton_config_routing_debug);
   gtk_table_attach (GTK_TABLE (table92), spinbutton_config_routing_debug, 3, 4, 4, 5,
+                    (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+
+  label712 = gtk_label_new (_("GGEP extensions"));
+  gtk_widget_set_name (label712, "label712");
+  gtk_widget_ref (label712);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "label712", label712,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label712);
+  gtk_table_attach (GTK_TABLE (table92), label712, 4, 5, 0, 1,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label712), 0, 0.5);
+
+  spinbutton_config_ggep_debug_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 10);
+  spinbutton_config_ggep_debug = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_ggep_debug_adj), 1, 0);
+  gtk_widget_set_name (spinbutton_config_ggep_debug, "spinbutton_config_ggep_debug");
+  gtk_widget_ref (spinbutton_config_ggep_debug);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "spinbutton_config_ggep_debug", spinbutton_config_ggep_debug,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (spinbutton_config_ggep_debug);
+  gtk_table_attach (GTK_TABLE (table92), spinbutton_config_ggep_debug, 5, 6, 0, 1,
                     (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
 
