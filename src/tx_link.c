@@ -196,6 +196,7 @@ static gint tx_link_writev(txdrv_t *tx, struct iovec *iov, gint iovcnt)
 		node_add_tx_written(tx->node, r);
 		return r;
 	}
+
 	return tx_link_write_error(tx, "tx_link_writev");
 }
 
