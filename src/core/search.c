@@ -2320,7 +2320,6 @@ search_new(const gchar *query, guint32 reissue_timeout, flag_t flags)
 {
 	search_ctrl_t *sch;
 	gchar *qdup;
-	gint utf8_len;
 	gint qlen;
 	gboolean latin_locale = is_latin_locale();
 
@@ -2335,12 +2334,11 @@ search_new(const gchar *query, guint32 reissue_timeout, flag_t flags)
 	 */
 
 	qlen = strlen(query);
-	utf8_len = utf8_is_valid_string(query, qlen);
 
 #ifdef USE_ICU
-	if (utf8_len > 0)
+	if (icu_enabled() && utf8_is_valid_string(query, qlen) > 0) {
 		qdup = unicode_canonize(query);
-	else
+	} else
 #endif
 	{
 		qdup = g_strdup(query);

@@ -64,9 +64,13 @@ static inline const guint32 *utf32_decompose_nfd_char(guint32 uc, size_t *len);
 size_t utf32_strmaxlen(const guint32 *s, size_t maxlen);
 size_t utf32_to_utf8(const guint32 *in, gchar *out, size_t size);
 
+/* use_icu is set to TRUE if the initialization of ICU succeeded. If it
+ * fails, we'll fall back to the non-ICU behaviour. */
+static gboolean use_icu = FALSE;
+
 #ifdef USE_ICU
-static  UConverter *conv_icu_locale = NULL;
-static  UConverter *conv_icu_utf8 = NULL;
+static UConverter *conv_icu_locale = NULL;
+static UConverter *conv_icu_utf8 = NULL;
 #endif /* USE_ICU */
  
 static const gchar *charset = NULL;
@@ -2644,13 +2648,19 @@ void locale_init(void)
 
 		/* set up the locale converter */
 		conv_icu_locale = ucnv_open(charset, &errorCode);
-		if (U_FAILURE(errorCode))
+		if (U_FAILURE(errorCode)) {
 			g_warning("ucnv_open for locale failed with %d", errorCode);
+		} else {
 
-		/* set up the UTF-8 converter */
-		conv_icu_utf8 = ucnv_open("utf8", &errorCode);
-		if (U_FAILURE(errorCode))
-			g_warning("ucnv_open for utf-8 failed with %d", errorCode);
+			/* set up the UTF-8 converter */
+			conv_icu_utf8 = ucnv_open("utf8", &errorCode);
+			if (U_FAILURE(errorCode)) {
+				g_warning("ucnv_open for utf-8 failed with %d", errorCode);
+			} else {
+				/* Initialization succeeded, thus enable using of ICU */
+				use_icu = TRUE;
+			}
+		}
 	}
 #endif
 }
@@ -2665,11 +2675,11 @@ void locale_close(void)
 #ifdef USE_ICU
 	if (conv_icu_locale) {
 	  ucnv_close(conv_icu_locale);
-	  conv_icu_locale=NULL;
+	  conv_icu_locale = NULL;
 	}
 	if (conv_icu_utf8) {
 	  ucnv_close(conv_icu_utf8);
-	  conv_icu_utf8=NULL;
+	  conv_icu_utf8 = NULL;
 	}
 #endif
 }
@@ -3319,120 +3329,115 @@ utf8_decompose_nfd(const gchar *in, gchar *out, size_t size)
 
 #ifdef USE_ICU
 
-/*
- * to_icu_conv
- *
+/**
  * Convert a string from the locale encoding to internal ICU encoding (UTF32)
- *
  */
-int to_icu_conv(const gchar *in, int lenin, UChar *out, int lenout)
+int
+to_icu_conv(const gchar *in, int lenin, UChar *out, int lenout)
 {
 	UErrorCode error = U_ZERO_ERROR;
 	int r;
 
+	g_assert(use_icu);
 	r = ucnv_toUChars(conv_icu_locale, out, lenout, in, lenin, &error);
 
 	return (error != U_ZERO_ERROR && error != U_BUFFER_OVERFLOW_ERROR) ? 0 : r;
 }
 
-/*
- * to_icu_conv
- *
+/**
  * Convert a string from ICU encoding (UTF32) to UTF8 encoding (fast)
- *
  */
-int icu_to_utf8_conv(const UChar *in, int lenin, gchar *out, int lenout)
+int
+icu_to_utf8_conv(const UChar *in, int lenin, gchar *out, int lenout)
 {
 	UErrorCode error = U_ZERO_ERROR;
 	int r;
 
+	g_assert(use_icu);
 	r = ucnv_fromUChars(conv_icu_utf8, out, lenout, in, lenin, &error);
 
 	return (error != U_ZERO_ERROR && error != U_BUFFER_OVERFLOW_ERROR &&
 			error != U_STRING_NOT_TERMINATED_WARNING) ? 0 : r;
 }
 
-/*
- * unicode_NFC
- *
+/**
  * Compact a string as specified in unicode
- *
  */
-int unicode_NFC(const UChar *source, gint32 len, UChar *result, gint32 rlen)
+int
+unicode_NFC(const UChar *source, gint32 len, UChar *result, gint32 rlen)
 {
 	UErrorCode error = U_ZERO_ERROR;
 	int r;
 
+	g_assert(use_icu);
 	r = unorm_normalize(source, len, UNORM_NFC, 0, result, rlen, &error);
 
 	return (error != U_ZERO_ERROR && error != U_BUFFER_OVERFLOW_ERROR) ? 0 : r;
 }
 
-/*
- * unicode_NFC
- *
+/**
  * Expand and K a string as specified in unicode
  * K will transform special character in the standard form
  * for instance : The large japanese space will be transform to a normal space
- *
  */
-int unicode_NFKD(const UChar *source, gint32 len, UChar *result, gint32 rlen)
+int
+unicode_NFKD(const UChar *source, gint32 len, UChar *result, gint32 rlen)
 {
 	UErrorCode error = U_ZERO_ERROR;
 	int r;
 
+	g_assert(use_icu);
 	r = unorm_normalize (source, len, UNORM_NFKD, 0, result, rlen, &error);
 
 	return (error != U_ZERO_ERROR && error != U_BUFFER_OVERFLOW_ERROR) ? 0 : r;
 }
 
-/*
- * unicode_upper
- *
+/**
  * Upper case a string
  * This is usefull to transorm the german sset to SS
  * Note : this will not transform hiragana to katakana
- *
  */
-int unicode_upper(const UChar *source, gint32 len, UChar *result, gint32 rlen)
+int
+unicode_upper(const UChar *source, gint32 len, UChar *result, gint32 rlen)
 {
 	UErrorCode error = U_ZERO_ERROR;
 	int r;
 
+	g_assert(use_icu);
 	r = u_strToUpper(result, rlen, source, len, NULL, &error);
 	
 	return (error != U_ZERO_ERROR && error != U_BUFFER_OVERFLOW_ERROR) ? 0 : r;
 }
 
-/*
- * unicode_lower
- *
+/**
  * Lower case a string
- *
  */
-int unicode_lower(const UChar *source, gint32 len, UChar *result, gint32 rlen)
+int
+unicode_lower(const UChar *source, gint32 len, UChar *result, gint32 rlen)
 {
 	UErrorCode error = U_ZERO_ERROR;
 	int r;
 
+	g_assert(use_icu);
 	r = u_strToLower(result, rlen, source, len, NULL, &error);
 	
 	return (error != U_ZERO_ERROR && error != U_BUFFER_OVERFLOW_ERROR) ? 0 : r;
 }
 
-/*
- * unicode_filters
- *
+/**
  * Remove all the non letter and non digit by looking the unicode symbol type
  * all other characters will be reduce to normal space
  * try to merge continues spaces in the same time
  * keep the important non spacing marks
  */
-int unicode_filters(const UChar *source, gint32 len, UChar *result)
+int
+unicode_filters(const UChar *source, gint32 len, UChar *result)
 {
 	int i, j;
 	int space = 0;
 
+	g_assert(use_icu);
+	
 	for (i = 0, j = 0; i < len; i++) {
 		switch (u_charType(source[i])) {
 		case U_LOWERCASE_LETTER :
@@ -3555,19 +3560,20 @@ int unicode_filters(const UChar *source, gint32 len, UChar *result)
 	return j;
 }
 
-/*
- * unicode_canonize
- *
+/**
  * Apply the NFKD/NFC algo to have nomalized keywords
  * The string `in' MUST be valid UTF-8 or that function would return rubbish.
  */
-gchar *unicode_canonize(const gchar *in)
+gchar *
+unicode_canonize(const gchar *in)
 {
 	UChar *qtmp1;
 	UChar *qtmp2;
 	int	len, maxlen;
 	gchar *out;
 	gboolean latin_locale = is_latin_locale();
+
+	g_assert(use_icu);
 
 	len = strlen(in);
 	maxlen = len * 6; /* Max 6 bytes for one char in utf8 */
@@ -3604,5 +3610,16 @@ gchar *unicode_canonize(const gchar *in)
 	return out;
 }
 
-/* vi: set ts=4 sw=4 cindent: */
 #endif	/* USE_ICU */
+
+/**
+ * @return	TRUE if ICU was successfully initialized. If FALSE is returned
+ *			none of the ICU-related functions must be used.
+ */
+gboolean
+icu_enabled(void)
+{
+	return use_icu;
+}
+
+/* vi: set ts=4 sw=4 cindent: */

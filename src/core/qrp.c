@@ -1160,13 +1160,15 @@ qrp_add_file(struct shared_file *sf)
 	 */
 
 #ifdef USE_ICU
-	if (utf8_is_valid_string(sf->file_name, sf->file_name_len)) {
+	if (
+		icu_enabled() &&
+		utf8_is_valid_string(sf->file_name, sf->file_name_len)
+	) {
 		gchar *normalised_filename;
 		normalised_filename = unicode_canonize(sf->file_name);
 		wocnt = word_vec_make(normalised_filename, &wovec);
 		G_FREE_NULL(normalised_filename);
-	}
-	else
+	} else
 #endif
 	{
 		if (sf->file_name_len >= (size_t) buffer.len) {

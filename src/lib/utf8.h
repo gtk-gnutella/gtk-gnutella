@@ -71,6 +71,8 @@ gboolean is_ascii_string(const gchar *str);
 gchar *utf8_to_locale(const gchar *str, size_t len);
 gchar *lazy_utf8_to_locale(const gchar *str, size_t len);
 
+gboolean icu_enabled(void);
+
 #ifdef USE_ICU
 
 int to_icu_conv(const gchar *in, int lenin, UChar *out, int lenout);
@@ -87,5 +89,5 @@ gchar* unicode_canonize(const gchar *in);
 
 #endif	/* _utf8_h_ */
 
-/* vi: set ts=4: */
+/* vi: set sw=4 ts=4 cindent: */
 

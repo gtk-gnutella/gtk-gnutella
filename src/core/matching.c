@@ -381,12 +381,12 @@ void st_search(
 	guint32 search_mask;
 	size_t minlen;
 
-#ifndef USE_ICU
-	len = match_map_string(table->fold_map, search);
-#else
-	len = strlen(search);
-	/* We don't need of the map because the strings are normalized */
-#endif
+	if (icu_enabled()) {
+		/* We don't need of the map because the strings are normalized */
+		len = strlen(search);
+	} else {
+		len = match_map_string(table->fold_map, search);
+	}
 
 	/*
 	 * Find smallest bin
