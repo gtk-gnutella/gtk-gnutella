@@ -1938,14 +1938,21 @@ static void node_process_handshake_header(
 			n->attrs |= NODE_A_CAN_GGEP;
 	}
 
-	/* Vendor-Messages -- support for vendor-specific messages */
+	/* Vendor-Message -- support for vendor-specific messages */
 
-	field = header_get(head, "Vendor-Messages");
+	field = header_get(head, "Vendor-Message");
+
+	// XXX I goofed, so support header name with a trailing 's' for a while
+	// XXX		-- RAM, 04/01/2003
+
+	if (field == NULL)
+		field = header_get(head, "Vendor-Messages");
+
 	if (field) {
 		guint major, minor;
 		sscanf(field, "%u.%u", &major, &minor);
 		if (major > 0 || (major == 0 && minor > 1))
-			if (dbg) g_warning("node %s <%s> claims Vendor-Messages "
+			if (dbg) g_warning("node %s <%s> claims Vendor-Message "
 				"version %u.%u",
 				node_ip(n), n->vendor ? n->vendor : "????", major, minor);
 
@@ -2174,7 +2181,7 @@ static void node_process_handshake_header(
 			"Pong-Caching: 0.1\r\n"
 			"Bye-Packet: 0.1\r\n"
 			"GGEP: 0.5\r\n"
-			"Vendor-Messages: 0.1\r\n"
+			"Vendor-Message: 0.1\r\n"
 			"Remote-IP: %s\r\n"
 			"Accept-Encoding: deflate\r\n"
 			"%s"
@@ -2711,7 +2718,7 @@ static void node_parse(struct gnutella_node *node)
             drop = TRUE;
             gnet_stats_count_dropped(n, MSG_DROP_TOO_LARGE);
 		} else {
-			/* In case no Vendor-Messages was seen in handshake */
+			/* In case no Vendor-Message was seen in handshake */
 			n->attrs |= NODE_A_CAN_VENDOR;
 		}
 		break;
@@ -2883,7 +2890,7 @@ void node_init_outgoing(struct gnutella_node *n)
 			"Pong-Caching: 0.1\r\n"
 			"Bye-Packet: 0.1\r\n"
 			"GGEP: 0.5\r\n"
-			"Vendor-Messages: 0.1\r\n"
+			"Vendor-Message: 0.1\r\n"
 			"Accept-Encoding: deflate\r\n"
 			"X-Live-Since: %s\r\n"
 			"%s"
