@@ -120,7 +120,7 @@ static gint sol_ip(void)
 	return sol_ip_cached;
 }
 
-static void sock_tos(struct gnutella_socket *s, gint tos)
+static void socket_tos(struct gnutella_socket *s, gint tos)
 {
 	if (!use_ip_tos)
 		return;
@@ -143,64 +143,63 @@ static void sock_tos(struct gnutella_socket *s, gint tos)
 }
 
 /*
- * sock_tos_normal
+ * socket_tos_normal
  * 
  * Set the Type of Service (TOS) field to "normal."
  */
-static void sock_tos_normal(struct gnutella_socket *s)
+static void socket_tos_normal(struct gnutella_socket *s)
 {
-	sock_tos(s, 0);
+	socket_tos(s, 0);
 }
 
 /*
- * sock_tos_lowdelay
+ * socket_tos_lowdelay
  *
  * Set the Type of Service (TOS) field to "lowdelay." This may cause
  * your host and/or any routers along the path to put its packets in
  * a higher-priority queue, and/or to route them along the lowest-
  * latency path without regard for bandwidth.
  */
-static void sock_tos_lowdelay(struct gnutella_socket *s)
+static void socket_tos_lowdelay(struct gnutella_socket *s)
 {
-	sock_tos(s, IPTOS_LOWDELAY);
+	socket_tos(s, IPTOS_LOWDELAY);
 }
 
 /*
- * sock_tos_throughput
+ * socket_tos_throughput
  *
  * Set the Type of Service (TOS) field to "throughput." This may cause
  * your host and/or any routers along the path to put its packets in
  * a lower-priority queue, and/or to route them along the highest-
  * bandwidth path without regard for latency.
  */
-static void sock_tos_throughput(struct gnutella_socket *s)
+static void socket_tos_throughput(struct gnutella_socket *s)
 {
-	sock_tos(s, IPTOS_THROUGHPUT);
+	socket_tos(s, IPTOS_THROUGHPUT);
 }
 
 /*
- * sock_tos_default
+ * socket_tos_default
  *
  * Pick an appropriate default TOS for packets on the socket, based
  * on the socket's type.
  */
-static void sock_tos_default(struct gnutella_socket *s)
+static void socket_tos_default(struct gnutella_socket *s)
 {
 	switch (s->type) {
 	case SOCK_TYPE_CONTROL:
 	case SOCK_TYPE_HTTP:
-		sock_tos_lowdelay(s);
+		socket_tos_lowdelay(s);
 		break;
 	case SOCK_TYPE_UPLOAD:
-		sock_tos_throughput(s);
+		socket_tos_throughput(s);
 		break;
 	default:
-		sock_tos_normal(s);
-		break;
+		socket_tos_normal(s);
 	}
 }
 #else
-#define sock_tos_default(s) /* */
+#define socket_tos_default(s) /* */
 #endif /* HAVE_IP_TOS */
 
 
@@ -880,6 +879,7 @@ static struct gnutella_socket *socket_connect_prepare(
 	/* Set the file descriptor non blocking */
 	fcntl(s->file_desc, F_SETFL, O_NONBLOCK);
 
+	socket_tos_default(s);
 	return s;
 }
 
@@ -969,8 +969,6 @@ static struct gnutella_socket *socket_connect_finalize(
 		s->gdk_tag = inputevt_add(s->file_desc,
 			INPUT_EVENT_WRITE | INPUT_EVENT_EXCEPTION,
 			socket_connected, s);
-
-	sock_tos_default(s);
 
 	return s;
 }
@@ -1129,7 +1127,7 @@ struct gnutella_socket *socket_listen(
 		inputevt_add(sd, INPUT_EVENT_READ | INPUT_EVENT_EXCEPTION,
 					  socket_accept, s);
 
-	sock_tos_default(s);
+	socket_tos_default(s);
 
 	return s;
 }
