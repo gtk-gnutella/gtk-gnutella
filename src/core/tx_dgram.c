@@ -137,6 +137,9 @@ static inline gint tx_dgram_write_error(
 	case EAGAIN:
 	case EINTR:
 	case ENOBUFS:
+#if defined(EWOULDBLOCK) && (EAGAIN != EWOULDBLOCK)
+	case EWOULDBLOCK:
+#endif
 		return 0;
 	/*
 	 * The following are probably due to bugs in the libc, but this is in
@@ -153,15 +156,23 @@ static inline gint tx_dgram_write_error(
 		return 0;
 	case EPIPE:
 	case ENOSPC:
+	case ENOMEM:
 	case EINVAL:			/* Seen this with "reserved" IP addresses */
 #ifdef EDQUOT
 	case EDQUOT:
 #endif /* EDQUOT */
 	case EFBIG:
 	case EIO:
+	case ECONNABORTED:
 	case ECONNRESET:
+	case ECONNREFUSED:
+	case ENETRESET:
 	case ENETDOWN:
 	case ENETUNREACH:
+	case EHOSTDOWN:
+	case EHOSTUNREACH:
+	case ENOPROTOOPT:
+	case EPROTONOSUPPORT:
 	case ETIMEDOUT:
 	case EACCES:
 		g_warning("UDP write to %s failed: %s",
