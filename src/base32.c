@@ -43,7 +43,7 @@
  *         7 H            16 Q            25 Z
  *         8 I            17 R            26 2
  */
-static gchar values[256] = {
+static gint8 values[256] = {
 /*  0  1  2  3  4  5  6  7  8  9  */	/* 0123456789              */
     -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,		/*            -  00 ->  09 */
     -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,		/*            -  10 ->  19 */
@@ -82,7 +82,7 @@ static gchar *b32_alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
  * Older base32 alphabet: "ABCDEFGHIJK MN PQRSTUVWXYZ  23456789"
  * We decode it only.
  */
-static gchar old_values[256] = {
+static gint8 old_values[256] = {
 /*  0  1  2  3  4  5  6  7  8  9  */	/* 0123456789              */
     -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,		/*            -  00 ->  09 */
     -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,		/*            -  10 ->  19 */
@@ -289,14 +289,14 @@ guchar *base32_encode(const guchar *buf, gint len, gint *retpad)
  *
  * Return TRUE if successful, FALSE if the input was not valid base32.
  */
-static gboolean base32_decode_alphabet(gchar valmap[256],
+static gboolean base32_decode_alphabet(gint8 valmap[256],
 	const guchar *buf, gint len, guchar *decbuf, gint declen)
 {
 	guint32 i = 0;					/* Input accumulator, 0 for trailing pad */
 	guchar const *ip = buf + len;	/* Input pointer, one byte off end */
 	gint dlen = (len >> 3) * 5;		/* Exact decoded lenth */
 	guchar *op;						/* Output pointer, one byte off end */
-	gchar v;
+	gint8 v;
 	
 	g_assert(buf);
 	g_assert(decbuf);
