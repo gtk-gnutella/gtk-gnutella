@@ -33,6 +33,8 @@
 
 RCSID("$Id$");
 
+#define UPDATE_MIN	300		/* Update screen every 5 minutes at least */
+
 static gboolean uploads_remove_lock = FALSE;
 static guint uploads_rows_done = 0;
 
@@ -334,10 +336,18 @@ void uploads_gui_update_display(time_t now)
 	gboolean all_removed = TRUE;
 	gint current_page;
 
+	/*
+	 * Usually don't perform updates if nobody is watching.  However,
+	 * we do need to perform periodic cleanup of dead entries or the
+	 * memory usage will grow.  Perform an update every UPDATE_MIN minutes
+	 * at least.
+	 *		--RAM, 28/12/2003
+	 */
+
 	current_page = gtk_notebook_get_current_page(
 		GTK_NOTEBOOK(lookup_widget(main_window, "notebook_main")));
 
-	if (current_page != nb_main_page_uploads)
+	if (current_page != nb_main_page_uploads && now - last_update < UPDATE_MIN)
 		return;
 
     if (last_update == now)

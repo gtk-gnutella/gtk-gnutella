@@ -33,8 +33,7 @@
 
 RCSID("$Id$");
 
-#define IO_STALLED		60		/* If nothing exchanged after that many secs */
-#define REMOVE_DELAY    5       /* delay before outdated info is removed */
+#define UPDATE_MIN	300		/* Update screen every 5 minutes at least */
 
 static gboolean uploads_remove_lock = FALSE;
 static gboolean uploads_shutting_down = FALSE;
@@ -67,7 +66,7 @@ static const char *column_titles[UPLOADS_GUI_VISIBLE_COLUMNS] = {
 
 typedef struct remove_row_ctx {
 	gboolean force;			/* If false, rows will only be removed, if 
-							 * their `REMOVE_DELAY' has expired. */
+							 * their `entry_removal_timeout' has expired. */
 	time_t now; 			/* Current time, used to decide whether row
 							 * should be finally removed. */
 	GSList *sl_remaining;	/* Contains row data for not yet removed rows. */	
@@ -496,9 +495,25 @@ void uploads_gui_update_display(time_t now)
     static time_t last_update = 0;
     static gboolean locked = FALSE;
 	remove_row_ctx_t ctx = { FALSE, now, NULL };
+	gint current_page;
+
+	/*
+	 * Usually don't perform updates if nobody is watching.  However,
+	 * we do need to perform periodic cleanup of dead entries or the
+	 * memory usage will grow.  Perform an update every UPDATE_MIN minutes
+	 * at least.
+	 *		--RAM, 28/12/2003
+	 */
+
+	current_page = gtk_notebook_get_current_page(
+		GTK_NOTEBOOK(lookup_widget(main_window, "notebook_main")));
+
+	if (current_page != nb_main_page_uploads && now - last_update < UPDATE_MIN)
+		return;
 
     if (last_update == now)
         return;
+
     last_update = now;
 
     g_return_if_fail(!locked);
