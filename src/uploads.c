@@ -960,13 +960,30 @@ static void upload_request(struct upload *u, header_t *header)
 		 */
 
 		if (u->push && index != u->index)
-			g_warning("Host %s sent PUSH for %u but is now requesting %u (%s)",
+			g_warning("Host %s sent PUSH for %u (%s), now requesting %u (%s)",
 				ip_to_gchar(s->ip),
-				u->index, index, requested_file->file_name);
+				u->index, u->name, index, requested_file->file_name);
 
-		/* Set all the upload information */
+		/*
+		 * Set all the upload information
+		 *
+		 * When comming from a push request, we already have a non-NULL
+		 * u->name in the structure.  However, even if the index is the same,
+		 * it's not a 100% certainety that the filename matches (the library
+		 * could have been rebuilt).  Most of the time, it will, so it
+		 * pays to strcmp() it.
+		 *		--RAM, 25/03/2002, memory leak found by Michael Tesch
+		 */
+
 		u->index = index;
-		u->name = g_strdup(requested_file->file_name);
+
+		if (u->push && 0 != strcmp(u->name, requested_file->file_name)) {
+			g_free(u->name);
+			u->name = NULL;
+		}
+
+		if (u->name == NULL)
+			u->name = g_strdup(requested_file->file_name);
 
 		u->skip = skip;
 		u->end = end;
