@@ -904,6 +904,7 @@ static struct results_set *get_results_set(struct gnutella_node *n)
 	guint32 nr, size, index, taglen;
 	struct gnutella_search_results *r;
 	GString *info = g_string_sized_new(80);
+	gint sha1_errors = 0;
 
 	/* We shall try to detect malformed packets as best as we can */
 	if (n->size < 27) {
@@ -1007,9 +1008,14 @@ static struct results_set *get_results_set(struct gnutella_node *n)
 
 			exvcnt = ext_parse(tag, taglen, exv, MAX_EXTVEC);
 
-			if (exvcnt == MAX_EXTVEC)
-				g_warning("Query hit record has %d extensions!", exvcnt);
-
+			if (exvcnt == MAX_EXTVEC) {
+				g_warning("%s hit record has %d extensions!",
+					gmsg_infostr(&n->header), exvcnt);
+				if (dbg)
+					ext_dump(stderr, exv, exvcnt, "> ", "\n", TRUE);
+				if (dbg > 1)
+					dump_hex(stderr, "Query Hit Tag", tag, taglen);
+			}
 
 			/*
 			 * Look for a valid SHA1 or a tag string we can display.
@@ -1028,9 +1034,11 @@ static struct results_set *get_results_set(struct gnutella_node *n)
 							sha1_digest, &n->header, TRUE)
 					)
 						rc->sha1 = atom_sha1_get(sha1_digest);
+					else
+						sha1_errors++;
 					break;
 				case EXT_T_UNKNOWN:
-					if (ext_is_ascii(e)) {
+					if (e->ext_paylen && ext_has_ascii_word(e)) {
 						guchar *p = e->ext_payload + e->ext_paylen;
 						guchar c = *p;
 
@@ -1132,6 +1140,21 @@ static struct results_set *get_results_set(struct gnutella_node *n)
 					rs->trailer[4], rs->trailer[4] == 1 ? "" : "s", vendor);
 			break;
 		}
+
+		/*
+		 * Now that we have the vendor, warn if the message has SHA1 errors.
+		 */
+
+		if (dbg && sha1_errors) {
+			g_warning(
+				"%s (%s) from %s (%s) had %d SHA1 error%s over %u record%s",
+				 gmsg_infostr(&n->header), vendor ? vendor : "????",
+				 node_ip(n), n->vendor ? n->vendor : "????",
+				 sha1_errors, sha1_errors == 1 ? "" : "s",
+				 nr, nr == 1 ? "" : "s");
+			if (dbg > 1)
+				dump_hex(stderr, "Query Hit Data (BAD)", n->data, n->size);
+		}
 	}
 
 	g_string_free(info, TRUE);
@@ -1144,9 +1167,13 @@ static struct results_set *get_results_set(struct gnutella_node *n)
 	 */
 
   bad_packet:
-	if (dbg) g_warning(
-		"Bad Query Hit (hops=%d, ttl=%d) from %s (%u/%u records parsed)\n",
-		 n->header.hops, n->header.ttl, node_ip(n), nr, rs->num_recs);
+	if (dbg) {
+		g_warning(
+			"BAD %s from %s (%u/%u records parsed)",
+			 gmsg_infostr(&n->header), node_ip(n), nr, rs->num_recs);
+		if (dbg > 1)
+			dump_hex(stderr, "Query Hit Data (BAD)", n->data, n->size);
+	}
 
 	search_free_r_set(rs);
 	g_string_free(info, TRUE);
