@@ -422,19 +422,6 @@ static gint index_of_found_files_count = 0;
 static struct gnutella_node *issuing_node;
 
 /* 
- * compare_indexes
- * 
- * Compare 2 indexes for use as the GCompareFunc for the index_of_found_files
- * GTree.
- * Return 0 if indexes are the same, a negative value if i1 is bigger
- * than i2 and a positive value otherwise.
- */
-static int compare_indexes(guint32 i1, guint32 i2)
-{
-	return i2 - i1;
-}
-
-/* 
  * shared_file_already_in_found_set
  * 
  * Check if a given shared_file has been added to the QueryHit.
@@ -455,7 +442,7 @@ static gboolean shared_file_already_in_found_set(const struct shared_file *sf)
 static void put_shared_file_into_found_set(const struct shared_file *sf)
 {
 	index_of_found_files_count++;
-	g_hashtable_insert(index_of_found_files, 
+	g_hash_table_insert(index_of_found_files, 
 				  GUINT_TO_POINTER(sf->file_index), 
 				  GUINT_TO_POINTER(!NULL));
 }
@@ -478,7 +465,7 @@ static void found_reset(struct gnutella_node *n)
 	 */
 
 	if (index_of_found_files && index_of_found_files_count) {
-		g_hashtable_destroy(index_of_found_files);
+		g_hash_table_destroy(index_of_found_files);
 		index_of_found_files_count = 0;
 		index_of_found_files = NULL;
 	}
