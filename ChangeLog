@@ -1,6 +1,17 @@
 # since last version
 
-- (2002.09.10 Richard)
+- (2002.09.12 Richard)
+ * Renamed share_gui2.c to monitor_gui2.c
+ * Added checkbutton to config-UI panel to toggle expert mode
+ * Fixed freeze-bug when adding filter rules via search popup
+ * Optional compaction of queries (default off). This cleans up
+   the search stats and saves a little bandwidth but in turn costs
+   a little cpu.
+ * Enabled Gtk2 frontend again (experimental)
+ * Fixed typo "No item found" => "No items found"
+ * Reordered result processing in share.c: first check wether results
+   should be dropped, then notify listeners (search monitor/stats), 
+   then check wether to perform a local search.
  * Expanded gnet statistics
  * Added percentage display for gnet statistics
  * Moved "(globally) drop..." do submenus. More to come
@@ -12,6 +23,7 @@
    removed
  * Expanded search stats. Can choose between "word" and "query" stats.
  * Renamed search_stats.[ch] to search_stats_gui.[ch]
+ * Integreted search stats in gui_update_global.
 
 - (2002.09.09 RAM)
  * Fixed reference count problem when resetting fileinfo.
