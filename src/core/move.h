@@ -40,5 +40,5 @@ void move_queue(struct download *d, const gchar *dest, const gchar *ext);
 
 #endif	/* _core_move_h_ */
 
-/* vi: set ts=4: */
+/* vi: set ts=4 sw=4 cindent: */
 
