@@ -1,7 +1,7 @@
 /*
+ * Copyright (c) 2004, Raphael Manfredi
  * Copyright (c) 2003, Markus Goetz
  *
- * Support for the hostiles.txt of bearshare
  * This file is based a lot on the whitelist stuff by vidar.
  *
  *----------------------------------------------------------------------
@@ -24,6 +24,12 @@
  *----------------------------------------------------------------------
  */
 
+/**
+ * @file
+ *
+ * Support for the hostiles.txt of BearShare
+ */
+
 #include "common.h"
 
 RCSID("$Id$");
@@ -34,9 +40,12 @@ RCSID("$Id$");
 
 #include "lib/file.h"
 #include "lib/misc.h"
+#include "lib/glib-missing.h"
 #include "lib/walloc.h"
+#include "lib/watcher.h"
 
 #include "if/gnet_property_priv.h"
+#include "if/bridge/c2ui.h"
 
 #include "lib/override.h"		/* Must be the last header included */
 
@@ -53,24 +62,22 @@ static GSList *hostiles_exact[256];		/* Indexed by LAST byte */
 static GSList *hostiles_wild = NULL;	/* Addresses with mask less than /8 */
 static GSList *hostiles_narrow[256];	/* Indexed by FIRST byte */
 
-/*
- * hostile_hash
- *
+/**
  * Hash an hostile structure.
  */
-static guint hostile_hash(gconstpointer key)
+static guint
+hostile_hash(gconstpointer key)
 {
 	const struct hostile *h = key;
 
 	return (guint) (h->ip_masked ^ h->netmask);
 }
 
-/*
- * hostile_eq
- *
+/**
  * Check whether two hostile structures are equal.
  */
-static gint hostile_eq(gconstpointer a, gconstpointer b)
+static gint
+hostile_eq(gconstpointer a, gconstpointer b)
 {
 	const struct hostile *ha = a;
 	const struct hostile *hb = b;
@@ -78,36 +85,20 @@ static gint hostile_eq(gconstpointer a, gconstpointer b)
 	return ha->ip_masked == hb->ip_masked && ha->netmask == hb->netmask;
 }
 
-/*
- * hostiles_retrieve
- *
- * Loads the hostiles.txt into memory.
+/**
+ * Load hostile data from the supplied FILE.
+ * Returns the amount of entries loaded.
  */
-void hostiles_retrieve(void)
+static gint
+hostiles_load(FILE *f)
 {
 	gchar line[1024];
 	gchar *p;
 	guint32 ip, netmask;
 	struct hostile *n;
-	FILE *f;
 	int linenum = 0;
 	gint count = 0;
-#ifndef OFFICIAL_BUILD 
-	file_path_t fp[3];
-#else
-	file_path_t fp[2];
-#endif
 	GHashTable *seen;
-
-	file_path_set(&fp[0], settings_config_dir(), hostiles_file);
-	file_path_set(&fp[1], PRIVLIB_EXP, hostiles_file);
-#ifndef OFFICIAL_BUILD 
-	file_path_set(&fp[2], PACKAGE_SOURCE_DIR, hostiles_file);
-#endif
-
-	f = file_config_open_read_norename(hostiles_what, fp, G_N_ELEMENTS(fp));
-	if (!f)
-	   return;
 
 	seen = g_hash_table_new(hostile_hash, hostile_eq);
 
@@ -158,15 +149,79 @@ void hostiles_retrieve(void)
 	g_hash_table_destroy(seen);		/* Keys/values are in `sl_hostiles' */
 
 	if (dbg)
-		printf("Loaded %d hostile IP addresses/netmasks\n", count);
+		g_message("loaded %d hostile IP addresses/netmasks\n", count);
+
+	return count;
 }
 
-/*
- * hostiles_init
+/**
+ * Watcher callback, invoked when the file from which we read the hostile
+ * addresses changed.
+ */
+static void
+hostiles_changed(const gchar *filename, gpointer udata)
+{
+	FILE *f;
+	gchar buf[80];
+	gint count;
+
+	f = file_fopen(filename, "r");
+	if (f == NULL)
+		return;
+
+	hostiles_close();
+	count = hostiles_load(f);
+
+	gm_snprintf(buf, sizeof(buf), "Reloaded %d hostile IP addresses.", count);
+	gcu_statusbar_message(buf);
+}
+
+/**
+ * Loads the hostiles.txt into memory, choosing the first file we find
+ * among the several places we look at, typically:
  *
+ *    ~/.gtk-gnutella/hostiles.txt
+ *    /usr/share/gtk-gnutella/hostiles.txt
+ *    /home/src/gtk-gnutella/hostiles.txt
+ *
+ * The selected file will then be monitored and a reloading will occur
+ * shortly after a modification.
+ */
+static void
+hostiles_retrieve(void)
+{
+	FILE *f;
+	gint idx;
+	gchar *filename;
+#ifndef OFFICIAL_BUILD 
+	file_path_t fp[3];
+#else
+	file_path_t fp[2];
+#endif
+
+	file_path_set(&fp[0], settings_config_dir(), hostiles_file);
+	file_path_set(&fp[1], PRIVLIB_EXP, hostiles_file);
+#ifndef OFFICIAL_BUILD 
+	file_path_set(&fp[2], PACKAGE_SOURCE_DIR, hostiles_file);
+#endif
+
+	f = file_config_open_read_norename_chosen(
+			hostiles_what, fp, G_N_ELEMENTS(fp), &idx);
+
+	if (!f)
+	   return;
+
+	filename = make_pathname(fp[idx].dir, fp[idx].name);
+	watcher_register(filename, hostiles_changed, NULL);
+
+	hostiles_load(f);
+}
+
+/**
  * Called on startup. Loads the hostiles.txt into memory.
  */
-void hostiles_init(void)
+void
+hostiles_init(void)
 {
 	GSList *sl;
 	gint i;
@@ -205,12 +260,11 @@ void hostiles_init(void)
 	}
 }
 
-/*
- * hostiles_close
- *
+/**
  * Frees all entries in the hostiles
  */
-void hostiles_close(void)
+void
+hostiles_close(void)
 {
 	GSList *sl;
 	gint i;
@@ -229,14 +283,13 @@ void hostiles_close(void)
 	sl_hostiles = NULL;
 }
 
-/*
- * hostiles_check
- *
+/**
  * Check the given IP agains the entries in the hostiles.
  * Returns TRUE if found, and FALSE if not.
  *
  */
-gboolean hostiles_check(guint32 ip)
+gboolean
+hostiles_check(guint32 ip)
 {
 	GSList *sl;
 	struct hostile *h;
