@@ -1,5 +1,21 @@
 # since last version
 
+- (2002.08.27 Richard)
+ * Moved vendor code resolving to vendors.[ch]
+ * Added ARES to known vendors 
+ * Juggled includes
+ * Moved more gui initialization and shutdown code to main_gui.c
+ * Moved main gui timer to main_gui.c
+ * Moved loading of legacy config file to main_gui.c
+ * Moved search_extract_host from search.c as node_extract_host to nodes.c
+ * Display message in statusbar when manuall connection to node failed
+ * oldconfig.c is now considered GUI code (needs to access gnet and gui
+   props)
+ * Properly update GUI when listen_ip or listen_port changes
+ * Moved all code from share_gui.[ch] to monitor_gui.[ch]
+ * Moved gui_new_version found as version_new_found to version.c
+ * Removed gui init calls from share.c
+
 - (2002.08.26 - Vidar)
  * Added a node whitelist. Listed entries will always be allowed a
    connection, and we will actively try to stay connected to them.
