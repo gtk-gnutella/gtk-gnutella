@@ -1,5 +1,8 @@
 # since last version
 
+- (2003.07.22 - Jeroen)
+ * Fixed path array in gwebcache.c when in unstable mode.
+
 - (2003.07.21 - guruz)
  * Added giFT vendor code
 
@@ -7,7 +10,8 @@
  * Try to avoid to connect to unstable ultrapeer hosts. An ultrapeer
    is marked unstable when we are unable to connect to it for more
    than 2 hours
-
+ * Initial import of tigertree source code.
+ 
 # v 0.92.1c 2003.06.20 [candidate]
 These are some changes since 0.92 stable:
 
