@@ -192,6 +192,7 @@ void gtk_gnutella_exit(gint n)
 
 #undef DO
 
+	vp_gui_shutdown();
 	main_gui_update_coords();
 	main_gui_shutdown();
 
@@ -569,8 +570,8 @@ gint main(gint argc, gchar **argv, gchar **env)
 	routing_init();
 	search_init();
 	share_init();
-	dmesh_init();			/* Muse be done BEFORE download_init() */
-	download_init();
+	dmesh_init();			/* MUST be done BEFORE download_init() */
+	download_init();		/* MUST be done AFTER file_info_init() */
 	upload_init();
 #ifdef USE_REMOTE_CTRL
 	shell_init();
