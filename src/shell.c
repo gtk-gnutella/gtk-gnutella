@@ -57,13 +57,16 @@ static GSList *sl_shells = NULL;
 
 typedef struct gnutella_shell {
 	struct gnutella_socket *socket;
-	gchar  outbuf[OUTPUT_BUFFER_SIZE+1];
+	gchar  outbuf[OUTPUT_BUFFER_SIZE];
 	gint32 outpos;
 	guint  write_tag;
 	time_t last_update; /* Last update (needed for timeout) */
 	gchar *msg;         /* Additional information to reply code */
 	gboolean shutdown;  /* In shutdown mode? */
 } gnutella_shell_t;
+
+/* Don't refer to OUTPUT_BUFFER_SIZE, use sizeof */
+#undef OUTPUT_BUFFER_SIZE
 
 static gchar auth_cookie[SHA1_RAW_SIZE];
 
@@ -818,7 +821,8 @@ static void shell_read_data(gnutella_shell_t *sh)
 
 		switch (getline_read(s->getline, s->buffer, s->pos, &parsed)) {
 		case READ_OVERFLOW:
-			g_warning("Reading buffer overflow from %ul:%d\n",s->ip, s->port);
+			g_warning("Line is too long (from shell at %s)\n",
+				ip_port_to_gchar(s->ip, s->port));
 			return;
 		case READ_DONE:
 			if (s->pos != parsed)
@@ -887,15 +891,20 @@ static gboolean shell_write(gnutella_shell_t *sh, const gchar *s)
 	g_assert(sh);
 	g_assert(s);
 
+	g_return_val_if_fail(sh->outpos >= 0, FALSE);
+	g_return_val_if_fail((size_t) sh->outpos < sizeof sh->outbuf, FALSE);
 	len = strlen(s);
-	if ((len + sh->outpos) > sizeof(sh->outbuf)) {
-		g_warning("output buffer overflow");
+	g_return_val_if_fail((ssize_t) len >= 0, FALSE);
+	g_return_val_if_fail(len <= sizeof sh->outbuf, FALSE);
+
+	if (len + sh->outpos >= sizeof(sh->outbuf)) {
+		g_warning("Line is too long (for shell at %s)",
+			ip_port_to_gchar(sh->socket->ip, sh->socket->port));
 		return FALSE;
 	}
 
-	memcpy((sh->outbuf + sh->outpos), s, len);
+	memcpy(sh->outbuf + sh->outpos, s, len);
 	sh->outpos += len;
-	sh->outbuf[sh->outpos] = '\0';
 
 	if (sh->write_tag == 0) {
 		sh->write_tag = inputevt_add(sh->socket->file_desc, 
