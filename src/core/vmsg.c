@@ -868,8 +868,15 @@ handle_proxy_cancel(struct gnutella_node *n,
 		vmsg_bad_payload(n, vmsg, size, 0);
 		return;
 	}
+
+	/*
+	 * We keep the GUID route for that node, to honour further push-proxy
+	 * requests coming from past hits sent away by the proxied node.
+	 * However, we clear the flag marking the node as proxied, and we know
+	 * it is no longer TCP-firewalled.
+	 */
 	
-	node_proxying_remove(n);
+	node_proxying_remove(n, FALSE);
 }
 
 /**

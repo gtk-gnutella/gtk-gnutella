@@ -1275,7 +1275,7 @@ node_remove_v(struct gnutella_node *n, const gchar *reason, va_list ap)
 	n->last_update = time((time_t *) NULL);
 
     node_ht_connected_nodes_remove(n->gnet_ip, n->gnet_port);
-	node_proxying_remove(n);
+	node_proxying_remove(n, TRUE);
 
 	if (n->flags & NODE_F_EOF_WAIT)
 		pending_byes--;
@@ -6143,7 +6143,7 @@ node_fill_flags(const gnet_node_t n, gnet_node_flags_t *flags)
     flags->rx_compressed = NODE_RX_COMPRESSED(node);
 	flags->hops_flow = node->hops_flow;
 
-	flags->is_push_proxied = node->guid != 0;
+	flags->is_push_proxied = (node->flags & NODE_F_PROXIED) ? TRUE : FALSE;
 	flags->is_proxying = node->proxy_ip != 0;
 	flags->tls = (node->flags & NODE_F_TLS) != 0;
 
@@ -6355,17 +6355,21 @@ node_connected_back(struct gnutella_socket *s)
 
 /**
  * Remove push proxy indication for the node, i.e. we're no longer acting
- * as its push-proxy from now on.
+ * as its push-proxy from now on.  If `discard' is true, get rid of the
+ * GUID and route information.
  */
 void
-node_proxying_remove(gnutella_node_t *n)
+node_proxying_remove(gnutella_node_t *n, gboolean discard)
 {
-	if (n->guid) {
+	n->flags &= ~NODE_F_PROXIED;
+
+	if (n->guid && discard) {
 		route_proxy_remove(n->guid);
 		atom_guid_free(n->guid);
 		n->guid = NULL;
-		node_fire_node_flags_changed(n);
 	}
+
+	node_fire_node_flags_changed(n);
 }
 
 /**
@@ -6400,26 +6404,35 @@ node_proxying_add(gnutella_node_t *n, gchar *guid)
 	/*
 	 * Did we already get a proxyfication request for the node?
 	 * Maybe he did not get our ACK and is retrying?
+	 *
+	 * NB: we must handle the fact that a node could have sent us a
+	 * "Push-Proxy Cancel" message, and then later a "Push-Proxy Request".
+	 * So we can have a GUID recorded already, but NODE_F_PROXIED cleared.
 	 */
 
 	if (n->guid != NULL) {
 		gchar old[33];
 
-		g_warning("spurious push-proxyfication request from %s <%s>",
-			node_ip(n), node_vendor(n));
+		if (n->flags & NODE_F_PROXIED)
+			g_warning("spurious push-proxyfication request from %s <%s>",
+				node_ip(n), node_vendor(n));
 
-		if (guid_eq(guid, n->guid))		/* Already recorded with this GUID */
-			return TRUE;
+		if (!guid_eq(guid, n->guid)) {
+			strncpy(old, guid_hex_str(n->guid), sizeof(old));
 
-		strncpy(old, guid_hex_str(n->guid), sizeof(old));
+			g_warning("new GUID %s for node %s <%s> (was %s)",
+				guid_hex_str(guid), node_ip(n), node_vendor(n), old);
 
-		g_warning("new GUID %s for node %s <%s> (was %s)",
-			guid_hex_str(guid), node_ip(n), node_vendor(n), old);
-
-		route_proxy_remove(n->guid);
-		atom_guid_free(n->guid);
-		n->guid = NULL;
+			route_proxy_remove(n->guid);
+			atom_guid_free(n->guid);
+			n->guid = NULL;
+		}
 	}
+
+	n->flags |= NODE_F_PROXIED;
+
+	if (n->guid != NULL)
+		return TRUE;				/* Route already recorded */
 
 	n->guid = atom_guid_get(guid);
 	if (route_proxy_add(n->guid, n)) {
@@ -6432,6 +6445,7 @@ node_proxying_add(gnutella_node_t *n, gchar *guid)
 
 	atom_guid_free(n->guid);
 	n->guid = NULL;
+	n->flags &= ~NODE_F_PROXIED;
 
 	return FALSE;
 }

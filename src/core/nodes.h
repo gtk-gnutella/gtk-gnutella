@@ -261,9 +261,10 @@ typedef struct gnutella_node {
 #define NODE_F_LEAF			0x00004000	/* Is one of our leaves */
 #define NODE_F_CRAWLER		0x00008000	/* Is a Gnutella Crawler */
 #define NODE_F_FAKE_NAME	0x00010000	/* Was unable to validate GTKG name */
-#define NODE_F_PROXY		0x00020000	/* Sent a push-proxy request */
-#define NODE_F_QRP_SENT		0x00040000	/* Undergone one complete QRP sending */
-#define NODE_F_TLS			0x00080000	/* TLS-tunneled */
+#define NODE_F_PROXY		0x00020000	/* We sent a push-proxy request to it */
+#define NODE_F_PROXIED		0x00040000	/* We are the push-proxy of that node */
+#define NODE_F_QRP_SENT		0x00080000	/* Undergone one complete QRP sending */
+#define NODE_F_TLS			0x00100000	/* TLS-tunneled */
 
 /*
  * Node attributes.
@@ -529,7 +530,7 @@ void node_connected_back(struct gnutella_socket *s);
 
 void node_mark_bad_vendor(struct gnutella_node *n);
 	
-void node_proxying_remove(gnutella_node_t *n);
+void node_proxying_remove(gnutella_node_t *n, gboolean discard);
 gboolean node_proxying_add(gnutella_node_t *n, gchar *guid);
 void node_proxy_add(gnutella_node_t *n, guint32 ip, guint16 port);
 void node_proxy_cancel_all(void);
