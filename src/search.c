@@ -41,6 +41,7 @@
 #include "dmesh.h"
 #include "fileinfo.h"
 #include "guid.h"
+#include "gui_property.h"
 
 #include <ctype.h>
 
@@ -86,6 +87,7 @@ typedef struct search_ctrl {
 	guint reissue_timeout_id;
 	guint reissue_timeout;		/* timeout per search, 0 = search stopped */
 	guint query_emitted;		/* Amount of queries emitted since last retry */
+	guint items;				/* Items displayed in the GUI */
 } search_ctrl_t;
 
 /*
@@ -1345,6 +1347,10 @@ static gboolean search_reissue_timeout_callback(gpointer data)
  */
 static void update_one_reissue_timeout(search_ctrl_t *sch)
 {
+	guint32 max_items;
+	guint percent;
+	guint factor;
+
     g_assert(sch != NULL);
     g_assert(!sch->passive);
 
@@ -1358,17 +1364,27 @@ static void update_one_reissue_timeout(search_ctrl_t *sch)
     if (sch->frozen || (sch->reissue_timeout == 0))
         return;
 
-	if (dbg > 3)
-		printf("updating search %s with timeout %d.\n", sch->query,
-		   sch->reissue_timeout * 1000);
+	/*
+	 * Look at the amount of items we got for this search already.
+	 * The more we have, the less often we retry to save network resources.
+	 */
+
+	gui_prop_get_guint32_val(PROP_SEARCH_MAX_RESULTS, &max_items);
+	percent = sch->items * 100 / max_items;
+	factor = (percent < 40) ? 1 : 2 + (percent - 40) * (percent - 40) / 250;
 
     /*
      * Otherwise we also add a new timer. If the search was stopped, this
      * will restart the search, otherwise is will simply reset the timer
      * and set a new timer with the searches's reissue_timeout.
      */
+
+	if (dbg > 3)
+		printf("updating search \"%s\" with timeout %d.\n", sch->query,
+		   sch->reissue_timeout * factor * 1000);
+
     sch->reissue_timeout_id = g_timeout_add(
-        sch->reissue_timeout * 1000, 
+        sch->reissue_timeout * factor * 1000, 
         search_reissue_timeout_callback,
         sch);
 }
@@ -1827,7 +1843,19 @@ gnet_search_t search_new(
 }
 
 /*
- * search_start:
+ * search_update_items
+ *
+ * The GUI updates us on the amount of items displayed in the search.
+ */
+void search_update_items(gnet_search_t sh, guint items)
+{
+    search_ctrl_t *sch = search_find_by_handle(sh);
+
+	sch->items = items;
+}
+
+/*
+ * search_start
  *
  * Start a newly created start or resume stopped search.
  */
@@ -1866,7 +1894,7 @@ void search_start(gnet_search_t sh)
 }
 
 /*
- * search_stop:
+ * search_stop
  *
  * Stop search. Cancel reissue timer and don't return any results anymore.
  */

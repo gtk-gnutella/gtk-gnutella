@@ -81,6 +81,7 @@ void search_gui_restart_search(search_t *sch)
 	gtk_clist_clear(GTK_CLIST(sch->clist));
 	sch->items = sch->unseen_items = 0;
 	gui_search_update_items(sch);
+	search_update_items(sch->search_handle);
 }
 
 /*
@@ -120,6 +121,7 @@ void search_gui_clear_search(search_t *sch)
 	search_gui_free_r_sets(sch);
 
 	sch->items = sch->unseen_items = 0;
+	search_update_items(sch->search_handle);
 }
 
 /* 
@@ -697,6 +699,7 @@ static guint download_selection_of_clist(GtkCList * c, guint *selected)
 
     gui_search_force_update_tab_label(current_search);
     gui_search_update_items(current_search);
+    search_update_items(current_search->search_handle);
 
 	*selected = count;
 	return created;

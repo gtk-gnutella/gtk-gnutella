@@ -48,6 +48,7 @@ void search_shutdown(void);
 
 gboolean search_results(gnutella_node_t *n);
 gboolean search_query_allowed(gnet_search_t sh);
+void search_update_items(gnet_search_t sh, guint items);
 
 #endif /* _search_h_ */
 
