@@ -162,8 +162,10 @@ extern gint guid_eq(gconstpointer a, gconstpointer b);
 /***
  *** Sources API
  ***/
+
 static struct event *src_events[EV_SRC_EVENTS] = {
-    NULL, NULL, NULL, NULL };
+	NULL, NULL, NULL, NULL
+};
 
 static idtable_t *src_handle_map = NULL;
 
@@ -363,7 +365,7 @@ void download_init(void)
 	dl_count_by_name = g_hash_table_new(g_str_hash, g_str_equal);
 	dl_count_by_sha1 = g_hash_table_new(g_str_hash, g_str_equal);
 
-    src_init();
+	src_init();
 }
 
 /*
@@ -525,10 +527,10 @@ void download_timer(time_t now)
 	}
 
 	download_clear_stopped(
-        clear_complete_downloads, 
-        clear_failed_downloads,
-        clear_unavailable_downloads,
-        FALSE);
+		clear_complete_downloads, 
+		clear_failed_downloads,
+		clear_unavailable_downloads,
+		FALSE);
 
 	download_free_removed();
 
@@ -1217,8 +1219,8 @@ void download_info_change_all(
 		}
 
 		g_assert(old_fi->refcount > 0);
-        file_info_remove_source(old_fi, d, FALSE); /* Keep it around */
-        file_info_add_source(new_fi, d);
+		file_info_remove_source(old_fi, d, FALSE); /* Keep it around */
+		file_info_add_source(new_fi, d);
 
 		d->flags &= ~DL_F_SUSPENDED;
 		if (new_fi->flags & FI_F_SUSPEND)
@@ -1250,7 +1252,7 @@ static void download_info_reget(struct download *d)
 	file_info_clear_download(d, TRUE);			/* `d' might be running */
 
 	fi->lifecount--;
-    file_info_remove_source(fi, d, FALSE);      /* Keep it around for others */
+	file_info_remove_source(fi, d, FALSE);		/* Keep it around for others */
 
 	fi = file_info_get(
 		d->file_name, save_file_path, d->file_size, d->sha1);
@@ -1320,7 +1322,7 @@ static void queue_remove_downloads_with_file(
 	struct dl_file_info *fi, struct download *skip)
 {
 	GSList *sl;
-    GSList *to_remove = NULL;
+	GSList *to_remove = NULL;
 
 	for (sl = sl_downloads; sl != NULL; sl = g_slist_next(sl)) {
 		struct download *d = (struct download *) sl->data;
@@ -1342,13 +1344,13 @@ static void queue_remove_downloads_with_file(
 		if (d->file_info != fi || d == skip)
 			continue;
 
-        to_remove = g_slist_prepend(to_remove, d);
+		to_remove = g_slist_prepend(to_remove, d);
 	}
 
-    for (sl = to_remove; sl != NULL; sl = g_slist_next(sl))
-        download_remove((struct download *) sl->data);
+	for (sl = to_remove; sl != NULL; sl = g_slist_next(sl))
+		download_remove((struct download *) sl->data);
 
-    g_slist_free(to_remove);
+	g_slist_free(to_remove);
 }
 
 /*
@@ -1368,8 +1370,8 @@ gint download_remove_all_from_peer(gchar *guid, guint32 ip, guint16 port,
 	struct dl_server *server[2];
 	gint n = 0;
 	enum dl_list listnum[] = { DL_LIST_RUNNING, DL_LIST_WAITING };
-    GSList *to_remove = NULL;
-    GSList *sl;
+	GSList *to_remove = NULL;
+	GSList *sl;
 	gint i;
 	gint j;
 
@@ -1439,7 +1441,7 @@ gint download_remove_all_from_peer(gchar *guid, guint32 ip, guint16 port,
 gint download_remove_all_named(const gchar *name)
 {
 	GSList *sl;
-    GSList *to_remove = NULL;
+	GSList *to_remove = NULL;
 	gint n = 0;
 
 	g_return_val_if_fail(name, 0);
@@ -1450,13 +1452,13 @@ gint download_remove_all_named(const gchar *name)
 		g_assert(d);
 
 		if (
-            (d->status == GTA_DL_REMOVED) ||
-            (strcmp(name, d->file_name) != 0)
-        )
+			(d->status == GTA_DL_REMOVED) ||
+			(strcmp(name, d->file_name) != 0)
+		)
 			continue;
 
 		n++;
-        to_remove = g_slist_prepend(to_remove, d);
+		to_remove = g_slist_prepend(to_remove, d);
 	}
 
 	/*
@@ -1467,13 +1469,13 @@ gint download_remove_all_named(const gchar *name)
 	 *		--RAM, 05/11/2002
 	 */
 
-    for (sl = to_remove; sl != NULL; sl = g_slist_next(sl)) {
+	for (sl = to_remove; sl != NULL; sl = g_slist_next(sl)) {
 		struct download *d = (struct download *) sl->data;
 		file_info_set_discard(d->file_info, TRUE);
-        download_abort(d);
+		download_abort(d);
 	}
 
-    g_slist_free(to_remove);
+	g_slist_free(to_remove);
 
 	return n;
 }
@@ -1490,7 +1492,7 @@ gint download_remove_all_named(const gchar *name)
 gint download_remove_all_with_sha1(const gchar *sha1)
 {
 	GSList *sl;
-    GSList *to_remove = NULL;
+	GSList *to_remove = NULL;
 	gint n = 0;
 
 	g_return_val_if_fail(sha1 != NULL, 0);
@@ -1501,14 +1503,14 @@ gint download_remove_all_with_sha1(const gchar *sha1)
 		g_assert(d);
 
 		if (
-            (d->status == GTA_DL_REMOVED) ||
-            (d->file_info->sha1 == NULL) ||
-            (memcmp(sha1, d->file_info->sha1, SHA1_RAW_SIZE) != 0)
-        )
+			(d->status == GTA_DL_REMOVED) ||
+			(d->file_info->sha1 == NULL) ||
+			(memcmp(sha1, d->file_info->sha1, SHA1_RAW_SIZE) != 0)
+		)
 			continue;
 
 		n++;
-        to_remove = g_slist_prepend(to_remove, d);
+		to_remove = g_slist_prepend(to_remove, d);
 	}
 
 	/*
@@ -1519,13 +1521,13 @@ gint download_remove_all_with_sha1(const gchar *sha1)
 	 *		--RAM, 05/11/2002
 	 */
 
-    for (sl = to_remove; sl != NULL; sl = g_slist_next(sl)) {
+	for (sl = to_remove; sl != NULL; sl = g_slist_next(sl)) {
 		struct download *d = (struct download *) sl->data;
 		file_info_set_discard(d->file_info, TRUE);
-        download_abort(d);
+		download_abort(d);
 	}
 
-    g_slist_free(to_remove);
+	g_slist_free(to_remove);
 
 	return n;
 }
@@ -1921,7 +1923,7 @@ static void download_stop_v(struct download *d, guint32 new_status,
 		g_assert(d->file_info->recvcount <= d->file_info->lifecount);
 
 		d->file_info->recvcount--;
-        d->file_info->dirty_status = TRUE;
+		d->file_info->dirty_status = TRUE;
 	}
 
 	switch (new_status) {
@@ -2488,7 +2490,7 @@ gboolean download_start_prepare_running(struct download *d)
 {
 	struct dl_file_info *fi = d->file_info;
 
-    g_assert(d != NULL);
+	g_assert(d != NULL);
 	g_assert(!DOWNLOAD_IS_QUEUED(d));
 	g_assert(d->list_idx == DL_LIST_RUNNING);
 	g_assert(fi != NULL);
@@ -2573,7 +2575,7 @@ gboolean download_start_prepare_running(struct download *d)
  */
 gboolean download_start_prepare(struct download *d)
 {
-    g_assert(d != NULL);
+	g_assert(d != NULL);
 	g_assert(d->list_idx != DL_LIST_RUNNING);	/* Not already running */
 
 	/*
@@ -2970,7 +2972,7 @@ void download_pickup_queued(void)
 		lookup_widget(popup_queue, "popup_queue_start_now"), 
 		(running < max_downloads) &&
 		GTK_CLIST(
-			lookup_widget(main_window, "clist_downloads_queue"))->selection); 
+			lookup_widget(main_window, "ctree_downloads_queue"))->selection); 
 #endif
 }
 
@@ -3263,7 +3265,7 @@ static struct download *create_download(
 
 	d = (struct download *) walloc0(sizeof(struct download));
 
-    d->src_handle = idtable_new_id(src_handle_map, d);
+	d->src_handle = idtable_new_id(src_handle_map, d);
 	d->server = server;
 	d->list_idx = -1;
 
@@ -3312,7 +3314,7 @@ static struct download *create_download(
 	if (fi->flags & FI_F_SUSPEND)
 		d->flags |= DL_F_SUSPENDED;
 
-    file_info_add_source(fi, d);
+	file_info_add_source(fi, d);
 	fi->lifecount++;
 
 	download_add_to_list(d, DL_LIST_WAITING);
@@ -3444,16 +3446,16 @@ abort_download:
 static struct download *download_clone(struct download *d)
 {
 	struct download *cd = walloc0(sizeof(struct download));
-    struct dl_file_info *fi;
+	struct dl_file_info *fi;
 
 	g_assert(!(d->flags & (DL_F_ACTIVE_QUEUED|DL_F_PASSIVE_QUEUED)));
 
-    fi = d->file_info;
+	fi = d->file_info;
 
-	*cd = *d;		                /* Struct copy */
-    cd->src_handle = idtable_new_id(src_handle_map, cd); /* new handle */
-    cd->file_info = NULL;           /* has not been added to fi sources list */
-	file_info_add_source(fi, cd);   /* add clonded source */
+	*cd = *d;						/* Struct copy */
+	cd->src_handle = idtable_new_id(src_handle_map, cd); /* new handle */
+	cd->file_info = NULL;			/* has not been added to fi sources list */
+	file_info_add_source(fi, cd);	/* add clonded source */
 
 	g_assert(d->io_opaque == NULL);		/* If cloned, we were receiving! */
 
@@ -3755,10 +3757,10 @@ gboolean download_remove(struct download *d)
 	d->file_name = NULL;
 	d->escaped_name = NULL;
 
-    file_info_remove_source(d->file_info, d, FALSE); /* Keep fileinfo around */
+	file_info_remove_source(d->file_info, d, FALSE); /* Keep fileinfo around */
 	d->file_info = NULL;
 
-    idtable_free_id(src_handle_map, d->src_handle);
+	idtable_free_id(src_handle_map, d->src_handle);
 
 	sl_removed = g_slist_prepend(sl_removed, d);
 	
@@ -3834,7 +3836,7 @@ void download_resume(struct download *d)
 	case GTA_DL_MOVING:
 	case GTA_DL_DONE:
 		return;
-    default: ;
+	default: ;
 		/* FALL THROUGH */
 	}
 
@@ -4918,8 +4920,8 @@ static gboolean check_content_urn(struct download *d, header_t *header)
 				return FALSE;
 			}
 			if (download_overlap_range >= DOWNLOAD_MIN_OVERLAP) {
-                if (download_optimistic_start && (d->pos == 0))
-                    return TRUE;
+				if (download_optimistic_start && (d->pos == 0))
+					return TRUE;
 
 				if (d->overlap_size == 0) {
 					download_queue_delay(d, download_retry_busy_delay,
@@ -6021,8 +6023,8 @@ static void download_request(
 		fi->recv_last_time = d->start_date;
 		fi->recv_last_rate = 0;
 	}
-    fi->recvcount++;
-    fi->dirty_status = TRUE;
+	fi->recvcount++;
+	fi->dirty_status = TRUE;
 
 	dl_establishing--;
 	dl_active++;
@@ -7786,7 +7788,7 @@ void download_close(void)
 			http_buffer_free(d->req);
 		if (d->cproxy)
 			cproxy_free(d->cproxy);
-        
+
 		file_info_remove_source(d->file_info, d, TRUE);
 		parq_dl_remove(d);
 		download_remove_from_server(d, TRUE);
@@ -7795,16 +7797,16 @@ void download_close(void)
 		wfree(d, sizeof(*d));
 	}
 
-    /* 
-     * FIXME:
-     * It would be much cleaner if all downloads would be properly freed
-     * by calling download_free because thier handles would then be
-     * freed and we can assert that the src_handle_map is empty when
-     * src_close is called. (see src_close)
-     * -- Richard, 24 Mar 2003
-     */
+	/* 
+	 * FIXME:
+	 * It would be much cleaner if all downloads would be properly freed
+	 * by calling download_free because thier handles would then be
+	 * freed and we can assert that the src_handle_map is empty when
+	 * src_close is called. (see src_close)
+	 * -- Richard, 24 Mar 2003
+	 */
 
-    src_close();
+	src_close();
 
 	g_slist_free(sl_downloads);
 	sl_downloads = NULL;
@@ -7815,7 +7817,7 @@ void download_close(void)
 
 	/* XXX free & check other hash tables as well.
 	 * dl_by_ip, dl_by_host
-     */
+	 */
 }
 
 /* 
@@ -7826,31 +7828,31 @@ void download_close(void)
  */
 const gchar *build_url_from_download(struct download *d) 
 {
-    static gchar url_tmp[1024];
-    gchar *buf = NULL;
+	static gchar url_tmp[1024];
+	gchar *buf = NULL;
 
-    if (d == NULL)
-        return NULL;
+	if (d == NULL)
+		return NULL;
    
-    buf = url_escape(d->file_name);
+	buf = url_escape(d->file_name);
 
-    gm_snprintf(url_tmp, sizeof(url_tmp),
-               "http://%s/get/%u/%s",
-               ip_port_to_gchar(download_ip(d), download_port(d)),
+	gm_snprintf(url_tmp, sizeof(url_tmp),
+			   "http://%s/get/%u/%s",
+			   ip_port_to_gchar(download_ip(d), download_port(d)),
 			   d->record_index, buf);
 
-    /*
-     * Since url_escape() creates a new string ONLY if
-     * escaping is necessary, we have to check this and
-     * free memory accordingly.
-     * -- Richard, 30 Apr 2002
-     */
+	/*
+	 * Since url_escape() creates a new string ONLY if
+	 * escaping is necessary, we have to check this and
+	 * free memory accordingly.
+	 * -- Richard, 30 Apr 2002
+	 */
 
-    if (buf != d->file_name) {
-        g_free(buf);
-    }
-    
-    return url_tmp;
+	if (buf != d->file_name) {
+		g_free(buf);
+	}
+	
+	return url_tmp;
 }
 
 /* vi: set ts=4: */

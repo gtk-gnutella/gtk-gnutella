@@ -567,12 +567,12 @@ void main_gui_init(void)
         GTK_CLIST(lookup_widget(main_window, "clist_ul_stats")), 
         compare_ul_norm);
     gtk_clist_set_column_justification(
-        GTK_CLIST(lookup_widget(main_window, "clist_downloads_queue")),
+        GTK_CLIST(lookup_widget(main_window, "ctree_downloads_queue")),
         c_queue_size, GTK_JUSTIFY_RIGHT);
 
 	{
 		GtkCList *clist = 
-			GTK_CLIST(lookup_widget(main_window, "clist_downloads_queue"));
+			GTK_CLIST(lookup_widget(main_window, "ctree_downloads_queue"));
 
 		gtk_clist_column_titles_passive(clist);
 		gtk_clist_set_reorderable(clist, TRUE);

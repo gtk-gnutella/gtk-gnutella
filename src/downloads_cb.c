@@ -40,13 +40,18 @@ RCSID("$Id$");
 /***
  *** Downloads pane
  ***/
-void on_clist_downloads_select_row
-    (GtkCList *clist, gint row, gint column, GdkEvent *event, gpointer data)
+void on_ctree_downloads_tree_select_row
+    (GtkCTree *ctree, GList *node, gint column, gpointer user_data)
 {
-    gboolean activate = FALSE;
+	gboolean activate = FALSE;
+	struct download *d;
 
-    activate = ((clist->selection != NULL) &&
-        (clist->selection->next == NULL));
+	d = gtk_ctree_node_get_row_data(ctree, GTK_CTREE_NODE(node));	
+	if (DL_GUI_IS_HEADER == GPOINTER_TO_INT(d))
+		return;
+
+    activate = ((GTK_CLIST(ctree)->selection != NULL) &&
+        (GTK_CLIST(ctree)->selection->next == NULL));
 
     gtk_widget_set_sensitive
         (lookup_widget(popup_downloads, "popup_downloads_copy_url"), activate);
@@ -55,19 +60,22 @@ void on_clist_downloads_select_row
 	gui_update_download_abort_resume();
 }
 
-void on_clist_downloads_unselect_row
-    (GtkCList *clist, gint row, gint column, GdkEvent *event, gpointer data)
+
+
+void on_ctree_downloads_tree_unselect_row
+    (GtkCTree *ctree, GList *node, gint column, gpointer user_data)
 {
-    on_clist_downloads_select_row(clist, row, column, event, data);
+	/* Update the popup visibility */
+    on_ctree_downloads_tree_select_row(ctree, node, column, user_data);
 }
 
-void on_clist_downloads_resize_column
+void on_ctree_downloads_resize_column
     (GtkCList * clist, gint column, gint width, gpointer user_data)
 {
 	dl_active_col_widths[column] = width;
 }
 
-gboolean on_clist_downloads_button_press_event
+gboolean on_ctree_downloads_button_press_event
     (GtkWidget *widget, GdkEventButton *event, gpointer user_data)
 {
 	gint row;
@@ -76,8 +84,40 @@ gboolean on_clist_downloads_button_press_event
 	if (event->button != 3)
 		return FALSE;
 
+	/* If no items are selected */
     if (GTK_CLIST(widget)->selection == NULL)
-        return FALSE;
+	{
+	    gtk_widget_set_sensitive
+	        (lookup_widget(popup_downloads, "popup_downloads_abort"), 
+			FALSE);
+	    gtk_widget_set_sensitive
+	        (lookup_widget(popup_downloads, "popup_downloads_abort_named"), 
+			FALSE);
+	    gtk_widget_set_sensitive
+	        (lookup_widget(popup_downloads, "popup_downloads_abort_sha1"), 
+			FALSE);
+	    gtk_widget_set_sensitive
+	        (lookup_widget(popup_downloads, "popup_downloads_abort_host"), 
+			FALSE);
+	    gtk_widget_set_sensitive
+	        (lookup_widget(popup_downloads, "popup_downloads_remove_file"), 
+			FALSE);
+	    gtk_widget_set_sensitive
+	        (lookup_widget(popup_downloads, "popup_downloads_resume"), 
+			FALSE);
+	    gtk_widget_set_sensitive
+	        (lookup_widget(popup_downloads, "popup_downloads_queue"), 
+			FALSE);
+	    gtk_widget_set_sensitive
+	        (lookup_widget(popup_downloads, "popup_downloads_push"), 
+			FALSE);
+	    gtk_widget_set_sensitive
+	        (lookup_widget(popup_downloads, "popup_downloads_copy_url"), 
+			FALSE);
+	    gtk_widget_set_sensitive
+	        (lookup_widget(popup_downloads, "popup_downloads_connect"), 
+			FALSE);
+	}
 
 	if (!gtk_clist_get_selection_info
 		(GTK_CLIST(widget), event->x, event->y, &row, &col))
@@ -95,167 +135,210 @@ gboolean on_clist_downloads_button_press_event
 /***
  *** Popup menu: downloads
  ***/
+
+
+
+
+/* 
+ * 	on_popup_downloads_push_activate
+ *
+ *	All selected downloads fallback to push
+ */
 void on_popup_downloads_push_activate(GtkMenuItem * menuitem,
 								      gpointer user_data)
 {
-    GList *l;
-	struct download *d;
-    GtkCList *clist_downloads = GTK_CLIST
-        (lookup_widget(main_window, "clist_downloads"));
+   	struct download *d;
+    GList *node_list, *data_list = NULL;
+    GtkCTree *ctree_downloads = GTK_CTREE
+        (lookup_widget(main_window, "ctree_downloads"));
+    GtkCTree *ctree_downloads_queue = GTK_CTREE
+        (lookup_widget(main_window, "ctree_downloads_queue"));
 
-    gtk_clist_freeze(clist_downloads);
+    gtk_clist_freeze(GTK_CLIST(ctree_downloads_queue));
+    gtk_clist_freeze(GTK_CLIST(ctree_downloads));
+	node_list = g_list_copy(GTK_CLIST(ctree_downloads)->selection);
+	data_list = downloads_gui_collect_ctree_data(ctree_downloads, 
+		node_list, TRUE, TRUE);
+	
+	for (; NULL != data_list; data_list = g_list_next(data_list)) {
+		d = (struct download *) data_list->data;
 
-	for (l = clist_downloads->selection; l; l = clist_downloads->selection ) {
-        /* FIXME: SLOW O(n*n) */
-		d = (struct download *) 
-            gtk_clist_get_row_data(clist_downloads, GPOINTER_TO_INT(l->data));
-        gtk_clist_unselect_row(clist_downloads, GPOINTER_TO_INT(l->data), 0);
-     
         if (!d) {
 			g_warning(
-                "on_popup_downloads_push_activate(): row %d has NULL data\n",
-			    GPOINTER_TO_INT(l->data));
+				"on_popup_downloads_push_activate(): row has NULL data\n");
 		    continue;
         }
      	download_fallback_to_push(d, FALSE, TRUE);
 	}
-
-    gtk_clist_thaw(clist_downloads);
+	
+    gtk_clist_thaw(GTK_CLIST(ctree_downloads_queue));
+    gtk_clist_thaw(GTK_CLIST(ctree_downloads));
+	g_list_free(data_list);
+	g_list_free(node_list);
 }
+	
 
+/* 
+ * 	on_popup_downloads_abort_named_activate
+ *
+ *	Abort all downloads with names identical to any of the selected downloads
+ */
 void on_popup_downloads_abort_named_activate(GtkMenuItem * menuitem,
 										   gpointer user_data) 
 {
-	GList *l;
-	struct download *d;
+   	struct download *d;
+    GList *node_list, *data_list = NULL;
+    GtkCTree *ctree_downloads = GTK_CTREE
+        (lookup_widget(main_window, "ctree_downloads"));
+    GtkCTree *ctree_downloads_queue = GTK_CTREE
+        (lookup_widget(main_window, "ctree_downloads_queue"));
     gint removed = 0;
-    GtkCList *clist_downloads = GTK_CLIST
-        (lookup_widget(main_window, "clist_downloads"));
-    GtkCList *clist_downloads_queue = GTK_CLIST
-        (lookup_widget(main_window, "clist_downloads_queue"));
 
-    gtk_clist_freeze(clist_downloads);
-    gtk_clist_freeze(clist_downloads_queue);
+    gtk_clist_freeze(GTK_CLIST(ctree_downloads));
+    gtk_clist_freeze(GTK_CLIST(ctree_downloads_queue));
+	node_list = g_list_copy(GTK_CLIST(ctree_downloads)->selection);
+	data_list = downloads_gui_collect_ctree_data(ctree_downloads, 
+		node_list, TRUE, TRUE);
+	
+	for (; NULL !=data_list; data_list = g_list_next(data_list)) {
+		d = (struct download *) data_list->data;
 
-	for (l = clist_downloads->selection; l; l = clist_downloads->selection ) {
-        /* FIXME: SLOW O(n*n) */
-		d = (struct download *) 
-			gtk_clist_get_row_data(clist_downloads, GPOINTER_TO_INT(l->data));
-		gtk_clist_unselect_row(clist_downloads, GPOINTER_TO_INT(l->data), 0);
-     
 		if (!d) {
-			g_warning(
-                "on_popup_downloads_abort_named_activate():"
-                " row %d has NULL data\n",
-				GPOINTER_TO_INT(l->data));
+			g_warning("on_popup_downloads_abort_named_activate():"
+                " row has NULL data\n");
 			continue;
 		}
 		removed += download_remove_all_named(d->file_name);
 	}
-
-    gtk_clist_thaw(clist_downloads_queue);
-    gtk_clist_thaw(clist_downloads);
-
+	
+	g_list_free(data_list);
+	g_list_free(node_list);
+    gtk_clist_thaw(GTK_CLIST(ctree_downloads_queue));
+    gtk_clist_thaw(GTK_CLIST(ctree_downloads));
+	
     statusbar_gui_message(15, "Removed %u downloads", removed);
 }
 
-void on_popup_downloads_abort_host_activate
-    (GtkMenuItem *menuitem, gpointer user_data) 
+
+/* 
+ * 	on_popup_downloads_abort_host_activate
+ *
+ *	Abort all downloads with hosts identical to any of the selected downloads
+ */
+void on_popup_downloads_abort_host_activate(GtkMenuItem * menuitem,
+										   gpointer user_data) 
 {
 	// XXX routing misnamed: we're "forgetting" here, not "aborting"
-	GList *l;
-	struct download *d;
+    	struct download *d;
+    GList *node_list, *data_list = NULL;
+    GtkCTree *ctree_downloads = GTK_CTREE
+        (lookup_widget(main_window, "ctree_downloads"));
+    GtkCTree *ctree_downloads_queue = GTK_CTREE
+        (lookup_widget(main_window, "ctree_downloads_queue"));
     gint removed = 0;
-    GtkCList *clist_downloads = GTK_CLIST
-        (lookup_widget(main_window, "clist_downloads"));
-    GtkCList *clist_downloads_queue = GTK_CLIST
-        (lookup_widget(main_window, "clist_downloads_queue"));
 
-    gtk_clist_freeze(clist_downloads);
-    gtk_clist_freeze(clist_downloads_queue);
+	gtk_clist_freeze(GTK_CLIST(ctree_downloads));
+    gtk_clist_freeze(GTK_CLIST(ctree_downloads_queue));
+	node_list = g_list_copy(GTK_CLIST(ctree_downloads)->selection);
+	data_list = downloads_gui_collect_ctree_data(ctree_downloads, 
+		node_list, TRUE, TRUE);
+	
+	for (; NULL !=data_list; data_list = g_list_next(data_list)) {
+		d = (struct download *) data_list->data;
 
-	for (l = clist_downloads->selection; l; l = clist_downloads->selection ) {
-     
-		d = (struct download *) 
-			gtk_clist_get_row_data(clist_downloads, GPOINTER_TO_INT(l->data));
-		gtk_clist_unselect_row(clist_downloads, GPOINTER_TO_INT(l->data), 0);
-     
 		if (!d) {
-			g_warning(
-                "on_popup_downloads_abort_host_activate():" 
-                " row %d has NULL data\n",
-				GPOINTER_TO_INT(l->data));
+			g_warning("on_popup_downloads_abort_host_activate():" 
+                " row has NULL data\n");
 			continue;
 		}
 		removed += download_remove_all_from_peer(
-			download_guid(d), download_ip(d), download_port(d), FALSE);
+			download_guid(d), download_ip(d), 
+			download_port(d), FALSE);
 	}
-
-    gtk_clist_thaw(clist_downloads_queue);
-    gtk_clist_thaw(clist_downloads);
+	
+	g_list_free(data_list);
+	g_list_free(node_list);
+    gtk_clist_thaw(GTK_CLIST(ctree_downloads_queue));
+    gtk_clist_thaw(GTK_CLIST(ctree_downloads));
 
     statusbar_gui_message(15, "Forgot %u downloads", removed);
 }
 
-void on_popup_downloads_abort_sha1_activate
-    (GtkMenuItem *menuitem, gpointer user_data) 
+
+
+/* 
+ * 	on_popup_downloads_abort_sha1_activate
+ *
+ *	Abort all downloads with sha1s identical to any of the selected downloads
+ */
+void on_popup_downloads_abort_sha1_activate(GtkMenuItem * menuitem,
+										   gpointer user_data) 
 {
-	GList *l;
-	struct download *d;
+   	struct download *d;
+    GList *node_list, *data_list = NULL;
+    GtkCTree *ctree_downloads = GTK_CTREE
+        (lookup_widget(main_window, "ctree_downloads"));
+    GtkCTree *ctree_downloads_queue = GTK_CTREE
+        (lookup_widget(main_window, "ctree_downloads_queue"));
     gint removed = 0;
-    GtkCList *clist_downloads = GTK_CLIST
-        (lookup_widget(main_window, "clist_downloads"));
-    GtkCList *clist_downloads_queue = GTK_CLIST
-        (lookup_widget(main_window, "clist_downloads_queue"));
 
+    gtk_clist_freeze(GTK_CLIST(ctree_downloads));
+    gtk_clist_freeze(GTK_CLIST(ctree_downloads_queue));	
+	node_list = g_list_copy(GTK_CLIST(ctree_downloads)->selection);
+	data_list = downloads_gui_collect_ctree_data(ctree_downloads, 
+		node_list, TRUE, TRUE);
+	
+	for (; NULL !=data_list; data_list = g_list_next(data_list)) {
+		d = (struct download *) data_list->data;
 
-    gtk_clist_freeze(clist_downloads);
-    gtk_clist_freeze(clist_downloads_queue);
-
-	for (l = clist_downloads->selection; l; l = clist_downloads->selection ) {
-     
-		d = (struct download *) 
-			gtk_clist_get_row_data(clist_downloads, GPOINTER_TO_INT(l->data));
-		gtk_clist_unselect_row(clist_downloads, GPOINTER_TO_INT(l->data), 0);
-     
 		if (!d) {
-			g_warning(
-                "on_popup_downloads_abort_sha1_activate():"
-                " row %d has NULL data\n", GPOINTER_TO_INT(l->data));
+			g_warning("on_popup_downloads_abort_sha1_activate():"
+                " row has NULL data\n");
 			continue;
 		}
 
         if (d->file_info->sha1 != NULL)
-            removed += download_remove_all_with_sha1(d->file_info->sha1);
+            removed += download_remove_all_with_sha1(
+			d->file_info->sha1);
 	}
-
-    gtk_clist_thaw(clist_downloads_queue);
-    gtk_clist_thaw(clist_downloads);
+	
+	g_list_free(data_list);
+	g_list_free(node_list);
+    gtk_clist_thaw(GTK_CLIST(ctree_downloads_queue));
+    gtk_clist_thaw(GTK_CLIST(ctree_downloads));
 
     statusbar_gui_message(15, "Removed %u downloads", removed);
 }
 
+
+/* 
+ * 	on_popup_downloads_remove_file_activate
+ *
+ *	Remove all downloads selected
+ */
 void on_popup_downloads_remove_file_activate(GtkMenuItem * menuitem,
-			 							     gpointer user_data) 
+										   gpointer user_data) 
 {
-	GList *l;
 	struct download *d;
-    GtkCList *clist_downloads = GTK_CLIST
-        (lookup_widget(main_window, "clist_downloads"));
+    GList *node_list, *data_list = NULL;
+    GtkCTree *ctree_downloads = GTK_CTREE
+        (lookup_widget(main_window, "ctree_downloads"));
 
-    gtk_clist_freeze(clist_downloads);
+    gtk_clist_freeze(GTK_CLIST(ctree_downloads));
+	
+	node_list = g_list_copy(GTK_CLIST(ctree_downloads)->selection);
+	data_list = downloads_gui_collect_ctree_data(ctree_downloads, 
+		node_list, TRUE, FALSE);
+	
+	for (; NULL !=data_list; data_list = g_list_next(data_list)) {
+		d = (struct download *) data_list->data;
 
-	for (l = clist_downloads->selection; l; l = clist_downloads->selection ) {
-     
-		d = (struct download *) 
-			gtk_clist_get_row_data(clist_downloads, GPOINTER_TO_INT(l->data));
-		gtk_clist_unselect_row(clist_downloads, GPOINTER_TO_INT(l->data), 0);
-     
+		if (DL_GUI_IS_HEADER == GPOINTER_TO_INT(d))
+			continue;
+
 		if (!d) {
-			g_warning(
-                "on_popup_downloads_remove_file_activate():" 
-                " row %d has NULL data\n",
-				GPOINTER_TO_INT(l->data));
+			g_warning("on_popup_downloads_remove_file_activate():" 
+                " row has NULL data\n");
 			continue;
 		}
 
@@ -270,50 +353,65 @@ void on_popup_downloads_remove_file_activate(GtkMenuItem * menuitem,
 			(d->status == GTA_DL_ERROR || d->status == GTA_DL_ABORTED) &&
             download_file_exists(d)
 		)
-            download_remove_file(d, TRUE);
+           	download_remove_file(d, TRUE);
 	}
+	
+    gtk_clist_thaw(GTK_CLIST(ctree_downloads));
 
-    gtk_clist_thaw(clist_downloads);
+	g_list_free(data_list);
+	g_list_free(node_list);
 }
 
+
+/* 
+ * 	on_popup_downloads_queue_activate
+ *
+ *	Move all selected downloads back to queue
+ */
 void on_popup_downloads_queue_activate(GtkMenuItem * menuitem,
-                                       gpointer user_data)
+										   gpointer user_data) 
 {
-    GList *l;
-	struct download *d;
-    GtkCList *clist_downloads = GTK_CLIST
-        (lookup_widget(main_window, "clist_downloads"));
+   	struct download *d;
+    GList *node_list, *data_list = NULL;
+    GtkCTree *ctree_downloads = GTK_CTREE
+        (lookup_widget(main_window, "ctree_downloads"));
+    GtkCTree *ctree_downloads_queue = GTK_CTREE
+        (lookup_widget(main_window, "ctree_downloads_queue"));
 
-    gtk_clist_freeze(GTK_CLIST(clist_downloads));
+    gtk_clist_freeze(GTK_CLIST(ctree_downloads));
+    gtk_clist_freeze(GTK_CLIST(ctree_downloads_queue));
+	node_list = g_list_copy(GTK_CLIST(ctree_downloads)->selection);
+	data_list = downloads_gui_collect_ctree_data(ctree_downloads, 
+		node_list, TRUE, TRUE);
+	
+	for (; NULL !=data_list; data_list = g_list_next(data_list)) {
+		d = data_list->data;
 
-	for (l = GTK_CLIST(clist_downloads)->selection; l; 
-         l = GTK_CLIST(clist_downloads)->selection ) {		
-  
-        d = (struct download *) 
-            gtk_clist_get_row_data(GTK_CLIST(clist_downloads),
-                                   GPOINTER_TO_INT(l->data));
-        gtk_clist_unselect_row(GTK_CLIST(clist_downloads),
-			GPOINTER_TO_INT(l->data), 0);
-     
         if (!d) {
             g_warning
-                ("on_popup_downloads_queue_activate(): row %d has NULL data\n",
-                 GPOINTER_TO_INT(l->data));
+                ("on_popup_downloads_queue_activate(): row has NULL data\n");
             continue;
         }
         download_requeue(d);
-    }
+	}
+	
+    gtk_clist_thaw(GTK_CLIST(ctree_downloads_queue));
+    gtk_clist_thaw(GTK_CLIST(ctree_downloads));
 
-    gtk_clist_thaw(GTK_CLIST(clist_downloads));
+	g_list_free(data_list);
+	g_list_free(node_list);
 }
+
+
+
 
 void on_popup_downloads_copy_url_activate(GtkMenuItem * menuitem,
 									      gpointer user_data) 
 {
    	struct download * d = NULL;
-    GtkCList *clist_downloads = GTK_CLIST
-        (lookup_widget(main_window, "clist_downloads"));
-    GList *l = GTK_CLIST(clist_downloads)->selection;
+    GtkCTree *ctree_downloads = GTK_CTREE
+        (lookup_widget(main_window, "ctree_downloads"));
+    GList *l = GTK_CLIST(ctree_downloads)->selection;
 
     g_return_if_fail(l);
 
@@ -326,12 +424,10 @@ void on_popup_downloads_copy_url_activate(GtkMenuItem * menuitem,
                                 GDK_SELECTION_PRIMARY,
                                 GDK_CURRENT_TIME)){  
        	d = (struct download *) 
-            gtk_clist_get_row_data(GTK_CLIST(clist_downloads),
-                               GPOINTER_TO_INT(l->data));
+            gtk_ctree_node_get_row_data(ctree_downloads, l->data);
 
         if (!d) {
-           	g_warning("on_popup_downloads_copy_url(): row %d has NULL data\n",
-			          GPOINTER_TO_INT(l->data));
+           	g_warning("on_popup_downloads_copy_url(): row has NULL data\n");
 		    return;
         }
 
@@ -354,29 +450,25 @@ void on_popup_downloads_copy_url_activate(GtkMenuItem * menuitem,
 void on_popup_downloads_connect_activate(GtkMenuItem * menuitem,
 					 	                 gpointer user_data) 
 {
-    struct download * d = NULL;
-    GtkCList *clist_downloads = GTK_CLIST
-        (lookup_widget(main_window, "clist_downloads"));
-    GList *l = GTK_CLIST(clist_downloads)->selection;
+	struct download *d;
+   	GtkCTree *ctree_downloads = GTK_CTREE
+		(lookup_widget(main_window, "ctree_downloads"));
+    GList *l = GTK_CLIST(ctree_downloads)->selection;
 
     g_return_if_fail(l);
 
    	d = (struct download *) 
-    gtk_clist_get_row_data(GTK_CLIST(clist_downloads), 
-        GPOINTER_TO_INT(l->data));
+    	gtk_ctree_node_get_row_data(ctree_downloads, l->data);
 
-    if (!d) {
-    	g_warning("on_popup_downloads_connect_activate():" 
-            "row %d has NULL data\n",
-            GPOINTER_TO_INT(l->data));
-	    return;
-    }
-
-    gtk_clist_unselect_row(GTK_CLIST(clist_downloads),
-		GPOINTER_TO_INT(l->data), 0);
-    node_add(download_ip(d), download_port(d));
+	if (!d) {
+   		g_warning("on_popup_downloads_connect_activate():" 
+       	    "row has NULL data\n");
+		return;
+	}
+	   
+    gtk_ctree_unselect(ctree_downloads, l->data);
+    node_add(download_ip(d), download_port(d));   
 }
-
 
 
 /***
@@ -385,100 +477,102 @@ void on_popup_downloads_connect_activate(GtkMenuItem * menuitem,
 void on_popup_queue_start_now_activate(GtkMenuItem * menuitem,
 										   gpointer user_data) 
 {
-    GList *l;
-	struct download *d;
-    GtkCList *clist_downloads_queue = GTK_CLIST
-        (lookup_widget(main_window, "clist_downloads_queue"));
+   	struct download *d;
+    GList *node_list, *data_list = NULL;
 
-    gtk_clist_freeze(GTK_CLIST(clist_downloads_queue));
+    GtkCTree *ctree_downloads_queue = GTK_CTREE
+        (lookup_widget(main_window, "ctree_downloads_queue"));
 
-	for (l = GTK_CLIST(clist_downloads_queue)->selection; l; 
-         l = GTK_CLIST(clist_downloads_queue)->selection ) {
+    gtk_clist_freeze(GTK_CLIST(ctree_downloads_queue));
+	
+	node_list = g_list_copy(GTK_CLIST(ctree_downloads_queue)->selection);
+	data_list = downloads_gui_collect_ctree_data(ctree_downloads_queue, 
+		node_list, TRUE, TRUE);
+	
+	for (; NULL !=data_list; data_list = g_list_next(data_list)) {
+		d = data_list->data;
 
-		d = (struct download *) 
-			gtk_clist_get_row_data(GTK_CLIST(clist_downloads_queue),
-                                   GPOINTER_TO_INT(l->data));
-        gtk_clist_unselect_row(GTK_CLIST(clist_downloads_queue),
-			GPOINTER_TO_INT(l->data), 0);
-     
         if (!d) {
-			g_warning(
-				"on_popup_queue_start_now_activate(): row %d has NULL data\n",
-				GPOINTER_TO_INT(l->data));
-		    continue;
+            g_warning(
+				"on_popup_queue_start_now_activate(): row has NULL data\n");
+            continue;
         }
 		if (d->status == GTA_DL_QUEUED)
 			download_start(d, TRUE);
-	} 
+	}
+	
+    gtk_clist_thaw(GTK_CLIST(ctree_downloads_queue));
 
-    gtk_clist_thaw(GTK_CLIST(clist_downloads_queue));
+	g_list_free(data_list);
+	g_list_free(node_list);
 }
 
 void on_popup_queue_abort_activate(GtkMenuItem * menuitem,
   							       gpointer user_data)
 {
-	GList *l;
 	struct download *d;
-    GtkCList *clist_downloads_queue = GTK_CLIST
-        (lookup_widget(main_window, "clist_downloads_queue"));
+    GList *node_list, *data_list = NULL;
+    GtkCTree *ctree_downloads_queue = GTK_CTREE
+        (lookup_widget(main_window, "ctree_downloads_queue"));
 
-    gtk_clist_freeze(GTK_CLIST(clist_downloads_queue));
+    gtk_clist_freeze(GTK_CLIST(ctree_downloads_queue));
+	
+	/* Remove for all selected active downloads */
+	node_list = g_list_copy(GTK_CLIST(ctree_downloads_queue)->selection);
+	data_list = downloads_gui_collect_ctree_data(ctree_downloads_queue, 
+		node_list, TRUE, TRUE);
+	
+	for (; NULL !=data_list; data_list = g_list_next(data_list)) {
+		d = (struct download *) data_list->data;
 
-	for (l = GTK_CLIST(clist_downloads_queue)->selection; l; 
-         l = GTK_CLIST(clist_downloads_queue)->selection ) {		
-		d = (struct download *) 
-			gtk_clist_get_row_data(GTK_CLIST(clist_downloads_queue),
-                                   GPOINTER_TO_INT(l->data));
-        gtk_clist_unselect_row(GTK_CLIST(clist_downloads_queue),
-			GPOINTER_TO_INT(l->data), 0);
-     
         if (!d) {
 			g_warning(
-				"on_popup_downloads_queue_remove(): row %d has NULL data\n",
-				GPOINTER_TO_INT(l->data));
+				"on_popup_downloads_queue_remove(): row has NULL data\n");
 		    continue;
         }
 		if (d->status == GTA_DL_QUEUED)
 			download_remove(d);
-	} 
+	}
+	
+    gtk_clist_thaw(GTK_CLIST(ctree_downloads_queue));
 
-    gtk_clist_thaw(GTK_CLIST(clist_downloads_queue));
-}
+	g_list_free(data_list);
+	g_list_free(node_list);
+} 
+
 
 void on_popup_queue_abort_named_activate(GtkMenuItem * menuitem,
 										  gpointer user_data) 
 {
-	GList *l;
-	struct download *d;
+   	struct download *d;
+    GList *node_list, *data_list = NULL;
+    GtkCTree *ctree_downloads = GTK_CTREE
+        (lookup_widget(main_window, "ctree_downloads"));
+    GtkCTree *ctree_downloads_queue = GTK_CTREE
+        (lookup_widget(main_window, "ctree_downloads_queue"));
     gint removed = 0;
-    GtkCList *clist_downloads = GTK_CLIST
-        (lookup_widget(main_window, "clist_downloads"));
-    GtkCList *clist_downloads_queue = GTK_CLIST
-        (lookup_widget(main_window, "clist_downloads_queue"));
 
+    gtk_clist_freeze(GTK_CLIST(ctree_downloads));
+    gtk_clist_freeze(GTK_CLIST(ctree_downloads_queue));
+	node_list = g_list_copy(GTK_CLIST(ctree_downloads_queue)->selection);
+	data_list = downloads_gui_collect_ctree_data(ctree_downloads_queue, 
+		node_list, TRUE, TRUE);
+	
+	for (; NULL !=data_list; data_list = g_list_next(data_list)) {
+		d = (struct download *) data_list->data;
 
-    gtk_clist_freeze(GTK_CLIST(clist_downloads_queue));
-    gtk_clist_freeze(GTK_CLIST(clist_downloads));
-
-	for (l = GTK_CLIST(clist_downloads_queue)->selection; l; 
-         l = GTK_CLIST(clist_downloads_queue)->selection ) {		
-     
-		d = (struct download *) 
-			gtk_clist_get_row_data(GTK_CLIST(clist_downloads_queue),
-								   GPOINTER_TO_INT(l->data));
-		gtk_clist_unselect_row(GTK_CLIST(clist_downloads_queue),
-			GPOINTER_TO_INT(l->data), 0);
-     
 		if (!d) {
 			g_warning("on_popup_queue_abort_named_activate(): "
-				"row %d has NULL data\n", GPOINTER_TO_INT(l->data));
+				"row has NULL data\n");
 			continue;
 		}
 		removed += download_remove_all_named(d->file_name);
 	}
-
-    gtk_clist_thaw(GTK_CLIST(clist_downloads));
-    gtk_clist_thaw(GTK_CLIST(clist_downloads_queue));
+	
+	g_list_free(data_list);
+	g_list_free(node_list);
+    gtk_clist_thaw(GTK_CLIST(ctree_downloads_queue));
+    gtk_clist_thaw(GTK_CLIST(ctree_downloads));
 
     statusbar_gui_message(15, "Removed %u downloads", removed);
 }
@@ -486,69 +580,64 @@ void on_popup_queue_abort_named_activate(GtkMenuItem * menuitem,
 void on_popup_queue_abort_host_activate(GtkMenuItem * menuitem,
 										    gpointer user_data) 
 {
-	GList *l;
-	struct download *d;
+   	struct download *d;
+    GList *node_list, *data_list = NULL;
+    GtkCTree *ctree_downloads = GTK_CTREE
+        (lookup_widget(main_window, "ctree_downloads"));
+    GtkCTree *ctree_downloads_queue = GTK_CTREE
+        (lookup_widget(main_window, "ctree_downloads_queue"));
     gint removed = 0;
-    GtkCList *clist_downloads = GTK_CLIST
-        (lookup_widget(main_window, "clist_downloads"));
-    GtkCList *clist_downloads_queue = GTK_CLIST
-        (lookup_widget(main_window, "clist_downloads_queue"));
 
-    gtk_clist_freeze(GTK_CLIST(clist_downloads_queue));
-    gtk_clist_freeze(GTK_CLIST(clist_downloads));
+    gtk_clist_freeze(GTK_CLIST(ctree_downloads));
+    gtk_clist_freeze(GTK_CLIST(ctree_downloads_queue));
+	node_list = g_list_copy(GTK_CLIST(ctree_downloads_queue)->selection);
+	data_list = downloads_gui_collect_ctree_data(ctree_downloads_queue, 
+		node_list, TRUE, TRUE);
+	
+	for (; NULL !=data_list; data_list = g_list_next(data_list)) {
+		d = (struct download *) data_list->data;
 
-	for (l = GTK_CLIST(clist_downloads_queue)->selection; l; 
-         l = GTK_CLIST(clist_downloads_queue)->selection ) {		
-     
-		d = (struct download *) 
-			gtk_clist_get_row_data(GTK_CLIST(clist_downloads_queue),
-								   GPOINTER_TO_INT(l->data));
-		gtk_clist_unselect_row(GTK_CLIST(clist_downloads_queue),
-			GPOINTER_TO_INT(l->data), 0);
-     
 		if (!d) {
 			g_warning(
-				"on_popup_queue_abort_host_activate(): row %d has NULL data\n",
-				GPOINTER_TO_INT(l->data));
+				"on_popup_queue_abort_host_activate(): row has NULL data\n");
 			continue;
 		}
 		removed += download_remove_all_from_peer(
 			download_guid(d), download_ip(d), download_port(d), FALSE);
 	}
-
-    gtk_clist_thaw(GTK_CLIST(clist_downloads));
-    gtk_clist_thaw(GTK_CLIST(clist_downloads_queue));
+	
+	g_list_free(data_list);
+	g_list_free(node_list);
+    gtk_clist_thaw(GTK_CLIST(ctree_downloads_queue));
+    gtk_clist_thaw(GTK_CLIST(ctree_downloads));
 
     statusbar_gui_message(15, "Removed %u downloads", removed);
 }
 
+
 void on_popup_queue_abort_sha1_activate(GtkMenuItem * menuitem,
 								        gpointer user_data) 
 {
-	GList *l;
-	struct download *d;
+   	struct download *d;
+    GList *node_list, *data_list = NULL;
+    GtkCTree *ctree_downloads = GTK_CTREE
+        (lookup_widget(main_window, "ctree_downloads"));
+    GtkCTree *ctree_downloads_queue = GTK_CTREE
+        (lookup_widget(main_window, "ctree_downloads_queue"));
     gint removed = 0;
-    GtkCList *clist_downloads = GTK_CLIST
-        (lookup_widget(main_window, "clist_downloads"));
-    GtkCList *clist_downloads_queue = GTK_CLIST
-        (lookup_widget(main_window, "clist_downloads_queue"));
 
-    gtk_clist_freeze(GTK_CLIST(clist_downloads_queue));
-    gtk_clist_freeze(GTK_CLIST(clist_downloads));
+    gtk_clist_freeze(GTK_CLIST(ctree_downloads));
+    gtk_clist_freeze(GTK_CLIST(ctree_downloads_queue));
+	node_list = g_list_copy(GTK_CLIST(ctree_downloads_queue)->selection);
+	data_list = downloads_gui_collect_ctree_data(ctree_downloads_queue, 
+		node_list, TRUE, TRUE);
+	
+	for (; NULL !=data_list; data_list = g_list_next(data_list)) {
+		d = (struct download *) data_list->data;
 
-	for (l = GTK_CLIST(clist_downloads_queue)->selection; l; 
-         l = GTK_CLIST(clist_downloads_queue)->selection ) {		
-     
-		d = (struct download *) 
-			gtk_clist_get_row_data(GTK_CLIST(clist_downloads_queue),
-								   GPOINTER_TO_INT(l->data));
-		gtk_clist_unselect_row(GTK_CLIST(clist_downloads_queue),
-			GPOINTER_TO_INT(l->data), 0);
-     
 		if (!d) {
 			g_warning(
-				"on_popup_queue_abort_sha1_activate(): row %d has NULL data\n",
-				GPOINTER_TO_INT(l->data));
+				"on_popup_queue_abort_sha1_activate(): row has NULL data\n");
 			continue;
 		}
 
@@ -556,8 +645,10 @@ void on_popup_queue_abort_sha1_activate(GtkMenuItem * menuitem,
             removed += download_remove_all_with_sha1(d->file_info->sha1);
 	}
 
-    gtk_clist_thaw(GTK_CLIST(clist_downloads));
-    gtk_clist_thaw(GTK_CLIST(clist_downloads_queue));
+	g_list_free(data_list);
+	g_list_free(node_list);
+    gtk_clist_thaw(GTK_CLIST(ctree_downloads_queue));
+    gtk_clist_thaw(GTK_CLIST(ctree_downloads));
 
     statusbar_gui_message(15, "Removed %u downloads", removed);
 }
@@ -572,10 +663,10 @@ void on_popup_queue_copy_url_activate(GtkMenuItem * menuitem,
      */
 
    	struct download * d = NULL;
-    GtkCList *clist_downloads_queue = GTK_CLIST
-        (lookup_widget(main_window, "clist_downloads_queue"));
+    GtkCTree *ctree_downloads_queue = GTK_CTREE
+        (lookup_widget(main_window, "ctree_downloads_queue"));
 
-    GList *l = GTK_CLIST(clist_downloads_queue)->selection;
+    GList *l = GTK_CLIST(ctree_downloads_queue)->selection;
 
     g_return_if_fail(l);
 
@@ -587,13 +678,11 @@ void on_popup_queue_copy_url_activate(GtkMenuItem * menuitem,
     if (gtk_selection_owner_set(GTK_WIDGET(popup_downloads),
                                 GDK_SELECTION_PRIMARY,
                                 GDK_CURRENT_TIME)){  
-       	d = (struct download *) 
-            gtk_clist_get_row_data(GTK_CLIST(clist_downloads_queue),
-                               GPOINTER_TO_INT(l->data));
+       	d = (struct download *) gtk_ctree_node_get_row_data
+				(ctree_downloads_queue, l->data);
 
         if (!d) {
-           	g_warning("on_popup_queue_copy_url(): row %d has NULL data\n",
-			          GPOINTER_TO_INT(l->data));
+           	g_warning("on_popup_queue_copy_url(): row has NULL data\n");
 		    return;
         }
 
@@ -616,15 +705,14 @@ void on_popup_queue_connect_activate(GtkMenuItem * menuitem,
 					 	             gpointer user_data) 
 {
     struct download * d = NULL;
-    GtkCList *clist_downloads_queue = GTK_CLIST
-        (lookup_widget(main_window, "clist_downloads_queue"));
-    GList *l = GTK_CLIST(clist_downloads_queue)->selection;
+    GtkCTree *ctree_downloads_queue = GTK_CTREE
+        (lookup_widget(main_window, "ctree_downloads_queue"));
+    GList *l = GTK_CLIST(ctree_downloads_queue)->selection;
 
     g_return_if_fail(l);
 
    	d = (struct download *) 
-    gtk_clist_get_row_data(GTK_CLIST(clist_downloads_queue), 
-        GPOINTER_TO_INT(l->data));
+	    gtk_ctree_node_get_row_data(ctree_downloads_queue, l->data);
 
     if (!d) {
     	g_warning("on_popup_queue_connect_activate(): row %d has NULL data\n",
@@ -632,8 +720,7 @@ void on_popup_queue_connect_activate(GtkMenuItem * menuitem,
 	    return;
     }
 
-    gtk_clist_unselect_row(GTK_CLIST(clist_downloads_queue),
-		GPOINTER_TO_INT(l->data), 0);
+    gtk_ctree_unselect(ctree_downloads_queue, l->data);
     node_add(download_ip(d), download_port(d));
 }
  
@@ -641,69 +728,72 @@ void on_popup_queue_connect_activate(GtkMenuItem * menuitem,
  *** downloads pane
  ***/
 
-void on_button_downloads_abort_clicked(GtkButton * button,
-									  gpointer user_data)
+
+/*
+ *	on_button_downloads_abort_clicked
+ *
+ *	For all selected active downloads, forget them.  This doubles as the 
+ *	callback for the abort option on the popup menu.
+ */
+void on_button_downloads_abort_clicked(GtkButton * button, gpointer user_data)
 {
-	GList *l;
-	struct download *d;
-    GtkCList *clist_downloads = GTK_CLIST
-        (lookup_widget(main_window, "clist_downloads"));
+   	struct download *d;
+    GList *node_list, *data_list = NULL;
+    GtkCTree *ctree_downloads = GTK_CTREE
+        (lookup_widget(main_window, "ctree_downloads"));
 
-    gtk_clist_freeze(GTK_CLIST(clist_downloads));
-
-	for (l = GTK_CLIST(clist_downloads)->selection; l; 
-         l = GTK_CLIST(clist_downloads)->selection ) {
-		d = (struct download *)
-			gtk_clist_get_row_data(GTK_CLIST(clist_downloads),
-				GPOINTER_TO_INT(l->data));
-        gtk_clist_unselect_row(GTK_CLIST(clist_downloads),
-			GPOINTER_TO_INT(l->data), 0);
+    gtk_clist_freeze(GTK_CLIST(ctree_downloads));
+	node_list = g_list_copy(GTK_CLIST(ctree_downloads)->selection);
+	data_list = downloads_gui_collect_ctree_data(ctree_downloads, 
+		node_list, TRUE, TRUE);
+	
+	for (; NULL !=data_list; data_list = g_list_next(data_list)) {
+		d = (struct download *) data_list->data;
 
 		if (!d) {
 			g_warning(
-				"on_button_downloads_abort_clicked(): row %d has NULL data\n",
-                GPOINTER_TO_INT(l->data));
+				"on_button_downloads_abort_clicked(): row has NULL data\n");
 			continue;
 		}
 
 		download_abort(d);
 	}
-
-    gtk_clist_thaw(GTK_CLIST(clist_downloads));
+	
+	g_list_free(data_list);
+	g_list_free(node_list);
+    gtk_clist_thaw(GTK_CLIST(ctree_downloads));
 }
 
-void on_button_downloads_resume_clicked(GtkButton * button,
-									   gpointer user_data)
+
+void on_button_downloads_resume_clicked(GtkButton * button, gpointer user_data)
 {
-	GList *l;
-	struct download *d;
-    GtkCList *clist_downloads = GTK_CLIST
-        (lookup_widget(main_window, "clist_downloads"));
+   	struct download *d;
+    GList *node_list, *data_list = NULL;
+    GtkCTree *ctree_downloads = GTK_CTREE
+        (lookup_widget(main_window, "ctree_downloads"));
 
-    gtk_clist_freeze(GTK_CLIST(clist_downloads));
+    gtk_clist_freeze(GTK_CLIST(ctree_downloads));
+	node_list = g_list_copy(GTK_CLIST(ctree_downloads)->selection);
+	data_list = downloads_gui_collect_ctree_data(ctree_downloads, 
+		node_list, TRUE, TRUE);
+	
+	for (; NULL !=data_list; data_list = g_list_next(data_list)) {
+		d = (struct download *) data_list->data;
 
-	for (l = GTK_CLIST(clist_downloads)->selection; l; 
-         l = GTK_CLIST(clist_downloads)->selection ) {		
-     
-        d = (struct download *) 
-            gtk_clist_get_row_data(GTK_CLIST(clist_downloads),
-                                   GPOINTER_TO_INT(l->data));
-        gtk_clist_unselect_row(GTK_CLIST(clist_downloads),
-			GPOINTER_TO_INT(l->data), 0);
-     
         if (!d) {
             g_warning
-                ("on_button_downloads_resume_clicked(): row %d has NULL data\n",
-                 GPOINTER_TO_INT(l->data));
+                ("on_button_downloads_resume_clicked(): row has NULL data\n");
             continue;
         }
         download_resume(d);
 	}
+	
+	g_list_free(data_list);
+	g_list_free(node_list);
+    gtk_clist_thaw(GTK_CLIST(ctree_downloads));
 
 	gui_update_download_abort_resume();
 	gui_update_download_clear();
-
-    gtk_clist_thaw(GTK_CLIST(clist_downloads));
 }
 
 
@@ -712,14 +802,19 @@ void on_button_downloads_resume_clicked(GtkButton * button,
  *** Queued downloads
  ***/
 
-void on_clist_downloads_queue_select_row
-    (GtkCList *clist, gint row, gint col, GdkEvent *event, gpointer user_data)
+void on_ctree_downloads_queue_tree_select_row
+    (GtkCTree *ctree, GList *node, gint column, gpointer user_data)
 {
     gboolean only_one = FALSE;
-    gboolean one_or_more = clist->selection != NULL;
-
-    only_one = ((clist->selection != NULL) &&
-        (clist->selection->next == NULL));
+    gboolean one_or_more = (GTK_CLIST(ctree)->selection != NULL);
+	struct download *d;
+		
+	d = gtk_ctree_node_get_row_data(ctree, GTK_CTREE_NODE(node));	
+	
+	/* If it's a header, there is more than one */
+	if (DL_GUI_IS_HEADER != GPOINTER_TO_INT(d))
+	    only_one = ((GTK_CLIST(ctree)->selection != NULL) &&
+    	    (GTK_CLIST(ctree)->selection->next == NULL));
 
     gtk_widget_set_sensitive
         (lookup_widget(popup_queue, "popup_queue_copy_url"), only_one);
@@ -737,20 +832,29 @@ void on_clist_downloads_queue_select_row
         (lookup_widget(popup_queue, "popup_queue_abort_sha1"), one_or_more);
 }
 
-void on_clist_downloads_queue_unselect_row
-    (GtkCList *clist, gint row, gint col, GdkEvent * event, gpointer user_data)
+void on_ctree_downloads_queue_tree_unselect_row
+    (GtkCTree *ctree, GList *node, gint column, gpointer user_data)
 {
-    on_clist_downloads_queue_select_row(clist, row, col, event, user_data);
+	/* Update popups */
+    on_ctree_downloads_queue_tree_select_row(ctree, node, column, user_data);
 }
+
+
 
 void on_entry_queue_regex_activate(GtkEditable *editable, gpointer user_data)
 {
+	GtkCTree *ctree_downloads_queue;
+	GtkCTreeNode *node;
+	GtkCTreeNode *child, *parent;
+	GtkCTreeRow *row;
+	struct download *d, *dtemp;
+
+	gboolean child_selected, node_expanded;	
     gint i;
   	gint n;
     gint m = 0;
     gint  err;
     gchar * regex;
-	struct download *d;
 	regex_t re;
 
     regex = gtk_editable_get_chars(GTK_EDITABLE(editable), 0, -1);
@@ -766,27 +870,77 @@ void on_entry_queue_regex_activate(GtkEditable *editable, gpointer user_data)
 		regerror(err, &re, buf, 1000);
         statusbar_gui_warning
             (15, "on_entry_queue_regex_activate: regex error %s",buf);
-    } else {
-        GtkCList *clist_downloads_queue = GTK_CLIST
-            (lookup_widget(main_window, "clist_downloads_queue"));
 
-        gtk_clist_unselect_all(GTK_CLIST(clist_downloads_queue));
+	} else {
+        ctree_downloads_queue = GTK_CTREE
+            (lookup_widget(main_window, "ctree_downloads_queue"));
 
-        for (i = 0; i < GTK_CLIST(clist_downloads_queue)->rows; i ++) {
-            d = (struct download *) 
-                gtk_clist_get_row_data(GTK_CLIST(clist_downloads_queue), i);
+		gtk_ctree_unselect_recursive(ctree_downloads_queue, NULL);
+	    gtk_clist_freeze(GTK_CLIST(ctree_downloads_queue));
+		
+		/* Traverse the entire downloads_queue */
+		for (node = GTK_CTREE_NODE(GTK_CLIST(ctree_downloads_queue)->row_list),
+			i = 0; (NULL != node); node = GTK_CTREE_NODE_NEXT (node), i++) {			
 
-            if (!d) {
+			d = (struct download *) gtk_ctree_node_get_row_data
+				(ctree_downloads_queue, node);
+		
+			if (!d) {
                 g_warning("on_entry_queue_regex_activate: "
 					"row %d has NULL data", i);
                 continue;
             }
 
+			if (DL_GUI_IS_HEADER == GPOINTER_TO_INT(d))
+			{
+				/* A header node.  We expand it and check all of the children 
+				 * If one of the children get selected keep node expanded,
+				 * if it was initially collapsed, collapse it again
+				 */				
+				child_selected = FALSE;
+				node_expanded = FALSE;
+				
+				parent = GTK_CTREE_NODE(node);
+				row = GTK_CTREE_ROW(parent);
+				child = row->children;
+
+				if (NULL != child)
+					node_expanded = gtk_ctree_is_viewable
+					(ctree_downloads_queue, child);
+				
+				gtk_ctree_expand(ctree_downloads_queue, parent);
+				
+				for (; NULL != child; row = GTK_CTREE_ROW(child), 
+					child = row->sibling) {		
+
+					dtemp = gtk_ctree_node_get_row_data
+						(ctree_downloads_queue, child);
+
+					if ((n = regexec(&re, dtemp->file_name, 0, NULL, 0)) == 0 ||
+						(n = regexec(&re, download_outname(dtemp), 0, NULL, 0)) 
+						== 0) {
+						gtk_ctree_select(ctree_downloads_queue, child);
+						child_selected = TRUE;	           
+						m ++;
+					}
+
+		            if (n == REG_ESPACE)
+        		        g_warning("on_entry_queue_regex_activate: "
+						"regexp memory overflow");
+				}
+				
+				if (!child_selected && !node_expanded)
+					gtk_ctree_collapse(ctree_downloads_queue, parent);
+				
+				continue;				
+			}
+
+			/* Not a header entry */
             if (
 				(n = regexec(&re, d->file_name, 0, NULL, 0)) == 0 ||
 				(n = regexec(&re, download_outname(d), 0, NULL, 0)) == 0
 			) {
-                gtk_clist_select_row(GTK_CLIST(clist_downloads_queue), i, 0);
+                gtk_ctree_select(ctree_downloads_queue, node);
                 m ++;
 			}
             
@@ -794,10 +948,11 @@ void on_entry_queue_regex_activate(GtkEditable *editable, gpointer user_data)
                 g_warning("on_entry_queue_regex_activate: "
 					"regexp memory overflow");
         }
+	    gtk_clist_thaw(GTK_CLIST(ctree_downloads_queue));
         
         statusbar_gui_message(15, 
             "Selected %u of %u queued downloads matching \"%s\".", 
-            m, GTK_CLIST(clist_downloads_queue)->rows, regex);
+            m, GTK_CLIST(ctree_downloads_queue)->rows, regex);
 
 		regfree(&re);
     }
@@ -807,26 +962,38 @@ void on_entry_queue_regex_activate(GtkEditable *editable, gpointer user_data)
     gtk_entry_set_text(GTK_ENTRY(editable), "");
 }
 
-gboolean on_clist_downloads_queue_button_press_event
+gboolean on_ctree_downloads_queue_button_press_event
     (GtkWidget *widget, GdkEventButton *event, gpointer user_data)
 {
 	gint row;
     gint col;
-	struct download *d;
-    GtkCList *clist_downloads_queue = GTK_CLIST(widget);
+    GtkCTree *ctree_downloads_queue = GTK_CTREE(widget);
 
 	if (event->button != 3)
 		return FALSE;
 
-    if (GTK_CLIST(clist_downloads_queue)->selection == NULL)
-        return FALSE;
+	/* If no items are selected */
+    if (GTK_CLIST(ctree_downloads_queue)->selection == NULL)
+	{
+	    gtk_widget_set_sensitive
+	        (lookup_widget(popup_queue, "popup_queue_start_now"), FALSE);
+	    gtk_widget_set_sensitive
+	        (lookup_widget(popup_queue, "popup_queue_abort"), FALSE);
+	    gtk_widget_set_sensitive
+	        (lookup_widget(popup_queue, "popup_queue_abort_named"), FALSE);
+	    gtk_widget_set_sensitive
+	        (lookup_widget(popup_queue, "popup_queue_abort_host"), FALSE);
+	    gtk_widget_set_sensitive
+	        (lookup_widget(popup_queue, "popup_queue_abort_sha1"), FALSE);
+	    gtk_widget_set_sensitive
+	        (lookup_widget(popup_queue, "popup_queue_copy_url"), FALSE);
+	    gtk_widget_set_sensitive
+	        (lookup_widget(popup_queue, "popup_queue_connect"), FALSE);
+	}
 
 	if (!gtk_clist_get_selection_info
-		(GTK_CLIST(clist_downloads_queue), event->x, event->y, &row, &col))
+		(GTK_CLIST(ctree_downloads_queue), event->x, event->y, &row, &col))
 		return FALSE;
-
-	d = (struct download *)
-		gtk_clist_get_row_data(GTK_CLIST(clist_downloads_queue), row);
 
 	gtk_menu_popup(GTK_MENU(popup_queue), NULL, NULL, NULL, NULL, 
                   event->button, event->time);
@@ -834,26 +1001,76 @@ gboolean on_clist_downloads_queue_button_press_event
 	return TRUE;
 }
 
-void on_clist_downloads_queue_resize_column(GtkCList * clist, gint column,
+void on_ctree_downloads_queue_resize_column(GtkCList * clist, gint column,
 										   gint width, gpointer user_data)
 {
 	dl_queued_col_widths[column] = width;
 }
 
-void on_clist_downloads_queue_drag_begin(GtkWidget *widget, 
+void on_ctree_downloads_queue_drag_begin(GtkWidget *widget, 
                                          GdkDragContext *drag_context, 
                                          gpointer user_data)
 {
     download_freeze_queue();
 }
 
-void on_clist_downloads_queue_drag_end(GtkWidget *widget, 
+void on_ctree_downloads_queue_drag_end(GtkWidget *widget, 
                                        GdkDragContext *drag_context, 
                                        gpointer user_data)
 {
     download_thaw_queue();
 }
 
+
+/* 
+ * 	on_popup_downloads_expand_all_activate
+ */
+void on_popup_downloads_expand_all_activate(GtkMenuItem *menuitem, 
+	gpointer user_data)
+{
+	GtkCTree *ctree_downloads = GTK_CTREE
+		(lookup_widget(main_window, "ctree_downloads"));
+
+    downloads_gui_expand_all(ctree_downloads);
+}
+
+
+/* 
+ * 	on_popup_downloads_collapse_all_activate
+ */
+void on_popup_downloads_collapse_all_activate(GtkMenuItem *menuitem,
+	gpointer user_data)
+{
+	GtkCTree *ctree_downloads = GTK_CTREE
+		(lookup_widget(main_window, "ctree_downloads"));
+
+    downloads_gui_collapse_all(ctree_downloads);
+}
+
+/* 
+ * 	on_popup_expand_all_activate
+ */
+void on_popup_queue_expand_all_activate(GtkMenuItem *menuitem, 
+	gpointer user_data)
+{
+	GtkCTree *ctree_downloads_queue = GTK_CTREE
+		(lookup_widget(main_window, "ctree_downloads_queue"));
+
+    downloads_gui_expand_all(ctree_downloads_queue);
+}
+
+
+/* 
+ * 	on_popup_collapse_all_activate
+ */
+void on_popup_queue_collapse_all_activate(GtkMenuItem *menuitem,
+	gpointer user_data)
+{
+	GtkCTree *ctree_downloads_queue = GTK_CTREE
+		(lookup_widget(main_window, "ctree_downloads_queue"));
+
+    downloads_gui_collapse_all(ctree_downloads_queue);
+}
 
 
 #endif	/* USE_GTK1 */

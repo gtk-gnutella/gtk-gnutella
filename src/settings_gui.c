@@ -416,7 +416,7 @@ static prop_map_t property_map[] = {
         PROP_DL_ACTIVE_COL_WIDTHS,
         update_clist_col_widths,
         TRUE,
-        "clist_downloads",
+        "ctree_downloads",
         FREQ_UPDATES, 0
     },
     {
@@ -424,7 +424,7 @@ static prop_map_t property_map[] = {
         PROP_DL_QUEUED_COL_WIDTHS,
         update_clist_col_widths,
         TRUE,
-        "clist_downloads_queue",
+        "ctree_downloads_queue",
         FREQ_UPDATES, 0
     },
     {
@@ -4757,7 +4757,7 @@ static void spinbutton_adjustment_value_changed
 
 #ifdef USE_GTK1
             gtk_clist_unselect_all(GTK_CLIST(
-                lookup_widget(main_window, "clist_downloads_queue")));
+                lookup_widget(main_window, "ctree_downloads_queue")));
 #endif
         }
     }

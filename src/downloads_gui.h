@@ -46,13 +46,17 @@ void gui_update_download(struct download *, gboolean);
 void gui_update_download_server(struct download *);
 void gui_update_download_range(struct download *d);
 void gui_update_download_host(struct download *d);
-
 void gui_update_download_abort_resume(void);
 
-#ifdef USE_GTK2
+
+#ifdef USE_GTK1
+GList *downloads_gui_collect_ctree_data(GtkCTree *ctree, GList *node_list, 
+	gboolean unselect, gboolean add_children);
+void downloads_gui_expand_all(GtkCTree *ctree);
+void downloads_gui_collapse_all(GtkCTree *ctree);
+#else
 void downloads_gui_expand_all(GtkTreeView *tree_view);
 void downloads_gui_collapse_all(GtkTreeView *tree_view);
 #endif
-
 
 #endif /* _downloads_gui_h_ */
