@@ -193,7 +193,7 @@ static void socket_read(gpointer data, gint source, GdkInputCondition cond)
 			0 == strncmp(s->buffer, "GET ", 4) ||
 			0 == strncmp(s->buffer, "HEAD ", 5)
 		)
-			socket_http_error(s, 414, "Requested URL Too Large");
+			socket_http_error(s, 414, NULL, "Requested URL Too Large");
 		socket_destroy(s);
 		return;
 	case READ_DONE:
@@ -756,10 +756,14 @@ struct gnutella_socket *socket_listen(guint32 ip, guint16 port, gint type)
 /*
  * socket_http_error
  *
- * Send HTTP error on socket.
+ * Send HTTP error on socket, with code and reason.
+ * If `extra' is non-null, it is inserted as-is in the header, so it must
+ * be properly terminated on each of its embedded lines.
+ *
  * The connection is NOT closed.
  */
-void socket_http_error(struct gnutella_socket *s, gint code, gchar *reason)
+void socket_http_error(
+	struct gnutella_socket *s, gint code, gchar *extra, gchar *reason)
 {
 	gchar http_response[1024];
 	gint rw;
@@ -770,8 +774,23 @@ void socket_http_error(struct gnutella_socket *s, gint code, gchar *reason)
 		"Server: %s\r\n"
 		"Connection: close\r\n"
 		"X-Live-Since: %s\r\n"
+		"%s"
 		"\r\n",
-		code, reason, version_string, start_rfc822_date);
+		code, reason, version_string, start_rfc822_date,
+		extra == NULL ? "" : extra);
+
+	if (rw == sizeof(http_response) && extra) {
+		g_warning("HTTP error %d (%s) too big, ignoring extra (%d bytes)",
+			code, reason, strlen(extra));
+
+		rw = g_snprintf(http_response, sizeof(http_response),
+			"HTTP/1.0 %d %s\r\n"
+			"Server: %s\r\n"
+			"Connection: close\r\n"
+			"X-Live-Since: %s\r\n"
+			"\r\n",
+			code, reason, version_string, start_rfc822_date);
+	}
 
 	if (-1 == (sent = bws_write(bws.out, s->file_desc, http_response, rw)))
 		g_warning("Unable to send back HTTP error %d (%s) to %s: %s",
