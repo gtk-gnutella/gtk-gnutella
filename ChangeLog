@@ -1,5 +1,20 @@
 # since last version
 
+- (2004-08-09 - RAM)
+ * Whith leaf-guided dynamic queries, adjust the number of kept results when
+   comparing to the maximum allowed, since leaves return the total amount
+   of results, not the ones received from just our connection.
+ * Fixed assertion that forgot to account for kept results.
+ * No longer drop node for sending/relaying messages with TTL=0: simply
+   ignore the bad message and go on.
+ * Now try to support BearShare and its great (not!) idea of acking an
+   alive ping with a TTL=0 ping!
+ * Make sure we always log something in debug mode when seeing a bad packet.
+ * Send PUSH requests at the highest TTL we can, i.e. hard_ttl_limit and
+   not max_ttl which is only for broadcasted messages.
+ * Use ping-pong roundtrip times to guess a relevant timeout for the
+   "Query Status Request" message sent for leaf-guided dynamic queries.
+
 - (2004-08-08 - RAM)
  * To allow safe data access to the free routine invoked for extended messages,
    we must not unref the data before calling the free routine in case we were
