@@ -829,7 +829,7 @@ void on_entry_queue_regex_activate(GtkEditable *editable, gpointer user_data)
         }
         
         statusbar_gui_message(15, 
-            "Selected %u of %u queued downloads matcing \"%s\".", 
+            "Selected %u of %u queued downloads matching \"%s\".", 
             m, GTK_CLIST(clist_downloads_queue)->rows, regex);
 
 		regfree(&re);
