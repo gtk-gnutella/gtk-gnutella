@@ -510,7 +510,7 @@ gboolean search_gui_new_search_full(
  * If the value in sort_col for r1 is "greater than" r2 returns +1
  * 0 if they're equal, and -1 if r1 is "less than" r2
  */
-gint search_gui_compare_records(
+static gint search_gui_compare_records(
 	gint sort_col, const gui_record_t *g1, const gui_record_t *g2)
 {
 	record_t *r1 = g1->shared_record;
