@@ -1193,6 +1193,8 @@ static void filter_set_ruleset(GList *ruleset)
  * Convert a rule condition to a human readable string.
  */
 static gchar *rule_condition_to_gchar(rule_t *r) {
+    static gchar tmp[256];
+
     g_assert(r != NULL);
     
     switch (r->type) {
@@ -1200,35 +1202,35 @@ static gchar *rule_condition_to_gchar(rule_t *r) {
         switch (r->u.text.type) {
         case RULE_TEXT_PREFIX:
            	g_snprintf(
-                f_tmp, sizeof(f_tmp), 
+                tmp, sizeof(tmp), 
                 "If filename begins with \"%s\" %s",
                 r->u.text.match,
                 r->u.text.case_sensitive ? "(case sensitive)" : "");
             break;
         case RULE_TEXT_WORDS:
            	g_snprintf(
-                f_tmp, sizeof(f_tmp), 
+                tmp, sizeof(tmp), 
                 "If filename contains the words \"%s\" %s",
                 r->u.text.match,
                 r->u.text.case_sensitive ? "(case sensitive)" : "");
             break;
         case RULE_TEXT_SUFFIX:
           	g_snprintf(
-                f_tmp, sizeof(f_tmp), 
+                tmp, sizeof(tmp), 
                 "If filename ends with \"%s\" %s",
                 r->u.text.match,
                 r->u.text.case_sensitive ? "(case sensitive)" : "");
             break;
         case RULE_TEXT_SUBSTR:
            	g_snprintf(
-                f_tmp, sizeof(f_tmp), 
+                tmp, sizeof(tmp), 
                 "If filename contains the substring \"%s\" %s",
                 r->u.text.match,
                 r->u.text.case_sensitive ? "(case sensitive)" : "");
             break;
         case RULE_TEXT_REGEXP:
            	g_snprintf(
-                f_tmp, sizeof(f_tmp), 
+                tmp, sizeof(tmp), 
                 "If filename matches the regex \"%s\" %s",
                 r->u.text.match,
                 r->u.text.case_sensitive ? "(case sensitive)" : "");
@@ -1239,26 +1241,38 @@ static gchar *rule_condition_to_gchar(rule_t *r) {
         break;
     case RULE_IP:
        	g_snprintf(
-            f_tmp, sizeof(f_tmp), 
+            tmp, sizeof(tmp), 
             "If IP address matches %s/%s",
             ip_to_gchar(r->u.ip.addr),
             ip_to_gchar(r->u.ip.mask));
         break;
     case RULE_SIZE:
-		if (r->u.size.lower == 0)
-			g_snprintf(f_tmp, sizeof(f_tmp), 
-				"If filesize is smaller than %d", r->u.size.upper);
-		else if (r->u.size.upper == r->u.size.lower)
-			g_snprintf(f_tmp, sizeof(f_tmp), 
-				"If filesize is exactly %d", r->u.size.upper);
-		else
-			g_snprintf(f_tmp, sizeof(f_tmp), 
-				"If filesize is between %d and %d",
-				r->u.size.lower, r->u.size.upper);
+        if (r->u.size.lower == 0) {
+            g_snprintf(
+                tmp, sizeof(tmp), 
+                "If filesize is less than %d",
+                r->u.size.lower);
+        } else if (r->u.size.upper == 0) {
+            g_snprintf(
+                tmp, sizeof(tmp), 
+                "If filesize is greater than %d",
+                r->u.size.lower);
+        } else if (r->u.size.upper == r->u.size.lower) {
+            g_snprintf(
+                tmp, sizeof(tmp), 
+                "If filesize is exactly %d",
+                r->u.size.lower);
+        } else {
+            g_snprintf(
+                tmp, sizeof(tmp), 
+                "If filesize is between %d and %d",
+                r->u.size.lower,
+                r->u.size.upper);
+        }
         break;
     case RULE_JUMP:
        	g_snprintf(
-            f_tmp, sizeof(f_tmp), 
+            tmp, sizeof(tmp), 
             "Always");
         break;
     default:
@@ -1266,7 +1280,7 @@ static gchar *rule_condition_to_gchar(rule_t *r) {
         return NULL;
     };
 
-    return f_tmp;
+    return tmp;
 }
 
 
@@ -1851,9 +1865,7 @@ static int filter_apply(filter_t *filter, struct record *rec)
 
         if (match) {
             gint val;                                                
-            g_free(l_name);                                          
             val = filter_apply(r->target, rec);                      
-            filter->visited = FALSE;                                 
 
             /*
              * If a decision could be reached, we return.
@@ -1861,6 +1873,9 @@ static int filter_apply(filter_t *filter, struct record *rec)
             if (val != -1) {
                 if(dbg >= 6)
                     g_message("matched rule: %s", rule_to_gchar(r));
+
+                g_free(l_name); 
+                filter->visited = FALSE; 
                 return val;    
             }
         }
