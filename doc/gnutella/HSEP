@@ -1,0 +1,421 @@
+Horizon size estimation on the Gnutella network
+
+
+The horizon size estimation protocol (HSEP)
+
+     Version:  0.2
+     Created:  November 21, 2003
+ Last change:  April 2, 2004
+      Author:  Thomas Schürger (thomas@schuerger.com)
+Document URL:  http://www.menden.org/gnutella/hsep.html
+
+
+Note that this is still a preliminary RFC, not a ready-to-use specification.
+The suggested header and payload type have not been registered or checked for
+collisions yet. Vendors are free to implement and test the suggested protocol,
+though.
+
+Comments and suggestions are welcome!
+
+
+Abstract
+
+The term "horizon size estimation" refers to the estimation of the number of
+reachable resources within the Gnutella network, e.g. the number of reachable
+Gnutella nodes, shared files and shared kibibytes (KiB). A good scheme for
+horizon size estimation based on dynamic programming has been proposed in the
+appendix of a document by Christopher Rohrs describing the pong-caching
+approach ([1]). Yet no proposal has been made so far on how to actually
+implement horizon size estimation into the Gnutella protocol. Here, I will give
+some additional comments about horizon size estimation and a specification on
+how to extend the Gnutella protocol to support this.
+
+
+Overview
+
+The proposed protocol has the following properties:
+
+* exact for tree-networks (but limited by a given hop radius), good enough for
+  networks with cycles
+* preservation of global anonymity (no per-node data extractable except for
+  direct peers)
+* good scalability (no broadcasting required)
+* robust against transmission errors
+* data from different connections is automatically accumulated regardless of
+  the arrival rate
+* very low bandwidth, memory and CPU time consumption
+* 64-bit integer based (only addition/subtraction/comparison operations
+  required)
+* easy to implement
+
+Changes to the Gnutella protocol:
+
+* introduction of a new "X-Feature" during Gnet handshaking to announce HSEP
+  support
+* introduction of a new Gnet message payload type for HSEP messages
+
+
+Introduction
+
+The original proposal only mentions how to estimate the total number of nodes
+reachable within a certain distance (in terms of Gnet hops), but it can easily
+be extended to also estimate the number of shared files and kibibytes reachable
+within a given distance. Note that Gnutella's original ping-pong scheme allows
+some very inefficient and inaccurate sort of horizon size estimation, because
+pong messages contain the number of shared files and kibibytes of each node
+sending a pong. But due to optimization techniques like pong-caching, pong-
+based horizon size estimation cannot be used reliably nowadays (in fact, pong-
+based horizon size estimation was never really reliable at all).
+
+Horizon size estimation has an important advantage: besides providing
+interesting statistical information, it can help to increase the connectivity
+of a servent, because the quality of a connection from a servent to one of its
+peer servents becomes a reliable quantitative measure. For example, as an
+ultrapeer or leaf node you could connect to a couple of ultrapeers and drop the
+connections to some of those having the worst figures concerning reachable
+nodes, shared files and/or shared kibibytes. This avoids connecting to servents
+that are not very well connected or are connected in a way such that few files
+are reachable (e.g. in a degraded region of the network). As a result, it may
+very well be the case that fewer connections to other servents are required for
+the same connectivity, thus saving bandwidth on the network. A drawback to the
+proposed approach is that it only works perfectly in networks that form a tree,
+which the Gnutella network obviously does not. Existing cycles in the network
+will make it possible to take nodes into account more than once (think of it as
+a sort of hop-limited breadth-first search that cannot check whether it has
+already seen a node or not). Therefore, the reliability of the horizon size
+estimation information will drop with increasing number of considered hops,
+since the probability for the existence of cycles increases with the distance
+from the originating servent. Consequently, the number of considered hops
+(n_max) should be limited to a reasonable value. The suggested approach cannot
+detect network cycles due to the implicit anonymity of the data. The anonymity
+is lost only for peer servents: a servent knows the number of shared files and
+kibibytes of each of its peer servents and to how many other servents peer
+servents are connected to. For horizon size estimation to work properly it is
+obvious that this will work best if all servents support HSEP and if all
+servents use the same value for n_max.
+
+A quick analysis shows that using 32-bit integers to store the the accumulated
+number of nodes, shared files (both max. ~4.3 billion) and kibibytes (max. 4
+tebibytes) will not suffice. The number of nodes will be okay for a while, but
+the other two numbers definitely won't. Therefore, unsigned 64-bit integers
+will be used for all three numbers.
+
+Recall that the original proposal defined H[A,n,B] to be the number of other
+nodes that are reachable from node A through node B (which has a direct
+connection to A) using at most n hops. That is, H[A,n,B] is the number of other
+nodes reachable from node A within at most n hops with the first hop being B.
+H'[A,n,B] is defined to be the number of other nodes reachable from node A
+within at most n hops where the first hop is not B (i.e. through all directly
+connected nodes except B). Define H[A,n] to be the sum of H[A,n,B] for all B
+with direct connection to A.
+
+The key observations for the directly connected nodes N_1, ..., N_k are:
+
+H[A,n,N_i] = H'[N_i,n-1,A] + 1 (for n >= 1)
+H'[A,0,N_i] = H[A,0,N_i] = 0
+
+The following is obvious:
+
+H'[A,n,N_i] = H[A,n,N_1] + ... + H[A,n,N_(i-1)] + H[A,n,N_(i + 1)] + ... + H
+[A,n,N_k] = H[A,n] - H[A,n,N_i]
+
+Note that the "+ 1" in the first equation arises from the fact that connection
+N_i serves as a node itself, so it must be considered as being reachable from
+A. For counting files and kibibytes, this has to be replaced by the number of
+files and kibibytes, respectively, that N_i shares.
+
+To make the algorithm work, directly connected nodes effectively exchange their
+H' tables and update their H tables accordingly.
+
+The proposed protocol is completely self-correcting. If a servent sends faulty
+HSEP data for some time (e.g. data that is wrong but passes the sanity checks,
+see below), this data will propagate through the network. But if the servent
+starts sending correct data again or quits from the network, the correct values
+will gradually replace the faulty data, i.e. data errors will not accumulate
+(which would cause the faulty data to circulate in the network forever). This
+is a very desired property of such a protocol.
+
+Throughout the document, "kibibytes" (or "KiB") refers to 1024 bytes (as
+defined by IEC 60027-2, see here).
+
+
+Required datastructures
+
+The client needs a fixed-size global array H[0..n_max], where each element is
+initialized to zero. Additionally, for each connection N_i the client needs a
+fixed-size array H_(N_i)[0..n_max], initialized as specified below. Note that
+each array contains n_max + 1 elements, not n_max.
+
+Each array element is a triple (3-tuple) containing (nodes, files, kibibytes),
+where each triple element is an unsigned 64-bit integer (uint64_t in C 99, or
+long in Java). In the following, addition/subtraction of such triples means
+usual component-wise addition/subtraction, like for vectors.
+
+The servent also has an (artificial) triple
+
+OWN := (1,own_files,own_kibibytes)
+
+which contains the resources that the servent itself contributes to the network
+(a 1 for the number of nodes and the current number of shared files and
+kibibytes of the servent). OWN must be set to (1,0,0) if the servent currently
+does not share any files (or doesn't want to announce that it shares any). The
+triple must be updated whenever these figures change (e.g. when shared files
+are re-scanned or when the servent decides to start or stop sharing).
+
+The array triples H[0] and H_(N_i)[0] (for all i) will remain (0,0,0)
+throughout the protocol (because they are never changed), which simplifies the
+update algorithm a little.
+
+
+Handshaking
+
+In the proposed Gnutella extension a connecting servent must announce its
+capability of supporting HSEP at connection time and must check the HSEP
+capability of the servent it connects to. This only refers to Gnet connections,
+not to download/upload connections.
+
+The HSEP-capability is indicated by making use of the "X-Features" header in
+the Gnet handshaking phase. The feature is called "HSEP" with version "0.2",
+e.g. a header could look like this:
+
+X-Features: HSEP/0.2, ...
+
+After learning the HSEP capability of the peer servent by inspecting the "X-
+Features" header of the peer's connection request or reply (depending on which
+side initiated the connection), the servent can continue and use the protocol
+version that both servents understand (which currently means that the versions
+must be equal) or choose to either continue without using HSEP or to terminate
+the connection.
+
+After establishing a HSEP-capable connection, both servents have to initialize
+their H_(N_k) array (with N_k being the new connection) to ((0,0,0), (1,0,0),
+... ,(1,0,0)), with n_max + 1 triples altogether. This means that all triples
+are (1,0,0) except the first, which is (0,0,0). This vector of triples also
+must be added to the global H array. So in total, the following needs to be
+done for connection initialization:
+
+H_(N_k)[0] := (0,0,0)
+H_(N_k)[n] := (1,0,0) for all 1 <= n <= n_max
+H[n] := H[n] + (1,0,0) for all 1 <= n <= n_max
+
+Note that different versions of HSEP will not be compatible to each other. A
+servent must therefore deny using HSEP with a servent that announces supporting
+a different version of HSEP. This is crucial to allow interoperability with old
+servents when new versions of the protocol become available.
+
+
+Normal operation for ultrapeers
+
+Every now and then (every 30 seconds or so) a servent needs to send out the
+horizon size estimation data to all of its current HSEP-capable connections.
+For a connection N_i the servent sends a HSEP message to connection N_i along
+with the HSEP data suitable for that connection as specified below. The payload
+type of HSEP messages is 0xcd (205 in decimal), TTL is 1 and hops is 0.
+
+The payload looks as follows. It consists of n_max triples (nodes, files,
+kibibytes), where each value of the triples is an unsigned 64-bit integer sent
+in little-endian_byte-order. The n_max payload triples to send are OWN + H[0] -
+H_(N_i)[0], ..., OWN + H[n_max - 1] - H_(N_i)[n_max - 1] (let's call these
+triples V[0], ..., V[n_max - 1]). Note that a servent never uses H[n_max] or H_
+(N_i)[n_max] for sending.
+
+When a servent receives such message from connection N_i with payload triples V
+[0], ..., V[n_max - 1], the following sanity-check must be performed (where "*"
+stands for an arbitrary value). The provided triple relation must be true for
+all triple components, i.e. (a,b,c) rel (d,e,f) :<=> (a rel d) AND (b rel e)
+AND (c rel f):
+
+V[0] = (1,*,*)
+V[n] >= V[n-1] for all 1 <= n <= n_max - 1 (monotony check)
+
+If this check fails, the servent must ignore the message or terminate the
+connection. If the check succeeds, it uses the following update algorithm. For
+each 0 <= n <= n_max - 1 it sets (in this order!)
+
+H[n + 1] := H[n + 1] + V[n] - H_(N_i)[n + 1]
+H_(N_i)[n + 1] := V[n]
+
+So the servent adds the difference of each new and each previous triple to the
+global H entries (shifted by an offset of 1) and sets all its H_(N_i) triples
+for the connection to the triples sent by the peer servent (also shifted by an
+offset of 1).
+
+Different servents might have different values of n_max. A servent receiving a
+HSEP message can deduce the n_max value of the peer servent (called
+other_n_max) by taking the payload length of the message and by dividing it by
+24. If n_max <= other_n_max, nothing special needs to be done except for
+truncation: only the first n_max triples are processed. But if n_max >
+other_n_max, simply use
+
+V[n] := V[other_n_max - 1] for all other_n_max <= n <= n_max - 1
+
+This means that the message is treated as if it actually contained n_max
+triples instead of just other_n_max triples, with the last one of the sent
+triples being repeated until there is a total of n_max triples. As a side
+effect, this enables a simple but effective optimization on the sending side:
+if there is an n_last such that V[n] = V[n_last] for all n_last < n <= n_max -
+1, only send V[0], ..., V[n_last] in the HSEP message. In other words: if there
+is a suffix of equal triples, only send the triples V[0], ..., upto the first
+occurence of the repeated triple, inclusive. This can be exploited for leaf
+nodes, see below. An ultrapeer should ignore a HSEP message from a leaf node
+that sends more than 1 triple (it may also choose to terminate the connection
+in that case).
+
+Note that a servent need not send a HSEP message to a peer servent if none of
+the triples to send has changed since the previous message sent to the peer,
+because this will have no effect on the peer's side (the per-connection data
+would be replaced by the same data and the global data would also remain
+unchanged). The probability that nothing has changed within the last 30 seconds
+may be small (because other HSEP messages of peers may arrive), but a vendor
+must include this optimization anyway (especially for leaf nodes, see below).
+
+Note also that HSEP does not require sending the HSEP messages to all
+connections at the same time. It is also possible (and suggested) to send the
+messages out randomly (with a 30 second average) or in a round-robin manner,
+scattering the messages over the 30 second interval. The first HSEP message
+should be sent as soon as possible, i.e. as soon as a connection has been
+established. As this refers to both sides (the connecting servent and the
+servent being connected to), the two servents send their triples for the
+connection to each other. This lets HSEP data propagate quickly through new
+connections. Luckily, HSEP data exchange between two connected servents is
+independend from each other: it doesn't matter which of the two sends a HSEP
+message first (the messages could even be sent simultaneously).
+
+At any time, the servent can update its displayed horizon data in its GUI by
+displaying H[n] to the user, which contains the number of reachable nodes,
+files and kibibytes within a distance of n hops (with 1 <= n <= n_max). A
+servent might also display the per-connection data H_(N_i)[n] to the user for
+each connection, if desired.
+
+
+Normal operation for leaf nodes
+
+A leaf node can operate in the same way that an ultrapeer does, but a little
+care must be taken here if a leaf node is connected to more than one ultrapeer.
+Since a leaf node must not propagate any HSEP data between the ultrapeers it is
+connected to (in fact, it must not forward any Gnet messages at all), the leaf
+has no need for the 30-second interval for sending: it only needs to send a
+HSEP message to its ultrapeers once when the connection has been established
+and after that only when its number of shared files or kibibytes has changed
+(which it should not do more often than every 30 seconds). The correct HSEP
+message would normally consist of the leaf's OWN triple repeated n_max times
+(i.e. HSEP data from other ultrapeers is ignored), but this can be optimized to
+just sending the OWN triple once: on the ultrapeer's side, this triple is
+expanded as needed. Therefore, such a message has a payload of only 24 bytes.
+Even if the leaf node would send out its HSEP messages every 30 seconds, this
+would only result in a traffic of 0.8 bytes per second per ultrapeer, without
+any compression applied.
+
+Note that receiving HSEP messages from ultrapeers does not require special
+treatment on the leaf node's side. Incoming HSEP messages can be processed like
+for ultrapeers, and GUI updates work in the same way, too.
+
+
+Disconnecting
+
+When a servent disconnects from one of its HSEP-capable peers (no matter which
+side closes the connection) the global H array needs to be updated. For the
+closed connection N_i and each 1 <= n <= n_max (n = 0 can be skipped) simply
+set
+
+H[n] := H[n] - H_(N_i)[n]
+
+and free the allocated HSEP memory of the connection, if needed. Also make sure
+that the connection is not considered for any sanity checks anymore while or
+after being closed.
+
+
+Invariants
+
+At any time (outside of update operations) the following conditions must hold
+(where "*" stands for an arbitrary value):
+
+
+* the OWN triple must be (1,*,*)
+* all per-connection triples for 0 hops must be (0,0,0)
+* all per-connection triples for 1 hop must be (1,*,*)
+* for each connection its triples must be monotonically increasing for
+  increasing number of hops (the same test as for incoming triples, see above)
+* the sum of all i-th per-connection triples must match the i-th global triple
+  for all 1 <= i <= n_max, i.e. sum(H_(N_i)[k] for all i) = H[k] for all k in
+  [0,n_max]
+
+
+If the last two conditions are true, the global HSEP triples are automatically
+also increasing monotonically. The global triple for 0 hops is checked for
+being equal to (0,0,0) implicitly.
+
+A servent should check these invariants every now and then in order to detect
+internal implementation errors. Most implementation errors will lead to
+violation of these invariants.
+
+
+Bandwidth requirements
+
+I propose n_max to be 10, which results in a payload of 10*3*8 = 240 bytes for
+a full HSEP message. Most leading bits of each 64-bit value will be zero,
+therefore good connection-stream compression is possible (e.g. by using the
+deflate algorithm).
+
+For an ultrapeer maintaining 50 HSEP-capable connections (40 of them being leaf
+nodes sending in 3 minute and receiving in 30 second intervals, the rest being
+ultrapeers sending and receiving in 30 second intervals), this will result in
+an uncompressed bandwidth requirement of 85 bytes in and 400 bytes out per
+second, which should be no problem for an ultrapeer. An expected 30% of that,
+25 bytes in and 120 out per second, will be remaining after compression.
+
+For a leaf node connected to 4 ultrapeers this will be 32 uncompressed bytes in
+and 0.5 bytes out per second (which can be compressed to 10 bytes in and 0.15
+bytes out per second), so the bandwidth requirements for HSEP are very low. If
+a leaf node only sends a message whenever the number of shared files/KiB
+changes, bandwidth requirements drop even further.
+
+Note that this is the raw payload bandwidth requirement; each message also has
+a header, which is smaller than a single triple and therefore does not
+influence the above figures much.
+
+
+Automatic connectivity checks
+
+For checking the connectivity gain of a connection N_i, one should not simply
+look at the connection's last triple H_(N_i)[n_max]. Remember that because of
+cycles in the network the reliability of the H_(N_i)[k] triples drops with
+increasing k, so one should keep k low. The aim for good connectivity should be
+to maximize the number of nodes/files/kibibytes reachable within a small number
+of hops, which should lead to quicker response times for queries. To achieve
+this, something around k = 5 or k = 6 should be fine. This is just a rough
+guess, it should be determined empirically.
+
+
+Requirements for multi-threading
+
+It is important that updating and collecting data for viewing and sending is an
+atomic process. This refers to reading and writing the values altogether (e.g.
+parallel read/write, write/read and write/write accesses), therefore such
+operations must be serialized. This may require proper locking-mechanisms in
+multi-threaded Gnutella clients, but can be ignored for single-threaded
+clients. As the required locking time is very short (for best concurrency
+simply lock, copy and unlock the data), it should suffice to use one global
+MUTEX lock, whenever the global or per-connection HSEP data is read or updated.
+
+
+
+Further considerations
+
+A differential approach (where only the difference between the current and the
+triple of the previous message to a connection is sent) would be possible. The
+compression algorithm might be happy with that since the entropy of the
+uncompressed data can be reduced, but the triples will probably be so dynamic
+that this will help very little in practice.
+
+Note that a differential approach has the undesirable property that data errors
+will accumulate. If wrong data is sent (due to implementation or transmission
+errors), these wrong values will accumulate on the peer's side and would be
+propagated through the network until the connection is closed.
+
+Due to these reasons no differential approach is used.
+
+
+References
+
+[1] http://rfc-gnutella.sourceforge.net/src/pong-caching.html
