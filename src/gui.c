@@ -121,8 +121,8 @@ void gui_init(void)
 	gtk_widget_set_sensitive(popup_queue_abort_named, FALSE);
 	gtk_widget_set_sensitive(popup_queue_abort_host, FALSE);
     gtk_widget_set_sensitive(popup_downloads_push, 
-                             !gtk_toggle_button_get_active(
-								 GTK_TOGGLE_BUTTON(checkbutton_downloads_never_push)));
+    	!gtk_toggle_button_get_active(
+		GTK_TOGGLE_BUTTON(checkbutton_downloads_never_push)));
 
 
     gtk_clist_column_titles_passive(GTK_CLIST(clist_nodes));
