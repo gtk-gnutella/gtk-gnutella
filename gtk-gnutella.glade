@@ -6413,7 +6413,7 @@
 			<widget>
 			  <class>GtkLabel</class>
 			  <name>label92</name>
-			  <label>Port:</label>
+			  <label>TCP Port:</label>
 			  <justify>GTK_JUSTIFY_CENTER</justify>
 			  <wrap>False</wrap>
 			  <xalign>0.5</xalign>
