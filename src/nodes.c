@@ -421,6 +421,10 @@ static gboolean can_become_ultra(time_t now)
 
 #undef OK
 
+	/*
+	 * Let them see the results of our checks in the GUI.
+	 */
+
 	gnet_prop_set_boolean_val(PROP_UP_REQ_AVG_SERVENT_UPTIME,
                                                           avg_servent_uptime);
 	gnet_prop_set_boolean_val(PROP_UP_REQ_AVG_IP_UPTIME,  avg_ip_uptime);
