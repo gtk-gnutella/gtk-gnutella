@@ -151,7 +151,7 @@ void gui_update_download(struct download *d, gboolean force)
 			if (fi->cha1)
 				rw += g_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
 					" (%.1f k/s) %s",
-					(gfloat) fi->cha1_hashed / fi->cha1_elapsed,
+					(gfloat) (fi->cha1_hashed >> 10) / fi->cha1_elapsed,
 					short_time(fi->cha1_elapsed));
 		}
 		a = tmpstr;
