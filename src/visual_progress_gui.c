@@ -39,7 +39,12 @@
  *
  * Check out why only some requests provide a range
  *
- * Protect against the division by zero errors reported in drawing.
+ * Check event code more carefully, the width is sometimes messed up.
+ * size-allocate signal or drawing area ->allocation.width should also work.
+ * 
+ * 
+ * Do not redraw the bar too often, only on event for actual file and
+ * perhaps max once a second.
  */
 
 #include "gui.h"
@@ -112,17 +117,16 @@ void vp_draw_rectangle (vp_info_t *v, guint32 from, guint32 to, guint top, guint
 	 * a division by zero below. We could protect for that, but
 	 * neither should be zero when we end up here, so this can be
 	 * considered a bug somewhere in the calling code.
+	 *
+	 * width should be set as part of the setup of the drawing area.
+	 *
+	 * file_size should be set in the fileinfo code.
 	 */
 	g_assert( v->context->width );
 	g_assert( v->file_size);
 
-	/* 
-	 * FIXME: perhaps we should check the values here to see if they
-	 * are out of bounds?
-	 */
-    bpp = v->file_size / v->context->width;
-    s_from = from / bpp; 
-    s_to = to / bpp; 
+	s_from = (gfloat)from * v->context->width / v->file_size;
+	s_to   = (gfloat)to   * v->context->width / v->file_size;
 
     gdk_draw_rectangle(v->context->drawable, v->context->gc, TRUE, 
         s_from + v->context->offset_hor, top, 
