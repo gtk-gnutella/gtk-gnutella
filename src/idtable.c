@@ -54,6 +54,7 @@ static guint32 find_unused_id(idtable_t *tbl)
     guint32 max_blk = BLOCK_COUNT(tbl)-1;
 
     g_assert(tbl->ids < tbl->size);
+    g_assert(tbl->last_id < tbl->size);
     
     /*
      * Seek a block which has room (at least one bit in id block must
@@ -136,9 +137,10 @@ idtable_t *idtable_new(guint32 isize, guint32 esize)
     tbl->esize     = (((esize-1)/BLOCK_SIZE)+1)*32;
     tbl->size      = (((isize-1)/BLOCK_SIZE)+1)*32;
 
-    tbl->ids      = 0;
+    tbl->ids       = 0;
+    tbl->last_id   = 0;
     tbl->data      = g_new(gpointer, tbl->size);
-    tbl->used_ids = g_new0(guint32, BLOCK_COUNT(tbl));
+    tbl->used_ids  = g_new0(guint32, BLOCK_COUNT(tbl));
 
     return tbl;
 }
@@ -152,6 +154,7 @@ idtable_t *idtable_new(guint32 isize, guint32 esize)
 void idtable_destroy(idtable_t *tbl)
 {
     g_assert(tbl != NULL);
+    g_assert(tbl->last_id < tbl->size);
 
     if (tbl->ids > 0) {
         g_warning("idtable_destroy: destroying table with %u ids\n", 
@@ -177,6 +180,7 @@ guint32 idtable_new_id(idtable_t *tbl, gpointer value)
 
     g_assert(tbl != NULL);
     g_assert(tbl->ids <= tbl->size);
+    g_assert(tbl->last_id < tbl->size);
     
     /*
      * When the table is already full, we extend it.
@@ -208,6 +212,7 @@ guint32 idtable_new_id(idtable_t *tbl, gpointer value)
 void idtable_new_id_value(idtable_t *tbl, guint32 id, gpointer value)
 {
     g_assert(tbl != NULL);
+    g_assert(tbl->last_id < tbl->size);
     
     while (id >= tbl->size)
         idtable_extend(tbl);
@@ -228,6 +233,7 @@ void idtable_set_value(idtable_t *tbl, guint32 id, gpointer value)
     g_assert(tbl != NULL);
     g_assert(id < tbl->size);
     g_assert(IS_ID_TAKEN(tbl, id));
+    g_assert(tbl->last_id < tbl->size);
 
     tbl->data[id] = value;
 }
@@ -244,6 +250,7 @@ gpointer idtable_get_value(idtable_t *tbl, guint32 id)
     g_assert(tbl != NULL);
     g_assert(id < tbl->size);
     g_assert(IS_ID_TAKEN(tbl, id));
+    g_assert(tbl->last_id < tbl->size);
 
     return tbl->data[id];
 }
@@ -258,6 +265,7 @@ gpointer idtable_get_value(idtable_t *tbl, guint32 id)
 __inline__ gboolean idtable_is_id_used(idtable_t *tbl, guint32 id)
 {
     g_assert(tbl != NULL);
+    g_assert(tbl->last_id < tbl->size);
 
     return (id >= tbl->size) ? FALSE : IS_ID_TAKEN(tbl, id);
 }
@@ -272,6 +280,7 @@ void idtable_free_id(idtable_t *tbl, guint32 id)
     g_assert(tbl != NULL);
     g_assert(id < tbl->size);
     g_assert(IS_ID_TAKEN(tbl, id));
+    g_assert(tbl->last_id < tbl->size);
 
     tbl->ids --;
 
