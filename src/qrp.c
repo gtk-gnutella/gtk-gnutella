@@ -2866,6 +2866,7 @@ GSList *qrt_build_query_target(
 		 * Look whether we can route the query to the leaf node.
 		 */
 
+		node_inc_qrp_query(dn);
 		can_route = TRUE;
 
 		for (i = qhvec->count, qh = qhvec->vec; i > 0; i--, qh++) {
@@ -2929,6 +2930,7 @@ GSList *qrt_build_query_target(
 
 		nodes = g_slist_prepend(nodes, dn);
 		count++;
+		node_inc_qrp_match(dn);
 	}
 
 	return nodes;

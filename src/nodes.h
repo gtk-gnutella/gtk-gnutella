@@ -187,6 +187,13 @@ typedef struct gnutella_node {
 
 	/*
 	 * Various Gnutella statistics -- RAM, 10/12/2003.
+	 *
+	 * qrp_queries/qrp_matches is used by both leaf and ultra nodes:
+	 * . Leaf structures use it to count the amount of queries received versus
+	 *   queries sent after QRP filtering by the ultra node (us).
+	 * . Ultra structures use it to count the amount of queries received from
+	 *   the ultra node by the leaf node (us) versus the amount of queries
+	 *   that really caused a match to one of our files.
 	 */
 
 	guint32 qrp_queries;		/* Queries received under QRP control */
