@@ -403,88 +403,63 @@ static struct routing_patch *qrt_diff_4(
 }
 
 /*
- * Co-routine compression context.
+ * Compression task context.
  */
 
 #define QRT_COMPRESS_MAGIC	0x45afbb01
-#define QRT_INITIAL_CHUNK	256			/* Initial compressing chunk size */
-#define QRT_HALF_LIFE		50000		/* In useconds, MUST be << 1000 usec */
+#define QRT_TICK_CHUNK		256			/* Chunk size per tick */
+#define QRT_HALF_LIFE		50000		/* In useconds, MUST be << 1 sec */
 
 struct qrt_compress_context {
 	gint magic;						/* Magic number */
 	struct routing_patch *rp;		/* Routing table being compressed */
 	zlib_deflater_t *zd;			/* Incremental deflater */
-	gint chunklen;					/* Amount to compress */
-	qrp_callback_t done_callback;	/* Notification callback when done */
-	gpointer arg;					/* Callback argument */
-	gint timer_id;					/* Computation hearbeat */
 };
 
-static gboolean qrt_compress_timer(gpointer arg);
-static GSList *sl_compress_coroutines = NULL;
+static GSList *sl_compress_tasks = NULL;
 
 /*
- * qrt_patch_compress
+ * qrt_compress_free
  *
- * Compress routing patch inplace (asynchronously).
- * When it's done, invoke callback with specified argument.
+ * Free compression context.
  */
-static void qrt_patch_compress(
-	struct routing_patch *rp,
-	qrp_callback_t done_callback, gpointer arg)
+static void qrt_compress_free(gpointer u)
 {
-	struct qrt_compress_context *ctx;
-	zlib_deflater_t *zd;
-
-	zd = zlib_deflater_make(rp->arena, rp->len, 9);
-
-	if (zd == NULL) {
-		(*done_callback)(arg, FALSE);
-		return;
-	}
-
-	/*
-	 * Because compression is possibly a CPU-intensive operation, it
-	 * is dealt with as a coroutine that will be scheduled at regular
-	 * intervals.
-	 */
-
-	ctx = g_malloc0(sizeof(*ctx));
-	ctx->magic = QRT_COMPRESS_MAGIC;
-	ctx->rp = rp;
-	ctx->zd = zd;
-	ctx->chunklen = QRT_INITIAL_CHUNK;
-	ctx->done_callback = done_callback;
-	ctx->arg = arg;
-	ctx->timer_id = g_timeout_add(1000, qrt_compress_timer, ctx);
-
-	sl_compress_coroutines = g_slist_prepend(sl_compress_coroutines, ctx);
-}
-
-/*
- * qrt_compress_timer
- *
- * Perform incremental compression.
- */
-static gboolean qrt_compress_timer(gpointer arg)
-{
-	struct qrt_compress_context *ctx = (struct qrt_compress_context *) arg;
-	struct timeval start, end;
-	gint ret;
-	glong delay;
+	struct qrt_compress_context *ctx = ( struct qrt_compress_context *) u;
 
 	g_assert(ctx->magic == QRT_COMPRESS_MAGIC);
 
-	if (dbg > 4)
-		printf("compress_timer: chunk = %d bytes\n", ctx->chunklen);
+	if (ctx->zd)
+		zlib_deflater_free(ctx->zd, TRUE);
 
-	gettimeofday(&start, NULL);
-	ret = zlib_deflate(ctx->zd, ctx->chunklen);
-	gettimeofday(&end, NULL);
+	wfree(ctx, sizeof(*ctx));
+}
+
+/*
+ * qrt_step_compress
+ *
+ * Perform incremental compression.
+ */
+static bgret_t qrt_step_compress(gpointer h, gpointer u, gint ticks)
+{
+	struct qrt_compress_context *ctx = (struct qrt_compress_context *) u;
+	gint ret;
+	gint chunklen;
+	gint status = 0;
+
+	g_assert(ctx->magic == QRT_COMPRESS_MAGIC);
+
+	chunklen = ticks * QRT_TICK_CHUNK;
+
+	if (dbg > 4)
+		printf("QRP qrt_step_compress: ticks = %d => chunk = %d bytes\n",
+			ticks, chunklen);
+
+	ret = zlib_deflate(ctx->zd, chunklen);
 
 	switch (ret) {
 	case -1:					/* Error occurred */
-		zlib_deflater_free(ctx->zd, TRUE);
+		status = -1;
 		goto done;
 		/* NOTREACHED */
 	case 0:						/* Finished */
@@ -511,7 +486,7 @@ static gboolean qrt_compress_timer(gpointer arg)
 			zlib_deflater_free(ctx->zd, FALSE);
 		} else
 			zlib_deflater_free(ctx->zd, TRUE);
-
+		ctx->zd = NULL;
 		goto done;
 		/* NOTREACHED */
 	case 1:						/* More work required */
@@ -520,71 +495,52 @@ static gboolean qrt_compress_timer(gpointer arg)
 		g_assert(0);			/* Bug in zlib_deflate() */
 	}
 
-	/*
-	 * Compute size of compressing chunk for next iteration.
-	 *
-	 * Double credit for next iteration if we are under the half life,
-	 * but remove one fourth of the credit if we are above twice that
-	 * elapsed time.  That's coarse grain adjustments.
-	 *
-	 * Within the [half-life, 2* half-life] interval, we shoot for
-	 * the middle of the interval, by making linear adjustments.
-	 */
-
-	delay = end.tv_usec - start.tv_usec +
-		(end.tv_sec - start.tv_sec) * 1000 * 1000;
-
-	if (delay == 0)
-		delay++;
-
-	if (delay < QRT_HALF_LIFE)
-		ctx->chunklen *= 2;
-	else if (delay > QRT_HALF_LIFE * 2)
-		ctx->chunklen -= ctx->chunklen >> 2;
-	else
-		ctx->chunklen = (gint) (ctx->chunklen *
-			(gfloat) (QRT_HALF_LIFE + QRT_HALF_LIFE/2) / delay);
-
-	if (ctx->chunklen < QRT_INITIAL_CHUNK)
-		ctx->chunklen = QRT_INITIAL_CHUNK;
-
-	if (dbg > 4) {
-		printf("compress_credit: elapsed: %ld usec, new chunk = %d bytes\n",
-			delay, ctx->chunklen);
-		fflush(stdout);
-	}
-
-	return TRUE;
+	return BGR_MORE;		/* More work required */
 
 done:
-	sl_compress_coroutines = g_slist_remove(sl_compress_coroutines, ctx);
-	(*ctx->done_callback)(ctx->arg, FALSE);
-	g_free(ctx);
+	sl_compress_tasks = g_slist_remove(sl_compress_tasks, h);
+	bg_task_exit(h, status);
 
-	return FALSE;
+	return BGR_ERROR;		/* Not reached */
 }
 
 /*
- * qrt_compress_cancel_one
+ * qrt_patch_compress
  *
- * Cancel a compression coroutine identified by its context.
- * The entry is NOT removed from the list.
+ * Compress routing patch inplace (asynchronously).
+ * When it's done, invoke callback with specified argument.
  */
-static void qrt_compress_cancel_one(struct qrt_compress_context *ctx)
+static void qrt_patch_compress(
+	struct routing_patch *rp,
+	bgdone_cb_t done_callback, gpointer arg)
 {
-	g_assert(ctx->magic == QRT_COMPRESS_MAGIC);
-	g_assert(ctx->timer_id);
-	g_assert(ctx->zd);
+	struct qrt_compress_context *ctx;
+	zlib_deflater_t *zd;
+	gpointer task;
+	bgstep_cb_t step = qrt_step_compress;
 
-	zlib_deflater_free(ctx->zd, TRUE);
-	g_source_remove(ctx->timer_id);
+	zd = zlib_deflater_make(rp->arena, rp->len, 9);
 
-	ctx->zd = NULL;
-	ctx->timer_id = 0;
+	if (zd == NULL) {
+		(*done_callback)(NULL, NULL, BGS_ERROR, arg);
+		return;
+	}
 
-	(*ctx->done_callback)(ctx->arg, TRUE);
+	/*
+	 * Because compression is possibly a CPU-intensive operation, it
+	 * is dealt with a background task that will be scheduled at regular
+	 * intervals.
+	 */
 
-	g_free(ctx);
+	ctx = walloc0(sizeof(*ctx));
+	ctx->magic = QRT_COMPRESS_MAGIC;
+	ctx->rp = rp;
+	ctx->zd = zd;
+
+	task = bg_task_create("QRP patch compression",
+		&step, 1, ctx, qrt_compress_free, done_callback, arg);
+
+	sl_compress_tasks = g_slist_prepend(sl_compress_tasks, task);
 }
 
 /*
@@ -596,11 +552,11 @@ static void qrt_compress_cancel_all(void)
 {
 	GSList *l;
 
-	for (l = sl_compress_coroutines; l; l = l->next)
-		qrt_compress_cancel_one((struct qrt_compress_context *) l->data);
+	for (l = sl_compress_tasks; l; l = l->next)
+		bg_task_cancel(l->data);
 
-	g_slist_free(sl_compress_coroutines);
-	sl_compress_coroutines = NULL;
+	g_slist_free(sl_compress_tasks);
+	sl_compress_tasks = NULL;
 }
 
 /*
@@ -796,6 +752,16 @@ void qrp_add_file(struct shared_file *sf)
 	}
 
 	query_word_vec_free(wovec, wocnt);
+
+	/*
+	 * If we have a SHA1 for this file, add it to the table as well.
+	 */
+
+	if (sha1_hash_available(sf)) {
+		g_hash_table_insert(ht_seen_words,
+			g_strdup_printf("urn:sha1:%s", sha1_base32(sf->sha1_digest)),
+			(gpointer) 1);
+	}
 }
 
 /*
@@ -819,6 +785,24 @@ static void unique_substr(gpointer key, gpointer value, gpointer udata)
 	guchar *word = (guchar *) key;
 	gint len;
 
+#define INSERT do { \
+	if (!g_hash_table_lookup(u->unique, (gconstpointer) word)) {	\
+		guchar *newword = g_strdup(word);							\
+		g_hash_table_insert(u->unique, newword, (gpointer) 1);		\
+		u->head = g_slist_prepend(u->head, newword);				\
+		u->count++;													\
+	}																\
+} while (0)
+
+	/*
+	 * Special-case urn:sha1 entries: we insert them as a whole!
+	 */
+
+	if (word[0] == 'u' && 0 == strncasecmp(word, "urn:sha1:", 9)) {
+		INSERT;
+		return;
+	}
+
 	/*
 	 * Add all unique (i.e. not already seen) substrings from word, all
 	 * anchored at the start, whose length range from 3 to the word length.
@@ -827,16 +811,11 @@ static void unique_substr(gpointer key, gpointer value, gpointer udata)
 	for (len = strlen(word); len >= 3; len--) {
 		guchar c = word[len];
 		word[len] = '\0';				/* Truncate word */
-
-		if (!g_hash_table_lookup(u->unique, (gconstpointer) word)) {
-			guchar *newword = g_strdup(word);
-			g_hash_table_insert(u->unique, newword, (gpointer) 1);
-			u->head = g_slist_prepend(u->head, newword);
-			u->count++;
-		}
-
+		INSERT;
 		word[len] = c;
 	}
+
+#undef INSERT
 }
 
 /*
@@ -874,56 +853,13 @@ static GSList *unique_substrings(GHashTable *ht, gint *retcount)
 
 struct qrp_context {
 	gint magic;
-	gint step;					/* Current processing step */
-	gint seqno;					/* Number of calls at same step */
 	GSList *sl_substrings;		/* List of all substrings */
 	gint substrings;			/* Amount of substrings */
 	guchar *table;				/* Computed routing table */
 	gint slots;					/* Amount of slots in table */
-	gint timer_id;
 };
 
-static struct qrp_context *qrp_ctx = NULL;
-static gboolean qrp_compute_timer(gpointer arg);
-
-/*
- * qrp_finalize_computation
- *
- * This routine must be called once all the files have been added to finalize
- * the computation of the new QRP.
- *
- * If the routing table has changed, the node_qrt_changed() routine will
- * be called once we have finished its computation.
- */
-void qrp_finalize_computation(void)
-{
-	/*
-	 * Because QRP computation is possibly a CPU-intensive operation, it
-	 * is dealt with as a coroutine that will be scheduled at regular
-	 * intervals.
-	 */
-
-	qrp_ctx = g_malloc0(sizeof(*qrp_ctx));
-	qrp_ctx->magic = QRP_MAGIC;
-	qrp_ctx->step = QRP_STEP_SUBSTRING;
-	qrp_ctx->timer_id = g_timeout_add(500, qrp_compute_timer, qrp_ctx);
-}
-
-/*
- * qrp_context_free
- *
- * Free query routing table computation context.
- */
-static void qrp_context_free(struct qrp_context *ctx)
-{
-	GSList *l;
-
-	for (l = ctx->sl_substrings; l; l = l->next)
-		g_free(l->data);
-	g_slist_free(ctx->sl_substrings);
-
-	g_free(ctx);
-}
+static gpointer qrp_comp = NULL;		/* Background computation handle */
 
 /*
  * dispose_ht_seen_words
@@ -940,6 +876,39 @@ static void dispose_ht_seen_words(void)
 }
 
 /*
+ * qrp_context_free
+ *
+ * Free query routing table computation context.
+ */
+static void qrp_context_free(gpointer p)
+{
+	struct qrp_context *ctx = (struct qrp_context *) p;
+	GSList *l;
+
+	g_assert(ctx->magic == QRP_MAGIC);
+
+	qrp_comp = NULL;		/* If we're called, the task is being terminated */
+
+	/*
+	 * The `ht_seen_words' table is not really part of our task context,
+	 * but was filled only so that the task could perform its work.
+	 * XXX put it in context, and clear global once inserted.
+	 */
+
+	if (ht_seen_words)
+		dispose_ht_seen_words();
+
+	for (l = ctx->sl_substrings; l; l = l->next)
+		g_free(l->data);
+	g_slist_free(ctx->sl_substrings);
+
+	if (ctx->table)
+		g_free(ctx->table);
+
+	wfree(ctx, sizeof(*ctx));
+}
+
+/*
  * qrp_cancel_computation
  *
  * Cancel current computation, if any.
@@ -948,18 +917,10 @@ static void qrp_cancel_computation(void)
 {
 	qrt_compress_cancel_all();
 
-	if (qrp_ctx == NULL)
-		return;
-
-	if (ht_seen_words)
-		dispose_ht_seen_words();
-
-	if (qrp_ctx->table)
-		g_free(qrp_ctx->table);
-
-	g_source_remove(qrp_ctx->timer_id);
-	qrp_context_free(qrp_ctx);
-	qrp_ctx = NULL;
+	if (qrp_comp) {
+		bg_task_cancel(qrp_comp);
+		qrp_comp = NULL;
+	}
 }
 
 /*
@@ -967,9 +928,12 @@ static void qrp_cancel_computation(void)
  *
  * Compute all the substrings we need to insert.
  */
-static gint qrp_step_substring(struct qrp_context *ctx)
+static bgret_t qrp_step_substring(gpointer h, gpointer u, gint ticks)
 {
-	g_assert(ht_seen_words != NULL);	/* Already in computation */
+	struct qrp_context *ctx = (struct qrp_context *) u;
+
+	g_assert(ctx->magic == QRP_MAGIC);
+	g_assert(ht_seen_words != NULL);	/* XXX Already in computation */
 
 	ctx->sl_substrings = unique_substrings(ht_seen_words, &ctx->substrings);
 
@@ -978,7 +942,7 @@ static gint qrp_step_substring(struct qrp_context *ctx)
 	if (dbg > 1)
 		printf("QRP unique subwords: %d\n", ctx->substrings);
 
-	return 0;		/* All done for this step */
+	return BGR_NEXT;		/* All done for this step */
 }
 
 /*
@@ -986,8 +950,9 @@ static gint qrp_step_substring(struct qrp_context *ctx)
  *
  * Compute table.
  */
-static gint qrp_step_compute(struct qrp_context *ctx)
+static bgret_t qrp_step_compute(gpointer h, gpointer u, gint ticks)
 {
+	struct qrp_context *ctx = (struct qrp_context *) u;
 	guchar *table = NULL;
 	gint slots;
 	gint bits;
@@ -998,13 +963,15 @@ static gint qrp_step_compute(struct qrp_context *ctx)
 	gint conflict_ratio;
 	gboolean full = FALSE;
 
+	g_assert(ctx->magic == QRP_MAGIC);
+
 	/*
 	 * Build QR table: we try to achieve a minimum sparse ratio (empty
 	 * slots filled with INFINITY) whilst limiting the size of the table,
 	 * so we incrementally try and double the size until we reach the maximum.
 	 */
 
-	bits = MIN_TABLE_BITS + ctx->seqno;
+	bits = MIN_TABLE_BITS + bg_task_seqno(h);
 	slots = 1 << bits;
 
 	upper_thresh = MIN_SPARSE_RATIO * slots;
@@ -1037,7 +1004,7 @@ static gint qrp_step_compute(struct qrp_context *ctx)
 	if (dbg > 1)
 		printf("QRP [seqno=%d] size=%d, filled=%d, hashed=%d, "
 			"ratio=%d%%, conflicts=%d%%%s\n",
-			ctx->seqno, slots, filled, hashed,
+			bg_task_seqno(h), slots, filled, hashed,
 			(gint) (100.0 * filled / slots),
 			conflict_ratio, full ? " FULL" : "");
 
@@ -1065,7 +1032,7 @@ static gint qrp_step_compute(struct qrp_context *ctx)
 			if (dbg)
 				printf("no change in QRP table\n");
 			g_free(table);
-			return -1;			/* Abort processing */
+			bg_task_exit(h, 0);	/* Abort processing */
 		}
 
 		/* 
@@ -1075,21 +1042,20 @@ static gint qrp_step_compute(struct qrp_context *ctx)
 		ctx->table = table;
 		ctx->slots = slots;
 
-		return 0;		/* Done! */
+		return BGR_NEXT;		/* Done! */
 	}
 
 	g_free(table);
 
-	return 1;			/* More work required */
+	return BGR_MORE;			/* More work required */
 }
 
 // XXX
-static void compressed(gpointer arg, gboolean cancelled)
+static void compressed(gpointer h, gpointer u, bgstatus_t status, gpointer arg)
 {
 	struct routing_patch *rp = (struct routing_patch *) arg;
 
-	printf("GOT QRP COMPRESSED CALLBACK (%s)!\n",
-		cancelled ? "cancelled" : "OK");
+	printf("GOT QRP COMPRESSED CALLBACK (status = %d)!\n", status);
 
 	g_free(rp->arena);
 	g_free(rp);
@@ -1100,8 +1066,12 @@ static void compressed(gpointer arg, gboolean cancelled)
  *
  * Install the routing table we've built.
  */
-static gint qrp_step_install(struct qrp_context *ctx)
+static bgret_t qrp_step_install(gpointer h, gpointer u, gint ticks)
 {
+	struct qrp_context *ctx = (struct qrp_context *) u;
+
+	g_assert(ctx->magic == QRP_MAGIC);
+
 	if (routing_table)
 		qrt_unref(routing_table);
 
@@ -1110,6 +1080,7 @@ static gint qrp_step_install(struct qrp_context *ctx)
 	 */
 
 	routing_table = qrt_create(ctx->table, ctx->slots, LOCAL_INFINITY);
+	ctx->table = NULL;		/* Don't free table when freeing context */
 	node_qrt_changed();
 
 // XXX
@@ -1118,72 +1089,43 @@ static gint qrp_step_install(struct qrp_context *ctx)
 		qrt_patch_compress(rp, compressed, rp);
 	}
 
-	return 0;			/* Done! */
+	return BGR_DONE;		/* Done! */
 }
 
+static bgstep_cb_t qrp_compute_steps[] = {
+	qrp_step_substring,
+	qrp_step_compute,
+	qrp_step_install,
+};
+
 /*
- * qrp_compute_timer
+ * qrp_finalize_computation
+ *
+ * This routine must be called once all the files have been added to finalize
+ * the computation of the new QRP.
+ *
+ * If the routing table has changed, the node_qrt_changed() routine will
+ * be called once we have finished its computation.
  */
-static gboolean qrp_compute_timer(gpointer arg)
+void qrp_finalize_computation(void)
 {
-	struct qrp_context *ctx = (struct qrp_context *) arg;
-	gint ret;
-	struct timeval start, end;
-
-	g_assert(ctx->magic == QRP_MAGIC);
-
-	if (dbg)
-		gettimeofday(&start, NULL);
-
-	switch (ctx->step) {
-	case QRP_STEP_SUBSTRING:
-		ret = qrp_step_substring(ctx);
-		break;
-	case QRP_STEP_COMPUTE:
-		ret = qrp_step_compute(ctx);
-		break;
-	case QRP_STEP_INSTALL:
-		ret = qrp_step_install(ctx);
-		break;
-	default:
-		ret = -1;
-		g_assert(0);
-	}
-
-	if (dbg) {
-		gettimeofday(&end, NULL);
-
-		printf("QRP computation step #%d.%d took %d msec\n",
-			ctx->step, ctx->seqno,
-			(gint) ((end.tv_sec - start.tv_sec) * 1000 +
-				(end.tv_usec - start.tv_usec) / 1000));
-	}
+	struct qrp_context *ctx;
 
 	/*
-	 * Analyze returned value:
+	 * Because QRP computation is possibly a CPU-intensive operation, it
+	 * is dealt with as a coroutine that will be scheduled at regular
+	 * intervals.
 	 */
 
-	switch (ret) {
-	case -1:						/* Error, abort processing */
-		break;
-	case 0:							/* Completed, move to next step */
-		if (ctx->step == QRP_STEP_LAST)
-			break;
-		ctx->seqno = 0;
-		ctx->step++;
-		return TRUE;
-		/* NOTREACHED */
-	case 1:							/* More work needed for this step */
-		ctx->seqno++;
-		return TRUE;
-	default:
-		g_assert(0);				/* Bug in processing routine */
-	}
-		
-	qrp_context_free(ctx);
-	qrp_ctx = NULL;
+	ctx = walloc0(sizeof(*ctx));
+	ctx->magic = QRP_MAGIC;
 
-	return FALSE;
+	qrp_comp = bg_task_create("QRP computation",
+		qrp_compute_steps,
+		sizeof(qrp_compute_steps) / sizeof(qrp_compute_steps[0]),
+		ctx,
+		qrp_context_free,
+		NULL, NULL);
 }
 
 /*

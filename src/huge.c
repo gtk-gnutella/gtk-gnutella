@@ -358,26 +358,10 @@ static void sha1_read_cache()
  ** Asynchronous computation of hash value
  **/
 
-/*
- * Computation is performed through the sha1_timer timer, called by
- * the GTK main loop. It has some "credit" to perform its operations
- * (either computing the hash for a maximum of HASH_BLOCK_SIZE bytes, or
- * some special operations like opening the next file). The actual time
- * taken by the task is measured. If it's too long, credit is
- * decreased by 1/4th. If it's within the limit, the credit is doubled
- * for next iteration. Thus the credit slowly oscillates between max
- * and 2 * max. Here max = 0.1 sec. On my pentium III 866 MHz, it
- * allows the computation to be performed on a slice of 1000 to 2000
- * Kbytes of data, that is, the computation of a hash for a file of 5
- * Mbytes ranges from 2.5 to 5 seconds. 
- */
+#define HASH_BLOCK_SHIFT	12			/* Power of two of hash unit credit */
+#define HASH_BUF_SIZE		65536		/* Size of a the reading buffer */
 
-#define MAX_HALF_LIFE 	50000		/* in microseconds, MUST be << 1 sec */
-#define HASH_BLOCK_SIZE	4096		/* size of a hash unit credit */
-#define TIMEOUT_PERIOD	(1000 - (MAX_HALF_LIFE/1000))
-
-static gint sha1_timeout_tag = 0;
-static int credit = 1;
+static gpointer sha1_task = NULL;
 
 /* This is a file waiting either for the digest to be computer, or
  * when computed to be retrofit into the share record. 
@@ -428,57 +412,46 @@ static void push(struct file_sha1 **stack,struct file_sha1 *record)
 	*stack = record;
 }
 
+/*
+ * free_cell
+ *
+ * Free a working cell.
+ */
+static void free_cell(struct file_sha1 *cell)
+{
+	atom_str_free(cell->file_name);
+	g_free(cell);
+}
+
 /* The context of the SHA1 computation being performed */
 
-static SHA1Context context;
-static struct file_sha1 *current_file = NULL;
-static int current_fd = -1;
-static time_t current_start;		/* Debugging, show computation rate */
+#define SHA1_MAGIC	0xa1a1a1a1
 
-/* 
- * adjust_credit
- * 
- * Adjust the credit. start is the time at which the timeout callback
- * started, end the time when it ended.
- */
-static void adjust_credit(
-	const struct timeval *start, 
-	const struct timeval *end)
+struct sha1_computation_context {
+	gint magic;
+	SHA1Context context;
+	struct file_sha1 *file;
+	gchar *buffer;				/* Large buffer where data is read */
+	gint fd;
+	time_t start;				/* Debugging, show computation rate */
+};
+
+static void sha1_computation_context_free(gpointer u)
 {
-	int delta_seconds = end->tv_sec - start->tv_sec;
-	int delta_useconds =
-		end->tv_usec - start->tv_usec + delta_seconds * 1000 * 1000;
+	struct sha1_computation_context *ctx =
+		(struct sha1_computation_context *) u;
 
-	if (delta_useconds == 0)
-		delta_useconds++;
+	g_assert(ctx->magic == SHA1_MAGIC);
 
-	/*
-	 * Double credit for next iteration if we are under the half life,
-	 * but remove one fourth of the credit if we are above twice that
-	 * elapsed time.  That's coarse grain adjustments.
-	 *
-	 * Within the [half-life, 2* half-life] interval, we shoot for
-	 * the middle of the interval, by making linear adjustments.
-	 */
+	if (ctx->fd != -1)
+		close(ctx->fd);
 
-	if (delta_useconds < MAX_HALF_LIFE)
-		credit += credit;
-	else if (delta_useconds > MAX_HALF_LIFE * 2)
-		credit -= credit >> 2;
-	else
-		credit = (gint) (credit *
-			(gfloat) (MAX_HALF_LIFE + MAX_HALF_LIFE/2) / delta_useconds);
+	if (ctx->file)
+		free_cell(ctx->file);
 
-	/* Be sure to be able to execute at least one step */
+	g_free(ctx->buffer);
 
-	if (credit <= 0)
-		credit = 1;
-
-	if (dbg > 4) {
-		printf("adjust_credit: elapsed: %d usec, new credit = %d\n",
-			delta_useconds, credit);
-		fflush(stdout);
-	}
+	wfree(ctx, sizeof(*ctx));
 }
 
 /* 
@@ -533,17 +506,6 @@ static void put_sha1_back_into_share_library(
 	}
 }
 
-/*
- * free_cell
- *
- * Free a working cell.
- */
-static void free_cell(struct file_sha1 *cell)
-{
-	atom_str_free(cell->file_name);
-	g_free(cell);
-}
-
 /* 
  * try_to_put_sha1_back_into_share_library
  *
@@ -590,23 +552,24 @@ static void try_to_put_sha1_back_into_share_library()
  * Close the file whose hash we're computing (after calculation completed) and
  * free the associated structure.
  */
-static void close_current_file(void)
+static void close_current_file(struct sha1_computation_context *ctx)
 {
-	if (current_file) {
-		free_cell(current_file);
-		current_file = NULL;
+	if (ctx->file) {
+		free_cell(ctx->file);
+		ctx->file = NULL;
 	}
-	if (current_fd != -1) {
+
+	if (ctx->fd != -1) {
 		if (dbg > 1) {
 			struct stat buf;
-			time_t delta = time((time_t *) NULL) - current_start;
+			time_t delta = time((time_t *) NULL) - ctx->start;
 
-			if (delta && -1 != fstat(current_fd, &buf))
+			if (delta && -1 != fstat(ctx->fd, &buf))
 				printf("SHA1 computation rate: %lu bytes/sec\n",
 					(gulong) buf.st_size / delta);
 		}
-		close(current_fd);
-		current_fd = -1;
+		close(ctx->fd);
+		ctx->fd = -1;
 	}
 }
 
@@ -679,28 +642,28 @@ static struct file_sha1 *get_next_file_from_list(void)
  * 
  * Returns TRUE if open succeeded, FALSE otherwise.
  */
-static gboolean open_next_file(void)
+static gboolean open_next_file(struct sha1_computation_context *ctx)
 {
-	current_file = get_next_file_from_list();
+	ctx->file = get_next_file_from_list();
 
-	if (!current_file)
+	if (!ctx->file)
 		return FALSE;			/* No more file to process */
 
 	if (dbg > 1) {
-		printf("Computing SHA1 digest for %s\n", current_file->file_name);
-		current_start = time((time_t *) NULL);
+		printf("Computing SHA1 digest for %s\n", ctx->file->file_name);
+		ctx->start = time((time_t *) NULL);
 	}
 
-	current_fd = open(current_file->file_name, O_RDONLY);
+	ctx->fd = open(ctx->file->file_name, O_RDONLY);
 
-	if (current_fd < 0) {
+	if (ctx->fd < 0) {
 		g_warning("Unable to open %s for computing SHA1 hash: %s\n",
-			current_file->file_name, strerror(errno));
-		close_current_file();
+			ctx->file->file_name, g_strerror(errno));
+		close_current_file(ctx);
 		return FALSE;
 	}
 
-	SHA1Reset(&context);
+	SHA1Reset(&ctx->context);
 
 	return TRUE;
 }
@@ -710,28 +673,29 @@ static gboolean open_next_file(void)
  * 
  * Callback to be called when a computation has completed.
  */
-static void got_sha1_result(
-	guint32 file_index,
-	const char *file_name,
-	char *digest)
+static void got_sha1_result(struct sha1_computation_context *ctx, char *digest)
 {
 	struct shared_file *sf;
 
-	sf = shared_file(file_index);
+	g_assert(ctx->magic == SHA1_MAGIC);
+	g_assert(ctx->file != NULL);
+
+	sf = shared_file(ctx->file->file_index);
+
 	if (sf == SHARE_REBUILDING) {
 		/*
 		 * We can't retrofit SHA1 hash into shared_file now, because we can't
 		 * get the shared_file yet.
 		 */
 
-		copy_sha1(current_file->sha1_digest, digest);
+		copy_sha1(ctx->file->sha1_digest, digest);
 
 		/* Re-use the record to save some time and heap fragmentation */
 
-		push(&waiting_for_library_build_complete, current_file);
-		current_file = NULL;
+		push(&waiting_for_library_build_complete, ctx->file);
+		ctx->file = NULL;
 	} else
-		put_sha1_back_into_share_library(sf, file_name, digest);
+		put_sha1_back_into_share_library(sf, ctx->file->file_name, digest);
 }
 
 /*
@@ -740,69 +704,97 @@ static void got_sha1_result(
  * The timer calls repeatedly this function, consuming one unit of
  * credit every call.
  */
-static void sha1_timer_one_step(void)
+static void sha1_timer_one_step(
+	struct sha1_computation_context *ctx, gint ticks, gint *used)
 {
-	char buffer[HASH_BLOCK_SIZE];
 	ssize_t r;
 	int res;
+	gint amount;
 
-	if (!current_file && !open_next_file())
+	if (!ctx->file && !open_next_file(ctx)) {
+		*used = 1;
 		return;
+	}
 
-	r = read(current_fd, buffer, HASH_BLOCK_SIZE);
+	/*
+	 * Each tick we have can buy us 2^HASH_BLOCK_SHIFT bytes.
+	 * We read into a HASH_BUF_SIZE bytes buffer.
+	 */
+
+	amount = ticks << HASH_BLOCK_SHIFT;
+	amount = MIN(amount, HASH_BUF_SIZE);
+
+	r = read(ctx->fd, ctx->buffer, amount);
+
 	if (r < 0) {
 		g_warning("Error while reading %s for computing SHA1 hash: %s\n",
-			current_file->file_name, strerror(errno));
-		close_current_file();
+			ctx->file->file_name, g_strerror(errno));
+		close_current_file(ctx);
+		*used = 1;
 		return;
 	}
 
-	if (r == 0) {						/* EOF */
+	/*
+	 * Any partially read block counts as one block, hence the second term.
+	 */
+
+	*used = (r >> HASH_BLOCK_SHIFT) +
+		((r & ((1 << HASH_BLOCK_SHIFT) - 1)) ? 1 : 0);
+
+	if (r > 0) {
+		res = SHA1Input(&ctx->context, ctx->buffer, r);
+		if (res != shaSuccess) {
+			g_warning("SHA1 error while computing hash for %s\n",
+				ctx->file->file_name);
+			close_current_file(ctx);
+			return;
+		}
+	}
+
+	if (r < amount) {					/* EOF reached */
 		guint8 digest[SHA1HashSize];
-		SHA1Result(&context, digest);
-		got_sha1_result(current_file->file_index,
-			current_file->file_name, digest);
-		close_current_file();
-		return;
-	}
-
-	res = SHA1Input(&context, buffer, r);
-	if (res != shaSuccess) {
-		g_warning("SHA1 error while computing hash for %s\n",
-			current_file->file_name);
-		close_current_file();
+		SHA1Result(&ctx->context, digest);
+		got_sha1_result(ctx, digest);
+		close_current_file(ctx);
 	}
 }
 
 /* 
- * sha1_timer
+ * sha1_step_compute
  * 
- * The timer doing all the work. This is a glib timeout callback, so it must
- * return TRUE to be called again, or FALSE to never be called again.
+ * The routine doing all the work.
  */
-static gboolean sha1_timer(gpointer p)
+static bgret_t sha1_step_compute(gpointer h, gpointer u, gint ticks)
 {
-	int i;
-	struct timeval start, end;
-	gboolean call_timer_again;
+	gboolean call_again;
+	struct sha1_computation_context *ctx =
+		(struct sha1_computation_context *) u;
+	gint credit = ticks;
+
+	g_assert(ctx->magic == SHA1_MAGIC);
 
 	if (dbg > 4)
-		printf("sha1_timer: credit = %d\n", credit);
+		printf("sha1_step_compute: ticks = %d\n", ticks);
 
-	gettimeofday(&start, NULL);
-	for(i = credit; i; i--) {
-		if (!current_file && !waiting_for_sha1_computation)
-			goto no_adjust;		/* We don't use all our credit, don't adjust */
-		sha1_timer_one_step();
+	while (credit > 0) {
+		gint used;
+		if (!ctx->file && !waiting_for_sha1_computation)
+			break;
+		sha1_timer_one_step(ctx, credit, &used);
+		credit -= used;
 	}
-	gettimeofday(&end, NULL);
-	adjust_credit(&start, &end);
 
-no_adjust:
+	/*
+	 * If we didn't use all our credit, tell the background task scheduler.
+	 */
+
+	if (credit > 0)
+		bg_task_ticks_used(h, ticks - credit);
+
 	if (dbg > 4)
-		printf("sha1_timer: file=0x%lx [#%d], wait_comp=0x%lx [#%d], "
+		printf("sha1_step_compute: file=0x%lx [#%d], wait_comp=0x%lx [#%d], "
 			"wait_lib=0x%lx [#%d]\n",
-			(gulong) current_file, current_file ? current_file->file_index : 0,
+			(gulong) ctx->file, ctx->file ? ctx->file->file_index : 0,
 			(gulong) waiting_for_sha1_computation,
 			waiting_for_sha1_computation ?
 				waiting_for_sha1_computation->file_index : 0,
@@ -813,22 +805,34 @@ no_adjust:
 	if (waiting_for_library_build_complete) 
 		try_to_put_sha1_back_into_share_library();
 
-	call_timer_again = current_file
+	call_again = ctx->file
 		|| waiting_for_sha1_computation
 		|| waiting_for_library_build_complete;
 
-	if (!call_timer_again) {
+	if (!call_again) {
 		if (dbg > 1)
-			printf("sha1_timer: was last call for now\n");
-		if (cache_dirty)
-			dump_cache();
-		sha1_timeout_tag = 0;
+			printf("sha1_step_compute: was last call for now\n");
+		sha1_task = NULL;
 		gnet_prop_set_boolean_val(PROP_SHA1_REBUILDING, FALSE);
+		return BGR_NEXT;
 	}
 
-	return call_timer_again;
+	return BGR_MORE;
 }
-  
+
+/*
+ * sha1_step_dump
+ *
+ * Dump SHA1 cache if it is dirty.
+ */
+static bgret_t sha1_step_dump(gpointer h, gpointer u, gint ticks)
+{
+	if (cache_dirty)
+		dump_cache();
+
+	return BGR_DONE;			/* Finished */
+}
+
 /**
  ** External interface
  **/
@@ -856,10 +860,21 @@ static void queue_shared_file_for_sha1_computation(
 	new_cell->file_index = file_index;
 	push(&waiting_for_sha1_computation, new_cell);
 
-	if (!sha1_timeout_tag) {
-		g_assert(TIMEOUT_PERIOD > 0);
-		sha1_timeout_tag = g_timeout_add(TIMEOUT_PERIOD, sha1_timer, NULL);
-		g_assert(sha1_timeout_tag);
+	if (sha1_task == NULL) {
+		struct sha1_computation_context *ctx;
+		bgstep_cb_t steps[] = {
+			sha1_step_compute,
+			sha1_step_dump,
+		};
+
+		ctx = walloc0(sizeof(*ctx));
+		ctx->magic = SHA1_MAGIC;
+		ctx->fd = -1;
+		ctx->buffer = g_malloc(HASH_BUF_SIZE);
+
+		sha1_task = bg_task_create("SHA1 computation",
+			steps, 2,  ctx, sha1_computation_context_free, NULL, NULL);
+
 		gnet_prop_set_boolean_val(PROP_SHA1_REBUILDING, TRUE);
 	}
 }
@@ -936,8 +951,8 @@ static gboolean cache_free_entry(gpointer k, gpointer v, gpointer udata)
  */
 void huge_close(void)
 {
-	if (sha1_timeout_tag)
-		g_source_remove(sha1_timeout_tag);
+	if (sha1_task)
+		bg_task_cancel(sha1_task);
 
 	if (cache_dirty)
 		dump_cache();
@@ -954,9 +969,6 @@ void huge_close(void)
 		waiting_for_sha1_computation = waiting_for_sha1_computation->next;
 		free_cell(l);
 	}
-
-	if (current_file)
-		free_cell(current_file);
 }
 
 /*
