@@ -1,5 +1,6 @@
 # since last release
 
+- Integrated new manpage from Brian St. Pierre (in debian directory)
 - Never overwrite files in "completed dir"; rename target file if needed
 - Missed "return" statements in error path for "download resuming" checks
 - Made auto-download.txt case sensitive, and leading '#' is treated as comment

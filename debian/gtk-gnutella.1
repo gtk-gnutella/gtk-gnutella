@@ -1,18 +1,515 @@
-.TH GTK\-GNUTELLA 1 "July 06, 2001"
+.\" Written by Brian St. Pierre (bstpierre@bstpierre.org)
+.\" Modified by RAM (Raphael_Manfredi@pobox.com)
+.\" Integrated by RAM at version 0.18 within debian/ for Debian packaging
+.\" Process this file with
+.\"    groff -man -Tascii gtk-gnutella.1
+.\" or simply:
+.\"    nroff -man gtk-gnutella.1 | less -s
+.\"
+.TH GTK-GNUTELLA 1 "Nov 2001" Version "0.18"
 .SH NAME
-gtk\-gnutella - share files in a peer to peer network
+gtk-gnutella \- A Gnutella client for Gtk+
 .SH SYNOPSIS
-.B gtk\-gnutella
-.SH "DESCRIPTION"
-.B Gtk\-gnutella
-is a graphical client for the Gnutella network. It features
-searching and downloading shared files from other users, using
-a simple, user-friendly GTK interface.
+.B gtk-gnutella
+.SH DESCRIPTION
+.I gtk-gnutella
+is a GTK+ Gnutella client for Unix. It supports both searching and
+sharing with the 0.4 version of the gnutella protocol.
+.SH OPTIONS
+None.
+.SH GETTING STARTED
+When
+.I gtk-gnutella
+is first started, it will attempt to connect to a well-known hosts
+server for some hosts to connect to. If you know a host you want to
+connect to, you can enter it in the box on the gnutellaNet tab and
+push the Add button. When first connecting to the gnutella network, it
+can take a minute or two to establish a stable connection. Be
+patient.
+.SH SEARCHING
+Click "Search" to switch to the search tab. Type what you are searching
+for into the edit box at the top of the window and either press Enter
+or push the "New Search" button. A new tab, labeled with your search
+tem, will appear in the window, with files that are found listed in
+the list below.
 .PP
-.B Gtk\-gnutella
-takes no command-line options. Just run it and use the intuitive
-graphical user interface.
-.SH AUTHOR
-This manual page was written by Andras Bali <bali@debian.org>,
-for the Debian GNU/Linux system (but may be used by others).
-Gtk\-gnutella was written by Yann Grossel <olrick@users.sourceforge.net>.
+You can have multiple searches running at once. To start another
+search while the first one is running, simply enter another search
+term into the edit box at the top of the window. A new tab will
+appear. You can switch between the two tabs by clicking on them, or by
+selecting the search from the "Active searches" drop-down list.
+.PP
+To stop a particular search and remove its tab from the search window,
+select the search by clicking on its tab and click the "Close this
+search" button. If you want to clear the list for a particular search,
+but want to continue to see new files that are received for this
+search, click the "Clear results" button.
+.PP
+By entering a number in the "Minimum connection speed" box, you can
+limit search results to only those files that are shared by hosts with
+at least the connection speed that you specify. The units are in kbps,
+so if you only want to hear from hosts that are connected at 56k or
+higher, enter 56 in this box.
+.PP
+When you find a file that you want to download, select the file in the
+list and press "Download selected files". This file will be placed in
+the download queue. If the "Jump to downloads" checkbox is checked,
+when you click "Download selected files",
+.I gtk-gnutella
+will switch to the downloads tab. From there you can watch the
+download progress of the file(s) you are downloading. If "Jump to
+downloads" is not checked, you will still be staring at the search
+tab. But no worries, the file will be downloading whether you're
+looking or not.
+.PP
+It is also possible to select a bunch of files for downloading at
+once. By holding down the control or shift keys while clicking files,
+you can select several files and then click "Download selected files"
+to put them all in the download queue at once.
+.SH CONFIGURATION
+You can configure
+.I gtk-gnutella
+either using
+.I gtk-gnutella,
+while it is running (recommended) or by editing the config file.
+.B BEWARE:
+.I gtk-gnutella
+will write the config file when it quits, so you must edit the config file
+only when the program is not running.
+.PP
+The so-called "Preferences" for
+.I gtk-gnutella
+are scattered throughout the user interface. In fact, each pane
+contains at least one piece of configuration information. Here's a
+rundown. Each item below is the keyword used in the config file.
+.TP
+.PD
+.B up_connections
+This is on the gnutellaNet tab. This is the minimum number of
+connections that you wish to have to the gnutellaNet.
+.I Gtk-gnutella
+will attempt to keep at least this many connections open. Set this to
+an integer value between 0 and 511.
+.TP
+.BI auto_clear_completed_uploads
+This is on the uploads tab. When the checkbox is checked, or the
+config variable is set to "true" in the config file, any uploads that
+complete (or abort because of failure) are automatically removed from
+the uploads list. If unchecked ("false"), these uploads remain visible
+in the window until you click the "Clear completed" button.
+.TP
+.BI max_simultaneous_downloads
+This is on the downloads tab. This is the maximum number of files that
+you will be downloading at any time. If you select more files for
+download than this number, those files will be placed in the download
+queue (the lower half of the downloads window). Set this to an integer
+between 1 and 511.
+.TP
+.BI max_simultaneous_host_downloads
+This is on the downloads tab. This is the maximum number of files that
+you will be downloading at any time from a single host. This is
+intended for politeness -- you don't want to saturate somebody's
+connection! If you select more files from a particular host than this
+number, those files will be placed in the download queue (the lower
+half of the downloads window). Set this to an integer between 1 and
+511. (Realistically speaking, you shouldn't set this higher than 2 or 3
+unless you know who's on the other end and they have a really fat pipe!)
+.TP
+.BI max_simultaneous_uploads
+This is on the uploads tab. This is the maximum number of files that
+others can upload at any time from you. Set this to a low value unless
+you want to have your connection saturated, or you have a
+high-bandwidth connection. Set this to an integer between 0 and
+511. Setting this to 0 will effectively bar other people from
+downloading from you.
+.TP
+.BI auto_clear_completed_downloads
+This is on the downloads tab. It has similar meaning to the
+auto_clear_completed_uploads configuration variable.
+.TP
+.BI search_minimum_speed
+This is on the search tab. When searching, search results are checked
+against this value. If a search result arrives from a host with a
+lower connection speed that this value, the result will be thrown
+away. The idea here is that you may only want to download from faster
+hosts. Specify an integer here that reprsents kilobits per second of
+bandwidth. (E.g. a 1.5mb/s cable connection would be 1500kb/s, so you
+would enter 1500 if this is the minimum value you want.)
+.TP
+.BI monitor_enabled
+This is on the search monitor tab. When this is "true", the search
+monitor tab displays the search terms that other users are searching
+for.
+.TP
+.BI monitor_max_items
+This is on the search monitor tab. This is the number of items that
+are displayed on the search monitor tab when monitor_enabled is
+true. If monitor_enabled is false, this variable has no effect. Set
+this to a value between 1 and 511. 
+.TP
+.BI save_downloaded_files_to
+This is deprecated, don't use it.
+.TP
+.BI shared_files_extensions
+This is on the config tab.
+This is a semicolon-separated list of extensions. When scanning for
+files to share, files with these extensions will be shared. The list
+should resemble "mp3;zip;tar.gz;tgz".
+.TP
+.BI listen_port
+This is on the config tab.
+This is the TCP port on which gtk-gnutella will listen for incoming
+connections. The default is 6346, but any valid TCP port can be used
+(1-65535, with a lot of exceptions).
+.TP
+.BI max_ttl
+This is on the config tab.
+This is the max TTL ("time to live") that we will allow to pass
+through our node. If we see a packet that has a higher TTL it either
+gets trimmed to this value or lower, or it gets dropped. Actual
+processing might be slightly more complicated, but this is the
+idea. You shouldn't have to mess with this.
+.TP
+.BI my_ttl
+This is on the config tab.
+When we send out a packet, this is the ttl that we use. If you set
+this value too low, your packets won't propagate to very much of the
+gnutellaNet. If you set it too high, you'll cause a lot of extra
+traffic to be generated (and you also run the risk of other nodes
+dropping your packet instead of routing it). You shouldn't have to
+mess with this.
+.TP
+.BI shared_dirs
+This is on the config tab.
+This is a colon-separated list of the directories that are scanned for
+files. This works in conjunction with shared_files_extensions (see
+above).
+.TP
+.BI forced_local_ip
+This is on the config tab.
+If force_local_ip is "true", this is the IP address that we are
+pretending to have. All packets originating from this node will have
+the source IP address set to this value. This is useful if you want to
+hide your true IP address, but beware that it won't completely cloak
+your identity.
+This variable may not be implemented.
+.TP
+.BI connection_speed
+This is on the config tab.
+This is the bandwidth of your node in kilobits per second. A person
+running
+.I gtk-gnutella
+over a 56k modem would set this to 56. Someone running over a 1.5mb
+cable connection would set this to 1500.
+.TP
+.BI limit_search_results
+This is on the config tab.
+This limits how many results are returned to other people searching
+your files. Set this to an integer between -1 and 255. Setting this to
+-1 prevents searches from being performed.
+.TP
+.BI search_max_results
+This can not be set through the GUI.
+This limits how many results are accumulated when performing
+searches. The default value is 5000, which is much more than you'll be
+able to browse through. The max allowed value is 65535.
+.TP
+.BI force_local_ip
+This is on the config tab.
+If this is true, then forced_local_ip is used (see above).
+This variable may not be implemented.
+.TP
+.BI hc
+You shouldn't need to use this.
+.TP
+.BI auto_download_file
+The name of the file holding patterns for issuing automatic downloads.
+By default, it is set to "auto-downloads.txt".  You can use a full path
+or a relative one (as the default), in which case it is taken relative
+to the launch directory.  The file can use "#" comments, but any other line
+is taken as a verbatim pattern to match anywhere in the file name.  This file
+is automatically reloaded when it has changed.  This variable cannot be set
+through the GUI yet.
+.TP
+.BI download_connecting_timeout
+This can not be set through the GUI.
+The number of seconds before timing out for a connecting download.
+.TP
+.BI download_push_sent_timeout
+This can not be set through the GUI.
+The number of seconds before timing out for a 'push sent' download.
+.TP
+.BI download_connected_timeout
+This can not be set through the GUI.
+The number of seconds before timing out for a connected download.
+.TP
+.BI node_connected_timeout
+This can not be set through the GUI.
+The number of seconds before timing out for a connected node.
+.TP
+.BI node_connecting_timeout
+This can not be set through the GUI.
+The number of seconds before timing out for a connecting node.
+.TP
+.BI node_sendqueue_size
+This can not be set through the GUI.
+The maximum size of the sendqueue for the nodes (in bytes).
+.TP
+.BI search_queries_forward_size
+This can not be set through the GUI.
+Maximum size of search queries messages we forward to others (in bytes).
+.TP
+.BI search_queries_kick_size
+This can not be set through the GUI.
+Maximum size of search queries messages we allow, otherwise close the
+connection (in bytes).
+.TP
+.BI search_answers_forward_size
+This can not be set through the GUI.
+Maximum size of search answers messages we forward to others (in bytes)
+.TP
+.BI search_answers_kick_size
+Maximum size of search answers messages we allow, otherwise close the
+connection (in bytes).
+This can not be set through the GUI.
+.TP
+.BI other_messages_kick_size
+Maximum size of unknown messages we allow, otherwise close the
+connection (in bytes).
+This can not be set through the GUI.
+.TP
+.BI store_downloading_files_to
+This is in the config tab.
+This is the name of the directory where "in progress" downloading files
+are stored.
+.TP
+.BI move_downloaded_files_to
+This is in the config tab.
+This is the name of the directory where completed downloads are
+stored. By setting this and store_downloading_files_to to different
+directories, you can avoid cluttering this directory with partially
+completed files.
+.TP
+.PD 0
+.BI window_x
+.TP
+.BI window_y
+.TP
+.BI window_w
+.TP
+.BI window_h
+These can not be set through the GUI.
+These four values control the window geometry.
+These may not be implemented.
+.PD
+.TP
+.BI window_coords
+This can not be set through the GUI.
+This is an alternate way of specifying window_x, window_y, window_h,
+and window_w.
+This may not be implemented.
+.TP
+.BI widths_nodes
+These are the widths of the columns in the active hosts list in the
+gnutellaNet tab.
+.TP
+.BI widths_uploads
+These are the widths of the columns in the active uploads list in the
+uploads tab.
+.TP
+.BI widths_dl_active
+These are the widths of the columns in the active downloads list in the
+downloads tab.
+.TP
+.BI widths_dl_queued
+These are the widths of the columns in the queued downloads list in the
+downloads tab.
+.TP
+.BI widths_search_results
+These are the widths of the columns in the search results list in the
+search tab.
+.TP
+.BI show_results_tabs
+This can not be set through the GUI.
+If this is "true" (the default setting), multiple search tabs will be
+shown in the search tab. This will allow you to have several searches
+in progress at once (as described above in SEARCHING).
+.TP
+.BI hops_random_factor
+Don't worry about this.
+.TP
+.BI send_pushes
+This is in the downloads tab.
+If this is "true" then
+.I gtk-gnutella
+will never send a push request to download a file.
+.TP
+.BI jump_to_downloads
+This is in the search tab.
+If this is "true" then
+.I gtk-gnutella
+will switch to the downloads tab whenever you select a file (or files)
+for downloading from the search tab.
+.TP
+.BI use_auto_downloads
+This is in the search tab.
+If this is "true", then
+.I gtk-gnutella
+will read the \fIauto_download_file\fR for file strings to match, and will
+automatically issue a download for each search that matches one of those
+strings.
+.TP
+.BI max_connections
+This is in the gnutellaNet tab.
+This is the maximum number of connections that will be established. If
+other hosts attempt to connect and we are at this limit, then those
+connections will be refused.
+.TP
+.PD 0
+.BI proxy_connections
+.TP
+.BI socks_protocol
+.TP
+.BI proxy_ip
+.TP
+.BI proxy_port
+.TP
+.BI socksv5_user
+.TP
+.BI socksv5_pass
+These settings are in the config tab. They are for setting up
+.I gtk-gnutella
+to work with a proxy server. If you need these, hopefully you know
+more about proxies and socks than I do.
+.TP
+.BI search_reissue_timeout
+When a search is running, the search request packet is sent out to the
+gnutellaNet every search_reissue_timeout seconds. This allows new
+results to come in over an extended period of time, as hosts are
+leaving and joining the network.
+.TP
+.BI hard_ttl_limit
+This works with max_ttl above. This can not be set directly through
+the GUI.
+.TP
+.BI max_uploads_ip
+The maximum amount of uploads allowed for a given IP.  If you set it to 1,
+each user will be only able to get one file at a time.  This cannot be set
+through the GUI yet.
+.TP
+.BI dbg
+This can not be set through the GUI.
+If this is set to an integer value greater than 0, varying levels of
+debugging messages will be sent to the console. Set this to an integer
+between 0 and 20.
+.TP
+.PD 0
+.BI stop_host_get
+.TP
+.BI enable_err_log
+.TP
+.BI search_strict_and
+.TP
+.BI search_pick_all
+.TP
+.BI max_high_ttl_msg
+.TP
+.BI max_high_ttl_radius
+.TP
+.BI min_dup_msg
+.TP
+.BI min_dup_ratio
+The above can not be set through the GUI and are undocumented.
+.PD
+.TP
+.BI max_hosts_cached
+This can not be set through the GUI.
+This is the max number of hosts that will be cached in the host cache.
+.SH FILES
+.I $GTK_GNUTELLA_DIR/cablehosts
+.RS
+Cablehosts file. What does this do?
+.RE
+.TP
+.I $GTK_GNUTELLA_DIR/config
+.RS
+Per-user configuration file. This can be edited.
+.B gtk-gnutella
+saves this file every time the program is exited normally.
+.RE
+.TP
+.I $GTK_GNUTELLA_DIR/hosts
+.RS
+This is the host cache. This is saved by
+.B gtk-gnutella
+on exit and should not be edited by hand.
+.SH ENVIRONMENT
+.I Gtk-gnutella
+searches
+.B GTK_GNUTELLA_DIR
+for configuration files. If this variable is not set,
+.B HOME
+is used instead. If 
+.B HOME
+is not set (what are you, nuts?), then no configuration information
+will be saved when
+.I gtk-gnutella
+exits.
+.SH MAILING LISTS
+There are a couple of mailing lists for
+.I gtk-gnutella.
+See http://sourceforge.net/mail/?group_id=4467 for more info.
+.SH BUGS
+.I gtk-gnutella
+is beta-quality software, and still has bugs and incomplete or missing
+features.  But which software doesn't for its authors?
+.PP
+Gnutella protocol v0.6 is not currently supported, but work
+is in progress.
+.PP
+There are probably other missing features that should
+be listed here.
+.PP
+A list of known bugs might be available at the
+.I gtk-gnutella
+web site (see below.)
+.SH "SEE ALSO"
+Additional information about gtk-gnutella and the latest version are
+available at
+.B http://gtk-gnutella.sourceforge.net/
+.PP
+Additional information about gnutella is available at
+.B http://gnutella.wego.com/
+.SH AUTHORS
+Yann Grossel wrote the original
+.B Gtk-gnutella
+.
+.PP
+Raphael Manfredi <Raphael_Manfredi@pobox.com> is the current maintainer
+(since version 0.14, released early September 2001).
+.PP
+Contributors include Steven Wilcoxon, Jason Lingohr, Brian St Pierre,
+Chuck Homic, Ingo Saitz, Ben Hochstedler, Daniel Walker, Paul
+Cassella, Jared Mauch, Raphael Manfredi, Kenn Brooks Hamm, and Mark
+Schreiber.
+.PP
+Brian St. Pierre <bstpierre@bstpierre.org> wrote this manpage.
+.SH COPYRIGHT
+.I gtk-gnutella
+is Copyright (c) 2000, Yann Grossel, with additional copyrights held
+by other contributors 2000 and 2001.
+.PP
+License to use and copy
+.I gtk-gnutella
+is given under the terms of the GNU General Public
+License (GPL), version 2. Please see the file COPYING in the
+distribution for complete information.
+
+Permission is granted to make and distribute verbatim copies of this
+manual page provided the copyright notice and this permission notice
+are preserved on all copies.
+
+Permission is granted to copy and distribute modified versions  of
+this manual page under the conditions for verbatim copying, provided
+that the entire resulting derived work is distributed under the
+terms of a permission notice identical to this one.
