@@ -678,7 +678,7 @@ void on_popup_search_drop_name_activate(
 	selection = gtk_tree_view_get_selection(
 					GTK_TREE_VIEW(current_search->tree_view));
 
-    sl = tree_selection_collect_data(selection, FALSE, gui_record_name_eq);
+    sl = tree_selection_collect_data(selection, gui_record_name_eq);
     g_slist_foreach(sl, (GFunc) filter_add_drop_name_rule,
         current_search->filter);
     g_slist_free(sl);
@@ -696,7 +696,7 @@ void on_popup_search_drop_sha1_activate(
 	selection = gtk_tree_view_get_selection(
 					GTK_TREE_VIEW(current_search->tree_view));
 
-    sl = tree_selection_collect_data(selection, FALSE,gui_record_sha1_eq);
+    sl = tree_selection_collect_data(selection, gui_record_sha1_eq);
     g_slist_foreach(sl, (GFunc) filter_add_drop_sha1_rule,
         current_search->filter);
     g_slist_free(sl);
@@ -714,7 +714,7 @@ void on_popup_search_drop_host_activate(
 	selection = gtk_tree_view_get_selection(
 					GTK_TREE_VIEW(current_search->tree_view));
 
-    sl = tree_selection_collect_data(selection, FALSE, gui_record_host_eq);
+    sl = tree_selection_collect_data(selection, gui_record_host_eq);
     g_slist_foreach(sl, (GFunc) filter_add_drop_host_rule,
         current_search->filter);
     g_slist_free(sl);
@@ -732,7 +732,7 @@ void on_popup_search_drop_name_global_activate
 	selection = gtk_tree_view_get_selection(
 					GTK_TREE_VIEW(current_search->tree_view));
 
-    sl = tree_selection_collect_data(selection, FALSE, gui_record_name_eq);
+    sl = tree_selection_collect_data(selection, gui_record_name_eq);
     g_slist_foreach(sl, (GFunc) filter_add_drop_name_rule,
         filter_get_global_pre());
     g_slist_free(sl);
@@ -751,7 +751,7 @@ void on_popup_search_drop_sha1_global_activate
 					GTK_TREE_VIEW(current_search->tree_view));
 
 
-    sl = tree_selection_collect_data(selection, FALSE, gui_record_sha1_eq);
+    sl = tree_selection_collect_data(selection, gui_record_sha1_eq);
     g_slist_foreach(sl, (GFunc) filter_add_drop_sha1_rule,
         filter_get_global_pre());
     g_slist_free(sl);
@@ -769,7 +769,7 @@ void on_popup_search_drop_host_global_activate(
 	selection = gtk_tree_view_get_selection(
 				GTK_TREE_VIEW(current_search->tree_view));
 
-    sl = tree_selection_collect_data(selection, FALSE, gui_record_host_eq);
+    sl = tree_selection_collect_data(selection, gui_record_host_eq);
     g_slist_foreach(sl, (GFunc) filter_add_drop_host_rule,
         filter_get_global_pre());
     g_slist_free(sl);
@@ -787,7 +787,7 @@ void on_popup_search_autodownload_name_activate(
 	selection = gtk_tree_view_get_selection(
         GTK_TREE_VIEW(current_search->tree_view));
 
-    sl = tree_selection_collect_data(selection, FALSE, gui_record_name_eq);
+    sl = tree_selection_collect_data(selection, gui_record_name_eq);
     g_slist_foreach(sl, (GFunc) filter_add_download_name_rule,
         current_search->filter);
     g_slist_free(sl);
@@ -805,7 +805,7 @@ void on_popup_search_autodownload_sha1_activate(
 	selection = gtk_tree_view_get_selection(
         GTK_TREE_VIEW(current_search->tree_view));
 
-    sl = tree_selection_collect_data(selection, FALSE, gui_record_sha1_eq);
+    sl = tree_selection_collect_data(selection, gui_record_sha1_eq);
     g_slist_foreach(sl, (GFunc) filter_add_download_sha1_rule,
         current_search->filter);
     g_slist_free(sl);
@@ -823,8 +823,7 @@ void on_popup_search_new_from_selected_activate(
 	selection = gtk_tree_view_get_selection(
         GTK_TREE_VIEW(current_search->tree_view));
 
-    sl = tree_selection_collect_data(selection, FALSE,
-        gui_record_sha1_or_name_eq);
+    sl = tree_selection_collect_data(selection, gui_record_sha1_or_name_eq);
     g_slist_foreach(sl, (GFunc) gui_add_targetted_search,
         current_search->filter);
     g_slist_free(sl);
