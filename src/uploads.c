@@ -2696,8 +2696,8 @@ static void upload_request(gnutella_upload_t *u, header_t *header)
 	u->total_requested += end - skip + 1;
 
 	if (u->total_requested > u->file_size * 1.005) {
-		g_warning("Host %s requesting more than there is to %u (%s)",
-			ip_to_gchar(s->ip), u->index, u->name);
+		g_warning("host %s (%s) requesting more than there is to %u (%s)",
+			ip_to_gchar(s->ip), upload_vendor_str(u), u->index, u->name);
 		upload_error_remove(u, NULL, 400, "Requesting Too Much");
 		return;
 	}
