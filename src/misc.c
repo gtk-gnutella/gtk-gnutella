@@ -196,10 +196,9 @@ gboolean gchar_to_ip_strict(const gchar *s, guint32 *addr,
 	gchar const **endptr)
 {
 	const gchar *p = s;
-	guchar buf[sizeof *addr];
-	guchar *a = addr ? (guchar *) addr : buf;
 	gboolean is_valid = TRUE;
 	gint i, j, v;
+	guint32 a = 0; /* 'pid compiler */
 
 	g_assert(s);
 
@@ -222,32 +221,16 @@ gboolean gchar_to_ip_strict(const gchar *s, guint32 *addr,
 			}
 			p++;
 		}
-		*a++ = (gchar) v;
+		a = (a << 8) | v;
 	}
 
 	if (endptr)
 		*endptr = p;
 
-	if (!is_valid) {
-		if (addr)
-			*addr = 0;
-		return FALSE;
-	}
+	if (addr)
+		*addr = is_valid ? a : 0;
 
-	/*
-	 * Ensure native byteorder in variable.  Swapping is only needed on
-	 * little-endian machines since network byteorder is big-endian.
-	 *		--RAM, 2004-08-01
-	 */
-
-#if G_BYTE_ORDER == G_LITTLE_ENDIAN
-	{
-		guint32 tmp = *addr;
-		*addr = GUINT32_SWAP_LE_BE(tmp);
-	}
-#endif
-
-	return TRUE;
+	return is_valid;
 }
 
 
