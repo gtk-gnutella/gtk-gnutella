@@ -84,6 +84,39 @@ gint count_running_downloads_with_name(const char *name)
 	return n;
 }
 
+static void queue_remove_all_named(const gchar *name)
+{
+	/*
+	 * Remove downloads from the queue bearing given name
+	 *		--RAM, 26/09/2001
+	 */
+
+	guint row;
+	GSList *to_remove = NULL;
+	GSList *l;
+	guint row_count = GTK_CLIST(clist_download_queue)->rows;
+
+	gtk_clist_freeze(GTK_CLIST(clist_download_queue));
+	for (row = 0; row < row_count; row++) {
+		struct download *d = (struct download *)
+			gtk_clist_get_row_data(GTK_CLIST(clist_download_queue), row);
+
+		if (!IS_DOWNLOAD_QUEUED(d))
+			g_warning("queue_remove_all_named(): "
+				"Download '%s' is not in queued state ! (state = %d)\n",
+				 d->file_name, d->status);
+
+		if (0 == strcmp(name, d->file_name))
+			to_remove = g_slist_prepend(to_remove, d);
+	}
+	gtk_clist_thaw(GTK_CLIST(clist_download_queue));
+
+	for (l = to_remove; l; l = l->next)
+		download_free((struct download *) l->data);
+
+	g_slist_free(to_remove);
+}
+
 /*
  * GUI operations
  */
@@ -132,7 +165,7 @@ void download_gui_remove(struct download *d)
 
 	if (!IS_DOWNLOAD_VISIBLE(d)) {
 		g_warning
-			("download_gui_remove() called on unvisible download '%s' !\n",
+			("download_gui_remove() called on invisible download '%s' !\n",
 			 d->file_name);
 		return;
 	}
@@ -366,12 +399,11 @@ void download_start(struct download *d, gboolean check_allowed)
 	 * this file, do it now. --RAM, 03/09/2001
 	 */
 
-	if (check_allowed && (count_running_downloads() >= max_downloads ||
-						  count_running_downloads_with_guid(d->guid) >=
-						  max_host_downloads
-						  || count_running_downloads_with_name(d->
-															   file_name)
-						  != 0)) {
+	if (check_allowed && (
+		count_running_downloads() >= max_downloads ||
+		count_running_downloads_with_guid(d->guid) >= max_host_downloads ||
+		count_running_downloads_with_name(d->file_name) != 0)
+	) {
 		if (!IS_DOWNLOAD_QUEUED(d))
 			download_queue(d);
 		return;
@@ -407,6 +439,7 @@ void download_start(struct download *d, gboolean check_allowed)
 		if (!IS_DOWNLOAD_VISIBLE(d))
 			download_gui_add(d);
 		download_stop(d, GTA_DL_COMPLETED, "Nothing more to get");
+		queue_remove_all_named(d->file_name);
 		return;
 	}
 
@@ -453,8 +486,7 @@ void download_pickup_queued(void)
 	row = 0;
 	while (row < GTK_CLIST(clist_download_queue)->rows
 		   && running < max_downloads) {
-		struct download *d =
-			(struct download *)
+		struct download *d = (struct download *)
 			gtk_clist_get_row_data(GTK_CLIST(clist_download_queue), row);
 
 		if (!IS_DOWNLOAD_QUEUED(d))
@@ -464,7 +496,8 @@ void download_pickup_queued(void)
 
 		if ((now - d->last_update) > d->timeout_delay &&
 			count_running_downloads_with_guid(d->guid) < max_host_downloads
-			&& count_running_downloads_with_name(d->file_name) == 0) {
+			&& count_running_downloads_with_name(d->file_name) == 0
+		) {
 			download_start(d, FALSE);
 			if (!IS_DOWNLOAD_QUEUED(d))
 				running++;
@@ -772,7 +805,7 @@ gboolean download_send_request(struct download *d)
 
 	if (d->skip)
 		rw = g_snprintf(dl_tmp, sizeof(dl_tmp),
-			"GET /get/%i/%s HTTP/1.0\r\n"
+			"GET /get/%u/%s HTTP/1.0\r\n"
 			"Connection: Keep-Alive\r\n"
 			"Range: bytes=%u-\r\n"
 			"User-Agent: gtk-gnutella/%d.%d\r\n\r\n",
@@ -780,7 +813,7 @@ gboolean download_send_request(struct download *d)
 			GTA_VERSION, GTA_SUBVERSION);
 	else
 		rw = g_snprintf(dl_tmp, sizeof(dl_tmp),
-			"GET /get/%i/%s HTTP/1.0\r\n"
+			"GET /get/%u/%s HTTP/1.0\r\n"
 			"Connection: Keep-Alive\r\n"
 			"User-Agent: gtk-gnutella/%d.%d\r\n\r\n",
 			d->record_index, d->file_name,
@@ -1070,8 +1103,7 @@ void download_read(gpointer data, gint source, GdkInputCondition cond)
 				}
 			} else {
 				if (d->skip) {
-					download_stop(d, GTA_DL_ERROR,
-								  "Cannot resume: file gone");
+					download_stop(d, GTA_DL_ERROR, "Cannot resume: file gone");
 					return;
 				}
 				d->file_desc =
@@ -1101,6 +1133,7 @@ void download_read(gpointer data, gint source, GdkInputCondition cond)
 		if (d->pos >= d->size) {
 			download_stop(d, GTA_DL_COMPLETED, NULL);
 			download_move_to_completed_dir(d);
+			queue_remove_all_named(d->file_name);
 			count_downloads++;
 			gui_update_count_downloads();
 			return;
