@@ -1237,6 +1237,130 @@ void node_mark_bad(struct gnutella_node *n)
 			n->vendor);
 }
 
+static gboolean node_avoid_monopoly(struct gnutella_node *n)
+{
+	guint node_up_count = 0;
+	guint node_leaf_count = 0;
+	guint node_normal_count = 0;
+	
+	GSList *sl;
+
+	gchar *node_vendor;
+	
+	if (n->vendor == NULL)
+		return FALSE;
+	
+	node_vendor = g_strdup(n->vendor);
+	node_vendor = g_strdelimit(node_vendor, "1234567890/ ", '\0');
+	
+	for (sl = sl_nodes; sl; sl = sl->next) {
+		struct gnutella_node *node = (struct gnutella_node *) sl->data;
+		gchar *cur_vendor;
+		
+		if (node->status != GTA_NODE_CONNECTED) {
+			continue;
+		}
+
+		cur_vendor = g_strdup(node->vendor); 
+		cur_vendor = g_strdelimit(cur_vendor, "1234567890/ ", '\0');
+
+		if (strcmp(cur_vendor, node_vendor)) {
+			g_free(cur_vendor);
+			continue;
+		}
+				
+		if (node->attrs & NODE_A_ULTRA)
+			node_up_count++;
+		else
+		if (node->flags & NODE_F_LEAF)
+			node_leaf_count++;
+		else
+			node_normal_count++;
+		
+		g_free(cur_vendor);
+	}
+	
+	g_free(node_vendor);
+	
+	/* Include current node into counter as well */
+	if (n->attrs & NODE_A_ULTRA)
+		node_up_count++;
+	else
+	if (n->flags & NODE_F_LEAF)
+		node_leaf_count++;
+	else
+		node_normal_count++;
+	
+	if (node_up_count * 100 > max_ultrapeers * unique_nodes)
+		return TRUE;	/* Dissallow */
+
+	if (node_leaf_count * 100 > max_leaves * unique_nodes)
+		return TRUE;
+	
+	if (node_normal_count * 100 > normal_connections * unique_nodes)
+		return TRUE;
+	
+	return FALSE;
+}
+
+static gboolean node_reserve_slot(struct gnutella_node *n)
+{
+	guint node_up_count = 0;
+	guint node_leaf_count = 0;
+	guint node_normal_count = 0;
+	
+	GSList *sl;
+
+	gchar *node_vendor = "gtk-gnutella";
+		
+	for (sl = sl_nodes; sl; sl = sl->next) {
+		struct gnutella_node *node = (struct gnutella_node *) sl->data;
+		gchar *cur_vendor;
+		
+		if (node->status != GTA_NODE_CONNECTED) {
+			continue;
+		}
+
+		cur_vendor = g_strdup(node->vendor); 
+		cur_vendor = g_strdelimit(cur_vendor, "1234567890/ ", '\0');
+
+		if (strcmp(cur_vendor, node_vendor)) {
+			g_free(cur_vendor);
+			continue;
+		}
+				
+		if (node->attrs & NODE_A_ULTRA)
+			node_up_count++;
+		else
+		if (node->flags & NODE_F_LEAF)
+			node_leaf_count++;
+		else
+			node_normal_count++;
+		
+		g_free(cur_vendor);
+	}
+	
+	/* Include current node into counter as well */
+	if (n->attrs & NODE_A_ULTRA)
+		node_up_count++;
+	else
+	if (n->flags & NODE_F_LEAF)
+		node_leaf_count++;
+	else
+		node_normal_count++;
+	
+	if (node_up_count * 100 > max_ultrapeers * (100 - reserve_gtkg_nodes))
+		return TRUE;	/* Dissallow */
+
+	if (node_leaf_count * 100 > max_leaves * (100 - reserve_gtkg_nodes))
+		return TRUE;
+	
+	if (node_normal_count * 100 > normal_connections * (100-reserve_gtkg_nodes))
+		return TRUE;
+	
+	return FALSE;
+}
+
 /*
  * node_remove
  *
@@ -2524,7 +2648,7 @@ static gboolean node_can_accept_connection(
 		node_remove(n, "Not connecting: %s", msg);
 		return FALSE;
 	}
-
+	
 	/*
 	 * If we are handshaking, we have not incremented the node counts yet.
 	 * Hence we can do >= tests against the limits.
@@ -3006,7 +3130,7 @@ static void node_process_handshake_header(
 			n->flags |= NODE_F_FAKE_NAME;
         node_set_vendor(n, field);
 	}
-
+	
 	/* Pong-Caching -- ping/pong reduction scheme */
 
 	field = header_get(head, "Pong-Caching");
@@ -3279,6 +3403,26 @@ static void node_process_handshake_header(
 
 	if (!node_can_accept_protocol(n,  head))
 		return;
+
+	/*
+	 * Avoid one servent to occupy all our slots
+	 *		-- JA, 21/11/2003
+	 */
+	if (node_avoid_monopoly(n)) {
+		send_node_error(n->socket, 403,
+			"Vendor code takes too many of our slots");
+		node_remove(n, "Vendor allready took %d%% slots", unique_nodes);
+		return;
+	}
+	
+	/*
+	 * Wether we should reserve a slot for gtk-gnutella
+	 */
+	if (node_reserve_slot(n)) {
+		send_node_error(n->socket, 403, "Reserved slot");
+		node_remove(n, "Reserved slot");
+		return;
+	}
 
 	/*
 	 * If this is an outgoing connection, we're processing the remote

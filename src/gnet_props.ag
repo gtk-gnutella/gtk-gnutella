@@ -1933,3 +1933,26 @@ prop = {
         default = FALSE;
     };
 };
+
+prop = {
+	name = "reserve_gtkg_nodes";
+	desc = "Percentage of the number of connections we should reserve for "
+		"gtk-gnutella nodes.";
+	type = guint32;
+	data = {
+		default = 33;
+		min = 0;
+		max = 100;
+	};
+};
+
+prop = {
+	name = "unique_nodes";
+	desc = "Maximum percentage of slots a vendor can occupy";
+	type = guint32;
+	data = {
+		default = 67;
+		min = 0;
+		max = 100;
+	};
+};

@@ -386,6 +386,10 @@ gchar   *server_hostname     = "";
 gchar   *server_hostname_def = "";
 gboolean give_server_hostname     = FALSE;
 gboolean give_server_hostname_def = FALSE;
+guint32  reserve_gtkg_nodes     = 33;
+guint32  reserve_gtkg_nodes_def = 33;
+guint32  unique_nodes     = 67;
+guint32  unique_nodes_def = 67;
 
 static prop_set_t *gnet_property = NULL;
 
@@ -3476,6 +3480,46 @@ prop_set_t *gnet_prop_init(void) {
     gnet_property->props[160].type               = PROP_TYPE_BOOLEAN;
     gnet_property->props[160].data.boolean.def   = &give_server_hostname_def;
     gnet_property->props[160].data.boolean.value = &give_server_hostname;
+
+
+    /*
+     * PROP_RESERVE_GTKG_NODES:
+     *
+     * General data:
+     */
+    gnet_property->props[161].name = "reserve_gtkg_nodes";
+    gnet_property->props[161].desc = _("Percentage of the number of connections we should reserve for gtk-gnutella nodes.");
+    gnet_property->props[161].ev_changed = event_new("reserve_gtkg_nodes_changed");
+    gnet_property->props[161].save = TRUE;
+    gnet_property->props[161].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[161].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[161].data.guint32.def   = &reserve_gtkg_nodes_def;
+    gnet_property->props[161].data.guint32.value = &reserve_gtkg_nodes;
+    gnet_property->props[161].data.guint32.choices = NULL;
+    gnet_property->props[161].data.guint32.max   = 100;
+    gnet_property->props[161].data.guint32.min   = 0;
+
+
+    /*
+     * PROP_UNIQUE_NODES:
+     *
+     * General data:
+     */
+    gnet_property->props[162].name = "unique_nodes";
+    gnet_property->props[162].desc = _("Maximum percentage of slots a vendor can occupy");
+    gnet_property->props[162].ev_changed = event_new("unique_nodes_changed");
+    gnet_property->props[162].save = TRUE;
+    gnet_property->props[162].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[162].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[162].data.guint32.def   = &unique_nodes_def;
+    gnet_property->props[162].data.guint32.value = &unique_nodes;
+    gnet_property->props[162].data.guint32.choices = NULL;
+    gnet_property->props[162].data.guint32.max   = 100;
+    gnet_property->props[162].data.guint32.min   = 0;
 
     gnet_property->byName = g_hash_table_new(g_str_hash, g_str_equal);
     for (n = 0; n < GNET_PROPERTY_NUM; n ++) {
