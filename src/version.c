@@ -27,6 +27,7 @@
 
 #include "gnutella.h"
 
+#include <ctype.h>				/* For isalpha() */
 #include <sys/utsname.h>		/* For uname() */
 
 #include "version.h"
