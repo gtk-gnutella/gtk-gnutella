@@ -1,5 +1,19 @@
 # since last version
 
+- (2003.01.27 - RAM)
+ * Will now show when a download is from a partial file, and how much of
+   the total file the remote server has.
+ * New http_range_size() routine.
+ * Now makes sure ranges are well-specified before calling http_range_add().
+ * Also detect overlapping with next range in list during http_range_add().
+ * Changed detection place of so-called "gnutella2": will now abort earlier,
+   without giving the chance for the remote ultranode to become a leaf.
+ * Dynamic upload slot computation was not co-existing peacefully with
+   the ability to steal bandwidth: now compare both instantaneous and average
+   to the min usage percentage.
+ * Handle only the very first range in upload requests, instead of replying 500.
+
+
 - (2003.01.26 - RAM)
  * Added glib-missing routines.
  * New HTTP range parsing routines.
