@@ -1229,7 +1229,7 @@ again:
 		struct iovec *ie = &iov[iovcnt++];
 		pmsg_t *mb = (pmsg_t *) l->data;
 
-		if (r >= ie->iov_len) {			/* Completely written */
+		if ((guint) r >= ie->iov_len) {			/* Completely written */
 			gchar *mb_start = pmsg_start(mb);
 			guint8 function = gmsg_function(mb_start);
 			sent++;
