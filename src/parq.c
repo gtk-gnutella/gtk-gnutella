@@ -2089,9 +2089,10 @@ gboolean parq_upload_request(gnutella_upload_t *u, gpointer handle,
 		 * we are not going to allow this download. Wether it could get an
 		 * upload slot or not. Neither are we going to active queue it.
 		 */
-		g_warning("host %s re-requested \"%s\" too soon (%d secs early)", 
-			  ip_port_to_gchar(u->socket->ip, u->socket->port), 
-			  u->name, (gint) (org_retry - now));
+		g_warning("host %s (%s) re-requested \"%s\" too soon (%d secs early)", 
+			ip_port_to_gchar(u->socket->ip, u->socket->port), 
+			upload_vendor_str(u),
+			u->name, (gint) (org_retry - now));
 
 		if (parq_ul->ban_timeout > now) {
 			/*
@@ -2099,9 +2100,11 @@ gboolean parq_upload_request(gnutella_upload_t *u, gpointer handle,
 		 	 * queue now.
 			 */
 
-			g_warning("punishing %s for re-requesting \"%s\" %d secs early", 
-				  ip_port_to_gchar(u->socket->ip, u->socket->port), 
-				  u->name, (gint) (org_retry - now));
+			g_warning(
+				"punishing %s (%s) for re-requesting \"%s\" %d secs early", 
+				ip_port_to_gchar(u->socket->ip, u->socket->port), 
+				upload_vendor_str(u),
+				u->name, (gint) (org_retry - now));
 
 			parq_upload_force_remove(u);
 			return FALSE;

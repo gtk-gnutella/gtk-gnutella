@@ -77,6 +77,8 @@ typedef struct upload {
 	gboolean parq_status;
 } gnutella_upload_t;
 
+#define upload_vendor_str(u)	((u)->user_agent ? (u)->user_agent : "")
+
 /*
  * This structure is used for HTTP status printing callbacks.
  */
