@@ -100,7 +100,7 @@ all:: .FORCE_DEPEND
 ########################################################################
 # Start of Jmakefile
 
-# $X-Id: Jmakefile,v 1.19 2004/07/15 18:29:34 nonamer Exp $
+# $X-Id: Jmakefile,v 1.21 2004/08/05 19:31:49 rmanfredi Exp $
 
 GUI_GTK2 = \
 	downloads_cb2.c \
@@ -169,8 +169,8 @@ CORE = \
 	base32.c \
 	base64.c \
 	bg.c \
-	bitzi.c \
 	bsched.c \
+	bitzi.c \
 	clock.c \
 	cobs.c \
 	common.c \
