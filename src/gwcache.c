@@ -52,7 +52,7 @@ static gchar gwc_tmp[1024];
  * to prevent insertion of duplicates in our cache.
  */
 
-#define MAX_GWC_URLS	100					/* Max URLs we store */
+#define MAX_GWC_URLS	200					/* Max URLs we store */
 #define MAX_GWC_REUSE	8					/* Max amount of uses for one URL */
 
 static gchar *gwc_url[MAX_GWC_URLS];		/* Holds string atoms */
@@ -99,6 +99,8 @@ static gint current_reused = 0;				/* Amount of times we reused it */
 #define REFRESH_MS		(8 * HOUR_MS)		/* Refresh every 8 hours */
 
 static gchar *gwc_file = "gwcache";
+static gchar *gwc_bootfile = "gwcache.boot";
+
 static gpointer hourly_update_ev = NULL;
 static gpointer periodic_refresh_ev = NULL;
 static gpointer urlfile_retry_ev = NULL;
@@ -180,6 +182,9 @@ static gchar *gwc_pick(void)
 	g_assert(count == MAX_GWC_URLS || gwc_url_slot < count);
 
 	index = random_value(count - 1);
+
+	if (dbg)
+		g_warning("picked webcache %s", gwc_url[index]);
 
 	return gwc_url[index];
 }
@@ -282,8 +287,23 @@ static void gwc_retrieve(void)
 				tmp, error);
 
 		in = fopen(gwc_tmp, "r");
-		if (!in)
-			return;
+
+		if (!in) {
+			g_snprintf(gwc_tmp, sizeof(gwc_tmp), "%s/%s",
+				PACKAGE_DATA_DIR, gwc_bootfile);
+
+			in = fopen(gwc_tmp, "r");
+
+			if (!in) {
+				g_snprintf(gwc_tmp, sizeof(gwc_tmp), "%s/%s",
+					PACKAGE_SOURCE_DIR, gwc_bootfile);
+
+				in = fopen(gwc_tmp, "r");
+
+				if (!in)
+					return;
+			}
+		}
 
 		g_warning("retrieving web cache URLs from \"%s\"%s", gwc_tmp, instead);
 	}

@@ -25,6 +25,7 @@
 
 SUBDIRS = src
 EXTRA_DIST = gtk-gnutella.spec	\
+	gwcache.boot \
 	debian/README.debian		\
 	debian/changelog			\
 	debian/control				\
@@ -45,6 +46,7 @@ install-data-local:
 	    fi \
 	  done \
 	fi
+	$(INSTALL_DATA) $(srcdir)/gwcache.boot $(DESTDIR)$(pkgdatadir)/
 
 dist-hook:
 	if test -d pixmaps; then \
