@@ -1375,6 +1375,7 @@ void gui_search_set_enabled(struct search *sch, gboolean enabled)
 {
 	gboolean was_enabled = sch->enabled;
 	GtkCList * clist_search;
+	GtkNotebook *notebook_search_results;
 
 	if (was_enabled == enabled)
 		return;
@@ -1389,19 +1390,20 @@ void gui_search_set_enabled(struct search *sch, gboolean enabled)
 	clist_search = GTK_CLIST(
 		lookup_widget(main_window, "clist_search"));
 
+	notebook_search_results = GTK_NOTEBOOK(
+		lookup_widget(main_window, "notebook_search_results"));
+
 	if (enabled) {
         gtk_clist_set_foreground(
             clist_search,
-            gtk_notebook_get_current_page
-                GTK_NOTEBOOK
-                    (lookup_widget(main_window, "notebook_search_results")),
+			gtk_notebook_page_num(notebook_search_results,
+				sch->scrolled_window),
             NULL);
 	} else {
         gtk_clist_set_foreground(
             clist_search,
-            gtk_notebook_get_current_page
-                GTK_NOTEBOOK
-                    (lookup_widget(main_window, "notebook_search_results")),
+			gtk_notebook_page_num(notebook_search_results,
+				sch->scrolled_window),
             &gtk_widget_get_style(GTK_WIDGET(clist_search))
                 ->fg[GTK_STATE_INSENSITIVE]);
 	}
