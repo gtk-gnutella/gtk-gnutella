@@ -364,6 +364,8 @@ create_main_window (void)
   GtkWidget *combo_search_handle_ignored_files;
   GtkWidget *combo_entry4;
   GtkWidget *checkbutton_search_hide_downloaded;
+  GtkWidget *scrolledwindow47;
+  GtkWidget *viewport45;
   GtkWidget *frame137;
   GtkWidget *table95;
   GtkWidget *label701;
@@ -3305,7 +3307,7 @@ create_main_window (void)
   gtk_widget_show (drawingarea_fi_progress);
   gtk_box_pack_start (GTK_BOX (hbox198), drawingarea_fi_progress, TRUE, TRUE, 0);
   gtk_widget_set_usize (drawingarea_fi_progress, -2, 16);
-  gtk_tooltips_set_tip (tooltips, drawingarea_fi_progress, _("Shows visual information on the download progress. Green chunks have been downloaded, with the brighter green chunks touched during this session. Yellow chunks are active right now. Red chunks have not been downloaded yet. The blue line indicates which parts of the file have been seen on the network in this session."), NULL);
+  gtk_tooltips_set_tip (tooltips, drawingarea_fi_progress, _("Shows visual information on the download progress. Green chunks have been downloaded, with the brighter green chunks touched during this session. Yellow chunks are active right now; these active chunks are also marked with a triangle. Red chunks have not been downloaded yet. The blue line indicates which parts of the file have been seen on the network in this session."), NULL);
   gtk_widget_set_events (drawingarea_fi_progress, GDK_ENTER_NOTIFY_MASK | GDK_LEAVE_NOTIFY_MASK);
 
   frame79 = gtk_frame_new (_("Alternate filenames"));
@@ -3645,13 +3647,30 @@ create_main_window (void)
                     (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
 
+  scrolledwindow47 = gtk_scrolled_window_new (NULL, NULL);
+  gtk_widget_set_name (scrolledwindow47, "scrolledwindow47");
+  gtk_widget_ref (scrolledwindow47);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "scrolledwindow47", scrolledwindow47,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (scrolledwindow47);
+  gtk_paned_pack2 (GTK_PANED (vpaned_results), scrolledwindow47, TRUE, TRUE);
+  gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolledwindow47), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
+
+  viewport45 = gtk_viewport_new (NULL, NULL);
+  gtk_widget_set_name (viewport45, "viewport45");
+  gtk_widget_ref (viewport45);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "viewport45", viewport45,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (viewport45);
+  gtk_container_add (GTK_CONTAINER (scrolledwindow47), viewport45);
+
   frame137 = gtk_frame_new (_("Information about selected file"));
   gtk_widget_set_name (frame137, "frame137");
   gtk_widget_ref (frame137);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "frame137", frame137,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (frame137);
-  gtk_paned_pack2 (GTK_PANED (vpaned_results), frame137, TRUE, TRUE);
+  gtk_container_add (GTK_CONTAINER (viewport45), frame137);
   gtk_container_set_border_width (GTK_CONTAINER (frame137), 2);
 
   table95 = gtk_table_new (6, 4, FALSE);
