@@ -1260,7 +1260,7 @@ gchar *unique_filename(const gchar *path, const gchar *file, const gchar *ext)
 	struct stat buf;
 	gint i;
 	gchar xuid[16];
-	const gchar *extra_bytes = "0123456789abcdefghijklmnopqrstuvwxyz";
+	const gchar extra_bytes[] = "0123456789abcdefghijklmnopqrstuvwxyz";
 
 	/* Use extra_bytes so we can easily append a few chars later */
 	filename = g_strdup_printf("%s/%s%s%s", path, file, ext, extra_bytes);
@@ -1292,7 +1292,7 @@ gchar *unique_filename(const gchar *path, const gchar *file, const gchar *ext)
 	 */
 
 	for (i = 0; i < 100; i++) {
-		guint32 rnum = random_value(RAND_MAX);
+		guint32 rnum = random_value(~((guint32) 0));
 		gm_snprintf(&filename[len], size - len, ".%x%s", rnum, ext);
 		if (-1 == do_stat(filename, &buf) && ENOENT == do_errno)
 			return filename;
@@ -1303,8 +1303,7 @@ gchar *unique_filename(const gchar *path, const gchar *file, const gchar *ext)
 	 */
 
 	guid_random_fill(xuid);
-	gm_snprintf(&filename[len], size - len, ".%s%s",
-		guid_hex_str(xuid), ext);
+	gm_snprintf(&filename[len], size - len, ".%s%s", guid_hex_str(xuid), ext);
 
 	if (-1 == do_stat(filename, &buf))
 		return filename;
@@ -1482,6 +1481,23 @@ gint do_stat(const gchar *path, struct stat *buf)
 			path, do_errno, g_strerror(do_errno));
 
 	return ret;
+}
+
+gchar *make_pathname(const gchar *dir, const gchar *file)
+{
+	const gchar *sep;
+	size_t l;
+
+	g_assert(dir);
+	g_assert(file);
+
+	l = strlen(dir);
+	if ((l > 0 && dir[l - 1] == G_DIR_SEPARATOR) || file[0] == G_DIR_SEPARATOR)
+		 sep = "";
+	else 
+		 sep = G_DIR_SEPARATOR_S;
+
+	return g_strconcat(dir, sep, file, NULL);
 }
 
 /* vi: set ts=4: */
