@@ -158,10 +158,7 @@ char *strcasestr(const char *haystack, const char *needle);
 guchar *strcasestr(const guchar *haystack, const guchar *needle);
 #endif
 
-#ifdef USE_GTK2
-/* Only necessary for GTk+ 2 version */
-gchar *locale_to_utf8(gchar *, gssize);
-#else
+#ifndef USE_GTK2
 gsize g_strlcpy(gchar *dest, const gchar *src, gsize dest_size);
 #endif
 

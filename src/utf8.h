@@ -35,6 +35,14 @@ gint utf8_is_valid_string(guchar *s, gint len);
 guint32 utf8_decode_char(guchar *s, gint len, gint *retlen, gboolean warn);
 gint utf8_to_iso8859(guchar *s, gint len, gboolean space);
 
+#ifdef USE_GTK2
+/* 
+ * Only necessary for GTK+ 2.x version because it expects almost any string
+ * to be encoded as UTF-8.
+ */
+gchar *locale_to_utf8(gchar *, gssize);
+#endif
+
 #endif	/* _utf8_h_ */
 
 /* vi: set ts=4: */
