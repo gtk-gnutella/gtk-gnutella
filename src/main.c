@@ -46,6 +46,7 @@
 #include "whitelist.h"
 #include "ignore.h"
 #include "guid.h"
+#include "gnet_stats.h"
 
 #include "main_gui.h"
 #include "settings.h"
@@ -79,8 +80,6 @@ void gtk_gnutella_exit(gint n)
 {
 	time_t now = time((time_t *) NULL);
 	time_t tick;
-	gchar tmp[256];
-    GtkLabel *label_shutdown_count;
 
 	if (exiting)
 		return;			/* Already exiting, must be in loop below */
@@ -107,22 +106,11 @@ void gtk_gnutella_exit(gint n)
 	 * Wait at most EXIT_GRACE seconds, so that BYE messages can go through.
 	 */
 
-	gtk_widget_hide(main_window);
-	gtk_widget_show(shutdown_window);
-
-    label_shutdown_count = GTK_LABEL
-        (lookup_widget(shutdown_window, "label_shutdown_count"));
-
 	while (
 		node_bye_pending() && 
 		(tick = time((time_t *) NULL)) - now < EXIT_GRACE
 	) {
-		g_snprintf(tmp, sizeof(tmp), "%d seconds", 
-			EXIT_GRACE - (gint)difftime(tick,now));
-
-		gtk_label_set(label_shutdown_count,tmp);
-        gtk_main_flush();
-
+        main_gui_shutdown_tick(EXIT_GRACE - (gint)difftime(tick,now));
 		usleep(200000);					/* 200 ms */
 	}
 
@@ -297,21 +285,11 @@ gint main(gint argc, gchar ** argv)
 
 	setlocale(LC_TIME, "C");	/* strftime() must emit standard dates */
 
-	/* Glade inits */
 
-	gtk_set_locale();
-
-	gtk_init(&argc, &argv);
-
-	add_pixmap_directory(PACKAGE_DATA_DIR "/pixmaps");
-	add_pixmap_directory(PACKAGE_SOURCE_DIR "/pixmaps");
-
-    main_window = create_main_window();
-    shutdown_window = create_shutdown_window();
-    dlg_about = create_dlg_about();
-
+    gnet_stats_init();
+    main_gui_early_init(argc, argv);
+    
 	/* Our inits */
-
 	random_init();
 	atoms_init();
 	version_init();
@@ -321,7 +299,6 @@ gint main(gint argc, gchar ** argv)
 	guid_init();
 	ignore_init();
 	file_info_init();
-    gui_init();
 	matching_init();
 	host_init();
 	pmsg_init();
@@ -338,8 +315,6 @@ gint main(gint argc, gchar ** argv)
     whitelist_init();
 
     main_gui_init();
-
-   	gui_update_all();
 
 	/* Some signal handlers */
 
