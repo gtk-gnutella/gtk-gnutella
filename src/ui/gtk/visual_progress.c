@@ -536,7 +536,9 @@ vp_gui_fi_status_changed(gnet_fi_t fih)
 				continue;
 			}
 
+#ifdef VP_DEBUG
 			g_assert(nc->from == highest);		/* Contiguous new list */
+#endif
 
 			/*
 			 * The chunks are identical: nothing changed, copy one chunk
