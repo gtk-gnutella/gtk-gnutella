@@ -50,7 +50,15 @@ case "$gtkversion" in
 	;;
 2)
 	case "$version" in
-	2.*) echo "OK, you have GTK+ $version";;
+	2.*)
+		vint=`echo $version | $awk -F. '{print $1 * 10000 + $2 * 100 + $3;}'`
+		if test 0$vint -lt 20201; then
+			echo "Sorry, you have GTK+ $version, I need at least 2.2.1." >&4
+			exit 1;
+		else
+			echo "OK, you have GTK+ $version"
+		fi
+		;;
 	*) echo "WARNING: you asked for GTK+ $gtkversion, I found $version" >&4;;
 	esac
 	;;
