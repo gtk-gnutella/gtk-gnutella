@@ -32,6 +32,7 @@ RCSID("$Id$");
 static guint8 stats_lut[256];
 
 static gnet_stats_t gnet_stats;
+static gnet_stats_t gnet_udp_stats;
 
 static gchar * const msg_drop_reason[MSG_DROP_REASON_COUNT] = {
 	N_("Bad size"),							/* MSG_DROP_BAD_SIZE */
@@ -80,6 +81,7 @@ void gnet_stats_init(void)
     stats_lut[GTA_MSG_SEARCH_RESULTS] = MSG_SEARCH_RESULTS;
 
     memset(&gnet_stats, 0, sizeof(gnet_stats));
+    memset(&gnet_udp_stats, 0, sizeof(gnet_udp_stats));
 }
 
 /*
@@ -91,21 +93,24 @@ void gnet_stats_count_received_header(gnutella_node_t *n)
 {
 	guint t = stats_lut[n->header.function];
 	guint i;
+	gnet_stats_t *stats;
+
+	stats = NODE_IS_UDP(n) ? &gnet_udp_stats : &gnet_stats;
 
     n->received++;
 
-    gnet_stats.pkg.received[MSG_TOTAL]++;
-    gnet_stats.pkg.received[t]++;
-    gnet_stats.byte.received[MSG_TOTAL] += sizeof(n->header);
-    gnet_stats.byte.received[t] += sizeof(n->header);
+    stats->pkg.received[MSG_TOTAL]++;
+    stats->pkg.received[t]++;
+    stats->byte.received[MSG_TOTAL] += sizeof(n->header);
+    stats->byte.received[t] += sizeof(n->header);
 
 	i = MIN(n->header.ttl, STATS_RECV_COLUMNS-1);
-    gnet_stats.pkg.received_ttl[i][MSG_TOTAL]++;
-    gnet_stats.pkg.received_ttl[i][t]++;
+    stats->pkg.received_ttl[i][MSG_TOTAL]++;
+    stats->pkg.received_ttl[i][t]++;
 
 	i = MIN(n->header.hops, STATS_RECV_COLUMNS-1);
-    gnet_stats.pkg.received_hops[i][MSG_TOTAL]++;
-    gnet_stats.pkg.received_hops[i][t]++;
+    stats->pkg.received_hops[i][MSG_TOTAL]++;
+    stats->pkg.received_hops[i][t]++;
 }
 
 /*
@@ -118,17 +123,20 @@ void gnet_stats_count_received_payload(gnutella_node_t *n)
     guint32 size = n->size;
 	guint t = stats_lut[n->header.function];
 	guint i;
+	gnet_stats_t *stats;
 
-    gnet_stats.byte.received[MSG_TOTAL] += size;
-    gnet_stats.byte.received[t] += size;
+	stats = NODE_IS_UDP(n) ? &gnet_udp_stats : &gnet_stats;
+
+    stats->byte.received[MSG_TOTAL] += size;
+    stats->byte.received[t] += size;
 
 	i = MIN(n->header.ttl, STATS_RECV_COLUMNS-1);
-    gnet_stats.byte.received_ttl[i][MSG_TOTAL] += size;
-    gnet_stats.byte.received_ttl[i][t] += size;
+    stats->byte.received_ttl[i][MSG_TOTAL] += size;
+    stats->byte.received_ttl[i][t] += size;
 
 	i = MIN(n->header.hops, STATS_RECV_COLUMNS-1);
-    gnet_stats.byte.received_hops[i][MSG_TOTAL] += size;
-    gnet_stats.byte.received_hops[i][t] += size;
+    stats->byte.received_hops[i][MSG_TOTAL] += size;
+    stats->byte.received_hops[i][t] += size;
 }
 
 void gnet_stats_count_sent(
@@ -252,6 +260,12 @@ void gnet_stats_get(gnet_stats_t *s)
 {
     g_assert(s != NULL);
     memcpy(s, &gnet_stats, sizeof(*s));
+}
+
+void gnet_stats_udp_get(gnet_stats_t *s)
+{
+    g_assert(s != NULL);
+    memcpy(s, &gnet_udp_stats, sizeof(*s));
 }
 
 /* vi: set ts=4: */
