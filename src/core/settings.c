@@ -478,8 +478,6 @@ settings_max_msg_size(void)
 void
 settings_ask_for_property(gchar *name, gchar *value)
 {
-	extern void gtk_gnutella_exit(gint);
-
 	fprintf(stderr, "\n*** ANCIENT VERSION DETECTED! ***\n\n");
 	fprintf(stderr,
 		"Sorry, this program is too ancient to run without\n"
@@ -493,8 +491,7 @@ settings_ask_for_property(gchar *name, gchar *value)
 		"harmful!\n\n",
 		config_dir, G_DIR_SEPARATOR_S, config_file, name, value);
 	fprintf(stderr, "*** EXITING ***\n\n");
-
-	gtk_gnutella_exit(1);
+	exit(EXIT_FAILURE);
 }
 
 /**
