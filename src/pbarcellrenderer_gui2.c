@@ -50,6 +50,7 @@
  * Free Software Foundation, Inc., 59 Temple Place - Suite 330,
  * Boston, MA 02111-1307, USA.
  */
+#ifdef USE_GTK2
 
 #include "common.h"
 
@@ -57,7 +58,6 @@
 #include "pbarcellrenderer_gui2.h"
 #include "override.h"
 
-#ifdef USE_GTK2
 
 RCSID("$Id$");
 
