@@ -49,7 +49,7 @@ static void add_node_helper(guint32 ip, gpointer port)
  */
 static void nodes_cb_connect_by_name(const gchar *addr) 
 {
-    guint32 port = 6346;
+    guint32 port = GTA_PORT;
     gchar *e;
     gchar *seek;
 

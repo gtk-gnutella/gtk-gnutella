@@ -228,7 +228,7 @@ static guint shell_exec_node(gnutella_shell_t *sh, const gchar *cmd)
     case CMD_ADD: {
         gchar *tok_buf;
         guint32 ip = 0;
-        guint32 port = 6346;
+        guint32 port = GTA_PORT;
 
         tok_buf = shell_get_token(cmd, &pos);
 
