@@ -468,7 +468,6 @@ gboolean search_gui_new_search_full(
 	GtkTreeModel *model;
 	GtkTreeIter iter;
 	gchar query[512];
-	gchar *name;
 
     GtkWidget *combo_searches = lookup_widget(main_window, "combo_searches");
     GtkWidget *tree_view_search = lookup_widget(main_window, "tree_view_search");
@@ -559,15 +558,13 @@ gboolean search_gui_new_search_full(
 						   glist);
 
 	model = gtk_tree_view_get_model(GTK_TREE_VIEW(tree_view_search));
-	name = locale_to_utf8(sch->query, -1);
 	gtk_list_store_append (GTK_LIST_STORE (model), &iter);
 	gtk_list_store_set (GTK_LIST_STORE (model), &iter,
-		c_sl_name, name,
+		c_sl_name, sch->query,
 		c_sl_hit, GINT_TO_POINTER(0),
 		c_sl_new, GINT_TO_POINTER(0), 
 		c_sl_sch, sch,
 		-1);
-	G_FREE_NULL(name);
 
 	/* Create a new CList if needed, or use the default CList */
 
