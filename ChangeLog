@@ -1,9 +1,14 @@
 # since last version
 
+- (2002.11.22 - RAM)
+ * Will now ban gtk-gnutella/0.90 and gtk-gnutella/0.91u because they are
+   harmful (could corrupt Gnutella traffic).
+ * Fixed buglet that caused GTKG to warn again and again for the same "more
+   recent" version on stderr.
+
 - (2002.11.22 - Richard)
- * Show more information on failed uploads.
- * Add new debug level variable "common_dbg" controlled by
-   PROP_LIB_DEBUG
+ * Show more information on failed uploads (the HTTP request).
+ * Add new debug level variable "common_dbg" controlled by PROP_LIB_DEBUG
  * Clean up includes
  * Polished toolbar
  * Show URN queries in search stats
