@@ -270,9 +270,11 @@ static void gui_init_menu(void)
 static GtkWidget *gui_create_dlg_prefs(void)
 {
 	GtkWidget *dialog;
+#ifdef USE_GTK2
     GtkWidget *notebook;
     GtkWidget *tab_window[nb_prefs_num];
 	gint i;
+#endif
 	
     dialog = create_dlg_prefs();
 #ifdef USE_GTK2
