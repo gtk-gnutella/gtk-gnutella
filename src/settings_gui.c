@@ -5206,7 +5206,7 @@ void settings_gui_init(void)
 	 */
 #ifndef USE_REMOTE_CTRL
 	{
-		GtkWidget *w = lookup_widget(main_window, "checkbutton_enable_shell");
+		GtkWidget *w = lookup_widget(dlg_prefs, "checkbutton_enable_shell");
 		gtk_widget_set_sensitive(w, FALSE);
 	}
 #endif
