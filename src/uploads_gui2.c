@@ -402,7 +402,7 @@ static void list_store_remove_and_free_list(
 	GSList *sl;
 	
 	g_assert(NULL != store);
-	g_assert(NULL != sl);
+	g_assert(NULL != to_remove);
 
 	for (sl = to_remove; sl != NULL; sl = g_slist_next(sl)) {
 		g_assert(NULL != sl->data);
