@@ -38,7 +38,6 @@
 #include "sockets.h"
 #include "search.h"
 #include "share.h"
-#include "gui.h"
 #include "routing.h"
 #include "hosts.h"
 #include "nodes.h"
@@ -63,6 +62,11 @@
 #include "http.h"
 #include "version.h"
 #include "alive.h"
+#include "uploads.h" /* for handle_push_request() */
+
+#include "gnet_property_priv.h"
+#include "listener.h"
+#include "settings.h"
 
 #define CONNECT_PONGS_COUNT		10		/* Amoung of pongs to send */
 #define BYE_MAX_SIZE			4096	/* Maximum size for the Bye message */
@@ -77,6 +81,9 @@
 #define MIN_TX_FOR_RATIO		500	/* TX packets before enforcing ratio */
 #define ALIVE_FREQUENCY			10	/* Seconds between each alive ping */
 #define ALIVE_MAX_PENDING		4	/* Max unanswered pings in a row */
+
+#define find_node(n) ((gnutella_node_t *) n)
+#define node_new_handle(n) ((gnet_node_t) n)
 
 GSList *sl_nodes = (GSList *) NULL;
 
@@ -128,6 +135,68 @@ static void node_read_connecting(
 static void node_disable_read(struct gnutella_node *n);
 static void node_data_ind(rxdrv_t *rx, pmsg_t *mb);
 static void node_bye_sent(struct gnutella_node *n);
+
+/***
+ *** Callbacks
+ ***/
+
+static listeners_t node_added_listeners   = NULL;
+static listeners_t node_removed_listeners = NULL;
+static listeners_t node_changed_listeners = NULL;
+
+void node_add_node_added_listener(node_added_listener_t l)
+{
+    LISTENER_ADD(node_added, l);
+}
+
+void node_remove_node_added_listener(node_added_listener_t l)
+{
+    LISTENER_REMOVE(node_added, l);
+}
+
+void node_add_node_removed_listener(node_removed_listener_t l)
+{
+    LISTENER_ADD(node_removed, l);
+}
+
+void node_remove_node_removed_listener(node_removed_listener_t l)
+{
+    LISTENER_REMOVE(node_removed, l);
+}
+
+void node_add_node_changed_listener(node_changed_listener_t l)
+{
+    LISTENER_ADD(node_changed, l);
+}
+
+void node_remove_node_changed_listener(node_changed_listener_t l)
+{
+    LISTENER_REMOVE(node_changed, l);
+}
+
+static void node_emit_node_added(gnutella_node_t *n, const gchar *type)
+{
+    n->last_update = time((time_t *)NULL);
+    LISTENER_EMIT(node_added, n->node_handle, type);
+}
+
+static void node_emit_node_removed(gnutella_node_t *n)
+{
+    n->last_update = time((time_t *)NULL);
+    LISTENER_EMIT(node_removed, n->node_handle);
+}
+
+static void node_emit_node_changed
+    (gnutella_node_t *n, gboolean force, gboolean vendor, gboolean proto)
+{
+    time_t now = time((time_t *) NULL);
+
+    if (!force && (n->last_update == now))
+        return;
+
+    n->last_update = time((time_t *)NULL);
+    LISTENER_EMIT(node_changed, n->node_handle, force, vendor, proto);
+}
 
 /***
  *** Node timer.
@@ -216,8 +285,6 @@ void node_timer(time_t now)
 				}
 			}
 		}
-
-		gui_update_nodes_display(now);
 	}
 }
 
@@ -305,19 +372,16 @@ static void get_protocol_version(guchar *handshake, gint *major, gint *minor)
  *
  * Physically dispose of node.
  */
-void node_real_remove(struct gnutella_node *n)
+void node_real_remove(gnutella_node_t *node)
 {
-	gint row;
-    GtkWidget *clist_nodes;
+	g_return_if_fail(node);
 
-	g_return_if_fail(n);
+    /*
+     * Tell the frontend that the node was removed.
+     */
+    node_emit_node_removed(node);
 
-    clist_nodes = lookup_widget(main_window, "clist_nodes");
-
-	row = gtk_clist_find_row_from_data(GTK_CLIST(clist_nodes), (gpointer) n);
-	gtk_clist_remove(GTK_CLIST(clist_nodes), row);
-
-	sl_nodes = g_slist_remove(sl_nodes, n);
+	sl_nodes = g_slist_remove(sl_nodes, node);
 
 	/*
 	 * Now that the node was removed from the list of known nodes, we
@@ -327,26 +391,26 @@ void node_real_remove(struct gnutella_node *n)
 	 *		--RAM, 13/01/2002
 	 */
 
-	if (n->gnet_ip && (n->flags & NODE_F_VALID))
-		host_save_valid(n->gnet_ip, n->gnet_port);
+	if (node->gnet_ip && (node->flags & NODE_F_VALID))
+		host_save_valid(node->gnet_ip, node->gnet_port);
 
 	/*
 	 * The io_opaque structure is not freed by node_remove(), so that code
 	 * can still peruse the headers after node_remove() has been called.
 	 */
 
-	if (n->io_opaque)				/* I/O data */
-		io_free(n->io_opaque);
+	if (node->io_opaque)				/* I/O data */
+		io_free(node->io_opaque);
 
 	/*
 	 * The RX stack needs to be dismantled asynchronously, to not be freed
 	 * whilst on the "data reception" interrupt path.
 	 */
 
-	if (n->rx)
-		rx_free(n->rx);
+	if (node->rx)
+		rx_free(node->rx);
 
-	g_free(n);
+	g_free(node);
 }
 
 /*
@@ -445,8 +509,7 @@ static void node_remove_v(
 	if (n->flags & NODE_F_EOF_WAIT)
 		pending_byes--;
 
-	gui_update_c_gnutellanet();
-	gui_update_node(n, TRUE);
+    node_emit_node_changed(n, TRUE, FALSE, FALSE);
 }
 
 /*
@@ -468,6 +531,23 @@ static void node_recursive_shutdown_v(
 	fmt = g_strdup_printf("%s (%s) [within %s]", where, reason, n->error_str);
 	node_remove_v(n, fmt, ap);
 	g_free(fmt);
+}
+
+/*
+ * node_remove_by_handle:
+ *
+ * Removes or shut's down the given node.
+ */
+void node_remove_by_handle(gnet_node_t n)
+{
+    gnutella_node_t *node = find_node(n);
+
+    if (NODE_IS_WRITABLE(node)) {
+        node_bye(node, 201, "User manual removal");
+    } else {
+        node_remove(node, NULL);
+        node_real_remove(node);
+    }
 }
 
 /*
@@ -563,8 +643,7 @@ static void node_shutdown_mode(struct gnutella_node *n, guint32 delay)
 
 	shutdown_nodes++;
 
-	gui_update_node(n, TRUE);
-	gui_update_c_gnutellanet();
+    node_emit_node_changed(n, TRUE, FALSE, FALSE);
 }
 
 /*
@@ -597,7 +676,7 @@ void node_shutdown(struct gnutella_node *n, const gchar *reason, ...)
 		n->error_str[sizeof(n->error_str) - 1] = '\0';	/* May be truncated */
 		n->remove_msg = n->error_str;
 	} else {
-		n->remove_msg = NULL;
+		n->remove_msg = "Unknown reason";
 		n->error_str[0] = '\0';
 	}
 
@@ -736,7 +815,8 @@ static void node_bye_v(
  *
  * This is otherwise equivalent to the node_shutdown() call.
  */
-void node_bye(struct gnutella_node *n, gint code, const gchar *reason, ...)
+
+void node_bye(gnutella_node_t *n, gint code, const gchar * reason, ...)
 {
 	va_list args;
 
@@ -1093,8 +1173,7 @@ static void node_is_now_connected(struct gnutella_node *n)
 	 * Update the GUI.
 	 */
 
-	gui_update_node(n, TRUE);
-	gui_update_c_gnutellanet();		/* connected_node_cnt changed */
+    node_emit_node_changed(n, TRUE, FALSE, FALSE);
 
 	node_added = n;
 	g_hook_list_invoke(&node_added_hook_list, TRUE);
@@ -1193,12 +1272,10 @@ static void downgrade_handshaking(struct gnutella_node *n)
 		n->proto_major = 0;
 		n->proto_minor = 4;
 		nodes_in_list++;
-		gui_update_c_gnutellanet();
 	} else
 		n->remove_msg = "Re-connection failed";
 
-	gui_update_node_proto(n);
-	gui_update_node(n, TRUE);
+    node_emit_node_changed(n, TRUE, FALSE, TRUE);
 }
 
 /*
@@ -1531,7 +1608,7 @@ static void node_process_handshake_header(struct io_header *ih)
 	if (field) {
 		version_check(field);
 		n->vendor = atom_str_get(field);
-		gui_update_node_vendor(n);
+        node_emit_node_changed(n, FALSE, TRUE, FALSE);
 	}
 
 	/* Pong-Caching -- ping/pong reduction scheme */
@@ -1606,7 +1683,7 @@ static void node_process_handshake_header(struct io_header *ih)
 	if (!force_local_ip) {
 		guint32 ip = extract_my_ip(ih->header);
 		if (ip && ip != local_ip)
-			config_ip_changed(ip);
+            settings_ip_changed(ip);
 	}
 
 	/*
@@ -1986,15 +2063,18 @@ final_cleanup:
 		downgrade_handshaking(n);
 }
 
-void node_add(struct gnutella_socket *s, guint32 ip, guint16 port)
+void node_add(guint32 ip, guint16 port)
+{
+    node_add_socket(NULL, ip, port);
+}
+
+void node_add_socket(struct gnutella_socket *s, guint32 ip, guint16 port)
 {
 	struct gnutella_node *n;
-	gchar *titles[5];
-	gint row;
+    gchar *connection_type;
 	gboolean incoming = FALSE, already_connected = FALSE;
 	gint major = 0, minor = 0;
 	gboolean ponging_only = FALSE;
-	gchar proto_tmp[16];
 
 	/*
 	 * During shutdown, don't accept any new connection.
@@ -2074,7 +2154,9 @@ void node_add(struct gnutella_socket *s, guint32 ip, guint16 port)
 
 	n = (struct gnutella_node *) g_malloc0(sizeof(struct gnutella_node));
 
-	n->id = node_id++;
+    n->node_handle = node_new_handle(n);
+
+    n->id = node_id++;
 	n->ip = ip;
 	n->port = port;
 	n->proto_major = major;
@@ -2113,10 +2195,10 @@ void node_add(struct gnutella_socket *s, guint32 ip, guint16 port)
 
 		if (ponging_only) {
 			n->flags |= NODE_F_TMP;
-			titles[1] = (gchar *) "Ponging";
+			connection_type = "Ponging";
 		} else {
 			n->flags |= NODE_F_INCOMING;
-			titles[1] = (gchar *) "Incoming";
+			connection_type = "Incoming";
 		}
 	} else {
 		/* We have to create an outgoing control connection for the node */
@@ -2144,25 +2226,10 @@ void node_add(struct gnutella_socket *s, guint32 ip, guint16 port)
 				n->flags |= NODE_F_VALID;
 		}
 
-		titles[1] = (gchar *) "Outgoing";
+		connection_type = "Outgoing";
 	}
 
-	g_snprintf(proto_tmp, sizeof(proto_tmp), "%d.%d",
-		n->proto_major, n->proto_minor);
-
-	titles[0] = node_ip(n);
-	titles[2] = (gchar *) "";
-	titles[3] = proto_tmp;
-	titles[4] = (gchar *) "";
-
-    {
-        GtkWidget *clist_nodes;
-
-        clist_nodes = lookup_widget(main_window, "clist_nodes");
-
-        row = gtk_clist_append(GTK_CLIST(clist_nodes), titles);
-        gtk_clist_set_row_data(GTK_CLIST(clist_nodes), row, (gpointer) n);
-    }
+    node_emit_node_added(n, connection_type);
 
 	/*
 	 * Insert node in lists, before checking `already_connected', since
@@ -2238,8 +2305,7 @@ void node_add(struct gnutella_socket *s, guint32 ip, guint16 port)
 		node_header_parse(ih);
 	}
 
-	gui_update_node(n, TRUE);
-	gui_update_c_gnutellanet();
+    node_emit_node_changed(n, TRUE, FALSE, FALSE);
 }
 
 /*
@@ -2484,7 +2550,7 @@ void node_init_outgoing(struct gnutella_node *n)
 		return;
 	} else {
 		n->status = GTA_NODE_HELLO_SENT;
-		gui_update_node(n, TRUE);
+        node_emit_node_changed(n, TRUE, FALSE, FALSE);
 
 		if (dbg > 2) {
 			printf("----Sent HELLO request to %s:\n%.*s----\n",
@@ -2643,7 +2709,7 @@ static gboolean node_read(struct gnutella_node *n, pmsg_t *mb)
 		n->received++;
 		global_messages++;
 
-		gui_update_node(n, FALSE);
+		node_emit_node_changed(n, FALSE, FALSE, FALSE);
 
 		READ_GUINT32_LE(n->header.size, n->size);
 
@@ -2703,7 +2769,7 @@ static gboolean node_read(struct gnutella_node *n, pmsg_t *mb)
 			 * Since could change dynamically one day, so compute it.
 			 */
 
-			guint32 maxsize = config_max_msg_size();
+			guint32 maxsize = settings_max_msg_size();
 
 			if (maxsize < n->size) {
 				g_warning("got %u byte %s message, should have kicked node\n",
@@ -2987,6 +3053,140 @@ void node_close(void)
 	g_slist_free(sl_nodes);
 
 	rxbuf_close();
+}
+
+inline void node_add_sent(gnutella_node_t *n, gint x)
+{
+	n->sent += x; 
+    node_emit_node_changed(n, FALSE, FALSE, FALSE);
+}
+
+inline void  node_add_txdrop(gnutella_node_t *n, gint x)
+{
+	n->tx_dropped += x;
+    node_emit_node_changed(n, FALSE, FALSE, FALSE);
+}
+
+inline void node_add_rxdrop(gnutella_node_t *n, gint x)
+{
+	n->rx_dropped += x; 
+    node_emit_node_changed(n, FALSE, FALSE, FALSE);
+}
+
+
+inline void node_set_vendor(gnutella_node_t *n, const gchar *vendor)
+{
+    n->vendor = atom_str_get(vendor);
+    node_emit_node_changed(n, FALSE, TRUE, FALSE);
+}
+
+
+
+/*
+ * node_get_info:
+ *
+ * Fetches information about a given node. The returned information must
+ * be freed manually by the caller using the node_free_info call.
+ *
+ * O(1):
+ * Since the gnet_node_t is actually a pointer to the gnutella_node
+ * struct, this call is O(1). It would be safer to have gnet_node be
+ * an index in a list or a number, but depending on the underlying
+ * containerstructure of sl_nodes, that would have O(log(n)) (balanced tree)
+ * or O(n) (list) runtime.
+ */
+gnet_node_info_t *node_get_info(const gnet_node_t n)
+{
+    gnutella_node_t  *node = find_node(n); 
+    gnet_node_info_t *info = g_new(gnet_node_info_t, 1);
+
+    info->node_handle = n;
+
+    info->error_str = (node->error_str != NULL) ? 
+        g_strdup(node->error_str) : NULL;
+    info->proto_major = node->proto_major;
+    info->proto_minor = node->proto_minor;
+    info->vendor = node->vendor ? g_strdup(node->vendor) : NULL;
+    memcpy(info->vcode, node->vcode, 4);
+
+    info->status   = node->status;
+    info->peermode = node->peermode;
+    info->flags    = node->flags;
+    info->attrs    = node->attrs;
+
+    info->sent       = node->sent;
+    info->received   = node->received;
+    info->tx_dropped = node->tx_dropped;
+    info->rx_dropped = node->rx_dropped;
+    info->n_bad      = node->n_bad;
+    info->n_dups     = node->n_dups;
+    info->n_hard_ttl = node->n_hard_ttl;
+    info->n_weird    = node->n_weird;
+
+    info->squeue_sent         = NODE_SQUEUE_SENT(node);
+    info->squeue_count        = NODE_SQUEUE_COUNT(node);
+    info->mqueue_count        = NODE_MQUEUE_COUNT(node);
+    info->mqueue_percent_used = NODE_MQUEUE_PERCENT_USED(node);
+    info->in_tx_flow_control  =	NODE_IN_TX_FLOW_CONTROL(node);
+    
+    info->last_update    = node->last_update;
+    info->connect_date   = node->connect_date;
+    info->tx_flowc_date  = node->tx_flowc_date;
+    info->shutdown_date  = node->shutdown_date;
+    info->shutdown_delay = node->shutdown_delay;
+
+    info->remove_msg = g_strdup(node->remove_msg);
+
+    info->ip   = node->ip;
+    info->port = node->port;
+    
+    info->tx_given    = node->tx_given;
+    info->tx_deflated = node->tx_deflated;
+    info->tx_written  = node->tx_written;
+    info->tx_compressed = NODE_TX_COMPRESSED(node);
+    info->tx_compression_ratio = NODE_TX_COMPRESSION_RATIO(node);
+
+    info->rx_given    = node->rx_given;
+    info->rx_inflated = node->rx_inflated;
+    info->rx_read     = node->rx_read;
+    info->rx_compressed = NODE_RX_COMPRESSED(node);
+    info->rx_compression_ratio = NODE_RX_COMPRESSION_RATIO(node);
+
+    return info;
+}
+
+/*
+ * node_free_info:
+ *
+ * Frees the gnet_node_info_t data returned by node_get_info.
+ */
+void node_free_info(gnet_node_info_t *info)
+{
+    g_free(info->vendor);
+    g_free(info->error_str);
+    g_free(info->remove_msg);
+    g_free(info);
+}
+
+/*
+ * nodes__remove_nodes:
+ *
+ * Disconnect from the given list of node hanles. The list may not contain
+ * NULL elements or duplicate elements.
+ */
+void node_remove_nodes_by_handle(GList *node_list)
+{
+    GList *l;
+
+    for (l = node_list; l != NULL; l = g_list_next(l)) {
+        gnet_node_t node;
+
+        node = (gnet_node_t) l->data;
+
+        g_assert(node);
+
+        node_remove_by_handle(node);
+    }
 }
 
 /* vi: set ts=4: */

@@ -27,6 +27,7 @@
 #define __nodes_h__
 
 #include "gnutella.h"
+#include "gnet.h"
 #include "mq.h"
 #include "sq.h"
 #include "rx.h"
@@ -43,7 +44,9 @@
 
 #define CACHE_HOP_IDX(h)	(((h) > MAX_CACHE_HOPS) ? MAX_CACHE_HOPS : (h))
 
-struct gnutella_node {
+typedef struct gnutella_node {
+    gnet_node_t node_handle;    /* Handle of this node */
+
 	gchar error_str[256];		/* To sprintf() error strings with vars */
 	struct gnutella_socket *socket;		/* Socket of the node */
 	gint proto_major;			/* Protocol major number */
@@ -77,7 +80,7 @@ struct gnutella_node {
 	guint32 allocated;			/* Size of allocated buffer data, 0 for none */
 	gboolean have_header;		/* TRUE if we have got a full message header */
 
-	time_t last_update;			/* Last update of the node in the GUI */
+	time_t last_update;			/* Last update of the node */
 	time_t connect_date;		/* When we got connected (after handshake) */
 	time_t tx_flowc_date;		/* When we entered in TX flow control */
 	time_t shutdown_date;		/* When we entered in shutdown mode */
@@ -135,7 +138,7 @@ struct gnutella_node {
 	gint32 rx_given;			/* Bytes fed to the RX stack (from bottom) */
 	gint32 rx_inflated;			/* Bytes inflated by the RX stack */
 	gint32 rx_read;				/* Bytes read from the RX stack */
-};
+} gnutella_node_t;
 
 /*
  * Node flags.
@@ -167,18 +170,6 @@ struct gnutella_node {
 #define NODE_A_TX_DEFLATE	0x00000020	/* Sending compressed data */
 
 #define NODE_A_CAN_INFLATE	0x80000000	/* Node capable of inflating */
-
-/*
- * Node states.
- */
-
-#define GTA_NODE_CONNECTING			1	/* Making outgoing connection */
-#define GTA_NODE_HELLO_SENT			2	/* Sent 0.4 hello */
-#define GTA_NODE_WELCOME_SENT		3	/* Hello accepted, remote welcomed */
-#define GTA_NODE_CONNECTED			4	/* Connected at the Gnet level */
-#define GTA_NODE_REMOVING			5	/* Removing node */
-#define GTA_NODE_RECEIVING_HELLO	6	/* Receiving 0.6 headers */
-#define GTA_NODE_SHUTDOWN			7	/* Connection being shutdown */
 
 /*
  * Peer modes.
@@ -260,25 +251,11 @@ struct gnutella_node {
  * Macros.
  */
 
-void gui_update_node(struct gnutella_node *, gboolean);
+#define node_vendor(n)              ((n)->vendor)
 
-#define node_inc_sent(n)		\
-	do { (n)->sent++; gui_update_node((n), FALSE); } while (0)
-
-#define node_inc_txdrop(n)		\
-	do { (n)->tx_dropped++; gui_update_node((n), FALSE); } while (0)
-
-#define node_inc_rxdrop(n)		\
-	do { (n)->rx_dropped++; gui_update_node((n), FALSE); } while (0)
-
-#define node_add_sent(n,x)		\
-	do { (n)->sent += (x); gui_update_node((n), FALSE); } while (0)
-
-#define node_add_txdrop(n,x)	\
-	do { (n)->tx_dropped += (x); gui_update_node((n), FALSE); } while (0)
-
-#define node_add_rxdrop(n,x)	\
-	do { (n)->rx_dropped += (x); gui_update_node((n), FALSE); } while (0)
+#define node_inc_sent(n)            node_add_sent(n, 1)
+#define node_inc_txdrop(n)          node_add_txdrop(n, 1)
+#define node_inc_rxdrop(n)          node_add_rxdrop(n, 1)
 
 #define node_add_tx_given(n,x)		do { (n)->tx_given += (x); } while (0)
 #define node_add_tx_written(n,x)	do { (n)->tx_written += (x); } while (0)
@@ -311,12 +288,12 @@ void node_timer(time_t now);
 gboolean on_the_net(void);
 gint32 connected_nodes(void);
 gint32 node_count(void);
-void node_add(struct gnutella_socket *, guint32, guint16);
-void node_real_remove(struct gnutella_node *);
+void node_add_socket(struct gnutella_socket *s, guint32 ip, guint16 port);
 void node_remove(struct gnutella_node *, const gchar * reason, ...);
+void node_bye(gnutella_node_t *, gint code, const gchar * reason, ...);
+void node_real_remove(gnutella_node_t *);
 void node_eof(struct gnutella_node *n, const gchar * reason, ...);
 void node_shutdown(struct gnutella_node *n, const gchar * reason, ...);
-void node_bye(struct gnutella_node *n, gint code, const gchar * reason, ...);
 void node_bye_if_writable(
 	struct gnutella_node *n, gint code, const gchar * reason, ...);
 void node_init_outgoing(struct gnutella_node *);
@@ -332,6 +309,12 @@ void node_close(void);
 gboolean node_remove_non_nearby(void);
 
 void send_node_error(struct gnutella_socket *s, int code, guchar *msg, ...);
+
+inline void node_add_sent(gnutella_node_t *n, gint x);
+inline void node_add_txdrop(gnutella_node_t *n, gint x);
+inline void node_add_rxdrop(gnutella_node_t *n, gint x);
+
+inline void node_set_vendor(gnutella_node_t *n, const gchar *vendor);
 
 #endif /* __nodes_h__ */
 
