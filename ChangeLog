@@ -1,5 +1,11 @@
 # since last version
 
+- (2003.03.25 - RAM)
+ * Fixed stupid trailing char truncation when quoting download mesh URLs.
+ * Integrated icon patch #2 [From Michael Gray].
+ * Added Jeroen Asselman to the glade file in the authors list.
+ * Integrated PARQ patch #10 [From Jeroen Asselman].
+
 - (2003.03.23 - Richard)
  * Regenerated configure and friends.
  * Fixed max-nodes calculation in the connection-odometer.
