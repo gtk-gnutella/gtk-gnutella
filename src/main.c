@@ -231,6 +231,8 @@ static gboolean main_timer(gpointer p)
 		}
 	}
 
+	bg_sched_timer();				/* Background tasks */
+
 	return TRUE;
 }
 
