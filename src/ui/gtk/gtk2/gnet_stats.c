@@ -55,8 +55,8 @@ static const gchar * const msg_stats_label[] = {
 	N_("Dropped"),
 	N_("Queued"),
 	N_("Relayed"),
-	N_("Gen. Queued"),
-	N_("Gen. Sent")
+	N_("Gen. queued"),
+	N_("Gen. sent")
 };
 
 enum {

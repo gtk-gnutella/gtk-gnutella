@@ -46,11 +46,11 @@ const gchar *msg_type_str(int value)
 		N_("Bye"),
 		N_("QRP"),
 		N_("HSEP"),
-		N_("Vendor Spec."),
-		N_("Vendor Std."),
+		N_("Vendor spec."),
+		N_("Vendor std."),
 		N_("Push"),
 		N_("Query"),
-		N_("Query Hit"),
+		N_("Query hit"),
 		N_("Total"),
 	};
 

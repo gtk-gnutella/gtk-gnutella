@@ -136,14 +136,14 @@ static void nodes_gui_create_treeview_nodes(void)
 		const gint id;
 		const gchar * const attr;
 	} columns[] = {
-		{ N_("Host"),		c_gnet_host,		"text" },
-		{ N_("Loc"),		c_gnet_loc,			"text" },
-		{ N_("Flags"),		c_gnet_flags,		"markup" },
-		{ N_("User-Agent"), c_gnet_user_agent,	"text" },
-		{ N_("Ver"),		c_gnet_version,		"text" },
-		{ N_("Connected"),	c_gnet_connected,	"text" },
-		{ N_("Uptime"),		c_gnet_uptime,		"text" },
-		{ N_("Info"),		c_gnet_info,		"text" }
+		{ N_("Host"),			c_gnet_host,		"text" },
+		{ N_("Loc"),			c_gnet_loc,			"text" },
+		{ N_("Flags"),			c_gnet_flags,		"markup" },
+		{ N_("User-Agent"), 	c_gnet_user_agent,	"text" },
+		{ N_("Ver"),			c_gnet_version,		"text" },
+		{ N_("Connected time"),	c_gnet_connected,	"text" },
+		{ N_("Uptime"),			c_gnet_uptime,		"text" },
+		{ N_("Info"),			c_gnet_info,		"text" }
 	};
 	GType types[] = {
         G_TYPE_STRING,   /* c_gnet_host */

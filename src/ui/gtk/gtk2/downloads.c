@@ -1550,7 +1550,7 @@ void gui_update_download(download_t *d, gboolean force)
 
 				if (delta_time(now, d->last_update) > IO_STALLED)
 					rw += gm_snprintf(&tmpstr[rw], sizeof(tmpstr) - rw,
-						_("(stalled) "));
+							"%s ", _("(stalled)"));
 				else
 					rw += gm_snprintf(&tmpstr[rw], sizeof(tmpstr) - rw,
 						"(%.1f k/s) ", bs);
@@ -1576,17 +1576,18 @@ void gui_update_download(download_t *d, gboolean force)
 							" (%.1f k/s)", bs);
 					}
 				}
-			} else
-				rw = gm_snprintf(tmpstr, sizeof(tmpstr), "%s",
-						delta_time(now, d->last_update) > IO_STALLED ?
-						_(" (stalled)") : "");
+			} else if (delta_time(now, d->last_update) > IO_STALLED) {
+				rw = gm_snprintf(tmpstr, sizeof(tmpstr),
+						" %s", _("(stalled)"));
+			}
 
 			/*
 			 * If source is a partial source, show it.
 			 */
-			if (d->ranges != NULL)
+			if (d->ranges != NULL) {
 				gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
 					" <PFS %.02f%%>", d->ranges_size * 100.0 / fi->size);
+			}
 
 			a = tmpstr;
 		} else
