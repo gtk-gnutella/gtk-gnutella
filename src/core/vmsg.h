@@ -31,6 +31,7 @@
 #include <glib.h>
 
 struct gnutella_node;
+struct pmsg;
 
 /*
  * Public interface
@@ -48,6 +49,9 @@ void vmsg_send_proxy_ack(struct gnutella_node *n, gchar *muid);
 void vmsg_send_qstat_req(struct gnutella_node *n, gchar *muid);
 void vmsg_send_qstat_answer(struct gnutella_node *n, gchar *muid, guint16 hits);
 void vmsg_send_proxy_cancel(struct gnutella_node *n);
+void vmsg_send_oob_reply_ack(struct gnutella_node *n, guint8 wanted);
+
+struct pmsg *vmsg_build_oob_reply_number(gchar *muid, guint8 hits);
 
 #endif	/* _core_vmsg_h_ */
 
