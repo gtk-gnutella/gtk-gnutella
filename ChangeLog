@@ -1,5 +1,13 @@
 # since last version
 
+- (2003.02.15 - RAM)
+ * Associate download with move context early in case we cannot create the
+   file on the filesystem: d_end() processing must still be able to run.
+
+- (2003.02.11 - RAM)
+ * Forgot to add the "sinking" state to the ESTABLISHING macro.
+ * Don't lead them to the leaf status if we can't accept leaves.
+
 # v 0.92   2003.02.08  [beta]
 
 Highlight of changes (user-visible):
