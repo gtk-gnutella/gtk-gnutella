@@ -66,7 +66,7 @@ const gchar *
 bitzi_fjtostring(bitzi_fj_t fj)
 {
 	g_assert((gint) fj >= 0 && fj < G_N_ELEMENTS(bitzi_fj_table));
-	return	gettext(bitzi_fj_table[fj]);
+	return _(bitzi_fj_table[fj]);
 }
 
 void

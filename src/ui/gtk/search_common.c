@@ -794,7 +794,7 @@ search_matched(search_t *sch, results_set_t *rs)
 		if (rs->status & open_flags[i].flag) {
 			if (vinfo->len)
 				g_string_append(vinfo, ", ");
-			g_string_append(vinfo, gettext(open_flags[i].status));
+			g_string_append(vinfo, _(open_flags[i].status));
 		}
 	}
 
