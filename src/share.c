@@ -1009,7 +1009,7 @@ gboolean search_request(struct gnutella_node *n)
 			if (dbg > 4)
 				dump_hex(stderr, "Query Text", search, MIN(n->size - 2, 256));
 
-            gnet_stats_count_dropped(n, MSG_DROP_QUERY_TOO_LONG);
+            gnet_stats_count_dropped(n, MSG_DROP_QUERY_NO_NUL);
 			return TRUE;		/* Drop the message! */
 		}
 		/* We can now use `search' safely as a C string: it embeds a NUL */
