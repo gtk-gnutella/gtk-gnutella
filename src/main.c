@@ -137,6 +137,7 @@ void gtk_gnutella_exit(gint n)
 		usleep(200000);					/* 200 ms */
 	}
 
+	hostiles_close();
     file_info_close();
 	ext_close();
 	share_close();
@@ -431,6 +432,7 @@ gint main(gint argc, gchar **argv, gchar **env)
 	ext_init();
 	inet_init();
 	crc_init();
+	hostiles_init();
 
     main_gui_init();
 

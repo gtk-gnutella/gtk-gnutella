@@ -147,7 +147,7 @@ XML_STORE_FILES = search_xml.c search_xml.h
 @ENABLE_REMOTE_SHELL_FALSE@REMOTE_SHELL = 
 
 # interface.h must come before any .c files that include it so that it is built.
-gtk_gnutella_SOURCES =  	$(XML_STORE) 	$(GLADE_UI) 	$(ADDITIONAL_DROPIN) 	$(REMOTE_SHELL) 	gnutella.h listener.h 	gnet.h 	common.c common.h 	misc.c misc.h 	prop.c prop.h 	gnet_property.c gnet_property.h gnet_property_priv.h 	guid.c guid.h 	settings.c settings.h oldconfig.c oldconfig.h 	sockets.c sockets.h 	nodes.c nodes.h 	hosts.c hosts.h 	hcache.c hcache.h 	pcache.c pcache.h 	routing.c routing.h 	search.c search.h search_gui.h 	downloads.c downloads.h downloads_gui.h 	fileinfo.c fileinfo.h 	fuzzy.c fuzzy.h 	whitelist.c whitelist.h 	share.c share.h 	uploads.c uploads.h uploads_gui.h 	upload_stats.c upload_stats.h 	main.c 	matching.c matching.h 	getline.c getline.h 	header.c header.h 	ioheader.c ioheader.h 	url.c url.h 	token.c token.h 	pmsg.c pmsg.h 	gmsg.c gmsg.h 	cq.c cq.h 	mq.c mq.h 	sq.c sq.h 	bsched.c bsched.h 	tx.c tx.h 	tx_link.c tx_link.h 	tx_deflate.c tx_deflate.h 	rxbuf.c rxbuf.h 	rx.c rx.h 	rx_link.c rx_link.h 	rx_inflate.c rx_inflate.h 	zlib_util.c zlib_util.h 	sha1.c sha1.h huge.c huge.h 	base32.c base32.h 	base64.c base64.h 	crc.c crc.h 	utf8.c utf8.h 	ban.c ban.h 	inet.c inet.h 	qrp.c qrp.h 	getdate.y getdate.h 	atoms.c atoms.h 	extensions.c extensions.h 	cobs.c cobs.h 	ggep.c ggep.h 	dmesh.c dmesh.h 	http.c http.h 	version.c version.h 	alive.c alive.h 	zalloc.c zalloc.h 	walloc.c walloc.h 	vendors.c vendors.h 	idtable.c idtable.h 	namesize.c namesize.h 	ignore.c ignore.h 	gnet_stats.c gnet_stats.h 	gwcache.c gwcache.h 	bg.c bg.h 	verify.c verify.h 	move.c move.h 	file.c file.h 	inputevt.c inputevt.h 	vmsg.c vmsg.h 	parq.c parq.h 	adns.c adns.h 	event.c event.h 	icon.c icon.h 	nodes_gui_common.c nodes_gui_common.h
+gtk_gnutella_SOURCES =  	$(XML_STORE) 	$(GLADE_UI) 	$(ADDITIONAL_DROPIN) 	$(REMOTE_SHELL) 	gnutella.h listener.h 	gnet.h 	common.c common.h 	misc.c misc.h 	prop.c prop.h 	gnet_property.c gnet_property.h gnet_property_priv.h 	guid.c guid.h 	settings.c settings.h oldconfig.c oldconfig.h 	sockets.c sockets.h 	nodes.c nodes.h 	hosts.c hosts.h 	hcache.c hcache.h 	pcache.c pcache.h 	routing.c routing.h 	search.c search.h search_gui.h 	downloads.c downloads.h downloads_gui.h 	fileinfo.c fileinfo.h 	fuzzy.c fuzzy.h 	whitelist.c whitelist.h 	share.c share.h 	uploads.c uploads.h uploads_gui.h 	upload_stats.c upload_stats.h 	main.c 	matching.c matching.h 	getline.c getline.h 	header.c header.h 	ioheader.c ioheader.h 	url.c url.h 	token.c token.h 	pmsg.c pmsg.h 	gmsg.c gmsg.h 	cq.c cq.h 	mq.c mq.h 	sq.c sq.h 	bsched.c bsched.h 	tx.c tx.h 	tx_link.c tx_link.h 	tx_deflate.c tx_deflate.h 	rxbuf.c rxbuf.h 	rx.c rx.h 	rx_link.c rx_link.h 	rx_inflate.c rx_inflate.h 	zlib_util.c zlib_util.h 	sha1.c sha1.h huge.c huge.h 	base32.c base32.h 	base64.c base64.h 	crc.c crc.h 	utf8.c utf8.h 	ban.c ban.h 	inet.c inet.h 	qrp.c qrp.h 	getdate.y getdate.h 	atoms.c atoms.h 	extensions.c extensions.h 	cobs.c cobs.h 	ggep.c ggep.h 	dmesh.c dmesh.h 	http.c http.h 	version.c version.h 	alive.c alive.h 	zalloc.c zalloc.h 	walloc.c walloc.h 	vendors.c vendors.h 	idtable.c idtable.h 	namesize.c namesize.h 	ignore.c ignore.h 	gnet_stats.c gnet_stats.h 	gwcache.c gwcache.h 	bg.c bg.h 	verify.c verify.h 	move.c move.h 	file.c file.h 	inputevt.c inputevt.h 	vmsg.c vmsg.h 	parq.c parq.h 	adns.c adns.h 	event.c event.h 	icon.c icon.h 	hostiles.c hostiles.h 	nodes_gui_common.c nodes_gui_common.h
 
 
 GLADE_WARNING1 = "Warning: gtk-gnutella.glade is newer than glade-built files and"
@@ -274,6 +274,7 @@ LIBS = @LIBS@
 @ENABLE_GTK2_TRUE@@ENABLE_XML_STORE_FALSE@@ENABLE_REMOTE_SHELL_TRUE@adns.o \
 @ENABLE_GTK2_TRUE@@ENABLE_XML_STORE_FALSE@@ENABLE_REMOTE_SHELL_TRUE@event.o \
 @ENABLE_GTK2_TRUE@@ENABLE_XML_STORE_FALSE@@ENABLE_REMOTE_SHELL_TRUE@icon.o \
+@ENABLE_GTK2_TRUE@@ENABLE_XML_STORE_FALSE@@ENABLE_REMOTE_SHELL_TRUE@hostiles.o \
 @ENABLE_GTK2_TRUE@@ENABLE_XML_STORE_FALSE@@ENABLE_REMOTE_SHELL_TRUE@nodes_gui_common.o
 @ENABLE_GTK2_FALSE@@ENABLE_XML_STORE_FALSE@@ENABLE_REMOTE_SHELL_FALSE@gtk_gnutella_OBJECTS =  \
 @ENABLE_GTK2_FALSE@@ENABLE_XML_STORE_FALSE@@ENABLE_REMOTE_SHELL_FALSE@interface-glade1.o \
@@ -384,6 +385,7 @@ LIBS = @LIBS@
 @ENABLE_GTK2_FALSE@@ENABLE_XML_STORE_FALSE@@ENABLE_REMOTE_SHELL_FALSE@adns.o \
 @ENABLE_GTK2_FALSE@@ENABLE_XML_STORE_FALSE@@ENABLE_REMOTE_SHELL_FALSE@event.o \
 @ENABLE_GTK2_FALSE@@ENABLE_XML_STORE_FALSE@@ENABLE_REMOTE_SHELL_FALSE@icon.o \
+@ENABLE_GTK2_FALSE@@ENABLE_XML_STORE_FALSE@@ENABLE_REMOTE_SHELL_FALSE@hostiles.o \
 @ENABLE_GTK2_FALSE@@ENABLE_XML_STORE_FALSE@@ENABLE_REMOTE_SHELL_FALSE@nodes_gui_common.o
 @ENABLE_GTK2_FALSE@@ENABLE_XML_STORE_TRUE@@ENABLE_REMOTE_SHELL_FALSE@gtk_gnutella_OBJECTS =  \
 @ENABLE_GTK2_FALSE@@ENABLE_XML_STORE_TRUE@@ENABLE_REMOTE_SHELL_FALSE@search_xml.o \
@@ -495,6 +497,7 @@ LIBS = @LIBS@
 @ENABLE_GTK2_FALSE@@ENABLE_XML_STORE_TRUE@@ENABLE_REMOTE_SHELL_FALSE@adns.o \
 @ENABLE_GTK2_FALSE@@ENABLE_XML_STORE_TRUE@@ENABLE_REMOTE_SHELL_FALSE@event.o \
 @ENABLE_GTK2_FALSE@@ENABLE_XML_STORE_TRUE@@ENABLE_REMOTE_SHELL_FALSE@icon.o \
+@ENABLE_GTK2_FALSE@@ENABLE_XML_STORE_TRUE@@ENABLE_REMOTE_SHELL_FALSE@hostiles.o \
 @ENABLE_GTK2_FALSE@@ENABLE_XML_STORE_TRUE@@ENABLE_REMOTE_SHELL_FALSE@nodes_gui_common.o
 @ENABLE_GTK2_TRUE@@ENABLE_XML_STORE_TRUE@@ENABLE_REMOTE_SHELL_FALSE@gtk_gnutella_OBJECTS =  \
 @ENABLE_GTK2_TRUE@@ENABLE_XML_STORE_TRUE@@ENABLE_REMOTE_SHELL_FALSE@search_xml.o \
@@ -606,6 +609,7 @@ LIBS = @LIBS@
 @ENABLE_GTK2_TRUE@@ENABLE_XML_STORE_TRUE@@ENABLE_REMOTE_SHELL_FALSE@adns.o \
 @ENABLE_GTK2_TRUE@@ENABLE_XML_STORE_TRUE@@ENABLE_REMOTE_SHELL_FALSE@event.o \
 @ENABLE_GTK2_TRUE@@ENABLE_XML_STORE_TRUE@@ENABLE_REMOTE_SHELL_FALSE@icon.o \
+@ENABLE_GTK2_TRUE@@ENABLE_XML_STORE_TRUE@@ENABLE_REMOTE_SHELL_FALSE@hostiles.o \
 @ENABLE_GTK2_TRUE@@ENABLE_XML_STORE_TRUE@@ENABLE_REMOTE_SHELL_FALSE@nodes_gui_common.o
 @ENABLE_GTK2_TRUE@@ENABLE_XML_STORE_FALSE@@ENABLE_REMOTE_SHELL_FALSE@gtk_gnutella_OBJECTS =  \
 @ENABLE_GTK2_TRUE@@ENABLE_XML_STORE_FALSE@@ENABLE_REMOTE_SHELL_FALSE@interface-glade2.o \
@@ -716,6 +720,7 @@ LIBS = @LIBS@
 @ENABLE_GTK2_TRUE@@ENABLE_XML_STORE_FALSE@@ENABLE_REMOTE_SHELL_FALSE@adns.o \
 @ENABLE_GTK2_TRUE@@ENABLE_XML_STORE_FALSE@@ENABLE_REMOTE_SHELL_FALSE@event.o \
 @ENABLE_GTK2_TRUE@@ENABLE_XML_STORE_FALSE@@ENABLE_REMOTE_SHELL_FALSE@icon.o \
+@ENABLE_GTK2_TRUE@@ENABLE_XML_STORE_FALSE@@ENABLE_REMOTE_SHELL_FALSE@hostiles.o \
 @ENABLE_GTK2_TRUE@@ENABLE_XML_STORE_FALSE@@ENABLE_REMOTE_SHELL_FALSE@nodes_gui_common.o
 @ENABLE_GTK2_TRUE@@ENABLE_XML_STORE_TRUE@@ENABLE_REMOTE_SHELL_TRUE@gtk_gnutella_OBJECTS =  \
 @ENABLE_GTK2_TRUE@@ENABLE_XML_STORE_TRUE@@ENABLE_REMOTE_SHELL_TRUE@search_xml.o \
@@ -828,6 +833,7 @@ LIBS = @LIBS@
 @ENABLE_GTK2_TRUE@@ENABLE_XML_STORE_TRUE@@ENABLE_REMOTE_SHELL_TRUE@adns.o \
 @ENABLE_GTK2_TRUE@@ENABLE_XML_STORE_TRUE@@ENABLE_REMOTE_SHELL_TRUE@event.o \
 @ENABLE_GTK2_TRUE@@ENABLE_XML_STORE_TRUE@@ENABLE_REMOTE_SHELL_TRUE@icon.o \
+@ENABLE_GTK2_TRUE@@ENABLE_XML_STORE_TRUE@@ENABLE_REMOTE_SHELL_TRUE@hostiles.o \
 @ENABLE_GTK2_TRUE@@ENABLE_XML_STORE_TRUE@@ENABLE_REMOTE_SHELL_TRUE@nodes_gui_common.o
 @ENABLE_GTK2_FALSE@@ENABLE_XML_STORE_TRUE@@ENABLE_REMOTE_SHELL_TRUE@gtk_gnutella_OBJECTS =  \
 @ENABLE_GTK2_FALSE@@ENABLE_XML_STORE_TRUE@@ENABLE_REMOTE_SHELL_TRUE@search_xml.o \
@@ -940,6 +946,7 @@ LIBS = @LIBS@
 @ENABLE_GTK2_FALSE@@ENABLE_XML_STORE_TRUE@@ENABLE_REMOTE_SHELL_TRUE@adns.o \
 @ENABLE_GTK2_FALSE@@ENABLE_XML_STORE_TRUE@@ENABLE_REMOTE_SHELL_TRUE@event.o \
 @ENABLE_GTK2_FALSE@@ENABLE_XML_STORE_TRUE@@ENABLE_REMOTE_SHELL_TRUE@icon.o \
+@ENABLE_GTK2_FALSE@@ENABLE_XML_STORE_TRUE@@ENABLE_REMOTE_SHELL_TRUE@hostiles.o \
 @ENABLE_GTK2_FALSE@@ENABLE_XML_STORE_TRUE@@ENABLE_REMOTE_SHELL_TRUE@nodes_gui_common.o
 @ENABLE_GTK2_FALSE@@ENABLE_XML_STORE_FALSE@@ENABLE_REMOTE_SHELL_TRUE@gtk_gnutella_OBJECTS =  \
 @ENABLE_GTK2_FALSE@@ENABLE_XML_STORE_FALSE@@ENABLE_REMOTE_SHELL_TRUE@interface-glade1.o \
@@ -1051,6 +1058,7 @@ LIBS = @LIBS@
 @ENABLE_GTK2_FALSE@@ENABLE_XML_STORE_FALSE@@ENABLE_REMOTE_SHELL_TRUE@adns.o \
 @ENABLE_GTK2_FALSE@@ENABLE_XML_STORE_FALSE@@ENABLE_REMOTE_SHELL_TRUE@event.o \
 @ENABLE_GTK2_FALSE@@ENABLE_XML_STORE_FALSE@@ENABLE_REMOTE_SHELL_TRUE@icon.o \
+@ENABLE_GTK2_FALSE@@ENABLE_XML_STORE_FALSE@@ENABLE_REMOTE_SHELL_TRUE@hostiles.o \
 @ENABLE_GTK2_FALSE@@ENABLE_XML_STORE_FALSE@@ENABLE_REMOTE_SHELL_TRUE@nodes_gui_common.o
 @ENABLE_GTK2_FALSE@gtk_gnutella_DEPENDENCIES = 
 @ENABLE_GTK2_TRUE@gtk_gnutella_DEPENDENCIES = 
@@ -1077,9 +1085,9 @@ DEP_FILES =  .deps/adns.P .deps/alive.P .deps/atoms.P .deps/ban.P \
 .deps/gmsg.P .deps/gnet_property.P .deps/gnet_stats.P \
 .deps/gnet_stats_gui.P .deps/gnet_stats_gui2.P .deps/gtk-missing.P \
 .deps/gtkcolumnchooser.P .deps/gui.P .deps/gui_property.P .deps/guid.P \
-.deps/gwcache.P .deps/hcache.P .deps/header.P .deps/hosts.P \
-.deps/http.P .deps/huge.P .deps/icon.P .deps/idtable.P .deps/ignore.P \
-.deps/inet.P .deps/inputevt.P .deps/interface-glade1.P \
+.deps/gwcache.P .deps/hcache.P .deps/header.P .deps/hostiles.P \
+.deps/hosts.P .deps/http.P .deps/huge.P .deps/icon.P .deps/idtable.P \
+.deps/ignore.P .deps/inet.P .deps/inputevt.P .deps/interface-glade1.P \
 .deps/interface-glade2.P .deps/ioheader.P .deps/main.P .deps/main_cb.P \
 .deps/main_gui.P .deps/matching.P .deps/misc.P .deps/monitor_cb.P \
 .deps/monitor_cb2.P .deps/monitor_gui.P .deps/monitor_gui2.P \

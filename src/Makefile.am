@@ -189,6 +189,7 @@ gtk_gnutella_SOURCES = \
 	adns.c adns.h \
 	event.c event.h \
 	icon.c icon.h \
+	hostiles.c hostiles.h \
 	nodes_gui_common.c nodes_gui_common.h
 
 GLADE_WARNING1 = "Warning: gtk-gnutella.glade is newer than glade-built files and"
