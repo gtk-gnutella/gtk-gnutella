@@ -103,6 +103,7 @@ gint ext_parse(guchar *buf, gint len, extvec_t *exv, gint extcnt);
 
 gboolean ext_is_printable(extvec_t *e);
 gboolean ext_is_ascii(extvec_t *e);
+gboolean ext_has_ascii_word(extvec_t *e);
 
 void ext_dump(FILE *fd, extvec_t *extvec, gint extcnt,
 	gchar *prefix, gchar *postfix, gboolean payload);

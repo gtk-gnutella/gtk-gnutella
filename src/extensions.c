@@ -599,6 +599,28 @@ gboolean ext_is_ascii(extvec_t *e)
 }
 
 /*
+ * ext_has_ascii_word
+ *
+ * Returns TRUE if extension is ASCII and contains at least a character.
+ */
+gboolean ext_has_ascii_word(extvec_t *e)
+{
+	guchar *p = e->ext_payload;
+	gint len = e->ext_paylen;
+	gboolean has_alnum = FALSE;
+
+	while (len--) {
+		guchar c = *p++;
+		if (!isascii(c))
+			return FALSE;
+		if (!has_alnum && isalnum(c))
+			has_alnum = TRUE;
+	}
+
+	return has_alnum;
+}
+
+/*
  * ext_dump_one
  *
  * Dump an extension to specified stdio stream.
