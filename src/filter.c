@@ -1330,9 +1330,15 @@ void filter_append_rule(filter_t *f, rule_t * const r)
     /*
      * Update dialog if necessary.
      */
-    if (work_filter == f)
-        filter_gui_set_ruleset
-            ((shadow != NULL) ? shadow->current : f->ruleset);
+    {
+        GList *ruleset;
+
+        ruleset = (shadow != NULL) ? shadow->current : f->ruleset;
+
+        if (work_filter == f)
+            filter_gui_set_ruleset(ruleset);
+        filter_gui_update_rule_count(f, ruleset);
+    }
 }
 
 
@@ -1399,6 +1405,7 @@ void filter_append_rule_to_session(filter_t *f, rule_t * const r)
      */
     if (work_filter == f)
         filter_gui_set_ruleset(shadow->current);
+    filter_gui_update_rule_count(f, shadow->current);
 }
 
 
@@ -1533,9 +1540,15 @@ void filter_remove_rule(filter_t *f, rule_t *r)
     /*
      * Update dialog if necessary.
      */
-    if (work_filter == f)
-        filter_gui_set_ruleset
-            ((shadow != NULL) ? shadow->current : f->ruleset);
+     {
+        GList *ruleset;
+
+        ruleset = (shadow != NULL) ? shadow->current : f->ruleset;
+
+        if (work_filter == f)
+            filter_gui_set_ruleset(ruleset);
+        filter_gui_update_rule_count(f, ruleset);
+    }
 }
 
 
@@ -1616,6 +1629,7 @@ void filter_remove_rule_from_session(filter_t *f, rule_t * const r)
      */
     if (work_filter == f)
         filter_gui_set_ruleset(shadow->current);
+    filter_gui_update_rule_count(f, shadow->current);
 }
 
 
@@ -1667,8 +1681,21 @@ void filter_replace_rule_in_session(filter_t *f,
     }
 
     /*
+     * In any case we have to reduce the refcount on the old rule's
+     * target.
+     */
+    target_shadow = shadow_find(old_rule->target);
+    if (target_shadow == NULL)
+        target_shadow = shadow_new(old_rule->target);
+
+    target_shadow->refcount --;
+    if (dbg >= 6)
+        printf("decreased refcount on \"%s\" to %d\n",
+            target_shadow->filter->name, target_shadow->refcount);
+
+    /*
      * Find wether the node to be replaced is in shadow->added. 
-     * If so, we may free the memory of the old rule later.
+     * If so, we may free the memory of the old rule.
      */
     added = g_list_find(shadow->added, old_rule);
 
@@ -1685,19 +1712,6 @@ void filter_replace_rule_in_session(filter_t *f,
          */
         shadow->removed = g_list_append(shadow->removed, old_rule);
     }
-
-    /*
-     * In any case we have to reduce the refcount on the old rule's
-     * target.
-     */
-    target_shadow = shadow_find(old_rule->target);
-    if (target_shadow == NULL)
-        target_shadow = shadow_new(old_rule->target);
-
-    target_shadow->refcount --;
-    if (dbg >= 6)
-        printf("decreased refcount on \"%s\" to %d\n",
-            target_shadow->filter->name, target_shadow->refcount);
      
     /*
      * The new rule can't be in the original filter, so we mark it
