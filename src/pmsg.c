@@ -101,6 +101,30 @@ pmsg_size(pmsg_t *mb)
 }
 
 /**
+ * Fill newly created message block.
+ *
+ * @return the message block given as argument.
+ */
+static pmsg_t *
+pmsg_fill(pmsg_t *mb, pdata_t *db, gint prio, void *buf, gint len)
+{
+	mb->m_data = db;
+	mb->m_prio = prio;
+	db->d_refcnt++;
+
+	if (buf) {
+		mb->m_rptr = db->d_arena;
+		mb->m_wptr = db->d_arena + len;
+		memcpy(db->d_arena, buf, len);
+	} else
+		mb->m_rptr = mb->m_wptr = db->d_arena;
+
+	g_assert(implies(buf, len == pmsg_size(mb)));
+
+	return mb;
+}
+
+/**
  * Create new message from user provided data, which are copied into the
  * allocated data block.  If no user buffer is provided, an empty message
  * is created and the length is used to size the data block.
@@ -120,20 +144,33 @@ pmsg_new(gint prio, void *buf, gint len)
 	mb = (pmsg_t *) zalloc(mb_zone);
 	db = pdata_new(len);
 
-	mb->m_data = db;
-	mb->m_prio = prio;
-	db->d_refcnt++;
+	return pmsg_fill(mb, db, prio, buf, len);
+}
 
-	if (buf) {
-		mb->m_rptr = db->d_arena;
-		mb->m_wptr = db->d_arena + len;
-		memcpy(db->d_arena, buf, len);
-	} else
-		mb->m_rptr = mb->m_wptr = db->d_arena;
+/**
+ * Like pmsg_new() but returns an extended form with a free routine callback.
+ */
+pmsg_t *
+pmsg_new_extend(gint prio, void *buf, gint len, pmsg_free_t free, gpointer arg)
+{
+	pmsg_ext_t *emb;
+	pdata_t *db;
 
-	g_assert(implies(buf, len == pmsg_size(mb)));
+	g_assert(len > 0);
+	g_assert(implies(buf, valid_ptr(buf)));
+	g_assert(0 == (prio & ~PMSG_PRIO_MASK));
 
-	return mb;
+	emb = (pmsg_ext_t *) walloc(sizeof(*emb));
+	db = pdata_new(len);
+
+	emb->m_free = free;
+	emb->m_arg = arg;
+
+	(void) pmsg_fill((pmsg_t *) emb, db, prio, buf, len);
+
+	emb->m_prio |= PMSG_PF_EXT;
+
+	return (pmsg_t *) emb;
 }
 
 /**

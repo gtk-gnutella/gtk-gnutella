@@ -117,6 +117,8 @@ void pmsg_close(void);
 
 gint pmsg_size(pmsg_t *mb);
 pmsg_t *pmsg_new(gint prio, void *buf, gint len);
+pmsg_t * pmsg_new_extend(
+	gint prio, void *buf, gint len, pmsg_free_t free, gpointer arg);
 pmsg_t *pmsg_alloc(gint prio, pdata_t *db, gint roff, gint woff);
 pmsg_t *pmsg_clone(pmsg_t *mb);
 pmsg_t *pmsg_clone_extend(pmsg_t *mb, pmsg_free_t free, gpointer arg);
