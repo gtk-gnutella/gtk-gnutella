@@ -30,7 +30,10 @@ gtk_gnutella_SOURCES = \
 	dialog-filters.c dialog-filters.h \
 	getline.c getline.h \
 	header.c header.h \
-	url.c url.h
+	url.c url.h \
+	pmsg.c pmsg.h \
+	gmsg.c gmsg.h \
+	mq.c mq.h
 
 gtk_gnutella_LDADD = @GTK_LIBS@
 
