@@ -320,7 +320,6 @@ uhc_is_waiting(void)
 void
 uhc_get_hosts(void)
 {
-	g_message("%s", __func__);
 	/*
 	 * Make sure we don't probe host caches more than once at a time.
 	 * Ancient versions are denied the right to contact host caches and
