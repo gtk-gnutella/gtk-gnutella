@@ -157,6 +157,8 @@ typedef struct gnet_node_flags {
 #define GTA_NODE_RECEIVING_HELLO	6	/* Receiving 0.6 headers */
 #define GTA_NODE_SHUTDOWN			7	/* Connection being shutdown */
 
+#define GTA_NORMAL_TTL				7	/* Regular TTL, for hops-flow */
+
 /*
  * Nodes callback definitions
  */

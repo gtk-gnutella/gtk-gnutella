@@ -373,6 +373,45 @@ void node_timer(time_t now)
 
 			if (n->qrt_update != NULL)
 				node_send_patch_step(n);
+
+			/*
+			 * Check RX flow control.
+			 */
+
+			if (n->rxfc != NULL) {
+				struct node_rxfc_mon *rxfc = n->rxfc;
+				if (now - rxfc->start_half_period > NODE_RX_FC_HALF_PERIOD) {
+					time_t total;
+					gdouble fc_ratio;
+
+					if (rxfc->fc_start) {		/* In flow control */
+						rxfc->fc_accumulator += now - rxfc->fc_start;
+						rxfc->fc_start = now;
+					}
+
+					total = rxfc->fc_accumulator + rxfc->fc_last_half;
+
+					/* New period begins */
+					rxfc->fc_last_half = rxfc->fc_accumulator;
+					rxfc->fc_accumulator = 0;
+					rxfc->start_half_period = now;
+
+					fc_ratio = (gdouble) total / (2.0 * NODE_RX_FC_HALF_PERIOD);
+
+					if ((gint) fc_ratio > node_rx_flowc_ratio) {
+						node_bye(n, 405,
+							"Remotely flow-controlled too often (%d%% of time)",
+							(gint) fc_ratio);
+						return;
+					}
+
+					/* Dispose of monitoring if we're not flow-controlled */
+					if (total == 0) {
+						wfree(n->rxfc, sizeof(*n->rxfc));
+						n->rxfc = NULL;
+					}
+				}
+			}
 		}
 	}
 }
@@ -541,6 +580,9 @@ static void node_remove_v(
 
 	if (n->query_table)
 		qrt_unref(n->query_table);
+
+	if (n->rxfc)
+		wfree(n->rxfc, sizeof(*n->rxfc));
 
 	if (n->status == GTA_NODE_CONNECTED) {		/* Already did if shutdown */
 		connected_node_cnt--;
@@ -3622,9 +3664,54 @@ void node_set_vendor(gnutella_node_t *n, const gchar *vendor)
     node_fire_node_info_changed(n);
 }
 
+/*
+ * node_set_hops_flow
+ *
+ * Called when a vendor-specific "hops-flow" message was received to tell
+ * us to update the hops-flow counter for the connection: no query whose
+ * hop count is greater or equal to the specified `hops' should be sent
+ * to that node.
+ */
 void node_set_hops_flow(gnutella_node_t *n, guint8 hops)
 {
+	struct node_rxfc_mon *rxfc;
+
 	n->hops_flow = hops;
+
+	/*
+	 * There is no monitoring of flow control when the remote node is
+	 * a leaf node: it is permitted for the leaf to send us an hops-flow
+	 * to disable all query sending if it is not sharing anything.
+	 */
+
+	if (n->peermode == NODE_P_LEAF)
+		goto fire;
+
+	/*
+	 * If we're starting flow control (hops < GTA_NORMAL_TTL), make sure
+	 * to create the monitoring structure if absent.
+	 */
+
+	if (hops < GTA_NORMAL_TTL && n->rxfc == NULL) {
+		n->rxfc = walloc0(sizeof(*n->rxfc));
+		n->rxfc->start_half_period = time(NULL);
+	}
+
+	g_assert(n->rxfc != NULL);
+
+	rxfc = n->rxfc;
+
+	if (hops < GTA_NORMAL_TTL) {
+		/* Entering hops-flow control */
+		if (rxfc->fc_start == 0)		/* Not previously under flow control */
+			rxfc->fc_start = time(NULL);
+	} else if (rxfc->fc_start != 0)	{	/* We were under flow control */
+		/* Leaving hops-flow control */
+		rxfc->fc_accumulator += time(NULL) - rxfc->fc_start;
+		rxfc->fc_start = 0;
+	}
+
+fire:
     node_fire_node_flags_changed(n);
 }
 

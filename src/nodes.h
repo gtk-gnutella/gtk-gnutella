@@ -32,6 +32,24 @@
 #include "rx.h"
 
 /*
+ * This structure keeps tracks of remote flow-control indications and
+ * measures the time spent in flow-control over a period of time.  Every
+ * half period we monitor the time we spend against a ratio.
+ *
+ * When no flow control occurs at all during two half periods, the structure
+ * is disposed of.
+ */
+
+#define NODE_RX_FC_HALF_PERIOD	150		/* 2.5 minutes */
+
+struct node_rxfc_mon {
+	time_t start_half_period;	/* When half period started */
+	time_t fc_last_half;		/* Time spent in FC last half period */
+	time_t fc_accumulator;		/* Time spent in FC this period */
+	time_t fc_start;			/* Time when FC started, 0 if not in FC */
+};
+
+/*
  * MAX_CACHE_HOPS defines the maximum hop count we handle for the ping/pong
  * caching scheme.  Any hop count greater than that is thresholded to that
  * value.
@@ -83,6 +101,7 @@ typedef struct gnutella_node {
 	time_t last_update;			/* Last update of the node */
 	time_t connect_date;		/* When we got connected (after handshake) */
 	time_t tx_flowc_date;		/* When we entered in TX flow control */
+	struct node_rxfc_mon *rxfc;	/* Optional, time spent in RX flow control */
 	time_t shutdown_date;		/* When we entered in shutdown mode */
 	time_t up_date;				/* When remote server started (0 if unknown) */
 	guint32 shutdown_delay;		/* How long we can stay in shutdown mode */
@@ -97,8 +116,7 @@ typedef struct gnutella_node {
 	rxdrv_t *rx;				/* RX stack top */
 
 	gpointer routing_data;		/* Opaque info, for gnet message routing */
-	gpointer query_routing;		/* Opaque info, for query routing, if UP */
-	gpointer query_table;		/* Opaque info, last query table sent to UP */
+	gpointer query_table;		/* Opaque info, query table sent / used by UP */
 	gpointer qrt_update;		/* Opaque info, query routing update handle */
 
 	gpointer alive_pings;		/* Opaque info, for alive ping checks */
