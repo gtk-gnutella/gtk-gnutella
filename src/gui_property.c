@@ -31,6 +31,7 @@
 /*
  * Includes specified by "uses"-statement in .ag file
  */
+#include "gnet.h"
 
 
 
@@ -44,8 +45,8 @@ gboolean search_autoselect     = TRUE;
 gboolean search_autoselect_def = TRUE;
 guint32  nodes_col_widths[5]     = { 130, 50, 120, 20, 80 };
 guint32  nodes_col_widths_def[5] = { 130, 50, 120, 20, 80 };
-guint32  dl_active_col_widths[5]     = { 240, 80, 80, 80, 80 };
-guint32  dl_active_col_widths_def[5] = { 240, 80, 80, 80, 80 };
+guint32  dl_active_col_widths[6]     = { 240, 80, 80, 80, 80, 80 };
+guint32  dl_active_col_widths_def[6] = { 240, 80, 80, 80, 80, 80 };
 guint32  dl_queued_col_widths[5]     = { 240, 80, 80, 80, 80 };
 guint32  dl_queued_col_widths_def[5] = { 240, 80, 80, 80, 80 };
 guint32  search_results_col_visible[6]     = { 1,1,1,1,0,1};
@@ -116,6 +117,10 @@ gboolean show_search_results_settings     = FALSE;
 gboolean show_search_results_settings_def = FALSE;
 gboolean search_autoselect_fuzzy     = FALSE;
 gboolean search_autoselect_fuzzy_def = FALSE;
+guint32  filter_default_policy     = FILTER_PROP_STATE_DO;
+guint32  filter_default_policy_def = FILTER_PROP_STATE_DO;
+guint32  default_minimum_speed     = 0;
+guint32  default_minimum_speed_def = 0;
 
 static prop_set_t *gui_property = NULL;
 
@@ -228,7 +233,7 @@ prop_set_t *gui_prop_init(void) {
     gui_property->props[5].desc = "Widths of the columns in the active downloads table";
     gui_property->props[5].prop_changed_listeners = NULL;
     gui_property->props[5].save = TRUE;
-    gui_property->props[5].vector_size = 5;
+    gui_property->props[5].vector_size = 6;
 
     /* Type specific data: */
     gui_property->props[5].type               = PROP_TYPE_GUINT32;
@@ -865,6 +870,44 @@ prop_set_t *gui_prop_init(void) {
     gui_property->props[40].type               = PROP_TYPE_BOOLEAN;
     gui_property->props[40].data.boolean.def   = &search_autoselect_fuzzy_def;
     gui_property->props[40].data.boolean.value = &search_autoselect_fuzzy;
+
+
+    /*
+     * PROP_FILTER_DEFAULT_POLICY:
+     *
+     * General data:
+     */
+    gui_property->props[41].name = "filter_default_policy";
+    gui_property->props[41].desc = "Default policy for the DISPLAY filter property";
+    gui_property->props[41].prop_changed_listeners = NULL;
+    gui_property->props[41].save = TRUE;
+    gui_property->props[41].vector_size = 1;
+
+    /* Type specific data: */
+    gui_property->props[41].type               = PROP_TYPE_GUINT32;
+    gui_property->props[41].data.guint32.def   = &filter_default_policy_def;
+    gui_property->props[41].data.guint32.value = &filter_default_policy;
+    gui_property->props[41].data.guint32.max   = FILTER_PROP_STATE_DONT;
+    gui_property->props[41].data.guint32.min   = FILTER_PROP_STATE_DO;
+
+
+    /*
+     * PROP_DEFAULT_MINIMUM_SPEED:
+     *
+     * General data:
+     */
+    gui_property->props[42].name = "search_minimum_speed";
+    gui_property->props[42].desc = "This is the default minimum speed for new searches in kbit/s";
+    gui_property->props[42].prop_changed_listeners = NULL;
+    gui_property->props[42].save = TRUE;
+    gui_property->props[42].vector_size = 1;
+
+    /* Type specific data: */
+    gui_property->props[42].type               = PROP_TYPE_GUINT32;
+    gui_property->props[42].data.guint32.def   = &default_minimum_speed_def;
+    gui_property->props[42].data.guint32.value = &default_minimum_speed;
+    gui_property->props[42].data.guint32.max   = 2000;
+    gui_property->props[42].data.guint32.min   = 0;
     return gui_property;
 }
 

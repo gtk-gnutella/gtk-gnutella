@@ -7,6 +7,8 @@ property_set = "gui_property";
 func_prefix = "gui_prop";
 offset = 1000;
 
+uses = "gnet.h";
+
 prop = {
     name = "monitor_enabled";
     desc = "Search monitor enabled";
@@ -61,9 +63,9 @@ prop = {
     cfgvar = "widths_dl_active";
     desc = "Widths of the columns in the active downloads table";
     type = guint32;
-    vector_size = 5;
+    vector_size = 6;
     data = {
-        default = "{ 240, 80, 80, 80, 80 }";
+        default = "{ 240, 80, 80, 80, 80, 80 }";
     };
 };
 
@@ -413,4 +415,27 @@ prop = {
     data = {
         default = FALSE;
     };
+};
+
+prop = {
+    name = "filter_default_policy";
+    desc = "Default policy for the DISPLAY filter property";
+    type = guint32;
+    data = {
+        default = FILTER_PROP_STATE_DO;
+        min     = FILTER_PROP_STATE_DO;
+        max     = FILTER_PROP_STATE_DONT;
+    };
+};
+
+prop = {
+    name = "default_minimum_speed";
+    cfgvar = "search_minimum_speed";
+    desc = "This is the default minimum speed for new searches in kbit/s";
+    type = guint32;
+    data = {
+        default = 0;
+        min     = 0;
+        max     = 2000; 
+    }; 
 };

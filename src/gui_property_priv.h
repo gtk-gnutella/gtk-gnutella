@@ -33,7 +33,7 @@ extern guint32  monitor_max_items;
 extern gboolean queue_regex_case;
 extern gboolean search_autoselect;
 extern guint32  nodes_col_widths[5];
-extern guint32  dl_active_col_widths[5];
+extern guint32  dl_active_col_widths[6];
 extern guint32  dl_queued_col_widths[5];
 extern guint32  search_results_col_visible[6];
 extern guint32  search_list_col_widths[3];
@@ -69,6 +69,8 @@ extern gboolean search_autoselect_ident;
 extern gboolean jump_to_downloads;
 extern gboolean show_search_results_settings;
 extern gboolean search_autoselect_fuzzy;
+extern guint32  filter_default_policy;
+extern guint32  default_minimum_speed;
 
 
 prop_set_t *gui_prop_init(void);

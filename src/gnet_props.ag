@@ -4,7 +4,6 @@ autogen definitions 'props.tpl';
  * $Id$
  */
 
-uses = "filter.h";
 uses = "sockets.h";
 uses = "gnet.h";
 
@@ -146,18 +145,6 @@ prop = {
     type = ip;
     data = {
         default = 0x00000000;
-    }; 
-};
-
-prop = {
-    name = "minimum_speed";
-    cfgvar = "search_minimum_speed";
-    desc = "This is the default minimum speed for new searches in kbit/s";
-    type = guint32;
-    data = {
-        default = 0;
-        min     = 0;
-        max     = 2000; 
     }; 
 };
 
@@ -483,17 +470,6 @@ prop = {
     type = boolean;
     data = {
         default = FALSE;
-    };
-};
-
-prop = {
-    name = "filter_default_policy";
-    desc = "Default policy for the DISPLAY filter property";
-    type = guint32;
-    data = {
-        default = FILTER_PROP_STATE_DO;
-        min     = FILTER_PROP_STATE_DO;
-        max     = FILTER_PROP_STATE_DONT;
     };
 };
 
