@@ -125,7 +125,7 @@ typedef struct gnet_node_info {
  */
 typedef void (*node_added_listener_t)   (gnet_node_t, const gchar *);
 typedef void (*node_removed_listener_t) (gnet_node_t);
-typedef void (*node_changed_listener_t) (gnet_node_t, gboolean, gboolean, gboolean);
+typedef void (*node_changed_listener_t) (gnet_node_t, gboolean);
 
 #define node_add_listener(signal, callback) \
     node_add_##signal##_listener(callback);

@@ -35,8 +35,7 @@ static gchar gui_tmp[4096];
 
 static void nodes_gui_node_removed(gnet_node_t n);
 static void nodes_gui_node_added(gnet_node_t n, const gchar *t);
-static void nodes_gui_node_changed
-    (gnet_node_t, gboolean, gboolean, gboolean);
+static void nodes_gui_node_changed(gnet_node_t, gboolean);
 
 /*
  * nodes_gui_init:
@@ -61,40 +60,6 @@ void nodes_gui_shutdown()
     node_remove_node_removed_listener(nodes_gui_node_removed);
     node_remove_node_changed_listener(nodes_gui_node_changed);
 }
-
-static void nodes_gui_update_node_proto(gnet_node_info_t *n)
-{
-	gint row;
-    GtkCList *clist = GTK_CLIST
-        (lookup_widget(main_window, "clist_nodes"));
-
-    g_assert(n != NULL);
-
-	g_snprintf(gui_tmp, sizeof(gui_tmp), "%d.%d",
-		n->proto_major, n->proto_minor);
-
-	row = gtk_clist_find_row_from_data(clist, (gpointer) n->node_handle);
-    if (row != -1)
-        gtk_clist_set_text(clist, row, 3, gui_tmp);
-    else
-        g_warning("nodes_gui_update_node_proto: no matching row found");
-}
-
-static void nodes_gui_update_node_vendor(gnet_node_info_t *n)
-{
-	gint row;
-    GtkCList *clist = GTK_CLIST
-        (lookup_widget(main_window, "clist_nodes"));
-
-    g_assert(n != NULL);
-
-	row = gtk_clist_find_row_from_data(clist, (gpointer) n->node_handle);
-    if (row != -1)
-        gtk_clist_set_text(clist, row, 2, n->vendor ? n->vendor : "");
-    else
-        g_warning("nodes_gui_update_node_vendor: no matching row found");
-}
-
 
 /*
  * nodes_gui_remove_node:
@@ -265,36 +230,34 @@ void nodes_gui_update_nodes_display(time_t now)
 
     gtk_clist_thaw(clist);
 }
-
-
-
-static void gui_update_node_display(gnet_node_info_t *n, time_t now)
+void nodes_gui_update_node(gnet_node_info_t *n, gboolean force)
 {
-	gchar *a;
 	gint row;
+	time_t now = time((time_t *) NULL);
     GtkCList *clist = GTK_CLIST
         (lookup_widget(main_window, "clist_nodes"));
-	a = gui_node_info_str(n, now);
 
-	row = gtk_clist_find_row_from_data(clist, (gpointer) n->node_handle);
-	gtk_clist_set_text(clist, row, 4, a);
-}
+    g_assert(n != NULL);
 
-void nodes_gui_update_node
-    (gnet_node_info_t *n, gboolean force, gboolean vendor, gboolean proto)
-{
-	time_t now = time((time_t *) NULL);
-
-    if (vendor)
-        nodes_gui_update_node_vendor(n);
-    if (proto)
-        nodes_gui_update_node_proto(n);
-
+    /*
+     * Only update once every second when not forced.
+     */
 	if (n->last_update == now && !force)
 		return;
 	n->last_update = now;
 
-	gui_update_node_display(n, now);
+	row = gtk_clist_find_row_from_data(clist, (gpointer) n->node_handle);
+
+    if (row != -1) {
+        gtk_clist_set_text(clist, row, 2, n->vendor ? n->vendor : "...");
+
+        g_snprintf(gui_tmp, sizeof(gui_tmp), "%d.%d",
+            n->proto_major, n->proto_minor);
+        gtk_clist_set_text(clist, row, 3, gui_tmp);
+
+        gtk_clist_set_text(clist, row, 4, gui_node_info_str(n, now));
+    } else
+        g_warning("nodes_gui_update_node: no matching row found");
 }
 
 
@@ -349,17 +312,13 @@ static void nodes_gui_node_added(gnet_node_t n, const gchar *t)
  * the update is forced and the connection stats are refreshed.
  */
 static void nodes_gui_node_changed
-    (gnet_node_t n, gboolean important, gboolean vendor, gboolean proto)
+    (gnet_node_t n, gboolean important)
 {
     gnet_node_info_t *info;
 
-    if (gui_debug >= 5)
-        printf("nodes_gui_node_changed(%u, %d, %d, %d)\n", n, important,
-            vendor, proto);
-
     info = node_get_info(n);
 
-    nodes_gui_update_node(info, important, vendor, proto);
+    nodes_gui_update_node(info, important);
     if (important)
         gui_update_c_gnutellanet();
     node_free_info(info);

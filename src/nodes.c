@@ -187,7 +187,7 @@ static void node_emit_node_removed(gnutella_node_t *n)
 }
 
 static void node_emit_node_changed
-    (gnutella_node_t *n, gboolean force, gboolean vendor, gboolean proto)
+    (gnutella_node_t *n, gboolean force)
 {
     time_t now = time((time_t *) NULL);
 
@@ -195,7 +195,7 @@ static void node_emit_node_changed
         return;
 
     n->last_update = time((time_t *)NULL);
-    LISTENER_EMIT(node_changed, n->node_handle, force, vendor, proto);
+    LISTENER_EMIT(node_changed, n->node_handle, force);
 }
 
 /***
@@ -509,7 +509,7 @@ static void node_remove_v(
 	if (n->flags & NODE_F_EOF_WAIT)
 		pending_byes--;
 
-    node_emit_node_changed(n, TRUE, FALSE, FALSE);
+    node_emit_node_changed(n, TRUE);
 }
 
 /*
@@ -643,7 +643,7 @@ static void node_shutdown_mode(struct gnutella_node *n, guint32 delay)
 
 	shutdown_nodes++;
 
-    node_emit_node_changed(n, TRUE, FALSE, FALSE);
+    node_emit_node_changed(n, TRUE);
 }
 
 /*
@@ -1172,8 +1172,7 @@ static void node_is_now_connected(struct gnutella_node *n)
 	/*
 	 * Update the GUI.
 	 */
-
-    node_emit_node_changed(n, TRUE, FALSE, FALSE);
+    node_emit_node_changed(n, TRUE);
 
 	node_added = n;
 	g_hook_list_invoke(&node_added_hook_list, TRUE);
@@ -1275,7 +1274,7 @@ static void downgrade_handshaking(struct gnutella_node *n)
 	} else
 		n->remove_msg = "Re-connection failed";
 
-    node_emit_node_changed(n, TRUE, FALSE, TRUE);
+    node_emit_node_changed(n, TRUE);
 }
 
 /*
@@ -1607,8 +1606,7 @@ static void node_process_handshake_header(struct io_header *ih)
 	field = header_get(ih->header, "User-Agent");
 	if (field) {
 		version_check(field);
-		n->vendor = atom_str_get(field);
-        node_emit_node_changed(n, FALSE, TRUE, FALSE);
+        node_set_vendor(n, field);
 	}
 
 	/* Pong-Caching -- ping/pong reduction scheme */
@@ -2305,7 +2303,7 @@ void node_add_socket(struct gnutella_socket *s, guint32 ip, guint16 port)
 		node_header_parse(ih);
 	}
 
-    node_emit_node_changed(n, TRUE, FALSE, FALSE);
+    node_emit_node_changed(n, TRUE);
 }
 
 /*
@@ -2550,7 +2548,7 @@ void node_init_outgoing(struct gnutella_node *n)
 		return;
 	} else {
 		n->status = GTA_NODE_HELLO_SENT;
-        node_emit_node_changed(n, TRUE, FALSE, FALSE);
+        node_emit_node_changed(n, TRUE);
 
 		if (dbg > 2) {
 			printf("----Sent HELLO request to %s:\n%.*s----\n",
@@ -2709,7 +2707,7 @@ static gboolean node_read(struct gnutella_node *n, pmsg_t *mb)
 		n->received++;
 		global_messages++;
 
-		node_emit_node_changed(n, FALSE, FALSE, FALSE);
+		node_emit_node_changed(n, FALSE);
 
 		READ_GUINT32_LE(n->header.size, n->size);
 
@@ -3058,26 +3056,26 @@ void node_close(void)
 inline void node_add_sent(gnutella_node_t *n, gint x)
 {
 	n->sent += x; 
-    node_emit_node_changed(n, FALSE, FALSE, FALSE);
+    node_emit_node_changed(n, FALSE);
 }
 
 inline void  node_add_txdrop(gnutella_node_t *n, gint x)
 {
 	n->tx_dropped += x;
-    node_emit_node_changed(n, FALSE, FALSE, FALSE);
+    node_emit_node_changed(n, FALSE);
 }
 
 inline void node_add_rxdrop(gnutella_node_t *n, gint x)
 {
 	n->rx_dropped += x; 
-    node_emit_node_changed(n, FALSE, FALSE, FALSE);
+    node_emit_node_changed(n, FALSE);
 }
 
 
 inline void node_set_vendor(gnutella_node_t *n, const gchar *vendor)
 {
     n->vendor = atom_str_get(vendor);
-    node_emit_node_changed(n, FALSE, TRUE, FALSE);
+    node_emit_node_changed(n, TRUE);
 }
 
 
