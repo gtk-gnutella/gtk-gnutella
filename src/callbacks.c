@@ -1081,10 +1081,8 @@ void on_button_extra_config_clicked (GtkButton *button, gpointer user_data)
 
 void on_button_search_passive_clicked (GtkButton *button, gpointer user_data) {
   struct search *sch;
-  sch = _new_search(minimum_speed, "Passive", FALSE);
-  sch->passive = TRUE;
+  sch = _new_search(minimum_speed, "Passive", SEARCH_PASSIVE);
   gtk_widget_grab_focus(clist_menu);
-  search_passive++;
 }
 
 void on_checkbutton_never_push_toggled (GtkToggleButton *togglebutton, gpointer user_data)
@@ -1106,17 +1104,138 @@ gboolean on_entry_max_uploads_focus_out_event (GtkWidget *widget, GdkEventFocus 
 	gint v = atol(gtk_entry_get_text(GTK_ENTRY(entry_max_uploads)));
 	if (v >= 0 && v < 512) max_uploads = v;
 
-#if 0
-	/* XXX If the user modifies the max simulteneous download and click on a queued download, */
-	/* XXX gtk-gnutella segfaults in some cases. */
-	/* XXX This unselected_all() is a first attempt to work around the problem */
-
-	gtk_clist_unselect_all(GTK_CLIST(clist_upload_queue));
-#endif
-
 	gui_update_max_uploads();
 
 	return TRUE;
 }
+
+static void search_reissue_timeout_changed(GtkEntry *entry) {
+  guint v = atol(gtk_entry_get_text(entry));
+
+  if (v < ((guint32)-1) / 1000)
+	search_update_reissue_timeout(v);
+
+  search_reissue_timeout = v;
+
+  gui_update_search_reissue_timeout();
+}
+
+void on_entry_search_reissue_timeout_activate(GtkEditable *editable, gpointer user_data) {
+  search_reissue_timeout_changed(GTK_ENTRY(editable));
+}
+
+gboolean on_entry_search_reissue_timeout_focus_out_event (GtkWidget *widget, GdkEventFocus *event, gpointer user_data) {
+  search_reissue_timeout_changed(GTK_ENTRY(widget));
+  return TRUE;
+}
+
+void on_config_entry_socks_host_activate (GtkEditable *editable, gpointer user_data)
+{
+  gtk_widget_grab_focus(clist_menu); /* This will generate a focus out event (next func) */
+}
+
+gboolean on_config_entry_socks_host_focus_out_event (GtkWidget *widget, GdkEventFocus *event, gpointer user_data)
+{
+
+       gchar *e = g_strdup(gtk_entry_get_text(GTK_ENTRY(config_entry_socks_host)));
+       g_strstrip(e);
+
+
+       if (strlen(e) < 2)
+         g_free(e);
+       else
+         {
+           proxy_ip = g_strdup(e);
+           g_free(e);
+         }
+       return TRUE;
+}
+
+void on_config_entry_socks_port_activate (GtkEditable *editable, gpointer user_data)
+{
+  gtk_widget_grab_focus(clist_menu); /* This will generate a focus out event (next func) */
+}
+
+gboolean on_config_entry_socks_port_focus_out_event (GtkWidget *widget, GdkEventFocus *event, gpointer user_data)
+{
+       gint16 v;
+       gchar *e = g_strdup(gtk_entry_get_text(GTK_ENTRY(config_entry_socks_port)));
+       g_strstrip(e);
+
+       v = atoi(e);
+       if (v >= -1 && v < 32000) proxy_port = v;
+
+       return TRUE;
+
+}
+
+void on_config_entry_socks_username_activate (GtkEditable *editable, gpointer user_data)
+{
+  gtk_widget_grab_focus(clist_menu); /* This will generate a focus out event (next func) */
+}
+
+gboolean on_config_entry_socks_username_focus_out_event (GtkWidget *widget, GdkEventFocus *event, gpointer user_data)
+{
+ 
+  gchar *e = g_strdup(gtk_entry_get_text(GTK_ENTRY(config_entry_socks_username)));
+  g_strstrip(e);
+
+  socksv5_user = g_strdup(e);
+
+  g_free(e);
+  return TRUE;
+}
+
+void on_config_entry_socks_password_activate (GtkEditable *editable, gpointer user_data)
+{
+  gtk_widget_grab_focus(clist_menu); /* This will generate a focus out event (next func) */
+}
+
+gboolean on_config_entry_socks_password_focus_out_event (GtkWidget *widget, GdkEventFocus *event, gpointer user_data)
+{
+  
+  gchar *e = g_strdup(gtk_entry_get_text(GTK_ENTRY(config_entry_socks_password)));
+  g_strstrip(e);
+
+  socksv5_pass = g_strdup(e);
+
+  g_free(e);
+  return TRUE;
+}
+
+
+void on_checkbutton_proxy_connections_toggled (GtkToggleButton *togglebutton, gpointer user_data)
+{
+  proxy_connections = gtk_toggle_button_get_active(togglebutton);
+
+}
+
+void on_radio_socksv4_toggled (GtkToggleButton *togglebutton, gpointer user_data)
+{
+  if (gtk_toggle_button_get_active(togglebutton)) socks_protocol = 4;
+}
+
+void on_radio_socksv5_toggled (GtkToggleButton *togglebutton, gpointer user_data)
+{
+   if (gtk_toggle_button_get_active(togglebutton)) socks_protocol = 5;
+}
+
+void on_entry_max_connections_activate (GtkEditable *editable, gpointer user_data)
+{
+       gtk_widget_grab_focus(clist_menu); /* This will generate a focus out event (next func) */
+}
+
+gboolean on_entry_max_connections_focus_out_event (GtkWidget *widget, GdkEventFocus *event, gpointer user_data)
+{
+       guint32 v;
+       gchar *e = g_strdup(gtk_entry_get_text(GTK_ENTRY(entry_max_connections)));
+       g_strstrip(e);
+       v = atol(e);
+       g_free(e);
+       if (v >= 0 && v < 512 && max_connections >= up_connections) { max_connections = v; }
+       gui_update_max_connections();
+       return TRUE;
+}
+
 
 /* vi: set ts=3: */
