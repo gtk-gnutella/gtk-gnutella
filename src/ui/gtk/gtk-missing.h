@@ -70,8 +70,8 @@ void gtk_clist_restore_visibility(GtkCList *clist, property_t prop);
 #ifdef USE_GTK1
 void gtk_ctree_fast_move (GtkCTree *ctree, GtkCTreeNode *node,
 	GtkCTreeNode *new_sibling);
-inline gint gtk_ctree_count_node_children(
-    GtkCTree *ctree, GtkCTreeNode *parent);
+gint gtk_ctree_count_node_children(GtkCTree *ctree, GtkCTreeNode *parent);
+
 #define GTK_CTREE_NODE_HAS_CHILDREN(n) \
     ((n) ? (GTK_CTREE_ROW(n)->children) != NULL : FALSE)
 #define GTK_CTREE_NODE_SIBLING(n) \

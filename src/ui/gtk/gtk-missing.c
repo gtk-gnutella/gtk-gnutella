@@ -45,7 +45,8 @@ RCSID("$Id$");
  * Get position of divider in a GtkPaned. (in GTK2)
  */
 #ifndef USE_GTK2
-gint gtk_paned_get_position(GtkPaned *paned) 
+gint
+gtk_paned_get_position(GtkPaned *paned) 
 {
     g_return_val_if_fail(paned != NULL, -1);
     g_return_val_if_fail(GTK_IS_PANED (paned), -1);
@@ -61,7 +62,8 @@ gint gtk_paned_get_position(GtkPaned *paned)
  * from gtkclist.c)
  * BEWARE: EVIL HACK
  */
-void gtk_clist_set_column_name(GtkCList * clist, gint col, gchar * t)
+void
+gtk_clist_set_column_name(GtkCList * clist, gint col, gchar * t)
 {
     if (col < 0 || col >= clist->columns)
         return;
@@ -118,22 +120,27 @@ gtk_clist_restore_visibility(GtkCList *clist, property_t prop)
  * for the innermost mainloop. Aborts flush if
  * gtk_main_quit has been called.
  */
-gint gtk_main_flush(void) 
+gint
+gtk_main_flush(void) 
 {
     gint val = FALSE;
 
-    while (!val && gtk_events_pending())
+    while (gtk_events_pending()) {
         val = gtk_main_iteration_do(FALSE);
+		if (val)
+			break;
+	}
 
     return val;
 }
 
 
 
-/*
+/**
  * Select the menu item which has given data attached to it.
  */
-void option_menu_select_item_by_data(GtkWidget *m, gpointer *d)
+void
+option_menu_select_item_by_data(GtkWidget *m, gpointer *d)
 {
     GList *l;
     gint n = 0;
@@ -161,11 +168,12 @@ void option_menu_select_item_by_data(GtkWidget *m, gpointer *d)
 
 
 
-/*
+/**
  * Add a new menu item to the GtkMenu m, with the label l and
  * the data d.
  */
-GtkWidget *menu_new_item_with_data(GtkMenu * m, gchar * l, gpointer d )
+GtkWidget *
+menu_new_item_with_data(GtkMenu * m, gchar * l, gpointer d )
 {
     GtkWidget *w;                                                     
                          
@@ -179,11 +187,12 @@ GtkWidget *menu_new_item_with_data(GtkMenu * m, gchar * l, gpointer d )
 }
 
 
-/*
+/**
  * Fetches the data set associated with the selected menu item in 
  * the GtkOptionMenu m.
  */
-gpointer option_menu_get_selected_data(GtkWidget *m)
+gpointer
+option_menu_get_selected_data(GtkWidget *m)
 {
     GtkWidget *menu;
 
@@ -196,14 +205,13 @@ gpointer option_menu_get_selected_data(GtkWidget *m)
 }
 
 
-/*
- * radiobutton_get_active_in_group:
- * 
+/**
  * Given a radio button it returns a pointer to the active radio
  * button in the group the given button is in. 
  * Returns NULL if there is no active button.
  */
-GtkWidget *radiobutton_get_active_in_group(GtkRadioButton *rb)
+GtkWidget *
+radiobutton_get_active_in_group(GtkRadioButton *rb)
 {
     GSList *i;
 
@@ -220,12 +228,11 @@ GtkWidget *radiobutton_get_active_in_group(GtkRadioButton *rb)
 }
 
 
-/*
- * gtk_entry_printf:
- *
+/**
  * printf into a gtk_entry.
  */
-void gtk_entry_printf(GtkEntry *entry, const gchar *format, ...)
+void
+gtk_entry_printf(GtkEntry *entry, const gchar *format, ...)
 {
     static gchar buf[1024];
     va_list args;
@@ -244,9 +251,7 @@ void gtk_entry_printf(GtkEntry *entry, const gchar *format, ...)
     va_end(args);
 }
 
-/*
- * gtk_label_printf:
- *
+/**
  * printf into a GtkLabel.
  */
 void gtk_label_printf(GtkLabel *label, const gchar *format, ...)
@@ -268,15 +273,13 @@ void gtk_label_printf(GtkLabel *label, const gchar *format, ...)
     va_end(args);
 }
 
-/*
- * gtk_mass_widget_set_sensitive:
- *
+/**
  * Takes a NULL terminated array of strings which are supposed to
  * be widgets names found with the given top-level widget. Sets all
  * to the given sentitivity state.
  */
-void gtk_mass_widget_set_sensitive
-    (GtkWidget *toplevel, gchar *list[], gboolean b)
+void
+gtk_mass_widget_set_sensitive(GtkWidget *toplevel, gchar *list[], gboolean b)
 {
     guint n;
     GtkWidget *w;
@@ -289,17 +292,15 @@ void gtk_mass_widget_set_sensitive
     }
 }
 
-/*
- * clist_collect_data:
- *
+/**
  * Fetch data from the selection of a clist. Returns a GSList containing
  * the user_data pointers from the selected rows. If allow_null is TRUE,
  * the returned list may contain NULL pointers. If cfn != NULL, it will
  * be used to determine whether two entries are equal and drop all duplicate
  * items from the result list. Using cfn will significantly increase runtime.
  */
-GSList *clist_collect_data(GtkCList *clist, gboolean allow_null, 
-    GCompareFunc cfn)
+GSList *
+clist_collect_data(GtkCList *clist, gboolean allow_null, GCompareFunc cfn)
 {
     GSList *result_list = NULL;
     GList *l;
@@ -357,24 +358,22 @@ GSList *clist_collect_data(GtkCList *clist, gboolean allow_null,
 
 #ifdef USE_GTK2
 
-/*
- * w_tree_iter_new:
- * 
- * Returns a pointer to a newly allocated GtkTreeIter. Must be freed
+/**
+ * @return a pointer to a newly allocated GtkTreeIter. Must be freed
  * with w_tree_iter_free().  
  */
-GtkTreeIter *w_tree_iter_new(void)
+GtkTreeIter *
+w_tree_iter_new(void)
 {
 	return walloc(sizeof(GtkTreeIter));
 }
 
-/*
- * w_tree_iter_copy:
- *
+/**
  * Same as gtk_tree_iter_copy() but uses walloc(). Use w_tree_iter_free()
  * to free the returned GtkTreeIter.
  */
-GtkTreeIter *w_tree_iter_copy(GtkTreeIter *iter)
+GtkTreeIter *
+w_tree_iter_copy(GtkTreeIter *iter)
 {
 	GtkTreeIter *copy;
 
@@ -383,12 +382,11 @@ GtkTreeIter *w_tree_iter_copy(GtkTreeIter *iter)
 	return copy;
 }
 
-/*
- * w_tree_iter_free:
- *
+/**
  * Use this to free a GtkTreeIter returned by w_tree_iter_copy().
  */
-void w_tree_iter_free(GtkTreeIter *iter)
+void
+w_tree_iter_free(GtkTreeIter *iter)
 {
 	wfree(iter, sizeof(*iter));
 }
@@ -397,22 +395,27 @@ typedef struct collect_data_struct {
     GSList *results;
     GSList *to_unselect;
 	GCompareFunc cfn;
+	GtkTreeView *tv;
 	const gchar *name; /* name of the treeview widget (for debugging) */
 } collect_data_struct_t;
 
-static void tree_selection_collect_data_helper(GtkTreeModel *model,
-	GtkTreePath *path, GtkTreeIter *iter, gpointer user_data)
+static inline void
+tree_selection_collect_data_record(GtkTreeModel *model, GtkTreeIter *iter,
+		collect_data_struct_t *cdata, gboolean unselect)
 {
-	collect_data_struct_t *cdata = user_data;
 	gpointer data = NULL;
-
-	(void) path;
+	
 	g_assert(NULL != cdata);
+	g_assert(NULL != iter);
+	
 	gtk_tree_model_get(model, iter, c_sr_record, &data, (-1));
 	g_assert(NULL != data);
 
-	cdata->to_unselect = g_slist_prepend(cdata->to_unselect,
+	if (unselect) {
+		cdata->to_unselect = g_slist_prepend(cdata->to_unselect,
 								w_tree_iter_copy(iter));
+	}
+
 	if (NULL != cdata->cfn &&
 		NULL != g_slist_find_custom(cdata->results, data, cdata->cfn)) {
 		if (gui_debug >= 3)
@@ -422,23 +425,48 @@ static void tree_selection_collect_data_helper(GtkTreeModel *model,
 	cdata->results = g_slist_prepend(cdata->results, data);
 }
 
-static void tree_selection_unselect_helper(gpointer data, gpointer user_data)
+static void
+tree_selection_collect_data_helper(GtkTreeModel *model,
+	GtkTreePath *path, GtkTreeIter *iter, gpointer user_data)
+{
+	collect_data_struct_t *cdata = user_data;
+
+	/* Collect the data of the parent row */
+	tree_selection_collect_data_record(model, iter, cdata, TRUE);
+	
+	/* If the row is not expanded and there are any children, collect their
+	 * data as well. This is not recursive and descends only one level */
+	
+	if (
+			gtk_tree_model_iter_has_child(model, iter) &&
+			!gtk_tree_view_row_expanded(cdata->tv, path)
+	) {
+		GtkTreeIter child;
+		gint i = 0;
+		
+		while (gtk_tree_model_iter_nth_child(model, &child, iter, i)) {
+			tree_selection_collect_data_record(model, &child, cdata, FALSE);
+			i++;
+		}
+	}
+}
+
+static void
+tree_selection_unselect_helper(gpointer data, gpointer user_data)
 {
 	gtk_tree_selection_unselect_iter((GtkTreeSelection *) user_data,
 		(GtkTreeIter *) data);
 	w_tree_iter_free((GtkTreeIter *) data);
 }
 
-/*
- * tree_selection_collect_data:
- *
+/**
  * Fetch data from the selection of a treeview. Returns a GSList containing
  * the user_data pointers from the selected rows. If cfn != NULL, it will
  * be used to determine whether two entries are equal and drop all duplicate
  * items from the result list. Using cfn will significantly increase runtime.
  */
-GSList *tree_selection_collect_data(GtkTreeSelection *selection,
-	GCompareFunc cfn)
+GSList *
+tree_selection_collect_data(GtkTreeSelection *selection, GCompareFunc cfn)
 {
 	collect_data_struct_t cdata;
 
@@ -447,6 +475,7 @@ GSList *tree_selection_collect_data(GtkTreeSelection *selection,
 	cdata.results = NULL;
 	cdata.to_unselect = NULL;
 	cdata.cfn = cfn;
+	cdata.tv = gtk_tree_selection_get_tree_view(selection);
 	if (gui_debug >= 3) {
 		cdata.name = gtk_widget_get_name(
 			GTK_WIDGET(gtk_tree_selection_get_tree_view(selection)));
@@ -475,7 +504,8 @@ GSList *tree_selection_collect_data(GtkTreeSelection *selection,
     return cdata.results;
 }
 
-void tree_view_save_widths(GtkTreeView *treeview, property_t prop)
+void
+tree_view_save_widths(GtkTreeView *treeview, property_t prop)
 {
 	gint i;
 
@@ -494,7 +524,8 @@ void tree_view_save_widths(GtkTreeView *treeview, property_t prop)
 	}
 }
 
-void tree_view_restore_widths(GtkTreeView *treeview, property_t prop)
+void
+tree_view_restore_widths(GtkTreeView *treeview, property_t prop)
 {
 	gint i;
 
@@ -511,7 +542,8 @@ void tree_view_restore_widths(GtkTreeView *treeview, property_t prop)
 	}
 }
 
-void tree_view_save_visibility(GtkTreeView *treeview, property_t prop)
+void
+tree_view_save_visibility(GtkTreeView *treeview, property_t prop)
 {
 	guint i;
 
@@ -528,7 +560,8 @@ void tree_view_save_visibility(GtkTreeView *treeview, property_t prop)
 	}
 }
 
-void tree_view_restore_visibility(GtkTreeView *treeview, property_t prop)
+void
+tree_view_restore_visibility(GtkTreeView *treeview, property_t prop)
 {
 	guint i;
 
@@ -547,7 +580,8 @@ void tree_view_restore_visibility(GtkTreeView *treeview, property_t prop)
 
 #endif /* USE_GTK2 */
 
-gdouble _gtk_spin_button_get_value(GtkSpinButton *spinbutton)
+gdouble
+_gtk_spin_button_get_value(GtkSpinButton *spinbutton)
 {
     gchar *e;
     gdouble result;
@@ -559,7 +593,8 @@ gdouble _gtk_spin_button_get_value(GtkSpinButton *spinbutton)
     return result;
 }
 
-guint32 gtk_editable_get_value_as_uint(GtkEditable *editable)
+guint32
+gtk_editable_get_value_as_uint(GtkEditable *editable)
 {
     gchar *e;
     guint32 result;
@@ -571,14 +606,13 @@ guint32 gtk_editable_get_value_as_uint(GtkEditable *editable)
     return result;
 }
 
-/*
- * gtk_combo_init_choices:
- *
+/**
  * Adds alist of GtkItems to the given GtkCombo. Each GtkItem has the
  * choice number set as user_data.
  */
-void gtk_combo_init_choices(
-    GtkCombo *combo, GtkSignalFunc func, prop_def_t *def, gpointer user_data)
+void
+gtk_combo_init_choices(GtkCombo *combo, GtkSignalFunc func,
+		prop_def_t *def, gpointer user_data)
 {
     guint n;
     guint32 original;
@@ -616,12 +650,11 @@ void gtk_combo_init_choices(
 }
 
 #ifdef USE_GTK1
-/*
- * gtk_ctree_fast_unlink
- *
+/**
  * Functions like gtk_ctree_unlink for *Top level parent nodes only*. O(1)  
  */
-static void gtk_ctree_fast_unlink (GtkCTree *ctree, GtkCTreeNode *node)
+static void
+gtk_ctree_fast_unlink (GtkCTree *ctree, GtkCTreeNode *node)
 {
 	GtkCList *clist;
 	gint rows;
@@ -698,15 +731,13 @@ static void gtk_ctree_fast_unlink (GtkCTree *ctree, GtkCTreeNode *node)
 }
 
 
-/*
- * gtk_ctree_fast_link
- *
+/**
  * Functions like gtk_ctree_link for *Top level parent nodes only*.  This is 
  * optimized for data being linked at the beginning of the tree.  
  * O(1) if linking to beginning, O(n) otherwise.
  */
-static void gtk_ctree_fast_link(GtkCTree *ctree, GtkCTreeNode *node,	
-	GtkCTreeNode *sibling)
+static void
+gtk_ctree_fast_link(GtkCTree *ctree, GtkCTreeNode *node, GtkCTreeNode *sibling)
 {
 	GtkCList *clist;
 	GList *list_end;
@@ -793,15 +824,14 @@ static void gtk_ctree_fast_link(GtkCTree *ctree, GtkCTreeNode *node,
 }
 
 
-/*
- * gtk_ctree_fast_move
- *
+/**
  * Functions like gtk_ctree_move for *Top level parent nodes only*.  This is 
  * optimized for data being moved to the beginning of the tree and assumes 
  * ctree != NULL and node != NULL.  O(1) as opposed to gtk's which is O(n).
  */
-void gtk_ctree_fast_move (GtkCTree *ctree, GtkCTreeNode *node,
-	GtkCTreeNode *new_sibling)
+void
+gtk_ctree_fast_move(GtkCTree *ctree, GtkCTreeNode *node,
+		GtkCTreeNode *new_sibling)
 {
 	GtkCList *clist;
 	GtkCTreeNode *work;
@@ -835,21 +865,21 @@ void gtk_ctree_fast_move (GtkCTree *ctree, GtkCTreeNode *node,
 	clist->undo_anchor = clist->focus_row;
 }
 
-/*
- *	gtk_ctree_count_node_children
- *
- *	Returns number of children under parent node in the given ctree
+/**
+ * @returns number of children under parent node in the given ctree
  */
-inline gint gtk_ctree_count_node_children(GtkCTree *ctree, GtkCTreeNode *parent)
+gint
+gtk_ctree_count_node_children(GtkCTree *unused_ctree, GtkCTreeNode *parent)
 {
 	GtkCTreeRow *current_row;
 	GtkCTreeNode *current_node;
 	gint num_children = 0;
 	
+	(void) unused_ctree;
 	current_row = GTK_CTREE_ROW(parent);
 	current_node = current_row->children;
 	
-	for(; NULL != current_node; current_node = current_row->sibling) {
+	for (; NULL != current_node; current_node = current_row->sibling) {
 		current_row = GTK_CTREE_ROW(current_node);
 		num_children++;
 	}	
@@ -868,7 +898,8 @@ inline gint gtk_ctree_count_node_children(GtkCTree *ctree, GtkCTreeNode *parent)
  * @param extra additional number of pixels to add
  */
 #ifdef USE_GTK1
-void gtk_widget_fix_width(GtkWidget *w, GtkWidget *l, guint chars, guint extra)
+void
+gtk_widget_fix_width(GtkWidget *w, GtkWidget *l, guint chars, guint extra)
 {
     GtkStyle *style;
     GdkFont *font;
@@ -896,7 +927,8 @@ void gtk_widget_fix_width(GtkWidget *w, GtkWidget *l, guint chars, guint extra)
 #endif
 
 #ifdef USE_GTK2
-void gtk_widget_fix_width(GtkWidget *w, GtkWidget *l, guint chars, guint extra)
+void
+gtk_widget_fix_width(GtkWidget *w, GtkWidget *l, guint chars, guint extra)
 {
     gint max_width;
     PangoContext *pctx;
