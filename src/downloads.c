@@ -93,18 +93,26 @@ static void download_verify_sha1(struct download *d);
  *
  * This `dl_key' is inserted in the `dl_by_host' hash table were we find a
  * `dl_server' structure describing all the downloads for the given host.
- * All `dl_server' structures are also inserted in the `dl_by_time' sorted list,
- * where hosts to try first are listed at the head.
+ *
+ * All `dl_server' structures are also inserted in the `dl_by_time' struct,
+ * where hosts are sorted based on their retry time.
  *
  * The `dl_count_by_name' hash tables is indexed by name, and counts the
  * amount of downloads scheduled with that name.
  */
 
 static GHashTable *dl_by_host = NULL;
-static GList *dl_by_time = NULL;
 static GHashTable *dl_count_by_name = NULL;
 static GHashTable *dl_count_by_sha1 = NULL;
-static gint dl_by_time_change = 0;
+
+#define DHASH_SIZE	1024			/* Hash list size, must be a power of 2 */
+#define DHASH_MASK 	(DHASH_SIZE - 1)
+#define DL_HASH(x)	((x) & DHASH_MASK)
+
+static struct {
+	GList *servers[DHASH_SIZE];		/* Lists of servers, by retry time */
+	gint change[DHASH_SIZE];		/* Counts changes to the list */
+} dl_by_time;
 
 /*
  * To handle download meshes, where we only know the IP/port of the host and
@@ -414,6 +422,33 @@ void download_timer(time_t now)
 /* ----------------------------------------- */
 
 /*
+ * dl_by_time_insert
+ *
+ * Insert server by retry time into the `dl_by_time' structure.
+ */
+static void dl_by_time_insert(struct dl_server *server)
+{
+	gint idx = DL_HASH(server->retry_after);
+
+	dl_by_time.change[idx]++;
+	dl_by_time.servers[idx] = g_list_insert_sorted(dl_by_time.servers[idx],
+		server, dl_server_retry_cmp);
+}
+
+/*
+ * dl_by_time_remove
+ *
+ * Remove server from the `dl_by_time' structure.
+ */
+static void dl_by_time_remove(struct dl_server *server)
+{
+	gint idx = DL_HASH(server->retry_after);
+
+	dl_by_time.change[idx]++;
+	dl_by_time.servers[idx] = g_list_remove(dl_by_time.servers[idx], server);
+}
+
+/*
  * allocate_server
  *
  * Allocate new server structure.
@@ -430,10 +465,10 @@ static struct dl_server *allocate_server(guchar *guid, guint32 ip, guint16 port)
 
 	server = walloc0(sizeof(*server));
 	server->key = key;
+	server->retry_after = time(NULL);
 
 	g_hash_table_insert(dl_by_host, key, server);
-	dl_by_time = g_list_insert_sorted(dl_by_time, server, dl_server_retry_cmp);
-	dl_by_time_change++;
+	dl_by_time_insert(server);
 
 	/*
 	 * If host is reacheable directly, its GUID does not matter much to
@@ -469,10 +504,9 @@ static void free_server(struct dl_server *server)
 {
 	struct dl_ip ipk;
 
-	dl_by_time = g_list_remove(dl_by_time, server);
-	dl_by_time_change++;
-
+	dl_by_time_remove(server);
 	g_hash_table_remove(dl_by_host, server->key);
+
 	if (server->vendor)
 		atom_str_free(server->vendor);
 	atom_guid_free(server->key->guid);
@@ -1292,11 +1326,9 @@ static void download_set_retry_after(struct download *d, time_t after)
 
 	g_assert(server != NULL);
 
-	dl_by_time = g_list_remove(dl_by_time, server);
+	dl_by_time_remove(server);
 	server->retry_after = after;
-	dl_by_time = g_list_insert_sorted(dl_by_time, server, dl_server_retry_cmp);
-
-	dl_by_time_change++;
+	dl_by_time_insert(server);
 }
 
 /*
@@ -2229,10 +2261,9 @@ void download_start(struct download *d, gboolean check_allowed)
 
 void download_pickup_queued(void)
 {
-	GList *l;
 	time_t now = time((time_t *) NULL);
 	gint running = count_running_downloads();
-	gint last_change;
+	gint i;
 
 	/*
 	 * To select downloads, we iterate over the sorted `dl_by_time' list and
@@ -2243,67 +2274,73 @@ void download_pickup_queued(void)
 	 * all hosts first.
 	 */
 
-retry:
-	last_change = dl_by_time_change;
+	for (i = 0; i < DHASH_SIZE && running < max_downloads; i++) {
+		GList *l;
+		gint last_change;
 
-	for (l = dl_by_time; l && running < max_downloads; l = g_list_next(l)) {
-		struct dl_server *server = (struct dl_server *) l->data;
-		GList *w;
+	retry:
+		l = dl_by_time.servers[i];
+		last_change = dl_by_time.change[i];
 
-		/*
-		 * List is sorted, so as soon as we go beyond the current time, we
-		 * can stop.
-		 */
+		for (/* empty */; l && running < max_downloads; l = g_list_next(l)) {
+			struct dl_server *server = (struct dl_server *) l->data;
+			GList *w;
 
-		if (server->retry_after > now)
-			break;
+			/*
+			 * List is sorted, so as soon as we go beyond the current time,
+			 * we can stop.
+			 */
 
-		if (
-			server->count[DL_LIST_WAITING] == 0 ||
-			count_running_on_server(server) >= max_host_downloads
-		)
-			continue;
-
-		/*
-		 * OK, pick the download at the start of the waiting list, but
-		 * do not remove it yet.  This will be done by download_start().
-		 */
-
-		g_assert(server->list[DL_LIST_WAITING]);	/* Since count != 0 */
-
-		for (w = server->list[DL_LIST_WAITING]; w; w = g_list_next(w)) {
-			struct download *d = (struct download *) w->data;
+			if (server->retry_after > now)
+				break;
 
 			if (
-				!d->file_info->use_swarming &&
-				count_running_downloads_with_name(download_outname(d)) != 0
+				server->count[DL_LIST_WAITING] == 0 ||
+				count_running_on_server(server) >= max_host_downloads
 			)
 				continue;
 
-			if ((now - d->last_update) <= d->timeout_delay)
-				continue;
+			/*
+			 * OK, pick the download at the start of the waiting list, but
+			 * do not remove it yet.  This will be done by download_start().
+			 */
 
-			if (d->flags & DL_F_SUSPENDED)
-				continue;
+			g_assert(server->list[DL_LIST_WAITING]);	/* Since count != 0 */
 
-			download_start(d, FALSE);
+			for (w = server->list[DL_LIST_WAITING]; w; w = g_list_next(w)) {
+				struct download *d = (struct download *) w->data;
 
-			if (DOWNLOAD_IS_RUNNING(d))
-				running++;
+				if (
+					!d->file_info->use_swarming &&
+					count_running_downloads_with_name(download_outname(d)) != 0
+				)
+					continue;
 
-			break;			/* Don't schedule all files on same host at once */
+				if ((now - d->last_update) <= d->timeout_delay)
+					continue;
+
+				if (d->flags & DL_F_SUSPENDED)
+					continue;
+
+				download_start(d, FALSE);
+
+				if (DOWNLOAD_IS_RUNNING(d))
+					running++;
+
+				break;		/* Don't schedule all files on same host at once */
+			}
+
+			/*
+			 * It's possible that download_start() ended-up changing the
+			 * dl_by_time list we're iterating over.  That's why all changes
+			 * to that list update the dl_by_time_change variable, which we
+			 * snapshot upon entry into the loop.
+			 *		--RAM, 24/08/2002.
+			 */
+
+			if (last_change != dl_by_time.change[i])
+				goto retry;
 		}
-
-		/*
-		 * It's possible that download_start() ended-up changing the
-		 * dl_by_time list we're iterating over.  That's why all changes
-		 * to that list update the dl_by_time_change variable, which we
-		 * snapshot upon entry into the loop.
-		 *		--RAM, 24/08/2002.
-		 */
-
-		if (last_change != dl_by_time_change)
-			goto retry;
 	}
 
 	/*
@@ -4584,7 +4621,7 @@ static void download_request(struct download *d, header_t *header, gboolean ok)
 				break;
 			case 404:
 				if (0 == strncmp(ack_message, "Please Share", 12))
-					d->server->attrs |= DLS_A_BANNING;	/* Shareaza */
+					d->server->attrs |= DLS_A_BANNING;	/* Shareaza 1.8.0.0- */
 				break;
 			}
 
@@ -5258,8 +5295,7 @@ static struct download *select_push_download(guint file_index, gchar *hex_guid)
 	struct download *d = NULL;
 	GSList *list;
 	guchar rguid[16];		/* Remote GUID */
-	GList *l;
-	gint last_change;
+	gint i;
 
 	g_strdown(hex_guid);
 	gm_snprintf(dl_tmp, sizeof(dl_tmp), "%u:%s", file_index, hex_guid);
@@ -5330,64 +5366,76 @@ static struct download *select_push_download(guint file_index, gchar *hex_guid)
 	 * Look for a queued download on this host that we could request.
 	 */
 
-retry:
-	last_change = dl_by_time_change;
+	for (i = 0; i < DHASH_SIZE; i++) {
+		GList *l;
+		gint last_change;
 
-	for (l = dl_by_time; l; l = l->next) {
-		struct dl_server *server = (struct dl_server *) l->data;
-		extern gint guid_eq(gconstpointer a, gconstpointer b);
-		GList *w;
+	retry:
+		l = dl_by_time.servers[i];
+		last_change = dl_by_time.change[i];
 
-		/*
-		 * There might be several hosts with the same GUID (Mallory nodes).
-		 */
-
-		if (!guid_eq(rguid, server->key->guid))
-			continue;
-
-		if (
-			server->count[DL_LIST_WAITING] == 0 ||
-			count_running_on_server(server) >= max_host_downloads
-		)
-			continue;
-
-		for (w = server->list[DL_LIST_WAITING]; w; w = g_list_next(w)) {
-			struct download *d = (struct download *) w->data;
-
-			g_assert(!DOWNLOAD_IS_RUNNING(d));
-
-			if (count_running_downloads_with_name(d->file_info->file_name) != 0)
-				continue;
-
-			if (d->flags & DL_F_SUSPENDED)
-				continue;
-
-			if (dbg > 4)
-				printf("GIV: trying alternate download '%s' from %s at %s\n",
-					d->file_name, guid_hex_str(rguid),
-					ip_port_to_gchar(download_ip(d), download_port(d)));
+		for (/* empty */; l; l = g_list_next(l)) {
+			struct dl_server *server = (struct dl_server *) l->data;
+			extern gint guid_eq(gconstpointer a, gconstpointer b);
+			GList *w;
 
 			/*
-			 * Only prepare the download, don't call download_start(): we
-			 * already have the connection, and simply need to prepare the
-			 * range offset.
+			 * There might be several hosts with the same GUID (Mallory nodes).
 			 */
 
-			g_assert(d->socket == NULL);
+			if (!guid_eq(rguid, server->key->guid))
+				continue;
 
-			if (download_start_prepare(d)) {
-				d->status = GTA_DL_CONNECTING;
-				if (!DOWNLOAD_IS_VISIBLE(d))
-					download_gui_add(d);
+			if (
+				server->count[DL_LIST_WAITING] == 0 ||
+				count_running_on_server(server) >= max_host_downloads
+			)
+			continue;
 
-				gui_update_download(d, TRUE);
-				gui_update_c_downloads(dl_active, dl_establishing + dl_active);
+			for (w = server->list[DL_LIST_WAITING]; w; w = g_list_next(w)) {
+				struct download *d = (struct download *) w->data;
+
+				g_assert(!DOWNLOAD_IS_RUNNING(d));
+
+				if (
+					count_running_downloads_with_name(
+						d->file_info->file_name) != 0
+				)
+					continue;
+
+				if (d->flags & DL_F_SUSPENDED)
+					continue;
 
 				if (dbg > 4)
-					printf("GIV: selected alternate download '%s' from %s\n",
-						d->file_name, guid_hex_str(rguid));
+					printf(
+						"GIV: trying alternate download '%s' from %s at %s\n",
+						d->file_name, guid_hex_str(rguid),
+						ip_port_to_gchar(download_ip(d), download_port(d)));
 
-				return d;
+				/*
+				 * Only prepare the download, don't call download_start(): we
+				 * already have the connection, and simply need to prepare the
+				 * range offset.
+				 */
+
+				g_assert(d->socket == NULL);
+
+				if (download_start_prepare(d)) {
+					d->status = GTA_DL_CONNECTING;
+					if (!DOWNLOAD_IS_VISIBLE(d))
+						download_gui_add(d);
+
+					gui_update_download(d, TRUE);
+					gui_update_c_downloads(dl_active,
+						dl_establishing + dl_active);
+
+					if (dbg > 4)
+						printf(
+							"GIV: selected alternate download '%s' from %s\n",
+							d->file_name, guid_hex_str(rguid));
+
+					return d;
+				}
 			}
 
 			/*
@@ -5395,7 +5443,8 @@ retry:
 			 * the dl_by_time list has changed and we must restart the loop.
 			 *		--RAM, 24/08/2002.
 			 */
-			if (last_change != dl_by_time_change)
+
+			if (last_change != dl_by_time.change[i])
 				goto retry;
 		}
 	}
