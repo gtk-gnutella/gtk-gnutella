@@ -110,6 +110,7 @@ struct mqueue {
 #define mq_count(q)					((q)->count)
 #define mq_pending(q)				((q)->size + tx_pending((q)->tx_drv))
 #define mq_bio(q)					(tx_bio_source((q)->tx_drv))
+#define mq_node(q)					((q)->node)
 
 /*
  * Public interface
