@@ -1,5 +1,18 @@
 # since last version
 
+- (2002.08.26 Richard)
+ * Added Vidar to the "About" dialog
+ * Fixed minimum speed callback in search pane (connect after now)
+ * Adjusted lots of files to the new function names exported from
+   search.[ch] and search_gui.[ch]
+ * Moved all GUI code from search.c to search_gui.c and have them
+   communicate via callbacks. Still there is work to do cleaning up
+   includes and function naming.
+ * search_xml.[ch] are now considered GUI code. As are filter.c, filter_gui.c
+   and filter_cb.c, since the saving/restoring of searches/filters and all
+   the filtering takes place inside the GUI. The backend is only responsible
+   to collect search results and push it to the GUI.
+
 - (2002.08.25 - RAM)
  * Use /dev/urandom to initialize seed on systems that have it.
  * Skip empty lines silently when retrieving banned mesh entries.
