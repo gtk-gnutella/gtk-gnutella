@@ -566,25 +566,18 @@ void main_gui_init(void)
     gtk_clist_set_compare_func(
         GTK_CLIST(lookup_widget(main_window, "clist_ul_stats")), 
         compare_ul_norm);
-#endif
-    gtk_clist_set_column_justification(
-        GTK_CLIST(lookup_widget(main_window, "clist_downloads")),
-        c_dl_size, GTK_JUSTIFY_RIGHT);
     gtk_clist_set_column_justification(
         GTK_CLIST(lookup_widget(main_window, "clist_downloads_queue")),
         c_queue_size, GTK_JUSTIFY_RIGHT);
 
-	gtk_clist_column_titles_passive(
-        GTK_CLIST(lookup_widget(main_window, "clist_downloads")));
 
-    {
-        GtkCList *clist = 
+	GtkCList *clist = 
             GTK_CLIST(lookup_widget(main_window, "clist_downloads_queue"));
 
         gtk_clist_column_titles_passive(clist);
         gtk_clist_set_reorderable(clist, TRUE);
         gtk_clist_set_use_drag_icons(clist, FALSE);
-    }  
+#endif
 
     /* FIXME: those gtk_widget_set_sensitive should become obsolete when
      * all property-change callbacks are set up properly
@@ -613,6 +606,7 @@ void main_gui_init(void)
     search_stats_gui_init();
     uploads_gui_init();
     upload_stats_gui_init();
+	downloads_gui_init();
     /* Must come before search_init() so searches/filters can be loaded.*/
 	filter_init(); 
     search_gui_init();
@@ -621,6 +615,7 @@ void main_gui_init(void)
 
    	gui_update_all();
 }
+
 
 void main_gui_run(void)
 {	
@@ -666,6 +661,7 @@ void main_gui_shutdown(void)
     filter_cb_close();
     monitor_gui_shutdown();
     search_gui_shutdown(); /* must be done before filter_shutdown! */
+ 	downloads_gui_shutdown();
 	filter_shutdown();
     fi_gui_shutdown();
     nodes_gui_shutdown();

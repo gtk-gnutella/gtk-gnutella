@@ -23,45 +23,205 @@
  *----------------------------------------------------------------------
  */
 
+#include "gui.h"
+
+#ifdef USE_GTK1
+
 #include "downloads_gui.h"
+#include "downloads_gui_common.h"
+#include "downloads_cb.h"
 
 #include "downloads.h" /* FIXME: remove this dependency */
 #include "dmesh.h" /* FIXME: remove this dependency */
 #include "http.h" /* FIXME: remove this dependency */
 #include "pproxy.h" /* FIXME: remove this dependency */
 #include "statusbar_gui.h"
-#include "downloads_cb.h"
 #include "parq.h"
 
-RCSID("$Id$");
+
+static gchar tmpstr[4096];
 
 #define IO_STALLED		60		/* If nothing exchanged after that many secs */
 #define IO_AVG_RATE		5		/* Compute global recv rate every 5 secs */
 
-static gchar tmpstr[4096];
 
-void gui_update_download_clear(void)
+void downloads_gui_init(void)
 {
-	GSList *l;
-	gboolean clear = FALSE;
+}
 
-	for (l = sl_unqueued; !clear && l; l = l->next) {
-		switch (((struct download *) l->data)->status) {
-		case GTA_DL_COMPLETED:
-		case GTA_DL_ERROR:
-		case GTA_DL_ABORTED:
-		case GTA_DL_DONE:
-			clear = TRUE;
-			break;
-		default:
-			break;
-		}
+void downloads_gui_shutdown(void)
+{
+}
+
+
+/* Add a download to the GUI */
+void download_gui_add(struct download *d)
+{
+	gchar *titles[6];
+	gint row;
+	GdkColor *color;
+	GtkCList* clist_downloads;
+	static gchar vendor[256];
+	gchar *file_name;
+
+	g_return_if_fail(d);
+
+	if (DOWNLOAD_IS_VISIBLE(d)) {
+		g_warning
+			("download_gui_add() called on already visible download '%s' !",
+			 d->file_name);
+		return;
 	}
 
-	gtk_widget_set_sensitive(
-        lookup_widget(main_window, "button_downloads_clear_stopped"), 
-        clear);
+	/*
+	 * When `record_index' is URN_INDEX, the `file_name' is the URN, which
+	 * is not something really readable.  Better display the target filename
+	 * on disk in that case.
+	 *		--RAM, 22/10/2002
+	 */
+
+	file_name = file_info_readable_filename(d->file_info);
+
+#ifdef USE_GTK2
+	file_name = lazy_locale_to_utf8(file_name, 0);
+#endif
+	
+	gm_snprintf(vendor, sizeof(vendor), "%s%s",
+		(d->server->attrs & DLS_A_BANNING) ? "*" : "",
+		download_vendor_str(d));
+	
+	
+	clist_downloads = GTK_CLIST
+		(lookup_widget(main_window, "clist_downloads"));
+
+	color = &(gtk_widget_get_style(GTK_WIDGET(clist_downloads))
+				->fg[GTK_STATE_INSENSITIVE]);
+
+
+	if (DOWNLOAD_IS_QUEUED(d)) {		/* This is a queued download */
+		GtkCList* clist_downloads_queue;
+
+        titles[c_queue_filename] = file_name;
+        titles[c_queue_server] = vendor;
+        titles[c_queue_status] = "";
+		titles[c_queue_size] = short_size(d->file_info->size);
+        titles[c_queue_host] = is_faked_download(d) ? "" :
+			d->server->hostname == NULL ?
+				ip_port_to_gchar(download_ip(d), download_port(d)) :
+				hostname_port_to_gchar(d->server->hostname, download_port(d));
+
+		clist_downloads_queue = GTK_CLIST
+			(lookup_widget(main_window, "clist_downloads_queue"));
+
+		row = gtk_clist_append(clist_downloads_queue, titles);
+		gtk_clist_set_row_data(clist_downloads_queue, row, (gpointer) d);
+		if (d->always_push)
+			 gtk_clist_set_foreground(clist_downloads_queue, row, color);
+	} else {					/* This is an active download */
+
+		titles[c_dl_filename] = file_name;
+		titles[c_dl_server] = vendor;
+		titles[c_dl_status] = "";
+		titles[c_dl_size] = short_size(d->file_info->size);
+		titles[c_dl_range] = "";
+		titles[c_dl_host] = is_faked_download(d) ? "" :
+			d->server->hostname == NULL ?
+				ip_port_to_gchar(download_ip(d), download_port(d)) :
+				hostname_port_to_gchar(d->server->hostname, download_port(d));
+
+		row = gtk_clist_append(clist_downloads, titles);
+		gtk_clist_set_row_data(clist_downloads, row, (gpointer) d);
+		if (DOWNLOAD_IS_IN_PUSH_MODE(d))
+			 gtk_clist_set_foreground(clist_downloads, row, color);
+	}
+
+	d->visible = TRUE;
 }
+
+
+void gui_update_download_server(struct download *d)
+{
+	gint row;
+    GtkCList *clist_downloads = GTK_CLIST
+            (lookup_widget(main_window, "clist_downloads"));
+
+	g_assert(d);
+	g_assert(d->status != GTA_DL_QUEUED);
+	g_assert(d->server);
+	g_assert(download_vendor(d));
+
+	/*
+	 * Prefix vendor name with a '*' if they are considered as potentially
+	 * banning us and we activated anti-banning features.
+	 *		--RAM, 05/07/2003
+	 */
+
+	(void) gm_snprintf(tmpstr, sizeof(tmpstr), "%s%s",
+		(d->server->attrs & DLS_A_BANNING) ? "*" : "",
+		download_vendor(d));
+
+	row = gtk_clist_find_row_from_data(clist_downloads,	(gpointer) d);
+	gtk_clist_set_text(clist_downloads, row, c_dl_server, tmpstr);
+}
+
+
+
+void gui_update_download_range(struct download *d)
+{
+	guint32 len;
+	gchar *and_more = "";
+	gint rw;
+	gint row;
+    GtkCList *clist_downloads = GTK_CLIST
+            (lookup_widget(main_window, "clist_downloads"));
+
+	g_assert(d);
+	g_assert(d->status != GTA_DL_QUEUED);
+
+	if (d->file_info->use_swarming) {
+		len = d->size;
+		if (d->range_end > d->skip + d->size)
+			and_more = "+";
+		if (d->flags & DL_F_SHRUNK_REPLY)		/* Chunk shrunk by server! */
+			and_more = "-";
+	} else
+		len = d->range_end - d->skip;
+
+	len += d->overlap_size;
+
+	rw = gm_snprintf(tmpstr, sizeof(tmpstr), "%s%s",
+		compact_size(len), and_more);
+
+	if (d->skip)
+		gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw, " @ %s",
+			compact_size(d->skip));
+
+	row = gtk_clist_find_row_from_data(clist_downloads,	(gpointer) d);
+	gtk_clist_set_text(clist_downloads, row, c_dl_range, tmpstr);
+}
+
+
+
+void gui_update_download_host(struct download *d)
+{
+	gchar *text;
+	gint row;
+    GtkCList *clist_downloads = GTK_CLIST
+            (lookup_widget(main_window, "clist_downloads"));
+
+	g_assert(d);
+	g_assert(d->status != GTA_DL_QUEUED);
+
+	text = is_faked_download(d) ? "" :
+		d->server->hostname == NULL ?
+			ip_port_to_gchar(download_ip(d), download_port(d)) :
+			hostname_port_to_gchar(d->server->hostname, download_port(d));
+
+	row = gtk_clist_find_row_from_data(clist_downloads,	(gpointer) d);
+	gtk_clist_set_text(clist_downloads, row, c_dl_host, text);
+}
+
+
 
 void gui_update_download(struct download *d, gboolean force)
 {
@@ -76,7 +236,17 @@ void gui_update_download(struct download *d, gboolean force)
 
     if (d->last_gui_update == now && !force)
 		return;
+	
+	/* Why update if no one's looking? */
+    gint current_page;
+    current_page = gtk_notebook_get_current_page(
+        GTK_NOTEBOOK(lookup_widget(main_window, "notebook_main")));
 
+    if (current_page != nb_main_page_downloads)
+        return;
+
+
+	
     clist_downloads = GTK_CLIST
         (lookup_widget(main_window, "clist_downloads"));
 
@@ -405,83 +575,7 @@ void gui_update_download(struct download *d, gboolean force)
 	}
 }
 
-void gui_update_download_server(struct download *d)
-{
-	gint row;
-    GtkCList *clist_downloads = GTK_CLIST
-            (lookup_widget(main_window, "clist_downloads"));
 
-	g_assert(d);
-	g_assert(d->status != GTA_DL_QUEUED);
-	g_assert(d->server);
-	g_assert(download_vendor(d));
-
-	/*
-	 * Prefix vendor name with a '*' if they are considered as potentially
-	 * banning us and we activated anti-banning features.
-	 *		--RAM, 05/07/2003
-	 */
-
-	(void) gm_snprintf(tmpstr, sizeof(tmpstr), "%s%s",
-		(d->server->attrs & DLS_A_BANNING) ? "*" : "",
-		download_vendor(d));
-
-	row = gtk_clist_find_row_from_data(clist_downloads,	(gpointer) d);
-	gtk_clist_set_text(clist_downloads, row, c_dl_server, tmpstr);
-}
-
-void gui_update_download_range(struct download *d)
-{
-	guint32 len;
-	gchar *and_more = "";
-	gint rw;
-	gint row;
-    GtkCList *clist_downloads = GTK_CLIST
-            (lookup_widget(main_window, "clist_downloads"));
-
-	g_assert(d);
-	g_assert(d->status != GTA_DL_QUEUED);
-
-	if (d->file_info->use_swarming) {
-		len = d->size;
-		if (d->range_end > d->skip + d->size)
-			and_more = "+";
-		if (d->flags & DL_F_SHRUNK_REPLY)		/* Chunk shrunk by server! */
-			and_more = "-";
-	} else
-		len = d->range_end - d->skip;
-
-	len += d->overlap_size;
-
-	rw = gm_snprintf(tmpstr, sizeof(tmpstr), "%s%s",
-		compact_size(len), and_more);
-
-	if (d->skip)
-		gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw, " @ %s",
-			compact_size(d->skip));
-
-	row = gtk_clist_find_row_from_data(clist_downloads,	(gpointer) d);
-	gtk_clist_set_text(clist_downloads, row, c_dl_range, tmpstr);
-}
-
-void gui_update_download_host(struct download *d)
-{
-	gchar *text;
-	gint row;
-    GtkCList *clist_downloads = GTK_CLIST
-            (lookup_widget(main_window, "clist_downloads"));
-
-	g_assert(d);
-	g_assert(d->status != GTA_DL_QUEUED);
-
-	text = is_faked_download(d) ? "" :
-		d->server->hostname == NULL ?
-			ip_port_to_gchar(download_ip(d), download_port(d)) :
-			hostname_port_to_gchar(d->server->hostname, download_port(d));
-
-	row = gtk_clist_find_row_from_data(clist_downloads,	(gpointer) d);
-	gtk_clist_set_text(clist_downloads, row, c_dl_host, text);
-}
 
 void gui_update_download_abort_resume(void)
 {
@@ -582,147 +676,8 @@ void gui_update_download_abort_resume(void)
         (lookup_widget(popup_downloads, "popup_downloads_queue"), do_queue);
 }
 
-void gui_update_queue_frozen(void)
-{
-    static gboolean msg_displayed = FALSE;
-    static statusbar_msgid_t id = {0, 0};
 
-    GtkWidget *togglebutton_queue_freeze;
 
-    togglebutton_queue_freeze =
-        lookup_widget(main_window, "togglebutton_queue_freeze");
-
-    if (gui_debug >= 3)
-	printf("frozen %i, msg %i\n", download_queue_is_frozen(),
-	    msg_displayed);
-
-    if (download_queue_is_frozen() > 0) {
-#ifndef USE_GTK2
-    	gtk_widget_hide(lookup_widget(main_window, "vbox_queue_freeze"));
-    	gtk_widget_show(lookup_widget(main_window, "vbox_queue_thaw"));
-#endif
-    	/*
-		gtk_label_set_text(
-            GTK_LABEL(GTK_BIN(togglebutton_queue_freeze)->child),
-			"Thaw queue");
-		*/
-        if (!msg_displayed) {
-            msg_displayed = TRUE;
-          	id = statusbar_gui_message(0, "QUEUE FROZEN");
-        }
-    } else {
-#ifndef USE_GTK2
-    	gtk_widget_show(lookup_widget(main_window, "vbox_queue_freeze"));
-    	gtk_widget_hide(lookup_widget(main_window, "vbox_queue_thaw"));
-#endif
-    	/*
-		gtk_label_set_text(
-            GTK_LABEL(GTK_BIN(togglebutton_queue_freeze)->child),
-			"Freeze queue");
-		*/
-        if (msg_displayed) {
-            msg_displayed = FALSE;
-            statusbar_gui_remove(id);
-        }
-	} 
-
-    gtk_signal_handler_block_by_func(
-        GTK_OBJECT(togglebutton_queue_freeze),
-        GTK_SIGNAL_FUNC(on_togglebutton_queue_freeze_toggled),
-        NULL);
-
-    gtk_toggle_button_set_active(
-        GTK_TOGGLE_BUTTON(togglebutton_queue_freeze),
-        download_queue_is_frozen() > 0);
-    
-    gtk_signal_handler_unblock_by_func(
-        GTK_OBJECT(togglebutton_queue_freeze),
-        GTK_SIGNAL_FUNC(on_togglebutton_queue_freeze_toggled),
-        NULL);
-}
-
-/* Add a download to the GUI */
-
-void download_gui_add(struct download *d)
-{
-	gchar *titles[6];
-	gint row;
-	GdkColor *color;
-	GtkCList* clist_downloads;
-	static gchar vendor[256];
-	gchar *file_name;
-
-	g_return_if_fail(d);
-
-	if (DOWNLOAD_IS_VISIBLE(d)) {
-		g_warning
-			("download_gui_add() called on already visible download '%s' !",
-			 d->file_name);
-		return;
-	}
-
-	clist_downloads = GTK_CLIST
-		(lookup_widget(main_window, "clist_downloads"));
-
-	color = &(gtk_widget_get_style(GTK_WIDGET(clist_downloads))
-				->fg[GTK_STATE_INSENSITIVE]);
-
-	/*
-	 * When `record_index' is URN_INDEX, the `file_name' is the URN, which
-	 * is not something really readable.  Better display the target filename
-	 * on disk in that case.
-	 *		--RAM, 22/10/2002
-	 */
-
-	file_name = file_info_readable_filename(d->file_info);
-
-#ifdef USE_GTK2
-	file_name = lazy_locale_to_utf8(file_name, 0);
-#endif
-
-	gm_snprintf(vendor, sizeof(vendor), "%s%s",
-		(d->server->attrs & DLS_A_BANNING) ? "*" : "",
-		download_vendor_str(d));
-
-	if (DOWNLOAD_IS_QUEUED(d)) {		/* This is a queued download */
-		GtkCList* clist_downloads_queue;
-
-        titles[c_queue_filename] = file_name;
-        titles[c_queue_server] = vendor;
-        titles[c_queue_status] = "";
-		titles[c_queue_size] = short_size(d->file_info->size);
-        titles[c_queue_host] = is_faked_download(d) ? "" :
-			d->server->hostname == NULL ?
-				ip_port_to_gchar(download_ip(d), download_port(d)) :
-				hostname_port_to_gchar(d->server->hostname, download_port(d));
-
-		clist_downloads_queue = GTK_CLIST
-			(lookup_widget(main_window, "clist_downloads_queue"));
-
-		row = gtk_clist_append(clist_downloads_queue, titles);
-		gtk_clist_set_row_data(clist_downloads_queue, row, (gpointer) d);
-		if (d->always_push)
-			 gtk_clist_set_foreground(clist_downloads_queue, row, color);
-	} else {					/* This is an active download */
-
-		titles[c_dl_filename] = file_name;
-		titles[c_dl_server] = vendor;
-		titles[c_dl_status] = "";
-		titles[c_dl_size] = short_size(d->file_info->size);
-		titles[c_dl_range] = "";
-		titles[c_dl_host] = is_faked_download(d) ? "" :
-			d->server->hostname == NULL ?
-				ip_port_to_gchar(download_ip(d), download_port(d)) :
-				hostname_port_to_gchar(d->server->hostname, download_port(d));
-
-		row = gtk_clist_append(clist_downloads, titles);
-		gtk_clist_set_row_data(clist_downloads, row, (gpointer) d);
-		if (DOWNLOAD_IS_IN_PUSH_MODE(d))
-			 gtk_clist_set_foreground(clist_downloads, row, color);
-	}
-
-	d->visible = TRUE;
-}
 
 /*
  * download_gui_remove:
@@ -774,3 +729,6 @@ void download_gui_remove(struct download *d)
 	gui_update_download_abort_resume();
 	gui_update_download_clear();
 }
+
+
+#endif

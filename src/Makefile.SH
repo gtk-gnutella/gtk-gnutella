@@ -100,9 +100,11 @@ all:: .FORCE_DEPEND
 ########################################################################
 # Start of Jmakefile
 
-# $X-Id: Jmakefile,v 1.7 2003/09/17 19:57:25 nonamer Exp $
+# $X-Id: Jmakefile,v 1.8 2003/12/16 18:08:52 rmanfredi Exp $
 
 GUI_GTK2 = \
+	downloads_cb2.c \
+	downloads_gui2.c \
 	fileinfo_gui2.c \
 	gnet_stats_gui2.c \
 	monitor_cb2.c\
@@ -116,6 +118,8 @@ GUI_GTK2 = \
 	upload_stats_gui2.c
 
 GUI_GTK1 = \
+	downloads_cb.c \
+	downloads_gui.c \
 	fileinfo_gui.c \
 	gnet_stats_gui.c \
 	monitor_cb.c \
@@ -130,8 +134,7 @@ GUI_GTK1 = \
 
 GUI_COMMON = \
 	callbacks.c \
-	downloads_cb.c \
-	downloads_gui.c \
+	downloads_gui_common.c \
 	filter.c \
 	filter_cb.c \
 	filter_gui.c \
@@ -248,6 +251,8 @@ SRCLIST = \
 	$(CORE)
 
 OBJLIST = \
+	downloads_cb2.o \
+	downloads_gui2.o \
 	fileinfo_gui2.o \
 	gnet_stats_gui2.o \
 	monitor_cb2.o \
@@ -259,6 +264,8 @@ OBJLIST = \
 	search_stats_gui2.o \
 	uploads_gui2.o \
 	upload_stats_gui2.o \
+	downloads_cb.o \
+	downloads_gui.o \
 	fileinfo_gui.o \
 	gnet_stats_gui.o \
 	monitor_cb.o \
@@ -271,8 +278,7 @@ OBJLIST = \
 	uploads_gui.o \
 	upload_stats_gui.o \
 	callbacks.o \
-	downloads_cb.o \
-	downloads_gui.o \
+	downloads_gui_common.o \
 	filter.o \
 	filter_cb.o \
 	filter_gui.o \

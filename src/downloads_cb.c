@@ -23,12 +23,18 @@
  *----------------------------------------------------------------------
  */
 
-#include "downloads_cb.h"
+#include "gui.h"
+
+#ifdef USE_GTK1
 
 #include "downloads_gui.h"
+#include "downloads_gui_common.h"
+#include "downloads_cb.h"
+
 #include "statusbar_gui.h"
 
 #include "downloads.h" /* FIXME: remove this dependency */
+
 
 RCSID("$Id$");
 
@@ -887,3 +893,5 @@ void on_clist_downloads_queue_drag_end(GtkWidget *widget,
 {
     download_thaw_queue();
 }
+
+#endif	/* USE_GTK1 */

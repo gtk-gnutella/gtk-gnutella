@@ -91,11 +91,17 @@ enum {
  */
 enum {
     c_dl_filename = 0,
-    c_dl_host,
     c_dl_size,
+    c_dl_host,
     c_dl_range,
     c_dl_server,
-    c_dl_status
+    c_dl_status,
+#ifdef USE_GTK2
+	c_dl_fg, /* invisible, holds the foreground color for the row */
+	c_dl_bg, /* invisible, holds the background color for the row */
+	c_dl_record, /* invisible, pointer to the record_t of this entry */
+#endif
+	c_dl_num
 };
 
 /*
@@ -103,10 +109,16 @@ enum {
  */
 enum {
     c_queue_filename = 0,
-    c_queue_host,
     c_queue_size,
+    c_queue_host,
     c_queue_server,
-    c_queue_status
+    c_queue_status,
+#ifdef USE_GTK2
+	c_queue_fg, /* invisible, holds the foreground color for the row */
+	c_queue_bg, /* invisible, holds the background color for the row */
+	c_queue_record, /* invisible, pointer to the record_t of this entry */
+#endif
+	c_queue_num
 };
 
 

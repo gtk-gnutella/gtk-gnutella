@@ -27,20 +27,28 @@
 #define _downloads_gui_h_
 
 #include "gui.h"
+#include "downloads_gui_common.h"
 
-struct download;
+/* Indicates that a dl node is a header node */
+#define DL_GUI_IS_HEADER -1		 
 
+/*
+ * Global Functions
+ */
+
+void downloads_gui_init(void);
+void downloads_gui_shutdown(void);
+
+
+void download_gui_add(struct download *d);
+void download_gui_remove(struct download *d);
+	
 void gui_update_download(struct download *, gboolean);
 void gui_update_download_server(struct download *);
 void gui_update_download_range(struct download *d);
 void gui_update_download_host(struct download *d);
+
 void gui_update_download_abort_resume(void);
-void gui_update_download_clear(void);
 
-void gui_update_c_downloads(gint, gint);
-void gui_update_queue_frozen(void);
-
-void download_gui_add(struct download *d);
-void download_gui_remove(struct download *d);
 
 #endif /* _downloads_gui_h_ */

@@ -28,6 +28,8 @@
 ;# $Id$
 
 GUI_GTK2 = \
+	downloads_cb2.c \
+	downloads_gui2.c \
 	fileinfo_gui2.c \
 	gnet_stats_gui2.c \
 	monitor_cb2.c\
@@ -47,8 +49,7 @@ GUI_GTK1 = \
 
 GUI_COMMON = \
 	callbacks.c \
-	downloads_cb.c \
-	downloads_gui.c \
+	downloads_gui_common.c \
 	filter.c \
 	filter_cb.c \
 	filter_gui.c \
@@ -221,4 +222,3 @@ glade_files:
 properties:
 	autogen gui_props.ag
 	autogen gnet_props.ag
-

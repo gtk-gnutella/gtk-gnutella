@@ -4273,8 +4273,11 @@ static void spinbutton_adjustment_value_changed
              * needed.
              *      -- Richard, 13/08/2002
              */             
+
+#ifdef USE_GTK1
             gtk_clist_unselect_all(GTK_CLIST(
                 lookup_widget(main_window, "clist_downloads_queue")));
+#endif
         }
     }
 

@@ -33,7 +33,6 @@
 #include "main_cb.h"
 #include "monitor_cb.h"
 #include "uploads_cb.h"
-#include "downloads_cb.h"
 #include "gnet_stats_gui.h"
 #include "fileinfo_gui.h"
 #include "upload_stats_cb.h"
@@ -41,9 +40,11 @@
 #ifdef USE_GTK2
 #include "nodes_cb2.h"
 #include "search_cb2.h"
+#include "downloads_cb2.h"
 #else
 #include "nodes_cb.h"
 #include "search_cb.h"
+#include "downloads_cb.h"
 #endif
 
 gboolean on_entry_search_reissue_timeout_focus_out_event (GtkWidget *widget, GdkEventFocus *event, gpointer user_data);
@@ -147,3 +148,21 @@ on_button_config_select_dbg_clicked    (GtkButton       *button,
                                         gpointer         user_data);
 
 #endif	/* _callbacks_h_ */
+
+/*
+void
+on_treeview_downloads_columns_changed  (GtkTreeView     *treeview,
+                                        gpointer         user_data);
+
+gboolean
+on_treeview_downloads_button_press_event
+                                        (GtkWidget       *widget,
+                                        GdkEventButton  *event,
+                                        gpointer         user_data);
+
+gboolean
+on_treeview_downloads_toggle_cursor_row
+                                        (GtkTreeView     *treeview,
+                                        gpointer         user_data);
+
+*/

@@ -27,6 +27,7 @@
 
 #include "gnutella.h"
 #include "downloads_gui.h"
+#include "downloads_gui_common.h"
 #include "sockets.h"
 #include "downloads.h"
 #include "hosts.h"
@@ -2917,11 +2918,19 @@ void download_pickup_queued(void)
 	 * Enable "Start now" only if we would not exceed limits.
 	 */
 
+#ifdef USE_GTK2
+	
+	gtk_widget_set_sensitive(lookup_widget
+		(popup_queue, "popup_queue_start_now"), (running < max_downloads));	
+	
+#else
+		
 	gtk_widget_set_sensitive(
 		lookup_widget(popup_queue, "popup_queue_start_now"), 
 		(running < max_downloads) &&
 		GTK_CLIST(
 			lookup_widget(main_window, "clist_downloads_queue"))->selection); 
+#endif
 }
 
 static void download_push(struct download *d, gboolean on_timeout)
