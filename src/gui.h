@@ -64,7 +64,8 @@ enum {
     c_us_size,
     c_us_attempts,
     c_us_complete,
-    c_us_norm
+    c_us_norm,
+    c_us_stat
 };
 
 

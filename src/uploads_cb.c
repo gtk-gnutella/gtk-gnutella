@@ -230,10 +230,10 @@ void on_clist_ul_stats_resize_column(GtkCList *clist,
 
 void on_button_ul_stats_clear_all_clicked(GtkButton *button, gpointer data)
 {
-	ul_stats_clear_all();
+	upload_stats_clear_all();
 }
 
 void on_button_ul_stats_clear_deleted_clicked(GtkButton * button, gpointer user_data)
 {
-	ul_stats_prune_nonexistant();
+	upload_stats_prune_nonexistent();
 }

@@ -37,7 +37,7 @@
  *
  *		TODO: add a check to make sure that all of the files still exist(?)
  *			grey them out if they dont, optionally remove them from the 
- *			stats list (when 'Clear Non-existant Files' is clicked)
+ *			stats list (when 'Clear Non-existent Files' is clicked)
  *
  *		(C) 2002 Michael Tesch, released with gtk-gnutella & its license
  */
@@ -50,78 +50,50 @@
 #include <errno.h>
 #include <time.h>		/* For ctime() */
 
-#include "upload_stats_gui.h" // FIXME: remove this dependency
+#include "upload_stats_gui.h"
 #include "upload_stats.h"
 
-static gint ul_rows = 0;
 static gboolean dirty = FALSE;
 static gchar *stats_file = NULL;
+static GList *upload_stats_list = NULL;
 
-static void ul_stats_add_row(gchar *filename,
+static void upload_stats_add(const gchar *filename,
 	guint32 size, guint32 attempts, guint32 complete, guint64 ul_bytes)
 {
-	gchar *rowdata[5];
-	gint row;
 	struct ul_stats *stat;
-	gchar size_tmp[16];
-	gchar attempts_tmp[16];
-	gchar complete_tmp[16];
-	gchar norm_tmp[16];
-	gfloat norm = (float) ul_bytes / (float) size;
-    GtkCList *clist = GTK_CLIST(lookup_widget(main_window, "clist_ul_stats"));
-
-	g_snprintf(size_tmp, sizeof(size_tmp), "%s", short_size(size));
-	g_snprintf(attempts_tmp, sizeof(attempts_tmp), "%u", attempts);
-	g_snprintf(complete_tmp, sizeof(complete_tmp), "%u", complete);
-	g_snprintf(norm_tmp, sizeof(norm_tmp), "%.3f", norm);
-
-	rowdata[c_us_filename] = filename;
-	rowdata[c_us_size] = size_tmp;
-	rowdata[c_us_attempts] = attempts_tmp;
-	rowdata[c_us_complete] = complete_tmp;
-	rowdata[c_us_norm] = norm_tmp;
-
-    row = gtk_clist_insert(clist, 0, rowdata);
-	ul_rows++;
 
 	stat = g_malloc(sizeof(struct ul_stats));
+	stat->filename = g_strdup(filename);
 	stat->size = size;
 	stat->attempts = attempts;
 	stat->complete = complete;
-	stat->norm = norm;
+	stat->norm = (gfloat) ul_bytes / (gfloat) size;
 	stat->bytes_sent = ul_bytes;
-
-	gtk_clist_set_row_data_full(clist, row, stat, g_free);
-
-    // FIXME: should use auto_sort?
-	gtk_clist_sort(clist);
+	upload_stats_list = g_list_append(upload_stats_list, stat);
+	upload_stats_gui_add(stat);
 }
 
-void ul_stats_load_history(const gchar *ul_history_file_name)
+void upload_stats_load_history(const gchar *ul_history_file_name)
 {
-	FILE *ul_stats_file;
+	FILE *upload_stats_file;
 	gchar line[FILENAME_MAX + 64];
 	gint lineno = 0;
-	struct stat buf;
 
 	stats_file = g_strdup(ul_history_file_name);
 
-	if (-1 == stat(ul_history_file_name, &buf))
-		goto done;
-
 	/* open file for reading */
-	ul_stats_file = fopen(ul_history_file_name, "r");
+	upload_stats_file = fopen(ul_history_file_name, "r");
 
-	if (!ul_stats_file) {
+	if (!upload_stats_file) {
 		g_warning("Unable to open file %s (%s)\n", ul_history_file_name,
 				  g_strerror(errno));
 		goto done;
 	}
 
 	/* parse, insert names into ul_stats_clist */
-	while (fgets(line, sizeof(line), ul_stats_file)) {
-		guint32 size, attempt, complete;
-		guint32 ulbytes_high, ulbytes_low;	/* Portability reasons */
+	while (fgets(line, sizeof(line), upload_stats_file)) {
+		gulong size, attempt, complete;
+		gulong ulbytes_high, ulbytes_low;	/* Portability reasons */
 		guint64 ulbytes;
 		gchar *name_end;
 
@@ -142,18 +114,18 @@ void ul_stats_load_history(const gchar *ul_history_file_name)
 		 */
 
 		if (
-			5 == sscanf(name_end, "%u\t%u\t%u\t%u\t%u\n",
+			5 == sscanf(name_end, "%lu\t%lu\t%lu\t%lu\t%lu\n",
 				&size, &attempt, &complete, &ulbytes_high, &ulbytes_low)
 		)
 			ulbytes = (((guint64) ulbytes_high) << 32) | ulbytes_low;
 		else if (
-			3 == sscanf(name_end, "%u\t%u\t%u\n", &size, &attempt, &complete)
+			3 == sscanf(name_end, "%lu\t%lu\t%lu\n", &size, &attempt, &complete)
 		)
 			ulbytes = size * complete;		// fake reasonable count
 		else
 			goto corrupted;
 
-		ul_stats_add_row(url_unescape(line, TRUE),
+		upload_stats_add(url_unescape(line, TRUE),
 			size, attempt, complete, ulbytes);
 
 		continue;
@@ -163,20 +135,10 @@ void ul_stats_load_history(const gchar *ul_history_file_name)
 	}
 
 	/* close file */
-	fclose(ul_stats_file);
+	fclose(upload_stats_file);
 
 done:
-	/* default - set the clist to be sorted by the normalized column */
-    {
-        GtkCList *clist = 
-            GTK_CLIST(lookup_widget(main_window, "clist_ul_stats"));
-
-        gtk_clist_set_sort_column(clist, c_us_norm);
-        gtk_clist_set_sort_type(clist, GTK_SORT_DESCENDING);
-
-        // FIXME: should use auto-sort?
-        gtk_clist_sort(clist);
-    }
+	return;
 }
 
 /*
@@ -186,73 +148,72 @@ done:
  * When `cleanup' is TRUE, we release the memory used by the statistics.
  * Otherwise, we just save the data, but keep the data structure intact.
  */
-void ul_stats_dump_history(const gchar *ul_history_file_name, gboolean cleanup)
+void upload_stats_dump_history(
+	const gchar *ul_history_file_name, gboolean cleanup)
 {
-	gchar *file;
 	FILE *out;
-	gint i;
 	time_t now = time((time_t *) NULL);
-    GtkWidget *clist_ul_stats;
-
-    clist_ul_stats = lookup_widget(main_window, "clist_ul_stats");
+	GList *l;
 
 	/* open file for writing */
 	out = fopen(ul_history_file_name, "w");
 
-	if (!out) {
+	if (NULL == out) {
 		g_warning("Unable to write to file %s (%s)\n", ul_history_file_name,
 				  g_strerror(errno));
 		return;
 	}
 
-	fputs("# THIS FILE IS AUTOMATICALLY GENERATED -- DO NOT EDIT\n", out);
-	fprintf(out, "#\n# Upload statistics saved on %s#\n\n", ctime(&now));
-	fputs("#\n# Format is:\n", out);
-	fputs("#    File basename <TAB> size <TAB> attempts <TAB> completed\n", out);
-	fputs("#        <TAB>bytes_sent-high <TABbytes_sent-low\n", out);
-	fputs("#\n\n", out);
+	fprintf(out,
+		"# THIS FILE IS AUTOMATICALLY GENERATED -- DO NOT EDIT\n"
+		"#\n"
+		"# Upload statistics saved on %s"
+		"#\n"
+		"\n"
+		"#\n"
+		"# Format is:\n"
+		"#    File basename <TAB> size <TAB> attempts <TAB> completed\n"
+		"#        <TAB>bytes_sent-high <TAB> bytes_sent-low\n"
+		"#\n"
+		"\n",
+		ctime(&now));
 
-	if (cleanup)
-		gtk_clist_freeze(GTK_CLIST(clist_ul_stats));
-
-	/* for each line in ul_stats_clist, write out to hist file */
-	for (i = 0; i < ul_rows; i++) {
+	/* for each element in uploads_stats_list, write out to hist file */
+	for (l = g_list_first(upload_stats_list); NULL != l; l = g_list_next(l)) {
 		gchar *escaped;
 		struct ul_stats *stat;
-		gint row = cleanup ? 0 : i;
 
-		stat = gtk_clist_get_row_data(GTK_CLIST(clist_ul_stats), row);
-
-		gtk_clist_get_text(GTK_CLIST(clist_ul_stats), row,
-			c_us_filename, &file);
-
-		escaped = url_escape_cntrl(file);
+		stat = l->data;
+		escaped = url_escape_cntrl(stat->filename);
 		fprintf(out, "%s\t%u\t%u\t%u\t%u\t%u\n", escaped,
 			stat->size, stat->attempts, stat->complete,
 				(guint32) (stat->bytes_sent >> 32),
 				(guint32) stat->bytes_sent);
 
-		if (escaped != file)		/* File had escaped chars */
-			g_free(escaped);
+		if (escaped != stat->filename)		/* File had escaped chars */
+			G_FREE_NULL(escaped);
 
 		if (cleanup)
-			gtk_clist_remove(GTK_CLIST(clist_ul_stats), 0);
+			G_FREE_NULL(l->data);
 	}
 
 	/* close file */
 	fclose(out);
 
-	if (cleanup && stats_file)
-		g_free(stats_file);
+	if (cleanup && stats_file) {
+		g_list_free(upload_stats_list);
+		upload_stats_list = NULL;
+		G_FREE_NULL(stats_file);
+	}
 }
 
 /*
- * ul_flush_stats_if_dirty
+ * upload_stats_flush_if_dirty
  *
  * Called on a periodic basis to flush the statistics to disk if changed
  * since last call.
  */
-void ul_flush_stats_if_dirty(void)
+void upload_stats_flush_if_dirty(void)
 {
 	if (!dirty)
 		return;
@@ -260,80 +221,49 @@ void ul_flush_stats_if_dirty(void)
 	dirty = FALSE;
 
 	if (stats_file)
-		ul_stats_dump_history(stats_file, FALSE);
-	else {
+		upload_stats_dump_history(stats_file, FALSE);
+	else
 		g_warning("can't save upload statistics: no file name recorded");
-		return;
-	}
 }
 
-/*
- * this is me, dreaming of gtk 2.0...
- */
-static int ul_find_row_by_upload(
-	const struct upload *u, struct ul_stats **s)
+static struct ul_stats *upload_stats_find(const gchar *name, guint64 size)
 {
-	int i;
-    GtkCList *clist = 
-        GTK_CLIST(lookup_widget(main_window, "clist_ul_stats"));
+    GList *l;
 
-	/* go through the clist_ul_stats, looking for the file...
-	 * blame gtk/glib, not me...
-	 */
-	for (i = 0; i < ul_rows; i++) {
-		gchar *filename;
-		struct ul_stats *us;
-
-		us = gtk_clist_get_row_data(clist, i);
-
-		if (us->size != u->file_size)
-			continue;
-
-		gtk_clist_get_text(clist, i,
-			c_us_filename, &filename);
-
-		if (g_str_equal(filename, u->name)) {
-			*s = us;
-			return i;
-		}
+	for (l = g_list_first(upload_stats_list); NULL != l; l = g_list_next(l)) {
+		struct ul_stats *s;
+	
+		s = l->data;
+		if (size == s->size && g_str_equal(name, s->filename))
+			return s;
 	}
-	return -1;
+
+	return NULL;
 }
 
 /*
  * Called when an upload starts
  */
-void ul_stats_file_begin(const struct upload *u)
+void upload_stats_file_begin(const struct upload *u)
 {
-	gint row;
 	struct ul_stats *stat;
 
 	/* find this file in the ul_stats_clist */
-	row = ul_find_row_by_upload(u, &stat);
+	stat = upload_stats_find(u->name, u->file_size);
 
 	/* increment the attempted counter */
-	if (-1 == row)
-		ul_stats_add_row(u->name, u->file_size, 1, 0, 0);
+	if (NULL == stat)
+		upload_stats_add(u->name, u->file_size, 1, 0, 0);
 	else {
-		gchar attempts_tmp[16];
-        GtkCList *clist = 
-            GTK_CLIST(lookup_widget(main_window, "clist_ul_stats"));
-
 		stat->attempts++;
-
-		/* set attempt cell contents */
-		g_snprintf(attempts_tmp, sizeof(attempts_tmp), "%d", stat->attempts);
-		gtk_clist_set_text(clist, row, c_us_attempts, attempts_tmp);
-        
-        // FIXME: use auto-sort?
-		gtk_clist_sort(clist);
+		upload_stats_gui_update(u->name, u->file_size);
 	}
 
 	dirty = TRUE;		/* Request asynchronous save of stats */
 }
 
 /*
- * ul_stats_file_add
+ * upload_stats_file_add
  *
  * Add `comp' to the current completed count, and update the amount of
  * bytes transferred.  Note that `comp' can be zero.
@@ -341,55 +271,41 @@ void ul_stats_file_begin(const struct upload *u)
  * If the row does not exist (race condition: deleted since upload started),
  * recreate one.
  */
-static void ul_stats_file_add(const struct upload *u, gint comp, gint sent)
+static void upload_stats_file_add(
+	const gchar *name, guint64 size, gint comp, guint sent)
 {
-	gint row;
 	struct ul_stats *stat;
 
 	g_assert(comp >= 0);
 
 	/* find this file in the ul_stats_clist */
-	row = ul_find_row_by_upload(u, &stat);
+	stat = upload_stats_find(name, size);
 
 	/* increment the completed counter */
-	if (-1 == row) {
+	if (NULL == stat) {
 		/* uh oh, row has since been deleted, add it: 1 attempt */
-		ul_stats_add_row(u->name, u->file_size, 1, comp, sent);
+		upload_stats_add(name, size, 1, comp, sent);
 	} else {
-		gchar complete_tmp[16];
-		gchar norm_tmp[16];
-        GtkCList *clist =
-            GTK_CLIST(lookup_widget(main_window, "clist_ul_stats"));
-
-		/* update complete counter */
-		stat->complete += comp;
-		g_snprintf(complete_tmp, sizeof(complete_tmp), "%d", 
-			stat->complete);
-		gtk_clist_set_text(clist, row, c_us_complete, complete_tmp);
-
-		/* update normalized upload counter */
 		stat->bytes_sent += sent;
-		stat->norm = (float) stat->bytes_sent / (float) stat->size;
-
-		g_snprintf(norm_tmp, sizeof(complete_tmp), "%.3f", stat->norm);
-		gtk_clist_set_text(clist, row, c_us_norm, norm_tmp);
-
-        // FIXME: use auto-sort?
-		gtk_clist_sort(clist);
+		stat->norm = (gfloat) stat->bytes_sent / (gfloat) stat->size;
+		stat->complete += comp;
+		upload_stats_gui_update(name, size);
 	}
 
 	dirty = TRUE;		/* Request asynchronous save of stats */
 }
 
 /*
- * ul_stats_file_aborted
+ * upload_stats_file_aborted
  *
  * Called when an upload is aborted, to update the amount of bytes transferred.
  */
-void ul_stats_file_aborted(const struct upload *u)
+void upload_stats_file_aborted(const struct upload *u)
 {
-	if (u->pos > u->skip)
-		ul_stats_file_add(u, 0, u->pos - u->skip);
+	if (u->pos > u->skip) {
+		upload_stats_file_add(u->name, u->file_size, 0, u->pos - u->skip);
+		upload_stats_gui_update(u->name, u->file_size);
+	}
 }
 
 /*
@@ -397,23 +313,28 @@ void ul_stats_file_aborted(const struct upload *u)
  *
  * Called when an upload completes
  */
-void ul_stats_file_complete(const struct upload *u)
+void upload_stats_file_complete(const struct upload *u)
 {
-	ul_stats_file_add(u, 1, u->end - u->skip + 1);
+	upload_stats_file_add(u->name, u->file_size, 1, u->end - u->skip + 1);
 }
 
-void ul_stats_prune_nonexistant()
+void upload_stats_prune_nonexistent()
 {
 	/* for each row, get the filename, check if filename is ? */
 }
 
-void ul_stats_clear_all()
+void upload_stats_clear_all(void)
 {
-    GtkCList *clist =
-        GTK_CLIST(lookup_widget(main_window, "clist_ul_stats"));
+    GList *l;
 
-	gtk_clist_clear(clist);
-	ul_rows = 0;
+	upload_stats_gui_clear_all();
+
+	for (l = g_list_first(upload_stats_list); NULL != l; l = g_list_next(l)) {
+		G_FREE_NULL(((struct ul_stats *)(l->data))->filename);
+		G_FREE_NULL(l->data);
+	}
+
+	g_list_free(upload_stats_list);
 	dirty = TRUE;
 }
 

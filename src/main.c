@@ -196,7 +196,7 @@ static void slow_main_timer(time_t now)
 		search_gui_store_searches();
 		break;
 	case 2:
-		ul_flush_stats_if_dirty();
+		upload_stats_flush_if_dirty();
 		break;
 	case 3:
 		file_info_store_if_dirty();

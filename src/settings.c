@@ -203,7 +203,7 @@ void settings_init(void)
 
 		g_snprintf(cfg_tmp, sizeof(cfg_tmp), "%s/%s",
 			config_dir, ul_stats_file);
-		ul_stats_load_history(cfg_tmp);		/* Loads the upload statistics */
+		upload_stats_load_history(cfg_tmp);	/* Loads the upload statistics */
 	}
 
 	/* watch for filter_file defaults */
@@ -278,7 +278,7 @@ void settings_hostcache_save(void)
 static void settings_upload_stats_save(void)
 {
 	g_snprintf(cfg_tmp, sizeof(cfg_tmp), "%s/%s", config_dir, ul_stats_file);
-	ul_stats_dump_history(cfg_tmp, TRUE);
+	upload_stats_dump_history(cfg_tmp, TRUE);
 }
 
 /*

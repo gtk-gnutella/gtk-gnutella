@@ -584,6 +584,7 @@ void upload_kill(gnet_upload_t);
 // FIXME: temporaily located here:
 
 struct ul_stats {
+	gchar *filename;
 	guint32 size;
 	guint32 attempts;
 	guint32 complete;

@@ -26,6 +26,9 @@
 #ifndef __uploads_stats_gui_h__
 #define __uploads_stats_gui_h__
 
-#include "gui.h"
+void upload_stats_gui_init(void);
+void upload_stats_gui_add(struct ul_stats *);
+void upload_stats_gui_update(const gchar *, guint64);
+void upload_stats_gui_clear_all(void);
 
 #endif /* __uploads_stats_gui_h__ */

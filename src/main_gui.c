@@ -39,6 +39,7 @@
 #include "search_stats_gui.h"
 #include "gnet_stats_gui.h"
 #include "uploads_gui.h"
+#include "upload_stats_gui.h"
 #include "downloads_gui.h"
 #include "version.h"
 
@@ -312,10 +313,11 @@ void main_gui_init(void)
 #endif
 	gtk_clist_column_titles_passive(
         GTK_CLIST(lookup_widget(main_window, "clist_downloads")));
-
+#ifndef USE_GTK2
     gtk_clist_set_compare_func(
         GTK_CLIST(lookup_widget(main_window, "clist_ul_stats")), 
         compare_ul_norm);
+#endif
 
     {
         GtkCList *clist = 

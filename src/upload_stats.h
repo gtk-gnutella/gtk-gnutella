@@ -27,17 +27,15 @@
 #define __upload_stats_h__
 
 #include <glib.h>
-#include <gtk/gtk.h>
-
 #include "uploads.h"
 
-void ul_stats_load_history(const gchar *);
-void ul_stats_dump_history(const gchar *filename, gboolean cleanup);
-void ul_flush_stats_if_dirty(void);
-void ul_stats_file_begin(const struct upload *u);
-void ul_stats_file_aborted(const struct upload *u);
-void ul_stats_file_complete(const struct upload *u);
-void ul_stats_prune_nonexistant();
-void ul_stats_clear_all();
+void upload_stats_load_history(const gchar *);
+void upload_stats_dump_history(const gchar *filename, gboolean cleanup);
+void upload_stats_flush_if_dirty(void);
+void upload_stats_file_begin(const struct upload *u);
+void upload_stats_file_aborted(const struct upload *u);
+void upload_stats_file_complete(const struct upload *u);
+void upload_stats_prune_nonexistent(void);
+void upload_stats_clear_all(void);
 
 #endif

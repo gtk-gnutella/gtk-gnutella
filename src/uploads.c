@@ -662,7 +662,7 @@ static void upload_remove_v(
 	 */
 
 	if (UPLOAD_IS_SENDING(u) && !u->accounted)
-		ul_stats_file_aborted(u);
+		upload_stats_file_aborted(u);
 
     if (!UPLOAD_IS_COMPLETE(u)) {
         if (u->status == GTA_UL_WAITING)
@@ -2143,7 +2143,7 @@ static void upload_request(gnutella_upload_t *u, header_t *header)
 	u->bio = bsched_source_add(bws.out, s->file_desc,
 		BIO_F_WRITE, upload_write, (gpointer) u);
 
-	ul_stats_file_begin(u);
+	upload_stats_file_begin(u);
 }
 
 /*
@@ -2253,9 +2253,9 @@ static void upload_write(gpointer up, gint source, inputevt_cond_t cond)
 		u->status = GTA_UL_COMPLETE;
 
         gnet_prop_set_guint32_val(PROP_TOTAL_UPLOADS, total_uploads + 1);
-		ul_stats_file_complete(u);
+		upload_stats_file_complete(u);
         upload_fire_upload_info_changed(u); /* gui must update last state */
-		u->accounted = TRUE;			/* Called ul_stats_file_complete() */
+		u->accounted = TRUE;		/* Called upload_stats_file_complete() */
 
 		/*
 		 * If we're going to keep the connection, we must clone the upload
@@ -2312,7 +2312,7 @@ void upload_close(void)
 	for (l = uploads; l; l = l->next) {
 		gnutella_upload_t *u = (gnutella_upload_t *) l->data;
 		if (UPLOAD_IS_SENDING(u) && !u->accounted)
-			ul_stats_file_aborted(u);
+			upload_stats_file_aborted(u);
 		upload_free_resources(u);
 		g_free(u);
 	}
