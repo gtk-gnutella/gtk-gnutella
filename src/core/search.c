@@ -708,6 +708,20 @@ get_results_set(gnutella_node_t *n, gboolean validate_only)
 						}
 					}
 					break;
+				case EXT_T_GGEP_LF:			/* Large File */
+					{
+						guint64 fs;
+					
+					   	ret = ggept_lf_extract(e, &fs);
+						if (ret == GGEP_OK) {
+							rc->size = fs;
+						} else {
+							g_warning("%s bad GGEP \"LF\" (dumping)",
+								gmsg_infostr(&n->header));
+							ext_dump(stderr, e, 1, "....", "\n", TRUE);
+						}
+					}					
+					break;
 				case EXT_T_GGEP_T:			/* Descriptive text */
 					unknown = FALSE;		/* Disables ext_has_ascii_word() */
 					/* FALLTHROUGH */
@@ -727,8 +741,6 @@ get_results_set(gnutella_node_t *n, gboolean validate_only)
 						g_string_append(info, e->ext_payload);
 						*p = c;
 					}
-					break;
-				default:
 					break;
 				}
 			}
