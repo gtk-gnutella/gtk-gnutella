@@ -47,6 +47,7 @@
 #define GGEP_L_CONT		0x80		/* Continuation present */
 #define GGEP_L_LAST		0x40		/* Last byte */
 #define GGEP_L_VALUE	0x3f		/* Value */
+#define GGEP_L_VSHIFT	6
 
 #define GGEP_L_XFLAGS	(GGEP_L_CONT | GGEP_L_LAST)
 
