@@ -690,12 +690,15 @@ void parq_dl_reparent_id(struct download *d, struct download *cd)
 	g_assert(parq_dl != NULL);
 	g_assert(d->queue_status == cd->queue_status);	/* Cloned */
 
-	/* Not all parq downloads have an ID */
+	/*
+	 * Legacy queueing might not provide any ID.
+	 */
+
 	if (parq_dl->id != NULL) {
 		g_hash_table_remove(dl_all_parq_by_id, parq_dl->id);
 		g_hash_table_insert(dl_all_parq_by_id, parq_dl->id, cd);
 	}
-	
+
 	d->queue_status = NULL;			/* No longer associated to `d' */
 }
 
@@ -799,7 +802,7 @@ gboolean parq_download_parse_queue_status(struct download *d, header_t *header)
 		/* Someone might not be playing nicely. */
 		if (parq_dl->lifetime < parq_dl->retry_delay) {
 			parq_dl->lifetime = MAX(300, parq_dl->retry_delay );
-			g_warning(__FILE__ ": PARQ: Invalid lifetime, using: %d\r\n",
+			g_warning(__FILE__ ": PARQ: Invalid lifetime, using: %d",
 				  parq_dl->lifetime);
 		}
 		
@@ -3017,7 +3020,8 @@ static void parq_upload_load_queue(void)
 	
 	u = walloc(sizeof(gnutella_upload_t));
 	
-	g_warning(__FILE__ ": Loading queue information\n");
+	if (dbg)
+		g_warning(__FILE__ ": Loading queue information");
 
 	line[sizeof(line)-1] = '\0';
 
