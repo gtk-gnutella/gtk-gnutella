@@ -147,9 +147,8 @@ static void gtk_gnutella_atexit()
  */
 void gtk_gnutella_exit(gint n)
 {
-	time_t now = time((time_t *) NULL);
-	time_t tick;
-	time_t exit_grace = EXIT_GRACE;
+	time_t exit_time = time((time_t *) NULL);
+	gint exit_grace = EXIT_GRACE;
 
 	if (exiting)
 		return;			/* Already exiting, must be in loop below */
@@ -211,11 +210,13 @@ void gtk_gnutella_exit(gint n)
 		s_listen = NULL;
 	}
 
-	while (
-		node_bye_pending() &&
-		(tick = time((time_t *) NULL)) - now < exit_grace
-	) {
-		main_gui_shutdown_tick(exit_grace - (gint) difftime(tick, now));
+	while (node_bye_pending()) {
+		time_t now = time(NULL);
+		gint d;
+
+		if ((d = delta_time(now, exit_time)) >= exit_grace)
+			break;
+		main_gui_shutdown_tick(exit_grace - d);
 		usleep(200000);					/* 200 ms */
 	}
 
@@ -329,7 +330,7 @@ static void slow_main_timer(time_t now)
 	node_slow_timer(now);
 	ignore_timer(now);
 
-	if (now - last_warn > 600) {
+	if (delta_time(now, last_warn) > 600) {
 		version_ancient_warn();
 		last_warn = now;
 	}
@@ -475,14 +476,28 @@ static void log_handler(const gchar *log_domain, GLogLevelFlags log_level,
 
 	if (safer != message)
 		G_FREE_NULL(safer);
+
+#if 1
+	/* Define to debug Glib or Gtk problems */
+	if (log_domain && 
+		(!strcmp(log_domain, "Gtk") || !strcmp(log_domain, "GLib"))
+	) {
+		raise(SIGTRAP);
+	}
+#endif
 }
 
 static void log_init(void)
 {
-	g_log_set_handler(G_LOG_DOMAIN,
-		G_LOG_LEVEL_ERROR | G_LOG_LEVEL_CRITICAL | G_LOG_LEVEL_WARNING |
-		G_LOG_LEVEL_MESSAGE | G_LOG_LEVEL_INFO | G_LOG_LEVEL_DEBUG,
-		log_handler, NULL);
+	const gchar *domains[] = { G_LOG_DOMAIN, "Gtk", "GLib" };
+	guint i;
+
+	for (i = 0; i < G_N_ELEMENTS(domains); i++) {
+		g_log_set_handler(domains[i],
+			G_LOG_LEVEL_ERROR | G_LOG_LEVEL_CRITICAL | G_LOG_LEVEL_WARNING |
+			G_LOG_LEVEL_MESSAGE | G_LOG_LEVEL_INFO | G_LOG_LEVEL_DEBUG,
+			log_handler, NULL);
+	}
 }
 
 gint main(gint argc, gchar **argv, gchar **env)
