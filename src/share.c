@@ -917,10 +917,10 @@ static void flush_match(void)
 		iov[3].iov_base = &revchar;
 		iov[3].iov_len = 1;
 
-		iov[4].iov_base = &release;
+		iov[4].iov_base = (gpointer) &release;
 		iov[4].iov_len = 4;
 
-		iov[5].iov_base = &start;
+		iov[5].iov_base = (gpointer) &start;
 		iov[5].iov_len = 4;
 
 		w = ggep_ext_writev(version, sizeof(version),
