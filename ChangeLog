@@ -3,6 +3,7 @@
 - (2004-06-21 - RAM)
  * Switched to ISO date formats in ChangeLog, as well as in code comments.
  * Don't loose a source if we can't connect due to a lack of file descriptors.
+ * Remind them they're banned every BAN_REMIND attempts.
 
 - (2004.06.16 - JA)
  * Hopefully fixed phantom downloads due to PARQ callback
