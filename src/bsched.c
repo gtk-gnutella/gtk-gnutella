@@ -272,7 +272,7 @@ void bsched_close(void)
 /*
  * bsched_set_peermode
  *
- * Adapt the overall Gnet bandwidth repartition depending on the current
+ * Adapt the overall Gnet/HTTP bandwidth repartition depending on the current
  * peermode.
  *
  * This routine is called each time the peermode changes.
@@ -284,14 +284,16 @@ void bsched_set_peermode(node_peer_t mode)
 	case NODE_P_LEAF:
 		bsched_set_bandwidth(bws.glin, 0);
 		bsched_set_bandwidth(bws.glout, 0);
-		bsched_set_bandwidth(bws.gin, bw_gnet_lin + bw_gnet_in);
-		bsched_set_bandwidth(bws.gout, bw_gnet_lout + bw_gnet_out);
+		bsched_set_bandwidth(bws.in, bw_gnet_lin + bw_http_in);
+		bsched_set_bandwidth(bws.out, bw_gnet_lout + bw_http_out);
 		break;
 	case NODE_P_ULTRA:
 		bsched_set_bandwidth(bws.glin, bw_gnet_lin);
 		bsched_set_bandwidth(bws.glout, bw_gnet_lout);
-		bsched_set_bandwidth(bws.gin, bw_gnet_in);
-		bsched_set_bandwidth(bws.gout, bw_gnet_out);
+		// XXX take leaf bandwidth OUT of HTTP, up to the maximum.
+		// XXX if no more bandwidth OUT, disable sharing.
+		bsched_set_bandwidth(bws.in, bw_http_in);
+		bsched_set_bandwidth(bws.out, bw_http_out);
 		if (bws.glin->bw_per_second && bws_glin_enabled)
 			bsched_enable(bws.glin);
 		if (bws.glout->bw_per_second && bws_glout_enabled)
