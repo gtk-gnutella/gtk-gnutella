@@ -348,13 +348,12 @@ gtk_cell_renderer_progress_render (
 	GdkRectangle *expose_area,
 	guint flags)
 {
-	GtkCellRendererProgress *cellprogress =
-		(GtkCellRendererProgress *) cell;
+	GtkCellRendererProgress *cellprogress = (GtkCellRendererProgress *) cell;
 	GtkStateType state;
 	GdkGC *gc;
 	PangoLayout *layout;
 	PangoRectangle logical_rect;
-	char *text; 
+	char text[32]; 
 	int x, y, w, h, perc_w, pos;
 	
 	gc = gdk_gc_new (window);
@@ -370,18 +369,15 @@ gtk_cell_renderer_progress_render (
 	gdk_gc_set_rgb_fg_color(gc, &widget->style->bg[GTK_STATE_NORMAL]);
 	gdk_draw_rectangle(window, gc, TRUE, x + 1, y + 1, w - 2, h - 2);
 	gdk_gc_set_rgb_fg_color(gc, &widget->style->bg[GTK_STATE_SELECTED]);
-	perc_w = w - 4;
-	perc_w = (int)(perc_w * cellprogress->priv->value);
+	perc_w = (int)((w - 4) * cellprogress->priv->value);
 	gdk_draw_rectangle(window, gc, TRUE, x + 2, y + 2, perc_w, h - 4);
 	
-	text = g_strdup_printf("%.0f", cellprogress->priv->value * 100);
+	gm_snprintf(text, sizeof text, "%.0f", cellprogress->priv->value * 100);
 	layout = gtk_widget_create_pango_layout(widget, text);
 	pango_layout_get_pixel_extents(layout, NULL, &logical_rect);
 	g_object_unref(G_OBJECT (layout));
-	g_free(text);
-	text = g_strdup_printf("%.0f %%", cellprogress->priv->value * 100);
+	gm_snprintf(text, sizeof text, "%.0f %%", cellprogress->priv->value * 100);
 	layout = gtk_widget_create_pango_layout(widget, text);
-	g_free(text);
 	
 	pos = (w - logical_rect.width) / 2;
 	
@@ -419,8 +415,9 @@ gtk_cell_renderer_progress_finalize(GObject *object)
 {
 	GtkCellRendererProgress *cellprogress =
 		GTK_CELL_RENDERER_PROGRESS (object);
-	g_free(cellprogress->priv);
+	G_FREE_NULL(cellprogress->priv);
 	(*G_OBJECT_CLASS(parent_class)->finalize)(object);
 }
 
+/* vi: set ts=4: */
 #endif	/* USE_GTK2 */
