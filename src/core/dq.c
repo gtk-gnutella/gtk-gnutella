@@ -118,6 +118,7 @@ typedef struct dquery {
 #define DQ_F_LINGER			0x00000002	/* Lingering to monitor extra results */
 #define DQ_F_LEAF_GUIDED	0x00000004	/* Leaf-guided query */
 #define DQ_F_WAITING		0x00000008	/* Waiting guidance reply from leaf */
+#define DQ_F_GOT_GUIDANCE	0x00000010	/* Got unsollicited leaf guidance */
 #define DQ_F_EXITING		0x80000000	/* Final cleanup at exit time */
 
 /*
@@ -767,9 +768,11 @@ dq_results_expired(cqueue_t *cq, gpointer obj)
 
 	/*
 	 * If host does not support leaf-guided queries, proceed to next ultra.
+	 * If we got unsollicited guidance info whilst we were waiting for
+	 * results to come back, also proceed.
 	 */
 
-	if (!(dq->flags & DQ_F_LEAF_GUIDED)) {
+	if (!(dq->flags & DQ_F_LEAF_GUIDED) || (dq->flags & DQ_F_GOT_GUIDANCE)) {
 		dq_send_next(dq);
 		return;
 	}
@@ -993,6 +996,8 @@ dq_send_next(dquery_t *dq)
 		dq_terminate(dq);
 		return;
 	}
+
+	dq->flags &= ~DQ_F_GOT_GUIDANCE;	/* Clear flag */
 
 	/*
 	 * Terminate query if we reached the amount of results we wanted or
@@ -1439,6 +1444,7 @@ dq_got_query_status(gchar *muid, guint32 node_id, guint16 kept)
 		return;
 
 	dq->kept_results = kept;
+	dq->flags |= DQ_F_GOT_GUIDANCE;
 
 	if (dq_debug > 19) {
 		if (dq->flags & DQ_F_LINGER)
@@ -1446,8 +1452,9 @@ dq_got_query_status(gchar *muid, guint32 node_id, guint16 kept)
 				dq->qid, (gint) (time(NULL) - dq->start),
 				(gint) (time(NULL) - dq->stop), dq->kept_results);
 		else
-			printf("DQ[%d] (%d secs) kept_results=%d\n",
-				dq->qid, (gint) (time(NULL) - dq->start), dq->kept_results);
+			printf("DQ[%d] (%d secs) %ssollicited, kept_results=%d\n",
+				dq->qid, (gint) (time(NULL) - dq->start),
+				(dq->flags & DQ_F_WAITING) ? "" : "un", dq->kept_results);
 	}
 
 	/*
