@@ -25,42 +25,29 @@
  *----------------------------------------------------------------------
  */
 
-#include "gnutella.h"
 #include "gui.h"
-#include "sockets.h"	/* For local_ip. (FIXME: move to config.h?) */
 #include "search_gui.h"
-#include "share.h"		/* For stats globals. (FIXME: move to config.h?) */
-#include "downloads.h"	/* For stats globals. (FIXME: move to config.h?) */
-#include "misc.h"
 #include "callbacks.h"
-#include "gtk-missing.h"
+#include "search.h"
 
 #include "filter_gui.h"
 #include "nodes_gui.h"
 #include "statusbar_gui.h"
-#include "nodes.h"
-#include "fileinfo.h"
 
-#include <netinet/in.h>
 #include <arpa/inet.h>
 #include <math.h>
 
 #include "gnet_property_priv.h" // FIXME: remove this dependency
 #include "gui_property_priv.h"
 
-#include "gnet.h"
 #include "statusbar_gui.h"
 #include "settings_gui.h"
-#include "settings.h" // FIXME: remove this dependency
 
 #define NO_FUNC
 
 #define IO_STALLED		60		/* If nothing exchanged after that many secs */
 
 static gchar gui_tmp[4096];
-
-static gchar *last_stable = NULL;	/* Last stable version seen */
-static gchar *last_dev = NULL;		/* Last development version seen */
 
 static GList *sl_search_history = NULL;
 
@@ -228,8 +215,6 @@ void gui_update_all()
 	gui_update_c_uploads();
 	gui_update_c_downloads(0, 0);
     
-	gui_update_config_port(TRUE);
-
 	gui_update_files_scanned();
 
 	gui_update_scan_extensions();
@@ -263,7 +248,6 @@ void gui_update_all()
     gui_update_bandwidth_ginput();
 	gui_update_bandwidth_goutput();
     gui_update_stats_frames();
-    gui_address_changed();
 
     {
         guint32 coord[4] = {0, 0, 0, 0};
@@ -278,140 +262,6 @@ void gui_update_all()
     }
 }
 
-/*
- * gui_new_version_found
- *
- * Called when a new version is found.
- * `text' is the textual version information.
- * `stable' indicates whether we've seen more a stable version.
- */
-void gui_new_version_found(gchar *text, gboolean stable)
-{
-	gchar **update = stable ? &last_stable : &last_dev;
-    gchar *s;
-
-	if (*update)
-		g_free(*update);
-	*update = g_strdup(text);
-
-	s = g_strdup_printf(
-		"%s - Newer version%s available: %s%s%s%s%s",
-		GTA_WEBSITE,
-		last_stable && last_dev ? "s" : "",
-		last_stable ? "release " : "",
-		last_stable ? last_stable : "",
-		last_stable && last_dev ? " / " : "",
-		last_dev ? "from CVS " : "",
-		last_dev ? last_dev : "");
-
-    gnet_prop_set_string(PROP_NEW_VERSION_STR, s);
-
-    g_free(s);
-}
-
-/*
- * gui_ancient_warn
- *
- * Warn them about the old version they're running.
- */
-void gui_ancient_warn(void)
-{
-    gboolean b = TRUE;
-
-    gnet_prop_set_boolean(PROP_ANCIENT_VERSION, &b, 0, 1);
-}
-
-/*
- * gui_address_changed:
- *
- * Checks wether listen_port or listen_ip
- * have changed since the last call and displays
- * a notice in case and updates the relevant widgets.
- */
-void gui_address_changed()
-{
-    static guint32 old_address = 0;
-    static guint16 old_port = 0;
-   
-    if (old_address != listen_ip() || old_port != listen_port) {
-        gchar * iport;
-        GtkLabel *label_current_port;
-        GtkEntry *entry_nodes_ip;
-
-        label_current_port = 
-            GTK_LABEL(lookup_widget(main_window, "label_current_port"));
-        entry_nodes_ip =
-            GTK_ENTRY(lookup_widget(main_window, "entry_nodes_ip"));
-
-      	iport = ip_port_to_gchar(listen_ip(), listen_port);
-
-        old_address = listen_ip();
-        old_port = listen_port;
-
-        statusbar_gui_message
-            (15, "Address/port changed to: %s", iport);
-
-        gtk_label_set(label_current_port, iport);
-        gtk_entry_set_text(entry_nodes_ip, iport);
-    }
-}
-
-void gui_update_config_port(gboolean force)
-{
-    GtkWidget *spinbutton_config_port;
-
-    spinbutton_config_port = 
-        lookup_widget(main_window, "spinbutton_config_port");
-
-    gui_address_changed();
-   
-    /*
-     * Make sure we don't change the values if the user is
-     * currently editing them.
-     *      --BLUE, 15/05/2002
-     */
-    if (force || !GTK_WIDGET_HAS_FOCUS(spinbutton_config_port))
-        gtk_spin_button_set_value
-            (GTK_SPIN_BUTTON(spinbutton_config_port), listen_port);
-}
-
-/*
-void gui_update_count_downloads(void)
-{
-	g_snprintf(gui_tmp, sizeof(gui_tmp), "%u", count_downloads);
-    gtk_entry_set_text(
-        GTK_ENTRY(lookup_widget(main_window, "entry_count_downloads")),
-        gui_tmp);
-}
-
-void gui_update_count_uploads(void)
-{
-	g_snprintf(gui_tmp, sizeof(gui_tmp), "%u", count_uploads);
-    gtk_entry_set_text(
-        GTK_ENTRY(lookup_widget(main_window, "entry_count_uploads")),
-        gui_tmp);
-}
-*/
-
-/*
-void gui_update_save_file_path(void)
-{
-	g_snprintf(gui_tmp, sizeof(gui_tmp), "%s", save_file_path);
-    gtk_entry_set_text(
-        GTK_ENTRY(lookup_widget(main_window, "entry_config_save_path")),
-        gui_tmp);
-}
-*/
-
-/*
-void gui_update_move_file_path(void)
-{
-	g_snprintf(gui_tmp, sizeof(gui_tmp), "%s", move_file_path);
-	gtk_entry_set_text(
-        GTK_ENTRY(lookup_widget(main_window, "entry_config_move_path")),
-        gui_tmp);
-}
-*/
 
 void gui_update_c_gnutellanet(void)
 {
@@ -1370,18 +1220,6 @@ void gui_search_history_add(gchar * s)
     
     sl_search_history = new_hist;
 }
-
-void gui_close(void)
-{
-	if (last_stable)
-		g_free(last_stable);
-	if (last_dev)
-		g_free(last_dev);
-}
-
-void gui_shutdown(void)
-{
-} 
 
 void gui_update_stats_frames()
 {
