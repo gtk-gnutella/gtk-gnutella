@@ -1,11 +1,23 @@
 # since last version
 
+- (2003.12.11 - RAM)
+ * Changed compact_size() to display an even more compact string when the
+   size is an even multiple of Kbytes, Mbytes, etc...
+ * Added some query routing table stats for ultrapeers to monitor their leaves.
+
 - (2003.12.10 - RAM)
  * Added warning when running under debug level tracing the BYE received.
  * When we're a leaf node, don't issue any "Activity Timeout" to our
    Ultranodes.  If the connection went dead, this will be caught by their
    not replying to our alive pings, after 8 minutes.
  * Added query throttle.
+ * Make sure to initialize `last_update' when creating a node, to avoid
+   it being immediately selected by the node_timer() thread for removal!
+   Restored the activity timeout check...
+ * When remote Gnutella node does not reply correctly or issues a 401 reply,
+   remember his IP address as being bad.
+ * Keep query/ hit statistics per node (TX & RX) and measure QRP efficiency
+   for leaf nodes.
 
 - (2003.12.09 - Jeroen)
  * Intergrated and somewhat adjusted patch from Thadeu Lima de Souza Cascardo.
