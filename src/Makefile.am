@@ -49,13 +49,14 @@ GLADE_UI = \
 	support-glade1.c support-glade1.h
 ADDITIONAL_DROPIN = \
 	gtkcolumnchooser.c gtkcolumnchooser.h \
-	monitor_gui.c monitor_gui.h \
+	monitor_gui.c monitor_gui.h monitor_cb.c monitor_cb.h \
 	nodes_gui.c nodes_gui.h nodes_cb.c nodes_cb.h \
 	gui_property.c gui_property.h gui_property_priv.h \
 	settings_gui.c settings_gui.h settings_cb.c settings_cb.h \
 	statusbar_gui.c statusbar_gui.h \
 	search_gui.c search_gui.h search_cb.c search_cb.h \
-	main_gui.c main_gui.h
+	downloads_gui.c downloads_gui.h \
+	main_gui.c main_gui.h main_cb.c main_cb.h 
 gtk_gnutella_LDADD = @GTK_LIBS@ -lz @XML_LIBS@
 endif
 
