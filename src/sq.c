@@ -281,6 +281,7 @@ retry:
 		printf("sq for node %s, ignored \"%s\" (%d left, %d sent)\n",
 			node_ip(n), QUERY_TEXT(pmsg_start(sb->mb)),
 			sq->count, sq->n_sent);
+		pmsg_free(sb->mb);
 	}
 
 	smsg_free(sb);
