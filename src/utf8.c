@@ -1021,10 +1021,10 @@ int unicode_filters(const UChar *source, gint32 len, UChar *result)
  */
 gchar *unicode_canonize(const gchar *in)
 {
-	UChar *qtmp1;
-	UChar *qtmp2;
-	int	len, maxlen;
-	gchar *out;
+	UChar	*qtmp1;
+	UChar	*qtmp2;
+	int	 len, maxlen, out_len;
+	gchar	*out;
 	gboolean latin_locale = is_latin_locale();
 
 	len = strlen(in);
@@ -1045,14 +1045,22 @@ gchar *unicode_canonize(const gchar *in)
 	len = unicode_filters(qtmp1, len, qtmp2);
 	len = unicode_NFC(qtmp2, len, qtmp1, maxlen);
 
-	out = g_malloc(len+1);
-
+	out = g_malloc(len + 1);
+	out_len = len + 1;
+	
 	if (latin_locale) /* Should be pure ASCII now */
 		len = icu_to_utf8_conv(qtmp2, len, out, len);
 	else
-		len = icu_to_utf8_conv(qtmp2, len, out, len*6);
+		len = icu_to_utf8_conv(qtmp2, len, out, len * 6);
 
-	out[len]=0;
+	/*
+	 * Make sure that the previous allocated memory is enough
+	 * 		-- JA 12/02/2004
+	 */
+	g_assert(len < out_len);
+	g_assert(len >= 0);
+	
+	out[len] = 0;
 
 	g_free(qtmp1);
 	g_free(qtmp2);
