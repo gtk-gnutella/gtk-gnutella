@@ -901,7 +901,7 @@ static gboolean looks_like_urn(const gchar *filename)
 {
 	gint idx;
 	const gchar *p;
-	gchar c;
+	gint c;
 
 	if (0 == strncasecmp(filename, "urn:", 4))
 		return TRUE;
@@ -915,7 +915,7 @@ static gboolean looks_like_urn(const gchar *filename)
 	idx = 0;
 	p = filename;
 
-	while ((c = *p++)) {
+	while ((c = *(guchar *) p++)) {
 		idx++;
 		if (isspace(c) || c == '_')
 			break;
