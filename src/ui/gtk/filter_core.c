@@ -437,7 +437,7 @@ filter_duplicate_rule(rule_t *r)
 {
     g_assert(r != NULL);
 
-    switch(r->type) {
+    switch (r->type) {
     case RULE_TEXT:
         return filter_new_text_rule
             (r->u.text.match, r->u.text.type, r->u.text.case_sensitive,
@@ -469,11 +469,12 @@ filter_duplicate_rule(rule_t *r)
 
 
 rule_t *
-filter_new_text_rule(gchar *match, gint type,
+filter_new_text_rule(const gchar *match, gint type,
     gboolean case_sensitive, filter_t *target, guint16 flags)
 {
   	rule_t *r;
     gchar *buf;
+	size_t match_len;
 
     g_assert(match != NULL);
     g_assert(target != NULL);
@@ -485,21 +486,33 @@ filter_new_text_rule(gchar *match, gint type,
     r->target                = target;
     r->u.text.case_sensitive = case_sensitive;
     r->u.text.type           = type;
-    r->u.text.match          = g_strdup(match);
-    r->u.text.matchlen       = strlen(match);
     set_flags(r->flags, RULE_FLAG_VALID);
 
+	match_len = strlen(match);
+	buf = g_malloc(match_len + 1);
+
     if (!r->u.text.case_sensitive) {
-		if (0 != utf8_is_valid_string(r->u.text.match, 0)) {
-			/* XXX: utf8_strlower() would be better since non-ASCII characters
-			 * are not modified. However, utf8_strcasecmp() would be more
-			 * appropriate. */
-        	ascii_strlower(r->u.text.match, r->u.text.match);
+		if (0 != utf8_is_valid_string(match, 0)) {
+			size_t len;
+
+			len = utf8_strlower(buf, match, match_len + 1);
+			if (len > match_len) {
+				match_len = len;
+				buf = g_realloc(buf, match_len + 1);
+				len = utf8_strlower(buf, match, match_len + 1);
+				g_assert(len == match_len);
+			}	
+			match_len = len;
 		} else {
 			/* Assume the string is encoded for the current locale */
-        	strlower(r->u.text.match, r->u.text.match);
+        	strlower(buf, match);
 		}
+	} else {
+		memcpy(buf, match, match_len);
 	}
+	
+	r->u.text.match = buf;
+	r->u.text.matchlen = match_len;
 
     buf = g_strdup(r->u.text.match);
 
@@ -621,7 +634,7 @@ filter_new_jump_rule(filter_t *target, guint16 flags)
 
 
 rule_t *
-filter_new_sha1_rule(gchar *sha1, gchar *filename,
+filter_new_sha1_rule(const gchar *sha1, const gchar *filename,
 	filter_t *target, guint16 flags)
 {
    	rule_t *f;
@@ -634,8 +647,7 @@ filter_new_sha1_rule(gchar *sha1, gchar *filename,
     f->type = RULE_SHA1;
 
   	f->target = target;
-    if (sha1 != NULL)
-        f->u.sha1.hash = g_memdup(sha1, SHA1_RAW_SIZE);
+    f->u.sha1.hash = sha1 != NULL ? g_memdup(sha1, SHA1_RAW_SIZE) : NULL;
     f->u.sha1.filename = g_strdup(filename);
     f->flags  = flags;
     set_flags(f->flags, RULE_FLAG_VALID);
@@ -1168,7 +1180,7 @@ filter_rule_to_gchar(rule_t *r)
  * Create a new filter with the given name.
  */
 filter_t *
-filter_new(gchar *name)
+filter_new(const gchar *name)
 {
     filter_t *f;
 
@@ -1925,7 +1937,7 @@ do {																\
  * argument is changed depending on the rules that match.
  */
 static int
-filter_apply(filter_t *filter, struct record *rec, filter_result_t *res)
+filter_apply(filter_t *filter, const struct record *rec, filter_result_t *res)
 {
     size_t namelen;
 	char *l_name;
@@ -1951,12 +1963,18 @@ filter_apply(filter_t *filter, struct record *rec, filter_result_t *res)
     list = filter->ruleset;
 
 	namelen = strlen(rec->name);
-	l_name = g_malloc(sizeof(char) * (namelen + 1));
+	l_name = g_malloc(namelen + 1);
 	if (0 != utf8_is_valid_string(rec->name, 0)) {
-		/* XXX: utf8_strlower() would be better since non-ASCII characters
-		 * are not modified. However, utf8_strcasecmp() would be more
-		 * appropriate. */
-		ascii_strlower(l_name, rec->name);
+		size_t len;
+
+		len = utf8_strlower(l_name, rec->name, namelen + 1);
+		if (len > namelen) {
+			namelen = len;
+			l_name = g_realloc(l_name, namelen + 1);
+			len = utf8_strlower(l_name, rec->name, namelen + 1);
+			g_assert(len == namelen);
+		}
+		namelen = len;
 	} else {
 		/* Assume the string is encoded for the current locale */
 		strlower(l_name, rec->name);
@@ -2193,7 +2211,7 @@ filter_apply(filter_t *filter, struct record *rec, filter_result_t *res)
  * rows. This must be freed with filter_free_properties.
  */
 filter_result_t *
-filter_record(search_t *sch, record_t *rec)
+filter_record(search_t *sch, const struct record *rec)
 {
     gboolean filtered;
     filter_result_t *result;
@@ -2474,7 +2492,7 @@ filter_is_valid_in_session(filter_t *f)
  * looks in the normal filter list.
  */
 filter_t *
-filter_find_by_name_in_session(gchar *name)
+filter_find_by_name_in_session(const gchar *name)
 {
     GList *l;
 
@@ -2547,7 +2565,7 @@ filter_get_global_post(void)
  * Adds a drop SHA1 rule to specified filter.
  */
 void
-filter_add_drop_sha1_rule(record_t *rec, filter_t *filter)
+filter_add_drop_sha1_rule(const struct record *rec, filter_t *filter)
 {
     rule_t *rule;
 
@@ -2566,7 +2584,7 @@ filter_add_drop_sha1_rule(record_t *rec, filter_t *filter)
  * Adds a drop filename rule to specified filter.
  */
 void
-filter_add_drop_name_rule(record_t *rec, filter_t *filter)
+filter_add_drop_name_rule(const struct record *rec, filter_t *filter)
 {
     rule_t *rule;
 
@@ -2585,7 +2603,7 @@ filter_add_drop_name_rule(record_t *rec, filter_t *filter)
  * Adds a drop host rule to specified filter.
  */
 void
-filter_add_drop_host_rule(record_t *rec, filter_t *filter)
+filter_add_drop_host_rule(const struct record *rec, filter_t *filter)
 {
     rule_t *rule;
 
@@ -2604,7 +2622,7 @@ filter_add_drop_host_rule(record_t *rec, filter_t *filter)
  * Adds a download SHA1 rule to specified filter.
  */
 void
-filter_add_download_sha1_rule(record_t *rec, filter_t *filter)
+filter_add_download_sha1_rule(const struct record *rec, filter_t *filter)
 {
     g_assert(rec != NULL);
     g_assert(filter != NULL);
@@ -2625,7 +2643,7 @@ filter_add_download_sha1_rule(record_t *rec, filter_t *filter)
  * Adds a download filename rule to specified filter.
  */
 void
-filter_add_download_name_rule(record_t *rec, filter_t *filter)
+filter_add_download_name_rule(const struct record *rec, filter_t *filter)
 {
     rule_t *rule;
 
