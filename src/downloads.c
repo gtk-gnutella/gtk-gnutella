@@ -1815,11 +1815,16 @@ static void download_request(struct download *d, header_t *header)
 
 	if (ack_code >= 200 && ack_code <= 299) {
 		/* empty -- everything OK */
-	} else if ((ack_code >= 500 && ack_code <= 599) || ack_code == 408) {
-		/* No hammering */
-		download_queue_delay(d, download_retry_busy_delay);
-		return;
 	} else {
+		switch (ack_code) {
+		case 408:				/* Request timeout */
+		case 503:				/* Busy */
+			/* No hammering */
+			download_queue_delay(d, download_retry_busy_delay);
+			return;
+		default:
+			break;
+		}
 		download_stop(d, GTA_DL_ERROR, "HTTP %d %s", ack_code, ack_message);
 		return;
 	}
@@ -2383,6 +2388,7 @@ void download_retry(struct download *d)
  ***/
 
 static gchar *download_file = "downloads";
+static gboolean retrieving = FALSE;
 
 /*
  * download_store
@@ -2397,8 +2403,13 @@ static void download_store(void)
 	FILE *out;
 	GSList *l;
 	time_t now = time((time_t *) NULL);
+	gchar filename[1024];
+	gboolean saved = FALSE;		/* Did we save at least one entry? */
 
-	g_snprintf(dl_tmp, sizeof(dl_tmp), "%s/%s", config_dir, download_file);
+	if (retrieving)
+		return;
+
+	g_snprintf(dl_tmp, sizeof(dl_tmp), "%s/%s.new", config_dir, download_file);
 	out = fopen(dl_tmp, "w");
 
 	if (!out) {
@@ -2425,6 +2436,7 @@ static void download_store(void)
 			continue;
 
 		escaped = url_escape_cntrl(d->file_name);	/* Protect against "\n" */
+		saved = TRUE;
 
 		fprintf(out, "%s\n", escaped);
 		fprintf(out, "%u, %u:%s, %s\n\n",
@@ -2436,8 +2448,18 @@ static void download_store(void)
 			g_free(escaped);
 	}
 
-	if (0 != fclose(out))
-		g_warning("Could not flush %s: %s", dl_tmp, g_strerror(errno));
+	if (0 == fclose(out)) {
+		if (saved) {
+			g_snprintf(filename, sizeof(filename), "%s/%s",
+				config_dir, download_file);
+
+			if (-1 == rename(dl_tmp, filename))
+				g_warning("could not rename %s as %s: %s",
+					dl_tmp, filename, g_strerror(errno));
+		} else
+			(void) unlink(dl_tmp);
+	} else
+		g_warning("could not flush %s: %s", dl_tmp, g_strerror(errno));
 }
 
 /*
@@ -2449,7 +2471,6 @@ static void download_store(void)
 static void download_retrieve(void)
 {
 	FILE *in;
-	struct stat buf;
 	guchar d_guid[16];		/* The d_ vars are what we deserialize */
 	guint32 d_size;
 	gchar *d_name;
@@ -2460,17 +2481,47 @@ static void download_retrieve(void)
 	gchar d_ipport[23];
 	gint recline;			/* Record line number */
 	gint line;				/* File line number */
+	gchar filename[1024];
 
 	g_snprintf(dl_tmp, sizeof(dl_tmp), "%s/%s", config_dir, download_file);
-	if (-1 == stat(dl_tmp, &buf))
-		return;
 
 	in = fopen(dl_tmp, "r");
 
-	if (!in) {
-		g_warning("Unable to open %s to retrieve downloads: %s",
-			dl_tmp, g_strerror(errno));
-		return;
+	/*
+	 * Rename "downloads" as "downloads.orig", so that the original file is
+	 * kept around some time for recovery purposes.
+	 *
+	 * Also if we can't open "downloads" but there is a "downloads.orig", then
+	 * open it instead: it probably means that we started but were suddenly
+	 * killed in the middle of this routine, before we were able to persist
+	 * it again.  (The alternative being that we could not persist the
+	 * downloads back for some reason, later on during processing, before
+	 * quitting, or whatever).
+	 */
+
+	g_snprintf(filename, sizeof(filename), "%s/%s.orig",
+		config_dir, download_file);
+
+	if (in) {
+		if (-1 == rename(dl_tmp, filename))
+			g_warning("could not rename %s as %s: %s",
+				dl_tmp, filename, g_strerror(errno));
+	} else {
+		gchar *error = g_strerror(errno);
+		struct stat buf;
+		gchar *instead = " instead";
+
+		if (-1 == stat(dl_tmp, &buf))
+			instead = "";				/* OK, we can't open a missing file */
+		else
+			g_warning("unable to open \"%s\" to retrieve downloads: %s",
+				dl_tmp, error);
+
+		in = fopen(filename, "r");
+		if (!in)
+			return;
+
+		g_warning("retrieving downloads from \"%s\"%s", filename, instead);
 	}
 
 	/*
@@ -2482,6 +2533,8 @@ static void download_retrieve(void)
 	 * recreate the download.  We stop as soon as we encounter an
 	 * error.
 	 */
+
+	retrieving = TRUE;			/* Prevent download_store() runs */
 
 	line = recline = 0;
 	d_name = NULL;
@@ -2555,9 +2608,13 @@ static void download_retrieve(void)
 	}
 
 out:
+	retrieving = FALSE;			/* Re-enable download_store() runs */
+
 	if (d_name)
 		g_free(d_name);
+
 	fclose(in);
+	download_store();			/* Persist what we have retrieved */
 }
 
 void download_close(void)
