@@ -315,6 +315,39 @@ typedef void (*cidr_split_t)(guint32 ip, guint8 bits, gpointer udata);
 void ip_range_split(
 	guint32 lower_ip, guint32 upper_ip, cidr_split_t cb, gpointer udata);
 
+/**
+ * Perform a binary search over an array.
+ *
+ * bs_type is the type of bs_item
+ * bs_key is the key to lookup
+ * bs_size is the array length
+ * bs_cmp(bs_item, bs_key) is used to compare the key with the current item
+ * bs_get_key(bs_index) must return the key at bs_index
+ * bs_found(bs_index) is executed if bs_key is found
+ *
+ * All local variables are prefixed with bs_ to prevent clashes with
+ * other visible variables.
+ */
+#define BINARY_SEARCH(bs_type, bs_key, bs_size, bs_cmp, bs_get_key, bs_found) \
+do { \
+	size_t bs_index, bs_j = 0, bs_k; \
+	for (bs_k = (bs_size); bs_k != 0; bs_k >>= 1) { \
+		bs_type bs_item; \
+		gint bs_cmp_result; \
+\
+		bs_index = bs_j + (bs_k >> 1); \
+		bs_item = bs_get_key(bs_index); \
+		bs_cmp_result = bs_cmp(bs_item, bs_key); \
+		if (0 == bs_cmp_result) {	\
+			bs_found(bs_index); \
+			break; \
+		} else if (bs_cmp_result < 0) { \
+			bs_j = bs_index + 1; \
+			bs_k--; \
+		} \
+	} \
+} while (0)
+
 #endif /* _misc_h_ */
 
 /* vi: set ts=4 sw=4 cindent: */
