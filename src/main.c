@@ -28,6 +28,7 @@
 
 #include <signal.h>
 #include <locale.h>
+#include <stdlib.h>
 
 #include "search.h"
 #include "share.h"
@@ -292,12 +293,19 @@ static gboolean scan_files_once(gpointer p)
 gint main(gint argc, gchar ** argv)
 {
 	gint i;
+	static gchar *lc_time = "LC_TIME=C";
 
 	for (i = 3; i < 256; i++)
 		close(i);				/* Just in case */
 
-	setlocale(LC_TIME, "C");	/* strftime() must emit standard dates */
+	/*
+	 * strftime() must emit standard dates, in English.
+	 */
 
+	if (-1 == putenv(lc_time))
+		g_warning("unable to add \"%s\" to the environment", lc_time);
+
+	setlocale(LC_TIME, "C");
 
     gnet_stats_init();
     main_gui_early_init(argc, argv);
