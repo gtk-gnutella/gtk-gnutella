@@ -4194,6 +4194,7 @@ static gboolean download_overlap_check(struct download *d)
 {
 	gchar *path;
 	struct gnutella_socket *s = d->socket;
+	struct dl_file_info *fi = d->file_info;
 	gint fd = -1;
 	struct stat buf;
 	gchar *data = NULL;
@@ -4203,8 +4204,10 @@ static gboolean download_overlap_check(struct download *d)
 	off_t end;
 	guint32 backout;
 
-	path = g_strdup_printf("%s/%s",
-				d->file_info->path, d->file_info->file_name);
+	g_assert(fi->lifecount > 0);
+	g_assert(fi->lifecount <= fi->refcount);
+
+	path = g_strdup_printf("%s/%s", fi->path, fi->file_name);
 	if (NULL == path)
 		goto out;
 
@@ -4212,16 +4215,14 @@ static gboolean download_overlap_check(struct download *d)
 	G_FREE_NULL(path);
 	if (fd == -1) {
 		const gchar * error = g_strerror(errno);
-		g_warning("cannot check resuming for \"%s\": %s",
-			d->file_info->file_name, error);
+		g_warning("cannot check resuming for \"%s\": %s", fi->file_name, error);
 		download_stop(d, GTA_DL_ERROR, "Can't check resume data: %s", error);
 		goto out;
 	}
 
 	if (-1 == fstat(fd, &buf)) {			/* Should never happen */
 		const gchar *error = g_strerror(errno);
-		g_warning("cannot stat opened \"%s\": %s",
-			d->file_info->file_name, error);
+		g_warning("cannot stat opened \"%s\": %s", fi->file_name, error);
 		download_stop(d, GTA_DL_ERROR, "Can't stat opened file: %s", error);
 		goto out;
 	}
@@ -4231,9 +4232,9 @@ static gboolean download_overlap_check(struct download *d)
 	 * immediately.
 	 */
 
-	if (!d->file_info->use_swarming && d->skip != d->file_info->done) {
+	if (!fi->use_swarming && d->skip != fi->done) {
 		g_warning("File '%s' changed size (now %lu, but was %u)",
-			d->file_info->file_name, (gulong) buf.st_size, d->skip);
+			fi->file_name, (gulong) buf.st_size, d->skip);
 		download_queue_delay(d, download_retry_stopped_delay,
 			"Stopped (Output file size changed)");
 		goto out;
@@ -4256,14 +4257,14 @@ static gboolean download_overlap_check(struct download *d)
 	if (r < 0) {
 		const gchar *error = g_strerror(errno);
 		g_warning("cannot read resuming data for \"%s\": %s",
-			d->file_info->file_name, error);
+			fi->file_name, error);
 		download_stop(d, GTA_DL_ERROR, "Can't read resume data: %s", error);
 		goto out;
 	}
 
 	if (r != d->overlap_size) {
 		g_warning("Short read (%d instead of %d bytes) on resuming data "
-			"for \"%s\"", r, d->overlap_size, d->file_info->file_name);
+			"for \"%s\"", r, d->overlap_size, fi->file_name);
 		download_stop(d, GTA_DL_ERROR, "Short read on resume data");
 		goto out;
 	}
@@ -4273,37 +4274,47 @@ static gboolean download_overlap_check(struct download *d)
 			printf("%d overlapping bytes UNMATCHED at offset %d for \"%s\"\n",
 				d->overlap_size, d->skip - d->overlap_size, d->file_name);
 
-		download_bad_source(d);
+		download_bad_source(d);		/* Until proven otherwise if we resume it */
+
 		if (dl_remove_file_on_mismatch) {
 			download_queue(d, "Resuming data mismatch @ %lu",
 				d->skip - d->overlap_size);
 			download_remove_file(d, TRUE);
-		} else
-			download_stop(d, GTA_DL_ERROR, "Resuming data mismatch @ %lu",
-				d->skip - d->overlap_size);
+		} else {
+			/*
+			 * It is most likely that we have a mismatch because
+			 * the other guy's data is not in order, but we could
+			 * also have received bad data ourselves. Just to be
+			 * sure we back out some of our data. Eventually we
+			 * should find a host with good data, or we have
+			 * backed out enough times for our data to be good
+			 * again. This really is a stop-gap measure that TTH
+			 * will fill in a more permanent way.
+			 */
 
-		/*
-		 * It is most likely that we have a mismatch because
-		 * the other guy's data is not in order, but we could
-		 * also have received bad data ourselves. Just to be
-		 * sure we back out some of our data. Eventually we
-		 * should find a host with good data, or we have
-		 * backed out enough times for our data to be good
-		 * again. This really is a stop-gap measure that TTH
-		 * will fill in a more permanent way.
-		 */
+			end = d->skip + 1;
+			gnet_prop_get_guint32_val(PROP_DL_MISMATCH_BACKOUT, &backout);
+			if (end >= backout)
+				begin = end - backout;
+			else
+				begin = 0;
+			file_info_update(d, begin, end, DL_CHUNK_EMPTY);
+			g_warning("Resuming data mismatch on %s, backed out %d bytes block "
+				"from %u to %u\n", 
+				 d->file_name, backout, (guint32) begin, (guint32) end);
 
-		end = d->skip + 1;
-		gnet_prop_get_guint32_val(PROP_DL_MISMATCH_BACKOUT, &backout);
-		if (end - backout > 0)
-		    begin = end - backout;
-		else
-		    begin = 0;
-		file_info_update(d, begin, end, DL_CHUNK_EMPTY);
-		g_warning("Resuming data mismatch on %s, backed out %d bytes block "
-			"from %u to %u\n", 
-			 d->file_name, backout, (guint32) begin, (guint32) end);
+			/*
+			 * Don't always keep this source, and since there is doubt,
+			 * leave it to randomness.
+			 */
 
+			if (random_value(99) >= 50)
+				download_stop(d, GTA_DL_ERROR, "Resuming data mismatch @ %lu",
+					d->skip - d->overlap_size);
+			else
+				download_queue_delay(d, download_retry_busy_delay,
+					"Resuming data mismatch @ %lu", d->skip - d->overlap_size);
+		}
 		goto out;
 	}
 
@@ -4342,11 +4353,14 @@ out:
 static void download_write_data(struct download *d)
 {
 	struct gnutella_socket *s = d->socket;
+	struct dl_file_info *fi = d->file_info;
 	gint written;
 	gboolean trimmed = FALSE;
 	struct download *cd;					/* Cloned download, if completed */
 
 	g_assert(s->pos > 0);
+	g_assert(fi->lifecount > 0);
+	g_assert(fi->lifecount <= fi->refcount);
 
 	/*
 	 * If we have an overlapping window and DL_F_OVERLAPPED is not set yet,
@@ -4409,7 +4423,7 @@ static void download_write_data(struct download *d)
 
 	if (written < s->pos) {
 		g_warning("partial write of %d out of %d bytes to file '%s'",
-			written, s->pos, d->file_info->file_name);
+			written, s->pos, fi->file_name);
 		download_queue_delay(d, download_retry_busy_delay,
 			"Partial write to file");
 		return;
@@ -4424,8 +4438,8 @@ static void download_write_data(struct download *d)
 	 * End download if we have completed it.
 	 */
 
-	if (d->file_info->use_swarming) {
-		enum dl_chunk_status s = file_info_pos_status(d->file_info, d->pos);
+	if (fi->use_swarming) {
+		enum dl_chunk_status s = file_info_pos_status(fi, d->pos);
 
 		switch(s) {
 		case DL_CHUNK_DONE:
@@ -4444,7 +4458,7 @@ static void download_write_data(struct download *d)
 			 * to interrupt the current download, we have no choice but to
 			 * requeue the download, thereby loosing the slot.
 			 */
-			if (d->file_info->done >= d->file_info->size)
+			if (fi->done >= fi->size)
 				goto done;
 			else if (d->pos == d->range_end)
 				goto partial_done;
@@ -4481,7 +4495,7 @@ static void download_write_data(struct download *d)
 
 			break;					/* Go on... */
 		}
-	} else if (FILE_INFO_COMPLETE(d->file_info))
+	} else if (FILE_INFO_COMPLETE(fi))
 		goto done;
 	else
 		gui_update_download(d, FALSE);
@@ -4494,7 +4508,7 @@ static void download_write_data(struct download *d)
 
 partial_done:
 	g_assert(d->pos == d->range_end);
-	g_assert(d->file_info->use_swarming);
+	g_assert(fi->use_swarming);
 
 	/*
 	 * Since a download structure is associated with a GUI line entry, we
