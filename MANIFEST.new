@@ -56,7 +56,6 @@ debian/changelog
 debian/control
 debian/copyright
 debian/dirs
-debian/gtk-gnutella.1
 debian/menu
 debian/rules
 doc/devguide/GUI-hacking
@@ -220,6 +219,7 @@ src/gnet_stats_gui.c
 src/gnet_stats_gui.h
 src/gnet_stats_gui2.c
 src/gnutella.h
+src/gtk-gnutella.man
 src/gtk-missing.c
 src/gtk-missing.h
 src/gtkcolumnchooser.c
