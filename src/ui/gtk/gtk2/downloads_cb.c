@@ -361,8 +361,9 @@ on_popup_downloads_abort_sha1_activate(GtkMenuItem *unused_menuitem,
 
    	for (sl = selected; sl; sl = g_slist_next(sl)) {
 		struct download *d = sl->data;
-		removed += guc_download_remove_all_with_sha1
-			(d->file_info->sha1);
+
+		if (d->file_info->sha1)
+			removed += guc_download_remove_all_with_sha1(d->file_info->sha1);
 	}
 	g_slist_free(selected);
 
@@ -626,8 +627,9 @@ on_popup_queue_abort_sha1_activate(GtkMenuItem *unused_menuitem,
 
 	for (sl = selected; sl; sl = g_slist_next(sl)) {
 		struct download *d = sl->data;
-   		removed += guc_download_remove_all_with_sha1
-			(d->file_info->sha1);
+
+		if (d->file_info->sha1)
+   			removed += guc_download_remove_all_with_sha1(d->file_info->sha1);
 	}
 	g_slist_free(selected);
 
