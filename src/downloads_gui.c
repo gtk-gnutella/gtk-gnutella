@@ -473,8 +473,10 @@ void gui_update_queue_frozen()
 	    msg_displayed);
 
     if (download_queue_is_frozen() > 0) {
+#ifndef USE_GTK2
     	gtk_widget_hide(lookup_widget(main_window, "vbox_queue_freeze"));
     	gtk_widget_show(lookup_widget(main_window, "vbox_queue_thaw"));
+#endif
     	/*
 		gtk_label_set_text(
             GTK_LABEL(GTK_BIN(togglebutton_queue_freeze)->child),
@@ -485,8 +487,10 @@ void gui_update_queue_frozen()
           	id = statusbar_gui_message(0, "QUEUE FROZEN");
         }
     } else {
+#ifndef USE_GTK2
     	gtk_widget_show(lookup_widget(main_window, "vbox_queue_freeze"));
     	gtk_widget_hide(lookup_widget(main_window, "vbox_queue_thaw"));
+#endif
     	/*
 		gtk_label_set_text(
             GTK_LABEL(GTK_BIN(togglebutton_queue_freeze)->child),
