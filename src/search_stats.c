@@ -136,7 +136,7 @@ static int update_search_stats_display(gpointer data)
 	 * enable the enable button, it was disabled when search stats
 	 * were turned off. */
 	if (!search_stats_enabled) {
-		gtk_widget_set_sensitive(checkbutton_enable_search_stats, TRUE);
+		gtk_widget_set_sensitive(checkbutton_search_stats_enable, TRUE);
 		return FALSE;
 	}
 

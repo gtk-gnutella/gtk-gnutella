@@ -1263,7 +1263,7 @@ void upload_write(gpointer up, gint source, GdkInputCondition cond)
 			registered_uploads--;
 			running_uploads--;
 			gui_update_c_uploads();
-			gtk_widget_set_sensitive(button_clear_uploads, 1);
+			gtk_widget_set_sensitive(button_uploads_clear_completed, 1);
 			upload_free_resources(u);
 		}
 		return;
