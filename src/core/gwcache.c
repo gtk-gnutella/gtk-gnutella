@@ -909,10 +909,10 @@ gwc_host_eof(struct parse_context *ctx)
 	 */
 
 	if (ctx->processed == 1)
-		gm_snprintf(gwc_tmp, sizeof(gwc_tmp), "Got %d host from %s",
+		gm_snprintf(gwc_tmp, sizeof(gwc_tmp), _("Got %d host from %s"),
 			ctx->processed, current_url);
 	else
-		gm_snprintf(gwc_tmp, sizeof(gwc_tmp), "Got %d hosts from %s",
+		gm_snprintf(gwc_tmp, sizeof(gwc_tmp), _("Got %d hosts from %s"),
 			ctx->processed, current_url);
 
 	gcu_statusbar_message(gwc_tmp);
@@ -995,7 +995,7 @@ gwc_get_hosts(void)
 	 */
 
 	gm_snprintf(gwc_tmp, sizeof(gwc_tmp),
-		"Connecting to web cache %s", current_url);
+		"_(Connecting to web cache %s)", current_url);
 
 	gcu_statusbar_message(gwc_tmp);
 
@@ -1173,7 +1173,7 @@ gwc_update_this(gchar *cache_url)
 	 * Provide GUI feedback in the statusbar.
 	 */
 
-	gm_snprintf(gwc_tmp, sizeof(gwc_tmp), "Updated web cache %s", cache_url);
+	gm_snprintf(gwc_tmp, sizeof(gwc_tmp), _("Updated web cache %s"), cache_url);
 	gcu_statusbar_message(gwc_tmp);
 
 	parse_context_set(handle, MAX_OK_LINES);

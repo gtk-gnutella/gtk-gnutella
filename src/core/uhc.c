@@ -152,7 +152,7 @@ uhc_pick(void)
 	 * Give GUI feedback.
 	 */
 
-	gm_snprintf(msg, sizeof(msg), "Looking for UDP host cache %s", hc);
+	gm_snprintf(msg, sizeof(msg), _("Looking for UDP host cache %s"), hc);
 	gcu_statusbar_message(msg);
 
 	return TRUE;
@@ -256,7 +256,7 @@ uhc_send_ping(guint32 ip, guint16 port)
 	 * Give GUI feedback.
 	 */
 
-	gm_snprintf(msg, sizeof(msg), "Sent ping to UDP host cache %s:%u",
+	gm_snprintf(msg, sizeof(msg), _("Sent ping to UDP host cache %s:%u"),
 		uhc_ctx.host, uhc_ctx.port);
 	gcu_statusbar_message(msg);
 
@@ -420,11 +420,11 @@ uhc_ipp_extract(gnutella_node_t *n, const gchar *payload, gint paylen)
 
 		if (cnt == 1)
 			gm_snprintf(msg, sizeof(msg),
-				"Got %d host from UDP host cache %s:%u",
+				_("Got %d host from UDP host cache %s:%u"),
 				cnt, uhc_ctx.host, uhc_ctx.port);
 		else
 			gm_snprintf(msg, sizeof(msg),
-				"Got %d hosts from UDP host cache %s:%u",
+				_("Got %d hosts from UDP host cache %s:%u"),
 				cnt, uhc_ctx.host, uhc_ctx.port);
 
 		gcu_statusbar_message(msg);
