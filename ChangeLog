@@ -1,5 +1,9 @@
 # since last version
 
+- (2003.08.01 - Jeroen)
+ * When an IP got banned by PARQ, it won't be added to the upload
+   list anymore
+
 - (2003.07.30 - Jeroen)
  * PARQ will now treat servents which do not honour the Retry-After header
    as hosts which are hammering the connection
