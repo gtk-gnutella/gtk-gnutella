@@ -28,14 +28,22 @@
 
 extern GtkWidget *filter_dialog;
 
-void filter_gui_filter_clear_list(void);
+void filter_gui_edit_ip_rule(rule_t *);
+void filter_gui_edit_jump_rule(rule_t *);
+void filter_gui_edit_rule(rule_t *);
+void filter_gui_edit_size_rule(rule_t *);
+void filter_gui_edit_text_rule(rule_t *);
 void filter_gui_filter_add(filter_t *f, GList *ruleset);
+void filter_gui_filter_clear_list(void);
 void filter_gui_filter_remove(filter_t *f);
 void filter_gui_filter_set_enabled(filter_t *f, gboolean active);
+void filter_gui_filter_set(filter_t *, gboolean, gboolean, GList *);
+void filter_gui_init(void);
+void filter_gui_rebuild_target_combos(GList *filters);
+void filter_gui_set_default_policy(gint);
+void filter_gui_set_ruleset(GList *ruleset);
 void filter_gui_update_filter_stats(void);
 void filter_gui_update_rule_stats(void);
-void filter_gui_rebuild_target_combos(GList *filters);
-void filter_gui_init(void);
-void filter_gui_set_default_policy(gint);
+void filter_gui_show_dialog(void);
 
 #endif /* __filter_gui_h__ */
