@@ -62,7 +62,7 @@
 #ifndef USE_GTK2
 
 #ifndef HAVE_STRLCPY
-size_t strlcpy(gchar *dst, const gchar *src, size_t dst_size)
+size_t strlcpy(gchar *dst, const gchar *src, size_t dst_size);
 #endif
 
 #define g_ascii_strcasecmp g_strcasecmp
