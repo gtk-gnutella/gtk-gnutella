@@ -462,7 +462,7 @@ static gboolean listen_port_changed(property_t prop)
      * If the new port != 0, open the new port
      */
 	if (listen_port != 0)
-		s_listen = socket_listen(0, listen_port, GTA_TYPE_CONTROL);
+		s_listen = socket_listen(0, listen_port, SOCK_TYPE_CONTROL);
     else
 		s_listen = NULL;
 

@@ -1668,8 +1668,8 @@ static gboolean download_start_prepare(struct download *d)
 	d->keep_alive = FALSE;	/* Until proven otherwise by server's reply */
 
 	if (stat(dl_tmp, &st) != -1) {
-		if (!fi->use_swarming && st.st_size > download_overlap_range)
-			d->skip = st.st_size;	/* Not swarming => file size on disk OK */
+		if (!fi->use_swarming && fi->done > download_overlap_range)
+			d->skip = fi->done;	/* Not swarming => file has no holes */
 	} else {
 		gchar dl_dest[4096];
 		gboolean found = FALSE;
@@ -1842,7 +1842,7 @@ void download_start(struct download *d, gboolean check_allowed)
 	if (!DOWNLOAD_IS_IN_PUSH_MODE(d) && check_valid_host(ip, port)) {
 		/* Direct download */
 		d->status = GTA_DL_CONNECTING;
-		d->socket = socket_connect(ip, port, GTA_TYPE_DOWNLOAD);
+		d->socket = socket_connect(ip, port, SOCK_TYPE_DOWNLOAD);
 
 		if (!DOWNLOAD_IS_VISIBLE(d))
 			download_gui_add(d);
@@ -4194,12 +4194,8 @@ void download_send_request(struct download *d)
 	guchar *sha1;
 
 	g_assert(d);
-
-	if (!s) {
-		g_warning("download_send_request(): No socket for '%s'", d->file_name);
-		download_stop(d, GTA_DL_ERROR, "Internal Error");
-		return;
-	}
+	if (!s)
+		g_error("download_send_request(): No socket for '%s'", d->file_name);
 
 	/*
 	 * If we have d->always_push set, yet we did not use a Push, it means we

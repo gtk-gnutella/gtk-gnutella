@@ -343,7 +343,7 @@ void handle_push_request(struct gnutella_node *n)
 	 * OK, start the upload by opening a connection to the remote host.
 	 */
 
-	s = socket_connect(ip, port, GTA_TYPE_UPLOAD);
+	s = socket_connect(ip, port, SOCK_TYPE_UPLOAD);
 	if (!s) {
 		g_warning("PUSH request (hops=%d, ttl=%d) dropped: can't connect to %s",
 			n->header.hops, n->header.ttl, ip_port_to_gchar(ip, port));
@@ -1034,7 +1034,7 @@ void upload_add(struct gnutella_socket *s)
 	struct upload *u;
 	struct io_header *ih;
 
-	s->type = GTA_TYPE_UPLOAD;
+	s->type = SOCK_TYPE_UPLOAD;
 
 	u = upload_create(s, FALSE);
 

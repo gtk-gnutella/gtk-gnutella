@@ -109,15 +109,18 @@ void socket_destroy(struct gnutella_socket *s)
 {
 	g_assert(s);
 
-	if (s->type == GTA_TYPE_CONTROL && s->resource.node) {
+	if (s->type == SOCK_TYPE_CONTROL && s->resource.node) {
 		node_remove(s->resource.node, NULL);
 		return;
-	} else if (s->type == GTA_TYPE_DOWNLOAD && s->resource.download) {
+	} else if (s->type == SOCK_TYPE_DOWNLOAD && s->resource.download) {
 		download_stop(s->resource.download, GTA_DL_ERROR, NULL);
 		return;
 
-	} else if (s->type == GTA_TYPE_UPLOAD && s->resource.upload) {
+	} else if (s->type == SOCK_TYPE_UPLOAD && s->resource.upload) {
 		upload_remove(s->resource.upload, NULL);
+		return;
+	} else if (s->type == SOCK_TYPE_HTTP && s->resource.handle) {
+		http_async_cancel(s->resource.handle, HTTP_ASYNC_IO_ERROR);
 		return;
 	}
 
@@ -323,11 +326,11 @@ static void socket_connected(gpointer data, gint source, GdkInputCondition cond)
 	struct gnutella_socket *s = (struct gnutella_socket *) data;
 
 	if (cond & GDK_INPUT_EXCEPTION) {	/* Error while connecting */
-		if (s->type == GTA_TYPE_CONTROL && s->resource.node)
+		if (s->type == SOCK_TYPE_CONTROL && s->resource.node)
 			node_remove(s->resource.node, "Connection failed");
-		else if (s->type == GTA_TYPE_DOWNLOAD && s->resource.download)
+		else if (s->type == SOCK_TYPE_DOWNLOAD && s->resource.download)
 			download_fallback_to_push(s->resource.download, FALSE, FALSE);
-		else if (s->type == GTA_TYPE_UPLOAD && s->resource.upload)
+		else if (s->type == SOCK_TYPE_UPLOAD && s->resource.upload)
 			upload_remove(s->resource.upload, "Connection failed");
 		else
 			socket_destroy(s);
@@ -337,7 +340,7 @@ static void socket_connected(gpointer data, gint source, GdkInputCondition cond)
 	if (cond & GDK_INPUT_READ) {
 		if (
 			proxy_connections
-			&& s->direction == GTA_CONNECTION_PROXY_OUTGOING
+			&& s->direction == SOCK_CONN_PROXY_OUTGOING
 		) {
 			gdk_input_remove(s->gdk_tag);
 			s->gdk_tag = 0;
@@ -348,7 +351,7 @@ static void socket_connected(gpointer data, gint source, GdkInputCondition cond)
 					return;
 				}
 
-				s->direction = GTA_CONNECTION_OUTGOING;
+				s->direction = SOCK_CONN_OUTGOING;
 
 				s->gdk_tag =
 					gdk_input_add(s->file_desc,
@@ -363,7 +366,7 @@ static void socket_connected(gpointer data, gint source, GdkInputCondition cond)
 				}
 
 				if (s->pos > 5) {
-					s->direction = GTA_CONNECTION_OUTGOING;
+					s->direction = SOCK_CONN_OUTGOING;
 
 					s->gdk_tag =
 						gdk_input_add(s->file_desc,
@@ -388,7 +391,7 @@ static void socket_connected(gpointer data, gint source, GdkInputCondition cond)
 				}
 
 				if (s->pos > 2) {
-					s->direction = GTA_CONNECTION_OUTGOING;
+					s->direction = SOCK_CONN_OUTGOING;
 
 					s->gdk_tag =
 						gdk_input_add(s->file_desc,
@@ -420,9 +423,9 @@ static void socket_connected(gpointer data, gint source, GdkInputCondition cond)
 					   (void *) &option, &size);
 
 		if (res == -1 || option) {
-			if (s->type == GTA_TYPE_CONTROL && s->resource.node)
+			if (s->type == SOCK_TYPE_CONTROL && s->resource.node)
 				node_remove(s->resource.node, "Connection failed");
-			else if (s->type == GTA_TYPE_DOWNLOAD && s->resource.download)
+			else if (s->type == SOCK_TYPE_DOWNLOAD && s->resource.download)
 				download_fallback_to_push(s->resource.download, FALSE, FALSE);
 			else
 				socket_destroy(s);
@@ -430,7 +433,7 @@ static void socket_connected(gpointer data, gint source, GdkInputCondition cond)
 		}
 
 		if (proxy_connections
-			&& s->direction == GTA_CONNECTION_PROXY_OUTGOING) {
+			&& s->direction == SOCK_CONN_PROXY_OUTGOING) {
 			if (proxy_protocol == 4) {
 
 				if (send_socks(s) != 0) {
@@ -473,7 +476,7 @@ static void socket_connected(gpointer data, gint source, GdkInputCondition cond)
 		guess_local_ip(s->file_desc);
 
 		switch (s->type) {
-		case GTA_TYPE_CONTROL:
+		case SOCK_TYPE_CONTROL:
 			{
 				struct gnutella_node *n = s->resource.node;
 
@@ -482,7 +485,7 @@ static void socket_connected(gpointer data, gint source, GdkInputCondition cond)
 			}
 			break;
 
-		case GTA_TYPE_DOWNLOAD:
+		case SOCK_TYPE_DOWNLOAD:
 			{
 				struct download *d = s->resource.download;
 
@@ -491,13 +494,17 @@ static void socket_connected(gpointer data, gint source, GdkInputCondition cond)
 			}
 			break;
 
-		case GTA_TYPE_UPLOAD:
+		case SOCK_TYPE_UPLOAD:
 			{
 				struct upload *u = s->resource.upload;
 
 				g_assert(u->socket == s);
 				upload_push_conf(u);
 			}
+			break;
+
+		case SOCK_TYPE_HTTP:
+			http_async_connected(s->resource.handle);
 			break;
 
 		default:
@@ -570,7 +577,7 @@ static void socket_accept(gpointer data, gint source,
 	}
 
 	switch (s->type) {
-	case GTA_TYPE_CONTROL:
+	case SOCK_TYPE_CONTROL:
 		break;
 	default:
 		g_warning("socket_accept(): Unknown listning socket type %d !\n",
@@ -598,13 +605,13 @@ static void socket_accept(gpointer data, gint source,
 	t->file_desc = sd;
 	t->ip = g_ntohl(addr.sin_addr.s_addr);
 	t->port = g_ntohs(addr.sin_port);
-	t->direction = GTA_CONNECTION_INCOMING;
+	t->direction = SOCK_CONN_INCOMING;
 	t->type = s->type;
 	t->local_port = s->local_port;
 	t->getline = getline_make();
 
 	switch (s->type) {
-	case GTA_TYPE_CONTROL:
+	case SOCK_TYPE_CONTROL:
 		t->gdk_tag =
 			gdk_input_add(sd, GDK_INPUT_READ | GDK_INPUT_EXCEPTION,
 						  socket_read, t);
@@ -641,7 +648,16 @@ static void socket_accept(gpointer data, gint source,
  * Sockets creation
  */
 
-struct gnutella_socket *socket_connect(guint32 ip, guint16 port, gint type)
+/*
+ * socket_connect
+ *
+ * Creates a connected socket with an attached resource of `type'.
+ *
+ * Connection happens in the background, the connection callback being
+ * determined by the resource type.
+ */
+struct gnutella_socket *socket_connect(
+	guint32 ip, guint16 port, enum socket_type type)
 {
 	/* Create a socket and try to connect it to ip:port */
 
@@ -659,7 +675,7 @@ struct gnutella_socket *socket_connect(guint32 ip, guint16 port, gint type)
 	s = (struct gnutella_socket *) g_malloc0(sizeof(struct gnutella_socket));
 
 	s->type = type;
-	s->direction = GTA_CONNECTION_OUTGOING;
+	s->direction = SOCK_CONN_OUTGOING;
 	s->file_desc = sd;
 	s->ip = ip;
 	s->port = port;
@@ -705,7 +721,7 @@ struct gnutella_socket *socket_connect(guint32 ip, guint16 port, gint type)
 		res = proxy_connect(sd, (struct sockaddr *) &addr,
 			sizeof(struct sockaddr_in));
 
-		s->direction = GTA_CONNECTION_PROXY_OUTGOING;
+		s->direction = SOCK_CONN_PROXY_OUTGOING;
 	} else
 		res = connect(sd, (struct sockaddr *) &addr,
 			sizeof(struct sockaddr_in));
@@ -735,7 +751,13 @@ struct gnutella_socket *socket_connect(guint32 ip, guint16 port, gint type)
 	return s;
 }
 
-struct gnutella_socket *socket_listen(guint32 ip, guint16 port, gint type)
+/*
+ * socket_listen
+ *
+ * Creates a non-blocking listening socket with an attached resource of `type'.
+ */
+struct gnutella_socket *socket_listen(
+	guint32 ip, guint16 port, enum socket_type type)
 {
 	/* Create a socket, then bind() and listen() it */
 
@@ -754,7 +776,7 @@ struct gnutella_socket *socket_listen(guint32 ip, guint16 port, gint type)
 	s = (struct gnutella_socket *) g_malloc0(sizeof(struct gnutella_socket));
 
 	s->type = type;
-	s->direction = GTA_CONNECTION_LISTENING;
+	s->direction = SOCK_CONN_LISTENING;
 	s->file_desc = sd;
 	s->pos = 0;
 

@@ -1340,7 +1340,7 @@ static void downgrade_handshaking(struct gnutella_node *n)
 	if (n->io_opaque)				/* I/O data */
 		io_free(n->io_opaque);
 
-	s = socket_connect(n->ip, n->port, GTA_TYPE_CONTROL);
+	s = socket_connect(n->ip, n->port, SOCK_TYPE_CONTROL);
 	n->flags &= ~NODE_F_RETRY_04;
 
 	if (s) {
@@ -2254,7 +2254,7 @@ void node_add_socket(struct gnutella_socket *s, guint32 ip, guint16 port)
 	if (s) {					/* This is an incoming control connection */
 		n->socket = s;
 		s->resource.node = n;
-		s->type = GTA_TYPE_CONTROL;
+		s->type = SOCK_TYPE_CONTROL;
 		n->status = (major > 0 || minor > 4) ?
 			GTA_NODE_RECEIVING_HELLO : GTA_NODE_WELCOME_SENT;
 
@@ -2289,7 +2289,7 @@ void node_add_socket(struct gnutella_socket *s, guint32 ip, guint16 port)
 	} else {
 		/* We have to create an outgoing control connection for the node */
 
-		s = socket_connect(ip, port, GTA_TYPE_CONTROL);
+		s = socket_connect(ip, port, SOCK_TYPE_CONTROL);
 
 		if (s) {
 			n->status = GTA_NODE_CONNECTING;

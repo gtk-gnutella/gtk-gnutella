@@ -33,13 +33,36 @@ struct sockaddr;
 
 #define SOCK_BUFSZ	4096
 
+/*
+ * Connection directions.
+ */
+
+enum socket_direction {
+	SOCK_CONN_INCOMING,
+	SOCK_CONN_OUTGOING,
+	SOCK_CONN_LISTENING,
+	SOCK_CONN_PROXY_OUTGOING,
+};
+
+/*
+ * Connection types.
+ */
+
+enum socket_type {
+	SOCK_TYPE_UNKNOWN = 0,
+	SOCK_TYPE_CONTROL,
+	SOCK_TYPE_DOWNLOAD,
+	SOCK_TYPE_UPLOAD,
+	SOCK_TYPE_HTTP,
+};
+
 struct gnutella_socket {
 	gint file_desc;			/* file descriptor */
 
 	gint gdk_tag;			/* gdk tag */
 
-	guchar direction;
-	guchar type;
+	enum socket_direction direction;
+	enum socket_type type;
 	gboolean corked;
 
 	guint32 ip;				/* IP	of our partner */
@@ -53,6 +76,7 @@ struct gnutella_socket {
 		struct gnutella_node *node;
 		struct download *download;
 		struct upload *upload;
+		gpointer handle;
 	} resource;
 
 	struct getline *getline;	/* Line reader object */
@@ -60,24 +84,6 @@ struct gnutella_socket {
 	gchar buffer[SOCK_BUFSZ];	/* buffer to put in the data read */
 	guint32 pos;				/* write position in the buffer */
 };
-
-/*
- * Connection directions.
- */
-
-#define GTA_CONNECTION_INCOMING			1
-#define GTA_CONNECTION_OUTGOING			2
-#define GTA_CONNECTION_LISTENING		3
-#define GTA_CONNECTION_PROXY_OUTGOING	4
-
-/*
- * Connection types.
- */
-
-#define GTA_TYPE_UNKNOWN				0
-#define GTA_TYPE_CONTROL				1
-#define GTA_TYPE_DOWNLOAD				2
-#define GTA_TYPE_UPLOAD					3
 
 /*
  * Global Data
@@ -91,8 +97,8 @@ extern gboolean is_firewalled;
 
 void socket_destroy(struct gnutella_socket *);
 void socket_free(struct gnutella_socket *);
-struct gnutella_socket *socket_connect(guint32, guint16, gint);
-struct gnutella_socket *socket_listen(guint32, guint16, gint);
+struct gnutella_socket *socket_connect(guint32, guint16, enum socket_type);
+struct gnutella_socket *socket_listen(guint32, guint16, enum socket_type);
 
 void sock_cork(struct gnutella_socket *s, gboolean on);
 void sock_send_buf(struct gnutella_socket *s, gint size, gboolean shrink);
