@@ -32,6 +32,7 @@
 
 enum {
 	c_gnet_host = 0,
+	c_gnet_loc,
 	c_gnet_flags,
 	c_gnet_user_agent,
 	c_gnet_version,
@@ -52,6 +53,7 @@ enum {
 enum {
     c_ul_filename = 0,
     c_ul_host,
+    c_ul_loc,
     c_ul_size,
     c_ul_range,
     c_ul_agent,
@@ -59,8 +61,8 @@ enum {
 	c_ul_progress,
 #endif /* USE_GTK2 */	
     c_ul_status,
-#ifdef USE_GTK2
 #define UPLOADS_GUI_VISIBLE_COLUMNS ((guint) c_ul_status + 1)
+#ifdef USE_GTK2
     c_ul_fg,
     c_ul_data,
 #endif /* USE_GTK2 */
@@ -91,11 +93,13 @@ enum {
 enum {
     c_dl_filename = 0,
     c_dl_host,
+    c_dl_loc,
     c_dl_size,
     c_dl_range,
     c_dl_server,
     c_dl_status,
 	c_dl_num
+#define DOWNLOADS_VISIBLE_COLUMNS ((guint) c_dl_num)
 };
 #endif
 
@@ -104,6 +108,7 @@ enum {
     c_dl_filename = 0,
     c_dl_size,
     c_dl_host,
+    c_dl_loc,
     c_dl_range,
     c_dl_server,
     c_dl_progress,
@@ -124,10 +129,12 @@ enum {
 enum {
     c_queue_filename = 0,
     c_queue_host,
+    c_queue_loc,
     c_queue_size,
     c_queue_server,
     c_queue_status,
 	c_queue_num
+#define DOWNLOAD_QUEUE_VISIBLE_COLUMNS ((guint) c_queue_num)
 };
 #endif
 
@@ -136,6 +143,7 @@ enum {
     c_queue_filename = 0,
     c_queue_size,
     c_queue_host,
+    c_queue_loc,
     c_queue_server,
     c_queue_status,
 #define DOWNLOAD_QUEUE_VISIBLE_COLUMNS ((guint) c_queue_status + 1)
@@ -157,8 +165,8 @@ enum {
 	c_fi_done,
 	c_fi_sources,
 	c_fi_status,
-#ifdef USE_GTK2
 #define FILEINFO_VISIBLE_COLUMNS ((guint) c_fi_status + 1)
+#ifdef USE_GTK2
 	c_fi_handle,
 	c_fi_isize,
 	c_fi_idone,
@@ -175,15 +183,14 @@ enum {
 	c_sr_ext,
     c_sr_size,
 	c_sr_count,
-#ifdef USE_GTK1
     c_sr_speed,
     c_sr_host,
+    c_sr_loc,
     c_sr_sha1,	
-#endif
     c_sr_meta,		/* meta-data info column */
     c_sr_info,
-#ifdef USE_GTK2
 #define SEARCH_RESULTS_VISIBLE_COLUMNS ((guint) c_sr_info + 1)
+#ifdef USE_GTK2
 
 	c_sr_fg, /* invisible, holds the foreground color for the row */
 	c_sr_bg, /* invisible, holds the background color for the row */
