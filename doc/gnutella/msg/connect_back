@@ -5,6 +5,7 @@
                     <Raphael_Manfredi@pobox.com>
                           January 3rd, 2003
                       Revised January 27th, 2003
+                     Revised September 20th, 2004
                 
 
 [These specifications are a summary of messages exchanged on the GDF]
@@ -51,11 +52,10 @@ it will know it is not firewalled.
     Name: UDP Connect Back
     Vendor: GTKG
     ID: 7
-    Version: 1
+    Version: 2
     TTL: 1
     Payload:
         unsigned short: port number (little-endian)
-        16 byte guid: should be used as the GUID of the ping sent
 
 This message is similar to "BEAR/7v1", but handles UDP connections
 instead of TCP ones.
@@ -68,10 +68,29 @@ This message carries a 16-bit unsigned integer representing the
 port to which the receiver of the message should try to send a Gnutella Ping
 to via UDP. The target IP address for the connection is based on the IP address
 determined from the connection endpoint from which the message is
-received.  Moreover, the message carries a 16-byte guid value that should be
-used as the GUID of the ping sent via UDP.
+received.  Moreover, the GUID of the GTKG/7v2 message should be used as the
+GUID of the ping sent via UDP.
 
 The connection is made by sending a Gnutella Ping with the specified
 guid to the specified port. If the remote servent is able to receive that
 Gnutella ping on the port it specified (its listening UDP Gnutella port) with
 the guid it specified, it will know it is not UDP firewalled.
+
+An older version of this message, GTKG/7v1, was defined as:
+
+    Name: UDP Connect Back
+    Vendor: GTKG
+    ID: 7
+    Version: 1
+    TTL: 1
+    Payload:
+        unsigned short: port number (little-endian)
+        16 byte guid: should be used as the GUID of the ping sent
+
+The difference with GTKG/7v2 being that the GUID of GTKG/7v1 was ignored and
+the desired GUID for the Ping was enclosed in the payload, thereby making
+the message size larger than that of GTKG/7v2.
+
+To know which version of the "UDP Connect Back" message is supported by
+a given peer, look at its "Messages Supported" null/0v0 message, which
+must be sent unsolicited right after the handshaking ping.
