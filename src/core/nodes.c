@@ -824,7 +824,7 @@ node_timer(time_t now)
 				current_peermode == NODE_P_ULTRA &&
 				NODE_IS_ULTRA(n)
 			) {
-				glong quiet = delta_time(now, n->last_tx);
+				gulong quiet = delta_time(now, n->last_tx);
 
 				/*
 				 * Ultra node connected to another ultra node.
@@ -863,8 +863,8 @@ node_timer(time_t now)
 		 */
 
 		if (n->status == GTA_NODE_CONNECTED) {
-			time_t tx_quiet = delta_time(now, n->last_tx);
-			time_t rx_quiet = delta_time(now, n->last_rx);
+			gulong tx_quiet = delta_time(now, n->last_tx);
+			gulong rx_quiet = delta_time(now, n->last_rx);
 
 			if (n->n_weird >= MAX_WEIRD_MSG) {
 				node_bye_if_writable(n, 412, "Security violation");
@@ -1102,14 +1102,15 @@ node_count(void)
 
 /**
  * Amount of node connections we would like to keep.
- * Returns 0 if none.
+ *
+ * @return 0 if none.
  */
-gint
+guint
 node_keep_missing(void)
 {
 	gint missing;
 
-	switch (current_peermode) {
+	switch ((node_peer_t) current_peermode) {
 	case NODE_P_LEAF:
 		missing = max_ultrapeers - node_ultra_count;
 		return MAX(0, missing);
@@ -1117,10 +1118,14 @@ node_keep_missing(void)
 	case NODE_P_ULTRA:
 		missing = up_connections - (node_ultra_count + node_normal_count);
 		return MAX(0, missing);
-	default:
-		g_assert_not_reached();
+	case NODE_P_AUTO:
+	case NODE_P_CRAWLER:
+	case NODE_P_UDP:
+	case NODE_P_UNKNOWN:
+		break;
 	}
 
+	g_assert_not_reached();
 	return 0;
 }
 
@@ -1128,12 +1133,12 @@ node_keep_missing(void)
  * Amount of node connections we would like to have.
  * Returns 0 if none.
  */
-gint
+guint
 node_missing(void)
 {
 	gint missing;
 
-	switch (current_peermode) {
+	switch ((node_peer_t) current_peermode) {
 	case NODE_P_LEAF:
 		missing = max_ultrapeers - node_ultra_count;
 		return MAX(0, missing);
@@ -1141,30 +1146,38 @@ node_missing(void)
 	case NODE_P_ULTRA:
 		missing = max_connections - (node_ultra_count + node_normal_count);
 		return MAX(0, missing);
-	default:
-		g_assert_not_reached();
+	case NODE_P_AUTO:
+	case NODE_P_CRAWLER:
+	case NODE_P_UDP:
+	case NODE_P_UNKNOWN:
+		break;
 	}
 
+	g_assert_not_reached();
 	return 0;
 }
 
 /**
- * Returns this node's outdegree, i.e. the maximum amount of peer connections
+ * @return this node's outdegree, i.e. the maximum amount of peer connections
  * that we can support.
  */
 guint
 node_outdegree(void)
 {
-	switch (current_peermode) {
+	switch ((node_peer_t) current_peermode) {
 	case NODE_P_LEAF:
 		return max_ultrapeers;
 	case NODE_P_NORMAL:
 	case NODE_P_ULTRA:
 		return max_connections;
-	default:
-		g_assert_not_reached();
+	case NODE_P_AUTO:
+	case NODE_P_CRAWLER:
+	case NODE_P_UDP:
+	case NODE_P_UNKNOWN:
+		break;
 	}
 
+	g_assert_not_reached();
 	return 0;
 }
 
@@ -1200,20 +1213,24 @@ node_type_count_dec(struct gnutella_node *n)
 		g_assert(node_leaf_count > 0);
 		gnet_prop_set_guint32_val(PROP_NODE_LEAF_COUNT,
 			node_leaf_count - 1);
-		break;
+		return;
 	case NODE_P_NORMAL:
 		g_assert(node_normal_count > 0);
 		gnet_prop_set_guint32_val(PROP_NODE_NORMAL_COUNT,
 			node_normal_count - 1);
-		break;
+		return;
 	case NODE_P_ULTRA:
 		g_assert(node_ultra_count > 0);
 		gnet_prop_set_guint32_val(PROP_NODE_ULTRA_COUNT,
 			node_ultra_count - 1);
-		break;
-	default:
-		break;
+		return;
+	case NODE_P_AUTO:
+	case NODE_P_CRAWLER:
+	case NODE_P_UDP:
+	case NODE_P_UNKNOWN:
+		return;
 	}
+	g_assert_not_reached();
 }
 
 /**
@@ -1691,7 +1708,7 @@ node_avoid_monopoly(struct gnutella_node *n)
 	else
 		normal_cnt++;
 			
-	switch (current_peermode) {
+	switch ((node_peer_t) current_peermode) {
 	case NODE_P_ULTRA:
 		if ((n->attrs & NODE_A_ULTRA) || (n->flags & NODE_F_ULTRA)) {
 			gint max = max_connections - normal_connections;
@@ -1707,22 +1724,28 @@ node_avoid_monopoly(struct gnutella_node *n)
 			)
 				return TRUE;
 		}
-		break;
+		return FALSE;
 	case NODE_P_LEAF:
 		if (max_ultrapeers > 1 && up_cnt * 100 > max_ultrapeers * unique_nodes)
 			return TRUE;	/* Dissallow */
-		break;
+		return FALSE;
 	case NODE_P_NORMAL:
 		if (
 			max_connections > 1 &&
 			normal_cnt * 100 > max_connections * unique_nodes
 		)
 			return TRUE;
-		break;
-	default:
+		return FALSE;
+	case NODE_P_AUTO:
+		return FALSE;
+	case NODE_P_CRAWLER:
+	case NODE_P_UDP:
+	case NODE_P_UNKNOWN:
+		g_assert_not_reached();
 		break;
 	}
 	
+	g_assert_not_reached();
 	return FALSE;
 }
 
@@ -1778,7 +1801,7 @@ node_reserve_slot(struct gnutella_node *n)
 	 * when `x' >= max - g*max/100 + y.
 	 */
 	
-	switch (current_peermode) {
+	switch ((node_peer_t) current_peermode) {
 	case NODE_P_ULTRA:
 		if ((n->attrs & NODE_A_ULTRA) || (n->flags & NODE_F_ULTRA)) {
 			gint max = max_connections - normal_connections;
@@ -1794,25 +1817,31 @@ node_reserve_slot(struct gnutella_node *n)
 			if (node_normal_count >= normal_connections + normal_cnt - gtkg_min)
 				return TRUE;
 		}
-		break;
+		return FALSE;
 	case NODE_P_LEAF:
 		if (max_ultrapeers > 0 ) {
 			gint gtkg_min = reserve_gtkg_nodes * max_ultrapeers / 100;
 			if (node_ultra_count >= max_ultrapeers + up_cnt - gtkg_min)
 				return TRUE;
 		}
-		break;
+		return FALSE;
 	case NODE_P_NORMAL:
 		if (max_connections > 0) {
 			gint gtkg_min = reserve_gtkg_nodes * max_connections / 100;
 			if (node_normal_count >= max_connections + normal_cnt - gtkg_min)
 				return TRUE;
 		}
-		break;
-	default:
+		return FALSE;
+	case NODE_P_AUTO:
+		return FALSE;
+	case NODE_P_CRAWLER:
+	case NODE_P_UDP:
+	case NODE_P_UNKNOWN:
+		g_assert_not_reached();
 		break;
 	}
-	
+
+	g_assert_not_reached();
 	return FALSE;
 }
 
@@ -2517,7 +2546,10 @@ node_is_now_connected(struct gnutella_node *n)
 		gnet_prop_set_guint32_val(PROP_NODE_ULTRA_COUNT,
 			node_ultra_count + 1);
 		break;
-	default:
+	case NODE_P_AUTO:
+	case NODE_P_CRAWLER:
+	case NODE_P_UDP:
+	case NODE_P_UNKNOWN:
 		break;
 	}
 	
@@ -2528,7 +2560,7 @@ node_is_now_connected(struct gnutella_node *n)
 
 	n->ping_throttle = PING_REG_THROTTLE;
 
-	switch (current_peermode) {
+	switch ((node_peer_t) current_peermode) {
 	case NODE_P_NORMAL:
 		n->alive_period = ALIVE_PERIOD;
 		break;
@@ -2542,7 +2574,10 @@ node_is_now_connected(struct gnutella_node *n)
 	case NODE_P_LEAF:
 		n->alive_period = ALIVE_PERIOD_LEAF;
 		break;
-	default:
+	case NODE_P_AUTO:
+	case NODE_P_CRAWLER:
+	case NODE_P_UDP:
+	case NODE_P_UNKNOWN:
 		g_error("unknown peer mode %d", current_peermode);
 		break;
 	}
@@ -2886,13 +2921,17 @@ node_set_current_peermode(node_peer_t mode)
 		msg = "leaf";
 		node_bye_flags(0xffffffff, 203, "Becoming a leaf node");
 		break;
-	default:
+	case NODE_P_AUTO:
+	case NODE_P_CRAWLER:
+	case NODE_P_UDP:
+	case NODE_P_UNKNOWN:
 		g_error("unhandled mode %d", mode);
 		break;
 	}
 
+	g_assert(msg != NULL);
 	if (dbg > 2)
-		printf("Switching to \"%s\" peer mode\n", msg);
+		g_message("Switching to \"%s\" peer mode", msg);
 
 	if (old_mode != NODE_P_UNKNOWN) {	/* Not at init time */
 		bsched_set_peermode(mode);		/* Adapt Gnet bandwidth */
@@ -3168,7 +3207,7 @@ node_can_accept_connection(struct gnutella_node *n, gboolean handshaking)
 	 * Hence we can do >= tests against the limits.
 	 */
 
-	switch (current_peermode) {
+	switch ((node_peer_t) current_peermode) {
 	case NODE_P_ULTRA:
 		/*
 		 * If we're an ultra node, we need to enforce leaf counts.
@@ -3383,8 +3422,12 @@ node_can_accept_connection(struct gnutella_node *n, gboolean handshaking)
 			return FALSE;
 		}
 		break;
-	default:
+	case NODE_P_AUTO:
+	case NODE_P_CRAWLER:
+	case NODE_P_UDP:
+	case NODE_P_UNKNOWN:
 		g_assert_not_reached();
+		break;
 	}
 
 	return TRUE;
