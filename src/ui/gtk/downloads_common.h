@@ -28,8 +28,6 @@
 
 #include "if/ui/gtk/downloads.h"
 
-void gui_update_download_clear_now(void);
-
 void gui_update_c_downloads(gint, gint);
 
 void on_button_downloads_clear_stopped_clicked(
