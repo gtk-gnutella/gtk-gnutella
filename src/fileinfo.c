@@ -1572,6 +1572,9 @@ void file_info_retrieve(void)
 				g_warning("found OUTDATED metainfo in \"%s/%s\"",
 					fi->path, fi->file_name);
 				fi_free(dfi);
+			} else {
+				g_assert(dfi->generation == fi->generation);
+				fi_free(dfi);
 			}
 
 			/*
