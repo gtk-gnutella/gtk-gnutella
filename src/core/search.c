@@ -2559,7 +2559,7 @@ search_new(const gchar *query, guint32 reissue_timeout, flag_t flags)
 			qdup = g_strdup(s);
 		}
 	}
-	g_assert(utf8_is_valid_string(qdup, 0));
+	g_assert(*qdup == '\0' || utf8_is_valid_string(qdup, 0));
 
 #ifdef USE_ICU
 	if (icu_enabled()) {
