@@ -73,11 +73,40 @@ struct dl_server {
 	guint32 attrs;
 };
 
+/*
+ * Download states.
+ */
+
+typedef enum {
+    GTA_DL_QUEUED           = 1,    /* Download queued, will start later */
+    GTA_DL_CONNECTING       = 2,    /* We are connecting to the server */
+    GTA_DL_PUSH_SENT        = 3,    /* Sent a push, waiting connection */
+    GTA_DL_FALLBACK         = 4,    /* Direct request failed, using push */
+    GTA_DL_REQ_SENT         = 5,    /* Request sent, waiting for HTTP headers */
+    GTA_DL_HEADERS          = 6,    /* We are receiving the HTTP headers */
+    GTA_DL_RECEIVING        = 7,    /* We are receiving the data of the file */
+    GTA_DL_COMPLETED        = 8,    /* Download is completed */
+    GTA_DL_ERROR            = 9,    /* Download is stopped due to error */
+    GTA_DL_ABORTED          = 10,   /* User used the 'Abort Download' button */
+    GTA_DL_TIMEOUT_WAIT     = 11,   /* Waiting to try connecting again */
+    GTA_DL_REMOVED          = 12,   /* Download was removed, pending free */
+    GTA_DL_VERIFY_WAIT      = 13,   /* Waiting to verify SHA1 */
+    GTA_DL_VERIFYING        = 14,   /* Computing SHA1 */
+    GTA_DL_VERIFIED         = 15,   /* Verify of SHA1 done */
+    GTA_DL_MOVE_WAIT        = 16,   /* Waiting to be moved to "done/bad" dir */
+    GTA_DL_MOVING           = 17,   /* Being moved to "done/bad" dir */
+    GTA_DL_DONE             = 18,   /* All done! */
+    GTA_DL_SINKING          = 19,   /* Sinking HTML reply */
+    GTA_DL_ACTIVE_QUEUED    = 20,   /* Actively queued */
+    GTA_DL_PASSIVE_QUEUED   = 21    /* Passively queued */
+} download_status_t;
+
+
 struct download {
     gnet_src_t src_handle;      /* Handle */
 
 	gchar error_str[256];	/* Used to sprintf() error strings with vars */
-	guint32 status;			/* Current status of the download */
+	download_status_t status;   /* Current status of the download */
 	gpointer io_opaque;		/* Opaque I/O callback information */
 
 	bio_source_t *bio;		/* Bandwidth-limited source */
@@ -125,32 +154,6 @@ struct download {
 	
 	gpointer queue_status;	/* Queuing status */
 };
-
-/*
- * Download states.
- */
-
-#define GTA_DL_QUEUED			1	/* Download queued, will start later */
-#define GTA_DL_CONNECTING		2	/* We are connecting to the server */
-#define GTA_DL_PUSH_SENT		3	/* Sent a push, waiting connection */
-#define GTA_DL_FALLBACK			4	/* Direct request failed, using push */
-#define GTA_DL_REQ_SENT			5	/* Request sent, waiting for HTTP headers */
-#define GTA_DL_HEADERS			6	/* We are receiving the HTTP headers */
-#define GTA_DL_RECEIVING		7	/* We are receiving the data of the file */
-#define GTA_DL_COMPLETED		8	/* Download is completed */
-#define GTA_DL_ERROR			9	/* Download is stopped due to error */
-#define GTA_DL_ABORTED			10	/* User used the 'Abort Download' button */
-#define GTA_DL_TIMEOUT_WAIT		11	/* Waiting to try connecting again */
-#define GTA_DL_REMOVED			12	/* Download was removed, pending free */
-#define GTA_DL_VERIFY_WAIT		13	/* Waiting to verify SHA1 */
-#define GTA_DL_VERIFYING		14	/* Computing SHA1 */
-#define GTA_DL_VERIFIED			15	/* Verify of SHA1 done */
-#define GTA_DL_MOVE_WAIT		16	/* Waiting to be moved to "done/bad" dir */
-#define GTA_DL_MOVING			17	/* Being moved to "done/bad" dir */
-#define GTA_DL_DONE				18	/* All done! */
-#define GTA_DL_SINKING			19	/* Sinking HTML reply */
-#define GTA_DL_ACTIVE_QUEUED	20	/* Actively queued */
-#define GTA_DL_PASSIVE_QUEUED	21	/* Passively queued */
 
 /*
  * Download flags.

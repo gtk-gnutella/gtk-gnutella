@@ -3131,6 +3131,8 @@ void download_resume(struct download *d)
 	case GTA_DL_MOVING:
 	case GTA_DL_DONE:
 		return;
+    default: ;
+    /* FIXME: Is this fallthrough alright or not? */
 	}
 
 	d->file_info->lifecount++;

@@ -464,6 +464,8 @@ void gui_update_download_abort_resume(void)
 		case GTA_DL_TIMEOUT_WAIT:
 			do_abort = do_resume = TRUE;
 			break;
+        default: ;
+        /* FIXME: Is this fallthrough alright or not? */
 		}
 
 		if (do_abort & do_resume & do_remove)
