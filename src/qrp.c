@@ -1218,6 +1218,7 @@ static void qrp_send_patch(struct gnutella_node *n,
 {
 	struct gnutella_msg_qrp_patch *m;
 	gint msglen;
+	gint paylen;
 
 	g_assert(seqsize >= 1 && seqsize <= 255);
 	g_assert(seqno >= 1 && seqno <= seqsize);
@@ -1230,6 +1231,7 @@ static void qrp_send_patch(struct gnutella_node *n,
 	 */
 
 	msglen = sizeof(*m) + len;
+	paylen = sizeof(m->data) + len;
 
 	if (msglen <= sizeof(qrp_tmp))
 		m = (struct gnutella_msg_qrp_patch *) qrp_tmp;
@@ -1241,7 +1243,7 @@ static void qrp_send_patch(struct gnutella_node *n,
 	m->header.function = GTA_MSG_QRP;
 	m->header.ttl = 1;
 	m->header.hops = 0;
-	WRITE_GUINT32_LE(msglen, m->header.size);
+	WRITE_GUINT32_LE(paylen, m->header.size);
 
 	m->data.variant = GTA_MSGV_QRP_PATCH;
 	m->data.seq_no = seqno;
