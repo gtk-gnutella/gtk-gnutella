@@ -104,7 +104,6 @@ extern GtkWidget *popup_downloads_abort;
 extern GtkWidget *popup_downloads_abort_named;
 extern GtkWidget *popup_downloads_abort_host;
 extern GtkWidget *popup_downloads_resume;
-extern GtkWidget *popup_downloads_kill;
 extern GtkWidget *popup_downloads_push;
 extern GtkWidget *popup_downloads_queue;
 extern GtkWidget *popup_downloads_remove_file;

@@ -112,7 +112,6 @@ GtkWidget *popup_downloads_abort;
 GtkWidget *popup_downloads_abort_named;
 GtkWidget *popup_downloads_abort_host;
 GtkWidget *popup_downloads_resume;
-GtkWidget *popup_downloads_kill;
 GtkWidget *popup_downloads_push;
 GtkWidget *popup_downloads_queue;
 GtkWidget *popup_downloads_remove_file;

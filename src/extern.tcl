@@ -43,8 +43,7 @@ set w_main_list {
 	radio_config_socksv4 
 	radio_config_socksv5
 	checkbutton_config_use_netmasks
-	entry_config_netmasks
-        
+	entry_config_netmasks        
     entry_config_socks_port 
 	spinbutton_config_bps_in
 	spinbutton_config_bps_out
@@ -115,7 +114,6 @@ set w_main_list {
     popup_downloads_abort_named
     popup_downloads_abort_host
 	popup_downloads_resume
-	popup_downloads_kill 
 	popup_downloads_push 
 	popup_downloads_queue
 	popup_downloads_remove_file
