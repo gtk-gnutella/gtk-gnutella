@@ -48,7 +48,7 @@ RCSID("$Id$");
 #include "lib/override.h"		/* Must be the last header included */
 
 static void mq_udp_service(gpointer data);
-static struct mq_ops mq_udp_ops;
+static const struct mq_ops mq_udp_ops;
 
 /*
  * The "meta data" attached to each message block enqueued yields routing
@@ -390,7 +390,7 @@ mq_no_putq(mqueue_t *unused_q, pmsg_t *unused_mb)
 	g_error("plain mq_putq() forbidden on UDP queue -- use mq_udp_putq()");
 }
 
-static struct mq_ops mq_udp_ops = {
+static const struct mq_ops mq_udp_ops = {
 	mq_no_putq,			/* putq */
 };
 
