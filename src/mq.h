@@ -28,6 +28,7 @@
  */
 typedef struct mqueue {
 	struct gnutella_node *node;		/* Node to which this queue belongs */
+	struct txdriver *tx_drv;		/* Network TX driver */
 	GList *qhead;			/* The queue head, new messages are prepended */
 	GList *qtail;			/* The queue tail, oldest message to send first */
 	GList **qlink;			/* Sorted array of (GList *) entries, or NULL */
@@ -56,9 +57,10 @@ typedef struct mqueue {
  * Public interface
  */
 
-mqueue_t *mq_make(gint maxsize, struct gnutella_node *n);
+struct txdriver;
+
+mqueue_t *mq_make(gint maxsize, struct gnutella_node *n, struct txdriver *nd);
 void mq_free(mqueue_t *q);
-void mq_service(mqueue_t *q);
 void mq_putq(mqueue_t *q, pmsg_t *mb);
 void mq_clear(mqueue_t *q);
 void mq_shutdown(mqueue_t *q);

@@ -72,7 +72,7 @@ bin_PROGRAMS = gtk-gnutella
 CLEANFILES = interface-glade.c interface-glade.h *.bak
 
 # interface.h must come before any .c files that include it so that it is built.
-gtk_gnutella_SOURCES =  	autodownload.h autodownload.c 	interface.c interface.h 	gnutella.h 	misc.c misc.h 	config.c appconfig.h 	sockets.c sockets.h 	nodes.c nodes.h 	hosts.c hosts.h 	routing.c routing.h 	search.c search.h 	search_stats.c search_stats.h 	filter.c filter.h 	downloads.c downloads.h 	share.c share.h 	uploads.c uploads.h 	upload_stats.c upload_stats.h 	main.c 	gui.c gui.h 	support.c support.h 	matching.c matching.h 	callbacks.c callbacks.h 	dialog-filters.c dialog-filters.h 	getline.c getline.h 	header.c header.h 	url.c url.h 	pmsg.c pmsg.h 	gmsg.c gmsg.h 	mq.c mq.h 	bsched.c bsched.h
+gtk_gnutella_SOURCES =  	autodownload.h autodownload.c 	interface.c interface.h 	gnutella.h 	misc.c misc.h 	config.c appconfig.h 	sockets.c sockets.h 	nodes.c nodes.h 	hosts.c hosts.h 	routing.c routing.h 	search.c search.h 	search_stats.c search_stats.h 	filter.c filter.h 	downloads.c downloads.h 	share.c share.h 	uploads.c uploads.h 	upload_stats.c upload_stats.h 	main.c 	gui.c gui.h 	support.c support.h 	matching.c matching.h 	callbacks.c callbacks.h 	dialog-filters.c dialog-filters.h 	getline.c getline.h 	header.c header.h 	url.c url.h 	pmsg.c pmsg.h 	gmsg.c gmsg.h 	mq.c mq.h 	bsched.c bsched.h 	tx.c tx.h 	tx_link.c tx_link.h
 
 
 gtk_gnutella_LDADD = @GTK_LIBS@
@@ -95,7 +95,7 @@ gtk_gnutella_OBJECTS =  autodownload.o interface.o misc.o config.o \
 sockets.o nodes.o hosts.o routing.o search.o search_stats.o filter.o \
 downloads.o share.o uploads.o upload_stats.o main.o gui.o support.o \
 matching.o callbacks.o dialog-filters.o getline.o header.o url.o pmsg.o \
-gmsg.o mq.o bsched.o
+gmsg.o mq.o bsched.o tx.o tx_link.o
 gtk_gnutella_DEPENDENCIES = 
 gtk_gnutella_LDFLAGS = 
 CFLAGS = @CFLAGS@
@@ -115,7 +115,8 @@ DEP_FILES =  .deps/autodownload.P .deps/bsched.P .deps/callbacks.P \
 .deps/interface.P .deps/main.P .deps/matching.P .deps/misc.P .deps/mq.P \
 .deps/nodes.P .deps/pmsg.P .deps/routing.P .deps/search.P \
 .deps/search_stats.P .deps/share.P .deps/sockets.P .deps/support.P \
-.deps/upload_stats.P .deps/uploads.P .deps/url.P
+.deps/tx.P .deps/tx_link.P .deps/upload_stats.P .deps/uploads.P \
+.deps/url.P
 SOURCES = $(gtk_gnutella_SOURCES)
 OBJECTS = $(gtk_gnutella_OBJECTS)
 

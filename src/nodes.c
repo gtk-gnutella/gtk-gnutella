@@ -6,7 +6,6 @@
 
 #include <fcntl.h>
 #include <sys/types.h>
-#include <sys/uio.h>	/* struct iovec */
 #include <string.h>
 #include <ctype.h>		/* For isspace() */
 
@@ -28,20 +27,8 @@
 #include "header.h"
 #include "gmsg.h"
 #include "mq.h"
-
-/*
- * Determine how large an I/O vector the kernel can accept.
- */
-
-#if defined(MAXIOV)
-#define MAX_IOV_COUNT	MAXIOV			/* Regular */
-#elif defined(UIO_MAXIOV)
-#define MAX_IOV_COUNT	UIO_MAXIOV		/* Linux */
-#elif defined(IOV_MAX)
-#define MAX_IOV_COUNT	IOV_MAX			/* Solaris */
-#else
-#define MAX_IOV_COUNT	16				/* Unknown, use required minimum */
-#endif
+#include "tx.h"
+#include "tx_link.h"
 
 #define CONNECT_PONGS_COUNT		10		/* Amoung of pongs to send */
 #define BYE_MAX_SIZE			4096	/* Maximum size for the Bye message */
@@ -895,7 +882,9 @@ static void node_is_now_connected(struct gnutella_node *n)
 	connected_node_cnt++;
 
 	if (!NODE_IS_PONGING_ONLY(n)) {
-		n->outq = mq_make(node_sendqueue_size, n);
+		txdrv_t *tx = tx_make(n, &tx_link_ops, 0);
+
+		n->outq = mq_make(node_sendqueue_size, n, tx);
 		n->flags |= NODE_F_WRITABLE;
 	}
 
@@ -2317,87 +2306,6 @@ void node_init_outgoing(struct gnutella_node *n)
 #include <unistd.h>
 
 /*
- * node_writable
- *
- * Invoked when the output file descriptor can accept more data.
- */
-static void node_writable(gpointer data, gint source, GdkInputCondition cond)
-{
-	struct gnutella_node *n = (struct gnutella_node *) data;
-
-	g_return_if_fail(n);
-
-	if (cond & GDK_INPUT_EXCEPTION) {
-		node_remove(n, "Write failed (Input Exception)");
-		return;
-	}
-
-	/*
-	 * We can write again on the node's socket.  Service the queue.
-	 */
-
-	g_assert(n->outq);
-	mq_service(n->outq);
-}
-
-/*
- * node_enableq
- *
- * Allow servicing of TX queue when output fd is ready.
- */
-void node_enableq(struct gnutella_node *n)
-{
-	if (!n->gdk_tag) {
-		n->gdk_tag = gdk_input_add(n->socket->file_desc,
-			GDK_INPUT_WRITE | GDK_INPUT_EXCEPTION,
-			node_writable, (gpointer) n);
-
-		/* We assume that if this is valid, it is non-zero */
-		g_assert(n->gdk_tag);
-	}
-}
-
-/*
- * node_disableq
- *
- * Disable servicing of TX queue.
- */
-void node_disableq(struct gnutella_node *n)
-{
-	g_assert(n->gdk_tag != 0);
-
-	gdk_input_remove(n->gdk_tag);
-	n->gdk_tag = 0;
-
-	/*
-	 * If we sent a Bye message, we can now rest assured it has been
-	 * transmitted.  Shutdown the node.
-	 */
-
-	if (n->flags & NODE_F_BYE_SENT) {
-		if (dbg > 4)
-			printf("finally sent BYE \"%s\" to %s\n",
-				n->error_str, node_ip(n));
-		sock_tx_shutdown(n->socket);
-		node_shutdown_mode(n, BYE_GRACE_DELAY);
-		return;
-	}
-
-	/*
-	 * If we were put in TCP_NODELAY mode by node_flushq(), then go back
-	 * to delaying mode.  Indeed, the send queue is empty, and we want to
-	 * buffer the messages for a while to avoid sending an IP packet for
-	 * each Gnet message!
-	 *		--RAM, 15/03/2002
-	 */
-
-	if (n->flags & NODE_F_NODELAY) {
-		sock_nodelay(n->socket, FALSE);
-		n->flags &= ~NODE_F_NODELAY;
-	}
-}
-
-/*
  * node_flushq
  *
  * Called by queue when it's not empty and it went through the service routine
@@ -2443,144 +2351,6 @@ void node_tx_leave_flowc(struct gnutella_node *n)
 }
 
 /*
- * node_write
- *
- * Write data buffer.
- * Returns amount of bytes written, or -1 on error.
- */
-gint node_write(struct gnutella_node *n, gpointer data, gint len)
-{
-	gint r;
-
-	r = write(n->socket->file_desc, data, len);
-
-	if (r >= 0)
-		return r;
-
-	switch (errno) {
-	case EAGAIN:
-	case EINTR:
-		return 0;
-	case EPIPE:
-	case ENOSPC:
-	case EIO:
-	case ECONNRESET:
-	case ETIMEDOUT:
-		node_shutdown(n, "Write of queue failed: %s", g_strerror(errno));
-		return -1;
-	default:
-		{
-			int terr = errno;
-			time_t t = time(NULL);
-			g_error("%s  gtk-gnutella: node_write: "
-				"write failed on fd #%d with unexpected errno: %d (%s)\n",
-				ctime(&t), n->socket->file_desc, terr, g_strerror(terr));
-		}
-	}
-
-	return 0;		/* Just in case */
-}
-
-/*
- * safe_writev
- *
- * Wrapper over writev() ensuring that we don't request more than
- * MAX_IOV_COUNT entries at a time.
- */
-static gint safe_writev(gint fd, struct iovec *iov, gint iovcnt)
-{
-	gint sent = 0;
-	struct iovec *end = iov + iovcnt;
-	struct iovec *siov;
-	gint siovcnt = MAX_IOV_COUNT;
-	gint iovsent = 0;
-
-	for (siov = iov; siov < end; siov += siovcnt) {
-		gint r;
-		gint size;
-		struct iovec *xiv;
-		struct iovec *xend;
-
-		siovcnt = iovcnt - iovsent;
-		if (siovcnt > MAX_IOV_COUNT)
-			siovcnt = MAX_IOV_COUNT;
-		g_assert(siovcnt > 0);
-		
-		r = writev(fd, siov, siovcnt);
-
-		if (r <= 0) {
-			if (r == 0 || sent)
-				break;				/* Don't flag error if bytes sent */
-			return -1;				/* Propagate error */
-		}
-
-		sent += r;
-		iovsent += siovcnt;		/* We'll break out if we did not send it all */
-
-		/*
-		 * How much did we sent?  If not the whole vector, we're blocking,
-		 * so stop writing and return amount we sent.
-		 */
-
-		for (size = 0, xiv = siov, xend = siov + siovcnt; xiv < xend; xiv++)
-			size += xiv->iov_len;
-
-		if (r < size)
-			break;
-	}
-
-	return sent;
-}
-
-/*
- * node_writev
- *
- * Write I/O vector.
- * Returns amount of bytes written, or -1 on error.
- */
-gint node_writev(struct gnutella_node *n, struct iovec *iov, gint iovcnt)
-{
-	gint r;
-
-	/*
-	 * If `iovcnt' is greater than MAX_IOV_COUNT, use our custom writev()
-	 * wrapper to avoid failure with EINVAL.
-	 *		--RAM, 17/03/2002
-	 */
-
-	if (iovcnt > MAX_IOV_COUNT)
-		r = safe_writev(n->socket->file_desc, iov, iovcnt);
-	else
-		r = writev(n->socket->file_desc, iov, iovcnt);
-
-	if (r >= 0)
-		return r;
-
-	switch (errno) {
-	case EAGAIN:
-	case EINTR:
-		return 0;
-	case EPIPE:
-	case ENOSPC:
-	case EIO:
-	case ECONNRESET:
-	case ETIMEDOUT:
-		node_shutdown(n, "Write of queue failed: %s", g_strerror(errno));
-		return -1;
-	default:
-		{
-			int terr = errno;
-			time_t t = time(NULL);
-			g_error("%s  gtk-gnutella: node_writev: "
-				"write failed on fd #%d with unexpected errno: %d (%s)\n",
-				ctime(&t), n->socket->file_desc, terr, g_strerror(terr));
-		}
-	}
-
-	return 0;		/* Just in case */
-}
-
-/*
  * node_disable_read
  *
  * Disable reading callback.
@@ -2595,6 +2365,24 @@ static void node_disable_read(struct gnutella_node *n)
 	n->flags |= NODE_F_NOREAD;
 	gdk_input_remove(s->gdk_tag);		/* Don't read anymore */
 	s->gdk_tag = 0;
+}
+
+/*
+ * node_bye_sent
+ *
+ * Called when the Bye message has been successfully sent.
+ */
+void node_bye_sent(struct gnutella_node *n)
+{
+	if (dbg > 4)
+		printf("finally sent BYE \"%s\" to %s\n", n->error_str, node_ip(n));
+
+	/*
+	 * Shutdown the node.
+	 */
+
+	sock_tx_shutdown(n->socket);
+	node_shutdown_mode(n, BYE_GRACE_DELAY);
 }
 
 /*
@@ -2870,6 +2658,34 @@ void node_bye_all(void)
 			node_bye(n, 200, "Servent shutdown");
 	}
 }
+
+/* 
+ * node_remove_non_nearby
+ * 
+ * Remove a connected node that is not in our local netmasks (used to make
+ * room for a local node)
+ * 
+ * returns true if we found a node to remove
+ */
+gboolean node_remove_non_nearby(void)
+{
+	GSList *l;
+
+	/* iterate through nodes list */
+	for (l = sl_nodes; l; l = l->next) {
+		struct gnutella_node *n = sl_nodes->data;
+
+		if (NODE_IS_CONNECTED(n) && !host_is_nearby(n->ip)) {
+			node_remove(n, "Non Local");
+			return TRUE;
+		}
+	}
+	
+	/* All nodes are local.. Keep them. */
+	return FALSE;
+
+}
+
 
 void node_close(void)
 {

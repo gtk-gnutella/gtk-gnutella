@@ -15,10 +15,12 @@
 #include "pmsg.h"
 #include "gmsg.h"
 #include "misc.h"
+#include "tx.h"
 
 #define MQ_MAXIOV	256		/* Our limit on the I/O vectors we build */
 
 static void qlink_free(mqueue_t *q);
+static void mq_service(gpointer data);
 
 /*
  * mq_make
@@ -26,16 +28,19 @@ static void qlink_free(mqueue_t *q);
  * Create new message queue capable of holding `maxsize' bytes, and
  * owned by the supplied node.
  */
-mqueue_t *mq_make(gint maxsize, struct gnutella_node *n)
+mqueue_t *mq_make(gint maxsize, struct gnutella_node *n, struct txdriver *nd)
 {
 	mqueue_t *q;
 
 	q = g_malloc0(sizeof(*q));
 
 	q->node = n;
+	q->tx_drv = nd;
 	q->maxsize = maxsize;
 	q->lowat = maxsize >> 2;		/* 25% of max size */
 	q->hiwat = maxsize >> 1;		/* 50% of max size */
+
+	tx_srv_register(nd, mq_service, q);
 
 	return q;
 }
@@ -44,10 +49,15 @@ mqueue_t *mq_make(gint maxsize, struct gnutella_node *n)
  * mq_free
  *
  * Free queue and all enqueued messages.
+ *
+ * Since the message queue is the top of the network TX stack,
+ * calling mq_free() recursively requests freeing to lower layers.
  */
 void mq_free(mqueue_t *q)
 {
 	GList *l;
+
+	tx_free(q->tx_drv);		/* Get rid of lower layers */
 
 	for (l = q->qhead; l; l = g_list_next(l))
 		pmsg_free((pmsg_t *) l->data);
@@ -142,7 +152,7 @@ void mq_clear(mqueue_t *q)
 	 */
 
 	if (q->count == 0)
-		node_disableq(q->node);
+		tx_srv_disable(q->tx_drv);
 }
 
 /*
@@ -342,7 +352,7 @@ static gboolean make_room(mqueue_t *q, pmsg_t *mb, gint needed)
 	 */
 
 	if (q->count == 0)
-		node_disableq(q->node);
+		tx_srv_disable(q->tx_drv);
 
 	return needed <= 0;		/* Can be 0 if we broke out loop above */
 }
@@ -476,7 +486,7 @@ static void mq_puthere(mqueue_t *q, pmsg_t *mb, gint msize)
 		qlink_free(q);
 
 	mq_update_flowc(q);
-	node_enableq(q->node);
+	tx_srv_enable(q->tx_drv);
 }
 
 /*
@@ -484,8 +494,9 @@ static void mq_puthere(mqueue_t *q, pmsg_t *mb, gint msize)
  *
  * Service routine for message queue.
  */
-void mq_service(mqueue_t *q)
+static void mq_service(gpointer data)
 {
+	mqueue_t *q = (mqueue_t *) data;
 	static struct iovec iov[MQ_MAXIOV];
 	gint iovsize;
 	gint iovcnt = 0;
@@ -515,7 +526,7 @@ void mq_service(mqueue_t *q)
 	 * Write as much as possible.
 	 */
 
-	r = node_writev(q->node, iov, iovcnt);
+	r = tx_writev(q->tx_drv, iov, iovcnt);
 
 	if (r <= 0)
 		return;
@@ -572,7 +583,7 @@ void mq_service(mqueue_t *q)
 
 	if (q->size == 0) {
 		g_assert(q->count == 0);
-		node_disableq(q->node);
+		tx_srv_disable(q->tx_drv);
 	} else
 		node_flushq(q->node);		/* Need to flush kernel buffers faster */
 }
@@ -605,7 +616,7 @@ void mq_putq(mqueue_t *q, pmsg_t *mb)
 	 */
 
 	if (q->qhead == NULL) {
-		gint written = node_write(q->node, pmsg_start(mb), size);
+		gint written = tx_write(q->tx_drv, pmsg_start(mb), size);
 
 		if (written < 0) {
 			pmsg_free(mb);

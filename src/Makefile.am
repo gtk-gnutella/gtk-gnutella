@@ -36,7 +36,9 @@ gtk_gnutella_SOURCES = \
 	pmsg.c pmsg.h \
 	gmsg.c gmsg.h \
 	mq.c mq.h \
-	bsched.c bsched.h
+	bsched.c bsched.h \
+	tx.c tx.h \
+	tx_link.c tx_link.h
 
 gtk_gnutella_LDADD = @GTK_LIBS@
 

@@ -1,6 +1,10 @@
 #ifndef __sockets_h__
 #define __sockets_h__
 
+#include <glib.h>
+
+struct sockaddr;
+
 struct gnutella_socket {
 	gint file_desc;			/* file descriptor */
 

@@ -240,9 +240,9 @@ void node_enableq(struct gnutella_node *n);
 void node_flushq(struct gnutella_node *n);
 void node_tx_enter_flowc(struct gnutella_node *n);
 void node_tx_leave_flowc(struct gnutella_node *n);
-gint node_write(struct gnutella_node *n, gpointer data, gint len);
-gint node_writev(struct gnutella_node *n, struct iovec *iov, gint iovcnt);
+void node_bye_sent(struct gnutella_node *n);
 void node_bye_all(void);
 void node_close(void);
+gboolean node_remove_non_nearby(void);
 
 #endif /* __nodes_h__ */
