@@ -49,6 +49,8 @@ static void monitor_gui_append_to_monitor(
 {
     GtkTreeIter iter;
     gchar tmpstr[100];
+	gchar *str;
+	GError *error = NULL;
 
 	if (monitor_items < monitor_max_items)
         monitor_items++;
@@ -63,18 +65,19 @@ static void monitor_gui_append_to_monitor(
     /* Aquire an iterator */
     gtk_list_store_append(monitor_model, &iter);
 
-    if (type == QUERY_SHA1) {
-        /* If the query is empty and we have a SHA1 extension,
-         * we print a urn:sha1-query instead. */
-        g_snprintf(tmpstr, sizeof(tmpstr), "urn:sha1:%s", item);
-    } else {
-        g_snprintf(tmpstr, sizeof(tmpstr), "%s", item);
-    }
+	/* If the query is empty and we have a SHA1 extension,
+	 * we print a urn:sha1-query instead. */
+	g_snprintf(tmpstr, sizeof(tmpstr),
+		type == QUERY_SHA1 ? "urn:sha1:%s" : "%s", item);
 
-    gtk_list_store_set(
-        monitor_model, &iter, 
-        QUERY_COLUMN, tmpstr,
-        -1);
+	str = g_locale_to_utf8(tmpstr, -1, NULL, NULL, &error);
+	if (NULL != error) {
+		g_warning("g_locale_to_utf8 failed in %s: %s, tmpstr=\"%s\"",
+			__FUNCTION__, error->message, tmpstr);
+		g_clear_error(&error);
+	}
+	else
+    	gtk_list_store_set(monitor_model, &iter, QUERY_COLUMN, str, -1);
 }
 
 
