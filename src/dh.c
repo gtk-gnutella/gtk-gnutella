@@ -50,6 +50,7 @@ RCSID("$Id$");
 #define DH_MIN_HITS		250		/* Minimum amount of hits we try to relay */
 #define DH_POPULAR_HITS	500		/* Query deemed popular after that many hits */
 #define DH_MAX_HITS		1000	/* Maximum hits after which we heavily drop */
+#define DH_THRESH_HITS	10		/* Consider we have no hits if less than that */
 
 /*
  * Information about query hits received.
@@ -283,9 +284,14 @@ dh_route(gnutella_node_t *src, gnutella_node_t *dest, gint count)
 		 * We're currently severely dropping messages from the queue.
 		 * Don't enqueue if we already sent a hit for this query or
 		 * have one queued.
+		 *
+		 * To avoid loosing rare hits, consider at least DH_THRESH_HITS hits.
 		 */
 
-		if (dh->hits_sent || dh->hits_queued) {
+		if (
+			dh->hits_sent >= DH_THRESH_HITS ||
+			dh->hits_queued >= DH_THRESH_HITS
+		) {
 			if (dh_debug > 19) printf("DH queue in SWIFT mode, dropping\n");
 			goto drop_flow_control;
 		}
@@ -297,7 +303,7 @@ dh_route(gnutella_node_t *src, gnutella_node_t *dest, gint count)
 		 * already have hits enqueued for this query.
 		 */
 
-		if (dh->hits_queued) {
+		if (dh->hits_queued >= DH_THRESH_HITS) {
 			if (dh_debug > 19) printf("DH queue in FLOWC mode, dropping\n");
 			goto drop_flow_control;
 		}
