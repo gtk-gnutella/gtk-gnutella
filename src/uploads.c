@@ -1920,7 +1920,7 @@ static void upload_request(gnutella_upload_t *u, header_t *header)
 
 	if (
 		is_followup &&
-		((sha1 && u->sha1 && !sha1_eq(sha1, u->sha1)) || index != u->index)
+		!(sha1 && u->sha1 && sha1_eq(sha1, u->sha1)) && index != u->index
 	) {
 		g_warning("Host %s sent initial request for %u (%s), "
 			"now requesting %u (%s)",
