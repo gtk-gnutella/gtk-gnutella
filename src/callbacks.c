@@ -905,7 +905,7 @@ void on_togglebutton_queue_freeze_toggled(GtkToggleButton *togglebutton,
 		gui_statusbar_pop(scid_queue_freezed);
 	}
 
-	download_set_freeze(gtk_toggle_button_get_active(togglebutton));
+	download_freeze_queue(gtk_toggle_button_get_active(togglebutton));
 }
 
 
