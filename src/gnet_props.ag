@@ -2499,4 +2499,13 @@ prop = {
 	};
 };
 
+prop = {
+	name = "convert_spaces";
+	desc = "If set, spaces in filenames are replaced with underscores.";
+	type = boolean;
+	data = {
+		default = FALSE;
+	};
+};
+
 /* vi: set ts=4: */

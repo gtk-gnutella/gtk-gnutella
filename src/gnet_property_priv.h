@@ -240,6 +240,7 @@ extern gchar   *ancient_version_force;
 extern guint32  ancient_version_left_days;
 extern gboolean file_descriptor_shortage;
 extern gboolean file_descriptor_runout;
+extern gboolean convert_spaces;
 
 
 prop_set_t *gnet_prop_init(void);
