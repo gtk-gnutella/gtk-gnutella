@@ -110,12 +110,10 @@ gboolean find_host(guint32 ip, guint16 port)
 
 	for (l = sl_nodes; l; l = l->next) {
 		struct gnutella_node *node = (struct gnutella_node *) l->data;
-		if (node->ip == ip) {
-			if (NODE_IS_INCOMING(node))
-				return TRUE;
-			else if (node->port == port)
-				return TRUE;
-		}
+		if (!node->gnet_ip)
+			continue;
+		if (node->gnet_ip == ip && node->gnet_port == port)
+			return TRUE;
 	}
 
 	/* Check the hosts -- large list, use hash table --RAM */
@@ -1157,8 +1155,12 @@ void pcache_pong_received(struct gnutella_node *n)
 
 	if (n->header.hops == 0) {
 		if (!n->gnet_ip && (n->flags & NODE_F_INCOMING)) {
-			n->gnet_ip = ip;
-			n->gnet_port = port;
+			if (ip == n->ip) {
+				n->gnet_ip = ip;		/* Signals: we have figured it out */
+				n->gnet_port = port;
+			} else
+				g_warning("node %s sent us a pong for itself with alien IP %s",
+					node_ip(n), ip_to_gchar(ip));
 		}
 		n->gnet_files_count = files_count;
 		n->gnet_kbytes_count = kbytes_count;
