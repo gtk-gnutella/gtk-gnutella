@@ -25,6 +25,7 @@
 #define __share_h__
 
 #include "nodes.h"
+#include "huge.h"
 
 /* A file extension we have to share */
 struct extension {
@@ -35,9 +36,11 @@ struct extension {
 struct shared_file {
 	gchar *file_name;
 	gchar *file_directory;	/* The full path of the directory the file's in */
-	guint32 file_index;			/* the files index withing out local DB */
-	guint32 file_size;			/* File size in Bytes */
+	guint32 file_index;		/* the files index withing out local DB */
+	guint32 file_size;		/* File size in Bytes */
 	gint file_name_len;
+	time_t mtime;			/* Last modification time, for SHA1 computation */
+	gchar sha1_digest[SHA1_BASE32_SIZE];	/* base32 encoding of SHA1 */
 };
 
 struct gnutella_search_results_out {
@@ -79,5 +82,9 @@ gchar *get_file_path(gint);
 void shared_dirs_parse(gchar *);
 void shared_dir_add(gchar *);
 gint get_file_size(gint);
+
+void set_sha1(struct shared_file *, const gchar *sha1_digest);
+struct shared_file *shared_file_from_sha1_hash(const gchar *sha1_digest);
+gboolean sha1_hash_available(const struct shared_file *);
 
 #endif /* __share_h__ */

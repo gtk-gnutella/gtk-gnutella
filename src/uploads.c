@@ -804,6 +804,186 @@ void upload_push_conf(struct upload *u)
 }
 
 /*
+ * upload_error_not_found
+ * 
+ * Send back an HTTP error 404: file not found,
+ */
+static void upload_error_not_found(struct upload *u, const gchar *request)
+{
+	g_warning("bad request from %s: %s\n", ip_to_gchar(u->socket->ip), request);
+	upload_error_remove(u, 404, "Not Found");
+}
+
+/* 
+ * upload_error_request_is_ok
+ * 
+ * Check the request.
+ * Return TRUE if ok or FALSE otherwise (upload must then be aborted)
+ */
+static gboolean upload_request_is_ok(
+	struct upload *u,
+	header_t *header,
+	gchar *request)
+{
+	struct gnutella_socket *s = u->socket;
+	gint http_major, http_minor;
+
+	/*
+	 * Check HTTP protocol version. --RAM, 11/04/2002
+	 */
+
+	if (
+		!extract_http_version(request, getline_length(s->getline),
+			&http_major, &http_minor)
+	) {
+		upload_error_remove(u, 500, "Unknown/Missing Protocol Tag");
+		return FALSE;
+	}
+
+	if (http_major != 1) {
+		upload_error_remove(u, 505,
+			"HTTP Version %d Not Supported", http_major);
+		return FALSE;
+	}
+
+	/*
+	 * If HTTP/1.1 or above, check the Host header.
+	 *
+	 * We require it because HTTP does, but we don't really care for
+	 * now.  Moreover, we might not know our external IP correctly,
+	 * so we have little ways to check that the Host refers to us.
+	 *
+	 *		--RAM, 11/04/2002
+	 */
+
+	if (http_minor >= 1) {
+		gchar *host = header_get(header, "Host");
+
+		if (host == NULL) {
+			upload_error_remove(u, 400, "Missing Host Header");
+			return FALSE;
+		}
+	}
+
+	/*
+	 * If we don't share, abort immediately. --RAM, 11/01/2002
+	 * Use 5xx error code, it's a server-side problem --RAM, 11/04/2002
+	 */
+
+	if (max_uploads == 0) {
+		upload_error_remove(u, 503, "Sharing currently disabled");
+		return FALSE;
+	}
+
+	return TRUE;
+}
+
+/* 
+ * get_file_to_upload_from_index
+ * 
+ * Get the shared_file to upload. Request has been extracted already, and is
+ * passed as request. The same holds for the file index, which is passed as
+ * index.
+ * Return the shared_file if found, NULL otherwise.
+ */
+
+static struct shared_file *get_file_to_upload_from_index(
+	struct upload *u,
+	gchar *request,
+	guint index)
+{
+	guchar c;
+	gchar *buf;
+
+	/*
+	 * We must be cautious about file index changing between two scans,
+	 * which may happen when files are moved around on the local library.
+	 * If we serve the wrong file, and it's a resuming request, this will
+	 * result in a corrupted file!
+	 *		--RAM, 26/09/2001
+	 *
+	 * We now support URL-escaped queries.
+	 *		--RAM, 16/01/2002
+	 */
+
+	struct shared_file *reqfile = shared_file(index);
+
+	if (reqfile == SHARE_REBUILDING) {
+		/* Retry-able by user, hence 503 */
+		upload_error_remove(u, 503, "Library being rebuilt");
+		return NULL;
+	}
+
+	if (reqfile == NULL) {
+		upload_error_not_found(u, request);
+		return NULL;
+	}
+
+	buf = request +
+		((request[0] == 'G') ? sizeof("GET /get/") : sizeof("HEAD /get/"));
+
+	(void) url_unescape(buf, TRUE);		/* Index is escape-safe anyway */
+
+	while ((c = *(guchar *) buf++) && c != '/')
+		/* empty */;
+
+	if (
+		c == '/' &&
+		0 != strncmp(buf, reqfile->file_name, reqfile->file_name_len)
+	) {
+		gchar *error = "File index/name mismatch";
+		g_warning("%s from %s for %d/%s", error,
+			ip_to_gchar(u->socket->ip), index, reqfile->file_name);
+		upload_error_remove(u, 409, error);
+		return NULL;
+	}
+
+	return reqfile;
+}
+
+static const char sha1_query[] = "GET /uri-res/N2R?urn:sha1:";
+static const int sha1_query_length = sizeof(sha1_query) - 1;
+
+/* 
+ * get_file_to_upload_from_sha1
+ * 
+ * Get the shared_file to upload from a given SHA1 hash. request is the
+ * base32-encoded SHA1 hash.
+ * Return the shared_file if we have it, NULL otherwise
+ */
+static struct shared_file *get_file_to_upload_from_sha1(const gchar *request)
+{
+	char hash[SHA1_BASE32_SIZE + 2];
+
+	sscanf(request + sha1_query_length, "%32s", hash);
+
+	return shared_file_from_sha1_hash(hash);
+}
+
+/*
+ * get_file_to_upload
+ * 
+ * A dispatcher function to call either get_file_to_upload_from_index or
+ * get_file_to_upload_from_sha1 depending on the syntax of the request.
+ * Return the shared_file if we got it, or NULL otherwise.
+ */
+static struct shared_file *get_file_to_upload(struct upload *u, gchar *request)
+{
+	guint index = 0;
+
+	if (
+		sscanf(request, "GET /get/%u/", &index) ||
+		sscanf(request, "HEAD /get/%u/", &index)
+	)
+		return get_file_to_upload_from_index(u, request, index);
+	else if (!strncmp(request, sha1_query, sha1_query_length))
+		return get_file_to_upload_from_sha1(request);
+
+	upload_error_not_found(u, request);
+	return NULL;
+}
+
+/*
  * upload_request
  *
  * Called to initiate the upload once all the HTTP headers have been
@@ -813,9 +993,9 @@ void upload_push_conf(struct upload *u)
 static void upload_request(struct upload *u, header_t *header)
 {
 	struct gnutella_socket *s = u->socket;
-	struct shared_file *requested_file = NULL;
+	struct shared_file *reqfile = NULL;
 	guint index = 0, skip = 0, end = 0, rw = 0, row = 0, upcount = 0;
-	gchar http_response[1024], *fpath = NULL, sl[] = "/\0";
+	gchar http_response[1024], *fpath = NULL, sl[] = "/";
 	gchar *user_agent = 0;
 	gchar *buf;
 	gchar *titles[5];
@@ -827,6 +1007,10 @@ static void upload_request(struct upload *u, header_t *header)
 	gchar size_tmp[256];
 	gchar range_tmp[256];
 	gint range_len;
+	gint needed_room;
+	struct stat statbuf;
+	gboolean partial;
+	time_t mtime, now;
 
 	titles[0] = titles[1] = titles[2] = titles[3] = titles[4] = NULL;
 
@@ -885,393 +1069,310 @@ static void upload_request(struct upload *u, header_t *header)
 	 *				--RAM, 09/09/2001
 	 */
 
-	if (
-		sscanf(request, "GET /get/%u/", &index) ||
-		sscanf(request, "HEAD /get/%u/", &index)
-	) {
-		guchar c;
-		time_t now;
-		time_t mtime;
-		struct stat statbuf;
-		gint http_major, http_minor;
+	reqfile = get_file_to_upload(u, request);
 
-		/*
-		 * Check HTTP protocol version. --RAM, 11/04/2002
-		 */
-
-		if (
-			!extract_http_version(request, getline_length(s->getline),
-				&http_major, &http_minor)
-		) {
-			upload_error_remove(u, 500, "Unknown/Missing Protocol Tag");
-			return;
-		}
-
-		if (http_major != 1) {
-			upload_error_remove(u, 505,
-				"HTTP Version %d Not Supported", http_major);
-			return;
-		}
-
-		/*
-		 * If HTTP/1.1 or above, check the Host header.
-		 *
-		 * We require it because HTTP does, but we don't really care for
-		 * now.  Moreover, we might not know our external IP correctly,
-		 * so we have little ways to check that the Host refers to us.
-		 *
-		 *		--RAM, 11/04/2002
-		 */
-
-		if (http_minor >= 1) {
-			gchar *host = header_get(header, "Host");
-
-			if (host == NULL) {
-				upload_error_remove(u, 400, "Missing Host Header");
-				return;
-			}
-		}
-
-		/*
-		 * If we don't share, abort immediately. --RAM, 11/01/2002
-		 * Use 5xx error code, it's a server-side problem --RAM, 11/04/2002
-		 */
-
-		if (max_uploads == 0) {
-			upload_error_remove(u, 503, "Sharing currently disabled");
-			return;
-		}
-
-		/*
-		 * We must be cautious about file index changing between two scans,
-		 * which may happen when files are moved around on the local library.
-		 * If we serve the wrong file, and it's a resuming request, this will
-		 * result in a corrupted file!
-		 *		--RAM, 26/09/2001
-		 *
-		 * We now support URL-escaped queries.
-		 *		--RAM, 16/01/2002
-		 */
-
-		requested_file = shared_file(index);
-
-		if (requested_file == SHARE_REBUILDING) {
-			/* Retry-able by user, hence 503 */
-			upload_error_remove(u, 503, "Library being rebuilt");
-			return;
-		}
-
-		if (requested_file == NULL)
-			goto not_found;
-
-		buf = request +
-			((request[0] == 'G') ? sizeof("GET /get/") : sizeof("HEAD /get/"));
-
-		(void) url_unescape(buf, TRUE);		/* Index is escape-safe anyway */
-
-		while ((c = *(guchar *) buf++) && c != '/')
-			/* empty */;
-		if (c == '/' && 0 != strncmp(buf,
-				requested_file->file_name, requested_file->file_name_len)
-		) {
-			gchar *error = "File index/name mismatch";
-			g_warning("%s from %s for %d/%s", error,
-				ip_to_gchar(s->ip), index, requested_file->file_name);
-			upload_error_remove(u, 409, error);
-			return;
-		}
-
-		/*
-		 * Even though this test is less costly than the previous, doing it
-		 * afterwards allows them to be notified of a mismatch whilst they
-		 * wait for a download slot.  It would be a pity for them to get
-		 * a slot and be told about the mismatch only then.
-		 *		--RAM, 15/12/2001
-		 */
-
-		if (running_uploads > max_uploads) {
-			upload_error_remove(u,
-				503, "Too many uploads (%d max)", max_uploads);
-			return;
-		}
-
-		/*
-		 * Ensure that noone tries to download the same file twice, and
-		 * that they don't get beyond the max authorized downloads per IP.
-		 */
-
-		for (l = uploads; l; l = l->next) {
-			struct upload *up = (struct upload *) (l->data);
-			g_assert(up);
-			if (up == u)
-				continue;				/* Current upload is already in list */
-			if (!UPLOAD_IS_SENDING(up))
-				continue;
-			if (up->index == index && up->socket->ip == s->ip) {
-				upload_error_remove(u, 409, "Already downloading that file");
-				return;
-			}
-			if (up->socket->ip == s->ip && ++upcount >= max_uploads_ip) {
-				upload_error_remove(u,
-					503, "Only %u download%s per IP address",
-					max_uploads_ip, max_uploads_ip == 1 ? "" : "s");
-				return;
-			}
-		}
-
-		/*
-		 * Range: bytes=10453-23456
-		 * User-Agent: whatever
-		 * Server: whatever (in case no User-Agent)
-		 */
-
-		buf = header_get(header, "Range");
-		if (buf) {
-			if (strchr(buf, ',')) {
-				char *msg = "Multiple Range requests unsupported";
-				send_upload_error(u, 400, msg);
-				upload_remove(u, msg);
-				return;
-			} else if (2 == sscanf(buf, "bytes=%u-%u", &skip, &end)) {
-				has_end = TRUE;
-				if (skip > end) {
-					upload_error_remove(u, 400, "Malformed Range request");
-					return;
-				}
-			} else if (1 == sscanf(buf, "bytes=-%u", &skip)) {
-				/*
-				 * Backwards specification -- they want latest `skip' bytes.
-				 */
-				if (skip >= requested_file->file_size)
-					skip = 0;
-				else
-					skip = requested_file->file_size - skip;
-			} else
-				(void) sscanf(buf, "bytes=%u-", &skip);
-		}
-
-		user_agent = header_get(header, "User-Agent");
-
-		/* Maybe they sent a Server: line, thinking they're a server? */
-		if (!user_agent)
-			user_agent = header_get(header, "Server");
-
-		if (user_agent) {
-			/* XXX match against web user agents, possibly */
-		}
-
-		/*
-		 * We're accepting the upload.  Setup accordingly.
-		 */
-
-		/* Set the full path to the file */
-		if (requested_file->
-			file_directory[strlen(requested_file->file_directory) - 1] == sl[0])
-			fpath =
-				g_strconcat(requested_file->file_directory,
-							requested_file->file_name, NULL);
-		else
-			fpath =
-				g_strconcat(requested_file->file_directory, &sl,
-							requested_file->file_name, NULL);
-
-		/*
-		 * Validate the rquested range.
-		 */
-
-		u->file_size = requested_file->file_size;
-
-		if (!has_end)
-			end = u->file_size - 1;
-
-		if (skip >= u->file_size || end >= u->file_size) {
-			upload_error_remove(u, 416, "Requested range not satisfiable");
-			return;
-		}
-
-		if (-1 == stat(fpath, &statbuf))
-			goto not_found;
-
-		/* Open the file for reading , READONLY just in case. */
-		if ((u->file_desc = open(fpath, O_RDONLY)) < 0)
-			goto not_found;
-
-		g_free(fpath);
-
-		/*
-		 * If we pushed this upload, and they are not requesting the same
-		 * file, that's OK, but warn.
-		 *		--RAM, 31/12/2001
-		 */
-
-		if (u->push && index != u->index)
-			g_warning("Host %s sent PUSH for %u (%s), now requesting %u (%s)",
-				ip_to_gchar(s->ip),
-				u->index, u->name, index, requested_file->file_name);
-
-		/*
-		 * Set all the upload information
-		 *
-		 * When comming from a push request, we already have a non-NULL
-		 * u->name in the structure.  However, even if the index is the same,
-		 * it's not a 100% certainety that the filename matches (the library
-		 * could have been rebuilt).  Most of the time, it will, so it
-		 * pays to strcmp() it.
-		 *		--RAM, 25/03/2002, memory leak found by Michael Tesch
-		 */
-
-		u->index = index;
-
-		if (u->push && 0 != strcmp(u->name, requested_file->file_name)) {
-			g_free(u->name);
-			u->name = NULL;
-		}
-
-		if (u->name == NULL)
-			u->name = g_strdup(requested_file->file_name);
-
-		u->skip = skip;
-		u->end = end;
-		u->pos = 0;
-		u->start_date = time((time_t *) NULL);
-		u->last_update = time((time_t *) 0);
-
-		u->buf_size = 4096 * sizeof(gchar);
-		u->buffer = (gchar *) g_malloc(u->buf_size);
-		u->bpos = 0;
-		u->bsize = 0;
-
-		/*
-		 * Prepare date and modification time of file.
-		 */
-
-		now = time((time_t *) NULL);
-		mtime = statbuf.st_mtime;
-		if (mtime > now)
-			mtime = now;			/* Clock skew on file server */
-
-		/*
-		 * On linux, turn TCP_CORK on so that we only send out full TCP/IP
-		 * frames.  The exact size depends on your LAN interface, but on
-		 * Ethernet, it's about 1500 bytes.
-		 */
-
-		sock_cork(s, TRUE);
-
-		/*
-		 * Setup and write the HTTP 200 header , including the file size.
-		 * If partial content (range request), emit a 206 reply.
-		 */
-
-		if (skip || end != (u->file_size - 1))
-			rw = g_snprintf(http_response, sizeof(http_response),
-				"HTTP/1.0 206 Partial Content\r\n"
-				"Server: %s\r\n"
-				"X-Live-Since: %s\r\n"
-				"Connection: close\r\n"
-				"Date: %s\r\n"
-				"Last-Modified: %s\r\n"
-				"Content-type: application/binary\r\n"
-				"Content-length: %u\r\n"
-				"Content-Range: bytes %u-%u/%u\r\n\r\n",
-				version_string, start_rfc822_date,
-				date_to_rfc822_gchar(now), date_to_rfc822_gchar2(mtime),
-				u->end - u->skip + 1,
-				u->skip, u->end, u->file_size);
-		else
-			rw = g_snprintf(http_response, sizeof(http_response),
-				"HTTP/1.0 200 OK\r\n"
-				"Server: %s\r\n"
-				"X-Live-Since: %s\r\n"
-				"Connection: close\r\n"
-				"Date: %s\r\n"
-				"Last-Modified: %s\r\n"
-				"Content-type: application/binary\r\n"
-				"Content-length: %u\r\n\r\n",
-				version_string, start_rfc822_date,
-				date_to_rfc822_gchar(now), date_to_rfc822_gchar2(mtime),
-				u->file_size);
-
-		sent = bws_write(bws.out, s->file_desc, http_response, rw);
-		if (sent == -1) {
-			gint errcode = errno;
-			g_warning("Unable to send back HTTP OK reply to %s: %s",
-				ip_to_gchar(s->ip), g_strerror(errcode));
-			upload_remove(u, "Cannot send ACK: %s", g_strerror(errcode));
-			return;
-		} else if (sent < rw) {
-			g_warning("Could only send %d out of %d HTTP OK bytes to %s",
-				sent, rw, ip_to_gchar(s->ip));
-			upload_remove(u, "Cannot send whole ACK");
-			return;
-		}
-
-		if (dbg > 4) {
-			printf("----Sent Reply to %s:\n%.*s----\n",
-				ip_to_gchar(s->ip), (int) rw, http_response);
-			fflush(stdout);
-		}
-
-		/*
-		 * If we need to send only the HEAD, we're done. --RAM, 26/12/2001
-		 */
-
-		if (head_only) {
-			upload_remove(u, NULL);		/* No message, everything was OK */
-			return;
-		}
-
-		/*
-		 * Install the output I/O, which is via a bandwidth limited source.
-		 */
-
-		io_free(u->io_opaque);
-
-		g_assert(s->gdk_tag == 0);
-		g_assert(u->bio == NULL);
-		
-		u->bio = bsched_source_add(bws.out, s->file_desc,
-			BIO_F_WRITE, upload_write, (gpointer) u);
-
-		/*
-		 * Add upload to the GUI
-		 */
-
-		g_snprintf(size_tmp, sizeof(size_tmp), "%s", short_size(u->file_size));
-
-		range_len = g_snprintf(range_tmp, sizeof(range_tmp), "%s",
-			compact_size(u->end - u->skip + 1));
-
-		if (u->skip)
-			range_len += g_snprintf(
-				&range_tmp[range_len], sizeof(range_tmp)-range_len,
-				" @ %s", compact_size(u->skip));
-
-		titles[0] = u->name;
-		titles[1] = ip_to_gchar(s->ip);
-		titles[2] = size_tmp;
-		titles[3] = range_tmp;
-		titles[4] = "";
-
-		row = gtk_clist_append(GTK_CLIST(clist_uploads), titles);
-		gtk_clist_set_row_data(GTK_CLIST(clist_uploads), row, (gpointer) u);
-
-		gui_update_c_uploads();
-		ul_stats_file_begin(u);
-
+	if (!reqfile) {
+		/* get_file_to_upload is supposed to have signaled the error already */
 		return;
 	}
 
-  not_found:
+	index = reqfile->file_index;
 
-	/* What?  Either the sscanf() failed or we don't have the file. */
+	if (!upload_request_is_ok(u, header, request))
+		return;
 
-	g_warning("bad request from %s: %s\n", ip_to_gchar(s->ip), request);
+	/*
+	 * Even though this test is less costly than the previous, doing it
+	 * afterwards allows them to be notified of a mismatch whilst they
+	 * wait for a download slot.  It would be a pity for them to get
+	 * a slot and be told about the mismatch only then.
+	 *		--RAM, 15/12/2001
+	 */
 
-	if (fpath)
+	if (running_uploads > max_uploads) {
+		upload_error_remove(u,
+			503, "Too many uploads (%d max)", max_uploads);
+		return;
+	}
+
+	/*
+	 * Ensure that noone tries to download the same file twice, and
+	 * that they don't get beyond the max authorized downloads per IP.
+	 */
+
+	for (l = uploads; l; l = l->next) {
+		struct upload *up = (struct upload *) (l->data);
+		g_assert(up);
+		if (up == u)
+			continue;				/* Current upload is already in list */
+		if (!UPLOAD_IS_SENDING(up))
+			continue;
+		if (up->index == index && up->socket->ip == s->ip) {
+			upload_error_remove(u, 409, "Already downloading that file");
+			return;
+		}
+		if (up->socket->ip == s->ip && ++upcount >= max_uploads_ip) {
+			upload_error_remove(u,
+				503, "Only %u download%s per IP address",
+				max_uploads_ip, max_uploads_ip == 1 ? "" : "s");
+			return;
+		}
+	}
+
+	/*
+	 * Range: bytes=10453-23456
+	 * User-Agent: whatever
+	 * Server: whatever (in case no User-Agent)
+	 */
+
+	buf = header_get(header, "Range");
+	if (buf) {
+		if (strchr(buf, ',')) {
+			char *msg = "Multiple Range requests unsupported";
+			send_upload_error(u, 400, msg);
+			upload_remove(u, msg);
+			return;
+		} else if (2 == sscanf(buf, "bytes=%u-%u", &skip, &end)) {
+			has_end = TRUE;
+			if (skip > end) {
+				upload_error_remove(u, 400, "Malformed Range request");
+				return;
+			}
+		} else if (1 == sscanf(buf, "bytes=-%u", &skip)) {
+			/*
+			 * Backwards specification -- they want latest `skip' bytes.
+			 */
+			if (skip >= reqfile->file_size)
+				skip = 0;
+			else
+				skip = reqfile->file_size - skip;
+		} else
+			(void) sscanf(buf, "bytes=%u-", &skip);
+	}
+
+	user_agent = header_get(header, "User-Agent");
+
+	/* Maybe they sent a Server: line, thinking they're a server? */
+	if (!user_agent)
+		user_agent = header_get(header, "Server");
+
+	if (user_agent) {
+		/* XXX match against web user agents, possibly */
+	}
+
+	/*
+	 * We're accepting the upload.  Setup accordingly.
+	 */
+
+	/* Set the full path to the file */
+
+	if (reqfile->file_directory[strlen(reqfile->file_directory) - 1] == sl[0])
+		fpath = g_strconcat(reqfile->file_directory, reqfile->file_name, NULL);
+	else
+		fpath = g_strconcat(reqfile->file_directory,
+			sl, reqfile->file_name, NULL);
+
+	/*
+	 * Validate the rquested range.
+	 */
+
+	u->file_size = reqfile->file_size;
+
+	if (!has_end)
+		end = u->file_size - 1;
+
+	if (skip >= u->file_size || end >= u->file_size) {
+		upload_error_remove(u, 416, "Requested range not satisfiable");
+		return;
+	}
+
+	if (-1 == stat(fpath, &statbuf)) {
+		upload_error_not_found(u, request);
 		g_free(fpath);
+		return;
+	}
 
-	upload_error_remove(u, 404, "Not Found");
+	/* Open the file for reading , READONLY just in case. */
+	if ((u->file_desc = open(fpath, O_RDONLY)) < 0) {
+		upload_error_not_found(u, request);
+		g_free(fpath);
+		return;
+	}
+
+	g_free(fpath);
+
+	/*
+	 * If we pushed this upload, and they are not requesting the same
+	 * file, that's OK, but warn.
+	 *		--RAM, 31/12/2001
+	 */
+
+	if (u->push && index != u->index)
+		g_warning("Host %s sent PUSH for %u (%s), now requesting %u (%s)",
+			ip_to_gchar(s->ip),
+			u->index, u->name, index, reqfile->file_name);
+
+	/*
+	 * Set all the upload information
+	 *
+	 * When comming from a push request, we already have a non-NULL
+	 * u->name in the structure.  However, even if the index is the same,
+	 * it's not a 100% certainety that the filename matches (the library
+	 * could have been rebuilt).  Most of the time, it will, so it
+	 * pays to strcmp() it.
+	 *		--RAM, 25/03/2002, memory leak found by Michael Tesch
+	 */
+
+	u->index = index;
+
+	if (u->push && 0 != strcmp(u->name, reqfile->file_name)) {
+		g_free(u->name);
+		u->name = NULL;
+	}
+
+	if (u->name == NULL)
+		u->name = g_strdup(reqfile->file_name);
+
+	u->skip = skip;
+	u->end = end;
+	u->pos = 0;
+	u->start_date = time((time_t *) NULL);
+	u->last_update = time((time_t *) 0);
+
+	u->buf_size = 4096 * sizeof(gchar);
+	u->buffer = (gchar *) g_malloc(u->buf_size);
+	u->bpos = 0;
+	u->bsize = 0;
+
+	/*
+	 * Prepare date and modification time of file.
+	 */
+
+	now = time((time_t *) NULL);
+	mtime = statbuf.st_mtime;
+	if (mtime > now)
+		mtime = now;			/* Clock skew on file server */
+
+	/*
+	 * On linux, turn TCP_CORK on so that we only send out full TCP/IP
+	 * frames.  The exact size depends on your LAN interface, but on
+	 * Ethernet, it's about 1500 bytes.
+	 */
+
+	sock_cork(s, TRUE);
+
+	/*
+	 * Setup and write the HTTP 200 header , including the file size.
+	 * If partial content (range request), emit a 206 reply.
+	 */
+
+	partial = skip || end != (u->file_size - 1);
+	if (partial)
+		rw = g_snprintf(http_response, sizeof(http_response),
+			  "HTTP/1.0 206 Partial Content\r\n");
+	else
+		rw = g_snprintf(http_response, sizeof(http_response),
+			  "HTTP/1.0 200 OK\r\n");
+	
+	rw += g_snprintf(http_response + rw, sizeof(http_response) - rw,
+		"Server: %s\r\n"
+		"X-Live-Since: %s\r\n"
+		"Connection: close\r\n"
+		"Date: %s\r\n"
+		"Last-Modified: %s\r\n"
+		"Content-Type: application/binary\r\n"
+		"Content-Length: %u\r\n",
+			version_string, start_rfc822_date,
+			date_to_rfc822_gchar(now), date_to_rfc822_gchar2(mtime),
+			u->end - u->skip + 1);
+
+	if (partial)
+	  rw += g_snprintf(http_response + rw, sizeof(http_response) - rw,
+		"Content-Range: bytes %u-%u/%u\r\n", u->skip, u->end, u->file_size);
+
+	/*
+	 * Propagate the SHA1 information for the file, if we have it.
+	 */
+
+	needed_room = 33 + SHA1_BASE32_SIZE + 2; /* Header + base32 SHA1 + crlf */
+
+	if (
+		sizeof(http_response) - rw > needed_room &&
+		sha1_hash_available(reqfile)
+	)
+		rw += g_snprintf(http_response + rw, sizeof(http_response) - rw,
+			"X-Gnutella-Content-URN: urn:sha1:%.*s\r\n",
+			SHA1_BASE32_SIZE, reqfile->sha1_digest);
+
+	rw += g_snprintf(http_response + rw, sizeof(http_response) - rw,
+			 "\r\n");
+
+	sent = bws_write(bws.out, s->file_desc, http_response, rw);
+	if (sent == -1) {
+		gint errcode = errno;
+		g_warning("Unable to send back HTTP OK reply to %s: %s",
+			ip_to_gchar(s->ip), g_strerror(errcode));
+		upload_remove(u, "Cannot send ACK: %s", g_strerror(errcode));
+		return;
+	} else if (sent < rw) {
+		g_warning("Could only send %d out of %d HTTP OK bytes to %s",
+			sent, rw, ip_to_gchar(s->ip));
+		upload_remove(u, "Cannot send whole ACK");
+		return;
+	}
+
+	if (dbg > 4) {
+		printf("----Sent Reply to %s:\n%.*s----\n",
+			ip_to_gchar(s->ip), (int) rw, http_response);
+		fflush(stdout);
+	}
+
+	/*
+	 * If we need to send only the HEAD, we're done. --RAM, 26/12/2001
+	 */
+
+	if (head_only) {
+		upload_remove(u, NULL);		/* No message, everything was OK */
+		return;
+	}
+
+	/*
+	 * Install the output I/O, which is via a bandwidth limited source.
+	 */
+
+	io_free(u->io_opaque);
+
+	g_assert(s->gdk_tag == 0);
+	g_assert(u->bio == NULL);
+	
+	u->bio = bsched_source_add(bws.out, s->file_desc,
+		BIO_F_WRITE, upload_write, (gpointer) u);
+
+	/*
+	 * Add upload to the GUI
+	 */
+
+	g_snprintf(size_tmp, sizeof(size_tmp), "%s", short_size(u->file_size));
+
+	range_len = g_snprintf(range_tmp, sizeof(range_tmp), "%s",
+		compact_size(u->end - u->skip + 1));
+
+	if (u->skip)
+		range_len += g_snprintf(
+			&range_tmp[range_len], sizeof(range_tmp)-range_len,
+			" @ %s", compact_size(u->skip));
+
+	titles[0] = u->name;
+	titles[1] = ip_to_gchar(s->ip);
+	titles[2] = size_tmp;
+	titles[3] = range_tmp;
+	titles[4] = "";
+
+	row = gtk_clist_append(GTK_CLIST(clist_uploads), titles);
+	gtk_clist_set_row_data(GTK_CLIST(clist_uploads), row, (gpointer) u);
+
+	gui_update_c_uploads();
+	ul_stats_file_begin(u);
 }
 
 /* Uplaod Write
@@ -1412,4 +1513,14 @@ void upload_close(void)
 	g_slist_free(uploads);
 }
 
+
+/* 
+ * Emacs stuff:
+ * Local Variables: ***
+ * c-indentation-style: "bsd" ***
+ * fill-column: 80 ***
+ * tab-width: 4 ***
+ * indent-tabs-mode: nil ***
+ * End: ***
+ */
 /* vi: set ts=4: */

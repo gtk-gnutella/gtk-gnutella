@@ -38,6 +38,7 @@
 #include "sockets.h" /* For local_ip. (FIXME: move local_ip to config.h.) */
 #include "misc.h"
 #include "gmsg.h"
+#include "huge.h"
 
 guint32 files_scanned = 0;
 guint32 kbytes_scanned = 0;
@@ -89,10 +90,83 @@ struct {
 	}												\
 } while (0)
 
-#define FOUND_RESET() do {							\
-	found_data.s = sizeof(struct gnutella_header) +	\
-		 sizeof(struct gnutella_search_results_out);\
-} while (0)
+/* 
+ * We don't want to include the same file several times in a reply (for
+ * example, once because it matches an URN query and once because the file name
+ * matches). So we keep track of what has been added in this tree. The file
+ * index is used as the key.
+ */
+
+static GTree *index_of_found_files = NULL;
+static gint index_of_found_files_count = 0;
+
+/* 
+ * compare_indexes
+ * 
+ * Compare 2 indexes for use as the GCompareFunc for the index_of_found_files
+ * GTree.
+ * Return 0 if indexes are the same, a negative value if i1 is bigger
+ * than i2 and a positive value otherwise.
+ */
+
+static int compare_indexes(guint32 i1, guint32 i2)
+{
+    return i2 - i1;
+}
+
+/* 
+ * shared_file_already_in_found_set
+ * 
+ * Check if a given shared_file has been added to the QueryHit.
+ * Return TRUE if the shared_file is in the QueryHit already, FALSE otherwise
+ */
+
+static gboolean shared_file_already_in_found_set(struct shared_file *sf)
+{
+    return NULL != g_tree_lookup(index_of_found_files,
+		GUINT_TO_POINTER(sf->file_index));
+}
+
+/*
+ * put_shared_file_into_found_set
+ * 
+ * Add the shared_file to the set of files already added to the QueryHit.
+ */
+
+static void put_shared_file_into_found_set(struct shared_file *sf)
+{
+	index_of_found_files_count++;
+    g_tree_insert(index_of_found_files, 
+                  GUINT_TO_POINTER(sf->file_index), 
+                  GUINT_TO_POINTER(!NULL));
+}
+
+/* 
+ * found_reset
+ * 
+ * Reset the QueryHit, that is, the "data found" pointer is at the beginning of
+ * the data found section in the query hit packet and the index_of_found_files
+ * GTree is reset.
+ */
+static void found_reset()
+{
+    found_data.s = sizeof(struct gnutella_header) +	
+	    sizeof(struct gnutella_search_results_out);
+
+	/*
+	 * We only destroy and recreate a new tree if we inserted something
+	 * in the previous search.
+	 */
+
+	if (index_of_found_files && index_of_found_files_count) {
+		g_tree_destroy(index_of_found_files);
+		index_of_found_files_count = 0;
+		index_of_found_files = NULL;
+	}
+
+	if (index_of_found_files == NULL)
+		index_of_found_files = g_tree_new((GCompareFunc) compare_indexes);
+}
 
 #define FOUND_BUF	found_data.d
 #define FOUND_SIZE	found_data.s
@@ -143,9 +217,10 @@ static void search_table_init(void)
 
 void share_init(void)
 {
+	huge_init();
 	search_table_init();
 	share_scan();
-	found_data.l = FOUND_CHUNK;		/* must be > size after FOUND_RESET */
+	found_data.l = FOUND_CHUNK;		/* must be > size after found_reset */
 	found_data.d = (guchar *) g_malloc(found_data.l * sizeof(guchar));
 }
 
@@ -376,6 +451,9 @@ static void recurse_scan(gchar *dir, gchar *basedir)
 				found->file_directory = file_directory;
 				found->file_size = file_stat.st_size;
 				found->file_index = ++files_scanned;
+				found->mtime = file_stat.st_mtime;
+				found->sha1_digest[0] = '\0';
+				request_sha1(found);
 
 				st_insert_item(&search_table, found->file_name, found);
 				shared_files = g_slist_append(shared_files, found);
@@ -437,6 +515,8 @@ static void share_free(void)
 	shared_files = NULL;
 }
 
+static void reinit_sha1_table();
+
 void share_scan(void)
 {
 	GSList *l;
@@ -445,6 +525,7 @@ void share_scan(void)
 	bytes_scanned = 0;
 	kbytes_scanned = 0;
 
+	reinit_sha1_table();
 	share_free();
 
 	st_create(&search_table);
@@ -490,6 +571,20 @@ static gboolean got_match(struct shared_file *sf)
 {
 	guint32 pos = FOUND_SIZE;
 	guint32 needed = 8 + 2 + sf->file_name_len;		/* size of hit entry */
+	gboolean sha1_available = *sf->sha1_digest;
+	
+    /*
+     * We don't stop adding records if we refused this one, hence the TRUE
+     * returned.
+     */
+
+	if (shared_file_already_in_found_set(sf))
+		return TRUE;
+
+	put_shared_file_into_found_set(sf);
+
+	if (sha1_available)
+		needed += 8 + SHA1_BASE32_SIZE;
 
 	/*
 	 * Refuse entry if we don't have enough room.	-- RAM, 22/01/2002
@@ -505,25 +600,129 @@ static gboolean got_match(struct shared_file *sf)
 
 	FOUND_GROW(needed);
 
-	WRITE_GUINT32_LE(sf->file_index, &FOUND_BUF[pos]);
-	WRITE_GUINT32_LE(sf->file_size, &FOUND_BUF[pos + 4]);
+	WRITE_GUINT32_LE(sf->file_index, &FOUND_BUF[pos]); pos += 4;
+	WRITE_GUINT32_LE(sf->file_size, &FOUND_BUF[pos]);  pos += 4;
 
-	memcpy(&FOUND_BUF[pos + 8], sf->file_name, sf->file_name_len);
+	memcpy(&FOUND_BUF[pos], sf->file_name, sf->file_name_len);
+	pos += sf->file_name_len;
 
 	/* Position equals the next byte to be writen to */
-	pos = FOUND_SIZE - 2;
 
 	FOUND_BUF[pos++] = '\0';
+
+	if (sha1_available) {
+		memcpy(&FOUND_BUF[pos], "urn:sha1:", 8);
+		pos += 8;
+		memcpy(&FOUND_BUF[pos], sf->sha1_digest, SHA1_BASE32_SIZE);
+		pos += SHA1_BASE32_SIZE;
+	}
+
 	FOUND_BUF[pos++] = '\0';
 
 	return TRUE;		/* Hit entry accepted */
 }
 
-/* Searches requests (from others nodes) 
+#define FS (0x1c) /* Field separator (used to separate query extensions) */
+
+/* A structure describing the extensions found in the query */
+
+struct query_extensions {
+    int unknown;       /* Number of unknown extensions   */
+    const gchar *urn;  /* Query by urn, only one for now */
+};
+
+/*
+ * initialize_query_extension
+ * 
+ * Initialize a struct query_extension
+ */
+static void initialize_query_extension(struct query_extensions *e)
+{
+    e->unknown = 0;
+    e->urn = NULL; 
+}
+
+/*
+ * extension_embeds_binary
+ * 
+ * Return TRUE if string extension of length extension_length embeds a
+ * non-printable char, FALSE otherwise
+ */
+
+static gboolean extension_embeds_binary(const unsigned char *extension,
+                                        int extension_length)
+{
+    for(; extension_length; extension_length--, extension++)
+	    if (!isprint(*extension)) return TRUE;
+    return FALSE;
+}
+
+/* 
+ * check_query_extension
+ * 
+ * Take the extension extension of length extension_length, and update the
+ * struct query_extensions with recognized extensions.
+ */
+
+static void check_query_extension(const char *extension,
+                                  int extension_length,
+                                  struct query_extensions *qe)
+{
+    if (extension_length == 9 + SHA1_BASE32_SIZE
+        && !strncmp(extension, "urn:sha1:", 9)) {
+
+	    qe->urn = extension + 9;
+	    if (dbg > 4) {
+            fprintf(stdout, "\tQuery by URN\t");
+            fwrite(extension, extension_length, 1, stdout);
+            fprintf(stdout, "\n");
+	    }
+
+    } else if (extension_length == 4 && !strncmp(extension, "urn:", 4)) {
+        ; /* We always send URN for now */
+    } else {
+        qe->unknown++;
+	    if (dbg > 4) {
+            if (!extension_embeds_binary(extension, extension_length)) {
+                fprintf(stdout, "<%d:", extension_length);
+                fwrite(extension, extension_length, 1, stdout);
+                fprintf(stdout, ">\n");
+            } else 
+                dump_hex(stdout, 
+                         "Binary extension",
+                         (char *)extension,
+                         extension_length);
+	    }
+    }
+}
+
+/* 
+ * scan_query_extensions
+ * 
+ * Scan extensions one by one (they're pointed to by extra and NUL-terminated)
+ * and update the struct query_extensions with recognized extensions.
+ */
+
+static void scan_query_extensions(const char *extra,
+                                  struct query_extensions *extension)
+{
+    for(;;) {
+	    const char *last_ext = extra;
+	    while(*extra && *extra != FS) extra++;
+	    check_query_extension(last_ext, extra - last_ext, extension);
+	    if (!*extra)
+			break;
+	    extra++;
+    }
+
+    return;
+}
+
+/*
+ * Searches requests (from others nodes) 
  * Basic matching. The search request is made lowercase and
  * is matched to the filenames in the LL.
  */
-
 void search_request(struct gnutella_node *n)
 {
 	guchar found_files = 0;
@@ -534,6 +733,9 @@ void search_request(struct gnutella_node *n)
 	struct gnutella_search_results_out *search_head;
 	guint32 search_len;
 	gchar trailer[10];
+	struct query_extensions query_extension;
+	guint32 max_replies;
+	gint urn_match = 0;
 
 	/*
 	 * Make sure search request is NUL terminated... --RAM, 06/10/2001
@@ -577,16 +779,25 @@ void search_request(struct gnutella_node *n)
 	 * This is not needed, but some servent do so.
 	 */
 
+	initialize_query_extension(&query_extension);
 	if (search_len + 3 != n->size) {
 		gint extra = n->size - 3 - search_len;		/* Amount of extra data */
 		if (extra != 1 && search[search_len+1] != '\0') {
 			/* Not a double NUL */
+            scan_query_extensions(search + search_len + 1, &query_extension);
+            if (query_extension.unknown) {
 			g_warning("search request (hops=%d, ttl=%d) "
 				"has %d extra byte%s after NUL",
 				n->header.hops, n->header.ttl, extra, extra == 1 ? "" : "s");
-			if (dbg > 4)
-				dump_hex(stderr, "Extra Query Data", &search[search_len+1],
-					MIN(extra, 256));
+			    if (dbg > 4) {
+                    dump_hex(stdout, "Extra Query Data", &search[search_len+1],
+						MIN(extra, 256));
+                    printf("Search was: %s\n", search);
+			    }
+            }
+
+            if (dbg > 3 && query_extension.urn && !query_extension.unknown)
+			    printf("URN search was: %s\n", search);
 		}
 	}
 
@@ -637,38 +848,62 @@ void search_request(struct gnutella_node *n)
 	if (n->header.hops > max_ttl)
 		return;
 
-	if (search_len <= 1)
-		return;
-
 	/*
-	 * If requester if farther than 3 hops. save bandwidth when returning
-	 * lots of hits from short queries, which are not specific enough.
-	 * The idea here is to give some response, but not too many.
-	 *
-	 * Notes from RAM, 09/09/2001:
-	 * 1) The hop amount must be made configurable.
-	 * 2) We can add a config option to forbid forwarding of such queries.
+	 * When an URN search is present, there can be an empty search string.
 	 */
 
-	if (search_len < 5 && n->header.hops > 3)
-		return;
+	if (!query_extension.urn) {
+		if (search_len <= 1)
+			return;
+
+		/*
+		 * If requester if farther than 3 hops. save bandwidth when returning
+		 * lots of hits from short queries, which are not specific enough.
+		 * The idea here is to give some response, but not too many.
+		 *
+		 * Notes from RAM, 09/09/2001:
+		 * 1) The hop amount must be made configurable.
+		 * 2) We can add a config option to forbid forwarding of such queries.
+		 */
+
+		if (search_len < 5 && n->header.hops > 3)
+			return;
+	}
 
 	/*
 	 * Perform search...
 	 */
 
 	global_searches++;
-	FOUND_RESET();
+	found_reset();
 
-	found_files = st_search(&search_table, search, got_match,
-		(search_max_items == -1) ? 255 : search_max_items);
+	max_replies = (search_max_items == -1) ? 255 : search_max_items;
+
+	if (query_extension.urn) {
+        struct shared_file *sf =
+            shared_file_from_sha1_hash(query_extension.urn);
+
+        if (sf) {
+		    got_match(sf);
+			if (dbg)
+				printf("********* YYYYEEEESSSS !!!! AN URN MATCH !!!! (%s)\n",
+					query_extension.urn);
+			max_replies--;
+			urn_match++;
+        }
+	}
+
+	found_files = urn_match +
+		st_search(&search_table, search, got_match, max_replies);
 
 	if (found_files > 0) {
 
 		if (dbg > 3) {
-			printf("Share HIT %u files '%s' req_speed=%u ttl=%u hops=%u\n",
-				   (gint) found_files, search, req_speed,
-				   (gint) n->header.ttl, (gint) n->header.hops);
+			printf("Share HIT %u files '%s' ", (gint) found_files, search);
+			if (query_extension.urn)
+				printf("%c(%s) ", urn_match ? '+' : '-', query_extension.urn);
+			printf("req_speed=%u ttl=%u hops=%u\n",
+				   req_speed, (gint) n->header.ttl, (gint) n->header.hops);
 			fflush(stdout);
 		}
 
@@ -735,5 +970,98 @@ void search_request(struct gnutella_node *n)
 	return;
 }
 
-/* vi: set ts=4: */
+/*
+ * SHA1 digest processing
+ */
 
+/* 
+ * This tree maps a SHA1 hash (base-32 encoded) onto the corresponding
+ * shared_file if we have one.
+ */
+
+static GTree *sha1_to_share = NULL;
+
+/* 
+ * compare_share_sha1
+ * 
+ * Compare to base-32 encoded SHA1 hashes.
+ * Return 0 if they're the same, a negative or positive number if s1 if greater
+ * than s2 or s1 greater than s2, respectively.
+ * Used to search the sha1_to_share tree.
+ */
+
+static int compare_share_sha1(const gchar *s1, const gchar *s2)
+{
+    return memcmp(s1, s2, SHA1_BASE32_SIZE);
+}
+
+/* 
+ * reinit_sha1_table
+ * 
+ * Reset sha1_to_share
+ */
+
+static void reinit_sha1_table()
+{
+    if (sha1_to_share)
+		g_tree_destroy(sha1_to_share);
+
+	sha1_to_share = g_tree_new((GCompareFunc)compare_share_sha1);
+}
+
+/* 
+ * set_sha1
+ * 
+ * Set the SHA1 hash of a given shared_file. Take care of updating the
+ * sha1_to_share structure. This function is called from inside the bowels of
+ * sha1_server.c when it knows what the hash associated to a file is.
+ */
+
+void set_sha1(struct shared_file *f, const char *sha1)
+{
+	memcpy(f->sha1_digest, sha1, SHA1_BASE32_SIZE);
+	g_tree_insert(sha1_to_share, f->sha1_digest, f);
+}
+
+/*
+ * sha1_hash_available
+ * 
+ * Predicate returning TRUE if the SHA1 hash is available for a given
+ * shared_file, FALSE otherwise.
+ */
+
+gboolean sha1_hash_available(const struct shared_file *sf)
+{
+	return *sf->sha1_digest;
+}
+
+/* 
+ * shared_file_from_sha1_hash
+ * 
+ * Take a given base-32 encoded SHA1 hash, and return the corresponding
+ * shared_file if we have it.
+ */
+struct shared_file *shared_file_from_sha1_hash(const gchar *sha1_digest)
+{
+	struct shared_file *f = g_tree_lookup(sha1_to_share,(gpointer)sha1_digest);
+
+	if (!f)
+		return NULL;
+
+	if (!sha1_hash_available(f))
+		return NULL;
+
+    return f;
+}
+
+/* 
+ * Emacs stuff:
+ * Local Variables: ***
+ * c-indentation-style: "bsd" ***
+ * fill-column: 80 ***
+ * tab-width: 4 ***
+ * indent-tabs-mode: nil ***
+ * End: ***
+ */
+
+/* vi: set ts=4: */
