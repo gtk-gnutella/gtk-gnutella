@@ -1,5 +1,22 @@
 # since last version
 
+- (2004.01.18 - Richard)
+ * [Gtk1] Disable "expand all" and "collapse all" when no search is open.
+ * [Gtk1] Fix possible crash if sorting on less then 50 results (Thanks Emile).
+
+- (2004.01.17 - Richard)
+ * Cleaned up gtk-missing.h.
+ * [Gtk1] Hopefully fixed sorting when any node in the results was expanded
+   by iterating only over the top-level nodes when sorting. Refactored
+   some of the code in the process and added a couple of FIXMEs for later
+   releases.
+ * [Gtk1] Hopefully fixed a few memory leaks in the download pane probably caused 
+   by calling g_list_free() not on the first element of a GList.
+ * [Gtk1] In the search pane two more leaks reported by the leak detection 
+   code should be fixed.
+ * [Gtk1] Fixed crash when "expand all" or "collapse all" was pressed and
+   no search was open.
+
 - (2004.01.16 - RAM)
  * Added trapping of g_slist_() and g_list_() routines that allocate linkable
    objects under the hood.  Added trapping for hash_list new/free as well.
