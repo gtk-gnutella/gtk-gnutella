@@ -25,13 +25,13 @@
  *----------------------------------------------------------------------
  */
 
-#include "gnutella.h"
+#include "gui.h"
+
 #include "gnet.h"
 #include "nodes_cb.h"
-#include "gui.h"
 #include "gtk-missing.h"
-#include "misc.h"
 #include "settings_gui.h"
+#include "statusbar_gui.h"
 
 #include "gui_property_priv.h"
 
@@ -66,9 +66,7 @@ static void nodes_cb_connect_by_name(const gchar *addr)
 	}
 
 	if (port < 1 || port > 65535) {
-        // FIXME: have notice in statusbar instead
-		printf("Bad host !\n");
-        gdk_beep();
+        statusbar_gui_warning(15, "Port must be between 1 and 65535");
     } else {
 		guint32 ip = host_to_ip(e);
 		if (ip) {
