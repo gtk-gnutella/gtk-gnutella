@@ -46,22 +46,6 @@ static GtkTreeStore *store_fileinfo = NULL;
 static GtkTreeStore *store_aliases = NULL;
 static GHashTable *fi_gui_handles = NULL;
 
-/*
- * on_fileinfo_gui_column_resized:
- *
- * Callback which updates the column width property
- */
-static void on_fileinfo_gui_column_resized(
-    GtkTreeViewColumn *column, GParamSpec *param, gpointer data)
-{
-    guint32 width;
-    gint column_id = GPOINTER_TO_INT(data);
-
-    g_assert(column_id >= 0 && column_id < c_fi_num);
-    width = gtk_tree_view_column_get_width(column);
-    gui_prop_set_guint32(PROP_FILE_INFO_COL_WIDTHS, &width, column_id, 1);
-}
-
 static void fi_gui_update_row(
     GtkTreeStore *store, GtkTreeIter *iter, gchar **titles)
 {		
@@ -313,7 +297,7 @@ static gint compare_uint_func(
 
     gtk_tree_model_get(model, i, GPOINTER_TO_INT(user_data), &a, (-1));
     gtk_tree_model_get(model, j, GPOINTER_TO_INT(user_data), &b, (-1));
-    return a == b ? 0 : a > b ? 1 : -1;
+    return SIGN(a, b);
 }
 
 static void add_column(
@@ -346,10 +330,6 @@ static void add_column(
 
 	gtk_tree_view_column_set_sort_column_id(column, column_id);
     gtk_tree_view_append_column(GTK_TREE_VIEW (tree), column);
-	g_object_notify(G_OBJECT(column), "width");
-    g_signal_connect(G_OBJECT(column), "notify::width",
-        G_CALLBACK(on_fileinfo_gui_column_resized),
-		GINT_TO_POINTER(column_id));
 }
 
 void fi_gui_init(void) 
@@ -387,15 +367,15 @@ void fi_gui_init(void)
 
 	width = gui_prop_get_guint32(PROP_FILE_INFO_COL_WIDTHS, NULL, 0, 0);
     add_column(treeview_fileinfo, c_fi_filename,
-		width[c_fi_filename], 0.0, "File");
+		width[c_fi_filename], 0.0, _("File"));
     add_column(treeview_fileinfo, c_fi_size,
-		width[c_fi_size], 1.0, "Size");
+		width[c_fi_size], 1.0, _("Size"));
     add_column(treeview_fileinfo, c_fi_done,
-		width[c_fi_done], 1.0, "Done");
+		width[c_fi_done], 1.0, _("Done"));
     add_column(treeview_fileinfo, c_fi_sources,
-		width[c_fi_sources], 1.0, "Sources");
+		width[c_fi_sources], 1.0, _("Sources"));
     add_column(treeview_fileinfo, c_fi_status,
-		width[c_fi_status], 0.0, "Status");
+		width[c_fi_status], 0.0, _("Status"));
 	G_FREE_NULL(width);
 
 	gtk_tree_sortable_set_sort_func(GTK_TREE_SORTABLE(store_fileinfo),
@@ -408,22 +388,21 @@ void fi_gui_init(void)
 		c_fi_sources, compare_uint_func,
 		GINT_TO_POINTER(c_fi_isources), NULL);
 
-    add_column(treeview_fi_aliases, 0, 0, 0.0, "Aliases");
+    add_column(treeview_fi_aliases, 0, 0, 0.0, _("Aliases"));
 
-    fi_add_listener((GCallback) fi_gui_fi_added, EV_FI_ADDED,
-		FREQ_SECS, 0);
-    fi_add_listener((GCallback) fi_gui_fi_removed, EV_FI_REMOVED,
-		FREQ_SECS, 0);
-    fi_add_listener((GCallback) fi_gui_fi_status_changed, EV_FI_STATUS_CHANGED,
+    fi_add_listener(fi_gui_fi_added, EV_FI_ADDED, FREQ_SECS, 0);
+    fi_add_listener(fi_gui_fi_removed, EV_FI_REMOVED, FREQ_SECS, 0);
+    fi_add_listener(fi_gui_fi_status_changed, EV_FI_STATUS_CHANGED,
 		FREQ_SECS, 0);
 }
 
 void fi_gui_shutdown(void)
 {
-    fi_remove_listener((GCallback) fi_gui_fi_removed, EV_FI_REMOVED);
-    fi_remove_listener((GCallback) fi_gui_fi_added, EV_FI_ADDED);
-    fi_remove_listener((GCallback) fi_gui_fi_status_changed,
-		EV_FI_STATUS_CHANGED);
+    fi_remove_listener(fi_gui_fi_removed, EV_FI_REMOVED);
+    fi_remove_listener(fi_gui_fi_added, EV_FI_ADDED);
+    fi_remove_listener(fi_gui_fi_status_changed, EV_FI_STATUS_CHANGED);
+
+	tree_view_save_widths(treeview_fileinfo, PROP_FILE_INFO_COL_WIDTHS);
 	gtk_tree_store_clear(store_fileinfo);
 	g_object_unref(G_OBJECT(store_fileinfo));
 	gtk_tree_view_set_model(treeview_fileinfo, NULL);
@@ -436,4 +415,5 @@ void fi_gui_shutdown(void)
 	fi_gui_handles = NULL;
 }
 
+/* vi: set ts=4: */
 #endif	/* USE_GTK2 */
