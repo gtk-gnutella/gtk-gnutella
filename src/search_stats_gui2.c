@@ -418,11 +418,11 @@ void search_stats_gui_update(time_t now)
         lookup_widget(main_window, "label_search_stats_count");
 
 	stat_count = 0;
-	g_object_freeze_notify(treeview);
+	g_object_freeze_notify(G_OBJECT(treeview));
 	gtk_list_store_clear(GTK_LIST_STORE(gtk_tree_view_get_model(treeview)));
 	/* insert the hash table contents into the sorted treeview */
 	g_hash_table_foreach_remove(stat_hash, stats_hash_to_treeview, NULL);
-	g_object_thaw_notify(treeview);
+	g_object_thaw_notify(G_OBJECT(treeview));
 
 	/* update the counter */
 	g_snprintf(tmpstr, sizeof(tmpstr), "%u terms counted", stat_count);

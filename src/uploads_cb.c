@@ -75,6 +75,31 @@ void on_clist_uploads_resize_column(GtkCList * clist,
 	uploads_col_widths[column] = width;
 }
 
+#ifdef USE_GTK2
+static void uploads_kill_helper(
+    GtkTreeModel *model, GtkTreePath *path, GtkTreeIter *iter, gpointer data)
+{
+	upload_row_data_t *d;
+
+	gtk_tree_model_get(model, iter, c_ul_data, &d, -1);
+	g_assert(NULL != d);
+	if (d->valid)
+   		upload_kill(d->handle);
+}
+
+void on_button_uploads_kill_clicked(GtkButton *button, gpointer user_data)
+{
+    GtkTreeView *treeview;
+    GtkTreeSelection *selection;
+
+    treeview = GTK_TREE_VIEW(lookup_widget(main_window, "treeview_uploads"));
+    selection = gtk_tree_view_get_selection(treeview);
+    gtk_tree_selection_selected_foreach(selection,
+        (gpointer) &uploads_kill_helper, NULL);
+}
+
+#else
+
 void on_button_uploads_kill_clicked(GtkButton *button, gpointer user_data)
 {
     GSList *sl = NULL;
@@ -90,6 +115,7 @@ void on_button_uploads_kill_clicked(GtkButton *button, gpointer user_data)
 
     gtk_clist_thaw(clist);
 }
+#endif
 
 void on_button_uploads_clear_completed_clicked(
     GtkButton *button, gpointer user_data)

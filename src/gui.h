@@ -54,7 +54,13 @@ enum {
     c_ul_size,
     c_ul_range,
     c_ul_agent,
-    c_ul_status
+    c_ul_status,
+#ifdef USE_GTK2	
+	c_ul_fg,
+	c_ul_data,
+#endif
+
+	c_ul_num
 };
 
 

@@ -74,7 +74,7 @@ RCSID("$Id$");
  *** I. General variables/defines used in this module
  ***/
 
-#define NOT_IN_MAP -1
+#define NOT_IN_MAP (-1)
 
 static prop_set_stub_t *gui_prop_set_stub = NULL;
 static prop_set_stub_t *gnet_prop_set_stub = NULL;
@@ -197,7 +197,10 @@ static gboolean sha1_rebuilding_changed(property_t prop);
 static gboolean library_rebuilding_changed(property_t prop);
 static gboolean sha1_verifying_changed(property_t prop);
 static gboolean file_moving_changed(property_t prop);
+
+/* FIXME: `dl_queue_count_changed' isn't defined anywhere */ 
 static gboolean dl_queue_count_changed(property_t prop);
+
 static gboolean dl_running_count_changed(property_t prop);
 static gboolean config_toolbar_style_changed(property_t prop);
 
@@ -333,6 +336,15 @@ static prop_map_t property_map[] = {
         TRUE,
         "clist_downloads_queue"
     },
+#ifdef USE_GTK2
+    {
+        get_main_window,
+        PROP_SEARCH_STATS_COL_WIDTHS,
+        update_treeview_col_widths,
+        TRUE,
+        "treeview_search_stats"
+    },
+#else
     {
         get_main_window,
         PROP_SEARCH_STATS_COL_WIDTHS,
@@ -340,6 +352,16 @@ static prop_map_t property_map[] = {
         TRUE,
         "clist_search_stats"
     },
+#endif
+#ifdef USE_GTK2
+    {
+        get_main_window,
+        PROP_UPLOADS_COL_WIDTHS,
+        update_treeview_col_widths,
+        TRUE,
+        "treeview_uploads"
+    },
+#else	
     {
         get_main_window,
         PROP_UPLOADS_COL_WIDTHS,
@@ -347,6 +369,7 @@ static prop_map_t property_map[] = {
         TRUE,
         "clist_uploads"
     },
+#endif
 #ifndef USE_GTK2
     {
         get_main_window,
@@ -1463,7 +1486,6 @@ static prop_map_t property_map[] = {
         TRUE,
         "label_dl_queue_count"
     },
-#ifndef USE_GTK2
     {
         get_main_window,
         PROP_DL_QALIVE_COUNT,
@@ -1471,7 +1493,6 @@ static prop_map_t property_map[] = {
         TRUE,
         "label_dl_qalive_count"
     },
-#endif
     {
         get_main_window,
         PROP_DL_RUNNING_COUNT,

@@ -372,12 +372,22 @@ void main_gui_early_init(gint argc, gchar **argv)
 
 void main_gui_init(void)
 {
+#ifndef USE_GTK2
     gtk_clist_set_column_justification(
         GTK_CLIST(lookup_widget(main_window, "clist_search_stats")),
         c_st_period, GTK_JUSTIFY_RIGHT);
     gtk_clist_set_column_justification(
         GTK_CLIST(lookup_widget(main_window, "clist_search_stats")),
         c_st_total, GTK_JUSTIFY_RIGHT);
+    gtk_clist_column_titles_passive(
+        GTK_CLIST(lookup_widget(main_window, "clist_search_stats")));
+
+    gtk_clist_column_titles_passive(
+        GTK_CLIST(lookup_widget(main_window, "clist_search")));
+    gtk_clist_set_compare_func(
+        GTK_CLIST(lookup_widget(main_window, "clist_ul_stats")), 
+        compare_ul_norm);
+#endif
     gtk_clist_set_column_justification(
         GTK_CLIST(lookup_widget(main_window, "clist_downloads")),
         c_dl_size, GTK_JUSTIFY_RIGHT);
@@ -385,19 +395,8 @@ void main_gui_init(void)
         GTK_CLIST(lookup_widget(main_window, "clist_downloads_queue")),
         c_queue_size, GTK_JUSTIFY_RIGHT);
 
-    gtk_clist_column_titles_passive(
-        GTK_CLIST(lookup_widget(main_window, "clist_search_stats")));
-#ifndef USE_GTK2
-    gtk_clist_column_titles_passive(
-        GTK_CLIST(lookup_widget(main_window, "clist_search")));
-#endif
 	gtk_clist_column_titles_passive(
         GTK_CLIST(lookup_widget(main_window, "clist_downloads")));
-#ifndef USE_GTK2
-    gtk_clist_set_compare_func(
-        GTK_CLIST(lookup_widget(main_window, "clist_ul_stats")), 
-        compare_ul_norm);
-#endif
 
     {
         GtkCList *clist = 

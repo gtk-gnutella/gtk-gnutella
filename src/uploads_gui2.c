@@ -214,7 +214,7 @@ static gchar *uploads_gui_status_str(
 			g_snprintf(tmpstr, sizeof(tmpstr),
 				"Completed (%.1f k/s) %s", rate, short_time(spent));
 		} else
-			g_snprintf(tmpstr, sizeof(tmpstr), "Completed (< 1s)");
+			g_strlcpy(tmpstr, "Completed (< 1s)", sizeof(tmpstr));
         break;
     case GTA_UL_SENDING:
 		{
@@ -341,9 +341,7 @@ void uploads_gui_add_upload(gnet_upload_info_t *u)
     if ((u->range_start == 0) && (u->range_end == 0)) {
         titles[c_ul_size] = titles[c_ul_range] =  "...";
     } else {
-        g_snprintf(size_tmp, sizeof(size_tmp), "%s", 
-            short_size(u->file_size));
-
+        g_strlcpy(size_tmp, short_size(u->file_size), sizeof(size_tmp)); 
         range_len = g_snprintf(range_tmp, sizeof(range_tmp), "%s",
             compact_size(u->range_end - u->range_start + 1));
 
@@ -475,17 +473,6 @@ void uploads_gui_shutdown(void)
     upload_remove_upload_info_changed_listener(upload_info_changed);
 }
 
-static gboolean clear_uploads_helper(
-	GtkTreeModel *model, GtkTreePath *path, GtkTreeIter *iter, gpointer data)
-{
-	gpointer *p = NULL;
-
-	gtk_tree_model_get(model, iter, c_ul_data, &p, -1);
-	g_assert(NULL != p);
-	G_FREE_NULL(p);
-	return FALSE; /* next one, please */
-}
-
 /*
  * uploads_gui_update_display
  *
@@ -499,6 +486,8 @@ void uploads_gui_update_display(time_t now)
     gnet_upload_status_t status;
 	gboolean all_removed = TRUE;
 	gboolean valid;
+    GSList *to_remove = NULL;
+	GSList *sl;
 
     if (last_update == now)
         return;
@@ -521,13 +510,26 @@ void uploads_gui_update_display(time_t now)
             gtk_list_store_set(GTK_LIST_STORE(model), &iter,
 				c_ul_status, uploads_gui_status_str(&status, data),
 				-1);
+		} else {
+			if (clear_uploads && (now - data->last_update > REMOVE_DELAY))
+				to_remove =
+					g_slist_prepend(to_remove, gtk_tree_iter_copy(&iter));
+			else
+				all_removed = FALSE;    /* Not removing all "expired" ones */
 		}
     }
 
-    if (clear_uploads) {
-		gtk_tree_model_foreach(model, (gpointer) &clear_uploads_helper, NULL);
-		gtk_list_store_clear(GTK_LIST_STORE(model));
-    }
+    if (clear_uploads)
+		for (sl = to_remove; sl != NULL; sl = g_slist_next(sl)) {
+        	GtkTreeIter *iter = sl->data;
+			gpointer p;
+
+			gtk_tree_model_get(model, iter, c_ul_data, &p, -1);
+			g_assert(NULL != p);
+			G_FREE_NULL(p);
+        	gtk_list_store_remove(GTK_LIST_STORE(model), iter);
+        	gtk_tree_iter_free(iter);
+    	}
 
 	if (all_removed)
 		gtk_widget_set_sensitive(
