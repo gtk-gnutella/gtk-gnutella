@@ -48,7 +48,7 @@
 #endif
 
 /*
- * is_string_ip:
+ * is_string_ip
  *
  * Checks wether the given string contains a valid IP address. If the
  * string is NULL returns FALSE.
@@ -568,6 +568,29 @@ gchar *date_to_rfc822_gchar2(time_t date)
 
 	date_to_rfc822(date, buf, sizeof(buf));
 	return buf;
+}
+
+/*
+ * is_pow2
+ *
+ * Determine whether value is a power of 2.
+ */
+gboolean is_pow2(guint32 value)
+{
+	guint32 mask;
+	gint count;
+
+	/*
+	 * Make sure that binary representation contains only ONE single 1.
+	 * We don't count 0 as being a power of 2.
+	 */
+
+	for (mask = 0x80000000, count = 0; mask && count <= 1; mask >>= 1) {
+		if (value & mask)
+			count++;
+	}
+
+	return 1 == count;
 }
 
 /*

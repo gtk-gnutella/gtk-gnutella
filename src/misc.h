@@ -122,9 +122,10 @@ gboolean is_string_ip(const gchar *);
 gboolean is_private_ip(guint32 ip);
 gboolean is_directory(const gchar *);
 gboolean file_exists(gchar *);
+gboolean is_pow2(guint32 value);
 
 /*
- * Randomnumbers
+ * Random numbers
  */
 void random_init(void);
 guint32 random_value(guint32 max);
