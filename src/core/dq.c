@@ -1378,35 +1378,6 @@ dq_launch_net(gnutella_node_t *n, query_hashvec_t *qhv)
 	}
 
 	/*
-	 * If the query is marked for OOB reply delivery and the IP is not
-	 * matching the leaf's one, remove the OOB flag as well: otherwise,
-	 * query hits won't be received and we'll query too many nodes because
-	 * of lack of feedback from the leaf, which will get nothing back!
-	 */
-
-	if (tagged_speed && (req_speed & QUERY_SPEED_OOB_REPLY)) {
-		guint32 ip;
-		guint16 port;
-
-		guid_oob_get_ip_port(n->header.muid, &ip, &port);
-
-		if (
-			(n->gnet_ip && ip != n->gnet_ip) ||
-			(n->gnet_port && port != n->gnet_port)
-		) {
-			gchar *data = pmsg_start(dq->mb) + GTA_HEADER_SIZE;
-			query_strip_oob_flag(n, data);
-			req_speed &= ~QUERY_SPEED_OOB_REPLY;	/* For further checks  */
-
-			if (dq_debug)
-				printf("DQ node %s <%s>: removed OOB flag "
-					"(return address mismatch: %s, node: %s)\n",
-					node_ip(n), node_vendor(n),
-					ip_port_to_gchar(ip, port), node_gnet_ip(n));
-		}
-	}
-
-	/*
 	 * Finally, if the leaf node is TCP-firewalled, chances are it's UDP
 	 * firewalled as well.  It won't get any indication of OOB replies
 	 * available, so clear the flag.
