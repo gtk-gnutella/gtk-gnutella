@@ -134,6 +134,8 @@ set w_main_list {
     popup_search_drop_sha1
     popup_search_drop_name_global
     popup_search_drop_sha1_global
+    popup_search_autodownload_name
+    popup_search_autodownload_sha1
     popup_search_edit_filter
     popup_search_restart 
     popup_search_resume

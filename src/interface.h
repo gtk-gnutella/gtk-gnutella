@@ -131,6 +131,8 @@ extern GtkWidget *popup_search_drop_name;
 extern GtkWidget *popup_search_drop_sha1;
 extern GtkWidget *popup_search_drop_name_global;
 extern GtkWidget *popup_search_drop_sha1_global;
+extern GtkWidget *popup_search_autodownload_name;
+extern GtkWidget *popup_search_autodownload_sha1;
 extern GtkWidget *popup_search_edit_filter;
 extern GtkWidget *popup_search_restart;
 extern GtkWidget *popup_search_resume;
