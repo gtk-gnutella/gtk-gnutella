@@ -322,6 +322,23 @@ static void version_new_found(const gchar *text, gboolean stable)
 }
 
 /*
+ * version_newer
+ *
+ * Check whether GTKG version is newer than supplied timestamp.
+ */
+gboolean version_newer(const gchar *str, time_t stamp)
+{
+	version_t version;
+
+	if (!version_parse(str, &version))
+		return FALSE;			/* Not gtk-gnutella, or unparseable */
+
+	version_stamp(str, &version);
+
+	return version.timestamp >= stamp;
+}
+
+/*
  * version_check
  *
  * Check version of servent, and if it's a gtk-gnutella more recent than we
