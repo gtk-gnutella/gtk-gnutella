@@ -976,10 +976,11 @@ static void update_neighbour_info(gnutella_node_t *n, gnet_results_set_t *rs)
 
 	if (n->attrs & NODE_A_QHD_NO_VTAG) {	/* Known to have no tag */
 		if (vendor) {
-			if (dbg) g_warning(
-				"node %s (%s) had no tag in its query hits, now has %s in %s",
-				node_ip(n), node_vendor(n), vendor, gmsg_infostr(&n->header));
 			n->n_weird++;
+			if (dbg) g_warning("[weird #%d] "
+				"node %s (%s) had no tag in its query hits, now has %s in %s",
+				n->n_weird,
+				node_ip(n), node_vendor(n), vendor, gmsg_infostr(&n->header));
 			n->attrs &= ~NODE_A_QHD_NO_VTAG;
 		}
 	} else {
@@ -994,13 +995,13 @@ static void update_neighbour_info(gnutella_node_t *n, gnet_results_set_t *rs)
 			n->attrs |= NODE_A_QHD_NO_VTAG;	/* No vendor tag */
 
 		if (n->vcode[0] != '\0' && vendor == NULL) {
-			if (dbg) g_warning(
+			n->n_weird++;
+			if (dbg) g_warning("[weird #%d] "
 				"node %s (%s) had tag %c%c%c%c in its query hits, "
 				"now has none in %s",
-				node_ip(n), node_vendor(n),
+				n->n_weird, node_ip(n), node_vendor(n),
 				n->vcode[0], n->vcode[1], n->vcode[2], n->vcode[3],
 				gmsg_infostr(&n->header));
-			n->n_weird++;
 		}
 	}
 
@@ -1015,14 +1016,13 @@ static void update_neighbour_info(gnutella_node_t *n, gnet_results_set_t *rs)
 			n->vcode[0] != '\0' &&
 			0 != memcmp(n->vcode, rs->vendor, sizeof(n->vcode))
 		) {
-			if (dbg) g_warning(
-				"node %s (%s) moved from tag %c%c%c%c to %c%c%c%c "
-				"in %s",
-				node_ip(n), node_vendor(n),
+			n->n_weird++;
+			if (dbg) g_warning("[weird #%d] "
+				"node %s (%s) moved from tag %c%c%c%c to %c%c%c%c in %s",
+				n->n_weird, node_ip(n), node_vendor(n),
 				n->vcode[0], n->vcode[1], n->vcode[2], n->vcode[3],
 				rs->vendor[0], rs->vendor[1], rs->vendor[2], rs->vendor[3],
 				gmsg_infostr(&n->header));
-			n->n_weird++;
 		}
 
 		memcpy(n->vcode, rs->vendor, sizeof(n->vcode));
@@ -1035,18 +1035,18 @@ static void update_neighbour_info(gnutella_node_t *n, gnet_results_set_t *rs)
 
 	if (n->gnet_guid) {
 		if (!guid_eq(n->gnet_guid, rs->guid)) {
+			n->n_weird++;
 			if (dbg) {
 				gchar old[33];
 				strncpy(old, guid_hex_str(n->gnet_guid), sizeof(old));
 
-				g_warning(
+				g_warning("[weird #%d] "
 					"node %s (%s) moved from GUID %s to %s in %s",
-					node_ip(n), node_vendor(n),
+					n->n_weird, node_ip(n), node_vendor(n),
 					old, guid_hex_str(rs->guid), gmsg_infostr(&n->header));
 			}
 			atom_guid_free(n->gnet_guid);
 			n->gnet_guid = NULL;
-			n->n_weird++;
 		}
 	}
 
@@ -1073,13 +1073,13 @@ static void update_neighbour_info(gnutella_node_t *n, gnet_results_set_t *rs)
 			(n->gnet_qhit_ip && n->gnet_qhit_ip != rs->ip) ||
 			(n->gnet_pong_ip && n->gnet_pong_ip != rs->ip)
 		) {
-			if (dbg) g_warning(
+			n->n_weird++;
+			if (dbg) g_warning("[weird #%d] "
 				"node %s (%s) advertised %s but now says Query Hits from %s",
-				node_ip(n), node_vendor(n),
+				n->n_weird, node_ip(n), node_vendor(n),
 				ip_to_gchar(n->gnet_pong_ip ?
 					n->gnet_pong_ip : n->gnet_qhit_ip),
 				ip_port_to_gchar(rs->ip, rs->port));
-			n->n_weird++;
 		}
 		n->gnet_qhit_ip = rs->ip;
 	}
@@ -1557,8 +1557,11 @@ gboolean search_results(gnutella_node_t *n)
 final_cleanup:
 	g_slist_free(selected_searches);
 
-	if (drop_it && n->header.hops == 1)
+	if (drop_it && n->header.hops == 1) {
 		n->n_weird++;
+		if (dbg) g_warning("[weird #%d] dropped %s from %s (%s)",
+			n->n_weird, gmsg_infostr(&n->header), node_ip(n), node_vendor(n));
+	}
 
 	return drop_it;
 }
