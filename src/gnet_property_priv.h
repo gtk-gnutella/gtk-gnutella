@@ -193,6 +193,8 @@ extern gchar   *server_hostname;
 extern gboolean give_server_hostname;
 extern guint32  reserve_gtkg_nodes;
 extern guint32  unique_nodes;
+extern guint32  download_rx_size;
+extern guint32  node_rx_size;
 
 
 prop_set_t *gnet_prop_init(void);

@@ -390,6 +390,10 @@ guint32  reserve_gtkg_nodes     = 20;
 guint32  reserve_gtkg_nodes_def = 20;
 guint32  unique_nodes     = 60;
 guint32  unique_nodes_def = 60;
+guint32  download_rx_size     = 8;
+guint32  download_rx_size_def = 8;
+guint32  node_rx_size     = 4;
+guint32  node_rx_size_def = 4;
 
 static prop_set_t *gnet_property = NULL;
 
@@ -3520,6 +3524,46 @@ prop_set_t *gnet_prop_init(void) {
     gnet_property->props[162].data.guint32.choices = NULL;
     gnet_property->props[162].data.guint32.max   = 100;
     gnet_property->props[162].data.guint32.min   = 50;
+
+
+    /*
+     * PROP_DOWNLOAD_RX_SIZE:
+     *
+     * General data:
+     */
+    gnet_property->props[163].name = "download_rx_size";
+    gnet_property->props[163].desc = _("Size of the RX socket buffer to be used for downloads, in kbytes. If you wish to avoid Gnutella downloads using up all your bandwidth, set it to a low value (default is 8K, which is fine). If you don't mind sucking up all the available bandwidth, increasing your connection latency, set it to a greater value. Any change only affects new downloads, existing downloads use the value that was configured when they were initiated. Remember: the smaller the value, the more you will be able to precisely control the incoming rate.");
+    gnet_property->props[163].ev_changed = event_new("download_rx_size_changed");
+    gnet_property->props[163].save = TRUE;
+    gnet_property->props[163].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[163].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[163].data.guint32.def   = &download_rx_size_def;
+    gnet_property->props[163].data.guint32.value = &download_rx_size;
+    gnet_property->props[163].data.guint32.choices = NULL;
+    gnet_property->props[163].data.guint32.max   = 128;
+    gnet_property->props[163].data.guint32.min   = 2;
+
+
+    /*
+     * PROP_NODE_RX_SIZE:
+     *
+     * General data:
+     */
+    gnet_property->props[164].name = "node_rx_size";
+    gnet_property->props[164].desc = _("Size of the RX socket buffer to be used for nodes, in kbytes. The lower the value, the faster the remote end will flow-control at the TCP/IP level if you don't read quickly enough, which would be the case if you limit the incoming bandwidth.");
+    gnet_property->props[164].ev_changed = event_new("node_rx_size_changed");
+    gnet_property->props[164].save = TRUE;
+    gnet_property->props[164].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[164].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[164].data.guint32.def   = &node_rx_size_def;
+    gnet_property->props[164].data.guint32.value = &node_rx_size;
+    gnet_property->props[164].data.guint32.choices = NULL;
+    gnet_property->props[164].data.guint32.max   = 128;
+    gnet_property->props[164].data.guint32.min   = 2;
 
     gnet_property->byName = g_hash_table_new(g_str_hash, g_str_equal);
     for (n = 0; n < GNET_PROPERTY_NUM; n ++) {

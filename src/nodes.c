@@ -72,7 +72,6 @@ RCSID("$Id$");
 #define BYE_MAX_SIZE			4096	/* Maximum size for the Bye message */
 #define NODE_SEND_BUFSIZE		4096	/* TCP send buffer size - 4K */
 #define NODE_SEND_LEAF_BUFSIZE	256		/* TCP send buffer size for leaves */
-#define NODE_RECV_BUFSIZE		114688	/* TCP receive buffer size - 112K */
 #define MAX_GGEP_PAYLOAD		1024	/* In ping, pong, push */
 #define MAX_MSG_SIZE			65536	/* Absolute maximum message length */
 #define MAX_HOP_COUNT			255		/* Architecturally defined maximum */
@@ -2358,14 +2357,13 @@ static void node_is_now_connected(struct gnutella_node *n)
 
 	/*
 	 * Set the socket's send buffer size to a small value, to make sure we
-	 * flow control early.  Increase the receive buffer to allow a larger
-	 * reception window (assuming an original default 8K buffer size).
+	 * flow control early.  Use their setup for the receive buffer.
 	 */
 
 	sock_send_buf(s, NODE_IS_LEAF(n) ?
 		NODE_SEND_LEAF_BUFSIZE : NODE_SEND_BUFSIZE, TRUE);
 
-	sock_recv_buf(s, NODE_RECV_BUFSIZE, FALSE);
+	sock_recv_buf(s, node_rx_size * 1024, TRUE);
 
 	/*
 	 * If we have an incoming connection, send an "alive" ping.

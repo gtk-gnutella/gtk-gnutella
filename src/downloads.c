@@ -61,7 +61,6 @@
 
 RCSID("$Id$");
 
-#define DOWNLOAD_RECV_BUFSIZE	114688		/* 112K */
 #define DOWNLOAD_MIN_OVERLAP	64			/* Minimum overlap for safety */
 #define DOWNLOAD_SHORT_DELAY	2			/* Shortest retry delay */
 #define DOWNLOAD_MAX_SINK		16384		/* Max amount of data to sink */
@@ -5979,11 +5978,13 @@ static void download_request(
 		BIO_F_READ, download_read, (gpointer) d);
 
 	/*
-	 * Increase our reception window to maximize throughput, set TOS.
+	 * Set TOS to low-delay, so that ACKs flow back faster, and set the RX
+	 * buffer according to their preference (large for better throughput,
+	 * small for better control of the incoming rate).
 	 */
 
 	socket_tos_lowdelay(s);
-	sock_recv_buf(s, DOWNLOAD_RECV_BUFSIZE, FALSE);
+	sock_recv_buf(s, download_rx_size * 1024, TRUE);
 
 	/*
 	 * If we have something in the input buffer, write the data to the
