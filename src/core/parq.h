@@ -22,7 +22,7 @@
  *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *----------------------------------------------------------------------
  */
- 
+
 #ifndef _core_parq_h_
 #define _core_parq_h_
 
@@ -49,7 +49,7 @@ gpointer parq_dl_create(struct download *d);
 void parq_dl_add_id(struct download *d, const gchar *new_id);
 void parq_dl_remove(struct download *d);
 void parq_dl_free(struct download *d);
-	
+
 void parq_download_retry_active_queued(struct download *d);
 gboolean parq_download_supports_parq(header_t *header);
 gboolean parq_download_parse_queue_status(struct download *d, header_t *header);
@@ -58,7 +58,7 @@ void parq_download_add_header(
 		gchar *buf, size_t len, size_t *rw, struct download *d);
 gboolean parq_download_is_passive_queued(struct download *d);
 void parq_download_queue_ack(struct gnutella_socket *s);
-	
+
 void parq_upload_timer(time_t now);
 void parq_upload_add_header(
 	gchar *buf, gint *retval, gpointer arg, guint32 flags);
@@ -66,9 +66,9 @@ void parq_upload_add_header_id(
 	gchar *buf, gint *retval, gpointer arg, guint32 flags);
 gpointer parq_upload_get(
 	gnutella_upload_t *u, header_t *header, gboolean replacing);
-gboolean parq_upload_request(gnutella_upload_t *u, gpointer handle, 
+gboolean parq_upload_request(gnutella_upload_t *u, gpointer handle,
 		guint used_slots);
-gboolean parq_upload_request_force(gnutella_upload_t *u, gpointer handle, 
+gboolean parq_upload_request_force(gnutella_upload_t *u, gpointer handle,
 	  guint used_slots);
 guint parq_upload_lookup_position(const gnutella_upload_t *u);
 const gchar * parq_upload_lookup_id(const gnutella_upload_t *u);

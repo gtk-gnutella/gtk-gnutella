@@ -68,7 +68,7 @@ typedef struct {
 	guchar bitzi_url[SHA1_BASE32_SIZE + sizeof bitzi_url_fmt]; /* request URL */
 
 	/*
-	 * xml related bits 
+	 * xml related bits
 	 */
 	xmlParserCtxt *ctxt;   	/* libxml parser context */
 
@@ -118,7 +118,7 @@ bitzi_create(void)
 	bitzi_data_t *data = walloc(sizeof(bitzi_data_t));
 
 	/*
-	 * defaults 
+	 * defaults
 	 */
 	data->urnsha1 = NULL;
 	data->mime_type = NULL;
@@ -185,7 +185,7 @@ bitzi_host_data_ind(gpointer unused_handle, gchar *data, gint len)
 
 		current_bitzi_request = NULL;
 		current_bitzi_request_handle = NULL;
-	} 
+	}
 }
 
 /**
@@ -203,7 +203,7 @@ bitzi_host_error_ind(gpointer handle,
 	g_assert(handle == current_bitzi_request_handle);
 
 	/*
-	 * process what we had and clear up 
+	 * process what we had and clear up
 	 */
 	process_meta_data(current_bitzi_request);
 
@@ -324,12 +324,12 @@ process_rdf_description(xmlNode * node, bitzi_data_t * data)
 			xmlChar *xml_fps = xmlGetProp(node, "videoFPS");
 
 			/*
-			 * copy the mime type 
+			 * copy the mime type
 			 */
 			data->mime_type = g_strdup(xml_string);
 
 			/*
-			 * format the mime details 
+			 * format the mime details
 			 */
 			if (xml_sizex && xml_sizey) {
 				data->mime_desc =
@@ -404,7 +404,7 @@ process_meta_data(bitzi_request_t *request)
 	g_assert(request != NULL);
 
 	/*
-	 * Get the document and free context 
+	 * Get the document and free context
 	 */
 
 	doc = request->ctxt->myDoc;
@@ -415,14 +415,14 @@ process_meta_data(bitzi_request_t *request)
 		g_message("process_meta_data: doc = %p, result = %d", doc, result);
 
 	/*
-	 * Now we can have a look at the data 
+	 * Now we can have a look at the data
 	 */
 
 	if (result) {
 		bitzi_data_t *data = bitzi_create();
 
 		/*
-		 * This just dumps the data 
+		 * This just dumps the data
 		 */
 
 		root = xmlDocGetRootElement(doc);
@@ -433,7 +433,7 @@ process_meta_data(bitzi_request_t *request)
 		xmlFreeDoc(doc);
 
 		/*
-		 * store the result in the cache and notify the GUI 
+		 * store the result in the cache and notify the GUI
 		 */
 
 		bitzi_cache_add(data);
@@ -441,7 +441,7 @@ process_meta_data(bitzi_request_t *request)
 	}
 
 	/*
-	 * free used memory by the request 
+	 * free used memory by the request
 	 */
 
 	atom_sha1_free(request->urnsha1);
@@ -460,12 +460,12 @@ do_metadata_query(bitzi_request_t *req)
 		g_message("do_metadata_query: %p", req);
 
 	/*
-	 * always remove the request from the queue 
+	 * always remove the request from the queue
 	 */
 	bitzi_rq = g_slist_remove(bitzi_rq, req);
 
 	/*
-	 * check we haven't already got a response from a previous query 
+	 * check we haven't already got a response from a previous query
 	 */
 	if (NULL != bitzi_querycache_byurnsha1(req->urnsha1))
 		return FALSE;
@@ -504,7 +504,7 @@ do_metadata_query(bitzi_request_t *req)
 		}
 
 	/*
-	 * no query launched 
+	 * no query launched
 	 */
 
 	return FALSE;
@@ -552,7 +552,7 @@ bitzi_cache_remove(bitzi_data_t * data)
 	bitzi_cache = g_list_remove(bitzi_cache, data);
 
 	/*
-	 * destroy when done 
+	 * destroy when done
 	 */
 	bitzi_destroy(data);
 }
@@ -565,7 +565,7 @@ bitzi_cache_clean(void)
 	GSList *to_remove = NULL, *sl;
 
 	/*
-	 * find all entries that have expired 
+	 * find all entries that have expired
 	 */
 
 	for (l = bitzi_cache; l != NULL; l = g_list_next(l)) {
@@ -578,7 +578,7 @@ bitzi_cache_clean(void)
 	}
 
 	/*
-	 * now flush the expired entries 
+	 * now flush the expired entries
 	 */
 
 	for (sl = to_remove; sl != NULL; sl = g_slist_next(sl))
@@ -602,7 +602,7 @@ bitzi_heartbeat(gpointer unused_data)
 	(void) unused_data;
 
 	/*
-	 * launch any pending queries 
+	 * launch any pending queries
 	 */
 
 	while (current_bitzi_request == NULL && bitzi_rq != NULL) {
@@ -622,7 +622,7 @@ bitzi_heartbeat(gpointer unused_data)
 
 /**
  * Query the bitzi cache for this given urnsha1, return NULL if
- * nothing otherwise we return the 
+ * nothing otherwise we return the
  */
 bitzi_data_t *
 bitzi_querycache_byurnsha1(const gchar *urnsha1)
@@ -646,14 +646,14 @@ bitzi_query_byurnsha1(const gchar *urnsha1)
 	bitzi_request_t	*request;
 
 	g_return_val_if_fail(NULL != urnsha1, NULL);
-	
+
 	data = bitzi_querycache_byurnsha1(urnsha1);
 	if (data == NULL) {
 		size_t len;
 		request = walloc(sizeof *request);
 
 		/*
-		 * build the bitzi url 
+		 * build the bitzi url
 		 */
 		request->urnsha1 = atom_sha1_get(urnsha1);
 		len = gm_snprintf(request->bitzi_url, sizeof request->bitzi_url,
@@ -667,7 +667,7 @@ bitzi_query_byurnsha1(const gchar *urnsha1)
 		}
 
 		/*
-		 * the heartbeat will pick up the request 
+		 * the heartbeat will pick up the request
 		 */
 	} else {
 		if (dbg)

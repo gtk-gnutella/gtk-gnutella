@@ -122,7 +122,7 @@ typedef struct gnet_record {
 /*
  * Search callbacks
  */
-typedef void (*search_got_results_listener_t) 
+typedef void (*search_got_results_listener_t)
     (GSList *, const gnet_results_set_t *);
 
 /*
@@ -137,7 +137,7 @@ void search_close(gnet_search_t sh);
 void search_start(gnet_search_t sh);
 void search_stop(gnet_search_t sh);
 
-/*  search_is_stopped doesn't exist yet! 
+/*  search_is_stopped doesn't exist yet!
 gboolean search_is_stopped(gnet_search_t sh);
 */
 

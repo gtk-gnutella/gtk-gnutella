@@ -433,7 +433,7 @@ version_check(const gchar *str, const gchar *token, guint32 ip)
 		if (error != TOK_OK) {
             if (dbg) {
                 g_message("vendor string \"%s\" [%s] has wrong token "
-                    "\"%s\": %s ", str, ip_to_gchar(ip), token, 
+                    "\"%s\": %s ", str, ip_to_gchar(ip), token,
                     tok_strerror(error));
             }
 			return FALSE;
@@ -471,14 +471,14 @@ version_check(const gchar *str, const gchar *token, guint32 ip)
 		target_version = &last_dev_version;
 	}
 
-	/* 
+	/*
 	 * Only compare a development version which has the same version
 	 * number with a more up to date version.
 	 * This will also avoid a 0.93.4u to be listed out of date if also a 0.94u
 	 * is available, while both are actually in development.
 	 * 		-- JA 15/04/2004
 	 */
-	
+
 	/* 
 	 * Their version is more recent, but is unstable
 	 */
@@ -521,7 +521,7 @@ version_check(const gchar *str, const gchar *token, guint32 ip)
 
 	return TRUE;
 }
- 
+
 /**
  * Initialize version string.
  */

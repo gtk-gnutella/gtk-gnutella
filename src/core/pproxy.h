@@ -68,7 +68,7 @@ struct cproxy *cproxy_create(struct download *d,
 	guint32 ip, guint16 port, gchar *guid, guint32 file_idx);
 void cproxy_free(struct cproxy *cp);
 void cproxy_reparent(struct download *d, struct download *cd);
-	
+
 #endif	/* _core_pproxy_h_ */
 
 /* vi: set ts=4: */

@@ -94,7 +94,7 @@ static void uhc_host_resolved(guint32 ip, gpointer uu_udata);
  * @param hp	host:port string
  * @param host	where the pointer to the hostname is returned (static data)
  * @param port	where the port is written to
- * 
+ *
  * @return TRUE if we successfully parsed the string.
  */
 static gboolean
@@ -106,7 +106,7 @@ uhc_get_host_port(const gchar *hp, const gchar **host, guint16 *port)
 	gchar *p;
 	gchar c;
 	gint iport;
-	
+
 	p = (gchar *) hp;
 	while ((c = *p++) && q < end) {
 		if (c == ':') {

@@ -2,7 +2,7 @@
  * $Id$
  *
  * Copyright (c) 2003 - 2004 Jeroen Asselman.
- * 
+ *
  * Merkle Hash tree implementation, not yet memory and speed optimized yet.
  *
  *----------------------------------------------------------------------
@@ -39,16 +39,16 @@
 
 /**
  *  @file
- * 
+ *
  * Hashtree can be used to build any hashtree. This could be a SHA1 tree or a
  * tigertree for example.
- * 
+ *
  * To create a new hash tree, use the function hash_tree_new, save the returned
- * pointer as the parent. Add new leaf nodes to the hash tree using 
- * hash_tree_append_leaf_node, pass the parent as an argument, save the returned 
- * pointer as parent again. When you are done adding leaf nodes, call 
+ * pointer as the parent. Add new leaf nodes to the hash tree using
+ * hash_tree_append_leaf_node, pass the parent as an argument, save the returned
+ * pointer as parent again. When you are done adding leaf nodes, call
  * hash_tree_finish. After this you can read parent->hash to read the calculated
- * hash. If you are done with this tree, free the tree with hash_tree_destroy. 
+ * hash. If you are done with this tree, free the tree with hash_tree_destroy.
  * Look at the function header description for a more detailed information about
  * the arguments and the returned values.
  *
@@ -91,7 +91,7 @@ gint blocks;
 inline gboolean node_is_leaf_node(node_t *node)
 {
 	return node->left_node == NULL && 
-		  node->right_node == NULL && 
+		  node->right_node == NULL &&
 		  node->level == 0;
 }
 
@@ -104,8 +104,8 @@ inline gboolean node_is_leaf_node(node_t *node)
  */
 inline gboolean node_is_free_leaf_node(node_t *node)
 {
-	return node->left_node == NULL && 
-		  node->right_node == NULL && 
+	return node->left_node == NULL &&
+		  node->right_node == NULL &&
 		  node->level == 0 &&
 		  node->hash == NULL;
 }
@@ -208,11 +208,11 @@ void hashtree_finish(hashtree *tree)
  */
 void hashtree_destroy(hashtree *tree)
 {
-	node_destroy(tree->parent);	
+	node_destroy(tree->parent);
 
 	tree->depth = 0;
 	tree->parent = NULL;
-	
+
 	free(tree);
 }
 
@@ -237,28 +237,28 @@ void build_hash(hashtree *tree, node_t *node)
 		blocks++;
 		return;
 	}
-	
+
 	g_assert(node->left_node != NULL);
 	g_assert(node->hash == NULL);
-	
+
 	/* First build hash for child nodes */
 	if (node->left_node != NULL)
 		build_hash(tree, node->left_node);
-	
+
 	if (node->right_node != NULL)
 		build_hash(tree, node->right_node);
-	
+
 	/* Now build our own hash */
 	if (node->right_node != NULL) {
 		g_assert(node->left_node->hash != NULL);
 		g_assert(node->right_node->hash != NULL);
-		
-		node->hash = 
+
+		node->hash =
 			  tree->hash_func(node->left_node->hash, node->right_node->hash);
 	} else {
 		node->hash = node->left_node->hash;
 	}
-	
+
 	g_assert(node->hash != NULL);
 }
 
@@ -387,7 +387,7 @@ void hashtree_increase_depth(hashtree *tree)
 	node_t *add_node = NULL;
 
 	tree->depth++;
-	
+
 	/* Create new parent */
 	new_parent = node_new();
 	new_parent->left_node = tree->parent;
@@ -442,6 +442,6 @@ void node_destroy(node_t *node)
 
 	if (node->hash != NULL)
 		G_FREE_NULL(node->hash);
-	
+
 	wfree(node, sizeof(node_t));
 }

@@ -81,8 +81,8 @@ bogons_load(FILE *f)
 		 * Remove all trailing spaces in string.
 		 * Otherwise, lines which contain only spaces would cause a warning.
 		 */
-	
-		p = strchr(line, '\0');	
+
+		p = strchr(line, '\0');
 		while (--p >= line) {
 			guchar c = (guchar) *p;
 			if (!is_ascii_space(c))
@@ -185,7 +185,7 @@ bogons_retrieve(void)
 	file_path_t fp[] = {
 		{ settings_config_dir(), bogons_file },
 		{ PRIVLIB_EXP, bogons_file },
-#ifndef OFFICIAL_BUILD 
+#ifndef OFFICIAL_BUILD
 		{ PACKAGE_SOURCE_DIR, bogons_file }
 #endif
 	};

@@ -27,9 +27,9 @@
  *
  * Host cache management.
  *
- * TODO: 
- *  - finer grained stats: 
- *      hits/misses while adding, 
+ * TODO:
+ *  - finer grained stats:
+ *      hits/misses while adding,
  *      hits/misses while bad checking
  *      how many hosts were tried to connect to?
  *  - display stats about gwcache usage:
@@ -82,7 +82,7 @@ typedef struct hostcache_entry {
 } hostcache_entry_t;
 
 /** No metadata for host */
-#define NO_METADATA			GINT_TO_POINTER(1)	
+#define NO_METADATA			GINT_TO_POINTER(1)
 
 /**
  * A hostcache table.
@@ -109,13 +109,13 @@ static hostcache_t *caches[HCACHE_MAX];
 static gboolean hcache_close_running = FALSE;
 
 /**
- * Names of the host caches. 
+ * Names of the host caches.
  *
  * @note has to be in the same order as in the hcache_type_t definition
  *       in gnet_nodes.h.
  */
-static const gchar * const names[HCACHE_MAX] = { 
-    N_("fresh regular"), 
+static const gchar * const names[HCACHE_MAX] = {
+    N_("fresh regular"),
     N_("valid regular"),
     N_("fresh ultra"),
     N_("valid ultra"),
@@ -125,8 +125,8 @@ static const gchar * const names[HCACHE_MAX] = {
     "none",
 };
 
-static const gchar * const host_type_names[HOST_MAX] = { 
-    N_("any"), 
+static const gchar * const host_type_names[HOST_MAX] = {
+    N_("any"),
     N_("ultra"),
 };
 
@@ -195,14 +195,14 @@ stop_mass_update(hostcache_t *hc)
 /**
  * Hashtable: IP/Port -> Metadata
  */
-static GHashTable * ht_known_hosts = NULL;	
+static GHashTable * ht_known_hosts = NULL;
 
 static void
 hcache_update_low_on_pongs(void)
 {
-    host_low_on_pongs = (guint) ( 
+    host_low_on_pongs = (guint) (
             caches[HCACHE_FRESH_ANY]->host_count +
-            caches[HCACHE_VALID_ANY]->host_count 
+            caches[HCACHE_VALID_ANY]->host_count
         ) < (max_hosts_cached >> 3);
 }
 
@@ -231,7 +231,7 @@ hcache_dump_info(const struct hostcache *hc, const gchar *what)
 {
     g_message("[%s|%s] %u (%d) hosts (%u hits, %u misses)",
         hc->name, what, hc->host_count,
-        hash_list_length(hc->hostlist), 
+        hash_list_length(hc->hostlist),
         hc->hits, hc->misses);
 }
 
@@ -267,12 +267,12 @@ hcache_ht_get(guint32 ip, guint16 port, gnet_host_t **h, hostcache_entry_t **e)
 }
 
 /**
- * Add host to the hash table host cache. 
- * Also creates a metadata struct unless the host was added to HL_CAUGHT 
- * in which case we cannot know anything about the host. Yet we cannot 
- * assert that HL_CAUGHT never contains a host with metadata because when 
- * HL_CAUGHT becomes empty, move all hosts from HL_VALID to HL_CAUGHT. We 
- * can however assert that any host which does not have metadata is in 
+ * Add host to the hash table host cache.
+ * Also creates a metadata struct unless the host was added to HL_CAUGHT
+ * in which case we cannot know anything about the host. Yet we cannot
+ * assert that HL_CAUGHT never contains a host with metadata because when
+ * HL_CAUGHT becomes empty, move all hosts from HL_VALID to HL_CAUGHT. We
+ * can however assert that any host which does not have metadata is in
  * HL_CAUGHT.
  *
  * @return Pointer to metadata struct for the added host or NO_METADATA
@@ -380,16 +380,16 @@ hcache_move_entries(hostcache_t *to, hostcache_t *from)
     from->hostlist = hash_list_new();
     from->host_count = 0;
 
-    /* 
+    /*
      * Make sure that after switching hce->list points to the new
-     * list HL_CAUGHT 
-     */        
+     * list HL_CAUGHT
+     */
 
 	iter = hash_list_iterator(to->hostlist);
 
 	while (NULL != (item = hash_list_next(iter))) {
         hostcache_entry_t *hce;
-    
+
         hce = hcache_get_metadata((gnet_host_t *) item);
         if (hce == NULL || hce == NO_METADATA)
             continue;
@@ -403,14 +403,14 @@ hcache_move_entries(hostcache_t *to, hostcache_t *from)
  * Make sure we have some host available in HCACHE_FRESH_ANY
  * and HCACHE_FRESH_ULTRA.
  *
- * If one of the both is empty, all hosts from HCACHE_VALID_XXX 
+ * If one of the both is empty, all hosts from HCACHE_VALID_XXX
  * are moved to HCACHE_VALID_XXX. When caught on other hcaches than
  * FRESH_ANY and FRESH_ULTRA nothing happens.
  *
  * @return TRUE if host are available in hc after the call.
  */
 static gboolean
-hcache_require_caught(hostcache_t *hc) 
+hcache_require_caught(hostcache_t *hc)
 {
     g_assert(NULL != hc);
 
@@ -500,12 +500,12 @@ hcache_slots_left(hcache_type_t type)
     switch (type) {
     case HCACHE_FRESH_ANY:
     case HCACHE_VALID_ANY:
-        return max_hosts_cached - 
+        return max_hosts_cached -
             caches[HCACHE_FRESH_ANY]->host_count -
             caches[HCACHE_VALID_ANY]->host_count;
     case HCACHE_FRESH_ULTRA:
     case HCACHE_VALID_ULTRA:
-        return max_ultra_hosts_cached - 
+        return max_ultra_hosts_cached -
             caches[HCACHE_FRESH_ULTRA]->host_count -
             caches[HCACHE_VALID_ULTRA]->host_count;
 	case HCACHE_NONE:
@@ -657,7 +657,7 @@ hcache_add(hcache_type_t type, guint32 ip, guint16 port, const gchar *what)
     default:
         /*
          * hcache_expire() depends on the fact that new entries are
-         * added to the beginning of the list 
+         * added to the beginning of the list
          */
         hash_list_prepend(hc->hostlist, host);
         break;
@@ -678,7 +678,7 @@ hcache_add(hcache_type_t type, guint32 ip, guint16 port, const gchar *what)
 
     if (dbg > 8) {
         printf("Added %s %s (%s)\n", what, ip_port_to_gchar(ip, port),
-            ((type == HCACHE_FRESH_ANY) || (type == HCACHE_VALID_ANY)) ? 
+            ((type == HCACHE_FRESH_ANY) || (type == HCACHE_VALID_ANY)) ?
                 (host_low_on_pongs ? "LOW" : "OK") : "");
     }
 
@@ -733,11 +733,11 @@ hcache_remove(gnet_host_t *h)
 {
     hostcache_entry_t *hce;
     hostcache_t *hc;
-    
+
     hce = hcache_get_metadata(h);
     if (hce == NULL) {
 		g_warning("hcache_remove: attempt to remove unknown host: %s",
-				  ip_port_to_gchar(h->ip, h->port));           
+				  ip_port_to_gchar(h->ip, h->port));
         return; /* Host is not in hashtable */
     }
 
@@ -794,7 +794,7 @@ hcache_remove_all(hostcache_t *hc)
 }
 
 /**
- * Clear the whole host cache for a host type and the pong cache of 
+ * Clear the whole host cache for a host type and the pong cache of
  * the same type. Use this to clear the "ultra" and "any" host caches.
  */
 void
@@ -922,7 +922,7 @@ hcache_expire_all(void)
  * to HCACHE_FRESH_XXX and then it is purged.
  */
 void
-hcache_prune(hcache_type_t type) 
+hcache_prune(hcache_type_t type)
 {
 	hostcache_t *hc;
     gint extra;
@@ -961,7 +961,7 @@ hcache_prune(hcache_type_t type)
         return;
 
     start_mass_update(hc);
-    
+
     hcache_require_caught(hc);
 	while (extra > 0) {
 		gnet_host_t *h = hash_list_first(hc->hostlist);
@@ -1036,8 +1036,8 @@ hcache_fill_caught_array(host_type_t type, gnet_host_t *hosts, gint hcount)
 	iter = hash_list_iterator_last(hc->hostlist);
 
 	for (
-        h = hash_list_previous(iter); 
-        i < hcount && h != NULL; 
+        h = hash_list_previous(iter);
+        i < hcount && h != NULL;
         i++, h = hash_list_previous(iter)
     ) {
 		if (g_hash_table_lookup(seen_host, h))
@@ -1057,8 +1057,8 @@ done:
 }
 
 /**
- * Finds a host in either the pong_cache or the host_cache that is in 
- * one of the local networks. 
+ * Finds a host in either the pong_cache or the host_cache that is in
+ * one of the local networks.
  *
  * @return TRUE if host is found
  */
@@ -1086,7 +1086,7 @@ hcache_find_nearby(host_type_t type, guint32 *ip, guint16 *port)
 		g_assert_not_reached();
     }
 
-	if (!hc)	
+	if (!hc)
         g_error("hcache_get_caught: unknown host type: %d", type);
 
     gnet_prop_get_boolean_val(hc->reading, &reading);
@@ -1096,7 +1096,7 @@ hcache_find_nearby(host_type_t type, guint32 *ip, guint16 *port)
 		for (
 			*ip = 0,
 				got_recent = pcache_get_recent(type, &first_ip, &first_port);
-			got_recent && (*ip != first_ip || *port != first_port); 
+			got_recent && (*ip != first_ip || *port != first_port);
 			got_recent = pcache_get_recent(type, ip, port)
 		) {
 			if (host_is_nearby(*ip))
@@ -1111,14 +1111,14 @@ hcache_find_nearby(host_type_t type, guint32 *ip, guint16 *port)
 
 	for (
 		h = hash_list_follower(iter);
-		NULL != h; 
+		NULL != h;
         h = hash_list_follower(iter)
 	) {
 
 		if (host_is_nearby(h->ip)) {
             *ip = h->ip;
             *port = h->port;
-            
+
             result = TRUE;
 			break;
 		}
@@ -1167,8 +1167,8 @@ hcache_get_caught(host_type_t type, guint32 *ip, guint16 *port)
 
     hcache_update_low_on_pongs();
 
-	/* 
-	 * First, try to find a local host 
+	/*
+	 * First, try to find a local host
 	 */
 
 	if (
@@ -1292,7 +1292,7 @@ read_done(hostcache_t *hc)
      * hosts in the catcher.
      *      -- Richard, 6/8/2002
      */
-    
+
     gnet_prop_set_boolean_val(hc->reading, FALSE);
 }
 
@@ -1378,7 +1378,7 @@ hcache_retrieve(hostcache_t *hc, const gchar *filename)
 
     {
 		file_path_t fp;
-		
+
 		file_path_set(&fp, settings_config_dir(), filename);
 		fd = file_config_open_read("hosts", &fp, 1);
 	}
@@ -1476,15 +1476,15 @@ hcache_timer(void)
     hcache_expire_all();
 
     if (dbg >= 15) {
-        hcache_dump_info(caches[HCACHE_FRESH_ANY],   "timer");    
-        hcache_dump_info(caches[HCACHE_VALID_ANY],   "timer");    
+        hcache_dump_info(caches[HCACHE_FRESH_ANY],   "timer");
+        hcache_dump_info(caches[HCACHE_VALID_ANY],   "timer");
 
-        hcache_dump_info(caches[HCACHE_FRESH_ULTRA], "timer");    
-        hcache_dump_info(caches[HCACHE_VALID_ULTRA], "timer");    
+        hcache_dump_info(caches[HCACHE_FRESH_ULTRA], "timer");
+        hcache_dump_info(caches[HCACHE_VALID_ULTRA], "timer");
 
-        hcache_dump_info(caches[HCACHE_TIMEOUT],  "timer");    
-        hcache_dump_info(caches[HCACHE_BUSY],     "timer");    
-        hcache_dump_info(caches[HCACHE_UNSTABLE], "timer");    
+        hcache_dump_info(caches[HCACHE_TIMEOUT],  "timer");
+        hcache_dump_info(caches[HCACHE_BUSY],     "timer");
+        hcache_dump_info(caches[HCACHE_UNSTABLE], "timer");
 
         g_message("Hcache global: local %u   alrdy connected %u   invalid %u",
             stats[HCACHE_LOCAL_INSTANCE], stats[HCACHE_ALREADY_CONNECTED],
@@ -1514,17 +1514,17 @@ hcache_init(void)
         "hosts.fresh.ultra");
 
     caches[HCACHE_VALID_ANY] = hcache_alloc(
-        HCACHE_VALID_ANY, PROP_READING_HOSTFILE, 
+        HCACHE_VALID_ANY, PROP_READING_HOSTFILE,
         PROP_HOSTS_IN_CATCHER,
         "hosts.valid.any");
 
     caches[HCACHE_VALID_ULTRA] = hcache_alloc(
-        HCACHE_VALID_ULTRA, PROP_READING_ULTRAFILE, 
+        HCACHE_VALID_ULTRA, PROP_READING_ULTRAFILE,
         PROP_HOSTS_IN_ULTRA_CATCHER,
         "hosts.valid.ultra");
 
     caches[HCACHE_TIMEOUT] = hcache_alloc(
-        HCACHE_TIMEOUT, PROP_READING_HOSTFILE, 
+        HCACHE_TIMEOUT, PROP_READING_HOSTFILE,
         PROP_HOSTS_IN_BAD_CATCHER,
         "hosts.timeout");
     caches[HCACHE_TIMEOUT]->ip_only = TRUE;
@@ -1659,8 +1659,8 @@ hcache_shutdown(void)
  */
 void hcache_close(void)
 {
-	static const hcache_type_t types[] = { 
-        HCACHE_FRESH_ANY, 
+	static const hcache_type_t types[] = {
+        HCACHE_FRESH_ANY,
         HCACHE_VALID_ANY,
         HCACHE_FRESH_ULTRA,
         HCACHE_VALID_ULTRA,
@@ -1670,12 +1670,12 @@ void hcache_close(void)
     };
 	guint i;
 
-	g_assert(!hcache_close_running);	
-	hcache_close_running = TRUE;	
-	
+	g_assert(!hcache_close_running);
+	hcache_close_running = TRUE;
+
     /*
-     * First we stop all background processes and remove all hosts, 
-     * only then we free the hcaches. This is important because 
+     * First we stop all background processes and remove all hosts,
+     * only then we free the hcaches. This is important because
      * hcache_require_caught will crash if we free certain hostcaches.
      */
 
@@ -1689,9 +1689,9 @@ void hcache_close(void)
 		/* Make sure all previous caches have been cleared */
 		for (j = 0; j < type; j++)
     		g_assert(caches[j]->host_count == 0);
-		
+
         hcache_remove_all(caches[type]);
-		
+
 		/* Make sure no caches have been refilled */
 		for (j = 0; j <= type; j++)
     		g_assert(caches[j]->host_count == 0);

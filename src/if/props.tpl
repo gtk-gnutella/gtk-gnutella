@@ -40,16 +40,16 @@
 (define prop-array (sprintf "%s->props" (. prop-set)))
 (define prop-offset (get "offset"))
 (define (type_ok? type)
-    (cond 
+    (cond
         ((= type "boolean") #t)
         ((= type "guint32") #t)
         ((= type "guint64") #t)
         ((= type "ip") #t)
         ((= type "string") #t)
         ((= type "storage") #t)
-        ((= type "multichoice") #t) 
+        ((= type "multichoice") #t)
         (else #f)))
-=][= 
+=][=
 IF (exist? "func_prefix")=][=
     (define func-prefix (get "func_prefix"))=][=
 ELSE=][=
@@ -66,9 +66,9 @@ Generating files:
 [= (sprintf "%s_priv.h" (. set-name-down)) =]
 [= (sprintf "%s.c" (. set-name-down)) =]
 
-[= 
+[=
 (out-switch (sprintf "%s.h" (. set-name-down)))
-(. license) 
+(. license)
 =]
 
 #ifndef _[=(. set-name-down)=]_h_
@@ -79,11 +79,11 @@ Generating files:
 #define [=(. prop-min)=] ([=offset=])
 #define [=(. prop-max)=] ([=offset=]+[=(. prop-end)=]-1)
 #define [=(. prop-num)=] ([=(. prop-end)=]-[=offset=])
- 
-typedef enum {[= 
-    FOR prop =]    
+
+typedef enum {[=
+    FOR prop =]
     PROP_[=(string-upcase (get "name"))=][=
-        IF (= (for-index) 0)=]=[=(. prop-offset)=][=ENDIF=],[= 
+        IF (= (for-index) 0)=]=[=(. prop-offset)=][=ENDIF=],[=
     ENDFOR prop =]
     [=(. prop-end)=]
 } [= (. set-name-down) =]_t;
@@ -166,8 +166,8 @@ gchar *[=(. func-prefix)=]_to_string(property_t prop);
 
 #endif /* _[=(. set-name-down)=]_h_ */
 
-[= 
-(out-switch (sprintf "%s_priv.h" (. set-name-down))) 
+[=
+(out-switch (sprintf "%s_priv.h" (. set-name-down)))
 (. license)
 =]
 
@@ -186,21 +186,21 @@ gchar *[=(. func-prefix)=]_to_string(property_t prop);
 [= FOR uses =]#include "[=uses=]"
 [= ENDFOR uses =]
 
-[= FOR prop =][= 
+[= FOR prop =][=
 IF (exist? "data.value") =][=
 (define item (get "data.value")) =][=
 ELSE =][=
 (define item (string-downcase (get "name"))) =][=
 ENDIF=][=
-CASE type=][= 
-= boolean=]extern const gboolean [=(. item)=][= 
-= guint32=]extern const guint32  [=(. item)=][= 
-= guint64=]extern const guint64  [=(. item)=][= 
-= ip     =]extern const guint32  [=(. item)=][= 
-= multichoice=]extern const guint32  [=(. item)=][= 
-= string =]extern const gchar   *[=(. item)=][= 
-= storage=]extern const guint8   [=(. item)=][= 
-ESAC =][= 
+CASE type=][=
+= boolean=]extern const gboolean [=(. item)=][=
+= guint32=]extern const guint32  [=(. item)=][=
+= guint64=]extern const guint64  [=(. item)=][=
+= ip     =]extern const guint32  [=(. item)=][=
+= multichoice=]extern const guint32  [=(. item)=][=
+= string =]extern const gchar   *[=(. item)=][=
+= storage=]extern const guint8   [=(. item)=][=
+ESAC =][=
 IF (exist? "vector_size") =][[=vector_size=]][=ENDIF=];
 [= ENDFOR prop =]
 
@@ -211,8 +211,8 @@ void [=(. func-prefix)=]_shutdown(void);
 
 #endif /* _[=(. set-name-down)=]_priv_h_ */
 
-[= 
-(out-switch (sprintf "%s.c" (. set-name-down))) 
+[=
+(out-switch (sprintf "%s.c" (. set-name-down)))
 (. license)
 =]
 
@@ -227,36 +227,36 @@ void [=(. func-prefix)=]_shutdown(void);
 [= ENDFOR uses =]
 #include "lib/override.h"		/* Must be the last header included */
 
-[= 
-FOR prop =][= 
+[=
+FOR prop =][=
     (if (exist? "data.value")
         (define item (get "data.value"))
-        (define item (string-downcase (get "name"))))=][= 
+        (define item (string-downcase (get "name"))))=][=
     IF (= (get "type") "storage")=]
 guint8   [=(. item)=][[=vector_size=]];[=
     ELSE=][=
         (cond
-            ((= (get "type") "boolean") 
+            ((= (get "type") "boolean")
                 (define vtype "gboolean ")
                 (define vdef (get "data.default")))
-            ((= (get "type") "guint32") 
+            ((= (get "type") "guint32")
                 (define vtype "guint32  ")
                 (define vdef (get "data.default")))
-            ((= (get "type") "guint64") 
+            ((= (get "type") "guint64")
                 (define vtype "guint64  ")
                 (define vdef (get "data.default")))
-            ((= (get "type") "ip") 
+            ((= (get "type") "ip")
                 (define vtype "guint32  ")
                 (define vdef (get "data.default")))
-            ((= (get "type") "multichoice") 
+            ((= (get "type") "multichoice")
                 (define vtype "guint32  ")
                 (define vdef (get "data.default")))
-            ((= (get "type") "string") 
+            ((= (get "type") "string")
                 (define vtype "gchar   *")
                 (if (= (get "data.default") "NULL")
                     (define vdef (sprintf "NULL"))
                     (define vdef (sprintf "\"%s\"" (get "data.default"))))))
-        =][= 
+        =][=
         IF (exist? "vector_size")=]
 [=  (. vtype)=][=(. item)=][[=vector_size=]]     = [=(. vdef)=];
 [=  (. vtype)=][=(. item)=]_def[[=vector_size=]] = [=(. vdef)=];[=
@@ -265,7 +265,7 @@ guint8   [=(. item)=][[=vector_size=]];[=
 [=  (. vtype)=][=(. item)=]_def = [=(. vdef)=];[=
         ENDIF=][=
         IF (= (get "type") "multichoice")=]
-prop_def_choice_t [=(. item)=]_choices[] = { [=    
+prop_def_choice_t [=(. item)=]_choices[] = { [=
             FOR choice =]
     {"[=name=]", [=value=]},[=
             ENDFOR choice =]
@@ -292,7 +292,7 @@ prop_set_t *[=(. func-prefix)=]_init(void) {
     [=(. prop-set)=]->byName = NULL;[=
 
 FOR prop =][=
-    (define current-prop (sprintf "%s[%u]" 
+    (define current-prop (sprintf "%s[%u]"
         (. prop-array) (for-index)))
 
     (if (not (and (exist? "type") (type_ok? (get "type"))))
@@ -305,12 +305,12 @@ FOR prop =][=
         (error "no description given"))
 
     (if (exist? "data.value")
-        (define prop-var-name (get "data.value"))        
+        (define prop-var-name (get "data.value"))
         (define prop-var-name (string-downcase (get "name"))))
 
     (if (and (not (exist? "data.default")) (not (= (get "type") "storage")))
         (error "no default value given"))
-    
+
     (if (and (not (exist? "vector_size")) (= (get "type") "storage"))
         (error "must give vector_size for a storage-type property"))
     =]
@@ -322,29 +322,29 @@ FOR prop =][=
      * General data:
      */
     [= IF (exist? "cfgvar") =][=
-        (. current-prop) =].name = "[= cfgvar =]";[= 
+        (. current-prop) =].name = "[= cfgvar =]";[=
     ELSE =][=
-        (. current-prop) =].name = "[= name =]";[= 
+        (. current-prop) =].name = "[= name =]";[=
     ENDIF =]
     [=(. current-prop)=].desc = _("[=desc=]");
     [=(. current-prop)=].ev_changed = event_new("[= name =]_changed");[=
     IF (exist? "save") =]
-    [=  (. current-prop) =].save = [=save=];[= 
+    [=  (. current-prop) =].save = [=save=];[=
     ELSE =]
-    [=  (. current-prop) =].save = TRUE;[= 
+    [=  (. current-prop) =].save = TRUE;[=
     ENDIF =][=
     IF (exist? "vector_size") =]
-    [=  (. current-prop) =].vector_size = [=vector_size=];[= 
+    [=  (. current-prop) =].vector_size = [=vector_size=];[=
         (define prop-var (sprintf "%s" (. prop-var-name)))=][=
     ELSE =]
-    [=  (. current-prop) =].vector_size = 1;[= 
+    [=  (. current-prop) =].vector_size = 1;[=
         (define prop-var (sprintf "&%s" (. prop-var-name)))=][=
     ENDIF =][=
     (define prop-def-var (sprintf "%s_def" (. prop-var)))
     =]
 
-    /* Type specific data: */[= 
-    CASE type =][= 
+    /* Type specific data: */[=
+    CASE type =][=
 
     = boolean =][=
     IF (not (exist? "data.default")) =][=
@@ -352,8 +352,8 @@ FOR prop =][=
     ENDIF=]
     [=(. current-prop)=].type               = PROP_TYPE_BOOLEAN;
     [=(. current-prop)=].data.boolean.def   = [=(. prop-def-var)=];
-    [=(. current-prop)=].data.boolean.value = [=(. prop-var)=];[= 
-    
+    [=(. current-prop)=].data.boolean.value = [=(. prop-var)=];[=
+
     = storage =]
     [=(. current-prop)=].type               = PROP_TYPE_STORAGE;
     [=(. current-prop)=].data.storage.value = [=(. prop-var)=];
@@ -370,9 +370,9 @@ FOR prop =][=
     [=(. current-prop)=].data.guint32.max   = 0xFFFFFFFF;[=
     ENDIF=][=
     IF (exist? "data.min")=]
-    [=(. current-prop)=].data.guint32.min   = [=data.min=];[= 
+    [=(. current-prop)=].data.guint32.min   = [=data.min=];[=
     ELSE=]
-    [=(. current-prop)=].data.guint32.min   = 0x00000000;[= 
+    [=(. current-prop)=].data.guint32.min   = 0x00000000;[=
     ENDIF=][=
 
     = guint64 =]
@@ -386,9 +386,9 @@ FOR prop =][=
     [=(. current-prop)=].data.guint64.max   = (guint64) -1;[=
     ENDIF=][=
     IF (exist? "data.min")=]
-    [=(. current-prop)=].data.guint64.min   = [=data.min=];[= 
+    [=(. current-prop)=].data.guint64.min   = [=data.min=];[=
     ELSE=]
-    [=(. current-prop)=].data.guint64.min   = 0x0000000000000000;[= 
+    [=(. current-prop)=].data.guint64.min   = 0x0000000000000000;[=
     ENDIF=][=
 
 	= ip =]
@@ -397,7 +397,7 @@ FOR prop =][=
     [=(. current-prop)=].data.guint32.value = [=(. prop-var)=];
     [=(. current-prop)=].data.guint32.choices = NULL;
     [=(. current-prop)=].data.guint32.max   = 0xFFFFFFFF;
-    [=(. current-prop)=].data.guint32.min   = 0x00000000;[= 
+    [=(. current-prop)=].data.guint32.min   = 0x00000000;[=
 
     = multichoice =]
     [=(. current-prop)=].type               = PROP_TYPE_MULTICHOICE;
@@ -448,7 +448,7 @@ void [=(. func-prefix)=]_shutdown(void) {
 			if (*p)
 				G_FREE_NULL(*p);
             if (e)
-                event_destroy(e);    
+                event_destroy(e);
         }
     }
 
@@ -480,7 +480,7 @@ void [=(. func-prefix)=]_add_prop_changed_listener(
  * the listener is immediately called. 
  */
 void [=(. func-prefix)=]_add_prop_changed_listener_full(
-    property_t prop, prop_changed_listener_t l, gboolean init, 
+    property_t prop, prop_changed_listener_t l, gboolean init,
     enum frequency_type freq, guint32 interval)
 {
     prop_add_prop_changed_listener_full([=(. prop-set)=], prop, l, init,
@@ -572,7 +572,7 @@ property_t [=(. func-prefix)=]_get_by_name(const gchar *name)
  * Returns a new stub struct for this property set. Just g_free it
  * when it is no longer needed. All fields are read only!
  */
-prop_set_stub_t *[=(. func-prefix)=]_get_stub(void) 
+prop_set_stub_t *[=(. func-prefix)=]_get_stub(void)
 {
     prop_set_stub_t *stub;
 
@@ -583,11 +583,11 @@ prop_set_stub_t *[=(. func-prefix)=]_get_stub(void)
     stub->get_by_name = [=(. func-prefix)=]_get_by_name;
     stub->to_string = [=(. func-prefix)=]_to_string;
 
-    stub->prop_changed_listener.add = 
+    stub->prop_changed_listener.add =
         [=(. func-prefix)=]_add_prop_changed_listener;
-    stub->prop_changed_listener.add_full = 
+    stub->prop_changed_listener.add_full =
         [=(. func-prefix)=]_add_prop_changed_listener_full;
-    stub->prop_changed_listener.remove = 
+    stub->prop_changed_listener.remove =
         [=(. func-prefix)=]_remove_prop_changed_listener;
 
     stub->boolean.get = [=(. func-prefix)=]_get_boolean;

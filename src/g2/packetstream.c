@@ -27,7 +27,7 @@
 #include <string.h>
 #include <glib.h>
 #include "packetstream.h"
- 
+
 const int MAX_PACKET_SIZE = 1024 * 1024;	/**< Maximum packet size. */
 
 struct g2packetstream_s
@@ -50,7 +50,7 @@ GHashTable *by_connection;
 void
 g2_packetstream_init()
 {
-	by_connection = g_hash_table_new(g_direct_hash, g_direct_equal);	
+	by_connection = g_hash_table_new(g_direct_hash, g_direct_equal);
 }
 
 void
@@ -60,12 +60,12 @@ g2_packetstream_close()
 	g_hash_table_destroy(by_connection);
 }
 
-/** 
+/**
  * Allocate a new packet stream.
  *
  * Allocates a new packet stream with the given connection as an identifier.
  * Or if the connection allready exists, the existing connection is returned.
- * 
+ *
  * @param connection will be used as the identifier later for lookup (get)
  * @return a new g2packetstream.
  */
@@ -78,13 +78,13 @@ g2_packetstream_new(gpointer *connection)
 		packetstream = calloc(1, sizeof(g2packetstream_t));
 
 	g_hash_table_insert(by_connection, connection, packetstream);
-	
+
 	return packetstream;
 }
 
 /**
  * Get a packet stream for the given connection.
- * 
+ *
  * Returns the g2 packet stream associated with the given pointer. If no
  * packetstream could be found, NULL is returned.
  *
@@ -105,12 +105,12 @@ void
 g2_packetstream_free(gpointer *connection)
 {
 	g2packetstream_t *stream = g2_packetstream_get(connection);
-	
+
 	if (stream->data != NULL)
 		free(stream->data);
 
 	free(stream);
-	
+
 	g_hash_table_remove(by_connection, connection);
 }
 
@@ -275,6 +275,6 @@ g2_packetstream_get_error(g2packetstream_t *stream, char **errormessage)
 		*errormessage = "Packet was too large";
 		return 1;
 	}
-	
+
 	return 0;
 }

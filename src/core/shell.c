@@ -159,7 +159,7 @@ gchar *shell_token_end(const gchar *s)
 				done = TRUE;
 			break;
 		}
-		
+
 		if (!done)
 			cur ++;
 	}
@@ -211,7 +211,7 @@ shell_get_token(const gchar *s, gint *pos) {
 
 	if (*pos == -1) 
 		return NULL; /* nothing more to get */
-	
+
 	end = shell_token_end(start);
 
 	/* update position before removing quotes */
@@ -223,12 +223,12 @@ shell_get_token(const gchar *s, gint *pos) {
 
 	retval = g_strndup(start, end-start);
 	shell_unescape(retval);
-	
+
 	return retval;
 }
 
 static guint
-shell_exec_node(gnutella_shell_t *sh, const gchar *cmd) 
+shell_exec_node(gnutella_shell_t *sh, const gchar *cmd)
 {
 	gchar *tok;
 	gint pos = 0;
@@ -278,19 +278,19 @@ shell_exec_node(gnutella_shell_t *sh, const gchar *cmd)
 	}
 
 	G_FREE_NULL(tok);
-	
+
 	return REPLY_READY;
 
 error:
 	G_FREE_NULL(tok);
 	if (sh->msg == NULL)
 		sh->msg = _("Malformed command");
-	
+
 	return REPLY_ERROR;
 }
 
 static guint
-shell_exec_search(gnutella_shell_t *sh, const gchar *cmd) 
+shell_exec_search(gnutella_shell_t *sh, const gchar *cmd)
 {
 	gchar *tok;
 	gint pos = 0;
@@ -306,16 +306,16 @@ shell_exec_search(gnutella_shell_t *sh, const gchar *cmd)
 	switch(get_command(tok)) {
 	case CMD_ADD: {
 		gchar *tok_query;
-		
+
 		tok_query = shell_get_token(cmd, &pos);
 		if (!tok_query) {
 			sh->msg = _("Query string missing");
 			goto error;
 		}
-	
+
 		gcu_search_gui_new_search(tok_query, 0);
 		G_FREE_NULL(tok_query);
-	   
+
 		sh->msg = _("Search added");
 		reply_code = REPLY_READY;
 		break;
@@ -326,19 +326,19 @@ shell_exec_search(gnutella_shell_t *sh, const gchar *cmd)
 	}
 
 	G_FREE_NULL(tok);
-	
+
 	return reply_code;
 
 error:
 	G_FREE_NULL(tok);
 	if (sh->msg == NULL)
 		sh->msg = _("Malformed command");
-	
+
 	return REPLY_ERROR;
 }
 
 static guint
-shell_exec_print(gnutella_shell_t *sh, const gchar *cmd) 
+shell_exec_print(gnutella_shell_t *sh, const gchar *cmd)
 {
 	gchar *tok_prop;
 	gint pos = 0;
@@ -368,7 +368,7 @@ shell_exec_print(gnutella_shell_t *sh, const gchar *cmd)
 		prop = stub->get_by_name(tok_prop);
 		n ++;
 	}
-			
+
 	if (prop == NO_PROP) {
 		sh->msg = _("Unknown property");
 		goto error;
@@ -383,7 +383,7 @@ shell_exec_print(gnutella_shell_t *sh, const gchar *cmd)
 
 	G_FREE_NULL(stub);
 	G_FREE_NULL(tok_prop);
-	
+
 	return reply_code;
 
 error:
@@ -391,12 +391,12 @@ error:
 	G_FREE_NULL(tok_prop);
 	if (sh->msg == NULL)
 		sh->msg = _("Malformed command");
-	
+
 	return REPLY_ERROR;
 }
 
 static guint
-shell_exec_set(gnutella_shell_t *sh, const gchar *cmd) 
+shell_exec_set(gnutella_shell_t *sh, const gchar *cmd)
 {
 	gchar *tok_prop;
 	gchar *tok_value;
@@ -428,7 +428,7 @@ shell_exec_set(gnutella_shell_t *sh, const gchar *cmd)
 		prop = stub->get_by_name(tok_prop);
 		n ++;
 	}
-			
+
 	if (prop == NO_PROP) {
 		sh->msg = _("Unknown property");
 		goto error;
@@ -496,7 +496,7 @@ shell_exec_set(gnutella_shell_t *sh, const gchar *cmd)
 	G_FREE_NULL(tok_prop);
 	G_FREE_NULL(tok_value);
 	prop_free_def (prop_buf);
-	
+
 	return reply_code;
 
 error:
@@ -504,7 +504,7 @@ error:
 	G_FREE_NULL(tok_prop);
 	if (sh->msg == NULL)
 		sh->msg = _("Malformed command");
-	
+
 	return REPLY_ERROR;
 }
 
@@ -512,7 +512,7 @@ error:
  * Takes a whatis command and tries to execute it.
  */
 static guint
-shell_exec_whatis(gnutella_shell_t *sh, const gchar *cmd) 
+shell_exec_whatis(gnutella_shell_t *sh, const gchar *cmd)
 {
 	gchar *tok_prop;
 	gint pos = 0;
@@ -543,7 +543,7 @@ shell_exec_whatis(gnutella_shell_t *sh, const gchar *cmd)
 		prop = stub->get_by_name(tok_prop);
 		n ++;
 	}
-			
+
 	if (prop == NO_PROP) {
 		sh->msg = _("Unknown property");
 		goto error;
@@ -563,7 +563,7 @@ shell_exec_whatis(gnutella_shell_t *sh, const gchar *cmd)
 	G_FREE_NULL(stub);
 	G_FREE_NULL(tok_prop);
 	prop_free_def (prop_buf);
-	
+
 	return reply_code;
 
 error:
@@ -571,7 +571,7 @@ error:
 	G_FREE_NULL(tok_prop);
 	if (sh->msg == NULL)
 		sh->msg = _("Malformed command");
-	
+
 	return REPLY_ERROR;
 }
 
@@ -579,7 +579,7 @@ error:
  * Displays horizon size information.
  */
 static guint
-shell_exec_horizon(gnutella_shell_t *sh, const gchar *cmd) 
+shell_exec_horizon(gnutella_shell_t *sh, const gchar *cmd)
 {
 	gchar buf[200];
 	gchar *tok;
@@ -609,7 +609,7 @@ shell_exec_horizon(gnutella_shell_t *sh, const gchar *cmd)
 
 	sh->msg = "";
 
-	hsep_get_global_table(globaltable, G_N_ELEMENTS(globaltable));	
+	hsep_get_global_table(globaltable, G_N_ELEMENTS(globaltable));
 	hsep_get_non_hsep_triple(&nonhsep);
 
 	gm_snprintf(buf, sizeof(buf),
@@ -687,7 +687,7 @@ print_hsep_table(gnutella_shell_t *sh, hsep_triple *table,
 	/*
 	 * Determine maximum width of each column.
 	 */
-	
+
 	maxlen[0] = strlen(hopsstr);   /* length of Hops */
 	maxlen[1] = strlen(nodesstr);  /* length of Nodes */
 	maxlen[2] = strlen(filesstr);  /* length of Files */
@@ -696,7 +696,7 @@ print_hsep_table(gnutella_shell_t *sh, hsep_triple *table,
 	for (i = 0; i < triples * 4; i++) {
 		size_t n;
 		guint m = i % 4;
-	       
+
 		switch (m) {
 		case 0:
 			n = gm_snprintf(buf, sizeof(buf), "%d", i / 4 + 1);
@@ -735,7 +735,7 @@ print_hsep_table(gnutella_shell_t *sh, hsep_triple *table,
 	shell_write(sh, "\n");
 
 	t = (gint64 *) &table[1];
-	
+
 	for (i = 0; i < triples; i++) {
 		gm_snprintf(buf, sizeof(buf), "%*d  %*" PRIu64 "  %*" PRIu64 "  %*s\n",
 			maxlen[0], i + 1,
@@ -746,7 +746,7 @@ print_hsep_table(gnutella_shell_t *sh, hsep_triple *table,
 
 		shell_write(sh, buf);
 		t += 3;
-	}		
+	}
 
 }
 
@@ -757,7 +757,7 @@ print_hsep_table(gnutella_shell_t *sh, hsep_triple *table,
  *
  * Takes a command string and tries to parse and execute it.
  */
-static guint shell_exec(gnutella_shell_t *sh, const gchar *cmd) 
+static guint shell_exec(gnutella_shell_t *sh, const gchar *cmd)
 {
 	gchar *tok;
 	gint pos = 0;
@@ -772,7 +772,7 @@ static guint shell_exec(gnutella_shell_t *sh, const gchar *cmd)
 
 	switch (get_command(tok)) {
 	case CMD_HELP:
-		shell_write(sh, 
+		shell_write(sh,
 			"100-Help:\n"
 			"100-SEARCH ADD <query>\n"
 			"100-NODE ADD <ip> [port]\n"
@@ -812,14 +812,14 @@ static guint shell_exec(gnutella_shell_t *sh, const gchar *cmd)
 	}
 
 	G_FREE_NULL(tok);
-	
+
 	return reply_code;
 
 error:
 	G_FREE_NULL(tok);
 	if (sh->msg == NULL)
 		sh->msg = _("Unknown command");
-	
+
 	return REPLY_ERROR;
 }
 
@@ -890,7 +890,7 @@ static void shell_read_data(gnutella_shell_t *sh)
 	else {
 		gchar *p = s->buffer + s->pos;
 		size_t size = sizeof(s->buffer) - s->pos - 1;
-		
+
 		rc = s->wio.read(&s->wio, p, size);
 		if (rc <= 0) {
 			if (rc == 0) {
@@ -911,7 +911,7 @@ static void shell_read_data(gnutella_shell_t *sh)
 
 	while (s->pos) {
 		guint reply_code;
-		GString *buf; 
+		GString *buf;
 
 		g_assert (s->pos > 0);
 
@@ -929,7 +929,7 @@ static void shell_read_data(gnutella_shell_t *sh)
 		case READ_MORE:
 		default:
 			g_assert(parsed == s->pos);
-		
+
 			return;
 		}
 
@@ -1005,7 +1005,7 @@ shell_write(gnutella_shell_t *sh, const gchar *s)
 	sh->outpos += len;
 
 	if (sh->write_tag == 0) {
-		sh->write_tag = inputevt_add(sh->socket->wio.fd(&sh->socket->wio), 
+		sh->write_tag = inputevt_add(sh->socket->wio.fd(&sh->socket->wio),
 			INPUT_EVENT_EXCEPTION | INPUT_EVENT_WRITE,
 			shell_handle_data, (gpointer) sh);
 	}
@@ -1032,7 +1032,7 @@ shell_auth(const gchar *str)
 	g_warning("auth: [%s] [<cookie not displayed>]", tok_helo);
 
 	if (tok_helo && tok_cookie) {
-		ok = 
+		ok =
 			(strcmp("HELO", tok_helo) == 0) &&
 			(strcmp(sha1_base32(auth_cookie), tok_cookie) == 0);
 	} else {
@@ -1127,7 +1127,7 @@ shell_add(struct gnutella_socket *s)
 	socket_tos_default(s);			/* Set proper Type of Service */
 
 	sh = shell_new(s);
-	
+
 	g_assert(s->gdk_tag == 0);
 	s->gdk_tag = inputevt_add(s->wio.fd(&s->wio),
 		INPUT_EVENT_READ | INPUT_EVENT_EXCEPTION,
@@ -1185,12 +1185,12 @@ shell_timer(time_t now)
 
 	for (sl = sl_shells; sl != NULL; sl = g_slist_next(sl)) {
 		gnutella_shell_t *sh = (gnutella_shell_t *) sl->data;
-		
+
 		if (now - sh->last_update > SHELL_TIMEOUT)
 			g_slist_prepend(to_remove, sh);
 	}
 
-	for (sl = to_remove; sl != NULL; sl = g_slist_next(sl)) 
+	for (sl = to_remove; sl != NULL; sl = g_slist_next(sl))
 		shell_destroy((gnutella_shell_t *) sl->data);
 
 	g_slist_free(to_remove);

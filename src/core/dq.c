@@ -417,7 +417,7 @@ dq_pmsg_free(pmsg_t *mb, gpointer arg)
 
 		if (dq_debug > 19)
 			printf("DQ[%d] %snode #%d degree=%d dropped message TTL=%d\n",
-				dq->qid, dq->node_id == NODE_ID_LOCAL ? "(local) " : "", 
+				dq->qid, dq->node_id == NODE_ID_LOCAL ? "(local) " : "",
 				pmi->node_id, pmi->degree, pmi->ttl);
 
 		/*
@@ -430,7 +430,7 @@ dq_pmsg_free(pmsg_t *mb, gpointer arg)
 
 		if (0 == dq->pending && dq->results_ev)
 			cq_resched(callout_queue, dq->results_ev, 1);
-		
+
 	} else {
 		/*
 		 * The message was sent.  Adjust the total horizon reached thus far.
@@ -442,11 +442,11 @@ dq_pmsg_free(pmsg_t *mb, gpointer arg)
 
 		if (dq_debug > 19) {
 			printf("DQ[%d] %snode #%d degree=%d sent message TTL=%d\n",
-				dq->qid, dq->node_id == NODE_ID_LOCAL ? "(local) " : "", 
+				dq->qid, dq->node_id == NODE_ID_LOCAL ? "(local) " : "",
 				pmi->node_id, pmi->degree, pmi->ttl);
 			printf("DQ[%d] %s(%d secs) queried %d UP%s, "
 				"horizon=%d, results=%d\n", 
-				dq->qid, dq->node_id == NODE_ID_LOCAL ? "local " : "", 
+				dq->qid, dq->node_id == NODE_ID_LOCAL ? "local " : "",
 				(gint) (time(NULL) - dq->start),
 				dq->up_sent, dq->up_sent == 1 ? "" :"s",
 				dq->horizon, dq->results);
@@ -654,7 +654,7 @@ dq_free(dquery_t *dq)
 	if (dq_debug > 19)
 		printf("DQ[%d] %s(%d secs; +%d secs) node #%d ending: "
 			"ttl=%d, queried=%d, horizon=%d, results=%d+%d\n",
-			dq->qid, dq->node_id == NODE_ID_LOCAL ? "local " : "", 
+			dq->qid, dq->node_id == NODE_ID_LOCAL ? "local " : "",
 			(gint) (time(NULL) - dq->start),
 			(dq->flags & DQ_F_LINGER) ? (gint) (time(NULL) - dq->stop) : 0,
 			dq->node_id, dq->ttl, dq->up_sent, dq->horizon, dq->results,
@@ -1428,7 +1428,7 @@ dq_launch_local(gnet_search_t handle, pmsg_t *mb, query_hashvec_t *qhv)
 		if (dq_debug)
 			g_warning("ignoring dynamic query \"%s\": no longer an ultra node",
 				QUERY_TEXT(pmsg_start(mb)));
-			
+
 		pmsg_free(mb);
 		qhvec_free(qhv);
 		return;

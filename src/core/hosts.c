@@ -160,7 +160,7 @@ host_timer(void)
 	 * to the connection list
 	 */
 
-	htype = (current_peermode == NODE_P_NORMAL) ? 
+	htype = (current_peermode == NODE_P_NORMAL) ?
         HOST_ANY : HOST_ULTRA;
 
 	if (
@@ -203,7 +203,7 @@ host_timer(void)
 				hcache_get_caught(htype, &ip, &port);
 				node_add(ip, port);
 			}
-			
+
 			if (missing > 0 && hcache_read_finished()) {
 				static gint rotate = 0;
 
@@ -222,7 +222,7 @@ host_timer(void)
 		/* Try to find better hosts */
 		if (hcache_find_nearby(htype, &ip, &port)) {
 			if (node_remove_worst(TRUE))
-				node_add(ip, port); 
+				node_add(ip, port);
 			else
 				hcache_add_caught(htype, ip, port, "nearby host");
 		}
@@ -393,7 +393,7 @@ parse_netmasks(gchar * str)
 }
 
 /**
- * Returns true if the ip is inside one of the local networks  
+ * Returns true if the ip is inside one of the local networks
  */
 gboolean
 host_is_nearby(guint32 ip)

@@ -507,7 +507,7 @@ iprange_add_cidr_internal(
 	lvl2[second] = g_slist_prepend(head, ipn);
 	idb->list_count++;
 	idb->range_count++;
-	
+
 	return IPR_ERR_OK;			/* Successfully inserted */
 }
 
@@ -561,7 +561,7 @@ iprange_get(gpointer db, guint32 ip)
 	GSList *l;
 
 	g_assert(idb->magic == IPRANGE_MAGIC);
-	
+
 	first = ip >> 24;
 	lvl2 = idb->lvl1[first];
 

@@ -119,7 +119,7 @@ alive_free(gpointer obj)
 {
 	struct alive *a = (struct alive *) obj;
 	GSList *l;
-	
+
 	for (l = a->pings; l; l = l->next)
 		ap_free((struct alive_ping *) l->data);
 

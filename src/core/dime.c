@@ -22,7 +22,7 @@
  *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *----------------------------------------------------------------------
  */
- 
+
  /**
  * @file
  *
@@ -30,7 +30,7 @@
  */
 
 #include "common.h"
- 
+
 #define DIME_VERSION	0x01
 #define HEADER_SIZE	12
 
@@ -91,7 +91,7 @@ char *dime_create_record_header(dime_record_header_t * dime_record_header)
 	header = (char *) malloc(HEADER_SIZE);	/* malloc0 */
 
 	header[0] = dime_record_header->version << 3;
-	
+
 	if (dime_record_header->MB) {
 		header[0] = header[0] | 0x04;
 	}
@@ -114,11 +114,11 @@ char *dime_create_record_header(dime_record_header_t * dime_record_header)
 	*((guint16 *) &header[4]) = dime_record_header->id_length;
 	*((guint16 *) &header[6]) = dime_record_header->type_length;
 	*((guint32 *) &header[8]) = dime_record_header->data_length;
-	
+
 	return header;
 }
 
-char *dime_create_record(dime_record_t *dime_record, gboolean firstrecord, 
+char *dime_create_record(dime_record_t *dime_record, gboolean firstrecord,
 						 gboolean lastrecord)
 {
 	dime_record_header_t dime_record_header;
@@ -158,7 +158,7 @@ char *dime_create_record(dime_record_t *dime_record, gboolean firstrecord,
 /***
  *** Parsing
  ***/
-gboolean dime_parse_record_header(char *dime_record, 
+gboolean dime_parse_record_header(char *dime_record,
 								  dime_record_header_t *dime_record_header)
 {
 	dime_record_header->version = dime_record[0] >> 3;
@@ -184,11 +184,11 @@ gboolean dime_parse_record_header(char *dime_record,
 	dime_record_header->data_length		= *(guint32 *) &dime_record[8];
 
 	dime_record_header->options	= &dime_record[8];
-	dime_record_header->id		=  dime_record_header->options	+ 
+	dime_record_header->id		=  dime_record_header->options	+
 		dime_record_header->options_length;	/* FIXME: Round to a multiple of 4 octets */
-	dime_record_header->type	=  dime_record_header->id		+ 
+	dime_record_header->type	=  dime_record_header->id		+
 		dime_record_header->id_length;		/* FIXME: Round to a multiple of 4 octets */
-	dime_record_header->data	=  dime_record_header->type		+ 
+	dime_record_header->data	=  dime_record_header->type		+
 		dime_record_header->type_length;	/* FIXME: Round to a multiple of 4 octets */
 
 	return TRUE;
@@ -237,7 +237,7 @@ gboolean dime_parse_records(char *data)
 
 		start = FALSE;
 
-		/* Need some protection to avoid corrupt DIME packets and 
+		/* Need some protection to avoid corrupt DIME packets and
 		 * start parsing memory which is not ours to parse */
 	} while(record_header.ME == FALSE);
 

@@ -32,7 +32,7 @@
 #include "if/core/downloads.h"
 #include "if/core/search.h"			/* For gnet_host_vec_t */
 
-/* 
+/*
  * Global Data
  */
 

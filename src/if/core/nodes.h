@@ -79,7 +79,7 @@ typedef struct gnet_node_status {
     gboolean tx_compressed;     /* Is TX traffic compressed */
     gfloat   tx_compression_ratio; /* TX compression ratio */
     gfloat   tx_bps;			/* TX traffic rate */
-	
+
 	gint32   rx_given;			/* Bytes fed to the RX stack (from bottom) */
 	gint32   rx_inflated;		/* Bytes inflated by the RX stack */
 	gint32   rx_read;			/* Bytes read from the RX stack */

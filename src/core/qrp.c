@@ -190,7 +190,7 @@ qrp_hashcode(gchar *x)
 	/*
 	 * First turn x[0...end-1] into a number by treating all 4-byte
 	 * chunks as a little-endian quadword, and XOR'ing the result together.
-	 * We pad x with zeroes as needed. 
+	 * We pad x with zeroes as needed.
 	 *
 	 * To avoid having do deal with special cases, we do this by XOR'ing
 	 * a rolling value one byte at a time, taking advantage of the fact that
@@ -199,7 +199,7 @@ qrp_hashcode(gchar *x)
 
 
 	while ((c = *x++)) {
-		guint32 b = (c >= 'A' && c <= 'Z') ? (c + 'a' - 'A') : c; 
+		guint32 b = (c >= 'A' && c <= 'Z') ? (c + 'a' - 'A') : c;
 		xor ^= b << (j << 3);
 		j = (j + 1) & 0x3;
 	}
@@ -967,7 +967,7 @@ merge_table_into_arena(struct routing_table *rt, guchar *arena, gint slots)
 		else {
 			g_assert(idx + expand <= slots);	/* Won't overflow */
 
-			for (j = 0; j < expand; j++) 
+			for (j = 0; j < expand; j++)
 				arena[idx++] = 0;				/* Less than "infinity" */
 		}
 	}
@@ -2777,7 +2777,7 @@ qrt_receive_create(struct gnutella_node *n, gpointer query_table)
 	}
 
 	qrcv = walloc(sizeof(*qrcv));
-	
+
 	qrcv->magic = QRT_RECEIVE_MAGIC;
 	qrcv->node = n;
 	qrcv->table = table ? qrt_ref(table) : NULL;
@@ -3308,7 +3308,7 @@ qrt_handle_patch(
 			)
 				return FALSE;
 		}
-			
+
 		/*
 		 * If we reached the end of the stream, make sure we were at
 		 * the last patch of the sequence.

@@ -131,7 +131,7 @@ tx_link_destroy(txdrv_t *tx)
 
 static inline gint
 tx_link_write_error(txdrv_t *tx, const char *func)
-{	
+{
 	switch (errno) {
 	case EAGAIN:
 	case EINTR:

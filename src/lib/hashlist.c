@@ -55,7 +55,7 @@ typedef enum {
 struct hash_list {
 	hash_list_magic_t magic;
 	GList *l;
-	GHashTable *ht; 
+	GHashTable *ht;
 	GList *last;
 	gint len;
 	gint refcount;
@@ -64,7 +64,7 @@ struct hash_list {
 
 struct hash_list_iter {
 	hash_list_iter_magic_t magic;
-	hash_list_t *hl; 
+	hash_list_t *hl;
 	GList *l;
 	gint pos;
 	gint move;
@@ -284,7 +284,7 @@ hash_list_last(const hash_list_t *hl)
 	hash_list_regression(hl);
 
 	return NULL != hl->last ? hl->last->data : NULL;
-} 
+}
 
 /**
  * Returns the first item of the list, or NULL if none.
@@ -299,7 +299,7 @@ hash_list_first(const hash_list_t *hl)
 	hash_list_regression(hl);
 
 	return NULL != hl->l ? hl->l->data : NULL;
-} 
+}
 
 /**
  * Returns the length of the list.

@@ -220,7 +220,7 @@ vmsg_infostr(gpointer data, gint size)
 	guint16 id;
 	guint16 version;
 	struct vmsg *vm;
-	
+
 	if ((size_t) size < sizeof(*v))
 		return "????";
 
@@ -916,7 +916,7 @@ handle_qstat_answer(struct gnutella_node *n,
 	 */
 
 	READ_GUINT16_LE(payload, kept);
-	
+
 	if (kept)
 		dq_got_query_status(n->header.muid, NODE_ID(n), kept);
 }
@@ -970,7 +970,7 @@ handle_proxy_cancel(struct gnutella_node *n,
 	 * However, we clear the flag marking the node as proxied, and we know
 	 * it is no longer TCP-firewalled.
 	 */
-	
+
 	node_proxying_remove(n, FALSE);
 }
 

@@ -68,14 +68,14 @@ static void crc32_gen_crc_table(void)
 	guint32 crc_accum;
 
 	for (i = 0; i < 256; i++) {
-		crc_accum = (guint32) i << 24; 
+		crc_accum = (guint32) i << 24;
 		for (j = 0; j < 8; j++) {
 			if (crc_accum & 0x80000000)
 				crc_accum = (crc_accum << 1) ^ POLYNOMIAL;
 			else
 				crc_accum = (crc_accum << 1);
 		}
-		crc_table[i] = crc_accum; 
+		crc_table[i] = crc_accum;
 	}
 }
 

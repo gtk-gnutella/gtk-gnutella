@@ -202,7 +202,7 @@ void hsep_reset(void)
 		memset(n->hsep_sent_table, 0, sizeof(n->hsep_sent_table));
 
 		/* this is what we know before receiving the first message */
-		
+
 		for (i = 1; i <= HSEP_N_MAX; i++) {
 			n->hsep_table[i][HSEP_IDX_NODES] = 1;
 			hsep_global_table[i][HSEP_IDX_NODES]++;
@@ -231,12 +231,12 @@ void hsep_connection_init(struct gnutella_node *n)
 
 	if (dbg > 1)
 		printf("HSEP: Initializing node %p\n", n);
-	
+
 	memset(n->hsep_table, 0, sizeof(n->hsep_table));
 	memset(n->hsep_sent_table, 0, sizeof(n->hsep_sent_table));
 
 	/* this is what we know before receiving the first message */
-		
+
 	for (i = 1; i <= HSEP_N_MAX; i++) {
 		n->hsep_table[i][HSEP_IDX_NODES] = 1;
 		hsep_global_table[i][HSEP_IDX_NODES]++;
@@ -382,7 +382,7 @@ void hsep_process_msg(struct gnutella_node *n,time_t now)
 
 	messaget = (guint64 *) n->data;
 	connectiont = (guint64 *) &n->hsep_table[1];
-	
+
 	if (length == 0) {   /* error, at least 1 triple must be present */
 		if (dbg > 1)
 			printf("HSEP: Node %p sent empty message\n", n);
@@ -413,7 +413,7 @@ void hsep_process_msg(struct gnutella_node *n,time_t now)
 		max = HSEP_N_MAX;
 	else
 		max = msgmax;
-	
+
 	/*
 	 * Convert message from little endian to native byte order.
 	 * Only the part of the message we are using is converted.
@@ -531,7 +531,7 @@ void hsep_send_msg(struct gnutella_node *n,time_t now)
 	g_assert(n);
 
 	connectiont = (guint64 *) n->hsep_table;
-	
+
 	/*
 	 * If we are a leaf, we just need to send one triple,
 	 * which contains our own data (this triple is expanded
@@ -591,13 +591,13 @@ void hsep_send_msg(struct gnutella_node *n,time_t now)
 		G_FREE_NULL(m);
 		goto charge_timer;
 	}
-	
+
 	/*
 	 * Note that on big endian architectures the message data is now in
 	 * the wrong byte order. Nevertheless, we can use hsep_triples_to_send()
 	 * with that data.
 	 */
-	
+
 	/* optimize number of triples to send */
 	opttriples = hsep_triples_to_send((const hsep_triple *) tmp, triples);
 
@@ -626,7 +626,7 @@ void hsep_send_msg(struct gnutella_node *n,time_t now)
 
 	/* write message size */
 	WRITE_GUINT32_LE(opttriples * 24, m->header.size);
-	
+
 	/* correct message length */
 	msglen = sizeof(struct gnutella_header) + opttriples * 24;
 
@@ -674,7 +674,7 @@ void hsep_notify_shared(guint64 ownfiles, guint64 ownkibibytes)
 			printf("HSEP: Shared files changed to %" PRIu64 " (%" PRIu64" KiB)\n",
 			    ownfiles, ownkibibytes);
 		}
-		
+
 		hsep_own[HSEP_IDX_FILES] = ownfiles;
 		hsep_own[HSEP_IDX_KIB] = ownkibibytes;
 
@@ -817,10 +817,10 @@ gboolean hsep_check_monotony(hsep_triple *table, unsigned int triples)
 
 	if (triples < 2)  /* handle special case */
 		return TRUE;
-	
+
 	prev = (guint64 *) table;
 	curr = (guint64 *) &table[1];
-	
+
 	/* if any triple is not >= the previous one, error will be TRUE */
 
 	while (!error && --triples)
@@ -922,7 +922,7 @@ unsigned int hsep_get_connection_table(struct gnutella_node *n,
 	unsigned int i;
 	guint64 *src;
 	guint64 *dest = (guint64 *) buffer;
-	
+
 	g_assert(n);
 	g_assert(buffer);
 
@@ -1067,19 +1067,19 @@ const gchar *hsep_get_static_str(gint row, gint column)
 		    hsep_table[row][HSEP_IDX_NODES] + other[0][HSEP_IDX_NODES]);
 		wfree(other, sizeof(hsep_triple));
   		return buf1;
-	
+
     case HSEP_IDX_FILES:
 
 		gm_snprintf(buf2, sizeof(buf2), "%" PRIu64,
 		    hsep_table[row][HSEP_IDX_FILES] + other[0][HSEP_IDX_FILES]);
 		wfree(other, sizeof(hsep_triple));
   		return buf2;
-	
+
 	case HSEP_IDX_KIB:
 		/* Make a copy because concurrent usage of short_kb_size()
 	 	 * could be hard to discover. */
 		g_strlcpy(buf3, short_kb_size(hsep_table[row][HSEP_IDX_KIB] +
-		    other[0][HSEP_IDX_KIB]), sizeof buf3);	
+		    other[0][HSEP_IDX_KIB]), sizeof buf3);
 		wfree(other, sizeof(hsep_triple));
   		return buf3;
 
@@ -1096,7 +1096,7 @@ const gchar *hsep_get_static_str(gint row, gint column)
  *
  */
 gint hsep_get_table_size(void)
-{	
+{
 	hsep_triple hsep_table[HSEP_N_MAX + 1];
 	hsep_get_global_table(hsep_table, G_N_ELEMENTS(hsep_table));
 	return G_N_ELEMENTS(hsep_table);

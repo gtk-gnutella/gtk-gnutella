@@ -694,7 +694,7 @@ pcache_init(void)
 				memcpy(local_meta.language, "en", 2);
 			else
 				memcpy(local_meta.language, lang, 2);
-			
+
 			for (i = 0; i < 2; i++)
 				local_meta.language[i] = tolower(local_meta.language[i]);
 
@@ -829,7 +829,7 @@ add_recent_pong(host_type_t type, struct cached_pong *cp)
 	rec = &recent_pongs[type];
 
     if (
-        !host_is_valid(cp->info.ip, cp->info.port) || 
+        !host_is_valid(cp->info.ip, cp->info.port) ||
         (NULL != g_hash_table_lookup(
             rec->ht_recent_pongs, (gconstpointer) cp)) ||
         hcache_node_is_bad(cp->info.ip)
@@ -851,7 +851,7 @@ add_recent_pong(host_type_t type, struct cached_pong *cp)
 		g_list_free_1(lnk);
 	} else
 		rec->recent_pong_count++;
-	
+
 	rec->recent_pongs = g_list_prepend(rec->recent_pongs, cp);
 	g_hash_table_insert(rec->ht_recent_pongs, cp, (gpointer) 1);
 	cp->refcount++;		/* We don't refcount insertion in the hash table */

@@ -25,7 +25,7 @@
  *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *----------------------------------------------------------------------
  */
- 
+
  /* (PD) 2003 The Bitzi Corporation
  *
  * Copyright (C) 2001 Bitzi (aka Bitcollider) Inc. & Gordon Mohr
@@ -37,7 +37,7 @@
  * INCLUDING BUT NOT LIMITED TO THE IMPLIED WARRANTIES OF MERCHANTABILITY
  * OR FITNESS FOR A PARTICULAR PURPOSE.
  *
- * Please see file COPYING or http://bitzi.com/publicdomain 
+ * Please see file COPYING or http://bitzi.com/publicdomain
  * for more info.
  *
  * tigertree.c - Implementation of the TigerTree algorithm
@@ -52,10 +52,10 @@
  *
  * NOTE: The TigerTree hash value cannot be calculated using a
  * constant amount of memory; rather, the memory required grows
- * with the (binary log of the) size of input. (Roughly, one more 
- * interim value must be remembered for each doubling of the 
- * input size.) This code reserves a counter and stack for input 
- * up to about 2^72 bytes in length. PASSING IN LONGER INPUT WILL 
+ * with the (binary log of the) size of input. (Roughly, one more
+ * interim value must be remembered for each doubling of the
+ * input size.) This code reserves a counter and stack for input
+ * up to about 2^72 bytes in length. PASSING IN LONGER INPUT WILL
  * LEAD TO A BUFFER OVERRUN AND UNDEFINED RESULTS. Of course,
  * that would be over 4.7 trillion gigabytes of data, so problems
  * are unlikely in practice anytime soon. :)
@@ -69,7 +69,7 @@
  * $Id$
  *
  */
- 
+
 #include "common.h"
 
 RCSID("$Id$");
@@ -78,7 +78,7 @@ RCSID("$Id$");
 #include "tigertree.h"
 #include "override.h"		/* Must be the last header included */
 
-#if G_BYTE_ORDER == G_BIG_ENDIAN 
+#if G_BYTE_ORDER == G_BIG_ENDIAN
 #   define USE_BIG_ENDIAN		1
 #elif G_BYTE_ORDER == G_LITTLE_ENDIAN
 #	define USE_LITTLE_ENDIAN	0
@@ -106,11 +106,11 @@ static void tt_compose(TT_CONTEXT *ctx)
 	tiger((gint64 *) (ctx->node),
 		  (gint64) (NODESIZE + 1),
 		  (gint64 *) (ctx->top)); 				/* combine two nodes */
-	
+
 #if USE_BIG_ENDIAN
 	tt_endian((gint8 *) ctx->top);
 #endif
-	
+
 	memmove(node, ctx->top, TIGERSIZE);	/* move up result */
 	ctx->top -= TIGERSIZE;				/* update top ptr */
 }
@@ -120,11 +120,11 @@ static void tt_block(TT_CONTEXT *ctx)
 	gint64 b;
 
 	tiger((gint64 *) ctx->leaf, (gint64) ctx->index + 1, (gint64 *) ctx->top);
-	
+
 #if USE_BIG_ENDIAN
 	tt_endian((gint8 *) ctx->top);
 #endif
-	
+
 	ctx->top += TIGERSIZE;
 	++ctx->count;
 	b = ctx->count;
@@ -140,7 +140,7 @@ void tt_update(TT_CONTEXT *ctx, gint8 *buffer, gint32 len)
 	/* Try to fill partial block */
 	if (ctx->index) {
 		gint32 left = BLOCKSIZE - ctx->index;
-		
+
 		if (len < left) {
 			memmove(ctx->block + ctx->index, buffer, len);
 			ctx->index += len;
@@ -161,7 +161,7 @@ void tt_update(TT_CONTEXT *ctx, gint8 *buffer, gint32 len)
 		buffer += BLOCKSIZE;
 		len -= BLOCKSIZE;
 	}
-	
+
 	/* This assignment is intended */
 	if ((ctx->index = len))	{
 		/* Buffer leftovers */
@@ -183,11 +183,11 @@ static void tt_final(TT_CONTEXT *ctx)
 void tt_digest(TT_CONTEXT *ctx, gint8 *s)
 {
 	tt_final(ctx);
-	
+
 	while( (ctx->top-TIGERSIZE) > ctx->nodes ) {
 		tt_compose(ctx);
 	}
-	
+
 	memmove(s,ctx->nodes,TIGERSIZE);
 }
 
@@ -221,16 +221,16 @@ void tt_endian(gint8 *s)
 void tt_copy(TT_CONTEXT *dest, TT_CONTEXT *src)
 {
 	int i;
-	
+
 	dest->count = src->count;
-	
+
 	for(i = 0; i < BLOCKSIZE; i++)
 		dest->block[i] = src->block[i];
-	
+
 	dest->index = src->index;
-	
+
 	for(i = 0; i < STACKSIZE; i++)
 		dest->nodes[i] = src->nodes[i];
-	
+
 	dest->top = src->top;
 }

@@ -22,7 +22,7 @@
  *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *----------------------------------------------------------------------
  */
- 
+
 #include <glib.h>
 #include <stdlib.h>
 #include <string.h>
@@ -35,11 +35,11 @@ int g2_packet_calc_new_length(g2packet_t *packet);
 void g2_packet2buf(g2packet_t *packet, char *destination);
 
 /**
- * G2 New Packet. 
+ * G2 New Packet.
  *
  * Creates a new G2 packet.
  */
-g2packet_t * 
+g2packet_t *
 g2_new_packet()
 {
 	return (g2packet_t *) malloc(sizeof(g2packet_t));
@@ -48,10 +48,10 @@ g2_new_packet()
 /**
  * G2 free packet.
  *
- * Frees a g2 packet and any associated memory. This will also 
+ * Frees a g2 packet and any associated memory. This will also
  * free a payload assigned.
  */
-void 
+void
 g2_free_packet(g2packet_t *packet)
 {
 	if (packet->name != NULL)
@@ -78,14 +78,14 @@ g2_parse_header(char **buffer, g2packet_t *packet)
 	char *source	= *buffer;
 	char len_length	= ( *source & 0xC0 ) >> 6;
 	char flags		= ( *source & 0x07 );
-	
-	packet->name_length	= (( *source & 0x38 ) >> 3) + 1; 
-	
+
+	packet->name_length	= (( *source & 0x38 ) >> 3) + 1;
+
 	source++;
-	
+
 	packet->big_endian	= ( flags & 0x02 ) > 0;
 	packet->compound	= ( flags & 0x04 ) > 0;
-	
+
 	if (packet->big_endian)
 	{
 		int i;
@@ -104,12 +104,12 @@ g2_parse_header(char **buffer, g2packet_t *packet)
 			packet->payload_length += *source++;
 		}
 	}
-	
+
 	if (packet->payload_length > 0)
 	{
 		packet->has_children = packet->compound;
 	}
-	
+
 	*buffer = source;
 }
 
@@ -122,16 +122,16 @@ void
 g2_parse_packet(char **buffer, g2packet_t *packet)
 {
 	char *source = *buffer;
-	
+
 	g2_parse_header(buffer, packet);
-	
+
 	packet->name = (char *) malloc(packet->name_length + 1);
 	memcpy(packet->name, source, packet->name_length);
 	*(packet->name + packet->name_length) = '\0';
-	
+
 	printf("[G2] '%s' %s children, payload length %d\n", packet->name,
 			packet->has_children ? "has" : "doesn't", packet->payload_length);
-	
+
 	packet->payload = (char *) malloc(packet->payload_length);
 	packet->orig_payload = packet->payload;
 	memcpy(packet->payload, source, packet->payload_length);
@@ -140,9 +140,9 @@ g2_parse_packet(char **buffer, g2packet_t *packet)
 
 /**
  * Get the packet name.
- * 
+ *
  * Retreives the name of the packet.
- * 
+ *
  * @return a name string.
  */
 char *
@@ -153,11 +153,11 @@ g2_packet_get_name(g2packet_t *packet)
 
 /**
  * Get the next child from the current packet.
- * 
+ *
  * Retreives the next child packet from the current packet and moves to the
  * next child packet. Next time this function is called the next child packet
  * is returned.
- * 
+ *
  * @return the child packet or NULL if no (more) child packets are available.
  */
 g2packet_t *
@@ -165,23 +165,23 @@ g2_packet_get_next_child(g2packet_t *basepacket)
 {
 	g2packet_t *packet = NULL;
 	char *before = basepacket->payload;
-	
-	if (!basepacket->compound) 
+
+	if (!basepacket->compound)
 		return NULL;
-	
+
 	g2_parse_packet(&basepacket->payload, packet);
 	basepacket->payload_length -= basepacket->payload - before;
-	
-	if (basepacket->payload_length == 0 || 
+
+	if (basepacket->payload_length == 0 ||
 		(*basepacket->payload == '0' && packet->payload_length != 0))
 		basepacket->compound = FALSE;
-	
+
 	return packet;
 }
 
 /**
  * Get payload.
- * 
+ *
  * After this it isn't possible anymore to retreive any children. As it will
  * fast skip them
  */
@@ -189,39 +189,39 @@ char *
 g2_packet_get_payload(g2packet_t *packet, int *length)
 {
 	g2packet_t *packet_parser = g2_new_packet();
-	
+
 	/* Skip any children */
 	while (packet->compound)
 	{
 		char *before = packet->payload;
-		
+
 		g2_parse_header(&packet->payload, packet_parser);       // This advances after the header
 		packet->payload += packet_parser->payload_length;       // This advances after the payload
-		
+
 		packet->payload_length -= (int) (packet->payload - before);
-		
+
 		if (packet->payload_length < 0)
 		{
 			printf("[G2] Invalid packet\n");
-			
+
 			g2_free_packet(packet_parser);
-			
+
 			return NULL;
 		}
-		
+
 		if (*packet->payload == '\0' || packet->payload_length == 0)
 		        packet->compound = FALSE;
 	}
-	
+
 	g2_free_packet(packet_parser);
-	
+
 	if (packet->payload_length == 0)
 		return NULL;
-	
+
 	*length = packet->payload_length;
-	
+
 	return packet->payload;
-} 
+}
 
 /***
  *** Create packet functions
@@ -229,38 +229,38 @@ g2_packet_get_payload(g2packet_t *packet, int *length)
 
 /**
  * Add child to packet.
- * 
+ *
  * Adds a child packet to the packet. Do _not_ add child packets after adding
  * a payload.
- * 
+ *
  * @param packet is a pointer to the packet to which the child should be added.
  * @param child is a pointer to the packet to add.
  */
-void 
+void
 g2_packet_add_child(g2packet_t *packet, g2packet_t *child)
 {
 	char *buffer = NULL;
 	int length;
-	
+
 	buffer = g2_packet_pack(child, &length);
-	
+
 	if (packet->payload == NULL) {
 		packet->orig_payload = (char *) malloc(length);
 		packet->payload = packet->orig_payload;
 	} else {
 		int diff = packet->payload - packet->orig_payload;
-		
+
 		packet->orig_payload = (char *) realloc(packet->orig_payload,
 		        packet->payload_length + length);
-		
+
 		/* Set payload to the new not used memory space */
 		packet->payload = packet->orig_payload + diff + length;
 	}
-	
+
 	memcpy(packet->payload, buffer, length);
 	packet->has_children = TRUE;
 	packet->payload_length += length;
-	
+
 	free(buffer);
 	/* Payload points again to the newly added child */
 }
@@ -270,24 +270,24 @@ g2_packet_add_child(g2packet_t *packet, g2packet_t *child)
  *
  * Adds a payload to the current packet. After this do _NOT_ add children
  * anymore.
- * 
+ *
  * @param packet is a pointer to the packet to which the payload should be
  * added.
  * @param payload is a pointer to the payload which will be added to the packet.
  * @param length is the length of the payload to add.
  */
-void 
+void
 g2_packet_add_payload(g2packet_t *packet, char *payload, int length)
 {
 	if (packet->orig_payload != NULL) {
 		int diff = packet->payload - packet->orig_payload;
 		int extra = length + packet->has_children ? 1 : 0;
-		
+
 		packet->orig_payload = (char *) realloc(packet->orig_payload,
 			packet->payload_length + extra);
-		
+
 		packet->payload = packet->orig_payload + diff;
-		
+
 		if (packet->has_children)
 		{
 			*packet->payload = '0';
@@ -295,13 +295,13 @@ g2_packet_add_payload(g2packet_t *packet, char *payload, int length)
 			packet->payload_length++;
 		}
 	}
-	
+
 	memcpy(packet->payload, payload, length);
 	packet->payload_length += length;
-	
+
 	/* Payload now points to the newly added payload */
-	
-	g_assert(packet->orig_payload - packet->payload == 
+
+	g_assert(packet->orig_payload - packet->payload ==
 				packet->payload_length - length);
 }
 
@@ -318,16 +318,16 @@ g2_packet_pack(g2packet_t *packet, int *length)
 {
 	*length = g2_packet_calc_new_length(packet);
 	char *buffer = (char *) malloc(*length);
-	
+
 	g2_packet2buf(packet, buffer);
-	
+
 	return buffer;
 }
 
 /**
  * Calculate the lenlength field from a given length.
  */
-static int 
+static int
 g2_packet_calc_lenlength(int length)
 {
 	if (length > 0xFFFFFF)
@@ -349,21 +349,21 @@ g2_packet_calc_lenlength(int length)
  *
  * @return the length of the G2Packet when transformed to a buffer.
  */
-int 
+int
 g2_packet_calc_new_length(g2packet_t *packet)
 {
 	/* Control byte */
-	int length = 1; 
-	
+	int length = 1;
+
 	/* name_length */
 	length += packet->name_length;
-	
+
 	/* len_length */
 	length += g2_packet_calc_lenlength(packet->payload_length);
-	
+
 	/* payload_length */
 	length += packet->payload_length;
-	
+
 	return length;
 }
 
@@ -375,51 +375,51 @@ g2_packet_calc_new_length(g2packet_t *packet)
  * The destination should be at least the size retreived with
  * g2_packet_calc_new_length(packet).
  */
-void 
+void
 g2_packet2buf(g2packet_t *packet, char *destination)
 {
 	char len_length;
 	int i;
-	
+
 	len_length =  g2_packet_calc_lenlength(packet->payload_length);
-	
+
 	if (packet->payload_length > 0)
 	{
 		packet->has_children = packet->compound;
 	}
-	
+
 	if (len_length > 0)
 		packet->compound = packet->has_children;
 	else
 		packet->compound = TRUE;
-	
-	
+
+
 	*destination = '0';
 	*destination |= (len_length << 6);
 	*destination |= ((packet->name_length - 1) << 3);
-	
+
 	if (packet->compound)
 		*destination |= 0x04;
 	if (packet->big_endian)
 		*destination |= 0x02;
-	
+
 	/* Advance to next byte, control byte is now finished. */
 	destination++;
-	
+
 	/* Build name. */
 	for (i = 0; i < packet->name_length; i++)
 	{
 		*destination = packet->name[i];
     	destination++;
 	}
-	
+
 	/* Insert payload length */
 	*destination = packet->payload_length;
 	if (!packet->big_endian)
 		memmove(destination, destination + sizeof(int) - len_length, len_length);
-	
+
 	destination += len_length;
-	
+
 	memcpy(destination, packet->orig_payload, packet->payload_length);
 }
 

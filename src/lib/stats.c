@@ -220,7 +220,7 @@ statx_data(gpointer ox)
 	g_assert(sx->n > 0);
 
 	array = g_malloc(sizeof(gdouble) * sx->n);
-	
+
 	for (i = 0, l = sx->data; i < sx->n && l; l = g_slist_next(l), i++) {
 		gdouble *vp = (gdouble *) l->data;
 		array[i] = *vp;

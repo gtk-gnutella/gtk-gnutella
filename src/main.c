@@ -439,7 +439,7 @@ static gboolean main_timer(gpointer p)
 			slow_main_timer(now);
 		}
 	}
-	
+
 	icon_timer();
 	bg_sched_timer();				/* Background tasks */
 
@@ -615,7 +615,7 @@ gint main(gint argc, gchar **argv, gchar **env)
 
 	main_gui_init();
 	node_post_init();
-	
+
 	drop_init();
 	download_restore_state();
 	ntp_init();

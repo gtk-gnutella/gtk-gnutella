@@ -343,7 +343,7 @@ trailer_is_64bit(const struct trailer *tb)
 	case FILE_INFO_MAGIC32: return FALSE;
 	case FILE_INFO_MAGIC64: return TRUE;
 	}
-	
+
 	g_assert_not_reached();
 	return FALSE;
 }
@@ -431,7 +431,7 @@ void
 file_info_init_post(void)
 {
 	/* subscribe to src events on available range updates */
-	src_add_listener(fi_update_seen_on_network, EV_SRC_RANGES_CHANGED, 
+	src_add_listener(fi_update_seen_on_network, EV_SRC_RANGES_CHANGED,
 		FREQ_SECS, 0);
 }
 
@@ -777,7 +777,7 @@ file_info_get_trailer(gint fd, struct trailer *tb, const gchar *name)
 		g_warning("Not a regular file: \"%s\"", name);
 		return FALSE;
 	}
-	
+
 	if (buf.st_size < sizeof(tr))
 		return FALSE;
 
@@ -839,9 +839,9 @@ file_info_get_trailer(gint fd, struct trailer *tb, const gchar *name)
 			g_assert_not_reached();
 		}
 	}
-	
+
 	g_assert(FILE_INFO_MAGIC32 == tb->magic || FILE_INFO_MAGIC64 == tb->magic);
-	
+
 	/*
 	 * Now, sanity checks...  We must make sure this is a valid trailer.
 	 */
@@ -899,7 +899,7 @@ file_info_has_filename(struct dl_file_info *fi, gchar *file)
 			}
 		}
 	}
-	
+
 	return FALSE;
 }
 
@@ -949,7 +949,7 @@ file_info_lookup(gchar *name, filesize_t size, const gchar *sha1)
 
 	if (list != NULL && g_slist_next(list) == NULL) {
 		fi = list->data;
-		
+
 		/* FIXME: FILE_SIZE_KNOWN: Should we provide another lookup?
 		 *	-- JA 2004-07-21
 		 */
@@ -1163,7 +1163,7 @@ file_info_retrieve_binary(const gchar *file, const gchar *path)
 
 	pathname = make_pathname(path, file);
 	g_return_val_if_fail(NULL != pathname, NULL);
-	
+
 	fd = file_open_missing(pathname, O_RDONLY);
 	if (fd < 0) {
 		G_FREE_NULL(pathname);
@@ -1201,7 +1201,7 @@ file_info_retrieve_binary(const gchar *file, const gchar *path)
 	}
 
 	fi = walloc0(sizeof(struct dl_file_info));
-   
+
 	fi->file_name = atom_str_get(file);
 	fi->path = atom_str_get(path);
 	fi->size = trailer.filesize;
@@ -1241,7 +1241,7 @@ file_info_retrieve_binary(const gchar *file, const gchar *path)
 			reason = tmp;
 			goto bailout;
 		}
-		
+
 		if (tmpguint > FI_MAX_FIELD_LEN) {
 			gm_snprintf(tmp, sizeof(tmp),
 				"field #%d is too large (%u bytes) ", field, (guint) tmpguint);
@@ -1312,7 +1312,7 @@ file_info_retrieve_binary(const gchar *file, const gchar *path)
 			/*
 			 * XXX: Isn't it mandatory to verify that ``from'' <= ``to''?
 			 */
-			
+
 			if (fc->status == DL_CHUNK_BUSY)
 				fc->status = DL_CHUNK_EMPTY;
 			fi->chunklist = g_slist_append(fi->chunklist, fc);
@@ -1352,12 +1352,12 @@ file_info_retrieve_binary(const gchar *file, const gchar *path)
 	 * checksum recomputation, but don't assert that what we read matches
 	 * the trailer we already parsed.
 	 */
-	
+
 	/* file size */
 	if (t64)
 		READ_INT32(&tmpguint);	/* Upper 32 bits since version 6 */
 	READ_INT32(&tmpguint);		/* Lower bits */
-	
+
 	READ_INT32(&tmpguint);			/* generation number */
 	READ_INT32(&tmpguint);			/* trailer length */
 
@@ -1421,7 +1421,7 @@ file_info_store_one(FILE *f, struct dl_file_info *fi)
 		}
 		G_FREE_NULL(path);
 	}
-	
+
 	fprintf(f,
 		"# refcount %u\n"
 		"NAME %s\n"
@@ -1463,7 +1463,7 @@ file_info_store_one(FILE *f, struct dl_file_info *fi)
 		(guint64) fi->ctime,
 		(guint64) fi->ntime,
 		fi->use_swarming ? 1 : 0);
-  
+
 	for (fclist = fi->chunklist; fclist; fclist = g_slist_next(fclist)) {
 		fc = fclist->data;
 		fprintf(f, "CHNK %" PRIu64 " %" PRIu64 " %" PRIu64 "\n",
@@ -1628,7 +1628,7 @@ file_info_free_outname_kv(gpointer key, gpointer val, gpointer unused_x)
 
     event_trigger(
         fi_events[EV_FI_REMOVED], 
-        T_NORMAL(fi_listener_t, fi->fi_handle));    
+        T_NORMAL(fi_listener_t, fi->fi_handle));
     file_info_drop_handle(fi->fi_handle);
 
 	fi->hashed = FALSE;
@@ -1637,7 +1637,7 @@ file_info_free_outname_kv(gpointer key, gpointer val, gpointer unused_x)
 }
 
 /**
- * Pre-close some file_info information. 
+ * Pre-close some file_info information.
  * This should be separate from file_info_close so that we can avoid circular
  * dependencies with other close routines, in this case with download_close.
  */
@@ -1683,7 +1683,7 @@ file_info_close(void)
 	g_hash_table_destroy(fi_by_namesize);
 	g_hash_table_destroy(fi_by_size);
 	g_hash_table_destroy(fi_by_outname);
-	
+
 	G_FREE_NULL(tbuf.arena);
 }
 
@@ -1790,8 +1790,8 @@ file_info_hash_insert(struct dl_file_info *fi)
 	gnet_prop_set_guint32_val(PROP_FI_ALL_COUNT, fi_all_count + 1);
 
     event_trigger(
-        fi_events[EV_FI_ADDED], 
-        T_NORMAL(fi_listener_t, fi->fi_handle));    
+        fi_events[EV_FI_ADDED],
+        T_NORMAL(fi_listener_t, fi->fi_handle));
 }
 
 /**
@@ -1822,8 +1822,8 @@ file_info_hash_remove(struct dl_file_info *fi)
      */
 
     event_trigger(
-        fi_events[EV_FI_REMOVED], 
-        T_NORMAL(fi_listener_t, fi->fi_handle));    
+        fi_events[EV_FI_REMOVED],
+        T_NORMAL(fi_listener_t, fi->fi_handle));
 
     file_info_drop_handle(fi->fi_handle);
 
@@ -2081,7 +2081,7 @@ typedef enum {
 
 static const struct fi_tag {
 	fi_tag_t	tag;
-	const gchar *str;	
+	const gchar *str;
 } fi_tag_map[] = {
 	/* Must be sorted alphabetically for dichotomic search */
 
@@ -2710,7 +2710,7 @@ file_info_create(gchar *file, const gchar *path, filesize_t size,
 		fc->status = DL_CHUNK_DONE;
 		fi->chunklist = g_slist_append(fi->chunklist, fc);
 		fi->dirty = TRUE;
-	} 
+	}
 	G_FREE_NULL(pathname);
 
 	fi->size_atom = atom_uint64_get(&fi->size);	/* Set now, for fi_resize() */
@@ -2720,7 +2720,7 @@ file_info_create(gchar *file, const gchar *path, filesize_t size,
 
 	if (!fi->file_size_known)
 		g_assert(!fi->use_swarming);
-		
+
 	return fi;
 }
 
@@ -2729,9 +2729,9 @@ file_info_create(gchar *file, const gchar *path, filesize_t size,
  * name, size and/or SHA1. A new struct will be allocated if necessary.
  *
  * `file' is the file name on the server.
- */ 
+ */
 struct dl_file_info *
-file_info_get(gchar *file, const gchar *path, filesize_t size, gchar *sha1, 
+file_info_get(gchar *file, const gchar *path, filesize_t size, gchar *sha1,
 	gboolean file_size_known)
 {
 	struct dl_file_info *fi;
@@ -2858,7 +2858,7 @@ file_info_get(gchar *file, const gchar *path, filesize_t size, gchar *sha1,
 		fi = file_info_create(outname, path, size, sha1, file_size_known);
 		fi_alias(fi, file, FALSE);
 	}
-	
+
 	file_info_hash_insert(fi);
 
 	if (sha1)
@@ -2972,7 +2972,7 @@ file_info_set_discard(struct dl_file_info *fi, gboolean state)
 
 /**
  * Go through the chunk list and merge adjacent chunks that share the
- * same status and download. Keeps the chunk list short and tidy. 
+ * same status and download. Keeps the chunk list short and tidy.
  */
 void
 file_info_merge_adjacent(struct dl_file_info *fi)
@@ -3079,7 +3079,7 @@ again:
 
 			if (status == DL_CHUNK_DONE)
 				fi->done += to - from;
-			fc->status = status;	
+			fc->status = status;
 			fc->download = newval;
 			found = TRUE;
 			break;
@@ -3211,8 +3211,8 @@ again:
 		file_info_store_binary(d->file_info);
 
     event_trigger(
-        fi_events[EV_FI_STATUS_CHANGED], 
-        T_NORMAL(fi_listener_t, fi->fi_handle));    
+        fi_events[EV_FI_STATUS_CHANGED],
+        T_NORMAL(fi_listener_t, fi->fi_handle));
 }
 
 /**
@@ -3250,8 +3250,8 @@ file_info_clear_download(struct download *d, gboolean lifecount)
 	 * because other parts of gtkg, i.e. the visual progress view,
 	 * needs to know about them.
 	 */
-	event_trigger(fi_events[EV_FI_STATUS_CHANGED_TRANSIENT], 
-		      T_NORMAL(fi_listener_t, fi->fi_handle));    
+	event_trigger(fi_events[EV_FI_STATUS_CHANGED_TRANSIENT],
+		      T_NORMAL(fi_listener_t, fi->fi_handle));
 }
 
 /**
@@ -3303,7 +3303,7 @@ file_info_chunk_status(struct dl_file_info *fi, filesize_t from, filesize_t to)
 {
 	GSList *fclist;
 	struct dl_file_chunk *fc;
-	
+
 	for (fclist = fi->chunklist; fclist; fclist = g_slist_next(fclist)) {
 		fc = fclist->data;
 		if ((from >= fc->from) && (to <= fc->to))
@@ -3315,7 +3315,7 @@ file_info_chunk_status(struct dl_file_info *fi, filesize_t from, filesize_t to)
 	 * multiple chunks in the list. In that case, chances are that it's
 	 * not complete, and that's our assumption...
 	 */
-	
+
 	return DL_CHUNK_BUSY;
 }
 
@@ -3328,7 +3328,7 @@ file_info_pos_status(struct dl_file_info *fi, filesize_t pos)
 {
 	GSList *fclist;
 	struct dl_file_chunk *fc;
-	
+
 	for (fclist = fi->chunklist; fclist; fclist = g_slist_next(fclist)) {
 		fc = fclist->data;
 		if ((pos >= fc->from) && (pos < fc->to))
@@ -3627,7 +3627,7 @@ file_info_find_hole(struct download *d, filesize_t *from, filesize_t *to)
 			goto selected;
 		}
 	}
-	
+
 	/* No holes found. */
 
 	if (cloned)
@@ -3806,7 +3806,7 @@ file_info_scandir(const gchar *dir)
 
 	while ((dentry = readdir(d))) {
 		struct stat buf;
-		
+
 		if (NULL != filename)
 			G_FREE_NULL(filename);
 
@@ -3955,7 +3955,7 @@ fi_free_info(gnet_fi_info_t *info)
 void
 fi_get_status(gnet_fi_t fih, gnet_fi_status_t *s)
 {
-    struct dl_file_info *fi = file_info_find_by_handle(fih); 
+    struct dl_file_info *fi = file_info_find_by_handle(fih);
 
     g_assert(s != NULL);
 
@@ -3976,14 +3976,14 @@ fi_get_status(gnet_fi_t fih, gnet_fi_status_t *s)
  * up the memory.
  */
 GSList *
-fi_get_chunks(gnet_fi_t fih) 
+fi_get_chunks(gnet_fi_t fih)
 {
-    struct dl_file_info *fi = file_info_find_by_handle(fih); 
+    struct dl_file_info *fi = file_info_find_by_handle(fih);
     gnet_fi_chunks_t *chunk = NULL;
     GSList *l = NULL;
     GSList *chunks = NULL;
     GSList *tail = NULL;
-    
+
     g_assert( fi );
 
     for (l = fi->chunklist; l != NULL; l = g_slist_next(l)) {
@@ -4005,7 +4005,7 @@ fi_get_chunks(gnet_fi_t fih)
 		if (tail) {
 	    	tail = g_slist_append(tail, chunk);
 		} else {
-	    	chunks = g_slist_append(chunks, chunk); 
+	    	chunks = g_slist_append(chunks, chunk);
 	    	tail = chunks;
 		}
     }
@@ -4037,12 +4037,12 @@ fi_free_chunks(GSList *chunks)
 GSList *
 fi_get_ranges(gnet_fi_t fih)
 {
-    struct dl_file_info *fi = file_info_find_by_handle(fih); 
+    struct dl_file_info *fi = file_info_find_by_handle(fih);
     http_range_t *range = NULL;
     GSList *l = NULL;
     GSList *ranges = NULL;
     GSList *tail = NULL;
-    
+
     g_assert( fi );
 
     for (l = fi->seen_on_network; l != NULL; l = g_slist_next(l)) {
@@ -4062,7 +4062,7 @@ fi_get_ranges(gnet_fi_t fih)
 		if (tail) {
 	    	tail = g_slist_append(tail, range);
 		} else {
-	    	ranges = g_slist_append(ranges, range); 
+	    	ranges = g_slist_append(ranges, range);
 	    	tail = ranges;
 		}
 	}
@@ -4074,11 +4074,11 @@ void
 fi_free_ranges(GSList *ranges)
 {
 	GSList *sl;
-	
+
 	for (sl = ranges; NULL != sl; sl = g_slist_next(sl)) {
 		wfree(sl->data, sizeof(http_range_t));
 	}
-	
+
 	g_slist_free(ranges);
 }
 
@@ -4097,7 +4097,7 @@ fi_get_aliases(gnet_fi_t fih)
     guint len;
     GSList *sl;
     guint n;
-    struct dl_file_info *fi = file_info_find_by_handle(fih); 
+    struct dl_file_info *fi = file_info_find_by_handle(fih);
 
     len = g_slist_length(fi->alias);
 
@@ -4143,12 +4143,12 @@ file_info_add_source(struct dl_file_info *fi, struct download *dl)
 
     event_trigger(
         fi_events[EV_FI_SRC_ADDED], 
-        T_NORMAL(fi_src_listener_t, fi->fi_handle, dl->src_handle));    
+        T_NORMAL(fi_src_listener_t, fi->fi_handle, dl->src_handle));
 }
 
 /**
  * Removing one source reference from the fileinfo.
- * When no sources reference the fileinfo structure, free it if `discard' 
+ * When no sources reference the fileinfo structure, free it if `discard'
  * is TRUE, or if the fileinfo has been marked with FI_F_DISCARD.
  * This replaces file_info_free()
  */
@@ -4159,10 +4159,10 @@ file_info_remove_source(
     g_assert(dl->file_info != NULL);
     g_assert(fi->refcount > 0);
 	g_assert(fi->hashed);
-    
+
     event_trigger(
-        fi_events[EV_FI_SRC_REMOVED], 
-        T_NORMAL(fi_src_listener_t, fi->fi_handle, dl->src_handle));    
+        fi_events[EV_FI_SRC_REMOVED],
+        T_NORMAL(fi_src_listener_t, fi->fi_handle, dl->src_handle));
 
     fi->refcount--;
     fi->dirty_status = TRUE;
@@ -4197,15 +4197,15 @@ fi_notify_helper(gpointer unused_key, gpointer value, gpointer unused_udata)
 
 	(void) unused_key;
 	(void) unused_udata;
-	
+
     if (!fi->dirty_status)
         return;
 
     fi->dirty_status = FALSE;
 
     event_trigger(
-        fi_events[EV_FI_STATUS_CHANGED], 
-        T_NORMAL(fi_listener_t, fi->fi_handle));    
+        fi_events[EV_FI_STATUS_CHANGED],
+        T_NORMAL(fi_listener_t, fi->fi_handle));
 }
 
 void
@@ -4221,7 +4221,7 @@ void
 fi_purge_by_handle_list(GSList *list)
 {
     GSList *sl;
-    
+
     for (sl = list; sl != NULL; sl = g_slist_next(sl)) {
         fi_purge((gnet_fi_t) GPOINTER_TO_UINT(sl->data));
     }
@@ -4239,7 +4239,7 @@ fi_purge(gnet_fi_t fih)
 {
 	GSList *sl;
 	GSList *csl;
-	struct dl_file_info *fi = file_info_find_by_handle(fih); 
+	struct dl_file_info *fi = file_info_find_by_handle(fih);
 	gboolean do_remove;
 
 	g_assert(fi != NULL);
@@ -4254,7 +4254,7 @@ fi_purge(gnet_fi_t fih)
 		download_abort(dl);
 		if (!download_remove(dl)) {
 			g_slist_free(csl);
-			
+
 			return FALSE;
 		}
 	}
@@ -4274,7 +4274,7 @@ fi_purge(gnet_fi_t fih)
 		file_info_hash_remove(fi);
 		fi_free(fi);
 	}
-	
+
 	return TRUE;
 }
 
@@ -4436,7 +4436,7 @@ file_info_restrict_range(struct dl_file_info *fi,
 
 		if (fc->status != DL_CHUNK_DONE)
 			continue;
-		
+
 		if (start < fc->from || start >= fc->to)
 			continue;		/* `start' is not in the range */
 
@@ -4479,10 +4479,10 @@ fi_range_for_complete_file(filesize_t size)
 
 /**
  * Callback for updates to ranges available on the network.
- * 
+ *
  * This function gets triggered by an event when new ranges
  * information has become available for a download source.
- * We collect the set of currently available ranges in 
+ * We collect the set of currently available ranges in
  * file_info->seen_on_network. Currently we only fold in new ranges
  * from a download source, but we should also remove sets of ranges when
  * a download source is no longer available.
@@ -4491,7 +4491,7 @@ fi_range_for_complete_file(filesize_t size)
  *
  * @param[in] srcid  The abstract id of the source that had its ranges updated.
  */
-static void 
+static void
 fi_update_seen_on_network(gnet_src_t srcid)
 {
 	struct download *d;
@@ -4500,20 +4500,20 @@ fi_update_seen_on_network(gnet_src_t srcid)
 	GSList *r = NULL;
 	GSList *new_r = NULL;
 	GSList *full_r = NULL;
-	
+
 	d = src_get_download(srcid);
 	g_assert(d);
 
 	old_list = d->file_info->seen_on_network;
-	
+
 	/*
 	 * FIXME: this code is currently only triggered by new HTTP ranges
 	 * information becoming available. In addition to that we should perhaps
 	 * also include add_source and delete_source. We will miss the latter in
 	 * this setup especially.
 	 */
-	
-	/* 
+
+	/*
 	 * Look at all the download sources for this fileinfo and calculate the
 	 * overall ranges info for this file.
 	 */
@@ -4537,16 +4537,16 @@ fi_update_seen_on_network(gnet_src_t srcid)
 					ip_to_gchar(src->server->key->ip),
 					src->server->key->port, src->flags, src->status);
 			if (!src->file_info->use_swarming || src->ranges == NULL) {
-				/* 
+				/*
 				 * Indicate that the whole file is available.
 				 * We could just stop here and assign the complete file range,
    				 * but I'm leaving the code as-is so that we can play with the
- 				 * info more, e.g. show different colors for ranges that are	
+ 				 * info more, e.g. show different colors for ranges that are
 				 * available more.
 				 * FIXME: it is not clear that the logic in this if()
 				 * properly captures whether a whole file is available.
-				 * This depends also on the HTTP error code, e.g. I 
-				 * believe that currently a 404 will also trigger a 
+				 * This depends also on the HTTP error code, e.g. I
+				 * believe that currently a 404 will also trigger a
 				 * whole file is available event...
 				*/
 				if (dbg > 5)
@@ -4568,22 +4568,22 @@ fi_update_seen_on_network(gnet_src_t srcid)
 	if (dbg > 5)
 		printf("    Final ranges: %s\n\n", http_range_to_gchar(r));
 	d->file_info->seen_on_network = r;
-		
-	/* 
+
+	/*
 	 * Remove the old list and free its range elements
 	 */
 	fi_free_ranges(old_list);
-		
+
 	/*
 	 * Trigger a changed ranges event so that others can use the updated info.
 	 */
 	event_trigger(
-        fi_events[EV_FI_RANGES_CHANGED], 
-        T_NORMAL(fi_listener_t, d->file_info->fi_handle));   
+        fi_events[EV_FI_RANGES_CHANGED],
+        T_NORMAL(fi_listener_t, d->file_info->fi_handle));
 }
 
 
-/* 
+/*
  * Local Variables:
  * tab-width:4
  * End:

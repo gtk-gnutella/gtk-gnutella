@@ -219,7 +219,7 @@ typedef struct gnutella_node {
 	gint32 tx_given;			/* Bytes fed to the TX stack (from top) */
 	gint32 tx_deflated;			/* Bytes deflated by the TX stack */
 	gint32 tx_written;			/* Bytes written by the TX stack */
-	
+
 	gint32 rx_given;			/* Bytes fed to the RX stack (from bottom) */
 	gint32 rx_inflated;			/* Bytes inflated by the RX stack */
 	gint32 rx_read;				/* Bytes read from the RX stack */
@@ -550,7 +550,7 @@ void node_connect_back(const gnutella_node_t *n, guint16 port);
 void node_connected_back(struct gnutella_socket *s);
 
 void node_mark_bad_vendor(struct gnutella_node *n);
-	
+
 void node_proxying_remove(gnutella_node_t *n, gboolean discard);
 gboolean node_proxying_add(gnutella_node_t *n, gchar *guid);
 void node_proxy_add(gnutella_node_t *n, guint32 ip, guint16 port);

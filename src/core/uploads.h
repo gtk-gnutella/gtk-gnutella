@@ -34,7 +34,7 @@
 
 struct gnutella_node;
 struct dl_file_info;
-	
+
 typedef struct upload {
     gnet_upload_t upload_handle;
 	guint32 flags;					/* Operating flags */
@@ -43,7 +43,7 @@ typedef struct upload {
 	gint error_sent;				/* HTTP error code sent back */
 	gpointer io_opaque;				/* Opaque I/O callback information */
 	gpointer parq_opaque;			/* Opaque parq information */
-	
+
 	gint file_desc;
 	bio_source_t *bio;				/* Bandwidth-limited source */
 
@@ -105,11 +105,11 @@ struct upload_http_cb {
 	struct shared_file *sf;
 };
 
-/* 
+/*
  * Global Data
  */
 
-/* 
+/*
  * Global Functions
  */
 

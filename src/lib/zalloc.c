@@ -433,7 +433,7 @@ void zdestroy(zone_t *zone)
 
 /*
  * zget
- * 
+ *
  * Get a zone suitable for allocating blocks of 'size' bytes.
  * `hint' represents the desired amount of blocks per subzone.
  *
@@ -466,7 +466,7 @@ zone_t *zget(gint size, gint hint)
 	if (size < (gint) sizeof(gchar *))
 		size = sizeof(gchar *);
 	size = zalloc_round(size);
-	
+
 	zone = (zone_t *) g_hash_table_lookup(zt, GINT_TO_POINTER(size));
 
 	if (zone) {

@@ -24,19 +24,19 @@
  *
  * upload_stats.c - keep track of which files we send away, and how often.
  *
- *		Statistics are kept by _FILENAME_ and file size, 
+ *		Statistics are kept by _FILENAME_ and file size,
  *		not by actual path, so two files with the same
- *		name and size will be counted in the same bin.  
+ *		name and size will be counted in the same bin.
  *		I dont see this as a limitation because the
  *		user wouldn't be able to differentiate the files anyway.
- *		This could be extended to keep the entire path to 
+ *		This could be extended to keep the entire path to
  *		each file and optionally show the entire path, but..
- *		
+ *
  *		the 'upload_history' file has the following format:
  *		<url-escaped filename> <file size> <attempts> <completions>
  *
  *		TODO: add a check to make sure that all of the files still exist(?)
- *			grey them out if they dont, optionally remove them from the 
+ *			grey them out if they dont, optionally remove them from the
  *			stats list (when 'Clear Non-existent Files' is clicked)
  *
  *		(C) 2002 Michael Tesch, released with gtk-gnutella & its license
@@ -108,7 +108,7 @@ upload_stats_load_history(const gchar *ul_history_file_name)
 			goto corrupted;
 		*name_end++ = '\0';		/* line is now the URL-escaped file name */
 
-		/* The line below is for retarded compilers only */		
+		/* The line below is for retarded compilers only */
 		size = attempt = complete = ulbytes_high = ulbytes_low = 0;
 
 		for (i = 0; i < 5; i++) {
@@ -231,7 +231,7 @@ upload_stats_find(const gchar *name, guint64 size)
 
 	for (l = g_list_first(upload_stats_list); NULL != l; l = g_list_next(l)) {
 		struct ul_stats *s;
-	
+
 		s = l->data;
 		if (size == s->size && 0 == strcmp(name, s->filename))
 			return s;

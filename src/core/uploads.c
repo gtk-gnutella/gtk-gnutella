@@ -187,7 +187,7 @@ upload_remove_upload_info_changed_listener(upload_info_changed_listener_t l)
 static void
 upload_fire_upload_added(gnutella_upload_t *n)
 {
-    LISTENER_EMIT(upload_added, n->upload_handle, 
+    LISTENER_EMIT(upload_added, n->upload_handle,
         running_uploads, registered_uploads);
 	gnet_prop_set_guint32_val(PROP_UL_RUNNING, running_uploads);
 	gnet_prop_set_guint32_val(PROP_UL_REGISTERED, registered_uploads);
@@ -400,7 +400,7 @@ upload_create(struct gnutella_socket *s, gboolean push)
 	u->status = push ? GTA_UL_PUSH_RECEIVED : GTA_UL_HEADERS;
 	u->last_update = time((time_t *) 0);
 	u->file_desc = -1;
-	
+
 	/*
 	 * Record pending upload in the GUI.
 	 */
@@ -418,7 +418,7 @@ upload_create(struct gnutella_socket *s, gboolean push)
 	 * Add upload to the GUI
 	 */
     upload_fire_upload_added(u);
-	
+
 	u->parq_status = 0;
 
 	return u;
@@ -583,7 +583,7 @@ static void
 upload_free_resources(gnutella_upload_t *u)
 {
 	parq_upload_upload_got_freed(u);
-	
+
 	if (u->name != NULL) {
 		atom_str_free(u->name);
 		u->name = NULL;
@@ -617,7 +617,7 @@ upload_free_resources(gnutella_upload_t *u)
 		atom_sha1_free(u->sha1);
 		u->sha1 = NULL;
 	}
-	
+
     upload_free_handle(u->upload_handle);
 }
 
@@ -661,7 +661,7 @@ upload_clone(gnutella_upload_t *u)
 	u->user_agent = NULL;
 	u->country = -1;
 	u->sha1 = NULL;
-	
+
 	/*
 	 * Add the upload structure to the upload slist, so it's monitored
 	 * from now on within the main loop for timeouts.
@@ -714,7 +714,7 @@ send_upload_error_v(
 
 	if (ext) {
 		slen = g_strlcpy(extra, ext, sizeof(extra));
-		
+
 		if (slen < sizeof(extra)) {
 			hev[hevcnt].he_type = HTTP_EXTRA_LINE;
 			hev[hevcnt++].he_msg = extra;
@@ -730,7 +730,7 @@ send_upload_error_v(
 	hev[hevcnt].he_type = HTTP_EXTRA_CALLBACK;
 	hev[hevcnt].he_cb = upload_xfeatures_add;
 	hev[hevcnt++].he_arg = NULL;
-	
+
 	/*
 	 * If the download got queued, also add the queueing information
 	 *		--JA, 07/02/2003
@@ -738,11 +738,11 @@ send_upload_error_v(
 	if (parq_upload_queued(u)) {
 		cb_arg.u = u;
 		cb_arg.sf = sf;
-		
+
 		hev[hevcnt].he_type = HTTP_EXTRA_CALLBACK;
 		hev[hevcnt].he_cb = parq_upload_add_header;
 		hev[hevcnt++].he_arg = &cb_arg;
-	}	
+	}
 
 	/*
 	 * If this is a pushed upload, and we are not firewalled, then tell
@@ -787,7 +787,7 @@ send_upload_error_v(
 
 	g_assert(hevcnt <= G_N_ELEMENTS(hev));
 
-	/* 
+	/*
 	 * Keep connection alive when activly queued
 	 * 		-- JA, 22/4/2003
 	 */
@@ -907,7 +907,7 @@ upload_remove_v(gnutella_upload_t *u, const gchar *reason, va_list ap)
 		}
 		break;
 	}
-	
+
 	/*
 	 * If we were sending data, and we have not accounted the download yet,
 	 * then update the stats, not marking the upload as completed.
@@ -942,9 +942,9 @@ void
 upload_remove(gnutella_upload_t *u, const gchar *reason, ...)
 {
 	va_list args;
-	
+
 	g_assert(u != NULL);
-	
+
 	va_start(args, reason);
 	upload_remove_v(u, reason, args);
 	va_end(args);
@@ -976,7 +976,7 @@ upload_error_remove(
 
 /**
  * Utility routine.  Cancel the upload, sending back the HTTP error message.
- * `ext' contains additionnal header information to propagate back. 
+ * `ext' contains additionnal header information to propagate back.
  */
 static void
 upload_error_remove_ext(
@@ -997,7 +997,7 @@ upload_error_remove_ext(
 	va_end(errargs);
 
 	upload_remove_v(u, msg, args);
-	
+
 	va_end(args);
 }
 
@@ -1195,7 +1195,7 @@ mi_clean(cqueue_t *unused_cq, gpointer obj)
 	gpointer key;
 	gpointer value;
 	gboolean found;
-	
+
 	(void) unused_cq;
 	found = g_hash_table_lookup_extended(mesh_info, mik, &key, &value);
 
@@ -1226,7 +1226,7 @@ mi_get_stamp(guint32 ip, const gchar *sha1, time_t now)
 
 	mikey.ip = ip;
 	mikey.sha1 = sha1;
-	
+
 	miv = g_hash_table_lookup(mesh_info, &mikey);
 
 	/*
@@ -1279,7 +1279,7 @@ upload_add(struct gnutella_socket *s)
 	s->type = SOCK_TYPE_UPLOAD;
 
 	u = upload_create(s, FALSE);
-		
+
 	/*
 	 * Read HTTP headers fully, then call upload_request() when done.
 	 */
@@ -1346,12 +1346,12 @@ upload_connect_conf(gnutella_upload_t *u)
 	 * PARQ should send QUEUE information header here.
 	 *		-- JA, 13/04/2003
 	 */
-	
+
 	if (u->status == GTA_UL_QUEUE) {
 		parq_upload_send_queue_conf(u);
 		return;
 	}
-	
+
 	g_assert(u->name);
 
 	/*
@@ -1360,7 +1360,7 @@ upload_connect_conf(gnutella_upload_t *u)
 
 	rw = gm_snprintf(giv, sizeof(giv), "GIV %u:%s/%s\n\n",
 		u->index, guid_hex_str((gchar *) guid), u->name);
-	
+
 	s = u->socket;
 	sent = bws_write(bws.out, &s->wio, giv, rw);
 	if ((ssize_t) -1 == sent) {
@@ -1833,7 +1833,7 @@ upload_http_xhost_add(gchar *buf, gint *retval,
 	if (host_is_valid(ip, port)) {
 		const gchar *xhost = ip_port_to_gchar(ip, port);
 		size_t needed_room = strlen(xhost) + sizeof("X-Host: \r\n") - 1;
-		
+
 		if (length > needed_room)
 			rw = gm_snprintf(buf, length, "X-Host: %s\r\n", xhost);
 	}
@@ -1855,9 +1855,9 @@ upload_xfeatures_add(gchar *buf, gint *retval,
 	(void) unused_arg;
 	(void) unused_flags;
 	g_assert(length <= INT_MAX);
-	
+
 	header_features_generate(&xfeatures.uploads, buf, length, &rw);
-	
+
 	*retval = rw;
 }
 /**
@@ -2333,7 +2333,7 @@ upload_request(gnutella_upload_t *u, header_t *header)
 	hev[hevcnt].he_type = HTTP_EXTRA_CALLBACK;
 	hev[hevcnt].he_cb = upload_xfeatures_add;
 	hev[hevcnt++].he_arg = NULL;
-	
+
 	/*
 	 * If this is a pushed upload, and we are not firewalled, then tell
 	 * them they can reach us directly by outputting an X-Host line.
@@ -2518,7 +2518,7 @@ upload_request(gnutella_upload_t *u, header_t *header)
 		}
 		return;
 	}
-	
+
 	if (!head_only) {
 		GSList *to_remove = NULL;
 
@@ -2529,7 +2529,7 @@ upload_request(gnutella_upload_t *u, header_t *header)
 		 *
 		 * This needs to be done before the upload enters PARQ. PARQ doesn't
 		 * handle multiple uploads for the same file very well as it tries to
-		 * keep 1 pointer to the upload structure as long as that structure 
+		 * keep 1 pointer to the upload structure as long as that structure
 		 * exists.
 		 * 		-- JA 12/7/'03
 		 */
@@ -2583,7 +2583,7 @@ upload_request(gnutella_upload_t *u, header_t *header)
 		}
 		g_slist_free(to_remove);
 	}
-		
+
 	/*
 	 * We let all HEAD request go through, whether we're busy or not, since
 	 * we only send back the header.
@@ -2595,7 +2595,7 @@ upload_request(gnutella_upload_t *u, header_t *header)
 		if (is_followup && parq_upload_lookup_position(u) == (guint) -1) {
 			/*
 			 * Allthough the request is an follow up request, the last time the
-			 * upload didn't get a parq slot. There is probably a good reason 
+			 * upload didn't get a parq slot. There is probably a good reason
 			 * for this. The most logical explantion is that the client did a
 			 * HEAD only request with a keep-alive. However, no parq structure
 			 * is set for such an upload. So we should treat as a new upload.
@@ -2603,14 +2603,14 @@ upload_request(gnutella_upload_t *u, header_t *header)
 			 */
 			is_followup = FALSE;
 		}
-		
+
 		if (parq_upload_queue_full(u)) {
 			upload_error_remove(u, reqfile, 503, "Queue full");
 			return;
 		}
 
 		u->parq_opaque = parq_upload_get(u, header, replacing_stall);
-		
+
 		if (u->parq_opaque == NULL) {
 			upload_error_remove(u, reqfile, 503,
 				"Another connection is still active");
@@ -2631,11 +2631,11 @@ upload_request(gnutella_upload_t *u, header_t *header)
 		 * is out of luck.
 		 *		--JA, 05/02/2003
 		 *
-		 */		
+		 */
 
 		if (!parq_upload_request(u, u->parq_opaque, running_uploads - 1)) {
 			gboolean parq_allows = FALSE;
-			
+
 			if (parq_upload_lookup_position(u) == (guint) -1) {
 				time_t expire = parq_banned_source_expire(u->ip);
 				gchar retry_after[80];
@@ -2692,7 +2692,7 @@ upload_request(gnutella_upload_t *u, header_t *header)
 							bsched_avg_pct(bws.out), ul_usage_min_percentage);
 				}
 			}
-			
+
 			if (!parq_allows) {
 				if (u->status == GTA_UL_QUEUED) {
 					/*
@@ -2712,7 +2712,7 @@ upload_request(gnutella_upload_t *u, header_t *header)
 
 					u->error_sent = 0;	/* Any new request should be allowed
 										   to retreive an error code */
-	
+
 					/* Avoid data timeout */
 					u->last_update = parq_upload_lookup_lifetime(u) -
 						  upload_connected_timeout;
@@ -2726,9 +2726,9 @@ upload_request(gnutella_upload_t *u, header_t *header)
 				if (parq_upload_queue_full(u)) {
 					upload_error_remove(u, reqfile, 503, "Queue full");
 				} else {
-					upload_error_remove(u, reqfile,	503, 
-						"Queued (slot %d, ETA: %s)", 
-						parq_upload_lookup_position(u), 
+					upload_error_remove(u, reqfile,	503,
+						"Queued (slot %d, ETA: %s)",
+						parq_upload_lookup_position(u),
 						short_time(parq_upload_lookup_eta(u)));
 				}
 				return;
@@ -2754,7 +2754,7 @@ upload_request(gnutella_upload_t *u, header_t *header)
 
 		parq_upload_busy(u, u->parq_opaque);
 	}
-	
+
 	if (-1 == stat(fpath, &statbuf)) {
 		upload_error_not_found(u, request);
 		return;
@@ -2924,7 +2924,7 @@ upload_request(gnutella_upload_t *u, header_t *header)
 
 	g_assert(s->gdk_tag == 0);
 	g_assert(u->bio == NULL);
-	
+
 	u->bio = bsched_source_add(bws.out, &s->wio,
 		BIO_F_WRITE, upload_write, (gpointer) u);
 
@@ -2979,7 +2979,7 @@ upload_write(gpointer up, gint unused_source, inputevt_cond_t cond)
 
 		g_assert((ssize_t) -1 == written || (off_t) written == pos - before);
 		u->pos = pos;
-			
+
 	} else {
 		/*
 	 	 * If the buffer position reached the size, then we need to read
@@ -3014,7 +3014,7 @@ upload_write(gpointer up, gint unused_source, inputevt_cond_t cond)
 
 	if ((ssize_t) -1 == written) {
 		gint e = errno;
-		
+
 		if (use_sendfile && e == EOPNOTSUPP) {
 			g_warning("sendfile() failed: \"%s\"\n"
 					"Disabling sendfile() for this session", strerror(e));
@@ -3184,7 +3184,7 @@ upload_close(void)
 gnet_upload_info_t *
 upload_get_info(gnet_upload_t uh)
 {
-    gnutella_upload_t *u = upload_find_by_handle(uh); 
+    gnutella_upload_t *u = upload_find_by_handle(uh);
     gnet_upload_info_t *info;
 
     info = walloc(sizeof(*info));
@@ -3200,7 +3200,7 @@ upload_get_info(gnet_upload_t uh)
     info->upload_handle = u->upload_handle;
 	info->push          = u->push;
 	info->partial       = u->file_info != NULL;
-	
+
     return info;
 }
 
@@ -3220,16 +3220,16 @@ upload_free_info(gnet_upload_info_t *info)
 void
 upload_get_status(gnet_upload_t uh, gnet_upload_status_t *si)
 {
-    gnutella_upload_t *u = upload_find_by_handle(uh); 
+    gnutella_upload_t *u = upload_find_by_handle(uh);
 	time_t now = time((time_t *) NULL);
-    g_assert(si != NULL); 
+    g_assert(si != NULL);
 
     si->status      = u->status;
     si->pos         = u->pos;
     si->bps         = 1;
     si->avg_bps     = 1;
     si->last_update = u->last_update;
-	
+
 	si->parq_queue_no = parq_upload_lookup_queue_no(u);
 	si->parq_position = parq_upload_lookup_position(u);
 	si->parq_size = parq_upload_lookup_size(u);

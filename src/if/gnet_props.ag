@@ -18,7 +18,7 @@ prop = {
     desc = "Indicates whether the hostcache file is being read";
     type = boolean;
     save = FALSE;
-    data = {  
+    data = {
         default = FALSE;
     };
 };
@@ -28,7 +28,7 @@ prop = {
     desc = "Indicates whether the ultracache file is being read";
     type = boolean;
     save = FALSE;
-    data = {  
+    data = {
         default = FALSE;
     };
 };
@@ -43,7 +43,7 @@ prop = {
 		   "newest features.";
     type = boolean;
     save = FALSE;
-    data = { 
+    data = {
         default = FALSE;
     };
 };
@@ -54,7 +54,7 @@ prop = {
            "information about it here";
     type = string;
     save = FALSE;
-    data = { 
+    data = {
         default = NULL;
     };
 };
@@ -183,8 +183,8 @@ prop = {
     data = {
         default = 1;
         min     = 1;
-        max     = 100; 
-    }; 
+        max     = 100;
+    };
 };
 
 prop = {
@@ -294,7 +294,7 @@ prop = {
 		   "query hit packets as necessary.  To avoid network flooding, keep "
 		   "this to a reasonable value.";
     type = guint32;
-    data = { 
+    data = {
         default = 50;
         value   = search_max_items;
         min     = 1;
@@ -319,19 +319,19 @@ prop = {
     name = "download_connecting_timeout";
     desc = "Number of seconds before a download connect attempt "
 		   "times out";
-    type = guint32; 
+    type = guint32;
     data = {
         default = 60;
         min     = 10;
-        max     = 100000; 
-    }; 
+        max     = 100000;
+    };
 };
 
 prop = {
     name = "download_push_sent_timeout";
     desc = "Number of seconds before a push request times out";
     type = guint32;
-    data = { 
+    data = {
         default = 60;
         min     = 30;
         max     = 100000;
@@ -353,7 +353,7 @@ prop = {
 prop = {
     name = "download_retry_timeout_min";
     desc = "Minimum number of seconds to wait on auto-retry timeouts";
-    type = guint32;  
+    type = guint32;
     data = {
         default = 20;
         min     = 5;
@@ -371,7 +371,7 @@ prop = {
         max     = 100000;
     };
 };
-  
+
 prop = {
     name = "download_max_retries";
     desc = "Maximum number of attempts to download a file not "
@@ -386,7 +386,7 @@ prop = {
 
 prop = {
     name = "download_retry_timeout_delay";
-    desc = "Delay in seconds before retrying after a connection " 
+    desc = "Delay in seconds before retrying after a connection "
            "timed out";
     type = guint32;
     data = {
@@ -401,7 +401,7 @@ prop = {
     desc = "Delay in seconds before retrying after getting a 'busy' "
            "response from a host";
     type = guint32;
-    data = {  
+    data = {
         default = 60;
         min     = 15;
         max     = 100000;
@@ -536,7 +536,7 @@ prop = {
 
 prop = {
     name = "incoming_connecting_timeout";
-    desc =  "Number of seconds an incoming connection has "  
+    desc =  "Number of seconds an incoming connection has "
             "to start sending out its request";
     type = guint32;
     data = {
@@ -548,7 +548,7 @@ prop = {
 
 prop = {
     name = "node_connecting_timeout";
-    desc =  "Number of seconds before a Gnet connect attempt times "  
+    desc =  "Number of seconds before a Gnet connect attempt times "
             "out if no connection can be established";
     type = guint32;
     data = {
@@ -915,7 +915,7 @@ prop = {
     name = "autoclear_completed_downloads";
     cfgvar = "auto_clear_completed_downloads";
     desc = "Auto clear completed downloads";
-    type = boolean;  
+    type = boolean;
     data = {
         default = FALSE;
         value   = clear_complete_downloads;
@@ -927,7 +927,7 @@ prop = {
     cfgvar = "auto_clear_failed_downloads";
     desc = "Auto clear failed downloads (HTTP error, "
 		"failure to resume, write error, etc...).";
-    type = boolean;  
+    type = boolean;
     data = {
         default = FALSE;
         value   = clear_failed_downloads;
@@ -939,7 +939,7 @@ prop = {
     cfgvar = "auto_clear_unavailable_downloads";
     desc = "Auto clear unavailable downloads (connection "
 		"timeout, push route lost, etc...).";
-    type = boolean;  
+    type = boolean;
     data = {
         default = TRUE;
         value   = clear_unavailable_downloads;

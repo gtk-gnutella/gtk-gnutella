@@ -99,7 +99,7 @@ struct dl_file_info {
 	gboolean hashed;		/* In hash tables? */
 	guint32  aqueued_count; /* Actively queued sources */
 	guint32  pqueued_count; /* Passively queued sources */
-		
+
 
 	/*
 	 * The following group is used to compute the aggregated reception rate.

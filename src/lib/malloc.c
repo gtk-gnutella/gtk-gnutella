@@ -114,7 +114,7 @@ static guint
 frame_hash(gconstpointer key)
 {
 	struct frame *f = (struct frame *) key;
-	
+
 	return binary_hash((gconstpointer) f->stack, f->len * sizeof(void *));
 }
 
@@ -382,7 +382,7 @@ gpointer malloc0_track(guint32 s, gchar *file, gint line)
 
 	o = malloc_track(s, file, line);
 	memset(o, 0, s);
-	
+
 	return o;
 }
 
@@ -680,7 +680,7 @@ gchar *strndup_track(const gchar *s, gint n, gchar *file, gint line)
 gchar *strjoinv_track(const gchar *s, gchar **vec, gchar *file, gint line)
 {
 	gchar *o;
-	
+
 	o = g_strjoinv(s, vec);
 
 	return malloc_record(o, strlen(o) + 1, file, line);
@@ -1127,7 +1127,7 @@ GList *list_insert_after_track(
 
 	new = list_alloc_track(file, line);
 	new->data = data;
-	
+
 	new->prev = lk;
 	new->next = lk->next;
 

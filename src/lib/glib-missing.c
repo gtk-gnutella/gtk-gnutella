@@ -260,7 +260,7 @@ void gm_setproctitle(gchar *title)
 	}
 
 	tlen = strlen(title);
-	
+
 	if (tlen >= sysarglen) {		/* If too large, needs truncation */
 		memcpy(orig_argv[0], title, sysarglen);
 		(orig_argv[0])[sysarglen] = '\0';
@@ -285,7 +285,7 @@ void gm_setproctitle(gchar *title)
  * If successful `errorcode' will be set to 0 (zero), otherwise it will
  * contain an errno(2) code and the function returns 0 (zero).
  * If endptr is not NULL it will point to the first invalid character.
- * See strtoul(3) for more details about valid and invalid inputs. 
+ * See strtoul(3) for more details about valid and invalid inputs.
  */
 unsigned long gm_atoul(const char *str, char **endptr, int *errorcode)
 {
@@ -347,7 +347,7 @@ gm_sanitize_filename(const gchar *filename,
 	/* Replace shell meta characters and likely problematic characters */
 	for (p = s; (c = *(guchar *) p) != '\0'; ++p) {
 		static const gchar evil[] = "$&*/\\`:;()'\"<>?|~\177";
-		
+
 		if (
 			c < 32
 			|| is_ascii_cntrl(c)

@@ -131,7 +131,7 @@ tx_dgram_destroy(txdrv_t *tx)
 
 static inline gint
 tx_dgram_write_error(txdrv_t *tx, gnet_host_t *to, const char *func)
-{	
+{
 	switch (errno) {
 	case EAGAIN:
 	case EINTR:

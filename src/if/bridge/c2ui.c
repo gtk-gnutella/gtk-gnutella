@@ -2,7 +2,7 @@
  * $Id$
  *
  * Copyright (c) 2004, Emile Roberts
- *	
+ *
  * Interface core -> UI
  *
  *----------------------------------------------------------------------
@@ -27,7 +27,7 @@
 
 
 /*
- *	At this point the interface basically redirects function calls from the ui 
+ *	At this point the interface basically redirects function calls from the ui
  *	to the core and vice-versa.
  */
 
@@ -49,7 +49,7 @@
  */
 
 /*	download interface functions (CORE -> UI)*/
-void gcu_download_enable_start_now(guint32 running_downloads, 
+void gcu_download_enable_start_now(guint32 running_downloads,
 	guint32 max_downloads)
 {
 	gui_download_enable_start_now(running_downloads, max_downloads);
@@ -59,7 +59,7 @@ void gcu_gui_update_download(download_t *d, gboolean force)
 {
 	gui_update_download(d, force);
 }
-	
+
 void gcu_gui_update_download_server(struct download *d)
 {
 	gui_update_download_server(d);
@@ -72,7 +72,7 @@ void gcu_gui_update_download_range(struct download *d)
 
 void gcu_gui_update_download_host(struct download *d)
 {
-	gui_update_download_host(d);	
+	gui_update_download_host(d);
 }
 
 void gcu_gui_update_download_abort_resume(void)
@@ -144,7 +144,7 @@ void gcu_upload_stats_gui_update(const gchar *name, guint64 size)
 
 void gcu_upload_stats_gui_clear_all(void)
 {
-	upload_stats_gui_clear_all();	
+	upload_stats_gui_clear_all();
 }
 
 /*

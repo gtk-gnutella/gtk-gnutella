@@ -94,7 +94,7 @@ static void destroy_entry(struct st_entry *entry)
 static void bin_initialize(struct st_bin *bin, gint size)
 {
 	gint i;
-	
+
 	bin->nvals = 0;
 	bin->nslots = size;
 
@@ -162,14 +162,14 @@ void st_initialize(search_table_t *table, char_map_t map)
 	guchar cur_char = '\0', map_char;
 
 	table->nentries = table->nchars = 0;
-	
+
 	for (i = 0; i < 256; i++)
 		table->fold_map[i] = 0;
 
 	/*
 	 * The indexing map is used to avoid having 256*256 bins.
 	 */
-	
+
 	for (i = 0; i < 256; i++) {
 		map_char = map[i];
 		if (!table->fold_map[map_char]) {
@@ -193,7 +193,7 @@ void st_initialize(search_table_t *table, char_map_t map)
 		printf("search table will use max of %d bins (%d indexing chars)\n",
 			table->nbins, table->nchars);
 }
-	
+
 /* recreate variable parts of the search table */
 void st_create(search_table_t *table)
 {
@@ -283,12 +283,12 @@ st_insert_item(search_table_t *table, const gchar *s, struct shared_file *sf)
 	}
 
 	seen_keys = g_hash_table_new(g_direct_hash, 0);
-	
+
 	entry = walloc(sizeof(*entry));
 	entry->string = string;
 	entry->data = shared_file_ref(sf);
 	entry->mask = mask_hash(string);
-	
+
 	for (i = 0; i < len - 1; i++) {
 		gint key = st_key(table, string + i);
 

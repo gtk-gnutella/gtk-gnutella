@@ -47,7 +47,7 @@ typedef void (*inputevt_handler_t) (
 );
 
 /*
- * Module initialization and cleanup functions. 
+ * Module initialization and cleanup functions.
  * These don't do anything and are not called (yet).
  */
 void inputevt_init(void);

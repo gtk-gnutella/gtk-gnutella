@@ -101,9 +101,9 @@ struct gnutella_socket {
 	guint16 local_port;		/* Port on our side */
 
 	time_t last_update;		/* Timestamp of last activity on socket */
-	
+
 	struct wrap_io wio;		/**< Wrapped IO object */
-	
+
 #ifdef USE_TLS
 	struct socket_tls_ctx tls;
 #endif

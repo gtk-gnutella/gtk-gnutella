@@ -33,7 +33,7 @@
 
 /*
  * Use this macro access a property instead of ps->props[prop]. It will
- * hide the offset of the properties, so the property array can be 
+ * hide the offset of the properties, so the property array can be
  * accessed.
  */
 #define PROP(ps, p) (ps->props[p-ps->offset])

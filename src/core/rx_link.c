@@ -132,7 +132,7 @@ rx_link_init(rxdrv_t *rx, gpointer unused_args)
 	attr->bs = rx->node->peermode == NODE_P_LEAF ? bws.glin : bws.gin;
 
 	rx->opaque = attr;
-	
+
 	return rx;		/* OK */
 }
 
@@ -201,7 +201,7 @@ static void
 rx_link_disable(rxdrv_t *rx)
 {
 	struct attr *attr = (struct attr *) rx->opaque;
-	
+
 	g_assert(attr->bio);
 
 	bsched_source_remove(attr->bio);

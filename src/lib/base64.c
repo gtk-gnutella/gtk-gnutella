@@ -263,7 +263,7 @@ static guint base64_decode_alphabet(const gint8 valmap[256],
 	gchar *op;						/* Output pointer, one byte off end */
 	guint bytes;					/* Bytes decoded without padding */
 	gint8 v;
-	
+
 	g_assert(buf);
 	g_assert(decbuf);
 	g_assert(len > 0);
@@ -314,7 +314,7 @@ static guint base64_decode_alphabet(const gint8 valmap[256],
 	 *              +--------+--------+--------+
 	 *              |01234501|23450123|45012345|
 	 *              +--------+--------+--------+
-	 * output byte      0        1        2     
+	 * output byte      0        1        2
 	 *
 	 * Because of possible padding, which must be done as if the input
 	 * was 0, and because the fractional part is at the end, we'll

@@ -63,7 +63,7 @@ enum dl_chunk_status file_info_chunk_status(
 void file_info_reset(struct dl_file_info *fi);
 void file_info_recreate(struct download *d);
 struct dl_file_info *file_info_get(
-	gchar *file, const gchar *path, filesize_t size, gchar *sha1, 
+	gchar *file, const gchar *path, filesize_t size, gchar *sha1,
 	gboolean file_size_known);
 void file_info_strip_binary(struct dl_file_info *fi);
 void file_info_strip_binary_from_file(

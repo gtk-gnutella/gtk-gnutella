@@ -178,7 +178,7 @@ word_vec_make(const gchar *query_str, word_vec_t **wovec)
 				entry->len = query - start;
 				entry->word = walloc(entry->len + 1);	/* For trailing NUL */
 				memcpy(entry->word, start, entry->len + 1); /* Includes NUL */
-				
+
 				entry->amount = 1;
 
 				/*

@@ -413,7 +413,7 @@ atom_get(gint type, gconstpointer key)
 
 	td = &atoms[type];		/* Where atoms of this type are held */
 
-	/* 
+	/*
 	 * If atom exists, increment ref count and return it.
 	 */
 
@@ -449,7 +449,7 @@ atom_get(gint type, gconstpointer key)
 }
 
 /**
- * Remove one reference from atom. 
+ * Remove one reference from atom.
  * Dispose of atom if nobody references it anymore.
  */
 void
@@ -558,7 +558,7 @@ destroy_tracking_table(GHashTable *h)
 
 /**
  * The tracking version of atom_free().
- * Remove one reference from atom. 
+ * Remove one reference from atom.
  * Dispose of atom if nobody references it anymore.
  */
 void

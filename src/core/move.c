@@ -286,7 +286,7 @@ d_end(gpointer h, gpointer ctx, gpointer item)
 		gchar *source;
 
 		g_assert(md->copied == md->size);
-		
+
 		source = make_pathname(download_path(md->d), download_outname(md->d));
 		if (NULL == source || -1 == unlink(source))
 			g_warning("cannot unlink \"%s\": %s",

@@ -55,7 +55,7 @@ gpointer tt_internal_hash(gpointer hash1, gpointer hash2)
 {
 	gchar data[TIGERSIZE + TIGERSIZE + 1];
 	gchar *hash = g_malloc(TIGERSIZE);
-	
+
 	data[0] = 0x01;		/* Tigertree specs, internal hash should be prefixed
 						 * with 0x01 before hashing */
 	memcpy(data + 1, hash1, TIGERSIZE);
@@ -64,7 +64,7 @@ gpointer tt_internal_hash(gpointer hash1, gpointer hash2)
 	g_assert(data[0] == 0x01);
 
 	tiger((gint64*) data, (gint64)(TIGERSIZE + TIGERSIZE + 1), (gint64 *)hash);
-	
+
 	return hash;
 }
 
@@ -76,7 +76,7 @@ gpointer tt_internal_hash(gpointer hash1, gpointer hash2)
 void tt_verify_init()
 {
 }
-	 
+
 /*
  * tt_verify_close
  *
@@ -107,61 +107,61 @@ typedef struct tt_computation_context_s tt_computation_context_t;
 struct tt_computation_context_s {
 	gint fd;					/* Handle to the file we are computing. */
 	tt_file_to_hash_t *file;	/* The file we are computing */
-	
+
 	TT_CONTEXT *tt_ctx;
 	gchar *buffer;
-	
+
 	time_t start;
 
 	gint64 dataread;
-	
+
 	hashtree	*tt_node;
 };
 
 static void tt_computation_context_free(gpointer u)
 {
 	tt_computation_context_t *ctx = (tt_computation_context_t *) u;
-	
+
 	if (ctx->tt_node != NULL) {
 		hashtree_destroy(ctx->tt_node);
 		wfree(ctx->tt_ctx, sizeof(*ctx->tt_ctx));
 		wfree(ctx->buffer, BLOCKSIZE + 1);
 	}
-	wfree(ctx, sizeof(*ctx));	
-}	
+	wfree(ctx, sizeof(*ctx));
+}
 
 static bgret_t tigertree_step_compute(gpointer h, gpointer u, gint ticks)
 {
 	gint i;
 	ssize_t r;
 	gchar *hash;
-	
+
 	tt_computation_context_t *ctx = (tt_computation_context_t *) u;
-	
+
 	if (ctx->fd == -1) {
 		if (files_to_hash == NULL) {
 			return BGR_DONE;
 		}
-		
+
 		ctx->dataread = 0;
 		ctx->file = (tt_file_to_hash_t *) g_list_first(files_to_hash)->data;
-		
+
 		g_warning("[tiger tree] Trying to hash %s", ctx->file->file_name);
 		ctx->fd = open(ctx->file->file_name, O_RDONLY);
-		
+
 		if (ctx->fd < 0) {
 			g_warning("[tiger tree] "
 				  "Could not open %s for tigertree hashing: %s",
 			ctx->file->file_name, g_strerror(errno));
-		
+
 			files_to_hash = g_list_remove(files_to_hash, ctx->file);
 
 			/* How many ticks did we use */
 			bg_task_ticks_used(h, 0);
-		
+
 			atom_str_free(ctx->file->file_name);
 			wfree(ctx->file, sizeof(*ctx->file));
-			
+
 			return BGR_ERROR;
 		}
 
@@ -174,7 +174,7 @@ static bgret_t tigertree_step_compute(gpointer h, gpointer u, gint ticks)
 		printf("Error while reading file\n");
 
 	ctx->dataread += r;
-	
+
 	printf("Read %f\r", (float)ctx->dataread / (1024.0 * 1024.0));
 	/* Check wether we read data first, before trying to hash it */
 	if (r > 0 || ctx->dataread == 0) {
@@ -188,17 +188,17 @@ static bgret_t tigertree_step_compute(gpointer h, gpointer u, gint ticks)
 		tt_update(ctx->tt_ctx, ctx->buffer + 1, r);
 		hashtree_append_leaf_node(ctx->tt_node, (gpointer) hash);
 	}
-	
+
 	if (r < BLOCKSIZE) {
 		static gchar digest_b32[39 + 1];
 		guchar cur_hash[TIGERSIZE];
-		
+
 		printf("[tigertree] Done %d\n", r);
 
 		tt_digest(ctx->tt_ctx, cur_hash);
-	
+
 		printf("TT hash for '%s':          ", ctx->file->file_name);
-	
+
   		for (i = 0; i<TIGERSIZE; i++) {
 			printf("%.2X", (guchar) cur_hash[i]);
 	  	}
@@ -207,45 +207,45 @@ static bgret_t tigertree_step_compute(gpointer h, gpointer u, gint ticks)
 			ctx->tt_ctx->count, ctx->tt_ctx->index);
 
 		hashtree_finish(ctx->tt_node);
-		
+
 		printf("Calculated hash:  ");
  		for (i = 0; i < TIGERSIZE; i++) {
 			printf("%.2X", ((guchar *)ctx->tt_node->parent->hash)[i]);
 		}
 		printf("  TT depth %d\n",
 			ctx->tt_node->depth);
-		
+
 		base32_encode_into(ctx->tt_node->parent->hash, TIGERSIZE,
 			digest_b32, sizeof(digest_b32));
 		digest_b32[SHA1_BASE32_SIZE] = '\0';
-		
+
 		printf("Base 32: %s\n", digest_b32);
-		
+
 		hashtree_destroy(ctx->tt_node);
 		ctx->tt_node = NULL;
-		
+
 		close(ctx->fd);
 		ctx->fd = -1;
 		files_to_hash = g_list_remove(files_to_hash, ctx->file);
-		
+
 		atom_str_free(ctx->file->file_name);
 		wfree(ctx->file, sizeof(*ctx->file));
 	}
-	
+
 	bg_task_ticks_used(h, 1);
-	
+
 	return BGR_MORE;
 }
 
 /* Public functions */
 
 void tt_compute_close() {
-	
+
 	while (files_to_hash != NULL) {
 		tt_file_to_hash_t *file_to_hash =
 			  (tt_file_to_hash_t *) files_to_hash->data;
 		files_to_hash = g_list_remove(files_to_hash, file_to_hash);
-		
+
 		atom_str_free(file_to_hash->file_name);
 		wfree(file_to_hash, sizeof(*file_to_hash));
 	}
@@ -254,24 +254,24 @@ void tt_compute_close() {
 void request_tigertree(struct shared_file *sf)
 {
 	tt_file_to_hash_t *file_to_hash = walloc0(sizeof(tt_file_to_hash_t));
-	
+
 	file_to_hash->file_name = atom_str_get(sf->file_path);
 	files_to_hash = g_list_append(files_to_hash, file_to_hash);
-	
+
 	if (tt_calculate_task == NULL) {
 		bgstep_cb_t step = tigertree_step_compute;
 		tt_computation_context_t *ctx;
-		
+
 		ctx = walloc0(sizeof(*ctx));
 		ctx->fd = -1;
 		ctx->tt_ctx = walloc0(sizeof(*ctx->tt_ctx));
 		ctx->buffer = walloc(BLOCKSIZE + 1);
-		
+
 		ctx->tt_node = hashtree_new(tt_internal_hash);
-		
+
 		tt_calculate_task = bg_task_create("Tigertree calculation", &step, 1,
 			  ctx, tt_computation_context_free, NULL, NULL);
-		
+
 	}
 }
 
@@ -281,18 +281,18 @@ void tt_parse_header(struct download *d, header_t *header)
 	gchar *buf = NULL;
 	gchar *uri = NULL;
 	gchar hash[40];
-		
+
 	uri = buf = header_get(header, "X-Thex-Uri");
-	
+
 	if (buf == NULL)
 		return;
-	
+
 	printf("Found %s\n", buf);
-	
+
 	uri = buf;
-	
+
 	buf = strchr(buf, ';');
-	
+
 	if (buf == NULL) {
 		printf("Incorrect X-Thex-Uri, trying to work around\n");
 		buf = header_get(header, "X-Thex-Uri");
@@ -303,22 +303,22 @@ void tt_parse_header(struct download *d, header_t *header)
 	{
 		buf++;	/* Skip ; */
 	}
-	
+
 	if (buf == NULL) {
 		printf("Could not find tigertree %s", buf);
 		return;
 	}
-	
+
 	memcpy(hash, buf, 39);
 	hash[39] = '\0';
 	printf("Tigertree value is %s\n", hash);
-	
+
 //	fi = file_info_get(hash, save_file_path, 0, NULL);
-		
+
 	download_new_uri(hash /* file */, uri /* uri */, 0 /* size */,
 		d->socket->ip, d->socket->port,
 //		NULL, NULL,
-		blank_guid, NULL /* hostname */, NULL /* SHA1 */, time(NULL), 
+		blank_guid, NULL /* hostname */, NULL /* SHA1 */, time(NULL),
 		FALSE /* PUSH */, NULL /* fi */, NULL /* proxies */);
 
 }

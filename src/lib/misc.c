@@ -133,7 +133,7 @@ ip_to_string(guint32 ip, gchar *buf, size_t size)
 		guint32 ip_be;
 		guint8 p[4];
 	} addr;
-	
+
 	g_assert(buf != NULL);
 	g_assert(size <= INT_MAX);
 
@@ -178,7 +178,7 @@ inet_aton(const char *s, struct in_addr *addr)
 	if (sscanf(s, "%d.%d.%d.%d", &a, &b, &c, &d) < 4)
 		return 0;
 
-#if G_BYTE_ORDER == G_BIG_ENDIAN	
+#if G_BYTE_ORDER == G_BIG_ENDIAN
 	addr->s_addr = d + (c << 8) + (b << 16) + (a << 24);
 #elif G_BYTE_ORDER == G_LITTLE_ENDIAN
 	addr->s_addr = a + (b << 8) + (c << 16) + (d << 24);
@@ -305,7 +305,7 @@ ip_to_host(guint32 ip)
 	static const struct in_addr zero_addr;
 	struct in_addr addr;
 	const struct hostent *he;
-  
+
 	addr = zero_addr;
 	addr.s_addr = (guint32) htonl(ip);
 	he = gethostbyaddr((gchar *) &addr, sizeof addr, AF_INET);
@@ -692,7 +692,7 @@ data_hex_str(const gchar *data, size_t len)
 
 	hmax = 2 * len;
 	hmax = MIN(hmax, maxlen);
-	
+
 	for (i = 0; i < hmax; p++) {
 		buf[i++] = hex_alphabet_lower[*p >> 4];
 		buf[i++] = hex_alphabet_lower[*p & 0x0f];
@@ -995,7 +995,7 @@ highest_bit_set(guint32 n)
 
 	if (r == 0)
 		return -1;
-	
+
 	while (r >>= 1)			/* Will find largest bit set */
 		h++;
 
@@ -1303,7 +1303,7 @@ strcasestr(const gchar *haystack, const gchar *needle)
 		guchar c = *n++;
 		delta[(guchar) tolower(c)] = nlen - i;
 	}
-	
+
 	/*
 	 * Now run Sunday's algorithm.
 	 */
@@ -1414,7 +1414,7 @@ unique_filename(const gchar *path, const gchar *file, const gchar *ext)
 	g_assert(sep);	/* This is supposed to an absolute path */
 	/* Insert G_DIR_SEPARATOR_S only if necessary */
 	sep = sep[1] != '\0' ? G_DIR_SEPARATOR_S : "";
-	
+
 	/* Use extra_bytes so we can easily append a few chars later */
 	filename = GM_STRCONCAT_NULL(path, sep, file, ext, extra_bytes);
 	size = strlen(filename);
@@ -1779,7 +1779,7 @@ parse_uint64(const gchar *src, gchar **endptr, gint base, gint *errorptr)
 		*errorptr = EINVAL;
 		return 0;
 	}
-	  
+
 	for (p = src; (c = (guchar) *p) != '\0'; ++p) {
 		guint64 d, w;
 

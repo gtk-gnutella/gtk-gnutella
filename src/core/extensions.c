@@ -104,7 +104,7 @@ typedef struct extdesc {
 #define ext_phys_headlen(d)	((d)->ext_phys_len - (d)->ext_phys_paylen)
 #define ext_phys_base(d)	((d)->ext_phys_payload - ext_phys_headlen(d))
 
-/* 
+/*
  * Union access shortcuts.
  */
 
@@ -138,7 +138,7 @@ static const struct rwtable urntable[] =	/* URN name table (sorted) */
 static const struct rwtable ggeptable[] =	/* GGEP extension table (sorted) */
 {
 #define GGEP_ID(x) { #x, EXT_T_GGEP_ ## x }
-   	
+
 	{ "<", EXT_T_GGEP_LIME_XML },	/* '<' is less that 'A' */
 	GGEP_ID(ALT),					/* Alt-locs in qhits */
 	GGEP_ID(BH),					/* Browseable host indication */
@@ -407,7 +407,7 @@ ext_ggep_parse(gchar **retp, gint len, extvec_t *exv, gint exvcnt)
 		if (!length_ended)
 			goto abort;
 
-		/* 
+		/*
 		 * Ensure we have enough bytes left for the payload.  If not, it
 		 * means the length is garbage.
 		 */
@@ -1409,7 +1409,7 @@ ext_dump_one(FILE *f, const extvec_t *e, const gchar *prefix,
 
 	fputs(extype[e->ext_type], f);
 	fprintf(f, " (token=%d) ", e->ext_token);
-	
+
 	if (e->ext_name)
 		fprintf(f, "\"%s\" ", e->ext_name);
 

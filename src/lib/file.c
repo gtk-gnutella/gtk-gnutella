@@ -91,7 +91,7 @@ open_read(
 
 	g_assert(fv != NULL);
 	g_assert(fvcnt >= 1);
-	
+
 	path = make_pathname(fv->dir, fv->name);
 	g_return_val_if_fail(NULL != path, NULL);
 	if (!is_absolute_path(path)) {
@@ -163,10 +163,10 @@ open_read(
 	else if (instead == instead_str)
 		g_warning("[%s] unable to retrieve: tried %d alternate location%s",
 			what, fvcnt, fvcnt == 1 ? "" : "s");
-    else 
+    else
 		g_warning("[%s] unable to retrieve: no alternate locations known",
 			what);
-    
+
 out:
 
 	if (NULL != path)
@@ -251,7 +251,7 @@ file_config_open(const gchar *what, const file_path_t *fv)
  * Open configuration file for writing.
  */
 FILE *
-file_config_open_write(const gchar *what, const file_path_t *fv) 
+file_config_open_write(const gchar *what, const file_path_t *fv)
 {
     return file_config_open(what, fv);
 }
@@ -365,7 +365,7 @@ do_open(const gchar *path, gint flags, gint mode, gboolean missing)
 			return fd;
 		}
 	}
-	
+
 	/*
 	 * Hack for broken libc, which can return -1 with errno = 0!
 	 * This happens when compiling with gcc-3.x and linking with -lpthread

@@ -105,7 +105,7 @@ safe_writev(wrap_io_t *wio, struct iovec *iov, gint iovcnt)
 		if (siovcnt > MAX_IOV_COUNT)
 			siovcnt = MAX_IOV_COUNT;
 		g_assert(siovcnt > 0);
-		
+
 		r = wio->writev(wio, siov, siovcnt);
 
 		if ((ssize_t) -1 == r || 0 == r) {
@@ -183,7 +183,7 @@ bsched_free(bsched_t *bs)
 
 	for (l = bs->sources; l; l = g_list_next(l)) {
 		bio_source_t *bio = (bio_source_t *) l->data;
-		
+
 		g_assert(bio->bs == bs);
 		bio->bs = NULL;				/* Mark orphan source */
 	}
@@ -1138,8 +1138,8 @@ bio_write(bio_source_t *bio, gconstpointer data, size_t len)
 	g_assert(bio);
 	g_assert(bio->flags & BIO_F_WRITE);
 
-	/* 
-	 * If we don't have any bandwidth, return -1 with errno set to EAGAIN 
+	/*
+	 * If we don't have any bandwidth, return -1 with errno set to EAGAIN
 	 * to signal that we cannot perform any I/O right now.
 	 */
 
@@ -1204,8 +1204,8 @@ bio_writev(bio_source_t *bio, struct iovec *iov, gint iovcnt)
 	for (r = 0, siov = iov, len = 0; r < iovcnt; r++, siov++)
 		len += siov->iov_len;
 
-	/* 
-	 * If we don't have any bandwidth, return -1 with errno set to EAGAIN 
+	/*
+	 * If we don't have any bandwidth, return -1 with errno set to EAGAIN
 	 * to signal that we cannot perform any I/O right now.
 	 */
 
@@ -1318,8 +1318,8 @@ bio_sendto(bio_source_t *bio, gnet_host_t *to, gconstpointer data, size_t len)
 	g_assert(bio);
 	g_assert(bio->flags & BIO_F_WRITE);
 
-	/* 
-	 * If we don't have any bandwidth, return -1 with errno set to EAGAIN 
+	/*
+	 * If we don't have any bandwidth, return -1 with errno set to EAGAIN
 	 * to signal that we cannot perform any I/O right now.
 	 *
 	 * Note that datagrams are necessarily atomic operations, therefore
@@ -1479,8 +1479,8 @@ bio_read(bio_source_t *bio, gpointer data, size_t len)
 	g_assert(bio);
 	g_assert(bio->flags & BIO_F_READ);
 
-	/* 
-	 * If we don't have any bandwidth, return -1 with errno set to EAGAIN 
+	/*
+	 * If we don't have any bandwidth, return -1 with errno set to EAGAIN
 	 * to signal that we cannot perform any I/O right now.
 	 */
 

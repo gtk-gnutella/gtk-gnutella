@@ -115,7 +115,7 @@ static pmsg_t *inflate_data(rxdrv_t *rx, pmsg_t *mb)
 	node_add_rx_inflated(rx->node, inflated);
 
 	return pmsg_alloc(PMSG_P_DATA, db, 0, inflated);
-	
+
 cleanup:
 	rxbuf_free(db, NULL);
 	return NULL;

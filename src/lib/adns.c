@@ -96,7 +96,7 @@ do {						\
 		close(fd);			\
 		fd = -1;			\
 	} 						\
-} while(0) 					
+} while(0)
 
 /* private functions */
 
@@ -106,7 +106,7 @@ adns_cache_init(void)
 	adns_cache_t *cache;
 	guint i;
 
-	cache = g_malloc(sizeof(*cache)); 
+	cache = g_malloc(sizeof(*cache));
 	cache->size = G_N_ELEMENTS(cache->entries);
 	cache->oldest = 0;
 	cache->timeout = ADNS_CACHE_TIMEOUT;
@@ -117,7 +117,7 @@ adns_cache_init(void)
 }
 
 /**
- *	Frees all memory allocated by the cache and returns NULL. 
+ *	Frees all memory allocated by the cache and returns NULL.
  */
 adns_cache_t *
 adns_cache_free(adns_cache_t *cache)
@@ -141,7 +141,7 @@ adns_cache_free(adns_cache_t *cache)
 /**
  * Adds ``hostname'' and ``ip'' to the cache. The cache is implemented
  * as a wrap-around FIFO. In case it's full, the oldest entry will be
- * overwritten. 
+ * overwritten.
  */
 static void
 adns_cache_add(adns_cache_t *cache, time_t now,
@@ -174,7 +174,7 @@ adns_cache_add(adns_cache_t *cache, time_t now,
  * ``hostname'' is not found or the entry is expired, FALSE will be
  * returned. Expired entries will be removed! ``ip'' is allowed to
  * be NULL, otherwise the cached IP will be stored into the variable
- * ``ip'' points to. 
+ * ``ip'' points to.
  */
 static gboolean
 adns_cache_lookup(adns_cache_t *cache, time_t now,
@@ -244,9 +244,9 @@ adns_do_transfer(gint fd, gpointer buf, size_t len, gboolean do_write)
 
 		if (do_write)
 			ret = write(fd, buf, n);
-		else 
+		else
 			ret = read(fd, buf, n);
-	
+
 		if ((ssize_t) -1 == ret && errno != EAGAIN && errno != EINTR) {
             /* Ignore the failure, if the parent process is gone.
                This prevents an unnecessary warning when quitting. */
@@ -303,7 +303,7 @@ static void
 adns_gethostbyname(const adns_query_t *query, adns_query_t *reply)
 {
 	const gchar *host;
-	
+
 	g_assert(NULL != query);
 	g_assert(NULL != reply);
 
@@ -324,7 +324,7 @@ adns_gethostbyname(const adns_query_t *query, adns_query_t *reply)
  * The ``main'' function of the adns helper process (server).
  * Simply reads requests (queries) from fd_in, performs a DNS lookup for it
  * and writes the result to fd_out. All operations should be blocking. Exits
- * in case of non-recoverable error during read or write.  
+ * in case of non-recoverable error during read or write.
  */
 static void
 adns_helper(gint fd_in, gint fd_out)
@@ -356,13 +356,13 @@ adns_invoke_user_callback(adns_query_t *reply)
 {
 	if (reply->reverse) {
 		adns_reverse_callback_t func;
-	   
+
 		func = (adns_reverse_callback_t) reply->user_callback;
 		func(reply->hostname[0] != '\0' ? reply->hostname : NULL,
 			reply->user_data);
 	} else {
 		adns_callback_t func;
-	   
+
 		func = (adns_callback_t) reply->user_callback;
 		func(reply->ip, reply->user_data);
 	}
@@ -371,7 +371,7 @@ adns_invoke_user_callback(adns_query_t *reply)
 /**
  * Handles the query in synchronous (blocking) mode and is used if the
  * dns helper is busy i.e., the pipe buffer is full or in case the dns
- * helper is dead.  
+ * helper is dead.
  */
 static void
 adns_fallback(const adns_query_t *query)
@@ -406,9 +406,9 @@ again:
 		ssize_t ret;
 
 		ret = read(source, buf, sizeof(reply)-n);
-		
+
 		if (0 == ret) {
-			errno = ECONNRESET;	
+			errno = ECONNRESET;
 			ret = (ssize_t) -1;
 		}
 		/* FALL THROUGH */
@@ -441,7 +441,7 @@ again:
 		}
 
 		g_assert(NULL != reply.user_callback);
-		if (	
+		if (
 				!reply.reverse &&
 				!adns_cache_lookup(adns_cache, now, reply.hostname, NULL)
 		) {
@@ -507,9 +507,9 @@ adns_query_callback(gpointer data, gint dest, inputevt_cond_t condition)
 		ssize_t ret;
 
 		ret = write(dest, remain->buf, remain->n);
-		
+
 		if (0 == ret) {
-			errno = ECONNRESET;	
+			errno = ECONNRESET;
 			ret = (ssize_t) -1;
 		}
 		/* FALL THROUGH */
@@ -519,7 +519,7 @@ adns_query_callback(gpointer data, gint dest, inputevt_cond_t condition)
 			return;
 		}
 
-		g_assert(ret > 0);	
+		g_assert(ret > 0);
 		remain->n -= (size_t) ret;
 		remain->buf += (size_t) ret;
 		g_assert(remain->n >= 0);
@@ -568,7 +568,7 @@ adns_init(void)
 	if (0 == pid) {
 		/* child process */
 		gint null;
-	
+
 		close(fd_query[1]);
 		close(fd_reply[0]);
    		close(STDIN_FILENO);  /* Just in case */
@@ -576,10 +576,10 @@ adns_init(void)
 		if (-1 == null)
 			g_error("adns_init: Could not open() /dev/null");
 		g_assert(STDIN_FILENO == null);
-		adns_helper(fd_query[0], fd_reply[1]); 
+		adns_helper(fd_query[0], fd_reply[1]);
 		g_assert_not_reached();
 		_exit(EXIT_SUCCESS);
-	} 
+	}
 
 	/* parent process */
 	close(fd_query[0]);
@@ -613,7 +613,7 @@ adns_send_query(const adns_query_t *query)
 
 	if (!adns_helper_alive || 0 != adns_query_event_id)
 		return FALSE;
-		
+
 	g_assert(adns_query_fd >= 0);
 	q = *query;
 
@@ -648,7 +648,7 @@ adns_send_query(const adns_query_t *query)
 			INPUT_EVENT_WRITE | INPUT_EVENT_EXCEPTION,
 			adns_query_callback, aq);
 	}
-	
+
 	return TRUE;
 }
 
@@ -682,7 +682,7 @@ adns_resolve(const gchar *hostname,
 	query.reverse = FALSE;
 	query.ip = 0;
 	reply = query;
-	
+
 	reply.ip = gchar_to_ip(hostname);
 	if (0 != reply.ip) {
 		adns_invoke_user_callback(&reply);
@@ -704,7 +704,7 @@ adns_resolve(const gchar *hostname,
 	}
 
 	if (adns_send_query(&query))
-		return TRUE; /* asynchronous */ 
+		return TRUE; /* asynchronous */
 
 	g_warning("adns_resolve: using synchronous resolution for \"%s\"",
 		query.hostname);
@@ -742,7 +742,7 @@ adns_reverse_lookup(guint32 ip,
 	query.hostname[0] = '\0';
 
 	if (adns_send_query(&query))
-		return TRUE; /* asynchronous */ 
+		return TRUE; /* asynchronous */
 
 	g_warning("adns_reverse_lookup: using synchronous resolution for \"%s\"",
 		ip_to_gchar(query.ip));

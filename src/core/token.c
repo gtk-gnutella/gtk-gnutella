@@ -366,7 +366,7 @@ tok_error_t tok_version_valid(
 	const gchar *key;
 	SHA1Context ctx;
 	gchar lvldigest[1024];
-	gchar token[TOKEN_VERSION_SIZE]; 
+	gchar token[TOKEN_VERSION_SIZE];
 	gchar digest[SHA1HashSize];
 	version_t rver;
 	gchar *end;
@@ -451,7 +451,7 @@ tok_error_t tok_version_valid(
 
 	if (lvllen == 0 || (lvllen & 0x1))
 		return TOK_BAD_LEVEL_ENCODING;
-	
+
 	g_assert(lvllen >= 2);
 	g_assert((lvllen & 0x1) == 0);
 

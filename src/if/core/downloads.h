@@ -306,7 +306,7 @@ struct download {
  *        search.h and not from search_gui.h.
  */
 void download_index_changed(guint32, guint16, gchar *, guint32, guint32);
-  
+
 gboolean download_new(gchar *,
 	filesize_t, guint32, guint32, guint16, gchar *, gchar *, gchar *, time_t,
     gboolean, struct dl_file_info *, gnet_host_vec_t *);

@@ -659,7 +659,7 @@ parse_dispatch_lines(gpointer handle, gchar *buf, gint len,
 	 * Retrieve parsing context, stored as an opaque attribute in the
 	 * asynchronous HTTP request handle.
 	 */
-	
+
 	ctx = (struct parse_context *) http_async_get_opaque(handle);
 
 	g_assert(ctx->handle == handle);	/* Make sure it's the right context */

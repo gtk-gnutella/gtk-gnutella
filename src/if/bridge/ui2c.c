@@ -1,8 +1,8 @@
 /*
- * $Id: ui_core_interface.c,v 1.0 
- *	
+ * $Id: ui_core_interface.c,v 1.0
+ *
  * Copyright (c) 2004, Emile Roberts
- *	
+ *
  * Interface UI -> core
  *
  *----------------------------------------------------------------------
@@ -27,12 +27,12 @@
 
 
 /*
- *	At this point the interface basically redirects function calls from the ui 
+ *	At this point the interface basically redirects function calls from the ui
  *	to the core and vice-versa.  We may wish to split this file into multiple
- *	files at some point.  
+ *	files at some point.
  */
 
-/*	
+/*
  *	SECTION 1 - Includes needed by the interface to allow ui/core communication
  */
 
@@ -58,7 +58,7 @@
 #include "if/core/version.h"
 #include "if/core/main.h"
 
-/*	
+/*
  *	Functions the UI uses to access the CORE
  */
 
@@ -78,7 +78,7 @@ void guc_query_bitzi_by_urn(guchar *urnsha1)
 
 
 /*	download and src interface functions (UI -> Core)*/
-const gchar *guc_build_url_from_download(struct download *d) 
+const gchar *guc_build_url_from_download(struct download *d)
 {
 	return build_url_from_download(d);
 }
@@ -90,11 +90,11 @@ gint guc_download_get_http_req_percent(const struct download *d)
 
 void guc_download_fallback_to_push
 	(struct download *d, gboolean on_timeout, gboolean user_request)
-{ 
+{
 	download_fallback_to_push(d, on_timeout, user_request);
 }
 
-gint guc_download_remove_all_from_peer(gchar *guid, guint32 ip, 
+gint guc_download_remove_all_from_peer(gchar *guid, guint32 ip,
 	guint16 port, gboolean unavailable)
 {
 	return download_remove_all_from_peer(guid, ip, port, unavailable);
@@ -110,7 +110,7 @@ gint guc_download_remove_all_with_sha1(const gchar *sha1)
 	return download_remove_all_with_sha1(sha1);
 }
 
-void guc_download_remove_file 
+void guc_download_remove_file
 	(struct download *d, gboolean reset)
 {
 	download_remove_file(d, reset);
@@ -129,7 +129,7 @@ void guc_download_requeue(struct download *d)
 void guc_download_start
 	(struct download *d, gboolean check_allowed)
 {
-	download_start(d, check_allowed); 
+	download_start(d, check_allowed);
 }
 
 gboolean guc_download_remove(struct download *d)
@@ -168,22 +168,22 @@ void guc_download_clear_stopped(gboolean complete,
 	download_clear_stopped(complete, failed, unavailable, now);
 }
 
-void guc_download_auto_new(gchar *file, filesize_t size, 
-	guint32 record_index, guint32 ip, guint16 port, gchar *guid, 
+void guc_download_auto_new(gchar *file, filesize_t size,
+	guint32 record_index, guint32 ip, guint16 port, gchar *guid,
 	gchar *hostname, gchar *sha1, time_t stamp, gboolean push,
-	gboolean file_size_known, struct dl_file_info *fi, 
+	gboolean file_size_known, struct dl_file_info *fi,
 	gnet_host_vec_t *proxies)
 {
 	download_auto_new(file, size, record_index, ip, port, guid, hostname, sha1,
 		stamp, push, file_size_known, fi, proxies);
 }
 
-gboolean guc_download_new_unknown_size(gchar *file, 
-			guint32 record_index, guint32 ip, guint16 port, gchar *guid, 
+gboolean guc_download_new_unknown_size(gchar *file,
+			guint32 record_index, guint32 ip, guint16 port, gchar *guid,
 			gchar *hostname, gchar *sha1, time_t stamp, gboolean push,
 			struct dl_file_info *fi, gnet_host_vec_t *proxies)
 {
-	return download_new_unknown_size(file, record_index, ip, port, guid, 
+	return download_new_unknown_size(file, record_index, ip, port, guid,
 		hostname, sha1, stamp, push, fi, proxies);
 }
 
@@ -204,7 +204,7 @@ gfloat guc_download_source_progress(struct download *d)
 
 gfloat guc_download_total_progress(struct download *d)
 {
-	return download_total_progress(d);	
+	return download_total_progress(d);
 }
 
 gboolean guc_download_something_to_clear(void)
@@ -212,16 +212,16 @@ gboolean guc_download_something_to_clear(void)
 	return download_something_to_clear();
 }
 
-gboolean guc_download_new(gchar *file, filesize_t size, 
-			guint32 record_index, guint32 ip, guint16 port, gchar *guid, 
+gboolean guc_download_new(gchar *file, filesize_t size,
+			guint32 record_index, guint32 ip, guint16 port, gchar *guid,
 			gchar *hostname, gchar *sha1, time_t stamp, gboolean push,
 			struct dl_file_info *fi, gnet_host_vec_t *proxies)
 {
-	return download_new(file, size, record_index, ip, port, guid, hostname, 
-		sha1, stamp, push, fi, proxies);				
+	return download_new(file, size, record_index, ip, port, guid, hostname,
+		sha1, stamp, push, fi, proxies);
 }
 
-void guc_download_index_changed(guint32 ip, guint16 port, 
+void guc_download_index_changed(guint32 ip, guint16 port,
 	gchar *guid, filesize_t from, filesize_t to)
 {
 	download_index_changed(ip, port, guid, from, to);
@@ -232,13 +232,13 @@ struct download *guc_src_get_download(gnet_src_t src_handle)
 	return src_get_download(src_handle);
 }
 
-void guc_src_add_listener(src_listener_t cb, gnet_src_ev_t ev, 
+void guc_src_add_listener(src_listener_t cb, gnet_src_ev_t ev,
     frequency_t t, guint32 interval)
 {
 	src_add_listener(cb, ev, t, interval);
 }
 
-void guc_src_remove_listener(src_listener_t cb, 
+void guc_src_remove_listener(src_listener_t cb,
 	gnet_src_ev_t ev)
 {
 	src_remove_listener(cb, ev);
@@ -249,7 +249,7 @@ void guc_src_remove_listener(src_listener_t cb,
 const gchar *guc_file_info_readable_filename
 	(struct dl_file_info *fi)
 {
-	return file_info_readable_filename(fi);		
+	return file_info_readable_filename(fi);
 }
 
 gnet_fi_info_t *guc_fi_get_info(gnet_fi_t fih)
@@ -339,7 +339,7 @@ void guc_gnet_get_bw_stats
 /*	hcache interface functions (UI -> Core)*/
 void guc_hcache_clear_host_type(host_type_t type)
 {
-	hcache_clear_host_type(type);	
+	hcache_clear_host_type(type);
 }
 
 void guc_hcache_clear(hcache_type_t type)
@@ -369,7 +369,7 @@ void guc_hsep_get_non_hsep_triple(hsep_triple *tripledest)
 }
 
 
-void guc_hsep_add_global_table_listener(GCallback cb, 
+void guc_hsep_add_global_table_listener(GCallback cb,
 	frequency_t t, guint32 interval)
 {
 	hsep_add_global_table_listener(cb, t, interval);
@@ -611,7 +611,7 @@ guint64 guc_shared_kbytes_scanned(void)
 
 void guc_share_add_search_request_listener(search_request_listener_t l)
 {
-	share_add_search_request_listener(l);	
+	share_add_search_request_listener(l);
 }
 
 

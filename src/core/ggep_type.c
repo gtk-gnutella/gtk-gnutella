@@ -265,7 +265,7 @@ ggept_lf_extract(extvec_t *exv, guint64 *filesize)
 
 	g_assert(exv->ext_type == EXT_GGEP);
 	g_assert(exv->ext_token == EXT_T_GGEP_LF);
-	
+
 	tlen = ext_paylen(exv);
 
 	if (tlen < 1 || tlen > 8)
@@ -320,7 +320,7 @@ ggept_du_extract(extvec_t *exv, guint32 *uptime)
 
 	g_assert(exv->ext_type == EXT_GGEP);
 	g_assert(exv->ext_token == EXT_T_GGEP_DU);
-	
+
 	tlen = ext_paylen(exv);
 
 	if (tlen < 1 || tlen > 4)

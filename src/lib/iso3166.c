@@ -10,7 +10,7 @@
  *  it under the terms of the GNU General Public License as published by
  *  the Free Software Foundation; either version 2 of the License, or
  *  (at your option) any later version.
- *  
+ *
  *  gtk-gnutella is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
@@ -25,9 +25,9 @@
 
 /**
  * @file
- *  
+ *
  * Support for mapping ISO 3166 2-letter codes and country names.
- */ 
+ */
 
 #include "common.h"
 
@@ -301,7 +301,7 @@ static iso3166_entry_t *iso3166_countries[NUM_CODES];
  * Decodes a valid 2-letter country code into an integer.
  * @return NULL integer isn't a validly encoded country code. If the country
  *		   is valid, a string pointing two the 2-letter code is returned. The
- *		   string is in a static buffer. 
+ *		   string is in a static buffer.
  */
 static const gchar *
 iso3166_decode_cc(gint code)
@@ -318,7 +318,7 @@ iso3166_decode_cc(gint code)
     i = code % 36;
     s[1] = i + (i < 10 ? '0' : 'a' - 10);
 
-    return s; 
+    return s;
 }
 
 /**
@@ -329,14 +329,14 @@ gint
 iso3166_encode_cc(const gchar *cc)
 {
     gint code;
-        
+
     g_assert(cc != NULL);
     if (is_ascii_alnum(cc[0]) && is_ascii_alnum(cc[1]) && '\0' == cc[2]) {
         const gchar *d;
 		guint64 v;
 		int error;
 
-		v = parse_uint64(cc, NULL, 36, &error);		
+		v = parse_uint64(cc, NULL, 36, &error);
         g_assert(v <= (36 * 35 + 35));
         g_assert(0 == error);
 

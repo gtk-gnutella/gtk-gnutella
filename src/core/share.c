@@ -825,7 +825,7 @@ recurse_scan(gchar *dir, const gchar *basedir)
 		g_warning("can't open directory %s: %s", dir, g_strerror(errno));
 		return;
 	}
-	
+
 	if (dir[strlen(dir) - 1] == G_DIR_SEPARATOR)
 		dir_slash = dir;
 	else
@@ -910,7 +910,7 @@ recurse_scan(gchar *dir, const gchar *basedir)
 					g_warning("Not sharing non-regular file: \"%s\"", full);
 					break;
 				}
-					
+
 				if (too_big_for_gnutella(file_stat.st_size)) {
 					g_warning("File is too big to be shared: \"%s\"", full);
 					break;
@@ -1243,7 +1243,7 @@ compact_query_utf8(gchar *search, gint utf8_len)
 				word_length++;
 			}
 		}
-	
+
 		/* count the length of the original search string */
 		if (utf8_len) {
 			s += clen;
@@ -1260,7 +1260,7 @@ compact_query_utf8(gchar *search, gint utf8_len)
 		w -= word_length;
 		skip_space = TRUE;
 	}
-	
+
 	/* space left at end of query but query not empty, drop */
 	if (skip_space && (w != search)) {
 		if (dbg > 4)
@@ -1519,7 +1519,7 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 		mangled_search_len = compact_query_utf8(search + offset, utf8_len);
 
 		g_assert(mangled_search_len <= search_len - offset);
-	
+
 		if (mangled_search_len != search_len - offset) {
 			gnet_stats_count_general(GNR_QUERY_COMPACT_COUNT, 1);
 			gnet_stats_count_general(GNR_QUERY_COMPACT_SIZE,
@@ -1541,7 +1541,7 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 		search_len = mangled_search_len + offset;
 
 		g_assert(search[search_len] == '\0');
-	} 
+	}
 
 	/*
 	 * If there are extra data after the first NUL, fill the extension vector.
@@ -1815,7 +1815,7 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 	{
 		guint8 major, minor;
 		gboolean release;
-		
+
 		if (
 			guid_query_muid_is_gtkg(n->header.muid, oob,
 				&major, &minor, &release)
@@ -1854,7 +1854,7 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 		guint16 port;
 
 		guid_oob_get_ip_port(n->header.muid, &ip, &port);
-		
+
 		/*
 		 * Verify against the hotile IP addresses...
 		 */
@@ -2055,10 +2055,10 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 		memcpy(stmp_1, search + offset, search_len + 1);
 
 #ifdef USE_ICU
-		
+
 		if (!is_utf8)
 			ignore = TRUE;
-		
+
 /* XXX: Don't handle ISO-8859-1 encoded queries graciously any longer. UTF-8
  * is the _only_ valid encoding.
  *			- cbiere, 2004-12-06 */

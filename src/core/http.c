@@ -155,7 +155,7 @@ http_send_status(
 		token = tok_version();
 	}
 
-	if (code < 300 || !keep_alive) 
+	if (code < 300 || !keep_alive)
 		no_content = "";
 
 	g_assert((size_t) header_size <= sizeof(header));
@@ -195,7 +195,7 @@ http_send_status(
 				gint len = header_size - rw;
 
 				g_assert(len > 0 );
-				
+
 				(*he->he_cb)(&header[rw], &len, he->he_arg, cb_flags);
 
 				g_assert(len + rw <= header_size);
@@ -281,7 +281,7 @@ code_message_parse(const gchar *line, const gchar **msg)
 	v = parse_uint64(line, &ep, 10, &error);
 	if (error || v > 999 || (*ep != '\0' && !is_ascii_space(*ep)))
 		return -1;
-	
+
 	if (msg)
 		*msg = skip_ascii_spaces(ep);
 
@@ -702,7 +702,7 @@ http_content_range_parse(const gchar *buf,
 	static const gchar unit[] = "bytes";
 	const gchar *s = buf, *ep;
 	gint error;
-	
+
 	/*
 	 * HTTP/1.1 -- RFC 2616 -- 3.12 Range Units
 	 *
@@ -717,28 +717,28 @@ http_content_range_parse(const gchar *buf,
 
 	if (0 != strncasecmp(s, unit, CONST_STRLEN(unit)))
 		return -1;
-	
+
 	s += CONST_STRLEN(unit);
 	if (*s != ' ' && *s != '=')
 		return -1;
-	
+
 	s++;
 	s = skip_ascii_spaces(s);
 	*start = parse_uint64(s, (gchar **) &ep, 10, &error);
 	if (error || *ep++ != '-')
 		return -1;
-	
+
 	s = skip_ascii_spaces(ep);
 	*end = parse_uint64(s, (gchar **) &ep, 10, &error);
 	if (error || *ep++ != '/')
 		return -1;
-	
+
 	s = skip_ascii_spaces(ep);
 	*total = parse_uint64(s, (gchar **) &ep, 10, &error);
-	
+
 	return error ? -1 : 0;
 }
-	
+
 /***
  *** HTTP range parsing.
  ***/
@@ -1220,8 +1220,8 @@ http_range_merge(GSList *old_list, GSList *new_list)
 	GSList *result_list = NULL;
 	filesize_t highest = 0;
 
-	
-	/* 
+
+	/*
 	 * Build a result list based on the data in the old and new
 	 * lists.
 	 */
@@ -1235,10 +1235,10 @@ http_range_merge(GSList *old_list, GSList *new_list)
 			 * If ranges are identical just copy one.
 			 */
 
-			if (new_range->start == old_range->start 
+			if (new_range->start == old_range->start
 				&& new_range->end == old_range->end) {
 				highest = old_range->end;
-				result_list = 
+				result_list =
 					g_slist_append(result_list, http_range_clone(old_range));
 				old = g_slist_next(old);
 				new = g_slist_next(new);
@@ -1267,21 +1267,21 @@ http_range_merge(GSList *old_list, GSList *new_list)
 
 			if (new_range->end < old_range->start) {
 				highest = new_range->end;
-				result_list = 
+				result_list =
 					g_slist_append(result_list, http_range_clone(new_range));
 				new = g_slist_next(new);
 				continue;
 			}
 			if (old_range->end < new_range->start) {
 				highest = new_range->end;
-				result_list = 
+				result_list =
 					g_slist_append(result_list, http_range_clone(old_range));
 
 				old = g_slist_next(old);
 				continue;
 			}
 
-			/* 
+			/*
 			 * Handle overlapping case. Define a new range based on
 			 * boundaries of both ranges, add it, and then move to
 			 * next on both lists. We don't need to worry about
@@ -1325,14 +1325,14 @@ http_range_merge(GSList *old_list, GSList *new_list)
 
 			if (old) {
 				old_range = (http_range_t *) old->data;
-				if (old_range->end > highest) 
-					result_list = g_slist_append(result_list, 
+				if (old_range->end > highest)
+					result_list = g_slist_append(result_list,
 								  http_range_clone(old_range));
 				old = g_slist_next(old);
 			}
 			if (new) {
 				new_range = (http_range_t *) new->data;
-				if (new_range->end > highest) 
+				if (new_range->end > highest)
 					result_list = g_slist_append(result_list,
 								  http_range_clone(new_range));
 				new = g_slist_next(new);
@@ -1709,7 +1709,7 @@ http_async_build_request(gpointer unused_handle, gchar *buf, size_t len,
 		"Connection: close\r\n"
 		"\r\n",
 		verb, path, host, port_str, version_string);
-	
+
 	return rw;
 }
 
@@ -2335,7 +2335,7 @@ static void
 http_header_start(gpointer handle)
 {
 	struct http_async *ha = (struct http_async *) handle;
-	
+
 	g_assert(ha->magic == HTTP_ASYNC_MAGIC);
 
 	http_async_newstate(ha, HTTP_AS_HEADERS);
@@ -2457,7 +2457,7 @@ http_async_connected(gpointer handle)
 	 */
 
 	http_async_newstate(ha, HTTP_AS_REQ_SENDING);
-	
+
 	sent = bws_write(bws.out, &s->wio, req, rw);
 	if ((ssize_t) -1 == sent) {
 		g_warning("HTTP request sending to %s failed: %s",

@@ -90,10 +90,10 @@ open_read_stamp(const gchar *file, time_t *stamp)
 	FILE *f;
 	char *path;
 	struct stat buf;
-	
+
 	path = make_pathname(settings_config_dir(), file);
 	g_return_val_if_fail(NULL != path, NULL);
-		
+
 	if (-1 == stat(path, &buf)) {
 		if (stamp)
 			*stamp = time(NULL);

@@ -89,7 +89,7 @@ normalize(gchar *field)
 	gboolean start_word = TRUE;
 	gchar *s;
 	gint c;
-	
+
 	for (s = field, c = *s; c; c = *(++s)) {
 		if (start_word) {
 			if (is_ascii_alnum(c)) {

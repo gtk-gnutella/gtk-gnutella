@@ -115,8 +115,8 @@ skip_ascii_spaces(const gchar *s)
 #define G_N_ELEMENTS(arr) (sizeof (arr) / sizeof ((arr)[0]))
 #endif
 
-/* 
- * Set/clear binary flags 
+/*
+ * Set/clear binary flags
  */
 typedef guint16 flag_t;
 #define set_flags(r,f) (r = r | (f))

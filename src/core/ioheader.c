@@ -89,7 +89,7 @@ io_free(gpointer opaque)
 		getline_free(ih->getline);
 	if (ih->text)
 		g_string_free(ih->text, TRUE);
-	
+
 	wfree(ih, sizeof(*ih));
 }
 
@@ -384,7 +384,7 @@ io_read_data(gpointer data, gint unused_source, inputevt_cond_t cond)
 	 * Ignore interrupted read syscall (EAGAIN), but signal EOF and other
 	 * errors to our client.
 	 */
-	
+
 	r = bws_read(ih->bs, &s->wio, s->buffer + s->pos, count);
 	if (r == 0) {
 		socket_eof(s);
@@ -399,7 +399,7 @@ io_read_data(gpointer data, gint unused_source, inputevt_cond_t cond)
 	}
 
 	/*
-	 * During the header reading phase, we don't update any "last_update" 
+	 * During the header reading phase, we don't update any "last_update"
 	 * kind of field, on purpose.  The timeouts are defined for the whole
 	 * connection phase, i.e. until we read the end of the headers.
 	 */

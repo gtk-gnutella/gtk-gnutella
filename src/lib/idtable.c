@@ -62,7 +62,7 @@ static guint32 find_unused_id(idtable_t *tbl)
 
     g_assert(tbl->ids < tbl->size);
     g_assert(tbl->last_id < tbl->size);
-    
+
     /*
      * Seek a block which has room (at least one bit in id block must
      * be ZERO.
@@ -112,7 +112,7 @@ static void idtable_extend(idtable_t *tbl)
     /*
      * All new ids be marked unused.
      */
-    memset(&tbl->used_ids[old_blk_count], 0, 
+    memset(&tbl->used_ids[old_blk_count], 0,
         (BLOCK_COUNT(tbl)-old_blk_count)*sizeof(guint32));
 }
 
@@ -136,7 +136,7 @@ idtable_t *idtable_new(guint32 isize, guint32 esize)
     g_assert(isize > 0);
 
     tbl = g_new(idtable_t, 1);
-    
+
     /*
      * We need sizes in multiples of 32 so that the used_ids blocks
      * can always be fully used. find_unused_id depends on that.
@@ -164,7 +164,7 @@ void idtable_destroy(idtable_t *tbl)
     g_assert(tbl->last_id < tbl->size);
 
     if (tbl->ids > 0) {
-        g_warning("idtable_destroy: destroying table with %u ids", 
+        g_warning("idtable_destroy: destroying table with %u ids",
             tbl->ids);
     }
 
@@ -179,7 +179,7 @@ void idtable_destroy(idtable_t *tbl)
  * idtable_new_id:
  *
  * Get a id for the given value. The id can be used to look up the
- * value later. 
+ * value later.
  */
 guint32 idtable_new_id(idtable_t *tbl, gpointer value)
 {
@@ -188,7 +188,7 @@ guint32 idtable_new_id(idtable_t *tbl, gpointer value)
     g_assert(tbl != NULL);
     g_assert(tbl->ids <= tbl->size);
     g_assert(tbl->last_id < tbl->size);
-    
+
     /*
      * When the table is already full, we extend it.
      */
@@ -201,17 +201,17 @@ guint32 idtable_new_id(idtable_t *tbl, gpointer value)
     id = find_unused_id(tbl);
     MARK_ID(tbl, id);
     tbl->data[id] = value;
-    
+
     tbl->ids++;
     tbl->last_id = id;
-    
+
     return id;
 }
 
 /*
  * idtable_new_id_value
  *
- * Request a special id for a given value. If the id must not be already in 
+ * Request a special id for a given value. If the id must not be already in
  * use.Best check whether the id is already in use with the idtable_is_id_used
  * call. If the id is outside the current id range, the table is extend
  * until the id is in range.
@@ -220,7 +220,7 @@ void idtable_new_id_value(idtable_t *tbl, guint32 id, gpointer value)
 {
     g_assert(tbl != NULL);
     g_assert(tbl->last_id < tbl->size);
-    
+
     while (id >= tbl->size)
         idtable_extend(tbl);
 
@@ -249,7 +249,7 @@ void idtable_set_value(idtable_t *tbl, guint32 id, gpointer value)
  * idtable_get_value:
  *
  * Fetch the value associated with the given id. The id must have been
- * requested with idtable_request_id before and must not be accessed 
+ * requested with idtable_request_id before and must not be accessed
  * after it has been dropped by idtable_drop_id.
  */
 gpointer idtable_get_value(idtable_t *tbl, guint32 id)

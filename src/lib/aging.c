@@ -73,7 +73,7 @@ struct aging_value {
 /**
  * Create new aging container.
  *
- * @param delay		the aging delay, in seconds, for entries 
+ * @param delay		the aging delay, in seconds, for entries
  * @param hash		the hashing function for the keys in the hash table
  * @param eq		the equality function for the keys in the hash table
  * @param kfree		the key freeing callback, NULL if none.

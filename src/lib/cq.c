@@ -318,7 +318,7 @@ cq_expire(cqueue_t *cq, cevent_t *ev)
 {
 	cq_service_t fn = ev->ce_fn;
 	gpointer arg = ev->ce_arg;
-	
+
 	g_assert(valid_ptr(cq));
 	g_assert(ev->ce_magic == EV_MAGIC);
 	g_assert(valid_ptr(fn));

@@ -66,26 +66,26 @@ void features_close()
  * header_features_add
  *
  * Add support for feature_name with the specified version to the X-Features
- * header. 
+ * header.
  */
 void header_features_add(struct xfeature_t *xfeatures,
-	gchar *feature_name, 
+	gchar *feature_name,
 	int feature_version_major,
 	int feature_version_minor)
 {
 	struct header_x_feature *feature = walloc(sizeof(*feature));
-	
+
 	feature->name = g_strdup(feature_name);
 	feature->major = feature_version_major;
 	feature->minor = feature_version_minor;
-	
+
 	xfeatures->features = g_list_append(xfeatures->features, feature);
 }
 
 /*
  * header_features_cleanup
  *
- * Removes all memory used by the header_features_add. 
+ * Removes all memory used by the header_features_add.
  */
 void header_features_cleanup(struct xfeature_t *xfeatures)
 {
@@ -93,10 +93,10 @@ void header_features_cleanup(struct xfeature_t *xfeatures)
 	for(cur = g_list_first(xfeatures->features);
 		cur != g_list_last(xfeatures->features);
 		cur = g_list_next(cur)) {
-		
-		struct header_x_feature *feature = 
+
+		struct header_x_feature *feature =
 			(struct header_x_feature *) cur->data;
-		
+
 		G_FREE_NULL(feature->name);
 		wfree(feature, sizeof(*feature));
 	}
@@ -105,7 +105,7 @@ void header_features_cleanup(struct xfeature_t *xfeatures)
 /*
  * header_features_generate
  *
- * Adds the X-Features header to a HTTP request. 
+ * Adds the X-Features header to a HTTP request.
  * buf should point to the beginning of the header, *rw should contain the
  * number of bytes that were allready written. type should be the type of which
  * we should include in the X-Features header.
@@ -123,12 +123,12 @@ void header_features_generate(struct xfeature_t *xfeatures,
 
 	if (len - *rw < (sizeof(hdr) + sizeof(": \r\n") - 1))
 		return;
-		
+
 	if (g_list_first(xfeatures->features) == NULL)
 		return;
-	
+
 	fmt = header_fmt_make(hdr, ", ", len - *rw);
-	
+
 	for (
 		cur = g_list_first(xfeatures->features);
 		cur != NULL;
@@ -137,15 +137,15 @@ void header_features_generate(struct xfeature_t *xfeatures,
 		gchar feature_version[50];
 		struct header_x_feature *feature = 
 			(struct header_x_feature *) cur->data;
-		
+
 		gm_snprintf(feature_version, sizeof(feature_version), "%s/%d.%d",
 			feature->name, feature->major, feature->minor);
-		
+
 		header_fmt_append_value(fmt, feature_version);
 	}
 
 	header_fmt_end(fmt);
-	
+
 	if ((size_t) header_fmt_length(fmt) < len - *rw) {
 		*rw += gm_snprintf(&buf[*rw], len - *rw, "%s", header_fmt_string(fmt));
 	}
@@ -156,7 +156,7 @@ void header_features_generate(struct xfeature_t *xfeatures,
 /*
  * header_get_feature
  *
- * Retrieves the major and minor version from a feature in the X-Features 
+ * Retrieves the major and minor version from a feature in the X-Features
  * header, if no support was found both major and minor are 0.
  */
 void header_get_feature(const gchar *feature_name, const header_t *header,
@@ -166,7 +166,7 @@ void header_get_feature(const gchar *feature_name, const header_t *header,
 	gchar *start, *ep;
 	gint error;
 	gulong val;
-	
+
 	*feature_version_major = 0;
 	*feature_version_minor = 0;
 
@@ -176,7 +176,7 @@ void header_get_feature(const gchar *feature_name, const header_t *header,
 	 * We could also try to scan for the header: feature_name, so this would
      * make this function even more generic. But I would suggest another
      * function for this though.
-     */	
+     */
 
 	if (buf == NULL) {
 		/*
@@ -185,7 +185,7 @@ void header_get_feature(const gchar *feature_name, const header_t *header,
 		 * it was only for "legacy" attributes in the HTTP file exchange.
 		 * Better safe than sorry.
 		 */
-		
+
 		return;
 	}
 
@@ -223,7 +223,7 @@ void header_get_feature(const gchar *feature_name, const header_t *header,
 		g_warning("[header] Malformed X-Features header, ignoring");
 		if (dbg > 2)
 			header_dump(header, stderr);
-		
+
 		return;
 	}
 

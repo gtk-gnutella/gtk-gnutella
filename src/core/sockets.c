@@ -184,7 +184,7 @@ sol_ip(void)
 }
 
 #ifdef USE_IP_TOS
-  
+
 /**
  * Set the TOS on the socket.  Routers can use this information to
  * better route the IP datagrams.
@@ -194,7 +194,7 @@ socket_tos(struct gnutella_socket *s, gint tos)
 {
 	if (!use_ip_tos)
 		return;
-		
+
 	if (
 		-1 == setsockopt(s->file_desc, sol_ip(),
 				IP_TOS, (gpointer) &tos, sizeof(tos))
@@ -330,7 +330,7 @@ proxy_connect(int fd)
 			return -1;
 		}
 	}
-	
+
 	if (!proxy_ip || !proxy_port) {
 		errno = EINVAL;
 		return -1;
@@ -370,7 +370,7 @@ send_socks(struct gnutella_socket *s)
 
 	/* Copy the username */
 	strncpy(&realreq[sizeof(struct sockreq)], name, name_size);
-	
+
 	/* Create the request */
 	thisreq = (struct sockreq *) realreq;
 	thisreq->version = 4;
@@ -408,7 +408,7 @@ recv_socks(struct gnutella_socket *s)
 		/* Let the application try and see how they go */
 		return ECONNREFUSED;
 	}
-	
+
 	ret = (ssize_t) -1;
 	if (thisrep.result == 91) {
 		g_warning("SOCKS server refused connection");
@@ -620,13 +620,13 @@ connect_socksv5(struct gnutella_socket *s)
 			name = socks_user;
 		} else {
 			const struct passwd *pw;
-			
+
 			/* Determine the current *nix username */
 			pw = getpwuid(getuid());
 			name = pw != NULL ? pw->pw_name : NULL;
 		}
-	
-		if (name == NULL) {	
+
+		if (name == NULL) {
 			g_warning("No Username to authenticate with.");
 			return ECONNREFUSED;
 		}
@@ -640,7 +640,7 @@ connect_socksv5(struct gnutella_socket *s)
 			g_warning("Username or password exceeds 255 characters.");
 			return ECONNREFUSED;
 		}
-		
+
 		size = gm_snprintf(s->buffer, sizeof s->buffer, "\x01%c%s%c%s",
 					(guchar) strlen(name), name,
 					(guchar) strlen(socks_pass), socks_pass);
@@ -688,7 +688,7 @@ connect_socksv5(struct gnutella_socket *s)
 		WRITE_GUINT16_BE(s->port, &s->buffer[8]);
 
 		/* Now send the connection */
-		
+
 		size = 10;
 		ret = write(sockid, s->buffer, size);
 		if ((size_t) ret != size) {
@@ -701,7 +701,7 @@ connect_socksv5(struct gnutella_socket *s)
 		break;
 	case 5:
 		/* Now receive the reply to see if we connected */
-		
+
 		size = 10;
 		ret = read(sockid, s->buffer, size);
 		if (ret == (ssize_t) -1) {
@@ -771,7 +771,7 @@ socket_timer(time_t now)
 	for (l = sl_incoming; l; l = g_slist_next(l)) {
 		struct gnutella_socket *s = (struct gnutella_socket *) l->data;
 		gint32 delta;
-		
+
 		g_assert(s->last_update);
 		/*
 		 * Last_update can be in the feature due to parq. This is needed
@@ -942,7 +942,7 @@ get_dh_params(void)
 {
 	static gnutls_dh_params dh_params;
 	static gboolean initialized = FALSE;
-	
+
 	if (!initialized) {
  		if (gnutls_dh_params_init(&dh_params)) {
 			g_warning("%s: gnutls_dh_params_init() failed", __func__);
@@ -965,7 +965,7 @@ socket_tls_setup(struct gnutella_socket *s)
 	if (!s->tls.enabled) {
 		return 1;
 	}
-	
+
 	if (s->tls.stage < SOCK_TLS_INITIALIZED) {
 		static const int cipher_list[] = {
 			GNUTLS_CIPHER_AES_256_CBC, GNUTLS_CIPHER_AES_128_CBC,
@@ -982,17 +982,17 @@ socket_tls_setup(struct gnutella_socket *s)
 		gnutls_anon_server_credentials server_cred;
 		gnutls_anon_client_credentials client_cred;
 		void *cred;
-		
+
 		if (s->direction == SOCK_CONN_INCOMING) {
-			
+
 			if (gnutls_anon_allocate_server_credentials(&server_cred)) {
 				g_warning("gnutls_anon_allocate_server_credentials() failed");
 				goto destroy;
 			}
-		
+
 			gnutls_anon_set_server_dh_params(server_cred, get_dh_params());
 			cred = server_cred;
-			
+
 			if (gnutls_init(&s->tls.session, GNUTLS_SERVER)) {
 				g_warning("gnutls_init() failed");
 				goto destroy;
@@ -1005,7 +1005,7 @@ socket_tls_setup(struct gnutella_socket *s)
 				goto destroy;
 			}
 			cred = client_cred;
-			
+
 			if (gnutls_init(&s->tls.session, GNUTLS_CLIENT)) {
 				g_warning("gnutls_init() failed");
 				goto destroy;
@@ -1016,15 +1016,15 @@ socket_tls_setup(struct gnutella_socket *s)
 			g_warning("gnutls_credentials_set() failed");
 			goto destroy;
 		}
-		
+
 #if 0
 		if (gnutls_set_default_priority(s->tls.session)) {
 			g_warning("gnutls_set_default_priority() failed");
 			goto destroy;
 		}
 #endif
-	
-		gnutls_set_default_priority(s->tls.session);	
+
+		gnutls_set_default_priority(s->tls.session);
 		if (gnutls_cipher_set_priority(s->tls.session, cipher_list)) {
 			g_warning("gnutls_cipher_set_priority() failed");
 			goto destroy;
@@ -1037,14 +1037,14 @@ socket_tls_setup(struct gnutella_socket *s)
 			g_warning("gnutls_mac_set_priority() failed");
 			goto destroy;
 		}
-			
+
 		gnutls_transport_set_ptr(s->tls.session,
 				(gnutls_transport_ptr) s->file_desc);
-		
+
 		s->tls.stage = SOCK_TLS_INITIALIZED;
 	}
-	
-	if (s->tls.stage < SOCK_TLS_ESTABLISHED) {	
+
+	if (s->tls.stage < SOCK_TLS_ESTABLISHED) {
 		gint ret;
 
 		ret = gnutls_handshake(s->tls.session);
@@ -1100,7 +1100,7 @@ socket_read(gpointer data, gint source, inputevt_cond_t cond)
 		ssize_t ret;
 		size_t i;
 		gchar buf[32];
-		
+
 		/* Peek at the socket buffer to check whether the incoming
 		 * connection uses TLS or not. */
 		ret = recv(s->file_desc, buf, sizeof buf, MSG_PEEK);
@@ -1138,12 +1138,12 @@ socket_read(gpointer data, gint source, inputevt_cond_t cond)
 			/* If recv() failed only temporarily, wait for further data. */
 			return;
 		}
-			
+
 		if (s->tls.enabled && !socket_tls_setup(s))
 			return;
 	}
 #endif /* USE_TLS */
-	
+
 	g_assert(sizeof(s->buffer) >= s->pos);
 	count = sizeof(s->buffer) - s->pos;
 
@@ -1292,7 +1292,7 @@ socket_read(gpointer data, gint source, inputevt_cond_t cond)
 	 */
 
 	banlimit = parq_banned_source_expire(s->ip);
-	 
+
 	if (banlimit > 0) {
 		if (dbg)
 			g_warning("[sockets] PARQ has banned ip %s until %d",
@@ -1722,7 +1722,7 @@ accepted:
 	t->local_port = s->local_port;
 	t->getline = getline_make(MAX_LINE_SIZE);
 	t->flags |= SOCK_F_TCP;
-	
+
 #ifdef USE_TLS
 	t->tls.enabled = s->tls.enabled; /* Inherit from listening socket */
 	t->tls.stage = SOCK_TLS_NONE;
@@ -1732,7 +1732,7 @@ accepted:
 	g_message("Incoming connection");
 #endif /* USE_TLS */
 
-	socket_wio_link(t);	
+	socket_wio_link(t);
 
 	t->flags |= SOCK_F_ESTABLISHED;
 
@@ -1837,7 +1837,7 @@ socket_udp_accept(gpointer data, gint unused_source, inputevt_cond_t cond)
  */
 static struct gnutella_socket *
 socket_connect_prepare(guint16 port, enum socket_type type)
-{	
+{
 	struct gnutella_socket *s;
 	gint sd, option = 1;
 
@@ -1880,7 +1880,7 @@ created:
 	s->tls.snarf = 0;
 #endif /* USE_TLS */
 
-	socket_wio_link(s);	
+	socket_wio_link(s);
 
 	setsockopt(s->file_desc, SOL_SOCKET, SO_KEEPALIVE, (void *) &option,
 			   sizeof(option));
@@ -1911,7 +1911,7 @@ socket_connect_finalize(struct gnutella_socket *s, guint32 ip_addr)
 		socket_destroy(s, "Not connecting to hostile host");
 		return NULL;
 	}
-			
+
 	s->ip = ip_addr;
 	memset(&addr, 0, sizeof(addr));
 	addr.sin_family = AF_INET;
@@ -1958,7 +1958,7 @@ socket_connect_finalize(struct gnutella_socket *s, guint32 ip_addr)
 
 		g_warning("Unable to connect to %s: (%s)",
 				ip_port_to_gchar(s->ip, s->port), g_strerror(errno));
-	
+
 		if (s->adns & SOCK_ADNS_PENDING)
 			s->adns_msg = "Connection failed";
 		else
@@ -1998,7 +1998,7 @@ socket_connect(guint32 ip_addr, guint16 port, enum socket_type type)
 	/* Create a socket and try to connect it to ip:port */
 
 	struct gnutella_socket *s;
-	
+
 	s = socket_connect_prepare(port, type);
 	if (s == NULL)
 		return NULL;
@@ -2030,7 +2030,7 @@ socket_connect_by_name_helper(guint32 ip_addr, gpointer user_data)
 		s->adns &= ~SOCK_ADNS_PENDING;
 		s->adns |= SOCK_ADNS_FAILED | SOCK_ADNS_BADNAME;
 		s->adns_msg = "Could not resolve address";
-		return; 
+		return;
 	}
 	if (NULL == socket_connect_finalize(s, ip_addr)) {
 		s->adns &= ~SOCK_ADNS_PENDING;
@@ -2384,7 +2384,7 @@ socket_plain_write(struct wrap_io *wio, gconstpointer buf, size_t size)
 #ifdef USE_TLS
 	g_assert(!SOCKET_USES_TLS(s));
 #endif
-	
+
 	return write(s->file_desc, buf, size);
 }
 
@@ -2396,7 +2396,7 @@ socket_plain_read(struct wrap_io *wio, gpointer buf, size_t size)
 #ifdef USE_TLS
 	g_assert(!SOCKET_USES_TLS(s));
 #endif
-	
+
 	return read(s->file_desc, buf, size);
 }
 
@@ -2492,16 +2492,16 @@ socket_tls_write(struct wrap_io *wio, gconstpointer buf, size_t size)
 	g_assert(buf != NULL);
 
 	g_assert(SOCKET_USES_TLS(s));
-	
+
 	if (0 != s->tls.snarf) {
 		p = NULL;
 		len = 0;
 	} else {
 		p = buf;
 		len = size;
-		g_assert(NULL != p && 0 != len);	
+		g_assert(NULL != p && 0 != len);
 	}
-				
+
 	ret = gnutls_record_send(s->tls.session, p, len);
 	if (ret <= 0) {
 		switch (ret) {
@@ -2545,13 +2545,13 @@ socket_tls_read(struct wrap_io *wio, gpointer buf, size_t size)
 {
 	struct gnutella_socket *s = wio->ctx;
 	ssize_t ret;
-	
+
 	g_assert(size <= INT_MAX);
 	g_assert(s != NULL);
 	g_assert(buf != NULL);
 
 	g_assert(SOCKET_USES_TLS(s));
-		
+
 	ret = gnutls_record_recv(s->tls.session, buf, size);
 	if (ret < 0) {
 		switch (ret) {
@@ -2570,7 +2570,7 @@ socket_tls_read(struct wrap_io *wio, gpointer buf, size_t size)
 		}
 		ret = -1;
 	}
-	
+
 	g_assert(ret == (ssize_t) -1 || (size_t) ret <= size);
 	return ret;
 }
@@ -2581,7 +2581,7 @@ socket_tls_writev(struct wrap_io *wio, const struct iovec *iov, int iovcnt)
 	struct gnutella_socket *s = wio->ctx;
 	ssize_t ret, written;
 	int i;
-		
+
 	g_assert(SOCKET_USES_TLS(s));
 	g_assert(iovcnt > 0);
 
@@ -2616,14 +2616,14 @@ socket_tls_writev(struct wrap_io *wio, const struct iovec *iov, int iovcnt)
 	}
 
 	ret = -2;	/* Shut the compiler: iovcnt could still be 0 */
-	written = 0;	
+	written = 0;
 	for (i = 0; i < iovcnt; ++i) {
 		gchar *p;
 		size_t len;
 
 		p = iov[i].iov_base;
 		len = iov[i].iov_len;
-		g_assert(NULL != p && 0 != len);	
+		g_assert(NULL != p && 0 != len);
 		ret = gnutls_record_send(s->tls.session, p, len);
 		if (ret <= 0) {
 			switch (ret) {
@@ -2645,13 +2645,13 @@ socket_tls_writev(struct wrap_io *wio, const struct iovec *iov, int iovcnt)
 				errno = EIO;
 				ret = -1;
 			}
-				
+
 			break;
 		}
-			
+
 		written += ret;
 		ret = written;
-	}	
+	}
 
 	g_assert(ret == (ssize_t) -1 || ret >= 0);
 	return ret;
@@ -2664,18 +2664,18 @@ socket_tls_readv(struct wrap_io *wio, struct iovec *iov, int iovcnt)
 	int i;
 	size_t rcvd = 0;
 	ssize_t ret;
-	
+
 	g_assert(SOCKET_USES_TLS(s));
 	g_assert(iovcnt > 0);
-	
+
 	ret = 0;	/* Shut the compiler: iovcnt could still be 0 */
 	for (i = 0; i < iovcnt; ++i) {
 		size_t len;
 		gchar *p;
-		
+
 		p = iov[i].iov_base;
 		len = iov[i].iov_len;
-		g_assert(NULL != p && 0 != len);	
+		g_assert(NULL != p && 0 != len);
 		ret = gnutls_record_recv(s->tls.session, p, len);
 		if (ret > 0) {
 			rcvd += ret;
@@ -2723,7 +2723,7 @@ socket_wio_link(struct gnutella_socket *s)
 
 	s->wio.ctx = s;
 	s->wio.fd = socket_get_fd;
-	
+
 #ifdef USE_TLS
 	if (SOCKET_USES_TLS(s)) {
 		s->wio.write = socket_tls_write;

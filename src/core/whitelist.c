@@ -61,7 +61,7 @@ static void whitelist_retrieve(void)
 	file_path_set(fp, settings_config_dir(), whitelist_file);
 	f = file_config_open_read_norename("Host Whitelist", fp, G_N_ELEMENTS(fp));
 	if (!f)
-		return; 
+		return;
 
 	if (fstat(fileno(f), &st)) {
 		g_warning("whitelist_retrieve: fstat() failed: %s", g_strerror(errno));
@@ -82,12 +82,12 @@ static void whitelist_retrieve(void)
 				break;
            	*p = '\0';
 		}
-			
+
         if ('\0' == *line)
             continue;
 
         sport = snetmask = NULL;
-        
+
         if ((p = strchr(line, '/')) != NULL) {
             *p = '\0';
             snetmask = ++p;
@@ -103,8 +103,8 @@ static void whitelist_retrieve(void)
 				"Line %d: Invalid IP \"%s\"", linenum, line);
             continue;
         }
-        
-        if (sport) 
+
+        if (sport)
             port = atol(sport);
         else
             port = 0;
@@ -122,7 +122,7 @@ static void whitelist_retrieve(void)
             } else {
 				gint error;
 				gulong v;
-			
+
 				v = gm_atoul(snetmask, NULL, &error);
                 if (!error && v > 0 && v <= 32) {
                 	netmask = ~(0xffffffffU >> v);
@@ -141,7 +141,7 @@ static void whitelist_retrieve(void)
 
         sl_whitelist = g_slist_prepend(sl_whitelist, n);
     }
-                                                
+
     sl_whitelist = g_slist_reverse(sl_whitelist);
 }
 
@@ -195,7 +195,7 @@ void whitelist_close(void)
 {
     GSList *sl;
 
-    for (sl = sl_whitelist; sl; sl = g_slist_next(sl)) 
+    for (sl = sl_whitelist; sl; sl = g_slist_next(sl))
         g_free(sl->data);
 
     g_slist_free(sl_whitelist);
@@ -243,7 +243,7 @@ gboolean whitelist_check(guint32 ip)
             }
         }
     }
-    
+
     for (sl = sl_whitelist; sl; sl = g_slist_next(sl)) {
         n = sl->data;
         if ((ip & n->netmask) == (n->ip & n->netmask))

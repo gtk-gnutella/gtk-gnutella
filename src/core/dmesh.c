@@ -1,4 +1,4 @@
-/* 
+/*
  * $Id$
  *
  * Copyright (c) 2002-2003, Raphael Manfredi
@@ -254,7 +254,7 @@ dmesh_ban_expire(cqueue_t *unused_cq, gpointer obj)
 
 		atom_sha1_free(dmb->sha1);
 	}
-	
+
 	g_hash_table_remove(ban_mesh, dmb->info);
 	dmesh_urlinfo_free(dmb->info);
 	wfree(dmb, sizeof(*dmb));
@@ -270,7 +270,7 @@ dmesh_ban_add(const gchar *sha1, dmesh_urlinfo_t *info, time_t stamp)
 	time_t now = time(NULL);
 	struct dmesh_banned *dmb;
 	gint lifetime = BAN_LIFETIME;
-	
+
 	if (stamp == 0)
 		stamp = now;
 
@@ -304,9 +304,9 @@ dmesh_ban_add(const gchar *sha1, dmesh_urlinfo_t *info, time_t stamp)
 		dmb->cq_ev = cq_insert(callout_queue,
 			lifetime * 1000, dmesh_ban_expire, dmb);
 		dmb->sha1 = NULL;
-		
+
 		g_hash_table_insert(ban_mesh, dmb->info, dmb);
-		
+
 		/*
 		 * Keep record of banned hosts by SHA1 Hash. We will use this to send
 		 * out X-Nalt locations.
@@ -337,7 +337,7 @@ dmesh_ban_add(const gchar *sha1, dmesh_urlinfo_t *info, time_t stamp)
 	else if (delta_time(dmb->ctime, stamp) < 0) {
 		dmb->ctime = stamp;
 		cq_resched(callout_queue, dmb->cq_ev, lifetime * 1000);
-	}	
+	}
 }
 
 /**
@@ -427,7 +427,7 @@ dmesh_url_parse(gchar *url, dmesh_urlinfo_t *info)
 
 	if (1 == sscanf(file, "/uri-res/N2R%c", &q) && q == '?')
 		goto ok;
-	
+
 	dmesh_url_errno = DMESH_URL_BAD_FILE_PREFIX;
 	return FALSE;
 
@@ -966,7 +966,7 @@ dmesh_entry_url_stamp(const struct dmesh_entry *dme, gchar *buf, size_t len)
 
 	g_assert(len > 0);
 	g_assert(len <= INT_MAX);
-	
+
 	/*
 	 * Format the URL info first.
 	 */
@@ -1227,14 +1227,14 @@ dmesh_alternate_location(const gchar *sha1,
 			g_assert(length < size);
 			strncpy(buf, header_fmt_string(fmt), length + 1); /* + final NUL */
 			len += length;
-		}	
+		}
 
 		header_fmt_free(fmt);
 	}
 
 	/* Find mesh entry for this SHA1 */
 	dm = (struct dmesh *) g_hash_table_lookup(mesh, sha1);
-	
+
 	/*
 	 * Start filling the buffer.
 	 */
@@ -1288,8 +1288,8 @@ dmesh_alternate_location(const gchar *sha1,
 		goto nomore;
 
 	if (delta_time(dm->last_update, last_sent) <= 0)	/* No new insertion */
-		goto nomore;	
-	
+		goto nomore;
+
 	/*
 	 * Expire old entries.  If none remain, free entry and return.
 	 */
@@ -1386,7 +1386,7 @@ dmesh_alternate_location(const gchar *sha1,
 nomore:
 	if (added) {
 		size_t length;
-		
+
 		header_fmt_end(fmt);
 		length = header_fmt_length(fmt);
 		g_assert(length + len < size);
@@ -1432,7 +1432,7 @@ dmesh_get_nonurn_altlocs(const gchar *sha1)
 
 	for (l = dm->entries; l ; l = l->next) {
 		struct dmesh_entry *dme = (struct dmesh_entry *) l->data;
-			
+
 		if (dme->url.idx != URN_INDEX)
 			nonurn_altlocs = g_slist_append(nonurn_altlocs, dme);
 	}
@@ -1513,7 +1513,7 @@ dmesh_check_deferred_against_existing(gchar *sha1,
 
     /* We want to match at least 2 or more entries, going for 50% */
     threshold = (threshold < 3) ? 2 : (threshold / 2);
-    
+
 	for (def = deferred_urls; def; def = def->next) {
 		dmesh_deferred_url_t *d = def->data;
 		matches = 0;
@@ -1593,7 +1593,7 @@ dmesh_check_deferred_against_themselves(gchar *sha1, GSList *deferred_urls)
 				first->dmesh_url->name);
 		return;
 	}
-    
+
 	for (/*empty */; l; l = g_slist_next(l)) {
 		current = l->data;
 		score = fuzzy_compare(first->dmesh_url->name, current->dmesh_url->name);
@@ -1654,7 +1654,7 @@ dmesh_check_deferred_altlocs(gchar *sha1, GSList *deferred_urls)
 
     if (NULL == deferred_urls)		/* Nothing to do */
 		return;
-    
+
     existing_urls = dmesh_get_nonurn_altlocs(sha1);
 
     if (existing_urls) {
@@ -1769,7 +1769,7 @@ dmesh_collect_compact_locations(gchar *sha1, gchar *value)
 							dmesh_urlinfo_to_gchar(&info), (guint) now);
 				} else if (dbg)
 					g_warning("ignoring invalid compact alt-loc \"%s\"", start);
-					
+
 				*p = c;
 				p++;
 
@@ -1869,7 +1869,7 @@ dmesh_collect_locations(gchar *sha1, gchar *value, gboolean defer)
 
 			if (c == ' ' || c == ',')
 				break;
-	
+
 		next:
 			p++;
 		}

@@ -256,7 +256,7 @@ url_unescape(gchar *url, gboolean inplace)
 		unescaped_memory = p - url - (need_unescape << 1) + 1;
 		new = g_malloc(unescaped_memory);
 	}
-	
+
 	for (p = url, q = new, c = *p++; c; c = *p++) {
 		if (c != ESCAPE_CHAR)
 			*q++ = c;
@@ -457,7 +457,7 @@ url_normalize(gchar *url, url_policy_t pol)
 		q = endptr;
 
 	} else {
-		/* The ``host'' part is not an IP address */  
+		/* The ``host'' part is not an IP address */
 
 		for (/* NOTHING */; *q != '\0'; q++) {
 			gint c;
@@ -468,7 +468,7 @@ url_normalize(gchar *url, url_policy_t pol)
         		} else if (c != '-') {
           			break;
         		}
-      		}   
+      		}
 
 			if (c == '\0') {
 				if (dots < 1 && !(pol & URL_POLICY_ALLOW_LOCAL_HOSTS)) {
@@ -543,7 +543,7 @@ url_normalize(gchar *url, url_policy_t pol)
 			warn = "URL contains characters prohibited by policy";
 			goto bad;
 		}
-      
+
 		/* Handle relative paths i.e., /. and /.. */
 		if (c != '/') {
 				*q = c;
@@ -609,8 +609,8 @@ url_normalize(gchar *url, url_policy_t pol)
 	/* Add a trailing slash; if the URI is empty (to prevent dupes) */
 	if (*uri == '\0') {
 		ssize_t len = q - url;
- 
-		g_assert(len > 0); 
+
+		g_assert(len > 0);
 		p = g_malloc(len + sizeof "/");
 		if (p) {
 			memcpy(p, url, len);

@@ -218,7 +218,7 @@ mq_swift_checkpoint(mqueue_t *q, gboolean initial)
 		 * message at the tail of the queue, even if it is less prioritary
 		 * than our comparison point.
 		 */
-			
+
 		q->header.function = GTA_MSG_SEARCH_RESULTS;
 
 		/*
@@ -1012,7 +1012,7 @@ mq_puthere(mqueue_t *q, pmsg_t *mb, gint msize)
 
 		for (l = q->qtail; l; l = l->prev) {
 			pmsg_t *m = (pmsg_t *) l->data;
-			
+
 			if (
 				pmsg_is_unread(m) &&			/* Not partially written */
 				pmsg_prio(m) < prio				/* Reached insert point */

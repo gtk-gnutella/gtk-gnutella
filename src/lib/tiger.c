@@ -25,7 +25,7 @@
  *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *----------------------------------------------------------------------
  */
- 
+
 #include "common.h"
 
 RCSID("$Id$");
@@ -35,7 +35,7 @@ RCSID("$Id$");
 #include "override.h"		/* Must be the last header included */
 
 /*
- * The following macro denotes that an optimization 
+ * The following macro denotes that an optimization
  * for 64-bit CPUs is required. It is used only for
  * optimization of time. Otherwise it does nothing.
  */
@@ -72,7 +72,7 @@ guint64 table[4 * 256];
 
 #ifdef OPTIMIZE_FOR_64BIT
 	/* This is the official definition of round */
-	
+
 #	define round(a, b, c, x, mul) \
 		c ^= x; \
 		a -= t1[((c) >> (0 * 8)) & 0xFF] ^ t2[((c) >> (2 * 8)) & 0xFF] ^ \
@@ -149,7 +149,7 @@ guint64 table[4 * 256];
 		} \
 		feedforward
 #else
-		
+
 	/* loop: works better on PC and Sun (smaller cache?) */
 #	define compress \
 		save_abc \
@@ -224,28 +224,28 @@ void tiger(guint64 *str, guint64 length, guint64 res[3])
 	}
 
 #if G_BYTE_ORDER == G_BIG_ENDIAN
-	
+
 	for(j = 0; j < i; j++)
 		temp[j ^ 7] = ((gint8 *) str) [j];
 
 	temp[j ^ 7] = 0x01;
 	j++;
-	
+
 	for(; j & 7; j++)
 		temp[j^7] = 0;
 #elif G_BYTE_ORDER == G_LITTLE_ENDIAN
-	
+
 	for(j = 0; j < i; j++)
 		temp[j] = ((gint8 *) str) [j];
 
 	temp[j++] = 0x01;
-	
+
 	for(; j & 7; j++)
 		temp[j] = 0;
 #else
 #error Byteorder not supported!
 #endif
-	
+
 	if(j>56) {
 		for(; j < 64; j++)
 			temp[j] = 0;

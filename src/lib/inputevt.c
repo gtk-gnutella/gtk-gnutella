@@ -124,7 +124,7 @@ guint inputevt_add(gint source, inputevt_cond_t condition,
 		cond |= EXCEPTION_CONDITION;
 
 	chan = g_io_channel_unix_new(source);
-#ifdef USE_GLIB2	
+#ifdef USE_GLIB2
 	g_io_channel_set_encoding(chan, NULL, NULL); /* binary data */
 #endif
 	result = g_io_add_watch_full(chan, G_PRIORITY_DEFAULT, cond,

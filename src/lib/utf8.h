@@ -62,7 +62,7 @@ gchar *lazy_locale_to_utf8(const gchar *str, size_t len);
 gchar *locale_to_utf8_nfd(const gchar *str, size_t len);
 
 
-/* 
+/*
  * Necessary for GTK+ 1.2 version because it expects almost any string
  * to be in locale, but xml is stored in utf-8
  */

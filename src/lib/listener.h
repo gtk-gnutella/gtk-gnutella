@@ -27,7 +27,7 @@
 #include <glib.h>
 
 /*
- * To use the macros below with a "node_added" signal for example, 
+ * To use the macros below with a "node_added" signal for example,
  * you need to have a storage stucture to hold the listeners list
  * This needs to be defined in the following fashion. The name is
  * important for the macros to access the structure. For a "node_removed"

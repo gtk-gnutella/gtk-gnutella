@@ -101,7 +101,7 @@ ensure_unicity(const gchar *file)
 {
 	FILE *f;
 	pid_t pid;
-	guint64 pid_value; 
+	guint64 pid_value;
 	gint error;
 	gchar buf[16];
 
@@ -198,8 +198,8 @@ settings_getphysmemsize(void)
 		return 0;
 	}
 	return (pagesize >> 10) * (gulong) pages;
-	
-#elif defined(HAS_SYSCTL) && defined(CTL_HW) && defined(HW_USERMEM)
+
+#elif defined (HAS_SYSCTL) && defined (CTL_HW) && defined (HW_USERMEM)
 /* There's also HW_PHYSMEM but HW_USERMEM is better for our needs. */
 	int mib[2] = { CTL_HW, HW_USERMEM };
 	int amount = 0;
@@ -211,9 +211,9 @@ settings_getphysmemsize(void)
 			g_strerror(errno));
 		return 0;
 	}
-	
+
 	return amount / 1024;
-	
+
 #elif defined (HAS_GETINVENT)
 	inventory_t *inv;
 	long physmem = 0;
@@ -223,7 +223,7 @@ settings_getphysmemsize(void)
 			g_strerror(errno));
 		return 0;
 	}
-	
+
 	errno = 0;
 	while ((inv = getinvent()) != NULL) {
 		if (inv->inv_class == INV_MEMORY && inv->inv_type == INV_MAIN_MB) {
@@ -238,15 +238,15 @@ settings_getphysmemsize(void)
 			"getinvent() for INV_MEMORY faild: %s", g_strerror(errno));
 		return 0;
 	}
-	
+
 	return physmem * 1024;
 
 #else /* ! _SC_PHYS_PAGES && ! HAS_SYSCTL && ! HAS_GETINVENT */
-	
+
 	g_warning("Unable to determine amount of physical RAM");
 	return 0;
-	
-#endif 	/* _SC_PHYS_PAGES */
+
+#endif /* _SC_PHYS_PAGES */
 }
 
 void settings_init(void)
@@ -321,12 +321,12 @@ void settings_init(void)
 
 		/* Parse the configuration */
 	prop_load_from_file(properties, config_dir, config_file);
-    
+
 	path = make_pathname(config_dir, ul_stats_file);
 
 	upload_stats_load_history(path);	/* Loads the upload statistics */
 	G_FREE_NULL(path);
-	
+
 
 	/* watch for filter_file defaults */
 
@@ -677,7 +677,7 @@ get_average_servent_uptime(time_t now)
 
 	gnet_prop_get_guint32_val(PROP_AVERAGE_SERVENT_UPTIME, &avg_servent_uptime);
 	gnet_prop_get_guint32_val(PROP_START_STAMP, &val);
-	
+
 	start_stamp = val;
 	uptime = delta_time(now, start_stamp);
 	if (uptime < 0)
@@ -718,7 +718,7 @@ up_connections_changed(property_t prop)
     guint32 up_connections;
     guint32 max_connections;
 
-	g_assert(PROP_UP_CONNECTIONS == prop);   
+	g_assert(PROP_UP_CONNECTIONS == prop);
     gnet_prop_get_guint32_val(prop, &up_connections);
     gnet_prop_get_guint32_val(PROP_MAX_CONNECTIONS, &max_connections);
 
@@ -733,8 +733,8 @@ max_connections_changed(property_t prop)
 {
     guint32 up_connections;
     guint32 max_connections;
-    
-	g_assert(PROP_MAX_CONNECTIONS == prop);   
+
+	g_assert(PROP_MAX_CONNECTIONS == prop);
     gnet_prop_get_guint32_val(prop, &max_connections);
     gnet_prop_get_guint32_val(PROP_UP_CONNECTIONS, &up_connections);
 
@@ -840,13 +840,13 @@ listen_port_changed(property_t prop)
 
 			g_assert(listen_port > 1023);
 		}
-	
+
 		old_listen_port = listen_port;
-	
+
 		/*
 		 * Close old ports.
 		 */
-	
+
 		if (s_tcp_listen) {
 			socket_free(s_tcp_listen);
 			s_tcp_listen = NULL;
@@ -856,11 +856,11 @@ listen_port_changed(property_t prop)
 			socket_free(s_udp_listen);
 			s_udp_listen = NULL;
 		}
-	
+
 		/*
 		 * If the new port != 0, open the new port
 		 */
-	
+
 		if (listen_port)
 			s_tcp_listen = socket_tcp_listen(0, listen_port, SOCK_TYPE_CONTROL);
 
@@ -876,7 +876,7 @@ listen_port_changed(property_t prop)
 			}
 		}
 	} while (random_port && s_tcp_listen == NULL && ++num_tried < 65535 - 1024);
-	
+
     /*
      * If socket allocation failed, reset the property
      */
@@ -887,7 +887,7 @@ listen_port_changed(property_t prop)
 			listen_port = 0;
 		} else
         	old_listen_port = listen_port = 0;
-		
+
         gnet_prop_set_guint32_val(prop, listen_port);
         return TRUE;
     }
@@ -994,7 +994,7 @@ node_sendqueue_size_changed(property_t unused_prop)
         gnet_prop_set_guint32_val(PROP_NODE_SENDQUEUE_SIZE, min);
         return TRUE;
     }
-    
+
     return FALSE;
 }
 
@@ -1031,9 +1031,9 @@ file_path_changed(property_t prop)
 			prop_free_def(def);
 		} else
 			path = gnet_prop_get_string(PROP_SAVE_FILE_PATH, NULL, 0);
-    
+
         g_warning("property \"%s\": directory %s is not available, "
-            "using %s instead", gnet_prop_name(prop), s, path); 
+            "using %s instead", gnet_prop_name(prop), s, path);
 
         gnet_prop_set_string(prop, path);
 
@@ -1131,7 +1131,7 @@ bw_http_out_changed(property_t prop)
 
 	gnet_prop_get_guint32_val(PROP_CURRENT_PEERMODE, &val);
 	bsched_set_peermode(val);
-    
+
     return FALSE;
 }
 
@@ -1143,7 +1143,7 @@ bw_gnet_in_changed(property_t prop)
     gnet_prop_get_guint32_val(prop, &val);
     bsched_set_bandwidth(bws.gin, val / 2);
     bsched_set_bandwidth(bws.gin_udp, val / 2);
-    
+
 	gnet_prop_get_guint32_val(PROP_CURRENT_PEERMODE, &val);
 	bsched_set_peermode(val);
 
@@ -1158,7 +1158,7 @@ bw_gnet_out_changed(property_t prop)
     gnet_prop_get_guint32_val(prop, &val);
     bsched_set_bandwidth(bws.gout, val / 2);
     bsched_set_bandwidth(bws.gout_udp, val / 2);
-    
+
 	gnet_prop_get_guint32_val(PROP_CURRENT_PEERMODE, &val);
 	bsched_set_peermode(val);
 
@@ -1172,7 +1172,7 @@ bw_gnet_lin_changed(property_t prop)
 
     gnet_prop_get_guint32_val(prop, &val);
     bsched_set_bandwidth(bws.glin, val);
-    
+
 	gnet_prop_get_guint32_val(PROP_CURRENT_PEERMODE, &val);
 	bsched_set_peermode(val);
 
@@ -1186,7 +1186,7 @@ bw_gnet_lout_changed(property_t prop)
 
     gnet_prop_get_guint32_val(prop, &val);
     bsched_set_bandwidth(bws.glout, val);
-    
+
 	gnet_prop_get_guint32_val(PROP_CURRENT_PEERMODE, &val);
 	bsched_set_peermode(val);
 
@@ -1445,64 +1445,64 @@ static prop_map_t property_map[] = {
         node_sendqueue_size_changed,
         TRUE
     },
-    { 
-        PROP_UP_CONNECTIONS, 
-        up_connections_changed, 
-        TRUE 
-    },
     {
-        PROP_MAX_CONNECTIONS, 
-        max_connections_changed, 
-        TRUE 
-    },
-    {
-        PROP_MAX_HOSTS_CACHED, 
-        max_hosts_cached_changed, 
-        TRUE 
-    },
-    {
-        PROP_MAX_ULTRA_HOSTS_CACHED, 
-        max_ultra_hosts_cached_changed, 
-        TRUE 
-	},
-    {
-        PROP_MAX_BAD_HOSTS_CACHED, 
-        max_bad_hosts_cached_changed, 
-        TRUE 
-	},
-    {
-        PROP_LISTEN_PORT, 
-        listen_port_changed, 
+        PROP_UP_CONNECTIONS,
+        up_connections_changed,
         TRUE
     },
     {
-        PROP_BW_HTTP_IN_ENABLED, 
-        bw_http_in_enabled_changed, 
+        PROP_MAX_CONNECTIONS,
+        max_connections_changed,
+        TRUE
+    },
+    {
+        PROP_MAX_HOSTS_CACHED,
+        max_hosts_cached_changed,
+        TRUE
+    },
+    {
+        PROP_MAX_ULTRA_HOSTS_CACHED,
+        max_ultra_hosts_cached_changed,
+        TRUE
+	},
+    {
+        PROP_MAX_BAD_HOSTS_CACHED,
+        max_bad_hosts_cached_changed,
+        TRUE
+	},
+    {
+        PROP_LISTEN_PORT,
+        listen_port_changed,
+        TRUE
+    },
+    {
+        PROP_BW_HTTP_IN_ENABLED,
+        bw_http_in_enabled_changed,
         FALSE
     },
     {
-        PROP_BW_HTTP_OUT_ENABLED, 
-        bw_http_out_enabled_changed, 
+        PROP_BW_HTTP_OUT_ENABLED,
+        bw_http_out_enabled_changed,
         FALSE
     },
     {
-        PROP_BW_GNET_IN_ENABLED, 
-        bw_gnet_in_enabled_changed, 
+        PROP_BW_GNET_IN_ENABLED,
+        bw_gnet_in_enabled_changed,
         FALSE
     },
     {
-        PROP_BW_GNET_OUT_ENABLED, 
-        bw_gnet_out_enabled_changed, 
+        PROP_BW_GNET_OUT_ENABLED,
+        bw_gnet_out_enabled_changed,
         FALSE
     },
     {
-        PROP_BW_GNET_LEAF_IN_ENABLED, 
-        bw_gnet_lin_enabled_changed, 
+        PROP_BW_GNET_LEAF_IN_ENABLED,
+        bw_gnet_lin_enabled_changed,
         FALSE
     },
     {
-        PROP_BW_GNET_LEAF_OUT_ENABLED, 
-        bw_gnet_lout_enabled_changed, 
+        PROP_BW_GNET_LEAF_OUT_ENABLED,
+        bw_gnet_lout_enabled_changed,
         FALSE
     },
     {
@@ -1659,7 +1659,7 @@ settings_callbacks_init(void)
         init_list[n] = FALSE;
 
     if (debug >= 2) {
-        printf("settings_callbacks_init: property_map size: %u\n", 
+        printf("settings_callbacks_init: property_map size: %u\n",
             (guint) PROPERTY_MAP_SIZE);
     }
 
@@ -1670,7 +1670,7 @@ settings_callbacks_init(void)
         if (!init_list[idx])
            init_list[idx] = TRUE;
         else
-            g_warning("settings_callbacks_init:" 
+            g_warning("settings_callbacks_init:"
                 " property %d already mapped", n);
 
         if (property_map[n].cb != IGNORE) {
@@ -1688,7 +1688,7 @@ settings_callbacks_init(void)
         for (n = 0; n < GNET_PROPERTY_NUM; n++) {
             if (!init_list[n])
                 printf("settings_callbacks_init: unmapped property: %s\n",
-					gnet_prop_name(n+GNET_PROPERTY_MIN)); 
+					gnet_prop_name(n+GNET_PROPERTY_MIN));
         }
     }
 }
@@ -1706,7 +1706,7 @@ settings_callbacks_shutdown(void)
 		cq_cancel(callout_queue, ev_file_descriptor_runout);
 		ev_file_descriptor_runout = NULL;
 	}
-	
+
     for (n = 0; n < PROPERTY_MAP_SIZE; n ++) {
         if (property_map[n].cb != IGNORE) {
             gnet_prop_remove_prop_changed_listener(

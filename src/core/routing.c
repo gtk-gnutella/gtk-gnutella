@@ -368,7 +368,7 @@ init_routing_data(struct gnutella_node *node)
 	struct route_data *route;
 
 	g_assert(node->routing_data == NULL);
-	
+
 	/*
 	 * Wow, this node hasn't sent any messages before.
 	 * Allocate and link some routing data to it
@@ -602,7 +602,7 @@ node_sent_message(struct gnutella_node *n, struct message *m)
 		route = &fake_route;
 	else
 		route = get_routing_data(n);
-	
+
 	/*
 	 * If we've never routed a message from this person before,
 	 * it can't be a duplicate.
@@ -610,7 +610,7 @@ node_sent_message(struct gnutella_node *n, struct message *m)
 
 	if (route == NULL)
 		return FALSE;
-	
+
 	for (l = m->routes; l; l = l->next) {
 		if (route == ((struct route_data *) l->data))
 			return TRUE;
@@ -640,7 +640,7 @@ message_hash_func(gconstpointer key)
 {
 	int count;
 	guint hash = 0;
-	
+
 	for (count = 0; count <= 12; count += 4) {
 		guint hashadd =
 			( (const struct message *) key)->muid[count]            |
@@ -821,7 +821,7 @@ free_route_list(struct message *m)
 	GSList *l;
 
 	g_assert(m);
-	
+
 	for (l = m->routes; l; l = l->next)
 		remove_one_message_reference((struct route_data *) l->data);
 
@@ -848,7 +848,7 @@ routing_node_remove(struct gnutella_node *node)
 	 */
 
 	route->node = NULL;
-	
+
 	/*
 	 * If no messages remain, we have no reason to keep the
 	 * route_data around any more.
@@ -923,7 +923,7 @@ message_add(const gchar *muid, guint8 function, struct gnutella_node *node)
 		memcpy(entry->muid, muid, 16);
 		entry->function = function;
 	}
-	
+
 	g_assert(route != NULL);
 
 	/*
@@ -934,7 +934,7 @@ message_add(const gchar *muid, guint8 function, struct gnutella_node *node)
 	 */
 
 	if (!found || !node_sent_message(node, m)) {
-		route->saved_messages++;	
+		route->saved_messages++;
 		entry->routes = g_slist_append(entry->routes, route);
 	}
 
@@ -994,7 +994,7 @@ find_message(const gchar *muid, guint8 function, struct message **m)
 
 	memcpy(dummyMessage.muid, muid, 16);
 	dummyMessage.function = function;
-	
+
 	found_message = (struct message *)
 		g_hash_table_lookup(routing.messages_hashed, &dummyMessage);
 
@@ -1125,7 +1125,7 @@ forward_message(
 			gint count;
 
 			g_assert(sender->header.function == GTA_MSG_PUSH_REQUEST);
-			
+
 			for (l = routes, count = 0; l; l = g_slist_next(l), count++) {
 				struct route_data *rd = (struct route_data *) l->data;
 				if (rd->node == sender)
@@ -1543,9 +1543,9 @@ route_query_hit(struct route_log *log,
 			 */
 
 			route = get_routing_data(sender);
-			
+
 			g_assert(route != NULL);
-			
+
 			m->routes = g_slist_append(m->routes, route);
 			route->saved_messages++;
 
@@ -1567,7 +1567,7 @@ route_query_hit(struct route_log *log,
 	 * not destined to us, and we'll forward them to the leaf who sent
 	 * the initial query, regardless of the hops/TTL value of the hit.
 	 */
-	
+
 	is_oob_proxied = oob_proxy_muid_proxied(sender->header.muid);
 
 	if (!is_oob_proxied && !check_hops_ttl(log, sender))
@@ -1590,7 +1590,7 @@ route_query_hit(struct route_log *log,
 	}
 
 	g_assert(m);		/* Or find_message() would have returned FALSE */
-	
+
 	/*
 	 * Since this routing data is used, relocate it at the end of
 	 * the "message_array[]" to augment its lifetime.
@@ -1673,7 +1673,7 @@ route_query_hit(struct route_log *log,
 
 	dest->type = ROUTE_ONE;
 	dest->ur.u_node = found;
-	
+
 	goto handle;
 
 route_lost:
@@ -1940,7 +1940,7 @@ routing_close(void)
 	guint cnt;
 
 	g_assert(routing.messages_hashed);
-	
+
 	g_hash_table_destroy(routing.messages_hashed);
 	routing.messages_hashed = NULL;
 

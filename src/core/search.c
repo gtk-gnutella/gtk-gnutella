@@ -177,7 +177,7 @@ search_remove_got_results_listener(search_got_results_listener_t l)
 {
     g_assert(l != NULL);
 
-    search_got_results_listeners = 
+    search_got_results_listeners =
         g_slist_remove(search_got_results_listeners, (gpointer) l);
 }
 
@@ -217,7 +217,7 @@ search_free_sent_node(gpointer key,
 	gpointer unused_value, gpointer unused_udata)
 {
 	gnet_host_t *node = key;
-	
+
 	(void) unused_value;
 	(void) unused_udata;
 
@@ -461,7 +461,7 @@ get_results_set(gnutella_node_t *n, gboolean validate_only)
 
 	if (hostiles_check(rs->ip)) {
         if (dbg || search_debug) {
-            g_message("dropping query hit from hostile IP %s", 
+            g_message("dropping query hit from hostile IP %s",
                 ip_to_gchar(rs->ip));
         }
 		gnet_stats_count_dropped(n, MSG_DROP_HOSTILE_IP);
@@ -703,7 +703,7 @@ get_results_set(gnutella_node_t *n, gboolean validate_only)
 				case EXT_T_GGEP_LF:			/* Large File */
 					{
 						guint64 fs;
-					
+
 					   	ret = ggept_lf_extract(e, &fs);
 						if (ret == GGEP_OK)
 							rc->size = fs;
@@ -712,7 +712,7 @@ get_results_set(gnutella_node_t *n, gboolean validate_only)
 								gmsg_infostr(&n->header));
 							ext_dump(stderr, e, 1, "....", "\n", TRUE);
 						}
-					}					
+					}
 					break;
 				case EXT_T_UNKNOWN_GGEP:	/* Unknown GGEP extension */
 					if (search_debug) {
@@ -1810,7 +1810,7 @@ search_init(void)
 {
 	rs_zone = zget(sizeof(gnet_results_set_t), 1024);
 	rc_zone = zget(sizeof(gnet_record_t), 1024);
-    
+
 	searches = g_hash_table_new(g_direct_hash, 0);
 	search_by_muid = g_hash_table_new(guid_hash, guid_eq);
     search_handle_map = idtable_new(32,32);
@@ -1821,7 +1821,7 @@ void
 search_shutdown(void)
 {
     while (sl_search_ctrl != NULL) {
-        g_warning("force-closing search left over by GUI: %s", 
+        g_warning("force-closing search left over by GUI: %s",
             ((search_ctrl_t *)sl_search_ctrl->data)->query);
         search_close(((search_ctrl_t *)sl_search_ctrl->data)->search_handle);
     }
@@ -2151,7 +2151,7 @@ search_check_results_set(gnet_results_set_t *rs)
  ***/
 
 /**
- * Remove the search from the list of searches and free all 
+ * Remove the search from the list of searches and free all
  * associated ressources.
  */
 void
@@ -2171,9 +2171,9 @@ search_close(gnet_search_t sh)
 
     /*
      * We remove the search immeditaly from the list of searches,
-     * because some of the following calls (may) depend on 
-     * "searches" holding only the remaining searches. 
-     * We may not free any ressources of "sch" yet, because 
+     * because some of the following calls (may) depend on
+     * "searches" holding only the remaining searches.
+     * We may not free any ressources of "sch" yet, because
      * the same calls may still need them!.
      *      --BLUE 26/05/2002
      */
@@ -2618,7 +2618,7 @@ search_is_frozen(gnet_search_t sh)
     search_ctrl_t *sch = search_find_by_handle(sh);
 
     g_assert(sch != NULL);
-    
+
     return sch->frozen;
 }
 
@@ -2628,7 +2628,7 @@ search_is_passive(gnet_search_t sh)
     search_ctrl_t *sch = search_find_by_handle(sh);
 
     g_assert(sch != NULL);
-    
+
     return sch->passive;
 }
 

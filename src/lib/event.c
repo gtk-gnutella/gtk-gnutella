@@ -54,12 +54,12 @@ inline struct event *
 event_new(const gchar *name)
 {
     struct event *evt;
-    
+
     g_assert(name != NULL);
 
     evt = g_new0(struct event, 1);
     evt->name = name;
-    
+
     return evt;
 }
 
@@ -104,8 +104,8 @@ event_remove_subscriber(struct event *evt, GCallback cb)
 
     g_assert(evt != NULL);
     g_assert(cb != NULL);
-    
-    sl = g_slist_find_custom(evt->subscribers, (gpointer) cb, 
+
+    sl = g_slist_find_custom(evt->subscribers, (gpointer) cb,
         (GCompareFunc) cmp_subscriber_callback);
 
     g_assert(sl != NULL);
@@ -130,7 +130,7 @@ event_subscriber_active(struct event *evt)
 
 
 struct event_table *
-event_table_new(void) 
+event_table_new(void)
 {
     struct event_table *t;
 
@@ -141,7 +141,7 @@ event_table_new(void)
 }
 
 void
-real_event_table_destroy(struct event_table *t, gboolean cleanup) 
+real_event_table_destroy(struct event_table *t, gboolean cleanup)
 {
     if (cleanup)
         event_table_remove_all(t);

@@ -47,7 +47,7 @@ RCSID("$Id$");
 #ifndef USE_GLIB2
 #include <iconv.h>
 #define GIConv iconv_t
-#define g_iconv_open(t, f) iconv_open(t, f) 
+#define g_iconv_open(t, f) iconv_open(t, f)
 #define g_iconv(c, i, n, o, m) iconv(c, i, n, o, m)
 #endif /* !USE_GLIB2 */
 
@@ -108,11 +108,11 @@ static guint8 utf8len[256] = {
 #define UTF8_SKIP(s)	utf8len[*((const guchar *) s)]
 
 static const guint8 utf8len_mark[] = {
-	0x00, 0x00, 0xC0, 0xE0, 0xF0, 0xF8, 0xFC 
+	0x00, 0x00, 0xC0, 0xE0, 0xF0, 0xF8, 0xFC
 };
 
 #define UTF8_LENGTH_MARK(len)	utf8len_mark[len]
-	
+
 /*
  * The following table is from Unicode 3.1.
  *
@@ -163,7 +163,7 @@ static const guint8 utf8len_mark[] = {
 
 #define UNICODE_IS_HANGUL(x)	\
 	((x) >= UNI_HANGUL_FIRST && (x) <= UNI_HANGUL_LAST)
-	
+
 #define UNICODE_IS_ASCII(x)				((x) < 0x0080U)
 #define UNICODE_IS_REPLACEMENT(x)		((x) == UNI_REPLACEMENT)
 #define UNICODE_IS_BYTE_ORDER_MARK(x)	((x) == UNI_BYTE_ORDER_MARK)
@@ -175,7 +175,7 @@ static const guint8 utf8len_mark[] = {
  *
  * The table is extracted from UnicodeData-3.2.0.txt - the
  * sixth column is relevant.
- * 
+ *
  * The mappings for U+2F868, U+2F874, U+2F91F, U+2F95F, and U+2F9BF
  * have been corrected in accordance with
  *
@@ -190,7 +190,7 @@ static const guint8 utf8len_mark[] = {
  * 		shorter than UTF32_NFD_REPLACE_MAXLEN characters! The first
  *		element of each entry is the decomposable UTF-32 character, the
  *		next elements form the UTF-32 string.
- */ 
+ */
 static const guint32 utf32_nfd_lut[][UTF32_NFD_REPLACE_MAXLEN + 1] = {
 	{ 0x000C0, 0x00041, 0x00300 },
 	{ 0x000C1, 0x00041, 0x00301 },
@@ -2203,7 +2203,7 @@ utf8_encode_char(guint32 uc, gchar *buf)
 {
 	guint len;
 	gchar *p;
-	
+
 	g_assert(buf);
 
 	if (UNICODE_IS_SURROGATE(uc)) {
@@ -2215,9 +2215,9 @@ utf8_encode_char(guint32 uc, gchar *buf)
 		len = 2;
 		uc = UNI_REPLACEMENT;
 	}
-	
+
 	g_assert(len > 0 && len <= 6);
-	
+
 	p = &buf[len];
 	while (--p > buf) {
 		*p = (uc | UTF8_BYTE_MARK) & UTF8_BYTE_MASK;
@@ -2448,11 +2448,11 @@ static const char *
 get_locale_charset(void)
 {
 	const char *cs = NULL;
-	
+
 	g_get_charset(&cs);
 	return cs;
 }
-	
+
 #else /* !USE_GLIB2 */
 
 #if defined(I_LIBCHARSET)
@@ -2474,7 +2474,7 @@ static const char *codesets[] = {
  "CP850 IBM-850 cp850 ca ca_ES de de_AT de_CH de_DE en en_AU en_CA en_GB "
 	"en_ZA es es_AR es_BO es_CL es_CO es_CR es_CU es_DO es_EC es_ES es_GT "
 	"es_HN es_MX es_NI es_PA es_PY es_PE es_SV es_UY es_VE et et_EE eu eu_ES "
-	"fi fi_FI fr fr_BE fr_CA fr_CH fr_FR ga ga_IE gd gd_GB gl gl_ES id id_ID " 
+	"fi fi_FI fr fr_BE fr_CA fr_CH fr_FR ga ga_IE gd gd_GB gl gl_ES id id_ID "
 	"it it_CH it_IT nl nl_BE nl_NL pt pt_BR pt_PT sv sv_SE mt mt_MT eo eo_EO",
  "CP852 cs cs_CZ hr hr_HR hu hu_HU pl pl_PL ro ro_RO sk sk_SK sl sl_SI "
 	"sq sq_AL sr sr_YU",
@@ -2549,7 +2549,7 @@ const char *get_locale_charset(void)
 {
 	int i = 0;
 	const char *cs;
-	const char *start = codesets[0]; 
+	const char *start = codesets[0];
 	const char *first_end = NULL;
 	size_t cs_len;
 
@@ -2563,7 +2563,7 @@ const char *get_locale_charset(void)
 		static char buf[64];
 		const char *end;
 		size_t len;
-		
+
 		end = strchr(start, ' ');
 		if (NULL == end)
 			end = strchr(start, '\0');
@@ -2581,7 +2581,7 @@ const char *get_locale_charset(void)
 			start = codesets[++i];
 		} else
 			start = end + 1;
-		
+
 	}
 	return NULL;
 }
@@ -2603,7 +2603,7 @@ textdomain_init(const char *codeset)
 
 #ifdef HAS_BIND_TEXTDOMAIN_CODESET
 
-#ifdef USE_GLIB2	
+#ifdef USE_GLIB2
 	codeset = "UTF-8";
 #endif /* USE_GLIB2*/
 
@@ -2612,7 +2612,7 @@ textdomain_init(const char *codeset)
 #endif /* HAS_BIND_TEXTDOMAIN_CODESET */
 
 	textdomain(PACKAGE);
-	
+
 #else /* !NLS */
 	(void) codeset;
 #endif /* NLS */
@@ -2643,7 +2643,7 @@ locale_init(void)
 
 	setlocale(LC_ALL, "");
 	charset = get_locale_charset();
-	
+
 	if (charset == NULL) {
 		/* Default locale codeset */
 		charset = "ISO-8859-1";
@@ -2807,7 +2807,7 @@ gchar *locale_to_utf8(const gchar *str, size_t len)
  * with all characters decomposed.
  *
  * @param str the string to convert.
- * @param len the length of ``str''. May be set to zero if ``str'' is 
+ * @param len the length of ``str''. May be set to zero if ``str'' is
  *		  NUL-terminated.
  *
  * @returns a newly allocated string.
@@ -2819,7 +2819,7 @@ locale_to_utf8_nfd(const gchar *str, size_t len)
 	const gchar *s;
 	gchar *ret;
 	size_t utf8_len;
-	
+
 	g_assert(NULL != str);
 
 	if (0 == len)
@@ -2847,7 +2847,7 @@ locale_to_utf8_nfd(const gchar *str, size_t len)
 	ret = g_malloc(utf8_len);
 	len = utf8_decompose_nfd(s, ret, utf8_len);
 	g_assert(len < utf8_len);
-	
+
 	if (s != str && s != sbuf) {
 		g_free((gchar *) s); /* Override const */
 		s = NULL;
@@ -2883,7 +2883,7 @@ gchar *iso_8859_1_to_utf8(const gchar *fromstr)
 	static gchar outbuf[4096 + 6]; /* a multibyte char is max. 6 bytes large */
 
 	g_assert(NULL != fromstr);
- 
+
 	return g_iconv_complete(cd_latin_to_utf8,
 				fromstr, strlen(fromstr), outbuf, sizeof(outbuf) - 7);
 }
@@ -2900,7 +2900,7 @@ gchar *lazy_utf8_to_locale(const gchar *str, size_t len)
  * enforce NFC.
  *
  * @param str the string to convert.
- * @param len the length of ``str''. May be set to zero if ``str'' is 
+ * @param len the length of ``str''. May be set to zero if ``str'' is
  *		  NUL-terminated.
  *
  * @returns the converted string or ``str'' if no conversion was necessary.
@@ -2909,7 +2909,7 @@ gchar *
 lazy_locale_to_utf8(const gchar *str, size_t len)
 {
 	const gchar *s;
-	
+
 	/* Let's assume that most of the supplied strings are pure ASCII. */
 	if (is_ascii_string(str))
 		return (gchar *) str; /* Override const */
@@ -2975,7 +2975,7 @@ unicode_decompose_init(void)
 			 */
 			G_BREAKPOINT();
 #endif /* GLib >= 2.4.0 */
-			
+
 		}
 		G_FREE_NULL(s);
 	}
@@ -3024,8 +3024,8 @@ utf8_to_utf32(const gchar *in, guint32 *out, size_t size)
 	guint retlen;
 	size_t len = 0;
 
-	g_assert(in != NULL);	
-	g_assert(out != NULL);	
+	g_assert(in != NULL);
+	g_assert(out != NULL);
 	g_assert(size <= INT_MAX);
 
 	if (size > 0) {
@@ -3045,7 +3045,7 @@ utf8_to_utf32(const gchar *in, guint32 *out, size_t size)
 		len -= retlen;
 		p++;
 	}
-	
+
 	return p - out;
 }
 
@@ -3073,7 +3073,7 @@ utf32_to_utf8(const guint32 *in, gchar *out, size_t size)
 	gchar utf8_buf[7];
 
 	g_assert(in != NULL);
-	g_assert(out != NULL);	
+	g_assert(out != NULL);
 	g_assert(size <= INT_MAX);
 
 	if (size > 0) {
@@ -3094,7 +3094,7 @@ utf32_to_utf8(const guint32 *in, gchar *out, size_t size)
 		retlen = utf8_encode_char(uc, utf8_buf);
 		p += retlen;
 	}
-	
+
 	return p - out;
 }
 
@@ -3270,7 +3270,7 @@ utf32_decompose_nfd(const guint32 *in, guint32 *out, size_t size)
 		}
 		*p = 0x0000;
 	}
-	
+
 	while ((uc = *s) != 0x0000) {
 		d = utf32_decompose_nfd_char(uc, &d_len);
 		p += d_len;
@@ -3291,7 +3291,7 @@ utf32_decompose_nfd(const guint32 *in, guint32 *out, size_t size)
  * @param in a UTF-8 encoded string.
  * @param out a pointer to a buffer which will hold the decomposed string.
  * @param size the number of bytes ``out'' can hold.
- * 
+ *
  * @returns the length in bytes (not characters!) of completely decomposed
  *			string.
  */
@@ -3309,12 +3309,12 @@ utf8_decompose_nfd(const gchar *in, gchar *out, size_t size)
 	g_assert(in != NULL);
 	g_assert(out != NULL);
 	g_assert(size <= INT_MAX);
-	
+
 	if (size-- > 0) {
 		while (*s != '\0') {
 			size_t utf8_len;
 			gchar buf[256], *q;
-			
+
 			len = utf8_decode_lookahead(s, len);
 			uc = utf8_decode_char(s, len, &retlen, TRUE);
 			d = utf32_decompose_nfd_char(uc, &d_len);
@@ -3326,7 +3326,7 @@ utf8_decompose_nfd(const gchar *in, gchar *out, size_t size)
 				memcpy(q, utf8_buf, utf8_len);
 				q += utf8_len;
 			}
-			
+
 			utf8_len = q - buf;
 			if (utf8_len > size)
 				break;
@@ -3339,7 +3339,7 @@ utf8_decompose_nfd(const gchar *in, gchar *out, size_t size)
 		}
 		*p = '\0';
 	}
-	
+
 	while (*s != '\0') {
 		len = utf8_decode_lookahead(s, len);
 		uc = utf8_decode_char(s, len, &retlen, TRUE);
@@ -3348,7 +3348,7 @@ utf8_decompose_nfd(const gchar *in, gchar *out, size_t size)
 			uc = *d++;
 			p += utf8_encode_char(uc, utf8_buf);
 		}
-		
+
 		s += retlen;
 		len -= retlen;
 	}
@@ -3434,7 +3434,7 @@ unicode_upper(const UChar *source, gint32 len, UChar *result, gint32 rlen)
 
 	g_assert(use_icu);
 	r = u_strToUpper(result, rlen, source, len, NULL, &error);
-	
+
 	return (error != U_ZERO_ERROR && error != U_BUFFER_OVERFLOW_ERROR) ? 0 : r;
 }
 
@@ -3449,7 +3449,7 @@ unicode_lower(const UChar *source, gint32 len, UChar *result, gint32 rlen)
 
 	g_assert(use_icu);
 	r = u_strToLower(result, rlen, source, len, NULL, &error);
-	
+
 	return (error != U_ZERO_ERROR && error != U_BUFFER_OVERFLOW_ERROR) ? 0 : r;
 }
 
@@ -3466,7 +3466,7 @@ unicode_filters(const UChar *source, gint32 len, UChar *result)
 	int space = 0;
 
 	g_assert(use_icu);
-	
+
 	for (i = 0, j = 0; i < len; i++) {
 		switch (u_charType(source[i])) {
 		case U_LOWERCASE_LETTER :

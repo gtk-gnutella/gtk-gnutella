@@ -22,7 +22,7 @@
  *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *----------------------------------------------------------------------
  */
- 
+
 #ifndef _core_verify_tth_h_
 #define _core_verify_tth_h_
 

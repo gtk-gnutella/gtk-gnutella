@@ -281,7 +281,7 @@ flush_match(void)
 				l = g_slist_next(l), count++
 			) {
 				struct gnutella_node *n = (struct gnutella_node *) l->data;
-				
+
 				WRITE_GUINT32_BE(n->proxy_ip, &proxy[0]);
 				WRITE_GUINT16_LE(n->proxy_port, &proxy[4]);
 				ok = ggep_stream_write(&gs, proxy, sizeof(proxy));
@@ -385,7 +385,7 @@ add_file(struct shared_file *sf)
 
 	sha1_available = SHARE_F_HAS_DIGEST ==
 		(sf->flags & (SHARE_F_HAS_DIGEST | SHARE_F_RECOMPUTING));
-	
+
 	/*
 	 * In case we emit the SHA1 as a GGEP "H", we'll grow the buffer
 	 * larger necessary, since the extension will take at most 26 bytes,
@@ -487,7 +487,7 @@ add_file(struct shared_file *sf)
 		g_assert(len > 0 && len <= (gint) sizeof buf);
 
 		ok = ggep_stream_pack(&gs, "LF", buf, len, GGEP_W_COBS);
-		
+
 		if (!ok)
 			g_warning("could not write GGEP \"LF\" extension in query hit");
 	}

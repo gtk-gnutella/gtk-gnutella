@@ -25,7 +25,7 @@
  *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *----------------------------------------------------------------------
  */
- 
+
 /* tigertree.h
  * Copyright (C) 2001 Bitzi (aka Bitcollider) Inc. and Gordon Mohr
  * Released into the public domain by same; permission is explicitly
@@ -37,7 +37,7 @@
  * OR FITNESS FOR A PARTICULAR PURPOSE.
  *
  * (PD) 2001 The Bitzi Corporation
- * Please see file COPYING or http://bitzi.com/publicdomain 
+ * Please see file COPYING or http://bitzi.com/publicdomain
  * for more info.
  */
 

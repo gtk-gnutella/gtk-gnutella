@@ -1,8 +1,8 @@
 /*
- * $Id: ui_core_interface.h,v 1.0 
- *	
+ * $Id: ui_core_interface.h,v 1.0
+ *
  * Copyright (c) 2004, Emile Roberts
- *	
+ *
  * Interface UI -> core
  *
  *----------------------------------------------------------------------
@@ -28,7 +28,7 @@
 #ifndef _if_bridge_ui2c_h_
 #define _if_bridge_ui2c_h_
 
-/*	
+/*
  *	SECTION 1 - Interface includes
  */
 
@@ -52,13 +52,13 @@
 /* adns interface functions */
 gboolean guc_adns_resolve(
 	const gchar *hostname, adns_callback_t user_callback, gpointer user_data);
-	
+
 /* download and src interface functions */
 const gchar *guc_build_url_from_download(struct download *d);
 gint guc_download_get_http_req_percent(const struct download *d);
 void guc_download_fallback_to_push
 	(struct download *d, gboolean on_timeout, gboolean user_request);
-gint guc_download_remove_all_from_peer(gchar *guid, guint32 ip, 
+gint guc_download_remove_all_from_peer(gchar *guid, guint32 ip,
 	guint16 port, gboolean unavailable);
 gint guc_download_remove_all_named(const gchar *name);
 gint guc_download_remove_all_with_sha1(const gchar *sha1);
@@ -76,17 +76,17 @@ void guc_download_thaw_queue(void);
 gint guc_download_queue_is_frozen(void);
 void guc_download_clear_stopped(gboolean complete,
 	gboolean failed, gboolean unavailable, gboolean now);
-void guc_download_auto_new(gchar *file, filesize_t size, 
-	guint32 record_index, guint32 ip, guint16 port, gchar *guid, 
+void guc_download_auto_new(gchar *file, filesize_t size,
+	guint32 record_index, guint32 ip, guint16 port, gchar *guid,
 	gchar *hostname, gchar *sha1, time_t stamp, gboolean push,
-	gboolean file_size_known, struct dl_file_info *fi, 
+	gboolean file_size_known, struct dl_file_info *fi,
 	gnet_host_vec_t *proxies);
-gboolean guc_download_new(gchar *file, filesize_t size, 
-	guint32 record_index, guint32 ip, guint16 port, gchar *guid, 
+gboolean guc_download_new(gchar *file, filesize_t size,
+	guint32 record_index, guint32 ip, guint16 port, gchar *guid,
 	gchar *hostname, gchar *sha1, time_t stamp, gboolean push,
 	struct dl_file_info *fi, gnet_host_vec_t *proxies);
-gboolean guc_download_new_unknown_size(gchar *file, 
-	guint32 record_index, guint32 ip, guint16 port, gchar *guid, 
+gboolean guc_download_new_unknown_size(gchar *file,
+	guint32 record_index, guint32 ip, guint16 port, gchar *guid,
 	gchar *hostname, gchar *sha1, time_t stamp, gboolean push,
 	struct dl_file_info *fi, gnet_host_vec_t *proxies);
 const gchar *guc_download_get_hostname(const struct download *d);
@@ -94,12 +94,12 @@ const gchar *guc_download_get_country(const struct download *d);
 gfloat guc_download_source_progress(struct download *d);
 gfloat guc_download_total_progress(struct download *d);
 gboolean guc_download_something_to_clear(void);
-void guc_download_index_changed(guint32 ip, guint16 port, 
+void guc_download_index_changed(guint32 ip, guint16 port,
 	gchar *guid, filesize_t from, filesize_t to);
 struct download *guc_src_get_download(gnet_src_t src_handle);
-void guc_src_add_listener(src_listener_t cb, gnet_src_ev_t ev, 
+void guc_src_add_listener(src_listener_t cb, gnet_src_ev_t ev,
     frequency_t t, guint32 interval);
-void guc_src_remove_listener(src_listener_t cb, 
+void guc_src_remove_listener(src_listener_t cb,
 	gnet_src_ev_t ev);
 
 /* fileinfo interface functions */
@@ -138,7 +138,7 @@ void guc_hcache_get_stats(hcache_stats_t *stats);
 gint guc_hsep_get_table_size(void);
 void guc_hsep_get_non_hsep_triple(hsep_triple *tripledest);
 const gchar *guc_hsep_get_static_str(gint row, gint column);
-void guc_hsep_add_global_table_listener(GCallback cb, 
+void guc_hsep_add_global_table_listener(GCallback cb,
 	frequency_t t, guint32 interval);
 void guc_hsep_remove_global_table_listener(GCallback cb);
 
@@ -146,7 +146,7 @@ void guc_hsep_remove_global_table_listener(GCallback cb);
 const gchar *guc_http_range_to_gchar(const GSList *list);
 GSList * guc_http_range_merge
 		(GSList *old_list, GSList *new_list);
-	
+
 /* node interface functions */
 void guc_node_add_node_added_listener
 	(node_added_listener_t l);
@@ -178,7 +178,7 @@ void guc_node_fill_info
 	(const gnet_node_t n, gnet_node_info_t *info);
 void guc_node_udp_gui_show(void);
 void guc_node_udp_gui_remove(void);
-	
+
 /* parq interface functions */
 gint guc_get_parq_dl_position(const struct download *d);
 gint guc_get_parq_dl_queue_length(const struct download *d);

@@ -26,7 +26,7 @@
 
 #include "pmsg.h"
 #include "nodes.h"
-#include "g2node.h" 
+#include "g2node.h"
 #include "g2/packetstream.h"
 
 void
@@ -50,20 +50,20 @@ g2_node_read(struct gnutella_node *n, pmsg_t *mb)
 
 	if (packetstream == NULL) {
 		packetstream = g2_packetstream_new((gpointer) n);
-		
+
 		/* Get the amount of data expected */
 		n->size = g2_packetstream_put_data(packetstream, NULL, 0);
 	}
 
 	data = malloc(n->size);
-	
+
 	r = pmsg_read(mb, data, n->size);
-		
+
 	n->size = g2_packetstream_put_data(packetstream, data, r);
 
 	if (data != NULL)
 		free(data);
-	
+
 	return FALSE;
 }
 

@@ -241,7 +241,7 @@ static gchar *get_variable(gchar *s, gchar **end)
 	gchar *value;
 	gboolean end_brace = FALSE;
 
-	/* 
+	/*
 	 * Grab variable's name.
 	 */
 

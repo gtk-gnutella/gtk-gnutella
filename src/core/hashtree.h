@@ -2,7 +2,7 @@
  * $Id$
  *
  * Copyright (c) 2003 Jeroen Asselman.
- * 
+ *
  * Hash tree implementation, not yet memory and speed optimized yet.
  *
  *----------------------------------------------------------------------
@@ -39,7 +39,7 @@
 
 #ifndef _core_hashtree_h_
 #define _core_hashtree_h_
- 
+
 typedef struct node_s node_t;
 struct node_s {
 	node_t	*left_node;
@@ -55,7 +55,7 @@ struct hashtree_s {
 	node_t	*parent;
 
 	gint depth;
-	
+
 	gpointer	(* hash_func) (gpointer hash1, gpointer hash2);
 };
 

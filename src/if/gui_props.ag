@@ -133,7 +133,7 @@ prop = {
         default = "{ 240, 80, 80, 80, 80 }";
     };
 };
-    
+
 prop = {
     name = "search_list_col_widths";
     cfgvar = "widths_search_list";
@@ -309,7 +309,7 @@ prop = {
 };
 
 prop = {
-    name = "gnet_stats_recv_col_widths"; 
+    name = "gnet_stats_recv_col_widths";
     cfgvar = "widths_gnet_stats_recv";
     desc = "Widths of the columns in the Gnet stats drop reasons table";
     type = guint32;
@@ -320,7 +320,7 @@ prop = {
 };
 
 prop = {
-    name = "hcache_col_widths"; 
+    name = "hcache_col_widths";
     cfgvar = "widths_hcache";
     desc = "Widths of the columns in the hostcache table";
     type = guint32;
@@ -472,7 +472,7 @@ prop = {
 prop = {
     name = "statusbar_visible";
     desc = "Display statusbar";
-    type = boolean;  
+    type = boolean;
     data = {
         default = TRUE;
     };
@@ -490,7 +490,7 @@ prop = {
 prop = {
     name = "progressbar_downloads_visible";
     desc = "Display download statistics in sidebar";
-    type = boolean;  
+    type = boolean;
     data = {
         default = TRUE;
     };

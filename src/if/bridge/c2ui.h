@@ -1,8 +1,8 @@
 /*
- * $Id: ui_core_interface.h,v 1.0 
- *	
+ * $Id: ui_core_interface.h,v 1.0
+ *
  * Copyright (c) 2004, Emile Roberts
- *	
+ *
  * Interface core -> UI
  *
  *----------------------------------------------------------------------
@@ -28,7 +28,7 @@
 #ifndef _if_bridge_c2ui_h_
 #define _if_bridge_c2ui_h_
 
-/*	
+/*
  *	SECTION 1 - Interface includes
  */
 
@@ -44,7 +44,7 @@
 #include <glib.h>
 
 /* download interface functions */
-void gcu_download_enable_start_now(guint32 running_downloads, 
+void gcu_download_enable_start_now(guint32 running_downloads,
 	guint32 max_downloads);
 void gcu_gui_update_download(struct download *d, gboolean force);
 void gcu_gui_update_download_server(struct download *d);

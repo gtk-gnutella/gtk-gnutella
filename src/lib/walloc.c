@@ -141,7 +141,7 @@ void wfree(gpointer ptr, gint size)
 
 	g_assert(ptr);
 	g_assert(size > 0);
-	
+
 	if (rounded >= WALLOC_MAX) {
 		g_free(ptr);
 		return;

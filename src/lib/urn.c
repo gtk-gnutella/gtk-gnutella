@@ -80,7 +80,7 @@ urn_get_http_sha1(gchar *buf, gchar *retval)
 	 * So the probability of having at least an 8 or a 9 is 1-(30/32)^32,
 	 * which is 87.32%.
 	 */
-	
+
 	if (base32_decode_old_into(buf, SHA1_BASE32_SIZE, retval, SHA1_RAW_SIZE))
 		return TRUE;
 
@@ -107,7 +107,7 @@ urn_get_sha1(gchar *buf, gchar *digest)
 	 */
 
 	sha1 = strcasestr(buf, "urn:sha1:");		/* Case-insensitive */
-	
+
 	if (sha1) {
 		sha1 += 9;		/* Skip "urn:sha1:" */
 		if (urn_get_http_sha1(sha1, digest))
@@ -147,7 +147,7 @@ urn_get_sha1_no_prefix(gchar *buf, gchar *digest)
 	 */
 
 	sha1 = strcasestr(buf, "sha1:");			/* Case-insensitive */
-	
+
 	if (sha1 && sha1 == buf) {
 		sha1 += 5;		/* Skip "sha1:" */
 		if (urn_get_http_sha1(sha1, digest))
@@ -173,6 +173,6 @@ urn_get_sha1_no_prefix(gchar *buf, gchar *digest)
  * tab-width: 4 ***
  * indent-tabs-mode: nil ***
  * End: ***
- * vi: set ts=4: 
+ * vi: set ts=4:
  */
 

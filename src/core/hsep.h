@@ -36,7 +36,7 @@
  * average time in seconds before resending a HSEP message to a node
  * (can be increased to 60)
  */
-#define HSEP_MSG_INTERVAL 30 
+#define HSEP_MSG_INTERVAL 30
 
 /*
  * random skew in seconds for message interval

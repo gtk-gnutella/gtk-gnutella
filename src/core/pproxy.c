@@ -135,7 +135,7 @@ send_pproxy_error_v(
 
 	if (ext) {
 		size_t slen = g_strlcpy(extra, ext, sizeof(extra));
-		
+
 		if (slen < sizeof(extra)) {
 			hev[hevcnt].he_type = HTTP_EXTRA_LINE;
 			hev[hevcnt++].he_msg = extra;
@@ -217,9 +217,9 @@ void
 pproxy_remove(struct pproxy *pp, const gchar *reason, ...)
 {
 	va_list args;
-	
+
 	g_assert(pp != NULL);
-	
+
 	va_start(args, reason);
 	pproxy_remove_v(pp, reason, args);
 	va_end(args);
@@ -256,7 +256,7 @@ pproxy_timer(time_t now)
 
 	for (sl = pproxies; sl; sl = g_slist_next(sl)) {
 		struct pproxy *pp = (struct pproxy *) sl->data;
-		
+
 		/*
 		 * We can't call pproxy_remove() since it will remove the structure
 		 * from the list we are traversing.
@@ -396,7 +396,7 @@ get_params(struct pproxy *pp, gchar *request,
 
 		if (dbg > 4)
 			printf("PUSH-PROXY: decoding %s=%s as base32\n", attr, value);
-		
+
 		guid = base32_to_guid(value);
 		if (guid == NULL) {
 			pproxy_error_remove(pp, 400, "Malformed push-proxy request: "
@@ -1112,10 +1112,10 @@ cproxy_reparent(struct download *d, struct download *cd)
 	g_assert(cd->cproxy != NULL);
 	g_assert(d->cproxy == cd->cproxy);
 	g_assert(d->cproxy->magic == CPROXY_MAGIC);
-	
+
 	cd->cproxy->d = cd;
 	d->cproxy = NULL;
-	
+
 	g_assert(d->cproxy == NULL);
 	g_assert(cd->cproxy != NULL);
 	g_assert(cd == cd->cproxy->d);

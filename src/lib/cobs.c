@@ -78,7 +78,7 @@ cobs_encodev(struct iovec *iov, gint iovcnt, gint *retlen)
 	/*
 	 * The following was adapted from the Listing 1, in the COBS paper.
 	 */
-	
+
 	code = 0x1;
 	cp = o++;
 
@@ -162,7 +162,7 @@ cobs_decode_into(gchar *buf, gint len, gchar *out, gint outlen, gint *retlen)
 	/*
 	 * The following was adapted from the Listing 2, in the COBS paper.
 	 */
-	
+
 	for (p = buf, o = out; p < end && o < oend; /* empty */) {
 		gint i;
 		gint code;

@@ -10,7 +10,7 @@
  *  it under the terms of the GNU General Public License as published by
  *  the Free Software Foundation; either version 2 of the License, or
  *  (at your option) any later version.
- *  
+ *
  *  gtk-gnutella is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
@@ -26,7 +26,7 @@
 #ifndef _lib_iso3166_h_
 #define _lib_iso3166_h_
 
-#include <glib.h> 
+#include <glib.h>
 
 gint iso3166_encode_cc(const gchar *cc);
 void iso3166_init(void);

@@ -58,7 +58,7 @@ static GSList *fuzzy_make_word_list(const char *str)
 		if (*p) {
 			size_t n = G_STRUCT_OFFSET(word_entry_t, s) + size;
 			word_entry_t *w = walloc(n);
-		
+
 			w->len = n;
 			g_strlcpy(w->s, p, size);
 			ascii_strlower(w->s, w->s);
@@ -71,7 +71,7 @@ static GSList *fuzzy_make_word_list(const char *str)
 static gulong fuzzy_word_similarity(const char *a, const char *b)
 {
 	gulong score = 0;
-	size_t l = 0;	
+	size_t l = 0;
 
 	while (*a && *b) {
 		if (*a == *b) score += 1 << FUZZY_SHIFT;
@@ -91,7 +91,7 @@ static gulong fuzzy_cmp_word_list(const char *s, GSList *words)
 	GSList *l;
 	gulong score = 0;
 	gulong n = 0;
-	
+
 	for (l = words; l; l = g_slist_next(l), n++) {
 		if (0 == strcmp(s, ((word_entry_t *) l->data)->s))
 			return 1 << FUZZY_SHIFT;
@@ -107,17 +107,17 @@ static gulong fuzzy_find_score(GSList *a, GSList *b)
 	GSList *l;
 	gulong score = 0;
 	gulong n = 0;
-	
+
 	for (l = a; l; l = g_slist_next(l), n++)
 		score += fuzzy_cmp_word_list(((word_entry_t *) l->data)->s, b);
-   
+
 	return n > 0 ? score / n : 0;
 }
 
 /*
  * fuzzy_compare
  *
- * Returns the similarity of both strings as a value 
+ * Returns the similarity of both strings as a value
  * between 0 and (1 << FUZZY_SHIFT).
  *
  * NB: The result will be bogus for strings larger than
@@ -127,7 +127,7 @@ gulong fuzzy_compare(const char *str1, const char *str2)
 {
 	GSList *a, *b, *l;
 	gulong score;
-	
+
 	a = fuzzy_make_word_list(str1);
 	b = fuzzy_make_word_list(str2);
 
@@ -140,7 +140,7 @@ gulong fuzzy_compare(const char *str1, const char *str2)
 	for (l = b; l; l = g_slist_next(l))
 		wfree(l->data, ((word_entry_t *) l->data)->len);
 	g_slist_free(b);
-	
+
 	return score;
 }
 
