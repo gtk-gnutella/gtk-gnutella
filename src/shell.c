@@ -230,7 +230,6 @@ static guint shell_exec_node(gnutella_shell_t *sh, const gchar *cmd)
 
 	g_assert(sh);
 	g_assert(cmd);
-	g_assert(!IS_PROCESSING(sh));
 
 	tok = shell_get_token(cmd, &pos);
 	if (!tok)
@@ -292,7 +291,6 @@ static guint shell_exec_search(gnutella_shell_t *sh, const gchar *cmd)
 
 	g_assert(sh);
 	g_assert(cmd);
-	g_assert(!IS_PROCESSING(sh));
 
 	tok = shell_get_token(cmd, &pos);
 	if (!tok)
@@ -348,7 +346,6 @@ static guint shell_exec_print(gnutella_shell_t *sh, const gchar *cmd)
 
 	g_assert(sh);
 	g_assert(cmd);
-	g_assert(!IS_PROCESSING(sh));
 
 	tok_prop = shell_get_token(cmd, &pos);
 	if (!tok_prop) {
@@ -408,7 +405,6 @@ static guint shell_exec_set(gnutella_shell_t *sh, const gchar *cmd)
 
 	g_assert(sh);
 	g_assert(cmd);
-	g_assert(!IS_PROCESSING(sh));
 
 	tok_prop = shell_get_token(cmd, &pos);
 	if (!tok_prop) {
@@ -525,7 +521,6 @@ static guint shell_exec_whatis(gnutella_shell_t *sh, const gchar *cmd)
 
 	g_assert(sh);
 	g_assert(cmd);
-	g_assert(!IS_PROCESSING(sh));
 
 	tok_prop = shell_get_token(cmd, &pos);
 	if (!tok_prop) {
@@ -674,7 +669,6 @@ static guint shell_exec(gnutella_shell_t *sh, const gchar *cmd)
 
 	g_assert(sh);
 	g_assert(cmd);
-	g_assert(!IS_PROCESSING(sh));
 
 	tok = shell_get_token(cmd, &pos);
 	if (!tok)
@@ -754,6 +748,12 @@ static void shell_write_data(gnutella_shell_t *sh)
 
 	s = sh->socket;
 	written = write(s->file_desc, sh->outbuf, sh->outpos);
+
+	if (written < 0) {
+		shell_shutdown (sh);
+		sh->outpos = 0;
+	}
+
 	memmove(sh->outbuf, sh->outbuf + written, sh->outpos-written);
 	sh->outpos -= written;
 
@@ -781,9 +781,6 @@ static void shell_read_data(gnutella_shell_t *sh)
 
 	g_assert(sh);
 
-	if (IS_PROCESSING(sh))
-		return; /* don't accept new commands while processing a command */
-
 	g_assert(sh->socket);
 	g_assert(sh->socket->getline);
 
@@ -801,12 +798,14 @@ static void shell_read_data(gnutella_shell_t *sh)
 				if (s->pos == 0) {
 					g_warning("shell connection closed: EOF");
 					shell_destroy(sh);
+					return;
 				}
 			} else {
 				g_warning("Receiving data failed: %s\n",
 					g_strerror(errno));
+				shell_destroy(sh);
+				return;
 			}
-			return;
 		}
 		s->pos += rc;
 	}
@@ -814,6 +813,8 @@ static void shell_read_data(gnutella_shell_t *sh)
 	while (s->pos) {
 		guint reply_code;
 		GString *buf; 
+
+		g_assert (s->pos > 0);
 
 		switch (getline_read(s->getline, s->buffer, s->pos, &parsed)) {
 		case READ_OVERFLOW:
@@ -847,11 +848,6 @@ static void shell_read_data(gnutella_shell_t *sh)
 		getline_reset(s->getline);
 	}
 
-	if (rc == 0) {
-		g_warning("shell connection closed: EOF");
-		shell_destroy(sh);
-	}
-
 }
 
 /*
@@ -878,8 +874,7 @@ static void shell_handle_data(
 	if (sh->shutdown) {
 		if (sh->outpos == 0)
 			shell_destroy(sh);
-		else
-			return;
+		return;
 	}
 
 	if (cond & INPUT_EVENT_READ)
@@ -909,8 +904,6 @@ static gboolean shell_write(gnutella_shell_t *sh, const gchar *s)
 			INPUT_EVENT_EXCEPTION | INPUT_EVENT_WRITE,
 			shell_handle_data, (gpointer) sh);
 	}
-
-	shell_write_data (sh);
 
 	return TRUE;
 }
