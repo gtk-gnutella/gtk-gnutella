@@ -2567,4 +2567,33 @@ search_gui_metadata_update(const bitzi_data_t *data)
 	g_free(text);
 }
 
+/**
+ * Update the search displays with the correct meta-data.
+ * (called from seach_cb.c)
+ */
+void
+search_gui_queue_bitzi_by_sha1(record_t *rec, void *unused_nothing)
+{
+	GList *sr;
+	GtkCTreeNode *parent;
+
+	g_assert(rec != NULL);
+	(void) unused_nothing;
+
+	guc_query_bitzi_by_urn(rec->sha1);
+
+	/*
+	 * Add some feedback that a search has been kicked off.
+	 */
+
+	for (sr = searches; sr; sr = g_list_next(sr)) {
+		search_t *search = sr->data;
+		GtkCTree *ctree = GTK_CTREE(search->ctree);
+
+		parent = find_parent_with_sha1(search->parents, rec->sha1);
+		if (parent)
+			gtk_ctree_node_set_text(ctree, parent, c_sr_meta, "Query queued");
+	}
+}
+
 /* vi: set ts=4 sw=4 cindent: */

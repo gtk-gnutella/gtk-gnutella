@@ -1247,15 +1247,6 @@ void on_popup_search_collapse_all_activate(GtkMenuItem *menuitem,
  *
  * Queue a bitzi queries from the search context menu
  */
-
-static void queue_bitzi_by_sha1(record_t *rec, void *nothing)
-{
-	g_assert(rec!=NULL);
-	guc_query_bitzi_by_urn(rec->sha1);
-}
-
-
-
 void
 on_popup_search_metadata_activate(GtkMenuItem *menuitem, gpointer user_data)
 {
@@ -1275,7 +1266,7 @@ on_popup_search_metadata_activate(GtkMenuItem *menuitem, gpointer user_data)
 			  g_list_position(data_list, g_list_last(data_list)) + 1,
 			  data_list);
 
-    g_list_foreach(data_list, (GFunc) queue_bitzi_by_sha1, NULL); 
+    g_list_foreach(data_list, (GFunc) search_gui_queue_bitzi_by_sha1, NULL); 
 
 	gtk_clist_thaw(GTK_CLIST(search->ctree));
 	g_list_free(data_list);

@@ -169,6 +169,8 @@ void search_gui_metadata_update(const bitzi_data_t *data);
 gboolean search_gui_search_results_col_widths_changed(property_t prop);
 gboolean search_gui_search_results_col_visible_changed(property_t prop);
 
+void search_gui_queue_bitzi_by_sha1(record_t *rec, void *nothing);
+
 #endif /* _gtk_search_h_ */
 
 /* vi: set ts=4: */
