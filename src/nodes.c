@@ -2705,6 +2705,9 @@ static void node_parse(struct gnutella_node *node)
 		} else if (n->size > MAX_MSG_SIZE) {
             drop = TRUE;
             gnet_stats_count_dropped(n, MSG_DROP_TOO_LARGE);
+		} else {
+			/* In case no Vendor-Messages was seen in handshake */
+			n->attrs |= NODE_A_CAN_VENDOR;
 		}
 		break;
 
@@ -2719,10 +2722,18 @@ static void node_parse(struct gnutella_node *node)
 
 	/*
 	 * If message has not a regular size, check for a valid GGEP extension.
+	 * NB: message must be at least as big as the regular size, or it's
+	 * clearly a bad message.
 	 */
 
 	if (regular_size != -1) {
-		has_ggep = gmsg_check_ggep(n, MAX_GGEP_PAYLOAD, regular_size);
+		g_assert(n->size != regular_size);
+
+		has_ggep = FALSE;
+
+		if (n->size > regular_size)
+			has_ggep = gmsg_check_ggep(n, MAX_GGEP_PAYLOAD, regular_size);
+
 		if (!has_ggep) {
 			drop = TRUE;
 			gnet_stats_count_dropped(n, MSG_DROP_BAD_SIZE);

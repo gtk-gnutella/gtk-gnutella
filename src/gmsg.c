@@ -601,7 +601,7 @@ gboolean gmsg_check_ggep(struct gnutella_node *n, gint maxsize, gint regsize)
 	gint len;
 	gint i;
 
-	g_assert(n->size != regsize);
+	g_assert(n->size > regsize);
 
 	len = n->size - regsize;				/* Extension length */
 
