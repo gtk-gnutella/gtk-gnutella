@@ -32,7 +32,7 @@
 #include "search_gui.h"
 #include "monitor_gui.h"
 #include "statusbar_gui.h"
-#include "search_stats.h"
+#include "search_stats_gui.h"
 #include "gnet_stats_gui.h"
 
 #include "filter_cb.h"
@@ -389,6 +389,7 @@ void main_gui_init(void)
 
     settings_gui_init();
     gnet_stats_gui_init();
+    search_stats_gui_init();
     nodes_gui_init();
     /* Must come before search_init() so searches/filters can be loaded.*/
 	filter_init(); 
@@ -442,7 +443,7 @@ void main_gui_shutdown(void)
     filter_close_dialog(FALSE);
 	gtk_widget_hide(main_window);
 
-    search_stats_disable();
+    search_stats_gui_shutdown();
     filter_cb_close();
     monitor_gui_shutdown();
     search_gui_shutdown(); /* must be done before filter_shutdown! */
