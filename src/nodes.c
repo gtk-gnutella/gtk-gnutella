@@ -73,6 +73,7 @@ RCSID("$Id$");
 #define CONNECT_PONGS_COUNT		10		/* Amoung of pongs to send */
 #define BYE_MAX_SIZE			4096	/* Maximum size for the Bye message */
 #define NODE_SEND_BUFSIZE		4096	/* TCP send buffer size - 4K */
+#define NODE_SEND_LEAF_BUFSIZE	256		/* TCP send buffer size for leaves */
 #define NODE_RECV_BUFSIZE		114688	/* TCP receive buffer size - 112K */
 #define MAX_GGEP_PAYLOAD		1024	/* In ping, pong, push */
 #define MAX_MSG_SIZE			65536	/* Absolute maximum message length */
@@ -84,8 +85,8 @@ RCSID("$Id$");
 #define MAX_WEIRD_MSG			5	/* Close connection after so much weirds */
 #define MAX_TX_RX_RATIO			50	/* Max TX/RX ratio */
 #define MIN_TX_FOR_RATIO		500	/* TX packets before enforcing ratio */
-#define ALIVE_PERIOD			10	/* Seconds between each alive ping */
-#define ALIVE_PERIOD_LEAF		30	/* Idem, for leaf nodes <-> ultrapeers */
+#define ALIVE_PERIOD			20	/* Seconds between each alive ping */
+#define ALIVE_PERIOD_LEAF		60	/* Idem, for leaf nodes <-> ultrapeers */
 #define ALIVE_MAX_PENDING		4	/* Max unanswered pings in a row */
 
 GSList *sl_nodes = (GSList *) NULL;
@@ -1503,7 +1504,9 @@ static void node_is_now_connected(struct gnutella_node *n)
 	 * reception window (assuming an original default 8K buffer size).
 	 */
 
-	sock_send_buf(s, NODE_SEND_BUFSIZE, TRUE);
+	sock_send_buf(s, NODE_IS_LEAF(n) ?
+		NODE_SEND_LEAF_BUFSIZE : NODE_SEND_BUFSIZE, TRUE);
+
 	sock_recv_buf(s, NODE_RECV_BUFSIZE, FALSE);
 
 	/*
@@ -4393,6 +4396,7 @@ void node_get_status(const gnet_node_t n, gnet_node_status_t *status)
 {
     gnutella_node_t  *node = node_find_by_handle(n); 
     time_t now = time((time_t *) NULL);
+	bio_source_t *bio;
 
     g_assert(status != NULL);
 
@@ -4421,12 +4425,16 @@ void node_get_status(const gnet_node_t n, gnet_node_status_t *status)
     status->tx_written  = node->tx_written;
     status->tx_compressed = NODE_TX_COMPRESSED(node);
     status->tx_compression_ratio = NODE_TX_COMPRESSION_RATIO(node);
+	status->tx_bps = node->outq ? bio_bps(mq_bio(node->outq)) / 1024.0 : 0.0;
 
     status->rx_given    = node->rx_given;
     status->rx_inflated = node->rx_inflated;
     status->rx_read     = node->rx_read;
     status->rx_compressed = NODE_RX_COMPRESSED(node);
     status->rx_compression_ratio = NODE_RX_COMPRESSION_RATIO(node);
+
+	bio = node->rx ? rx_bio_source(node->rx) : NULL;
+	status->rx_bps = bio ? bio_bps(bio) / 1024.0 : 0.0;
 
     status->shutdown_remain = 
         node->shutdown_delay - (now - node->shutdown_date);
