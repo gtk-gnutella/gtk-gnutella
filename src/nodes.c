@@ -1589,11 +1589,35 @@ void send_node_error(
  */
 static void send_proxy_request(gnutella_node_t *n)
 {
+	g_assert(n->attrs & NODE_A_CAN_VENDOR);
 	g_assert(is_firewalled);
-	g_assert(n->proxy_ip == 0);		/* Not proxyfied yet */
+	g_assert(n->proxy_ip == 0);		/* Not proxying us yet */
 
 	n->flags |= NODE_F_PROXY;
 	vmsg_send_proxy_req(n, guid);
+}
+
+/*
+ * node_became_firewalled
+ *
+ * Called when we were not firewalled and suddenly become firewalled.
+ * Send proxy requests to our current connections.
+ */
+void node_become_firewalled(void)
+{
+	GSList *l;
+
+	g_assert(is_firewalled);
+
+	for (l = sl_nodes; l; l = g_slist_next(l)) {
+		struct gnutella_node * n = (struct gnutella_node *) l->data;
+
+		if (NODE_IS_LEAF(n))
+			continue;
+
+		if (n->proxy_ip == 0 && (n->attrs & NODE_A_CAN_VENDOR))
+			send_proxy_request(n);
+	}
 }
 
 /*
@@ -4880,6 +4904,9 @@ void node_fill_flags(const gnet_node_t n, gnet_node_flags_t *flags)
     flags->in_tx_flow_control  = NODE_IN_TX_FLOW_CONTROL(node);
     flags->rx_compressed = NODE_RX_COMPRESSED(node);
 	flags->hops_flow = node->hops_flow;
+
+	flags->is_push_proxied = node->guid != 0;
+	flags->is_proxying = node->proxy_ip != 0;
 
 	flags->qrt_state = QRT_S_NONE;
 	if (node->peermode == NODE_P_LEAF) {

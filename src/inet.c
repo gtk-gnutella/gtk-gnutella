@@ -122,6 +122,8 @@ void inet_firewalled(void)
 		cq_cancel(callout_queue, incoming_ev);
 		incoming_ev = NULL;
 	}
+
+	node_become_firewalled();
 }
 
 /*

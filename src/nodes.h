@@ -402,5 +402,7 @@ gboolean node_proxying_add(gnutella_node_t *n, gchar *guid);
 void node_proxy_add(gnutella_node_t *n, guint32 ip, guint16 port);
 void node_http_proxies_add(gchar *buf, gint *retval, gpointer arg);
 
+void node_become_firewalled(void);
+
 #endif /* _nodes_h_ */
 
