@@ -607,8 +607,10 @@ gpointer header_fmt_make(const gchar *field, const gchar *separator,
 	gint len_hint)
 {
 	struct header_fmt *hf;
+	size_t len;
 
 	g_assert(!separator || strlen(separator) < sizeof(hf->sep));
+	g_assert(len_hint >= 0);
 
 	hf = walloc(sizeof(*hf));
 	hf->magic = HEADER_FMT_MAGIC;
@@ -616,8 +618,8 @@ gpointer header_fmt_make(const gchar *field, const gchar *separator,
 	hf->maxlen = HEADER_FMT_LINE_LEN;
 	hf->data_emitted = FALSE;
 	hf->frozen = FALSE;
-	g_strlcpy(hf->sep, separator ? separator : "", sizeof(hf->sep));
-	hf->seplen = strlen(hf->sep);
+	len = g_strlcpy(hf->sep, separator ? separator : "", sizeof(hf->sep));
+	hf->seplen = MIN(len, (sizeof hf->sep - 1));
 	hf->stripped_seplen = stripped_strlen(hf->sep, hf->seplen);
 	g_string_append(hf->header, field);
 	g_string_append(hf->header, ": ");
