@@ -4188,7 +4188,7 @@ void node_init_outgoing(struct gnutella_node *n)
 		len = gm_snprintf(buf, sizeof(buf), "%s0.4\n\n", GNUTELLA_HELLO);
 	} else
 		len = gm_snprintf(buf, sizeof(buf),
-			"%s/%d.%d\r\n"
+			"%s%d.%d\r\n"
 			"Node: %s\r\n"
 			"Remote-IP: %s\r\n"
 			"User-Agent: %s\r\n"
