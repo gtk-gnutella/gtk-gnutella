@@ -32,7 +32,6 @@
 #include "nodes.h"
 #include "misc.h"
 
-#include <sys/stat.h>
 #include <ctype.h>
 #include <unistd.h>
 
@@ -40,8 +39,8 @@ RCSID("$Id$");
 
 GSList *sl_hostiles = NULL;
 
-static const gchar *hostiles_file = "hostiles.txt";
-static const gchar *hostiles_what = "hostile IP addresses";
+static const gchar hostiles_file[] = "hostiles.txt";
+static const gchar hostiles_what[] = "hostile IP addresses";
 
 /*
  * Pre-sorted addresses to match against.
