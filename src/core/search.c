@@ -65,6 +65,7 @@ RCSID("$Id$");
 #include "lib/walloc.h"
 #include "lib/zalloc.h"
 #include "lib/utf8.h"
+#include "lib/urn.h"
 #include "lib/override.h"		/* Must be the last header included */
 
 #ifdef USE_GTK2
@@ -573,7 +574,7 @@ get_results_set(gnutella_node_t *n, gboolean validate_only)
 						memcpy(payload, e->ext_payload, e->ext_paylen);
 						payload[e->ext_paylen] = '\0';
 
-						if (huge_extract_sha1_no_urn(payload, sha1_digest)) {
+						if (urn_get_sha1_no_prefix(payload, sha1_digest)) {
 							if (!validate_only) {
 								if (rc->sha1 != NULL) {
 									multiple_sha1 = TRUE;

@@ -53,6 +53,7 @@ RCSID("$Id$");
 #include "lib/glib-missing.h"
 #include "lib/header.h"
 #include "lib/url.h"
+#include "lib/urn.h"
 #include "lib/walloc.h"
 
 #include "lib/override.h"	/* Must be the last header included */
@@ -1722,7 +1723,7 @@ gboolean dmesh_collect_sha1(gchar *value, gchar *digest)
 			p++;
 		}
 
-		if (huge_extract_sha1(p, digest))
+		if (urn_get_sha1(p, digest))
 			return TRUE;
 
 		/*
@@ -2038,7 +2039,7 @@ void dmesh_collect_locations(gchar *sha1, gchar *value, gboolean defer)
 		if (info.idx == URN_INDEX) {
 			gchar digest[SHA1_RAW_SIZE];
 
-			ok = huge_extract_sha1(info.name, digest);
+			ok = urn_get_sha1(info.name, digest);
 			if (!ok) {
 				g_warning("malformed /uri-res/N2R? Alternate-Location: %s",
 					info.name);

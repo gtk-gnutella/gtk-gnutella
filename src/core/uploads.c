@@ -59,6 +59,7 @@ RCSID("$Id$");
 #include "lib/header.h"
 #include "lib/listener.h"
 #include "lib/url.h"
+#include "lib/urn.h"
 #include "lib/walloc.h"
 #include "lib/override.h"	/* Must be the last header included */
 
@@ -1689,7 +1690,7 @@ static struct shared_file *get_file_to_upload_from_urn(
 	if (g_strlcpy(hash, urn + skip, sizeof hash) < SHA1_BASE32_SIZE)
 		goto malformed;
 
-	if (!huge_http_sha1_extract32(hash, digest))
+	if (!urn_get_http_sha1(hash, digest))
 		goto malformed;
 
 	huge_collect_locations(digest, header, u->user_agent);
