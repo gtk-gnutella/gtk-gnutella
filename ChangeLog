@@ -1,11 +1,24 @@
 # since last version
+- added several new popup menu items to popup-download and popup-queue,
+  but disabled them for now since they are not backed up by code yet.
+  (Richard)
+- removed useless host catcher popup code (Richard)
+- added "freeze" toggle button to queue context menu. This can be used to 
+  enable/disable the automatic moving of files to and from the queue
+  (i.e. disable download_timer). To make this work properly, the
+  download timer is the only function now to call download_pickup_queued.
+  (Richard)
+- added "kill all named" and "kill all from" to popup-queue and popup-downloads.
+  These will remove all queued downloads and abort all active downloads
+  matching any of the selected items. (Richard)
 - visually distinguish items in search list that where already selected for
   downloading (Richard)
 - Added uptime of servent to statusbar. (Richard)
 - Modified multiple-selection handling in on_button_uploads_kill_clicked,
   on_button_downloads_queue_remove_clicked and on_download_start_now_activate.
   This should fix problems where the selection was not actually acted on.
-- made popup_queue_start_now (de)activate correctly on selection changes (Richard)
+- made popup_queue_start_now (de)activate correctly when maximum
+  number of downloads is reached (Richard)
 - Missed out to hide notebook tabs after modifing the gui. 
 - Rearranged widgets to reduce minimum window size. On my box this means
   604x503 (sorry 640x480 guys... maybe later). 
