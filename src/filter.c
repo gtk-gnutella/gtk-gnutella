@@ -1389,6 +1389,9 @@ void filter_free(filter_t *f)
 
     filter_gui_filter_remove(f);
 
+    if (f == work_filter)
+        filter_set(NULL);
+
     g_free(f->name);
     f->name = NULL;
     
