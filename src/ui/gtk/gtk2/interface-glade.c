@@ -1826,10 +1826,6 @@ create_main_window (void)
   GtkWidget *vbox_right;
   GtkWidget *viewport470;
   GtkWidget *table107;
-  GtkWidget *frame129;
-  GtkWidget *combo_search;
-  GList *combo_search_items = NULL;
-  GtkWidget *entry_search;
   GtkWidget *frame132;
   GtkWidget *optionmenu_search_filter;
   GtkWidget *convertwidget20;
@@ -1843,6 +1839,10 @@ create_main_window (void)
   GtkWidget *hbox288;
   GtkWidget *image401;
   GtkWidget *label903;
+  GtkWidget *frame129;
+  GtkWidget *combo_search;
+  GList *combo_search_items = NULL;
+  GtkWidget *entry_search;
   GtkWidget *notebook_main;
   GtkWidget *label590;
   GtkWidget *hbox_statusbar;
@@ -2587,29 +2587,6 @@ create_main_window (void)
   gtk_container_add (GTK_CONTAINER (viewport470), table107);
   gtk_table_set_col_spacings (GTK_TABLE (table107), 4);
 
-  frame129 = gtk_frame_new (NULL);
-  gtk_widget_set_name (frame129, "frame129");
-  gtk_widget_show (frame129);
-  gtk_table_attach (GTK_TABLE (table107), frame129, 1, 2, 0, 1,
-                    (GtkAttachOptions) (GTK_SHRINK | GTK_FILL),
-                    (GtkAttachOptions) (GTK_FILL), 0, 0);
-  gtk_frame_set_shadow_type (GTK_FRAME (frame129), GTK_SHADOW_NONE);
-
-  combo_search = gtk_combo_new ();
-  g_object_set_data (G_OBJECT (GTK_COMBO (combo_search)->popwin),
-                     "GladeParentKey", combo_search);
-  gtk_widget_set_name (combo_search, "combo_search");
-  gtk_widget_show (combo_search);
-  gtk_container_add (GTK_CONTAINER (frame129), combo_search);
-  gtk_combo_set_use_arrows_always (GTK_COMBO (combo_search), TRUE);
-  combo_search_items = g_list_append (combo_search_items, (gpointer) "");
-  gtk_combo_set_popdown_strings (GTK_COMBO (combo_search), combo_search_items);
-  g_list_free (combo_search_items);
-
-  entry_search = GTK_COMBO (combo_search)->entry;
-  gtk_widget_set_name (entry_search, "entry_search");
-  gtk_widget_show (entry_search);
-
   frame132 = gtk_frame_new (NULL);
   gtk_widget_set_name (frame132, "frame132");
   gtk_widget_show (frame132);
@@ -2688,6 +2665,29 @@ create_main_window (void)
   gtk_widget_set_name (label903, "label903");
   gtk_widget_show (label903);
   gtk_box_pack_start (GTK_BOX (hbox288), label903, FALSE, FALSE, 0);
+
+  frame129 = gtk_frame_new (NULL);
+  gtk_widget_set_name (frame129, "frame129");
+  gtk_widget_show (frame129);
+  gtk_table_attach (GTK_TABLE (table107), frame129, 1, 2, 0, 1,
+                    (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK | GTK_FILL),
+                    (GtkAttachOptions) (GTK_FILL), 0, 0);
+  gtk_frame_set_shadow_type (GTK_FRAME (frame129), GTK_SHADOW_NONE);
+
+  combo_search = gtk_combo_new ();
+  g_object_set_data (G_OBJECT (GTK_COMBO (combo_search)->popwin),
+                     "GladeParentKey", combo_search);
+  gtk_widget_set_name (combo_search, "combo_search");
+  gtk_widget_show (combo_search);
+  gtk_container_add (GTK_CONTAINER (frame129), combo_search);
+  gtk_combo_set_use_arrows_always (GTK_COMBO (combo_search), TRUE);
+  combo_search_items = g_list_append (combo_search_items, (gpointer) "");
+  gtk_combo_set_popdown_strings (GTK_COMBO (combo_search), combo_search_items);
+  g_list_free (combo_search_items);
+
+  entry_search = GTK_COMBO (combo_search)->entry;
+  gtk_widget_set_name (entry_search, "entry_search");
+  gtk_widget_show (entry_search);
 
   notebook_main = gtk_notebook_new ();
   gtk_widget_set_name (notebook_main, "notebook_main");
@@ -2875,17 +2875,17 @@ create_main_window (void)
   g_signal_connect ((gpointer) progressbar_bws_lout, "button_press_event",
                     G_CALLBACK (on_progressbar_bws_lout_button_press_event),
                     NULL);
-  g_signal_connect ((gpointer) entry_search, "changed",
-                    G_CALLBACK (on_entry_search_changed),
-                    NULL);
-  g_signal_connect ((gpointer) entry_search, "activate",
-                    G_CALLBACK (on_entry_search_activate),
-                    NULL);
   g_signal_connect ((gpointer) button_search_passive, "clicked",
                     G_CALLBACK (on_button_search_passive_clicked),
                     NULL);
   g_signal_connect ((gpointer) button_search, "clicked",
                     G_CALLBACK (on_button_search_clicked),
+                    NULL);
+  g_signal_connect ((gpointer) entry_search, "changed",
+                    G_CALLBACK (on_entry_search_changed),
+                    NULL);
+  g_signal_connect ((gpointer) entry_search, "activate",
+                    G_CALLBACK (on_entry_search_activate),
                     NULL);
 
   /* Store pointers to all widgets, for use by lookup_widget(). */
@@ -3012,9 +3012,6 @@ create_main_window (void)
   GLADE_HOOKUP_OBJECT (main_window, vbox_right, "vbox_right");
   GLADE_HOOKUP_OBJECT (main_window, viewport470, "viewport470");
   GLADE_HOOKUP_OBJECT (main_window, table107, "table107");
-  GLADE_HOOKUP_OBJECT (main_window, frame129, "frame129");
-  GLADE_HOOKUP_OBJECT (main_window, combo_search, "combo_search");
-  GLADE_HOOKUP_OBJECT (main_window, entry_search, "entry_search");
   GLADE_HOOKUP_OBJECT (main_window, frame132, "frame132");
   GLADE_HOOKUP_OBJECT (main_window, optionmenu_search_filter, "optionmenu_search_filter");
   GLADE_HOOKUP_OBJECT (main_window, convertwidget20, "convertwidget20");
@@ -3028,6 +3025,9 @@ create_main_window (void)
   GLADE_HOOKUP_OBJECT (main_window, hbox288, "hbox288");
   GLADE_HOOKUP_OBJECT (main_window, image401, "image401");
   GLADE_HOOKUP_OBJECT (main_window, label903, "label903");
+  GLADE_HOOKUP_OBJECT (main_window, frame129, "frame129");
+  GLADE_HOOKUP_OBJECT (main_window, combo_search, "combo_search");
+  GLADE_HOOKUP_OBJECT (main_window, entry_search, "entry_search");
   GLADE_HOOKUP_OBJECT (main_window, notebook_main, "notebook_main");
   GLADE_HOOKUP_OBJECT (main_window, label590, "label590");
   GLADE_HOOKUP_OBJECT (main_window, hbox_statusbar, "hbox_statusbar");
