@@ -69,6 +69,16 @@ prop = {
 };
 
 prop = {
+    name = "nodes_col_visible";
+    desc = "Which columns are visible in the nodes pane";
+    type = boolean;
+    vector_size = 7;
+    data = {
+        default = "{ 1,1,1,1,1,1,1}";
+    };
+};
+
+prop = {
     name = "dl_active_col_widths";
     cfgvar = "widths_dl_active";
     desc = "Widths of the columns in the active downloads table";
@@ -104,7 +114,7 @@ prop = {
 prop = {
     name = "search_results_col_visible";
     desc = "Which columns are visible in the search results tables";
-    type = guint32;
+    type = boolean;
     vector_size = 8;
     data = {
         default = "{ 1,1,1,1,1,1,0,1}";
