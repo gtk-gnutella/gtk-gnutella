@@ -70,6 +70,7 @@ gboolean on_progressbar_bws_gout_button_press_event(GtkWidget *widget, GdkEventB
  *** gnutellaNet panel
  ***/
 void on_button_host_catcher_clear_clicked (GtkButton *button, gpointer user_data);
+void on_button_ultra_catcher_clear_clicked (GtkButton *button, gpointer user_data);
 
 
 

@@ -124,6 +124,11 @@ void on_button_host_catcher_clear_clicked(GtkButton *button, gpointer user_data)
 	hcache_clear(HCACHE_ANY);
 }
 
+void on_button_ultra_catcher_clear_clicked(GtkButton *button, gpointer user_data)
+{
+	hcache_clear(HCACHE_ULTRA);
+}
+
 /***
  *** Search Stats
  ***/ 
