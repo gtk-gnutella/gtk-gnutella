@@ -32,7 +32,9 @@ void on_clist_gnet_stats_pkg_resize_column(
     GtkCList *clist, gint column, gint width, gpointer user_data);
 void on_clist_gnet_stats_byte_resize_column(
     GtkCList *clist, gint column, gint width, gpointer user_data);
-void on_clist_gnet_stats_fc_resize_column(
+void on_clist_gnet_stats_fc_ttl_resize_column(
+    GtkCList *clist, gint column, gint width, gpointer user_data);
+void on_clist_gnet_stats_fc_hops_resize_column(
     GtkCList *clist, gint column, gint width, gpointer user_data);
 void on_clist_gnet_stats_drop_reasons_resize_column(
     GtkCList *clist, gint column, gint width, gpointer user_data);

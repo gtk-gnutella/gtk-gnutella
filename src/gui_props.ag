@@ -190,9 +190,20 @@ prop = {
 };
 
 prop = {
-    name = "gnet_stats_fc_col_widths";
-    cfgvar = "widths_gnet_stats_fc";
-    desc = "Widths of the columns in the gnet flow control stats table";
+    name = "gnet_stats_fc_ttl_col_widths";
+    cfgvar = "widths_gnet_stats_fc_ttl";
+    desc = "Widths of the columns in the gnet fc ttl stats table";
+    type = guint32;
+    vector_size = 10;
+    data = {
+        default = "{ 60, 20, 20, 20, 20, 20, 20, 20, 20, 20 }";
+    };
+};
+
+prop = {
+    name = "gnet_stats_fc_hops_col_widths";
+    cfgvar = "widths_gnet_stats_fc_hops";
+    desc = "Widths of the columns in the gnet fc hops stats table";
     type = guint32;
     vector_size = 10;
     data = {
@@ -580,9 +591,19 @@ prop = {
 };
 
 prop = {
-    name = "gnet_stats_fc_perc";
+    name = "gnet_stats_fc_ttl_perc";
     desc = "Show percentages instead of absolute values in the gnet stats "
-           "(flow control display)";
+           "(flow control ttl display)";
+    type = boolean;
+    data = {
+        default = FALSE;
+    };
+};
+
+prop = {
+    name = "gnet_stats_fc_hops_perc";
+    desc = "Show percentages instead of absolute values in the gnet stats "
+           "(flow control hops display)";
     type = boolean;
     data = {
         default = FALSE;

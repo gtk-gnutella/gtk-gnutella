@@ -122,11 +122,11 @@ void on_clist_gnet_stats_byte_resize_column(
     lock = FALSE;
 }
 
-void on_clist_gnet_stats_fc_resize_column(
+void on_clist_gnet_stats_fc_ttl_resize_column(
     GtkCList *clist, gint column, gint width, gpointer user_data)
 {
     static gboolean lock = FALSE;
-    guint32 buf = width;
+    guint32 buf[9];
     guint n;
 
     if (lock)
@@ -135,12 +135,31 @@ void on_clist_gnet_stats_fc_resize_column(
     lock = TRUE;
 
     /* remember the width for storing it to the config file later */
-    for (n = 1; n < 10; n ++) {
-        gui_prop_set_guint32(PROP_GNET_STATS_FC_COL_WIDTHS, &buf, n, 1);
-        gtk_clist_set_column_width(
-            GTK_CLIST(lookup_widget(main_window, "clist_gnet_stats_fc")),
-            n, width);
-    }
+    for (n = 0; n < G_N_ELEMENTS(buf); n ++)
+        buf[n] = width;
+
+    gui_prop_set_guint32(PROP_GNET_STATS_FC_TTL_COL_WIDTHS, buf, 1, 9);
+
+    lock = FALSE;
+}
+
+void on_clist_gnet_stats_fc_hops_resize_column(
+    GtkCList *clist, gint column, gint width, gpointer user_data)
+{
+    static gboolean lock = FALSE;
+    guint32 buf[9];
+    guint n;
+
+    if (lock)
+        return;
+
+    lock = TRUE;
+
+    /* remember the width for storing it to the config file later */
+    for (n = 0; n < G_N_ELEMENTS(buf); n ++)
+        buf[n] = width;
+
+    gui_prop_set_guint32(PROP_GNET_STATS_FC_HOPS_COL_WIDTHS, buf, 1, 9);
 
     lock = FALSE;
 }
@@ -243,14 +262,14 @@ G_INLINE_FUNC gchar *general_stat_str(gnet_stats_t *stats, gint type)
 }
 
 G_INLINE_FUNC gchar *flowc_stat_str(
-    guint32 *val_tbl, gint type)
+    guint32 *val_tbl, gint type, gboolean perc)
 {
     static gchar strbuf[20];
 
     if (val_tbl[type] == 0)
-        return gnet_stats_fc_perc ? "-  " : "-";
+        return perc ? "-  " : "-";
 
-	if (gnet_stats_drop_perc) {
+	if (perc) {
 		g_snprintf(strbuf, sizeof(strbuf), "%.2f%%", 
             (float)val_tbl[type]/val_tbl[MSG_TOTAL]*100.0);
     } else {
@@ -268,7 +287,8 @@ void gnet_stats_gui_init(void)
 {
     GtkCList *clist_stats_pkg;
     GtkCList *clist_stats_byte;
-    GtkCList *clist_stats_fc;
+    GtkCList *clist_stats_fc_ttl;
+    GtkCList *clist_stats_fc_hops;
     GtkCList *clist_general;
     GtkCList *clist_reason;
     GtkCombo *combo_types;
@@ -282,8 +302,10 @@ void gnet_stats_gui_init(void)
         lookup_widget(main_window, "clist_gnet_stats_pkg"));
     clist_stats_byte = GTK_CLIST(
         lookup_widget(main_window, "clist_gnet_stats_byte"));
-    clist_stats_fc = GTK_CLIST(
-        lookup_widget(main_window, "clist_gnet_stats_fc"));
+    clist_stats_fc_ttl = GTK_CLIST(
+        lookup_widget(main_window, "clist_gnet_stats_fc_ttl"));
+    clist_stats_fc_hops = GTK_CLIST(
+        lookup_widget(main_window, "clist_gnet_stats_fc_hops"));
     clist_reason = GTK_CLIST(
         lookup_widget(main_window, "clist_gnet_stats_drop_reasons"));
     clist_general = GTK_CLIST(
@@ -319,9 +341,12 @@ void gnet_stats_gui_init(void)
     gtk_clist_set_column_justification(
         clist_reason, 1, GTK_JUSTIFY_RIGHT);
 
-    for (n = 1; n < 10; n ++)
+    for (n = 1; n < 10; n ++) {
         gtk_clist_set_column_justification(
-            clist_stats_fc, n, GTK_JUSTIFY_RIGHT);
+            clist_stats_fc_ttl, n, GTK_JUSTIFY_RIGHT);
+        gtk_clist_set_column_justification(
+            clist_stats_fc_hops, n, GTK_JUSTIFY_RIGHT);
+    }
 
 
     /*
@@ -329,7 +354,8 @@ void gnet_stats_gui_init(void)
      */
 	gtk_clist_column_titles_passive(clist_stats_pkg);
 	gtk_clist_column_titles_passive(clist_stats_byte);
-	gtk_clist_column_titles_passive(clist_stats_fc);
+	gtk_clist_column_titles_passive(clist_stats_fc_ttl);
+	gtk_clist_column_titles_passive(clist_stats_fc_hops);
 	gtk_clist_column_titles_passive(clist_reason);
 	gtk_clist_column_titles_passive(clist_general);
 
@@ -347,8 +373,10 @@ void gnet_stats_gui_init(void)
         gtk_clist_set_selectable(clist_stats_pkg, row, FALSE);
         row = gtk_clist_append(clist_stats_byte, titles);
         gtk_clist_set_selectable(clist_stats_byte, row, FALSE);
-        row = gtk_clist_append(clist_stats_fc, titles);
-        gtk_clist_set_selectable(clist_stats_fc, row, FALSE);
+        row = gtk_clist_append(clist_stats_fc_ttl, titles);
+        gtk_clist_set_selectable(clist_stats_fc_ttl, row, FALSE);
+        row = gtk_clist_append(clist_stats_fc_hops, titles);
+        gtk_clist_set_selectable(clist_stats_fc_hops, row, FALSE);
 
         list_item = gtk_list_item_new_with_label(msg_type_str[n]);
 
@@ -388,7 +416,8 @@ void gnet_stats_gui_update(void)
     GtkCList *clist_stats_byte;
     GtkCList *clist_reason;
     GtkCList *clist_general;
-    GtkCList *clist_stats_fc;
+    GtkCList *clist_stats_fc_ttl;
+    GtkCList *clist_stats_fc_hops;
     gint n;
     gnet_stats_t stats;
 
@@ -410,14 +439,17 @@ void gnet_stats_gui_update(void)
         lookup_widget(main_window, "clist_gnet_stats_drop_reasons"));
     clist_general = GTK_CLIST(
         lookup_widget(main_window, "clist_gnet_stats_general"));
-    clist_stats_fc = GTK_CLIST(
-        lookup_widget(main_window, "clist_gnet_stats_fc"));
+    clist_stats_fc_ttl = GTK_CLIST(
+        lookup_widget(main_window, "clist_gnet_stats_fc_ttl"));
+    clist_stats_fc_hops = GTK_CLIST(
+        lookup_widget(main_window, "clist_gnet_stats_fc_hops"));
 
     gtk_clist_freeze(clist_reason);
     gtk_clist_freeze(clist_general);
     gtk_clist_freeze(clist_stats_byte);
     gtk_clist_freeze(clist_stats_pkg);
-    gtk_clist_freeze(clist_stats_fc);
+    gtk_clist_freeze(clist_stats_fc_ttl);
+    gtk_clist_freeze(clist_stats_fc_hops);
 
     for (n = 0; n < MSG_TYPE_COUNT; n ++) {
         int m;
@@ -445,9 +477,14 @@ void gnet_stats_gui_update(void)
             byte_stat_str(stats.byte.relayed, n));
 
         for (m = 1; m < 10; m ++)
-            gtk_clist_set_text(clist_stats_fc, n, m,
-                flowc_stat_str(stats.byte.flowc_ttl[m], n));
+            gtk_clist_set_text(clist_stats_fc_ttl, n, m,
+                flowc_stat_str(
+                    stats.byte.flowc_ttl[m], n, gnet_stats_fc_ttl_perc));
 
+        for (m = 1; m < 10; m ++)
+            gtk_clist_set_text(clist_stats_fc_hops, n, m,
+                flowc_stat_str(
+                    stats.byte.flowc_hops[m], n, gnet_stats_fc_hops_perc));
     }
 
     for (n = 0; n < MSG_DROP_REASON_COUNT; n ++)
@@ -460,5 +497,6 @@ void gnet_stats_gui_update(void)
     gtk_clist_thaw(clist_general);
     gtk_clist_thaw(clist_stats_byte);
     gtk_clist_thaw(clist_stats_pkg);
-    gtk_clist_thaw(clist_stats_fc);
+    gtk_clist_thaw(clist_stats_fc_ttl);
+    gtk_clist_thaw(clist_stats_fc_hops);
 }

@@ -374,6 +374,20 @@ static prop_map_t property_map[] = {
     },
     {
         get_main_window,
+        PROP_GNET_STATS_FC_TTL_COL_WIDTHS,
+        update_clist_col_widths,
+        TRUE,
+        "clist_gnet_stats_fc_ttl"
+    },
+    {
+        get_main_window,
+        PROP_GNET_STATS_FC_HOPS_COL_WIDTHS,
+        update_clist_col_widths,
+        TRUE,
+        "clist_gnet_stats_fc_hops"
+    },
+    {
+        get_main_window,
         PROP_GNET_STATS_DROP_REASONS_COL_WIDTHS,
         update_clist_col_widths,
         TRUE,
@@ -1256,10 +1270,17 @@ static prop_map_t property_map[] = {
     },
     {
         get_main_window,
-        PROP_GNET_STATS_FC_PERC,
+        PROP_GNET_STATS_FC_TTL_PERC,
         update_togglebutton,
         TRUE,
-        "checkbutton_gnet_stats_fc_perc"
+        "checkbutton_gnet_stats_fc_ttl_perc"
+    },
+    {
+        get_main_window,
+        PROP_GNET_STATS_FC_HOPS_PERC,
+        update_togglebutton,
+        TRUE,
+        "checkbutton_gnet_stats_fc_hops_perc"
     },
     {
         get_main_window,
