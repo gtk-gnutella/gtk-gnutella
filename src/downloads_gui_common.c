@@ -50,17 +50,34 @@ RCSID("$Id$");
 
 gchar *selected_url = NULL;
 
+static gboolean update_download_clear_needed = FALSE;
+
 /*
- *	gui_update_download_clear
+ * gui_update_download_clear
+ *
+ * Remember that we need to check for cleared downloads at the next
+ * invocation of gui_update_download_clear_now(), which happens once
+ * every second only to avoid too frequent costly list traversals.
+ */
+void gui_update_download_clear(void)
+{
+	update_download_clear_needed = TRUE;
+}
+
+/*
+ *	gui_update_download_clear_now
  *
  *	Checks if there are any active downloads that are clearable
  *  If so, this activates the "Clear Stopped" button
  *
  */
-void gui_update_download_clear(void)
+void gui_update_download_clear_now(void)
 {
 	GSList *l;
 	gboolean clear = FALSE;
+
+	if (!update_download_clear_needed)
+		return;
 
 	for (l = sl_unqueued; !clear && l; l = l->next) {
 		switch (((struct download *) l->data)->status) {

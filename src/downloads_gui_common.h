@@ -33,6 +33,7 @@ struct download;
 extern gchar *selected_url;
 
 void gui_update_download_clear(void);
+void gui_update_download_clear_now(void);
 
 void gui_update_c_downloads(gint, gint);
 void gui_update_queue_frozen(void);
