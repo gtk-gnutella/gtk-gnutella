@@ -1,5 +1,34 @@
 # since last version
 
+- (2003.12.17 - RAM)
+ * Changed some property defaults:
+	 node_monitor_unstable_servents -> FALSE (was TRUE)
+     max_leaves -> 48 (was 100)
+ * Changed minimum bandwidth requirements per leaf (128 bytes -> 64).
+
+- (2003.12.16 - RAM)
+ * New property "dl_http_latency".
+ * Downloads now maintain a measure of the HTTP latency between request
+   and reply.
+ * [GTK1] Added display of total limited bandwidth in the Config / Bandwidth
+   pane, as well as the current measure of the HTTP latency.
+ * Don't count TTL=0 messages when we're a leaf node since we handle them.
+
+- (2003.12.15 - RAM)
+ * Changed some timeouts minima values, and added the ".aac" extension (MP3
+   clone from Apple).
+ * Added two new properties: "download_rx_size" and "node_rx_size" to
+   configure the socket RX buffer size.
+ * [GTK1] Added "expert" settings to configure the RX buffers of sockets.
+   This can greatly impact the latency when downloading many files or
+   connected as an ultranode.
+
+- (2003.12.14 - RAM)
+ * Removed remaining Gnutella 0.4 handshaking code.
+ * Fixed IP TOS settings: only change it when downloading/uploading, but
+   leave normal TOS when exchanging headers.
+ * Don't forward random pongs to leaves that are already in TX flow control.
+
 - (2003.12.13 - Jeroen)
  * Intergrated patch from Clayton, adds vendor preferencing to the gui 
 
@@ -7,6 +36,7 @@
  * Changed compact_size() to display an even more compact string when the
    size is an even multiple of Kbytes, Mbytes, etc...
  * Added some query routing table stats for ultrapeers to monitor their leaves.
+ * Suppressed activity timeout between ultra nodes and leaves.
 
 - (2003.12.10 - RAM)
  * Added warning when running under debug level tracing the BYE received.
