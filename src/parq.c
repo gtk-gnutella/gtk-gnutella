@@ -1406,10 +1406,22 @@ static void parq_upload_update_eta(struct parq_ul_queue *which_ul_queue)
 		
 		for (l = which_ul_queue->by_position; l; l = g_list_next(l)) {	
 			struct parq_ul_queued *parq_ul = (struct parq_ul_queued *) l->data;
-				if (parq_ul->has_slot) {
-					eta = parq_ul->eta;
-					break;
-				}
+			
+			if (parq_ul->has_slot) {
+				if (max_uploads > 0) {
+					/* Recalculate ETA */
+					if (bw_http_out != 0 && bws_out_enabled) {
+						eta += parq_ul->file_size / (bw_http_out / max_uploads);
+					} else {
+						/* FIXME, should use average bandwidth here */
+						/* Pessimistic: 1 bytes / sec */
+						eta += parq_ul->file_size;
+					}
+				} else
+					eta = (guint) -1;
+
+				break;
+			}
 		}
 	}
 	
