@@ -173,8 +173,8 @@ void search_gui_restart_search(search_t *sch)
 {
 	if (!sch->enabled)
 		gui_search_set_enabled(sch, TRUE);
-	search_reissue(sch->search_handle);
-	gtk_clist_clear(GTK_CLIST(sch->ctree));
+	search_reissue(sch->search_handle);	
+	search_gui_clear_search(sch);	
 	sch->items = sch->unseen_items = 0;
 	gui_search_update_items(sch);
 	search_update_items(sch->search_handle, sch->items);
@@ -646,7 +646,18 @@ void search_gui_sort_column(search_t *search, gint column)
             gtk_widget_show(search->arrow);
         }
         gtk_clist_set_sort_column(GTK_CLIST(search->ctree), column);
-        gtk_clist_sort(GTK_CLIST(search->ctree));
+
+
+		/* FIXME 
+		 * GTK uses a merge sort algorithm to sort the column items using our
+		 * function (search_gui_compare_records) as the comparation function.
+		 * this is too slow.  However, I tried writing a custom quicksort 
+		 * algorithm and the results weren't much better.  It's possible to 
+		 * cast the ctree as a clist and use the clist sort function but this
+		 * is just about as slow, doing this just ignores child nodes.  We need 
+		 * to fix this somehow. --- Emile Jan 03, 2004
+		 */
+        gtk_ctree_sort_node(search->ctree, NULL);
         search->sort = TRUE;
     } else {
         search->sort = FALSE;
@@ -669,9 +680,10 @@ void search_gui_add_record(
 	gpointer key = NULL;
 	gboolean is_parent = FALSE;
     struct results_set *rs = rc->results_set;
-	record_t *parent_rc;
+	record_t *parent_rc, *rc2;
 
-	GtkCTreeNode *parent, *node;
+	GtkCTreeNode *parent, *node, *cur_node, *sibling;
+	GtkCTreeRow *row, *parent_row;
 	GtkCTree *ctree = GTK_CTREE(sch->ctree);
 	
 	info = g_string_assign(info, "");
@@ -801,15 +813,74 @@ void search_gui_add_record(
          * work.
 		 * So we need to find the place to put the result by ourselves.
 		 */
-
-		/* If node added was a child, the list will already be sorted, as we
-		 * don't bother sorting child nodes. We sort the whole list, because 
-		 * it should be already sorted (except for the new node) this shouldn't 
-		 * cause visible lag problems
+		
+		/* FIXME
+		 * For some reason autosort is broken on the count column. --- Emile
 		 */
-		if (is_parent)		
-			gtk_clist_sort(GTK_CLIST(ctree));
+		if (is_parent) {
+			
+			parent = NULL;
+			sibling = NULL;
+			
+			/* Traverse the entire search tree */
+			for (cur_node = GTK_CTREE_NODE(GTK_CLIST(sch->ctree)->row_list);
+				(NULL != cur_node); cur_node = GTK_CTREE_NODE_NEXT (cur_node)) {			
+
+				row = GTK_CTREE_ROW(cur_node);
+
+				/* If node is a child node, we skip it */
+				if (NULL != row->parent)
+				continue; 			
+		
+				rc2 = (record_t *) gtk_ctree_node_get_row_data(ctree, cur_node);
+	
+				if (rc == rc2)
+					continue;
+				
+				if(SORT_ASC == sch->sort_order) {
+ 	            	if (search_gui_compare_records(sch->sort_col, rc, rc2) < 0){
+						sibling = cur_node;
+						break;
+					} 
+				} else { /* SORT_DESC */
+					if (search_gui_compare_records(sch->sort_col, rc, rc2) > 0){
+						sibling = cur_node;
+						break;
+					}
+				}
+			}
+		} else { /* Is a child node */
+		
+			row = GTK_CTREE_ROW(node);
+			parent = row->parent;
+			g_assert(NULL != parent);
+			sibling = NULL;
+			
+			parent_row = GTK_CTREE_ROW(node);
+			cur_node = parent_row->children; /* start looking at first child */
+
+			for (; NULL != cur_node; row = GTK_CTREE_ROW(cur_node), 
+					cur_node = row->sibling) {		
+
+				rc2 = (record_t *) gtk_ctree_node_get_row_data(ctree, cur_node);
+	
+				if(SORT_ASC == sch->sort_order) {
+ 	            	if (search_gui_compare_records(sch->sort_col, rc, rc2) < 0){
+						sibling = cur_node;
+						break;
+					}
+				} else { /* SORT_DESC */
+					if (search_gui_compare_records(sch->sort_col, rc, rc2) > 0){
+						sibling = cur_node;
+						break;
+					}
+				}
+			}
+		}
+
+		gtk_ctree_move(ctree, node, parent, sibling);
 	}
+
 
     if (fg != NULL)
         gtk_ctree_node_set_foreground(ctree, node, fg);
