@@ -95,6 +95,7 @@ static void mq_tcp_service(gpointer data)
 	gint dropped;
 	gint maxsize;
 	gboolean saturated;
+	gboolean has_prioritary = FALSE;
 
 again:
 	g_assert(q->count);		/* Queue is serviced, we must have something */
@@ -131,7 +132,7 @@ again:
 		 * Honour hops-flow, and ensure there is a route for possible replies.
 		 */
 
-		if (node_can_send(q->node, gmsg_function(mbs), gmsg_hops(mbs), mbs)) {
+		if (pmsg_check(mb, q)) {
 			/* send the message */
 			l = g_list_previous(l);
 			iovsize--;
@@ -139,6 +140,8 @@ again:
 			ie->iov_base = mb->m_rptr;
 			ie->iov_len = pmsg_size(mb);
 			maxsize -= ie->iov_len;
+			if (pmsg_prio(mb))
+				has_prioritary = TRUE;
 		} else {
 			gnet_stats_count_flowc(mbs);	/* Done before message freed */
 			if (q->qlink)
@@ -146,10 +149,6 @@ again:
 
 			/* drop the message, will be freed by mq_rmlink_prev() */
 			l = q->cops->rmlink_prev(q, l, pmsg_size(mb));
-
-			if (dbg > 4)
-				gmsg_log_dropped(mbs, "to node %s due to hops-flow / route",
-					node_ip(q->node));
 
 			dropped++;
 		}
@@ -167,7 +166,10 @@ again:
 	 * Write as much as possible.
 	 */
 
-	r = tx_writev((txdrv_t *) q->tx_drv, iov, iovcnt);
+	if (has_prioritary)
+		node_flushq(q->node);
+
+	r = tx_writev(q->tx_drv, iov, iovcnt);
 
 	if (r <= 0) {
 		q->last_written = 0;
@@ -175,6 +177,9 @@ again:
 			goto update_servicing;
 		return;
 	}
+
+	if (has_prioritary)
+		tx_flush(q->tx_drv);
 
 	node_add_tx_given(q->node, r);
 	q->last_written = r;
@@ -265,7 +270,7 @@ update_servicing:
 
 	if (q->size == 0) {
 		g_assert(q->count == 0);
-		tx_srv_disable((txdrv_t *) q->tx_drv);
+		tx_srv_disable(q->tx_drv);
 		node_tx_service(q->node, FALSE);
 	} else
 		node_flushq(q->node);		/* Need to flush kernel buffers faster */
@@ -280,6 +285,7 @@ static void mq_tcp_putq(mqueue_t *q, pmsg_t *mb)
 	gchar *mbs = pmsg_start(mb);
 	guint8 function = gmsg_function(mbs);
 	guint8 hops = gmsg_hops(mbs);
+	gboolean prioritary = pmsg_prio(mb) != PMSG_P_DATA;
 
 	g_assert(q);
 	g_assert(!pmsg_was_sent(mb));
@@ -304,20 +310,19 @@ static void mq_tcp_putq(mqueue_t *q, pmsg_t *mb)
 	if (q->qhead == NULL) {
 		gint written;
 
-		/*
-		 * Honour hops-flow, and ensure there is a route for possible replies.
-		 */
+		if (pmsg_check(mb, q)) {
+			if (prioritary)
+				node_flushq(q->node);
 
-		if (node_can_send(q->node, function, hops, mbs))
 			written = tx_write(q->tx_drv, mbs, size);
-		else {
-			if (dbg > 4)
-				gmsg_log_dropped(mbs, "to node %s due to hops-flow / route",
-					node_ip(q->node));
 
+			if (prioritary && written == size) {
+				tx_flush(q->tx_drv);
+				node_unflushq(q->node);
+			}
+		} else {
 			gnet_stats_count_flowc(mbs);
 			node_inc_txdrop(q->node);		/* Dropped during TX */
-
 			written = -1;
 		}
 

@@ -190,6 +190,11 @@ mq_udp_service(gpointer data)
 		struct mq_udp_info *mi = (struct mq_udp_info *) pmsg_get_metadata(mb);
 		guint8 function;
 
+		if (!pmsg_check(mb, q)) {
+			dropped++;
+			goto skip;
+		}
+
 		r = tx_sendto((txdrv_t *) q->tx_drv, &mi->to, mb_start, mb_size);
 
 		if (r < 0)		/* Error, drop packet and continue */
@@ -295,7 +300,13 @@ mq_udp_putq(mqueue_t *q, pmsg_t *mb, gnet_host_t *to)
 	if (q->qhead == NULL) {
 		gint written;
 
-		written = tx_sendto(q->tx_drv, to, mbs, size);
+		if (pmsg_check(mb, q))
+			written = tx_sendto(q->tx_drv, to, mbs, size);
+		else {
+			gnet_stats_count_flowc(mbs);
+			node_inc_txdrop(q->node);		/* Dropped during TX */
+			written = -1;
+		}
 
 		if (written < 0)
 			goto cleanup;
