@@ -2715,9 +2715,6 @@ gboolean qrt_receive_next(gpointer handle, gboolean *done)
 	return TRUE;
 
 dropped:
-	if (dbg > 3)
-		gmsg_log_dropped(&n->header, "from %s", node_ip(n));
-
 	n->rx_dropped++;
 	return TRUE;		/* Everything is fine, even if we dropped message */
 }

@@ -4235,11 +4235,9 @@ static void node_parse(struct gnutella_node *node)
 		break;
 	case GTA_MSG_BYE:
 		if (n->header.hops != 0 || n->header.ttl != 1) {
-			if (dbg)
-				gmsg_log_bad(n, "bye message with improper hops/ttl");
 			n->n_bad++;
 			drop = TRUE;
-            gnet_stats_count_dropped(n, MSG_DROP_BAD_SIZE);
+            gnet_stats_count_dropped(n, MSG_DROP_IMPROPER_HOPS_TTL);
 		}
 		break;
 	case GTA_MSG_PUSH_REQUEST:
@@ -4275,11 +4273,9 @@ static void node_parse(struct gnutella_node *node)
 	case GTA_MSG_VENDOR:
 	case GTA_MSG_STANDARD:
 		if (n->header.hops != 0 || n->header.ttl != 1) {
-			if (dbg)
-				gmsg_log_bad(n, "vendor message with improper hops/ttl");
 			n->n_bad++;
 			drop = TRUE;
-            gnet_stats_count_dropped(n, MSG_DROP_BAD_SIZE);
+            gnet_stats_count_dropped(n, MSG_DROP_IMPROPER_HOPS_TTL);
 		} else if (n->size > MAX_MSG_SIZE) {
             drop = TRUE;
             gnet_stats_count_dropped(n, MSG_DROP_TOO_LARGE);
@@ -4290,7 +4286,11 @@ static void node_parse(struct gnutella_node *node)
 		break;
 
 	case GTA_MSG_QRP:			/* Leaf -> Ultrapeer, never routed */
-		if (
+		if (n->header.hops != 0 || n->header.ttl != 1) {
+			n->n_bad++;
+			drop = TRUE;
+            gnet_stats_count_dropped(n, MSG_DROP_IMPROPER_HOPS_TTL);
+		} else if (
 			current_peermode != NODE_P_ULTRA ||
 			n->peermode != NODE_P_LEAF
 		) {
@@ -4335,9 +4335,6 @@ static void node_parse(struct gnutella_node *node)
 	 */
 
 	if (drop) {
-		if (dbg > 3)
-			gmsg_log_dropped(&n->header, "from %s", node_ip(n));
-
 		if (n->header.ttl == 0) {
 			if (node_sent_ttl0(n))
 				return;				/* Node was kicked out */
@@ -4474,12 +4471,8 @@ static void node_parse(struct gnutella_node *node)
 			)
 				qrt_route_query(n, qhv);
 		}
-	} else {
-		if (dbg > 3)
-			gmsg_log_dropped(&n->header, "from %s", node_ip(n));
-
+	} else
 		n->rx_dropped++;
-	}
 
 reset_header:
 	n->have_header = FALSE;

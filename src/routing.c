@@ -1043,10 +1043,6 @@ gboolean route_message(struct gnutella_node **node, struct route_dest *dest)
 			READ_GUINT32_BE(sender->data + 20, ip);
 
 			if (hostiles_check(ip)) {
-				if (dbg > 3)
-					gmsg_log_dropped(&sender->header,
-						"from %s, hostile IP address", node_ip(sender));
-
                 gnet_stats_count_dropped(sender, MSG_DROP_HOSTILE_IP);
 				sender->rx_dropped++;
 
@@ -1113,10 +1109,6 @@ gboolean route_message(struct gnutella_node **node, struct route_dest *dest)
 				sender->header.function == GTA_MSG_SEARCH &&
 				NODE_IN_TX_FLOW_CONTROL(sender)
 			) {
-				if (dbg > 3)
-					gmsg_log_dropped(&sender->header,
-						"from %s, in TX flow-control", node_ip(sender));
-
                 gnet_stats_count_dropped(sender, MSG_DROP_FLOW_CONTROL);
 				sender->rx_dropped++;
 

@@ -24,12 +24,43 @@
  */
 
 #include "gnet_stats.h"
+#include "gmsg.h"
 
 RCSID("$Id$");
 
 static guint8 stats_lut[256];
 
 static gnet_stats_t gnet_stats;
+
+static gchar *msg_drop_reason[MSG_DROP_REASON_COUNT] = {
+	"Bad size",							/* MSG_DROP_BAD_SIZE */
+	"Too small",						/* MSG_DROP_TOO_SMALL */
+	"Too large",						/* MSG_DROP_TOO_LARGE */
+	"Way too large",					/* MSG_DROP_WAY_TOO_LARGE */
+	"Unknown message type",				/* MSG_DROP_UNKNOWN_TYPE */
+	"Unexpected message",				/* MSG_DROP_UNEXPECTED */
+	"Message sent with TTL = 0",		/* MSG_DROP_TTL0 */
+	"Improper hops/ttl combination"		/* MSG_DROP_IMPROPER_HOPS_TTL */
+	"Max TTL exceeded",					/* MSG_DROP_MAX_TTL_EXCEEDED */
+	"Message throttle",					/* MSG_DROP_THROTTLE */
+	"Unusable Pong",					/* MSG_DROP_PONG_UNUSABLE */
+	"Hard TTL limit reached",			/* MSG_DROP_HARD_TTL_LIMIT */
+	"Max hop count reached",			/* MSG_DROP_MAX_HOP_COUNT */
+	"Unrequested reply",				/* MSG_DROP_UNREQUESTED_REPLY */
+	"Route lost",						/* MSG_DROP_ROUTE_LOST */
+	"No route",							/* MSG_DROP_NO_ROUTE */
+	"Duplicate message",				/* MSG_DROP_DUPLICATE */
+	"Message to banned GUID",			/* MSG_DROP_BANNED */
+	"Node shutting down",				/* MSG_DROP_SHUTDOWN */
+	"TX flow control",					/* MSG_DROP_FLOW_CONTROL */
+	"Query text had no trailing NUL",	/* MSG_DROP_QUERY_NO_NUL */
+	"Query text too short",				/* MSG_DROP_QUERY_TOO_SHORT */
+	"Query had unnecessary overhead",	/* MSG_DROP_QUERY_OVERHEAD */
+	"Message with malformed SHA1",		/* MSG_DROP_MALFORMED_SHA1 */
+	"Message with malformed UTF-8",		/* MSG_DROP_MALFORMED_UTF_8 */
+	"Malformed Query Hit",				/* MSG_DROP_BAD_RESULT */
+	"Hostile IP address",				/* MSG_DROP_HOSTILE_IP */
+};
 
 /***
  *** Public functions
@@ -145,10 +176,16 @@ void gnet_stats_count_expired(gnutella_node_t *n)
 
 void gnet_stats_count_dropped(gnutella_node_t *n, msg_drop_reason_t reason)
 {
+	g_assert(reason >= 0 && reason < MSG_DROP_REASON_COUNT);
+
     guint32 size = n->size + sizeof(n->header);
 	guint type = stats_lut[n->header.function];
 
 	DROP_STATS(type, size);
+
+	if (dbg > 4)
+		gmsg_log_dropped(&n->header, "from %s <%s>: %s",
+			node_ip(n), node_vendor(n), msg_drop_reason[reason]);
 }
 
 void gnet_stats_count_general(gnutella_node_t *n, gint type, guint32 amount)
@@ -159,9 +196,15 @@ void gnet_stats_count_general(gnutella_node_t *n, gint type, guint32 amount)
 void gnet_stats_count_dropped_nosize(
 	gnutella_node_t *n, msg_drop_reason_t reason)
 {
+	g_assert(reason >= 0 && reason < MSG_DROP_REASON_COUNT);
+
 	guint type = stats_lut[n->header.function];
 
-	DROP_STATS(type, sizeof(n->header));
+	DROP_STATS(type, sizeof(n->header));	/* Data part of message not read */
+
+	if (dbg > 4)
+		gmsg_log_dropped(&n->header, "from %s <%s>: %s",
+			node_ip(n), node_vendor(n), msg_drop_reason[reason]);
 }
 
 void gnet_stats_count_flowc(gpointer head)
