@@ -2341,33 +2341,6 @@ void file_info_set_discard(struct dl_file_info *fi, gboolean state)
 }
 
 /*
- * file_info_free
- *
- * Free fileinfo, removing one reference.
- * When nobody references the fileinfo structure, free it if `discard' is TRUE,
- * or if the fileinfo has been marked with FI_F_DISCARD.
- */
-void file_info_free(struct dl_file_info *fi, gboolean discard)
-{
-	g_assert(fi->refcount > 0);
-	g_assert(fi->hashed);
-
-	/*
-	 * We don't free the structure when `discard' is FALSE: keeping the
-	 * fileinfo around means it's still in the hash tables, and therefore
-	 * that its SHA1, if any, is still around to help us spot duplicates.
-	 *
-	 * At times however, we really want to discard an unreferenced fileinfo
-	 * as soon as this happens.
-	 */
-
-	if (fi->refcount-- == 1 && (discard || (fi->flags & FI_F_DISCARD))) {
-		file_info_hash_remove(fi);
-		fi_free(fi);
-	}
-}
-
-/*
  * file_info_merge_adjacent
  *
  * Go through the chunk list and merge adjacent chunks that share the
@@ -3194,11 +3167,20 @@ inline void file_info_add_source(
         T_NORMAL(fi_src_listener_t, fi->fi_handle, dl->src_handle));    
 }
 
+/*
+ * file_info_remove_source:
+ *
+ * Removing one source reference from the fileinfo.
+ * When no sources reference the fileinfo structure, free it if `discard' 
+ * is TRUE, or if the fileinfo has been marked with FI_F_DISCARD.
+ * This replaces file_info_free()
+ */
 inline void file_info_remove_source(
-    struct dl_file_info *fi, struct download *dl)
+    struct dl_file_info *fi, struct download *dl, gboolean discard)
 {
     g_assert(dl->file_info != NULL);
     g_assert(fi->refcount > 0);
+	g_assert(fi->hashed);
     
     event_trigger(
         fi_events[EV_FI_SRC_REMOVED], 
@@ -3208,6 +3190,20 @@ inline void file_info_remove_source(
     fi->dirty_status = TRUE;
     dl->file_info = NULL;
     fi->sources = g_slist_remove(fi->sources, dl);
+
+	/*
+	 * We don't free the structure when `discard' is FALSE: keeping the
+	 * fileinfo around means it's still in the hash tables, and therefore
+	 * that its SHA1, if any, is still around to help us spot duplicates.
+	 *
+	 * At times however, we really want to discard an unreferenced fileinfo
+	 * as soon as this happens.
+	 */
+
+    if (fi->refcount == 0 && (discard || (fi->flags & FI_F_DISCARD))) {
+		file_info_hash_remove(fi);
+		fi_free(fi);
+    }
 }
 
 static void fi_notify_helper(
@@ -3228,4 +3224,25 @@ static void fi_notify_helper(
 inline void file_info_timer(void)
 {
 	g_hash_table_foreach(fi_by_outname, fi_notify_helper, NULL);
+}
+
+/*
+ * fi_purge:
+ *
+ * Kill all downloads associated with a fi and remove the fi itself.
+ */
+void fi_purge(gnet_fi_t fih)
+{
+    GSList *sl;
+    struct dl_file_info *fi = file_info_find_by_handle(fih); 
+
+    g_assert(fi != NULL);
+
+    /* Throw away fileinfo after we purged the downloads */
+    file_info_set_discard(fi, TRUE);
+
+    for(sl = g_slist_copy(fi->sources); sl != NULL; sl = g_slist_next(sl)) {
+        struct download *dl = (struct download *) sl->data;
+        download_free(dl);
+    }
 }

@@ -845,7 +845,7 @@ void download_info_change_all(
 		}
 
 		g_assert(old_fi->refcount > 0);
-        file_info_remove_source(old_fi, d);
+        file_info_remove_source(old_fi, d, FALSE); /* Keep it around */
         file_info_add_source(new_fi, d);
 		d->file_info = new_fi;
 
@@ -879,7 +879,7 @@ static void download_info_reget(struct download *d)
 	file_info_clear_download(d, TRUE);			/* `d' might be running */
 
 	fi->lifecount--;
-	file_info_free(fi, FALSE);					/* Keep it around for others */
+    file_info_remove_source(fi, d, FALSE);      /* Keep it around for others */
 
 	fi = file_info_get(
 		d->file_name, save_file_path, d->file_size, d->sha1);
@@ -2989,8 +2989,6 @@ static void download_free_removed(void)
 // FIXME: this should be called "download_remove"
 void download_free(struct download *d)
 {
-    struct dl_file_info *fi;
-
 	g_assert(d);
 	g_assert(d->status != GTA_DL_REMOVED);		/* Not already freed */
 
@@ -3036,9 +3034,7 @@ void download_free(struct download *d)
 	d->status = GTA_DL_REMOVED;
 
 	atom_str_free(d->file_name);
-    fi = d->file_info;
-    file_info_remove_source(d->file_info, d);
-	file_info_free(fi, FALSE);		/* Keep fileinfo around */
+    file_info_remove_source(d->file_info, d, FALSE); /* Keep fileinfo around */
 
     idtable_free_id(src_handle_map, d->src_handle);
 
@@ -6250,7 +6246,8 @@ void download_close(void)
 			atom_sha1_free(d->sha1);
 		if (d->ranges)
 			http_range_free(d->ranges);
-		file_info_free(d->file_info, TRUE);
+        
+		file_info_remove_source(d->file_info, d, TRUE);
 		download_remove_from_server(d, TRUE);
 		atom_str_free(d->file_name);
 

@@ -115,7 +115,6 @@ void file_info_reset(struct dl_file_info *fi);
 void file_info_recreate(struct download *d);
 struct dl_file_info *file_info_get(
 	gchar *file, gchar *path, guint32 size, gchar *sha1);
-void file_info_free(struct dl_file_info *fi, gboolean discard);
 void file_info_strip_binary(struct dl_file_info *fi);
 void file_info_strip_binary_from_file(struct dl_file_info *fi, gchar *file);
 gboolean file_info_got_sha1(struct dl_file_info *fi, guchar *sha1);
@@ -129,8 +128,9 @@ void file_info_spot_completed_orphans(void);
 inline void file_info_add_source(
     struct dl_file_info *fi, struct download *dl);
 inline void file_info_remove_source(
-    struct dl_file_info *fi, struct download *dl);
+    struct dl_file_info *fi, struct download *dl, gboolean discard);
 inline void file_info_timer(void);
+
 
 #endif /* _fileinfo_h_ */
 
