@@ -96,6 +96,7 @@ RCSID("$Id$");
 #define NODE_AUTO_SWITCH_MIN	1800	/* Don't switch too often UP <-> leaf */
 
 GSList *sl_nodes = (GSList *) NULL;
+GSList *sl_proxies = (GSList *) NULL;	/* Our push proxies */
 
 static idtable_t *node_handle_map = NULL;
 
@@ -158,6 +159,8 @@ static void node_bye_flags(guint32 mask, gint code, gchar *message);
 static void node_bye_all_but_one(
 	struct gnutella_node *nskip, gint code, gchar *message);
 static void node_set_current_peermode(node_peer_t mode);
+
+extern gint guid_eq(gconstpointer a, gconstpointer b);
 
 /***
  *** Callbacks
@@ -881,6 +884,11 @@ static void node_remove_v(
 		alive_free(n->alive_pings);
 		n->alive_pings = NULL;
 	}
+	if (n->guid) {
+		route_proxy_remove(n->guid);
+		atom_guid_free(n->guid);
+		n->guid = NULL;
+	}
 
 	n->status = GTA_NODE_REMOVING;
 	n->flags &= ~(NODE_F_WRITABLE|NODE_F_READABLE|NODE_F_BYE_SENT);
@@ -892,6 +900,9 @@ static void node_remove_v(
 
 	if (n->flags & NODE_F_EOF_WAIT)
 		pending_byes--;
+
+	if (n->proxy_ip != 0)
+		sl_proxies = g_slist_remove(sl_proxies, n);
 
     node_fire_node_info_changed(n);
     node_fire_node_flags_changed(n);
@@ -1595,6 +1606,20 @@ void send_node_error(
 }
 
 /*
+ * send_proxy_request
+ *
+ * Request that node becomes our push-proxy.
+ */
+static void send_proxy_request(gnutella_node_t *n)
+{
+	g_assert(is_firewalled);
+	g_assert(n->proxy_ip == 0);		/* Not proxyfied yet */
+
+	n->flags |= NODE_F_PROXY;
+	vmsg_send_proxy_req(n, guid);
+}
+
+/*
  * node_is_now_connected
  *
  * Called when we know that we're connected to the node, at the end of
@@ -1807,8 +1832,10 @@ static void node_is_now_connected(struct gnutella_node *n)
 
 	if (n->attrs & NODE_A_CAN_VENDOR) {
 		vmsg_send_messages_supported(n);
-		if (is_firewalled)
+		if (is_firewalled) {
 			vmsg_send_connect_back(n, listen_port);
+			send_proxy_request(n);
+		}
 	}
 
 	/*
@@ -4680,10 +4707,15 @@ void node_close(void)
 			qrt_unref(n->query_table);
 		if (n->rxfc)
 			wfree(n->rxfc, sizeof(*n->rxfc));
+		if (n->guid) {
+			route_proxy_remove(n->guid);
+			atom_guid_free(n->guid);
+		}
 		node_real_remove(n);
 	}
 
 	g_slist_free(sl_nodes);
+	g_slist_free(sl_proxies);
 
     g_assert(idtable_ids(node_handle_map) == 0);
 
@@ -5031,6 +5063,78 @@ void node_connected_back(struct gnutella_socket *s)
 
 	(void) bws_write(bws.out, s->file_desc, "\n\n", 2);
 	socket_free(s);
+}
+
+/*
+ * node_proxying_add
+ *
+ * Record that node wants us to be his push proxy.
+ * Returns TRUE if we can act as this node's proxy.
+ */
+gboolean node_proxying_add(gnutella_node_t *n, gchar *guid)
+{
+	/*
+	 * Did we already get a proxyfication request for the node?
+	 * Maybe he did not get our ACK and is retrying?
+	 */
+
+	if (n->guid != NULL) {
+		gchar old[33];
+
+		g_warning("spurious push-proxyfication request from %s <%s>",
+			node_ip(n), node_vendor(n));
+
+		if (guid_eq(guid, n->guid))		/* Already recorded with this GUID */
+			return TRUE;
+
+		strncpy(old, guid_hex_str(n->guid), sizeof(old));
+
+		g_warning("new GUID %s for node %s <%s> (was %s)",
+			guid_hex_str(guid), node_ip(n), node_vendor(n), old);
+
+		route_proxy_remove(n->guid);
+		atom_guid_free(n->guid);
+		n->guid = NULL;
+	}
+
+	n->guid = atom_guid_get(guid);
+	if (route_proxy_add(n->guid, n))
+		return TRUE;
+
+	g_warning("push-proxyfication failed for %s <%s>: conflicting GUID %s",
+		node_ip(n), node_vendor(n), guid_hex_str(guid));
+
+	atom_guid_free(n->guid);
+	n->guid = NULL;
+
+	return FALSE;
+}
+
+/*
+ * node_proxy_add
+ *
+ * Add node to our list of push-proxies.
+ */
+void node_proxy_add(gnutella_node_t *n, guint32 ip, guint16 port)
+{
+	if (!(n->flags & NODE_F_PROXY)) {
+		g_warning("got spurious push-proxy ack from %s <%s>",
+			node_ip(n), node_vendor(n));
+		return;
+	}
+
+	n->flags &= ~NODE_F_PROXY;
+
+	if (!is_firewalled) {
+		g_warning("ignoring push-proxy ack from %s <%s>: no longer firewalled",
+			node_ip(n), node_vendor(n));
+		return;
+	}
+
+	n->proxy_ip = ip;
+	n->proxy_port = port;
+
+	sl_proxies = g_slist_prepend(sl_proxies, n);
 }
 
 /* vi: set ts=4: */

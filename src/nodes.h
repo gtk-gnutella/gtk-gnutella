@@ -120,6 +120,10 @@ typedef struct gnutella_node {
 	guint32 ip;					/* ip of the node */
 	guint16 port;				/* port of the node */
 
+	gchar *guid;				/* GUID of node (atom) for push-proxying */
+	guint32 proxy_ip;			/* ip of the node for push proxyfication */
+	guint16 proxy_port;			/* port of the node for push proxyfication */
+
 	mqueue_t *outq;				/* TX Output queue */
 	squeue_t *searchq;			/* TX Search queue */
 	rxdrv_t *rx;				/* RX stack top */
@@ -195,6 +199,7 @@ typedef struct gnutella_node {
 #define NODE_F_LEAF			0x00004000	/* Is one of our leaves */
 #define NODE_F_CRAWLER		0x00008000	/* Is a Gnutella Crawler */
 #define NODE_F_FAKE_NAME	0x00010000	/* Was unable to validate GTKG name */
+#define NODE_F_PROXY		0x00020000	/* Sent a push-proxy request */
 
 /*
  * Node attributes.
@@ -334,6 +339,7 @@ extern const gchar *gnutella_hello;
 extern guint32 gnutella_hello_length;
 
 extern GSList *sl_nodes;
+extern GSList *sl_proxies;
 
 extern GHookList node_added_hook_list;
 extern struct gnutella_node *node_added;
@@ -392,6 +398,9 @@ gchar *node_ip(const gnutella_node_t *n);
 
 void node_connect_back(const gnutella_node_t *n, guint16 port);
 void node_connected_back(struct gnutella_socket *s);
+
+gboolean node_proxying_add(gnutella_node_t *n, gchar *guid);
+void node_proxy_add(gnutella_node_t *n, guint32 ip, guint16 port);
 
 #endif /* _nodes_h_ */
 

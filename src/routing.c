@@ -104,6 +104,16 @@ GHashTable *ht_banned_push = NULL;
 #define BANNED_PUSH_COUNT	G_N_ELEMENTS(banned_push)
 
 /*
+ * Push-proxy table.
+ *
+ * It maps a GUID to a node, so that we can easily send a push message
+ * on behalf of a requesting node to the proper connection.
+ */
+GHashTable *ht_proxyfied = NULL;
+
+extern gint guid_eq(gconstpointer a, gconstpointer b);
+
+/*
  * Log function
  */
 
@@ -211,7 +221,6 @@ void routing_init(void)
 	guint32 i;
 	gboolean need_guid = TRUE;
 	extern guint guid_hash(gconstpointer key);		/* from atoms.c */
-	extern gint guid_eq(gconstpointer a, gconstpointer b);
 
 	/*
 	 * Make sure it segfaults if we try to access it, but it must be
@@ -297,6 +306,12 @@ retry:
 	next_message_index = 0;
 
 	memset(message_array, 0, sizeof(message_array));
+
+	/*
+	 * Push proxification.
+	 */
+
+	ht_proxyfied = g_hash_table_new(guid_hash, guid_eq);
 }
 
 /*
@@ -1134,6 +1149,38 @@ GSList *route_towards_guid(const gchar *guid)
 	return nodes;
 }
 
+/*
+ * route_proxy_remove
+ *
+ * Remove push-proxy entry indexed by GUID.
+ */
+void route_proxy_remove(gchar *guid)
+{
+ 	/*
+	 * The GUID atom is still referred to by the node,
+	 * so don't clear anything.
+	 */
+
+	g_hash_table_remove(ht_proxyfied, guid);
+}
+
+/*
+ * route_proxy_add
+ *
+ * Add push-proxy route to GUID `guid', which is node `n'.
+ * Returns TRUE on success, FALSE if there is a GUID conflict.
+ *
+ * NB: assumes `guid' is already an atom linked somehow to `n'.
+ */
+gboolean route_proxy_add(gchar *guid, struct gnutella_node *n)
+{
+	if (NULL != g_hash_table_lookup(ht_proxyfied, guid))
+		return FALSE;
+
+	g_hash_table_insert(ht_proxyfied, guid, n);
+	return TRUE;
+}
+
 /* frees the routing data associated with a message */
 static void free_routing_data(gpointer key, gpointer value, gpointer udata)
 {
@@ -1149,6 +1196,8 @@ static void free_banned_push(gpointer key, gpointer value, gpointer udata)
 
 void routing_close(void)
 {
+	guint cnt;
+
 	g_assert(messages_hashed);
 	
 	g_hash_table_foreach(messages_hashed, free_routing_data, NULL);
@@ -1158,6 +1207,14 @@ void routing_close(void)
 	g_hash_table_foreach(ht_banned_push, free_banned_push, NULL);
 	g_hash_table_destroy(ht_banned_push);
 	ht_banned_push = NULL;
+
+	cnt = g_hash_table_size(ht_proxyfied);
+	if (cnt != 0)
+		g_warning("push-proxification table still holds %u node%s",
+			cnt, cnt == 1 ? "" : "s");
+
+	g_hash_table_destroy(ht_proxyfied);
+	ht_proxyfied = NULL;
 }
 
 /* vi: set ts=4: */
