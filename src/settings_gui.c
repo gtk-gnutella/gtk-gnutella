@@ -572,6 +572,14 @@ static prop_map_t property_map[] = {
     ),
     PROP_ENTRY(
         get_main_window,
+        PROP_GNET_STATS_HORIZON_COL_WIDTHS,
+        update_clist_col_widths,
+        TRUE,
+        "clist_gnet_stats_horizon",
+        FREQ_UPDATES, 0
+    ),
+    PROP_ENTRY(
+        get_main_window,
         PROP_GNET_STATS_DROP_REASONS_COL_WIDTHS,
         update_clist_col_widths,
         TRUE,

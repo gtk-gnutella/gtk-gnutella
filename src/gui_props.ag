@@ -233,6 +233,18 @@ prop = {
 };
 
 prop = {
+    name = "gnet_stats_horizon_col_widths";
+    cfgvar = "widths_gnet_stats_horizon";
+    desc = "Widths of the columns in the gnet horizon stats table";
+    type = guint32;
+    vector_size = 4;
+    data = {
+        default = "{ 30, 40, 40, 40 }";
+    };
+};
+
+
+prop = {
     name = "gnet_stats_drop_reasons_col_widths";
     cfgvar = "widths_gnet_stats_drop_reasons";
     desc = "Widths of the columns in the gnet stats drop reasons table";

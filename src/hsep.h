@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2004, Thomas Schuerger & Jeroen Asselman
  *
- * Passive/Active Remote Queuing.
+ * Horizon Size Estimation Protocol 0.2
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -64,9 +64,9 @@ void hsep_sanity_check(void);
 gboolean hsep_check_monotony(hsep_triple *table, unsigned int triples);
 unsigned int hsep_triples_to_send(const hsep_triple *table,
 	unsigned int triples);
-unsigned int hsep_get_table(hsep_triple *buffer, unsigned int maxtriples);
+unsigned int hsep_get_global_table(hsep_triple *buffer,
+	unsigned int maxtriples);
 unsigned int hsep_get_connection_table(struct gnutella_node *n,
-    hsep_triple *buffer, unsigned int maxtriples);
-
+	hsep_triple *buffer, unsigned int maxtriples);
 
 #endif

@@ -24,6 +24,8 @@
  */
 
 #include "config.h"
+#include "common.h"
+#include "hsep.h"
 
 #ifdef USE_GTK1
 
@@ -93,6 +95,23 @@ void on_clist_gnet_stats_fc_hops_resize_column(
         buf[n] = width;
 
     gui_prop_set_guint32(PROP_GNET_STATS_FC_HOPS_COL_WIDTHS, buf, 1, 9);
+
+    lock = FALSE;
+}
+
+void on_clist_gnet_stats_horizon_resize_column(
+    GtkCList *clist, gint column, gint width, gpointer user_data)
+{
+    static gboolean lock = FALSE;
+    guint32 buf = width;
+
+    if (lock)
+        return;
+
+    lock = TRUE;
+
+    /* remember the width for storing it to the config file later */
+    gui_prop_set_guint32(PROP_GNET_STATS_HORIZON_COL_WIDTHS, &buf, column, 1);
 
     lock = FALSE;
 }
@@ -194,6 +213,26 @@ gchar *general_stat_str(gnet_stats_t *stats, gint type)
     }
 }
 
+gchar *horizon_stat_str(hsep_triple *table, gint row, gint column)
+{
+    static gchar strbuf[21];
+
+    switch (column)
+    {
+      case 0: gm_snprintf(strbuf, sizeof(strbuf), "%u", row);
+              return strbuf;
+      case 1: gm_snprintf(strbuf, sizeof(strbuf),
+	              "%llu", table[row][HSEP_IDX_NODES]);
+              return strbuf;
+      case 2: gm_snprintf(strbuf, sizeof(strbuf),
+	              "%llu", table[row][HSEP_IDX_FILES]);
+              return strbuf;
+      case 3: return(short_kb_size64(table[row][HSEP_IDX_KIB]));
+    }
+
+    return NULL;
+}
+
 gchar *flowc_stat_str_pkg(guint64 *val_tbl, gint type)
 {
     static gchar strbuf[21];
@@ -239,6 +278,7 @@ void gnet_stats_gui_init(void)
     GtkCList *clist_stats_fc_hops;
     GtkCList *clist_general;
     GtkCList *clist_reason;
+    GtkCList *clist_horizon;
     GtkCombo *combo_types;
     gchar *titles[10];
     guint n;
@@ -256,6 +296,8 @@ void gnet_stats_gui_init(void)
         lookup_widget(main_window, "clist_gnet_stats_drop_reasons"));
     clist_general = GTK_CLIST(
         lookup_widget(main_window, "clist_gnet_stats_general"));
+    clist_horizon = GTK_CLIST(
+        lookup_widget(main_window, "clist_gnet_stats_horizon"));
     combo_types = GTK_COMBO(
         lookup_widget(main_window, "combo_gnet_stats_type"));
 
@@ -266,6 +308,11 @@ void gnet_stats_gui_init(void)
         clist_general, 1, GTK_JUSTIFY_RIGHT);
     gtk_clist_set_column_justification(
         clist_reason, 1, GTK_JUSTIFY_RIGHT);
+
+    for (n = 0; n < 4; n ++) {
+        gtk_clist_set_column_justification(
+            clist_horizon, n, GTK_JUSTIFY_RIGHT);
+    }
 
     for (n = 1; n < 6; n ++) {
         gtk_clist_set_column_justification(
@@ -288,6 +335,7 @@ void gnet_stats_gui_init(void)
 	gtk_clist_column_titles_passive(clist_stats_fc_hops);
 	gtk_clist_column_titles_passive(clist_reason);
 	gtk_clist_column_titles_passive(clist_general);
+	gtk_clist_column_titles_passive(clist_horizon);
 
     /*
      * Initialize stats tables.
@@ -336,6 +384,13 @@ void gnet_stats_gui_init(void)
         row = gtk_clist_append(clist_general, titles);
         gtk_clist_set_selectable(clist_general, row, FALSE);
     }
+
+    for (n = 0; n < HSEP_N_MAX; n ++) {
+        gint row;
+        titles[0] = (gchar *) horizon_stat_str(NULL, n + 1, 0);
+        row = gtk_clist_append(clist_horizon, titles);
+        gtk_clist_set_selectable(clist_horizon, row, FALSE);
+    }
 }
 
 void gnet_stats_gui_shutdown(void)
@@ -349,10 +404,12 @@ void gnet_stats_gui_update(time_t now)
     GtkCList *clist_stats_msg;
     GtkCList *clist_reason;
     GtkCList *clist_general;
+    GtkCList *clist_horizon;
     GtkCList *clist_stats_fc_ttl;
     GtkCList *clist_stats_fc_hops;
     gint n;
     gnet_stats_t stats;
+    hsep_triple hsep_table[HSEP_N_MAX + 1];
 
     gint current_page;
 
@@ -373,6 +430,8 @@ void gnet_stats_gui_update(time_t now)
         lookup_widget(main_window, "clist_gnet_stats_drop_reasons"));
     clist_general = GTK_CLIST(
         lookup_widget(main_window, "clist_gnet_stats_general"));
+    clist_horizon = GTK_CLIST(
+        lookup_widget(main_window, "clist_gnet_stats_horizon"));
     clist_stats_fc_ttl = GTK_CLIST(
         lookup_widget(main_window, "clist_gnet_stats_fc_ttl"));
     clist_stats_fc_hops = GTK_CLIST(
@@ -380,6 +439,7 @@ void gnet_stats_gui_update(time_t now)
 
     gtk_clist_freeze(clist_reason);
     gtk_clist_freeze(clist_general);
+    gtk_clist_freeze(clist_horizon);
     gtk_clist_freeze(clist_stats_msg);
     gtk_clist_freeze(clist_stats_fc_ttl);
     gtk_clist_freeze(clist_stats_fc_hops);
@@ -427,8 +487,24 @@ void gnet_stats_gui_update(time_t now)
     for (n = 0; n < GNR_TYPE_COUNT; n ++)
         gtk_clist_set_text(clist_general, n, 1, general_stat_str(&stats, n));
 
+    hsep_get_global_table(hsep_table, HSEP_N_MAX + 1);
+
+    for (n = 0; n < HSEP_N_MAX; n ++) {
+        /* 
+		 * Note that we output hsep_table[1..HSEP_N_MAX] 
+		 *		-- TS 2/6/2004 
+		 */
+        gtk_clist_set_text(clist_horizon, n, 1,
+		    horizon_stat_str(hsep_table, n + 1, 1));
+        gtk_clist_set_text(clist_horizon, n, 2,
+		    horizon_stat_str(hsep_table, n + 1, 2));
+        gtk_clist_set_text(clist_horizon, n, 3,
+		    horizon_stat_str(hsep_table, n + 1, 3));
+    }
+
     gtk_clist_thaw(clist_reason);
     gtk_clist_thaw(clist_general);
+    gtk_clist_thaw(clist_horizon);
     gtk_clist_thaw(clist_stats_msg);
     gtk_clist_thaw(clist_stats_fc_ttl);
     gtk_clist_thaw(clist_stats_fc_hops);

@@ -1028,6 +1028,24 @@ create_main_window (void)
   GtkWidget *vbox84;
   GtkWidget *hpaned_gnet_stats;
   GtkWidget *vbox90;
+  GtkWidget *frame65;
+  GtkWidget *vbox94;
+  GtkWidget *scrolledwindow31;
+  GtkWidget *clist_gnet_stats_general;
+  GtkWidget *label403;
+  GtkWidget *label404;
+  GtkWidget *frame56;
+  GtkWidget *vbox82;
+  GtkWidget *hbox157;
+  GtkWidget *label390;
+  GtkWidget *combo_gnet_stats_type;
+  GtkWidget *combo_entry_gnet_stats_type;
+  GtkWidget *scrolledwindow26;
+  GtkWidget *clist_gnet_stats_drop_reasons;
+  GtkWidget *label375;
+  GtkWidget *label376;
+  GtkWidget *checkbutton_gnet_stats_drop_perc;
+  GtkWidget *vbox93;
   GtkWidget *frame69;
   GtkWidget *vbox97;
   GtkWidget *notebook3;
@@ -1069,24 +1087,14 @@ create_main_window (void)
   GtkWidget *hbox163;
   GtkWidget *checkbutton_gnet_stats_perc;
   GtkWidget *checkbutton_gnet_stats_bytes;
-  GtkWidget *frame65;
-  GtkWidget *vbox94;
-  GtkWidget *scrolledwindow31;
-  GtkWidget *clist_gnet_stats_general;
-  GtkWidget *label403;
-  GtkWidget *label404;
-  GtkWidget *vbox93;
-  GtkWidget *frame56;
-  GtkWidget *vbox82;
-  GtkWidget *hbox157;
-  GtkWidget *label390;
-  GtkWidget *combo_gnet_stats_type;
-  GtkWidget *combo_entry_gnet_stats_type;
-  GtkWidget *scrolledwindow26;
-  GtkWidget *clist_gnet_stats_drop_reasons;
-  GtkWidget *label375;
-  GtkWidget *label376;
-  GtkWidget *checkbutton_gnet_stats_drop_perc;
+  GtkWidget *frame125;
+  GtkWidget *vbox125;
+  GtkWidget *scrolledwindow45;
+  GtkWidget *clist_gnet_stats_horizon;
+  GtkWidget *label663;
+  GtkWidget *label664;
+  GtkWidget *label665;
+  GtkWidget *label666;
   GtkWidget *label_gnet_stats;
   GtkWidget *hbox_statusbar;
   GtkWidget *togglebutton_online;
@@ -10083,14 +10091,173 @@ create_main_window (void)
   gtk_paned_pack1 (GTK_PANED (hpaned_gnet_stats), vbox90, FALSE, TRUE);
   gtk_container_set_border_width (GTK_CONTAINER (vbox90), 2);
 
+  frame65 = gtk_frame_new (_("General stats"));
+  gtk_widget_set_name (frame65, "frame65");
+  gtk_widget_ref (frame65);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "frame65", frame65,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (frame65);
+  gtk_box_pack_start (GTK_BOX (vbox90), frame65, TRUE, TRUE, 0);
+  gtk_widget_set_usize (frame65, -2, 40);
+
+  vbox94 = gtk_vbox_new (FALSE, 0);
+  gtk_widget_set_name (vbox94, "vbox94");
+  gtk_widget_ref (vbox94);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "vbox94", vbox94,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (vbox94);
+  gtk_container_add (GTK_CONTAINER (frame65), vbox94);
+  gtk_container_set_border_width (GTK_CONTAINER (vbox94), 2);
+
+  scrolledwindow31 = gtk_scrolled_window_new (NULL, NULL);
+  gtk_widget_set_name (scrolledwindow31, "scrolledwindow31");
+  gtk_widget_ref (scrolledwindow31);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "scrolledwindow31", scrolledwindow31,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (scrolledwindow31);
+  gtk_box_pack_start (GTK_BOX (vbox94), scrolledwindow31, TRUE, TRUE, 0);
+  gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolledwindow31), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
+
+  clist_gnet_stats_general = gtk_clist_new (2);
+  gtk_widget_set_name (clist_gnet_stats_general, "clist_gnet_stats_general");
+  gtk_widget_ref (clist_gnet_stats_general);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "clist_gnet_stats_general", clist_gnet_stats_general,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (clist_gnet_stats_general);
+  gtk_container_add (GTK_CONTAINER (scrolledwindow31), clist_gnet_stats_general);
+  gtk_clist_set_column_width (GTK_CLIST (clist_gnet_stats_general), 0, 80);
+  gtk_clist_set_column_width (GTK_CLIST (clist_gnet_stats_general), 1, 80);
+  gtk_clist_column_titles_show (GTK_CLIST (clist_gnet_stats_general));
+
+  label403 = gtk_label_new (_("Stat"));
+  gtk_widget_set_name (label403, "label403");
+  gtk_widget_ref (label403);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label403", label403,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label403);
+  gtk_clist_set_column_widget (GTK_CLIST (clist_gnet_stats_general), 0, label403);
+  gtk_misc_set_alignment (GTK_MISC (label403), 7.45058e-09, 0.5);
+
+  label404 = gtk_label_new (_("count"));
+  gtk_widget_set_name (label404, "label404");
+  gtk_widget_ref (label404);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label404", label404,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label404);
+  gtk_clist_set_column_widget (GTK_CLIST (clist_gnet_stats_general), 1, label404);
+
+  frame56 = gtk_frame_new (_("Drop reasons"));
+  gtk_widget_set_name (frame56, "frame56");
+  gtk_widget_ref (frame56);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "frame56", frame56,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (frame56);
+  gtk_box_pack_start (GTK_BOX (vbox90), frame56, TRUE, TRUE, 0);
+  gtk_widget_set_usize (frame56, -2, 200);
+
+  vbox82 = gtk_vbox_new (FALSE, 2);
+  gtk_widget_set_name (vbox82, "vbox82");
+  gtk_widget_ref (vbox82);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "vbox82", vbox82,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (vbox82);
+  gtk_container_add (GTK_CONTAINER (frame56), vbox82);
+  gtk_container_set_border_width (GTK_CONTAINER (vbox82), 2);
+
+  hbox157 = gtk_hbox_new (FALSE, 4);
+  gtk_widget_set_name (hbox157, "hbox157");
+  gtk_widget_ref (hbox157);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "hbox157", hbox157,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (hbox157);
+  gtk_box_pack_start (GTK_BOX (vbox82), hbox157, FALSE, TRUE, 0);
+
+  label390 = gtk_label_new (_("Show reasons for"));
+  gtk_widget_set_name (label390, "label390");
+  gtk_widget_ref (label390);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label390", label390,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label390);
+  gtk_box_pack_start (GTK_BOX (hbox157), label390, FALSE, FALSE, 0);
+
+  combo_gnet_stats_type = gtk_combo_new ();
+  gtk_widget_set_name (combo_gnet_stats_type, "combo_gnet_stats_type");
+  gtk_widget_ref (combo_gnet_stats_type);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "combo_gnet_stats_type", combo_gnet_stats_type,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (combo_gnet_stats_type);
+  gtk_box_pack_start (GTK_BOX (hbox157), combo_gnet_stats_type, TRUE, TRUE, 0);
+  gtk_combo_set_value_in_list (GTK_COMBO (combo_gnet_stats_type), TRUE, TRUE);
+
+  combo_entry_gnet_stats_type = GTK_COMBO (combo_gnet_stats_type)->entry;
+  gtk_widget_set_name (combo_entry_gnet_stats_type, "combo_entry_gnet_stats_type");
+  gtk_widget_ref (combo_entry_gnet_stats_type);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "combo_entry_gnet_stats_type", combo_entry_gnet_stats_type,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (combo_entry_gnet_stats_type);
+  gtk_entry_set_editable (GTK_ENTRY (combo_entry_gnet_stats_type), FALSE);
+
+  scrolledwindow26 = gtk_scrolled_window_new (NULL, NULL);
+  gtk_widget_set_name (scrolledwindow26, "scrolledwindow26");
+  gtk_widget_ref (scrolledwindow26);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "scrolledwindow26", scrolledwindow26,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (scrolledwindow26);
+  gtk_box_pack_start (GTK_BOX (vbox82), scrolledwindow26, TRUE, TRUE, 0);
+  gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolledwindow26), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
+
+  clist_gnet_stats_drop_reasons = gtk_clist_new (2);
+  gtk_widget_set_name (clist_gnet_stats_drop_reasons, "clist_gnet_stats_drop_reasons");
+  gtk_widget_ref (clist_gnet_stats_drop_reasons);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "clist_gnet_stats_drop_reasons", clist_gnet_stats_drop_reasons,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (clist_gnet_stats_drop_reasons);
+  gtk_container_add (GTK_CONTAINER (scrolledwindow26), clist_gnet_stats_drop_reasons);
+  gtk_clist_set_column_width (GTK_CLIST (clist_gnet_stats_drop_reasons), 0, 125);
+  gtk_clist_set_column_width (GTK_CLIST (clist_gnet_stats_drop_reasons), 1, 57);
+  gtk_clist_column_titles_show (GTK_CLIST (clist_gnet_stats_drop_reasons));
+
+  label375 = gtk_label_new (_("Reason"));
+  gtk_widget_set_name (label375, "label375");
+  gtk_widget_ref (label375);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label375", label375,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label375);
+  gtk_clist_set_column_widget (GTK_CLIST (clist_gnet_stats_drop_reasons), 0, label375);
+  gtk_misc_set_alignment (GTK_MISC (label375), 7.45058e-09, 0.5);
+
+  label376 = gtk_label_new (_("count"));
+  gtk_widget_set_name (label376, "label376");
+  gtk_widget_ref (label376);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label376", label376,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label376);
+  gtk_clist_set_column_widget (GTK_CLIST (clist_gnet_stats_drop_reasons), 1, label376);
+
+  checkbutton_gnet_stats_drop_perc = gtk_check_button_new_with_label (_("show percentages"));
+  gtk_widget_set_name (checkbutton_gnet_stats_drop_perc, "checkbutton_gnet_stats_drop_perc");
+  gtk_widget_ref (checkbutton_gnet_stats_drop_perc);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "checkbutton_gnet_stats_drop_perc", checkbutton_gnet_stats_drop_perc,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (checkbutton_gnet_stats_drop_perc);
+  gtk_box_pack_start (GTK_BOX (vbox82), checkbutton_gnet_stats_drop_perc, FALSE, FALSE, 0);
+
+  vbox93 = gtk_vbox_new (FALSE, 0);
+  gtk_widget_set_name (vbox93, "vbox93");
+  gtk_widget_ref (vbox93);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "vbox93", vbox93,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (vbox93);
+  gtk_paned_pack2 (GTK_PANED (hpaned_gnet_stats), vbox93, TRUE, TRUE);
+
   frame69 = gtk_frame_new (_("Message/flow control stats"));
   gtk_widget_set_name (frame69, "frame69");
   gtk_widget_ref (frame69);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "frame69", frame69,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (frame69);
-  gtk_box_pack_start (GTK_BOX (vbox90), frame69, FALSE, TRUE, 0);
-  gtk_widget_set_usize (frame69, -2, 309);
+  gtk_box_pack_start (GTK_BOX (vbox93), frame69, TRUE, TRUE, 0);
+  gtk_widget_set_usize (frame69, -2, 210);
 
   vbox97 = gtk_vbox_new (FALSE, 0);
   gtk_widget_set_name (vbox97, "vbox97");
@@ -10447,163 +10614,80 @@ create_main_window (void)
   gtk_widget_show (checkbutton_gnet_stats_bytes);
   gtk_box_pack_start (GTK_BOX (hbox163), checkbutton_gnet_stats_bytes, FALSE, FALSE, 0);
 
-  frame65 = gtk_frame_new (_("General stats"));
-  gtk_widget_set_name (frame65, "frame65");
-  gtk_widget_ref (frame65);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "frame65", frame65,
+  frame125 = gtk_frame_new (_("Horizon stats"));
+  gtk_widget_set_name (frame125, "frame125");
+  gtk_widget_ref (frame125);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "frame125", frame125,
                             (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (frame65);
-  gtk_box_pack_start (GTK_BOX (vbox90), frame65, TRUE, TRUE, 0);
-  gtk_widget_set_usize (frame65, -2, 193);
+  gtk_widget_show (frame125);
+  gtk_box_pack_start (GTK_BOX (vbox93), frame125, TRUE, TRUE, 0);
+  gtk_widget_set_usize (frame125, -2, 150);
 
-  vbox94 = gtk_vbox_new (FALSE, 0);
-  gtk_widget_set_name (vbox94, "vbox94");
-  gtk_widget_ref (vbox94);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "vbox94", vbox94,
+  vbox125 = gtk_vbox_new (FALSE, 0);
+  gtk_widget_set_name (vbox125, "vbox125");
+  gtk_widget_ref (vbox125);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "vbox125", vbox125,
                             (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (vbox94);
-  gtk_container_add (GTK_CONTAINER (frame65), vbox94);
-  gtk_container_set_border_width (GTK_CONTAINER (vbox94), 2);
+  gtk_widget_show (vbox125);
+  gtk_container_add (GTK_CONTAINER (frame125), vbox125);
 
-  scrolledwindow31 = gtk_scrolled_window_new (NULL, NULL);
-  gtk_widget_set_name (scrolledwindow31, "scrolledwindow31");
-  gtk_widget_ref (scrolledwindow31);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "scrolledwindow31", scrolledwindow31,
+  scrolledwindow45 = gtk_scrolled_window_new (NULL, NULL);
+  gtk_widget_set_name (scrolledwindow45, "scrolledwindow45");
+  gtk_widget_ref (scrolledwindow45);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "scrolledwindow45", scrolledwindow45,
                             (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (scrolledwindow31);
-  gtk_box_pack_start (GTK_BOX (vbox94), scrolledwindow31, TRUE, TRUE, 0);
-  gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolledwindow31), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
+  gtk_widget_show (scrolledwindow45);
+  gtk_box_pack_start (GTK_BOX (vbox125), scrolledwindow45, TRUE, TRUE, 0);
+  gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolledwindow45), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
 
-  clist_gnet_stats_general = gtk_clist_new (2);
-  gtk_widget_set_name (clist_gnet_stats_general, "clist_gnet_stats_general");
-  gtk_widget_ref (clist_gnet_stats_general);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "clist_gnet_stats_general", clist_gnet_stats_general,
+  clist_gnet_stats_horizon = gtk_clist_new (4);
+  gtk_widget_set_name (clist_gnet_stats_horizon, "clist_gnet_stats_horizon");
+  gtk_widget_ref (clist_gnet_stats_horizon);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "clist_gnet_stats_horizon", clist_gnet_stats_horizon,
                             (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (clist_gnet_stats_general);
-  gtk_container_add (GTK_CONTAINER (scrolledwindow31), clist_gnet_stats_general);
-  gtk_clist_set_column_width (GTK_CLIST (clist_gnet_stats_general), 0, 80);
-  gtk_clist_set_column_width (GTK_CLIST (clist_gnet_stats_general), 1, 80);
-  gtk_clist_column_titles_show (GTK_CLIST (clist_gnet_stats_general));
+  gtk_widget_show (clist_gnet_stats_horizon);
+  gtk_container_add (GTK_CONTAINER (scrolledwindow45), clist_gnet_stats_horizon);
+  gtk_clist_set_column_width (GTK_CLIST (clist_gnet_stats_horizon), 0, 56);
+  gtk_clist_set_column_width (GTK_CLIST (clist_gnet_stats_horizon), 1, 50);
+  gtk_clist_set_column_width (GTK_CLIST (clist_gnet_stats_horizon), 2, 78);
+  gtk_clist_set_column_width (GTK_CLIST (clist_gnet_stats_horizon), 3, 80);
+  gtk_clist_column_titles_show (GTK_CLIST (clist_gnet_stats_horizon));
 
-  label403 = gtk_label_new (_("Stat"));
-  gtk_widget_set_name (label403, "label403");
-  gtk_widget_ref (label403);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "label403", label403,
+  label663 = gtk_label_new (_("Hops"));
+  gtk_widget_set_name (label663, "label663");
+  gtk_widget_ref (label663);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label663", label663,
                             (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (label403);
-  gtk_clist_set_column_widget (GTK_CLIST (clist_gnet_stats_general), 0, label403);
-  gtk_misc_set_alignment (GTK_MISC (label403), 7.45058e-09, 0.5);
+  gtk_widget_show (label663);
+  gtk_clist_set_column_widget (GTK_CLIST (clist_gnet_stats_horizon), 0, label663);
+  gtk_widget_set_usize (label663, 30, -2);
 
-  label404 = gtk_label_new (_("count"));
-  gtk_widget_set_name (label404, "label404");
-  gtk_widget_ref (label404);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "label404", label404,
+  label664 = gtk_label_new (_("Nodes"));
+  gtk_widget_set_name (label664, "label664");
+  gtk_widget_ref (label664);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label664", label664,
                             (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (label404);
-  gtk_clist_set_column_widget (GTK_CLIST (clist_gnet_stats_general), 1, label404);
+  gtk_widget_show (label664);
+  gtk_clist_set_column_widget (GTK_CLIST (clist_gnet_stats_horizon), 1, label664);
+  gtk_widget_set_usize (label664, 36, -2);
 
-  vbox93 = gtk_vbox_new (FALSE, 0);
-  gtk_widget_set_name (vbox93, "vbox93");
-  gtk_widget_ref (vbox93);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "vbox93", vbox93,
+  label665 = gtk_label_new (_("Files"));
+  gtk_widget_set_name (label665, "label665");
+  gtk_widget_ref (label665);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label665", label665,
                             (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (vbox93);
-  gtk_paned_pack2 (GTK_PANED (hpaned_gnet_stats), vbox93, TRUE, TRUE);
+  gtk_widget_show (label665);
+  gtk_clist_set_column_widget (GTK_CLIST (clist_gnet_stats_horizon), 2, label665);
+  gtk_widget_set_usize (label665, 36, -2);
 
-  frame56 = gtk_frame_new (_("Drop reasons"));
-  gtk_widget_set_name (frame56, "frame56");
-  gtk_widget_ref (frame56);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "frame56", frame56,
+  label666 = gtk_label_new (_("Size"));
+  gtk_widget_set_name (label666, "label666");
+  gtk_widget_ref (label666);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label666", label666,
                             (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (frame56);
-  gtk_box_pack_start (GTK_BOX (vbox93), frame56, TRUE, TRUE, 0);
-
-  vbox82 = gtk_vbox_new (FALSE, 2);
-  gtk_widget_set_name (vbox82, "vbox82");
-  gtk_widget_ref (vbox82);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "vbox82", vbox82,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (vbox82);
-  gtk_container_add (GTK_CONTAINER (frame56), vbox82);
-  gtk_container_set_border_width (GTK_CONTAINER (vbox82), 2);
-
-  hbox157 = gtk_hbox_new (FALSE, 4);
-  gtk_widget_set_name (hbox157, "hbox157");
-  gtk_widget_ref (hbox157);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "hbox157", hbox157,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (hbox157);
-  gtk_box_pack_start (GTK_BOX (vbox82), hbox157, FALSE, TRUE, 0);
-
-  label390 = gtk_label_new (_("Show reasons for"));
-  gtk_widget_set_name (label390, "label390");
-  gtk_widget_ref (label390);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "label390", label390,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (label390);
-  gtk_box_pack_start (GTK_BOX (hbox157), label390, FALSE, FALSE, 0);
-
-  combo_gnet_stats_type = gtk_combo_new ();
-  gtk_widget_set_name (combo_gnet_stats_type, "combo_gnet_stats_type");
-  gtk_widget_ref (combo_gnet_stats_type);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "combo_gnet_stats_type", combo_gnet_stats_type,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (combo_gnet_stats_type);
-  gtk_box_pack_start (GTK_BOX (hbox157), combo_gnet_stats_type, TRUE, TRUE, 0);
-  gtk_combo_set_value_in_list (GTK_COMBO (combo_gnet_stats_type), TRUE, TRUE);
-
-  combo_entry_gnet_stats_type = GTK_COMBO (combo_gnet_stats_type)->entry;
-  gtk_widget_set_name (combo_entry_gnet_stats_type, "combo_entry_gnet_stats_type");
-  gtk_widget_ref (combo_entry_gnet_stats_type);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "combo_entry_gnet_stats_type", combo_entry_gnet_stats_type,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (combo_entry_gnet_stats_type);
-  gtk_entry_set_editable (GTK_ENTRY (combo_entry_gnet_stats_type), FALSE);
-
-  scrolledwindow26 = gtk_scrolled_window_new (NULL, NULL);
-  gtk_widget_set_name (scrolledwindow26, "scrolledwindow26");
-  gtk_widget_ref (scrolledwindow26);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "scrolledwindow26", scrolledwindow26,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (scrolledwindow26);
-  gtk_box_pack_start (GTK_BOX (vbox82), scrolledwindow26, TRUE, TRUE, 0);
-  gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolledwindow26), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
-
-  clist_gnet_stats_drop_reasons = gtk_clist_new (2);
-  gtk_widget_set_name (clist_gnet_stats_drop_reasons, "clist_gnet_stats_drop_reasons");
-  gtk_widget_ref (clist_gnet_stats_drop_reasons);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "clist_gnet_stats_drop_reasons", clist_gnet_stats_drop_reasons,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (clist_gnet_stats_drop_reasons);
-  gtk_container_add (GTK_CONTAINER (scrolledwindow26), clist_gnet_stats_drop_reasons);
-  gtk_clist_set_column_width (GTK_CLIST (clist_gnet_stats_drop_reasons), 0, 125);
-  gtk_clist_set_column_width (GTK_CLIST (clist_gnet_stats_drop_reasons), 1, 57);
-  gtk_clist_column_titles_show (GTK_CLIST (clist_gnet_stats_drop_reasons));
-
-  label375 = gtk_label_new (_("Reason"));
-  gtk_widget_set_name (label375, "label375");
-  gtk_widget_ref (label375);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "label375", label375,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (label375);
-  gtk_clist_set_column_widget (GTK_CLIST (clist_gnet_stats_drop_reasons), 0, label375);
-  gtk_misc_set_alignment (GTK_MISC (label375), 7.45058e-09, 0.5);
-
-  label376 = gtk_label_new (_("count"));
-  gtk_widget_set_name (label376, "label376");
-  gtk_widget_ref (label376);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "label376", label376,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (label376);
-  gtk_clist_set_column_widget (GTK_CLIST (clist_gnet_stats_drop_reasons), 1, label376);
-
-  checkbutton_gnet_stats_drop_perc = gtk_check_button_new_with_label (_("show percentages"));
-  gtk_widget_set_name (checkbutton_gnet_stats_drop_perc, "checkbutton_gnet_stats_drop_perc");
-  gtk_widget_ref (checkbutton_gnet_stats_drop_perc);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "checkbutton_gnet_stats_drop_perc", checkbutton_gnet_stats_drop_perc,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (checkbutton_gnet_stats_drop_perc);
-  gtk_box_pack_start (GTK_BOX (vbox82), checkbutton_gnet_stats_drop_perc, FALSE, FALSE, 0);
+  gtk_widget_show (label666);
+  gtk_clist_set_column_widget (GTK_CLIST (clist_gnet_stats_horizon), 3, label666);
+  gtk_widget_set_usize (label666, 36, -2);
 
   label_gnet_stats = gtk_label_new (_("gNet Stats"));
   gtk_widget_set_name (label_gnet_stats, "label_gnet_stats");
@@ -11245,6 +11329,12 @@ create_main_window (void)
   gtk_signal_connect (GTK_OBJECT (entry_config_extensions), "focus_out_event",
                       GTK_SIGNAL_FUNC (on_entry_config_extensions_focus_out_event),
                       NULL);
+  gtk_signal_connect (GTK_OBJECT (clist_gnet_stats_general), "resize_column",
+                      GTK_SIGNAL_FUNC (on_clist_gnet_stats_general_resize_column),
+                      NULL);
+  gtk_signal_connect (GTK_OBJECT (clist_gnet_stats_drop_reasons), "resize_column",
+                      GTK_SIGNAL_FUNC (on_clist_gnet_stats_drop_reasons_resize_column),
+                      NULL);
   gtk_signal_connect (GTK_OBJECT (clist_gnet_stats_msg), "resize_column",
                       GTK_SIGNAL_FUNC (on_clist_gnet_stats_msg_resize_column),
                       NULL);
@@ -11254,11 +11344,8 @@ create_main_window (void)
   gtk_signal_connect (GTK_OBJECT (clist_gnet_stats_fc_hops), "resize_column",
                       GTK_SIGNAL_FUNC (on_clist_gnet_stats_fc_hops_resize_column),
                       NULL);
-  gtk_signal_connect (GTK_OBJECT (clist_gnet_stats_general), "resize_column",
-                      GTK_SIGNAL_FUNC (on_clist_gnet_stats_general_resize_column),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (clist_gnet_stats_drop_reasons), "resize_column",
-                      GTK_SIGNAL_FUNC (on_clist_gnet_stats_drop_reasons_resize_column),
+  gtk_signal_connect (GTK_OBJECT (clist_gnet_stats_horizon), "resize_column",
+                      GTK_SIGNAL_FUNC (on_clist_gnet_stats_horizon_resize_column),
                       NULL);
 
   gtk_widget_add_accelerator (entry_reading_ultrafile, "grab_focus", accel_group,
@@ -14956,7 +15043,7 @@ create_dlg_about (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label266), 1, 0.5);
 
-  label267 = gtk_label_new (_("Raphaël Manfredi"));
+  label267 = gtk_label_new (_("Rapha\353l Manfredi"));
   gtk_widget_set_name (label267, "label267");
   gtk_widget_ref (label267);
   gtk_object_set_data_full (GTK_OBJECT (dlg_about), "label267", label267,
@@ -15000,7 +15087,7 @@ create_dlg_about (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label291), 1, 0.5);
 
-  label273 = gtk_label_new (_("Raphaël Manfredi"));
+  label273 = gtk_label_new (_("Rapha\353l Manfredi"));
   gtk_widget_set_name (label273, "label273");
   gtk_widget_ref (label273);
   gtk_object_set_data_full (GTK_OBJECT (dlg_about), "label273", label273,
