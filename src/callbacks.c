@@ -751,7 +751,8 @@ void on_popup_downloads_abort_host_activate
 				(gint) l->data);
 			continue;
 		}
-		removed += download_remove_all_from_peer(d->guid);
+		removed += download_remove_all_from_peer(
+			download_guid(d), download_ip(d), download_port(d));
 	}
 
     gtk_clist_thaw(clist_downloads_queue);
@@ -955,7 +956,7 @@ void on_popup_downloads_connect_activate(GtkMenuItem * menuitem,
     }
 
     gtk_clist_unselect_row(GTK_CLIST(clist_downloads), (gint) l->data, 0);
-    node_add(NULL, d->ip, d->port);
+    node_add(NULL, download_ip(d), download_port(d));
 }
 
 
@@ -1090,7 +1091,8 @@ void on_popup_queue_abort_host_activate(GtkMenuItem * menuitem,
 					  (gint) l->data);
 			continue;
 		}
-		removed += download_remove_all_from_peer(d->guid);
+		removed += download_remove_all_from_peer(
+			download_guid(d), download_ip(d), download_port(d));
 	}
 
     gtk_clist_thaw(GTK_CLIST(clist_downloads));
@@ -1213,7 +1215,7 @@ void on_popup_queue_connect_activate(GtkMenuItem * menuitem,
     }
 
     gtk_clist_unselect_row(GTK_CLIST(clist_downloads_queue), (gint) l->data, 0);
-    node_add(NULL, d->ip, d->port);
+    node_add(NULL, download_ip(d), download_port(d));
 }
  
 /***
@@ -1284,7 +1286,7 @@ void on_button_downloads_resume_clicked(GtkButton * button,
 void on_button_downloads_clear_completed_clicked(GtkButton * button, 
                                                  gpointer user_data)
 {
-	downloads_clear_stopped(TRUE, TRUE);
+	download_clear_stopped(TRUE, TRUE);
 }
 
 void on_checkbutton_downloads_auto_clear_toggled
@@ -1292,7 +1294,7 @@ void on_checkbutton_downloads_auto_clear_toggled
 {
 	clear_downloads = gtk_toggle_button_get_active(togglebutton);
 	if (clear_downloads)
-		downloads_clear_stopped(FALSE, TRUE);
+		download_clear_stopped(FALSE, TRUE);
 }
     
 void on_checkbutton_downloads_delete_aborted_toggled

@@ -52,7 +52,8 @@
 
 #define DOWNLOAD_RECV_BUFSIZE		114688		/* 112K */
 
-GSList *sl_downloads = NULL;
+static GSList *sl_downloads = NULL;	/* All downloads (queued + unqueued) */
+GSList *sl_unqueued = NULL;			/* Unqueued downloads only */
 guint32 count_downloads = 0;
 gboolean send_pushes = TRUE;
 static gchar dl_tmp[4096];
@@ -60,6 +61,7 @@ static gint queue_frozen = 0;
 
 static GHashTable *pushed_downloads = 0;
 
+static void download_add_to_list(struct download *d, enum dl_list idx);
 static gboolean send_push_request(gchar *, guint32, guint16);
 static void download_start_restart_timer(struct download *d);
 static void download_read(gpointer data, gint source, GdkInputCondition cond);
@@ -69,6 +71,29 @@ static void download_push_remove(struct download *d);
 static void download_push(struct download *d, gboolean on_timeout);
 static void download_store(void);
 static void download_retrieve(void);
+
+/*
+ * Download structures.
+ *
+ * This `dl_key' is inserted in the `dl_by_host' hash table were we find a
+ * `dl_server' structure describing all the downloads for the given host.
+ * All `dl_server' structures are also inserted in the `dl_by_time' sorted list,
+ * where hosts to try first are listed at the head.
+ *
+ * The `dl_count_by_name' and `dl_count_by_sha1' hash tables are indexed
+ * resepectively by name and sha1, and count the amount of downloads scheduled.
+ */
+
+static GHashTable *dl_by_host = NULL;
+static GList *dl_by_time = NULL;
+static GHashTable *dl_count_by_name = NULL;
+static GHashTable *dl_count_by_sha1 = NULL;
+
+static gint dl_establishing = 0;		/* Establishing downloads */
+static gint dl_active = 0;				/* Active downloads */
+
+#define count_running_downloads()	(dl_establishing + dl_active)
+#define count_running_on_server(s)	(s->count[DL_LIST_RUNNING])
 
 /*
  * This structure is used to encapsulate the various arguments required
@@ -88,6 +113,59 @@ struct io_header {
 /* ----------------------------------------- */
 
 /*
+ * dl_key_hash
+ *
+ * Hashing of a `dl_key' structure.
+ */
+static guint dl_key_hash(gconstpointer key)
+{
+	struct dl_key *k = (struct dl_key *) key;
+	guint hash;
+	extern guint guid_hash(gconstpointer key);
+
+	hash = guid_hash(k->guid);
+	hash ^= k->ip;
+	hash ^= (k->port << 16) | k->port;
+
+	return hash;
+}
+
+/*
+ * dl_key_eq
+ *
+ * Comparison of `dl_key' structures.
+ */
+static gint dl_key_eq(gconstpointer a, gconstpointer b)
+{
+	struct dl_key *ak = (struct dl_key *) a;
+	struct dl_key *bk = (struct dl_key *) b;
+	extern gint guid_eq(gconstpointer a, gconstpointer b);
+
+	return ak->ip == bk->ip &&
+		ak->port == bk->port &&
+		guid_eq(ak->guid, bk->guid);
+}
+
+/*
+ * dl_server_retry_cmp
+ *
+ * Compare two `dl_server' structures based on the `retry_after' field.
+ * The smaller that time, the smaller the structure is.
+ */
+static gint dl_server_retry_cmp(gconstpointer a, gconstpointer b)
+{
+	struct dl_server *as = (struct dl_server *) a;
+	struct dl_server *bs = (struct dl_server *) b;
+
+	if (as->retry_after == bs->retry_after)
+		return 0;
+
+	return as->retry_after < bs->retry_after ? -1 : +1;
+}
+
+/* ----------------------------------------- */
+
+/*
  * download_init
  *
  * Initialize downloading data structures.
@@ -95,6 +173,9 @@ struct io_header {
 void download_init(void)
 {
 	pushed_downloads = g_hash_table_new(g_str_hash, g_str_equal);
+	dl_by_host = g_hash_table_new(dl_key_hash, dl_key_eq);
+	dl_count_by_name = g_hash_table_new(g_str_hash, g_str_equal);
+	dl_count_by_sha1 = g_hash_table_new(g_str_hash, g_str_equal);
 	download_retrieve();
 }
 
@@ -107,7 +188,7 @@ void download_init(void)
  */
 void download_timer(time_t now)
 {
-	GSList *l = sl_downloads;
+	GSList *l = sl_unqueued;		/* Only downloads not in the queue */
 
 	if (queue_frozen > 0)
 		return;
@@ -157,20 +238,24 @@ void download_timer(time_t now)
 			else
 				gui_update_download(d, FALSE);
 			break;
-		case GTA_DL_QUEUED:
 		case GTA_DL_COMPLETED:
 		case GTA_DL_ABORTED:
 		case GTA_DL_ERROR:
 		case GTA_DL_STOPPED:
 			break;
+		case GTA_DL_QUEUED:
+			g_error("found queued download in sl_unqueued list: \"%s\"",
+				d->file_name);
+			break;
 		default:
-			g_warning("Hmm... new download state %d not handled", d->status);
+			g_warning("Hmm... new download state %d not handled for \"%s\"",
+				d->status, d->file_name);
 			break;
 		}
 	}
 
 	if (clear_downloads)
-		downloads_clear_stopped(FALSE, FALSE);
+		download_clear_stopped(FALSE, FALSE);
 
 	/* Dequeuing */
 	download_pickup_queued();
@@ -200,72 +285,142 @@ static void io_free(gpointer opaque)
 
 /* ----------------------------------------- */
 
-/* Return the current number of running downloads */
-
-static guint32 count_running_downloads(void)
+/*
+ * allocate_server
+ *
+ * Allocate new server structure.
+ */
+static struct dl_server *allocate_server(guchar *guid, guint32 ip, guint16 port)
 {
-	GSList *l;
-	guint32 establishing = 0;
-	guint32 active = 0;
+	struct dl_key *key;
+	struct dl_server *server;
 
-	for (l = sl_downloads; l; l = l->next) {
-		struct download *d = (struct download *) l->data;
-		if (DOWNLOAD_IS_ESTABLISHING(d))
-			establishing++;
-		else if (DOWNLOAD_IS_ACTIVE(d))
-			active++;
-	}
+	key = g_malloc(sizeof(*key));
+	key->ip = ip;
+	key->port = port;
+	key->guid = atom_guid_get(guid);
 
-	gui_update_c_downloads(active, establishing + active);
+	server = g_malloc0(sizeof(*server));
+	server->key = key;
 
-	return establishing + active;
-}
+	g_hash_table_insert(dl_by_host, key, server);
+	dl_by_time = g_list_insert_sorted(dl_by_time, server, dl_server_retry_cmp);
 
-static guint32 count_running_downloads_with_guid(gchar * guid)
-{
-	GSList *l;
-	guint32 n = 0;
-
-	for (l = sl_downloads; l; l = l->next)
-		if (DOWNLOAD_IS_RUNNING((struct download *) l->data))
-			if (!memcmp(((struct download *) l->data)->guid, guid, 16))
-				n++;
-
-	return n;
-}
-
-static guint32 count_running_downloads_with_name(const char *name)
-{
-	GSList *l;
-	guint32 n = 0;
-
-	for (l = sl_downloads; l; l = l->next)
-		if (DOWNLOAD_IS_RUNNING((struct download *) l->data)
-			&& 0 == strcmp(((struct download *) l->data)->file_name, name))
-			n++;
-
-	return n;
+	return server;
 }
 
 /*
- * has_same_active_download
+ * free_server
  *
- * Check whether we already have an identical (same file, same GUID)
- * active download as the specified one.
- *		--RAM, 04/11/2001
+ * Free server structure.
+ */
+static void free_server(struct dl_server *server)
+{
+	dl_by_time = g_list_remove(dl_by_time, server);
+	g_hash_table_remove(dl_by_host, server->key);
+	if (server->vendor)
+		atom_str_free(server->vendor);
+	atom_guid_free(server->key->guid);
+	g_free(server->key);
+	g_free(server);
+}
+
+/*
+ * get_server
+ *
+ * Fetch server entry identified by GUID, IP:port.
+ */
+static struct dl_server *get_server(guchar *guid, guint32 ip, guint16 port)
+{
+	struct dl_key key;
+
+	g_assert(guid);
+
+	key.guid = guid;
+	key.ip = ip;
+	key.port = port;
+
+	return (struct dl_server *) g_hash_table_lookup(dl_by_host, &key);
+}
+
+/*
+ * count_running_downloads_with_name
+ *
+ * How many downloads with same filename are running (active or establishing)?
+ */
+static guint32 count_running_downloads_with_name(const char *name)
+{
+	return (guint) g_hash_table_lookup(dl_count_by_name, name);
+}
+
+/*
+ * downloads_with_name_inc
+ *
+ * Add one to the amount of downloads running and bearing the filename.
+ */
+static void downloads_with_name_inc(const gchar *name)
+{
+	guint val;
+
+	val = (guint) g_hash_table_lookup(dl_count_by_name, name);
+	g_hash_table_insert(dl_count_by_name, (gchar *) name, (gpointer) (val + 1));
+}
+
+/*
+ * downloads_with_name_dec
+ *
+ * Remove one from the amount of downloads running and bearing the filename.
+ */
+static void downloads_with_name_dec(const gchar *name)
+{
+	guint val;
+
+	val = (guint) g_hash_table_lookup(dl_count_by_name, name);
+
+	g_assert(val);		/* Cannot decrement something not present */
+
+	if (val > 1)
+		g_hash_table_insert(dl_count_by_name,
+			(gchar *) name, (gpointer) (val - 1));
+	else
+		g_hash_table_remove(dl_count_by_name, name);
+}
+
+/*
+ * count_running_downloads_with_sha1		-- XXX UNUSED for now
+ *
+ * How many downloads with same SHA1 are running (active or establishing)?
+ */
+static guint32 count_running_downloads_with_sha1(const guchar *sha1)
+{
+	return (guint) g_hash_table_lookup(dl_count_by_sha1, sha1);
+}
+
+/*
+ * has_same_download
+ *
+ * Check whether we already have an identical (same file, same host)
+ * running or queued download.
  *
  * Returns found active download, or NULL if we have no such download yet.
  */
-static struct download *has_same_active_download(gchar *file, gchar *guid)
+static struct download *has_same_download(
+	gchar *file, gchar *guid, guint32 ip, guint16 port)
 {
-	GSList *l;
+	struct dl_server *server = get_server(guid, ip, port);
+	GList *l;
+	gint n;
+	enum dl_list listnum[] = { DL_LIST_RUNNING, DL_LIST_WAITING };
 
-	for (l = sl_downloads; l; l = l->next) {
-		struct download *d = (struct download *) l->data;
-		if (DOWNLOAD_IS_STOPPED(d))
-			continue;
-		if (0 == strcmp(file, d->file_name) && 0 == memcmp(guid, d->guid, 16)) {
-			return d;
+	if (server == NULL)
+		return NULL;
+
+	for (n = 0; n < sizeof(listnum) / sizeof(listnum[0]); n++) {
+		for (l = server->list[n]; l; l = l->next) {
+			struct download *d = (struct download *) l->data;
+			g_assert(!DOWNLOAD_IS_STOPPED(d));
+			if (0 == strcmp(file, d->file_name))
+				return d;
 		}
 	}
 
@@ -424,32 +579,28 @@ static void queue_remove_identical(
  * and abort all conenctions to peer in the active download list.
  * Return the number of removed downloads.
  */
-gint download_remove_all_from_peer(const gchar *guid)
+gint download_remove_all_from_peer(const gchar *guid, guint32 ip, guint16 port)
 {
+	struct dl_server *server = get_server((gchar *) guid, ip, port);
 	GSList *l;
 	GSList *to_remove = NULL;
+	gint n;
+	enum dl_list listnum[] = { DL_LIST_RUNNING, DL_LIST_WAITING };
 
-	int n = 0, m = 0;
+	for (n = 0; n < sizeof(listnum) / sizeof(listnum[0]); n++) {
+		enum dl_list idx = listnum[n];
+		GList *l;
 
-	g_return_val_if_fail(guid, 0);
-
-	for (l = sl_downloads; l; l = g_slist_next(l)) {
-		struct download *d = (struct download *) l->data;
-
-		n ++;
-
-		if (!d) {
-			g_warning("download_remove_all_from_peer(): NULL download");
-			continue;
-		}
-
-		if (!memcmp(guid, d->guid, 16))
+		for (l = server->list[idx]; l; l = g_list_next(l)) {
+			struct download *d = (struct download *) l->data;
+			g_assert(d);
 			to_remove = g_slist_prepend(to_remove, d);
+		}
 	}
 
-	for (l = to_remove; l; l = l->next) {
+	for (n = 0, l = to_remove; l; l = l->next) {
 		struct download *d = (struct download *) l->data;
-		m ++;
+		n++;
 		switch (d->status) {
 		case GTA_DL_QUEUED:
 		case GTA_DL_TIMEOUT_WAIT:
@@ -457,12 +608,13 @@ gint download_remove_all_from_peer(const gchar *guid)
 			break;
 		default:
 			download_abort(d);
+			break;
 		}
 	}
 
 	g_slist_free(to_remove);
     
-    return m;
+    return n;
 }
 
 /*
@@ -507,6 +659,7 @@ gint download_remove_all_named(const gchar *name)
 			break;
 		default:
 			download_abort(d);
+			break;
 		}
 	}
 
@@ -557,81 +710,12 @@ gint download_remove_all_with_sha1(const guchar *sha1)
 			break;
 		default:
 			download_abort(d);
+			break;
 		}
 	}
 
 	g_slist_free(to_remove);
     
-    return m;
-}
-
-/*
- * download_remove_all_regex
- *
- * remove all downloads with a given name from the download queue
- * and abort all conenctions to peer in the active download list.
- */
-gint download_remove_all_regex(const gchar *regex)
-{
-	GSList *l;
-	GSList *to_remove = NULL;
-	int n = 0, m = 0;
-
-	guint msgid = -1;
-	int err;
-	regex_t *re;
-
-	g_return_val_if_fail(regex, 0);
-	
-	g_snprintf(dl_tmp, sizeof(dl_tmp), "%s", regex);
-	
-	re = g_new(regex_t, 1);
-
-	g_return_val_if_fail(re, 0);
-
-	err = regcomp(re, regex,
-		REG_EXTENDED|REG_NOSUB|(queue_regex_case ? 0 : REG_ICASE));
-
-	if (err) {
-		char buf[1000];
-		regerror(err, re, buf, 1000);
-		g_error("download_remove_all_regex: regex error %s",buf);
-		msgid = gui_statusbar_push(scid_warn, buf);
-		gui_statusbar_add_timeout(scid_warn, msgid, 15);
-	} else {
-		for (l = sl_downloads; l; l = g_slist_next(l)) {
-			int i;
-			struct download *d = (struct download *) l->data;
-
-			n ++;
-
-			if (!d) {
-				g_warning("download_remove_all_regex(): NULL download");
-				continue;
-			}
-	
-			if (((i = regexec(re, d->file_name,0, NULL, 0)) == 0) &&
-				(d->status == GTA_DL_QUEUED))
-				to_remove = g_slist_prepend(to_remove, d);
-			if (i == REG_ESPACE)
-				g_warning("regexp memory overflow");
-		}
-	
-		for (l = to_remove; l; l = l->next) {
-			struct download *d = (struct download *) l->data;
-			m ++;
-			/* 
-			 * we know that the download is queued because we filtered this
-			 * above so we can call download_free
-			 *      --BLUE, 07/05/2002
-			 */
-			download_free(d);
-		}
-	}
-
-	g_free(re);
-	g_slist_free(to_remove);
-
     return m;
 }
 
@@ -664,9 +748,9 @@ void download_gui_add(struct download *d)
                 ->fg[GTK_STATE_INSENSITIVE]);
 
 	titles[c_dl_filename] = d->file_name;
-	titles[c_dl_host] = ip_port_to_gchar(d->ip, d->port);
+	titles[c_dl_host] = ip_port_to_gchar(download_ip(d), download_port(d));
 	titles[c_dl_size] = short_size(d->size);
-	titles[c_dl_server] = (d->server != NULL) ? d->server : "";
+	titles[c_dl_server] = download_vendor_str(d);
 	titles[c_dl_status] = "";
 
 	if (DOWNLOAD_IS_QUEUED(d)) {		/* This is a queued download */
@@ -742,9 +826,9 @@ void download_gui_remove(struct download *d)
 
 /* Remove stopped downloads */
 
-void downloads_clear_stopped(gboolean all, gboolean now)
+void download_clear_stopped(gboolean all, gboolean now)
 {
-	GSList *l = sl_downloads;
+	GSList *l = sl_unqueued;
 	time_t current_time = 0;
 
 	/*
@@ -783,10 +867,133 @@ void downloads_clear_stopped(gboolean all, gboolean now)
  * Downloads management
  */
 
+/*
+ * download_add_to_list
+ */
+static void download_add_to_list(struct download *d, enum dl_list idx)
+{
+	struct dl_server *server = d->server;
+
+	g_assert(d->list_idx == -1);			/* Not in any list */
+
+	d->list_idx = idx;
+
+	server->list[idx] = g_list_prepend(server->list[idx], d);
+	server->count[idx]++;
+}
+
+/*
+ * download_move_to_list
+ *
+ * Move download from its current list to the `idx' one.
+ */
+static void download_move_to_list(struct download *d, enum dl_list idx)
+{
+	struct dl_server *server = d->server;
+	enum dl_list old_idx = d->list_idx;
+
+	g_assert(d->list_idx != -1);			/* In some list */
+	g_assert(d->list_idx != idx);			/* Not in the target list */
+
+	/*
+	 * Global counters update.
+	 */
+
+	if (old_idx == DL_LIST_RUNNING) {
+		if (DOWNLOAD_IS_ACTIVE(d))
+			dl_active--;
+		else {
+			g_assert(DOWNLOAD_IS_ESTABLISHING(d));
+			dl_establishing--;
+		}
+		downloads_with_name_dec(d->file_name);
+	} else if (idx == DL_LIST_RUNNING) {
+		dl_establishing++;
+		downloads_with_name_inc(d->file_name);
+	}
+
+	g_assert(dl_active >= 0 && dl_establishing >= 0);
+
+	/*
+	 * Local counter and list update.
+	 */
+
+	g_assert(server->count[old_idx] > 0);
+
+	server->list[old_idx] = g_list_remove(server->list[old_idx], d);
+	server->count[old_idx]--;
+
+	server->list[idx] = g_list_append(server->list[idx], d);
+	server->count[idx]++;
+
+	d->list_idx = idx;
+}
+
+/*
+ * download_set_retry_after
+ *
+ * Change the `retry_after' field of the host where this download runs.
+ */
+static void download_set_retry_after(struct download *d, time_t after)
+{
+	struct dl_server *server = d->server;
+
+	dl_by_time = g_list_remove(dl_by_time, server);
+	server->retry_after = after;
+	dl_by_time = g_list_insert_sorted(dl_by_time, server, dl_server_retry_cmp);
+}
+
+/*
+ * download_remove_from_server
+ *
+ * Remove download from server.
+ * Reclaim server if this was the last download held.
+ */
+static void download_remove_from_server(struct download *d)
+{
+	struct dl_server *server;
+	enum dl_list idx;
+
+	g_assert(d);
+	g_assert(d->server);
+	g_assert(d->list_idx != -1);
+
+	idx = d->list_idx;
+	server = d->server;
+
+	server->list[idx] = g_list_remove(server->list[idx], d);
+	server->count[idx]--;
+
+	if (
+		server->count[DL_LIST_RUNNING] == 0 &&
+		server->count[DL_LIST_WAITING] == 0 &&
+		server->count[DL_LIST_STOPPED] == 0
+	)
+		free_server(server);
+}
+
+/*
+ * download_redirect_to_server
+ *
+ * Move download from a server to another when the IP:port changed due
+ * to a Location: redirection.
+ */
+static void download_redirect_to_server(struct download *d,
+	guint32 ip, guint16 port)
+{
+	download_remove_from_server(d);
+}
+
+/*
+ * download_stop
+ *
+ * Stop running download.
+ */
 void download_stop(struct download *d, guint32 new_status,
 				   const gchar * reason, ...)
 {
 	gboolean store_queue = FALSE;		/* Shall we call download_store()? */
+	enum dl_list list_target;
 
 	/* Stop an active download, close its socket and its data file descriptor */
 
@@ -821,12 +1028,17 @@ void download_stop(struct download *d, guint32 new_status,
 	switch (new_status) {
 	case GTA_DL_COMPLETED:
 	case GTA_DL_ABORTED:
+		list_target = DL_LIST_STOPPED;
 		store_queue = TRUE;
 		break;
 	case GTA_DL_ERROR:
+		list_target = DL_LIST_STOPPED;
+		break;
 	case GTA_DL_TIMEOUT_WAIT:
+		list_target = DL_LIST_WAITING;
 		break;
 	case GTA_DL_STOPPED:
+		list_target = DL_LIST_STOPPED;
 		download_start_restart_timer(d);
 		break;
 	default:
@@ -859,6 +1071,8 @@ void download_stop(struct download *d, guint32 new_status,
 		d->bio = NULL;
 	}
 
+	download_move_to_list(d, list_target);
+
 	/* Register the new status, and update the GUI if needed */
 
 	d->status = new_status;
@@ -884,7 +1098,7 @@ void download_stop(struct download *d, guint32 new_status,
 		gui_update_download_clear();
 	}
 
-	count_running_downloads();
+	gui_update_c_downloads(dl_active, dl_establishing + dl_active);
 }
 
 /*
@@ -927,6 +1141,11 @@ static void download_queue_v(struct download *d, const gchar *fmt, va_list ap)
 	d->remove_msg = fmt ? d->error_str: NULL;
 	d->status = GTA_DL_QUEUED;
 
+	if (d->list_idx != DL_LIST_WAITING)		/* Timeout wait is in "waiting" */
+		download_move_to_list(d, DL_LIST_WAITING);
+
+	sl_unqueued = g_slist_remove(sl_unqueued, d);
+
 	download_gui_add(d);
 	gui_update_download(d, TRUE);
 
@@ -960,7 +1179,7 @@ void download_queue(struct download *d, const gchar *fmt, ...)
  */
 void download_freeze_queue()
 {
-	queue_frozen ++;
+	queue_frozen++;
 	gui_update_queue_frozen();
 }
 
@@ -974,7 +1193,7 @@ void download_thaw_queue(void)
 {
 	g_return_if_fail(queue_frozen > 0);
 
-	queue_frozen --;
+	queue_frozen--;
 	gui_update_queue_frozen();
 }
 
@@ -997,6 +1216,8 @@ gint download_queue_is_frozen(void)
 static void download_queue_delay(struct download *d, guint32 delay,
 	const gchar *fmt, ...)
 {
+	struct dl_server *server = d->server;
+	time_t now = time((time_t *) NULL);
 	va_list args;
 
 	g_assert(d);
@@ -1005,8 +1226,14 @@ static void download_queue_delay(struct download *d, guint32 delay,
 	download_queue_v(d, fmt, args);
 	va_end(args);
 
-	d->last_update = time((time_t *) NULL);
-	d->timeout_delay = delay;
+	/*
+	 * Always consider the farthest time in the future when updating the
+	 * `retry_after' field of the server.
+	 */
+
+	d->last_update = now;
+	if (server->retry_after < (now + delay))
+		download_set_retry_after(d, now + delay);
 }
 
 /*
@@ -1024,17 +1251,17 @@ static void download_queue_delay(struct download *d, guint32 delay,
 static gboolean download_retry_no_urires(struct download *d,
 	gint delay, gint ack_code)
 {
-	if (!(d->attrs & DL_A_NO_URIRES_N2R) && (d->flags & DL_F_URIRES_N2R)) {
+	if (!(d->server->attrs & DLS_A_NO_URIRES) && (d->flags & DL_F_URIRES)) {
 		/*
 		 * We sent /uri-res, and never marked server as not supporting it.
 		 */
 
-		d->attrs |= DL_A_NO_URIRES_N2R;
+		d->server->attrs |= DLS_A_NO_URIRES;
 
 		if (dbg > 3)
 			printf("Server %s (%s) does not support /uri-res/N2R?\n",
-				ip_port_to_gchar(d->ip, d->port),
-				d->server ? d->server : "");
+				ip_port_to_gchar(download_ip(d), download_port(d)),
+				download_vendor_str(d));
 
 		if (ack_code)
 			download_queue_delay(d,
@@ -1064,7 +1291,7 @@ static void download_push_insert(struct download *d)
 	g_assert(!d->push);
 
 	g_snprintf(dl_tmp, sizeof(dl_tmp), "%u:%s",
-		d->record_index, guid_hex_str(d->guid));
+		d->record_index, guid_hex_str(download_guid(d)));
 
 	/*
 	 * We should not have the download already in the table, since we take care
@@ -1099,7 +1326,7 @@ static void download_push_insert(struct download *d)
 			g_warning("BUG: argument is 0x%lx, \"%s\", key = %s, state = %d",
 				(gulong) d, d->file_name, key, d->status);
 			g_snprintf(dl_tmp, sizeof(dl_tmp), "%u:%s",
-				ad->record_index, guid_hex_str(ad->guid));
+				ad->record_index, guid_hex_str(download_guid(ad)));
 			g_warning("BUG: in table has 0x%lx \"%s\", key = %s, state = %d",
 				(gulong) ad, ad->file_name, dl_tmp, ad->status);
 		} else {
@@ -1124,7 +1351,7 @@ static void download_push_remove(struct download *d)
 	g_assert(d->push);
 
 	g_snprintf(dl_tmp, sizeof(dl_tmp), "%u:%s",
-		d->record_index, guid_hex_str(d->guid));
+		d->record_index, guid_hex_str(download_guid(d)));
 
 	if (
 		g_hash_table_lookup_extended(pushed_downloads, (gpointer) dl_tmp,
@@ -1168,6 +1395,8 @@ static void download_push_remove(struct download *d)
 static gboolean download_start_prepare(struct download *d)
 {
 	struct stat st;
+
+	g_assert(d->list_idx != DL_LIST_RUNNING);
 
 	/*
 	 * If the output file already exists, we have to send a partial request
@@ -1222,10 +1451,22 @@ static gboolean download_start_prepare(struct download *d)
 	g_assert(d->overlap_size == 0 || d->skip > d->overlap_size);
 
 	/* If the download is in the queue, we remove it from there */
-	if (DOWNLOAD_IS_QUEUED(d) && DOWNLOAD_IS_VISIBLE(d))
-		download_gui_remove(d);
+	if (DOWNLOAD_IS_QUEUED(d)) {
+		if (DOWNLOAD_IS_VISIBLE(d))
+			download_gui_remove(d);
+		sl_unqueued = g_slist_prepend(sl_unqueued, d);
+	}
 
-	/* Is there anything to get at all? */
+	/*
+	 * Updata global accounting data.
+	 */
+
+	download_move_to_list(d, DL_LIST_RUNNING);
+
+	/*
+	 * Is there anything to get at all?
+	 */
+
 	if (d->size <= d->pos) {
 		d->status = GTA_DL_CONNECTING;
 		if (!DOWNLOAD_IS_VISIBLE(d))
@@ -1242,7 +1483,11 @@ static gboolean download_start_prepare(struct download *d)
 
 void download_start(struct download *d, gboolean check_allowed)
 {
-	g_return_if_fail(d);
+	guint32 ip = download_ip(d);
+	guint16 port = download_port(d);
+
+	g_assert(d);
+	g_assert(d->list_idx != DL_LIST_RUNNING);	/* Waiting or stopped */
 
 	/*
 	 * If caller did not check whether we were allowed to start downloading
@@ -1251,7 +1496,7 @@ void download_start(struct download *d, gboolean check_allowed)
 
 	if (check_allowed && (
 		count_running_downloads() >= max_downloads ||
-		count_running_downloads_with_guid(d->guid) >= max_host_downloads ||
+		count_running_on_server(d->server) >= max_host_downloads ||
 		count_running_downloads_with_name(d->file_name) != 0)
 	) {
 		if (!DOWNLOAD_IS_QUEUED(d))
@@ -1262,13 +1507,15 @@ void download_start(struct download *d, gboolean check_allowed)
 	if (!download_start_prepare(d))
 		return;
 
+	g_assert(d->list_idx == DL_LIST_RUNNING);	/* Moved to "running" list */
+
 	if (!send_pushes && d->push)
 		download_push_remove(d);
 
-	if (!DOWNLOAD_IS_IN_PUSH_MODE(d) && check_valid_host(d->ip, d->port)) {
+	if (!DOWNLOAD_IS_IN_PUSH_MODE(d) && check_valid_host(ip, port)) {
 		/* Direct download */
 		d->status = GTA_DL_CONNECTING;
-		d->socket = socket_connect(d->ip, d->port, GTA_TYPE_DOWNLOAD);
+		d->socket = socket_connect(ip, port, GTA_TYPE_DOWNLOAD);
 
 		if (!DOWNLOAD_IS_VISIBLE(d))
 			download_gui_add(d);
@@ -1290,65 +1537,78 @@ void download_start(struct download *d, gboolean check_allowed)
 	}
 
 	gui_update_download(d, TRUE);
-
-	count_running_downloads();
+	gui_update_c_downloads(dl_active, dl_establishing + dl_active);
 }
 
 /* pick up new downloads from the queue as needed */
 
 void download_pickup_queued(void)
 {
-	guint row;
+	GList *l;
 	time_t now = time((time_t *) NULL);
 	gint running = count_running_downloads();
-    GtkCList *clist_downloads_queue;
-    GtkCList *clist_downloads;
-    gboolean frozen = FALSE;
 
-    clist_downloads_queue = GTK_CLIST
-        (lookup_widget(main_window, "clist_downloads_queue"));
+	/*
+	 * To select downloads, we iterate over the sorted `dl_by_time' list and
+	 * look for something we could schedule.
+	 *
+	 * Note that we jump from one host to the other, even if we have multiple
+	 * things to schedule on the same host: It's better to spread load among
+	 * all hosts first.
+	 */
 
-    clist_downloads = GTK_CLIST
-       (lookup_widget(main_window, "clist_downloads"));
+	for (l = dl_by_time; l && running < max_downloads; l = g_list_next(l)) {
+		struct dl_server *server = (struct dl_server *) l->data;
+		GList *w;
 
-	row = 0;
-	while (row < clist_downloads_queue->rows && running < max_downloads) {
-		struct download *d = (struct download *)
-			gtk_clist_get_row_data(clist_downloads_queue, row);
+		/*
+		 * List is sorted, so as soon as we go beyond the current time, we
+		 * can stop.
+		 */
 
-		if (!DOWNLOAD_IS_QUEUED(d))
-			g_warning("download_pickup_queued(): "
-				"Download '%s' is not in queued state ! (state = %d)",
-				 d->file_name, d->status);
+		if (server->retry_after > now)
+			break;
 
-		if ((now - d->last_update) > d->timeout_delay &&
-			count_running_downloads_with_guid(d->guid) < max_host_downloads
-			&& count_running_downloads_with_name(d->file_name) == 0
-		) {
-            if (!frozen) {
-                frozen = TRUE;
-                gtk_clist_freeze(clist_downloads_queue);
-                gtk_clist_freeze(clist_downloads);
-            }
+		if (
+			server->count[DL_LIST_WAITING] == 0 ||
+			count_running_on_server(server) >= max_host_downloads
+		)
+			continue;
+
+		/*
+		 * OK, pick the download at the start of the waiting list, but
+		 * do not remove it yet.  This will be done by download_start().
+		 */
+
+		g_assert(server->list[DL_LIST_WAITING]);	/* Since count != 0 */
+
+		for (w = server->list[DL_LIST_WAITING]; w; w = g_list_next(w)) {
+			struct download *d = (struct download *) w->data;
+
+			if (count_running_downloads_with_name(d->file_name) != 0)
+				continue;
+
+			if ((now - d->last_update) <= d->timeout_delay)
+				continue;
 
 			download_start(d, FALSE);
-			if (!DOWNLOAD_IS_QUEUED(d))
-				running++;
-		} else
-			row++;
-	}
 
-    if (frozen) {
-        gtk_clist_thaw(clist_downloads_queue);
-        gtk_clist_thaw(clist_downloads);
-    }
+			if (DOWNLOAD_IS_RUNNING(d))
+				running++;
+
+			break;			/* Don't schedule all files on same host at once */
+		}
+	}
 
 	/*
 	 * Enable "Start now" only if we would not exceed limits.
 	 */
+
 	gtk_widget_set_sensitive(
         lookup_widget(popup_queue, "popup_queue_start_now"), 
-        (running < max_downloads) && clist_downloads_queue->selection); 
+        (running < max_downloads) &&
+		GTK_CLIST(
+			lookup_widget(main_window, "clist_downloads_queue"))->selection); 
 }
 
 static void download_push(struct download *d, gboolean on_timeout)
@@ -1377,7 +1637,7 @@ static void download_push(struct download *d, gboolean on_timeout)
 		download_push_insert(d);
 
 	g_assert(d->push);
-	if (!send_push_request(d->guid, d->record_index, listen_port)) {
+	if (!send_push_request(download_guid(d), d->record_index, listen_port)) {
 		if (!d->always_push) {
 			download_push_remove(d);
 			goto attempt_retry;
@@ -1407,7 +1667,8 @@ attempt_retry:
 	 */
 
 	if (!d->always_push && d->sha1)
-		dmesh_remove(d->sha1, d->ip, d->port, d->record_index, d->file_name);
+		dmesh_remove(d->sha1, download_ip(d), download_port(d),
+			d->record_index, d->file_name);
 }
 
 /* Direct download failed, let's try it with a push request */
@@ -1500,6 +1761,7 @@ static void create_download(
 	guint32 ip, guint16 port, gchar *guid, gchar *sha1, time_t stamp,
 	gboolean push, gboolean interactive)
 {
+	struct dl_server *server;
 	struct download *d;
 	gchar *file_name = interactive ? atom_str_get(file) : file;
 
@@ -1507,16 +1769,18 @@ static void create_download(
 	 * Refuse to queue the same download twice. --RAM, 04/11/2001
 	 */
 
-	if ((d = has_same_active_download(file_name, guid))) {
+	if ((d = has_same_download(file_name, guid, ip, port))) {
 		if (interactive)
 			g_warning("rejecting duplicate download for %s", file_name);
 
+#if 0		// XXX cannot do that anymore
 		if (ip != d->ip || port != d->port) {
 			d->ip = ip;
 			d->port = port;
 			g_warning("updated IP:port for %s to %s",
 				file_name, ip_port_to_gchar(ip, port));
 		}
+#endif
 
 		atom_str_free(file_name);
 		return;
@@ -1530,17 +1794,25 @@ static void create_download(
 	if (output == NULL)
 		output = escape_filename(file_name);
 
+	/*
+	 * Initialize download, creating new server if needed.
+	 */
+
 	d = (struct download *) g_malloc0(sizeof(struct download));
+
+	server = get_server(guid, ip, port);
+	if (server == NULL)
+		server = allocate_server(guid, ip, port);
+
+	d->server = server;
+	d->list_idx = -1;
 
 	d->path = atom_str_get(save_file_path);
 	d->output_name = output;
 	d->file_name = file_name;
 	d->size = size;
 	d->record_index = record_index;
-	d->ip = ip;
-	d->port = port;
 	d->file_desc = -1;
-	d->guid = atom_guid_get(guid);
 	d->restart_timer_id = 0;
 	d->always_push = push;
 	if (sha1)
@@ -1551,7 +1823,10 @@ static void create_download(
 		d->push = FALSE;
 	d->record_stamp = stamp;
 
-	sl_downloads = g_slist_prepend(sl_downloads, (gpointer) d);
+	download_add_to_list(d, DL_LIST_WAITING);
+	sl_downloads = g_slist_prepend(sl_downloads, d);
+	sl_unqueued = g_slist_prepend(sl_unqueued, d);
+
 	download_store();			/* Refresh list, in case we crash */
 
 	/*
@@ -1563,7 +1838,7 @@ static void create_download(
 
 	if (
 		count_running_downloads() < max_downloads &&
-		count_running_downloads_with_guid(d->guid) < max_host_downloads &&
+		count_running_on_server(d->server) < max_host_downloads &&
 		count_running_downloads_with_name(d->file_name) == 0
 	) {
 		download_start(d, FALSE);		/* Starts the download immediately */
@@ -1660,19 +1935,26 @@ abort_download:
 void download_index_changed(guint32 ip, guint16 port, guchar *guid,
 	guint32 from, guint32 to)
 {
-	GSList *l;
+	struct dl_server *server = get_server(guid, ip, port);
+	GList *l;
 	gint nfound = 0;
+	GSList *to_stop = NULL;
+	GSList *sl;
+	gint n;
+	enum dl_list listnum[] = { DL_LIST_RUNNING, DL_LIST_WAITING };
 
-	for (l = sl_downloads; l; l = l->next) {
-		struct download *d = (struct download *) l->data;
+	if (!server)
+		return;
 
-		if (
-			d->ip == ip &&
-			d->port == port &&
-			d->record_index == from &&
-			0 == memcmp(d->guid, guid, 16)
-		) {
-			gboolean push_mode = d->push;
+	for (n = 0; n < sizeof(listnum) / sizeof(listnum[0]); n++) {
+		for (l = server->list[n]; l; l = l->next) {
+			struct download *d = (struct download *) l->data;
+			gboolean push_mode;
+
+			if (d->record_index != from)
+				continue;
+
+			push_mode = d->push;
 
 			/*
 			 * When in push mode, we've recorded the index in a hash table,
@@ -1707,7 +1989,7 @@ void download_index_changed(guint32 ip, guint16 port, guchar *guid,
 				 */
 				g_warning("Stopping request for '%s': index changed",
 					d->file_name);
-				download_stop(d, GTA_DL_STOPPED, "Stopped (Index changed)");
+				to_stop = g_slist_prepend(to_stop, d);
 				break;
 			case GTA_DL_RECEIVING:
 				/*
@@ -1727,6 +2009,11 @@ void download_index_changed(guint32 ip, guint16 port, guchar *guid,
 				break;
 			}
 		}
+	}
+
+	for (sl = to_stop; sl; sl = sl->next) {
+		struct download *d = (struct download *) sl->data;
+		download_stop(d, GTA_DL_STOPPED, "Stopped (Index changed)");
 	}
 
 	/*
@@ -1754,7 +2041,7 @@ void download_new(gchar *file, guint32 size, guint32 record_index,
 
 void download_free(struct download *d)
 {
-	g_return_if_fail(d);
+	g_assert(d);
 
 	if (DOWNLOAD_IS_VISIBLE(d))
 		download_gui_remove(d);
@@ -1764,7 +2051,8 @@ void download_free(struct download *d)
 
 	g_assert(d->io_opaque == NULL);
 
-	sl_downloads = g_slist_remove(sl_downloads, (gpointer) d);
+	sl_downloads = g_slist_remove(sl_downloads, d);
+	sl_unqueued = g_slist_remove(sl_unqueued, d);
 
 	if (d->restart_timer_id)
 		g_source_remove(d->restart_timer_id);
@@ -1772,13 +2060,11 @@ void download_free(struct download *d)
 	if (d->push)
 		download_push_remove(d);
 
-	if (d->server)
-		atom_str_free(d->server);
-
 	if (d->sha1)
 		atom_sha1_free(d->sha1);
 
-	atom_guid_free(d->guid);
+	download_remove_from_server(d);
+
 	atom_str_free(d->path);
 	atom_str_free(d->file_name);
 	if (d->output_name != d->file_name)
@@ -1820,8 +2106,12 @@ void download_resume(struct download *d)
 	if (DOWNLOAD_IS_RUNNING(d))
 		return;
 
-	if (NULL != has_same_active_download(d->file_name, d->guid)) {
+	if (
+		NULL != has_same_download(d->file_name, download_guid(d),
+			download_ip(d), download_port(d))
+	) {
 		d->status = GTA_DL_CONNECTING;		/* So we may call download_stop */
+		download_move_to_list(d, DL_LIST_RUNNING);
 		download_stop(d, GTA_DL_ERROR, "Duplicate");
 		return;
 	}
@@ -2431,6 +2721,8 @@ static gboolean download_moved_permanently(struct download *d, header_t *header)
 {
 	gchar *buf;
 	dmesh_urlinfo_t info;
+	guint32 ip = download_ip(d);
+	guint16 port = download_port(d);
 
 	buf = header_get(header, "Location");
 	if (buf == NULL)
@@ -2445,9 +2737,9 @@ static gboolean download_moved_permanently(struct download *d, header_t *header)
 	 * If ip/port changed, accept the new ones but warn.
 	 */
 
-	if (info.ip != d->ip || info.port != d->port)
+	if (info.ip != ip || info.port != port)
 		g_warning("server %s (file \"%s\") redirecting us to alien %s",
-			ip_port_to_gchar(d->ip, d->port), d->file_name, buf);
+			ip_port_to_gchar(ip, port), d->file_name, buf);
 
 	/*
 	 * Check filename.
@@ -2461,7 +2753,7 @@ static gboolean download_moved_permanently(struct download *d, header_t *header)
 
 	if (info.idx == 0) {
 		g_warning("server %s (file \"%s\") would redirect us to %s",
-			ip_port_to_gchar(d->ip, d->port), d->file_name, buf);
+			ip_port_to_gchar(ip, port), d->file_name, buf);
 		atom_str_free(info.name);
 		return FALSE;
 	}
@@ -2482,9 +2774,8 @@ static gboolean download_moved_permanently(struct download *d, header_t *header)
 	 * Update download structure.
 	 */
 
-	d->ip = info.ip;
-	d->port = info.port;
 	d->record_index = info.idx;
+	download_redirect_to_server(d, info.ip, info.port);
 
 	return TRUE;
 }
@@ -2506,6 +2797,8 @@ static void download_request(struct download *d, header_t *header)
 	struct stat st;
 	gboolean got_content_length = FALSE;
 	gboolean got_new_server = FALSE;
+	guint32 ip;
+	guint16 port;
 
 	d->last_update = time(NULL);	/* Done reading headers */
 
@@ -2529,13 +2822,14 @@ static void download_request(struct download *d, header_t *header)
 		buf = header_get(header, "User-Agent");	/* Maybe they're confused */
 
 	if (buf) {
+		struct dl_server *server = d->server;
 		version_check(buf);
-		if (d->server == NULL) {
-			d->server = atom_str_get(buf);
+		if (server->vendor == NULL) {
+			server->vendor = atom_str_get(buf);
 			got_new_server = TRUE;
-		} else if (0 != strcmp(d->server, buf)) {	/* Server name changed? */
-			atom_str_free(d->server);
-			d->server = atom_str_get(buf);
+		} else if (0 != strcmp(server->vendor, buf)) {	/* Name changed? */
+			atom_str_free(server->vendor);
+			server->vendor = atom_str_get(buf);
 			got_new_server = TRUE;
 		}
 	}
@@ -2552,6 +2846,9 @@ static void download_request(struct download *d, header_t *header)
 		download_stop(d, GTA_DL_ERROR, "Weird HTTP status");
 		return;
 	}
+
+	ip = download_ip(d);
+	port = download_port(d);
 
 	/*
 	 * Check for X-Gnutella-Content-URN.
@@ -2588,7 +2885,7 @@ static void download_request(struct download *d, header_t *header)
 				 */
 
 				if (!d->always_push)
-					dmesh_add(d->sha1, d->ip, d->port, d->record_index,
+					dmesh_add(d->sha1, ip, port, d->record_index,
 						d->file_name, 0);
 			}
 
@@ -2603,8 +2900,7 @@ static void download_request(struct download *d, header_t *header)
 	if (ack_code >= 200 && ack_code <= 299) {
 		/* OK -- Update mesh */
 		if (!d->always_push && d->sha1)
-			dmesh_add(d->sha1, d->ip, d->port, d->record_index,
-				d->file_name, 0);
+			dmesh_add(d->sha1, ip, port, d->record_index, d->file_name, 0);
 	} else {
 		guint delay = 0;
 
@@ -2654,8 +2950,7 @@ static void download_request(struct download *d, header_t *header)
 		case 503:				/* Busy */
 			/* Update mesh */
 			if (!d->always_push && d->sha1)
-				dmesh_add(d->sha1, d->ip, d->port, d->record_index,
-				d->file_name, 0);
+				dmesh_add(d->sha1, ip, port, d->record_index, d->file_name, 0);
 
 			/* No hammering */
 			download_queue_delay(d,
@@ -2671,8 +2966,7 @@ static void download_request(struct download *d, header_t *header)
 			break;
 		}
 		if (!d->always_push && d->sha1)
-			dmesh_remove(d->sha1, d->ip, d->port, d->record_index,
-				d->file_name);
+			dmesh_remove(d->sha1, ip, port, d->record_index, d->file_name);
 		if (got_new_server)
 			gui_update_download_server(d);
 		download_stop(d, GTA_DL_ERROR, "HTTP %d %s", ack_code, ack_message);
@@ -2820,7 +3114,13 @@ static void download_request(struct download *d, header_t *header)
 
 	d->start_date = time((time_t *) NULL);
 	d->status = GTA_DL_RECEIVING;
+
+	dl_establishing--;
+	dl_active++;
+	g_assert(dl_establishing >= 0);
+
 	gui_update_download(d, TRUE);
+	gui_update_c_downloads(dl_active, dl_establishing + dl_active);
 
 	g_assert(s->gdk_tag == 0);
 	g_assert(d->bio == NULL);
@@ -2942,8 +3242,8 @@ gboolean download_send_request(struct download *d)
 	 *		--RAM, 14/06/2002
 	 */
 
-	if (d->sha1 && !d->push && !(d->attrs & DL_A_NO_URIRES_N2R)) {
-		d->flags |= DL_F_URIRES_N2R;
+	if (d->sha1 && !d->push && !(d->server->attrs & DLS_A_NO_URIRES)) {
+		d->flags |= DL_F_URIRES;
 		n2r = TRUE;
 	}
 
@@ -2988,7 +3288,8 @@ gboolean download_send_request(struct download *d)
 		 */
 
 		wmesh = dmesh_alternate_location(d->sha1,
-			&dl_tmp[rw], sizeof(dl_tmp)-(rw+sha1_room), d->ip, d->last_dmesh);
+			&dl_tmp[rw], sizeof(dl_tmp)-(rw+sha1_room),
+			download_ip(d), d->last_dmesh);
 		rw += wmesh;
 
 		d->last_dmesh = (guint32) time(NULL);
@@ -3021,7 +3322,8 @@ gboolean download_send_request(struct download *d)
 		return FALSE;
 	} else if (dbg > 4) {
 		printf("----Sent Request to %s:\n%.*s----\n",
-			ip_port_to_gchar(d->ip, d->port), (int) rw, dl_tmp);
+			ip_port_to_gchar(download_ip(d), download_port(d)),
+				(int) rw, dl_tmp);
 		fflush(stdout);
 	}
 
@@ -3101,7 +3403,7 @@ static struct download *select_push_download(guint file_index, gchar *hex_guid)
 	struct download *d = NULL;
 	GSList *list;
 	guchar rguid[16];		/* Remote GUID */
-	GSList *l;
+	GList *l;
 
 	g_strdown(hex_guid);
 	g_snprintf(dl_tmp, sizeof(dl_tmp), "%u:%s", file_index, hex_guid);
@@ -3149,6 +3451,7 @@ static struct download *select_push_download(guint file_index, gchar *hex_guid)
 
 	hex_to_guid(hex_guid, rguid);
 
+#if 0		/* XXX do not limit by download slot */
 	/*
 	 * If we have already reached our maximum amount of concurrent downloads,
 	 * or if we have reached our maximum amount of downloads for this host,
@@ -3165,52 +3468,70 @@ static struct download *select_push_download(guint file_index, gchar *hex_guid)
 			guid_hex_str(rguid));
 		return NULL;
 	}
-
-	if (count_running_downloads_with_guid(rguid) >= max_host_downloads) {
-		g_warning("discarding GIV from %s: no more slot for this host",
-			guid_hex_str(rguid));
-		return NULL;
-	}
+#endif
 
 	/*
 	 * Look for a queued download on this host that we could request.
 	 */
 
-	for (l = sl_downloads; l; l = l->next) {
-		d = (struct download *) l->data;
-
-		if (DOWNLOAD_IS_RUNNING(d))
-			continue;
-
-		if (0 != memcmp(rguid, d->guid, sizeof(d->guid)))
-			continue;
-
-		if (dbg > 4)
-			printf("GIV: trying alternate download '%s' from %s\n",
-				d->file_name, guid_hex_str(rguid));
+	for (l = dl_by_time; l; l = l->next) {
+		struct dl_server *server = (struct dl_server *) l->data;
+		extern gint guid_eq(gconstpointer a, gconstpointer b);
+		GList *w;
 
 		/*
-		 * Only prepare the download, don't call download_start(): we already
-		 * have the connection, and simply need to prepare the range offset.
+		 * There might be several hosts with the same GUID (Mallory nodes).
 		 */
 
-		g_assert(d->socket == NULL);
+		if (!guid_eq(rguid, server->key->guid))
+			continue;
 
-		if (download_start_prepare(d)) {
-			d->status = GTA_DL_CONNECTING;
-			if (!DOWNLOAD_IS_VISIBLE(d))
-				download_gui_add(d);
+		if (
+			server->count[DL_LIST_WAITING] == 0 ||
+			count_running_on_server(server) >= max_host_downloads
+		)
+			continue;
 
-			gui_update_download(d, TRUE);
-			count_running_downloads();
+		for (w = server->list[DL_LIST_WAITING]; w; w = g_list_next(w)) {
+			struct download *d = (struct download *) w->data;
+
+			g_assert(!DOWNLOAD_IS_RUNNING(d));
+
+			if (count_running_downloads_with_name(d->file_name) != 0)
+				continue;
 
 			if (dbg > 4)
-				printf("GIV: selected alternate download '%s' from %s\n",
-					d->file_name, guid_hex_str(rguid));
+				printf("GIV: trying alternate download '%s' from %s at %s\n",
+					d->file_name, guid_hex_str(rguid),
+					ip_port_to_gchar(download_ip(d), download_port(d)));
 
-			return d;
+			/*
+			 * Only prepare the download, don't call download_start(): we
+			 * already have the connection, and simply need to prepare the
+			 * range offset.
+			 */
+
+			g_assert(d->socket == NULL);
+
+			if (download_start_prepare(d)) {
+				d->status = GTA_DL_CONNECTING;
+				if (!DOWNLOAD_IS_VISIBLE(d))
+					download_gui_add(d);
+
+				gui_update_download(d, TRUE);
+				gui_update_c_downloads(dl_active, dl_establishing + dl_active);
+
+				if (dbg > 4)
+					printf("GIV: selected alternate download '%s' from %s\n",
+						d->file_name, guid_hex_str(rguid));
+
+				return d;
+			}
 		}
 	}
+
+	g_warning("discarding GIV from %s: no suitable alternate found",
+		guid_hex_str(rguid));
 
 	return NULL;
 }
@@ -3380,8 +3701,8 @@ static void download_store(void)
 		fprintf(out, "%s\n", escaped);
 		fprintf(out, "%u, %u:%s, %s\n",
 			d->size,
-			d->record_index, guid_hex_str(d->guid),
-			ip_port_to_gchar(d->ip, d->port));
+			d->record_index, guid_hex_str(download_guid(d)),
+			ip_port_to_gchar(download_ip(d), download_port(d)));
 		fprintf(out, "%s\n\n",
 			d->sha1 ? sha1_base32(d->sha1) : "*");
 
@@ -3623,13 +3944,11 @@ void download_close(void)
 			io_free(d->io_opaque);
 		if (d->bio)
 			bsched_source_remove(d->bio);
-		if (d->server)
-			atom_str_free(d->server);
 		if (d->sha1)
 			atom_sha1_free(d->sha1);
 		if (d->restart_timer_id)
 			g_source_remove(d->restart_timer_id);
-		atom_guid_free(d->guid);
+		download_remove_from_server(d);
 		atom_str_free(d->path);
 		atom_str_free(d->file_name);
 		if (d->output_name != d->file_name)
@@ -3638,7 +3957,10 @@ void download_close(void)
 	}
 
 	g_slist_free(sl_downloads);
+	g_slist_free(sl_unqueued);
 	g_hash_table_destroy(pushed_downloads);
+
+	// XXX free & check other hash tables as well.
 }
 
 /* vi: set ts=4: */

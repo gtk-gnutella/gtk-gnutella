@@ -1822,7 +1822,7 @@ void gui_update_download_clear(void)
 	GSList *l;
 	gboolean clear = FALSE;
 
-	for (l = sl_downloads; !clear && l; l = l->next) {
+	for (l = sl_unqueued; !clear && l; l = l->next) {
 		switch (((struct download *) l->data)->status) {
 		case GTA_DL_COMPLETED:
 		case GTA_DL_ERROR:
@@ -1990,9 +1990,10 @@ void gui_update_download_server(struct download *d)
 	g_assert(d);
 	g_assert(d->status != GTA_DL_QUEUED);
 	g_assert(d->server);
+	g_assert(download_vendor(d));
 
 	row = gtk_clist_find_row_from_data(clist_downloads,	(gpointer) d);
-	gtk_clist_set_text(clist_downloads, row, c_dl_server, d->server);
+	gtk_clist_set_text(clist_downloads, row, c_dl_server, download_vendor(d));
 }
 
 void gui_update_upload(struct upload *u)

@@ -651,7 +651,7 @@ gchar *build_url_from_download(struct download *d)
 
     g_snprintf(url_tmp, sizeof(url_tmp),
                "http://%s/get/%u/%s",
-               ip_port_to_gchar(d->ip, d->port),
+               ip_port_to_gchar(download_ip(d), download_port(d)),
 			   d->record_index, buf);
 
     /*

@@ -26,6 +26,43 @@
 
 #include "bsched.h"
 
+/*
+ * We keep a list of all the downloads queued per GUID+IP:port (host).  Indeed
+ * some broken clients (e.g. Morpheus) share the same GUID, so we cannot
+ * fully discriminate on the GUID alone.  So GUID+IP:port forms the "key",
+ * the `dl_key' structure.
+ *
+ * Inside the `dl_server', we keep track all `download' structures and
+ * other server-related information, which are shared by all downloads
+ * from this host..
+ *
+ * Within a single server, a download can be in either runnning, waiting
+ * or stopped.  An array of lists is kept, and since the download can be
+ * in only one of them, it also keeps track of the proper list index.
+ */
+
+enum dl_list {
+	DL_LIST_RUNNING	= 0,
+	DL_LIST_WAITING = 1,
+	DL_LIST_STOPPED = 2,
+	DL_LIST_SZ		= 3,
+};
+
+struct dl_key {
+	guchar *guid;			/* GUID of server (atom) */
+	guint32 ip;				/* IP address of server */
+	guint16 port;			/* Port of server */
+};
+
+struct dl_server {
+	struct dl_key *key;		/* Key properties */
+	GList *list[DL_LIST_SZ];	/* Download lists */
+	gint count[DL_LIST_SZ];		/* Amount of downloads in list */
+	gchar *vendor;			/* Remote server vendor string (atom) */
+	time_t retry_after;		/* Time at which we may retry from this host */
+	guint32 attrs;
+};
+
 struct download {
 	gchar error_str[256];	/* Used to sprintf() error strings with vars */
 	guint32 status;			/* Current status of the download */
@@ -35,7 +72,9 @@ struct download {
 	gchar *output_name;		/* Basename of the created output file */
 	bio_source_t *bio;		/* Bandwidth-limited source */
 
-	gchar *guid;			/* GUID of server of file (atom) */
+	struct dl_server *server;	/* Remote server description */
+	enum dl_list list_idx;		/* List to which download belongs in server */
+
 	guint32 record_index;	/* Index of the file on the Gnutella server */
 	gchar *file_name;		/* Name of the file on the Gnutella server */
 
@@ -59,14 +98,10 @@ struct download {
 
 	const gchar *remove_msg;
 
-	guint32 ip;
-	guint16 port;
-	gchar *server;			/* Remote server vendor string (atom) */
 	gchar *sha1;			/* Known SHA1 (binary atom), NULL if none */
 	guint32 last_dmesh;		/* Time when last download mesh was sent */
 
 	guint32 flags;
-	guint32 attrs;
 
 	gboolean visible;		/* The download is visible in the GUI */
 	gboolean push;			/* Currently in push mode */
@@ -91,17 +126,29 @@ struct download {
 #define GTA_DL_STOPPED			12	/* Stopped, will restart shortly */
 
 /*
- * Flags.
+ * Download flags.
  */
 
-#define DL_F_URIRES_N2R		0x00000001	/* Tried to GET "/uri-res/N2R?" */
+#define DL_F_URIRES			0x00000001	/* Tried to GET "/uri-res/N2R?" */
 #define DL_F_MARK			0x80000000	/* Marked in traversal */
 
 /*
- * Attributes.
+ * Server attributes.
  */
 
-#define DL_A_NO_URIRES_N2R	0x00000001	/* No support for "/uri-res/N2R?" */
+#define DLS_A_NO_URIRES		0x00000001	/* No support for "/uri-res/N2R?" */
+
+/*
+ * Access macros.
+ */
+
+#define download_guid(d)	((d)->server->key->guid)
+#define download_ip(d)		((d)->server->key->ip)
+#define download_port(d)	((d)->server->key->port)
+#define download_vendor(d)	((d)->server->vendor)
+
+#define download_vendor_str(d) \
+	((d)->server->vendor ? (d)->server->vendor : "")
 
 /*
  * State inspection macros.
@@ -143,7 +190,7 @@ struct download {
  * Global Data
  */
 
-extern GSList *sl_downloads;
+extern GSList *sl_unqueued;
 extern guint32 count_downloads;
 extern gboolean send_pushes;
 
@@ -166,7 +213,7 @@ void download_free(struct download *);
 void download_push_ack(struct gnutella_socket *);
 void download_fallback_to_push(struct download *, gboolean, gboolean);
 void download_pickup_queued(void);
-void downloads_clear_stopped(gboolean, gboolean);
+void download_clear_stopped(gboolean, gboolean);
 void download_abort(struct download *);
 void download_resume(struct download *);
 void download_start(struct download *, gboolean);
@@ -175,10 +222,9 @@ gboolean download_send_request(struct download *);
 void download_retry(struct download *);
 void download_index_changed(guint32, guint16, guchar *, guint32, guint32);
 void download_close(void);
-gint download_remove_all_from_peer(const gchar *guid);
+gint download_remove_all_from_peer(const gchar *guid, guint32 ip, guint16 port);
 gint download_remove_all_named(const gchar *name);
 gint download_remove_all_with_sha1(const guchar *sha1);
-gint download_remove_all_regex(const gchar *regex);
 void download_remove_file(struct download *d);
 gboolean download_file_exists(struct download *d);
 
