@@ -32,6 +32,7 @@
 void gui_general_timer(time_t now);
 void gui_update_traffic_stats(void);
 void gui_update_stats_frames(void);
+void gui_fix_coords(guint32 *coord);
 
 /*
  * Hit record comparison functions.

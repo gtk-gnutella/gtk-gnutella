@@ -320,6 +320,48 @@ gui_record_sha1_or_name_eq(gconstpointer rec1, gconstpointer rec2)
         return gui_record_name_eq(rec1, rec2);
 }
 
+/**
+ * If the given coordinates are not reasonable, they're appriopriately
+ * adjusted.
+ *
+ * @param	coord must point to an array of 4 guint32 values
+ *			which describe an position an size [x, y, width, height].
+ */
+void
+gui_fix_coords(guint32 *coord)
+{
+	gint x, y, w, h;
+	gint screen_w, screen_h;
+
+	g_assert(coord != NULL);
+	
+	screen_w = gdk_screen_width();
+	screen_h = gdk_screen_height();
+	x = coord[0];
+	y = coord[1];
+	w = coord[2];
+	h = coord[3];
+
+	if (w < 200)
+		w = 200;
+	if (w > (screen_w / 10) * 15)
+		w = screen_w;
+	if (h < 200)
+		h = 200;
+	if (h > (screen_h / 10) * 15)
+		h = screen_h;
+	if (x > screen_w - 32 || x + w < 32)
+		x = 0;
+	if (y > screen_h - 32 || y + h < 32)
+		y = 0;
+
+	coord[0] = x;
+	coord[1] = y;
+	coord[2] = w;
+	coord[3] = h;
+}
+
+
 #ifdef USE_GTK2
 /*
  * The following handles UI joining since the glade code is now

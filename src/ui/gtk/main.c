@@ -60,6 +60,8 @@ RCSID("$Id$");
 
 #include "gtk-missing.h"
 
+#include "gtk/misc.h"
+
 #include "if/bridge/ui2c.h"
 
 #include "lib/glib-missing.h"
@@ -599,8 +601,9 @@ main_gui_run(void)
     guint32 coord[4] = { 0, 0, 0, 0 };
 
     gui_prop_get_guint32(PROP_WINDOW_COORDS, coord, 0, G_N_ELEMENTS(coord));
+	gui_fix_coords(coord);
+		
     main_gui_timer();
-    gtk_widget_show(main_window);		/* Display the main window */
 
     /*
      * We need to tell Gtk the size of the window, otherwise we'll get
@@ -608,10 +611,11 @@ main_gui_run(void)
      * resized widgets).
      *      -- Richard, 8/9/2002
      */
-    if (coord[2] != 0 && coord[3] != 0)
-        gtk_window_set_default_size(
-            GTK_WINDOW(main_window), coord[2], coord[3]);
+	
+    gtk_window_set_default_size(GTK_WINDOW(main_window), coord[2], coord[3]);
 
+    gtk_widget_show(main_window);		/* Display the main window */
+	
     icon_init();
 
 #ifdef USE_GTK2
@@ -660,6 +664,7 @@ main_gui_run(void)
 		dy = (gint) coord[1] - y;
 		if (dx || dy)
         	gdk_window_move(main_window->window, coord[0] + dx, coord[1] + dy);
+		
 	}
 
     gtk_widget_fix_width(
@@ -667,6 +672,8 @@ main_gui_run(void)
         lookup_widget(main_window, "label_statusbar_uptime"),
         8, 8);
 #endif
+
+    gtk_widget_show(main_window);		/* Display the main window */
 
 	/*
 	 * Make sure the application starts in the Gnet pane.

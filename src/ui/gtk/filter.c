@@ -246,8 +246,6 @@ void filter_gui_init(void)
 
 }
 
-
-
 /*
  * filter_gui_show_dialog:
  *
@@ -261,6 +259,7 @@ void filter_gui_show_dialog(void)
         return;
 
     gui_prop_get_guint32(PROP_FILTER_DLG_COORDS, coord, 0, 4);
+	gui_fix_coords(coord);
 
     if ((coord[2] != 0) && (coord[3] != 0))
         gtk_window_set_default_size(GTK_WINDOW(filter_dialog),
