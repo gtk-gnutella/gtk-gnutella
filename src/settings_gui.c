@@ -540,6 +540,7 @@ static gboolean update_spinbutton(property_t prop);
 static gboolean update_togglebutton(property_t prop);
 static gboolean update_split_pane(property_t prop);
 static gboolean update_clist_col_widths(property_t prop);
+static gboolean update_bandwidth_spinbutton(property_t prop);
 
 // FIXME: move to separate file and autoegenerate from high-level
 //        description. 
@@ -1058,28 +1059,28 @@ static prop_map_t property_map[] = {
     {
         get_main_window,
         PROP_BW_HTTP_IN,
-        update_spinbutton,
+        update_bandwidth_spinbutton,
         TRUE,
         "spinbutton_config_bws_in"
     },
     {
         get_main_window,
         PROP_BW_HTTP_OUT,
-        update_spinbutton,
+        update_bandwidth_spinbutton,
         TRUE,
         "spinbutton_config_bws_out"
     },
     {
         get_main_window,
         PROP_BW_GNET_IN,
-        update_spinbutton,
+        update_bandwidth_spinbutton,
         TRUE,
         "spinbutton_config_bws_gin"
     },
     {
         get_main_window,
         PROP_BW_GNET_OUT,
-        update_spinbutton,
+        update_bandwidth_spinbutton,
         TRUE,
         "spinbutton_config_bws_gout"
     },
@@ -1469,6 +1470,43 @@ static gboolean update_clist_col_widths(property_t prop)
     g_free(val);
     return FALSE;
 }
+
+/*
+ * update_bandwidth_spinbutton:
+ *
+ * This is not really a generic updater. It's just here because it's used
+ * by all bandwidths spinbuttons. It divides the property value by 1024
+ * before setting the value to the widget, just like the callbacks of those
+ * widget multiply the widget value by 1024 before setting the property.
+ */
+static gboolean update_bandwidth_spinbutton(property_t prop)
+{
+    GtkWidget *w;
+    guint32 val = 0;
+    prop_map_t *map_entry = settings_gui_get_map_entry(prop);
+    prop_set_stub_t *stub = map_entry->stub;
+    GtkWidget *top = map_entry->fn_toplevel();
+
+    if (!top)
+        return FALSE;
+
+    w = lookup_widget(top, map_entry->wid);
+   
+    switch (map_entry->type) {
+        case PROP_TYPE_GUINT32:
+            stub->guint32.get(prop, &val, 0, 1);
+            break;
+         default:
+            val = 0;
+            g_error("update_spinbutton: incompatible type %s", 
+                prop_type_str[map_entry->type]);
+    }
+
+    gtk_spin_button_set_value(GTK_SPIN_BUTTON(w), (float)val/1024.0);
+
+    return FALSE;
+}
+
 
 
 /***
