@@ -94,12 +94,13 @@ extern struct download *selected_active_download;
  * Global Functions
  */
 
+void download_init(void);
 void download_new(gchar *, guint32, guint32, guint32, guint16, gchar *);
 void auto_download_new(gchar *, guint32, guint32, guint32, guint16, gchar *);
 void download_queue(struct download *);
 void download_stop(struct download *, guint32, const gchar *, ...);
 void download_free(struct download *);
-void download_push_read(gpointer, gint, GdkInputCondition);
+void download_push_ack(struct gnutella_socket *);
 void download_push(struct download *);
 void download_fallback_to_push(struct download *, gboolean);
 void download_pickup_queued(void);

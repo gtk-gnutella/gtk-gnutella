@@ -20,16 +20,17 @@ struct download *selected_queued_download = (struct download *) NULL;
 struct download *selected_active_download = (struct download *) NULL;
 
 GSList *sl_downloads = NULL;
-
 guint32 count_downloads = 0;
-
 gboolean send_pushes = TRUE;
-
 gchar dl_tmp[4096];
+
+static GHashTable *pushed_downloads = 0;
 
 void send_push_request(gchar *, guint32, guint16);
 static void download_start_restart_timer(struct download *d);
 static void download_read(gpointer data, gint source, GdkInputCondition cond);
+static void download_request(struct download *d, header_t *header);
+static void download_push_ready(struct download *d, getline_t *empty);
 
 #define DL_RUN_DELAY	5		/* To avoid hammering host --RAM */
 
@@ -41,12 +42,24 @@ struct io_header {
 	struct download *download;
 	header_t *header;
 	getline_t *getline;
+	void (*process_header)(struct io_header *);
 	gint flags;
 };
 
 #define IO_STATUS_LINE		0x00000002	/* First line is a status line */
+#define IO_ONE_LINE			0x00000004	/* Get one line only, then process */
 
-static void download_request(struct download *d, header_t *header);
+/* ----------------------------------------- */
+
+/*
+ * download_init
+ *
+ * Initialize downloading data structures.
+ */
+void download_init(void)
+{
+	pushed_downloads = g_hash_table_new(g_str_hash, g_str_equal);
+}
 
 /* ----------------------------------------- */
 
@@ -328,6 +341,7 @@ void download_stop(struct download *d, guint32 new_status,
 
 	d->status = new_status;
 	d->last_update = time((time_t *) NULL);
+	d->retries = 0;		/* If they retry manually, go over whole cycle again */
 
 	if (reason) {
 		va_list args;
@@ -424,6 +438,60 @@ static void download_queue_delay(struct download *d, guint32 delay)
 	d->timeout_delay = delay;
 }
 
+/*
+ * download_push_insert
+ *
+ * Record that we sent a push request for this download.
+ */
+static void download_push_insert(struct download *d)
+{
+	gchar *key;
+
+	g_assert(!d->push);
+
+	g_snprintf(dl_tmp, sizeof(dl_tmp), "%u:%s",
+		d->record_index, guid_hex_str(d->guid));
+	key = g_strdup(dl_tmp);
+
+	/*
+	 * We cannot have the download already in the table, since we take care
+	 * when starting a download that there is no duplicate.
+	 */
+
+	g_assert(0 == g_hash_table_lookup(pushed_downloads, (gpointer) key));
+	g_hash_table_insert(pushed_downloads, (gpointer) key, (gpointer) d);
+
+	d->push = TRUE;
+}
+
+/*
+ * download_push_remove
+ *
+ * Forget that we sent a push request for this download.
+ */
+static void download_push_remove(struct download *d)
+{
+	gpointer key;
+	gpointer value;
+
+	g_assert(d->push);
+
+	g_snprintf(dl_tmp, sizeof(dl_tmp), "%u:%s",
+		d->record_index, guid_hex_str(d->guid));
+
+	if (
+		g_hash_table_lookup_extended(pushed_downloads, (gpointer) dl_tmp,
+			&key, &value)
+	) {
+		g_assert(value == d);
+		g_hash_table_remove(pushed_downloads, (gpointer) dl_tmp);
+		g_free(key);
+	} else
+		g_warning("Tried to remove missing push %s", dl_tmp);
+
+	d->push = FALSE;
+}
+
 /* (Re)start a stopped or queued download */
 
 void download_start(struct download *d, gboolean check_allowed)
@@ -466,6 +534,7 @@ void download_start(struct download *d, gboolean check_allowed)
 		d->skip = 0;
 
 	d->pos = d->skip;
+	d->last_update = time((time_t *) NULL);
 
 	/* If the download is in the queue, we remove it from there */
 	if (DOWNLOAD_IS_QUEUED(d) && DOWNLOAD_IS_VISIBLE(d))
@@ -480,8 +549,8 @@ void download_start(struct download *d, gboolean check_allowed)
 		return;
 	}
 
-	if (!send_pushes)
-		d->push = FALSE;
+	if (!send_pushes && d->push)
+		download_push_remove(d);
 
 	if (!DOWNLOAD_IS_IN_PUSH_MODE(d) && check_valid_host(d->ip, d->port)) {
 		/* Direct download */
@@ -548,33 +617,34 @@ void download_push(struct download *d)
 	g_return_if_fail(d);
 
 	if (!send_pushes) {
-		d->push = FALSE;
+		if (d->push)
+			download_push_remove(d);
+
 		if (++d->retries <= download_max_retries)
 			download_queue_delay(d, DL_RUN_DELAY);
 		else
 			download_stop(d, GTA_DL_ERROR, "Timeout");
+
 		return;
 	}
 
 	/*
-	 * XXX what is the purpose of creating a dedicated listening socket
-	 * XXX for a push request?  Can't we have the listening done on
-	 * XXX the main GNet socket?  If we're firewalled, the only port
-	 * XXX open/forwarded is likely to be only the main GNet one...
-	 * XXX NB: that's precisely my config, and why Pushes don't work
-	 * XXX for me...
-	 * XXX		--RAM, 28/12/2001
+	 * The push request is sent with the listening port set to our Gnet port.
+	 *
+	 * To be able to later distinguish which download is referred to by each
+	 * GIV we'll receive back, we record the association file_index/guid of
+	 * the to-be-downloaded file with this download into a hash table.
+	 * When stopping a download for which d->push is true, we'll have to
+	 * remove the mapping.
+	 *
+	 *		--RAM, 30/12/2001
 	 */
 
-	d->push = TRUE;
-	d->socket = socket_listen(0, 0, GTA_TYPE_DOWNLOAD);
-	if (!d->socket) {
-		download_stop(d, GTA_DL_ERROR, "Internal error");
-		return;
-	}
-	d->socket->resource.download = d;
-	d->socket->pos = 0;
-	send_push_request(d->guid, d->record_index, d->socket->local_port);
+	if (!d->push)
+		download_push_insert(d);
+
+	g_assert(d->push);
+	send_push_request(d->guid, d->record_index, listen_port);
 }
 
 /* Direct download failed, let's try it with a push request */
@@ -847,6 +917,9 @@ void download_free(struct download *d)
 	if (d->restart_timer_id)
 		g_source_remove(d->restart_timer_id);
 
+	if (d->push)
+		download_push_remove(d);
+
 	g_free(d->path);
 	g_free(d->file_name);
 	g_free(d);
@@ -1068,6 +1141,24 @@ static void download_start_restart_timer(struct download *d)
 }
 
 /***
+ *** Header parsing callbacks
+ ***
+ *** We could call those directly, but I'm thinking about factoring all
+ *** that processing into a generic set of functions, and the processing
+ *** callbacks will all have the same signature.  --RAM, 30/12/2001
+ ***/
+
+static void call_download_request(struct io_header *ih)
+{
+	download_request(ih->download, ih->header);
+}
+
+static void call_download_push_ready(struct io_header *ih)
+{
+	download_push_ready(ih->download, ih->getline);
+}
+
+/***
  *** Read data on a download socket
  ***/
 
@@ -1132,6 +1223,19 @@ nextline:
 		goto nextline;
 	}
 
+	if (ih->flags & IO_ONE_LINE) {
+		/*
+		 * Call processing routine immediately, then terminate processing.
+		 * Remove the I/O callback input before invoking the callback.
+		 */
+
+		gdk_input_remove(s->gdk_tag);
+		s->gdk_tag = 0;
+
+		ih->process_header(ih);
+		goto final_cleanup;
+	}
+
 	error = header_append(header,
 		getline_str(getline), getline_length(getline));
 
@@ -1166,23 +1270,15 @@ nextline:
 
 	/*
 	 * We reached the end of headers.  Downloaded data should follow.
-	 *
-	 * Free up the I/O callback structure, remove the input callback and
-	 * initialize the upload.  NB: the initial HTTP request on the first
-	 * line is still held in the s->getline structure.
+	 * Remove the I/O callback input before invoking the processing callback.
 	 */
-
-	getline_free(ih->getline);
-	g_free(ih);
 
 	gdk_input_remove(s->gdk_tag);
 	s->gdk_tag = 0;
 
-	d->last_update = time((time_t *) 0);	/* Done reading headers */
-	download_request(d, header);
+	ih->process_header(ih);
 
-	header_free(header);
-	return;
+	/* FALL THROUGH */
 
 	/*
 	 * When we come here, we're done with the parsing structures, we can
@@ -1190,7 +1286,8 @@ nextline:
 	 */
 
 final_cleanup:
-	header_free(ih->header);
+	if (ih->header)
+		header_free(ih->header);
 	getline_free(ih->getline);
 	g_free(ih);
 }
@@ -1327,6 +1424,8 @@ static void download_request(struct download *d, header_t *header)
 	gchar *buf;
 	struct stat st;
 
+	d->last_update = time((time_t *) 0);	/* Done reading headers */
+
 	if (dbg > 4) {
 		printf("----Got reply from %s:\n", ip_to_gchar(s->ip));
 		printf("%s\n", status);
@@ -1353,7 +1452,7 @@ static void download_request(struct download *d, header_t *header)
 		download_queue_delay(d, DL_RUN_DELAY);
 		return;
 	} else {
-		download_stop(d, GTA_DL_ERROR, "HTTP %d: %s", ack_code, ack_message);
+		download_stop(d, GTA_DL_ERROR, "HTTP %d %s", ack_code, ack_message);
 		return;
 	}
 
@@ -1473,18 +1572,6 @@ static void download_request(struct download *d, header_t *header)
 }
 
 /*
- * XXXX
- * My analysis: do the same here as we do on socket_read?
- * The problem: we attach this callback for reading, but we may have sent
- * a download rquest, or expect a GIV string. (see callbacks in sockets.c).
- * What we want is a different callback for each situation.
- *
- * Or handle GIVs from the main GNet socket...  but this will force us to
- * keep a hash indexed by index:servent GUID so that we may quickly find
- * whether we issued that Push or not, and which download it was.
- */
-
-/*
  * download_read
  *
  * Read callback for file data.
@@ -1600,6 +1687,7 @@ gboolean download_send_request(struct download *d)
 	 * Update status and GUI.
 	 */
 
+	d->last_update = time((time_t *) 0);
 	d->status = GTA_DL_REQ_SENT;
 	gui_update_download(d, TRUE);
 
@@ -1612,6 +1700,7 @@ gboolean download_send_request(struct download *d)
 	ih->header = header_make();
 	ih->getline = getline_make();
 	ih->flags = IO_STATUS_LINE;		/* First line will be a status line */
+	ih->process_header = call_download_request;
 
 	g_assert(s->gdk_tag == 0);
 
@@ -1623,17 +1712,140 @@ gboolean download_send_request(struct download *d)
 }
 
 /*
- * download_push_read
+ * download_push_ready
  *
- * Read callback for connection on listening socket opened when sending push.
+ * Send download request on the opened connection.
+ *
+ * Header processing callback, invoked when we have read the second "\n" at
+ * the end of the GIV string.
  */
-void download_push_read(gpointer data, gint source, GdkInputCondition cond)
+static void download_push_ready(struct download *d, getline_t *empty)
 {
-	struct download *d = (struct download *) data;
+	gint len = getline_length(empty);
 
-	g_warning("was in download_push_read");
+	if (len != 0) {
+		g_warning("File '%s': push reply was not followed by an empty line",
+			d->file_name);
+		dump_hex(stderr, "Extra GIV data", getline_str(empty), MIN(len, 80));
+		download_stop(d, GTA_DL_ERROR, "Malformed push reply");
+		return;
+	}
 
-	download_stop(d, GTA_DL_ERROR, "Pushes not supported, for now");
+	/*
+	 * Free up the s->getline structure which holds the GIV line.
+	 */
+
+	g_assert(d->socket->getline);
+	getline_free(d->socket->getline);
+	d->socket->getline = NULL;
+
+	download_send_request(d);
+}
+
+/*
+ * download_push_ack
+ *
+ * Initiate download on the remotely initiated connection.
+ *
+ * This is called when an incoming "GIV" request is received in answer to
+ * some of our pushes.
+ */
+void download_push_ack(struct gnutella_socket *s)
+{
+	struct download *d;
+	gchar *giv;
+	guint file_index;		/* The requested file index */
+	gchar hex_guid[33];		/* The hexadecimal GUID */
+	struct io_header *ih;
+
+	g_assert(s->getline);
+
+	giv = getline_str(s->getline);
+
+	if (dbg > 4) {
+		printf("----Got GIV from %s:\n", ip_to_gchar(s->ip));
+		printf("%s\n", giv);
+		printf("----\n");
+		fflush(stdout);
+		
+	}
+
+	/*
+	 * To find out which download this is, we have to parse the incoming
+	 * GIV request, which is stored in "s->getline".
+	 */
+
+	if (sscanf(giv, "GIV %u:%32c/", &file_index, hex_guid)) {
+		gpointer val;
+
+		hex_guid[32] = '\0';
+		g_strdown(hex_guid);
+		g_snprintf(dl_tmp, sizeof(dl_tmp), "%u:%s",
+			file_index, hex_guid);
+
+		val = g_hash_table_lookup(pushed_downloads, (gpointer) dl_tmp);
+		if (!val) {
+			g_warning("got a GIV without matching download request");
+			goto error;
+		}
+		d = (struct download *) val;
+		g_assert(d->record_index == file_index);
+	} else {
+		g_warning("malformed GIV string");
+		goto error;
+	}
+
+	/*
+	 * We might get another GIV for the same download: we send two pushes
+	 * in a row, and with the propagation delay, the first gets handled
+	 * after we sent the second push.  We'll get a GIV for an already
+	 * connected download.
+	 */
+
+	if (d->socket) {
+		g_warning("got spurious GIV string: download already connected");
+		goto error;
+	}
+
+	/*
+	 * Install socket for the download.
+	 */
+
+	g_assert(d->socket == NULL);
+
+	d->socket = s;
+	s->resource.download = d;
+	d->last_update = time((time_t *) NULL);
+
+	/*
+	 * Now we have to read that trailing "\n" which comes right afterwards.
+	 */
+
+	ih = (struct io_header *) g_malloc(sizeof(struct io_header));
+	ih->download = d;
+	ih->header = NULL;				/* Won't be needed, we read one line */
+	ih->getline = getline_make();
+	ih->flags = IO_ONE_LINE;		/* Process one line (will be empty) */
+	ih->process_header = call_download_push_ready;
+
+	g_assert(s->gdk_tag == 0);
+
+	s->gdk_tag = gdk_input_add(s->file_desc,
+		GDK_INPUT_READ | GDK_INPUT_EXCEPTION,
+		download_header_read, (gpointer) ih);
+
+	download_header_parse(ih);		/* Data might already be there */
+	return;
+
+	/*
+	 * We come here on error to log the "faulty" GIV string and close the
+	 * connection.
+	 */
+error:
+	dump_hex(stderr, "GIV string", giv,
+		MIN(getline_length(s->getline), 128));
+	socket_destroy(s);
+	return;
 }
 
 void download_retry(struct download *d)
@@ -1667,12 +1879,15 @@ void download_close(void)
 		struct download *d = (struct download *) l->data;
 		if (d->socket)
 			g_free(d->socket);
+		if (d->push)
+			download_push_remove(d);
 		g_free(d->path);
 		g_free(d->file_name);
 		g_free(d);
 	}
 
 	g_slist_free(sl_downloads);
+	g_hash_table_destroy(pushed_downloads);
 }
 
 /* vi: set ts=4: */
