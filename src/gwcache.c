@@ -196,7 +196,6 @@ static gchar *gwc_pick(void)
 {
 	gint count = g_hash_table_size(gwc_known_url);
 	gint idx;
-	gint i;
 
 	g_assert(count > 0);
 	g_assert(count <= MAX_GWC_URLS);
