@@ -202,6 +202,12 @@ sed <<!GROK!THIS! >config.h -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un-
  */
 #$d_strcasestr HAS_STRCASESTR		/**/
 
+/* HAS_STRLCPY:
+ *	This symbol, if defined, indicates that the chown routine is
+ *	available.
+ */
+#$d_strlcpy HAS_STRLCPY		/**/
+
 /* HAS_SYSCTL:
  *	This symbol, if defined, indicates that the sysctl routine is
  *	available.
