@@ -2625,6 +2625,7 @@ restart:
 	}
 
 	file_info_merge_adjacent(fi);
+	fileinfo_dirty = TRUE;
 }
 
 /*
