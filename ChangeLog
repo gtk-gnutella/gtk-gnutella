@@ -1,5 +1,11 @@
 # since last version
 
+- (2002.05.11 - RAM)
+  * Allowed "configure --enable-no-rfc1918" to default to off (was forced on).
+  * Exported bsched_disable().
+  * Re-architected RX stack.
+  * Added first support for Gnet traffic compression (still some rough edges).
+
 - (2002.05.08 - RAM)
   * Ensured no line is longer than 80 characters in main.c and gui.c.
   * Dynamically setting bandwidth to 0 prevented all traffic instead of
