@@ -46,7 +46,7 @@
 #include "search_stats.h" // FIXME: remove this dependency
 
 /* Uncomment to override debug level for this file. */
-//#define gui_debug 1
+//#define gui_debug 10
 
 /* 
  * This file has five parts:
@@ -1324,6 +1324,7 @@ static gboolean update_clist_col_widths(property_t prop)
         return FALSE;
 
     w = lookup_widget(top, map_entry->wid);
+    g_assert(w != NULL);
     
     switch (map_entry->type) {
         case PROP_TYPE_GUINT32: {
@@ -2061,16 +2062,19 @@ void togglebutton_state_changed
 }
 
 /*
- * settings_config_widget:
+ * settings_gui_config_widget:
  *
  * Set up tooltip and constraints where applicable.
  */
-static void settings_config_widget(prop_map_t *map, prop_def_t *def)
+static void settings_gui_config_widget(prop_map_t *map, prop_def_t *def)
 {
     g_assert(map != NULL);
     g_assert(def != NULL);
 
     if (map->cb != IGNORE) {
+        if (gui_debug >= 10)
+            printf("settings_gui_config_widget: %s\n", def->name);
+
         /*
          * Set tooltip/limits
          */
@@ -2151,6 +2155,9 @@ static void settings_config_widget(prop_map_t *map, prop_def_t *def)
                     (gpointer) map);
             }
         }
+        if (gui_debug >= 10)
+            printf("settings_gui_config_widget: %s [done]\n", def->name);
+
     }
 }
 
@@ -2230,15 +2237,21 @@ static void settings_gui_init_prop_map(void)
         }
     
         if (property_map[n].cb != IGNORE) {
-            settings_config_widget(&property_map[n], def);
+            settings_gui_config_widget(&property_map[n], def);
         
             /*
              * Add listener
              */
+            if (gui_debug >= 10)
+                printf("settings_gui_init_prop_map: adding changes listener "
+                    "[%s]\n", def ->name);
             property_map[n].stub->prop_changed_listener.add(
                 property_map[n].prop,
                 property_map[n].cb,
                 property_map[n].init);
+            if (gui_debug >= 10)
+                printf("settings_gui_init_prop_map: adding changes listener "
+                    "[%s][done]\n", def ->name);
         } else if (gui_debug >= 10) {
             printf("settings_gui_init_prop_map: " 
                 "property ignored: %s\n", def->name);

@@ -34,8 +34,6 @@ extern gchar *config_dir;
 
 extern struct in_addr *local_netmasks;
 
-extern time_t tab_update_time;
-
 /*
  * Global macros.
  */

@@ -28,7 +28,7 @@
 #include "gnutella.h"
 #include "gui.h"
 #include "sockets.h"	/* For local_ip. (FIXME: move to config.h?) */
-#include "search.h"		// FIXME: remove this dependency
+#include "search_gui.h"
 #include "share.h"		/* For stats globals. (FIXME: move to config.h?) */
 #include "downloads.h"	/* For stats globals. (FIXME: move to config.h?) */
 #include "misc.h"
@@ -1284,7 +1284,7 @@ gboolean gui_search_update_tab_label(struct search *sch)
 void gui_search_clear_results(void)
 {
 	gtk_clist_clear(GTK_CLIST(current_search->clist));
-	search_clear(current_search);
+	search_gui_clear_search(current_search);
 	gui_search_force_update_tab_label(current_search);
     gui_search_update_items(current_search);
 }

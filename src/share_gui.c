@@ -25,7 +25,7 @@
  *----------------------------------------------------------------------
  */
 
-#include "gnutella.h"
+#include "gnet.h"
 #include "share_gui.h"
 #include "misc.h"
 #include "gui_property_priv.h"

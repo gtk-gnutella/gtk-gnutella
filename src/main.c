@@ -194,6 +194,9 @@ static void init_constants(void)
 	start_rfc822_date = atom_str_get(date_to_rfc822_gchar(start_time));
 }
 
+// FIXME: this is declared in search_gui.c and should be called in the
+//        main timer loop of the gui.
+void search_gui_store_searches(void);
 static void slow_main_timer(time_t now)
 {
 	static gint i = 0;
@@ -204,7 +207,7 @@ static void slow_main_timer(time_t now)
 		dmesh_ban_store();
 		break;
 	case 1:
-		search_store();
+		search_gui_store_searches();
 		break;
 	case 2:
 		ul_flush_stats_if_dirty();

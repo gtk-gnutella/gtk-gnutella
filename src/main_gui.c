@@ -33,6 +33,7 @@
 #include "nodes_gui.h"
 
 #include "settings_gui.h"
+#include "search_gui.h"
 
 #include "filter.h" // FIXME: remove this dependency
 
@@ -74,8 +75,10 @@ void main_gui_init(void)
             GTK_TOGGLE_BUTTON
                 (lookup_widget(main_window, 
                                "checkbutton_downloads_never_push"))));
-    nodes_gui_init();
+
     settings_gui_init();
+    nodes_gui_init();
+    search_gui_init();
 }
 
 void main_gui_run(void)
@@ -108,6 +111,7 @@ void main_gui_shutdown(void)
      */
     filter_close_dialog(FALSE);
 
+    search_gui_shutdown();
     nodes_gui_shutdown();
     settings_gui_shutdown();
 }

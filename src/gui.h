@@ -36,10 +36,10 @@
 
 #include "downloads.h"
 #include "uploads.h"
-#include "search.h"
 
 #include "interface-glade1.h"
 #include "support-glade1.h"
+
 
 
 
@@ -127,12 +127,12 @@ extern GtkWidget *popup_monitor;
 extern GtkWidget *popup_queue;
 
 
-
+struct search;
 
 /*
  * Public interface.
  */
-gboolean gui_search_update_tab_label(search_t *);
+gboolean gui_search_update_tab_label(struct search *);
 void gui_init(void);
 void gui_update_all(void);
 void gui_close(void);
@@ -140,9 +140,9 @@ void gui_shutdown(void);
 void gui_search_clear_results(void);
 void gui_search_history_add(gchar *s);
 void gui_search_create_clist(GtkWidget ** sw, GtkWidget ** clist);
-void gui_search_force_update_tab_label(search_t *);
+void gui_search_force_update_tab_label(struct search *);
 void gui_search_init(void);
-void gui_search_update_items(search_t *);
+void gui_search_update_items(struct search *);
 void gui_new_version_found(gchar *text, gboolean stable);
 void gui_ancient_warn(void);
 void gui_update_guid(void);
@@ -207,6 +207,5 @@ void gui_update_queue_frozen();
 void gui_update_ul_usage_min_percentage();
 void gui_update_bw_ul_usage_enabled();
 void gui_address_changed();
-void gui_search_remove(search_t *);
 void gui_allow_rescan_dir(gboolean flag);
 #endif /* __gui_h__ */

@@ -58,8 +58,6 @@ static gchar *config_file = "config_gnet";
 static gchar *host_file = "hosts";
 static gchar *ul_stats_file = "upload_stats";
 
-time_t tab_update_time = 5;
-
 static gchar *home_dir = NULL;
 gchar *config_dir = NULL;
 

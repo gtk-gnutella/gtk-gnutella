@@ -36,7 +36,7 @@ void on_search_popdown_switch(GtkWidget * w, gpointer data)
 	if (!sch)
 		return;
 
-	search_gui_view_search(sch);
+	search_gui_set_current_search(sch);
 }
 
 void on_search_notebook_switch(GtkNotebook * notebook,
@@ -50,7 +50,7 @@ void on_search_notebook_switch(GtkNotebook * notebook,
 
 	g_return_if_fail(sch);
 
-    search_gui_view_search(sch);
+    search_gui_set_current_search(sch);
 #endif
 }
 
@@ -67,5 +67,5 @@ void on_clist_search_select_row(GtkCList * clist, gint row,
     if (sch == NULL)
         return;
 
-    search_gui_view_search((search_t *)sch);
+    search_gui_set_current_search((search_t *)sch);
 }
