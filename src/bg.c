@@ -1035,22 +1035,31 @@ void bg_sched_timer(void)
 void bg_close(void)
 {
 	GSList *l;
+	GSList *c;
 	gint count;
 
-	for (count = 0, l = runq; l; l = l->next) {
+	for (c = NULL, l = runq; l; l = l->next)	/* Clone list for iterating */
+		c = g_slist_prepend(c, l->data);
+
+	for (count = 0, l = c; l; l = l->next) {
 		count++;
 		bg_task_terminate(l->data);
 	}
 	g_slist_free(runq);
+	g_slist_free(c);
 
 	if (count)
 		g_warning("terminated %d running task%s", count, count == 1 ? "" : "s");
 
-	for (count = 0, l = sleepq; l; l = l->next) {
+	for (c = NULL, l = sleepq; l; l = l->next)	/* Clone list for iterating */
+		c = g_slist_prepend(c, l->data);
+
+	for (count = 0, l = c; l; l = l->next) {
 		count++;
 		bg_task_terminate(l->data);
 	}
 	g_slist_free(sleepq);
+	g_slist_free(c);
 
 	if (count)
 		g_warning("terminated %d daemon task%s", count, count == 1 ? "" : "s");
