@@ -69,7 +69,7 @@ static const guchar iso_8859_1[96] = {
 	' ', 			/* 167 - SECTION SIGN */
 	' ', 			/* 168 - DIAERESIS */
 	' ', 			/* 169 - COPYRIGHT SIGN */
-	' ', 			/* 170 - FEMININE ORDINAL INDICATOR */
+	'a', 			/* 170 - FEMININE ORDINAL INDICATOR */
 	' ', 			/* 171 - LEFT-POINTING DOUBLE ANGLE QUOTATION MARK */
 	' ', 			/* 172 - NOT SIGN */
 	' ', 			/* 173 - SOFT HYPHEN */
@@ -85,7 +85,7 @@ static const guchar iso_8859_1[96] = {
 	' ', 			/* 183 - MIDDLE DOT */
 	' ', 			/* 184 - CEDILLA */
 	'1', 			/* 185 - SUPERSCRIPT ONE */
-	' ', 			/* 186 - MASCULINE ORDINAL INDICATOR */
+	'o', 			/* 186 - MASCULINE ORDINAL INDICATOR */
 	' ', 			/* 187 - RIGHT-POINTING DOUBLE ANGLE QUOTATION MARK */
 	' ', 			/* 188 - VULGAR FRACTION ONE QUARTER */
 	' ', 			/* 189 - VULGAR FRACTION ONE HALF */
@@ -156,6 +156,174 @@ static const guchar iso_8859_1[96] = {
 	' ',			/* 254 - LATIN SMALL LETTER THORN */
 	'y',			/* 255 - LATIN SMALL LETTER Y WITH DIAERESIS */
 };
+
+#ifdef I18N_LEVEL1
+
+static const guchar cp1252[30] = {
+
+	' ', 			/* 130 - LOW-9 QUOTE */
+	' ', 			/* 131 - */
+	' ', 			/* 132 - LOW-9 DOUBLE QUOTE */
+	' ', 			/* 133 - ELLIPSES */
+	' ', 			/* 134 - DAGGER */
+	' ', 			/* 135 - DOUBLE DAGGER */
+	' ', 			/* 138 - */
+	' ', 			/* 137 - PER MILLE SIGN */
+	's', 			/* 138 - S WITH CARON */
+	' ', 			/* 139 - LEFT-POINTING ANGLE */
+	' ', 			/* 140 - */
+	' ', 			/* 141 - */
+	' ', 			/* 142 - */
+	' ', 			/* 143 - */
+	' ', 			/* 144 - */
+	' ', 			/* 145 - LEFT SINGLE QUOTE */
+	' ', 			/* 146 - RIGHT SINGLE QUOTE  */
+	' ', 			/* 147 - LEFT DOUBLE QUOTE */
+	' ', 			/* 148 - RIGHT DOUBLE QUOTE */
+	' ', 			/* 149 - BULLET */
+	' ', 			/* 150 - EN DASH */
+	' ', 			/* 151 - EM DASH */
+	' ', 			/* 152 - SMALL TILDE */
+	't', /* tm */	/* 153 - TRADEMARK */
+	's', 			/* 154 - s WITH CARON */
+	' ', 			/* 155 - RIGHT-POINTING ANGLE */
+	' ', 			/* 156 - */
+	' ', 			/* 157 - */
+	' ', 			/* 158 - */
+	'y', 			/* 159 - Y DIAERESIS */
+};
+
+static const guchar macroman[126] = {
+
+	' ', 			/* 130 - LOW-9 QUOTE */
+	' ', 			/* 131 - */
+	' ', 			/* 132 - LOW-9 DOUBLE QUOTE */
+	' ', 			/* 133 - ELLIPSES */
+	' ', 			/* 134 - DAGGER */
+	' ', 			/* 135 - DOUBLE DAGGER */
+	' ', 			/* 138 - */
+	' ', 			/* 137 - PER MILLE SIGN */
+	's', 			/* 138 - S WITH CARON */
+	' ', 			/* 139 - LEFT-POINTING ANGLE */
+	' ', 			/* 140 - */
+	' ', 			/* 141 - */
+	' ', 			/* 142 - */
+	' ', 			/* 143 - */
+	' ', 			/* 144 - */
+	' ', 			/* 145 - LEFT SINGLE QUOTE */
+	' ', 			/* 146 - RIGHT SINGLE QUOTE  */
+	' ', 			/* 147 - LEFT DOUBLE QUOTE */
+	' ', 			/* 148 - RIGHT DOUBLE QUOTE */
+	' ', 			/* 149 - BULLET */
+	' ', 			/* 150 - EN DASH */
+	' ', 			/* 151 - EM DASH */
+	' ', 			/* 152 - SMALL TILDE */
+	't', /* tm */	/* 153 - TRADEMARK */
+	's', 			/* 154 - s WITH CARON */
+	' ', 			/* 155 - RIGHT-POINTING ANGLE */
+	' ', 			/* 156 - */
+	' ', 			/* 157 - */
+	' ', 			/* 158 - */
+	'y', 			/* 159 - Y DIAERESIS */
+	' ', 			/* 160 - NO-BREAK SPACE */
+	' ', 			/* 161 - DEGREE */
+	' ', 			/* 162 - CENT SIGN */
+	' ', 			/* 163 - POUND SIGN */
+	' ', 			/* 164 - CURRENCY SIGN */
+	' ', 			/* 165 - BULLET */
+	' ', 			/* 166 - PARAGRAPH */
+	' ', 			/* 167 - SECTION SIGN */
+	' ', 			/* 168 - DIAERESIS */
+	' ', 			/* 169 - COPYRIGHT SIGN */
+	't', /* tm */	/* 170 - TRADEMARK */
+	' ', 			/* 171 - LEFT-POINTING DOUBLE ANGLE QUOTATION MARK */
+	' ', 			/* 172 - NOT SIGN */
+	' ', 			/* 173 - NOT EQUAL */
+	' ', 			/* 174 - REGISTERED SIGN */
+	' ', 			/* 175 - MACRON */
+	' ', 			/* 176 - INFINITY */
+	' ', 			/* 177 - PLUS-MINUS SIGN */
+	' ', 			/* 178 - LESSSOREQUAL */
+	' ', 			/* 179 - GREATOREQUAL */
+	' ', 			/* 180 - ACUTE ACCENT */
+	'u', 			/* 181 - MICRO SIGN */
+	' ', 			/* 182 - DERIVATIVE */
+	' ', 			/* 183 - SIGMA */
+	' ', 			/* 184 - CEDILLA */
+	'1', 			/* 185 - SUPERSCRIPT ONE */
+	' ', 			/* 186 - INTEGRAL */
+	' ', 			/* 187 - RIGHT-POINTING DOUBLE ANGLE QUOTATION MARK */
+	' ', 			/* 188 - VULGAR FRACTION ONE QUARTER */
+	' ', 			/* 189 - VULGAR FRACTION ONE HALF */
+	' ', 			/* 190 - VULGAR FRACTION THREE QUARTERS */
+	' ', 			/* 191 - INVERTED QUESTION MARK */
+	'a', 			/* 192 - LATIN CAPITAL LETTER A WITH GRAVE */
+	'a', 			/* 193 - LATIN CAPITAL LETTER A WITH ACUTE */
+	'a', 			/* 194 - LATIN CAPITAL LETTER A WITH CIRCUMFLEX */
+	' ', 			/* 195 - SQUARE ROOT */
+	'a', 			/* 196 - LATIN CAPITAL LETTER A WITH DIAERESIS */
+	' ', 			/* 197 - WAVY EQUAL */
+	' ', 			/* 198 - DELTA */
+	'c', 			/* 199 - LATIN CAPITAL LETTER C WITH CEDILLA */
+	'e', 			/* 200 - LATIN CAPITAL LETTER E WITH GRAVE */
+	' ', 			/* 201 - ELLIPSES */
+	'e', 			/* 202 - LATIN CAPITAL LETTER E WITH CIRCUMFLEX */
+	'e', 			/* 203 - LATIN CAPITAL LETTER E WITH DIAERESIS */
+	'i', 			/* 204 - LATIN CAPITAL LETTER I WITH GRAVE */
+	'i', 			/* 205 - LATIN CAPITAL LETTER I WITH ACUTE */
+	'i',			/* 206 - LATIN CAPITAL LETTER I WITH CIRCUMFLEX */
+	'i',			/* 207 - LATIN CAPITAL LETTER I WITH DIAERESIS */
+	' ',			/* 208 - EN DASH */
+	' ',			/* 209 - EM DASH */
+	' ',			/* 210 - LEFT DOUBLE QUOTE */
+	' ',			/* 211 - RIGHT DOUBLE QUOTE */
+	' ',			/* 212 - LEFT SINGLE QUOTE */
+	' ',			/* 213 - RIGHT SINGLE QUOTE */
+	'o',			/* 214 - LATIN CAPITAL LETTER O WITH DIAERESIS */
+	' ',			/* 215 - DIAMOND */
+	'o',			/* 216 - LATIN CAPITAL LETTER O WITH STROKE */
+	'y',			/* 217 - Y DIAERESIS */
+	' ',			/* 218 - DIVISION SLASH */
+	'u',			/* 219 - LATIN CAPITAL LETTER U WITH CIRCUMFLEX */
+	' ',			/* 220 - LEFT-POINTING ANGLE */
+	' ',			/* 221 - RIGHT-POINTING ANGLE */
+	' ',			/* 222 - LATIN CAPITAL LETTER THORN */
+	's',			/* 223 - LATIN SMALL LETTER SHARP S */
+	'a',			/* 224 - LATIN SMALL LETTER A WITH GRAVE */
+	' ',			/* 225 - PERIOD CENTERED */
+	' ',			/* 226 - LOW-9 QUOTE */
+	' ',			/* 227 - LOW-9 DOUBLE QUOTE */
+	' ',			/* 228 - PER MILLE SIGN */
+	'a',			/* 229 - LATIN SMALL LETTER A WITH RING ABOVE */
+	' ',			/* 230 - LATIN SMALL LETTER AE */
+	'c',			/* 231 - LATIN SMALL LETTER C WITH CEDILLA */
+	'e',			/* 232 - LATIN SMALL LETTER E WITH GRAVE */
+	'e',			/* 233 - LATIN SMALL LETTER E WITH ACUTE */
+	'e',			/* 234 - LATIN SMALL LETTER E WITH CIRCUMFLEX */
+	'e',			/* 235 - LATIN SMALL LETTER E WITH DIAERESIS */
+	'i',			/* 236 - LATIN SMALL LETTER I WITH GRAVE */
+	'i',			/* 237 - LATIN SMALL LETTER I WITH ACUTE */
+	'i',			/* 238 - LATIN SMALL LETTER I WITH CIRCUMFLEX */
+	'i',			/* 239 - LATIN SMALL LETTER I WITH DIAERESIS */
+	' ',			/* 240 - APPLE LOGO */
+	'n',			/* 241 - LATIN SMALL LETTER N WITH TILDE */
+	'o',			/* 242 - LATIN SMALL LETTER O WITH GRAVE */
+	'o',			/* 243 - LATIN SMALL LETTER O WITH ACUTE */
+	'o',			/* 244 - LATIN SMALL LETTER O WITH CIRCUMFLEX */
+	'i',			/* 245 - DOTLESS i */
+	'o',			/* 246 - LATIN SMALL LETTER O WITH DIAERESIS */
+	' ',			/* 247 - SMALL TILDE */
+	'o',			/* 248 - LATIN SMALL LETTER O WITH STROKE */
+	' ',			/* 249 - SEMI-CIRCULAR ACCENT */
+	'u',			/* 250 - LATIN SMALL LETTER U WITH ACUTE */
+	'u',			/* 251 - LATIN SMALL LETTER U WITH CIRCUMFLEX */
+	'u',			/* 252 - LATIN SMALL LETTER U WITH DIAERESIS */
+	' ',			/* 253 - DOUBLE BACKTICK */
+	' ',			/* 254 - CEDILLA */
+	'y',			/* 255 - LATIN SMALL LETTER Y WITH DIAERESIS */
+};
+
+#endif
 
 guint32 files_scanned = 0;
 guint32 kbytes_scanned = 0;
@@ -338,12 +506,82 @@ static char_map_t query_map;
  *
  * Set up keymapping table for Gnutella.
  *
- * The most common encoding of searches are ASCII, then ISO-8859-1.
- * Unicode is marginal for now, and we restrict it to the ISO-8859-1 subset.
  */
 static void setup_char_map(char_map_t map)
 {
 	gint c;	
+
+#ifdef I18N_LEVEL1
+	gboolean b_ascii = FALSE;
+	gboolean b_iso_8859_1 = FALSE;
+	gboolean b_cp1252 = FALSE;
+	gboolean b_macroman = FALSE;
+	gboolean b_latin = FALSE;
+	const gchar *charset = locale_get_charset();
+
+	if (!strcmp(charset, "ASCII"))
+	{
+		b_ascii = TRUE;
+		b_latin = TRUE;
+	}
+	else
+		if (!strcmp(charset, "ISO-8859-1") || !strcmp(charset, "ISO-8859-15"))
+		{
+			b_iso_8859_1 = TRUE;
+			b_latin = TRUE;
+		}
+		else
+			if (!strcmp(charset, "CP1252"))
+			{
+				b_cp1252 = TRUE;
+				b_latin = TRUE;
+			}
+			else
+				if (!strcmp(charset, "MacRoman"))
+				{
+					b_macroman = TRUE;
+					b_latin = TRUE;
+				}
+
+	for (c = 0; c < 256; c++)	{
+		if (!isupper(c)) {  /* not same than islower, cf ssharp */
+			map[c] = tolower(toupper(c)); /* not same than c, cf ssharp */
+			map[toupper(c)] = c;
+		}
+		else if (isupper(c))
+			; /* handled by previous case */
+		else if (ispunct(c) || isspace(c))
+			map[c] = ' ';
+		else if (isdigit(c))
+			map[c] = c;
+		else if (isalnum(c))
+			map[c] = c;
+		else
+			map[c] = ' ';			/* unknown in our locale */
+	}
+
+	if (b_latin)
+	{
+
+		if (b_iso_8859_1 || b_cp1252)
+			for (c = 160; c < 256; c++)
+				map[c] = iso_8859_1[c - 160];
+
+		if (b_cp1252)
+			for (c = 130; c < 160; c++)
+				map[c] = cp1252[c - 130];
+		else
+			if (b_macroman)
+				for (c = 130; c < 256; c++)
+					map[c] = macroman[c - 130];
+	}
+
+
+#else
+/*
+ * The most common encoding of searches are ASCII, then ISO-8859-1.
+ * Unicode is marginal for now, and we restrict it to the ISO-8859-1 subset.
+ */
 
 	for (c = 0; c < 256; c++)	{
 		if (islower(c)) {
@@ -364,6 +602,7 @@ static void setup_char_map(char_map_t map)
 
 	for (c = 160; c < 256; c++)
 		map[c] = iso_8859_1[c - 160];
+#endif
 }
 
 /* ----------------------------------------- */
@@ -449,16 +688,15 @@ struct shared_file *shared_file_by_name(const gchar *basename)
 
 static void free_extensions(void)
 {
-	GSList *l = extensions;
+	GSList *sl = extensions;
 
-	if (!l)
+	if (!sl)
 		return;
 
-	while (l) {
-		struct extension *e = (struct extension *) l->data;
+	for ( /*empty */ ; sl; sl = g_slist_next(sl)) {
+		struct extension *e = (struct extension *) sl->data;
 		atom_str_free(e->str);
 		g_free(e);
-		l = l->next;
 	}
 	g_slist_free(extensions);
 	extensions = NULL;

@@ -481,6 +481,7 @@ static const char *codesets[] = {
 	"lt_LN.ISO_8859-1 nl_BE.ISO_8859-1 nl_NL.ISO_8859-1 no_NO.ISO_8859-1 "
 	"pt_PT.ISO_8859-1 sv_SE.ISO_8859-1",
  "ISO-8859-13 IBM-921",
+ "ISO-8859-14 ISO_8859-14 ISO_8859-14:1998 iso-ir-199 latin8 iso-celtic l8",
  "ISO-8859-15 ISO8859-15 iso885915 da_DK.DIS_8859-15 de_AT.DIS_8859-15 "
 	"de_CH.DIS_8859-15 de_DE.DIS_8859-15 en_AU.DIS_8859-15 en_CA.DIS_8859-15 "
 	"en_GB.DIS_8859-15 en_US.DIS_8859-15 es_ES.DIS_8859-15 fi_FI.DIS_8859-15 "
@@ -553,10 +554,36 @@ const char *locale_charset(void)
 }
 #endif /* ENABLE_NLS && !HAVE_LIBCHARSET_H */
 
+static const gchar *charset = NULL;
+
+const gchar *locale_get_charset(void)
+{
+	return charset;
+}
+
+static void textdomain_init(const char *charset)
+{
+#ifdef ENABLE_NLS
+	bindtextdomain(PACKAGE, LOCALEDIR);
+
+#ifdef HAVE_BIND_TEXTDOMAIN_CODESET
+
+	bind_textdomain_codeset(PACKAGE,
+#ifdef USE_GTK2	
+		"UTF-8"
+#else
+		charset
+#endif /* USE_GTK2*/
+	);
+
+#endif /* HAVE_BIND_TEXTDOMAIN_CODESET */
+
+	textdomain(PACKAGE);
+#endif /* NLS */
+}
+
 void locale_init(void)
 {
-	const gchar *charset = NULL;
-	const gchar *codeset = NULL;
 
 #ifdef ENABLE_NLS
 	setlocale(LC_ALL, "");
@@ -564,31 +591,23 @@ void locale_init(void)
 
 #ifdef USE_GTK2
 
-	codeset = "UTF-8";
 	g_get_charset(&charset);
 
 #else
 
-	codeset = locale_charset();
-	if (codeset == NULL) {
-		codeset = "ISO-8859-1";		/* Default locale codeset */
+#if defined(HAVE_LANGINFO_H) || defined(HAVE_LIBCHARSET_H)
+	charset = locale_charset();
+#endif /* HAVE_LANGINFO_H || HAVE_LIBCHARSET_H */
+
+	if (charset == NULL) {
+		charset = "ISO-8859-1";		/* Default locale codeset */
 		g_warning("locale_init: Using default codeset %s as fallback.",
-			codeset);
+			charset);
 	}
-	charset = codeset;
 
 #endif /* USE_GTK2 */
 
-#ifdef ENABLE_NLS
-	bindtextdomain(PACKAGE, LOCALEDIR);
-
-#ifdef HAVE_BIND_TEXTDOMAIN_CODESET
-	bind_textdomain_codeset(PACKAGE, codeset);
-#endif /* HAVE_BIND_TEXTDOMAIN_CODESET */
-
-	textdomain(PACKAGE);
-#endif /* NLS */
-
+	textdomain_init(charset);
 
 	if ((GIConv)-1 == (cd_latin_to_utf8 = g_iconv_open("UTF-8", "ISO-8859-1")))
 		g_warning("g_iconv_open(\"UTF-8\", \"ISO-8859-1\") failed.");
