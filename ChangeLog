@@ -1,5 +1,9 @@
 # since last version
 
+- (2002.08.26 - Vidar)
+ * Added a node whitelist. Listed entries will always be allowed a
+   connection, and we will actively try to stay connected to them.
+
 - (2002.08.26 - RAM)
  * When cloning downloads, was properly duplicating "push state" of the clone.
  * Fixed assertion failure when bumping into a BUSY chunk (fixes bug #600272).
