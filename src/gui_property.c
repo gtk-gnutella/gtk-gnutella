@@ -54,8 +54,8 @@ guint32  search_results_col_visible[6]     = { 1,1,1,1,0,1};
 guint32  search_results_col_visible_def[6] = { 1,1,1,1,0,1};
 guint32  search_list_col_widths[3]     = { 80, 20, 20 };
 guint32  search_list_col_widths_def[3] = { 80, 20, 20 };
-guint32  search_results_col_widths[6]     = { 210, 80, 50, 70, 70, 140 };
-guint32  search_results_col_widths_def[6] = { 210, 80, 50, 70, 70, 140 };
+guint32  search_results_col_widths[7]     = { 210, 80, 50, 70, 70, 140, 70 };
+guint32  search_results_col_widths_def[7] = { 210, 80, 50, 70, 70, 140, 70 };
 guint32  search_stats_col_widths[3]     = { 200, 80, 80 };
 guint32  search_stats_col_widths_def[3] = { 200, 80, 80 };
 guint32  ul_stats_col_widths[5]     = { 200, 80, 80, 80, 80 };
@@ -376,7 +376,7 @@ prop_set_t *gui_prop_init(void) {
     gui_property->props[9].desc = "Widths of the columns in the search results tables";
     gui_property->props[9].prop_changed_listeners = NULL;
     gui_property->props[9].save = TRUE;
-    gui_property->props[9].vector_size = 6;
+    gui_property->props[9].vector_size = 7;
 
     /* Type specific data: */
     gui_property->props[9].type               = PROP_TYPE_GUINT32;

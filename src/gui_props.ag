@@ -106,9 +106,9 @@ prop = {
     cfgvar = "widths_search_results";
     desc = "Widths of the columns in the search results tables";
     type = guint32;
-    vector_size = 6;
+    vector_size = 7;
     data = {
-        default = "{ 210, 80, 50, 70, 70, 140 }";
+        default = "{ 210, 80, 50, 70, 70, 140, 70 }";
     };
 };
 

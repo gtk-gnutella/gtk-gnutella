@@ -39,7 +39,7 @@ extern guint32  dl_active_col_widths[6];
 extern guint32  dl_queued_col_widths[5];
 extern guint32  search_results_col_visible[6];
 extern guint32  search_list_col_widths[3];
-extern guint32  search_results_col_widths[6];
+extern guint32  search_results_col_widths[7];
 extern guint32  search_stats_col_widths[3];
 extern guint32  ul_stats_col_widths[5];
 extern guint32  uploads_col_widths[6];
