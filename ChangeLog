@@ -2,28 +2,34 @@
 
 - (2002.05.21 - RAM)
   * huge.c: cast all file sizes to long before printf("%ld") since some
-	machines have 64-bit off_t (but Gnuetlla only has a 32-bit field for
-	propagating file sizes, so it does not matter).
+    machines have 64-bit off_t (but Gnuetlla only has a 32-bit field for
+    propagating file sizes, so it does not matter).
   * Forgot to emit initial header when appending values to disk SHA1 cache.
   * Hacked a quick fix for the duplicate SHA1 work problem.
+  * downloads.c and huge.c: Another batch of off_t args cast into gulong.
+  * Added UTF-8 decoder for queries, and transformation to ISO-8859-1.
+    The query text are now interpreted as ISO-8859-1 by default, unless
+    the query "looks like" UTF-8.  In any case: no full Unicode support.
+  * Fixed search statistics scheduling mess, and removed spurious main
+    initialization since GUI settings already triggered search_stats_enable().
 
 - (2002.05.20 - RAM)
   * When queuing a download from the same GUID/file, check the IP:port in
-	case it changed since we queued it, and not solely reject it as a
-	duplicate.
+    case it changed since we queued it, and not solely reject it as a
+    duplicate.
   * When the full SHA1 hashing credit is not used, do not perform the
-	feedback adjustment, since those assume all the credit was used.
+    feedback adjustment, since those assume all the credit was used.
   * In share.c: now uses gtk_main_flush() to update the GUI, not the single
-	loop iteration.
+    loop iteration.
   * uploads.c: fixed segfault at shutdown time (dup free of user_agent field).
   * Honour X-Gnutella-Content-URN in requests and send a 404 error if
-	the file we have does not match.
+    the file we have does not match.
   * Will now send back X-Gnutella-Content-URN in the HTTP reply with the SHA1
     (if we have it) on 503 Busy errors.
   * Applied cleanup patch #557071 [From Uros Bizjak].
   * Applied Solaris compile patch #558202 [From Uros Bizjak].
   * Applied structure packing, SOCKS error message fix, and cleanup patch
-	[From Michael Core].
+    [From Michael Core].
 
 - (2002.05.20 - Richard)
   * Added "User agent" column to uploads
@@ -36,14 +42,14 @@
 - (2002.05.19 - RAM)
   * Integrated SHA1 / HUGE patch [From Ch. Tronche].
   * Force creation of config directory if it does not exist
-	(fixes bug #557114).
+    (fixes bug #557114).
   * Don't run file name searches on small query texts when there is an URN
-	match attempted.
+    match attempted.
   * Keep track of User-Agent and Server in HTTP requests.
   * Further adjustments in huge.c:
-	+ Use glib timeouts, not gtk ones to not needlessly tie to the GUI.
+    + Use glib timeouts, not gtk ones to not needlessly tie to the GUI.
     + Improved timer adjustment feedback to shoot for 3/2 of the max life.
-	+ Added debugging SHA1 computation rate traces.
+    + Added debugging SHA1 computation rate traces.
 
 - (2002.05.19 - Richard)
   * Removed "clear queue" button. This is not necessary. To clear the
@@ -59,13 +65,13 @@
 
 - (2002.05.18 - RAM)
   * Improved shutdown code to avoid segfaults in grace period and deny all
-	pending Gnet connections cleanly.
+    pending Gnet connections cleanly.
   * Moved pong-caching code to pcache.c.
   * Reorganized the way we detect that BYE was sent, and added support for
-	probing the size of the TX stack.
+    probing the size of the TX stack.
   * Pay attention to GUI settings for bandwidth limitation before enabling
-	the corresponding schedulers: only do so when they explicitly wish
-	to limit traffic (provided allocated bandwidth is >0).
+    the corresponding schedulers: only do so when they explicitly wish
+    to limit traffic (provided allocated bandwidth is >0).
 
 - (2002.05.17 - Richard)
   * Fixed bug: drag in queue while queue is freezed unfreezes queue.
@@ -84,9 +90,9 @@
   * Applied enum/macro cleanup patch #555837 [From Uros Bizjak].
   * Display download queue status entries.
   * Fixed guess_local_ip() to never replace a previous non-private IP with
-	a private one.
+    a private one.
   * Added exit grace period to make sure final BYE messages get a reasonable
-	chance of being sent.
+    chance of being sent.
   * Added extended copyright notices, per FSF recommendations.
   * Added copy of the GPL in the LICENSE file.
 
@@ -138,7 +144,7 @@
   * Removed debugging warning on Z_BUF_ERROR when TX flushing.
   * Search stats configuration unit is now the second.
   * Fixed assertion failure in deflate_rotate_and_send(): the culprit
-	was deflate_nagle_timeout(), calling that routine without checking.
+    was deflate_nagle_timeout(), calling that routine without checking.
   * Added Debian build dependency on zlib1g-dev (in debian/control).
   * Compressed node traffic indicated by TXc and/or RXc in Info field.
   * Fixed typo in cq.c that caused hash bucket chaining to be mixed up.
@@ -176,9 +182,9 @@
 - (2002.05.08 - RAM)
   * Ensured no line is longer than 80 characters in main.c and gui.c.
   * Dynamically setting bandwidth to 0 prevented all traffic instead of
-	disabling bandwidth limiting.
+    disabling bandwidth limiting.
   * Even if bandwidth scheduler is disabled, go through the EMA computation
-	of the bandwidth actually used, for GUI display purposes.
+    of the bandwidth actually used, for GUI display purposes.
   * Added Roles section to the AUTHORS file.
 
 - (2002.05.07 - RAM)
@@ -214,17 +220,17 @@
 
 - (2002.05.01 - RAM)
   * Integrated the search queue patch: searches are now sent once every
-	10 seconds on a per-connection basis [From Alex Bennee].
+    10 seconds on a per-connection basis [From Alex Bennee].
   * Was improperly counting duplicates as "bad" messages.
   * Now displays both dup/bad message counts in the Info column for nodes.
   * Searches now made persistent [From Michael Tesch].
   * Got rid of the local-config-file overwriting.  All configuration files
-	are now exclusively saved in the config dir, never locally (unless you
-	run from that config dir!).
+    are now exclusively saved in the config dir, never locally (unless you
+    run from that config dir!).
   * Fixed bug #538946: was incorrectly moving complete files out of the
-	done directory.  Also, "Nothing more to get" error is now reported if
-	one tries to downloads a smaller file (it was not flagged as an error,
-	so the "Completed" message was shown instead of the error text).
+    done directory.  Also, "Nothing more to get" error is now reported if
+    one tries to downloads a smaller file (it was not flagged as an error,
+    so the "Completed" message was shown instead of the error text).
 
 - (2002.05.01 - Richard)
   * fixed sensitivity of "copy url" in downloads popup
@@ -252,12 +258,12 @@
 
 - (2002.04.27 - RAM)
   * Reversed logic for forced IP, to make it behave properly: the IP is
-	now only updated dynamically when "force IP" is not checked.
+    now only updated dynamically when "force IP" is not checked.
   * Added download_remove_file() and download_file_exists().
   * Check for new "download_delete_aborted" condition in download_abort() to
-	remove file when it is set.
+    remove file when it is set.
   * Added debug logging of bad packets, to help diagnose why we receive
-	bad packets from gtk-gnutella.
+    bad packets from gtk-gnutella.
   * Made nodes.c compile on the Alpha, where varargs objects are different.
     (fixes bug #537460)
 
@@ -284,16 +290,16 @@
     event (useless focus jumping). Instead when pressing "enter" on a widget,
     the change is accepted and the focus stays where it is.
   * more layout in the config panels.
-	
+    
 - (2002.04.22 - RAM)
   * Always update actual bandwidth used, even when the scheduler is disabled,
     so that the GUI can display the current usage whether bandwidth is
     limited or not.
   * Removed useless SIG_Ignore() signal handling trap, just SIG_IGN them.
   * Ignore SIGXFSZ so that subsequent write() fail: if not ignored, that
-	signal will kill the process.
+    signal will kill the process.
   * Added debugging output for auto-downloads, and refactored list iteration
-	bits to be more in line with the other uses.
+    bits to be more in line with the other uses.
 
 - (2002.04.21 - Richard)
   * click on bandwidth stats to toggle display mode (normal/average)
@@ -807,7 +813,7 @@ Detailed changes:
 - accept long urls on uploads such as a proxy would send
 
 
-# v 0.13	  2001.01.05
+# v 0.13      2001.01.05
 
 - File Sharing (woohoo!)
 - force_local_ip fixed (more than one fix)
