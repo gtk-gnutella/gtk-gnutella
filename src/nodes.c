@@ -96,8 +96,8 @@ RCSID("$Id$");
 #define NODE_AUTO_SWITCH_MIN	1800	/* Don't switch too often UP <-> leaf */
 
 GSList *sl_nodes = (GSList *) NULL;
-GSList *sl_proxies = (GSList *) NULL;	/* Our push proxies */
 
+static GSList *sl_proxies = (GSList *) NULL;	/* Our push proxies */
 static idtable_t *node_handle_map = NULL;
 
 #define node_find_by_handle(n) \
@@ -5130,10 +5130,73 @@ void node_proxy_add(gnutella_node_t *n, guint32 ip, guint16 port)
 		return;
 	}
 
+	/*
+	 * Paranoid sanity checks.
+	 */
+
+	if (
+		dbg && n->gnet_ip != 0 &&
+		(n->proxy_ip != n->gnet_ip || n->proxy_port != n->gnet_port)
+	)
+		g_warning("push-proxy address %s from %s <%s> does not match "
+			"its advertised node address %s:%u",
+			ip_port_to_gchar(ip, port), node_ip(n), node_vendor(n),
+			ip_to_gchar(n->gnet_ip), n->gnet_port);
+
+	if (n->proxy_ip != n->ip) {
+		g_warning("push-proxy address %s from %s <%s> not on same host",
+			ip_port_to_gchar(ip, port), node_ip(n), node_vendor(n));
+		if (n->gnet_ip != 0 && n->proxy_ip == n->gnet_ip)
+			g_warning("however address %s matches the advertised node address",
+				ip_port_to_gchar(ip, port));
+	}
+
 	n->proxy_ip = ip;
 	n->proxy_port = port;
 
 	sl_proxies = g_slist_prepend(sl_proxies, n);
+}
+
+/*
+ * node_http_proxies_add
+ *
+ * HTTP status callback.
+ *
+ * If we are still firewalled and have push-proxies, let the downloader
+ * know about them via the X-Push-Proxies header.
+ */
+void node_http_proxies_add(gchar *buf, gint *retval, gpointer arg)
+{
+	gint rw = 0;
+	gint length = *retval;		/* Space available, starting at `buf' */
+
+	if (is_firewalled && sl_proxies != NULL) {
+		gpointer fmt = header_fmt_make("X-Push-Proxies", 0);
+		GSList *l;
+		gint len;
+
+		for (l = sl_proxies; l;  l = g_slist_next(l)) {
+			struct gnutella_node *n = (struct gnutella_node *) l->data;
+			gchar *ipstr;
+
+			g_assert(n->proxy_ip);		/* Must be non-null if it's our proxy */
+
+			ipstr = ip_port_to_gchar(n->proxy_ip, n->proxy_port);
+			header_fmt_append(fmt, ipstr, ", ");
+		}
+
+		header_fmt_end(fmt);
+		len = header_fmt_length(fmt);
+
+		if (len < length) {
+			strncpy(buf, header_fmt_string(fmt), length);
+			rw += len;
+		}
+
+		header_fmt_free(fmt);
+	}
+
+	*retval = rw;			/* Tell them how much we wrote into `buf' */
 }
 
 /* vi: set ts=4: */

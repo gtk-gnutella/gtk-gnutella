@@ -339,7 +339,6 @@ extern const gchar *gnutella_hello;
 extern guint32 gnutella_hello_length;
 
 extern GSList *sl_nodes;
-extern GSList *sl_proxies;
 
 extern GHookList node_added_hook_list;
 extern struct gnutella_node *node_added;
@@ -401,6 +400,7 @@ void node_connected_back(struct gnutella_socket *s);
 
 gboolean node_proxying_add(gnutella_node_t *n, gchar *guid);
 void node_proxy_add(gnutella_node_t *n, guint32 ip, guint16 port);
+void node_http_proxies_add(gchar *buf, gint *retval, gpointer arg);
 
 #endif /* _nodes_h_ */
 
