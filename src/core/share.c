@@ -799,6 +799,27 @@ too_big_for_gnutella(off_t size)
 }
 
 /**
+ * Checks whether it's OK to share the pathname with respect to special
+ * characters in the string. As the database stores records line-by-line,
+ * newline characters in the filename are not acceptable.
+ *
+ * @return	If the pathname contains ASCII control characters, TRUE is
+ *			returned. Otherwise, the pathname is considered OK and FALSE
+ *			is returned.
+ */
+static gboolean
+contains_control_chars(const gchar *pathname)
+{
+	const gchar *s;
+
+	for (s = pathname; *s != '\0'; s++) {
+		if (is_ascii_cntrl(*s))
+			return TRUE;
+	}
+	return FALSE;
+}
+
+/**
  * The directories that are given as shared will be completly transversed
  * including all files and directories. An entry of "/" would search the
  * the whole file system.
@@ -895,6 +916,12 @@ recurse_scan(gchar *dir, const gchar *basedir)
 				if (dbg > 5)
 					g_message("%s: full=\"%s\"", __func__, full);
 
+				if (contains_control_chars(full)) {
+					g_warning("Not sharing filename with control characters: "
+						"\"%s\"", full);
+					break;
+				}
+				
 				if (stat(full, &file_stat) == -1) {
 					g_warning("can't stat %s: %s", full, g_strerror(errno));
 					break;
