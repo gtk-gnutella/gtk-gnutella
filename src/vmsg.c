@@ -30,6 +30,7 @@
 #include "nodes.h"
 #include "gmsg.h"
 #include "routing.h"	/* For message_set_muid() */
+#include "gnet_stats.h"
 
 RCSID("$Id$");
 
