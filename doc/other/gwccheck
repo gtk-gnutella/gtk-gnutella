@@ -1,7 +1,7 @@
 #! /bin/sh -x
 # $Id$
 CACHE=$1
-URL="$CACHE"'?hostfile=1&client=GTKG&version=0.93u'
+URL="$CACHE"'?hostfile=1&client=GTKG&version=0.94'
 LOGFILE=/tmp/gwccheck.log
 
 {
