@@ -59,8 +59,8 @@ struct moved {
 	gint rd;				/* Opened file descriptor for read, -1 if none */
 	gint wd;				/* Opened file descriptor for write, -1 if none */
 	time_t start;			/* Start time, to determine copying rate */
-	off_t size;				/* Size of file */
-	off_t copied;			/* Amount of data copied so far */
+	filesize_t size;		/* Size of file */
+	filesize_t copied;		/* Amount of data copied so far */
 	gchar *buffer;			/* Large buffer, where data is read */
 	gchar *target;			/* Target file name, in case an error occurs */
 	gint error;				/* Error code */
@@ -226,12 +226,13 @@ d_start(gpointer h, gpointer ctx, gpointer item)
 		goto abort_read;
 
 	md->start = time(NULL);
-	md->size = (off_t) download_filesize(d);
+	md->size = download_filesize(d);
 	md->copied = 0;
 	md->error = 0;
 
 	if (dbg > 1)
-		printf("Moving \"%s\" to \"%s\"\n", download_outname(d), md->target);
+		g_message("Moving \"%s\" to \"%s\"",
+				download_outname(d), md->target);
 
 	G_FREE_NULL(source);
 
@@ -323,7 +324,7 @@ d_step_copy(gpointer h, gpointer u, gint ticks)
 	struct moved *md = (struct moved *) u;
 	ssize_t r;
 	size_t amount;
-	gint64 remain;
+	guint64 remain;
 	gint used;
 
 	g_assert(md->magic == MOVED_MAGIC);
@@ -352,15 +353,12 @@ d_step_copy(gpointer h, gpointer u, gint ticks)
 	g_assert(amount > 0);
 
 	r = read(md->rd, md->buffer, amount);
-
 	if ((ssize_t) -1 == r) {
 		md->error = errno;
 		g_warning("error while reading \"%s\" for moving: %s",
 			download_outname(md->d), g_strerror(errno));
 		return BGR_DONE;
-	}
-
-	if (r == 0) {
+	} else if (r == 0) {
 		g_warning("EOF while reading \"%s\" for moving!",
 			download_outname(md->d));
 		md->error = -1;
@@ -378,7 +376,6 @@ d_step_copy(gpointer h, gpointer u, gint ticks)
 		bg_task_ticks_used(h, used);
 
 	r = write(md->wd, md->buffer, amount);
-
 	if (r < 0) {
 		md->error = errno;
 		g_warning("error while writing for moving \"%s\": %s",

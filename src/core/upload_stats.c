@@ -90,10 +90,12 @@ void upload_stats_load_history(const gchar *ul_history_file_name)
 
 	/* parse, insert names into ul_stats_clist */
 	while (fgets(line, sizeof(line), upload_stats_file)) {
-		gulong size, attempt, complete;
+		gulong attempt, complete;
 		gulong ulbytes_high, ulbytes_low;	/* Portability reasons */
 		guint64 ulbytes;
+		filesize_t size;
 		gchar *name_end;
+		size_t i;
 
 		lineno++;
 		if (line[0] == '#' || line[0] == '\n')
@@ -104,13 +106,33 @@ void upload_stats_load_history(const gchar *ul_history_file_name)
 			goto corrupted;
 		*name_end++ = '\0';		/* line is now the URL-escaped file name */
 
-		if (
-			5 == sscanf(name_end, "%lu\t%lu\t%lu\t%lu\t%lu\n",
-				&size, &attempt, &complete, &ulbytes_high, &ulbytes_low)
-		)
-			ulbytes = (((guint64) ulbytes_high) << 32) | ulbytes_low;
-		else
-			goto corrupted;
+		/* The line below is for retarded compilers only */		
+		size = attempt = complete = ulbytes_high = ulbytes_low = 0;
+
+		for (i = 0; i < 5; i++) {
+			guint64 v;
+			gint error;
+			gchar *ep;
+
+			name_end = skip_ascii_spaces(name_end);
+			v = parse_uint64(name_end, &ep, 10, &error);
+			name_end = ep;
+			if (error || !is_ascii_space(*ep))
+				goto corrupted;
+
+			switch (i) {
+			case 0: size = v; break;
+			case 1: attempt = v; break;
+			case 2: complete = v; break;
+			case 3: ulbytes_high = v; break;
+			case 4: ulbytes_low = v; break;
+			default:
+				g_assert_not_reached();
+				goto corrupted;
+			}
+		}
+
+		ulbytes = (((guint64) ulbytes_high) << 32) | ulbytes_low;
 
 		/* URL-unescape in-place */
 		if (!url_unescape(line, TRUE))
@@ -170,8 +192,8 @@ static void upload_stats_dump_history(const gchar *ul_history_file_name)
 		stat = l->data;
 		g_assert(NULL != stat);
 		escaped = url_escape_cntrl(stat->filename);
-		fprintf(out, "%s\t%u\t%u\t%u\t%u\t%u\n", escaped,
-			stat->size, stat->attempts, stat->complete,
+		fprintf(out, "%s\t%" PRIu64 "\t%u\t%u\t%u\t%u\n", escaped,
+			(guint64) stat->size, stat->attempts, stat->complete,
 				(guint32) (stat->bytes_sent >> 32),
 				(guint32) stat->bytes_sent);
 

@@ -78,7 +78,7 @@ RCSID("$Id$");
 
 struct sha1_cache_entry {
     gchar *file_name;                     /* Full path name                 */
-    off_t  size;                          /* File size                      */
+    filesize_t  size;                     /* File size                      */
     time_t mtime;                         /* Last modification time         */
     gchar digest[SHA1_RAW_SIZE];          /* SHA1 digest as a binary string */
     gboolean shared;                      /* There's a known entry for this
@@ -121,7 +121,7 @@ static void copy_sha1(char *dest, const char *source)
  */
 static void update_volatile_cache(
 	struct sha1_cache_entry *sha1_cached_entry,
-	off_t size,
+	filesize_t size,
 	time_t mtime, 
 	const char *digest)
 {
@@ -137,7 +137,7 @@ static void update_volatile_cache(
  */
 static void add_volatile_cache_entry(
 	const char *file_name, 
-	off_t size,
+	filesize_t size,
 	time_t mtime,
 	const char *digest, 
 	gboolean known_to_be_shared)
@@ -171,7 +171,7 @@ static char *persistent_cache_file_name = NULL;
  */
 static void add_persistent_cache_entry(
 	const char *file_name,
-	off_t size,
+	filesize_t size,
 	time_t mtime,
 	const char *digest)
 {
@@ -192,36 +192,34 @@ static void add_persistent_cache_entry(
 	if (0 == ftell(persistent_cache))
 		fputs(sha1_persistent_cache_file_header, persistent_cache);
 
-	fprintf(persistent_cache, "%s\t%lu\t%lu\t%s\n",
-		sha1_base32(digest), (gulong) size, (gulong) mtime, file_name);
+	fprintf(persistent_cache, "%s\t%" PRIu64 "\t%lu\t%s\n",
+		sha1_base32(digest), (guint64) size, (gulong) mtime, file_name);
 	fclose(persistent_cache);
 }
 
-/*
- * dump_cache_one_entry
- * 
+/**
  * Dump one (in-memory) cache into the persistent cache. This is a callback
  * called by dump_cache to dump the whole in-memory cache onto disk.
  */
-static void dump_cache_one_entry(
-	const char *file_name,
-	struct sha1_cache_entry *e,
-	FILE *persistent_cache)
+static void
+dump_cache_one_entry(gpointer unused_key, gpointer value, gpointer udata)
 {
+	struct sha1_cache_entry *e = value;
+	FILE *persistent_cache = udata;
+
 	if (!e->shared)
 		return;
 
-	fprintf(persistent_cache, "%s\t%lu\t%ld\t%s\n",
-		sha1_base32(e->digest), (gulong) e->size, (glong) e->mtime, 
+	fprintf(persistent_cache, "%s\t%" PRIu64 "\t%ld\t%s\n",
+		sha1_base32(e->digest), (guint64) e->size, (glong) e->mtime, 
 			e->file_name);
 }
 
-/*
- * dump_cache
- *
+/**
  * Dump the whole in-memory cache onto disk.
  */
-static void dump_cache(void)
+static void
+dump_cache(void)
 {
 	FILE *persistent_cache;
 
@@ -231,29 +229,27 @@ static void dump_cache(void)
 		return;
 
 	fputs(sha1_persistent_cache_file_header, persistent_cache);
-	g_hash_table_foreach(sha1_cache,
-		(GHFunc)dump_cache_one_entry, persistent_cache);
+	g_hash_table_foreach(sha1_cache, dump_cache_one_entry, persistent_cache);
 	fclose(persistent_cache);
 
 	cache_dirty = FALSE;
 }
 
-/*
- * parse_and_append_cache_entry
- * 
+/**
  * This function is used to read the disk cache into memory. It must be passed
  * one line from the cache (ending with '\n'). It performs all the
  * syntactic processing to extract the fields from the line and calls
  * add_volatile_cache_entry to append the record to the in-memory cache.
  */
-static void parse_and_append_cache_entry(char *line)
+static void
+parse_and_append_cache_entry(char *line)
 {
 	const char *sha1_digest_ascii;
 	const char *file_name;
 	char *file_name_end;
 	char *p, *end; /* pointers to scan the line */
 	gint c;
-	off_t size;
+	filesize_t size;
 	time_t mtime;
 	char digest[SHA1_RAW_SIZE];
 
@@ -324,9 +320,7 @@ static void parse_and_append_cache_entry(char *line)
 	add_volatile_cache_entry(file_name, size, mtime, digest, FALSE);
 }
 
-/*
- * sha1_read_cache
- * 
+/**
  * Read the whole persistent cache into memory.
  */
 static void sha1_read_cache(void)
@@ -403,25 +397,22 @@ static struct file_sha1 *waiting_for_sha1_computation = NULL;
 
 static struct file_sha1 *waiting_for_library_build_complete = NULL;
 
-/* 
- * push
- * 
+/**
  * Push a record onto a stack (either waiting_for_sha1_computation or
  * waiting_for_library_build_complete).
  */
-
-static void push(struct file_sha1 **stack,struct file_sha1 *record)
+static void
+push(struct file_sha1 **stack,struct file_sha1 *record)
 {
 	record->next = *stack;
 	*stack = record;
 }
 
-/*
- * free_cell
- *
+/**
  * Free a working cell.
  */
-static void free_cell(struct file_sha1 *cell)
+static void
+free_cell(struct file_sha1 *cell)
 {
 	atom_str_free(cell->file_name);
 	G_FREE_NULL(cell);
@@ -440,7 +431,8 @@ struct sha1_computation_context {
 	time_t start;				/* Debugging, show computation rate */
 };
 
-static void sha1_computation_context_free(gpointer u)
+static void
+sha1_computation_context_free(gpointer u)
 {
 	struct sha1_computation_context *ctx =
 		(struct sha1_computation_context *) u;
@@ -458,16 +450,13 @@ static void sha1_computation_context_free(gpointer u)
 	wfree(ctx, sizeof(*ctx));
 }
 
-/* 
- * put_sha1_back_into_share_library
- * 
+/**
  * When SHA1 is computed, and we know what struct share it's related
  * to, we call this function to update set the share SHA1 value.
  */
-static void put_sha1_back_into_share_library(
-	struct shared_file *sf,
-	const char *file_name,
-	const char *digest)
+static void
+put_sha1_back_into_share_library(struct shared_file *sf,
+	const char *file_name, const char *digest)
 {
 	struct sha1_cache_entry *cached_sha1;
 	struct stat buf;
@@ -527,14 +516,13 @@ static void put_sha1_back_into_share_library(
 	}
 }
 
-/* 
- * try_to_put_sha1_back_into_share_library
- *
+/**
  * We have some SHA1 we couldn't put the values into the share library
  * because it wasn't available. We try again. This function is called from the
  * sha1_timer. 
  */
-static void try_to_put_sha1_back_into_share_library(void)
+static void
+try_to_put_sha1_back_into_share_library(void)
 {
 	struct shared_file *sf;
 
@@ -567,13 +555,12 @@ static void try_to_put_sha1_back_into_share_library(void)
 	}
 }
 
-/* 
- * close_current_file
- * 
+/**
  * Close the file whose hash we're computing (after calculation completed) and
  * free the associated structure.
  */
-static void close_current_file(struct sha1_computation_context *ctx)
+static void
+close_current_file(struct sha1_computation_context *ctx)
 {
 	if (ctx->file) {
 		free_cell(ctx->file);
@@ -586,23 +573,22 @@ static void close_current_file(struct sha1_computation_context *ctx)
 			gint delta = delta_time(time((time_t *) NULL), ctx->start);
 
 			if (delta && -1 != fstat(ctx->fd, &buf))
-				printf("SHA1 computation rate: %lu bytes/sec\n",
-					(gulong) buf.st_size / delta);
+				printf("SHA1 computation rate: %" PRIu64 "bytes/sec\n",
+					(guint64) buf.st_size / delta);
 		}
 		close(ctx->fd);
 		ctx->fd = -1;
 	}
 }
 
-/* 
- * get_next_file_from_list
- * 
+/**
  * Get the next file waiting for its hash to be computed from the queue
  * (actually a stack).
  * 
- * Returns this file.
+ * @return this file.
  */
-static struct file_sha1 *get_next_file_from_list(void)
+static struct file_sha1 *
+get_next_file_from_list(void)
 {
 	struct file_sha1 *l;
 
@@ -645,7 +631,10 @@ static struct file_sha1 *get_next_file_from_list(void)
 				continue;
 			}
 
-			if (cached->size == buf.st_size && cached->mtime == buf.st_mtime) {
+			if (
+				cached->size == (guint64) buf.st_size &&
+				cached->mtime == buf.st_mtime
+			) {
 				if (dbg > 1)
 					printf("ignoring duplicate SHA1 work for \"%s\"\n",
 						l->file_name);
@@ -658,14 +647,13 @@ static struct file_sha1 *get_next_file_from_list(void)
 	}
 }
 
-/* 
- * open_next_file
- * 
+/**
  * Open the next file waiting for its hash to be computed.
  * 
- * Returns TRUE if open succeeded, FALSE otherwise.
+ * @return TRUE if open succeeded, FALSE otherwise.
  */
-static gboolean open_next_file(struct sha1_computation_context *ctx)
+static gboolean
+open_next_file(struct sha1_computation_context *ctx)
 {
 	ctx->file = get_next_file_from_list();
 
@@ -691,12 +679,11 @@ static gboolean open_next_file(struct sha1_computation_context *ctx)
 	return TRUE;
 }
 
-/*
- * got_sha1_result
- * 
+/**
  * Callback to be called when a computation has completed.
  */
-static void got_sha1_result(struct sha1_computation_context *ctx, char *digest)
+static void
+got_sha1_result(struct sha1_computation_context *ctx, char *digest)
 {
 	struct shared_file *sf;
 
@@ -721,14 +708,13 @@ static void got_sha1_result(struct sha1_computation_context *ctx, char *digest)
 		put_sha1_back_into_share_library(sf, ctx->file->file_name, digest);
 }
 
-/*
- * sha1_timer_one_step
- * 
+/**
  * The timer calls repeatedly this function, consuming one unit of
  * credit every call.
  */
-static void sha1_timer_one_step(
-	struct sha1_computation_context *ctx, gint ticks, gint *used)
+static void
+sha1_timer_one_step(struct sha1_computation_context *ctx,
+	gint ticks, gint *used)
 {
 	ssize_t r;
 	int res;
@@ -782,12 +768,11 @@ static void sha1_timer_one_step(
 	}
 }
 
-/* 
- * sha1_step_compute
- * 
+/**
  * The routine doing all the work.
  */
-static bgret_t sha1_step_compute(gpointer h, gpointer u, gint ticks)
+static bgret_t
+sha1_step_compute(gpointer h, gpointer u, gint ticks)
 {
 	gboolean call_again;
 	struct sha1_computation_context *ctx =
@@ -843,12 +828,11 @@ static bgret_t sha1_step_compute(gpointer h, gpointer u, gint ticks)
 	return BGR_MORE;
 }
 
-/*
- * sha1_step_dump
- *
+/**
  * Dump SHA1 cache if it is dirty.
  */
-static bgret_t sha1_step_dump(gpointer h, gpointer u, gint ticks)
+static bgret_t
+sha1_step_dump(gpointer h, gpointer u, gint ticks)
 {
 	if (cache_dirty)
 		dump_cache();
@@ -867,14 +851,12 @@ static bgret_t sha1_step_dump(gpointer h, gpointer u, gint ticks)
  * is put in a queue for it's SHA1 digest to be computed.
  */
 
-/* 
- * queue_shared_file_for_sha1_computation
- * 
+/**
  * Put the file with a given file_index and file_name on the stack of the things
  * to do. Activate the timer if this wasn't done already.
  */
-static void queue_shared_file_for_sha1_computation(
-	guint32 file_index,
+static void
+queue_shared_file_for_sha1_computation(guint32 file_index,
 	const char *file_name)
 {
 	struct file_sha1 *new_cell = g_malloc(sizeof(struct file_sha1));
@@ -902,11 +884,10 @@ static void queue_shared_file_for_sha1_computation(
 	}
 }
 
-/* 
- * cached_entry_up_to_date
- * 
+/**
  * Check to see if an (in-memory) entry cache is up to date.
- * Returns true (in the C sense) if it is, or false otherwise.
+ *
+ * @return true (in the C sense) if it is, or false otherwise.
  */
 static gboolean cached_entry_up_to_date(
 	const struct sha1_cache_entry *cache_entry,
@@ -916,9 +897,7 @@ static gboolean cached_entry_up_to_date(
 		&& cache_entry->mtime == sf->mtime;
 }
 
-/* 
- * sha1_is_cached
- * 
+/**
  * External interface to check whether the sha1 for shared_file is known.
  */
 gboolean sha1_is_cached(const struct shared_file *sf)
@@ -932,12 +911,11 @@ gboolean sha1_is_cached(const struct shared_file *sf)
 }
 
 
-/* 
- * requested_sha1
- * 
+/**
  * External interface to call for getting the hash for a shared_file.
  */
-void request_sha1(struct shared_file *sf)
+void
+request_sha1(struct shared_file *sf)
 {
 	struct sha1_cache_entry *cached_sha1;
 
@@ -966,23 +944,21 @@ void request_sha1(struct shared_file *sf)
  ** Init
  **/
 
-/*
- * huge_init
- *
+/**
  * Initialize SHA1 module
  */
-void huge_init(void)
+void
+huge_init(void)
 {
 	sha1_cache = g_hash_table_new(g_str_hash, g_str_equal);
 	sha1_read_cache();
 }
 
-/*
- * cache_free_entry
- *
+/**
  * Free SHA1 cache entry.
  */
-static gboolean cache_free_entry(gpointer k, gpointer v, gpointer udata)
+static gboolean
+cache_free_entry(gpointer k, gpointer v, gpointer udata)
 {
 	struct sha1_cache_entry *e = (struct sha1_cache_entry *) v;
 
@@ -992,12 +968,11 @@ static gboolean cache_free_entry(gpointer k, gpointer v, gpointer udata)
 	return TRUE;
 }
 
-/*
- * huge_close
- *
+/**
  * Called when servent is shutdown.
  */
-void huge_close(void)
+void
+huge_close(void)
 {
 	if (sha1_task)
 		bg_task_cancel(sha1_task);
@@ -1062,9 +1037,10 @@ huge_improbable_sha1(gchar *buf, gint len)
  * When `check_old' is true, check the encoding against an earlier version
  * of the base32 alphabet.
  *
- * Returns TRUE if the SHA1 was valid and properly decoded, FALSE on error.
+ * @return TRUE if the SHA1 was valid and properly decoded, FALSE on error.
  */
-gboolean huge_sha1_extract32(gchar *buf, gint len, gchar *retval,
+gboolean
+huge_sha1_extract32(gchar *buf, gint len, gchar *retval,
 	gpointer header, gboolean check_old)
 {
 	if (len != SHA1_BASE32_SIZE || huge_improbable_sha1(buf, len))
@@ -1124,9 +1100,7 @@ bad:
 	return FALSE;
 }
 
-/*
- * huge_collect_locations
- *
+/**
  * Parse the "X-Gnutella-Alternate-Location" header if present to learn
  * about other sources for this file.
  *
@@ -1135,7 +1109,8 @@ bad:
  * which vendor gave us X-Alt locations, so that we can emit back X-Alt to
  * them the next time instead of the longer X-Gnutella-Alternate-Location.
  */
-void huge_collect_locations(gchar *sha1, header_t *header, const gchar *vendor)
+void
+huge_collect_locations(gchar *sha1, header_t *header, const gchar *vendor)
 {
 	gchar *alt = header_get(header, "X-Gnutella-Alternate-Location");
 
@@ -1170,5 +1145,5 @@ void huge_collect_locations(gchar *sha1, header_t *header, const gchar *vendor)
  * tab-width: 4 ***
  * indent-tabs-mode: nil ***
  * End: ***
- * vi: set ts=4: 
+ * vi: set ts=4 sw=4 cindent: 
  */

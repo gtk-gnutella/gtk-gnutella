@@ -35,12 +35,11 @@ RCSID("$Id$");
 #include "lib/walloc.h"
 #include "lib/override.h"	/* Must be the last header included */
 
-/*
- * namesize_hash
- *
+/**
  * Hash a `namesize_t' key.
  */
-guint namesize_hash(gconstpointer key)
+guint
+namesize_hash(gconstpointer key)
 {
 	const namesize_t *k = (const namesize_t *) key;
 	guint32 hash;
@@ -51,12 +50,11 @@ guint namesize_hash(gconstpointer key)
 	return hash;
 }
 
-/*
- * namesize_eq
- *
+/**
  * Compare two `namesize_t' keys.
  */
-gint namesize_eq(gconstpointer a, gconstpointer b)
+gint
+namesize_eq(gconstpointer a, gconstpointer b)
 {
 	const namesize_t *ka = a;
 	const namesize_t *kb = b;
@@ -64,12 +62,11 @@ gint namesize_eq(gconstpointer a, gconstpointer b)
 	return ka->size == kb->size && 0 == strcmp(ka->name, kb->name);
 }
 
-/*
- * namesize_make
- *
+/**
  * Create a new namesize structure.
  */
-namesize_t *namesize_make(const gchar *name, guint32 size)
+namesize_t *
+namesize_make(const gchar *name, filesize_t size)
 {
 	namesize_t *ns;
 
@@ -80,12 +77,11 @@ namesize_t *namesize_make(const gchar *name, guint32 size)
 	return ns;
 }
 
-/*
- * namesize_free
- *
+/**
  * Free a namesize structure.
  */
-void namesize_free(namesize_t *ns)
+void
+namesize_free(namesize_t *ns)
 {
 	atom_str_free(ns->name);
 	wfree(ns, sizeof(*ns));

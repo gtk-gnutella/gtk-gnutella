@@ -184,8 +184,8 @@ struct parq_ul_queued {
 	gchar *sha1;			/* SHA1 digest for easy reference */
 	guint32 remote_ip;		/* IP address of the socket endpoint */
 	
-	guint32 file_size;		/* Needed to recalculate ETA */
-	guint32 chunk_size;		/* Requested chunk size */
+	filesize_t file_size;	/* Needed to recalculate ETA */
+	filesize_t chunk_size;	/* Requested chunk size */
 	guint32 ip;				/* Contact IP:port, as read from X-Node: */
 	guint16 port;
 
@@ -2515,13 +2515,15 @@ parq_upload_request(gnutella_upload_t *u, gpointer handle, guint used_slots)
 	struct parq_ul_queued *parq_ul = handle_to_queued(handle);
 	time_t now = time((time_t *) NULL);
 	time_t org_retry = parq_ul->retry; 
+	filesize_t chunk_size;
 #if AGGRESSIVE
 	guint avg_bps;
 #endif
 
 	g_assert(u != NULL);
 	
-	parq_ul->chunk_size = abs(u->skip - u->end);
+	chunk_size = u->skip > u->end ? u->skip - u->end : u->end - u->skip;
+	parq_ul->chunk_size = chunk_size;
 	parq_ul->updated = now;
 	parq_ul->retry = now + parq_ul_calc_retry(parq_ul);
 		
@@ -3457,16 +3459,16 @@ parq_store(gpointer data, gpointer x)
 		  "ENTERED: %d\n"
 		  "EXPIRE: %d\n"
 		  "ID: %s\n"
-		  "SIZE: %d\n"
+		  "SIZE: %" PRIu64 "\n"
 		  "XIP: %s\n"
 		  "XPORT: %d\n"
 		  "IP: %s\n",
 		  g_list_position(ul_parqs, g_list_find(ul_parqs, parq_ul->queue)) + 1,
 		  parq_ul->position,
 		  (gint) parq_ul->enter,
-		  (gint) parq_ul->expire - (gint) now,
+		  (gint) delta_time(parq_ul->expire, now),
 		  parq_ul->id,
-		  parq_ul->file_size,
+		  (guint64) parq_ul->file_size,
 		  xip,
 		  parq_ul->port,
 		  ip);
@@ -3493,7 +3495,7 @@ parq_upload_load_queue(void)
 	int position = 0;
 	int enter = 0;
 	int expire = 0;
-	int filesize = 0;
+	filesize_t filesize = 0;
 	guint32 ip = 0;
 	guint32 xip = 0;
 	int xport = 0;
@@ -3561,7 +3563,14 @@ parq_upload_load_queue(void)
 		sscanf(line, "POS: %d\n", &position);
 		sscanf(line, "ENTERED: %d\n", &enter);
 		sscanf(line, "EXPIRE: %d\n", &expire);
-		sscanf(line, "SIZE: %d\n", &filesize);
+		if (0 == strncmp(line, "SIZE: ", CONST_STRLEN("SIZE: "))) {
+			const gchar *s = &line[CONST_STRLEN("SIZE: ")];
+			guint64 v;
+			gint error;
+
+			v = parse_uint64(s, NULL, 10, &error);
+			filesize = v < UINT_MAX || sizeof(filesize) > 4 ? v : 0;
+		}
 		sscanf(line, "XPORT: %d\n", &xport);
 		
 		if (!strncmp(line, "ID: ", 4)) {
