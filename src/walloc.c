@@ -44,10 +44,10 @@
 static struct zone *wzone[WZONE_SIZE];
 
 /*
- * Under USE_DMALLOC, do not define walloc(), wfree() and wrealloc().
+ * Under REMAP_ZALLOC, do not define walloc(), wfree() and wrealloc().
  */
 
-#ifndef USE_DMALLOC
+#ifndef REMAP_ZALLOC
 /*
  * walloc
  *
@@ -137,7 +137,7 @@ gpointer wrealloc(gpointer old, gint old_size, gint new_size)
 
 	return new;
 }
-#endif	/* !USE_DMALLOC */
+#endif	/* !REMAP_ZALLOC */
 
 /*
  * wdestroy

@@ -71,21 +71,24 @@ zone_t *zget(gint, gint);
 void zdestroy(zone_t *zone);
 
 /*
- * Under USE_DMALLOC control, those routines are remapped to malloc/free.
+ * Under REMAP_ZALLOC control, those routines are remapped to malloc/free.
  */
 
-#ifdef USE_DMALLOC
+#if defined(USE_DMALLOC) && !defined(REMAP_ZALLOC)
+#define REMAP_ZALLOC
+#endif
+
+#ifdef REMAP_ZALLOC
 
 #define zalloc(z)	g_malloc((z)->zn_size)
 #define zfree(z,o)	g_free(o)
 
-#else	/* !USE_DMALLOC */
+#else	/* !REMAP_ZALLOC */
 
 gpointer zalloc(zone_t *);
 void zfree(zone_t *, gpointer);
 
-#endif	/* USE_DMALLOC */
-
+#endif	/* REMAP_ZALLOC */
 
 #endif /* __zalloc_h__ */
 

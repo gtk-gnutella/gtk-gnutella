@@ -57,10 +57,10 @@ static void zn_cram(zone_t *, gchar *, gint);
 static struct zone *zn_create(zone_t *, gint, gint);
 
 /*
- * Under USE_DMALLOC, do not define zalloc() and zfree().
+ * Under REMAP_ZALLOC, do not define zalloc() and zfree().
  */
 
-#ifndef USE_DMALLOC
+#ifndef REMAP_ZALLOC
 
 static gchar **zn_extend(zone_t *);
 
@@ -170,7 +170,7 @@ void zfree(zone_t *zone, gpointer ptr)
 	zone->zn_free = (gchar **) ptr;				/* New free list head */
 	zone->zn_cnt--;								/* To make zone gc easier */
 }
-#endif	/* !USE_DMALLOC */
+#endif	/* !REMAP_ZALLOC */
 
 /*
  * zcreate
@@ -371,7 +371,7 @@ static void zn_cram(zone_t *zone, gchar *arena, gint size)
 		*(gchar **) arena = (next < end) ? next : (gchar *) 0;
 }
 
-#ifndef USE_DMALLOC
+#ifndef REMAP_ZALLOC
 /*
  * zn_extend
  *
@@ -394,5 +394,5 @@ static gchar **zn_extend(zone_t *zone)
 
 	return zone->zn_free;
 }
-#endif	/* !USE_DMALLOC */
+#endif	/* !REMAP_ZALLOC */
 
