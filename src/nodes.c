@@ -1044,6 +1044,10 @@ static gboolean node_ip_is_bad(guint32 ip) {
 	
 	g_assert(ip != 0);
 	
+	if (!node_monitor_unstable_ip)
+		/* User disabled monitoring of unstable IPs. */
+		return FALSE;
+	
 	bad_ip = g_hash_table_lookup(unstable_ip, GUINT_TO_POINTER(ip));
 	
 	if (bad_ip != NULL) {
@@ -1068,6 +1072,10 @@ static enum node_bad node_is_bad(struct gnutella_node *n)
 	
 	g_assert(n != NULL);
 	
+	if (!node_monitor_unstable_ip)
+		/* User disabled monitoring of unstable IPs. */
+		return FALSE;
+
 	if (n->vendor == NULL) {
 		if (dbg)
 			g_warning("[nodes up] Got no vendor name!");
@@ -1085,6 +1093,10 @@ static enum node_bad node_is_bad(struct gnutella_node *n)
 				n->vendor);
 		return NODE_BAD_IP;
 	} else {
+		if (!node_monitor_unstable_servents)
+			/* User doesn't want us to monitor unstable servents */
+			return FALSE;
+		
 		bad_client = g_hash_table_lookup(unstable_servent, n->vendor);
 	
 		if (bad_client == NULL)
@@ -1114,6 +1126,15 @@ void node_mark_bad(struct gnutella_node *n)
 	if (in_shutdown) {
 		return;
 	}
+	
+	if (!node_monitor_unstable_ip)
+		/*
+		 * If the user doesn't want us to protect against unstable IPs, then we
+		 * can stop right now. Protecting against unstable servent name will 
+		 * also be ignored, to prevent marking a servent as unstable while we
+		 * are actually connecting to the same IP over and over again
+		 */
+		return;
 	
 	g_assert(n != NULL);
 	g_assert(n->ip != 0);
@@ -1161,6 +1182,10 @@ void node_mark_bad(struct gnutella_node *n)
 				ip_to_gchar(n->ip),
 				NULL != n->vendor ? n->vendor : "<unknown>");
 	}	
+	
+	if (!node_monitor_unstable_servents)
+		/* The user doesn't want us to monitor unstable servents. */
+		return;
 	
 	if (n->vendor == NULL)
 		return;
