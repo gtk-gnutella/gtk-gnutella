@@ -1077,6 +1077,19 @@ void on_button_queue_clear_clicked(GtkButton * button,
     on_popup_queue_abort_activate(NULL, NULL);
 }
 
+void on_entry_queue_remove_regex_activate(GtkEditable *editable, 
+                                          gpointer user_data)
+{
+    download_remove_all_regex
+        (gtk_entry_get_text(GTK_ENTRY(entry_queue_remove_regex)));
+}
+
+void on_checkbutton_queue_regex_case_toggled(GtkToggleButton *togglebutton,
+                                             gpointer user_data)
+{
+    queue_regex_case = gtk_toggle_button_get_active(togglebutton);
+}
+
 gboolean on_clist_downloads_queue_button_press_event(GtkWidget * widget,
 													GdkEventButton * event,
 													gpointer user_data)
