@@ -1,6 +1,10 @@
 This is the stable 0.93.x branch.
 
 # since last version
+- (2004.04.14 - Jeroen)
+ * Don't write socket information in the socket structure if we just
+   freed it.
+ * Version of 14/4/2004
 
 - (2004.04.10 - RAM)
  * Will now parse up to 150 hosts in hostfile replies.
