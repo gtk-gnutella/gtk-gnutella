@@ -32,7 +32,7 @@
 #include "sockets.h"
 #include "gnutella.h"
 #include "settings.h"
-
+#include "gnet_property.h"
 
 RCSID("$Id$");
 
@@ -56,16 +56,21 @@ RCSID("$Id$");
 
 #define PARQ_UL_MAGIC	0x6a3900a1
 
+GHashTable *dl_all_parq_by_id = NULL;
+
 guint parq_max_upload_size = 4000;
 guint parq_upload_active_size = 20; /* Number of active upload slots per queue*/
 static const gchar *file_parq_file = "parq";
 
-static GList *ul_parqs = NULL;
+GList *ul_parqs = NULL;		/* List of all queued uploads */
+GList *ul_parq_queue = NULL;	/* To whom we need to send a QUEUE */
 GHashTable *ul_all_parq_by_ip_and_name = NULL;
 GHashTable *ul_all_parq_by_id = NULL;
-gboolean enable_real_passive = TRUE;
+gboolean enable_real_passive = TRUE;	/* If TRUE, a dead upload is only marked
+										 * dead, if FALSE, a dead upload is 
+										 * really removed and cannot reclame
+										 * its position */
 
-GHashTable *dl_all_parq_by_id = NULL;
  
 /*
  * Holds status of current queue.
@@ -150,7 +155,10 @@ static void parq_upload_update_relative_position(
 		struct parq_ul_queued *parq_ul);
 static void parq_upload_update_ip_and_name(struct parq_ul_queued *parq_ul, 
 	gnutella_upload_t *u);
+
 void parq_upload_send_queue(struct parq_ul_queued *parq_ul);
+void parq_upload_do_send_queue(struct parq_ul_queued *parq_ul);
+	
 /***
  ***  Generic non PARQ specific functions
  ***/
@@ -325,6 +333,63 @@ void parq_init(void)
 	parq_upload_load_queue();
 }
 
+/*
+ * parq_close
+ *
+ * Saves any queueing information and frees all memory used by PARQ
+ */
+
+void parq_close(void)
+{
+	GList *queues;
+	GList *dl;
+	GSList *sl;
+	GSList *remove = NULL;
+	GSList *removeq = NULL;
+
+	parq_upload_save_queue();
+	
+	/* 
+	 * First locate all queued items (dead or alive). And place them in the
+	 * 'to be removed' list.
+	 */
+	for (queues = ul_parqs ; queues != NULL; queues = queues->next) {
+		struct parq_ul_queue *queue = (struct parq_ul_queue *) queues->data;
+
+		for (dl = queue->by_position; dl != NULL; dl = dl->next) {	
+			struct parq_ul_queued *parq_ul = (struct parq_ul_queued *) dl->data;
+
+			if (parq_ul == NULL)
+				break;
+			
+			remove = g_slist_prepend(remove, parq_ul);		
+		}
+		
+		removeq = g_slist_prepend(removeq, queue);
+	}
+
+	/* Free all memory used by queued items */
+	for (sl = remove; sl != NULL; sl = g_slist_next(sl))
+		parq_upload_free((struct parq_ul_queued *) sl->data);
+	
+	g_slist_free(remove);
+
+	for (sl = removeq; sl != NULL; sl = g_slist_next(sl)) {
+		struct parq_ul_queue *queue = (struct parq_ul_queue *)sl->data;
+			
+		/* 
+		 * We didn't decrease the active_uploads counters when we were freeing
+		 * we don't care about this information anymore anyway.
+		 * Set the queue inactive to avoid an assertion
+		 */
+		queue->active_uploads = 0;
+		queue->active = FALSE;
+		parq_upload_free_queue(queue);
+	}
+		
+	g_slist_free(removeq);
+
+}
 
 /***
  ***  The following section contains download PARQ functions
@@ -926,6 +991,9 @@ static void parq_upload_free(struct parq_ul_queued *parq_ul)
 	
 	parq_upload_decrease_all_after(parq_ul);	
 
+	if (NULL != g_list_find(ul_parq_queue, parq_ul))
+		ul_parq_queue = g_list_remove(ul_parq_queue, parq_ul);
+	
 	/*
 	 * Tell parq_upload_update_relative_position not to take this
 	 * upload into account when updating the relative position
@@ -1312,6 +1380,7 @@ void parq_upload_timer(time_t now)
 	GSList *remove = NULL;
 	static guint print_q_size = 0;
 	guint	queue_selected = 0;
+	gboolean rebuilding = FALSE;
 	
 	for (queues = ul_parqs ; queues != NULL; queues = queues->next) {
 		struct parq_ul_queue *queue = (struct parq_ul_queue *) queues->data;
@@ -1421,7 +1490,21 @@ void parq_upload_timer(time_t now)
 			parq_upload_free_queue(queue);
 		}
 	}
-
+	
+	/* Send one QUEUE command at a time, with a delay of 5 seconds. */
+	/* XXX hardwired */
+	gnet_prop_get_boolean_val(PROP_LIBRARY_REBUILDING, &rebuilding);
+	
+	if (!rebuilding && 0 == (now % 5)) {
+		if (g_list_first(ul_parq_queue) != NULL) {
+			struct parq_ul_queued *parq_ul = 
+				(struct parq_ul_queued *) g_list_first(ul_parq_queue)->data;
+				
+			parq_upload_do_send_queue(parq_ul);
+	
+			ul_parq_queue = g_list_remove(ul_parq_queue, parq_ul);
+		}
+	}
 }
 
 /*
@@ -1511,12 +1594,20 @@ static gboolean parq_upload_continue(struct parq_ul_queued *uq, gint free_slots)
 		struct parq_ul_queue *queue = (struct parq_ul_queue *) l->data;
 		if (!queue->active && queue->alive > 0) {
 			if (uq->queue->active) {
-				g_warning("PARQ UL: Upload inactive queue first");
+				g_warning("PARQ UL: Upload in inactive queue first");
 				return FALSE;
 			}
 		}
 	}
 	
+	/*
+	 * Don't allow an upload which just came alive again and as a result
+	 * has a relative postion which allows an upload slot, while the queue
+	 * is already uploading.
+	 */
+	if (uq->relative_position <= uq->queue->active_uploads)
+		return FALSE;
+
 	for (pos = 1; pos <= max_uploads; pos++) {
 		for (l = g_list_last(ul_parqs); l; l = l->prev) {
 			struct parq_ul_queue *queue = (struct parq_ul_queue *) l->data;
@@ -1530,6 +1621,7 @@ static gboolean parq_upload_continue(struct parq_ul_queued *uq, gint free_slots)
 				g_assert(pos == parq_ul->relative_position);
 				if (pos > queue->active_uploads + 1)
 					return FALSE;
+				
 			}	
 		}
 
@@ -2120,32 +2212,41 @@ static gboolean parq_upload_get_ip(struct parq_ul_queued *parq_ul, int *ip)
 	return sscanf(parq_ul->ip_and_name, "%d ", ip) > 0;
 }
 
-/*
- * parq_upload_send_queue
- *
- * Sends a QUEUE to a parq enabled client
- */
 void parq_upload_send_queue(struct parq_ul_queued *parq_ul)
 {
-	struct gnutella_socket *s;
-	gnutella_upload_t *u;
-	
 	/* No known connect back port / ip */
 	if (parq_ul->port == 0 || parq_ul->ip == 0) {
 		if (dbg > 2) {
 			printf("PARQ UL Q %d/%d (%3d[%3d]/%3d): "
-				"Could not send QUEUE:'%s'\n\r",
+				"Could not send QUEUE:'%s' (to %s)\n\r",
 				  g_list_position(ul_parqs, 
 				  g_list_find(ul_parqs, parq_ul->queue)) + 1,
 				  g_list_length(ul_parqs), 
 				  parq_ul->position, 
 				  parq_ul->relative_position,
 				  parq_ul->queue->size,
-				  parq_ul->ip_and_name);
-		}	
+				  parq_ul->ip_and_name,
+				  ip_port_to_gchar(parq_ul->ip, parq_ul->port)
+			);
+		}
 		return;
 	}
-	
+
+	/* Only add the parq_ul if it is not there yet. */
+	if (g_list_find(ul_parq_queue, parq_ul) == NULL)
+		ul_parq_queue = g_list_append(ul_parq_queue, parq_ul);
+}
+
+/*
+ * parq_upload_do_send_queue
+ *
+ * Sends a QUEUE to a parq enabled client
+ */
+void parq_upload_do_send_queue(struct parq_ul_queued *parq_ul)
+{
+	struct gnutella_socket *s;
+	gnutella_upload_t *u;
+		
 	if (dbg)
 		printf("PARQ UL Q %d/%d (%3d[%3d]/%3d): Sending QUEUE:'%s'\n\r",
 			  g_list_position(ul_parqs, 
@@ -2439,6 +2540,7 @@ static void parq_upload_load_queue(void)
 	
 	wfree(u, sizeof(gnutella_upload_t));
 }
+
 /*
 # vim:ts=4:sw=4
 */

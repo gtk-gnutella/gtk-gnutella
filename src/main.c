@@ -110,7 +110,7 @@ void gtk_gnutella_exit(gint n)
 	node_bye_all();
 	upload_close();		/* Done before upload_stats_close() for stats update */
 	upload_stats_close();
-	parq_upload_save_queue();
+	parq_close();
 	download_close();
 	http_close();
 	gwc_close();

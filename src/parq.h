@@ -35,6 +35,7 @@
  */
 
 void parq_init(void);
+void parq_close(void);
 
 gint get_parq_dl_position(const struct download *d);
 gint get_parq_dl_queue_length(const struct download *d);

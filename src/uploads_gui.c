@@ -190,26 +190,35 @@ static gchar *uploads_gui_status_str(
 		 */
 	case GTA_UL_QUEUED:
 		if (u->parq_position == 1) {
-		/* position 1 should always get an upload slot */
-			gm_snprintf(tmpstr, sizeof(tmpstr),
-				"Waiting (%4d/ %4d) lifetime: %s", 
-				u->parq_position,
-				u->parq_size,
-				short_time(u->parq_lifetime));
-		} else
-		if (u->parq_retry > 0)
-			gm_snprintf(tmpstr, sizeof(tmpstr),
-				"Queued (slot %4d / %4d) %ds, lifetime: %s", 
-				u->parq_position,
-				u->parq_size,
-				u->parq_retry, 
-				short_time(u->parq_lifetime));
-		else
-			gm_snprintf(tmpstr, sizeof(tmpstr),
-				"Queued (slot %4d / %4d) lifetime: %s", 
-				u->parq_position,
-				u->parq_size,
-				short_time(u->parq_lifetime));
+			/* position 1 should always get an upload slot */
+			if (u->parq_retry > 0)
+				gm_snprintf(tmpstr, sizeof(tmpstr),
+					"Waiting (slot %4d / %4d) %ds, lifetime: %s", 
+					u->parq_position,
+					u->parq_size,
+					u->parq_retry, 
+					short_time(u->parq_lifetime));
+			else
+				gm_snprintf(tmpstr, sizeof(tmpstr),
+					"Waiting (slot %4d / %4d) lifetime: %s", 
+					u->parq_position,
+					u->parq_size,
+					short_time(u->parq_lifetime));
+		} else {
+			if (u->parq_retry > 0)
+				gm_snprintf(tmpstr, sizeof(tmpstr),
+					"Queued (slot %4d / %4d) %ds, lifetime: %s", 
+					u->parq_position,
+					u->parq_size,
+					u->parq_retry, 
+					short_time(u->parq_lifetime));
+			else
+				gm_snprintf(tmpstr, sizeof(tmpstr),
+					"Queued (slot %4d / %4d) lifetime: %s", 
+					u->parq_position,
+					u->parq_size,
+					short_time(u->parq_lifetime));
+		}
         break;
     case GTA_UL_ABORTED:
         return "Transmission aborted";
