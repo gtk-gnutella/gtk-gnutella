@@ -105,7 +105,7 @@ static void d_start(gpointer h, gpointer ctx, gpointer item)
 
 	download_verify_start(d);
 
-	filename = g_strdup_printf("%s/%s", download_path(d), download_outname(d));
+	filename = make_pathname(download_path(d), download_outname(d));
 	g_return_if_fail(NULL != filename);
 
 	vd->fd = file_open(filename, O_RDONLY);
@@ -295,3 +295,4 @@ void verify_close(void)
 	bg_task_cancel(verify_daemon);
 }
 
+/* vi: set ts=4: */

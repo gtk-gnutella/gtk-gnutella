@@ -438,13 +438,13 @@ void settings_ask_for_property(gchar *name, gchar *value)
 	fprintf(stderr,
 		"Sorry, this program is too ancient to run without\n"
 		"an explicit user action: please edit the file\n\n"
-		"\t%s/%s\n\n"
+		"\t%s%s%s\n\n"
 		"and set the variable \"%s\" to\n\"%s\".\n\n"
 		"You will then be able to run this version forever, but\n"
 		"please consider upgrading, as Gnutella is an evolving\n"
 		"network, where ancient versions are less performant, if\n"
 		"not harmful!\n\n",
-		config_dir, config_file, name, value);
+		config_dir, G_DIR_SEPARATOR_S, config_file, name, value);
 	fprintf(stderr, "*** EXITING ***\n\n");
 
 	gtk_gnutella_exit(1);

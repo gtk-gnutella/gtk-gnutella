@@ -139,7 +139,7 @@ static const xmlChar TAG_RULE_STATE_DOWNLOAD[]    = "Download";
 
 
 static gchar x_tmp[4096];
-static const gchar *search_file_xml = "searches.xml";
+static const gchar search_file_xml[] = "searches.xml";
 static GHashTable *id_map = NULL;
 static node_parser_t parser_map[] = {
     {NODE_BUILTIN,     xml_to_builtin},
@@ -207,8 +207,8 @@ void search_store_xml(void)
      */
 
     xmlKeepBlanksDefault(0);
-    filename_new = g_strdup_printf("%s/%s.new",
-						settings_gui_config_dir(), search_file_xml);
+    filename_new = g_strconcat(settings_gui_config_dir(), G_DIR_SEPARATOR_S,
+						search_file_xml, ".new", NULL);
 
     if (
 		NULL == filename_new ||
@@ -222,8 +222,7 @@ void search_store_xml(void)
         if (gui_debug >= 3)
             printf("saved searches file: %s\n", x_tmp);
 
-		filename = g_strdup_printf("%s/%s",
-						settings_gui_config_dir(), search_file_xml);
+		filename = make_pathname(settings_gui_config_dir(), search_file_xml);
 
 		if (
 			NULL == filename ||
@@ -266,13 +265,11 @@ gboolean search_retrieve_xml(void)
 	 *		--RAM, 16/07/2003
 	 */
 	
-  	path = g_strdup_printf("%s/%s", settings_gui_config_dir(),
-			search_file_xml);
+  	path = make_pathname(settings_gui_config_dir(), search_file_xml);
 	if (NULL == path)
 		goto out;
 
-  	path_orig = g_strdup_printf("%s/%s.orig", settings_gui_config_dir(),
-			search_file_xml);
+  	path_orig = g_strconcat(path, ".orig", NULL);
 	if (NULL == path_orig)
 		goto out;
 
@@ -1298,5 +1295,6 @@ static guint16 get_rule_flags_from_xml(xmlNodePtr xmlnode)
     return flags;
 }
 
+/* vi: set ts=4: */
 #endif	/* HAS_LIBXML2 */
 

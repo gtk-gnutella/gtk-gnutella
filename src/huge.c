@@ -291,8 +291,9 @@ static void parse_and_append_cache_entry(char *line)
 	 * modification time.
 	 */
 
+	errno = 0;
 	mtime = strtoul(p, &end, 10);
-	if (end == p || *end != '\t') {
+	if (end == p || *end != '\t' || errno) {
 		g_warning("Malformed line in SHA1 cache file %s[mtime]: %s", 
 			persistent_cache_file_name, line);
 		return;
@@ -324,18 +325,15 @@ static void parse_and_append_cache_entry(char *line)
  */
 static void sha1_read_cache(void)
 {
-	char buffer[4096];
 	FILE *persistent_cache_file;
-	char *fgets_return;
 
 	if (!settings_config_dir()) {
 		g_warning("sha1_read_cache: No config dir");
 		return;
 	}
 
-	gm_snprintf(buffer, sizeof(buffer), "%s/sha1_cache",
-		settings_config_dir());
-	persistent_cache_file_name = g_strdup(buffer);
+	persistent_cache_file_name = make_pathname(settings_config_dir(),
+									"sha1_cache");
 	  
 	persistent_cache_file = file_fopen(persistent_cache_file_name, "r");
 	if (persistent_cache_file == NULL) {
@@ -344,8 +342,9 @@ static void sha1_read_cache(void)
 	}
 	  
 	for (;;) {
-		fgets_return = fgets(buffer, sizeof(buffer), persistent_cache_file);
-		if (!fgets_return)
+		char buffer[4096];
+
+		if (NULL == fgets(buffer, sizeof(buffer), persistent_cache_file))
 			break;
 		parse_and_append_cache_entry(buffer);
 	}
@@ -1215,4 +1214,5 @@ void huge_collect_locations(gchar *sha1, header_t *header, const gchar *vendor)
  * tab-width: 4 ***
  * indent-tabs-mode: nil ***
  * End: ***
+ * vi: set ts=4: 
  */

@@ -469,7 +469,7 @@ void file_info_store_binary(struct dl_file_info *fi)
 	int fd;
 	char *path;
 
-	path = g_strdup_printf("%s/%s", fi->path, fi->file_name);
+	path = make_pathname(fi->path, fi->file_name);
 	g_return_if_fail(NULL != path);
 
 	/*
@@ -500,7 +500,7 @@ void file_info_strip_binary(struct dl_file_info *fi)
 {
 	char *path;
 
-	path = g_strdup_printf("%s/%s", fi->path, fi->file_name);
+	path = make_pathname(fi->path, fi->file_name);
 	g_return_if_fail(NULL != path);
 
 	if (-1 == truncate(path, fi->size))
@@ -979,7 +979,7 @@ shared_file_t *file_info_shared_sha1(const gchar *sha1)
 
 	if (fi->sf == NULL) {
 		shared_file_t *sf = walloc0(sizeof(*sf));
-		char *path = g_strdup_printf("%s/%s", fi->path, fi->file_name);
+		char *path = make_pathname(fi->path, fi->file_name);
 		const char *filename;
 
 		if (NULL == path) {
@@ -1045,7 +1045,7 @@ static struct dl_file_info *file_info_retrieve_binary(
 	struct trailer trailer;
 	struct stat;
 
-	pathname = g_strdup_printf("%s/%s", path, file);
+	pathname = make_pathname(path, file);
 	g_return_val_if_fail(NULL != pathname, NULL);
 	
 	fd = file_open_missing(pathname, O_RDONLY);
@@ -1234,7 +1234,7 @@ static void file_info_store_one(FILE *f, struct dl_file_info *fi)
 		gchar *path;
 		struct stat st;
 
-		path = g_strdup_printf("%s/%s", fi->path, fi->file_name);
+		path = make_pathname(fi->path, fi->file_name);
 		g_return_if_fail(NULL != path);
 		if (-1 == stat(path, &st)) {
 			G_FREE_NULL(path);
@@ -1706,7 +1706,7 @@ void file_info_unlink(struct dl_file_info *fi)
 {
 	char *path;
 
-	path = g_strdup_printf("%s/%s", fi->path, fi->file_name);
+	path = make_pathname(fi->path, fi->file_name);
 
 	if (NULL == path || -1 == unlink(path)) {
 		/*
@@ -1714,8 +1714,8 @@ void file_info_unlink(struct dl_file_info *fi)
 		 */
 
 		if (fi->done)
-			g_warning("cannot unlink \"%s/%s\": %s",
-				fi->path, fi->file_name,
+			g_warning("cannot unlink \"%s%s%s\": %s",
+				fi->path, G_DIR_SEPARATOR_S, fi->file_name,
 				NULL == path ?  "Out of memory" : g_strerror(errno));
 	} else {
 		g_warning("unlinked \"%s\" (%u/%u bytes or %d%% done, %s SHA1%s%s)",
@@ -1982,29 +1982,32 @@ void file_info_retrieve(void)
 			dfi = file_info_retrieve_binary(fi->file_name, fi->path);
 
 			if (dfi == NULL) {
-				gm_snprintf(fi_tmp, sizeof(fi_tmp),
-					"%s/%s", fi->path, fi->file_name);
-				if (-1 != stat(fi_tmp, &buf)) {
+				gchar *pathname;
+
+				pathname = make_pathname(fi->path, fi->file_name);
+				if (-1 != stat(pathname, &buf)) {
 					g_warning("got metainfo in fileinfo cache, "
-						"but none in \"%s/%s\"", fi->path, fi->file_name);
+						"but none in \"%s\"", pathname);
 					file_info_store_binary(fi);			/* Create metainfo */
 				} else {
 					file_info_merge_adjacent(fi);		/* Compute fi->done */
 					if (fi->done > 0) {
-						g_warning("discarding cached metainfo for \"%s/%s\": "
+						g_warning("discarding cached metainfo for \"%s\": "
 							"file had %d bytes downloaded but is now gone!",
-							fi->path, fi->file_name, fi->done);
+							pathname, fi->done);
+						G_FREE_NULL(pathname);
 						goto discard;
 					}
 				}
+				G_FREE_NULL(pathname);
 			} else if (dfi->generation > fi->generation) {
-				g_warning("found more recent metainfo in \"%s/%s\"",
-					fi->path, fi->file_name);
+				g_warning("found more recent metainfo in \"%s%s%s\"",
+					fi->path, G_DIR_SEPARATOR_S, fi->file_name);
 				fi_free(fi);
 				fi = dfi;
 			} else if (dfi->generation < fi->generation) {
-				g_warning("found OUTDATED metainfo in \"%s/%s\"",
-					fi->path, fi->file_name);
+				g_warning("found OUTDATED metainfo in \"%s%s%s\"",
+					fi->path, G_DIR_SEPARATOR_S, fi->file_name);
 				fi_free(dfi);
 				file_info_store_binary(fi);		/* Resync metainfo */
 			} else {
@@ -2247,7 +2250,7 @@ static struct dl_file_info *file_info_create(
 	fi->done = 0;
 	fi->use_swarming = use_swarming;
 
-	pathname = g_strdup_printf("%s/%s", fi->path, fi->file_name);
+	pathname = make_pathname(fi->path, fi->file_name);
 	if (NULL != pathname && stat(pathname, &st) != -1) {
 		struct dl_file_chunk *fc;
 
@@ -2411,8 +2414,8 @@ struct dl_file_info *file_info_get(
 			g_warning("found DEAD file \"%s\" bearing SHA1 %s",
 				outname, sha1_base32(fi->sha1));
 
-			pathname = g_strdup_printf("%s/%s", path, outname);
-			dead = g_strdup_printf("%s/%s.DEAD", path, outname);
+			pathname = make_pathname(path, outname);
+			dead = g_strconcat(pathname, ".DEAD", NULL);
 
 			if (
 				NULL != pathname &&
@@ -2973,7 +2976,7 @@ static void fi_check_file(struct dl_file_info *fi)
 	 * File should exist since fi->done > 0, and it was not completed.
 	 */
 
-	path = g_strdup_printf("%s/%s", fi->path, fi->file_name);
+	path = make_pathname(fi->path, fi->file_name);
 	g_return_if_fail(path);
 
 	if (-1 == do_stat(path, &buf) && ENOENT == errno) {
@@ -3414,7 +3417,6 @@ void file_info_scandir(const gchar *dir)
 {
 	DIR *d;
 	struct dirent *dentry;
-	gchar *slash = "/";
 	struct dl_file_info *fi;
 	gchar *filename = NULL;
 
@@ -3423,9 +3425,6 @@ void file_info_scandir(const gchar *dir)
 		g_warning("can't open directory %s: %s", dir, g_strerror(errno));
 		return;
 	}
-
-	if (dir[strlen(dir) - 1] == '/')
-		slash = "";
 
 	while ((dentry = readdir(d))) {
 		struct stat buf;
@@ -3441,7 +3440,7 @@ void file_info_scandir(const gchar *dir)
 				continue;					/* Skip "." and ".." */
 		}
 
-		filename = g_strdup_printf("%s%s%s", dir, slash, dentry->d_name);
+		filename = make_pathname(dir, dentry->d_name);
 		if (NULL == filename)
 			continue;
 

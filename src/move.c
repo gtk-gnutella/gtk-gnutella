@@ -185,7 +185,7 @@ static void d_start(gpointer h, gpointer ctx, gpointer item)
 	download_move_start(d);
 	bg_task_signal(h, BG_SIG_TERM, d_sighandler);
 
-	source = g_strdup_printf("%s/%s", download_path(d), download_outname(d));
+	source = make_pathname(download_path(d), download_outname(d));
 	g_return_if_fail(NULL != source);
 
 	md->d = we->d;
@@ -284,8 +284,7 @@ static void d_end(gpointer h, gpointer ctx, gpointer item)
 
 		g_assert(md->copied == md->size);
 		
-		source = g_strdup_printf("%s/%s",
-					download_path(md->d), download_outname(md->d));
+		source = make_pathname(download_path(md->d), download_outname(md->d));
 		if (NULL == source || -1 == unlink(source))
 			g_warning("cannot unlink \"%s\": %s",
 				download_outname(md->d), g_strerror(errno));

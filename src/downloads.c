@@ -1168,8 +1168,7 @@ gboolean download_file_exists(struct download *d)
 	gchar *path;
 	struct stat buf;
 
-	path = g_strdup_printf("%s/%s",
-				d->file_info->path, d->file_info->file_name);
+	path = make_pathname(d->file_info->path, d->file_info->file_name);
 	g_return_val_if_fail(NULL != path, FALSE);
 
 	ret = -1 != stat(path, &buf);
@@ -4287,7 +4286,7 @@ static gboolean download_overlap_check(struct download *d)
 	g_assert(fi->lifecount > 0);
 	g_assert(fi->lifecount <= fi->refcount);
 
-	path = g_strdup_printf("%s/%s", fi->path, fi->file_name);
+	path = make_pathname(fi->path, fi->file_name);
 	if (NULL == path)
 		goto out;
 
@@ -6168,7 +6167,7 @@ static void download_request(
 
 	g_assert(d->file_desc == -1);
 
-	path = g_strdup_printf("%s/%s", fi->path, fi->file_name);
+	path = make_pathname(fi->path, fi->file_name);
 	g_return_if_fail(NULL != path);
 
 	if (stat(path, &st) != -1) {
@@ -7581,7 +7580,7 @@ static void download_move(
 	d->status = GTA_DL_MOVING;
 	fi = d->file_info;
 
-	src = g_strdup_printf("%s/%s", fi->path, fi->file_name);
+	src = make_pathname(fi->path, fi->file_name);
 	if (NULL == src)
 		goto error;
 
@@ -7736,7 +7735,7 @@ void download_move_error(struct download *d)
 
 	name = file_info_readable_filename(fi);
 
-	src = g_strdup_printf("%s/%s", fi->path, fi->file_name);
+	src = make_pathname(fi->path, fi->file_name);
 	ext = has_good_sha1(d) ? DL_OK_EXT : DL_BAD_EXT;
 	dest = unique_filename(fi->path, name, ext);
 

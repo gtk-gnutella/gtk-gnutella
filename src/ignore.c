@@ -91,7 +91,7 @@ static FILE *open_read_stamp(const gchar *file, time_t *stamp)
 	char *path;
 	struct stat buf;
 	
-	path = g_strdup_printf("%s/%s", settings_config_dir(), file);
+	path = make_pathname(settings_config_dir(), file);
 	g_return_val_if_fail(NULL != path, NULL);
 		
 	if (-1 == stat(path, &buf)) {
@@ -120,7 +120,7 @@ static FILE *open_append(const gchar *file)
 	FILE *f;
 	char *path;
 
-	path = g_strdup_printf("%s/%s", settings_config_dir(), file);
+	path = make_pathname(settings_config_dir(), file);
 	g_return_val_if_fail(NULL != path, NULL);
 
 	f = file_fopen(path, "a");

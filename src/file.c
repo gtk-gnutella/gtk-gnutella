@@ -64,7 +64,7 @@ static FILE *open_read(
 	g_assert(fv != NULL);
 	g_assert(fvcnt >= 1);
 	
-	path = g_strdup_printf("%s/%s", fv->dir, fv->name);
+	path = make_pathname(fv->dir, fv->name);
 	g_return_val_if_fail(NULL != path, NULL);
 
 	path_orig = g_strdup_printf("%s.%s", path, orig_ext);
@@ -119,7 +119,7 @@ static FILE *open_read(
 
 		for (xfv = fv + 1, xfvcnt = fvcnt - 1; xfvcnt; xfv++, xfvcnt--) {
 			G_FREE_NULL(path);
-			path = g_strdup_printf("%s/%s", xfv->dir, xfv->name);
+			path = make_pathname(xfv->dir, xfv->name);
 			if (NULL != path && NULL != (in = fopen(path, "r")))
 				break;
 		}
@@ -192,7 +192,7 @@ static FILE *file_config_open(const gchar *what, const file_path_t *fv,
 	FILE *out = NULL;
 	char *path;
 
-	path = g_strdup_printf("%s/%s.%s", fv->dir, fv->name, new_ext);
+	path = g_strconcat(fv->dir, G_DIR_SEPARATOR_S, fv->name, new_ext, NULL);
 	g_return_val_if_fail(NULL != path, NULL);
 
 	out = file_fopen(path, append ? "a" : "w");
@@ -228,7 +228,7 @@ gboolean file_config_close(FILE *out, const file_path_t *fv)
 		goto failed;
 	}
 
-	path = g_strdup_printf("%s/%s", fv->dir, fv->name);
+	path = make_pathname(fv->dir, fv->name);
 	g_return_val_if_fail(NULL != path, FALSE);
 	path_new = g_strdup_printf("%s.%s", path, new_ext);
 	if (NULL == path_new)

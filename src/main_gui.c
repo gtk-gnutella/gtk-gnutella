@@ -393,7 +393,7 @@ void main_gui_gtkrc_init(void)
 	gchar *userrc;
 
 	/* parse gtkrc files (thx to the sylpheed-claws developers for the tip) */
-	userrc = g_strconcat(settings_home_dir(), G_DIR_SEPARATOR_S, rchfn, NULL);
+	userrc = make_pathname(settings_home_dir(), rchfn);
 	gtk_rc_parse(userrc);
 	G_FREE_NULL(userrc);
 
@@ -412,7 +412,7 @@ void main_gui_gtkrc_init(void)
 	gtk_rc_parse(userrc);
 	G_FREE_NULL(userrc);
 
-	userrc = g_strconcat(settings_config_dir(), G_DIR_SEPARATOR_S, rcfn, NULL);
+	userrc = make_pathname(settings_config_dir(), rcfn);
 	gtk_rc_parse(userrc);
 	G_FREE_NULL(userrc);
 

@@ -182,10 +182,8 @@ int whitelist_connect(void)
  */
 void whitelist_init(void)
 {
-	whitelist_path = g_strdup_printf("%s/%s",
-						settings_config_dir(), whitelist_file);
+	whitelist_path = make_pathname(settings_config_dir(), whitelist_file);
     whitelist_retrieve();
-
 }
 
 /*

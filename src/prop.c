@@ -1129,12 +1129,13 @@ void prop_save_to_file(
 	g_assert(ps != NULL);
 
 	if (debug >= 2)
-		printf("saving %s to %s/%s\n", ps->name, dir, filename);
+		printf("saving %s to %s%s%s\n", ps->name,
+			dir, G_DIR_SEPARATOR_S, filename);
 
 	if (!is_directory(dir))
 		return;
 
-	pathname = g_strdup_printf("%s/%s", dir, filename);
+	pathname = make_pathname(dir, filename);
 	g_return_if_fail(NULL != pathname);
 
 	if (-1 == stat(pathname, &buf))
@@ -1386,7 +1387,7 @@ void prop_load_from_file(
 	if (!is_directory(dir))
 		return;
 
-	path = g_strdup_printf("%s/%s", dir, filename);
+	path = make_pathname(dir, filename);
 	g_return_if_fail(NULL != path);
 
 	config = file_fopen(path, "r");
