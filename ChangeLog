@@ -1,5 +1,9 @@
 # since last version
 
+- (2003.05.12 - Jeroen)
+ * PARQ: Fixed an assertion when connecting back to another IP than the IP
+         the upload connected from.
+
 -(2003.05.11 - Richard)
  * [Gtk1] Added clock skew to gui (calculation seems broken).
  * [Gtk1] Added PROP_RUNS_NTP to gui.
