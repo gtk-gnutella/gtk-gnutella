@@ -220,7 +220,9 @@ gwc_add(const gchar *new_url)
 }
 
 /**
- * Pickup a cache randomly from the known set.
+ * Pickup a cache randomly from the known set. If there's no URL used that
+ * has not been used recently, NULL will be returned. The timestamp for
+ * the picked URL is updated automatically.
  *
  * Try to avoid using default bootstrapping URLs if we have more than the
  * minimum set of caches in stock...
@@ -1226,7 +1228,7 @@ gwc_seed_cache(gchar *cache_url)
 static void
 gwc_update_ip_url(void)
 {
-	if (!check_current_url() || current_peermode == NODE_P_LEAF)
+	if (current_peermode == NODE_P_LEAF || !check_current_url())
 		return;
 
 	gwc_update_this(current_url);
