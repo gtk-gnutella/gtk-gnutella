@@ -42,7 +42,7 @@ extern guint32 track_props;
  */
 #define prop_in_range(ps, p) ((p >= ps->offset) && (p < ps->size+ps->offset))
 
-const gchar *prop_type_str[] = {
+const gchar * const prop_type_str[] = {
 	"boolean",
 	"guint32",
 	"guint64",
@@ -57,6 +57,14 @@ static gchar prop_tmp[4096];
 /***
  *** Helpers
  ***/
+
+#define prop_assert(ps, prop, x)									\
+do {																\
+	if (!(x)) {														\
+		g_error("assertion failed for property \"%s\": %s",			\
+			PROP(ps, prop).name, #x);								\
+	}																\
+} while (0)
 
 /*
  * prop_parse_ip_vector:
@@ -310,7 +318,7 @@ void prop_free_def(prop_def_t *d)
 {
 	g_assert(d != NULL);
 
-	switch(d->type) {
+	switch (d->type) {
 	case PROP_TYPE_BOOLEAN:
 		G_FREE_NULL(d->data.boolean.value);
 		G_FREE_NULL(d->data.boolean.def);
@@ -428,7 +436,7 @@ void prop_set_boolean(
 	if (length == 0)
 		length = PROP(ps,prop).vector_size;
 
-	g_assert(offset+length <= PROP(ps,prop).vector_size);
+	prop_assert(ps, prop, offset + length <= PROP(ps,prop).vector_size);
 
 	for (n = 0; (n < length) && !differ; n++) {
 		old = PROP(ps,prop).data.boolean.value[n + offset] ? 1 : 0;
@@ -480,7 +488,7 @@ gboolean *prop_get_boolean(
 	if (length == 0)
 		length = PROP(ps,prop).vector_size;
 
-	g_assert(offset+length <= PROP(ps,prop).vector_size);
+	prop_assert(ps, prop, offset + length <= PROP(ps,prop).vector_size);
 
 	target = t;
 	if (target == NULL)
@@ -513,7 +521,7 @@ void prop_set_guint64(
 	if (length == 0)
 		length = PROP(ps,prop).vector_size;
 
-	g_assert(offset+length <= PROP(ps,prop).vector_size);
+	prop_assert(ps, prop, offset + length <= PROP(ps,prop).vector_size);
 
 	differ = (memcmp(&PROP(ps,prop).data.guint64.value[offset], src,
 		length * sizeof(guint64)) != 0);
@@ -528,7 +536,7 @@ void prop_set_guint64(
 		/*
 		 * Either check multiple choices or min/max.
 		 */
-			g_assert(PROP(ps,prop).data.guint64.choices == NULL);
+			prop_assert(ps, prop, PROP(ps,prop).data.guint64.choices == NULL);
 
 			if (
 				(PROP(ps,prop).data.guint64.min <= *src) &&
@@ -599,7 +607,7 @@ guint64 *prop_get_guint64(
    if (length == 0)
 		length = PROP(ps,prop).vector_size;
 
-	g_assert(offset+length <= PROP(ps,prop).vector_size);
+	prop_assert(ps, prop, offset + length <= PROP(ps,prop).vector_size);
 
 	target = t;
 	if (target == NULL)
@@ -636,7 +644,7 @@ void prop_set_guint32(
 	if (length == 0)
 		length = PROP(ps,prop).vector_size;
 
-	g_assert(offset+length <= PROP(ps,prop).vector_size);
+	prop_assert(ps, prop, offset + length <= PROP(ps,prop).vector_size);
 
 	differ = (memcmp(&PROP(ps,prop).data.guint32.value[offset], src,
 		length * sizeof(guint32)) != 0);
@@ -656,7 +664,7 @@ void prop_set_guint32(
 			gboolean invalid = TRUE;
 			guint32 newval = *src;
 
-			g_assert(PROP(ps,prop).data.guint32.choices != NULL);
+			prop_assert(ps, prop, PROP(ps,prop).data.guint32.choices != NULL);
 
 			while (PROP(ps,prop).data.guint32.choices[n].title != NULL) {
 				if (PROP(ps,prop).data.guint32.choices[n].value == newval) {
@@ -675,7 +683,7 @@ void prop_set_guint32(
 			}
 		} else {
 
-			g_assert(PROP(ps,prop).data.guint32.choices == NULL);
+			prop_assert(ps, prop, PROP(ps,prop).data.guint32.choices == NULL);
 
 			if (
 				(PROP(ps,prop).data.guint32.min <= *src) &&
@@ -748,10 +756,10 @@ guint32 *prop_get_guint32(
 			prop_type_str[PROP_TYPE_IP],
 			prop_type_str[PROP_TYPE_MULTICHOICE]);
 
-   if (length == 0)
+   	if (length == 0)
 		length = PROP(ps,prop).vector_size;
 
-	g_assert(offset+length <= PROP(ps,prop).vector_size);
+	prop_assert(ps, prop, offset + length <= PROP(ps,prop).vector_size);
 
 	target = t;
 	if (target == NULL)
@@ -780,7 +788,7 @@ void prop_set_storage(
 			prop_type_str[PROP(ps,prop).type],
 			prop_type_str[PROP_TYPE_STORAGE]);
 
-	g_assert(length == PROP(ps,prop).vector_size);
+	prop_assert(ps, prop, length == PROP(ps,prop).vector_size);
 
 	differ = (memcmp(PROP(ps,prop).data.storage.value, src, length) != 0);
 
@@ -815,7 +823,7 @@ guint8 *prop_get_storage(
 			prop_type_str[PROP(ps,prop).type],
 			prop_type_str[PROP_TYPE_STORAGE]);
 
-	g_assert(length == PROP(ps,prop).vector_size);
+	prop_assert(ps, prop, length == PROP(ps,prop).vector_size);
 
 	target = t;
 	if (target == NULL)
@@ -842,7 +850,7 @@ void prop_set_string(prop_set_t *ps, property_t prop, const gchar *val)
 			prop_type_str[PROP(ps,prop).type],
 			prop_type_str[PROP_TYPE_STRING]);
 
-	g_assert(PROP(ps,prop).vector_size == 1);
+	prop_assert(ps, prop, PROP(ps,prop).vector_size == 1);
 
 	old = *PROP(ps,prop).data.string.value;
 
@@ -1013,7 +1021,8 @@ gchar *prop_to_string(prop_set_t *ps, property_t prop)
 			break;
 		}
 		case PROP_TYPE_STORAGE: {
-			g_strlcpy(s, guid_hex_str(prop_get_storage(ps, prop, NULL, PROP(ps,prop).vector_size)), sizeof(s));
+			g_strlcpy(s, guid_hex_str(prop_get_storage(ps, prop, NULL,
+									PROP(ps,prop).vector_size)), sizeof(s));
 			break;
 		}
 		default:
@@ -1107,29 +1116,29 @@ void prop_save_to_file_if_dirty(
  * saving.
  */
 void prop_save_to_file(
-	prop_set_t *ps, const gchar *dir, const gchar *_filename)
+	prop_set_t *ps, const gchar *dir, const gchar *filename)
 {
 	FILE *config;
 	time_t mtime = 0;
 	struct stat buf;
 	gchar *newfile;
-	gchar *filename;
+	gchar *pathname;
 	guint n;
 
-	g_assert(_filename != NULL);
+	g_assert(filename != NULL);
 	g_assert(ps != NULL);
 
 	if (debug >= 2)
-		printf("saving %s to %s/%s\n", ps->name, dir, _filename);
+		printf("saving %s to %s/%s\n", ps->name, dir, filename);
 
 	if (!is_directory(dir))
 		return;
 
-	filename = g_strdup_printf("%s/%s", dir, _filename);
-	g_return_if_fail(NULL != filename);
+	pathname = g_strdup_printf("%s/%s", dir, filename);
+	g_return_if_fail(NULL != pathname);
 
-	if (-1 == stat(filename, &buf))
-		g_warning("could not stat \"%s\": %s", filename, g_strerror(errno));
+	if (-1 == stat(pathname, &buf))
+		g_warning("could not stat \"%s\": %s", pathname, g_strerror(errno));
 	else
 		mtime = buf.st_mtime;
 
@@ -1138,9 +1147,9 @@ void prop_save_to_file(
 	 */
 
 	if (ps->mtime && mtime > ps->mtime) {
-		gchar *old = g_strconcat(filename, ".old", NULL);
-		g_warning("config file \"%s\" changed whilst I was running", filename);
-		if (-1 == rename(filename, old))
+		gchar *old = g_strconcat(pathname, ".old", NULL);
+		g_warning("config file \"%s\" changed whilst I was running", pathname);
+		if (-1 == rename(pathname, old))
 			g_warning("unable to rename as \"%s\": %s", old, g_strerror(errno));
 		else
 			g_warning("renamed old copy as \"%s\"", old);
@@ -1152,7 +1161,7 @@ void prop_save_to_file(
 	 * clobber a good configuration file should we fail abruptly.
 	 */
 
-	newfile = g_strconcat(filename, ".new", NULL);
+	newfile = g_strconcat(pathname, ".new", NULL);
 	config = file_fopen(newfile, "w");
 
 	if (config == NULL)
@@ -1286,16 +1295,16 @@ void prop_save_to_file(
 
 	if (0 == fclose(config)) {
 		ps->dirty = FALSE;
-		if (-1 == rename(newfile, filename))
+		if (-1 == rename(newfile, pathname))
 			g_warning("could not rename %s as %s: %s",
-				newfile, filename, g_strerror(errno));
+				newfile, pathname, g_strerror(errno));
 		ps->mtime = time(NULL);
 	} else
 		g_warning("could not flush %s: %s", newfile, g_strerror(errno));
 
 end:
 	G_FREE_NULL(newfile);
-	G_FREE_NULL(filename);
+	G_FREE_NULL(pathname);
 }
 
 /*
@@ -1313,22 +1322,25 @@ static void load_helper(prop_set_t *ps, property_t prop, const gchar *val)
 
 	stub = ps->get_stub();
 
-	switch(p->type) {
+	switch (p->type) {
 	case PROP_TYPE_BOOLEAN:
-		g_assert(p->vector_size * sizeof(gboolean) < sizeof(vecbuf_bool));
+		prop_assert(ps, prop,
+			p->vector_size * sizeof(gboolean) < sizeof(vecbuf_bool));
 	
 		prop_parse_boolean_vector(val, p->vector_size, vecbuf_bool);
 		stub->boolean.set(prop, vecbuf_bool, 0, 0);
 		break;
 	case PROP_TYPE_MULTICHOICE:
 	case PROP_TYPE_GUINT32:
-		g_assert(p->vector_size * sizeof(guint32) < sizeof(vecbuf_uint32));
+		prop_assert(ps, prop,
+			p->vector_size * sizeof(guint32) < sizeof(vecbuf_uint32));
 
 		prop_parse_guint32_vector(val, p->vector_size, vecbuf_uint32);
 		stub->guint32.set(prop, vecbuf_uint32, 0, 0);
 		break;
 	case PROP_TYPE_GUINT64:
-		g_assert(p->vector_size * sizeof(guint64) < sizeof(vecbuf_uint64));
+		prop_assert(ps, prop,
+			p->vector_size * sizeof(guint64) < sizeof(vecbuf_uint64));
 
 		prop_parse_guint64_vector(val, p->vector_size, vecbuf_uint64);
 		stub->guint64.set(prop, vecbuf_uint64, 0, 0);
@@ -1337,21 +1349,23 @@ static void load_helper(prop_set_t *ps, property_t prop, const gchar *val)
 		stub->string.set(prop, val);
 		break;
 	case PROP_TYPE_IP:
-		g_assert(p->vector_size * sizeof(guint32) < sizeof(vecbuf_uint32));
+		prop_assert(ps, prop,
+			p->vector_size * sizeof(guint32) < sizeof(vecbuf_uint32));
 
 		prop_parse_ip_vector(val, p->vector_size, vecbuf_uint32);
 		stub->guint32.set(prop, vecbuf_uint32, 0, 0);
 		break;
-	case PROP_TYPE_STORAGE: {
-		guint8 *buf = g_new(guint8, p->vector_size);
+	case PROP_TYPE_STORAGE:
+		{
+			guint8 *buf = g_new(guint8, p->vector_size);
 	
-		prop_parse_storage(val, p->vector_size, buf);
-		stub->storage.set(prop, buf, p->vector_size);
+			prop_parse_storage(val, p->vector_size, buf);
+			stub->storage.set(prop, buf, p->vector_size);
 
-		G_FREE_NULL(buf);
+			G_FREE_NULL(buf);
+		}
 		break;
 	}
-	};
 
 	G_FREE_NULL(stub);
 }
