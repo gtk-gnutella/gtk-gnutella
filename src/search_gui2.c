@@ -105,6 +105,8 @@ static gboolean unref_record(
 	record_t *rc = NULL;
 	GHashTable *dups = (GHashTable *) data;
 
+	(void) path;
+
 	gtk_tree_model_get(model, iter, c_sr_record, &rc, (-1));	
 	g_assert(g_hash_table_lookup(dups, rc) != NULL);
 	g_assert(NULL != rc);
@@ -144,6 +146,9 @@ void search_gui_restart_search(search_t *sch)
  */
 gboolean always_true(gpointer key, gpointer value, gpointer x)
 {
+	(void) key;
+	(void) value;
+	(void) x;
 	return TRUE;
 }
 
@@ -263,12 +268,11 @@ gboolean search_gui_new_search_full(
 	guint32 reissue_timeout,
 	gint sort_col, gint sort_order, flag_t flags, search_t **search)
 {
+	static gchar query[512];
 	search_t *sch;
 	GList *glist;
 	GtkTreeStore *model;
 	GtkTreeIter iter;
-	static gchar query[512];
-
     GtkWidget *button_search_close = 
         lookup_widget(main_window, "button_search_close");
     GtkWidget *entry_search = lookup_widget(main_window, "entry_search");
@@ -339,6 +343,8 @@ gboolean search_gui_new_search_full(
 
 	sch = g_new0(search_t, 1);
 
+	sch->sort_col = sort_col;		/* Unused in GTK2 currently */
+	sch->sort_order = sort_order;	/* Unused in GTK2 currently */
 	sch->query = atom_str_get(query);
 	sch->enabled = (flags & SEARCH_ENABLED) ? TRUE : FALSE;
 	sch->search_handle = search_new(query, speed, reissue_timeout, flags);
@@ -442,6 +448,7 @@ static gint search_gui_compare_size_func(
     record_t *rec_a = NULL;
 	record_t *rec_b = NULL;
 
+	(void) user_data;
     gtk_tree_model_get(model, a, c_sr_record, &rec_a, (-1));
     gtk_tree_model_get(model, b, c_sr_record, &rec_b, (-1));
 	return SIGN(rec_b->size, rec_a->size);
@@ -601,6 +608,7 @@ static void download_selected_file(
 	struct record *rc = NULL;
 	gboolean need_push;
 
+	(void) path;
 	gtk_tree_model_get(model, iter, c_sr_record, &rc, (-1));
 	g_assert(rc->refcount > 0);
 
@@ -731,6 +739,7 @@ static gboolean search_gui_menu_select_helper(
 	gint page = -1;
 	struct menu_helper *mh = data;
 
+	(void) path;
 	gtk_tree_model_get(model, iter, 1, &page, (-1));
 	if (page == mh->page) {
 		mh->iter = *iter;
@@ -826,8 +835,7 @@ gboolean search_gui_search_results_col_visible_changed(property_t prop)
     if (!treeview)
 		return FALSE;
 
-	gui_prop_get_boolean(PROP_SEARCH_RESULTS_COL_VISIBLE, val, 0,
-		G_N_ELEMENTS(val));
+	gui_prop_get_boolean(prop, val, 0, G_N_ELEMENTS(val));
 
 	for (i = 0; i < G_N_ELEMENTS(val); i++) {
 		GtkTreeViewColumn *c;
@@ -999,6 +1007,10 @@ static void selection_counter_helper(
 	GtkTreeModel *model, GtkTreePath *path, GtkTreeIter *iter, gpointer data)
 {
 	gint *counter = data;
+
+	(void) model;
+	(void) path;
+	(void) iter;
 	*counter += 1;
 }
 
@@ -1023,6 +1035,7 @@ static gboolean tree_view_search_remove(
 {
 	gpointer sch;
 
+	(void) path;
     gtk_tree_model_get(model, iter, c_sl_sch, &sch, (-1));
  	if (sch == data) {
     	gtk_tree_store_remove((GtkTreeStore *) model, iter);
@@ -1353,17 +1366,20 @@ static gboolean tree_view_search_update(
 {
 	search_t *sch;
 
-    gtk_tree_model_get(model, iter, c_sl_sch, &sch, -1);
- 	if ((gpointer)sch == data) {
+	(void) path;
+    gtk_tree_model_get(model, iter, c_sl_sch, &sch, (-1));
+ 	if (sch == data) {
+   		GtkWidget *widget;
 		GdkColor *fg;
 		GdkColor *bg;
 
+		widget = GTK_WIDGET(tree_view_search);
 		if (sch->unseen_items > 0) {
-    		GtkWidget *widget;
-
-			widget = GTK_WIDGET(tree_view_search);
     		fg = &(gtk_widget_get_style(widget)->fg[GTK_STATE_PRELIGHT]);
     		bg = &(gtk_widget_get_style(widget)->bg[GTK_STATE_PRELIGHT]);
+		} else if (!sch->enabled) {
+    		fg = &(gtk_widget_get_style(widget)->fg[GTK_STATE_INSENSITIVE]);
+    		bg = &(gtk_widget_get_style(widget)->bg[GTK_STATE_INSENSITIVE]);
 		} else {
 			fg = NULL;
 			bg = NULL;
@@ -1507,7 +1523,8 @@ void gui_search_set_enabled(struct search *sch, gboolean enabled)
 	else
 		search_stop(sch->search_handle);
 
-   /* FIXME: Mark this entry as active/inactive in the searches list. */
+	/* Marks this entry as active/inactive in the searches list. */
+	gui_search_force_update_tab_label(sch, time(NULL));
 }
 
 
@@ -1552,6 +1569,5 @@ void search_gui_end_massive_update(search_t *sch)
 	g_object_unref(GTK_TREE_MODEL(sch->model));
 }
 
-
-/* vi: set ts=4: */
+/* vi: set ts=4 sw=4 cindent: */
 #endif	/* USE_GTK2 */
