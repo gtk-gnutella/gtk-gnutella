@@ -125,8 +125,6 @@ void tree_view_save_widths(GtkTreeView *treeview, property_t prop);
 void tree_view_save_visibility(GtkTreeView *treeview, property_t prop);
 void tree_view_restore_visibility(GtkTreeView *treeview, property_t prop);
 void tree_view_restore_widths(GtkTreeView *treeview, property_t prop);
-void set_tooltips_keyboard_mode(GtkWidget *widget, gboolean on);
-void widget_force_tooltip(GtkWidget *widget);
 void tree_view_set_motion_callback(GtkTreeView *tv,
 	tree_view_motion_callback cb);
 #endif /* USE_GTK2 */
