@@ -288,7 +288,7 @@ gint main(gint argc, gchar **argv)
         if (up_connections && !stop_host_get) {
             guint32 autoConnectIp = 0;
 
-            autoConnectIp = host_to_ip("gnutellahosts.com");
+            autoConnectIp = host_to_ip("router.limewire.com");
             if (autoConnectIp != 0)
             {
                  node_add(NULL, autoConnectIp, 6346);
