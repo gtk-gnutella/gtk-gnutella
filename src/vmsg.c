@@ -155,6 +155,43 @@ find_message(guint32 vendor, guint16 id, guint16 version)
 }
 
 /**
+ * Decompiles vendor-message name given the data payload of the Gnutella
+ * message and its size.  The leading bytes give us the identification
+ * unless it's too short.
+ *
+ * @return vendor message name in the form "NAME/1v1 'Known name'" as
+ * a static string.
+ */
+const gchar *
+vmsg_infostr(gpointer data, gint size)
+{
+	static gchar msg[80];
+	struct gnutella_vendor *v = (struct gnutella_vendor *) data;
+	guint32 vendor;
+	guint16 id;
+	guint16 version;
+	struct vmsg *vm;
+	
+	if (size < sizeof(*v))
+		return "????";
+
+	READ_GUINT32_BE(v->vendor, vendor);
+	READ_GUINT16_LE(v->selector_id, id);
+	READ_GUINT16_LE(v->version, version);
+
+	vm = find_message(vendor, id, version);
+
+	if (vm == NULL)
+		gm_snprintf(msg, sizeof(msg), "%s/%uv%u",
+			vendor_code_str(vendor), id, version);
+	else
+		gm_snprintf(msg, sizeof(msg), "%s/%uv%u '%s'",
+			vendor_code_str(vendor), id, version, vm->name);
+
+	return msg;
+}
+
+/**
  * Main entry point to handle reception of vendor-specific message.
  */
 void
@@ -165,6 +202,14 @@ vmsg_handle(struct gnutella_node *n)
 	guint16 id;
 	guint16 version;
 	struct vmsg *vm;
+
+	if (n->size < sizeof(*v)) {
+		gnet_stats_count_dropped(n, MSG_DROP_TOO_SMALL);
+		if (dbg)
+			gmsg_log_bad(n, "message has only %d bytes, needs at least %d",
+				n->size, sizeof(*v));
+		return;
+	}
 
 	READ_GUINT32_BE(v->vendor, vendor);
 	READ_GUINT16_LE(v->selector_id, id);
@@ -188,8 +233,7 @@ vmsg_handle(struct gnutella_node *n)
 	if (vm == NULL) {
 		gnet_stats_count_dropped(n, MSG_DROP_UNKNOWN_TYPE);
 		if (dbg)
-			g_warning("unknown vendor message: %s vendor=%s id=%u version=%u",
-				gmsg_infostr(&n->header), vendor_code_str(vendor), id, version);
+			gmsg_log_bad(n, "unknown vendor message");
 		return;
 	}
 
