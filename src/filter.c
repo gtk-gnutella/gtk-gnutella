@@ -35,9 +35,8 @@
 #include "search_gui.h"
 #include "gtk-missing.h"
 
-#include "gnet_property_priv.h"
-#include "gui_property_priv.h" // FIXME: remove this dependency
-#include "gui_property.h" // FIXME: remove this dependency
+#include "gui_property_priv.h"
+#include "gui_property.h"
 
 #define BIT_TO_BOOL(m) ((m == 0) ? FALSE : TRUE)
 
@@ -183,11 +182,11 @@ static shadow_t *shadow_find(filter_t *f)
         (shadow_filters, f, (GCompareFunc) shadow_filter_eq);
 
     if (l != NULL) {
-        if (dbg >= 6)
+        if (gui_debug >= 6)
             printf("shadow found for: %s\n", f->name);
         return l->data;
     } else {
-        if (dbg >= 6)
+        if (gui_debug >= 6)
             printf("no shadow found for: %s\n", f->name);
         return NULL;
     }
@@ -208,7 +207,7 @@ static shadow_t *shadow_new(filter_t *f)
     g_assert(f != NULL);
     g_assert(f->name != NULL);
 
-    if (dbg >= 6)
+    if (gui_debug >= 6)
         printf("creating shadow for: %s\n", f->name);
 
     shadow = g_new0(shadow_t, 1);
@@ -244,7 +243,7 @@ static void shadow_cancel(shadow_t *shadow)
     g_assert(shadow != NULL);
     g_assert(shadow->filter != NULL);
 
-    if (dbg >= 6)
+    if (gui_debug >= 6)
         printf("cancel shadow for filter: %s\n", shadow->filter->name);
 
     for (r = shadow->added; r != NULL; r = r->next)
@@ -282,7 +281,7 @@ static void shadow_commit(shadow_t *shadow)
 
     realf = shadow->filter;
 
-    if (dbg >= 6) {
+    if (gui_debug >= 6) {
         printf("committing shadow for filter:\n");
         dump_shadow(shadow);
     }
@@ -335,7 +334,7 @@ static void shadow_commit(shadow_t *shadow)
     shadow_filters = g_list_remove(shadow_filters, shadow); 
     g_free(shadow);
 
-    if (dbg >= 6) {
+    if (gui_debug >= 6) {
         printf("after commit filter looks like this\n");
         dump_filter(realf);
     }
@@ -754,7 +753,7 @@ void filter_close_search(search_t *s)
     g_assert(s != NULL);
     g_assert(s->filter != NULL);
 
-    if (dbg >= 6)
+    if (gui_debug >= 6)
         printf("closing search (freeing filter): %s\n", s->query);
 
     shadow = shadow_find(s->filter);
@@ -844,7 +843,7 @@ void filter_revert_changes()
     GList *s;
     gint n;
 
-    if (dbg >= 5)
+    if (gui_debug >= 5)
         printf("Canceling all changes to filters/rules\n");
 
     filter_gui_freeze_filters();
@@ -1363,7 +1362,7 @@ void filter_free_rule(rule_t *r)
 {
     g_assert(r != NULL);
 
-    if (dbg >= 6)
+    if (gui_debug >= 6)
         printf("freeing rule: %s\n", filter_rule_to_gchar(r));
 
     switch (r->type) {
@@ -1441,7 +1440,7 @@ void filter_append_rule(filter_t *f, rule_t * const r)
      */
     f->ruleset = g_list_append(f->ruleset, r);
     r->target->refcount ++;
-    if (dbg >= 6)
+    if (gui_debug >= 6)
         printf("increased refcount on \"%s\" to %d\n",
             r->target->name, r->target->refcount);
 
@@ -1457,7 +1456,7 @@ void filter_append_rule(filter_t *f, rule_t * const r)
     if (target_shadow != NULL) {
         target_shadow->refcount ++;
 
-        if (dbg >= 6)
+        if (gui_debug >= 6)
             printf("increased refcount on shadow of \"%s\" to %d\n",
                 target_shadow->filter->name, target_shadow->refcount);
     }
@@ -1494,7 +1493,7 @@ void filter_append_rule_to_session(filter_t *f, rule_t * const r)
     g_assert(f != NULL);
     g_assert(r->target != NULL);
 
-    if (dbg >= 4)
+    if (gui_debug >= 4)
         printf("appending rule to filter: %s <- %s (%p)\n",
             f->name, filter_rule_to_gchar(r), r->target);
 
@@ -1532,7 +1531,7 @@ void filter_append_rule_to_session(filter_t *f, rule_t * const r)
         target_shadow = shadow_new(r->target);
 
     target_shadow->refcount ++;
-    if (dbg >= 6)
+    if (gui_debug >= 6)
         printf("increased refcount on shadow of \"%s\" to %d\n",
             target_shadow->filter->name, target_shadow->refcount);
 
@@ -1656,7 +1655,7 @@ void filter_remove_rule(filter_t *f, rule_t *r)
     if (in_filter) {
         r->target->refcount --;
 
-        if (dbg >= 6)
+        if (gui_debug >= 6)
             printf("decreased refcount on \"%s\" to %d\n",
                 r->target->name, r->target->refcount);
     }
@@ -1665,7 +1664,7 @@ void filter_remove_rule(filter_t *f, rule_t *r)
         if (target_shadow != NULL) {
             target_shadow->refcount --;
         
-            if (dbg >= 6)
+            if (gui_debug >= 6)
                 printf("decreased refcount on shadow of \"%s\" to %d\n",
                     target_shadow->filter->name, target_shadow->refcount);
         }
@@ -1710,7 +1709,7 @@ void filter_remove_rule_from_session(filter_t *f, rule_t * const r)
     g_assert(r != NULL);
     g_assert(f != NULL);
 
-    if (dbg >= 4)
+    if (gui_debug >= 4)
         printf("removing rule in filter: %s -> %s\n", 
             f->name, filter_rule_to_gchar(r));
 
@@ -1735,7 +1734,7 @@ void filter_remove_rule_from_session(filter_t *f, rule_t * const r)
         target_shadow = shadow_new(r->target);
 
     target_shadow->refcount --;
-    if (dbg >= 6)
+    if (gui_debug >= 6)
         printf("decreased refcount on shadow of \"%s\" to %d\n",
             target_shadow->filter->name, target_shadow->refcount);
 
@@ -1746,7 +1745,7 @@ void filter_remove_rule_from_session(filter_t *f, rule_t * const r)
          * not committed. We removed it from the added list
          * and free the ressources.
          */
-        if (dbg >= 4)
+        if (gui_debug >= 4)
             printf("while removing from %s: removing from added: %s\n",
                 f->name, filter_rule_to_gchar(r));
         shadow->added = g_list_remove(shadow->added, r);
@@ -1758,7 +1757,7 @@ void filter_remove_rule_from_session(filter_t *f, rule_t * const r)
          */
         g_assert(g_list_find(shadow->removed, r) == NULL);
 
-        if (dbg >= 4)
+        if (gui_debug >= 4)
             printf("while removing from %s: adding to removed: %s\n",
                 f->name, filter_rule_to_gchar(r));
       
@@ -1811,7 +1810,7 @@ void filter_replace_rule_in_session(filter_t *f,
     filter = g_list_find(shadow->current, old_rule);
     g_assert(filter != NULL);
 
-    if (dbg >= 4) {
+    if (gui_debug >= 4) {
         gchar * f1 = g_strdup(filter_rule_to_gchar(old_rule));
         gchar * f2 = g_strdup(filter_rule_to_gchar(new_rule));
 
@@ -1830,7 +1829,7 @@ void filter_replace_rule_in_session(filter_t *f,
         target_shadow = shadow_new(old_rule->target);
 
     target_shadow->refcount --;
-    if (dbg >= 6)
+    if (gui_debug >= 6)
         printf("decreased refcount on shadow of \"%s\" to %d\n",
             target_shadow->filter->name, target_shadow->refcount);
 
@@ -1870,7 +1869,7 @@ void filter_replace_rule_in_session(filter_t *f,
         target_shadow = shadow_new(new_rule->target);
 
     target_shadow->refcount ++;
-    if (dbg >= 6)
+    if (gui_debug >= 6)
         printf("increased refcount on shadow of \"%s\" to %d\n",
             target_shadow->filter->name, target_shadow->refcount);
         
@@ -1945,7 +1944,7 @@ void filter_adapt_order(void)
     (prop_count) ++;                                              \
     (r)->target->match_count ++;                                  \
                                                                   \
-    if (dbg >= 10)                                                 \
+    if (gui_debug >= 10)                                                 \
         printf("matched rule: %s\n", filter_rule_to_gchar((r)));
    
 /*
@@ -1991,7 +1990,7 @@ static int filter_apply
         gboolean match = FALSE;
 
         r = (rule_t *)list->data;
-        if (dbg >= 10)
+        if (gui_debug >= 10)
             printf("trying to match against: %s\n", filter_rule_to_gchar(r));
 
         if (RULE_IS_ACTIVE(r)) {
@@ -2252,7 +2251,7 @@ filter_result_t *filter_record(search_t *sch, record_t *rec)
 		filter_apply(filter_global_post, rec, result);
     
     /* FIXME: this does no longer give useful output
-    if (dbg >= 5) {
+    if (gui_debug >= 5) {
         printf("result %d for search \"%s\" matching \"%s\" (%s)\n",
             r, sch->query, rec->name, 
             filtered ? "filtered" : "unfiltered");
@@ -2295,7 +2294,7 @@ void filter_shutdown(void)
 {
     GList *f;
 
-    if (dbg >= 5)
+    if (gui_debug >= 5)
         printf("shutting down filters\n");
 
     /*
