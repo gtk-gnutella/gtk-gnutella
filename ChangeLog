@@ -1,5 +1,12 @@
 # since last version
 
+- (2002.09.18 RAM)
+ * Factorized asynchronous I/O header parsing code.
+ * More embryon of code for asynchronous HTTP requests.
+ * Automatically compact query text in messages we send.
+ * Now only compacts white-spaces in query text, and only for messages
+   we are going to relay.
+
 - (2002.09.16 RAM)
  * Fixed Alternate-Location parsing to avoid mistaking an URL for a date.
  * Should now correctly guess whether a "," in an URL is a separator of
