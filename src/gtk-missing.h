@@ -29,7 +29,7 @@
 #include <gtk/gtk.h>
 
 #ifndef USE_GTK2
-#define gtk_progress_bar_set_text(pb, t) \
+#define gtk_progress_bar_set_text(pb, t)            \
     gtk_progress_set_format_string(GTK_PROGRESS(pb), t)
 #define gtk_progress_bar_set_fraction(pb, t) \
     gtk_progress_set_percentage(GTK_PROGRESS(pb), t)
@@ -52,13 +52,20 @@ void gtk_label_printf(GtkLabel *label, const gchar * format, ...);
 void gtk_mass_widget_set_sensitive(GtkWidget *tl, gchar *list[], gboolean b);
 GSList *clist_collect_data(GtkCList *clist, gboolean allow_null, 
     GCompareFunc cfn);
+
 #ifdef USE_GTK2
 GtkTreeIter *w_tree_iter_new(void);
 GtkTreeIter *w_tree_iter_copy(GtkTreeIter *iter);
 void w_tree_iter_free(GtkTreeIter *iter);
 GSList *tree_selection_collect_data(GtkTreeSelection *tsel, GCompareFunc cfn);
 void tree_view_save_widths(GtkTreeView *treeview, property_t prop);
-#endif
+#endif /* USE_GTK2 */
+
+#ifdef USE_GTK1
+void gtk_ctree_fast_move (GtkCTree *ctree, GtkCTreeNode *node,
+	GtkCTreeNode *new_sibling);
+#endif /* USE_GTK1 */
+
 gdouble _gtk_spin_button_get_value(GtkSpinButton *);
 guint32 gtk_editable_get_value_as_uint(GtkEditable *editable);
 void gtk_combo_init_choices(

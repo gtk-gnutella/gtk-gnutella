@@ -60,7 +60,7 @@ void gtk_clist_set_column_name(GtkCList * clist, gint col, gchar * t)
         return;
 
     if (clist->column[col].title)
-        g_free(clist->column[col].title);
+        G_FREE_NULL(clist->column[col].title);
 
     clist->column[col].title = g_strdup(t);
 }
@@ -393,7 +393,6 @@ static void tree_selection_unselect_helper(gpointer data, gpointer user_data)
  * be used to determine whether two entries are equal and drop all duplicate
  * items from the result list. Using cfn will significantly increase runtime.
  */
-
 GSList *tree_selection_collect_data(GtkTreeSelection *selection,
 	GCompareFunc cfn)
 {
@@ -459,7 +458,7 @@ gdouble _gtk_spin_button_get_value(GtkSpinButton *spinbutton)
     e = STRTRACK(gtk_editable_get_chars(GTK_EDITABLE(spinbutton), 0, -1));
     g_strstrip(e);
     result = g_strtod(e, NULL);
-    g_free(e);
+    G_FREE_NULL(e);
     return result;
 }
 
@@ -471,7 +470,7 @@ guint32 gtk_editable_get_value_as_uint(GtkEditable *editable)
     e = STRTRACK(gtk_editable_get_chars(GTK_EDITABLE(editable), 0, -1));
     g_strstrip(e);
     result = strtol(e, NULL, 10);
-    g_free(e);
+    G_FREE_NULL(e);
     return result;
 }
 
@@ -519,3 +518,223 @@ void gtk_combo_init_choices(
         n ++;
     }
 }
+
+#ifdef USE_GTK1
+/*
+ * gtk_ctree_fast_unlink
+ *
+ * Functions like gtk_ctree_unlink for *Top level parent nodes only*. O(1)  
+ */
+static void gtk_ctree_fast_unlink (GtkCTree *ctree, GtkCTreeNode *node)
+{
+	GtkCList *clist;
+	gint rows;
+	gint level;
+	gint visible;
+	GtkCTreeNode *work;
+	GtkCTreeNode *prev;
+	GtkCTreeRow *prev_row;
+	GtkCTreeNode *sibling;
+	GList *list;
+	
+	g_assert(NULL == GTK_CTREE_ROW(node)->parent); /* Not a child node */
+	
+	clist = GTK_CLIST(ctree);
+ 	visible = gtk_ctree_is_viewable(ctree, node);
+
+	/* clist->row_list_end unlinked ? */
+	if (visible && (
+            GTK_CTREE_NODE_NEXT(node) == NULL || (
+                GTK_CTREE_ROW(node)->children && 
+                gtk_ctree_is_ancestor(
+                    ctree, node, GTK_CTREE_NODE(clist->row_list_end))
+            )
+        ))
+		clist->row_list_end = (GList *) (GTK_CTREE_NODE_PREV(node));
+
+	/* update list */
+	rows = 0;
+	level = GTK_CTREE_ROW(node)->level;
+	work = GTK_CTREE_NODE_NEXT(node);
+
+	/* Counts children of node */
+	while (work && GTK_CTREE_ROW(work)->level > level) {
+		work = GTK_CTREE_NODE_NEXT(work);
+		rows++;
+    }
+	
+	/* Subtract removed node and children from row count */
+	if (visible) {
+		clist->rows -= (rows + 1);
+	}
+
+	if (work) {
+		list = (GList *)GTK_CTREE_NODE_PREV(work);
+		list->next = NULL;
+		list = (GList *)work;
+		list->prev = (GList *)GTK_CTREE_NODE_PREV(node);
+	}
+
+	prev = GTK_CTREE_NODE_PREV(node); 
+	
+	if (prev && GTK_CTREE_NODE_NEXT(prev) == node) {
+		list = (GList *)GTK_CTREE_NODE_PREV(node);
+		list->next = (GList *)work;
+    }
+
+	if (clist->row_list == (GList *)node)
+		clist->row_list = (GList *) (GTK_CTREE_ROW(node)->sibling);
+	else {
+		/* We need to hook the previous node up to the node's sibling */	
+		if (prev) {
+	
+			prev_row = GTK_CTREE_ROW(prev);
+			while (NULL != prev_row->parent) {
+				prev = GTK_CTREE_NODE_PREV(prev);
+				prev_row = GTK_CTREE_ROW(prev);
+			}
+			sibling = prev;			
+			g_assert(GTK_CTREE_ROW(sibling)->sibling == node);		
+			
+			GTK_CTREE_ROW(sibling)->sibling = GTK_CTREE_ROW(node)->sibling;
+		}
+	}
+}
+
+
+/*
+ * gtk_ctree_fast_link
+ *
+ * Functions like gtk_ctree_link for *Top level parent nodes only*.  This is 
+ * optimized for data being linked at the beginning of the tree.  
+ * O(1) if linking to beginning, O(n) otherwise.
+ */
+static void gtk_ctree_fast_link(GtkCTree *ctree, GtkCTreeNode *node,	
+	GtkCTreeNode *sibling)
+{
+	GtkCList *clist;
+	GList *list_end;
+	GList *list;
+	GList *work;
+	gboolean visible = FALSE;
+	gint rows = 0;
+
+	g_assert(NULL == GTK_CTREE_ROW(node)->parent); /* Not a child node */
+	
+	clist = GTK_CLIST (ctree);
+
+	/* Counts node and children */
+	for (rows = 1, list_end = (GList *)node; list_end->next;
+		list_end = list_end->next)
+    	rows++;
+	
+	GTK_CTREE_ROW(node)->parent = NULL;
+	GTK_CTREE_ROW(node)->sibling = sibling;
+
+	visible = TRUE;
+	clist->rows += rows;
+	work = clist->row_list;
+
+	/* O(1) if adding to top of list */
+	if (sibling) {
+		if (work != (GList *)sibling) {
+			/* Searches from beginning of list until it finds sibling */
+			while (GTK_CTREE_ROW(work)->sibling != sibling) {
+				work = (GList *)(GTK_CTREE_ROW(work)->sibling);
+            }
+			GTK_CTREE_ROW(work)->sibling = node;
+		}
+
+		if (sibling == GTK_CTREE_NODE(clist->row_list)) {
+			clist->row_list = (GList *) node;
+        }
+
+		if (GTK_CTREE_NODE_PREV(sibling) &&
+			GTK_CTREE_NODE_NEXT(GTK_CTREE_NODE_PREV(sibling)) == sibling) {
+			list = (GList *)GTK_CTREE_NODE_PREV(sibling);
+			list->next = (GList *)node;
+		}
+      
+		list = (GList *)node;
+		list->prev = (GList *)GTK_CTREE_NODE_PREV(sibling);
+		list_end->next = (GList *)sibling;
+		list = (GList *)sibling;
+		list->prev = list_end;
+
+	} else {
+		
+		if (work) {
+
+			/* Look from beginning of list/parent all the way to the end. */
+			while (GTK_CTREE_ROW(work)->sibling)
+				work = (GList *)(GTK_CTREE_ROW(work)->sibling);
+			GTK_CTREE_ROW(work)->sibling = node;
+	  
+			/* find last child of sibling */
+			work = (GList *) gtk_ctree_last(ctree, GTK_CTREE_NODE(work));
+	  
+			list_end->next = work->next;
+			
+			if (work->next)
+				list = work->next->prev = list_end;
+			work->next = (GList *)node;
+			list = (GList *)node;
+			list->prev = work;
+
+		} else {
+			clist->row_list = (GList *)node;
+			list = (GList *)node;
+			list->prev = NULL;
+			list_end->next = NULL;
+		}
+	}
+
+	if (clist->row_list_end == NULL || 
+		clist->row_list_end->next == (GList *)node) {
+		clist->row_list_end = list_end;
+    }
+}
+
+
+/*
+ * gtk_ctree_fast_move
+ *
+ * Functions like gtk_ctree_move for *Top level parent nodes only*.  This is 
+ * optimized for data being moved to the beginning of the tree and assumes 
+ * ctree != NULL and node != NULL.  O(1) as opposed to gtk's which is O(n).
+ */
+void gtk_ctree_fast_move (GtkCTree *ctree, GtkCTreeNode *node,
+	GtkCTreeNode *new_sibling)
+{
+	GtkCList *clist;
+	GtkCTreeNode *work;
+	gboolean visible = FALSE;
+	
+	g_assert(NULL == GTK_CTREE_ROW(node)->parent); /* Not a child node */
+	
+	clist = GTK_CLIST (ctree);
+	visible = gtk_ctree_is_viewable (ctree, node);
+
+	/* return if it's already the right place */
+	if ((new_sibling == GTK_CTREE_ROW(node)->sibling)
+		|| (new_sibling == node)) {
+			return;
+	}
+	
+	work = NULL;
+	if (gtk_ctree_is_viewable (ctree, node))
+    	work = GTK_CTREE_NODE(g_list_nth (clist->row_list, clist->focus_row));
+    
+	gtk_ctree_fast_unlink(ctree, node);
+	gtk_ctree_fast_link(ctree, node, new_sibling);
+	
+	if (work) {
+		while (work && !gtk_ctree_is_viewable(ctree, work))
+			work = GTK_CTREE_ROW(work)->parent;
+
+		clist->focus_row = g_list_position(clist->row_list, (GList *)work);
+		clist->undo_anchor = clist->focus_row;
+	}
+
+}
+#endif /* USE_GTK1 */
