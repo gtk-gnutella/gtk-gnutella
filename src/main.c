@@ -114,6 +114,8 @@ void gtk_gnutella_exit(gint n)
 	download_close();
 	http_close();
 	gwc_close();
+	verify_close();
+	move_close();
 
     main_gui_shutdown();
 
@@ -156,8 +158,6 @@ void gtk_gnutella_exit(gint n)
 	pmsg_close();
 	version_close();
 	ignore_close();
-	verify_close();
-	move_close();
 	bg_close();
 	atom_str_free(start_rfc822_date);
 	atoms_close();
