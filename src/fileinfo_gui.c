@@ -143,6 +143,7 @@ static void fi_gui_set_details(gnet_fi_t fih)
     gchar **aliases;
     guint n;
     GtkCList *cl_aliases;
+	gboolean in_progress = FALSE;
 
     fi = fi_get_info(fih);
     g_assert(fi != NULL);
@@ -164,6 +165,8 @@ static void fi_gui_set_details(gnet_fi_t fih)
     for (n = 0; aliases[n] != NULL; n++)
         gtk_clist_append(cl_aliases, &aliases[n]);
     gtk_clist_thaw(cl_aliases);
+
+	in_progress = (fis.done != fis.size);
     
     g_strfreev(aliases);
     fi_free_info(fi);
@@ -173,8 +176,8 @@ static void fi_gui_set_details(gnet_fi_t fih)
 
 	vp_draw_fi_progress(last_shown_valid, last_shown);
 
-    gtk_widget_set_sensitive(lookup_widget(main_window, "button_fi_purge"),
-        TRUE);
+	gtk_widget_set_sensitive(lookup_widget(main_window, "button_fi_purge"),
+							 in_progress);
 }
 
 /*
