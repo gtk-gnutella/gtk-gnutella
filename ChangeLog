@@ -20,6 +20,7 @@
     selected record has a urn.
   * Added "Globally drop results with [name|urn:sha1]" to search popup.
     I wanted to be able to drop definite spam once and for all.
+  * Netmask for ip filter rules defaults to 255.255.255.255
 
 - (2002.06.15 - Richard)
   * Added URN column to the search results (hidden by default)
