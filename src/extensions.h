@@ -100,7 +100,7 @@ typedef struct extvec {
 #define EXT_T_OVERHEAD			6	/* Pure overhead */
 
 /*
- * Public interaface.
+ * Public interface.
  */
 
 gint ext_parse(guchar *buf, gint len, extvec_t *exv, gint extcnt);
