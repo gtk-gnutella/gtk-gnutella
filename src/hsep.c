@@ -931,7 +931,7 @@ void hsep_fire_global_table_changed(void)
 
 	/* do nothing if we don't have any listeners */
 
-	if (event_subscriber_count(hsep_global_table_changed_event) > 0) {
+	if (event_subscriber_active(hsep_global_table_changed_event)) {
 		hsep_triple table[HSEP_N_MAX + 1];
 
 		/*
