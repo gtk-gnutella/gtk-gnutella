@@ -53,6 +53,8 @@
 #include "lib/walloc.h"
 #include "lib/override.h"	/* This file MUST be the last one included */
 
+/* Get rid of the obnoxious (xmlChar *) */
+#define xml_get_string(node, id) ((gchar *) xmlGetProp((node), (id)))
 /*
  * The bitzi_request_t structure ties together each Bitzi request
  * which are stored in the request queue.
@@ -62,8 +64,8 @@
 static const gchar bitzi_url_fmt[] = "http://ticket.bitzi.com/rdf/urn:sha1:%s";
 
 typedef struct {
-	guchar *urnsha1;		/* urnsha1, atom */
-	guchar bitzi_url[SHA1_BASE32_SIZE + sizeof bitzi_url_fmt]; /* request URL */
+	gchar *urnsha1;		/* urnsha1, atom */
+	gchar bitzi_url[SHA1_BASE32_SIZE + sizeof bitzi_url_fmt]; /* request URL */
 
 	/*
 	 * xml related bits
@@ -231,21 +233,21 @@ bitzi_host_error_ind(gpointer handle,
  */
 
 struct efj_t {
-	const xmlChar *string;
+	const gchar *string;
 	bitzi_fj_t judgement;
 };
 
 static const struct efj_t enum_fj_table[] = {
-	{"Unknown", UNKNOWN},
-	{"Dangerous/Misleading", DANGEROUS_MISLEADING},
-	{"Incomplete/Damaged", INCOMPLETE_DAMAGED},
-	{"Substandard", SUBSTANDARD},
-	{"Overrated", OVERRATED},
-	{"Normal", NORMAL},
-	{"Underrated", UNDERRATED},
-	{"Complete", COMPLETE},
-	{"Recommended", RECOMMENDED},
-	{"Best Version", BEST_VERSION}
+	{ "Unknown",				UNKNOWN },
+	{ "Dangerous/Misleading",	DANGEROUS_MISLEADING },
+	{ "Incomplete/Damaged",		INCOMPLETE_DAMAGED },
+	{ "Substandard",			SUBSTANDARD },
+	{ "Overrated",				OVERRATED },
+	{ "Normal",					NORMAL },
+	{ "Underrated",				UNDERRATED },
+	{ "Complete",				COMPLETE },
+	{ "Recommended",			RECOMMENDED },
+	{ "Best Version",			BEST_VERSION }
 };
 
 /**
@@ -253,9 +255,9 @@ static const struct efj_t enum_fj_table[] = {
  * atributes will not be there in which case xmlGetProp will return a null
  */
 static void
-process_rdf_description(xmlNode * node, bitzi_data_t * data)
+process_rdf_description(xmlNode *node, bitzi_data_t *data)
 {
-	xmlChar *xml_string = NULL;
+	gchar *s = NULL;
 
 	/*
 	 * All tickets have a ticketExpires tag which we need for cache
@@ -263,10 +265,10 @@ process_rdf_description(xmlNode * node, bitzi_data_t * data)
 	 *
 	 * CHECK: date parse deals with timezone? can it fail?
 	 */
-	xml_string = xmlGetProp(node, "ticketExpires");
-	if (xml_string) {
+	s = xml_get_string(node, "ticketExpires");
+	if (s) {
 		time_t now = time(NULL);
-		data->expiry = date2time(xml_string, now);
+		data->expiry = date2time(s, now);
 	} else {
 		g_warning("process_rdf_description: No ticketExpires!");
 	}
@@ -275,21 +277,22 @@ process_rdf_description(xmlNode * node, bitzi_data_t * data)
 	 * fileGoodness amd fileJudgement are the two most imeadiatly
 	 * useful values.
 	 */
-	xml_string = xmlGetProp(node, "fileGoodness");
-	if (xml_string) {
-		data->goodness = g_strtod(xml_string, NULL);
+	s = xml_get_string(node, "fileGoodness");
+	if (s) {
+		data->goodness = g_strtod(s, NULL);
 		if (dbg)
-			g_message("fileGoodness is %s/%f", xml_string, data->goodness);
-	} else
+			g_message("fileGoodness is %s/%f", s, data->goodness);
+	} else {
 		data->goodness = 0;
+	}
 
 	data->judgement = UNKNOWN;
-	xml_string = xmlGetProp(node, "fileJudgement");
-
-	if (xml_string) {
+	
+	s = xml_get_string(node, "fileJudgement");
+	if (s) {
 		size_t i;
 		for (i = 0; i < G_N_ELEMENTS(enum_fj_table); i++) {
-			if (xmlStrEqual(xml_string, enum_fj_table[i].string))
+			if (xmlStrEqual(s, (const xmlChar *) enum_fj_table[i].string))
 				data->judgement = enum_fj_table[i].judgement;
 		}
 	}
@@ -299,11 +302,10 @@ process_rdf_description(xmlNode * node, bitzi_data_t * data)
 	 * fileLength, useful for comparing to result
 	 */
 
-	xml_string = xmlGetProp(node, "fileLength");
-
-	if (xml_string) {
+	s = xml_get_string(node, "fileLength");
+	if (s) {
 		gint error;
-		data->size = parse_uint64(xml_string, NULL, 10, &error);
+		data->size = parse_uint64(s, NULL, 10, &error);
 	}
 
 	/*
@@ -313,18 +315,18 @@ process_rdf_description(xmlNode * node, bitzi_data_t * data)
 	 * Currently we handle video and audio
 	 */
 
-	xml_string = xmlGetProp(node, "format");
-	if (xml_string) {
-		if (xmlStrstr(xml_string, "video")) {
-			xmlChar *xml_sizex = xmlGetProp(node, "videoWidth");
-			xmlChar *xml_sizey = xmlGetProp(node, "videoHeight");
-			xmlChar *xml_bitrate = xmlGetProp(node, "videoBitrate");
-			xmlChar *xml_fps = xmlGetProp(node, "videoFPS");
+	s = xml_get_string(node, "format");
+	if (s) {
+		if (xmlStrstr(s, "video")) {
+			gchar *xml_sizex = xml_get_string(node, "videoWidth");
+			gchar *xml_sizey = xml_get_string(node, "videoHeight");
+			gchar *xml_bitrate = xml_get_string(node, "videoBitrate");
+			gchar *xml_fps = xml_get_string(node, "videoFPS");
 
 			/*
 			 * copy the mime type
 			 */
-			data->mime_type = g_strdup(xml_string);
+			data->mime_type = g_strdup(s);
 
 			/*
 			 * format the mime details
@@ -332,18 +334,19 @@ process_rdf_description(xmlNode * node, bitzi_data_t * data)
 			if (xml_sizex && xml_sizey) {
 				data->mime_desc =
 					g_strdup_printf("%sx%s, %s fps, %s bitrate",
-						(xml_sizex != NULL) ? (char *) xml_sizex : "?",
-						(xml_sizey != NULL) ? (char *) xml_sizey : "?",
-						(xml_fps != NULL) ? (char *) xml_fps : "?",
-						(xml_bitrate != NULL) ? (char *) xml_bitrate : "?");
+						(xml_sizex != NULL) ? xml_sizex : "?",
+						(xml_sizey != NULL) ? xml_sizey : "?",
+						(xml_fps != NULL) ? xml_fps : "?",
+						(xml_bitrate != NULL) ? xml_bitrate : "?");
 			} else if (xml_fps || xml_bitrate) {
 				data->mime_desc =
 					g_strdup_printf("%s fps %s bitrate",
-						(xml_fps != NULL) ? (char *) xml_fps : "?",
-						(xml_bitrate != NULL) ? (char *) xml_bitrate : "?");
+						(xml_fps != NULL) ? xml_fps : "?",
+						(xml_bitrate != NULL) ? xml_bitrate : "?");
 			}
-		} else if (xmlStrstr(xml_string, "audio"))
-			data->mime_type = g_strdup(xml_string);
+		} else if (xmlStrstr(s, "audio")) {
+			data->mime_type = g_strdup(s);
+		}
 	}
 
 	/*
@@ -355,7 +358,7 @@ process_rdf_description(xmlNode * node, bitzi_data_t * data)
 
 		for (cur_attr = node->properties; cur_attr; cur_attr = cur_attr->next) {
 			g_message("bitzi rdf attrib: %s, type %d = %s", cur_attr->name,
-				  cur_attr->type, xmlGetProp(node, cur_attr->name));
+				  cur_attr->type, xml_get_string(node, cur_attr->name));
 		}
 	}
 }
