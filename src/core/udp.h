@@ -35,9 +35,11 @@
  */
 
 struct gnutella_socket;
+struct gnutella_node;
 
 void udp_received(struct gnutella_socket *s);
 void udp_connect_back(guint32 ip, guint16 port, const gchar *muid);
+void udp_send_reply(struct gnutella_node *n, gpointer buf, gint len);
 
 #endif /* _core_udp_h_ */
 

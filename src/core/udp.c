@@ -39,6 +39,8 @@ RCSID("$Id$");
 #include "nodes.h"
 #include "sockets.h"
 #include "bsched.h"
+#include "gnet_stats.h"
+#include "gnutella.h"
 
 #include "if/gnet_property_priv.h"
 
@@ -47,11 +49,32 @@ RCSID("$Id$");
 #include "lib/override.h"		/* Must be the last header included */
 
 /**
+ * Get a "fake" UDP node for the specified IP:port, matching NODE_IS_UDP().
+ * @return pointer to static data
+ */
+static gnutella_node_t *
+udp_fake_node(guint32 ip, guint16 port)
+{
+	static struct gnutella_node fake_node;
+	struct gnutella_node *n;
+
+	fake_node.peermode = NODE_P_UDP;
+	fake_node.ip = ip;
+	fake_node.port = ip;
+
+	n = &fake_node;
+	g_assert(NODE_IS_UDP(n));
+
+	return n;
+}
+
+/**
  * Look whether the datagram we received is a valid Gnutella packet.
  */
 static gboolean
 udp_is_valid_gnet(struct gnutella_socket *s)
 {
+	struct gnutella_node *n = udp_fake_node(s->ip, s->port);
 	struct gnutella_header *head;
 	gchar *msg;
 	guint32 size;
@@ -63,6 +86,12 @@ udp_is_valid_gnet(struct gnutella_socket *s)
 
 	head = (struct gnutella_header *) s->buffer;
 	READ_GUINT32_LE(head->size, size);
+
+	n->header = *head;			/* Struct copy */
+	n->size = size;
+
+	gnet_stats_count_received_header(n);
+	gnet_stats_count_received_payload(n);
 
 	if (size + sizeof(struct gnutella_header) != s->pos) {
 		msg = "Size mismatch";
@@ -121,6 +150,11 @@ udp_received(struct gnutella_socket *s)
 
 /**
  * Send a datagram to the specified IP:port, made of `len' bytes from `buf'.
+ * This datagram is meant to be a complete Gnutella message.
+ *
+ * From a statistics bookkeeping point of view, this routine assumes the
+ * message it is about to send has already been accounted for as "queued".
+ * It will be counted as "sent" upon transmit success.
  *
  * @return success status.
  */
@@ -130,6 +164,7 @@ udp_sendto(guint32 ip, guint16 port, gpointer buf, gint len)
 	struct sockaddr_in addr;
 	gint alen = sizeof(addr);
 	gint rw;
+	struct gnutella_node *n = udp_fake_node(ip, port);
 
 	if (s_udp_listen == NULL) {
 		if (udp_debug)
@@ -151,13 +186,32 @@ udp_sendto(guint32 ip, guint16 port, gpointer buf, gint len)
 		return FALSE;
 	}
 
+	/*
+	 * The following should NEVER happen, since UDP preserves write
+	 * boundaries: write operations are therefore necessarily atomic!
+	 * Hence it's a fatal error.
+	 */
+
 	if (rw != len)
-		g_warning("truncated %d-byte datagram to %s down to %d bytes",
+		g_error("truncated %d-byte datagram to %s down to %d bytes",
 			len, ip_port_to_gchar(ip, port), rw);
 
 	bws_udp_count_written(rw);
 
+	gnet_stats_count_sent(n, gmsg_function(buf), gmsg_hops(buf), len);
+
 	return TRUE;
+}
+
+/**
+ * Send a reply datagram to the specified node, made of `len' bytes from `buf'.
+ */
+void udp_send_reply(gnutella_node_t *n, gpointer buf, gint len)
+{
+	g_assert(NODE_IS_UDP(n));
+
+	gnet_stats_count_queued(n, gmsg_function(buf), gmsg_hops(buf), len);
+	(void) udp_sendto(n->ip, n->port, buf, len);
 }
 
 /**
@@ -169,6 +223,7 @@ udp_connect_back(guint32 ip, guint16 port, const gchar *muid)
 {
 	struct gnutella_msg_init m;
 	gboolean ok;
+	struct gnutella_node *n = udp_fake_node(ip, port);
 
 	memcpy(m.header.muid, muid, 16);
 	m.header.function = GTA_MSG_INIT;
@@ -177,6 +232,7 @@ udp_connect_back(guint32 ip, guint16 port, const gchar *muid)
 
 	WRITE_GUINT32_LE(0, m.header.size);
 
+	gnet_stats_count_queued(n, m.header.function, m.header.hops, sizeof(m));
 	ok = udp_sendto(ip, port, (gchar *) &m, sizeof(m));
 
 	if (ok && udp_debug > 19)
