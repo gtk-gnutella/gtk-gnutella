@@ -1,7 +1,18 @@
 # since last version
 
+- (2002.08.20 - RAM)
+ * Integrated Christophe Tronche's patch to schedule alternative sources
+   from the download mesh.
+ * Stopped downloads now get requeued immediately and no longer lag in the
+   upper pane.
+
 - (2002.08.20 - Vidar)
  * Added fuzzy autoselection in Search pane.
+
+- (2002.08.19 - RAM)
+ * Suppress warning about "truncated fileinfo" when file was empty.
+ * Use SHA1 to create a decent random seed, portably (no use of /dev/urandom).
+ * All bytes of message GUID are now random: removed internal message counter.
 
 - (2002.08.18 - RAM)
  * Defer disposal of vendor string in nodes for GUI display.
@@ -14,6 +25,10 @@
  * Query hit parsing now resets Push flag on servers known to wrongly set it.
  * When comparing filesizes for auto-downloads, account for the possible
    swarming trailer within the "download" directory.
+ * Fixed stupid typo in atoms that caused final memory fault.
+ * Forgot to dispose of file_info structure during final download shutdown.
+ * No need to flush fileinfo trailer when resetting chunk states for downloads
+   that are moved back to the queue.
 
 - (2002.08.17 - RAM)
  * Integrated swarming patch from Vidar Madsen.
