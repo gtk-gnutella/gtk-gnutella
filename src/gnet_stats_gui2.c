@@ -701,11 +701,12 @@ void gnet_stats_gui_update(time_t now)
 	static time_t last_update = 0;
     gint current_page;
 
-	if (!g_static_mutex_trylock(&mutex))
+	if (last_update == now || !g_static_mutex_trylock(&mutex))
 		return;
+	last_update = now;
 	
     current_page = gtk_notebook_get_current_page(notebook_main);
-    if (current_page != nb_main_page_gnet_stats || last_update == now)
+    if (current_page != nb_main_page_gnet_stats)
 		goto cleanup;
 
     gnet_stats_get(&stats);
@@ -730,6 +731,5 @@ void gnet_stats_gui_update(time_t now)
 	}
 
 cleanup:
-	last_update = now;
 	g_static_mutex_unlock(&mutex);
 }
