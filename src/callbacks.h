@@ -26,23 +26,19 @@
 #ifndef __callbacks_h__
 #define __callbacks_h__
 
-#include <gtk/gtk.h>
+#include "gui.h"
 
 #include "filter_cb.h"
 #include "nodes_cb.h"
 #include "settings_cb.h"
 #include "search_cb.h"
+#include "main_cb.h"
+#include "monitor_cb.h"
 
-gboolean on_clist_monitor_button_press_event (GtkWidget *widget, GdkEventButton *event, gpointer user_data);
 gboolean on_clist_uploads_button_press_event (GtkWidget *widget, GdkEventButton *event, gpointer user_data);
-gboolean on_entry_monitor_focus_out_event (GtkWidget *widget, GdkEventFocus *event, gpointer user_data); 
 gboolean on_entry_search_reissue_timeout_focus_out_event (GtkWidget *widget, GdkEventFocus *event, gpointer user_data);
-gboolean on_main_window_delete_event (GtkWidget *widget, GdkEvent *event, gpointer user_data);
-gboolean on_main_window_destroy_event (GtkWidget *widget, GdkEvent *event, gpointer user_data); 
 void on_button_extra_config_clicked (GtkButton *button, gpointer user_data); 
-void on_button_quit_clicked (GtkButton *button, gpointer user_data);
 void on_ctree_menu_tree_select_row (GtkCTree *clist, GList *node, gint column, gpointer user_data);
-void on_entry_monitor_activate (GtkEditable *editable, gpointer user_data); 
 
 
  
@@ -104,28 +100,20 @@ void on_clist_downloads_queue_drag_end(GtkWidget *widget, GdkDragContext *drag_c
 /***
  *** config panel
  ***/
-gboolean on_entry_config_extensions_focus_out_event (GtkWidget *widget, GdkEventFocus *event, gpointer user_data);
-gboolean on_entry_config_force_ip_focus_out_event (GtkWidget *widget, GdkEventFocus *event, gpointer user_data);
 gboolean on_entry_config_maxttl_focus_out_event (GtkWidget *widget, GdkEventFocus *event, gpointer user_data); 
 gboolean on_entry_config_myttl_focus_out_event (GtkWidget *widget, GdkEventFocus *event, gpointer user_data);
 gboolean on_entry_config_netmask_focus_out_event(GtkWidget * widget, GdkEventFocus * event, gpointer user_data);
-gboolean on_entry_config_path_focus_out_event (GtkWidget *widget, GdkEventFocus *event, gpointer user_data);
 gboolean on_entry_config_search_items_focus_out_event (GtkWidget *widget, GdkEventFocus *event, gpointer user_data);
 gboolean on_entry_config_speed_focus_out_event (GtkWidget *widget, GdkEventFocus *event, gpointer user_data);
 void on_button_config_add_dir_clicked (GtkButton *button, gpointer user_data); 
 void on_button_config_move_path_clicked (GtkButton *button, gpointer user_data); 
 void on_button_config_rescan_dir_clicked (GtkButton *button, gpointer user_data); 
 void on_button_config_save_path_clicked (GtkButton *button, gpointer user_data);
-void on_entry_config_extensions_activate (GtkEditable *editable, gpointer user_data); 
-void on_entry_config_extensions_changed (GtkEditable *editable, gpointer user_data);
-void on_entry_config_force_ip_activate (GtkEditable *editable, gpointer user_data); 
-void on_entry_config_force_ip_changed (GtkEditable *editable, gpointer user_data);
 void on_entry_config_maxttl_activate (GtkEditable *editable, gpointer user_data); 
 void on_entry_config_maxttl_changed (GtkEditable *editable, gpointer user_data);
 void on_entry_config_myttl_activate (GtkEditable *editable, gpointer user_data);
 void on_entry_config_myttl_changed (GtkEditable *editable, gpointer user_data);
 void on_entry_config_netmask_activate(GtkEditable * editable, gpointer user_data);
-void on_entry_config_path_activate (GtkEditable *editable, gpointer user_data); 
 void on_entry_config_search_items_activate (GtkEditable *editable, gpointer user_data);
 void on_entry_config_speed_activate (GtkEditable *editable, gpointer user_data);
 void on_radio_config_http_toggled (GtkToggleButton *togglebutton, gpointer user_data);
@@ -134,11 +122,6 @@ void on_radio_config_socksv5_toggled (GtkToggleButton *togglebutton, gpointer us
 
 
 
-/***
- *** popup-monitor
- ***/
-void on_popup_monitor_add_search_activate (GtkMenuItem *menuitem, gpointer user_data);
-void on_popup_monitor_hide(GtkWidget *widget, gpointer user_data);
 
 
 
@@ -203,24 +186,10 @@ void     on_clist_search_stats_resize_column(GtkCList * clist, gint column, gint
 
 
 
-/***
- *** menu bar
- ***/
-void on_menu_about_activate(GtkMenuItem * menuitem, gpointer user_data);
-
-
 
 /***
  *** search list (sidebar)
  ***/
 void on_clist_search_resize_column(GtkCList * clist, gint column, gint width, gpointer user_data);
-
-
-
-/***
- *** about dialog
- ***/
-void on_button_about_close_clicked(GtkButton *button, gpointer user_data);
-gboolean on_dlg_about_delete_event(GtkWidget *widget, GdkEvent *event, gpointer user_data);
 
 #endif	/* __callbacks_h__ */

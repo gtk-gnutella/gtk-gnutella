@@ -25,22 +25,15 @@
 
 #include "gui.h"
 
-#include "gnutella.h" // FIXME: needed fot gtk_gnutella_exit()
-#include "callbacks.h"
-#include "search_gui.h" // FIXME: remove when search monitor is out-sourced
-#include "share.h"
-#include "sockets.h" // FIXME: needed when killing an upload
-#include "hosts.h"
-#include "downloads.h"
-#include "search_stats.h"
-#include "upload_stats.h"
-#include "filter.h"
-#include "huge.h"
-
-#include "gui_property_priv.h"
+#include "gnutella.h"     // FIXME: needed fot gtk_gnutella_exit()
+#include "downloads.h"    // FIXME: remove this dependency
+#include "uploads.h"      // FIXME: remove this dependency
+#include "upload_stats.h" // FIXME: remove this dependency
 
 #include "statusbar_gui.h"
-
+#include "downloads_gui.h"
+#include "filter.h"
+#include "search_stats.h"
 
 /* 
  * Create a function for the focus out signal and make it call
@@ -66,48 +59,11 @@
         if(gtk_toggle_button_get_active(togglebutton))                  \
             gnet_prop_set_guint32(v, &buf, 0, 1);                       \
     }
-    
-/*
- * Creates a callback function for checkbutton w to change the
- * value of the gboolean v. f is executed afterwards
- */
-#define BIND_CHECKBUTTON(w,v,f)\
-    void on_##w##_toggled(GtkToggleButton * togglebutton,\
-						  gpointer user_data)\
-    {\
-    v = gtk_toggle_button_get_active(togglebutton);\
-    f;\
-    }
-
-/*
- * Creates a callback function for checkbutton w to change the
- * value of the gboolean v. f is executed afterwards
- */
-#define BIND_CHECKBUTTON_CALL(w,v,f)\
-    void on_##w##_toggled(GtkToggleButton * togglebutton,\
-						  gpointer user_data)\
-    {\
-    v = gtk_toggle_button_get_active(togglebutton);\
-    f;\
-    }
 
 static GtkWidget *add_dir_filesel = NULL;
 static gchar *selected_url = NULL; 
-#if 0
-static GtkWidget *hosts_read_filesel = NULL;
-static GtkWidget *hosts_write_filesel = NULL;
-#endif
 
-/***
- *** Main window
- ***/
 
-gboolean on_main_window_delete_event(GtkWidget * widget, GdkEvent * event,
-									 gpointer user_data)
-{
-	gtk_gnutella_exit(0);
-	return TRUE;
-}
 
 /***
  *** Left panel (selection tree)
@@ -124,10 +80,6 @@ void on_ctree_menu_tree_select_row
         (GTK_NOTEBOOK(lookup_widget(main_window, "notebook_main")), tab);
 }
 
-void on_button_quit_clicked(GtkButton * button, gpointer user_data)
-{
-	gtk_gnutella_exit(0);
-}
 
 gboolean on_progressbar_bws_in_button_press_event(GtkWidget *widget, 
 											      GdkEventButton *event, 
@@ -189,97 +141,6 @@ void on_button_host_catcher_clear_clicked(GtkButton *button, gpointer user_data)
 	host_clear_cache();
 }
 
-#if 0
-gboolean fs_hosts_write_delete_event
-    (GtkWidget *widget, GdkEvent *event, gpointer user_data)
-{
-	gtk_widget_destroy(hosts_write_filesel);
-	hosts_write_filesel = (GtkWidget *) NULL;
-	return TRUE;
-}
-
-void button_fs_hosts_write_clicked(GtkButton * button, gpointer user_data)
-{
-	if (user_data)
-		hosts_write_to_file
-            (gtk_file_selection_get_filename
-                (GTK_FILE_SELECTION(hosts_write_filesel)));
-
-	gtk_widget_destroy(hosts_write_filesel);
-	hosts_write_filesel = (GtkWidget *) NULL;
-}
-
-void on_popup_hosts_export_activate(GtkMenuItem *menuitem, gpointer user_data)
-{
-	if (!hosts_write_filesel) {
-		hosts_write_filesel = gtk_file_selection_new
-			("Please choose a file to save the catched hosts");
-
-		gtk_signal_connect(
-            GTK_OBJECT(GTK_FILE_SELECTION(hosts_write_filesel)->ok_button), 
-            "clicked",
-			GTK_SIGNAL_FUNC(button_fs_hosts_write_clicked),
-			(gpointer) 1);
-		gtk_signal_connect(
-            GTK_OBJECT(GTK_FILE_SELECTION(hosts_write_filesel)->cancel_button),
-            "clicked",
-			GTK_SIGNAL_FUNC(button_fs_hosts_write_clicked),
-			NULL);
-		gtk_signal_connect(
-            GTK_OBJECT(hosts_write_filesel), 
-            "delete_event",
-			GTK_SIGNAL_FUNC(fs_hosts_write_delete_event),
-			NULL);
-
-		gtk_widget_show(hosts_write_filesel);
-	}
-}
-
-gboolean fs_hosts_read_delete_event(GtkWidget * widget, GdkEvent * event,
-									gpointer user_data)
-{
-	gtk_widget_destroy(hosts_read_filesel);
-	hosts_read_filesel = (GtkWidget *) NULL;
-	return TRUE;
-}
-
-void button_fs_hosts_read_clicked(GtkButton * button, gpointer user_data)
-{
-	if (user_data)
-		hosts_read_from_file(gtk_file_selection_get_filename
-							 (GTK_FILE_SELECTION(hosts_read_filesel)),
-							 FALSE);
-
-	gtk_widget_destroy(hosts_read_filesel);
-	hosts_read_filesel = (GtkWidget *) NULL;
-}
-
-void on_popup_hosts_import_activate(GtkMenuItem * menuitem,
-									 gpointer user_data)
-{
-	if (!hosts_read_filesel) {
-		hosts_read_filesel =
-			gtk_file_selection_new("Please choose a text hosts file");
-
-		gtk_signal_connect(GTK_OBJECT
-						   (GTK_FILE_SELECTION(hosts_read_filesel)->
-							ok_button), "clicked",
-						   GTK_SIGNAL_FUNC(button_fs_hosts_read_clicked),
-						   (gpointer) 1);
-		gtk_signal_connect(GTK_OBJECT
-						   (GTK_FILE_SELECTION(hosts_read_filesel)->
-							cancel_button), "clicked",
-						   GTK_SIGNAL_FUNC(button_fs_hosts_read_clicked),
-						   NULL);
-		gtk_signal_connect(GTK_OBJECT(hosts_read_filesel), "delete_event",
-						   GTK_SIGNAL_FUNC(fs_hosts_read_delete_event),
-						   NULL);
-
-		gtk_widget_show(hosts_read_filesel);
-	}
-}
-#endif
-
 /***  
  *** Uploads
  ***/
@@ -324,8 +185,7 @@ void on_button_uploads_kill_clicked(GtkButton * button, gpointer user_data)
 		    continue;
         }
 
-		if (!UPLOAD_IS_COMPLETE(d))
-			socket_destroy(d->socket);
+        upload_kill(d);
 	}  
 
 	gui_update_c_uploads();
@@ -1158,10 +1018,6 @@ void on_clist_downloads_queue_select_row
         (lookup_widget(popup_queue, "popup_queue_abort_host"), one_or_more);
     gtk_widget_set_sensitive
         (lookup_widget(popup_queue, "popup_queue_abort_sha1"), one_or_more);
-
-	// FIXME: fix when count_running_downloads() is public and cheap!
-	//gtk_widget_set_sensitive(popup_queue_start_now, 
-	//						   (count_running_downloads() < max_downloads));
 }
 
 void on_clist_downloads_queue_unselect_row
@@ -1279,81 +1135,7 @@ void on_clist_downloads_queue_drag_end(GtkWidget *widget,
 }
 
 
-/***
- *** Searches
- ***/
 
-
-
-
-
-
-
-/***
- *** Monitor popup menu
- ***/  
-gboolean on_clist_monitor_button_press_event
-    (GtkWidget *widget, GdkEventButton *event, gpointer user_data)
-{
-    gint row;
-    gint col;
-    GtkCList *clist_monitor = GTK_CLIST(widget);
-
-	if (event->button != 3)
-		return FALSE;
-
-    if (GTK_CLIST(clist_monitor)->selection == NULL)
-        return FALSE;
-
-  	if (!gtk_clist_get_selection_info
-		(GTK_CLIST(clist_monitor), event->x, event->y, &row, &col))
-		return FALSE;
-
-	gtk_toggle_button_set_active(
-        GTK_TOGGLE_BUTTON
-            (lookup_widget(main_window, "checkbutton_monitor_enable")), 
-        FALSE);
-	gtk_menu_popup(GTK_MENU(popup_monitor), NULL, NULL, NULL, NULL, 
-                  event->button, event->time);
-
-	return TRUE;
-}
-
-void on_popup_monitor_hide(GtkWidget *widget, 
-                           gpointer user_data)
-{
-	// FIXME: should restart monitoring again if wanted.
-}
-
-void on_popup_monitor_add_search_activate (GtkMenuItem *menuitem, 
-                                           gpointer user_data)
-{
-	GList *l;
-	gchar *titles[1];
-	gchar *e;
-    GtkCList *clist_monitor = GTK_CLIST
-        (lookup_widget(main_window, "clist_monitor"));
-
-	for (l = GTK_CLIST(clist_monitor)->selection; l; 
-         l = GTK_CLIST(clist_monitor)->selection ) {		
-        gtk_clist_get_text(GTK_CLIST(clist_monitor), (gint) l->data, 0, titles);
-        gtk_clist_unselect_row(GTK_CLIST(clist_monitor), (gint) l->data, 0);
-     
-		e = g_strdup(titles[0]);
-
-		g_strstrip(e);
-		if (*e) {
-            guint32 minimum_speed;
-        
-            gui_prop_get_guint32(PROP_DEFAULT_MINIMUM_SPEED, 
-                &minimum_speed, 0, 1);
-
-			search_gui_new_search(e, minimum_speed, 0);
-        }
-
-		g_free(e);
-	}	
-}
 
 /***
  *** Search Stats
@@ -1550,18 +1332,6 @@ void on_button_config_rescan_dir_clicked(GtkButton * button,
 	gui_allow_rescan_dir(TRUE);
 }
 
-void on_entry_config_path_activate(GtkEditable *editable, gpointer user_data)
-{
-    gchar *path;
-
-    path = gtk_editable_get_chars(editable, 0, -1);
-
-    shared_dirs_parse(path);
-	gui_update_shared_dirs();
-
-    g_free(path);
-}
-FOCUS_TO_ACTIVATE(entry_config_path)
 
 void on_entry_config_netmask_activate(GtkEditable *editable, gpointer data)
 {
@@ -1575,61 +1345,14 @@ void on_entry_config_netmask_activate(GtkEditable *editable, gpointer data)
 }
 FOCUS_TO_ACTIVATE(entry_config_netmask)
 
-void on_entry_config_extensions_activate(GtkEditable *editable, gpointer data)
-{
-    gchar *ext;
 
-    ext = gtk_editable_get_chars(editable, 0, -1);
-   
-   	parse_extensions(ext);
-	gui_update_scan_extensions();
 
-    g_free(ext);
-}
-FOCUS_TO_ACTIVATE(entry_config_extensions)
-
-void on_entry_config_force_ip_changed(GtkEditable * editable,
-									  gpointer user_data)
-{
-    gchar *e = gtk_editable_get_chars(editable, 0, -1);
-
-	g_strstrip(e);
-
-	gtk_widget_set_sensitive(
-        lookup_widget(main_window, "checkbutton_config_force_ip"),
-        is_string_ip(e));
-
-	g_free(e);
-}
-
-void on_entry_config_force_ip_activate(GtkEditable * editable,
-									   gpointer user_data)
-{
-   	gchar *e;
-	guint32 ip;
-	e = gtk_editable_get_chars(
-        GTK_EDITABLE(lookup_widget(main_window, "entry_config_force_ip")), 
-        0, -1);
-	g_strstrip(e);
-	ip = gchar_to_ip(e);
-	gnet_prop_set_guint32(PROP_FORCED_LOCAL_IP, &ip, 0, 1);
-	g_free(e);
-}
-FOCUS_TO_ACTIVATE(entry_config_force_ip)
 
 
 BIND_RADIOBUTTON(radio_config_http,    PROP_PROXY_PROTOCOL, 1)
 BIND_RADIOBUTTON(radio_config_socksv4, PROP_PROXY_PROTOCOL, 4)
 BIND_RADIOBUTTON(radio_config_socksv5, PROP_PROXY_PROTOCOL, 5)
 
-/***
- *** menu bar
- ***/ 
-void on_menu_about_activate(GtkMenuItem * menuitem,
-								       gpointer user_data)
-{
-    gtk_widget_show(dlg_about);
-}
 
 
 
@@ -1642,19 +1365,5 @@ void on_clist_search_resize_column(GtkCList * clist, gint column,
     search_list_col_widths[column] = width;
 }
 
-/***
- *** about dialog
- ***/
-void on_button_about_close_clicked(GtkButton * button, gpointer user_data)
-{
-    gtk_widget_hide(dlg_about);
-}
-
-gboolean on_dlg_about_delete_event(GtkWidget *widget, GdkEvent *event,
-                                   gpointer user_data)
-{
-	gtk_widget_hide(dlg_about);
-	return TRUE;
-}
 
 /* vi: set ts=4: */
