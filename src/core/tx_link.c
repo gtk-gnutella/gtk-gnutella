@@ -85,11 +85,12 @@ is_writable(gpointer data, gint unused_source, inputevt_cond_t cond)
  * Always succeeds, so never returns NULL.
  */
 static gpointer
-tx_link_init(txdrv_t *tx, gpointer args)
+tx_link_init(txdrv_t *tx, gpointer unused_args)
 {
 	struct attr *attr;
 	bsched_t *bs;
 
+	(void) unused_args;
 	g_assert(tx);
 
 	attr = walloc(sizeof(*attr));
@@ -184,19 +185,19 @@ tx_link_write_error(txdrv_t *tx, const char *func)
  *
  * @return amount of bytes written, or -1 on error.
  */
-static gint
-tx_link_write(txdrv_t *tx, gpointer data, gint len)
+static ssize_t
+tx_link_write(txdrv_t *tx, gpointer data, size_t len)
 {
-	gint r;
 	bio_source_t *bio = ((struct attr *) tx->opaque)->bio;
+	ssize_t r;
 
 	r = bio_write(bio, data, len);
-
-	if (r >= 0) {
-		node_add_tx_written(tx->node, r);
-		return r;
+	if ((ssize_t) -1 == r) {
+		return tx_link_write_error(tx, "tx_link_write");
 	}
-	return tx_link_write_error(tx, "tx_link_write");
+
+	node_add_tx_written(tx->node, r);
+	return r;
 }
 
 /**
@@ -204,20 +205,19 @@ tx_link_write(txdrv_t *tx, gpointer data, gint len)
  *
  * @return amount of bytes written, or -1 on error.
  */
-static gint
+static ssize_t
 tx_link_writev(txdrv_t *tx, struct iovec *iov, gint iovcnt)
 {
-	gint r;
+	ssize_t r;
 	bio_source_t *bio = ((struct attr *) tx->opaque)->bio;
 
 	r = bio_writev(bio, iov, iovcnt);
-
-	if (r >= 0) {
-		node_add_tx_written(tx->node, r);
-		return r;
+	if ((ssize_t) -1 == r) {
+		return tx_link_write_error(tx, "tx_link_writev");
 	}
 
-	return tx_link_write_error(tx, "tx_link_writev");
+	node_add_tx_written(tx->node, r);
+	return r;
 }
 
 /**
@@ -259,7 +259,7 @@ tx_link_disable(txdrv_t *tx)
 /**
  * No data buffered at this level: always returns 0.
  */
-static gint
+static size_t
 tx_link_pending(txdrv_t *unused_tx)
 {
 	(void) unused_tx;

@@ -88,10 +88,11 @@ is_writable(gpointer data, gint unused_source, inputevt_cond_t cond)
  * Always succeeds, so never returns NULL.
  */
 static gpointer
-tx_dgram_init(txdrv_t *tx, gpointer args)
+tx_dgram_init(txdrv_t *tx, gpointer unused_args)
 {
 	struct attr *attr;
 
+	(void) unused_args;
 	g_assert(tx);
 
 	attr = walloc(sizeof(*attr));
@@ -194,25 +195,24 @@ tx_dgram_write_error(txdrv_t *tx, gnet_host_t *to, const char *func)
  * Send buffer datagram to specified destination `to'.
  * Returns amount of bytes written, or -1 on error with errno set.
  */
-static gint
-tx_dgram_sendto(txdrv_t *tx, gnet_host_t *to, gpointer data, gint len)
+static ssize_t
+tx_dgram_sendto(txdrv_t *tx, gnet_host_t *to, gpointer data, size_t len)
 {
-	gint r;
+	ssize_t r;
 	bio_source_t *bio = ((struct attr *) tx->opaque)->bio;
 
 	r = bio_sendto(bio, to, data, len);
+	if ((ssize_t) -1 == r) {
+		/*
+	 	 * Special
+	 	 */
 
-	if (r >= 0) {
-		node_add_tx_written(tx->node, r);
-		inet_udp_record_sent(to->ip);
-		return r;
+		return tx_dgram_write_error(tx, to, "tx_dgram_sendto");
 	}
 
-	/*
-	 * Special
-	 */
-
-	return tx_dgram_write_error(tx, to, "tx_dgram_sendto");
+	node_add_tx_written(tx->node, r);
+	inet_udp_record_sent(to->ip);
+	return r;
 }
 
 /**
@@ -243,7 +243,7 @@ tx_dgram_disable(txdrv_t *tx)
 /**
  * No data buffered at this level: always returns 0.
  */
-static gint
+static size_t
 tx_dgram_pending(txdrv_t *unused_tx)
 {
 	(void) unused_tx;
@@ -253,7 +253,8 @@ tx_dgram_pending(txdrv_t *unused_tx)
 /**
  * Nothing to do.
  */
-static void tx_dgram_flush(txdrv_t *unused_tx)
+static void
+tx_dgram_flush(txdrv_t *unused_tx)
 {
 	(void) unused_tx;
 }

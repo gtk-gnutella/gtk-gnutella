@@ -100,8 +100,8 @@ deflate_send(txdrv_t *tx)
 {
 	struct attr *attr = (struct attr *) tx->opaque;
 	struct buffer *b;
-	gint len;					/* Amount of bytes to send */
-	gint r;
+	size_t len;					/* Amount of bytes to send */
+	ssize_t r;
 
 	g_assert(attr->send_idx >= 0);	/* We have something to send */
 	g_assert(attr->send_idx < BUFFER_COUNT);
@@ -113,7 +113,7 @@ deflate_send(txdrv_t *tx)
 	b = &attr->buf[attr->send_idx];		/* Buffer to send */
 	len = b->wptr - b->rptr;
 
-	g_assert(len > 0);
+	g_assert(len > 0 && len <= INT_MAX);
 
 	/*
 	 * Write as much as possible.
@@ -127,14 +127,14 @@ deflate_send(txdrv_t *tx)
 			(attr->flags & DF_FLOWC) ? 'C' : '-',
 			(attr->flags & DF_FLUSH) ? 'f' : '-');
 
-	if (r < 0)
+	if ((ssize_t) -1 == r)
 		return;
 
 	/*
 	 * If we wrote everything, we're done.
 	 */
 
-	if (r == len) {
+	if ((size_t) r == len) {
 		if (dbg > 9)
 			printf("deflate_send: (%s) buffer #%d is empty\n",
 				node_ip(tx->node), attr->send_idx);
@@ -685,8 +685,8 @@ tx_deflate_destroy(txdrv_t *tx)
  *
  * @return amount of bytes written, or -1 on error.
  */
-static gint
-tx_deflate_write(txdrv_t *tx, gpointer data, gint len)
+static ssize_t
+tx_deflate_write(txdrv_t *tx, gpointer data, size_t len)
 {
 	struct attr *attr = (struct attr *) tx->opaque;
 
@@ -713,7 +713,7 @@ tx_deflate_write(txdrv_t *tx, gpointer data, gint len)
  *
  * @return amount of bytes written, or -1 on error.
  */
-static gint
+static ssize_t
 tx_deflate_writev(txdrv_t *tx, struct iovec *iov, gint iovcnt)
 {
 	struct attr *attr = (struct attr *) tx->opaque;
@@ -784,7 +784,7 @@ tx_deflate_disable(txdrv_t *unused_tx)
 /**
  * @return the amount of data buffered locally and in the stack below.
  */
-static gint
+static size_t
 tx_deflate_pending(txdrv_t *tx)
 {
 	struct attr *attr = (struct attr *) tx->opaque;

@@ -52,19 +52,18 @@ struct attr {
 	bsched_t *bs;		/* Scheduler to attach I/O source to */
 };
 
-/*
- * is_readable
- *
+/**
  * Invoked when the input file descriptor has more data available.
  */
-static void is_readable(gpointer data, gint unused_source, inputevt_cond_t cond)
+static void
+is_readable(gpointer data, gint unused_source, inputevt_cond_t cond)
 {
 	rxdrv_t *rx = (rxdrv_t *) data;
 	struct attr *attr = (struct attr *) rx->opaque;
 	struct gnutella_node *n = rx->node;
 	pdata_t *db;
 	pmsg_t *mb;
-	gint r;
+	ssize_t r;
 
 	(void) unused_source;
 	g_assert(attr->bio);			/* Input enabled */
@@ -81,7 +80,6 @@ static void is_readable(gpointer data, gint unused_source, inputevt_cond_t cond)
 	db = rxbuf_new();
 
 	r = bio_read(attr->bio, pdata_start(db), pdata_len(db));
-
 	if (r == 0) {
 		if (n->n_ping_sent <= 2 && n->n_pong_received)
 			node_eof(n, "Got %d connection pong%s",
@@ -89,10 +87,9 @@ static void is_readable(gpointer data, gint unused_source, inputevt_cond_t cond)
 		else
 			node_eof(n, "Failed (EOF)");
 		goto error;
-	} else if (r < 0 && errno == EAGAIN)
-		goto error;
-	else if (r < 0) {
-		node_eof(n, "Read error: %s", g_strerror(errno));
+	} else if ((ssize_t) -1 == r) {
+		if (errno != EAGAIN)
+			node_eof(n, "Read error: %s", g_strerror(errno));
 		goto error;
 	}
 
@@ -116,13 +113,12 @@ error:
  *** Polymorphic routines.
  ***/
 
-/*
- * rx_link_init
- *
+/**
  * Initialize the driver.
  * Always succeeds, so never returns NULL.
  */
-static gpointer rx_link_init(rxdrv_t *rx, gpointer unused_args)
+static gpointer
+rx_link_init(rxdrv_t *rx, gpointer unused_args)
 {
 	struct attr *attr;
 
@@ -140,12 +136,11 @@ static gpointer rx_link_init(rxdrv_t *rx, gpointer unused_args)
 	return rx;		/* OK */
 }
 
-/*
- * rx_link_destroy
- *
+/**
  * Get rid of the driver's private data.
  */
-static void rx_link_destroy(rxdrv_t *rx)
+static void
+rx_link_destroy(rxdrv_t *rx)
 {
 	struct attr *attr = (struct attr *) rx->opaque;
 
@@ -157,15 +152,14 @@ static void rx_link_destroy(rxdrv_t *rx)
 	wfree(attr, sizeof(*attr));
 }
 
-/*
- * rx_link_recv
- *
+/**
  * Inject data into driver.
  *
  * Since we normally read from the network, we don't have to process those
  * data and can forward them directly to the upper layer.
  */
-static void rx_link_recv(rxdrv_t *rx, pmsg_t *mb)
+static void
+rx_link_recv(rxdrv_t *rx, pmsg_t *mb)
 {
 	g_assert(rx);
 	g_assert(mb);
@@ -180,12 +174,11 @@ static void rx_link_recv(rxdrv_t *rx, pmsg_t *mb)
 	(*rx->data_ind)(rx, mb);
 }
 
-/*
- * rx_link_enable
- *
+/**
  * Enable reception of data.
  */
-static void rx_link_enable(rxdrv_t *rx)
+static void
+rx_link_enable(rxdrv_t *rx)
 {
 	struct attr *attr = (struct attr *) rx->opaque;
 
@@ -201,12 +194,11 @@ static void rx_link_enable(rxdrv_t *rx)
 	g_assert(attr->bio);
 }
 
-/*
- * rx_link_disable
- *
+/**
  * Disable reception of data.
  */
-static void rx_link_disable(rxdrv_t *rx)
+static void
+rx_link_disable(rxdrv_t *rx)
 {
 	struct attr *attr = (struct attr *) rx->opaque;
 	
@@ -216,12 +208,11 @@ static void rx_link_disable(rxdrv_t *rx)
 	attr->bio = NULL;
 }
 
-/*
- * rx_link_bio_source
- *
- * Return I/O source of the lower level.
+/**
+ * @return I/O source of the lower level.
  */
-static struct bio_source *rx_link_bio_source(rxdrv_t *rx)
+static struct
+bio_source *rx_link_bio_source(rxdrv_t *rx)
 {
 	struct attr *attr = (struct attr *) rx->opaque;
 

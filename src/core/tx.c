@@ -60,7 +60,7 @@ RCSID("$Id$");
  * Create a new network driver, equipped with the `ops' operations and
  * initialize its specific parameters by calling the init routine with `args'.
  *
- * Return NULL if there is an initialization problem.
+ * @return NULL if there is an initialization problem.
  */
 txdrv_t *
 tx_make(struct gnutella_node *n, const struct txdrv_ops *ops, gpointer args)
@@ -95,19 +95,21 @@ tx_free(txdrv_t *tx)
 
 /**
  * Write `len' bytes starting at `data'.
- * Returns the amount of bytes written, or -1 with errno set on error.
+ *
+ * @return the amount of bytes written, or -1 with errno set on error.
  */
-gint
-tx_write(txdrv_t *tx, gpointer data, gint len)
+ssize_t
+tx_write(txdrv_t *tx, gpointer data, size_t len)
 {
 	return TX_WRITE(tx, data, len);
 }
 
 /**
  * Write I/O vector.
- * Returns amount of bytes written, or -1 on error with errno set.
+ *
+ * @return amount of bytes written, or -1 on error with errno set.
  */
-gint
+ssize_t
 tx_writev(txdrv_t *tx, struct iovec *iov, gint iovcnt)
 {
 	return TX_WRITEV(tx, iov, iovcnt);
@@ -115,10 +117,11 @@ tx_writev(txdrv_t *tx, struct iovec *iov, gint iovcnt)
 
 /**
  * Send buffer datagram to specified destination `to'.
- * Returns amount of bytes written, or -1 on error with errno set.
+ *
+ * @return amount of bytes written, or -1 on error with errno set.
  */
-gint
-tx_sendto(txdrv_t *tx, gnet_host_t *to, gpointer data, gint len)
+ssize_t
+tx_sendto(txdrv_t *tx, gnet_host_t *to, gpointer data, size_t len)
 {
 	return TX_SENDTO(tx, to, data, len);
 }
@@ -162,9 +165,9 @@ tx_srv_disable(txdrv_t *tx)
 }
 
 /**
- * Amount of data pending in the whole stack.
+ * @return amount of data pending in the whole stack.
  */
-gint
+size_t
 tx_pending(txdrv_t *tx)
 {
 	g_assert(tx);
@@ -198,8 +201,8 @@ tx_flush(txdrv_t *tx)
 /**
  * The write() operation is forbidden.
  */
-gint
-tx_no_write(txdrv_t *unused_tx, gpointer unused_data, gint unused_len)
+ssize_t
+tx_no_write(txdrv_t *unused_tx, gpointer unused_data, size_t unused_len)
 {
 	(void) unused_tx;
 	(void) unused_data;
@@ -212,7 +215,7 @@ tx_no_write(txdrv_t *unused_tx, gpointer unused_data, gint unused_len)
 /**
  * The writev() operation is forbidden.
  */
-gint
+ssize_t
 tx_no_writev(txdrv_t *unused_tx, struct iovec *unused_iov, gint unused_iovcnt)
 {
 	(void) unused_tx;
@@ -226,9 +229,9 @@ tx_no_writev(txdrv_t *unused_tx, struct iovec *unused_iov, gint unused_iovcnt)
 /**
  * The sendto() operation is forbidden.
  */
-gint
+ssize_t
 tx_no_sendto(txdrv_t *unused_tx, gnet_host_t *unused_to,
-		gpointer unused_data, gint unused_len)
+		gpointer unused_data, size_t unused_len)
 {
 	(void) unused_tx;
 	(void) unused_to;
