@@ -625,7 +625,7 @@ qrt_patch_compress(
 	gpointer task;
 	bgstep_cb_t step = qrt_step_compress;
 
-	zd = zlib_deflater_make(rp->arena, rp->len, 9);
+	zd = zlib_deflater_make(rp->arena, rp->len, Z_BEST_COMPRESSION);
 
 	if (zd == NULL) {
 		(*done_callback)(NULL, NULL, BGS_ERROR, arg);
