@@ -1725,5 +1725,85 @@ failure:
 	return -1;
 }
 
+/**
+ * Parses an unsigned 64-bit integer from an ASCII string.
+ *
+ * @param src
+ *    The string to parse.
+ * @param endptr
+ *    May be NULL. Otherwise, it will be set to address of the first invalid
+ *    character.
+ * @param base
+ *    The base system to be assumed e.g., 10 for decimal numbers 16 for
+ *    hexadecimal numbers. The value MUST be 2..36.
+ * @param errorptr
+ *    Indicates a parse error if not zero. EINVAL means there was no
+ *    number with respect to the used base at all. ERANGE means the
+ *    number would exceed (2^64)-1.
+ *
+ * @return
+ *    The parsed value or zero in case of an error. If zero is returned
+ *    error must be checked to determine whether there was an error
+ *    or whether the parsed value was zero.
+ */
+guint64
+parse_uint64(const gchar *src, gchar **endptr, gint base, gint *errorptr)
+{
+  const gchar *p;
+  guint64 v = 0;
+  gint error = 0, c;
+
+  g_assert(src != NULL);
+  g_assert(errorptr != NULL);
+  g_assert(base >= 2 && base <= 36);
+
+  if (base < 2 || base > 36) {
+    *errorptr = EINVAL;
+    return 0;
+  }
+      
+  for (p = src; (c = (guchar) *p) != '\0'; ++p) {
+    guint64 d, w;
+    
+    if (!isascii(c)) {
+      break;
+    }
+    if (isdigit(c)) {
+      d = c - '0';
+    } else if (isalpha(c)) {
+      c = tolower(c);
+      d = c - 'a' + 10;
+    } else {
+      break;
+    }
+    if (d >= (guint) base) {
+      break;
+    }
+    
+    w = v * base;
+    if (w / base != v) {
+      error = ERANGE;
+      break;
+    }
+    v = w + d; 
+    if (v < w) {
+      error = ERANGE;
+      break;
+    }
+  }
+  
+  if (NULL != endptr) {
+    *endptr = (gchar *) p;
+  }
+  if (!error && p == src) {
+    error = EINVAL;
+  }
+  if (error) {
+    v = 0;
+  }
+  *errorptr = error;
+  return v;
+}
+
 
 /* vi: set ts=4 sw=4 cindent: */

@@ -57,12 +57,12 @@
  * reached at run-time. However, this can only be used for static conditions
  * which can verified at compile-time.
  *
- * N.B.: The trick is declaring a negative sized array if the condition
- *	 is false - which is invalid C. This cannot be used outside a
- *	 function.
+ * N.B.: The trick is using a switch case, if the term is false
+ *	 there are two cases for zero - which is invalid C. This cannot be
+ *	 used outside a function.
  */
 #define STATIC_ASSERT(x) \
-	do { (void) sizeof(char[((x) ? 1 : -23)]); } while(0)
+	do { switch (0) { case ((x) ? 1 : 0): case 0: break; } } while(0)
 
 /*
  * Needs to be defined if we are not using Glib 2
@@ -231,6 +231,7 @@ gchar *make_pathname(const gchar *dir, const gchar *file);
 gchar *short_filename(gchar *fullname);
 gchar *data_hex_str(const gchar *data, size_t len);
 gint create_directory(const gchar *dir);
+guint64 parse_uint64(const gchar *, gchar **, gint, gint *);
 
 #ifdef HAVE_STRCASESTR
 char *strcasestr(const char *haystack, const char *needle);
