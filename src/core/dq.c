@@ -39,6 +39,7 @@ RCSID("$Id$");
 #include "mq.h"
 #include "gmsg.h"
 #include "pmsg.h"
+#include "gmsg.h"
 #include "nodes.h"
 #include "gnet_stats.h"
 #include "qrp.h"
@@ -499,6 +500,7 @@ dq_pmsg_by_ttl(dquery_t *dq, gint ttl)
 
 	mb = pmsg_alloc(pmsg_prio(t), db, 0, len);
 	dq->by_ttl[ttl - 1] = mb;
+	gmsg_install_presend(mb);
 
 	return mb;
 }
