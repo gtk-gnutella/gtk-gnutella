@@ -54,7 +54,7 @@ typedef struct upload {
 
 	guint index;
 	gchar *name;
-	guint32 file_size;
+	filesize_t file_size;
 
 	time_t start_date;
 	time_t last_update;
@@ -63,15 +63,15 @@ typedef struct upload {
 
 	guint32 ip;						/* Remote IP address */
 	gchar *user_agent;				/* Remote user agent */
-	gint country;					/* Country of origin -- encoded ISO3166 code */
-	guint skip;						/* First byte to send, inclusive */
-	guint end;						/* Last byte to send, inclusive */
-	off_t pos;						/* Read position in file we're sending */
-	guint32 sent;					/* Bytes sent in this request */
+	gint country;					/* Country of origin, ISO3166 code */
+	filesize_t skip;				/* First byte to send, inclusive */
+	filesize_t end;					/* Last byte to send, inclusive */
+	filesize_t pos;					/* Read position in file we're sending */
+	filesize_t sent;				/* Bytes sent in this request */
 
 	guint32 last_dmesh;				/* Time when last download mesh was sent */
 	gchar *sha1;					/* SHA1 of requested file */
-	off_t total_requested;			/* Total amount of bytes requested */
+	filesize_t total_requested;		/* Total amount of bytes requested */
 	gint http_major;				/* HTTP major version */
 	gint http_minor;				/* HTTP minor version */
 
@@ -130,4 +130,4 @@ void expect_http_header(gnutella_upload_t *u, upload_stage_t new_status);
 
 #endif /* _core_uploads_h_ */
 
-/* vi: set ts=4: */
+/* vi: set ts=4 sw=4 cindent: */

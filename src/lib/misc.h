@@ -118,6 +118,11 @@ skip_ascii_spaces(const gchar *s)
 }
 
 /*
+ * Determine the length of string literals
+ */
+#define CONST_STRLEN(x) (sizeof(x) - 1)
+
+/*
  * Array size determination
  */
 #ifndef G_N_ELEMENTS
