@@ -560,6 +560,12 @@ gint main(gint argc, gchar **argv, gchar **env)
 
 	/* Our inits */
 	log_init();
+#ifndef OFFICIAL_BUILD
+	g_warning("%s \"%s\"",
+		_("This is an unofficial build and will access files in"),
+		PACKAGE_SOURCE_DIR);
+#endif
+
 	random_init();
 	locale_init();
 	adns_init();
