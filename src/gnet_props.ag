@@ -827,7 +827,8 @@ prop = {
 prop = {
 	/* FIXME: This property is deprecated. Remove it after the next release */
     name = "proxy_connections";
-    desc = "DEPRECATED and automatically set to TRUE. Use a proxy to connect to the internet";
+    desc = "DEPRECATED and automatically set to TRUE. "
+		"Use a proxy to connect to the internet";
 	save = FALSE;
     type = boolean;
     data = {
@@ -1747,6 +1748,25 @@ prop = {
     name = "crawler_visit_count";
     desc = "Number of crawler visits during this session";
 	save = FALSE;
+    type = guint32;
+    data = {
+        default = 0;
+    };
+};
+
+prop = {
+    name = "host_runs_ntp";
+    desc = "Whether the clock of this host is kept accurate via NTP";
+    type = boolean;
+    data = {
+        default = FALSE;
+    };
+};
+
+prop = {
+    name = "clock_skew";
+    desc = "The signed clock skew of this host compared to absolute time. "
+		"Adding this skew to the host clock should give the true time.";
     type = guint32;
     data = {
         default = 0;

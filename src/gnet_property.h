@@ -180,7 +180,9 @@ typedef enum {
     PROP_PFSP_SERVER,    
     PROP_PFSP_FIRST_CHUNK,    
     PROP_FUZZY_FILTER_DMESH,    
-    PROP_CRAWLER_VISIT_COUNT,
+    PROP_CRAWLER_VISIT_COUNT,    
+    PROP_HOST_RUNS_NTP,    
+    PROP_CLOCK_SKEW,
     GNET_PROPERTY_END
 } gnet_property_t;
 

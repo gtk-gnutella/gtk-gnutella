@@ -176,6 +176,8 @@ extern gboolean pfsp_server;
 extern guint32  pfsp_first_chunk;
 extern gboolean fuzzy_filter_dmesh;
 extern guint32  crawler_visit_count;
+extern gboolean host_runs_ntp;
+extern guint32  clock_skew;
 
 
 prop_set_t *gnet_prop_init(void);

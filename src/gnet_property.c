@@ -349,6 +349,10 @@ gboolean fuzzy_filter_dmesh     = FALSE;
 gboolean fuzzy_filter_dmesh_def = FALSE;
 guint32  crawler_visit_count     = 0;
 guint32  crawler_visit_count_def = 0;
+gboolean host_runs_ntp     = FALSE;
+gboolean host_runs_ntp_def = FALSE;
+guint32  clock_skew     = 0;
+guint32  clock_skew_def = 0;
 
 static prop_set_t *gnet_property = NULL;
 
@@ -3161,6 +3165,43 @@ prop_set_t *gnet_prop_init(void) {
     gnet_property->props[145].data.guint32.choices = NULL;
     gnet_property->props[145].data.guint32.max   = 0xFFFFFFFF;
     gnet_property->props[145].data.guint32.min   = 0x00000000;
+
+
+    /*
+     * PROP_HOST_RUNS_NTP:
+     *
+     * General data:
+     */
+    gnet_property->props[146].name = "host_runs_ntp";
+    gnet_property->props[146].desc = _("Whether the clock of this host is kept accurate via NTP");
+    gnet_property->props[146].ev_changed = event_new("host_runs_ntp_changed");
+    gnet_property->props[146].save = TRUE;
+    gnet_property->props[146].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[146].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[146].data.boolean.def   = &host_runs_ntp_def;
+    gnet_property->props[146].data.boolean.value = &host_runs_ntp;
+
+
+    /*
+     * PROP_CLOCK_SKEW:
+     *
+     * General data:
+     */
+    gnet_property->props[147].name = "clock_skew";
+    gnet_property->props[147].desc = _("The signed clock skew of this host compared to absolute time. Adding this skew to the host clock should give the true time.");
+    gnet_property->props[147].ev_changed = event_new("clock_skew_changed");
+    gnet_property->props[147].save = TRUE;
+    gnet_property->props[147].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[147].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[147].data.guint32.def   = &clock_skew_def;
+    gnet_property->props[147].data.guint32.value = &clock_skew;
+    gnet_property->props[147].data.guint32.choices = NULL;
+    gnet_property->props[147].data.guint32.max   = 0xFFFFFFFF;
+    gnet_property->props[147].data.guint32.min   = 0x00000000;
 
     gnet_property->byName = g_hash_table_new(g_str_hash, g_str_equal);
     for (n = 0; n < GNET_PROPERTY_NUM; n ++) {
