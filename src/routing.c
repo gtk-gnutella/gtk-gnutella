@@ -491,7 +491,10 @@ void message_add(const gchar * muid, guint8 function,
 
 	/* fill in that storage space */
 	memcpy(entry->muid, muid, 16);
-	route->saved_messages++;
+	
+	g_assert(route != NULL);
+	
+	route->saved_messages++;	
 	entry->routes = g_slist_append(entry->routes, route);
 	entry->function = function;
 
@@ -775,6 +778,9 @@ gboolean route_message(struct gnutella_node **node, struct route_dest *dest)
 				 */
 
 				route = get_routing_data(sender);
+				
+				g_assert(route != NULL);
+				
 				m->routes = g_slist_append(m->routes, route);
 				route->saved_messages++;
 			}
@@ -977,6 +983,9 @@ gboolean route_message(struct gnutella_node **node, struct route_dest *dest)
 				 * original sender. */
 
 				route = get_routing_data(sender);
+				
+				g_assert(route != NULL);
+				
 				m->routes = g_slist_append(m->routes, route);
 				route->saved_messages++;
 			}
