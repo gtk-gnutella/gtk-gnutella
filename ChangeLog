@@ -1,5 +1,11 @@
 # since last version
 
+- (2003.01.24 - RAM)
+ * Reworked the bandwidth stealing algorithm to behave less aggressively when
+   the kernel flow-controls us on the way out.
+ * Do not send out duplicate addresses in X-Try* headers.
+ * Fixed `elapsed' to be a time_t instead of a guint32 (http.c).
+
 - (2003.01.19 - RAM)
  * Must not free word vector if it was not allocated (matching.c).
  * Update node flags after the first handshake reply.
