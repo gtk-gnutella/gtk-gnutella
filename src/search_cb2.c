@@ -724,7 +724,7 @@ void on_button_search_passive_clicked(
         option_menu_get_selected_data
             (lookup_widget(main_window, "optionmenu_search_filter"));
 
-	search = search_gui_new_search("Passive", minimum_speed, SEARCH_PASSIVE, &search);
+	search_gui_new_search("Passive", minimum_speed, SEARCH_PASSIVE, &search);
 
     /*
      * If we should set a default filter, we do that.
@@ -961,8 +961,8 @@ void on_popup_search_stop_activate
 
     current_search = search_gui_get_current_search();
 	if (current_search) {
-		GtkTreeView *tree_view_search = GTK_TREE_VIEW
-			(lookup_widget(main_window, "tree_view_search"));
+/*		GtkTreeView *tree_view_search = GTK_TREE_VIEW
+			(lookup_widget(main_window, "tree_view_search"));*/
 
 		search_stop(current_search->search_handle);
 /*        gtk_clist_set_foreground(
@@ -985,15 +985,15 @@ void on_popup_search_config_cols_activate(GtkMenuItem * menuitem,
     g_return_if_fail(current_search != NULL);
     g_assert(current_search->tree_view != NULL);
 
-    {
+/*    {
         GtkWidget * cc;
-
+*/
         // FIXME: needs to work also in Gtk2 or be replaced.
-//        cc = gtk_column_chooser_new(GTK_TREE_VIEW(current_search->tree_view));
-//        gtk_menu_popup(GTK_MENU(cc), NULL, NULL, NULL, NULL, 1, 0);
+/*        cc = gtk_column_chooser_new(GTK_TREE_VIEW(current_search->tree_view));
+        gtk_menu_popup(GTK_MENU(cc), NULL, NULL, NULL, NULL, 1, 0);
 
-        // GtkColumnChooser takes care of cleaing up itself 
+        GtkColumnChooser takes care of cleaing up itself 
     }
-
+*/
 }
 
