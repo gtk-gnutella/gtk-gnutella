@@ -139,19 +139,20 @@ gint str_chomp(gchar *str, gint len)
 gboolean is_private_ip(guint32 ip)
 {
 	/* 10.0.0.0 -- (10/8 prefix) */
-	if ((ip & 0xff000000) == 0xa000000) {
+	if ((ip & 0xff000000) == 0xa000000)
 		return TRUE;
-	}
 
 	/* 172.16.0.0 -- (172.16/12 prefix) */
-	if ((ip & 0xfff00000) == 0xac100000) {
+	if ((ip & 0xfff00000) == 0xac100000)
 		return TRUE;
-	}
+
+	/* 169.254.0.0 -- (169.254/16 prefix) -- since Jan 2001 */
+	if ((ip & 0xffff0000) == 0xa9fe0000)
+		return TRUE;
 
 	/* 192.168.0.0 -- (192.168/16 prefix) */
-	if ((ip & 0xffff0000) == 0xc0a80000) {
+	if ((ip & 0xffff0000) == 0xc0a80000)
 		return TRUE;
-	}
 
 	return FALSE;
 }
