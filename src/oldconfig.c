@@ -49,7 +49,7 @@
 
 #define CONFIG_SET_BOOL(v,pref,prop)                 \
     case k_##v: {                                    \
-        gboolean b = !g_strcasecmp(value, "true");   \
+        gboolean b = !g_ascii_strcasecmp(value, "true");   \
         pref##_prop_set_boolean(prop, &b, 0, 1);     \
         return;                                      \
     }
@@ -786,7 +786,7 @@ void config_set_param(keyword_t keyword, gchar *value)
 
     case k_search_stats_enabled: {
         guint32 v;
-        v = g_strcasecmp(value, "true") == 0 ? 
+        v = g_ascii_strcasecmp(value, "true") == 0 ? 
             WORD_SEARCH_STATS : NO_SEARCH_STATS;
         gui_prop_set_guint32(PROP_SEARCH_STATS_MODE, &v, 0, 1);
         return;
@@ -911,7 +911,7 @@ static void config_read(void)
 		*s = 0;
 
 		for (i = 0; i < k_end; i++)
-			if (!g_strcasecmp(k, keywords[i])) {
+			if (!g_ascii_strcasecmp(k, keywords[i])) {
 				config_set_param(i, v);
 				break;
 			}

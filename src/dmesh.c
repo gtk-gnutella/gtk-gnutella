@@ -41,6 +41,10 @@
 
 #include "settings.h"
 
+#ifndef USE_GTK2
+#define g_ascii_strcasecmp g_strcasecmp
+#endif
+
 extern cqueue_t *callout_queue;
 
 /* made visible for us by atoms.c */
@@ -1057,7 +1061,7 @@ void dmesh_collect_locations(guchar *sha1, guchar *value)
 			if (c == ',') {
 				if (
 					(p[1] == 'h' || p[1] == 'H') &&
-					0 == strcasecmp(&p[1], "http://")
+					0 == g_ascii_strcasecmp(&p[1], "http://")
 				)
 					break;
 				if (p[1] != ' ')
@@ -1123,7 +1127,7 @@ void dmesh_collect_locations(guchar *sha1, guchar *value)
              * we assume a new urn is starting with "http://"
              *      -Richard 23/11/2002
              */
-            if ((c == ',') || (g_strncasecmp(p, "http://", 7) == 0))
+            if ((c == ',') || (g_ascii_strcasecmp(p, "http://") == 0))
 				break;
 			p++;
 		}

@@ -262,7 +262,7 @@ gboolean search_retrieve_xml(void)
 	    /* if it doesn't have a name */
 	    (root->name == NULL) ||
 	    /* if it isn't a Genealogy node */
-	    g_strcasecmp(root->name ,"Searches") != 0
+	    g_ascii_strcasecmp(root->name ,"Searches") != 0
     ) {
         g_warning("Searches file has invalid format: %s", x_tmp);
 		xmlFreeDoc(doc);
@@ -594,7 +594,7 @@ static void parse_xml(xmlNodePtr xmlnode, gpointer user_data)
     } 
 
     for (n = 0; parser_map[n].name != NULL; n ++) {
-        if (g_strcasecmp(xmlnode->name, parser_map[n].name) == 0) {
+        if (g_ascii_strcasecmp(xmlnode->name, parser_map[n].name) == 0) {
             parser_map[n].parser_func(xmlnode, user_data);
             return;
         }
@@ -610,7 +610,7 @@ static void xml_to_builtin(xmlNodePtr xmlnode, gpointer user_data)
 
     g_assert(xmlnode != NULL);
     g_assert(xmlnode->name != NULL);
-    g_assert(g_strcasecmp(xmlnode->name, NODE_BUILTIN) == 0);
+    g_assert(g_ascii_strcasecmp(xmlnode->name, NODE_BUILTIN) == 0);
     g_assert(filter_get_show_target() != NULL);
     g_assert(filter_get_drop_target() != NULL);
     g_assert(filter_get_download_target() != NULL);
@@ -683,7 +683,7 @@ static void xml_to_search(xmlNodePtr xmlnode, gpointer user_data)
 
     g_assert(xmlnode != NULL);
     g_assert(xmlnode->name != NULL);
-    g_assert(g_strcasecmp(xmlnode->name, NODE_SEARCH) == 0);
+    g_assert(g_ascii_strcasecmp(xmlnode->name, NODE_SEARCH) == 0);
 
     gui_prop_get_guint32(PROP_DEFAULT_MINIMUM_SPEED, &speed, 0, 1);
 
@@ -739,7 +739,7 @@ static void xml_to_filter(xmlNodePtr xmlnode, gpointer user_data)
 
     g_assert(xmlnode != NULL);
     g_assert(xmlnode->name != NULL);
-    g_assert(g_strcasecmp(xmlnode->name, NODE_FILTER) == 0);
+    g_assert(g_ascii_strcasecmp(xmlnode->name, NODE_FILTER) == 0);
 
 	buf = xmlGetProp(xmlnode, TAG_FILTER_NAME);
     if (!buf) {
@@ -815,7 +815,7 @@ static void xml_to_text_rule(xmlNodePtr xmlnode, gpointer filter)
     g_assert(xmlnode != NULL);
     g_assert(xmlnode->name != NULL);
     g_assert(filter != NULL);
-    g_assert(g_strcasecmp(xmlnode->name, NODE_RULE_TEXT) ==0);
+    g_assert(g_ascii_strcasecmp(xmlnode->name, NODE_RULE_TEXT) ==0);
 
     match = xmlGetProp(xmlnode, TAG_RULE_TEXT_MATCH);
     if (match == NULL)
@@ -863,7 +863,7 @@ static void xml_to_ip_rule(xmlNodePtr xmlnode, gpointer filter)
     g_assert(xmlnode != NULL);
     g_assert(xmlnode->name != NULL);
     g_assert(filter != NULL);
-    g_assert(g_strcasecmp(xmlnode->name, NODE_RULE_IP) ==0);
+    g_assert(g_ascii_strcasecmp(xmlnode->name, NODE_RULE_IP) ==0);
 
     buf = xmlGetProp(xmlnode, TAG_RULE_IP_ADDR);
     if (buf == NULL)
@@ -908,7 +908,7 @@ static void xml_to_size_rule(xmlNodePtr xmlnode, gpointer filter)
     g_assert(xmlnode != NULL);
     g_assert(xmlnode->name != NULL);
     g_assert(filter != NULL);
-    g_assert(g_strcasecmp(xmlnode->name, NODE_RULE_SIZE) ==0);
+    g_assert(g_ascii_strcasecmp(xmlnode->name, NODE_RULE_SIZE) ==0);
 
     buf = xmlGetProp(xmlnode, TAG_RULE_SIZE_LOWER);
     if (buf == NULL)
@@ -951,7 +951,7 @@ static void xml_to_jump_rule(xmlNodePtr xmlnode, gpointer filter)
     g_assert(xmlnode != NULL);
     g_assert(xmlnode->name != NULL);
     g_assert(filter != NULL);
-    g_assert(g_strcasecmp(xmlnode->name, NODE_RULE_JUMP) ==0);
+    g_assert(g_ascii_strcasecmp(xmlnode->name, NODE_RULE_JUMP) ==0);
 
     buf = xmlGetProp(xmlnode, TAG_RULE_TARGET);
     g_assert(buf != NULL);
@@ -985,7 +985,7 @@ static void xml_to_sha1_rule(xmlNodePtr xmlnode, gpointer filter)
     g_assert(xmlnode != NULL);
     g_assert(xmlnode->name != NULL);
     g_assert(filter != NULL);
-    g_assert(g_strcasecmp(xmlnode->name, NODE_RULE_SHA1) ==0);
+    g_assert(g_ascii_strcasecmp(xmlnode->name, NODE_RULE_SHA1) ==0);
 
     buf = xmlGetProp(xmlnode, TAG_RULE_SHA1_FILENAME);
     filename = (buf != NULL) ? buf : g_strdup("[Unknown]");
@@ -1030,7 +1030,7 @@ static void xml_to_flag_rule(xmlNodePtr xmlnode, gpointer filter)
     g_assert(xmlnode != NULL);
     g_assert(xmlnode->name != NULL);
     g_assert(filter != NULL);
-    g_assert(g_strcasecmp(xmlnode->name, NODE_RULE_FLAG) ==0);
+    g_assert(g_ascii_strcasecmp(xmlnode->name, NODE_RULE_FLAG) ==0);
 
     buf = xmlGetProp(xmlnode, TAG_RULE_FLAG_STABLE);
     if (buf != NULL) {
@@ -1088,7 +1088,7 @@ static void xml_to_state_rule(xmlNodePtr xmlnode, gpointer filter)
     g_assert(xmlnode != NULL);
     g_assert(xmlnode->name != NULL);
     g_assert(filter != NULL);
-    g_assert(g_strcasecmp(xmlnode->name, NODE_RULE_STATE) ==0);
+    g_assert(g_ascii_strcasecmp(xmlnode->name, NODE_RULE_STATE) ==0);
 
     buf = xmlGetProp(xmlnode, TAG_RULE_STATE_DISPLAY);
     if (buf != NULL) {

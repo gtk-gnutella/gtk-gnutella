@@ -1929,7 +1929,7 @@ void gui_search_history_add(gchar * s)
     g_return_if_fail(s);
 
     while (cur_hist != NULL) {
-        if ((n < 9) && (g_strcasecmp(s,cur_hist->data) != 0)) {
+        if ((n < 9) && (g_ascii_strcasecmp(s,cur_hist->data) != 0)) {
             /* copy up to the first 9 items */
             new_hist = g_list_append(new_hist, cur_hist->data);
             n ++;

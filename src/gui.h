@@ -38,6 +38,10 @@
 #include "gtk-missing.h"
 
 
+#ifndef USE_GTK2
+#define g_ascii_strcasecmp g_strcasecmp
+#endif
+
 /*
  * Uploads table columns
  */

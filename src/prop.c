@@ -32,6 +32,10 @@
 
 #define debug 0
 
+#ifndef USE_GTK2
+#define g_ascii_strcasecmp g_strcasecmp
+#endif
+
 /*
  * Checks if a property is part of a property set.
  */
@@ -134,7 +138,7 @@ void prop_parse_boolean_vector(const gchar *str, gsize size, gboolean *t)
 		if (!h[i])
 			break;
 
-		t[i] = (gboolean) (g_strcasecmp(str, "TRUE") == 0);
+		t[i] = (gboolean) (g_ascii_strcasecmp(str, "TRUE") == 0);
 	}
 
     if (i < size)
@@ -1017,7 +1021,7 @@ void prop_load_from_file
 
 
 		for (i = 0; i < ps->size; i++)
-			if (!g_strcasecmp(k, (ps->props[i]).name)) {
+			if (!g_ascii_strcasecmp(k, (ps->props[i]).name)) {
                 load_helper(ps, i+ps->offset, v);
 				break;
 			}
