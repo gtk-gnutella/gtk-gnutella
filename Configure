@@ -18,7 +18,7 @@
 
 # $Id$
 #
-# Generated on Mon Nov  8 12:30:23 MET 2004 [metaconfig 3.0 PL70]
+# Generated on Thu Dec  9 07:23:01 MET 2004 [metaconfig 3.0 PL70]
 
 cat >c1$$ <<EOF
 ARGGGHHHH!!!!!
@@ -295,6 +295,7 @@ d_bcopy=''
 d_bindtxtcode=''
 d_const=''
 d_deflate=''
+d_getinvent=''
 d_gettext=''
 d_gnulibc=''
 gnulibc_version=''
@@ -317,7 +318,6 @@ d_index=''
 d_strchr=''
 d_strlcpy=''
 d_sysctl=''
-d_getinvent=''
 d_ucnv_open_2_6=''
 d_volatile=''
 d_vsnprintf=''
@@ -344,6 +344,7 @@ gtkversion=''
 h_fcntl=''
 h_sysfile=''
 i_inttypes=''
+i_invent=''
 i_libcharset=''
 i_libintl=''
 i_niin=''
@@ -354,7 +355,6 @@ strings=''
 i_sysparam=''
 i_syssendfile=''
 i_syssysctl=''
-i_invent=''
 i_systime=''
 i_systimek=''
 i_time=''
@@ -4660,6 +4660,10 @@ set d_const
 eval $setvar
 $rm -f const.c const.o
 
+: see if getinvent exists
+set getinvent d_getinvent
+eval $inlibc
+
 : see if herror exists
 set herror d_herror
 eval $inlibc
@@ -5025,10 +5029,6 @@ eval $inlibc
 
 : see if sysctl exists
 set sysctl d_sysctl
-eval $inlibc
-
-: see if getinvent exists
-set getinvent d_getinvent
 eval $inlibc
 
 : check for volatile keyword
@@ -6038,6 +6038,10 @@ esac
 set inttypes.h i_inttypes
 eval $inhdr
 
+: see if this is a invent.h system
+set invent.h i_invent
+eval $inhdr
+
 : see if this is a libcharset system
 set libcharset.h i_libcharset
 eval $inhdr
@@ -6052,10 +6056,6 @@ eval $inhdr
 
 : see if this is a sys/sysctl system
 set sys/sysctl.h i_syssysctl
-eval $inhdr
-
-: see if this is a invent.h system
-set invent.h i_invent
 eval $inhdr
 
 : see if we should include time.h, sys/time.h, or both
@@ -6320,6 +6320,7 @@ d_deflate='$d_deflate'
 d_dos='$d_dos'
 d_enablenls='$d_enablenls'
 d_eunice='$d_eunice'
+d_getinvent='$d_getinvent'
 d_gettext='$d_gettext'
 d_gnulibc='$d_gnulibc'
 d_herror='$d_herror'
@@ -6347,7 +6348,6 @@ d_strcasestr='$d_strcasestr'
 d_strchr='$d_strchr'
 d_strlcpy='$d_strlcpy'
 d_sysctl='$d_sysctl'
-d_getinvent='$d_getinvent'
 d_ucnv_open_2_6='$d_ucnv_open_2_6'
 d_useglib1='$d_useglib1'
 d_useglib2='$d_useglib2'
@@ -6393,6 +6393,7 @@ h_sysfile='$h_sysfile'
 hint='$hint'
 huge='$huge'
 i_inttypes='$i_inttypes'
+i_invent='$i_invent'
 i_libcharset='$i_libcharset'
 i_libintl='$i_libintl'
 i_niin='$i_niin'
@@ -6402,7 +6403,6 @@ i_sysin='$i_sysin'
 i_sysparam='$i_sysparam'
 i_syssendfile='$i_syssendfile'
 i_syssysctl='$i_syssysctl'
-i_invent='$i_invent'
 i_systime='$i_systime'
 i_systimek='$i_systimek'
 i_time='$i_time'

@@ -241,6 +241,12 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  */
 #$d_bindtxtcode HAS_BIND_TEXTDOMAIN_CODESET		/**/
 
+/* HAS_GETINVENT:
+ *    This symbol, if defined, indicates that the getinvent routine is
+ *    available.
+ */
+#$d_getinvent       HAS_GETINVENT           /**/
+
 /* HAS_HERROR:
  *	This symbol, if defined, indicates that the herror routine is
  *	available.
@@ -297,12 +303,6 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  */
 #$d_sysctl HAS_SYSCTL		/**/
 
-/* HAS_GETINVENT:
- *     This symbol, if defined, indicates that the getinvent routine is
- *     available.
- */
-#$d_getinvent HAS_GETINVENT            /**/
-
 /* HAS_VSNPRINTF:
  *	This symbol, if defined, indicates that the vsnprintf routine is
  *	available.
@@ -314,6 +314,12 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  *	Native Language Support (NLS) for internationalization (I18N).
  */
 #$d_enablenls ENABLE_NLS	/**/
+
+/* I_INVENT:
+ *    This symbol, if defined, indicates to the C program that it should
+ *    include <invent.h>.
+ */
+#$i_invent I_INVENT         /**/
 
 /* I_LIBCHARSET:
  *	This symbol, if defined, indicates to the C program that it should
@@ -338,12 +344,6 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  *	include <sys/sysctl.h>.
  */
 #$i_syssysctl I_SYS_SYSCTL		/**/
-
-/* I_INVENT:
- *     This symbol, if defined, indicates to the C program that it should
- *     include <invent.h>.
- */
-#$i_invent I_INVENT            /**/
 
 /* USE_ICU:
  * This symbol is defined when we have a working ICU library.
