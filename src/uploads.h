@@ -109,6 +109,7 @@ void upload_add(struct gnutella_socket *s);
 void upload_connect_conf(struct upload *u);
 void upload_init(void);
 void upload_close(void);
+void upload_kill_ip(guint32 ip);
 gnutella_upload_t *upload_create(struct gnutella_socket *s, gboolean push);
 void upload_fire_upload_info_changed(gnutella_upload_t *n);
 void expect_http_header(gnutella_upload_t *u, upload_stage_t new_status);

@@ -188,7 +188,7 @@ void upload_timer(time_t now)
 	GSList *to_remove = NULL;
 	time_t t;
 
-	for (l = uploads; l; l = l->next) {
+	for (l = uploads; l; l = g_slist_next(l)) {
 		gnutella_upload_t *u = (gnutella_upload_t *) l->data;
 
 		if (UPLOAD_IS_COMPLETE(u))
@@ -210,7 +210,7 @@ void upload_timer(time_t now)
 			to_remove = g_slist_prepend(to_remove, u);
 	}
 
-	for (l = to_remove; l; l = l->next) {
+	for (l = to_remove; l; l = g_slist_next(l)) {
 		gnutella_upload_t *u = (gnutella_upload_t *) l->data;
 		if (UPLOAD_IS_CONNECTING(u)) {
 			if (u->status == GTA_UL_PUSH_RECEIVED || u->status == GTA_UL_QUEUE)
@@ -2041,7 +2041,7 @@ static void upload_request(gnutella_upload_t *u, header_t *header)
 		 * 		-- JA 12/7/'03
 		 */
 
-		for (l = uploads; l; l = l->next) {
+		for (l = uploads; l; l = g_slist_next(l)) {
 			gnutella_upload_t *up = (gnutella_upload_t *) (l->data);
 			g_assert(up);
 			if (up == u)
@@ -2535,6 +2535,27 @@ void upload_kill(gnet_upload_t upload)
 }
 
 /*
+ * upload_kill_ip
+ *
+ * Kill all running uploads by IP.
+ */
+void upload_kill_ip(guint32 ip)
+{
+	GSList *l;
+
+	for (l = uploads; l; l = g_slist_next(l)) {
+		gnutella_upload_t *u = (gnutella_upload_t *) (l->data);
+
+		g_assert(u);
+
+		if (u->ip == ip && !UPLOAD_IS_COMPLETE(u)) {
+			parq_upload_force_remove(u);
+			upload_remove(u, "IP denying uploads");
+		}
+	}
+}
+
+/*
  * upload_is_enabled
  *
  * Check whether uploading is enabled: we have slots, and bandwidth.
@@ -2565,7 +2586,7 @@ void upload_close(void)
 {
 	GSList *l;
 
-	for (l = uploads; l; l = l->next) {
+	for (l = uploads; l; l = g_slist_next(l)) {
 		gnutella_upload_t *u = (gnutella_upload_t *) l->data;
 		if (UPLOAD_IS_SENDING(u) && !u->accounted)
 			upload_stats_file_aborted(u);

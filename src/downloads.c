@@ -48,6 +48,8 @@
 #include "token.h"
 #include "hostiles.h"
 #include "clock.h"
+#include "uploads.h"
+#include "ban.h"
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -4377,6 +4379,7 @@ static void download_request(
 	gchar short_read[80];
 	guint delay;
 	gchar *path = NULL;
+	gboolean refusing;
 
 	g_assert(fi->lifecount > 0);
 	g_assert(fi->lifecount <= fi->refcount);
@@ -4828,6 +4831,36 @@ static void download_request(
 
 				return;
 			}
+		}
+
+		/*
+		 * If they refuse our downloads, ban them in return for a limited
+		 * amout of time and kill all their running uploads.
+		 */
+
+		refusing = FALSE;
+
+		switch (ack_code) {
+		case 401:
+			refusing = TRUE;
+			break;
+		case 403:
+		case 404:
+			/*
+			 * By only selecting servers that are banning us, we are not
+			 * banning gtk-gnutella clients that could be refusing us because
+			 * we're too old.  But this is fair, as the user is told about
+			 * his revision being too old and decided not to act.
+			 *		--RAM, 13/07/2003
+			 */
+			if (d->server->attrs & DLS_A_BANNING)
+				refusing = TRUE;
+			break;
+		}
+
+		if (refusing) {
+			ban_record(download_ip(d), "IP denying uploads");
+			upload_kill_ip(download_ip(d));
 		}
 
 		download_stop(d, GTA_DL_ERROR,
