@@ -73,7 +73,7 @@ typedef struct pmsg {
 	gchar *m_rptr;					/* First unread byte in buffer */
 	gchar *m_wptr;					/* First unwritten byte in buffer */
 	pdata_t *m_data;				/* Data buffer */
-	gint m_prio;					/* Message priority (0 = normal) */
+	guint m_prio;					/* Message priority (0 = normal) */
 } pmsg_t;
 
 typedef void (*pmsg_free_t)(pmsg_t *mb, gpointer arg);
