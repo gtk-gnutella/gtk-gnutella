@@ -459,14 +459,16 @@ static GtkWidget *gui_create_dlg_about(void)
 void main_gui_gtkrc_init(void)
 {
 #ifdef USE_GTK2
-    gchar *rcfn = ".gtkrc-2.0";
+    gchar *rcfn = "gtkrc-2.0";
+    gchar *rchfn = ".gtkrc-2.0";
 #else
-    gchar *rcfn = ".gtkrc";
+    gchar *rcfn = "gtkrc";
+    gchar *rchfn = ".gtkrc";
 #endif
 	gchar *userrc;
 
 	/* parse gtkrc files (thx for sylpheed-claws developpers for the tip) */
-	userrc = g_strconcat(settings_home_dir(), G_DIR_SEPARATOR_S, rcfn,
+	userrc = g_strconcat(settings_home_dir(), G_DIR_SEPARATOR_S, rchfn,
 		  NULL);
 	gtk_rc_parse(userrc);
 	g_free(userrc);
