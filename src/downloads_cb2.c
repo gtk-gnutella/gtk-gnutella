@@ -53,16 +53,18 @@ void on_popup_downloads_push_activate(GtkMenuItem * menuitem,
 {
     GList *l;
 	struct download *d;
-	
 	GtkTreeIter iter;
 	GtkTreeView *tree_view = GTK_TREE_VIEW
 		(lookup_widget(main_window, "treeview_downloads"));
 	GtkTreeModel *model = gtk_tree_view_get_model(tree_view);
 	GtkTreeModel **modelp = &model;
+	gboolean send_pushes;
+
+    gnet_prop_get_boolean_val(PROP_SEND_PUSHES, &send_pushes);
+    if (is_firewalled || !send_pushes)
+        return;
 	
-
 	if (NULL != model) {
-
 		GtkTreeSelection *selection = gtk_tree_view_get_selection(tree_view);
 
 		/* For this and many of the other functions that deal with selected
@@ -79,19 +81,19 @@ void on_popup_downloads_push_activate(GtkMenuItem * menuitem,
 			if (!gtk_tree_model_get_iter(model, &iter, l->data))
 				break;	
 
-			gtk_tree_model_get(model, &iter, c_dl_record, &d, -1);
+			gtk_tree_model_get(model, &iter, c_dl_record, &d, (-1));
 			gtk_tree_selection_unselect_iter(selection, &iter);	
 
 			g_list_foreach(l, (GFunc) gtk_tree_path_free, NULL);
 			g_list_free(l);
+			l = NULL;
 		
 			if (DL_GUI_IS_HEADER == (guint32) d) /* is header */
 				break;
 			
             if (!d) {
-				g_warning(
-        	        "on_popup_downloads_push_activate(): "
-					"row %d has NULL data\n", GPOINTER_TO_INT(l->data));
+				g_warning("on_popup_downloads_push_activate(): "
+					"row has NULL data");
 		    	continue;
 	        }
     
@@ -119,16 +121,13 @@ void on_popup_downloads_abort_named_activate(GtkMenuItem * menuitem,
 	GList *l;
 	struct download *d;
     gint removed = 0;
-	
 	GtkTreeIter iter;
 	GtkTreeView *tree_view = GTK_TREE_VIEW
 		(lookup_widget(main_window, "treeview_downloads"));
 	GtkTreeModel *model = gtk_tree_view_get_model(tree_view);
 	GtkTreeModel **modelp = &model;
-
 	
 	if (NULL != model) {		
-
 		GtkTreeSelection *selection = gtk_tree_view_get_selection(tree_view);
 
 		/* Need to re-get selection list every time we modify the model */
@@ -137,19 +136,19 @@ void on_popup_downloads_abort_named_activate(GtkMenuItem * menuitem,
 			if (!gtk_tree_model_get_iter(model, &iter, l->data))
 				break;	
 
-			gtk_tree_model_get(model, &iter, c_dl_record, &d, -1);
+			gtk_tree_model_get(model, &iter, c_dl_record, &d, (-1));
 			gtk_tree_selection_unselect_iter(selection, &iter);	
 
 			g_list_foreach(l, (GFunc) gtk_tree_path_free, NULL);
 			g_list_free(l);
+			l = NULL;
 		
 			if (DL_GUI_IS_HEADER == (guint32) d) /* is header */
 				return;
 
 			if (!d) {
-				g_warning(
-        	        "on_popup_downloads_abort_named_activate():"
-            	    " row %d has NULL data\n", GPOINTER_TO_INT(l->data));
+				g_warning("on_popup_downloads_abort_named_activate():"
+            	    " row has NULL data");
 				continue;
 			}
 		
@@ -179,7 +178,6 @@ void on_popup_downloads_abort_host_activate
 	GList *l;
 	struct download *d;
     gint removed = 0;
-
 	GtkTreeIter iter;
 	GtkTreeView *tree_view = GTK_TREE_VIEW
 		(lookup_widget(main_window, "treeview_downloads"));
@@ -187,7 +185,6 @@ void on_popup_downloads_abort_host_activate
 	GtkTreeModel **modelp = &model;
 	
 	if (NULL != model) {		
-
 		GtkTreeSelection *selection = gtk_tree_view_get_selection(tree_view);
 
 		/* Need to re-get selection list every time we modify the model */
@@ -196,19 +193,19 @@ void on_popup_downloads_abort_host_activate
 			if (!gtk_tree_model_get_iter(model, &iter, l->data))
 				break;	
 
-			gtk_tree_model_get(model, &iter, c_dl_record, &d, -1);
+			gtk_tree_model_get(model, &iter, c_dl_record, &d, (-1));
 			gtk_tree_selection_unselect_iter(selection, &iter);	
 
 			g_list_foreach(l, (GFunc) gtk_tree_path_free, NULL);
 			g_list_free(l);
+			l = NULL;
 		
 			if (DL_GUI_IS_HEADER == (guint32) d) /* is header */
 				return;
 			
 			if (!d) {
-				g_warning(
-        	        "on_popup_downloads_abort_host_activate():" 
-            	    " row %d has NULL data\n", GPOINTER_TO_INT(l->data));
+				g_warning("on_popup_downloads_abort_host_activate():" 
+            	    " row has NULL data");
 				continue;
 			}
 			
@@ -247,7 +244,6 @@ void on_popup_downloads_abort_sha1_activate(GtkMenuItem *menuitem,
 	GtkTreeModel **modelp = &model;
 	
 	if (NULL != model) {		
-
 		GtkTreeSelection *selection = gtk_tree_view_get_selection(tree_view);
 
 		/* Need to re-get selection list every time we modify the model */
@@ -256,16 +252,16 @@ void on_popup_downloads_abort_sha1_activate(GtkMenuItem *menuitem,
 			if (!gtk_tree_model_get_iter(model, &iter, l->data))
 				break;	
 
-			gtk_tree_model_get(model, &iter, c_dl_record, &d, -1);
+			gtk_tree_model_get(model, &iter, c_dl_record, &d, (-1));
 			gtk_tree_selection_unselect_iter(selection, &iter);	
 
 			g_list_foreach(l, (GFunc) gtk_tree_path_free, NULL);
 			g_list_free(l);
+			l = NULL;
 	
 			if (!d) {
-				g_warning(
-   	    	         "on_popup_downloads_abort_sha1_activate():"
-   	        	     " row %d has NULL data\n", GPOINTER_TO_INT(l->data));
+				g_warning("on_popup_downloads_abort_sha1_activate():"
+   	        	     " row has NULL data");
 				continue;
 			}
 
@@ -283,9 +279,9 @@ void on_popup_downloads_abort_sha1_activate(GtkMenuItem *menuitem,
 				
 					sha1 = drecord->file_info->sha1;	
 				}
-			}
-			else
+			} else {
 				sha1 = d->file_info->sha1;
+			}
 			
         	if (NULL != sha1)
             	removed += download_remove_all_with_sha1(sha1);
@@ -313,7 +309,6 @@ void on_popup_downloads_remove_file_activate(GtkMenuItem * menuitem,
 {
 	GList *l;
 	struct download *d;
-
 	GtkTreeIter iter;
 	GtkTreeView *tree_view = GTK_TREE_VIEW
 		(lookup_widget(main_window, "treeview_downloads"));
@@ -322,7 +317,6 @@ void on_popup_downloads_remove_file_activate(GtkMenuItem * menuitem,
 	
 	
 	if (NULL != model) {		
-	
 		GtkTreeSelection *selection = gtk_tree_view_get_selection(tree_view);
 	
 		/* Need to re-get selection list every time we modify the model */
@@ -331,7 +325,7 @@ void on_popup_downloads_remove_file_activate(GtkMenuItem * menuitem,
 			if (!gtk_tree_model_get_iter(model, &iter, l->data))
 				break;	
 
-			gtk_tree_model_get(model, &iter, c_dl_record, &d, -1);
+			gtk_tree_model_get(model, &iter, c_dl_record, &d, (-1));
 			gtk_tree_selection_unselect_iter(selection, &iter);	
 
 			if (DL_GUI_IS_HEADER == (guint32) d)
@@ -339,11 +333,11 @@ void on_popup_downloads_remove_file_activate(GtkMenuItem * menuitem,
 
 			g_list_foreach(l, (GFunc) gtk_tree_path_free, NULL);
 			g_list_free(l);
+			l = NULL;
 
 			if (!d) {
-				g_warning(
-        	        "on_popup_downloads_remove_file_activate():" 
-            	    " row %d has NULL data\n", GPOINTER_TO_INT(l->data));
+				g_warning("on_popup_downloads_remove_file_activate():" 
+            	    " row has NULL data");
 				continue;
 			}
 
@@ -377,7 +371,6 @@ void on_popup_downloads_queue_activate(GtkMenuItem * menuitem,
 {
     GList *l;
 	struct download *d;
-	
 	GtkTreeIter iter;
 	GtkTreeView *tree_view = GTK_TREE_VIEW
 		(lookup_widget(main_window, "treeview_downloads"));
@@ -385,7 +378,6 @@ void on_popup_downloads_queue_activate(GtkMenuItem * menuitem,
 	GtkTreeModel **modelp = &model;
 	
 	if (NULL != model) {
-		
 		GtkTreeSelection *selection = gtk_tree_view_get_selection(tree_view);
 
 		/* Need to re-get selection list every time we modify the model */
@@ -394,18 +386,19 @@ void on_popup_downloads_queue_activate(GtkMenuItem * menuitem,
 			if (!gtk_tree_model_get_iter(model, &iter, l->data))
 				break;	
 	
-			gtk_tree_model_get(model, &iter, c_dl_record, &d, -1);
+			gtk_tree_model_get(model, &iter, c_dl_record, &d, (-1));
 			gtk_tree_selection_unselect_iter(selection, &iter);	
 
 			g_list_foreach(l, (GFunc) gtk_tree_path_free, NULL);
 			g_list_free(l);
+			l = NULL;
 
 			if (DL_GUI_IS_HEADER == (guint32) d)
 				return;
 
 	        if (!d) {
     	        g_warning("on_popup_downloads_queue_activate():"
-					"row %d has NULL data\n", GPOINTER_TO_INT(l->data));
+					"row has NULL data");
 	            continue;
     	    }
 			
@@ -430,7 +423,7 @@ void on_popup_downloads_queue_activate(GtkMenuItem * menuitem,
 void on_popup_downloads_copy_url_activate(GtkMenuItem * menuitem,
 									      gpointer user_data) 
 {
-   	struct download * d = NULL;
+   	struct download *d = NULL;
 	GList *l;
 
     /* 
@@ -448,24 +441,26 @@ void on_popup_downloads_copy_url_activate(GtkMenuItem * menuitem,
 		GtkTreeModel **modelp = &model;
 	
 		if (NULL != model) {		
+			GtkTreeSelection *selection;
 
-			GtkTreeSelection *selection = gtk_tree_view_get_selection(tree_view);
+			selection = gtk_tree_view_get_selection(tree_view);
 			l = gtk_tree_selection_get_selected_rows(selection, modelp);
 
 			if (!gtk_tree_model_get_iter(model, &iter, l->data))
 				return;	
 		
-			gtk_tree_model_get(model, &iter, c_dl_record, &d, -1);
+			gtk_tree_model_get(model, &iter, c_dl_record, &d, (-1));
 
 			g_list_foreach(l, (GFunc) gtk_tree_path_free, NULL);
 			g_list_free(l);
+			l = NULL;
 			
 			if (DL_GUI_IS_HEADER == (guint32) d)
 				return;
 
 	        if (!d) {
    	   		   	g_warning("on_popup_downloads_copy_url(): "
-					"row %d has NULL data\n", GPOINTER_TO_INT(l->data));
+					"row has NULL data");
 			    return;
 	        }
 
@@ -476,8 +471,7 @@ void on_popup_downloads_copy_url_activate(GtkMenuItem * menuitem,
        		*      --BLUE, 24/04/2002
        		*/
 	       if (selected_url != NULL) {
-       		    g_free(selected_url);
-           		selected_url = NULL;
+       		    G_FREE_NULL(selected_url);
 	        }
 
        		selected_url = g_strdup(build_url_from_download(d));
@@ -495,18 +489,15 @@ void on_popup_downloads_copy_url_activate(GtkMenuItem * menuitem,
 void on_popup_downloads_connect_activate(GtkMenuItem * menuitem,
 					 	                 gpointer user_data) 
 {
-    struct download * d = NULL;
+    struct download *d = NULL;
 	GList *l;
-	
 	GtkTreeIter iter;
 	GtkTreeView *tree_view = GTK_TREE_VIEW
 		(lookup_widget(main_window, "treeview_downloads"));
 	GtkTreeModel *model = gtk_tree_view_get_model(tree_view);
 	GtkTreeModel **modelp = &model;
-
 	
 	if (NULL != model) {		
-	
 		GtkTreeSelection *selection = gtk_tree_view_get_selection(tree_view);
 
 		/* Need to re-get selection list every time we modify the model */
@@ -516,15 +507,16 @@ void on_popup_downloads_connect_activate(GtkMenuItem * menuitem,
 				break;	
 
 			gtk_tree_model_get_iter(model, &iter, l->data);
-			gtk_tree_model_get(model, &iter, c_dl_record, &d, -1);
+			gtk_tree_model_get(model, &iter, c_dl_record, &d, (-1));
 			gtk_tree_selection_unselect_iter(selection, &iter);	
 
 			g_list_foreach(l, (GFunc) gtk_tree_path_free, NULL);
 			g_list_free(l);
+			l = NULL;
 
 			if (!d) {
 		    	g_warning("on_popup_downloads_connect_activate():" 
-        	    	"row %d has NULL data\n", GPOINTER_TO_INT(l->data));
+        	    	"row has NULL data");
 		    	return;
     		}
 
@@ -565,7 +557,6 @@ void on_popup_queue_start_now_activate(GtkMenuItem * menuitem,
 	
 	
 	if (NULL != model) {
-	
 		GtkTreeSelection *selection = gtk_tree_view_get_selection(tree_view);
 
 		/* Need to re-get selection list every time we modify the model */
@@ -574,18 +565,19 @@ void on_popup_queue_start_now_activate(GtkMenuItem * menuitem,
 			if (!gtk_tree_model_get_iter(model, &iter, l->data))
 				break;	
 
-			gtk_tree_model_get(model, &iter, c_queue_record, &d, -1);
+			gtk_tree_model_get(model, &iter, c_queue_record, &d, (-1));
 			gtk_tree_selection_unselect_iter(selection, &iter);	
 	
 			g_list_foreach(l, (GFunc) gtk_tree_path_free, NULL);
 			g_list_free(l);
+			l = NULL;
 
 			if (DL_GUI_IS_HEADER == (guint32) d)
 				return;
 			
             if (!d) {
 				g_warning("on_popup_queue_start_now_activate(): "
-					"row %d has NULL data\n", GPOINTER_TO_INT(l->data));
+					"row has NULL data");
 		    	continue;
 	        }
     
@@ -612,16 +604,13 @@ void on_popup_queue_abort_activate(GtkMenuItem * menuitem,
 {
 	GList *l;
 	struct download *d;
-		
 	GtkTreeIter iter;
 	GtkTreeView *tree_view = GTK_TREE_VIEW
 		(lookup_widget(main_window, "treeview_downloads_queue"));
 	GtkTreeModel *model = gtk_tree_view_get_model(tree_view);
 	GtkTreeModel **modelp = &model;
 
-	
 	if (NULL != model) {		
-
 		GtkTreeSelection *selection = gtk_tree_view_get_selection(tree_view);
 
 		/* Need to re-get selection list every time we modify the model */
@@ -635,13 +624,14 @@ void on_popup_queue_abort_activate(GtkMenuItem * menuitem,
 
 			g_list_foreach(l, (GFunc) gtk_tree_path_free, NULL);
 			g_list_free(l);
+			l = NULL;
 		
 			if (DL_GUI_IS_HEADER == (guint32) d) /* is header */
 				return;
 
 			if (!d) {
 				g_warning("on_downloads_queue_abort_clicked(): "
-					"row %d has NULL data\n", GPOINTER_TO_INT(l->data));
+					"row has NULL data");
 				continue;
 			}
 			if (d->status == GTA_DL_QUEUED)
@@ -668,16 +658,13 @@ void on_popup_queue_abort_named_activate(GtkMenuItem * menuitem,
 	GList *l;
 	struct download *d;
     gint removed = 0;
-	
 	GtkTreeIter iter;
 	GtkTreeView *tree_view = GTK_TREE_VIEW
 		(lookup_widget(main_window, "treeview_downloads_queue"));
 	GtkTreeModel *model = gtk_tree_view_get_model(tree_view);
 	GtkTreeModel **modelp = &model;
 	
-	
 	if (NULL != model) {		
-	
 		GtkTreeSelection *selection = gtk_tree_view_get_selection(tree_view);
 
 		/* Need to re-get selection list every time we modify the model */
@@ -686,18 +673,19 @@ void on_popup_queue_abort_named_activate(GtkMenuItem * menuitem,
 			if (!gtk_tree_model_get_iter(model, &iter, l->data))
 				break;	
 
-			gtk_tree_model_get(model, &iter, c_queue_record, &d, -1);
+			gtk_tree_model_get(model, &iter, c_queue_record, &d, (-1));
 			gtk_tree_selection_unselect_iter(selection, &iter);	
 
 			g_list_foreach(l, (GFunc) gtk_tree_path_free, NULL);
 			g_list_free(l);
+			l = NULL;
 			
 			if (DL_GUI_IS_HEADER == (guint32) d)
 				return;
 
 			if (!d) {
 				g_warning("on_popup_queue_abort_named_activate():"
-            	    " row %d has NULL data\n", GPOINTER_TO_INT(l->data));
+            	    " row has NULL data");
 				continue;
 			}
 		
@@ -726,16 +714,13 @@ void on_popup_queue_abort_host_activate(GtkMenuItem * menuitem,
 	GList *l;
 	struct download *d;
     gint removed = 0;
-	
 	GtkTreeIter iter;
 	GtkTreeView *tree_view = GTK_TREE_VIEW
 		(lookup_widget(main_window, "treeview_downloads_queue"));
 	GtkTreeModel *model = gtk_tree_view_get_model(tree_view);
 	GtkTreeModel **modelp = &model;
-
 	
 	if (NULL != model) {		
-
 		GtkTreeSelection *selection = gtk_tree_view_get_selection(tree_view);
 
 		/* Need to re-get selection list every time we modify the model */
@@ -744,18 +729,19 @@ void on_popup_queue_abort_host_activate(GtkMenuItem * menuitem,
 			if (!gtk_tree_model_get_iter(model, &iter, l->data))
 				break;	
 
-			gtk_tree_model_get(model, &iter, c_queue_record, &d, -1);
+			gtk_tree_model_get(model, &iter, c_queue_record, &d, (-1));
 			gtk_tree_selection_unselect_iter(selection, &iter);	
 
 			g_list_foreach(l, (GFunc) gtk_tree_path_free, NULL);
 			g_list_free(l);
+			l = NULL;
 
 			if (DL_GUI_IS_HEADER == (guint32) d)
 				return;
 
 			if (!d) {
 				g_warning("on_popup_queue_abort_host_activate():" 
-            	    " row %d has NULL data\n", GPOINTER_TO_INT(l->data));
+            	    " row has NULL data");
 				continue;
 			}
 			
@@ -787,7 +773,6 @@ void on_popup_queue_abort_sha1_activate(GtkMenuItem * menuitem,
 	struct download *d;
     gint removed = 0;
 	gchar *sha1 = NULL;
-	
 	GtkTreeIter iter, parent;
 	GtkTreeView *tree_view = GTK_TREE_VIEW
 		(lookup_widget(main_window, "treeview_downloads_queue"));
@@ -796,7 +781,6 @@ void on_popup_queue_abort_sha1_activate(GtkMenuItem * menuitem,
 	
 	
 	if (NULL != model) {		
-	
 		GtkTreeSelection *selection = gtk_tree_view_get_selection(tree_view);
 
 		/* Need to re-get selection list every time we modify the model */
@@ -805,15 +789,16 @@ void on_popup_queue_abort_sha1_activate(GtkMenuItem * menuitem,
 			if (!gtk_tree_model_get_iter(model, &iter, l->data))
 				break;	
 
-			gtk_tree_model_get(model, &iter, c_queue_record, &d, -1);
+			gtk_tree_model_get(model, &iter, c_queue_record, &d, (-1));
 			gtk_tree_selection_unselect_iter(selection, &iter);	
 
 			g_list_foreach(l, (GFunc) gtk_tree_path_free, NULL);
 			g_list_free(l);
+			l = NULL;
 
 			if (!d) {
 				g_warning("on_popup_queue_abort_sha1_activate():"
-   	        	     " row %d has NULL data\n", GPOINTER_TO_INT(l->data));
+   	        	     " row has NULL data");
 				continue;
 			}
 			
@@ -823,8 +808,10 @@ void on_popup_queue_abort_sha1_activate(GtkMenuItem * menuitem,
 			 * so we just grab the next one.
 			 */
 				parent = iter;
-				if (gtk_tree_model_iter_nth_child(
-						(GtkTreeModel *)model, &iter, &parent, 0)) {
+				if (
+					gtk_tree_model_iter_nth_child(
+						(GtkTreeModel *)model, &iter, &parent, 0)
+				) {
 					
 					struct download *drecord = NULL;
 						
@@ -833,12 +820,12 @@ void on_popup_queue_abort_sha1_activate(GtkMenuItem * menuitem,
 				
 					sha1 = drecord->file_info->sha1;	
 				}
-			}
-			else
+			} else {
 				sha1 = d->file_info->sha1;
+			}
 			
-			   	if (NULL != sha1)
-            		removed += download_remove_all_with_sha1(sha1);
+		   	if (NULL != sha1)
+           		removed += download_remove_all_with_sha1(sha1);
 		}
 		/* In the event that we broke out of the loop without freeing the list*/
 		if (NULL != l) {
@@ -874,21 +861,21 @@ void on_popup_queue_copy_url_activate(GtkMenuItem * menuitem,
      * connect the selection_* signals to that using glade.
      *      --BLUE, 24/04/2002
      */
-    if (gtk_selection_owner_set(GTK_WIDGET(popup_downloads),
+    if (
+		gtk_selection_owner_set(GTK_WIDGET(popup_downloads),
                                 GDK_SELECTION_PRIMARY,
-                                GDK_CURRENT_TIME)){  
-
-
+                                GDK_CURRENT_TIME)
+	) {  
 		GtkTreeIter iter;
 		GtkTreeView *tree_view = GTK_TREE_VIEW
 			(lookup_widget(main_window, "treeview_downloads_queue"));
 		GtkTreeModel *model = gtk_tree_view_get_model(tree_view);
 		GtkTreeModel **modelp = &model;
-	
 									
 		if (NULL != model) {		
+			GtkTreeSelection *selection;
 
-			GtkTreeSelection *selection = gtk_tree_view_get_selection(tree_view);
+			selection = gtk_tree_view_get_selection(tree_view);
 			l = gtk_tree_selection_get_selected_rows(selection, modelp);
 
 			if (!gtk_tree_model_get_iter(model, &iter, l->data))
@@ -898,10 +885,10 @@ void on_popup_queue_copy_url_activate(GtkMenuItem * menuitem,
 
 			g_list_foreach(l, (GFunc) gtk_tree_path_free, NULL);
 			g_list_free(l);
+			l = NULL;
 			
 	        if (!d) {
-   	   		   	g_warning("on_popup_queue_copy_url(): row %d has NULL data\n",
-			        GPOINTER_TO_INT(l->data));
+   	   		   	g_warning("on_popup_queue_copy_url(): row has NULL data");
 			    return;
 	        }
 
@@ -912,8 +899,7 @@ void on_popup_queue_copy_url_activate(GtkMenuItem * menuitem,
        		*      --BLUE, 24/04/2002
        		*/
 	       if (selected_url != NULL) {
-       		    g_free(selected_url);
-           		selected_url = NULL;
+       		    G_FREE_NULL(selected_url);
 	        }
 
        		selected_url = g_strdup(build_url_from_download(d));
@@ -931,7 +917,7 @@ void on_popup_queue_copy_url_activate(GtkMenuItem * menuitem,
 void on_popup_queue_connect_activate(GtkMenuItem * menuitem,
 					 	             gpointer user_data) 
 {
-    struct download * d = NULL;
+    struct download *d = NULL;
 	GList *l;		
 	
 	GtkTreeIter iter;
@@ -939,10 +925,8 @@ void on_popup_queue_connect_activate(GtkMenuItem * menuitem,
 		(lookup_widget(main_window, "treeview_downloads_queue"));
 	GtkTreeModel *model = gtk_tree_view_get_model(tree_view);
 	GtkTreeModel **modelp = &model;
-	
 
 	if (NULL != model) {		
-
 		GtkTreeSelection *selection = gtk_tree_view_get_selection(tree_view);
 
 		/* Need to re-get selection list every time we modify the model */
@@ -951,18 +935,19 @@ void on_popup_queue_connect_activate(GtkMenuItem * menuitem,
 			if (!gtk_tree_model_get_iter(model, &iter, l->data))
 				break;	
 
-			gtk_tree_model_get(model, &iter, c_queue_record, &d, -1);
+			gtk_tree_model_get(model, &iter, c_queue_record, &d, (-1));
 			gtk_tree_selection_unselect_iter(selection, &iter);	
 
 			g_list_foreach(l, (GFunc) gtk_tree_path_free, NULL);
 			g_list_free(l);
+			l = NULL;
 
 			if (DL_GUI_IS_HEADER == (guint32) d)
 				return;
 			
 			if (!d) {
 		    	g_warning("on_popup_queue_connect_activate():" 
-        	    	"row %d has NULL data\n", GPOINTER_TO_INT(l->data));
+        	    	"row has NULL data");
 		    	return;
     		}
 
@@ -993,16 +978,13 @@ void on_button_downloads_abort_clicked(GtkButton * button, gpointer user_data)
 {
 	GList *l;
 	struct download *d;
-
 	GtkTreeIter iter;
 	GtkTreeView *tree_view = GTK_TREE_VIEW
 		(lookup_widget(main_window, "treeview_downloads"));
 	GtkTreeModel *model = gtk_tree_view_get_model(tree_view);
 	GtkTreeModel **modelp = &model;
-
 	
 	if (NULL != model) {		
-
 		GtkTreeSelection *selection = gtk_tree_view_get_selection(tree_view);
 
 		/* Need to re-get selection list every time we modify the model */
@@ -1011,16 +993,17 @@ void on_button_downloads_abort_clicked(GtkButton * button, gpointer user_data)
 			if (!gtk_tree_model_get_iter(model, &iter, l->data))
 				break;	
 
-			gtk_tree_model_get(model, &iter, c_dl_record, &d, -1);
+			gtk_tree_model_get(model, &iter, c_dl_record, &d, (-1));
 			gtk_tree_selection_unselect_iter(selection, &iter);	
 
 			g_list_foreach(l, (GFunc) gtk_tree_path_free, NULL);
 			g_list_free(l);
+			l = NULL;
 
 			if (DL_GUI_IS_HEADER != (guint32)d) {
 				if (!d) {
 					g_warning("on_button_downloads_abort_clicked(): "
-						"row %d has NULL data\n", GPOINTER_TO_INT(l->data));
+						"row has NULL data");
 					continue;
 				}
 	
@@ -1048,16 +1031,13 @@ void on_button_downloads_resume_clicked(GtkButton * button,
 {
 	GList *l;
 	struct download *d;
-
 	GtkTreeIter iter;
 	GtkTreeView *tree_view = GTK_TREE_VIEW
 		(lookup_widget(main_window, "treeview_downloads"));
 	GtkTreeModel *model = gtk_tree_view_get_model(tree_view);
 	GtkTreeModel **modelp = &model;
 	
-	
 	if (NULL != model) {		
-	
 		GtkTreeSelection *selection = gtk_tree_view_get_selection(tree_view);
 
 		/* Need to re-get selection list every time we modify the model */
@@ -1066,15 +1046,16 @@ void on_button_downloads_resume_clicked(GtkButton * button,
 			if (!gtk_tree_model_get_iter(model, &iter, l->data))
 				break;				
 
-			gtk_tree_model_get(model, &iter, c_dl_record, &d, -1);
+			gtk_tree_model_get(model, &iter, c_dl_record, &d, (-1));
 			gtk_tree_selection_unselect_iter(selection, &iter);	
 
 			g_list_foreach(l, (GFunc) gtk_tree_path_free, NULL);
 			g_list_free(l);
+			l = NULL;
 
 	        if (!d) {
     	        g_warning("on_button_downloads_resume_clicked(): "
-					"row %d has NULL data\n", GPOINTER_TO_INT(l->data));
+					"row has NULL data");
             	continue;
         	}
         	download_resume(d);	
@@ -1112,7 +1093,6 @@ void on_entry_queue_regex_activate(GtkEditable *editable, gpointer user_data)
     gchar * regex;
 	struct download *d;
 	regex_t re;
-
 	GtkTreeIter iter;
 	GtkTreeView *tree_view;
 	GtkTreeModel *model;
@@ -1127,10 +1107,11 @@ void on_entry_queue_regex_activate(GtkEditable *editable, gpointer user_data)
                   REG_EXTENDED|REG_NOSUB|(queue_regex_case ? 0 : REG_ICASE));
 
    	if (err) {
-        char buf[1000];
-		regerror(err, &re, buf, 1000);
-        statusbar_gui_warning
-            (15, "on_entry_queue_regex_activate: regex error %s",buf);
+        char buf[1024];
+
+		regerror(err, &re, buf, sizeof buf);
+        statusbar_gui_warning(15,
+			"on_entry_queue_regex_activate: regex error %s", buf);
     } else {
   
 		tree_view = GTK_TREE_VIEW
@@ -1154,7 +1135,8 @@ void on_entry_queue_regex_activate(GtkEditable *editable, gpointer user_data)
 					continue;				
 				
 				if (!d) {
-	                g_warning("on_entry_queue_regex_activate:row has NULL data");
+	                g_warning("on_entry_queue_regex_activate: "
+						"row has NULL data");
     	            continue;
         	    }
 
@@ -1240,10 +1222,8 @@ void on_treeview_downloads_select_row(GtkTreeView * tree_view,
 	gpointer user_data)
 {
     gboolean activate = FALSE;
-
 	GList *l;	
 	struct download *d;
-	
 	GtkTreeIter iter;
 	GtkTreeModel *model;
 	GtkTreeModel **modelp;
@@ -1262,10 +1242,8 @@ void on_treeview_downloads_select_row(GtkTreeView * tree_view,
 		(lookup_widget(main_window, "treeview_downloads"));
 	model = gtk_tree_view_get_model(tree_view);
 	modelp = &model;
-
 	
 	if (NULL != model) {		
-
 		GtkTreeSelection *selection = gtk_tree_view_get_selection(tree_view);
 		l = gtk_tree_selection_get_selected_rows(selection, modelp);
 
@@ -1273,7 +1251,7 @@ void on_treeview_downloads_select_row(GtkTreeView * tree_view,
 			if (gtk_tree_model_get_iter(model, &iter, l->data)) {
 
 				gtk_tree_model_get(model, &iter, c_dl_record, &d, -1);
-				activate = ((NULL == l->next) && (DL_GUI_IS_HEADER != (guint32) d));
+				activate = NULL == l->next && DL_GUI_IS_HEADER != (guint32) d;
 	
 			    gtk_widget_set_sensitive(lookup_widget(popup_downloads, 
 					"popup_downloads_copy_url"), activate);
@@ -1301,11 +1279,8 @@ void on_treeview_downloads_queue_select_row(GtkTreeView * tree_view,
     gboolean is_header = FALSE;
 	gboolean only_one = FALSE;
 	gboolean something = FALSE;	/* is something selected? */
-
-
 	GList *l;	
 	struct download *d;
-	
 	GtkTreeIter iter;
 	GtkTreeModel *model;
 	GtkTreeModel **modelp;
@@ -1325,7 +1300,6 @@ void on_treeview_downloads_queue_select_row(GtkTreeView * tree_view,
 	modelp = &model;
 
 	if (NULL != model) {
-
 		GtkTreeSelection *selection = gtk_tree_view_get_selection(tree_view);
 		l = gtk_tree_selection_get_selected_rows(selection, modelp);
 
@@ -1417,5 +1391,5 @@ void on_popup_queue_collapse_all_activate(GtkMenuItem *menuitem,
 	downloads_gui_collapse_all(tree_view);	
 }
 
-
+/* vi: set ts=4: */
 #endif	/* USE_GTK2 */
