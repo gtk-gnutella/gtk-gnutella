@@ -594,7 +594,7 @@ version_init(void)
  * they set the "ancient_version_force" property explicitly.
  */
 static void
-version_maybe_refuse(guint overtime)
+version_maybe_refuse(gint overtime)
 {
 	gchar *force;
 	property_t prop = PROP_ANCIENT_VERSION_FORCE;
