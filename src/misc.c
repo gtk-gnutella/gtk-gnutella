@@ -66,7 +66,7 @@ gboolean is_string_ip(const gchar *s)
     return (gboolean) gchar_to_ip(s);
 }
 
-gboolean file_exists(gchar *f)
+gboolean file_exists(const gchar *f)
 {
   	struct stat st;
 
@@ -76,9 +76,11 @@ gboolean file_exists(gchar *f)
 
 gchar *ip_to_gchar(guint32 ip)
 {
+	static gchar a[32];
 	struct in_addr ia;
 	ia.s_addr = g_htonl(ip);
-	return inet_ntoa(ia);
+	g_strlcpy(a, inet_ntoa(ia), sizeof(a));
+	return a;
 }
 
 
@@ -132,13 +134,13 @@ guint32 gchar_to_ip(const gchar * str)
  * Decompiles ip:port into ip and port.  Leading spaces are ignored.
  * Returns TRUE if it parsed correctly, FALSE otherwise.
  */
-gboolean gchar_to_ip_port(gchar *str, guint32 *ip, guint16 *port)
+gboolean gchar_to_ip_port(const gchar *str, guint32 *ip, guint16 *port)
 {
 	gint lsb, b2, b3, msb;
 	gint iport;
 
 	/* Skip leading spaces */
-	while (isspace((guchar) *str))
+	while (isspace((const guchar) *str))
 		str++;
 
 	/* IP addresses are always written in big-endian format */
@@ -160,12 +162,14 @@ guint32 host_to_ip(const gchar * host)
 	if (he)
 		return g_ntohl(*(guint32 *) (he->h_addr_list[0]));
 	else {
-		g_warning("cannot resolve %s:", host);
-#if defined(HAVE_HERROR)
+#if defined(HAVE_HSTRERROR)
+		g_warning("cannot resolve \"%s\": %s", host, hstrerror(h_errno));
+#elif defined(HAVE_HERROR)
+		g_warning("cannot resolve \"%s\":", host);
 		herror("gethostbyname()");
 #else
-		g_warning("gethostbyname() failed!");
-#endif
+		g_warning("cannot resolve \"%s\": gethostbyname() failed!", host);
+#endif /* defined(HAVE_HSTRERROR) */
 	}
 
 	return 0;
@@ -404,7 +408,7 @@ gint hex2dec(gchar c)
  *
  * Converts hexadecimal string into a GUID.
  */
-void hex_to_guid(gchar *hexguid, guchar *guid)
+void hex_to_guid(const gchar *hexguid, guchar *guid)
 {
 	gint i;
 
@@ -495,9 +499,10 @@ static gint tm_diff(const struct tm *a, const struct tm * b)
 		+ (a->tm_sec - b->tm_sec));
 }
 
-static gchar* days[] = { "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat" };
+static const gchar* days[] =
+	{ "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat" };
 
-static gchar* months[] = {
+static const gchar* months[] = {
 	"Jan", "Feb", "Mar", "Apr", "May", "Jun",
 	"Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
 };
@@ -655,7 +660,7 @@ guint32 random_value(guint32 max)
 static void dump_hex_header(FILE *out)
 {
 	int i;
-	char *cols = "0123456789abcdef";
+	const char *cols = "0123456789abcdef";
 
 	fputs("Offset ", out);
 	for (i = 0; i < 16; i++)
@@ -670,7 +675,7 @@ static void dump_hex_header(FILE *out)
  * Displays the "title" then the characters in "s", # of bytes to print in "b"
  */
 
-void dump_hex(FILE *out, gchar *title, gchar *s, gint b)
+void dump_hex(FILE *out, const gchar *title, const gchar *s, gint b)
 {
 
 	int i, x, y, z, end;
@@ -689,7 +694,7 @@ void dump_hex(FILE *out, gchar *title, gchar *s, gint b)
 		goto done;
 
 	i = x = end = 0;
-	while (1) {
+	for (;;) {
 		if ((x & 0xff) == 0) {					/* i%256 == 0 */
 			if (x > 0)
 				fputc('\n', out);				/* break after 256 byte chunk */
@@ -928,7 +933,7 @@ void random_init(void)
  *
  * Returns the chosen unique complete filename as a pointer to static data.
  */
-gchar *unique_filename(gchar *path, gchar *file, gchar *ext)
+gchar *unique_filename(const gchar *path, const gchar *file, const gchar *ext)
 {
 	static gchar filename[2048];
 	gint rw;

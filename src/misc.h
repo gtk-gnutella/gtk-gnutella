@@ -84,14 +84,14 @@ typedef guint16 flag_t;
  * Sorting constants
  */
 #define SORT_ASC  1
-#define SORT_DESC -1
+#define SORT_DESC (-1)
 #define SORT_NONE 0
 
 /*
  * Network related string routines
  */
 guint32  gchar_to_ip(const gchar *);
-gboolean gchar_to_ip_port(gchar *str, guint32 *ip, guint16 *port);
+gboolean gchar_to_ip_port(const gchar *str, guint32 *ip, guint16 *port);
 gchar *  ip_to_gchar(guint32);
 gchar *  ip_port_to_gchar(guint32, guint16);
 guint32  host_to_ip(const gchar *);
@@ -130,7 +130,7 @@ guchar *base32_sha1(const gchar *base32);
 gboolean is_string_ip(const gchar *);
 gboolean is_private_ip(guint32 ip);
 gboolean is_directory(const gchar *);
-gboolean file_exists(gchar *);
+gboolean file_exists(const gchar *);
 gboolean is_pow2(guint32 value);
 guint32 next_pow2(guint32 n);
 
@@ -146,10 +146,10 @@ guint32 random_value(guint32 max);
 gint str_chomp(gchar *str, gint len);
 gchar *guid_hex_str(const guchar *guid);
 gint hex2dec(gchar c);
-void hex_to_guid(gchar *hexguid, guchar *guid);
-void dump_hex(FILE *, gchar *, gchar *, gint);
+void hex_to_guid(const gchar *hexguid, guchar *guid);
+void dump_hex(FILE *, const gchar *, const gchar *, gint);
 void strlower(gchar *, const gchar *);
-gchar *unique_filename(gchar *path, gchar *file, gchar *ext);
+gchar *unique_filename(const gchar *path, const gchar *file, const gchar *ext);
 guchar *hex_escape(const guchar *name, gboolean strict);
 gint highest_bit_set(guint32 n);
 
