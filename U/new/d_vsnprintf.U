@@ -1,0 +1,21 @@
+?RCS: $Id$
+?RCS:
+?RCS: @COPYRIGHT@
+?RCS:
+?MAKE:d_vsnprintf: Inlibc
+?MAKE:	-pick add $@ %<
+?S:d_vsnprintf:
+?S:	This variable conditionally defines the HAS_VSNPRINTF symbol, which
+?S:	indicates to the C program that the vsnprintf() routine is available.
+?S:.
+?C:HAS_VSNPRINTF :
+?C:	This symbol, if defined, indicates that the vsnprintf routine is
+?C:	available.
+?C:.
+?H:#$d_vsnprintf HAS_VSNPRINTF		/**/
+?H:.
+?LINT:set d_vsnprintf
+: see if vsnprintf exists
+set vsnprintf d_vsnprintf
+eval $inlibc
+

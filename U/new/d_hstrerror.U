@@ -1,0 +1,21 @@
+?RCS: $Id$
+?RCS:
+?RCS: @COPYRIGHT@
+?RCS:
+?MAKE:d_hstrerror: Inlibc
+?MAKE:	-pick add $@ %<
+?S:d_hstrerror:
+?S:	This variable conditionally defines the HAS_HSTRERROR symbol, which
+?S:	indicates to the C program that the hstrerror() routine is available.
+?S:.
+?C:HAS_HSTRERROR :
+?C:	This symbol, if defined, indicates that the hstrerror routine is
+?C:	available.
+?C:.
+?H:#$d_hstrerror HAS_HSTRERROR		/**/
+?H:.
+?LINT:set d_hstrerror
+: see if hstrerror exists
+set hstrerror d_hstrerror
+eval $inlibc
+

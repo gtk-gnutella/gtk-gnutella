@@ -1,0 +1,22 @@
+?RCS: $Id$
+?RCS:
+?RCS: @COPYRIGHT@
+?RCS:
+?MAKE:d_bindtxtcode: Inlibc
+?MAKE:	-pick add $@ %<
+?S:d_bindtxtcode:
+?S:	This variable conditionally defines the HAS_BIND_TEXTDOMAIN_CODESET symbol,
+?S:	which indicates to the C program that the bind_textdomain_codeset()
+?S:	routine is available.
+?S:.
+?C:HAS_BIND_TEXTDOMAIN_CODESET :
+?C:	This symbol, if defined, indicates that the bind_textdomain_codeset routine
+?C:	is available.
+?C:.
+?H:#$d_bindtxtcode HAS_BIND_TEXTDOMAIN_CODESET		/**/
+?H:.
+?LINT:set d_bindtxtcode
+: see if bind_textdomain_codeset exists
+set bind_textdomain_codeset d_bindtxtcode
+eval $inlibc
+

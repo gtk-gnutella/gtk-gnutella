@@ -1,0 +1,21 @@
+?RCS: $Id$
+?RCS:
+?RCS: @COPYRIGHT@
+?RCS:
+?MAKE:d_sysctl: Inlibc
+?MAKE:	-pick add $@ %<
+?S:d_sysctl:
+?S:	This variable conditionally defines the HAS_SYSCTL symbol, which
+?S:	indicates to the C program that the sysctl() routine is available.
+?S:.
+?C:HAS_SYSCTL :
+?C:	This symbol, if defined, indicates that the sysctl routine is
+?C:	available.
+?C:.
+?H:#$d_sysctl HAS_SYSCTL		/**/
+?H:.
+?LINT:set d_sysctl
+: see if sysctl exists
+set sysctl d_sysctl
+eval $inlibc
+

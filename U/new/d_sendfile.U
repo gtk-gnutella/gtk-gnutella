@@ -1,0 +1,21 @@
+?RCS: $Id$
+?RCS:
+?RCS: @COPYRIGHT@
+?RCS:
+?MAKE:d_sendfile: Inlibc
+?MAKE:	-pick add $@ %<
+?S:d_sendfile:
+?S:	This variable conditionally defines the HAS_SENDFILE symbol, which
+?S:	indicates to the C program that the sendfile() routine is available.
+?S:.
+?C:HAS_SENDFILE :
+?C:	This symbol, if defined, indicates that the sendfile routine is
+?C:	available.
+?C:.
+?H:#$d_sendfile HAS_SENDFILE		/**/
+?H:.
+?LINT:set d_sendfile
+: see if sendfile exists
+set sendfile d_sendfile
+eval $inlibc
+

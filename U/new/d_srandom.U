@@ -1,0 +1,21 @@
+?RCS: $Id$
+?RCS:
+?RCS: @COPYRIGHT@
+?RCS:
+?MAKE:d_srandom: Inlibc
+?MAKE:	-pick add $@ %<
+?S:d_srandom:
+?S:	This variable conditionally defines the HAS_SRANDOM symbol, which
+?S:	indicates to the C program that the srandom() routine is available.
+?S:.
+?C:HAS_SRANDOM :
+?C:	This symbol, if defined, indicates that the srandom routine is
+?C:	available.
+?C:.
+?H:#$d_srandom HAS_SRANDOM		/**/
+?H:.
+?LINT:set d_srandom
+: see if srandom exists
+set srandom d_srandom
+eval $inlibc
+
