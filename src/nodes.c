@@ -1301,13 +1301,6 @@ void node_parse(struct gnutella_node *node)
 		break;
 	}
 
-//		case GTA_MSG_INIT:
-//			reply_init(n);
-//			break;
-//		case GTA_MSG_INIT_RESPONSE:
-//			host_add(n, 0, 0, TRUE);
-//			break;
-
 	/* Route (forward) then handle the message if required */
 
 	if (route_message(&n)) {		/* We have to handle the message */
@@ -1513,7 +1506,11 @@ void node_read(gpointer data, gint source, GdkInputCondition cond)
 				 sizeof(struct gnutella_header) - n->pos);
 
 		if (!r) {
-			node_remove(n, "Failed (EOF)");
+			if (n->n_ping_sent <= 2 && n->n_pong_received)
+				node_remove(n, "Got %d connection pong%s",
+					n->n_pong_received, n->n_pong_received == 1 ? "" : "s");
+			else
+				node_remove(n, "Failed (EOF)");
 			return;
 		} else if (r < 0 && errno == EAGAIN)
 			return;
