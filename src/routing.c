@@ -598,12 +598,6 @@ static gboolean forward_message(struct gnutella_node **node,
 
 	routing_log("[H] [NEW] ");
 
-	if (sender->header.ttl > max_ttl) {	/* TTL too large */
-		sender->header.ttl = max_ttl;	/* Trim down */
-		routing_log("(TTL trimmed down to %d) ", max_ttl);
-	}
-
-
 	message_add(sender->header.muid, sender->header.function, sender);
 
 	sender->header.hops++;	/* Going to handle it, must be accurate */
@@ -619,6 +613,16 @@ static gboolean forward_message(struct gnutella_node **node,
 			dest->type = ROUTE_ONE;
 			dest->node = target;
 		} else {
+			/*
+			 * This message is broadcasted, ensure its TTL is "reasonable".
+			 * Trim down if excessively large.
+			 */
+
+			if (sender->header.ttl > max_ttl) {	/* TTL too large */
+				sender->header.ttl = max_ttl;	/* Trim down */
+				routing_log("(TTL trimmed down to %d) ", max_ttl);
+			}
+
 			routing_log("-> sendto_all_but_one()\n");
 			dest->type = ROUTE_ALL_BUT_ONE;
 			dest->node = sender;
