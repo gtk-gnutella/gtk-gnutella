@@ -537,7 +537,7 @@ static void send_upload_error_v(
 	gchar reason[1024];
 	gchar extra[1024];
 	gint slen = 0;
-	http_extra_desc_t hev[3];
+	http_extra_desc_t hev[4];
 	gint hevcnt = 0;
 	struct upload_http_cb cb_arg;
 
@@ -602,6 +602,16 @@ static void send_upload_error_v(
 	}
 
 	/*
+	 * If they chose to advertise a hostname, include it in our reply.
+	 */
+
+	if (!is_firewalled && give_server_hostname && 0 != *server_hostname) {
+		hev[hevcnt].he_type = HTTP_EXTRA_CALLBACK;
+		hev[hevcnt].he_cb = http_hostname_add;
+		hev[hevcnt++].he_arg = NULL;
+	}
+
+	/*
 	 * If `sf' is not null, propagate the SHA1 for the file if we have it,
 	 * as well as the download mesh.
 	 */
@@ -613,7 +623,9 @@ static void send_upload_error_v(
 		hev[hevcnt].he_cb = upload_http_sha1_add;
 		hev[hevcnt++].he_arg = &cb_arg;
 	}
-	
+
+	g_assert(hevcnt <= G_N_ELEMENTS(hev));
+
 	/* 
 	 * Keep connection alive when activly queued
 	 * 		-- JA, 22/4/2003
@@ -705,7 +717,7 @@ static void upload_remove_v(
 	if (
 		UPLOAD_IS_CONNECTING(u) &&
 		!u->error_sent &&
-		(u->status != GTA_UL_PUSH_RECEIVED || u->status != GTA_UL_QUEUE)
+		u->status != GTA_UL_PUSH_RECEIVED && u->status != GTA_UL_QUEUE
 	) {
 		if (reason == NULL)
 			logreason = "Bad Request";
@@ -1898,7 +1910,7 @@ static void upload_request(gnutella_upload_t *u, header_t *header)
 	struct upload_http_cb cb_parq_arg;
 	gint http_code;
 	const gchar *http_msg;
-	http_extra_desc_t hev[3];
+	http_extra_desc_t hev[4];
 	gint hevcnt = 0;
 	gchar *sha1;
 	gboolean is_followup =
@@ -2592,6 +2604,22 @@ static void upload_request(gnutella_upload_t *u, header_t *header)
 	hev[hevcnt].he_type = HTTP_EXTRA_CALLBACK;
 	hev[hevcnt].he_cb = upload_http_status;
 	hev[hevcnt++].he_arg = &cb_arg;
+
+	/*
+	 * Include X-Hostname if not in a followup reply and if we have a
+	 * known hostname, for which the user gave permission to advertise.
+	 */
+
+	if (
+		!is_firewalled && !is_followup &&
+		give_server_hostname && 0 != *server_hostname
+	) {
+		hev[hevcnt].he_type = HTTP_EXTRA_CALLBACK;
+		hev[hevcnt].he_cb = http_hostname_add;
+		hev[hevcnt++].he_arg = NULL;
+	}
+
+	g_assert(hevcnt <= G_N_ELEMENTS(hev));
 
 	if (!http_send_status(u->socket, http_code, FALSE, hev, hevcnt, http_msg)) {
 		upload_remove(u, "Cannot send whole HTTP status");
