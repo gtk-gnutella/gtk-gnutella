@@ -3633,11 +3633,30 @@ static gboolean check_content_urn(struct download *d, header_t *header)
 	buf = header_get(header, "X-Gnutella-Content-Urn");
 
 	if (buf == NULL) {
+		gboolean n2r = FALSE;
+
 		/*
 		 * We don't have any X-Gnutella-Content-URN header on this server.
 		 * If fileinfo has a SHA1, we must be careful if we cannot be sure
 		 * we're writing to the SAME file.
-		 *
+		 */
+
+		if (d->record_index == URN_INDEX)
+			n2r = TRUE;
+		else if (d->flags & DL_F_URIRES)
+			n2r = TRUE;
+
+		/*
+		 * If we sent an /uri-res/N2R?urn:sha1: request, the server might
+		 * not necessarily send an X-Gnutella-Content-URN in the reply, since
+		 * HUGE does not mandate it (it simply says the server "SHOULD" do it).
+		 *		--RAM, 15/11/2002
+		 */
+
+		if (n2r)
+			goto collect_locations;		/* Should be correct in reply */
+
+		/*
 		 * If they have configured an overlapping range of at least
 		 * DOWNLOAD_MIN_OVERLAP, we can requeue the download if we were not
 		 * overlapping here, in the hope we'll (later on) request a chunk after
@@ -3761,6 +3780,7 @@ static gboolean check_content_urn(struct download *d, header_t *header)
 	 * Check for possible download mesh headers.
 	 */
 
+collect_locations:
 	huge_collect_locations(d->sha1, header);
 
 	return TRUE;
@@ -4328,6 +4348,9 @@ void download_send_request(struct download *d)
 			n2r = TRUE;
 		}
 	}
+
+	if (!n2r)
+		d->flags &= ~DL_F_URIRES;		/* Clear if not sending /uri-res/N2R? */
 
 	/*
 	 * Build the HTTP request.
@@ -5232,7 +5255,6 @@ void download_move_progress(struct download *d, guint32 copied)
  */
 void download_move_done(struct download *d, time_t elapsed)
 {
-	gchar src_name[2048];
 	struct dl_file_info *fi = d->file_info;
 
 	g_assert(d->status == GTA_DL_MOVING);
@@ -5242,19 +5264,9 @@ void download_move_done(struct download *d, time_t elapsed)
 	gui_update_download(d, TRUE);
 
 	/*
-	 * We don't need to unlink the source file if `elpased' is 0: it means
-	 * we actually renamed the file inplace.
+	 * File was unlinked by rename() if we were on the same filesystem,
+	 * or by the moving daemon task upon success.
 	 */
-
-	if (elapsed) {
-		g_snprintf(src_name, sizeof(src_name),
-			"%s/%s", fi->path, fi->file_name);
-		src_name[sizeof(src_name)-1] = '\0';
-
-		if (-1 == unlink(src_name))
-			g_warning("could not unlink completed file \"%s\": %s",
-				src_name, g_strerror(errno));
-	}
 
 	if (!has_good_sha1(d))
 		download_moved_with_bad_sha1(d);
