@@ -174,12 +174,7 @@ table_desc_t atoms[] = {
  */
 static gint str_len(gconstpointer v)
 {
-	const gchar *p = (const gchar *) v;
-
-	while (*p++)
-		/* empty */;
-
-	return p - (const gchar *) v;
+	return strlen((const gchar *) v) + 1;
 }
 
 /*
