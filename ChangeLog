@@ -1,5 +1,14 @@
 # since last version
 
+- (2003.12.09 - Jeroen)
+ * Intergrated and somewhat adjusted patch from Thadeu Lima de Souza Cascardo.
+   Use the WHATIS command in the remote shell to get the 'tooltip' of a
+   property
+ * Intergrated and modified patch from 'wwp' to parse gtkrc file in local
+   directory and gtk-gnutella config directory
+ * Intergrated and somewhat adjusted patch from Paco Arjonilla. 
+   Added internationalization for the gnutellaNetstats tab messages.
+
 - (2003.12.09 - RAM)
  * Allow them to issue a duplicate upload if the original began to stall.
    The new upload will simply replace the previous one.
@@ -4671,4 +4680,3 @@ Detailed changes:
 * v 0.1           2000.04.16
 
 - First release of Gtk-Gnutella :)
-
