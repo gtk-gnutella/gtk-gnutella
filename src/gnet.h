@@ -53,6 +53,8 @@ typedef guint32 gnet_node_t;
 typedef struct gnet_node_status {
 	guchar status;			    /* See possible values below */
 
+	// FIXME: the two below should go to gnet_node_info since they
+	//        only change very seldom
 	time_t connect_date;		/* When we got connected (after handshake) */
 	time_t up_date;				/* When remote server started (0 if unknown) */
 
