@@ -1,5 +1,18 @@
 # since last version
 
+- (2003.01.19 - RAM)
+ * Must not free word vector if it was not allocated (matching.c).
+ * Update node flags after the first handshake reply.
+ * Only send about 50% of queries to flow-controlled leaf nodes.
+ * Understand specially marked speed in queries, but do not emit them yet.
+ * Warn users running an unstable version after 60 days, ban them after 90.
+ * Was not emitting X-Try-Ultrapeers correctly.
+ * New flag 'd' shown instead of 'F' when the queue is non-empty, to indicate
+   that there is some delay in the packets sent.
+ * Based on my experiments about the necessary bandwidth to run an Ultrapeer,
+   changed the default amount of leaves to 15 and the minimum to 5.
+ * Display max amount of leaves/ultra/nodes when rejecting connections.
+
 - (2003.01.18 - RAM)
  * Added new properties: "bw_gnet_leaf_in_enabled", "bw_gnet_leaf_out_enabled",
    "bw_gnet_lin" and "bw_gnet_lout" to control leaf node bandwidth.
