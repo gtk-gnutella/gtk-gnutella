@@ -461,7 +461,7 @@ static gchar *get_guid(struct pproxy *pp, gchar *request)
 static void build_push(struct gnutella_msg_push_request *m,
 	gchar *guid, guint32 ip, guint16 port)
 {
-	guint32 one = 1;
+	static const guint32 one = 1;
 
 	message_set_muid(&m->header, GTA_MSG_PUSH_REQUEST);
 
