@@ -41,9 +41,9 @@ static GtkWidget *icon;
 static GtkWidget *canvas;
 static GdkPixbuf *con_pixbuf, *up_pixbuf, *down_pixbuf;
 static gboolean icon_visible_fg, icon_close_fg, icon_just_mapped_fg;
-static gint leaf_cnt, norm_cnt, ultra_cnt, con_max;
-static gint up_cnt, up_max;
-static gint down_cnt, down_max;
+static guint32 leaf_cnt, norm_cnt, ultra_cnt, con_max;
+static guint32 up_cnt, up_max;
+static guint32 down_cnt, down_max;
 
 #if GTK_CHECK_VERSION(2, 0, 0) && !GTK_CHECK_VERSION(2, 2, 0)
 /* gdk_pixbuf_render_to_drawable is deprecated since GTK+ 2.2.0 */
@@ -286,7 +286,7 @@ void
 icon_timer(void)
 {
     GdkRectangle rect;
-    gint con_old, up_old, down_old;
+    guint con_old, up_old, down_old;
 
     /*   don't do anything if icon isn't even visible or the
        application is closing   */
