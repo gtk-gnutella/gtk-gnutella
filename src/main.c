@@ -62,6 +62,7 @@
 #include "core/settings.h"
 #include "core/share.h"
 #include "core/sockets.h"
+#include "core/sq.h"
 #include "core/upload_stats.h"
 #include "core/verify.h"
 #include "core/version.h"
@@ -249,6 +250,7 @@ void gtk_gnutella_exit(gint n)
 		sleep(1);
 	}
 
+	sq_close();
 	dh_close();
 	dq_close();
 	hsep_close();
@@ -580,6 +582,7 @@ gint main(gint argc, gchar **argv, gchar **env)
 	clock_init();
 	dq_init();
 	dh_init();
+	sq_init();
 	file_info_init_post();
 
 	main_gui_init();
