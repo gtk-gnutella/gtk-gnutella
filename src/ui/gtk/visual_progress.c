@@ -32,15 +32,6 @@
  *
  * TODO and other ideas to be implemented.
  *
- * - The current availability info (blue line) is not accurate,
- * because it only aggregates. It should also take into account when
- * we loose a source. As ram mentioned on IRC:
- *
- *  right, that's why it's better to construct it dynamically when
- *  needed, and have a "one more alive source", "lost one alive
- *  source" events to update the cached merged list when it's needed
- *  only.
- *
  * make colors into properties so that they can be stored in config,
  * should keep hardcoded backups.
  *
@@ -49,13 +40,6 @@
  *
  * Do not redraw the bar too often, only on event for actual file and
  * perhaps max once a second.
- *
- * Make busy chunks stand out more, e.g. by drawing arrow: *graaff:
- * what about drawing an arrow centered at the start of the downloaded
- * part (beginning of the yellow chunk) of about 5 pixels height?
- *
- * ram: You'd draw 1, then 3, then 5 then 7 then 9 pixels.  Should be
- * readable that way, no?
  *
  */
 
@@ -594,16 +578,10 @@ vp_gui_fi_status_changed(gnet_fi_t fih)
 			}
 
 			/*
-			 * Check for contiguous list: emit debug info if not
-			 * correct. FIXME: should become an assert once the
-			 * algorithm is stable.
+			 * Check for contiguous list. A failed assertion here
+			 * indicates problems in the algorithm.
 			 */
-			if (nc->from != highest) {
-				g_warning("Visual progress list corruption!");
-				vp_print_chunk_list(v->chunks_initial, "Old");
-				vp_print_chunk_list(keep_new, "New");
-				vp_print_chunk_list(v->chunks_list, "Result");
-			}
+			g_assert(nc->from == highest);
 
 			/*
 			 * The chunks are identical: nothing changed, copy one chunk
