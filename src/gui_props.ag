@@ -172,9 +172,9 @@ prop = {
     cfgvar = "widths_gnet_stats_pkg";
     desc = "Widths of the columns in the gnet packet stats table";
     type = guint32;
-    vector_size = 5;
+    vector_size = 6;
     data = {
-        default = "{ 60, 20, 20, 20, 20 }";
+        default = "{ 60, 20, 20, 20, 20, 20 }";
     };
 };
 
@@ -183,9 +183,9 @@ prop = {
     cfgvar = "widths_gnet_stats_byte";
     desc = "Widths of the columns in the gnet byte stats table";
     type = guint32;
-    vector_size = 5;
+    vector_size = 6;
     data = {
-        default = "{ 60, 20, 20, 20, 20 }";
+        default = "{ 60, 20, 20, 20, 20, 20 }";
     };
 };
 
@@ -531,5 +531,24 @@ prop = {
     type = boolean;
     data = {
         default = TRUE;
+    };
+};
+
+prop = {
+    name = "expert_mode";
+    desc = "Show a lot more settings to tweak. If you temper with them be "
+           "sure to read up what they are doing";
+    type = boolean;
+    data = {
+        default = FALSE;
+    };
+};
+
+prop = {
+    name = "gnet_stats_perc_mode";
+    desc = "Show percentages instead of absolute values in the gnet stats";
+    type = boolean;
+    data = {
+        default = FALSE;
     };
 };

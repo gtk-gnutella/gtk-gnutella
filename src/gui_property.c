@@ -64,10 +64,10 @@ guint32  filter_rules_col_widths[4]     = { 10, 240, 80, 40 };
 guint32  filter_rules_col_widths_def[4] = { 10, 240, 80, 40 };
 guint32  filter_filters_col_widths[3]     = { 80, 40, 20 };
 guint32  filter_filters_col_widths_def[3] = { 80, 40, 20 };
-guint32  gnet_stats_pkg_col_widths[5]     = { 60, 20, 20, 20, 20 };
-guint32  gnet_stats_pkg_col_widths_def[5] = { 60, 20, 20, 20, 20 };
-guint32  gnet_stats_byte_col_widths[5]     = { 60, 20, 20, 20, 20 };
-guint32  gnet_stats_byte_col_widths_def[5] = { 60, 20, 20, 20, 20 };
+guint32  gnet_stats_pkg_col_widths[6]     = { 60, 20, 20, 20, 20, 20 };
+guint32  gnet_stats_pkg_col_widths_def[6] = { 60, 20, 20, 20, 20, 20 };
+guint32  gnet_stats_byte_col_widths[6]     = { 60, 20, 20, 20, 20, 20 };
+guint32  gnet_stats_byte_col_widths_def[6] = { 60, 20, 20, 20, 20, 20 };
 guint32  gnet_stats_drop_reasons_col_widths[2]     = { 60, 20 };
 guint32  gnet_stats_drop_reasons_col_widths_def[2] = { 60, 20 };
 guint32  window_coords[4]     = { 0, 0, 0, 0 };
@@ -138,6 +138,10 @@ gboolean confirm_quit     = TRUE;
 gboolean confirm_quit_def = TRUE;
 gboolean show_tooltips     = TRUE;
 gboolean show_tooltips_def = TRUE;
+gboolean expert_mode     = FALSE;
+gboolean expert_mode_def = FALSE;
+gboolean gnet_stats_perc_mode     = FALSE;
+gboolean gnet_stats_perc_mode_def = FALSE;
 
 static prop_set_t *gui_property = NULL;
 
@@ -440,7 +444,7 @@ prop_set_t *gui_prop_init(void) {
     gui_property->props[15].desc = "Widths of the columns in the gnet packet stats table";
     gui_property->props[15].prop_changed_listeners = NULL;
     gui_property->props[15].save = TRUE;
-    gui_property->props[15].vector_size = 5;
+    gui_property->props[15].vector_size = 6;
 
     /* Type specific data: */
     gui_property->props[15].type               = PROP_TYPE_GUINT32;
@@ -459,7 +463,7 @@ prop_set_t *gui_prop_init(void) {
     gui_property->props[16].desc = "Widths of the columns in the gnet byte stats table";
     gui_property->props[16].prop_changed_listeners = NULL;
     gui_property->props[16].save = TRUE;
-    gui_property->props[16].vector_size = 5;
+    gui_property->props[16].vector_size = 6;
 
     /* Type specific data: */
     gui_property->props[16].type               = PROP_TYPE_GUINT32;
@@ -1090,6 +1094,40 @@ prop_set_t *gui_prop_init(void) {
     gui_property->props[51].type               = PROP_TYPE_BOOLEAN;
     gui_property->props[51].data.boolean.def   = &show_tooltips_def;
     gui_property->props[51].data.boolean.value = &show_tooltips;
+
+
+    /*
+     * PROP_EXPERT_MODE:
+     *
+     * General data:
+     */
+    gui_property->props[52].name = "expert_mode";
+    gui_property->props[52].desc = "Show a lot more settings to tweak. If you temper with them be sure to read up what they are doing";
+    gui_property->props[52].prop_changed_listeners = NULL;
+    gui_property->props[52].save = TRUE;
+    gui_property->props[52].vector_size = 1;
+
+    /* Type specific data: */
+    gui_property->props[52].type               = PROP_TYPE_BOOLEAN;
+    gui_property->props[52].data.boolean.def   = &expert_mode_def;
+    gui_property->props[52].data.boolean.value = &expert_mode;
+
+
+    /*
+     * PROP_GNET_STATS_PERC_MODE:
+     *
+     * General data:
+     */
+    gui_property->props[53].name = "gnet_stats_perc_mode";
+    gui_property->props[53].desc = "Show percentages instead of absolute values in the gnet stats";
+    gui_property->props[53].prop_changed_listeners = NULL;
+    gui_property->props[53].save = TRUE;
+    gui_property->props[53].vector_size = 1;
+
+    /* Type specific data: */
+    gui_property->props[53].type               = PROP_TYPE_BOOLEAN;
+    gui_property->props[53].data.boolean.def   = &gnet_stats_perc_mode_def;
+    gui_property->props[53].data.boolean.value = &gnet_stats_perc_mode;
     return gui_property;
 }
 
