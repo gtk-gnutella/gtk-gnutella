@@ -211,7 +211,7 @@ static gint dl_server_retry_cmp(gconstpointer a, gconstpointer b)
  *
  * Returns whether download has a blank (fake) GUID.
  */
-gboolean has_blank_guid(struct download *d)
+static gboolean has_blank_guid(struct download *d)
 {
 	guchar *g = download_guid(d);
 	gint i;
@@ -221,6 +221,15 @@ gboolean has_blank_guid(struct download *d)
 			return FALSE;
 
 	return TRUE;
+}
+
+/*
+ * is_faked_download
+ *
+ * Returns whether download was faked to reparent a complete orphaned file.
+ */
+static gboolean is_faked_download(struct download *d) {
+	return download_ip(d) == 0 && download_port(d) == 0 && has_blank_guid(d);
 }
 
 /* ----------------------------------------- */
@@ -948,12 +957,8 @@ void download_gui_add(struct download *d)
         titles[c_queue_server] = download_vendor_str(d);
         titles[c_queue_status] = "";
 		titles[c_queue_size] = short_size(d->file_info->size);
-        if (download_ip(d) != 0) {
-            titles[c_queue_host] = 
-                ip_port_to_gchar(download_ip(d), download_port(d));
-        } else {
-            titles[c_queue_host] = "";
-        }
+        titles[c_queue_host] = is_faked_download(d) ? "" :
+			ip_port_to_gchar(download_ip(d), download_port(d));
 
 		clist_downloads_queue = GTK_CLIST
 			(lookup_widget(main_window, "clist_downloads_queue"));
@@ -970,12 +975,8 @@ void download_gui_add(struct download *d)
 		titles[c_dl_status] = "";
 		titles[c_dl_size] = short_size(d->file_info->size);
 		titles[c_dl_range] = "";
-        if (download_ip(d) != 0) {
-            titles[c_dl_host] = 
-                ip_port_to_gchar(download_ip(d), download_port(d));
-        } else {
-            titles[c_dl_host] = "";
-        }
+		titles[c_dl_host] = is_faked_download(d) ? "" :
+			ip_port_to_gchar(download_ip(d), download_port(d));
 
 		row = gtk_clist_append(clist_downloads, titles);
 		gtk_clist_set_row_data(clist_downloads, row, (gpointer) d);
@@ -5127,7 +5128,7 @@ void download_verify_done(struct download *d, guchar *digest, time_t elapsed)
 		 * If it was a faked download, we cannot resume.
 		 */
 
-		if (has_blank_guid(d) && !download_ip(d) && !download_port(d)) {
+		if (is_faked_download(d)) {
 			g_warning("SHA1 mismatch for %s, and cannot restart download",
 				download_outname(d));
 			gui_update_download(d, TRUE);
