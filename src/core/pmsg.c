@@ -227,6 +227,52 @@ pmsg_clone_extend(pmsg_t *mb, pmsg_free_t free, gpointer arg)
 }
 
 /**
+ * Replace free routine from an extended message block.
+ * The original free routine and its argument are returned.
+ *
+ * This is used when wrapping an existing extended message and its metadata
+ * in another extension structure.
+ *
+ * @param mb the extended message block
+ * @param nfree the new free routine (NULL to cancel)
+ * @param narg the new argument to pass to the free routine
+ * @param oarg where the old argument to the free routine is returned.
+ * Can be NULL if no return is expected.
+ *
+ * @return the old free routine.
+ */
+pmsg_free_t
+pmsg_replace_ext(pmsg_t *mb, pmsg_free_t nfree, gpointer narg, gpointer *oarg)
+{
+	pmsg_ext_t *nmb;
+	pmsg_free_t fn;
+
+	g_assert(pmsg_is_extended(mb));
+
+	nmb = (pmsg_ext_t *) mb;
+	if (oarg)
+		*oarg = nmb->m_arg;
+	fn = nmb->m_free;
+
+	nmb->m_free = nfree;		/* Can be NULL to cancel */
+	nmb->m_arg = narg;
+
+	return fn;
+}
+
+/**
+ * Get the "meta data" from an extended message block (the argument passed
+ * to the embedded free routine).
+ */
+gpointer
+pmsg_get_metadata(pmsg_t *mb)
+{
+	g_assert(pmsg_is_extended(mb));
+
+	return ((pmsg_ext_t *) mb)->m_arg;
+}
+
+/**
  * Shallow cloning of extended message, result is referencing the same data.
  */
 static pmsg_t *
@@ -279,7 +325,8 @@ pmsg_free(pmsg_t *mb)
 
 		if (pmsg_is_extended(mb)) {
 			pmsg_ext_t *emb = (pmsg_ext_t *) mb;
-			(*emb->m_free)(mb, emb->m_arg);
+			if (emb->m_free)
+				(*emb->m_free)(mb, emb->m_arg);
 			wfree(emb, sizeof(*emb));
 		} else
 			zfree(mb_zone, mb);
