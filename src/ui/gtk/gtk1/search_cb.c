@@ -651,14 +651,7 @@ gboolean
 on_clist_search_results_button_press_event(GtkWidget *widget,
 	GdkEventButton *event, gpointer unused_udata)
 {
-	gint row = 0;
-	gint column = 0;
-	static guint click_time = 0;
-    search_t *search;
-
 	(void) unused_udata;
-
-    search = search_gui_get_current_search();
 
 	switch (event->button) {
 	case 1:
@@ -669,7 +662,12 @@ on_clist_search_results_button_press_event(GtkWidget *widget,
 			return FALSE;
 		}
 		if (event->type == GDK_BUTTON_PRESS) {
+			static guint click_time = 0;
+
 			if ((event->time - click_time) <= 250) {
+				gint row = 0;
+				gint column = 0;
+				
 				/*
 				 * 2 clicks within 250 msec == doubleclick.
 				 * Surpress further events
@@ -692,27 +690,23 @@ on_clist_search_results_button_press_event(GtkWidget *widget,
    
 	case 3:
         /* right click section (popup menu) */
-        refresh_popup();
-        {
+    	if (search_gui_get_current_search()) {
             gboolean search_results_show_tabs;
     
-            gui_prop_get_boolean(
-                PROP_SEARCH_RESULTS_SHOW_TABS,
-                &search_results_show_tabs, 0, 1);
+        	refresh_popup();
+            gui_prop_get_boolean_val(PROP_SEARCH_RESULTS_SHOW_TABS,
+                &search_results_show_tabs);
 
             gm_snprintf(tmpstr, sizeof(tmpstr), (search_results_show_tabs) ? 
                 "Show search list" : "Show tabs");
-        }
 
-        gtk_label_set(GTK_LABEL((GTK_MENU_ITEM
-            (lookup_widget(popup_search, "popup_search_toggle_tabs"))
-                ->item.bin.child)), tmpstr);
-		gtk_menu_popup(GTK_MENU(popup_search), NULL, NULL, NULL, NULL, 
+        	gtk_label_set(GTK_LABEL((GTK_MENU_ITEM
+            	(lookup_widget(popup_search, "popup_search_toggle_tabs"))
+                	->item.bin.child)), tmpstr);
+			gtk_menu_popup(GTK_MENU(popup_search), NULL, NULL, NULL, NULL, 
                      event->button, event->time);
+        }
 		return TRUE;
-
-	default:
-		break;
 	}
 
 	return FALSE;
