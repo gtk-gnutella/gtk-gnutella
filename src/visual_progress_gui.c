@@ -88,7 +88,8 @@ typedef struct vp_info {
 GHashTable *vp_info_hash;  /* Hash table with our cached fileinfo info */
 
 GdkColor done;             /* Pre-filled color (green) for DONE chunks */
-GdkColor done_old;         /* Pre-filled color (dull green) for DONE chunks from previous sessions */
+GdkColor done_old;         /* Pre-filled color (dull green) for DONE chunks
+                              from previous sessions */
 GdkColor busy;             /* Pre-filled color (yellow) for BUSY chunks */
 GdkColor empty;            /* Pre-filled color (red) for EMPTY chunks */
 GdkColor black;            /* Pre-filled color (black) for general drawing */
@@ -102,15 +103,15 @@ vp_context_t fi_context;
  * The graphics routines that do the actual drawing
  */
 
-void vp_draw_rectangle (vp_info_t *v, guint32 from, guint32 to, guint top, guint bottom)
+void vp_draw_rectangle(vp_info_t *v,
+	guint32 from, guint32 to, guint top, guint bottom)
 {
-    guint32 bpp;
     guint s_from;
     guint s_to;
 
-    g_assert( v );
-    g_assert( v->context );
-    g_assert( v->context->drawable );
+    g_assert(v);
+    g_assert(v->context);
+    g_assert(v->context->drawable);
 
 	/* 
 	 * Both these variables should be set to a value, otherwise we get
@@ -122,11 +123,11 @@ void vp_draw_rectangle (vp_info_t *v, guint32 from, guint32 to, guint top, guint
 	 *
 	 * file_size should be set in the fileinfo code.
 	 */
-	g_assert( v->context->width );
-	g_assert( v->file_size);
+	g_assert(v->context->width);
+	g_assert(v->file_size);
 
-	s_from = (gfloat)from * v->context->width / v->file_size;
-	s_to   = (gfloat)to   * v->context->width / v->file_size;
+	s_from = (gfloat) from * v->context->width / v->file_size;
+	s_to   = (gfloat) to   * v->context->width / v->file_size;
 
     gdk_draw_rectangle(v->context->drawable, v->context->gc, TRUE, 
         s_from + v->context->offset_hor, top, 
@@ -143,14 +144,14 @@ void vp_draw_chunk (gpointer data, gpointer user_data)
     if (DL_CHUNK_BUSY == chunk->status)
         gdk_gc_set_foreground(v->context->gc, &busy);
     if (DL_CHUNK_DONE == chunk->status) {
-        if (chunk->old) {
+        if (chunk->old)
             gdk_gc_set_foreground(v->context->gc, &done_old);
-        } else {
+        else
             gdk_gc_set_foreground(v->context->gc, &done);
-        }
     }
 
-    vp_draw_rectangle(v, chunk->from, chunk->to, v->context->offset_ver, v->context->height);
+    vp_draw_rectangle(v,
+		chunk->from, chunk->to, v->context->offset_ver, v->context->height);
 }
 
 static void vp_draw_range (gpointer data, gpointer user_data)
@@ -159,7 +160,8 @@ static void vp_draw_range (gpointer data, gpointer user_data)
 	vp_info_t *v = user_data;
 
 	gdk_gc_set_foreground(v->context->gc, &available);
-	vp_draw_rectangle(v, range->start, range->end, v->context->height - 3, v->context->height);
+	vp_draw_rectangle(v,
+		range->start, range->end, v->context->height - 3, v->context->height);
 }
 
 
@@ -183,9 +185,10 @@ void vp_draw_fi_progress(gboolean valid, gnet_fi_t fih)
 
 	if (fi_context.drawable) {
 		if (valid) {
-			found = g_hash_table_lookup_extended(vp_info_hash, &fih, &atom, (gpointer *)&v);
-			g_assert( found );
-			g_assert( v );
+			found = g_hash_table_lookup_extended(vp_info_hash,
+				&fih, &atom, (gpointer *)&v);
+			g_assert(found);
+			g_assert(v);
 			
 			v->context = &fi_context;
 
@@ -204,15 +207,14 @@ void vp_draw_fi_progress(gboolean valid, gnet_fi_t fih)
  * Callback for the fileinfo pane GtkDrawingArea 
  */
 void
-on_drawingarea_fi_progress_realize     (GtkWidget       *widget,
-                                        gpointer         user_data)
+on_drawingarea_fi_progress_realize(GtkWidget *widget, gpointer user_data)
 {
 	GtkStyle *style;
 
     fi_context.drawable = widget->window;
-    g_assert( fi_context.drawable );
+    g_assert(fi_context.drawable);
     fi_context.gc = gdk_gc_new(fi_context.drawable);
-    g_assert( fi_context.gc );
+    g_assert(fi_context.gc);
     fi_context.offset_hor = 0;
     fi_context.offset_ver = 0;
 
@@ -221,10 +223,8 @@ on_drawingarea_fi_progress_realize     (GtkWidget       *widget,
 }
 
 gboolean
-on_drawingarea_fi_progress_configure_event
-                                        (GtkWidget       *widget,
-                                        GdkEventConfigure *event,
-                                        gpointer         user_data)
+on_drawingarea_fi_progress_configure_event(
+	GtkWidget *widget, GdkEventConfigure *event, gpointer user_data)
 {
     fi_context.width = event->width;
     fi_context.height = event->height;
@@ -233,10 +233,8 @@ on_drawingarea_fi_progress_configure_event
 }
 
 gboolean
-on_drawingarea_fi_progress_expose_event
-                                        (GtkWidget       *widget,
-                                        GdkEventExpose  *event,
-                                        gpointer         user_data)
+on_drawingarea_fi_progress_expose_event(
+	GtkWidget *widget, GdkEventExpose *event, gpointer user_data)
 {
 	vp_draw_fi_progress(fi_context.fih_valid, fi_context.fih);
 
@@ -280,9 +278,10 @@ static void vp_gui_fi_removed(gnet_fi_t fih)
     gpointer atom;
     gboolean found;
 
-    found = g_hash_table_lookup_extended(vp_info_hash, &fih, &atom, (gpointer *)&v);
-    g_assert( found );
-    g_assert( v );
+    found = g_hash_table_lookup_extended(vp_info_hash,
+		&fih, &atom, (gpointer *)&v);
+    g_assert(found);
+    g_assert(v);
 
     /* 
      * TODO: Also remove the row from the GUI and perhaps reshuffle rows
@@ -290,7 +289,7 @@ static void vp_gui_fi_removed(gnet_fi_t fih)
 
     g_hash_table_remove(vp_info_hash, &fih);
     atom_int_free(atom);
-    fi_free_chunks( ((vp_info_t *) v)->chunks_list );
+    fi_free_chunks(((vp_info_t *) v)->chunks_list);
     
     wfree(v, sizeof(vp_info_t));
 
@@ -319,9 +318,10 @@ static void vp_gui_fi_status_changed(gnet_fi_t fih)
      * TODO: Assuming that only the chunks will change, may not be
      * true...
      */
-    found = g_hash_table_lookup_extended(vp_info_hash, &fih, &atom, (gpointer *)&v);
-    g_assert( found );
-    g_assert( v );
+    found = g_hash_table_lookup_extended(vp_info_hash,
+		&fih, &atom, (gpointer *)&v);
+    g_assert(found);
+    g_assert(v);
 
     /* 
      * We will use the new list. We don't just copy it because we want
@@ -355,9 +355,8 @@ static void vp_gui_fi_status_changed(gnet_fi_t fih)
              * Only one list still has nodes, so we just select the
              * proper next one to advance that list to the end.
              */
-            if (old) {
+            if (old)
                 old = g_slist_next(old);
-            }
             if (new)
                 new = g_slist_next(new);
         }
@@ -383,15 +382,16 @@ static void vp_update_ranges(gnet_src_t srcid)
 	struct download *d;
 
 	d = src_get_download(srcid);
-	g_assert( d );
+	g_assert(d);
 
 	/* 
 	 * Get our own struct associated with this download.
 	 */
 	fih = d->file_info->fi_handle;
-    found = g_hash_table_lookup_extended(vp_info_hash, &fih, &atom, (gpointer *)&v);
-    g_assert( found );
-    g_assert( v );
+    found = g_hash_table_lookup_extended(vp_info_hash,
+		&fih, &atom, (gpointer *)&v);
+    g_assert(found);
+    g_assert(v);
 	
 	fprintf(stderr, "Ranges info for %s\n", d->file_info->file_name);
 	fprintf(stderr, "Ranges before: %s\n", http_range_to_gchar(v->ranges));
@@ -432,7 +432,7 @@ void vp_gui_init(void)
 					 EV_SRC_RANGES_CHANGED, FREQ_SECS, 0);
 
     cmap = gdk_colormap_get_system();
-    g_assert( cmap );
+    g_assert(cmap);
     gdk_color_parse("#00DD00", &done_old);
     gdk_colormap_alloc_color(cmap, &done_old, FALSE, TRUE);
     gdk_color_parse("#00FF00", &done);
@@ -457,11 +457,13 @@ void vp_gui_init(void)
  */
 void vp_gui_shutdown(void)
 {
-    fi_remove_listener((GCallback)vp_gui_fi_removed, EV_FI_REMOVED);
-    fi_remove_listener((GCallback)vp_gui_fi_added, EV_FI_ADDED);
-    fi_remove_listener((GCallback)vp_gui_fi_status_changed, EV_FI_STATUS_CHANGED);
+    fi_remove_listener((GCallback) vp_gui_fi_removed, EV_FI_REMOVED);
+    fi_remove_listener((GCallback) vp_gui_fi_added, EV_FI_ADDED);
+    fi_remove_listener((GCallback) vp_gui_fi_status_changed,
+		EV_FI_STATUS_CHANGED);
 
-	src_remove_listener((src_listener_t)vp_update_ranges, EV_SRC_RANGES_CHANGED);
+	src_remove_listener((src_listener_t) vp_update_ranges,
+		EV_SRC_RANGES_CHANGED);
 
     g_hash_table_foreach(vp_info_hash, vp_free_key_value, NULL);
     g_hash_table_destroy(vp_info_hash);
