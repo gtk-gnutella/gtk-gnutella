@@ -134,5 +134,7 @@ void download_index_changed(guint32, guint16, guchar *, guint32, guint32);
 void download_close(void);
 void download_remove_all_from_peer(const gchar *guid);
 void download_remove_all_named(const gchar *name);
+void download_remove_file(struct download *d);
+gboolean download_file_exists(struct download *d);
 
 #endif /* __downloads_h__ */

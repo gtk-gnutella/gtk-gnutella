@@ -242,6 +242,39 @@ static gboolean has_same_active_download(gchar *file, gchar *guid)
 }
 
 /*
+ * download_file_exists
+ *
+ * Returns whether the download file exists in the temporary directory.
+ */
+gboolean download_file_exists(struct download *d)
+{
+	gchar path[2048];
+	struct stat buf;
+
+	g_snprintf(path, sizeof(path), "%s/%s", d->path, d->output_name);
+
+	if (-1 == stat(path, &buf))
+		return FALSE;
+
+	return TRUE;
+}
+
+/*
+ * download_remove_file
+ *
+ * Remove temporary download file.
+ */
+void download_remove_file(struct download *d)
+{
+	gchar path[2048];
+
+	g_snprintf(path, sizeof(path), "%s/%s", d->path, d->output_name);
+
+	if (-1 == unlink(path))
+		g_warning("cannot unlink \"%s\": %s", path, g_strerror(errno));
+}
+
+/*
  * queue_remove_all_named
  *
  * Remove all queued downloads bearing given name. --RAM, 26/09/2001
@@ -285,9 +318,9 @@ static void queue_remove_all_named(const gchar *name, guint32 size)
 }
 
 /*
- * download_remove_all_from_peer:
+ * download_remove_all_from_peer
  *
- * remove all downloads to a given peer from the download queue
+ * Remove all downloads to a given peer from the download queue
  * and abort all conenctions to peer in the active download list.
  */
 void download_remove_all_from_peer(const gchar *guid)
@@ -1386,6 +1419,9 @@ void download_abort(struct download *d)
 		return;
 
 	download_stop(d, GTA_DL_ABORTED, NULL);
+
+	if (download_delete_aborted)
+		download_remove_file(d);
 }
 
 void download_resume(struct download *d)
