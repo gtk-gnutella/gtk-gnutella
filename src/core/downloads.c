@@ -5996,6 +5996,24 @@ download_request(struct download *d, header_t *header, gboolean ok)
 				download_stop(d, GTA_DL_ERROR, "Range end too large");
 				return;
 			}
+			if (end <= d->skip || start >= d->range_end) {
+				/* XXX: Should we check whether we can use this range
+				 *		nonetheless? This addresses the problem described
+				 *		here:
+				 *
+				 * 		http://sf.net/mailarchive/message.php?msg_id=10454795
+				 */
+				g_message("File '%s' on %s (%s): "
+					"Range mismatch: wanted %" PRIu64 "- %" PRIu64
+					", got %" PRIu64 "- %" PRIu64,
+					d->file_name,
+					ip_port_to_gchar(download_ip(d), download_port(d)),
+					download_vendor_str(d),
+					(guint64) d->skip, (guint64) d->range_end,
+					(guint64) start, (guint64) end);
+				download_stop(d, GTA_DL_ERROR, "Range mismatch");
+				return;
+			}
 			if (end < d->range_end - 1) {
                 if (dbg)
                     g_message("File '%s' on %s (%s): "
