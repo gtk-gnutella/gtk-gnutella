@@ -4363,13 +4363,9 @@ static void download_request(struct download *d, header_t *header, gboolean ok)
 		 * continuing at all.
 		 *   --JA, 31 jan 2003
 		 */			
-		if (ack_code == 503) {
+		if (ack_code == 503) {			/* Check for queued status */
 			
-			/* Check for queued status */
-			if (
-				parq_download_supports_parq(header) &&
-				parq_download_parse_queue_status(d, header)
-			) {
+			if (parq_download_parse_queue_status(d, header)) {
 				/* If we are queued, there is nothing else we can do for now */
 				if (parq_download_is_active_queued(d)) {
 					

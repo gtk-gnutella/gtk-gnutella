@@ -214,19 +214,6 @@ void parq_download_retry_active_queued(struct download *d)
 }
 	
 /*
- * parq_download_supports_parq 
- *
- * Wether the server supports queueing or not.
- */
-gboolean parq_download_supports_parq(header_t *header)
-{
-	g_assert(header != NULL);	
-	
-	return (NULL != header_get(header, "X-Queue") || 
-			NULL != header_get(header, "X-Queued"));
-}
-
-/*
  * get_integer
  *
  * Convenience wrapper on top of strtoul().
@@ -272,7 +259,8 @@ gboolean parq_download_parse_queue_status(struct download *d, header_t *header)
 
 	buf = header_get(header, "X-Queue");
 	
-	g_assert(buf != NULL);
+	if (buf == NULL)			/* Remote server does not support queues */
+		return FALSE;
 
 	if (!get_header_version(buf, &major, &minor)) {
 		/*
@@ -298,6 +286,17 @@ gboolean parq_download_parse_queue_status(struct download *d, header_t *header)
 		break;
 	case 1:				/* PARQ */
 		buf = header_get(header, "X-Queued");
+
+		if (buf == NULL) {
+			g_warning("host %s advertised PARQ %d.%d but did not send X-Queued",
+				ip_port_to_gchar(download_ip(d), download_port(d)),
+				major, minor);
+			if (dbg) {
+				g_warning("header dump:");
+				header_dump(header, stderr);
+			}
+			return FALSE;
+		}
 
 		value = get_header_value(buf, "lifetime", NULL);
 		d->queue_status.lifetime = value == NULL ? 0 : get_integer(value);
