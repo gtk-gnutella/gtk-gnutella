@@ -1,5 +1,9 @@
 # since last version
 
+- Rearranged widgets to reduce minimum window size. On my box this means
+  604x503 (sorry 640x480 guys... maybe later). 
+  Enabled both scrollbars on nodes list
+  Closes #540610 (Richard)
 - Changed lots of stuff on the gui layout (Richard)
 - Changed menu from list to tree (Richard)
 - Renamed lots of widgets (Richard)
