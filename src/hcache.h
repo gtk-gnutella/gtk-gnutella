@@ -1,9 +1,7 @@
 /*
  * $Id$
  *
- * Copyright (c) 2002-2003, Raphael Manfredi
- *
- * Host cache management.
+ * Copyright (c) 2002-2003, Raphael Manfredi, Richard Eckart
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -24,38 +22,55 @@
  *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *----------------------------------------------------------------------
  */
+/**
+ * @file
+ *
+ * Host cache management.
+ */
 
 #ifndef _hcache_h_
 #define _hcache_h_
 
 #include "gnet.h"
-
 /*
  * Global Functions
  */
 
 void hcache_init(void);
+void hcache_shutdown(void);
 void hcache_close(void);
+void hcache_retrieve_all(void);
 
+void hcache_timer(void);
+
+const gchar *host_type_to_gchar(hcache_type_t type);
 const gchar *hcache_type_to_gchar(hcache_type_t type);
 
-void hcache_save_valid(hcache_type_t type, guint32 ip, guint16 port);
+gboolean hcache_add(
+    hcache_type_t type, guint32 ip, guint16 port,
+    gchar *what);
 
-gboolean hcache_add(hcache_type_t type, guint32 ip, guint16 port, gchar *what);
-void hcache_clear(hcache_type_t type);
+gboolean hcache_add_caught(
+    host_type_t type, guint32 ip, guint16 port,
+    gchar *what);
+
+gboolean hcache_add_valid(
+    host_type_t type, guint32 ip, guint16 port,
+    gchar *what);
+
+gboolean hcache_node_is_bad(guint32 ip);
+
+void hcache_clear(host_type_t type);
 void hcache_prune(hcache_type_t type) ;
 
-gint hcache_size(hcache_type_t type);
-gboolean hcache_is_low(hcache_type_t type);
+gint hcache_size(host_type_t type);
+gboolean hcache_is_low(host_type_t type);
 
 gint hcache_fill_caught_array(
-	hcache_type_t type, gnet_host_t *hosts, gint hcount);
+	host_type_t type, gnet_host_t *hosts, gint hcount);
 
-void hcache_get_caught(hcache_type_t type, guint32 *ip, guint16 *port);
-gboolean hcache_find_nearby(hcache_type_t type, guint32 *ip, guint16 *port);
-
-void hcache_retrieve(hcache_type_t type);
-void hcache_store(hcache_type_t type);
+void hcache_get_caught(host_type_t type, guint32 *ip, guint16 *port);
+gboolean hcache_find_nearby(host_type_t type, guint32 *ip, guint16 *port);
 
 #endif /* _hcache_h_ */
 
