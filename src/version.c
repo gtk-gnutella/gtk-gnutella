@@ -83,8 +83,8 @@ const gchar *version_str(const version_t *ver)
 
 	if (ver->timestamp) {
 		struct tm *tmp = localtime(&ver->timestamp);
-		rw += gm_snprintf(&str[rw], sizeof(str)-rw, " (%02d/%02d/%d)",
-			tmp->tm_mday, tmp->tm_mon + 1, tmp->tm_year + 1900);
+		rw += gm_snprintf(&str[rw], sizeof(str)-rw, " (%d-%02d-%02d)",
+			tmp->tm_year + 1900, tmp->tm_mon + 1, tmp->tm_mday);
 	}
 
 	return str;
@@ -108,7 +108,9 @@ static void version_stamp(const gchar *str, version_t *ver)
 	 *
 	 *    gtk-gnutella/0.85 (04/04/2002; X11; FreeBSD 4.6-STABLE i386)
 	 *
-	 * The date stamp is formattted as DD/MM/YYYY.
+	 * The date stamp is formattted as DD/MM/YYYY here, but the date2time()
+	 * routine is also able to parse the ISO format YYYY-MM-DD which is
+	 * being used starting 2004-03-02.
 	 */
 
 	p = strchr(str, '(');
