@@ -4832,7 +4832,8 @@ static void download_request(
 				 */
 
 				file_info_clear_download(d, TRUE);
-				file_info_update(d, d->skip, end + 1, DL_CHUNK_BUSY);
+				if (d->skip != end + 1)
+					file_info_update(d, d->skip, end + 1, DL_CHUNK_BUSY);
 
 				d->range_end = end + 1;				/* The new end */
 				d->size = d->range_end - d->skip;	/* Don't count overlap */
