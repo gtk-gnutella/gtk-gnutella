@@ -2846,6 +2846,36 @@ gchar *locale_to_utf8(const gchar *str, size_t len)
 }
 
 /**
+ * If the string is already valid UTF-8 it will be returned "as-is", otherwise
+ * a newly allocated buffer containing the converted string.
+ * Non-convertible characters will be replaced by '_'. The returned string
+ * WILL be NUL-terminated in any case.
+ *
+ * In case of an unrecoverable error, NULL is returned.
+ *
+ * @param str a NUL-terminated string.
+ * @return a pointer to the UTF-8 encoded string.
+ */
+gchar *
+locale_to_utf8_full(const gchar *str)
+{
+	gchar *s;
+	size_t utf8_len, len;
+	
+	g_assert(NULL != str);
+
+	len = strlen(str);
+   	utf8_len = len * 6 + 1;
+	if (utf8_is_valid_string(str, len))
+		return (gchar *) str; /* override const */
+	
+	g_assert((utf8_len - 1) / 6 == len);
+	s = g_malloc(utf8_len);
+
+	return g_iconv_complete(cd_locale_to_utf8, str, len, s, utf8_len);
+}
+
+/**
  * Converts a string from the current locale encoding to UTF-8 encoding
  * with all characters decomposed.
  *

@@ -55,6 +55,7 @@ gint utf8_to_iso8859(gchar *s, gint len, gboolean space);
 gchar *iso_8859_1_to_utf8(const gchar *fromstr);
 gchar *locale_to_utf8(const gchar *str, size_t len);
 gchar *lazy_locale_to_utf8(const gchar *str, size_t len);
+gchar *locale_to_utf8_full(const gchar *str);
 
 /* Necessary for Mac OS X, as it requires filenames to be UTF-8 encoded
  * with all characters decomposed.
