@@ -87,7 +87,9 @@
 #endif
 
 /* Use zero-length arrays either by C95 or GNU C extension. */
-#if defined(__STDC_VERSION__) && (__STDC_VERSION__ >= 199409L) 
+#if defined(__GNUC__)
+#define ZERO_LENGTH 0
+#elif defined(__STDC_VERSION__) && (__STDC_VERSION__ >= 199409L) 
 #define ZERO_LENGTH
 #else
 #define ZERO_LENGTH 0
