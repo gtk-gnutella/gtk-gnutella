@@ -66,9 +66,14 @@ static GSList *sl_outgoing = NULL;		/* To spot reply timeouts */
  * At the HTTP level, the connection is closed if an error is returned
  * (either 4xx or 5xx) or a redirection occurs (3xx).
  * Unless keep_alive = true.
+ *
  * keep_alive=false is ignored if the errorcode < 300, in which case
- * the Connection: close header never is send.
+ * the Connection: close header never is sent.
  * 		-- JA, 19/4/2003
+ *
+ * When the outgoing bandwidth is saturated, we start to limit the size of
+ * the generated headers.  We reduce the size of the generated header
+ * to about 512 bytes, and remove non-essential things.
  *
  * Returns TRUE if we were able to send everything, FALSE otherwise.
  */
@@ -79,6 +84,7 @@ gboolean http_send_status(
 {
 	gchar header[2560];			/* 2.5 K max */
 	gchar status_msg[512];
+	gchar xlive[512];
 	gint rw;
 	gint mrw;
 	gint sent;
@@ -86,26 +92,49 @@ gboolean http_send_status(
 	va_list args;
 	gchar *conn_close = "Connection: close\r\n";
 	gchar *no_content = "Content-Length: 0\r\n";
+	gchar *version;
+	gchar *token;
+	gint header_size = sizeof(header);
+	gboolean saturated = bsched_saturated(bws.out);
 
 	va_start(args, reason);
 	gm_vsnprintf(status_msg, sizeof(status_msg)-1,  reason, args);
 	va_end(args);
+
+	/*
+	 * If bandwidth is short, drop X-Live-Since, and reduce the header
+	 * size noticeably, so that only the most important stuff gets out.
+	 *		--RAM, 12/10/2003
+	 */
+
+	if (saturated && code >= 300) {
+		xlive[0] = '\0';
+		version = version_short_string;
+		token = tok_short_version();
+		header_size = 512;
+	} else {
+		gm_snprintf(xlive, sizeof(xlive)-1,
+			"X-Live-Since: %s\r\n", start_rfc822_date);
+		version = version_string;
+		token = tok_version();
+	}
 
 	if (code < 300 || keep_alive)
 		conn_close = "";		/* Keep HTTP connection */
 
 	if (code < 300 || !keep_alive) 
 		no_content = "";
-		
-	rw = gm_snprintf(header, sizeof(header),
+
+	g_assert(header_size <= sizeof(header));
+
+	rw = gm_snprintf(header, header_size,
 		"HTTP/1.1 %d %s\r\n"
 		"Server: %s\r\n"
 		"%s"			/* Connection */
 		"X-Token: %s\r\n"
-		"X-Live-Since: %s\r\n"
+		"%s"			/* X-Live-Since */
 		"%s",			/* Content length */
-		code, status_msg, version_string, conn_close,
-		tok_version(), start_rfc822_date, no_content);
+		code, status_msg, version, conn_close, token, xlive, no_content);
 
 	mrw = rw;		/* Minimal header length */
 
@@ -113,23 +142,23 @@ gboolean http_send_status(
 	 * Append extra information to the minimal header created above.
 	 */
 
-	for (i = 0; i < hevcnt && rw < sizeof(header); i++) {
+	for (i = 0; i < hevcnt && rw < header_size; i++) {
 		http_extra_desc_t *he = &hev[i];
 		http_extra_type_t type = he->he_type;
 
 		switch (type) {
 		case HTTP_EXTRA_LINE:
-			rw += gm_snprintf(&header[rw], sizeof(header) - rw,
+			rw += gm_snprintf(&header[rw], header_size - rw,
 				"%s", he->he_msg);
 			break;
 		case HTTP_EXTRA_CALLBACK:
 			{
 				/* The -3 is there to leave room for "\r\n" + NUL */
-				gint len = sizeof(header) - rw - 3;
+				gint len = header_size - rw - 3;
 				
 				(*he->he_cb)(&header[rw], &len, he->he_arg);
 
-				g_assert(len + rw <= sizeof(header));
+				g_assert(len + rw <= header_size);
 
 				rw += len;
 			}
@@ -137,15 +166,15 @@ gboolean http_send_status(
 		}
 	}
 
-	if (rw < sizeof(header))
-		rw += gm_snprintf(&header[rw], sizeof(header) - rw, "\r\n");
+	if (rw < header_size)
+		rw += gm_snprintf(&header[rw], header_size - rw, "\r\n");
 
-	if (rw >= sizeof(header) && hev) {
+	if (rw >= header_size && hev) {
 		g_warning("HTTP status %d (%s) too big, ignoring extra information",
 			code, reason);
 
-		rw = mrw + gm_snprintf(&header[mrw], sizeof(header) - mrw, "\r\n");
-		g_assert(rw < sizeof(header));
+		rw = mrw + gm_snprintf(&header[mrw], header_size - mrw, "\r\n");
+		g_assert(rw < header_size);
 	}
 
 	if (-1 == (sent = bws_write(bws.out, s->file_desc, header, rw))) {

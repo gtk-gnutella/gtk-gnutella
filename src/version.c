@@ -36,6 +36,7 @@
 RCSID("$Id$");
 
 gchar *version_string = NULL;
+gchar *version_short_string = NULL;
 
 static version_t our_version;
 static version_t last_rel_version;
@@ -113,6 +114,8 @@ static void version_stamp(const gchar *str, version_t *ver)
 
 		p++;
 		end = strchr(p, ';');
+		if (end == NULL)
+			end = strchr(p, ')');		/* Only date present: short version */
 		if (end) {
 			time_t now = time(NULL);
 
@@ -499,6 +502,12 @@ void version_init(void)
 	version_stamp(version_string, &our_version);
 	g_assert(our_version.timestamp > 0);
 
+	gm_snprintf(buf, sizeof(buf) - 1,
+		"gtk-gnutella/%s (%s)",
+		GTA_VERSION_NUMBER, GTA_RELEASE);
+
+	version_short_string = atom_str_get(buf);
+
 	last_rel_version = our_version;		/* struct copy */
 	last_dev_version = our_version;		/* struct copy */
 }
@@ -562,6 +571,7 @@ gboolean version_is_too_old(const gchar *vendor)
 void version_close(void)
 {
 	atom_str_free(version_string);
+	atom_str_free(version_short_string);
 
 	if (version_cmp(&our_version, &last_rel_version) < 0)
 		g_warning("upgrade recommended: most recent released version seen: %s",

@@ -201,25 +201,16 @@ static const gchar *random_key(
 }
 
 /*
- * tok_version
+ * tok_generate
  *
- * Get a version token, base64-encoded.
- * Returns a pointer to static data.
- *
- * NOTE: token versions are only used to identify GTKG servents as such with
- * a higher level of confidence than just reading the version string alone.
- * It is not meant to be used for strict authentication management, since
- * the algorithm and the keys are exposed publicly.
+ * Generate new token for given version string.
  */
-gchar *tok_version(void)
+static gchar *tok_generate(time_t now, const gchar *version)
 {
-	static time_t last_generated = 0;
-	static gchar *toklevel = NULL;
 	gchar token[TOKEN_BASE64_SIZE + 1];
 	gchar digest[TOKEN_VERSION_SIZE];
 	gchar lvldigest[LEVEL_SIZE];
 	gchar lvlbase64[LEVEL_BASE64_SIZE + 1];
-	time_t now = time(NULL);
 	const struct tokkey *tk;
 	guint idx;
 	const gchar *key;
@@ -229,19 +220,6 @@ gchar *tok_version(void)
 	gint lvlsize;
 	gint klen;
 	gint i;
-
-	/*
-	 * We don't generate a new token each time, but only every TOKEN_LIFE
-	 * seconds.  The clock skew threshold must be greater than twice that
-	 * amount, of course.
-	 */
-
-	g_assert(TOKEN_CLOCK_SKEW > 2 * TOKEN_LIFE);
-
-	if (now - last_generated < TOKEN_LIFE)
-		return toklevel;
-
-	last_generated = now;
 
 	/*
 	 * Compute token.
@@ -262,7 +240,7 @@ gchar *tok_version(void)
 	SHA1Reset(&ctx);
 	SHA1Input(&ctx, (guint8 *) key, strlen(key));
 	SHA1Input(&ctx, (guint8 *) digest, 7);
-	SHA1Input(&ctx, (guint8 *) version_string, strlen(version_string));
+	SHA1Input(&ctx, (guint8 *) version, strlen(version));
 	SHA1Result(&ctx, (guint8 *) digest + 7);
 
 	/*
@@ -296,10 +274,76 @@ gchar *tok_version(void)
 	memset(lvlbase64, 0, sizeof(lvlbase64));
 	base64_encode_into(lvldigest, 2 * lvlsize, lvlbase64, LEVEL_BASE64_SIZE);
 
+	return g_strdup_printf("%s; %s", token, lvlbase64);
+}
+
+/*
+ * tok_version
+ *
+ * Get a version token, base64-encoded.
+ * Returns a pointer to static data.
+ *
+ * NOTE: token versions are only used to identify GTKG servents as such with
+ * a higher level of confidence than just reading the version string alone.
+ * It is not meant to be used for strict authentication management, since
+ * the algorithm and the keys are exposed publicly.
+ */
+gchar *tok_version(void)
+{
+	static time_t last_generated = 0;
+	static gchar *toklevel = NULL;
+	time_t now = time(NULL);
+
+	/*
+	 * We don't generate a new token each time, but only every TOKEN_LIFE
+	 * seconds.  The clock skew threshold must be greater than twice that
+	 * amount, of course.
+	 */
+
+	g_assert(TOKEN_CLOCK_SKEW > 2 * TOKEN_LIFE);
+
+	if (now - last_generated < TOKEN_LIFE)
+		return toklevel;
+
+	last_generated = now;
+
 	if (toklevel != NULL)
 		g_free(toklevel);
 
-	toklevel = g_strdup_printf("%s; %s", token, lvlbase64);
+	toklevel = tok_generate(now, version_string);
+
+	return toklevel;
+}
+
+/*
+ * tok_short_version
+ *
+ * Get a version token for the short version string, base64-encoded.
+ * Returns a pointer to static data.
+ */
+gchar *tok_short_version(void)
+{
+	static time_t last_generated = 0;
+	static gchar *toklevel = NULL;
+	time_t now = time(NULL);
+
+	/*
+	 * We don't generate a new token each time, but only every TOKEN_LIFE
+	 * seconds.  The clock skew threshold must be greater than twice that
+	 * amount, of course.
+	 */
+
+	g_assert(TOKEN_CLOCK_SKEW > 2 * TOKEN_LIFE);
+
+	if (now - last_generated < TOKEN_LIFE)
+		return toklevel;
+
+	last_generated = now;
+
+	if (toklevel != NULL)
+		g_free(toklevel);
+
+	toklevel = tok_generate(now, version_short_string);
 
 	return toklevel;
 }

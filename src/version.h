@@ -80,6 +80,7 @@ gboolean version_newer(const gchar *str, time_t stamp);
 const gchar *version_str(const version_t *ver);
 
 extern gchar *version_string;
+extern gchar *version_short_string;
 
 #endif	/* _version_h_ */
 

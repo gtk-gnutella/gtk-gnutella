@@ -6120,10 +6120,26 @@ picked:
 		if (d->server->attrs & DLS_A_MINIMAL_HTTP)
 			wmesh = 0;
 		else {
+			gint altloc_size = sizeof(dl_tmp) - (rw + sha1_room);
+			struct dl_file_info *file_info = d->file_info;
+
+			/*
+			 * If we're short on HTTP output bandwidth, limit the size of
+			 * the alt-locs we send and don't provide our fileinfo, so that
+			 * we don't generate an URL for ourselves (if PFSP-server is on)
+			 * which would attract even more HTTP traffic.
+			 *		--RAM, 12/10/2003
+			 */
+
+			if (bsched_saturated(bws.out)) {
+				altloc_size = MIN(altloc_size, 160);
+				file_info = NULL;
+			}
+
 			wmesh = dmesh_alternate_location(sha1,
-				&dl_tmp[rw], sizeof(dl_tmp)-(rw+sha1_room),
+				&dl_tmp[rw], altloc_size,
 				download_ip(d), d->last_dmesh, download_vendor(d),
-				d->file_info);
+				file_info);
 			rw += wmesh;
 
 			d->last_dmesh = (guint32) time(NULL);
