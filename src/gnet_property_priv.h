@@ -208,6 +208,7 @@ extern gboolean up_req_avg_servent_uptime;
 extern gboolean up_req_avg_ip_uptime;
 extern gboolean up_req_node_uptime;
 extern gboolean up_req_not_firewalled;
+extern gboolean up_req_enough_conn;
 extern gboolean up_req_enough_fd;
 extern gboolean up_req_enough_mem;
 extern gboolean up_req_enough_bw;
