@@ -395,6 +395,7 @@ static gint compare_size_func(GtkTreeModel *model,
 		}
 	}
 
+	g_return_val_if_fail(rec[0] && rec[1], 0);
 	return CMP(rec[1]->file_size, rec[0]->file_size);
 }
 
