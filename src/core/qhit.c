@@ -57,6 +57,7 @@ RCSID("$Id$");
 #define QHIT_MAX_RESULTS	255		/* Maximum amount of hits in a query hit */
 #define QHIT_MAX_ALT		5		/* Send out 5 alt-locs per entry, at most */
 #define QHIT_MAX_PROXIES	5		/* Send out 5 push-proxies at most */
+#define QHIT_MAX_GGEP		512		/* Allocated room for trailing GGEP */
 
 /*
  * Minimal trailer length is our code NAME, the open flags, and the GUID.
@@ -91,16 +92,20 @@ static struct {
 
 #define FOUND_CHUNK		1024	/* Minimal growing memory amount unit */
 
-#define FOUND_GROW(len) do {						\
+#define FOUND_ENSURE(left) do {						\
 	gint missing;									\
-	found_data.s += (len);							\
-	missing = found_data.s - found_data.l;			\
+	missing = (left) - found_data.l;				\
 	if (missing > 0) {								\
 		missing = MAX(missing, FOUND_CHUNK);		\
 		found_data.l += missing;					\
 		found_data.d = (guchar *) g_realloc(found_data.d,	\
 			found_data.l * sizeof(guchar));			\
 	}												\
+} while (0)
+
+#define FOUND_GROW(len) do {						\
+	found_data.s += (len);							\
+	FOUND_ENSURE(found_data.s);						\
 } while (0)
 
 #define FOUND_RESET() do {							\
@@ -174,14 +179,10 @@ flush_match(void)
 	guint32 pos, pl;
 	struct gnutella_header *packet_head;
 	struct gnutella_search_results_out *search_head;
-	gchar version[24];
-	gchar push_proxies[40];
-	gchar hostname[256];
-	gchar *last_ggep = NULL;
-	gint version_size = 0;		/* Size of emitted GGEP version */
-	gint proxies_size = 0;		/* Size of emitted GGEP proxies */
-	gint hostname_size = 0;		/* Size of emitted GGEP hostname */
+	gint ggep_len = 0;			/* Size of the GGEP trailer */
 	guint32 connect_speed;		/* Connection speed, in kbits/s */
+	ggep_stream_t gs;
+	gchar *trailer_start;
 
 	/*
 	 * Build Gtk-gnutella trailer.
@@ -201,6 +202,26 @@ flush_match(void)
 		trailer[5] |= 0x01;			/* Firewall bit set in enabling byte */
 
 	/*
+	 * Store the open trailer, and remember where we store it, so we can
+	 * update the flags if we store any GGEP extension.
+	 */
+
+	pos = FOUND_SIZE;
+	FOUND_GROW(7);
+	memcpy(&FOUND_BUF[pos], trailer, 7);	/* Store the open trailer */
+	trailer_start = &FOUND_BUF[pos];
+	pos += 7;
+
+	/*
+	 * Ensure we can stuff at most QHIT_MAX_GGEP bytes of GGEP trailer.
+	 */
+
+	if (FOUND_LEFT(pos) < QHIT_MAX_GGEP)
+		FOUND_ENSURE(QHIT_MAX_GGEP - FOUND_LEFT(pos));
+
+	ggep_stream_init(&gs, &FOUND_BUF[pos], QHIT_MAX_GGEP);
+
+	/*
 	 * Build the "GTKGV1" GGEP extension.
 	 */
 
@@ -213,8 +234,7 @@ flush_match(void)
 		guint32 release;
 		guint32 date = release_date;
 		guint32 start;
-		struct iovec iov[6];
-		gint w;
+		gboolean ok;
 
 #ifdef GTA_PATCHLEVEL
 		patch = GTA_PATCHLEVEL;
@@ -225,35 +245,18 @@ flush_match(void)
 		WRITE_GUINT32_BE(date, &release);
 		WRITE_GUINT32_BE(start_stamp, &start);
 
-		iov[0].iov_base = (gpointer) &major;
-		iov[0].iov_len = 1;
+		ok =
+			ggep_stream_begin(&gs, "GTKGV1", 0) &&
+			ggep_stream_write(&gs, &major, 1) &&
+			ggep_stream_write(&gs, &minor, 1) &&
+			ggep_stream_write(&gs, &patch, 1) &&
+			ggep_stream_write(&gs, &revchar, 1) &&
+			ggep_stream_write(&gs, &release, 4) &&
+			ggep_stream_write(&gs, &start, 4) &&
+			ggep_stream_end(&gs);
 
-		iov[1].iov_base = (gpointer) &minor;
-		iov[1].iov_len = 1;
-
-		iov[2].iov_base = (gpointer) &patch;
-		iov[2].iov_len = 1;
-
-		iov[3].iov_base = (gpointer) &revchar;
-		iov[3].iov_len = 1;
-
-		iov[4].iov_base = (gpointer) &release;
-		iov[4].iov_len = 4;
-
-		iov[5].iov_base = (gpointer) &start;
-		iov[5].iov_len = 4;
-
-		w = ggep_ext_writev(version, sizeof(version),
-				"GTKGV1", iov, G_N_ELEMENTS(iov),
-				GGEP_W_FIRST);
-
-		if (w == -1)
+		if (!ok)
 			g_warning("could not write GGEP \"GTKGV1\" extension in query hit");
-		else {
-			trailer[6] |= 0x20;			/* Has GGEP extensions in trailer */
-			version_size = w;
-			last_ggep = version + 1;	/* Skip leading magic byte */
-		}
 	}
 
 	/*
@@ -267,40 +270,28 @@ flush_match(void)
 		if (nodes != NULL) {
 			GSList *l;
 			gint count;
-			gchar *p;
-			gchar proxies[6 * QHIT_MAX_PROXIES];
-			gint proxies_len;	/* Length of the filled `proxies' buffer */
-			gint w;
+			gchar proxy[6];
+			gboolean ok;
+
+			ok = ggep_stream_begin(&gs, "PUSH", 0);
 
 			for (
-				l = nodes, count = 0, p = proxies;
-				l && count < QHIT_MAX_PROXIES;
+				l = nodes, count = 0;
+				ok && l && count < QHIT_MAX_PROXIES;
 				l = g_slist_next(l), count++
 			) {
 				struct gnutella_node *n = (struct gnutella_node *) l->data;
 				
-				WRITE_GUINT32_BE(n->proxy_ip, p);
-				p += 4;
-				WRITE_GUINT16_LE(n->proxy_port, p);
-				p += 2;
+				WRITE_GUINT32_BE(n->proxy_ip, &proxy[0]);
+				WRITE_GUINT16_LE(n->proxy_port, &proxy[4]);
+				ok = ggep_stream_write(&gs, proxy, sizeof(proxy));
 			}
 
-			proxies_len = p - proxies;
+			ok = ok && ggep_stream_end(&gs);
 
-			g_assert(proxies_len % 6 == 0);
-
-			w = ggep_ext_write(push_proxies, sizeof(push_proxies),
-					"PUSH", proxies, proxies_len,
-					last_ggep == NULL ? GGEP_W_FIRST : 0);
-
-			if (w == -1)
+			if (!ok)
 				g_warning("could not write GGEP \"PUSH\" extension "
 					"in query hit");
-			else {
-				trailer[6] |= 0x20;			/* Has GGEP extensions in trailer */
-				proxies_size = w;
-				last_ggep = push_proxies + ((last_ggep == NULL) ? 1 : 0);
-			}
 		}
 	}
 
@@ -310,45 +301,29 @@ flush_match(void)
 	 */
 
 	if (!is_firewalled && give_server_hostname && 0 != *server_hostname) {
-		gint w;
+		gboolean ok;
 
-		w = ggep_ext_write(hostname, sizeof(hostname),
-				"HNAME", (gchar *) server_hostname, strlen(server_hostname),
-				last_ggep == NULL ? GGEP_W_FIRST : 0);
+		ok = ggep_stream_pack(&gs, "HNAME",
+				(gchar *) server_hostname, strlen(server_hostname), 0);
 
-		if (w == -1)
+		if (!ok)
 			g_warning("could not write GGEP \"HNAME\" extension "
 				"in query hit");
-		else {
-			trailer[6] |= 0x20;			/* Has GGEP extensions in trailer */
-			hostname_size = w;
-			last_ggep = hostname + ((last_ggep == NULL) ? 1 : 0);
-		}
 	}
 
-	if (last_ggep != NULL)
-		ggep_ext_mark_last(last_ggep);
+	ggep_len = ggep_stream_close(&gs);
+
+	if (ggep_len > 0) {
+		trailer_start[6] |= 0x20;		/* Has GGEP extensions in trailer */
+		FOUND_GROW(ggep_len);
+	}
+
+	/*
+	 * Store the GUID in the last 16 bytes of the query hit.
+	 */
 
 	pos = FOUND_SIZE;
-	FOUND_GROW(16 + 7 + version_size + proxies_size + hostname_size);
-	memcpy(&FOUND_BUF[pos], trailer, 7);	/* Store the open trailer */
-	pos += 7;
-
-	if (version_size) {
-		memcpy(&FOUND_BUF[pos], version, version_size);	/* Store "GTKGV1" */
-		pos += version_size;
-	}
-
-	if (proxies_size) {
-		memcpy(&FOUND_BUF[pos], push_proxies, proxies_size); /* Store "PUSH" */
-		pos += proxies_size;
-	}
-
-	if (hostname_size) {
-		memcpy(&FOUND_BUF[pos], hostname, hostname_size); /* Store "HNAME" */
-		pos += hostname_size;
-	}
-
+	FOUND_GROW(16);
 	memcpy(&FOUND_BUF[pos], guid, 16);	/* Store the GUID */
 
 	/* Payload size including the search results header, actual results */
@@ -402,6 +377,9 @@ add_file(struct shared_file *sf)
 	gnet_host_t hvec[QHIT_MAX_ALT];
 	gint hcnt = 0;
 	guint32 fs32;
+	gint ggep_len;
+	gboolean ok;
+	ggep_stream_t gs;
 
 	g_assert(sf->fi == NULL);	/* Cannot match partially downloaded files */
 
@@ -438,6 +416,11 @@ add_file(struct shared_file *sf)
 
 	FOUND_GROW(needed);
 
+	/*
+	 * If size is greater than 2^32-1, we store ~0 as the file size and will
+	 * use the "LF" GGEP extension to hold the real size.
+	 */
+
 	fs32 = sf->file_size > ((((guint64) 1U) << 32) - 1) ? ~0U : sf->file_size;
 	WRITE_GUINT32_LE(sf->file_index, &FOUND_BUF[pos]); pos += 4;
 	WRITE_GUINT32_LE(fs32, &FOUND_BUF[pos]);  pos += 4;
@@ -449,111 +432,85 @@ add_file(struct shared_file *sf)
 
 	FOUND_BUF[pos++] = '\0';
 
-	if (sha1_available) {
-		gchar *last_ggep = NULL;
+	/*
+	 * We're now between the two NULs at the end of the hit entry.
+	 */
 
-		/*
-		 * Emit the SHA1, either as GGEP "H" or as a plain ASCII URN.
-		 */
+	/*
+	 * Emit the SHA1 as a plain ASCII URN if they don't grok "H".
+	 */
 
-		if (FOUND_GGEP_H) {
-			/* Modern way: GGEP "H" for binary URN */
-			guint8 type = GGEP_H_SHA1;
-			struct iovec iov[2];
-			gint w;
-			guint32 flags = GGEP_W_COBS;
-
-			flags |= last_ggep ? 0 : GGEP_W_FIRST;
-			iov[0].iov_base = (gpointer) &type;
-			iov[0].iov_len = 1;
-
-			iov[1].iov_base = sf->sha1_digest;
-			iov[1].iov_len = SHA1_RAW_SIZE;
-
-			w = ggep_ext_writev((gchar *) &FOUND_BUF[pos], FOUND_LEFT(pos),
-					"H", iov, G_N_ELEMENTS(iov), flags);
-
-			if (w == -1)
-				g_warning("could not write GGEP \"H\" extension in query hit");
-			else {
-				last_ggep = &FOUND_BUF[pos] + (last_ggep ? 0 : 1);
-				pos += w;			/* Could be COBS-encoded, we don't know */
-			}
-		} else {
-			/* Good old way: ASCII URN */
-			gchar *b32 = sha1_base32(sf->sha1_digest);
-			memcpy(&FOUND_BUF[pos], "urn:sha1:", 9);
-			pos += 9;
-			memcpy(&FOUND_BUF[pos], b32, SHA1_BASE32_SIZE);
-			pos += SHA1_BASE32_SIZE;
-		}
-
-		if (sf->file_size > ((1U << 31) - 1)) {
-			guint8 buf[sizeof(guint64)];
-			gint len, w;
-			guint32 flags = GGEP_W_COBS;
-			
-			flags |= last_ggep ? 0 : GGEP_W_FIRST;
-			len = ggep_lf_encode(sf->file_size, buf); 
-			g_assert(len > 0 && len <= (gint) sizeof buf);
-
-			w = ggep_ext_write((gchar *) &FOUND_BUF[pos], FOUND_LEFT(pos),
-					"LF", buf, len, flags);
-			
-			if (w == -1) {
-				g_warning("could not write GGEP \"LF\" extension in query hit");
-			} else {
-				last_ggep = &FOUND_BUF[pos] + (last_ggep ? 0 : 1);
-				pos += w;
-			}
-		}
-
-		/*
-		 * If we have known alternate locations, include a few of them for
-		 * this file in the GGEP "ALT" extension.
-		 */
-
-		if (hcnt > 0) {
-			gchar alts[6 * QHIT_MAX_ALT];
-			gchar *p;
-			gint i;
-			gint alts_len;
-			struct iovec iov[1];
-			guint32 flags = GGEP_W_COBS;
-			gint w;
-
-			g_assert(hcnt <= QHIT_MAX_ALT);
-
-			flags |= last_ggep ? 0 : GGEP_W_FIRST;
-			for (i = 0, p = alts; i < hcnt; i++) {
-				WRITE_GUINT32_BE(hvec[i].ip, p);
-				p += 4;
-				WRITE_GUINT16_LE(hvec[i].port, p);
-				p += 2;
-			}
-
-			alts_len = p - alts;
-
-			g_assert(alts_len % 6 == 0);
-
-			iov[0].iov_base = (gpointer) alts;
-			iov[0].iov_len = alts_len;
-
-			w = ggep_ext_writev((gchar *) &FOUND_BUF[pos], FOUND_LEFT(pos),
-					"ALT", iov, G_N_ELEMENTS(iov), flags);
-
-			if (w == -1) {
-				g_warning(
-					"could not write GGEP \"ALT\" extension in query hit");
-			} else {
-				last_ggep = &FOUND_BUF[pos] + (last_ggep ? 0 : 1);
-				pos += w;			/* Could be COBS-encoded, we don't know */
-			}
-		}
-
-		if (last_ggep != NULL)
-			ggep_ext_mark_last(last_ggep);
+	if (sha1_available && !FOUND_GGEP_H) {
+		/* Good old way: ASCII URN */
+		gchar *b32 = sha1_base32(sf->sha1_digest);
+		memcpy(&FOUND_BUF[pos], "urn:sha1:", 9);
+		pos += 9;
+		memcpy(&FOUND_BUF[pos], b32, SHA1_BASE32_SIZE);
+		pos += SHA1_BASE32_SIZE;
 	}
+
+	/*
+	 * From now on, we emit GGEP extensions, if we emit at all.
+	 */
+
+	ggep_stream_init(&gs, &FOUND_BUF[pos], FOUND_LEFT(pos));
+
+	if (sha1_available && FOUND_GGEP_H) {
+		/* Modern way: GGEP "H" for binary URN */
+		guint8 type = GGEP_H_SHA1;
+
+		ok =
+			ggep_stream_begin(&gs, "H", GGEP_W_COBS) &&
+			ggep_stream_write(&gs, &type, 1) &&
+			ggep_stream_write(&gs, sf->sha1_digest, SHA1_RAW_SIZE) &&
+			ggep_stream_end(&gs);
+
+		if (!ok)
+			g_warning("could not write GGEP \"H\" extension in query hit");
+	}
+
+	if (sf->file_size > ((1U << 31) - 1)) {
+		guint8 buf[sizeof(guint64)];
+		gint len;
+
+		len = ggep_lf_encode(sf->file_size, buf); 
+
+		g_assert(len > 0 && len <= (gint) sizeof buf);
+
+		ok = ggep_stream_pack(&gs, "LF", buf, len, GGEP_W_COBS);
+		
+		if (!ok)
+			g_warning("could not write GGEP \"LF\" extension in query hit");
+	}
+
+	/*
+	 * If we have known alternate locations, include a few of them for
+	 * this file in the GGEP "ALT" extension.
+	 */
+
+	if (hcnt > 0) {
+		gchar alt[6];
+		gint i;
+
+		g_assert(hcnt <= QHIT_MAX_ALT);
+
+		ok = ggep_stream_begin(&gs, "ALT", GGEP_W_COBS);
+
+		for (i = 0; ok && i < hcnt; i++) {
+			WRITE_GUINT32_BE(hvec[i].ip, &alt[0]);
+			WRITE_GUINT16_LE(hvec[i].port, &alt[4]);
+			ok = ggep_stream_write(&gs, alt, sizeof(alt));
+		}
+
+		ok = ok && ggep_stream_end(&gs);
+
+		if (!ok)
+			g_warning("could not write GGEP \"ALT\" extension in query hit");
+	}
+
+	ggep_len = ggep_stream_close(&gs);
+
+	pos += ggep_len;
 
 	FOUND_BUF[pos++] = '\0';
 	FOUND_FILES++;
