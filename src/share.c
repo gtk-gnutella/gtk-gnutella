@@ -325,9 +325,9 @@ static const guchar macroman[126] = {
 };
 
 
-guint32 files_scanned = 0;
-guint32 kbytes_scanned = 0;
-guint32 bytes_scanned = 0;
+static guint64 files_scanned = 0;
+static guint64 kbytes_scanned = 0;
+static guint64 bytes_scanned = 0;
 
 GSList *extensions = NULL;
 GSList *shared_dirs = NULL;
@@ -408,7 +408,7 @@ struct {
 #define FOUND_LEFT(x)	(found_data.l - (x))
 
 static gboolean use_ggep_h;			/* Can we use GGEP "H" for this query? */
-static guint32 release_date;
+static time_t release_date;
 
 /* 
  * We don't want to include the same file several times in a reply (for
@@ -602,7 +602,7 @@ void share_init(void)
 	found_data.l = FOUND_CHUNK;		/* must be > size after found_reset */
 	found_data.d = (guchar *) g_malloc(found_data.l * sizeof(guchar));
 
-	release_date = delta_time(date2time(GTA_RELEASE, NULL), (time_t) 0);
+	release_date = date2time(GTA_RELEASE, NULL);
 
 	/*
 	 * We allocate an empty search_table, which will be de-allocated when we
@@ -713,12 +713,13 @@ void parse_extensions(const gchar * str)
 				struct extension *e = (struct extension *) g_malloc(sizeof(*e));
 				e->str = atom_str_get(s);
 				e->len = strlen(s);
-				extensions = g_slist_append(extensions, e);
+				extensions = g_slist_prepend(extensions, e);
 			}
 		}
 		i++;
 	}
 
+	extensions = g_slist_reverse(extensions);
 	g_strfreev(exts);
 }
 
@@ -773,12 +774,13 @@ gboolean shared_dirs_parse(const gchar *str)
 
 	while (dirs[i]) {
 		if (is_directory(dirs[i]))
-			shared_dirs = g_slist_append(shared_dirs, atom_str_get(dirs[i]));
+			shared_dirs = g_slist_prepend(shared_dirs, atom_str_get(dirs[i]));
         else 
             ret = FALSE;
 		i++;
 	}
 
+	shared_dirs = g_slist_reverse(shared_dirs);
 	g_strfreev(dirs);
 
     return ret;
@@ -810,7 +812,6 @@ static void recurse_scan(gchar *dir, const gchar *basedir)
 	gchar *dir_slash = NULL;
 	GSList *sl;
 	gint i;
-	struct shared_file *found = NULL;
 	struct stat file_stat;
 	const gchar *entry_end;
 
@@ -886,20 +887,10 @@ static void recurse_scan(gchar *dir, const gchar *basedir)
 				(start >= name && *start == '.' &&
 					0 == g_ascii_strcasecmp(start+1, e->str))
 			) {
+				struct shared_file *found = NULL;
 
 				if (dbg > 5)
 					g_message("%s: full=\"%s\"", __func__, full);
-
-				if (file_info_has_trailer(full)) {
-					/*
-		 		 	 * It's probably a file being downloaded, and which is not
-				 	 * complete yet. This check is necessary in case they
-					 * choose to share their downloading directory...
-		 		  	 */
-
-					g_warning("will not share partial file \"%s\"", full);
-					break;
-				}
 
 				if (stat(full, &file_stat) == -1) {
 					g_warning("can't stat %s: %s", full, g_strerror(errno));
@@ -915,10 +906,23 @@ static void recurse_scan(gchar *dir, const gchar *basedir)
 				found->file_index = ++files_scanned;
 				found->mtime = file_stat.st_mtime;
 				found->flags = 0;
-				request_sha1(found);
 
+				if (!sha1_is_cached(found) && file_info_has_trailer(full)) {
+					/*
+	 		 	 	 * It's probably a file being downloaded, and which is
+					 * not complete yet. This check is necessary in case
+					 * they choose to share their downloading directory...
+	 		  	 	 */
+
+					g_warning("will not share partial file \"%s\"", full);
+					shared_file_free(found);
+					found = NULL;
+					break;
+				}
+
+				request_sha1(found);
 				st_insert_item(&search_table, found->file_name, found);
-				shared_files = g_slist_append(shared_files, found);
+				shared_files = g_slist_prepend(shared_files, found);
 
 				bytes_scanned += file_stat.st_size;
 				kbytes_scanned += bytes_scanned >> 10;
@@ -1044,7 +1048,9 @@ void share_scan(void)
 	 */
 
 	for (dirs = NULL, sl = shared_dirs; sl; sl = g_slist_next(sl))
-		dirs = g_slist_append(dirs, atom_str_get(sl->data));
+		dirs = g_slist_prepend(dirs, atom_str_get(sl->data));
+
+	dirs = g_slist_reverse(dirs);
 
 	/* Recurse on the cloned list... */
 	for (sl = dirs; sl; sl = g_slist_next(sl))
@@ -1203,6 +1209,7 @@ static void flush_match(void)
 		guint8 revchar = (guint8) revp[0];
 		guint8 patch;
 		guint32 release;
+		guint32 date = release_date;
 		guint32 start;
 		struct iovec iov[6];
 		gint w;
@@ -1213,7 +1220,7 @@ static void flush_match(void)
 		patch = 0;
 #endif
 
-		WRITE_GUINT32_BE(release_date, &release);
+		WRITE_GUINT32_BE(date, &release);
 		WRITE_GUINT32_BE(start_stamp, &start);
 
 		iov[0].iov_base = (gpointer) &major;
@@ -2526,6 +2533,26 @@ struct shared_file *shared_file_by_sha1(gchar *sha1_digest)
 gboolean is_latin_locale(void)
 {
 	return b_latin;
+}
+
+/*
+ * shared_kbytes_scanned
+ *
+ * Get accessor for ``kbytes_scanned''
+ */
+guint64 shared_kbytes_scanned(void)
+{
+	return kbytes_scanned;
+}
+
+/*
+ * shared_files_scanned
+ *
+ * Get accessor for ``files_scanned''
+ */
+guint64 shared_files_scanned(void)
+{
+	return files_scanned;
 }
 
 /* vi: set ts=4: */
