@@ -775,7 +775,7 @@ void config_set_param(keyword_t keyword, gchar *value)
         CONFIG_SET_NUM(download_retry_stopped,        15,     100000)
         CONFIG_SET_NUM(upload_connecting_timeout,      1,     100000)
         CONFIG_SET_NUM(upload_connected_timeout,       1,     100000)
-        CONFIG_SET_NUM(search_reissue_timeout,         0,       9999)
+        CONFIG_SET_NUM(search_reissue_timeout,       600,       9999)
         CONFIG_SET_NUM(ban_ratio_fds,                  0,        100)
         CONFIG_SET_NUM(ban_max_fds,                    0,      10000)
         
