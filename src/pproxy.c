@@ -820,6 +820,8 @@ static void cproxy_http_error_ind(
 	gpointer handle, http_errtype_t type, gpointer v)
 {
 	struct cproxy *cp = (struct cproxy *) http_async_get_opaque(handle);
+	guint32 new_ip;
+
 
 	g_assert(cp != NULL);
 	g_assert(cp->magic == CPROXY_MAGIC);
@@ -836,10 +838,13 @@ static void cproxy_http_error_ind(
 	 *	--RAM, 04/08/2003
 	 */
 
+	new_ip = swap_ip(cp->ip);
+
 	if (
 		!(cp->flags & CP_F_SWAPPED_IP) &&
 		type == HTTP_ASYNC_ERROR &&
-		GPOINTER_TO_INT(v) == HTTP_ASYNC_CONN_TIMEOUT
+		GPOINTER_TO_INT(v) == HTTP_ASYNC_CONN_TIMEOUT &&
+		host_is_valid(new_ip, cp->port)
 	) {
 		guint32 new_ip = swap_ip(cp->ip);
 		static gchar path[128];
@@ -870,6 +875,9 @@ static void cproxy_http_error_ind(
 
 		/* FALL THROUGH */
 	}
+
+	if (cp->flags & CP_F_SWAPPED_IP)
+		cp->ip = swap_ip(cp->ip);		/* Restore original IP */
 
 	cp->http_handle = NULL;
 	cp->done = TRUE;
@@ -1023,6 +1031,7 @@ struct cproxy *cproxy_create(struct download *d,
 	gpointer handle;
 	static gchar path[128];
 	gboolean swapped = FALSE;
+	guint32 new_ip;
 
 	(void) gm_snprintf(path, sizeof(path),
 		"/gnutella/push-proxy?ServerId=%s&file=%u",
@@ -1044,9 +1053,10 @@ struct cproxy *cproxy_create(struct download *d,
 	 *	--RAM, 04/08/2003
 	 */
 
-	if (handle == NULL) {
-		guint32 new_ip = swap_ip(ip);
+	if (handle == NULL)
+		new_ip = swap_ip(ip);
 
+	if (handle == NULL && host_is_valid(new_ip, port)) {
 		g_warning("can't connect to push-proxy %s for GUID %s: %s "
 			"-- swapping to %s",
 			ip_port_to_gchar(ip, port), guid_hex_str(guid),
