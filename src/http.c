@@ -102,7 +102,8 @@ gboolean http_send_status(
 			break;
 		case HTTP_EXTRA_CALLBACK:
 			{
-				gint len = sizeof(header) - rw;
+				/* The -3 is there to leave room for "\r\n" + NUL */
+				gint len = sizeof(header) - rw - 3;
 				
 				(*he->he_cb)(&header[rw], &len, he->he_arg);
 
