@@ -733,6 +733,14 @@ gchar *header_fmt_to_gchar(gpointer o)
  *** X-Features header parsing utilities
  ***/
 
+/*
+ * header_features_add
+ *
+ * Add support for feature_name with the specified version to the X-Features
+ * header. 
+ * Type indicates when this header should be added (upload, download etc...)
+ * which may be an or-ed value
+ */
 void header_features_add(gchar *feature_name, 
 	int feature_version_major,
 	int feature_version_minor,
@@ -749,6 +757,11 @@ void header_features_add(gchar *feature_name,
 	x_features = g_list_append(x_features, feature);
 }
 
+/*
+ * header_features_cleanup
+ *
+ * Removes all memory used by the header_features_add. 
+ */
 void header_features_cleanup()
 {
 	GList *cur;
@@ -764,11 +777,20 @@ void header_features_cleanup()
 	}
 }
 
+/*
+ * header_features_generate
+ *
+ * Adds the X-Features header to a HTTP request. 
+ * buf should point to the beginning of the header, *rw should contain the
+ * number of bytes that were allready written. type should be the type of which
+ * we should include in the X-Features header.
+ * *rw is changed too *rw + bytes written
+ */
 void header_features_generate(gchar *buf, gint len, gint *rw, gint type)
 {
 	GList *cur;
+	gboolean first = TRUE;
 	
-	*rw += gm_snprintf(&buf[*rw], len - *rw, "X-Features: ");
 
 	for(cur = g_list_first(x_features);
 		cur != g_list_last(x_features);
@@ -778,14 +800,27 @@ void header_features_generate(gchar *buf, gint len, gint *rw, gint type)
 			(struct header_x_feature *) cur->data;
 
 		if (feature->type & type > 0) {
+			if (first) {
+				*rw += gm_snprintf(&buf[*rw], len - *rw, "X-Features: ");
+				first = FALSE;
+			}
+			
 			*rw += gm_snprintf(&buf[*rw], len - *rw, "%s/%d.%d ",
 				feature->name, feature->major, feature->minor);
 		}
 	}
 	
-	*rw += gm_snprintf(&buf[*rw], len - *rw, "\r\n");	
+	/* Only close this header if we did start to write it */
+	if (!first)
+		*rw += gm_snprintf(&buf[*rw], len - *rw, "\r\n");	
 }
 
+/*
+ * header_get_feature
+ *
+ * Retreives the major and minor version from a feature in the X-Features 
+ * header, if no support was found both major and minor are 0.
+ */
 void header_get_feature(const gchar *feature_name, const header_t *header,
 	int *feature_version_major, int *feature_version_minor)
 {
