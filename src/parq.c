@@ -2480,8 +2480,7 @@ gboolean parq_upload_request(gnutella_upload_t *u, gpointer handle,
 		return TRUE;
 	else {
 		/* Don't allow more than 1 active queued upload per ip */
-		if (parq_ul->by_ip->active_queued == 0 ||
-			parq_ul->by_ip->active_queued && parq_ul->active_queued) {
+		if (parq_ul->by_ip->active_queued == 0 || parq_ul->active_queued) {
 				
 			/* Active queue requests which are either a push request and at a 
 			 * reasonable position. Or if the request is at a position which 
