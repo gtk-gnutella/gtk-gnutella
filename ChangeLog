@@ -1,8 +1,38 @@
 # since last version
 
+- (2004-08-03 - RAM)
+ * The "up_req_*" properties were wrongly saved in the config file.  Since
+   they're transient and dynamic, it's useless to persist them.
+ * New "up_req_enough_conn" property to track whether they configured enough
+   peer connections to maintain to become an ultra node.
+ * Show whether they configured "Enough min # of connections" to be
+   auto-promoted an ultra node.
+ * New flag "Z" for connections that compress both TX and RX.  "T" is shown
+   when only TX is compressed, "R" is shown when only RX is compressed.
+ * New flag "X" indicating whether we sent our last-hop QRP table to the remote
+   ultra node.  The "Q" flag in that case indicates whether we received the
+   last-hop QRP from the remote node.
+ * Added support for high outdegree and last-hop QRP between ultra nodes.
+
+- (2004-08-02 - RAM)
+ * Converted getline.c and http.c to doxygen-style comments.
+ * New IO_SAVE_HEADER flag to instruct the ioheader parsing layer to
+   save a copy of the header text, as it was received.
+ * Forward queries with TTL=0 to leaves, as QRP tables permit.
+ * Added specifications for inter-UP QRP, dynamic queries and leaf-guided
+   queries.
+
 - (2004-08-02 - Hans)
  * Show gray progress bar when the file size of a downloadable file is not
    known.
+
+- (2004-08-01 - RAM)
+ * Made gchar_to_ip_strict() return host byteorder IP addresses, to be
+   consistent with gchar_to_ip().
+ * Updated styleguide: in files using doxygen comments, the function name
+   must now be put at the very beginning of the line to have it stand out.
+ * Added new fields in fileinfo trailer: CTIM the creation time and NTIM
+   the last time when we got a new source.
 	
 - (2004-07-24 - Hans)
  * Make 'Purge' button on the 'Files' tab inactive when file has been
