@@ -1,5 +1,10 @@
 # since last version
 
+- (2004-06-24 - Richard)
+ * Fixed segfault in hcache.c on shutdown due to accessing hostcaches
+   which had already been freed at that point. 
+   (Thanks to Clayton Rollins for the backtrace)
+
 - (2004-06-23 - Richard)
  * [Gtk1] Ported "extension" column in search results from Gtk2.
 
