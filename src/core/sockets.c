@@ -114,7 +114,6 @@ socket_addr_set(socket_addr_t *addr, guint32 ip, guint16 port)
 	*addr = zero_addr;
 	
 #ifdef USE_IPV6_HACK
-	addr->inet6.sin6_len = sizeof(struct in6_addr);
 	addr->inet6.sin6_family = AF_INET6;	/* host byte order */
 	addr->inet6.sin6_port = htons(port);
 	addr->inet6.sin6_addr.s6_addr[10] = 0xff;
