@@ -1552,7 +1552,7 @@ static void parq_upload_free_queue(struct parq_ul_queue *queue)
 	g_assert(queue->active == FALSE);
 	
 	if (dbg)
-		printf("PARQ UL: Removing inactive queue %d\r\b", 
+		printf("PARQ UL: Removing inactive queue %d\n", 
 				g_list_position(ul_parqs, g_list_find(ul_parqs, queue)) + 1);
 		
 	/* Remove queue from all lists */
@@ -1903,7 +1903,7 @@ void parq_upload_timer(time_t now)
 
 				if (dbg > 3)
 					printf("PARQ UL: Removing QUEUE command due to other "
-						"failed QUEUE command for ip: %s\r\n",
+						"failed QUEUE command for ip: %s\n",
 						ip_to_gchar(parq_ul->by_ip->ip));
 
 				parq_ul->last_queue_sent = parq_ul->by_ip->last_queue_sent;
@@ -1926,7 +1926,7 @@ void parq_upload_timer(time_t now)
 					
 					if (dbg > 3)
 						printf("PARQ UL: Not sending QUEUE command due to "
-							"another pending QUEUE command for ip: %s\r\n",
+							"another pending QUEUE command for ip: %s\n",
 							ip_to_gchar(parq_ul->by_ip->ip));
 					continue;
 			}
@@ -3105,7 +3105,7 @@ void parq_upload_send_queue(struct parq_ul_queued *parq_ul)
 	if (parq_ul->port == 0 || parq_ul->ip == 0) {
 		if (dbg > 2) {
 			printf("PARQ UL Q %d/%d (%3d[%3d]/%3d): "
-				"No port to send QUEUE: %s '%s'\n\r",
+				"No port to send QUEUE: %s '%s'\n",
 				  g_list_position(ul_parqs, 
 				  g_list_find(ul_parqs, parq_ul->queue)) + 1,
 				  g_list_length(ul_parqs), 
@@ -3143,7 +3143,7 @@ void parq_upload_do_send_queue(struct parq_ul_queued *parq_ul)
 	
 	if (dbg)
 		printf("PARQ UL Q %d/%d (%3d[%3d]/%3d): "
-			"Sending QUEUE #%d to %s: '%s'\n\r",
+			"Sending QUEUE #%d to %s: '%s'\n",
 			  g_list_position(ul_parqs, 
 			  g_list_find(ul_parqs, parq_ul->queue)) + 1,
 			  g_list_length(ul_parqs), 
@@ -3197,7 +3197,7 @@ void parq_upload_send_queue_conf(gnutella_upload_t *u)
 	parq_ul = parq_upload_find(u);
 	
 	if (parq_ul == NULL) {
-		g_warning("[PARQ UL] Did the upload got removed?\r\n");
+		g_warning("[PARQ UL] Did the upload got removed?");
 		return;
 	}
 	
