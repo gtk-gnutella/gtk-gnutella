@@ -1872,6 +1872,10 @@ static guchar *file_info_new_outname(guchar *name)
 	gint flen;
 	guchar *escaped = escape_filename(name);
 	guchar *result;
+	guchar *empty = "noname";
+
+	if (*escaped == '\0')			/* Don't allow empty names */
+		escaped = empty;
 
 	/*
 	 * If `name' (escaped form) is not taken yet, it will do.
@@ -1912,7 +1916,7 @@ static guchar *file_info_new_outname(guchar *name)
 	return NULL;
 
 ok:
-	if (escaped != name)
+	if (escaped != name && escaped != empty)
 		g_free(escaped);
 
 	return result;
