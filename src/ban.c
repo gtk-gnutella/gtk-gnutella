@@ -143,6 +143,7 @@ static void ipf_unban(cqueue_t *cq, gpointer obj)
 {
 	struct ip_info *ipf = (struct ip_info *) obj;
 	time_t now = time((time_t *) NULL);
+	gint delay;
 
 	g_assert(ipf);
 	g_assert(ipf->banned);
@@ -160,12 +161,19 @@ static void ipf_unban(cqueue_t *cq, gpointer obj)
 		printf("removing BAN for %s, counter = %.3f\n",
 			ip_to_gchar(ipf->ip), ipf->counter);
 
+	/*
+	 * Compute new scheduling delay.
+	 */
+
+	delay = (gint) (1000.0 * ipf->counter / decay_coeff);
 
 	/*
 	 * If counter is negative or null, we can remove the entry.
+	 * Since we round to an integer, we must consider `delay' and
+	 * not the original counter.
 	 */
 
-	if (ipf->counter <= 0.0) {
+	if (delay <= 0) {
 		if (dbg > 8)
 			printf("disposing of BAN %s\n", ip_to_gchar(ipf->ip));
 
@@ -176,8 +184,7 @@ static void ipf_unban(cqueue_t *cq, gpointer obj)
 	}
 
 	ipf->banned = FALSE;
-	ipf->cq_ev = cq_insert(callout_queue,
-		(gint) (1000.0 * ipf->counter / decay_coeff), ipf_destroy, ipf);
+	ipf->cq_ev = cq_insert(callout_queue, delay, ipf_destroy, ipf);
 }
 
 /*
