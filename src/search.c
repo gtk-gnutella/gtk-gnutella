@@ -12,8 +12,8 @@
 
 #include "dialog-filters.h"
 
-gchar stmp_1[4096];
-gchar stmp_2[4096];
+static gchar stmp_1[4096];
+static gchar stmp_2[4096];
 
 GSList *searches = NULL;							/* List of search structs */
 
@@ -24,11 +24,18 @@ struct search *current_search = NULL;			/*	The search currently displayed */
 
 gboolean search_results_show_tabs = FALSE;	/* Do we have to display the notebook tabs */
 
-void search_free_r_sets(struct search *);
-void search_send_packet(struct search *);
-void search_update_items(struct search *);
+static void search_free_r_sets(struct search *);
+static void search_send_packet(struct search *);
+static void search_update_items(struct search *);
+static void search_add_new_muid(struct search *sch);
+static guint sent_node_hash_func(gconstpointer key);
+static gint sent_node_compare(gconstpointer a, gconstpointer b);
+static void search_free_sent_nodes(struct search *sch);
+static gboolean search_reissue_timeout_callback(gpointer data);
+static void update_one_reissue_timeout(struct search *sch);
 
 guint32 search_passive = 0;
+
 
 /* --------------------------------------------------------------------------------------------------------- */
 
@@ -118,15 +125,22 @@ void on_popup_search_toggle_tabs_activate (GtkMenuItem *menuitem, gpointer user_
 	gtk_notebook_set_show_tabs(GTK_NOTEBOOK(notebook_search_results), (search_results_show_tabs = !search_results_show_tabs));
 }
 
-void on_popup_search_restart_activate (GtkMenuItem *menuitem, gpointer user_data)
-{
+static void search_reissue(struct search *sch) {
+  search_add_new_muid(sch);
+  search_send_packet(sch);
+  update_one_reissue_timeout(sch);
+}
+
+static void search_restart(struct search *sch) {
+  search_reissue(sch);
+  gtk_clist_clear(GTK_CLIST(sch->clist));
+  sch->items = sch->unseen_items = 0;
+  search_update_items(sch);
+}
+
+void on_popup_search_restart_activate (GtkMenuItem *menuitem, gpointer user_data) {
 	if (current_search)
-	{
-		gtk_clist_clear(GTK_CLIST(current_search->clist));
-		current_search->items = current_search->unseen_items = 0;
-		search_send_packet(current_search);
-		search_update_items(current_search);
-	}
+	  search_restart(current_search);
 }
 
 void on_popup_search_duplicate_activate (GtkMenuItem *menuitem, gpointer user_data)
@@ -243,7 +257,7 @@ gboolean updating = FALSE;
 
 /* Like search_update_tab_label but always update the label */
 void __search_update_tab_label(struct search *sch) {
-  if(sch == current_search)
+  if(sch == current_search  || sch->unseen_items == 0)
 	g_snprintf(stmp_1, sizeof(stmp_1), "%s\n(%d)", sch->query, sch->items);
   else
 	g_snprintf(stmp_1, sizeof(stmp_1), "%s\n(%d, %d)", sch->query, sch->items, sch->unseen_items);
@@ -285,11 +299,14 @@ void on_search_switch(struct search *sch)
 
 	if(sch->items == 0){
                 gtk_widget_set_sensitive(button_search_clear, FALSE);
-                gtk_widget_set_sensitive(popup_search_clear_results, FALSE);}
-        else{
+                gtk_widget_set_sensitive(popup_search_clear_results, FALSE);
+        } else{
                 gtk_widget_set_sensitive(button_search_clear, TRUE);
-		gtk_widget_set_sensitive(popup_search_clear_results, TRUE);}
+				gtk_widget_set_sensitive(popup_search_clear_results, TRUE);
+		}
 
+	gtk_widget_set_sensitive(popup_search_restart, !sch->passive);
+	gtk_widget_set_sensitive(popup_search_duplicate, !sch->passive);
 }
 
 void on_search_popdown_switch(GtkWidget *w, gpointer data)
@@ -367,25 +384,29 @@ void search_close_current(void)
 	GSList *m;
 	struct search *sch = current_search;
 
-	if (sch->gh != NULL)	
-		g_hook_destroy_link(&node_added_hook_list, sch->gh);
-
-	sch->gh = NULL;
-
 	g_return_if_fail(current_search);
-
-	filters_close_search(sch);
-
-	gtk_timeout_remove(sch->tab_updating);
-
-	if(current_search->passive) {
-	  if(!search_passive)
-		g_error("search_close_current: This search is passive, but search_passive == 0.");
-	  search_passive--;
-	}
 
 	searches = g_slist_remove(searches, (gpointer) sch);
 
+	gtk_timeout_remove(sch->tab_updating);
+
+	if (!sch->passive) {
+		g_hook_destroy_link(&node_added_hook_list, sch->new_node_hook);
+		sch->new_node_hook = NULL;
+
+		g_source_remove(sch->reissue_timeout_id);
+
+		for(m = sch->muids; m; m = m->next) {
+		  g_free(m->data);
+		}
+
+		g_slist_free(sch->muids);
+		search_free_sent_nodes(sch);
+	} else {
+	  search_passive--;
+	}
+
+	filters_close_search(sch);
 
 	if (searches) /* Some other searches remain. */
 	{
@@ -419,11 +440,6 @@ void search_close_current(void)
 
 	g_hash_table_destroy(sch->dups);
 
-	for(m = sch->muids; m; m = m->next) {
-	  g_free(m->data);
-	}
-	g_slist_free(sch->muids);
-
 	g_free(sch->query);
 
 	g_free(sch);
@@ -432,14 +448,45 @@ void search_close_current(void)
 	gtk_widget_set_sensitive(button_search_close, (gboolean) searches);
 }
 
-/* Create and send a search request packet */
-
-void search_add_muid(struct search *sch, guchar *new_muid) {
-  guchar *muid = (guchar *)g_malloc(16);
-
-  memcpy(muid, new_muid, 16);
-  sch->muids = g_slist_prepend(sch->muids, (gpointer)muid);
+void search_free_sent_node(gpointer node, gpointer unused_value, gpointer unused_user_data) {
+  g_free(node);
 }
+
+static void search_free_sent_nodes(struct search *sch) {
+  g_hash_table_foreach(sch->sent_nodes, search_free_sent_node, NULL);
+  g_hash_table_destroy(sch->sent_nodes);
+}
+
+static void search_reset_sent_nodes(struct search *sch) {
+  search_free_sent_nodes(sch);
+  sch->sent_nodes = g_hash_table_new(sent_node_hash_func, sent_node_compare);
+}
+
+struct sent_node_data {
+  guint32 ip;
+  guint16 port;
+};
+
+static void mark_search_sent_to_node(struct search *sch, struct gnutella_node *n) {
+  struct sent_node_data *sd = g_new(struct sent_node_data, 1);
+  sd->ip = n->ip;
+  sd->port = n->port;
+  g_hash_table_insert(sch->sent_nodes, sd, (void *)1);
+}
+
+void mark_search_sent_to_connected_nodes(struct search *sch) {
+	GSList *l;
+	struct gnutella_node *n;
+
+	g_hash_table_freeze(sch->sent_nodes);
+	for(l = sl_nodes; l; l = l->next) {
+		n = (struct gnutella_node *) l->data;
+		mark_search_sent_to_node(sch, n);
+	}
+	g_hash_table_thaw(sch->sent_nodes);
+}
+
+/* Create and send a search request packet */
 
 void __search_send_packet(struct search *sch, struct gnutella_node *n)
 {
@@ -450,9 +497,8 @@ void __search_send_packet(struct search *sch, struct gnutella_node *n)
 
 	m = (struct gnutella_msg_search *) g_malloc(size);
 
-	message_set_muid(&(m->header));
-
-	search_add_muid(sch, m->header.muid);
+	/* Use the first one on the list */
+	memcpy(m->header.muid, sch->muids->data, 16);
 
 	m->header.function = GTA_MSG_SEARCH;
 	m->header.ttl = my_ttl;
@@ -466,19 +512,22 @@ void __search_send_packet(struct search *sch, struct gnutella_node *n)
 
 	message_add(m->header.muid, GTA_MSG_SEARCH, NULL);
 
-	if (n)
+	if (n) {
+	  mark_search_sent_to_node(sch, n);
 	  sendto_one(n, (guchar*)m, NULL, size);
-	else
+	} else {
+	  mark_search_sent_to_connected_nodes(sch);
 	  sendto_all(   (guchar*)m, NULL, size);
+	}
 
 	g_free(m);
 }
 
-void search_send_packet(struct search *sch) {
+static void search_send_packet(struct search *sch) {
   __search_send_packet(sch, NULL);
 }
 
-guint search_hash_func(gconstpointer key) {
+static guint search_hash_func(gconstpointer key) {
   struct record *rc = (struct record *)key;
   return 
 	g_str_hash(rc->name) ^
@@ -489,13 +538,37 @@ guint search_hash_func(gconstpointer key) {
 	g_int_hash(&rc->results_set->port);
 }
 
+/* Put it back when it's needed --DW */
+#if 0
+static char *guid_to_str(guchar *g) {
+  static char buf[16 * 3];
+  static int i, j;
+  char *t = "";
+
+  for(i = 0, j = 0; i < 16;) {
+	j += sprintf(&buf[j], "%s%02x", t, g[i]);
+	i++; t = " ";
+  }
+  return buf;
+}
+#endif
+
+static void search_add_new_muid(struct search *sch) {
+	guchar *muid = (guchar *)g_malloc(16);
+
+	generate_new_muid(muid);
+
+	if(sch->muids) /* If this isn't the first muid */
+	  search_reset_sent_nodes(sch);
+	sch->muids = g_slist_prepend(sch->muids, (gpointer)muid);
+}
+
 gint search_hash_key_compare(gconstpointer a, gconstpointer b) {
   struct record *this_record = (struct record *)a;
   struct record *rc = (struct record *)b;
   return
 	   !strcmp(rc->name, this_record->name)
-	&& !memcmp(rc->results_set->guid, this_record->results_set->guid, 16)
-	&& rc->index == this_record->index
+	&& rc->index == this_record->index  /* Actually, if the index is the only thing that changed, we probably want to overwrite the old one (and if we've got the download queue'd, replace it there too. */
 	&& rc->size == this_record->size
 	&& rc->results_set->ip == this_record->results_set->ip
 	&& rc->results_set->port == this_record->results_set->port
@@ -503,19 +576,79 @@ gint search_hash_key_compare(gconstpointer a, gconstpointer b) {
 }
 
 
-/* Start a new search */
-
 struct search *new_search(guint16 speed, gchar *query) {
-  return _new_search(speed, query, TRUE);
+  return _new_search(speed, query, 0);
+}
+
+static gboolean search_already_sent_to_node(struct search *sch, struct gnutella_node *n) {
+  struct sent_node_data sd;
+  sd.ip = n->ip;
+  sd.port = n->port;
+  return (gboolean)g_hash_table_lookup(sch->sent_nodes, &sd);
 }
 
 static void node_added_callback(gpointer data) {
+  struct search *sch = (struct search *)data;
   g_assert(node_added);
   g_assert(data);
-  __search_send_packet((struct search *)data, node_added);
+  if(!search_already_sent_to_node(sch, node_added)) {
+	__search_send_packet(sch, node_added);
+  }
 }
 
-struct search *_new_search(guint16 speed, gchar *query, gboolean send_packet)
+static guint sent_node_hash_func(gconstpointer key) {
+  struct sent_node_data *sd = (struct sent_node_data *)key;
+
+  /* ensure that we've got sizeof(gint) bytes of deterministic data */
+  gint ip = sd->ip;
+  gint port = sd->port;
+
+  return g_int_hash(&ip) ^ g_int_hash(&port);
+}
+
+static gint sent_node_compare(gconstpointer a, gconstpointer b) {
+  struct sent_node_data *sa = (struct sent_node_data *)a;
+  struct sent_node_data *sb = (struct sent_node_data *)b;
+
+  return sa->ip == sb->ip  && sa->port == sb->port;
+}
+
+static gboolean search_reissue_timeout_callback(gpointer data) {
+  struct search *sch = (struct search *)data;
+
+  printf("reissuing search %s.\n", sch->query);
+  search_reissue(sch);
+
+  return TRUE;
+}
+
+static void update_one_reissue_timeout(struct search *sch) {
+  g_source_remove(sch->reissue_timeout_id);
+  if(search_reissue_timeout > 0) {
+	printf("updating search %s with timeout %d.\n", sch->query, search_reissue_timeout * 1000);
+	sch->reissue_timeout_id = g_timeout_add(search_reissue_timeout * 1000, search_reissue_timeout_callback, sch);
+  } else {
+	sch->reissue_timeout_id = 0;
+	printf("canceling search %s reissue timeout.\n", sch->query);
+  }
+}
+
+void search_update_reissue_timeout(guint32 timeout) {
+  GSList *l;
+
+  search_reissue_timeout = timeout;
+
+  for(l = searches; l; l = l->next) {
+	struct search *sch = (struct search *)l->data;
+	if(sch->reissue_timeout_id)
+	  update_one_reissue_timeout(sch);
+  }
+}
+
+
+/* Start a new search */
+
+struct search *_new_search(guint16 speed, gchar *query, guint flags)
 {
 	struct  search *sch;
 	GList   *glist;
@@ -524,9 +657,24 @@ struct search *_new_search(guint16 speed, gchar *query, gboolean send_packet)
 
 	sch->query = g_strdup(query);
 	sch->speed = minimum_speed;
-
-	if(send_packet)
+	
+	if(flags & SEARCH_PASSIVE) {
+	  sch->passive = 1;
+	  search_passive++;
+	} else {
+	  search_add_new_muid(sch);
+	  sch->sent_nodes = g_hash_table_new(sent_node_hash_func, sent_node_compare);
 	  search_send_packet(sch);
+
+	  sch->new_node_hook = g_hook_alloc(&node_added_hook_list);
+	  sch->new_node_hook->data = sch;
+	  sch->new_node_hook->func = node_added_callback;
+	  g_hook_prepend(&node_added_hook_list, sch->new_node_hook);
+
+	  sch->reissue_timeout_id = g_timeout_add(search_reissue_timeout * 1000,
+											  search_reissue_timeout_callback,
+											  sch);
+	}
 
 	/* Create the list item */
 
@@ -588,14 +736,6 @@ struct search *_new_search(guint16 speed, gchar *query, gboolean send_packet)
 
 	filters_new_search(sch);
 
-	if(send_packet) {
-	  sch->gh = g_hook_alloc(&node_added_hook_list);
-
-	  sch->gh->data = sch;
-	  sch->gh->func = node_added_callback;
-
-	  g_hook_prepend(&node_added_hook_list, sch->gh);
-	}
 
 	return sch;
 }
@@ -642,15 +782,13 @@ struct results_set *get_results_set(struct gnutella_node *n) {
 
 		while (s < e && *s) s++;
 
-		if (s >= e)
-		{
-			fprintf(stderr, "Node %s: %u records found in set (node said %u records)\n", node_ip(n), nr, rs->num_recs);
+		if (s >= e) {
+			fprintf(stderr, "Node %s: %u records found in set (node said %u records), last record not NULL-terminated\n", node_ip(n), nr, rs->num_recs);
 			break;
 		}
 
-		if (s[1])
-		{
-			fprintf(stderr, "Node %s: Record %u is not double-NULL terminated (%c (0x%x) instead)!\n", node_ip(n), nr, (char)s[1], (int)(char)s[1]);
+		if (s[1]) {
+			fprintf(stderr, "Node %s: Record %u is not double-NULL terminated (%c (0x%x) instead)!\n", node_ip(n), nr, isalnum((char)s[1]) ?:' ', (int)s[1]);
 			if(isalnum(s[1]))
 			   s--; /* allow for s += 2, assuming s[1] the beginning of the next entry. */
 		}
@@ -673,13 +811,10 @@ struct results_set *get_results_set(struct gnutella_node *n) {
 	}
 
 	if (s < e)
-	{
-		fprintf(stderr, "Node %s: %u records found in set, but %u bytes remains after the records !\n", node_ip(n), nr, e - s);
-	}
-	else if (s > e)
-	{
-		fprintf(stderr, "Node %s: %u records found in set, but last record exceeded the struct by %u bytes !\n", node_ip(n), nr, s - e);
-	}
+	  fprintf(stderr, "Node %s: %u records found in set (node said %u), but %u bytes remains after the records !\n", node_ip(n), nr, rs->num_recs, e - s);
+	if (nr != rs->num_recs) 
+	  fprintf(stderr, "Node %s: %u records found in set, but node said %u.\n", node_ip(n), nr, rs->num_recs);
+
 
 	/* We now have the guid of the node */
 
@@ -698,8 +833,6 @@ void search_matched(struct search *sch, struct results_set *rs) {
 	struct record *rc;
 	guint32 row;
 
-	sch->r_sets = g_slist_prepend(sch->r_sets, (gpointer) rs);	/* Adds the set to the list */
-
 	/* Update the GUI */
 
 	gtk_clist_freeze(GTK_CLIST(sch->clist));
@@ -710,8 +843,8 @@ void search_matched(struct search *sch, struct results_set *rs) {
 
 		rc = (struct record *) l->data;
 
-		if (search_result_is_dup(sch, rc) || !filter_record(sch, rc)) {
-		  rs->records = g_slist_remove_link(rs->records, l);
+		if (search_result_is_dup(sch, rc) || !filter_record(sch, rc) || rc->size == 186) {
+		  rs->records = g_slist_remove(rs->records, l->data);
 		  rs->num_recs--;
 		  continue;
 		}
@@ -753,8 +886,9 @@ void search_matched(struct search *sch, struct results_set *rs) {
 					work = work->next;
 				}
 			}
-
+	
 			gtk_clist_insert(GTK_CLIST(sch->clist), row, titles);
+
 		}
 
 		gtk_clist_set_row_data(GTK_CLIST(sch->clist), row, (gpointer) rc);
@@ -762,9 +896,18 @@ void search_matched(struct search *sch, struct results_set *rs) {
 
 	gtk_clist_thaw(GTK_CLIST(sch->clist));
 
+	/* If all the results were dups */
+	if(rs->num_recs == 0) {
+	  search_free_r_set(rs);
+	  return;
+	}
+
+	sch->r_sets = g_slist_prepend(sch->r_sets, (gpointer) rs);	/* Adds the set to the list */
+
 	if((sch->items == 0) && (sch == current_search)){
-                gtk_widget_set_sensitive(button_search_clear, TRUE);
-	        gtk_widget_set_sensitive(popup_search_clear_results, TRUE);}
+	  gtk_widget_set_sensitive(button_search_clear, TRUE);
+	  gtk_widget_set_sensitive(popup_search_clear_results, TRUE);
+	}
 
 	if (sch == current_search) {
 	  sch->items += rs->num_recs;
@@ -776,6 +919,10 @@ void search_matched(struct search *sch, struct results_set *rs) {
 
 	if(time(NULL) - sch->last_update_time < tab_update_time)
 	  search_update_tab_label(sch);
+
+	if(sch->reissue_timeout_id) {
+	  update_one_reissue_timeout(sch);
+	}
 }
 
 gboolean search_has_muid(struct search *sch, guchar *muid) {
@@ -802,6 +949,9 @@ void search_results(struct gnutella_node *n)
 			/* This should eventually be replaced with some sort of
                copy_results_set so that we don't have to repeatedly parse
                the packet. */
+		    /* XXX when this is fixed, we'll need to do reference counting
+			 * on the rs's, or duplicate them for each search so that we
+			 * can free them. */
 			rs = get_results_set(n);
 
 			if(rs == NULL) {
