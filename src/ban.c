@@ -476,7 +476,8 @@ gchar *ban_vendor(gchar *vendor)
 	) {
 		if (
 			0 == strncmp(vendor + GTKG_LEN, "0.90", 4) ||
-			0 == strncmp(vendor + GTKG_LEN, "0.91u", 5)
+			0 == strncmp(vendor + GTKG_LEN, "0.91u", 5) ||
+			0 == strncmp(vendor + GTKG_LEN, "0.92b ", 6)
 		)
 			return harmful;
 
