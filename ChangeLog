@@ -1,5 +1,11 @@
 # since last version
 
+- (2002.05.07 - Richard)
+  * Added "Remove all matching regex from queue" to downloads panel
+    (case sensitivity is not persistent yet)
+  * Fixed memory leak in dialog-filters.c regex handling code
+    (g_free(re)).
+
 - (2002.05.04 - Richard)
   * Added "Max uploads to single host" to uploads panel
   * The usual cleanup of spacings and labels and stuff I came across
