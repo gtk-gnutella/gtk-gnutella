@@ -877,8 +877,8 @@ void host_clear_cache(void)
 
 void host_close(void)
 {
-	pcache_close();
 	host_clear_cache();
+	pcache_close();
 	g_hash_table_destroy(ht_known_hosts);
 }
 
