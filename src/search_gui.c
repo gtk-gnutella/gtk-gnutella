@@ -809,7 +809,6 @@ void search_matched(search_t *sch, results_set_t *rs)
     GdkColor *mark_color;
     GdkColor *download_color;
     GSList *l;
-    gboolean list_frozen = FALSE;
     gboolean send_pushes;
     gboolean is_firewalled;
 	gint i;
@@ -926,11 +925,6 @@ void search_matched(search_t *sch, results_set_t *rs)
                     FILTER_PROP_STATE_DONT) &&
                 (flt_result->props[FILTER_PROP_DISPLAY].user_data == 
                     (gpointer) 1);
-            
-            if (!list_frozen) {
-                list_frozen = TRUE;
-                gtk_clist_freeze(GTK_CLIST(sch->clist));
-            }
 
             search_gui_add_record(sch, rc, vinfo, 
                 downloaded ? download_color :  NULL,
@@ -939,9 +933,6 @@ void search_matched(search_t *sch, results_set_t *rs)
 
         filter_free_result(flt_result);
     }
-
-    if (list_frozen)
-        gtk_clist_thaw(GTK_CLIST(sch->clist));
 
     /*
      * A result set may not be added more then once to a search!
@@ -956,11 +947,8 @@ void search_matched(search_t *sch, results_set_t *rs)
 	if (old_items == 0 && sch == current_search && sch->items > 0) {
         GtkWidget *button_search_clear =
             lookup_widget(main_window, "button_search_clear");
-        GtkWidget *popup_search_clear_results = 
-            lookup_widget(popup_search, "popup_search_clear_results");
 
 		gtk_widget_set_sensitive(button_search_clear, TRUE);
-		gtk_widget_set_sensitive(popup_search_clear_results, TRUE);
 	}
 
 	if (sch == current_search) {
@@ -1123,8 +1111,8 @@ void search_gui_download_files(void)
 		gtk_notebook_set_page(GTK_NOTEBOOK(notebook_main),
             nb_main_page_downloads);
         // FIXME: should convert to ctree here. Expand nodes if necessary.
-		gtk_clist_select_row(GTK_CLIST(ctree_menu),
-            nb_main_page_downloads, 0);
+//		gtk_clist_select_row(GTK_CLIST(ctree_menu),
+//            nb_main_page_downloads, 0);
 	}
 
 	if (current_search) {
@@ -1165,6 +1153,12 @@ void search_gui_got_results(GSList *schl, const gnet_results_set_t *r_set)
 	 */
     if (gui_debug >= 15)
         printf("cleaning phase\n");
+
+    if (rs->refcount == 0) {
+        search_free_r_set(rs);
+        return;
+    }
+
     search_clean_r_set(rs);
 
     if (gui_debug >= 15)
@@ -1518,8 +1512,6 @@ void search_gui_remove_search(search_t * sch)
 
 		gtk_widget_set_sensitive
             (lookup_widget(main_window, "button_search_clear"), FALSE);
-		gtk_widget_set_sensitive
-            (lookup_widget(popup_search, "popup_search_clear_results"), FALSE);
         gtk_widget_set_sensitive(spinbutton_minimum_speed, FALSE);
         gtk_spin_button_set_value(GTK_SPIN_BUTTON(spinbutton_minimum_speed), 0);
 	}
@@ -1610,9 +1602,6 @@ void search_gui_set_current_search(search_t *sch)
             lookup_widget(main_window, "button_search_clear"), 
             sch->items != 0);
         gtk_widget_set_sensitive(
-            lookup_widget(popup_search, "popup_search_clear_results"), 
-            sch->items != 0);
-        gtk_widget_set_sensitive(
             lookup_widget(popup_search, "popup_search_restart"), !passive);
         gtk_widget_set_sensitive(
             lookup_widget(popup_search, "popup_search_duplicate"), !passive);
@@ -1633,8 +1622,6 @@ void search_gui_set_current_search(search_t *sch)
             lookup_widget(main_window, "button_search_download"), FALSE);
         gtk_widget_set_sensitive(
             lookup_widget(main_window, "button_search_clear"), FALSE);
-        gtk_widget_set_sensitive(
-            lookup_widget(popup_search, "popup_search_clear_results"), FALSE);
         gtk_widget_set_sensitive(
             lookup_widget(popup_search, "popup_search_restart"), FALSE);
         gtk_widget_set_sensitive(
