@@ -66,6 +66,7 @@ extern guint32  upload_connected_timeout;
 extern guint32  search_reissue_timeout;
 extern guint32  ban_ratio_fds;
 extern guint32  ban_max_fds;
+extern guint32  max_banned_fd;
 extern guint32  incoming_connecting_timeout;
 extern guint32  node_connecting_timeout;
 extern guint32  node_connected_timeout;
@@ -149,6 +150,8 @@ extern guint32  max_ultrapeers;
 extern guint32  max_leaves;
 extern gboolean enable_ultrapeer;
 extern guint32  current_peermode;
+extern guint32  sys_nofile;
+extern guint32  sys_physmem;
 
 
 prop_set_t *gnet_prop_init(void);

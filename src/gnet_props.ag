@@ -442,6 +442,16 @@ prop = {
 };
 
 prop = {
+    name = "max_banned_fd";
+    desc = "Number of file descriptors we'll actually be using for banning";
+    type = guint32;
+	save = FALSE;
+    data = {
+        default = 100;
+    };
+};
+
+prop = {
     name = "incoming_connecting_timeout";
     desc =  "Number of seconds an incoming connection has "  
             "to start sending out its request";
@@ -1382,6 +1392,26 @@ prop = {
     type = guint32;
     data = {
         default = 1;
+    };
+};
+
+prop = {
+    name = "sys_nofile";
+    desc = "How many file descriptors a process can open.";
+	save = FALSE;
+    type = guint32;
+    data = {
+        default = 1024;
+    };
+};
+
+prop = {
+    name = "sys_physmem";
+    desc = "How many KB of physical memory is available.";
+	save = FALSE;
+    type = guint32;
+    data = {
+        default = 65536;
     };
 };
 
