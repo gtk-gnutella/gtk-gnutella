@@ -955,7 +955,6 @@ gboolean search_gui_autoselect_cmp(record_t *rc, record_t *rc2,
     gboolean search_autoselect_fuzzy,
     guint32 fuzzy_threshold)
 {
-    gboolean name_match;
     gboolean size_match;
     
     if (NULL == rc || NULL == rc2)
@@ -965,19 +964,15 @@ gboolean search_gui_autoselect_cmp(record_t *rc, record_t *rc2,
     if (rc == rc2)
         return TRUE;
 
-    /* Records with the same SHA1 (if available) always match */
-    if (
-        rc->sha1 != NULL && 
-        rc2->sha1 != NULL &&
-        memcmp(rc->sha1, rc2->sha1, SHA1_RAW_SIZE) == 0
-    ) {
+    /* Records with the same SHA1 (if available) always match. Since the
+	 * sha1 member is an atom, comparing the addresses is sufficient. */
+    if (rc->sha1 != NULL && rc->sha1 == rc2->sha1)
         return TRUE;
-    }
 
     if (!search_autoselect)
         return FALSE;
 
-    /* Check wether sizes match */;
+    /* Check whether sizes match */;
     size_match = (search_autoselect_ident) ?
         (rc->size == rc2->size) :
         (rc2->size >= rc->size);
@@ -985,15 +980,16 @@ gboolean search_gui_autoselect_cmp(record_t *rc, record_t *rc2,
     if (!size_match)
         return FALSE;
 
-    /* Check wether the names match */
-    name_match = (search_autoselect_fuzzy) ? (
-        fuzzy_compare(rc2->name, rc->name) * 100 >= 
-            (fuzzy_threshold << FUZZY_SHIFT)
-        ) : (
-            !strcmp(rc2->name, rc->name)
-        );
+	/* ``name'' is an atom */
+	if (rc2->name == rc->name)
+		return TRUE;
 
-    return name_match;
+	if (!search_autoselect_fuzzy)
+		return FALSE;
+
+    /* Check whether the names match more or less */
+    return fuzzy_compare(rc2->name, rc->name) * 100
+				>= (fuzzy_threshold << FUZZY_SHIFT);
 }
 
 
