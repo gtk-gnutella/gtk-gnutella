@@ -148,8 +148,8 @@ gboolean gnet_stats_drop_perc     = FALSE;
 gboolean gnet_stats_drop_perc_def = FALSE;
 guint32  gnet_stats_general_col_widths[2]     = { 60, 20 };
 guint32  gnet_stats_general_col_widths_def[2] = { 60, 20 };
-gboolean clear_uploads     = FALSE;
-gboolean clear_uploads_def = FALSE;
+gboolean clear_uploads     = TRUE;
+gboolean clear_uploads_def = TRUE;
 
 static prop_set_t *gui_property = NULL;
 

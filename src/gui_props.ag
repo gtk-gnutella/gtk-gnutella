@@ -593,7 +593,7 @@ prop = {
     desc = "Auto clear completed uploads";
     type = boolean;
     data = {
-        default = FALSE;
+        default = TRUE;
         value   = clear_uploads;
     };
 };

@@ -51,7 +51,7 @@ prop = {
            "servents.";
     type = guint32;
     data = {
-        default = 4;
+        default = 3;
         min     = 1;
         max     = 100;
     };
@@ -89,9 +89,9 @@ prop = {
            "to download a file";
     type = guint32;
     data = {
-        default = 4;
+        default = 1;
         min     = 1;
-        max     = 100;
+        max     = 10;
     };
 };
 
@@ -101,7 +101,7 @@ prop = {
     desc = "Don't allow more than this number of uploads in total";
     type = guint32;
     data = {
-        default = 5;
+        default = 4;
         value   = max_uploads;
         min     = 0;
         max     = 100;
@@ -114,7 +114,7 @@ prop = {
            "single host";
     type = guint32;
     data = {
-        default = 2;
+        default = 1;
         min     = 1;
         max     = 100; 
     }; 
@@ -577,7 +577,7 @@ prop = {
     desc = "Try to connect to local networks first";
     type = boolean;
     data = {
-        default = TRUE;
+        default = FALSE;
     };
 };
 
@@ -869,7 +869,7 @@ prop = {
           "asf;avi;"
 		  "bin;bz2;"
 		  "cue;"
-		  "divx;"
+		  "deb;divx;"
 		  "flc;fli;"
 		  "gif;gz;"
 		  "ifo;iso;it;"
@@ -878,9 +878,9 @@ prop = {
 		  "ogg;"
 		  "qt;"
 		  "png;ps;pdf;"
-		  "ram;rm;rar;"
+		  "ram;rm;rar;rpm;"
 		  "s3m;stm;"
-		  "txt;"
+		  "tar;tgz;txt;"
 		  "vob;voc;vqf;"
 		  "wav;wma;wmv;"
 		  "xm;"
