@@ -48,7 +48,7 @@ prop = {
 prop = {
     name = "up_connections";
     desc = "Try to keep at least this number of connections to other" 
-           "servents";
+           "servents.";
     type = guint32;
     data = {
         default = 4;
@@ -60,7 +60,9 @@ prop = {
 prop = {
     name = "max_connections";
     desc = "Don't allow more that this number of connections to other"
-           "servents";
+           "servents. As a rule of thumb you should resevere 1kb/s "
+	   "bandwidth per connection. Never use up all your bandwidth, "
+	   "leave a little space for TCP/IP overhead.";
     type = guint32;
     data = {
         default = 4;
@@ -1112,3 +1114,14 @@ prop = {
     };
 };
 
+prop = {
+    name = "prefer_compressed_gnet";
+    desc = "When on only compressed incoming connections are allowed after "
+           "the minimum number of connections has be established. Always "
+	   "allows for one non-compressed connection.";
+    save = TRUE;
+    type = boolean;
+    data = {
+        default = FALSE;
+    };
+};

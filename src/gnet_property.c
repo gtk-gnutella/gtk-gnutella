@@ -231,6 +231,8 @@ gboolean library_rebuilding     = FALSE;
 gboolean library_rebuilding_def = FALSE;
 gboolean sha1_rebuilding     = FALSE;
 gboolean sha1_rebuilding_def = FALSE;
+gboolean prefer_compressed_gnet     = FALSE;
+gboolean prefer_compressed_gnet_def = FALSE;
 
 static prop_set_t *gnet_property = NULL;
 
@@ -306,7 +308,7 @@ prop_set_t *gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[3].name = "up_connections";
-    gnet_property->props[3].desc = "Try to keep at least this number of connections to otherservents";
+    gnet_property->props[3].desc = "Try to keep at least this number of connections to otherservents.";
     gnet_property->props[3].prop_changed_listeners = NULL;
     gnet_property->props[3].save = TRUE;
     gnet_property->props[3].vector_size = 1;
@@ -325,7 +327,7 @@ prop_set_t *gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[4].name = "max_connections";
-    gnet_property->props[4].desc = "Don't allow more that this number of connections to otherservents";
+    gnet_property->props[4].desc = "Don't allow more that this number of connections to otherservents. As a rule of thumb you should resevere 1kb/s bandwidth per connection. Never use up all your bandwidth, leave a little space for TCP/IP overhead.";
     gnet_property->props[4].prop_changed_listeners = NULL;
     gnet_property->props[4].save = TRUE;
     gnet_property->props[4].vector_size = 1;
@@ -2063,6 +2065,23 @@ prop_set_t *gnet_prop_init(void) {
     gnet_property->props[97].type               = PROP_TYPE_BOOLEAN;
     gnet_property->props[97].data.boolean.def   = &sha1_rebuilding_def;
     gnet_property->props[97].data.boolean.value = &sha1_rebuilding;
+
+
+    /*
+     * PROP_PREFER_COMPRESSED_GNET:
+     *
+     * General data:
+     */
+    gnet_property->props[98].name = "prefer_compressed_gnet";
+    gnet_property->props[98].desc = "When on only compressed incoming connections are allowed after the minimum number of connections has be established. Always allows for one non-compressed connection.";
+    gnet_property->props[98].prop_changed_listeners = NULL;
+    gnet_property->props[98].save = TRUE;
+    gnet_property->props[98].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[98].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[98].data.boolean.def   = &prefer_compressed_gnet_def;
+    gnet_property->props[98].data.boolean.value = &prefer_compressed_gnet;
     return gnet_property;
 }
 

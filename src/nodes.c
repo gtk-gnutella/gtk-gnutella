@@ -113,6 +113,7 @@ GHookList node_added_hook_list;
 struct gnutella_node *node_added;
 
 static gint32 connected_node_cnt = 0;
+static gint32 compressed_node_cnt = 0;
 static gint pending_byes = 0;			/* Used when shutdowning servent */
 static gboolean in_shutdown = FALSE;
 static gboolean no_gnutella_04 = FALSE;
@@ -494,6 +495,10 @@ static void node_remove_v(
 	if (n->status == GTA_NODE_CONNECTED) {		/* Already did if shutdown */
 		connected_node_cnt--;
 		g_assert(connected_node_cnt >= 0);
+        if (n->attrs & NODE_A_RX_INFLATE) {
+            compressed_node_cnt--;
+            g_assert(compressed_node_cnt >= 0);
+        }
 	}
 
 	if (n->status == GTA_NODE_SHUTDOWN)
@@ -668,7 +673,11 @@ static void node_shutdown_mode(struct gnutella_node *n, guint32 delay)
 	if (n->status == GTA_NODE_CONNECTED) {	/* Free Gnet slot */
 		connected_node_cnt--;
 		g_assert(connected_node_cnt >= 0);
-	}
+        if (n->attrs & NODE_A_RX_INFLATE) {
+            compressed_node_cnt--;
+            g_assert(compressed_node_cnt >= 0);
+        }
+ 	}
 
 	n->status = GTA_NODE_SHUTDOWN;
 	n->flags &= ~(NODE_F_WRITABLE|NODE_F_READABLE);
@@ -1128,6 +1137,7 @@ static void node_is_now_connected(struct gnutella_node *n)
 		n->rx = rx_make(n, &rx_inflate_ops, node_data_ind, 0);
 		rx = rx_make_under(n->rx, &rx_link_ops, 0);
 		g_assert(rx);			/* Cannot fail */
+        compressed_node_cnt++;
 	} else
 		n->rx = rx_make(n, &rx_link_ops, node_data_ind, 0);
 
@@ -1727,6 +1737,16 @@ static void node_process_handshake_header(
 			n->attrs |= NODE_A_CAN_INFLATE;
 			n->attrs |= NODE_A_TX_DEFLATE;	/* We accept! */
 		}
+	} else {
+		if (
+            incoming && prefer_compressed_gnet &&
+			(connected_nodes() >= up_connections) &&
+            (connected_nodes() - compressed_node_cnt > 0)
+        ) {
+			send_node_error(n->socket, 401, "Only accepting compressed gnet connections");
+			node_remove(n, "No compressed connection");
+			return;
+		}
 	}
 
 	/*
@@ -2015,7 +2035,15 @@ void node_add_socket(struct gnutella_socket *s, guint32 ip, guint16 port)
 	}
 #endif
 
-	if (s && no_gnutella_04 && major == 0 && minor < 6) {
+	if (
+        s && 
+        (major == 0) && (minor < 6) && (
+            no_gnutella_04 || (
+                prefer_compressed_gnet && 
+                (connected_nodes() >= up_connections)
+            )
+        ) 
+    ) {
 		socket_free(s);
 		return;
 	}

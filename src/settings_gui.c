@@ -1264,6 +1264,13 @@ static prop_map_t property_map[] = {
         TRUE,
         "eventbox_image_sha" /* need eventbox because image has no tooltip */
     },
+    {
+        get_main_window,
+        PROP_PREFER_COMPRESSED_GNET,
+        update_togglebutton,
+        TRUE,
+        "checkbutton_prefer_compressed_gnet"
+    },
 };
 
 /***
