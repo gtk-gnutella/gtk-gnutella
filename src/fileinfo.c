@@ -254,6 +254,9 @@ struct trailer {
 	guint32 magic;			/* Magic number */
 };
 
+static struct dl_file_info *file_info_retrieve_binary(gchar *file, gchar *path);
+static void fi_free(struct dl_file_info *fi);
+
 /*
  * tbuf_extend
  *
@@ -448,9 +451,47 @@ void file_info_store_binary(struct dl_file_info *fi)
  */
 void file_info_strip_binary(struct dl_file_info *fi)
 {
-	/* fixme: too quick'n'dirty? */
 	g_snprintf(fi_tmp, sizeof(fi_tmp), "%s/%s", fi->path, fi->file_name);
-	truncate(fi_tmp, fi->size);
+
+	if (-1 == truncate(fi_tmp, fi->size))
+		g_warning("could not chop fileinfo trailer off \"%s\": %s",
+			fi_tmp, g_strerror(errno));
+}
+
+/*
+ * file_info_strip_binary_from_file
+ *
+ * Strips the file metainfo trailer off specified file.
+ */
+void file_info_strip_binary_from_file(struct dl_file_info *fi, gchar *file)
+{
+	struct dl_file_info *dfi;
+
+	g_assert(file[0] == '/');		/* Absolute path given */
+
+	/*
+	 * Before truncating the file, we must be really sure it is reasonnably
+	 * matching the fileinfo structure we have for it: retrieve the binary
+	 * trailer, and check size / completion.
+	 */
+
+	dfi = file_info_retrieve_binary(file, "");
+
+	if (dfi == NULL) {
+		g_warning("could not chop fileinfo trailer off \"%s\": file does "
+			"not seem to have a valid trailer", file);
+		return;
+	}
+
+	if (dfi->size != fi->size || dfi->done != fi->done) {
+		g_warning("could not chop fileinfo trailer off \"%s\": file was "
+			"different than expected (%u/%u bytes done instead of %u/%u)",
+			file, dfi->done, dfi->size, fi->done, fi->size);
+	} else if (-1 == truncate(file, fi->size))
+		g_warning("could not chop fileinfo trailer off \"%s\": %s",
+			file, g_strerror(errno));
+
+	fi_free(dfi);
 }
 
 /*

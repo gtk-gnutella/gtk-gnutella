@@ -111,6 +111,7 @@ struct dl_file_info *file_info_get(
 	gchar *file, gchar *path, guint32 size, gchar *sha1);
 void file_info_free(struct dl_file_info *fi, gboolean discard);
 void file_info_strip_binary(struct dl_file_info *fi);
+void file_info_strip_binary_from_file(struct dl_file_info *fi, gchar *file);
 gboolean file_info_got_sha1(struct dl_file_info *fi, guchar *sha1);
 void file_info_update(
 	struct download *d, guint32 from, guint32 to, enum dl_chunk_status status);

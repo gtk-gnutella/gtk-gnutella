@@ -5193,7 +5193,7 @@ error:
 	return;
 
 renamed:
-	file_info_strip_binary(fi);
+	file_info_strip_binary_from_file(fi, dest_name);
 	download_move_done(d, 0);
 	return;
 }
