@@ -956,21 +956,21 @@ gchar *filter_rule_condition_to_gchar(const rule_t *r)
                 tmp, sizeof(tmp),
                 _("If filename contains the substring \"%s\" %s"),
                 r->u.text.match,
-                r->u.text.case_sensitive ? _("(case sensitive)") : "");
+                r->u.text.case_sensitive ? _("(case-sensitive)") : "");
             break;
         case RULE_TEXT_REGEXP:
            	gm_snprintf(
                 tmp, sizeof(tmp),
                 _("If filename matches the regex \"%s\" %s"),
                 r->u.text.match,
-                r->u.text.case_sensitive ? "(case sensitive)" : "");
+                r->u.text.case_sensitive ? _("(case-sensitive)") : "");
             break;
         case RULE_TEXT_EXACT:
            	gm_snprintf(
                 tmp, sizeof(tmp),
                 _("If filename is \"%s\" %s"),
                 r->u.text.match,
-                r->u.text.case_sensitive ? _("(case sensitive)") : "");
+                r->u.text.case_sensitive ? _("(case-sensitive)") : "");
             break;
         default:
             g_error("filter_rule_condition_to_gchar:"
