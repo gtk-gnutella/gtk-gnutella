@@ -124,7 +124,7 @@ extern GtkWidget *checkbutton_monitor_enable;
 extern GtkWidget *popup_search_clear_results;
 extern GtkWidget *popup_search_close;
 extern GtkWidget *popup_search_duplicate;
-extern GtkWidget *popup_search_filters;
+extern GtkWidget *popup_search_dont_show;
 extern GtkWidget *popup_search_restart;
 extern GtkWidget *popup_search_resume;
 extern GtkWidget *popup_search_stop;

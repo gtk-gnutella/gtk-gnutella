@@ -129,7 +129,7 @@ set w_main_list {
     popup_search_clear_results
     popup_search_close
     popup_search_duplicate 
-    popup_search_filters 
+    popup_search_dont_show
     popup_search_restart 
     popup_search_resume
     popup_search_stop

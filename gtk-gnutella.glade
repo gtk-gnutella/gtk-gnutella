@@ -3122,22 +3122,31 @@
 		  </widget>
 
 		  <widget>
-		    <class>GtkButton</class>
-		    <name>button_search</name>
-		    <sensitive>False</sensitive>
-		    <can_focus>True</can_focus>
-		    <signal>
-		      <name>clicked</name>
-		      <handler>on_button_search_clicked</handler>
-		      <last_modification_time>Sun, 26 Mar 2000 17:38:58 GMT</last_modification_time>
-		    </signal>
-		    <label>New search</label>
-		    <relief>GTK_RELIEF_NORMAL</relief>
+		    <class>GtkAlignment</class>
+		    <name>alignment18</name>
+		    <xalign>0.5</xalign>
+		    <yalign>0.5</yalign>
+		    <xscale>1</xscale>
+		    <yscale>1</yscale>
 		    <child>
 		      <padding>0</padding>
 		      <expand>False</expand>
 		      <fill>False</fill>
 		    </child>
+
+		    <widget>
+		      <class>GtkButton</class>
+		      <name>button_search</name>
+		      <sensitive>False</sensitive>
+		      <can_focus>True</can_focus>
+		      <signal>
+			<name>clicked</name>
+			<handler>on_button_search_clicked</handler>
+			<last_modification_time>Sun, 26 Mar 2000 17:38:58 GMT</last_modification_time>
+		      </signal>
+		      <label>New search</label>
+		      <relief>GTK_RELIEF_NORMAL</relief>
+		    </widget>
 		  </widget>
 
 		  <widget>
@@ -8101,13 +8110,13 @@ settings</label>
 
   <widget>
     <class>GtkMenuItem</class>
-    <name>popup_search_filters</name>
+    <name>popup_search_dont_show</name>
     <signal>
       <name>activate</name>
-      <handler>on_popup_search_filters_activate</handler>
-      <last_modification_time>Mon, 08 May 2000 14:09:31 GMT</last_modification_time>
+      <handler>on_popup_search_dont_show_activate</handler>
+      <last_modification_time>Mon, 10 Jun 2002 23:40:01 GMT</last_modification_time>
     </signal>
-    <label>Filter the results</label>
+    <label>Don't show selected</label>
     <right_justify>False</right_justify>
   </widget>
 

@@ -472,8 +472,6 @@ void on_button_uploads_kill_clicked(GtkButton * button, gpointer user_data)
 
 		if (!UPLOAD_IS_COMPLETE(d))
 			socket_destroy(d->socket);
-
-		l = GTK_CLIST(clist_uploads)->selection;
 	} 
 
 	gui_update_count_uploads();
@@ -2387,6 +2385,7 @@ void on_clist_search_results_select_row(GtkCList * clist, gint row,
 	guint msgid = -1;
 
 	gtk_widget_set_sensitive(button_search_download, TRUE);
+    gtk_widget_set_sensitive(popup_search_dont_show, TRUE);
 
     gtk_clist_freeze(clist);
 
@@ -2440,6 +2439,7 @@ void on_clist_search_results_unselect_row(GtkCList * clist, gint row,
 
 	sensitive = current_search	&& (gboolean) GTK_CLIST(current_search->clist)->selection;
 	gtk_widget_set_sensitive(button_search_download, sensitive);
+    gtk_widget_set_sensitive(popup_search_dont_show, sensitive);
 }
 
 void on_clist_search_results_click_column(GtkCList * clist, gint column,
@@ -2552,10 +2552,44 @@ void on_clist_search_select_row(GtkCList * clist, gint row,
 /***
  *** popup-search
  ***/
-void on_popup_search_filters_activate(GtkMenuItem * menuitem,
-									  gpointer user_data)
+void on_popup_search_dont_show_activate(GtkMenuItem * menuitem,
+								  	    gpointer user_data)
 {
-    filter_open_dialog();
+    GList *l = NULL;
+	record_t *rec;
+    rule_t *rule;
+
+    g_assert(current_search != NULL);
+
+    gtk_clist_freeze(GTK_CLIST(current_search->clist));
+
+	for (l = GTK_CLIST(current_search->clist)->selection; l; 
+         l = GTK_CLIST(current_search->clist)->selection ) {		
+        gint row;
+
+        row = (gint) l->data;
+
+		rec = (record_t *) 
+			gtk_clist_get_row_data(GTK_CLIST(current_search->clist), row);
+        
+        if (!rec) {
+			g_warning(
+                "on_popup_search_dont_show_activate(): row %d has NULL data\n",
+			    row);
+		    continue;
+        }
+
+        rule = filter_new_text_rule(
+            rec->name, RULE_TEXT_EXACT, TRUE, 
+            filter_get_drop_target(), RULE_FLAG_ACTIVE);
+
+        filter_append_rule(current_search->filter, rule);
+    
+        gtk_clist_remove(GTK_CLIST(current_search->clist), row);
+        // FIXME: we need to unref the removed record!!!
+	} 
+
+    gtk_clist_thaw(GTK_CLIST(current_search->clist));
 }
 
 void on_popup_search_close_activate(GtkMenuItem * menuitem,
@@ -2684,13 +2718,18 @@ gboolean on_clist_search_results_button_press_event(GtkWidget * widget,
    
 	case 3:
         /* right click section (popup menu) */
-/* FIXME: remove
-		gtk_widget_set_sensitive(popup_search_toggle_tabs,
-			(gboolean) searches);
-*/
-		gtk_widget_set_sensitive(popup_search_close, (gboolean) searches);
-		gtk_widget_set_sensitive(popup_search_restart, (gboolean) searches);
-		gtk_widget_set_sensitive(popup_search_duplicate, (gboolean) searches);
+        {
+            gtk_widget_set_sensitive(
+                popup_search_dont_show, 
+                current_search	&& 
+                    (gboolean) GTK_CLIST(current_search->clist)->selection);
+            gtk_widget_set_sensitive
+                (popup_search_close, (gboolean) searches);
+            gtk_widget_set_sensitive
+                (popup_search_restart, (gboolean) searches);
+            gtk_widget_set_sensitive
+                (popup_search_duplicate, (gboolean) searches);
+        }
 
 		if (current_search) {
 			gtk_widget_set_sensitive(popup_search_stop, 

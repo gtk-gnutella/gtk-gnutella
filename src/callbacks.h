@@ -266,10 +266,10 @@ void on_popup_nodes_remove_activate (GtkMenuItem *menuitem, gpointer user_data);
 /***
  *** popup-search
  ***/
+void on_popup_search_dont_show_activate (GtkMenuItem *menuitem, gpointer user_data);
 void on_popup_search_clear_results_activate (GtkMenuItem *menuitem, gpointer user_data);
 void on_popup_search_close_activate (GtkMenuItem *menuitem, gpointer user_data);
 void on_popup_search_duplicate_activate (GtkMenuItem *menuitem, gpointer user_data);
-void on_popup_search_filters_activate (GtkMenuItem *menuitem, gpointer user_data);
 void on_popup_search_restart_activate (GtkMenuItem *menuitem, gpointer user_data);
 void on_popup_search_resume_activate (GtkMenuItem *menuitem, gpointer user_data);
 void on_popup_search_stop_activate (GtkMenuItem *menuitem, gpointer user_data);

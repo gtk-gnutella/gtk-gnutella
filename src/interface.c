@@ -130,7 +130,7 @@ GtkWidget *checkbutton_monitor_enable;
 GtkWidget *popup_search_clear_results;
 GtkWidget *popup_search_close;
 GtkWidget *popup_search_duplicate;
-GtkWidget *popup_search_filters;
+GtkWidget *popup_search_dont_show;
 GtkWidget *popup_search_restart;
 GtkWidget *popup_search_resume;
 GtkWidget *popup_search_stop;
@@ -398,6 +398,7 @@ create_main_window (void)
   GtkWidget *hbox18;
   GtkWidget *label204;
   GtkWidget *optionmenu_search_filter_menu;
+  GtkWidget *alignment18;
   GtkWidget *button_search_passive;
   GtkWidget *table2;
   GtkWidget *label79;
@@ -2223,12 +2224,19 @@ create_main_window (void)
   optionmenu_search_filter_menu = gtk_menu_new ();
   gtk_option_menu_set_menu (GTK_OPTION_MENU (optionmenu_search_filter), optionmenu_search_filter_menu);
 
+  alignment18 = gtk_alignment_new (0.5, 0.5, 1, 1);
+  gtk_widget_ref (alignment18);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "alignment18", alignment18,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (alignment18);
+  gtk_box_pack_start (GTK_BOX (hbox18), alignment18, FALSE, FALSE, 0);
+
   button_search = gtk_button_new_with_label ("New search");
   gtk_widget_ref (button_search);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "button_search", button_search,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (button_search);
-  gtk_box_pack_start (GTK_BOX (hbox18), button_search, FALSE, FALSE, 0);
+  gtk_container_add (GTK_CONTAINER (alignment18), button_search);
   gtk_widget_set_sensitive (button_search, FALSE);
 
   button_search_passive = gtk_button_new_with_label ("New passive search");
@@ -4987,12 +4995,12 @@ create_popup_search (void)
   gtk_object_set_data (GTK_OBJECT (popup_search), "popup_search", popup_search);
   popup_search_accels = gtk_menu_ensure_uline_accel_group (GTK_MENU (popup_search));
 
-  popup_search_filters = gtk_menu_item_new_with_label ("Filter the results");
-  gtk_widget_ref (popup_search_filters);
-  gtk_object_set_data_full (GTK_OBJECT (popup_search), "popup_search_filters", popup_search_filters,
+  popup_search_dont_show = gtk_menu_item_new_with_label ("Don't show selected");
+  gtk_widget_ref (popup_search_dont_show);
+  gtk_object_set_data_full (GTK_OBJECT (popup_search), "popup_search_dont_show", popup_search_dont_show,
                             (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (popup_search_filters);
-  gtk_container_add (GTK_CONTAINER (popup_search), popup_search_filters);
+  gtk_widget_show (popup_search_dont_show);
+  gtk_container_add (GTK_CONTAINER (popup_search), popup_search_dont_show);
 
   separator3 = gtk_menu_item_new ();
   gtk_widget_ref (separator3);
@@ -5067,8 +5075,8 @@ create_popup_search (void)
   gtk_widget_show (popup_search_config_cols);
   gtk_container_add (GTK_CONTAINER (popup_search), popup_search_config_cols);
 
-  gtk_signal_connect (GTK_OBJECT (popup_search_filters), "activate",
-                      GTK_SIGNAL_FUNC (on_popup_search_filters_activate),
+  gtk_signal_connect (GTK_OBJECT (popup_search_dont_show), "activate",
+                      GTK_SIGNAL_FUNC (on_popup_search_dont_show_activate),
                       NULL);
   gtk_signal_connect (GTK_OBJECT (popup_search_stop), "activate",
                       GTK_SIGNAL_FUNC (on_popup_search_stop_activate),
