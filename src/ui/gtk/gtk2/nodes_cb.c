@@ -31,104 +31,66 @@ RCSID("$Id$");
 
 #include "nodes_cb.h"
 #include "gtk/gtkcolumnchooser.h"
-#include "gtk/settings.h"
+#include "gtk/nodes_common.h"
 #include "gtk/statusbar.h"
 
 #include "if/bridge/ui2c.h"
 
+#include "lib/iso3166.h"
 #include "lib/override.h"		/* Must be the last header included */
 
-static void add_node_helper(guint32 ip, gpointer port)
-{
-	guc_node_add(ip, GPOINTER_TO_UINT(port));
-}
-
-/*
- * nodes_cb_connect_by_name:
- *
- * Try to connect to the node given by the addr string in the form
- * [ip]:[port]. Port may be omitted.
- */
-static void nodes_cb_connect_by_name(const gchar *addr) 
-{
-    guint32 port = GTA_PORT;
-    gchar *e;
-    gchar *seek;
-
-    g_assert(addr != NULL);
-    
-    e = g_strdup(addr);
-	g_strstrip(e);
-
-	seek = e;
-
-	while (*seek && *seek != ':' && *seek != ' ')
-		seek++;
-
-	if (*seek) {
-		*seek++ = 0;
-		while (*seek && (*seek == ':' || *seek == ' '))
-			seek++;
-		if (*seek)
-			port = atol(seek);
-	}
-
-	if (port < 1 || port > 65535) {
-        statusbar_gui_warning(15, "Port must be between 1 and 65535");
-    } else {
-		guc_adns_resolve(e, add_node_helper, GUINT_TO_POINTER((guint) port));
-	}
-
-    G_FREE_NULL(e);
-}
-
-static void add_node(void)
+static void
+add_node(void)
 {
     gchar *addr;
     GtkEditable *editable = GTK_EDITABLE
         (lookup_widget(main_window, "entry_host"));
 
     addr = gtk_editable_get_chars(editable, 0, -1);
-    nodes_cb_connect_by_name(addr);
+    nodes_gui_common_connect_by_name(addr);
     G_FREE_NULL(addr);
     gtk_entry_set_text(GTK_ENTRY(editable), "");
 }
 
-void on_button_nodes_remove_clicked(GtkButton *button, gpointer user_data)
+void
+on_button_nodes_remove_clicked(GtkButton *unused_button, gpointer unused_udata)
 {
-	(void) button;
-	(void) user_data;
+	(void) unused_button;
+	(void) unused_udata;
 	nodes_gui_remove_selected();
 }
 
-gboolean on_popup_nodes_disconnect_activate(GtkItem *item, gpointer user_data)
+gboolean
+on_popup_nodes_disconnect_activate(GtkItem *unused_item, gpointer unused_udata)
 {
-	(void) item;
-	(void) user_data;
+	(void) unused_item;
+	(void) unused_udata;
 	nodes_gui_remove_selected();
 	return TRUE;
 }
 
-void on_button_nodes_add_clicked(GtkButton * button, gpointer user_data)
+void
+on_button_nodes_add_clicked(GtkButton *unused_button, gpointer unused_udata)
 {
-	(void) button;
-	(void) user_data;
+	(void) unused_button;
+	(void) unused_udata;
     add_node();
 }
 
-void on_entry_host_activate(GtkEditable * editable, gpointer user_data)
+void
+on_entry_host_activate(GtkEditable *unused_editable, gpointer unused_udata)
 {
-	(void) editable;
-	(void) user_data;
+	(void) unused_editable;
+	(void) unused_udata;
     add_node();
 }
 
-void on_entry_host_changed(GtkEditable * editable, gpointer user_data)
+void
+on_entry_host_changed(GtkEditable *editable, gpointer unused_udata)
 {
 	gchar *e;
    
-	(void) editable;
-	(void) user_data;
+	(void) unused_udata;
 	e = gtk_editable_get_chars(editable, 0, -1);
 	g_strstrip(e);
 	gtk_widget_set_sensitive(lookup_widget(main_window, "button_nodes_add"),
@@ -136,11 +98,11 @@ void on_entry_host_changed(GtkEditable * editable, gpointer user_data)
 	G_FREE_NULL(e);
 }
 
-gboolean on_treeview_nodes_button_press_event(
-	GtkWidget *widget, GdkEventButton *event, gpointer user_data)
+gboolean
+on_treeview_nodes_button_press_event(GtkWidget *widget,
+		GdkEventButton *event, gpointer unused_udata)
 {
-	(void) widget;
-	(void) user_data;
+	(void) unused_udata;
     if (3 == event->button) {
         /* right click section (popup menu) */
 
@@ -150,16 +112,17 @@ gboolean on_treeview_nodes_button_press_event(
 	return FALSE;
 }
 
-/* 
- * 	on_popup_search_config_cols_activate
- *
- *	Please add comment
+/**
+ * Creates and pops up the column chooser for ``treeview_nodes''
  */
-gboolean on_popup_nodes_config_cols_activate(GtkItem *menuitem, 
-	gpointer user_data)
+gboolean
+on_popup_nodes_config_cols_activate(GtkItem *unused_menuitem,
+	gpointer unused_udata)
 {
     GtkWidget *cc;
 
+	(void) unused_menuitem;
+	(void) unused_udata;
     cc = gtk_column_chooser_new(lookup_widget(main_window, "treeview_nodes"));
     gtk_menu_popup(GTK_MENU(cc), NULL, NULL, NULL, NULL, 1, 0);
 

@@ -32,8 +32,8 @@ RCSID("$Id$");
 #include "nodes_cb.h"
 
 #include "gtk/gtkcolumnchooser.h"
+#include "gtk/nodes_common.h"
 #include "gtk/settings.h"
-#include "gtk/statusbar.h"
 #include "gtk/gtk-missing.h"
 
 #include "if/gui_property_priv.h"
@@ -41,71 +41,36 @@ RCSID("$Id$");
 
 #include "lib/override.h"		/* Must be the last header included */
 
-static void add_node_helper(guint32 ip, gpointer port)
-{
- 	guc_node_add(ip, GPOINTER_TO_UINT(port));
-}
-
-/*
- * nodes_cb_connect_by_name:
- *
- * Try to connect to the node given by the addr string in the form
- * [ip]:[port]. Port may be omitted.
- */
-static void nodes_cb_connect_by_name(const gchar *addr) 
-{
-    guint32 port = GTA_PORT;
-    gchar *e;
-    gchar *seek;
-
-    g_assert(addr != NULL);
-    
-    e = g_strdup(addr);
-	g_strstrip(e);
-
-	seek = e;
-
-	while (*seek && *seek != ':' && *seek != ' ')
-		seek++;
-
-	if (*seek) {
-		*seek++ = 0;
-		while (*seek && (*seek == ':' || *seek == ' '))
-			seek++;
-		if (*seek)
-			port = atol(seek);
-	}
-
-	if (port < 1 || port > 65535) {
-        statusbar_gui_warning(15, "Port must be between 1 and 65535");
-    } else {
-		guc_adns_resolve(e, add_node_helper, 
-			GUINT_TO_POINTER((guint) port));
-	}
-
-    G_FREE_NULL(e);
-}
-
-void on_clist_nodes_select_row
+void
+on_clist_nodes_select_row
     (GtkCList *clist, gint row, gint col, GdkEvent *event, gpointer user_data)
 {
     on_clist_nodes_unselect_row(clist, row, col, event, user_data);
 }
 
-void on_clist_nodes_unselect_row
-    (GtkCList *clist, gint row, gint col, GdkEvent *event, gpointer user_data)
+void
+on_clist_nodes_unselect_row(GtkCList *clist, gint unused_row,
+		gint unused_col, GdkEvent *unused_event, gpointer unused_udata)
 {
-    gboolean sensitive = (gboolean) GPOINTER_TO_INT(clist->selection);
+    gboolean sensitive = GPOINTER_TO_INT(clist->selection);
+
+	(void) unused_row;
+	(void) unused_col;
+	(void) unused_event;
+	(void) unused_udata;
 	gtk_widget_set_sensitive
         (lookup_widget(main_window, "button_nodes_remove"), sensitive);
     gtk_widget_set_sensitive
         (lookup_widget(popup_nodes, "popup_nodes_remove"), sensitive);
 }
 
-void on_clist_nodes_resize_column
-    (GtkCList *clist, gint column, gint width, gpointer user_data)
+void
+on_clist_nodes_resize_column(GtkCList *clist, gint column,
+		gint width, gpointer unused_udata)
 {
-    *(gint *) &nodes_col_widths[column] = width;
+	(void) unused_udata;
+	g_assert(column >= 0 && column <= (gint) G_N_ELEMENTS(nodes_col_widths));
+    *(guint32 *) &nodes_col_widths[column] = width; /* override const */
 }
 
 gboolean on_clist_nodes_button_press_event
@@ -134,12 +99,14 @@ gboolean on_clist_nodes_button_press_event
 	return TRUE;
 }
 
-static gint list_direct_equal(gconstpointer p1, gconstpointer p2)
+static gint
+list_direct_equal(gconstpointer p1, gconstpointer p2)
 {
     return p1 == p2 ? 0 : 1;
 }
 
-static void remove_selected_nodes(void)
+static void
+remove_selected_nodes(void)
 {
     GSList *node_list = NULL;
     GtkCList *clist = GTK_CLIST(lookup_widget(main_window, "clist_nodes"));
@@ -151,45 +118,58 @@ static void remove_selected_nodes(void)
     g_slist_free(node_list);
 }
 
-static void add_node(void)
+static void
+add_node(void)
 {
     gchar *addr;
     GtkEditable *editable = GTK_EDITABLE
         (lookup_widget(main_window, "entry_host"));
 
     addr = STRTRACK(gtk_editable_get_chars(editable, 0, -1));
-
-    nodes_cb_connect_by_name(addr);
-
+    nodes_gui_common_connect_by_name(addr);
     G_FREE_NULL(addr);
-
     gtk_entry_set_text(GTK_ENTRY(editable), "");
 }
 
-void on_popup_nodes_remove_activate(GtkMenuItem *menuitem, gpointer user_data)
+void
+on_popup_nodes_remove_activate(GtkMenuItem *unused_menuitem,
+		gpointer unused_udata)
 {
+	(void) unused_menuitem;
+	(void) unused_udata;
     remove_selected_nodes();
 }
 
-void on_button_nodes_remove_clicked(GtkButton *button, gpointer user_data)
+void
+on_button_nodes_remove_clicked(GtkButton *unused_button, gpointer unused_udata)
 {
+	(void) unused_button;
+	(void) unused_udata;
     remove_selected_nodes();
 }
 
-void on_button_nodes_add_clicked(GtkButton * button, gpointer user_data)
+void
+on_button_nodes_add_clicked(GtkButton *unused_button, gpointer unused_udata)
 {
+	(void) unused_button;
+	(void) unused_udata;
     add_node();
 }
 
-void on_entry_host_activate(GtkEditable * editable, gpointer user_data)
+void
+on_entry_host_activate(GtkEditable *unused_editable, gpointer unused_udata)
 {
+	(void) unused_editable;
+	(void) unused_udata;
     add_node();
 }
 
-void on_entry_host_changed(GtkEditable * editable, gpointer user_data)
+void
+on_entry_host_changed(GtkEditable *editable, gpointer unused_udata)
 {
 	gchar *e;
 
+	(void) unused_udata;
 	e = STRTRACK(gtk_editable_get_chars(editable, 0, -1));
 	g_strstrip(e);
 	gtk_widget_set_sensitive(lookup_widget(main_window, "button_nodes_add"),
@@ -197,16 +177,18 @@ void on_entry_host_changed(GtkEditable * editable, gpointer user_data)
 	G_FREE_NULL(e);
 }
 
-/* 
- * 	on_popup_search_config_cols_activate
- *
- *	Please add comment
+/**
+ *  Creates and pops up the column chooser for the ``clist_nodes''.
  */
-void on_popup_nodes_config_cols_activate(GtkMenuItem * menuitem,
-	gpointer user_data)
+void
+on_popup_nodes_config_cols_activate(GtkMenuItem *unused_menuitem,
+	gpointer unused_udata)
 {
     GtkWidget *cc;
 
+	(void) unused_menuitem;
+	(void) unused_udata;
+	
     cc = gtk_column_chooser_new(lookup_widget(main_window, "clist_nodes"));
     gtk_menu_popup(GTK_MENU(cc), NULL, NULL, NULL, NULL, 1, 0);
 

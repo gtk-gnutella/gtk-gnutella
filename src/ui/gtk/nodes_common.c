@@ -30,6 +30,10 @@
 RCSID("$Id$");
 
 #include "nodes_common.h"
+
+#include "gtk/statusbar.h"
+
+#include "if/bridge/ui2c.h"
 #include "if/core/nodes.h"
 #include "if/gui_property_priv.h"
 
@@ -367,6 +371,47 @@ const gchar *nodes_gui_common_flags_str(const gnet_node_flags_t *flags)
 
 	status[sizeof(status) - 1] = '\0';
 	return status;
+}
+
+static void
+add_node_helper(guint32 ip, gpointer port)
+{
+	guc_node_add(ip, GPOINTER_TO_UINT(port));
+}
+
+/**
+ * Try to connect to the node given by the addr string in the form
+ * [ip]:[port]. Port may be omitted.
+ */
+void
+nodes_gui_common_connect_by_name(const gchar *addr) 
+{
+    guint32 port = GTA_PORT;
+    gchar *e, *p;
+
+    g_assert(addr != NULL);
+    
+    e = g_strdup(addr);
+	g_strstrip(e);
+
+	p = strchr(e, ':');
+	if (p) {
+		gchar *ep;
+		guint64 v;
+		gint error;
+		
+		*p++ = '\0';
+		v = parse_uint64(p, &ep, 10, &error);
+		port = (v > 0 && v < 65536 && *ep == '\0') ? v : 0;
+	}
+
+	if (port < 1 || port > 65535) {
+		statusbar_gui_warning(15, _("Port must be between 1 and 65535"));
+    } else {
+		guc_adns_resolve(e, add_node_helper, GUINT_TO_POINTER((guint) port));
+	}
+
+    G_FREE_NULL(e);
 }
 
 /* vi: set ts=4 sw=4 cindent: */
