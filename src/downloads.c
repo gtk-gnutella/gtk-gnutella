@@ -6139,7 +6139,8 @@ picked:
 		else {
 			wmesh = dmesh_alternate_location(sha1,
 				&dl_tmp[rw], sizeof(dl_tmp)-(rw+sha1_room),
-				download_ip(d), d->last_dmesh, download_vendor(d));
+				download_ip(d), d->last_dmesh, download_vendor(d),
+				d->file_info);
 			rw += wmesh;
 
 			d->last_dmesh = (guint32) time(NULL);
