@@ -172,8 +172,8 @@ static void search_free_sent_nodes(search_ctrl_t *sch)
 	g_hash_table_destroy(sch->sent_nodes);
 }
 
-static void mark_search_sent_to_node
-    (search_ctrl_t *sch, gnutella_node_t *n)
+static void mark_search_sent_to_node(
+	search_ctrl_t *sch, gnutella_node_t *n)
 {
 	struct sent_node_data *sd = g_new(struct sent_node_data, 1);
 	sd->ip = n->ip;
