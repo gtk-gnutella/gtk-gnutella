@@ -120,6 +120,12 @@ static gint sol_ip(void)
 	return sol_ip_cached;
 }
 
+/*
+ * socket_tos
+ *
+ * Set the TOS on the socket.  Routers can use this information to
+ * better route the IP datagrams.
+ */
 static void socket_tos(struct gnutella_socket *s, gint tos)
 {
 	if (!use_ip_tos)
@@ -128,10 +134,10 @@ static void socket_tos(struct gnutella_socket *s, gint tos)
 		-1 == setsockopt(s->file_desc, sol_ip(),
 				IP_TOS, (gpointer) &tos, sizeof(tos))
 	) {
-		const gchar *tosname;
+		const gchar *tosname = "default";
 
 		switch (tos) {
-			case 0: tosname = "default"; break;
+			case 0: break;
 			case IPTOS_LOWDELAY: tosname = "low delay"; break;
 			case IPTOS_THROUGHPUT: tosname = "throughput"; break;
 			default:
