@@ -1810,7 +1810,12 @@ static gboolean search_retrieve_old(void)
     return TRUE;
 }
 
-void search_shutdown(void)
+/*
+ * search_store
+ *
+ * Persist searches to disk.
+ */
+void search_store(void)
 {
 #ifdef USE_SEARCH_XML
 	search_store_xml();
@@ -1833,11 +1838,15 @@ void search_shutdown(void)
 #else
     search_store_old();
 #endif
-
-    while(searches != NULL)
-        search_close((search_t *)searches->data);
 }
 
+void search_shutdown(void)
+{
+	search_store();
+
+    while (searches != NULL)
+        search_close((search_t *)searches->data);
+}
 
 /* ----------------------------------------- */
 

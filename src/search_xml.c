@@ -142,7 +142,7 @@ static node_parser_t parser_map[] = {
 /*
  * search_store_xml
  *
- * Store pending non-passive searches.
+ * Store pending searches.
  */
 void search_store_xml(void)
 {
@@ -150,14 +150,15 @@ void search_store_xml(void)
 	time_t now = time((time_t *) NULL);
     xmlDocPtr doc;
     xmlNodePtr root;
+	gchar filename[1024];
 
     /* 
-     * create new xml document with version 1.0 
+     * Create new xml document with version 1.0 
      */
     doc = xmlNewDoc("1.0");
 
     /* 
-     *create a new root node "gtkGnutella searches" 
+     * Create a new root node "gtkGnutella searches" 
      */
     root = xmlNewDocNode(doc, NULL, "Searches", NULL);
     xmlDocSetRootElement(doc, root);
@@ -188,18 +189,26 @@ void search_store_xml(void)
         filter_to_xml(root, (filter_t *) l->data);
 
     /* 
-     *try to save the file 
+     * Try to save the file 
      */
+
     xmlKeepBlanksDefault(0);
-    g_snprintf(x_tmp, sizeof(x_tmp), "%s/%s", config_dir, search_file_xml);
+    g_snprintf(x_tmp, sizeof(x_tmp), "%s/%s.new", config_dir, search_file_xml);
+
     if(xmlSaveFormatFile(x_tmp, doc, TRUE) == -1) {
         g_warning("Unable to create %s to persist search: %s",
 			x_tmp, g_strerror(errno));
     } else {
         if (dbg >= 3)
             printf("saved searches file: %s\n", x_tmp);
-    }
 
+		g_snprintf(filename, sizeof(filename), "%s/%s",
+			config_dir, search_file_xml);
+
+		if (-1 == rename(x_tmp, filename))
+			g_warning("could not rename %s as %s: %s",
+				x_tmp, filename, g_strerror(errno));
+    }
 
 	xmlFreeDoc(doc);
 }

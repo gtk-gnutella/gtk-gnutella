@@ -175,12 +175,22 @@ static void slow_main_timer(time_t now)
 {
 	static gint i = 0;
 
-	i++;
-
-	if (i & 0x1)
-		ul_flush_stats_if_dirty();
-	else
+	switch (i) {
+	case 0:
 		dmesh_store();
+		break;
+	case 1:
+		search_store();
+		break;
+	case 2:
+		ul_flush_stats_if_dirty();
+		break;
+	default:
+		g_assert(0);
+	}
+
+	if (++i > 2)
+		i = 0;
 }
 
 static gboolean main_timer(gpointer p)
