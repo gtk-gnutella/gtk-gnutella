@@ -66,6 +66,7 @@ void pproxy_close(void);
  * A client push proxy request.
  */
 struct cproxy {
+	guint32 magic;
 	struct download *d;		/* Which download triggered us */
 
 	guint32 ip;				/* IP of the proxy servent */

@@ -474,7 +474,7 @@ static void build_push(struct gnutella_msg_push_request *m,
 	memcpy(m->request.guid, guid, 16);
 
 	WRITE_GUINT32_LE(one, m->request.file_id);
-	memcpy(m->request.host_ip, &ip, 4);
+	WRITE_GUINT32_BE(ip, m->request.host_ip);
 	WRITE_GUINT16_LE(port, m->request.host_port);
 }
 
@@ -762,6 +762,8 @@ void pproxy_close(void)
  *** Client-side of push-proxy
  ***/
 
+#define CPROXY_MAGIC	0xc8301
+
 /*
  * cproxy_free
  *
@@ -769,6 +771,8 @@ void pproxy_close(void)
  */
 void cproxy_free(struct cproxy *cp)
 {
+	g_assert(cp->magic == CPROXY_MAGIC);
+
 	if (cp->guid != NULL) {
 		atom_guid_free(cp->guid);
 		cp->guid = NULL;
@@ -782,6 +786,7 @@ void cproxy_free(struct cproxy *cp)
 		cp->server = NULL;
 	}
 
+	cp->magic = 0;
 	wfree(cp, sizeof(*cp));
 }
 
@@ -796,6 +801,7 @@ static void cproxy_http_error_ind(
 	struct cproxy *cp = (struct cproxy *) http_async_get_opaque(handle);
 
 	g_assert(cp != NULL);
+	g_assert(cp->magic == CPROXY_MAGIC);
 
 	http_async_log_error(handle, type, v);
 
@@ -826,6 +832,7 @@ static gboolean cproxy_http_header_ind(
 
 	g_assert(cp != NULL);
 	g_assert(cp->d != NULL);
+	g_assert(cp->magic == CPROXY_MAGIC);
 
 	/*
 	 * Extract vendor information.
@@ -924,6 +931,7 @@ static void cproxy_http_newstate(gpointer handle, http_state_t newstate)
 
 	g_assert(cp != NULL);
 	g_assert(cp->d != NULL);
+	g_assert(cp->magic == CPROXY_MAGIC);
 
 	cp->state = newstate;
 	download_proxy_newstate(cp->d);
@@ -962,6 +970,7 @@ struct cproxy *cproxy_create(struct download *d,
 
 	cp = walloc0(sizeof(*cp));
 
+	cp->magic = CPROXY_MAGIC;
 	cp->d = d;
 	cp->ip = ip;
 	cp->port = port;
