@@ -3688,7 +3688,7 @@ static gboolean download_get_server_name(struct download *d, header_t *header)
 
 	if (buf) {
 		struct dl_server *server = d->server;
-		gboolean faked = version_check(buf, header_get(header, "X-Token"));
+		gboolean faked = !version_check(buf, header_get(header, "X-Token"));
 		if (server->vendor == NULL) {
 			if (faked) {
 				gchar *name = g_strdup_printf("!%s", buf);

@@ -1713,7 +1713,7 @@ static void upload_request(gnutella_upload_t *u, header_t *header)
 		user_agent = header_get(header, "Server");
 
 	if (user_agent)
-		faked = version_check(user_agent, token);
+		faked = !version_check(user_agent, token);
 
 	if (!is_followup && user_agent) {
 		if (faked) {
