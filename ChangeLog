@@ -1,5 +1,8 @@
 # since last version
 
+- (2003.06.09 - Jeroen)
+ * PARQ: PARQ IP entries are now stored using their dotted notation.
+
 - (2003.06.08 - Jeroen)
  * Prefer compressed connections should now also work in Ultrapeer mode
  * PARQ: Should not block anymore when a queued upload is not allowed to continue
