@@ -33,6 +33,7 @@ RCSID("$Id$");
 
 #include "drop.h"
 #include "statusbar_gui.h"
+#include "downloads.h"
 #include "search_gui.h"
 #include "override.h"		/* Must be the last header included */
 
