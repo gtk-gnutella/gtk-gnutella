@@ -60,10 +60,9 @@ typedef struct shadow {
 static gint shadow_filter_eq(const shadow_t *a, const filter_t *b);
 static shadow_t *shadow_new(filter_t *s);
 static shadow_t *shadow_find(filter_t *s);
-static void rule_free(rule_t *f);
 static int filter_apply(filter_t *, record_t *, filter_result_t *);
-static void filter_free(filter_t *f);
 static void filter_remove_rule(filter_t *f, rule_t *r);
+static void filter_free(filter_t *f);
 
 /*
  * Public variables
@@ -235,7 +234,7 @@ static void shadow_cancel(shadow_t *shadow)
         printf("cancel shadow for filter: %s\n", shadow->filter->name);
 
     for (r = shadow->added; r != NULL; r = r->next)
-        rule_free(r->data);
+        filter_free_rule(r->data);
 
     /* 
      * Since we cancel the shadow, we also free the added,
@@ -278,7 +277,7 @@ static void shadow_commit(shadow_t *shadow)
      * Free memory for all removed rules
      */
     for (f = shadow->removed; f != NULL; f = f->next)
-        rule_free(f->data);
+        filter_free_rule(f->data);
 
     /*
      * Remove the SHADOW flag from all new rules.
@@ -422,6 +421,45 @@ void filter_close_dialog(gboolean commit)
         gtk_object_destroy(GTK_OBJECT(filter_dialog));
         filter_dialog = NULL;
 #endif /* FILTER_HIDE_ON_CLOSE */
+    }
+}
+
+
+
+/*
+ * filter_duplicate_rule:
+ *
+ * returns a new rule created with information based on the given rule
+ * with the appropriate filter_new_*_rule call. Defaults set by those
+ * calls (like RULE_FLAG_VALID) will also apply to the the returned rule.
+ */
+rule_t *filter_duplicate_rule(rule_t *r)
+{
+    g_assert(r != NULL);
+
+    switch(r->type) {
+    case RULE_TEXT:
+        return filter_new_text_rule
+            (r->u.text.match, r->u.text.type, r->u.text.case_sensitive,
+            r->target, r->flags);
+    case RULE_IP:
+        return filter_new_ip_rule
+            (r->u.ip.addr, r->u.ip.mask, r->target, r->flags);
+    case RULE_SIZE:
+        return filter_new_size_rule
+            (r->u.size.lower, r->u.size.upper, r->target, r->flags);
+    case RULE_JUMP:
+        return filter_new_jump_rule(r->target, r->flags);
+    case RULE_SHA1:
+        return filter_new_sha1_rule
+            (r->u.sha1.hash, r->u.sha1.filename, r->target, r->flags);
+    case RULE_FLAG:
+        return filter_new_flag_rule
+            (r->u.flag.stable, r->u.flag.busy, r->u.flag.push, 
+            r->target, r->flags);
+    default:
+        g_error("filter_duplicate_rule: unknown rule type: %d", r->type);
+        return NULL;
     }
 }
 
@@ -1190,11 +1228,11 @@ static void filter_free(filter_t *f)
 
 
 /*
- * rule_free:
+ * filter_free_rule:
  *
  * Free memory reserved by rule respecting the type of the rule.
  */
-static void rule_free(rule_t *r)
+void filter_free_rule(rule_t *r)
 {
     g_assert(r != NULL);
 
@@ -1224,7 +1262,7 @@ static void rule_free(rule_t *r)
         case RULE_TEXT_EXACT:
             break;
         default:
-            g_error("rule_free: unknown text rule type: %d", r->u.text.type);
+            g_error("filter_free_rule: unknown text rule type: %d", r->u.text.type);
         }
         break;
     case RULE_SHA1:
@@ -1237,7 +1275,7 @@ static void rule_free(rule_t *r)
     case RULE_FLAG:
         break;
     default:
-        g_error("rule_free: unknown rule type: %d", r->type);
+        g_error("filter_free_rule: unknown rule type: %d", r->type);
     }
 	g_free(r);
 }
@@ -1490,7 +1528,7 @@ void filter_remove_rule(filter_t *f, rule_t *r)
         return;
     }
 
-    rule_free(r);
+    filter_free_rule(r);
     
     /*
      * Update dialog if necessary.
@@ -1531,6 +1569,22 @@ void filter_remove_rule_from_session(filter_t *f, rule_t * const r)
 
     g_assert(g_list_find(shadow->current, r) != NULL);
 
+    shadow->current = g_list_remove(shadow->current, r);
+
+    /*
+     * We need to decrease the refcount on the target. We need to do this
+     * now because soon the rule may be freed and we may not access it
+     * after that.
+     */
+    target_shadow = shadow_find(r->target);
+    if (target_shadow == NULL)
+        target_shadow = shadow_new(r->target);
+
+    target_shadow->refcount --;
+    if (dbg >= 6)
+        printf("decreased refcount on \"%s\" to %d\n",
+            target_shadow->filter->name, target_shadow->refcount);
+
     l = g_list_find(shadow->added, r);
     if (l != NULL) {
         /*
@@ -1542,7 +1596,7 @@ void filter_remove_rule_from_session(filter_t *f, rule_t * const r)
             printf("while removing from %s: removing from added: %s\n",
                 f->name, filter_rule_to_gchar(r));
         shadow->added = g_list_remove(shadow->added, r);
-        rule_free(r);
+        filter_free_rule(r);
     } else {
         /*
          * The rule was not added, so it must be existent.
@@ -1556,20 +1610,6 @@ void filter_remove_rule_from_session(filter_t *f, rule_t * const r)
       
         shadow->removed = g_list_append(shadow->removed, r);
     }
-
-    shadow->current = g_list_remove(shadow->current, r);
-
-    /*
-     * We need to decrease the refcount on the target.
-     */
-    target_shadow = shadow_find(r->target);
-    if (target_shadow == NULL)
-        target_shadow = shadow_new(r->target);
-
-    target_shadow->refcount --;
-    if (dbg >= 6)
-        printf("decreased refcount on \"%s\" to %d\n",
-            target_shadow->filter->name, target_shadow->refcount);
 
     /*
      * Update dialog if necessary.
@@ -1637,7 +1677,7 @@ void filter_replace_rule_in_session(filter_t *f,
          * If it was added, then free and remove the rule.
          */
         shadow->added = g_list_remove(shadow->added, old_rule);
-        rule_free(old_rule);
+        filter_free_rule(old_rule);
     } else {
         /*
          * If the filter was not added, then it must be marked
@@ -2138,6 +2178,8 @@ void filter_init(void)
     filters = g_list_append(filters, filter_show);
     filters = g_list_append(filters, filter_download);
     filters = g_list_append(filters, filter_nodownload);
+
+    create_popup_filter_rule();
 }
 
 
@@ -2260,6 +2302,24 @@ void filter_free_result(filter_result_t *res)
     }
 
     g_free(res);
+}
+
+/*
+ * filter_is_valid_in_session:
+ *
+ * Checks wether a filter is existant in a filter editing session.
+ * If no session is started it checks wether the filter is valid
+ * in outside the session.
+ */
+gboolean filter_is_valid_in_session(filter_t *f)
+{
+    GList *list;
+
+    if (f == NULL)
+        return FALSE;
+
+    list = session_started ? filters_current : filters;
+    return g_list_find(list, f) != NULL;
 }
 
 inline gboolean filter_is_global(filter_t *f)
