@@ -44,7 +44,7 @@ else
     AC_SUBST(GTK_GNUTELLA_CFLAGS)
     AC_DEFINE(USE_GTK2)
 
-    frontend="Gtk 2.0 (experimental)"
+    frontend="Gtk 2.0"
 
 dnl We don't need any deprecated glib functions 
 	CPPFLAGS="${CPPFLAGS} -DG_DISABLE_DEPRECATED"

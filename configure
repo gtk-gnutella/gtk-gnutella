@@ -2264,7 +2264,7 @@ echo "configure:2239: checking GTK_GNUTELLA_LIBS" >&5
 EOF
 
 
-    frontend="Gtk 2.0 (experimental)"
+    frontend="Gtk 2.0"
 
 	CPPFLAGS="${CPPFLAGS} -DG_DISABLE_DEPRECATED"
     
