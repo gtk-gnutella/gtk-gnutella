@@ -120,7 +120,8 @@ static void inline hash_list_regression(const hash_list_t *hl)
 /**
  * Create a new hash list.
  */
-hash_list_t *hash_list_new(void)
+hash_list_t *
+hash_list_new(void)
 {
 	hash_list_t *hl = walloc(sizeof(*hl));
 	hl->l = NULL;
@@ -138,7 +139,8 @@ hash_list_t *hash_list_new(void)
 /**
  * Dispose of the data structure, but not of the items it holds.
  */
-void hash_list_free(hash_list_t *hl)
+void
+hash_list_free(hash_list_t *hl)
 {
 	g_assert(NULL != hl);
 	g_assert(HASH_LIST_MAGIC == hl->magic);
@@ -160,9 +162,45 @@ void hash_list_free(hash_list_t *hl)
 }
 
 /**
+ * Hash table removal iterator -- always returns TRUE.
+ */
+static gboolean
+hash_list_rt(gpointer uu_key, gpointer uu_value, gpointer uu_udata)
+{
+	(void) uu_key;
+	(void) uu_value;
+	(void) uu_udata;
+
+	return TRUE;
+}
+
+/**
+ * Clear the structure.  Items are simply de-referenced, not freed.
+ */
+void
+hash_list_clear(hash_list_t *hl)
+{
+	g_assert(NULL != hl);
+	g_assert(HASH_LIST_MAGIC == hl->magic);
+	g_assert(equiv(hl->len == 0, hl->last == NULL));
+	g_assert(1 == hl->refcount);
+	hash_list_regression(hl);
+
+	if (hl->len == 0)
+		return;
+
+	g_hash_table_foreach_remove(hl->ht, hash_list_rt, NULL);
+	g_list_free(hl->l);
+	hl->l = hl->last = NULL;
+	hl->len = 0;
+	hl->stamp++;
+}
+
+/**
  * Append `data' to the list.
  */
-void hash_list_append(hash_list_t *hl, gpointer data)
+void
+hash_list_append(hash_list_t *hl, gpointer data)
 {
 	g_assert(NULL != data);
 	g_assert(NULL != hl);
@@ -185,7 +223,8 @@ void hash_list_append(hash_list_t *hl, gpointer data)
 /**
  * Prepend `data' to the list.
  */
-void hash_list_prepend(hash_list_t *hl, gpointer data)
+void
+hash_list_prepend(hash_list_t *hl, gpointer data)
 {
 	g_assert(NULL != data);
 	g_assert(NULL != hl);
@@ -208,7 +247,8 @@ void hash_list_prepend(hash_list_t *hl, gpointer data)
 /**
  * Remove `data' from the list.
  */
-void hash_list_remove(hash_list_t *hl, gpointer data)
+void
+hash_list_remove(hash_list_t *hl, gpointer data)
 {
 	GList *l;
 
@@ -234,7 +274,8 @@ void hash_list_remove(hash_list_t *hl, gpointer data)
 /**
  * Returns the last item of the list, or NULL if none.
  */
-gpointer hash_list_last(const hash_list_t *hl)
+gpointer
+hash_list_last(const hash_list_t *hl)
 {
 	g_assert(NULL != hl);
 	g_assert(hl->refcount > 0);
@@ -248,7 +289,8 @@ gpointer hash_list_last(const hash_list_t *hl)
 /**
  * Returns the first item of the list, or NULL if none.
  */
-gpointer hash_list_first(const hash_list_t *hl)
+gpointer
+hash_list_first(const hash_list_t *hl)
 {
 	g_assert(NULL != hl);
 	g_assert(hl->refcount > 0);
@@ -262,7 +304,8 @@ gpointer hash_list_first(const hash_list_t *hl)
 /**
  * Returns the length of the list.
  */
-gint hash_list_length(const hash_list_t *hl)
+gint
+hash_list_length(const hash_list_t *hl)
 {
 	g_assert(NULL != hl);
 	g_assert(hl->refcount > 0);
@@ -276,7 +319,8 @@ gint hash_list_length(const hash_list_t *hl)
  * Get an iterator on the list, positionned before first item.
  * Get items with hash_list_next().
  */
-hash_list_iter_t *hash_list_iterator(hash_list_t *hl)
+hash_list_iter_t *
+hash_list_iterator(hash_list_t *hl)
 {
 	hash_list_iter_t *i;
 
@@ -302,7 +346,8 @@ hash_list_iter_t *hash_list_iterator(hash_list_t *hl)
  * Get an iterator on the list, positionned after last item.
  * Get items with hash_list_previous().
  */
-hash_list_iter_t *hash_list_iterator_last(hash_list_t *hl)
+hash_list_iter_t *
+hash_list_iterator_last(hash_list_t *hl)
 {
 	hash_list_iter_t *i;
 
@@ -327,7 +372,8 @@ hash_list_iter_t *hash_list_iterator_last(hash_list_t *hl)
 /**
  * Get the next data item from the iterator, or NULL if none.
  */
-gpointer hash_list_next(hash_list_iter_t *i)
+gpointer
+hash_list_next(hash_list_iter_t *i)
 {
 	g_assert(NULL != i);
 	g_assert(HASH_LIST_ITER_MAGIC == i->magic);
@@ -345,7 +391,8 @@ gpointer hash_list_next(hash_list_iter_t *i)
 /**
  * Checks whether there is a next item to be iterated over.
  */
-gboolean hash_list_has_next(const hash_list_iter_t *i)
+gboolean
+hash_list_has_next(const hash_list_iter_t *i)
 {
 	g_assert(NULL != i);
 	g_assert(HASH_LIST_ITER_MAGIC == i->magic);
@@ -359,7 +406,8 @@ gboolean hash_list_has_next(const hash_list_iter_t *i)
 /**
  * Get the previous data item from the iterator, or NULL if none.
  */
-gpointer hash_list_previous(hash_list_iter_t *i)
+gpointer
+hash_list_previous(hash_list_iter_t *i)
 {
 	g_assert(NULL != i);
 	g_assert(HASH_LIST_ITER_MAGIC == i->magic);
@@ -377,7 +425,8 @@ gpointer hash_list_previous(hash_list_iter_t *i)
 /**
  * Checks whether there is a previous item in the iterator.
  */
-gboolean hash_list_has_previous(const hash_list_iter_t *i)
+gboolean
+hash_list_has_previous(const hash_list_iter_t *i)
 {
 	g_assert(NULL != i);
 	g_assert(HASH_LIST_ITER_MAGIC == i->magic);
@@ -391,7 +440,8 @@ gboolean hash_list_has_previous(const hash_list_iter_t *i)
 /**
  * Move to next item in the direction of the iterator.
  */
-gpointer hash_list_follower(hash_list_iter_t *i)
+gpointer
+hash_list_follower(hash_list_iter_t *i)
 {
 	g_assert(NULL != i);
 	g_assert(HASH_LIST_ITER_MAGIC == i->magic);
@@ -404,7 +454,8 @@ gpointer hash_list_follower(hash_list_iter_t *i)
  * Checks whether there is a following item in the iterator, in the
  * direction chosen at creation time.
  */
-gboolean hash_list_has_follower(const hash_list_iter_t *i)
+gboolean
+hash_list_has_follower(const hash_list_iter_t *i)
 {
 	g_assert(NULL != i);
 	g_assert(HASH_LIST_ITER_MAGIC == i->magic);
@@ -416,7 +467,8 @@ gboolean hash_list_has_follower(const hash_list_iter_t *i)
 /**
  * Release the iterator once we're done with it.
  */
-void hash_list_release(hash_list_iter_t *i)
+void
+hash_list_release(hash_list_iter_t *i)
 {
 	g_assert(NULL != i);
 	g_assert(HASH_LIST_ITER_MAGIC == i->magic);
@@ -431,7 +483,8 @@ void hash_list_release(hash_list_iter_t *i)
 /**
  * Check whether hashlist contains the `data'.
  */
-gboolean hash_list_contains(hash_list_t *hl, gpointer data)
+gboolean
+hash_list_contains(hash_list_t *hl, gpointer data)
 {
 	GList *l;
 
@@ -449,7 +502,8 @@ gboolean hash_list_contains(hash_list_t *hl, gpointer data)
 /**
  * Apply `func' to all the items in the structure.
  */
-void hash_list_foreach(const hash_list_t *hl, GFunc func, gpointer user_data)
+void
+hash_list_foreach(const hash_list_t *hl, GFunc func, gpointer user_data)
 {
 	g_assert(NULL != hl);
 	g_assert(HASH_LIST_MAGIC == hl->magic);
