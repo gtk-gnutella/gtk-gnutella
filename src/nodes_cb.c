@@ -172,9 +172,14 @@ void on_entry_host_activate(GtkEditable * editable, gpointer user_data)
 
 void on_entry_host_changed(GtkEditable * editable, gpointer user_data)
 {
+    gchar *p;
 	gchar *e = gtk_editable_get_chars(editable, 0, -1);
 	g_strstrip(e);
 
+    /* Strip away port, if any. */
+    if((p = strchr(e, ':')) != NULL)
+        *p = '\0';
+    
 	gtk_widget_set_sensitive(
         lookup_widget(main_window, "button_nodes_add"),
         is_string_ip(e));
