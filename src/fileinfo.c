@@ -2317,6 +2317,15 @@ again:
 		}
 	}
 
+	/*
+	 * Update fi->done, accurately.
+	 *
+	 * We don't blindly update fi->done with (to - from) when DL_CHUNK_DONE
+	 * because we may be writing data to an already "done" chunk, when a
+	 * previous chunk bumps into a done one.
+	 *		--RAM, 04/11/2002
+	 */
+
 	file_info_merge_adjacent(fi);		/* Also updates fi->done */
 
 	/*
@@ -2662,7 +2671,7 @@ void file_info_scandir(gchar *dir)
 			continue;
 		}
 
-		if (S_ISDIR(buf.st_mode))			/* Skip directories */
+		if (!S_ISREG(buf.st_mode))			/* Only regular files */
 			continue;
 
 		fi = file_info_retrieve_binary(dentry->d_name, dir);
