@@ -306,6 +306,7 @@ gboolean node_bye_pending(void);
 void node_close(void);
 gboolean node_remove_worst(gboolean non_local);
 
+void node_qrt_changed(gpointer query_table);
 
 void send_node_error(struct gnutella_socket *s, int code, guchar *msg, ...);
 
