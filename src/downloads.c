@@ -6207,9 +6207,9 @@ static void download_request(
 	fi->dirty_status = TRUE;
 
  	g_assert(dl_establishing > 0);
- 	if (d->list_idx != DL_LIST_RUNNING)
- 		download_move_to_list(d, DL_LIST_RUNNING);
+	dl_establishing--;
 	dl_active++;
+	g_assert(d->list_idx == DL_LIST_RUNNING);
 
 	gnet_prop_set_guint32_val(PROP_DL_RUNNING_COUNT, count_running_downloads());
 	gui_update_download(d, TRUE);
