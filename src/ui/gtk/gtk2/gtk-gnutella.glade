@@ -2541,7 +2541,7 @@ http://maxmind.com/</property>
 			      <child>
 				<widget class="GtkCheckMenuItem" id="menu_autohide_bws_gleaf">
 				  <property name="visible">True</property>
-				  <property name="label" translatable="yes">autohide leaf traffic stats</property>
+				  <property name="label" translatable="yes">auto-hide leaf traffic stats</property>
 				  <property name="use_underline">True</property>
 				  <property name="active">False</property>
 				  <signal name="activate" handler="on_menu_autohide_bws_gleaf_activate" last_modification_time="Wed, 24 Dec 2003 15:46:39 GMT"/>

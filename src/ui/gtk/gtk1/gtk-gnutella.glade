@@ -8772,7 +8772,7 @@
       <handler>on_popup_search_edit_filter_activate</handler>
       <last_modification_time>Sat, 15 Jun 2002 14:26:42 GMT</last_modification_time>
     </signal>
-    <label>Edit filters</label>
+    <label>_Edit filters</label>
     <right_justify>False</right_justify>
   </widget>
 
@@ -9104,7 +9104,7 @@
       <handler>on_popup_nodes_remove_activate</handler>
       <last_modification_time>Sun, 17 Mar 2002 23:33:22 GMT</last_modification_time>
     </signal>
-    <label>Remove</label>
+    <label>Disconnect</label>
     <right_justify>False</right_justify>
   </widget>
 
@@ -10665,7 +10665,7 @@ for all filters</label>
 			    <widget>
 			      <class>GtkLabel</class>
 			      <name>label192</name>
-			      <label>minimum size</label>
+			      <label>Minimum size:</label>
 			      <justify>GTK_JUSTIFY_CENTER</justify>
 			      <wrap>False</wrap>
 			      <xalign>0</xalign>
@@ -10691,7 +10691,7 @@ for all filters</label>
 			    <widget>
 			      <class>GtkLabel</class>
 			      <name>label193</name>
-			      <label>maximum size</label>
+			      <label>Maximum size:</label>
 			      <justify>GTK_JUSTIFY_CENTER</justify>
 			      <wrap>False</wrap>
 			      <xalign>0</xalign>
@@ -25730,7 +25730,7 @@ allowed</label>
 	    <handler>on_button_search_filter_clicked</handler>
 	    <last_modification_time>Tue, 12 Nov 2002 22:52:01 GMT</last_modification_time>
 	  </signal>
-	  <label>Edit _Filters</label>
+	  <label>_Edit filters</label>
 	  <icon>filter.xpm</icon>
 	  <child>
 	    <new_group>True</new_group>

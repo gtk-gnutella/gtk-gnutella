@@ -592,7 +592,7 @@ void gnet_stats_gui_drop_reasons_init(void)
 		}
 
 		add_column(treeview, n, width[n], (gfloat) (n != 0),
-			n == 0 ? _("Type") : _("Count"));
+			n == 0 ? _("Reason") : _("Count"));
 	}
 	gtk_tree_view_set_model(treeview, model);
 	g_object_unref(model);

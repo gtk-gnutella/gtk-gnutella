@@ -1442,7 +1442,7 @@ create_main_window (void)
   gtk_progress_set_show_text (GTK_PROGRESS (progressbar_bws_gout), TRUE);
   gtk_progress_set_format_string (GTK_PROGRESS (progressbar_bws_gout), _("bws gout"));
 
-  frame_bws_glinout = gtk_frame_new (_("leaf traffic"));
+  frame_bws_glinout = gtk_frame_new (_("Leaf traffic"));
   gtk_widget_set_name (frame_bws_glinout, "frame_bws_glinout");
   gtk_widget_ref (frame_bws_glinout);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "frame_bws_glinout", frame_bws_glinout,
@@ -6553,7 +6553,7 @@ create_popup_search (void)
   gtk_object_set_data (GTK_OBJECT (popup_search), "popup_search", popup_search);
   popup_search_accels = gtk_menu_ensure_uline_accel_group (GTK_MENU (popup_search));
 
-  popup_search_edit_filter = gtk_menu_item_new_with_label (_("Edit filters"));
+  popup_search_edit_filter = gtk_menu_item_new_with_label (_("_Edit filters"));
   gtk_widget_set_name (popup_search_edit_filter, "popup_search_edit_filter");
   gtk_widget_ref (popup_search_edit_filter);
   gtk_object_set_data_full (GTK_OBJECT (popup_search), "popup_search_edit_filter", popup_search_edit_filter,
@@ -8203,7 +8203,7 @@ create_dlg_filters (void)
   gtk_table_set_row_spacings (GTK_TABLE (table24), 2);
   gtk_table_set_col_spacings (GTK_TABLE (table24), 4);
 
-  label192 = gtk_label_new (_("minimum size"));
+  label192 = gtk_label_new (_("Minimum size:"));
   gtk_widget_set_name (label192, "label192");
   gtk_widget_ref (label192);
   gtk_object_set_data_full (GTK_OBJECT (dlg_filters), "label192", label192,
@@ -8214,7 +8214,7 @@ create_dlg_filters (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label192), 0, 0.5);
 
-  label193 = gtk_label_new (_("maximum size"));
+  label193 = gtk_label_new (_("Maximum size:"));
   gtk_widget_set_name (label193, "label193");
   gtk_widget_ref (label193);
   gtk_object_set_data_full (GTK_OBJECT (dlg_filters), "label193", label193,
@@ -17443,7 +17443,7 @@ create_removed_widgets (void)
   button_filters = gtk_toolbar_append_element (GTK_TOOLBAR (toolbar_main),
                                 GTK_TOOLBAR_CHILD_BUTTON,
                                 NULL,
-                                _("Edit _Filters"),
+                                _("_Edit filters"),
                                 NULL, NULL,
                                 tmp_toolbar_icon, NULL, NULL);
   gtk_widget_set_name (button_filters, "button_filters");
