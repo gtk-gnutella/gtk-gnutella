@@ -122,9 +122,12 @@ typedef struct gnet_node_info {
 /*
  * Nodes callback definitions
  */
-typedef void (*node_added_listener_t)   (gnet_node_t, const gchar *);
-typedef void (*node_removed_listener_t) (gnet_node_t);
-typedef void (*node_changed_listener_t) (gnet_node_t, gboolean);
+typedef void (*node_added_listener_t) (
+    gnet_node_t, const gchar *, guint32, guint32);
+typedef void (*node_removed_listener_t) (
+    gnet_node_t, guint32, guint32);
+typedef void (*node_changed_listener_t) (
+    gnet_node_t, gboolean, guint32, guint32);
 
 #define node_add_listener(signal, callback) \
     node_add_##signal##_listener(callback);
@@ -144,7 +147,7 @@ void node_remove_node_changed_listener(node_changed_listener_t);
  */
 void node_add(guint32, guint16);
 void node_remove_by_handle(gnet_node_t n);
-void node_remove_nodes_by_handle(GList *node_list);
+void node_remove_nodes_by_handle(GSList *node_list);
 gnet_node_info_t *node_get_info(const gnet_node_t n);
 void node_free_info(gnet_node_info_t *info);
 
@@ -217,10 +220,16 @@ typedef struct gnet_results_set {
 	guint32 speed;
 	time_t  stamp;				/* Reception time of the hit */
 	guchar  vendor[4];			/* Vendor code */
+    flag_t  flags;
 
 	GSList *records;
 	guint32 num_recs;
 } gnet_results_set_t;
+
+/*
+ * Result record flags
+ */
+#define SR_DOWNLOADED 1
 
 /*
  * An individual hit.  It referes to a file entry on the remote servent,
@@ -232,6 +241,7 @@ typedef struct gnet_record {
 	guint32 index;				/* Index for GET command */
 	gchar  *sha1;				/* SHA1 URN (binary form, atom) */
 	gchar  *tag;				/* Optional tag data string (atom) */
+    flag_t  flags;
 } gnet_record_t;
 
 /*
@@ -316,5 +326,126 @@ typedef enum filter_prop_state {
     MAX_FILTER_PROP_STATE,
     FILTER_PROP_STATE_IGNORE
 } filter_prop_state_t;
+
+
+
+/***
+ *** General statistics
+ ***/
+
+enum {
+    MSG_UNKNOWN,
+    MSG_INIT,
+    MSG_INIT_RESPONSE,
+    MSG_BYE,
+    MSG_QRP,
+    MSG_VENDOR,
+    MSG_STANDARD,
+    MSG_PUSH_REQUEST,
+    MSG_SEARCH,
+    MSG_SEARCH_RESULTS,
+    MSG_TYPE_COUNT /* number of known message types */
+};
+
+typedef enum msg_drop_reason {
+    MSG_DROP_INIT_BAD_SIZE,
+    MSG_DROP_INIT_RESPONSE_BAD_SIZE,
+    MSG_DROP_BYE_BAD_SIZE,
+    MSG_DROP_PUSH_BAD_SIZE,
+    MSG_DROP_SEARCH_TOO_SMALL,
+    MSG_DROP_SEARCH_TOO_LARGE,
+    MSG_DROP_RESULT_TOO_LARGE,
+    MSG_DROP_UNKNOWN_TYPE,
+    MSG_DROP_TTL0,
+    MSG_DROP_PING_THROTTLE,
+    MSG_DROP_HARD_TTL_LIMIT,
+    MSG_DROP_MAX_HOP_COUNT,
+    MSG_DROP_UNREQUESTED_REPLY,
+    MSG_DROP_ROUTE_LOST,
+    MSG_DROP_NO_ROUTE,
+    MSG_DROP_DUPLICATE,
+    MSG_DROP_BANNED,
+    MSG_DROP_SHUTDOWN,
+    MSG_DROP_FLOW_CONTROL,
+    MSG_DROP_QUERY_TOO_LONG,
+    MSG_DROP_QUERY_TOO_SHORT,
+    MSG_DROP_MULTIPLE_SHA1,
+    MSG_DROP_MISFORMED_SHA1_QUERY,
+    MSG_DROP_MAX_TTL_EXCEEDED,
+    MSG_DROP_RESULT_TOO_SMALL,
+    MSG_DROP_RESULT_DOUBLE_NUL,
+    MSG_DROP_BAD_RESULT,
+    MSG_DROP_RESULT_SHA1_ERROR,
+    MSG_DROP_REASON_COUNT /* number of known reasons to drop a message */
+} msg_drop_reason_t;
+
+typedef struct gnet_stats {
+    guint32 drop_reason[MSG_DROP_REASON_COUNT];
+
+    guint32 recieved[MSG_TYPE_COUNT];
+    guint32 sent[MSG_TYPE_COUNT];
+    guint32 dropped[MSG_TYPE_COUNT];
+    guint32 expired[MSG_TYPE_COUNT];
+
+    guint32 dropped_total;
+    guint32 sent_total;
+    guint32 recieved_total;
+    guint32 expired_total;
+
+    guint32 routing_errors;
+    guint32 local_searches;
+} gnet_stats_t;
+
+typedef struct gnet_bw_stats {
+    gboolean gnet_in_enabled;
+    guint32  gnet_in;
+    guint32  gnet_in_avg;
+    guint32  gnet_in_limit;
+    gboolean gnet_out_enabled;
+    guint32  gnet_out;
+    guint32  gnet_out_avg;
+    guint32  gnet_out_limit;
+    gboolean http_in_enabled;
+    guint32  http_in;
+    guint32  http_in_avg;
+    guint32  http_in_limit;
+    gboolean http_out_enabled;
+    guint32  http_out;
+    guint32  http_out_avg;
+    guint32  http_out_limit;
+} gnet_bw_stats_t;
+
+void gnet_stats_get(gnet_stats_t *stats);
+void gnet_get_bw_stats(gnet_bw_stats_t *stats);
+
+
+
+/***
+ *** Downloads
+ ***/
+// FIXME: dl_file_info must not be used here and download_index_changed
+//        actually needs to be in downloads.h and should be called from
+//        search.h and not from search_gui.h.
+struct dl_file_info;
+void download_new(gchar *,
+	guint32, guint32, guint32, guint16, gchar *, guchar *, time_t,
+    gboolean, struct dl_file_info *);
+void download_auto_new(gchar *,
+	guint32, guint32, guint32, guint16, gchar *, guchar *, time_t,
+    gboolean, struct dl_file_info *);
+void download_index_changed(guint32, guint16, guchar *, guint32, guint32);
+
+
+
+// FIXME: temporaily located here:
+
+struct ul_stats {
+	guint32 size;
+	guint32 attempts;
+	guint32 complete;
+	guint64 bytes_sent;
+	gfloat norm;		/* bytes sent / file size */
+};
+
 #endif /* __gnet_h__ */
 
