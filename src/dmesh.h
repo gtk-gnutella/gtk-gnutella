@@ -47,9 +47,11 @@
 typedef struct {
 	guint32 ip;				/* Host IP */
 	guint16 port;			/* Host port */
-	guint idx;				/* File index (0 means URN access) */
+	guint idx;				/* File index (URN_INDEX means URN access) */
 	gchar *name;			/* File name or URN string (atom) */
 } dmesh_urlinfo_t;
+
+#define URN_INDEX	0xffffffff		/* Marking index, indicates URN instead */
 
 /*
  * Public interface
