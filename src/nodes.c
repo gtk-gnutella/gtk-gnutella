@@ -1603,7 +1603,7 @@ static void send_proxy_request(gnutella_node_t *n)
  * Called when we were not firewalled and suddenly become firewalled.
  * Send proxy requests to our current connections.
  */
-void node_become_firewalled(void)
+void node_became_firewalled(void)
 {
 	GSList *l;
 
@@ -5224,6 +5224,16 @@ void node_http_proxies_add(gchar *buf, gint *retval, gpointer arg)
 	}
 
 	*retval = rw;			/* Tell them how much we wrote into `buf' */
+}
+
+/*
+ * node_push_proxies
+ *
+ * Returns list of our push-proxies.
+ */
+GSList *node_push_proxies(void)
+{
+	return sl_proxies;
 }
 
 /* vi: set ts=4: */
