@@ -521,7 +521,7 @@ void gui_update_download(struct download *d, gboolean force)
 
 	case GTA_DL_COMPLETED:
 		if (d->last_update != d->start_date) {
-			gfloat rate = ((d->size - d->skip) / 1024.0) /
+			gfloat rate = ((d->size - d->skip + d->overlap_size) / 1024.0) /
 				(d->last_update - d->start_date);
 			g_snprintf(gui_tmp, sizeof(gui_tmp), "Completed (%.1f k/s)",
 					   rate);
@@ -542,7 +542,7 @@ void gui_update_download(struct download *d, gboolean force)
 				gint slen;
 				guint32 s;
 
-				bs = ((d->pos - d->skip) / bs);
+				bs = ((d->pos - d->skip + d->overlap_size) / bs);
 				s = (d->size - d->pos) / bs;
 				bs = bs / 1024.0;
 

@@ -18,7 +18,8 @@ struct download {
 	guint32 pos;			/* Number of bytes of the file we currently have */
 
 	struct gnutella_socket *socket;
-	gint file_desc;
+	gint file_desc;			/* FD for writing into downloaded file */
+	guint32 overlap_size;	/* Size of the overlapping window on resume */
 
 	time_t start_date;		/* Download start date */
 	time_t last_update;		/* Last status update or I/O */

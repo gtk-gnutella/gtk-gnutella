@@ -20,6 +20,7 @@
 
 #define DL_RUN_DELAY		5	/* To avoid hammering host --RAM */
 #define DL_RETRY_TIMER		15	/* Seconds to wait after EOF or ECONNRESET */
+#define DL_OVERLAP_SIZE		512	/* Amount of bytes we overlap */
 
 struct download *selected_queued_download = (struct download *) NULL;
 struct download *selected_active_download = (struct download *) NULL;
@@ -550,17 +551,27 @@ void download_start(struct download *d, gboolean check_allowed)
 	 * from the "done" dir back to the working dir if the downloaded file
 	 * was bigger.	I think the "done" dir is sacred.  Let the user move back
 	 * the file if he so wants --RAM, 03/09/2001)
+	 *
+	 * If the file already exists, and has less than DL_OVERLAP_SIZE bytes,
+	 * we restart the download from scratch.  Otherwise, we request that
+	 * amount before the resuming point.
+	 * Later on, in download_write_data(), and as soon as we have read more
+	 * than DL_OVERLAP_SIZE bytes, we'll check for a match.
+	 *		--RAM, 12/01/2002
 	 */
 
 	g_snprintf(dl_tmp, sizeof(dl_tmp), "%s/%s", d->path, d->output_name);
 
-	if (stat(dl_tmp, &st) != -1)
+	if (stat(dl_tmp, &st) != -1 && st.st_size > DL_OVERLAP_SIZE)
 		d->skip = st.st_size;
 	else
 		d->skip = 0;
 
 	d->pos = d->skip;
 	d->last_update = time((time_t *) NULL);
+	d->overlap_size = (d->skip == 0) ? 0 : DL_OVERLAP_SIZE;
+
+	g_assert(d->overlap_size == 0 || d->skip > d->overlap_size);
 
 	/* If the download is in the queue, we remove it from there */
 	if (DOWNLOAD_IS_QUEUED(d) && DOWNLOAD_IS_VISIBLE(d))
@@ -1490,6 +1501,117 @@ final_cleanup:
 }
 
 /*
+ * download_overlap_check
+ *
+ * Check that the leading overlapping data in the socket buffer match with
+ * the last ones in the downloaded file.  Then remove them.
+ *
+ * Returns TRUE if the data match, FALSE if they don't, in which case the
+ * download is stopped.
+ */
+static gboolean download_overlap_check(struct download *d)
+{
+	struct gnutella_socket *s = d->socket;
+	gint fd = -1;
+	struct stat buf;
+	gchar *data = NULL;
+	gint r;
+
+	g_snprintf(dl_tmp, sizeof(dl_tmp), "%s/%s", d->path, d->output_name);
+
+	fd = open(dl_tmp, O_RDONLY);
+
+	if (fd == -1) {
+		gchar *error = g_strerror(errno);
+		g_warning("cannot check resuming for \"%s\": %s",
+			d->output_name, error);
+		download_stop(d, GTA_DL_ERROR, "Can't check resume data: %s", error);
+		goto out;
+	}
+
+	if (-1 == fstat(fd, &buf)) {			/* Should never happen */
+		gchar *error = g_strerror(errno);
+		g_warning("cannot stat opened \"%s\": %s", d->output_name, error);
+		download_stop(d, GTA_DL_ERROR, "Can't stat opened file: %s", error);
+		goto out;
+	}
+
+	/*
+	 * Sanity check: if the file is bigger than when we started, abort
+	 * immediately.
+	 */
+
+	if (d->skip != buf.st_size) {
+		g_warning("File '%s' changed size (now %ld, but was %d)",
+			d->output_name, buf.st_size, d->skip);
+		download_stop(d, GTA_DL_STOPPED, "Stopped (Output file size changed)");
+		goto out;
+	}
+
+	if (-1 == lseek(fd, d->skip - d->overlap_size, SEEK_SET)) {
+		download_stop(d, GTA_DL_ERROR, "Unable to seek: %s",
+			g_strerror(errno));
+		goto out;
+	}
+
+	/*
+	 * We're now at the overlapping start.  Read the data.
+	 */
+
+	data = g_malloc(d->overlap_size);
+	r = read(fd, data, d->overlap_size);
+
+	if (r < 0) {
+		gchar *error = g_strerror(errno);
+		g_warning("cannot read resuming data for \"%s\": %s",
+			d->output_name, error);
+		download_stop(d, GTA_DL_ERROR, "Can't read resume data: %s", error);
+		goto out;
+	}
+
+	if (r != d->overlap_size) {
+		g_warning("Short read (%d instead of %d bytes) on resuming data "
+			"for \"%s\"", r, d->overlap_size, d->output_name);
+		download_stop(d, GTA_DL_ERROR, "Short read on resume data");
+		goto out;
+	}
+
+	if (0 != memcmp(s->buffer, data, d->overlap_size)) {
+		download_stop(d, GTA_DL_ERROR, "Resuming data mismatch");
+		if (dbg > 3)
+			printf("%d overlapping bytes UNMATCHED at offset %d for \"%s\"\n",
+				d->overlap_size, d->skip - d->overlap_size, d->file_name);
+		goto out;
+	}
+
+	/*
+	 * Remove the overlapping data from the socket buffer.
+	 */
+
+	if (s->pos > d->overlap_size)
+		memmove(s->buffer, &s->buffer[d->overlap_size],
+			s->pos - d->overlap_size);
+	s->pos -= d->overlap_size;
+
+	g_free(data);
+	close(fd);
+
+	if (dbg > 3)
+		printf("%d overlapping bytes MATCHED at offset %d for \"%s\"\n",
+			d->overlap_size, d->skip - d->overlap_size, d->file_name);
+
+	return TRUE;
+
+out:
+	if (fd != -1)
+		close(fd);
+	if (data)
+		g_free(data);
+
+	return FALSE;
+}
+
+/*
  * download_write_data
  *
  * Write data in socket buffer to file.
@@ -1500,6 +1622,22 @@ static void download_write_data(struct download *d)
 	gint written;
 
 	g_assert(s->pos > 0);
+
+	/*
+	 * If we have d->pos == d->skip and a non-zero overlapping window, then
+	 * the leading data we have in the buffer are overlapping data.
+	 *		--RAM, 12/01/2002
+	 */
+
+	if (d->overlap_size && d->pos == d->skip) {
+		if (s->pos < d->overlap_size)		/* Not enough bytes yet */
+			return;							/* Don't even write anything */
+		if (!download_overlap_check(d))		/* Mismatch on overlapped bytes? */
+			return;							/* Download was stopped */
+		if (s->pos == 0)					/* No bytes left to write */
+			return;
+		/* FALL THROUGH */
+	}
 
 	if (-1 == (written = write(d->file_desc, s->buffer, s->pos))) {
 		char *error = g_strerror(errno);
@@ -1592,20 +1730,21 @@ static void download_request(struct download *d, header_t *header)
 	buf = header_get(header, "Content-Length");		/* Mandatory */
 	if (buf) {
 		guint32 z = atol(buf);
+		guint32 server_size = z + d->skip - d->overlap_size;
 		if (z == 0) {
 			download_stop(d, GTA_DL_ERROR, "Bad length !?");
 			return;
-		} else if (z + d->skip != d->size) {
+		} else if (server_size != d->size) {
 			if (z == d->size) {
 				g_warning("File '%s': server seems to have "
 					"ignored our range request of %u.",
-					d->file_name, d->size);
+					d->file_name, d->size - d->overlap_size);
 				download_stop(d, GTA_DL_ERROR,
 					"Server can't handle resume request");
 				return;
 			} else {
 				g_warning("File '%s': expected size %u but server said %u",
-					d->file_name, d->size, z + d->skip);
+					d->file_name, d->size, server_size);
 				download_stop(d, GTA_DL_ERROR, "File size mismatch");
 				return;
 			}
@@ -1620,9 +1759,9 @@ static void download_request(struct download *d, header_t *header)
 			sscanf(buf, "bytes %d-%d/%d", &start, &end, &total) ||	/* Good */
 			sscanf(buf, "bytes=%d-%d/%d", &start, &end, &total)		/* Bad! */
 		) {
-			if (start != d->skip) {
+			if (start != d->skip - d->overlap_size) {
 				g_warning("File '%s': start byte mismatch: wanted %u, got %u",
-					d->file_name, d->skip, start);
+					d->file_name, d->skip - d->overlap_size, start);
 				download_stop(d, GTA_DL_ERROR, "Range start mismatch");
 				return;
 			}
@@ -1670,7 +1809,8 @@ static void download_request(struct download *d, header_t *header)
 		if (st.st_size != d->skip) {
 			g_warning("File '%s' changed size (now %ld, but was %d)",
 				d->output_name, st.st_size, d->skip);
-			download_stop(d, GTA_DL_ERROR, "File modified since start");
+			download_stop(d, GTA_DL_STOPPED,
+				"Stopped (Output file size changed)");
 			return;
 		}
 
@@ -1802,6 +1942,8 @@ gboolean download_send_request(struct download *d)
 		return FALSE;
 	}
 
+	g_assert(d->overlap_size < sizeof(s->buffer));
+
 	/* Send the HTTP Request */
 
 	if (d->skip)
@@ -1810,7 +1952,7 @@ gboolean download_send_request(struct download *d)
 			"Connection: Keep-Alive\r\n"
 			"Range: bytes=%u-\r\n"
 			"User-Agent: %s\r\n\r\n",
-			d->record_index, d->file_name, d->skip,
+			d->record_index, d->file_name, d->skip - d->overlap_size,
 			version_string);
 	else
 		rw = g_snprintf(dl_tmp, sizeof(dl_tmp),
