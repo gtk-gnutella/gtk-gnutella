@@ -65,6 +65,7 @@ gboolean is_directory(gchar *);
 gchar *guid_hex_str(guchar *guid);
 gint hex2dec(gchar c);
 void hex_to_guid(gchar *hexguid, guchar *guid);
+gchar *date_to_iso_gchar(time_t date);
 gchar *date_to_rfc822_gchar(time_t date);
 gchar *date_to_rfc822_gchar2(time_t date);
 gchar *sha1_base32(const guchar *sha1);

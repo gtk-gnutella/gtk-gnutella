@@ -375,9 +375,28 @@ guchar *base32_sha1(const gchar *base32)
 {
 	static guchar digest_sha1[SHA1_RAW_SIZE];
 
-	base32_decode_into(base32, SHA1_BASE32_SIZE, digest_sha1, sizeof(digest_sha1));
+	base32_decode_into(base32, SHA1_BASE32_SIZE,
+		digest_sha1, sizeof(digest_sha1));
 
 	return digest_sha1;
+}
+
+/*
+ * date_to_iso_gchar
+ *
+ * Convert time to ISO style date, e.g. "2002-06-09T14:54:42Z".
+ * Returns pointer to static data.
+ */
+gchar *date_to_iso_gchar(time_t date)
+{
+	static gchar buf[80];
+	struct tm *tm;
+
+	tm = gmtime(&date);
+	strftime(buf, sizeof(buf), "%Y-%m-%dT%H:%M:%SZ", tm);
+	buf[sizeof(buf)-1] = '\0';		/* Be really sure */
+
+	return buf;
 }
 
 /*
