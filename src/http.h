@@ -140,11 +140,12 @@ typedef gint (*http_op_request_t)(gpointer handle, gchar *buf, gint len,
 #define HTTP_ASYNC_EOF				7	/* Got EOF */
 #define HTTP_ASYNC_BAD_STATUS		8	/* Unparseable HTTP status */
 #define HTTP_ASYNC_NO_LOCATION		9	/* Got moved status, but no location */
-#define HTTP_ASYNC_TIMEOUT			10	/* Data timeout */
-#define HTTP_ASYNC_NESTED			11	/* Nested redirections */
-#define HTTP_ASYNC_BAD_LOCATION_URI	12	/* Invalid URI in Location header */
-#define HTTP_ASYNC_CLOSED			13	/* Connection was closed, all OK */
-#define HTTP_ASYNC_REDIRECTED		14	/* Redirected, following disabled */
+#define HTTP_ASYNC_CONN_TIMEOUT		10	/* Connection timeout */
+#define HTTP_ASYNC_TIMEOUT			11	/* Data timeout */
+#define HTTP_ASYNC_NESTED			12	/* Nested redirections */
+#define HTTP_ASYNC_BAD_LOCATION_URI	13	/* Invalid URI in Location header */
+#define HTTP_ASYNC_CLOSED			14	/* Connection was closed, all OK */
+#define HTTP_ASYNC_REDIRECTED		15	/* Redirected, following disabled */
 
 extern guint http_async_errno;
 

@@ -1095,6 +1095,7 @@ static const gchar *error_str[] = {
 	"Got EOF",								/* HTTP_ASYNC_EOF */
 	"Unparseable HTTP status",				/* HTTP_ASYNC_BAD_STATUS */
 	"Got moved status, but no location",	/* HTTP_ASYNC_NO_LOCATION */
+	"Connection timeout",					/* HTTP_ASYNC_CONN_TIMEOUT */
 	"Data timeout",							/* HTTP_ASYNC_TIMEOUT */
 	"Nested redirection",					/* HTTP_ASYNC_NESTED */
 	"Invalid URI in Location header",		/* HTTP_ASYNC_BAD_LOCATION_URI */
@@ -2249,32 +2250,36 @@ void http_async_log_error(gpointer handle, http_errtype_t type, gpointer v)
 	const gchar *req;
 	gint error = GPOINTER_TO_INT(v);
 	http_error_t *herror = (http_error_t *) v;
+	guint32 ip;
+	guint16 port;
 
-	url = http_async_info(handle, &req, NULL, NULL, NULL);
+	url = http_async_info(handle, &req, NULL, &ip, &port);
 
 	switch (type) {
 	case HTTP_ASYNC_SYSERR:
-		g_warning("aborting \"%s %s\" on system error: %s",
-			req, url, g_strerror(error));
+		g_warning("aborting \"%s %s\" at %s on system error: %s",
+			req, url, ip_port_to_gchar(ip, port), g_strerror(error));
 		break;
 	case HTTP_ASYNC_ERROR:
 		if (error == HTTP_ASYNC_CANCELLED) {
 			if (dbg > 3)
-				printf("explicitly cancelled \"%s %s\"\n", req, url);
-		} else if (error == HTTP_ASYNC_CANCELLED) {
+				printf("explicitly cancelled \"%s %s\" at %s\n", req, url,
+					ip_port_to_gchar(ip, port));
+		} else if (error == HTTP_ASYNC_CLOSED) {
 			if (dbg > 3)
-				printf("connection closed for \"%s %s\"\n", req, url);
+				printf("connection closed for \"%s %s\" at %s\n", req, url,
+					ip_port_to_gchar(ip, port));
 		} else
-			g_warning("aborting \"%s %s\" on error: %s",
-				req, url, http_async_strerror(error));
+			g_warning("aborting \"%s %s\" at %s on error: %s", req, url,
+				ip_port_to_gchar(ip, port), http_async_strerror(error));
 		break;
 	case HTTP_ASYNC_HEADER:
-		g_warning("aborting \"%s %s\" on header parsing error: %s",
-				req, url, header_strerror(error));
+		g_warning("aborting \"%s %s\" at %s on header parsing error: %s",
+			req, url, ip_port_to_gchar(ip, port), header_strerror(error));
 		break;
 	case HTTP_ASYNC_HTTP:
-		g_warning("stopping \"%s %s\": HTTP %d %s",
-				req, url, herror->code, herror->message);
+		g_warning("stopping \"%s %s\" at %s: HTTP %d %s", req, url,
+			ip_port_to_gchar(ip, port), herror->code, herror->message);
 		break;
 	default:
 		g_error("unhandled HTTP request error type %d", type);
@@ -2348,8 +2353,18 @@ retry:
 			continue;
 
 		if (elapsed > timeout) {
-			http_async_error(ha, HTTP_ASYNC_TIMEOUT);
-			goto retry;
+			switch (ha->state) {
+			case HTTP_AS_UNKNOWN:
+			case HTTP_AS_CONNECTING:
+				http_async_error(ha, HTTP_ASYNC_CONN_TIMEOUT);
+				goto retry;
+			case HTTP_AS_REMOVED:
+				g_error("removed async request should not be listed");
+				break;
+			default:
+				http_async_error(ha, HTTP_ASYNC_TIMEOUT);
+				goto retry;
+			}
 		}
 	}
 
