@@ -134,6 +134,9 @@ const gchar *general_type_str(int value)
 		N_("Fully completed dynamic queries"),
 		N_("Partially completed dynamic queries"),
 		N_("Dynamic queries ended with no results"),
+		N_("Fully completed dynamic queries getting late results"),
+		N_("Dynamic queries with partial late results"),
+		N_("Dynamic queries completed by late results"),
 	};
 	
 	if ((guint) value >= G_N_ELEMENTS(strs)) {

@@ -58,6 +58,7 @@ RCSID("$Id$");
 #define DQ_QUERY_TIMEOUT	3400	/* 3.4 s */
 #define DQ_TIMEOUT_ADJUST	100		/* 100 ms at each connection */
 #define DQ_MIN_TIMEOUT		1500	/* 1.5 s at least between queries */
+#define DQ_LINGER_TIMEOUT	120000	/* 2 minutes, in ms */
 
 #define DQ_LEAF_RESULTS		50		/* # of results targetted for leaves */
 #define DQ_LOCAL_RESULTS	150		/* # of results for local queries */
@@ -83,6 +84,7 @@ RCSID("$Id$");
 typedef struct dquery {
 	guint32 qid;			/* Unique query ID, to detect ghosts */
 	guint32 node_id;		/* ID of the node that originated the query */
+	guint32 flags;			/* Operational flags */
 	gnet_search_t sh;		/* Search handle, if node ID = NODE_ID_LOCAL */
 	pmsg_t *mb;				/* The search messsage "template" */
 	query_hashvec_t *qhv;	/* Query hash vector for QRP filtering */
@@ -93,13 +95,18 @@ typedef struct dquery {
 	guint32 pending;		/* Pending query messages not ACK'ed yet by mq */
 	guint32 max_results;	/* Max results we're targetting for */
 	guint32 results;		/* Results we got so far for the query */
+	guint32 linger_results;	/* Results we got whilst lingering */
 	guint32 kept;			/* Results they say they kept after filtering */
 	guint32 result_timeout;	/* The current timeout for getting results */
 	gpointer expire_ev;		/* Callout queue global expiration event */
 	gpointer results_ev;	/* Callout queue results expiration event */
 	time_t start;			/* Time at which it started */
+	time_t stop;			/* Time at which it was terminated */
 	pmsg_t *by_ttl[DQ_MAX_TTL];	/* Copied mesages, one for each TTL */
 } dquery_t;
+
+#define DQ_F_ID_CLEANING	0x00000001	/* Cleaning the `by_node_id' table */
+#define DQ_F_LINGER			0x00000002	/* Lingering to monitor extra results */
 
 /*
  * This table keeps track of all the dynamic query objects that we have
@@ -173,6 +180,7 @@ static guint32 hosts[MAX_DEGREE][MAX_TTL];	/* Pre-computed horizon */
 static guint32 dyn_query_id = 0;
 
 static void dq_send_next(dquery_t *dq);
+static void dq_terminate(dquery_t *dq);
 
 extern cqueue_t *callout_queue;
 
@@ -560,10 +568,12 @@ dq_free(dquery_t *dq)
 	g_assert(dq != NULL);
 
 	if (dq_debug > 19)
-		printf("DQ[%d] (%d secs) node #%d ending: "
-			"ttl=%d, queried=%d, horizon=%d, results=%d\n",
-			dq->qid, (gint) (time(NULL) - dq->start), dq->node_id,
-			dq->ttl, dq->up_sent, dq->horizon, dq->results);
+		printf("DQ[%d] (%d secs; +%d secs) node #%d ending: "
+			"ttl=%d, queried=%d, horizon=%d, results=%d+%d\n",
+			dq->qid, (gint) (time(NULL) - dq->start),
+			(dq->flags & DQ_F_LINGER) ? (gint) (time(NULL) - dq->stop) : 0,
+			dq->node_id, dq->ttl, dq->up_sent, dq->horizon, dq->results,
+			dq->linger_results);
 
 	if (dq->results_ev)
 		cq_cancel(callout_queue, dq->results_ev);
@@ -577,6 +587,15 @@ dq_free(dquery_t *dq)
 		gnet_stats_count_general(NULL, GNR_DYN_QUERIES_COMPLETED_PARTIAL, 1);
 	else
 		gnet_stats_count_general(NULL, GNR_DYN_QUERIES_COMPLETED_ZERO, 1);
+
+	if (dq->linger_results) {
+		if (dq->results >= dq->max_results)
+			gnet_stats_count_general(NULL, GNR_DYN_QUERIES_LINGER_EXTRA, 1);
+		else if (dq->results + dq->linger_results >= dq->max_results)
+			gnet_stats_count_general(NULL, GNR_DYN_QUERIES_LINGER_COMPLETED, 1);
+		else
+			gnet_stats_count_general(NULL, GNR_DYN_QUERIES_LINGER_RESULTS, 1);
+	}
 
 	g_hash_table_foreach(dq->queried, free_node_id, NULL);
 	g_hash_table_destroy(dq->queried);
@@ -594,9 +613,16 @@ dq_free(dquery_t *dq)
 	 * Remove query from the `by_node_id' table but only if the node ID
 	 * is not the local node, since we don't store our own queries in
 	 * there: if we disappear, everything else will!
+	 *
+	 * Also, if the DQ_F_ID_CLEANING flag is set, then someone is already
+	 * cleaning up the `by_node_id' table for us, so we really must not
+	 * mess with the table ourselves.
 	 */
 
-	if (dq->node_id != NODE_ID_LOCAL) {
+	if (
+		dq->node_id != NODE_ID_LOCAL &&
+		!(dq->flags & DQ_F_ID_CLEANING)
+	) {
 		GSList *list;
 
 		found = g_hash_table_lookup_extended(by_node_id, &dq->node_id,
@@ -646,7 +672,27 @@ dq_expired(cqueue_t *cq, gpointer obj)
 		printf("DQ[%d] expired\n", dq->qid);
 
 	dq->expire_ev = NULL;	/* Indicates callback fired */
-	dq_free(dq);
+
+	/*
+	 * If query was lingering, free it.
+	 */
+
+	if (dq->flags & DQ_F_LINGER) {
+		dq_free(dq);
+		return;
+	}
+
+	/*
+	 * Put query in lingering mode, to be able to monitor extra results
+	 * that come back after we stopped querying.
+	 */
+
+	if (dq->results_ev) {
+		cq_cancel(callout_queue, dq->results_ev);
+		dq->results_ev = NULL;
+	}
+
+	dq_terminate(dq);
 }
 
 /**
@@ -660,6 +706,36 @@ dq_results_expired(cqueue_t *cq, gpointer obj)
 	dq->results_ev = NULL;	/* Indicates callback fired */
 
 	dq_send_next(dq);
+}
+
+/**
+ * Terminate active querying.
+ */
+static void
+dq_terminate(dquery_t *dq)
+{
+	g_assert(!(dq->flags & DQ_F_LINGER));
+	g_assert(dq->results_ev == NULL);
+
+	/*
+	 * Put the query in lingering mode, so we can continue to monitor
+	 * results for some time after we stopped the dynamic querying.
+	 */
+
+	if (dq->expire_ev != NULL)
+		cq_resched(callout_queue, dq->expire_ev, DQ_LINGER_TIMEOUT);
+	else
+		dq->expire_ev = cq_insert(callout_queue, DQ_LINGER_TIMEOUT,
+			dq_expired, dq);
+
+	dq->flags |= DQ_F_LINGER;
+	dq->stop = time(NULL);
+
+	if (dq_debug > 19)
+		printf("DQ[%d] (%d secs) node #%d lingering: "
+			"ttl=%d, queried=%d, horizon=%d, results=%d\n",
+			dq->qid, (gint) (time(NULL) - dq->start), dq->node_id,
+			dq->ttl, dq->up_sent, dq->horizon, dq->results);
 }
 
 /**
@@ -804,7 +880,7 @@ dq_send_next(dquery_t *dq)
 	 */
 
 	if (current_peermode != NODE_P_ULTRA) {
-		dq_free(dq);
+		dq_terminate(dq);
 		return;
 	}
 
@@ -814,7 +890,7 @@ dq_send_next(dquery_t *dq)
 	 */
 
 	if (dq->results >= dq->max_results || dq->horizon >= DQ_MAX_HORIZON) {
-		dq_free(dq);
+		dq_terminate(dq);
 		return;
 	}
 
@@ -824,7 +900,7 @@ dq_send_next(dquery_t *dq)
 	 */
 
 	if (dq->up_sent >= max_connections - normal_connections) {
-		dq_free(dq);
+		dq_terminate(dq);
 		return;
 	}
 
@@ -836,7 +912,7 @@ dq_send_next(dquery_t *dq)
 			dq->qid, found, found == 1 ? "" : "s");
 
 	if (found == 0) {
-		dq_free(dq);		/* Terminate query: no more UP to send it to */
+		dq_terminate(dq);	/* Terminate query: no more UP to send it to */
 		goto cleanup;
 	}
 
@@ -1094,7 +1170,7 @@ dq_node_removed(guint32 node_id)
 				dq->qid, dq->node_id);
 
 		/* Don't remove query from the table in dq_free() */
-		dq->node_id = NODE_ID_LOCAL;
+		dq->flags |= DQ_F_ID_CLEANING;
 		dq_free(dq);
 	}
 
@@ -1123,11 +1199,22 @@ dq_got_results(gchar *muid, gint count)
 	if (dq == NULL)
 		return;
 
-	dq->results += count;
+	if (dq->flags & DQ_F_LINGER)
+		dq->linger_results += count;
+	else
+		dq->results += count;
 
-	if (dq_debug > 19)
-		printf("DQ[%d] (%d secs) results=%d\n",
-			dq->qid, (gint) (time(NULL) - dq->start), dq->results);
+	if (dq_debug > 19) {
+		if (dq->flags & DQ_F_LINGER)
+			printf("DQ[%d] (%d secs; +%d secs) +%d linger_results=%d\n",
+				dq->qid, (gint) (time(NULL) - dq->start),
+				(gint) (time(NULL) - dq->stop),
+				count, dq->linger_results);
+		else
+			printf("DQ[%d] (%d secs) +%d results=%d\n",
+				dq->qid, (gint) (time(NULL) - dq->start),
+				count, dq->results);
+	}
 }
 
 /**
@@ -1174,7 +1261,7 @@ free_query_list(gpointer key, gpointer value, gpointer udata)
 		dquery_t *dq = (dquery_t *) sl->data;
 
 		/* Don't remove query from the table we're traversing in dq_free() */
-		dq->node_id = NODE_ID_LOCAL;
+		dq->flags |= DQ_F_ID_CLEANING;
 		dq_free(dq);
 	}
 
