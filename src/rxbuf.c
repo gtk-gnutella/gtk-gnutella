@@ -30,6 +30,7 @@
 
 #include "rxbuf.h"
 #include "pmsg.h"
+#include "gnet_property_priv.h"
 
 /*
  * RX buffers are a set of pdata_t structures which are never physically freed
@@ -42,8 +43,6 @@
 
 static GSList *sl_buffers = NULL;
 static gint allocated = 0;
-
-extern int dbg;				/* Don't include "appconfig.h" just for that */
 
 /*
  * rxbuf_free
