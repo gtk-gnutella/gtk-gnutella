@@ -37,7 +37,7 @@
         (GtkWidget *widget, GdkEventFocus *event, gpointer user_data)   \
     {                                                                   \
         on_##a##_activate(GTK_EDITABLE(widget), NULL);                  \
-        return TRUE;                                                    \
+        return FALSE;                                                   \
     }
 
 /*
