@@ -1910,17 +1910,19 @@ static gboolean download_ignore_requested(struct download *d)
 			reason == IGNORE_LIBRARY ? "Already Owned" : "Name & Size");
 
 		/*
-		 * Since we're ignoring this file, make sure we don't keep any
+		 * If we're ignoring this file, make sure we don't keep any
 		 * track of it on disk: dispose of the fileinfo when the last
 		 * reference will be removed, remove all known downloads from the
 		 * queue and delete the file (if not complete, or it could be in
 		 * the process of being moved).
 		 */
 
-		file_info_set_discard(d->file_info, TRUE);
-		queue_remove_downloads_with_file(fi, d);
-		if (!FILE_INFO_COMPLETE(fi))
-			download_remove_file(d, FALSE);
+		if (reason != IGNORE_HOSTILE) {
+			file_info_set_discard(d->file_info, TRUE);
+			queue_remove_downloads_with_file(fi, d);
+			if (!FILE_INFO_COMPLETE(fi))
+				download_remove_file(d, FALSE);
+		}
 
 		return TRUE;
 	}
