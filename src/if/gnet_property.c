@@ -3409,7 +3409,7 @@ prop_set_t *gnet_prop_init(void) {
     gnet_property->props[149].data.guint32.value = &max_ultrapeers;
     gnet_property->props[149].data.guint32.choices = NULL;
     gnet_property->props[149].data.guint32.max   = 4;
-    gnet_property->props[149].data.guint32.min   = 1;
+    gnet_property->props[149].data.guint32.min   = 0;
 
 
     /*
