@@ -5529,7 +5529,8 @@ void node_get_status(const gnet_node_t n, gnet_node_status_t *status)
 	status->rx_bps = bio ? bio_bps(bio) / 1024.0 : 0.0;
 
 	if (node_ultra_received_qrp(node)) {
-		status->qrp_efficiency = node->qrp_matches / MAX(1, node->qrp_queries);
+		status->qrp_efficiency =
+			(gfloat) node->qrp_matches / (gfloat) MAX(1, node->qrp_queries);
 		status->has_qrp = TRUE;
 	} else
 		status->has_qrp = FALSE;
