@@ -1,0 +1,51 @@
+/*
+ * Copyright (c) 2001-2002, Raphael Manfredi, Richard Eckart
+ *
+ *----------------------------------------------------------------------
+ * This file is part of gtk-gnutella.
+ *
+ *  gtk-gnutella is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation; either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  gtk-gnutella is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with gtk-gnutella; if not, write to the Free Software
+ *  Foundation, Inc.:
+ *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *----------------------------------------------------------------------
+ */
+
+#ifndef __filter_cb_h__
+#define __filter_cb_h__
+
+gboolean on_dlg_filters_delete_event(GtkWidget *widget, gpointer user_data);
+void on_clist_filter_rules_resize_column(GtkCList * clist, gint column, gint width, gpointer user_data);
+void on_ctree_filter_filters_resize_column(GtkCList * clist, gint column, gint width, gpointer user_data);
+void on_clist_filter_rules_select_row(GtkCList * clist, gint row, gint column, GdkEvent * event, gpointer user_data);
+void on_clist_filter_rules_unselect_row(GtkCList * clist, gint row, gint column, GdkEvent * event, gpointer user_data);
+void on_clist_filter_rules_drag_end(GtkWidget *widget, GdkDragContext *drag_context, gpointer user_data);
+void on_button_filter_add_rule_text_clicked(GtkButton *button, gpointer user_data);
+void on_button_filter_add_rule_ip_clicked(GtkButton *button, gpointer user_data);
+void on_button_filter_add_rule_size_clicked(GtkButton *button, gpointer user_data);
+void on_button_filter_add_rule_jump_clicked(GtkButton *button, gpointer user_data);
+void on_button_filter_ok_clicked(GtkButton *button, gpointer user_data);
+void on_button_filter_cancel_clicked(GtkButton *button, gpointer user_data);
+void on_button_filter_clear_clicked(GtkButton *button, gpointer user_data);
+void on_button_filter_remove_rule_clicked(GtkButton *button, gpointer user_data);
+void on_entry_filter_new_activate (GtkEditable *editable, gpointer user_data); 
+void on_button_filter_remove_clicked(GtkButton *button, gpointer user_data);
+void on_button_filter_create_clicked(GtkButton *button, gpointer user_data);
+void on_button_filter_reset_all_rules_clicked(GtkButton *button, gpointer user_data);
+void on_button_filter_reset_clicked(GtkButton *button, gpointer user_data);
+void on_button_filter_reset_all_clicked(GtkButton *button, gpointer user_data);
+void on_button_filter_reset_rule_clicked(GtkButton *button, gpointer user_data);
+void on_ctree_filter_filters_tree_select_row(GtkCTree * ctree, GList *node, gint column, gpointer user_data);
+void on_checkbutton_filter_enabled_toggled(GtkToggleButton * togglebutton, gpointer user_data);
+
+#endif /* __filter_cb_h__ */
