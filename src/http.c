@@ -779,21 +779,21 @@ GSList *http_range_parse(
 
 			if (!minus_seen) {
 				g_warning("weird %s header from <%s>, offset %d (no range?): "
-					"%s", field, vendor, ((gchar *) str - value) - 1, value);
+					"%s", field, vendor, (gint) ((gchar *) str - value) - 1, value);
 				goto reset;
 			}
 
 			if (start == HTTP_OFFSET_MAX && !has_end) {	/* Bad negative range */
 				g_warning("weird %s header from <%s>, offset %d "
 					"(incomplete negative range): %s",
-					field, vendor, ((gchar *) str - value) - 1, value);
+					field, vendor, (gint) ((gchar *) str - value) - 1, value);
 				goto reset;
 			}
 
 			if (start > end) {
 				g_warning("weird %s header from <%s>, offset %d "
 					"(swapped range?): %s", field, vendor,
-					((gchar *) str - value) - 1, value);
+					(gint) ((gchar *) str - value) - 1, value);
 				goto reset;
 			}
 
@@ -804,7 +804,8 @@ GSList *http_range_parse(
 			if (ignored)
 				g_warning("weird %s header from <%s>, offset %d "
 					"(ignored range #%d): %s",
-					field, vendor, ((gchar *) str - value) - 1, count, value);
+					field, vendor, (gint) ((gchar *) str - value) - 1, count,
+					value);
 
 			goto reset;
 		}
@@ -816,7 +817,7 @@ GSList *http_range_parse(
 			if (minus_seen) {
 				g_warning("weird %s header from <%s>, offset %d "
 					"(spurious '-'): %s",
-					field, vendor, ((gchar *) str - value) - 1, value);
+					field, vendor, (gint) ((gchar *) str - value) - 1, value);
 				goto resync;
 			}
 			minus_seen = TRUE;
@@ -824,7 +825,8 @@ GSList *http_range_parse(
 				if (!request) {
 					g_warning("weird %s header from <%s>, offset %d "
 						"(negative range in reply): %s",
-						field, vendor, ((gchar *) str - value) - 1, value);
+						field, vendor, (gint) ((gchar *) str - value) - 1,
+						value);
 					goto resync;
 				}
 				start = HTTP_OFFSET_MAX;	/* Indicates negative range */
@@ -844,14 +846,15 @@ GSList *http_range_parse(
 			if (has_end) {
 				g_warning("weird %s header from <%s>, offset %d "
 					"(spurious boundary %u): %s",
-					field, vendor, ((gchar *) str - value) - 1, val, value);
+					field, vendor, (gint) ((gchar *) str - value) - 1, val,
+					value);
 				goto resync;
 			}
 
 			if (val >= size) {
 				g_warning("weird %s header from <%s>, offset %d "
 					"(%s boundary %u outside resource range 0-%u): %s",
-					field, vendor, ((gchar *) str - value) - 1,
+					field, vendor, (gint) ((gchar *) str - value) - 1,
 					has_start ? "end" : "start", val, size - 1, value);
 				goto resync;
 			}
@@ -860,7 +863,8 @@ GSList *http_range_parse(
 				if (!minus_seen) {
 					g_warning("weird %s header from <%s>, offset %d "
 						"(no '-' before boundary %u): %s",
-						field, vendor, ((gchar *) str - value) - 1, val, value);
+						field, vendor, (gint) ((gchar *) str - value) - 1, val,
+						value);
 					goto resync;
 				}
 				if (start == HTTP_OFFSET_MAX) {			/* Negative range */
@@ -878,7 +882,7 @@ GSList *http_range_parse(
 
 		g_warning("weird %s header from <%s>, offset %d "
 			"(unexpected char '%c'): %s",
-			field, vendor, ((gchar *) str - value) - 1, c, value);
+			field, vendor, (gint) ((gchar *) str - value) - 1, c, value);
 
 		/* FALL THROUGH */
 
@@ -900,14 +904,14 @@ GSList *http_range_parse(
 		if (start == HTTP_OFFSET_MAX && !has_end) {	/* Bad negative range */
 			g_warning("weird %s header from <%s>, offset %d "
 				"(incomplete trailing negative range): %s",
-				field, vendor, ((gchar *) str - value) - 1, value);
+				field, vendor, (gint) ((gchar *) str - value) - 1, value);
 			goto final;
 		}
 
 		if (start > end) {
 			g_warning("weird %s header from <%s>, offset %d "
 				"(swapped trailing range?): %s", field, vendor,
-				((gchar *) str - value) - 1, value);
+				(gint) ((gchar *) str - value) - 1, value);
 			goto final;
 		}
 
@@ -917,7 +921,8 @@ GSList *http_range_parse(
 		if (ignored)
 			g_warning("weird %s header from <%s>, offset %d "
 				"(ignored final range #%d): %s",
-				field, vendor, ((gchar *) str - value) - 1, count, value);
+				field, vendor, (gint) ((gchar *) str - value) - 1, count,
+				value);
 	}
 
 final:
