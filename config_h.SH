@@ -58,8 +58,8 @@ sed <<!GROK!THIS! >config.h -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un-
 #define CAT2(a,b)a/**/b
 #define CAT3(a,b,c)a/**/b/**/c
 #define STRINGIFY(a)"a"
-#define SQuoTe(a)"a
-#define EQuoTe(a)a"
+#define SQuoTe(a)${cpp_quote}a
+#define EQuoTe(a)a${cpp_quote}
 #endif
 #if $cpp_stuff == 42
 #define CAT2(a,b)a ## b

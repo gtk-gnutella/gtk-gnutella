@@ -20,7 +20,7 @@
 
 # $Id$
 #
-# Generated on Fri Aug 15 22:11:29 MEST 2003 [metaconfig 3.0 PL70]
+# Generated on Sat Aug 16 10:40:59 MEST 2003 [metaconfig 3.0 PL70]
 
 cat >/tmp/c1$$ <<EOF
 ARGGGHHHH!!!!!
@@ -249,6 +249,7 @@ optimize=''
 cf_by=''
 cf_time=''
 contains=''
+cpp_quote=''
 cpp_stuff=''
 cpplast=''
 cppminus=''
@@ -4033,6 +4034,7 @@ Id='$Id'
 : how do we catenate cpp tokens here?
 echo " "
 echo "Checking to see how your cpp does stuff like catenate tokens..." >&4
+cpp_quote=''
 $cat >cpp_stuff.c <<'EOCP'
 #define RCAT(a,b)a/**/b
 #define ACAT(a,b)a ## b
@@ -4045,17 +4047,34 @@ if $contains 'Circus' cpp_stuff.out >/dev/null 2>&1; then
 	echo "We can catify or stringify, separately or together!"
 	cpp_stuff=42
 elif $contains 'Reiser' cpp_stuff.out >/dev/null 2>&1; then
-	$cat <<EOM
-Ah, yes!  The good old days!
+	echo "Ah, yes!  The good old days!"
+	cpp_stuff=1
+	$cat >cpp_stuff.c <<'EOCP'
+#define SQuoTe(a)"a
+#define EQuoTe(a)a"
+#define CAT2(a,b)EQuoTe(SQuoTe(a)b)
+CAT2(Vic,tory)
+EOCP
+	$cppstdin $cppflags $cppminus <cpp_stuff.c >cpp_stuff.out 2>&1
+	if $contains '"Victory"' cpp_stuff.out >/dev/null 2>&1; then
+		echo "I'll resort to a cute trick to also be able to stringify."
+		cpp_quote='"'
+	else
+		$cat <<EOM
 However, in the good old days we don't know how to stringify and
 catify at the same time...
-Unless we have a cute trick...  which I have!
+This is not a problem for me.
 EOM
-	cpp_stuff=1
+	fi
 else
 	$cat >&4 <<EOM
-Hmm, I don't seem to be able to catenate tokens with your cpp.  You're going
-to have to edit the values of CAT[2-5] and SCAT[2-5] in config.h...
+Hmm, I don't seem to be able to catenate tokens with your cpp.
+WARNING: You're going to have to edit the values of the following
+macros in config.h:
+
+	CAT[2-5]
+
+in order to let me compile.
 EOM
 	cpp_stuff="/* Help! How do we handle cpp_stuff? */*/"
 fi
@@ -4871,6 +4890,7 @@ contains='$contains'
 cp='$cp'
 cpio='$cpio'
 cpp='$cpp'
+cpp_quote='$cpp_quote'
 cpp_stuff='$cpp_stuff'
 cppflags='$cppflags'
 cpplast='$cpplast'
