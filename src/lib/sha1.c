@@ -298,8 +298,7 @@ void SHA1ProcessMessageBlock(SHA1Context *context)
 	CRUNCH; wp++;		/* 19 */
 
 	/* Fully unrolling this loop does NOT save time due to I-cache misses */
-    for (t = 20; t < 80; t += 10)
-    {
+    for (t = 20; t < 80; t += 10) {
 		CRUNCH; wp++;		/* t+0 */
 		CRUNCH; wp++;		/* t+1 */
 		CRUNCH; wp++;		/* t+2 */
@@ -318,49 +317,99 @@ void SHA1ProcessMessageBlock(SHA1Context *context)
     D = context->Intermediate_Hash[3];
     E = context->Intermediate_Hash[4];
 
-    for(t = 0; t < 20; t++)
-    {
-		/* Optimizing "(B & C) | (~B & D)" into "D ^ (B & (C ^ D))" */
-        temp = SHA1CircularShift(5,A) +
-			(D ^ (B & (C ^ D))) + E + W[t] + K[0];
-        E = D;
-        D = C;
-        C = SHA1CircularShift(30,B);
-        B = A;
-        A = temp;
-    }
+	wp = &W[0];
 
-    for(t = 20; t < 40; t++)
-    {
-        temp = SHA1CircularShift(5,A) + (B ^ C ^ D) + E + W[t] + K[1];
-        E = D;
-        D = C;
-        C = SHA1CircularShift(30,B);
-        B = A;
-        A = temp;
-    }
+#define ROTATE(k, mix) \
+	temp = SHA1CircularShift(5,A) + (mix) + E + *wp++ + K[k]; \
+	E = D; D = C; \
+	C = SHA1CircularShift(30,B); \
+	B = A; A = temp
 
-    for(t = 40; t < 60; t++)
-    {
-		/* Optimizing "(B & C) | (B & D)" into "B & (C | D)" */
-        temp = SHA1CircularShift(5,A) +
-               ((B & (C | D)) | (C & D)) + E + W[t] + K[2];
-        E = D;
-        D = C;
-        C = SHA1CircularShift(30,B);
-        B = A;
-        A = temp;
-    }
+	/* Optimizing "(B & C) | (~B & D)" into "D ^ (B & (C ^ D))" */
+	ROTATE(0, D ^ (B & (C ^ D)));
+	ROTATE(0, D ^ (B & (C ^ D)));
+	ROTATE(0, D ^ (B & (C ^ D)));
+	ROTATE(0, D ^ (B & (C ^ D)));
+	ROTATE(0, D ^ (B & (C ^ D)));
+	ROTATE(0, D ^ (B & (C ^ D)));
+	ROTATE(0, D ^ (B & (C ^ D)));
+	ROTATE(0, D ^ (B & (C ^ D)));
+	ROTATE(0, D ^ (B & (C ^ D)));
+	ROTATE(0, D ^ (B & (C ^ D)));
+	ROTATE(0, D ^ (B & (C ^ D)));
+	ROTATE(0, D ^ (B & (C ^ D)));
+	ROTATE(0, D ^ (B & (C ^ D)));
+	ROTATE(0, D ^ (B & (C ^ D)));
+	ROTATE(0, D ^ (B & (C ^ D)));
+	ROTATE(0, D ^ (B & (C ^ D)));
+	ROTATE(0, D ^ (B & (C ^ D)));
+	ROTATE(0, D ^ (B & (C ^ D)));
+	ROTATE(0, D ^ (B & (C ^ D)));
+	ROTATE(0, D ^ (B & (C ^ D)));
 
-    for(t = 60; t < 80; t++)
-    {
-        temp = SHA1CircularShift(5,A) + (B ^ C ^ D) + E + W[t] + K[3];
-        E = D;
-        D = C;
-        C = SHA1CircularShift(30,B);
-        B = A;
-        A = temp;
-    }
+	ROTATE(1, B ^ C ^ D);
+	ROTATE(1, B ^ C ^ D);
+	ROTATE(1, B ^ C ^ D);
+	ROTATE(1, B ^ C ^ D);
+	ROTATE(1, B ^ C ^ D);
+	ROTATE(1, B ^ C ^ D);
+	ROTATE(1, B ^ C ^ D);
+	ROTATE(1, B ^ C ^ D);
+	ROTATE(1, B ^ C ^ D);
+	ROTATE(1, B ^ C ^ D);
+	ROTATE(1, B ^ C ^ D);
+	ROTATE(1, B ^ C ^ D);
+	ROTATE(1, B ^ C ^ D);
+	ROTATE(1, B ^ C ^ D);
+	ROTATE(1, B ^ C ^ D);
+	ROTATE(1, B ^ C ^ D);
+	ROTATE(1, B ^ C ^ D);
+	ROTATE(1, B ^ C ^ D);
+	ROTATE(1, B ^ C ^ D);
+	ROTATE(1, B ^ C ^ D);
+
+	/* Optimizing "(B & C) | (B & D)" into "B & (C | D)" */
+	ROTATE(2, (B & (C | D)) | (C & D));
+	ROTATE(2, (B & (C | D)) | (C & D));
+	ROTATE(2, (B & (C | D)) | (C & D));
+	ROTATE(2, (B & (C | D)) | (C & D));
+	ROTATE(2, (B & (C | D)) | (C & D));
+	ROTATE(2, (B & (C | D)) | (C & D));
+	ROTATE(2, (B & (C | D)) | (C & D));
+	ROTATE(2, (B & (C | D)) | (C & D));
+	ROTATE(2, (B & (C | D)) | (C & D));
+	ROTATE(2, (B & (C | D)) | (C & D));
+	ROTATE(2, (B & (C | D)) | (C & D));
+	ROTATE(2, (B & (C | D)) | (C & D));
+	ROTATE(2, (B & (C | D)) | (C & D));
+	ROTATE(2, (B & (C | D)) | (C & D));
+	ROTATE(2, (B & (C | D)) | (C & D));
+	ROTATE(2, (B & (C | D)) | (C & D));
+	ROTATE(2, (B & (C | D)) | (C & D));
+	ROTATE(2, (B & (C | D)) | (C & D));
+	ROTATE(2, (B & (C | D)) | (C & D));
+	ROTATE(2, (B & (C | D)) | (C & D));
+
+	ROTATE(3, B ^ C ^ D);
+	ROTATE(3, B ^ C ^ D);
+	ROTATE(3, B ^ C ^ D);
+	ROTATE(3, B ^ C ^ D);
+	ROTATE(3, B ^ C ^ D);
+	ROTATE(3, B ^ C ^ D);
+	ROTATE(3, B ^ C ^ D);
+	ROTATE(3, B ^ C ^ D);
+	ROTATE(3, B ^ C ^ D);
+	ROTATE(3, B ^ C ^ D);
+	ROTATE(3, B ^ C ^ D);
+	ROTATE(3, B ^ C ^ D);
+	ROTATE(3, B ^ C ^ D);
+	ROTATE(3, B ^ C ^ D);
+	ROTATE(3, B ^ C ^ D);
+	ROTATE(3, B ^ C ^ D);
+	ROTATE(3, B ^ C ^ D);
+	ROTATE(3, B ^ C ^ D);
+	ROTATE(3, B ^ C ^ D);
+	ROTATE(3, B ^ C ^ D);
 
     context->Intermediate_Hash[0] += A;
     context->Intermediate_Hash[1] += B;
