@@ -208,6 +208,8 @@ src/core/features.c
 src/core/features.h
 src/core/fileinfo.c
 src/core/fileinfo.h
+src/core/geo_ip.c
+src/core/geo_ip.h
 src/core/ggep.c
 src/core/ggep.h
 src/core/ggep_type.c
@@ -356,6 +358,7 @@ src/if/core/http.h
 src/if/core/main.h
 src/if/core/net_stats.h
 src/if/core/nodes.h
+src/if/core/parq.h
 src/if/core/pproxy.h
 src/if/core/search.h
 src/if/core/settings.h
@@ -453,6 +456,8 @@ src/lib/tm.c
 src/lib/tm.h
 src/lib/url.c
 src/lib/url.h
+src/lib/urn.c
+src/lib/urn.h
 src/lib/utf8.c
 src/lib/utf8.h
 src/lib/vendors.c
