@@ -33,6 +33,7 @@ struct {
 } vendor_map[] = {
     { T_ARES, "Ares" },
     { T_BEAR, "BearShare" },
+    { T_COCO, "CocoGnut" },
     { T_CULT, "Cultiv8r" },
     { T_FIRE, "FireFly" },
     { T_FISH, "PEERahna" },
