@@ -725,7 +725,7 @@ static void show_error(char *fmt, ...)
  * It was modified to work with gtk_gnutella and non-blocking sockets. --DW
  */
 
-int proxy_connect(int __fd, const struct sockaddr *__addr, socklen_t __len)
+int proxy_connect(int __fd, const struct sockaddr *__addr, guint __len)
 {
 	struct sockaddr_in *connaddr;
 	void **kludge;

@@ -68,7 +68,7 @@ void sock_cork(struct gnutella_socket *s, gboolean on);
 
 int connect_http(struct gnutella_socket *);
 int connect_socksv5(struct gnutella_socket *);
-int proxy_connect(int, const struct sockaddr *, socklen_t);
+int proxy_connect(int, const struct sockaddr *, guint);
 int recv_socks(struct gnutella_socket *);
 int send_socks(struct gnutella_socket *);
 
