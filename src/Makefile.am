@@ -88,7 +88,8 @@ gtk_gnutella_SOURCES = \
 	filter.c filter.h \
 	ban.c han.h \
 	qrp.c qrp.h \
-	getdate.y
+	getdate.y \
+	atoms.c atoms.h
 
 gtk_gnutella_LDADD = @GTK_LIBS@ -lz @XML_LIBS@
 
