@@ -20,7 +20,7 @@
 
 # $Id$
 #
-# Generated on Thu Aug 14 22:09:06 MEST 2003 [metaconfig 3.0 PL70]
+# Generated on Thu Aug 14 23:08:08 MEST 2003 [metaconfig 3.0 PL70]
 
 cat >/tmp/c1$$ <<EOF
 ARGGGHHHH!!!!!
@@ -420,7 +420,7 @@ inclwanted=''
 
 : default library list
 libswanted=''
-libswanted='sendfile z icuuc intl ioconv'
+libswanted='sendfile z icuuc intl'
 
 : Find the basic shell for Bourne shell scripts
 case "$sh" in
