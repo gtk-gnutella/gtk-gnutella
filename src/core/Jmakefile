@@ -67,6 +67,7 @@ SRC = \
 	pcache.c \
 	pmsg.c \
 	pproxy.c \
+	qhit.c \
 	qrp.c \
 	routing.c \
 	rx.c \
