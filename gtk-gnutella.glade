@@ -14558,7 +14558,7 @@ Christian Biere &lt;christianbiere@gmx.de&gt;</text>
       <label>==&gt; We are looking for people who want to contribute to this fine tool. &lt;==
 Visit http://gtk-gnutella.sourceforge.net.
 Join the users or developers mailing lists.
-Meet us on #gtk-gnutella at irc.freenode.org.</label>
+Meet us on #gtk-gnutella at irc.freenode.net.</label>
       <justify>GTK_JUSTIFY_CENTER</justify>
       <wrap>False</wrap>
       <xalign>0.5</xalign>
