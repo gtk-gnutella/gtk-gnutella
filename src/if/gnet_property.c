@@ -515,8 +515,8 @@ gboolean enable_udp     = TRUE;
 gboolean enable_udp_def = TRUE;
 gboolean process_oob_queries     = TRUE;
 gboolean process_oob_queries_def = TRUE;
-gboolean send_oob_queries     = FALSE;
-gboolean send_oob_queries_def = FALSE;
+gboolean send_oob_queries     = TRUE;
+gboolean send_oob_queries_def = TRUE;
 
 static prop_set_t *gnet_property = NULL;
 
@@ -4860,7 +4860,7 @@ prop_set_t *gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[226].name = "send_oob_queries";
-    gnet_property->props[226].desc = _("Whether gtk-gnutella should send queries requesting out-of-band delivery of query hits via UDP.  This setting is ignored if you appear to be UDP-firewalled, i.e. cannot receive unsolicited UDP traffic.  You need to enable UDP support first.  This can cause the reception of vast quantities of UDP replies (negotiated normally by your node, but still) and that is why it is disabled by default.");
+    gnet_property->props[226].desc = _("Whether gtk-gnutella should send queries requesting out-of-band delivery of query hits via UDP.  This setting is ignored if you appear to be UDP-firewalled, i.e. cannot receive unsolicited UDP traffic.  You need to enable UDP support first.  This can cause the reception of vast quantities of UDP replies (negotiated normally by your node, but still), so you may choose to disable this feature.  If you do however, your hits will travel through the Gnutella network and can be dropped by any flow-controlled relaying node, severely limiting the results you can get for rare queries.");
     gnet_property->props[226].ev_changed = event_new("send_oob_queries_changed");
     gnet_property->props[226].save = TRUE;
     gnet_property->props[226].vector_size = 1;

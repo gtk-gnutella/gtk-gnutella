@@ -2674,10 +2674,14 @@ prop = {
 		"appear to be UDP-firewalled, i.e. cannot receive unsolicited UDP "
 		"traffic.  You need to enable UDP support first.  This can cause "
 		"the reception of vast quantities of UDP replies (negotiated normally "
-		"by your node, but still) and that is why it is disabled by default.";
+		"by your node, but still), so you may choose to disable this "
+		"feature.  If you do however, your hits will travel through the "
+		"Gnutella network and can be dropped by any flow-controlled "
+		"relaying node, severely limiting the results you can get for rare "
+		"queries.";
 	type = boolean;
 	data = {
-		default = FALSE;
+		default = TRUE;
 	};
 };
 
