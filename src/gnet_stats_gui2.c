@@ -411,17 +411,25 @@ static void gnet_stats_update_horizon(void)
 	GtkTreeIter iter;
 	gint n;
 	hsep_triple hsep_table[HSEP_N_MAX + 1];
+	hsep_triple other;
 	static time_t last_horizon_update = 0;
+	time_t now = time(NULL);
 
 	/*
 	 * Update horizon statistics table, but only if the values have changed.
-	 *      -- TNT 2004-06-09
+	 *      -- TNT 09/06/2004
+	 *
+	 * Changed this check to update the table every 2 seconds, because not
+	 * only the HSEP table but also the PONG-based library sizes of direct
+	 * non-HSEP neighbors may have changed.
+	 *      -- TNT 14/06/2004 
 	 */
 
-    if (!hsep_has_global_table_changed(last_horizon_update))
+    if (delta_time(now, last_horizon_update) < 2)
 		return;
 
 	hsep_get_global_table(hsep_table, G_N_ELEMENTS(hsep_table));
+	hsep_get_non_hsep_triple(&other);
 
 	store = GTK_LIST_STORE(gtk_tree_view_get_model(treeview));
 	gtk_tree_model_get_iter_first(GTK_TREE_MODEL(store), &iter);
@@ -429,14 +437,14 @@ static void gnet_stats_update_horizon(void)
 	/* Skip the first element */
 	for (n = 1; (guint) n < G_N_ELEMENTS(hsep_table); n++) {
 		gtk_list_store_set(store, &iter,
-			c_horizon_nodes, horizon_stat_str(hsep_table, n, c_horizon_nodes),
-		    c_horizon_files, horizon_stat_str(hsep_table, n, c_horizon_files),
-		    c_horizon_size,	 horizon_stat_str(hsep_table, n, c_horizon_size),
+			c_horizon_nodes, horizon_stat_str(hsep_table, &other, n, c_horizon_nodes),
+		    c_horizon_files, horizon_stat_str(hsep_table, &other, n, c_horizon_files),
+		    c_horizon_size,	 horizon_stat_str(hsep_table, &other, n, c_horizon_size),
 			(-1));
 		gtk_tree_model_iter_next(GTK_TREE_MODEL(store), &iter);
 	}
 
-	last_horizon_update = time(NULL);
+	last_horizon_update = now;
 }
 
 static void gnet_stats_gui_horizon_init(void)
@@ -467,7 +475,7 @@ static void gnet_stats_gui_horizon_init(void)
 		for (i = 0; n == c_horizon_hops && i < HSEP_N_MAX; i++) {
 			gtk_list_store_append(GTK_LIST_STORE(model), &iter);
 			gtk_list_store_set(GTK_LIST_STORE(model), &iter,
-				c_horizon_hops, horizon_stat_str(NULL, i + 1, 0),
+				c_horizon_hops, horizon_stat_str(NULL, NULL, i + 1, 0),
 				c_horizon_nodes, "-",
 				c_horizon_files, "-",
 				c_horizon_size, "-",

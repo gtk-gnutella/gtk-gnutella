@@ -367,7 +367,7 @@ void gnet_stats_gui_init(void)
 
     for (n = 0; n < HSEP_N_MAX; n ++) {
         gint row;
-        titles[0] = (gchar *) horizon_stat_str(NULL, n + 1, 0);
+        titles[0] = (gchar *) horizon_stat_str(NULL, NULL, n + 1, 0);
         row = gtk_clist_append(clist_horizon, titles);
         gtk_clist_set_selectable(clist_horizon, row, FALSE);
     }
@@ -473,13 +473,21 @@ void gnet_stats_gui_update(time_t now)
 	/*
 	 * Update horizon statistics table, but only if the values have changed.
 	 *		-- TNT 09/06/2004 
+	 *
+	 * Changed this check to update the table every 2 seconds, because not
+	 * only the HSEP table but also the PONG-based library sizes of direct
+	 * non-HSEP neighbors may have changed.
+	 *		-- TNT 14/06/2004 
 	 */
 
-	if (hsep_has_global_table_changed(last_horizon_update)) {
+	if (delta_time(now, last_horizon_update) >= 2) {
 		hsep_triple hsep_table[HSEP_N_MAX + 1];
+		hsep_triple other;
 
-		gtk_clist_freeze(clist_horizon);
 		hsep_get_global_table(hsep_table, HSEP_N_MAX + 1);
+		hsep_get_non_hsep_triple(&other);
+		
+		gtk_clist_freeze(clist_horizon);
 
 		for (n = 0; n < HSEP_N_MAX; n ++) {
 			/* 
@@ -487,11 +495,11 @@ void gnet_stats_gui_update(time_t now)
 			 *		-- TNT 02/06/2004 
 			 */
 			gtk_clist_set_text(clist_horizon, n, 1,
-			    horizon_stat_str(hsep_table, n + 1, 1));
+			    horizon_stat_str(hsep_table, &other, n + 1, 1));
 			gtk_clist_set_text(clist_horizon, n, 2,
-			    horizon_stat_str(hsep_table, n + 1, 2));
+			    horizon_stat_str(hsep_table, &other, n + 1, 2));
 			gtk_clist_set_text(clist_horizon, n, 3,
-			    horizon_stat_str(hsep_table, n + 1, 3));
+			    horizon_stat_str(hsep_table, &other, n + 1, 3));
 		}
 		last_horizon_update = now;
 		gtk_clist_thaw(clist_horizon);
