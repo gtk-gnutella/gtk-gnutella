@@ -106,8 +106,24 @@ socket_register_fd_reclaimer(reclaim_fd_t callback)
  */
 struct udp_addr {
 	struct sockaddr ud_addr;
-	gint ud_addrlen;
+	socklen_t ud_addrlen;
 };
+
+struct sockreq {
+	gint8 version;
+	gint8 command;
+	gint16 dstport;
+	gint32 dstip;
+	/* A null terminated username goes here */
+} __attribute__((__packed__));
+
+struct sockrep {
+	gint8 version;
+	gint8 result;
+	gint16 ignore1;
+	gint32 ignore2;
+} __attribute__((__packed__));
+
 
 static gboolean ip_computed = FALSE;
 
@@ -219,14 +235,17 @@ void socket_tos_default(struct gnutella_socket *s)
 }
 #else
 static void
-socket_tos(struct gnutella_socket *s, gint tos)
+socket_tos(struct gnutella_socket *unused_s, gint unused_tos)
 {
+	(void) unused_s;
+	(void) unused_tos;
 	/* Empty */
 }
 
 void
-socket_tos_default(struct gnutella_socket *s)
+socket_tos_default(struct gnutella_socket *unused_s)
 {
+	(void) unused_s;
 	/* Empty */
 }
 #endif /* USE_IP_TOS */
@@ -274,6 +293,471 @@ socket_eof(struct gnutella_socket *s)
 
 	s->flags |= SOCK_F_EOF;
 }
+
+static void
+proxy_connect_helper(guint32 addr, gpointer udata)
+{
+	gboolean *in_progress = udata;
+
+	*in_progress = FALSE;
+	gnet_prop_set_guint32(PROP_PROXY_IP, &addr, 0, 1);
+	g_message("Resolved proxy name \"%s\" to %s", proxy_hostname,
+		ip_to_gchar(proxy_ip));
+}
+
+/*
+ * The socks 4/5 code was taken from tsocks 1.16 Copyright (C) 2000 Shaun Clowes
+ * It was modified to work with gtk_gnutella and non-blocking sockets. --DW
+ */
+
+static int
+proxy_connect(int fd, const struct sockaddr *addr, guint len)
+{
+	static gboolean in_progress = FALSE;
+	struct sockaddr_in server;
+
+	if (!proxy_ip &&
+		proxy_port != 0 &&
+		proxy_hostname[0] != '\0'
+	) {
+		if (!in_progress) {
+			in_progress = TRUE;
+			g_warning("Resolving proxy name \"%s\"", proxy_hostname);
+			adns_resolve(proxy_hostname, proxy_connect_helper, &in_progress);
+		}
+
+		if (in_progress) {
+			errno = EAGAIN;
+			return -1;
+		}
+	}
+	
+	if (len != sizeof(struct sockaddr_in) || !proxy_ip || !proxy_port) {
+		errno = EINVAL;
+		return -1;
+	}
+
+	/* Construct the addr for the socks server */
+	memset(&server, 0, sizeof server);
+	server.sin_family = AF_INET;	/* host byte order */
+	server.sin_addr.s_addr = htonl(proxy_ip);
+	server.sin_port = htons(proxy_port);
+
+	return connect(fd, (struct sockaddr *) &server, sizeof server);
+}
+
+static gint
+send_socks(struct gnutella_socket *s)
+{
+	struct passwd *user;
+	struct sockreq *thisreq;
+	const gchar *name;
+	size_t name_size, length = 0;
+	ssize_t ret;
+	gchar *realreq;
+
+	/* XXX: Shouldn't this use the configured username instead? */
+	/* Determine the current username */
+	user = getpwuid(getuid());
+	name = user != NULL ? user->pw_name : "";
+	name_size = strlen(name) + 1;
+
+	/* Allocate enough space for the request and the null */
+	/* terminated username */
+	length = sizeof(struct sockreq) + name_size;
+	realreq = g_malloc(length);
+	if (!realreq)
+		return -1;
+
+	/* Copy the username */
+	strncpy(&realreq[sizeof(struct sockreq)], name, name_size);
+	
+	/* Create the request */
+	thisreq = (struct sockreq *) realreq;
+	thisreq->version = 4;
+	thisreq->command = 1;
+	thisreq->dstport = htons(s->port);
+	thisreq->dstip = htonl(s->ip);
+
+	/* Send the socks header info */
+	ret = write(s->file_desc, realreq, length);
+	G_FREE_NULL(realreq);
+	if ((size_t) ret != length) {
+		g_warning("Error attempting to send SOCKS request (%s)",
+			ret == (ssize_t) -1 ? strerror(errno) : "Partial write");
+		return -1;
+	}
+
+	return 0;
+}
+
+static gint
+recv_socks(struct gnutella_socket *s)
+{
+	ssize_t ret;
+	struct sockrep thisrep;
+	size_t size = sizeof thisrep;
+
+	ret = read(s->file_desc, (void *) &thisrep, size);
+	if (ret == (ssize_t) -1) {
+		g_warning("Error attempting to receive SOCKS reply (%s)",
+			g_strerror(errno));
+		return ECONNREFUSED;
+	}
+	if ((size_t) ret != size) {
+		g_warning("Short reply from SOCKS server");
+		/* Let the application try and see how they go */
+		return ECONNREFUSED;
+	}
+	
+	ret = (ssize_t) -1;
+	if (thisrep.result == 91) {
+		g_warning("SOCKS server refused connection");
+	} else if (thisrep.result == 92) {
+		g_warning("SOCKS server refused connection "
+				   "because of failed connect to identd "
+				   "on this machine");
+	} else if (thisrep.result == 93) {
+		g_warning("SOCKS server refused connection "
+				   "because identd and this library "
+				   "reported different user-ids");
+	} else {
+		ret = 0;
+	}
+
+	if (ret != 0) {
+		errno = ECONNREFUSED;
+		return -1;
+	}
+
+	return 0;
+}
+
+static gint
+connect_http(struct gnutella_socket *s)
+{
+	ssize_t ret;
+	gint parsed;
+	gint status;
+	gchar *str;
+
+	switch (s->pos) {
+	case 0:
+		{
+			const gchar *host = ip_port_to_gchar(s->ip, s->port);
+			size_t size;
+
+			size = gm_snprintf(s->buffer, sizeof(s->buffer),
+				"CONNECT %s HTTP/1.0\r\nHost: %s\r\n\r\n", host, host);
+			ret = write(s->file_desc, s->buffer, size);
+			if ((size_t) ret != size) {
+				g_warning("Sending info to HTTP proxy failed: %s",
+					ret == (ssize_t) -1 ? g_strerror(errno) : "Partial write");
+				return -1;
+			}
+			s->pos++;
+			break;
+		}
+	case 1:
+		ret = read(s->file_desc, s->buffer, sizeof(s->buffer) - 1);
+		if (ret == (ssize_t) -1) {
+			g_warning("Receiving answer from HTTP proxy faild: %s",
+				g_strerror(errno));
+			return -1;
+		}
+		s->getline = getline_make(HEAD_MAX_SIZE);
+		switch (getline_read(s->getline, s->buffer, ret, &parsed)) {
+		case READ_OVERFLOW:
+			g_warning("HTTP proxy returned a too long line");
+			return -1;
+		case READ_DONE:
+			if (ret != parsed)
+				memmove(s->buffer, s->buffer + parsed, ret - parsed);
+			ret -= parsed;
+			break;
+		case READ_MORE:
+		default:
+			g_assert(parsed == ret);
+			return 0;
+		}
+		str = getline_str(s->getline);
+		if ((status = http_status_parse(str, NULL, NULL, NULL, NULL)) < 0) {
+			g_warning("Bad status line");
+			return -1;
+		}
+		if ((status / 100) != 2) {
+			g_warning("Cannot use HTTP proxy: \"%s\"", str);
+			return -1;
+		}
+		s->pos++;
+
+		while (ret != 0) {
+			getline_reset(s->getline);
+			switch (getline_read(s->getline, s->buffer, ret, &parsed)) {
+			case READ_OVERFLOW:
+				g_warning("HTTP proxy returned a too long line");
+				return -1;
+			case READ_DONE:
+				if (ret != parsed)
+					memmove(s->buffer, s->buffer + parsed, ret - parsed);
+				ret -= parsed;
+				if (getline_length(s->getline) == 0) {
+					s->pos++;
+					getline_free(s->getline);
+					s->getline = NULL;
+					return 0;
+				}
+				break;
+			case READ_MORE:
+			default:
+				g_assert(parsed == ret);
+				return 0;
+			}
+		}
+		break;
+	case 2:
+		ret = read(s->file_desc, s->buffer, sizeof(s->buffer) - 1);
+		if (ret == (ssize_t) -1) {
+			g_warning("Receiving answer from HTTP proxy failed: %s",
+				g_strerror(errno));
+			return -1;
+		}
+		while (ret != 0) {
+			getline_reset(s->getline);
+			switch (getline_read(s->getline, s->buffer, ret, &parsed)) {
+			case READ_OVERFLOW:
+				g_warning("HTTP proxy returned a too long line");
+				return -1;
+			case READ_DONE:
+				if (ret != parsed)
+					memmove(s->buffer, s->buffer + parsed, ret - parsed);
+				ret -= parsed;
+				if (getline_length(s->getline) == 0) {
+					s->pos++;
+					getline_free(s->getline);
+					s->getline = NULL;
+					return 0;
+				}
+				break;
+			case READ_MORE:
+			default:
+				g_assert(parsed == ret);
+				return 0;
+			}
+		}
+		break;
+	}
+
+	return 0;
+}
+
+/*
+0: Send
+1: Recv
+.. 
+4: Send
+5: Recv
+
+6: Done
+*/
+
+static gint
+connect_socksv5(struct gnutella_socket *s)
+{
+	ssize_t ret = 0;
+	size_t size;
+	static const gchar verstring[] = "\x05\x02\x02";
+	const gchar *name;
+	gint sockid;
+
+	sockid = s->file_desc;
+
+	switch (s->pos) {
+	case 0:
+		/* Now send the method negotiation */
+		size = sizeof verstring;
+		ret = write(sockid, verstring, size);
+		if ((size_t) ret != size) {
+			g_warning("Sending SOCKS method negotiation failed: %s",
+				ret == (ssize_t) -1 ? g_strerror(errno) : "Partial write");
+			return -1;
+		}
+		s->pos++;
+		break;
+
+	case 1:
+		/* Now receive the reply as to which method we're using */
+		size = 2;
+		ret = read(sockid, s->buffer, size);
+		if (ret == (ssize_t) -1) {
+			g_warning("Receiving SOCKS method negotiation reply failed: %s",
+				g_strerror(errno));
+			return ECONNREFUSED;
+		}
+
+		if ((size_t) ret != size) {
+			g_warning("Short reply from SOCKS server");
+			return ECONNREFUSED;
+		}
+
+		/* See if we offered an acceptable method */
+		if (s->buffer[1] == '\xff') {
+			g_warning("SOCKS server refused authentication methods");
+			return ECONNREFUSED;
+		}
+
+		if (s->buffer[1] == 2 && socks_user != NULL && socks_user[0] != '\0') {
+		   	/* has provided user info */
+			s->pos++;
+		} else {
+			s->pos += 3;
+		}
+		break;
+	case 2:
+		/* If the socks server chose username/password authentication */
+		/* (method 2) then do that */
+
+		if (socks_user != NULL) {
+			name = socks_user;
+		} else {
+			const struct passwd *pw;
+			
+			/* Determine the current *nix username */
+			pw = getpwuid(getuid());
+			name = pw != NULL ? pw->pw_name : NULL;
+		}
+	
+		if (name == NULL) {	
+			g_warning("No Username to authenticate with.");
+			return ECONNREFUSED;
+		}
+
+		if (socks_pass == NULL) {
+			g_warning("No Password to authenticate with.");
+			return ECONNREFUSED;
+		}
+
+		if (strlen(name) > 255 || strlen(socks_pass) > 255) {
+			g_warning("Username or password exceeds 255 characters.");
+			return ECONNREFUSED;
+		}
+		
+		size = gm_snprintf(s->buffer, sizeof s->buffer, "\x01%c%s%c%s",
+					(guchar) strlen(name), name,
+					(guchar) strlen(socks_pass), socks_pass);
+
+		/* Send out the authentication */
+		ret = write(sockid, s->buffer, size);
+		if ((size_t) ret != size) {
+			g_warning("Sending SOCKS authentication failed: %s",
+				ret == (ssize_t) -1 ? g_strerror(errno) : "Partial write");
+			return -1;
+		}
+
+		s->pos++;
+
+		break;
+	case 3:
+		/* Receive the authentication response */
+		size = 2;
+		ret = read(sockid, s->buffer, size);
+		if (ret == (ssize_t) -1) {
+			g_warning("Receiving SOCKS authentication reply failed: %s",
+				g_strerror(errno));
+			return ECONNREFUSED;
+		}
+
+		if ((size_t) ret != size) {
+			g_warning("Short reply from SOCKS server");
+			return ECONNREFUSED;
+		}
+
+		if (s->buffer[1] != '\0') {
+			g_warning("SOCKS authentication failed, "
+					   "check username and password");
+			return ECONNREFUSED;
+		}
+		s->pos++;
+		break;
+	case 4:
+		/* Now send the connect */
+		s->buffer[0] = '\x05';		/* Version 5 SOCKS */
+		s->buffer[1] = '\x01';		/* Connect request */
+		s->buffer[2] = '\x00';		/* Reserved		*/
+		s->buffer[3] = '\x01';		/* IP version 4	*/
+		WRITE_GUINT32_BE(s->ip, &s->buffer[4]);
+		WRITE_GUINT16_BE(s->port, &s->buffer[8]);
+
+		/* Now send the connection */
+		
+		size = 10;
+		ret = write(sockid, s->buffer, size);
+		if ((size_t) ret != size) {
+			g_warning("Send SOCKS connect command failed: %s",
+				ret == (ssize_t) -1 ? g_strerror(errno) : "Partial write");
+			return (-1);
+		}
+
+		s->pos++;
+		break;
+	case 5:
+		/* Now receive the reply to see if we connected */
+		
+		size = 10;
+		ret = read(sockid, s->buffer, size);
+		if (ret == (ssize_t) -1) {
+			g_warning("Receiving SOCKS connection reply failed: %s",
+				g_strerror(errno));
+			return ECONNREFUSED;
+		}
+		if (dbg)
+			g_message("connect_socksv5: Step 5, bytes recv'd %d\n", (int) ret);
+		if ((size_t) ret != size) {
+			g_warning("Short reply from SOCKS server");
+			return ECONNREFUSED;
+		}
+
+		/* See the connection succeeded */
+		if (s->buffer[1] != '\0') {
+			g_warning("SOCKS connect failed: ");
+			switch (s->buffer[1]) {
+			case 1:
+				g_warning("General SOCKS server failure");
+				return ECONNABORTED;
+			case 2:
+				g_warning("Connection denied by rule");
+				return ECONNABORTED;
+			case 3:
+				g_warning("Network unreachable");
+				return ENETUNREACH;
+			case 4:
+				g_warning("Host unreachable");
+				return EHOSTUNREACH;
+			case 5:
+				g_warning("Connection refused");
+				return ECONNREFUSED;
+			case 6:
+				g_warning("TTL Expired");
+				return ETIMEDOUT;
+			case 7:
+				g_warning("Command not supported");
+				return ECONNABORTED;
+			case 8:
+				g_warning("Address type not supported");
+				return ECONNABORTED;
+			default:
+				g_warning("Unknown error");
+				return ECONNABORTED;
+			}
+		}
+
+		s->pos++;
+		break;
+	}
+
+	return 0;
+}
+
 
 /**
  * Called by main timer.
@@ -980,16 +1464,13 @@ socket_connected(gpointer data, gint source, inputevt_cond_t cond)
 
 				if (s->pos > 2) {
 					s->direction = SOCK_CONN_OUTGOING;
-
-					s->gdk_tag =
-						inputevt_add(s->file_desc,
+					s->gdk_tag = inputevt_add(s->file_desc,
 									  INPUT_EVENT_READ | INPUT_EVENT_WRITE |
 									  INPUT_EVENT_EXCEPTION,
 									  socket_connected, (gpointer) s);
 					return;
 				} else {
-					s->gdk_tag =
-						inputevt_add(s->file_desc,
+					s->gdk_tag = inputevt_add(s->file_desc,
 									  INPUT_EVENT_READ | INPUT_EVENT_EXCEPTION,
 									  socket_connected, (gpointer) s);
 					return;
@@ -1000,7 +1481,8 @@ socket_connected(gpointer data, gint source, inputevt_cond_t cond)
 
 	if (0 != (cond & INPUT_EVENT_WRITE)) {
 		/* We are just connected to our partner */
-		gint res, option, size = sizeof(gint);
+		gint res, option;
+		socklen_t size = sizeof option;
 
 		g_source_remove(s->gdk_tag);
 		s->gdk_tag = 0;
@@ -1043,8 +1525,7 @@ socket_connected(gpointer data, gint source, inputevt_cond_t cond)
 				}
 			}
 
-			s->gdk_tag =
-				inputevt_add(s->file_desc,
+			s->gdk_tag = inputevt_add(s->file_desc,
 							  INPUT_EVENT_READ | INPUT_EVENT_EXCEPTION,
 							  socket_connected, (gpointer) s);
 			return;
@@ -1123,7 +1604,7 @@ static void
 guess_local_ip(int sd)
 {
 	struct sockaddr_in addr;
-	gint len = sizeof(struct sockaddr_in);
+	socklen_t len = sizeof addr;
 	guint32 ip;
 
 	if (-1 != getsockname(sd, (struct sockaddr *) &addr, &len)) {
@@ -1155,12 +1636,12 @@ static int
 socket_local_port(struct gnutella_socket *s)
 {
 	struct sockaddr_in addr;
-	gint len = sizeof(struct sockaddr_in);
+	socklen_t len = sizeof addr;
 
 	if (getsockname(s->file_desc, (struct sockaddr *) &addr, &len) == -1)
 		return -1;
 
-	return ntohs(addr.sin_port);
+	return (guint16) ntohs(addr.sin_port);
 }
 
 /**
@@ -1170,9 +1651,10 @@ static void
 socket_accept(gpointer data, gint source, inputevt_cond_t cond)
 {
 	struct sockaddr_in addr;
-	gint sd, len = sizeof(struct sockaddr_in);
+	socklen_t len = sizeof addr;
 	struct gnutella_socket *s = (struct gnutella_socket *) data;
 	struct gnutella_socket *t = NULL;
+	gint sd;
 
 	g_assert(s->flags & SOCK_F_TCP);
 
@@ -1223,7 +1705,7 @@ accepted:
 
 	fcntl(sd, F_SETFL, O_NONBLOCK);	/* Set the file descriptor non blocking */
 
-	t = (struct gnutella_socket *) walloc0(sizeof(struct gnutella_socket));
+	t = (struct gnutella_socket *) walloc0(sizeof *t);
 
 	t->file_desc = sd;
 	t->ip = ntohl(addr.sin_addr.s_addr);
@@ -1290,7 +1772,7 @@ socket_udp_accept(gpointer data, gint source, inputevt_cond_t cond)
 	struct gnutella_socket *s = (struct gnutella_socket *) data;
 	struct udp_addr *addr;
 	struct sockaddr_in *inaddr;
-	gint r;
+	ssize_t r;
 
 	g_assert(s->flags & SOCK_F_UDP);
 	g_assert(s->type == SOCK_TYPE_UDP);
@@ -1311,7 +1793,7 @@ socket_udp_accept(gpointer data, gint source, inputevt_cond_t cond)
 	r = recvfrom(s->file_desc, s->buffer, sizeof(s->buffer), 0,
 		&addr->ud_addr, &addr->ud_addrlen);
 
-	if (r == -1) {
+	if (r == (ssize_t) -1) {
 		g_warning("ignoring datagram reception error: %s", g_strerror(errno));
 		return;
 	}
@@ -1375,7 +1857,7 @@ socket_connect_prepare(guint16 port, enum socket_type type)
 	}
 
 created:
-	s = (struct gnutella_socket *) walloc0(sizeof(struct gnutella_socket));
+	s = (struct gnutella_socket *) walloc0(sizeof *s);
 
 	s->type = type;
 	s->direction = SOCK_CONN_OUTGOING;
@@ -1447,8 +1929,7 @@ socket_connect_finalize(struct gnutella_socket *s, guint32 ip_addr)
 		 * It's useful only for people forcing the IP without being
 		 * behind a masquerading firewall --RAM.
 		 */
-		(void) bind(s->file_desc, (struct sockaddr *) &lcladdr,
-			sizeof(struct sockaddr_in));
+		(void) bind(s->file_desc, (struct sockaddr *) &lcladdr, sizeof lcladdr);
 	}
 
 	if (proxy_protocol != PROXY_NONE) {
@@ -1458,20 +1939,20 @@ socket_connect_finalize(struct gnutella_socket *s, guint32 ip_addr)
 		lcladdr.sin_family = AF_INET;
 		lcladdr.sin_port = INADDR_ANY;
 
-		(void) bind(s->file_desc, (struct sockaddr *) &lcladdr,
-			sizeof(struct sockaddr_in));
+		(void) bind(s->file_desc, (struct sockaddr *) &lcladdr, sizeof lcladdr);
 
 		s->direction = SOCK_CONN_PROXY_OUTGOING;
-		res = proxy_connect(s->file_desc, (struct sockaddr *) &addr,
-			sizeof(struct sockaddr_in));
+		res = proxy_connect(s->file_desc,
+				(struct sockaddr *) &addr, sizeof addr);
 	} else
-		res = connect(s->file_desc, (struct sockaddr *) &addr,
-			sizeof(struct sockaddr_in));
+		res = connect(s->file_desc, (struct sockaddr *) &addr, sizeof addr);
 
 	if (res == -1 && errno != EINPROGRESS) {
 		if (proxy_protocol != PROXY_NONE && (!proxy_ip || !proxy_port)) {
-			g_warning("Proxy isn't properly configured (%s)",
-				ip_port_to_gchar(proxy_ip, proxy_port));
+			if (errno != EAGAIN) {
+				g_warning("Proxy isn't properly configured (%s)",
+					ip_port_to_gchar(proxy_ip, proxy_port));
+			}
 			socket_destroy(s, "Check the proxy configuration");
 			return NULL;
 		}
@@ -1600,7 +2081,6 @@ socket_tcp_listen(guint32 ip, guint16 port, enum socket_type type)
 	/* Create a socket, then bind() and listen() it */
 
 	int sd, option = 1;
-	unsigned int l = sizeof(struct sockaddr_in);
 	struct sockaddr_in addr;
 	struct gnutella_socket *s;
 
@@ -1611,7 +2091,7 @@ socket_tcp_listen(guint32 ip, guint16 port, enum socket_type type)
 		return NULL;
 	}
 
-	s = (struct gnutella_socket *) walloc0(sizeof(struct gnutella_socket));
+	s = (struct gnutella_socket *) walloc0(sizeof *s);
 
 	s->type = type;
 	s->direction = SOCK_CONN_LISTENING;
@@ -1626,13 +2106,14 @@ socket_tcp_listen(guint32 ip, guint16 port, enum socket_type type)
 
 	fcntl(sd, F_SETFL, O_NONBLOCK);	/* Set the file descriptor non blocking */
 
+	memset(&addr, 0, sizeof addr);
 	addr.sin_family = AF_INET;
 	addr.sin_addr.s_addr = ip ? htonl(ip) : INADDR_ANY;
 	addr.sin_port = htons(port);
 
 	/* bind() the socket */
 
-	if (bind(sd, (struct sockaddr *) &addr, l) == -1) {
+	if (bind(sd, (struct sockaddr *) &addr, sizeof addr) == -1) {
 		g_assert(port > 1023);
 		g_warning("Unable to bind() the socket on port %u (%s)",
 				  (unsigned int) port, g_strerror(errno));
@@ -1651,9 +2132,9 @@ socket_tcp_listen(guint32 ip, guint16 port, enum socket_type type)
 	/* Get the port of the socket, if needed */
 
 	if (!port) {
-		option = sizeof(struct sockaddr_in);
+		socklen_t len = sizeof addr;
 
-		if (getsockname(sd, (struct sockaddr *) &addr, &option) == -1) {
+		if (getsockname(sd, (struct sockaddr *) &addr, &len) == -1) {
 			g_warning("Unable to get the port of the socket: "
 				"getsockname() failed (%s)", g_strerror(errno));
 			socket_destroy(s, "Can't probe socket for port");
@@ -1668,8 +2149,7 @@ socket_tcp_listen(guint32 ip, guint16 port, enum socket_type type)
 	s->tls.enabled = TRUE;
 #endif /* USE_TLS */
 
-	s->gdk_tag =
-		inputevt_add(sd, INPUT_EVENT_READ | INPUT_EVENT_EXCEPTION,
+	s->gdk_tag = inputevt_add(sd, INPUT_EVENT_READ | INPUT_EVENT_EXCEPTION,
 					  socket_accept, s);
 
 	return s;
@@ -1684,18 +2164,16 @@ socket_udp_listen(guint32 ip, guint16 port)
 	/* Create a socket, then bind() it */
 
 	int sd, option = 1;
-	unsigned int l = sizeof(struct sockaddr_in);
 	struct sockaddr_in addr;
 	struct gnutella_socket *s;
 
 	sd = socket(AF_INET, SOCK_DGRAM, 0);
-
 	if (sd == -1) {
 		g_warning("Unable to create a socket (%s)", g_strerror(errno));
 		return NULL;
 	}
 
-	s = (struct gnutella_socket *) walloc0(sizeof(struct gnutella_socket));
+	s = (struct gnutella_socket *) walloc0(sizeof *s);
 
 	s->type = SOCK_TYPE_UDP;
 	s->direction = SOCK_CONN_LISTENING;
@@ -1705,18 +2183,18 @@ socket_udp_listen(guint32 ip, guint16 port)
 
 	socket_wio_link(s);				/* Link to the I/O functions */
 
-	setsockopt(sd, SOL_SOCKET, SO_REUSEADDR, (void *) &option,
-			   sizeof(option));
+	setsockopt(sd, SOL_SOCKET, SO_REUSEADDR, (void *) &option, sizeof(option));
 
 	fcntl(sd, F_SETFL, O_NONBLOCK);	/* Set the file descriptor non blocking */
 
+	memset(&addr, 0, sizeof addr);
 	addr.sin_family = AF_INET;
 	addr.sin_addr.s_addr = ip ? htonl(ip) : INADDR_ANY;
 	addr.sin_port = htons(port);
 
 	/* bind() the socket */
 
-	if (bind(sd, (struct sockaddr *) &addr, l) == -1) {
+	if (bind(sd, (struct sockaddr *) &addr, sizeof addr) == -1) {
 		g_warning("Unable to bind() the socket on port %u (%s)",
 				  port, g_strerror(errno));
 		socket_destroy(s, "Unable to bind socket");
@@ -1733,9 +2211,9 @@ socket_udp_listen(guint32 ip, guint16 port)
 	/* Get the port of the socket, if needed */
 
 	if (!port) {
-		option = sizeof(struct sockaddr_in);
+		socklen_t len = sizeof addr;
 
-		if (getsockname(sd, (struct sockaddr *) &addr, &option) == -1) {
+		if (getsockname(sd, (struct sockaddr *) &addr, &len) == -1) {
 			g_warning("Unable to get the port of the socket: "
 				"getsockname() failed (%s)", g_strerror(errno));
 			socket_destroy(s, "Can't probe socket for port");
@@ -1746,8 +2224,7 @@ socket_udp_listen(guint32 ip, guint16 port)
 	} else
 		s->local_port = port;
 
-	s->gdk_tag =
-		inputevt_add(sd, INPUT_EVENT_READ | INPUT_EVENT_EXCEPTION,
+	s->gdk_tag = inputevt_add(sd, INPUT_EVENT_READ | INPUT_EVENT_EXCEPTION,
 					  socket_udp_accept, s);
 
 	/*
@@ -1801,8 +2278,7 @@ sock_cork(struct gnutella_socket *s, gboolean on)
  * If `shrink' is false, refuse to shrink the buffer if its size is larger.
  */
 static void
-_sock_set(gint fd, gint option, gint size,
-	gchar *type, gboolean shrink)
+sock_set_intern(gint fd, gint option, gint size, gchar *type, gboolean shrink)
 {
 	gint old_len = 0;
 	gint new_len = 0;
@@ -1853,7 +2329,7 @@ _sock_set(gint fd, gint option, gint size,
 void
 sock_send_buf(struct gnutella_socket *s, gint size, gboolean shrink)
 {
-	_sock_set(s->file_desc, SO_SNDBUF, size, "send", shrink);
+	sock_set_intern(s->file_desc, SO_SNDBUF, size, "send", shrink);
 }
 
 /**
@@ -1863,7 +2339,7 @@ sock_send_buf(struct gnutella_socket *s, gint size, gboolean shrink)
 void
 sock_recv_buf(struct gnutella_socket *s, gint size, gboolean shrink)
 {
-	_sock_set(s->file_desc, SO_RCVBUF, size, "receive", shrink);
+	sock_set_intern(s->file_desc, SO_RCVBUF, size, "receive", shrink);
 }
 
 /**
@@ -1892,486 +2368,6 @@ sock_tx_shutdown(struct gnutella_socket *s)
 	if (-1 == shutdown(s->file_desc, SHUT_WR))
 		g_warning("unable to shutdown TX on fd#%d: %s",
 			s->file_desc, g_strerror(errno));
-}
-
-/*
- * The socks 4/5 code was taken from tsocks 1.16 Copyright (C) 2000 Shaun Clowes
- * It was modified to work with gtk_gnutella and non-blocking sockets. --DW
- */
-
-int
-proxy_connect(int fd, const struct sockaddr *addr, guint len)
-{
-	struct sockaddr_in *connaddr;
-	void **kludge;
-	struct sockaddr_in server;
-	int rc;
-
-	if (len != sizeof(struct sockaddr_in) || !proxy_ip || !proxy_port) {
-		errno = EINVAL;
-		return -1;
-	}
-
-	if (!inet_aton(ip_to_gchar(proxy_ip), &server.sin_addr)) {
-		g_warning("The proxy server (%s) in configuration "
-				   "file is invalid", ip_to_gchar(proxy_ip));
-	} else {
-		/* Construct the addr for the socks server */
-		server.sin_family = AF_INET;	/* host byte order */
-		server.sin_port = htons(proxy_port);
-		/* zero the rest of the struct */
-		memset(&server.sin_zero, 0, sizeof(server.sin_zero));
-	}
-
-
-	/* Ok, so this method sucks, but it's all I can think of */
-
-	kludge = (void *) &addr;
-	connaddr = (struct sockaddr_in *) *kludge;
-
-	rc = connect(fd, (struct sockaddr *) &server, sizeof(struct sockaddr));
-
-	return rc;
-
-}
-
-struct socksent {
-	struct in_addr localip;
-	struct in_addr localnet;
-	struct socksent *next;
-} __attribute__((__packed__));
-
-struct sockreq {
-	gint8 version;
-	gint8 command;
-	gint16 dstport;
-	gint32 dstip;
-	/* A null terminated username goes here */
-} __attribute__((__packed__));
-
-struct sockrep {
-	gint8 version;
-	gint8 result;
-	gint16 ignore1;
-	gint32 ignore2;
-} __attribute__((__packed__));
-
-int send_socks(struct gnutella_socket *s)
-{
-	int rc = 0;
-	int length = 0;
-	char *realreq;
-	struct passwd *user;
-	struct sockreq *thisreq;
-
-
-	/* Determine the current username */
-	user = getpwuid(getuid());
-
-	/* Allocate enough space for the request and the null */
-	/* terminated username */
-	length = sizeof(struct sockreq) +
-		(user == NULL ? 1 : strlen(user->pw_name) + 1);
-	if ((realreq = malloc(length)) == NULL) {
-		/* Could not malloc, bail */
-		exit(1);
-	}
-	thisreq = (struct sockreq *) realreq;
-
-	/* Create the request */
-	thisreq->version = 4;
-	thisreq->command = 1;
-	thisreq->dstport = htons(s->port);
-	thisreq->dstip = htonl(s->ip);
-
-	/* Copy the username */
-	strcpy(realreq + sizeof(struct sockreq),
-		   (user == NULL ? "" : user->pw_name));
-
-	/* Send the socks header info */
-	if ((rc = send(s->file_desc, (void *) thisreq, length, 0)) < 0) {
-		g_warning("Error attempting to send SOCKS request (%s)",
-				   strerror(errno));
-		rc = rc;
-		return -1;
-	}
-
-	free(thisreq);
-
-	return 0;
-
-}
-
-int
-recv_socks(struct gnutella_socket *s)
-{
-	int rc = 0;
-	struct sockrep thisrep;
-
-	if ((rc =
-		 recv(s->file_desc, (void *) &thisrep, sizeof(struct sockrep),
-			  0)) < 0) {
-		g_warning("Error attempting to receive SOCKS " "reply (%s)",
-				   g_strerror(errno));
-		rc = ECONNREFUSED;
-	} else if (rc < (gint) sizeof(struct sockrep)) {
-		g_warning("Short reply from SOCKS server");
-		/* Let the application try and see how they */
-		/* go										*/
-		rc = 0;
-	} else if (thisrep.result == 91) {
-		g_warning("SOCKS server refused connection");
-		rc = ECONNREFUSED;
-	} else if (thisrep.result == 92) {
-		g_warning("SOCKS server refused connection "
-				   "because of failed connect to identd "
-				   "on this machine");
-		rc = ECONNREFUSED;
-	} else if (thisrep.result == 93) {
-		g_warning("SOCKS server refused connection "
-				   "because identd and this library "
-				   "reported different user-ids");
-		rc = ECONNREFUSED;
-	} else {
-		rc = 0;
-	}
-
-	if (rc != 0) {
-		errno = rc;
-		return -1;
-	}
-
-	return 0;
-
-}
-
-int
-connect_http(struct gnutella_socket *s)
-{
-	int rc = 0;
-	gint parsed;
-	int status;
-	gchar *str;
-
-	switch (s->pos) {
-	case 0:
-		{
-			const gchar *host = ip_port_to_gchar(s->ip, s->port);
-
-			gm_snprintf(s->buffer, sizeof(s->buffer),
-				"CONNECT %s HTTP/1.0\r\nHost: %s\r\n\r\n", host, host);
-			if (
-				(rc = send(s->file_desc, (void *)s->buffer,
-					strlen(s->buffer), 0)) < 0
-			) {
-				g_warning("Sending info to HTTP proxy failed: %s",
-					g_strerror(errno));
-				return -1;
-			}
-			s->pos++;
-			break;
-		}
-	case 1:
-		rc = read(s->file_desc, s->buffer, sizeof(s->buffer)-1);
-		if (rc < 0) {
-			g_warning("Receiving answer from HTTP proxy faild: %s",
-				g_strerror(errno));
-			return -1;
-		}
-		s->getline = getline_make(HEAD_MAX_SIZE);
-		switch (getline_read(s->getline, s->buffer, rc, &parsed)) {
-		case READ_OVERFLOW:
-			g_warning("Reading buffer overflow");
-			return -1;
-		case READ_DONE:
-			if (rc != parsed)
-				memmove(s->buffer, s->buffer+parsed, rc-parsed);
-			rc -= parsed;
-			break;
-		case READ_MORE:
-		default:
-			g_assert(parsed == rc);
-			return 0;
-		}
-		str = getline_str(s->getline);
-		if ((status = http_status_parse(str, NULL, NULL, NULL, NULL)) < 0) {
-			g_warning("Bad status line");
-			return -1;
-		}
-		if ((status / 100) != 2) {
-			g_warning("Cannot use HTTP proxy: \"%s\"", str);
-			return -1;
-		}
-		s->pos++;
-
-		while (rc) {
-			getline_reset(s->getline);
-			switch (getline_read(s->getline, s->buffer, rc, &parsed)) {
-			case READ_OVERFLOW:
-				g_warning("Reading buffer overflow");
-				return -1;
-			case READ_DONE:
-				if (rc != parsed)
-					memmove(s->buffer, s->buffer+parsed, rc-parsed);
-				rc -= parsed;
-				if (getline_length(s->getline) == 0) {
-					s->pos++;
-					getline_free(s->getline);
-					s->getline = NULL;
-					return 0;
-				}
-				break;
-			case READ_MORE:
-			default:
-				g_assert(parsed == rc);
-				return 0;
-			}
-		}
-		break;
-	case 2:
-		rc = read(s->file_desc, s->buffer, sizeof(s->buffer)-1);
-		if (rc < 0) {
-			g_warning("Receiving answer from HTTP proxy failed: %s",
-				g_strerror(errno));
-			return -1;
-		}
-		while (rc) {
-			getline_reset(s->getline);
-			switch (getline_read(s->getline, s->buffer, rc, &parsed)) {
-			case READ_OVERFLOW:
-				g_warning("Reading buffer overflow");
-				return -1;
-			case READ_DONE:
-				if (rc != parsed)
-					memmove(s->buffer, s->buffer+parsed, rc-parsed);
-				rc -= parsed;
-				if (getline_length(s->getline) == 0) {
-					s->pos++;
-					getline_free(s->getline);
-					s->getline = NULL;
-					return 0;
-				}
-				break;
-			case READ_MORE:
-			default:
-				g_assert(parsed == rc);
-				return 0;
-			}
-		}
-		break;
-	}
-
-	return 0;
-}
-
-/*
-0: Send
-1: Recv
-.. 
-4: Send
-5: Recv
-
-6: Done
-*/
-
-int
-connect_socksv5(struct gnutella_socket *s)
-{
-	int rc = 0;
-	int offset = 0;
-	const char *verstring = "\x05\x02\x02\x00";
-	const char *uname, *upass;
-	struct passwd *nixuser;
-	char *buf;
-	int sockid;
-
-	sockid = s->file_desc;
-
-	buf = (char *) s->buffer;
-
-	switch (s->pos) {
-
-	case 0:
-		/* Now send the method negotiation */
-		if ((rc = send(sockid, (void *) verstring, 4, 0)) < 0) {
-			g_warning("Sending SOCKS method negotiation failed: %s",
-				g_strerror(errno));
-			return (-1);
-		}
-		s->pos++;
-		break;
-
-	case 1:
-		/* Now receive the reply as to which method we're using */
-		if ((rc = recv(sockid, (void *) buf, 2, 0)) < 0) {
-			g_warning("Receiving SOCKS method negotiation reply failed: %s",
-				g_strerror(errno));
-			rc = ECONNREFUSED;
-			return (rc);
-		}
-
-		if (rc < 2) {
-			g_warning("Short reply from SOCKS server");
-			rc = ECONNREFUSED;
-			return (rc);
-		}
-
-		/* See if we offered an acceptable method */
-		if (buf[1] == '\xff') {
-			g_warning("SOCKS server refused authentication methods");
-			rc = ECONNREFUSED;
-			return (rc);
-		}
-
-		if (
-			(unsigned short int) buf[1] == 2 &&
-			socks_user && socks_user[0]		/* has provided user info */
-		)
-			s->pos++;
-		else
-			s->pos += 3;
-		break;
-	case 2:
-		/* If the socks server chose username/password authentication */
-		/* (method 2) then do that */
-
-
-		/* Determine the current *nix username */
-		nixuser = getpwuid(getuid());
-
-		if (((uname = socks_user) == NULL) &&
-			((uname =
-			  (nixuser == NULL ? NULL : nixuser->pw_name)) == NULL)) {
-			g_warning("No Username to authenticate with.");
-			rc = ECONNREFUSED;
-			return (rc);
-		}
-
-		if (((upass = socks_pass) == NULL)) {
-			g_warning("No Password to authenticate with.");
-			rc = ECONNREFUSED;
-			return (rc);
-		}
-
-		offset = 0;
-		buf[offset] = '\x01';
-		offset++;
-		buf[offset] = (gint8) strlen(uname);
-		offset++;
-		memcpy(&buf[offset], uname, strlen(uname));
-		offset = offset + strlen(uname);
-		buf[offset] = (gint8) strlen(upass);
-		offset++;
-		memcpy(&buf[offset], upass, strlen(upass));
-		offset = offset + strlen(upass);
-
-		/* Send out the authentication */
-		if ((rc = send(sockid, (void *) buf, offset, 0)) < 0) {
-			g_warning("Sending SOCKS authentication failed: %s",
-				g_strerror(errno));
-			return (-1);
-		}
-
-		s->pos++;
-
-		break;
-	case 3:
-		/* Receive the authentication response */
-		if ((rc = recv(sockid, (void *) buf, 2, 0)) < 0) {
-			g_warning("Receiving SOCKS authentication reply failed: %s",
-				g_strerror(errno));
-			rc = ECONNREFUSED;
-			return (rc);
-		}
-
-		if (rc < 2) {
-			g_warning("Short reply from SOCKS server");
-			rc = ECONNREFUSED;
-			return (rc);
-		}
-
-		if (buf[1] != '\x00') {
-			g_warning("SOCKS authentication failed, "
-					   "check username and password");
-			rc = ECONNREFUSED;
-			return (rc);
-		}
-		s->pos++;
-		break;
-	case 4:
-		/* Now send the connect */
-		buf[0] = '\x05';		/* Version 5 SOCKS */
-		buf[1] = '\x01';		/* Connect request */
-		buf[2] = '\x00';		/* Reserved		*/
-		buf[3] = '\x01';		/* IP version 4	*/
-		WRITE_GUINT32_BE(s->ip, &buf[4]);
-		WRITE_GUINT16_BE(s->port, &buf[8]);
-
-		/* Now send the connection */
-		if ((rc = send(sockid, (void *) buf, 10, 0)) <= 0) {
-			g_warning("Send SOCKS connect command failed: %s",
-				g_strerror(errno));
-			return (-1);
-		}
-
-		s->pos++;
-		break;
-	case 5:
-		/* Now receive the reply to see if we connected */
-		if ((rc = recv(sockid, (void *) buf, 10, 0)) < 0) {
-			g_warning("Receiving SOCKS connection reply failed: %s",
-				g_strerror(errno));
-			rc = ECONNREFUSED;
-			return (rc);
-		}
-		if (dbg) printf("connect_socksv5: Step 5, bytes recv'd %i\n", rc);
-		if (rc < 10) {
-			g_warning("Short reply from SOCKS server");
-			rc = ECONNREFUSED;
-			return (rc);
-		}
-
-		/* See the connection succeeded */
-		if (buf[1] != '\x00') {
-			g_warning("SOCKS connect failed: ");
-			switch ((gint8) buf[1]) {
-			case 1:
-				g_warning("General SOCKS server failure");
-				return (ECONNABORTED);
-			case 2:
-				g_warning("Connection denied by rule");
-				return (ECONNABORTED);
-			case 3:
-				g_warning("Network unreachable");
-				return (ENETUNREACH);
-			case 4:
-				g_warning("Host unreachable");
-				return (EHOSTUNREACH);
-			case 5:
-				g_warning("Connection refused");
-				return (ECONNREFUSED);
-			case 6:
-				g_warning("TTL Expired");
-				return (ETIMEDOUT);
-			case 7:
-				g_warning("Command not supported");
-				return (ECONNABORTED);
-			case 8:
-				g_warning("Address type not supported");
-				return (ECONNABORTED);
-			default:
-				g_warning("Unknown error");
-				return (ECONNABORTED);
-			}
-		}
-
-		s->pos++;
-
-		break;
-	}
-
-	return (0);
-
 }
 
 static int
@@ -2435,38 +2431,50 @@ socket_plain_sendto(
 {
 	struct gnutella_socket *s = wio->ctx;
 	struct sockaddr_in addr;
-	gint alen = sizeof(addr);
 
 #ifdef USE_TLS
 	g_assert(!SOCKET_USES_TLS(s));
 #endif
 
+	memset(&addr, 0, sizeof addr);
 	addr.sin_family = AF_INET;
 	addr.sin_addr.s_addr = htonl(to->ip);
 	addr.sin_port = htons(to->port);
 
 	return sendto(s->file_desc, buf, size, MSG_DONTWAIT,
-		(const struct sockaddr *) &addr, alen);
+		(const struct sockaddr *) &addr, sizeof addr);
 }
 
 static ssize_t
-socket_no_sendto(
-	struct wrap_io *wio, gnet_host_t *to, gconstpointer buf, size_t size)
+socket_no_sendto(struct wrap_io *unused_wio, gnet_host_t *unused_to,
+	gconstpointer unused_buf, size_t unused_size)
 {
+	(void) unused_wio;
+	(void) unused_to;
+	(void) unused_buf;
+	(void) unused_size;
 	g_error("no sendto() routine allowed");
 	return -1;
 }
 
 static ssize_t
-socket_no_write(struct wrap_io *wio, gconstpointer buf, size_t size)
+socket_no_write(struct wrap_io *unused_wio,
+		gconstpointer unused_buf, size_t unused_size)
 {
+	(void) unused_wio;
+	(void) unused_buf;
+	(void) unused_size;
 	g_error("no write() routine allowed");
 	return -1;
 }
 
 static ssize_t
-socket_no_writev(struct wrap_io *wio, const struct iovec *iov, int iovcnt)
+socket_no_writev(struct wrap_io *unused_wio,
+		const struct iovec *unused_iov, int unused_iovcnt)
 {
+	(void) unused_wio;
+	(void) unused_iov;
+	(void) unused_iovcnt;
 	g_error("no writev() routine allowed");
 	return -1;
 }

@@ -170,12 +170,6 @@ void socket_tos_lowdelay(struct gnutella_socket *s);
 void socket_tos_normal(struct gnutella_socket *s);
 gboolean socket_bad_hostname(struct gnutella_socket *s);
 
-int connect_http(struct gnutella_socket *);
-int connect_socksv5(struct gnutella_socket *);
-int proxy_connect(int, const struct sockaddr *, guint);
-int recv_socks(struct gnutella_socket *);
-int send_socks(struct gnutella_socket *);
-
 void socket_timer(time_t now);
 void socket_shutdown(void);
 
