@@ -1006,12 +1006,12 @@ static void upload_error_not_found(gnutella_upload_t *u, const gchar *request)
 }
 
 /* 
- * upload_request_is_ok
+ * upload_http_version
  * 
- * Check the request.
+ * Check that we got an HTTP request, extracting the protocol version.
  * Return TRUE if ok or FALSE otherwise (upload must then be aborted)
  */
-static gboolean upload_request_is_ok(
+static gboolean upload_http_version(
 	gnutella_upload_t *u,
 	header_t *header,
 	gchar *request,
@@ -1025,41 +1025,6 @@ static gboolean upload_request_is_ok(
 
 	if (!http_extract_version(request, len, &http_major, &http_minor)) {
 		upload_error_remove(u, NULL, 500, "Unknown/Missing Protocol Tag");
-		return FALSE;
-	}
-
-	if (http_major != 1) {
-		upload_error_remove(u, NULL, 505,
-			"HTTP Version %d Not Supported", http_major);
-		return FALSE;
-	}
-
-	/*
-	 * If HTTP/1.1 or above, check the Host header.
-	 *
-	 * We require it because HTTP does, but we don't really care for
-	 * now.  Moreover, we might not know our external IP correctly,
-	 * so we have little ways to check that the Host refers to us.
-	 *
-	 *		--RAM, 11/04/2002
-	 */
-
-	if (http_minor >= 1) {
-		gchar *host = header_get(header, "Host");
-
-		if (host == NULL) {
-			upload_error_remove(u, NULL, 400, "Missing Host Header");
-			return FALSE;
-		}
-	}
-
-	/*
-	 * If we don't share, abort immediately. --RAM, 11/01/2002
-	 * Use 5xx error code, it's a server-side problem --RAM, 11/04/2002
-	 */
-
-	if (max_uploads == 0) {
-		upload_error_remove(u, NULL, 503, "Sharing currently disabled");
 		return FALSE;
 	}
 
@@ -1575,7 +1540,7 @@ static void upload_request(gnutella_upload_t *u, header_t *header)
 	 * the request.
 	 */
 
-	if (!upload_request_is_ok(u, header, request, getline_length(s->getline)))
+	if (!upload_http_version(u, header, request, getline_length(s->getline)))
 		return;
 
 	/*
@@ -1706,6 +1671,39 @@ static void upload_request(gnutella_upload_t *u, header_t *header)
 
 		(void) http_send_status(u->socket, 416, &hev, 1, msg);
 		upload_remove(u, msg);
+		return;
+	}
+
+	/*
+	 * If HTTP/1.1 or above, check the Host header.
+	 *
+	 * We require it because HTTP does, but we don't really care for
+	 * now.  Moreover, we might not know our external IP correctly,
+	 * so we have little ways to check that the Host refers to us.
+	 *
+	 *		--RAM, 11/04/2002
+	 */
+
+	if ((u->http_major == 1 && u->http_minor >= 1) || u->http_major > 1) {
+		gchar *host = header_get(header, "Host");
+
+		if (host == NULL) {
+			upload_error_remove(u, NULL, 400, "Missing Host Header");
+			return;
+		}
+	}
+
+	/*
+	 * If we don't share, abort. --RAM, 11/01/2002
+	 * Use 5xx error code, it's a server-side problem --RAM, 11/04/2002
+	 *
+	 * We do that quite late in the process to be able to gather as
+	 * much as possible from the request for tracing in the GUI.
+	 * Also, if they request something wrong, they ought to know it ASAP.
+	 */
+
+	if (max_uploads == 0) {
+		upload_error_remove(u, NULL, 503, "Sharing currently disabled");
 		return;
 	}
 
