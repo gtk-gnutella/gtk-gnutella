@@ -116,6 +116,7 @@ typedef struct extvec {
 #define EXT_T_GGEP_PHC			20	/* Packed HostCaches, in pongs (UHC) */
 #define EXT_T_GGEP_UDPHC		21	/* UDP HostCache, in pongs (UHC) */
 #define EXT_T_GGEP_LIME_XML		22	/* LimeWire XML metadata, in query hits */
+#define EXT_T_GGEP_GUE			23	/* GUESS support */
 
 /*
  * Public interface.

@@ -69,6 +69,7 @@ static const struct rwtable ggeptable[] =	/* GGEP extension table (sorted) */
 	GGEP_ID(ALT),					/* Alt-locs in qhits */
 	GGEP_ID(DU),					/* Average servent uptime */
 	GGEP_ID(GTKGV1),				/* GTKG complete version number (binary) */
+	GGEP_ID(GUE),					/* GUESS support */
 	GGEP_ID(H),						/* Hashes in binary form */
 	GGEP_ID(HNAME),					/* Hostname */
 	GGEP_ID(IPP),					/* IP:port in pongs (UHC) */
