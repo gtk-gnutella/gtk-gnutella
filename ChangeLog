@@ -1,3 +1,8 @@
+# Since last release
+
+- Enforce strict NUL termination of Query packets we process
+- Integrated search table bin categorization patch from Kenn Brooks Hamm
+
 # v 0.16   2001.10.03
 
 - Further optimized library lookups to avoid useless matching operations

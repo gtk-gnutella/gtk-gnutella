@@ -20,19 +20,12 @@ guint32 bytes_scanned = 0;
 GSList *extensions = NULL;
 GSList *shared_dirs = NULL;
 GSList *shared_files = NULL;
-
+static search_table_t search_table;
 
 gchar stmp_1[4096];
 gchar stmp_2[4096];
 
 guint32 monitor_items = 0;
-
-/*
- * Masks for mask_hash().
- */
-
-#define MASK_LETTER(x)		(1 << (x))		/* bits 0 to 25 */
-#define MASK_DIGIT			0x80000000
 
 /*
  * Buffer where query hit packet is built.
@@ -78,38 +71,49 @@ struct {
 
 /* ----------------------------------------- */
 
+static void setup_char_map(char_map_t map)
+{
+	/* set up keymapping table for Gnutella */
+
+	gint cur_char;	
+
+	for (cur_char = 0; cur_char < 256; cur_char++)
+		map[cur_char] = '\0';
+	
+	for (cur_char = 0; cur_char < 256; cur_char++)	{
+		if (islower(cur_char)) {
+			map[cur_char] = cur_char;
+			map[toupper(cur_char)] = cur_char;
+		}
+		else if (isupper(cur_char))
+			; /* handled by previous case */
+		else if (ispunct(cur_char) || isspace(cur_char))
+			map[cur_char] = ' ';
+		else if (isdigit(cur_char))
+			map[cur_char] = cur_char;
+		else if (isalnum(cur_char))
+			map[cur_char] = cur_char;
+		else
+			map[cur_char] = ' ';	/* unknown in our locale */
+	}
+}
+
+static void search_table_init(void)
+{
+	char_map_t map;
+
+	setup_char_map(map);
+	st_initialize(&search_table, map);
+}
+
+/* ----------------------------------------- */
+
 void share_init(void)
 {
+	search_table_init();
 	share_scan();
 	found_data.l = FOUND_CHUNK;		/* must be > size after FOUND_RESET */
 	found_data.d = (guchar *) g_malloc(found_data.l * sizeof(guchar));
-}
-
-/*
- * mask_hash
- *
- * Compute character mask "hash", using one bit per letter of the alphabet,
- * plus one for any digit.
- */
-static guint32 mask_hash(guchar *str) {
-	guchar *s = str;
-	guchar c;
-	guint32 mask = 0;
-
-	while ((c = *s++)) {
-		guchar lc = tolower(c);
-		if (isspace(c))
-			continue;
-		else if (isdigit(c))
-			mask |= MASK_DIGIT;
-		else {
-			gint idx = lc - 'a';
-			if (idx >= 0 && idx < 26)
-				mask |= MASK_LETTER(idx);
-		}
-	}
-
-	return mask;
 }
 
 /* ----------------------------------------- */
@@ -290,20 +294,18 @@ void recurse_scan(gchar * dir, gchar * basedir)
 				}
 
 				found->file_name = g_strdup(dir_entry->d_name);
-				found->file_name_lowercase = g_strdup(found->file_name);
-				g_strdown(found->file_name_lowercase);
 				found->file_name_len = strlen(dir_entry->d_name);
 				found->file_directory = file_directory;
 				found->file_directory_path = file_directory_path;
 				found->file_size = file_stat.st_size;
 				found->file_index = ++files_scanned;
-				found->file_mask_hash = mask_hash(dir_entry->d_name);
 
+				st_insert_item(&search_table, found->file_name, found);
 				shared_files = g_slist_append(shared_files, found);
 
 				bytes_scanned += file_stat.st_size;
-				kbytes_scanned += bytes_scanned / 1024;
-				bytes_scanned %= 1024;
+				kbytes_scanned += bytes_scanned >> 10;
+				bytes_scanned &= (1 << 10) - 1;
 				break;			/* for loop */
 			}
 		}
@@ -318,10 +320,11 @@ static void share_free(void)
 	GSList *l;
 	gchar *last_dir = NULL, *last_lower_dir = NULL;
 
+	st_destroy(&search_table);
+
 	for (l = shared_files; l; l = l->next) {
 		struct shared_file *sf = l->data;
 		g_free(sf->file_name);
-		g_free(sf->file_name_lowercase);
 		if (last_dir && strcmp(last_dir, sf->file_directory)) {
 			g_free(last_dir);
 			last_dir = sf->file_directory;
@@ -352,8 +355,12 @@ void share_scan(void)
 
 	share_free();
 
+	st_create(&search_table);
+
 	for (l = shared_dirs; l; l = l->next)
 		recurse_scan(l->data, l->data);
+
+	st_compact(&search_table);
 }
 
 void share_close(void)
@@ -365,88 +372,59 @@ void share_close(void)
 }
 
 /*
- * dejunk
- *
- * Remove non-ascii characters (replacing them with spaces) inplace.
- * Returns string length.
+ * Callback from st_search(), for each matching file.	--RAM, 06/10/2001
  */
-static guint32 dejunk(guchar *str)
+static void got_match(struct shared_file *sf)
 {
-	guchar *s = str;
-	guint32 len = 0;
-	guchar c;
+	guint32 pos = FOUND_SIZE;
 
 	/*
-	 * XXX I believe we should remove accents, assuming iso-latin-1.
-	 * XXX And we should also remove them from lowercases file names, on
-	 * XXX which we conduct searches -- RAM, 11/09/2001.
+	 * Grow buffer by the size of the search results header 8 bytes,
+	 * plus the string length - NULL, plus two NULL's
 	 */
 
-	while ((c = *s++)) {
-		len++;
-		if (c < 34 || c > 125)
-			*(s - 1) = ' ';
-	}
+	FOUND_GROW(8 + 2 + sf->file_name_len);
 
-	return len;
-}
+	WRITE_GUINT32_LE(sf->file_index, &FOUND_BUF[pos]);
+	WRITE_GUINT32_LE(sf->file_size, &FOUND_BUF[pos + 4]);
 
-/*
- * Apply pattern matching on text, matching at the *beginning* of words.
- */
+	memcpy(&FOUND_BUF[pos + 8], sf->file_name, sf->file_name_len);
 
-static gboolean share_match(gchar * text, gint tlen, cpattern_t ** pw,
-							word_vec_t * wovec, gint wn)
-{
-	gint i;
+	/* Position equals the next byte to be writen to */
+	pos = FOUND_SIZE - 2;
 
-	for (i = 0; i < wn; i++) {
-		gint amount = wovec[i].amount;
-		gint j;
-		guint32 offset = 0;
-		for (j = 0; j < amount; j++) {
-			char *pos =
-				pattern_qsearch(pw[i], text, tlen, offset, qs_begin);
-			if (pos)
-				offset = (pos - text) + pw[i]->len;
-			else
-				break;
-		}
-		if (j != amount)		/* Word does not occur as many time as we want */
-			return FALSE;
-	}
-
-	return TRUE;
+	FOUND_BUF[pos++] = '\0';
+	FOUND_BUF[pos++] = '\0';
 }
 
 /* Searches requests (from others nodes) 
  * Basic matching. The search request is made lowercase and
  * is matched to the filenames in the LL.
-*/
+ */
 
 void search_request(struct gnutella_node *n)
 {
 
-	GSList *files = NULL;
 	guchar found_files = 0;
 	guint32 pos, pl;
 	guint16 req_speed;
 	gchar *search;
 	struct gnutella_header *packet_head;
 	struct gnutella_search_results_out *search_head;
-	gchar *last_dir = NULL;
-	guint32 search_mask;
 	guint32 search_len;
 	gchar trailer[10];
 
-	/* pattern matching */
-	gint i;
-	word_vec_t *wovec;
-	guint wocnt;
-	cpattern_t **pattern;
-	gint scanned_files = 0;		/* Tracing statistics */
-
 	global_searches++;
+
+	/*
+	 * Make sure search request is NUL terminated... --RAM, 06/10/2001
+	 */
+
+	if (n->data[n->size - 1]) {
+		g_warning("search request (hops=%d, ttl=%d) was not NUL terminated",
+			n->header.hops, n->header.ttl);
+		n->data[n->size - 1] = '\0';
+	}
 
 	if (monitor_enabled) {		/* Update the search monitor */
 		gchar *titles[1];
@@ -489,7 +467,7 @@ void search_request(struct gnutella_node *n)
 		return;
 
 	search = n->data + 2;
-	search_len = dejunk(search);
+	search_len = strlen(search);
 
 	if (search_len <= 1)
 		return;
@@ -508,132 +486,19 @@ void search_request(struct gnutella_node *n)
 		return;
 
 	/*
-	 * Prepare matching patterns --RAM, 11/09/2001
-	 *
-	 * When query_make_word_vec() returns no word, we can return immediately
-	 * as no memory has been allocated.
-	 */
-
-	g_strdown(search);
-	wocnt = query_make_word_vec(search, &wovec);
-	if (wocnt == 0)
-		return;
-	pattern = (cpattern_t **) g_malloc(wocnt * sizeof(cpattern_t *));
-
-	for (i = 0; i < wocnt; i++)
-		pattern[i] = pattern_compile(wovec[i].word);
-
-	/*
-	 * Prepare matching optimization, an idea from Mike Green.
-	 *
-	 * At library building time, we computed a mask hash, made from the
-	 * lowercased file name, using one bit per different letter, roughly
-	 * (see mask_hash() for the exact algorigthm).
-	 *
-	 * We're now going to compute the same mask on the query, and compare
-	 * it bitwise with the mask for each file.  If the file does not hold
-	 * at least all the chars present in the query, it's no use applying
-	 * the pattern matching algorithm, it won't match at all.
-	 *
-	 *		--RAM, 01/10/2001
-	 */
-
-	search_mask = mask_hash(search);
-
-	/*
 	 * Perform search...
 	 */
 
 	FOUND_RESET();
-	pos = FOUND_SIZE;			/* Not zero: has packet + search headers */
 
-	for (files = shared_files; files; files = files->next) {
-		struct shared_file *sf = (struct shared_file *) files->data;
-
-		if (dbg > 8)
-			printf("search %s, directory %s\n",
-				   search,
-				   ((struct shared_file *) (*files).data)->file_directory);
-
-		/*
-		 * Old code used to attempt matches on directory names, not only on
-		 * files.  That makes sense when you store your files by directory,
-		 * and don't repeat the directory name in the files, to keep them
-		 * shorter.
-		 *
-		 * But Gnutella does not specifies that, so let's not do it.  Besides,
-		 * it could send back irrelevant files.
-		 *
-		 *		--RAM, 09/09/2001
-		 */
-
-		if (last_dir != sf->file_directory_path)
-			last_dir = sf->file_directory_path;
-
-		/*
-		 * First compare masks --RAM, 01/10/2001
-		 */
-
-		if ((sf->file_mask_hash & search_mask) != search_mask)
-			continue;		/* Can't match */
-
-		/*
-		 * Apply pattern matching --RAM, 11/09/2001
-		 */
-
-		scanned_files++;
-
-		if (share_match(sf->file_name_lowercase, sf->file_name_len,
-						pattern, wovec, wocnt)
-			) {
-
-			/*
-			 * Add to calling nodes found list.
-			 *
-			 * Grow buffer by the size of the search results header 8 bytes,
-			 * plus the string length - NULL, plus two NULL's
-			 */
-
-			FOUND_GROW(8 + 2 + sf->file_name_len);
-
-			WRITE_GUINT32_LE(sf->file_index, &FOUND_BUF[pos]);
-			WRITE_GUINT32_LE(sf->file_size, &FOUND_BUF[pos + 4]);
-
-			memcpy(&FOUND_BUF[pos + 8], sf->file_name, sf->file_name_len);
-
-			/* Position equals the next byte to be writen to */
-			pos = FOUND_SIZE - 2;
-
-			FOUND_BUF[pos++] = '\0';
-			FOUND_BUF[pos++] = '\0';
-			found_files++;
-
-			/* Allow -1 to mean unlimited, and 0 to avoid returning any results
-			 * (but not now, since this check happens after one has been found
-			 * one.)
-			 *
-			 * XXX longer term, just use a checkbox:
-			 *	"[] limit searches to ______ results"
-			 */
-
-			/* Also, can't fit more than 255 results into a response packet.
-			 * This can go away when we can send more than one packet per
-			 * search. 
-			 */
-			if (((search_max_items != -1)
-				 && (found_files >= search_max_items))
-				|| (found_files == 255)) {
-				break;
-			}
-		}
-	}
+	found_files = st_search(&search_table, search, got_match,
+		(search_max_items == -1) ? 255 : search_max_items);
 
 	if (found_files > 0) {
 
 		if (dbg > 3) {
-			printf("Share HIT %u files '%s' (scanned %d) words=%d "
-				   "req_speed=%u ttl=%u hops=%u\n",
-				   (gint) found_files, search, scanned_files, wocnt, req_speed,
+			printf("Share HIT %u files '%s' req_speed=%u ttl=%u hops=%u\n",
+				   (gint) found_files, search, req_speed,
 				   (gint) n->header.ttl, (gint) n->header.hops);
 			fflush(stdout);
 		}
@@ -653,6 +518,7 @@ void search_request(struct gnutella_node *n)
 		if (count_uploads > 0)
 			trailer[6] |= 0x08;			/* One file uploaded, at least */
 
+		pos = FOUND_SIZE;
 		FOUND_GROW(16 + 6);
 		memcpy(&FOUND_BUF[pos], &trailer, 6);	/* Store trailer */
 		memcpy(&FOUND_BUF[pos+6], &guid, 16);	/* Store the GUID */
@@ -692,11 +558,6 @@ void search_request(struct gnutella_node *n)
 
 		sendto_one(n, FOUND_BUF, NULL, FOUND_SIZE);
 	}
-
-	for (i = 0; i < wocnt; i++)
-		pattern_free(pattern[i]);
-	g_free(pattern);
-	query_word_vec_free(wovec, wocnt);
 
 	return;
 }
