@@ -114,7 +114,7 @@ static void refresh_popup(void)
 void on_combo_entry_searches_activate
     (GtkEditable *editable, gpointer user_data)
 {
-    // FIXME
+    /* FIXME */
 }
 
 
@@ -566,25 +566,42 @@ void on_tree_view_search_results_select_row(
 			c_sr_filename, &filename,
 			c_sr_record, &rc,
 			-1);
-		gtk_label_set_text(
-			GTK_LABEL(lookup_widget(main_window, "label_result_info_filename")),
+		gtk_entry_set_text(
+			GTK_ENTRY(lookup_widget(main_window, "entry_result_info_filename")),
 			filename);
-		gtk_label_set_text(
-			GTK_LABEL(lookup_widget(main_window, "label_result_info_sha1")),
+		gtk_entry_set_text(
+			GTK_ENTRY(lookup_widget(main_window, "entry_result_info_sha1")),
 			rc->sha1 != NULL ? sha1_base32(rc->sha1) : "<none>");
-		gtk_label_set_text(
-			GTK_LABEL(lookup_widget(main_window, "label_result_info_source")),
+		gtk_entry_set_text(
+			GTK_ENTRY(lookup_widget(main_window, "entry_result_info_source")),
 			ip_port_to_gchar(rc->results_set->ip, rc->results_set->port));
 		gm_snprintf(tmpstr, sizeof(tmpstr), "%u",
 			(guint) rc->results_set->speed);
-		gtk_label_set_text(
-			GTK_LABEL(lookup_widget(main_window, "label_result_info_speed")),
+		gtk_entry_set_text(
+			GTK_ENTRY(lookup_widget(main_window, "entry_result_info_speed")),
 			tmpstr);
 		gm_snprintf(tmpstr, sizeof(tmpstr), "%s (%lu byte)",
 			short_size(rc->size), (gulong) rc->size);
-		gtk_label_set_text(
-			GTK_LABEL(lookup_widget(main_window, "label_result_info_size")),
+		gtk_entry_set_text(
+			GTK_ENTRY(lookup_widget(main_window, "entry_result_info_size")),
 			tmpstr);
+		gtk_entry_set_text(
+			GTK_ENTRY(lookup_widget(main_window, "entry_result_info_guid")),
+			guid_hex_str(rc->results_set->guid));
+		g_strlcpy(tmpstr, ctime(&rc->results_set->stamp), 25); /* discard \n */
+		gtk_entry_set_text(GTK_ENTRY(
+			lookup_widget(main_window, "entry_result_info_timestamp")),
+			tmpstr);
+		gtk_entry_set_text(
+			GTK_ENTRY(lookup_widget(main_window, "entry_result_info_vendor")),
+			lookup_vendor_name(rc->results_set->vendor));
+		gm_snprintf(tmpstr, sizeof(tmpstr), "%lu", (gulong) rc->index);
+		gtk_entry_set_text(
+			GTK_ENTRY(lookup_widget(main_window, "entry_result_info_index")),
+			tmpstr);
+		gtk_entry_set_text(
+			GTK_ENTRY(lookup_widget(main_window, "entry_result_info_tag")),
+			rc->tag ? locale_to_utf8(rc->tag, 0) : "");
 	}
 
 	if (!autoselection_running) {
@@ -597,10 +614,12 @@ void on_tree_view_search_results_select_row(
 void on_tree_view_search_results_resize_column(
     GtkTreeView * tree_view, gint column, gint width, gpointer user_data)
 {
-//    guint32 buf = width;
+#if 0 /* FIXME */
+    guint32 buf = width; 
 
     /* remember the width for storing it to the config file later */
-//    gui_prop_set_guint32(PROP_SEARCH_RESULTS_COL_WIDTHS, &buf, column, 1);
+    gui_prop_set_guint32(PROP_SEARCH_RESULTS_COL_WIDTHS, &buf, column, 1);
+#endif
 }
 
 void on_button_search_passive_clicked(
@@ -819,22 +838,19 @@ void on_popup_search_edit_filter_activate(
 void on_popup_search_duplicate_activate(
     GtkMenuItem * menuitem,	gpointer user_data)
 {
-    search_t *current_search;
-    guint32 search_reissue_timeout;
+    search_t *search;
+    guint32 timeout;
 
-    gnet_prop_get_guint32(
-        PROP_SEARCH_REISSUE_TIMEOUT,
-        &search_reissue_timeout, 0, 1);
+    gnet_prop_get_guint32_val(PROP_SEARCH_REISSUE_TIMEOUT, &timeout);
 
-    current_search = search_gui_get_current_search();
-    // FIXME: should also duplicate filters!
-    // FIXME: should call search_duplicate which has to be written.
-    // FIXME: should properly duplicate passive searches.
-    if (current_search)
-        search_gui_new_search_full(current_search->query,
-            search_get_minimum_speed(current_search->search_handle), 
-            search_reissue_timeout,
-            0, NULL);
+    search = search_gui_get_current_search();
+    /* FIXME: should also duplicate filters! */
+    /* FIXME: should call search_duplicate which has to be written. */
+    /* FIXME: should properly duplicate passive searches. */
+    if (search)
+        search_gui_new_search_full(search->query,
+            search_get_minimum_speed(search->search_handle), 
+            timeout, 0, NULL);
 
 }
 
@@ -897,16 +913,18 @@ void on_popup_search_config_cols_activate(GtkMenuItem * menuitem,
     g_return_if_fail(current_search != NULL);
     g_assert(current_search->tree_view != NULL);
 
-/*    {
+	/* FIXME: needs to work also in Gtk2 or be replaced. */
+#if 0
+    {
         GtkWidget * cc;
-*/
-        // FIXME: needs to work also in Gtk2 or be replaced.
-/*        cc = gtk_column_chooser_new(GTK_TREE_VIEW(current_search->tree_view));
+
+        cc = gtk_column_chooser_new(GTK_TREE_VIEW(current_search->tree_view));
         gtk_menu_popup(GTK_MENU(cc), NULL, NULL, NULL, NULL, 1, 0);
 
         GtkColumnChooser takes care of cleaing up itself 
     }
-*/
+#endif
+
 }
 
 void search_callbacks_shutdown(void)

@@ -32,7 +32,6 @@
 #include "search_cb2.h"
 #include "gtk-missing.h"
 #include "gui_property.h"
-#include "gui_property_priv.h"
 #include "settings_gui.h"
 
 #ifdef USE_SEARCH_XML
@@ -53,7 +52,6 @@ static gchar tmpstr[4096];
 GList *searches = NULL;		/* List of search structs */
 
 /* Need to remove this dependency on GUI further --RAM */
-extern GtkWidget *default_search_tree_view;
 extern GtkWidget *default_scrolled_window;
 
 static search_t *current_search  = NULL; /*	The search currently displayed */
@@ -77,6 +75,7 @@ static record_t *create_record(results_set_t *rs, gnet_record_t *r);
 static results_set_t *create_results_set(const gnet_results_set_t *r_set);
 static GtkTreeViewColumn *add_column(GtkTreeView *treeview, gchar *name,
 	gint id, gint width, gfloat xalign, gint fg_column, gint bg_column);
+static void search_free_r_sets(search_t *sch);
 #ifndef USE_SEARCH_XML
     static void search_store_old(void);
 #endif /* USE_SEARCH_XML */
@@ -285,21 +284,22 @@ static void search_dispose_results(results_set_t *rs)
 	 */
 
 	for (l = searches; l; l = l->next) {
-		GSList *link;
+		GSList *lnk;
 		search_t *sch = (search_t *) l->data;
 
-		link = g_slist_find(sch->r_sets, rs);
-		if (link == NULL)
+		lnk = g_slist_find(sch->r_sets, rs);
+		if (lnk == NULL)
 			continue;
 
 		refs++;			/* Found one more reference to this search */
 
-		sch->r_sets = g_slist_remove_link(sch->r_sets, link);
+		sch->r_sets = g_slist_remove_link(sch->r_sets, lnk);
     
-        // FIXME: I have the strong impression that there is a memory leak
-        //        here. We find the link and unlink it from r_sets, but
-        //        then it does become a self-contained list and it is not
-        //        freed anywhere, does it?
+        /* FIXME: I have the strong impression that there is a memory leak
+         *        here. We find the link and unlink it from r_sets, but
+         *        then it does become a self-contained list and it is not
+         *        freed anywhere, does it?
+         */  
 	}
 
 	g_assert(rs->refcount == refs);		/* Found all the searches */
@@ -444,7 +444,7 @@ void search_gui_close_search(search_t *sch)
 
 static guint search_hash_func(gconstpointer key)
 {
-	struct record *rc = (struct record *) key;
+	const struct record *rc = (const struct record *) key;
 	/* Must use same fields as search_hash_key_compare() --RAM */
 	return
 		g_str_hash(rc->name) ^
@@ -459,14 +459,14 @@ static guint search_hash_func(gconstpointer key)
 
 static gint search_hash_key_compare(gconstpointer a, gconstpointer b)
 {
-	struct record *rc1 = (struct record *) a;
-	struct record *rc2 = (struct record *) b;
+	const struct record *rc1 = (const struct record *) a;
+	const struct record *rc2 = (const struct record *) b;
 
 	/* Must compare same fields as search_hash_func() --RAM */
 	return rc1->size == rc2->size
 		&& rc1->results_set->ip == rc2->results_set->ip
 		&& rc1->results_set->port == rc2->results_set->port
-		&& 0 == memcmp(rc1->results_set->guid, rc2->results_set->guid, 16)
+		&& rc1->results_set->guid == rc2->results_set->guid /* atom */
 		&& 0 == strcmp(rc1->name, rc2->name);
 }
 
@@ -490,19 +490,12 @@ static void search_remove_r_set(search_t *sch, results_set_t *rs)
 gboolean search_gui_new_search(
 	const gchar *query, flag_t flags, search_t **search)
 {
-    guint32 search_reissue_timeout;
-    guint32 minimum_speed;
+    guint32 timeout;
+    guint32 speed;
     
-    gnet_prop_get_guint32(
-        PROP_SEARCH_REISSUE_TIMEOUT,
-        &search_reissue_timeout, 0, 1);
-
-    gui_prop_get_guint32(
-        PROP_DEFAULT_MINIMUM_SPEED,
-        &minimum_speed, 0, 1);
-
-	return search_gui_new_search_full(
-        query, minimum_speed, search_reissue_timeout, flags, search);
+    gnet_prop_get_guint32_val(PROP_SEARCH_REISSUE_TIMEOUT, &timeout);
+    gui_prop_get_guint32_val(PROP_DEFAULT_MINIMUM_SPEED, &speed);
+	return search_gui_new_search_full(query, speed, timeout, flags, search);
 }
 
 /* 
@@ -600,8 +593,7 @@ gboolean search_gui_new_search_full(
 	sch->query = atom_str_get(query);
     sch->search_handle = search_new(query, speed, reissue_timeout, flags);
     sch->passive = flags & SEARCH_PASSIVE;
-	sch->dups =
-		g_hash_table_new(search_hash_func, search_hash_key_compare);
+	sch->dups = g_hash_table_new(search_hash_func, search_hash_key_compare);
 	if (!sch->dups)
 		g_error("new_search: unable to allocate hash table.");
 	sch->parents = g_hash_table_new_full(NULL, NULL,
@@ -676,7 +668,7 @@ gboolean search_gui_new_search_full(
 	search_gui_set_current_search(sch);
 	gtk_widget_set_sensitive(combo_searches, TRUE);
 	gtk_widget_set_sensitive(button_search_close, TRUE);
-    gtk_entry_set_text(GTK_ENTRY(entry_search),"");
+    gtk_entry_set_text(GTK_ENTRY(entry_search), "");
 	searches = g_list_append(searches, (gpointer) sch);
     search_start(sch->search_handle);
 	if (search)
@@ -788,7 +780,7 @@ gint search_gui_compare_records(gint sort_col, record_t *r1, record_t *r2)
  *
  * Returns true if the record is a duplicate.
  */
-gboolean search_result_is_dup(search_t * sch, struct record * rc)
+static gboolean search_result_is_dup(search_t * sch, struct record * rc)
 {
 	struct record *old_rc;
 	gpointer dummy;
@@ -841,7 +833,6 @@ static void search_gui_add_record(
 {
   	GString *info = g_string_sized_new(80);
   	gchar *info_utf8;
-/*    struct results_set *rs = rc->results_set;*/
 	GtkTreeIter *parent;
 	GtkTreeIter iter;
 	GtkTreeView *tree_view = GTK_TREE_VIEW(sch->tree_view);
@@ -880,9 +871,13 @@ static void search_gui_add_record(
 		key = atom_sha1_get(rc->sha1);
 		parent = find_parent_with_sha1(sch->parents, key);
 		gtk_tree_store_append(model, &iter, parent);
-		if (NULL != parent)
+		if (NULL != parent) {
+			gm_snprintf(tmpstr, sizeof(tmpstr), "%d",
+				gtk_tree_model_iter_n_children(
+					(GtkTreeModel *) model, parent) + 1);
+			gtk_tree_store_set(model, parent, c_sr_count, tmpstr, -1);
 			atom_sha1_free(key);
-		else
+		} else
 			add_parent_with_sha1(sch->parents, key, &iter);
 	} else
 		gtk_tree_store_append(model, &iter, (parent = NULL));
@@ -899,7 +894,7 @@ static void search_gui_add_record(
 	g_string_free(info, TRUE);
 }
 
-void search_matched(search_t *sch, results_set_t *rs)
+static void search_matched(search_t *sch, results_set_t *rs)
 {
 	guint32 old_items = sch->items;
    	gboolean need_push;			/* Would need a push to get this file? */
@@ -1065,7 +1060,7 @@ void search_matched(search_t *sch, results_set_t *rs)
     /*
      * A result set may not be added more then once to a search!
      */
-    // FIXME: expensive assert
+    /* FIXME: expensive assert */
     g_assert(g_slist_find(sch->r_sets, rs) == NULL);
 
 	/* Adds the set to the list */
@@ -1329,7 +1324,8 @@ void search_gui_download_files(void)
  *** Callbacks
  ***/
 
-void search_gui_got_results(GSList *schl, const gnet_results_set_t *r_set)
+static void search_gui_got_results(
+	GSList *schl, const gnet_results_set_t *r_set)
 {
     GSList *l;
     results_set_t *rs;
@@ -2006,7 +2002,7 @@ search_t *search_gui_get_current_search(void)
     return current_search;
 }
 
-GtkTreeModel *create_model (void)
+static GtkTreeModel *create_model(void)
 {
   GtkTreeModel *model;
 
@@ -2014,6 +2010,7 @@ GtkTreeModel *create_model (void)
   model = (GtkTreeModel *) gtk_tree_store_new(c_sr_num,
 	G_TYPE_STRING,		/* File */
 	G_TYPE_STRING,		/* Size */
+	G_TYPE_STRING,		/* Source counter */
 	G_TYPE_STRING,		/* Info */
 	GDK_TYPE_COLOR,		/* Foreground */
 	GDK_TYPE_COLOR,		/* Background */
@@ -2081,6 +2078,8 @@ static void add_results_columns (GtkTreeView *treeview)
 	add_results_column(treeview, "urn:sha1", c_sr_urn, width[c_sr_urn],
 		(gfloat) 0.0, NULL);
 */
+	add_results_column(treeview, "#", c_sr_count, width[c_sr_count],
+		(gfloat) 1.0, NULL);
 	add_results_column(treeview, "Info", c_sr_info, width[c_sr_info],
 		(gfloat) 0.0, NULL);
 
@@ -2189,12 +2188,12 @@ void gui_search_force_update_tab_label(struct search *sch, time_t now)
         (lookup_widget(main_window, "notebook_search_results"));
     GtkTreeView *tree_view_search = GTK_TREE_VIEW
         (lookup_widget(main_window, "tree_view_search"));
-    search_t *current_search;
+    search_t *search;
 	GtkTreeModel *model;
 
-    current_search = search_gui_get_current_search();
+    search = search_gui_get_current_search();
 
-	if (sch == current_search || sch->unseen_items == 0)
+	if (sch == search || sch->unseen_items == 0)
 		gm_snprintf(tmpstr, sizeof(tmpstr), "%s\n(%d)", sch->query,
 				   sch->items);
 	else
@@ -2222,14 +2221,14 @@ gboolean gui_search_update_tab_label(struct search *sch)
 
 void gui_search_clear_results(void)
 {
-	search_t *current_search;
+	search_t *search;
 
-	current_search = search_gui_get_current_search();
+	search = search_gui_get_current_search();
 	gtk_tree_store_clear((GtkTreeStore *) gtk_tree_view_get_model(
-			(GtkTreeView *) current_search->tree_view));
-	search_gui_clear_search(current_search);
-	gui_search_force_update_tab_label(current_search, time(NULL));
-	gui_search_update_items(current_search);
+			(GtkTreeView *) search->tree_view));
+	search_gui_clear_search(search);
+	gui_search_force_update_tab_label(search, time(NULL));
+	gui_search_update_items(search);
 }
 
 /*
