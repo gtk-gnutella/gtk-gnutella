@@ -207,6 +207,7 @@ static gboolean config_toolbar_style_changed(property_t prop);
 static gboolean gnet_connections_changed(property_t prop);
 static gboolean uploads_count_changed(property_t prop);
 static gboolean downloads_count_changed(property_t prop);
+static gboolean current_peermode_changed(property_t prop);
 
 /* FIXME:
  * move to separate file and autogenerate from high-level description.
@@ -1736,6 +1737,22 @@ static prop_map_t property_map[] = {
     },
     {
         get_main_window,
+        PROP_CONFIGURED_PEERMODE,
+        update_multichoice,
+        TRUE,
+        "combo_config_peermode",
+        FREQ_UPDATES, 0
+    },
+    {
+        get_main_window,
+        PROP_CURRENT_PEERMODE,
+        current_peermode_changed,
+        TRUE,
+        NULL,
+        FREQ_UPDATES, 0
+    },
+    {
+        get_main_window,
         PROP_LIB_DEBUG,
         update_spinbutton,
         TRUE,
@@ -2706,6 +2723,44 @@ static gboolean plug_icon_changed(property_t prop)
 	}
 	
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(tb), val_online_mode);
+
+	return FALSE;
+}
+
+static gboolean current_peermode_changed(property_t prop)
+{
+    GtkWidget *image_ultra = lookup_widget(main_window, "image_ultra");
+	GtkWidget *image_leaf = lookup_widget(main_window, "image_leaf");
+	GtkWidget *image_legacy = lookup_widget(main_window, "image_legacy");
+	GtkWidget *hbox_normal_ultrapeer = lookup_widget(main_window,
+											"hbox_normal_or_ultrapeer");
+	GtkWidget *hbox_leaf = lookup_widget(main_window, "hbox_leaf");
+	guint32 mode;
+
+    gnet_prop_get_guint32_val(prop, &mode);
+	gtk_widget_hide(image_ultra);
+	gtk_widget_hide(image_leaf);
+	gtk_widget_hide(image_legacy);
+
+	switch (mode) {
+	case NODE_P_ULTRA:
+		gtk_widget_show(image_ultra);
+		gtk_widget_show(hbox_leaf);
+		gtk_widget_hide(hbox_normal_ultrapeer);
+		break;
+	case NODE_P_LEAF:
+		gtk_widget_show(image_leaf);
+		gtk_widget_show(hbox_leaf);
+		gtk_widget_hide(hbox_normal_ultrapeer);
+		break;
+	case NODE_P_NORMAL:
+		gtk_widget_show(image_legacy);
+		gtk_widget_show(hbox_normal_ultrapeer);
+		gtk_widget_hide(hbox_leaf);
+		break;
+	default:
+		g_assert_not_reached();
+	}	
 
 	return FALSE;
 }

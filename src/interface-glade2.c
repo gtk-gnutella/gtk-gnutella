@@ -1593,6 +1593,13 @@ create_main_window (void)
   GtkWidget *image_firewall;
   GtkWidget *eventbox3;
   GtkWidget *image_no_firewall;
+  GtkWidget *hbox228;
+  GtkWidget *eventbox_image_ultra;
+  GtkWidget *image_ultra;
+  GtkWidget *eventbox_image_leaf;
+  GtkWidget *image_leaf;
+  GtkWidget *eventbox_image_normal;
+  GtkWidget *image_legacy;
   GtkWidget *label_statusbar_uptime;
   GtkWidget *hb_toolbar;
   GtkWidget *toolbar_main;
@@ -1910,6 +1917,48 @@ create_main_window (void)
   gtk_widget_show (image_no_firewall);
   gtk_container_add (GTK_CONTAINER (eventbox3), image_no_firewall);
   gtk_misc_set_padding (GTK_MISC (image_no_firewall), 1, 0);
+
+  hbox228 = gtk_hbox_new (FALSE, 0);
+  gtk_widget_set_name (hbox228, "hbox228");
+  gtk_widget_show (hbox228);
+  gtk_box_pack_start (GTK_BOX (hbox211), hbox228, TRUE, TRUE, 0);
+
+  eventbox_image_ultra = gtk_event_box_new ();
+  gtk_widget_set_name (eventbox_image_ultra, "eventbox_image_ultra");
+  gtk_widget_show (eventbox_image_ultra);
+  gtk_box_pack_start (GTK_BOX (hbox228), eventbox_image_ultra, TRUE, TRUE, 0);
+  gtk_tooltips_set_tip (tooltips, eventbox_image_ultra, _("Running in ultrapeer mode."), NULL);
+
+  image_ultra = create_pixmap (main_window, "ultra.xpm");
+  gtk_widget_set_name (image_ultra, "image_ultra");
+  gtk_widget_show (image_ultra);
+  gtk_container_add (GTK_CONTAINER (eventbox_image_ultra), image_ultra);
+  gtk_misc_set_padding (GTK_MISC (image_ultra), 1, 0);
+
+  eventbox_image_leaf = gtk_event_box_new ();
+  gtk_widget_set_name (eventbox_image_leaf, "eventbox_image_leaf");
+  gtk_widget_show (eventbox_image_leaf);
+  gtk_box_pack_start (GTK_BOX (hbox228), eventbox_image_leaf, TRUE, TRUE, 0);
+  gtk_tooltips_set_tip (tooltips, eventbox_image_leaf, _("This node is in leaf mode."), NULL);
+
+  image_leaf = create_pixmap (main_window, "leaf.xpm");
+  gtk_widget_set_name (image_leaf, "image_leaf");
+  gtk_widget_show (image_leaf);
+  gtk_container_add (GTK_CONTAINER (eventbox_image_leaf), image_leaf);
+  gtk_widget_set_size_request (image_leaf, 20, 21);
+  gtk_misc_set_padding (GTK_MISC (image_leaf), 1, 0);
+
+  eventbox_image_normal = gtk_event_box_new ();
+  gtk_widget_set_name (eventbox_image_normal, "eventbox_image_normal");
+  gtk_widget_show (eventbox_image_normal);
+  gtk_box_pack_start (GTK_BOX (hbox228), eventbox_image_normal, TRUE, TRUE, 0);
+  gtk_tooltips_set_tip (tooltips, eventbox_image_normal, _("Legacy mode is active. (Make sure there's an IRQ left!)"), NULL);
+
+  image_legacy = create_pixmap (main_window, "legacy.xpm");
+  gtk_widget_set_name (image_legacy, "image_legacy");
+  gtk_widget_show (image_legacy);
+  gtk_container_add (GTK_CONTAINER (eventbox_image_normal), image_legacy);
+  gtk_misc_set_padding (GTK_MISC (image_legacy), 1, 0);
 
   label_statusbar_uptime = gtk_label_new (_("[uptime]"));
   gtk_widget_set_name (label_statusbar_uptime, "label_statusbar_uptime");
@@ -2382,6 +2431,13 @@ create_main_window (void)
   GLADE_HOOKUP_OBJECT (main_window, image_firewall, "image_firewall");
   GLADE_HOOKUP_OBJECT (main_window, eventbox3, "eventbox3");
   GLADE_HOOKUP_OBJECT (main_window, image_no_firewall, "image_no_firewall");
+  GLADE_HOOKUP_OBJECT (main_window, hbox228, "hbox228");
+  GLADE_HOOKUP_OBJECT (main_window, eventbox_image_ultra, "eventbox_image_ultra");
+  GLADE_HOOKUP_OBJECT (main_window, image_ultra, "image_ultra");
+  GLADE_HOOKUP_OBJECT (main_window, eventbox_image_leaf, "eventbox_image_leaf");
+  GLADE_HOOKUP_OBJECT (main_window, image_leaf, "image_leaf");
+  GLADE_HOOKUP_OBJECT (main_window, eventbox_image_normal, "eventbox_image_normal");
+  GLADE_HOOKUP_OBJECT (main_window, image_legacy, "image_legacy");
   GLADE_HOOKUP_OBJECT (main_window, label_statusbar_uptime, "label_statusbar_uptime");
   GLADE_HOOKUP_OBJECT (main_window, hb_toolbar, "hb_toolbar");
   GLADE_HOOKUP_OBJECT (main_window, toolbar_main, "toolbar_main");
@@ -3192,7 +3248,7 @@ create_main_window_config_gnet_tab (void)
   gtk_widget_show (combo_entry3);
   gtk_editable_set_editable (GTK_EDITABLE (combo_entry3), FALSE);
 
-  label537 = gtk_label_new (_("Current peermode"));
+  label537 = gtk_label_new (_("Configured peermode"));
   gtk_widget_set_name (label537, "label537");
   gtk_widget_show (label537);
   gtk_table_attach (GTK_TABLE (table50), label537, 0, 1, 0, 1,
