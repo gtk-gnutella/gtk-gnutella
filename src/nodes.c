@@ -1057,7 +1057,8 @@ gboolean node_is_bad(struct gnutella_node *n)
 	g_assert(n != NULL);
 	
 	if (n->vendor == NULL) {
-		g_warning("[nodes up] Got no vendor name!");
+		if (dbg)
+			g_warning("[nodes up] Got no vendor name!");
 		return TRUE;
 	}
 	
@@ -1066,9 +1067,10 @@ gboolean node_is_bad(struct gnutella_node *n)
 	
 	bad_ip = g_hash_table_lookup(unstable_ip, GUINT_TO_POINTER(n->ip));
 	if (bad_ip != NULL) {
-		g_warning("[nodes up] Unstable ip %s (%s)", 
-			ip_to_gchar(n->ip),
-			n->vendor);
+		if (dbg)
+			g_warning("[nodes up] Unstable ip %s (%s)", 
+				ip_to_gchar(n->ip),
+				n->vendor);
 		return TRUE;
 	} else {
 		bad_client = g_hash_table_lookup(unstable_servent, n->vendor);
@@ -1077,7 +1079,8 @@ gboolean node_is_bad(struct gnutella_node *n)
 			return FALSE;
 	
 		if (bad_client->errors > node_error_threshold) {
-			g_warning("[nodes up] Banned client: %s", n->vendor);
+			if (dbg)
+				g_warning("[nodes up] Banned client: %s", n->vendor);
 			return TRUE;
 		}
 	}
@@ -1115,7 +1118,7 @@ void node_mark_bad(struct gnutella_node *n)
 		now - n->connect_date >
 			node_error_cleanup_timer / node_error_threshold
 	) {
-		if (dbg)
+		if (dbg > 1)
 			printf("[nodes up] "
 				  "%s not marking as bad. Connected for: %d (min: %d)\r\n",
 				ip_to_gchar(n->ip),
@@ -1133,9 +1136,10 @@ void node_mark_bad(struct gnutella_node *n)
 		g_hash_table_insert(unstable_ip, GUINT_TO_POINTER(n->ip), bad_ip);
 		unstable_ips = g_slist_prepend(unstable_ips, bad_ip);
 
-		g_warning("[nodes up] Marked ip %s (%s) as a bad host",
-			ip_to_gchar(n->ip),
-			NULL != n->vendor ? n->vendor : "<unknown>");
+		if (dbg)
+			g_warning("[nodes up] Marked ip %s (%s) as a bad host",
+				ip_to_gchar(n->ip),
+				NULL != n->vendor ? n->vendor : "<unknown>");
 	}	
 	
 	if (n->vendor == NULL)
@@ -1156,9 +1160,10 @@ void node_mark_bad(struct gnutella_node *n)
 
 	bad_client->errors++;
 
-	g_warning("[nodes up] Increased error counter (%d) for client: %s",
-		bad_client->errors,
-		n->vendor);
+	if (dbg)
+		g_warning("[nodes up] Increased error counter (%d) for client: %s",
+			bad_client->errors,
+			n->vendor);
 }
 
 /*
