@@ -24,9 +24,53 @@
  */
 
 #include <ctype.h>
+
 #include "gnutella.h"
 #include "matching.h"
 #include "search_stats.h"
+#include "zalloc.h"
+
+#define WOVEC_DFLT	10				/* Default size of word-vectors */
+
+static zone_t *wovec_zone = NULL;	/* Word-vectors of WOVEC_DFLT entries */
+static zone_t *pat_zone = NULL;		/* Compiled patterns */
+
+/*
+ * matching_init
+ *
+ * Initialize matching data structures.
+ */
+void matching_init(void)
+{
+	/*
+	 * We don't expect much word vectors to be created.  They are normally
+	 * created and destroyed in the same routine, without any threading
+	 * taking place.
+	 *
+	 * We only allocate word vectors of WOVEC_DFLT entries in the zone.
+	 * If we need to expand that, it will be done through regular malloc().
+	 */
+
+	wovec_zone = zget(WOVEC_DFLT * sizeof(word_vec_t), 2);
+
+	/*
+	 * Patterns are not only used for query matching but also for filters,
+	 * therefore we can expect quite a few to be created at the same time.
+	 */
+
+	pat_zone = zget(sizeof(cpattern_t), 64);
+}
+
+/*
+ * matching_close
+ *
+ * Terminate matching data structures.
+ */
+void matching_close(void)
+{
+	zdestroy(wovec_zone);
+	zdestroy(pat_zone);
+}
 
 /*
  * Search query word splitting.
@@ -39,6 +83,23 @@
  * "the" must match twice, exactly.  We must not only collect the words,
  * but also their wanted frequency.
  */
+
+/*
+ * word_vec_zrealloc
+ *
+ * Reallocate a word-vector from the zone into heap memory, to hold `ncount'.
+ */
+static word_vec_t *word_vec_zrealloc(word_vec_t *wv, gint ncount)
+{
+	word_vec_t *nwv = g_malloc(ncount * sizeof(word_vec_t));
+
+	g_assert(ncount > WOVEC_DFLT);
+
+	memcpy(nwv, wv, WOVEC_DFLT * sizeof(word_vec_t));
+	zfree(wovec_zone, wv);
+
+	return nwv;
+}
 
 /*
  * query_make_word_vec
@@ -55,10 +116,10 @@ guint query_make_word_vec(guchar *query, word_vec_t **wovec)
 {
 	guint n = 0;
 	GHashTable *seen_word = g_hash_table_new(g_str_hash, g_str_equal);
-	guint nv = 10;
-	word_vec_t *wv = g_malloc(nv * sizeof(word_vec_t));
+	guint nv = WOVEC_DFLT;
+	word_vec_t *wv = zalloc(wovec_zone);
 	guchar c;
-	gchar *start = NULL;
+	guchar *start = NULL;
 
 	g_assert(wovec != NULL);
 
@@ -77,15 +138,21 @@ guint query_make_word_vec(guchar *query, word_vec_t **wovec)
 			 * The associated value is the index in the vector plus 1.
 			 */
 			np1 = (guint) g_hash_table_lookup(seen_word, (gconstpointer) start);
-			if (np1) wv[np1-1].amount++;
-			else {
+			if (np1--) {
+				wv[np1].amount++;
+				wv[np1].len = query - start;
+			} else {
 				word_vec_t *entry;
 				if (n == nv) {				/* Filled all the slots */
 					nv *= 2;
-					wv = g_realloc(wv, nv * sizeof(word_vec_t));
+					if (n > WOVEC_DFLT)
+						wv = g_realloc(wv, nv * sizeof(word_vec_t));
+					else
+						wv = word_vec_zrealloc(wv, nv);
 				}
 				entry = &wv[n++];
 				entry->word = g_strdup(start);
+				entry->len = query - start;
 				entry->amount = 1;
 				g_hash_table_insert(seen_word, entry->word, (gpointer) n);
 			}
@@ -99,7 +166,7 @@ guint query_make_word_vec(guchar *query, word_vec_t **wovec)
 	if (n)
 		*wovec = wv;
 	else
-		g_free(wv);
+		zfree(wovec_zone, wv);
 
 	return n;
 }
@@ -116,7 +183,10 @@ void query_word_vec_free(word_vec_t *wovec, guint n)
 	for (i = 0; i < n; i++)
 		g_free(wovec[i].word);
 
-	g_free(wovec);
+	if (n > WOVEC_DFLT)
+		g_free(wovec);
+	else
+		zfree(wovec_zone, wovec);
 }
 
 /*
@@ -138,7 +208,7 @@ void query_word_vec_free(word_vec_t *wovec, guint n)
  */
 cpattern_t *pattern_compile(guchar *pattern)
 {
-	cpattern_t *p = (cpattern_t *) g_malloc0(sizeof(cpattern_t));
+	cpattern_t *p = (cpattern_t *) zalloc(pat_zone);
 	guint32 plen = strlen(pattern);
 	guint32 *pd = p->delta;
 	gint i;
@@ -161,6 +231,37 @@ cpattern_t *pattern_compile(guchar *pattern)
 }
 
 /*
+ * pattern_compile_fast
+ *
+ * Same as pattern_compile(), but the pattern string is NOT duplicated,
+ * and its length is known upon entry.
+ *
+ * NB: there is no pattern_free_fast(), just call zfree() on the result.
+ */
+static cpattern_t *pattern_compile_fast(guchar *pattern, guint32 plen)
+{
+	cpattern_t *p = (cpattern_t *) zalloc(pat_zone);
+	guint32 *pd = p->delta;
+	gint i;
+	guchar *c;
+
+	p->pattern = pattern;
+	p->len = plen;
+
+	plen++;			/* Avoid increasing within the memset() inlined macro */
+
+	for (i = 0; i < ALPHA_SIZE; i++)
+		*pd++ = plen;
+
+	plen--;			/* Restore original pattern length */
+
+	for (pd = p->delta, c = pattern, i = 0; i < plen; c++, i++)
+		pd[(guint) *c] = plen - i;
+
+	return p;
+}
+
+/*
  * pattern_free
  *
  * Dispose of compiled pattern.
@@ -168,7 +269,7 @@ cpattern_t *pattern_compile(guchar *pattern)
 void pattern_free(cpattern_t *cpat)
 {
 	g_free(cpat->pattern);
-	g_free(cpat);
+	zfree(pat_zone, cpat);
 }
 
 /*
@@ -506,7 +607,10 @@ void st_insert_item(search_table_t *table, guchar *string, void *data)
 }
 
 /*
+ * entry_match
+ *
  * Apply pattern matching on text, matching at the *beginning* of words.
+ * Patterns are lazily compiled as needed, using pattern_compile_fast().
  */
 static gboolean entry_match(
 	gchar *text, gint tlen,
@@ -518,6 +622,10 @@ static gboolean entry_match(
 		gint amount = wovec[i].amount;
 		gint j;
 		guint32 offset = 0;
+
+		if (pw[i] == NULL)
+			pw[i] = pattern_compile_fast(wovec[i].word, wovec[i].len);
+
 		for (j = 0; j < amount; j++) {
 			char *pos =
 				pattern_qsearch(pw[i], text, tlen, offset, qs_begin);
@@ -551,6 +659,7 @@ gint st_search(
 	gint vcnt;
 	gint scanned = 0;		/* measure search mask efficiency */
 	guint32 search_mask;
+	gint minlen;
 
 	len = match_map_string(table->fold_map, search);
 
@@ -602,14 +711,12 @@ gint st_search(
 	/*
 	 * If search statistics are being gathered, count each word
 	 */
-	if (search_stats_enabled)
+	if (search_stats_enabled) {
 	    for (i = 0; i < wocnt; i++)
-		search_stats_tally(&wovec[i]);
+			search_stats_tally(&wovec[i]);
+	}
 
-	pattern = (cpattern_t **) g_malloc(wocnt * sizeof(cpattern_t *));
-
-	for (i = 0; i < wocnt; i++)
-		pattern[i] = pattern_compile(wovec[i].word);
+	pattern = (cpattern_t **) g_malloc0(wocnt * sizeof(cpattern_t *));
 
 	/*
 	 * Prepare matching optimization, an idea from Mike Green.
@@ -629,6 +736,18 @@ gint st_search(
 	search_mask = mask_hash(search);
 
 	/*
+	 * Prepare second matching optimization: since all words in the query
+	 * must match the exact amount of time, we can compute the minimum length
+	 * the searched file must have.  We add one character after each word
+	 * but the last, to account for space between words.
+	 *		--RAM, 11/07/2002
+	 */
+
+	for (minlen = 0, i = 0; i < wocnt; i++)
+		minlen += wovec[i].len + 1;
+	minlen--;
+
+	/*
 	 * Search through the smallest bin
 	 */
 
@@ -640,6 +759,9 @@ gint st_search(
 		struct shared_file *sf = (struct shared_file *)  e->data;
 
 		if ((e->mask & search_mask) != search_mask)
+			continue;		/* Can't match */
+
+		if (sf->file_name_len < minlen)
 			continue;		/* Can't match */
 
 		scanned++;
@@ -661,7 +783,9 @@ gint st_search(
 			scanned, best_bin_size, nres);
 
 	for (i = 0; i < wocnt; i++)
-		pattern_free(pattern[i]);
+		if (pattern[i])					/* Lazily compiled by entry_match() */
+			zfree(pat_zone, pattern[i]);
+
 	g_free(pattern);
 	query_word_vec_free(wovec, wocnt);
 

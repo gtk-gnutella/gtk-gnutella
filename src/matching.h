@@ -24,12 +24,16 @@
 #ifndef __matching_h__
 #define __matching_h__
 
+void matching_init(void);
+void matching_close(void);
+
 /*
  * Search query splitting.
  */
 
 typedef struct {				/* Query word vector */
 	guchar *word;				/* The word to search */
+	gint len;					/* The word's length */
 	guint amount;				/* Amount of expected occurrences */
 } word_vec_t;
 
