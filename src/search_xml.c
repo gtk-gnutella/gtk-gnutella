@@ -28,17 +28,18 @@
 #include <libxml/tree.h>
 #include <libxml/parser.h>
 
-#include "gnutella.h"
-#include "gmsg.h"
+//#include "gnutella.h" // FIXME: remove this dependency
+//#include "gmsg.h" // FIXME: remove this dependency
 #include "misc.h"
 #include "filter.h"
 #include "search.h"
 #include "search_xml.h"
 
 #include "gnet.h"
-#include "settings.h"
+#include "settings_gui.h" // FIXME: remove this dependency
 #include "search_gui.h"
 
+#include "gui_property.h"
 #include "gui_property_priv.h"
 
 #define GLOBAL_PRE 0
@@ -203,7 +204,8 @@ void search_store_xml(void)
      */
 
     xmlKeepBlanksDefault(0);
-    g_snprintf(x_tmp, sizeof(x_tmp), "%s/%s.new", config_dir, search_file_xml);
+    g_snprintf(x_tmp, sizeof(x_tmp), "%s/%s.new", 
+        gui_config_dir, search_file_xml);
 
     if(xmlSaveFormatFile(x_tmp, doc, TRUE) == -1) {
         g_warning("Unable to create %s to persist search: %s",
@@ -213,7 +215,7 @@ void search_store_xml(void)
             printf("saved searches file: %s\n", x_tmp);
 
 		g_snprintf(filename, sizeof(filename), "%s/%s",
-			config_dir, search_file_xml);
+			gui_config_dir, search_file_xml);
 
 		if (-1 == rename(x_tmp, filename))
 			g_warning("could not rename %s as %s: %s",
@@ -237,7 +239,7 @@ gboolean search_retrieve_xml(void)
     xmlNodePtr root;
     GList *f;
     
-  	g_snprintf(x_tmp, sizeof(x_tmp), "%s/%s", config_dir, search_file_xml);
+  	g_snprintf(x_tmp, sizeof(x_tmp), "%s/%s", gui_config_dir, search_file_xml);
 
 	/* 
      * if the file doesn't exist 
@@ -689,7 +691,7 @@ static void xml_to_search(xmlNodePtr xmlnode, gpointer user_data)
     g_assert(xmlnode->name != NULL);
     g_assert(g_strcasecmp(xmlnode->name, NODE_SEARCH) == 0);
 
-    gnet_prop_get_guint32(PROP_MINIMUM_SPEED, &speed, 0, 1);
+    gui_prop_get_guint32(PROP_DEFAULT_MINIMUM_SPEED, &speed, 0, 1);
 
 	buf = xmlGetProp(xmlnode, TAG_SEARCH_QUERY);
     if (!buf) {
