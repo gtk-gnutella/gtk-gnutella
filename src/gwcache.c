@@ -408,30 +408,6 @@ void gwc_init(void)
 }
 
 /*
- * gwc_close
- *
- * Called when servent shuts down.
- */
-void gwc_close(void)
-{
-	gint i;
-
-	cq_cancel(callout_queue, hourly_update_ev);
-	cq_cancel(callout_queue, hourly_refresh_ev);
-	g_free(client_info);
-
-	gwc_store();
-	g_hash_table_destroy(gwc_known_url);
-
-	for (i = 0; i < MAX_GWC_URLS; i++) {
-		gchar *url = gwc_url[i];
-		if (url == NULL)
-			continue;
-		atom_str_free(url);
-	}
-}
-
-/*
  * check_current_url
  *
  * Ensures that we have a valid `current_url' or pick a new one.
@@ -463,6 +439,32 @@ static void clear_current_url(void)
 
 	atom_str_free(current_url);
 	current_url = NULL;
+}
+
+/*
+ * gwc_close
+ *
+ * Called when servent shuts down.
+ */
+void gwc_close(void)
+{
+	gint i;
+
+	cq_cancel(callout_queue, hourly_update_ev);
+	cq_cancel(callout_queue, hourly_refresh_ev);
+	g_free(client_info);
+
+	gwc_store();
+	g_hash_table_destroy(gwc_known_url);
+
+	for (i = 0; i < MAX_GWC_URLS; i++) {
+		gchar *url = gwc_url[i];
+		if (url == NULL)
+			continue;
+		atom_str_free(url);
+	}
+
+	clear_current_url();
 }
 
 /***
