@@ -123,6 +123,8 @@ void guc_fi_remove_listener(fi_listener_t cb, gnet_fi_ev_t ev);
 
 /* gnet_stats interface functions */
 void guc_gnet_stats_get(gnet_stats_t *stats);
+void guc_gnet_stats_tcp_get(gnet_stats_t *stats);
+void guc_gnet_stats_udp_get(gnet_stats_t *stats);
 void guc_gnet_get_bw_stats
 	(gnet_bw_source type, gnet_bw_stats_t *stats);
 

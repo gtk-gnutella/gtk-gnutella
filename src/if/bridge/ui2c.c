@@ -319,6 +319,16 @@ void guc_gnet_stats_get(gnet_stats_t *stats)
 	gnet_stats_get(stats);
 }
 
+void guc_gnet_stats_tcp_get(gnet_stats_t *stats)
+{
+	gnet_stats_tcp_get(stats);
+}
+
+void guc_gnet_stats_udp_get(gnet_stats_t *stats)
+{
+	gnet_stats_udp_get(stats);
+}
+
 void guc_gnet_get_bw_stats
 	(gnet_bw_source type, gnet_bw_stats_t *stats)
 {
