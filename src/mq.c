@@ -320,6 +320,17 @@ static void qlink_insert(mqueue_t *q, GList *l)
 	GList **qlink = q->qlink;
 
 	/*
+	 * If `qlink' is empty, create a slot for the new entry.
+	 */
+
+	if (high < 0) {
+		g_assert(q->count == 1);		/* `l' is already part of the queue */
+		q->qlink = g_realloc(q->qlink, ++q->qlink_count * sizeof(GList *));
+		q->qlink[0] = l;
+		return;
+	}
+
+	/*
 	 * If lower than the beginning, insert at the head.
 	 */
 
