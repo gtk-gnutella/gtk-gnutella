@@ -750,8 +750,10 @@ static gint tx_deflate_writev(txdrv_t *tx, struct iovec *iov, gint iovcnt)
 			return -1;
 
 		sent += ret;
-		if (ret < iov->iov_len)		/* Could not write all, flow-controlled */
+		if ((guint) ret < iov->iov_len) {
+			/* Could not write all, flow-controlled */
 			break;
+		}
 		iov++;
 	}
 
@@ -832,3 +834,4 @@ struct txdrv_ops tx_deflate_ops = {
 	tx_deflate_bio_source,	/* bio_source */
 };
 
+/* vi: set ts=4: */

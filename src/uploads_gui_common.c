@@ -169,7 +169,7 @@ const gchar *uploads_gui_status_str(
 			 * probably want to display this information
 			 *		-- JA, 06/02/2003
 			 */
-			if (u->parq_position <= max_uploads - running_uploads) {
+			if (u->parq_position <= (guint) max_uploads - running_uploads) {
 				/* position 1 should always get an upload slot */
 				if (u->parq_retry > 0)
 					gm_snprintf(tmpstr, sizeof(tmpstr),
