@@ -23,7 +23,7 @@
  *----------------------------------------------------------------------
  */
 
-#include "ctype.h" /* for isdigit() */
+#include <ctype.h> /* for isdigit() */
 #include "gnet_stats_gui2.h"
 #include "gnutella.h" /* for sizeof(struct gnutella_header) */
 

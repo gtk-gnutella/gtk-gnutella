@@ -26,7 +26,7 @@
 #ifndef __shell_h__
 #define __shell_h__
 
-#include "time.h"
+#include <time.h>
 
 void shell_init();
 void shell_close();
