@@ -43,14 +43,14 @@ the user wishes to share.  Gtk-Gnutella implements compressed gnutella net
 connections, ultra and leaf nodes, Partial File Sharing, Push Proxies and 
 uses Passive/Active Remote Queueing (PARQ).  
 
-It's a Unix clone, and can be built with either a GTK+ (1.2 or above) or GTK2 
-GUI.  Gnome is not needed but libxml should be available for best performance. 
-Gtk-Gnutella is currently developed and tested under Linux (Debian 2.2) and is 
-known to run at least on Linux, FreeBSD, NetBSD, OpenBSD, Darwin, Solaris,
-Tru64 Unix (OSF1), SGI IRIX, BeOS whereas CPU architectures include x86, AMD64,
-PowerPC, SPARC, MIPS.
+It's supposed to work on any Unix-like system, and can be built with either a
+GTK+ (1.2 or above) or GTK+ 2.x GUI.  Gnome is not needed but libxml2 should
+be available for best performance.  Gtk-Gnutella is currently developed and
+tested under Linux (Debian 2.2) and is known to run at least on Linux, FreeBSD,
+NetBSD, OpenBSD, Darwin, Solaris, Tru64 UNIX (OSF/1), SGI IRIX, BeOS whereas
+CPU architectures include x86, AMD64, PowerPC, SPARC, MIPS.
 
-It is released under the GNU Public License (GPL).  
+It is released under the GNU General Public License (GPL).  
 
 For further information on Gnutella, try:
     http://gnutella.wego.com
