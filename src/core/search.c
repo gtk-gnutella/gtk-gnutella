@@ -53,6 +53,7 @@ RCSID("$Id$");
 #include "dh.h"
 #include "share.h"
 #include "vmsg.h"
+#include "sq.h"
 
 #include "if/gnet_property_priv.h"
 #include "if/gui_property.h"
@@ -1174,10 +1175,21 @@ update_neighbour_info(gnutella_node_t *n, gnet_results_set_t *rs)
 }
 
 /**
- * Create and send a search request packet
+ * Create a search request message for specified search.
+ *
+ * Since this is inherently a variable sized structure, fill in `len'
+ * to be the actual size of the allocated message, and `sizep' the
+ * length of the built message.
+ *
+ * NB: the actual Gnutella messsage can be SHORTER if we compacted the
+ * query string.  Don't use the reported length as an indicator of the
+ * message size.  Use the value returned in `sizep' instead.
+ *
+ * Returns NULL if we cannot build a suitable message (bad query string
+ * containing only whitespaces, for instance).
  */
-static void
-_search_send_packet(search_ctrl_t *sch, gnutella_node_t *n)
+static struct gnutella_msg_search *
+build_search_msg(search_ctrl_t *sch, gint *len, gint *sizep)
 {
 	struct gnutella_msg_search *m;
 	guint32 size;
@@ -1185,37 +1197,18 @@ _search_send_packet(search_ctrl_t *sch, gnutella_node_t *n)
 	gint qlen;				/* Length of query text */
 	gboolean is_urn_search = FALSE;
 	guint16 speed;
-	query_hashvec_t *qhv;
 
     g_assert(sch != NULL);
+    g_assert(len != NULL);
+    g_assert(sizep != NULL);
     g_assert(!sch->passive);
 	g_assert(!sch->frozen);
-
-	sch->kept_results = 0;
-
-	/*
-	 * We'll do query routing only if in ultra mode and we're going to
-	 * broadcast the query (i.e. n == NULL).
-	 *
-	 * Otherwise, we're sending the query after the initial node connection,
-	 * and this is our privilege as an ultra node to be able to query our
-	 * own leaves directly the first time they connect.
-	 *		--RAM, 17/01/2003
-	 */
-
-	if (current_peermode == NODE_P_ULTRA && n == NULL) {
-		qhv = query_hashvec;
-		qhvec_reset(qhv);
-	} else
-		qhv = NULL;
 
 	/*
 	 * Are we dealing with an URN search?
 	 */
 
-	if (0 == strncmp(sch->query, "urn:sha1:", 9)) {
-		is_urn_search = TRUE;
-	}
+	is_urn_search = (0 == strncmp(sch->query, "urn:sha1:", 9));
 
 	if (is_urn_search) {
 		/*
@@ -1224,13 +1217,6 @@ _search_send_packet(search_ctrl_t *sch, gnutella_node_t *n)
 		 */
 		qlen = 0;
 		size = sizeof(struct gnutella_msg_search) + 9+32 + 2;	/* 2 NULs */
-
-		/*
-		 * If query routing is on, hash the URN.
-		 */
-
-		if (qhv != NULL)
-			qhvec_add(qhv, sch->query, QUERY_H_URN);
 	} else {
 		/*
 		 * We're adding a trailing NUL after the query text.
@@ -1242,39 +1228,12 @@ _search_send_packet(search_ctrl_t *sch, gnutella_node_t *n)
 
 		qlen = strlen(sch->query);
 		size = sizeof(struct gnutella_msg_search) + qlen + 1;	/* 1 NUL */
-
-		/*
-		 * If query routing is on, hash each query word.
-		 */
-
-		if (qhv != NULL) {
-			word_vec_t *wovec;
-			guint i;
-			guint wocnt;
-
-			wocnt = word_vec_make(sch->query, &wovec);
-
-			for (i = 0; i < wocnt; i++) {
-				if (wovec[i].len >= QRP_MIN_WORD_LENGTH)
-					qhvec_add(qhv, wovec[i].word, QUERY_H_WORD);
-			}
-
-			if (wocnt != 0)
-				word_vec_free(wovec, wocnt);
-		}
-	}
-
-	plen = size - sizeof(struct gnutella_header);	/* Payload length */
-
-	if (plen > search_queries_forward_size) {
-		g_warning("not sending query \"%s\": larger than max query size (%d)",
-			sch->query, search_queries_forward_size);
-		return;
 	}
 
 	m = (struct gnutella_msg_search *) walloc(size);
+	*len = size;	/* What we allocated */
 
-	/* Use the first one on the list */
+	/* Use the first MUID on the list (the last one allocated) */
 	memcpy(m->header.muid, sch->muids->data, 16);
 
 	m->header.function = GTA_MSG_SEARCH;
@@ -1283,8 +1242,6 @@ _search_send_packet(search_ctrl_t *sch, gnutella_node_t *n)
 		random_value(hops_random_factor) : 0;
 	if ((guint32) m->header.ttl + (guint32) m->header.hops > hard_ttl_limit)
 		m->header.ttl = hard_ttl_limit - m->header.hops;
-
-	WRITE_GUINT32_LE(plen, m->header.size);
 
 	/*
 	 * The search speed is no longer used by most servents as a raw indication
@@ -1313,10 +1270,97 @@ _search_send_packet(search_ctrl_t *sch, gnutella_node_t *n)
 		*m->search.query = '\0';
 		strncpy(m->search.query + 1, sch->query, 9+32);	/* urn:sha1:32bytes */
 		m->search.query[1+9+32] = '\0';
-	} else
+	} else {
+		gint new_len;
+
 		strcpy(m->search.query, sch->query);
+		new_len = compact_query(m->search.query);
+
+		g_assert(new_len <= qlen);
+
+		if (new_len == 0) {
+			g_warning("dropping invalid local query \"%s\"", sch->query);
+			goto cleanup;
+		} else if (new_len < qlen) {
+			if (search_debug) g_warning("compacted query \"%s\" into \"%s\"",
+				sch->query, m->search.query);
+			size -= (qlen - new_len);
+		}
+	}
+
+	plen = size - sizeof(struct gnutella_header);	/* Payload length */
+	WRITE_GUINT32_LE(plen, m->header.size);
+	*sizep = size;
+
+	if (plen > search_queries_forward_size) {
+		g_warning("not sending query \"%s\": larger than max query size (%d)",
+			sch->query, search_queries_forward_size);
+		goto cleanup;
+	}
 
 	message_add(m->header.muid, GTA_MSG_SEARCH, NULL);
+
+	return m;
+
+cleanup:
+	wfree(m, *len);
+	return NULL;
+}
+
+/**
+ * Fill supplied query hash vector `qhv' with relevant word/SHA1 entries for
+ * the given search.
+ */
+static void
+search_qhv_fill(search_ctrl_t *sch, query_hashvec_t *qhv)
+{
+	word_vec_t *wovec;
+	guint i;
+	guint wocnt;
+
+    g_assert(sch != NULL);
+    g_assert(qhv != NULL);
+	g_assert(current_peermode == NODE_P_ULTRA);
+
+	qhvec_reset(qhv);
+
+	if (0 == strncmp(sch->query, "urn:sha1:", 9)) {		/* URN search */
+		qhvec_add(qhv, sch->query, QUERY_H_URN);
+		return;
+	}
+
+	wocnt = word_vec_make(sch->query, &wovec);
+
+	for (i = 0; i < wocnt; i++) {
+		if (wovec[i].len >= QRP_MIN_WORD_LENGTH)
+			qhvec_add(qhv, wovec[i].word, QUERY_H_WORD);
+	}
+
+	if (wocnt != 0)
+		word_vec_free(wovec, wocnt);
+}
+
+/**
+ * Create and send a search request packet
+ *
+ * @param n if NULL, we're "broadcasting" an initial search.  Otherwise, this
+ * is the only node to which we should send the message.
+ */
+static void
+search_send_packet(search_ctrl_t *sch, gnutella_node_t *n)
+{
+	struct gnutella_msg_search *m;
+	guint32 size;
+	guint32 alloclen;
+
+    g_assert(sch != NULL);
+    g_assert(!sch->passive);
+	g_assert(!sch->frozen);
+
+	m = build_search_msg(sch, &alloclen, &size);
+
+	if (m == NULL)
+		return;
 
 	/*
 	 * All the gmsg_search_xxx() routines include the search handle.
@@ -1336,21 +1380,35 @@ _search_send_packet(search_ctrl_t *sch, gnutella_node_t *n)
 	if (n) {
 		mark_search_sent_to_node(sch, n);
 		gmsg_search_sendto_one(n, sch->search_handle, (gchar *) m, size);
-	} else {
-		mark_search_sent_to_connected_nodes(sch);
-		if (qhv != NULL) {
-			GSList *nodes = qrt_build_query_target(qhv, 0, my_ttl, NULL);
-			gmsg_search_sendto_all(nodes, sch->search_handle,
-				(gchar *) m, size);
-			g_slist_free(nodes);
-			gmsg_search_sendto_all_nonleaf(
-				node_all_nodes(), sch->search_handle, (gchar *) m, size);
-		} else
-			gmsg_search_sendto_all(
-				node_all_nodes(), sch->search_handle, (gchar *) m, size);
+		goto cleanup;
 	}
 
-	wfree(m, size);
+	/*
+	 * If we're a leaf node, broadcast to all our ultra peers.
+	 * If we're a regular node, broadcast to all peers.
+	 *
+	 * XXX Drop support for regular nodes after 0.95 --RAM, 2004-08-31.
+	 */
+
+	if (current_peermode != NODE_P_ULTRA) {
+		mark_search_sent_to_connected_nodes(sch);
+		gmsg_search_sendto_all(
+			node_all_nodes(), sch->search_handle, (gchar *) m, size);
+		goto cleanup;
+	}
+
+	/*
+	 * Enqueue search in global SQ for later dynamic querying dispatching.
+	 */
+
+	search_qhv_fill(sch, query_hashvec);
+	sq_global_putq(sch->search_handle,
+		gmsg_to_pmsg(m, size), qhvec_clone(query_hashvec));
+
+	/* FALL THROUGH */
+
+cleanup:
+	wfree(m, alloclen);
 }
 
 /**
@@ -1367,13 +1425,23 @@ node_added_callback(gpointer data)
     g_assert(sch != NULL);
     g_assert(!sch->passive);
 
-	// XXX should only be used in normal/leaf mode, not UP mode with dq
+	/*
+	 * If we're in UP mode, we're using dynamic querying for our own queries.
+	 */
+
+	if (current_peermode == NODE_P_ULTRA)
+		return;
+
+	/*
+	 * Send search to new node if not already done and if the search
+	 * is still active.
+	 */
 
 	if (
         !search_already_sent_to_node(sch, node_added) &&
         !sch->frozen
     ) {
-		_search_send_packet(sch, node_added);
+		search_send_packet(sch, node_added);
 	}
 }
 
@@ -1408,10 +1476,14 @@ search_add_new_muid(search_ctrl_t *sch, gchar *muid)
 	}
 }
 
+/**
+ * Send search to all connected nodes.
+ */
 static void
-search_send_packet(search_ctrl_t *sch)
+search_send_packet_all(search_ctrl_t *sch)
 {
-	_search_send_packet(sch, NULL);
+	sch->kept_results = 0;
+	search_send_packet(sch, NULL);
 }
 
 /**
@@ -1479,6 +1551,104 @@ update_one_reissue_timeout(search_ctrl_t *sch)
 }
 
 /**
+ * Check whether search bearing the specified ID is still alive.
+ */
+static gboolean
+search_alive(search_ctrl_t *sch, guint32 id)
+{
+	if (!g_hash_table_lookup(searches, sch))
+		return FALSE;
+
+	return sch->id == id;		/* In case it reused the same address */
+}
+
+#define CLOSED_SEARCH	0xffff
+
+/**
+ * Send an unsollicited "Query Status Response" to the specified node ID,
+ * bearing the amount of kept results.  The 0xffff value is a special
+ * marker to indicate the search was closed.
+ */
+static void
+search_send_query_status(search_ctrl_t *sch, guint32 node_id, guint16 kept)
+{
+	struct gnutella_node *n;
+
+	n = node_active_by_id(node_id);
+	if (n == NULL)
+		return;					/* Node disconnected already */
+
+	if (search_debug > 1)
+		printf("SCH reporting %u kept results so far for \"%s\" to %s\n",
+			kept, sch->query, node_ip(n));
+
+	/*
+	 * We use the first MUID in the list, i.e. the last one we used
+	 * for sending out queries for that search.
+	 */
+
+	vmsg_send_qstat_answer(n, sch->muids->data, kept);
+}
+
+
+/**
+ * Send an unsollicited "Query Status Response" to the specified node ID
+ * about the results we kept so far for the relevant search.
+ * -- hash table iterator callback
+ */
+static void
+search_send_status(gpointer key, gpointer value, gpointer udata)
+{
+	guint *node_id = (guint *) key;
+	search_ctrl_t *sch = (search_ctrl_t *) udata;
+	guint16 kept;
+
+	/*
+	 * The 0xffff value is a magic number telling them to stop the search,
+	 * so we never report it here.
+	 */
+
+	kept = MIN(sch->kept_results, (CLOSED_SEARCH - 1));
+
+	search_send_query_status(sch, *node_id, kept);
+}
+
+/**
+ * Update our querying ultrapeers about the results we kept so far for
+ * the given search.
+ */
+static void
+search_update_results(search_ctrl_t *sch)
+{
+	g_hash_table_foreach(sch->sent_node_ids, search_send_status, sch);
+}
+
+/**
+ * Send an unsollicited "Query Status Response" to the specified node ID
+ * informing it that the search was closed.
+ * -- hash table iterator callback
+ */
+static void
+search_send_closed(gpointer key, gpointer value, gpointer udata)
+{
+	gint *node_id = (gint *) key;
+	search_ctrl_t *sch = (search_ctrl_t *) udata;
+
+	search_send_query_status(sch, *node_id, CLOSED_SEARCH);
+}
+
+/**
+ * Tell our querying ultrapeers that the search is closed.
+ */
+static void
+search_notify_closed(gnet_search_t sh)
+{
+    search_ctrl_t *sch = search_find_by_handle(sh);
+
+	g_hash_table_foreach(sch->sent_node_ids, search_send_closed, sch);
+}
+
+/**
  * Signal to all search queues that search was closed.
  */
 static void
@@ -1493,6 +1663,21 @@ search_dequeue_all_nodes(gnet_search_t sh)
 		if (sq)
 			sq_search_closed(sq, sh);
 	}
+
+	sq_search_closed(sq_global_queue(), sh);
+
+	/*
+	 * We're only issuing dynamic queries if we're an ultra node.
+	 *
+	 * Otherwise, our ultra nodes are doing the dynamic querying,
+	 * and we have to notify them that it's no longer useful to
+	 * continue sending queries on our behalf.
+	 */
+
+	if (current_peermode == NODE_P_ULTRA)
+		dq_search_closed(sh);
+	else
+		search_notify_closed(sh);
 }
 
 /***
@@ -1529,62 +1714,6 @@ search_shutdown(void)
 	zdestroy(rs_zone);
 	zdestroy(rc_zone);
 	rs_zone = rc_zone = NULL;
-}
-
-/**
- * Check whether search bearing the specified ID is still alive.
- */
-static gboolean
-search_alive(search_ctrl_t *sch, guint32 id)
-{
-	if (!g_hash_table_lookup(searches, sch))
-		return FALSE;
-
-	return sch->id == id;		/* In case it reused the same address */
-}
-
-/**
- * Send an unsollicited "Query Status Response" to the specified node ID
- * about the results we kept so far for the relevant search.
- * -- hash table iterator callback
- */
-static void
-search_send_status(gpointer key, gpointer value, gpointer udata)
-{
-	gint *node_id = (gint *) key;
-	search_ctrl_t *sch = (search_ctrl_t *) udata;
-	struct gnutella_node *n;
-	guint16 kept;
-
-	n = node_active_by_id(*node_id);
-	if (n == NULL)
-		return;					/* Node disconnected already */
-
-	if (search_debug > 1)
-		printf("SCH reporting %u kept results so far for \"%s\" to %s\n",
-			sch->kept_results, sch->query, node_ip(n));
-
-	/*
-	 * We use the first MUID in the list, i.e. the last one we used
-	 * for sending out queries for that search.
-	 *
-	 * The 0xffff value is a magic number telling them to stop the search,
-	 * so we never report it here.
-	 */
-
-	kept = MIN(sch->kept_results, 0xfffe);
-
-	vmsg_send_qstat_answer(n, sch->muids->data, kept);
-}
-
-/**
- * Update our querying ultrapeers about the results we kept so far for
- * the given search.
- */
-static void
-search_update_results(search_ctrl_t *sch)
-{
-	g_hash_table_foreach(sch->sent_node_ids, search_send_status, sch);
 }
 
 /**
@@ -1950,7 +2079,7 @@ search_reissue(gnet_search_t sh)
 
 	sch->query_emitted = 0;
 	search_add_new_muid(sch, muid);
-	search_send_packet(sch);
+	search_send_packet_all(sch);
 	update_one_reissue_timeout(sch);
 }
 
@@ -1999,7 +2128,6 @@ search_new(
 	gint utf8_len;
 	gint qlen;
 	gboolean latin_locale = is_latin_locale();
-	extern guint compact_query(gchar *search, gint utf8_len);
 
 	sch = g_new0(search_ctrl_t, 1);
 	sch->search_handle = search_request_handle(sch);
@@ -2015,23 +2143,19 @@ search_new(
 	utf8_len = utf8_is_valid_string(query, qlen);
 
 #ifdef USE_ICU
-	if (utf8_len > 0) {
+	if (utf8_len > 0)
 		qdup = unicode_canonize(query);
-		utf8_len = strlen(qdup);
-	} else
+	else
 #endif
 	{
 		qdup = g_strdup(query);
-
-		if (utf8_len && utf8_len == qlen)
-			utf8_len = 0;						/* Uses ASCII only */
 
 		/* Suppress accents, graphics, ... */
 		if (latin_locale)
 			use_map_on_query(qdup, qlen);
 	}
 
-	compact_query(qdup, utf8_len);
+	compact_query(qdup);
 
 	sch->query = atom_str_get(qdup);
 	sch->frozen = TRUE;
@@ -2042,12 +2166,21 @@ search_new(
 		sch->passive = TRUE;
 		search_passive++;
 	} else {
+		extern guint guid_hash(gconstpointer key);
+		extern gint guid_eq(gconstpointer a, gconstpointer b);
+
 		sch->new_node_hook = g_hook_alloc(&node_added_hook_list);
 		sch->new_node_hook->data = (gpointer) sch;
 		sch->new_node_hook->func = (gpointer) node_added_callback;
 		g_hook_prepend(&node_added_hook_list, sch->new_node_hook);
 
 		sch->reissue_timeout = reissue_timeout;
+
+		sch->h_muids = g_hash_table_new(guid_hash, guid_eq);
+
+		sch->sent_nodes =
+			g_hash_table_new(sent_node_hash_func, sent_node_compare);
+		sch->sent_node_ids = g_hash_table_new(g_int_hash, g_int_equal);
 	}
 
 	sl_search_ctrl = g_slist_prepend(sl_search_ctrl, (gpointer) sch);
@@ -2113,19 +2246,10 @@ search_start(gnet_search_t sh)
 
 		if (sch->muids == NULL) {
 			gchar *muid = walloc(MUID_SIZE);
-			extern guint guid_hash(gconstpointer key);
-			extern gint guid_eq(gconstpointer a, gconstpointer b);
-
-			sch->h_muids = g_hash_table_new(guid_hash, guid_eq);
 
 			guid_query_muid(muid, TRUE);
 			search_add_new_muid(sch, muid);
-
-			sch->sent_nodes =
-				g_hash_table_new(sent_node_hash_func, sent_node_compare);
-			sch->sent_node_ids = g_hash_table_new(g_int_hash, g_int_equal);
-
-			search_send_packet(sch);		/* Send initial query */
+			search_send_packet_all(sch);		/* Send initial query */
 		}
 
         update_one_reissue_timeout(sch);
@@ -2146,7 +2270,7 @@ search_stop(gnet_search_t sh)
     sch->frozen = TRUE;
 
     if (!sch->passive)
-        update_one_reissue_timeout(sch);
+		update_one_reissue_timeout(sch);
 }
 
 /**
@@ -2180,6 +2304,19 @@ found:
 
 	*kept = sch->kept_results;
 	return TRUE;
+}
+
+/**
+ * Returns amount of hits kept by the search, identified by its handle
+ */
+guint32
+search_get_kept_results_by_handle(gnet_search_t sh)
+{
+    search_ctrl_t *sch = search_find_by_handle(sh);
+
+	g_assert(sch);
+
+	return sch->kept_results;
 }
 
 gboolean

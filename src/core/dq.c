@@ -245,6 +245,36 @@ dq_get_horizon(gint degree, gint ttl)
 }
 
 /**
+ * Compute amount of results "kept" for the query, if we have this
+ * information available.
+ */
+static guint32
+dq_kept_results(dquery_t *dq)
+{
+	/*
+	 * For local queries, see how many results we kept so far.
+	 *
+	 * Since there's no notification for local queries about the
+	 * amount of results kept (no "Query Status Results" messages)
+	 * update the amount now.
+	 */
+
+	if (dq->node_id == NODE_ID_LOCAL)
+		return dq->kept_results = search_get_kept_results_by_handle(dq->sh);
+
+	/*
+	 * We artificially reduce the kept results by a factor of
+	 * DQ_AVG_ULTRA_NODES since the leaf node will report the total
+	 * number of hits it got and kept from the other ultrapeers it is
+	 * querying, and we assume it filtered out about the same proportion
+	 * of hits everywhere.
+	 */
+
+	return (dq->flags & DQ_F_LEAF_GUIDED) ?
+		(dq->kept_results / DQ_AVG_ULTRA_NODES) : dq->results;
+}
+
+/**
  * Select the proper TTL for the next query we're going to send to the
  * specified node, assuming hosts are equally split among the remaining
  * connections we have yet to query.
@@ -261,9 +291,7 @@ dq_select_ttl(dquery_t *dq, gnutella_node_t *node, gint connections)
 
 	g_assert(connections > 0);
 
-	results = (dq->flags & DQ_F_LEAF_GUIDED) ?
-		(dq->kept_results / DQ_AVG_ULTRA_NODES) : dq->results;
-
+	results = dq_kept_results(dq);
 	needed = dq->max_results - results;
 
 	g_assert(needed > 0);		/* Or query would have been stopped */
@@ -382,8 +410,9 @@ dq_pmsg_free(pmsg_t *mb, gpointer arg)
 		atom_int_free(key);
 
 		if (dq_debug > 19)
-			printf("DQ[%d] node #%d degree=%d dropped message TTL=%d\n",
-				dq->qid, pmi->node_id, pmi->degree, pmi->ttl);
+			printf("DQ[%d] %snode #%d degree=%d dropped message TTL=%d\n",
+				dq->qid, dq->node_id == NODE_ID_LOCAL ? "(local) " : "", 
+				pmi->node_id, pmi->degree, pmi->ttl);
 
 		/*
 		 * If we don't have any more pending message and we're waiting
@@ -406,10 +435,13 @@ dq_pmsg_free(pmsg_t *mb, gpointer arg)
 		dq->up_sent++;
 
 		if (dq_debug > 19) {
-			printf("DQ[%d] node #%d degree=%d sent message TTL=%d\n",
-				dq->qid, pmi->node_id, pmi->degree, pmi->ttl);
-			printf("DQ[%d] (%d secs) queried %d UP%s, horizon=%d, results=%d\n", 
-				dq->qid, (gint) (time(NULL) - dq->start),
+			printf("DQ[%d] %snode #%d degree=%d sent message TTL=%d\n",
+				dq->qid, dq->node_id == NODE_ID_LOCAL ? "(local) " : "", 
+				pmi->node_id, pmi->degree, pmi->ttl);
+			printf("DQ[%d] %s(%d secs) queried %d UP%s, "
+				"horizon=%d, results=%d\n", 
+				dq->qid, dq->node_id == NODE_ID_LOCAL ? "local " : "", 
+				(gint) (time(NULL) - dq->start),
 				dq->up_sent, dq->up_sent == 1 ? "" :"s",
 				dq->horizon, dq->results);
 		}
@@ -487,6 +519,13 @@ dq_fill_probe_up(dquery_t *dq, gnutella_node_t **nv, gint ncount)
 			continue;
 
 		/*
+		 * Skip node if we haven't received the handshaking ping yet.
+		 */
+
+		if (n->received == 0)
+			continue;
+
+		/*
 		 * Skip node if we're in TX flow-control (query will likely not
 		 * be transmitted before the next timeout, and it could even be
 		 * dropped) or if we're remotely flow-controlled (no queries to
@@ -526,6 +565,14 @@ dq_fill_next_up(dquery_t *dq, struct next_up *nv, gint ncount)
 		struct next_up *nup;
 
 		if (!NODE_IS_ULTRA(n) || !NODE_IS_WRITABLE(n))
+			continue;
+
+		/*
+		 * Skip node if we haven't received the handshaking ping yet
+		 * or if we already queried it.
+		 */
+
+		if (n->received == 0)
 			continue;
 
 		if (g_hash_table_lookup(dq->queried, &n->id))
@@ -607,9 +654,10 @@ dq_free(dquery_t *dq)
 	g_assert(g_hash_table_lookup(dqueries, dq));
 
 	if (dq_debug > 19)
-		printf("DQ[%d] (%d secs; +%d secs) node #%d ending: "
+		printf("DQ[%d] %s(%d secs; +%d secs) node #%d ending: "
 			"ttl=%d, queried=%d, horizon=%d, results=%d+%d\n",
-			dq->qid, (gint) (time(NULL) - dq->start),
+			dq->qid, dq->node_id == NODE_ID_LOCAL ? "local " : "", 
+			(gint) (time(NULL) - dq->start),
 			(dq->flags & DQ_F_LINGER) ? (gint) (time(NULL) - dq->stop) : 0,
 			dq->node_id, dq->ttl, dq->up_sent, dq->horizon, dq->results,
 			dq->linger_results);
@@ -770,12 +818,18 @@ dq_results_expired(cqueue_t *cq, gpointer obj)
 	 * If host does not support leaf-guided queries, proceed to next ultra.
 	 * If we got unsollicited guidance info whilst we were waiting for
 	 * results to come back, also proceed.
+	 *
+	 * For local queries, DQ_F_LEAF_GUIDED is not set, so we'll continue
+	 * anyway.
 	 */
 
 	if (!(dq->flags & DQ_F_LEAF_GUIDED) || (dq->flags & DQ_F_GOT_GUIDANCE)) {
 		dq_send_next(dq);
 		return;
 	}
+
+	g_assert(dq->node_id != NODE_ID_LOCAL);
+	g_assert(dq->alive != NULL);
 
 	/*
 	 * Ask queryier how many hits it kept so far.
@@ -1002,16 +1056,9 @@ dq_send_next(dquery_t *dq)
 	/*
 	 * Terminate query if we reached the amount of results we wanted or
 	 * if we reached the maximum theoretical horizon.
-	 *
-	 * We artificially reduce the kept results by a factor of
-	 * DQ_AVG_ULTRA_NODES since the leaf node will report the total
-	 * number of hits it got and kept from the other ultrapeers it is
-	 * querying, and we assume it filtered out about the same proportion
-	 * of hits everywhere.
 	 */
 
-	results = (dq->flags & DQ_F_LEAF_GUIDED) ?
-		(dq->kept_results / DQ_AVG_ULTRA_NODES) : dq->results;
+	results = dq_kept_results(dq);
 
 	if (dq->horizon >= DQ_MAX_HORIZON || results >= dq->max_results) {
 		dq_terminate(dq);
@@ -1199,7 +1246,6 @@ dq_common_init(dquery_t *dq, query_hashvec_t *qhv)
 	struct gnutella_header *head;
 
 	dq->qid = dyn_query_id++;
-	dq->qhv = qhvec_clone(qhv);
 	dq->queried = g_hash_table_new(g_int_hash, g_int_equal);
 	dq->result_timeout = DQ_QUERY_TIMEOUT;
 	dq->start = time(NULL);
@@ -1281,6 +1327,7 @@ dq_launch_net(gnutella_node_t *n, query_hashvec_t *qhv)
 	dq->mb = gmsg_split_to_pmsg(
 		(guchar *) &n->header, n->data,
 		n->size + sizeof(struct gnutella_header));
+	dq->qhv = qhvec_clone(qhv);
 	dq->max_results = DQ_LEAF_RESULTS;
 	dq->ttl = MIN(n->header.ttl, DQ_MAX_TTL);
 	dq->alive = n->alive_pings;
@@ -1347,6 +1394,52 @@ dq_launch_net(gnutella_node_t *n, query_hashvec_t *qhv)
 }
 
 /**
+ * Start new dynamic query for a local search.
+ *
+ * We become the owner of the `mb' and `qhv' pointers.
+ */
+void
+dq_launch_local(gnet_search_t handle, pmsg_t *mb, query_hashvec_t *qhv)
+{
+	dquery_t *dq;
+
+	/*
+	 * Local queries are queued in the global SQ, for slow dispatching.
+	 * If we're no longer an ultra node, ignore the request.
+	 */
+
+	if (current_peermode != NODE_P_ULTRA) {
+		if (dq_debug)
+			g_warning("ignoring dynamic query \"%s\": no longer an ultra node",
+				QUERY_TEXT(pmsg_start(mb)));
+			
+		pmsg_free(mb);
+		qhvec_free(qhv);
+		return;
+	}
+
+	/*
+	 * OK, create the local dynamic query.
+	 */
+
+	dq = walloc0(sizeof(*dq));
+
+	dq->node_id = NODE_ID_LOCAL;
+	dq->mb = mb;
+	dq->qhv = qhv;
+	dq->sh = handle;
+	dq->max_results = DQ_LOCAL_RESULTS;
+	dq->ttl = MIN(my_ttl, DQ_MAX_TTL);
+	dq->alive = NULL;
+
+	gnet_stats_count_general(NULL, GNR_LOCAL_DYN_QUERIES, 1);
+
+	dq_common_init(dq, qhv);
+	dq_sendto_leaves(dq, NULL);
+	dq_send_probe(dq);
+}
+
+/**
  * Tells us a node ID has been removed.
  * Get rid of all the queries registered for that node.
  */
@@ -1405,14 +1498,19 @@ dq_got_results(gchar *muid, gint count)
 	}
 
 	if (dq_debug > 19) {
+		if (dq->node_id == NODE_ID_LOCAL)
+			dq->kept_results = search_get_kept_results_by_handle(dq->sh);
 		if (dq->flags & DQ_F_LINGER)
-			printf("DQ[%d] (%d secs; +%d secs) +%d linger_results=%d kept=%d\n",
-				dq->qid, (gint) (time(NULL) - dq->start),
+			printf("DQ[%d] %s(%d secs; +%d secs) "
+				"+%d linger_results=%d kept=%d\n",
+				dq->qid, dq->node_id == NODE_ID_LOCAL ? "local " : "",
+				(gint) (time(NULL) - dq->start),
 				(gint) (time(NULL) - dq->stop),
 				count, dq->linger_results, dq->kept_results);
 		else
-			printf("DQ[%d] (%d secs) +%d results=%d new=%d kept=%d\n",
-				dq->qid, (gint) (time(NULL) - dq->start),
+			printf("DQ[%d] %s(%d secs) +%d results=%d new=%d kept=%d\n",
+				dq->qid, dq->node_id == NODE_ID_LOCAL ? "local " : "",
+				(gint) (time(NULL) - dq->start),
 				count, dq->results, dq->new_results, dq->kept_results);
 	}
 }
@@ -1489,6 +1587,57 @@ dq_got_query_status(gchar *muid, guint32 node_id, guint16 kept)
 		dq_send_next(dq);
 		return;
 	}
+}
+
+struct cancel_context {
+	gnet_search_t handle;
+	GSList *cancelled;
+};
+
+/**
+ * Cancel local query bearing the specified search handle.
+ * -- hash table iterator callback
+ */
+static void
+dq_cancel_local(gpointer key, gpointer value, gpointer udata)
+{
+	struct cancel_context *ctx = (struct cancel_context *) udata;
+	dquery_t *dq = (dquery_t *) key;
+
+	if (dq->node_id != NODE_ID_LOCAL || dq->sh != ctx->handle)
+		return;
+
+	/*
+	 * Don't remove `dq' from the table over which we're iterating,
+	 * just remember it in the context for later removal.
+	 */
+
+	dq->flags |= DQ_F_EXITING;		/* So nothing is removed from the table */
+	dq_free(dq);
+
+	ctx->cancelled = g_slist_prepend(ctx->cancelled, dq);
+}
+
+/**
+ * Invoked when a local search is closed.
+ */
+void
+dq_search_closed(gnet_search_t handle)
+{
+	struct cancel_context *ctx;
+	GSList *sl;
+
+	ctx = walloc(sizeof(*ctx));
+	ctx->handle = handle;
+	ctx->cancelled = NULL;
+
+	g_hash_table_foreach(dqueries, dq_cancel_local, ctx);
+
+	for (sl = ctx->cancelled; sl; sl = g_slist_next(sl))
+		g_hash_table_remove(dqueries, sl->data);
+
+	g_slist_free(ctx->cancelled);
+	wfree(ctx, sizeof(*ctx));
 }
 
 /**

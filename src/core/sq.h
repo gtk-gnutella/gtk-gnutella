@@ -29,6 +29,7 @@
 
 #include "common.h"
 #include "pmsg.h"
+#include "qrp.h"
 
 #include "if/core/search.h"
 
@@ -42,9 +43,9 @@
 typedef struct search_queue {
 	GList *searches;			/* A pointer to the GList */
 	GHashTable *handles;		/* Keeps track of search handles in queue */
-	struct gnutella_node *node;	/* Node owning this search queue */
+	struct gnutella_node *node;	/* Node owning this search queue, or NULL */
 	time_t last_sent;    		/* Time last msg was sent */
-	guint count;					/* Count of number in queue */
+	guint count;				/* Count of number in queue */
 	/* stats */
 	gint n_sent;				/* Number of searches sent */
 	gint n_dropped;				/* Number dropped due to flow control */
@@ -57,12 +58,19 @@ typedef struct search_queue {
  * Public interfaces
  */
 
+void sq_init(void);
+void sq_close(void);
+
+squeue_t *sq_global_queue(void);
+
 squeue_t *sq_make(struct gnutella_node *node);
 void sq_clear(squeue_t *sq);
 void sq_free(squeue_t *sq);
 void sq_putq(squeue_t *sq, gnet_search_t sh, pmsg_t *mb);
 void sq_process(squeue_t *sq, time_t now);
 void sq_search_closed(squeue_t *sq, gnet_search_t sh);
+void sq_global_putq(gnet_search_t sh, pmsg_t *mb, query_hashvec_t *qhv);
+void sq_set_peermode(node_peer_t mode);
 
 #endif /* _core_sq_h_ */
 

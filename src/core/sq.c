@@ -32,6 +32,11 @@
  * that doesn't flood the gnutella network. A search queue is
  * maintained for each gnutella node and regularly polled by the
  * timer function to release messages into the lower message queues
+ *
+ * For ultrapeers conducting dynamic querying for their own queries,
+ * this system of having one search queue per node is not used.  Instead,
+ * we have one global search queue, which is used to space launching
+ * of dynamic queries.
  */
 
 #include "common.h"
@@ -42,6 +47,7 @@ RCSID("$Id$");
 #include "pmsg.h"
 #include "nodes.h"
 #include "search.h"
+#include "dq.h"
 
 #include "if/gnet_property_priv.h"
 
@@ -65,6 +71,7 @@ RCSID("$Id$");
 typedef struct smsg {
 	pmsg_t *mb;					/* The message block for the query */
 	gnet_search_t shandle;		/* Handle to search that originated query */
+	query_hashvec_t *qhv;		/* The query hash vector for QRP matching */
 } smsg_t;
 
 /*
@@ -78,6 +85,8 @@ struct smsg_info {
 	guint32 id;					/* The unique search ID */
 	guint32 node_id;			/* The unique node ID to which we're sending */
 };
+
+static squeue_t *global_sq = NULL;
 
 static void cap_queue(squeue_t *sq);
 
@@ -110,12 +119,13 @@ sq_pmsg_free(pmsg_t *mb, gpointer arg)
  * Allocate a new search queue entry.
  */
 static smsg_t *
-smsg_alloc(gnet_search_t sh, pmsg_t *mb)
+smsg_alloc(gnet_search_t sh, pmsg_t *mb, query_hashvec_t *qhv)
 {
 	smsg_t *sb = walloc(sizeof(*sb));
 
 	sb->shandle = sh;
 	sb->mb = mb;
+	sb->qhv = qhv;
 
 	return sb;
 }
@@ -129,6 +139,20 @@ smsg_free(smsg_t *sb)
 	g_assert(sb);
 
 	wfree(sb, sizeof(*sb));
+}
+
+/**
+ * Dispose of the search queue entry and of all its contained data.
+ * Used only when the query described in `sb' is not dispatched.
+ */
+static void
+smsg_discard(smsg_t *sb)
+{
+	pmsg_free(sb->mb);
+	if (sb->qhv)
+		qhvec_free(sb->qhv);
+
+	smsg_free(sb);
 }
 
 /**
@@ -216,8 +240,8 @@ sq_make(struct gnutella_node *node)
 	 * By initializing `last_sent' to the current time and not to `0', we
 	 * ensure that we won't send the query to the node during the first
 	 * "search_queue_spacing" seconds of its connection.  This prevent
-	 * useless traffic on Gnet, because if the connection held for that long,
-	 * chances are it will hold until we get some results back.
+	 * useless traffic on Gnet, because if the connection is held for that
+	 * long, chances are it will hold until we get some results back.
 	 *
 	 *		--RAM, 01/05/2002
 	 */
@@ -245,13 +269,13 @@ sq_clear(squeue_t *sq)
 
 	if (dbg > 3)
 		printf("clearing sq node %s (sent=%d, dropped=%d)\n",
-			node_ip(sq->node), sq->n_sent, sq->n_dropped);
+			sq->node ? node_ip(sq->node) : "GLOBAL",
+			sq->n_sent, sq->n_dropped);
 
 	for (l = sq->searches; l; l = g_list_next(l)) {
 		smsg_t *sb = (smsg_t *) l->data;
 
-		pmsg_free(sb->mb);
-		smsg_free(sb);
+		smsg_discard(sb);
 	}
 
 	g_list_free(sq->searches);
@@ -274,17 +298,10 @@ sq_free(squeue_t *sq)
 }
 
 /**
- * Enqueue a single query (LIFO behaviour).
- *
- * We are given both the query message `mb' and the search handle `sh'.
- *
- * Having the search handle allows us to check before sending the query
- * that we are not over-querying for a given search.  It's also handy
- * to remove the queries when a search is closed, and avoid queuing twice
- * the same search.
+ * Enqueue query message in specified queue.
  */
-void
-sq_putq(squeue_t *sq, gnet_search_t sh, pmsg_t *mb)
+static void
+sq_puthere(squeue_t *sq, gnet_search_t sh, pmsg_t *mb, query_hashvec_t *qhv)
 {
 	smsg_t *sb;
 
@@ -294,7 +311,7 @@ sq_putq(squeue_t *sq, gnet_search_t sh, pmsg_t *mb)
 	if (sqh_exists(sq, sh))
 		return;						/* Search already in queue */
 
-	sb = smsg_alloc(sh, mb);
+	sb = smsg_alloc(sh, mb, qhv);
 
 	sqh_put(sq, sh);
 	sq->searches = g_list_prepend(sq->searches, sb);
@@ -302,6 +319,37 @@ sq_putq(squeue_t *sq, gnet_search_t sh, pmsg_t *mb)
 
 	if (sq->count > search_queue_size)
 		cap_queue(sq);
+}
+
+
+/**
+ * Enqueue a single query (LIFO behaviour).
+ *
+ * Having the search handle allows us to check before sending the query
+ * that we are not over-querying for a given search.  It's also handy
+ * to remove the queries when a search is closed, and avoid queuing twice
+ * the same search.
+ *
+ * @param mb the query message
+ * @param sh the search handle
+ */
+void
+sq_putq(squeue_t *sq, gnet_search_t sh, pmsg_t *mb)
+{
+	sq_puthere(sq, sh, mb, NULL);
+}
+
+/**
+ * Enqueue a single query waiting for dynamic querying into global SQ.
+ *
+ * @param mb the query message
+ * @param sh the search handle
+ * @param qhv the query hash vector for QRP matching
+ */
+void
+sq_global_putq(gnet_search_t sh, pmsg_t *mb, query_hashvec_t *qhv)
+{
+	sq_puthere(global_sq, sh, mb, qhv);
 }
 
 /**
@@ -314,10 +362,9 @@ sq_process(squeue_t *sq, time_t now)
 	GList *item;
 	smsg_t *sb;
 	struct gnutella_node *n;
-	gboolean sent = FALSE;
+	gboolean sent;
 
-	g_assert(sq->node);
-	g_assert(sq->node->outq != NULL);
+	g_assert(sq->node == NULL || sq->node->outq != NULL);
 
 retry:
 	/*
@@ -338,19 +385,31 @@ retry:
     if (delta_time(now, sq->last_sent) < search_queue_spacing)
 		return;
 
-	n = sq->node;
+	n = sq->node;					/* Will be NULL for the global SQ */
 
-	if (n->received == 0)		/* RX = 0, wait for handshaking ping */
-		return;
+	if (n != NULL) {
+		if (n->received == 0)		/* RX = 0, wait for handshaking ping */
+			return;
 
-	if (!node_query_hops_ok(n, 0))		/* Cannot send hops=0 query */
-		return;
+		if (!node_query_hops_ok(n, 0))		/* Cannot send hops=0 query */
+			return;
 
-	if (!NODE_IS_WRITABLE(n))
-		return;
+		if (!NODE_IS_WRITABLE(n))
+			return;
 
-	if (NODE_IN_TX_FLOW_CONTROL(n))		/* Don't add to the message queue yet */
-		return;
+		if (NODE_IN_TX_FLOW_CONTROL(n))		/* Don't add to the mqueue yet */
+			return;
+	} else {
+		/*
+		 * Processing the global SQ.
+		 */
+
+		if (current_peermode != NODE_P_ULTRA)
+			return;
+
+		if (node_keep_missing() * 3 > up_connections)
+			return;							/* Not enough nodes for querying */
+	}
 
 	/*
 	 * Queue is managed as a LIFO: we extract the first message, i.e. the last
@@ -364,17 +423,24 @@ retry:
 
 	g_assert(sq->count > 0);
 	sq->count--;
+	sent = TRUE;			/* Assume we're going to send/initiate it */
 
-	/*
-	 * Determine whether we can broadcast the query.
-	 * We always send to leaf nodes.
-	 */
+	if (n == NULL) {
+		g_assert(sb->qhv != NULL);		/* Enqueued via sq_global_putq() */
 
-	if (NODE_IS_LEAF(n) || search_query_allowed(sb->shandle)) {
+		if (dbg > 2)
+			printf("sq GLOBAL, queuing \"%s\" (%u left, %d sent)\n",
+				QUERY_TEXT(pmsg_start(sb->mb)), sq->count, sq->n_sent);
+
+		dq_launch_local(sb->shandle, sb->mb, sb->qhv);
+
+	} else if (search_query_allowed(sb->shandle)) {
 		/*
 		 * Must log before sending, in case the queue discards the message
 		 * buffer immediately.
 		 */
+
+		g_assert(sb->qhv == NULL);		/* Enqueued via sq_putq() */
 
 		if (dbg > 2)
 			printf("sq for node %s, queuing \"%s\" (%u left, %d sent)\n",
@@ -392,15 +458,21 @@ retry:
 			smsg_mutate(sb, n);
 
 		mq_putq(n->outq, sb->mb);
-		sq->n_sent++;
-		sq->last_sent = now;
-		sent = TRUE;
+
 	} else {
 		if (dbg > 4)
 			printf("sq for node %s, ignored \"%s\" (%u left, %d sent)\n",
 				node_ip(n), QUERY_TEXT(pmsg_start(sb->mb)),
 				sq->count, sq->n_sent);
 		pmsg_free(sb->mb);
+		if (sb->qhv)
+			qhvec_free(sb->qhv);
+		sent = FALSE;
+	}
+
+	if (sent) {
+		sq->n_sent++;
+		sq->last_sent = now;
 	}
 
 	sqh_remove(sq, sb->shandle);
@@ -439,9 +511,8 @@ cap_queue(squeue_t *sq)
 				node_ip(sq->node), QUERY_TEXT(pmsg_start(sb->mb)),
 				sq->count, sq->n_dropped);
 
-		pmsg_free(sb->mb);
 		sqh_remove(sq, sb->shandle);
-		smsg_free(sb);
+		smsg_discard(sb);
 		g_list_free_1(item);
     }
 }
@@ -470,15 +541,62 @@ sq_search_closed(squeue_t *sq, gnet_search_t sh)
 
 		if (dbg > 4)
 			printf("sq for node %s, dropped \"%s\" on search close (%u left)\n",
-				node_ip(sq->node), QUERY_TEXT(pmsg_start(sb->mb)), sq->count);
+				sq->node ? node_ip(sq->node) : "GLOBAL",
+				QUERY_TEXT(pmsg_start(sb->mb)), sq->count);
 
-		pmsg_free(sb->mb);
 		sqh_remove(sq, sb->shandle);
-		smsg_free(sb);
+		smsg_discard(sb);
 		g_list_free_1(l);
 	}
 
 	g_assert(sq->searches || sq->count == 0);
+}
+
+/**
+ * Invoked when the current peermode changes.
+ */
+void
+sq_set_peermode(node_peer_t mode)
+{
+	/*
+	 * Get rid of all the searches enqueued whilst we were an UP.
+	 * Searches will be re-issued as a leaf node at their next retry time.
+	 *
+	 * XXX could perhaps go back and reschedule searches to start soon,
+	 * XXX so that they don't get penalized too badly from being demoted?
+	 * XXX		--RAM, 2004-09-02
+	 */
+
+	if (mode != NODE_P_ULTRA)
+		sq_clear(global_sq);
+}
+
+/**
+ * Returns global queue.
+ */
+squeue_t *
+sq_global_queue(void)
+{
+	return global_sq;
+}
+
+/**
+ * Initialization of SQ at startup.
+ */
+void
+sq_init(void)
+{
+	global_sq = sq_make(NULL);
+}
+
+/**
+ * Cleanup at shutdown time.
+ */
+void
+sq_close(void)
+{
+	sq_free(global_sq);
+	global_sq = NULL;
 }
 
 /* vi: set ts=4: */

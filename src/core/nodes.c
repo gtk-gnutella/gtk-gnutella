@@ -890,6 +890,8 @@ node_timer(time_t now)
 			n->qrelayed_created = now;
 		}
 	}
+
+	sq_process(sq_global_queue(), now);
 }
 
 /**
@@ -1863,7 +1865,9 @@ node_bye_v(struct gnutella_node *n, gint code, const gchar *reason, va_list ap)
 	 * The only message that may remain is the oldest partially sent.
 	 */
 
-	sq_clear(n->searchq);
+	if (n->searchq)
+		sq_clear(n->searchq);
+
 	mq_clear(n->outq);
 
 	/*
@@ -2447,10 +2451,17 @@ node_is_now_connected(struct gnutella_node *n)
 	g_assert(tx);
 
 	n->outq = mq_make(node_sendqueue_size, n, tx);
-	n->searchq = sq_make(n);
 	n->flags |= NODE_F_WRITABLE;
 	n->alive_pings = alive_make(n, n->alive_period == ALIVE_PERIOD ?
 		ALIVE_MAX_PENDING : ALIVE_MAX_PENDING_LEAF);
+
+	/*
+	 * In ultra mode, we're not broadcasting queries blindly, we're using
+	 * dynamic querying, so there is no need for a per-node search queue.
+	 */
+
+	if (current_peermode != NODE_P_ULTRA)
+		n->searchq = sq_make(n);
 
 	/*
 	 * Terminate connection if the peermode changed during handshaking.
@@ -2709,6 +2720,7 @@ node_set_current_peermode(node_peer_t mode)
 		bsched_set_peermode(mode);		/* Adapt Gnet bandwidth */
 		pcache_set_peermode(mode);		/* Adapt pong cache lifetime */
 		qrp_peermode_changed();			/* Compute proper routing table */
+		sq_set_peermode(mode);			/* Possibly discard the global SQ */
 	}
 
 	old_mode = mode;
@@ -6294,15 +6306,14 @@ node_remove_nodes_by_handle(GSList *node_list)
 /**
  * Returns the ip:port of a node 
  */
-/* FIXME: should be called node_ip_to_gchar, for consistency? */
 gchar *
 node_ip(const gnutella_node_t *n)
 {
-	/* Same as ip_port_to_gchar(), but need another static buffer to be able
-	   to use both in same printf() line */
-
 	static gchar a[32];
 	struct in_addr ia;
+
+	g_assert(n != NULL);
+
 	ia.s_addr = htonl(n->ip);
 	gm_snprintf(a, sizeof(a), "%s:%u", inet_ntoa(ia), n->port);
 	return a;

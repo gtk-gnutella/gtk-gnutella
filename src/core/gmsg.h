@@ -46,6 +46,7 @@ struct route_dest;
 void gmsg_init(void);
 const gchar *gmsg_name(guint function);
 
+pmsg_t *gmsg_to_pmsg(gpointer msg, guint32 size);
 pmsg_t *gmsg_split_to_pmsg(gpointer head, gpointer data, guint32 size);
 pmsg_t * gmsg_split_to_pmsg_extend(
 	gpointer head, gpointer data, guint32 size, pmsg_free_t free, gpointer arg);
@@ -84,8 +85,6 @@ void gmsg_sendto_route_ggep(
 void gmsg_search_sendto_one(
 	struct gnutella_node *n, gnet_search_t sh, gchar *msg, guint32 size);
 void gmsg_search_sendto_all(
-	const GSList *l, gnet_search_t sh, gchar *msg, guint32 size);
-void gmsg_search_sendto_all_nonleaf(
 	const GSList *l, gnet_search_t sh, gchar *msg, guint32 size);
 
 #endif	/* _core_gmsg_h_ */

@@ -101,12 +101,23 @@ gmsg_name(guint function)
 }
 
 /**
- * Construct PDU from message.
+ * Construct regular PDU descriptor from message.
+ * Message data is copied into the new data buffer, so caller may release
+ * its memory.
+ */
+pmsg_t *
+gmsg_to_pmsg(gpointer msg, guint32 size)
+{
+	return pmsg_new(PMSG_P_DATA, msg, size);
+}
+
+/**
+ * Construct control PDU descriptor from message.
  */
 static pmsg_t *
-gmsg_to_pmsg(gint prio, gpointer msg, guint32 size)
+gmsg_to_ctrl_pmsg(gpointer msg, guint32 size)
 {
-	return pmsg_new(prio, msg, size);
+	return pmsg_new(PMSG_P_CONTROL, msg, size);
 }
 
 /**
@@ -220,7 +231,7 @@ gmsg_sendto_one(struct gnutella_node *n, gchar *msg, guint32 size)
 	if (dbg > 5 && gmsg_hops(msg) == 0)
 		gmsg_dump(stdout, msg, size);
 
-	mq_putq(n->outq, gmsg_to_pmsg(PMSG_P_DATA, msg, size));
+	mq_putq(n->outq, gmsg_to_pmsg(msg, size));
 }
 
 /**
@@ -239,7 +250,7 @@ gmsg_search_sendto_one(
 	if (dbg > 5 && gmsg_hops(msg) == 0)
 		gmsg_dump(stdout, msg, size);
 
-	sq_putq(n->searchq, sh, gmsg_to_pmsg(PMSG_P_DATA, msg, size));
+	sq_putq(n->searchq, sh, gmsg_to_pmsg(msg, size));
 }
 
 
@@ -258,7 +269,7 @@ gmsg_ctrl_sendto_one(struct gnutella_node *n, gchar *msg, guint32 size)
 	if (dbg > 6 && gmsg_hops(msg) == 0)
 		gmsg_dump(stdout, msg, size);
 
-	mq_putq(n->outq, gmsg_to_pmsg(PMSG_P_CONTROL, msg, size));
+	mq_putq(n->outq, gmsg_to_ctrl_pmsg(msg, size));
 }
 
 /**
@@ -285,7 +296,7 @@ gmsg_split_sendto_one(
 void
 gmsg_sendto_all(const GSList *sl, gchar *msg, guint32 size)
 {
-	pmsg_t *mb = gmsg_to_pmsg(PMSG_P_DATA, msg, size);
+	pmsg_t *mb = gmsg_to_pmsg(msg, size);
 
 	g_assert(((struct gnutella_header *) msg)->ttl > 0);
 
@@ -309,7 +320,7 @@ void
 gmsg_search_sendto_all(
 	const GSList *sl, gnet_search_t sh, gchar *msg, guint32 size)
 {
-	pmsg_t *mb = gmsg_to_pmsg(PMSG_P_DATA, msg, size);
+	pmsg_t *mb = gmsg_to_pmsg(msg, size);
 
 	g_assert(((struct gnutella_header *) msg)->ttl > 0);
 	g_assert(((struct gnutella_header *) msg)->hops <= hops_random_factor);
@@ -320,31 +331,6 @@ gmsg_search_sendto_all(
 	for (/* empty */; sl; sl = g_slist_next(sl)) {
 		struct gnutella_node *dn = (struct gnutella_node *) sl->data;
 		if (!NODE_IS_ESTABLISHED(dn))
-			continue;
-		sq_putq(dn->searchq, sh, pmsg_clone(mb));
-	}
-
-	pmsg_free(mb);
-}
-
-/**
- * Broadcast our search message to all non-leaf nodes in the list.
- */
-void
-gmsg_search_sendto_all_nonleaf(
-	const GSList *sl, gnet_search_t sh, gchar *msg, guint32 size)
-{
-	pmsg_t *mb = gmsg_to_pmsg(PMSG_P_DATA, msg, size);
-
-	g_assert(((struct gnutella_header *) msg)->ttl > 0);
-	g_assert(((struct gnutella_header *) msg)->hops <= hops_random_factor);
-
-	if (dbg > 5 && gmsg_hops(msg) == 0)
-		gmsg_dump(stdout, msg, size);
-
-	for (/* empty */; sl; sl = g_slist_next(sl)) {
-		struct gnutella_node *dn = (struct gnutella_node *) sl->data;
-		if (!NODE_IS_ESTABLISHED(dn) || NODE_IS_LEAF(dn))
 			continue;
 		sq_putq(dn->searchq, sh, pmsg_clone(mb));
 	}
