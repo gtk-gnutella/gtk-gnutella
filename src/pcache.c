@@ -988,9 +988,12 @@ void pcache_ping_received(struct gnutella_node *n)
 	 * If TTL = 0, only us can reply, and we'll do that below in any case..
 	 * We call setup_pong_demultiplexing() anyway to reset the pong_needed[]
 	 * array.
+	 *
+	 * A leaf node will not demultiplex pongs, so don't bother.
 	 */
 
-	setup_pong_demultiplexing(n, n->header.muid, n->header.ttl);
+	if (current_peermode != NODE_P_LEAF)
+		setup_pong_demultiplexing(n, n->header.muid, n->header.ttl);
 
 	/*
 	 * If we can accept an incoming connection, send a reply.
@@ -1012,6 +1015,13 @@ void pcache_ping_received(struct gnutella_node *n)
 		if (!NODE_IS_CONNECTED(n))	/* Can be removed if send queue is full */
 			return;
 	}
+
+	if (current_peermode == NODE_P_LEAF)
+		return;
+
+	/*
+	 * We continue here only for non-leaf nodes.
+	 */
 
 	/*
 	 * Return cached pongs if we have some and they are needed.
