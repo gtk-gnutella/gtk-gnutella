@@ -1508,9 +1508,9 @@ static struct shared_file *get_file_to_upload(
 	 */
 
 	if (2 == sscanf(uri, "/get/%u%c", &idx, &s) && s == '/')
-		return get_file_to_upload_from_index(u, header, u->name, idx);
+		return get_file_to_upload_from_index(u, header, uri, idx);
 	else if (0 == strncmp(uri, n2r_query, N2R_QUERY_LENGTH))
-		return get_file_to_upload_from_urn(u, header, u->name);
+		return get_file_to_upload_from_urn(u, header, uri);
 
 	upload_error_not_found(u, request);
 	return NULL;
