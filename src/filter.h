@@ -9,7 +9,6 @@ void filters_open_dialog(void);
 
 gboolean filter_record(struct search *, struct record *);
 
-#endif	/* __filter_h__ */
+#endif							/* __filter_h__ */
 
-/* vi: set ts=3: */
-
+/* vi: set ts=4: */

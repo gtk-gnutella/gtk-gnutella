@@ -2,7 +2,9 @@
 #ifndef __gnutella_h__
 #define __gnutella_h__
 
-/* Main includes ---------------------------------------------------------------------------------- */
+/*
+ * Main includes
+ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -18,7 +20,9 @@
 
 #include "../config.h"
 
-/* Macros ----------------------------------------------------------------------------------------- */
+/*
+ * Macros
+ */
 
 #define READ_GUINT16_LE(a,v) { memcpy(&v, a, 2); v = GUINT16_FROM_LE(v); }
 
@@ -30,7 +34,9 @@
 #define WRITE_GUINT32_LE(v,a) { guint32 _v = GUINT32_TO_LE(v); memcpy(a, &_v, 4); }
 #define WRITE_GUINT32_BE(v,a) { guint32 _v = GUINT32_TO_BE(v); memcpy(a, &_v, 4); }
 
-/* Constants -------------------------------------------------------------------------------------- */
+/*
+ * Constants
+ */
 
 #define GTA_VERSION 0
 #define GTA_SUBVERSION 15
@@ -39,51 +45,52 @@
 #define GTA_WEBSITE "http://gtk-gnutella.sourceforge.net/"
 
 #define GTA_MSG_INIT					0x00
-#define GTA_MSG_INIT_RESPONSE		0x01
-#define GTA_MSG_PUSH_REQUEST		0x40
-#define GTA_MSG_SEARCH				0x80
-#define GTA_MSG_SEARCH_RESULTS	0x81
+#define GTA_MSG_INIT_RESPONSE			0x01
+#define GTA_MSG_PUSH_REQUEST			0x40
+#define GTA_MSG_SEARCH					0x80
+#define GTA_MSG_SEARCH_RESULTS			0x81
 
-#define GTA_CONNECTION_INCOMING	1
-#define GTA_CONNECTION_OUTGOING	2
-#define GTA_CONNECTION_LISTENING	3
-#define GTA_CONNECTION_PROXY_OUTGOING  4
+#define GTA_CONNECTION_INCOMING			1
+#define GTA_CONNECTION_OUTGOING			2
+#define GTA_CONNECTION_LISTENING		3
+#define GTA_CONNECTION_PROXY_OUTGOING	4
 
-#define GTA_TYPE_UNKNOWN			0
-#define GTA_TYPE_CONTROL			1
-#define GTA_TYPE_DOWNLOAD			2
-#define GTA_TYPE_UPLOAD				3
+#define GTA_TYPE_UNKNOWN				0
+#define GTA_TYPE_CONTROL				1
+#define GTA_TYPE_DOWNLOAD				2
+#define GTA_TYPE_UPLOAD					3
 
-#define GTA_NODE_CONNECTING	1
-#define GTA_NODE_HELLO_SENT	2
-#define GTA_NODE_WELCOME_SENT	3
-#define GTA_NODE_CONNECTED		4
-#define GTA_NODE_REMOVING		5
+#define GTA_NODE_CONNECTING				1
+#define GTA_NODE_HELLO_SENT				2
+#define GTA_NODE_WELCOME_SENT			3
+#define GTA_NODE_CONNECTED				4
+#define GTA_NODE_REMOVING				5
 
-#define GTA_DL_QUEUED		1			/* Download queued, will be started later */
-#define GTA_DL_CONNECTING	2			/* We are connecting to the server */
-#define GTA_DL_PUSH_SENT	3			/* We sent a push request and are waiting for connection */
-#define GTA_DL_FALLBACK		4			/* Direct request failed, we are falling back to a push request */
-#define GTA_DL_REQ_SENT		5			/* Request sent, we are waiting for the HTTP headers */
-#define GTA_DL_HEADERS		6			/* We are receiving the HTTP headers */
-#define GTA_DL_RECEIVING	7			/* We are receiving the data of the file */
-#define GTA_DL_COMPLETED	8			/* Download is completed */
-#define GTA_DL_ERROR			9			/* Download is stopped due to error */
-#define GTA_DL_ABORTED		10			/* User clicked the 'Abort Download' button */
-#define GTA_DL_TIMEOUT_WAIT 11		/* Waiting to try connecting again */
+#define GTA_DL_QUEUED			1	/* Download queued, will start later */
+#define GTA_DL_CONNECTING		2	/* We are connecting to the server */
+#define GTA_DL_PUSH_SENT		3	/* Sent a push, waiting connection */
+#define GTA_DL_FALLBACK			4	/* Direct request failed, using push */
+#define GTA_DL_REQ_SENT			5	/* Request sent, waiting for HTTP headers */
+#define GTA_DL_HEADERS			6	/* We are receiving the HTTP headers */
+#define GTA_DL_RECEIVING		7	/* We are receiving the data of the file */
+#define GTA_DL_COMPLETED		8	/* Download is completed */
+#define GTA_DL_ERROR			9	/* Download is stopped due to error */
+#define GTA_DL_ABORTED			10	/* User used the 'Abort Download' button */
+#define GTA_DL_TIMEOUT_WAIT		11	/* Waiting to try connecting again */
 
-#define GTA_UL_CONNECTED	1			/* Someone has connected to us  */
-#define GTA_UL_CONNECTING	2			/* We are connecting to someone to upload */
-#define GTA_UL_PUSH_RECIEVED	3			/* We got a push request */
-#define GTA_UL_COMPLETE		4			/* The file has been sent completely */
-#define GTA_UL_SENDING          5                       /* We are sending data for */
+#define GTA_UL_CONNECTED		1	/* Someone has connected to us	*/
+#define GTA_UL_CONNECTING		2	/* We are connecting to someone to upload */
+#define GTA_UL_PUSH_RECIEVED	3	/* We got a push request */
+#define GTA_UL_COMPLETE			4	/* The file has been sent completely */
+#define GTA_UL_SENDING			5	/* We are sending data for */
 
-/* Structures ------------------------------------------------------------------------------------- */
+/*
+ * Structures
+ */
 
 /* Messages structures */
 
-struct gnutella_header
-{
+struct gnutella_header {
 	guchar muid[16];
 	guchar function;
 	guchar ttl;
@@ -91,122 +98,111 @@ struct gnutella_header
 	guchar size[4];
 };
 
-struct gnutella_msg_init
-{
+struct gnutella_msg_init {
 	struct gnutella_header header;
 };
 
-struct gnutella_init_response
-{
+struct gnutella_init_response {
 	guchar host_port[2];
 	guchar host_ip[4];
 	guchar files_count[4];
 	guchar kbytes_count[4];
 };
 
-struct gnutella_msg_init_response
-{
+struct gnutella_msg_init_response {
 	struct gnutella_header header;
 	struct gnutella_init_response response;
 };
 
-struct gnutella_search
-{
+struct gnutella_search {
 	guchar speed[2];
 	guchar query[0];
 };
 
-struct gnutella_msg_search
-{
+struct gnutella_msg_search {
 	struct gnutella_header header;
 	struct gnutella_search search;
 };
 
-struct gnutella_search_results_out
-{
+struct gnutella_search_results_out {
 	guchar num_recs;
 	guchar host_port[2];
 	guchar host_ip[4];
 	guchar host_speed[4];
 
-  /* Last 16 bytes = client_id */
+	/* Last 16 bytes = client_id */
 };
 
-struct gnutella_search_results
-{
+struct gnutella_search_results {
 	guchar num_recs;
 	guchar host_port[2];
 	guchar host_ip[4];
 	guchar host_speed[4];
-        guchar records[0];
+	guchar records[0];
 
-  /* Last 16 bytes = client_id */
+	/* Last 16 bytes = client_id */
 };
 
-struct gnutella_search_record
-{
+struct gnutella_search_record {
 	guchar file_index[4];
 	guchar file_size[4];
 	guchar file_name;
 };
 
-struct gnutella_push_request
-{
+struct gnutella_push_request {
 	guchar guid[16];
 	guchar file_id[4];
 	guchar host_ip[4];
 	guchar host_port[2];
 };
 
-struct gnutella_msg_push_request
-{
+struct gnutella_msg_push_request {
 	struct gnutella_header header;
 	struct gnutella_push_request request;
 };
 
 /* */
 
-struct gnutella_socket
-{
+struct gnutella_socket {
 	gint file_desc;			/* file descriptor */
 
-	gint gdk_tag;				/* gdk tag */
+	gint gdk_tag;			/* gdk tag */
 
-	guchar direction;			/* GNUTELLA_INCOMING | GNUTELLA_OUTGOING */
-	guchar type;				/* GNUTELLA_CONTROL | GNUTELLA_DOWNLOAD | GNUTELLA_UPLOAD */
+	guchar direction;	/* GNUTELLA_INCOMING | GNUTELLA_OUTGOING */
+	guchar type;	/* GNUTELLA_CONTROL | GNUTELLA_DOWNLOAD | GNUTELLA_UPLOAD */
 
-	guint32 ip;					/* IP	of our partner */
-	guint16 port;				/* Port of our partner */
+	guint32 ip;				/* IP	of our partner */
+	guint16 port;			/* Port of our partner */
 
-	guint16 local_port;			/* Port on our side */
+	guint16 local_port;		/* Port on our side */
 
-	time_t last_update;			/* Timestamp of last activity on socket */
+	time_t last_update;		/* Timestamp of last activity on socket */
 
-	union
-	{
-		struct gnutella_node	*node;
-		struct download      *download;
-		struct upload        *upload;
+	union {
+		struct gnutella_node *node;
+		struct download *download;
+		struct upload *upload;
 	} resource;
 
-	gchar buffer[4096];		/*	buffer to put in the data read */
-	guint32 pos;				/* write position in the buffer */
+	gchar buffer[4096];		/*		buffer to put in the data read */
+	guint32 pos;			/* write position in the buffer */
 };
 
-struct gnutella_node
-{
-	gchar error_str[256];			/* To sprintf() error strings with vars */
-	struct gnutella_socket *socket;	/* Socket of the node */
+struct gnutella_node {
+	gchar error_str[256];		/* To sprintf() error strings with vars */
+	struct gnutella_socket *socket;		/* Socket of the node */
 
-	struct gnutella_header header;	/* Header of the current message */
+	struct gnutella_header header;		/* Header of the current message */
 
-	guint32 size;				/* How many bytes we need to read for the current message */
+	guint32 size;	/* How many bytes we need to read for the current message */
 
-	gchar *data;				/* data of the current message */
+	gchar *data;			/* data of the current message */
 
-	guint32 pos;				/* write position in data */
+	guint32 pos;			/* write position in data */
 
-	guchar status;				/* GNUTELLA_HELLO_SENT | GNUTELLA_HELLO_RECEIVED | GNUTELLA_CONNECTED | GNUTELLA_ */
+	/* GNUTELLA_HELLO_SENT | GNUTELLA_HELLO_RECEIVED |
+	   GNUTELLA_CONNECTED | GNUTELLA_ */
+	guchar status;
 
 	guint32 sent;				/* Number of sent packets */
 	guint32 received;			/* Number of received packets */
@@ -216,57 +212,57 @@ struct gnutella_node
 	guint16 n_hard_ttl;			/* Number of hard_ttl exceeded (bad) */
 
 	guint32 allocated;			/* Size of allocated buffer data, 0 for none */
-	gboolean have_header;	/* TRUE if we have got a full message header */
+	gboolean have_header;		/* TRUE if we have got a full message header */
 
-	time_t last_update;		/* Timestamp of last update of the node in the GUI */
+	time_t last_update;	/* Timestamp of last update of the node in the GUI */
 
-	const gchar *remove_msg;/* Reason of removing */
+	const gchar *remove_msg;	/* Reason of removing */
 
 	guint32 ip;					/* ip of the node */
 	guint16 port;				/* port of the node */
 
 	gint gdk_tag;				/* gdk tag for write status */
 	gchar *sendq;				/* Output buffer */
-	guint32 sq_pos;			/* write position in the sendq */
-	GSList *end_of_packets;     /* list of ends of packets, so that sent may be kept up to date. */
-  								/* The data "pointer" is actually a guint32. */
-	guint32 end_of_last_packet; /* how many bytes need to be written to reach the end of the last enqueued end of packet */
+	guint32 sq_pos;				/* write position in the sendq */
+	/* list of ends of packets, so that sent may be kept up to date. */
+	GSList *end_of_packets;
+	/* The data "pointer" is actually a guint32. */
+	/* how many bytes need to be written to reach the end of the last
+	 * enqueued end of packet */
+	guint32 end_of_last_packet;
 };
 
-struct gnutella_host
-{
+struct gnutella_host {
 	guint32 ip;
 	guint16 port;
-	// guint32 files_count;		/* UNUSED --RAM */
-	// guint32 kbytes_count;	/* UNUSED --RAM */
+	// guint32 files_count;			/* UNUSED --RAM */
+	// guint32 kbytes_count;		/* UNUSED --RAM */
 };
 
-struct ping_req
-{
-	struct timeval tv;		/* Date of the ping */
+struct ping_req {
+	struct timeval tv;			/* Date of the ping */
 	guchar muid[16];			/* muid of the ping */
 	guint32 hosts;				/* Number of hosts that replied */
 	guint32 files;				/* Number of shared files of all the hosts */
-	guint64 kbytes;			/* Number of K-bytes of all the files */
+	guint64 kbytes;				/* Number of K-bytes of all the files */
 
 	guint64 delay;				/* Total of reply delay for this request */
 };
 
-struct download
-{
+struct download {
 	gchar error_str[256];	/* Used to sprintf() error strings with vars */
 	guint32 status;			/* Current status of the download */
 
-	gchar *path;				/* Path of the created output file */
-	gchar *file_name;			/*	Name of the created output file */
+	gchar *path;			/* Path of the created output file */
+	gchar *file_name;		/*		Name of the created output file */
 
-	gchar guid[16];			/* GUID of the Gnutella server from which we download the file */
+	gchar guid[16];			/* GUID of server from which we download the file */
 	guint32 record_index;	/* Index of the file on the Gnutella server */
 
-	guint32 size;				/* Total size of the file, in bytes */
+	guint32 size;			/* Total size of the file, in bytes */
 
-	guint32 skip;				/* Number of bytes of the file we already had before starting */
-	guint32 pos;				/* Number of bytes of the file we currently have */
+	guint32 skip;			/* Number of bytes for file we had before start */
+	guint32 pos;			/* Number of bytes of the file we currently have */
 
 	struct gnutella_socket *socket;
 	gint file_desc;
@@ -275,93 +271,95 @@ struct download
 	time_t last_update;
 	guint32 retries;
 	guint32 timeout_delay;
-	guint  restart_timer_id;
+	guint restart_timer_id;
 
 	const gchar *remove_msg;
 
 	guint32 ip;
 	guint16 port;
 
-	gboolean visible;			/* The download is visible in the GUI */
+	gboolean visible;		/* The download is visible in the GUI */
 
-	gboolean push;				/* Always use the push method for this download */
+	gboolean push;			/* Always use the push method for this download */
 
-	gboolean ok;				/* We have got 200 OK */
+	gboolean ok;			/* We have got 200 OK */
 };
 
-struct upload
-{
-  guint32 status;
+struct upload {
+	guint32 status;
 
-  struct gnutella_socket *socket;
-  
-  gint file_desc;
+	struct gnutella_socket *socket;
 
-  gchar *buffer;
-  gint bpos;
-  gint bsize;
-  gint buf_size;
+	gint file_desc;
 
-  guint index;
-  gchar *name;
-  guint32 file_size;
+	gchar *buffer;
+	gint bpos;
+	gint bsize;
+	gint buf_size;
 
-  time_t start_date;
-  time_t last_update;
-  
-  gint skip;
-  gint pos;
-  gboolean push;
+	guint index;
+	gchar *name;
+	guint32 file_size;
+
+	time_t start_date;
+	time_t last_update;
+
+	gint skip;
+	gint pos;
+	gboolean push;
 
 };
 
 /* XXX could be clever and share the file_directory's ... */
 struct shared_file {
-  gchar *file_name;
-  gchar *file_name_lowercase;
-  gchar *file_directory; /* The full path of the directory the file's in */
-  gchar *file_directory_path; /* lowercase of the path from the share_dir entry to the file */
-  guint32 file_index;                /* the files index withing out local DB */
-  guint32 file_size;               /* File size in Bytes */
-  gint file_name_len;
+	gchar *file_name;
+	gchar *file_name_lowercase;
+	gchar *file_directory;	/* The full path of the directory the file's in */
+	/* lowercased path from the share_dir entry to the file */
+	gchar *file_directory_path;
+	guint32 file_index;			/* the files index withing out local DB */
+	guint32 file_size;			/* File size in Bytes */
+	gint file_name_len;
 };
 
 /* Structure for search results */
-struct search
-{
-	GtkWidget *clist;						/* GtkCList for this search */
-	GtkWidget *scrolled_window;		/* GtkScrolledWindow containing the GtkCList */
-	GtkWidget *list_item;				/* The GtkListItem in the combo for this search */
-	gchar 	*query;						/* The search query */
-	guint16	speed;						/* Minimum speed for the results of this query */
-	time_t	time;							/* Time when this search was started */
-	GSList  *muids;						/* Message UID's of this search */
-	GSList	*r_sets;						/* The results sets of this search */
-	guint32	items;						/* Total number of items for this search */
+struct search {
+	GtkWidget *clist;			/* GtkCList for this search */
+	GtkWidget *scrolled_window; /* GtkScrolledWindow containing the GtkCList */
+	GtkWidget *list_item;		/* The GtkListItem in combo for this search */
+	gchar *query;				/* The search query */
+	guint16 speed;				/* Minimum speed for the results of query */
+	time_t time;				/* Time when this search was started */
+	GSList *muids;				/* Message UID's of this search */
+	GSList *r_sets;				/* The results sets of this search */
+	guint32 items;				/* Total number of items for this search */
 
-	gint sort_col;							/* Column to sort */
-	gint sort_order;						/* Ascending or descending */
-	gboolean sort;							/* Do sorting or not */
+	gint sort_col;				/* Column to sort */
+	gint sort_order;			/* Ascending or descending */
+	gboolean sort;				/* Do sorting or not */
 
-	gpointer filter_page;				/* Page of filters in the filters notebook */
+	gpointer filter_page;		/* Page of filters in the filters notebook */
 
-	time_t last_update_time;             /* the last time the notebook tab was updated. */
-	guint32 last_update_items;           /* Number of items included in last update */
-	gint tab_updating;                   /* token identifying timeout function to be canceled. */
-	guint32 unseen_items;                /* How many items haven't been seen yet. */
+	time_t last_update_time;	/* the last time the notebook tab was updated */
+	guint32 last_update_items;	/* Number of items included in last update */
+	gint tab_updating;			/* token for timeout function to be canceled. */
+	guint32 unseen_items;		/* How many items haven't been seen yet. */
 
-	gboolean passive;                    /* Is this a passive search?  Maybe this would be better done with a magic muid. */
-	gboolean frozen;					 /* True => don't update window */
-	GHashTable *dups; /* keep a record of dups. */
-	GHashTable *sent_nodes; /* keep a record of nodes we've sent this search w/ this muid to. */
+	gboolean passive;			/* Is this a passive search? */
+	gboolean frozen;			/* True => don't update window */
+	GHashTable *dups;			/* keep a record of dups. */
+	/* keep a record of nodes we've sent this search w/ this muid to. */
+	GHashTable *sent_nodes;
 
-	GHook  *new_node_hook;
-	guint   reissue_timeout_id;
+	GHook *new_node_hook;
+	guint reissue_timeout_id;
 	guint reissue_timeout;		/* timeout per search, 0 = search stopped */
 	/* XXX Other fields for the filtering will be added here */
 };
 
-/* Variables -------------------------------------------------------------------------------------- */
+/*
+ * Variables
+ */
 
 guchar guid[16];				/* ID of our client for this session */
 
@@ -373,9 +371,9 @@ extern gboolean monitor_enabled;
 extern gboolean clear_uploads;
 extern gboolean clear_downloads;
 
-extern guint8  my_ttl;
-extern guint8  max_ttl;
-extern guint8  hard_ttl_limit;
+extern guint8 my_ttl;
+extern guint8 max_ttl;
+extern guint8 hard_ttl_limit;
 extern guint16 listen_port;
 extern guint32 minimum_speed;
 extern guint32 up_connections;
@@ -446,7 +444,8 @@ extern const gchar *gnutella_hello;
 
 extern GSList *sl_nodes;
 extern guint32 nodes_in_list;
-extern guint32 global_messages, global_searches, routing_errors, dropped_messages;
+extern guint32 global_messages, global_searches, routing_errors,
+	dropped_messages;
 
 extern GHookList node_added_hook_list;
 extern struct gnutella_node *node_added;
@@ -492,7 +491,9 @@ extern struct download *selected_active_download;
 extern struct gnutella_socket *s_listen;
 extern GtkWidget *main_window;
 
-/* Functions -------------------------------------------------------------------------------------- */
+/*
+ * Functions
+ */
 
 /* main.c */
 
@@ -568,10 +569,10 @@ void socket_destroy(struct gnutella_socket *);
 void socket_free(struct gnutella_socket *);
 struct gnutella_socket *socket_connect(guint32, guint16, gint);
 struct gnutella_socket *socket_listen(guint32, guint16, gint);
-int connect_socksv5(struct gnutella_socket*);
-int proxy_connect (int, const struct sockaddr *, socklen_t);
-int recv_socks(struct gnutella_socket*);
-int send_socks(struct gnutella_socket*);
+int connect_socksv5(struct gnutella_socket *);
+int proxy_connect(int, const struct sockaddr *, socklen_t);
+int recv_socks(struct gnutella_socket *);
+int send_socks(struct gnutella_socket *);
 void socket_monitor_incoming(void);
 void socket_shutdown(void);
 
@@ -582,7 +583,7 @@ gboolean on_the_net(void);
 gint32 connected_nodes(void);
 struct gnutella_node *node_add(struct gnutella_socket *, guint32, guint16);
 void node_real_remove(struct gnutella_node *);
-void node_remove(struct gnutella_node *, const gchar *reason, ...);
+void node_remove(struct gnutella_node *, const gchar * reason, ...);
 void node_init_outgoing(struct gnutella_node *);
 void node_read_connecting(gpointer, gint, GdkInputCondition);
 void node_read(gpointer, gint, GdkInputCondition);
@@ -610,12 +611,13 @@ void host_close(void);
 
 void routing_init(void);
 void routing_close(void);
-void generate_new_muid(guchar *muid);
+void generate_new_muid(guchar * muid);
 void message_set_muid(struct gnutella_header *);
 gboolean route_message(struct gnutella_node **);
 void routing_node_remove(struct gnutella_node *);
 void sendto_one(struct gnutella_node *, guchar *, guchar *, guint32);
-void sendto_all_but_one(struct gnutella_node *, guchar *, guchar *, guint32);
+void sendto_all_but_one(struct gnutella_node *, guchar *, guchar *,
+						guint32);
 void sendto_all(guchar *, guchar *, guint32);
 void message_add(guchar *, guint8, struct gnutella_node *);
 
@@ -643,7 +645,7 @@ void download_close(void);
 
 void upload_remove(struct upload *, gchar *);
 void handle_push_request(struct gnutella_node *);
-struct upload* upload_add(struct gnutella_socket *s);
+struct upload *upload_add(struct gnutella_socket *s);
 void upload_write(gpointer up, gint, GdkInputCondition);
 void upload_close(void);
 
@@ -672,12 +674,13 @@ void search_results(struct gnutella_node *n);
 void search_download_files(void);
 void search_close_current(void);
 gint search_results_compare_size(GtkCList *, gconstpointer, gconstpointer);
-gint search_results_compare_speed(GtkCList *, gconstpointer, gconstpointer);
+gint search_results_compare_speed(GtkCList *, gconstpointer,
+								  gconstpointer);
 gint search_results_compare_ip(GtkCList *, gconstpointer, gconstpointer);
 void search_clear_clicked(void);
 void search_update_reissue_timeout(guint32);
 void search_shutdown(void);
 
-#endif	/* __gnutella_h__ */
+#endif							/* __gnutella_h__ */
 
-/* vi: set ts=3: */
+/* vi: set ts=4: */

@@ -25,11 +25,11 @@ documentation and/or software.
 
 /* MD5 context. */
 typedef struct {
-  guint32 state[4];                                   /* state (ABCD) */
-  guint32 count[2];        /* number of bits, modulo 2^64 (lsb first) */
-  guchar buffer[64];                         /* input buffer */
+	guint32 state[4];			/* state (ABCD) */
+	guint32 count[2];			/* number of bits, modulo 2^64 (lsb first) */
+	guchar buffer[64];			/* input buffer */
 } MD5_CTX;
 
-void MD5Init (MD5_CTX *);
-void MD5Update (MD5_CTX *, guchar *, guint);
-void MD5Final (guchar [16], MD5_CTX *);
+void MD5Init(MD5_CTX *);
+void MD5Update(MD5_CTX *, guchar *, guint);
+void MD5Final(guchar[16], MD5_CTX *);
