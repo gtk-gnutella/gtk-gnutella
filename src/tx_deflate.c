@@ -253,7 +253,7 @@ static void deflate_service(gpointer data)
 	if (attr->flags & DF_FLOWC) {
 		attr->flags &= ~DF_FLOWC;	/* Leave flow control state */
 
-		if (dbg > 5)
+		if (dbg > 4)
 			printf("Compressing TX stack for node %s leaves FLOWC\n",
 				node_ip(tx->node));
 
@@ -332,7 +332,7 @@ retry:
 		if (attr->send_idx >= 0) {				/* Send buffer not sent yet */
 			attr->flags |= DF_FLOWC|DF_FLUSH;	/* Enter flow control */
 
-			if (dbg > 5)
+			if (dbg > 4)
 				printf("Compressing TX stack for node %s enters FLOWC/FLUSH\n",
 					node_ip(tx->node));
 
@@ -470,7 +470,7 @@ static gint deflate_add(txdrv_t *tx, gpointer data, gint len)
 			if (attr->send_idx >= 0) {
 				attr->flags |= DF_FLOWC;	/* Enter flow control */
 
-				if (dbg > 5)
+				if (dbg > 4)
 					printf("Compressing TX stack for node %s enters FLOWC\n",
 						node_ip(tx->node));
 
