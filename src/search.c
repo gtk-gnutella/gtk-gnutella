@@ -48,6 +48,7 @@ RCSID("$Id$");
 #endif
 
 #define MUID_SIZE	16
+#define MUID_MAX	4			/* Max amount of MUID we keep per search */
 
 struct sent_node_data {
 	guint32 ip;
@@ -1082,11 +1083,27 @@ static void search_reset_sent_nodes(search_ctrl_t *sch)
  */
 static void search_add_new_muid(search_ctrl_t *sch, guchar *muid)
 {
+	guint count;
+
 	if (sch->muids)				/* If this isn't the first muid */
 		search_reset_sent_nodes(sch);
 
 	sch->muids = g_slist_prepend(sch->muids, (gpointer) muid);
 	g_hash_table_insert(sch->h_muids, muid, muid);
+
+	/*
+	 * If we got more than MUID_MAX entries in the list, chop last items.
+	 */
+
+	count = g_slist_length(sch->muids);
+
+	while (count-- > MUID_MAX) {
+		GSList *last = g_slist_last(sch->muids);
+		g_hash_table_remove(sch->h_muids, last->data);
+		wfree(last->data, MUID_SIZE);
+		sch->muids = g_slist_remove_link(sch->muids, last);
+		g_slist_free_1(last);
+	}
 }
 
 static void search_send_packet(search_ctrl_t *sch)
