@@ -27,11 +27,12 @@
 #define _gnet_stats_gui_common_h_
 
 #include "config.h"
+#include "gnet.h"		/* XXX -- for the sizes of the arrays below */
 
 #include <glib.h> 
 
-extern const gchar *msg_type_str[];
-extern const gchar *msg_drop_str[];
-extern const gchar *general_type_str[];
+extern const gchar *msg_type_str[MSG_TYPE_COUNT];
+extern const gchar *msg_drop_str[MSG_DROP_REASON_COUNT];
+extern const gchar *general_type_str[GNR_TYPE_COUNT];
 
 #endif /* _gnet_stats_gui_common_h_ */

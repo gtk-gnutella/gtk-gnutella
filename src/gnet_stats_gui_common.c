@@ -25,7 +25,6 @@
 
 #include "config.h"
 
-#include "gnet.h"		/* XXX for MSG_TYPE_COUNT et al. */
 #include "gnet_stats_gui_common.h"
 
 RCSID("$Id$");
