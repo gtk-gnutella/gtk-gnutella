@@ -1858,7 +1858,7 @@ gboolean sha1_hash_is_uptodate(struct shared_file *sf)
  * Take a given binary SHA1 digest, and return the corresponding
  * shared_file if we have it.
  */
-struct shared_file *shared_file_by_sha1(const gchar *sha1_digest)
+struct shared_file *shared_file_by_sha1(gchar *sha1_digest)
 {
 	struct shared_file *f;
 

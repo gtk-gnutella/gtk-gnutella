@@ -97,7 +97,7 @@ void shared_dir_add(gchar *);
 gint get_file_size(gint);
 
 void set_sha1(struct shared_file *, const gchar *sha1_digest);
-struct shared_file *shared_file_by_sha1(const gchar *sha1_digest);
+struct shared_file *shared_file_by_sha1(gchar *sha1_digest);
 gboolean sha1_hash_available(const struct shared_file *);
 gboolean sha1_hash_is_uptodate(struct shared_file *sf);
 
