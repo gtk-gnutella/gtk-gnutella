@@ -677,7 +677,9 @@ static inline char *g_iconv_complete(GIConv cd,
 	while (inbytes_left > 0 && outbytes_left > 0) {
 		size_t ret;
 
-		ret = g_iconv(cd, &inbuf, &inbytes_left, &outbuf, &outbytes_left);
+		ret = g_iconv(cd, (const char **) &inbuf, &inbytes_left,
+		    &outbuf, &outbytes_left);
+
 		if ((size_t) -1 == ret) {
 			switch (errno) {
 			case EILSEQ:
