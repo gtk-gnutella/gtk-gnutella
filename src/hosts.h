@@ -58,6 +58,7 @@ gboolean check_valid_host(guint32, guint16);
 void hosts_read_from_file(gchar *, gboolean);
 void hosts_write_to_file(gchar *);
 void host_clear_cache(void);
+void host_shutdown(void);
 void host_close(void);
 
 void parse_netmasks(gchar *value);

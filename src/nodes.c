@@ -150,7 +150,11 @@ void node_timer(time_t now)
 				node_bye_sent(n);
 		}
 
-		if (!stop_host_get) {		/* No timeout if stop_host_get is set */
+		/*
+		 * No timeout during shutdowns, or when `stop_host_get' is set.
+		 */
+
+		if (!(in_shutdown || stop_host_get)) {
 			if (n->status == GTA_NODE_REMOVING) {
 				if (now - n->last_update > NODE_ERRMSG_TIMEOUT) {
 					node_real_remove(n);
@@ -1892,6 +1896,16 @@ void node_add(struct gnutella_socket *s, guint32 ip, guint16 port)
 	gchar proto_tmp[16];
 
 	/*
+	 * During shutdown, don't accept any new connection.
+	 */
+
+	if (in_shutdown) {
+		if (s)
+			socket_destroy(s);
+		return;
+	}
+
+	/*
 	 * Compute the protocol version from the first handshake line, if
 	 * we got a socket (meaning an inbound connection).  It is important
 	 * to figure out early because we have to deny the connection cleanly
@@ -2765,6 +2779,7 @@ void node_bye_all(void)
 	g_assert(!in_shutdown);		/* Meant to be called once */
 
 	in_shutdown = TRUE;
+	host_shutdown();
 
 	for (l = sl_nodes; l; l = l->next) {
 		struct gnutella_node *n = l->data;

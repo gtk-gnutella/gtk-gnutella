@@ -57,6 +57,8 @@ gint hosts_idle_func = 0;
 #define HOST_CATCHER_DELAY	10	/* Delay between connections to same host */
 #define MIN_RESERVE_SIZE	1024	/* we'd like that many pongs in reserve */
 
+static gboolean in_shutdown = FALSE;
+
 /***
  *** Host timer.
  ***/
@@ -136,6 +138,9 @@ void host_timer(void)
 	int nodes_missing = up_connections - node_count();
 	guint32 ip;
 	guint16 port;
+
+	if (in_shutdown)
+		return;
 
 	/*
 	 * If we are under the number of connections wanted, we add hosts
@@ -873,6 +878,17 @@ void host_clear_cache(void)
 	pcache_clear_recent();
 
 	gtk_widget_set_sensitive(button_host_catcher_clear, FALSE);
+}
+
+/*
+ * host_shutdown
+ *
+ * Warn that we're shutdowning and entering a grace period, during which
+ * we don't need to make any new connection.
+ */
+void host_shutdown(void)
+{
+	in_shutdown = TRUE;
 }
 
 void host_close(void)
