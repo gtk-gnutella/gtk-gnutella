@@ -38,7 +38,7 @@ typedef struct word_entry {
 
 static char *fuzzy_strlower(char *dst, const char *src, size_t len)
 {
-	guchar *p = dst;
+	guchar *p = (guchar *) dst;
 	size_t i = 0;
 
 	g_assert(len > 0);
