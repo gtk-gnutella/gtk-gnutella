@@ -1126,6 +1126,8 @@ static void download_redirect_to_server(struct download *d,
 	 * from the old server.
 	 */
 
+	list_idx = d->list_idx;			/* Save index, before removal from server */
+
 	memcpy(old_guid, download_guid(d), 16);
 	download_remove_from_server(d, TRUE);
 
@@ -1142,7 +1144,6 @@ static void download_redirect_to_server(struct download *d,
 	 * Insert download in new server, in the same list.
 	 */
 
-	list_idx = d->list_idx;
 	d->list_idx = -1;			/* Pre-condition for download_add_to_list() */
 
 	download_add_to_list(d, list_idx);
@@ -2871,6 +2872,14 @@ static void err_header_read_eof(gpointer o)
 
 		if (download_retry_no_urires(d, 0, 0))
 			return;
+
+		/*
+		 * Maybe we sent HTTP header continuations and the server does not
+		 * understand them, breaking the connection on "invalid" request.
+		 * Use minimalist HTTP then when talking to this server!
+		 */
+
+		d->server->attrs |= DLS_A_MINIMAL_HTTP;
 	}
 
 	if (d->retries++ < download_max_retries)
@@ -2993,18 +3002,9 @@ static gboolean download_overlap_check(struct download *d)
 	}
 
 	if (r != d->overlap_size) {
-		if (r == 0) {
-			if (d->retries++ < download_max_retries)
-				download_queue_delay(d, download_retry_stopped_delay,
-					"Stopped (EOF)");
-			else
-				download_stop(d, GTA_DL_ERROR, "Too many attempts (%d)",
-					d->retries - 1);
-		} else {
-			g_warning("Short read (%d instead of %d bytes) on resuming data "
-				"for \"%s\"", r, d->overlap_size, d->file_info->file_name);
-			download_stop(d, GTA_DL_ERROR, "Short read on resume data");
-		}
+		g_warning("Short read (%d instead of %d bytes) on resuming data "
+			"for \"%s\"", r, d->overlap_size, d->file_info->file_name);
+		download_stop(d, GTA_DL_ERROR, "Short read on resume data");
 		goto out;
 	}
 
@@ -3054,7 +3054,6 @@ static void download_write_data(struct download *d)
 	struct gnutella_socket *s = d->socket;
 	gint written;
 	gboolean trimmed = FALSE;
-	guint32 val;
 	struct download *cd;					/* Cloned download, if completed */
 
 	g_assert(s->pos > 0);
@@ -3232,8 +3231,7 @@ done:
 	download_move_to_completed_dir(d);
 	ignore_add(d->file_name, d->file_info->size, d->file_info->sha1);
 
-	val = total_downloads + 1;
-	gnet_prop_set_guint32(PROP_TOTAL_DOWNLOADS, &val, 0, 1);
+	gnet_prop_set_guint32_val(PROP_TOTAL_DOWNLOADS, total_downloads + 1);
 }
 
 /*
@@ -3796,6 +3794,7 @@ static void download_request(struct download *d, header_t *header, gboolean ok)
 	buf = header_get(header, "Content-Range");		/* Optional */
 	if (buf) {
 		guint32 start, end, total;
+		g_strdown(buf);								/* Normalize case */
 		if (
 			sscanf(buf, "bytes %d-%d/%d", &start, &end, &total) ||	/* Good */
 			sscanf(buf, "bytes=%d-%d/%d", &start, &end, &total)		/* Bad! */
@@ -4161,14 +4160,22 @@ void download_send_request(struct download *d)
 		/*
 		 * Send to the server any new alternate locations we may have
 		 * learned about since the last time.
+		 *
+		 * Because the mesh header can be large, we use HTTP continuations
+		 * to format it, but some broken servents do not know how to parse
+		 * them.  Use minimal HTTP with those.
 		 */
 
-		wmesh = dmesh_alternate_location(sha1,
-			&dl_tmp[rw], sizeof(dl_tmp)-(rw+sha1_room),
-			download_ip(d), d->last_dmesh);
-		rw += wmesh;
+		if (d->server->attrs & DLS_A_MINIMAL_HTTP)
+			wmesh = 0;
+		else {
+			wmesh = dmesh_alternate_location(sha1,
+				&dl_tmp[rw], sizeof(dl_tmp)-(rw+sha1_room),
+				download_ip(d), d->last_dmesh);
+			rw += wmesh;
 
-		d->last_dmesh = (guint32) time(NULL);
+			d->last_dmesh = (guint32) time(NULL);
+		}
 
 		/*
 		 * HUGE specs says that the alternate locations are only defined
