@@ -907,7 +907,7 @@ static struct results_set *get_results_set(struct gnutella_node *n)
 			 */
 
 			while (s < e) {		/* On the way to second NUL */
-				gchar c = *s;
+				guchar c = *s;
 				if (!c)
 					break;		/* Reached second nul */
 				s++;

@@ -62,7 +62,7 @@ struct results_set {
 	guint16 status;				/* Parsed status bits from trailer */
 	guint32 speed;
 	guint32 trailer_len;		/* Length of the trailer data */
-	gchar *trailer;				/* Raw trailer data */
+	guchar *trailer;			/* Raw trailer data */
 
 	GSList *records;
 };
