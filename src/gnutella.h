@@ -51,40 +51,6 @@
 #define GTA_MSG_SEARCH					0x80
 #define GTA_MSG_SEARCH_RESULTS			0x81
 
-#define GTA_CONNECTION_INCOMING			1
-#define GTA_CONNECTION_OUTGOING			2
-#define GTA_CONNECTION_LISTENING		3
-#define GTA_CONNECTION_PROXY_OUTGOING	4
-
-#define GTA_TYPE_UNKNOWN				0
-#define GTA_TYPE_CONTROL				1
-#define GTA_TYPE_DOWNLOAD				2
-#define GTA_TYPE_UPLOAD					3
-
-#define GTA_NODE_CONNECTING				1
-#define GTA_NODE_HELLO_SENT				2
-#define GTA_NODE_WELCOME_SENT			3
-#define GTA_NODE_CONNECTED				4
-#define GTA_NODE_REMOVING				5
-
-#define GTA_DL_QUEUED			1	/* Download queued, will start later */
-#define GTA_DL_CONNECTING		2	/* We are connecting to the server */
-#define GTA_DL_PUSH_SENT		3	/* Sent a push, waiting connection */
-#define GTA_DL_FALLBACK			4	/* Direct request failed, using push */
-#define GTA_DL_REQ_SENT			5	/* Request sent, waiting for HTTP headers */
-#define GTA_DL_HEADERS			6	/* We are receiving the HTTP headers */
-#define GTA_DL_RECEIVING		7	/* We are receiving the data of the file */
-#define GTA_DL_COMPLETED		8	/* Download is completed */
-#define GTA_DL_ERROR			9	/* Download is stopped due to error */
-#define GTA_DL_ABORTED			10	/* User used the 'Abort Download' button */
-#define GTA_DL_TIMEOUT_WAIT		11	/* Waiting to try connecting again */
-
-#define GTA_UL_CONNECTED		1	/* Someone has connected to us	*/
-#define GTA_UL_CONNECTING		2	/* We are connecting to someone to upload */
-#define GTA_UL_PUSH_RECIEVED	3	/* We got a push request */
-#define GTA_UL_COMPLETE			4	/* The file has been sent completely */
-#define GTA_UL_SENDING			5	/* We are sending data for */
-
 /*
  * Structures
  */
