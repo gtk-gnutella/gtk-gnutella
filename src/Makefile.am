@@ -59,6 +59,7 @@ ADDITIONAL_DROPIN = \
 	uploads_gui.c uploads_gui.h uploads_cb.c uploads_cb.h \
 	upload_stats_gui.c upload_stats_gui.h \
 	gnet_stats_gui.c gnet_stats_gui.h \
+	search_stats_gui.c search_stats_gui.h \
 	main_gui.c main_gui.h main_cb.c main_cb.h 
 gtk_gnutella_LDADD = @GTK_LIBS@ -lz @XML_LIBS@
 endif
@@ -92,7 +93,6 @@ gtk_gnutella_SOURCES = \
 	pcache.c pcache.h \
 	routing.c routing.h \
 	search.c search.h search_gui.h \
-	search_stats.c search_stats.h search_stats_gui.h \
 	downloads.c downloads.h downloads_gui.h \
 	fileinfo.c fileinfo.h \
 	fuzzy.c fuzzy.h \
