@@ -72,17 +72,21 @@ FILE *file_config_open_read(
 
 	if (in) {
 		if (-1 == rename(path, path_orig))
-			g_warning("could not rename \"%s\" as \"%s\": %s",
-				path, path_orig, g_strerror(errno));
+			g_warning("[%s] could not rename \"%s\" as \"%s\": %s",
+				what, path, path_orig, g_strerror(errno));
 		goto out;
-	}
+    } else {
+		g_warning("[%s] failed to retrieve from \"%s\"", what, path);
+        if (fvcnt > 1)
+            g_warning("[%s] trying to load from alternate locations...", what);
+    }
 
 	error = g_strerror(errno);
 
 	if (-1 != stat(path, &buf)) {
 		instead = instead_str;			/* Regular file was present */
-		g_warning("unable to open \"%s\" to retrieve %s: %s",
-			path, what, error);
+		g_warning("[%s] unable to open \"%s\": %s",
+			what, path, error);
 	}
 
 	/*
@@ -112,11 +116,14 @@ FILE *file_config_open_read(
 	}
 
 	if (in)
-		g_warning("retrieving %s from \"%s\"%s", what, path, instead);
+		g_warning("[%s] retrieving from \"%s\"%s", what, path, instead);
 	else if (instead == instead_str)
-		g_warning("unable to retrieve %s, tried %d alternate location%s",
+		g_warning("[%s] unable to retrieve: tried %d alternate location%s",
 			what, fvcnt, fvcnt == 1 ? "" : "s");
-
+    else 
+		g_warning("[%s] unable to retrieve: no alternate locations known",
+			what);
+    
 out:
 
 	if (NULL != path)

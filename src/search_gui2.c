@@ -1528,7 +1528,7 @@ static gboolean search_retrieve_old(void)
 	gint line;				/* File line number */
     const file_path_t fp = { settings_gui_config_dir(), search_file };
 
-    in = file_config_open_read("Old searches", &fp, 1);
+    in = file_config_open_read("old searches (pre v0.90)", &fp, 1);
     if (!in)
         return FALSE;
 
