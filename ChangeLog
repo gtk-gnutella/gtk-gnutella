@@ -1,5 +1,18 @@
 # since last version
 
+- (2004-10-10 - RAM)
+ * Added filepath_exists().
+ * Fixed indentation of parse_uint64().
+ * When fileinfo's file name is sanitized and changed, the corresponding
+   disk file needs to be renamed as well.
+
+- (2004-10-06 - RAM)
+ * Limit dispersion to 60 seconds for clock skew updating.
+ * If they disabled uploads, don't compare leaf node outgoing b/w with HTTP.
+
+- (2004-10-05 - RAM)
+ * Ensure we always start on the Gnet pane, where connections are shown.
+
 - (2004-10-04 - RAM)
  * Integrated bitzi patch #1037927 [From Alex Bennee].
  * Include user-supplied headers in the private file as well, in case they
