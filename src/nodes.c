@@ -5229,11 +5229,12 @@ gboolean node_remove_worst(gboolean non_local)
             }
         }
         if (score == worst) {
-            m = g_slist_append(m, n);
+            m = g_slist_prepend(m, n);
             num++;
         }
     }
     if (m) {
+		m = g_slist_reverse(m);
         n = g_slist_nth_data(m, random_value(num - 1));
         g_slist_free(m);
 		if (non_local)
