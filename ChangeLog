@@ -1,5 +1,15 @@
 # since last version
 
+- (2003.01.14 - RAM)
+ * New drop reason "Unexpected message".
+ * New QRP Flag 'p' indicates ultrapeer receiving routing patch.
+ * Fixed wrong QRP patch computation for leaf nodes.
+ * Finalized reception of QRP patches and application to routing table.
+ * Warn when receiving unknown vendor message, in debug mode.
+ * Added QRP to the list of messages we "route", for routing tracing.
+ * Do not drop routed TTL=0 messages whose target is a leaf node.
+ * Drop leaf nodes that route messages.
+
 - (2003.01.13 - cbiere)
  * [Gtk2] Set encoding for GIOChannels to NULL which is safe to use with 
    binary data
