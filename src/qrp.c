@@ -1296,7 +1296,13 @@ static gpointer qrt_patch_computed_add_listener(
 {
 	struct patch_listener_info *pi;
 
-	g_assert(qrt_patch_ctx != NULL);	/* Computation in progress */
+	/*
+	 * `qrt_patch_ctx' may be NULL: we may have finished a rescan, and
+	 * be in the process of updating the routing table, but not yet in
+	 * the process of computing the patch.
+	 *
+	 * That's allright, just register the listener.
+	 */
 
 	pi = walloc(sizeof(*pi));
 
