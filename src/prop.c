@@ -413,11 +413,21 @@ void prop_set_guint32(
         ) {
             *PROP(ps,prop).data.guint32.value = *src;
         } else {
-            g_warning("prop_set_guint32: [%s] new value of ouf bounds (%u/%u): %u",
+            guint32 newval = *src;
+
+            if (newval > PROP(ps,prop).data.guint32.max)
+                newval = PROP(ps,prop).data.guint32.max;
+            if (newval < PROP(ps,prop).data.guint32.min)
+                newval = PROP(ps,prop).data.guint32.min;
+
+            g_warning("prop_set_guint32: [%s] new value of ouf bounds "
+                "(%u/%u): %u (adjusting to %u)",
                 PROP(ps,prop).name,
                 PROP(ps,prop).data.guint32.min,
                 PROP(ps,prop).data.guint32.max,
-                *src );
+                *src, newval );
+
+            *PROP(ps,prop).data.guint32.value = newval;
         }
     } else {
         memcpy(&PROP(ps,prop).data.guint32.value[offset], src,
