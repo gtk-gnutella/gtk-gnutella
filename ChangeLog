@@ -1,5 +1,10 @@
 # since last version
 
+- (2003.05.09 - RAM)
+ * Accidentally inverted condition for hostile checks on pongs: was dropping
+   all the non-hostile pongs as being hostile!
+ * Integrated PARQ patch #19 [From Jeroen Asselman].
+
 - (2003.05.08 - RAM)
  * Added monitoring of average outgoing bandwidth.
  * Further tuned the bandwidth scheduler to maximize available bandwidth use.
