@@ -1304,12 +1304,14 @@ void send_node_error(struct gnutella_socket *s, int code, guchar *msg, ...)
 		"User-Agent: %s\r\n"
 		"Remote-IP: %s\r\n"
 		"X-Live-Since: %s\r\n"
-		"%s"
-		"%s"
-		"\r\n",
+		"%s",		// X-Try
 		code, msg_tmp, version_string, ip_to_gchar(s->ip), start_rfc822_date,
 		(code == 503 || code == 403) ?
-			formatted_connection_pongs("X-Try", HCACHE_ANY) : "",
+			formatted_connection_pongs("X-Try", HCACHE_ANY) : "");
+
+	rw += g_snprintf(&gnet_response[rw], sizeof(gnet_response)-rw,
+		"%s"		// X-Try-Ultrapeers
+		"\r\n",
 		(current_peermode != NODE_P_NORMAL &&
 				(code == 503 || code == 403 || code == 204)) ?
 			formatted_connection_pongs("X-Try-Ultrapeers", HCACHE_ULTRA) : "");
