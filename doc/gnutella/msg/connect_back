@@ -1,0 +1,45 @@
+               The "Connect Back" Vendor-specific Message
+                              Version 1
+
+                          Raphael Manfredi
+                    <Raphael_Manfredi@pobox.com>
+                          January 3rd, 2003
+                
+
+[These specifications are a summary of messages exchanged on the GDF]
+
+INTRODUCTION
+
+Please read the Vendor-Messages specifications if you have not done so
+already.
+
+This document specified the "Connect Back" vendor-specific message.
+
+SPECIFICATIONS
+
+    Name: Connect Back
+    Vendor: BEAR
+    ID: 7
+    Version: 1
+    TTL: 1
+    Payload:
+        unsigned short: port number
+
+The "Connect Back" message is meant to be sent by servents that still
+think they are firewalled, right after a connection to a remote servent
+has been established (but after the initial handshaking ping).
+
+This message carries a single 16-bit unsigned integer representing the
+port to which the receiver of the message should try to connect to.
+The target IP address for the connection is based on the IP address
+determined from the connection endpoint from which the message is
+received.
+
+When the connection is made, the connecting servent emits the 2-byte
+string "\n\n" and closes the connection.
+
+If the remote servent is able to receive the connection on the port it
+specified (usually its listening Gnutella port) AND read back that string,
+it will know it is not firewalled.
+
+Raphael
