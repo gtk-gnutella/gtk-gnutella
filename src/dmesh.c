@@ -70,7 +70,7 @@ struct dmesh_entry {
 	dmesh_urlinfo_t url;	/* URL info */
 };
 
-#define MAX_LIFETIME	604800		/* 7 days */
+#define MAX_LIFETIME	86400		/* 1 day */
 #define MAX_ENTRIES		64			/* Max amount of entries kept in list */
 #define MAX_STAMP		0xffffffff	/* Unsigned int, 32 bits */
 
