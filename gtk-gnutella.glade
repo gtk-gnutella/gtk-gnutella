@@ -13014,18 +13014,6 @@ interface</label>
 
   <widget>
     <class>GtkMenuItem</class>
-    <name>popup_downloads_abort_host</name>
-    <signal>
-      <name>activate</name>
-      <handler>on_popup_downloads_abort_host_activate</handler>
-      <last_modification_time>Tue, 09 Apr 2002 17:55:57 GMT</last_modification_time>
-    </signal>
-    <label>Abort all from host</label>
-    <right_justify>False</right_justify>
-  </widget>
-
-  <widget>
-    <class>GtkMenuItem</class>
     <name>popup_downloads_abort_sha1</name>
     <signal>
       <name>activate</name>
@@ -13033,6 +13021,18 @@ interface</label>
       <last_modification_time>Sun, 16 Jun 2002 16:49:30 GMT</last_modification_time>
     </signal>
     <label>Abort all with urn:sha1</label>
+    <right_justify>False</right_justify>
+  </widget>
+
+  <widget>
+    <class>GtkMenuItem</class>
+    <name>popup_downloads_abort_host</name>
+    <signal>
+      <name>activate</name>
+      <handler>on_popup_downloads_abort_host_activate</handler>
+      <last_modification_time>Tue, 09 Apr 2002 17:55:57 GMT</last_modification_time>
+    </signal>
+    <label>Forget all from host</label>
     <right_justify>False</right_justify>
   </widget>
 
