@@ -55,7 +55,7 @@
 #include "gnet_property_priv.h"
 #include "settings.h"
 #include "nodes.h"
-#include "search_gui.h" // FIXME: I think this is backend... remove?
+//#include "search_gui.h" // FIXME: I think this is backend... remove?
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -1379,7 +1379,7 @@ void file_info_check_results_set(gnet_results_set_t *rs)
 	struct dl_file_info *fi;
 
 	for (l = rs->records; l; l = l->next) {
-		struct record *rc = (struct record *) l->data;
+		gnet_record_t *rc = (gnet_record_t *) l->data;
 
 		if(!g_hash_table_lookup(file_info_size_hash, &rc->size))
 			continue;
