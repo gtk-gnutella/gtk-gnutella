@@ -148,8 +148,6 @@ const gchar *nodes_gui_common_flags_str(const gnet_node_flags_t *flags)
 	}
 
 	status[1] = flags->incoming ? 'I' : 'O';
-	if (flags->temporary)
-		status[1] = 'P';
 	status[2] = flags->readable ? 'r' : '-';
 	status[3] = flags->writable ? 'w' : '-';
 

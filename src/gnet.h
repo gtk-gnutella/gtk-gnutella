@@ -153,7 +153,6 @@ typedef struct gnet_node_flags {
 	qrt_state_t qrt_state;
 	guint8 hops_flow;
 	gboolean incoming;
-	gboolean temporary;
 	gboolean writable;
 	gboolean readable;
 	gboolean tx_compressed;
