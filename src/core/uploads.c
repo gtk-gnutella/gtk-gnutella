@@ -1397,8 +1397,7 @@ upload_error_not_found(gnutella_upload_t *u, const gchar *request)
  * @return TRUE if ok or FALSE otherwise (upload must then be aborted)
  */
 static gboolean
-upload_http_version(gnutella_upload_t *u, header_t *header,
-		gchar *request, gint len)
+upload_http_version(gnutella_upload_t *u, gchar *request, gint len)
 {
 	gint http_major, http_minor;
 
@@ -1810,13 +1809,17 @@ get_file_to_upload(gnutella_upload_t *u, header_t *header, gchar *request)
  * X-Host line (added to the HTTP status) into `buf'.
  */
 static void
-upload_http_xhost_add(gchar *buf, gint *retval, gpointer arg, guint32 flags)
+upload_http_xhost_add(gchar *buf, gint *retval,
+		gpointer unused_arg, guint32 unused_flags)
 {
-	gint rw = 0;
-	gint length = *retval;
+	size_t rw = 0;
+	size_t length = *retval;
 	guint32 ip;
 	guint16 port;
 
+	(void) unused_arg;
+	(void) unused_flags;
+	g_assert(length <= INT_MAX);
 	g_assert(!is_firewalled);
 
 	ip = listen_ip();
@@ -1824,7 +1827,8 @@ upload_http_xhost_add(gchar *buf, gint *retval, gpointer arg, guint32 flags)
 
 	if (host_is_valid(ip, port)) {
 		const gchar *xhost = ip_port_to_gchar(ip, port);
-		gint needed_room = strlen(xhost) + sizeof("X-Host: \r\n") - 1;
+		size_t needed_room = strlen(xhost) + sizeof("X-Host: \r\n") - 1;
+		
 		if (length > needed_room)
 			rw = gm_snprintf(buf, length, "X-Host: %s\r\n", xhost);
 	}
@@ -1837,11 +1841,16 @@ upload_http_xhost_add(gchar *buf, gint *retval, gpointer arg, guint32 flags)
 /**
  */
 static void
-upload_xfeatures_add(gchar *buf, gint *retval, gpointer arg, guint32 flags)
+upload_xfeatures_add(gchar *buf, gint *retval,
+		gpointer unused_arg, guint32 unused_flags)
 {
 	size_t rw = 0;
 	size_t length = *retval;
 
+	(void) unused_arg;
+	(void) unused_flags;
+	g_assert(length <= INT_MAX);
+	
 	header_features_generate(&xfeatures.uploads, buf, length, &rw);
 	
 	*retval = rw;
@@ -1983,17 +1992,17 @@ upload_http_sha1_add(gchar *buf, gint *retval, gpointer arg, guint32 flags)
  * additionnal headers on a "416 Request range not satisfiable" error.
  */
 static void
-upload_416_extra(gchar *buf, gint *retval, gpointer arg, guint32 flags)
+upload_416_extra(gchar *buf, gint *retval, gpointer arg, guint32 unused_flags)
 {
-	gint rw = 0;
-	gint length = *retval;
+	size_t rw = 0;
+	size_t len = *retval;
 	const struct upload_http_cb *a = (const struct upload_http_cb *) arg;
 	const gnutella_upload_t *u = a->u;
 
-	rw = gm_snprintf(buf, length,
-		"Content-Range: bytes */%u\r\n", u->file_size);
-
-	g_assert(rw < length);
+	(void) unused_flags;
+	g_assert(len <= INT_MAX);
+	rw = gm_snprintf(buf, len, "Content-Range: bytes */%u\r\n", u->file_size);
+	g_assert(rw < len);
 
 	*retval = rw;
 }
@@ -2163,7 +2172,7 @@ upload_request(gnutella_upload_t *u, header_t *header)
 	 * the request.
 	 */
 
-	if (!upload_http_version(u, header, request, getline_length(s->getline)))
+	if (!upload_http_version(u, request, getline_length(s->getline)))
 		return;
 
 	/*
@@ -2919,13 +2928,15 @@ upload_request(gnutella_upload_t *u, header_t *header)
  * Called when output source can accept more data.
  */
 static void
-upload_write(gpointer up, gint source, inputevt_cond_t cond)
+upload_write(gpointer up, gint unused_source, inputevt_cond_t cond)
 {
 	gnutella_upload_t *u = (gnutella_upload_t *) up;
 	gint written;
 	guint32 amount;
 	guint32 available;
 	gboolean use_sendfile;
+
+	(void) unused_source;
 
 	if (cond & INPUT_EVENT_EXCEPTION) {
 		/* If we can't write then we don't want it, kill the socket */
