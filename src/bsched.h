@@ -77,6 +77,9 @@ typedef struct bio_source {
 	GdkInputFunction io_callback;		/* I/O callback routine */
 	gpointer io_arg;					/* I/O callback argument */
 	guint32 flags;						/* Source flags */
+	guint bw_actual;					/* Actual bandwidth used in period */
+	guint bw_fast_ema;					/* Fast EMA of actual bandwidth used */
+	guint bw_slow_ema;					/* Slow EMA of actual bandwidth used */
 } bio_source_t;
 
 /*
@@ -86,6 +89,11 @@ typedef struct bio_source {
 #define BIO_F_READ			0x00000001	/* Reading source */
 #define BIO_F_WRITE			0x00000002	/* Writing source */
 #define BIO_F_ACTIVE		0x00000004	/* Source active this period */
+
+#define BIO_EMA_SHIFT	7
+
+#define bio_bps(b)		((b)->bw_fast_ema >> BIO_EMA_SHIFT)
+#define bio_avg_bps(b)	((b)->bw_slow_ema >> BIO_EMA_SHIFT)
 
 /*
  * Global bandwidth schedulers.

@@ -206,22 +206,48 @@ static void bsched_clear_active(bsched_t *bs)
 }
 
 /*
- * bsched_has_bandwidth
+ * bsched_begin_timeslice
+ *
+ * Called whenever a new scheduling timeslice begins.
  *
  * Re-enable all sources and flag that we have bandwidth.
- * Also clears all activation indication on all sources, as we are beginning
- * a new time slot.
+ * Update the per-source bandwidth statistics.
+ * Clears all activation indication on all sources.
  */
-static void bsched_has_bandwidth(bsched_t *bs)
+static void bsched_begin_timeslice(bsched_t *bs)
 {
 	GList *l;
 
 	for (l = bs->sources; l; l = g_list_next(l)) {
 		bio_source_t *bio = (bio_source_t *) l->data;
+		guint32 actual;
 
 		bio->flags &= ~BIO_F_ACTIVE;
 		if (!bio->io_tag)
 			bio_enable(bio);
+
+		/*
+		 * Fast EMA of bandwidth is computed on the last n=3 terms.
+		 * The smoothing factor, sm=2/(n+1), is therefore 0.5, which is easy
+		 * to compute.  The short period gives us a good estimation of the
+		 * "instantaneous bandwidth" used.
+		 *
+		 * Slow EMA of bandwidth is computed on the last n=127 terms, which at
+		 * one computation per second, means an average of the two minutes.
+		 * This value is smoother and therefore more suited to use for the
+		 * remaining time estimates.
+		 *
+		 * Because we use integer arithmetic (and therefore loose important
+		 * decimals), the actual values are shifted by BIO_EMA_SHIFT.
+		 * The fields storing the EMAs should therefore only be accessed via
+		 * the macros, which perform the shift in the other way to
+		 * re-establish proper scaling.
+		 */
+
+		actual = bio->bw_actual << BIO_EMA_SHIFT;
+		bio->bw_fast_ema += (actual >> 1) - (bio->bw_fast_ema >> 1);
+		bio->bw_slow_ema += (actual >> 6) - (bio->bw_slow_ema >> 6);
+		bio->bw_actual = 0;
 	}
 
 	bs->flags &= ~(BS_F_NOBW|BS_F_FROZEN_SLOT);
@@ -450,8 +476,10 @@ gint bio_write(bio_source_t *bio, gpointer data, gint len)
 	bio->flags |= BIO_F_ACTIVE;
 	r = write(bio->fd, data, amount);
 
-	if (r > 0)
+	if (r > 0) {
 		bsched_bw_update(bio->bs, r);
+		bio->bw_actual += r;
+	}
 
 	return r;
 }
@@ -493,8 +521,10 @@ gint bio_read(bio_source_t *bio, gpointer data, gint len)
 	bio->flags |= BIO_F_ACTIVE;
 	r = read(bio->fd, data, amount);
 
-	if (r > 0)
+	if (r > 0) {
 		bsched_bw_update(bio->bs, r);
+		bio->bw_actual += r;
+	}
 
 	return r;
 }
@@ -629,7 +659,7 @@ static void bsched_heartbeat(bsched_t *bs, struct timeval *tv)
 	 */
 
 	bs->bw_actual = 0;
-	bsched_has_bandwidth(bs);
+	bsched_begin_timeslice(bs);
 }
 
 /*

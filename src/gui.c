@@ -539,18 +539,24 @@ void gui_update_download(struct download *d, gboolean force)
 
 	case GTA_DL_RECEIVING:
 		if (d->pos - d->skip > 0) {
-			gfloat p = 0, bs = now - d->start_date;
+			gfloat p = 0;
+			gint bps;
 
 			if (d->size)
 				p = ((gfloat) d->pos / (gfloat) d->size) * 100.0;
 
-			if (bs) {
-				gint slen;
-				guint32 s;
+			bps = bio_bps(d->bio);
 
-				bs = ((d->pos - d->skip + d->overlap_size) / bs);
-				s = (d->size - d->pos) / bs;
-				bs = bs / 1024.0;
+			if (bps) {
+				gint slen;
+				gfloat bs;
+				guint32 s;
+				guint32 avg_bps = bio_avg_bps(d->bio);
+
+				if (avg_bps == 0)
+					avg_bps++;
+				s = (d->size - d->pos) / avg_bps;
+				bs = bps / 1024.0;
 
 				slen = g_snprintf(gui_tmp, sizeof(gui_tmp), "%.02f%% ", p);
 
@@ -574,7 +580,8 @@ void gui_update_download(struct download *d, gboolean force)
 					g_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
 						"TR: %us", s);
 			} else
-				g_snprintf(gui_tmp, sizeof(gui_tmp), "%.02f%%", p);
+				g_snprintf(gui_tmp, sizeof(gui_tmp), "%.02f%%%s", p,
+					(now - d->last_update > IO_STALLED) ? " (stalled)" : "");
 
 			a = gui_tmp;
 		} else
@@ -617,6 +624,8 @@ void gui_update_upload(struct upload *u)
 
 	if (!UPLOAD_IS_COMPLETE(u)) {
 		gint slen;
+		guint32 bps = 1;
+		guint32 avg_bps = 1;
 
 		/*
 		 * position divided by 1 percentage point, found by dividing
@@ -624,19 +633,17 @@ void gui_update_upload(struct upload *u)
 		 */
 		pc = (u->pos - u->skip) / ((requested / 100.0));
 
-		/*
-		 * Data rate KBytes/second, K transfered (subtract off 1k remainder)
-		 * divided by total seconds running
-		 */
-		if (u->last_update != u->start_date)
-			rate = ((u->pos - u->skip) / 1024.0) /
-				(u->last_update - u->start_date);
+		if (u->last_update != u->start_date) {
+			bps = bio_bps(u->bio);
+			avg_bps = bio_avg_bps(u->bio);
+			if (avg_bps == 0)
+				avg_bps++;
+		}
+
+		rate = bps / 1024.0;
 
 		/* Time Remaining at the current rate, in seconds  */
-		if (fabs(rate) < .02)
-			rate = 1;
-		tr = ((u->end - u->pos + 1) -
-			  ((u->end - u->pos + 1) % 1024)) / 1024 / rate;
+		tr = (u->end + 1 - u->pos) / avg_bps;
 
 		slen = g_snprintf(gui_tmp, sizeof(gui_tmp), "%.02f%% [%s] ",
 			pc, short_size(requested));
