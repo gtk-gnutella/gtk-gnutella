@@ -3978,7 +3978,7 @@ static void settings_gui_init_prop_map(void)
                 property_map[n].f_interval);
             if (gui_debug >= 10)
                 printf("settings_gui_init_prop_map: adding changes listener "
-                    "[%s][done]\n", def ->name);
+                    "[%s][done]\n", def->name);
         } else if (gui_debug >= 10) {
             printf("settings_gui_init_prop_map: " 
                 "property ignored: %s\n", def->name);
@@ -3989,10 +3989,9 @@ static void settings_gui_init_prop_map(void)
     if (gui_debug >= 1) {
         for (n = 0; n < GUI_PROPERTY_NUM; n++) {
             if (gui_init_list[n] == NOT_IN_MAP) {
-                prop_def_t *def = gui_prop_get_def(n+GUI_PROPERTY_MIN);
-                printf("settings_gui_init_prop_map:" 
-                    " [GUI]  unmapped property: %s\n", def->name);
-                prop_free_def(def);
+                printf("settings_gui_init_prop_map: "
+					"[GUI] unmapped property: %s\n",
+					gui_prop_name(n+GUI_PROPERTY_MIN));
             }
         }
     }
@@ -4000,10 +3999,9 @@ static void settings_gui_init_prop_map(void)
     if (gui_debug >= 1) {
         for (n = 0; n < GNET_PROPERTY_NUM; n++) {
             if (gnet_init_list[n] == NOT_IN_MAP) {
-                prop_def_t *def = gnet_prop_get_def(n+GNET_PROPERTY_MIN);
                 printf("settings_gui_init_prop_map:" 
-                    " [GNET] unmapped property: %s\n", def->name);
-                prop_free_def(def);
+                    " [GNET] unmapped property: %s\n",
+					gnet_prop_name(n+GNET_PROPERTY_MIN));
             }
         }
     }
