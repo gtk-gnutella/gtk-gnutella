@@ -26,7 +26,7 @@
 #include "gui.h"
 
 #include "statusbar_gui.h"
-#include "search_stats.h"
+#include "search_stats_gui.h"
 
 /* 
  * Create a function for the focus out signal and make it call
@@ -139,7 +139,7 @@ void on_button_host_catcher_clear_clicked(GtkButton *button, gpointer user_data)
 
 void on_button_search_stats_reset_clicked(GtkButton *button, gpointer data)
 {
-	search_stats_reset();
+	search_stats_gui_reset();
 }
 
 void on_clist_search_stats_resize_column(
