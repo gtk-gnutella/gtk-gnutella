@@ -26,7 +26,7 @@
 #ifndef __gtk_missing_h__
 #define __gtk_missing_h__
 
-#include "gui.h"
+#include <gtk/gtk.h>
 
 #ifndef USE_GTK2
 #define gtk_progress_bar_set_text(pb, t) \
