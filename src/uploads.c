@@ -1696,7 +1696,10 @@ static void upload_request(gnutella_upload_t *u, header_t *header)
 {
 	struct gnutella_socket *s = u->socket;
 	struct shared_file *reqfile = NULL;
-    guint idx = 0, skip = 0, end = 0, upcount = 0;
+    guint idx = 0, skip = 0, end = 0;
+#if 0
+	guint upcount = 0;
+#endif
 	gchar *fpath = NULL;
 	gchar *user_agent = 0;
 	gchar *buf;
@@ -2066,12 +2069,19 @@ static void upload_request(gnutella_upload_t *u, header_t *header)
 					"Already downloading that file");
 				return;
 			}
+#if 0
+			/* 
+			 * This part will be handled by PARQ from now on. This way it is
+			 * assured PARQ can generate correct headers. Including the 
+			 * Retry-After header.
+			 */
 			if (up->socket->ip == s->ip && ++upcount >= max_uploads_ip) {
 				upload_error_remove(u, reqfile,
 					503, "Only %u download%s per IP address",
 					max_uploads_ip, max_uploads_ip == 1 ? "" : "s");
 				return;
 			}
+#endif
 		}
 
 		/*
