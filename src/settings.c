@@ -26,6 +26,7 @@
  */
 
 #include <sys/types.h>
+#include <sys/time.h>			/* For FreeBSD, before <sys/resource.h> */
 #include <sys/resource.h>
 
 #ifdef HAVE_SYS_SYSCTL_H 
