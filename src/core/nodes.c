@@ -6328,7 +6328,6 @@ node_get_status(const gnet_node_t n, gnet_node_status_t *status)
 {
     gnutella_node_t  *node = node_find_by_handle(n); 
     time_t now = time((time_t *) NULL);
-	bio_source_t *bio;
 
     g_assert(status != NULL);
 
@@ -6374,8 +6373,18 @@ node_get_status(const gnet_node_t n, gnet_node_status_t *status)
     status->rx_compressed = NODE_RX_COMPRESSED(node);
     status->rx_compression_ratio = NODE_RX_COMPRESSION_RATIO(node);
 
-	bio = node->rx ? rx_bio_source(node->rx) : NULL;
-	status->rx_bps = bio ? bio_bps(bio) / 1024.0 : 0.0;
+	/*
+	 * The UDP node has no RX stack: we direcly receive datagrams from
+	 * the socket layer, and they are meant to be one Gntuella message.
+	 * Therefore, the actual traffic is given by the bws.gin_udp scheduler.
+	 */
+
+	if (NODE_IS_UDP(node))
+		status->rx_bps = bsched_bps(bws.gin_udp) / 1024.0;
+	else {
+		bio_source_t *bio = node->rx ? rx_bio_source(node->rx) : NULL;
+		status->rx_bps = bio ? bio_bps(bio) / 1024.0 : 0.0;
+	}
 
 	status->qrp_efficiency =
 		(gfloat) node->qrp_matches / (gfloat) MAX(1, node->qrp_queries);
