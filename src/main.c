@@ -26,9 +26,7 @@
 #include <signal.h>
 #include <locale.h>
 
-#include "interface.h"
 #include "gui.h"
-#include "support.h"
 #include "search.h"
 #include "share.h"
 #include "sockets.h"
@@ -79,6 +77,7 @@ void gtk_gnutella_exit(gint n)
 	time_t now = time((time_t *) NULL);
 	time_t tick;
 	gchar tmp[256];
+    GtkLabel *label_shutdown_count;
 
 	if (exiting)
 		return;			/* Already exiting, must be in loop below */
@@ -116,6 +115,9 @@ void gtk_gnutella_exit(gint n)
 	gtk_widget_hide(main_window);
 	gtk_widget_show(shutdown_window);
 
+    label_shutdown_count = GTK_LABEL
+        (lookup_widget(shutdown_window, "label_shutdown_count"));
+
 	while (
 		node_bye_pending() && 
 		(tick = time((time_t *) NULL)) - now < EXIT_GRACE
@@ -123,7 +125,7 @@ void gtk_gnutella_exit(gint n)
 		g_snprintf(tmp, sizeof(tmp), "%d seconds", 
 			EXIT_GRACE - (gint)difftime(tick,now));
 
-		gtk_label_set(GTK_LABEL(label_shutdown_count),tmp);
+		gtk_label_set(label_shutdown_count,tmp);
         gtk_main_flush();
 
 		usleep(200000);					/* 200 ms */

@@ -31,7 +31,6 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
-#include "interface.h"
 #include "gui.h"
 #include "misc.h"
 #include "sockets.h"
@@ -62,6 +61,18 @@ static gboolean in_shutdown = FALSE;
 /***
  *** Host timer.
  ***/
+
+static void set_button_host_catcher_clear_sensitive(gboolean b)
+{
+    static GtkWidget *button = NULL;
+
+    if (button == NULL)
+        button = lookup_widget(main_window, "button_host_catcher_clear");
+
+    g_assert(button != NULL);
+
+    gtk_widget_set_sensitive(button, b);
+}
 
 /*
  * auto_connect
@@ -253,7 +264,8 @@ void host_save_valid(guint32 ip, guint16 port)
 	else
 		g_free(host);
 
-	gtk_widget_set_sensitive(button_host_catcher_clear, sl_valid_hosts != NULL);
+
+    set_button_host_catcher_clear_sensitive(sl_valid_hosts != NULL);
 }
 
 /***
@@ -303,8 +315,9 @@ void host_remove(struct gnutella_host *h)
 		sl_valid_hosts = NULL;
 	}
 
+    set_button_host_catcher_clear_sensitive(FALSE);
 	if (!sl_caught_hosts)
-		gtk_widget_set_sensitive(button_host_catcher_clear, FALSE);
+        set_button_host_catcher_clear_sensitive(FALSE);
 
 	g_free(h);
 }
@@ -354,8 +367,8 @@ static gboolean add_host_to_cache(guint32 ip, guint16 port, gchar *type)
 	host->port = port;
 	host->ip = ip;
 
-	if (!sl_caught_hosts)		/* Assume addition below will be a success */
-		gtk_widget_set_sensitive(button_host_catcher_clear, TRUE);
+	if (!sl_caught_hosts) 		/* Assume addition below will be a success */
+        set_button_host_catcher_clear_sensitive(TRUE);
 
 	if (host_ht_add(host))
 		sl_caught_hosts = g_list_append(sl_caught_hosts, host);
@@ -368,7 +381,7 @@ static gboolean add_host_to_cache(guint32 ip, guint16 port, gchar *type)
 	}
 
 	if (!sl_caught_hosts)
-		gtk_widget_set_sensitive(button_host_catcher_clear, FALSE);
+		set_button_host_catcher_clear_sensitive(FALSE);
 
 	host_low_on_pongs = (hosts_in_catcher < (max_hosts_cached >> 3));
 
@@ -689,8 +702,8 @@ gboolean find_nearby_host(guint32 *ip, guint16 *port)
 				sl_valid_hosts = NULL;
 			}
 
-			if (!sl_caught_hosts)
-				gtk_widget_set_sensitive(button_host_catcher_clear, FALSE);
+			if (!sl_caught_hosts) 
+				set_button_host_catcher_clear_sensitive(FALSE);
 
 			return TRUE;
 		}
@@ -755,7 +768,7 @@ void host_get_caught(guint32 *ip, guint16 *port)
 	}
 
 	if (!sl_caught_hosts)
-		gtk_widget_set_sensitive(button_host_catcher_clear, FALSE);
+        set_button_host_catcher_clear_sensitive(FALSE);
 }
 
 /***
@@ -795,7 +808,7 @@ done:
 	return FALSE;
 }
 
-void hosts_read_from_file(gchar * path, gboolean quiet)
+void hosts_read_from_file(const gchar * path, gboolean quiet)
 {
 	/* Loads 'catched' hosts from a text file */
 
@@ -813,7 +826,7 @@ void hosts_read_from_file(gchar * path, gboolean quiet)
 	gui_statusbar_push(scid_hostsfile, "Reading caught host file...");
 }
 
-void hosts_write_to_file(gchar *path)
+void hosts_write_to_file(const gchar *path)
 {
 	/* Saves the currently catched hosts to a file */
 
@@ -878,7 +891,7 @@ void host_clear_cache(void)
 
 	pcache_clear_recent();
 
-	gtk_widget_set_sensitive(button_host_catcher_clear, FALSE);
+    set_button_host_catcher_clear_sensitive(FALSE);
 }
 
 /*

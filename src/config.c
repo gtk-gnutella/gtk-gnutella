@@ -35,11 +35,9 @@
 #include <netdb.h>
 
 #include "gnutella.h"
-#include "interface.h"
 #include "search.h"
 #include "misc.h"
 #include "hosts.h"
-#include "share.h"
 #include "gui.h"
 #include "search_stats.h"
 #include "upload_stats.h"

@@ -31,11 +31,10 @@
 /* Handle searches */
 
 #include "gnutella.h"
-#include "interface.h"
+#include "search_gui.h"
 #include "misc.h"
 #include "search.h"
 #include "downloads.h"
-#include "gui.h"
 #include "hosts.h"				/* For check_valid_host() */
 #include "nodes.h"				/* For NODE_IS_PONGING_ONLY() */
 #include "callbacks.h"
@@ -778,6 +777,16 @@ search_t *_new_search(guint16 speed, gchar * query, guint flags)
 	GList *glist;
     gchar *titles[3];
     gint row;
+
+    GtkWidget *combo_searches = lookup_widget(main_window, "combo_searches");
+    GtkWidget *clist_search = lookup_widget(main_window, "clist_search");
+    GtkWidget *notebook_search_results = 
+        lookup_widget(main_window, "notebook_search_results");
+    GtkWidget *button_search_close = 
+        lookup_widget(main_window, "button_search_close");
+    GtkWidget *entry_minimum_speed =
+        lookup_widget(main_window, "entry_minimum_speed");
+    GtkWidget *entry_search = lookup_widget(main_window, "entry_search");
 
 	sch = (search_t *) g_malloc0(sizeof(search_t));
 
@@ -1629,6 +1638,11 @@ void search_matched(search_t *sch, struct results_set *rs)
 	rs->refcount++;
 
 	if (old_items == 0 && sch == current_search && sch->items > 0) {
+        GtkWidget *button_search_clear =
+            lookup_widget(main_window, "button_search_clear");
+        GtkWidget *popup_search_clear_results = 
+            lookup_widget(popup_search, "popup_search_clear_results");
+
 		gtk_widget_set_sensitive(button_search_clear, TRUE);
 		gtk_widget_set_sensitive(popup_search_clear_results, TRUE);
 	}
@@ -2095,6 +2109,12 @@ static void download_selection_of_clist(GtkCList * c)
 
 void search_download_files(void)
 {
+    GtkWidget *notebook_main;
+    GtkWidget *ctree_menu;
+
+    notebook_main = lookup_widget(main_window, "notebook_main");
+    ctree_menu = lookup_widget(main_window, "ctree_menu");
+
 	/* Download the selected files */
 
 	if (jump_to_downloads) {

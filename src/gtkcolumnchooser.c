@@ -101,7 +101,7 @@ GtkWidget * gtk_column_chooser_new(GtkCList * list)
          * has to call to get data from.
          */
         gtk_signal_connect(GTK_OBJECT(menuitem), "toggled",
-                           on_column_popup_toggled,
+                           GTK_SIGNAL_FUNC(on_column_popup_toggled),
                            (gpointer) cc);
 
         gtk_widget_show(menuitem);
@@ -126,7 +126,7 @@ GtkWidget * gtk_column_chooser_new(GtkCList * list)
      * has to call to get data from.
      */
     gtk_signal_connect(GTK_OBJECT(menuitem), "activate",
-                       on_column_popup_activate,
+                       GTK_SIGNAL_FUNC(on_column_popup_activate),
                        (gpointer) cc);
 
     gtk_widget_show(menuitem);
@@ -139,7 +139,8 @@ GtkWidget * gtk_column_chooser_new(GtkCList * list)
      * grab when it's displayed, the application has not much
      * to say anyway.
      */
-    gtk_signal_connect(GTK_OBJECT(cc), "hide", on_popup_hide, NULL);
+    gtk_signal_connect
+        (GTK_OBJECT(cc), "hide", GTK_SIGNAL_FUNC(on_popup_hide), NULL);
 
     return GTK_WIDGET(cc);
 }
@@ -199,8 +200,8 @@ GtkType gtk_column_chooser_get_type()
             sizeof (GtkColumnChooserClass),
             (GtkClassInitFunc) gtk_column_chooser_class_init,
             (GtkObjectInitFunc) gtk_column_chooser_init,
-            (GtkArgSetFunc) NULL,
-            (GtkArgGetFunc) NULL,
+            NULL,
+            NULL,
             (GtkClassInitFunc) NULL
         };       
         cct_type = gtk_type_unique(GTK_TYPE_MENU, &cct_info);

@@ -34,7 +34,6 @@
 #include "gnutella.h"
 #include "filter_gui.h"
 #include "misc.h"
-#include "interface.h"
 #include "gtk-missing.h"
 
 
@@ -45,6 +44,7 @@
  * Public variables
  */
 GtkWidget *filter_dialog = NULL;
+GtkWidget *popup_filter_rule = NULL;
 
 
 
@@ -109,14 +109,22 @@ void filter_gui_init(void)
 {
     GtkMenu *m;
     gint i;
+    GtkCList *clist_filter_rules;
+    GtkCTree *ctree_filter_filters;
 
     if (filter_dialog == NULL)
         return;
 
-    gtk_notebook_set_show_tabs
-        (GTK_NOTEBOOK(notebook_filter_detail), FALSE);
+    clist_filter_rules = GTK_CLIST
+        (lookup_widget(filter_dialog, "clist_filter_rules"));
+    ctree_filter_filters = GTK_CTREE
+        (lookup_widget(filter_dialog, "ctree_filter_filters"));
 
-    gtk_clist_set_reorderable(GTK_CLIST(clist_filter_rules), TRUE);
+    gtk_notebook_set_show_tabs(
+        GTK_NOTEBOOK(lookup_widget(filter_dialog, "notebook_filter_detail")), 
+        FALSE);
+
+    gtk_clist_set_reorderable(clist_filter_rules, TRUE);
     for (i = 0; i < 4; i++)
         gtk_clist_set_column_width(GTK_CLIST(clist_filter_rules), i,
             filter_table_col_widths[i]);
@@ -145,16 +153,100 @@ void filter_gui_init(void)
         m, rule_text_type_labels[RULE_TEXT_EXACT], 
         (gpointer) RULE_TEXT_EXACT);
 
-    gtk_option_menu_set_menu
-        (GTK_OPTION_MENU(optionmenu_filter_text_type), GTK_WIDGET(m));
+    gtk_option_menu_set_menu(
+        GTK_OPTION_MENU
+            (lookup_widget(filter_dialog, "optionmenu_filter_text_type")), 
+        GTK_WIDGET(m));
 
     m = GTK_MENU(gtk_menu_new());
         menu_new_item_with_data(m, "DISPLAY", 
         (gpointer) FILTER_PROP_STATE_DO);
     menu_new_item_with_data(m, "DON'T DISPLAY", 
         (gpointer) FILTER_PROP_STATE_DONT);
-    gtk_option_menu_set_menu
-        (GTK_OPTION_MENU(optionmenu_filter_default_policy), GTK_WIDGET(m));
+    gtk_option_menu_set_menu(
+        GTK_OPTION_MENU
+            (lookup_widget(filter_dialog, "optionmenu_filter_default_policy")), 
+        GTK_WIDGET(m));
+
+    /*
+     * The user_data set here is later relevant for filter_gui_get_flag_rule()
+     */
+    gtk_object_set_user_data(
+        GTK_OBJECT(lookup_widget
+            (filter_dialog, "radiobutton_filter_flag_stable_set")),
+        (gpointer) RULE_FLAG_SET);
+    gtk_object_set_user_data(
+        GTK_OBJECT(lookup_widget
+            (filter_dialog, "radiobutton_filter_flag_stable_unset")),
+        (gpointer) RULE_FLAG_UNSET);
+    gtk_object_set_user_data(
+        GTK_OBJECT(lookup_widget
+            (filter_dialog, "radiobutton_filter_flag_stable_ignore")),
+        (gpointer) RULE_FLAG_IGNORE);
+
+    gtk_object_set_user_data(
+        GTK_OBJECT(lookup_widget
+            (filter_dialog, "radiobutton_filter_flag_busy_set")),
+        (gpointer) RULE_FLAG_SET);
+    gtk_object_set_user_data(
+        GTK_OBJECT(lookup_widget
+            (filter_dialog, "radiobutton_filter_flag_busy_unset")),
+        (gpointer) RULE_FLAG_UNSET);
+    gtk_object_set_user_data(
+        GTK_OBJECT(lookup_widget
+            (filter_dialog, "radiobutton_filter_flag_busy_ignore")),
+        (gpointer) RULE_FLAG_IGNORE);
+
+    gtk_object_set_user_data(
+        GTK_OBJECT(lookup_widget
+            (filter_dialog, "radiobutton_filter_flag_push_set")),
+        (gpointer) RULE_FLAG_SET);
+    gtk_object_set_user_data(
+        GTK_OBJECT(lookup_widget
+            (filter_dialog, "radiobutton_filter_flag_push_unset")),
+        (gpointer) RULE_FLAG_UNSET);
+    gtk_object_set_user_data(
+        GTK_OBJECT(lookup_widget
+            (filter_dialog, "radiobutton_filter_flag_push_ignore")),
+        (gpointer) RULE_FLAG_IGNORE);
+
+    /*
+     * The user_data set here is later relevant for filter_gui_get_state_rule()
+     */
+    gtk_object_set_user_data(
+        GTK_OBJECT(lookup_widget
+            (filter_dialog, "radiobutton_filter_state_display_do")),
+        (gpointer) FILTER_PROP_STATE_DO);
+    gtk_object_set_user_data(
+        GTK_OBJECT(lookup_widget
+        (filter_dialog, "radiobutton_filter_state_display_dont")),
+        (gpointer) FILTER_PROP_STATE_DONT);
+    gtk_object_set_user_data(
+        GTK_OBJECT(lookup_widget
+            (filter_dialog, "radiobutton_filter_state_display_ignore")),
+        (gpointer) FILTER_PROP_STATE_IGNORE);
+    gtk_object_set_user_data(
+        GTK_OBJECT(lookup_widget
+            (filter_dialog, "radiobutton_filter_state_display_undef")),
+        (gpointer) FILTER_PROP_STATE_UNKNOWN);
+
+    gtk_object_set_user_data(
+        GTK_OBJECT(lookup_widget
+            (filter_dialog, "radiobutton_filter_state_download_do")),
+        (gpointer) FILTER_PROP_STATE_DO);
+    gtk_object_set_user_data(
+        GTK_OBJECT(lookup_widget
+            (filter_dialog, "radiobutton_filter_state_download_dont")),
+        (gpointer) FILTER_PROP_STATE_DONT);
+    gtk_object_set_user_data(
+        GTK_OBJECT(lookup_widget
+            (filter_dialog, "radiobutton_filter_state_download_ignore")),
+        (gpointer) FILTER_PROP_STATE_IGNORE);
+    gtk_object_set_user_data(
+        GTK_OBJECT(lookup_widget
+            (filter_dialog, "radiobutton_filter_state_download_undef")),
+        (gpointer) FILTER_PROP_STATE_UNKNOWN);
+
 }
 
 
@@ -172,8 +264,9 @@ void filter_gui_show_dialog(void)
   	gtk_window_set_default_size(GTK_WINDOW(filter_dialog), 
         flt_dlg_w, flt_dlg_h);
 
-    gtk_paned_set_position(GTK_PANED(hpaned_filter_main),
-                           filter_main_divider_pos);    
+    gtk_paned_set_position(
+        GTK_PANED(lookup_widget(filter_dialog, "hpaned_filter_main")),
+        filter_main_divider_pos);    
 
     gtk_widget_show(filter_dialog);
     gdk_window_raise(filter_dialog->window);
@@ -190,9 +283,13 @@ void filter_gui_filter_clear_list(void)
 {
     gchar *titles[3];
     GdkColor *bg_color;
+    GtkCTree *ctree_filter_filters;
 
     if (filter_dialog == NULL)
         return;
+
+    ctree_filter_filters = GTK_CTREE
+        (lookup_widget(filter_dialog, "ctree_filter_filters"));
     
     bg_color = &(gtk_widget_get_style(GTK_WIDGET(ctree_filter_filters))
         ->bg[GTK_STATE_ACTIVE]);
@@ -267,11 +364,15 @@ void filter_gui_filter_add(filter_t *f, GList *ruleset)
     GtkCTreeNode *node;
     GtkCTreeNode *parent;
     guint buf;
+    GtkCTree *ctree_filter_filters;
 
     g_assert(f != NULL);
 
     if (filter_dialog == NULL)
         return;
+
+    ctree_filter_filters = GTK_CTREE
+        (lookup_widget(filter_dialog, "ctree_filter_filters"));
 
     if (ruleset == NULL)
         ruleset = f->ruleset;
@@ -317,21 +418,25 @@ void filter_gui_filter_add(filter_t *f, GList *ruleset)
  */
 void filter_gui_update_rule_count(filter_t *f, GList *ruleset)
 {
+    GtkCTreeNode *parent;
+    GtkCTreeNode *node;
+    GtkCTree *ctree_filter_filters;
+
     g_assert(f != NULL);
 
-    if (filter_dialog != NULL) {
-        GtkCTreeNode *parent;
-        GtkCTreeNode *node;
-        
-        parent = getFilterRoot(f);
-        node = gtk_ctree_find_by_row_data
-            (GTK_CTREE(ctree_filter_filters), parent, f);
+    if (filter_dialog == NULL);
+        return;
 
-        if (node != NULL) {
-            g_snprintf(fg_tmp, sizeof(fg_tmp), "%d", g_list_length(ruleset));
-            gtk_ctree_node_set_text(GTK_CTREE(ctree_filter_filters), node,
-                1, fg_tmp);
-        }
+    ctree_filter_filters = GTK_CTREE
+        (lookup_widget(filter_dialog, "ctree_filter_filters"));
+
+    parent = getFilterRoot(f);
+    node = gtk_ctree_find_by_row_data(ctree_filter_filters, parent, f);
+
+    if (node != NULL) {
+        g_snprintf(fg_tmp, sizeof(fg_tmp), "%d", g_list_length(ruleset));
+        gtk_ctree_node_set_text
+            (GTK_CTREE(ctree_filter_filters), node, 1, fg_tmp);
     }
 }
 
@@ -344,18 +449,22 @@ void filter_gui_update_rule_count(filter_t *f, GList *ruleset)
  */
 void filter_gui_filter_remove(filter_t *f)
 {
+    GtkCTreeNode *parent;
+    GtkCTreeNode *node;
+    GtkCTree *ctree_filter_filters;
+
     g_assert(f != NULL);
 
-    if (filter_dialog != NULL) {
-        GtkCTreeNode *parent;
-        GtkCTreeNode *node;
-        
-        parent = getFilterRoot(f);
-        node = gtk_ctree_find_by_row_data
-            (GTK_CTREE(ctree_filter_filters), parent, f);
-        if (node != NULL)
-            gtk_ctree_remove_node(GTK_CTREE(ctree_filter_filters), node);
-    }
+    if (filter_dialog == NULL);
+        return;
+
+    ctree_filter_filters = GTK_CTREE
+        (lookup_widget(filter_dialog, "ctree_filter_filters"));
+
+    parent = getFilterRoot(f);
+    node = gtk_ctree_find_by_row_data(ctree_filter_filters, parent, f);
+    if (node != NULL)
+        gtk_ctree_remove_node(ctree_filter_filters, node);
 }
 
 
@@ -372,9 +481,27 @@ void filter_gui_filter_remove(filter_t *f)
 void filter_gui_filter_set
     (filter_t *f, gboolean removable, gboolean active, GList *ruleset)
 {
+    gchar * widgets[] = {
+        "checkbutton_filter_enabled",
+        "button_filter_reset",
+        "button_filter_add_rule_text",
+        "button_filter_add_rule_ip",
+        "button_filter_add_rule_size",
+        "button_filter_add_rule_jump",
+        "button_filter_add_rule_flag",
+        "button_filter_add_rule_state",
+        "clist_filter_rules",
+        "entry_filter_name",
+        NULL
+    };
+    GtkCTree *ctree_filter_filters;
+
     if (filter_dialog == NULL)
         return;
 
+    ctree_filter_filters = GTK_CTREE
+        (lookup_widget(filter_dialog, "ctree_filter_filters"));
+    
     filter_gui_edit_rule(NULL);
 
     work_filter = f;
@@ -382,21 +509,17 @@ void filter_gui_filter_set
     if (f != NULL) {
         GtkCTreeNode *node;
 
-        gtk_widget_set_sensitive(checkbutton_filter_enabled, TRUE);
-        gtk_widget_set_sensitive(button_filter_reset, TRUE);
-        gtk_widget_set_sensitive(button_filter_add_rule_text, TRUE);
-        gtk_widget_set_sensitive(button_filter_add_rule_ip, TRUE);
-        gtk_widget_set_sensitive(button_filter_add_rule_size, TRUE);
-        gtk_widget_set_sensitive(button_filter_add_rule_jump, TRUE);
-        gtk_widget_set_sensitive(button_filter_add_rule_flag, TRUE);
-        gtk_widget_set_sensitive(button_filter_add_rule_state, TRUE);
-        gtk_widget_set_sensitive(clist_filter_rules, TRUE);
-        gtk_widget_set_sensitive(entry_filter_name, TRUE);
-        gtk_widget_set_sensitive(button_filter_remove, removable);
+        gtk_mass_widget_set_sensitive(filter_dialog, widgets, TRUE);
+
+        gtk_widget_set_sensitive
+            (lookup_widget(filter_dialog, "button_filter_remove"), removable);
         gtk_toggle_button_set_active(
-            GTK_TOGGLE_BUTTON(checkbutton_filter_enabled),
+            GTK_TOGGLE_BUTTON
+                (lookup_widget(filter_dialog, "checkbutton_filter_enabled")),
             active);
-        gtk_entry_set_text(GTK_ENTRY(entry_filter_name), f->name);
+        gtk_entry_set_text(
+            GTK_ENTRY(lookup_widget(filter_dialog, "entry_filter_name")),
+            f->name);
 
         filter_gui_filter_set_enabled(f, active);
 
@@ -404,33 +527,27 @@ void filter_gui_filter_set
             printf("showing ruleset for filter: %s\n", f->name);
         filter_gui_set_ruleset(ruleset);
 
-        node = gtk_ctree_find_by_row_data
-            (GTK_CTREE(ctree_filter_filters), getFilterRoot(f), f);
+        node = gtk_ctree_find_by_row_data(
+            GTK_CTREE(ctree_filter_filters), 
+            getFilterRoot(f), f);
         if (node != NULL) {
-            gtk_ctree_select(GTK_CTREE(ctree_filter_filters), node);
+            gtk_ctree_select(ctree_filter_filters, node);
         } else {
             g_warning("work_filter is not available in filter tree");
             gtk_clist_unselect_all(GTK_CLIST(ctree_filter_filters));
         }
     } else {
-        gtk_entry_set_text(GTK_ENTRY(entry_filter_name), "");
+        gtk_entry_set_text(
+            GTK_ENTRY(lookup_widget(filter_dialog, "entry_filter_name")), 
+            "");
         filter_gui_set_ruleset(NULL);
         filter_gui_filter_set_enabled(NULL, FALSE);
         
         gtk_clist_unselect_all(GTK_CLIST(ctree_filter_filters));
-        gtk_widget_set_sensitive(checkbutton_filter_enabled, FALSE);
-        gtk_widget_set_sensitive(button_filter_reset, FALSE);
-        gtk_widget_set_sensitive(button_filter_add_rule_text, FALSE);
-        gtk_widget_set_sensitive(button_filter_add_rule_ip, FALSE);
-        gtk_widget_set_sensitive(button_filter_add_rule_size, FALSE);
-        gtk_widget_set_sensitive(button_filter_add_rule_jump, FALSE);
-        gtk_widget_set_sensitive(button_filter_add_rule_flag, FALSE);
-        gtk_widget_set_sensitive(button_filter_add_rule_state, FALSE);
-        gtk_widget_set_sensitive(button_filter_remove, FALSE);
-        gtk_widget_set_sensitive(clist_filter_rules, FALSE);
-        gtk_widget_set_sensitive(entry_filter_name, FALSE);
-        gtk_toggle_button_set_active(
-            GTK_TOGGLE_BUTTON(checkbutton_filter_enabled), FALSE);
+
+        gtk_widget_set_sensitive
+            (lookup_widget(filter_dialog, "button_filter_remove"), FALSE);
+        gtk_mass_widget_set_sensitive(filter_dialog, widgets, FALSE);
     }
 }
 
@@ -447,35 +564,38 @@ void filter_gui_filter_set_enabled(filter_t *f, gboolean active)
     GtkCTreeNode *node;
     GtkCTreeNode *parent;
     GdkColor *color;
+    GtkToggleButton *checkbutton_filter_enabled;
+    GtkCTree *ctree_filter_filters;
 
     if (filter_dialog == NULL)
         return;
+
+    checkbutton_filter_enabled = GTK_TOGGLE_BUTTON
+        (lookup_widget(filter_dialog, "checkbutton_filter_enabled"));
 
     gtk_widget_set_sensitive(GTK_WIDGET(checkbutton_filter_enabled),
         f != NULL);
 
     if (f == NULL) {
-        gtk_toggle_button_set_active
-            (GTK_TOGGLE_BUTTON(checkbutton_filter_enabled), FALSE);
+        gtk_toggle_button_set_active(checkbutton_filter_enabled, FALSE);
         return;
     }
 
+    ctree_filter_filters = GTK_CTREE
+        (lookup_widget(filter_dialog, "ctree_filter_filters"));
+
     if (f == work_filter)
-        gtk_toggle_button_set_active
-            (GTK_TOGGLE_BUTTON(checkbutton_filter_enabled), active);
+        gtk_toggle_button_set_active(checkbutton_filter_enabled, active);
 
     parent = getFilterRoot(f);
 
-    node = gtk_ctree_find_by_row_data
-        (GTK_CTREE(ctree_filter_filters), parent, f);
-
+    node = gtk_ctree_find_by_row_data(ctree_filter_filters, parent, f);
 
     color = active ? NULL : 
         &(gtk_widget_get_style(GTK_WIDGET(ctree_filter_filters))
             ->bg[GTK_STATE_INSENSITIVE]);
 
-    gtk_ctree_node_set_foreground(GTK_CTREE(ctree_filter_filters),
-        node, color);
+    gtk_ctree_node_set_foreground(ctree_filter_filters, node, color);
 }
 
 
@@ -488,9 +608,13 @@ void filter_gui_filter_set_enabled(filter_t *f, gboolean active)
 void filter_gui_update_filter_stats(void)
 {
     gint row;
+    GtkCTree *ctree_filter_filters;
 
     if (filter_dialog == NULL)
         return;
+
+    ctree_filter_filters = GTK_CTREE
+        (lookup_widget(filter_dialog, "ctree_filter_filters"));
 
     gtk_clist_freeze(GTK_CLIST(ctree_filter_filters));
 
@@ -543,9 +667,13 @@ void filter_gui_update_filter_stats(void)
 void filter_gui_update_rule_stats(void)
 {
     gint row;
+    GtkCList *clist_filter_rules;
 
     if ((filter_dialog == NULL) || (work_filter == NULL))
         return;
+
+    clist_filter_rules = GTK_CLIST
+        (lookup_widget(filter_dialog, "clist_filter_rules"));
 
     gtk_clist_freeze(GTK_CLIST(clist_filter_rules));
         
@@ -587,17 +715,18 @@ void filter_gui_rebuild_target_combos(GList *filters)
     GtkMenu *m;
     GList *l;
     GList *buf = NULL;
-    GtkWidget *opt_menus[] = {
-        optionmenu_filter_text_target,
-        optionmenu_filter_ip_target,
-        optionmenu_filter_size_target,
-        optionmenu_filter_jump_target,
-        optionmenu_filter_sha1_target,
-        optionmenu_filter_flag_target,
-        optionmenu_filter_state_target,
+    gchar *opt_menus[] = {
+        "optionmenu_filter_text_target",
+        "optionmenu_filter_ip_target",
+        "optionmenu_filter_size_target",
+        "optionmenu_filter_jump_target",
+        "optionmenu_filter_sha1_target",
+        "optionmenu_filter_flag_target",
+        "optionmenu_filter_state_target",
         NULL };
     gpointer bufptr;
     gint i;
+    GtkWidget *optionmenu_search_filter;
     
     /*
      * Prepare a list of unbound filters and also leave
@@ -623,8 +752,9 @@ void filter_gui_rebuild_target_combos(GList *filters)
                     menu_new_item_with_data(m, filter->name, filter);
             }
     
-            gtk_option_menu_set_menu
-                (GTK_OPTION_MENU(opt_menus[i]), GTK_WIDGET(m));
+            gtk_option_menu_set_menu(
+                GTK_OPTION_MENU(lookup_widget(filter_dialog, opt_menus[i])), 
+                GTK_WIDGET(m));
         }
     }
 
@@ -632,6 +762,9 @@ void filter_gui_rebuild_target_combos(GList *filters)
      * The following is in the main window and should always be
      * updateable.
      */
+    optionmenu_search_filter = lookup_widget
+        (main_window, "optionmenu_search_filter");
+
     bufptr = option_menu_get_selected_data(optionmenu_search_filter);
 
     m = GTK_MENU(gtk_menu_new());
@@ -669,7 +802,7 @@ void filter_gui_set_default_policy(gint pol)
         return;
 
     option_menu_select_item_by_data(
-        optionmenu_filter_default_policy, 
+        lookup_widget(filter_dialog, "optionmenu_filter_default_policy"), 
         (gpointer) pol);
 }
 
@@ -713,9 +846,11 @@ void filter_gui_edit_rule(rule_t *r)
         }
     } else {
         gtk_notebook_set_page(
-            GTK_NOTEBOOK(notebook_filter_detail),
+            GTK_NOTEBOOK
+                (lookup_widget(filter_dialog, "notebook_filter_detail")),
             nb_filt_page_buttons);
-        gtk_clist_unselect_all(GTK_CLIST(clist_filter_rules));
+        gtk_clist_unselect_all
+            (GTK_CLIST(lookup_widget(filter_dialog, "clist_filter_rules")));
     }
 }
 
@@ -728,44 +863,55 @@ void filter_gui_edit_rule(rule_t *r)
  */
 void filter_gui_edit_ip_rule(rule_t *r)
 {
+    gchar *ip       = "";
+    gchar *mask     = "255.255.255.255";
+    gpointer target = (gpointer) DEFAULT_TARGET;
+    gboolean invert = FALSE;
+    gboolean active = TRUE;
+    gboolean soft   = FALSE;
+
     g_assert((r == NULL) ||(r->type == RULE_IP));
 
     if (filter_dialog == NULL)
         return;
 
-    if (r == NULL) {
-        gtk_entry_set_text(GTK_ENTRY(entry_filter_ip_address), "");
-        gtk_entry_set_text(GTK_ENTRY(entry_filter_ip_mask), "255.255.255.255");
-        option_menu_select_item_by_data(optionmenu_filter_ip_target,
-            (gpointer) DEFAULT_TARGET);
-        gtk_toggle_button_set_active
-            (GTK_TOGGLE_BUTTON(checkbutton_filter_ip_invert_cond), FALSE);
-        gtk_toggle_button_set_active
-            (GTK_TOGGLE_BUTTON(checkbutton_filter_ip_active), TRUE);
-        gtk_toggle_button_set_active
-            (GTK_TOGGLE_BUTTON(checkbutton_filter_ip_soft), FALSE);
-    } else {
-        gtk_entry_set_text(
-            GTK_ENTRY(entry_filter_ip_address), 
-            ip_to_gchar(r->u.ip.addr));
-        gtk_entry_set_text(
-            GTK_ENTRY(entry_filter_ip_mask),
-            ip_to_gchar(r->u.ip.mask));
-        option_menu_select_item_by_data(optionmenu_filter_ip_target,
-            (gpointer) r->target);
-        gtk_toggle_button_set_active
-            (GTK_TOGGLE_BUTTON(checkbutton_filter_ip_invert_cond),
-            RULE_IS_NEGATED(r));
-        gtk_toggle_button_set_active
-            (GTK_TOGGLE_BUTTON(checkbutton_filter_ip_active),
-            RULE_IS_ACTIVE(r));
-        gtk_toggle_button_set_active
-            (GTK_TOGGLE_BUTTON(checkbutton_filter_ip_soft),
-            RULE_IS_SOFT(r));
+    if (r != NULL) {
+        ip     = g_strdup(ip_to_gchar(r->u.ip.addr));
+        mask   = g_strdup(ip_to_gchar(r->u.ip.mask));
+        target = (gpointer) r->target;
+        invert = RULE_IS_NEGATED(r);
+        active = RULE_IS_ACTIVE(r);
+        soft   = RULE_IS_SOFT(r);
     }
 
+    gtk_entry_set_text(
+        GTK_ENTRY(lookup_widget(filter_dialog, "entry_filter_ip_address")), 
+        ip);
+    gtk_entry_set_text(
+        GTK_ENTRY(lookup_widget(filter_dialog, "entry_filter_ip_mask")),
+        mask);
+    option_menu_select_item_by_data(
+        lookup_widget(filter_dialog, "optionmenu_filter_ip_target"),
+        target);
+    gtk_toggle_button_set_active(
+        GTK_TOGGLE_BUTTON(lookup_widget
+            (filter_dialog, "checkbutton_filter_ip_invert_cond")),
+        invert);
+    gtk_toggle_button_set_active(
+        GTK_TOGGLE_BUTTON
+            (lookup_widget(filter_dialog, "checkbutton_filter_ip_active")),
+        active);
+    gtk_toggle_button_set_active(
+        GTK_TOGGLE_BUTTON
+            (lookup_widget(filter_dialog, "checkbutton_filter_ip_soft")),
+        soft);
+
+    g_free(ip);
+    g_free(mask);
+
     gtk_notebook_set_page(
-        GTK_NOTEBOOK(notebook_filter_detail),
+        GTK_NOTEBOOK
+            (lookup_widget(filter_dialog, "notebook_filter_detail")),
         nb_filt_page_ip);
 }
 
@@ -778,46 +924,54 @@ void filter_gui_edit_ip_rule(rule_t *r)
  */
 void filter_gui_edit_sha1_rule(rule_t *r)
 {
+    gchar *hash     = "";
+    gchar *origfile = "";
+    gpointer target = (gpointer) DEFAULT_TARGET;
+    gboolean invert = FALSE;
+    gboolean active = TRUE;
+    gboolean soft   = FALSE;
+
     g_assert((r == NULL) ||(r->type == RULE_SHA1));
 
     if (filter_dialog == NULL)
         return;
 
-    if (r == NULL) {
-        gtk_entry_set_text(GTK_ENTRY(entry_filter_sha1_hash), "");
-        gtk_entry_set_text(GTK_ENTRY(entry_filter_sha1_origfile), "");
-        option_menu_select_item_by_data(optionmenu_filter_sha1_target,
-            (gpointer) DEFAULT_TARGET);
-        gtk_toggle_button_set_active
-            (GTK_TOGGLE_BUTTON(checkbutton_filter_sha1_invert_cond), FALSE);
-        gtk_toggle_button_set_active
-            (GTK_TOGGLE_BUTTON(checkbutton_filter_sha1_active), TRUE);
-        gtk_toggle_button_set_active
-            (GTK_TOGGLE_BUTTON(checkbutton_filter_sha1_soft), FALSE);
-    } else {
-        gchar *hash_str;
+    if (r != NULL) {
+        hash = (r->u.sha1.hash != NULL) ? 
+            sha1_base32(r->u.sha1.hash) : 
+            "[no hash]";
+        origfile = r->u.sha1.filename;
+        target = (gpointer) r->target;
+        invert = RULE_IS_NEGATED(r);
+        active = RULE_IS_ACTIVE(r);
+        soft   = RULE_IS_SOFT(r);
+    } 
 
-        hash_str = (r->u.sha1.hash != NULL) ? 
-            sha1_base32(r->u.sha1.hash) : "";
-
-        gtk_entry_set_text(GTK_ENTRY(entry_filter_sha1_hash), hash_str);
-        gtk_entry_set_text
-            (GTK_ENTRY(entry_filter_sha1_origfile), r->u.sha1.filename);
-        option_menu_select_item_by_data(optionmenu_filter_sha1_target,
-            (gpointer) r->target);
-        gtk_toggle_button_set_active
-            (GTK_TOGGLE_BUTTON(checkbutton_filter_sha1_invert_cond),
-            RULE_IS_NEGATED(r));
-        gtk_toggle_button_set_active
-            (GTK_TOGGLE_BUTTON(checkbutton_filter_sha1_active),
-            RULE_IS_ACTIVE(r));
-        gtk_toggle_button_set_active
-            (GTK_TOGGLE_BUTTON(checkbutton_filter_sha1_soft),
-            RULE_IS_SOFT(r));
-    }
+    gtk_entry_set_text(
+        GTK_ENTRY(lookup_widget(filter_dialog, "entry_filter_sha1_hash")),
+        hash);
+    gtk_entry_set_text(
+        GTK_ENTRY(lookup_widget(filter_dialog, "entry_filter_sha1_origfile")),
+        origfile);
+    option_menu_select_item_by_data(
+        lookup_widget(filter_dialog, "optionmenu_filter_sha1_target"),
+        target);
+    gtk_toggle_button_set_active(
+        GTK_TOGGLE_BUTTON(lookup_widget
+            (filter_dialog, "checkbutton_filter_sha1_invert_cond")),
+        invert);
+    gtk_toggle_button_set_active(
+        GTK_TOGGLE_BUTTON
+            (lookup_widget(filter_dialog, "checkbutton_filter_sha1_active")),
+        active);
+    gtk_toggle_button_set_active(
+        GTK_TOGGLE_BUTTON
+            (lookup_widget(filter_dialog, "checkbutton_filter_sha1_soft")),
+        soft);   
 
     gtk_notebook_set_page(
-        GTK_NOTEBOOK(notebook_filter_detail),
+        GTK_NOTEBOOK
+            (lookup_widget(filter_dialog, "notebook_filter_detail")),
         nb_filt_page_sha1);
 }
 
@@ -831,55 +985,60 @@ void filter_gui_edit_sha1_rule(rule_t *r)
 
 void filter_gui_edit_text_rule(rule_t *r) 
 {
+    gchar *pattern  = "";
+    guint type      = RULE_TEXT_WORDS;
+    gboolean tcase  = FALSE;
+    gpointer target = (gpointer) DEFAULT_TARGET;
+    gboolean invert = FALSE;
+    gboolean active = TRUE;
+    gboolean soft   = FALSE;
+
     g_assert((r == NULL) || (r->type == RULE_TEXT));
 
     if (filter_dialog == NULL)
         return;
 
-    if (r == NULL) {
-        gtk_entry_set_text(
-            GTK_ENTRY(entry_filter_text_pattern),
-            "");
-        gtk_toggle_button_set_active(
-            GTK_TOGGLE_BUTTON(checkbutton_filter_text_case),
-            FALSE);
-        gtk_option_menu_set_history(
-            GTK_OPTION_MENU(optionmenu_filter_text_type),
-            RULE_TEXT_WORDS);
-        option_menu_select_item_by_data(optionmenu_filter_text_target,
-            (gpointer) DEFAULT_TARGET);
-        gtk_toggle_button_set_active
-            (GTK_TOGGLE_BUTTON(checkbutton_filter_text_invert_cond), FALSE);
-        gtk_toggle_button_set_active
-            (GTK_TOGGLE_BUTTON(checkbutton_filter_text_active), TRUE);
-        gtk_toggle_button_set_active
-            (GTK_TOGGLE_BUTTON(checkbutton_filter_text_soft), FALSE);
-    } else {
-        gtk_entry_set_text(
-            GTK_ENTRY(entry_filter_text_pattern),
-            r->u.text.match);
-        gtk_toggle_button_set_active(
-            GTK_TOGGLE_BUTTON(checkbutton_filter_text_case),
-            r->u.text.case_sensitive);
-        gtk_option_menu_set_history(
-            GTK_OPTION_MENU(optionmenu_filter_text_type),
-            r->u.text.type);
-        option_menu_select_item_by_data(optionmenu_filter_text_target,
-            (gpointer) r->target);
-        gtk_toggle_button_set_active
-            (GTK_TOGGLE_BUTTON(checkbutton_filter_text_invert_cond),
-            RULE_IS_NEGATED(r));
-        gtk_toggle_button_set_active
-            (GTK_TOGGLE_BUTTON(checkbutton_filter_text_active),
-            RULE_IS_ACTIVE(r));
-        gtk_toggle_button_set_active
-            (GTK_TOGGLE_BUTTON(checkbutton_filter_text_soft),
-            RULE_IS_SOFT(r));
+    if (r != NULL) {
+        pattern = r->u.text.match;
+        type    = r->u.text.type;
+        tcase   = r->u.text.case_sensitive;
+        target  = (gpointer) r->target;
+        invert  = RULE_IS_NEGATED(r);
+        active  = RULE_IS_ACTIVE(r);
+        soft    = RULE_IS_SOFT(r);
     }
 
+    gtk_entry_set_text(
+        GTK_ENTRY(lookup_widget(filter_dialog, "entry_filter_text_pattern")),
+        pattern);
+    gtk_toggle_button_set_active(
+        GTK_TOGGLE_BUTTON
+            (lookup_widget(filter_dialog, "checkbutton_filter_text_case")),
+        tcase);
+    gtk_option_menu_set_history(
+        GTK_OPTION_MENU
+            (lookup_widget(filter_dialog, "optionmenu_filter_text_type")),
+        type);
+    option_menu_select_item_by_data(
+        lookup_widget(filter_dialog, "optionmenu_filter_ip_target"),
+        target);
+    gtk_toggle_button_set_active(
+        GTK_TOGGLE_BUTTON(lookup_widget
+            (filter_dialog, "checkbutton_filter_ip_invert_cond")),
+        invert);
+    gtk_toggle_button_set_active(
+        GTK_TOGGLE_BUTTON
+            (lookup_widget(filter_dialog, "checkbutton_filter_ip_active")),
+        active);
+    gtk_toggle_button_set_active(
+        GTK_TOGGLE_BUTTON
+            (lookup_widget(filter_dialog, "checkbutton_filter_ip_soft")),
+        soft);
+
     gtk_notebook_set_page(
-        GTK_NOTEBOOK(notebook_filter_detail),
-         nb_filt_page_text);
+        GTK_NOTEBOOK
+            (lookup_widget(filter_dialog, "notebook_filter_detail")),
+        nb_filt_page_text);
 }
 
 
@@ -891,48 +1050,54 @@ void filter_gui_edit_text_rule(rule_t *r)
  */
 void filter_gui_edit_size_rule(rule_t *r)
 {
+    guint32 min     = 0;
+    guint32 max     = 0;
+    gpointer target = (gpointer) DEFAULT_TARGET;
+    gboolean invert = FALSE;
+    gboolean active = TRUE;
+    gboolean soft   = FALSE;
+
     g_assert((r == NULL) || (r->type == RULE_SIZE));
 
     if (filter_dialog == NULL)
         return;
 
-    if (r == NULL) {
-        gtk_spin_button_set_value(
-            GTK_SPIN_BUTTON(spinbutton_filter_size_min), 
-            0);
-        gtk_spin_button_set_value(
-            GTK_SPIN_BUTTON(spinbutton_filter_size_max),
-            0);
-        option_menu_select_item_by_data(optionmenu_filter_size_target,
-            (gpointer) DEFAULT_TARGET);
-        gtk_toggle_button_set_active
-            (GTK_TOGGLE_BUTTON(checkbutton_filter_size_invert_cond), FALSE);
-        gtk_toggle_button_set_active
-            (GTK_TOGGLE_BUTTON(checkbutton_filter_size_active), TRUE);
-        gtk_toggle_button_set_active
-            (GTK_TOGGLE_BUTTON(checkbutton_filter_size_soft), FALSE);
-    } else {
-        gtk_spin_button_set_value(
-            GTK_SPIN_BUTTON(spinbutton_filter_size_min), 
-            r->u.size.lower);
-        gtk_spin_button_set_value(
-            GTK_SPIN_BUTTON(spinbutton_filter_size_max),
-            r->u.size.upper);
-        option_menu_select_item_by_data(optionmenu_filter_size_target,
-            (gpointer) r->target);
-        gtk_toggle_button_set_active
-            (GTK_TOGGLE_BUTTON(checkbutton_filter_size_invert_cond),
-            RULE_IS_NEGATED(r));
-        gtk_toggle_button_set_active
-            (GTK_TOGGLE_BUTTON(checkbutton_filter_size_active),
-            RULE_IS_ACTIVE(r));
-        gtk_toggle_button_set_active
-            (GTK_TOGGLE_BUTTON(checkbutton_filter_size_soft),
-            RULE_IS_SOFT(r));
+    if (r != NULL) {
+        min    = r->u.size.lower;
+        max    = r->u.size.upper;
+        target = (gpointer) r->target;
+        invert = RULE_IS_NEGATED(r);
+        active = RULE_IS_ACTIVE(r);
+        soft   = RULE_IS_SOFT(r);
     }
 
+    gtk_spin_button_set_value(
+        GTK_SPIN_BUTTON
+            (lookup_widget(filter_dialog, "spinbutton_filter_size_min")), 
+        min);
+    gtk_spin_button_set_value(
+        GTK_SPIN_BUTTON
+            (lookup_widget(filter_dialog, "spinbutton_filter_size_max")),
+        max);
+    option_menu_select_item_by_data(
+        lookup_widget(filter_dialog, "optionmenu_filter_ip_target"),
+        target);
+    gtk_toggle_button_set_active(
+        GTK_TOGGLE_BUTTON(lookup_widget
+            (filter_dialog, "checkbutton_filter_ip_invert_cond")),
+        invert);
+    gtk_toggle_button_set_active(
+        GTK_TOGGLE_BUTTON
+            (lookup_widget(filter_dialog, "checkbutton_filter_ip_active")),
+        active);
+    gtk_toggle_button_set_active(
+        GTK_TOGGLE_BUTTON
+            (lookup_widget(filter_dialog, "checkbutton_filter_ip_soft")),
+        soft);
+
     gtk_notebook_set_page(
-        GTK_NOTEBOOK(notebook_filter_detail),
+        GTK_NOTEBOOK
+            (lookup_widget(filter_dialog, "notebook_filter_detail")),
         nb_filt_page_size);
 }
 
@@ -947,26 +1112,30 @@ void filter_gui_edit_size_rule(rule_t *r)
 
 void filter_gui_edit_jump_rule(rule_t *r)
 {
+    gpointer target = (gpointer) DEFAULT_TARGET;
+    gboolean active = TRUE;
+
     g_assert((r == NULL) || (r->type == RULE_JUMP));
 
     if (filter_dialog == NULL)
         return;
 
-    if (r == NULL) {
-        option_menu_select_item_by_data(optionmenu_filter_jump_target,
-            (gpointer) DEFAULT_TARGET);
-        gtk_toggle_button_set_active
-            (GTK_TOGGLE_BUTTON(checkbutton_filter_jump_active), TRUE);
-   } else {
-        option_menu_select_item_by_data(optionmenu_filter_jump_target,
-            (gpointer) r->target);
-        gtk_toggle_button_set_active
-            (GTK_TOGGLE_BUTTON(checkbutton_filter_jump_active),
-            RULE_IS_ACTIVE(r));
+    if (r != NULL) {
+        target = (gpointer) r->target;
+        active = RULE_IS_ACTIVE(r);
     }
 
+    option_menu_select_item_by_data(
+        lookup_widget(filter_dialog, "optionmenu_filter_jump_target"),
+        target);
+    gtk_toggle_button_set_active(
+        GTK_TOGGLE_BUTTON
+            (lookup_widget(filter_dialog, "checkbutton_filter_jump_active")),
+        active);
+
     gtk_notebook_set_page(
-        GTK_NOTEBOOK(notebook_filter_detail),
+        GTK_NOTEBOOK
+            (lookup_widget(filter_dialog, "notebook_filter_detail")),
         nb_filt_page_jump);
 }
 
@@ -979,84 +1148,90 @@ void filter_gui_edit_jump_rule(rule_t *r)
  */
 void filter_gui_edit_flag_rule(rule_t *r)
 {
+    guint stable    = RULE_FLAG_IGNORE;
+    guint busy      = RULE_FLAG_IGNORE;
+    guint push      = RULE_FLAG_IGNORE;
+    gpointer target = (gpointer) DEFAULT_TARGET;
+    gboolean active = TRUE;
+    gboolean soft   = FALSE;
+
+    gchar *widget   = NULL;
+        
     g_assert((r == NULL) || (r->type == RULE_FLAG));
 
     if (filter_dialog == NULL)
         return;
 
-    if (r == NULL) {
-        gtk_toggle_button_set_active
-            (GTK_TOGGLE_BUTTON(radiobutton_filter_flag_stable_ignore), TRUE);
-        gtk_toggle_button_set_active
-            (GTK_TOGGLE_BUTTON(radiobutton_filter_flag_busy_ignore), TRUE);
-        gtk_toggle_button_set_active
-            (GTK_TOGGLE_BUTTON(radiobutton_filter_flag_push_ignore), TRUE);
-        option_menu_select_item_by_data(optionmenu_filter_flag_target,
-            (gpointer) DEFAULT_TARGET);
-        gtk_toggle_button_set_active
-            (GTK_TOGGLE_BUTTON(checkbutton_filter_flag_active), TRUE);
-        gtk_toggle_button_set_active
-            (GTK_TOGGLE_BUTTON(checkbutton_filter_flag_soft), FALSE);
-   } else {
-        GtkWidget *tb = NULL;
-
-        switch (r->u.flag.stable) {
-        case RULE_FLAG_SET:
-            tb = radiobutton_filter_flag_stable_set;
-            break;
-        case RULE_FLAG_UNSET:
-            tb = radiobutton_filter_flag_stable_unset;
-            break;
-        case RULE_FLAG_IGNORE:
-            tb = radiobutton_filter_flag_stable_ignore;
-            break;
-        default:
-            g_assert_not_reached();
-        }
-        gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(tb), TRUE);
-
-        switch (r->u.flag.busy) {
-        case RULE_FLAG_SET:
-            tb = radiobutton_filter_flag_busy_set;
-            break;
-        case RULE_FLAG_UNSET:
-            tb = radiobutton_filter_flag_busy_unset;
-            break;
-        case RULE_FLAG_IGNORE:
-            tb = radiobutton_filter_flag_busy_ignore;
-            break;
-        default:
-            g_assert_not_reached();
-        }
-        gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(tb), TRUE);
-
-        switch (r->u.flag.push) {
-        case RULE_FLAG_SET:
-            tb = radiobutton_filter_flag_push_set;
-            break;
-        case RULE_FLAG_UNSET:
-            tb = radiobutton_filter_flag_push_unset;
-            break;
-        case RULE_FLAG_IGNORE:
-            tb = radiobutton_filter_flag_push_ignore;
-            break;
-        default:
-            g_assert_not_reached();
-        }
-        gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(tb), TRUE);
-
-        option_menu_select_item_by_data(optionmenu_filter_flag_target,
-            (gpointer) r->target);
-        gtk_toggle_button_set_active
-            (GTK_TOGGLE_BUTTON(checkbutton_filter_flag_active),
-            RULE_IS_ACTIVE(r));
-        gtk_toggle_button_set_active
-            (GTK_TOGGLE_BUTTON(checkbutton_filter_flag_soft),
-            RULE_IS_SOFT(r));
+    if (r != NULL) {
+        stable = r->u.flag.stable;
+        busy   = r->u.flag.busy;
+        push   = r->u.flag.push;
     }
 
-    gtk_notebook_set_page
-        (GTK_NOTEBOOK(notebook_filter_detail), nb_filt_page_flag);
+    switch (stable) {
+    case RULE_FLAG_SET:
+        widget = "radiobutton_filter_flag_stable_set"; 
+        break;
+    case RULE_FLAG_UNSET:
+        widget = "radiobutton_filter_flag_stable_unset";
+        break;
+    case RULE_FLAG_IGNORE:
+        widget = "radiobutton_filter_flag_stable_ignore";
+        break;
+    default:
+        g_assert_not_reached();
+    }
+    gtk_toggle_button_set_active
+        (GTK_TOGGLE_BUTTON(lookup_widget(filter_dialog, widget)), TRUE);
+
+    switch (busy) {
+    case RULE_FLAG_SET:
+        widget = "radiobutton_filter_flag_busy_set";
+        break;
+    case RULE_FLAG_UNSET:
+        widget = "radiobutton_filter_flag_busy_unset";
+        break;
+    case RULE_FLAG_IGNORE:
+        widget = "radiobutton_filter_flag_busy_ignore";
+        break;
+    default:
+        g_assert_not_reached();
+    }
+    gtk_toggle_button_set_active
+        (GTK_TOGGLE_BUTTON(lookup_widget(filter_dialog, widget)), TRUE);
+
+    switch (push) {
+    case RULE_FLAG_SET:
+        widget = "radiobutton_filter_flag_push_set";
+        break;
+    case RULE_FLAG_UNSET:
+        widget = "radiobutton_filter_flag_push_unset";
+        break;
+    case RULE_FLAG_IGNORE:
+        widget = "radiobutton_filter_flag_push_ignore";
+        break;
+    default:
+        g_assert_not_reached();
+    }
+    gtk_toggle_button_set_active
+        (GTK_TOGGLE_BUTTON(lookup_widget(filter_dialog, widget)), TRUE);
+
+    option_menu_select_item_by_data(
+        lookup_widget(filter_dialog, "optionmenu_filter_flag_target"),
+        target);
+    gtk_toggle_button_set_active(
+        GTK_TOGGLE_BUTTON
+            (lookup_widget(filter_dialog, "checkbutton_filter_flag_active")),
+        active);
+    gtk_toggle_button_set_active(
+        GTK_TOGGLE_BUTTON
+            (lookup_widget(filter_dialog, "checkbutton_filter_flag_soft")),
+        soft);
+
+    gtk_notebook_set_page(
+        GTK_NOTEBOOK
+            (lookup_widget(filter_dialog, "notebook_filter_detail")),
+        nb_filt_page_flag);
 }
 
 
@@ -1069,80 +1244,86 @@ void filter_gui_edit_flag_rule(rule_t *r)
  */
 void filter_gui_edit_state_rule(rule_t *r)
 {
+    guint display   = FILTER_PROP_STATE_IGNORE;
+    guint download  = FILTER_PROP_STATE_IGNORE;
+    gpointer target = (gpointer) DEFAULT_TARGET;
+    gboolean active = TRUE;
+    gboolean soft   = FALSE;
+    gboolean invert = FALSE;
+    gchar *widget   = NULL;
+
     g_assert((r == NULL) || (r->type == RULE_STATE));
 
     if (filter_dialog == NULL)
         return;
 
-    if (r == NULL) {
-        gtk_toggle_button_set_active
-            (GTK_TOGGLE_BUTTON(radiobutton_filter_state_display_ignore), TRUE);
-        gtk_toggle_button_set_active
-            (GTK_TOGGLE_BUTTON(radiobutton_filter_state_download_ignore), TRUE);
-        option_menu_select_item_by_data
-            (optionmenu_filter_state_target, (gpointer) DEFAULT_TARGET);
-        gtk_toggle_button_set_active
-            (GTK_TOGGLE_BUTTON(checkbutton_filter_state_active), TRUE);
-        gtk_toggle_button_set_active
-            (GTK_TOGGLE_BUTTON(checkbutton_filter_state_soft), FALSE);
-        gtk_toggle_button_set_active
-            (GTK_TOGGLE_BUTTON(checkbutton_filter_state_invert_cond), FALSE);
-   } else {
-        GtkWidget *tb = NULL;
-
-        switch (r->u.state.display) {
-        case FILTER_PROP_STATE_UNKNOWN:
-            tb = radiobutton_filter_state_display_undef;
-            break;
-        case FILTER_PROP_STATE_DO:
-            tb = radiobutton_filter_state_display_do;
-            break;
-        case FILTER_PROP_STATE_DONT:
-            tb = radiobutton_filter_state_display_dont;
-            break;
-        case FILTER_PROP_STATE_IGNORE:
-            tb = radiobutton_filter_state_display_ignore;
-            break;
-        default:
-            g_error("filter_gui_edit_state_rule: unknown property: %d",
-                r->u.state.display);
-        }
-        gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(tb), TRUE);
-
-        switch (r->u.state.download) {
-        case FILTER_PROP_STATE_UNKNOWN:
-            tb = radiobutton_filter_state_download_undef;
-            break;
-        case FILTER_PROP_STATE_DO:
-            tb = radiobutton_filter_state_download_do;
-            break;
-        case FILTER_PROP_STATE_DONT:
-            tb = radiobutton_filter_state_download_dont;
-            break;
-        case FILTER_PROP_STATE_IGNORE:
-            tb = radiobutton_filter_state_download_ignore;
-            break;
-        default:
-            g_error("filter_gui_edit_state_rule: unknown property: %d",
-                r->u.state.display);
-        }
-        gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(tb), TRUE);
-    
-        option_menu_select_item_by_data(optionmenu_filter_state_target,
-            (gpointer) r->target);
-        gtk_toggle_button_set_active
-            (GTK_TOGGLE_BUTTON(checkbutton_filter_state_active),
-            RULE_IS_ACTIVE(r));
-        gtk_toggle_button_set_active
-            (GTK_TOGGLE_BUTTON(checkbutton_filter_state_soft),
-            RULE_IS_SOFT(r));
-        gtk_toggle_button_set_active
-            (GTK_TOGGLE_BUTTON(checkbutton_filter_state_invert_cond), 
-            RULE_IS_NEGATED(r));
+    if (r != NULL) {
+        display  = r->u.state.display;
+        download = r->u.state.download;
+        target   = (gpointer) r->target;
+        invert   = RULE_IS_NEGATED(r);
+        active   = RULE_IS_ACTIVE(r);
+        soft     = RULE_IS_SOFT(r);
     }
 
-    gtk_notebook_set_page
-        (GTK_NOTEBOOK(notebook_filter_detail), nb_filt_page_state);
+    switch (display) {
+    case FILTER_PROP_STATE_UNKNOWN:
+         widget = "radiobutton_filter_state_display_undef";
+         break;
+    case FILTER_PROP_STATE_DO:
+         widget = "radiobutton_filter_state_display_do";
+         break;
+    case FILTER_PROP_STATE_DONT:
+         widget = "radiobutton_filter_state_display_dont";
+         break;
+    case FILTER_PROP_STATE_IGNORE:
+         widget = "radiobutton_filter_state_display_ignore";
+         break;
+    default:
+         g_error("filter_gui_edit_state_rule: unknown property: %d", display);
+    }
+    gtk_toggle_button_set_active
+        (GTK_TOGGLE_BUTTON(lookup_widget(filter_dialog, widget)), TRUE);
+
+    switch (download) {
+    case FILTER_PROP_STATE_UNKNOWN:
+         widget = "radiobutton_filter_state_download_undef";
+         break;
+    case FILTER_PROP_STATE_DO:
+         widget = "radiobutton_filter_state_download_do";
+         break;
+    case FILTER_PROP_STATE_DONT:
+         widget = "radiobutton_filter_state_download_dont";
+         break;
+    case FILTER_PROP_STATE_IGNORE:
+         widget = "radiobutton_filter_state_download_ignore";
+         break;
+    default:
+         g_error("filter_gui_edit_state_rule: unknown property: %d", download);
+    }
+    gtk_toggle_button_set_active
+        (GTK_TOGGLE_BUTTON(lookup_widget(filter_dialog, widget)), TRUE);
+
+    option_menu_select_item_by_data(
+        lookup_widget(filter_dialog, "optionmenu_filter_state_target"),
+        target);
+    gtk_toggle_button_set_active(
+        GTK_TOGGLE_BUTTON(lookup_widget
+            (filter_dialog, "checkbutton_filter_state_invert_cond")),
+        invert);
+    gtk_toggle_button_set_active(
+        GTK_TOGGLE_BUTTON
+            (lookup_widget(filter_dialog, "checkbutton_filter_state_active")),
+        active);
+    gtk_toggle_button_set_active(
+        GTK_TOGGLE_BUTTON
+            (lookup_widget(filter_dialog, "checkbutton_filter_state_soft")),
+        soft);
+
+    gtk_notebook_set_page(
+        GTK_NOTEBOOK
+            (lookup_widget(filter_dialog, "notebook_filter_detail")),
+        nb_filt_page_state);
 }
 
 
@@ -1157,18 +1338,24 @@ void filter_gui_set_ruleset(GList *ruleset)
     GList *l;
     gint count = 0;
     GdkColor *color;
+    GtkCList *clist_filter_rules;
 
     if (filter_dialog == NULL)
         return;
 
-    gtk_clist_freeze(GTK_CLIST(clist_filter_rules));
-    gtk_clist_clear(GTK_CLIST(clist_filter_rules));
+    clist_filter_rules = GTK_CLIST
+        (lookup_widget(filter_dialog, "clist_filter_rules"));
+
+    gtk_clist_freeze(clist_filter_rules);
+    gtk_clist_clear(clist_filter_rules);
 
     color = &(gtk_widget_get_style(GTK_WIDGET(clist_filter_rules))
                 ->bg[GTK_STATE_INSENSITIVE]);
 
-    gtk_widget_set_sensitive
-        (GTK_WIDGET(button_filter_reset_all_rules), ruleset != NULL);
+    gtk_widget_set_sensitive(
+        GTK_WIDGET
+            (lookup_widget(filter_dialog, "button_filter_reset_all_rules")),
+        ruleset != NULL);
         
     for (l = ruleset; l != NULL; l = l->next) {
         rule_t *r = (rule_t *)l->data;
@@ -1182,16 +1369,16 @@ void filter_gui_set_ruleset(GList *ruleset)
         titles[2] = r->target->name;
         titles[3] = "...";
         
-        row = gtk_clist_append(GTK_CLIST(clist_filter_rules), titles);
+        row = gtk_clist_append(clist_filter_rules, titles);
         if (!RULE_IS_ACTIVE(r))
-             gtk_clist_set_foreground(GTK_CLIST(clist_filter_rules), row,
-                color);
-        gtk_clist_set_row_data
-            (GTK_CLIST(clist_filter_rules), row, (gpointer) r);
+             gtk_clist_set_foreground(clist_filter_rules, row, color);
+        gtk_clist_set_row_data(clist_filter_rules, row, (gpointer) r);
     }
-    gtk_clist_thaw(GTK_CLIST(clist_filter_rules));
+    gtk_clist_thaw(clist_filter_rules);
 
-    gtk_widget_set_sensitive(button_filter_clear, count != 0);
+    gtk_widget_set_sensitive(
+        lookup_widget(filter_dialog, "button_filter_clear"), 
+        count != 0);
 
     if (dbg >= 5)
         printf("updated %d items\n", count);
@@ -1213,7 +1400,8 @@ rule_t *filter_gui_get_rule()
     g_return_val_if_fail(filter_dialog != NULL, NULL);
 
     page = gtk_notebook_get_current_page
-        (GTK_NOTEBOOK(notebook_filter_detail));
+        (GTK_NOTEBOOK
+            (lookup_widget(filter_dialog, "notebook_filter_detail")));
 
     switch (page) {
     case nb_filt_page_buttons:
@@ -1271,25 +1459,33 @@ static rule_t *filter_gui_get_text_rule()
     g_return_val_if_fail(filter_dialog != NULL, NULL);
 
 	type = (enum rule_text_type)
-        option_menu_get_selected_data(optionmenu_filter_text_type);
+        option_menu_get_selected_data
+            (lookup_widget(filter_dialog, "optionmenu_filter_text_type"));
 
-	match = gtk_editable_get_chars
-        (GTK_EDITABLE(entry_filter_text_pattern), 0, -1);
+	match = gtk_editable_get_chars(
+        GTK_EDITABLE
+            (lookup_widget(filter_dialog, "entry_filter_text_pattern")),
+        0, -1);
 
-	case_sensitive = gtk_toggle_button_get_active
-        (GTK_TOGGLE_BUTTON(checkbutton_filter_text_case));
+	case_sensitive = gtk_toggle_button_get_active(
+        GTK_TOGGLE_BUTTON
+            (lookup_widget(filter_dialog, "checkbutton_filter_text_case")));
 
-	negate = gtk_toggle_button_get_active
-        (GTK_TOGGLE_BUTTON(checkbutton_filter_text_invert_cond));
+	negate = gtk_toggle_button_get_active(
+        GTK_TOGGLE_BUTTON
+            (lookup_widget
+                (filter_dialog, "checkbutton_filter_text_invert_cond")));
 
-	active = gtk_toggle_button_get_active
-        (GTK_TOGGLE_BUTTON(checkbutton_filter_text_active));
+	active = gtk_toggle_button_get_active(
+        GTK_TOGGLE_BUTTON
+            (lookup_widget(filter_dialog, "checkbutton_filter_text_active")));
 
-   	soft = gtk_toggle_button_get_active
-        (GTK_TOGGLE_BUTTON(checkbutton_filter_text_soft));
+   	soft = gtk_toggle_button_get_active(
+        GTK_TOGGLE_BUTTON
+            (lookup_widget(filter_dialog, "checkbutton_filter_text_soft")));
 
     target = (filter_t *)option_menu_get_selected_data
-        (optionmenu_filter_text_target);
+        (lookup_widget(filter_dialog, "optionmenu_filter_text_target"));
 
     flags =
         (negate ? RULE_FLAG_NEGATE : 0) |
@@ -1324,25 +1520,35 @@ static rule_t *filter_gui_get_ip_rule()
 
     g_return_val_if_fail(filter_dialog != NULL, NULL);
 
-	s = gtk_editable_get_chars(GTK_EDITABLE(entry_filter_ip_address), 0, -1);
+	s = gtk_editable_get_chars(
+        GTK_EDITABLE
+            (lookup_widget(filter_dialog, "entry_filter_ip_address")),
+        0, -1);
 	addr = ntohl(inet_addr(s));
 	g_free(s);
 
-	s = gtk_editable_get_chars(GTK_EDITABLE(entry_filter_ip_mask), 0, -1);
+	s = gtk_editable_get_chars(
+        GTK_EDITABLE
+            (lookup_widget(filter_dialog, "entry_filter_ip_mask")),
+        0, -1);
 	mask = ntohl(inet_addr(s));
 	g_free(s);
 
-    negate = gtk_toggle_button_get_active
-        (GTK_TOGGLE_BUTTON(checkbutton_filter_ip_invert_cond));
+   	negate = gtk_toggle_button_get_active(
+        GTK_TOGGLE_BUTTON
+            (lookup_widget
+                (filter_dialog, "checkbutton_filter_ip_invert_cond")));
 
-    active = gtk_toggle_button_get_active
-        (GTK_TOGGLE_BUTTON(checkbutton_filter_ip_active));
+	active = gtk_toggle_button_get_active(
+        GTK_TOGGLE_BUTTON
+            (lookup_widget(filter_dialog, "checkbutton_filter_ip_active")));
 
-    soft = gtk_toggle_button_get_active
-        (GTK_TOGGLE_BUTTON(checkbutton_filter_ip_soft));
+   	soft = gtk_toggle_button_get_active(
+        GTK_TOGGLE_BUTTON
+            (lookup_widget(filter_dialog, "checkbutton_filter_ip_soft")));
 
     target = (filter_t *)option_menu_get_selected_data
-        (optionmenu_filter_ip_target);
+        (lookup_widget(filter_dialog, "optionmenu_filter_ip_target"));
 
     flags =
         (negate ? RULE_FLAG_NEGATE : 0) |
@@ -1374,22 +1580,28 @@ static rule_t *filter_gui_get_size_rule()
         return NULL;
 
     lower = gtk_spin_button_get_value_as_int
-        (GTK_SPIN_BUTTON(spinbutton_filter_size_min));
+        (GTK_SPIN_BUTTON
+            (lookup_widget(filter_dialog, "spinbutton_filter_size_min")));
 
     upper = gtk_spin_button_get_value_as_int
-        (GTK_SPIN_BUTTON(spinbutton_filter_size_max));
+        (GTK_SPIN_BUTTON
+            (lookup_widget(filter_dialog, "spinbutton_filter_size_max")));
 
-    negate = gtk_toggle_button_get_active
-        (GTK_TOGGLE_BUTTON(checkbutton_filter_size_invert_cond));
+	negate = gtk_toggle_button_get_active(
+        GTK_TOGGLE_BUTTON
+            (lookup_widget
+                (filter_dialog, "checkbutton_filter_size_invert_cond")));
 
-    active = gtk_toggle_button_get_active
-        (GTK_TOGGLE_BUTTON(checkbutton_filter_size_active));
+	active = gtk_toggle_button_get_active(
+        GTK_TOGGLE_BUTTON
+            (lookup_widget(filter_dialog, "checkbutton_filter_size_active")));
 
-    soft = gtk_toggle_button_get_active
-        (GTK_TOGGLE_BUTTON(checkbutton_filter_size_soft));
+   	soft = gtk_toggle_button_get_active(
+        GTK_TOGGLE_BUTTON
+            (lookup_widget(filter_dialog, "checkbutton_filter_size_soft")));
 
     target = (filter_t *)option_menu_get_selected_data
-        (optionmenu_filter_size_target);
+        (lookup_widget(filter_dialog, "optionmenu_filter_size_target"));
 
     flags =
         (negate ? RULE_FLAG_NEGATE : 0) |
@@ -1416,11 +1628,12 @@ static rule_t *filter_gui_get_jump_rule()
     if (filter_dialog == NULL)
         return NULL;
 
-    target = (filter_t *)option_menu_get_selected_data
-        (optionmenu_filter_jump_target);
+	active = gtk_toggle_button_get_active(
+        GTK_TOGGLE_BUTTON
+            (lookup_widget(filter_dialog, "checkbutton_filter_jump_active")));
 
-    active = gtk_toggle_button_get_active
-        (GTK_TOGGLE_BUTTON(checkbutton_filter_jump_active));
+    target = (filter_t *)option_menu_get_selected_data
+        (lookup_widget(filter_dialog, "optionmenu_filter_jump_target"));
 
     flags = (active ? RULE_FLAG_ACTIVE : 0);
 
@@ -1450,46 +1663,33 @@ static rule_t *filter_gui_get_flag_rule()
         return NULL;
 
     target = (filter_t *)option_menu_get_selected_data
-        (optionmenu_filter_flag_target);
+        (lookup_widget(filter_dialog, "optionmenu_filter_flag_target"));
 
     act = radiobutton_get_active_in_group
-        (GTK_RADIO_BUTTON(radiobutton_filter_flag_stable_set));
-    if (act == radiobutton_filter_flag_stable_set)
-        stable = RULE_FLAG_SET;
-    else if (act == radiobutton_filter_flag_stable_unset)
-        stable = RULE_FLAG_UNSET;
-    else if (act == radiobutton_filter_flag_stable_ignore)
-        stable = RULE_FLAG_IGNORE;
-    else
-        g_error("Unknown radiobutton for stable flag");
+        (GTK_RADIO_BUTTON(lookup_widget
+            (filter_dialog, "radiobutton_filter_flag_stable_set")));
+    stable = (enum rule_flag_action) 
+        gtk_object_get_user_data(GTK_OBJECT(act));
 
     act = radiobutton_get_active_in_group
-        (GTK_RADIO_BUTTON(radiobutton_filter_flag_busy_set));
-    if (act == radiobutton_filter_flag_busy_set)
-        busy = RULE_FLAG_SET;
-    else if (act == radiobutton_filter_flag_busy_unset)
-        busy = RULE_FLAG_UNSET;
-    else if (act == radiobutton_filter_flag_busy_ignore)
-        busy = RULE_FLAG_IGNORE;
-    else
-        g_error("Unknown radiobutton for busy flag");
+        (GTK_RADIO_BUTTON(lookup_widget
+            (filter_dialog, "radiobutton_filter_flag_busy_set")));
+    busy = (enum rule_flag_action)
+        gtk_object_get_user_data(GTK_OBJECT(act));
 
     act = radiobutton_get_active_in_group
-        (GTK_RADIO_BUTTON(radiobutton_filter_flag_push_set));
-    if (act == radiobutton_filter_flag_push_set)
-        push = RULE_FLAG_SET;
-    else if (act == radiobutton_filter_flag_push_unset)
-        push = RULE_FLAG_UNSET;
-    else if (act == radiobutton_filter_flag_push_ignore)
-        push = RULE_FLAG_IGNORE;
-    else
-        g_error("Unknown radiobutton for push flag");
+        (GTK_RADIO_BUTTON(lookup_widget
+            (filter_dialog, "radiobutton_filter_flag_push_set")));
+    push = (enum rule_flag_action)
+        gtk_object_get_user_data(GTK_OBJECT(act));
 
     active = gtk_toggle_button_get_active
-        (GTK_TOGGLE_BUTTON(checkbutton_filter_flag_active));
+        (GTK_TOGGLE_BUTTON
+            (lookup_widget(filter_dialog, "checkbutton_filter_flag_active")));
 
     soft = gtk_toggle_button_get_active
-        (GTK_TOGGLE_BUTTON(checkbutton_filter_flag_soft));
+        (GTK_TOGGLE_BUTTON
+            (lookup_widget(filter_dialog, "checkbutton_filter_flag_soft")));
 
     flags = (active ? RULE_FLAG_ACTIVE : 0) |
             (soft   ? RULE_FLAG_SOFT   : 0);
@@ -1520,42 +1720,31 @@ static rule_t *filter_gui_get_state_rule()
         return NULL;
 
     target = (filter_t *)option_menu_get_selected_data
-        (optionmenu_filter_state_target);
+        (lookup_widget(filter_dialog, "optionmenu_filter_state_target"));
 
     act = radiobutton_get_active_in_group
-        (GTK_RADIO_BUTTON(radiobutton_filter_state_display_do));
-    if (act == radiobutton_filter_state_display_do)
-        display = FILTER_PROP_STATE_DO;
-    else if (act == radiobutton_filter_state_display_dont)
-        display = FILTER_PROP_STATE_DONT;
-    else if (act == radiobutton_filter_state_display_ignore)
-        display = FILTER_PROP_STATE_IGNORE;
-    else if (act == radiobutton_filter_state_display_undef)
-        display = FILTER_PROP_STATE_UNKNOWN;
-    else
-        g_error("Unknown radiobutton for DISPLAY property");
-
+        (GTK_RADIO_BUTTON(lookup_widget
+            (filter_dialog, "radiobutton_filter_state_display_do")));
+    display = (enum filter_prop_state) 
+        gtk_object_get_user_data(GTK_OBJECT(act));
+   
     act = radiobutton_get_active_in_group
-        (GTK_RADIO_BUTTON(radiobutton_filter_state_download_do));
-    if (act == radiobutton_filter_state_download_do)
-        download = FILTER_PROP_STATE_DO;
-    else if (act == radiobutton_filter_state_download_dont)
-        download = FILTER_PROP_STATE_DONT;
-    else if (act == radiobutton_filter_state_download_ignore)
-        download = FILTER_PROP_STATE_IGNORE;
-    else if (act == radiobutton_filter_state_download_undef)
-        download = FILTER_PROP_STATE_UNKNOWN;
-    else
-        g_error("Unknown radiobutton for DOWNLOAD property");
+        (GTK_RADIO_BUTTON(lookup_widget
+            (filter_dialog, "radiobutton_filter_state_download_do")));
+    download = (enum filter_prop_state) 
+        gtk_object_get_user_data(GTK_OBJECT(act));
   
     active = gtk_toggle_button_get_active
-        (GTK_TOGGLE_BUTTON(checkbutton_filter_state_active));
+        (GTK_TOGGLE_BUTTON(lookup_widget
+            (filter_dialog, "checkbutton_filter_state_active")));
 
     soft = gtk_toggle_button_get_active
-        (GTK_TOGGLE_BUTTON(checkbutton_filter_state_soft));
+        (GTK_TOGGLE_BUTTON(lookup_widget
+            (filter_dialog, "checkbutton_filter_state_soft")));
 
     negate = gtk_toggle_button_get_active
-        (GTK_TOGGLE_BUTTON(checkbutton_filter_state_invert_cond));
+        (GTK_TOGGLE_BUTTON(lookup_widget
+            (filter_dialog, "checkbutton_filter_state_invert_cond")));
 
     flags = (active ? RULE_FLAG_ACTIVE : 0) |
             (soft   ? RULE_FLAG_SOFT   : 0) |
@@ -1569,7 +1758,8 @@ void filter_gui_freeze_rules()
     if (filter_dialog == NULL)
         return;
 
-    gtk_clist_freeze(GTK_CLIST(clist_filter_rules));
+    gtk_clist_freeze
+        (GTK_CLIST(lookup_widget(filter_dialog, "clist_filter_rules")));
 }
 
 void filter_gui_thaw_rules()
@@ -1577,7 +1767,8 @@ void filter_gui_thaw_rules()
     if (filter_dialog == NULL)
         return;
 
-    gtk_clist_thaw(GTK_CLIST(clist_filter_rules));
+    gtk_clist_thaw
+        (GTK_CLIST(lookup_widget(filter_dialog, "clist_filter_rules")));
 }
 
 void filter_gui_freeze_filters()
@@ -1585,7 +1776,8 @@ void filter_gui_freeze_filters()
     if (filter_dialog == NULL)
         return;
 
-    gtk_clist_freeze(GTK_CLIST(ctree_filter_filters));
+    gtk_clist_freeze
+        (GTK_CLIST(lookup_widget(filter_dialog, "ctree_filter_filters")));
 }
 
 void filter_gui_thaw_filters()
@@ -1593,5 +1785,6 @@ void filter_gui_thaw_filters()
     if (filter_dialog == NULL)
         return;
 
-    gtk_clist_thaw(GTK_CLIST(ctree_filter_filters));
+    gtk_clist_thaw
+        (GTK_CLIST(lookup_widget(filter_dialog, "ctree_filter_filters")));
 }

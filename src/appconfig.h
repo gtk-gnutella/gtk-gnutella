@@ -50,6 +50,7 @@ extern gboolean progressbar_bws_gin_avg;
 extern gboolean toolbar_visible;
 extern gboolean statusbar_visible;
 extern gboolean monitor_enabled;
+extern guint32 monitor_max_items;
 extern gboolean search_stats_enabled;
 extern gboolean search_remove_downloaded;
 extern gboolean search_autoselect_ident;

@@ -24,9 +24,30 @@
 ## Process this file with automake to produce Makefile.in
 
 
+if ENABLE_GTK2
+INCLUDES = \
+	@GTK_GNUTELLA_CFLAGS@ \
+	@XML_CFLAGS@
+GLADECMD = glade-2
+GLADEFILE = gtk2-gnutella.glade
+GLADE_UI = \
+	interface-glade2.c interface-glade2.h \
+	support-glade2.c support-glade2.h
+ADDITIONAL_DROPIN =
+gtk_gnutella_LDADD = @GTK_GNUTELLA_LIBS@ -lz @XML_LIBS@
+else
 INCLUDES = \
 	@GTK_CFLAGS@ \
 	@XML_CFLAGS@
+GLADECMD = glade
+GLADEFILE = gtk-gnutella.glade
+GLADE_UI = \
+	interface-glade1.c interface-glade1.h \
+	support-glade1.c support-glade1.h
+ADDITIONAL_DROPIN = \
+	gtkcolumnchooser.c gtkcolumnchooser.h
+gtk_gnutella_LDADD = @GTK_LIBS@ -lz @XML_LIBS@
+endif
 
 bin_PROGRAMS = gtk-gnutella
 CLEANFILES = interface-glade.c interface-glade.h *.bak
@@ -42,7 +63,8 @@ endif
 # interface.h must come before any .c files that include it so that it is built.
 gtk_gnutella_SOURCES = \
 	$(XML_STORE) \
-	interface.c interface.h \
+	$(GLADE_UI) \
+	$(ADDITIONAL_DROPIN) \
 	gnutella.h \
 	misc.c misc.h \
 	config.c appconfig.h \
@@ -51,15 +73,14 @@ gtk_gnutella_SOURCES = \
 	hosts.c hosts.h \
 	pcache.c pcache.h \
 	routing.c routing.h \
-	search.c search.h \
+	search.c search.h search_gui.h \
 	search_stats.c search_stats.h \
 	downloads.c downloads.h \
-	share.c share.h \
+	share.c share.h share_gui.c share_gui.h \
 	uploads.c uploads.h \
 	upload_stats.c upload_stats.h \
 	main.c \
 	gui.c gui.h \
-	support.c support.h \
 	matching.c matching.h \
 	callbacks.c callbacks.h \
 	getline.c getline.h \
@@ -80,7 +101,6 @@ gtk_gnutella_SOURCES = \
 	rx_inflate.c rx_inflate.h \
 	zlib_util.c zlib_util.h \
 	gtk-missing.c gtk-missing.h \
-	gtkcolumnchooser.c gtkcolumnchooser.h \
 	sha1.c sha1.h huge.c huge.h \
 	base32.c base32.h \
 	utf8.c utf8.h \
@@ -95,8 +115,6 @@ gtk_gnutella_SOURCES = \
 	version.c version.h \
 	alive.c alive.h
 
-gtk_gnutella_LDADD = @GTK_LIBS@ -lz @XML_LIBS@
-
 GLADE_WARNING1 = "Warning: gtk-gnutella.glade is newer than glade-built files and"
 GLADE_WARNING2 = "  \"glade --write-source\" failed.  To ignore any changes to"
 GLADE_WARNING3 = "  gtk-gnutella.glade, cd to the src directory, and run"
@@ -104,16 +122,19 @@ GLADE_WARNING4 = "  touch interface-glade.c interface-glade.h support.h support.
 
 #
 # Glade generates:
-#	interface-glade.c interface-glade.h
-#   callbacks-glade.c callbacks-glade.h (which we don't care about)
-#   support.c support.h
+#	interface-glade[12].c interface-glade[12].h
+#   support-glade[12].c support-glade[12].h
 #
-# We then generate interface.h and interface.h via ./extern.tcl
+# Depending on wether we compile for Gtk 1.2 or Gtk 2, the ones the others
+# will be linked and included. This can be tested by checking if USE_GTK2
+# is defined in the sourcecode files.
+# We let glade directly handle the callbacks.[ch] files so we can do without
+# any postprocessing of the glade output.
 #
 
 glade_files:
-	@echo glade --write-source ../gtk-gnutella.glade
-	@glade --write-source ../gtk-gnutella.glade || (echo $(GLADE_WARNING1);echo $(GLADE_WARNING2);echo $(GLADE_WARNING3);echo $(GLADE_WARNING4))
-	rm -f callbacks-glade.c callbacks-glade.h
-	./extern.tcl 
+	@echo $(GLADECMD) --write-source ../$(GLADEFILE)
+	@$(GLADECMD) --write-source ../$(GLADEFILE) || (echo $(GLADE_WARNING1);echo $(GLADE_WARNING2);echo $(GLADE_WARNING3);echo $(GLADE_WARNING4))
+
+
 

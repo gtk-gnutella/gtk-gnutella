@@ -24,7 +24,7 @@
  */
 
 #include "gnutella.h"
-#include "interface.h"
+#include "uploads_gui.h"
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -39,7 +39,7 @@
 
 #include "sockets.h"
 #include "share.h"
-#include "gui.h"
+#include "uploads_gui.h"
 #include "misc.h"
 #include "getline.h"
 #include "header.h"
@@ -557,8 +557,14 @@ static void upload_remove_v(struct upload *u, const gchar *reason, va_list ap)
 	 */
 	gui_update_c_uploads();
 
-	row = gtk_clist_find_row_from_data(GTK_CLIST(clist_uploads), (gpointer) u);
-	gtk_clist_remove(GTK_CLIST(clist_uploads), row);
+    {
+        GtkWidget *clist_uploads = 
+            lookup_widget(main_window, "clist_uploads");
+
+        row = gtk_clist_find_row_from_data
+            (GTK_CLIST(clist_uploads), (gpointer) u);
+        gtk_clist_remove(GTK_CLIST(clist_uploads), row);
+    }
 	uploads = g_slist_remove(uploads, (gpointer) u);
 }
 
@@ -1893,8 +1899,13 @@ static void upload_request(struct upload *u, header_t *header)
     titles[c_ul_agent] = (u->user_agent != NULL) ? u->user_agent : "";
 	titles[c_ul_status] = "";
 
-	row = gtk_clist_append(GTK_CLIST(clist_uploads), titles);
-	gtk_clist_set_row_data(GTK_CLIST(clist_uploads), row, (gpointer) u);
+    {
+        GtkWidget *clist_uploads = 
+            lookup_widget(main_window, "clist_uploads");
+
+        row = gtk_clist_append(GTK_CLIST(clist_uploads), titles);
+        gtk_clist_set_row_data(GTK_CLIST(clist_uploads), row, (gpointer) u);
+    }
 
 	gui_update_c_uploads();
 	ul_stats_file_begin(u);
@@ -2011,12 +2022,15 @@ void upload_write(gpointer up, gint source, GdkInputCondition cond)
 		if (clear_uploads == TRUE)
 			upload_remove(u, NULL);
 		else {
+            GtkWidget *button = 
+                lookup_widget(main_window, "button_uploads_clear_completed");
+
 			u->status = GTA_UL_COMPLETE;
 			gui_update_upload(u);
 			registered_uploads--;
 			running_uploads--;
 			gui_update_c_uploads();
-			gtk_widget_set_sensitive(button_uploads_clear_completed, 1);
+			gtk_widget_set_sensitive(button, TRUE);
 			upload_free_resources(u);
 		}
 		return;

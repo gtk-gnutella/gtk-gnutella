@@ -26,19 +26,22 @@
 #include "gnutella.h"
 
 #include "gtk-missing.h"
+#include "share_gui.h"
 
 /*
  * gtk_paned_get_position:
  *
  * Get position of divider in a GtkPaned. (in GTK2)
  */
-gint gtk_paned_get_position(GtkPaned *paned)
+#ifndef USE_GTK2
+gint gtk_paned_get_position(GtkPaned *paned) 
 {
     g_return_val_if_fail(paned != NULL, -1);
     g_return_val_if_fail(GTK_IS_PANED (paned), -1);
 
     return paned->child1_size;
 }
+#endif
 
 /*
  * gtk_clist_set_column_name:
@@ -148,7 +151,7 @@ gpointer option_menu_get_selected_data(GtkWidget *m)
 
 
 /*
- * radiobutton__get_active_in_group:
+ * radiobutton_get_active_in_group:
  * 
  * Given a radio button it returns a pointer to the active radio
  * button in the group the given button is in. 
@@ -168,4 +171,74 @@ GtkWidget *radiobutton_get_active_in_group(GtkRadioButton *rb)
     }
 
     return NULL;
+}
+
+
+/*
+ * gtk_entry_printf:
+ *
+ * printf into a gtk_entry.
+ */
+void gtk_entry_printf(GtkEntry *entry, const gchar *format, ...)
+{
+    static gchar buf[1024];
+    va_list args;
+
+    g_assert(entry != NULL);
+
+    va_start(args, format);
+
+    if (format != NULL)
+        g_vsnprintf(buf, sizeof(buf), format, args);
+    else
+        buf[0] = 0;
+
+    gtk_entry_set_text(entry, buf);
+
+    va_end(args);
+}
+
+/*
+ * gtk_label_printf:
+ *
+ * printf into a GtkLabel.
+ */
+void gtk_label_printf(GtkLabel *label, const gchar *format, ...)
+{
+    static gchar buf[1024];
+    va_list args;
+
+    g_assert(label != NULL);
+
+    va_start(args, format);
+    
+    if (format != NULL)
+        g_vsnprintf(buf, sizeof(buf), format, args);
+    else
+        buf[0] = 0;
+
+    gtk_label_set_text(label, buf);
+
+    va_end(args);
+}
+
+/*
+ * gtk_mass_widget_set_sensitive:
+ *
+ * Takes a NULL terminated array of strings which are supposed to
+ * be widgets names found with the given top-level widget. Sets all
+ * to the given sentitivity state.
+ */
+void gtk_mass_widget_set_sensitive
+    (GtkWidget *toplevel, gchar *list[], gboolean b)
+{
+    guint n;
+    GtkWidget *w;
+    
+    g_assert(toplevel != NULL);
+
+    for (n = 0; list[n] != NULL; n ++) {
+        w = lookup_widget(toplevel, list[n]);
+        gtk_widget_set_sensitive(w, b);
+    }
 }

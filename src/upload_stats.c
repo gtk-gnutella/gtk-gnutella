@@ -50,7 +50,7 @@
 #include <time.h>		/* For ctime() */
 
 #include "gnutella.h"
-#include "interface.h"
+#include "upload_stats_gui.h"
 #include "misc.h"
 #include "upload_stats.h"
 #include "url.h"
@@ -129,6 +129,7 @@ static void ul_stats_add_row(gchar *filename,
 	gchar complete_tmp[16];
 	gchar norm_tmp[16];
 	gfloat norm = (float) ul_bytes / (float) size;
+    GtkCList *clist = GTK_CLIST(lookup_widget(main_window, "clist_ul_stats"));
 
 	g_snprintf(size_tmp, sizeof(size_tmp), "%s", short_size(size));
 	g_snprintf(attempts_tmp, sizeof(attempts_tmp), "%u", attempts);
@@ -141,7 +142,7 @@ static void ul_stats_add_row(gchar *filename,
 	rowdata[UL_STATS_COMPLETE_IDX] = complete_tmp;
 	rowdata[UL_STATS_NORM_IDX] = norm_tmp;
 
-	row = gtk_clist_insert(GTK_CLIST(clist_ul_stats), 0, rowdata);
+    row = gtk_clist_insert(clist, 0, rowdata);
 	ul_rows++;
 
 	stat = g_malloc(sizeof(struct ul_stats));
@@ -151,8 +152,10 @@ static void ul_stats_add_row(gchar *filename,
 	stat->norm = norm;
 	stat->bytes_sent = ul_bytes;
 
-	gtk_clist_set_row_data_full(GTK_CLIST(clist_ul_stats), row, stat, g_free);
-	gtk_clist_sort(GTK_CLIST(clist_ul_stats));
+	gtk_clist_set_row_data_full(clist, row, stat, g_free);
+
+    // FIXME: should use auto_sort?
+	gtk_clist_sort(clist);
 }
 
 void ul_stats_load_history(const gchar *ul_history_file_name)
@@ -225,10 +228,17 @@ void ul_stats_load_history(const gchar *ul_history_file_name)
 
 done:
 	/* default - set the clist to be sorted by the normalized column */
-	gtk_clist_set_compare_func(GTK_CLIST(clist_ul_stats), compare_ul_norm);
-	gtk_clist_set_sort_column(GTK_CLIST(clist_ul_stats), UL_STATS_NORM_IDX);
-	gtk_clist_set_sort_type(GTK_CLIST(clist_ul_stats), GTK_SORT_DESCENDING);
-	gtk_clist_sort(GTK_CLIST(clist_ul_stats));
+    {
+        GtkCList *clist = 
+            GTK_CLIST(lookup_widget(main_window, "clist_ul_stats"));
+
+        gtk_clist_set_compare_func(clist, compare_ul_norm);
+        gtk_clist_set_sort_column(clist, UL_STATS_NORM_IDX);
+        gtk_clist_set_sort_type(clist, GTK_SORT_DESCENDING);
+
+        // FIXME: should use auto-sort?
+        gtk_clist_sort(clist);
+    }
 }
 
 /*
@@ -244,6 +254,9 @@ void ul_stats_dump_history(const gchar *ul_history_file_name, gboolean cleanup)
 	FILE *out;
 	gint i;
 	time_t now = time((time_t *) NULL);
+    GtkWidget *clist_ul_stats;
+
+    clist_ul_stats = lookup_widget(main_window, "clist_ul_stats");
 
 	/* open file for writing */
 	out = fopen(ul_history_file_name, "w");
@@ -323,6 +336,8 @@ static int ul_find_row_by_upload(
 	const struct upload *u, struct ul_stats **s)
 {
 	int i;
+    GtkCList *clist = 
+        GTK_CLIST(lookup_widget(main_window, "clist_ul_stats"));
 
 	/* go through the clist_ul_stats, looking for the file...
 	 * blame gtk/glib, not me...
@@ -331,12 +346,12 @@ static int ul_find_row_by_upload(
 		gchar *filename;
 		struct ul_stats *us;
 
-		us = gtk_clist_get_row_data(GTK_CLIST(clist_ul_stats), i);
+		us = gtk_clist_get_row_data(clist, i);
 
 		if (us->size != u->file_size)
 			continue;
 
-		gtk_clist_get_text(GTK_CLIST(clist_ul_stats), i,
+		gtk_clist_get_text(clist, i,
 			UL_STATS_FILE_IDX, &filename);
 
 		if (g_str_equal(filename, u->name)) {
@@ -363,14 +378,17 @@ void ul_stats_file_begin(const struct upload *u)
 		ul_stats_add_row(u->name, u->file_size, 1, 0, 0);
 	else {
 		gchar attempts_tmp[16];
+        GtkCList *clist = 
+            GTK_CLIST(lookup_widget(main_window, "clist_ul_stats"));
 
 		stat->attempts++;
 
 		/* set attempt cell contents */
 		g_snprintf(attempts_tmp, sizeof(attempts_tmp), "%d", stat->attempts);
-		gtk_clist_set_text(GTK_CLIST(clist_ul_stats), row,
-			UL_STATS_ATTEMPTS_IDX, attempts_tmp);
-		gtk_clist_sort(GTK_CLIST(clist_ul_stats));
+		gtk_clist_set_text(clist, row, UL_STATS_ATTEMPTS_IDX, attempts_tmp);
+        
+        // FIXME: use auto-sort?
+		gtk_clist_sort(clist);
 	}
 
 	dirty = TRUE;		/* Request asynchronous save of stats */
@@ -402,23 +420,24 @@ static void ul_stats_file_add(const struct upload *u, gint comp, gint sent)
 	} else {
 		gchar complete_tmp[16];
 		gchar norm_tmp[16];
+        GtkCList *clist =
+            GTK_CLIST(lookup_widget(main_window, "clist_ul_stats"));
 
 		/* update complete counter */
 		stat->complete += comp;
 		g_snprintf(complete_tmp, sizeof(complete_tmp), "%d", 
 			stat->complete);
-		gtk_clist_set_text(GTK_CLIST(clist_ul_stats), row,
-			UL_STATS_COMPLETE_IDX, complete_tmp);
+		gtk_clist_set_text(clist, row, UL_STATS_COMPLETE_IDX, complete_tmp);
 
 		/* update normalized upload counter */
 		stat->bytes_sent += sent;
 		stat->norm = (float) stat->bytes_sent / (float) stat->size;
 
 		g_snprintf(norm_tmp, sizeof(complete_tmp), "%.3f", stat->norm);
-		gtk_clist_set_text(GTK_CLIST(clist_ul_stats), row,
-			UL_STATS_NORM_IDX, norm_tmp);
+		gtk_clist_set_text(clist, row, UL_STATS_NORM_IDX, norm_tmp);
 
-		gtk_clist_sort(GTK_CLIST(clist_ul_stats));
+        // FIXME: use auto-sort?
+		gtk_clist_sort(clist);
 	}
 
 	dirty = TRUE;		/* Request asynchronous save of stats */
@@ -452,7 +471,10 @@ void ul_stats_prune_nonexistant()
 
 void ul_stats_clear_all()
 {
-	gtk_clist_clear(GTK_CLIST(clist_ul_stats));
+    GtkCList *clist =
+        GTK_CLIST(lookup_widget(main_window, "clist_ul_stats"));
+
+	gtk_clist_clear(clist);
 	ul_rows = 0;
 	dirty = TRUE;
 }

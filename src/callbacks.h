@@ -176,7 +176,7 @@ gboolean on_entry_config_myttl_focus_out_event (GtkWidget *widget, GdkEventFocus
 gboolean on_entry_config_netmask_focus_out_event(GtkWidget * widget, GdkEventFocus * event, gpointer user_data);
 gboolean on_entry_config_path_focus_out_event (GtkWidget *widget, GdkEventFocus *event, gpointer user_data);
 gboolean on_entry_config_search_items_focus_out_event (GtkWidget *widget, GdkEventFocus *event, gpointer user_data);
-gboolean on_entry_config_socks_host_focus_out_event (GtkWidget *widget, GdkEventFocus *event, gpointer user_data);
+gboolean on_entry_config_proxy_ip_focus_out_event (GtkWidget *widget, GdkEventFocus *event, gpointer user_data);
 gboolean on_entry_config_socks_password_focus_out_event (GtkWidget *widget, GdkEventFocus *event, gpointer user_data);
 gboolean on_entry_config_socks_username_focus_out_event (GtkWidget *widget, GdkEventFocus *event, gpointer user_data);
 gboolean on_entry_config_speed_focus_out_event (GtkWidget *widget, GdkEventFocus *event, gpointer user_data);
@@ -205,7 +205,7 @@ void on_entry_config_myttl_changed (GtkEditable *editable, gpointer user_data);
 void on_entry_config_netmask_activate(GtkEditable * editable, gpointer user_data);
 void on_entry_config_path_activate (GtkEditable *editable, gpointer user_data); 
 void on_entry_config_search_items_activate (GtkEditable *editable, gpointer user_data);
-void on_entry_config_socks_host_activate (GtkEditable *editable, gpointer user_data);
+void on_entry_config_proxy_ip_activate (GtkEditable *editable, gpointer user_data);
 void on_entry_config_socks_password_activate (GtkEditable *editable, gpointer user_data);
 void on_entry_config_socks_username_activate (GtkEditable *editable, gpointer user_data);
 void on_entry_config_speed_activate (GtkEditable *editable, gpointer user_data);

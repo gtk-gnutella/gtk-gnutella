@@ -31,8 +31,7 @@
 #include <ctype.h>		/* tolower() */
 
 #include "gnutella.h"
-#include "interface.h"
-#include "gui.h"
+#include "share_gui.h"
 #include "matching.h"
 #include "share.h"
 #include "sockets.h" /* For local_ip. (FIXME: move local_ip to config.h.) */
@@ -158,8 +157,6 @@ static GHashTable *file_basenames = NULL;
 
 gchar stmp_1[4096];
 gchar stmp_2[4096];
-
-guint32 monitor_items = 0;
 
 /*
  * Buffer where query hit packet is built.
@@ -926,23 +923,10 @@ gboolean search_request(struct gnutella_node *n)
 		}
 	}
 
-	if (monitor_enabled) {		/* Update the search monitor */
-		gchar *titles[1];
+    
 
-		gtk_clist_freeze(GTK_CLIST(clist_monitor));
-
-		if (monitor_items < monitor_max_items)
-			monitor_items++;
-		else
-			gtk_clist_remove(GTK_CLIST(clist_monitor),
-							 GTK_CLIST(clist_monitor)->rows - 1);
-
-		titles[0] = n->data + 2;
-
-		gtk_clist_prepend(GTK_CLIST(clist_monitor), titles);
-
-		gtk_clist_thaw(GTK_CLIST(clist_monitor));
-	}
+	if (monitor_enabled) 		/* Update the search monitor */
+		share_gui_append_to_monitor(n->data + 2);
 
 	READ_GUINT16_LE(n->data, req_speed);
 

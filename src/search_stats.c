@@ -39,7 +39,7 @@
 
 #include "gnutella.h"
 
-#include "interface.h"
+#include "search_stats_gui.h"
 #include "search_stats.h"
 
 /* this is what the stat_hash's 'val' points to */
@@ -87,6 +87,9 @@ static void empty_hash_table()
 void search_stats_enable(void)
 {
 	if (!stat_hash) {
+        GtkWidget *clist_search_stats = 
+            lookup_widget(main_window, "clist_search_stats");
+
 		stat_hash = g_hash_table_new(g_str_hash, g_str_equal);
 
 		/* set up the clist to be sorted properly */
@@ -152,7 +155,13 @@ stats_hash_to_clist(gpointer key, gpointer value, gpointer userdata)
 	text[0] = (gchar *) key;
 	text[1] = period_tmp;
 	text[2] = total_tmp;
-	gtk_clist_insert(GTK_CLIST(clist_search_stats), 0, text);
+
+    {
+        GtkWidget *clist_search_stats = 
+            lookup_widget(main_window, "clist_search_stats");
+        
+        gtk_clist_insert(GTK_CLIST(clist_search_stats), 0, text);
+    }
 
 	/* new period begins */
 	val->period_cnt = 0;
@@ -168,6 +177,10 @@ static int update_search_stats_display(gpointer data)
 {
 	static guint32 last_update_interval;
 	char tmpstr[32];
+    GtkWidget *clist_search_stats = 
+            lookup_widget(main_window, "clist_search_stats");
+    GtkWidget *label_search_stats_count = 
+            lookup_widget(main_window, "label_search_stats_count");
 
 	g_assert(stats_tag);
 
@@ -203,6 +216,9 @@ static int update_search_stats_display(gpointer data)
  */
 void search_stats_reset(void)
 {
+    GtkWidget *clist_search_stats = 
+            lookup_widget(main_window, "clist_search_stats");
+
 	empty_hash_table();
 	gtk_clist_clear(GTK_CLIST(clist_search_stats));
 

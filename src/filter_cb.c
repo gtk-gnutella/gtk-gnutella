@@ -24,7 +24,6 @@
  */
 
 #include "gnutella.h"
-#include "interface.h"
 #include "filter.h"
 #include "filter_cb.h"
 #include "filter_gui.h"
@@ -81,15 +80,22 @@ void on_button_filter_reset_all_clicked
     (GtkButton *button, gpointer user_data)
 {
     gint row;
+    GtkCTree *ctree;
+    GtkCList *clist;
 
-    for (row = 0; row < GTK_CLIST(ctree_filter_filters)->rows; row ++) {
+    if (filter_dialog == NULL)
+        return;
+
+    ctree = GTK_CTREE(lookup_widget(filter_dialog, "ctree_filter_filters"));
+    clist = GTK_CLIST(ctree);
+
+    for (row = 0; row < clist->rows; row ++) {
         filter_t *filter;
         GtkCTreeNode *node;
         
-        node = gtk_ctree_node_nth(GTK_CTREE(ctree_filter_filters), row);
+        node = gtk_ctree_node_nth(ctree, row);
 
-        filter = (filter_t *) gtk_ctree_node_get_row_data
-            (GTK_CTREE(ctree_filter_filters), node);
+        filter = (filter_t *) gtk_ctree_node_get_row_data(ctree, node);
 
         if (filter == NULL)
             continue;
@@ -154,37 +160,43 @@ void on_clist_filter_rules_drag_end(GtkWidget *widget,
 
 void on_button_filter_add_rule_text_clicked(GtkButton *button, gpointer user_data)
 {
-    gtk_clist_unselect_all(GTK_CLIST(clist_filter_rules));
+    gtk_clist_unselect_all
+        (GTK_CLIST(lookup_widget(filter_dialog, "clist_filter_rules")));
     filter_gui_edit_text_rule(NULL);
 }
 
 void on_button_filter_add_rule_ip_clicked(GtkButton *button, gpointer user_data)
 {
-    gtk_clist_unselect_all(GTK_CLIST(clist_filter_rules));
+    gtk_clist_unselect_all
+        (GTK_CLIST(lookup_widget(filter_dialog, "clist_filter_rules")));
     filter_gui_edit_ip_rule(NULL);
 }
 
 void on_button_filter_add_rule_size_clicked(GtkButton *button, gpointer user_data)
 {
-    gtk_clist_unselect_all(GTK_CLIST(clist_filter_rules));
+    gtk_clist_unselect_all
+        (GTK_CLIST(lookup_widget(filter_dialog, "clist_filter_rules")));
     filter_gui_edit_size_rule(NULL);
 }
 
 void on_button_filter_add_rule_jump_clicked(GtkButton *button, gpointer user_data)
 {
-    gtk_clist_unselect_all(GTK_CLIST(clist_filter_rules));
+    gtk_clist_unselect_all
+        (GTK_CLIST(lookup_widget(filter_dialog, "clist_filter_rules")));
     filter_gui_edit_jump_rule(NULL);
 }
 
 void on_button_filter_add_rule_flag_clicked(GtkButton *button, gpointer user_data)
 {
-    gtk_clist_unselect_all(GTK_CLIST(clist_filter_rules));
+    gtk_clist_unselect_all
+        (GTK_CLIST(lookup_widget(filter_dialog, "clist_filter_rules")));
     filter_gui_edit_flag_rule(NULL);
 }
 
 void on_button_filter_add_rule_state_clicked(GtkButton *button, gpointer user_data)
 {
-    gtk_clist_unselect_all(GTK_CLIST(clist_filter_rules));
+    gtk_clist_unselect_all
+        (GTK_CLIST(lookup_widget(filter_dialog, "clist_filter_rules")));
     filter_gui_edit_state_rule(NULL);
 }
 
@@ -196,9 +208,10 @@ void on_button_filter_ok_clicked(GtkButton *button, gpointer user_data)
 void on_button_filter_add_rule_clicked(GtkButton *button, gpointer user_data)
 {
     rule_t * r = NULL;
-
     gint page = gtk_notebook_get_current_page
-        (GTK_NOTEBOOK(notebook_filter_detail));
+        (GTK_NOTEBOOK(lookup_widget(filter_dialog, "notebook_filter_detail")));
+    GtkCList *clist_filter_rules = GTK_CLIST
+        (lookup_widget(filter_dialog, "clist_filter_rules"));
 
     switch (page) {
     case nb_filt_page_text:
@@ -226,14 +239,13 @@ void on_button_filter_add_rule_clicked(GtkButton *button, gpointer user_data)
      *else we add a new filter to the end of the list
      */
 
-    if (GTK_CLIST(clist_filter_rules)->selection != NULL) {
-        GList *l = GTK_CLIST(clist_filter_rules)->selection;
+    if (clist_filter_rules->selection != NULL) {
+        GList *l = clist_filter_rules->selection;
         rule_t *oldrule;
 
         /* modify row */
-        oldrule = (rule_t *) gtk_clist_get_row_data(
-            GTK_CLIST(clist_filter_rules),
-            (gint)l->data);
+        oldrule = (rule_t *) 
+            gtk_clist_get_row_data(clist_filter_rules, (gint)l->data);
         g_assert(oldrule != NULL);
         
         filter_replace_rule_in_session(work_filter, oldrule, r);
@@ -247,7 +259,8 @@ void on_button_filter_add_rule_clicked(GtkButton *button, gpointer user_data)
 void on_button_filter_cancel_clicked(GtkButton *button, gpointer user_data)
 {
     gint page = gtk_notebook_get_current_page
-        (GTK_NOTEBOOK(notebook_filter_detail));
+        (GTK_NOTEBOOK
+            (lookup_widget(filter_dialog, "notebook_filter_detail")));
 
     if (page == nb_filt_page_buttons) {
         filter_close_dialog(FALSE);
@@ -271,7 +284,8 @@ void on_button_filter_revert_clicked(GtkButton *button, gpointer user_data)
 
 void on_button_filter_clear_clicked(GtkButton *button, gpointer user_data)
 {
-    GtkCList *clist = GTK_CLIST(clist_filter_rules);
+    GtkCList *clist = GTK_CLIST
+        (lookup_widget(filter_dialog, "clist_filter_rules"));
 
     gtk_clist_freeze(clist);
 
@@ -284,13 +298,16 @@ void on_button_filter_clear_clicked(GtkButton *button, gpointer user_data)
     }
 
     gtk_clist_thaw(clist);
-    gtk_notebook_set_page
-        (GTK_NOTEBOOK(notebook_filter_detail), nb_filt_page_buttons);
+    gtk_notebook_set_page(
+        GTK_NOTEBOOK
+            (lookup_widget(filter_dialog, "notebook_filter_detail")), 
+        nb_filt_page_buttons);
 }
 
 void on_button_filter_remove_rule_clicked(GtkButton *button, gpointer user_data)
 {
-    GtkCList *clist = GTK_CLIST(clist_filter_rules);
+    GtkCList *clist = GTK_CLIST
+        (lookup_widget(filter_dialog, "clist_filter_rules"));
     rule_t *r;
 
     if (!clist->selection)
@@ -301,14 +318,17 @@ void on_button_filter_remove_rule_clicked(GtkButton *button, gpointer user_data)
        
     filter_remove_rule_from_session(work_filter, r);
 
-    gtk_notebook_set_page
-        (GTK_NOTEBOOK(notebook_filter_detail), nb_filt_page_buttons);
+    gtk_notebook_set_page(
+        GTK_NOTEBOOK
+            (lookup_widget(filter_dialog, "notebook_filter_detail")), 
+        nb_filt_page_buttons);
 }
 
 void on_button_filter_abort_rule_clicked(GtkButton *button, gpointer user_data)
 {
-    gtk_notebook_set_page
-        (GTK_NOTEBOOK(notebook_filter_detail), nb_filt_page_buttons);
+    gtk_notebook_set_page(
+        GTK_NOTEBOOK(lookup_widget(filter_dialog, "notebook_filter_detail")), 
+        nb_filt_page_buttons);
 }
 
 void on_button_filter_remove_clicked
@@ -340,20 +360,23 @@ void on_button_filter_create_clicked
     /*
      * Delegate to on_entry_filter_new_activate.
      */
-    on_entry_filter_new_activate(GTK_EDITABLE(entry_filter_new), NULL);
+    on_entry_filter_new_activate
+        (GTK_EDITABLE(lookup_widget(filter_dialog, "entry_filter_new")), NULL);
 }
 
 void on_button_filter_reset_rule_clicked
     (GtkButton *button, gpointer user_data)
 {
     rule_t *rule;
-    
-    if (GTK_CLIST(clist_filter_rules)->selection == NULL)
+    GtkCList *clist_filter_rules = GTK_CLIST
+        (lookup_widget(filter_dialog, "clist_filter_rules"));
+
+    if (clist_filter_rules->selection == NULL)
         return;
 
-    rule = (rule_t *) gtk_clist_get_row_data(
-        GTK_CLIST(clist_filter_rules),
-        (gint) GTK_CLIST(clist_filter_rules)->selection->data);
+    rule = (rule_t *) 
+        gtk_clist_get_row_data
+            (clist_filter_rules, (gint) clist_filter_rules->selection->data);
 
     filter_rule_reset_stats(rule);
 }
@@ -362,12 +385,13 @@ void on_button_filter_reset_all_rules_clicked
     (GtkButton *button, gpointer user_data)
 {
     gint row;
+    GtkCList *clist_filter_rules = GTK_CLIST
+        (lookup_widget(filter_dialog, "clist_filter_rules"));
 
-    for (row = 0; row < GTK_CLIST(clist_filter_rules)->rows; row ++) {
+    for (row = 0; row < clist_filter_rules->rows; row ++) {
         rule_t *rule;
     
-        rule = (rule_t *) gtk_clist_get_row_data
-            (GTK_CLIST(clist_filter_rules), row);
+        rule = (rule_t *) gtk_clist_get_row_data(clist_filter_rules, row);
 
         if (rule == NULL)
             continue;
@@ -380,6 +404,8 @@ gboolean on_clist_filter_rules_button_press_event
     (GtkWidget * widget, GdkEventButton * event, gpointer user_data)
 {
     gboolean sensitive;
+    GtkCList *clist_filter_rules = GTK_CLIST
+        (lookup_widget(filter_dialog, "clist_filter_rules"));
 
     if (event->button != 3)
 		return FALSE;
@@ -395,12 +421,14 @@ gboolean on_clist_filter_rules_button_press_event
         return TRUE;
     }
 
-    sensitive = (GTK_CLIST(clist_filter_rules)->selection != NULL) &&
+    sensitive = (clist_filter_rules->selection != NULL) &&
         (work_filter != NULL);
 
-    gtk_widget_set_sensitive(popup_filter_rule_copy, sensitive);
-    gtk_widget_set_sensitive(popup_filter_rule_paste, rule_clipboard != NULL);
-
+    gtk_widget_set_sensitive
+        (lookup_widget(filter_dialog, "popup_filter_rule_copy"), sensitive);
+    gtk_widget_set_sensitive(
+        lookup_widget(filter_dialog, "popup_filter_rule_paste"), 
+        rule_clipboard != NULL);
 
     gtk_menu_popup
         (GTK_MENU(popup_filter_rule), NULL, NULL, NULL, NULL, 
@@ -412,17 +440,19 @@ gboolean on_clist_filter_rules_button_press_event
 void on_popup_filter_rule_copy_activate
     (GtkMenuItem *menuitem, gpointer user_data)
 {
+    GtkCList *clist_filter_rules = GTK_CLIST
+        (lookup_widget(filter_dialog, "clist_filter_rules"));
+
     if (rule_clipboard != NULL)
         filter_free_rule(rule_clipboard);
 
-    if (GTK_CLIST(clist_filter_rules)->selection != NULL) {
+    if (clist_filter_rules->selection != NULL) {
         rule_t *r;
         gint row;
 
-        row = (gint) GTK_CLIST(clist_filter_rules)->selection->data;
+        row = (gint) clist_filter_rules->selection->data;
 
-        r = (rule_t *) gtk_clist_get_row_data
-            (GTK_CLIST(clist_filter_rules), row);
+        r = (rule_t *) gtk_clist_get_row_data(clist_filter_rules, row);
         g_assert(r != NULL);
    
         rule_clipboard = filter_duplicate_rule(r);

@@ -33,7 +33,6 @@
 
 #include <assert.h>
 
-#include "interface.h"
 #include "sockets.h"
 #include "search.h"
 #include "share.h"
@@ -307,8 +306,11 @@ static void get_protocol_version(guchar *handshake, gint *major, gint *minor)
 void node_real_remove(struct gnutella_node *n)
 {
 	gint row;
+    GtkWidget *clist_nodes;
 
 	g_return_if_fail(n);
+
+    clist_nodes = lookup_widget(main_window, "clist_nodes");
 
 	row = gtk_clist_find_row_from_data(GTK_CLIST(clist_nodes), (gpointer) n);
 	gtk_clist_remove(GTK_CLIST(clist_nodes), row);
@@ -2144,8 +2146,14 @@ void node_add(struct gnutella_socket *s, guint32 ip, guint16 port)
 	titles[3] = proto_tmp;
 	titles[4] = (gchar *) "";
 
-	row = gtk_clist_append(GTK_CLIST(clist_nodes), titles);
-	gtk_clist_set_row_data(GTK_CLIST(clist_nodes), row, (gpointer) n);
+    {
+        GtkWidget *clist_nodes;
+
+        clist_nodes = lookup_widget(main_window, "clist_nodes");
+
+        row = gtk_clist_append(GTK_CLIST(clist_nodes), titles);
+        gtk_clist_set_row_data(GTK_CLIST(clist_nodes), row, (gpointer) n);
+    }
 
 	/*
 	 * Insert node in lists, before checking `already_connected', since

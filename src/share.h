@@ -58,7 +58,6 @@ struct gnutella_search_results_out {
  */
 
 extern guint32 files_scanned, bytes_scanned, kbytes_scanned;
-extern guint32 monitor_max_items, monitor_items;
 extern GSList *extensions, *shared_dirs;
 
 /*

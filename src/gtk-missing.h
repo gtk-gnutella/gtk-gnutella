@@ -27,12 +27,24 @@
 #include <gtk/gtk.h>
 #include <glib.h>
 
+#include "config.h"
+
+#ifndef USE_GTK2
+#define gtk_progress_bar_set_text(pb, t) \
+    gtk_progress_set_format_string(GTK_PROGRESS(pb), t)
+#define gtk_progress_bar_set_fraction(pb, t) \
+    gtk_progress_set_percentage(GTK_PROGRESS(pb), t)
 gint gtk_paned_get_position(GtkPaned *paned);
+#endif
+
 void gtk_clist_set_column_name(GtkCList * clist, gint col, gchar * t);
 gint gtk_main_flush();
 void option_menu_select_item_by_data(GtkWidget *m, gpointer *d);
 gpointer option_menu_get_selected_data(GtkWidget *m);
 GtkWidget *menu_new_item_with_data(GtkMenu *m, gchar *l, gpointer d );
 GtkWidget *radiobutton_get_active_in_group(GtkRadioButton *rb);
+void gtk_entry_printf(GtkEntry *entry, const gchar * format, ...);
+void gtk_label_printf(GtkLabel *label, const gchar * format, ...);
+void gtk_mass_widget_set_sensitive(GtkWidget *tl, gchar *list[], gboolean b);
 
 #endif	/* __gtk_missing_h__ */

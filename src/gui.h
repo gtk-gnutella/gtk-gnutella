@@ -24,9 +24,21 @@
 #ifndef __gui_h__
 #define __gui_h__
 
+#ifdef HAVE_CONFIG_H
+# include <config.h>
+#endif
+
 #include "downloads.h"
 #include "uploads.h"
 #include "search.h"
+
+#ifdef USE_GTK2
+#include "interface-glade2.h"
+#include "support-glade2.h"
+#else
+#include "interface-glade1.h"
+#include "support-glade1.h"
+#endif
 
 
 
@@ -121,15 +133,6 @@ enum {
 
 
 /*
- * Macros for accessing the statusbar
- */
-#define gui_statusbar_push(scid, msg)   (gtk_statusbar_push(GTK_STATUSBAR(statusbar), (scid), (msg)))
-#define gui_statusbar_pop(scid)         (gtk_statusbar_pop(GTK_STATUSBAR(statusbar), (scid)))
-#define gui_statusbar_remove(scid, mid) (gtk_statusbar_remove(GTK_STATUSBAR(statusbar), (scid), (mid)))
-
-              
-
-/*
  * Public variables.
  */
 extern GtkWidget *main_window;
@@ -137,12 +140,22 @@ extern GtkWidget *shutdown_window;
 extern GtkWidget *main_window;
 extern GtkWidget *shutdown_window;
 extern GtkWidget *dlg_about;
+extern GtkWidget *popup_downloads;
+extern GtkWidget *popup_uploads;
+extern GtkWidget *popup_search;
+extern GtkWidget *popup_nodes;
+extern GtkWidget *popup_monitor;
+extern GtkWidget *popup_queue;
+
 
 
 
 /*
  * Public interface.
  */
+inline guint gui_statusbar_push(guint scid, gchar *msg);
+inline void gui_statusbar_pop(guint scid);
+inline void gui_statusbar_remove(guint scid, guint mid);
 gboolean gui_search_update_tab_label(struct search *sch);
 void gui_init(void);
 void gui_update_all(void);
@@ -180,7 +193,7 @@ void gui_update_max_downloads(void);
 void gui_update_max_host_downloads(void);
 void gui_update_max_ttl(void);
 void gui_update_max_uploads(void);
-void gui_update_max_host_uploads(void);
+void gui_update_max_uploads_ip(void);
 void gui_update_minimum_speed(void);
 void gui_update_monitor_max_items(void);
 void gui_update_move_file_path(void);
@@ -262,4 +275,5 @@ void gui_address_changed();
 void gui_search_remove(search_t *);
 void gui_view_search(search_t *sch);
 void gui_allow_rescan_dir(gboolean flag);
+void gui_connect_to_node(gchar *addr);
 #endif /* __gui_h__ */

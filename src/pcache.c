@@ -33,7 +33,6 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
-#include "interface.h"
 #include "gui.h"
 #include "misc.h"
 #include "sockets.h"

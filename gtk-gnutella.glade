@@ -10,10 +10,12 @@
   <language>C</language>
   <gnome_support>False</gnome_support>
   <gettext_support>False</gettext_support>
-  <main_source_file>interface-glade.c</main_source_file>
-  <main_header_file>interface-glade.h</main_header_file>
-  <handler_source_file>callbacks-glade.c</handler_source_file>
-  <handler_header_file>callbacks-glade.h</handler_header_file>
+  <output_main_file>False</output_main_file>
+  <output_build_files>False</output_build_files>
+  <main_source_file>interface-glade1.c</main_source_file>
+  <main_header_file>interface-glade1.h</main_header_file>
+  <support_source_file>support-glade1.c</support_source_file>
+  <support_header_file>support-glade1.h</support_header_file>
 </project>
 
 <widget>
@@ -4577,13 +4579,13 @@
 		      <can_focus>True</can_focus>
 		      <signal>
 			<name>activate</name>
-			<handler>on_entry_config_socks_host_activate</handler>
-			<last_modification_time>Fri, 29 Mar 2002 18:20:07 GMT</last_modification_time>
+			<handler>on_entry_config_proxy_ip_activate</handler>
+			<last_modification_time>Mon, 08 Jul 2002 12:17:08 GMT</last_modification_time>
 		      </signal>
 		      <signal>
 			<name>focus_out_event</name>
-			<handler>on_entry_config_socks_host_focus_out_event</handler>
-			<last_modification_time>Fri, 29 Mar 2002 18:20:20 GMT</last_modification_time>
+			<handler>on_entry_config_proxy_ip_focus_out_event</handler>
+			<last_modification_time>Mon, 08 Jul 2002 12:17:24 GMT</last_modification_time>
 		      </signal>
 		      <editable>True</editable>
 		      <text_visible>True</text_visible>
@@ -7834,7 +7836,7 @@ settings</label>
 
 	  <widget>
 	    <class>GtkPixmap</class>
-	    <name>pixmap_firewall</name>
+	    <name>image_firewall</name>
 	    <filename>firewall.xpm</filename>
 	    <xalign>0.5</xalign>
 	    <yalign>0.5</yalign>
@@ -7856,7 +7858,7 @@ settings</label>
 
 	  <widget>
 	    <class>GtkPixmap</class>
-	    <name>pixmap_no_firewall</name>
+	    <name>image_no_firewall</name>
 	    <filename>no_firewall.xpm</filename>
 	    <xalign>0.5</xalign>
 	    <yalign>0.5</yalign>

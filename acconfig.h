@@ -10,3 +10,4 @@
 #undef HAVE_SENDFILE_H
 #undef HAVE_CTYPE_H
 #undef USE_SEARCH_XML
+#undef USE_GTK2

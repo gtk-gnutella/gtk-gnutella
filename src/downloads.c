@@ -25,8 +25,7 @@
 
 #include "gnutella.h"
 #include "misc.h"
-#include "interface.h"
-#include "gui.h"
+#include "downloads_gui.h"
 #include "sockets.h"
 #include "downloads.h"
 #include "hosts.h"
@@ -647,6 +646,7 @@ void download_gui_add(struct download *d)
 	gchar *titles[5];
 	gint row;
     GdkColor *color;
+    GtkCList* clist_downloads;
 
 	g_return_if_fail(d);
 
@@ -656,6 +656,9 @@ void download_gui_add(struct download *d)
 			 d->file_name);
 		return;
 	}
+
+    clist_downloads = GTK_CLIST
+        (lookup_widget(main_window, "clist_downloads"));
 
     color = &(gtk_widget_get_style(GTK_WIDGET(clist_downloads))
                 ->fg[GTK_STATE_INSENSITIVE]);
@@ -667,19 +670,20 @@ void download_gui_add(struct download *d)
 	titles[c_dl_status] = "";
 
 	if (DOWNLOAD_IS_QUEUED(d)) {		/* This is a queued download */
-		row = gtk_clist_append(GTK_CLIST(clist_downloads_queue), titles);
-		gtk_clist_set_row_data(GTK_CLIST(clist_downloads_queue), row,
-							   (gpointer) d);
+        GtkCList* clist_downloads_queue;
+
+        clist_downloads_queue = GTK_CLIST
+            (lookup_widget(main_window, "clist_downloads_queue"));
+
+		row = gtk_clist_append(clist_downloads_queue, titles);
+		gtk_clist_set_row_data(clist_downloads_queue, row, (gpointer) d);
         if (d->always_push)
-             gtk_clist_set_foreground(GTK_CLIST(clist_downloads_queue), 
-                row, color);
+             gtk_clist_set_foreground(clist_downloads_queue, row, color);
 	} else {					/* This is an active download */
-		row = gtk_clist_append(GTK_CLIST(clist_downloads), titles);
-		gtk_clist_set_row_data(GTK_CLIST(clist_downloads), row,
-							   (gpointer) d);
+		row = gtk_clist_append(clist_downloads, titles);
+		gtk_clist_set_row_data(clist_downloads, row, (gpointer) d);
         if (DOWNLOAD_IS_IN_PUSH_MODE(d))
-             gtk_clist_set_foreground(GTK_CLIST(clist_downloads), 
-                row, color);
+             gtk_clist_set_foreground(clist_downloads, row, color);
 	}
 
 	d->visible = TRUE;
@@ -704,20 +708,27 @@ void download_gui_remove(struct download *d)
 	}
 
 	if (DOWNLOAD_IS_QUEUED(d)) {
+        GtkCList *clist_downloads_queue;
+
+        clist_downloads_queue = GTK_CLIST
+            (lookup_widget(main_window, "clist_downloads_queue"));
+
 		row =
-			gtk_clist_find_row_from_data(GTK_CLIST(clist_downloads_queue),
-										 (gpointer) d);
+			gtk_clist_find_row_from_data(clist_downloads_queue, (gpointer) d);
 		if (row != -1)
-			gtk_clist_remove(GTK_CLIST(clist_downloads_queue), row);
+			gtk_clist_remove(clist_downloads_queue, row);
 		else
 			g_warning("download_gui_remove(): "
 				"Queued download '%s' not found in clist !?", d->file_name);
 	} else {
-		row =
-			gtk_clist_find_row_from_data(GTK_CLIST(clist_downloads),
-										 (gpointer) d);
+        GtkCList *clist_downloads;
+
+        clist_downloads = GTK_CLIST
+            (lookup_widget(main_window, "clist_downloads"));
+
+		row = gtk_clist_find_row_from_data(clist_downloads, (gpointer) d);
 		if (row != -1)
-			gtk_clist_remove(GTK_CLIST(clist_downloads), row);
+			gtk_clist_remove(clist_downloads, row);
 		else
 			g_warning("download_gui_remove(): "
 				"Active download '%s' not found in clist !?", d->file_name);
@@ -1290,13 +1301,16 @@ void download_pickup_queued(void)
 	guint row;
 	time_t now = time((time_t *) NULL);
 	gint running = count_running_downloads();
+    GtkCList *clist_downloads_queue;
 
-	gtk_clist_freeze(GTK_CLIST(clist_downloads_queue));
+    clist_downloads_queue = GTK_CLIST
+        (lookup_widget(main_window, "clist_downloads_queue"));
+
+	gtk_clist_freeze(clist_downloads_queue);
 	row = 0;
-	while (row < GTK_CLIST(clist_downloads_queue)->rows
-		   && running < max_downloads) {
+	while (row < clist_downloads_queue->rows && running < max_downloads) {
 		struct download *d = (struct download *)
-			gtk_clist_get_row_data(GTK_CLIST(clist_downloads_queue), row);
+			gtk_clist_get_row_data(clist_downloads_queue, row);
 
 		if (!DOWNLOAD_IS_QUEUED(d))
 			g_warning("download_pickup_queued(): "
@@ -1318,9 +1332,9 @@ void download_pickup_queued(void)
 	 * Enable "Start now" only if we would not exceed limits.
 	 */
 
-	gtk_widget_set_sensitive(popup_queue_start_now, 
-							 (running < max_downloads) && 
-							 (GTK_CLIST(clist_downloads_queue)->selection)); 
+	gtk_widget_set_sensitive(
+        lookup_widget(popup_queue, "popup_queue_start_now"), 
+        (running < max_downloads) && clist_downloads_queue->selection); 
 
 	gtk_clist_thaw(GTK_CLIST(clist_downloads_queue));
 }
@@ -2245,7 +2259,7 @@ static gboolean download_overlap_check(struct download *d)
 	fd = open(dl_tmp, O_RDONLY);
 
 	if (fd == -1) {
-		gchar *error = g_strerror(errno);
+		const gchar * error = g_strerror(errno);
 		g_warning("cannot check resuming for \"%s\": %s",
 			d->output_name, error);
 		download_stop(d, GTA_DL_ERROR, "Can't check resume data: %s", error);
@@ -2253,7 +2267,7 @@ static gboolean download_overlap_check(struct download *d)
 	}
 
 	if (-1 == fstat(fd, &buf)) {			/* Should never happen */
-		gchar *error = g_strerror(errno);
+		const gchar *error = g_strerror(errno);
 		g_warning("cannot stat opened \"%s\": %s", d->output_name, error);
 		download_stop(d, GTA_DL_ERROR, "Can't stat opened file: %s", error);
 		goto out;
@@ -2285,7 +2299,7 @@ static gboolean download_overlap_check(struct download *d)
 	r = read(fd, data, d->overlap_size);
 
 	if (r < 0) {
-		gchar *error = g_strerror(errno);
+		const gchar *error = g_strerror(errno);
 		g_warning("cannot read resuming data for \"%s\": %s",
 			d->output_name, error);
 		download_stop(d, GTA_DL_ERROR, "Can't read resume data: %s", error);
@@ -2363,7 +2377,7 @@ static void download_write_data(struct download *d)
 	}
 
 	if (-1 == (written = write(d->file_desc, s->buffer, s->pos))) {
-		char *error = g_strerror(errno);
+		const char *error = g_strerror(errno);
 		g_warning("download_read(): write to file failed (%s) !", error);
 		g_warning("download_read: tried to write(%d, %p, %d)",
 			  d->file_desc, s->buffer, s->pos);
@@ -2773,7 +2787,7 @@ static void download_request(struct download *d, header_t *header)
 	}
 
 	if (d->file_desc == -1) {
-		gchar *error = g_strerror(errno);
+		const gchar *error = g_strerror(errno);
 		g_warning("Unable to open file '%s' for writing! (%s)",
 			dl_tmp, error);
 		download_stop(d, GTA_DL_ERROR, "Cannot write into file: %s", error);
@@ -3422,7 +3436,7 @@ static void download_retrieve(void)
 			g_warning("could not rename %s as %s: %s",
 				dl_tmp, filename, g_strerror(errno));
 	} else {
-		gchar *error = g_strerror(errno);
+		const gchar *error = g_strerror(errno);
 		struct stat buf;
 		gchar *instead = " instead";
 

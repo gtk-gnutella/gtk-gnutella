@@ -30,7 +30,6 @@
 #include "filter.h"
 #include "filter_gui.h"
 #include "misc.h"
-#include "interface.h"
 #include "search.h"
 #include "gtk-missing.h"
 
@@ -409,7 +408,7 @@ void filter_close_dialog(gboolean commit)
     if (commit) {
         filter_apply_changes();
         filter_default_policy = (gint) option_menu_get_selected_data
-            (optionmenu_filter_default_policy);
+            (lookup_widget(filter_dialog, "optionmenu_filter_default_policy"));
     } else
         filter_revert_changes();
 
@@ -420,7 +419,8 @@ void filter_close_dialog(gboolean commit)
             (filter_dialog->window, &flt_dlg_w, &flt_dlg_h);
         
         filter_main_divider_pos =
-            gtk_paned_get_position(GTK_PANED(hpaned_filter_main));
+            gtk_paned_get_position
+                (GTK_PANED(lookup_widget(filter_dialog, "hpaned_filter_main")));
 
 #ifdef FILTER_HIDE_ON_CLOSE        
         gtk_widget_hide(filter_dialog);
@@ -1892,10 +1892,13 @@ void filter_adapt_order(void)
     GList *neworder = NULL;
     gint row;
     shadow_t *shadow;
+    GtkCList *clist;
 
     if (!work_filter || filter_dialog == NULL)
         return;
    
+    clist = GTK_CLIST(lookup_widget(filter_dialog, "clist_filter_rules"));
+
     /*
      * Create a new shadow if necessary.
      */
@@ -1911,10 +1914,10 @@ void filter_adapt_order(void)
      */
     g_list_free(shadow->current);
 
-    for (row = 0; row < GTK_CLIST(clist_filter_rules)->rows; row ++) {
+    for (row = 0; row < clist->rows; row ++) {
         filter_t *f;
 
-        f = gtk_clist_get_row_data(GTK_CLIST(clist_filter_rules), row);
+        f = gtk_clist_get_row_data(clist, row);
         g_assert(f != NULL);
         
         neworder = g_list_append(neworder, f);
@@ -2353,7 +2356,7 @@ void filter_init(void)
 
     filters_current = g_list_copy(filters);
 
-    create_popup_filter_rule();
+    popup_filter_rule = create_popup_filter_rule();
 }
 
 

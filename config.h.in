@@ -1,8 +1,5 @@
 /* config.h.in.  Generated automatically from configure.in by autoheader 2.13.  */
 
-/* Define if you need to in order for stat and other things to work.  */
-#undef _POSIX_SOURCE
-
 /* Define if you have the ANSI C header files.  */
 #undef STDC_HEADERS
 
@@ -18,6 +15,7 @@
 #undef HAVE_SENDFILE_H
 #undef HAVE_CTYPE_H
 #undef USE_SEARCH_XML
+#undef USE_GTK2
 
 /* Define if you have the herror function.  */
 #undef HAVE_HERROR
