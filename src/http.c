@@ -3,11 +3,6 @@
  *
  * Copyright (c) 2002-2003, Raphael Manfredi
  *
- * HTTP routines.
- *
- * The whole HTTP logic is not contained here.  Only generic supporting
- * routines are here.
- *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
  *
@@ -27,6 +22,16 @@
  *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *----------------------------------------------------------------------
  */
+
+/**
+ * @file
+ *
+ * HTTP routines.
+ *
+ * The whole HTTP logic is not contained here.  Only generic supporting
+ * routines are here.
+ */
+
 #include "gnutella.h"
 
 #include <stdio.h>
@@ -52,9 +57,7 @@ http_url_error_t http_url_errno;		/* Error from http_url_parse() */
 
 static GSList *sl_outgoing = NULL;		/* To spot reply timeouts */
 
-/*
- * http_send_status
- *
+/**
  * Send HTTP status on socket, with code and reason.
  *
  * If `hev' is non-null, it points to a vector of http_extra_desc_t items,
@@ -73,7 +76,8 @@ static GSList *sl_outgoing = NULL;		/* To spot reply timeouts */
  *
  * Returns TRUE if we were able to send everything, FALSE otherwise.
  */
-gboolean http_send_status(
+gboolean
+http_send_status(
 	struct gnutella_socket *s, gint code, gboolean keep_alive,
 	http_extra_desc_t *hev, gint hevcnt,
 	const gchar *reason, ...)
@@ -228,14 +232,12 @@ gboolean http_send_status(
 	return TRUE;
 }
 
-/*
- * http_hostname_add
- *
+/**
  * HTTP status callback.
  * Add an X-Hostname line bearing the fully qualified hostname.
  */
-void http_hostname_add(
-	gchar *buf, gint *retval, gpointer arg, guint32 flags)
+void
+http_hostname_add(gchar *buf, gint *retval, gpointer arg, guint32 flags)
 {
 	gint length = *retval;
 	gint rw;
@@ -253,16 +255,15 @@ void http_hostname_add(
  *** HTTP parsing.
  ***/
 
-/*
- * code_message_parse
- *
+/**
  * Parse status messages formed of leading digit numbers, then an optional
  * message.  The pointer to the start of the message is returned in `msg'
  * if it is non-null.
  *
  * Returns status code, -1 on error.
  */
-static gint code_message_parse(const gchar *line, const gchar **msg)
+static gint
+code_message_parse(const gchar *line, const gchar **msg)
 {
 	const gchar *p;
 	gchar code[4];
@@ -317,9 +318,7 @@ static gint code_message_parse(const gchar *line, const gchar **msg)
 	return status;
 }
 
-/*
- * http_status_parse
- *
+/**
  * Parse protocol status line, and return the status code, and optionally a
  * pointer within the string where the status message starts (if `msg' is
  * a non-null pointer), and the protocol major/minor (if `major' and `minor'
@@ -348,7 +347,8 @@ static gint code_message_parse(const gchar *line, const gchar **msg)
  * NB: this routine is also used to parse GNUTELLA status codes, since
  * they follow the same pattern as HTTP status codes.
  */
-gint http_status_parse(const gchar *line,
+gint
+http_status_parse(const gchar *line,
 	const gchar *proto, const gchar **msg, gint *major, gint *minor)
 {
 	guchar c;
@@ -463,16 +463,15 @@ gint http_status_parse(const gchar *line,
 }
 
 
-/*
- * http_extract_version
- *
+/**
  * Extract HTTP version major/minor out of the given request, whose string
  * length is `len' bytes.
  *
  * Returns TRUE when we identified the "HTTP/x.x" trailing string, filling
  * major and minor accordingly.
  */
-gboolean http_extract_version(
+gboolean
+http_extract_version(
 	gchar *request, gint len, gint *major, gint *minor)
 {
 	gint limit;
@@ -545,12 +544,11 @@ static gchar *parse_errstr[] = {
 	"URL has no URI part",		/* HTTP_URL_MISSING_URI */
 };
 
-/*
- * http_url_strerror
- *
+/**
  * Return human-readable error string corresponding to error code `errnum'.
  */
-const gchar *http_url_strerror(http_url_error_t errnum)
+const gchar *
+http_url_strerror(http_url_error_t errnum)
 {
 	if ((gint) errnum < 0 || errnum >= G_N_ELEMENTS(parse_errstr))
 		return "Invalid error code";
@@ -558,9 +556,7 @@ const gchar *http_url_strerror(http_url_error_t errnum)
 	return parse_errstr[errnum];
 }
 
-/*
- * http_url_parse
- *
+/**
  * Parse HTTP url and extract the IP/port we need to connect to.
  * Also identifies the start of the path to request on the server.
  *
@@ -569,7 +565,8 @@ const gchar *http_url_strerror(http_url_error_t errnum)
  * The variable `http_url_errno' is set accordingly.
  *
  */
-gboolean http_url_parse(
+gboolean
+http_url_parse(
 	gchar *url, guint16 *port, gchar **host, gchar **path)
 {
 	gchar *host_start;
@@ -690,13 +687,12 @@ gboolean http_url_parse(
  *** HTTP buffer management.
  ***/
 
-/*
- * http_buffer_alloc
- *
+/**
  * Allocate HTTP buffer, capable of holding data at `buf', of `len' bytes,
  * and whose `written' bytes have already been sent out.
  */
-http_buffer_t *http_buffer_alloc(gchar *buf, gint len, gint written)
+http_buffer_t *
+http_buffer_alloc(gchar *buf, gint len, gint written)
 {
 	http_buffer_t *b;
 
@@ -715,12 +711,11 @@ http_buffer_t *http_buffer_alloc(gchar *buf, gint len, gint written)
 	return b;
 }
 
-/*
- * http_buffer_free
- *
+/**
  * Dispose of HTTP buffer.
  */
-void http_buffer_free(http_buffer_t *b)
+void
+http_buffer_free(http_buffer_t *b)
 {
 	g_assert(b);
 
@@ -732,9 +727,7 @@ void http_buffer_free(http_buffer_t *b)
  *** HTTP range parsing.
  ***/
 
-/*
- * http_range_add
- *
+/**
  * Add a new http_range_t object within the sorted list.
  * Refuse to add the range if it is overlapping existing ranges.
  *
@@ -743,7 +736,8 @@ void http_buffer_free(http_buffer_t *b)
  * Returns the new head of the list.
  * `ignored' is set to TRUE if range was ignored.
  */
-static GSList *http_range_add(
+static GSList *
+http_range_add(
 	GSList *list, guint32 start, guint32 end,
 	const gchar *field, const gchar *vendor, gboolean *ignored)
 {
@@ -821,9 +815,7 @@ ignored:
 	return list;					/* No change in list */
 }
 
-/*
- * http_range_parse
- *
+/**
  * Parse a Range: header in the request, returning the list of ranges
  * that are enumerated.  Invalid ranges are ignored.
  *
@@ -840,7 +832,8 @@ ignored:
  *
  * Returns a sorted list of http_range_t objects.
  */
-GSList *http_range_parse(
+GSList *
+http_range_parse(
 	const gchar *field, gchar *value, guint32 size, const gchar *vendor)
 {
 	GSList *ranges = NULL;
@@ -1086,12 +1079,11 @@ final:
 	return ranges;
 }
 
-/*
- * http_range_free
- *
+/**
  * Free list of http_range_t objects.
  */
-void http_range_free(GSList *list)
+void
+http_range_free(GSList *list)
 {
 	GSList *l;
 
@@ -1101,12 +1093,11 @@ void http_range_free(GSList *list)
 	g_slist_free(list);
 }
 
-/*
- * http_range_size
- *
+/**
  * Returns total size of all the ranges.
  */
-guint32 http_range_size(const GSList *list)
+guint32
+http_range_size(const GSList *list)
 {
 	const GSList *l;
 	guint32 size = 0;
@@ -1119,12 +1110,11 @@ guint32 http_range_size(const GSList *list)
 	return size;
 }
 
-/*
- * http_range_to_gchar
- *
+/**
  * Returns a pointer to static data, containing the available ranges.
  */
-const gchar *http_range_to_gchar(const GSList *list)
+const gchar *
+http_range_to_gchar(const GSList *list)
 {
 	static gchar str[2048];
 	const GSList *sl = list;
@@ -1142,12 +1132,11 @@ const gchar *http_range_to_gchar(const GSList *list)
 	return str;
 }
 
-/*
- * http_range_contains
- *
+/**
  * Checks whether range contains the contiguous [from, to] interval.
  */
-gboolean http_range_contains(GSList *ranges, guint32 from, guint32 to)
+gboolean
+http_range_contains(GSList *ranges, guint32 from, guint32 to)
 {
 	GSList *l;
 
@@ -1179,7 +1168,8 @@ gboolean http_range_contains(GSList *ranges, guint32 from, guint32 to)
 /**
  * Returns an allocated copy of the given HTTP range.
  */
-static http_range_t *http_range_copy(http_range_t *range)
+static http_range_t *
+http_range_copy(http_range_t *range)
 {
 	http_range_t *r;
 
@@ -1193,7 +1183,8 @@ static http_range_t *http_range_copy(http_range_t *range)
 /**
  * Returns a new list based on the merged ranges in the other lists given.
  */
-GSList *http_range_merge(GSList *old_list, GSList *new_list)
+GSList *
+http_range_merge(GSList *old_list, GSList *new_list)
 {
 	http_range_t *old_range;
 	http_range_t *new_range;
@@ -1351,12 +1342,11 @@ static const gchar * const error_str[] = {
 
 guint http_async_errno;		/* Used to return error codes during setup */
 
-/*
- * http_async_strerror
- *
+/**
  * Return human-readable error string corresponding to error code `errnum'.
  */
-const gchar *http_async_strerror(guint errnum)
+const gchar *
+http_async_strerror(guint errnum)
 {
 	if (errnum >= G_N_ELEMENTS(error_str))
 		return "Invalid error code";
@@ -1431,9 +1421,7 @@ struct http_async {					/* An asynchronous HTTP request */
 
 static GSList *sl_ha_freed = NULL;		/* Pending physical removal */
 
-/*
- * http_async_info
- *
+/**
  * Get URL and request information, given opaque handle.
  * This can be used by client code to log request parameters.
  *
@@ -1441,7 +1429,8 @@ static GSList *sl_ha_freed = NULL;		/* Pending physical removal */
  * if it is a non-NULL pointer, `path' with the request path, `ip' and `port'
  * with the server address/port.
  */
-const gchar *http_async_info(
+const gchar *
+http_async_info(
 	gpointer handle, const gchar **req, gchar **path,
 	guint32 *ip, guint16 *port)
 {
@@ -1457,13 +1446,12 @@ const gchar *http_async_info(
 	return ha->url;
 }
 
-/*
- * http_async_set_opaque
- *
+/**
  * Set user-defined opaque data, which can optionally be freed via `fn' if a
  * non-NULL function pointer is given.
  */
-void http_async_set_opaque(gpointer handle, gpointer data, http_user_free_t fn)
+void
+http_async_set_opaque(gpointer handle, gpointer data, http_user_free_t fn)
 {
 	struct http_async *ha = (struct http_async *) handle;
 
@@ -1474,12 +1462,11 @@ void http_async_set_opaque(gpointer handle, gpointer data, http_user_free_t fn)
 	ha->user_free = fn;
 }
 
-/*
- * http_async_get_opaque
- *
+/**
  * Retrieve user-defined opaque data.
  */
-gpointer http_async_get_opaque(gpointer handle)
+gpointer
+http_async_get_opaque(gpointer handle)
 {
 	struct http_async *ha = (struct http_async *) handle;
 
@@ -1488,13 +1475,12 @@ gpointer http_async_get_opaque(gpointer handle)
 	return ha->user_opaque;
 }
 
-/*
- * http_async_free_recursive
- *
+/**
  * Free this HTTP asynchronous request handler, disposing of all its
  * attached resources, recursively.
  */
-static void http_async_free_recursive(struct http_async *ha)
+static void
+http_async_free_recursive(struct http_async *ha)
 {
 	GSList *l;
 
@@ -1537,13 +1523,12 @@ static void http_async_free_recursive(struct http_async *ha)
 	sl_ha_freed = g_slist_prepend(sl_ha_freed, ha);
 }
 
-/*
- * http_async_free
- *
+/**
  * Free the root of the HTTP asynchronous request handler, disposing
  * of all its attached resources.
  */
-static void http_async_free(struct http_async *ha)
+static void
+http_async_free(struct http_async *ha)
 {
 	struct http_async *hax;
 
@@ -1564,12 +1549,11 @@ static void http_async_free(struct http_async *ha)
 	http_async_free_recursive(hax);
 }
 
-/*
- * http_async_free_pending
- *
+/**
  * Free all structures that have already been logically freed.
  */
-static void http_async_free_pending(void)
+static void
+http_async_free_pending(void)
 {
 	GSList *l;
 
@@ -1584,12 +1568,11 @@ static void http_async_free_pending(void)
 	sl_ha_freed = NULL;
 }
 
-/*
- * http_async_close
- *
+/**
  * Close request.
  */
-void http_async_close(gpointer handle)
+void
+http_async_close(gpointer handle)
 {
 	struct http_async *ha = (struct http_async *) handle;
 
@@ -1598,13 +1581,11 @@ void http_async_close(gpointer handle)
 	http_async_free(ha);
 }
 
-/*
- * http_async_remove
- *
+/**
  * Cancel request (internal call).
  */
-static void http_async_remove(
-	gpointer handle, http_errtype_t type, gpointer code)
+static void
+http_async_remove(gpointer handle, http_errtype_t type, gpointer code)
 {
 	struct http_async *ha = (struct http_async *) handle;
 
@@ -1614,52 +1595,47 @@ static void http_async_remove(
 	http_async_free(ha);
 }
 
-/*
- * http_async_cancel
- *
+/**
  * Cancel request (user request).
  */
-void http_async_cancel(gpointer handle)
+void
+http_async_cancel(gpointer handle)
 {
 	http_async_remove(handle, HTTP_ASYNC_ERROR, (gpointer) HTTP_ASYNC_CANCELLED);
 }
 
-/*
- * http_async_error
- *
+/**
  * Cancel request (internal error).
  */
-void http_async_error(gpointer handle, gint code)
+void
+http_async_error(gpointer handle, gint code)
 {
 	http_async_remove(handle, HTTP_ASYNC_ERROR, GINT_TO_POINTER(code));
 }
 
-/*
- * http_async_syserr
- *
+/**
  * Cancel request (system call error).
  */
-static void http_async_syserr(gpointer handle, gint code)
+static void
+http_async_syserr(gpointer handle, gint code)
 {
 	http_async_remove(handle, HTTP_ASYNC_SYSERR, GINT_TO_POINTER(code));
 }
 
-/*
- * http_async_headerr
- *
+/**
  * Cancel request (header parsing error).
  */
-static void http_async_headerr(gpointer handle, gint code)
+static void
+http_async_headerr(gpointer handle, gint code)
 {
 	http_async_remove(handle, HTTP_ASYNC_HEADER, GINT_TO_POINTER(code));
 }
 
-/*
- * http_async_http_error
- *
+/**
  * Cancel request (HTTP error).
  */
-static void http_async_http_error(
+static void
+http_async_http_error(
 	gpointer handle, struct header *header, gint code, const gchar *message)
 {
 	http_error_t he;
@@ -1671,9 +1647,7 @@ static void http_async_http_error(
 	http_async_remove(handle, HTTP_ASYNC_HTTP, &he);
 }
 
-/*
- * http_async_build_request
- *
+/**
  * Default callback invoked to build the HTTP request.
  *
  * The request is to be built in `buf', which is `len' bytes long.
@@ -1685,7 +1659,8 @@ static void http_async_http_error(
  * properly by a trailing "\r\n" on a line by itself to mark the end of the
  * header.
  */
-static gint http_async_build_request(gpointer handle, gchar *buf, gint len,
+static gint
+http_async_build_request(gpointer handle, gchar *buf, gint len,
 	gchar *verb, gchar *path, gchar *host, guint16 port)
 {
 	int rw;
@@ -1709,9 +1684,7 @@ static gint http_async_build_request(gpointer handle, gchar *buf, gint len,
 	return rw;
 }
 
-/*
- * http_async_create
- *
+/**
  * Internal creation routine for HTTP asynchronous requests.
  *
  * The URL to request is given by `url'.
@@ -1731,7 +1704,8 @@ static gint http_async_build_request(gpointer handle, gchar *buf, gint len,
  *
  * Returns the newly created request, or NULL with `http_async_errno' set.
  */
-static struct http_async *http_async_create(
+static struct http_async *
+http_async_create(
 	gchar *url,						/* Either full URL or path */
 	guint32 ip,						/* Optional: 0 means grab from url */
 	guint16 port,					/* Optional, must be given when IP given */
@@ -1823,12 +1797,11 @@ static struct http_async *http_async_create(
 	return ha;
 }
 
-/*
- * http_async_newstate
- *
+/**
  * Change the request state, and notify listener if any.
  */
-static void http_async_newstate(struct http_async *ha, http_state_t state)
+static void
+http_async_newstate(struct http_async *ha, http_state_t state)
 {
 	ha->state = state;
 	ha->last_update = time(NULL);
@@ -1837,9 +1810,7 @@ static void http_async_newstate(struct http_async *ha, http_state_t state)
 		(*ha->state_chg)(ha, state);
 }
 
-/*
- * http_async_get
- *
+/**
  * Starts an asynchronous HTTP GET request on the specified path.
  * Returns a handle on the request if OK, NULL on error with the
  * http_async_errno variable set before returning.
@@ -1852,7 +1823,8 @@ static void http_async_newstate(struct http_async *ha, http_state_t state)
  * On error, `error_ind' will be called, and upon return, the request will
  * be automatically cancelled.
  */
-gpointer http_async_get(
+gpointer
+http_async_get(
 	gchar *url,
 	http_header_cb_t header_ind,
 	http_data_cb_t data_ind,
@@ -1863,13 +1835,12 @@ gpointer http_async_get(
 		NULL);
 }
 
-/*
- * http_async_get_ip
- *
+/**
  * Same as http_async_get(), but a path on the server is given and the
  * IP and port to contact are given explicitly.
  */
-gpointer http_async_get_ip(
+gpointer
+http_async_get_ip(
 	gchar *path,
 	guint32 ip,
 	guint16 port,
@@ -1882,12 +1853,11 @@ gpointer http_async_get_ip(
 		NULL);
 }
 
-/*
- *  http_async_set_op_request
- *
+/**
  * Redefines the building of the HTTP request.
  */
-void http_async_set_op_request(gpointer handle, http_op_request_t op)
+void
+http_async_set_op_request(gpointer handle, http_op_request_t op)
 {
 	struct http_async *ha = (struct http_async *) handle;
 
@@ -1897,12 +1867,11 @@ void http_async_set_op_request(gpointer handle, http_op_request_t op)
 	ha->op_request = op;
 }
 
-/*
- * http_async_on_state_change
- *
+/**
  * Defines callback to invoke when the request changes states.
  */
-void http_async_on_state_change(gpointer handle, http_state_change_t fn)
+void
+http_async_on_state_change(gpointer handle, http_state_change_t fn)
 {
 	struct http_async *ha = (struct http_async *) handle;
 
@@ -1912,12 +1881,11 @@ void http_async_on_state_change(gpointer handle, http_state_change_t fn)
 	ha->state_chg = fn;
 }
 
-/*
- *  http_async_allow_redirects
- *
+/**
  * Whether we should follow HTTP redirections (FALSE by default).
  */
-void http_async_allow_redirects(gpointer handle, gboolean allow)
+void
+http_async_allow_redirects(gpointer handle, gboolean allow)
 {
 	struct http_async *ha = (struct http_async *) handle;
 
@@ -1926,13 +1894,12 @@ void http_async_allow_redirects(gpointer handle, gboolean allow)
 	ha->allow_redirects = allow;
 }
 
-/*
- * http_subreq_header_ind
- *
+/**
  * Interceptor callback for `header_ind' in child requests.
  * Reroute to parent request.
  */
-static gboolean http_subreq_header_ind(
+static gboolean
+http_subreq_header_ind(
 	gpointer handle, struct header *header, gint code, const gchar *message)
 {
 	struct http_async *ha = (struct http_async *) handle;
@@ -1944,13 +1911,12 @@ static gboolean http_subreq_header_ind(
 	return (*ha->parent->header_ind)(ha->parent, header, code, message);
 }
 
-/*
- * http_subreq_data_ind
- *
+/**
  * Interceptor callback for `data_ind' in child requests.
  * Reroute to parent request.
  */
-static void http_subreq_data_ind(
+static void
+http_subreq_data_ind(
 	gpointer handle, gchar *data, gint len)
 {
 	struct http_async *ha = (struct http_async *) handle;
@@ -1962,13 +1928,12 @@ static void http_subreq_data_ind(
 	(*ha->parent->data_ind)(ha->parent, data, len);
 }
 
-/*
- * http_subreq_error_ind
- *
+/**
  * Interceptor callback for `error_ind' in child requests.
  * Reroute to parent request.
  */
-static void http_subreq_error_ind(
+static void
+http_subreq_error_ind(
 	gpointer handle, http_errtype_t error, gpointer val)
 {
 	struct http_async *ha = (struct http_async *) handle;
@@ -1980,16 +1945,15 @@ static void http_subreq_error_ind(
 	(*ha->parent->error_ind)(ha->parent, error, val);
 }
 
-/*
- * http_async_subrequest
- *
+/**
  * Create a child request, to follow redirection transparently.
  * All callbacks will be rerouted to the parent request, as if they came
  * from the original parent.
  *
  * Returns whether we succeeded in creating the subrequest.
  */
-static gboolean http_async_subrequest(
+static gboolean
+http_async_subrequest(
 	struct http_async *parent, gchar *url, enum http_reqtype type)
 {
 	struct http_async *child;
@@ -2024,12 +1988,11 @@ static gboolean http_async_subrequest(
 	return child != NULL;
 }
 
-/*
- * http_redirect
- *
+/**
  * Redirect current HTTP request to some other URL.
  */
-static void http_redirect(struct http_async *ha, gchar *url)
+static void
+http_redirect(struct http_async *ha, gchar *url)
 {
 	/*
 	 * If this request already has a parent, then we're already
@@ -2078,13 +2041,12 @@ static void http_redirect(struct http_async *ha, gchar *url)
 	ha->io_opaque = NULL;
 }
 
-/*
- * http_got_data
- *
+/**
  * Tell the user that we got new data for his request.
  * If `eof' is TRUE, this is the last data we'll get.
  */
-static void http_got_data(struct http_async *ha, gboolean eof)
+static void
+http_got_data(struct http_async *ha, gboolean eof)
 {
 	struct gnutella_socket *s = ha->socket;
 
@@ -2107,13 +2069,12 @@ static void http_got_data(struct http_async *ha, gboolean eof)
 	}
 }
 
-/*
- * http_data_read
- *
+/**
  * Called when data are available on the socket.
  * Read them and pass them to http_got_data().
  */
-static void http_data_read(gpointer data, gint source, inputevt_cond_t cond)
+static void
+http_data_read(gpointer data, gint source, inputevt_cond_t cond)
 {
 	struct http_async *ha = (struct http_async *) data;
 	struct gnutella_socket *s = ha->socket;
@@ -2152,12 +2113,11 @@ static void http_data_read(gpointer data, gint source, inputevt_cond_t cond)
 	http_got_data(ha, FALSE);				/* EOF not reached yet */
 }
 
-/*
- * http_got_header
- *
+/**
  * Called when the whole server's reply header was parsed.
  */
-static void http_got_header(struct http_async *ha, header_t *header)
+static void
+http_got_header(struct http_async *ha, header_t *header)
 {
 	struct gnutella_socket *s = ha->socket;
 	gchar *status = getline_str(s->getline);
@@ -2281,12 +2241,11 @@ static void http_got_header(struct http_async *ha, header_t *header)
 		http_got_data(ha, FALSE);
 }
 
-/*
- * http_async_state
- *
+/**
  * Get the state of the HTTP request.
  */
-http_state_t http_async_state(gpointer handle)
+http_state_t
+http_async_state(gpointer handle)
 {
 	struct http_async *ha = (struct http_async *) handle;
 
@@ -2324,7 +2283,11 @@ http_state_t http_async_state(gpointer handle)
  ** HTTP header parsing dispatching callbacks.
  **/
 
-static void call_http_got_header(gpointer obj, header_t *header)
+/**
+ * Called when full header was collected.
+ */
+static void
+call_http_got_header(gpointer obj, header_t *header)
 {
 	struct http_async *ha = (struct http_async *) obj;
 
@@ -2335,12 +2298,11 @@ static void call_http_got_header(gpointer obj, header_t *header)
 
 static struct io_error http_io_error;
 
-/*
- * http_header_start
- *
+/**
  * Called when we start receiving the HTTP headers.
  */
-static void http_header_start(gpointer handle)
+static void
+http_header_start(gpointer handle)
 {
 	struct http_async *ha = (struct http_async *) handle;
 	
@@ -2349,12 +2311,11 @@ static void http_header_start(gpointer handle)
 	http_async_newstate(ha, HTTP_AS_HEADERS);
 }
 
-/*
- * http_async_request_sent
- *
+/**
  * Called when the whole HTTP request has been sent out.
  */
-static void http_async_request_sent(struct http_async *ha)
+static void
+http_async_request_sent(struct http_async *ha)
 {
 	http_async_newstate(ha, HTTP_AS_REQ_SENT);
 
@@ -2368,14 +2329,12 @@ static void http_async_request_sent(struct http_async *ha)
 		call_http_got_header, http_header_start, &http_io_error);
 }
 
-/*
- * http_async_write_request
- *
+/**
  * I/O callback invoked when we can write more data to the server to finish
  * sending the HTTP request.
  */
-static void http_async_write_request(
-	gpointer data, gint source, inputevt_cond_t cond)
+static void
+http_async_write_request(gpointer data, gint source, inputevt_cond_t cond)
 {
 	struct http_async *ha = (struct http_async *) data;
 	struct gnutella_socket *s = ha->socket;
@@ -2430,13 +2389,12 @@ static void http_async_write_request(
 	http_async_request_sent(ha);
 }
 
-/*
- * http_async_connected
- *
+/**
  * Callback from the socket layer when the connection to the remote
  * server is made.
  */
-void http_async_connected(gpointer handle)
+void
+http_async_connected(gpointer handle)
 {
 	struct http_async *ha = (struct http_async *) handle;
 	struct gnutella_socket *s = ha->socket;
@@ -2500,13 +2458,12 @@ void http_async_connected(gpointer handle)
 	http_async_request_sent(ha);
 }
 
-/*
- * http_async_log_error
- *
+/**
  * Default error indication callback which logs the error by listing the
  * initial HTTP request and the reported error cause.
  */
-void http_async_log_error(gpointer handle, http_errtype_t type, gpointer v)
+void
+http_async_log_error(gpointer handle, http_errtype_t type, gpointer v)
 {
 	const gchar *url;
 	const gchar *req;
@@ -2561,32 +2518,38 @@ void http_async_log_error(gpointer handle, http_errtype_t type, gpointer v)
  *** I/O header parsing callbacks.
  ***/
 
-static void err_line_too_long(gpointer obj)
+static void
+err_line_too_long(gpointer obj)
 {
 	http_async_error(obj, HTTP_ASYNC_HEAD2BIG);
 }
 
-static void err_header_error(gpointer obj, gint error)
+static void
+err_header_error(gpointer obj, gint error)
 {
 	http_async_headerr(obj, error);
 }
 
-static void err_input_exception(gpointer obj)
+static void
+err_input_exception(gpointer obj)
 {
 	http_async_error(obj, HTTP_ASYNC_IO_ERROR);
 }
 
-static void err_input_buffer_full(gpointer obj)
+static void
+err_input_buffer_full(gpointer obj)
 {
 	http_async_error(obj, HTTP_ASYNC_IO_ERROR);
 }
 
-static void err_header_read_error(gpointer obj, gint error)
+static void
+err_header_read_error(gpointer obj, gint error)
 {
 	http_async_syserr(obj, error);
 }
 
-static void err_header_read_eof(gpointer obj)
+static void
+err_header_read_eof(gpointer obj)
 {
 	http_async_error(obj, HTTP_ASYNC_EOF);
 }
@@ -2602,12 +2565,11 @@ static struct io_error http_io_error = {
 	NULL,
 };
 
-/*
- * http_timer
- *
+/**
  * Called from main timer to expire HTTP requests that take too long.
  */
-void http_timer(time_t now)
+void
+http_timer(time_t now)
 {
 	GSList *l;
 
@@ -2646,12 +2608,11 @@ retry:
 		http_async_free_pending();
 }
 
-/*
- * http_close
- *
+/**
  * Shutdown the HTTP module.
  */
-void http_close(void)
+void
+http_close(void)
 {
 	while (sl_outgoing)
 		http_async_error(

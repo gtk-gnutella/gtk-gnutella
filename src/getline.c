@@ -23,6 +23,12 @@
  *----------------------------------------------------------------------
  */
 
+/**
+ * @file
+ *
+ * Line-oriented parsing from memory buffer.
+ */
+
 #include <string.h>		/* For memmove() */
 
 #include "common.h"
@@ -41,13 +47,12 @@ RCSID("$Id$");
 #define START_LENGTH 	512
 #define GROW_LENGTH		1024
 
-/*
- * getline_make
- *
+/**
  * Create a new line reading object, capable of holding a line of at most
  * `maxlen' bytes.
  */
-getline_t *getline_make(gint maxlen)
+getline_t *
+getline_make(gint maxlen)
 {
 	getline_t *o;
 
@@ -62,12 +67,11 @@ getline_t *getline_make(gint maxlen)
 	return o;
 }
 
-/*
- * getline_free
- *
+/**
  * Destroy getline object.
  */
-void getline_free(getline_t *o)
+void
+getline_free(getline_t *o)
 {
 	g_assert(o);
 	g_assert(o->line);
@@ -76,13 +80,12 @@ void getline_free(getline_t *o)
 	wfree(o, sizeof(*o));
 }
 
-/*
- * getline_reset
- *
+/**
  * Prepare getline object for a new read cycle by forgetting whatever it
  * currently holds.
  */
-void getline_reset(getline_t *o)
+void
+getline_reset(getline_t *o)
 {
 	g_assert(o);
 	g_assert(o->line);
@@ -90,9 +93,7 @@ void getline_reset(getline_t *o)
 	o->pos = 0;
 }
 
-/*
- * getline_read
- *
+/**
  * Read line of a header from supplied buffer.
  *
  * We define a line as being something that ends with either "\r\n" or "\n".
@@ -107,7 +108,8 @@ void getline_reset(getline_t *o)
  *
  * The trailing "\r\n" or "\n" is stripped from the accumulated line.
  */
-gint getline_read(getline_t *o, gchar *data, gint len, gint *used)
+gint
+getline_read(getline_t *o, gchar *data, gint len, gint *used)
 {
 	gchar c;
 	gint orig_len = len;
@@ -169,13 +171,12 @@ gint getline_read(getline_t *o, gchar *data, gint len, gint *used)
 	return (len >= 0) ? READ_DONE : READ_MORE;
 }
 
-/*
- * getline_str
- *
+/**
  * Returns a C string (NUL-terminated) corresponding to the line we currently
  * have in the buffer.
  */
-gchar *getline_str(getline_t *o)
+gchar *
+getline_str(getline_t *o)
 {
 	g_assert(o->pos < o->size);
 
@@ -183,22 +184,20 @@ gchar *getline_str(getline_t *o)
 	return o->line;
 }
 
-/*
- * getline_length
- *
+/**
  * Return the length of the currently accumulated line.
  */
-gint getline_length(getline_t *o)
+gint
+getline_length(getline_t *o)
 {
 	return o->pos;
 }
 
-/*
- * getline_copy
- *
+/**
  * Copy source into dest.
  */
-void getline_copy(getline_t *source, getline_t *dest)
+void
+getline_copy(getline_t *source, getline_t *dest)
 {
 	g_assert(source);
 	g_assert(dest);
