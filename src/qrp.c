@@ -3948,6 +3948,9 @@ qrt_route_query(struct gnutella_node *n, query_hashvec_t *qhvec)
 
 	nodes = qrt_build_query_target(qhvec, n->header.hops, n->header.ttl, n);
 
+	if (nodes == NULL)
+		return;
+
 	if (dbg > 4) {
 		GSList *sl;
 		gint leaves = 0;
@@ -3974,7 +3977,7 @@ qrt_route_query(struct gnutella_node *n, query_hashvec_t *qhvec)
 	 * increase the TTL before sending.
 	 */
 
-	if (nodes != NULL && n->header.ttl == 0)
+	if (n->header.ttl == 0)
 		n->header.ttl++;
 
 	gmsg_split_sendto_all(nodes, (guchar *) &n->header, n->data,
