@@ -155,6 +155,7 @@ static inline gint tx_link_write_error(txdrv_t *tx, const char *func)
 	case ENETDOWN:
 	case ENETUNREACH:
 	case ETIMEDOUT:
+	case EACCES:
 		node_shutdown(tx->node, "Write failed: %s", g_strerror(errno));
 		return -1;
 	default:
