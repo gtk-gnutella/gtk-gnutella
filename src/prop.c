@@ -180,26 +180,56 @@ static void prop_parse_boolean_vector(const gchar *name,
 {
 	/* Parse comma delimited settings */
 
-	gchar **h;
+	const gchar *a, *b, *p = str;
 	gsize i;
 
 	g_assert(str != NULL);
 	g_assert(t != NULL);
 
-	h = g_strsplit(str, ",", size + 1);
+	for (i = 0; *p != '\0' && i < size; i++) {
+		size_t l;
+		gboolean valid;
 
-	for (i = 0; i < size; i++) {
-		if (!h[i])
+		while (is_ascii_space(*p))
+			p++;
+		if (*p == '\0')
 			break;
+		a = p;
+		b = strchr(p, ',');
+		if (!b)
+			b = strchr(p, '\0');
+		p = b--;
+		g_assert(*p == ',' || *p == '\0');
+		p++;
+		
+		while (b > a && is_ascii_space(*b))
+			b--;
 
-		t[i] = (gboolean) (g_ascii_strcasecmp(str, "TRUE") == 0);
+		l = (b - a) + 1;
+		valid = FALSE;
+		switch (l) {
+		case sizeof "TRUE" - 1:
+			if (0 == g_ascii_strncasecmp(a, "TRUE", l)) {
+				t[i] = TRUE;
+				valid = TRUE;
+			}
+			break;
+		case sizeof "FALSE" - 1:
+			if (0 == g_ascii_strncasecmp(a, "FALSE", l)) {
+				t[i] = FALSE;
+				valid = TRUE;
+			}
+			break;
+		}
+		if (!valid) {
+			t[i] = FALSE;
+			g_warning("Not a boolean value (prop=\"%s\"): \"%s\"", name, a);
+		}
 	}
 
-	if (i < size)
+	if (i != size)
 		g_warning("prop_parse_boolean_vector: (prop=\"%s\") "
 			"target initialization incomplete!", name);
-
-	g_strfreev(h);
 }
 
 /*
