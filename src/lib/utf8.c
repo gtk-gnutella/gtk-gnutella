@@ -2900,7 +2900,7 @@ lazy_locale_to_utf8(const gchar *str, size_t len)
 static void
 unicode_decompose_init(void)
 {
-#ifdef USE_GLIB2
+#if 0 && defined(USE_GLIB2)
 	guint i;
 
 	/* Check all single Unicode characters */
