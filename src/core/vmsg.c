@@ -701,8 +701,10 @@ vmsg_send_udp_connect_back(struct gnutella_node *n, guint16 port)
  */
 static void
 handle_proxy_req(struct gnutella_node *n,
-	struct vmsg *vmsg, gchar *payload, gint size)
+	struct vmsg *vmsg, gchar *unused_payload, gint size)
 {
+	(void) unused_payload;
+
 	if (size != 0) {
 		vmsg_bad_payload(n, vmsg, size, 0);
 		return;
@@ -819,9 +821,11 @@ vmsg_send_proxy_ack(struct gnutella_node *n, gchar *muid)
  */
 static void
 handle_qstat_req(struct gnutella_node *n,
-	struct vmsg *vmsg, gchar *payload, gint size)
+	struct vmsg *vmsg, gchar *unused_payload, gint size)
 {
 	guint32 kept;
+
+	(void) unused_payload;
 
 	if (size != 0) {
 		vmsg_bad_payload(n, vmsg, size, 0);
@@ -917,8 +921,10 @@ vmsg_send_qstat_answer(struct gnutella_node *n, gchar *muid, guint16 hits)
  */
 static void
 handle_proxy_cancel(struct gnutella_node *n,
-	struct vmsg *vmsg, gchar *payload, gint size)
+	struct vmsg *vmsg, gchar *unused_payload, gint size)
 {
+	(void) unused_payload;
+
 	if (size != 0) {
 		vmsg_bad_payload(n, vmsg, size, 0);
 		return;
@@ -1094,9 +1100,11 @@ vmsg_send_oob_reply_ack(struct gnutella_node *n, gchar *muid, guint8 want)
  * from another host about time synchronization.
  */
 static void handle_time_sync_req(struct gnutella_node *n,
-	struct vmsg *vmsg, gchar *payload, gint size)
+	struct vmsg *vmsg, gchar *unused_payload, gint size)
 {
 	tm_t got;
+
+	(void) unused_payload;
 
 	/*
 	 * We have received the message well before, but this is the first
@@ -1178,12 +1186,13 @@ static void handle_time_sync_reply(struct gnutella_node *n,
  * Writes current time in the first half of the MUID.
  */
 static gboolean
-vmsg_time_sync_req_stamp(pmsg_t *mb, struct mqueue *q)
+vmsg_time_sync_req_stamp(pmsg_t *mb, struct mqueue *unused_q)
 {
 	tm_t old;
 	tm_t now;
 	gchar *muid = pmsg_start(mb);
 
+	(void) unused_q;
 	g_assert(pmsg_is_writable(mb));
 	STATIC_ASSERT(sizeof(now) == 2 * sizeof(guint32));
 
@@ -1272,11 +1281,12 @@ vmsg_send_time_sync_req(struct gnutella_node *n, gboolean ntp, tm_t *sent)
  * Writes current time in the second half of the MUID.
  */
 static gboolean
-vmsg_time_sync_reply_stamp(pmsg_t *mb, struct mqueue *q)
+vmsg_time_sync_reply_stamp(pmsg_t *mb, struct mqueue *unused_q)
 {
 	tm_t now;
 	gchar *muid = pmsg_start(mb);
 
+	(void) unused_q;
 	g_assert(pmsg_is_writable(mb));
 	STATIC_ASSERT(sizeof(now) == 2 * sizeof(guint32));
 
