@@ -4293,9 +4293,8 @@
 			</widget>
 
 			<widget>
-			  <class>GtkFrame</class>
-			  <name>frame122</name>
-			  <label_xalign>0</label_xalign>
+			  <class>GtkViewport</class>
+			  <name>viewport44</name>
 			  <shadow_type>GTK_SHADOW_IN</shadow_type>
 			  <child>
 			    <left_attach>1</left_attach>

@@ -314,7 +314,7 @@ create_main_window (void)
   GtkWidget *frame119;
   GtkWidget *label_fi_size;
   GtkWidget *label658;
-  GtkWidget *frame122;
+  GtkWidget *viewport44;
   GtkWidget *hbox198;
   GtkWidget *drawingarea_fi_progress;
   GtkWidget *frame79;
@@ -3760,16 +3760,15 @@ create_main_window (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label658), 0, 0.5);
 
-  frame122 = gtk_frame_new (NULL);
-  gtk_widget_set_name (frame122, "frame122");
-  gtk_widget_ref (frame122);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "frame122", frame122,
+  viewport44 = gtk_viewport_new (NULL, NULL);
+  gtk_widget_set_name (viewport44, "viewport44");
+  gtk_widget_ref (viewport44);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "viewport44", viewport44,
                             (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (frame122);
-  gtk_table_attach (GTK_TABLE (table59), frame122, 1, 2, 2, 3,
+  gtk_widget_show (viewport44);
+  gtk_table_attach (GTK_TABLE (table59), viewport44, 1, 2, 2, 3,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (GTK_FILL), 0, 0);
-  gtk_frame_set_shadow_type (GTK_FRAME (frame122), GTK_SHADOW_IN);
 
   hbox198 = gtk_hbox_new (FALSE, 0);
   gtk_widget_set_name (hbox198, "hbox198");
@@ -3777,7 +3776,7 @@ create_main_window (void)
   gtk_object_set_data_full (GTK_OBJECT (main_window), "hbox198", hbox198,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (hbox198);
-  gtk_container_add (GTK_CONTAINER (frame122), hbox198);
+  gtk_container_add (GTK_CONTAINER (viewport44), hbox198);
 
   drawingarea_fi_progress = gtk_drawing_area_new ();
   gtk_widget_set_name (drawingarea_fi_progress, "drawingarea_fi_progress");
@@ -15218,7 +15217,7 @@ create_dlg_about (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label266), 1, 0.5);
 
-  label267 = gtk_label_new (_("Rapha\353l Manfredi"));
+  label267 = gtk_label_new (_("Raphaël Manfredi"));
   gtk_widget_set_name (label267, "label267");
   gtk_widget_ref (label267);
   gtk_object_set_data_full (GTK_OBJECT (dlg_about), "label267", label267,
@@ -15262,7 +15261,7 @@ create_dlg_about (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label291), 1, 0.5);
 
-  label273 = gtk_label_new (_("Rapha\353l Manfredi"));
+  label273 = gtk_label_new (_("Raphaël Manfredi"));
   gtk_widget_set_name (label273, "label273");
   gtk_widget_ref (label273);
   gtk_object_set_data_full (GTK_OBJECT (dlg_about), "label273", label273,
