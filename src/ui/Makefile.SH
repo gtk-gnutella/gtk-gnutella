@@ -192,6 +192,11 @@ Makefiles.SH:: Makefile.SH
 all::
 	@$(MAKE) subdirs TARGET=all VERB="Making all" FLAGS=
 
+local_install::
+local_deinstall::
+local_install.man::
+local_deinstall.man::
+
 !NO!SUBS!
 chmod 644 Makefile
 $eunicefix Makefile
