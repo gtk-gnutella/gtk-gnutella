@@ -81,7 +81,7 @@ gboolean is_vendor_known(guchar raw[4])
     guint32 code;
     READ_GUINT32_BE(raw, code);
 
-    if (raw[0] == '0')
+    if (raw[0] == '\0')
         return FALSE;
 
     for (n = 0; n < (sizeof(vendor_map)/sizeof(vendor_map[0])); n++)
@@ -104,7 +104,7 @@ gchar *lookup_vendor_name(guchar raw[4])
     gint i;
     guint32 code;
 
-    if (raw[0] == '0')
+    if (raw[0] == '\0')
         return NULL;
 
     READ_GUINT32_BE(raw, code);
