@@ -63,6 +63,7 @@ static gchar fg_tmp[1024];
 static GtkCTreeNode *fl_node_global = NULL;
 static GtkCTreeNode *fl_node_bound = NULL;
 static GtkCTreeNode *fl_node_free = NULL;
+static GtkCTreeNode *fl_node_builtin = NULL;
 
 
 
@@ -87,11 +88,13 @@ static GtkCTreeNode *getFilterRoot(filter_t *f);
 static GtkCTreeNode *getFilterRoot(filter_t *f)
 {
     if (filter_is_global(f)) {
-          return fl_node_global;
+        return fl_node_global;
     } else if (filter_is_bound(f)) {
-          return fl_node_bound;
+        return fl_node_bound;
+    } else if (filter_is_builtin(f)) {
+        return fl_node_builtin;
     } else {
-          return fl_node_free;
+        return fl_node_free;
     }
 }
 
@@ -179,6 +182,10 @@ void filter_gui_show_dialog(void)
 void filter_gui_filter_clear_list(void)
 {
     gchar *titles[3];
+    GdkColor *color;
+    
+    color = &(gtk_widget_get_style(GTK_WIDGET(ctree_filter_filters))
+        ->bg[GTK_STATE_ACTIVE]);
 
     if (fl_node_global != NULL)
         gtk_ctree_remove_node(GTK_CTREE(ctree_filter_filters),
@@ -189,14 +196,23 @@ void filter_gui_filter_clear_list(void)
     if (fl_node_free != NULL)
         gtk_ctree_remove_node(GTK_CTREE(ctree_filter_filters),
             fl_node_free);
+    if (fl_node_builtin != NULL)
+        gtk_ctree_remove_node(GTK_CTREE(ctree_filter_filters),
+            fl_node_builtin);
 
-    titles[0] = "Global filters";
+
+    titles[0] = "Builtin targets";
     titles[1] = "";
     titles[2] = "";
-    fl_node_global = gtk_ctree_insert_node(
+    fl_node_builtin = gtk_ctree_insert_node(
         GTK_CTREE(ctree_filter_filters), NULL, NULL,
         titles, 0, NULL, NULL, NULL, NULL, FALSE, TRUE);
             
+    titles[0] = "Global filters";
+    fl_node_global = gtk_ctree_insert_node(
+        GTK_CTREE(ctree_filter_filters), NULL, NULL,
+        titles, 0, NULL, NULL, NULL, NULL, FALSE, TRUE);
+
     titles[0] = "Search filters";
     fl_node_bound = gtk_ctree_insert_node(
         GTK_CTREE(ctree_filter_filters), NULL, NULL,
@@ -208,11 +224,22 @@ void filter_gui_filter_clear_list(void)
         titles, 0, NULL, NULL, NULL, NULL, FALSE, TRUE);
 
     gtk_ctree_node_set_selectable
+        (GTK_CTREE(ctree_filter_filters), fl_node_builtin, FALSE);
+    gtk_ctree_node_set_selectable
         (GTK_CTREE(ctree_filter_filters), fl_node_global, FALSE);
     gtk_ctree_node_set_selectable
         (GTK_CTREE(ctree_filter_filters), fl_node_bound, FALSE);
     gtk_ctree_node_set_selectable
         (GTK_CTREE(ctree_filter_filters), fl_node_free, FALSE);
+
+    gtk_ctree_node_set_background(GTK_CTREE(ctree_filter_filters),
+        fl_node_builtin, color);
+    gtk_ctree_node_set_background(GTK_CTREE(ctree_filter_filters),
+        fl_node_global, color);
+    gtk_ctree_node_set_background(GTK_CTREE(ctree_filter_filters),
+        fl_node_bound, color);
+    gtk_ctree_node_set_background(GTK_CTREE(ctree_filter_filters),
+        fl_node_free, color);
 }
 
 
@@ -257,6 +284,15 @@ void filter_gui_filter_add(filter_t *f, GList *ruleset)
             0, NULL, NULL, NULL, NULL, TRUE, TRUE);
         gtk_ctree_node_set_row_data
             (GTK_CTREE(ctree_filter_filters), node, (gpointer) f);
+
+        if (parent == fl_node_builtin) {
+            gtk_ctree_node_set_selectable
+                (GTK_CTREE(ctree_filter_filters), node, FALSE);
+            gtk_ctree_node_set_background
+                (GTK_CTREE(ctree_filter_filters), node,
+                 &(gtk_widget_get_style(GTK_WIDGET(ctree_filter_filters))
+                    ->bg[GTK_STATE_INSENSITIVE]));
+        }
     
         g_free(titles[1]);
     }
@@ -448,9 +484,14 @@ void filter_gui_update_filter_stats(void)
         } else {
             buf = filter->match_count+filter->fail_count;
             if (buf != 0) {
-                g_snprintf(fg_tmp, sizeof(fg_tmp), "%d/%d (%d%%)",
-                    filter->match_count, buf, 
-                    (gint)((float)filter->match_count/buf*100));
+                if (filter_is_builtin(filter)) {
+                    g_snprintf(fg_tmp, sizeof(fg_tmp), "%d",
+                        filter->match_count);
+                } else {
+                    g_snprintf(fg_tmp, sizeof(fg_tmp), "%d/%d (%d%%)",
+                        filter->match_count, buf, 
+                        (gint)((float)filter->match_count/buf*100));
+                }
                 title = fg_tmp;
             } else {
                 title = "none yet";
