@@ -250,19 +250,23 @@ static void parse_and_append_cache_entry(char *line)
 	const char *file_name;
 	char *file_name_end;
 	char *p, *end; /* pointers to scan the line */
+	gint c;
 	off_t size;
 	time_t mtime;
 	char digest[SHA1_RAW_SIZE];
 
 	/* Skip comments and blank lines */
-	if (*line == '#' || *line == '\n') return;
+	c = line[0];
+	if (c == '\0' || c == '#' || c == '\n')
+		return;
 
 	sha1_digest_ascii = line; /* SHA1 digest is the first field. */
 
 	/* Scan until file size */
 
 	p = line;
-	while(*p != '\t' && *p != '\n') p++;
+	while ((c = *p) != '\0' && c != '\t' && c != '\n')
+		p++;
 
 	if (
 		*p != '\t' ||
