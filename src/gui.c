@@ -177,8 +177,8 @@ void gui_init(void)
                              GDK_SELECTION_TYPE_STRING, 1);
 
 	// FIXME: all the widget from here to end have empty callback functions
-	gtk_widget_set_sensitive(popup_queue_search_again, FALSE);
-	gtk_widget_set_sensitive(popup_downloads_search_again, FALSE);
+	//gtk_widget_set_sensitive(popup_queue_search_again, FALSE);
+	//gtk_widget_set_sensitive(popup_downloads_search_again, FALSE);
 	// FIXME: end
 
     gtk_widget_set_sensitive(entry_minimum_speed, FALSE);
