@@ -165,7 +165,7 @@ gboolean http_send_status(
  */
 static gint code_message_parse(gchar *line, gchar **msg)
 {
-	gchar *p;
+	guchar *p;
 	guchar code[4];
 	gint c;
 	gint i;
@@ -253,7 +253,7 @@ gint http_status_parse(gchar *line,
 	gchar *proto, gchar **msg, gint *major, gint *minor)
 {
 	gint c;
-	gchar *p;
+	guchar *p;
 
 	/*
 	 * Skip leading spaces.
@@ -521,7 +521,7 @@ gboolean http_url_parse(
 	 * Validate the host.
 	 */
 
-	if (isdigit(*host_start)) {
+	if (isdigit((guchar) *host_start)) {
 		guint lsb, b2, b3, msb;
 		if (
 			5 == sscanf(host_start, "%u.%u.%u.%u%c", &msb, &b3, &b2, &lsb, &s)

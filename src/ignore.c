@@ -222,7 +222,7 @@ static void namesize_parse(FILE *f, guchar *file)
 	gint line = 0;
 	guint32 size;
 	guint8 c;
-	gchar *p, *q;
+	guchar *p, *q;
 	namesize_t *ns;
 	namesize_t nsk;
 

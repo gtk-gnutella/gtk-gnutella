@@ -131,7 +131,7 @@ gboolean gchar_to_ip_port(gchar *str, guint32 *ip, guint16 *port)
 	gint lsb, b2, b3, msb;
 	gint iport;
 
-	while ((c = *str)) {		/* Skip leading spaces */
+	while ((c = (guchar)*str)) {		/* Skip leading spaces */
 		if (!isspace(c))
 			break;
 		str++;
@@ -580,7 +580,7 @@ void dump_hex(FILE *out, gchar *title, gchar *s, gint b)
 {
 
 	int i, x, y, z, end;
-	char temp[18];
+	guchar temp[18];
 
 	if ((b < 0) || (s == NULL)) {
 		g_warning("dump_hex: value out of range [s=0x%lx, b=%d] for %s",

@@ -186,7 +186,7 @@ typedef enum _MERIDIAN {
 **  yacc had the %union construct.)  Maybe someday; right now we only use
 **  the %union very rarely.
 */
-static const char	*yyInput;
+static const unsigned char	*yyInput;
 static int	yyDayOrdinal;
 static int	yyDayNumber;
 static int	yyHaveDate;
@@ -751,8 +751,8 @@ static int ToYear(int Year)
 
 static int LookupWord(char *buff)
 {
-    register char *p;
-    register char *q;
+    register unsigned char *p;
+    register unsigned char *q;
     register const TABLE *tp;
     int i;
     int abbrev;
@@ -853,9 +853,9 @@ static int LookupWord(char *buff)
 
 static int yylex(void)
 {
-    register char c;
-    register char *p;
-    char buff[20];
+    register unsigned char c;
+    register unsigned char *p;
+    unsigned char buff[20];
     int Count;
     int sign;
 

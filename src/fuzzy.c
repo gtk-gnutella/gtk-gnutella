@@ -31,7 +31,7 @@
 
 static char *fuzzy_strlower(char *a)
 {
-	char *p = a;
+	unsigned char *p = a;
 	while (*p) {
 		*p = tolower(*p);
 		p++;
@@ -45,9 +45,9 @@ static GSList *fuzzy_make_word_list(char *n)
 	char *p;
 
 	while (*n) {
-		while (!isalnum(*n)) n++;
+		while (!isalnum((unsigned char)*n)) n++;
 		p = n;
-		while (isalnum(*n)) n++;
+		while (isalnum((unsigned char)*n)) n++;
 		if(*n) { 
 			*n = '\0';
 			n++;
