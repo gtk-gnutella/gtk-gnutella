@@ -1,5 +1,10 @@
 # since last version
 
+- (2002.10.17 Richard)
+ * Fixed several bugs in filter_cb.c when copying/pasting a rule.
+ * Fixed bug: hostcatcher does not update properly in gui if no hosts 
+   file was found.
+
 - (2002.10.15 RAM)
  * Added GGEP parsing and generation code.
  * Added support for COBS (required by GGEP).
