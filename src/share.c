@@ -1578,6 +1578,9 @@ struct shared_file *shared_file_by_sha1(const gchar *sha1_digest)
 {
 	struct shared_file *f;
 
+	if (sha1_to_share == NULL)			/* Not even began share_scan() yet */
+		return SHARE_REBUILDING;
+
 	f = g_tree_lookup(sha1_to_share, (gpointer) sha1_digest);
 
 	if (!f || !sha1_hash_available(f)) {
@@ -1595,3 +1598,4 @@ struct shared_file *shared_file_by_sha1(const gchar *sha1_digest)
 
 	return f;
 }
+
