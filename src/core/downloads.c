@@ -97,8 +97,6 @@ static const gchar DL_BAD_EXT[] = ".BAD"; 	/* "Bad" files (SHA1 mismatch) */
 static const gchar DL_UNKN_EXT[] = ".UNKN";	/* For unchecked files */
 static const gchar file_what[] = "downloads";/* What we're persisting to file */
 
-static GHashTable *pushed_downloads = NULL;
-
 static void download_add_to_list(struct download *d, enum dl_list idx);
 static gboolean send_push_request(const gchar *, guint32, guint16);
 static void download_read(gpointer data, gint source, inputevt_cond_t cond);
@@ -417,7 +415,6 @@ download_source_progress(struct download *d)
 void
 download_init(void)
 {
-	pushed_downloads = g_hash_table_new(guid_hash, guid_eq);
 	dl_by_host = g_hash_table_new(dl_key_hash, dl_key_eq);
 	dl_by_ip = g_hash_table_new(dl_ip_hash, dl_ip_eq);
 	dl_count_by_name = g_hash_table_new(g_str_hash, g_str_equal);
@@ -2331,56 +2328,7 @@ download_retry_no_urires(struct download *d, gint delay, gint ack_code)
 static void
 download_push_insert(struct download *d)
 {
-	union {
-		GSList *list;
-		gpointer ptr;
-	} value;
-	gpointer key;
-	gboolean found;
-
 	g_assert(!d->push);
-
-	/*
-	 * We should not have the download already in the table, since we take care
-	 * when starting a download that there is no (active) duplicate.  We also
-	 * perform the same check on resuming a stopped download, so the following
-	 * warning should not happen.  It will indicate a bug. --RAM, 01/01/2002
-	 *
-	 * However, it is possible that a servent updates its library, and that
-	 * we get another query hit from that servent with a different file name
-	 * but with the same index of a file we already recorded in the hash table.
-	 * That is possible because we check for duplicate downloads based on
-	 * the (name, GUID) tuple only.
-	 *
-	 * To overcome this, we have to store a list of downloads with the same
-	 * key, and prepend newest ones, as being the ones with the "most accurate"
-	 * index, supposedly. --RAM, 13/03/2002
-	 */
-
-	found = g_hash_table_lookup_extended(pushed_downloads, download_guid(d),
-				&key, &value.ptr);
-
-	if (!found) {
-		value.list = g_slist_append(NULL, d);
-		key = atom_str_get(download_guid(d));
-		g_hash_table_insert(pushed_downloads, key, value.list);
-	} else {
-		GSList *l;
-
-		if ((l = g_slist_find(value.list, d))) {
-			struct download *ad = (struct download *) l->data;
-			g_assert(ad != NULL);
-			g_warning("BUG: duplicate push ignored for \"%s\"", ad->file_name);
-			g_warning("BUG: argument is 0x%lx, \"%s\", key = %s, state = %d",
-				(gulong) d, d->file_name, guid_hex_str(key), d->status);
-			g_warning("BUG: in table has 0x%lx \"%s\", key = %s, state = %d",
-				(gulong) ad, ad->file_name, guid_hex_str(download_guid(ad)),
-				ad->status);
-		} else {
-			value.list = g_slist_prepend(value.list, d);
-			g_hash_table_insert(pushed_downloads, key, value.list);
-		}
-	}
 
 	d->push = TRUE;
 }
@@ -2391,43 +2339,7 @@ download_push_insert(struct download *d)
 static void
 download_push_remove(struct download *d)
 {
-	union {
-		GSList *list;
-		gpointer ptr;
-	} value;
-	gpointer key;
-
 	g_assert(d->push);
-
-	if (
-		g_hash_table_lookup_extended(pushed_downloads, download_guid(d),
-			&key, &value.ptr)
-	) {
-		GSList *l = g_slist_find(value.list, d);
-
-		/*
-		 * Value `list' is a list of downloads that share the same key.
-		 * We need to remove the entry in the hash table only when the
-		 * last downlaod is removed from that list.
-		 */
-
-		if (l == NULL) {
-			g_warning("BUG: push 0x%lx \"%s\" not found, key = %s, state = %d",
-				(gulong) d, d->file_name, guid_hex_str(download_guid(d)),
-				d->status);
-		} else {
-			g_assert(l->data == (gpointer) d);
-			value.list = g_slist_remove(value.list, d);
-			if (value.list == NULL) {
-				g_hash_table_remove(pushed_downloads, key);
-				atom_str_free(key);
-			} else
-				g_hash_table_insert(pushed_downloads, key, value.list);
-		}
-	} else {
-		g_warning("BUG: tried to remove missing push %s",
-			guid_hex_str(download_guid(d)));
-    }
 
 	d->push = FALSE;
 }
@@ -3599,30 +3511,13 @@ download_index_changed(guint32 ip, guint16 port, gchar *guid,
 	for (n = 0; n < G_N_ELEMENTS(listnum); n++) {
 		for (l = server->list[n]; l; l = g_list_next(l)) {
 			struct download *d = (struct download *) l->data;
-			gboolean push_mode;
 			g_assert(d != NULL);
 
 			if (d->record_index != from)
 				continue;
 
-			push_mode = d->push;
-
-			/*
-			 * When in push mode, we've recorded the index in a hash table,
-			 * associating the GIV string to the download structure.
-			 * If that index changes, we need to remove the old mapping before
-			 * operating the change, and re-install the new mapping after
-			 * then change took place.
-			 */
-
-			if (push_mode)
-				download_push_remove(d);
-
 			d->record_index = to;
 			nfound++;
-
-			if (push_mode)
-				download_push_insert(d);
 
 			switch (d->status) {
 			case GTA_DL_REQ_SENT:
@@ -4717,13 +4612,7 @@ download_moved_permanently(struct download *d, header_t *header)
 	 * Update download structure.
 	 */
 
-	if (d->push)
-		download_push_remove(d);			/* About to change index */
-
 	d->record_index = info.idx;
-
-	if (d->push)
-		download_push_insert(d);
 
 	download_redirect_to_server(d, info.ip, info.port);
 
@@ -6927,48 +6816,8 @@ download_push_ready(struct download *d, getline_t *empty)
 static struct download *
 select_push_download(const gchar *guid)
 {
-	struct download *d = NULL;
-	GSList *list;
 	gint i;
 	time_t now;
-
-	list = (GSList *) g_hash_table_lookup(pushed_downloads, guid);
-	if (list) {
-		d = (struct download *) list->data;			/* Take first entry */
-		g_assert(d != NULL);
-	} else if (dbg > 3)
-		g_message("got unexpected GIV: nothing pending currently");
-
-	/*
-	 * We might get another GIV for the same download: we send two pushes
-	 * in a row, and with the propagation delay, the first gets handled
-	 * after we sent the second push.  We'll get a GIV for an already
-	 * connected download.
-	 *
-	 * We check two things: that we're not already connected (has a socket)
-	 * and that we're in a state where we can expect a GIV string.	Doing
-	 * the two tests add robustness, since they are overlapping, but not
-	 * completely equivalent (if we're in the queued state, for instance).
-	 */
-
-	if (d) {
-		if (d->socket) {
-			if (dbg > 3)
-				g_message("got concurrent GIV: download is connected, state %d",
-					d->status);
-			d = NULL;
-		} else if (!DOWNLOAD_IS_EXPECTING_GIV(d)) {
-			if (dbg > 3)
-				g_message("got GIV string for download in state %d",
-					d->status);
-			d = NULL;
-		}
-	}
-
-	if (d) {
-		g_assert(d->socket == NULL);
-		return d;
-	}
 
 	/*
 	 * We do not limit by download slots for GIV... Indeed, pushes are
@@ -8086,8 +7935,6 @@ download_close(void)
 	sl_downloads = NULL;
 	g_slist_free(sl_unqueued);
 	sl_unqueued = NULL;
-	g_hash_table_destroy(pushed_downloads);
-	pushed_downloads = NULL;
 
 	/* XXX free & check other hash tables as well.
 	 * dl_by_ip, dl_by_host
