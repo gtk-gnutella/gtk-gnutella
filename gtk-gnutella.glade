@@ -2630,7 +2630,7 @@
 	      <widget>
 		<class>GtkLabel</class>
 		<name>search_reissue_label</name>
-		<label>Search Reissue Timeout (seconds):</label>
+		<label>Retry search every (seconds, 0=never):</label>
 		<justify>GTK_JUSTIFY_CENTER</justify>
 		<wrap>False</wrap>
 		<xalign>0.5</xalign>
@@ -2647,7 +2647,7 @@
 	      <widget>
 		<class>GtkEntry</class>
 		<name>entry_search_reissue_timeout</name>
-		<width>32</width>
+		<width>40</width>
 		<can_focus>True</can_focus>
 		<signal>
 		  <name>activate</name>

@@ -1417,8 +1417,8 @@ static void search_reissue_timeout_changed(GtkEntry * entry)
 {
 	guint v = atol(gtk_entry_get_text(entry));
 
-	if (v < 300)
-		v = 300;		/* Have to be reasonable -- RAM, 30/12/2001 */
+	if (v > 0 && v < 300)	/* v == 0 means: no reissue */
+		v = 300;			/* Have to be reasonable -- RAM, 30/12/2001 */
 
 	if (v < ((guint32) - 1) / 1000)
 		search_update_reissue_timeout(v);

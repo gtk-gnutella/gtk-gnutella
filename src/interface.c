@@ -1504,7 +1504,7 @@ create_main_window (void)
   gtk_widget_show (hbuttonbox3);
   gtk_box_pack_start (GTK_BOX (hbox62), hbuttonbox3, TRUE, TRUE, 0);
 
-  search_reissue_label = gtk_label_new ("Search Reissue Timeout (seconds):");
+  search_reissue_label = gtk_label_new ("Retry search every (seconds, 0=never):");
   gtk_widget_ref (search_reissue_label);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "search_reissue_label", search_reissue_label,
                             (GtkDestroyNotify) gtk_widget_unref);
@@ -1517,7 +1517,7 @@ create_main_window (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (entry_search_reissue_timeout);
   gtk_box_pack_start (GTK_BOX (hbox62), entry_search_reissue_timeout, FALSE, FALSE, 0);
-  gtk_widget_set_usize (entry_search_reissue_timeout, 32, -2);
+  gtk_widget_set_usize (entry_search_reissue_timeout, 40, -2);
 
   label_search = gtk_label_new ("Search");
   gtk_widget_ref (label_search);
