@@ -920,7 +920,7 @@ static void socket_accept(gpointer data, gint source,
 	struct gnutella_socket *t = NULL;
 
 	if (cond & INPUT_EVENT_EXCEPTION) {
-		g_warning("Input Exception for listening socket #%d !!!!\n",
+		g_warning("Input Exception for listening socket #%d !!!!",
 				  s->file_desc);
 		gtk_gnutella_exit(2);
 		return;
@@ -930,7 +930,7 @@ static void socket_accept(gpointer data, gint source,
 	case SOCK_TYPE_CONTROL:
 		break;
 	default:
-		g_warning("socket_accept(): Unknown listening socket type %d !\n",
+		g_warning("socket_accept(): Unknown listening socket type %d !",
 				  s->type);
 		socket_destroy(s, NULL);
 		return;
@@ -1481,7 +1481,7 @@ int proxy_connect(int fd, const struct sockaddr *addr, guint len)
 
 	if (!inet_aton(ip_to_gchar(proxy_ip), &server.sin_addr)) {
 		g_warning("The SOCKS server (%s) in configuration "
-				   "file is invalid\n", ip_to_gchar(proxy_ip));
+				   "file is invalid", ip_to_gchar(proxy_ip));
 	} else {
 		/* Construct the addr for the socks server */
 		server.sin_family = AF_INET;	/* host byte order */
@@ -1557,7 +1557,7 @@ int send_socks(struct gnutella_socket *s)
 
 	/* Send the socks header info */
 	if ((rc = send(s->file_desc, (void *) thisreq, length, 0)) < 0) {
-		g_warning("Error attempting to send SOCKS request (%s)\n",
+		g_warning("Error attempting to send SOCKS request (%s)",
 				   strerror(errno));
 		rc = rc;
 		return -1;
@@ -1577,26 +1577,26 @@ int recv_socks(struct gnutella_socket *s)
 	if ((rc =
 		 recv(s->file_desc, (void *) &thisrep, sizeof(struct sockrep),
 			  0)) < 0) {
-		g_warning("Error attempting to receive SOCKS " "reply (%s)\n",
+		g_warning("Error attempting to receive SOCKS " "reply (%s)",
 				   g_strerror(errno));
 		rc = ECONNREFUSED;
 	} else if (rc < sizeof(struct sockrep)) {
-		g_warning("Short reply from SOCKS server\n");
+		g_warning("Short reply from SOCKS server");
 		/* Let the application try and see how they */
 		/* go										*/
 		rc = 0;
 	} else if (thisrep.result == 91) {
-		g_warning("SOCKS server refused connection\n");
+		g_warning("SOCKS server refused connection");
 		rc = ECONNREFUSED;
 	} else if (thisrep.result == 92) {
 		g_warning("SOCKS server refused connection "
 				   "because of failed connect to identd "
-				   "on this machine\n");
+				   "on this machine");
 		rc = ECONNREFUSED;
 	} else if (thisrep.result == 93) {
 		g_warning("SOCKS server refused connection "
 				   "because identd and this library "
-				   "reported different user-ids\n");
+				   "reported different user-ids");
 		rc = ECONNREFUSED;
 	} else {
 		rc = 0;
@@ -1627,7 +1627,7 @@ int connect_http(struct gnutella_socket *s)
 			(rc = send(s->file_desc, (void *)s->buffer,
 				strlen(s->buffer), 0)) < 0
 		) {
-			g_warning("Sending info to HTTP proxy failed: %s\n",
+			g_warning("Sending info to HTTP proxy failed: %s",
 				g_strerror(errno));
 			return -1;
 		}
@@ -1636,14 +1636,14 @@ int connect_http(struct gnutella_socket *s)
 	case 1:
 		rc = read(s->file_desc, s->buffer, sizeof(s->buffer)-1);
 		if (rc < 0) {
-			g_warning("Receiving answer from HTTP proxy faild: %s\n",
+			g_warning("Receiving answer from HTTP proxy faild: %s",
 				g_strerror(errno));
 			return -1;
 		}
 		s->getline = getline_make(HEAD_MAX_SIZE);
 		switch (getline_read(s->getline, s->buffer, rc, &parsed)) {
 		case READ_OVERFLOW:
-			g_warning("Reading buffer overflow\n");
+			g_warning("Reading buffer overflow");
 			return -1;
 		case READ_DONE:
 			if (rc != parsed)
@@ -1657,7 +1657,7 @@ int connect_http(struct gnutella_socket *s)
 		}
 		str = getline_str(s->getline);
 		if ((status = http_status_parse(str, NULL, NULL, NULL, NULL)) < 0) {
-			g_warning("Bad status line\n");
+			g_warning("Bad status line");
 			return -1;
 		}
 		if ((status / 100) != 2) {
@@ -1670,7 +1670,7 @@ int connect_http(struct gnutella_socket *s)
 			getline_reset(s->getline);
 			switch (getline_read(s->getline, s->buffer, rc, &parsed)) {
 			case READ_OVERFLOW:
-				g_warning("Reading buffer overflow\n");
+				g_warning("Reading buffer overflow");
 				return -1;
 			case READ_DONE:
 				if (rc != parsed)
@@ -1693,7 +1693,7 @@ int connect_http(struct gnutella_socket *s)
 	case 2:
 		rc = read(s->file_desc, s->buffer, sizeof(s->buffer)-1);
 		if (rc < 0) {
-			g_warning("Receiving answer from HTTP proxy failed: %s\n",
+			g_warning("Receiving answer from HTTP proxy failed: %s",
 				g_strerror(errno));
 			return -1;
 		}
@@ -1701,7 +1701,7 @@ int connect_http(struct gnutella_socket *s)
 			getline_reset(s->getline);
 			switch (getline_read(s->getline, s->buffer, rc, &parsed)) {
 			case READ_OVERFLOW:
-				g_warning("Reading buffer overflow\n");
+				g_warning("Reading buffer overflow");
 				return -1;
 			case READ_DONE:
 				if (rc != parsed)
@@ -1755,7 +1755,7 @@ int connect_socksv5(struct gnutella_socket *s)
 	case 0:
 		/* Now send the method negotiation */
 		if ((rc = send(sockid, (void *) verstring, 4, 0)) < 0) {
-			g_warning("Sending SOCKS method negotiation failed: %s\n",
+			g_warning("Sending SOCKS method negotiation failed: %s",
 				g_strerror(errno));
 			return (-1);
 		}
@@ -1765,21 +1765,21 @@ int connect_socksv5(struct gnutella_socket *s)
 	case 1:
 		/* Now receive the reply as to which method we're using */
 		if ((rc = recv(sockid, (void *) buf, 2, 0)) < 0) {
-			g_warning("Receiving SOCKS method negotiation reply failed: %s\n",
+			g_warning("Receiving SOCKS method negotiation reply failed: %s",
 				g_strerror(errno));
 			rc = ECONNREFUSED;
 			return (rc);
 		}
 
 		if (rc < 2) {
-			g_warning("Short reply from SOCKS server\n");
+			g_warning("Short reply from SOCKS server");
 			rc = ECONNREFUSED;
 			return (rc);
 		}
 
 		/* See if we offered an acceptable method */
 		if (buf[1] == '\xff') {
-			g_warning("SOCKS server refused authentication methods\n");
+			g_warning("SOCKS server refused authentication methods");
 			rc = ECONNREFUSED;
 			return (rc);
 		}
@@ -1803,13 +1803,13 @@ int connect_socksv5(struct gnutella_socket *s)
 		if (((uname = socks_user) == NULL) &&
 			((uname =
 			  (nixuser == NULL ? NULL : nixuser->pw_name)) == NULL)) {
-			g_warning("No Username to authenticate with.\n");
+			g_warning("No Username to authenticate with.");
 			rc = ECONNREFUSED;
 			return (rc);
 		}
 
 		if (((upass = socks_pass) == NULL)) {
-			g_warning("No Password to authenticate with.\n");
+			g_warning("No Password to authenticate with.");
 			rc = ECONNREFUSED;
 			return (rc);
 		}
@@ -1828,7 +1828,7 @@ int connect_socksv5(struct gnutella_socket *s)
 
 		/* Send out the authentication */
 		if ((rc = send(sockid, (void *) buf, offset, 0)) < 0) {
-			g_warning("Sending SOCKS authentication failed: %s\n",
+			g_warning("Sending SOCKS authentication failed: %s",
 				g_strerror(errno));
 			return (-1);
 		}
@@ -1839,21 +1839,21 @@ int connect_socksv5(struct gnutella_socket *s)
 	case 3:
 		/* Receive the authentication response */
 		if ((rc = recv(sockid, (void *) buf, 2, 0)) < 0) {
-			g_warning("Receiving SOCKS authentication reply failed: %s\n",
+			g_warning("Receiving SOCKS authentication reply failed: %s",
 				g_strerror(errno));
 			rc = ECONNREFUSED;
 			return (rc);
 		}
 
 		if (rc < 2) {
-			g_warning("Short reply from SOCKS server\n");
+			g_warning("Short reply from SOCKS server");
 			rc = ECONNREFUSED;
 			return (rc);
 		}
 
 		if (buf[1] != '\x00') {
 			g_warning("SOCKS authentication failed, "
-					   "check username and password\n");
+					   "check username and password");
 			rc = ECONNREFUSED;
 			return (rc);
 		}
@@ -1870,7 +1870,7 @@ int connect_socksv5(struct gnutella_socket *s)
 
 		/* Now send the connection */
 		if ((rc = send(sockid, (void *) buf, 10, 0)) <= 0) {
-			g_warning("Send SOCKS connect command failed: %s\n",
+			g_warning("Send SOCKS connect command failed: %s",
 				g_strerror(errno));
 			return (-1);
 		}
@@ -1880,14 +1880,14 @@ int connect_socksv5(struct gnutella_socket *s)
 	case 5:
 		/* Now receive the reply to see if we connected */
 		if ((rc = recv(sockid, (void *) buf, 10, 0)) < 0) {
-			g_warning("Receiving SOCKS connection reply failed: %s\n",
+			g_warning("Receiving SOCKS connection reply failed: %s",
 				g_strerror(errno));
 			rc = ECONNREFUSED;
 			return (rc);
 		}
 		if (dbg) printf("connect_socksv5: Step 5, bytes recv'd %i\n", rc);
 		if (rc < 10) {
-			g_warning("Short reply from SOCKS server\n");
+			g_warning("Short reply from SOCKS server");
 			rc = ECONNREFUSED;
 			return (rc);
 		}
@@ -1897,31 +1897,31 @@ int connect_socksv5(struct gnutella_socket *s)
 			g_warning("SOCKS connect failed: ");
 			switch ((gint8) buf[1]) {
 			case 1:
-				g_warning("General SOCKS server failure\n");
+				g_warning("General SOCKS server failure");
 				return (ECONNABORTED);
 			case 2:
-				g_warning("Connection denied by rule\n");
+				g_warning("Connection denied by rule");
 				return (ECONNABORTED);
 			case 3:
-				g_warning("Network unreachable\n");
+				g_warning("Network unreachable");
 				return (ENETUNREACH);
 			case 4:
-				g_warning("Host unreachable\n");
+				g_warning("Host unreachable");
 				return (EHOSTUNREACH);
 			case 5:
-				g_warning("Connection refused\n");
+				g_warning("Connection refused");
 				return (ECONNREFUSED);
 			case 6:
-				g_warning("TTL Expired\n");
+				g_warning("TTL Expired");
 				return (ETIMEDOUT);
 			case 7:
-				g_warning("Command not supported\n");
+				g_warning("Command not supported");
 				return (ECONNABORTED);
 			case 8:
-				g_warning("Address type not supported\n");
+				g_warning("Address type not supported");
 				return (ECONNABORTED);
 			default:
-				g_warning("Unknown error\n");
+				g_warning("Unknown error");
 				return (ECONNABORTED);
 			}
 		}
